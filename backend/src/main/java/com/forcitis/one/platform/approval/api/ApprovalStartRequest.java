@@ -27,10 +27,6 @@ public record ApprovalStartRequest(ProcessKey processKey, DocumentReference docu
         Objects.requireNonNull(trigger, "trigger");
         Objects.requireNonNull(contentHash, "contentHash");
         Objects.requireNonNull(summary, "summary");
-        if (!document.documentType().equals(processKey.documentType())) {
-            throw new IllegalArgumentException(processKey + " approves " + processKey.documentType() + " documents, not "
-                    + document.documentType());
-        }
         routingFlags = Set.copyOf(routingFlags);
         formFields = List.copyOf(formFields);
     }

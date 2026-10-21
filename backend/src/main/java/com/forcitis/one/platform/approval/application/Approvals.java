@@ -59,6 +59,10 @@ class Approvals {
     ApprovalRequest openRound(ApprovalStartRequest request, Optional<ApprovalRequest> existing) {
         ApprovalInstanceId instanceId = new ApprovalInstanceId(ids.next());
         Moment now = time.moment();
+        if (!request.document().documentType().equals(request.processKey().documentType())) {
+            throw ApprovalError.PLATFORM_APPROVAL_NO_PROCESS.refusal("No approval process for " + request.document().documentType() + " documents: "
+                    + request.processKey() + " approves " + request.processKey().documentType() + " only");
+        }
         documentTypes.requireInForce(request.document().documentType(), now.date());
         if (existing.isPresent()) {
             existing.get().restart(request.initiator(), instanceId, request.summary(), request.trigger(), now);
