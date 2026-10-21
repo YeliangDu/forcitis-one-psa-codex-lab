@@ -46,6 +46,8 @@
 
 - `docs/modernization/COORDINATOR_LEDGER.md`（当前派工与暂停项；冲突处以本日决定原文核对）
 - `docs/modernization/phase1a/NEXT_BATCH_PLAN.md`（历史卡与设计依据；须结合当前派工重判适用性，下一步卡仍从调度取得）
+- `docs/modernization/phase1a/HANDOFF_one-1a-par.md`（本会话交接：#509 收尾步骤、F2/接口清单/日历的顺序与要点、待办）
+- `docs/modernization/phase1a/a8-split/SPLIT_PLAN.md`（按 ADR-0055 拆 A8 同步的切分方案，A 线；盘点明细同目录 INVENTORY.md）
 
 ## 交接条件
 
@@ -73,4 +75,4 @@ PAR-1..PAR-5 完成或达到 §2.1 第 1 条阈值时在批次边界交接；F-1
 
 ## 当前状态
 
-2026-10-17 13:25+0200 原 PAR 卡与旧队列仅作历史证据；当前实施以调度在途卡为准。在途：#453（AuditLog 返回条目 ID）、#465 与 #468（验收类提速）待入队；F-1 数据设计已通过（第四轮），ADR-0034-IMPL 部分通过（VOIDED、B 组待补签），PR-3 依赖 one-1a-next-5 的 WF-REINSTATE；身份在职核对、H1 小卡排在其后。安全相关工作（ADR-0034-IMPL、身份在职核对）由本会话按新 ADR 核对，不交 Codex。dev 暂停；与 one-1a-next-5、one-ops、one-data 直接协调，完成或阻塞时报调度。
+2026-10-21 15:34+0200 交接：#509（删老待办）等裁定 -05 进 main 后改 ReadOnlyAccountCheckIT、CI 绿报 one-merge，随后 F2（IMP-1021-PAR-04）、组织接口清单（PAR-03）、日历改造（PAR-02，方案在分支 claude/one-1a-par-calendar-plan）；A、B 及依赖项等 one-architecture 补篇；细节与步骤见 phase1a/HANDOFF_one-1a-par.md。
