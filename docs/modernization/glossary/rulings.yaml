@@ -410,3 +410,11 @@ rulings:
     id: single_operator_relaxation
     definition: 单人运维模式下被放宽的规则，封闭为五个取值：见证人省略、应急账号下限一个、超级管理员下限一个（只改同步暂停原因文本）、模板版本无作者、日历版本无作者（起草版本作者为空）；写入标注审计的 detail；新增取值须另立 ADR（ADR-0030 第 2 项）
     source: ADR-0072 决定 2（已采纳 2026-10-21，放宽清单由四值增为五值，增「每个日历版本记录作者」）
+  - op: rename
+    late: true
+    id: it_asset_repair_order
+    zh: 信息技术资产维修单
+    en: ItAssetRepairOrder
+    definition: 记录公司信息技术资产的故障、维修安排与完成情况的维修单。
+    forbid_old: true
+    source: 用户 2026-10-21 用语确认第五批 GL4-04（提交 GL4-20261021-221322-bbn，intent 2026-10-21-221338）

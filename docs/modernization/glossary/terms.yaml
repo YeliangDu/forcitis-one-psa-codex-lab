@@ -13060,13 +13060,13 @@ terms:
   status: approved
   confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
 - id: it_asset_repair_order
-  zh: 信息技术设备维修单
+  zh: 信息技术资产维修单
   en: ItAssetRepairOrder
   snake: it_asset_repair_order
   kind: aggregate
   bc: organization.administration
   scope: domain
-  definition: 记录公司信息技术设备的故障、维修安排与完成情况的维修单。
+  definition: 记录公司信息技术资产的故障、维修安排与完成情况的维修单。
   standard_ref:
   - .codex-inputs/nouns.json /17/1/1
   confidence: low
@@ -13077,9 +13077,14 @@ terms:
     deprecated: true
     context: organization.administration
     source: NM4~NM4-03
-  forbidden: []
+  - name: 信息技术设备维修单
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第五批 GL4-04（提交 GL4-20261021-221322-bbn，intent 2026-10-21-221338）
+  forbidden:
+  - 信息技术设备维修单
   status: approved
-  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）；用户 2026-10-21 用语确认第五批 GL4-04（提交 GL4-20261021-221322-bbn，intent 2026-10-21-221338）（用户裁定，rulings.yaml）
 - id: employee_activity_request
   zh: 员工活动申请
   en: EmployeeActivityRequest
