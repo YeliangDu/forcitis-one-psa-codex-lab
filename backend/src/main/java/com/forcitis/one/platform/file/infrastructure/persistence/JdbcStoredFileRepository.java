@@ -67,7 +67,7 @@ class JdbcStoredFileRepository implements StoredFileRepository {
         UUID command = ids.next();
         UUID correlation = WorkContext.correlationId().orElse(command);
         jdbc.sql("""
-                        insert into platform_file.state_transitions (id, aggregate_type_code, aggregate_id, sequence_number, from_status, to_status,
+                        insert into platform_file.state_transitions (id, aggregate_type_code, aggregate_id, transition_sequence_number, from_status, to_status,
                             occurred_on_date, recorded_at, actor_type, actor_id, cause_kind, command_id, correlation_id, created_at, updated_at)
                         values (:id, 'StoredFile', :file, 0, null, :status, :day, :at, :actorType, :actorId, 'COMMAND', :command, :correlation, :at, :at)
                         """)
