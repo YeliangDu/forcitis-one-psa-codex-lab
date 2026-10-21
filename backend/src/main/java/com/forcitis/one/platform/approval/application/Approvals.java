@@ -5,7 +5,7 @@ import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.approval.api.ApprovalError;
-import com.forcitis.one.platform.numbering.api.DocumentTypes;
+import com.forcitis.one.platform.numbering.api.RegisteredDocumentTypes;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
@@ -31,9 +31,9 @@ class Approvals {
     private final DomainEvents events;
     private final BusinessTime time;
     private final IdGenerator ids;
-    private final DocumentTypes documentTypes;
+    private final RegisteredDocumentTypes documentTypes;
 
-    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time, IdGenerator ids, DocumentTypes documentTypes) {
+    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time, IdGenerator ids, RegisteredDocumentTypes documentTypes) {
         this.documentTypes = documentTypes;
         this.ids = ids;
         this.requests = requests;
@@ -63,7 +63,7 @@ class Approvals {
             throw ApprovalError.PLATFORM_APPROVAL_NO_PROCESS.refusal("No approval process for " + request.document().documentType() + " documents: "
                     + request.processKey() + " approves " + request.processKey().documentType() + " only");
         }
-        documentTypes.requireInForce(request.document().documentType(), now.date());
+        documentTypes.requireRegistered(request.document().documentType());
         if (existing.isPresent()) {
             existing.get().restart(request.initiator(), instanceId, request.summary(), request.trigger(), now);
             return existing.get();

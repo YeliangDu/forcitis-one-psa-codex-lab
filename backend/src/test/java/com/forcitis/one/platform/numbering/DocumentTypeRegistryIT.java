@@ -57,6 +57,9 @@ class DocumentTypeRegistryIT {
     DocumentTypes documentTypes;
 
     @Autowired
+    com.forcitis.one.platform.numbering.api.RegisteredDocumentTypes registeredTypes;
+
+    @Autowired
     JdbcClient jdbc;
 
     @Test
@@ -84,6 +87,16 @@ class DocumentTypeRegistryIT {
                 + " values (uuidv7(), 'PURCHASE_ORDER', 'procurement', false, DATE '2026-01-01')").update();
 
         assertThatCode(() -> documentTypes.requireInForce(code, DAY)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("a retired type is still registered: a continuing writer is not stranded, an unknown code is refused")
+    void retiredTypeStaysRegistered() {
+        jdbc.sql("insert into platform_numbering.document_types (document_type_id, code, owner_bc_code, is_finance_confirmation_required, effective_from_date, retired_date)"
+                + " values (uuidv7(), 'OLD_FORM', 'procurement', false, DATE '2020-01-01', DATE '2021-01-01')").update();
+
+        assertThatCode(() -> registeredTypes.requireRegistered(new DocumentTypeCode("OLD_FORM"))).doesNotThrowAnyException();
+        assertThatThrownBy(() -> registeredTypes.requireRegistered(new DocumentTypeCode("NEVER_REGISTERED"))).isInstanceOf(DomainException.class);
     }
 
     @Test
