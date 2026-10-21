@@ -75,6 +75,72 @@ class AggregateSourceTest(unittest.TestCase):
         self.assertEqual(directory / "planned.yaml", p.SRC["planned"])
 
 
+class CommandNetworkTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.sources = {key: self.root / f'{key}.yaml' for key in ('cmd', 'otr')}
+        self.command = {'id': 'CMD-12345678', 'name': '登记对象', 'aggregate': 'AGG-01',
+                        'owner_bc': 'B-01', 'objects': ['OBJ-01']}
+        self.transition = {'id': 'OTR-001', 'aggregate': 'AGG-01', 'command': '登记对象', 'by_command': 'CMD-12345678'}
+        self.write()
+
+    def write(self, commands=None, pending=None):
+        self.sources['cmd'].write_text(yaml.safe_dump({'commands': commands if commands is not None else [self.command]}, allow_unicode=True))
+        self.sources['otr'].write_text(yaml.safe_dump({'transitions': [self.transition], 'pending': pending or []}, allow_unicode=True))
+
+    def load(self):
+        model = {'cmd': {}, 'otr': {}, 'agg': {'AGG-01': {}}, 'bc': {'B-01': {}}}
+        edges = []
+        with patch.dict(p.SRC, self.sources):
+            p.load_commands(model, lambda kind, a, b, src: edges.append({'kind': kind, 'from': a, 'to': b, 'src': src}))
+        return model, edges
+
+    def test_arc09_links_and_report_checks_include_pending(self):
+        pending = {'id': 'OTR-002', 'aggregate': 'AGG-99', 'command': None, 'by_command': None}
+        self.write(pending=[pending])
+        model, edges = self.load()
+        self.assertEqual({'cmd-agg', 'cmd-bc', 'cmd-obj', 'cmd-otr'}, {e['kind'] for e in edges})
+        self.assertTrue(all('#' in e['src'] for e in edges))
+        self.assertEqual(('CMD-12345678', 'OTR-001'), next((e['from'], e['to']) for e in edges if e['kind'] == 'cmd-otr'))
+        gaps = p.defaultdict(list)
+        p.check_commands(model, gaps)
+        self.assertEqual([], gaps['N10-2'])
+        self.assertEqual(['OTR-002（pending，AGG-99，命令 None）'], gaps['N10-3'])
+        self.command['owner_bc'] = None
+        self.transition['by_command'] = None
+        self.write()
+        model, edges = self.load()
+        p.check_commands(model, gaps := p.defaultdict(list))
+        self.assertEqual(1, len(gaps['N10-2']))
+        self.assertEqual(1, len(gaps['N10-3']))
+        self.assertEqual({'cmd-agg', 'cmd-obj'}, {e['kind'] for e in edges})
+        self.assertNotIn('N11-2', p.CHECKS)
+        self.assertIn('N11-1', p.CHECKS)
+
+    def test_arc09_missing_duplicate_or_invalid_reference_fails(self):
+        self.write(commands=[self.command, self.command])
+        with self.assertRaisesRegex(ValueError, '编号重复'):
+            self.load()
+        self.write()
+        self.transition['by_command'] = 'CMD-87654321'
+        self.write()
+        with self.assertRaisesRegex(ValueError, 'by_command'):
+            self.load()
+        self.transition['by_command'] = self.command['id']
+        self.transition['command'] = ' 登记对象'
+        self.write()
+        with self.assertRaisesRegex(ValueError, '原文'):
+            self.load()
+        self.sources['cmd'].unlink()
+        with self.assertRaises(FileNotFoundError):
+            self.load()
+
+    def test_arc09_repeated_read_has_identical_bytes(self):
+        self.assertEqual(yaml.safe_dump(self.load()).encode(), yaml.safe_dump(self.load()).encode())
+
+
 class ConstraintNetworkTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)

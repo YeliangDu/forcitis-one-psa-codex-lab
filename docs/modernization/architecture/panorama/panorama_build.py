@@ -16,6 +16,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 import yaml
+import scan_commands
 
 HERE = Path(__file__).resolve().parent
 ARCH = HERE.parent
@@ -49,6 +50,8 @@ SRC = {
     "external": ROOT / "backend/architecture/external-read-registry.yaml",
     "access": ROOT / "backend/architecture/data-access-registry.yaml",
     "modules": ROOT / "backend/architecture/module-dependencies.txt",
+    "cmd": ARCH / "ssot/11-commands/commands.yaml",
+    "otr": ARCH / "ssot/10-objects/transitions.yaml",
 }
 IN_SYSTEM = ("用户角色", "往来单位加角色", "专门对象", "只作属性或参与者", "不进系统")
 OUT_MODEL = HERE / "panorama.yaml"
@@ -63,7 +66,7 @@ UNAUTOMATED = {}
 SKELETON = ARCH / "proposals" / "closeout"
 LAYER_NODE = {"sh": "01", "shcat": "01", "con": "02", "vp": "03", "decr": "04", "cap": "05", "vs": "06", "stage": "06", "prc": "07", "inv": "08",
               "obj": "09", "act": "10", "fact": "11", "dim": "12", "metric": "13", "bind": "14", "dec": "15",
-              "rule": "08", "ep": "10", "tc": "10", "api": "10 映射", "mod": "10 映射", "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
+              "cmd": "10", "otr": "09/10 映射", "rule": "08", "ep": "10", "tc": "10", "api": "10 映射", "mod": "10 映射", "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
 NODES = {"01": "干系人", "02": "关注点", "03": "价值主张", "04": "取舍决定", "05": "业务能力", "06": "价值流与阶段", "07": "业务流程", "08": "约束与认定规则", "09": "业务对象", "10": "受控业务执行", "11": "业务事实", "12": "维度", "13": "指标与评价", "14": "计算绑定", "15": "决策与行动"}
 CHECKS = {
     "N01-1": "每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）",
@@ -97,6 +100,8 @@ CHECKS = {
     "N10-M3": "每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属）",
     "N10-1": "每个受控业务执行（命令）都有 owner BC",
     "N10-M1": "每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）",
+    "N10-2": "每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）",
+    "N10-3": "每条状态转换有触发命令（含 pending；by_command 为空计缺口）",
     "N11-1": "每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）",
     "N13-1": "每个阶段都有指标",
     "N13-2": "每个指标都能追到阶段或流程",
@@ -387,6 +392,50 @@ def load_planned_aggregates(m, link):
             link("obj-agg", obj, aid, src)
 
 
+def load_commands(m, link):
+    add_nodes(m, "cmd", "commands", "id")
+    for ident, command in m["cmd"].items():
+        if not re.fullmatch(r"CMD-[0-9a-f]{8}", ident):
+            raise ValueError(f"命令编号无效：{ident}")
+        scan_commands.command_key(command, "aggregate", "name")
+        if "owner_bc" not in command or not isinstance(command.get("objects"), list):
+            raise ValueError(f"{ident} 缺 owner_bc 或 objects 列表")
+        scan_commands.string(command["owner_bc"], "owner_bc", nullable=True)
+        src = command["src"]
+        if command["aggregate"] in m["agg"]:
+            link("cmd-agg", ident, command["aggregate"], src + ".aggregate")
+        if command["owner_bc"]:
+            if command["owner_bc"] not in m["bc"]:
+                raise ValueError(f"{ident} 引用了不存在的 BC：{command['owner_bc']}")
+            link("cmd-bc", ident, command["owner_bc"], src + ".owner_bc")
+        for obj in command["objects"]:
+            if not isinstance(obj, str) or not OBJ_RE.fullmatch(obj):
+                raise ValueError(f"{ident} 对象编号无效：{obj}")
+            link("cmd-obj", ident, obj, src + ".objects")
+    for section in ("transitions", "pending"):
+        for index, row in enumerate(read_rows("otr", section)):
+            ident = row["id"]
+            if ident in m["otr"] or "by_command" not in row:
+                raise ValueError(f"转换编号重复或缺 by_command：{ident}")
+            src = f"{rel(SRC['otr'])}#{section}[{index}]/{ident}"
+            m["otr"][ident] = {**row, "section": section, "src": src}
+            command = row["by_command"]
+            if command is not None:
+                target = m["cmd"].get(command)
+                if not target or (row["aggregate"], row["command"]) != (target["aggregate"], target["name"]):
+                    raise ValueError(f"{ident} 的 by_command 未对上同聚合的命令原文：{command}")
+                link("cmd-otr", command, ident, src + ".by_command")
+
+
+def check_commands(m, gaps):
+    for ident, command in m.get("cmd", {}).items():
+        if not command["owner_bc"]:
+            gaps["N10-2"].append(f"{ident} {command['name']}（{command['aggregate']} 未归 BC）")
+    for ident, transition in m.get("otr", {}).items():
+        if transition["by_command"] is None:
+            gaps["N10-3"].append(f"{ident}（{transition['section']}，{transition['aggregate']}，命令 {transition['command']}）")
+
+
 def mapping_paths(args):
     match = re.search(r'(?:\b(?:path|value)\s*=\s*|^\s*)(\{(?:\s*"[^"]*"\s*,?)+\}|"[^"]*")', args)
     if match:
@@ -515,7 +564,7 @@ def coverage_counts(m, links):
 
 def load():
     m = {k: {} for k in ("sh", "con", "vp", "decr", "cap", "vs", "stage", "prc", "inv", "obj", "act", "fact", "dim",
-                         "metric", "bind", "dec", "agg", "bc", "sd", "table", "rule", "ep", "tc", "api", "mod")}
+                         "metric", "bind", "dec", "agg", "bc", "sd", "table", "rule", "ep", "tc", "api", "mod", "cmd", "otr")}
     links = []
 
     def link(kind, a, b, src, **evidence):
@@ -627,6 +676,7 @@ def load():
     load_tables(m, link, mod_to_bc)
     load_constraints(m, link)
     load_interfaces(m, link, mod_to_bc)
+    load_commands(m, link)
 
     for t in yaml.safe_load(SRC["terms"].read_text(encoding="utf-8"))["terms"]:
         if t.get("kind") == "metric":
@@ -832,6 +882,7 @@ def check(m, anchoring=None):
         if not mt["stages"] and not mt["processes"]:
             gaps["N13-2"].append(f"{mid} {mt['zh']}")
     check_coverage(m, gaps)
+    check_commands(m, gaps)
     return gaps
 
 
@@ -963,16 +1014,23 @@ def main():
     if "--self-test" in sys.argv:
         self_test()
         return 0
+    scan_commands.generate(ROOT, check="--check" in sys.argv)
     m, links, _ = load()
     vsd = yaml.safe_load(SRC["vs"].read_text(encoding="utf-8"))
     old_sh = OUT_SH.read_text(encoding="utf-8")
     new_sh = stakeholder_table(vsd, old_sh)
-    if new_sh != old_sh:
-        OUT_SH.write_text(new_sh, encoding="utf-8")
     gaps = check(m, anc.compute())
     model, report = render(m, links, gaps)
-    OUT_MODEL.write_text(model, encoding="utf-8")
-    OUT_GAPS.write_text(report, encoding="utf-8")
+    outputs = {OUT_MODEL: model, OUT_GAPS: report, OUT_SH: new_sh}
+    if "--check" in sys.argv:
+        different = [rel(path) for path, content in outputs.items()
+                     if not path.is_file() or path.read_bytes() != content.encode("utf-8")]
+        if different:
+            raise ValueError("全景生成物不一致：" + "、".join(different))
+    else:
+        for path, content in outputs.items():
+            if not path.is_file() or path.read_bytes() != content.encode("utf-8"):
+                path.write_text(content, encoding="utf-8")
     print("panorama: " + "、".join(f"{k} {len(v)}" for k, v in m.items()) + "；缺口 " + "、".join(f"{k} {len(gaps.get(k, []))}" for k in CHECKS))
     return 0
 

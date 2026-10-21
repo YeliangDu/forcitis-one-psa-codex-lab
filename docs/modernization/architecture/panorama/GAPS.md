@@ -45,6 +45,8 @@
 | 10 受控业务执行 | tc | 1132 |
 | 10 映射  | api | 68 |
 | 10 映射  | mod | 13 |
+| 10 受控业务执行 | cmd | 606 |
+| 09/10 映射  | otr | 905 |
 | 01 干系人 | shcat | 6 |
 | 07 业务流程 | steps | 647 |
 
@@ -83,6 +85,8 @@
 | N10-M3 | 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属） | 0 |
 | N10-1 | 每个受控业务执行（命令）都有 owner BC | 37 |
 | N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 4 |
+| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 1 |
+| N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 48 |
 | N11-1 | 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列） | 6 |
 | N13-1 | 每个阶段都有指标 | 61 |
 | N13-2 | 每个指标都能追到阶段或流程 | 79 |
@@ -799,6 +803,61 @@
 - B-02 服务与定价目录（模块 masterdata.catalog）
 - B-32 报价发出编排（暂名）（模块 None）
 - reporting 经营分析（只读）（模块 reporting）
+
+## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（1）
+
+- CMD-c2d24f95 登记招标项目（REF-01 未归 BC）
+
+## N10-3 每条状态转换有触发命令（含 pending；by_command 为空计缺口）（48）
+
+- OTR-017（transitions，AGG-55，命令 None）
+- OTR-019（transitions，AGG-55，命令 None）
+- OTR-020（transitions，AGG-55，命令 None）
+- OTR-021（transitions，AGG-55，命令 None）
+- OTR-025（transitions，AGG-55，命令 None）
+- OTR-026（transitions，AGG-55，命令 None）
+- OTR-027（transitions，AGG-55，命令 None）
+- OTR-087（transitions，AGG-56，命令 None）
+- OTR-088（transitions，AGG-56，命令 None）
+- OTR-414（transitions，AGG-40，命令 None）
+- OTR-415（transitions，AGG-40，命令 None）
+- OTR-416（transitions，AGG-40，命令 None）
+- OTR-423（transitions，AGG-45，命令 None）
+- OTR-511（transitions，AGG-53，命令 None）
+- OTR-514（transitions，AGG-53，命令 None）
+- OTR-515（transitions，AGG-53，命令 None）
+- OTR-536（transitions，AGG-59，命令 None）
+- OTR-537（transitions，AGG-59，命令 None）
+- OTR-567（transitions，AGG-90，命令 None）
+- OTR-584（transitions，AGG-91，命令 None）
+- OTR-589（transitions，AGG-82，命令 None）
+- OTR-590（transitions，AGG-82，命令 None）
+- OTR-612（transitions，AGG-98，命令 None）
+- OTR-613（transitions，AGG-98，命令 None）
+- OTR-614（transitions，AGG-98，命令 None）
+- OTR-619（transitions，AGG-86，命令 None）
+- OTR-620（transitions，AGG-86，命令 None）
+- OTR-690（transitions，AGG-109，命令 None）
+- OTR-720（transitions，AGG-115，命令 None）
+- OTR-725（transitions，AGG-115，命令 None）
+- OTR-785（transitions，AGG-78，命令 None）
+- OTR-786（transitions，AGG-78，命令 None）
+- OTR-789（transitions，AGG-123，命令 None）
+- OTR-790（transitions，AGG-123，命令 None）
+- OTR-793（transitions，AGG-124，命令 None）
+- OTR-794（transitions，AGG-124，命令 None）
+- OTR-797（transitions，AGG-133，命令 None）
+- OTR-798（transitions，AGG-133，命令 None）
+- OTR-807（transitions，AGG-101，命令 None）
+- OTR-827（pending，AGG-85，命令 None）
+- OTR-828（pending，AGG-85，命令 None）
+- OTR-831（pending，AGG-94，命令 None）
+- OTR-832（pending，AGG-94，命令 None）
+- OTR-839（pending，AGG-128，命令 None）
+- OTR-840（pending，AGG-128，命令 None）
+- OTR-843（pending，AGG-129，命令 None）
+- OTR-844（pending，AGG-129，命令 None）
+- OTR-848（pending，AGG-125，命令 None）
 
 ## N11-1 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）（6）
 
