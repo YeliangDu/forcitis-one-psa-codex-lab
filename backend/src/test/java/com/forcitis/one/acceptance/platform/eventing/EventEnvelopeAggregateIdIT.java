@@ -9,7 +9,7 @@ import com.forcitis.one.cost.timesheet.application.GetTimesheet;
 import com.forcitis.one.cost.timesheet.application.SubmitTimesheet;
 import com.forcitis.one.cost.timesheet.application.SubmitTimesheetCommand;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.Hours;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -63,7 +63,7 @@ class EventEnvelopeAggregateIdIT extends P5Support {
         attributeEmployee(maintainer, initiator, legalEntity.value());
         confirmSeededNumberingRule("TIMESHEET", maintainer);
         timesheet = new TimesheetId(UUID.randomUUID());
-        document = new DocumentReference(DocumentType.TIMESHEET, documentIdOf(UUID.fromString(timesheet.value().toString())));
+        document = new DocumentReference(new DocumentTypeCode("TIMESHEET"), documentIdOf(UUID.fromString(timesheet.value().toString())));
 
         actInSession(initiatorAccount);
         submitTimesheet.execute(new SubmitTimesheetCommand(timesheet, TODAY.minusDays(3), Hours.of("8"), employeeIdOf(projectManager)));

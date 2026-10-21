@@ -25,6 +25,8 @@ SECTION5_FIXTURE = """## 5. 上下文管理
   - 默认先交 Codex：凡结果能由 Claude 审出对错的产出都先交 Codex 写——编码与文档。
   - 不交 Codex：生产取证与任何连生产的操作；身份、授权、凭据、单人模式防线等安全改动；opus 复审；验收测试；与用户和其他会话的沟通。
   - 调用：在独立 worktree 中 `codex exec -m fixed-model -o <结果文件> < /dev/null`（必须关闭标准输入，否则空等）。一律用会话 Bash 的 `run_in_background` 启动，在本会话后台任务里可见、完成自动唤醒；不得用 nohup、`&`、setsid 等脱离会话。
+- **DeepSeek 派工**：
+  - 调用：`pi -p --no-session --model fixed-model --tools read < /dev/null`。必须关闭标准输入：pi 无终端时先读完标准输入。
 - **任务命名与登记**：
   - 每张卡（含设计、文档）一个**任务号** `<主线码>-<MMDD>-<会话码>-<两位序号>`。
   - **任务名**：`[主线·bc] 动作 + 对象`。
@@ -39,11 +41,12 @@ def assert_section5(text):
     assert all(len(line) <= 80 and "\n" not in line for line in actual), actual
     excluded = [line for line in actual if line.startswith("Codex 派工：不交 Codex：")]
     primary = [line for line in actual if line not in excluded]
-    assert len(primary) == 5, primary
+    assert len(primary) == 6, primary
     assert primary[0].startswith("Codex 派工：默认先交 Codex："), primary
     assert "run_in_background" in primary[1], primary
     assert "codex exec" in primary[2] and "< /dev/null" in primary[2], primary
-    assert all(line.startswith("任务命名与登记：") for line in primary[3:]), primary
+    assert primary[3].startswith("DeepSeek 派工：") and "pi -p" in primary[3] and "< /dev/null" in primary[3] and "必须关闭标准输入" in primary[3], primary
+    assert all(line.startswith("任务命名与登记：") for line in primary[4:]), primary
     source_list = re.search(r"(?m)^\s*[-+*]\s+不交 Codex[：:]\s*(.+)", text)
     assert source_list, "真实 §5 必须有不交 Codex 清单"
     items = [item.strip().removesuffix("。").strip() for item in re.split(r"[；;]", source_list.group(1))]
@@ -53,13 +56,15 @@ def assert_section5(text):
 
 def section5_mutation_test(text):
     actual = assert_section5(text)
-    tasks, exclusions = {3, 4}, set(range(5, len(actual)))
+    tasks, exclusions = {4, 5}, set(range(6, len(actual)))
     mutations = [
         ("**Codex 派工**", "**Codex 调用**", {0, 1, 2} | exclusions, 4),
         ("默认先交 Codex：", "可选 Codex：", {0}, 1),
         ("一律用会话 Bash 的 `run_in_background` 启动", "", {1}, 1),
         ("不得用 nohup、`&`、setsid 等脱离会话", "", {1}, 1),
-        ("< /dev/null", "", {2}, 1),
+        ("< /dev/null", "", {2, 3}, 2),
+        ("**DeepSeek 派工**", "**DeepSeek 调用**", {3}, 1),
+        ("`pi -p ", "`pi ", {3}, 1),
         ("**任务命名与登记**", "**任务记录**", tasks, 1),
         ("**任务号**", "**卡号**", tasks, 1),
         ("**任务名**", "**卡名**", tasks, 1),
@@ -95,9 +100,9 @@ def section5_generation_test(text, actual):
         (0, "产出都先交 Codex 写", "产出必须先交 Codex 完成"),
         (1, "在本会话后台任务里可见", "在本会话后台任务列表里可见"),
         (2, "必须关闭标准输入", "必须关闭标准输入以免空等"),
-        (3, "[主线·bc] 动作 + 对象", "[主线·bc] 核实 + 对象"),
-        (4, "fixed/tasks/<任务号>.md", "fixed/tasks/<任务号>-新.md"),
-        (5, "生产取证与任何连生产的操作", "生产取证及连接生产的操作"),
+        (4, "[主线·bc] 动作 + 对象", "[主线·bc] 核实 + 对象"),
+        (5, "fixed/tasks/<任务号>.md", "fixed/tasks/<任务号>-新.md"),
+        (6, "生产取证与任何连生产的操作", "生产取证及连接生产的操作"),
     ]
     for i, before, after in changes:
         assert before in text, before
@@ -123,6 +128,7 @@ def section5_self_test(text):
         ("默认先交 Codex", "凡结果能由 Claude 审出对错", "先交 Codex"),
         ("一律用会话 Bash", "run_in_background", "启动", "后台任务里可见", "不得用", "nohup", "&", "setsid", "脱离会话"),
         ("codex exec", "< /dev/null", "必须关闭标准输入"),
+        ("pi -p", "< /dev/null", "必须关闭标准输入"),
         ("每张卡一个任务号", "<主线码>-<MMDD>-<会话码>-<两位序号>", "任务名", "[主线·bc]"),
         ("后台任务显示", "<执行者>", "登记", "fixed/tasks/<任务号>.md", "写一个片段"),
     ]
@@ -155,7 +161,7 @@ class CommonDigestTest(unittest.TestCase):
             + "\n" + SECTION5_FIXTURE + "\n## 11. 总调度会话\n**战队协作**\n1. **待决定收件箱**：正文。\n")
 
     def test_section5_fixed_fixture(self):
-        self.assertEqual(section5_self_test(SECTION5_FIXTURE), 18)
+        self.assertEqual(section5_self_test(SECTION5_FIXTURE), 20)
 
     def test_real_source_parses_without_warnings(self):
         text = SOURCE.read_text(encoding="utf-8")

@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.numbering.domain;
 
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.numbering.api.LegacyNumberEntry;
 import java.util.List;
@@ -9,9 +9,9 @@ import java.util.Optional;
 
 public interface LegacyNumberRepository {
 
-    Optional<LegacyNumberEntry> find(ExternalSource sourceSystem, DocumentType type, String legacyNumber);
+    Optional<LegacyNumberEntry> find(ExternalSource sourceSystem, DocumentTypeCode type, String legacyNumber);
 
-    List<LegacyNumberEntry> findByPrefix(ExternalSource sourceSystem, DocumentType type, String prefix, String after, int limit);
+    List<LegacyNumberEntry> findByPrefix(ExternalSource sourceSystem, DocumentTypeCode type, String prefix, String after, int limit);
 
     List<LegacyNumberEntry> findByDocument(DocumentReference document);
 

@@ -27,6 +27,7 @@ import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
+import com.forcitis.one.platform.numbering.domain.SeededDocumentTypes;
 import com.forcitis.one.platform.numbering.domain.TemplateVersion;
 import com.forcitis.one.platform.numbering.domain.VersionStatus;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
@@ -146,7 +147,7 @@ class EventSequenceContinuityTest {
     void numberingRule() {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);
         TemplateVersion seeded = new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(41)), 1, pattern, 1, LocalDate.of(2026, 10, 15), null, NOW, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
-        checkMany(() -> NumberingRule.restore(new NumberingRuleId(TestIds.uuid(4)), DocumentType.QUOTE, List.of(seeded), 0, 0), List.of(
+        checkMany(() -> NumberingRule.restore(new NumberingRuleId(TestIds.uuid(4)), SeededDocumentTypes.of("QUOTE"), List.of(seeded), 0, 0), List.of(
                 r -> r.confirm(TestAccounts.account(2), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(1)), r -> r.propose(new NumberingRuleVersionId(TestIds.uuid(61)), pattern, 5, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
                 r -> r.propose(new NumberingRuleVersionId(TestIds.uuid(62)), pattern, 0, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
                 r -> r.confirm(TestAccounts.account(3), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2)), r -> r.confirm(TestAccounts.account(4), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2))));

@@ -23,3 +23,5 @@ docs/modernization/tasks/TASKS.md
 __pycache__/
 .claude/session-name
 .claude/push-bypass.log
+.claude/context-handoff-state.json
+.pi-lens-probe-home/
