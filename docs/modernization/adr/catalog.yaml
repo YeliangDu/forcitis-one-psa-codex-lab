@@ -177,7 +177,7 @@ adrs:
   category: "数据"
   bc: ["platform.migration"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0039 legacy_numbers 表路径", "ADR-0054 决定 10、迁移方案 2 至 4（部分）"]
+  partially_superseded: ["ADR-0039 legacy_numbers 表路径", "ADR-0054 决定 10、迁移方案 2 至 4（部分）", "ADR-0071 拒收登记、处置与核对分列口径（部分）"]
 - id: "0037"   # 新系统读取老系统与 A8 数据的范围
   category: "集成"
   bc: ["platform.integration"]
