@@ -1,0 +1,247 @@
+# one-rules 规则卡 RULE-418～504 提到的待登记词（one-glossary 2026-10-21，NAM-1021-GLO-05；proposed，ADR-0018）。
+# 已有词条沿用、不另登记：待办卡片→通知，管理员离职暂停→待放行离职（separation_hold），核算系统（bcs.yaml system），确认人 / 待确认 / 已确认 / 编号规则版本确认（platform.numbering 已有），本人登录记录（own_login_record_page_view），四眼（只在 ADR 文字里，不登记）。
+terms:
+- id: content_digest
+  zh: 内容摘要
+  en: ContentDigest
+  snake: content_digest
+  kind: value_object
+  bc: platform.approval
+  scope: domain
+  definition: 待审内容在提交审批时的指纹（列 approved_hash 的取值），用于核对审批的内容未被改动；与文件服务的内容哈希（platform.file）是两个概念，不同 bc
+  standard_ref:
+  - "RULES: APPROVAL_INTEGRITY"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'platform.approval.api 现有类型 ContentHash 与 platform.file 的 ContentHash 同名，改名交 platform.approval 会话'
+- id: binding
+  zh: 约束性
+  en: Binding
+  snake: binding
+  kind: value_object
+  bc: platform.approval
+  scope: domain
+  definition: 审批意见对流程有约束力、会推进或终止流程；与「建议性」相对。one-rules 用「正式效力」，名词化后与建议性不成对，改用约束性
+  standard_ref:
+  - "RULES: APPROVAL_INTEGRITY"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'one-rules 原写正式效力（binding effect），请确认改用约束性'
+- id: process_administrator
+  zh: 流程管理员
+  en: ProcessAdministrator
+  snake: process_administrator
+  kind: value_object
+  bc: platform.approval
+  scope: domain
+  definition: 负责审批流程兜底、取不到办理人时接手待办的管理角色
+  standard_ref:
+  - "RULES: APPROVAL_INTEGRITY；转流程管理员已登记"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: operations_command
+  zh: 运维命令
+  en: OperationsCommand
+  snake: operations_command
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 命令行的运维操作族（授予角色、撤销角色、登记应急管理员等），须有见证人，区别于界面发起的业务命令
+  standard_ref:
+  - "RULES: IDENTITY_AUTHORIZATION；error__platform_identity_operation_witness_required"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: usable_emergency_admin
+  zh: 可用应急管理员
+  en: UsableEmergencyAdmin
+  snake: usable_emergency_admin
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 应急管理员中本身启用、所绑定账号启用且仍持有超级管理员的人
+  standard_ref:
+  - "RULES: IDENTITY_AUTHORIZATION"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '规则文件称 emergency account，沿用词表的应急管理员'
+- id: relaxation_mark
+  zh: 放宽标注
+  en: RelaxationMark
+  snake: relaxation_mark
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 单人运维放宽项生效时写入的审计记录（single-operator-mode.applied）
+  standard_ref:
+  - "RULES: IDENTITY_AUTHORIZATION；ADR-0030"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: canonical_employee_id
+  zh: 规范员工标识
+  en: CanonicalEmployeeId
+  snake: canonical_employee_id
+  kind: value_object
+  bc: kernel
+  scope: kernel
+  used_by:
+  - platform.identity
+  - organization.workforce
+  definition: 员工标识的唯一文本形式（UUID 字符串），运维命令的 --employee-id 只接受它
+  standard_ref:
+  - "RULES: IDENTITY_AUTHORIZATION"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: project_role
+  zh: 项目角色
+  en: ProjectRole
+  snake: project_role
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 人在项目上担任的角色，是数据范围的一个维度（法人 × 部门 × 项目角色）
+  standard_ref:
+  - "ADR-0009 决定 4；RULES: IDENTITY_SINGLE_OPERATOR"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: identity_confirmation
+  zh: 身份确认
+  en: IdentityConfirmation
+  snake: identity_confirmation
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 外部票据登录后，本人确认「这个账号是我」的步骤；确认前会话无任何权限
+  standard_ref:
+  - "RULES: IDENTITY_SINGLE_OPERATOR RULE-458"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: browser_identifier
+  zh: 浏览器标识
+  en: BrowserIdentifier
+  snake: browser_identifier
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 身份确认后下发给浏览器的标识 cookie，用于识别是否新浏览器
+  standard_ref:
+  - SECURITY_INVARIANTS I-13
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: registrar
+  zh: 登记人
+  en: Registrar
+  snake: registrar
+  kind: value_object
+  bc: platform.integration
+  scope: domain
+  definition: 录入来源对照待确认行的人；确认人不得是登记人
+  standard_ref:
+  - "RULES: SOURCE_REFERENCE"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '规则文件称 Registrar / Recorder（录入人）；错误码已用「登记人」，录入人不用'
+- id: ticket_subject
+  zh: 票据主体标识
+  en: TicketSubject
+  snake: ticket_subject
+  kind: value_object
+  bc: platform.integration
+  scope: domain
+  definition: 签名票据携带的组织来源人员标识（带符号 64 位整数），只经来源对照解析为用户
+  standard_ref:
+  - "RULES: SOURCE_REFERENCE RULE-472"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'RULE-472 的出处与测试在 external_identities / 来源对照上不一致，已交 one-rules 与 one-architecture 判定'
+- id: login_method
+  zh: 登录方式
+  en: LoginMethod
+  snake: login_method
+  kind: value_object
+  bc: platform.audit
+  scope: domain
+  definition: 本人登录记录里这次登录所用的方式
+  standard_ref:
+  - "RULES: TIMESHEET_CALENDAR_ATTRIBUTION"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: login_outcome
+  zh: 登录结果
+  en: LoginOutcome
+  snake: login_outcome
+  kind: value_object
+  bc: platform.audit
+  scope: domain
+  definition: 本人登录记录里这次登录成功或失败的结果
+  standard_ref:
+  - "RULES: TIMESHEET_CALENDAR_ATTRIBUTION"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: submitted_date
+  zh: 提交日
+  en: SubmittedDate
+  snake: submitted_date
+  kind: value_object
+  bc: cost.timesheet
+  scope: domain
+  definition: 员工提交工时单审批的业务日期（列 submitted_date，与工作日期是两件事）
+  standard_ref:
+  - "RULES: TIMESHEET_CALENDAR_ATTRIBUTION"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: accounting_organization_code
+  zh: 核算组织编码
+  en: AccountingOrganizationCode
+  snake: accounting_organization_code
+  kind: value_object
+  bc: platform.integration
+  scope: acl
+  acl_class: 长期
+  definition: 法人在核算系统里的数字编码，登记在来源对照里，只在防腐层使用
+  standard_ref:
+  - "RULES: SOURCE_REFERENCE"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
