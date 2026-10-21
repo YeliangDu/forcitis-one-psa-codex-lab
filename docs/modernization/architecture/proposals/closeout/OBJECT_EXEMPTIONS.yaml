@@ -18,3 +18,4 @@ exemptions:
   - {check: "6 生命周期缺冲销撤回类逆向", object: AGG-100, reason: "已生成快照不改、不撤销，更正走开放期间（INV-106；ADR-0046；ADR-0045 决定 1、2；finance QC-LIFECYCLE 10-逆向-1）", ruling: "S-43 补"}
   - {check: "2 对象无人修改", object: AGG-126, reason: "案件型：登记后只经解释、修正、豁免三条命令各走一步到终态，登记内容不改，关闭后不重开（INV-135；PRC-169；finance QC-LIFECYCLE 10-修改-3）", ruling: "S-43 补"}
   - {check: "2 对象无人修改", object: AGG-57, reason: "确认行内容不改，确认后更正走「冲销供方履约确认」后重新确认（S-29 SQ-43；ADR-0016 决定 2；§14.1 D8；finance QC-LIFECYCLE 05-修改-1）", ruling: "S-43 补"}
+  - {check: "2 对象无人修改", object: OBJ-116, reason: "员工活动只登记、由规则控制（B31-8），登记内容不改；记错或活动取消走「取消员工活动登记」后重登", ruling: "B31-8（提交 B31-20261017-122917-ctg）；one-architecture 2026-10-17"}
