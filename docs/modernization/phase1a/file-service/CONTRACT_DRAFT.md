@@ -1,7 +1,7 @@
 # 文件服务契约草案（CS-1.10，工作名）
 
 - 作者：one-platform-file，2026-10-21；配套 `SPLIT_PLAN.md`。
-- 标识符均为工作名，待 one-glossary（NAM-1020-COO-01）定名后替换；包名暂用 `com.forcitis.one.platform.file`。
+- 模块名已定：文件服务 FileService / `platform.file`（intent @225d2315），包名 `com.forcitis.one.platform.file`；其余标识符仍为工作名，待 one-glossary 登记后替换。
 - 范围：ADR-0060 api 7 项 + ADR-0061 数据部分 3 项 = 10 项；ADR-0062 预览 1 项留 W2，合计 11 ≤ 12（CS-1.12）。
 
 ## 1. api（`platform.file.api`）

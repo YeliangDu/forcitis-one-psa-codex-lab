@@ -3,7 +3,7 @@
 - 作者：one-platform-file，2026-10-21；基线 main `39f6664b`。
 - 依据：ADR-0060（基础，已采纳）、ADR-0061（保存期，已采纳，W0 只建数据部分）、ADR-0070（ClamAV 补篇，提议，#495 复审改稿中）、ADR-0066/0067（准入、冻结，已采纳）；用户判据 #494 评论 6311040189；单文件上限 100 MB、超限即拒（intent 0746e278）；运维卡 OPS-1021-OPS-02（origin/claude/one-ops-r56）。
 - 状态：草案，待 one-coordinator 批。契约草案见同目录 `CONTRACT_DRAFT.md`。
-- 模块名暂用 `platform.file` / schema `platform_file`；定名（NAM-1020-COO-01）与 `contexts.yaml` 登记完成前**代码不落地**（ADR-0066 决定 7）。
+- 模块名已定：文件服务 FileService / `platform.file`（用户同意，intent @225d2315），schema `platform_file`；one-glossary 登记 PR 与 `contexts.yaml` 登记合入前**代码不落地**（ADR-0066 决定 7）。
 
 ## 1. 关键事实
 
@@ -48,7 +48,7 @@
 
 ## 4. 待交其他会话
 
-- **one-glossary（NAM-1020-COO-01）**：模块名；ADR-0060「须交其他会话」列的全部用语；ADR-0070 新增四个暂名（本地检测暂存目录、隔离前缀、含宏、专用组）；错误码中文名（见契约草案 §4）。
+- **one-glossary（NAM-1020-COO-01）**：模块名已定（登记 PR 在途）；ADR-0060「须交其他会话」列的全部用语；ADR-0070 新增四个暂名（本地检测暂存目录、隔离前缀、含宏、专用组）；错误码中文名（见契约草案 §4）。
 - **one-data**：单元 3 六张表签发；`stored_file_names` 单次更新豁免写法；`file_retentions` 「新行取代旧行」的当前行查询方式。
 - **one-architecture**：迁入编排模块名与守护写法；`DocumentReference` 改造时序；`platform.integration` 新增两个端口（先告知）；上传端点用 `platform.idempotency` 是否需加边（ADR-0060 四条出边未列）。
 - **one-security**：含宏识别集合与样本（ADR-0070 决定 5 第 1 条）；单元 4、5、6 首轮复审。
