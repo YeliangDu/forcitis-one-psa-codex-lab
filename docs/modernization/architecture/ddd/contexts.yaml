@@ -28,6 +28,22 @@ contexts:
   blueprint_bc: BC-06
   legacy_bc: 工时与投入有效性 BC
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L34；02-子域划分.md 02 L133-137；ADR-0017 对照表
+- id: organization.administration
+  zh: 行政事务 BC
+  subdomain: organization
+  kind: business
+  status: built
+  schema: organization_administration
+  blueprint_bc: null
+  legacy_bc: null
+  basis: adr
+  adr:
+  - ADR-0054
+  - ADR-0057
+  - ADR-0064
+  - ADR-0067
+  evidence: 聚合稿 B-31（用户 intent 2026-10-16-152807）；ADR-0054 决定 1 唯一例外；ADR-0067；backend 模块包与 module-dependencies.txt
+  note: 用印申请与登记、IT 需求工单、IT 资产使用与维修、员工活动登记；审批走 platform.approval，印章台账归签章服务；不依赖 platform.scheduling
 - id: organization.attendance
   zh: 考勤与休假 BC
   subdomain: organization
