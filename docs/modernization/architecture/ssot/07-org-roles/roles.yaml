@@ -7,29 +7,47 @@ meta:
   - 角色粒度待定：权责表 SH-M1（部门负责人、项目总监、区域负责人、总经理、分管副总）、SH-E6（财务、人事、信息行政）已拆为多个 ROLE
   - 客户采购决策链 5 个角色是否作 ROLE（客户侧、不登录）
   - super_admin 与 administrator-mode 是否同一角色；编号模板确认人与 business_admin 的关系
-  decisions:            # one-arch-people 2026-10-21 判定第 2、3 条；第 1、4 条不在本组范围
+  decisions:
     by: one-arch-people 2026-10-21
+    note: 判定 open_questions 第 2、3 条；第 1、4 条不在本组范围
     granularity:
       principle: ROLE 按「承担的职责与解析方式」分，不按职位分；具体职位（出纳、会计、薪酬岗等）属职位目录（JOB_CATALOG_DRAFT FN-*），不另立 ROLE。
       SH-M1:
         result: 拆分正确，但调整为 5 个
         items:
-        - {role: ROLE-24 部门负责人, decision: 保留；与「组织单元负责人」「事业部负责人」同义，任何层级组织单元的负责人都是它，按单据归属组织单元解析（resolve instance，词表 org_unit_head）；JOB_CATALOG J-4 推荐 b（任职上的组织单元负责人标记），与本 ROLE 一致}
-        - {role: ROLE-25 区域负责人, decision: 保留为独立 ROLE；是区域类组织单元的负责人，但职责不同（对区域组织数据范围负责、不承担工时审批，词表 regional_head），不能用部门负责人替代}
-        - {role: ROLE-22 项目总监 + ROLE-23 总监, decision: 同一身份，合并为 ROLE-22「项目总监」，ROLE-23 删除；依据 RULE-256：老系统「部门总监」脚本取的是角色 BU-002「BU项目总监」与本部门直属人员的交集，与部门负责人（RULE-257 dept.leader_user_id）是两种解析，故与 ROLE-24 不合并；词表 director 的中文名与定义（「BU-002 部门总监」引了老系统编码）交 one-glossary 改，to_glossary: true}
-        - {role: ROLE-26 管理层（总经理、分管副总）, decision: 拆为「总经理」与「分管领导」两个 ROLE；加审与升级规则点名总经理（如用印加审 AR-16 候选、超时升级），分管副总按分管范围解析，二者解析方式不同；总经理按法人解析，分管领导按 D15 分管配置解析}
-        - {role: ROLE-06 用人经理, decision: 保留为流程角色，不与部门负责人合并；包含关系：用人经理默认由招聘需求所属组织单元的部门负责人担任（resolve instance），可由其指定的下属经理代行；部门负责人 ⊇ 用人经理的默认人选，用人经理不是稳定人群}
+        - role: ROLE-24 部门负责人
+          decision: 保留；与「组织单元负责人」「事业部负责人」同义，任何层级组织单元的负责人都是它，按单据归属组织单元解析（resolve instance，词表 org_unit_head）；JOB_CATALOG J-4 推荐 b（任职上的组织单元负责人标记），与本 ROLE 一致
+        - role: ROLE-25 区域负责人
+          decision: 保留为独立 ROLE；是区域类组织单元的负责人，但职责不同（对区域组织数据范围负责、不承担工时审批，词表 regional_head），不能用部门负责人替代
+        - role: ROLE-22 项目总监 + ROLE-23 总监
+          decision: '同一身份，合并为 ROLE-22「项目总监」，ROLE-23 删除；依据 RULE-256：老系统「部门总监」脚本取的是角色 BU-002「BU项目总监」与本部门直属人员的交集，与部门负责人（RULE-257 dept.leader_user_id）是两种解析，故与 ROLE-24 不合并；词表 director 的中文名与定义（「BU-002 部门总监」引了老系统编码）交
+            one-glossary 改，to_glossary: true'
+        - role: ROLE-26 管理层（总经理、分管副总）
+          decision: 拆为「总经理」与「分管领导」两个 ROLE；加审与升级规则点名总经理（如用印加审 AR-16 候选、超时升级），分管副总按分管范围解析，二者解析方式不同；总经理按法人解析，分管领导按 D15 分管配置解析
+        - role: ROLE-06 用人经理
+          decision: 保留为流程角色，不与部门负责人合并；包含关系：用人经理默认由招聘需求所属组织单元的部门负责人担任（resolve instance），可由其指定的下属经理代行；部门负责人 ⊇ 用人经理的默认人选，用人经理不是稳定人群
       SH-E6:
         result: 拆分正确，ROLE-30 再拆为两个
         items:
-        - {role: ROLE-27 法人财务负责人, decision: 保留；权责表泛称「财务负责人」处一律指单据所属法人的财务负责人（词表 legal_entity_finance_head），非推断，按法人解析}
-        - {role: ROLE-28 财务职能人员, decision: 保留为职能级 ROLE；出纳、会计等是职位，不拆 ROLE}
-        - {role: ROLE-29 人力资源职能人员, decision: 保留；同上}
-        - {role: ROLE-30 信息与行政职能人员, decision: 拆为「信息职能人员」（IT 需求、IT 资产、账号）与「行政职能人员」（用印登记、员工活动、档案）；VS-14 两类事务承办人不同，B-31 骨架已分 信息部门 / 行政 两种 department_hint}
+        - role: ROLE-27 法人财务负责人
+          decision: 保留；权责表泛称「财务负责人」处一律指单据所属法人的财务负责人（词表 legal_entity_finance_head），非推断，按法人解析
+        - role: ROLE-28 财务职能人员
+          decision: 保留为职能级 ROLE；出纳、会计等是职位，不拆 ROLE
+        - role: ROLE-29 人力资源职能人员
+          decision: 保留；同上
+        - role: ROLE-30 信息与行政职能人员
+          decision: 拆为「信息职能人员」（IT 需求、IT 资产、账号）与「行政职能人员」（用印登记、员工活动、档案）；VS-14 两类事务承办人不同，B-31 骨架已分 信息部门 / 行政 两种 department_hint
     customer_buying_chain:
-      roles: [ROLE-01, ROLE-02, ROLE-03, ROLE-04, ROLE-05]
-      decision: 登记为 ROLE，标 external: true、system_roles 为空、不授权；它们是 VS-01 商机跟进时记录在客户决策链上的外部角色（BIZBOK 角色不以是否登录为准），删除会使决策链字段无落点。归属收入组（presales.opportunity），本组只给口径，收入组可推翻
+      roles:
+      - ROLE-01
+      - ROLE-02
+      - ROLE-03
+      - ROLE-04
+      - ROLE-05
+      decision: '登记为 ROLE，标 external: true、system_roles 为空、不授权；它们是 VS-01 商机跟进时记录在客户决策链上的外部角色（BIZBOK 角色不以是否登录为准），删除会使决策链字段无落点。归属收入组（presales.opportunity），本组只给口径，收入组可推翻'
       needs_user: false
+    to_glossary:
+    - 词表 director（总监）中文名与定义引了老系统编码 BU-002，按与项目总监合并后改写
     needs_user:
     - ROLE-26 拆为总经理与分管领导后，分管领导的分管范围配置由谁维护（D15 配置项责任人），随确认页问用户
 roles:
