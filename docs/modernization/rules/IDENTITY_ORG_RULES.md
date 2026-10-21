@@ -354,11 +354,15 @@ Credentials are masked as `***`. Already-covered rules (not repeated): RULE-250,
 ### RULE-337: The gateway does no authentication
 **Domain:** identity · **Category:** Policy · **Priority:** P0 · **SEC:** SEC-020
 **Source:** `psa-backend/yudao-gateway/src/main/java/cn/iocoder/yudao/gateway/filter/security/TokenAuthenticationFilter.java:86-128`
-**Plain English:** The gateway filter calls `removeLoginUser` but discards its result, then unconditionally forwards the request (`if (true) return chain.filter(exchange)`). Token validation and the 1-minute token→user cache (lines 67-76) are dead code, so authentication happens only inside each service (RULE-336).
+**Plain English:** All requests are denied unless authenticated, decided in one place, the identity module's security configuration (ADR-0009 decisions 1 and 5, G28/G33). A request without a valid session on any endpoint that is not explicitly public returns 401. A caller-supplied identity header is never trusted.
 **Specification:**
-  Given a client sends a forged `login-user` header to the gateway
-  Then the header reaches the service unchanged.
-**Confidence:** High (the discarded return value is confirmed in SECURITY_FINDINGS round 4).
+  Given an anonymous client calls every endpoint that is not marked public
+  Then  each returns 401 (C1a-07)
+  Given a client sends a forged `login-user` header
+  Then  the header is ignored and the identity comes only from the session
+**Legacy behaviour:** the gateway discarded the token check and forwarded every request (`if (true) return chain.filter(exchange)`), so authentication depended on each service (RULE-336) and a forged header reached services unchanged.
+**Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
+**Confidence:** High.
 **Review needed:** Yes. **Suggested fix:** Deny by default in one place (the identity BC / modular-monolith security config, ADR-0009 G33).
 
 ### RULE-338: Disabling, deleting or a resignation via sync does not revoke live tokens
@@ -857,9 +861,14 @@ New users start enabled with a 4–16 character password (lines 126-154). Deleti
 ### RULE-376: WeCom card callback takes the acting user from the button key, not from FromUserName
 **Domain:** identity · **Category:** Validation · **Priority:** P0 · **SEC:** SEC-006
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/controller/admin/wecom/WeComCallbackController.java:65-135`
-**Plain English:** The callback is anonymous and checked only by the WeCom signature and decryption (token and AES key are hard-coded: `***`). The button key `task_{1|0}_{taskId}_{userId}` sets the logged-in user to `{userId}`, and the task is accepted or refused in that name. `FromUserName` (the real clicker) is used only to update the card.
+**Plain English:** The user who acts on a WeCom card is resolved from `FromUserName` → `we_com_id` → user, and must be the handler of that task; the user id in the button key is not trusted. The callback token and AES key come from configuration and are rotated (SEC-006).
 **Specification:**
-  Given a validly signed callback with EventKey `task_1_555_2001` from FromUserName "lisi"
-  Then task 555 is accepted as user 2001.
+  Given a validly signed callback with EventKey `task_1_555_2001` from FromUserName "lisi", where "lisi" maps to user 3001
+  Then  the action is taken as user 3001 only if 3001 is a handler of task 555, otherwise it is refused
+  Given FromUserName that maps to no user
+  Then  it is refused
+**Parameters:** token and AES key are configuration values, never in code or documents.
+**Legacy behaviour:** the button key set the acting user, so anyone able to produce a signed callback could act as any handler; the secrets were hard-coded.
+**Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
 **Confidence:** High.
 **Review needed:** Yes. **Suggested fix:** Resolve the actor from `FromUserName` → `we_com_id` → user, require that it equals the task assignee, and move the secrets to configuration and rotate them.
