@@ -74,6 +74,7 @@ CREATE TABLE organization_workforce.employee_versions (
     effective_to_date       date,
     revision_number         integer     NOT NULL DEFAULT 0,
     employment_status       text        NOT NULL,
+    employment_phase        text,
     is_fee_earner           boolean     NOT NULL,
     change_channel_kind     text        NOT NULL,
     change_command_id       uuid,
@@ -93,6 +94,8 @@ CREATE TABLE organization_workforce.employee_versions (
     CONSTRAINT ck_employee_versions_range CHECK (effective_to_date IS NULL OR effective_to_date >= effective_from_date),
     CONSTRAINT ck_employee_versions_finite CHECK (isfinite(effective_from_date) AND (effective_to_date IS NULL OR isfinite(effective_to_date))),
     CONSTRAINT ck_employee_versions_employment_status CHECK (employment_status IN ('EMPLOYED', 'SEPARATED')),
+    CONSTRAINT ck_employee_versions_employment_phase CHECK (employment_phase IN ('PROBATION', 'REGULAR')),
+    CONSTRAINT ck_employee_versions_phase_status CHECK ((employment_status = 'EMPLOYED') = (employment_phase IS NOT NULL)),
     CONSTRAINT ck_employee_versions_revision_number CHECK (revision_number >= 0),
     CONSTRAINT ck_employee_versions_change_channel_kind CHECK (change_channel_kind IN ('COMMAND', 'MIGRATION')),
     CONSTRAINT ck_employee_versions_command CHECK ((change_channel_kind = 'COMMAND') = (change_command_id IS NOT NULL)),
@@ -106,7 +109,7 @@ CREATE INDEX ix_employee_versions_superseding_command_id ON organization_workfor
 CREATE INDEX ix_employee_versions_separated_effective_from_date ON organization_workforce.employee_versions (effective_from_date) WHERE employment_status = 'SEPARATED' AND superseded_at IS NULL;
 ```
 - 触发器 `tg_employee_versions_append_only`（BEFORE UPDATE OR DELETE）：`effective_to_date`、`closed_at`、`superseded_at`、`superseding_command_id` 四列各自只放行由空变非空一次，`updated_at` 可变，其余列拒；TRUNCATE 语句级触发器拒；`one_db_roles_schemas.sql` §4b 回收 DELETE、TRUNCATE，**清理通道**见第 8 节。
-- `employment_status` 现只有 EMPLOYED、SEPARATED；停薪留职、试用转正按 B7 不先写；**数据侧建议转 one-architecture**：`employment_status` 只表达雇佣关系，停薪留职另设 `leave_status`、试用另设 `employment_phase` 作为独立列（行业通行的「工作状态与请假分开」；identity 现有按 EMPLOYED 判定的逻辑不用跟着变），裁定后基线开放期加列。
+- `employment_phase`（试用 `PROBATION`、转正后 `REGULAR`；ADR-0068 第 1 条 3 已定转正命令与阶段列，只在在职时有值，离职为空）：入职命令写初始阶段，转正命令写 `REGULAR`。`employment_status` 现只有 EMPLOYED、SEPARATED；停薪留职按 B7 不先写；**数据侧建议转 one-architecture**：`employment_status` 只表达雇佣关系，停薪留职另设 `leave_status`、试用另设 `employment_phase` 作为独立列（行业通行的「工作状态与请假分开」；identity 现有按 EMPLOYED 判定的逻辑不用跟着变），裁定后基线开放期加列。
 - 管理员离职暂停期间（A2）：按 ADR-0068 第 2 条，离职命令转 `HELD`，员工保持在职、**不写 SEPARATED 版本**，放行时按原生效日写版本（经第 2 节补登机制）；因此本表在暂停期间没有 SEPARATED 行。
 
 ### 3.3 positions 与 position_versions
