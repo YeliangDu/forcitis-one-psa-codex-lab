@@ -264,7 +264,8 @@ def stop_decision(root, entry, top, percent, now):
 
 
 def root_of(payload):
-    start = os.environ.get("CLAUDE_PROJECT_DIR") or payload.get("cwd") or os.getcwd()
+    # the desktop app starts a worktree session's hooks with CLAUDE_PROJECT_DIR = the main checkout; the session's own worktree is the hook input's cwd
+    start = payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
     top = subprocess.run(["git", "-C", start, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
     return top.stdout.strip() if top.returncode == 0 and top.stdout.strip() else start
 
@@ -453,12 +454,15 @@ def self_test():
         waiting.stdout.close()
         waiting.stderr.close()
 
-        # the project root comes from CLAUDE_PROJECT_DIR, not from the working directory of the call
+        # the project root is the session's own working directory; CLAUDE_PROJECT_DIR (the main checkout under the desktop app) is only the fallback
         elsewhere = os.path.join(tmp, "elsewhere")
         subprocess.run(["git", "init", "-q", elsewhere], check=True, capture_output=True)
         moved = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="rooted", cwd=elsewhere)),
                                capture_output=True, text=True, env=environment)
-        assert moved.returncode == 0 and "rooted" in load_state(root) and not os.path.exists(os.path.join(elsewhere, STATE)), moved
+        assert moved.returncode == 0 and "rooted" in load_state(elsewhere) and "rooted" not in load_state(root), moved
+        fallback = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="fallback")),
+                                  capture_output=True, text=True, env=environment)
+        assert fallback.returncode == 0 and "fallback" in load_state(root), fallback
 
         # session name: unrecognised session is reported, never blocks
         other = os.path.join(tmp, "somewhere-else")
