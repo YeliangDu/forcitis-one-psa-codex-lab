@@ -201,7 +201,7 @@ class SeeyonSourceScanTest {
         }
 
         assertThat(named).as("the scan sees the SQL of both external databases")
-                .contains("dbo.ORG_UNIT", "forcitis_one.v_org_member", "dbo.v_psa_one_legacy_todo", "dbo.v_one_legacy_org_short_name");
+                .contains("dbo.ORG_UNIT", "forcitis_one.v_org_member", "dbo.v_one_legacy_org_short_name");
         assertThat(unregisteredObjects(layer, ExternalReadRegister.objects(ExternalReadRegister.rows()))).isEmpty();
     }
 

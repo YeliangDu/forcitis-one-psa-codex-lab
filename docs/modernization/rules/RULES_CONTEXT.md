@@ -61,6 +61,18 @@ A1 后续页已答（intent 2026-10-16-162827）：维持按时点；无法定�
 
 不认定「已全部解决」：已覆盖 3 项，部分覆盖 1 项，其余待用户或财务；下一张用户页（与 Q-04 合页）加 A10 把关人一题。
 
+## 2026-10-21 进度（clear 前）
+
+- 对抗验证第 1 轮转 one-rules 的 37 条已逐条回复：`rules/R1_RULING_REPLY.md`（①1、②22、③0、非规则 14）；缺口里需用户或财务、人事、法务定的，随用户页出题，先问范围的（所得税汇算、对外报表附注、非货币出资、设施保养、领导力调查）已写成 `rules/decide/sheets/ADV1R.json`，由 one-architecture 并入对抗确认页 ADV1，过调度审题后发布。
+- N1、A1 用户页均已答并写回（RULE-407/413/415 去待确认，新增 416、417）；N1 的 A10 把关人一题尚未出（ADR-0056 只管收入确认证据）。
+- Q-04 存储方式页等 one-architecture 的 VS-04 稿；DATA-RULE 评审见 `rules/DATA_RULE_REVIEW.md`，one-data 已改卡。
+- 用户端没有我发起的未答页面；收件箱当前唯一待答是 one-architecture 的 ADR-0073 两题（U3/U4）。
+- 协作规矩：文档类提交推送后报「分支 + 提交号」不开 PR；Codex 卡写四项且规则口径判断自己做；会话间消息一到三行。
+
+- 2026-10-21 调度派：UNTESTED_P0_RULES 第 2 节 9 张「需修正」卡（RULE-144/145/169/265/304/308/311/337/376）已按评审结论改写为正确行为，老行为留作证据；待用户定的两处（RULE-265 定时任务发起人、RULE-311 钩子与业务处理的先后）随对齐后的确认页改版一起问。RULE-279 规格里「已取消=驳回」与 RULE-169 修正后不一致，待下次动 279 时同步。
+
+- 2026-10-21 调度派：TEST_RULE_MAPPING 里 193 条「业务测试断言了行为、找不到规则卡」已补登 87 张新卡 RULE-418～504（五个文件：IDENTITY_AUTHORIZATION、IDENTITY_SINGLE_OPERATOR、SOURCE_REFERENCE、TIMESHEET_CALENDAR_ATTRIBUTION、APPROVAL_INTEGRITY 各 `_RULES.md`），测试到卡号对照在 `rules/TEST_RULE_BACKFILL_MAP.tsv`（2 条纯技术契约不成卡）。Review=Yes 共 9 张带 Needs decision，攒着随对齐后的确认页改版问；卡末 New terms 待 one-glossary 处理。
+
 ## 工作守则要点（画像「权限边界」下有全文）
 
 - 本会话主模型 sonnet；会话上下文 2026-10-16 傍晚到 76%，按手册先更新本文件再 `/clear`；新开后从本文件接续，不凭记忆。

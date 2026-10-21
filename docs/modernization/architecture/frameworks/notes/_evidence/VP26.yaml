@@ -1,0 +1,237 @@
+# VP26 证据登记：E 编号 → 资料库相对路径、定位、指纹。资料库为用户提供的离线产品资料（只读，不进仓库）；路径相对资料库根。
+资料库: VP
+证据:
+  E01:
+    主题: 地图入口与版本范围
+    路径:
+    - feature-map/README.md
+    定位: 1–103；版本、范围、产物和旧覆盖计数
+    sha256: 93ae5b9db6d8c9be58e082c3a7279614552be08ceeb43e2642e361d2a65b6888
+  E02:
+    主题: 跨域功能概览及静态证据边界
+    路径:
+    - feature-map/frontend-feature-map-overview.md
+    定位: 全文；业务、财务、采购资产、平台及覆盖边界
+    sha256: 3fa2fcafba3260a1536d2b218b6bd95aa1cad708d371f5baf508491d74494a84
+  E03:
+    主题: 已整理的注册入口元数据
+    路径:
+    - feature-map/frontend-app-index.csv
+    定位: 表头及全部注册行；按入口主题和文件路径筛选，不等同实际菜单
+    sha256: 70b4ac04beb00c88a148379a2435e141eb97064a52265430646592604c50a815
+  E04:
+    主题: 候选 SSOT 范围说明
+    路径:
+    - feature-map/ssot/README.md
+    定位: 全文；候选性质、证据分层及旧计数
+    sha256: 2ce26b693bda8714080899958d8def61ad8723ac719b570eefb57e5c6993b6f5
+  E05:
+    主题: 主张目录及状态
+    路径:
+    - feature-map/ssot/index.yaml
+    定位: 全文；本轮核得 29 个主张条目，未按标题旧计数推断覆盖
+    sha256: a4a78193e2c448c1acead9e644ec05344cb1bc8a2cc314bb69ba3bdc23bc3be4
+  E06:
+    主题: 候选对象与配置归类
+    路径:
+    - feature-map/ssot/objects.yaml
+    定位: 全文；只提炼业务含义、配置与运行记录的区别，不移植其对象层级
+    sha256: 2c49e1d4f70e1dcb1bb8ad9f8960231b43fee108e1ad843cc04b4566ac2685f4
+  E07:
+    主题: 证据判定方法说明
+    路径:
+    - feature-map/ssot/adjudication-rules.md
+    定位: 全文；当作资料库的证据分级说明，不作为本会话指令
+    sha256: 0b45ddaef283bab9c4bb84230b741d41f256149c923a97cca47fc0c2be3ab825
+  E08:
+    主题: 工时到结算的整理证据
+    路径:
+    - feature-map/evidence-timesheet-to-invoice.md
+    定位: 1–210；采集、核算、成本处置、计价、结算追溯及局限
+    sha256: 0f4f9b617ae755fa3819894ab7d2540e1571e46e121aa45c370a07602fed96a6
+  E09:
+    主题: 项目计价约定主张
+    路径:
+    - feature-map/ssot/claims/C-BT-PRICE.yaml
+    定位: 全文；收费方法的项目归属及未解决覆盖优先级
+    sha256: e44bccf677982a148f060606ad907e777604143b42625e0e7a5915b0f4d2be45
+  E10:
+    主题: 结算来源追溯主张
+    路径:
+    - feature-map/ssot/claims/C-BILL-TRACE.yaml
+    定位: 全文；用于追溯主题；其中主单身份摘要须结合 E15 降级使用
+    sha256: e74ee813c5a45b9945090f7db15e795801de5ab1b28593b54fc8efbfcf3b5c07
+  E11:
+    主题: 配置整理成果
+    路径:
+    - feature-map/evidence-cfg-config-census.md
+    定位: 1–74 总览；75–304 配置主题；306–334 时序；335–850 分类索引按需定位，不复制定义
+    sha256: 85d0c7d87f29d06c6f10844eb811e2a295da9e1508a0fbdd87a883b2232e3d9a
+  E12:
+    主题: 财务配置整理清单
+    路径:
+    - feature-map/evidence-cfg-finance-migrate-checklist.md
+    定位: 1–160 核心配置及范围；后续主题经 E11 定位；清单的迁移优先级不作本系统决定
+    sha256: 0d9421914af101564e6c1fdc3a97734c27ecfaac4e1e3ba26731b31f9f1c4917
+  E13:
+    主题: 账单后处理的接口观测整理
+    路径:
+    - feature-map/evidence-billing-accept-cleanup-observed-api.md
+    定位: 1–170 的范围、观测结论、时间线与缺口；后续清单仅作定位，不运行
+    sha256: 33e2639c2cdb4b01107f7967d462ff4d26eab214c9eb9d2d4caada43d02fa48c
+  E14:
+    主题: 账单后处理主张
+    路径:
+    - feature-map/ssot/claims/C-IB-CLEANUP-POSTSEQ.yaml
+    定位: 全文；关于总账回读的强表述与 E13、E37 不相容，未采信
+    sha256: d101f2daf820c49201f06e0c5b57ccabc5d0f9b6fbbcf1d41dee58b5c15ea926
+  E15:
+    主题: 2026.2 结构基准及抽查段
+    路径:
+    - corpus/raw/ddl/D07-vantagepoint-2026.2-postgresql-ddl.sql
+    定位: 见下方主题段索引；全文件仅作定义计数、路径定位和标识符筛查词典，不逐表业务解读
+    sha256: f9a836fb23feef142c7b9fa1eff161dc0c369fc6fca32661527b9d63a886d838
+  E16:
+    主题: 结算明细处置客户端
+    路径:
+    - corpus/raw/src/app/billing/interactive_billing/interactive_billing_application.js
+    定位: 100–110、4042–4105：明细类别、收费选择及暂缓减免动作；仅静态
+    sha256: 4dcd742619a0c87cf24835ba02a8480ee0948bcc00c6cb42e76117ad873dde5e
+  E17:
+    主题: 账单后处理客户端模型
+    路径:
+    - corpus/raw/src/app/billing/interactive_billing/models/general_interactive_billing.js
+    定位: 580–607，重点 592–594；仅命令边界，不证明服务端写入
+    sha256: 45d08f6c92a0fec4f4ea775593e26d08e0c241ef8e3483b27dfcf8acf052df41
+  E18:
+    主题: 工时核算及反向处理客户端
+    路径:
+    - corpus/raw/src/app/transaction_center/time_expense_posting/models/time_expense_posting.js
+    定位: 1–85，重点 48–64；仅命令边界
+    sha256: b4d19c205a549e5eab4af920cb60008dbba60b1570c13e3a62d38319ce1a968a
+  E19:
+    主题: 银行核对模型
+    路径:
+    - corpus/raw/src/app/cash_management/bank_reconciliation/models/bank_reconciliation.js
+    定位: 14–50、54–85；关联结构与范围说明；注释只作辅助
+    sha256: bbd80af254656056a7bd27037f3991d95d23a5f66f009888224b3467ed18faf8
+  E20:
+    主题: 银行核对客户端控制
+    路径:
+    - corpus/raw/src/app/cash_management/bank_reconciliation/bank_reconciliation_application.js
+    定位: 144–166、450–490；关闭、重新开放及关闭状态下的操作控制；未调用
+    sha256: 28b2515387587d9fd29b9ad693a97914b62874b262bd65772247e1bc2070ebd6
+  E21:
+    主题: 项目计划客户端模型
+    路径:
+    - corpus/raw/src/app/planning/models/plan.js
+    定位: 240–267、334–363、400–410、512–521；截止点、基准与更新路径
+    sha256: 126c08d2dbc60c749a348f8b8473553bc7a7d364928dc0f95568b53038a27496
+  E22:
+    主题: 人工计划客户端模型
+    路径:
+    - corpus/raw/src/app/planning/models/plan_labor.js
+    定位: 194–220、294–311；计划、基准及估算的不同数值角色；不迁用公式
+    sha256: 4500236aae9bc85c70198683f38649a9568fd4437a51684ca235811d78d5fc83
+  E23:
+    主题: 项目结算计价客户端
+    路径:
+    - corpus/raw/src/app/billing_terms/billing_terms_application.js
+    定位: 1535–1545；计价项目选择；不把界面访问设置当服务端规则
+    sha256: e391682f5e9178257b87825cc0eb38617e8e5185d3b3bb3237ebbcd6157aa72d
+  E24:
+    主题: 日常汇率维护客户端
+    路径:
+    - corpus/raw/src/app/configuration/exchange_rate_daily_setup/exchange_rate_daily_setup_application.js
+    定位: 18–55；应用与维护入口；不执行下载或调度
+    sha256: c6de0a90b96cafb0cb4a80d4e265b9fc7a96e5d148464a7aec5343c798a6a689
+  E25:
+    主题: 汇兑处理客户端
+    路径:
+    - corpus/raw/src/app/accounting/gains_losses/gains_losses_application.js
+    定位: 75–85、150–207；运行与提交处理入口；未验证差额计算算法
+    sha256: e5201f519fd8be3a465aa6816339b0ce96e9dac513874fb7c67ac32b4116d33b
+  E26:
+    主题: 财务合并客户端
+    路径:
+    - corpus/raw/src/app/general_ledger/consolidations/consolidations_application.js
+    定位: 20–62；运行和调度入口；与 E15 配合证明配置主题
+    sha256: 8453d470f35586a12136402c3dce2286a75980a30b692a248140b659b64efed5
+  E27:
+    主题: 公司间结算客户端
+    路径:
+    - corpus/raw/src/app/accounting/intercompany_billing/intercompany_billing_application.js
+    定位: 99–132、210–225；结算运行、历史结果入口；未验证实际成对核算
+    sha256: ae5b271f08b6aa27e4ea79edbcde4a1f0ba210f54468ea60d84872cf1b8e2f0e
+  E28:
+    主题: 采购订单客户端
+    路径:
+    - corpus/raw/src/app/purchasing/purchase_order/purchase_order_application.js
+    定位: 50–65、1144–1153、1370–1395；取消变更及已收信息；承诺控制为待核建议
+    sha256: 0c1432ed48428a6eb9038d4128fcf11203c5e01b7f478e36b2a159f91c37681f
+  E29:
+    主题: 物料领用申请客户端
+    路径:
+    - corpus/raw/src/app/Inventory/item_request/item_request_application.js
+    定位: 21–82 的依赖和入口；只证明领用申请主题，不能外推全部库存行为
+    sha256: d1b3de466ed9f511af4b193e974588e0f2117700850a75a0aa418cd39b37cef8
+  E30:
+    主题: 资产转移与分拆客户端
+    路径:
+    - corpus/raw/src/app/asset_management/transfer_split/transfer_split_application.js
+    定位: 38–48、175–196、203–224；两种处理及提交路径
+    sha256: 4a61af3fa93eaea13e34ca0625795a2f4c1d5e94a22e82ec5c30ad7ccd1a50b9
+  E31:
+    主题: 资产转移与分拆提交模型
+    路径:
+    - corpus/raw/src/app/asset_management/transfer_split/models/transfer_split_options_model.js
+    定位: 14–20、34–40、67–71；仅静态命令，不证明计算及落账
+    sha256: abf1d592cc2c04d3ba9a526ab6e221e0a73166aa99568bc1705af97f182854a6
+  E32:
+    主题: 公司卡核对客户端
+    路径:
+    - corpus/raw/src/app/cash_management/credit_card_reconciliation/credit_card_reconciliation_application.js
+    定位: 18–29、67–95；导入、关闭与错误报告入口
+    sha256: e3e4e28517f5d4b9fb68cbc8a32d4a6d9097bdb0d624f73b7202a1349ddfbec0
+  E33:
+    主题: 组合项目请款客户端
+    路径:
+    - corpus/raw/src/app/billing/billing_groups/billing_groups_application.js
+    定位: 70–130；主项目选择与分组页面；未推断完整组合限制
+    sha256: d44e672a16e593305b59f5e432653b160a64b08707e02a7efdb9de0240755580
+  E34:
+    主题: 请款分组成员模型
+    路径:
+    - corpus/raw/src/app/billing/billing_groups/models/btbg_subs.js
+    定位: 全文；父成员身份和成员关联；不复述其标识名称
+    sha256: b6bcb8e3c28f37799e26f13b9c790a3301057b9d33db268f8073958183705546
+  E35:
+    主题: 审批配置客户端
+    路径:
+    - corpus/raw/src/app/configuration/workflow/approval_workflow/approval_workflow_application.js
+    定位: 1–45、相关依赖与页面绑定；仅说明配置入口
+    sha256: d312d691ec7c7320f85fde24370cee57bd01140a2e848717c9b2e02b7430ff5a
+  E36:
+    主题: 商业提案模板客户端
+    路径:
+    - corpus/raw/src/app/proposals/template_application.js
+    定位: 14–37 及模板操作入口定位；不复制版式或内容
+    sha256: 1bb9558f4a93438495c209094daf299dd647dd347bdcc37b6165299eb8264a27
+  E37:
+    主题: 历史账单后处理结构化捕获
+    路径:
+    - corpus/raw/runtime-captures/dated_bc/20260619/20260619_bc_fee_billing_accept_cleanup_postonaccept_TESTB1.01_202606_FEE100/capture_result.json
+    定位: 仅安全提取开始结束时间、阶段键、写请求状态、后读状态和行计数；JSON 定位为 /reads/postSurfaces/gl、/reads/postSurfaces/summary、/writes。不输出会话或登录数据
+    sha256: 5f8a696a398a7176e83097be42d3be18d8aa846d71ebddf393521d603f1fadc0
+  E38:
+    主题: 收入预测客户端模型
+    路径:
+    - corpus/raw/src/app/revenue_forecast/models/revenue_forecast.js
+    定位: 31–81；预测与计价金额的不同模型角色，不用这些数值冒充收入确认
+    sha256: ecb3e356e9a051dbddd4adceaef46ba4eacdc780ec3da484ad64789e88c19cb4
+  E39:
+    主题: 导航层次摘要
+    路径:
+    - feature-map/L1-L2-map.md
+    定位: 总览和主要业务分支；路径推断节点不升级为实际租户菜单事实
+    sha256: 7c6ad14e43fc65bc5ef0a302192f14a1df0f42c6a324fbdcf15aa0abc49e4878

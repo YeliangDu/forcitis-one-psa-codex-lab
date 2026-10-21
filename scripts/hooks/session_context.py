@@ -11,7 +11,7 @@ build_sessions.py imports context_docs() and unsafe_reason() so the hook and the
 Every failure prints one 【会话画像】 line to stdout (the hook's output reaches the model) and the hook still exits 0.
 Usage: session_context.py <repo-root>  |  session_context.py --self-test
 """
-import contextlib, io, os, re, subprocess, sys, tempfile
+import contextlib, io, json, os, re, subprocess, sys, tempfile
 
 SESSIONS = "docs/modernization/sessions"
 MARKER = ".claude/session-name"
@@ -62,7 +62,8 @@ def from_tree(root, path):
     return open(full, encoding="utf-8").read() if os.path.isfile(full) else None
 
 
-def main(root):
+def identify(root):
+    """(name or None, retired names, marker text, branch) by the rules in the module docstring."""
     names = set()
     listed = git(root, "ls-tree", "--name-only", f"origin/main:{SESSIONS}")
     for f in (listed or "").split() + (os.listdir(os.path.join(root, SESSIONS)) if os.path.isdir(os.path.join(root, SESSIONS)) else []):
@@ -73,7 +74,12 @@ def main(root):
     marker_path = os.path.join(root, MARKER)
     marker = open(marker_path, encoding="utf-8").read().strip() if os.path.isfile(marker_path) else ""
     branch = (git(root, "rev-parse", "--abbrev-ref", "HEAD") or "").strip().removeprefix("claude/")
-    name = match(names | retired, marker, [os.path.basename(root), branch])
+    return match(names | retired, marker, [os.path.basename(root), branch]), retired, marker, branch
+
+
+def main(root):
+    name, retired, marker, branch = identify(root)
+    retired_path = f"{SESSIONS}/_retired.md"
     if name in retired:
         print(f"【会话画像】本会话识别为已结束的 {name}（{retired_path}），没有画像；若不对，在 {MARKER}（不入仓）写入会话名。")
         return
@@ -99,6 +105,22 @@ def main(root):
         text = from_tree(root, doc) or from_main(root, doc)
         print(f"\n===== {doc} =====")
         print(text.rstrip("\n") if text else f"（缺文件：{doc}，按 SESSION_PLAYBOOK §2.1 第 16 条补齐）")
+
+
+def state_of(profile_text):
+    m = re.search(r"(?ms)^## 当前状态\n+(.*?)(?=^## |\Z)", profile_text)
+    return " ".join(m.group(1).split()) if m else ""
+
+
+def brief(root):
+    """JSON-able summary for the start-up head: session name, profile path, 当前状态 text and the context document paths (handoff_snapshot.py --start)."""
+    name, retired, marker, branch = identify(root)
+    if not name or name in retired:
+        return {"name": None, "reason": "已结束会话，没有画像" if name else "未识别本会话", "profile": None, "state": "", "docs": []}
+    profile_path = f"{SESSIONS}/{name}.md"
+    profile = from_main(root, profile_path) or from_tree(root, profile_path) or ""
+    docs = [doc for doc in context_docs(profile) if doc != profile_path and not unsafe_reason(root, doc)]
+    return {"name": name, "reason": "", "profile": profile_path, "state": state_of(profile), "docs": docs}
 
 
 def run(root):
@@ -145,12 +167,21 @@ def self_test():
         with contextlib.redirect_stdout(out):
             run(None)
         assert out.getvalue().startswith("【会话画像】注入失败（TypeError"), out.getvalue()
+        with open(os.path.join(root, SESSIONS, "one-x.md"), "w") as profile_file:
+            profile_file.write("# one-x\n\n## 上下文文档\n\n- `docs/a.md`、`/etc/x.md`\n\n## 当前状态\n\n第一行\n第二行\n\n## 权限边界\n\n无\n")
+        summary = brief(root)
+        assert summary == {"name": "one-x", "reason": "", "profile": f"{SESSIONS}/one-x.md", "state": "第一行 第二行", "docs": ["docs/a.md"]}, summary
+        stranger = os.path.join(tmp, "somewhere")
+        os.makedirs(stranger)
+        assert brief(stranger)["name"] is None and brief(stranger)["reason"] == "未识别本会话"
     print("self-test: ok")
 
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         self_test()
+    elif len(sys.argv) == 3 and sys.argv[1] == "--brief":
+        print(json.dumps(brief(sys.argv[2]), ensure_ascii=False))
     elif len(sys.argv) == 2:
         run(sys.argv[1])
     else:

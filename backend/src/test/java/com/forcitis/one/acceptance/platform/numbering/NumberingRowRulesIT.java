@@ -21,9 +21,9 @@ class NumberingRowRulesIT {
 
     private static final UUID TIMESHEET_RULE = UUID.fromString("019a0000-0000-7000-8000-000000000302");
     private static final String VERSION = "insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id,"
-            + " version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, confirmed_by,"
+            + " version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, source_kind, confirmed_by,"
             + " confirmed_at, finance_confirmed_by, finance_confirmed_at) values (?, ?, 2, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2027-01-01', null, now(), ?,"
-            + " ?, ?, ?, ?)";
+            + " 'SEEDED', ?, ?, ?, ?)";
     private static final String COUNTER = "insert into platform_numbering.numbering_counters (numbering_counter_id, document_type_id, counter_scope_kind,"
             + " legal_entity_id, period_key, last_value) values (?, (select document_type_id from platform_numbering.document_types where code = ?), 'GLOBAL', null, ?, ?)";
     private static final String COUNTER_BY_TYPE_ID = "insert into platform_numbering.numbering_counters (numbering_counter_id, document_type_id, counter_scope_kind,"
