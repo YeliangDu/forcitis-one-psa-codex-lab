@@ -4,9 +4,11 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -22,42 +24,72 @@ import javax.crypto.spec.SecretKeySpec;
  */
 final class PdfOpenPassword {
     private static final byte[] PAD = HexFormat.of().parseHex("28bf4e5e4e758a4164004e56fffa01082e2e00b6d0683e802f0ca9fe6453697a");
-    private static final Pattern ENCRYPT = Pattern.compile("/Encrypt\\s*(?:(\\d+)\\s+(\\d+)\\s+R|(<<))");
-    private static final Pattern ID = Pattern.compile("/ID\\s*\\[\\s*");
+    private static final Pattern ENCRYPT = Pattern.compile("/" + escapable("Encrypt") + "\\s*(?:(\\d+)\\s+(\\d+)\\s+R|(<<))");
+    private static final Pattern ID = Pattern.compile("/" + escapable("ID") + "\\s*\\[\\s*");
 
     private PdfOpenPassword() {
     }
 
-    /** Empty when the file declares no encryption; true when the empty user password opens it; false otherwise or when unreadable. */
+    /**
+     * Empty when the file declares no encryption; true only when the empty user password opens every encryption dictionary the file
+     * contains, under every /ID it carries. A decoy dictionary, an unreferenced object or a later trailer cannot make an encrypted file
+     * pass: any candidate that does not open, or cannot be read, makes the answer false.
+     */
     static Optional<Boolean> opensWithoutPassword(byte[] pdf) {
         String text = new String(pdf, StandardCharsets.ISO_8859_1);
-        Matcher encrypt = lastMatch(ENCRYPT, text);
-        if (encrypt == null) {
-            return Optional.empty();
-        }
+        List<Integer> dictionaries = new ArrayList<>();
+        Matcher encrypt = ENCRYPT.matcher(text);
         try {
-            int dictionaryStart;
-            if (encrypt.group(3) != null) {
-                dictionaryStart = encrypt.start(3);
-            } else {
-                Matcher object = lastMatch(Pattern.compile("(?<![0-9])" + encrypt.group(1) + "\\s+" + encrypt.group(2) + "\\s+obj\\s*"), text);
-                if (object == null) {
+            while (encrypt.find()) {
+                if (encrypt.group(3) != null) {
+                    dictionaries.add(encrypt.start(3));
+                    continue;
+                }
+                Matcher object = Pattern.compile("(?<![0-9])" + encrypt.group(1) + "\\s+" + encrypt.group(2) + "\\s+obj\\s*").matcher(text);
+                boolean found = false;
+                while (object.find()) {
+                    dictionaries.add(object.end());
+                    found = true;
+                }
+                if (!found) {
                     return Optional.of(false);
                 }
-                dictionaryStart = object.end();
             }
-            Map<String, Object> dictionary = new Reader(pdf, dictionaryStart).dictionary();
-            if (!"Standard".equals(dictionary.get("Filter"))) {
-                return Optional.of(false);
+            if (dictionaries.isEmpty()) {
+                return Optional.empty();
             }
-            return Optional.of(emptyUserPasswordOpens(dictionary, firstId(pdf, text)));
+            List<byte[]> ids = ids(pdf, text);
+            for (int start : dictionaries) {
+                Map<String, Object> dictionary = new Reader(pdf, start).dictionary();
+                if (!"Standard".equals(dictionary.get("Filter"))) {
+                    return Optional.of(false);
+                }
+                for (byte[] id : ids) {
+                    if (!emptyUserPasswordOpens(dictionary, id)) {
+                        return Optional.of(false);
+                    }
+                }
+            }
+            return Optional.of(true);
         } catch (RuntimeException | GeneralSecurityException e) {
             return Optional.of(false);
         }
     }
 
+    /** A name may spell any character as #hh (ISO 32000-2 section 7.3.5). */
+    private static String escapable(String name) {
+        StringBuilder pattern = new StringBuilder();
+        for (char c : name.toCharArray()) {
+            pattern.append("(?:").append(c).append("|#").append(String.format("%02x", (int) c)).append(")");
+        }
+        return "(?i:" + pattern + ")";
+    }
+
     private static boolean emptyUserPasswordOpens(Map<String, Object> d, byte[] id) throws GeneralSecurityException {
         int revision = number(d, "R");
+        if (revision < 2 || revision > 6) {
+            return false;
+        }
         byte[] owner = bytes(d, "O");
         byte[] user = bytes(d, "U");
         if (revision >= 5) {
@@ -65,7 +97,7 @@ final class PdfOpenPassword {
             byte[] hash = revision == 5 ? sha("SHA-256", salt) : hardenedHash(salt);
             return MessageDigest.isEqual(Arrays.copyOf(hash, 32), Arrays.copyOf(user, 32));
         }
-        int keyBytes = revision == 2 ? 5 : d.containsKey("Length") ? number(d, "Length") / 8 : 5;
+        int keyBytes = revision == 2 ? 5 : d.containsKey("Length") ? number(d, "Length") / 8 : revision == 4 ? 16 : 5;
         MessageDigest md5 = MessageDigest.getInstance("MD5");
         md5.update(PAD);
         md5.update(owner, 0, 32);
@@ -133,24 +165,16 @@ final class PdfOpenPassword {
         return MessageDigest.getInstance(algorithm).digest(data);
     }
 
-    private static byte[] firstId(byte[] pdf, String text) {
-        Matcher id = lastMatch(ID, text);
-        if (id == null) {
-            return new byte[0];
+    private static List<byte[]> ids(byte[] pdf, String text) {
+        List<byte[]> ids = new ArrayList<>();
+        Matcher id = ID.matcher(text);
+        while (id.find()) {
+            ids.add((byte[]) new Reader(pdf, id.end()).value());
         }
-        return (byte[]) new Reader(pdf, id.end()).value();
-    }
-
-    private static Matcher lastMatch(Pattern pattern, String text) {
-        Matcher m = pattern.matcher(text);
-        Matcher last = null;
-        int from = 0;
-        while (from <= text.length() && m.find(from)) {
-            last = pattern.matcher(text);
-            last.find(m.start());
-            from = m.end();
+        if (ids.isEmpty()) {
+            ids.add(new byte[0]);
         }
-        return last;
+        return ids;
     }
 
     private static int number(Map<String, Object> d, String key) {
@@ -189,7 +213,9 @@ final class PdfOpenPassword {
                     throw new IllegalStateException("a key is expected");
                 }
                 String key = name();
-                values.put(key, value());
+                if (values.put(key, value()) != null) {
+                    throw new IllegalStateException("a key appears twice: readers may disagree on which counts");
+                }
             }
         }
 
@@ -245,7 +271,14 @@ final class PdfOpenPassword {
             while (at < pdf.length && !delimiter(pdf[at]) && !Character.isWhitespace(pdf[at])) {
                 at++;
             }
-            return new String(pdf, start, at - start, StandardCharsets.ISO_8859_1);
+            String raw = new String(pdf, start, at - start, StandardCharsets.ISO_8859_1);
+            Matcher escape = Pattern.compile("#([0-9A-Fa-f]{2})").matcher(raw);
+            StringBuilder decoded = new StringBuilder();
+            while (escape.find()) {
+                escape.appendReplacement(decoded, Matcher.quoteReplacement(String.valueOf((char) Integer.parseInt(escape.group(1), 16))));
+            }
+            escape.appendTail(decoded);
+            return decoded.toString();
         }
 
         private String token() {

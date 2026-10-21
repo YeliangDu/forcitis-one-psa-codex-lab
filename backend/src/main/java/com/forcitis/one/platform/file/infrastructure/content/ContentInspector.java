@@ -50,7 +50,7 @@ final class ContentInspector {
     static final int MAX_STREAM_BYTES = 32 * 1024 * 1024;
 
     private static final int PDF_SCAN_BYTES = 1024 * 1024;
-    static final long MAX_PDF_BYTES = 256L * 1024 * 1024;
+    static final long MAX_PDF_BYTES = 128L * 1024 * 1024;
     private static final byte[] AES_CODER = {0x06, (byte) 0xF1, 0x07, 0x01};
     private static final int HEAD_BYTES = 1024;
     private static final int OLE_DIRECTORY_ENTRY_BYTES = 128;
@@ -196,7 +196,7 @@ final class ContentInspector {
             ByteBuffer start = ByteBuffer.wrap(readAt(channel, 0, 32)).order(ByteOrder.LITTLE_ENDIAN);
             long offset = start.getLong(12);
             long length = start.getLong(20);
-            if (offset < 0 || length <= 0 || length > MAX_STREAM_BYTES || 32 + offset + length > channel.size()) {
+            if (offset < 0 || length <= 0 || length > MAX_STREAM_BYTES || offset > channel.size() - 32 - length) {
                 return new Inspection(Kind.SEVEN_ZIP.mediaType, true, false);
             }
             byte[] header = readAt(channel, 32 + offset, (int) length);

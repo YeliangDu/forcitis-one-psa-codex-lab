@@ -56,15 +56,28 @@ class ContentInspectorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"plain.pdf", "perm-pdfkit.pdf", "perm-rc4128.pdf", "perm-aes128.pdf", "perm-aes256.pdf"})
+    @ValueSource(strings = {"plain.pdf", "perm-rc440.pdf", "perm-pdfkit.pdf", "perm-rc4128.pdf", "perm-aes128.pdf", "perm-aes256.pdf"})
     void aPdfThatOpensWithoutPasswordIsScannedEvenWithPermissionsPassword(String sample) throws IOException {
         assertThat(inspector.inspect(sample(sample))).isEqualTo(new Inspection("application/pdf", false, false));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"open-pdfkit.pdf", "open-rc4128.pdf", "open-aes256.pdf"})
+    @ValueSource(strings = {"open-rc440.pdf", "open-pdfkit.pdf", "open-rc4128.pdf", "open-aes128.pdf", "open-aes256.pdf"})
     void aPdfThatNeedsAnOpenPasswordIsEncrypted(String sample) throws IOException {
         assertThat(inspector.inspect(sample(sample)).encrypted()).isTrue();
+    }
+
+    @Test
+    void aDecoyDictionaryOrAnEscapedNameCannotMakeAnEncryptedPdfPass() throws IOException {
+        byte[] open = Files.readAllBytes(sample("open-rc4128.pdf"));
+        String perm = new String(Files.readAllBytes(sample("perm-rc4128.pdf")), StandardCharsets.ISO_8859_1);
+        int start = perm.indexOf("<<", perm.indexOf("5 0 obj"));
+        String decoy = "\n9 0 obj\n" + perm.substring(start, perm.indexOf("endobj", start)) + "endobj\ntrailer\n<< /Encrypt 9 0 R >>\n%%EOF\n";
+        byte[] withDecoy = Arrays.copyOf(open, open.length + decoy.length());
+        System.arraycopy(decoy.getBytes(StandardCharsets.ISO_8859_1), 0, withDecoy, open.length, decoy.length());
+        assertThat(inspect("decoy.pdf", withDecoy).encrypted()).isTrue();
+        String escaped = new String(open, StandardCharsets.ISO_8859_1).replace("/Encrypt", "/#45ncrypt");
+        assertThat(inspect("escaped.pdf", escaped.getBytes(StandardCharsets.ISO_8859_1)).encrypted()).isTrue();
     }
 
     @Test
@@ -72,6 +85,8 @@ class ContentInspectorTest {
         assertThat(inspector.inspect(sample("plain.7z"))).isEqualTo(new Inspection("application/x-7z-compressed", false, false));
         assertThat(inspector.inspect(sample("content.7z")).encrypted()).isTrue();
         assertThat(inspector.inspect(sample("header.7z")).encrypted()).isTrue();
+        // Encrypted content behind a compressed (not encrypted) header: its coders are inside the LZMA stream, so only the engine can tell.
+        assertThat(inspector.inspect(sample("content-compressed.7z")).encrypted()).isFalse();
     }
 
     private static Path sample(String name) throws IOException {
