@@ -4,7 +4,7 @@
 Usage: heavy_slot.py -- command [args...]      |      heavy_slot.py --self-test
 A slot is an advisory kernel lock (flock) on a file under FORCITIS_HEAVY_DIR (default ~/.cache/forcitis-one/heavy-slots); the command inherits the locked
 descriptor, so the slot stays taken while any process of the command lives and is freed by the kernel when they all end, however they end.
-Environment: FORCITIS_HEAVY_SLOTS (default 2), FORCITIS_HEAVY_WAIT_SECONDS (default 3600; exit 75 when no slot frees up in time), FORCITIS_HEAVY_DIR.
+Environment: FORCITIS_HEAVY_RUN_SECONDS (default none; the command's process group is stopped after that long, exit 124), FORCITIS_HEAVY_SLOTS (default 2), FORCITIS_HEAVY_WAIT_SECONDS (default 3600; exit 75 when no slot frees up in time), FORCITIS_HEAVY_DIR.
 Not for frontend verify: its UI tests time out under background priority on a loaded machine (seen 2026-10-21, load 12 to 35).
 """
 import fcntl
@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 NO_SLOT = 75
+TIMED_OUT = 124
 
 
 def settings():
@@ -61,18 +62,34 @@ def run(command):
         waited += 2
         descriptor = claim(slots, folder)
     prefix = ["taskpolicy", "-b"] if shutil.which("taskpolicy") else ["nice", "-n", "10"]
-    # own process group: a signal for this script reaches the whole command, not only its first process
-    child = subprocess.Popen(prefix + command, pass_fds=(descriptor,), start_new_session=True)
+    # signals arriving before the handlers exist are held back, then forwarded; the command runs in its own process group so a signal reaches all of it
+    signals = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)
+    signal.pthread_sigmask(signal.SIG_BLOCK, signals)
+    child = subprocess.Popen(prefix + command, pass_fds=(descriptor,), start_new_session=True,
+                             preexec_fn=lambda: signal.pthread_sigmask(signal.SIG_UNBLOCK, signals))
 
     def forward(number, _frame):
         try:
             os.killpg(child.pid, number)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             pass
 
-    for number in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+    for number in signals:
         signal.signal(number, forward)
-    return child.wait()
+    signal.pthread_sigmask(signal.SIG_UNBLOCK, signals)
+    limit = int(os.environ.get("FORCITIS_HEAVY_RUN_SECONDS", "0")) or None
+    try:
+        code = child.wait(timeout=limit)
+    except subprocess.TimeoutExpired:
+        print(f"heavy_slot.py: command ran past {limit}s; stopping its process group", file=sys.stderr)
+        forward(signal.SIGTERM, None)
+        try:
+            child.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            forward(signal.SIGKILL, None)
+            child.wait()
+        return TIMED_OUT
+    return 128 - code if code < 0 else code
 
 
 def self_test():
@@ -99,11 +116,8 @@ def self_test():
         return subprocess.run(me + ["true"], env=base_env, capture_output=True).returncode
 
     def alive(pid):
-        try:
-            os.kill(pid, 0)
-            return True
-        except ProcessLookupError:
-            return False
+        state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+        return bool(state) and not state.startswith("Z")
 
     try:
         assert subprocess.run(me + ["sh", "-c", "exit 7"], env=base_env).returncode == 7, "exit code is passed through"
@@ -147,6 +161,10 @@ def self_test():
         else:
             os.kill(pid, signal.SIGKILL)
             raise AssertionError("TERM for the wrapper stops the grandchild too")
+
+        slow = subprocess.run(me + ["sleep", "60"], env={**base_env, "FORCITIS_HEAVY_RUN_SECONDS": "1"}, capture_output=True)
+        assert slow.returncode == TIMED_OUT, "a command past FORCITIS_HEAVY_RUN_SECONDS is stopped (exit 124)"
+        assert subprocess.run(me + ["sh", "-c", "kill -TERM $$"], env=base_env).returncode == 143, "a command killed by a signal exits 128 plus the signal"
 
         for bad in ("0", "x", "-1"):
             assert subprocess.run(me + ["true"], env={**base_env, "FORCITIS_HEAVY_SLOTS": bad}, capture_output=True).returncode != 0, f"slots={bad} is refused"

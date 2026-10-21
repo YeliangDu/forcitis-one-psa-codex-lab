@@ -27,8 +27,8 @@ root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "FAIL  not inside a 
 cd "$root" || exit 1
 # Heavy builds and test runs queue for one of two machine-wide slots and run at background priority (scripts/ci/heavy_slot.py)
 heavy="$root/scripts/ci/heavy_slot.py"
-# the push hook gives precheck 1400 s: a push that waits longer for a slot fails here instead of being killed with a half-run command
-$pre_push && export FORCITIS_HEAVY_WAIT_SECONDS=${FORCITIS_HEAVY_WAIT_SECONDS:-600}
+# the push hook gives precheck 1400 s: a push that waits or runs longer than 600 s each fails here, the wrapper stopping its command, instead of being killed from outside with a half-run command left holding the slot
+$pre_push && export FORCITIS_HEAVY_WAIT_SECONDS=${FORCITIS_HEAVY_WAIT_SECONDS:-600} FORCITIS_HEAVY_RUN_SECONDS=${FORCITIS_HEAVY_RUN_SECONDS:-600}
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/precheck.XXXXXX")
 trap 'rm -rf "$work"' EXIT
