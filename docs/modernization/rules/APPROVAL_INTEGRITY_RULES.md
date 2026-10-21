@@ -156,4 +156,4 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 - Given the parent chain leaf, middle, leaf (a cycle), Then the result is empty and the walk ends; given an employee that is unknown, Then the result is empty.
 **Confidence:** High
 
-**New terms:** none required for the rules above except the following, to be looked up or registered by one-glossary: task card (待办卡片, platform.approval; the existing term Notification may already cover it); content digest (内容摘要, platform.approval, the `approved_hash` value); binding effect (正式效力, platform.approval, counterpart of the registered Advisory); process administrator (流程管理员, platform.approval).
+**New terms:** none required for the rules above except the following, to be looked up or registered by one-glossary: task card (待办卡片, platform.approval; the existing term Notification may already cover it); content digest (内容摘要, platform.approval, the `approved_hash` value); binding effect (registered as 约束性, platform.approval, counterpart of 建议性 under 效力); process administrator (流程管理员, platform.approval).
