@@ -5,12 +5,12 @@ CREATE SCHEMA IF NOT EXISTS platform_file;
 -- ═══ 0. 状态转换（ADR-0058；STATE_TRANSITIONS_DESIGN v2 第 1 节模板，<schema> = platform_file）════════
 CREATE TABLE platform_file.state_transitions (
     id                      uuid        NOT NULL,
-    aggregate_type          text        NOT NULL CONSTRAINT ck_state_transitions_aggregate_type CHECK (aggregate_type ~ '^[A-Z][A-Za-z0-9]{0,99}$'),
+    aggregate_type_code          text        NOT NULL CONSTRAINT ck_state_transitions_aggregate_type_code CHECK (aggregate_type_code ~ '^[A-Z][A-Za-z0-9]{0,99}$'),
     aggregate_id            uuid        NOT NULL,
-    sequence_no             bigint      NOT NULL,
-    from_state              text,
-    to_state                text        NOT NULL,
-    occurred_on             date        NOT NULL,
+    sequence_number             bigint      NOT NULL,
+    from_status              text,
+    to_status                text        NOT NULL,
+    occurred_on_date             date        NOT NULL,
     recorded_at             timestamptz NOT NULL,
     legal_entity_id         uuid,
     actor_type              text        NOT NULL,
@@ -23,15 +23,15 @@ CREATE TABLE platform_file.state_transitions (
     created_at              timestamptz NOT NULL,
     updated_at              timestamptz NOT NULL,
     CONSTRAINT pk_state_transitions PRIMARY KEY (id),
-    CONSTRAINT uk_state_transitions_aggregate_id_sequence_no UNIQUE (aggregate_id, sequence_no),
+    CONSTRAINT uk_state_transitions_aggregate_id_sequence_number UNIQUE (aggregate_id, sequence_number),
     CONSTRAINT uk_state_transitions_id_aggregate_id UNIQUE (id, aggregate_id),
     CONSTRAINT fk_state_transitions_reverses_transition_id FOREIGN KEY (reverses_transition_id, aggregate_id)
         REFERENCES platform_file.state_transitions (id, aggregate_id) ON DELETE RESTRICT,
-    CONSTRAINT ck_state_transitions_from_state CHECK (from_state IS NULL OR from_state ~ '^[A-Z][A-Z0-9_]{0,49}$'),
-    CONSTRAINT ck_state_transitions_to_state CHECK (to_state ~ '^[A-Z][A-Z0-9_]{0,49}$'),
-    CONSTRAINT ck_state_transitions_sequence_no CHECK (sequence_no >= 0),
-    CONSTRAINT ck_state_transitions_states_differ CHECK (from_state IS DISTINCT FROM to_state),
-    CONSTRAINT ck_state_transitions_first CHECK (from_state IS NOT NULL OR cause_kind = 'MIGRATION' OR sequence_no <= 1),
+    CONSTRAINT ck_state_transitions_from_status CHECK (from_status IN ('AVAILABLE', 'QUARANTINED', 'EXPIRED_UNBOUND', 'PENDING_REVIEW', 'CONFIRMED', 'REJECTED', 'PENDING', 'APPROVED', 'READ')),
+    CONSTRAINT ck_state_transitions_to_status CHECK (to_status IN ('AVAILABLE', 'QUARANTINED', 'EXPIRED_UNBOUND', 'PENDING_REVIEW', 'CONFIRMED', 'REJECTED', 'PENDING', 'APPROVED', 'READ')),
+    CONSTRAINT ck_state_transitions_sequence_number CHECK (sequence_number >= 0),
+    CONSTRAINT ck_state_transitions_statuses_differ CHECK (from_status IS DISTINCT FROM to_status),
+    CONSTRAINT ck_state_transitions_first CHECK (from_status IS NOT NULL OR cause_kind = 'MIGRATION' OR sequence_number <= 1),
     CONSTRAINT ck_state_transitions_actor_type CHECK (actor_type IN ('USER', 'SYSTEM')),
     CONSTRAINT ck_state_transitions_cause_kind CHECK (cause_kind IN ('COMMAND', 'REVERSAL', 'CORRECTION', 'MIGRATION', 'SYSTEM_JOB')),
     CONSTRAINT ck_state_transitions_trigger CHECK (num_nonnulls(command_id, event_id) <= 1
@@ -39,10 +39,10 @@ CREATE TABLE platform_file.state_transitions (
         AND (cause_kind <> 'SYSTEM_JOB' OR command_id IS NULL)
         AND (cause_kind <> 'MIGRATION' OR num_nonnulls(command_id, event_id) = 0)),
     CONSTRAINT ck_state_transitions_reversal CHECK ((cause_kind IN ('REVERSAL', 'CORRECTION')) = (reverses_transition_id IS NOT NULL)),
-    CONSTRAINT ck_state_transitions_migration CHECK (cause_kind <> 'MIGRATION' OR from_state IS NULL),
+    CONSTRAINT ck_state_transitions_migration CHECK (cause_kind <> 'MIGRATION' OR from_status IS NULL),
     CONSTRAINT ck_state_transitions_times CHECK (created_at = recorded_at AND updated_at = recorded_at)
 );
-CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on ON platform_file.state_transitions (legal_entity_id, occurred_on) WHERE legal_entity_id IS NOT NULL;
+CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on_date ON platform_file.state_transitions (legal_entity_id, occurred_on_date) WHERE legal_entity_id IS NOT NULL;
 CREATE INDEX ix_state_transitions_recorded_at ON platform_file.state_transitions (recorded_at, id);
 CREATE FUNCTION platform_file.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -59,12 +59,12 @@ CREATE TRIGGER tg_state_transitions_append_only_truncate BEFORE TRUNCATE ON plat
     FOR EACH STATEMENT EXECUTE FUNCTION platform_file.refuse_transition_rewrite();
 COMMENT ON TABLE platform_file.state_transitions IS '状态转换：本 schema 各聚合每次状态变更一行，只追加，回退也正向记（ADR-0058）。粒度：每次状态变更一行';
 COMMENT ON COLUMN platform_file.state_transitions.id IS '状态转换 ID（UUIDv7）';
-COMMENT ON COLUMN platform_file.state_transitions.aggregate_type IS '聚合类型：StoredFile、FalsePositiveJudgment、QuarantineReadRequest、PreservationCategoryVersion';
+COMMENT ON COLUMN platform_file.state_transitions.aggregate_type_code IS '聚合类型：StoredFile、FalsePositiveJudgment、QuarantineReadRequest、PreservationCategoryVersion';
 COMMENT ON COLUMN platform_file.state_transitions.aggregate_id IS '聚合 ID';
-COMMENT ON COLUMN platform_file.state_transitions.sequence_no IS '序号：本次变更之后聚合行的 version，与聚合行同事务递增';
-COMMENT ON COLUMN platform_file.state_transitions.from_state IS '原状态：为空表示新建或迁入的初始状态';
-COMMENT ON COLUMN platform_file.state_transitions.to_state IS '新状态';
-COMMENT ON COLUMN platform_file.state_transitions.occurred_on IS '业务日期（Asia/Shanghai）';
+COMMENT ON COLUMN platform_file.state_transitions.sequence_number IS '流水号：本次变更之后聚合行的 version，与聚合行同事务递增';
+COMMENT ON COLUMN platform_file.state_transitions.from_status IS '原状态：为空表示新建或迁入的初始状态；取值为本 schema 四类聚合的状态并集，合法流转见下方清单与各表触发器';
+COMMENT ON COLUMN platform_file.state_transitions.to_status IS '新状态';
+COMMENT ON COLUMN platform_file.state_transitions.occurred_on_date IS '业务日期（Asia/Shanghai）';
 COMMENT ON COLUMN platform_file.state_transitions.recorded_at IS '记录时间：注入时钟';
 COMMENT ON COLUMN platform_file.state_transitions.legal_entity_id IS '法人主体 ID：为空表示该聚合无法人归属（文件服务四类聚合均无，注册表登记 none）';
 COMMENT ON COLUMN platform_file.state_transitions.actor_type IS '操作者类型：USER 用户 / SYSTEM 系统操作者（一次性链接持有人、平台模块调用、作业均按 system-actors.txt 登记的系统操作者）';
