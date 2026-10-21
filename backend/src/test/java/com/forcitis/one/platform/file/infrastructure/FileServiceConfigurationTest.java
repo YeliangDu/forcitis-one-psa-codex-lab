@@ -4,8 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.platform.file.api.PlatformFileContent;
+import com.forcitis.one.platform.file.application.BindFile;
+import com.forcitis.one.platform.file.application.IssueDownloadLink;
 import com.forcitis.one.platform.file.application.StoreContent;
+import com.forcitis.one.platform.file.domain.BindingAudit;
 import com.forcitis.one.platform.file.domain.ContentChecks;
+import com.forcitis.one.platform.file.domain.FileBindingRepository;
 import com.forcitis.one.platform.file.domain.StoreAudit;
 import com.forcitis.one.platform.file.domain.StoredFileRepository;
 import com.forcitis.one.platform.integration.api.BusinessFileStore;
@@ -28,19 +33,22 @@ class FileServiceConfigurationTest {
     private ApplicationContextRunner runner() {
         return new ApplicationContextRunner().withUserConfiguration(FileServiceConfiguration.class)
                 .withBean(ContentChecks.class, () -> mock(ContentChecks.class)).withBean(StoredFileRepository.class, () -> mock(StoredFileRepository.class))
-                .withBean(StoreAudit.class, () -> mock(StoreAudit.class)).withBean(IdGenerator.class, () -> UUID::randomUUID)
+                .withBean(StoreAudit.class, () -> mock(StoreAudit.class))
+                .withBean(FileBindingRepository.class, () -> mock(FileBindingRepository.class)).withBean(BindingAudit.class, () -> mock(BindingAudit.class)).withBean(IdGenerator.class, () -> UUID::randomUUID)
                 .withBean(Clock.class, Clock::systemUTC).withBean(PlatformTransactionManager.class, () -> mock(PlatformTransactionManager.class))
                 .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
                 .withPropertyValues("forcitis.platform.file.store.enabled=true", "forcitis.platform.file.store.environment-prefix=dev",
                         "forcitis.platform.file.store.max-file-size=100MB", "forcitis.platform.file.store.allowed-media-types=application/pdf",
                         "forcitis.platform.file.store.staging-root=" + staging, "forcitis.platform.file.store.upload-deadline=PT10M", "forcitis.platform.file.store.staging-sweep-age=PT1H",
-                        "forcitis.platform.file.store.staging-sweep-interval=PT10M");
+                        "forcitis.platform.file.store.staging-sweep-interval=PT10M", "forcitis.platform.file.store.download-link-validity=PT5M",
+                        "forcitis.platform.file.store.download-link-maximum-validity=PT15M");
     }
 
     @Test
     void onWithBothPortsStores() {
         runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
-                .run(context -> assertThat(context).hasNotFailed().hasSingleBean(StoreContent.class));
+                .run(context -> assertThat(context).hasNotFailed().hasSingleBean(StoreContent.class).hasSingleBean(BindFile.class)
+                        .hasSingleBean(IssueDownloadLink.class).hasSingleBean(PlatformFileContent.class));
     }
 
     @Test
@@ -62,8 +70,18 @@ class FileServiceConfigurationTest {
     }
 
     @Test
+    void aDownloadLinkLongerThanFifteenMinutesOrADefaultAboveTheMaximumDoesNotStart() {
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+                .withPropertyValues("forcitis.platform.file.store.download-link-maximum-validity=PT16M").run(context -> assertThat(context).hasFailed());
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+                .withPropertyValues("forcitis.platform.file.store.download-link-validity=PT20M").run(context -> assertThat(context).hasFailed());
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+                .withPropertyValues("forcitis.platform.file.store.download-link-validity=").run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
     void offStoresNothing() {
         new ApplicationContextRunner().withUserConfiguration(FileServiceConfiguration.class)
-                .run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(StoreContent.class));
+                .run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(StoreContent.class).doesNotHaveBean(PlatformFileContent.class));
     }
 }

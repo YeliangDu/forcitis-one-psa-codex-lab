@@ -272,6 +272,22 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: classification
+  zh: 分级
+  en: Classification
+  snake: classification
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 一次文件关联给出的访问级别与个人信息标记两项；同一文件同一单据重复关联须分级相同，否则拒绝
+  standard_ref:
+  - ADR-0043 数据分级
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'one-platform-file 2026-10-21 单元 6 登记；保存类别不在分级内'
 - id: personal_information_mark
   zh: 个人信息标记
   en: PersonalInformationMark

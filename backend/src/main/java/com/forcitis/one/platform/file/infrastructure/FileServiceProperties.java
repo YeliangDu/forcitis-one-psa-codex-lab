@@ -15,10 +15,11 @@ import org.springframework.util.unit.DataSize;
 @ConfigurationProperties("forcitis.platform.file.store")
 record FileServiceProperties(@DefaultValue("false") boolean enabled, String environmentPrefix, DataSize maxFileSize, List<String> allowedMediaTypes,
                              Path stagingRoot, Duration uploadDeadline, Duration stagingSweepAge,
-                             Duration stagingSweepInterval) {
+                             Duration stagingSweepInterval, Duration downloadLinkValidity, Duration downloadLinkMaximumValidity) {
 
     static final String PREFIX = "forcitis.platform.file.store.";
     static final DataSize SCANNABLE = DataSize.ofGigabytes(2);
+    static final Duration LINK_CEILING = Duration.ofMinutes(15);
 
     FileServiceProperties {
         if (enabled) {
@@ -41,6 +42,12 @@ record FileServiceProperties(@DefaultValue("false") boolean enabled, String envi
                         + "or the sweep could remove an upload still being written or scanned (ADR-0070 section 3 item 3)");
             }
             positive(stagingSweepInterval, "staging-sweep-interval");
+            positive(downloadLinkValidity, "download-link-validity");
+            positive(downloadLinkMaximumValidity, "download-link-maximum-validity");
+            if (downloadLinkMaximumValidity.compareTo(LINK_CEILING) > 0 || downloadLinkValidity.compareTo(downloadLinkMaximumValidity) > 0) {
+                throw new IllegalArgumentException(PREFIX + "download-link-maximum-validity is at most 15 minutes and download-link-validity at most that "
+                        + "(ADR-0060 section 2)");
+            }
         }
     }
 
