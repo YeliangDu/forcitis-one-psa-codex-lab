@@ -639,7 +639,7 @@ entries:
   - revenue:PRC-03#11
   - revenue:片段
 - object: AGG-10
-  command: 商机赢单
+  command: 登记商机赢单
   raci:
     A:
       resolve: instance
@@ -1830,7 +1830,7 @@ entries:
   - revenue:PRC-17#2
   - revenue:片段
 - object: AGG-19
-  command: 开始执行
+  command: 开始执行项目
   raci:
     A:
       resolve: instance
@@ -3069,7 +3069,7 @@ entries:
   - revenue:PRC-17#3
   - revenue:片段
 - object: AGG-34
-  command: 标记不再受托
+  command: 标记检查计划不再受托
   raci:
     A:
       resolve: instance
@@ -3914,7 +3914,7 @@ entries:
   - finance:PRC-55#2
   - finance:片段
 - object: AGG-43
-  command: 标记已过账
+  command: 标记成本结转已过账
   raci:
     A:
       resolve: type
@@ -4216,7 +4216,7 @@ entries:
   - revenue:PRC-57#7
   - revenue:片段
 - object: AGG-45
-  command: 开票申请准入
+  command: 准入开票申请
   raci:
     A:
       resolve: instance
@@ -5250,7 +5250,7 @@ entries:
   - finance:PRC-75#5
   - finance:片段
 - object: AGG-53
-  command: 置付款已核销
+  command: 标记付款已核销
   raci:
     A:
       resolve: type
@@ -6925,7 +6925,7 @@ entries:
   - people:PRC-116#7
   - people:片段
 - object: AGG-72
-  command: 加班申请
+  command: 提交加班申请
   raci:
     A:
       resolve: instance
@@ -7003,7 +7003,7 @@ entries:
   - people:PRC-117#3
   - people:片段
 - object: AGG-73
-  command: 批准
+  command: 批准月度薪酬
   raci:
     A:
       resolve: instance
@@ -7042,7 +7042,7 @@ entries:
   - people:PRC-124#4
   - people:片段
 - object: AGG-73
-  command: 提交审核
+  command: 提交薪酬审核
   raci:
     A:
       resolve: type
@@ -7100,7 +7100,7 @@ entries:
   sources:
   - people:片段
 - object: AGG-73
-  command: 标记已过账
+  command: 标记薪酬已过账
   raci:
     A:
       resolve: type
@@ -7139,7 +7139,7 @@ entries:
   - people:PRC-127#1
   - people:片段
 - object: AGG-73
-  command: 计算
+  command: 计算月度薪酬
   raci:
     A:
       resolve: type
@@ -7151,7 +7151,7 @@ entries:
     I:
     - SH-E6
   sensitive: false
-  note: 系统自动计算，无人持有执行权限；薪酬岗查看结果所需的薪酬查看权限在「提交审核」条目判定
+  note: 系统自动计算，无人持有执行权限；薪酬岗查看结果所需的薪酬查看权限在「提交薪酬审核」条目判定
   source_part: vs13pay
   a_source: group:people
   sources:
@@ -7846,7 +7846,7 @@ entries:
   - finance:PRC-87#8
   - people:片段
 - object: AGG-80
-  command: 预算占用
+  command: 占用预算
   raci:
     A:
       resolve: type
@@ -8050,7 +8050,7 @@ entries:
   sources:
   - finance:片段
 - object: AGG-84
-  command: 推送与重投
+  command: 推送分录
   raci:
     A:
       resolve: type
@@ -8414,7 +8414,7 @@ entries:
   - finance:PRC-73#4
   - finance:片段
 - object: AGG-89
-  command: 驳回释放
+  command: 释放进项发票占用
   raci:
     A:
       resolve: type
@@ -10263,6 +10263,25 @@ entries:
   source_part: b31
   a_source: group:people
   sources:
+  - people:片段
+- object: AGG-116
+  command: 取消员工活动登记
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 行政
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E3
+  sensitive: false
+  note: 沿活动组织办理职能执行取消，不持人工批准权；已批准或已完成均可取消，原因必填，记取消人、时间及审计，保留原登记和完成历史；重登另建记录关联原单（B31-8）。
+  source_part: b31
+  a_source: group:people
+  sources:
+  - people:PRC-144#3
   - people:片段
 - object: AGG-116
   command: 完成员工活动
