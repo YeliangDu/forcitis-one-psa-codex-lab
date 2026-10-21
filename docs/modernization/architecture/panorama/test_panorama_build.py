@@ -11,6 +11,41 @@ import yaml
 import panorama_build as p
 
 
+class ObjectSourceTest(unittest.TestCase):
+    def test_arc07_yaml_is_the_only_object_table_source(self):
+        with tempfile.TemporaryDirectory(dir=p.ROOT) as tmp:
+            root = Path(tmp)
+            objects, details = root / "objects.yaml", root / "details.md"
+            fields = ("id", "name", "definition", "level", "type", "key_states", "relations", "rules", "facts", "source", "term", "scope", "parent_text")
+            row = {**dict.fromkeys(fields, ""), "id": "OBJ-01", "name": "往来单位", "level": "一级",
+                   "key_states": "有效", "facts": "已登记", "parent": ["OBJ-02", "OBJ-03"], "parent_text": "OBJ-02、OBJ-03"}
+            removed = {**row, "id": "OBJ-04", "definition": "【行号保留，已非对象】"}
+            objects.write_text(yaml.safe_dump({"objects": [row, removed]}, allow_unicode=True), encoding="utf-8")
+            details.write_text("## 1. 总表\n故意无可解析总表\n## 2. 说明\n### 2.1 往来单位与角色\n- 身份：物业\n### 2.2 其他\n- 监理\n## 3. 非对象", encoding="utf-8")
+            model, edges = {"obj": {}}, []
+            with patch.dict(p.SRC, obj=objects, obj_details=details):
+                p.load_objects(model, lambda *edge: edges.append(edge))
+                self.assertEqual(["OBJ-01"], list(model["obj"]))
+                self.assertEqual("有效", model["obj"]["OBJ-01"]["states"])
+                self.assertEqual(["OBJ-02", "OBJ-03"], model["obj"]["OBJ-01"]["parents"])
+                self.assertTrue(model["obj"]["OBJ-01"]["primary"])
+                self.assertIn("物业", model["obj_text"]["OBJ-01"])
+                self.assertNotIn("监理", model["obj_text"]["OBJ-01"])
+                self.assertEqual(2, len(edges))
+                self.assertTrue(all("objects.yaml#objects[0]/OBJ-01" in edge[3] for edge in edges))
+                row["key_states"] = "已停用"
+                objects.write_text(yaml.safe_dump({"objects": [row]}, allow_unicode=True), encoding="utf-8")
+                changed = {"obj": {}}
+                p.load_objects(changed, lambda *edge: None)
+                self.assertEqual("已停用", changed["obj"]["OBJ-01"]["states"])
+                objects.write_text(yaml.safe_dump({"objects": [row, row]}, allow_unicode=True), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "编号重复"):
+                    p.load_objects({"obj": {}}, lambda *edge: None)
+                objects.unlink()
+                with self.assertRaises(FileNotFoundError):
+                    p.load_objects({"obj": {}}, lambda *edge: None)
+
+
 class ConstraintNetworkTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)

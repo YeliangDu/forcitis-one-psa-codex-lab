@@ -4,7 +4,7 @@
 节点：01 干系人 · 02 关注点 · 03 价值主张 · 04 取舍决定 · 05 业务能力 · 06 价值流与阶段 · 07 业务流程 · 08 约束与认定规则 ·
 09 业务对象 · 10 受控业务执行 · 11 业务事实 · 12 维度 · 13 指标与评价 · 14 计算绑定 · 15 决策与行动。
 聚合、BC、子域、表作为 09、10 的领域与实现层映射（检查编号 N09-Mn、N10-Mn）。每条链接带出处（源文件与定位）。
-源：proposals/value-streams.v2.yaml、ENTERPRISE_INFO_MAP_DRAFT.md §1、closeout/process-catalog.yaml、
+源：proposals/value-streams.v2.yaml、ssot/10-objects/objects.yaml、ENTERPRISE_INFO_MAP_DRAFT.md §2、closeout/process-catalog.yaml、
 ssot/c1-rules/rules.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §2.2 / §3.2、ddd/aggregates.yaml、ddd/subdomains.yaml、glossary/terms.yaml（kind=metric）、
 data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ddd/aggregates.yaml 的已建表）。
 缺口只报告、不使构建失败：反复跑到收敛；--check 由 build_all 保证生成物可复现。
@@ -27,7 +27,8 @@ ROOT = DOCS.parent.parent
 JAVA = ROOT / "backend/src/main/java/com/forcitis/one"
 SRC = {
     "vs": ARCH / "proposals" / "value-streams.v2.yaml",
-    "obj": ARCH / "proposals" / "ENTERPRISE_INFO_MAP_DRAFT.md",
+    "obj": ARCH / "ssot/10-objects/objects.yaml",
+    "obj_details": ARCH / "proposals/ENTERPRISE_INFO_MAP_DRAFT.md",
     "prc": ARCH / "proposals" / "closeout" / "process-catalog.yaml",
     "agg": ARCH / "proposals" / "ENTERPRISE_AGGREGATES_DRAFT.md",
     "built": ARCH / "ddd" / "aggregates.yaml",
@@ -139,15 +140,40 @@ def gate_refs(node, patterns, depth=0):
     return out
 
 
-def obj_texts(text):
-    """每个对象可查取值的文字：总表该行，加上 §2 中提到它（编号或名称）的小节。"""
-    rows = {oid: (" ".join(c), c[1].replace("*", "")) for oid, c, _ in md_rows(text, "## 1. 总表", "### 1.1", r"OBJ-\d{2,3}")}
+def obj_texts(objects, text):
+    """每个对象可查取值的文字：登记字段，加上 §2 中提到它（编号或名称）的小节。"""
+    fields = ("id", "name", "definition", "level", "type", "key_states", "relations", "rules", "facts", "source", "term", "scope", "parent_text")
+    rows = {o["id"]: (" ".join(o[k] for k in fields), o["name"]) for o in objects}
     s2 = text[text.index("## 2."):text.index("## 3.")] if "## 2." in text and "## 3." in text else ""
     secs = re.split(r"\n(?=### )", s2)
     out = {}
     for oid, (row, name) in rows.items():
         out[oid] = row + "\n" + "\n".join(s for s in secs if re.search(rf"{oid}(?!\d)", s.split("\n", 1)[0]) or name in s.split("\n", 1)[0])
     return out
+
+
+def load_objects(m, link):
+    objects = read_rows("obj", "objects")
+    text = SRC["obj_details"].read_text(encoding="utf-8")
+    m["obj_text"] = obj_texts(objects, text)
+    disp = olc.object_dispositions(text)
+    kinds = {"subordinate": "从属对象", "reference_data": "参照数据", "view": "视图"}
+    seen = set()
+    for index, row in enumerate(objects):
+        oid = row["id"]
+        if oid in seen:
+            raise ValueError(f"{rel(SRC['obj'])} 编号重复：{oid}")
+        seen.add(oid)
+        if "已非对象" in row["definition"]:
+            continue
+        level, d = row["level"], disp.get(oid)
+        src = f"{rel(SRC['obj'])}#objects[{index}]/{oid}"
+        m["obj"][oid] = {"name": row["name"], "active": True, "primary": level.startswith("一级") or "暂列一级" in level,
+                         "class": kinds[d["kind"]] if d else "业务对象", "parent": d.get("parent_object") if d else None,
+                         "parents": row["parent"], "parents_raw": row["parent_text"],
+                         "states": row["key_states"], "facts": row["facts"], "src": src}
+        for parent in row["parent"]:
+            link("obj-parent", oid, parent, src)
 
 
 def rel(p):
@@ -511,24 +537,7 @@ def load():
             for g in gates:
                 link(f"stage-gate-{g['side']}", st["id"], g["obj"], f"{rel(SRC['vs'])}#{st['id']}.{g['side']}")
 
-    text = SRC["obj"].read_text(encoding="utf-8")
-    m["obj_text"] = obj_texts(text)
-    valid = anc.info_objects(text)
-    disp = olc.object_dispositions(text)
-    kinds = {"subordinate": "从属对象", "reference_data": "参照数据", "view": "视图"}
-    for oid, c, no in md_rows(text, "## 1. 总表", "### 1.1", r"OBJ-\d{2,3}"):
-        if oid not in valid:
-            continue
-        level = (c[3] if len(c) > 3 else "").replace("*", "")
-        d = disp.get(oid)
-        parents = c[12] if len(c) > 12 else ""
-        m["obj"][oid] = {"name": c[1].replace("*", ""), "active": True, "primary": level.startswith("一级") or "暂列一级" in level,
-                         "class": kinds[d["kind"]] if d else "业务对象", "parent": d.get("parent_object") if d else None,
-                         "parents": OBJ_RE.findall(parents), "parents_raw": parents,
-                         "states": c[5] if len(c) > 5 else "", "facts": c[8].strip() if len(c) > 8 else "",
-                         "src": f"{rel(SRC['obj'])}:{no}"}
-        for p in m["obj"][oid]["parents"]:
-            link("obj-parent", oid, p, f"{rel(SRC['obj'])}:{no}")
+    load_objects(m, link)
 
     for p in yaml.safe_load(SRC["prc"].read_text(encoding="utf-8"))["processes"]:
         po = str(p.get("primary_object") or "")
@@ -918,7 +927,8 @@ def self_test():
         except ValueError:
             pass
     txt = "## 1. 总表\n| 编号 | 对象 |\n|---|---|\n| OBJ-01 | 往来单位 | 甲 |\n### 1.1\n## 2. x\n### 2.1 往来单位与角色\n- 项目内身份：物业\n### 2.2 别的\n- 往来单位 监理\n## 3."
-    ot = obj_texts(txt)
+    row = dict.fromkeys(("definition", "level", "type", "key_states", "relations", "rules", "facts", "source", "term", "scope", "parent_text"), "")
+    ot = obj_texts([{**row, "id": "OBJ-01", "name": "往来单位"}], txt)
     assert "物业" in ot["OBJ-01"] and "监理" not in ot["OBJ-01"], ot   # 只取标题含对象名或编号的小节
     import unittest
     import test_panorama_build

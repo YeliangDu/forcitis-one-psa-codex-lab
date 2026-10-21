@@ -9,7 +9,7 @@
 ## 0. 本批共同约定
 
 - 沿用第一批约定：生成文件开头写「由 <脚本> 生成，勿手改」；手写与生成分文件；文件放 `architecture/ssot/<节点>/`，`meta.status: proposal`。
-- **新前缀先过用语**（U9）：本批新前缀 `CMD-`（命令）、`ORG-`（组织单元类别）、`ROLE-`（角色，已有但分散）、`TRN-`（状态转换），与目录名 `ssot/10-objects`、`ssot/07-org-roles`、`ssot/i03-aggregates`、`ssot/11-commands`、`ssot/i04b-events`，开工前由本会话用 `glossary/new_term_issue.py` 交 one-glossary；未批前照用、标 proposal。
+- **新前缀先过用语**（U9）：本批新前缀 `CMD-`（命令）、`ORG-`（组织单元类别）、`ROLE-`（角色，已有但分散）、`OTR-`（对象状态转换；原拟 TRN- 与决策页编号冲突，one-glossary 改名），与目录名 `ssot/10-objects`、`ssot/07-org-roles`、`ssot/i03-aggregates`、`ssot/11-commands`、`ssot/i04b-events`，开工前由本会话用 `glossary/new_term_issue.py` 交 one-glossary；未批前照用、标 proposal。
 - **编号稳定**：已有编号（OBJ-、AGG-、ROLE-、eventType）沿用不重编；新编号按来源全名哈希或按登记顺序追加，重跑不变；删除只标 `retired`，不复用。
 - **只统计、不回填**（U2）：不改 `ENTERPRISE_INFO_MAP_DRAFT.md`、`ENTERPRISE_AGGREGATES_DRAFT.md`、`closeout/*`、`events/*.yaml`、代码；转换后在源文件加一行「已迁至 ssot/…」由本会话做。
 - **SSOT 重建线暂停令**（intent 2026-10-19-223711）不受影响：本批只建登记、不改设计文件；对象冻结（`panorama/FREEZE_FINAL.yaml`）的结论照搬，不重判。
@@ -22,7 +22,7 @@
 - **做什么**：
   1. Codex 写 `ssot/10-objects/convert_objects.py`：把 `ENTERPRISE_INFO_MAP_DRAFT.md` §1 的对象表逐行转成 `objects.yaml`（`id`、`name`、`parent`、`level`、`term`、`in_system`、`source`），按 `FREEZE_FINAL.yaml` 标冻结结论；不改文字、不合并、不新增；附转换前后条数核对。
   2. Codex 抽出两套状态机原样并列：OBJ 键的 8 个对象与 AGG 键的 130 台（出处见提案 §1.3 第 3 条），写 `state-machines.raw.yaml`，每台带出处行。
-  3. one-architecture 定 `transitions.yaml`（手写）：每条转换 `id`（TRN-）、`object`（OBJ）、`from`、`to`、`by_command`（暂空，卡 9 回填）、`source`；两套对不上的列 `pending`，不硬并。
+  3. one-architecture 定 `transitions.yaml`（手写）：每条转换 `id`（OTR-）、`object`（OBJ）、`from`、`to`、`by_command`（暂空，卡 9 回填）、`source`；两套对不上的列 `pending`，不硬并。
 - **允许改动**：`architecture/ssot/10-objects/`；`panorama_build.py` 读取段（节点 09 对象改从 `objects.yaml` 读，同第一批 INV 的做法）。
 - **验收**：对象条数＝原表条数；`parent` 指向的 OBJ 都存在；冻结结论逐条一致；`panorama_build.py` 原有 N09 系列检查缺口数不增（增了须逐条解释）；sonnet 抽 15 条与原表逐字比对。
 
@@ -43,7 +43,7 @@
 - **做什么**：
   1. Codex 写 `panorama/scan_commands.py`，从 `closeout/RESPONSIBILITY_MATRIX.yaml` 与 `closeout/{finance,people,revenue}/commands.yaml` 合并规划命令（中文名为键，586 / 592 条，去重规则：同 BC 同中文名为同一条，跨 BC 同名分立并互列），按「BC＋中文名」生成稳定 `CMD-` 编号；字段 `name`、`owner_bc`、`object`（OBJ）、`aggregate`（AGG）、`actor`（角色名原文）、`source`。
   2. 同一脚本从代码抽已建命令（`application` 包中的命令处理类，判据与 `ddd/aggregates.yaml` 的 `commands` 一致），写 `built` 段，按类名列出。
-  3. one-architecture 写 `command-mapping.yaml`：已建类 ↔ CMD；以及 `changes`（CMD → TRN，回填卡 7 的 `by_command`）。对不上的列清单不硬挂。
+  3. one-architecture 写 `command-mapping.yaml`：已建类 ↔ CMD；以及 `changes`（CMD → OTR，回填卡 7 的 `by_command`）。对不上的列清单不硬挂。
 - **允许改动**：`panorama/scan_commands.py` 及自测；`ssot/11-commands/`；`ssot/10-objects/transitions.yaml` 的 `by_command`；`panorama_build.py` 读取段。
 - **验收**：重跑一致；合并前后条数核对与去重清单；新增检查 N11-1「每个命令有 owner BC」、N11-2「每个已建命令类对上 CMD」、P-1「流程步骤改状态须声明命令」（步骤 `prc` 全空的，先只计数）。
 

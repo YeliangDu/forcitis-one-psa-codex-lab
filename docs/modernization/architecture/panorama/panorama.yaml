@@ -2,7 +2,8 @@ meta:
   generator: architecture/panorama/panorama_build.py
   sources:
     vs: architecture/proposals/value-streams.v2.yaml
-    obj: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md
+    obj: architecture/ssot/10-objects/objects.yaml
+    obj_details: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md
     prc: architecture/proposals/closeout/process-catalog.yaml
     agg: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md
     built: architecture/ddd/aggregates.yaml
@@ -7076,7 +7077,7 @@ nodes:
       parents_raw: —
       states: 待核实 → 有效（档案已核实）→ 已合并 / 已停用；档案按 D17 版本化；「正式往来单位」= 状态为「有效」（intent 120544 P-3）
       facts: — （「往来单位已合并」事件）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:59
+      src: architecture/ssot/10-objects/objects.yaml#objects[0]/OBJ-01
     OBJ-02:
       name: 往来单位角色
       active: true
@@ -7088,7 +7089,7 @@ nodes:
       parents_raw: OBJ-01
       states: 已申请 → 合格 → 已暂停 → 已停用（原因必填；适用需准入的角色：供应商、合伙人、渠道伙伴、联合体伙伴、海外持牌伙伴）；客户角色无准入状态，往来单位档案已核实即可用（intent 120544 P-3）
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
+      src: architecture/ssot/10-objects/objects.yaml#objects[1]/OBJ-02
     OBJ-03:
       name: 联系人
       active: true
@@ -7100,7 +7101,7 @@ nodes:
       parents_raw: OBJ-01
       states: 有效 / 已停用
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
+      src: architecture/ssot/10-objects/objects.yaml#objects[2]/OBJ-03
     OBJ-05:
       name: 协议
       active: true
@@ -7111,7 +7112,7 @@ nodes:
       parents_raw: —
       states: 草案 → 审批中 → 已签署生效（回签即生效，基线 1）→ 履行中 → 已完成 → 已结算（结算书经双方确认）/ 已终止（原因必填）；生效后只经协议变更产生新基线；违法分包认定时标「无效」；审批中的「合同评审」是协议审批的单据，不另立对象（完整性检查（intent 072440），M-20）
       facts: 已签署生效 → 新签合同额、分包承诺额；协议变更生效 → 合同额变动；已终止 → 终止清算；已结算 → 最终交易价格、结算折让（原 OBJ-15）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:63
+      src: architecture/ssot/10-objects/objects.yaml#objects[4]/OBJ-05
     OBJ-06:
       name: 合同范围条目
       active: true
@@ -7123,7 +7124,7 @@ nodes:
       parents_raw: OBJ-05
       states: 有效 → 被取代（只经协议变更）
       facts: — （承诺比对基准）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
+      src: architecture/ssot/10-objects/objects.yaml#objects[5]/OBJ-06
     OBJ-07:
       name: 付款条件项
       active: true
@@ -7135,7 +7136,7 @@ nodes:
       parents_raw: OBJ-05
       states: 待生效 → 已生效 → 可结算 → 被取代 / 已作废
       facts: 可结算 → 可开票额度（不产生收入）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
+      src: architecture/ssot/10-objects/objects.yaml#objects[6]/OBJ-07
     OBJ-08:
       name: 履约义务
       active: true
@@ -7147,7 +7148,7 @@ nodes:
       parents_raw: OBJ-05
       states: 未履行 → 已部分履行 → 已履行
       facts: 已履行（部分）→ 收入、合同资产 / 合同负债变动、合同履约成本转出
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
+      src: architecture/ssot/10-objects/objects.yaml#objects[7]/OBJ-08
     OBJ-09:
       name: 协议变更
       active: true
@@ -7159,7 +7160,7 @@ nodes:
       parents_raw: OBJ-05
       states: 已提出 → 影响评估 → 审批 → 已生效（新基线）/ 驳回
       facts: 已生效 → 合同额、交易价格变动（含违约金认定）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
+      src: architecture/ssot/10-objects/objects.yaml#objects[8]/OBJ-09
     OBJ-10:
       name: 索赔
       active: true
@@ -7171,7 +7172,7 @@ nodes:
       parents_raw: OBJ-05
       states: 已通知（时限内）→ 已提交 → 已认定 / 已拒绝 / 撤回
       facts: 已认定 → 收入调整或成本补偿
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
+      src: architecture/ssot/10-objects/objects.yaml#objects[9]/OBJ-10
     OBJ-12:
       name: 风险交付授权
       active: true
@@ -7184,7 +7185,7 @@ nodes:
       parents_raw: OBJ-18、OBJ-29
       states: 已申请 → 已批准 → 已转正（并入协议）/ 叫停
       facts: — （为风险交付工时、金额度量提供维度）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
+      src: architecture/ssot/10-objects/objects.yaml#objects[11]/OBJ-12
     OBJ-13:
       name: 保证金与押金
       active: true
@@ -7197,7 +7198,7 @@ nodes:
       parents_raw: OBJ-20、OBJ-05
       states: 现金：待缴 → 已缴 → 已退 / 被没收（可部分扣减）；保函：已开立 → 已到期 / 被索赔
       facts: 已缴 / 已退 / 已没收 → 其他应收（或其他应付）、受限资金（不计现金等价物，GL-051）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
+      src: architecture/ssot/10-objects/objects.yaml#objects[12]/OBJ-13
     OBJ-16:
       name: 市场活动
       active: true
@@ -7208,7 +7209,7 @@ nodes:
       parents_raw: —
       states: 已计划 → 进行中 → 已结束
       facts: 活动费用（经费用报销归集）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:75
+      src: architecture/ssot/10-objects/objects.yaml#objects[15]/OBJ-16
     OBJ-17:
       name: 线索
       active: true
@@ -7219,7 +7220,7 @@ nodes:
       parents_raw: —
       states: 新建 → 跟进中 ⇄ 挂起 → 已确认（转商机）/ 已关闭（无价值，原因必填）；公海池
       facts: 已确认 / 已关闭 → 线索计数（转化率）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:76
+      src: architecture/ssot/10-objects/objects.yaml#objects[16]/OBJ-17
     OBJ-18:
       name: 商机
       active: true
@@ -7230,7 +7231,7 @@ nodes:
       parents_raw: —
       states: 跟进中（内部阶段）→ 已决定参投（参投决策，用户 VS01-10）→ 已赢单 / 丢单（原因、竞争对手、中标单位、中标价）/ 已放弃（跟进中或已决定参投均可放弃）
       facts: 赢单 → 赢单金额、计数（赢率）；售前工时、费用记于此，赢单后转入项目
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:77
+      src: architecture/ssot/10-objects/objects.yaml#objects[17]/OBJ-18
     OBJ-19:
       name: 招标项目
       active: true
@@ -7241,7 +7242,7 @@ nodes:
       parents_raw: —
       states: 外部：已公告 → 已截止 → 已开标 → 公示 → 已定标；已终止 / 已重新招标
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:78
+      src: architecture/ssot/10-objects/objects.yaml#objects[18]/OBJ-19
     OBJ-20:
       name: 投标
       active: true
@@ -7253,7 +7254,7 @@ nodes:
       parents_raw: OBJ-18
       states: 准备中 →（资格预审：通过 / 未通过）→ 已递交 → 已开标 → 公示中 → 已中标 / 未中标 / 已废标；截止前撤回、截止后撤销、已放弃
       facts: 中标 / 未中标 → 计数（中标率）；投标承诺快照（合同比对基准）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
+      src: architecture/ssot/10-objects/objects.yaml#objects[19]/OBJ-20
     OBJ-21:
       name: 报价
       active: true
@@ -7265,7 +7266,7 @@ nodes:
       parents_raw: OBJ-18
       states: 草拟 → 审批中 → 已通过 / 驳回 → 生效（成为该（商机，标段）的当前版本）；被取代；已作废（「已通过」= 评审通过并冻结，「生效」= 当前版本，回溯检查 RD-06）
       facts: 已通过 → 报价金额、估算工时与成本、毛利（赢单版本为项目预算来源）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
+      src: architecture/ssot/10-objects/objects.yaml#objects[20]/OBJ-21
     OBJ-22:
       name: 报价估算分解
       active: true
@@ -7277,7 +7278,7 @@ nodes:
       parents_raw: OBJ-21
       states: 随报价版本冻结
       facts: 估算工时、估算成本（计划值）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
+      src: architecture/ssot/10-objects/objects.yaml#objects[21]/OBJ-22
     OBJ-23:
       name: 独立性检查
       active: true
@@ -7290,7 +7291,7 @@ nodes:
       parents_raw: OBJ-18、OBJ-20
       states: 待查 → 无冲突 / 有冲突已获书面同意 / 有冲突不得承接
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
+      src: architecture/ssot/10-objects/objects.yaml#objects[22]/OBJ-23
     OBJ-24:
       name: 服务产品
       active: true
@@ -7301,7 +7302,7 @@ nodes:
       parents_raw: —
       states: 已启用 → 已停用；版本化
       facts: — （分析维度）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:84
+      src: architecture/ssot/10-objects/objects.yaml#objects[23]/OBJ-24
     OBJ-25:
       name: 阶段类型
       active: true
@@ -7312,7 +7313,7 @@ nodes:
       parents_raw: —
       states: 已启用 → 已停用；版本化
       facts: — （维度）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:85
+      src: architecture/ssot/10-objects/objects.yaml#objects[24]/OBJ-25
     OBJ-26:
       name: 标准成本费率表
       active: true
@@ -7323,7 +7324,7 @@ nodes:
       parents_raw: —
       states: 草拟 → 已批准 → 已生效（生效期不重叠）→ 被取代
       facts: — （计价参数）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:86
+      src: architecture/ssot/10-objects/objects.yaml#objects[25]/OBJ-26
     OBJ-27:
       name: 计费系数
       active: true
@@ -7335,7 +7336,7 @@ nodes:
       parents_raw: OBJ-26
       states: 草拟 → 已批准 → 已生效 → 被取代
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
+      src: architecture/ssot/10-objects/objects.yaml#objects[26]/OBJ-27
     OBJ-28:
       name: 工作日历
       active: true
@@ -7346,7 +7347,7 @@ nodes:
       parents_raw: —
       states: 年度：未维护 → 已维护；过去日期锁定
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:88
+      src: architecture/ssot/10-objects/objects.yaml#objects[27]/OBJ-28
     OBJ-29:
       name: 项目
       active: true
@@ -7357,7 +7358,7 @@ nodes:
       parents_raw: —
       states: 已立项 → 执行中 ⇄ 已暂停（原因）→ 收尾中 → 已结项 → 已归档（成果与证据已封存后）；已终止（解除或放弃，原因必填）；已取消（无任何投入时）（Q09：暂停期间拒绝记工时已答，intent 134134 Q-05；其余取值仍待定）
       facts: 已立项 → 签约前投入起算（A7；用户 2026-10-15 Q19 以合同回签为界，见 C-43）；已终止 → 终止清算（D17-3）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:90
+      src: architecture/ssot/10-objects/objects.yaml#objects[28]/OBJ-29
     OBJ-30:
       name: WBS 节点
       active: true
@@ -7369,7 +7370,7 @@ nodes:
       parents_raw: OBJ-29
       states: 阶段：未开始 → 进行中 → 已完成（只记工作进程；成果的提交与认可是交付物 OBJ-35 的事实，SC-01，聚合稿 §4.4.1）；工作包：进行中 → 已完成 → 已锁定 → 返工中；均可作废（保留历史）
       facts: 阶段已认可 → 收入证据（经交付物）；工作包 ← 实际工时
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
+      src: architecture/ssot/10-objects/objects.yaml#objects[29]/OBJ-30
     OBJ-31:
       name: 交付计划
       active: true
@@ -7381,7 +7382,7 @@ nodes:
       parents_raw: OBJ-29
       states: 草拟 → 已批准（对客）/ 内部锁定 → 被修订版取代
       facts: 计划日期（按期交付率）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
+      src: architecture/ssot/10-objects/objects.yaml#objects[30]/OBJ-31
     OBJ-32:
       name: 项目预算
       active: true
@@ -7393,7 +7394,7 @@ nodes:
       parents_raw: OBJ-29
       states: 编制中 → 审批中 → 已锁定（成本基线）→ 修订中 → 已锁定（新版本）
       facts: 已锁定 → 预算成本、预算工时
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
+      src: architecture/ssot/10-objects/objects.yaml#objects[31]/OBJ-32
     OBJ-33:
       name: 完工估算
       active: true
@@ -7406,7 +7407,7 @@ nodes:
       parents_raw: OBJ-30、OBJ-29
       states: 已提出 → 已批准 / 已驳回
       facts: 已批准 → 预测成本（减值测试的估计成本，CAS 14 第三十条）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
+      src: architecture/ssot/10-objects/objects.yaml#objects[32]/OBJ-33
     OBJ-34:
       name: 项目团队成员
       active: true
@@ -7418,7 +7419,7 @@ nodes:
       parents_raw: OBJ-29
       states: 已拟派 → 在岗 → 已撤出
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
+      src: architecture/ssot/10-objects/objects.yaml#objects[33]/OBJ-34
     OBJ-35:
       name: 交付物
       active: true
@@ -7428,11 +7429,11 @@ nodes:
       parents:
       - OBJ-29
       parents_raw: OBJ-29
-      states: '编制中 → 内审中 → 已签发（报告类）→ 已交付（签收）→ 审查中 → 已认可 / 退回修改（轮次 +1）/ 已声明（项目经理登记的无异议声明：期满前未收到发包人书面异议，附往来函件检索记录，声明人与复核人按 ADR-0047 U-2；交付侧登记事实，与「已交付（签收）/ 审查中」并列；送达、退回也记在交付侧；期满判定在 `receivables.wip`；「视为同意」不是交付物状态，由
-        `reporting` 读模型派生显示，`delivery.acceptance` 不读、不订阅 `receivables.wip`；客户书面同意属认可，即「已认可」（ADR-0047 第 1 类），不是「已声明」；D-8，用户 2026-10-16，intent 061232；按 D-8 字面订正，ADR-0049 评审；状态名与事件「无异议已声明」一致，PR #320）；被取代 /
-        撤回（原因必填）/ 已作废；结项归档时已发布成果「已封存」'
+      states: '编制中 → 内审中 → 已签发（报告类）→ 已交付（签收）→ 审查中 → 已认可 / 退回修改（轮次 +1）/ 已声明（项目经理登记的无异议声明：期满前未收到发包人书面异议，附往来函件检索记录，声明人与复核人按 ADR-0047 U-2；交付侧登记事实，与「已交付（签收）/ 审查中」并列；送达、退回也记在交付侧；期满判定在 receivables.wip；「视为同意」不是交付物状态，由
+        reporting 读模型派生显示，delivery.acceptance 不读、不订阅 receivables.wip；客户书面同意属认可，即「已认可」（ADR-0047 第 1 类），不是「已声明」；D-8，用户 2026-10-16，intent 061232；按 D-8 字面订正，ADR-0049 评审；状态名与事件「无异议已声明」一致，PR #320）；被取代 / 撤回（原因必填）/
+        已作废；结项归档时已发布成果「已封存」'
       facts: 已认可 → 收入确认的证据（客户认可证据五类见 §2.7，用户 2026-10-15 Q22）；已交付 → 按期交付度量
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:96
+      src: architecture/ssot/10-objects/objects.yaml#objects[34]/OBJ-35
     OBJ-37:
       name: 内部评审
       active: true
@@ -7444,7 +7445,7 @@ nodes:
       parents_raw: OBJ-35
       states: 待评审 → 通过 / 已不通过（整改后复审）
       facts: 评分；内审覆盖率、一次通过率
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
+      src: architecture/ssot/10-objects/objects.yaml#objects[36]/OBJ-37
     OBJ-38:
       name: 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）
       active: true
@@ -7458,7 +7459,7 @@ nodes:
       parents_raw: OBJ-35、OBJ-29、OBJ-49
       states: 已识别 → 已确认 → 处置（返工 / 让步接受）→ 已关闭（我方成果类）；已识别 → 已复核 → 已发布 → 整改中 → 整改已申报 → 已闭合（复查通过）/ 回整改中 / 客户书面接受风险（推断，须有依据）/ 已停止跟踪（原因必填）（客户资产类）
       facts: 缺陷率；闭合率、整改天数
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+      src: architecture/ssot/10-objects/objects.yaml#objects[37]/OBJ-38
     OBJ-39:
       name: 返工认定
       active: true
@@ -7470,7 +7471,7 @@ nodes:
       parents_raw: OBJ-38
       states: 草拟 → 已认定；可撤销（冲销）
       facts: 已认定 → 返工工时、质量损失
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
+      src: architecture/ssot/10-objects/objects.yaml#objects[38]/OBJ-39
     OBJ-40:
       name: 设计变更
       active: true
@@ -7482,7 +7483,7 @@ nodes:
       parents_raw: OBJ-29
       states: 已提出 → 原因认定与影响评估 → 编制 → 内审 → 已发出 → 已关闭
       facts: 发出 → 变更工时；联动协议变更金额
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
+      src: architecture/ssot/10-objects/objects.yaml#objects[39]/OBJ-40
     OBJ-41:
       name: 延期申请
       active: true
@@ -7494,7 +7495,7 @@ nodes:
       parents_raw: OBJ-29
       states: 已通知（5 天内）→ 已提交详细说明（10 天内）→ 已批准 / 已拒绝 / 视为批准
       facts: 工期变动
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
+      src: architecture/ssot/10-objects/objects.yaml#objects[40]/OBJ-41
     OBJ-42:
       name: 发包人提供资料
       active: true
@@ -7506,7 +7507,7 @@ nodes:
       parents_raw: OBJ-29
       states: 待提供 → 已提供 → 已确认 / 有缺陷（退回）
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
+      src: architecture/ssot/10-objects/objects.yaml#objects[41]/OBJ-42
     OBJ-44:
       name: 资源需求
       active: true
@@ -7518,7 +7519,7 @@ nodes:
       parents_raw: OBJ-30
       states: 草拟 → 已提出 → 已部分满足 / 已满足 / 已取消
       facts: 需求工时
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
+      src: architecture/ssot/10-objects/objects.yaml#objects[43]/OBJ-44
     OBJ-45:
       name: 资源分配
       active: true
@@ -7530,7 +7531,7 @@ nodes:
       parents_raw: OBJ-30
       states: 已计划（项目经理自排）→ 已确认（部门负责人审批）→ 已释放
       facts: 计划工时（利用率预测）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
+      src: architecture/ssot/10-objects/objects.yaml#objects[44]/OBJ-45
     OBJ-46:
       name: 建设工程
       active: true
@@ -7541,7 +7542,7 @@ nodes:
       parents_raw: —
       states: 外部：规划 → 在建 → 已竣工（在用）→ 已超设计使用年限 → 改造中 → 已拆除
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:108
+      src: architecture/ssot/10-objects/objects.yaml#objects[45]/OBJ-46
     OBJ-47:
       name: 建筑系统与部位
       active: true
@@ -7553,7 +7554,7 @@ nodes:
       parents_raw: OBJ-29
       states: 在用 → 已超年限 → 改造中 → 已拆除；不再受托
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
+      src: architecture/ssot/10-objects/objects.yaml#objects[46]/OBJ-47
     OBJ-48:
       name: 检查计划
       active: true
@@ -7566,7 +7567,7 @@ nodes:
       parents_raw: OBJ-46、OBJ-05
       states: 已生效 → 已执行 / 已逾期 / 不再受托（删「到期提醒」状态：到期只作提醒，派生 / 策略，人工转线索或商机，另签协议；按周期或按次结算用协议付款条件项，用户 intent 090004）
       facts: 计划生效 / 修订 → 当期应检对象、部位及次数的覆盖基准；与实际检查的已安排、已锁定、已取消及逾期未检集合对应，不直接产生金额事实
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
+      src: architecture/ssot/10-objects/objects.yaml#objects[47]/OBJ-48
     OBJ-49:
       name: 检查
       active: true
@@ -7578,7 +7579,7 @@ nodes:
       parents_raw: OBJ-29
       states: 已计划 → 已安排 → 现场进行中 → 记录已提交 → 已审核 → 已锁定；已取消（原因必填）
       facts: 已完成 → 按次计价的计量依据（UNIT_RATE「品控按次月结」）、检查工时
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
+      src: architecture/ssot/10-objects/objects.yaml#objects[48]/OBJ-49
     OBJ-50:
       name: 检查表模板
       active: true
@@ -7590,7 +7591,7 @@ nodes:
       parents_raw: OBJ-24
       states: 草拟 → 已生效 → 已停用（只增版本）
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
+      src: architecture/ssot/10-objects/objects.yaml#objects[49]/OBJ-50
     OBJ-52:
       name: 外部检测
       active: true
@@ -7603,7 +7604,7 @@ nodes:
       parents_raw: OBJ-38、OBJ-49
       states: 已建议 → 业主已委托 → 报告已收到 → 已采信 / 未采信（原因）
       facts: — （不进我方成本）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
+      src: architecture/ssot/10-objects/objects.yaml#objects[51]/OBJ-52
     OBJ-53:
       name: 证据
       active: true
@@ -7614,7 +7615,7 @@ nodes:
       parents_raw: —
       states: 已采集 → 已上传（摘要）→ 已关联 → 已封存；已作废（原因必填，保留原件）；「已关联」= 技术聚合「证据关联」（AGG-110，B-28）中存在该证据的挂接记录，证据聚合 AGG-38 不存该状态，只作段内状态、不入阶段门（intent 114200 F-1）
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:115
+      src: architecture/ssot/10-objects/objects.yaml#objects[52]/OBJ-53
     OBJ-54:
       name: 法人主体
       active: true
@@ -7625,7 +7626,7 @@ nodes:
       parents_raw: —
       states: 筹建 → 存续 → 已注销
       facts: — （各事实的法人维度）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:117
+      src: architecture/ssot/10-objects/objects.yaml#objects[53]/OBJ-54
     OBJ-55:
       name: 组织单元
       active: true
@@ -7637,7 +7638,7 @@ nodes:
       parents_raw: OBJ-54
       states: 已启用 → 已停用 / 已撤销；树按生效区间版本化（组织调整产生新版本）
       facts: — （部门维度；区域将作为数据范围维度）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:118
+      src: architecture/ssot/10-objects/objects.yaml#objects[54]/OBJ-55
     OBJ-56:
       name: 人员（原「员工」；用户 2026-10-15 Q38 认可改名）
       active: true
@@ -7648,7 +7649,7 @@ nodes:
       parents_raw: —
       states: 已登记（候选）→ 面试中 → 待入职 → 试用期 → 正式 → 待离职 → 已离职；未录用（候选阶段终态）；已停薪留职（可恢复）；权限用的在职 / 离职二值另存
       facts: 人数、离职率
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:119
+      src: architecture/ssot/10-objects/objects.yaml#objects[55]/OBJ-56
     OBJ-57:
       name: 任职
       active: true
@@ -7660,7 +7661,7 @@ nodes:
       parents_raw: OBJ-56
       states: 生效区间版本（只追加）；主任职区间不重叠，兼职任职可多个并行、不设上限（用户 intent 072440 INV-62）
       facts: — （费率与成本按工作日当日任职取值）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:120
+      src: architecture/ssot/10-objects/objects.yaml#objects[56]/OBJ-57
     OBJ-58:
       name: 岗位
       active: true
@@ -7671,7 +7672,7 @@ nodes:
       parents_raw: —
       states: 已启用 → 已停用
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:121
+      src: architecture/ssot/10-objects/objects.yaml#objects[57]/OBJ-58
     OBJ-60:
       name: 招聘需求
       active: true
@@ -7683,7 +7684,7 @@ nodes:
       parents_raw: OBJ-58
       states: 草稿 → 已提交 → 已批准 / 已驳回 → 招聘中 → 已关闭（录满 / 取消）（与 AGG-65 统一，SC-03）
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:123
+      src: architecture/ssot/10-objects/objects.yaml#objects[59]/OBJ-60
     OBJ-62:
       name: 社保与公积金参保
       active: true
@@ -7695,7 +7696,7 @@ nodes:
       parents_raw: OBJ-56
       states: 增员 → 在缴 → 减员（转移 / 封存）
       facts: 缴费基数（算薪输入）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:125
+      src: architecture/ssot/10-objects/objects.yaml#objects[61]/OBJ-62
     OBJ-64:
       name: 注册执业证书
       active: true
@@ -7707,7 +7708,7 @@ nodes:
       parents_raw: OBJ-56
       states: 有效 → 已到期 / 已注销
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:127
+      src: architecture/ssot/10-objects/objects.yaml#objects[63]/OBJ-64
     OBJ-65:
       name: 资质证书
       active: true
@@ -7720,7 +7721,7 @@ nodes:
       parents_raw: OBJ-54、OBJ-01
       states: 有效 → 核查中（年检 / 动态核查）→ 有效 / 已降级 / 已撤销；有效 → 延续中 → 有效（新有效期）/ 已到期（未延续）（用户答复 Q-D 第 1 项纳入资质维护，intent 082311）
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
+      src: architecture/ssot/10-objects/objects.yaml#objects[64]/OBJ-65
     OBJ-66:
       name: 工时单
       active: true
@@ -7732,7 +7733,7 @@ nodes:
       parents_raw: OBJ-56
       states: 草稿 → 已提交（含审批中）→ 已通过 / 已退回 / 已驳回（驳回、退回后改原单再提交，不设取消终态）；撤回是转换（已提交 → 草稿，事件 TimesheetApprovalWithdrawn），不是状态；已过账属 Phase 2；关期后只能冲销或修正（one-data TS-UNIQ 审查，intent 052923）
       facts: 已通过 → 工时；已过账 → 人工成本（交易类型 TS）、售前投入
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
+      src: architecture/ssot/10-objects/objects.yaml#objects[65]/OBJ-66
     OBJ-68:
       name: 请假
       active: true
@@ -7744,7 +7745,7 @@ nodes:
       parents_raw: OBJ-56
       states: 草稿 → 审批中 → 已批准 / 已驳回 → 已销假 / 已撤销
       facts: 请假小时（可用产能、算薪输入）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:131
+      src: architecture/ssot/10-objects/objects.yaml#objects[67]/OBJ-68
     OBJ-70:
       name: 考勤记录
       active: true
@@ -7756,7 +7757,7 @@ nodes:
       parents_raw: OBJ-56
       states: 只追加
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:133
+      src: architecture/ssot/10-objects/objects.yaml#objects[69]/OBJ-70
     OBJ-72:
       name: 加班
       active: true
@@ -7768,7 +7769,7 @@ nodes:
       parents_raw: OBJ-56
       states: 已申请 → 已批准 → 已补偿（付薪 / 调休）
       facts: 加班小时 → 加班工资（150% / 200% / 300%，第 44 条）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:135
+      src: architecture/ssot/10-objects/objects.yaml#objects[71]/OBJ-72
     OBJ-73:
       name: 月度薪酬结算（原「算薪运行」）
       active: true
@@ -7780,7 +7781,7 @@ nodes:
       parents_raw: OBJ-54
       states: 草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账；更正走冲销；员工薪酬行支付状态：待支付 → 已实付 / 支付失败（待补发）；部分成功时成功行保留实付，失败行待补发，整期仍为「已批准」，应付薪酬行全部实付后才转整期「已发放」
       facts: 已批准 → 职工薪酬（工资、社保、公积金单位部分）、个税代扣；→ 实际成本费率（派生）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
+      src: architecture/ssot/10-objects/objects.yaml#objects[72]/OBJ-73
     OBJ-74:
       name: 激励方案
       active: true
@@ -7791,7 +7792,7 @@ nodes:
       parents_raw: —
       states: 编制 → 审批 → 已生效 → 已结束
       facts: 奖金核定 → 职工薪酬（或预提）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:137
+      src: architecture/ssot/10-objects/objects.yaml#objects[73]/OBJ-74
     OBJ-78:
       name: 分摊规则（原「分摊规则版本」）
       active: true
@@ -7802,7 +7803,7 @@ nodes:
       parents_raw: —
       states: 草稿 → 已批准 → 已生效 → 被取代
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:142
+      src: architecture/ssot/10-objects/objects.yaml#objects[77]/OBJ-78
     OBJ-81:
       name: 收入确认
       active: true
@@ -7814,7 +7815,7 @@ nodes:
       parents_raw: OBJ-08
       states: 若作对象：草稿 → 审批中 → 已确认（锁定）/ 驳回；更正走冲销
       facts: 已确认 → 收入、合同资产 / 合同负债、配对的合同履约成本转出
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:146
+      src: architecture/ssot/10-objects/objects.yaml#objects[80]/OBJ-81
     OBJ-82:
       name: 开票申请
       active: true
@@ -7826,7 +7827,7 @@ nodes:
       parents_raw: OBJ-05
       states: 草稿 → 审批中 → 准入通过 → 已开票 / 驳回 / 撤回 / 已作废（开具前）
       facts: — （发票开具才产生事实）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
+      src: architecture/ssot/10-objects/objects.yaml#objects[81]/OBJ-82
     OBJ-83:
       name: 增值税发票
       active: true
@@ -7838,7 +7839,7 @@ nodes:
       parents_raw: OBJ-103
       states: 已开具 → 部分红冲 → 全额红冲（销项蓝字）；已开具（红字，引用蓝字）；已取得（查验）→ 已用途确认（抵扣 / 不抵扣）→ 已入账（进项）；进项转出；红冲确认中（蓝字已用途确认或入账者红冲前；红字信息确认单由税务平台登记，72 小时未确认自动作废则回到原状态；原 OBJ-84）
       facts: 销项已开具 → 销项税额、应收（收付账簿只在开票时记销项，A4）；进项用途确认 → 进项税额 / 转出
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:148
+      src: architecture/ssot/10-objects/objects.yaml#objects[82]/OBJ-83
     OBJ-85:
       name: 往来款项
       active: true
@@ -7848,9 +7849,9 @@ nodes:
       parents:
       - OBJ-103
       parents_raw: OBJ-103
-      states: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 `r0/structure/pptx.md` 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
+      states: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 r0/structure/pptx.md 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
       facts: 结清 → 回款、付款；核销坏账 → 信用损失
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:150
+      src: architecture/ssot/10-objects/objects.yaml#objects[84]/OBJ-85
     OBJ-86:
       name: 资金收付
       active: true
@@ -7862,7 +7863,7 @@ nodes:
       parents_raw: OBJ-103
       states: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
       facts: 已到账 / 已成功 → 回款额、付款额、现金流量项目标注
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
+      src: architecture/ssot/10-objects/objects.yaml#objects[85]/OBJ-86
     OBJ-87:
       name: 供方履约确认
       active: true
@@ -7874,7 +7875,7 @@ nodes:
       parents_raw: OBJ-05
       states: 已提交 → 审核 → 已确认；已冲销
       facts: 已确认 → 分包成本（经结转入合同履约成本）、应付
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:152
+      src: architecture/ssot/10-objects/objects.yaml#objects[86]/OBJ-87
     OBJ-88:
       name: 费用报销
       active: true
@@ -7886,7 +7887,7 @@ nodes:
       parents_raw: OBJ-56
       states: 草稿 → 已提交 → 审批中 → 已核定（所属期间确定）→ 已过账 → 已付；驳回、已冲销
       facts: 已核定 → 直接费用、售前费用；→ 应付（员工）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:153
+      src: architecture/ssot/10-objects/objects.yaml#objects[87]/OBJ-88
     OBJ-89:
       name: 资金账户
       active: true
@@ -7898,7 +7899,7 @@ nodes:
       parents_raw: OBJ-103
       states: 已开立 → 在用 → 已冻结 → 已销户
       facts: — （期末余额）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:154
+      src: architecture/ssot/10-objects/objects.yaml#objects[88]/OBJ-89
     OBJ-90:
       name: 银行流水
       active: true
@@ -7910,7 +7911,7 @@ nodes:
       parents_raw: OBJ-89
       states: 已导入 → 已匹配 / 未匹配
       facts: 利息、手续费（经导入凭证）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:155
+      src: architecture/ssot/10-objects/objects.yaml#objects[89]/OBJ-90
     OBJ-91:
       name: 合伙人出资
       active: true
@@ -7922,7 +7923,7 @@ nodes:
       parents_raw: OBJ-54
       states: 已认缴 → 已实缴（到账）→ 已部分退回 / 已退回
       facts: 实缴 / 退回 → 权益事实
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:156
+      src: architecture/ssot/10-objects/objects.yaml#objects[90]/OBJ-91
     OBJ-92:
       name: 法定申报
       active: true
@@ -7934,7 +7935,7 @@ nodes:
       parents_raw: OBJ-103
       states: 待申报 → 已申报 → 已缴款；更正申报
       facts: 已申报 / 已缴款 → 税费计提与缴纳
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:157
+      src: architecture/ssot/10-objects/objects.yaml#objects[91]/OBJ-92
     OBJ-93:
       name: 公司资产
       active: true
@@ -7945,7 +7946,7 @@ nodes:
       parents_raw: —
       states: 在用 → 已闲置 → 处置
       facts: 折旧、摊销、处置损益
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:158
+      src: architecture/ssot/10-objects/objects.yaml#objects[92]/OBJ-93
     OBJ-95:
       name: 会计科目
       active: true
@@ -7957,7 +7958,7 @@ nodes:
       parents_raw: OBJ-96
       states: 已启用 → 已停用（被引用不可删）；科目表版本化
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:161
+      src: architecture/ssot/10-objects/objects.yaml#objects[94]/OBJ-95
     OBJ-96:
       name: 账簿
       active: true
@@ -7969,7 +7970,7 @@ nodes:
       parents_raw: OBJ-103
       states: 已开立 → 在用 → 只读
       facts: — （期间余额）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:162
+      src: architecture/ssot/10-objects/objects.yaml#objects[95]/OBJ-96
     OBJ-97:
       name: 会计期间
       active: true
@@ -7981,7 +7982,7 @@ nodes:
       parents_raw: OBJ-103
       states: 未开 → 已开放 → 关账中 → 已关账；重开须审批
       facts: 关账 → 期间快照
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:163
+      src: architecture/ssot/10-objects/objects.yaml#objects[96]/OBJ-97
     OBJ-98:
       name: 会计分录
       active: true
@@ -7993,7 +7994,7 @@ nodes:
       parents_raw: OBJ-103
       states: 草稿 → 已审核 → 已记账（不可逆）；更正只能冲销
       facts: 本身即会计记录
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:164
+      src: architecture/ssot/10-objects/objects.yaml#objects[97]/OBJ-98
     OBJ-99:
       name: 报表行定义
       active: true
@@ -8005,7 +8006,7 @@ nodes:
       parents_raw: OBJ-103
       states: 草拟 → 财务评审 → 已生效 → 被取代
       facts: — （某期报表是单据）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:165
+      src: architecture/ssot/10-objects/objects.yaml#objects[98]/OBJ-99
     OBJ-100:
       name: 经营计划
       active: true
@@ -8016,7 +8017,7 @@ nodes:
       parents_raw: —
       states: 编制中 → 审批 → 基线（不可变）→ 新版本
       facts: 计划值；类型「预算」：占用、消耗 → 预算执行额
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:166
+      src: architecture/ssot/10-objects/objects.yaml#objects[99]/OBJ-100
     OBJ-103:
       name: 财务
       active: true
@@ -8027,7 +8028,7 @@ nodes:
       parents_raw: —
       states: —
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:170
+      src: architecture/ssot/10-objects/objects.yaml#objects[102]/OBJ-103
     OBJ-104:
       name: 奖金核定
       active: true
@@ -8039,7 +8040,7 @@ nodes:
       parents_raw: OBJ-74
       states: 草拟 → 已核定 → 已发放（经月度薪酬结算）
       facts: 已核定 → 职工薪酬（或预提分录）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:171
+      src: architecture/ssot/10-objects/objects.yaml#objects[103]/OBJ-104
     OBJ-105:
       name: 客户活动
       active: true
@@ -8051,7 +8052,7 @@ nodes:
       parents_raw: OBJ-02
       states: 已计划 → 已变更 → 已完成（结果反馈）/ 已取消（原因必填）
       facts: 已完成 → 拜访量、计划完成率（派生度量）；归集的售前工时
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
+      src: architecture/ssot/10-objects/objects.yaml#objects[104]/OBJ-105
     OBJ-106:
       name: 客户满意度调查
       active: true
@@ -8063,7 +8064,7 @@ nodes:
       parents_raw: OBJ-29
       states: 已发出 → 已回收 → 已评分 → 已跟进
       facts: 已评分 → 满意度（派生度量，可按项目、阶段、客户统计）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
+      src: architecture/ssot/10-objects/objects.yaml#objects[105]/OBJ-106
     OBJ-107:
       name: 项目复盘
       active: true
@@ -8075,7 +8076,7 @@ nodes:
       parents_raw: OBJ-29
       states: 草拟 → 已评审 → 已发布
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
+      src: architecture/ssot/10-objects/objects.yaml#objects[106]/OBJ-107
     OBJ-108:
       name: 项目风险与问题
       active: true
@@ -8087,7 +8088,7 @@ nodes:
       parents_raw: OBJ-29
       states: 已登记 → 应对中 → 已关闭 / 已接受（须记接受人与依据）
       facts: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
+      src: architecture/ssot/10-objects/objects.yaml#objects[107]/OBJ-108
     OBJ-109:
       name: 绩效评估
       active: true
@@ -8099,7 +8100,7 @@ nodes:
       parents_raw: OBJ-56
       states: 草拟 → 已提交 → 已确认（推断，待第 6 步）
       facts: 已确认 → 奖金核定与转正的输入
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:177
+      src: architecture/ssot/10-objects/objects.yaml#objects[108]/OBJ-109
     OBJ-110:
       name: 知识条目
       active: true
@@ -8110,7 +8111,7 @@ nodes:
       parents_raw: —
       states: 起草 → 评审 → 已发布 → 已修订（新版本）→ 已废止
       facts: — （不直接产生度量事实）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:178
+      src: architecture/ssot/10-objects/objects.yaml#objects[109]/OBJ-110
     OBJ-111:
       name: 月度考勤确认
       active: true
@@ -8122,7 +8123,7 @@ nodes:
       parents_raw: OBJ-56
       states: 已生成 → 已确认（本人）→ 已锁定；锁定后不重开
       facts: 已锁定 → 出勤天数、加班小时（算薪输入）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:180
+      src: architecture/ssot/10-objects/objects.yaml#objects[110]/OBJ-111
     OBJ-112:
       name: 利润分配
       active: true
@@ -8134,7 +8135,7 @@ nodes:
       parents_raw: OBJ-54
       states: 草拟 → 已决议 → 已部分支付 → 已支付；已决议后变更须新决议并引用被取代决议
       facts: 已决议 → 应付利润（权益减少）；已支付 → 付款额；自然人股东股息红利个税代扣
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:181
+      src: architecture/ssot/10-objects/objects.yaml#objects[111]/OBJ-112
     OBJ-113:
       name: 用印申请
       active: true
@@ -8146,7 +8147,7 @@ nodes:
       parents_raw: OBJ-54
       states: 草稿 → 审批中 → 已批准 / 已驳回 → 已用印 → 已关闭
       facts: 已用印 → 用印台账（实际用印时间、份数、经办人）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:183
+      src: architecture/ssot/10-objects/objects.yaml#objects[112]/OBJ-113
     OBJ-114:
       name: IT 需求工单
       active: true
@@ -8158,7 +8159,7 @@ nodes:
       parents_raw: OBJ-56
       states: 已提交 → 审批中（需审批的类别）→ 处理中 → 已解决 → 已关闭 / 已退回
       facts: 已解决 → 处理时长（仅分析）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:184
+      src: architecture/ssot/10-objects/objects.yaml#objects[113]/OBJ-114
     OBJ-115:
       name: IT 资产使用记录
       active: true
@@ -8170,7 +8171,7 @@ nodes:
       parents_raw: OBJ-93
       states: 领用申请：草稿 → 已通过（规则直通，无人审）→ 已领用；规则缺失或不满足时拒绝并告警；调拨申请：草稿 → 已申请 → 已调拨 / 已转领用 / 已撤销；使用期间：在用 → 已结束；归还记录：已归还（期间已结束）；维修：草稿 → 已报修 → 已维修登记；原领用审批中、已驳回、已撤回及审批轮次只作迁入历史保留（PRC-143，B31-5）
       facts: 已领用 / 已调拨 / 已归还 → 使用台账（离职交接可读）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
+      src: architecture/ssot/10-objects/objects.yaml#objects[114]/OBJ-115
     OBJ-116:
       name: 员工活动申请
       active: true
@@ -8182,7 +8183,7 @@ nodes:
       parents_raw: OBJ-56
       states: 草稿 → 已批准（规则直通，无人工批准）→ 已完成；登记取消路径：已批准 / 已完成 → 已取消（提议状态名，待 one-glossary 定名），取消不构成 VS-14.4 正常退出；原审批中、已驳回及审批轮次只作迁入历史保留（PRC-144，B31-8）
       facts: 已批准 → 活动安排（仅分析）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
+      src: architecture/ssot/10-objects/objects.yaml#objects[115]/OBJ-116
     OBJ-117:
       name: 勾稽差异案
       active: true
@@ -8194,7 +8195,7 @@ nodes:
       parents_raw: OBJ-103
       states: 未关闭 → 已解释 / 已修正 / 已豁免（均为关闭结局）
       facts: 差异额及结案结果
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:189
+      src: architecture/ssot/10-objects/objects.yaml#objects[116]/OBJ-117
     OBJ-118:
       name: 费用事前申请
       active: true
@@ -8205,7 +8206,7 @@ nodes:
       parents_raw: —
       states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已用尽 / 已关闭
       facts: 已批准 → 事前批准金额
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:190
+      src: architecture/ssot/10-objects/objects.yaml#objects[117]/OBJ-118
     OBJ-119:
       name: 出差申请
       active: true
@@ -8216,7 +8217,7 @@ nodes:
       parents_raw: —
       states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已同步 / 已关闭
       facts: 已批准 → 行程批准结果
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:191
+      src: architecture/ssot/10-objects/objects.yaml#objects[118]/OBJ-119
     OBJ-120:
       name: 差旅订单
       active: true
@@ -8228,7 +8229,7 @@ nodes:
       parents_raw: OBJ-119
       states: 超标审批：待审批 → 已批准 / 已驳回；归属、退改与核对依据分别记录
       facts: 订单审批与核对结果
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:192
+      src: architecture/ssot/10-objects/objects.yaml#objects[119]/OBJ-120
     OBJ-121:
       name: 差旅订单月账单
       active: true
@@ -8240,7 +8241,7 @@ nodes:
       parents_raw: OBJ-103
       states: 已登记 → 已核对 → 已确认应付
       facts: 已确认应付 → 实际应付与费用确认依据
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:193
+      src: architecture/ssot/10-objects/objects.yaml#objects[120]/OBJ-121
     OBJ-122:
       name: 假期余额账户
       active: true
@@ -8252,7 +8253,7 @@ nodes:
       parents_raw: OBJ-56
       states: 年度账户：已开账 → 已结转；占用行：已占用 → 已转用 / 已释放；补休额度行：有效 → 已转计薪 / 已休完
       facts: 核定、使用、结转、折算与手工调整变动
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:194
+      src: architecture/ssot/10-objects/objects.yaml#objects[121]/OBJ-122
     OBJ-123:
       name: 人员薪酬档案
       active: true
@@ -8264,7 +8265,7 @@ nodes:
       parents_raw: OBJ-56
       states: 版本：生效（按生效区间）→ 已结束；根记录无单独生命周期
       facts: 薪资变更与待计发调整的计薪依据
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:195
+      src: architecture/ssot/10-objects/objects.yaml#objects[122]/OBJ-123
     OBJ-124:
       name: 业务规则（暂名，待 one-glossary 定名）
       active: true
@@ -8275,7 +8276,7 @@ nodes:
       parents_raw: —
       states: 版本草稿 → 已生效 → 已停用（被新版本取代）
       facts: 规则版本已生效 → 后续业务按它办
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:196
+      src: architecture/ssot/10-objects/objects.yaml#objects[123]/OBJ-124
     OBJ-125:
       name: 外部法定账对账（暂名，待 one-glossary 定名）
       active: true
@@ -8287,7 +8288,7 @@ nodes:
       parents_raw: OBJ-103
       states: 对账中 → 已签字
       facts: 对账已签字 → 期间报告可发布
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
+      src: architecture/ssot/10-objects/objects.yaml#objects[124]/OBJ-125
     OBJ-126:
       name: 股东
       active: true
@@ -8298,7 +8299,7 @@ nodes:
       parents_raw: —
       states: 已登记 → 持股中 → 已退出（提议，随 OBJFIN-14）
       facts: 出资、退出、分配的权益事实主体
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:198
+      src: architecture/ssot/10-objects/objects.yaml#objects[125]/OBJ-126
   act:
     AGG-40/批准分摊规则版本:
       command: 批准分摊规则版本
@@ -38441,351 +38442,351 @@ links:
 - kind: obj-parent
   from: OBJ-02
   to: OBJ-01
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
+  src: architecture/ssot/10-objects/objects.yaml#objects[1]/OBJ-02
 - kind: obj-parent
   from: OBJ-03
   to: OBJ-01
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
+  src: architecture/ssot/10-objects/objects.yaml#objects[2]/OBJ-03
 - kind: obj-parent
   from: OBJ-06
   to: OBJ-05
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
+  src: architecture/ssot/10-objects/objects.yaml#objects[5]/OBJ-06
 - kind: obj-parent
   from: OBJ-07
   to: OBJ-05
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
+  src: architecture/ssot/10-objects/objects.yaml#objects[6]/OBJ-07
 - kind: obj-parent
   from: OBJ-08
   to: OBJ-05
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
+  src: architecture/ssot/10-objects/objects.yaml#objects[7]/OBJ-08
 - kind: obj-parent
   from: OBJ-09
   to: OBJ-05
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
+  src: architecture/ssot/10-objects/objects.yaml#objects[8]/OBJ-09
 - kind: obj-parent
   from: OBJ-10
   to: OBJ-05
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
+  src: architecture/ssot/10-objects/objects.yaml#objects[9]/OBJ-10
 - kind: obj-parent
   from: OBJ-12
   to: OBJ-18
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
+  src: architecture/ssot/10-objects/objects.yaml#objects[11]/OBJ-12
 - kind: obj-parent
   from: OBJ-12
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
+  src: architecture/ssot/10-objects/objects.yaml#objects[11]/OBJ-12
 - kind: obj-parent
   from: OBJ-13
   to: OBJ-20
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
+  src: architecture/ssot/10-objects/objects.yaml#objects[12]/OBJ-13
 - kind: obj-parent
   from: OBJ-13
   to: OBJ-05
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
+  src: architecture/ssot/10-objects/objects.yaml#objects[12]/OBJ-13
 - kind: obj-parent
   from: OBJ-20
   to: OBJ-18
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
+  src: architecture/ssot/10-objects/objects.yaml#objects[19]/OBJ-20
 - kind: obj-parent
   from: OBJ-21
   to: OBJ-18
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
+  src: architecture/ssot/10-objects/objects.yaml#objects[20]/OBJ-21
 - kind: obj-parent
   from: OBJ-22
   to: OBJ-21
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
+  src: architecture/ssot/10-objects/objects.yaml#objects[21]/OBJ-22
 - kind: obj-parent
   from: OBJ-23
   to: OBJ-18
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
+  src: architecture/ssot/10-objects/objects.yaml#objects[22]/OBJ-23
 - kind: obj-parent
   from: OBJ-23
   to: OBJ-20
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
+  src: architecture/ssot/10-objects/objects.yaml#objects[22]/OBJ-23
 - kind: obj-parent
   from: OBJ-27
   to: OBJ-26
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
+  src: architecture/ssot/10-objects/objects.yaml#objects[26]/OBJ-27
 - kind: obj-parent
   from: OBJ-30
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
+  src: architecture/ssot/10-objects/objects.yaml#objects[29]/OBJ-30
 - kind: obj-parent
   from: OBJ-31
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
+  src: architecture/ssot/10-objects/objects.yaml#objects[30]/OBJ-31
 - kind: obj-parent
   from: OBJ-32
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
+  src: architecture/ssot/10-objects/objects.yaml#objects[31]/OBJ-32
 - kind: obj-parent
   from: OBJ-33
   to: OBJ-30
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
+  src: architecture/ssot/10-objects/objects.yaml#objects[32]/OBJ-33
 - kind: obj-parent
   from: OBJ-33
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
+  src: architecture/ssot/10-objects/objects.yaml#objects[32]/OBJ-33
 - kind: obj-parent
   from: OBJ-34
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
+  src: architecture/ssot/10-objects/objects.yaml#objects[33]/OBJ-34
 - kind: obj-parent
   from: OBJ-35
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:96
+  src: architecture/ssot/10-objects/objects.yaml#objects[34]/OBJ-35
 - kind: obj-parent
   from: OBJ-37
   to: OBJ-35
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
+  src: architecture/ssot/10-objects/objects.yaml#objects[36]/OBJ-37
 - kind: obj-parent
   from: OBJ-38
   to: OBJ-35
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+  src: architecture/ssot/10-objects/objects.yaml#objects[37]/OBJ-38
 - kind: obj-parent
   from: OBJ-38
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+  src: architecture/ssot/10-objects/objects.yaml#objects[37]/OBJ-38
 - kind: obj-parent
   from: OBJ-38
   to: OBJ-49
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+  src: architecture/ssot/10-objects/objects.yaml#objects[37]/OBJ-38
 - kind: obj-parent
   from: OBJ-39
   to: OBJ-38
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
+  src: architecture/ssot/10-objects/objects.yaml#objects[38]/OBJ-39
 - kind: obj-parent
   from: OBJ-40
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
+  src: architecture/ssot/10-objects/objects.yaml#objects[39]/OBJ-40
 - kind: obj-parent
   from: OBJ-41
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
+  src: architecture/ssot/10-objects/objects.yaml#objects[40]/OBJ-41
 - kind: obj-parent
   from: OBJ-42
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
+  src: architecture/ssot/10-objects/objects.yaml#objects[41]/OBJ-42
 - kind: obj-parent
   from: OBJ-44
   to: OBJ-30
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
+  src: architecture/ssot/10-objects/objects.yaml#objects[43]/OBJ-44
 - kind: obj-parent
   from: OBJ-45
   to: OBJ-30
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
+  src: architecture/ssot/10-objects/objects.yaml#objects[44]/OBJ-45
 - kind: obj-parent
   from: OBJ-47
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
+  src: architecture/ssot/10-objects/objects.yaml#objects[46]/OBJ-47
 - kind: obj-parent
   from: OBJ-48
   to: OBJ-46
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
+  src: architecture/ssot/10-objects/objects.yaml#objects[47]/OBJ-48
 - kind: obj-parent
   from: OBJ-48
   to: OBJ-05
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
+  src: architecture/ssot/10-objects/objects.yaml#objects[47]/OBJ-48
 - kind: obj-parent
   from: OBJ-49
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
+  src: architecture/ssot/10-objects/objects.yaml#objects[48]/OBJ-49
 - kind: obj-parent
   from: OBJ-50
   to: OBJ-24
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
+  src: architecture/ssot/10-objects/objects.yaml#objects[49]/OBJ-50
 - kind: obj-parent
   from: OBJ-52
   to: OBJ-38
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
+  src: architecture/ssot/10-objects/objects.yaml#objects[51]/OBJ-52
 - kind: obj-parent
   from: OBJ-52
   to: OBJ-49
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
+  src: architecture/ssot/10-objects/objects.yaml#objects[51]/OBJ-52
 - kind: obj-parent
   from: OBJ-55
   to: OBJ-54
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:118
+  src: architecture/ssot/10-objects/objects.yaml#objects[54]/OBJ-55
 - kind: obj-parent
   from: OBJ-57
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:120
+  src: architecture/ssot/10-objects/objects.yaml#objects[56]/OBJ-57
 - kind: obj-parent
   from: OBJ-60
   to: OBJ-58
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:123
+  src: architecture/ssot/10-objects/objects.yaml#objects[59]/OBJ-60
 - kind: obj-parent
   from: OBJ-62
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:125
+  src: architecture/ssot/10-objects/objects.yaml#objects[61]/OBJ-62
 - kind: obj-parent
   from: OBJ-64
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:127
+  src: architecture/ssot/10-objects/objects.yaml#objects[63]/OBJ-64
 - kind: obj-parent
   from: OBJ-65
   to: OBJ-54
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
+  src: architecture/ssot/10-objects/objects.yaml#objects[64]/OBJ-65
 - kind: obj-parent
   from: OBJ-65
   to: OBJ-01
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
+  src: architecture/ssot/10-objects/objects.yaml#objects[64]/OBJ-65
 - kind: obj-parent
   from: OBJ-66
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
+  src: architecture/ssot/10-objects/objects.yaml#objects[65]/OBJ-66
 - kind: obj-parent
   from: OBJ-68
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:131
+  src: architecture/ssot/10-objects/objects.yaml#objects[67]/OBJ-68
 - kind: obj-parent
   from: OBJ-70
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:133
+  src: architecture/ssot/10-objects/objects.yaml#objects[69]/OBJ-70
 - kind: obj-parent
   from: OBJ-72
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:135
+  src: architecture/ssot/10-objects/objects.yaml#objects[71]/OBJ-72
 - kind: obj-parent
   from: OBJ-73
   to: OBJ-54
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
+  src: architecture/ssot/10-objects/objects.yaml#objects[72]/OBJ-73
 - kind: obj-parent
   from: OBJ-81
   to: OBJ-08
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:146
+  src: architecture/ssot/10-objects/objects.yaml#objects[80]/OBJ-81
 - kind: obj-parent
   from: OBJ-82
   to: OBJ-05
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
+  src: architecture/ssot/10-objects/objects.yaml#objects[81]/OBJ-82
 - kind: obj-parent
   from: OBJ-83
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:148
+  src: architecture/ssot/10-objects/objects.yaml#objects[82]/OBJ-83
 - kind: obj-parent
   from: OBJ-85
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:150
+  src: architecture/ssot/10-objects/objects.yaml#objects[84]/OBJ-85
 - kind: obj-parent
   from: OBJ-86
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
+  src: architecture/ssot/10-objects/objects.yaml#objects[85]/OBJ-86
 - kind: obj-parent
   from: OBJ-87
   to: OBJ-05
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:152
+  src: architecture/ssot/10-objects/objects.yaml#objects[86]/OBJ-87
 - kind: obj-parent
   from: OBJ-88
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:153
+  src: architecture/ssot/10-objects/objects.yaml#objects[87]/OBJ-88
 - kind: obj-parent
   from: OBJ-89
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:154
+  src: architecture/ssot/10-objects/objects.yaml#objects[88]/OBJ-89
 - kind: obj-parent
   from: OBJ-90
   to: OBJ-89
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:155
+  src: architecture/ssot/10-objects/objects.yaml#objects[89]/OBJ-90
 - kind: obj-parent
   from: OBJ-91
   to: OBJ-54
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:156
+  src: architecture/ssot/10-objects/objects.yaml#objects[90]/OBJ-91
 - kind: obj-parent
   from: OBJ-92
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:157
+  src: architecture/ssot/10-objects/objects.yaml#objects[91]/OBJ-92
 - kind: obj-parent
   from: OBJ-95
   to: OBJ-96
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:161
+  src: architecture/ssot/10-objects/objects.yaml#objects[94]/OBJ-95
 - kind: obj-parent
   from: OBJ-96
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:162
+  src: architecture/ssot/10-objects/objects.yaml#objects[95]/OBJ-96
 - kind: obj-parent
   from: OBJ-97
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:163
+  src: architecture/ssot/10-objects/objects.yaml#objects[96]/OBJ-97
 - kind: obj-parent
   from: OBJ-98
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:164
+  src: architecture/ssot/10-objects/objects.yaml#objects[97]/OBJ-98
 - kind: obj-parent
   from: OBJ-99
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:165
+  src: architecture/ssot/10-objects/objects.yaml#objects[98]/OBJ-99
 - kind: obj-parent
   from: OBJ-104
   to: OBJ-74
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:171
+  src: architecture/ssot/10-objects/objects.yaml#objects[103]/OBJ-104
 - kind: obj-parent
   from: OBJ-105
   to: OBJ-02
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
+  src: architecture/ssot/10-objects/objects.yaml#objects[104]/OBJ-105
 - kind: obj-parent
   from: OBJ-106
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
+  src: architecture/ssot/10-objects/objects.yaml#objects[105]/OBJ-106
 - kind: obj-parent
   from: OBJ-107
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
+  src: architecture/ssot/10-objects/objects.yaml#objects[106]/OBJ-107
 - kind: obj-parent
   from: OBJ-108
   to: OBJ-29
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
+  src: architecture/ssot/10-objects/objects.yaml#objects[107]/OBJ-108
 - kind: obj-parent
   from: OBJ-109
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:177
+  src: architecture/ssot/10-objects/objects.yaml#objects[108]/OBJ-109
 - kind: obj-parent
   from: OBJ-111
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:180
+  src: architecture/ssot/10-objects/objects.yaml#objects[110]/OBJ-111
 - kind: obj-parent
   from: OBJ-112
   to: OBJ-54
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:181
+  src: architecture/ssot/10-objects/objects.yaml#objects[111]/OBJ-112
 - kind: obj-parent
   from: OBJ-113
   to: OBJ-54
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:183
+  src: architecture/ssot/10-objects/objects.yaml#objects[112]/OBJ-113
 - kind: obj-parent
   from: OBJ-114
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:184
+  src: architecture/ssot/10-objects/objects.yaml#objects[113]/OBJ-114
 - kind: obj-parent
   from: OBJ-115
   to: OBJ-93
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
+  src: architecture/ssot/10-objects/objects.yaml#objects[114]/OBJ-115
 - kind: obj-parent
   from: OBJ-116
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
+  src: architecture/ssot/10-objects/objects.yaml#objects[115]/OBJ-116
 - kind: obj-parent
   from: OBJ-117
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:189
+  src: architecture/ssot/10-objects/objects.yaml#objects[116]/OBJ-117
 - kind: obj-parent
   from: OBJ-120
   to: OBJ-119
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:192
+  src: architecture/ssot/10-objects/objects.yaml#objects[119]/OBJ-120
 - kind: obj-parent
   from: OBJ-121
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:193
+  src: architecture/ssot/10-objects/objects.yaml#objects[120]/OBJ-121
 - kind: obj-parent
   from: OBJ-122
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:194
+  src: architecture/ssot/10-objects/objects.yaml#objects[121]/OBJ-122
 - kind: obj-parent
   from: OBJ-123
   to: OBJ-56
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:195
+  src: architecture/ssot/10-objects/objects.yaml#objects[122]/OBJ-123
 - kind: obj-parent
   from: OBJ-125
   to: OBJ-103
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
+  src: architecture/ssot/10-objects/objects.yaml#objects[124]/OBJ-125
 - kind: stage-prc
   from: VS-01.1
   to: PRC-01
