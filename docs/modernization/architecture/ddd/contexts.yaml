@@ -38,6 +38,17 @@ contexts:
   legacy_bc: null
   evidence: backend 模块包与 module-dependencies.txt
   note: Phase 1a 为工作日历先建（用户 2026-10-14）；与 organization.payroll 的边界见 Q3
+- id: organization.administration
+  zh: 行政事务
+  subdomain: organization
+  kind: business
+  status: planned
+  schema: organization_administration
+  blueprint_bc: B-31
+  legacy_bc: null
+  basis: intent
+  evidence: 用户 intent 2026-10-16-152807（新增行政事务 BC）；glossary/bcs.yaml；B-31 2026-10-21 开工（one-1a-admin）
+  note: 不在 ADR-0051 决定 3 的 BC 清单，由 ADR-0074（起草中）补入；采纳前模块不得合入 main（B31_ARCH_RULINGS_2026-10-21.md 第 2 项）
 - id: organization.workforce
   zh: 组织人事 BC
   subdomain: organization
@@ -146,8 +157,9 @@ contexts:
   - ADR-0060
   - ADR-0061
   - ADR-0070
-  admission: 待准入
-  admission_due: W1 结束或首个使用 BC 开工，取早（ADR-0066 决定 7）
+  admission: 已准入
+  admission_date: '2026-10-21'
+  admission_evidence: architecture/proposals/ADMISSION_PLATFORM_FILE_2026-10-21.md（ADR-0066 决定 6 九条；one-coordinator 核对）
   review: 英文名 FileService，定名 2026-10-21 用户同意（bcs.yaml #496）；层名「基础层」暂定，待 one-glossary 终定 tier 取值
   evidence: ADR-0060 决定 1；ADR-0066 决定 2 第 3 条；backend 模块包与 module-dependencies.txt
 - id: platform.signing
