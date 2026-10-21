@@ -205,3 +205,28 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java
     reason: 删老待办（ADR-0055 决定 6）后删去引用老待办的断言与用例，其余不动；同 PR 带新验收测试断言收件箱不含老待办字段、本系统审批待办照常；删除项在 PR 单列
     ref: docs/modernization/rulings/COORD-2026-10-21.md
+  - id: RULING-COORD-20261021-05
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java
+    reason: 老待办连接的启动校验随 F 删除（ADR-0055 决定 6），删去 LEGACY_APPROVAL 参数项与只测该校验的用例（含 legacyInboxCheckDoesNotSwallowADatabaseFailure），其余不动；删除项在 PR 单列
+    ref: docs/modernization/rulings/COORD-2026-10-21.md
+  - id: RULING-COORD-20261021-06
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRowRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRuleVersionIdIT.java
+    reason: 编号规则版本须标来源（IMP-1021-NX5-03），只在夹具直插版本表语句中加 source_kind='SEEDED'，断言与用例不动；PR 改断言栏写明
+    ref: docs/modernization/rulings/COORD-2026-10-21.md
+  - id: RULING-COORD-20261021-07
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-platform-file
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+    reason: 审计主体种类新增 STORED_FILE（one-architecture 裁定，单元 5），KINDS_WITH_OBJECT 只加一项，其余不动；PR 改断言栏写明
+    ref: docs/modernization/rulings/COORD-2026-10-21.md
