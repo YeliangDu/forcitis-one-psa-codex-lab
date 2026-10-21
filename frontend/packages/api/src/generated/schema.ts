@@ -1153,21 +1153,16 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             deadlineAt?: string;
-            detailUrl?: string;
             /** Format: uuid */
             documentId?: string;
             nodeName?: string;
             overdue: boolean;
             processKey?: components["schemas"]["ProcessKey"] | (string & {});
-            source: string;
             taskId: string;
             title: string;
         };
         InboxResponse: {
             items: components["schemas"]["InboxItemResponse"][];
-            legacyAvailable: boolean;
-            /** Format: int32 */
-            legacyCount: number;
             /** Format: int32 */
             newCount: number;
             nextCursor?: string;
