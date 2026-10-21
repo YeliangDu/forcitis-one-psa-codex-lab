@@ -4602,13 +4602,13 @@ A duplicate or late message is ignored silently, and a real failure is rethrown 
   Then the quotation is rejected with reason "审批未通过" via a compare-and-set from PENDING; 0 rows updated means an idempotent ignore
 **Parameters:**
 - Default reject reason "审批未通过".
-- Result mapping in QuotationProcessResultHandler.java:39-48: 2 means approve, 3 or 4 means reject, others are ignored.
+- Result mapping: approved → approve; not approved → reject; cancelled by the initiator → back to draft with no rejection reason (RULE-169); others are ignored.
 **Edge cases handled:**
 - A missing document is ignored.
 - ETC (DecideEtcApprovalUseCase.java:59-84) adds a "message arrived before the start transaction committed" check through `isCommittedInstance` and `latestProcessInstanceId`. It throws in order to be redelivered.
 - Consumers rethrow every failure (ProcessResultConsumer.java:58-74; ApprovalTaskResultConsumer.java:58-74).
 **Suspected defect:**
-- Cancelled (4) is mapped to a quotation reject, which conflates initiator withdrawal with an approver rejection.
+- Legacy: cancelled (4) was mapped to a quotation reject, which conflated initiator withdrawal with an approver rejection. Corrected 2026-10-21 per the review of 2026-10-14 ("发起人撤销后单据回到草稿，不记为驳回"; RULE-169).
 - When `afterHookKey` is present, ApprovalTaskResultConsumer runs only the hook and skips the businessKey handler (lines 46-63). ProcessResultConsumer runs both. The asymmetry is undocumented.
 - Idempotency is per handler and by convention only. The interface comment requires it, but nothing enforces it.
 **Confidence:** Medium. SME questions: "Should a cancelled approval leave the quotation in REJECTED or return it to DRAFT?" and "Do all other ProcessResultHandlers (budget, revenue, deliverable, travel, timesheet) implement the same status, instance and time checks?"
