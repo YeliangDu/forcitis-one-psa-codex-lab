@@ -140,6 +140,8 @@
 <text x="1068" y="989" font-size="13" fill="#0f172a">Web 与错误链</text>
 <rect x="358" y="1006" width="99.39999999999999" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
 <text x="370" y="1025" font-size="13" fill="#0f172a">组织人事 BC</text>
+<rect x="465.4" y="1006" width="76" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
+<text x="477.4" y="1025" font-size="13" fill="#0f172a">文件服务</text>
 <rect x="16" y="1054" width="1244" height="64" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="28" y="1078" font-size="15" fill="#0f172a" font-weight="600">W1 主数据与业财主干</text>
 <text x="28" y="1100" font-size="12" fill="#475569">未开始；前置 W0</text>
