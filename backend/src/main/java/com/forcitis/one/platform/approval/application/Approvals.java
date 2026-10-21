@@ -4,7 +4,9 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.api.ApprovalError;
+import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.RegisteredDocumentTypes;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
@@ -59,17 +61,32 @@ class Approvals {
     ApprovalRequest openRound(ApprovalStartRequest request, Optional<ApprovalRequest> existing) {
         ApprovalInstanceId instanceId = new ApprovalInstanceId(ids.next());
         Moment now = time.moment();
-        if (!request.document().documentType().equals(request.processKey().documentType())) {
-            throw ApprovalError.PLATFORM_APPROVAL_NO_PROCESS.refusal("No approval process for " + request.document().documentType() + " documents: "
-                    + request.processKey() + " approves " + request.processKey().documentType() + " only");
-        }
-        documentTypes.requireRegistered(request.document().documentType());
+        requireAcceptedDocumentType(request);
         if (existing.isPresent()) {
             existing.get().restart(request.initiator(), instanceId, request.summary(), request.trigger(), now);
             return existing.get();
         }
         return ApprovalRequest.begin(ids, request.processKey(), request.document(), request.legalEntityId(), request.initiator(), instanceId,
                 request.summary(), request.trigger(), now);
+    }
+
+    /**
+     * First thing a start checks, before the round, the routing flags and the form fields: a document type without a process is refused
+     * with the approval's own code, and a type the registry does not know is refused with the approval's code too (the registry's code stays inside numbering).
+     */
+    void requireAcceptedDocumentType(ApprovalStartRequest request) {
+        if (!request.document().documentType().equals(request.processKey().documentType())) {
+            throw ApprovalError.PLATFORM_APPROVAL_NO_PROCESS.refusal("No approval process for " + request.document().documentType() + " documents: "
+                    + request.processKey() + " approves " + request.processKey().documentType() + " only");
+        }
+        try {
+            documentTypes.requireRegistered(request.document().documentType());
+        } catch (DomainException unregistered) {
+            if (unregistered.errorCode() == NumberingError.PLATFORM_NUMBERING_DOCUMENT_TYPE_UNREGISTERED) {
+                throw ApprovalError.PLATFORM_APPROVAL_DOCUMENT_TYPE_UNREGISTERED.refusal(unregistered.getMessage());
+            }
+            throw unregistered;
+        }
     }
 
     /** A lost race against another candidate is a refusal (409), not a server error. */
