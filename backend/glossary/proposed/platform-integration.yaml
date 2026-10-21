@@ -204,7 +204,7 @@ terms:
   forbidden: []
   status: proposed
   note: 'one-platform-file 2026-10-21 登记（单元 4）'
-- id: threat_name
+- id: platform_integration__threat_name
   zh: 病毒名
   en: ThreatName
   snake: threat_name
@@ -221,6 +221,8 @@ terms:
   forbidden: []
   status: proposed
   note: 'one-platform-file 2026-10-21 登记（单元 4）'
+  homonyms:
+  - platform_file__threat_name
 - id: presign_download
   zh: 签发下载链接
   en: PresignDownload

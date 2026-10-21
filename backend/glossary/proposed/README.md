@@ -433,7 +433,7 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 | `expired_unbound` | 未关联已过期 | ExpiredUnbound | 领域 · platform.file | 文件状态：在临时区到期仍未关联，对象由生命周期规则过期 |  |  |
 | `disposed` | 已处置 | Disposed | 领域 · platform.file | 文件状态：保存期满经两人确认删除或去标识，行与哈希保留 |  |  |
 | `access_level` | 访问级别 | AccessLevel | 领域 · platform.file | PUBLIC / INTERNAL / SENSITIVE / RESTRICTED，对应 L1–L4；关联时由所属模块给出 |  |  |
-| `personal_info_mark` | 个人信息标记 | PersonalInfoMark | 领域 · platform.file | NONE / PI / SPI；关联时由所属模块给出，SPI 在 U-14 定前拒收 |  |  |
+| `personal_information_mark` | 个人信息标记 | PersonalInformationMark | 领域 · platform.file | NONE / PI / SPI；关联时由所属模块给出，SPI 在 U-14 定前拒收 |  |  |
 | `pi` | 含个人信息 | Pi | 领域 · platform.file | 个人信息标记取值 PI |  |  |
 | `spi` | 含敏感个人信息 | Spi | 领域 · platform.file | 个人信息标记取值 SPI |  |  |
 | `preservation_category` | 保存类别 | PreservationCategory | 领域 · platform.file | 文件所属的保存期限表类别，关联时由所属模块给出；文件保存期限与数据保留期限（data_retention_period）不同：后者管在线库与归档库的留存 |  |  |
@@ -441,6 +441,15 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 | `agreed_preservation` | 约定保存年限 | AgreedPreservation | 领域 · platform.file | 合同约定的保存年限，由合同模块写入；到期日取类别默认与约定的较长者 |  |  |
 | `import_rejection_reason` | 迁入文件拒收原因 | ImportRejectionReason | 领域 · platform.file | 迁入文件被拒的原因代码（超上限、类型不允许、加密、已隔离、不可用、敏感个人信息、保存类别不存在），计入核对差异清单；与 platform.integration「迁入拒收」互列 |  |  |
 | `imported` | 已迁入 | Imported | 领域 · platform.file | 迁入文件写入并关联成功的结果 |  |  |
+| `false_positive_judgment` | 误报判定 | FalsePositiveJudgment | 领域 · platform.file | 安全角色把已隔离文件判为误报，第二人复核；确认后其内容哈希进误报例外清单（ADR-0070 决定 6 第 3 条） |  |  |
+| `judged_by` | 判定人 | JudgedBy | 领域 · platform.file | 作出误报判定的安全角色用户；不得兼复核人 |  |  |
+| `reviewed_by` | 复核人 | ReviewedBy | 领域 · platform.file | 复核误报判定的第二人；不得是判定人 |  |  |
+| `scan_exception` | 误报例外 | ScanException | 领域 · platform.file | 误报例外清单中的一项：按内容哈希豁免，只追加，可经两人撤销 |  |  |
+| `added_at` | 加入时间 | AddedAt | 领域 · platform.file | 内容哈希加入误报例外清单的时间 |  |  |
+| `deidentified` | 已去标识 | Deidentified | 领域 · platform.file | 原文件名到期后置为固定占位值「[已去标识]」的状态 |  |  |
+| `platform_file__threat_name` | 病毒名 | ThreatName | 领域 · platform.file | 检测引擎检出时报告的特征名；与 platform.integration 同名词条互列 |  |  |
+| `preservation_sequence_number` | 保存期序号 | PreservationSequenceNumber | 领域 · platform.file | 每个文件的保存期记录从 1 递增的序号，最大者为当前 |  |  |
+| `transition_sequence_number` | 转换序号 | TransitionSequenceNumber | 领域 · platform.file | 状态转换表中每个聚合的转换顺序号，取本次变更之后聚合行的 version（ADR-0058）；与「流水号」不同 |  | one-glossary 2026-10-21 定名，避开「流水号」同名 |
 
 另有错误码 20 个（kind 为 `error_code`），不在表中。
 
@@ -469,7 +478,7 @@ platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 | `scan_outcome` | 检测结论 | ScanOutcome | ACL（长期） · platform.integration | CLEAN 通过 / INFECTED 未通过 / ENCRYPTED 加密不可检测；不可用不是结论，抛错 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `clean` | 检测通过 | Clean | ACL（长期） · platform.integration | 检测结论取值：引擎未检出 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `infected` | 检测未通过 | Infected | ACL（长期） · platform.integration | 检测结论取值：引擎检出，文件服务隔离 |  | one-platform-file 2026-10-21 登记（单元 4） |
-| `threat_name` | 病毒名 | ThreatName | ACL（长期） · platform.integration | 引擎检出时报告的特征名 |  | one-platform-file 2026-10-21 登记（单元 4） |
+| `platform_integration__threat_name` | 病毒名 | ThreatName | ACL（长期） · platform.integration | 引擎检出时报告的特征名 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `presign_download` | 签发下载链接 | PresignDownload | ACL（长期） · platform.integration | 以签发身份为正式键生成预签名 GET 链接，强制附件下载；临时区与隔离键拒绝 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `promote_file_object` | 转入正式区 | PromoteFileObject | ACL（长期） · platform.integration | 把临时区对象服务端复制到同一文件的正式键，禁止覆盖并读回核对 |  | one-platform-file 2026-10-21 登记（单元 4） |
 
