@@ -23,7 +23,33 @@ def invoke(script, payload, env, cwd, timeout=22):
     return result.stdout
 
 
+def head_unit_test():
+    sys.path.insert(0, str(HOOKS))
+    import handoff_snapshot as snap
+    assert snap.fit("短", 100) == "短"
+    cut = snap.fit("状态" * 200, 120)
+    assert len(cut.encode()) <= 120 and cut.endswith("…（全文见画像）") and cut.startswith("状态"), cut
+    assert len(snap.fit("x" * 500, 200).encode()) <= 200
+    assert snap.fit("abc", 0).endswith("…（全文见画像）") or snap.fit("abc", 0) == "…（全文见画像）"
+    from unittest import mock
+
+    def head(brief, snapshot=None):
+        with mock.patch.object(snap, "command", return_value=json.dumps(brief, ensure_ascii=False)):
+            return snap.start_head("/r", 0, snapshot)
+
+    base = {"name": "one-x", "reason": "", "profile": "docs/p.md", "state": "状态" * 300, "docs": ["docs/a.md"]}
+    assert "告警：要点头" in head({**base, "profile": "docs/" + "p" * 960 + ".md"}), "a head over the limit is announced even when the mandatory lines fit"
+    assert "告警：必读部分已超过" in head({**base, "profile": "docs/" + "p" * 1600 + ".md"})
+    assert "告警" not in head(base) and len(head(base).partition("————")[0].encode()) <= 1500
+    assert "  上下文文档：" not in head({**base, "docs": 5}), "a malformed docs field is ignored, not a crash"
+    assert "告警：session_context.py --brief 返回的不是对象" in head([1, 2])
+    assert "未识别" in head({"name": None, "reason": "未识别本会话", "profile": None, "state": "", "docs": []})
+    with mock.patch.object(snap, "command", side_effect=snap.SnapshotError("x")):
+        assert "告警：session_context.py --brief 不可用" in snap.start_head("/r", 0, None)
+
+
 def self_test():
+    head_unit_test()
     with tempfile.TemporaryDirectory(prefix="handoff-") as tmp:
         base = Path(tmp).resolve()
         home, repo, bin_dir = (base / p for p in ["home", "worktree", "bin"])
@@ -98,11 +124,31 @@ def self_test():
         expected = subprocess.run([sys.executable, "-I", str(hooks / "playbook_digest.py"), str(playbook)],
                                   capture_output=True, text=True, check=True).stdout
         restored = invoke("postcompact_context.sh", new_session, env, repo)
-        assert restored.startswith(expected), "start must inject the shared renderer before the profile"
+        separator = "———— 以下是完整内容（规则摘要、画像、上下文文档、交接快照） ————"
+        head, _, full = restored.partition(separator)
+        assert full.lstrip("\n").startswith(expected), "start must inject the shared renderer before the profile"
+        assert len(head.encode()) <= 1500 and "本会话 one-test" in head and "docs/modernization/sessions/one-test.md" in head and "硬规则" in head, head
         assert all(f"## {section}" in restored for section in ["§2.1 会话管理", "§5 上下文管理", "§11 总调度会话"])
         assert "告警：" not in expected and "PROFILE-MARKER" in restored
         assert "【交接快照】" not in restored, "common rules must be injected even without a snapshot"
         playbook.write_text(fixture_text, encoding="utf-8")
+
+        long_state = "状态" * 900
+        many_docs = "\n".join(f"- `docs/very/long/context/document-{i:02}.md`" for i in range(14))
+        profile.write_text(f"# one-test\nPROFILE-MARKER\n\n## 上下文文档\n\n{many_docs}\n\n## 当前状态\n\n{long_state}\n", encoding="utf-8")
+        restored = invoke("postcompact_context.sh", new_session, env, repo)
+        head = restored.partition(separator)[0]
+        assert len(head.encode()) <= 1500, len(head.encode())
+        assert "当前状态：" in head and "…（全文见画像）" in head, "a long state is cut with a mark, not silently"
+        assert "另有" in head and "个上下文文档，见画像" in head and "document-00.md" in head, "documents that do not fit are counted"
+        assert "PROFILE-MARKER" in restored and long_state in restored, "the full text still follows the head"
+        profile.write_text("# one-test\nPROFILE-MARKER\n", encoding="utf-8")
+        brief_script = hooks / "session_context.py"
+        brief_backup = brief_script.read_text(encoding="utf-8")
+        brief_script.write_text("import sys\nsys.exit(3)\n", encoding="utf-8")
+        broken = invoke("postcompact_context.sh", new_session, env, repo)
+        assert "【开场摘要】告警：session_context.py --brief 不可用" in broken.partition("【SESSION_PLAYBOOK")[0], "a missing summary is announced"
+        brief_script.write_text(brief_backup, encoding="utf-8")
 
         def fixture(age, session, body, root=repo, clear=False):
             stamp = datetime.now() - timedelta(days=age)
@@ -120,6 +166,7 @@ def self_test():
         os.utime(precompact, (time.time() + 3600, time.time() + 3600))
         restored = invoke("postcompact_context.sh", new_session, env, repo)
         assert "NEWEST-MARKER" in restored and "COMPACT-MARKER" not in restored and "UNRELATED-MARKER" not in restored
+        assert "最新交接快照：" in restored.partition(separator)[0] and "-clear.md" in restored.partition(separator)[0], "the snapshot path is in the head"
         newer.unlink()
         restored = invoke("postcompact_context.sh", new_session, env, repo)
         assert "COMPACT-MARKER" in restored, "precompact snapshots must also be claimed"
