@@ -41,7 +41,7 @@ meta:
     bind: 0
     dec: 0
     agg: 145
-    bc: 50
+    bc: 51
     sd: 13
     table: 53
     rule: 512
@@ -14441,6 +14441,12 @@ nodes:
       aggs: []
       subdomain: platform
       src: architecture/ddd/contexts.yaml#contexts/platform.file
+    platform.signing:
+      name: 签章服务
+      module: platform.signing
+      aggs: []
+      subdomain: platform
+      src: architecture/ddd/contexts.yaml#contexts/platform.signing
     operations.budgeting:
       name: 预算管控 BC
       module: operations.budgeting
@@ -42315,6 +42321,10 @@ links:
   from: platform
   to: platform.file
   src: architecture/ddd/contexts.yaml#contexts/platform.file
+- kind: sd-bc
+  from: platform
+  to: platform.signing
+  src: architecture/ddd/contexts.yaml#contexts/platform.signing
 - kind: sd-bc
   from: operations
   to: operations.budgeting
