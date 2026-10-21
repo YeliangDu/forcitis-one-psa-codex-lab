@@ -121,7 +121,7 @@ meta:
         controller: 58
   external_reads:
     databases: 2
-    columns: 44
+    columns: 37
 nodes:
   sh:
     SH-C1:
