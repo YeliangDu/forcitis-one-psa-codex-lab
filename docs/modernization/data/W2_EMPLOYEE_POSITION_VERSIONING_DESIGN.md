@@ -27,7 +27,8 @@ D17 细则 5：自有、可未来生效的主数据，根表不存可版本化�
 | `employment_status` | → `employee_versions` | 随生效日变化 |
 | `is_fee_earner` | → `employee_versions` | 随生效日变化 |
 | `separated_at` | 删 | 离职日 = 开放的 SEPARATED 版本的 `effective_from_date`，不再另存（E-2 随之关闭） |
-| `login_name`、`wecom_user_id` | 删，移 `platform_integration.external_identities`（DA-3、ADR-0033 第 4 项第 5 条、ADR-0055 决定 2「企业微信按外部身份对照绑定」） | 外部身份不属人事记录；`login_name` 为空即离职的旧口径随同步一起退役 |
+| `login_name` | 删（D2，ADR-0068 第 7 条） | A8 登录名，同步退役；「为空即离职」的旧口径只留在迁入适配器 |
+| `wecom_user_id` | 暂留，随 DA-3 `platform_integration.external_identities` 落地同批删（ADR-0068 第 7 条 4：企业微信登录分支保留到外部身份落地） | 外部身份不属人事记录，但在对照落地前企业微信登录还靠它 |
 | `last_sync_run_id` | 删 | 同步退役（ADR-0055 决定 6） |
 | `version`、`event_count`、`created_at`、`updated_at` | 留 | 乐观锁、事件序号 |
 
@@ -65,7 +66,7 @@ CREATE INDEX ix_employee_versions_employment_status_effective_from_date ON organ
 - `employment_status` 现只有 EMPLOYED、SEPARATED：停薪留职无对应在职状态（切分方案 3.3，待 one-architecture 裁），转正（试用期）没有已定义的状态集合；按门禁 B7 **不先写进 CHECK**，裁定后无损追加取值。
 - `change_origin_kind = MIGRATION` 的版本是一次迁入写的初始版本（命令 ID、记录人为空）；迁入行的 `effective_from_date` 口径要生产证据（见第 5 节）。
 - 时间列全部由应用传注入时钟，DDL 无 `now()`；`created_at` 与 `recorded_at` 同值，加 `CONSTRAINT ck_employee_versions_created_at CHECK (created_at = recorded_at)`；`updated_at` 在关闭行时写关闭时刻（版本表触发器放行 `effective_to_date`、`updated_at` 两列，其余只追加）。
-- `change_command_id` 引用人事命令的 ID，命令表尚未建，**只存 ID，不建外键**（跨聚合/待建对象，D2）；类型 uuid，是否与离职命令共用 ID 空间由 one-architecture 定。
+- `change_command_id` 引用 `organization_workforce.personnel_commands.personnel_command_id`（ADR-0068 第 1 条：人事命令在员工聚合内，同 schema，UUIDv7，所有命令种类一个 ID 空间）：**真外键** `fk_employee_versions_change_command_id`（`ON DELETE RESTRICT`）及以它开头的部分索引。`assignment_versions` 同。岗位版本的命令归属待 one-architecture 定（见 `reviews/ADR-0068.md` 意见 8）。
 
 ### 2.3 positions（根表）与 position_versions（新）
 
