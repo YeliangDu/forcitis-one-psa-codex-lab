@@ -17,7 +17,7 @@ import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.Reason;
@@ -135,7 +135,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     static DocumentReference documentOf(TimesheetId id) {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(id.value()));
+        return new DocumentReference(new DocumentTypeCode("TIMESHEET"), new DocumentId(id.value()));
     }
 
     TimesheetView submit(TimesheetId id, String hours) {
@@ -288,7 +288,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         for (UUID documentId : List.of(com.forcitis.one.TestIds.uuid(900001), com.forcitis.one.TestIds.uuid(900002))) {
             EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", UUID.randomUUID(), 1);
             tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope,
-                    new DocumentReference(DocumentType.TIMESHEET, new DocumentId(documentId)), ProcessKey.COST_TIMESHEET_APPROVAL,
+                    new DocumentReference(new DocumentTypeCode("TIMESHEET"), new DocumentId(documentId)), ProcessKey.COST_TIMESHEET_APPROVAL,
                     com.forcitis.one.TestApprovalIds.instance("i"), new RoundNumber(1), TestAccounts.employee(employee), ApprovalOutcome.APPROVED, null, null)));
         }
         assertThat(meters.counter("forcitis.cost.timesheet.approval.result.unknown").count()).isEqualTo(before + 2);

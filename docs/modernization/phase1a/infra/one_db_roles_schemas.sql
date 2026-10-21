@@ -121,6 +121,9 @@ BEGIN
     END LOOP;
 END $$;
 
+-- 单据类型登记（ADR-0066 决定 4）：行只由迁移写（数据访问注册表 MIGRATION_ONLY），运行角色只读；表上的触发器另拒删除、清空与改写已登记的列。
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FROM one_dev_app;
+
 -- 审计月分区（ADR-0048）：两个函数是 SECURITY DEFINER、属主 one_dev_owner，基线已对 PUBLIC 撤销 EXECUTE。
 -- 运行角色只能预建分区（应用的预建作业调用），仍无 CREATE，也不能 DETACH / DROP；删除已归档分区只有维护角色能执行，应用代码不调用。
 GRANT EXECUTE ON FUNCTION platform_audit.create_audit_entry_partitions(date, date) TO one_dev_app;

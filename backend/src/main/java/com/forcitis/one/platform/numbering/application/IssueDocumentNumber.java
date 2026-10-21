@@ -8,7 +8,7 @@ import com.forcitis.one.organization.workforce.api.LegalEntityDirectory;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import com.forcitis.one.platform.numbering.api.IssuedNumber;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.domain.CounterScope;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
@@ -40,10 +40,14 @@ class IssueDocumentNumber implements DocumentNumbers {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public IssuedNumber next(DocumentType type, LegalEntityId legalEntity, LocalDate businessDate) {
+    public IssuedNumber next(DocumentTypeCode type, LegalEntityId legalEntity, LocalDate businessDate) {
         NumberingRule rule = rules.findActive(type)
                 .orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_FOUND, ErrorKind.UNPROCESSABLE,
                         "No active numbering rule for " + type));
+        if (!rule.type().isInForceOn(businessDate)) {
+            throw new DomainException(NumberingError.PLATFORM_NUMBERING_DOCUMENT_TYPE_UNREGISTERED, ErrorKind.UNPROCESSABLE,
+                    "document type " + type + " is not in force on " + businessDate);
+        }
         TemplateVersion template = rule.inForceOn(businessDate).orElseThrow(() -> notConfirmed(type, businessDate));
         LegalEntityCode legalEntityCode = legalEntities.lockActiveCode(legalEntity)
                 .orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE, ErrorKind.UNPROCESSABLE,
@@ -51,11 +55,11 @@ class IssueDocumentNumber implements DocumentNumbers {
         CounterScope counterScope = template.pattern().usesLegalEntityCode() ? CounterScope.ofLegalEntity(legalEntity) : CounterScope.GLOBAL;
         String periodKey = template.pattern().resetPolicy().periodKey(businessDate);
         ReservedValue reserved = rules.reserveNext(type, counterScope, periodKey, template.startValue());
-        return new IssuedNumber(new DocumentNumber(template.pattern().render(type.code().orElse(null), template.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, reserved.value())),
+        return new IssuedNumber(new DocumentNumber(template.pattern().render(rule.type().numberCode().orElse(null), template.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, reserved.value())),
                 reserved.counterId(), template.id());
     }
 
-    private DomainException notConfirmed(DocumentType type, LocalDate businessDate) {
+    private DomainException notConfirmed(DocumentTypeCode type, LocalDate businessDate) {
         meters.counter("forcitis.platform.numbering.issue.failed").increment();
         log.error("ALERT platform.numbering no number issued for {} on {}: the rule has no confirmed template in force", type, businessDate);
         return new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_CONFIRMED, ErrorKind.UNPROCESSABLE,

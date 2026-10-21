@@ -258,7 +258,7 @@ platform.approval 提议术语（proposed，待业务评审，ADR-0018）。单�
 
 无错误码以外的术语。
 
-另有错误码 29 个（kind 为 `error_code`）、技术词 111 个（`common_words`），不在表中。
+另有错误码 30 个（kind 为 `error_code`）、技术词 111 个（`common_words`），不在表中。
 
 ## platform.audit（`platform-audit-paging.yaml`）
 
@@ -347,8 +347,13 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `qt` | 报价单据类型代码 | Qt | 领域 · platform.numbering | 报价（DocumentType.QUOTE）的单据类型代码 QT，1b 首个使用方 |  | 例 QT-FST-202610-0001 |
 | `ts` | 工时单据类型代码 | Ts | 领域 · platform.numbering | 工时（DocumentType.TIMESHEET）的单据类型代码 TS，沿用种子模板中的前缀字母，正式词表尚无对应词 |  | 例 TS-FST-202610-0001；模板待管理员确认 |
 | `jv` | 记账凭证单据类型代码 | Jv | 领域 · platform.numbering | 记账凭证（DocumentType.JOURNAL_VOUCHER）的单据类型代码 JV，沿用种子模板中的前缀字母，正式词表尚无对应词 |  | 例 JV-FST-202610-0001；模板待管理员确认 |
+| `document_type_registry` | 单据类型登记表 | DocumentTypeRegistry | 领域 · platform.numbering | 编号模块持有的单据类型登记：类型码唯一、登记属主、编号缩写码与生效期；新增一种单据只插一行 |  | REG-1（IMP-1021-NX5-01）新增 |
+| `registry` | 登记表 | Registry | 领域 · platform.numbering | 集中登记某类可扩展事项并供写入方校验的表 |  | REG-1（IMP-1021-NX5-01）新增 |
+| `unregistered` | 未登记 | Unregistered | 领域 · platform.numbering | 不在登记表中 |  | REG-1（IMP-1021-NX5-01）新增 |
+| `bc` | 限界上下文 | Bc | 领域 · platform.numbering | glossary/bcs.yaml 中登记的业务模块标识，如 cost.timesheet；登记属主列用它 |  | REG-1（IMP-1021-NX5-01）新增 |
+| `number_code` | 编号缩写码 | NumberCode | 领域 · platform.numbering | 单据类型在统一编号格式中的缩写，大写字母 2 至 4 位，对应模板占位符 {TYPE}；与 terms.yaml 的 document_type_code 同义，后者与 kernel.DocumentTypeCode 同名异义，已登记给 one-glossary 裁定 |  | REG-1（IMP-1021-NX5-01）新增 |
 
-另有错误码 5 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
+另有错误码 6 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
 
 ## platform.web（`platform-web.yaml`）
 

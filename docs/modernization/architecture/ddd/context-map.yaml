@@ -30,6 +30,13 @@ relations:
   via: api：取号
   status: built
   basis: module-dependencies.txt；关系类型为 one-architecture 提议，待架构评审
+- id: platform.numbering>platform.approval
+  upstream: platform.numbering
+  downstream: platform.approval
+  type: open-host-service
+  via: api：单据类型码校验（DocumentTypes）
+  status: built
+  basis: module-dependencies.txt；ADR-0066 决定 4（IMP-1021-NX5-01）；关系类型为 one-architecture 提议，待架构评审
 - id: platform.audit>organization.attendance
   upstream: platform.audit
   downstream: organization.attendance
