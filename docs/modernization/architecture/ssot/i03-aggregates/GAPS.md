@@ -1,0 +1,178 @@
+# 聚合登记差异
+
+由 panorama/scan_aggregates.py 生成，勿手改。
+
+## 统计与判据
+
+- 已建：15；仅 code 5；仅 registry 0；两者 10。
+- 历史：15；来源 `docs/modernization/architecture/ddd/aggregates.yaml`。registry 来源只取 role=AGGREGATE_ROOT；tables 取同模块全部同名 aggregate 表。
+- commands 取同模块 application 中直接引用根类型的类（含 record、查询视图和辅助类），不追间接调用。
+- events 仅取同模块 DomainEvent 类型在根或上述类的 record/publish 参数内直接构造的证据；不做跨方法数据流推断。
+- 有未证实发布关系的同模块事件时，events_in_module 列出该模块全部事件；这不是发布归属结论。跨模块事件不计入 events。
+- 不迁入历史 states / invariants / commands_via 等手写字段；不把历史规则归属推断变成扫描结论。
+
+## 新增
+
+无。
+
+## 消失
+
+无。
+
+## 逐条比对（集合差异，忽略排列）
+
+### cost.timesheet/Timesheet
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：CancelTimesheet、GetTimesheet、WithdrawTimesheet
+- commands 移出：无
+- events 新增：无
+- events 移出：platform.approval.DocumentSubmittedForApproval
+
+### organization.attendance/WorkCalendarYear
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：WorkCalendarYearView
+- commands 移出：MaintainLockedWorkCalendarDays、MaintainWorkCalendarYear
+- events 新增：无
+- events 移出：无
+
+### organization.workforce/LegalEntity
+
+- tables 新增：organization_workforce.legal_entity_versions
+- tables 移出：无
+- commands 新增：LegalEntityView
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### organization.workforce/LegalEntityAttribution
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：LegalEntityAttributionView
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### organization.workforce/RegisteredEmployee
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：无
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### organization.workforce/SyncRun
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：ReleaseSyncRun
+- commands 移出：WithdrawSyncRunReleases
+- events 新增：无
+- events 移出：无
+
+### platform.approval/ApprovalRequest
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：ClaimTask、DecideTasks、ReassignTask、RefuseApprovalStart、ReleaseTask、Retraction、ReturnToInitiator、StartApproval、TaskDeadline、TaskRegistrar、TransferTask
+- commands 移出：无
+- events 新增：无
+- events 移出：platform.approval.ApprovalCompleted、platform.approval.ApprovalRoundStarted、platform.approval.ApprovalTaskBecameOverdue、platform.approval.ApprovalTaskEscalated、platform.approval.TaskAssigned、platform.approval.TaskClaimed、platform.approval.TaskClosed、platform.approval.TaskHandled、platform.approval.TaskReassigned、platform.approval.TaskReleased、platform.approval.TaskTransferred
+
+### platform.identity/AuthorizationRequest
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：ApplyConfirmedAuthorization、AuthorizationRequestView
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### platform.identity/EmergencyAdmin
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：EmergencyBinding、LoginAsEmergencyAdmin、ReconcileEmergencyAdmins、SessionPrincipals
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### platform.identity/Role
+
+- tables 新增：platform_identity.role_versions
+- tables 移出：无
+- commands 新增：AdministratorSeparationReview、ForceUserLogout、GrantRoleByOperations、ReplaceAccountRoles、RevokeRoleByOperations、RoleView
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### platform.identity/UserAccount
+
+- tables 新增：platform_identity.account_role_grants
+- tables 移出：无
+- commands 新增：ConfirmAuthorizationRequest、EmergencyBinding、GetUserAccount、LoginAdmission、LoginAsEmergencyAdmin、ReconcileEmergencyAdmins、RevokeRoleByOperations、SessionPrincipals
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### platform.integration/OutboundDelivery
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：无
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### platform.integration/SourceReference
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：ListSourceReferences、SourceReferenceView
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### platform.integration/SourceReferenceRefusal
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：无
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+### platform.numbering/NumberingRule
+
+- tables 新增：无
+- tables 移出：无
+- commands 新增：CheckCounterCapacity、IssueDocumentNumber、NumberingRuleViews
+- commands 移出：无
+- events 新增：无
+- events 移出：无
+
+## 发布关系待核（同模块事件回退）
+
+- organization.workforce/LegalEntity：organization.workforce.EmployeeRegistered、organization.workforce.LegalEntityActivated、organization.workforce.LegalEntityAttributed、organization.workforce.LegalEntityAttributionCorrected、organization.workforce.LegalEntityAttributionEnded、organization.workforce.LegalEntityCodeCorrected、organization.workforce.LegalEntityDeactivated、organization.workforce.LegalEntityRegistered、organization.workforce.LegalEntityRenamed、organization.workforce.OrgSnapshotChanged、organization.workforce.SyncRunFailed、organization.workforce.SyncRunHeld、organization.workforce.SyncRunHoldReleased、organization.workforce.SyncRunReleased、organization.workforce.SyncRunSucceeded
+- organization.workforce/LegalEntityAttribution：organization.workforce.EmployeeRegistered、organization.workforce.LegalEntityActivated、organization.workforce.LegalEntityAttributed、organization.workforce.LegalEntityAttributionCorrected、organization.workforce.LegalEntityAttributionEnded、organization.workforce.LegalEntityCodeCorrected、organization.workforce.LegalEntityDeactivated、organization.workforce.LegalEntityRegistered、organization.workforce.LegalEntityRenamed、organization.workforce.OrgSnapshotChanged、organization.workforce.SyncRunFailed、organization.workforce.SyncRunHeld、organization.workforce.SyncRunHoldReleased、organization.workforce.SyncRunReleased、organization.workforce.SyncRunSucceeded
+- organization.workforce/RegisteredEmployee：organization.workforce.EmployeeRegistered、organization.workforce.LegalEntityActivated、organization.workforce.LegalEntityAttributed、organization.workforce.LegalEntityAttributionCorrected、organization.workforce.LegalEntityAttributionEnded、organization.workforce.LegalEntityCodeCorrected、organization.workforce.LegalEntityDeactivated、organization.workforce.LegalEntityRegistered、organization.workforce.LegalEntityRenamed、organization.workforce.OrgSnapshotChanged、organization.workforce.SyncRunFailed、organization.workforce.SyncRunHeld、organization.workforce.SyncRunHoldReleased、organization.workforce.SyncRunReleased、organization.workforce.SyncRunSucceeded
+- organization.workforce/SyncRun：organization.workforce.EmployeeRegistered、organization.workforce.LegalEntityActivated、organization.workforce.LegalEntityAttributed、organization.workforce.LegalEntityAttributionCorrected、organization.workforce.LegalEntityAttributionEnded、organization.workforce.LegalEntityCodeCorrected、organization.workforce.LegalEntityDeactivated、organization.workforce.LegalEntityRegistered、organization.workforce.LegalEntityRenamed、organization.workforce.OrgSnapshotChanged、organization.workforce.SyncRunFailed、organization.workforce.SyncRunHeld、organization.workforce.SyncRunHoldReleased、organization.workforce.SyncRunReleased、organization.workforce.SyncRunSucceeded
+- platform.approval/ApprovalRequest：platform.approval.ApprovalCompleted、platform.approval.ApprovalRoundStarted、platform.approval.ApprovalTaskBecameOverdue、platform.approval.ApprovalTaskEscalated、platform.approval.DocumentSubmittedForApproval、platform.approval.TaskAssigned、platform.approval.TaskClaimed、platform.approval.TaskClosed、platform.approval.TaskHandled、platform.approval.TaskReassigned、platform.approval.TaskReleased、platform.approval.TaskTransferred
+- platform.identity/AuthorizationRequest：platform.identity.AccountDisabled、platform.identity.AccountEnabled、platform.identity.AccountOpened、platform.identity.AccountRolesReplaced、platform.identity.AccountSeparated、platform.identity.AuthorizationConfirmed、platform.identity.AuthorizationOpened、platform.identity.AuthorizationRejected、platform.identity.EmergencyAdminCredentialsReset、platform.identity.EmergencyAdminDisabled、platform.identity.EmergencyAdminEnabled、platform.identity.EmergencyAdminRegistered、platform.identity.RoleCreated、platform.identity.RoleDeleted、platform.identity.RoleDisabled、platform.identity.RoleEnabled、platform.identity.RoleRevised
+- platform.identity/EmergencyAdmin：platform.identity.AccountDisabled、platform.identity.AccountEnabled、platform.identity.AccountOpened、platform.identity.AccountRolesReplaced、platform.identity.AccountSeparated、platform.identity.AuthorizationConfirmed、platform.identity.AuthorizationOpened、platform.identity.AuthorizationRejected、platform.identity.EmergencyAdminCredentialsReset、platform.identity.EmergencyAdminDisabled、platform.identity.EmergencyAdminEnabled、platform.identity.EmergencyAdminRegistered、platform.identity.RoleCreated、platform.identity.RoleDeleted、platform.identity.RoleDisabled、platform.identity.RoleEnabled、platform.identity.RoleRevised
+- platform.identity/Role：platform.identity.AccountDisabled、platform.identity.AccountEnabled、platform.identity.AccountOpened、platform.identity.AccountRolesReplaced、platform.identity.AccountSeparated、platform.identity.AuthorizationConfirmed、platform.identity.AuthorizationOpened、platform.identity.AuthorizationRejected、platform.identity.EmergencyAdminCredentialsReset、platform.identity.EmergencyAdminDisabled、platform.identity.EmergencyAdminEnabled、platform.identity.EmergencyAdminRegistered、platform.identity.RoleCreated、platform.identity.RoleDeleted、platform.identity.RoleDisabled、platform.identity.RoleEnabled、platform.identity.RoleRevised
+- platform.identity/UserAccount：platform.identity.AccountDisabled、platform.identity.AccountEnabled、platform.identity.AccountOpened、platform.identity.AccountRolesReplaced、platform.identity.AccountSeparated、platform.identity.AuthorizationConfirmed、platform.identity.AuthorizationOpened、platform.identity.AuthorizationRejected、platform.identity.EmergencyAdminCredentialsReset、platform.identity.EmergencyAdminDisabled、platform.identity.EmergencyAdminEnabled、platform.identity.EmergencyAdminRegistered、platform.identity.RoleCreated、platform.identity.RoleDeleted、platform.identity.RoleDisabled、platform.identity.RoleEnabled、platform.identity.RoleRevised
+- platform.integration/OutboundDelivery：platform.integration.SourceReferenceConfirmed、platform.integration.SourceReferenceRefused、platform.integration.SourceReferenceRegistered、platform.integration.SourceReferenceRejected、platform.integration.SourceReferenceSuperseded
+- platform.integration/SourceReference：platform.integration.SourceReferenceConfirmed、platform.integration.SourceReferenceRefused、platform.integration.SourceReferenceRegistered、platform.integration.SourceReferenceRejected、platform.integration.SourceReferenceSuperseded
+- platform.integration/SourceReferenceRefusal：platform.integration.SourceReferenceConfirmed、platform.integration.SourceReferenceRefused、platform.integration.SourceReferenceRegistered、platform.integration.SourceReferenceRejected、platform.integration.SourceReferenceSuperseded
+
+## 规划清单条数核对
+
+- `docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md` §2.2：AGG 130 行 → planned.yaml aggregates 130 条。
+- REF 4 行 → references 4 条（原文明确无聚合，保留原文，不计 AGG）。
+- 合计 134 行；保留逐行表头、全部单元格原文、BC 标题与源行号；未合并、未改写文字。
