@@ -39,7 +39,7 @@
 3. 在 RDS 控制台为 `one_dev_migrator`、`one_dev_app`、`one_dev_readonly` 设置随机口令（≥24 位）。口令只写入服务器受保护文件（§5）或 KMS，不经过聊天、不进仓库。
 4. 首次部署（§7）：用 `one_dev_migrator` 运行 Flyway；再以 `FLOWABLE_SCHEMA_UPDATE=true` 启动一次，建 `ACT_*`；之后改用 `one_dev_app` 常驻运行。
 
-与 it_portal 隔离：所有 schema 和角色都以本系统模块名或 `one_` 为前缀；不触碰 it_portal 的 schema；连接数上限分别设为 one_dev_app 40、one_dev_migrator 2、one_dev_readonly 3。
+与 it_portal 隔离：所有 schema 和角色都以本系统模块名或 `one_` 为前缀；不触碰 it_portal 的 schema；连接数上限分别设为 one_dev_app 25、one_dev_migrator 2、one_dev_readonly 3。
 
 应用侧的 Flyway 与 Flowable 配置（已在 `application.properties`，用 `SchemaPlacementIT` 断言）：
 - `spring.flyway.default-schema=one_migration`：历史表 `flyway_schema_history` 只在 `one_migration`，不落在任何模块 schema。
