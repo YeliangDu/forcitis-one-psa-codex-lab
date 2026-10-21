@@ -31,9 +31,13 @@ SRC = {
     "sd": ARCH / "ddd" / "subdomains.yaml",
     "terms": DOCS / "glossary" / "terms.yaml",
     "tables": DOCS / "data" / "PANORAMA_TABLES.yaml",
+    "decr": HERE / "tradeoffs.yaml",
 }
+IN_SYSTEM = ("用户角色", "往来单位加角色", "专门对象", "只作属性或参与者", "不进系统")
 OUT_MODEL = HERE / "panorama.yaml"
 OUT_GAPS = HERE / "GAPS.md"
+OUT_SH = ARCH / "proposals" / "STAKEHOLDERS.md"
+SH_BEGIN, SH_END = "<!-- 干系人图：由 panorama_build.py 从 value-streams.v2.yaml 生成，勿手改 -->", "<!-- 干系人图结束 -->"
 OBJ_RE = re.compile(r"OBJ-\d{2,3}")
 AGG_RE = re.compile(r"AGG-\d{2,3}")
 INV_RE = re.compile(r"INV-\d{2,3}")
@@ -41,15 +45,21 @@ INACTIVE_PRC = {"retired", "merged"}
 
 UNAUTOMATED = {}
 SKELETON = ARCH / "proposals" / "closeout"
-LAYER_NODE = {"sh": "01", "con": "02", "vp": "03", "decr": "04", "cap": "05", "vs": "06", "stage": "06", "prc": "07", "inv": "08",
+LAYER_NODE = {"sh": "01", "shcat": "01", "con": "02", "vp": "03", "decr": "04", "cap": "05", "vs": "06", "stage": "06", "prc": "07", "inv": "08",
               "obj": "09", "act": "10", "fact": "11", "dim": "12", "metric": "13", "bind": "14", "dec": "15",
               "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
 NODES = {"01": "干系人", "02": "关注点", "03": "价值主张", "04": "取舍决定", "05": "业务能力", "06": "价值流与阶段", "07": "业务流程", "08": "约束与认定规则", "09": "业务对象", "10": "受控业务执行", "11": "业务事实", "12": "维度", "13": "指标与评价", "14": "计算绑定", "15": "决策与行动"}
 CHECKS = {
     "N01-1": "每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）",
+    "N01-3": "每个干系人类别对应一个一级业务对象，类别角色取值在信息图可查；没有对象的登记 04 并写理由",
+    "N01-4": "每个具体干系人登记「在系统中的体现」（五选一），并是类别对象（或其从属对象）的一个类型、角色或属性取值；不进系统的登记 04",
+    "N01-2": "每个干系人至少触发、接收或参与一条价值流（价值流 triggering_stakeholders、value_receivers，阶段 participants）",
     "N03-1": "每条价值流都有价值主张（暂以价值流的 value 字段作 03 的登记）",
     "N05-1": "每个阶段都有业务能力支撑（阶段 capabilities 字段）",
     "N06-1": "每个阶段都有对象状态作为门（进入或退出条件引用对象状态）",
+    "N06-2": "每条价值流的门对象中，至少一个顺依附链（信息图「父对象」列）追到一级业务对象",
+    "N06-3": "每个阶段的门对象中，至少一个顺依附链追到一级业务对象（无门对象的阶段也计缺口）",
+    "N06-4": "每条价值流都有触发者和价值接收者",
     "N07-1": "每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）",
     "N07-2": "流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判）",
     "N07-P1": "P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml",
@@ -57,6 +67,7 @@ CHECKS = {
     "N09-1": "每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）",
     "N09-2": "每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）",
     "N09-3": "每个聚合对应的对象都出现在某个阶段的门或段内状态中",
+    "N09-4": "依附链必填：非一级的有效对象「父对象」列填有效 OBJ 编号，一级对象填「—」",
     "N09-M1": "每个聚合都归属一个 BC",
     "N09-M2": "每个聚合都有不变量",
     "N09-M3": "每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）",
@@ -92,6 +103,34 @@ def expand(prefix, text):
     return seen
 
 
+def gate_refs(node, patterns, depth=0):
+    """门条件里的全部叶子引用：展开价值流级 stage_pattern（entry_common / exit_common）与嵌套 any / all。"""
+    if not isinstance(node, dict) or depth > 10:
+        return []
+    out = [node] if "ref" in node else []
+    if node.get("pattern"):
+        if node["pattern"] not in patterns:
+            raise ValueError(f"门条件引用了未定义的 pattern：{node['pattern']}")
+        out += gate_refs(patterns[node["pattern"]], patterns, depth + 1)
+    for k in ("any", "all"):
+        for x in node.get(k) or []:
+            if not isinstance(x, dict):
+                raise ValueError(f"门条件 {k} 里有非条件项：{x!r}")
+            out += gate_refs(x, patterns, depth + 1)
+    return out
+
+
+def obj_texts(text):
+    """每个对象可查取值的文字：总表该行，加上 §2 中提到它（编号或名称）的小节。"""
+    rows = {oid: (" ".join(c), c[1].replace("*", "")) for oid, c, _ in md_rows(text, "## 1. 总表", "### 1.1", r"OBJ-\d{2,3}")}
+    s2 = text[text.index("## 2."):text.index("## 3.")] if "## 2." in text and "## 3." in text else ""
+    secs = re.split(r"\n(?=### )", s2)
+    out = {}
+    for oid, (row, name) in rows.items():
+        out[oid] = row + "\n" + "\n".join(s for s in secs if re.search(rf"{oid}(?!\d)", s.split("\n", 1)[0]) or name in s.split("\n", 1)[0])
+    return out
+
+
 def rel(p):
     return str(Path(p).relative_to(DOCS))
 
@@ -123,23 +162,40 @@ def load():
 
     vsd = yaml.safe_load(SRC["vs"].read_text(encoding="utf-8"))
     for s in vsd.get("stakeholders") or []:
-        m["sh"][s["id"]] = {"name": s.get("sub") or s.get("category"), "category": s.get("category")}
+        m["sh"][s["id"]] = {"name": s.get("members") if s.get("category") == "—" else (s.get("sub") or s.get("category")), "category": s.get("category"), "type": s.get("type"),
+                            "in_system": s.get("in_system"), "obj": s.get("obj"), "attr": s.get("attr"), "value": s.get("value"),
+                            "decr": s.get("decr"), "src": f"{rel(SRC['vs'])}#{s['id']}"}
+    if not vsd.get("stakeholder_categories"):
+        raise ValueError(f"{rel(SRC['vs'])} 缺 stakeholder_categories")
+    m["shcat"] = {c["category"]: {**c, "src": f"{rel(SRC['vs'])}#stakeholder_categories"} for c in vsd["stakeholder_categories"]}
+    decisions = (yaml.safe_load(SRC["decr"].read_text(encoding="utf-8")) or {}).get("decisions")
+    if not decisions:
+        raise ValueError(f"{rel(SRC['decr'])} 缺 decisions")
+    for d in decisions:
+        if d["id"] in m["decr"]:
+            raise ValueError(f"{rel(SRC['decr'])} 编号重复：{d['id']}")
+        m["decr"][d["id"]] = {**d, "src": f"{rel(SRC['decr'])}#{d['id']}"}
     for v in vsd["value_streams"]:
-        m["vs"][v["id"]] = {"name": v["name"], "category": v.get("category"), "value": v.get("value")}
+        m["vs"][v["id"]] = {"name": v["name"], "category": v.get("category"), "value": v.get("value"),
+                            "triggers": v.get("triggering_stakeholders") or [], "receivers": v.get("value_receivers") or []}
+        for kind, key in (("sh-trigger", "triggering_stakeholders"), ("sh-receive", "value_receivers")):
+            for sh in v.get(key) or []:
+                link(kind, sh, v["id"], f"{rel(SRC['vs'])}#{v['id']}.{key}")
         if v.get("value"):
             m["vp"][f"VP-{v['id'][3:]}"] = {"name": v["value"], "vs": v["id"], "provisional": "取自价值流 value 字段，待 03 正式登记"}
             link("vp-vs", f"VP-{v['id'][3:]}", v["id"], f"{rel(SRC['vs'])}#{v['id']}.value")
         for st in v.get("stages") or []:
             gates = []
             for side in ("entry", "exit"):
-                cond = st.get(side) or {}
-                for k in ("any", "all"):
-                    for g in cond.get(k) or []:
-                        if OBJ_RE.fullmatch(str(g.get("ref", ""))):
-                            gates.append({"side": side, "obj": g["ref"], "state": g.get("state")})
+                for g in gate_refs(st.get(side), v.get("stage_pattern") or {}):
+                    if OBJ_RE.fullmatch(str(g.get("ref", ""))):
+                        gates.append({"side": side, "obj": g["ref"], "state": g.get("state")})
             inside = [g["ref"] for g in st.get("in_stage_states") or [] if OBJ_RE.fullmatch(str(g.get("ref", "")))]
             caps = st.get("capabilities") or []
-            m["stage"][st["id"]] = {"name": st["name"], "vs": v["id"], "gates": gates, "in_stage": inside, "caps": caps}
+            m["stage"][st["id"]] = {"name": st["name"], "vs": v["id"], "gates": gates, "in_stage": inside, "caps": caps,
+                                    "participants": st.get("participants") or []}
+            for sh in st.get("participants") or []:
+                link("sh-participate", sh, st["id"], f"{rel(SRC['vs'])}#{st['id']}.participants")
             for c in caps:
                 m["cap"].setdefault(c, {"stages": []})["stages"].append(st["id"])
                 link("cap-stage", c, st["id"], f"{rel(SRC['vs'])}#{st['id']}.capabilities")
@@ -148,18 +204,23 @@ def load():
                 link(f"stage-gate-{g['side']}", st["id"], g["obj"], f"{rel(SRC['vs'])}#{st['id']}.{g['side']}")
 
     text = SRC["obj"].read_text(encoding="utf-8")
+    m["obj_text"] = obj_texts(text)
     valid = anc.info_objects(text)
     disp = olc.object_dispositions(text)
     kinds = {"subordinate": "从属对象", "reference_data": "参照数据", "view": "视图"}
     for oid, c, no in md_rows(text, "## 1. 总表", "### 1.1", r"OBJ-\d{2,3}"):
         if oid not in valid:
             continue
-        level = c[3] if len(c) > 3 else ""
+        level = (c[3] if len(c) > 3 else "").replace("*", "")
         d = disp.get(oid)
-        m["obj"][oid] = {"name": c[1].replace("*", ""), "active": True, "primary": level.startswith("一级"),
+        parents = c[12] if len(c) > 12 else ""
+        m["obj"][oid] = {"name": c[1].replace("*", ""), "active": True, "primary": level.startswith("一级") or "暂列一级" in level,
                          "class": kinds[d["kind"]] if d else "业务对象", "parent": d.get("parent_object") if d else None,
+                         "parents": OBJ_RE.findall(parents), "parents_raw": parents,
                          "states": c[5] if len(c) > 5 else "", "facts": c[8].strip() if len(c) > 8 else "",
                          "src": f"{rel(SRC['obj'])}:{no}"}
+        for p in m["obj"][oid]["parents"]:
+            link("obj-parent", oid, p, f"{rel(SRC['obj'])}:{no}")
 
     for p in yaml.safe_load(SRC["prc"].read_text(encoding="utf-8"))["processes"]:
         po = str(p.get("primary_object") or "")
@@ -258,7 +319,117 @@ def check(m, anchoring=None):
     staged_obj = {g["obj"] for s in m["stage"].values() for g in s["gates"]} | {o for s in m["stage"].values() for o in s["in_stage"]}
     stage_metric = {s for mt in m["metric"].values() for s in mt["stages"]}
 
+    top = {k for k in primary if m["obj"][k].get("class", "业务对象") == "业务对象"}
+
+    def chain(o, seen=()):
+        """顺依附链上行，返回追到的一级业务对象（可多个，「或」关系任一可达即可）。"""
+        if o in top:
+            return {o}
+        if o in seen or o not in m["obj"]:
+            return set()
+        return set().union(*[chain(p, seen + (o,)) for p in m["obj"][o].get("parents", [])] or [set()])
+
+    def in_cycle(o):
+        """沿父对象上行能回到自身则返回环路，否则 None。"""
+        stack = [(o, (o,))]
+        while stack:
+            cur, path = stack.pop()
+            for p in m["obj"].get(cur, {}).get("parents", []):
+                if p == o:
+                    return path + (o,)
+                if p not in path:
+                    stack.append((p, path + (p,)))
+        return None
+
+    for o in sorted(active_obj, key=lambda x: int(x[4:])):
+        ob = m["obj"][o]
+        bad = [p for p in ob.get("parents", []) if p not in active_obj]
+        cyc = in_cycle(o)
+        if o in primary and ob.get("parents"):
+            gaps["N09-4"].append(f"{o} {ob['name']}（一级对象不应有父对象：{'、'.join(ob['parents'])}）")
+        elif o not in primary and not ob.get("parents"):
+            gaps["N09-4"].append(f"{o} {ob['name']}（非一级，父对象未填 OBJ 编号：{ob.get('parents_raw') or '空'}）")
+        elif bad:
+            gaps["N09-4"].append(f"{o} {ob['name']}（父对象 {'、'.join(bad)} 不是有效对象）")
+        elif cyc:
+            gaps["N09-4"].append(f"{o} {ob['name']}（依附链成环：{' → '.join(cyc)}）")
+
+    def gate_note(objs):
+        return "、".join(f"{o}→{'、'.join(sorted(chain(o))) or '断'}" for o in objs)
+
+    for vid, v in m["vs"].items():
+        objs = sorted({g["obj"] for s in m["stage"].values() if s["vs"] == vid for g in s["gates"]})
+        if not any(chain(o) for o in objs):
+            gaps["N06-2"].append(f"{vid} {v['name']}（门对象 {gate_note(objs) or '无'}）")
+        if not v.get("triggers") or not v.get("receivers"):
+            gaps["N06-4"].append(f"{vid} {v['name']}（" + "、".join(x for x, ok in (("缺触发者", v.get("triggers")), ("缺价值接收者", v.get("receivers"))) if not ok) + "）")
+    for sid, s in m["stage"].items():
+        objs = sorted({g["obj"] for g in s["gates"]})
+        if not any(chain(o) for o in objs):
+            gaps["N06-3"].append(f"{sid} {s['name']}（门对象 {gate_note(objs) or '无'}）")
+    involved = {x for v in m["vs"].values() for x in v.get("triggers", []) + v.get("receivers", [])} | {x for s in m["stage"].values() for x in s.get("participants", [])}
+
+    obj_text = m.get("obj_text", {})
+    decr_subj = {k: set(re.findall(r"SH-[A-Z]\d+[a-z]?|OBJ-\d+", str(d.get("subject", "")))) for k, d in m.get("decr", {}).items()}
+
+    def under(o, root):
+        """o 是 root 本身或顺依附链在 root 之下。"""
+        if o == root:
+            return True
+        stack, seen = list(m["obj"].get(o, {}).get("parents", [])), set()
+        while stack:
+            p = stack.pop()
+            if p == root:
+                return True
+            if p not in seen:
+                seen.add(p)
+                stack += m["obj"].get(p, {}).get("parents", [])
+        return False
+
+    def found(o, values):
+        txt = obj_text.get(o, "")
+        vals = [v.strip() for v in re.split(r"[、，,]", str(values or "")) if v.strip()]
+        return [v for v in vals if v not in txt] if vals else ["（未填取值）"]
+
+    for cname, c in m.get("shcat", {}).items():
+        o = c.get("obj")
+        if not o:
+            if not c.get("decr") or c["decr"] not in decr_subj:
+                gaps["N01-3"].append(f"{cname}（无对应对象，且未登记 04）")
+            continue
+        if o not in top:
+            gaps["N01-3"].append(f"{cname}（对应 {o} 不是一级业务对象）")
+            continue
+        holders = [x for x in m["obj"] if under(x, o)]
+        miss = [v for v in re.split(r"[、，,]", str(c.get("role") or "")) if v and not any(v in obj_text.get(x, "") for x in holders)]
+        if miss:
+            gaps["N01-3"].append(f"{cname}（{o} 及其从属对象没有{c.get('role_attr') or '角色'}取值：{'、'.join(miss)}）")
     for sid, s in m["sh"].items():
+        if not s.get("in_system"):
+            continue
+        how, o, cat = s["in_system"], s.get("obj"), m.get("shcat", {}).get(s.get("category"))
+        if how not in IN_SYSTEM:
+            gaps["N01-4"].append(f"{sid} {s['name']}（体现「{how}」不在五选一内）")
+        elif how == "不进系统":
+            if not s.get("decr") or sid not in decr_subj.get(s["decr"], ""):
+                gaps["N01-4"].append(f"{sid} {s['name']}（不进系统，但 04 未登记）")
+        elif not o or o not in active_obj:
+            gaps["N01-4"].append(f"{sid} {s['name']}（承载对象 {o or '空'} 不是有效对象）")
+        elif cat and cat.get("obj") and not under(o, cat["obj"]):
+            gaps["N01-4"].append(f"{sid} {s['name']}（{o} 不在类别「{s['category']}」的对象 {cat['obj']} 之下）")
+        elif how != "用户角色" and not s.get("attr"):
+            gaps["N01-4"].append(f"{sid} {s['name']}（未填承载属性）")
+        elif how != "用户角色" and found(o, s.get("value")):
+            gaps["N01-4"].append(f"{sid} {s['name']}（{o}「{s.get('attr')}」没有取值：{'、'.join(found(o, s.get('value')))}）")
+    for sid, s in m["sh"].items():
+        if s.get("category") not in (None, "—") and s.get("in_system") and s["category"] not in m.get("shcat", {}):
+            gaps["N01-3"].append(f"{sid} {s['name']}（类别「{s['category']}」未在 stakeholder_categories 登记）")
+        if not s.get("in_system"):
+            gaps["N01-4"].append(f"{sid} {s['name']}（未登记在系统中的体现）")
+
+    for sid, s in m["sh"].items():
+        if sid not in involved:
+            gaps["N01-2"].append(f"{sid} {s['name']}")
         if not any(c.get("sh") == sid for c in m["con"].values()):
             gaps["N01-1"].append(f"{sid} {s['name']}")
     for vid, v in m["vs"].items():
@@ -335,6 +506,7 @@ def check(m, anchoring=None):
 
 
 def render(m, links, gaps):
+    m = {k: v for k, v in m.items() if k != "obj_text"}
     counts = {k: len(v) for k, v in m.items()}
     model = {"meta": {"generator": "architecture/panorama/panorama_build.py", "sources": {k: rel(v) for k, v in SRC.items() if v.exists()},
                       "counts": counts, "checks": CHECKS},
@@ -350,15 +522,98 @@ def render(m, links, gaps):
     return yaml.safe_dump(model, allow_unicode=True, sort_keys=False, width=200), "\n".join(lines)
 
 
+def stakeholder_table(vsd, text):
+    """STAKEHOLDERS.md 的干系人图（四列 + 在系统中的体现），替换标记之间的内容。"""
+    if SH_BEGIN not in text or SH_END not in text or text.index(SH_BEGIN) > text.index(SH_END):
+        raise ValueError(f"{rel(OUT_SH)} 缺生成标记")
+    cats = vsd.get("stakeholder_categories") or []
+    rows = ["### 类别与一级业务对象", "", "| 类型 | 类别 | 对应一级业务对象 | 说明 |", "|---|---|---|---|"]
+    rows += [f"| {c['type']} | {c['category']} | {c.get('obj') or '无（' + c.get('decr', '') + '）'}{'，' + c['role_attr'] + '：' + c['role'] if c.get('role') else ''} | {c['desc']} |" for c in cats]
+    rows += ["", "### 具体干系人", "", "| 编号 | 类型 | 类别 | 具体干系人 | 说明 | 在系统中的体现 | 承载 | 关系 |", "|---|---|---|---|---|---|---|---|"]
+    for s in vsd.get("stakeholders") or []:
+        who = s.get("members") if s.get("category") == "—" else f"{s.get('sub')}：{s.get('members')}" if s.get("sub") not in (None, "—") else s.get("members")
+        carry = s.get("decr") if s.get("in_system") == "不进系统" else f"{s.get('obj')}「{s.get('attr')}」= {s.get('value')}"
+        rows.append(f"| {s['id']} | {s.get('type')} | {s.get('category')} | {who} | {s.get('desc', '')} | {s.get('in_system', '')} | {carry} | {s.get('relation', '参')} |")
+    a, b = text.index(SH_BEGIN) + len(SH_BEGIN), text.index(SH_END)
+    return text[:a] + "\n\n" + "\n".join(rows) + "\n\n" + text[b:]
+
+
 def self_test():
     assert cells("| AGG-01 | x |") == ["AGG-01", "x"]
     assert expand("AGG", "AGG-01、02、33；REF-01") == ["AGG-01", "AGG-02", "AGG-33"]
+    pat = {"exit_common": {"all": [{"any": [{"ref": "OBJ-35"}, {"all": [{"ref": "OBJ-30"}]}]}]}}
+    assert [g["ref"] for g in gate_refs({"pattern": "exit_common", "all": [{"ref": "OBJ-38"}]}, pat)] == ["OBJ-35", "OBJ-30", "OBJ-38"]
+    for bad in ({"pattern": "nope"}, {"any": ["OBJ-35"]}):
+        try:
+            gate_refs(bad, pat)
+            raise AssertionError(f"应失败：{bad}")
+        except ValueError:
+            pass
     assert expand("AGG", "AGG-08–12、18、102") == ["AGG-08", "AGG-09", "AGG-10", "AGG-11", "AGG-12", "AGG-18", "AGG-102"]
     m = {"sh": {}, "con": {}, "act": {}, "vs": {}, "stage": {"VS-01.1": {"name": "s", "vs": "VS-01", "gates": [], "in_stage": []}},
          "obj": {"OBJ-01": {"name": "o", "active": True, "primary": True}}, "prc": {}, "agg": {}, "inv": {},
          "bc": {}, "sd": {}, "table": {}, "metric": {}}
     g = check(m)
     assert g["N06-1"] and g["N09-1"] and g["N09-2"] and g["N13-1"]
+    assert g["N06-3"] and not g["N09-4"]
+    m["sh"] = {"SH-A": {"name": "甲"}, "SH-B": {"name": "乙"}}
+    m["vs"] = {"VS-01": {"name": "v", "triggers": ["SH-A"], "receivers": []}}
+    m["stage"]["VS-01.1"]["gates"] = [{"side": "entry", "obj": "OBJ-03"}]
+    m["obj"].update({"OBJ-02": {"name": "c", "active": True, "primary": False, "parents": ["OBJ-01"]},
+                     "OBJ-03": {"name": "d", "active": True, "primary": False, "parents": ["OBJ-02"]},
+                     "OBJ-04": {"name": "e", "active": True, "primary": False, "parents": []},
+                     "OBJ-05": {"name": "f", "active": True, "primary": False, "parents": ["OBJ-09"]}})
+    g = check(m)
+    assert not g["N06-2"] and not g["N06-3"], (g["N06-2"], g["N06-3"])   # 两跳依附链可达一级
+    assert [x[:6] for x in g["N09-4"]] == ["OBJ-04", "OBJ-05"], g["N09-4"]
+    m["obj"]["OBJ-01"]["parents"] = ["OBJ-02"]
+    m["obj"]["OBJ-06"] = {"name": "g", "active": True, "primary": False, "parents": ["OBJ-07"]}
+    m["obj"]["OBJ-07"] = {"name": "h", "active": True, "primary": False, "parents": ["OBJ-06"]}
+    g = check(m)
+    assert [x[:6] for x in g["N09-4"]] == ["OBJ-01", "OBJ-02", "OBJ-04", "OBJ-05", "OBJ-06", "OBJ-07"], g["N09-4"]   # 一级填了父对象（且与 OBJ-02 成环）；OBJ-06、07 互指成环
+    assert "一级对象不应有父对象" in g["N09-4"][0] and all("成环" in g["N09-4"][i] for i in (1, 4, 5))
+    m["obj"]["OBJ-01"]["parents"] = []
+    del m["obj"]["OBJ-06"], m["obj"]["OBJ-07"]
+    assert g["N01-2"] == ["SH-B 乙"] and g["N06-4"] == ["VS-01 v（缺价值接收者）"], (g["N01-2"], g["N06-4"])
+    m["stage"]["VS-01.1"]["gates"] = [{"side": "entry", "obj": "OBJ-04"}]
+    g = check(m)
+    assert g["N06-2"] and g["N06-3"]   # 断链：门对象追不到一级
+    m["obj_text"] = {"OBJ-01": "往来单位", "OBJ-02": "角色：客户；供应商", "OBJ-03": "决策链角色：发起人"}
+    m["decr"] = {"DECR-01": {"subject": "SH-D1 公众"}, "DECR-02": {"subject": "SH-J10 别的"}}
+    m["shcat"] = {"客户": {"obj": "OBJ-01", "role": "客户"}, "监管": {"obj": "OBJ-01", "role": "主管机关"}, "公众": {"obj": None, "decr": "DECR-01"},
+                  "伙伴": {"obj": "OBJ-02"}}
+    m["sh"] = {"SH-A": {"name": "甲", "category": "客户", "in_system": "只作属性或参与者", "obj": "OBJ-03", "attr": "决策链角色", "value": "发起人"},
+               "SH-B": {"name": "乙", "category": "客户", "in_system": "往来单位加角色", "obj": "OBJ-02", "attr": "客户类型", "value": "开发商"},
+               "SH-C": {"name": "丙", "category": "客户", "in_system": "飞鸽", "obj": "OBJ-02"},
+               "SH-D1": {"name": "丁", "category": "公众", "in_system": "不进系统", "decr": "DECR-01"},
+               "SH-E": {"name": "戊", "category": "公众", "in_system": "不进系统"},
+               "SH-F": {"name": "己", "category": "客户", "in_system": "往来单位加角色", "obj": "OBJ-05", "value": "x"},
+               "SH-G": {"name": "庚", "category": "客户"},
+               "SH-H": {"name": "辛", "category": "客户", "in_system": "往来单位加角色", "obj": "OBJ-02", "attr": "角色"},
+               "SH-I": {"name": "壬", "category": "客户", "in_system": "往来单位加角色", "obj": "OBJ-02", "value": "客户"},
+               "SH-J1": {"name": "癸", "category": "公众", "in_system": "不进系统", "decr": "DECR-02"},
+               "SH-K": {"name": "子", "category": "未登记", "in_system": "用户角色", "obj": "OBJ-01"},
+               "SH-L": {"name": "丑", "category": "客户", "in_system": "用户角色", "obj": "OBJ-01", "value": "随便"}}
+    g = check(m)
+    assert g["N01-3"] == ["监管（OBJ-01 及其从属对象没有角色取值：主管机关）", "伙伴（对应 OBJ-02 不是一级业务对象）",
+                          "SH-K 子（类别「未登记」未在 stakeholder_categories 登记）"], g["N01-3"]
+    # 缺取值、体现不在五选一、未登记 04、对象不在类别之下、空取值、未填属性、04 主题只含 SH-J10 不算 SH-J1、未登记体现；用户角色不查取值（SH-L 通过）
+    assert [x.split(" ")[0] for x in g["N01-4"]] == ["SH-B", "SH-C", "SH-E", "SH-F", "SH-H", "SH-I", "SH-J1", "SH-G"], g["N01-4"]
+    assert "（未填取值）" in g["N01-4"][4] and "未填承载属性" in g["N01-4"][5]
+    page = f"头\n{SH_BEGIN}\n旧\n{SH_END}\n尾"
+    out = stakeholder_table({"stakeholder_categories": [{"type": "外部", "category": "客户", "obj": "OBJ-01", "desc": "d"}],
+                             "stakeholders": [{"id": "SH-A", "type": "外部", "category": "客户", "sub": "甲", "members": "m", "desc": "d",
+                                               "in_system": "往来单位加角色", "obj": "OBJ-02", "attr": "角色", "value": "客户"}]}, page)
+    assert "旧" not in out and "| SH-A | 外部 | 客户 | 甲：m |" in out and out.endswith("尾")
+    for bad in ("头", f"{SH_END}\n{SH_BEGIN}"):
+        try:
+            stakeholder_table({}, bad)
+            raise AssertionError("缺标记或标记倒置应失败")
+        except ValueError:
+            pass
+    txt = "## 1. 总表\n| 编号 | 对象 |\n|---|---|\n| OBJ-01 | 往来单位 | 甲 |\n### 1.1\n## 2. x\n### 2.1 往来单位与角色\n- 项目内身份：物业\n### 2.2 别的\n- 往来单位 监理\n## 3."
+    ot = obj_texts(txt)
+    assert "物业" in ot["OBJ-01"] and "监理" not in ot["OBJ-01"], ot   # 只取标题含对象名或编号的小节
     print("self-test ok")
 
 
@@ -367,6 +622,8 @@ def main():
         self_test()
         return 0
     m, links, _ = load()
+    vsd = yaml.safe_load(SRC["vs"].read_text(encoding="utf-8"))
+    OUT_SH.write_text(stakeholder_table(vsd, OUT_SH.read_text(encoding="utf-8")), encoding="utf-8")
     gaps = check(m, anc.compute())
     model, report = render(m, links, gaps)
     OUT_MODEL.write_text(model, encoding="utf-8")

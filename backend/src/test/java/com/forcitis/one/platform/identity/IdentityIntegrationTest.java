@@ -11,6 +11,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.kernel.event.DomainEvent;
+import com.forcitis.one.organization.workforce.api.EmployeeExistence;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
@@ -152,6 +153,10 @@ public abstract class IdentityIntegrationTest {
     @MockitoBean
     protected OrgDirectory orgDirectory;
 
+    /** Exists where the double directory knows the person: the tests describe people through the directory. */
+    @MockitoBean
+    protected EmployeeExistence employeeExistence;
+
     @MockitoBean
     protected WecomGateway wecomGateway;
 
@@ -197,8 +202,14 @@ public abstract class IdentityIntegrationTest {
         domainEvents.clear();
         accessCache.evictAll();
         Mockito.reset(ssoVerifier);
+        when(employeeExistence.exists(ArgumentMatchers.any())).thenAnswer(call -> orgDirectory.findEmployee(call.getArgument(0)).isPresent());
         when(orgDirectory.employmentOf(ArgumentMatchers.any()))
                 .thenReturn(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        for (String attestor : List.of("01900000-0000-7000-8000-00000000a001", "01900000-0000-7000-8000-00000000a002")) {
+            EmployeeId attestorId = EmployeeId.parse(attestor);
+            when(orgDirectory.findEmployee(attestorId)).thenReturn(Optional.of(new EmployeeProfile(attestorId, "Synthetic attestor", TestOrgIds.orgUnit(10),
+                    null, EmploymentStatus.EMPLOYED, false)));
+        }
         jdbc.sql("delete from platform_identity.sessions").update();
         jdbc.sql("delete from platform_identity.login_states").update();
         jdbc.sql("delete from platform_identity.sso_ticket_uses").update();

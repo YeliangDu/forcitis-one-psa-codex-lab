@@ -102,7 +102,7 @@ class RoleSeparatedDeploymentIT {
     private static void installTheProcessEngine() {
         List<String> args = new ArrayList<>(List.of("--spring.profiles.active=dev", "--spring.datasource.url=" + url(), "--spring.datasource.username=" + MIGRATOR,
                 "--spring.datasource.password=" + MIGRATOR_PASSWORD, "--flowable.database-schema-update=true", "--flowable.async-executor-activate=false",
-                "--forcitis.platform.approval.process-administrator-required=false", "--spring.main.banner-mode=off", "--server.port=0"));
+                "--forcitis.platform.approval.process-administrator-required=false", "--spring.main.banner-mode=off", "--server.port=0", "--server.address=127.0.0.1"));
         List.of(JOBS_OFF).forEach(p -> args.add("--" + p));
         try (var engineInstaller = new SpringApplicationBuilder(OneApplication.class).web(WebApplicationType.SERVLET).run(args.toArray(String[]::new))) {
             assertThat(engineInstaller.isRunning()).isTrue();
@@ -130,6 +130,12 @@ class RoleSeparatedDeploymentIT {
     @Autowired
     JdbcClient jdbc;
 
+    @Autowired
+    com.forcitis.one.platform.audit.api.AuditPartitions auditPartitions;
+
+    @Autowired
+    com.forcitis.one.organization.workforce.api.EmployeeExistence employeeExistence;
+
     @Test
     @DisplayName("the runtime account alone is enough: a write through the application (entity, versions, event registry, audit by listener) and a read both work")
     void smokeAsTheRuntimeAccount() throws Exception {
@@ -149,6 +155,17 @@ class RoleSeparatedDeploymentIT {
     }
 
     @Test
+    @DisplayName("NITS-1 项1/项5：运行账号能读到分区是否存在（to_regclass 经 schema USAGE）与员工是否存在，缺的月份与员工答否而不是报错")
+    void theRuntimeAccountCanAskWhetherAPartitionAndAnEmployeeExist() {
+        java.time.YearMonth now = java.time.YearMonth.now(java.time.ZoneOffset.UTC);
+
+        assertThat(jdbc.sql("select current_user").query(String.class).single()).isEqualTo(RUNTIME);
+        assertThat(auditPartitions.exists(now)).as("the month the job pre-created").isTrue();
+        assertThat(auditPartitions.exists(now.plusYears(30))).isFalse();
+        assertThat(employeeExistence.exists(new com.forcitis.one.kernel.EmployeeId(UUID.randomUUID()))).isFalse();
+    }
+
+    @Test
     @DisplayName("the runtime account cannot change the structure, rewrite the history or touch the audit trail")
     void theRuntimeAccountHasOnlyWhatItNeeds() {
         assertThatThrownBy(() -> jdbc.sql("create table platform_approval.not_allowed (id bigint)").update()).rootCause().hasMessageContaining("permission denied");
@@ -156,5 +173,45 @@ class RoleSeparatedDeploymentIT {
         assertThatThrownBy(() -> jdbc.sql("truncate table organization_workforce.org_unit_versions").update()).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> jdbc.sql("delete from platform_audit.audit_entries").update()).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> jdbc.sql("update platform_audit.audit_entries set detail = 'x'").update()).rootCause().hasMessageContaining("permission denied");
+        for (String table : List.of("platform_identity.role_versions", "platform_identity.account_role_grants")) {
+            assertThatThrownBy(() -> jdbc.sql("delete from " + table).update()).as(table).rootCause().hasMessageContaining("permission denied");
+            assertThatThrownBy(() -> jdbc.sql("truncate table " + table).update()).as(table).rootCause().hasMessageContaining("permission denied");
+        }
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the pre-creation job runs as the runtime account and has created the months ahead; that account cannot run the drop function, detach or drop a partition")
+    void theRuntimeAccountPreCreatesButCannotRemovePartitions() {
+        java.time.YearMonth now = java.time.YearMonth.now(java.time.ZoneOffset.UTC);
+        java.time.YearMonth ahead = now.plusMonths(3);
+        java.time.YearMonth beyond = now.plusMonths(12);
+        String beyondStart = beyond.atDay(1).toString();
+        String beyondName = "platform_audit.audit_entries_p" + beyond.toString().replace("-", "");
+        assertThat(jdbc.sql("select to_regclass(:name) is not null").param("name", "platform_audit.audit_entries_p" + ahead.toString().replace("-", "")).query(Boolean.class).single())
+                .as("created by AuditPartitionJob at start-up, with the grant of the roles script").isTrue();
+        assertThat(jdbc.sql("select platform_audit.create_audit_entry_partitions(date '2026-10-01', date '2026-10-01')").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select platform_audit.create_audit_entry_partitions(date '" + beyondStart + "', date '" + beyondStart + "')").query(Long.class).single()).as("a month beyond the months the job pre-creates is created by the runtime account").isEqualTo(1L);
+        assertThat(jdbc.sql("select pg_get_userbyid(relowner) from pg_class where oid = '" + beyondName + "'::regclass").query(String.class).single())
+                .as("the new partition belongs to the owner, not to the runtime account").isEqualTo("one_dev_owner");
+        for (String privilege : List.of("TRUNCATE", "UPDATE", "DELETE")) {
+            assertThat(jdbc.sql("select has_table_privilege('one_dev_app', '" + beyondName + "', '" + privilege + "')").query(Boolean.class).single()).as(privilege).isFalse();
+        }
+
+        assertThatThrownBy(() -> jdbc.sql("select platform_audit.drop_archived_audit_entry_partition(date '2026-10-01')").query(Long.class).single()).rootCause().hasMessageContaining("permission denied");
+        assertThatThrownBy(() -> jdbc.sql("alter table platform_audit.audit_entries detach partition platform_audit.audit_entries_p202610").update()).rootCause().hasMessageContaining("must be owner");
+        assertThatThrownBy(() -> jdbc.sql("drop table platform_audit.audit_entries_p202610").update()).rootCause().hasMessageContaining("must be owner");
+        assertThatThrownBy(() -> jdbc.sql("create table platform_audit.audit_entries_p209901 partition of platform_audit.audit_entries for values from ('2099-01-01') to ('2099-02-01')").update())
+                .rootCause().hasMessageContaining("permission denied");
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the maintenance role may run the drop function and nothing else of the two: it reaches the function's own checks, but cannot pre-create partitions")
+    void theMaintenanceRoleRunsOnlyTheDropFunction() throws Exception {
+        try (Connection c = superuser(); var statement = c.createStatement()) {
+            statement.execute("SET ROLE one_dev_audit_maintainer");
+            assertThatThrownBy(() -> statement.execute("select platform_audit.drop_archived_audit_entry_partition(date '2026-10-01')")).hasMessageContaining("nothing has been archived yet");
+            assertThatThrownBy(() -> statement.execute("select platform_audit.create_audit_entry_partitions(date '2026-10-01', date '2026-10-01')")).hasMessageContaining("permission denied");
+            assertThatThrownBy(() -> statement.execute("drop table platform_audit.audit_entries_p202610")).hasMessageContaining("must be owner");
+        }
     }
 }

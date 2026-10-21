@@ -5,7 +5,7 @@ Scope: the independent flow 「作出参投决策」 on an opportunity (OBJ-18),
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|
 | RULE-414 | opportunity | The owner of the opportunity decides to bid or not, with a checklist, a required reason and five scores, and the decision is kept as a trace; no approval | P0 | No |
-| RULE-415 | opportunity | A decision to bid that falls below the margin floor, exceeds capacity or meets an independence conflict adds one approval level | P0 | Yes |
+| RULE-415 | opportunity | A decision to bid that falls below the margin floor, exceeds capacity or meets an independence conflict adds one approval level | P0 | No |
 
 ### RULE-414: The owner of the opportunity decides to bid or not, with a checklist, a required reason and five scores, and the decision is kept as a trace; no approval
 **Category:** Policy
@@ -32,6 +32,7 @@ Scope: the independent flow 「作出参投决策」 on an opportunity (OBJ-18),
 - Given a decision to bid with an independence conflict, Then it waits for one extra approver.
 - Given none of the three, Then RULE-414 applies and there is no approval.
 - Given 「放弃」, Then no condition applies.
-**Open (Review):** the margin floor value, the capacity measure and its limit, who the extra approver is, and whether "the user's words 如低于毛利底线、超产能、独立性冲突" is the full list (the user wrote 「如」, an example list). The list is therefore kept as configuration, with these three as the first entries.
+**Decided (N1-03 to N1-06, N1 resubmitted as N1-20261017-091846-15s, all preselected recommendations unchanged):** the margin floor is set per business line, as a contribution-margin percentage on the quoted price, the values given by finance as experience values and adjustable in configuration; capacity is compared as required person-days against available person-days per post, from the staffing schedule, the available limits given by each business line's resource owner; the extra approval role is named per trigger reason (not one role for all), and the roles are configuration items set at go-live, not written in this card (the user left the note empty); the triggers are the first three only, more can be added later in configuration (the earlier choice of two added triggers, a customer credit score and a transaction price, was replaced in the resubmission, so no threshold for them exists).
+**Still open (configuration only):** the margin floor values, the capacity limits and the role for each trigger, all set at go-live; no further user decision is needed. Role names go to the glossary when configured.
 **Tests:** to be written with the sales card.
 **Confidence:** Medium.

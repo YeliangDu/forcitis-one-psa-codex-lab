@@ -51,6 +51,8 @@
 
 ## 上下文文档
 
+- 系统思考检查单：`docs/modernization/architecture/SYSTEM_THINKING_CHECKLIST.md`（每层判断先读；外部知识先查本地三库，用户 intent `cace83d4`）。
+
 - `docs/modernization/architecture/ARCH_CONTEXT.md`（现状速查）
 - `docs/modernization/architecture/FRAMEWORKS.md`（锁定版本的架构知识框架；做判断以它为准，不凭记忆）
 - `docs/modernization/architecture/METHOD.md`（从愿景到代码的施工图方法与六条接缝）
@@ -74,4 +76,4 @@
 
 ## 当前状态
 
-2026-10-18 21:33+02:00 /clear 前交接，见 `architecture/proposals/HANDOFF_2026-10-18.md`：ADR-0052/54/55/56/57 已采纳；流程归集闭环 C1、C2 为 0；业务对象定义研究已交调度转用户；框架与成熟产品要点笔记 30 份入库；下一步依次为资料笔记四层方案样板、新书与公开资料笔记、成熟产品对抗关卡、业务对象标准与对象表双向核对、对象清单定稿、能力页。
+2026-10-21 夜：#495 已合；#501 已改基入队，#506、#508 依次改基；网络第一批卡 1、3 完成、卡 2 在 one-quality、卡 4 待接。交接 proposals/HANDOFF_2026-10-21.md 末节「/clear 前待接」。

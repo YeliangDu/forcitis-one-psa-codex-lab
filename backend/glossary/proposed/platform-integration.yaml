@@ -15,102 +15,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: outbound_delivery
-  zh: 外发投递
-  en: OutboundDelivery
-  snake: outbound_delivery
-  kind: aggregate
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 一条待发往外部系统（企业微信）的消息及其发送结果；事务提交后由投递作业发送，失败退避重试，次数用尽进死信
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.7 §3.9
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: recipient
-  zh: 收件人
-  en: Recipient
-  snake: recipient
-  kind: role
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 消息的接收人，用企业微信用户 ID 精确指定；不允许按部门、标签或全员投递
-  standard_ref:
-  - SECURITY_INVARIANTS.md I-6
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: source_reference
-  zh: 来源对照
-  en: SourceReference
-  snake: source_reference
-  kind: aggregate
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 外部系统或老系统中一个对象的标识与 FORCITIS one 自有 ID 的对应；只在集成层，领域只用自有 ID；同一来源系统、同一类别下来源 ID 与自有 ID 在任一时点各自唯一
-  standard_ref:
-  - adr/ADR-0033.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ADR-0033 登记；权限码 platform.integration:source-reference:update（授予组织数据管理员）、platform.integration:source-reference:approve（核算组织编码四眼确认，授予业务管理员），授予方式均为 INDIVIDUAL
-- id: source_system
-  zh: 来源系统
-  en: SourceSystem
-  snake: source_system
-  kind: state
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 来源对照所属的外部系统，取值为组织源（ORG_SOURCE）、老系统（LEGACY_SYSTEM）、核算系统（ACCOUNTING_SYSTEM），只在集成层与迁入登记中出现
-  standard_ref:
-  - adr/ADR-0033.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 数据库列叫 source_system，Java 枚举叫 ExternalSource（platform.integration.api），因为 kernel.event.SourceSystem（ONE / MIGRATION）表示事件出自新系统还是历史迁入，是另一回事，不改名
-- id: source_object_kind
-  zh: 来源对象类别
-  en: SourceObjectKind
-  snake: source_object_kind
-  kind: state
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 来源对照所指的自有对象类别（员工、组织单元、岗位、法人主体等），决定自有 ID 指向哪类对象
-  standard_ref:
-  - adr/ADR-0033.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ADR-0033（提议）登记，待用语确认
-- id: rejected_state
-  zh: 已拒绝
-  en: RejectedState
-  snake: rejected_state
-  kind: state
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 来源对照的确认状态之一：登记的对照被另一个人拒绝，不占自然键约束，不用于出站
-  standard_ref:
-  - adr/ADR-0033.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: '展示用语；对应确认状态 REJECTED。与审批的「驳回」（Reject，platform.approval，审批人对任务给出不同意的结论）不是一回事：这里是另一个人不接受一条登记的来源对照，中文写「已拒绝」，英文命令写 Reject 时不得显示成「驳回」。确认状态的写法：编号规则版本为 PENDING_CONFIRMATION / CONFIRMED，来源对照为 PENDING / CONFIRMED / REJECTED，中文都是待确认 / 已确认 / 已拒绝（ADR-0033 第 2 项第 1 条）'
 - id: registration
   zh: 登记
   en: Registration
@@ -120,22 +24,6 @@ terms:
   scope: acl
   acl_class: "长期"
   definition: 由人把一条来源对照录入系统，先处于待确认，等另一个人确认或拒绝；现在只有核算组织编码可以人工登记
-  standard_ref:
-  - adr/ADR-0033.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: supersede
-  zh: 取代
-  en: Supersede
-  snake: supersede
-  kind: command
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 已确认的后继对照从生效日起取代生效中的对照：旧对照在后继的生效日结束，两行的来源标识与自有 ID 都不改写
   standard_ref:
   - adr/ADR-0033.md
   confidence: medium
@@ -248,104 +136,125 @@ terms:
   forbidden: []
   status: proposed
   note: ADR-0037 登记（数据库登录名 one_evidence_ro），待用语确认
-- id: read_only_verification
-  zh: 只读核实
-  en: ReadOnlyVerification
-  snake: read_only_verification
-  kind: command
+- id: malware_scanner
+  zh: 恶意文件检测端口
+  en: MalwareScanner
+  snake: malware_scanner
+  kind: value_object
   bc: platform.integration
   scope: acl
-  acl_class: 过渡期
-  definition: 运维命令：对一条只读外部连接的登录跑与启动校验同一套判定，逐项（ADR-0037 第 4 项 (a)–(g)）输出核实通过、确认违规或判定不了，判定不了时只带 SQL 错误号与 SQLState，按结果给退出码；不输出数据、消息原文与凭据，不监听端口、不迁移、不起作业，口令只从环境读
+  acl_class: "长期"
+  definition: 集成层对文件服务提供的检测端口：按本地检测暂存路径交 clamd SCAN，判定之外一律不可用
   standard_ref:
-  - adr/ADR-0037.md
-  - phase1a/infra/PREDEPLOY_CHECKLIST.md C-14
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: PAR-2 验收测试登记（档案名 read-only-verification），待用语确认
-- id: read_only_verification_result
-  zh: 只读核实结果
-  en: ReadOnlyVerificationResult
-  snake: read_only_verification_result
+  note: 'one-platform-file 2026-10-21 登记（单元 4）'
+- id: scan_outcome
+  zh: 检测结论
+  en: ScanOutcome
+  snake: scan_outcome
+  kind: value_object
+  bc: platform.integration
+  scope: acl
+  acl_class: "长期"
+  definition: CLEAN 通过 / INFECTED 未通过 / ENCRYPTED 加密不可检测；不可用不是结论，抛错
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'one-platform-file 2026-10-21 登记（单元 4）'
+- id: clean
+  zh: 检测通过
+  en: Clean
+  snake: clean
   kind: state
   bc: platform.integration
   scope: acl
-  acl_class: 过渡期
-  definition: 只读核实对每一项与对整条连接给出的结论，取核实通过、确认违规、判定不了之一；整条连接有任一项确认违规即为确认违规，否则有判定不了即为判定不了
+  acl_class: "长期"
+  definition: 检测结论取值：引擎未检出
   standard_ref:
-  - adr/ADR-0037.md
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: PAR-2 验收测试登记，待用语确认
-- id: read_only_verification_result__passed
-  zh: 核实通过
-  en: Passed
-  snake: passed
+  note: 'one-platform-file 2026-10-21 登记（单元 4）'
+- id: infected
+  zh: 检测未通过
+  en: Infected
+  snake: infected
+  kind: state
+  bc: platform.integration
+  scope: acl
+  acl_class: "长期"
+  definition: 检测结论取值：引擎检出，文件服务隔离
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'one-platform-file 2026-10-21 登记（单元 4）'
+- id: threat_name
+  zh: 病毒名
+  en: ThreatName
+  snake: threat_name
   kind: value_object
   bc: platform.integration
   scope: acl
-  acl_class: 过渡期
-  definition: 只读核实结果的取值：该项（或全部各项）与 RDS 平台基线一致
+  acl_class: "长期"
+  definition: 引擎检出时报告的特征名
   standard_ref:
-  - adr/ADR-0037.md
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: 不写「通过」：已是审批结论 approve 的中文名
-- id: read_only_verification_result__violated
-  zh: 确认违规
-  en: Violated
-  snake: violated
-  kind: value_object
+  note: 'one-platform-file 2026-10-21 登记（单元 4）'
+- id: presign_download
+  zh: 签发下载链接
+  en: PresignDownload
+  snake: presign_download
+  kind: command
   bc: platform.integration
   scope: acl
-  acl_class: 过渡期
-  definition: 只读核实结果的取值：数据库目录确实显示该项超出或缺少基线（与「判定不了」相对）
+  acl_class: "长期"
+  definition: 以签发身份为正式键生成预签名 GET 链接，强制附件下载；临时区与隔离键拒绝
   standard_ref:
-  - adr/ADR-0037.md
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: PAR-2 验收测试登记，待用语确认
-- id: read_only_verification_result__undetermined
-  zh: 判定不了
-  en: Undetermined
-  snake: undetermined
-  kind: value_object
+  note: 'one-platform-file 2026-10-21 登记（单元 4）'
+- id: promote_file_object
+  zh: 转入正式区
+  en: PromoteFileObject
+  snake: promote_file_object
+  kind: command
   bc: platform.integration
   scope: acl
-  acl_class: 过渡期
-  definition: 只读核实结果的取值：查询出错、超时、连不上或返回为空，该项无法判定；启动时同样拒绝启动（ADR-0037 第 4 项第 2 条）
+  acl_class: "长期"
+  definition: 把临时区对象服务端复制到同一文件的正式键，禁止覆盖并读回核对
   standard_ref:
-  - adr/ADR-0037.md
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: PAR-2 验收测试登记，待用语确认
-- id: overridden_grant
-  zh: 被拒绝覆盖的授权
-  en: OverriddenGrant
-  snake: overridden_grant
-  kind: value_object
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 已授予、但被同级或更高层级的 DENY 覆盖、实际不生效的权限；只读核实按有效权限判定时不算违规，只作提示。
-  standard_ref:
-  - adr/ADR-0037.md
-  - SQL Server 权限层级中 DENY 优先于 GRANT（Microsoft 文档 Permissions Hierarchy）
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: one-glossary 术语门禁结论（one-coordinator 2026-10-15 转达）；只读核实命令定位行种类 overridden，by 写被哪条 DENY 覆盖（DATABASE_DENY / SCHEMA_DENY）
+  note: 'one-platform-file 2026-10-21 登记（单元 4）'
 common_words:
 - background
 - call

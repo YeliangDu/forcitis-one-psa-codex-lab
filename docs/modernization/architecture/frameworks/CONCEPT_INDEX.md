@@ -4,16 +4,7 @@
 
 同一概念在各资料中的叫法与位置。收录跨两份及以上资料出现、或在 terms.yaml 有词条的概念；只在一份资料出现的概念见各笔记。差异说明手写在 `concept_notes.yaml`。
 
-收录 92 个概念（全部锚点 1719 个）。
-
-## WBS
-
-词条：`wbs_node`（WbsNode，delivery.execution）——工作分解结构，节点必须挂接合同范围条目或已批准变更
-
-| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
-|---|---|---|---|---|
-| WBS2#WBS | [Secrets to Mastering the WBS in Real-World Projects: The Most Practical Approach to Work Breakdown Structures (WBS)!](notes/buchtik-wbs2.md) | 定义、范围与交付物导向 | 第 1 章 What Is the WBS? | 1–3 / 23–25 |
-| WBS3#WBS | [Practice Standard for Work Breakdown Structures](notes/pmi-wbs3.md) | Work Breakdown Structure | §1.2.1；§2.1 | 3、11–12 / 20、28–29 |
+收录 95 个概念（全部锚点 1719 个）。
 
 ## 一致性维度
 
@@ -495,6 +486,15 @@
 | IFRSH#履约进度 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 履约进度 | K§5.3.1，IFRS15.39–45；G§7.1.4 | K123–124；G346 / K125–126；G346 |
 | IFRS15#履约进度 | [IFRS 15 Revenue from Contracts with Customers](notes/ifrs15-summary.md) | 履约进度 | About五步列表第5项末句 | — |
 
+## 工作分解结构节点
+
+词条：`wbs_node`（WbsNode，delivery.execution）——项目工作分解结构树中代表阶段、子项或工作包的具备身份的节点；节点必须挂接合同范围条目或已批准变更。
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| WBS2#工作分解结构节点 | [Secrets to Mastering the WBS in Real-World Projects: The Most Practical Approach to Work Breakdown Structures (WBS)!](notes/buchtik-wbs2.md) | 定义、范围与交付物导向 | 第 1 章 What Is the WBS? | 1–3 / 23–25 |
+| WBS3#工作分解结构节点 | [Practice Standard for Work Breakdown Structures](notes/pmi-wbs3.md) | Work Breakdown Structure | §1.2.1；§2.1 | 3、11–12 / 20、28–29 |
+
 ## 工作包
 
 词条：`work_package`（WorkPackage，delivery.execution）——WBS 下的工作单元分组
@@ -530,11 +530,19 @@
 
 ## 应收款项
 
-词条：`receivable`（Receivable，receivables.collection）——应收账款与其他应收款的往来款项；开票产生是它的一种来源；不含质量保证金、保证金（各自是聚合）
+词条：`receivable`（Receivable，receivables.collection）——应收账款与其他应收款的往来款项；开票产生是它的一种来源；不含质量保证金、保证金（各自是聚合）；现金保证金与一般应收分开列示，质保金与工抵仍按性质分开记账并设专项台账。
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | CASD#应收款项 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 应收款项的损失准备 | 第 22 章 §22.7.5（二）（三）；part0026.xhtml | — |
+
+## 延期申请
+
+词条：`extension_request`（ExtensionRequest，delivery.execution）——保存项目延期事由、详细说明及批准或拒绝结论的申请。
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| FIDW#延期申请 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 延期事由及额外费用 | 4.4.1(a)–(d)、4.4.2–4.4.3 | 13 / 36 |
 
 ## 建模范围
 
@@ -624,6 +632,14 @@
 | CAS14#时段履约条件 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 时段履约 / 时点履约 | 第十一条 | 5-6 / 5-6 |
 | IFRSC#时段履约条件 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 时段或时点履约 | K§1.3，IFRS15.31–38；D Step5 | K4–5；D12 / K6–7；D14 |
 | IFRSH#时段履约条件 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 时段履约的三种路径 | K§5.2，IFRS15.35；C五步法第五步 | K110；C15–16 / K112；C16–17 |
+
+## 服务产品
+
+词条：`service_product`（ServiceProduct，masterdata.catalog）——规定可提供服务及默认阶段组合并按版本发布和停用的服务目录条目。
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL2#服务产品 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | PRODUCT | OBJ-24 | — |
 
 ## 服务系列
 
@@ -752,11 +768,19 @@
 
 ## 记账凭证
 
-词条：`journal_voucher`（JournalVoucher，accounting.ledger）——可追溯来源业务事件的分录载体（外购系统承载，主权在本 BC）
+词条：`journal_voucher`（JournalVoucher，accounting.ledger）——记账凭证承载会计分录，并承载制单、审核与记账信息，可追溯来源业务事件；主权在 accounting.ledger，与其中的借贷记录会计分录分开。
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | ACCB#记账凭证 | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 记账凭证内容与更正 | W第三章第二节第五十、五十一、五十三条 | — |
+
+## 设计变更
+
+词条：`design_change`（DesignChange，delivery.acceptance）——设计成果发生变化时记录原因、范围、影响与主张情况的变更事项。
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| XIA#设计变更 | [勘察设计企业全过程工程咨询管理指南](notes/xia-qcg-2019.md) | 施工阶段设计修改与变更 | 第 3 章 3.5.1 第 1 项 | 94 / 110 |
 
 ## 质量标准
 
@@ -768,7 +792,7 @@
 
 ## 资源需求
 
-词条：无（terms.yaml 未收）
+词条：`resource_requirement`（ResourceRequirement，delivery.execution）——项目或工作包在一定时段对角色、职级、专业及工时提出的资源要求。
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|

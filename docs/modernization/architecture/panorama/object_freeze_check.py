@@ -114,6 +114,7 @@ def fingerprint(nodes_doc):
 ADVICE = {
     "从属": ("门条件改引父对象 {o} 的状态", "流程主要对象改为父对象 {o}，本对象作组成部分", "改挂父对象 {o} 所在聚合", "并入父对象 {o} 的聚合，表保留为组成部分表", "词条 kind 改为组成部分，注明父对象"),
     "参照": ("门条件不得引其状态，改引使用方 {o}", "流程只读引用，不再以它为主要对象", "改挂使用方 {o} 所在聚合，或改为参照数据校验", "按 §14.1 D17 参照数据或 12 维度管理（带版本），表保留", "词条注明参照数据或维度"),
+    "不承接": ("门条件删去对它的引用", "流程中引用它的步骤改为引用制度版本号或文本（参照），不再作对象", "改挂实际执行规则的聚合，或删除并写明理由", "撤销聚合，不建表", "词条注明不建模、为制度文本"),
     "事实": ("门条件改引主体 {o} 的状态", "流程步骤改为「记录事实」，主要对象改为主体 {o}", "改挂主体 {o} 所在聚合", "聚合保留为只追加事实记录，表保留", "词条 kind 改为业务事实"),
 }
 
@@ -132,15 +133,20 @@ def impact(nodes, touched, final):
         cls = e["class"]
         if cls == "确认建模":
             continue
-        kind = "从属" if cls.startswith("从属") else "事实" if "业务事实" in cls else "参照"
-        owner = e.get("owner") or "（无，视图）"
+        kind = "从属" if cls.startswith("从属") or cls.startswith("并入") else "事实" if "业务事实" in cls else "不承接" if cls.startswith("不承接") else "参照"
+        owner = e.get("owner") or ("（无，04 不承接）" if cls.startswith("不承接") else "（无，视图）")
         name = nodes["obj"].get(oid, {}).get("name", oid)
         adv = [a.format(o=owner) for a in ADVICE[kind]]
+        same = bool(set(agg_of.get(oid, [])) & set(agg_of.get(e.get("owner") or "", [])))
+        if same:
+            adv[2] = f"已与 {owner} 同在聚合内，挂接不变，只把规则的主语改为 {owner}"
+            adv[3] = f"已与 {owner} 同在聚合内，聚合不变；表随 {owner} 设计"
         stages = sorted(s for s, st in nodes["stage"].items() if any(g["obj"] == oid for g in st.get("gates") or []) or oid in (st.get("in_stage") or []))
         prcs = sorted((p for p, objs in touched.items() if oid in objs), key=lambda x: int(x[4:]))
         aggs = agg_of.get(oid, [])
         invs = sorted({i for i, v in nodes["inv"].items() if set(v.get("aggs") or []) & set(aggs)}, key=lambda x: int(x[4:]))
         tables = sorted({t for a in aggs for t in nodes["agg"][a].get("tables") or []})
+        cmds = sorted({a["command"] for a in nodes["act"].values() if a.get("aggregate") in aggs})
         tws = [f"{x['id']}（{x['zh']}）" for x in terms if x.get("zh") and (x["zh"] == name.split("（")[0])]
         if kind == "参照":
             dims.append(f"{oid} {name}（使用方 {owner}）")
@@ -148,6 +154,7 @@ def impact(nodes, touched, final):
                 "| 引用方 | 条目 | 改法 |", "|---|---|---|",
                 f"| 06 门条件与段内状态 | {'、'.join(stages) or '无'} | {adv[0] if stages else '—'} |",
                 f"| 07 流程 | {'、'.join(prcs) or '无'} | {adv[1] if prcs else '—'} |",
+                f"| 10 命令 | {'、'.join(cmds) or '无'} | {('撤销这些命令，骨架中引用它们的步骤改为引用制度版本或删除' if kind == '不承接' else (f'已与 {owner} 同在聚合内，命令不动' if same else f'移入承接对象 {owner} 所在聚合')) if cmds else '—'} |",
                 f"| 08 不变量 | {'、'.join(invs) or '无'} | {adv[2] if invs else '—'} |",
                 f"| 聚合与表 | {'、'.join(aggs) or '无'}；表 {'、'.join(tables) or '无'} | {adv[3] if aggs else '—'} |",
                 f"| 词条 | {'、'.join(tws) or '无'} | {adv[4] if tws else '—'} |", ""]

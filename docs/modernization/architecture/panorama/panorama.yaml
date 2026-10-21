@@ -8,33 +8,41 @@ meta:
     built: architecture/ddd/aggregates.yaml
     sd: architecture/ddd/subdomains.yaml
     terms: glossary/terms.yaml
+    decr: architecture/panorama/tradeoffs.yaml
   counts:
-    sh: 36
+    sh: 39
     con: 0
     vp: 15
-    decr: 0
+    decr: 2
     cap: 24
     vs: 15
     stage: 61
     prc: 200
     inv: 134
-    obj: 103
+    obj: 104
     act: 651
     fact: 0
     dim: 0
-    metric: 76
+    metric: 79
     bind: 0
     dec: 0
     agg: 130
     bc: 31
     sd: 13
     table: 25
+    shcat: 6
     steps: 647
   checks:
     N01-1: 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）
+    N01-3: 每个干系人类别对应一个一级业务对象，类别角色取值在信息图可查；没有对象的登记 04 并写理由
+    N01-4: 每个具体干系人登记「在系统中的体现」（五选一），并是类别对象（或其从属对象）的一个类型、角色或属性取值；不进系统的登记 04
+    N01-2: 每个干系人至少触发、接收或参与一条价值流（价值流 triggering_stakeholders、value_receivers，阶段 participants）
     N03-1: 每条价值流都有价值主张（暂以价值流的 value 字段作 03 的登记）
     N05-1: 每个阶段都有业务能力支撑（阶段 capabilities 字段）
     N06-1: 每个阶段都有对象状态作为门（进入或退出条件引用对象状态）
+    N06-2: 每条价值流的门对象中，至少一个顺依附链（信息图「父对象」列）追到一级业务对象
+    N06-3: 每个阶段的门对象中，至少一个顺依附链追到一级业务对象（无门对象的阶段也计缺口）
+    N06-4: 每条价值流都有触发者和价值接收者
     N07-1: 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）
     N07-2: 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判）
     N07-P1: P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml
@@ -42,6 +50,7 @@ meta:
     N09-1: 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）
     N09-2: 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）
     N09-3: 每个聚合对应的对象都出现在某个阶段的门或段内状态中
+    N09-4: 依附链必填：非一级的有效对象「父对象」列填有效 OBJ 编号，一级对象填「—」
     N09-M1: 每个聚合都归属一个 BC
     N09-M2: 每个聚合都有不变量
     N09-M3: 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）
@@ -57,111 +66,393 @@ nodes:
     SH-C1:
       name: 开发商
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 开发商
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C1
     SH-C2:
       name: 自用业主
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 自用业主
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C2
     SH-C3:
       name: 既有建筑业主
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 既有建筑业主
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C3
     SH-C4:
       name: 发包方
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 发包方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C4
     SH-C5:
       name: 资本方
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 资本方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C5
     SH-C6a:
-      name: 发起人
-      category: 客户决策链
+      name: 客户决策链·发起人
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 发起人
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6a
     SH-C6b:
-      name: 决策人
-      category: 客户决策链
+      name: 客户决策链·决策人
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 决策人
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6b
     SH-C6c:
-      name: 经济买方
-      category: 客户决策链
+      name: 客户决策链·经济买方
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 经济买方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6c
     SH-C6d:
-      name: 付款方
-      category: 客户决策链
+      name: 客户决策链·付款方
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 付款方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6d
     SH-C6e:
-      name: 使用者
-      category: 客户决策链
+      name: 客户决策链·使用者
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 使用者
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6e
     SH-P1:
       name: 交付伙伴
       category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 分包方、海外持牌伙伴
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P1
     SH-P1c:
       name: 交付伙伴
       category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 联合体伙伴
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P1c
     SH-P2:
       name: 供应商
       category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 采购供应商
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P2
     SH-P3:
       name: 渠道伙伴
       category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 渠道伙伴
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P3
+    SH-P4:
+      name: 审计机构
+      category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 供应商
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P4
+    SH-P5:
+      name: 金融机构
+      category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 金融机构
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P5
+    SH-P6:
+      name: 供应商·出租方
+      category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 出租方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P6
     SH-R1:
       name: 工程审批
       category: 监管机构
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 主管部门
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-R1
     SH-R2:
       name: 企业监管
       category: 监管机构
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 主管机关
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-R2
     SH-H1:
-      name: —
-      category: 人力资源（外部）
+      name: 求职者和候选人
+      category: 人力资源
+      type: 外部
+      in_system: 专门对象
+      obj: OBJ-56
+      attr: 状态
+      value: 已登记（候选）
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-H1
     SH-S1:
       name: 最终用户
       category: 社会公众
+      type: 外部
+      in_system: 不进系统
+      obj: null
+      attr: null
+      value: null
+      decr: DECR-02
+      src: architecture/proposals/value-streams.v2.yaml#SH-S1
     SH-S2:
       name: 市民
       category: 社会公众
+      type: 外部
+      in_system: 不进系统
+      obj: null
+      attr: null
+      value: null
+      decr: DECR-02
+      src: architecture/proposals/value-streams.v2.yaml#SH-S2
     SH-M1:
-      name: —
-      category: 管理层
+      name: 管理层
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 管理层
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-M1
     SH-E1:
       name: 用人经理
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 用人经理
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E1
     SH-E2:
       name: 项目经理
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 项目经理
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E2
     SH-E3:
       name: 设计师和顾问
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 设计师和顾问
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E3
     SH-E4:
       name: 技术专家
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 技术专家
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E4
     SH-E5:
       name: 市场和客户经理
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 市场和客户经理
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E5
     SH-E6:
       name: 职能人员
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 职能人员
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E6
     SH-E7:
       name: 注册执业人员
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 注册执业人员
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E7
     SH-O1:
       name: —
       category: 股东和合伙人
+      type: 两者
+      in_system: 专门对象
+      obj: OBJ-126
+      attr: 股东类型
+      value: 单位股东、自然人股东、合伙人
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-O1
     SH-X1:
-      name: null
-      category: null
+      name: 主体建筑设计院（不作发包方时）
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 设计单位
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X1
     SH-X2:
-      name: null
-      category: null
+      name: 施工总包和专业分包
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 施工单位
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X2
     SH-X3:
-      name: null
-      category: null
+      name: 监理
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 监理单位
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X3
     SH-X4:
-      name: null
-      category: null
+      name: 造价咨询和招标代理
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 造价咨询或招标代理
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X4
     SH-X5:
-      name: null
-      category: null
+      name: 保险技术检查机构（TIS）
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 保险技术检查机构
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X5
     SH-X6:
-      name: null
-      category: null
+      name: 持证检测机构
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 检测机构
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X6
     SH-X7:
-      name: null
-      category: null
+      name: 资金监管主办银行
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 资金监管银行
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X7
     SH-X8:
-      name: null
-      category: null
+      name: 物业服务企业（未代业主委托时）
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 物业
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X8
   con: {}
   vp:
     VP-01:
@@ -224,7 +515,23 @@ nodes:
       name: 一版规则、参数或主数据生效，后续业务按它办。
       vs: VS-15
       provisional: 取自价值流 value 字段，待 03 正式登记
-  decr: {}
+  decr:
+    DECR-01:
+      id: DECR-01
+      subject: OBJ-74 激励方案
+      decision: 不承接
+      reason: 激励方案是制度文本，不建模；奖金核定等需要依据时只引用制度的版本号或文本。
+      status: 已定
+      source: 用户 2026-10-19「激励方案是制度文本，不会建模」
+      src: architecture/panorama/tradeoffs.yaml#DECR-01
+    DECR-02:
+      id: DECR-02
+      subject: SH-S1、SH-S2 社会公众
+      decision: 不进系统
+      reason: 不与我方订约、往来或办理任何事项，只获得建筑安全与效果等非货币价值；这些价值由交付物质量与合规事项体现。
+      status: 已定
+      source: 用户 2026-10-19 STKH-10 认可（STKH-20261019-202526-si5）
+      src: architecture/panorama/tradeoffs.yaml#DECR-02
   cap:
     CAP-001:
       stages:
@@ -396,62 +703,205 @@ nodes:
       name: 完成服务方选定
       category: business
       value: 客户得到可信的方案、报价与承诺，以合理代价选定能胜任的服务方。
+      triggers:
+      - SH-C1
+      - SH-C2
+      - SH-C3
+      - SH-C4
+      - SH-C5
+      - SH-P3
+      - SH-P1c
+      receivers:
+      - SH-C1
+      - SH-C2
+      - SH-C3
+      - SH-C4
+      - SH-C5
     VS-02:
       name: 获得交付成果
       category: business
       value: 客户按约获得可审查、可报审、可施工的专业成果，建成效果与安全达到要求。
+      triggers:
+      - SH-C1
+      - SH-C2
+      - SH-C3
+      - SH-C4
+      receivers:
+      - SH-C1
+      - SH-C2
+      - SH-C3
+      - SH-C4
+      - SH-S1
+      - SH-S2
     VS-03:
       name: 获得风险结论
       category: business
       value: 委托方得到独立、可追溯的风险信息与合规结论，并能跟踪问题整改到闭合。
+      triggers:
+      - SH-C5
+      - SH-C3
+      - SH-P3
+      receivers:
+      - SH-C5
+      - SH-C3
+      - SH-S1
+      - SH-S2
     VS-04:
       name: 完成服务价款约定与支付
       category: business
       value: 客户的权利义务明确，取得合规发票，按约付款，价款可核对、最终确认。
+      triggers:
+      - SH-C1
+      - SH-C2
+      - SH-C3
+      - SH-C4
+      - SH-C5
+      receivers:
+      - SH-C1
+      - SH-C2
+      - SH-C3
+      - SH-C4
+      - SH-C5
     VS-05:
       name: 获得外部资源
       category: support
       value: 需求方及时获得合格、按约履约的外部能力与产品。
+      triggers:
+      - SH-E2
+      - SH-M1
+      receivers:
+      - SH-E2
+      - SH-M1
     VS-06:
       name: 完成企业合规事项
       category: support
       value: 监管机构按期收到准确的申报与税款，确认企业持续具备经营与承接资格。
+      triggers:
+      - SH-R2
+      receivers:
+      - SH-R2
     VS-07:
       name: 完成人员任用
       category: support
       value: 用人经理及时得到合格人员；候选人得到明确的录用结果并顺利入职。
+      triggers:
+      - SH-E1
+      - SH-H1
+      receivers:
+      - SH-E1
+      - SH-H1
     VS-08:
       name: 完成垫付费用报销
       category: support
       value: 员工在支出前取得所需额度或出差批准，获得借支支持，公务垫付费用及时足额得到补偿。
+      triggers:
+      - SH-E1
+      - SH-E2
+      - SH-E3
+      - SH-E4
+      - SH-E5
+      - SH-E6
+      - SH-E7
+      receivers:
+      - SH-E1
+      - SH-E2
+      - SH-E3
+      - SH-E4
+      - SH-E5
+      - SH-E6
+      - SH-E7
     VS-09:
       name: 完成经营目标
       category: management
       value: 管理层有明确可追踪的目标，偏差能被解释并转化为行动。
+      triggers:
+      - SH-M1
+      receivers:
+      - SH-M1
+      - SH-O1
     VS-10:
       name: 获得期间报告
       category: support
       value: 管理层与股东得到按期、可勾稽、关账后不变的权责口径报表与经营报告。
+      triggers:
+      - SH-M1
+      receivers:
+      - SH-M1
+      - SH-O1
     VS-11:
       name: 获得复用知识
       category: support
       value: 员工能找到经审定的做法与案例并在新项目中复用，交付质量与效率提升。
+      triggers:
+      - SH-E4
+      - SH-E2
+      receivers:
+      - SH-E3
+      - SH-E2
+      - SH-E5
+      - SH-E4
     VS-12:
       name: 获得投资回报
       category: management
       value: 股东和合伙人的出资被准确记录，并按经营结果取得回报。
+      triggers:
+      - SH-O1
+      receivers:
+      - SH-O1
     VS-13:
       name: 获得报酬
       category: support
       value: 员工按时足额获得报酬与法定保障，离职时依法结清。
+      triggers:
+      - SH-E1
+      - SH-E2
+      - SH-E3
+      - SH-E4
+      - SH-E5
+      - SH-E6
+      - SH-E7
+      receivers:
+      - SH-E1
+      - SH-E2
+      - SH-E3
+      - SH-E4
+      - SH-E5
+      - SH-E6
+      - SH-E7
     VS-14:
       name: 获得内部服务
       category: support
       value: 员工所需行政与信息技术服务办妥，用印和资产使用有据可查。
+      triggers:
+      - SH-E1
+      - SH-E2
+      - SH-E3
+      - SH-E4
+      - SH-E5
+      - SH-E6
+      - SH-E7
+      receivers:
+      - SH-E1
+      - SH-E2
+      - SH-E3
+      - SH-E4
+      - SH-E5
+      - SH-E6
+      - SH-E7
     VS-15:
       name: 确立经营基准
       category: management
       value: 一版规则、参数或主数据生效，后续业务按它办。
+      triggers:
+      - SH-M1
+      - SH-E6
+      receivers:
+      - SH-M1
+      - SH-E1
+      - SH-E2
+      - SH-E3
+      - SH-E5
+      - SH-E6
   stage:
     VS-01.1:
       name: 采集线索
@@ -481,6 +931,13 @@ nodes:
       - CAP-016
       - CAP-017
       - CAP-018
+      participants:
+      - SH-E5
+      - SH-C6a
+      - SH-P3
+      - SH-P2
+      - SH-E2
+      - SH-E6
     VS-01.2:
       name: 赢得委托
       vs: VS-01
@@ -519,6 +976,17 @@ nodes:
       - CAP-019
       - CAP-024
       - CAP-026
+      participants:
+      - SH-E5
+      - SH-E2
+      - SH-E4
+      - SH-C6a
+      - SH-C6b
+      - SH-C6c
+      - SH-P1c
+      - SH-X4
+      - SH-M1
+      - SH-E6
     VS-02.0:
       name: 开始项目
       vs: VS-02
@@ -555,25 +1023,70 @@ nodes:
       - OBJ-45
       caps:
       - CAP-029
+      participants:
+      - SH-E2
+      - SH-M1
+      - SH-E6
+      - SH-C6a
+      - SH-C6e
     VS-02.1:
       name: 确认概念
       vs: VS-02
       gates:
       - side: entry
+        obj: OBJ-30
+        state: 未开始 / 进行中
+      - side: entry
         obj: OBJ-42
         state: 已提供
+      - side: exit
+        obj: OBJ-35
+        state: 已认可
+      - side: exit
+        obj: OBJ-35
+        state: 已交付（签收） / 审查中
+      - side: exit
+        obj: OBJ-35
+        state: 已声明
+      - side: exit
+        obj: OBJ-30
+        state: 已完成
       in_stage:
       - OBJ-33
       - OBJ-42
       caps:
       - CAP-029
+      participants:
+      - SH-E3
+      - SH-E4
+      - SH-E2
+      - SH-C6b
+      - SH-C6e
+      - SH-X1
+      - SH-C6a
+      - SH-M1
     VS-02.2:
       name: 确认方案
       vs: VS-02
       gates:
       - side: entry
+        obj: OBJ-30
+        state: 未开始 / 进行中
+      - side: entry
         obj: OBJ-42
         state: 已提供
+      - side: exit
+        obj: OBJ-35
+        state: 已认可
+      - side: exit
+        obj: OBJ-35
+        state: 已交付（签收） / 审查中
+      - side: exit
+        obj: OBJ-35
+        state: 已声明
+      - side: exit
+        obj: OBJ-30
+        state: 已完成
       in_stage:
       - OBJ-37
       - OBJ-33
@@ -582,26 +1095,78 @@ nodes:
       - OBJ-41
       caps:
       - CAP-029
+      participants:
+      - SH-E3
+      - SH-E4
+      - SH-E2
+      - SH-C6b
+      - SH-C6e
+      - SH-X1
+      - SH-R1
+      - SH-P1
+      - SH-C6a
+      - SH-M1
     VS-02.3:
       name: 完成初步设计
       vs: VS-02
       gates:
       - side: entry
+        obj: OBJ-30
+        state: 未开始 / 进行中
+      - side: entry
         obj: OBJ-42
         state: 已提供
+      - side: exit
+        obj: OBJ-35
+        state: 已认可
+      - side: exit
+        obj: OBJ-35
+        state: 已交付（签收） / 审查中
+      - side: exit
+        obj: OBJ-35
+        state: 已声明
+      - side: exit
+        obj: OBJ-30
+        state: 已完成
       in_stage:
       - OBJ-37
       - OBJ-33
       - OBJ-42
       caps:
       - CAP-029
+      participants:
+      - SH-E3
+      - SH-E4
+      - SH-E2
+      - SH-E7
+      - SH-C6e
+      - SH-X1
+      - SH-R1
+      - SH-P1
+      - SH-C6a
+      - SH-M1
     VS-02.4:
       name: 完成深化设计
       vs: VS-02
       gates:
       - side: entry
+        obj: OBJ-30
+        state: 未开始 / 进行中
+      - side: entry
         obj: OBJ-42
         state: 已提供
+      - side: exit
+        obj: OBJ-35
+        state: 已认可
+      - side: exit
+        obj: OBJ-35
+        state: 已交付（签收） / 审查中
+      - side: exit
+        obj: OBJ-35
+        state: 已声明
+      - side: exit
+        obj: OBJ-30
+        state: 已完成
       in_stage:
       - OBJ-37
       - OBJ-53
@@ -609,18 +1174,69 @@ nodes:
       - OBJ-42
       caps:
       - CAP-029
+      participants:
+      - SH-E3
+      - SH-E4
+      - SH-E2
+      - SH-E7
+      - SH-C6e
+      - SH-X1
+      - SH-R1
+      - SH-P1
+      - SH-P2
+      - SH-C6a
+      - SH-M1
     VS-02.5:
       name: 完成招标采购配合
       vs: VS-02
-      gates: []
+      gates:
+      - side: entry
+        obj: OBJ-30
+        state: 未开始 / 进行中
+      - side: exit
+        obj: OBJ-35
+        state: 已认可
+      - side: exit
+        obj: OBJ-35
+        state: 已交付（签收） / 审查中
+      - side: exit
+        obj: OBJ-35
+        state: 已声明
+      - side: exit
+        obj: OBJ-30
+        state: 已完成
       in_stage:
       - OBJ-33
       caps:
       - CAP-029
+      participants:
+      - SH-E3
+      - SH-E2
+      - SH-C6c
+      - SH-X4
+      - SH-X2
+      - SH-P2
+      - SH-C6a
+      - SH-M1
     VS-02.6:
       name: 完成施工配合
       vs: VS-02
       gates:
+      - side: entry
+        obj: OBJ-30
+        state: 未开始 / 进行中
+      - side: exit
+        obj: OBJ-35
+        state: 已认可
+      - side: exit
+        obj: OBJ-35
+        state: 已交付（签收） / 审查中
+      - side: exit
+        obj: OBJ-35
+        state: 已声明
+      - side: exit
+        obj: OBJ-30
+        state: 已完成
       - side: exit
         obj: OBJ-38
         state: 已关闭
@@ -632,6 +1248,17 @@ nodes:
       caps:
       - CAP-029
       - CAP-046
+      participants:
+      - SH-E3
+      - SH-E2
+      - SH-C6e
+      - SH-X2
+      - SH-X3
+      - SH-X5
+      - SH-R1
+      - SH-P2
+      - SH-C6a
+      - SH-M1
     VS-02.7:
       name: 完成收尾
       vs: VS-02
@@ -661,6 +1288,14 @@ nodes:
       caps:
       - CAP-029
       - CAP-053
+      participants:
+      - SH-E2
+      - SH-E4
+      - SH-M1
+      - SH-C6b
+      - SH-C6c
+      - SH-X4
+      - SH-C6a
     VS-03.1:
       name: 编制检查计划
       vs: VS-03
@@ -687,6 +1322,12 @@ nodes:
       - CAP-029
       - CAP-046
       - CAP-005
+      participants:
+      - SH-E2
+      - SH-E4
+      - SH-C5
+      - SH-C3
+      - SH-X8
     VS-03.2:
       name: 完成现场检查
       vs: VS-03
@@ -702,6 +1343,12 @@ nodes:
       - OBJ-53
       caps:
       - CAP-029
+      participants:
+      - SH-E3
+      - SH-E4
+      - SH-X5
+      - SH-X2
+      - SH-X8
     VS-03.3:
       name: 发布不符合项
       vs: VS-03
@@ -716,6 +1363,11 @@ nodes:
       - OBJ-52
       caps:
       - CAP-029
+      participants:
+      - SH-E4
+      - SH-C5
+      - SH-C3
+      - SH-X6
     VS-03.4:
       name: 跟进整改
       vs: VS-03
@@ -736,6 +1388,13 @@ nodes:
       - OBJ-52
       caps:
       - CAP-029
+      participants:
+      - SH-E3
+      - SH-X2
+      - SH-X6
+      - SH-X5
+      - SH-C3
+      - SH-E4
     VS-03.5:
       name: 登记报告认可
       vs: VS-03
@@ -749,6 +1408,13 @@ nodes:
       in_stage: []
       caps:
       - CAP-029
+      participants:
+      - SH-E4
+      - SH-E7
+      - SH-C5
+      - SH-C3
+      - SH-C6a
+      - SH-M1
     VS-04.1:
       name: 签署合同
       vs: VS-04
@@ -773,6 +1439,13 @@ nodes:
       - OBJ-13
       caps:
       - CAP-005
+      participants:
+      - SH-E5
+      - SH-E2
+      - SH-E6
+      - SH-C6c
+      - SH-C6b
+      - SH-M1
     VS-04.6:
       name: 完成合同履行
       vs: VS-04
@@ -789,6 +1462,14 @@ nodes:
       - OBJ-05
       caps:
       - CAP-005
+      participants:
+      - SH-E2
+      - SH-E5
+      - SH-E6
+      - SH-C6b
+      - SH-C6c
+      - SH-C6a
+      - SH-M1
     VS-04.2:
       name: 确认收入
       vs: VS-04
@@ -796,11 +1477,24 @@ nodes:
       - side: entry
         obj: OBJ-05
         state: 已签署生效 / 履行中 / 已完成
+      - side: entry
+        obj: OBJ-35
+        state: 已认可
+      - side: entry
+        obj: OBJ-35
+        state: 已交付（签收） / 审查中
+      - side: entry
+        obj: OBJ-35
+        state: 已声明
       in_stage:
       - OBJ-53
       caps:
       - CAP-053
       - CAP-005
+      participants:
+      - SH-E6
+      - SH-E2
+      - SH-C6e
     VS-04.3:
       name: 开具发票
       vs: VS-04
@@ -822,6 +1516,15 @@ nodes:
       caps:
       - CAP-103
       - CAP-005
+      participants:
+      - SH-E6
+      - SH-C6d
+      - SH-E2
+      - SH-E5
+      - SH-M1
+      - SH-R2
+      - SH-C6a
+      - SH-R1
     VS-04.4:
       name: 回收款项
       vs: VS-04
@@ -831,10 +1534,22 @@ nodes:
         state: 未结 / 已部分结清 / 争议
       - side: exit
         obj: OBJ-85
+        state: 已结清
+      - side: exit
+        obj: OBJ-86
+        state: 已分配
+      - side: exit
+        obj: OBJ-85
         state: 已核销（坏账）
       in_stage: []
       caps:
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-E2
+      - SH-C6d
+      - SH-X7
+      - SH-P5
     VS-04.5:
       name: 确认最终价款
       vs: VS-04
@@ -851,6 +1566,14 @@ nodes:
       in_stage: []
       caps:
       - CAP-005
+      participants:
+      - SH-E2
+      - SH-E6
+      - SH-C6c
+      - SH-X4
+      - SH-C6a
+      - SH-E5
+      - SH-M1
     VS-05.1:
       name: 完成供方准入
       vs: VS-05
@@ -868,6 +1591,11 @@ nodes:
       - OBJ-01
       caps:
       - CAP-001
+      participants:
+      - SH-E6
+      - SH-P1
+      - SH-P2
+      - SH-E2
     VS-05.2:
       name: 签署供方协议
       vs: VS-05
@@ -888,6 +1616,17 @@ nodes:
       - OBJ-09
       caps:
       - CAP-005
+      participants:
+      - SH-E2
+      - SH-E6
+      - SH-M1
+      - SH-P1
+      - SH-P1c
+      - SH-P2
+      - SH-P3
+      - SH-E1
+      - SH-X2
+      - SH-P6
     VS-05.3:
       name: 确认供方履约
       vs: VS-05
@@ -901,6 +1640,13 @@ nodes:
       in_stage: []
       caps:
       - CAP-005
+      participants:
+      - SH-E2
+      - SH-E3
+      - SH-P1
+      - SH-P2
+      - SH-E6
+      - SH-X2
     VS-05.4:
       name: 确认应付款项
       vs: VS-05
@@ -918,6 +1664,11 @@ nodes:
       - OBJ-121
       caps:
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-P1
+      - SH-P2
+      - SH-R2
     VS-05.5:
       name: 完成付款
       vs: VS-05
@@ -934,6 +1685,17 @@ nodes:
       in_stage: []
       caps:
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-M1
+      - SH-P1
+      - SH-P2
+      - SH-E1
+      - SH-E2
+      - SH-E3
+      - SH-X7
+      - SH-P5
+      - SH-P6
     VS-05.6:
       name: 完成供方结算
       vs: VS-05
@@ -950,6 +1712,10 @@ nodes:
       in_stage: []
       caps:
       - CAP-005
+      participants:
+      - SH-E2
+      - SH-E6
+      - SH-P1
     VS-06.1:
       name: 完成申报缴款
       vs: VS-06
@@ -962,6 +1728,10 @@ nodes:
       - OBJ-85
       caps:
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-M1
+      - SH-R2
     VS-06.2:
       name: 完成资质维护
       vs: VS-06
@@ -981,6 +1751,11 @@ nodes:
       caps:
       - CAP-054
       - CAP-056
+      participants:
+      - SH-E6
+      - SH-E7
+      - SH-M1
+      - SH-R2
     VS-07.1:
       name: 提出招聘需求
       vs: VS-07
@@ -998,6 +1773,10 @@ nodes:
       caps:
       - CAP-056
       - CAP-058
+      participants:
+      - SH-E1
+      - SH-E6
+      - SH-M1
     VS-07.2:
       name: 完成录用
       vs: VS-07
@@ -1014,6 +1793,10 @@ nodes:
       in_stage: []
       caps:
       - CAP-056
+      participants:
+      - SH-H1
+      - SH-E1
+      - SH-E6
     VS-07.3:
       name: 完成人员入职与任职
       vs: VS-07
@@ -1037,6 +1820,10 @@ nodes:
       caps:
       - CAP-005
       - CAP-056
+      participants:
+      - SH-H1
+      - SH-E1
+      - SH-E6
     VS-08.0:
       name: 批准事前申请
       vs: VS-08
@@ -1052,6 +1839,13 @@ nodes:
       caps:
       - CAP-118
       - CAP-119
+      participants:
+      - SH-E3
+      - SH-E2
+      - SH-M1
+      - SH-E6
+      - SH-E1
+      - SH-P2
     VS-08.1:
       name: 完成借款发放与归还
       vs: VS-08
@@ -1066,6 +1860,10 @@ nodes:
       caps:
       - CAP-056
       - CAP-103
+      participants:
+      - SH-E3
+      - SH-E6
+      - SH-M1
     VS-08.2:
       name: 完成报销核定
       vs: VS-08
@@ -1083,6 +1881,12 @@ nodes:
       caps:
       - CAP-056
       - CAP-103
+      participants:
+      - SH-E3
+      - SH-E2
+      - SH-E6
+      - SH-E1
+      - SH-M1
     VS-08.3:
       name: 完成报销付款
       vs: VS-08
@@ -1103,6 +1907,9 @@ nodes:
       caps:
       - CAP-056
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-M1
     VS-09.1:
       name: 编制计划
       vs: VS-09
@@ -1116,6 +1923,9 @@ nodes:
       in_stage: []
       caps:
       - CAP-100
+      participants:
+      - SH-M1
+      - SH-E6
     VS-09.2:
       name: 变更预测
       vs: VS-09
@@ -1129,6 +1939,11 @@ nodes:
       in_stage: []
       caps:
       - CAP-100
+      participants:
+      - SH-M1
+      - SH-E5
+      - SH-E2
+      - SH-E6
     VS-09.3:
       name: 完成经营复盘
       vs: VS-09
@@ -1142,6 +1957,10 @@ nodes:
       in_stage: []
       caps:
       - CAP-100
+      participants:
+      - SH-M1
+      - SH-E6
+      - SH-O1
     VS-10.0:
       name: 执行记账结转
       vs: VS-10
@@ -1157,6 +1976,9 @@ nodes:
       - OBJ-93
       caps:
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-M1
     VS-10.1:
       name: 关闭会计期间
       vs: VS-10
@@ -1173,6 +1995,10 @@ nodes:
       in_stage: []
       caps:
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-M1
+      - SH-E2
     VS-10.2:
       name: 发布报表
       vs: VS-10
@@ -1189,6 +2015,11 @@ nodes:
       in_stage: []
       caps:
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-M1
+      - SH-O1
+      - SH-P4
     VS-11.1:
       name: 编制知识条目
       vs: VS-11
@@ -1205,6 +2036,10 @@ nodes:
       in_stage: []
       caps:
       - CAP-110
+      participants:
+      - SH-E4
+      - SH-E2
+      - SH-E3
     VS-11.2:
       name: 审核并发布知识条目
       vs: VS-11
@@ -1218,6 +2053,9 @@ nodes:
       in_stage: []
       caps:
       - CAP-110
+      participants:
+      - SH-E4
+      - SH-M1
     VS-11.3:
       name: 修订并废除知识条目
       vs: VS-11
@@ -1234,6 +2072,8 @@ nodes:
       in_stage: []
       caps:
       - CAP-110
+      participants:
+      - SH-E4
     VS-12.1:
       name: 确认收到出资
       vs: VS-12
@@ -1247,6 +2087,11 @@ nodes:
       in_stage: []
       caps:
       - CAP-054
+      participants:
+      - SH-O1
+      - SH-E6
+      - SH-M1
+      - SH-P5
     VS-12.2:
       name: 分配利润
       vs: VS-12
@@ -1263,6 +2108,11 @@ nodes:
       caps:
       - CAP-054
       - CAP-103
+      participants:
+      - SH-O1
+      - SH-M1
+      - SH-E6
+      - SH-P4
     VS-12.3:
       name: 退还出资
       vs: VS-12
@@ -1276,6 +2126,10 @@ nodes:
       in_stage: []
       caps:
       - CAP-054
+      participants:
+      - SH-O1
+      - SH-E6
+      - SH-M1
     VS-13.1:
       name: 确认月度考勤
       vs: VS-13
@@ -1299,6 +2153,10 @@ nodes:
       caps:
       - CAP-028
       - CAP-056
+      participants:
+      - SH-E3
+      - SH-E1
+      - SH-E6
     VS-13.2:
       name: 完成绩效评估与奖金核定
       vs: VS-13
@@ -1319,6 +2177,10 @@ nodes:
       caps:
       - CAP-056
       - CAP-074
+      participants:
+      - SH-E1
+      - SH-M1
+      - SH-E6
     VS-13.3:
       name: 完成薪酬结算
       vs: VS-13
@@ -1337,6 +2199,9 @@ nodes:
       caps:
       - CAP-054
       - CAP-056
+      participants:
+      - SH-E6
+      - SH-M1
     VS-13.4:
       name: 完成个税及社保公积金申报缴纳
       vs: VS-13
@@ -1355,6 +2220,9 @@ nodes:
       - CAP-054
       - CAP-056
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-R2
     VS-13.5:
       name: 完成薪酬发放
       vs: VS-13
@@ -1376,6 +2244,10 @@ nodes:
       - CAP-054
       - CAP-056
       - CAP-103
+      participants:
+      - SH-E6
+      - SH-M1
+      - SH-E3
     VS-13.6:
       name: 完成离职结清
       vs: VS-13
@@ -1398,6 +2270,11 @@ nodes:
       caps:
       - CAP-005
       - CAP-056
+      participants:
+      - SH-E3
+      - SH-E1
+      - SH-E6
+      - SH-M1
     VS-14.1:
       name: 提交申请
       vs: VS-14
@@ -1419,6 +2296,14 @@ nodes:
       - CAP-054
       - CAP-056
       - CAP-093
+      participants:
+      - SH-E1
+      - SH-E2
+      - SH-E3
+      - SH-E4
+      - SH-E5
+      - SH-E6
+      - SH-E7
     VS-14.2:
       name: 批准申请
       vs: VS-14
@@ -1440,6 +2325,10 @@ nodes:
       - CAP-054
       - CAP-056
       - CAP-093
+      participants:
+      - SH-E1
+      - SH-M1
+      - SH-E6
     VS-14.3:
       name: 完成事项办理
       vs: VS-14
@@ -1473,6 +2362,9 @@ nodes:
       - CAP-054
       - CAP-056
       - CAP-093
+      participants:
+      - SH-E6
+      - SH-E3
     VS-14.4:
       name: 确认办结
       vs: VS-14
@@ -1512,6 +2404,10 @@ nodes:
       - CAP-054
       - CAP-056
       - CAP-093
+      participants:
+      - SH-E1
+      - SH-E6
+      - SH-E3
     VS-15.1:
       name: 拟订
       vs: VS-15
@@ -1541,6 +2437,9 @@ nodes:
       - CAP-078
       - CAP-103
       - CAP-124
+      participants:
+      - SH-E6
+      - SH-M1
     VS-15.2:
       name: 批准生效
       vs: VS-15
@@ -1603,6 +2502,10 @@ nodes:
       - CAP-078
       - CAP-103
       - CAP-124
+      participants:
+      - SH-M1
+      - SH-E6
+      - SH-X7
     VS-15.3:
       name: 修订停用
       vs: VS-15
@@ -1670,6 +2573,10 @@ nodes:
       - CAP-078
       - CAP-103
       - CAP-124
+      participants:
+      - SH-E6
+      - SH-M1
+      - SH-X7
   prc:
     PRC-01:
       name: 举办市场活动
@@ -4082,6 +4989,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 待核实 → 有效（档案已核实）→ 已合并 / 已停用；档案按 D17 版本化；「正式往来单位」= 状态为「有效」（intent 120544 P-3）
       facts: — （「往来单位已合并」事件）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:59
@@ -4091,6 +5000,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-01
+      parents_raw: OBJ-01
       states: 已申请 → 合格 → 已暂停 → 已停用（原因必填；适用需准入的角色：供应商、合伙人、渠道伙伴、联合体伙伴、海外持牌伙伴）；客户角色无准入状态，往来单位档案已核实即可用（intent 120544 P-3）
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
@@ -4100,6 +5012,9 @@ nodes:
       primary: false
       class: 从属对象
       parent: OBJ-01
+      parents:
+      - OBJ-01
+      parents_raw: OBJ-01
       states: 有效 / 已停用
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
@@ -4109,6 +5024,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 草案 → 审批中 → 已签署生效（回签即生效，基线 1）→ 履行中 → 已完成 → 已结算（结算书经双方确认）/ 已终止（原因必填）；生效后只经协议变更产生新基线；违法分包认定时标「无效」；审批中的「合同评审」是协议审批的单据，不另立对象（完整性检查（intent 072440），M-20）
       facts: 已签署生效 → 新签合同额、分包承诺额；协议变更生效 → 合同额变动；已终止 → 终止清算；已结算 → 最终交易价格、结算折让（原 OBJ-15）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:63
@@ -4118,6 +5035,9 @@ nodes:
       primary: false
       class: 从属对象
       parent: OBJ-05
+      parents:
+      - OBJ-05
+      parents_raw: OBJ-05
       states: 有效 → 被取代（只经协议变更）
       facts: — （承诺比对基准）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
@@ -4127,6 +5047,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-05
+      parents_raw: OBJ-05
       states: 待生效 → 已生效 → 可结算 → 被取代 / 已作废
       facts: 可结算 → 可开票额度（不产生收入）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
@@ -4136,6 +5059,9 @@ nodes:
       primary: false
       class: 从属对象
       parent: OBJ-05
+      parents:
+      - OBJ-05
+      parents_raw: OBJ-05
       states: 未履行 → 已部分履行 → 已履行
       facts: 已履行（部分）→ 收入、合同资产 / 合同负债变动、合同履约成本转出
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
@@ -4145,6 +5071,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-05
+      parents_raw: OBJ-05
       states: 已提出 → 影响评估 → 审批 → 已生效（新基线）/ 驳回
       facts: 已生效 → 合同额、交易价格变动（含违约金认定）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
@@ -4154,6 +5083,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-05
+      parents_raw: OBJ-05
       states: 已通知（时限内）→ 已提交 → 已认定 / 已拒绝 / 撤回
       facts: 已认定 → 收入调整或成本补偿
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
@@ -4163,6 +5095,10 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-18
+      - OBJ-29
+      parents_raw: OBJ-18、OBJ-29
       states: 已申请 → 已批准 → 已转正（并入协议）/ 叫停
       facts: — （为风险交付工时、金额度量提供维度）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
@@ -4172,6 +5108,10 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-20
+      - OBJ-05
+      parents_raw: OBJ-20、OBJ-05
       states: 现金：待缴 → 已缴 → 已退 / 被没收（可部分扣减）；保函：已开立 → 已到期 / 被索赔
       facts: 已缴 / 已退 / 已没收 → 其他应收（或其他应付）、受限资金（不计现金等价物，GL-051）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
@@ -4181,6 +5121,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 已计划 → 进行中 → 已结束
       facts: 活动费用（经费用报销归集）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:75
@@ -4190,6 +5132,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 新建 → 跟进中 ⇄ 挂起 → 已确认（转商机）/ 已关闭（无价值，原因必填）；公海池
       facts: 已确认 / 已关闭 → 线索计数（转化率）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:76
@@ -4199,6 +5143,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 跟进中（内部阶段）→ 已决定参投（参投决策，用户 VS01-10）→ 已赢单 / 丢单（原因、竞争对手、中标单位、中标价）/ 已放弃（跟进中或已决定参投均可放弃）
       facts: 赢单 → 赢单金额、计数（赢率）；售前工时、费用记于此，赢单后转入项目
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:77
@@ -4208,6 +5154,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 外部：已公告 → 已截止 → 已开标 → 公示 → 已定标；已终止 / 已重新招标
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:78
@@ -4217,6 +5165,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-18
+      parents_raw: OBJ-18
       states: 准备中 →（资格预审：通过 / 未通过）→ 已递交 → 已开标 → 公示中 → 已中标 / 未中标 / 已废标；截止前撤回、截止后撤销、已放弃
       facts: 中标 / 未中标 → 计数（中标率）；投标承诺快照（合同比对基准）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
@@ -4226,6 +5177,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-18
+      parents_raw: OBJ-18
       states: 草拟 → 审批中 → 已通过 / 驳回 → 生效（成为该（商机，标段）的当前版本）；被取代；已作废（「已通过」= 评审通过并冻结，「生效」= 当前版本，回溯检查 RD-06）
       facts: 已通过 → 报价金额、估算工时与成本、毛利（赢单版本为项目预算来源）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
@@ -4235,6 +5189,9 @@ nodes:
       primary: false
       class: 从属对象
       parent: OBJ-21
+      parents:
+      - OBJ-21
+      parents_raw: OBJ-21
       states: 随报价版本冻结
       facts: 估算工时、估算成本（计划值）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
@@ -4244,6 +5201,10 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-18
+      - OBJ-20
+      parents_raw: OBJ-18、OBJ-20
       states: 待查 → 无冲突 / 有冲突已获书面同意 / 有冲突不得承接
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
@@ -4253,6 +5214,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 已启用 → 已停用；版本化
       facts: — （分析维度）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:84
@@ -4262,6 +5225,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 已启用 → 已停用；版本化
       facts: — （维度）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:85
@@ -4271,6 +5236,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 草拟 → 已批准 → 已生效（生效期不重叠）→ 被取代
       facts: — （计价参数）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:86
@@ -4280,6 +5247,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-26
+      parents_raw: OBJ-26
       states: 草拟 → 已批准 → 已生效 → 被取代
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
@@ -4289,6 +5259,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 年度：未维护 → 已维护；过去日期锁定
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:88
@@ -4298,6 +5270,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 已立项 → 执行中 ⇄ 已暂停（原因）→ 收尾中 → 已结项 → 已归档（成果与证据已封存后）；已终止（解除或放弃，原因必填）；已取消（无任何投入时）（Q09：暂停期间拒绝记工时已答，intent 134134 Q-05；其余取值仍待定）
       facts: 已立项 → 签约前投入起算（A7；用户 2026-10-15 Q19 以合同回签为界，见 C-43）；已终止 → 终止清算（D17-3）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:90
@@ -4307,6 +5281,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 阶段：未开始 → 进行中 → 已完成（只记工作进程；成果的提交与认可是交付物 OBJ-35 的事实，SC-01，聚合稿 §4.4.1）；工作包：进行中 → 已完成 → 已锁定 → 返工中；均可作废（保留历史）
       facts: 阶段已认可 → 收入证据（经交付物）；工作包 ← 实际工时
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
@@ -4316,6 +5293,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 草拟 → 已批准（对客）/ 内部锁定 → 被修订版取代
       facts: 计划日期（按期交付率）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
@@ -4325,6 +5305,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 编制中 → 审批中 → 已锁定（成本基线）→ 修订中 → 已锁定（新版本）
       facts: 已锁定 → 预算成本、预算工时
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
@@ -4334,6 +5317,10 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-30
+      - OBJ-29
+      parents_raw: OBJ-30、OBJ-29
       states: 已提出 → 已批准 / 已驳回
       facts: 已批准 → 预测成本（减值测试的估计成本，CAS 14 第三十条）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
@@ -4343,6 +5330,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 已拟派 → 在岗 → 已撤出
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
@@ -4352,6 +5342,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: '编制中 → 内审中 → 已签发（报告类）→ 已交付（签收）→ 审查中 → 已认可 / 退回修改（轮次 +1）/ 已声明（项目经理登记的无异议声明：期满前未收到发包人书面异议，附往来函件检索记录，声明人与复核人按 ADR-0047 U-2；交付侧登记事实，与「已交付（签收）/ 审查中」并列；送达、退回也记在交付侧；期满判定在 `receivables.wip`；「视为同意」不是交付物状态，由
         `reporting` 读模型派生显示，`delivery.acceptance` 不读、不订阅 `receivables.wip`；客户书面同意属认可，即「已认可」（ADR-0047 第 1 类），不是「已声明」；D-8，用户 2026-10-16，intent 061232；按 D-8 字面订正，ADR-0049 评审；状态名与事件「无异议已声明」一致，PR #320）；被取代 /
         撤回（原因必填）/ 已作废；结项归档时已发布成果「已封存」'
@@ -4363,6 +5356,9 @@ nodes:
       primary: false
       class: 从属对象
       parent: OBJ-35
+      parents:
+      - OBJ-35
+      parents_raw: OBJ-35
       states: 待评审 → 通过 / 已不通过（整改后复审）
       facts: 评分；内审覆盖率、一次通过率
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
@@ -4372,6 +5368,11 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-35
+      - OBJ-29
+      - OBJ-49
+      parents_raw: OBJ-35、OBJ-29、OBJ-49
       states: 已识别 → 已确认 → 处置（返工 / 让步接受）→ 已关闭（我方成果类）；已识别 → 已复核 → 已发布 → 整改中 → 整改已申报 → 已闭合（复查通过）/ 回整改中 / 客户书面接受风险（推断，须有依据）/ 已停止跟踪（原因必填）（客户资产类）
       facts: 缺陷率；闭合率、整改天数
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
@@ -4381,6 +5382,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-38
+      parents_raw: OBJ-38
       states: 草拟 → 已认定；可撤销（冲销）
       facts: 已认定 → 返工工时、质量损失
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
@@ -4390,6 +5394,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 已提出 → 原因认定与影响评估 → 编制 → 内审 → 已发出 → 已关闭
       facts: 发出 → 变更工时；联动协议变更金额
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
@@ -4399,6 +5406,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 已通知（5 天内）→ 已提交详细说明（10 天内）→ 已批准 / 已拒绝 / 视为批准
       facts: 工期变动
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
@@ -4408,6 +5418,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 待提供 → 已提供 → 已确认 / 有缺陷（退回）
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
@@ -4417,6 +5430,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-30
+      parents_raw: OBJ-30
       states: 草拟 → 已提出 → 已部分满足 / 已满足 / 已取消
       facts: 需求工时
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
@@ -4426,6 +5442,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-30
+      parents_raw: OBJ-30
       states: 已计划（项目经理自排）→ 已确认（部门负责人审批）→ 已释放
       facts: 计划工时（利用率预测）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
@@ -4435,6 +5454,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 外部：规划 → 在建 → 已竣工（在用）→ 已超设计使用年限 → 改造中 → 已拆除
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:108
@@ -4443,7 +5464,10 @@ nodes:
       active: true
       primary: false
       class: 从属对象
-      parent: OBJ-46
+      parent: OBJ-29
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 在用 → 已超年限 → 改造中 → 已拆除；不再受托
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
@@ -4453,6 +5477,10 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-46
+      - OBJ-05
+      parents_raw: OBJ-46、OBJ-05
       states: 已生效 → 已执行 / 已逾期 / 不再受托（删「到期提醒」状态：到期只作提醒，派生 / 策略，人工转线索或商机，另签协议；按周期或按次结算用协议付款条件项，用户 intent 090004）
       facts: 计划生效 / 修订 → 当期应检对象、部位及次数的覆盖基准；与实际检查的已安排、已锁定、已取消及逾期未检集合对应，不直接产生金额事实
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
@@ -4462,6 +5490,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 已计划 → 已安排 → 现场进行中 → 记录已提交 → 已审核 → 已锁定；已取消（原因必填）
       facts: 已完成 → 按次计价的计量依据（UNIT_RATE「品控按次月结」）、检查工时
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
@@ -4471,6 +5502,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-24
+      parents_raw: OBJ-24
       states: 草拟 → 已生效 → 已停用（只增版本）
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
@@ -4480,15 +5514,21 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-38
+      - OBJ-49
+      parents_raw: OBJ-38、OBJ-49
       states: 已建议 → 业主已委托 → 报告已收到 → 已采信 / 未采信（原因）
       facts: — （不进我方成本）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
     OBJ-53:
       name: 证据
       active: true
-      primary: false
+      primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 已采集 → 已上传（摘要）→ 已关联 → 已封存；已作废（原因必填，保留原件）；「已关联」= 技术聚合「证据关联」（AGG-110，B-28）中存在该证据的挂接记录，证据聚合 AGG-38 不存该状态，只作段内状态、不入阶段门（intent 114200 F-1）
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:115
@@ -4498,6 +5538,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 筹建 → 存续 → 已注销
       facts: — （各事实的法人维度）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:117
@@ -4507,6 +5549,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-54
+      parents_raw: OBJ-54
       states: 已启用 → 已停用 / 已撤销；树按生效区间版本化（组织调整产生新版本）
       facts: — （部门维度；区域将作为数据范围维度）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:118
@@ -4516,6 +5561,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 已登记（候选）→ 面试中 → 待入职 → 试用期 → 正式 → 待离职 → 已离职；未录用（候选阶段终态）；已停薪留职（可恢复）；权限用的在职 / 离职二值另存
       facts: 人数、离职率
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:119
@@ -4525,6 +5572,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 生效区间版本（只追加）；主任职区间不重叠，兼职任职可多个并行、不设上限（用户 intent 072440 INV-62）
       facts: — （费率与成本按工作日当日任职取值）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:120
@@ -4534,6 +5584,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 已启用 → 已停用
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:121
@@ -4543,6 +5595,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-58
+      parents_raw: OBJ-58
       states: 草稿 → 已提交 → 已批准 / 已驳回 → 招聘中 → 已关闭（录满 / 取消）（与 AGG-65 统一，SC-03）
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:123
@@ -4552,6 +5607,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 增员 → 在缴 → 减员（转移 / 封存）
       facts: 缴费基数（算薪输入）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:125
@@ -4561,6 +5619,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 有效 → 已到期 / 已注销
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:127
@@ -4570,6 +5631,10 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-54
+      - OBJ-01
+      parents_raw: OBJ-54、OBJ-01
       states: 有效 → 核查中（年检 / 动态核查）→ 有效 / 已降级 / 已撤销；有效 → 延续中 → 有效（新有效期）/ 已到期（未延续）（用户答复 Q-D 第 1 项纳入资质维护，intent 082311）
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
@@ -4579,6 +5644,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 草稿 → 已提交（含审批中）→ 已通过 / 已退回 / 已驳回（驳回、退回后改原单再提交，不设取消终态）；撤回是转换（已提交 → 草稿，事件 TimesheetApprovalWithdrawn），不是状态；已过账属 Phase 2；关期后只能冲销或修正（one-data TS-UNIQ 审查，intent 052923）
       facts: 已通过 → 工时；已过账 → 人工成本（交易类型 TS）、售前投入
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
@@ -4588,6 +5656,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 草稿 → 审批中 → 已批准 / 已驳回 → 已销假 / 已撤销
       facts: 请假小时（可用产能、算薪输入）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:131
@@ -4597,6 +5668,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 只追加
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:133
@@ -4606,6 +5680,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 已申请 → 已批准 → 已补偿（付薪 / 调休）
       facts: 加班小时 → 加班工资（150% / 200% / 300%，第 44 条）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:135
@@ -4615,6 +5692,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-54
+      parents_raw: OBJ-54
       states: 草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账；更正走冲销；员工薪酬行支付状态：待支付 → 已实付 / 支付失败（待补发）；部分成功时成功行保留实付，失败行待补发，整期仍为「已批准」，应付薪酬行全部实付后才转整期「已发放」
       facts: 已批准 → 职工薪酬（工资、社保、公积金单位部分）、个税代扣；→ 实际成本费率（派生）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
@@ -4624,15 +5704,19 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 编制 → 审批 → 已生效 → 已结束
       facts: 奖金核定 → 职工薪酬（或预提）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:137
     OBJ-78:
       name: 分摊规则（原「分摊规则版本」）
       active: true
-      primary: false
+      primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 草稿 → 已批准 → 已生效 → 被取代
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:142
@@ -4642,6 +5726,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-08
+      parents_raw: OBJ-08
       states: 若作对象：草稿 → 审批中 → 已确认（锁定）/ 驳回；更正走冲销
       facts: 已确认 → 收入、合同资产 / 合同负债、配对的合同履约成本转出
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:146
@@ -4651,6 +5738,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-05
+      parents_raw: OBJ-05
       states: 草稿 → 审批中 → 准入通过 → 已开票 / 驳回 / 撤回 / 已作废（开具前）
       facts: — （发票开具才产生事实）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
@@ -4660,6 +5750,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 已开具 → 部分红冲 → 全额红冲（销项蓝字）；已开具（红字，引用蓝字）；已取得（查验）→ 已用途确认（抵扣 / 不抵扣）→ 已入账（进项）；进项转出；红冲确认中（蓝字已用途确认或入账者红冲前；红字信息确认单由税务平台登记，72 小时未确认自动作废则回到原状态；原 OBJ-84）
       facts: 销项已开具 → 销项税额、应收（收付账簿只在开票时记销项，A4）；进项用途确认 → 进项税额 / 转出
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:148
@@ -4669,6 +5762,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 `r0/structure/pptx.md` 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
       facts: 结清 → 回款、付款；核销坏账 → 信用损失
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:150
@@ -4678,6 +5774,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
       facts: 已到账 / 已成功 → 回款额、付款额、现金流量项目标注
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
@@ -4687,6 +5786,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-05
+      parents_raw: OBJ-05
       states: 已提交 → 审核 → 已确认；已冲销
       facts: 已确认 → 分包成本（经结转入合同履约成本）、应付
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:152
@@ -4696,6 +5798,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 草稿 → 已提交 → 审批中 → 已核定（所属期间确定）→ 已过账 → 已付；驳回、已冲销
       facts: 已核定 → 直接费用、售前费用；→ 应付（员工）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:153
@@ -4705,6 +5810,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 已开立 → 在用 → 已冻结 → 已销户
       facts: — （期末余额）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:154
@@ -4714,6 +5822,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-89
+      parents_raw: OBJ-89
       states: 已导入 → 已匹配 / 未匹配
       facts: 利息、手续费（经导入凭证）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:155
@@ -4723,6 +5834,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-54
+      parents_raw: OBJ-54
       states: 已认缴 → 已实缴（到账）→ 已部分退回 / 已退回
       facts: 实缴 / 退回 → 权益事实
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:156
@@ -4732,6 +5846,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 待申报 → 已申报 → 已缴款；更正申报
       facts: 已申报 / 已缴款 → 税费计提与缴纳
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:157
@@ -4741,6 +5858,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 在用 → 已闲置 → 处置
       facts: 折旧、摊销、处置损益
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:158
@@ -4750,6 +5869,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-96
+      parents_raw: OBJ-96
       states: 已启用 → 已停用（被引用不可删）；科目表版本化
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:161
@@ -4759,6 +5881,9 @@ nodes:
       primary: false
       class: 参照数据
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 已开立 → 在用 → 只读
       facts: — （期间余额）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:162
@@ -4768,6 +5893,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 未开 → 已开放 → 关账中 → 已关账；重开须审批
       facts: 关账 → 期间快照
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:163
@@ -4777,6 +5905,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 草稿 → 已审核 → 已记账（不可逆）；更正只能冲销
       facts: 本身即会计记录
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:164
@@ -4786,6 +5917,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 草拟 → 财务评审 → 已生效 → 被取代
       facts: — （某期报表是单据）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:165
@@ -4795,15 +5929,19 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 编制中 → 审批 → 基线（不可变）→ 新版本
       facts: 计划值；类型「预算」：占用、消耗 → 预算执行额
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:166
     OBJ-103:
       name: 财务
       active: true
-      primary: true
+      primary: false
       class: 视图
       parent: null
+      parents: []
+      parents_raw: —
       states: —
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:170
@@ -4813,6 +5951,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-74
+      parents_raw: OBJ-74
       states: 草拟 → 已核定 → 已发放（经月度薪酬结算）
       facts: 已核定 → 职工薪酬（或预提分录）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:171
@@ -4822,6 +5963,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-02
+      parents_raw: OBJ-02
       states: 已计划 → 已变更 → 已完成（结果反馈）/ 已取消（原因必填）
       facts: 已完成 → 拜访量、计划完成率（派生度量）；归集的售前工时
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
@@ -4831,6 +5975,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 已发出 → 已回收 → 已评分 → 已跟进
       facts: 已评分 → 满意度（派生度量，可按项目、阶段、客户统计）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
@@ -4840,6 +5987,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 草拟 → 已评审 → 已发布
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
@@ -4849,6 +5999,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-29
+      parents_raw: OBJ-29
       states: 已登记 → 应对中 → 已关闭 / 已接受（须记接受人与依据）
       facts: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
@@ -4858,6 +6011,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 草拟 → 已提交 → 已确认（推断，待第 6 步）
       facts: 已确认 → 奖金核定与转正的输入
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:177
@@ -4867,6 +6023,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 起草 → 评审 → 已发布 → 已修订（新版本）→ 已废止
       facts: — （不直接产生度量事实）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:178
@@ -4876,6 +6034,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 已生成 → 已确认（本人）→ 已锁定；锁定后不重开
       facts: 已锁定 → 出勤天数、加班小时（算薪输入）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:180
@@ -4885,6 +6046,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-54
+      parents_raw: OBJ-54
       states: 草拟 → 已决议 → 已部分支付 → 已支付；已决议后变更须新决议并引用被取代决议
       facts: 已决议 → 应付利润（权益减少）；已支付 → 付款额；自然人股东股息红利个税代扣
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:181
@@ -4894,6 +6058,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-54
+      parents_raw: OBJ-54
       states: 草稿 → 审批中 → 已批准 / 已驳回 → 已用印 → 已关闭
       facts: 已用印 → 用印台账（实际用印时间、份数、经办人）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:183
@@ -4903,6 +6070,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 已提交 → 审批中（需审批的类别）→ 处理中 → 已解决 → 已关闭 / 已退回
       facts: 已解决 → 处理时长（仅分析）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:184
@@ -4912,6 +6082,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-93
+      parents_raw: OBJ-93
       states: 领用申请：草稿 → 已通过（规则直通，无人审）→ 已领用；规则缺失或不满足时拒绝并告警；调拨申请：草稿 → 已申请 → 已调拨 / 已转领用 / 已撤销；使用期间：在用 → 已结束；归还记录：已归还（期间已结束）；维修：草稿 → 已报修 → 已维修登记；原领用审批中、已驳回、已撤回及审批轮次只作迁入历史保留（PRC-143，B31-5）
       facts: 已领用 / 已调拨 / 已归还 → 使用台账（离职交接可读）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
@@ -4921,6 +6094,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 草稿 → 已批准（规则直通，无人工批准）→ 已完成；登记取消路径：已批准 / 已完成 → 已取消（提议状态名，待 one-glossary 定名），取消不构成 VS-14.4 正常退出；原审批中、已驳回及审批轮次只作迁入历史保留（PRC-144，B31-8）
       facts: 已批准 → 活动安排（仅分析）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
@@ -4930,6 +6106,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 未关闭 → 已解释 / 已修正 / 已豁免（均为关闭结局）
       facts: 差异额及结案结果
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:189
@@ -4939,6 +6118,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已用尽 / 已关闭
       facts: 已批准 → 事前批准金额
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:190
@@ -4948,6 +6129,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已同步 / 已关闭
       facts: 已批准 → 行程批准结果
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:191
@@ -4957,6 +6140,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-119
+      parents_raw: OBJ-119
       states: 超标审批：待审批 → 已批准 / 已驳回；归属、退改与核对依据分别记录
       facts: 订单审批与核对结果
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:192
@@ -4966,6 +6152,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 已登记 → 已核对 → 已确认应付
       facts: 已确认应付 → 实际应付与费用确认依据
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:193
@@ -4975,6 +6164,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 年度账户：已开账 → 已结转；占用行：已占用 → 已转用 / 已释放；补休额度行：有效 → 已转计薪 / 已休完
       facts: 核定、使用、结转、折算与手工调整变动
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:194
@@ -4984,6 +6176,9 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-56
+      parents_raw: OBJ-56
       states: 版本：生效（按生效区间）→ 已结束；根记录无单独生命周期
       facts: 薪资变更与待计发调整的计薪依据
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:195
@@ -4993,6 +6188,8 @@ nodes:
       primary: true
       class: 业务对象
       parent: null
+      parents: []
+      parents_raw: —
       states: 版本草稿 → 已生效 → 已停用（被新版本取代）
       facts: 规则版本已生效 → 后续业务按它办
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:196
@@ -5002,9 +6199,23 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
+      parents:
+      - OBJ-103
+      parents_raw: OBJ-103
       states: 对账中 → 已签字
       facts: 对账已签字 → 期间报告可发布
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
+    OBJ-126:
+      name: 股东
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      parents: []
+      parents_raw: —
+      states: 已登记 → 持股中 → 已退出（提议，随 OBJFIN-14）
+      facts: 出资、退出、分配的权益事实主体
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:198
   act:
     AGG-40/批准分摊规则版本:
       command: 批准分摊规则版本
@@ -9236,6 +10447,21 @@ nodes:
       bc: delivery.acceptance
       stages: []
       processes: []
+    net_revenue:
+      zh: 净收入
+      bc: operations.policy
+      stages: []
+      processes: []
+    revenue_including_tax:
+      zh: 含税收入
+      bc: operations.policy
+      stages: []
+      processes: []
+    net_new_contract_value:
+      zh: 新签净额
+      bc: operations.policy
+      stages: []
+      processes: []
   bind: {}
   dec: {}
   agg:
@@ -10899,6 +12125,52 @@ nodes:
       aggregate: platform.numbering/NumberingRule
       obj: null
       kind: null
+  shcat:
+    客户:
+      category: 客户
+      type: 外部
+      obj: OBJ-01
+      role_attr: 角色
+      role: 客户
+      desc: 与我方有、将有或曾有服务约定，或直接从我方服务获益的单位或个人（由往来单位管理 CAP-001 推导）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    合作伙伴:
+      category: 合作伙伴
+      type: 外部
+      obj: OBJ-01
+      role_attr: 角色
+      role: 供应商、渠道伙伴、联合体伙伴、海外持牌伙伴、金融机构
+      desc: 协助我方交付、向我方供货或转介绍业务的单位（由往来单位管理 CAP-001 细化）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    监管机构:
+      category: 监管机构
+      type: 外部
+      obj: OBJ-01
+      role_attr: 角色
+      role: 主管机关
+      desc: 依法审批、监督我方成果或要求我方申报缴款的机关（由往来单位管理 CAP-001 细化）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    人力资源:
+      category: 人力资源
+      type: 两者
+      obj: OBJ-56
+      desc: 与我方法人存在或将建立劳动、劳务关系的自然人，含候选阶段（由人员管理 CAP-056 推导）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    股东和合伙人:
+      category: 股东和合伙人
+      type: 两者
+      obj: OBJ-126
+      role_attr: 股东类型
+      role: 单位股东、自然人股东、合伙人
+      desc: 向我方法人出资并取得回报的单位或个人（用户 2026-10-19 STKH-02：新增一级对象「股东」）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    社会公众:
+      category: 社会公众
+      type: 外部
+      obj: null
+      decr: DECR-02
+      desc: 不与我方订约或往来、只获得建筑安全与效果等非货币价值的公众。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
   steps:
   - prc: PRC-15
     step: 1
@@ -14136,10 +15408,82 @@ nodes:
     command: 提交申报
     src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[8]
 links:
+- kind: sh-trigger
+  from: SH-C1
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C2
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C3
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C4
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C5
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-P3
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-P1c
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
+- kind: sh-receive
+  from: SH-C1
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.value_receivers
+- kind: sh-receive
+  from: SH-C2
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.value_receivers
+- kind: sh-receive
+  from: SH-C3
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.value_receivers
+- kind: sh-receive
+  from: SH-C4
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.value_receivers
+- kind: sh-receive
+  from: SH-C5
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.value_receivers
 - kind: vp-vs
   from: VP-01
   to: VS-01
   src: architecture/proposals/value-streams.v2.yaml#VS-01.value
+- kind: sh-participate
+  from: SH-E5
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.participants
+- kind: sh-participate
+  from: SH-P3
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.participants
 - kind: cap-stage
   from: CAP-001
   to: VS-01.1
@@ -14180,6 +15524,46 @@ links:
   from: VS-01.1
   to: OBJ-17
   src: architecture/proposals/value-streams.v2.yaml#VS-01.1.exit
+- kind: sh-participate
+  from: SH-E5
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
+- kind: sh-participate
+  from: SH-C6b
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
+- kind: sh-participate
+  from: SH-C6c
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
+- kind: sh-participate
+  from: SH-P1c
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
+- kind: sh-participate
+  from: SH-X4
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.participants
 - kind: cap-stage
   from: CAP-018
   to: VS-01.2
@@ -14220,10 +15604,70 @@ links:
   from: VS-01.2
   to: OBJ-18
   src: architecture/proposals/value-streams.v2.yaml#VS-01.2.exit
+- kind: sh-trigger
+  from: SH-C1
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C2
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C3
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C4
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.triggering_stakeholders
+- kind: sh-receive
+  from: SH-C1
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.value_receivers
+- kind: sh-receive
+  from: SH-C2
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.value_receivers
+- kind: sh-receive
+  from: SH-C3
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.value_receivers
+- kind: sh-receive
+  from: SH-C4
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.value_receivers
+- kind: sh-receive
+  from: SH-S1
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.value_receivers
+- kind: sh-receive
+  from: SH-S2
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.value_receivers
 - kind: vp-vs
   from: VP-02
   to: VS-02
   src: architecture/proposals/value-streams.v2.yaml#VS-02.value
+- kind: sh-participate
+  from: SH-E2
+  to: VS-02.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.0.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-02.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.0.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-02.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.0.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-02.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.0.participants
+- kind: sh-participate
+  from: SH-C6e
+  to: VS-02.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.0.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-02.0
@@ -14260,6 +15704,38 @@ links:
   from: VS-02.0
   to: OBJ-30
   src: architecture/proposals/value-streams.v2.yaml#VS-02.0.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-02.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-02.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-02.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.participants
+- kind: sh-participate
+  from: SH-C6b
+  to: VS-02.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.participants
+- kind: sh-participate
+  from: SH-C6e
+  to: VS-02.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.participants
+- kind: sh-participate
+  from: SH-X1
+  to: VS-02.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-02.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-02.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-02.1
@@ -14270,8 +15746,68 @@ links:
   src: architecture/proposals/value-streams.v2.yaml#VS-02.1
 - kind: stage-gate-entry
   from: VS-02.1
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.entry
+- kind: stage-gate-entry
+  from: VS-02.1
   to: OBJ-42
   src: architecture/proposals/value-streams.v2.yaml#VS-02.1.entry
+- kind: stage-gate-exit
+  from: VS-02.1
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.exit
+- kind: stage-gate-exit
+  from: VS-02.1
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.exit
+- kind: stage-gate-exit
+  from: VS-02.1
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.exit
+- kind: stage-gate-exit
+  from: VS-02.1
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
+- kind: sh-participate
+  from: SH-C6b
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
+- kind: sh-participate
+  from: SH-C6e
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
+- kind: sh-participate
+  from: SH-X1
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
+- kind: sh-participate
+  from: SH-R1
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
+- kind: sh-participate
+  from: SH-P1
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-02.2
@@ -14282,8 +15818,68 @@ links:
   src: architecture/proposals/value-streams.v2.yaml#VS-02.2
 - kind: stage-gate-entry
   from: VS-02.2
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.entry
+- kind: stage-gate-entry
+  from: VS-02.2
   to: OBJ-42
   src: architecture/proposals/value-streams.v2.yaml#VS-02.2.entry
+- kind: stage-gate-exit
+  from: VS-02.2
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.exit
+- kind: stage-gate-exit
+  from: VS-02.2
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.exit
+- kind: stage-gate-exit
+  from: VS-02.2
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.exit
+- kind: stage-gate-exit
+  from: VS-02.2
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
+- kind: sh-participate
+  from: SH-E7
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
+- kind: sh-participate
+  from: SH-C6e
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
+- kind: sh-participate
+  from: SH-X1
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
+- kind: sh-participate
+  from: SH-R1
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
+- kind: sh-participate
+  from: SH-P1
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-02.3
@@ -14294,8 +15890,72 @@ links:
   src: architecture/proposals/value-streams.v2.yaml#VS-02.3
 - kind: stage-gate-entry
   from: VS-02.3
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.entry
+- kind: stage-gate-entry
+  from: VS-02.3
   to: OBJ-42
   src: architecture/proposals/value-streams.v2.yaml#VS-02.3.entry
+- kind: stage-gate-exit
+  from: VS-02.3
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.exit
+- kind: stage-gate-exit
+  from: VS-02.3
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.exit
+- kind: stage-gate-exit
+  from: VS-02.3
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.exit
+- kind: stage-gate-exit
+  from: VS-02.3
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-E7
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-C6e
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-X1
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-R1
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-P1
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-02.4
@@ -14306,8 +15966,60 @@ links:
   src: architecture/proposals/value-streams.v2.yaml#VS-02.4
 - kind: stage-gate-entry
   from: VS-02.4
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.entry
+- kind: stage-gate-entry
+  from: VS-02.4
   to: OBJ-42
   src: architecture/proposals/value-streams.v2.yaml#VS-02.4.entry
+- kind: stage-gate-exit
+  from: VS-02.4
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.exit
+- kind: stage-gate-exit
+  from: VS-02.4
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.exit
+- kind: stage-gate-exit
+  from: VS-02.4
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.exit
+- kind: stage-gate-exit
+  from: VS-02.4
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-02.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-02.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.participants
+- kind: sh-participate
+  from: SH-C6c
+  to: VS-02.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.participants
+- kind: sh-participate
+  from: SH-X4
+  to: VS-02.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.participants
+- kind: sh-participate
+  from: SH-X2
+  to: VS-02.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-02.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-02.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-02.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-02.5
@@ -14316,6 +16028,66 @@ links:
   from: VS-02
   to: VS-02.5
   src: architecture/proposals/value-streams.v2.yaml#VS-02.5
+- kind: stage-gate-entry
+  from: VS-02.5
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.entry
+- kind: stage-gate-exit
+  from: VS-02.5
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.exit
+- kind: stage-gate-exit
+  from: VS-02.5
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.exit
+- kind: stage-gate-exit
+  from: VS-02.5
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.exit
+- kind: stage-gate-exit
+  from: VS-02.5
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
+- kind: sh-participate
+  from: SH-C6e
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
+- kind: sh-participate
+  from: SH-X2
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
+- kind: sh-participate
+  from: SH-X3
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
+- kind: sh-participate
+  from: SH-X5
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
+- kind: sh-participate
+  from: SH-R1
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-02.6
@@ -14328,10 +16100,58 @@ links:
   from: VS-02
   to: VS-02.6
   src: architecture/proposals/value-streams.v2.yaml#VS-02.6
+- kind: stage-gate-entry
+  from: VS-02.6
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.entry
+- kind: stage-gate-exit
+  from: VS-02.6
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.exit
+- kind: stage-gate-exit
+  from: VS-02.6
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.exit
+- kind: stage-gate-exit
+  from: VS-02.6
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.exit
+- kind: stage-gate-exit
+  from: VS-02.6
+  to: OBJ-30
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.exit
 - kind: stage-gate-exit
   from: VS-02.6
   to: OBJ-38
   src: architecture/proposals/value-streams.v2.yaml#VS-02.6.exit
+- kind: sh-participate
+  from: SH-E2
+  to: VS-02.7
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.7.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-02.7
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.7.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-02.7
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.7.participants
+- kind: sh-participate
+  from: SH-C6b
+  to: VS-02.7
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.7.participants
+- kind: sh-participate
+  from: SH-C6c
+  to: VS-02.7
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.7.participants
+- kind: sh-participate
+  from: SH-X4
+  to: VS-02.7
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.7.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-02.7
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.7.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-02.7
@@ -14368,10 +16188,58 @@ links:
   from: VS-02.7
   to: OBJ-29
   src: architecture/proposals/value-streams.v2.yaml#VS-02.7.exit
+- kind: sh-trigger
+  from: SH-C5
+  to: VS-03
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C3
+  to: VS-03
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-P3
+  to: VS-03
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.triggering_stakeholders
+- kind: sh-receive
+  from: SH-C5
+  to: VS-03
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.value_receivers
+- kind: sh-receive
+  from: SH-C3
+  to: VS-03
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.value_receivers
+- kind: sh-receive
+  from: SH-S1
+  to: VS-03
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.value_receivers
+- kind: sh-receive
+  from: SH-S2
+  to: VS-03
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.value_receivers
 - kind: vp-vs
   from: VP-03
   to: VS-03
   src: architecture/proposals/value-streams.v2.yaml#VS-03.value
+- kind: sh-participate
+  from: SH-E2
+  to: VS-03.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.1.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-03.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.1.participants
+- kind: sh-participate
+  from: SH-C5
+  to: VS-03.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.1.participants
+- kind: sh-participate
+  from: SH-C3
+  to: VS-03.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.1.participants
+- kind: sh-participate
+  from: SH-X8
+  to: VS-03.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.1.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-03.1
@@ -14404,6 +16272,26 @@ links:
   from: VS-03.1
   to: OBJ-49
   src: architecture/proposals/value-streams.v2.yaml#VS-03.1.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-03.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.2.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-03.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.2.participants
+- kind: sh-participate
+  from: SH-X5
+  to: VS-03.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.2.participants
+- kind: sh-participate
+  from: SH-X2
+  to: VS-03.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.2.participants
+- kind: sh-participate
+  from: SH-X8
+  to: VS-03.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.2.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-03.2
@@ -14420,6 +16308,22 @@ links:
   from: VS-03.2
   to: OBJ-49
   src: architecture/proposals/value-streams.v2.yaml#VS-03.2.exit
+- kind: sh-participate
+  from: SH-E4
+  to: VS-03.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.3.participants
+- kind: sh-participate
+  from: SH-C5
+  to: VS-03.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.3.participants
+- kind: sh-participate
+  from: SH-C3
+  to: VS-03.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.3.participants
+- kind: sh-participate
+  from: SH-X6
+  to: VS-03.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.3.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-03.3
@@ -14436,6 +16340,30 @@ links:
   from: VS-03.3
   to: OBJ-38
   src: architecture/proposals/value-streams.v2.yaml#VS-03.3.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-03.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.4.participants
+- kind: sh-participate
+  from: SH-X2
+  to: VS-03.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.4.participants
+- kind: sh-participate
+  from: SH-X6
+  to: VS-03.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.4.participants
+- kind: sh-participate
+  from: SH-X5
+  to: VS-03.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.4.participants
+- kind: sh-participate
+  from: SH-C3
+  to: VS-03.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.4.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-03.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.4.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-03.4
@@ -14460,6 +16388,30 @@ links:
   from: VS-03.4
   to: OBJ-38
   src: architecture/proposals/value-streams.v2.yaml#VS-03.4.exit
+- kind: sh-participate
+  from: SH-E4
+  to: VS-03.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.5.participants
+- kind: sh-participate
+  from: SH-E7
+  to: VS-03.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.5.participants
+- kind: sh-participate
+  from: SH-C5
+  to: VS-03.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.5.participants
+- kind: sh-participate
+  from: SH-C3
+  to: VS-03.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.5.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-03.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.5.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-03.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.5.participants
 - kind: cap-stage
   from: CAP-029
   to: VS-03.5
@@ -14476,10 +16428,74 @@ links:
   from: VS-03.5
   to: OBJ-35
   src: architecture/proposals/value-streams.v2.yaml#VS-03.5.exit
+- kind: sh-trigger
+  from: SH-C1
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C2
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C3
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C4
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-C5
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.triggering_stakeholders
+- kind: sh-receive
+  from: SH-C1
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.value_receivers
+- kind: sh-receive
+  from: SH-C2
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.value_receivers
+- kind: sh-receive
+  from: SH-C3
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.value_receivers
+- kind: sh-receive
+  from: SH-C4
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.value_receivers
+- kind: sh-receive
+  from: SH-C5
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.value_receivers
 - kind: vp-vs
   from: VP-04
   to: VS-04
   src: architecture/proposals/value-streams.v2.yaml#VS-04.value
+- kind: sh-participate
+  from: SH-E5
+  to: VS-04.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.1.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-04.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.1.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-04.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.1.participants
+- kind: sh-participate
+  from: SH-C6c
+  to: VS-04.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.1.participants
+- kind: sh-participate
+  from: SH-C6b
+  to: VS-04.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.1.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-04.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.1.participants
 - kind: cap-stage
   from: CAP-005
   to: VS-04.1
@@ -14508,6 +16524,34 @@ links:
   from: VS-04.1
   to: OBJ-12
   src: architecture/proposals/value-streams.v2.yaml#VS-04.1.exit
+- kind: sh-participate
+  from: SH-E2
+  to: VS-04.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.6.participants
+- kind: sh-participate
+  from: SH-E5
+  to: VS-04.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.6.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-04.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.6.participants
+- kind: sh-participate
+  from: SH-C6b
+  to: VS-04.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.6.participants
+- kind: sh-participate
+  from: SH-C6c
+  to: VS-04.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.6.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-04.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.6.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-04.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.6.participants
 - kind: cap-stage
   from: CAP-005
   to: VS-04.6
@@ -14524,6 +16568,18 @@ links:
   from: VS-04.6
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-04.6.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-04.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.2.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-04.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.2.participants
+- kind: sh-participate
+  from: SH-C6e
+  to: VS-04.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.2.participants
 - kind: cap-stage
   from: CAP-053
   to: VS-04.2
@@ -14540,6 +16596,50 @@ links:
   from: VS-04.2
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-04.2.entry
+- kind: stage-gate-entry
+  from: VS-04.2
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.2.entry
+- kind: stage-gate-entry
+  from: VS-04.2
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.2.entry
+- kind: stage-gate-entry
+  from: VS-04.2
+  to: OBJ-35
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.2.entry
+- kind: sh-participate
+  from: SH-E6
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.participants
+- kind: sh-participate
+  from: SH-C6d
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.participants
+- kind: sh-participate
+  from: SH-E5
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.participants
+- kind: sh-participate
+  from: SH-R2
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.participants
+- kind: sh-participate
+  from: SH-R1
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-04.3
@@ -14568,6 +16668,26 @@ links:
   from: VS-04.3
   to: OBJ-83
   src: architecture/proposals/value-streams.v2.yaml#VS-04.3.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-04.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.4.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-04.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.4.participants
+- kind: sh-participate
+  from: SH-C6d
+  to: VS-04.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.4.participants
+- kind: sh-participate
+  from: SH-X7
+  to: VS-04.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.4.participants
+- kind: sh-participate
+  from: SH-P5
+  to: VS-04.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.4.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-04.4
@@ -14584,6 +16704,42 @@ links:
   from: VS-04.4
   to: OBJ-85
   src: architecture/proposals/value-streams.v2.yaml#VS-04.4.exit
+- kind: stage-gate-exit
+  from: VS-04.4
+  to: OBJ-86
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.4.exit
+- kind: stage-gate-exit
+  from: VS-04.4
+  to: OBJ-85
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.4.exit
+- kind: sh-participate
+  from: SH-E2
+  to: VS-04.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.5.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-04.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.5.participants
+- kind: sh-participate
+  from: SH-C6c
+  to: VS-04.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.5.participants
+- kind: sh-participate
+  from: SH-X4
+  to: VS-04.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.5.participants
+- kind: sh-participate
+  from: SH-C6a
+  to: VS-04.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.5.participants
+- kind: sh-participate
+  from: SH-E5
+  to: VS-04.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.5.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-04.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.5.participants
 - kind: cap-stage
   from: CAP-005
   to: VS-04.5
@@ -14604,10 +16760,42 @@ links:
   from: VS-04.5
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-04.5.exit
+- kind: sh-trigger
+  from: SH-E2
+  to: VS-05
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-M1
+  to: VS-05
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.triggering_stakeholders
+- kind: sh-receive
+  from: SH-E2
+  to: VS-05
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.value_receivers
+- kind: sh-receive
+  from: SH-M1
+  to: VS-05
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.value_receivers
 - kind: vp-vs
   from: VP-05
   to: VS-05
   src: architecture/proposals/value-streams.v2.yaml#VS-05.value
+- kind: sh-participate
+  from: SH-E6
+  to: VS-05.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.1.participants
+- kind: sh-participate
+  from: SH-P1
+  to: VS-05.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.1.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-05.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.1.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-05.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.1.participants
 - kind: cap-stage
   from: CAP-001
   to: VS-05.1
@@ -14628,6 +16816,46 @@ links:
   from: VS-05.1
   to: OBJ-65
   src: architecture/proposals/value-streams.v2.yaml#VS-05.1.exit
+- kind: sh-participate
+  from: SH-E2
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-P1
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-P1c
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-P3
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-E1
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-X2
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-P6
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
 - kind: cap-stage
   from: CAP-005
   to: VS-05.2
@@ -14652,6 +16880,30 @@ links:
   from: VS-05.2
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-05.2.exit
+- kind: sh-participate
+  from: SH-E2
+  to: VS-05.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.3.participants
+- kind: sh-participate
+  from: SH-E3
+  to: VS-05.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.3.participants
+- kind: sh-participate
+  from: SH-P1
+  to: VS-05.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.3.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-05.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.3.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-05.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.3.participants
+- kind: sh-participate
+  from: SH-X2
+  to: VS-05.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.3.participants
 - kind: cap-stage
   from: CAP-005
   to: VS-05.3
@@ -14668,6 +16920,22 @@ links:
   from: VS-05.3
   to: OBJ-87
   src: architecture/proposals/value-streams.v2.yaml#VS-05.3.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-05.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.4.participants
+- kind: sh-participate
+  from: SH-P1
+  to: VS-05.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.4.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-05.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.4.participants
+- kind: sh-participate
+  from: SH-R2
+  to: VS-05.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.4.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-05.4
@@ -14688,6 +16956,46 @@ links:
   from: VS-05.4
   to: OBJ-83
   src: architecture/proposals/value-streams.v2.yaml#VS-05.4.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-P1
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-E1
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-E3
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-X7
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-P5
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-P6
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-05.5
@@ -14708,6 +17016,18 @@ links:
   from: VS-05.5
   to: OBJ-85
   src: architecture/proposals/value-streams.v2.yaml#VS-05.5.exit
+- kind: sh-participate
+  from: SH-E2
+  to: VS-05.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.6.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-05.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.6.participants
+- kind: sh-participate
+  from: SH-P1
+  to: VS-05.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.6.participants
 - kind: cap-stage
   from: CAP-005
   to: VS-05.6
@@ -14728,10 +17048,30 @@ links:
   from: VS-05.6
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-05.6.exit
+- kind: sh-trigger
+  from: SH-R2
+  to: VS-06
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.triggering_stakeholders
+- kind: sh-receive
+  from: SH-R2
+  to: VS-06
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.value_receivers
 - kind: vp-vs
   from: VP-06
   to: VS-06
   src: architecture/proposals/value-streams.v2.yaml#VS-06.value
+- kind: sh-participate
+  from: SH-E6
+  to: VS-06.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.1.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-06.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.1.participants
+- kind: sh-participate
+  from: SH-R2
+  to: VS-06.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.1.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-06.1
@@ -14744,6 +17084,22 @@ links:
   from: VS-06.1
   to: OBJ-92
   src: architecture/proposals/value-streams.v2.yaml#VS-06.1.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-06.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.2.participants
+- kind: sh-participate
+  from: SH-E7
+  to: VS-06.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-06.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.2.participants
+- kind: sh-participate
+  from: SH-R2
+  to: VS-06.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.2.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-06.2
@@ -14768,10 +17124,38 @@ links:
   from: VS-06.2
   to: OBJ-64
   src: architecture/proposals/value-streams.v2.yaml#VS-06.2.exit
+- kind: sh-trigger
+  from: SH-E1
+  to: VS-07
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-H1
+  to: VS-07
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.triggering_stakeholders
+- kind: sh-receive
+  from: SH-E1
+  to: VS-07
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.value_receivers
+- kind: sh-receive
+  from: SH-H1
+  to: VS-07
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.value_receivers
 - kind: vp-vs
   from: VP-07
   to: VS-07
   src: architecture/proposals/value-streams.v2.yaml#VS-07.value
+- kind: sh-participate
+  from: SH-E1
+  to: VS-07.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.1.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-07.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.1.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-07.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.1.participants
 - kind: cap-stage
   from: CAP-056
   to: VS-07.1
@@ -14796,6 +17180,18 @@ links:
   from: VS-07.1
   to: OBJ-60
   src: architecture/proposals/value-streams.v2.yaml#VS-07.1.exit
+- kind: sh-participate
+  from: SH-H1
+  to: VS-07.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.2.participants
+- kind: sh-participate
+  from: SH-E1
+  to: VS-07.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.2.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-07.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.2.participants
 - kind: cap-stage
   from: CAP-056
   to: VS-07.2
@@ -14816,6 +17212,18 @@ links:
   from: VS-07.2
   to: OBJ-56
   src: architecture/proposals/value-streams.v2.yaml#VS-07.2.exit
+- kind: sh-participate
+  from: SH-H1
+  to: VS-07.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.3.participants
+- kind: sh-participate
+  from: SH-E1
+  to: VS-07.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.3.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-07.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.3.participants
 - kind: cap-stage
   from: CAP-005
   to: VS-07.3
@@ -14844,10 +17252,90 @@ links:
   from: VS-07.3
   to: OBJ-62
   src: architecture/proposals/value-streams.v2.yaml#VS-07.3.exit
+- kind: sh-trigger
+  from: SH-E1
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E2
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E3
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E4
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E5
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E6
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E7
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.triggering_stakeholders
+- kind: sh-receive
+  from: SH-E1
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.value_receivers
+- kind: sh-receive
+  from: SH-E2
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.value_receivers
+- kind: sh-receive
+  from: SH-E3
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.value_receivers
+- kind: sh-receive
+  from: SH-E4
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.value_receivers
+- kind: sh-receive
+  from: SH-E5
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.value_receivers
+- kind: sh-receive
+  from: SH-E6
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.value_receivers
+- kind: sh-receive
+  from: SH-E7
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.value_receivers
 - kind: vp-vs
   from: VP-08
   to: VS-08
   src: architecture/proposals/value-streams.v2.yaml#VS-08.value
+- kind: sh-participate
+  from: SH-E3
+  to: VS-08.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.0.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-08.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.0.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-08.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.0.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-08.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.0.participants
+- kind: sh-participate
+  from: SH-E1
+  to: VS-08.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.0.participants
+- kind: sh-participate
+  from: SH-P2
+  to: VS-08.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.0.participants
 - kind: cap-stage
   from: CAP-118
   to: VS-08.0
@@ -14868,6 +17356,18 @@ links:
   from: VS-08.0
   to: OBJ-119
   src: architecture/proposals/value-streams.v2.yaml#VS-08.0.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-08.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.1.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-08.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.1.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-08.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.1.participants
 - kind: cap-stage
   from: CAP-056
   to: VS-08.1
@@ -14888,6 +17388,26 @@ links:
   from: VS-08.1
   to: OBJ-85
   src: architecture/proposals/value-streams.v2.yaml#VS-08.1.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-08.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.2.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-08.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.2.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-08.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.2.participants
+- kind: sh-participate
+  from: SH-E1
+  to: VS-08.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-08.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.2.participants
 - kind: cap-stage
   from: CAP-056
   to: VS-08.2
@@ -14912,6 +17432,14 @@ links:
   from: VS-08.2
   to: OBJ-83
   src: architecture/proposals/value-streams.v2.yaml#VS-08.2.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-08.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.3.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-08.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.3.participants
 - kind: cap-stage
   from: CAP-056
   to: VS-08.3
@@ -14940,10 +17468,30 @@ links:
   from: VS-08.3
   to: OBJ-88
   src: architecture/proposals/value-streams.v2.yaml#VS-08.3.exit
+- kind: sh-trigger
+  from: SH-M1
+  to: VS-09
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.triggering_stakeholders
+- kind: sh-receive
+  from: SH-M1
+  to: VS-09
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.value_receivers
+- kind: sh-receive
+  from: SH-O1
+  to: VS-09
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.value_receivers
 - kind: vp-vs
   from: VP-09
   to: VS-09
   src: architecture/proposals/value-streams.v2.yaml#VS-09.value
+- kind: sh-participate
+  from: SH-M1
+  to: VS-09.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.1.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-09.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.1.participants
 - kind: cap-stage
   from: CAP-100
   to: VS-09.1
@@ -14960,6 +17508,22 @@ links:
   from: VS-09.1
   to: OBJ-100
   src: architecture/proposals/value-streams.v2.yaml#VS-09.1.exit
+- kind: sh-participate
+  from: SH-M1
+  to: VS-09.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.2.participants
+- kind: sh-participate
+  from: SH-E5
+  to: VS-09.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.2.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-09.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.2.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-09.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.2.participants
 - kind: cap-stage
   from: CAP-100
   to: VS-09.2
@@ -14976,6 +17540,18 @@ links:
   from: VS-09.2
   to: OBJ-100
   src: architecture/proposals/value-streams.v2.yaml#VS-09.2.exit
+- kind: sh-participate
+  from: SH-M1
+  to: VS-09.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.3.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-09.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.3.participants
+- kind: sh-participate
+  from: SH-O1
+  to: VS-09.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.3.participants
 - kind: cap-stage
   from: CAP-100
   to: VS-09.3
@@ -14992,10 +17568,30 @@ links:
   from: VS-09.3
   to: OBJ-100
   src: architecture/proposals/value-streams.v2.yaml#VS-09.3.exit
+- kind: sh-trigger
+  from: SH-M1
+  to: VS-10
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.triggering_stakeholders
+- kind: sh-receive
+  from: SH-M1
+  to: VS-10
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.value_receivers
+- kind: sh-receive
+  from: SH-O1
+  to: VS-10
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.value_receivers
 - kind: vp-vs
   from: VP-10
   to: VS-10
   src: architecture/proposals/value-streams.v2.yaml#VS-10.value
+- kind: sh-participate
+  from: SH-E6
+  to: VS-10.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.0.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-10.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.0.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-10.0
@@ -15012,6 +17608,18 @@ links:
   from: VS-10.0
   to: OBJ-98
   src: architecture/proposals/value-streams.v2.yaml#VS-10.0.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-10.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.1.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-10.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.1.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-10.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.1.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-10.1
@@ -15032,6 +17640,22 @@ links:
   from: VS-10.1
   to: OBJ-97
   src: architecture/proposals/value-streams.v2.yaml#VS-10.1.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-10.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-10.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.2.participants
+- kind: sh-participate
+  from: SH-O1
+  to: VS-10.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.2.participants
+- kind: sh-participate
+  from: SH-P4
+  to: VS-10.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.2.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-10.2
@@ -15052,10 +17676,46 @@ links:
   from: VS-10.2
   to: OBJ-125
   src: architecture/proposals/value-streams.v2.yaml#VS-10.2.exit
+- kind: sh-trigger
+  from: SH-E4
+  to: VS-11
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E2
+  to: VS-11
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.triggering_stakeholders
+- kind: sh-receive
+  from: SH-E3
+  to: VS-11
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.value_receivers
+- kind: sh-receive
+  from: SH-E2
+  to: VS-11
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.value_receivers
+- kind: sh-receive
+  from: SH-E5
+  to: VS-11
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.value_receivers
+- kind: sh-receive
+  from: SH-E4
+  to: VS-11
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.value_receivers
 - kind: vp-vs
   from: VP-11
   to: VS-11
   src: architecture/proposals/value-streams.v2.yaml#VS-11.value
+- kind: sh-participate
+  from: SH-E4
+  to: VS-11.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.1.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-11.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.1.participants
+- kind: sh-participate
+  from: SH-E3
+  to: VS-11.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.1.participants
 - kind: cap-stage
   from: CAP-110
   to: VS-11.1
@@ -15076,6 +17736,14 @@ links:
   from: VS-11.1
   to: OBJ-110
   src: architecture/proposals/value-streams.v2.yaml#VS-11.1.exit
+- kind: sh-participate
+  from: SH-E4
+  to: VS-11.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-11.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.2.participants
 - kind: cap-stage
   from: CAP-110
   to: VS-11.2
@@ -15092,6 +17760,10 @@ links:
   from: VS-11.2
   to: OBJ-110
   src: architecture/proposals/value-streams.v2.yaml#VS-11.2.exit
+- kind: sh-participate
+  from: SH-E4
+  to: VS-11.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.3.participants
 - kind: cap-stage
   from: CAP-110
   to: VS-11.3
@@ -15112,10 +17784,34 @@ links:
   from: VS-11.3
   to: OBJ-110
   src: architecture/proposals/value-streams.v2.yaml#VS-11.3.exit
+- kind: sh-trigger
+  from: SH-O1
+  to: VS-12
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.triggering_stakeholders
+- kind: sh-receive
+  from: SH-O1
+  to: VS-12
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.value_receivers
 - kind: vp-vs
   from: VP-12
   to: VS-12
   src: architecture/proposals/value-streams.v2.yaml#VS-12.value
+- kind: sh-participate
+  from: SH-O1
+  to: VS-12.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.1.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-12.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.1.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-12.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.1.participants
+- kind: sh-participate
+  from: SH-P5
+  to: VS-12.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.1.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-12.1
@@ -15132,6 +17828,22 @@ links:
   from: VS-12.1
   to: OBJ-91
   src: architecture/proposals/value-streams.v2.yaml#VS-12.1.exit
+- kind: sh-participate
+  from: SH-O1
+  to: VS-12.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-12.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.2.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-12.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.2.participants
+- kind: sh-participate
+  from: SH-P4
+  to: VS-12.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.2.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-12.2
@@ -15152,6 +17864,18 @@ links:
   from: VS-12.2
   to: OBJ-112
   src: architecture/proposals/value-streams.v2.yaml#VS-12.2.exit
+- kind: sh-participate
+  from: SH-O1
+  to: VS-12.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.3.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-12.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.3.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-12.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.3.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-12.3
@@ -15168,10 +17892,78 @@ links:
   from: VS-12.3
   to: OBJ-91
   src: architecture/proposals/value-streams.v2.yaml#VS-12.3.exit
+- kind: sh-trigger
+  from: SH-E1
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E2
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E3
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E4
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E5
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E6
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E7
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.triggering_stakeholders
+- kind: sh-receive
+  from: SH-E1
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.value_receivers
+- kind: sh-receive
+  from: SH-E2
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.value_receivers
+- kind: sh-receive
+  from: SH-E3
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.value_receivers
+- kind: sh-receive
+  from: SH-E4
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.value_receivers
+- kind: sh-receive
+  from: SH-E5
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.value_receivers
+- kind: sh-receive
+  from: SH-E6
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.value_receivers
+- kind: sh-receive
+  from: SH-E7
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.value_receivers
 - kind: vp-vs
   from: VP-13
   to: VS-13
   src: architecture/proposals/value-streams.v2.yaml#VS-13.value
+- kind: sh-participate
+  from: SH-E3
+  to: VS-13.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.1.participants
+- kind: sh-participate
+  from: SH-E1
+  to: VS-13.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.1.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-13.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.1.participants
 - kind: cap-stage
   from: CAP-028
   to: VS-13.1
@@ -15204,6 +17996,18 @@ links:
   from: VS-13.1
   to: OBJ-72
   src: architecture/proposals/value-streams.v2.yaml#VS-13.1.exit
+- kind: sh-participate
+  from: SH-E1
+  to: VS-13.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-13.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.2.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-13.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.2.participants
 - kind: cap-stage
   from: CAP-056
   to: VS-13.2
@@ -15232,6 +18036,14 @@ links:
   from: VS-13.2
   to: OBJ-104
   src: architecture/proposals/value-streams.v2.yaml#VS-13.2.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-13.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.3.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-13.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.3.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-13.3
@@ -15256,6 +18068,14 @@ links:
   from: VS-13.3
   to: OBJ-73
   src: architecture/proposals/value-streams.v2.yaml#VS-13.3.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-13.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.4.participants
+- kind: sh-participate
+  from: SH-R2
+  to: VS-13.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.4.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-13.4
@@ -15284,6 +18104,18 @@ links:
   from: VS-13.4
   to: OBJ-92
   src: architecture/proposals/value-streams.v2.yaml#VS-13.4.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-13.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.5.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-13.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.5.participants
+- kind: sh-participate
+  from: SH-E3
+  to: VS-13.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.5.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-13.5
@@ -15316,6 +18148,22 @@ links:
   from: VS-13.5
   to: OBJ-73
   src: architecture/proposals/value-streams.v2.yaml#VS-13.5.exit
+- kind: sh-participate
+  from: SH-E3
+  to: VS-13.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.6.participants
+- kind: sh-participate
+  from: SH-E1
+  to: VS-13.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.6.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-13.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.6.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-13.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.6.participants
 - kind: cap-stage
   from: CAP-005
   to: VS-13.6
@@ -15344,10 +18192,94 @@ links:
   from: VS-13.6
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-13.6.exit
+- kind: sh-trigger
+  from: SH-E1
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E2
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E3
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E4
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E5
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E6
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E7
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.triggering_stakeholders
+- kind: sh-receive
+  from: SH-E1
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.value_receivers
+- kind: sh-receive
+  from: SH-E2
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.value_receivers
+- kind: sh-receive
+  from: SH-E3
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.value_receivers
+- kind: sh-receive
+  from: SH-E4
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.value_receivers
+- kind: sh-receive
+  from: SH-E5
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.value_receivers
+- kind: sh-receive
+  from: SH-E6
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.value_receivers
+- kind: sh-receive
+  from: SH-E7
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.value_receivers
 - kind: vp-vs
   from: VP-14
   to: VS-14
   src: architecture/proposals/value-streams.v2.yaml#VS-14.value
+- kind: sh-participate
+  from: SH-E1
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.participants
+- kind: sh-participate
+  from: SH-E2
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.participants
+- kind: sh-participate
+  from: SH-E3
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.participants
+- kind: sh-participate
+  from: SH-E4
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.participants
+- kind: sh-participate
+  from: SH-E5
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.participants
+- kind: sh-participate
+  from: SH-E7
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-14.1
@@ -15380,6 +18312,18 @@ links:
   from: VS-14.1
   to: OBJ-116
   src: architecture/proposals/value-streams.v2.yaml#VS-14.1.exit
+- kind: sh-participate
+  from: SH-E1
+  to: VS-14.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.2.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-14.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.2.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-14.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.2.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-14.2
@@ -15412,6 +18356,14 @@ links:
   from: VS-14.2
   to: OBJ-114
   src: architecture/proposals/value-streams.v2.yaml#VS-14.2.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-14.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.3.participants
+- kind: sh-participate
+  from: SH-E3
+  to: VS-14.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.3.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-14.3
@@ -15460,6 +18412,18 @@ links:
   from: VS-14.3
   to: OBJ-115
   src: architecture/proposals/value-streams.v2.yaml#VS-14.3.exit
+- kind: sh-participate
+  from: SH-E1
+  to: VS-14.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.4.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-14.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.4.participants
+- kind: sh-participate
+  from: SH-E3
+  to: VS-14.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.4.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-14.4
@@ -15516,10 +18480,50 @@ links:
   from: VS-14.4
   to: OBJ-116
   src: architecture/proposals/value-streams.v2.yaml#VS-14.4.exit
+- kind: sh-trigger
+  from: SH-M1
+  to: VS-15
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.triggering_stakeholders
+- kind: sh-trigger
+  from: SH-E6
+  to: VS-15
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.triggering_stakeholders
+- kind: sh-receive
+  from: SH-M1
+  to: VS-15
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.value_receivers
+- kind: sh-receive
+  from: SH-E1
+  to: VS-15
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.value_receivers
+- kind: sh-receive
+  from: SH-E2
+  to: VS-15
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.value_receivers
+- kind: sh-receive
+  from: SH-E3
+  to: VS-15
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.value_receivers
+- kind: sh-receive
+  from: SH-E5
+  to: VS-15
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.value_receivers
+- kind: sh-receive
+  from: SH-E6
+  to: VS-15
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.value_receivers
 - kind: vp-vs
   from: VP-15
   to: VS-15
   src: architecture/proposals/value-streams.v2.yaml#VS-15.value
+- kind: sh-participate
+  from: SH-E6
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.participants
 - kind: cap-stage
   from: CAP-024
   to: VS-15.1
@@ -15576,6 +18580,18 @@ links:
   from: VS-15.1
   to: OBJ-124
   src: architecture/proposals/value-streams.v2.yaml#VS-15.1.exit
+- kind: sh-participate
+  from: SH-M1
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.participants
+- kind: sh-participate
+  from: SH-E6
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.participants
+- kind: sh-participate
+  from: SH-X7
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.participants
 - kind: cap-stage
   from: CAP-024
   to: VS-15.2
@@ -15672,6 +18688,18 @@ links:
   from: VS-15.2
   to: OBJ-124
   src: architecture/proposals/value-streams.v2.yaml#VS-15.2.exit
+- kind: sh-participate
+  from: SH-E6
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.participants
+- kind: sh-participate
+  from: SH-M1
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.participants
+- kind: sh-participate
+  from: SH-X7
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.participants
 - kind: cap-stage
   from: CAP-024
   to: VS-15.3
@@ -15776,6 +18804,354 @@ links:
   from: VS-15.3
   to: OBJ-124
   src: architecture/proposals/value-streams.v2.yaml#VS-15.3.exit
+- kind: obj-parent
+  from: OBJ-02
+  to: OBJ-01
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
+- kind: obj-parent
+  from: OBJ-03
+  to: OBJ-01
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
+- kind: obj-parent
+  from: OBJ-06
+  to: OBJ-05
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
+- kind: obj-parent
+  from: OBJ-07
+  to: OBJ-05
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
+- kind: obj-parent
+  from: OBJ-08
+  to: OBJ-05
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
+- kind: obj-parent
+  from: OBJ-09
+  to: OBJ-05
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
+- kind: obj-parent
+  from: OBJ-10
+  to: OBJ-05
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
+- kind: obj-parent
+  from: OBJ-12
+  to: OBJ-18
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
+- kind: obj-parent
+  from: OBJ-12
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
+- kind: obj-parent
+  from: OBJ-13
+  to: OBJ-20
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
+- kind: obj-parent
+  from: OBJ-13
+  to: OBJ-05
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
+- kind: obj-parent
+  from: OBJ-20
+  to: OBJ-18
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
+- kind: obj-parent
+  from: OBJ-21
+  to: OBJ-18
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
+- kind: obj-parent
+  from: OBJ-22
+  to: OBJ-21
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
+- kind: obj-parent
+  from: OBJ-23
+  to: OBJ-18
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
+- kind: obj-parent
+  from: OBJ-23
+  to: OBJ-20
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
+- kind: obj-parent
+  from: OBJ-27
+  to: OBJ-26
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
+- kind: obj-parent
+  from: OBJ-30
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
+- kind: obj-parent
+  from: OBJ-31
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
+- kind: obj-parent
+  from: OBJ-32
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
+- kind: obj-parent
+  from: OBJ-33
+  to: OBJ-30
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
+- kind: obj-parent
+  from: OBJ-33
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
+- kind: obj-parent
+  from: OBJ-34
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
+- kind: obj-parent
+  from: OBJ-35
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:96
+- kind: obj-parent
+  from: OBJ-37
+  to: OBJ-35
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
+- kind: obj-parent
+  from: OBJ-38
+  to: OBJ-35
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+- kind: obj-parent
+  from: OBJ-38
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+- kind: obj-parent
+  from: OBJ-38
+  to: OBJ-49
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+- kind: obj-parent
+  from: OBJ-39
+  to: OBJ-38
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
+- kind: obj-parent
+  from: OBJ-40
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
+- kind: obj-parent
+  from: OBJ-41
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
+- kind: obj-parent
+  from: OBJ-42
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
+- kind: obj-parent
+  from: OBJ-44
+  to: OBJ-30
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
+- kind: obj-parent
+  from: OBJ-45
+  to: OBJ-30
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
+- kind: obj-parent
+  from: OBJ-47
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
+- kind: obj-parent
+  from: OBJ-48
+  to: OBJ-46
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
+- kind: obj-parent
+  from: OBJ-48
+  to: OBJ-05
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
+- kind: obj-parent
+  from: OBJ-49
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
+- kind: obj-parent
+  from: OBJ-50
+  to: OBJ-24
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
+- kind: obj-parent
+  from: OBJ-52
+  to: OBJ-38
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
+- kind: obj-parent
+  from: OBJ-52
+  to: OBJ-49
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
+- kind: obj-parent
+  from: OBJ-55
+  to: OBJ-54
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:118
+- kind: obj-parent
+  from: OBJ-57
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:120
+- kind: obj-parent
+  from: OBJ-60
+  to: OBJ-58
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:123
+- kind: obj-parent
+  from: OBJ-62
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:125
+- kind: obj-parent
+  from: OBJ-64
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:127
+- kind: obj-parent
+  from: OBJ-65
+  to: OBJ-54
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
+- kind: obj-parent
+  from: OBJ-65
+  to: OBJ-01
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
+- kind: obj-parent
+  from: OBJ-66
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
+- kind: obj-parent
+  from: OBJ-68
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:131
+- kind: obj-parent
+  from: OBJ-70
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:133
+- kind: obj-parent
+  from: OBJ-72
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:135
+- kind: obj-parent
+  from: OBJ-73
+  to: OBJ-54
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
+- kind: obj-parent
+  from: OBJ-81
+  to: OBJ-08
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:146
+- kind: obj-parent
+  from: OBJ-82
+  to: OBJ-05
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
+- kind: obj-parent
+  from: OBJ-83
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:148
+- kind: obj-parent
+  from: OBJ-85
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:150
+- kind: obj-parent
+  from: OBJ-86
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
+- kind: obj-parent
+  from: OBJ-87
+  to: OBJ-05
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:152
+- kind: obj-parent
+  from: OBJ-88
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:153
+- kind: obj-parent
+  from: OBJ-89
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:154
+- kind: obj-parent
+  from: OBJ-90
+  to: OBJ-89
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:155
+- kind: obj-parent
+  from: OBJ-91
+  to: OBJ-54
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:156
+- kind: obj-parent
+  from: OBJ-92
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:157
+- kind: obj-parent
+  from: OBJ-95
+  to: OBJ-96
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:161
+- kind: obj-parent
+  from: OBJ-96
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:162
+- kind: obj-parent
+  from: OBJ-97
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:163
+- kind: obj-parent
+  from: OBJ-98
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:164
+- kind: obj-parent
+  from: OBJ-99
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:165
+- kind: obj-parent
+  from: OBJ-104
+  to: OBJ-74
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:171
+- kind: obj-parent
+  from: OBJ-105
+  to: OBJ-02
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
+- kind: obj-parent
+  from: OBJ-106
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
+- kind: obj-parent
+  from: OBJ-107
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
+- kind: obj-parent
+  from: OBJ-108
+  to: OBJ-29
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
+- kind: obj-parent
+  from: OBJ-109
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:177
+- kind: obj-parent
+  from: OBJ-111
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:180
+- kind: obj-parent
+  from: OBJ-112
+  to: OBJ-54
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:181
+- kind: obj-parent
+  from: OBJ-113
+  to: OBJ-54
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:183
+- kind: obj-parent
+  from: OBJ-114
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:184
+- kind: obj-parent
+  from: OBJ-115
+  to: OBJ-93
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
+- kind: obj-parent
+  from: OBJ-116
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
+- kind: obj-parent
+  from: OBJ-117
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:189
+- kind: obj-parent
+  from: OBJ-120
+  to: OBJ-119
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:192
+- kind: obj-parent
+  from: OBJ-121
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:193
+- kind: obj-parent
+  from: OBJ-122
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:194
+- kind: obj-parent
+  from: OBJ-123
+  to: OBJ-56
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:195
+- kind: obj-parent
+  from: OBJ-125
+  to: OBJ-103
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
 - kind: stage-prc
   from: VS-01.1
   to: PRC-01

@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
@@ -64,7 +64,7 @@ class ApprovalTaskStateMachineTest {
     static final NodeKey NODE = new NodeKey("projectManagerReview");
     static final com.forcitis.one.platform.approval.api.NodeName NODE_NAME = new com.forcitis.one.platform.approval.api.NodeName("项目经理审批");
     static final UserId ADMIN = TestAccounts.account(1);
-    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7"));
+    static final DocumentReference DOCUMENT = new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("7"));
     static final DeadlinePlan PLAN = new DeadlinePlan(DUE, REMIND_AT, ESCALATE_AT);
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
@@ -157,6 +157,19 @@ class ApprovalTaskStateMachineTest {
                 e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
         request.transferTask(TASK, HOLDER, OTHER, new Reason("on leave"), NOW);
         assertThat(request.task(TASK).assignee()).contains(OTHER);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-approval AP-01 a rejection or a return without a reason is refused, for an advisor too; the task stays claimed")
+    void aRejectionWithoutAReasonIsRefused() {
+        for (boolean advisory : new boolean[] {false, true}) {
+            for (TaskOutcome outcome : new TaskOutcome[] {TaskOutcome.REJECTED, TaskOutcome.RETURNED}) {
+                ApprovalRequest request = in(ApprovalTaskStatus.CLAIMED);
+                assertThatThrownBy(() -> request.completeTask(TASK, HOLDER, outcome, advisory, null, new ContentHash("d"), NOW))
+                        .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                assertThat(statusOf(request)).isEqualTo(ApprovalTaskStatus.CLAIMED);
+            }
+        }
     }
 
     @Test

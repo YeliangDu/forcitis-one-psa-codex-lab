@@ -81,7 +81,6 @@ class ReadOnlyAccountCheckIT {
 
     enum ReadOnlyConnection {
         A8(A8_WORLD, "a8_ro", ReadOnlyBaselineFixture.VIEW_SCHEMA, "dbo.ORG_MEMBER"),
-        LEGACY_APPROVAL(LEGACY_WORLD, "todo_ro", "dbo", "dbo.todo_rows"),
         LEGACY_NAMES(LEGACY_WORLD, "names_ro", "dbo", "dbo.short_name_rows");
 
         final String database;
@@ -640,20 +639,6 @@ class ReadOnlyAccountCheckIT {
         }
     }
 
-    @Test
-    @DisplayName("ADR37-1 老系统待办连接在启动校验时遇数据库异常不吞：库不可达即拒绝启动（ADR-0037 第 4 项第 2 条）")
-    void legacyInboxCheckDoesNotSwallowADatabaseFailure() {
-        Account account = baselineAccount(ReadOnlyConnection.LEGACY_APPROVAL);
-
-        Throwable failure = catchThrowable(() -> {
-            try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.LEGACY_APPROVAL, account), "no_such_database")) {
-                assertThat(context.isActive()).isTrue();
-            }
-        });
-
-        assertThat(failure).as("the legacy inbox check could not reach its database: it must refuse, not log and carry on").isNotNull();
-    }
-
     /**
      * R-1b P3b (C8, RULING-P3B-3): once the short names are handed out by own id, the old-system department 2 of the fixture needs its
      * (LEGACY_SYSTEM, ORG_UNIT) reference to be handed out at all; before P3b (EmployeeId still a number) nothing is added.
@@ -683,17 +668,18 @@ class ReadOnlyAccountCheckIT {
     }
 
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled) {
-        return start(enabled, c -> url(c.database));
-    }
-
-    static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, String approvalDatabaseOverride) {
-        return start(enabled, c -> url(c == ReadOnlyConnection.LEGACY_APPROVAL ? approvalDatabaseOverride : c.database));
+        return start(enabled, c -> url(c.database), List.of());
     }
 
     /** Command-line arguments: they rank above application.properties, which switches every external connection off by default. */
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, Function<ReadOnlyConnection, String> urlOf) {
+        return start(enabled, urlOf, List.of());
+    }
+
+    static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, Function<ReadOnlyConnection, String> urlOf, List<String> extraArguments) {
         List<String> args = new ArrayList<>(List.of(
                 "--server.port=0",
+                "--server.address=127.0.0.1",
                 "--spring.main.banner-mode=off",
                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl(),
                 "--spring.datasource.username=" + POSTGRES.getUsername(),
@@ -714,14 +700,7 @@ class ReadOnlyAccountCheckIT {
             String legacy = "--forcitis.platform.integration.legacy.";
             args.addAll(List.of(legacy + "jdbc-url=" + urlOf.apply(ReadOnlyConnection.LEGACY_NAMES), legacy + "username=" + names.login(), legacy + "password=" + names.password()));
         }
-        Account approval = enabled.get(ReadOnlyConnection.LEGACY_APPROVAL);
-        String inbox = "--forcitis.platform.integration.legacy.inbox.";
-        if (approval != null) {
-            args.addAll(List.of(inbox + "url=" + urlOf.apply(ReadOnlyConnection.LEGACY_APPROVAL), inbox + "username=" + approval.login(), inbox + "password=" + approval.password(),
-                    inbox + "view-name=dbo.v_psa_one_legacy_todo"));
-        } else {
-            args.add(inbox + "url=");
-        }
+        args.addAll(extraArguments);
         return new SpringApplicationBuilder(OneApplication.class).run(args.toArray(String[]::new));
     }
 
@@ -744,8 +723,7 @@ class ReadOnlyAccountCheckIT {
             if (connection == ReadOnlyConnection.A8) {
                 ReadOnlyBaselineFixture.createViewSchemaReader(ReadOnlyAccountCheckIT::run, connection.database, login, password);
             } else {
-                String view = connection == ReadOnlyConnection.LEGACY_APPROVAL ? "dbo.v_psa_one_legacy_todo" : "dbo.v_one_legacy_org_short_name";
-                ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyAccountCheckIT::run, connection.database, view, login, password);
+                ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyAccountCheckIT::run, connection.database, "dbo.v_one_legacy_org_short_name", login, password);
             }
         } catch (SQLException e) {
             throw new IllegalStateException("cannot create the read-only login " + login, e);
@@ -824,12 +802,8 @@ class ReadOnlyAccountCheckIT {
 
     private static void createLegacyWorld() throws SQLException {
         run(LEGACY_WORLD,
-                "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64), process_instance_id nvarchar(64), task_def_key nvarchar(64), "
-                        + "task_name nvarchar(128), process_title nvarchar(256), created_at datetime2)",
                 "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
-                "INSERT dbo.todo_rows VALUES (1001, 'T-1', 'I-1', 'approve', N'Approve', N'Legacy item', '2026-10-01T08:00:00')",
                 "INSERT dbo.short_name_rows VALUES (2, N'Delivery')",
-                "CREATE VIEW dbo.v_psa_one_legacy_todo AS SELECT assignee_user_id, task_id, process_instance_id, task_def_key, task_name, process_title, created_at FROM dbo.todo_rows",
                 "CREATE VIEW dbo.v_one_legacy_org_short_name AS SELECT id, short_name FROM dbo.short_name_rows");
     }
 }

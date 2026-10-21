@@ -154,7 +154,7 @@
 |---|---|---|---|
 | CS-5.1 | **以模块级集成测试为主**：走 HTTP → 鉴权 → 用例 → 领域 → 真实 PostgreSQL（Testcontainers，镜像以 CI 为准，现为 `postgres:18`）；不 mock 自己的模块，外部系统用 WireMock 或替身隔离；单元测试只补边界（值对象、计算、决策表） | GUIDING_PRINCIPLES §9 | 复审 |
 | CS-5.2 | **测试名引用依据编号**：`@DisplayName` 以规则 / 差异 / ADR / 复审 / intent 编号开头（现有写法，如 `@DisplayName("RULE-356 …")`、`"ADR-0027 …"`）；`contract.md` 每条与 ADR 本阶段交付条款都对应至少一个测试 | NAMING_STANDARD §5；SESSION_PLAYBOOK §13「规格到测试的对照」、§6.1 第 3、8 条；G-T4 | 复审；对照守护 G-T4 待实现 |
-| CS-5.3 | **验收测试与实现分开**：测试代理先写并提交验收测试，实现代理只让它转绿、不得修改；目录约定与提交 trailer 见出处 | SESSION_PLAYBOOK §6.1 第 8 条 | 守护：`scripts/ci/acceptance_guard.py`、`acceptance_reports.py` |
+| CS-5.3 | **验收测试与实现分开**：测试代理先写并提交验收测试，实现代理只让它转绿、不得修改；目录约定与提交 trailer 见出处 | SESSION_PLAYBOOK §6.1 第 8 条 | 守护：`scripts/ci/acceptance_guard.py`、`acceptance_rulings.py`（裁定尾注须对应已登记裁定）、`acceptance_reports.py` |
 | CS-5.4 | **不为通过测试而放宽或删除断言** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 2 条](SESSION_PLAYBOOK.md#5-上下文管理) | 守护：`scripts/ci/assertion_drift.py`（只警告）；PR 模板；复审 |
 | CS-5.5 | **测试只断言本模块的效果** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 7 条](SESSION_PLAYBOOK.md#5-上下文管理)；SESSION_PLAYBOOK §14 G-T3 | 守护：`TestIsolationGuardTest` |
 | CS-5.6 | **确定性等待，不写宽泛的 `never()`**；另：测试不用 `Thread.sleep` 等时间（新增，现有 6 处） | [SESSION_PLAYBOOK §5「写代码规则第二批」第 7 条](SESSION_PLAYBOOK.md#5-上下文管理)；`Thread.sleep` 一句为本文件新增 | 守护（待实现：G-C8） |

@@ -597,6 +597,7 @@ class A8SourceFlagsIT {
         String views = "--forcitis.platform.integration.seeyon.views.";
         List<String> args = List.of(
                 "--server.port=0",
+                "--server.address=127.0.0.1",
                 "--spring.main.banner-mode=off",
                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl(),
                 "--spring.datasource.username=" + POSTGRES.getUsername(),

@@ -11,7 +11,7 @@
 
 ## 独占
 
-- 数据修复批各 PR 涉及的基线迁移文件、`backend/architecture/` 登记文件与对应测试（按 PR 串行合并 `data-access-registry.yaml`、`data-classification.txt`、`unversioned-table-writes.txt`）。
+- 仅独占当前已派工作卡列明的迁移文件、测试与 backend/architecture 登记条目；data-access-registry.yaml、data-classification.txt、unversioned-table-writes.txt 按卡逐项登记并串行整合，不独占整个目录；one-data 负责签发结论。
 
 ## 不碰
 
@@ -28,7 +28,7 @@
 
 ## 触发与节奏
 
-- 事件：one-data 签发后开工；前一 PR 入队即开下一个；PR-1 前置已满足（#324 已合入）。
+- 事件：收到已通过数据设计与 ADR 对齐检查的卡后开工；在制代码 PR 不超过一个，下一卡只准备不另开 PR，调度明确例外除外。旧修复批按 ADR-0054/0055 重判适用性，不凭旧队列继续。
 - 定时：无。
 
 ## 自动化
@@ -53,4 +53,4 @@
 
 ## 当前状态
 
-2026-10-16：数据修复批 PR-1、3、6、7、8、8b、DR-TB01-FU1 与 K-3b-4 已全部开出（#349、#354、#366、#369、#370、#377、#383、#387），见 `phase1a/HANDOFF_one-1a-next-5.md`；错题本 `quality/defect-bank/one-1a-next-5.md`。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。
+2026-10-17 13:59+02:00 数据修复批以合集 #405 与后续小卡为接续线索，八个原 PR 不再作为独立待办；实际在途按调度台账与本会话交接文件核对，历史合集状态不作当前远端状态。新卡先对照 ADR-0054/0055、数据设计签发与任务登记；dev 暂停不影响未被撤销的本地设计与检查。
