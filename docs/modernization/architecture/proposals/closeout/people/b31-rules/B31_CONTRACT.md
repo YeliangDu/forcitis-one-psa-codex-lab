@@ -27,7 +27,7 @@
 | 表单 | 聚合 | 词条（状态） | 表 | 审批 | 命令 | 发布事件 |
 |---|---|---|---|---|---|---|
 | 用印 | AGG-113 用印申请 | `seal_usage_request`（已批准） | `seal_usage_requests`、`seal_usage_documents`、既有审批凭证来源表（先行期来源只有它）、`seal_usage_registrations`（只追加；冲正用 CORRECTION 行）、`seal_blank_page_preloads` 与处置表（只追加） | 用印审批（无来源路径、特批、加批） | 提交、批准、驳回、撤回、登记用印、关闭、放弃剩余份数；预盖登记、收回、作废 | 用印申请已批准、用印已登记 |
-| IT 需求 | AGG-114 信息技术服务工单 | `it_service_ticket`（已批准；「IT 需求工单」为已废弃旧称） | `it_service_tickets`、`it_service_ticket_handlings` | 信息技术服务审批（仅类别配置为需审批） | 提交、批准、驳回、撤回、受理、解决、关闭、退回、重开 | 信息技术服务工单已解决 |
+| IT 需求 | AGG-114 信息技术服务工单（单一当前处理人，列 `assignee_id`，复用 assignee「处理人」；无转派、无多人同时在办） | `it_service_ticket`（已批准；「IT 需求工单」为已废弃旧称） | `it_service_tickets`、`it_service_ticket_handlings` | 信息技术服务审批（仅类别配置为需审批） | 提交、批准、驳回、撤回、受理、解决、关闭、退回、重开 | 信息技术服务工单已解决 |
 | IT 资产使用 | AGG-115 信息技术资产使用记录（每资产卡片一根，业务键资产卡片号；先行期不惰性建根，根只来自迁入与「登记资产卡片」命令） | `it_asset_usage_record`（已批准） | `it_asset_usage_records`、`it_asset_usage_requests`、`it_asset_usage_periods` | 无 | 登记资产卡片、申请领用、登记领用、申请调拨、撤销调拨申请、调拨、归还 | 信息技术资产已领用、已调拨、已归还 |
 | IT 资产维修 | AGG-121 信息技术资产维修单 | `it_asset_repair_order`（已批准） | `it_asset_repair_orders` | 无 | 报修、登记维修结果 | 无 |
 | 员工活动 | AGG-116 员工活动申请 | `employee_activity_request`（已批准） | `employee_activity_requests`、`employee_activity_participants` | 无（规则通过即已批准） | 提交、办结、取消登记；重登为显式提交 | 员工活动申请已批准 |
