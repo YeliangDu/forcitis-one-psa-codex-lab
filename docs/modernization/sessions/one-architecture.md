@@ -76,4 +76,4 @@
 
 ## 当前状态
 
-2026-10-21 晚：#493 已合；#495→#501→#506 已批入队；#508（ADR-0073）待用户 U3、U4。ARC-1021-COO-10 提案已确认（用户 U1–U6），SSOT 按批次表分批重启（research/networks/ADR_NODE_FREQUENCY.md），第一批派工卡起草中。交接 proposals/HANDOFF_2026-10-21.md。
+2026-10-21 夜：#495 已合；#501 已改基入队，#506、#508 依次改基；网络第一批卡 1、3 完成、卡 2 在 one-quality、卡 4 待接。交接 proposals/HANDOFF_2026-10-21.md 末节「/clear 前待接」。
