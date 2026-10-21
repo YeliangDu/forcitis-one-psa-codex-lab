@@ -5021,13 +5021,16 @@ If permissions cannot be loaded, approval is refused. A pass defaults its reason
 **Category:** Policy
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/mq/producer/BpmApprovalMqReliableSender.java:402-485`
-**Plain English:** Delivery of task and process results is guaranteed by the event publication register: an event is written in the same transaction as the decision and resent from the register until acknowledged. Nothing is rebuilt from the engine's own records, so an automatic skip, a same-approver auto-approval or an advisory co-sign rejection never goes out as a result.
+**Plain English:** Delivery of task and process results is guaranteed by the event publication register: an event is written in the same transaction as the decision and resent from the register until acknowledged. A missed result is never rebuilt from the engine's own records. What is published is decided when the task completes, not by a job afterwards: a person's decision is published as itself; an automatic approval for a repeat approver is published with effect AUTOMATIC (D-1a-66, user decision in intent `2026-10-14-131`); an advisory co-sign rejection is published only with effect ADVISORY and never as a binding result; a node skipped without any decision publishes nothing.
 **Specification:**
   Given a task decided by a person whose result event is in the register but not acknowledged
   When  the redelivery job runs
   Then  that same event is resent unchanged
-  Given a task completed by the engine without a decision (initiator auto-skip, resubmission completion, same-approver auto-approval) or an advisory co-sign rejection
-  Then  no result event exists and nothing is sent
+  Given a repeat approver passed automatically at publication time
+  Then  its event (effect AUTOMATIC) is in the register and is redelivered like any other
+  Given a node skipped without a decision, or a task the engine completed with no event written
+  When  the redelivery job runs
+  Then  nothing is sent for it; the job never reads the engine tables to find "missed" results
 **Parameters:** redelivery interval and retention are configuration of the publication register, not of this rule.
 **Legacy behaviour:** a job every 10 minutes rebuilt "missed" results from the engine tables over a 24-hour lookback; it emitted engine-made completions as results, and a rebuilt cancel lost its cancel action and reason.
 **Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.

@@ -1,0 +1,11 @@
+[Unit]
+Description=FORCITIS one ClamAV health check (C-7, OPS-1021-OPS-02)
+After=forcitis-one-clamd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/one_clamav_check.sh
+PrivateTmp=true
+ProtectHome=true
+NoNewPrivileges=true
+SuccessExitStatus=1
