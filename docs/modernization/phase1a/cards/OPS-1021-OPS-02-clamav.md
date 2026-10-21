@@ -1,14 +1,12 @@
 ---
 卡号: OPS-1021-OPS-02
-任务名: [OPS·platform.file] 自建 ClamAV 恶意文件检测建成（W0 内，通用审批先行上线前）
-主线: OPS
-bc: platform.file
-种类: 编码
 状态: 待派
 负责会话: one-ops
-前置: 文件服务基础（ADR-0060）适配器端口落地；ADR-0060 补篇（取舍写入）
 ---
 # 派工卡 OPS-1021-OPS-02：自建 ClamAV 恶意文件检测建成
+
+- 任务名：[OPS·platform.file] 自建 ClamAV 恶意文件检测建成（W0 内，通用审批先行上线前）；主线 OPS；bc platform.file；种类 编码
+- 前置：文件服务基础（ADR-0060）适配器端口落地；ADR-0060 补篇（取舍写入）
 
 - 草稿：one-ops，2026-10-21。依据用户在 #494 的决定（评论 6311040189，intent `9a5136bf`）：选 A 自建 ClamAV；「W0 内建成并验收，不询价、不建账号、不调用任何云服务」；实施卡按 8 条建成判据逐条对应验收。
 - 候选与对比：`phase1a/infra/handoff/MALWARE_SCAN_CANDIDATES.md`；ADR-0060 第 2 条（检测不可用不放行并告警）、第 1 条第 3 款（适配器在 `platform.integration`）。
