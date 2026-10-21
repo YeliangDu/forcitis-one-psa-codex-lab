@@ -10,5 +10,7 @@
     "one-coordinator",
     "one-ops"
   ],
-  "_note": "窗口 1000000 由本机 transcript 里这些模型实测的最大用量（97 万 tokens 级）反推，是下限推断，不是官方数字；官方值确认后请改。"
+  "_note": "窗口 1000000 由本机 transcript 里这些模型实测的最大用量（97 万 tokens 级）反推，是下限推断，不是官方数字；官方值确认后请改。",
+  "bash_input_chars": 5000,
+  "bash_output_chars": 8000
 }

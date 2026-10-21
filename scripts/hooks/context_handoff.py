@@ -8,6 +8,7 @@ Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, s
 at >= 85% "hand over now". Each level once per session; state lives in the untracked <root>/.claude/context-handoff-state.json (a cleared session has a new id, so starts clean).
 Enforce (Stop): past 75% while none of the profile / context documents (SESSION_PLAYBOOK §2.1 #16, same session-name resolution as session_context.py) was modified since the level was first reached, the stop is blocked once per level with the reason; a document written since lets it through.
 Never a loop: `stop_hook_active` lets the stop through, and a level blocks at most once. A crash of this hook never blocks a stop; for the other events it is reported once as additionalContext.
+Bulk (PostToolUse of Bash): a single command longer than `bash_input_chars` or a result longer than `bash_output_chars` (context_windows.json; defaults 5000 / 8000 from the length distribution of 1.6k Bash calls: about p96 / p98) is pointed out once per session and reason as additionalContext, never blocking (SESSION_PLAYBOOK §5 context-saving rules).
 During the pilot `pilot_sessions` in context_windows.json limits the hook to the listed session names (null or absent = every session).
 Usage: context_handoff.py < hook-input.json  |  context_handoff.py --self-test
 """
@@ -33,6 +34,8 @@ LEVELS = (75, 85)
 FALLBACK_WINDOW = 200000
 KEEP_SESSIONS = 20
 NAME_RECHECK_SECONDS = 600
+BASH_INPUT_CHARS = 5000
+BASH_OUTPUT_CHARS = 8000
 RESET_BELOW = 60
 TAIL_BYTES = 4 * 1024 * 1024
 SESSIONS = sc.SESSIONS
@@ -65,6 +68,46 @@ def pilot_sessions(path=None):
         return [str(item) for item in listed] if isinstance(listed, list) else None
     except (OSError, ValueError, AttributeError):
         return None
+
+
+def bulk_limits(path=None):
+    """(input chars, output chars) above which a single Bash call is pointed out; from `bash_input_chars` / `bash_output_chars` in the configuration."""
+    try:
+        with open(path or CONFIG, encoding="utf-8") as stream:
+            data = json.load(stream)
+        return int(data.get("bash_input_chars", BASH_INPUT_CHARS)), int(data.get("bash_output_chars", BASH_OUTPUT_CHARS))
+    except (OSError, ValueError, TypeError, AttributeError):
+        return BASH_INPUT_CHARS, BASH_OUTPUT_CHARS
+
+
+def text_size(value):
+    """Characters of all text inside a tool response (string, list or dict of them)."""
+    if isinstance(value, str):
+        return len(value)
+    if isinstance(value, dict):
+        return sum(text_size(item) for item in value.values())
+    if isinstance(value, list):
+        return sum(text_size(item) for item in value)
+    return 0
+
+
+def bulk_reminders(payload, entry):
+    """One-time notes (per session and reason) on a single oversized Bash input or result; only PostToolUse of Bash, never blocking."""
+    if payload.get("hook_event_name") != "PostToolUse" or payload.get("tool_name") != "Bash":
+        return []
+    limit_in, limit_out = bulk_limits()
+    seen = entry.setdefault("bulk", [])
+    notes = []
+    tool_input = payload.get("tool_input")
+    size_in = text_size(tool_input.get("command") if isinstance(tool_input, dict) else None)
+    if size_in > limit_in and "input" not in seen:
+        seen.append("input")
+        notes.append(f"【上下文节约】本次 Bash 命令输入 {size_in} 字符（阈值 {limit_in}）：改文件用 Edit 改片段，不要用脚本整篇重写（SESSION_PLAYBOOK §5）。")
+    size_out = text_size(payload.get("tool_response"))
+    if size_out > limit_out and "output" not in seen:
+        seen.append("output")
+        notes.append(f"【上下文节约】本次 Bash 输出 {size_out} 字符（阈值 {limit_out}）：先统计、筛选再读具体段，长输出存文件按需读；报错与测试失败的输出不要截断（SESSION_PLAYBOOK §5）。")
+    return notes
 
 
 def window_for(model, default, windows):
@@ -214,6 +257,7 @@ def handle_locked(event, payload, root, now):
     warnings = []
     if pilot is None or entry["name"] in pilot:
         percent, tokens, window, warnings = measure(payload, entry)
+        warnings += bulk_reminders(dict(payload, hook_event_name=event), entry)
         if percent is not None:
             if percent < RESET_BELOW:
                 for key in ("reminded", "blocked", "crossed"):
@@ -370,6 +414,27 @@ def self_test():
         os.utime(os.path.join(root, "docs/ctx.md"), (900.0, 900.0))
         fire("PostToolUse", 780, 1000.0, session="flow2")
         assert fire("Stop", 790, 1500.0, session="flow2") is not None, "context document older than the crossing blocks"
+
+        # oversized Bash input / result: pointed out once per session and reason, only for Bash, never blocking
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000, "claude-long": 5000}, "bash_input_chars": 100, "bash_output_chars": 200}))
+        small = fire("PostToolUse", 100, 1100.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 100}, "tool_response": {"stdout": "y" * 150, "stderr": "z" * 50}}, session="bulk")
+        assert small is None, "at the limit is not over it"
+        big_out = text(fire("PostToolUse", 100, 1101.0, extra={"tool_name": "Bash", "tool_input": {"command": "ls"}, "tool_response": {"stdout": "y" * 150, "stderr": "z" * 51}}, session="bulk"))
+        assert big_out and "Bash 输出 201 字符" in big_out and "存文件按需读" in big_out and "不要截断" in big_out, big_out
+        assert fire("PostToolUse", 100, 1102.0, extra={"tool_name": "Bash", "tool_input": {"command": "ls"}, "tool_response": "y" * 900}, session="bulk") is None, "the same reason is not repeated"
+        big_in = text(fire("PostToolUse", 100, 1103.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 101}, "tool_response": "ok"}, session="bulk"))
+        assert big_in and "Bash 命令输入 101 字符" in big_in and "Edit" in big_in and "输出" not in big_in, big_in
+        both = text(fire("PostToolUse", 100, 1104.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 500}, "tool_response": ["y" * 300]}, session="bulk2"))
+        assert both and "命令输入 500" in both and "输出 300" in both, "a list response is measured and both reasons come together"
+        assert fire("PostToolUse", 100, 1105.0, extra={"tool_name": "Read", "tool_input": {"file_path": "x" * 900}, "tool_response": "y" * 900}, session="bulk3") is None, "other tools are not pointed out"
+        assert fire("PostToolUse", 100, 1106.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 900}, "tool_response": "y" * 900, "agent_id": "a"}, session="bulk4") is None, "sub-agent calls are not pointed out"
+        assert fire("Stop", 100, 1107.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 900}, "tool_response": "y" * 900}, session="bulk5") is None
+        assert fire("PostToolUse", 100, 1108.0, extra={"tool_name": "Bash", "tool_input": None, "tool_response": None}, session="bulk6") is None, "missing input / response are not an error"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000, "claude-long": 5000}, "bash_input_chars": 100, "bash_output_chars": 200, "pilot_sessions": ["one-ops"]}))
+        assert fire("PostToolUse", 100, 1109.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 900}, "tool_response": "y" * 900}, session="bulk7") is None, "the pilot limit applies to the bulk notes too"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000, "claude-long": 5000}}))
+        defaults = text(fire("PostToolUse", 100, 1110.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * (BASH_INPUT_CHARS + 1)}, "tool_response": "ok"}, session="bulk8"))
+        assert defaults and f"阈值 {BASH_INPUT_CHARS}" in defaults, "without configured limits the defaults apply"
 
         # missing window configuration and unreadable transcript say so, once
         unknown = text(fire("PostToolUse", 50, 400.0, model="claude-new", session="m1"))
