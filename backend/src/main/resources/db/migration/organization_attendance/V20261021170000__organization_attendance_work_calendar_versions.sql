@@ -61,6 +61,7 @@ CREATE TABLE organization_attendance.work_calendar_versions (
         (confirmation_status = 'PENDING_CONFIRMATION' AND confirmed_by IS NULL AND confirmed_at IS NULL AND decision_audit_entry_id IS NULL)
         OR (confirmation_status = 'CONFIRMED' AND confirmed_at IS NOT NULL AND decision_audit_entry_id IS NOT NULL
             AND (confirmed_by IS NOT NULL) = (source_kind <> 'MIGRATION'))),
+    CONSTRAINT ck_work_calendar_versions_confirmed_after_authored CHECK (authored_at IS NULL OR confirmed_at IS NULL OR confirmed_at >= authored_at),
     CONSTRAINT ck_work_calendar_versions_confirmed_has_evidence CHECK (
         confirmation_status <> 'CONFIRMED'
         OR (official_notice_number IS NOT NULL AND official_notice_url IS NOT NULL AND company_leave_register_kind IS NOT NULL)),
@@ -130,7 +131,7 @@ COMMENT ON COLUMN organization_attendance.work_calendar_version_days.approved_by
 COMMENT ON COLUMN organization_attendance.work_calendar_version_days.created_at IS '创建时间（由应用写入）';
 COMMENT ON COLUMN organization_attendance.work_calendar_version_days.updated_at IS '更新时间（行只追加，由应用写入，等于创建时间；版本表的确认不改它，确认时间看 confirmed_at）';
 
-CREATE FUNCTION organization_attendance.reject_calendar_row_change() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_attendance.reject_calendar_row_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION '%.% is append-only: % is refused', TG_TABLE_SCHEMA, TG_TABLE_NAME, TG_OP USING ERRCODE = 'restrict_violation';
 END $$;
@@ -146,21 +147,21 @@ CREATE TRIGGER tg_work_calendar_version_days_append_only_truncate BEFORE TRUNCAT
     FOR EACH STATEMENT EXECUTE FUNCTION organization_attendance.reject_calendar_row_change();
 
 -- 迁入版本只能由库的属主身份（含属主角色的成员，如迁移账号）写入；应用的运行账号不是属主角色的成员，被拒绝。
-CREATE FUNCTION organization_attendance.require_owner_for_migration_version(version_row organization_attendance.work_calendar_versions) RETURNS void LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_attendance.require_owner_for_migration_version(version_row organization_attendance.work_calendar_versions) RETURNS void LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     owner_name name;
 BEGIN
     IF version_row.source_kind <> 'MIGRATION' THEN
         RETURN;
     END IF;
-    SELECT pg_get_userbyid(relowner) INTO owner_name FROM pg_class WHERE oid = 'organization_attendance.work_calendar_versions'::regclass;
+    SELECT pg_get_userbyid(relowner) INTO owner_name FROM pg_catalog.pg_class WHERE oid = 'organization_attendance.work_calendar_versions'::regclass;
     IF NOT pg_has_role(current_user, owner_name, 'USAGE') THEN
         RAISE EXCEPTION 'a migrated calendar version can only be written by the owner role: % is refused', current_user USING ERRCODE = 'insufficient_privilege';
     END IF;
 END $$;
 COMMENT ON FUNCTION organization_attendance.require_owner_for_migration_version(organization_attendance.work_calendar_versions) IS '迁入版本的写入身份检查：只放行属主角色及其成员';
 
-CREATE FUNCTION organization_attendance.guard_work_calendar_version_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_attendance.guard_work_calendar_version_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     latest integer;
 BEGIN
@@ -177,20 +178,25 @@ BEGIN
 END $$;
 COMMENT ON FUNCTION organization_attendance.guard_work_calendar_version_insert() IS '新版本只能以待确认状态进入、版本号逐个加 1、迁入版本只放行属主角色';
 
-CREATE FUNCTION organization_attendance.guard_work_calendar_version_change() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_attendance.guard_work_calendar_version_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     -- 确认时允许一起写入的列：状态、确认三列、官方通知与公司加休登记。其余列确认后与确认前一致。
     confirmation_columns text[] := ARRAY['confirmation_status', 'confirmed_by', 'confirmed_at', 'decision_audit_entry_id', 'official_notice_number',
             'official_notice_url', 'company_leave_register_kind', 'company_leave_register_key'];
     previous organization_attendance.work_calendar_versions;
     day_conflict boolean;
+    closed integer;
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'calendar versions are append-only: % on %.% is refused', lower(TG_OP), TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
     END IF;
 
+    -- 关闭上一版本只在确认下一版本的触发器里发生；另要求下一版本（待确认）已存在且起算日就是这个截止日，别的关法一概拒绝。
     IF pg_trigger_depth() > 1 AND OLD.confirmation_status = 'CONFIRMED' AND OLD.effective_to_date IS NULL AND NEW.effective_to_date IS NOT NULL
-            AND (to_jsonb(NEW) - 'effective_to_date') = (to_jsonb(OLD) - 'effective_to_date') THEN
+            AND (to_jsonb(NEW) - 'effective_to_date') = (to_jsonb(OLD) - 'effective_to_date')
+            AND EXISTS (SELECT 1 FROM organization_attendance.work_calendar_versions successor
+                WHERE successor.work_calendar_id = OLD.work_calendar_id AND successor.year_number = OLD.year_number AND successor.version_number = OLD.version_number + 1
+                  AND successor.confirmation_status = 'PENDING_CONFIRMATION' AND successor.effective_from_date = NEW.effective_to_date) THEN
         RETURN NEW;
     END IF;
 
@@ -217,19 +223,23 @@ BEGIN
             RAISE EXCEPTION 'effective_from_date % is earlier than the confirmation day: a calendar version does not act on the past', NEW.effective_from_date USING ERRCODE = 'check_violation';
         END IF;
         SELECT EXISTS (
-            (SELECT calendar_date, day_kind FROM organization_attendance.work_calendar_version_days WHERE work_calendar_version_id = NEW.id AND calendar_date < NEW.effective_from_date
+            (SELECT calendar_date, day_kind, basis_kind FROM organization_attendance.work_calendar_version_days WHERE work_calendar_version_id = NEW.id AND calendar_date < NEW.effective_from_date
              EXCEPT
-             SELECT calendar_date, day_kind FROM organization_attendance.work_calendar_version_days WHERE work_calendar_version_id = previous.id AND calendar_date < NEW.effective_from_date)
+             SELECT calendar_date, day_kind, basis_kind FROM organization_attendance.work_calendar_version_days WHERE work_calendar_version_id = previous.id AND calendar_date < NEW.effective_from_date)
             UNION ALL
-            (SELECT calendar_date, day_kind FROM organization_attendance.work_calendar_version_days WHERE work_calendar_version_id = previous.id AND calendar_date < NEW.effective_from_date
+            (SELECT calendar_date, day_kind, basis_kind FROM organization_attendance.work_calendar_version_days WHERE work_calendar_version_id = previous.id AND calendar_date < NEW.effective_from_date
              EXCEPT
-             SELECT calendar_date, day_kind FROM organization_attendance.work_calendar_version_days WHERE work_calendar_version_id = NEW.id AND calendar_date < NEW.effective_from_date)
+             SELECT calendar_date, day_kind, basis_kind FROM organization_attendance.work_calendar_version_days WHERE work_calendar_version_id = NEW.id AND calendar_date < NEW.effective_from_date)
         ) INTO day_conflict;
         IF day_conflict THEN
-            RAISE EXCEPTION 'the exception days before effective_from_date % differ from the previous version: a calendar version does not act on the past', NEW.effective_from_date USING ERRCODE = 'check_violation';
+            RAISE EXCEPTION 'the exception days (date, kind, basis) before effective_from_date % differ from the previous version: a calendar version does not act on the past', NEW.effective_from_date USING ERRCODE = 'check_violation';
         END IF;
         UPDATE organization_attendance.work_calendar_versions SET effective_to_date = NEW.effective_from_date
             WHERE id = previous.id AND effective_to_date IS NULL;
+        GET DIAGNOSTICS closed = ROW_COUNT;
+        IF closed <> 1 THEN
+            RAISE EXCEPTION 'the version below % is not open and cannot be closed at %', NEW.version_number, NEW.effective_from_date USING ERRCODE = 'check_violation';
+        END IF;
     END IF;
     RETURN NEW;
 END $$;
@@ -242,7 +252,7 @@ CREATE TRIGGER tg_work_calendar_versions_change BEFORE UPDATE OR DELETE ON organ
 CREATE TRIGGER tg_work_calendar_versions_change_truncate BEFORE TRUNCATE ON organization_attendance.work_calendar_versions
     FOR EACH STATEMENT EXECUTE FUNCTION organization_attendance.guard_work_calendar_version_change();
 
-CREATE FUNCTION organization_attendance.guard_work_calendar_version_day_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_attendance.guard_work_calendar_version_day_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     parent organization_attendance.work_calendar_versions;
 BEGIN

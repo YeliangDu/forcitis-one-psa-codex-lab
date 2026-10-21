@@ -150,7 +150,7 @@ class WorkCalendarVersionsMigrationIT {
             refused(CHECK_VIOLATION, "ck_work_calendars_scope_matches_legal_entity", () -> run(db, insert, UUID.randomUUID(), "LEGAL_ENTITY", null, AUTHORED_AT, AUTHORED_AT));
             refused(RESTRICT_VIOLATION, "append-only", () -> run(db, "update organization_attendance.work_calendars set created_at = ? where id = ?", CONFIRMED_AT, first));
             refused(RESTRICT_VIOLATION, "append-only", () -> run(db, "delete from organization_attendance.work_calendars where id = ?", first));
-            refused(RESTRICT_VIOLATION, "append-only", () -> run(db, "truncate table organization_attendance.work_calendars cascade"));
+            refused(RESTRICT_VIOLATION, "organization_attendance.work_calendars is append-only", () -> run(db, "truncate table organization_attendance.work_calendars cascade"));
         }
     }
 
@@ -186,6 +186,7 @@ class WorkCalendarVersionsMigrationIT {
                     update organization_attendance.work_calendar_versions set confirmation_status = 'CONFIRMED', confirmed_by = ?, confirmed_at = ?, official_notice_number = 'n',
                            official_notice_url = ?, company_leave_register_kind = 'NONE' where id = ?
                     """, CONFIRMER, CONFIRMED_AT, NOTICE_URL, version));
+            refused(CHECK_VIOLATION, "ck_work_calendar_versions_confirmed_after_authored", () -> confirm(db, version, CONFIRMER, AUTHORED_AT.minusDays(1), "NONE"));
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_official_notice_url", () -> confirmWith(db, version, "n", "http://example.com/a", "NONE", null));
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_official_notice_number", () -> confirmWith(db, version, " ", NOTICE_URL, "NONE", null));
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_company_leave_register_key", () -> confirmWith(db, version, "n", NOTICE_URL, "REGISTERED", null));
@@ -205,11 +206,11 @@ class WorkCalendarVersionsMigrationIT {
             refused(RESTRICT_VIOLATION, "can only be confirmed once", () -> run(db, "update organization_attendance.work_calendar_versions set effective_to_date = '2026-12-31' where id = ?", version));
             refused(RESTRICT_VIOLATION, "can only be confirmed once", () -> run(db, "update organization_attendance.work_calendar_versions set official_notice_number = 'x' where id = ?", version));
             refused(RESTRICT_VIOLATION, "append-only", () -> run(db, "delete from organization_attendance.work_calendar_versions where id = ?", version));
-            refused(RESTRICT_VIOLATION, "append-only", () -> run(db, "truncate table organization_attendance.work_calendar_versions cascade"));
+            refused(RESTRICT_VIOLATION, "truncate on organization_attendance.work_calendar_versions", () -> run(db, "truncate table organization_attendance.work_calendar_versions cascade"));
             refused(CHECK_VIOLATION, "waits for confirmation", () -> day(db, version, SUNDAY, "HOLIDAY", "OFFICIAL", null, null));
             refused(RESTRICT_VIOLATION, "append-only", () -> run(db, "delete from organization_attendance.work_calendar_version_days where work_calendar_version_id = ?", version));
             refused(RESTRICT_VIOLATION, "append-only", () -> run(db, "update organization_attendance.work_calendar_version_days set day_kind = 'HOLIDAY' where work_calendar_version_id = ?", version));
-            refused(RESTRICT_VIOLATION, "append-only", () -> run(db, "truncate table organization_attendance.work_calendar_version_days"));
+            refused(RESTRICT_VIOLATION, "organization_attendance.work_calendar_version_days is append-only", () -> run(db, "truncate table organization_attendance.work_calendar_version_days"));
         }
     }
 
@@ -268,7 +269,7 @@ class WorkCalendarVersionsMigrationIT {
             UUID early = version(db, calendar, 2, "AUTHORED", LocalDate.of(2026, 6, 1));
             day(db, early, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
             OffsetDateTime afterTheEffectiveDay = OffsetDateTime.parse("2026-06-10T04:00:00Z");
-            refused(CHECK_VIOLATION, "does not act on the past", () -> confirm(db, early, CONFIRMER, afterTheEffectiveDay, "NONE"));
+            refused(CHECK_VIOLATION, "earlier than the confirmation day", () -> confirm(db, early, CONFIRMER, afterTheEffectiveDay, "NONE"));
         }
         try (Connection db = connect()) {
             UUID calendar = calendar(db);
@@ -292,7 +293,7 @@ class WorkCalendarVersionsMigrationIT {
 
             UUID startsBeforeTheOpenOne = version(db, calendar, 3, "AUTHORED", LocalDate.of(2025, 12, 1));
             day(db, startsBeforeTheOpenOne, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
-            refused(CHECK_VIOLATION, "does not act on the past", () -> confirm(db, startsBeforeTheOpenOne, CONFIRMER, CONFIRMED_AT, "NONE"));
+            refused(CHECK_VIOLATION, "earlier than the confirmation day", () -> confirm(db, startsBeforeTheOpenOne, CONFIRMER, CONFIRMED_AT, "NONE"));
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_effective_range", () -> confirm(db, startsBeforeTheOpenOne, CONFIRMER, OffsetDateTime.parse("2025-11-20T04:00:00Z"), "NONE"));
         }
         try (Connection db = connect()) {
@@ -325,6 +326,35 @@ class WorkCalendarVersionsMigrationIT {
     }
 
     @Test
+    @DisplayName("运行账号借临时对象也关不了已确认版本：关闭只在确认下一版本时、截止日等于待确认下一版本的起算日")
+    void aTemporaryTriggerCannotCloseAConfirmedVersion() throws Exception {
+        String application = "calendar_app_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        String password = "Pw1!" + UUID.randomUUID();
+        try (Connection db = connect()) {
+            run(db, "create role " + application + " login password '" + password + "'");
+            run(db, "grant usage on schema organization_attendance to " + application);
+            run(db, "grant select, insert, update on organization_attendance.work_calendars, organization_attendance.work_calendar_versions, organization_attendance.work_calendar_version_days to " + application);
+            UUID calendar = calendar(db);
+            UUID confirmed = confirmedFirstVersion(db, calendar, LocalDate.of(2026, 1, 1));
+            try (Connection runtime = DriverManager.getConnection(postgres.getJdbcUrl(), application, password)) {
+                run(runtime, "create temp table spoof (id uuid)");
+                run(runtime, """
+                        create function pg_temp.close_it() returns trigger language plpgsql as $$
+                        begin
+                            update organization_attendance.work_calendar_versions set effective_to_date = effective_from_date where id = new.id;
+                            return new;
+                        end $$
+                        """);
+                run(runtime, "create trigger spoof_close before insert on spoof for each row execute function pg_temp.close_it()");
+                refused(RESTRICT_VIOLATION, "can only be confirmed once", () -> run(runtime, "insert into spoof values (?)", confirmed));
+            }
+            assertThat(text(db, "select effective_to_date::text from organization_attendance.work_calendar_versions where id = ?", confirmed)).isNull();
+            run(db, "drop owned by " + application);
+            run(db, "drop role " + application);
+        }
+    }
+
+    @Test
     @DisplayName("迁入版本：没有作者与确认人、恒为第 1 版、要有核对签字的审计记录，只有属主角色写得进，运行账号被拒")
     void aMigratedVersionHasNoPeopleIsTheFirstAndOnlyTheOwnerWritesIt() throws Exception {
         String application = "calendar_app_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
@@ -347,7 +377,11 @@ class WorkCalendarVersionsMigrationIT {
                     """, UUID.randomUUID(), calendar, AUTHORED_AT, AUTHORED_AT));
 
             try (Connection runtime = DriverManager.getConnection(postgres.getJdbcUrl(), application, password)) {
+                // The temporary pg_class is made first: plpgsql keeps the plan of its first run, so a spoof made later would not be read.
+                run(runtime, "create temp table pg_class (oid oid, relowner oid)");
+                run(runtime, "insert into pg_class select 'organization_attendance.work_calendar_versions'::regclass, oid from pg_catalog.pg_roles where rolname = current_user");
                 refused(INSUFFICIENT_PRIVILEGE, "owner role", () -> version(runtime, calendar, 1, "MIGRATION", LocalDate.of(2020, 1, 1)));
+                run(runtime, "drop table pg_temp.pg_class");
                 UUID authored = version(runtime, calendar(db), 1, "AUTHORED", LocalDate.of(2026, 1, 1));
                 assertThat(authored).as("the runtime account writes authored versions").isNotNull();
             }
@@ -355,6 +389,12 @@ class WorkCalendarVersionsMigrationIT {
             UUID migrated = version(db, calendar, 1, "MIGRATION", LocalDate.of(2020, 1, 1));
             day(db, migrated, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_confirmation_columns", () -> confirm(db, migrated, CONFIRMER, CONFIRMED_AT, "NONE"));
+            try (Connection runtime = DriverManager.getConnection(postgres.getJdbcUrl(), application, password)) {
+                refused(INSUFFICIENT_PRIVILEGE, "owner role", () -> run(runtime, """
+                        update organization_attendance.work_calendar_versions set confirmation_status = 'CONFIRMED', confirmed_at = ?, decision_audit_entry_id = ?,
+                               official_notice_number = 'n', official_notice_url = ?, company_leave_register_kind = 'NONE' where id = ?
+                        """, CONFIRMED_AT, UUID.randomUUID(), NOTICE_URL, migrated));
+            }
             run(db, """
                     update organization_attendance.work_calendar_versions set confirmation_status = 'CONFIRMED', confirmed_at = ?, decision_audit_entry_id = ?,
                            official_notice_number = 'n', official_notice_url = ?, company_leave_register_kind = 'NONE' where id = ?
