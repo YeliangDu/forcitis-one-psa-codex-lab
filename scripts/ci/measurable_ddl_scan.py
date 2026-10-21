@@ -204,6 +204,10 @@ CREATE TABLE demo.empty (id uuid PRIMARY KEY);
 CREATE TABLE demo.bad_cat (id uuid PRIMARY KEY);
 CREATE TABLE demo.cfg (id uuid PRIMARY KEY);
 CREATE TABLE demo.no_vt_cfg (id uuid PRIMARY KEY);
+CREATE TABLE demo.bare_cfg (id uuid PRIMARY KEY);
+CREATE TABLE demo.ghost_cfg (id uuid PRIMARY KEY);
+CREATE TABLE demo.mutable_cfg (id uuid PRIMARY KEY);
+CREATE TABLE demo.mutable_cfg_versions (id uuid PRIMARY KEY, author_id uuid, authored_at timestamptz, confirmed_by uuid, confirmed_at timestamptz, decision_ref text, effective_from_date date);
 CREATE TABLE demo.cfg_versions (id uuid PRIMARY KEY, cfg_id uuid REFERENCES demo.cfg (id), author_id uuid, authored_at timestamptz, confirmed_by uuid, confirmed_at timestamptz, decision_ref text, effective_from_date date, version_status text CHECK (version_status = ANY (ARRAY['A'::text, 'B'::text])));
 CREATE TABLE demo.rule_versions (id uuid PRIMARY KEY, rule_id uuid REFERENCES demo.rules (id), author_id uuid, authored_at timestamptz, confirmed_by uuid, effective_from_date date);
 CREATE TABLE demo2.tickets (id uuid PRIMARY KEY, ticket_status text NOT NULL CHECK (ticket_status IN ('NEW','CLOSED')), created_at timestamptz NOT NULL);
@@ -212,7 +216,7 @@ CREATE TABLE demo3.notes (id uuid PRIMARY KEY, note_status text NOT NULL CHECK (
 CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES demo.orders (id), unit_code text, line_quantity numeric(10,2), price_currency_code text, price numeric);
 """)
         open(os.path.join(tmp, "backend", "architecture", "data-access-registry.yaml"), "w", encoding="utf-8").write(
-            "tables:\n  demo.customers:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n  demo.rules:\n    role: CONFIG_VERSIONED\n    versions_table: demo.rule_versions\n  demo.addresses:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.empty:\n  demo.bad_cat:\n    data_category: master\n  demo.cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.cfg_versions\n  demo.cfg_versions:\n    mutability: APPEND_ONLY\n  demo.no_vt_cfg:\n    role: CONFIG_VERSIONED\n  demo3.notes:\n    state_transitions_exempt: technical note, no lifecycle\n")
+            "tables:\n  demo.customers:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n  demo.rules:\n    role: CONFIG_VERSIONED\n    versions_table: demo.rule_versions\n  demo.addresses:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.empty:\n  demo.bad_cat:\n    data_category: master\n  demo.cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.cfg_versions\n  demo.cfg_versions:\n    mutability: APPEND_ONLY\n  demo.no_vt_cfg:\n    role: CONFIG_VERSIONED\n  demo.bare_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: bare_cfg_versions\n  demo.ghost_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.ghost_cfg_versions\n  demo.mutable_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.mutable_cfg_versions\n  demo.mutable_cfg_versions:\n    mutability: MUTABLE\n  demo3.notes:\n    state_transitions_exempt: technical note, no lifecycle\n")
         found, total, _ = scan_all(tmp)
         items = {k: {i for i, _ in v} for k, v in found.items()}
         assert "demo.orders.total_amount" in items["M1"], "M1 money without currency"
@@ -220,7 +224,7 @@ CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES 
         assert "demo.lines.line_quantity" not in items["M1"] and "demo.lines.price" not in items["M1"], "M1: unit / currency present"
         assert "demo.orders" in items["M2"], "M2"
         assert "demo.customers" in items["M4"], "M4: a 主数据 table without a versions table"
-        assert items["M6"] == {"demo.rule_versions", "demo.no_vt_cfg"}, "M6: missing columns, missing versions_table; complete table passes"
+        assert items["M6"] == {"demo.rule_versions", "demo.no_vt_cfg", "demo.bare_cfg", "demo.ghost_cfg", "demo.mutable_cfg_versions"}, "M6: the four errors; a complete APPEND_ONLY table passes"
         assert "demo.addresses" not in items["M4"], "M4: address_versions found for addresses"
         assert "demo.bad_cat" in items["M4"], "M4: invalid data_category"
         assert not {"demo.sheets.total_hours", "demo.sheets.balance_days", "demo.sheets.cost_rate"} & items["M1"], "M1: unit in the name"
