@@ -428,6 +428,7 @@ tables:
     condition: only file_status along the listed transitions (tg_stored_files_guard)
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    writers: [platform.file]
     references: {previous_file_id: platform_file.stored_files, derived_from_file_id: platform_file.stored_files}
   platform_file.stored_file_names:
     # De-identified once to a fixed placeholder by the disposal job platform.file.deidentify-file-names (built with ADR-0061 disposal).
@@ -437,6 +438,7 @@ tables:
     condition: one de-identification to the fixed placeholder (tg_stored_file_names_guard)
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    writers: [platform.file]
   platform_file.file_bindings:
     role: AGGREGATE_CHILD
     aggregate: StoredFile
@@ -483,11 +485,13 @@ tables:
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    readers: [platform.file]
   platform_file.scan_exception_revocations:
     role: LOG_APPEND_ONLY
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    readers: [platform.file]
   platform_file.quarantine_read_requests:
     role: AGGREGATE_ROOT
     aggregate: QuarantineReadRequest
@@ -501,6 +505,7 @@ tables:
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    writers: [platform.file]
 
   platform_scheduling.scheduler_locks:
     role: FRAMEWORK
