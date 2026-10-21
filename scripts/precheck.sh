@@ -25,6 +25,8 @@ done
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "FAIL  not inside a git repository"; exit 1; }
 cd "$root" || exit 1
+# Heavy builds and test runs queue for one of two machine-wide slots and run at background priority (scripts/ci/heavy_slot.sh)
+heavy="$root/scripts/ci/heavy_slot.sh"
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/precheck.XXXXXX")
 trap 'rm -rf "$work"' EXIT
@@ -63,7 +65,7 @@ backend_classes() {
   local classes=$1 class
   for class in $(printf '%s' "$classes" | tr ',' ' '); do rm -f backend/target/surefire-reports/*"$class".* backend/target/surefire-reports/TEST-*."$class".xml; done
   # surefire:test after test-compile, not the test phase: pom.xml binds the export-openapi execution (OpenApiExportTest: a PostgreSQL container, rewrites openapi.json) to process-test-classes, and -Dtest cannot switch it off
-  (cd backend && ./mvnw -q test-compile surefire:test -Dtest="$classes") || return 1
+  (cd backend && "$heavy" -- ./mvnw -q test-compile surefire:test -Dtest="$classes") || return 1
   for class in $(printf '%s' "$classes" | tr ',' ' '); do
     ls backend/target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run"; return 1; }
   done
@@ -357,17 +359,19 @@ if $builds_relevant; then
     tests="$guards"
     scope="no module code changed (shared inputs, resources, build or architecture lists)"
   fi
-  if $pre_push; then
+  if $pre_push && ! touches '^(backend/|docs/|frontend/packages/api/)'; then
+    report SKIP "pre-push: unit tests" "nothing the backend tests read changed; CI runs them"
+  elif $pre_push; then
     run_step "pre-push: unit tests that start no container" light_unit_tests
   elif [ -z "$tests" ]; then
     if $run_backend; then
-      run_step "backend verify (full)" scripts/ci/backend_verify.sh
+      run_step "backend verify (full)" "$heavy" -- scripts/ci/backend_verify.sh
     else
       report SKIP "backend tests" "not run by default; $scope"
       echo "      run the full suite: scripts/ci/backend_verify.sh (Testcontainers: ask the user before starting containers)"
     fi
   elif $run_backend; then
-    run_step "backend tests (affected + guards)" sh -c 'cd backend && ./mvnw -q test-compile surefire:test -Dtest="$1" -Dsurefire.failIfNoSpecifiedTests=false' precheck "$tests"
+    run_step "backend tests (affected + guards)" sh -c 'cd backend && "$1" -- ./mvnw -q test-compile surefire:test -Dtest="$2" -Dsurefire.failIfNoSpecifiedTests=false' precheck "$heavy" "$tests"
   else
     report SKIP "backend tests" "not run by default; $scope"
     echo "      run: (cd backend && ./mvnw -q test-compile surefire:test -Dtest='$tests' -Dsurefire.failIfNoSpecifiedTests=false)"
@@ -381,7 +385,7 @@ if $builds_relevant; then
   if $pre_push && [ -z "$missing" ]; then
     report SKIP "frontend verify" "pre-push mode: CI runs the full verify"
   elif [ -z "$missing" ]; then
-    run_step "frontend verify (pnpm verify)" in_frontend pnpm verify
+    run_step "frontend verify (pnpm verify)" in_frontend "$heavy" --no-slot -- pnpm verify
   elif touches '^frontend/'; then
     report FAIL "frontend verify" "frontend changed: $missing"
   else
@@ -399,7 +403,7 @@ if $legacy_it_relevant; then
   elif ! command -v docker >/dev/null || ! docker info >/dev/null 2>&1; then
     report SKIP "SQL Server integration tests" "Docker is not installed or not running; CI runs scripts/ci/legacy_it.sh"
   else
-    run_step "SQL Server integration tests (legacy-it)" scripts/ci/legacy_it.sh
+    run_step "SQL Server integration tests (legacy-it)" "$heavy" -- scripts/ci/legacy_it.sh
   fi
 else
   report SKIP "SQL Server integration tests" "relevant_change.py: nothing the *MssqlIT tests exercise changed"
