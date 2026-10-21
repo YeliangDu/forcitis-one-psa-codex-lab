@@ -1,6 +1,6 @@
 # one-data 速查
 
-只记现行状态，一行一项（SESSION_PLAYBOOK §2.1 第 13 条）。2026-10-17 23:06+02:00 暂停交接（one-coordinator：用户额度紧，只保留命名主线；ADR-0058 设计修订、开发卡、DDL 扫描全部暂停）。
+只记现行状态，一行一项（SESSION_PLAYBOOK §2.1 第 13 条）。**2026-10-21 11:58+02:00 清上下文交接，现行状态见文末「2026-10-21 交接」一节，以它为准**；下面 2026-10-17 的暂停交接（one-coordinator：用户额度紧，只保留命名主线；ADR-0058 设计修订、开发卡、DDL 扫描全部暂停）。
 
 | 项 | 值 |
 |---|---|
@@ -28,3 +28,18 @@
 | C-6 日历导出缺陷 | `data/CALENDAR_EXPORT_DEFECT.md` @c1f73f06：条件在 SQL:46 与 `c6_relay.py:162` 两处，需 one-ops 修并重导出；回放报告不受影响 |
 | 其他待办 | 填报义务实现的数据设计（等 one-rules 规则卡）；触发器命名条款提议 `TRIGGER_NAMING_PROPOSAL.md`；迁入映射与对账方案（等施工方案）；错题本 DATA-001…007、011–013、018 待落实（负责 one-data，2026-10-24 前；暂停期间顺延） |
 | 工作规则 | 文档类提交不开 PR，推本会话分支，报分支+提交号；消息一到三行、只在对方要做事时发；Codex 先交（取证汇总、设计初稿），生产取证和签发本人做；任务号 `ARC-1017-DAT-nn`，登记片段在 `tasks/` |
+
+## 2026-10-21 交接（用户清上下文，设计恢复后的状态）
+
+| 项 | 值 |
+|---|---|
+| 分支 | `claude/one-data-handoff-1` 已全部推送（最新 d00e7625 起）。仍落后 main 约千个提交，`sync_with_base_branch` 被拦（用户在应用 Help → Troubleshooting → Review Pinned Git Origins 确认 origin 后才能同步）。文档由 one-merge 收进合集（只取 docs/）；**`scripts/ci/measurable_ddl_scan.py` 不随文档合集，须另开代码 PR（opus 复审），排在 W2 回填之后** |
+| 已签发 / 已复核 | F-1 全部（第四轮）；ADR-0034-IMPL 的 PR-1/2/3 DDL（B 组除外）；#489 列改名；**#493（ADR-0068/0069）四轮**：`personnel_commands`、`separation_holds`、`org_structure_commands`、停薪留职、F-1 两侧列、删三列、来源对照封存、审计对象类别登记表（`reviews/ADR-0068.md`）；**IMP-1021-NX5-01 单据类型登记表**（`reviews/IMP-1021-NX5-01.md`，需补触发器与 §4b 回收，其分支 `claude/nx5-doctype-registry@a5d4b26b` 仅在本地、未推远端，推后核实际 diff）；#476 表结构复核通过，**合并后补 `DATA_SCORECARD.md` 两行** |
+| W2 设计 | `data/W2_EMPLOYEE_POSITION_VERSIONING_DESIGN.md` 第 4 版，用户答复已回填，A 线 PR-B 的数据设计依据（coordinator 核对通过）；`DATA-REPAIR-workforce-REJUDGE-2026-10-21.md` 第 3 版。挂起：组织单元 `region_kind`/`is_delivery_unit` 无命令维护、法人归属期间维护不在命令种类、`DISSOLVE` 与 `DISABLED` 映射——均待 one-architecture（#493 第四轮三问）；**`org_units` 根表收窄设计：A4 答复后 30 天内由我出** |
+| 迁入数据量 | `data/MIGRATION_VOLUME_ESTIMATE.md` 第 2 版：用户裁定 200 GB+自动扩容、范围取 S2 但 A8 的 02/05 按五块表单类型过滤（A8 迁入约 0.8–1.3 GB）、老系统在制与分摊全量迁、U8C 凭证迁、S3 否；迁入合计约 12–14 GB（目标 12–21 GB）；运行期三年增长 27–74 GB，含迁入 39–95 GB ≤120 判定线，含 30% 空闲 51–124 GB 单列为参考。NAS+WORM 估价在 one-ops。待办：五块过滤口径可再跑一次按模板 ID 过滤的分组查询复核（不急） |
+| ADR-0058 状态转换 | 已采纳；设计第 2 版 `STATE_TRANSITIONS_DESIGN.md` 已按 opus 复核改（B1–B3、S1–S9），**待 sonnet 复核后签发**，开发卡暂停。W2 后员工/岗位/组织单元状态进版本表，转换表只剩法人等 |
+| 可度量原料 | 规范草稿 `MEASURABLE_RAW_MATERIAL_SPEC.md`、扫描脚本（M1–M5，M3 按 ADR-0058，M4 认 `data_category`）、`table_inventory.csv`/`TABLE_OBJECT_LIST*.md` 已交 one-architecture；总线矩阵暂停（SSOT 重建线），恢复后它找我核时间/币种/单位/状态转换/版本；写进 NAMING_STANDARD/§14、接 `build_all --check` 待恢复且先同步 main |
+| B31P 取证 | 汇总稿 `B31P_EVIDENCE_SUMMARY_DRAFT.md` 已交；one-ops 的 `b31p_r4_result.md` 含一个姓名，已批准改写该分支历史清除；核对取证结果只用 `grep -c`/行号（错题本 DATA-018） |
+| 待回填 | 用户收件箱里 W2 相关两题已答，已回填；N-03 `CORRECTION` 命令种类 one-architecture 已并入 #493 |
+| 其他待办 | 触发器命名条款 `TRIGGER_NAMING_PROPOSAL.md`；填报义务实现的数据设计（等 one-rules）；迁入映射与对账方案；SD-1 带入迁入核对设计（负责人 one-data，触发点迁入核对卡签发）；错题本 DATA-001…007、011–013、018 待落实（2026-10-24 前，已逾期顺延）；`ARC-1017-DAT-01/02` 任务登记已按 check_tasks 格式修 |
+| 规则提醒 | 文档类提交不开 PR，推本会话分支、报分支+提交号；代码 PR ≤3 且一单元一个；消息一到三行、只在对方要做事时发（连续发 10 条左右会被限流，到用户发言才解）；Codex 先交（取证汇总、设计初稿），生产取证、签发、守护/钩子/并发/解析类代码自己做；任务号 `<主线码>-<MMDD>-DAT-<nn>`，登记片段在 `tasks/`；会话长时先看 `get_usage` |
