@@ -220,6 +220,16 @@ if touches 'src/test/.*\.java$|scripts/ci/shared_mock_verify_scan\.py$'; then
     printf '%s\n' "$mock_scan" | tail -n 6 | sed 's/^/      | /'
   fi
 fi
+if touches 'src/(test|main)/.*\.java$|scripts/ci/weak_registration_scan\.py$'; then
+  run_step "weak-registration scan (self-test)" py scripts/ci/weak_registration_scan.py --self-test
+  if weak_scan=$(py scripts/ci/weak_registration_scan.py 2>&1); then
+    report PASS "weak-registration scan (report only)" "$(printf '%s\n' "$weak_scan" | tail -n 1)"
+    printf '%s\n' "$weak_scan" | head -n 6 | grep -v '^weak-registration scan' | sed 's/^/      | /' || true
+  else
+    report FAIL "weak-registration scan (report only)" "the scan itself failed:"
+    printf '%s\n' "$weak_scan" | tail -n 6 | sed 's/^/      | /'
+  fi
+fi
 
 grep -E '\.sh$' "$work/changed" >"$work/shell" || true
 : >"$work/shell.present"
@@ -285,10 +295,11 @@ if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(pre
   run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
   run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
 fi
-if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context)\.py)|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
+if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context|context_handoff)\.py)|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
   run_step "guards: playbook_digest (self-test)" py scripts/hooks/playbook_digest.py --self-test
   run_step "guards: handoff (self-test)" py scripts/hooks/handoff_selftest.py --self-test
   run_step "guards: session_context (self-test)" py scripts/hooks/session_context.py --self-test
+  run_step "guards: context_handoff (self-test)" py scripts/hooks/context_handoff.py --self-test
 fi
 
 if [ "$builds_relevant" = true ]; then
