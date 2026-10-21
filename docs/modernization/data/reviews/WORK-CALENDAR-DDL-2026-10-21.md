@@ -77,3 +77,20 @@
 1. 版本行两列并存：`source_kind`（`AUTHORED`、`OPERATIONS_DRAFT`、`MIGRATION`，具名 CHECK）说明这一版怎么产生，决定作者、确认人规则（更正二第 3 点）；`adjustment_basis_kind`（`OFFICIAL_NOTICE`、`MANUAL`，具名 CHECK，`NOT NULL`，迁入行也不例外）说明调整依据。前文 `source_kind` 的 `OFFICIAL_NOTICE`/`MANUAL` 取值作废。
 2. `official_notice_number`（暂名，词表登记后定名）非空当且仅当 `adjustment_basis_kind = 'OFFICIAL_NOTICE'`（具名 CHECK），长度上限。
 3. 依据列落在版本行，不落例外日行。迁入版本缺文号的，按 MQ-C-01 拒收，由人事补文号或如实记 `MANUAL`，不得默认填值。
+
+## 更正四（2026-10-21，用户新要求：日历日期带依据、版本按 K-2 形状、确认须挂依据；PR #506 评论 6314490252、批准页 C1，intent @52bc173f、@fb236db8）
+
+**① 日期行依据列**：`work_calendar_version_days.basis_kind text NOT NULL`，具名 CHECK IN (`OFFICIAL` 官方通知、`COMPANY` 公司加休、`MANUAL` 手工更正)。**不可空**：可空等于「不知道为什么休息」，正是这次审计要消灭的状态；表是新建的，没有存量行要兼容。迁入行按来源填，来源说不清的按 MQ-C-01 拒收，由人事补依据或如实记 `MANUAL`。`MANUAL` 行另须 `basis_note text`（依据说明，非空、有长度上限，具名 CHECK：`basis_kind = 'MANUAL'` 当且仅当 `basis_note` 非空）；批准人即该版本的确认人（四眼）。更正三的版本行 `adjustment_basis_kind` 取消（依据已细到日），`official_notice_number` 的「当且仅当」条件改为下条。
+
+**② 版本表按 K-2 形状**（D6 / ADR-0034 的区间约定，暂不接 K-2 基础设施，只让形状一致，将来迁移是搬数据不是改结构）：
+- 版本行：`version_number`（≥1，每 `work_calendar_id + year_number` 从 1 递增）、`effective_from_date`、`effective_to_date`（空表示开放；只能把开放版本关闭一次，其余列不可改；具名 CHECK `effective_to_date IS NULL OR effective_to_date >= effective_from_date`，允许零长，同 ADR-0034）；确认人 `confirmed_by`、确认时刻 `confirmed_at`、依据 `decision_ref`（确认操作的审计记录 ID）。
+- 同一日历同一年**已确认**版本的生效区间不重叠：`EXCLUDE USING gist (work_calendar_id WITH =, year_number WITH =, daterange(effective_from_date, effective_to_date, '[)') WITH &&) WHERE (confirmation_status = 'CONFIRMED')`（沿用 workforce 的做法与 btree_gist 扩展，实现时核扩展已建）。待确认版本不占区间。
+- 确认新版本（`version_number > 1`）时，触发器把上一已确认版本的 `effective_to_date` 关为新版本的 `effective_from_date`（唯一允许的二次改动，形同 `refuse_version_rewrite`）；禁删禁清空。其余同更正二、三（待确认状态、四眼空当且仅当迁入、首版豁免生效日检查）。
+
+**③ 确认必须挂依据，库层约束**：版本行加 `official_notice_url text`、`official_notice_number text`（暂名，同更正三）、`company_leave_register_ref text`（公司加休登记的引用；登记本身是不是表、是什么形状由 one-architecture 定，库里先存引用文本，定了形状再加外键）。`PENDING → CONFIRMED` 的触发器在确认时检查本版本日期行：
+- 有 `OFFICIAL` 日期行 → `official_notice_url` 与 `official_notice_number` 都非空；
+- 有 `COMPANY` 日期行 → `company_leave_register_ref` 非空；
+- 有 `MANUAL` 日期行 → 每行 `basis_note` 非空（CHECK 已保证）；
+- 不满足即拒绝确认，错误码 `check_violation`；日期行只能在版本待确认时插入，所以确认时看到的就是最终集合。
+- 三个依据列都有格式 CHECK（链接 `^https://` 且长度上限；其余长度上限）；MIGRATION 来源的版本同受此约束（迁入缺依据按 MQ-C-01 拒收）。
+**待用户认定的一点**：「缺一不许确认」我按「用到哪类依据就必须挂哪类」实现。若用户意思是「官方通知与公司加休登记每个版本都必须同时挂」，则去掉上面的条件、两列恒为必填；这样没有加休的年份也得挂一份「无加休」登记。请 one-1a-par / one-coordinator 向用户确认后告诉我。
