@@ -75,6 +75,11 @@ record BusinessFileStoreProperties(@DefaultValue("false") boolean enabled, Strin
         return "https://oss-" + region + (internalEndpoint ? "-internal" : "") + ".aliyuncs.com";
     }
 
+    /** Download links are opened by browsers, so they are signed for the public endpoint. */
+    String publicEndpoint() {
+        return "https://oss-" + region + ".aliyuncs.com";
+    }
+
     private static void identity(Identity identity, String key) {
         if (identity == null || blank(identity.accessKeyId()) == blank(identity.ecsRoleName())
                 || blank(identity.accessKeyId()) != blank(identity.accessKeySecret())) {

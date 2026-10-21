@@ -12,7 +12,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
 
-/** Reads clamd's answers to zVERSION and zSCAN; anything that is not a decision is unavailable (ADR-0070 section 2 item 6). */
+/**
+ * Reads clamd's answers to zVERSION and zSCAN; anything that is not a decision is unavailable (ADR-0070 section 2 item 6). A reply of
+ * several lines (AllMatchScan, which clamd.conf keeps off) is unavailable too, so one verdict never hides another.
+ */
 final class ClamdReply {
     private static final DateTimeFormatter BUILD_TIME = DateTimeFormatter.ofPattern("MMM d HH:mm:ss yyyy", Locale.ROOT);
 
@@ -20,6 +23,9 @@ final class ClamdReply {
 
         void requireFresh(Clock clock, Duration maxAge) {
             Duration age = Duration.between(builtAt, clock.instant());
+            if (age.compareTo(Duration.ofMinutes(-10)) < 0) {
+                throw new ExternalSystemUnavailableException("the malware definitions claim a build time in the future; check clamd-zone");
+            }
             if (age.compareTo(maxAge) > 0) {
                 throw new ExternalSystemUnavailableException("the malware definitions " + definitionsVersion + " are " + age.toHours()
                         + " hours old, more than " + maxAge.toHours());
@@ -47,7 +53,7 @@ final class ClamdReply {
 
     static ScanVerdict scan(String path, String reply, Definitions definitions) {
         String prefix = path + ": ";
-        if (!reply.startsWith(prefix)) {
+        if (reply.indexOf('\n') >= 0 || !reply.startsWith(prefix)) {
             throw new ExternalSystemUnavailableException("clamd answered for another file: " + reply);
         }
         String result = reply.substring(prefix.length());

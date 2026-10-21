@@ -33,10 +33,10 @@ final class ClamdScanner implements MalwareScanner {
     private final Clock clock;
     private final ZoneId clamdZone;
 
-    ClamdScanner(MalwareScanProperties properties, Clock clock, ZoneId clamdZone) {
+    ClamdScanner(MalwareScanProperties properties, Clock clock) {
         this.properties = properties;
         this.clock = clock;
-        this.clamdZone = clamdZone;
+        this.clamdZone = properties.clamdZone();
     }
 
     @Override
@@ -73,10 +73,17 @@ final class ClamdScanner implements MalwareScanner {
                 || text.indexOf('\r') >= 0 || text.indexOf('\0') >= 0) {
             throw new IllegalArgumentException("only a file under the scan staging root can be scanned");
         }
-        if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
-            throw new IllegalArgumentException("the staged file is missing or not a regular file");
+        try {
+            // The root may itself be a link set up by operations; below it, no link may lead elsewhere.
+            Path root = properties.stagingRoot().toRealPath();
+            Path real = file.toRealPath();
+            if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) || !real.equals(root.resolve(properties.stagingRoot().relativize(file)))) {
+                throw new IllegalArgumentException("the staged file is missing, not a regular file, or reached through a link");
+            }
+            return real.toString();
+        } catch (IOException e) {
+            throw new IllegalArgumentException("the staged file is missing", e);
         }
-        return text;
     }
 
     private String exchange(String command, Instant deadline) throws Unreachable {
@@ -112,13 +119,13 @@ final class ClamdScanner implements MalwareScanner {
                     reply.write(b);
                 }
                 if (reply.size() > MAX_REPLY_BYTES) {
-                    throw new Unreachable("clamd sent an over-long reply", null);
+                    throw new ExternalSystemUnavailableException("clamd sent an over-long reply");
                 }
             }
             if (reply.size() == 0) {
                 throw new Unreachable("clamd closed the connection without a reply", null);
             }
-            return reply.toString(StandardCharsets.UTF_8);
+            throw new ExternalSystemUnavailableException("clamd's reply was cut off before its terminator");
         } catch (IOException e) {
             throw new Unreachable("clamd is unreachable", e);
         }

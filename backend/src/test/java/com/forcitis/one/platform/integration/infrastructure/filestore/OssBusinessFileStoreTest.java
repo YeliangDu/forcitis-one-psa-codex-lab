@@ -38,6 +38,12 @@ class OssBusinessFileStoreTest {
     static final String MD5 = "9a0364b9e99bb480dd25e1f0284c8555";
     static final String SHA = "ed7002b439e9ac845f22357d822bac1444730fbdb6016d3ec9432297b9ec9f73";
 
+    private static com.aliyun.oss.model.PutObjectResult putResult(String etag) {
+        com.aliyun.oss.model.PutObjectResult result = new com.aliyun.oss.model.PutObjectResult();
+        result.setETag("\"" + etag.toUpperCase() + "\"");
+        return result;
+    }
+
     @TempDir
     Path directory;
 
@@ -76,7 +82,25 @@ class OssBusinessFileStoreTest {
     @Test
     void aReadBackThatDiffersFails() throws Exception {
         Path file = Files.writeString(directory.resolve("f"), "content");
-        when(writer.getObjectMetadata("files-dev", QUARANTINE.value())).thenReturn(stored(MD5, "0".repeat(64), 7));
+        when(writer.getObjectMetadata("files-dev", STAGING.value())).thenReturn(stored(MD5, "0".repeat(64), 7));
+        assertThatThrownBy(() -> store.put(STAGING, file, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
+    }
+
+    @Test
+    void aStagedFileThatChangedAfterTheScanIsNotWritten() throws Exception {
+        Path file = Files.writeString(directory.resolve("f"), "swapped");
+        assertThatThrownBy(() -> store.put(STAGING, file, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class)
+                .hasMessageContaining("changed after it was scanned");
+        verify(writer, never()).putObject(any(PutObjectRequest.class));
+    }
+
+    @Test
+    void quarantineIsConfirmedByTheWritesETagWithoutReadingIt() throws Exception {
+        Path file = Files.writeString(directory.resolve("f"), "content");
+        when(writer.putObject(any(PutObjectRequest.class))).thenReturn(putResult(MD5));
+        store.put(QUARANTINE, file, SHA, 7);
+        verify(writer, never()).getObjectMetadata(any(String.class), any(String.class));
+        when(writer.putObject(any(PutObjectRequest.class))).thenReturn(putResult("0".repeat(32)));
         assertThatThrownBy(() -> store.put(QUARANTINE, file, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
     }
 
@@ -103,6 +127,21 @@ class OssBusinessFileStoreTest {
     }
 
     @Test
+    void anExistingFormalObjectIsNeverOverwrittenNorAccepted() {
+        when(writer.getObjectMetadata("files-dev", STAGING.value())).thenReturn(stored(MD5, SHA, 7));
+        com.aliyun.oss.OSSException exists = new com.aliyun.oss.OSSException("exists", "FileAlreadyExists", null, null, null, null, null);
+        when(writer.copyObject(any(CopyObjectRequest.class))).thenThrow(exists);
+        assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
+    }
+
+    @Test
+    void aStagingObjectThatDiffersIsNotPromoted() {
+        when(writer.getObjectMetadata("files-dev", STAGING.value())).thenReturn(stored(MD5, "0".repeat(64), 7));
+        assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
+        verify(writer, never()).copyObject(any(CopyObjectRequest.class));
+    }
+
+    @Test
     void onlyFormalKeysArePresignedBySignerAsAttachment() throws Exception {
         when(signer.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(URI.create("https://files-dev.oss/x?sig").toURL());
 
@@ -117,6 +156,8 @@ class OssBusinessFileStoreTest {
         assertThatThrownBy(() -> store.presignDownload(STAGING, Duration.ofMinutes(5), "a", "a/b")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> store.presignDownload(QUARANTINE, Duration.ofMinutes(5), "a", "a/b")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> store.presignDownload(FORMAL, Duration.ofMinutes(16), "a", "a/b")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> store.presignDownload(FORMAL, Duration.ofMinutes(5), "a", "text/html\r\nSet-Cookie: x")).isInstanceOf(IllegalArgumentException.class);
+        assertThat(OssBusinessFileStore.attachment("a*\"b\r\n.pdf")).doesNotContain("\r").doesNotContain("\n").contains("%2A").startsWith("attachment; filename=\"a__b__.pdf\"");
         verifyNoInteractions(writer, quarantineReader);
     }
 
@@ -133,5 +174,6 @@ class OssBusinessFileStoreTest {
         verifyNoInteractions(writer, signer);
         assertThatThrownBy(() -> store.read(STAGING, sink)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> store.read(new StoredObjectKey("prod/files/2026/10/" + ID), sink)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> store.read(new StoredObjectKey("dev/files/2026/13/" + ID), sink)).isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -17,7 +17,7 @@ class BusinessFileStoreConfiguration {
     @Bean
     OssBusinessFileStore businessFileStore(BusinessFileStoreProperties properties, Clock clock) {
         OSS writer = new OSSClientBuilder().build(properties.endpoint(), properties.writer().credentials("writer"));
-        OSS signer = new OSSClientBuilder().build(properties.endpoint(), properties.signer().credentials("signer"));
+        OSS signer = new OSSClientBuilder().build(properties.publicEndpoint(), properties.signer().credentials("signer"));
         OSS quarantineReader = new OSSClientBuilder().build(properties.endpoint(), properties.quarantineReader().credentials("quarantine reader"));
         return new OssBusinessFileStore(writer, signer, quarantineReader, properties, clock);
     }

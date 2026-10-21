@@ -22,6 +22,8 @@ class BusinessFileStorePropertiesTest {
     void onNeedsAMainlandBucketAndThreeDifferentIdentities() {
         assertThat(new BusinessFileStoreProperties(true, "b", "cn-hangzhou", "dev", true, LINK, WRITER, SIGNER, READER).endpoint())
                 .isEqualTo("https://oss-cn-hangzhou-internal.aliyuncs.com");
+        assertThat(new BusinessFileStoreProperties(true, "b", "cn-hangzhou", "dev", true, LINK, WRITER, SIGNER, READER).publicEndpoint())
+                .isEqualTo("https://oss-cn-hangzhou.aliyuncs.com");
         assertThatThrownBy(() -> new BusinessFileStoreProperties(true, "b", "ap-southeast-1", "dev", true, LINK, WRITER, SIGNER, READER))
                 .hasMessageContaining("mainland");
         assertThatThrownBy(() -> new BusinessFileStoreProperties(true, "b", "cn-hangzhou", "dev", true, Duration.ofMinutes(16), WRITER, SIGNER, READER))

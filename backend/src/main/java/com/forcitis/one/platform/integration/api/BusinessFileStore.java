@@ -15,12 +15,16 @@ public interface BusinessFileStore {
     /** Into a staging or quarantine key only. */
     void put(StoredObjectKey key, Path source, String sha256Hex, long size);
 
-    /** Server-side copy from a staging key to the formal key of the same file, then read back. */
+    /** Server-side copy from a staging key, itself checked against size and SHA-256 first, to the formal key of the same file, then read back. */
     void promote(StoredObjectKey staging, StoredObjectKey formal, String sha256Hex, long size);
 
     /** Formal keys only; the link forces an attachment download with the given name and media type. */
     URI presignDownload(StoredObjectKey formal, Duration validity, String fileName, String mediaType);
 
-    /** Formal keys under the application identity, quarantine keys under the quarantine reader identity; staging keys are refused. */
+    /**
+     * Formal keys under the application identity, quarantine keys under the quarantine reader identity; staging keys are refused. This
+     * checks the key only: that only the security role reads quarantine, on an approved request and audited, is the file service's
+     * quarantine read use case (ADR-0070 section 6 item 2), not the RAM policy alone.
+     */
     void read(StoredObjectKey key, OutputStream sink);
 }

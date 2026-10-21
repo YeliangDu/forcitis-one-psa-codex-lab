@@ -17,6 +17,8 @@ import java.util.function.Function;
 
 /** Answers z-commands with replies chosen by the test; a null reply keeps the connection silent until the test ends. */
 final class FakeClamd implements AutoCloseable {
+    /** A reply starting with this is sent without its NUL terminator, then the connection closes. */
+    static final String UNTERMINATED = "<unterminated>";
     final List<String> commands = new CopyOnWriteArrayList<>();
     private final ServerSocketChannel server;
     private final Function<String, String> replies;
@@ -70,7 +72,8 @@ final class FakeClamd implements AutoCloseable {
             if (reply == null) {
                 closed.await();
             } else {
-                client.write(ByteBuffer.wrap((reply + "\0").getBytes(StandardCharsets.UTF_8)));
+                String sent = reply.startsWith(UNTERMINATED) ? reply.substring(UNTERMINATED.length()) : reply + "\0";
+                client.write(ByteBuffer.wrap(sent.getBytes(StandardCharsets.UTF_8)));
             }
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();

@@ -31,7 +31,7 @@ class ClamdScannerTest {
 
     private MalwareScanProperties tcp(int port, int attempts, Duration scanTimeout) {
         return new MalwareScanProperties(true, null, "127.0.0.1", port, staging, Duration.ofSeconds(1), scanTimeout, Duration.ofSeconds(5),
-                attempts, Duration.ofHours(48));
+                attempts, Duration.ofHours(48), ZoneOffset.UTC);
     }
 
     private static Function<String, String> answering(String scanResult) {
@@ -44,7 +44,7 @@ class ClamdScannerTest {
     }
 
     private ClamdScanner scanner(MalwareScanProperties properties) {
-        return new ClamdScanner(properties, NOW, ZoneOffset.UTC);
+        return new ClamdScanner(properties, NOW);
     }
 
     @Test
@@ -54,7 +54,7 @@ class ClamdScannerTest {
             ScanVerdict verdict = scanner(tcp(clamd.port(), 1, Duration.ofSeconds(2))).scan(file);
             assertThat(verdict.outcome()).isEqualTo(ScanOutcome.CLEAN);
             assertThat(verdict.definitionsVersion()).isEqualTo("27435");
-            assertThat(clamd.commands).containsExactly("zVERSION", "zSCAN " + file);
+            assertThat(clamd.commands).containsExactly("zVERSION", "zSCAN " + file.toRealPath());
             assertThat(clamd.commands).noneMatch(c -> c.contains("INSTREAM"));
         }
     }
@@ -77,7 +77,7 @@ class ClamdScannerTest {
             try (FakeClamd clamd = FakeClamd.tcp(answering(result))) {
                 assertThatThrownBy(() -> scanner(tcp(clamd.port(), 3, Duration.ofSeconds(2))).scan(file))
                         .isInstanceOf(ExternalSystemUnavailableException.class);
-                assertThat(clamd.commands).containsExactly("zVERSION", "zSCAN " + file);
+                assertThat(clamd.commands).containsExactly("zVERSION", "zSCAN " + file.toRealPath());
             }
         }
     }
@@ -87,9 +87,34 @@ class ClamdScannerTest {
         Path file = staged();
         try (FakeClamd clamd = FakeClamd.tcp(command -> command.equals("zVERSION") ? FRESH : command.substring(6) + ": OK")) {
             Clock later = Clock.fixed(Instant.parse("2026-10-23T08:00:01Z"), ZoneOffset.UTC);
-            assertThatThrownBy(() -> new ClamdScanner(tcp(clamd.port(), 3, Duration.ofSeconds(2)), later, ZoneOffset.UTC).scan(file))
+            assertThatThrownBy(() -> new ClamdScanner(tcp(clamd.port(), 3, Duration.ofSeconds(2)), later).scan(file))
                     .isInstanceOf(ExternalSystemUnavailableException.class).hasMessageContaining("definitions");
             assertThat(clamd.commands).containsExactly("zVERSION");
+        }
+    }
+
+    @Test
+    void aCutOffOrMultiLineReplyIsUnavailableAndNotRetried() throws Exception {
+        Path file = staged();
+        for (Function<String, String> replies : java.util.List.<Function<String, String>>of(
+                command -> command.equals("zVERSION") ? freshVersion() : FakeClamd.UNTERMINATED + command.substring(6) + ": OK",
+                command -> command.equals("zVERSION") ? freshVersion() : command.substring(6) + ": Heuristics.Encrypted.Zip FOUND\n"
+                        + command.substring(6) + ": Eicar-Signature FOUND")) {
+            try (FakeClamd clamd = FakeClamd.tcp(replies)) {
+                assertThatThrownBy(() -> scanner(tcp(clamd.port(), 3, Duration.ofSeconds(2))).scan(file))
+                        .isInstanceOf(ExternalSystemUnavailableException.class);
+                assertThat(clamd.commands).hasSize(2);
+            }
+        }
+    }
+
+    @Test
+    void definitionsBuiltInTheFutureMeanAWrongZoneAndAreUnavailable() throws Exception {
+        Path file = staged();
+        try (FakeClamd clamd = FakeClamd.tcp(command -> command.equals("zVERSION") ? FRESH : command.substring(6) + ": OK")) {
+            Clock earlier = Clock.fixed(Instant.parse("2026-10-21T07:00:00Z"), ZoneOffset.UTC);
+            assertThatThrownBy(() -> new ClamdScanner(tcp(clamd.port(), 1, Duration.ofSeconds(2)), earlier).scan(file))
+                    .isInstanceOf(ExternalSystemUnavailableException.class).hasMessageContaining("clamd-zone");
         }
     }
 
@@ -148,6 +173,16 @@ class ClamdScannerTest {
             assertThatThrownBy(() -> scanner.scan(staging.resolve("missing"))).isInstanceOf(IllegalArgumentException.class);
             Path link = Files.createSymbolicLink(staging.resolve("instance-1/link"), file);
             assertThatThrownBy(() -> scanner.scan(link)).isInstanceOf(IllegalArgumentException.class);
+            Path elsewhere = Files.createTempDirectory("elsewhere");
+            try {
+                Files.writeString(elsewhere.resolve("f"), "x");
+                Files.createSymbolicLink(staging.resolve("through"), elsewhere);
+                assertThatThrownBy(() -> scanner.scan(staging.resolve("through/f"))).isInstanceOf(IllegalArgumentException.class);
+            } finally {
+                Files.deleteIfExists(staging.resolve("through"));
+                Files.deleteIfExists(elsewhere.resolve("f"));
+                Files.deleteIfExists(elsewhere);
+            }
             assertThat(clamd.commands).isEmpty();
         }
     }
@@ -158,8 +193,8 @@ class ClamdScannerTest {
         Path socket = Files.createTempDirectory(Path.of("/tmp"), "clamd").resolve("s");
         try (FakeClamd clamd = FakeClamd.unix(socket, answering("OK"))) {
             MalwareScanProperties properties = new MalwareScanProperties(true, socket, null, null, staging, Duration.ofSeconds(1),
-                    Duration.ofSeconds(2), Duration.ofSeconds(5), 1, Duration.ofHours(48));
-            assertThat(new ClamdScanner(properties, NOW, ZoneId.of("UTC")).scan(file).outcome()).isEqualTo(ScanOutcome.CLEAN);
+                    Duration.ofSeconds(2), Duration.ofSeconds(5), 1, Duration.ofHours(48), ZoneId.of("UTC"));
+            assertThat(new ClamdScanner(properties, NOW).scan(file).outcome()).isEqualTo(ScanOutcome.CLEAN);
         } finally {
             Files.deleteIfExists(socket);
             Files.deleteIfExists(socket.getParent());
