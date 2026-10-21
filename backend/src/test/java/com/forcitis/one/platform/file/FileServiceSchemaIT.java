@@ -102,6 +102,8 @@ class FileServiceSchemaIT {
                 + "', 7, 'application/pdf', 'USER', '" + USER_A + "', '" + id() + "', 'AVAILABLE', false, 'e', 'd', null, false, now(), now(), now())", CHECK);
         refused("insert into platform_file.stored_files " + columns + " values ('" + file + "', 'dev/files/2026/10/" + file + "', '" + HASH
                 + "', 7, 'application/pdf', 'USER', '" + USER_A + "', null, 'QUARANTINED', false, 'e', 'd', 'X', false, now(), now(), now())", CHECK);
+        refused("insert into platform_file.stored_files " + columns + " values ('" + file + "', 'dev/quarantine/" + file + "', '" + HASH
+                + "', 7, 'application/pdf', 'USER', '" + USER_A + "', null, 'QUARANTINED', false, 'e', 'd', null, false, now(), now(), now())", CHECK);
         refused("insert into platform_file.stored_files " + columns + " values ('" + file + "', 'dev/staging/user/" + file + "', '" + HASH
                 + "', 7, 'application/pdf', 'USER', '" + USER_A + "', null, 'AVAILABLE', false, 'e', 'd', null, false, now(), now(), now())", CHECK);
     }
@@ -177,6 +179,11 @@ class FileServiceSchemaIT {
         refused(insert.formatted(id(), 2, anchor, "null"), CHECK);
         sql(insert.formatted(id(), 1, anchor, "null"));
         refused(insert.formatted(id(), 2, id(), "date '2026-12-31'"), CHECK);
+        UUID otherCategory = categoryVersion(USER_A);
+        refused(insert.replace("'" + version + "'", "'" + otherCategory + "'").formatted(id(), 2, anchor, "null"), CHECK);
+        refused("insert into platform_file.file_preservations (file_preservation_id, stored_file_id, preservation_sequence_number,"
+                + " preservation_category_version_id, anchor_document_type, anchor_document_id, start_date, expiry_date, recorded_at, created_at, updated_at)"
+                + " values ('" + id() + "', '" + file + "', 2, '" + version + "', 'CONTRACT', '" + anchor + "', date '2026-12-31', date '2036-12-31', now(), now(), now())", CHECK);
         UUID second = id();
         sql(insert.formatted(second, 2, anchor, "date '2026-12-31'"));
         try (Statement s = c.createStatement(); var rows = s.executeQuery("select file_preservation_id from platform_file.current_file_preservations where stored_file_id = '" + file + "'")) {
@@ -191,6 +198,9 @@ class FileServiceSchemaIT {
     @DisplayName("a false positive needs a second person, and only a confirmed judgment puts a hash on the exception list")
     void falsePositivesNeedTwoPeople() throws SQLException {
         UUID file = storedFile("QUARANTINED");
+        refused("insert into platform_file.false_positive_judgments (false_positive_judgment_id, stored_file_id, content_hash, judgment_status, judgment_reason,"
+                + " judged_by, judged_at, review_reason, reviewed_by, reviewed_at, created_at, updated_at) values ('" + id() + "', '" + file + "', '" + HASH
+                + "', 'CONFIRMED', '直接确认', '" + USER_A + "', now(), '同意', '" + USER_B + "', now(), now(), now())", CHECK);
         UUID judgment = id();
         sql("insert into platform_file.false_positive_judgments (false_positive_judgment_id, stored_file_id, content_hash, judgment_status, judgment_reason,"
                 + " judged_by, judged_at, created_at, updated_at) values ('" + judgment + "', '" + file + "', '" + HASH + "', 'PENDING_REVIEW', '样本核对为误报', '"
@@ -202,6 +212,8 @@ class FileServiceSchemaIT {
         sql("update platform_file.false_positive_judgments set judgment_status = 'CONFIRMED', review_reason = '同意', reviewed_by = '" + USER_B
                 + "', reviewed_at = now() where false_positive_judgment_id = '" + judgment + "'");
         refused("update platform_file.false_positive_judgments set judgment_status = 'REJECTED' where false_positive_judgment_id = '" + judgment + "'", TRIGGER);
+        refused("insert into platform_file.scan_exceptions (scan_exception_id, content_hash, false_positive_judgment_id, judgment_status, added_at, created_at, updated_at)"
+                + " values ('" + id() + "', '" + "c".repeat(64) + "', '" + judgment + "', 'CONFIRMED', now(), now(), now())", FOREIGN_KEY);
         assertThatCode(() -> sql("insert into platform_file.scan_exceptions (scan_exception_id, content_hash, false_positive_judgment_id, judgment_status, added_at,"
                 + " created_at, updated_at) values ('" + id() + "', '" + HASH + "', '" + judgment + "', 'CONFIRMED', now(), now(), now())")).doesNotThrowAnyException();
         refused("insert into platform_file.scan_exception_revocations (scan_exception_revocation_id, content_hash, revocation_reason, revoked_by, confirmed_by,"
@@ -213,6 +225,9 @@ class FileServiceSchemaIT {
     @DisplayName("a quarantine read is approved by a second person, expires, and is read once")
     void quarantineReadsAreApprovedAndExpire() throws SQLException {
         UUID file = storedFile("QUARANTINED");
+        refused("insert into platform_file.quarantine_read_requests (quarantine_read_request_id, stored_file_id, request_status, request_reason, requested_by,"
+                + " requested_at, decided_by, decided_at, approval_expires_at, created_at, updated_at) values ('" + id() + "', '" + file + "', 'APPROVED', '取证', '"
+                + USER_A + "', now(), '" + USER_B + "', now(), now() + interval '1 hour', now(), now())", CHECK);
         UUID request = id();
         sql("insert into platform_file.quarantine_read_requests (quarantine_read_request_id, stored_file_id, request_status, request_reason, requested_by,"
                 + " requested_at, created_at, updated_at) values ('" + request + "', '" + file + "', 'PENDING', '取证', '" + USER_A + "', now(), now(), now())");

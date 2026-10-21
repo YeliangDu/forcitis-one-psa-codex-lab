@@ -5,7 +5,7 @@ CREATE SCHEMA IF NOT EXISTS platform_file;
 -- ═══ 0. 状态转换（ADR-0058；STATE_TRANSITIONS_DESIGN v2 第 1 节模板，<schema> = platform_file）════════
 CREATE TABLE platform_file.state_transitions (
     id                      uuid        NOT NULL,
-    aggregate_type_code          text        NOT NULL CONSTRAINT ck_state_transitions_aggregate_type_code CHECK (aggregate_type_code ~ '^[A-Z][A-Za-z0-9]{0,99}$'),
+    aggregate_type_code          text        NOT NULL CONSTRAINT ck_state_transitions_aggregate_type_code CHECK (aggregate_type_code IN ('StoredFile', 'FalsePositiveJudgment', 'QuarantineReadRequest', 'PreservationCategoryVersion')),
     aggregate_id            uuid        NOT NULL,
     sequence_number             bigint      NOT NULL,
     from_status              text,
@@ -40,13 +40,22 @@ CREATE TABLE platform_file.state_transitions (
         AND (cause_kind <> 'MIGRATION' OR num_nonnulls(command_id, event_id) = 0)),
     CONSTRAINT ck_state_transitions_reversal CHECK ((cause_kind IN ('REVERSAL', 'CORRECTION')) = (reverses_transition_id IS NOT NULL)),
     CONSTRAINT ck_state_transitions_migration CHECK (cause_kind <> 'MIGRATION' OR from_status IS NULL),
+    CONSTRAINT ck_state_transitions_status_of_aggregate CHECK (
+        (aggregate_type_code = 'StoredFile' AND to_status IN ('AVAILABLE', 'QUARANTINED', 'EXPIRED_UNBOUND')
+            AND (from_status IS NULL OR from_status = 'AVAILABLE'))
+        OR (aggregate_type_code = 'FalsePositiveJudgment' AND to_status IN ('PENDING_REVIEW', 'CONFIRMED', 'REJECTED')
+            AND (from_status IS NULL OR from_status = 'PENDING_REVIEW'))
+        OR (aggregate_type_code = 'QuarantineReadRequest' AND to_status IN ('PENDING', 'APPROVED', 'REJECTED', 'READ')
+            AND (from_status IS NULL OR from_status IN ('PENDING', 'APPROVED')))
+        OR (aggregate_type_code = 'PreservationCategoryVersion' AND to_status IN ('PENDING', 'CONFIRMED')
+            AND (from_status IS NULL OR from_status = 'PENDING'))),
     CONSTRAINT ck_state_transitions_times CHECK (created_at = recorded_at AND updated_at = recorded_at)
 );
 CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on_date ON platform_file.state_transitions (legal_entity_id, occurred_on_date) WHERE legal_entity_id IS NOT NULL;
 CREATE INDEX ix_state_transitions_recorded_at ON platform_file.state_transitions (recorded_at, id);
 CREATE FUNCTION platform_file.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-    -- 清理只有一条通道：schema 属主角色经 SECURITY DEFINER 函数 platform_file.purge_expired_state_transitions 删除到期的整个聚合；其他角色都被拒。
+    -- 清理只有一条通道：schema 属主角色经 SECURITY DEFINER 函数 platform_file.purge_expired_state_transitions（随保留期清理卡建）删除到期的整个聚合；其他角色都被拒。
     IF TG_OP = 'DELETE' AND current_user = (SELECT pg_get_userbyid(c.relowner) FROM pg_class c WHERE c.oid = TG_RELID) THEN
         RETURN OLD;
     END IF;
@@ -470,7 +479,7 @@ CREATE FUNCTION platform_file.guard_file_preservation_insert() RETURNS trigger L
 DECLARE
     last_row platform_file.file_preservations;
 BEGIN
-    PERFORM 1 FROM platform_file.stored_files WHERE stored_file_id = NEW.stored_file_id FOR UPDATE;
+    PERFORM 1 FROM platform_file.stored_files WHERE stored_file_id = NEW.stored_file_id FOR NO KEY UPDATE;
     SELECT * INTO last_row FROM platform_file.file_preservations
         WHERE stored_file_id = NEW.stored_file_id ORDER BY preservation_sequence_number DESC LIMIT 1;
     IF NEW.preservation_sequence_number <> COALESCE(last_row.preservation_sequence_number, 0) + 1 THEN
@@ -485,6 +494,10 @@ BEGIN
                IS DISTINCT FROM (SELECT preservation_category_id FROM platform_file.preservation_category_versions
                     WHERE preservation_category_version_id = last_row.preservation_category_version_id)) THEN
         RAISE EXCEPTION 'platform_file.file_preservations: a file keeps one preservation category and anchor' USING ERRCODE = 'check_violation';
+    END IF;
+    IF NEW.expiry_date IS NOT NULL AND (SELECT confirmation_status FROM platform_file.preservation_category_versions
+            WHERE preservation_category_version_id = NEW.preservation_category_version_id) <> 'CONFIRMED' THEN
+        RAISE EXCEPTION 'platform_file.file_preservations: a pending category version gives no expiry date (ADR-0061)' USING ERRCODE = 'check_violation';
     END IF;
     RETURN NEW;
 END $$;
@@ -517,7 +530,7 @@ CREATE TABLE platform_file.false_positive_judgments (
     updated_at                 timestamptz NOT NULL,
     version                    bigint      NOT NULL DEFAULT 0,
     CONSTRAINT pk_false_positive_judgments PRIMARY KEY (false_positive_judgment_id),
-    CONSTRAINT uk_false_positive_judgments_id_status UNIQUE (false_positive_judgment_id, judgment_status),
+    CONSTRAINT uk_false_positive_judgments_id_status_hash UNIQUE (false_positive_judgment_id, judgment_status, content_hash),
     CONSTRAINT fk_false_positive_judgments_stored_file FOREIGN KEY (stored_file_id, content_hash)
         REFERENCES platform_file.stored_files (stored_file_id, content_hash) ON DELETE RESTRICT,
     CONSTRAINT ck_false_positive_judgments_judgment_status CHECK (judgment_status IN ('PENDING_REVIEW', 'CONFIRMED', 'REJECTED')),
@@ -556,6 +569,22 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
+CREATE FUNCTION platform_file.guard_judgment_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.judgment_status <> 'PENDING_REVIEW' THEN
+        RAISE EXCEPTION 'platform_file.false_positive_judgments: a judgment starts PENDING_REVIEW' USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+CREATE FUNCTION platform_file.guard_quarantine_read_request_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.request_status <> 'PENDING' THEN
+        RAISE EXCEPTION 'platform_file.quarantine_read_requests: a request starts PENDING' USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+CREATE TRIGGER tg_false_positive_judgments_insert_guard BEFORE INSERT ON platform_file.false_positive_judgments
+    FOR EACH ROW EXECUTE FUNCTION platform_file.guard_judgment_insert();
 CREATE TRIGGER tg_false_positive_judgments_guard BEFORE UPDATE OR DELETE ON platform_file.false_positive_judgments
     FOR EACH ROW EXECUTE FUNCTION platform_file.guard_false_positive_judgment_change();
 CREATE TRIGGER tg_false_positive_judgments_guard_truncate BEFORE TRUNCATE ON platform_file.false_positive_judgments
@@ -572,14 +601,14 @@ CREATE TABLE platform_file.scan_exceptions (
     CONSTRAINT pk_scan_exceptions PRIMARY KEY (scan_exception_id),
     CONSTRAINT uk_scan_exceptions_content_hash UNIQUE (content_hash),
     CONSTRAINT uk_scan_exceptions_false_positive_judgment_id UNIQUE (false_positive_judgment_id),
-    CONSTRAINT fk_scan_exceptions_judgment FOREIGN KEY (false_positive_judgment_id, judgment_status)
-        REFERENCES platform_file.false_positive_judgments (false_positive_judgment_id, judgment_status) ON DELETE RESTRICT,
+    CONSTRAINT fk_scan_exceptions_judgment FOREIGN KEY (false_positive_judgment_id, judgment_status, content_hash)
+        REFERENCES platform_file.false_positive_judgments (false_positive_judgment_id, judgment_status, content_hash) ON DELETE RESTRICT,
     CONSTRAINT ck_scan_exceptions_content_hash CHECK (content_hash ~ '^[0-9a-f]{64}$'),
     CONSTRAINT ck_scan_exceptions_judgment_status CHECK (judgment_status IN ('CONFIRMED'))
 );
 COMMENT ON TABLE platform_file.scan_exceptions IS '误报例外清单：只追加；引擎检出且内容哈希在清单内、且未撤销，即按通过并审计「按例外放行」；只豁免该内容。撤销后同一哈希不再加回。粒度：每个内容哈希一行';
 COMMENT ON COLUMN platform_file.scan_exceptions.scan_exception_id IS '误报例外 ID（UUIDv7）';
-COMMENT ON COLUMN platform_file.scan_exceptions.content_hash IS '内容哈希：被豁免的内容；应用写入时取自判定行';
+COMMENT ON COLUMN platform_file.scan_exceptions.content_hash IS '内容哈希：被豁免的内容；与判定 ID、判定状态复合外键，只能是该已确认判定的哈希';
 COMMENT ON COLUMN platform_file.scan_exceptions.false_positive_judgment_id IS '误报判定 ID：已确认的那次判定';
 COMMENT ON COLUMN platform_file.scan_exceptions.judgment_status IS '判定状态：恒为 CONFIRMED，与判定 ID 复合外键保证只引已确认的判定';
 COMMENT ON COLUMN platform_file.scan_exceptions.added_at IS '加入时间';
@@ -644,7 +673,7 @@ CREATE TABLE platform_file.quarantine_read_requests (
     CONSTRAINT ck_quarantine_read_requests_approval_expiry CHECK ((request_status IN ('APPROVED', 'READ')) = (approval_expires_at IS NOT NULL)
                                                                   AND (approval_expires_at IS NULL OR approval_expires_at > decided_at)),
     CONSTRAINT ck_quarantine_read_requests_read CHECK ((request_status = 'READ') = (read_at IS NOT NULL)
-                                                      AND (read_at IS NULL OR read_at <= approval_expires_at)),
+                                                      AND (read_at IS NULL OR (read_at <= approval_expires_at AND read_at >= decided_at))),
     CONSTRAINT ck_quarantine_read_requests_request_reason CHECK (request_reason <> '' AND char_length(request_reason) <= 1000)
 );
 CREATE INDEX ix_quarantine_read_requests_stored_file_id ON platform_file.quarantine_read_requests (stored_file_id);
@@ -679,6 +708,8 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
+CREATE TRIGGER tg_quarantine_read_requests_insert_guard BEFORE INSERT ON platform_file.quarantine_read_requests
+    FOR EACH ROW EXECUTE FUNCTION platform_file.guard_quarantine_read_request_insert();
 CREATE TRIGGER tg_quarantine_read_requests_guard BEFORE UPDATE OR DELETE ON platform_file.quarantine_read_requests
     FOR EACH ROW EXECUTE FUNCTION platform_file.guard_quarantine_read_request_change();
 CREATE TRIGGER tg_quarantine_read_requests_guard_truncate BEFORE TRUNCATE ON platform_file.quarantine_read_requests
