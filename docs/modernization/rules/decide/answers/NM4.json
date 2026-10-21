@@ -1,0 +1,123 @@
+{
+ "NM4~NM4-01": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM4-01",
+  "note": "",
+  "recommended": true,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-02": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM4-02",
+  "note": "",
+  "recommended": true,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-03": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM4-03",
+  "note": "",
+  "recommended": true,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-04": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "以下中文名全部认可",
+  "no": "NM4-04",
+  "note": "",
+  "recommended": false,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-05": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "以下中文名全部认可",
+  "no": "NM4-05",
+  "note": "",
+  "recommended": false,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-06": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "允许在记录名称中使用",
+  "no": "NM4-06",
+  "note": "",
+  "recommended": true,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-07": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "三种含义分别命名",
+  "no": "NM4-07",
+  "note": "",
+  "recommended": false,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-08": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "同时涵盖设备和软件许可",
+  "no": "NM4-08",
+  "note": "",
+  "recommended": false,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-09": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "按税费种类分别叫申报",
+  "no": "NM4-09",
+  "note": "",
+  "recommended": true,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-10": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM4-10",
+  "note": "",
+  "recommended": true,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ },
+ "NM4~NM4-11": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM4-11",
+  "note": "",
+  "recommended": true,
+  "submission": "NM4-20261017-105806-n04",
+  "submitted": "2026-10-17T08:58:06.877Z",
+  "unanswered": false
+ }
+}

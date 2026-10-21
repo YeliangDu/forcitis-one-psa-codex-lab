@@ -269,6 +269,28 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.identity]
+  platform_identity.role_versions:
+    # Retention (ADR-0034 0034-Q2): 3 years online, archived until 10 years. The purge job is built with the online deletion of audit entries (ADR-0034, impact list), then this becomes {policy: 3y, job: ...}.
+    # Owner: one-1a-par. Due: within 30 months after the first production deployment. The purge runs in dependency order: account_role_grants first, then role_versions, then the rows they reference
+    # (role_version_custom_org_units of F-1 goes with its role version).
+    # D17 rule 2: dimension table, effective basis DECLARED. roles.code, kind and is_administrative are not versioned: they decide what a role is and have no change path (ADR-0034 item 1.1).
+    role: DIMENSION_VERSIONED
+    aggregate: Role
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {recorded_by: platform_identity.user_accounts, closed_by: platform_identity.user_accounts}
+    writers: []
+  platform_identity.account_role_grants:
+    # Retention as role_versions above (0034-Q2; owner one-1a-par; due within 30 months after the first production deployment; purge job built with the audit online deletion; account_role_grants is purged before role_versions).
+    # D17 rule 2: effective basis DECLARED; the current value is the row that is not closed.
+    role: DIMENSION_VERSIONED
+    aggregate: UserAccount
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {granted_by: platform_identity.user_accounts, revoked_by: platform_identity.user_accounts}
+    writers: []
   platform_identity.navigation_items:
     # uk_navigation_items_parent_item_id_name (parent_item_id, name) is the business key and also serves as the index of the parent_item_id foreign key (DATA-REPAIR-identity ID-11).
     role: CONFIG
@@ -357,6 +379,13 @@ tables:
     lineage: {source: ORG_SOURCE, migrated_from: [老系统人员与部门对照], via: ONE_OFF_IMPORT}
     writers: [platform.integration]
 
+  platform_numbering.document_types:
+    # ADR-0066 decision 4: uk_document_types_code is the business key. Rows are inserted by migrations only; platform.approval and the business contexts check codes through platform.numbering.api.DocumentTypes, never by reading this table.
+    role: CONFIG
+    mutability: MIGRATION_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.numbering]
   platform_numbering.numbering_rules:
     role: CONFIG_VERSIONED
     aggregate: NumberingRule

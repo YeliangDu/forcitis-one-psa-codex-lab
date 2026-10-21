@@ -18,7 +18,7 @@ import com.forcitis.one.kernel.AccountingPeriod;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.cost.timesheet.api.TimesheetDocument;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
@@ -228,7 +228,7 @@ public final class Timesheet extends AggregateRoot {
     }
 
     public DocumentReference document() {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(timesheetId.value()));
+        return new DocumentReference(TimesheetDocument.TYPE, new DocumentId(timesheetId.value()));
     }
 
     public TimesheetId timesheetId() {

@@ -13,7 +13,7 @@ import com.forcitis.one.cost.timesheet.application.TimesheetView;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.platform.approval.ApprovalIntegrationSupport;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
@@ -105,7 +105,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
     }
 
     static DocumentReference documentOf(TimesheetId id) {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(id.value()));
+        return new DocumentReference(new DocumentTypeCode("TIMESHEET"), new DocumentId(id.value()));
     }
 
     /** Submits and returns the Shanghai days just before and just after the call, so a midnight crossing cannot fail the test. */

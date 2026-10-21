@@ -239,6 +239,24 @@ bcs:
   business_owner: 用户兼任
   description: ""
   words: [单据]
+- id: platform.signing
+  zh: 签章服务
+  subdomain: platform
+  kind: bc
+  business_owner: 用户兼任
+  description: "印章台账、电子用印的发起与结果回收、签章记录（含电子签章、CA 数字证书、图纸签章）；英文名 SigningService，定名 2026-10-21 用户同意"
+- id: platform.file
+  zh: 文件服务
+  subdomain: platform
+  kind: bc
+  business_owner: 用户兼任
+  description: "文件内容存储、版本、关联、封存与下载链接；英文名 FileService，定名 2026-10-21 用户同意"
+- id: platform.linkaccess
+  zh: 外部一次性链接访问
+  subdomain: platform
+  kind: bc
+  business_owner: 用户兼任
+  description: "向合作方发一次性链接，供下载、回传、回签；英文名 OneTimeLinkAccess，链接持有人不叫外部主体，定名 2026-10-21 用户同意（收件箱原文「外部一次性链接访问」）"
 - id: platform.scheduling
   zh: 调度
   subdomain: platform

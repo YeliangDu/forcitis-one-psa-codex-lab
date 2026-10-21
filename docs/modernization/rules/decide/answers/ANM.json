@@ -1,0 +1,123 @@
+{
+ "ANM~AN-01": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "批准",
+  "no": "AN-01",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-02": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "该价值流评审完就出",
+  "no": "AN-02",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-03": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "批准",
+  "no": "AN-03",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-04": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "先只交付中文，英文界面等有需求再定",
+  "no": "AN-04",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-05": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "可以不同，分开登记",
+  "no": "AN-05",
+  "note": "",
+  "recommended": false,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-06": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "单独立「确认入账」，「确认」只表示核对无误",
+  "no": "AN-06",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-07": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "批准",
+  "no": "AN-07",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-08": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "批准",
+  "no": "AN-08",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-09": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "批准",
+  "no": "AN-09",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-10": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "批准",
+  "no": "AN-10",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ },
+ "ANM~AN-11": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "批准",
+  "no": "AN-11",
+  "note": "",
+  "recommended": true,
+  "submission": "ANM-20261017-075455-3xc",
+  "submitted": "2026-10-17T05:54:55.787Z",
+  "unanswered": false
+ }
+}

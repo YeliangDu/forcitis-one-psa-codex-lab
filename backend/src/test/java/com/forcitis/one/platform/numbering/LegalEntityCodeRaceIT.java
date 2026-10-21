@@ -3,7 +3,7 @@ package com.forcitis.one.platform.numbering;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestPostgres;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.WorkContext;
@@ -103,7 +103,7 @@ class LegalEntityCodeRaceIT {
         CountDownLatch issued = new CountDownLatch(1);
         CountDownLatch commit = new CountDownLatch(1);
         CompletableFuture<String> issuer = CompletableFuture.supplyAsync(() -> tx.execute(status -> {
-            String number = numbers.next(DocumentType.QUOTE, le, DAY).value();
+            String number = numbers.next(new DocumentTypeCode("QUOTE"), le, DAY).value();
             issued.countDown();
             await(commit);
             return number;
@@ -141,7 +141,7 @@ class LegalEntityCodeRaceIT {
             }
         }));
         assertThat(corrected.await(10, TimeUnit.SECONDS)).isTrue();
-        CompletableFuture<String> issuer = CompletableFuture.supplyAsync(() -> tx.execute(status -> numbers.next(DocumentType.QUOTE, le, DAY).value()));
+        CompletableFuture<String> issuer = CompletableFuture.supplyAsync(() -> tx.execute(status -> numbers.next(new DocumentTypeCode("QUOTE"), le, DAY).value()));
         awaitBlockedStatement();
         commit.countDown();
 
@@ -164,7 +164,7 @@ class LegalEntityCodeRaceIT {
             }
         }));
         assertThat(deactivated.await(10, TimeUnit.SECONDS)).isTrue();
-        CompletableFuture<Object> issuer = CompletableFuture.supplyAsync(() -> tx.execute(status -> numbers.next(DocumentType.QUOTE, le, DAY).value()));
+        CompletableFuture<Object> issuer = CompletableFuture.supplyAsync(() -> tx.execute(status -> numbers.next(new DocumentTypeCode("QUOTE"), le, DAY).value()));
         awaitBlockedStatement();
         commit.countDown();
 

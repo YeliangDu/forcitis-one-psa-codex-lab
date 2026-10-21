@@ -4,7 +4,7 @@ import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
@@ -32,7 +32,7 @@ final class OpenTasks {
     }
 
     static TaskView claimedBy(EmployeeId initiator, UserId handler) {
-        return new TaskView(TASK, INSTANCE, ProcessKey.COST_TIMESHEET_APPROVAL, new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7")),
+        return new TaskView(TASK, INSTANCE, ProcessKey.COST_TIMESHEET_APPROVAL, new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("7")),
                 new LegalEntityId(TestIds.uuid(1)), "approverReview", "Approver review", initiator, Optional.of(handler), Set.of(handler),
                 Instant.EPOCH, false, Optional.empty(), false, new ContentHash("hash"));
     }

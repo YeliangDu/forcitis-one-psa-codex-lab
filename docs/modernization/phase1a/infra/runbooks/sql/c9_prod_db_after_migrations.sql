@@ -10,10 +10,14 @@ DECLARE t text;
 BEGIN
     FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
                              'organization_workforce.legal_entity_versions',
-                             'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities'] LOOP
+                             'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
+                             'platform_identity.role_versions', 'platform_identity.account_role_grants'] LOOP
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_prod_app', t);
     END LOOP;
 END $$;
+
+-- 单据类型登记（ADR-0066 决定 4）：行只由迁移写，运行角色只读；与 one_db_roles_schemas.sql §4b 同步。
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FROM one_prod_app;
 
 -- 审计月分区预建（ADR-0048）：函数是 SECURITY DEFINER、属主 one_prod_owner，基线已对 PUBLIC 撤销 EXECUTE；运行角色经预建作业调用，缺此授权则 AuditPartitionJob 每天被拒、基线 6 个月分区用尽后审计写入失败。
 -- 与 one_db_roles_schemas.sql §4b 同步；函数随基线迁移建出，故在迁移之后执行。

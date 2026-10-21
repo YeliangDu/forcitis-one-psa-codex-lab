@@ -1,9 +1,13 @@
+# ARCH-ADOPT（2026-10-17）：旧时点按 ADR-0054 决定 1、3 及影响面按业务内容映射。
+# 下列 stage 行注释记录目标建造批；生产入口、出口、启用、切换及退役统一按投产节点。
+# transitions.yaml 与 DDD SSOT 本轮不改，stage 取值保留现有已登记 ID，随
+# ARCH_SSOT_CONSOLIDATION_PLAN 整合确认包切换；注释不表示新阶段已入 SSOT。
 adrs:
 - id: "0001"   # `产品与目标：以 FORCITIS one 重建 PSA，绞杀式切换`
   category: "方法"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0054 决定 3、后果、备选方案（未采用）（部分）", "ADR-0055 决定 5（部分）"]
 - id: "0002"   # 技术栈基线
   category: "技术与平台"
   bc: ["全局"]
@@ -23,7 +27,7 @@ adrs:
   category: "方法"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0053 决定 1 第一句、决定 3「同批修改 03」一句"]
 - id: "0006"   # 强类型与值对象
   category: "技术与平台"
   bc: ["全局"]
@@ -38,22 +42,22 @@ adrs:
   category: "集成"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0035 第 2 条 v2 并存一句"]
+  partially_superseded: ["ADR-0035 第 2 条 v2 并存一句", "ADR-0054 后果（部分）"]
 - id: "0009"   # 鉴权重建
   category: "安全与权限"
   bc: ["platform.identity"]
-  stage: ["TA-1a"]
-  partially_superseded: ["ADR-0026 第 4 条（部分）", "ADR-0027 第 6 条（部分）", "ADR-0037 第 6 条中「不读取」"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
+  partially_superseded: ["ADR-0026 第 4 条（部分）", "ADR-0027 第 6 条（部分）", "ADR-0037 第 6 条中「不读取」", "ADR-0063 第 2 条「令牌不进 URL」（部分）"]
 - id: "0010"   # 可配置的业务编号
   category: "数据"
   bc: ["platform.numbering"]
-  stage: ["TA-1a"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
   partially_superseded: ["ADR-0027 第 1、2、5 条与背景", "ADR-0036 第 5 条对迁入单据的适用"]
 - id: "0011"   # 数据：OLTP 设计、数据字典、桥接与 OLAP 分离
   category: "数据"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0025 第 2、4 条", "ADR-0033 保留雪花 bigint 主键一句"]
+  partially_superseded: ["ADR-0025 第 2、4 条", "ADR-0033 保留雪花 bigint 主键一句", "ADR-0054 决定 3、后果、备选方案（未采用）（部分）", "ADR-0055 决定 3（部分）"]
 - id: "0012"   # 测试策略
   category: "技术与平台"
   bc: ["全局"]
@@ -72,13 +76,13 @@ adrs:
 - id: "0015"   # 安全止血先行
   category: "安全与权限"
   bc: ["全局"]
-  stage: ["TA-1a"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
   partially_superseded: []
 - id: "0016"   # 权责发生制业财一体主干：事实只追加、单一过账管道、期间闸门
   category: "业务主干"
   bc: ["operations.facts", "accounting.period", "receivables.wip"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0024 后果第 4 条", "ADR-0022 第 6 条", "ADR-0036 第 1 条对迁入的适用与后果一句", "ADR-0047 第 4 条「唯一触发点」一句", "ADR-0051 决定 9 中 changeorder 模块名"]
+  partially_superseded: ["ADR-0024 后果第 4 条", "ADR-0022 第 6 条", "ADR-0036 第 1 条对迁入的适用与后果一句", "ADR-0047 第 4 条「唯一触发点」一句", "ADR-0051 决定 9 中 changeorder 模块名", "ADR-0056 权责发生制业财一体主干：状态行生效注记"]
 - id: "0017"   # `与《PSA 边界蓝图 v2.3》对齐：沿用 PSA 子域划分，蓝图作为约束来源`
   category: "边界与模块"
   bc: ["全局"]
@@ -88,12 +92,12 @@ adrs:
   category: "方法"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0053 决定 1–3 与后果中的词条结构诸句", "ADR-0055 后果第 3 条（部分）"]
 - id: "0019"   # 退出 yudao（ruoyi-vue-pro）脚手架：只迁移在用能力，不迁移框架
   category: "技术与平台"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0054 后果（部分）"]
 - id: "0020"   # 会话管理：状态在文件里、一会话一工作单元、固定开场与收尾协议
   category: "方法"
   bc: ["全局"]
@@ -103,92 +107,92 @@ adrs:
   category: "边界与模块"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0051 决定 3 先后表述与后果「新建 BC」"]
+  partially_superseded: ["ADR-0051 决定 3 先后表述与后果「新建 BC」", "ADR-0054 决定 2 至 4、后果（部分）", "ADR-0055 决定 1、后果（部分）"]
 - id: "0022"   # 总账纳入新系统：先管理口径三大报表、再年度切换法定账
   category: "业务主干"
   bc: ["accounting.ledger"]
-  stage: ["TA-4"]
-  partially_superseded: ["ADR-0036 第 10 条对历史期间的适用", "ADR-0045 第 10 条「GL-123」一句", "ADR-0047 后果「客户签字日」一句", "ADR-0046 第 10 条对第 13 期的适用", "ADR-0051 决定 6 税费位置与决定 7 括注"]
+  stage: ["TA-4"]  # 目标建造批：TA-W1、TA-W5
+  partially_superseded: ["ADR-0036 第 10 条对历史期间的适用", "ADR-0045 第 10 条「GL-123」一句", "ADR-0047 后果「客户签字日」一句", "ADR-0046 第 10 条对第 13 期的适用", "ADR-0051 决定 6 税费位置与决定 7 括注", "ADR-0054 决定 8、11、影响面、迁移方案、回滚方案（部分）", "ADR-0054 备选方案（未采用）（部分）", "ADR-0056 总账纳入新系统：状态行生效注记、后果"]
 - id: "0023"   # 经营分析纳入现代化：经营子域、reporting 与语义层、BI 重构
   category: "边界与模块"
   bc: ["reporting", "operations.facts", "operations.planning", "operations.budgeting", "operations.policy"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0022 L2 对总账的适用", "ADR-0025 第 2 条 L1 采集限制对历史装载", "ADR-0051 决定 1 个数与决定 3 模块名"]
+  partially_superseded: ["ADR-0022 L2 对总账的适用", "ADR-0025 第 2 条 L1 采集限制对历史装载", "ADR-0051 决定 1 个数与决定 3 模块名", "ADR-0054 决定 5、6（部分）"]
 - id: "0024"   # 收入确认单迁入新系统、不设双源期
   category: "业务主干"
   bc: ["receivables.wip"]
-  stage: ["TA-6a"]
-  partially_superseded: ["ADR-0036 守护规则中迁入适配器的适用", "ADR-0051 影响面「BC」中 baseline 模块名"]
+  stage: ["TA-6a"]  # 目标建造批：TA-W3
+  partially_superseded: ["ADR-0036 守护规则中迁入适配器的适用", "ADR-0051 影响面「BC」中 baseline 模块名", "ADR-0054 决定 2、迁移方案、回滚方案、后果（部分）", "ADR-0054 需同步修改的守护规则（部分）"]
 - id: "0025"   # OLAP 物理架构与数据流：同库分 schema 起步、财务事实直读过账明细、过程事实走事件、编译期授权加 RLS 防缺陷、自建镜像回填
   category: "数据"
   bc: ["reporting"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0039 守护规则中 source.* 落点要求", "ADR-0033 第 6 条对主键的适用", "ADR-0036 第 6 条「原单号」与守护对迁入行", "ADR-0045 第 3 条重开时 L2 作废重建"]
+  partially_superseded: ["ADR-0039 守护规则中 source.* 落点要求", "ADR-0033 第 6 条对主键的适用", "ADR-0036 第 6 条「原单号」与守护对迁入行", "ADR-0045 第 3 条重开时 L2 作废重建", "ADR-0054 决定 5、6、迁移方案（部分）"]
 - id: "0026"   # 授权模型——数据范围、法人维度、审批访问、职责分离与管理员边界
   category: "安全与权限"
   bc: ["platform.identity"]
-  stage: ["TA-1a"]
-  partially_superseded: ["ADR-0027 第 1 项接入表、第 5 项第 2、6 条", "ADR-0027 第 6 项第 2 条、「1a 交付范围」", "ADR-0028 第 5 项第 3 条（部分）", "ADR-0030 第 5 项第 5 条、回滚第 1 条（仅非生产）", "ADR-0032 第 6 项第 4 条与第 2 条一句", "ADR-0034 第 8 项第 7 条与回滚第 4 条", "ADR-0043 第 7 项第 3 条（补充）"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
+  partially_superseded: ["ADR-0027 第 1 项接入表、第 5 项第 2、6 条", "ADR-0027 第 6 项第 2 条、「1a 交付范围」", "ADR-0028 第 5 项第 3 条（部分）", "ADR-0030 第 5 项第 5 条、回滚第 1 条（仅非生产）", "ADR-0032 第 6 项第 4 条与第 2 条一句", "ADR-0034 第 8 项第 7 条与回滚第 4 条", "ADR-0043 第 7 项第 3 条（补充）", "ADR-0055 决定第 8 项第 4 条（部分）"]
 - id: "0027"   # Phase 1a 流程梳理带来的身份与授权修订
   category: "安全与权限"
   bc: ["platform.identity", "platform.numbering", "platform.audit"]
-  stage: ["TA-1a"]
-  partially_superseded: ["ADR-0039 第 1 项第 7 条、第 2 项第 1 条、第 3 项", "ADR-0028 第 1 项第 7 条、第 2 项第 1、5 条", "ADR-0030 第 1 项第 1、7、8 条（仅非生产）", "ADR-0030 第 2 项第 4 条、第 3 项第 1 条（仅非生产）", "ADR-0034 第 1 项第 6 条一句与回滚、守护各一句", "ADR-0033 第 3 项第 3 条一句与第 1 项第 3 条", "ADR-0037 第 4 项第 3 条中「不读」"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
+  partially_superseded: ["ADR-0039 第 1 项第 7 条、第 2 项第 1 条、第 3 项", "ADR-0028 第 1 项第 7 条、第 2 项第 1、5 条", "ADR-0030 第 1 项第 1、7、8 条（仅非生产）", "ADR-0030 第 2 项第 4 条、第 3 项第 1 条（仅非生产）", "ADR-0034 第 1 项第 6 条一句与回滚、守护各一句", "ADR-0033 第 3 项第 3 条一句与第 1 项第 3 条", "ADR-0037 第 4 项第 3 条中「不读」", "ADR-0055 决定第 1、2 项（部分）"]
 - id: "0028"   # 管理员离职暂停的放行
   category: "安全与权限"
   bc: ["organization.workforce", "platform.identity"]
-  stage: ["TA-1a"]
-  partially_superseded: ["ADR-0039 第 1、2、4 条部分表述", "ADR-0030 第 1、4 条（部分，仅非生产）"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
+  partially_superseded: ["ADR-0039 第 1、2、4 条部分表述", "ADR-0030 第 1、4 条（部分，仅非生产）", "ADR-0055 决定 1、2、4、6（部分）"]
 - id: "0030"   # 非生产环境单人运维例外
   category: "安全与权限"
   bc: ["platform.identity"]
-  stage: ["TA-1a"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
   partially_superseded: []
 - id: "0031"   # 业务单据锁定、冲销与修正的通用模式
   category: "业务主干"
   bc: ["operations.facts", "accounting.period"]
-  stage: ["TA-2"]
+  stage: ["TA-2"]  # 目标建造批：TA-W1
   partially_superseded: ["ADR-0036 第 7 项第 3 条对迁入单据的适用", "ADR-0045 第 5 项第 4 条", "ADR-0051 第 1 项第 3 条与影响面 changeorder 模块名"]
 - id: "0032"   # 权限授予方式与敏感角色持有人的待调整权限
   category: "安全与权限"
   bc: ["platform.identity"]
-  stage: ["TA-1a"]
-  partially_superseded: ["ADR-0034 第 4 项第 1 条两句", "ADR-0038 第 1 项第 3 条第四点时点", "ADR-0044 第 3、4 项部分与第 5 项第 2 条"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
+  partially_superseded: ["ADR-0034 第 4 项第 1 条两句", "ADR-0038 第 1 项第 3 条第四点时点", "ADR-0044 第 3、4 项部分与第 5 项第 2 条", "ADR-0055 决定第 4、5 项（部分）"]
 - id: "0033"   # 自有标识与来源对照
   category: "数据"
   bc: ["全局"]
-  stage: ["TA-1a"]
-  partially_superseded: ["ADR-0039 第 4 项第 1 条位置与迁移方案第 4 条", "ADR-0036 第 2 项第 1、2 条对迁入的适用", "ADR-0038 迁移方案第 1、5 条等时点", "ADR-0048 第 1 项第 1、8 条对审计表的适用"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0、TA-W1
+  partially_superseded: ["ADR-0039 第 4 项第 1 条位置与迁移方案第 4 条", "ADR-0036 第 2 项第 1、2 条对迁入的适用", "ADR-0038 迁移方案第 1、5 条等时点", "ADR-0048 第 1 项第 1、8 条对审计表的适用", "ADR-0055 决定第 2、3、11 项（部分）", "ADR-0055 决定第 4 项第 3 条（部分）", "ADR-0055 迁移方案、回滚方案（部分）", "ADR-0069 第 3 项第 6 条、第 7 项第 2 条（部分）"]
 - id: "0034"   # 授权历史可还原（角色与授予版本化）
   category: "安全与权限"
   bc: ["platform.identity"]
-  stage: ["TA-1a"]
-  partially_superseded: []
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
+  partially_superseded: ["ADR-0055 决定第 2、3 项（部分）", "ADR-0068 第 4 项第 4 条（部分）"]
 - id: "0035"   # 契约演进与兼容
   category: "集成"
   bc: ["全局"]
-  stage: ["TA-1a"]
-  partially_superseded: []
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
+  partially_superseded: ["ADR-0067 第 2 条（限平台模块与 kernel）"]
 - id: "0036"   # 历史数据迁入
   category: "数据"
   bc: ["platform.migration"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0039 legacy_numbers 表路径"]
+  partially_superseded: ["ADR-0039 legacy_numbers 表路径", "ADR-0054 决定 10、迁移方案 2 至 4（部分）"]
 - id: "0037"   # 新系统读取老系统与 A8 数据的范围
   category: "集成"
   bc: ["platform.integration"]
-  stage: ["TA-1a"]
-  partially_superseded: ["ADR-0043 第 1 项第 1 条（补充）", "ADR-0043 第 2 项第 5 条第 2 点词汇句"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0、TA-W1
+  partially_superseded: ["ADR-0043 第 1 项第 1 条（补充）", "ADR-0043 第 2 项第 5 条第 2 点词汇句", "ADR-0055 决定第 5、6、8 项（部分）", "ADR-0069 决定 1 第 1 条、决定 4（部分）"]
 - id: "0038"   # 迁移基线在生产部署前关闭
   category: "数据"
   bc: ["全局"]
-  stage: ["TA-1a"]
-  partially_superseded: []
+  stage: ["TA-1a"]  # 目标建造批：TA-W0、TA-W5
+  partially_superseded: ["ADR-0054 决定 1（部分）"]
 - id: "0039"   # 防腐层边界：外部系统概念只在 platform.integration
   category: "集成"
   bc: ["platform.integration"]
-  stage: ["TA-1a"]
-  partially_superseded: []
+  stage: ["TA-1a"]  # 目标建造批：TA-W0、TA-W1
+  partially_superseded: ["ADR-0055 决定 2、3、5、6（部分）", "ADR-0055 影响面、迁移方案、回滚方案、后果（部分）"]
 - id: "0040"   # 架构施工图方法与锁定版本的知识框架
   category: "方法"
   bc: ["全局"]
@@ -198,7 +202,7 @@ adrs:
   category: "方法"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0050 决定 2、7，决定 1、3 部分，影响面一句"]
+  partially_superseded: ["ADR-0050 决定 2、7，决定 1、3 部分，影响面一句", "ADR-0052 决定 4 流程登记一句（部分）"]
 - id: "0042"   # 可观测性不采用 OpenTelemetry
   category: "技术与平台"
   bc: ["全局"]
@@ -212,40 +216,40 @@ adrs:
 - id: "0044"   # 双人逐人级角色的自定义部门范围与「维持授权」的办理
   category: "安全与权限"
   bc: ["platform.identity"]
-  stage: ["TA-1a"]
-  partially_superseded: []
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
+  partially_superseded: ["ADR-0055 决定 3（部分）"]
 - id: "0045"   # 关账后不提供期间重开，已关账期间的更正一律落开放期间
   category: "业务主干"
   bc: ["accounting.period", "operations.facts"]
-  stage: ["TA-4"]
+  stage: ["TA-4"]  # 目标建造批：TA-W1、TA-W5
   partially_superseded: []
 - id: "0046"   # 会计期间模型（含第 13 期的形状）
   category: "业务主干"
   bc: ["accounting.period"]
-  stage: ["TA-4"]
+  stage: ["TA-4"]  # 目标建造批：TA-W1、TA-W5
   partially_superseded: []
 - id: "0047"   # 收入确认证据接受「视为同意」（修订 ADR-0016 决定第 4 条）
   category: "业务主干"
   bc: ["receivables.wip"]
-  stage: ["TA-4"]
-  partially_superseded: ["ADR-0049 决定第 5 条第 4 点", "ADR-0049 第 4 条表中「期满后人工确认」含义", "ADR-0049 影响面 BC、对象、表各一处", "ADR-0049 后果一语与守护第 5 条归属"]
+  stage: ["TA-4"]  # 目标建造批：TA-W3
+  partially_superseded: ["ADR-0049 决定第 5 条第 4 点", "ADR-0049 第 4 条表中「期满后人工确认」含义", "ADR-0049 影响面 BC、对象、表各一处", "ADR-0049 后果一语与守护第 5 条归属", "ADR-0056 收入确认证据接受「视为同意」：状态行、决定", "ADR-0056 收入确认证据接受「视为同意」：影响面、回滚方案", "ADR-0056 收入确认证据：需同步修改的守护规则第1条、后果"]
 - id: "0048"   # 审计表按月分区的主键例外
   category: "数据"
   bc: ["platform.audit"]
-  stage: ["TA-1a"]
+  stage: ["TA-1a"]  # 目标建造批：TA-W0
   partially_superseded: []
 - id: "0049"   # 视为同意的期满判定归收入侧，交付物不再有「视为同意」状态（修订 ADR-0047）
   category: "业务主干"
   bc: ["receivables.wip", "delivery.acceptance"]
-  stage: ["TA-4"]
-  partially_superseded: []
+  stage: ["TA-4"]  # 目标建造批：TA-W2、TA-W3
+  partially_superseded: ["ADR-0056 视为同意期满判定归收入侧：决定6、后果"]
 - id: "0050"   # 施工图方法与架构知识框架（方法与框架第 4 稿）
   category: "方法"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0052 决定 1 主线「按阶段做流程图」", "ADR-0052 决定 1 表 ⑥a 交付物、⑥b 行", "ADR-0052 决定 15 逐阶段确认一句", "ADR-0052 决定 16 J8 行与末段流程登记一句", "ADR-0052 决定 18「执行流程用 BPMN 2.0.2」", "ADR-0052 决定 19 BPMN 行与框架清单", "ADR-0052 决定 20 第 ② 条", "ADR-0052 迁移方案 PR-3 与守护 7 的流程输入", "ADR-0054 决定 1 表第⑦行、决定 3（部分）"]
 - id: "0051"   # 全企业 BC 与命名空间
   category: "边界与模块"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0057 决定 1、2、7 中流程模块三处", "ADR-0060 决定 2 第 1 条、决定 3 平台行"]

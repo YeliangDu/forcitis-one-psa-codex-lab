@@ -43,14 +43,14 @@
 - 队列脚本 `scripts/merge/mq.py`（2026-10-17 起取代旧 `mq_run2.sh`；队列与日志在 `<git-common-dir>/merge-queue/`，切换步骤见 `quality/MERGE_QUEUE_CUTOVER.md`）；队列事件用 Monitor 盯 `merge.log`（30 分钟到期重挂）。入队、改队列只用 `mq.py enqueue/remove/before`，不手工改队列文件。
 - 守护：推送前钩子 `pre_push_gate.py`、`build_all.py --check`。已知坑：
   - octopus 合并会触发验收测试署名守护（#435）：逐个分支合并。
-  - gh 令牌无 workflow 权限：改 `.github/workflows` 的 PR，把 main 合进该 PR 分支后经 ssh 推送到该 PR 分支（不是推 main）；main 只经 `gh pr merge` 合入，且只合已批准、CI 通过的那个提交。
+  - gh 令牌无 workflow 权限：改 `.github/workflows` 的 PR 若需要经 ssh 更新，只更新已批准的 PR 分支并重过门禁；main 一律由受管 `mq.py` 队列按批准清单合入，本会话不手工 `gh pr merge`，不使用 `--admin`，不直推 main。
   - 临时 worktree 缺前端依赖：`pnpm install --frozen-lockfile --offline`（本机缓存，不下载）。
   - Bash 钩子不展开命令里的 shell 变量路径：推送命令用绝对路径 `cd`。
 
 ## 上下文文档
 
 - `docs/modernization/sessions/one-merge.md`（本画像）
-- `docs/modernization/COORDINATOR_LEDGER.md`「合并」「合并队列」两节
+- `docs/modernization/merge/MERGE_CONTEXT.md`（本会话上下文速查；不依赖调度台账里的旧队列指令）
 
 ## 交接条件
 
@@ -61,7 +61,8 @@
 - 自定：按批准清单组合集、生成产物冲突处理、偶发失败重跑一次、关闭已被合集包含的原 PR。
 - 须问 one-coordinator：清单外的 PR、真失败与语义冲突的去向、跳过任何检查。
 - 须问用户：绕过钩子、改分支保护、对外服务；不用 `gh pr merge --admin`，不直推 main。
+- Codex 仅用于离线日志整理、清单与报告草稿；批准、入队、队列运行、合并及远端状态操作由本会话在授权边界内执行，不委派 Codex。
 
 ## 当前状态
 
-2026-10-16 22:30+02:00 画像起草，待用户新开会话；模型 sonnet。
+2026-10-17 13:40+02:00 在岗；按 one-coordinator 批准清单运行 `scripts/merge/mq.py`（pid 见队列目录 `run.pid`）；strict 已关试行至 10-19，只走受管队列；当前队列与失败看 `mq.py status` 与 `merge.log`，不沿用台账旧队列数字；模型 sonnet。

@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.WorkContext;
@@ -73,7 +73,7 @@ class AssigneeInputUuidIT extends AccountsAcceptanceSupport {
     }
 
     private static DocumentReference newDocument() {
-        return new DocumentReference(DocumentType.TIMESHEET, newDocumentId());
+        return new DocumentReference(new DocumentTypeCode("TIMESHEET"), newDocumentId());
     }
 
     private void start(DocumentReference document, List<String> projectManagers) {

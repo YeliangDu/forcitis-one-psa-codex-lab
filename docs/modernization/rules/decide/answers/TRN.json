@@ -1,0 +1,156 @@
+{
+ "TRN~TRN-01": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "同意拆成三篇，分别审批",
+  "no": "TRN-01",
+  "note": "",
+  "recommended": true,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-02": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "批准",
+  "no": "TRN-02",
+  "note": "",
+  "recommended": true,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-03": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "通用审批先行局部上线承接行政事务",
+  "no": "TRN-03",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-04": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "不能回 A8 补录",
+  "no": "TRN-04",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-05": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "批准",
+  "no": "TRN-05",
+  "note": "",
+  "recommended": true,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-06": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "全表只读",
+  "no": "TRN-06",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-07": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "批准，并加内部审计事后抽查",
+  "no": "TRN-07",
+  "note": "",
+  "recommended": true,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-08": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "两项一并改为财务负责人",
+  "no": "TRN-08",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-09": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "自然年度固定日期",
+  "no": "TRN-09",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-10": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "告警，保留开放并由财务处置",
+  "no": "TRN-10",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-11": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "设短宽限，时长与动作写在说明里",
+  "no": "TRN-11",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-12": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "现有受控档案加配置引用",
+  "no": "TRN-12",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-13": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "沿用已批准档案类别",
+  "no": "TRN-13",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ },
+ "TRN~TRN-14": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "保留财务确认，另行满足外部要求",
+  "no": "TRN-14",
+  "note": "",
+  "recommended": false,
+  "submission": "TRN-20261017-120909-gk4",
+  "submitted": "2026-10-17T10:09:09.914Z",
+  "unanswered": false
+ }
+}

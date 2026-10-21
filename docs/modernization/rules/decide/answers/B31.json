@@ -1,0 +1,101 @@
+{
+ "B31~B31-1": {
+  "choice": 2,
+  "defaulted": false,
+  "label": "按正式制度另列负责人和加审范围",
+  "no": "B31-1",
+  "note": "",
+  "recommended": false,
+  "submission": "B31-20261017-122917-ctg",
+  "submitted": "2026-10-17T10:29:17.160Z",
+  "unanswered": false
+ },
+ "B31~B31-10": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "按入职周年自动生成",
+  "no": "B31-10",
+  "note": "",
+  "recommended": false,
+  "submission": "B31-20261017-122917-ctg",
+  "submitted": "2026-10-17T10:29:17.160Z",
+  "unanswered": false
+ },
+ "B31~B31-16": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "是",
+  "no": "B31-16",
+  "note": "",
+  "recommended": false,
+  "submission": "B31-20261017-122917-ctg",
+  "submitted": "2026-10-17T10:29:17.160Z",
+  "unanswered": false
+ },
+ "B31~B31-2": {
+  "choice": 2,
+  "defaulted": false,
+  "label": "不设超时提醒与代关",
+  "no": "B31-2",
+  "note": "",
+  "recommended": false,
+  "submission": "B31-20261017-122917-ctg",
+  "submitted": "2026-10-17T10:29:17.160Z",
+  "unanswered": false
+ },
+ "B31~B31-3": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "按类别另列负责人和类别表提供方",
+  "no": "B31-3",
+  "note": "",
+  "recommended": false,
+  "submission": "B31-20261017-122917-ctg",
+  "submitted": "2026-10-17T10:29:17.160Z",
+  "unanswered": false
+ },
+ "B31~B31-5": {
+  "choice": 2,
+  "defaulted": false,
+  "label": "全部只登记，由规则控制领用",
+  "no": "B31-5",
+  "note": "",
+  "recommended": false,
+  "submission": "B31-20261017-122917-ctg",
+  "submitted": "2026-10-17T10:29:17.160Z",
+  "unanswered": false
+ },
+ "B31~B31-6": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "只通知双方，不增加批准",
+  "no": "B31-6",
+  "note": "",
+  "recommended": true,
+  "submission": "B31-20261017-122917-ctg",
+  "submitted": "2026-10-17T10:29:17.160Z",
+  "unanswered": false
+ },
+ "B31~B31-7": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "采用参数表中的离职归还提醒期限",
+  "no": "B31-7",
+  "note": "",
+  "recommended": false,
+  "submission": "B31-20261017-122917-ctg",
+  "submitted": "2026-10-17T10:29:17.160Z",
+  "unanswered": false
+ },
+ "B31~B31-8": {
+  "choice": 2,
+  "defaulted": false,
+  "label": "全部活动只登记，由规则控制",
+  "no": "B31-8",
+  "note": "",
+  "recommended": false,
+  "submission": "B31-20261017-122917-ctg",
+  "submitted": "2026-10-17T10:29:17.160Z",
+  "unanswered": false
+ }
+}

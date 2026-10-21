@@ -2,7 +2,7 @@ package com.forcitis.one.platform.numbering.domain;
 
 import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import com.forcitis.one.kernel.AggregateRoot;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.StateMachine;
@@ -23,7 +23,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * The template of one document type, kept as saved versions (ADR-0027 section 2). A version is never edited: changing the template
@@ -31,21 +30,19 @@ import java.util.Set;
  * confirm it (four eyes), and a voucher template also needs the finance confirmation. A rule with nothing confirmed issues nothing.
  */
 public final class NumberingRule extends AggregateRoot {
-    public static final Set<DocumentType> NEEDING_FINANCE_CONFIRMATION = Set.of(DocumentType.JOURNAL_VOUCHER);
-
     public static final StateMachine<VersionStatus> MACHINE = StateMachine.of(VersionStatus.class)
             .allow(VersionStatus.PENDING_CONFIRMATION, VersionStatus.CONFIRMED, VersionStatus.SUPERSEDED)
             .build();
 
     private final NumberingRuleId numberingRuleId;
-    private final DocumentType documentType;
+    private final DocumentTypeEntry type;
     private final List<TemplateVersion> loaded;
     private List<TemplateVersion> versions;
 
-    private NumberingRule(NumberingRuleId numberingRuleId, DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
+    private NumberingRule(NumberingRuleId numberingRuleId, DocumentTypeEntry type, List<TemplateVersion> versions, long version, long eventSequence) {
         super(version, eventSequence);
         this.numberingRuleId = Objects.requireNonNull(numberingRuleId, "numberingRuleId");
-        this.documentType = Objects.requireNonNull(documentType, "documentType");
+        this.type = Objects.requireNonNull(type, "type");
         if (versions.isEmpty()) {
             throw new IllegalArgumentException("a numbering rule has at least its seeded version");
         }
@@ -53,16 +50,20 @@ public final class NumberingRule extends AggregateRoot {
         this.loaded = this.versions;
     }
 
-    public static NumberingRule restore(NumberingRuleId numberingRuleId, DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
-        return new NumberingRule(numberingRuleId, documentType, versions, version, eventSequence);
+    public static NumberingRule restore(NumberingRuleId numberingRuleId, DocumentTypeEntry type, List<TemplateVersion> versions, long version, long eventSequence) {
+        return new NumberingRule(numberingRuleId, type, versions, version, eventSequence);
     }
 
     public NumberingRuleId numberingRuleId() {
         return numberingRuleId;
     }
 
-    public DocumentType documentType() {
-        return documentType;
+    public DocumentTypeCode documentType() {
+        return type.code();
+    }
+
+    public DocumentTypeEntry type() {
+        return type;
     }
 
     public List<TemplateVersion> versions() {
@@ -97,7 +98,7 @@ public final class NumberingRule extends AggregateRoot {
 
     /** The version in force, or the one waiting for confirmation while none is in force. */
     public TemplateVersion current() {
-        return inForce().or(this::pending).orElseThrow(() -> new IllegalStateException("rule " + documentType + " has no usable version"));
+        return inForce().or(this::pending).orElseThrow(() -> new IllegalStateException("rule " + type.code() + " has no usable version"));
     }
 
     public ConfirmationStatus confirmation() {
@@ -105,7 +106,7 @@ public final class NumberingRule extends AggregateRoot {
     }
 
     public boolean requiresFinanceConfirmation() {
-        return NEEDING_FINANCE_CONFIRMATION.contains(documentType);
+        return type.financeConfirmationRequired();
     }
 
     public void propose(NumberingRuleVersionId versionId, NumberingPattern pattern, long startValue, LocalDate effectiveFrom, UserId author, Instant at) {
@@ -116,8 +117,8 @@ public final class NumberingRule extends AggregateRoot {
         if (startValue < 1) {
             throw new IllegalArgumentException("startValue must be >= 1");
         }
-        if (pattern.usesTypeCode() && documentType.code().isEmpty()) {
-            throw new IllegalArgumentException("Document type " + documentType
+        if (pattern.usesTypeCode() && type.numberCode().isEmpty()) {
+            throw new IllegalArgumentException("Document type " + type.code()
                     + " has no registered code, so its pattern cannot use {" + NumberingPattern.TYPE_TOKEN + "}");
         }
         List<TemplateVersion> next = new ArrayList<>();
@@ -128,7 +129,7 @@ public final class NumberingRule extends AggregateRoot {
         next.add(new TemplateVersion(versionId, number, pattern, startValue, effectiveFrom, author, at, VersionStatus.PENDING_CONFIRMATION, null, null, null, null));
         this.versions = List.copyOf(next);
         record((envelopes, version) -> new NumberingRuleReconfigured(envelopes.wrap(draft("NumberingRuleReconfigured", version, effectiveFrom)),
-                documentType, new RuleVersion(number), effectiveFrom));
+                type.code(), new RuleVersion(number), effectiveFrom));
     }
 
     /** expected is the template version the confirmer looked at: if a newer one was saved meanwhile, nothing is confirmed. */
@@ -150,7 +151,7 @@ public final class NumberingRule extends AggregateRoot {
     public void confirmByFinance(UserId by, Instant at, LocalDate today, RuleVersion expected) {
         if (!requiresFinanceConfirmation()) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_FINANCE_CONFIRMATION_NOT_REQUIRED, ErrorKind.CONFLICT,
-                    documentType + " numbers need no finance confirmation");
+                    type.code() + " numbers need no finance confirmation");
         }
         TemplateVersion target = confirmable(by, today, expected);
         if (target.financeConfirmedBy() != null) {
@@ -169,7 +170,7 @@ public final class NumberingRule extends AggregateRoot {
     private TemplateVersion confirmable(UserId by, LocalDate today, RuleVersion expected) {
         Objects.requireNonNull(by, "by");
         TemplateVersion target = pending().orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_NOTHING_TO_CONFIRM,
-                ErrorKind.CONFLICT, "no version of " + documentType + " waits for confirmation"));
+                ErrorKind.CONFLICT, "no version of " + type.code() + " waits for confirmation"));
         if (target.number() != expected.value()) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_VERSION_MISMATCH, ErrorKind.CONFLICT,
                     "version " + expected.value() + " is not the one waiting any more; version " + target.number() + " is");
@@ -196,13 +197,13 @@ public final class NumberingRule extends AggregateRoot {
         if (target.confirmedBy() != null && financeDone) {
             replace(withStatus(target, VersionStatus.CONFIRMED));
             record((envelopes, version) -> new NumberingRuleConfirmed(envelopes.wrap(draft("NumberingRuleConfirmed", version, target.effectiveFrom())),
-                    documentType, new RuleVersion(number), target.effectiveFrom()));
+                    type.code(), new RuleVersion(number), target.effectiveFrom()));
         }
     }
 
     private void recordGiven(int number, ConfirmationKind kind) {
         record((envelopes, version) -> new NumberingRuleConfirmationGiven(envelopes.wrap(draft("NumberingRuleConfirmationGiven", version)),
-                documentType, new RuleVersion(number), kind));
+                type.code(), new RuleVersion(number), kind));
     }
 
     private TemplateVersion withStatus(TemplateVersion source, VersionStatus target) {

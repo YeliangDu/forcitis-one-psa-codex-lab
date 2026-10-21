@@ -21,6 +21,188 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class DdlNamingTest {
+    @Test
+    @DisplayName("NAM-1017-GLO-09 / N3-L1：存量迁移、最终模型与命名基线的每段标识符最多 63 字节，长度基线为零")
+    void migrationAndBaselineIdentifiersFit63Bytes() throws IOException {
+        Map<String, String> migrations = readMigrations();
+        assertThat(migrations).isNotEmpty();
+        assertThat(DdlIdentifierLengths.sourceProblems(migrations))
+                .as("按 UTF-8 计数；请登记获准缩写，不能依赖数据库截断").isEmpty();
+        assertThat(DdlIdentifierLengths.modelProblems(model(migrations))).isEmpty();
+        for (String entry : readBaseline().keySet()) {
+            for (String part : entry.substring(entry.indexOf(' ') + 1).split("\\.")) {
+                assertThat(DdlIdentifierLengths.bytes(part)).as("命名基线 %s 的 %s", entry, part).isLessThanOrEqualTo(63);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 / N3-L1：schema、表、列、约束与索引独立计长，前缀计入 63 字节")
+    void allIdentifierKindsIncludeTheirPrefixesInTheByteLimit() {
+        String exact = "a".repeat(63);
+        Schema schema = new Schema();
+        Table table = new Table();
+        table.columns.put(exact, new Column(exact, "text", false));
+        table.constraints.put(exact, new Constraint("ck", exact, false));
+        schema.tables.put(exact, table);
+        schema.indexes.put(exact, exact);
+        assertThat(DdlIdentifierLengths.modelProblems(Map.of(exact, schema))).isEmpty();
+
+        String longName = "a".repeat(64);
+        table.columns.put(longName, new Column(longName, "text", false));
+        table.constraints.put("ck_" + "a".repeat(61), new Constraint("ck", "ck_" + "a".repeat(61), false));
+        schema.tables.put(longName, new Table());
+        schema.indexes.put("ix_" + "a".repeat(61), exact);
+        Map<String, Integer> problems = DdlIdentifierLengths.modelProblems(Map.of(longName, schema));
+        assertThat(problems).hasSize(5);
+        assertThat(problems.keySet()).anyMatch(k -> k.startsWith("schema "))
+                .anyMatch(k -> k.startsWith("table ")).anyMatch(k -> k.startsWith("column "))
+                .anyMatch(k -> k.startsWith("constraint ")).anyMatch(k -> k.startsWith("index "));
+        assertThat(problems.values()).containsOnly(64);
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 / N3-L1：UTF-8 字节数、带引号名字及删除/改名的中间名字均受检")
+    void sourceLengthCheckCatchesUtf8AndIntermediateNames() {
+        String exact = "界".repeat(21);
+        String over = exact + "a";
+        assertThat(DdlIdentifierLengths.bytes(exact)).isEqualTo(63);
+        String sql = "CREATE TABLE platform_sample.\"" + over + "\" (\n    id uuid\n);\n"
+                + "ALTER TABLE platform_sample.\"" + over + "\" RENAME TO things;\n"
+                + "ALTER TABLE platform_sample.things ADD COLUMN \"" + "a".repeat(64) + "\" text;\n"
+                + "ALTER TABLE platform_sample.things DROP COLUMN \"" + "a".repeat(64) + "\";\n";
+        assertThat(DdlIdentifierLengths.sourceProblems(Map.of("V1.sql", sql))).hasSize(2);
+        assertThat(DdlIdentifierLengths.sourceProblems(Map.of("V1.sql", "CREATE TABLE \"" + exact + "\".\"" + exact + "\" (id uuid);"))).isEmpty();
+        assertThat(DdlIdentifierLengths.identifiers("SELECT \"a\"\"b\";")).contains("a\"b");
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 / N3-L1：文字与注释不误报，未闭合 SQL 输入失败")
+    void lengthScannerExcludesTextAndRejectsBrokenInput() {
+        String longName = "a".repeat(64);
+        String sql = "-- " + longName + "\n/* 外层 /* " + longName + " */ 注释 */\n"
+                + "SELECT '" + longName + "', E'\\\'" + longName + "', $body$" + longName + "$body$;";
+        assertThat(DdlIdentifierLengths.sourceProblems(Map.of("V1.sql", sql))).isEmpty();
+        for (String broken : List.of("/* x", "SELECT 'x", "SELECT \"x", "SELECT $body$x")) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> DdlIdentifierLengths.identifiers(broken))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 M2：未命名普通与唯一索引采用多列自动名并接受命名检查")
+    void unnamedIndexesAreModeledAndFailNamingRules() {
+        String sql = "CREATE INDEX ON platform_sample.things (employee_id, entry_code);\n"
+                + "CREATE UNIQUE INDEX ON platform_sample.things USING btree (entry_code);\n";
+        Schema schema = model(Map.of("V1.sql", sql)).get("platform_sample");
+        assertThat(schema.indexes).containsEntry("things_employee_id_entry_code_idx", "things")
+                .containsEntry("things_entry_code_idx", "things");
+        assertThat(schema.indexKinds).containsEntry("things_entry_code_idx", "unique");
+        assertThat(violations(Map.of("platform_sample", schema)).keySet()).contains(
+                "index platform_sample.things_employee_id_entry_code_idx", "index platform_sample.things_entry_code_idx");
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 M2：ALTER 的未命名主键、唯一、外键与检查约束均进入模型")
+    void unnamedAlterConstraintsAreModeledAndFailNamingRules() {
+        String sql = "CREATE TABLE platform_sample.things (\n    id uuid,\n    employee_id uuid,\n    entry_code text\n);\n"
+                + "ALTER TABLE platform_sample.things ADD PRIMARY KEY (id), ADD UNIQUE (employee_id, entry_code), "
+                + "ADD FOREIGN KEY (employee_id, entry_code) REFERENCES platform_sample.others (id, entry_code), "
+                + "ADD CHECK (char_length(entry_code) > 0 AND employee_id IS NOT NULL);\n";
+        Schema schema = model(Map.of("V1.sql", sql)).get("platform_sample");
+        Table table = schema.tables.get("things");
+        assertThat(table.primaryKey).containsExactly("id");
+        assertThat(table.constraints.keySet()).containsExactlyInAnyOrder("things_pkey", "things_employee_id_entry_code_key",
+                "things_employee_id_entry_code_fkey", "things_check");
+        assertThat(violations(Map.of("platform_sample", schema)).keySet()).contains(
+                "constraint platform_sample.things.things_pkey",
+                "constraint platform_sample.things.things_employee_id_entry_code_key",
+                "constraint platform_sample.things.things_employee_id_entry_code_fkey",
+                "constraint platform_sample.things.things_check");
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 M2：CREATE TABLE 的未命名检查约束按引用列顺序去重，无列时只加 check")
+    void unnamedTableChecksUseReferencedColumns() {
+        String sql = "CREATE TABLE platform_sample.things (\n    entry_code text,\n    employee_id uuid,\n"
+                + "    CHECK (entry_code <> 'employee_id' AND char_length(entry_code) > 0),\n"
+                + "    CHECK (true)\n);\n";
+        Table table = model(Map.of("V1.sql", sql)).get("platform_sample").tables.get("things");
+        assertThat(table.constraints.keySet()).containsExactlyInAnyOrder("things_entry_code_check", "things_check");
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 M2 / N3-L1：自动名各自恰好 63 字节通过，64 字节失败且命名检查不漏报")
+    void automaticNamesHonorThe63ByteBoundaryBeforeDatabaseTruncation() {
+        for (String operation : List.of("index", "unique index", "primary key", "unique", "foreign key", "check")) {
+            String suffix = switch (operation) {
+                case "index", "unique index" -> "idx";
+                case "primary key" -> "pkey";
+                case "unique" -> "key";
+                case "foreign key" -> "fkey";
+                default -> "check";
+            };
+            for (int size : List.of(63, 64)) {
+                boolean primary = operation.equals("primary key");
+                String table = "a".repeat(primary ? size - suffix.length() - 1 : 40);
+                String column = primary ? "id" : "b".repeat(size - table.length() - suffix.length() - 2);
+                String autoName = table + (primary ? "" : "_" + column) + "_" + suffix;
+                String head = "CREATE TABLE platform_sample." + table + " (\n    " + column + " uuid\n);\n";
+                String definition = operation.equals("check") ? "CHECK (" + column + " IS NOT NULL)"
+                        : operation.toUpperCase(Locale.ROOT) + " (" + column + ")"
+                        + (operation.equals("foreign key") ? " REFERENCES platform_sample.others (id)" : "");
+                String sql = head + (operation.endsWith("index")
+                        ? "CREATE " + operation.toUpperCase(Locale.ROOT) + " ON platform_sample." + table + " (" + column + ");"
+                        : "ALTER TABLE platform_sample." + table + " ADD " + definition + ";");
+                Map<String, Schema> schemas = model(Map.of("V1.sql", sql));
+                String problem = operation.endsWith("index") ? "index platform_sample." + autoName
+                        : "constraint platform_sample." + table + "." + autoName;
+                assertThat(DdlIdentifierLengths.bytes(autoName)).as(operation).isEqualTo(size);
+                assertThat(violations(schemas)).as(operation).containsKey(problem);
+                if (size == 63) {
+                    assertThat(DdlIdentifierLengths.modelProblems(schemas)).as(operation).isEmpty();
+                } else {
+                    assertThat(DdlIdentifierLengths.modelProblems(schemas)).as(operation).containsOnlyKeys(problem)
+                            .containsEntry(problem, 64);
+                }
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 M3：四种解析失败均带输入文件和起始行号")
+    void scannerErrorsIdentifyTheFileAndOpeningLine() {
+        for (String broken : List.of("/* x", "SELECT 'x", "SELECT \"x", "SELECT $body$x")) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> DdlIdentifierLengths.sourceProblems(
+                    Map.of("db/V1.sql", "-- 第一行\n\n" + broken)))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("db/V1.sql:3:");
+        }
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 M3：DATE 及名字尾部 E 不是转义前缀，只有独立 E 记号启用反斜线转义")
+    void escapeStringPrefixMustBeAStandaloneToken() {
+        assertThat(DdlIdentifierLengths.sourceProblems(Map.of("V1.sql",
+                "SELECT DATE'2026-01-01\\', name'ordinary\\', e'escaped\\\'quote', E'escaped\\\'quote';"))).isEmpty();
+        assertThat(DdlIdentifierLengths.identifiers("SELECT DATE'ordinary\\';")).contains("DATE");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> DdlIdentifierLengths.sourceProblems(
+                Map.of("V1.sql", "SELECT E'unclosed\\';")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("V1.sql:1:");
+    }
+
+    @Test
+    @DisplayName("NAM-1017-GLO-09 L3：增补平面无引号标识符按完整码点扫描，63 字节通过、64 字节失败")
+    void supplementaryUnquotedIdentifiersAreScannedByCodePoint() {
+        String exact = "\uD801\uDC00".repeat(15) + "abc";
+        String over = exact + "d";
+        assertThat(DdlIdentifierLengths.bytes(exact)).isEqualTo(63);
+        assertThat(DdlIdentifierLengths.identifiers("CREATE SCHEMA " + exact + ";")).contains(exact);
+        assertThat(DdlIdentifierLengths.sourceProblems(Map.of("V1.sql", "CREATE SCHEMA " + exact + ";"))).isEmpty();
+        assertThat(DdlIdentifierLengths.sourceProblems(Map.of("V1.sql", "CREATE SCHEMA " + over + ";")))
+                .containsEntry("V1.sql identifier " + over, 64);
+    }
+
+    // 仅扫描正式 Flyway 迁移；testdata 与 init-schemas/init-dba-schemas、运维 one_db_roles_schemas.sql 不参与最终业务模型，另卡扩展。
     static final Path MIGRATIONS = Path.of("src/main/resources/db/migration");
     static final Path BASELINE = Path.of("architecture/ddl-naming-baseline.txt");
     static final Path CLASSIFICATION = Path.of("architecture/data-classification.txt");
@@ -41,6 +223,7 @@ class DdlNamingTest {
 
     enum ClassWord {
         ID("_id", "bigint", "uuid", "text"),
+        IDS("_ids", "uuid[]"),
         KEY("_key", "text"),
         CODE("_code", "text", "varchar"),
         CODES("_codes", "text[]"),
@@ -256,6 +439,23 @@ class DdlNamingTest {
         assertThat(violations(model(files))).isEmpty();
     }
 
+    @Test
+    @DisplayName("ADR-0034-IMPL A-3: _ids is a uuid[] class word; an enum column is checked by a named table-level CHECK that lists its values, and is still caught without any CHECK")
+    void idsClassWordAndNamedEnumChecks() {
+        String head = "CREATE TABLE cost_timesheet.time_entries (\n    id uuid NOT NULL,\n    created_at timestamptz NOT NULL,\n    updated_at timestamptz NOT NULL,\n";
+        String good = head + "    base_role_version_ids uuid[] NOT NULL DEFAULT '{}',\n    entry_status text NOT NULL,\n"
+                + "    CONSTRAINT pk_time_entries PRIMARY KEY (id),\n"
+                + "    CONSTRAINT ck_time_entries_entry_status CHECK (entry_status IN ('DRAFT', 'SUBMITTED'))\n);\n";
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql", good)))).isEmpty();
+
+        String wrongType = head + "    base_role_version_ids text NOT NULL,\n    CONSTRAINT pk_time_entries PRIMARY KEY (id)\n);\n";
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql", wrongType))).keySet()).contains("column cost_timesheet.time_entries.base_role_version_ids");
+
+        String unchecked = head + "    entry_status text NOT NULL,\n    CONSTRAINT pk_time_entries PRIMARY KEY (id),\n"
+                + "    CONSTRAINT ck_time_entries_note CHECK (char_length(entry_status) < 20)\n);\n";
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql", unchecked))).keySet()).contains("column cost_timesheet.time_entries.entry_status");
+    }
+
     static final Pattern REFERENCES_AUDIT_ENTRIES = Pattern.compile("REFERENCES\\s+platform_audit\\.audit_entries\\b", Pattern.CASE_INSENSITIVE);
     static final Pattern EVENT_ID_KEY = Pattern.compile("CONSTRAINT\\s+uk_audit_entries_event_id_created_at\\s+UNIQUE\\s*\\(\\s*event_id\\s*,\\s*created_at\\s*\\)", Pattern.CASE_INSENSITIVE);
 
@@ -335,11 +535,20 @@ class DdlNamingTest {
                 }
             }
         }
-        Matcher idx = Pattern.compile("CREATE (UNIQUE )?INDEX\\s+([a-z0-9_]+)\\s+ON\\s+([a-z0-9_]+)\\.([a-z0-9_]+)", Pattern.CASE_INSENSITIVE).matcher(sql);
+        Matcher idx = Pattern.compile("CREATE\\s+(UNIQUE\\s+)?INDEX\\s+(?:CONCURRENTLY\\s+)?(?:IF\\s+NOT\\s+EXISTS\\s+)?"
+                + "(?:([a-z0-9_]+)\\s+)?ON\\s+(?:ONLY\\s+)?([a-z0-9_]+)\\.([a-z0-9_]+)"
+                + "(?:\\s+USING\\s+[a-z0-9_]+)?\\s*\\(([^;]*)", Pattern.CASE_INSENSITIVE).matcher(sql);
         while (idx.find()) {
             Schema schema = schemas.computeIfAbsent(idx.group(3), s -> new Schema());
-            schema.indexes.put(idx.group(2), idx.group(4));
-            schema.indexKinds.put(idx.group(2), idx.group(1) == null ? "index" : "unique");
+            String name = idx.group(2);
+            if (name == null) {
+                String columns = idx.group(5).substring(0, idx.group(5).indexOf(')'));
+                String joined = Stream.of(columns.split(",")).map(String::trim)
+                        .map(part -> part.split("\\s+")[0]).collect(java.util.stream.Collectors.joining("_"));
+                name = automaticName(idx.group(4) + "_" + joined, "idx", schema.indexes.keySet());
+            }
+            schema.indexes.put(name, idx.group(4));
+            schema.indexKinds.put(name, idx.group(1) == null ? "index" : "unique");
         }
         Matcher alter = Pattern.compile("ALTER TABLE\\s+([a-z0-9_]+)\\.([a-z0-9_]+)\\s+(.*?);", Pattern.DOTALL | Pattern.CASE_INSENSITIVE).matcher(sql);
         while (alter.find()) {
@@ -350,7 +559,7 @@ class DdlNamingTest {
                 Matcher m;
                 if ((m = Pattern.compile("(?i)ADD COLUMN (?:IF NOT EXISTS )?([a-z0-9_]+) (.*)").matcher(a)).matches()) {
                     column(table, model, m.group(1), m.group(2));
-                } else if ((m = Pattern.compile("(?i)ADD (CONSTRAINT .*)").matcher(a)).matches()) {
+                } else if ((m = Pattern.compile("(?i)ADD ((?:CONSTRAINT|PRIMARY KEY|FOREIGN KEY|UNIQUE|CHECK|EXCLUDE)\\b.*)").matcher(a)).matches()) {
                     tableConstraint(table, model, m.group(1));
                 } else if ((m = Pattern.compile("(?i)RENAME COLUMN ([a-z0-9_]+) TO ([a-z0-9_]+)").matcher(a)).matches()) {
                     Column c = model.columns.remove(m.group(1));
@@ -441,12 +650,27 @@ class DdlNamingTest {
             kind = lower.startsWith("primary key") ? "primary key" : lower.startsWith("foreign key") ? "foreign key" : lower.startsWith("unique") ? "unique" : "check";
             Matcher cols = Pattern.compile("\\(([^)]*)\\)").matcher(lower);
             String joined = cols.find() ? cols.group(1).replaceAll("\\s", "").replace(",", "_") : "";
-            name = switch (kind) {
-                case "primary key" -> table + "_pkey";
-                case "foreign key" -> table + "_" + joined + "_fkey";
-                case "unique" -> table + "_" + joined + "_key";
-                default -> table + "_check";
+            if (kind.equals("check")) {
+                // PostgreSQL names a CHECK after its column only when the de-duplicated expression refers to exactly one column; otherwise <table>_check.
+                List<String> referenced = DdlIdentifierLengths.identifiers(lower).stream().filter(model.columns::containsKey).distinct().toList();
+                joined = referenced.size() == 1 ? referenced.get(0) : "";
+            }
+            String suffix = switch (kind) {
+                case "primary key" -> "pkey";
+                case "foreign key" -> "fkey";
+                case "unique" -> "key";
+                default -> "check";
             };
+            String base = table + (kind.equals("primary key") || joined.isEmpty() ? "" : "_" + joined);
+            name = automaticName(base, suffix, model.constraints.keySet());
+        }
+        if (kind.equals("check")) {
+            // A named table-level CHECK that lists a column's values (NAMING_STANDARD §2.4: ck_<table>_<column>) checks the enum column as well as an inline one.
+            for (Column c : List.copyOf(model.columns.values())) {
+                if (!c.checked() && Pattern.compile("\\b" + c.name() + "\\s+in\\s*\\(").matcher(lower).find()) {
+                    model.columns.put(c.name(), new Column(c.name(), c.type(), true));
+                }
+            }
         }
         if (kind.equals("primary key")) {
             Matcher keyColumns = Pattern.compile("primary key\\s*\\(([^)]*)\\)").matcher(lower);
@@ -468,6 +692,15 @@ class DdlNamingTest {
 
     private static void putConstraint(Table model, String kind, String name, boolean inlineCheck) {
         model.constraints.put(name, new Constraint(kind, name, inlineCheck));
+    }
+
+    // 保留截断前候选名供 63 字节检查；依赖数据库截断本身就是违规。
+    private static String automaticName(String base, String suffix, Set<String> occupied) {
+        String name = base + "_" + suffix;
+        for (int serial = 1; occupied.contains(name); serial++) {
+            name = base + "_" + suffix + serial;
+        }
+        return name;
     }
 
     static Map<String, String> violations(Map<String, Schema> schemas) {
@@ -615,7 +848,8 @@ class DdlNamingTest {
                 if (type.startsWith("boolean") && !(column.startsWith("is_") || column.startsWith("has_"))) {
                     problems.add(where + ": boolean column " + column + " must start with is_ or has_");
                 }
-                if ((column.equals("status") || column.endsWith("_status") || column.endsWith("_policy")) && !type.contains("check")) {
+                boolean listedByNamedCheck = Pattern.compile("(?i)constraint\\s+\\w+\\s+check\\s*\\(\\s*" + column + "\\s+in\\s*\\(").matcher(t.group(3)).find();
+                if ((column.equals("status") || column.endsWith("_status") || column.endsWith("_policy")) && !type.contains("check") && !listedByNamedCheck) {
                     problems.add(where + ": " + column + " must be text with a CHECK listing the enum names");
                 }
                 if (column.endsWith("_amount") && !t.group(3).contains(column.replace("_amount", "_currency"))) {

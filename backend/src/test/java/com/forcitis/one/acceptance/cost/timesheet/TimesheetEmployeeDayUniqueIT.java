@@ -20,7 +20,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.application.SubmitTimesheetCommand;
 import com.forcitis.one.cost.timesheet.application.TimesheetView;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -170,7 +170,7 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
 
             refusedWith(WORK_DATE_DUPLICATE, () -> submit(worker, newTimesheetId(), day, "4"));
 
-            transaction.executeWithoutResult(tx -> verify(numbers, never()).next(eq(DocumentType.TIMESHEET), eq(entity), any()));
+            transaction.executeWithoutResult(tx -> verify(numbers, never()).next(eq(new DocumentTypeCode("TIMESHEET")), eq(entity), any()));
             assertThat(nextTimesheetSequence()).as("no number consumed against the %s timesheet of %s", status, day).isEqualTo(issuedBefore);
             assertThat(timesheetRowsOf(worker.employeeId(), day)).isEqualTo(1);
         }
@@ -228,7 +228,7 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
                 .query(String.class).single();
         IssuedNumber real = transaction.execute(tx -> {
             tx.setRollbackOnly();
-            return numbers.next(DocumentType.TIMESHEET, new LegalEntityId(legalEntity), TODAY);
+            return numbers.next(new DocumentTypeCode("TIMESHEET"), new LegalEntityId(legalEntity), TODAY);
         });
         IssuedNumber reused = new IssuedNumber(new DocumentNumber(number), real.counterId(), real.ruleVersionId());
         transaction.executeWithoutResult(tx -> doReturn(reused).when(numbers).next(any(), any(), any()));
