@@ -22,3 +22,12 @@
 | 12 | REF-03：「经通用审批办理」的措辞与用户后来的决定不符 | 用户的 B31 答复（2026-10-17）晚于 ADR-0054、0055、0064，取消了资产与活动的审批，以用户答复为准。ADR-0054 决定 1、ADR-0055 决定 1、ADR-0064 决定 9 各登记一条勘误，注明「资产与员工活动不经审批（用户 B31 答复 2026-10-17）」；B-31 设计 §1.1 标出这处偏差 | 用户 B31 答复；ADR 勘误机制（E-xxx） | one-architecture 登记勘误；one-1a-admin 改设计 |
 
 另：SCH-03 的定时入口按先例，放在 `infrastructure/scheduling` 的薄类，再调用 application 用例，设计 §2.1 与 §5.1 统一按此写。MOD-01、MOD-02 已由文件服务准入判断（`ADMISSION_PLATFORM_FILE_2026-10-21.md`）与 `contexts.yaml` 补登 platform.signing 处理；organization.administration 随第 2 项代登。
+
+## 补充：one-glossary 转来的四项（NAM-1021-GLO-11，`claude/one-glossary-gl-10` @b6f5dc81）
+
+| 条目 | 裁定 |
+|---|---|
+| M17 / Q11 合同原件借阅的 bc | 照用户 B31R-Q8：先行期 bc 为 `organization.administration`，W3 移交 `contract.agreement`；移交手续另立 ADR（ADR-0074 拆出的借阅篇，与 one-data 对齐中）。词表登记用词「合同原件借阅」，bc 写 `organization.administration`，并注明 W3 移交。 |
+| M12 / Q5 撤回与退回 | 同本文第 8 项：B-31 保留「已撤回」，对应平台 RETURNED＋INITIATOR；平台 RETURNED＋APPROVER 对应「已退回」；REJECTED 对应「已驳回」；CANCELLED 对应「已取消」。 |
+| M3 软件许可 | B-31 本批只做设备，软件许可不在本批（CS-1.8）；设计 §1 范围与 §8 写明，词表定义保留。 |
+| M19 设计 §8.2 与 `bcs.yaml` 说明 | §8.2 第 1 条按现词表改写（由 one-1a-admin）。`bcs.yaml` 第 396 行说明与现行决定不符，改为：「用印申请与登记、IT 需求工单、IT 资产领用调拨归还与维修、员工活动申请的业务记录；先行期含合同原件借阅（W3 移交 contract.agreement）；审批只用于用印与受控 IT 类别，走 platform.approval；资产卡片、折旧、报废与盘点账务归 accounting.fixedasset，采购由采购所属 BC 处理」。第 173 行与第 396 行重复登记，由 one-glossary 合并。 |
