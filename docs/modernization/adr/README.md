@@ -98,6 +98,7 @@
 | [ADR-0069](ADR-0069.md) | 撤同步收尾：同步列、迁入适配器、来源对照封存与审计对象类别（ADR-0055 补篇二） | 集成 | organization.workforce、platform.identity、platform.integration、platform.audit | 已采纳 |
 | [ADR-0070](ADR-0070.md) | 恶意文件检测：自建 ClamAV 的检测流程与宏文档防护（ADR-0060 补篇） | 安全与权限 | 全局 | 已采纳 |
 | [ADR-0071](ADR-0071.md) | 迁入质量检查：分层规则、差异清单与提交门槛（ADR-0036 补篇） | 数据 | 全局 | 提议 |
+| [ADR-0072](ADR-0072.md) | 工作日历版本四眼：dev 单人路径与完成时点 | 数据 | organization.attendance | 提议 |
 
 ## ADR 生命周期与变更规则
 
