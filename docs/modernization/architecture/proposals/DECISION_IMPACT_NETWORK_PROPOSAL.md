@@ -44,7 +44,7 @@
 | C1 约束与认定规则 | P/ENTERPRISE_AGGREGATES_DRAFT.md §1.2（INV）；rules/*.md（RULE） | INV-、RULE- | 134；126 | 归属 AGG | 提议稿（md 表）；INV 与 RULE 无对照 | ssot/c1-rules：INV 为主键、RULE 卡引用 INV；`execution_points`→EP、`tests`→TC、`exceptions`（审批、到期、补偿） |
 | I01 子域 | D/subdomains.yaml | 无（id 如 cost） | 13 | — | 已有 | 不变；加 `capabilities`→CAP（见第 4 节 U1） |
 | I02 限界上下文 | D/contexts.yaml | 点号名 | 41（已建 13） | subdomain | 已有，但与 glossary/bcs.yaml（68）、bc-map.yaml 三套不同步 | contexts.yaml 为唯一；bcs.yaml 只引用 |
-| I03 聚合 | D/aggregates.yaml | `<模块>/<类>` | 15 | bc | 已有（与代码 15 个根一致） | 规划聚合 AGG-001..130 在 md 草稿，两套 ID 须对照后并成一份 |
+| I03 聚合 | D/aggregates.yaml | `<模块>/<类>` | 15 | bc | 过时（停在 10-16，此后已建模块的新聚合未登记；调度 2026-10-21 审定） | 规划聚合 AGG-001..130 在 md 草稿，两套 ID 须对照后并成一份 |
 | I04a 命令 | 同 11 | — | — | — | 见 11 | 见 11 |
 | I04b 领域事件 | docs/modernization/events/*.yaml（8 个文件） | eventType | 59 条消息 | 发布者 | 已有（守护测试） | 不变；加 `fact`→FACT |
 | I05 接口契约 | openapi.json；B/external-read-registry.yaml；C/INTEGRATION_INVENTORY.yaml | — | 68 操作；19 | owner_bc | API 已有；集成清单提议稿、id 全空 | 不变；集成清单补 IE- 编号 |
