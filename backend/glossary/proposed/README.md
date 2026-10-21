@@ -338,6 +338,13 @@ platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 |---|---|---|---|---|---|---|
 | `registration` | 登记 | Registration | ACL（长期） · platform.integration | 由人把一条来源对照录入系统，先处于待确认，等另一个人确认或拒绝；现在只有核算组织编码可以人工登记 |  |  |
 | `evidence` | 取证 | Evidence | 领域 · platform.integration | 只读核对老系统与 A8 生产数据，用于复刻老行为、迁入对账与新旧等价核对；用专用取证账号，只出计数或聚合，或落 ECS 数据盘，每次登记一行 |  | ADR-0037 登记（数据库登录名 one_evidence_ro），待用语确认 |
+| `malware_scanner` | 恶意文件检测端口 | MalwareScanner | ACL（长期） · platform.integration | 集成层对文件服务提供的检测端口：按本地检测暂存路径交 clamd SCAN，判定之外一律不可用 |  | one-platform-file 2026-10-21 登记（单元 4） |
+| `scan_outcome` | 检测结论 | ScanOutcome | ACL（长期） · platform.integration | CLEAN 通过 / INFECTED 未通过 / ENCRYPTED 加密不可检测；不可用不是结论，抛错 |  | one-platform-file 2026-10-21 登记（单元 4） |
+| `clean` | 检测通过 | Clean | ACL（长期） · platform.integration | 检测结论取值：引擎未检出 |  | one-platform-file 2026-10-21 登记（单元 4） |
+| `infected` | 检测未通过 | Infected | ACL（长期） · platform.integration | 检测结论取值：引擎检出，文件服务隔离 |  | one-platform-file 2026-10-21 登记（单元 4） |
+| `threat_name` | 病毒名 | ThreatName | ACL（长期） · platform.integration | 引擎检出时报告的特征名 |  | one-platform-file 2026-10-21 登记（单元 4） |
+| `presign_download` | 签发下载链接 | PresignDownload | ACL（长期） · platform.integration | 以签发身份为正式键生成预签名 GET 链接，强制附件下载；临时区与隔离键拒绝 |  | one-platform-file 2026-10-21 登记（单元 4） |
+| `promote_file_object` | 转入正式区 | PromoteFileObject | ACL（长期） · platform.integration | 把临时区对象服务端复制到同一文件的正式键，禁止覆盖并读回核对 |  | one-platform-file 2026-10-21 登记（单元 4） |
 
 另有错误码 7 个（kind 为 `error_code`）、技术词 25 个（`common_words`），不在表中。
 

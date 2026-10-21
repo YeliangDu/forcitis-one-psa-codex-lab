@@ -30,7 +30,9 @@ class ArchitectureRulesTest {
     // 登记例外：模块 -> {上限, 出处}；全局上限不抬，新增例外须有出处并经 one-architecture 裁定
     static final Map<String, ApiLimitException> API_LIMIT_EXCEPTIONS = Map.of(
             ROOT + ".organization.workforce", new ApiLimitException(13,
-                    "NITS-1 项⑤；one-coordinator 同意；one-architecture 裁定 2026-10-17"));
+                    "NITS-1 项⑤；one-coordinator 同意；one-architecture 裁定 2026-10-17"),
+            ROOT + ".platform.integration", new ApiLimitException(17,
+                    "ADR-0060 检测与业务文件桶端口；one-architecture 裁定 2026-10-21；到期：ADR-0069 D2 合入"));
 
     record ApiLimitException(int max, String source) {}
 
@@ -237,8 +239,9 @@ class ArchitectureRulesTest {
         NO_CLASSES_SHOULD_ACCESS_STANDARD_STREAMS.check(CLASSES);
         NO_CLASSES_SHOULD_USE_JAVA_UTIL_LOGGING.check(CLASSES);
         noClasses().that().doNotHaveFullyQualifiedName(ROOT + ".platform.approval.infrastructure.flowable.FlowableEngineClock")
+                .and().doNotHaveFullyQualifiedName(ROOT + ".platform.integration.infrastructure.filestore.OssBusinessFileStore")
                 .should().dependOnClassesThat().haveFullyQualifiedName("java.util.Date")
-                .because("use java.time; the one exception implements Flowable's Clock, whose signatures are java.util.Date (FLW-1)")
+                .because("use java.time; the exceptions implement Flowable's Clock (FLW-1) and set the OSS presign expiry, both java.util.Date only")
                 .check(CLASSES);
         noClasses().should().dependOnClassesThat().haveFullyQualifiedName("jakarta.annotation.security.PermitAll")
                 .because("anonymous endpoints only via the identity module's SSO allowlist")
