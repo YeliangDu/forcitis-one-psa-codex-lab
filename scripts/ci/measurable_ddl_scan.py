@@ -1,28 +1,11 @@
 #!/usr/bin/env python3
-"""Scan the DDL for the five "measurable raw material" items (one-data, METRIC design; Kimball 3, Adamson, Snodgrass).
+"""Scan the DDL for the "measurable raw material" items M1-M6 (rules: docs/modernization/data/MEASURABLE_RAW_MATERIAL_SPEC.md).
 
-The database must keep the raw material the metrics are built from, so the check is made on the tables, not on the reports:
-  M1 money carries a currency, a quantity carries a unit
-       a numeric column named like money (amount, price, fee, cost, salary, balance, total) needs a currency column in the same table;
-       a column named quantity / qty needs a unit column (`unit_code`, `<x>_unit`), unless the unit is in the name (`_hours`, `_minutes`, `_days`)
-  M2 the three times of a business fact: when it happened (business date), when it was booked or confirmed, when it was entered (created_at)
-       applies to BUSINESS_DOCUMENT tables (data-access-registry role) and to tables that name a business_date_column
-  M3 state transition history: who, when, from which state to which (ADR-0058, proposed: one same-shaped `state_transitions` table per schema)
-       a table with a status column that has an enumeration CHECK needs the schema to have a `state_transitions` table, or the registry
-       field `state_transitions_exempt: <reason>` (exceptions are reviewed row by row); version tables (DIMENSION_VERSIONED) are their own history
-  M6 config versions (registry role CONFIG_VERSIONED with versions_table, D15): the versions table has author, authored_at, confirmer, confirmed_at,
-       decision_ref and effective_from_date columns
-  M4 master data keeps validity intervals (source of slowly changing dimensions)
-       a MUTABLE AGGREGATE_ROOT / SNAPSHOT / CONFIG table of a master data schema has a versions table in the same schema,
-       or the registry field `versioning: none:<reason>`; uses the registry field `data_category` (主数据 | 交易 | 参照 | 配置 | 技术) when present; without it the check falls back to a candidate list by role
-  M5 key relations are foreign keys, not remarks
-       a `<x>_id` column whose `<x>` is a table of the same schema (singular or plural, with `_id` of the table's own key excluded)
-       needs a FOREIGN KEY unless the registry lists it in fk_exceptions; a cross-schema id is by design only an id, and is not reported
+M6 (D15): a registry entry with role CONFIG_VERSIONED names `versions_table` (schema.table); that table has author, authored_at, confirmer,
+confirmed_at, decision_ref and effective_from_date columns and is APPEND_ONLY in the registry.
 
 Usage: measurable_ddl_scan.py [--root DIR] [--json] | measurable_ddl_scan.py --self-test
-`--root` points at a checkout (or an export) holding backend/src/main/resources/db/migration and backend/architecture/data-access-registry.yaml.
-Report only: the exit status is 0 unless the SQL cannot be read. Regress by `schema.table.column`, never by line number.
-Framework tables (event_publication*, sessions*, scheduler_locks, act_*) are not scanned.
+Report only: the exit status is 0 unless the SQL or the registry cannot be read. Regress by `schema.table.column`, never by line number.
 """
 import importlib.util
 import json
@@ -32,6 +15,9 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
+CURRENCY_COLUMN = re.compile(r"(^|_)currency_code$")
+UNIT_COLUMN = re.compile(r"(^|_)unit_code$")
+DATA_CATEGORIES = ("主数据", "交易", "参照", "配置", "技术")
 MONEY = re.compile(r"(^|_)(amount|price|fee|cost|salary|balance|total)($|_)")
 QUANTITY = re.compile(r"(^|_)(quantity|qty)($|_)")
 UNIT_IN_NAME = re.compile(r"(^|_)(hours|minutes|days|seconds|percent|rate)($|_)")
@@ -41,10 +27,8 @@ FRAMEWORK = re.compile(r"^(?:[a-z_]+\.)?(event_publication|sessions|scheduler_lo
 MASTER_SCHEMAS = ("organization_workforce", "platform_identity", "platform_numbering", "organization_attendance")
 
 
-def load_scan_module(root):
-    path = os.path.join(root, "scripts", "ci", "baseline_ddl_scan.py")
-    if not os.path.exists(path):
-        path = os.path.join(HERE, "baseline_ddl_scan.py")
+def load_scan_module():
+    path = os.path.join(HERE, "baseline_ddl_scan.py")
     spec = importlib.util.spec_from_file_location("baseline_ddl_scan", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -70,32 +54,35 @@ def read_foreign_keys(scan, migrations):
                     for fk in re.finditer(r"FOREIGN KEY\s*\(([^)]*)\)", element, re.I):
                         cols.update(c.strip() for c in fk.group(1).split(","))
                 continue
-            m = re.match(r"ALTER TABLE\s+(?:ONLY\s+)?([a-z0-9_]+\.[a-z0-9_]+)\s+ADD\s+CONSTRAINT\s+\w+\s+FOREIGN KEY\s*\(([^)]*)\)", stmt, re.I | re.S)
+            m = re.match(r"ALTER TABLE\s+(?:ONLY\s+)?([a-z0-9_]+\.[a-z0-9_]+)\s+(.*)", stmt, re.I | re.S)
             if m:
-                fks.setdefault(m.group(1), set()).update(c.strip() for c in m.group(2).split(","))
+                for clause in scan.split_top(m.group(2)):
+                    fk = re.match(r"ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN KEY\s*\(([^)]*)\)", clause.strip(), re.I)
+                    if fk:
+                        fks.setdefault(m.group(1), set()).update(c.strip() for c in fk.group(1).split(","))
     return fks
 
 
 def registry_tables(root):
     path = os.path.join(root, "backend", "architecture", "data-access-registry.yaml")
     if not os.path.exists(path):
-        return {}
+        sys.exit(f"registry not found: {path}")
     import yaml
     return (yaml.safe_load(open(path, encoding="utf-8")) or {}).get("tables", {})
 
 
 def has_enum_check(table, column):
     for _, expr in table["checks"]:
-        if re.search(r"\b" + re.escape(column) + r"\s+IN\s*\(", expr, re.I) or re.search(r"\b" + re.escape(column) + r"\s*=\s*'", expr, re.I):
+        if re.search(r"\b" + re.escape(column) + r"\s+IN\s*\(", expr, re.I) or re.search(r"\b" + re.escape(column) + r"\s*=\s*('|ANY\s*\(\s*ARRAY)", expr, re.I):
             return True
     for _, expr in table["columns"][column]["checks"]:
-        if re.search(r"\bIN\s*\(|=\s*'", expr, re.I):
+        if re.search(r"\bIN\s*\(|=\s*('|ANY\s*\(\s*ARRAY)", expr, re.I):
             return True
     return False
 
 
 def scan_all(root):
-    scan = load_scan_module(root)
+    scan = load_scan_module()
     migrations = os.path.join(root, "backend", "src", "main", "resources", "db", "migration")
     tables, _, unsupported = scan.load(migrations)
     fks = read_foreign_keys(scan, migrations)
@@ -103,22 +90,21 @@ def scan_all(root):
     by_schema = {}
     for name in tables:
         by_schema.setdefault(name.split(".")[0], set()).add(name.split(".")[1])
+    version_tables = {(e or {}).get("versions_table") for e in registry.values() if (e or {}).get("role") == "CONFIG_VERSIONED"}
     found = {"M1": [], "M2": [], "M3": [], "M4": [], "M5": [], "M6": []}
     for name, t in sorted(tables.items()):
         if FRAMEWORK.match(name):
             continue
         schema, short = name.split(".")
         cols = t["columns"]
-        entry = registry.get(name, {})
-        # M1
+        entry = registry.get(name) or {}
         for c, col in cols.items():
-            if MONEY.search(c) and NUMERIC.match(col["type"]):
-                if not any(re.search(r"(^|_)currency($|_)", x) for x in cols):
+            if MONEY.search(c) and NUMERIC.match(col["type"]) and not UNIT_IN_NAME.search(c):
+                if not any(CURRENCY_COLUMN.search(x) for x in cols):
                     found["M1"].append((f"{name}.{c}", "money column without a currency column in the table"))
             if QUANTITY.search(c) and NUMERIC.match(col["type"]) and not UNIT_IN_NAME.search(c):
-                if not any(re.search(r"(^|_)unit($|_)", x) for x in cols):
+                if not any(UNIT_COLUMN.search(x) for x in cols):
                     found["M1"].append((f"{name}.{c}", "quantity column without a unit column in the table"))
-        # M2
         if entry.get("role") == "BUSINESS_DOCUMENT" or entry.get("business_date_column"):
             missing = []
             bdc = entry.get("business_date_column")
@@ -130,37 +116,43 @@ def scan_all(root):
                 missing.append("entry time (created_at)")
             if missing:
                 found["M2"].append((name, "missing: " + "; ".join(missing)))
-        # M3
         status_cols = [c for c in cols if c == "status" or c.endswith("_status")]
         enum_status = [c for c in status_cols if has_enum_check(t, c)]
-        if enum_status and entry.get("role") not in ("DIMENSION_VERSIONED",):
+        if enum_status and entry.get("role") != "DIMENSION_VERSIONED" and name not in version_tables:
             exempt = entry.get("state_transitions_exempt")
             if not exempt and "state_transitions" not in by_schema[schema]:
                 found["M3"].append((f"{name}.{enum_status[0]}", "state column in a schema without a state_transitions table (ADR-0058) and no registry state_transitions_exempt reason"))
-        # M4
         category = entry.get("data_category")
+        if category is not None and category not in DATA_CATEGORIES:
+            found["M4"].append((name, f"registry data_category {category!r} is not one of " + " | ".join(DATA_CATEGORIES)))
         if category is not None:
-            is_master = category == "主数据"          # the registry says: 主数据 | 交易 | 参照 | 配置 | 技术
+            is_master = category == "主数据"
         else:
             is_master = schema in MASTER_SCHEMAS and entry.get("role") in ("AGGREGATE_ROOT", "SNAPSHOT", "CONFIG") and entry.get("mutability") in ("MUTABLE", "REPLACE_SET", None)
         if is_master and entry.get("mutability") in ("MUTABLE", "REPLACE_SET", None):
-            stem = re.sub(r"ies$", "y", short) if short.endswith("ies") else short.rstrip("s")
-            versioned = f"{stem}_versions" in by_schema[schema] or entry.get("versioning")
-            if not versioned:
+            stems = {short[:-3] + "y"} if short.endswith("ies") else set()
+            stems |= {short[:-2]} if short.endswith("es") else set()
+            stems |= {short[:-1]} if short.endswith("s") else {short}
+            versioning = entry.get("versioning")
+            if versioning is not None and not re.match(r"none:\S", str(versioning)):
+                found["M4"].append((name, "registry versioning must be written none:<reason>"))
+            if not (any(f"{stem}_versions" in by_schema[schema] for stem in stems) or versioning):
                 found["M4"].append((name, f"{entry.get('role')} master data candidate without a versions table or registry versioning reason"))
-        # M6
-        if entry.get("role") == "CONFIG_VERSIONED" and entry.get("versions_table"):
-            vt = entry["versions_table"]
+        if entry.get("role") == "CONFIG_VERSIONED":
+            vt = entry.get("versions_table")
             vcols = tables[vt]["columns"] if vt in tables else None
-            if vcols is None:
+            if not vt or "." not in vt:
+                found["M6"].append((name, "CONFIG_VERSIONED entry without versions_table written schema.table"))
+            elif vcols is None:
                 found["M6"].append((name, f"versions_table {vt} not found in the migrations"))
             else:
+                if (registry.get(vt) or {}).get("mutability") not in ("APPEND_ONLY", "CONDITIONAL_UPDATE"):
+                    found["M6"].append((vt, "config versions table is not APPEND_ONLY (or CONDITIONAL_UPDATE for the confirm step) in the registry"))
                 required = [("author", ("author_id", "authored_by")), ("authored_at", ("authored_at",)), ("confirmer", ("confirmed_by",)),
                             ("confirmed_at", ("confirmed_at",)), ("decision_ref", ("decision_ref",)), ("effective date", ("effective_from_date",))]
                 missing = [label for label, names in required if not any(n in vcols for n in names)]
                 if missing:
                     found["M6"].append((vt, "config versions table missing: " + ", ".join(missing)))
-        # M5
         own_pk = {c for c, col in cols.items() if col["primary"]}
         for c in cols:
             if not c.endswith("_id") or c in own_pk or c in fks.get(name, set()) or c in (entry.get("fk_exceptions") or {}):
@@ -202,14 +194,25 @@ CREATE TABLE demo.orders (
 );
 CREATE TABLE demo.customers (id uuid PRIMARY KEY);
 CREATE TABLE demo.rules (id uuid PRIMARY KEY);
+CREATE TABLE demo.addresses (id uuid PRIMARY KEY);
+CREATE TABLE demo.address_versions (id uuid PRIMARY KEY, address_id uuid REFERENCES demo.addresses (id));
+CREATE TABLE demo.sheets (id uuid PRIMARY KEY, total_hours numeric, balance_days integer, cost_rate numeric, other_id uuid, third_id uuid);
+CREATE TABLE demo.others (id uuid PRIMARY KEY);
+CREATE TABLE demo.thirds (id uuid PRIMARY KEY);
+ALTER TABLE demo.sheets ADD CONSTRAINT fk_o FOREIGN KEY (other_id) REFERENCES demo.others (id), ADD CONSTRAINT fk_t FOREIGN KEY (third_id) REFERENCES demo.thirds (id);
+CREATE TABLE demo.empty (id uuid PRIMARY KEY);
+CREATE TABLE demo.bad_cat (id uuid PRIMARY KEY);
+CREATE TABLE demo.cfg (id uuid PRIMARY KEY);
+CREATE TABLE demo.no_vt_cfg (id uuid PRIMARY KEY);
+CREATE TABLE demo.cfg_versions (id uuid PRIMARY KEY, cfg_id uuid REFERENCES demo.cfg (id), author_id uuid, authored_at timestamptz, confirmed_by uuid, confirmed_at timestamptz, decision_ref text, effective_from_date date, version_status text CHECK (version_status = ANY (ARRAY['A'::text, 'B'::text])));
 CREATE TABLE demo.rule_versions (id uuid PRIMARY KEY, rule_id uuid REFERENCES demo.rules (id), author_id uuid, authored_at timestamptz, confirmed_by uuid, effective_from_date date);
 CREATE TABLE demo2.tickets (id uuid PRIMARY KEY, ticket_status text NOT NULL CHECK (ticket_status IN ('NEW','CLOSED')), created_at timestamptz NOT NULL);
 CREATE TABLE demo2.state_transitions (id uuid PRIMARY KEY);
 CREATE TABLE demo3.notes (id uuid PRIMARY KEY, note_status text NOT NULL CHECK (note_status IN ('A','B')));
-CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES demo.orders (id), unit_code text, line_quantity numeric(10,2), price_currency text, price numeric);
+CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES demo.orders (id), unit_code text, line_quantity numeric(10,2), price_currency_code text, price numeric);
 """)
         open(os.path.join(tmp, "backend", "architecture", "data-access-registry.yaml"), "w", encoding="utf-8").write(
-            "tables:\n  demo.customers:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n  demo.rules:\n    role: CONFIG_VERSIONED\n    versions_table: demo.rule_versions\n  demo3.notes:\n    state_transitions_exempt: technical note, no lifecycle\n")
+            "tables:\n  demo.customers:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n  demo.rules:\n    role: CONFIG_VERSIONED\n    versions_table: demo.rule_versions\n  demo.addresses:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.empty:\n  demo.bad_cat:\n    data_category: master\n  demo.cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.cfg_versions\n  demo.cfg_versions:\n    mutability: APPEND_ONLY\n  demo.no_vt_cfg:\n    role: CONFIG_VERSIONED\n  demo3.notes:\n    state_transitions_exempt: technical note, no lifecycle\n")
         found, total, _ = scan_all(tmp)
         items = {k: {i for i, _ in v} for k, v in found.items()}
         assert "demo.orders.total_amount" in items["M1"], "M1 money without currency"
@@ -217,7 +220,12 @@ CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES 
         assert "demo.lines.line_quantity" not in items["M1"] and "demo.lines.price" not in items["M1"], "M1: unit / currency present"
         assert "demo.orders" in items["M2"], "M2"
         assert "demo.customers" in items["M4"], "M4: a 主数据 table without a versions table"
-        assert items["M6"] == {"demo.rule_versions"}, "M6: confirmed_at and decision_ref missing"
+        assert items["M6"] == {"demo.rule_versions", "demo.no_vt_cfg"}, "M6: missing columns, missing versions_table; complete table passes"
+        assert "demo.addresses" not in items["M4"], "M4: address_versions found for addresses"
+        assert "demo.bad_cat" in items["M4"], "M4: invalid data_category"
+        assert not {"demo.sheets.total_hours", "demo.sheets.balance_days", "demo.sheets.cost_rate"} & items["M1"], "M1: unit in the name"
+        assert not {"demo.sheets.other_id", "demo.sheets.third_id"} & items["M5"], "M5: every clause of ALTER TABLE counts"
+        assert "demo.cfg_versions.version_status" not in items["M3"], "M3: a CONFIG_VERSIONED versions table is its own history; ANY (ARRAY) check parsed"
         assert "demo.orders.order_status" in items["M3"], "M3"
         assert "demo2.tickets.ticket_status" not in items["M3"], "M3: the schema has a state_transitions table"
         assert "demo3.notes.note_status" not in items["M3"], "M3: a registry exemption with a reason"
@@ -232,6 +240,8 @@ def main(argv):
         return
     root = ROOT
     if "--root" in argv:
+        if argv.index("--root") + 1 >= len(argv):
+            sys.exit("--root needs a directory")
         root = os.path.abspath(argv[argv.index("--root") + 1])
     found, total, unsupported = scan_all(root)
     report(found, total, unsupported, "--json" in argv)
