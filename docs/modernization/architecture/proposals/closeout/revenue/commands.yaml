@@ -2589,6 +2589,7 @@ commands:
   - 项目已恢复
 - name: 终止项目
   aggregate: AGG-19
+  pending_decision: 是否需上级复核待定（用户 GL3 提醒：批准人即项目经理本人，复核与否单独定，不靠改名）；出卡给推荐，需用户定的随确认页改版
   params:
   - 项目
   - 原因
@@ -2600,6 +2601,7 @@ commands:
   - 项目已终止
 - name: 取消项目
   aggregate: AGG-19
+  pending_decision: 是否需上级复核待定（用户 GL3 提醒：批准人即项目经理本人，复核与否单独定，不靠改名）；出卡给推荐，需用户定的随确认页改版
   params:
   - 项目
   - 原因
