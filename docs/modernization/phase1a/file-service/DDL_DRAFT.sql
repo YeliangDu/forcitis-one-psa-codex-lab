@@ -1,23 +1,100 @@
--- 文件服务 platform_file 表结构草案第 2 版（IMP-1021-COO-02 单元 3），交 one-data 复核签发；签发前不进 db/migration。
+-- 文件服务 platform_file 表结构草案第 3 版（IMP-1021-COO-02 单元 3），交 one-data 复核签发；签发前不进 db/migration。
 -- 作者 one-platform-file，2026-10-21。依据：ADR-0060 决定 3–5、ADR-0061 决定 7、ADR-0070 决定 2、6、ADR-0058、契约 PR #502。
--- 第 1 版审：claude/one-data-handoff-1 @a282e2c3 data/reviews/IMP-1021-COO-02-U3-file-service.md；本版逐条处理见文末「审改对照」。
+-- 第 1 版审：claude/one-data-handoff-1 @a282e2c3，第二轮 @e2184aba（data/reviews/IMP-1021-COO-02-U3-file-service.md）；逐条处理见文末「审改对照」。
+-- current_file_preservations 用 security_invoker，须 PostgreSQL 15+，迁移时核实例版本。
 -- 单据引用：document_type text + 格式 CHECK + document_id uuid，不建跨 schema 外键（Q1 已通过）。
 -- 跨 schema 主体（用户、一次性链接）只存 ID 不建外键；平台模块存模块代码。
 -- 时间列一律由应用传注入时钟，DDL 无 now()；version 初值 0 沿用基线惯例。
 
 CREATE SCHEMA IF NOT EXISTS platform_file;
 
--- ═══ 0. 状态转换（ADR-0058，模板原样，<schema> = platform_file）═══════════════
--- 按 STATE_TRANSITIONS_DESIGN.md 第 1 节模板逐字建表、约束、索引、refuse_transition_rewrite 触发器与注释（此处不重抄）。
--- 登记的聚合类型（aggregate_type）：StoredFile、FalsePositiveJudgment、QuarantineReadRequest、PreservationCategoryVersion。
--- 一次性链接与平台模块作操作者时 actor_type = SYSTEM，actor_id 取 system-actors.txt 登记的系统操作者（见文末 P1）。
+-- ═══ 0. 状态转换（ADR-0058；STATE_TRANSITIONS_DESIGN v2 第 1 节模板，<schema> = platform_file）════════
+CREATE TABLE platform_file.state_transitions (
+    id                      uuid        NOT NULL,
+    aggregate_type          text        NOT NULL,
+    aggregate_id            uuid        NOT NULL,
+    sequence_no             bigint      NOT NULL,
+    from_state              text,
+    to_state                text        NOT NULL,
+    occurred_on             date        NOT NULL,
+    recorded_at             timestamptz NOT NULL,
+    legal_entity_id         uuid,
+    actor_type              text        NOT NULL,
+    actor_id                uuid        NOT NULL,
+    cause_kind              text        NOT NULL,
+    command_id              uuid,
+    event_id                uuid,
+    correlation_id          uuid        NOT NULL,
+    reverses_transition_id  uuid,
+    created_at              timestamptz NOT NULL,
+    updated_at              timestamptz NOT NULL,
+    CONSTRAINT pk_state_transitions PRIMARY KEY (id),
+    CONSTRAINT uk_state_transitions_aggregate_id_sequence_no UNIQUE (aggregate_id, sequence_no),
+    CONSTRAINT uk_state_transitions_id_aggregate_id UNIQUE (id, aggregate_id),
+    CONSTRAINT fk_state_transitions_reverses_transition_id FOREIGN KEY (reverses_transition_id, aggregate_id)
+        REFERENCES platform_file.state_transitions (id, aggregate_id) ON DELETE RESTRICT,
+    CONSTRAINT ck_state_transitions_aggregate_type CHECK (aggregate_type ~ '^[A-Z][A-Za-z0-9]{0,99}$'),
+    CONSTRAINT ck_state_transitions_from_state CHECK (from_state IS NULL OR from_state ~ '^[A-Z][A-Z0-9_]{0,49}$'),
+    CONSTRAINT ck_state_transitions_to_state CHECK (to_state ~ '^[A-Z][A-Z0-9_]{0,49}$'),
+    CONSTRAINT ck_state_transitions_sequence_no CHECK (sequence_no >= 0),
+    CONSTRAINT ck_state_transitions_states_differ CHECK (from_state IS DISTINCT FROM to_state),
+    CONSTRAINT ck_state_transitions_first CHECK (from_state IS NOT NULL OR cause_kind = 'MIGRATION' OR sequence_no <= 1),
+    CONSTRAINT ck_state_transitions_actor_type CHECK (actor_type IN ('USER', 'SYSTEM')),
+    CONSTRAINT ck_state_transitions_cause_kind CHECK (cause_kind IN ('COMMAND', 'REVERSAL', 'CORRECTION', 'MIGRATION', 'SYSTEM_JOB')),
+    CONSTRAINT ck_state_transitions_trigger CHECK (num_nonnulls(command_id, event_id) <= 1
+        AND (cause_kind <> 'COMMAND' OR command_id IS NOT NULL)
+        AND (cause_kind <> 'SYSTEM_JOB' OR command_id IS NULL)
+        AND (cause_kind <> 'MIGRATION' OR num_nonnulls(command_id, event_id) = 0)),
+    CONSTRAINT ck_state_transitions_reversal CHECK ((cause_kind IN ('REVERSAL', 'CORRECTION')) = (reverses_transition_id IS NOT NULL)),
+    CONSTRAINT ck_state_transitions_migration CHECK (cause_kind <> 'MIGRATION' OR from_state IS NULL),
+    CONSTRAINT ck_state_transitions_times CHECK (created_at = recorded_at AND updated_at = recorded_at)
+);
+CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on ON platform_file.state_transitions (legal_entity_id, occurred_on) WHERE legal_entity_id IS NOT NULL;
+CREATE INDEX ix_state_transitions_recorded_at ON platform_file.state_transitions (recorded_at, id);
+CREATE FUNCTION platform_file.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    -- 清理只有一条通道：schema 属主角色经 SECURITY DEFINER 函数 platform_file.purge_expired_state_transitions 删除到期的整个聚合；其他角色都被拒。
+    IF TG_OP = 'DELETE' AND current_user = (SELECT pg_get_userbyid(c.relowner) FROM pg_class c WHERE c.oid = TG_RELID) THEN
+        RETURN OLD;
+    END IF;
+    RAISE EXCEPTION 'state transitions are append-only: % on %.% is refused', lower(TG_OP), TG_TABLE_SCHEMA, TG_TABLE_NAME
+        USING ERRCODE = 'restrict_violation';
+END $$;
+CREATE TRIGGER tg_state_transitions_append_only BEFORE UPDATE OR DELETE ON platform_file.state_transitions
+    FOR EACH ROW EXECUTE FUNCTION platform_file.refuse_transition_rewrite();
+CREATE TRIGGER tg_state_transitions_append_only_truncate BEFORE TRUNCATE ON platform_file.state_transitions
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_file.refuse_transition_rewrite();
+COMMENT ON TABLE platform_file.state_transitions IS '状态转换：本 schema 各聚合每次状态变更一行，只追加，回退也正向记（ADR-0058）。粒度：每次状态变更一行';
+COMMENT ON COLUMN platform_file.state_transitions.id IS '状态转换 ID（UUIDv7）';
+COMMENT ON COLUMN platform_file.state_transitions.aggregate_type IS '聚合类型：StoredFile、FalsePositiveJudgment、QuarantineReadRequest、PreservationCategoryVersion';
+COMMENT ON COLUMN platform_file.state_transitions.aggregate_id IS '聚合 ID';
+COMMENT ON COLUMN platform_file.state_transitions.sequence_no IS '序号：本次变更之后聚合行的 version，与聚合行同事务递增';
+COMMENT ON COLUMN platform_file.state_transitions.from_state IS '原状态：为空表示新建或迁入的初始状态';
+COMMENT ON COLUMN platform_file.state_transitions.to_state IS '新状态';
+COMMENT ON COLUMN platform_file.state_transitions.occurred_on IS '业务日期（Asia/Shanghai）';
+COMMENT ON COLUMN platform_file.state_transitions.recorded_at IS '记录时间：注入时钟';
+COMMENT ON COLUMN platform_file.state_transitions.legal_entity_id IS '法人主体 ID：为空表示该聚合无法人归属（文件服务四类聚合均无，注册表登记 none）';
+COMMENT ON COLUMN platform_file.state_transitions.actor_type IS '操作者类型：USER 用户 / SYSTEM 系统操作者（一次性链接持有人、平台模块调用、作业均按 system-actors.txt 登记的系统操作者）';
+COMMENT ON COLUMN platform_file.state_transitions.actor_id IS '操作者 ID：用户 ID 或系统操作者 UUIDv5';
+COMMENT ON COLUMN platform_file.state_transitions.cause_kind IS '起因：COMMAND / REVERSAL / CORRECTION / MIGRATION / SYSTEM_JOB';
+COMMENT ON COLUMN platform_file.state_transitions.command_id IS '命令 ID：为空表示不是命令触发';
+COMMENT ON COLUMN platform_file.state_transitions.event_id IS '事件 ID：为空表示不是事件触发';
+COMMENT ON COLUMN platform_file.state_transitions.correlation_id IS '关联 ID：同一请求或作业的一串变更共用';
+COMMENT ON COLUMN platform_file.state_transitions.reverses_transition_id IS '抵消的转换 ID：为空表示不是冲销或更正';
+COMMENT ON COLUMN platform_file.state_transitions.created_at IS '创建时间（恒等于记录时间）';
+COMMENT ON COLUMN platform_file.state_transitions.updated_at IS '更新时间（恒等于记录时间）';
 
--- 合法流转（应用写转换行；各表触发器按同一张清单拒绝非法流转，终态后任何状态改动都拒）：
---   stored_files.file_status            ∅→AVAILABLE、∅→QUARANTINED、AVAILABLE→EXPIRED_UNBOUND；QUARANTINED、EXPIRED_UNBOUND 为终态
---                                        （DISPOSED 与 file_disposals 同一迁移加入：AVAILABLE→DISPOSED，M3 / Q7）
---   false_positive_judgments            ∅→PENDING_REVIEW、PENDING_REVIEW→CONFIRMED、PENDING_REVIEW→REJECTED；后两者为终态
---   quarantine_read_requests            ∅→PENDING、PENDING→APPROVED、PENDING→REJECTED、APPROVED→READ；REJECTED、READ 为终态
---   preservation_category_versions      ∅→PENDING、PENDING→CONFIRMED；CONFIRMED 为终态
+-- 合法流转清单（应用写转换行；各表触发器按同一清单拒绝非法流转；终态后状态不可改）：
+--   聚合类型                      状态列                                            from → to
+--   StoredFile                    stored_files.file_status                          ∅ → AVAILABLE；∅ → QUARANTINED；AVAILABLE → EXPIRED_UNBOUND
+--                                                                                  （终态 QUARANTINED、EXPIRED_UNBOUND；DISPOSED 与 file_disposals 同批加 AVAILABLE → DISPOSED）
+--   FalsePositiveJudgment         false_positive_judgments.judgment_status          ∅ → PENDING_REVIEW；PENDING_REVIEW → CONFIRMED；PENDING_REVIEW → REJECTED
+--   QuarantineReadRequest         quarantine_read_requests.request_status           ∅ → PENDING；PENDING → APPROVED；PENDING → REJECTED；APPROVED → READ
+--   PreservationCategoryVersion   preservation_category_versions.confirmation_status ∅ → PENDING；PENDING → CONFIRMED
+-- 系统操作者（system-actors.txt 新增三行，UUIDv5 按目录命名空间算）：
+--   platform.file.one-time-link-holder | af5fd2b9-1c66-5f5a-9803-ffe3839894a6 | platform.file | 一次性链接持有人上传与提交关联的操作者
+--   platform.file.platform-module-call | 9dd1c4f7-f0ad-54c9-8190-62e09e87ee8f | platform.file | 平台模块（签章服务等）调用写入、关联、封存的操作者
+--   platform.file.staging.expire       | 18a840ca-d8f0-5830-8e12-1bcd5ecad2f3 | platform.file | 作业：临时区到期未关联的文件置「未关联已过期」
 
 -- ═══ 1. 存储文件（根）════════════════════════════════════════════════
 CREATE TABLE platform_file.stored_files (
@@ -346,6 +423,16 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
+CREATE FUNCTION platform_file.guard_preservation_category_version_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.confirmation_status <> 'PENDING' OR NEW.confirmed_by IS NOT NULL OR NEW.confirmed_at IS NOT NULL THEN
+        RAISE EXCEPTION 'platform_file.preservation_category_versions: a version is inserted PENDING and confirmed by a person later'
+            USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+CREATE TRIGGER tg_preservation_category_versions_insert_guard BEFORE INSERT ON platform_file.preservation_category_versions
+    FOR EACH ROW EXECUTE FUNCTION platform_file.guard_preservation_category_version_insert();
 CREATE TRIGGER tg_preservation_category_versions_guard BEFORE UPDATE OR DELETE ON platform_file.preservation_category_versions
     FOR EACH ROW EXECUTE FUNCTION platform_file.guard_preservation_category_version_change();
 CREATE TRIGGER tg_preservation_category_versions_guard_truncate BEFORE TRUNCATE ON platform_file.preservation_category_versions
@@ -605,7 +692,8 @@ CREATE TRIGGER tg_quarantine_read_requests_guard_truncate BEFORE TRUNCATE ON pla
 --   stored_file_names               CONDITIONAL_UPDATE「去标识一次」，去标识作业 platform.file.deidentify-file-names（ADR-0061 处置建成时实现）
 --   file_bindings / file_holds / scan_exceptions / scan_exception_revocations / file_preservations   APPEND_ONLY
 --   file_preservations              另注「读当前行只经 current_file_preservations」
---   preservation_categories         CONFIG_ROOT，business_key [category_code]；preservation_category_versions CONFIG_VERSIONED，versions_table 挂根
+--   preservation_categories         role CONFIG_VERSIONED，versions_table preservation_category_versions，business_key [category_code]
+--   preservation_category_versions  role AGGREGATE_CHILD（种子初始版本以 PENDING 写入，由人确认）
 --   false_positive_judgments / quarantine_read_requests   CONDITIONAL_UPDATE（按流转清单）
 --   state_transitions               LOG_APPEND_ONLY（按 STATE_TRANSITIONS_DESIGN 第 6 节）
 -- data-classification.txt（ADR-0043 格式）：
@@ -631,7 +719,8 @@ CREATE TRIGGER tg_quarantine_read_requests_guard_truncate BEFORE TRUNCATE ON pla
 -- M7 见第 9 节。  Q5 personal_info_mark 只列 NONE、PI。
 -- 低档：分级取较严者已写入 file_bindings 表注释；自由文本列注释「不填个人信息」并分级 PI；改键与插关联的顺序由集成测试覆盖（单元 6）。
 
+-- 第二轮：N1 补 state_transitions 完整 DDL、合法流转清单与三个系统操作者；N2 版本表加 BEFORE INSERT 只许 PENDING（种子同）；
+--    N3 注册表根表 CONFIG_VERSIONED + versions_table、版本表 AGGREGATE_CHILD。P1–P3 已获同意。
+
 -- ═══ 仍待定 ═══════════════════════════════════════════════════════════
--- P1 一次性链接与平台模块作为状态转换操作者：ADR-0058 actor_type 只有 USER / SYSTEM；本稿按 SYSTEM + 系统操作者登记，是否可行请 one-data 定。
--- P2 file_bindings 分级「取较严者」须在 api 契约注释写明（契约 PR #502 随本单元补一句）。
--- P3 生效日比较用 Asia/Shanghai 业务日（与其他模块业务日口径一致与否请核）。
+-- 无（P1 SYSTEM + system-actors.txt、P2 契约补「取较严者」、P3 Asia/Shanghai 均已同意）。
