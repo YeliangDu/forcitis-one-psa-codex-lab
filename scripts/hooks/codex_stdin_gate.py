@@ -27,7 +27,7 @@ CODEX_VALUE_OPTIONS = {"-c", "--config", "-m", "--model", "-p", "--profile", "-C
 REDIRECTS = {"<", "<<", "<<-", "<<<", "<&"}
 ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 HEREDOC = re.compile(r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
-MESSAGE = ("codex exec / pi -p 没有关闭标准输入，会停在「Reading additional input from stdin」干等。"
+MESSAGE = ("codex exec / pi 没有关闭标准输入，会一直读标准输入干等（codex 停在「Reading additional input from stdin」，pi 在没有终端时先读完标准输入才开始）。"
            "在命令末尾加 `< /dev/null`（SESSION_PLAYBOOK §5）；确需从管道或文件喂提示词时用 `| codex exec -`、`| pi -p` 或 `< 文件`。")
 NETWORK_WARNING = ("告警：codex exec 未显式禁网，或使用了 danger-full-access / --dangerously-bypass-approvals-and-sandbox。"
                    "按 SESSION_PLAYBOOK §5 使用 `-c sandbox_workspace_write.network_access=false` 与受限沙箱（或 `-s read-only`）；"
@@ -75,10 +75,18 @@ def stdin_open(seg, piped_in):
 AGENT = re.compile(r"\b(?:codex|pi)\b")
 
 
-def is_pi_print(seg, i):
-    """True when seg[i] is pi in non-interactive mode (-p / --print), which waits on standard input like codex exec does."""
+PI_SUBCOMMANDS = {"install", "remove", "uninstall", "update", "list", "config", "auth", "mcp"}
+PI_META = {"-h", "--help", "-v", "--version", "--list-models", "--export"}
+
+
+def is_pi_run(seg, i):
+    """True when seg[i] is pi started on the agent path. Without a TTY pi reads all of standard input before it starts (pi 1.3.0, dist/main.js readPipedStdin) whatever the mode,
+    so every pi run waits on it except the package commands (install, list, auth, ...) and the meta options (--help, --version, ...)."""
     rest = seg[i + 1:]
-    return os.path.basename(seg[i]) == "pi" and any(t in ("-p", "--print") for t in rest) and not any(t in ("--help", "-h", "--version", "-v") for t in rest)
+    if os.path.basename(seg[i]) != "pi" or any(t in PI_META for t in rest):
+        return False
+    first = next((t for t in rest if not t.startswith("-")), None)
+    return not (first in PI_SUBCOMMANDS and rest.index(first) == 0)
 
 
 def is_codex_exec(seg, i):
@@ -97,7 +105,7 @@ def codex_invocations(command, depth=0, closed=False):
     try:
         tokens = tokens_of(command)
     except ValueError:
-        if (re.search(r"\bcodex\b", command) and re.search(r"\bexec\b", command)) or (re.search(r"\bpi\b", command) and re.search(r"(?<!\S)(?:-p|--print)(?!\S)", command)):
+        if (re.search(r"\bcodex\b", command) and re.search(r"\bexec\b", command)) or re.search(r"(?<![\w./-])pi(?![\w-])", command):
             yield [], True
         return
     segments, cur, piped = [], [], False
@@ -131,7 +139,7 @@ def codex_invocations(command, depth=0, closed=False):
             continue
         if is_codex_exec(seg, i):
             yield seg[i + 1:], stdin_open(seg, piped_in or closed)
-        elif is_pi_print(seg, i):
+        elif is_pi_run(seg, i):
             yield None, stdin_open(seg, piped_in or closed)
         elif depth < 3 and os.path.basename(seg[i]) in SHELLS:
             for token in seg[i + 1:]:
@@ -203,6 +211,10 @@ def hook_cases():
     allow = (
         "pi -p --no-session --model deepseek/deepseek-flash --tools read,ls,grep,find 'x' < /dev/null",
         "pi -p x < /dev/null",
+        "pi list",
+        "pi --version",
+        "pi install npm:foo",
+        "/x/bin/pix -p x",
         "codex exec -s workspace-write -c sandbox_workspace_write.network_access=false p < /dev/null",
         "codex -s workspace-write -c 'sandbox_workspace_write.network_access=false' exec p < /dev/null",
         "codex exec --sandbox=workspace-write --config=sandbox_workspace_write.network_access=false p < /dev/null",
@@ -249,6 +261,9 @@ def hook_cases():
     )
     deny = (
         "pi -p --no-session --model deepseek/deepseek-flash --tools read,ls 'x'",
+        "pi 'x'",
+        "pi --mode json 'x'",
+        "/opt/bin/pi -p x",
         "pi --print 'x' | tail -n 5",
         "timeout 600 pi -p x",
         "cd w && pi -p x; echo done",
@@ -311,9 +326,9 @@ def self_test():
     assert unclosed('out="$(codex exec p)"') and unclosed('echo "$(codex exec p)"'), "command substitutions inside double quotes"
     assert not unclosed('echo "$(codex exec p < /dev/null)"')
     assert unclosed("codex exec a < /dev/null; codex exec b"), "a second codex exec without redirection is still caught"
-    for command in ("pi -p x", "pi --print x", "timeout 600 pi -p x", "bash -c 'pi -p x'", "out=$(pi -p x)", "pi -p 'unbalanced", "pi --model m -p x | tail", 'echo "$(pi -p x)"'):
+    for command in ("pi", 'pi "x"', "pi --mode json x", "pi --model m x", "pi -c", "pi --offline list", "pi --print=true x", "/x/bin/pi -p x", "pi -- -p", "pi -p x", "pi --print x", "timeout 600 pi -p x", "bash -c 'pi -p x'", "out=$(pi -p x)", "pi -p 'unbalanced", "pi --model m -p x | tail", 'echo "$(pi -p x)"'):
         assert unclosed(command), command
-    for command in ("pi -p x < /dev/null", "pi", "pi --version", "pi -p --help", "pi install foo", "pi list", "cat card.md | pi -p", "pip install x", "echo 'pi -p x'", "grep -p pi file", "pi -p x <<'EOF'\ntext\nEOF",
+    for command in ("pi -p x < /dev/null", "pi < /dev/null", "pi --version", "pi -p --help", "pi -v", "pi --list-models", "pi install foo", "pi list", "pi update self", "pi auth check --provider deepseek", "pi mcp list", "pi config -l", "/x/bin/pix -p x", "mkdir pi", "cd pi -p", "/opt/pi/bin/x -p", "cat card.md | pi -p", "pip install x", "echo 'pi -p x'", "grep -p pi file", "pi -p x <<'EOF'\ntext\nEOF",
                     "bash -c 'pi -p x < /dev/null'", "git commit -m \"$(cat <<'EOF'\npi -p x\nEOF\n)\"", "ls pi", "api -p x", "pid -p x", "pi -p x 0</dev/null"):
         assert not unclosed(command), command
     assert not any(args is not None for args, _ in codex_invocations("pi -p x < /dev/null")), "pi has no sandbox settings: no network warning"
