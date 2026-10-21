@@ -20,22 +20,6 @@ terms:
   forbidden: []
   status: proposed
   note: 设计草案表 seal_application_documents 按词表应为 seal_usage_documents；备选英文 SealUsageRequestDocument。
-- id: seal_usage_source_document
-  zh: 用印来源单据
-  en: SealUsageSourceDocument
-  snake: seal_usage_source_document
-  kind: entity
-  bc: organization.administration
-  scope: domain
-  definition: 用印申请所依据的已审批来源单据：来源类型与标识、来源审批实例、来源批准份数快照与对应申请轮次；来源审批已通过且累计份数合规的申请不再另行审批。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.1
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml JS-04
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 设计草案表 seal_application_source_documents 按词表应为 seal_usage_source_documents；INV-138 的份数核验落在本实体上。
 - id: seal_usage_registration
   zh: 用印登记
   en: SealUsageRegistration
@@ -223,22 +207,22 @@ terms:
   forbidden: []
   status: proposed
   note: 物理表 reminder_rule_items（B31 裁定 §2）。
-- id: external_asset_card_key
-  zh: 外部资产卡片号
-  en: ExternalAssetCardKey
-  snake: external_asset_card_key
+- id: asset_card_number
+  zh: 资产卡片号
+  en: AssetCardNumber
+  snake: asset_card_number
   kind: value_object
   bc: organization.administration
   scope: domain
-  definition: 信息技术资产使用记录所指资产在先行期的外部卡片号文本；W5 固定资产落地后由公司资产标识替代。
+  definition: 公司资产卡片的业务编号，信息技术资产使用记录以它为业务键；先行期无固定资产模块，根由迁入或「登记资产卡片」命令建立；W5 固定资产落地后追加可空的公司资产标识并按卡片号回填。
   standard_ref:
   - docs/modernization/architecture/proposals/B31_ARCH_RULINGS_2026-10-21.md 第 3 项（claude/one-architecture-admission-file）
-  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md（claude/one-data-handoff-1） §1（company_asset_id）
+  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md §10（claude/one-data-handoff-1）
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: 裁定第 3 项；列名 asset_card_key。
+  note: 列名 asset_card_number（one-data 更正）；是公司资产卡片号，不是老系统内部 ID；one-glossary 已判定资产卡片统称公司资产（M7），本词是卡片号这一业务编号，待确认。
 
 # 用印过渡通道（既有审批系统已审批单据，上线后废止）
 - id: seal_usage_transition_channel
@@ -348,83 +332,6 @@ terms:
   forbidden: []
   status: proposed
   note: 设计原文用「兜底」，但「兜底」已是 administrator_fallback（转流程管理员）的禁用写法，故改称备用审批人；备选 替补审批人 / AlternateApprover。用户原话为「兜底」（B31R §11）；「兜底」被 administrator_fallback 禁用，用语待 one-glossary Q1。
-- id: applicant
-  zh: 申请人
-  en: Applicant
-  snake: applicant
-  kind: role
-  bc: organization.administration
-  scope: domain
-  definition: 提交用印申请或员工活动申请的在职员工；代办须注明委托人和事由。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§3.6
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml YY-01
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 词表无「申请人」；其他 bc 日后同名须按 homonyms 互列。
-- id: requester
-  zh: 提出人
-  en: Requester
-  snake: requester
-  kind: role
-  bc: organization.administration
-  scope: domain
-  definition: 提出信息技术服务工单、并负责确认关闭或反馈未解决的员工。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: asset_user
-  zh: 资产使用人
-  en: AssetUser
-  snake: asset_user
-  kind: role
-  bc: organization.administration
-  scope: domain
-  definition: 当前持有一件信息技术资产的员工，领用、调拨和报修都以其为准。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4、§3.5
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 设计列名 user_id / receiving_user_id；「使用人」在设计里亦指调入、调出两方，调入调出的列名待定。
-- id: fault_reporter
-  zh: 报修人
-  en: FaultReporter
-  snake: fault_reporter
-  kind: role
-  bc: organization.administration
-  scope: domain
-  definition: 为资产报修的人，须为该资产当前使用人，资产管理员代报时选使用人。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: borrower
-  zh: 借阅人
-  en: Borrower
-  snake: borrower
-  kind: role
-  bc: organization.administration
-  scope: domain
-  definition: 借出合同原件的人，借出时填归还日，逾期提醒借阅人及其部门负责人。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-
 # 信息技术服务工单（AGG-114）子实体与配置
 - id: it_service_ticket_handling
   zh: 信息技术服务工单处理记录
@@ -856,7 +763,7 @@ terms:
   kind: domain_event
   bc: organization.administration
   scope: domain
-  definition: 用印申请经人工审批通过，或来源审批校验通过而直接置为已批准。
+  definition: 用印申请经人工审批通过而置为已批准（先行期的既有审批凭证通道经行政核对后同样置为已批准）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
   confidence: medium
@@ -963,7 +870,7 @@ terms:
   kind: command
   bc: organization.administration
   scope: domain
-  definition: 申请人提交用印申请：有来源审批的直接置已批准，其余进入审批；原单重提保留编号并递增轮次。
+  definition: 申请人提交用印申请：无既有审批凭证的进入审批，使用既有审批凭证的经行政核对后办理；原单重提保留编号并递增轮次。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
   confidence: medium
@@ -1196,6 +1103,21 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: register_it_asset_card
+  zh: 登记资产卡片
+  en: RegisterItAssetCard
+  snake: register_it_asset_card
+  kind: command
+  bc: organization.administration
+  scope: domain
+  definition: 行政登记一张公司资产卡片号，建立信息技术资产使用记录的根；先行期根只来自迁入与本命令，领用申请的卡片号必须已有根。
+  standard_ref:
+  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md §10（claude/one-data-handoff-1）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: one-data 更正第 2 项；权限码由本卡定。
 - id: register_it_asset_issue
   zh: 登记领用
   en: RegisterItAssetIssue
@@ -1477,7 +1399,7 @@ terms:
   kind: state
   bc: organization.administration
   scope: domain
-  definition: 用印申请经审批或来源直通而获批准，或员工活动登记经规则校验通过。
+  definition: 用印申请经审批而获批准，或员工活动登记经规则校验通过。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
@@ -1847,36 +1769,6 @@ terms:
   forbidden: []
   status: proposed
   note: R-B31-1
-- id: error__organization_administration_seal_usage_source_not_approved
-  zh: 来源审批尚未通过
-  en: OrganizationAdministrationSealUsageSourceNotApproved
-  snake: organization_administration_seal_usage_source_not_approved
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 填写的来源审批实例不存在或尚未通过，申请留在草稿（422）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__organization_administration_seal_usage_source_copies_exceeded
-  zh: 超过来源批准份数
-  en: OrganizationAdministrationSealUsageSourceCopiesExceeded
-  snake: organization_administration_seal_usage_source_copies_exceeded
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 同一来源审批实例的累计用印份数将超过其批准份数（INV-138，409）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__organization_administration_seal_usage_not_approved
   zh: 用印申请尚未批准
   en: OrganizationAdministrationSealUsageNotApproved
@@ -1962,21 +1854,6 @@ terms:
   definition: 已关闭的用印申请不再接受登记或放弃（409）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__organization_administration_seal_approver_table_unavailable
-  zh: 用印审批人表无有效版本
-  en: OrganizationAdministrationSealApproverTableUnavailable
-  snake: organization_administration_seal_approver_table_unavailable
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 申请日没有已定版且生效的用印审批人表，或版本重叠，拒绝并告警，不设默认负责人（422）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1
   confidence: low
   aliases: []
   forbidden: []
@@ -2147,21 +2024,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_administration_it_service_category_table_unavailable
-  zh: 信息技术服务类别表无有效版本
-  en: OrganizationAdministrationItServiceCategoryTableUnavailable
-  snake: organization_administration_it_service_category_table_unavailable
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 业务日期没有已定版且生效的类别表，或版本重叠（422）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q4
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__organization_administration_it_service_conclusion_required
   zh: 缺少处理结论
   en: OrganizationAdministrationItServiceConclusionRequired
@@ -2247,21 +2109,6 @@ terms:
   definition: 领用超出岗位资产配置标准，超配允许条件未定前拒绝，不转人审（422）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §0 第 4 条
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__organization_administration_position_asset_standard_unavailable
-  zh: 岗位资产配置标准无有效版本
-  en: OrganizationAdministrationPositionAssetStandardUnavailable
-  snake: organization_administration_position_asset_standard_unavailable
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 领用日没有已定版且生效的岗位资产配置标准（422）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: low
   aliases: []
   forbidden: []
@@ -2395,21 +2242,6 @@ terms:
   bc: organization.administration
   scope: domain
   definition: 登记的活动类型不在有效的类型清单中或已停用（422）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__organization_administration_employee_activity_rule_unavailable
-  zh: 员工活动规则无有效版本
-  en: OrganizationAdministrationEmployeeActivityRuleUnavailable
-  snake: organization_administration_employee_activity_rule_unavailable
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 登记日没有已定版且生效的活动或周年规则，拒绝并告警（422）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: low

@@ -37,12 +37,15 @@
 | `it-service-ticket-withdrawal` | execute | 撤回 |
 | `it-service-ticket-reopening` | execute | 重开 |
 | `it-service-category-table` | read create approve | 类别表；approve 表示定版 |
+| `it-asset-card` | read create | 登记资产卡片（建根；名字待定） |
 | `it-asset-issue` | read create execute | 领用 |
 | `it-asset-transfer` | read create execute | 调拨 |
 | `it-asset-transfer-revocation` | execute | 撤销调拨申请 |
 | `it-asset-return` | execute | 归还 |
 | `it-asset-repair` | read create execute | 报修与维修结果 |
 | `position-asset-standard` | read create approve | 岗位资产配置标准 |
+| `reminder-rule` | read create approve | 提醒规则定版 |
+| `contract-original-loan-approver-table` | read create approve | 借阅审批人表定版（物理承载待 one-data） |
 | `employee-activity-request` | read create | |
 | `employee-activity-completion` | execute | |
 | `employee-activity-cancellation` | execute | |
@@ -53,7 +56,7 @@
 | `transition-channel-spot-check` | read create | 过渡通道月度抽检（同上） |
 | `transition-channel-source` | read execute | 既有审批凭证核对（待定：不得含老系统名称） |
 
-共 30 个资源、约 60 个权限码；审批任务操作复用审批平台权限，领用与活动不增加批准权限；印章台账维护归签章服务。
+共 33 个资源、约 65 个权限码；审批任务操作复用审批平台权限，领用与活动不增加批准权限；印章台账维护归签章服务。
 
 ## 3. 投递用途与主体种类（`platform.integration.api.DeliveryPurpose`、`DeliverySubjectKind`）
 
@@ -62,13 +65,15 @@
 | 用途（候选） | 主体种类（候选） | 触发 | 接收 |
 |---|---|---|---|
 | `IT_ASSET_RETURN_REMINDER_DUE` | `IT_ASSET_USAGE_PERIOD` | 离职生效满七个日历日仍未归还 | 原组织单元负责人 |
-| `ANNIVERSARY_CARD_GENERATED` | `EMPLOYEE_ACTIVITY_REQUEST` | 满周年当日生成 | 本人、员工关系负责人 |
-| `ACCESS_VALIDITY_REMINDER_DUE` | `IT_SERVICE_TICKET` | 权限工单有效期或复核日到期 | 工单审批人、IT 负责人 |
+| `ANNIVERSARY_CARD_GENERATED` | `EMPLOYEE_ACTIVITY_REQUEST` | 满周年当日生成 | 员工关系负责人（施工设计 §10 行政清单；是否另通知本人待 one-rules） |
+| `ACCESS_VALIDITY_REMINDER_DUE` | `IT_SERVICE_TICKET` | 权限工单有效期或复核日到期 | 待定（Q5 只说「提醒」，接收人待 one-rules） |
 | `LOAN_OVERDUE_REMINDED` | `CONTRACT_ORIGINAL_LOAN_RECORD` | 借阅逾期 | 借阅人、其部门负责人 |
 | `LOAN_OVERDUE_ESCALATED` | `CONTRACT_ORIGINAL_LOAN_RECORD` | 逾期满七天 | 行政负责人 |
 | `TRANSITION_CHANNEL_REVIEW_DUE` | `TRANSITION_CHANNEL_REVIEW` | 每季度 | 行政负责人 |
 | `TRANSITION_CHANNEL_SPOT_CHECK_DUE` | `TRANSITION_CHANNEL_SPOT_CHECK` | 每月 | 行政负责人 |
-| `BACKUP_APPROVER_NOTIFIED` | `APPROVAL_TASK`（既有） | 第一审批人不可用，改派备用审批人 | 第一审批人、备用审批人 |
+| `BACKUP_APPROVER_NOTIFIED` | `APPROVAL_TASK`（既有） | 第一审批人不可用，改派备用审批人 | 待定（§11.2 只说「事后知会」，接收人待 one-rules） |
+
+接收人列标「待定」的不得以确定值进入冻结申请。投递用途名进的是平台共享枚举，`LOAN_`、`ANNIVERSARY_` 等是否加 bc 前缀由 one-architecture 在冻结申请时定规则。
 
 提醒投递失败须可重试、幂等键含固定到期时点（施工设计 §5.2）。到期列表是本模块聚合上的到期时点列与查询，不建通用待办（ADR-0066 决定 9 第 3 条）。
 

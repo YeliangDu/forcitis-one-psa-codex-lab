@@ -234,7 +234,6 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
 | `seal_usage_document` | 用印文件 | SealUsageDocument | 领域 · organization.administration | 用印申请中逐份列明的拟用印文件：名称、份数、原件或复印件，以及不可变文件版本、内容哈希与报价版本追溯引用。 |  | 设计草案表 seal_application_documents 按词表应为 seal_usage_documents；备选英文 SealUsageRequestDocument。 |
-| `seal_usage_source_document` | 用印来源单据 | SealUsageSourceDocument | 领域 · organization.administration | 用印申请所依据的已审批来源单据：来源类型与标识、来源审批实例、来源批准份数快照与对应申请轮次；来源审批已通过且累计份数合规的申请不再另行审批。 |  | 设计草案表 seal_application_source_documents 按词表应为 seal_usage_source_documents；INV-138 的份数核验落在本实体上。 |
 | `seal_usage_registration` | 用印登记 | SealUsageRegistration | 领域 · organization.administration | 经办人对一次实际用印的只追加登记：用印时点、本次份数、经办人、所用印章台账条目及版本、拟发文件与实际盖章凭据的文件标识和内容哈希，以申请加登记请求键去重。 |  | 设计草案名为 seal_usage_records（b31.notes 沿原稿提议英文 SealUsageRecord）；备选 用印记录 / SealUsageRecord；对应命令「登记用印」，数据访问注册表登记为只追加（APPEND_ONLY）。 |
 | `seal_usage_purpose` | 用印用途 | SealUsagePurpose | 领域 · organization.administration | 用印申请所属的用途分类（如报价用印、投标用印）；审批人表的行、加审条件与预盖空白页的资格都按用途确定，取值为配置数据而非代码枚举。 |  | 用途清单由行政定版，取值不进代码；若 one-architecture 认为应并入审批人表行，可删本条。 |
 | `seal_usage_approver_table` | 用印审批人表 | SealUsageApproverTable | 领域 · organization.administration | 无来源单据的用印按用途确定第一审批人岗位与备用审批人岗位的版本化配置：作为配置集「用印审批人」的条目，随配置集版本只追加，带版本号、生效日、定版人与决定依据；上线前须定版，是上线出口条件。 |  | 设计原文「用印审批人表」；同类先例 control_account_authorization（控制科目授权表）。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 seal_approver_rule_items。 |
@@ -247,7 +246,7 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `config_set` | 配置集 | ConfigSet | 领域 · organization.administration | 一类版本化配置的根：以配置集代码区分用印审批人、信息技术服务类别、岗位资产配置标准、员工活动类型、提醒规则，并记负责该配置的角色；各配置的内容行落在各自的条目表，不挂在任何聚合下。 |  | 物理表 config_sets（B31 裁定 §2）；通用配置版本结构，是否上移 kernel 由 one-architecture/one-data 另定。 |
 | `config_set_version` | 配置集版本 | ConfigSetVersion | 领域 · organization.administration | 配置集的一个版本头：版本号、生效日区间、待确认或已确认状态、作者与确认人（四眼）、决定依据；按业务日期取已确认且生效区间包含该日的版本，找不到失败告警。 |  | 通用配置版本结构，是否上移 kernel 由 one-architecture/one-data 另定。物理表 config_set_versions。 |
 | `reminder_rule_item` | 提醒规则项 | ReminderRuleItem | 领域 · organization.administration | 提醒规则配置集中的一条条目：提醒代码与提前天数（七日提醒、归还提醒等参数），类型化列、不用自由文本。 |  | 物理表 reminder_rule_items（B31 裁定 §2）。 |
-| `external_asset_card_key` | 外部资产卡片号 | ExternalAssetCardKey | 领域 · organization.administration | 信息技术资产使用记录所指资产在先行期的外部卡片号文本；W5 固定资产落地后由公司资产标识替代。 |  | 裁定第 3 项；列名 asset_card_key。 |
+| `asset_card_number` | 资产卡片号 | AssetCardNumber | 领域 · organization.administration | 公司资产卡片的业务编号，信息技术资产使用记录以它为业务键；先行期无固定资产模块，根由迁入或「登记资产卡片」命令建立；W5 固定资产落地后追加可空的公司资产标识并按卡片号回填。 |  | 列名 asset_card_number（one-data 更正）；是公司资产卡片号，不是老系统内部 ID；one-glossary 已判定资产卡片统称公司资产（M7），本词是卡片号这一业务编号，待确认。 |
 | `seal_usage_transition_channel` | 用印过渡通道 | SealUsageTransitionChannel | 领域 · organization.administration | 既有审批系统已审批的用印单据在合同、报价、投标模块上线前，经行政核对批准页后直接办理的过渡规则，相关模块上线即废止。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
 | `prior_approval_source` | 既有审批来源 | PriorApprovalSource | 领域 · organization.administration | 用印申请来源为既有审批系统已审批单据时保存的凭据：既有审批单号、批准页文件、批准份数，以及行政核对的核对人与核对时间；同一既有审批单号的累计用印份数在本系统内计数。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
 | `prior_approval_number` | 既有审批单号 | PriorApprovalNumber | 领域 · organization.administration | 既有审批系统中已审批用印单据的单号，过渡通道据此累计用印份数；不是本系统的单据编号。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
@@ -255,11 +254,6 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `transition_channel_spot_check` | 过渡通道月度抽检 | TransitionChannelSpotCheck | 领域 · organization.administration | 过渡通道存续期间每月抽取 5 单回既有审批系统核对批准页的抽检记录，结果留痕。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
 | `primary_approver` | 第一审批人 | PrimaryApprover | 领域 · organization.administration | 审批人表中按用途或类别指定的首选审批岗位；不可用时才改派备用审批人。 |  | 设计原文「第一审批人」；备选英文 FirstApprover。 |
 | `backup_approver` | 备用审批人 | BackupApprover | 领域 · organization.administration | 第一审批人不可用时改派的同职能第二岗位，存岗位引用而非个人；改派加事后知会，不并行双批，不兜到总经理，高风险用途不进备用。 |  | 设计原文用「兜底」，但「兜底」已是 administrator_fallback（转流程管理员）的禁用写法，故改称备用审批人；备选 替补审批人 / AlternateApprover。用户原话为「兜底」（B31R §11）；「兜底」被 administrator_fallback 禁用，用语待 one-glossary Q1。 |
-| `applicant` | 申请人 | Applicant | 领域 · organization.administration | 提交用印申请或员工活动申请的在职员工；代办须注明委托人和事由。 |  | 词表无「申请人」；其他 bc 日后同名须按 homonyms 互列。 |
-| `requester` | 提出人 | Requester | 领域 · organization.administration | 提出信息技术服务工单、并负责确认关闭或反馈未解决的员工。 |  |  |
-| `asset_user` | 资产使用人 | AssetUser | 领域 · organization.administration | 当前持有一件信息技术资产的员工，领用、调拨和报修都以其为准。 |  | 设计列名 user_id / receiving_user_id；「使用人」在设计里亦指调入、调出两方，调入调出的列名待定。 |
-| `fault_reporter` | 报修人 | FaultReporter | 领域 · organization.administration | 为资产报修的人，须为该资产当前使用人，资产管理员代报时选使用人。 |  |  |
-| `borrower` | 借阅人 | Borrower | 领域 · organization.administration | 借出合同原件的人，借出时填归还日，逾期提醒借阅人及其部门负责人。 |  |  |
 | `it_service_ticket_handling` | 信息技术服务工单处理记录 | ItServiceTicketHandling | 领域 · organization.administration | 信息技术服务工单受理后每次处理的只追加记录：处理时点、处理人、处理说明、处理结论与受理序号。 |  | 设计草案表 it_request_handlings 按词表应为 it_service_ticket_handlings。 |
 | `it_service_category_table` | 信息技术服务类别表 | ItServiceCategoryTable | 领域 · organization.administration | 信息技术服务工单类别的版本化配置：作为配置集「信息技术服务类别」的条目，随配置集版本只追加；类别可增删改并留版本与操作人，不写死在代码或迁移，上线前由信息技术负责人定版。 |  | 设计原文「IT 类别表」。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 it_service_category_items。 |
 | `it_service_category` | 信息技术服务类别 | ItServiceCategory | 领域 · organization.administration | 类别表中的一行：类别名称、是否需审批及理由、审批人与备用审批人岗位、受理人与替补、提供方、维护方与采购交接。 |  | 设计列名 category_code；类别取值为配置数据，需求类 / 故障类的细分清单待确认。 |
@@ -287,14 +281,14 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `offsite_loan` | 外借 | OffsiteLoan | 领域 · organization.administration | 合同原件离开办公场所或交给外部人员的借阅，须写明用途、地点与携带人，另经该公司负责人批准。 |  |  |
 | `loan_renewal` | 续借 | LoanRenewal | 领域 · organization.administration | 借阅期满前经原批准人同意的一次续借，续借为新审批，每笔借阅至多一次。 |  |  |
 | `loan_overdue_reminder` | 借阅逾期提醒 | LoanOverdueReminder | 领域 · organization.administration | 借阅逾期时提醒借阅人及其部门负责人，逾期满 7 天升级到行政负责人。 |  |  |
-| `seal_usage_request_approved` | 用印申请已批准 | SealUsageRequestApproved | 领域 · organization.administration | 用印申请经人工审批通过，或来源审批校验通过而直接置为已批准。 |  |  |
+| `seal_usage_request_approved` | 用印申请已批准 | SealUsageRequestApproved | 领域 · organization.administration | 用印申请经人工审批通过而置为已批准（先行期的既有审批凭证通道经行政核对后同样置为已批准）。 |  |  |
 | `seal_usage_registered` | 用印已办理 | SealUsageRegistered | 领域 · organization.administration | 经办人登记了一次实际用印，每次登记发布，关闭不删除凭据。 |  | 设计与事件目录的中文名为「用印已办理」，英文未定；事件由命令「登记用印」发出，按命名规范取 SealUsageRegistered，中文名与动词「登记」不一致，备选 用印已登记。 |
 | `it_service_ticket_resolved` | 信息技术服务工单已解决 | ItServiceTicketResolved | 领域 · organization.administration | 信息技术服务工单经受理后判定需求成立且可实现并已解决；需求不成立或无法实现直接退回，不发布本事件。 |  | 设计与事件目录称「IT 需求已解决」，其中「IT 需求」是旧称。 |
 | `it_asset_issued` | 信息技术资产已领用 | ItAssetIssued | 领域 · organization.administration | 一件信息技术资产登记领用，开启了使用人的使用期间。 |  | 设计与事件目录称「资产已领用」；加「信息技术」以区别于公司资产；英文 Issued 备选 Assigned。 |
 | `it_asset_transferred` | 信息技术资产已调拨 | ItAssetTransferred | 领域 · organization.administration | 一件信息技术资产在同一事务内结束调出方使用期间并开启调入方使用期间。 |  | 设计与事件目录称「资产已调拨」。 |
 | `it_asset_returned` | 信息技术资产已归还 | ItAssetReturned | 领域 · organization.administration | 一件信息技术资产经归还命令结束了使用期间；调拨结束旧期间不算归还。 |  | 设计与事件目录称「资产已归还」。 |
 | `employee_activity_request_approved` | 员工活动申请已批准 | EmployeeActivityRequestApproved | 领域 · organization.administration | 员工活动登记经规则校验通过，不是人工批准，周年自动生成同样发布。 |  | 界面须说明「已批准」仅表达规则通过。 |
-| `submit_seal_usage_request` | 提交用印申请 | SubmitSealUsageRequest | 领域 · organization.administration | 申请人提交用印申请：有来源审批的直接置已批准，其余进入审批；原单重提保留编号并递增轮次。 |  |  |
+| `submit_seal_usage_request` | 提交用印申请 | SubmitSealUsageRequest | 领域 · organization.administration | 申请人提交用印申请：无既有审批凭证的进入审批，使用既有审批凭证的经行政核对后办理；原单重提保留编号并递增轮次。 |  |  |
 | `approve_seal_usage_request` | 批准用印申请 | ApproveSealUsageRequest | 领域 · organization.administration | 审批通过回调：把审批中的用印申请置为已批准，须匹配实例、轮次与当前状态。 |  |  |
 | `reject_seal_usage_request` | 驳回用印申请 | RejectSealUsageRequest | 领域 · organization.administration | 审批驳回回调：把审批中的用印申请置为已驳回，保留旧轮次与意见。 |  |  |
 | `withdraw_seal_usage_request` | 撤回用印申请 | WithdrawSealUsageRequest | 领域 · organization.administration | 申请人在审批期撤回用印申请。 |  | 命令目录标注为缺失命令，沿用分片提议名 WithdrawSealApplication 的词形，改用 SealUsageRequest。 |
@@ -310,6 +304,7 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `return_it_service_ticket` | 退回信息技术服务工单 | ReturnItServiceTicket | 领域 · organization.administration | 处理人因需求不成立或无法实现，把处理中的工单直接退回，不发布解决事件。 |  | 设计称「退回 IT 需求」。 |
 | `reopen_it_service_ticket` | 重开信息技术服务工单 | ReopenItServiceTicket | 领域 · organization.administration | 提出人反馈未解决时把已解决的工单重开回处理中。 |  | 设计 §1.1 把「重开」列为须交付能力，命令目录却并入「受理 IT 需求」，是否独立命令待 one-architecture 定。 |
 | `request_it_asset_issue` | 申请领用资产 | RequestItAssetIssue | 领域 · organization.administration | 使用人申请领用资产：岗位标准规则通过则直达已通过，资产已有使用人则提前拒绝，不转人审。 |  |  |
+| `register_it_asset_card` | 登记资产卡片 | RegisterItAssetCard | 领域 · organization.administration | 行政登记一张公司资产卡片号，建立信息技术资产使用记录的根；先行期根只来自迁入与本命令，领用申请的卡片号必须已有根。 |  | one-data 更正第 2 项；权限码由本卡定。 |
 | `register_it_asset_issue` | 登记领用 | RegisterItAssetIssue | 领域 · organization.administration | 资产管理员在领用申请已通过后登记交付，开启使用期间；使用人不得登记自己的领用。 |  |  |
 | `request_it_asset_transfer` | 申请调拨资产 | RequestItAssetTransfer | 领域 · organization.administration | 在用资产形成调拨申请；资产无当前使用人则转为领用，跨法人转让不在此办理。 |  | 命令目录标注为缺失命令，沿用分片提议名 RequestAssetTransfer 的词形。 |
 | `revoke_it_asset_transfer_request` | 撤销调拨申请 | RevokeItAssetTransferRequest | 领域 · organization.administration | 调出使用人或资产管理员撤销尚未登记交接的调拨申请。 |  | 命令目录标注为缺失命令；撤销与取消（Cancel）为两个中文词，沿用「撤销」。 |
@@ -328,7 +323,7 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `record_transition_channel_review` | 登记过渡通道季度复核 | RecordTransitionChannelReview | 领域 · organization.administration | 行政负责人完成季度复核待办并留下复核记录。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
 | `record_transition_channel_spot_check` | 登记过渡通道月度抽检 | RecordTransitionChannelSpotCheck | 领域 · organization.administration | 行政完成月度抽检待办并留下抽检结果。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
 | `administration_status__draft` | 草稿 | Draft | 领域 · organization.administration | 单据已起草、尚未提交的状态。 |  | 使用：用印申请、信息技术服务工单、资产领用与调拨申请、维修单、员工活动申请。 |
-| `administration_status__approved` | 已批准 | Approved | 领域 · organization.administration | 用印申请经审批或来源直通而获批准，或员工活动登记经规则校验通过。 |  | 使用：用印申请、员工活动申请。员工活动的「已批准」仅表达规则通过，不是人工批准，界面须说明。 |
+| `administration_status__approved` | 已批准 | Approved | 领域 · organization.administration | 用印申请经审批而获批准，或员工活动登记经规则校验通过。 |  | 使用：用印申请、员工活动申请。员工活动的「已批准」仅表达规则通过，不是人工批准，界面须说明。 |
 | `administration_status__withdrawn` | 已撤回 | Withdrawn | 领域 · organization.administration | 申请人或提出人在审批期撤回，本轮提前结束，可经同一提交命令重提。 |  | 使用：用印申请、信息技术服务工单。 |
 | `administration_status__stamped` | 已用印 | Stamped | 领域 · organization.administration | 用印申请已有实际用印登记，分次登记保持本状态。 |  | 使用：用印申请。备选英文 SealUsed。 |
 | `administration_status__closed` | 已关闭 | Closed | 领域 · organization.administration | 用印份数到齐或放弃剩余份数后规则关闭，或工单经提出人确认关闭。 |  | 使用：用印申请、信息技术服务工单。 |
@@ -352,7 +347,7 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `pre_stamp_status__reclaimed` | 已收回 | Reclaimed | 领域 · organization.administration | 预盖空白页用完后已登记收回。 |  |  |
 | `pre_stamp_status__voided` | 已作废 | Voided | 领域 · organization.administration | 预盖空白页未使用而作废，不删除。 |  |  |
 
-另有错误码 50 个（kind 为 `error_code`）、技术词 1 个（`common_words`），不在表中。
+另有错误码 44 个（kind 为 `error_code`）、技术词 1 个（`common_words`），不在表中。
 
 ## organization.attendance（`organization_attendance.yaml`）
 
