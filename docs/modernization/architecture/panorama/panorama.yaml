@@ -44,7 +44,7 @@ meta:
     bc: 50
     sd: 13
     table: 53
-    rule: 425
+    rule: 512
     ep: 601
     tc: 1132
     api: 68
@@ -17367,44 +17367,479 @@ nodes:
       src: rules/RULE_INDEX.md:425
       tcs: []
       eps: []
+    RULE-418:
+      name: An employee has exactly one user account, even when two first logins happen at o
+      src: rules/RULE_INDEX.md:426
+      tcs: []
+      eps: []
+    RULE-419:
+      name: 'A sensitive authorization request is confirmed by a third person: neither the re'
+      src: rules/RULE_INDEX.md:427
+      tcs: []
+      eps: []
+    RULE-420:
+      name: An emergency login is admitted only when the bound person is on the workforce re
+      src: rules/RULE_INDEX.md:428
+      tcs: []
+      eps: []
+    RULE-421:
+      name: An operations command names the employee by canonical id; the employee must exis
+      src: rules/RULE_INDEX.md:429
+      tcs: []
+      eps: []
+    RULE-422:
+      name: An operations command needs an operator and a witness who are two different exis
+      src: rules/RULE_INDEX.md:430
+      tcs: []
+      eps: []
+    RULE-423:
+      name: An employee exists for the operator and witness check when the workforce record
+      src: rules/RULE_INDEX.md:431
+      tcs: []
+      eps: []
+    RULE-424:
+      name: Nobody changes their own roles; the refusal is audited, other people's roles are
+      src: rules/RULE_INDEX.md:432
+      tcs: []
+      eps: []
+    RULE-425:
+      name: A session idle for more than 10 hours is ended and purged; a request with it is
+      src: rules/RULE_INDEX.md:433
+      tcs: []
+      eps: []
+    RULE-426:
+      name: With single-operator mode on, an operations command may omit the witness; the op
+      src: rules/RULE_INDEX.md:434
+      tcs: []
+      eps: []
+    RULE-427:
+      name: With single-operator mode off, the emergency-account minimum is two and the warn
+      src: rules/RULE_INDEX.md:435
+      tcs: []
+      eps: []
+    RULE-428:
+      name: With single-operator mode on, one usable emergency account is enough; the reconc
+      src: rules/RULE_INDEX.md:436
+      tcs: []
+      eps: []
+    RULE-429:
+      name: An emergency account is usable only while the account, its bound person's accoun
+      src: rules/RULE_INDEX.md:437
+      tcs: []
+      eps: []
+    RULE-430:
+      name: An emergency account can be registered or enabled only for a person who holds su
+      src: rules/RULE_INDEX.md:438
+      tcs: []
+      eps: []
+    RULE-431:
+      name: Each time the single-operator relaxation of the emergency-account minimum applie
+      src: rules/RULE_INDEX.md:439
+      tcs: []
+      eps: []
+    RULE-432:
+      name: revoke-role takes a held role away, ends all sessions of the person, clears the
+      src: rules/RULE_INDEX.md:440
+      tcs: []
+      eps: []
+    RULE-433:
+      name: revoke-role refuses an unknown role or a person without an account and opens no
+      src: rules/RULE_INDEX.md:441
+      tcs: []
+      eps: []
+    RULE-434:
+      name: A sensitive role is taken back by the operations command in either mode, with no
+      src: rules/RULE_INDEX.md:442
+      tcs: []
+      eps: []
+    RULE-435:
+      name: The separation of a super_admin or security auditor holder is held until a retai
+      src: rules/RULE_INDEX.md:443
+      tcs: []
+      eps: []
+    RULE-436:
+      name: The held-separation reason states a minimum of two usable super_admin holders, o
+      src: rules/RULE_INDEX.md:444
+      tcs: []
+      eps: []
+    RULE-437:
+      name: In single operator mode an operations command may leave out the witness; the omi
+      src: rules/RULE_INDEX.md:445
+      tcs: []
+      eps: []
+    RULE-438:
+      name: The omission mark is written once per real change; a command that changes nothin
+      src: rules/RULE_INDEX.md:446
+      tcs: []
+      eps: []
+    RULE-439:
+      name: The operator is always required and must be a known employee, in single operator
+      src: rules/RULE_INDEX.md:447
+      tcs: []
+      eps: []
+    RULE-440:
+      name: A witness that is given must be a valid employee identifier different from the o
+      src: rules/RULE_INDEX.md:448
+      tcs: []
+      eps: []
+    RULE-441:
+      name: With the mode off the witness is required for every operations command; with a v
+      src: rules/RULE_INDEX.md:449
+      tcs: []
+      eps: []
+    RULE-442:
+      name: Single operator mode relaxes none of the in-application second-person rules, nor
+      src: rules/RULE_INDEX.md:450
+      tcs: []
+      eps: []
+    RULE-443:
+      name: Role version and grant history is never deleted, and a closed row never changes
+      src: rules/RULE_INDEX.md:451
+      tcs: []
+      eps: []
+    RULE-444:
+      name: An open role version or grant can be closed once, by writing the closing fields
+      src: rules/RULE_INDEX.md:452
+      tcs: []
+      eps: []
+    RULE-445:
+      name: A role without a current version cannot be granted
+      src: rules/RULE_INDEX.md:453
+      tcs: []
+      eps: []
+    RULE-446:
+      name: Role version periods are finite, not inverted and never overlap for one role; a
+      src: rules/RULE_INDEX.md:454
+      tcs: []
+      eps: []
+    RULE-447:
+      name: Grant periods are finite and not inverted; a person holds a role at most once at
+      src: rules/RULE_INDEX.md:455
+      tcs: []
+      eps: []
+    RULE-448:
+      name: Emergency login is accepted only from the internal network, judged before any cr
+      src: rules/RULE_INDEX.md:456
+      tcs: []
+      eps: []
+    RULE-449:
+      name: An emergency one-time code works once
+      src: rules/RULE_INDEX.md:457
+      tcs: []
+      eps: []
+    RULE-450:
+      name: An emergency account works only for a bound person who is enabled, holds super_a
+      src: rules/RULE_INDEX.md:458
+      tcs: []
+      eps: []
+    RULE-451:
+      name: An emergency login starts in administrator mode for one hour, audited and alerte
+      src: rules/RULE_INDEX.md:459
+      tcs: []
+      eps: []
+    RULE-452:
+      name: An emergency session ends within 60 seconds of the bound person losing super_adm
+      src: rules/RULE_INDEX.md:460
+      tcs: []
+      eps: []
+    RULE-453:
+      name: Replacing an account's roles by the set it already holds changes nothing
+      src: rules/RULE_INDEX.md:461
+      tcs: []
+      eps: []
+    RULE-454:
+      name: A custom role cannot carry administrator-mode permissions, and one that already
+      src: rules/RULE_INDEX.md:462
+      tcs: []
+      eps: []
+    RULE-455:
+      name: An expired session is audited with its cause, idle or absolute, and then removed
+      src: rules/RULE_INDEX.md:463
+      tcs: []
+      eps: []
+    RULE-456:
+      name: A signed ticket never admits an administrator and admits only people holding a r
+      src: rules/RULE_INDEX.md:464
+      tcs: []
+      eps: []
+    RULE-457:
+      name: A signed ticket whose subject has no organisation source reference is refused an
+      src: rules/RULE_INDEX.md:465
+      tcs: []
+      eps: []
+    RULE-458:
+      name: A session started from an external ticket holds no permission until the person c
+      src: rules/RULE_INDEX.md:466
+      tcs: []
+      eps: []
+    RULE-459:
+      name: The legal entity and the project role are dimensions of a data scope of their ow
+      src: rules/RULE_INDEX.md:467
+      tcs: []
+      eps: []
+    RULE-460:
+      name: Only the accounting organization code of a legal entity can be registered by han
+      src: rules/RULE_INDEX.md:468
+      tcs: []
+      eps: []
+    RULE-461:
+      name: Registering needs the source-reference update permission, confirming needs the a
+      src: rules/RULE_INDEX.md:469
+      tcs: []
+      eps: []
+    RULE-462:
+      name: A registered accounting organization code must be a positive integer, name an ex
+      src: rules/RULE_INDEX.md:470
+      tcs: []
+      eps: []
+    RULE-463:
+      name: The person who registered a code can never confirm it, same-day corrections incl
+      src: rules/RULE_INDEX.md:471
+      tcs: []
+      eps: []
+    RULE-464:
+      name: Outbound delivery uses only confirmed codes; a legal entity with no confirmed co
+      src: rules/RULE_INDEX.md:472
+      tcs: []
+      eps: []
+    RULE-465:
+      name: Confirming a later-dated correction closes the old row at the new effective date
+      src: rules/RULE_INDEX.md:473
+      tcs: []
+      eps: []
+    RULE-466:
+      name: A correction effective the same day as the wrong code replaces it; one effective
+      src: rules/RULE_INDEX.md:474
+      tcs: []
+      eps: []
+    RULE-467:
+      name: A rejected registration changes nothing else and cannot be decided again
+      src: rules/RULE_INDEX.md:475
+      tcs: []
+      eps: []
+    RULE-468:
+      name: Confirmed rows are unique at every point in time; pending and rejected rows take
+      src: rules/RULE_INDEX.md:476
+      tcs: []
+      eps: []
+    RULE-469:
+      name: Source references are closed, never deleted, and their source id and own id are
+      src: rules/RULE_INDEX.md:477
+      tcs: []
+      eps: []
+    RULE-470:
+      name: Registration, confirmation and rejection are audited
+      src: rules/RULE_INDEX.md:478
+      tcs: []
+      eps: []
+    RULE-471:
+      name: The pending list and the per-legal-entity history are readable by registrars and
+      src: rules/RULE_INDEX.md:479
+      tcs: []
+      eps: []
+    RULE-472:
+      name: A signed ticket subject is resolved to a user only through an existing source re
+      src: rules/RULE_INDEX.md:480
+      tcs: []
+      eps: []
+    RULE-473:
+      name: The work date is the calendar day the employee entered, not after today in the S
+      src: rules/RULE_INDEX.md:481
+      tcs: []
+      eps: []
+    RULE-474:
+      name: A new timesheet keeps the numbering rule version its number was issued under; a
+      src: rules/RULE_INDEX.md:482
+      tcs: []
+      eps: []
+    RULE-475:
+      name: Round number and submitted date are zero and empty together; a timesheet issued
+      src: rules/RULE_INDEX.md:483
+      tcs: []
+      eps: []
+    RULE-476:
+      name: An approval outcome (approved, returned, rejected) never changes the round numbe
+      src: rules/RULE_INDEX.md:484
+      tcs: []
+      eps: []
+    RULE-477:
+      name: Cancelling the approval of a submitted timesheet turns it back into a draft and
+      src: rules/RULE_INDEX.md:485
+      tcs: []
+      eps: []
+    RULE-478:
+      name: A timesheet whose approval round has ended but whose outcome is not yet applied
+      src: rules/RULE_INDEX.md:486
+      tcs: []
+      eps: []
+    RULE-479:
+      name: A timesheet belongs to the employee who filed it; anyone else gets the same "not
+      src: rules/RULE_INDEX.md:487
+      tcs: []
+      eps: []
+    RULE-480:
+      name: A submission naming an unknown or separated project manager is refused and nothi
+      src: rules/RULE_INDEX.md:488
+      tcs: []
+      eps: []
+    RULE-481:
+      name: An employee's legal entity on a day is their own attribution from its start day,
+      src: rules/RULE_INDEX.md:489
+      tcs: []
+      eps: []
+    RULE-482:
+      name: When no legal entity applies on the day the lookup fails and the submission is r
+      src: rules/RULE_INDEX.md:490
+      tcs: []
+      eps: []
+    RULE-483:
+      name: Legal entity attribution is maintained only by the maintainer; a start day befor
+      src: rules/RULE_INDEX.md:491
+      tcs: []
+      eps: []
+    RULE-484:
+      name: The organization unit list shows parents first and leaves out revoked units unle
+      src: rules/RULE_INDEX.md:492
+      tcs: []
+      eps: []
+    RULE-485:
+      name: A make-up workday must fall on a Saturday or a Sunday, whatever the session time
+      src: rules/RULE_INDEX.md:493
+      tcs: []
+      eps: []
+    RULE-486:
+      name: An audit entry carries a login method only together with an outcome
+      src: rules/RULE_INDEX.md:494
+      tcs: []
+      eps: []
+    RULE-487:
+      name: A person's own login records contain only their own login, failure and logout en
+      src: rules/RULE_INDEX.md:495
+      tcs: []
+      eps: []
+    RULE-488:
+      name: A legacy number is unique within its source system and document type, and is nev
+      src: rules/RULE_INDEX.md:496
+      tcs: []
+      eps: []
+    RULE-489:
+      name: A confirmed numbering rule version always names its confirmer; a pending one nee
+      src: rules/RULE_INDEX.md:497
+      tcs: []
+      eps: []
+    RULE-490:
+      name: The author of a numbering rule version cannot confirm it; another holder of the
+      src: rules/RULE_INDEX.md:498
+      tcs: []
+      eps: []
+    RULE-491:
+      name: Each business date is numbered under the confirmed rule version in force on that
+      src: rules/RULE_INDEX.md:499
+      tcs: []
+      eps: []
+    RULE-492:
+      name: An approver chosen on the form who has no user account makes the start fail with
+      src: rules/RULE_INDEX.md:500
+      tcs: []
+      eps: []
+    RULE-493:
+      name: A rejection, return, cancellation, transfer or reassignment must carry a reason;
+      src: rules/RULE_INDEX.md:501
+      tcs: []
+      eps: []
+    RULE-494:
+      name: A holder can give a task back to the candidates, who can claim it again; the pro
+      src: rules/RULE_INDEX.md:502
+      tcs: []
+      eps: []
+    RULE-495:
+      name: A task's outcome and effect are recorded together; an automatic pass is always a
+      src: rules/RULE_INDEX.md:503
+      tcs: []
+      eps: []
+    RULE-496:
+      name: 'Start rounds are append-only: a recorded round is never changed, deleted or trun'
+      src: rules/RULE_INDEX.md:504
+      tcs: []
+      eps: []
+    RULE-497:
+      name: A start refused because the caller does not own the document is audited under th
+      src: rules/RULE_INDEX.md:505
+      tcs: []
+      eps: []
+    RULE-498:
+      name: Each routing flag turns on exactly the nodes that declare it; a flag no node dec
+      src: rules/RULE_INDEX.md:506
+      tcs: []
+      eps: []
+    RULE-499:
+      name: Every candidate gets the task card; a claim, or a decision on an unclaimed task,
+      src: rules/RULE_INDEX.md:507
+      tcs: []
+      eps: []
+    RULE-500:
+      name: An approved request is final and cannot be started again
+      src: rules/RULE_INDEX.md:508
+      tcs: []
+      eps: []
+    RULE-501:
+      name: The department of a department-head node is optional; when not given, the initia
+      src: rules/RULE_INDEX.md:509
+      tcs: []
+      eps: []
+    RULE-502:
+      name: Nobody changes their own legal-entity attribution, nor that of their own departm
+      src: rules/RULE_INDEX.md:510
+      tcs: []
+      eps: []
+    RULE-503:
+      name: 'An attribution request that changes nothing records nothing: the same legal enti'
+      src: rules/RULE_INDEX.md:511
+      tcs: []
+      eps: []
+    RULE-504:
+      name: The legal entity of an employee on a date is the employee's own attribution, els
+      src: rules/RULE_INDEX.md:512
+      tcs: []
+      eps: []
     DATA-RULE-01:
       name: 版本表只追加
-      src: rules/RULE_INDEX.md:426
+      src: rules/RULE_INDEX.md:513
       tcs: []
       eps: []
     DATA-RULE-02:
       name: 工作日历今天之前的日期不可修改
-      src: rules/RULE_INDEX.md:427
+      src: rules/RULE_INDEX.md:514
       tcs: []
       eps: []
     DATA-RULE-03:
       name: 法人版本以记录日为准，1a 不支持预约或补录
-      src: rules/RULE_INDEX.md:428
+      src: rules/RULE_INDEX.md:515
       tcs: []
       eps: []
     DATA-RULE-04:
       name: 已处理事件的保留与幂等不依赖保留期
-      src: rules/RULE_INDEX.md:429
+      src: rules/RULE_INDEX.md:516
       tcs: []
       eps: []
     DATA-RULE-05:
       name: 组织对账中的悬空引用
-      src: rules/RULE_INDEX.md:430
+      src: rules/RULE_INDEX.md:517
       tcs: []
       eps: []
     DATA-RULE-06:
       name: 归档先确认、后删除
-      src: rules/RULE_INDEX.md:431
+      src: rules/RULE_INDEX.md:518
       tcs: []
       eps: []
     DATA-RULE-07:
       name: 法人归属不缩短已关闭的期间，过晚结束靠追加更正版本
-      src: rules/RULE_INDEX.md:432
+      src: rules/RULE_INDEX.md:519
       tcs: []
       eps: []
     DATA-RULE-08:
       name: 归档保留期等于在线期加 WORM 期
-      src: rules/RULE_INDEX.md:433
+      src: rules/RULE_INDEX.md:520
       tcs: []
       eps: []
   ep:
