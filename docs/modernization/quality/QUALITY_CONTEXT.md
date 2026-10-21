@@ -58,3 +58,11 @@
 ## 夜检记录
 - 2026-10-17 nightly-legacy-it 成功（运行 39062406822，约 14 分，schedule 19:25Z）；10-16 约 19 分、10-15 约 11 分，均成功。
 - 2026-10-19 复发检测（近 26 小时）：失败 0 次、复发 0；nightly-legacy-it 10-18 成功（运行 39158752436，约 19 分）。
+
+## 在途与待办（2026-10-21 重启前交接）
+- #511 GOV-1021-QUA-02（§5 上下文节约三条 + context_handoff 的 Bash 超长提醒）：分支 claude/one-quality-bulk-reminder，opus 首轮复审中；复审意见改完推送、结论写进 PR 正文后报调度。
+- 待并入 #511（调度 10-21 要求）：开场注入压缩——`scripts/hooks/handoff_snapshot.py` 的 `start()`（调 playbook_digest.py + session_context.py + 快照，合计约 20KB）被宿主存成文件、上下文只留约 2KB 预览。方案：stdout 只出 ≤1.5KB 的头（会话名与画像路径、画像「当前状态」要点、最新交接快照路径与时间/分支/未提交数、「先读这些」清单），全文（规则摘要、画像、上下文文档、快照）写到 `.claude/session-start.md`（不入仓）并列为清单第一项；头超过 1.5KB 时写告警行而不是静默截断；改 handoff_selftest/handoff_storage_selftest 里对 start 输出的断言要在 PR 里单列理由。
+- 试点：#500 合入后，/clear 也不重新加载钩子（调度实测，one-ops），要重启桌面 app；重启后以工作区出现 .claude/context-handoff-state.json 为凭据，试点从那时起算一天，我看 Stop 事件真实输出，异常报调度。
+- 分支 claude/one-quality-window-note（1845a5ef）：§2.1 补“钩子类 PR 合入后须合 main 并重启”+ 窗口注释改 get_usage 实测，文档档由 one-merge 收。
+- N8（NAM-1017-QUA-02）Codex 半成品在本地 worktree 分支 claude/one-quality-n8-checkers（50ef61ad，未推送）：等 one-glossary 的 N14 合入后继续，G49–G58 口径与指称冲突待 one-architecture/one-glossary。
+- 文档分支 claude/one-quality-ci-hostspec（CI 复盘、规格测算、TEST_IMPACT_RESEARCH、错题本 QUAL-019、夜检记录）：文档档，待 one-merge 收。
