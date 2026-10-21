@@ -151,3 +151,27 @@ relations:
   via: api：Web 参数约定（NotFromQuery）
   status: built
   basis: module-dependencies.txt（A1 实现时补登，2026-10-15）
+- id: platform.integration>platform.file
+  upstream: platform.integration
+  downstream: platform.file
+  via: api：业务文件桶与恶意文件检测端口
+  status: planned
+  basis: ADR-0060 决定 1 第 2 条；代码落地时随 module-dependencies.txt 改 built
+- id: platform.audit>platform.file
+  upstream: platform.audit
+  downstream: platform.file
+  via: api：写入、关联、封存、签发链接、读取内容审计
+  status: planned
+  basis: ADR-0060 决定 1 第 2 条；代码落地时随 module-dependencies.txt 改 built
+- id: platform.identity>platform.file
+  upstream: platform.identity
+  downstream: platform.file
+  via: api：当前用户与权限
+  status: planned
+  basis: ADR-0060 决定 1 第 2 条；代码落地时随 module-dependencies.txt 改 built
+- id: platform.scheduling>platform.file
+  upstream: platform.scheduling
+  downstream: platform.file
+  via: 作业：保存期每日检查（暂存清扫按 ADR-0070 决定 3 第 3 条每实例自跑，不经本边）
+  status: planned
+  basis: ADR-0060 决定 1 第 2 条；代码落地时随 module-dependencies.txt 改 built
