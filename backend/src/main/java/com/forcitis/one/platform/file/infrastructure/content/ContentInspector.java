@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
+import java.nio.file.Files;
 import java.nio.channels.FileChannel;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
@@ -21,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -32,8 +34,7 @@ import java.util.zip.ZipFile;
  * <p>只读、不执行内容；XML 只做子串或正则扫描，不用解析器，因此不解析外部实体。
  * 任何解析异常、超限一律 containsMacros=true；OLE 结构读不出时另按 encrypted=true（无法确认未加密），媒体类型能判就判。
  *
- * <p>PDF 的 /Encrypt 命中包括只设权限口令、仍可打开的文件，这里照实返回 encrypted=true，由上层按 ADR 处理。
- * 7z 的头部可加密，不解密无法确认，一律按无法确认返回 encrypted=true，由上层拒收。
+ * <p>PDF 只在空用户口令打不开时算加密（只设权限口令的照常扫描）；7z 按头部是否出现 AES 编码器判加密，压缩头里看不到时由引擎判。
  */
 final class ContentInspector {
 
@@ -49,6 +50,8 @@ final class ContentInspector {
     static final int MAX_STREAM_BYTES = 32 * 1024 * 1024;
 
     private static final int PDF_SCAN_BYTES = 1024 * 1024;
+    static final long MAX_PDF_BYTES = 256L * 1024 * 1024;
+    private static final byte[] AES_CODER = {0x06, (byte) 0xF1, 0x07, 0x01};
     private static final int HEAD_BYTES = 1024;
     private static final int OLE_DIRECTORY_ENTRY_BYTES = 128;
     private static final int OLE_MINI_STREAM_CUTOFF = 4096;
@@ -98,12 +101,12 @@ final class ContentInspector {
                 case PDF -> inspectPdf(file);
                 case ZIP -> inspectZip(file);
                 case OLE -> inspectOle(file);
-                case SEVEN_ZIP -> new Inspection(kind.mediaType, true, false);
+                case SEVEN_ZIP -> inspectSevenZip(file);
                 default -> new Inspection(kind.mediaType, false, false);
             };
         } catch (IOException | RuntimeException | StackOverflowError e) {
-            // An OLE file whose structure cannot be read may be an encrypted OOXML package: refused as unconfirmable, never passed.
-            return new Inspection(kind.mediaType, kind == Kind.OLE, true);
+            // An OLE, 7z or PDF file whose structure cannot be read may hide encryption: refused as unconfirmable, never passed.
+            return new Inspection(kind.mediaType, kind == Kind.OLE || kind == Kind.SEVEN_ZIP || kind == Kind.PDF, true);
         }
     }
 
@@ -166,17 +169,38 @@ final class ContentInspector {
         return true;
     }
 
+    /**
+     * A PDF is encrypted for this check only when the empty user password does not open it: one with only a permissions password is
+     * scanned like any other (ADR-0070 section 6 item 1; one-architecture ruling 2026-10-21).
+     */
     private static Inspection inspectPdf(Path file) throws IOException {
-        try (FileChannel channel = FileChannel.open(file, StandardOpenOption.READ)) {
-            long size = channel.size();
-            boolean encrypted;
-            if (size <= 2L * PDF_SCAN_BYTES) {
-                encrypted = indexOf(readAt(channel, 0, (int) size), ENCRYPT_MARK) >= 0;
-            } else {
-                encrypted = indexOf(readAt(channel, 0, PDF_SCAN_BYTES), ENCRYPT_MARK) >= 0
+        long size = Files.size(file);
+        if (size > MAX_PDF_BYTES) {
+            try (FileChannel channel = FileChannel.open(file, StandardOpenOption.READ)) {
+                boolean marked = indexOf(readAt(channel, 0, PDF_SCAN_BYTES), ENCRYPT_MARK) >= 0
                         || indexOf(readAt(channel, size - PDF_SCAN_BYTES, PDF_SCAN_BYTES), ENCRYPT_MARK) >= 0;
+                return new Inspection(Kind.PDF.mediaType, marked, false);
             }
-            return new Inspection(Kind.PDF.mediaType, encrypted, false);
+        }
+        Optional<Boolean> opens = PdfOpenPassword.opensWithoutPassword(Files.readAllBytes(file));
+        return new Inspection(Kind.PDF.mediaType, opens.isPresent() && !opens.get(), false);
+    }
+
+    /**
+     * Encrypted when the archive header names the AES coder (06F10701): an encoded header carries it when the header itself is
+     * encrypted, a plain header when the content is. A header compressed without AES hides the content's coders; then the engine's own
+     * encrypted alert decides (ADR-0070 section 4 item 3; one-architecture ruling 2026-10-21).
+     */
+    private static Inspection inspectSevenZip(Path file) throws IOException {
+        try (FileChannel channel = FileChannel.open(file, StandardOpenOption.READ)) {
+            ByteBuffer start = ByteBuffer.wrap(readAt(channel, 0, 32)).order(ByteOrder.LITTLE_ENDIAN);
+            long offset = start.getLong(12);
+            long length = start.getLong(20);
+            if (offset < 0 || length <= 0 || length > MAX_STREAM_BYTES || 32 + offset + length > channel.size()) {
+                return new Inspection(Kind.SEVEN_ZIP.mediaType, true, false);
+            }
+            byte[] header = readAt(channel, 32 + offset, (int) length);
+            return new Inspection(Kind.SEVEN_ZIP.mediaType, indexOf(header, AES_CODER) >= 0, false);
         }
     }
 

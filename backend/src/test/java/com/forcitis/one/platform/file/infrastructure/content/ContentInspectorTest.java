@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -53,29 +55,31 @@ class ContentInspectorTest {
         assertThat(inspect("a.txt", pdf)).isEqualTo(new Inspection("application/pdf", true, false));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"plain.pdf", "perm-pdfkit.pdf", "perm-rc4128.pdf", "perm-aes128.pdf", "perm-aes256.pdf"})
+    void aPdfThatOpensWithoutPasswordIsScannedEvenWithPermissionsPassword(String sample) throws IOException {
+        assertThat(inspector.inspect(sample(sample))).isEqualTo(new Inspection("application/pdf", false, false));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"open-pdfkit.pdf", "open-rc4128.pdf", "open-aes256.pdf"})
+    void aPdfThatNeedsAnOpenPasswordIsEncrypted(String sample) throws IOException {
+        assertThat(inspector.inspect(sample(sample)).encrypted()).isTrue();
+    }
+
     @Test
-    void pdfEncryptMarkInHeadAndTailOfLargeFileIsFound() throws IOException {
-        int pad = 3 * 1024 * 1024;
-        byte[] mark = "/Encrypt".getBytes(StandardCharsets.ISO_8859_1);
-        byte[] header = "%PDF-1.7\n".getBytes(StandardCharsets.ISO_8859_1);
+    void sevenZipIsEncryptedOnlyWhenItsContentOrHeaderIs() throws IOException {
+        assertThat(inspector.inspect(sample("plain.7z"))).isEqualTo(new Inspection("application/x-7z-compressed", false, false));
+        assertThat(inspector.inspect(sample("content.7z")).encrypted()).isTrue();
+        assertThat(inspector.inspect(sample("header.7z")).encrypted()).isTrue();
+    }
 
-        byte[] tail = new byte[pad];
-        Arrays.fill(tail, (byte) ' ');
-        System.arraycopy(header, 0, tail, 0, header.length);
-        System.arraycopy(mark, 0, tail, pad - 100, mark.length);
-        assertThat(inspect("tail.pdf", tail).encrypted()).isTrue();
-
-        byte[] head = new byte[pad];
-        Arrays.fill(head, (byte) ' ');
-        System.arraycopy(header, 0, head, 0, header.length);
-        System.arraycopy(mark, 0, head, 1000, mark.length);
-        assertThat(inspect("head.pdf", head).encrypted()).isTrue();
-
-        byte[] middle = new byte[pad];
-        Arrays.fill(middle, (byte) ' ');
-        System.arraycopy(header, 0, middle, 0, header.length);
-        System.arraycopy(mark, 0, middle, pad / 2, mark.length);
-        assertThat(inspect("middle.pdf", middle).encrypted()).isFalse();
+    private static Path sample(String name) throws IOException {
+        try {
+            return Path.of(ContentInspectorTest.class.getResource("/file-samples/" + name).toURI());
+        } catch (java.net.URISyntaxException e) {
+            throw new IOException(e);
+        }
     }
 
     @Test
@@ -98,9 +102,9 @@ class ContentInspectorTest {
     }
 
     @Test
-    void sevenZipIsAlwaysUnconfirmedAndEncrypted() throws IOException {
+    void aSevenZipWhoseHeaderCannotBeReadIsEncrypted() throws IOException {
         byte[] sevenZip = {0x37, 0x7A, (byte) 0xBC, (byte) 0xAF, 0x27, 0x1C, 0, 4, 0, 0, 0, 0};
-        assertThat(inspect("a.7z", sevenZip)).isEqualTo(new Inspection("application/x-7z-compressed", true, false));
+        assertThat(inspect("a.7z", sevenZip).encrypted()).isTrue();
     }
 
     // ---- zip ----

@@ -157,7 +157,7 @@ class StoreContentTest {
         }
 
         @Override
-        public void encryptedRefused(FileSubject uploader, ContentHash contentHash, String originalName) {
+        public void encryptedRefused(FileSubject uploader, ContentHash contentHash, long size, String mediaType) {
             audited.add("encrypted");
         }
 

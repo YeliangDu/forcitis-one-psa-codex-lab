@@ -42,9 +42,10 @@ class StoreAuditLog implements StoreAudit {
     }
 
     @Override
-    public void encryptedRefused(FileSubject uploader, ContentHash contentHash, String originalName) {
+    public void encryptedRefused(FileSubject uploader, ContentHash contentHash, long size, String mediaType) {
         audit.recordIndependently(new AuditEntry("platform.file.upload.encrypted-refused", actor(uploader), null,
-                AuditSubject.without(AuditSubjectKind.REQUEST), "reason=ENCRYPTED sha256=" + contentHash.value() + uploaderOf(uploader)));
+                AuditSubject.without(AuditSubjectKind.REQUEST),
+                "reason=ENCRYPTED sha256=" + contentHash.value() + " bytes=" + size + " media=" + mediaType + uploaderOf(uploader)));
     }
 
     @Override
