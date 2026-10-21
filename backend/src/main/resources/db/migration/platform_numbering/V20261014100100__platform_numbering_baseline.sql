@@ -216,9 +216,9 @@ $$;
 CREATE FUNCTION platform_numbering.guard_rule_version_source() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
-    IF NEW.source_kind <> 'AUTHORED' AND NOT pg_has_role(current_user,
-            (SELECT tableowner FROM pg_catalog.pg_tables WHERE schemaname = 'platform_numbering' AND tablename = 'numbering_rule_versions'), 'MEMBER') THEN
-        RAISE EXCEPTION 'a numbering template version without an author (%) can only be written by a migration', NEW.source_kind USING ERRCODE = 'restrict_violation';
+    IF NEW.source_kind <> 'AUTHORED'
+       AND NOT COALESCE(pg_has_role(current_user, (SELECT relowner FROM pg_catalog.pg_class WHERE oid = TG_RELID), 'MEMBER'), false) THEN
+        RAISE EXCEPTION 'a numbering template version that is not authored (%) can only be written by a migration', NEW.source_kind USING ERRCODE = 'restrict_violation';
     END IF;
     RETURN NEW;
 END;

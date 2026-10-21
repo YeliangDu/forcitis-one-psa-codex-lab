@@ -102,8 +102,8 @@ class RuleVersionSourceIT {
     @DisplayName("the application's account cannot insert an authorless version, confirmed or not")
     void applicationAccountCannotWriteAuthorlessVersions() {
         for (String source : new String[] {"SEEDED", "MIGRATION"}) {
-            assertThatThrownBy(() -> asApplicationRole(insert("null", "CONFIRMED", source, SOMEONE))).hasMessageContaining("only be written by a migration");
-            assertThatThrownBy(() -> asApplicationRole(insert("null", "PENDING_CONFIRMATION", source, "null"))).hasMessageContaining("only be written by a migration");
+            assertThatThrownBy(() -> asApplicationRole(insert("null", "CONFIRMED", source, SOMEONE))).hasMessageContaining("can only be written by a migration");
+            assertThatThrownBy(() -> asApplicationRole(insert("null", "PENDING_CONFIRMATION", source, "null"))).hasMessageContaining("can only be written by a migration");
         }
     }
 
