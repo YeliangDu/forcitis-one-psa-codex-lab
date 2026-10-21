@@ -52,6 +52,8 @@ SRC = {
     "modules": ROOT / "backend/architecture/module-dependencies.txt",
     "cmd": ARCH / "ssot/11-commands/commands.yaml",
     "otr": ARCH / "ssot/10-objects/transitions.yaml",
+    "events": DOCS / "events",
+    "cmd_map": ARCH / "ssot/11-commands/command-mapping.yaml",
 }
 IN_SYSTEM = ("用户角色", "往来单位加角色", "专门对象", "只作属性或参与者", "不进系统")
 OUT_MODEL = HERE / "panorama.yaml"
@@ -61,12 +63,15 @@ SH_BEGIN, SH_END = "<!-- 干系人图：由 panorama_build.py 从 value-streams.
 OBJ_RE = re.compile(r"OBJ-\d{2,3}")
 AGG_RE = re.compile(r"AGG-\d{2,3}")
 INACTIVE_PRC = {"retired", "merged"}
+# 审计按 kernel.event.DomainEvent 与 EventEnvelope 接收全部事件、不导入发布模块（platform/audit/application/AuditDomainEvents.java）
+KERNEL_EVENT_SUBSCRIBERS = {"platform.audit"}
+EVENT_CATALOGS = ("approval", "attendance", "identity", "integration", "numbering", "timesheet", "workforce")
 
 UNAUTOMATED = {}
 SKELETON = ARCH / "proposals" / "closeout"
 LAYER_NODE = {"sh": "01", "shcat": "01", "con": "02", "vp": "03", "decr": "04", "cap": "05", "vs": "06", "stage": "06", "prc": "07", "inv": "08",
               "obj": "09", "act": "10", "fact": "11", "dim": "12", "metric": "13", "bind": "14", "dec": "15",
-              "cmd": "10", "otr": "09/10 映射", "rule": "08", "ep": "10", "tc": "10", "api": "10 映射", "mod": "10 映射", "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
+              "evt": "10 映射", "cmd": "10", "otr": "09/10 映射", "rule": "08", "ep": "10", "tc": "10", "api": "10 映射", "mod": "10 映射", "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
 NODES = {"01": "干系人", "02": "关注点", "03": "价值主张", "04": "取舍决定", "05": "业务能力", "06": "价值流与阶段", "07": "业务流程", "08": "约束与认定规则", "09": "业务对象", "10": "受控业务执行", "11": "业务事实", "12": "维度", "13": "指标与评价", "14": "计算绑定", "15": "决策与行动"}
 CHECKS = {
     "N01-1": "每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）",
@@ -102,6 +107,9 @@ CHECKS = {
     "N10-M1": "每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）",
     "N10-2": "每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）",
     "N10-3": "每条状态转换有触发命令（含 pending；by_command 为空计缺口）",
+    "N10-4": "每个已建命令类在 ssot/11-commands/command-mapping.yaml 登记对照（pending 计缺口）",
+    "N10-5": "每个事件有唯一发布者与版本",
+    "N10-6": "跨 BC 只走已发布事件或契约（订阅模块对发布模块的依赖须登记；只按 kernel DomainEvent 信封接收的订阅方除外）",
     "N11-1": "每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）",
     "N13-1": "每个阶段都有指标",
     "N13-2": "每个指标都能追到阶段或流程",
@@ -436,6 +444,133 @@ def check_commands(m, gaps):
             gaps["N10-3"].append(f"{ident}（{transition['section']}，{transition['aggregate']}，命令 {transition['command']}）")
 
 
+def event_modules(value, src):
+    if value is None:
+        return []
+    values = [value] if isinstance(value, str) else value
+    if not isinstance(values, list) or any(not isinstance(v, str) or not re.fullmatch(r"[a-z]+\.[a-z]+", v) for v in values):
+        raise ValueError(f"{src} 应为模块名或模块名列表")
+    return sorted(set(values))
+
+
+def load_event_catalog(m, mod_to_bc):
+    for name in EVENT_CATALOGS:
+        path = SRC["events"] / f"{name}.yaml"
+        messages = read_mapping(path)["components"]["messages"]
+        if not isinstance(messages, dict):
+            raise ValueError(f"{rel(path)}#components.messages 应为映射")
+        for key, message in messages.items():
+            src = f"{rel(path)}#components.messages.{key}"
+            if not isinstance(message, dict) or not isinstance(message.get("x-event"), dict):
+                raise ValueError(f"{src} 缺 x-event 映射")
+            event = message["x-event"]
+            ident = event.get("eventType")
+            if not isinstance(ident, str) or not ident.strip():
+                raise ValueError(f"{src} 缺 eventType")
+            publishers = event_modules(event.get("publisher"), src + ".x-event.publisher")
+            if "publisher" not in event:
+                publishers = sorted(module for module in mod_to_bc if module.rsplit(".", 1)[-1] == name)
+            subscriber_field = "subscribers" if "subscribers" in event else "consumers"
+            subscribers = event_modules(event.get(subscriber_field), src + ".x-event." + subscriber_field)
+            declaration = {"publishers": publishers, "version": event.get("version"), "subscribers": subscribers, "src": src,
+                           "publisher_src": src + ".x-event.publisher" if "publisher" in event else rel(path),
+                           "subscriber_src": src + ".x-event." + subscriber_field}
+            node = m["evt"].setdefault(ident, {"name": message.get("name"), "title": message.get("title"),
+                                             "fact": None, "src": src, "declarations": []})
+            node["declarations"].append(declaration)
+    for node in m["evt"].values():
+        publishers = sorted({module for d in node["declarations"] for module in d["publishers"]})
+        node["publisher_module"] = publishers[0] if len(publishers) == 1 else None
+        node["publisher_bc"] = mod_to_bc.get(node["publisher_module"])
+        versions = [d["version"] for d in node["declarations"]]
+        node["version"] = versions[0] if all(v == versions[0] for v in versions) else None
+        node["subscribers"] = sorted({module for d in node["declarations"] for module in d["subscribers"]})
+
+
+def link_event_commands(m, link, aggregate_events, built):
+    if not SRC["cmd_map"].exists():
+        return
+    classes = {(row["aggregate"], row["module"], row["class"]) for row in read_rows("cmd", "built")}
+    m["cmd_class"] = {(a, c): None for a, _, c in classes}
+    aggregates = {row["id"]: row for row in built}
+    for index, row in enumerate(read_rows("cmd_map", "entries")):
+        src = f"{rel(SRC['cmd_map'])}#entries[{index}]"
+        if not all(isinstance(row.get(k), str) and row[k] for k in ("class", "module", "built_aggregate")) or not isinstance(row.get("commands"), list):
+            raise ValueError(f"{src} 缺 class、module、built_aggregate 或 commands 列表")
+        agg = aggregates.get(row["built_aggregate"])
+        if agg is None:
+            raise ValueError(f"{src} 引用了不存在的已建聚合")
+        command_classes = (agg.get("commands") or []) + (agg.get("commands_via") or [])
+        if row["module"] != agg["bc"] or (agg["id"], row["module"], row["class"]) not in classes or row["class"] not in command_classes:
+            raise ValueError(f"{src} 命令类未在同一已建聚合的两份目录登记")
+        m["cmd_class"][(agg["id"], row["class"])] = row.get("relation") or "pending"
+        mapped = m.get("agg", {}).get(agg["id"], {})
+        same = [agg["id"]] + (mapped.get("planned", []) if mapped.get("relation") == "same" else [])
+        for command in row["commands"]:
+            if not isinstance(command, str) or command not in m["cmd"]:
+                raise ValueError(f"{src} 引用了不存在的 CMD：{command!r}")
+            target = m["cmd"][command]
+            if target["aggregate"] not in same:
+                continue
+            for event in sorted(aggregate_events[agg["id"]]):
+                link("cmd-evt", command, event, src, via="mapping", aggregate=agg["id"],
+                     built_src=f"{rel(SRC['built'])}#aggregates/{agg['id']}", command_src=target["src"],
+                     aggregate_mapping_src=f"{rel(SRC['agg_map'])}#entries/{agg['id']}" if target["aggregate"] != agg["id"] else None,
+                     class_src=f"{rel(SRC['cmd'])}#built/{agg['id']}/{row['class']}")
+
+
+def load_events(m, link, mod_to_bc):
+    load_event_catalog(m, mod_to_bc)
+    for ident, node in m["evt"].items():
+        for declaration in node["declarations"]:
+            for publisher in declaration["publishers"]:
+                if publisher in mod_to_bc:
+                    link("evt-bc", ident, mod_to_bc[publisher], declaration["publisher_src"], via="publisher", module=publisher)
+            for subscriber in declaration["subscribers"]:
+                link("evt-mod", ident, subscriber, declaration["subscriber_src"], via="subscriber")
+    built = read_rows("built", "aggregates")
+    aggregate_events = defaultdict(set)
+    for agg in built:
+        for field, via in (("events", "events"), ("events_in_module", "module")):
+            for event in agg.get(field) or []:
+                if event in m["evt"]:
+                    aggregate_events[agg["id"]].add(event)
+                    link("evt-agg", event, agg["id"], f"{rel(SRC['built'])}#aggregates/{agg['id']}.{field}", via=via)
+    link_event_commands(m, link, aggregate_events, built)
+
+
+def check_events(m, gaps):
+    for (aid, cls), relation in sorted(m.get("cmd_class", {}).items()):
+        if relation in (None, "pending"):
+            gaps["N10-4"].append(f"{aid}#{cls}（{relation or '未登记对照'}）")
+    if not m.get("evt"):
+        return
+    dependencies = {}
+    for no, line in enumerate(SRC["modules"].read_text(encoding="utf-8").splitlines(), 1):
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        match = re.fullmatch(r"([a-z]+\.[a-z]+)\s*->\s*(.*)", line)
+        if not match:
+            raise ValueError(f"{rel(SRC['modules'])}:{no} 模块依赖登记无效")
+        dependencies[match[1]] = {part.strip() for part in match[2].split(",") if part.strip()}
+    for ident, node in m["evt"].items():
+        reasons = []
+        if not node["publisher_module"] or any(not d["publishers"] for d in node["declarations"]):
+            reasons.append("发布者缺失或不唯一")
+        if node["version"] in (None, ""):
+            reasons.append("版本缺失或不唯一")
+        if reasons:
+            gaps["N10-5"].append(f"{ident}（{'；'.join(reasons)}；{node['src']}）")
+        for declaration in node["declarations"]:
+            for publisher in declaration["publishers"]:
+                for subscriber in declaration["subscribers"]:
+                    if subscriber in KERNEL_EVENT_SUBSCRIBERS:
+                        continue
+                    if subscriber != publisher and publisher not in dependencies.get(subscriber, set()):
+                        gaps["N10-6"].append(f"{ident}（{subscriber} → {publisher} 未登记；{declaration['src']}）")
+
+
 def mapping_paths(args):
     match = re.search(r'(?:\b(?:path|value)\s*=\s*|^\s*)(\{(?:\s*"[^"]*"\s*,?)+\}|"[^"]*")', args)
     if match:
@@ -545,11 +680,14 @@ def coverage_counts(m, links):
     tables = {t for t, node in m["table"].items() if node.get("registered") and node["role"] in BUSINESS_ROLES}
     coverage = {}
     for label, kind, universe in (("INV→EP", "inv-ep", set(m["inv"])), ("INV→TC", "inv-tc", set(m["inv"])),
-                                  ("RULE→TC（有 INV 对照）", "rule-tc", mapped), ("表→聚合", "table-agg", tables)):
+                                  ("RULE→TC（有 INV 对照）", "rule-tc", mapped), ("表→聚合", "table-agg", tables),
+                                  ("事件→聚合", "evt-agg", set(m.get("evt", {}))),
+                                  ("事件→发布 BC", "evt-bc", set(m.get("evt", {})))):
         edges = [edge for edge in links if edge["kind"] == kind and edge["from"] in universe]
         by_via = defaultdict(set)
         expected = {"inv-ep": ("enforces", "rule", "manual"), "inv-tc": ("covers", "class_covers", "rule"),
-                    "rule-tc": ("covers", "class_covers"), "table-agg": ("panorama", "built")}
+                    "rule-tc": ("covers", "class_covers"), "table-agg": ("panorama", "built"),
+                    "evt-agg": ("events", "module"), "evt-bc": ("publisher",)}
         for via in expected[kind]:
             by_via[via]
         for edge in edges:
@@ -564,7 +702,7 @@ def coverage_counts(m, links):
 
 def load():
     m = {k: {} for k in ("sh", "con", "vp", "decr", "cap", "vs", "stage", "prc", "inv", "obj", "act", "fact", "dim",
-                         "metric", "bind", "dec", "agg", "bc", "sd", "table", "rule", "ep", "tc", "api", "mod", "cmd", "otr")}
+                         "metric", "bind", "dec", "agg", "bc", "sd", "table", "rule", "ep", "tc", "api", "mod", "cmd", "otr", "evt")}
     links = []
 
     def link(kind, a, b, src, **evidence):
@@ -677,6 +815,7 @@ def load():
     load_constraints(m, link)
     load_interfaces(m, link, mod_to_bc)
     load_commands(m, link)
+    load_events(m, link, mod_to_bc)
 
     for t in yaml.safe_load(SRC["terms"].read_text(encoding="utf-8"))["terms"]:
         if t.get("kind") == "metric":
@@ -883,14 +1022,21 @@ def check(m, anchoring=None):
             gaps["N13-2"].append(f"{mid} {mt['zh']}")
     check_coverage(m, gaps)
     check_commands(m, gaps)
+    check_events(m, gaps)
     return gaps
+
+
+def source_files():
+    sources = {k: path for k, path in SRC.items() if path.is_file()}
+    sources.update({f"evt_{name}": SRC["events"] / f"{name}.yaml" for name in EVENT_CATALOGS})
+    return sources
 
 
 def render(m, links, gaps):
     coverage = coverage_counts(m, links)
-    m = {k: v for k, v in m.items() if k != "obj_text"}
+    m = {k: v for k, v in m.items() if k not in ("obj_text", "cmd_class")}
     counts = {k: len(v) for k, v in m.items()}
-    model = {"meta": {"generator": "architecture/panorama/panorama_build.py", "sources": {k: rel(v) for k, v in SRC.items() if v.exists()},
+    model = {"meta": {"generator": "architecture/panorama/panorama_build.py", "sources": {k: rel(v) for k, v in source_files().items()},
                       "counts": counts, "checks": CHECKS, "coverage": coverage,
                       "external_reads": {k: len(v) for k, v in read_mapping(SRC["external"]).items() if isinstance(v, list)}},
              "nodes": m, "links": links}
@@ -906,6 +1052,8 @@ def render(m, links, gaps):
     for k, d in CHECKS.items():
         if gaps.get(k):
             lines += [f"## {k} {d}（{len(gaps[k])}）", "", *[f"- {g}" for g in gaps[k]], ""]
+    if not SRC["cmd_map"].exists():
+        lines += ["## CMD→EVT", "", f"未运行：{rel(SRC['cmd_map'])} 不存在，按派工卡跳过命令类到 CMD 的对照与 CMD→EVT 连线。", ""]
     return yaml.safe_dump(model, allow_unicode=True, sort_keys=False, width=200), "\n".join(lines)
 
 
@@ -1031,7 +1179,7 @@ def main():
         for path, content in outputs.items():
             if not path.is_file() or path.read_bytes() != content.encode("utf-8"):
                 path.write_text(content, encoding="utf-8")
-    print("panorama: " + "、".join(f"{k} {len(v)}" for k, v in m.items()) + "；缺口 " + "、".join(f"{k} {len(gaps.get(k, []))}" for k in CHECKS))
+    print("panorama: " + "、".join(f"{k} {len(v)}" for k, v in m.items() if k != "cmd_class") + "；缺口 " + "、".join(f"{k} {len(gaps.get(k, []))}" for k in CHECKS))
     return 0
 
 

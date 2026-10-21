@@ -14,6 +14,8 @@
 | INV→TC | 1 / 148 | class_covers: 0、covers: 0、rule: 1 |
 | RULE→TC（有 INV 对照） | 1 / 38 | class_covers: 0、covers: 1 |
 | 表→聚合 | 20 / 20 | built: 20、panorama: 0 |
+| 事件→聚合 | 59 / 59 | events: 47、module: 49 |
+| 事件→发布 BC | 59 / 59 | publisher: 59 |
 | API→BC | 58 / 58 | controller: 58 |
 
 登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 1、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 4、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
@@ -47,6 +49,7 @@
 | 10 映射  | mod | 13 |
 | 10 受控业务执行 | cmd | 606 |
 | 09/10 映射  | otr | 905 |
+| 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
 | 07 业务流程 | steps | 647 |
 
@@ -87,6 +90,9 @@
 | N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 4 |
 | N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 1 |
 | N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 48 |
+| N10-4 | 每个已建命令类在 ssot/11-commands/command-mapping.yaml 登记对照（pending 计缺口） | 0 |
+| N10-5 | 每个事件有唯一发布者与版本 | 0 |
+| N10-6 | 跨 BC 只走已发布事件或契约（订阅模块对发布模块的依赖须登记；只按 kernel DomainEvent 信封接收的订阅方除外） | 0 |
 | N11-1 | 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列） | 6 |
 | N13-1 | 每个阶段都有指标 | 61 |
 | N13-2 | 每个指标都能追到阶段或流程 | 79 |

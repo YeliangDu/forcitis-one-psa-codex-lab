@@ -306,5 +306,160 @@ class ExampleController {
             self.assertEqual(["cost.timesheet"], gaps["N10-M2"])
 
 
+class EventNetworkTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.sources = {key: self.root / f"{key}.yaml" for key in ("built", "cmd", "cmd_map", "modules")}
+        self.sources["events"] = self.root / "events"
+        self.sources["events"].mkdir()
+        for name in ("approval", "attendance", "identity", "integration", "numbering", "timesheet", "workforce"):
+            self.event_file(name, {})
+        self.event = {"name": "TimesheetSubmitted", "title": "工时单已提交", "x-event": {
+            "eventType": "cost.timesheet.TimesheetSubmitted", "version": 1,
+            "publisher": "cost.timesheet", "consumers": ["platform.approval", "cost.timesheet"]}}
+        self.ident = self.event["x-event"]["eventType"]
+        self.aggregate = {"id": "cost.timesheet/Timesheet", "bc": "cost.timesheet", "commands": ["SubmitTimesheet"],
+                          "events": [self.ident], "events_in_module": [self.ident]}
+        self.command = {"aggregate": self.aggregate["id"], "src": "commands.yaml#commands/CMD-12345678"}
+        self.aggregate_mapping = {}
+        self.write("built", {"aggregates": [self.aggregate]})
+        self.write("cmd", {"built": [{"aggregate": self.aggregate["id"], "module": "cost.timesheet", "class": "SubmitTimesheet"}]})
+        self.sources["modules"].write_text("# 订阅方向登记\nplatform.approval -> cost.timesheet # 已登记\ncost.timesheet ->\n", encoding="utf-8")
+        self.mod_to_bc = {"cost.timesheet": "B-06", "platform.approval": "B-40"}
+        patcher = patch.dict(p.SRC, self.sources)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def write(self, key, data):
+        self.sources[key].write_text(yaml.safe_dump(data, allow_unicode=True), encoding="utf-8")
+
+    def event_file(self, name, messages):
+        (self.sources["events"] / f"{name}.yaml").write_text(
+            yaml.safe_dump({"components": {"messages": messages}}, allow_unicode=True), encoding="utf-8")
+
+    def load(self):
+        self.event_file("timesheet", {"TimesheetSubmitted": self.event})
+        model = {"evt": {}, "cmd": {"CMD-12345678": self.command}, "agg": self.aggregate_mapping}
+        edges = []
+        p.load_events(model, lambda kind, a, b, src, **extra: edges.append(
+            {"kind": kind, "from": a, "to": b, "src": src, **extra}), self.mod_to_bc)
+        return model, edges
+
+    def gaps(self, model):
+        gaps = p.defaultdict(list)
+        p.check_events(model, gaps)
+        return gaps
+
+    def test_arc10_catalog_edges_coverage_and_mapping_absent(self):
+        (self.sources["events"] / "asyncapi.yaml").write_text("不可读取的生成物", encoding="utf-8")
+        sources = p.source_files()
+        self.assertNotIn("events", sources)
+        self.assertEqual(7, len([key for key in sources if key.startswith("evt_")]))
+        self.assertTrue(all(path.is_file() for path in sources.values()))
+        self.assertNotIn("asyncapi.yaml", [path.name for path in sources.values()])
+        model, edges = self.load()
+        node = model["evt"][self.ident]
+        self.assertEqual(("TimesheetSubmitted", "工时单已提交", 1, "cost.timesheet", "B-06"),
+                         tuple(node[k] for k in ("name", "title", "version", "publisher_module", "publisher_bc")))
+        self.assertIsNone(node["fact"])
+        self.assertEqual(["cost.timesheet", "platform.approval"], node["subscribers"])
+        self.assertIn("timesheet.yaml#components.messages.TimesheetSubmitted", node["src"])
+        self.assertEqual({"evt-bc": 1, "evt-agg": 2, "evt-mod": 2}, dict(p.Counter(e["kind"] for e in edges)))
+        self.assertEqual({"events", "module"}, {e["via"] for e in edges if e["kind"] == "evt-agg"})
+        self.assertEqual(([], []), (self.gaps(model)["N10-5"], self.gaps(model)["N10-6"]))
+        model.update(inv={}, table={}, api={})
+        coverage = p.coverage_counts(model, edges)
+        self.assertEqual({"covered": 1, "total": 1, "via": {"events": 1, "module": 1}}, coverage["事件→聚合"])
+        self.assertEqual(1, coverage["事件→发布 BC"]["covered"])
+        self.assertEqual(yaml.safe_dump(self.load()).encode(), yaml.safe_dump(self.load()).encode())
+
+    def test_arc10_missing_publisher_version_and_unregistered_dependency(self):
+        self.event["x-event"].update(publisher=None, version=None)
+        model, edges = self.load()
+        self.assertIsNone(model["evt"][self.ident]["publisher_module"])
+        self.assertFalse(any(e["kind"] == "evt-bc" for e in edges))
+        gap = self.gaps(model)["N10-5"]
+        self.assertEqual(1, len(gap))
+        self.assertIn("发布者缺失", gap[0])
+        self.assertIn("版本缺失", gap[0])
+        for publisher, version, reason in ((None, 1, "发布者"), ("cost.timesheet", None, "版本")):
+            with self.subTest(reason=reason):
+                self.event["x-event"].update(publisher=publisher, version=version)
+                gaps = self.gaps(self.load()[0])["N10-5"]
+                self.assertEqual(1, len(gaps))
+                self.assertIn(reason, gaps[0])
+        self.event["x-event"].update(publisher="cost.timesheet", version=1)
+        self.sources["modules"].write_text("cost.timesheet -> platform.approval\nplatform.approval ->\n", encoding="utf-8")
+        model, _ = self.load()
+        self.assertEqual(1, len(self.gaps(model)["N10-6"]))
+        self.assertIn("platform.approval → cost.timesheet 未登记", self.gaps(model)["N10-6"][0])
+        self.event["x-event"]["subscribers"] = ["platform.audit"]
+        self.assertEqual([], self.gaps(self.load()[0])["N10-6"])
+
+    def test_arc10_filename_fallback_multiple_publishers_and_subscribers(self):
+        del self.event["x-event"]["publisher"]
+        self.event["x-event"]["subscribers"] = ["platform.approval"]
+        model, edges = self.load()
+        self.assertEqual("cost.timesheet", model["evt"][self.ident]["publisher_module"])
+        self.assertTrue(next(e["src"] for e in edges if e["kind"] == "evt-mod").endswith(".x-event.subscribers"))
+        self.mod_to_bc = {}
+        self.assertEqual(1, len(self.gaps(self.load()[0])["N10-5"]))
+        self.event["x-event"]["publisher"] = ["cost.timesheet", "platform.approval"]
+        self.assertEqual(1, len(self.gaps(self.load()[0])["N10-5"]))
+        duplicate = copy.deepcopy(self.event)
+        duplicate["x-event"].update(publisher="platform.approval", version=2)
+        self.event_file("approval", {"Alias": duplicate})
+        model, _ = self.load()
+        self.assertEqual(1, len(model["evt"]))
+        self.assertEqual(2, len(model["evt"][self.ident]["declarations"]))
+        self.assertIn("版本缺失或不唯一", self.gaps(model)["N10-5"][0])
+
+    def test_arc10_command_mapping_requires_same_aggregate_and_both_class_catalogs(self):
+        self.write("cmd_map", {"entries": [{"class": "SubmitTimesheet", "module": "cost.timesheet",
+                                          "built_aggregate": self.aggregate["id"], "commands": ["CMD-12345678"]}]})
+        _, edges = self.load()
+        command_edges = [e for e in edges if e["kind"] == "cmd-evt"]
+        self.assertEqual(1, len(command_edges))
+        self.assertEqual(("CMD-12345678", self.ident, "mapping"),
+                         tuple(command_edges[0][k] for k in ("from", "to", "via")))
+        self.assertIn("cmd_map.yaml#entries[0]", command_edges[0]["src"])
+        self.command["aggregate"] = "AGG-01"
+        self.assertFalse(any(e["kind"] == "cmd-evt" for e in self.load()[1]))
+        self.aggregate_mapping[self.aggregate["id"]] = {"planned": ["AGG-01"], "relation": "same"}
+        mapped = [e for e in self.load()[1] if e["kind"] == "cmd-evt"]
+        self.assertEqual(1, len(mapped))
+        self.assertIn("mapping.yaml#entries/", mapped[0]["aggregate_mapping_src"])
+        self.aggregate_mapping[self.aggregate["id"]]["relation"] = "pending"
+        self.assertFalse(any(e["kind"] == "cmd-evt" for e in self.load()[1]))
+        self.write("cmd", {"built": []})
+        with self.assertRaisesRegex(ValueError, "两份目录"):
+            self.load()
+
+    def test_n10_4_reports_command_classes_without_a_settled_mapping(self):
+        entry = {"class": "SubmitTimesheet", "module": "cost.timesheet", "built_aggregate": self.aggregate["id"],
+                 "commands": ["CMD-12345678"], "relation": "same"}
+        self.write("cmd_map", {"entries": [entry]})
+        self.assertEqual([], self.gaps(self.load()[0])["N10-4"])
+        entry["relation"] = "pending"
+        self.write("cmd_map", {"entries": [entry]})
+        self.assertEqual(1, len(self.gaps(self.load()[0])["N10-4"]))
+        self.write("cmd_map", {"entries": []})
+        self.assertIn("未登记对照", self.gaps(self.load()[0])["N10-4"][0])
+
+    def test_arc10_invalid_or_missing_catalog_fails(self):
+        self.event["x-event"]["consumers"] = [42]
+        with self.assertRaisesRegex(ValueError, "模块名"):
+            self.load()
+        self.event["x-event"]["consumers"] = []
+        del self.event["x-event"]["eventType"]
+        with self.assertRaisesRegex(ValueError, "eventType"):
+            self.load()
+        (self.sources["events"] / "approval.yaml").unlink()
+        with self.assertRaises(FileNotFoundError):
+            self.load()
+
+
 if __name__ == "__main__":
     unittest.main()
