@@ -145,7 +145,7 @@
 <rect x="422" y="822" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
 <text x="432" y="841" font-size="13" fill="#0f172a">Web 与错误链</text>
 <text x="772" y="841" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">platform.web</text>
-<rect x="422" y="856" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<rect x="422" y="856" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
 <text x="432" y="875" font-size="13" fill="#0f172a">文件服务</text>
 <text x="772" y="875" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">platform.file</text>
 <rect x="422" y="890" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>

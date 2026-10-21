@@ -155,8 +155,8 @@ relations:
   upstream: platform.integration
   downstream: platform.file
   via: api：业务文件桶与恶意文件检测端口
-  status: planned
-  basis: ADR-0060 决定 1 第 2 条；代码落地时随 module-dependencies.txt 改 built
+  status: built
+  basis: ADR-0060 决定 1 第 2 条；module-dependencies.txt
 - id: platform.audit>platform.file
   upstream: platform.audit
   downstream: platform.file

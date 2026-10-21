@@ -1,0 +1,38 @@
+package com.forcitis.one.platform.file.api;
+
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorCode;
+import com.forcitis.one.kernel.ErrorKind;
+
+public enum FileError implements ErrorCode {
+    PLATFORM_FILE_NOT_FOUND(ErrorKind.NOT_FOUND),
+    PLATFORM_FILE_TOO_LARGE(ErrorKind.INVALID),
+    PLATFORM_FILE_MEDIA_TYPE_NOT_ALLOWED(ErrorKind.UNPROCESSABLE),
+    PLATFORM_FILE_ENCRYPTED_REJECTED(ErrorKind.UNPROCESSABLE),
+    PLATFORM_FILE_SCAN_UNAVAILABLE(ErrorKind.UNAVAILABLE),
+    PLATFORM_FILE_QUARANTINED(ErrorKind.CONFLICT),
+    PLATFORM_FILE_NOT_AVAILABLE(ErrorKind.CONFLICT),
+    PLATFORM_FILE_NOT_BOUND_TO_DOCUMENT(ErrorKind.NOT_FOUND),
+    PLATFORM_FILE_DISPOSED(ErrorKind.CONFLICT),
+    PLATFORM_FILE_HASH_MISMATCH(ErrorKind.UNAVAILABLE),
+    PLATFORM_FILE_SPI_NOT_ACCEPTED(ErrorKind.UNPROCESSABLE),
+    PLATFORM_FILE_BINDING_CONFLICT(ErrorKind.CONFLICT),
+    PLATFORM_FILE_PREVIOUS_VERSION_NOT_BOUND(ErrorKind.UNPROCESSABLE),
+    PLATFORM_FILE_PREVIOUS_VERSION_HAS_SUCCESSOR(ErrorKind.CONFLICT),
+    PLATFORM_FILE_PRESERVATION_CATEGORY_UNKNOWN(ErrorKind.UNPROCESSABLE),
+    PLATFORM_FILE_LINK_VALIDITY_EXCEEDED(ErrorKind.INVALID),
+    PLATFORM_FILE_CONTENT_READ_FORBIDDEN(ErrorKind.FORBIDDEN),
+    PLATFORM_FILE_QUARANTINE_READ_NOT_APPROVED(ErrorKind.FORBIDDEN),
+    PLATFORM_FILE_QUARANTINE_CONTENT_PURGED(ErrorKind.CONFLICT),
+    PLATFORM_FILE_FALSE_POSITIVE_SAME_REVIEWER(ErrorKind.UNPROCESSABLE);
+
+    private final ErrorKind kind;
+
+    FileError(ErrorKind kind) {
+        this.kind = kind;
+    }
+
+    public DomainException refusal(String message) {
+        return new DomainException(this, kind, message);
+    }
+}
