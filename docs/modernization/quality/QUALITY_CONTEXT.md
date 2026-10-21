@@ -81,6 +81,24 @@
 ### 用户新定（2026-10-21 intent 153432）：不用自动清空，只需要能自动交接
 #511 合入后接一张卡：`context_handoff.py` 提醒文案删去 `clear_session self`，只要求更新上下文文档与交接节并报 one-coordinator；`context_windows.json` 的 `pilot_sessions` 改为全部会话（null）。之前“试 clear_session self”作废，不再清空自己。
 
+### QUA-05 现状快照（2026-10-21 16:20，上下文 86%，调度要求立即交接后停手，等用户清空）
+**已跑完（可直接盲评）**：
+| 卡 | 执行者 | 用时 | 产出 | 备注 |
+|---|---|---|---|---|
+| Q2 补 RULE-382 单测 | sonnet | 146.7 s，85974 tok | 已提交 927a7b0c，新增 `TaskDeadlineNeverDecidesTest` 4 用例 | 破坏验证 3 个变红，守护测试全过 |
+| | Codex xhigh | 883 s | **未提交**（沙箱禁止写 worktree 的 git 元数据），改动在 `q2-codex` 工作区 | 7 项全绿，破坏验证做了，RESULT.md 有细节 |
+| | DeepSeek flash high | 692 s | 已提交 e33c8206 | 114 个测试全绿，precheck 11 PASS；覆盖 approve/reject/returnRound/passAutomatically 等 |
+| Q3 执行点扫描 | sonnet | 308.7 s，101502 tok | 已提交 33b19b4a，554 项（不变量 150/守护 216/授权 11/数据约束 177），enforces 非空率 9.0% | precheck 3 PASS |
+| | Codex xhigh | 1689 s | **未提交**，工作区改动在 `q3-codex`；豁免清单 11 份共 44 行与生成数一致 | 脚本 400 行，precheck 过 |
+| | DeepSeek flash high | 553 s | 已提交 1e3d9518，35 项自测通过；`waives` 字段 44/44 非空 | 提出一处裁定：`primary-key-exemptions.txt` 不在卡的 `*-exceptions.txt` glob 内，按卡未纳入 |
+注意：Codex 两份没有提交，盲评取工作区 diff（`git -C eval/q?-codex diff` 加未跟踪文件）；用时=`eval/*.end−*.start`（sonnet 用子代理通知的 duration/tokens）；Codex/DeepSeek 的 token 费用拿不到则写“未取得”。
+
+**Q1（IMP-1021-NX5-02 前端标签+最小后端切片）未完成**：
+- q1-codex：280 s 后按卡规则**停下**（需改卡外文件：core 公开出口、PC/H5 审批详情页；触发器不保护新增 display_name 列），未改代码；`q1-codex/RESULT.md` 有两项阻塞说明。
+- q1-sonnet、q1-ds：被我中途终止（调度因本机负载 80/18 核、45 个 postgres 容器要求停手），工作区里各有**半成品未提交改动**（sonnet 28 个文件、DeepSeek 26 个文件），都没跑完整包验证，不可当作最终产出。
+**重跑步骤（今后构建一次一份）**：先把 `q1-*` 三个 worktree 重置回基线（`git -C <wt> checkout -- . && git -C <wt> clean -fd`，或删掉重建，基线 `eval/base-sha.txt`）；放宽 Q1 卡的“允许改动”（把 core 公开出口、PC/H5 审批详情页、触发器保护列入范围，三方同一份新卡；原卡 `eval/card-q1.md`，需要时给 one-1a-next-5 对齐）；**先让三方只写代码、各自只跑相关测试**，整包 `./mvnw verify`/`pnpm verify` 由我按顺序排队跑，一次一份（加 `taskpolicy -b`，别并行）；记录用时时把等待排队的时间扣掉。
+**盲评**：对 Q1/Q2/Q3 每张卡三份 diff 去掉执行者标识（脚本里把分支名/提交说明/RESULT.md 抹掉）交 opus 子代理按卡 §9 的维度打分（正确性、范围越界、编造、可维护性、复审维度①–⑦），只采纳最好的一份走正常 PR（Q3 最好的一份交 one-architecture 验收，Q2 走我自己的 PR），另两份不合并；产出一页评测结论（表+一句话推荐分工）交 one-coordinator 审后给用户。
+
 ### QUA-03：七个钩子（用户回「加」，intent @1e24e8b6；钩子自己写，单列 PR，opus 首轮，每个带 --self-test，误拦有放行写法，先 one-coordinator、one-ops 试点）
 1 派子代理（Agent）不写 model 就拒绝；2 直接 Edit/Write 生成产物（INTENT.md、SESSION_LOG.md、STATUS.md、adr/ADR-*.md、adr/README.md）就拒绝并提示改片段；3 在主检出目录 /Users/yeliang/Projects/FORCITIS/forcitis-one-psa 里改文件、提交就拒绝（快进合并放行，one-merge 要用）；4 改 ci.yml、scripts/ci、.claude、scripts/hooks、验收测试时提示：守护文件单列 PR、opus 复审、验收改动先有 main 上的裁定；5 命令输出疑似密钥就告警并提示改写，拦已知返回私钥的调用（如阿里云 DescribeDBInstanceSSL 原样输出）；6 run_in_background 等启动常驻进程时提示登记台账并写明重启后由谁拉起；**7（调度扩）SessionStart（startup|clear|compact）检查落后 origin/main 的提交数：分支无独有提交→自动 fast-forward 并报一行；有独有提交→不自动合，只注入「先合入 main 再开工」+落后数；冲突留给会话，钩子里不做**。
 - 经验：桌面 app 钩子读的是**主检出**的 .claude/settings.json 且 CLAUDE_PROJECT_DIR 是主检出；钩子类 PR 合入后须先把主检出快进到 origin/main 再重启 app（stop_hook_summary 里出现脚本名即生效）；root 取 payload.cwd。
@@ -93,7 +111,7 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 追加（one-architecture 2026-10-21，one-coordinator 定）：凡新增或改动的验收测试、集成测试（backend/src/test 下非 architecture 目录），`@DisplayName` 或方法 Javadoc 须带至少一个 `RULE-nnn` 或 `INV-nn`；先做「报告档」不拦合并；判定沿用 `docs/modernization/architecture/panorama/scan_acceptance_tests.py` 的抽取规则（分支 claude/one-architecture-network-batch1 @3ade5580，合入 main 后直接调用），只看本次改动涉及的测试方法；存量 835 条无编号由 one-architecture 另出映射。
 
 ### 评测期间的资源约束（调度 10-21）
-本机负载曾到 80/18 核、45 个 postgres 容器：评测的构建与测试**一次只跑一份、排队**，Codex/DeepSeek 写代码可并行；不要用满核压测（最多 4 个进程、`taskpolicy -b`）。q1-ds 的构建进程树我已 SIGSTOP（pid 列表 `eval/q1-ds.stopped`），后台等负载 <20 后以后台优先级恢复（`eval/q1-ds.resumed` 记录时刻）；q1-sonnet 已通知只跑相关测试、不跑整包。评测用时里含暂停时间，结论里要注明。
+本机负载曾到 80/18 核、45 个 postgres 容器：评测的构建与测试**一次只跑一份、排队**，Codex/DeepSeek 写代码可并行；不要用满核压测（最多 4 个进程、`taskpolicy -b`）。q1-ds 与 q1-sonnet 已被我终止（见上面 QUA-05 快照），其余评测构建不再新起。
 
 ### 其他待办
 - 日报新指标（#482）已合入；错题本 QUAL-019 的检查 `scripts/ci/weak_registration_scan.py`（#487）转 --enforce 要跑一周无误报后另开卡；#511 合入后清理本机留下的本地分支/worktree（scratchpad/wt-*）。
