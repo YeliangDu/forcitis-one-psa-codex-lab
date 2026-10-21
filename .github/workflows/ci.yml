@@ -6,7 +6,7 @@ on:
     types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
-  # full run of main every night (the push to main runs the light steps only): 21:03 UTC; nightly-legacy-it follows at 01:23 UTC, ci-recurrence at 03:17 UTC
+  # full run of main every night (the push to main runs the light steps only): 21:03 UTC; nightly-legacy-it runs at 01:23 UTC
   schedule:
     - cron: '3 21 * * *'
 

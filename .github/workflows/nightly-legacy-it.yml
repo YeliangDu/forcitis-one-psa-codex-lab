@@ -1,7 +1,7 @@
 name: nightly-legacy-it
 
 # cron is UTC: 01:23 UTC = 03:23 on the build machine (CEST, UTC+2; 02:23 in winter), when no pull request is running its CI on it. At 19:23 UTC (21:23 local) it shared the machine with the day's last pull requests and took 19.5 minutes against 13 (2026-10-21, one-coordinator).
-# The odd minute avoids the top-of-hour queue on GitHub's scheduler. ci-recurrence.yml runs after it.
+# The odd minute avoids the top-of-hour queue on GitHub's scheduler.
 on:
   schedule:
     - cron: "23 1 * * *"
