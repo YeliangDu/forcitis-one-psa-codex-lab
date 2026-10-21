@@ -10,6 +10,27 @@
 | C6 工时审批回放差异（Phase 1a 出口 D-3，2 类） | `sheets/C6.json`（计数取自 `phase1a/infra/runbooks/C-6-legacy-export.md`「回放结果」，one-ops） | https://claude.ai/artifact/Y7ogz8AWPmZdeuE4HCEGqL（2026-10-16 起） |
 | FD2 工时填报义务（6 题） | `sheets/FD2.json`（取证 `phase1a/infra/handoff/B-5-dba/evidence/timesheet_filing_duty.sql`，行业调研 one-rules） | https://claude.ai/artifact/DWcj2U7HrYZ2zmVNreBmfS（2026-10-16 起） |
 | A1 重议后续（A1 维不维持、无法定年审的替代把关，3 题） | `sheets/A1.json`（依据收入事实页 R-1～R-8 的答复） | https://claude.ai/artifact/TaLY2TVGaoqhZCpt7uPMrG（2026-10-16 起，未实看渲染） |
+| ANM 流程方法与命名体系批准（ADR-0052、0053 与 SD-11–15，11 题；one-architecture） | `sheets/ANM.json` | https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey（2026-10-17 起） |
+| CAPINFO 能力层与信息层确认（9 题；one-architecture） | `sheets/CAPINFO.json` | https://claude.ai/artifact/HfPaPW8QrbBoct65sS6w8g（2026-10-17 起，未实看渲染） |
+| TRN 过渡 ADR 批准（ADR-0054、0055、0056，14 题；one-architecture） | `sheets/TRN.json` | https://claude.ai/artifact/ViNWQdAhmyGLAA919TFBwN（2026-10-17 起，未实看渲染） |
+| B31 内部服务价值流（9 题；one-architecture） | `sheets/B31.json` | https://claude.ai/artifact/96WEt2s9swq3LNsjyfpcMz（2026-10-17 起，未实看渲染） |
+| ADR57 报价发出前用印核验的模块安排（1 题；one-architecture） | `sheets/ADR57.json` | https://claude.ai/artifact/HUEe8RUcHHVpY5MH7zkZkd（2026-10-17 起，未实看渲染） |
+| B31P 内部服务制度参数（14 题；one-architecture） | `sheets/B31P.json` | https://claude.ai/artifact/B9YzD6twHGRWoLFXqJxbcP（2026-10-17 起，未实看渲染） |
+| PAN 流程挂阶段与业务对象的规则（1 题；one-architecture） | `sheets/PAN.json` | https://claude.ai/artifact/SfHTmA4r4wYAh1hFVGvFFT（2026-10-17 起，未实看渲染） |
+| NM8A 生成命名检查（一）（113 题；one-architecture） | `sheets/NM8A.json` | https://claude.ai/artifact/SgUfRc2BhoDaJXyrp9BW9S（2026-10-17 起，未实看渲染） |
+| NM8B 生成命名检查（二）（117 题；one-architecture） | `sheets/NM8B.json` | https://claude.ai/artifact/ELUazxUJ3r14K4B8a17T3E（2026-10-17 起，未实看渲染） |
+| ANC 流程归集闭环首轮提议（2 题；one-architecture） | `sheets/ANC.json` | https://claude.ai/artifact/4hLPshAW69nzpxC9e6b2yd（2026-10-17 起，未实看渲染） |
+| OBJD 业务对象定论（9 题；one-architecture） | `sheets/OBJD.json` | https://claude.ai/artifact/FezyF4PPr5mnPGcoxL5CxT（2026-10-17 起，未实看渲染） |
+| OBDS 业务对象界定标准（5 题；one-architecture） | `sheets/OBDS.json` | https://claude.ai/artifact/G5cAu3TNBSRr3nt2aFqVJA（2026-10-17 起，未实看渲染） |
+| ADR58 状态转换记录批准（1 题；one-architecture） | `sheets/ADR58.json` | https://claude.ai/artifact/BCGoTd7EeWU1g1Zr83obEy（2026-10-17 起，未实看渲染） |
+| ADV1 对抗第 1 轮：对象、流程与度量口径（29 题；one-architecture） | `sheets/ADV1.json` | https://claude.ai/artifact/1GMstmFyvpk6pQJn1F5CVB（2026-10-19 起，未实看渲染） |
+| ADV1R 对抗第 1 轮：范围题（5 题，不预选；one-rules 出题） | `sheets/ADV1R.json` | https://claude.ai/artifact/3f8GHHVKLPJ1EgJHuv6yhk（2026-10-19 起，未实看渲染） |
+| ADR59 架构骨架登记网络 v5 批准（2 题，不预选；one-architecture） | `sheets/ADR59.json` | https://claude.ai/artifact/KbuuP7NiaDgzgMEpPDcqL7（2026-10-19 起，未实看渲染） |
+| OBJFIN 业务对象清单定稿（14 题，不预选；one-architecture） | `sheets/OBJFIN.json` | https://claude.ai/artifact/DYwP9bkmzJHD1RNncJaaYa（2026-10-19 起，未实看渲染） |
+| STKH 干系人与业务对象对应（10 题，不预选；one-architecture） | `sheets/STKH.json` | https://claude.ai/artifact/QD66je3YcbEgZToGPq9WwT（2026-10-19 起） |
+| STKH2 干系人子类（7 题，不预选；one-architecture） | `sheets/STKH2.json` | https://claude.ai/artifact/L4Ges3vue2F33Zhh4gwF7h（2026-10-19 起） |
+| B31R 行政事务规则要点（10 题，预选推荐；one-architecture） | `sheets/B31R.json` | https://claude.ai/artifact/VMfomUnRLmCHuQ9EfZr51i（2026-10-20 起） |
+| GL3 用语确认第四批（11 题，不预选；one-glossary） | `sheets/GL3.json` | https://claude.ai/artifact/EFi9EDMikxT4Pa9c9oBr3m（2026-10-21 起） |
 
 | 步骤 | 做法 |
 |---|---|

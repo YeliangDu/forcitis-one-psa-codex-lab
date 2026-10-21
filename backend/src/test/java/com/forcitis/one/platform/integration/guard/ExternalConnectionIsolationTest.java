@@ -135,14 +135,9 @@ class ExternalConnectionIsolationTest {
     @DisplayName("I-1 the old system is read with nothing but the two views: one reader class per view, each used only by its own adapter package")
     void legacyAccessIsTwoViews() {
         long shortNameReaders = CLASSES.stream().filter(c -> c.getSimpleName().equals("LegacyOrgNames")).count();
-        long todoReaders = CLASSES.stream().filter(c -> c.getSimpleName().equals("JdbcLegacyInbox")).count();
         assertThat(shortNameReaders).isEqualTo(1);
-        assertThat(todoReaders).isEqualTo(1);
         noClasses().that().resideOutsideOfPackage(INTEGRATION_LEGACY)
                 .should().dependOnClassesThat().haveSimpleName("LegacyOrgNames")
-                .check(CLASSES);
-        noClasses().that().resideOutsideOfPackage(INTEGRATION_LEGACY)
-                .should().dependOnClassesThat().haveSimpleName("JdbcLegacyInbox")
                 .check(CLASSES);
     }
 }

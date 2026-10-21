@@ -66,14 +66,14 @@ CREATE TRIGGER tg_state_transitions_append_only BEFORE UPDATE OR DELETE ON platf
     FOR EACH ROW EXECUTE FUNCTION platform_file.refuse_transition_rewrite();
 CREATE TRIGGER tg_state_transitions_append_only_truncate BEFORE TRUNCATE ON platform_file.state_transitions
     FOR EACH STATEMENT EXECUTE FUNCTION platform_file.refuse_transition_rewrite();
-COMMENT ON TABLE platform_file.state_transitions IS '状态转换：本 schema 各聚合每次状态变更一行，只追加，回退也正向记（ADR-0058）。粒度：每次状态变更一行';
+COMMENT ON TABLE platform_file.state_transitions IS '状态转换记录：本 schema 各聚合每次状态变更一行，只追加，回退也正向记（ADR-0058）。粒度：每次状态变更一行';
 COMMENT ON COLUMN platform_file.state_transitions.id IS '状态转换 ID（UUIDv7）';
-COMMENT ON COLUMN platform_file.state_transitions.aggregate_type_code IS '聚合类型：StoredFile、FalsePositiveJudgment、QuarantineReadRequest、PreservationCategoryVersion';
+COMMENT ON COLUMN platform_file.state_transitions.aggregate_type_code IS '聚合类型代码：StoredFile、FalsePositiveJudgment、QuarantineReadRequest、PreservationCategoryVersion';
 COMMENT ON COLUMN platform_file.state_transitions.aggregate_id IS '聚合 ID';
 COMMENT ON COLUMN platform_file.state_transitions.transition_sequence_number IS '转换序号：本次变更之后聚合行的 version，与聚合行同事务递增';
 COMMENT ON COLUMN platform_file.state_transitions.from_status IS '原状态：为空表示新建或迁入的初始状态；取值为本 schema 四类聚合的状态并集，合法流转见下方清单与各表触发器';
 COMMENT ON COLUMN platform_file.state_transitions.to_status IS '新状态';
-COMMENT ON COLUMN platform_file.state_transitions.occurred_on_date IS '业务日期（Asia/Shanghai）';
+COMMENT ON COLUMN platform_file.state_transitions.occurred_on_date IS '发生日期：业务日期（Asia/Shanghai）';
 COMMENT ON COLUMN platform_file.state_transitions.recorded_at IS '记录时间：注入时钟';
 COMMENT ON COLUMN platform_file.state_transitions.legal_entity_id IS '法人主体 ID：为空表示该聚合无法人归属（文件服务四类聚合均无，注册表登记 none）';
 COMMENT ON COLUMN platform_file.state_transitions.actor_type IS '操作者类型：USER 用户 / SYSTEM 系统操作者（一次性链接持有人、平台模块调用、作业均按 system-actors.txt 登记的系统操作者）';
@@ -395,7 +395,7 @@ COMMENT ON COLUMN platform_file.preservation_category_versions.default_years_cou
 COMMENT ON COLUMN platform_file.preservation_category_versions.personal_information_years_count IS '个人信息年限：为空表示同默认年限';
 COMMENT ON COLUMN platform_file.preservation_category_versions.start_basis_text IS '起算依据：说明文字，平台不枚举业务事件（ADR-0066 决定 3 第 4 条）';
 COMMENT ON COLUMN platform_file.preservation_category_versions.effective_from_date IS '生效日：作者提交内容的一部分；版本号大于 1 的，确认时早于确认日即拒';
-COMMENT ON COLUMN platform_file.preservation_category_versions.decision_ref_key IS '决定出处：intent、法务答复或 ADR 编号';
+COMMENT ON COLUMN platform_file.preservation_category_versions.decision_ref_key IS '决定出处键：intent、法务答复或 ADR 编号';
 COMMENT ON COLUMN platform_file.preservation_category_versions.confirmation_status IS '确认状态：PENDING 待确认 / CONFIRMED 已确认';
 COMMENT ON COLUMN platform_file.preservation_category_versions.author_id IS '作者用户 ID：为空表示迁移脚本写入的初始版本；确认人不得是作者';
 COMMENT ON COLUMN platform_file.preservation_category_versions.authored_at IS '保存该版本的时间';

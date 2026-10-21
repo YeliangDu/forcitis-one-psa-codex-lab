@@ -42,7 +42,9 @@
 ### 测量记录（one-ops 填）
 
 - **业务单文件大小（第 8 条前半，2026-10-21）**：A8 附件登记值，P50 0.15 MB、P90 7.4 MB、P95 22 MB、**P99 97 MB**、P99.9 465 MB、最大约 2.5 GB；> 25 MB 占 4.7%、> 100 MB 占 0.97%；明细见 `phase1a/infra/handoff/B-5-dba/evidence/att_size_result.md`。含义：`MaxFileSize`/`MaxScanSize` 要远高于 clamd 默认；ClamAV 单文件 2 GB 以上不能扫，文件服务大小上限须定在 2 GB 以内（业务决定，待用户）；压缩包与 octet-stream 是大文件主体。
-- 单次扫描 P95 耗时：待测（§4 第 2 步，dev 装好 clamd 后）。
+- **dev 安装（2026-10-21，用户选方案 A）**：官方 RPM clamav 1.4.6（LTS，GitHub 发布页；sha256 746feb3d…4bdd4ae 与发布页一致，签名经 Talos 公钥 5BAD CA26 65EF 59DC F8A2 3D8B 707F 0DB4 8083 6771 验证为好，公钥与官方文档仓库 cisco-talos.gpg 一致）；装在 /usr/local，单元 forcitis-one-clamd、forcitis-one-freshclam（开机自启），配置 /etc/forcitis-one/clamd.conf、freshclam.conf（root:root 644）；clamd 仅 unix socket /run/clamav/clamd.sock（clamav:forcitis 660，无 TCP/UDP 监听）；病毒库 /var/lib/clamav；出向沿用现有 443 规则，无安全组改动；程序升级需手动换 RPM，freshclam 只更库。暂定参数：MaxFileSize 100M、MaxScanSize 400M、MaxRecursion 10、MaxFiles 10000、MaxScanTime 120000、AlertExceedsMax/AlertEncryptedArchive/AlertEncryptedDoc yes。
+- **加密项必验（one-architecture 裁定，样本 claude/one-platform-file-u5）**：content-compressed.7z、content.7z、header.7z 均报 Heuristics.Encrypted.7Zip（plain.7z OK）；open-*.pdf 五个均报 Heuristics.Encrypted.PDF，perm-*.pdf 五个均扫得进（OK），plain.pdf OK。结论：clamd 路线成立，无须改走 commons-compress。EICAR 报 Eicar-Test-Signature；101 MB 文件报 Heuristics.Limits.Exceeded.MaxFileSize（AlertExceedsMax 生效）。
+- **单次扫描耗时（第 8 条后半，dev 4C16G，clamdscan SCAN 本地路径，随机内容、每次换文件避开缓存）**：1 MB p50 0.07 s / p95 0.08 s；20 MB p50 1.17 s / p95 1.45 s（n=20）；97 MB（≈P99）p50 3.39 s / p95 7.16 s（n=12）；97 MB 四并发 p50 3.94 s / p95 7.64 s（n=6）。样本为随机字节，非真实文档与压缩包混合，嵌套压缩炸弹未测；总超时建议 ≥ 60 s，待应用侧联调与生产规格再复核 MaxScanTime。
 
 ## 5. 实施步骤（运维侧）
 

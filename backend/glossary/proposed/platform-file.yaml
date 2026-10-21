@@ -489,7 +489,7 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: stored_file_threat_name
+- id: platform_file__threat_name
   zh: 病毒名
   en: ThreatName
   snake: threat_name
@@ -504,9 +504,9 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  homonyms:
-  - threat_name
   note: ''
+  homonyms:
+  - platform_integration__threat_name
 - id: preservation_sequence_number
   zh: 保存期序号
   en: PreservationSequenceNumber

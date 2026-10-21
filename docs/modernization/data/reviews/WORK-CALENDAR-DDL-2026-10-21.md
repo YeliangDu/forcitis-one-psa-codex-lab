@@ -63,3 +63,79 @@
 - 表结构 PR 须带预期表结构 diff；我复核实际 diff 后按 DD 门禁签发「数据设计：通过」，未见实际 diff 前不签。
 - **谁负责保障**：设计与签发 one-data；实现 one-1a-par（Flyway 追加迁移，注册表、守护测试随之改）；库内护栏的守护**更正**（原稿说 M4 查作者、确认人、`decision_ref`，不实）：`measurable_ddl_scan.py` 不在 main，M4 只查「主数据须有版本表」，不查这些列。现在的守护是：实现方写集成测试，断言作者、确认人、`decision_ref` 列非空与四眼 CHECK、早于生效日的差异被拒、改删被拒；我在签发前逐条核对实际 diff；扫描脚本是否扩查这些列另议，不作为本次签发依据。基线 V20261014141000 属已合并的开放基线（ADR-0038）：开放期内可直接改基线文件，否则追加迁移，由 one-1a-par 与 one-coordinator 按 ADR-0038 选择，本审不限定。
 - 业务边界（谁有权确认日历、官方通知如何登记）归 one-architecture/用户，与本审的结构要求分开。
+
+## 更正二（2026-10-21，答 one-1a-par 与 one-architecture 裁定不一致）
+
+1. **待确认状态留在版本表**：同意（`numbering_rule_versions` 先例，免 attendance→approval 依赖）。版本表加 `confirmation_status`（`PENDING_CONFIRMATION`、`CONFIRMED`），确认三列（`confirmed_by`、`confirmed_at`、`decision_ref`）确认前为空、确认后非空（具名 CHECK 联动）；触发器只放行 `PENDING_CONFIRMATION → CONFIRMED` 且只改这三列与状态，禁删禁清空；`state_transitions` 登记该流转（ADR-0058）。原稿「版本行只在确认通过时插入、无可变状态」作废；日期表仍全程只追加，且只能在版本为待确认时插入、确认后拒绝再插（触发器）。
+2. **`decision_ref`** 取「确认操作的审计记录 ID」：同意（`text`，确认后非空）。
+3. **迁入行的人（与 one-architecture 对齐后的定稿）**：`authored_by`、`confirmed_by` 为空当且仅当 `source_kind = MIGRATION`（具名 CHECK）；其余行 `confirmed_by` 必填，`authored_by` 仅运维起草的单人路径可空（`authored_by IS NULL OR confirmed_by IS NULL OR authored_by <> confirmed_by`，形同 `numbering_rule_versions`）；MIGRATION 行 `decision_ref` 非空，指向核对签字的审计记录，签字人由审计记录追溯。更正二第 3 点此前「作者、确认人可空、无签字人」的说法以本条为准，前稿「作者=装载主体」撤回。
+4. **批次引用**：不进业务表（ADR-0036 第 3 条、§14.2 M5；one-architecture 已同意，作废「须带批次引用」）。迁入版本在 `platform_integration.source_references` 有对照行（带批次列），迁入测试断言每个 MIGRATION 版本都有对照行。
+5. **官方通知文号列改名**：不用 `source_reference`（词表里它是来源对照，同名异义）；新列名交 one-glossary 登记，暂名 `official_notice_number`（`text`，`source_kind = OFFICIAL_NOTICE` 时必填，其余为空）。
+
+## 更正三（2026-10-21，与 one-architecture 对齐的依据列定稿）
+
+1. 版本行两列并存：`source_kind`（`AUTHORED`、`OPERATIONS_DRAFT`、`MIGRATION`，具名 CHECK）说明这一版怎么产生，决定作者、确认人规则（更正二第 3 点）；`adjustment_basis_kind`（`OFFICIAL_NOTICE`、`MANUAL`，具名 CHECK，`NOT NULL`，迁入行也不例外）说明调整依据。前文 `source_kind` 的 `OFFICIAL_NOTICE`/`MANUAL` 取值作废。
+2. `official_notice_number`（暂名，词表登记后定名）非空当且仅当 `adjustment_basis_kind = 'OFFICIAL_NOTICE'`（具名 CHECK），长度上限。
+3. 依据列落在版本行，不落例外日行。迁入版本缺文号的，按 MQ-C-01 拒收，由人事补文号或如实记 `MANUAL`，不得默认填值。
+
+## 更正四（2026-10-21，用户新要求：日历日期带依据、版本按 K-2 形状、确认须挂依据；PR #506 评论 6314490252、批准页 C1，intent @52bc173f、@fb236db8）
+
+**① 日期行依据列**：`work_calendar_version_days.basis_kind text NOT NULL`，具名 CHECK IN (`OFFICIAL` 官方通知、`COMPANY` 公司加休、`MANUAL` 手工更正)。**不可空**：可空等于「不知道为什么休息」，正是这次审计要消灭的状态；表是新建的，没有存量行要兼容。迁入行按来源填，来源说不清的按 MQ-C-01 拒收，由人事补依据或如实记 `MANUAL`。`MANUAL` 行另须 `basis_note text`（依据说明，非空、有长度上限，具名 CHECK：`basis_kind = 'MANUAL'` 当且仅当 `basis_note` 非空）；批准人即该版本的确认人（四眼）。更正三的版本行 `adjustment_basis_kind` 取消（依据已细到日），`official_notice_number` 的「当且仅当」条件改为下条。
+
+**② 版本表按 K-2 形状**（D6 / ADR-0034 的区间约定，暂不接 K-2 基础设施，只让形状一致，将来迁移是搬数据不是改结构）：
+- 版本行：`version_number`（≥1，每 `work_calendar_id + year_number` 从 1 递增）、`effective_from_date`、`effective_to_date`（空表示开放；只能把开放版本关闭一次，其余列不可改；具名 CHECK `effective_to_date IS NULL OR effective_to_date >= effective_from_date`，允许零长，同 ADR-0034）；确认人 `confirmed_by`、确认时刻 `confirmed_at`、依据 `decision_ref`（确认操作的审计记录 ID）。
+- 同一日历同一年**已确认**版本的生效区间不重叠：`EXCLUDE USING gist (work_calendar_id WITH =, year_number WITH =, daterange(effective_from_date, effective_to_date, '[)') WITH &&) WHERE (confirmation_status = 'CONFIRMED')`（沿用 workforce 的做法与 btree_gist 扩展，实现时核扩展已建）。待确认版本不占区间。
+- 确认新版本（`version_number > 1`）时，触发器把上一已确认版本的 `effective_to_date` 关为新版本的 `effective_from_date`（唯一允许的二次改动，形同 `refuse_version_rewrite`）；禁删禁清空。其余同更正二、三（待确认状态、四眼空当且仅当迁入、首版豁免生效日检查）。
+
+**③ 确认必须挂依据，库层约束**：版本行加 `official_notice_url text`、`official_notice_number text`（暂名，同更正三）、`company_leave_register_ref text`（公司加休登记的引用；登记本身是不是表、是什么形状由 one-architecture 定，库里先存引用文本，定了形状再加外键）。`PENDING → CONFIRMED` 的触发器在确认时检查本版本日期行：
+- 有 `OFFICIAL` 日期行 → `official_notice_url` 与 `official_notice_number` 都非空；
+- 有 `COMPANY` 日期行 → `company_leave_register_ref` 非空；
+- 有 `MANUAL` 日期行 → 每行 `basis_note` 非空（CHECK 已保证）；
+- 不满足即拒绝确认，错误码 `check_violation`；日期行只能在版本待确认时插入，所以确认时看到的就是最终集合。
+- 三个依据列都有格式 CHECK（链接 `^https://` 且长度上限；其余长度上限）；MIGRATION 来源的版本同受此约束（迁入缺依据按 MQ-C-01 拒收）。
+**待用户认定的一点**：「缺一不许确认」我按「用到哪类依据就必须挂哪类」实现。若用户意思是「官方通知与公司加休登记每个版本都必须同时挂」，则去掉上面的条件、两列恒为必填；这样没有加休的年份也得挂一份「无加休」登记。请 one-1a-par / one-coordinator 向用户确认后告诉我。
+
+## 更正五（2026-10-21，ADR-0072 已采纳后的重签；用户 A72、C1，PR #506 @ba5c5c00）
+
+1. **更正四「待用户认定」一点已有答案：恒必填，不是按用途**。凡 `CONFIRMED` 版本：`official_notice_number`、`official_notice_url`、加休登记三者都非空；没有加休也要显式登记「无」。库层写法：
+   - `company_leave_register_kind text`，具名 CHECK IN (`REGISTERED`、`NONE`)；`company_leave_register_ref text`，`REGISTERED` 时非空、`NONE` 时为空（具名 CHECK）；确认前三列可空，`CONFIRMED` 时 `official_notice_number`、`official_notice_url`、`company_leave_register_kind` 都非空（具名 CHECK 与确认状态联动，加上确认触发器双保险）；
+   - 一致性：有 `COMPANY` 日期行的版本，`company_leave_register_kind` 必须是 `REGISTERED`（`NONE` 与 `COMPANY` 日期行矛盾，确认触发器拒绝）；
+   - 更正三「`official_notice_number` 非空当且仅当 OFFICIAL_NOTICE」作废，更正四③「用到哪类才必挂」作废，其余条目（链接 `^https://` 与长度上限等）不变。
+2. **`adjustment_basis_kind` 保留**在版本行（NOT NULL，`OFFICIAL_NOTICE`/`MANUAL`），只表示这一版改动的依据；日期行 `basis_kind`（OFFICIAL/COMPANY/MANUAL）说明每个例外日为什么是例外，两者不冲突。
+3. **K-2 形状**：同更正四②，已含生效区间（起止日）、版本号、作者与确认人、确认时刻、依据（`decision_ref`）。
+4. **「次年是否已确认」查询**：按 (日历, 年份) 取已确认版本，`uk_…(work_calendar_id, year_number, version_number)` 加 `EXCLUDE` 的索引已覆盖，另加部分索引 `ix_work_calendar_versions_confirmed ON (work_calendar_id, year_number) WHERE confirmation_status = 'CONFIRMED'`，让 11 月 15 日起的每日告警和 12 月 1 日起的阻断检查走索引；不需要新列。告警与阻断是应用行为，不在表结构里。
+
+## 更正六（2026-10-21，答 one-coordinator：公司取消官方调休的那几天要记一行）
+
+**结论：要记，`day_kind` 加第三种取值 `MAKE_UP_WORKDAY_CANCELLED`（官方调休上班、公司取消；暂名，交 one-glossary 登记），不用「`basis_kind = COMPANY` 的休息行」。**
+
+理由：日期行的含义是「相对周一至周五上班、周末休息这条默认规则的例外」；`HOLIDAY` 记在周末上语义矛盾（周末本来就休息），而且读取方会把它误当作多放的假；取消调休的周末对有效日历来说就是普通周末，不是例外。单列一种取值，读取方一条规则处理：`MAKE_UP_WORKDAY_CANCELLED` 按普通周末休息计，行本身只承担「查得到为什么不按官方上班」。
+
+表结构：
+- `day_kind` 具名 CHECK 取值 `HOLIDAY`、`MAKE_UP_WORKDAY`、`MAKE_UP_WORKDAY_CANCELLED`；
+- 调休必在周末的 CHECK 扩到两种调休取值（`ck_…_make_up_weekend`：`day_kind NOT IN ('MAKE_UP_WORKDAY', 'MAKE_UP_WORKDAY_CANCELLED') OR ISODOW IN (6, 7)`）；
+- 具名 CHECK：`day_kind = 'MAKE_UP_WORKDAY_CANCELLED'` 时 `basis_kind IN ('COMPANY', 'MANUAL')`（取消是公司或手工更正的决定，不是官方的）且 `basis_note` 非空，`basis_note` 写明取消的是哪份官方通知里的哪个调休；
+- 同一版本同一日期仍只有一行（`UNIQUE (work_calendar_version_id, calendar_date)`），所以该日在这一版里不再出现 `MAKE_UP_WORKDAY` 行；官方原本的调休安排只留在 `basis_note` 与版本行的官方通知文号、链接里。
+- 确认触发器：有 `MAKE_UP_WORKDAY_CANCELLED` 行的版本，`company_leave_register_kind` 必须是 `REGISTERED`（取消调休算公司加休登记的一部分，与 COMPANY 日期行同规则）。
+- 迁入：one-ops 投产表单列的 5 天（2022-01-30、2023-01-28/29、2025-01-26、2026-02-14）按此取值迁入，依据说明引用其依据文件；2023-04-23 与 2025-01-25 两条定性未决，未定前按 MQ-C-01 拒收。
+
+## 更正七（2026-10-21，ADR-0072 @545c338f 对齐；intent 2026-10-21-131415、-132249）
+
+1. **版本级 `adjustment_basis_kind` 取消**（更正五第 2 点作废）：依据只按天记，`work_calendar_version_days.basis_kind`（`OFFICIAL`/`COMPANY`/`MANUAL`，不可空，迁入行也不例外），版本行不再有 `adjustment_basis_kind`。词表「调整依据类别」改为按天的「依据」，增 `COMPANY` 取值，由 one-glossary 登记。
+2. **`MANUAL` 要有依据和批准人**：依据 = `basis_note`（更正四）；批准人 = 日期行新增列 `approved_by uuid`，具名 CHECK `basis_kind = 'MANUAL'` 当且仅当 `approved_by` 非空，且 `approved_by` 不得等于版本作者（作者非空时）。不能只靠版本确认人：迁入版本的确认人按规则为空，而迁入的 `MANUAL` 行也必须能追到批准人（`MANUAL` 行缺批准人按 MQ-C-01 拒收）。
+3. 确认前同时挂官方通知（文号 + 链接）和公司加休登记（可显式「无」）：同更正五，不变。
+4. 投产首次写入「官方 + 公司加休表」，`source_kind = MIGRATION`：同更正二、三；其中公司取消官方调休的日子用 `MAKE_UP_WORKDAY_CANCELLED`（更正六）。
+
+## 签发（设计层）
+
+数据设计：通过（one-data，2026-10-21，依据 DATA_DESIGN_GATE、SESSION_PLAYBOOK §14.1 D6/D15/D17、ADR-0033 第 9 项、ADR-0072 @545c338f 与更正一至七）。
+
+范围：日历表结构的设计条件（根表、版本表按 K-2 形状、按天依据、确认须挂官方通知与加休登记、取消调休取值、四眼与迁入例外）。实际迁移与表结构 diff 出来后，我再复核实际 diff；那一步没做之前，不签表结构 PR。
+
+## 更正八（2026-10-21，列名按命名守护）
+
+日历版本表的 `decision_ref`（确认操作的审计记录 ID）改名 **`decision_audit_entry_id uuid`**：存的是审计记录的 uuid，`_key` 按 NAMING_STANDARD 只用于外部系统的文本标识，uuid 引用用 `_id`；命名守护也不允许裸 `decision_ref`。跨 schema 不建外键，确认后非空（迁入版本指核对签字的审计记录）。同一概念在别处存的若是 intent、法务答复、ADR 编号这类文本出处（如文件服务的保存类别版本），列名用 `decision_ref_key text`，两种写法在 D15 都算「决定出处」，扫描脚本 M6 都认。
+
+## 更正九（2026-10-21，对齐 SEC-1021-COO-01，见 IMP-1021-NX5-03 复核）
+
+作者为空会绕过「确认人不得是作者」。更正二、三里「运维起草单人路径作者可空」撤销：`source_kind` 取值改为 `AUTHORED`（界面起草与运维起草都算，作者必填，确认人不得是作者）与 `MIGRATION`（作者与确认人为空，只由属主身份或约定的迁入角色写入，插入触发器拦运行账号）；`OPERATIONS_DRAFT` 取值取消。其余不变。

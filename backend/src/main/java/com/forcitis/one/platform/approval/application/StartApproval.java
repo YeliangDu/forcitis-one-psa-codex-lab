@@ -65,6 +65,7 @@ public class StartApproval {
 
     @Transactional
     public ApprovalInstanceId execute(ApprovalStartRequest request) {
+        approvals.requireAcceptedDocumentType(request);
         requests.lockForStart(request.processKey(), request.document());
         Optional<ApprovalRequest> existing = requests.findForUpdate(request.processKey(), request.document());
         if (existing.isPresent()) {
