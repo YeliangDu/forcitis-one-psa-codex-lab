@@ -31,6 +31,29 @@ COMMENT ON COLUMN platform_numbering.document_types.retired_date IS '退休日�
 COMMENT ON COLUMN platform_numbering.document_types.created_at IS '创建时间';
 COMMENT ON COLUMN platform_numbering.document_types.updated_at IS '更新时间';
 
+CREATE FUNCTION platform_numbering.guard_document_type_change() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+BEGIN
+    IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
+        RAISE EXCEPTION 'platform_numbering.document_types is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NEW.document_type_id IS DISTINCT FROM OLD.document_type_id OR NEW.code IS DISTINCT FROM OLD.code
+       OR NEW.owner_bc_code IS DISTINCT FROM OLD.owner_bc_code OR NEW.is_finance_confirmation_required IS DISTINCT FROM OLD.is_finance_confirmation_required
+       OR NEW.effective_from_date IS DISTINCT FROM OLD.effective_from_date OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+        RAISE EXCEPTION 'a registered document type cannot be rewritten; only retired_date and number_code may be set, once' USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF (OLD.retired_date IS NOT NULL AND NEW.retired_date IS DISTINCT FROM OLD.retired_date)
+       OR (OLD.number_code IS NOT NULL AND NEW.number_code IS DISTINCT FROM OLD.number_code) THEN
+        RAISE EXCEPTION 'retired_date and number_code of a document type are set once and never changed' USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+CREATE TRIGGER tg_document_types_append_only BEFORE UPDATE OR DELETE ON platform_numbering.document_types
+    FOR EACH ROW EXECUTE FUNCTION platform_numbering.guard_document_type_change();
+CREATE TRIGGER tg_document_types_append_only_truncate BEFORE TRUNCATE ON platform_numbering.document_types
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_numbering.guard_document_type_change();
+
 CREATE TABLE platform_numbering.numbering_rules (
     numbering_rule_id   uuid        PRIMARY KEY,
     document_type_id    uuid        NOT NULL,
@@ -39,7 +62,7 @@ CREATE TABLE platform_numbering.numbering_rules (
     version             bigint      NOT NULL DEFAULT 0,
     event_count         bigint      NOT NULL DEFAULT 0,
     CONSTRAINT uk_numbering_rules_document_type_id UNIQUE (document_type_id),
-    CONSTRAINT fk_numbering_rules_document_type_id FOREIGN KEY (document_type_id) REFERENCES platform_numbering.document_types (document_type_id)
+    CONSTRAINT fk_numbering_rules_document_type_id FOREIGN KEY (document_type_id) REFERENCES platform_numbering.document_types (document_type_id) ON DELETE RESTRICT
 );
 COMMENT ON TABLE platform_numbering.numbering_rules IS '编号规则：每种单据一条，是版本的聚合根；模板内容在 numbering_rule_versions，由组织数据管理员维护、业务管理员确认（凭证号另需财务确认）。粒度：每种单据一行';
 COMMENT ON COLUMN platform_numbering.numbering_rules.numbering_rule_id IS '编号规则 ID（UUIDv7）';
@@ -60,7 +83,7 @@ CREATE TABLE platform_numbering.numbering_counters (
     updated_at           timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_numbering_counters PRIMARY KEY (numbering_counter_id),
     CONSTRAINT uk_numbering_counters_document_type_legal_entity_period UNIQUE NULLS NOT DISTINCT (document_type_id, legal_entity_id, period_key),
-    CONSTRAINT fk_numbering_counters_document_type_id FOREIGN KEY (document_type_id) REFERENCES platform_numbering.document_types (document_type_id),
+    CONSTRAINT fk_numbering_counters_document_type_id FOREIGN KEY (document_type_id) REFERENCES platform_numbering.document_types (document_type_id) ON DELETE RESTRICT,
     CONSTRAINT ck_numbering_counters_scope_kind_matches_legal_entity CHECK ((counter_scope_kind = 'GLOBAL') = (legal_entity_id IS NULL))
 );
 CREATE INDEX ix_numbering_counters_legal_entity_id ON platform_numbering.numbering_counters (legal_entity_id);
@@ -86,7 +109,7 @@ CREATE TABLE platform_numbering.legacy_numbers (
     updated_at         timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_legacy_numbers PRIMARY KEY (id),
     CONSTRAINT uk_legacy_numbers_source_system_document_type_id_legacy_number UNIQUE (source_system, document_type_id, legacy_number),
-    CONSTRAINT fk_legacy_numbers_document_type_id FOREIGN KEY (document_type_id) REFERENCES platform_numbering.document_types (document_type_id)
+    CONSTRAINT fk_legacy_numbers_document_type_id FOREIGN KEY (document_type_id) REFERENCES platform_numbering.document_types (document_type_id) ON DELETE RESTRICT
 );
 CREATE INDEX ix_legacy_numbers_document_type_id ON platform_numbering.legacy_numbers (document_type_id, document_id);
 COMMENT ON TABLE platform_numbering.legacy_numbers IS '原编号：新系统单据与其迁移前编号的对照，只读检索，只追加；各单据在其切换阶段导入。粒度：每个来源系统的每个单据类型的每个原编号一行';

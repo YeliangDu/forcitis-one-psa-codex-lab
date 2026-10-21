@@ -98,4 +98,22 @@ class DocumentTypeRegistryIT {
         assertThatCode(() -> documentTypes.requireInForce(code, LocalDate.of(2026, 8, 31))).doesNotThrowAnyException();
         assertThatThrownBy(() -> documentTypes.requireInForce(code, LocalDate.of(2026, 9, 1))).isInstanceOf(DomainException.class);
     }
+
+    @Test
+    @DisplayName("a registered type is never deleted or rewritten; retired_date and number_code are set once")
+    void registeredRowsAreAppendOnly() {
+        jdbc.sql("insert into platform_numbering.document_types (document_type_id, code, owner_bc_code, is_finance_confirmation_required, effective_from_date)"
+                + " values (uuidv7(), 'SITE_REPORT', 'delivery', false, DATE '2026-01-01')").update();
+
+        assertThatThrownBy(() -> jdbc.sql("delete from platform_numbering.document_types where code = 'SITE_REPORT'").update())
+                .hasMessageContaining("append-only");
+        assertThatThrownBy(() -> jdbc.sql("truncate platform_numbering.document_types cascade").update()).hasMessageContaining("append-only");
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.document_types set code = 'SITE_NOTE' where code = 'SITE_REPORT'").update())
+                .hasMessageContaining("cannot be rewritten");
+        assertThat(jdbc.sql("update platform_numbering.document_types set retired_date = DATE '2026-12-31', number_code = 'SR' where code = 'SITE_REPORT'").update()).isEqualTo(1);
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.document_types set retired_date = DATE '2027-01-31' where code = 'SITE_REPORT'").update())
+                .hasMessageContaining("set once");
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.document_types set number_code = 'SX' where code = 'SITE_REPORT'").update())
+                .hasMessageContaining("set once");
+    }
 }
