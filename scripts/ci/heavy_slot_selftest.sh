@@ -40,10 +40,6 @@ mkdir -p "$work/slots/slot1" "$work/slots/slot2"
 touch -t 200101010000 "$work/slots/slot1" "$work/slots/slot2"
 "$tool" -- true; check "claims that never got an owner file are reclaimed once old" "$?" 0
 
-rm -rf "$work/slots"; mkdir -p "$work/slots"
-"$tool" --no-slot -- true; check "--no-slot runs without a slot" "$?" 0
-check "--no-slot leaves no slot behind" "$(ls "$work/slots")" ""
-
 mkdir -p "$work/bin"
 printf '#!/bin/sh\necho "$@" >"%s/policy"\nexec "$@"\n' "$work" >"$work/bin/taskpolicy"
 sed -i.bak 's/^exec "\$@"$/shift; exec "$@"/' "$work/bin/taskpolicy"; rm -f "$work/bin/taskpolicy.bak"

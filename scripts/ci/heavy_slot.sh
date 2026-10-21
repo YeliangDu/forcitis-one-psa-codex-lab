@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
 # Runs a heavy command (backend compile or tests) in one of a few machine-wide slots, at background priority.
-# Usage: heavy_slot.sh [--no-slot] -- command [args...]
-#   default     waits for a free slot (at most FORCITIS_HEAVY_SLOTS run at once, default 2, across every checkout and session of this user), then runs the command
-#   --no-slot   only lowers the priority (frontend verify: heavy, but not what saturates the machine's containers)
+# Usage: heavy_slot.sh -- command [args...]
+#   waits for a free slot (at most FORCITIS_HEAVY_SLOTS run at once, default 2, across every checkout and session of this user), then runs the command
+# Not for frontend verify: its UI tests time out under background priority on a loaded machine (seen 2026-10-21, load 12 to 35)
 # Environment: FORCITIS_HEAVY_SLOTS (default 2), FORCITIS_HEAVY_WAIT_SECONDS (default 3600; exit 75 when no slot frees up), FORCITIS_HEAVY_DIR (slot directory, default ~/.cache/forcitis-one/heavy-slots)
 # A slot is a directory holding the owner's pid and start time; one whose owner is gone is reclaimed. Bash 3.2 compatible (macOS).
 set -uo pipefail
 
-use_slot=true
-if [ "${1:-}" = "--no-slot" ]; then use_slot=false; shift; fi
 [ "${1:-}" = "--" ] && shift
-[ $# -gt 0 ] || { echo "usage: heavy_slot.sh [--no-slot] -- command [args...]" >&2; exit 2; }
+[ $# -gt 0 ] || { echo "usage: heavy_slot.sh -- command [args...]" >&2; exit 2; }
 
 slots=${FORCITIS_HEAVY_SLOTS:-2}
 wait_limit=${FORCITIS_HEAVY_WAIT_SECONDS:-3600}
@@ -55,20 +53,18 @@ claim() {
   return 1
 }
 
-if $use_slot; then
-  mkdir -p "$dir" || { echo "heavy_slot.sh: cannot create $dir" >&2; exit 1; }
-  trap release EXIT
-  waited=0
-  until claim; do
-    if [ "$waited" -ge "$wait_limit" ]; then
-      echo "heavy_slot.sh: no free slot after ${waited}s (all $slots held); not starting: $*" >&2
-      exit 75
-    fi
-    [ $((waited % 60)) -eq 0 ] && echo "heavy_slot.sh: waiting for a heavy slot ($slots in use machine-wide), ${waited}s so far" >&2
-    sleep 2
-    waited=$((waited + 2))
-  done
-fi
+mkdir -p "$dir" || { echo "heavy_slot.sh: cannot create $dir" >&2; exit 1; }
+trap release EXIT
+waited=0
+until claim; do
+  if [ "$waited" -ge "$wait_limit" ]; then
+    echo "heavy_slot.sh: no free slot after ${waited}s (all $slots held); not starting: $*" >&2
+    exit 75
+  fi
+  [ $((waited % 60)) -eq 0 ] && echo "heavy_slot.sh: waiting for a heavy slot ($slots in use machine-wide), ${waited}s so far" >&2
+  sleep 2
+  waited=$((waited + 2))
+done
 
 if command -v taskpolicy >/dev/null 2>&1; then
   set -- taskpolicy -b "$@"

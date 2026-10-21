@@ -385,7 +385,7 @@ if $builds_relevant; then
   if $pre_push && [ -z "$missing" ]; then
     report SKIP "frontend verify" "pre-push mode: CI runs the full verify"
   elif [ -z "$missing" ]; then
-    run_step "frontend verify (pnpm verify)" in_frontend "$heavy" --no-slot -- pnpm verify
+    run_step "frontend verify (pnpm verify)" in_frontend pnpm verify
   elif touches '^frontend/'; then
     report FAIL "frontend verify" "frontend changed: $missing"
   else
