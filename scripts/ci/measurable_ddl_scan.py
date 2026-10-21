@@ -2,7 +2,7 @@
 """Scan the DDL for the "measurable raw material" items M1-M6 (rules: MEASURABLE_RAW_MATERIAL_SPEC.md).
 
 M6 (D15): a registry entry with role CONFIG_VERSIONED names `versions_table` (schema.table); that table has author, authored_at, confirmer,
-confirmed_at, decision_ref and effective_from_date columns and is APPEND_ONLY in the registry.
+confirmed_at, decision_ref (or decision_ref_key) and effective_from_date columns and is APPEND_ONLY in the registry.
 
 Usage: measurable_ddl_scan.py [--root DIR] [--json] | measurable_ddl_scan.py --self-test
 Report only: the exit status is 0 unless the SQL or the registry cannot be read. Regress by `schema.table.column`, never by line number.
@@ -151,7 +151,7 @@ def scan_all(root):
                 if (registry.get(vt) or {}).get("mutability") not in ("APPEND_ONLY", "CONDITIONAL_UPDATE"):
                     found["M6"].append((vt, "config versions table is not APPEND_ONLY (or CONDITIONAL_UPDATE for the confirm step) in the registry"))
                 required = [("author", ("author_id", "authored_by")), ("authored_at", ("authored_at",)), ("confirmer", ("confirmed_by",)),
-                            ("confirmed_at", ("confirmed_at",)), ("decision_ref", ("decision_ref",)), ("effective date", ("effective_from_date",))]
+                            ("confirmed_at", ("confirmed_at",)), ("decision_ref", ("decision_ref", "decision_ref_key")), ("effective date", ("effective_from_date",))]
                 missing = [label for label, names in required if not any(n in vcols for n in names)]
                 if missing:
                     found["M6"].append((vt, "config versions table missing: " + ", ".join(missing)))
@@ -203,6 +203,8 @@ CREATE TABLE demo.others (id uuid PRIMARY KEY);
 CREATE TABLE demo.thirds (id uuid PRIMARY KEY);
 ALTER TABLE demo.sheets ADD CONSTRAINT fk_o FOREIGN KEY (other_id) REFERENCES demo.others (id), ADD CONSTRAINT fk_t FOREIGN KEY (third_id) REFERENCES demo.thirds (id);
 CREATE TABLE demo.empty (id uuid PRIMARY KEY);
+CREATE TABLE demo.key_cfg (id uuid PRIMARY KEY);
+CREATE TABLE demo.key_versions (id uuid PRIMARY KEY, author_id uuid, authored_at timestamptz, confirmed_by uuid, confirmed_at timestamptz, decision_ref_key text, effective_from_date date);
 CREATE TABLE demo.flags (id uuid PRIMARY KEY, flag_status text CHECK (flag_status = ANY (ARRAY['A'::text, 'B'::text])));
 CREATE TABLE demo.bad_cat (id uuid PRIMARY KEY);
 CREATE TABLE demo.cfg (id uuid PRIMARY KEY);
@@ -219,7 +221,7 @@ CREATE TABLE demo3.notes (id uuid PRIMARY KEY, note_status text NOT NULL CHECK (
 CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES demo.orders (id), unit_code text, line_quantity numeric(10,2), price_currency_code text, price numeric);
 """)
         open(os.path.join(tmp, "backend", "architecture", "data-access-registry.yaml"), "w", encoding="utf-8").write(
-            "tables:\n  demo.customers:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n  demo.rules:\n    role: CONFIG_VERSIONED\n    versions_table: demo.rule_versions\n  demo.rule_versions:\n    mutability: APPEND_ONLY\n  demo.addresses:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.empty:\n  demo.bad_cat:\n    data_category: master\n  demo.cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.cfg_versions\n  demo.cfg_versions:\n    mutability: APPEND_ONLY\n  demo.no_vt_cfg:\n    role: CONFIG_VERSIONED\n  demo.bare_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: bare_cfg_versions\n  demo.ghost_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.ghost_cfg_versions\n  demo.mutable_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.mutable_cfg_versions\n  demo.mutable_cfg_versions:\n    mutability: MUTABLE\n  demo3.notes:\n    state_transitions_exempt: technical note, no lifecycle\n")
+            "tables:\n  demo.customers:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n  demo.rules:\n    role: CONFIG_VERSIONED\n    versions_table: demo.rule_versions\n  demo.rule_versions:\n    mutability: APPEND_ONLY\n  demo.addresses:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.empty:\n  demo.key_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.key_versions\n  demo.key_versions:\n    mutability: APPEND_ONLY\n  demo.bad_cat:\n    data_category: master\n  demo.cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.cfg_versions\n  demo.cfg_versions:\n    mutability: APPEND_ONLY\n  demo.no_vt_cfg:\n    role: CONFIG_VERSIONED\n  demo.bare_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: bare_cfg_versions\n  demo.ghost_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.ghost_cfg_versions\n  demo.mutable_cfg:\n    role: CONFIG_VERSIONED\n    versions_table: demo.mutable_cfg_versions\n  demo.mutable_cfg_versions:\n    mutability: MUTABLE\n  demo3.notes:\n    state_transitions_exempt: technical note, no lifecycle\n")
         found, total, _ = scan_all(tmp)
         items = {k: {i for i, _ in v} for k, v in found.items()}
         assert "demo.orders.total_amount" in items["M1"], "M1 money without currency"
@@ -227,6 +229,7 @@ CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES 
         assert "demo.lines.line_quantity" not in items["M1"] and "demo.lines.price" not in items["M1"], "M1: unit / currency present"
         assert "demo.orders" in items["M2"], "M2"
         assert "demo.customers" in items["M4"], "M4: a 主数据 table without a versions table"
+        assert "demo.key_versions" not in items["M6"], "M6: decision_ref_key counts as decision_ref"
         assert items["M6"] == {"demo.rule_versions", "demo.no_vt_cfg", "demo.bare_cfg", "demo.ghost_cfg", "demo.mutable_cfg_versions"}, "M6: the four errors; a complete APPEND_ONLY table passes"
         why = {i: w for i, w in found["M6"]}
         assert "missing" in why["demo.rule_versions"] and "confirmed_at" in why["demo.rule_versions"], "M6: missing columns reported with their names"
