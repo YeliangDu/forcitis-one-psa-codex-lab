@@ -81,3 +81,13 @@ N1–N3 逐项核过：`platform_file.state_transitions` 的 DDL 与 `STATE_TRAN
 2. 注册表行：`preservation_category_versions` 要写 `mutability: CONDITIONAL_UPDATE`（仅确认步），扫描脚本 M6（#504）按此判定。
 3. `system-actors.txt` 三行与守护测试随表结构 PR 提交；`data-classification.txt` 十二张表分级（见草案第 9 节）。
 4. 签发只覆盖本草案的数据设计；单元 6 的集成测试（改键与插关联顺序、触发器非法流转被拒）由实现方补。
+
+## 第四轮（2026-10-21，复核草案第 4 版 `claude/one-platform-file` @01119018）
+
+与已签 v3 的差异逐行比对，只有一处设计变化（对象键建行即写定、触发器禁改，对齐 ADR-0060 决定 3、ADR-0070 决定 2），其余行不变：
+- `ck_stored_files_object_key` 去掉 staging 键形，月份收紧为 `01–12`，末段仍等于本行 ID，隔离键与 `file_status` 的联动 CHECK 不变；
+- `guard_stored_file_change` 的可改列只剩 `file_status`（按流转清单）、`updated_at`、`version`，`object_key` 在不可变之列，去掉 staging→files 分支；
+- `ix_stored_files_staging`（依赖 staging 键形）换成 `ix_stored_files_available_stored_at`（`WHERE file_status = 'AVAILABLE'`），临时区过期作业按「可用且无关联」用 `file_bindings` 的 `stored_file_id` 前导唯一索引做反连接，路径有索引覆盖（D19）；
+- 注册表 condition 改为「只有 file_status 按流转清单可改」。
+
+数据设计：通过（one-data，2026-10-21，依据 v3 签发范围不变，第 4 版变更逐行核对；ADR-0060 决定 3、ADR-0070 决定 2）。表结构 PR 阶段仍复核实际 diff；「正式区孤儿只读核对作业」属单元 6，实现时我复核其只告警、不删。
