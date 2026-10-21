@@ -31,6 +31,7 @@
 - 在线页：会话日报 https://claude.ai/artifact/8CAmf8sAJsoaFNwetoGC7x （每天早上：scripts/ops/session_daily.py 出数 → 补 grade/assessment/action → 数据放 scratchpad(19432a27)/daily/site/data/<日期>.json 并更新 index.json → 以同一 file_path 重发 session-daily.html 与 files）；对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL （源与 refresh.sh 在 scratchpad(19432a27)/align，已钉左栏）。
 - 收件箱待用户答：ANM 命名体系与施工图方法 https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey ；N1 规则待定 https://claude.ai/artifact/BTo6TuYzW7H8vgjCanh4Vq 。用户说「答完」即取答复分发。
 - 下一文档合集清单：scratchpad(57026514)/next-docs-train.txt（调度批准、one-merge 中午/晚上收）；调度自己的规则、画像、台账、intent、裁定改动都在分支 claude/one-coordinator-two-lanes。
+- 验收裁定登记后立即请 one-merge 加急小合集：acceptance_rulings 守护只认 base（main）上已有的裁定，随实现 PR 带入无效（10-21 F 卡被卡）。
 - 裁定：rulings/COORD-2026-10-17.md（RULING-COORD-20261017-01..04），one-quality 登记 ACCEPTANCE_RULINGS.yaml。
 - 在途：one-1a-par ADR-0034-IMPL（3 PR，PR-3 依赖 one-1a-next-5 的 WF-REINSTATE）；one-1a-next-5 NITS-1 待 #454 后入队；one-architecture 云端试点派单待写；ultrareview 免费剩 2 次（只能电脑发起）；云会话额度 11-05 到期。
 - **首要目标（用户 2026-10-17）**：把每个会话调成本项目最优秀的团队——会话日报（每天早上，同一在线页）→ 每周胜任力评审 → 改进动作落为守护、评审模板、画像工作守则（intent 本日）。
