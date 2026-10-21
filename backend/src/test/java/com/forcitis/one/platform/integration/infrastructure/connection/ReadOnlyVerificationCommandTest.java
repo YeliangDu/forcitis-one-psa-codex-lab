@@ -238,6 +238,14 @@ class ReadOnlyVerificationCommandTest {
     }
 
     @Test
+    @DisplayName("RULING-P3B-17 --connection=legacy-approval 是用法错误（退出码 2），提示新名 integration-legacy-inbox，不核实")
+    void theRetiredConnectionNameNamesItsReplacement() {
+        assertThat(run("--connection=legacy-approval")).isEqualTo(ReadOnlyVerificationCommand.EXIT_USAGE);
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains("--connection=integration-legacy-inbox");
+        assertThat(output()).doesNotContain("RESULT");
+    }
+
+    @Test
     @DisplayName("PAR-2 复审 Low the command refuses to run together with the migrate or identity-operations profile")
     void runsAlone() {
         for (String other : new String[] {"migrate", "identity-operations"}) {

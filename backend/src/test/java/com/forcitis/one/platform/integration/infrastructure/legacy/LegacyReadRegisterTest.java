@@ -80,8 +80,15 @@ class LegacyReadRegisterTest {
         List<Row> rows = ExternalReadRegister.rows();
         String names = LegacyOrgNames.shortNameSql(SHORT_NAME_VIEW);
 
-        assertThat(mismatches(rows, "SELECT id FROM " + SHORT_NAME_VIEW)).hasSize(1);
-        assertThat(mismatches(rows, names, "SELECT secret_value FROM dbo.other_table")).hasSize(1);
+        assertThat(mismatches(rows, names.replace("short_name FROM", "short_name, extra_name FROM"))).as("one more column read").hasSize(1);
+        assertThat(mismatches(rows, "SELECT id FROM " + SHORT_NAME_VIEW)).as("one column less read").hasSize(1);
+        assertThat(mismatches(rows, names, "SELECT secret_value FROM dbo.other_table")).as("a view nobody registered").hasSize(1);
+        assertThat(mismatches(rows, names + " WHERE status = 1")).as("a filter column nobody registered").hasSize(1);
+        for (String operator : List.of("> 1", "< 1", "IN (1)", "LIKE 'x'", "IS NULL", "<> 1")) {
+            assertThat(mismatches(rows, names + " WHERE status " + operator)).as("a filter column compared with " + operator).hasSize(1);
+        }
+        assertThat(mismatches(rows, names + " WHERE status = 1 AND other_flag IS NULL")).as("two filter columns").hasSize(1);
+        assertThat(mismatches(rows, names + " ORDER BY sort_key DESC")).as("an ordering column nobody registered").hasSize(1);
         List<Row> extra = new ArrayList<>(rows);
         extra.add(new Row(0, Map.<String, Object>of("database", rows.stream().filter(r -> !r.database().equals(ExternalReadRegister.A8)).findFirst().orElseThrow().database(), "object", SHORT_NAME_VIEW, "column", "extra_column",
                 "source", "dbo.other_table.extra_column", "category", "ORG_UNIT", "sensitivity", "INTERNAL", "purpose", "RUNTIME_SYNC")));
