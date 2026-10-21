@@ -251,6 +251,17 @@ contexts:
   basis: legacy-evidence
   review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L19,L75；02-子域划分.md 02 L90；ADR-0017 对照表
+- id: contract.agreement
+  zh: 协议与变更索赔
+  subdomain: contract
+  kind: business
+  status: planned
+  schema: contract_agreement
+  blueprint_bc: B-05
+  legacy_bc: null
+  basis: adr
+  evidence: ADR-0051 决定 3（B-05，合并 contract.baseline、contract.changeorder、contract.riskdelivery）；SSOT 重写尚未进行，旧三行暂留
+  note: ADR-0076 引用而先行登记（one-architecture 2026-10-21）
 - id: contract.baseline
   zh: 合约基线 BC
   subdomain: contract
