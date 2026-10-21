@@ -11,7 +11,7 @@
 - **队列/合并**：文件服务 #521（修词表）→#525→#527；词表 #536→#537→#538；文档合集按 one-merge 报；one-quality 的 #531（性能三项）、#541（mq：FF-MAIN 等）、主检出守护 PR 在走；主检出 7 个未跟踪提案文件随 admission-file 合集入库后由 one-merge 删。
 - **one-quality 队列**：#531 → #541 → 主检出守护 → 派工登记表（陈旧检查+补登脚本）→ 后台任务命名钩子 → 提交信息钩子 → QUA-05 重跑 → 网络规则 CI → QUA-03。
 - **one-1a-par**：日历改造 PAR-02（DDL 已签发设计层）→ F2 PAR-04 → PAR-03；W2 待办含 INV-62、RULE-387/394、RegisteredEmployee/SyncRun。
-- **one-1a-next-5**：REG-2（verify 中）→ RULE-412 守护 → REG-3（#493 已合，不用等）；P0 验收 11+2 例合入，RULE-376 缺口卡 IMP-1021-COO-11（待派）。
+- **one-1a-next-5**：REG-2（verify 中）→ RULE-412 守护 → REG-3（#493 已合，不用等）；ADR-0066 决定 4 注册表改造须在 W0 收口窗口内完成（收口清单 proposals/freeze/W0_CONTRACT_BATCH_REVIEW.md，one-architecture 10-21）；P0 验收 11+2 例合入，RULE-376 缺口卡 IMP-1021-COO-11（待派）。
 - **one-architecture**：ADR-0074/0075 → 回 one-arch-finance/people → 第三批卡 12–15（12 已交 Codex）；B-31 四项归架构（合同借阅 bc、撤回/退回映射、软件许可、§8.2）。
 - **one-glossary**：GL4 写回（工单处理人先问 one-1a-admin 是否可转派）→ 第三批前缀/维度 → n20 → n22 → n21。
 - 其余：one-ops ClamAV 待与应用侧联调后报建成；one-data、one-rules、one-arch-revenue 空闲。
