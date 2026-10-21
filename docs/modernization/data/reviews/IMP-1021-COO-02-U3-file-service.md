@@ -119,3 +119,9 @@ N1–N3 逐项核过：`platform_file.state_transitions` 的 DDL 与 `STATE_TRAN
 3. 注册表 `state_transitions` 的保留期 `PERMANENT` 带「用户批准保留期后再定」的注释，同其他 schema 做法。
 
 结论：**数据设计（表结构 PR）：未通过，仅差 F1**。F1 改完推送后，我只复核该改动的 diff，通过即签「表结构 PR：通过」；不另做有条件通过。
+
+## 第七轮（2026-10-21，复核 F1 改动 @9421b798）
+
+只看 F1 的 diff：`state_transitions` 序号列、`uk_…_transition_sequence_number`、`ck_…_transition_sequence_number`、`ck_state_transitions_first` 与列注释（「转换序号：」）都已改，迁移里没有残留旧名，`preservation_sequence_number` 未动；术语提议同 PR 登记。
+
+表结构 PR（#521）：通过（one-data，2026-10-21，依据 DATA_DESIGN_GATE 表结构项、实际 diff 第六轮与 F1 复核）。
