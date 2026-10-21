@@ -68,5 +68,6 @@
 
 1. **待确认状态留在版本表**：同意（`numbering_rule_versions` 先例，免 attendance→approval 依赖）。版本表加 `confirmation_status`（`PENDING_CONFIRMATION`、`CONFIRMED`），确认三列（`confirmed_by`、`confirmed_at`、`decision_ref`）确认前为空、确认后非空（具名 CHECK 联动）；触发器只放行 `PENDING_CONFIRMATION → CONFIRMED` 且只改这三列与状态，禁删禁清空；`state_transitions` 登记该流转（ADR-0058）。原稿「版本行只在确认通过时插入、无可变状态」作废；日期表仍全程只追加，且只能在版本为待确认时插入、确认后拒绝再插（触发器）。
 2. **`decision_ref`** 取「确认操作的审计记录 ID」：同意（`text`，确认后非空）。
-3. **迁入行的人**：采纳 one-architecture 的放宽——`source_kind = MIGRATION` 时 `authored_by`、`confirmed_by` 可空；非 MIGRATION 时二者非空且不同（具名 CHECK）。条件是 MIGRATION 行的 `decision_ref` 仍非空，指向核对签字的审计记录，签字人由审计记录追溯。原稿「作者=装载主体、确认人=签字人」撤回。
-4. **批次引用**：**不采纳**加批次引用列。理由：ADR-0036 第 3、7 条与 SESSION_PLAYBOOK §14.2 M5 已采纳「批次挂在来源对照上，业务表不加批次列」，我无权在表结构审里放宽；one-architecture 若要改须先修订 ADR-0036。满足「可追到迁入批次」的做法：迁入版本在 `platform_integration.source_references` 有对照行（带批次列），由迁入测试断言每个 MIGRATION 版本都有对照行；`source_reference`（通知文号）对 MIGRATION 为空。
+3. **迁入行的人（与 one-architecture 对齐后的定稿）**：`authored_by`、`confirmed_by` 为空当且仅当 `source_kind = MIGRATION`（具名 CHECK）；其余行 `confirmed_by` 必填，`authored_by` 仅运维起草的单人路径可空（`authored_by IS NULL OR confirmed_by IS NULL OR authored_by <> confirmed_by`，形同 `numbering_rule_versions`）；MIGRATION 行 `decision_ref` 非空，指向核对签字的审计记录，签字人由审计记录追溯。更正二第 3 点此前「作者、确认人可空、无签字人」的说法以本条为准，前稿「作者=装载主体」撤回。
+4. **批次引用**：不进业务表（ADR-0036 第 3 条、§14.2 M5；one-architecture 已同意，作废「须带批次引用」）。迁入版本在 `platform_integration.source_references` 有对照行（带批次列），迁入测试断言每个 MIGRATION 版本都有对照行。
+5. **官方通知文号列改名**：不用 `source_reference`（词表里它是来源对照，同名异义）；新列名交 one-glossary 登记，暂名 `official_notice_number`（`text`，`source_kind = OFFICIAL_NOTICE` 时必填，其余为空）。
