@@ -85,8 +85,15 @@
 1 派子代理（Agent）不写 model 就拒绝；2 直接 Edit/Write 生成产物（INTENT.md、SESSION_LOG.md、STATUS.md、adr/ADR-*.md、adr/README.md）就拒绝并提示改片段；3 在主检出目录 /Users/yeliang/Projects/FORCITIS/forcitis-one-psa 里改文件、提交就拒绝（快进合并放行，one-merge 要用）；4 改 ci.yml、scripts/ci、.claude、scripts/hooks、验收测试时提示：守护文件单列 PR、opus 复审、验收改动先有 main 上的裁定；5 命令输出疑似密钥就告警并提示改写，拦已知返回私钥的调用（如阿里云 DescribeDBInstanceSSL 原样输出）；6 run_in_background 等启动常驻进程时提示登记台账并写明重启后由谁拉起；**7（调度扩）SessionStart（startup|clear|compact）检查落后 origin/main 的提交数：分支无独有提交→自动 fast-forward 并报一行；有独有提交→不自动合，只注入「先合入 main 再开工」+落后数；冲突留给会话，钩子里不做**。
 - 经验：桌面 app 钩子读的是**主检出**的 .claude/settings.json 且 CLAUDE_PROJECT_DIR 是主检出；钩子类 PR 合入后须先把主检出快进到 origin/main 再重启 app（stop_hook_summary 里出现脚本名即生效）；root 取 payload.cwd。
 
+### 新卡：AskUserQuestion 门禁（用户定，intent 2026-10-21-160954；排在 QUA-05 评测后、QUA-03 前）
+PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordinator 时 deny，理由写「按 SESSION_PLAYBOOK §11 战队协作第 1 条：技术问题报 one-coordinator，要用户定的写收件箱」；会话名解析沿用 session_context.py（`identify`），解析不出时放行并告警一次；钩子崩溃不得挡住；带自测；SESSION_PLAYBOOK 同步一句；改 .claude/settings.json，PR 要 opus 复审，合入后调度请用户重启。起因：one-1a-par 用提问框问用户 #509 重跑还是排查。
+
 ### 网络 v2/v7 规则写成 CI 检查（新卡，排在 QUA-03 之后）
 把实现网络 v2 右下角「可自动核验」的 9 条接缝规则，以及 v7 的判定规则（05 只承接 04 中决定做的、约束不满射即架构未定、无执行点即未求解）写成 CI 检查。图在 claude/one-coordinator-two-lanes 的 docs/modernization/architecture/research/networks/。**等 one-architecture 的登记文件方案批了再开工。**
+追加（one-architecture 2026-10-21，one-coordinator 定）：凡新增或改动的验收测试、集成测试（backend/src/test 下非 architecture 目录），`@DisplayName` 或方法 Javadoc 须带至少一个 `RULE-nnn` 或 `INV-nn`；先做「报告档」不拦合并；判定沿用 `docs/modernization/architecture/panorama/scan_acceptance_tests.py` 的抽取规则（分支 claude/one-architecture-network-batch1 @3ade5580，合入 main 后直接调用），只看本次改动涉及的测试方法；存量 835 条无编号由 one-architecture 另出映射。
+
+### 评测期间的资源约束（调度 10-21）
+本机负载曾到 80/18 核、45 个 postgres 容器：评测的构建与测试**一次只跑一份、排队**，Codex/DeepSeek 写代码可并行；不要用满核压测（最多 4 个进程、`taskpolicy -b`）。q1-ds 的构建进程树我已 SIGSTOP（pid 列表 `eval/q1-ds.stopped`），后台等负载 <20 后以后台优先级恢复（`eval/q1-ds.resumed` 记录时刻）；q1-sonnet 已通知只跑相关测试、不跑整包。评测用时里含暂停时间，结论里要注明。
 
 ### 其他待办
 - 日报新指标（#482）已合入；错题本 QUAL-019 的检查 `scripts/ci/weak_registration_scan.py`（#487）转 --enforce 要跑一周无误报后另开卡；#511 合入后清理本机留下的本地分支/worktree（scratchpad/wt-*）。
