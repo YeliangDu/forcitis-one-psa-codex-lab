@@ -69,7 +69,7 @@ meta:
     steps: 647
     perm: 27
     srole: 7
-    role: 54
+    role: 56
   checks:
     N01-1: 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）
     N01-3: 每个干系人类别对应一个一级业务对象，类别角色取值在信息图可查；没有对象的登记 04 并写理由
@@ -67067,6 +67067,8 @@ nodes:
       host_category: 客户（外部，不登录本系统）
       bears: []
       evidence: stakeholder_ssot ROLE-01 发起人（客户采购决策链，参与 VS-01.1/01.2/02.0）；与审批发起人同名异义，见 glossary_issues。客户侧，不登录。
+      external: true
+      owner_group: presales.opportunity（收入组可推翻）
       src: architecture/ssot/07-org-roles/roles.yaml#roles[0]/ROLE-01
     ROLE-02:
       id: ROLE-02
@@ -67081,6 +67083,8 @@ nodes:
       host_category: 客户（外部，不登录本系统）
       bears: []
       evidence: SSOT ROLE-02 决策人；权责表 SH-C6b「客户决策人：回签、认定索赔与变更」，客户方书面决定为线下证据，本系统只登记，不登录。
+      external: true
+      owner_group: presales.opportunity（收入组可推翻）
       src: architecture/ssot/07-org-roles/roles.yaml#roles[1]/ROLE-02
     ROLE-03:
       id: ROLE-03
@@ -67094,6 +67098,8 @@ nodes:
       host_category: 客户（外部，不登录本系统）
       bears: []
       evidence: SSOT ROLE-03 经济买方，客户采购决策链；权责表无对应条目。
+      external: true
+      owner_group: presales.opportunity（收入组可推翻）
       src: architecture/ssot/07-org-roles/roles.yaml#roles[2]/ROLE-03
     ROLE-04:
       id: ROLE-04
@@ -67108,6 +67114,8 @@ nodes:
       host_category: 客户（外部，不登录本系统）
       bears: []
       evidence: SSOT ROLE-04 付款方；权责表 SH-C6d「客户财务：付款、确认红字信息」（客户方财务确认，经税务平台或银行回单），不登录。
+      external: true
+      owner_group: presales.opportunity（收入组可推翻）
       src: architecture/ssot/07-org-roles/roles.yaml#roles[3]/ROLE-04
     ROLE-05:
       id: ROLE-05
@@ -67122,6 +67130,8 @@ nodes:
       host_category: 客户（外部，不登录本系统）
       bears: []
       evidence: SSOT ROLE-05 使用者；权责表 SH-C6e「客户方使用者，接收成果并反馈」，外部方不设系统权限，不登录。
+      external: true
+      owner_group: presales.opportunity（收入组可推翻）
       src: architecture/ssot/07-org-roles/roles.yaml#roles[4]/ROLE-05
     ROLE-06:
       id: ROLE-06
@@ -67339,7 +67349,8 @@ nodes:
       name: 项目总监
       aliases:
         stakeholder_ssot: []
-        glossary: []
+        glossary:
+        - director
         responsibility_matrix:
         - SH-M1
       system_roles: []
@@ -67359,6 +67370,9 @@ nodes:
       host_category: 人力资源（本企业员工）
       bears: []
       evidence: 词表 director：BU-002 部门总监（RULE-256）；权责表无独立条目。
+      status: retired
+      merged_into: ROLE-22
+      decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）
       src: architecture/ssot/07-org-roles/roles.yaml#roles[22]/ROLE-23
     ROLE-24:
       id: ROLE-24
@@ -67390,7 +67404,7 @@ nodes:
       src: architecture/ssot/07-org-roles/roles.yaml#roles[24]/ROLE-25
     ROLE-26:
       id: ROLE-26
-      name: 管理层（总经理、分管副总）
+      name: 总经理
       aliases:
         stakeholder_ssot: []
         glossary: []
@@ -67400,6 +67414,7 @@ nodes:
       host_category: 人力资源（本企业员工）
       bears: []
       evidence: 权责表 SH-M1 提示「总经理、分管副总」「管理层负责人」（超时升级、加审、批准资质延续）；SSOT 的 SH-E1 管理层是干系人类别，非角色，此处仅按权责表职责成立。词表无对应。
+      decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：按法人解析；分管领导拆出为 ROLE-55
       src: architecture/ssot/07-org-roles/roles.yaml#roles[25]/ROLE-26
     ROLE-27:
       id: ROLE-27
@@ -67443,7 +67458,7 @@ nodes:
       src: architecture/ssot/07-org-roles/roles.yaml#roles[28]/ROLE-29
     ROLE-30:
       id: ROLE-30
-      name: 信息与行政职能人员
+      name: 信息职能人员
       aliases:
         stakeholder_ssot: []
         glossary: []
@@ -67453,6 +67468,7 @@ nodes:
       host_category: 人力资源（本企业员工，信息行政）
       bears: []
       evidence: 权责表 SH-E6 提示：信息管理员、档案管理员、IT 服务台、IT 资产管理员、印章保管与行政事务经办人员；岗位体系未定。
+      decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：IT 需求、IT 资产、账号；行政拆出为 ROLE-56
       src: architecture/ssot/07-org-roles/roles.yaml#roles[29]/ROLE-30
     ROLE-31:
       id: ROLE-31
@@ -67774,6 +67790,36 @@ nodes:
       bears: []
       evidence: 系统角色 process_administrator（迁移种子，无权限码）；词表无 kind=role 词条，仅 ui_proxy_handling 定义提到「流程管理员替被代理人办理」，权责表无。
       src: architecture/ssot/07-org-roles/roles.yaml#roles[53]/ROLE-54
+    ROLE-55:
+      id: ROLE-55
+      name: 分管领导
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-M1
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 权责表 SH-M1 提示「总经理、分管副总」「管理层负责人」（超时升级、加审、批准资质延续）；SSOT 的 SH-E1 管理层是干系人类别，非角色，此处仅按权责表职责成立。词表无对应。（拆分时 aliases 原样复制，两条共用原出处）
+      split_from: ROLE-26
+      decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：按 D15 分管配置解析
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[54]/ROLE-55
+    ROLE-56:
+      id: ROLE-56
+      name: 行政职能人员
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E6
+      system_roles: []
+      host_category: 人力资源（本企业员工，信息行政）
+      bears: []
+      evidence: 权责表 SH-E6 提示：信息管理员、档案管理员、IT 服务台、IT 资产管理员、印章保管与行政事务经办人员；岗位体系未定。（拆分时 aliases 原样复制，两条共用原出处）
+      split_from: ROLE-30
+      decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：用印登记、员工活动、档案
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[55]/ROLE-56
 links:
 - kind: sh-trigger
   from: SH-C1
