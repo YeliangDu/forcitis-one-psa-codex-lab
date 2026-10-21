@@ -270,6 +270,43 @@ K-3b-4 审计列表、导出、本人登录记录接入分页公共契约新增�
 | `audit_page_mark` | 审计页标记 | AuditPageMark | 领域 · platform.audit | 审计条目键集分页的位置：上一页最后一条的发生时间与条目标识；只供生成下一页游标 | 「AuditPosition」已禁用 | K-3b-4 复审 M1；原名 AuditPosition 与岗位 Position（organization.workforce）同名异义，故改名 |
 | `own_login_record_page_view` | 本人登录记录分页视图 | OwnLoginRecordPageView | 领域 · platform.audit | 本人登录记录一页的应用层读模型：记录列表加下一页游标；不含条目标识 |  | K-3b-4，构词沿用审计条目分页视图 |
 
+## platform.file（`platform-file.yaml`）
+
+platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 登记，待 one-glossary 评审）。
+
+来源：ADR-0060「须交其他会话」用语、ADR-0061、ADR-0070；错误码中文名全局唯一。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `stored_file` | 存储文件 | StoredFile | 领域 · platform.file | 文件服务的根：一份不可变内容及其哈希、大小、媒体类型、上传主体、检测状态与版本 / 派生引用 |  |  |
+| `content_hash` | 内容哈希 | ContentHash | 领域 · platform.file | SHA-256，小写十六进制 64 位，本系统唯一的内容哈希，比对文件以它为准；代码里 platform.approval.api 另有同名类型 ContentHash（待审内容指纹，未登记术语），不是同一概念 |  |  |
+| `file_subject` | 文件主体 | FileSubject | 领域 · platform.file | 写入或关联文件的主体（类型 + ID），类型取值用户、一次性链接、平台模块；作上传者时称上传主体，作关联者时称关联主体 |  |  |
+| `uploader` | 上传主体 | Uploader | 领域 · platform.file | 写入文件的文件主体 |  |  |
+| `file_lineage` | 版本与派生 | FileLineage | 领域 · platform.file | 写入时声明、此后不可改的文件引用：首版、上一版本（同一逻辑文件的线性修订）或派生自（经处理得到的新文件）；词 Lineage 作类型名 |  |  |
+| `derivation_kind` | 派生方式 | DerivationKind | 领域 · platform.file | 派生件与源文件的关系，本期取值签署、格式转换 |  |  |
+| `format_conversion` | 格式转换 | FormatConversion | 领域 · platform.file | 派生方式取值：由另一文件转换格式得到（如出件生成的 PDF） |  |  |
+| `bind_file` | 关联文件 | BindFile | 领域 · platform.file | 所属模块把文件挂到单据，同时给出访问级别、个人信息标记、保存类别与起算单据，缺一即拒；关联前任何人不可下载 |  |  |
+| `file_binding` | 文件关联 | FileBinding | 领域 · platform.file | 文件与单据的关联记录，只追加；一个文件可关联多张单据 |  |  |
+| `file_hold` | 封存登记 | FileHold | 领域 · platform.file | 业务聚合封存时对文件的登记，只追加、不可撤销，保存期内拒绝处置；避开 seal（签章） |  |  |
+| `download_link` | 临时下载链接 | DownloadLink | 领域 · platform.file | 预签名 GET 链接，默认 5 分钟、上限 15 分钟，强制附件下载；地址不进日志与审计 |  |  |
+| `link_validity` | 链接时效 | LinkValidity | 领域 · platform.file | 临时下载链接的有效时长 |  |  |
+| `media_type` | 媒体类型 | MediaType | 领域 · platform.file | 按内容判定并登记的文件类型，须在白名单内 |  |  |
+| `contains_macros` | 含宏 | ContainsMacros | 领域 · platform.file | 文件属性：按扩展名或内容判定文件含宏（VBA、XLM 宏表、远程模板等），判定失败按含宏；含宏文件不预览、下载时提示来源 |  |  |
+| `quarantined` | 已隔离 | Quarantined | 领域 · platform.file | 文件状态：检测未通过，内容在隔离前缀，不可关联、下载、预览 |  |  |
+| `expired_unbound` | 未关联已过期 | ExpiredUnbound | 领域 · platform.file | 文件状态：在临时区到期仍未关联，对象由生命周期规则过期 |  |  |
+| `disposed` | 已处置 | Disposed | 领域 · platform.file | 文件状态：保存期满经两人确认删除或去标识，行与哈希保留 |  |  |
+| `access_level` | 访问级别 | AccessLevel | 领域 · platform.file | PUBLIC / INTERNAL / SENSITIVE / RESTRICTED，对应 L1–L4；关联时由所属模块给出 |  |  |
+| `personal_info_mark` | 个人信息标记 | PersonalInfoMark | 领域 · platform.file | NONE / PI / SPI；关联时由所属模块给出，SPI 在 U-14 定前拒收 |  |  |
+| `pi` | 含个人信息 | Pi | 领域 · platform.file | 个人信息标记取值 PI |  |  |
+| `spi` | 含敏感个人信息 | Spi | 领域 · platform.file | 个人信息标记取值 SPI |  |  |
+| `preservation_category` | 保存类别 | PreservationCategory | 领域 · platform.file | 文件所属的保存期限表类别，关联时由所属模块给出；文件保存期限与数据保留期限（data_retention_period）不同：后者管在线库与归档库的留存 |  |  |
+| `preservation_anchor` | 起算单据 | PreservationAnchor | 领域 · platform.file | 其业务事件（合同履行完毕、项目结项、用印完成等）起算文件保存期的单据；关联时给出，无另外起算单据的即本单据 |  |  |
+| `agreed_preservation` | 约定保存年限 | AgreedPreservation | 领域 · platform.file | 合同约定的保存年限，由合同模块写入；到期日取类别默认与约定的较长者 |  |  |
+| `import_rejection_reason` | 迁入文件拒收原因 | ImportRejectionReason | 领域 · platform.file | 迁入文件被拒的原因代码（超上限、类型不允许、加密、已隔离、不可用、敏感个人信息、保存类别不存在），计入核对差异清单；与 platform.integration「迁入拒收」互列 |  |  |
+| `imported` | 已迁入 | Imported | 领域 · platform.file | 迁入文件写入并关联成功的结果 |  |  |
+
+另有错误码 20 个（kind 为 `error_code`），不在表中。
+
 ## platform.identity（`platform-identity.yaml`）
 
 platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登录、会话、票据、角色与数据范围用到的词。
