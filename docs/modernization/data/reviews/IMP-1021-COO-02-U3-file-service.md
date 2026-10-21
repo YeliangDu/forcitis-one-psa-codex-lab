@@ -55,3 +55,17 @@
 1. one-platform-file 按 H1–H5、M1–M7 改草案，送回；我复核后签「数据设计：通过（one-data，日期，依据 …）」，之后才出迁移脚本（等 REG-1 合入）。
 2. 迁移脚本出来后，我复核实际表结构 diff（含触发器、注册表、分级、保留），再签表结构 PR。
 3. 本审不是「有条件通过」：以上高档任一项未改，不签。
+
+## 第二轮（2026-10-21，复核 `claude/one-platform-file` @ef0fdf32 的草案第 2 版）
+
+**结论：数据设计：需修改**（还差 1 项高档、2 项中档，改完即可签；不做有条件通过）。第 1 版的 H2–H5、M1–M7 逐项核过已改对：根表与列名对齐 D15/M6、批次列已删、主体列拆开且按 kind 恰好一个非空、`preservation_seq` + 插入触发器 + 当前行视图、判定/例外/撤销的复合外键与追加撤销表、`approval_expires_at`、只追加表触发器与注释、`personal_info_mark` 只列 NONE/PI。
+
+| # | 级别 | 问题 | 改法 |
+|---|---|---|---|
+| N1 | 高 | H1 只做一半：草案只在注释里说「`state_transitions`（模板）」，没有 `CREATE TABLE platform_file.state_transitions`，也没有写出四个状态列各自的合法流转清单与登记的系统操作者 | 草案里补完整 DDL（形状按 `STATE_TRANSITIONS_DESIGN.md` v2，含 `actor_type`、`cause_kind` 等约束、追加触发器）；补一张流转清单（stored_files：AVAILABLE→EXPIRED_UNBOUND；判定：PENDING_REVIEW→CONFIRMED/REJECTED；读取申请：PENDING→APPROVED/REJECTED、APPROVED→READ；版本：PENDING→CONFIRMED）；系统操作者登记到 `system-actors.txt`（P1） |
+| N2 | 中 | `preservation_category_versions` 的生效日不早于确认日只在 `UPDATE`（确认）触发器里查；直接 `INSERT` 一条 `CONFIRMED` 行（`CHECK` 允许）可绕过它，也绕过「先待确认再确认」 | 加 `BEFORE INSERT` 触发器：插入的行只能是 `PENDING`；种子数据（初始版本）也先以 `PENDING` 插入再由人确认，`author_id` 为空只用于迁移脚本写入的待确认初始版本，注释写明 |
+| N3 | 中 | 注册表写法与 main 不一致：草案把根表写成 `CONFIG_ROOT`、版本表写成 `CONFIG_VERSIONED`；main 的约定（`numbering_rules` / `numbering_rule_versions`）是**根表**记 `role: CONFIG_VERSIONED` + `versions_table`，版本表记 `AGGREGATE_CHILD`；`CONFIG_ROOT` 不是注册表的合法 role。扫描脚本 M6（#504）按 main 的约定找版本表 | 登记按 main 约定写；版本表 mutability `CONDITIONAL_UPDATE`（仅确认步） |
+
+提醒（不阻断）：视图用 `security_invoker` 需 PostgreSQL 15 及以上，请迁移脚本验证实例版本（INFRA 记录）；种子版本的确认人由谁担任交 one-platform-file 与用户定。
+
+**P1–P3 答复**：P1 可行——一次性链接与平台模块的状态转换按 `actor_type = SYSTEM` + `system-actors.txt` 登记系统操作者（`STATE_TRANSITIONS_DESIGN` 第 83 行同款），上传主体本身另存在 `stored_files` 的主体列，不丢身份。P2 同意，写进 api 契约注释。P3 同意：业务日按 `Asia/Shanghai`，与 ADR-0044 一致；触发器里写死时区，如将来多时区再迁移。
