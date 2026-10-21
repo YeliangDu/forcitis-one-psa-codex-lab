@@ -1,0 +1,8 @@
+{
+  "default": 200000,
+  "windows": {},
+  "pilot_sessions": [
+    "one-coordinator",
+    "one-ops"
+  ]
+}
