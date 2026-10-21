@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.numbering.application;
 
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExpectedVersion;
@@ -35,7 +35,7 @@ public class ConfigureNumberingRule {
     }
 
     @Transactional
-    public NumberingRuleView execute(DocumentType type, ExpectedVersion expected, String pattern, ResetPolicy resetPolicy, long startValue,
+    public NumberingRuleView execute(DocumentTypeCode type, ExpectedVersion expected, String pattern, ResetPolicy resetPolicy, long startValue,
             LocalDate effectiveFrom, UserId author) {
         NumberingRule rule = rules.findActive(type).orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_FOUND,
                 ErrorKind.NOT_FOUND, "no active numbering rule for " + type));

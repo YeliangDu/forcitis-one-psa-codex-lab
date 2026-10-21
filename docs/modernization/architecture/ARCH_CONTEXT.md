@@ -1,6 +1,6 @@
 # one-architecture 速查（2026-10-15）
 
-> **接续必读（2026-10-17）**：先读本文件「现状」，交接历史见 `proposals/HANDOFF_2026-10-17.md`。
+> **接续必读（2026-10-21）**：先读 `proposals/HANDOFF_2026-10-21.md`，再读本文件「现状」。
 
 
 规矩：结构性选择只推荐、不裁定，用户答复为准；先在 SSOT 登记再写代码；已有 SSOT 只引用不复制；一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。
@@ -24,7 +24,7 @@
 | 项 | 值 |
 |---|---|
 | 在途 PR | 无；文档不开 PR，提交推送后报分支 + 提交号，one-merge 按调度批准收合集 |
-| 当前步 | 2026-10-17 15:30：①ADR-0052/0054/0055/0056 已采纳（b4dc1f6a），ADR-0057 报价发出编排模块已批并采纳（bcda802f，部分取代 ADR-0051 三处）；transitions.yaml 与 DDD SSOT 随整合确认包 T、D 册写入（intent 2026-10-17-112814）；②CAPINFO、TRN、B31、ADR57 确认页已答并写回；③命名接续 N9→N7，模块与新命令名随 N7；④SSOT 整合确认包方案 `proposals/ARCH_SSOT_CONSOLIDATION_PLAN.md`（8 册，R 册已记「不引入 DMN、判断走 D15 版本化配置」），N7 完成后开工；⑤在途：B31 参数清单页 ARC-1017-ARC-06（Codex）、A8 现行做法取证 ARC-1017-ARC-07（one-data 经 one-ops 通道，等参数清单）；⑥检查脚本 `--extra` 已落地，云端试点验收通过（`proposals/closeout/pilot/ACCEPTANCE.md`），铺开待调度定 |
+| 当前步 | 2026-10-17 13:59：①ADR-0052/0054/0055/0056 已采纳（b4dc1f6a），ADR-0057 报价发出编排模块已批并采纳（bcda802f，部分取代 ADR-0051 三处）；transitions.yaml 与 DDD SSOT 随整合确认包 T、D 册写入（intent 2026-10-17-112814）；②CAPINFO、TRN、B31、ADR57 确认页已答并写回；③命名接续 N9→N7，模块与新命令名随 N7；④SSOT 整合确认包方案 `proposals/ARCH_SSOT_CONSOLIDATION_PLAN.md`（8 册，R 册已记「不引入 DMN、判断走 D15 版本化配置」），N7 完成后开工；⑤在途：B31 参数清单页 ARC-1017-ARC-06（Codex）、A8 现行做法取证 ARC-1017-ARC-07（one-data 经 one-ops 通道，等参数清单）；⑥检查脚本 `--extra` 已落地，云端试点验收通过（`proposals/closeout/pilot/ACCEPTANCE.md`），铺开待调度定 |
 | 已定（2026-10-16 晚） | 结构裁定 S-29–S-44；VS-02.7 改名收尾；新增 VS-04.6 履约、VS-08.0 事前申请；归段判据写进 stage_align_check；权责表 586 条冲突 0；跨组接缝清零 |
 | 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
 | 草稿位置 | proposals/：ENTERPRISE_INFO_MAP_DRAFT（一级 21）、ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS + value-streams.v2.yaml、STEP2_CAPABILITIES + capabilities.v2.yaml |

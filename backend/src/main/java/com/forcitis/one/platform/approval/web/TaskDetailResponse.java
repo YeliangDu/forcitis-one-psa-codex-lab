@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.approval.web;
 
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.TaskRecordAction;
@@ -15,7 +15,7 @@ import java.util.UUID;
 import org.springframework.lang.Nullable;
 
 /** reason is absent when the deciding person gave none: the screen words that, the data does not pretend (RULE-280). */
-record TaskDetailResponse(UUID taskId, UUID instanceId, ProcessKey processKey, DocumentType documentType, UUID documentId, String nodeKey,
+record TaskDetailResponse(UUID taskId, UUID instanceId, ProcessKey processKey, DocumentTypeCode documentType, UUID documentId, String nodeKey,
                           @Nullable String nodeName, UUID initiator, String initiatorName, @Nullable String initiatorOrgUnitName,
                           @Nullable UUID assignee, @Nullable String assigneeName, List<UUID> candidates, List<String> candidateNames,
                           Instant createdAt, String status, @Nullable Instant dueAt, @Nullable Instant deadlineAt, boolean overdue,

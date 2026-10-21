@@ -57,22 +57,11 @@ class ApprovalRequestTextAndRecordRulesIT {
     }
 
     @Test
-    @DisplayName("DATA-REPAIR-approval AP-14: an approval request for a QUOTE is refused by ck_approval_requests_document_type")
-    void quoteRequestRefused() throws SQLException {
-        insertRequest("QUOTE", "synthetic summary", "ck_approval_requests_document_type");
-    }
-
-    @Test
-    @DisplayName("DATA-REPAIR-approval AP-14: an approval request for a JOURNAL_VOUCHER is refused by ck_approval_requests_document_type")
-    void journalVoucherRequestRefused() throws SQLException {
-        insertRequest("JOURNAL_VOUCHER", "synthetic summary", "ck_approval_requests_document_type");
-    }
-
-    @Test
-    @DisplayName("DATA-REPAIR-approval AP-14: a document type outside the enumeration is refused by ck_approval_requests_document_type")
-    void unknownDocumentTypeRefused() throws SQLException {
-        insertRequest("PAYMENT", "synthetic summary", "ck_approval_requests_document_type");
+    @DisplayName("ADR-0066 decision 4, AP-14: a document type code of the wrong shape is refused by ck_approval_requests_document_type; QUOTE and JOURNAL_VOUCHER are refused by the approval write path (ApprovalDocumentTypeIT, PLATFORM_APPROVAL_NO_PROCESS)")
+    void malformedDocumentTypeRefused() throws SQLException {
         insertRequest("timesheet", "synthetic summary", "ck_approval_requests_document_type");
+        insertRequest("", "synthetic summary", "ck_approval_requests_document_type");
+        insertRequest("TIME SHEET", "synthetic summary", "ck_approval_requests_document_type");
     }
 
     @Test

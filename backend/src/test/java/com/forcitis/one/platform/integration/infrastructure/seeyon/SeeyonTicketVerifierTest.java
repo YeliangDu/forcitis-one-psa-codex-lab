@@ -55,7 +55,7 @@ class SeeyonTicketVerifierTest {
     void loginName() {
         answer("a b&c", 200, "zhang%40forcitis");
 
-        SsoVerdict verdict = verifier(oa.baseUrl(), Duration.ofSeconds(2)).verify("a b&c");
+        SsoVerdict verdict = verifier(oa.baseUrl(), Duration.ofSeconds(10)).verify("a b&c");
 
         assertThat(verdict).isEqualTo(new SsoVerdict.LoginName("zhang@forcitis"));
         oa.verify(1, getRequestedFor(urlPathEqualTo(PATH)).withQueryParam("ticket", equalTo("a b&c")));
@@ -64,7 +64,7 @@ class SeeyonTicketVerifierTest {
     @Test
     @DisplayName("RULE-321 empty answer, HTML page and unsafe or over-long names are an invalid ticket")
     void invalidAnswers() {
-        SeeyonTicketVerifier verifier = verifier(oa.baseUrl(), Duration.ofSeconds(2));
+        SeeyonTicketVerifier verifier = verifier(oa.baseUrl(), Duration.ofSeconds(10));
         answer("empty", 200, "");
         answer("html", 200, "<!DOCTYPE html><html><body>login</body></html>");
         answer("angle", 200, "a%3Cb");

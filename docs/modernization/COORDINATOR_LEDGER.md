@@ -3,16 +3,17 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-21 11:45（one-coordinator）
-- 清空后第一步：通读 SESSION_PLAYBOOK §11、§5；读本节、作战图「开发主线」行，及 intent 2026-10-20-21xx 起各条；扫收件箱 pending 与近期 PR 评论（用户也会在 PR 评论里答复）。
-- **现行主线 = 开发**，里程碑「通用审批先行上线」（TRN-03）。已合入 main：#488（ADR-0060–0065）、#489（A 线 R）、#490（ADR-0066/0067）、#491（A 线切分方案）、#494（文档合集）。
-- **在途 PR**：#493 ADR-0068/0069（已采纳，用户批准页 Cqkk935bHV6wAqeQTk4V4E；one-data 第三轮只待 org_structure_commands 等 DDL 补齐后重审变更处；签发后 one-architecture 报入队）；#495 ADR-0070 ClamAV 补篇（提议，叠在 #493 上；改后复核 N1–N10 已改入 @ba7c60b0；批准页 https://claude.ai/artifact/7hVc6NZeBJ3Z4Ehp7BSACy 已进收件箱 pending，5 题：E1 加密、E2 隔离与误报、E3 FILDES、A70 批准、S1 七处修订；用户答后转 one-architecture 填回并改「已采纳」、给被取代方加标注）。
-- **各会话**：one-1a-par A 线（F 删老待办交 Codex；其余等 #493 合入；PR-I 迁入适配器；H-1 前置已满足）。one-data（W2 第 4 版：登记即写版本、读生效日≤今天；数据量估算最优先，供 one-ops 定生产规格）。one-ops（ClamAV 运维卡 OPS-1021-OPS-02；生产 P2、演练 R1 先干跑、11-10 前按现规格续费——**下单前报调度转用户确认**；dev 日历续导；新 rc 等 F 合入后）。one-architecture（只做 W0 相关 + 人事命令设计 + ADR-0070）。one-glossary（NAM-1020-COO-01：122 项用语页 + 模块标识小页，先交调度审题再进收件箱；不得自定模块名）。one-platform-file（opus，IMP-1021-COO-02 切分方案 @bea2aa89 已批，按 ADR-0070 采纳版更新；#496 合入后开单元 1；无 one-security，安全首轮由其派 opus 子代理）、one-1a-next-5（10-21 改 sonnet，IMP-1021-NX5-01 切分已批，REG-1 开工，REG-3 等 #493）。#493 卡在 one-architecture 补 org_structure_commands DDL（已催）。one-ops 权限模式待用户改（收件箱 pending）。#496 one-glossary 模块登记已改中文名，CI 过后批入队。
-- 待安全评审（无 one-security 会话，实施卡开工前安排）：RTF 嵌入对象是否纳入含宏检测；外部访问威胁模型等（见 R-ADR草案复审 §6）。
-- 用户近日口径（详 intent）：B31R/B31P、兜底按岗位、AI 外发闸 platform.ai、履约义务与合同条款分立、法务认可现行做法、恶意文件检测自建 ClamAV、生产 P2/演练 R1、单文件 100 MB、NAS 仅 A8 附件 2.04 TB、A8 入口已撤、D17 三列豁免六边界、工号与岗位编码全局唯一永不复用、离职生效日=最后工作日次日。
-- 决策渠道：**收件箱是唯一处理点**（记忆 decisions-on-github）；用户说「答完」时扫收件箱 + PR 评论；收件箱当前清空。
-- 平台服务成果：ADR-0060–0067 已入 main；分层总图 GANmVBuBzK58pT27xscJBE（db 驱动，源 research/platform-fit-2026-10-20/views/）。
-- 不得再犯：①要用户定的进收件箱，不另开 GitHub issue；②转述他人报告用户原话先核原句；③确认页答复读 answers-submit 原文，读每题备注，选项与备注不一致要指出；④自写脚本统计先验证；⑤ArtifactData 批量改前核条目编号；⑥会话身份变化先问用户再确认（one-data、one-ops 已确认为本机老会话）；⑦画像上下文文档每行一个仓库根相对路径。
+更新：2026-10-21 15:25（one-coordinator，上下文 75% 钩子触发）
+- 清空后第一步：通读 SESSION_PLAYBOOK §11、§5；读本节与「会话」节 10-21 各行；扫收件箱 pending（https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15）。intent 见 2026-10-21-1* 各片段。
+- **今日用户新口径**（详 intent）：不影响开发的运维/采购议题不发用户（记忆 dev-impact-only）；先本地知识库（桌面公开资料 kq.py / 公开资料研究 / 企业资料）再模型知识（记忆 external-knowledge-dirs）；决策影响面沿「登记网络 v7 + 实现网络 v2」系统分析（图在 architecture/research/networks/）；DeepSeek flash 列为执行者，三方对比评测进行中；launchd 托管合并队列（已批，one-merge 在装）；clear 后须同步 main（第 7 钩子）。
+- **合并队列**（one-merge 执行，mq.py；launchd 安装中）：队列 514（加急合集，含裁定 -05）→ 502 → 513；条件入队 #510（等 #502）、#501→#506（ADR-0071/0072，#506 条件 one-data 重签已满足）；#509 等 -05 进 main 后 one-1a-par 改 ReadOnlyAccountCheckIT 再报；#508 ADR-0073 等收件箱 U3/U4；#511 one-quality 开场注入压缩未完；one-data 文档合集收 ≥5378d121 的 docs/。钩子类 PR 合入后 one-merge 须快进主检出，必要时请用户重启 app（app 读主检出 settings；重启会杀会话拉起的进程）。
+- **各会话**：one-architecture（ARC-1021-COO-10 网络登记：批次表已批，I03 改过时、抽 10 份长 ADR 复核、第一批 C1+I08+I09 派工卡待交我；ADR-0073 待用户 U3/U4）；one-1a-par（#509 收尾→F2 PAR-04→组织接口清单 PAR-03→日历改造 PAR-02，日历 basis 含 MAKE_UP_WORKDAY_CANCELLED）；one-1a-next-5（sonnet，SEC-1021-COO-01 编号四眼，之后 NX5-02）；one-platform-file（#502 冲突收尾→单元 3，表结构第 4 版已签）；one-data（待派）；one-ops（12-01 续费提醒）；one-quality（#511 → QUA-05 三方评测 → QUA-03 七钩子 → 网络规则 CI）；one-glossary、one-rules、三个 one-arch-* 空闲保留。
+- **P0 无测试规则（UNTESTED_P0_RULES.md @95a2f5e9）**：补测试待派 one-1a-next-5（NX5-03 后）：340、412、304、308、337、376（265、311 等用户定）；377–382、291 与映射表高中置信 88 条补 @DisplayName 等模块会话空档（改验收要裁定）；193 条无规则卡测试已派 one-rules 补登；388/390/391 与 12 张未实现是功能缺口，待按作战图排（未派）；员工法人归属迁入无来源，等 one-data 补查 52 账号后决定是否进收件箱。
+- **one-quality 清空后告知**：交接里的 AskUserQuestion 门禁卡已撤（intent 2026-10-21-162433），改为 SESSION_PLAYBOOK §11 战队协作第 1 条结尾规则；#517 合入后交接钩子已覆盖全部会话。
+- **10-21 16:3x 用户重启电脑**：重启前 /private/tmp 下 15 个工作区的未提交改动已备份到 ~/.modernize/psa/reboot-backup-20261021/（<名>.tgz，INDEX.txt 记路径与分支；codex-wt-f=one-1a-par legacy-inbox-impl 43 个文件最要紧）；未推送提交在主仓库对象库不丢。重启后：通知 one-1a-par、one-quality 从备份恢复；one-merge 检查 launchd 队列与在途 CI 重跑；git worktree prune。
+- **收件箱 pending**：ADR-0073 U3/U4（关账期间错误处置、会签逾期升级对象）。
+- **调度自检补充**：验收裁定登记后立即加急合集（守护只认 main 上的裁定）；通知用户重启前查 ps 常驻进程与会话 Monitor；有条件批准时实现会话报条件满足即可入队。
+- 不得再犯：沿用下方旧条目（会话身份、原话核对、答复读备注、脚本统计先验证等）。
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
@@ -52,6 +53,8 @@
 - 他人转达的用户原话先核实；用户决定当场记 intent（`new_intent.py --session=one-coordinator`）。全程中文。
 
 ## 会话
+- 10-21 15:09 上下文交接钩子在 one-coordinator、one-ops 实测生效（会话名正确识别）；试点一天后推全部会话。要点：app 读主检出的 .claude/settings.json，钩子 PR 合入后须快进主检出并重启 app；app 重启会结束所有由会话拉起的进程（含 mq.py），launchd 方案待 one-merge 出、问用户。用户「先解决钩子问题，再开展工作」的暂停于此解除。
+- 10-21 归档：one-ops-calendar（日历导入完）、psa-gl-finance-review、psa-gl-scope（未推送提交备份到 origin/claude/psa-gl-scope @1b5cc823）、psa-review-quotation、psa-review-approval。one-arch-revenue/people/finance 用户定保留（「后面流程还用得到」）。
 - 画像与当前状态见 `SESSIONS.md`（`build_all.py` 生成；画像 `sessions/<会话名>.md`，已结束的在 `sessions/_retired.md`）；实时情况看 `ListAgents`（SESSION_PLAYBOOK §2.1 第 16 条）。
 
 ## 开场核对
@@ -62,11 +65,12 @@
 - 执行归 one-merge：队列 `scripts/merge/mq.py`（队列目录 <git-common-dir>/merge-queue/，`python3 scripts/merge/mq.py status`）；strict 已关、快慢两道试行至 10-19（intent 084339）。旧 mq_run2.sh 已停用。
 
 ## 待用户
+- 投产前（可选，用户转达 OD）：OD 能补到正式依据的附上即可；2022–2026 的 16 天已以老系统工时与审批核查为依据（用户「同意，16 天用工时记录作依据」），2023-04-23 按官方补调休；公司加休表投产前定稿。
 - 财务口径决策单（46 题，~/.modernize/psa/finance/FINANCE_DECISIONS.html，#176）：用户全盘定；9 条事实问财务；A1、A10 待审计师书面意见。
 - 用语：用户「先等等，我没有同意所有用语」「所有用语检查下，acl用语单列，不能进入新系统模块」（intent 161339）：第三轮写回作废；one-glossary 全量 ACL 归类（四类）→ 我抽查 → 交用户；「来源*」改归过渡期集成术语（intent 161053）。决策页必须有提交步骤（05bf4394），门禁页固定链接 https://claude.ai/artifact/MwoqwkhAYq9CtomgaedwZ1。R-1b-0 门禁暂停。ACL 全量归类（670：领域 562、过渡期 60、长期 18、去外部名 24、待定 6）已抽查放行：原编号改「领域去外部名」、A8 长期还是过渡交用户问、代码搬迁与 ADR 冲突转 one-architecture；同一固定链接挂两张单（ACL 108 条 + 第三轮重做），one-glossary 补测提交流程后直接发用户。
 - 架构：ADR-0039 防腐层边界用户已定（4 项全推荐，C1 只定方向，intent 164527），#207 复审通过入队。身份生命周期研究（入职→企业微信开通）交 one-architecture，#207 合并后、C1 实施前，结论交用户。FRAMEWORKS.md、METHOD.md（分支 claude/one-architecture-method）待用户审，批准后排 METHOD 第 5 节 6 项偏差。架构决策页（7 问）仍待发。
 - 规则文档瘦身对照表；同轮问 CI 覆盖率门槛是否恢复。
-- 生产前：第二名超管 / 审计员 / 组织数据管理员 / DBA 人选（role_holders.md，不入仓；dev 流程管理员由用户兼任）；C-11 关单人模式；CODEOWNERS；R-13 后备令牌待首次 OIDC 部署后删除；归档 WORM 首个写入方前锁定；RDS 扩容 C-1。
+- 生产前：日历起草人是否即 OD 维护人员、日历确认人（业务管理员，须与起草人不同）由谁担任（ADR-0072 第 5 条第 2 款）；第二名超管 / 审计员 / 组织数据管理员 / DBA 人选（role_holders.md，不入仓；dev 流程管理员由用户兼任）；C-11 关单人模式；CODEOWNERS；R-13 后备令牌待首次 OIDC 部署后删除；归档 WORM 首个写入方前锁定；RDS 扩容 C-1。
 
 ## 技术裁定在途
 - OPS-PORT：运维命令真正不起 Web（结构性，one-1a-par，P2 合并后）；dev 前兜底 C-5 UnsetEnvironment（#202）。

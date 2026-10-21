@@ -258,3 +258,39 @@ DAMA-DMBOK 第 2 版修订版（2024，https://dama.org/dama-dmbok-revision/ ）
 | 删去未核实参照 | Vernon 2013 第 10 章聚合经验规则、PMBOK WBS 定义（凭记忆引用，未核实） | 删去，不作依据；WBS 三类节点的依据仍取 BIZBOK §2.5 与用户决定（intent `2026-10-15-215632`） | intent `2026-10-16-112800` L-9 |
 | 防漂移规则 | 5 条 | 7 条（加冲突规则、许可受限文本的引用方式；区分「未核实」与「待独立复核」） | 本稿 |
 | 工程层标准 | §9 | 正文保留于 §10，同步 ADR-0043 两维分级及 ADR-0054 旧时点读法 | ADR-0043、ADR-0054 |
+
+## 15. 要点笔记
+
+ARC-1017-ARC-21（2026-10-17）新增的阅读笔记。以下只登记文件、书目和已读版本；各份项目取舍已由 one-architecture 2026-10-18 审定，页码待 sonnet 独立抽查。笔记不改变本文件既有采用范围、冲突规则或锁定版本；本地书目缺口在各笔记中明示。（依据 intent 2026-10-17-204331：用户「把书的核心思想，跟我们架构设计相关的，持久化存下来」）
+
+- [kimball-dwt3.md](frameworks/notes/kimball-dwt3.md)：Kimball、Ross，The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling；Third Edition，Wiley，2013。
+- [kimball-dwt2.md](frameworks/notes/kimball-dwt2.md)：Kimball、Ross，The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling；Second Edition，Wiley，2002。
+- [dama-dmbok2.md](frameworks/notes/dama-dmbok2.md)：DAMA International，The DAMA Guide to the Data Management Body of Knowledge；Second Edition，First Printing 2017。本地已读版本为 2017，未替代 §6 的 2024 修订版参照；出版者全名、印刷页未核。
+- [bernstein-tp2.md](frameworks/notes/bernstein-tp2.md)：Bernstein、Newcomer，Principles of Transaction Processing；2nd ed.，Morgan Kaufmann／Elsevier，2009。
+- [bizbok-v11.md](frameworks/notes/bizbok-v11.md)：Business Architecture Guild，A Guide to the Business Architecture Body of Knowledge（BIZBOK Guide）；Version 11.0，2022。
+- [togaf10.md](frameworks/notes/togaf10.md)：The Open Group，The TOGAF Standard, 10th Edition（C220）；2022，含 2025-05 TC1；配套 G178、G190、G211 Version 2 分别登记其 2022 版与 2025-05 更新。
+- [archimate32.md](frameworks/notes/archimate32.md)：The Open Group，ArchiMate 3.2 Specification（C226）；2022，本地本含 2023-02 更正；仍按 §9 仅作对照，不采用该语言。
+- [ddd-reference.md](frameworks/notes/ddd-reference.md)：Eric Evans，Domain-Driven Design Reference: Definitions and Pattern Summaries；2015 Reference，本地文件标为 2015-03，题名页列 Domain Language, Inc.。
+- [fowler-ap.md](frameworks/notes/fowler-ap.md)：Martin Fowler（派工与文件标识），Analysis Patterns: Reusable Object Models；本地 361 页 PDF 缺题名／版权页，文件名标 1996，版次、出版年与 ISBN 未核实；已审定（one-architecture 2026-10-18）。
+- [fowler-poeaa.md](frameworks/notes/fowler-poeaa.md)：Martin Fowler 等，Patterns of Enterprise Application Architecture；Addison-Wesley，版权 2003，首次印刷 October 2002，书目入口另列 November 05, 2002；已审定（one-architecture 2026-10-18）。
+- [hohpe-eip.md](frameworks/notes/hohpe-eip.md)：Gregor Hohpe、Bobby Woolf，Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions；Addison-Wesley，版权 2004，本地本第二次印刷 December 2003；已审定（one-architecture 2026-10-18）。
+- [brandolini-es.md](frameworks/notes/brandolini-es.md)：Alberto Brandolini，Introducing EventStorming: An act of Deliberate Collective Learning；Leanpub，本地版本发布 2018-06-06，Main version 0.1.0.2，未完成稿；已审定（one-architecture 2026-10-18）。
+- [buchtik-wbs2.md](frameworks/notes/buchtik-wbs2.md)：Liliana Buchtik，Secrets to Mastering the WBS in Real-World Projects: The Most Practical Approach to Work Breakdown Structures (WBS)!；Second Edition，Project Management Institute，2013；已审定（one-architecture 2026-10-18）。
+- [silverston-dmrb3.md](frameworks/notes/silverston-dmrb3.md)：Len Silverston、Paul Agnew，The Data Model Resource Book, Volume 3: Universal Patterns for Data Modeling；Wiley Publishing，版权 2009，EPUB 包日期 2011 不替代版权年；已审定（one-architecture 2026-10-18）。
+- [unanet-ae.md](frameworks/notes/unanet-ae.md)：Unanet University，Unanet AE 八份 Participant Guide；封面修订日期分列于笔记，范围 2023-02 至 2026-03，未确认统一产品发布版本；已审定（one-architecture 2026-10-18）。
+- [vantagepoint-2026.md](frameworks/notes/vantagepoint-2026.md)：AEC 项目制服务产品 2026.2 离线资料库对照（与 unanet-ae 并列，成熟产品依据，CLAUDE.md 第 4 条）；只写概括与证据索引号（路径存仓库外交接目录），不含源码、DDL 或字段名；已审定（one-architecture 2026-10-18），2026-10-17 改为四层方案样板格式（ARC-1018-ARC-05）。
+- [cas14-2017.md](frameworks/notes/cas14-2017.md)：财政部《企业会计准则第 14 号——收入》2017 年修订；准则法规，四层方案样板（ARC-1018-ARC-05），页码逐条核对。
+- 笔记格式：[_TEMPLATE.md](frameworks/notes/_TEMPLATE.md)、固定清单 [_vocab.yaml](frameworks/notes/_vocab.yaml)、检查 [notes_check.py](frameworks/notes_check.py)（四节、信息栏、锚点 `编号#概念名` 与全仓断链）；kimball-dwt3、cas14-2017、vantagepoint-2026 为样板，其余待迁移。
+- [silverston-dmrb1.md](frameworks/notes/silverston-dmrb1.md)：Len Silverston，The Data Model Resource Book, Revised Edition, Volume 1: A Library of Universal Data Models for All Enterprises；John Wiley & Sons，2001。
+- [silverston-dmrb2.md](frameworks/notes/silverston-dmrb2.md)：Len Silverston，The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types；John Wiley & Sons，2001。PDF 无可抽取正文，专业服务章选页补充目视核读，未覆盖全书。
+- [hay-dmp.md](frameworks/notes/hay-dmp.md)：David C. Hay，Data Model Patterns: A Metadata Map；Morgan Kaufmann／Elsevier，2006。按匿名 EPUB 的书内题名核定，未冒充 Conventions of Thought。
+- [evans-ddd2003.md](frameworks/notes/evans-ddd2003.md)：Eric Evans，Domain-Driven Design: Tackling Complexity in the Heart of Software；Addison-Wesley，首次印刷 2003-08，版权年 2004。原书 MOBI 离线解析成功，与 2015 Reference 分开登记。
+- [vernon-iddd.md](frameworks/notes/vernon-iddd.md)：Vaughn Vernon，Implementing Domain-Driven Design；Addison-Wesley／Pearson，2013。
+- [khononov-lddd.md](frameworks/notes/khononov-lddd.md)：Vlad Khononov，Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy；O’Reilly，2021 首版，版权年 2022，本地文本列 2024-03-22 第二次发布。
+- [archimate4.md](frameworks/notes/archimate4.md)：The Open Group，ArchiMate 4 Specification，C260；Van Haren Publishing，2026-04，Eighth edition。仅作对照，不因此采用该语言。
+- [archimate4-pocket.md](frameworks/notes/archimate4-pocket.md)：**未能读取对应口袋指南**。桌面候选 PDF 虽有该文件名，书内实际为 C260 规范，与规范 EPUB 重复；本项只留输入缺口及书目核对。
+- [lankhorst-eaw.md](frameworks/notes/lankhorst-eaw.md)：Marc Lankhorst et al.，Enterprise Architecture at Work: Modelling, Communication and Analysis；Second Edition，Springer，2009。
+- [bahri-togaf.md](frameworks/notes/bahri-togaf.md)：Mudar Bahri、Joe Williams；本地 PDF 实际为 Practical Model-Driven Enterprise Architecture: Design a mature enterprise architecture repository using Sparx Systems Enterprise Architect and ArchiMate 3.1，Packt，2022。与文件名所称 Modeling Enterprise Architecture with TOGAF 不同，笔记仅覆盖实际输入。
+- [pmbok6-zh.md](frameworks/notes/pmbok6-zh.md)：Project Management Institute，项目管理知识体系指南（PMBOK 指南）第六版；中文译本电子工业出版社，2018-04 第 1 版；对应英文第六版 2017。
+- [charrett-fidic.md](frameworks/notes/charrett-fidic.md)：Donald Charrett 主编，The International Application of FIDIC Contracts: A Practical Guide；First，Informa Law from Routledge，2020。历史阅读笔记，不作当前法律有效性判断。
+- [bizbok-v9-diff.md](frameworks/notes/bizbok-v9-diff.md)：Business Architecture Guild，BIZBOK Guide Version 9.0，2020-07；只记录与 v11 的相关差异及未核范围，不降低现行 v11 锁定版本。
