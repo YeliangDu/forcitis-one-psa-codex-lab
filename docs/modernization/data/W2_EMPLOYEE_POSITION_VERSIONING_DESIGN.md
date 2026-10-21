@@ -1,4 +1,4 @@
-# 数据修复批 W2「员工与岗位版本化」数据设计（ADR-0055 决定 2、ADR-0068）——第 4 版
+# 数据修复批 W2「员工与岗位版本化」数据设计（ADR-0055 决定 2、ADR-0068）——第 4 版（2026-10-21 晚补：停薪留职、组织单元与岗位命令表）
 
 - 作者：one-data，2026-10-21。**第 4 版（@下一提交）按用户 2026-10-21 在 #494 评论与收件箱的答复回填：D17 豁免同意及六项边界、工号/岗位编码规矩、迁入重复工号处置、离职日口径、W-05 与 W-01 同批、`org_units` 根表收窄时限；并按用户批 ADR-0068 时的补充改第 0 节——零点作业不是正确性前提，登记时即写带未来生效日的版本，按日期读，作业只管事件与通知**（intent `9a5136bf`、`c28a0601`）。第 1 版 @ae8e4621，第 2 版 @06e4e73f；改后复核 `R2-W2设计改后复核-2026-10-21.md`（N-01…N-07、W-06/08/09、R-01）已在本版处理；首轮独立复核 `R-W2设计复核-2026-10-21.md`（`claude/one-coordinator-two-lanes` @13dd137e，W-01…W-17、R-01…R-04）；本版按复核改完，末尾有逐条处理表。
 - 依据：ADR-0055 决定 2、3；ADR-0068（#493，提议）第 1、2、7 条；用户 U-12（intent `2026-10-16-134434-…U-12-…用人事`）；D6、D17 细则；现行基线 `V20261014131000__organization_workforce_baseline.sql`（main）。
@@ -23,7 +23,7 @@
 ### 0.2 管理员离职的保护也不依赖作业
 
 - 保护（ADR-0055 决定 3 第 3、4 点：可用超管少于 2 名仍暂停，放行后为 0 名只能走双人运维命令）**在录入时判定**，不在零点作业里判定：管理员离职命令（含生效日在将来的）录入时，在咨询锁内用**待放行员工集合加所有尚未到日的管理员离职命令**一起作为 `SeparationReview` 的入参计算剩余可用超管；需要暂停的命令置 `HELD`，**不写离职版本**（乙）。这样将来日期的管理员离职不会因作业停摆绕过保护，也不会出现「到日自动离职、保护没跑」。
-- 命令契约（A1）须写明：到日作业不得重新评估并改写已写入的版本；其间另一名管理员离职使剩余超管数下降的情形，由后来的命令在咨询锁内看到前一条的结果（ADR-0068 第 2 条 M1）。
+- 生效日作业**再判一次**（one-architecture 方案 A68，数据侧同意，带条件）：再判结果仍需暂停时，同一事务里把命令转 `HELD`、**作废**那条未来（或刚到日的）离职版本、不关授予；该转换必须写审计并告警，因为读时守卫在作业前的这段时间已把该员工当离职处理。条件：①作废与转 `HELD` 同事务；②授予的正式收回在再判之后才做，回到在职时无需恢复授予；③再判只会因「管理员被停用、角色被收回」这类外部变化改变结论（并发的管理员离职已在录入时被串行锁排除）。作业停摆时离职照常按日生效，是收紧方向；0 名超管由双人运维命令兜底（ADR-0055 决定 3 第 4 点）。
 - 本节所需的契约改动（`SeparationReview` 入参含未到日的管理员离职）交 one-architecture，见第 10 节 6。
 
 ## 1. 生效口径
@@ -90,6 +90,7 @@ CREATE TABLE organization_workforce.employee_versions (
     revision_number         integer     NOT NULL DEFAULT 0,
     employment_status       text        NOT NULL,
     employment_phase        text,
+    is_on_unpaid_leave      boolean     NOT NULL,
     is_fee_earner           boolean     NOT NULL,
     change_channel_kind     text        NOT NULL,
     change_command_id       uuid,
@@ -111,6 +112,7 @@ CREATE TABLE organization_workforce.employee_versions (
     CONSTRAINT ck_employee_versions_employment_status CHECK (employment_status IN ('EMPLOYED', 'SEPARATED')),
     CONSTRAINT ck_employee_versions_employment_phase CHECK (employment_phase IN ('PROBATION', 'REGULAR')),
     CONSTRAINT ck_employee_versions_phase_status CHECK ((employment_status = 'EMPLOYED') = (employment_phase IS NOT NULL)),
+    CONSTRAINT ck_employee_versions_leave_employed CHECK (NOT is_on_unpaid_leave OR employment_status = 'EMPLOYED'),
     CONSTRAINT ck_employee_versions_revision_number CHECK (revision_number >= 0),
     CONSTRAINT ck_employee_versions_change_channel_kind CHECK (change_channel_kind IN ('COMMAND', 'MIGRATION')),
     CONSTRAINT ck_employee_versions_command CHECK ((change_channel_kind = 'COMMAND') = (change_command_id IS NOT NULL)),
@@ -124,14 +126,14 @@ CREATE INDEX ix_employee_versions_superseding_command_id ON organization_workfor
 CREATE INDEX ix_employee_versions_separated_effective_from_date ON organization_workforce.employee_versions (effective_from_date) WHERE employment_status = 'SEPARATED' AND superseded_at IS NULL;
 ```
 - 触发器 `tg_employee_versions_append_only`（BEFORE UPDATE OR DELETE）：`effective_to_date`、`closed_at`、`superseded_at`、`superseding_command_id` 四列各自只放行由空变非空一次，`updated_at` 可变，其余列拒；TRUNCATE 语句级触发器拒；`one_db_roles_schemas.sql` §4b 回收 DELETE、TRUNCATE，**清理通道**见第 8 节。
-- `employment_phase`（试用 `PROBATION`、转正后 `REGULAR`；ADR-0068 第 1 条 3 已定转正命令与阶段列，只在在职时有值，离职为空）：入职命令写初始阶段，转正命令写 `REGULAR`。`employment_status` 现只有 EMPLOYED、SEPARATED；停薪留职按 B7 不先写；**数据侧建议转 one-architecture**：`employment_status` 只表达雇佣关系，停薪留职另设 `leave_status`、试用另设 `employment_phase` 作为独立列（行业通行的「工作状态与请假分开」；identity 现有按 EMPLOYED 判定的逻辑不用跟着变），裁定后基线开放期加列。
+- `employment_phase`（试用 `PROBATION`、转正后 `REGULAR`；ADR-0068 第 1 条 3 已定转正命令与阶段列，只在在职时有值，离职为空）：入职命令写初始阶段，转正命令写 `REGULAR`。**停薪留职标记 `is_on_unpaid_leave`**（H3，用户批 ADR-0068 时定，已获采纳）落在本表，随时间开关，按 D17 版本化，不落 `employees`；它不是雇佣状态，离职版本恒为假（`ck_employee_versions_leave_employed`）；命令种类相应增加停薪留职开始、结束（`personnel_commands` 加 `target_is_on_unpaid_leave`）。`employment_status` 现只有 EMPLOYED、SEPARATED。（第 3 版的数据侧建议：`employment_status` 只表达雇佣关系，停薪留职另设 `leave_status`、试用另设 `employment_phase` 作为独立列（行业通行的「工作状态与请假分开」；identity 现有按 EMPLOYED 判定的逻辑不用跟着变），裁定后基线开放期加列。
 - 管理员离职暂停期间（A2）：按 ADR-0068 第 2 条，离职命令转 `HELD`，员工保持在职、**不写 SEPARATED 版本**，放行时按原生效日写版本（经第 2 节补登机制）；因此本表在暂停期间没有 SEPARATED 行。判定在录入时做（第 0.2 节），不依赖作业。
 
 ### 3.3 positions 与 position_versions
 
 - 根表 `positions` 留：`id`、`created_at`、`updated_at`、`version`；`code`、`name`、`sort_order`、`status` 进版本表（与 `org_unit_versions` 同法）。
 - `position_versions`：`position_version_id`、`position_id`（外键）、第 2 节通用列、`code`（可空，长度 ≤ 500 非空白）、`name`（≤ 500 非空白）、`sort_order`、`status`。
-- **岗位状态（W-16）**：取值 `ACTIVE`、`DISABLED`；**不再沿用 `DELETED`**（那是同步「组织源删除或不再返回」的语义，基线 :19）。ADR-0068 第 4 条岗位只做新建与停用，与之对齐；岗位命令的归属表等 one-architecture（`change_command_id` 在命令表确定前，`COMMAND` 行不可写，只有 `MIGRATION` 行）。
+- **岗位状态（W-16）**：取值 `ACTIVE`、`DISABLED`；**不再沿用 `DELETED`**（那是同步「组织源删除或不再返回」的语义，基线 :19）。ADR-0068 第 4 条岗位只做新建与停用，与之对齐；岗位与组织单元命令同表 `org_structure_commands`（`target_kind` 取 `ORG_UNIT` / `POSITION`，ADR-0068 H4，已获采纳，纳入签发范围，DDL 草案待补，要求见 `reviews/ADR-0068.md` 第三轮）：`position_versions`、`org_unit_versions` 用 `change_org_structure_command_id` 指向它（同 schema 真外键，与 `change_command_id` 二者对 `COMMAND` 行恰有一个非空）；该表建成前 `COMMAND` 行不可写，只有 `MIGRATION` 行。
 - **岗位编码全公司唯一**（用户 2026-10-21 已定）：`position_versions.code` 可空；`uk_position_versions_code` 为部分唯一索引 `UNIQUE (code) WHERE code IS NOT NULL AND superseded_at IS NULL`（作废行不占编码）；**编码永不复用**——岗位撤销时保留编码、状态置 `DISABLED`，不过滤状态，停用岗位仍占编码；更名不换编码；另有守护测试断言「用过的编码不会出现在另一个岗位的任何版本里」（含已作废行，作废行不在索引内，由守护兜底）。
 
 ### 3.4 assignment_versions 与 assignments 去除（复核 2.1，结论：去除）
