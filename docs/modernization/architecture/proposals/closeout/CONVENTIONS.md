@@ -26,6 +26,7 @@
     - {roles: [SH-E5, SH-M2], rule: "制单与审批不得为同一人"}
   triggers:                           # 必填（提议中）：触发，可多个
     - {type: human, name: "人工发起"}            # type：human / event（写 signal 事件名与发布 BC）/ time / call
+    - {type: human, name: "从既有状态继续办理", entry: 3}   # 可选 entry：直接进入的步骤序号，从 1 起；省略为第 1 步
   outcomes: [已认可, 已退回]            # 必填（提议中）：本流程的结局词（结束事件名），取自阶段出口用语
   scenarios: [PRC-03-S01]             # 铺开时填：验收场景编号 PRC-NN-Sxx
   roles:                              # 必填；本流程全部参与角色
@@ -62,6 +63,7 @@
 1. `decision.when` 只写业务条件，不写字段名；最后一条用 `otherwise`。
 2. `cross_bc` 的方向必须与聚合稿 §4.1 依赖边一致（`mode: api` 只能由下游调上游；`mode: event` 由发布方 → 订阅方）；不一致写 NOTES「接缝问题」，不改边。
 3. 同 BC 内的交互不写 `cross_bc`。
+4. `triggers[].entry` 适用于全部触发类型，指向本流程 `steps` 的步骤序号（正整数，也接受数字字符串），不写状态名、`end` 或其他流程编号；越界、空值、布尔值等非法值须报错，不回退到第 1 步。开始事件放在目标步骤的泳道，连该步骤的首个节点（含定时等待、线下办理等步骤内部前置节点），不执行前面的步骤；多个触发可指向同一步。状态前置条件仍由目标命令的守卫校验，`entry` 只表达描述图入口，不证明运行时状态守卫已实现。例如 PRC-144 的取消触发写 `entry: 3`，从已批准或已完成直达取消登记步骤。
 
 ## 3. 表级数据模型（`data-model.<组>.yaml`）
 
@@ -107,7 +109,9 @@
 - **类型级例外**：engine 为 platform.approval 的审批，若已采纳 ADR 或用户决定指定由某职能复核（如收入确认由财务复核，ADR-0047 U-2 (a)），基础审批人写该类型级角色，权责表登 `resolve: type`，并在 `why_human` 写出处；其余一律 cost_object_owner。
 - **单聚合维护的审批**：`commands[]`（命令清单，可逐条写 `aggregate` 覆盖单元级）或 `transitions[]`（状态迁移）上需要人工审批的条目（没收、扣减、终止、开户确认等）写 `approval:`，字段与步骤审批相同（`engine`、`approver`、`doc_type`、`why_human`、`escalation_rules`、`on_reject` 写驳回后状态不变的说明）；审批对象×命令 = 条目的 `aggregate`（没写取单元级）× 条目的 `command`；两处写了同一命令只算一次。`closeout_check.py --qc` 与 `raci_build.py` 一并扫描（one-architecture 2026-10-16 裁定，应 one-arch-revenue PRC-10、52、68）。
 - **类型级 A 手登**：platform.approval 的类型级例外在 `RESPONSIBILITY_MATRIX.yaml` 手登 `A: {resolve: type, role: SH-…, basis: <ADR 或 intent>}`，`raci_build.py --write` 重新生成时保留；engine 为 aggregate 的类型级 A 由脚本自动生成，不必手登。
-- **定时触发**：time 触发由所属 BC 向 `platform.scheduling` 登记定时，到点调本 BC 聚合命令，幂等键 = 聚合 ID + 到期时点；边「BC → platform.scheduling」按平台依赖登记（S-31 SQ-18）。
+- **定时触发**（2026-10-20 统一写法，one-architecture 按 one-coordinator 派工；依据 ADR-0002 定时任务行、ADR-0044 决定 3、`platform/scheduling/package-info.java` 与守护 G46）：time 触发由所属 BC 在本模块内声明 `@Scheduled` + `@SchedulerLock(name = "{子域}.{bc}.{名}")` 的作业，到点调本 BC 聚合命令；不向 `platform.scheduling` 登记，也不依赖它（它只提供锁表与总开关）。按记录到期的（提醒、超时、周年）由本 BC 的周期作业扫描聚合上的到期时点列，幂等键 = 聚合 ID + 到期时点，到期判定用应用注入的时钟（ADR-0034 第 1 项第 6 条），执行时复核聚合当前状态。原写法「向 platform.scheduling 登记、边 BC → platform.scheduling」作废（S-31 SQ-18 的该句不再适用）；聚合稿与 ARCH_VS14 中现存的此类边待 SSOT 重建导入时去掉。
+- **超时的系统代办（ARCH-VS14 A8）**：骨架保持只读时，在 `process-catalog.yaml` 对应流程登记 `timeout_actions`，以 `step_command` + `after` 精确匹配原步骤；`command`、`aggregate`、`outcome` 指明代办命令、同一聚合和已登记结局，`guard: {condition: <业务守卫>, goto: <失败回到的步骤序号>}` 明确失败路径。仅适用于 `interrupting: true`、`escalate_to: system`。图画成中断边界 → 守卫网关 → 系统服务任务 → 指定结局，守卫失败转纠正步骤，不再经过人工确认网关。重复、未匹配或无效配置须失败；未登记配置的超时保留原升级语义，非中断提醒仍只结束提醒分支。本配置只修正描述图，不代表定时或领域命令已实现；PRC-142 的期限仍待 B31-2。
+- **B-31 超时登记（ARCH-VS14 A7）**：受理提醒、解决后代关登记在 AGG-114，离职后归还提醒登记在 AGG-115，作业按上条在 B-31 内自声明，不依赖 `platform.scheduling`。期限、业务日历、起算点及混合入口范围分别待 B31-2、B31-7，未确认前不把 P2D 当两个工作日、也不把人工归还统一套离职 P7D。执行时复核聚合当前状态，重开、办结时取消旧期限，重试使用上述幂等键；已批准的数值回写原骨架须另卡。
 - **支撑流程**：不在客户价值流上的业务流程（如 B-31 行政事务）写 `stages: []` 与 `support: <理由>`（S-32）。
 - **跨段说明**：流程在同一价值流内所标阶段不连续时，须写 `stages_note: <理由>`（阶段对齐，2026-10-16）；没有理由的跨段按跳段报。
 - **状态机豁免**：运行单据写 `stateless: true`，长期配置写 `perpetual: true`，两者都须写 `reason`（S-30、S-32）。
