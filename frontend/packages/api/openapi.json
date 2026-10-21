@@ -604,9 +604,6 @@
             "format" : "date-time",
             "type" : [ "string", "null" ]
           },
-          "detailUrl" : {
-            "type" : [ "string", "null" ]
-          },
           "documentId" : {
             "format" : "uuid",
             "type" : [ "string", "null" ]
@@ -620,9 +617,6 @@
           "processKey" : {
             "$ref" : "#/components/schemas/ProcessKey"
           },
-          "source" : {
-            "type" : "string"
-          },
           "taskId" : {
             "type" : "string"
           },
@@ -630,7 +624,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "category", "claimed", "overdue", "source", "taskId", "title" ],
+        "required" : [ "category", "claimed", "overdue", "taskId", "title" ],
         "type" : "object"
       },
       "InboxResponse" : {
@@ -640,13 +634,6 @@
               "$ref" : "#/components/schemas/InboxItemResponse"
             },
             "type" : "array"
-          },
-          "legacyAvailable" : {
-            "type" : "boolean"
-          },
-          "legacyCount" : {
-            "format" : "int32",
-            "type" : "integer"
           },
           "newCount" : {
             "format" : "int32",
@@ -664,7 +651,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "items", "legacyAvailable", "legacyCount", "newCount", "noticeCount", "totalCount" ],
+        "required" : [ "items", "newCount", "noticeCount", "totalCount" ],
         "type" : "object"
       },
       "LegacyNumberResponse" : {
