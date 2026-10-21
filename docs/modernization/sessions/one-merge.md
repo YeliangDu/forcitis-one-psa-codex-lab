@@ -65,4 +65,4 @@
 
 ## 当前状态
 
-2026-10-17 13:40+02:00 在岗；按 one-coordinator 批准清单运行 `scripts/merge/mq.py`（pid 见队列目录 `run.pid`）；strict 已关试行至 10-19，只走受管队列；当前队列与失败看 `mq.py status` 与 `merge.log`，不沿用台账旧队列数字；模型 sonnet。
+2026-10-21 18:00+02:00 在岗；队列由 launchd 代理 `com.forcitis.mq` 托管（`scripts/merge/mq.py run`），队列与待办详见 `merge/MERGE_CONTEXT.md`「现状」，不抄数字；模型 sonnet；/clear 后先读该文件再 `mq.py status` 核对。
