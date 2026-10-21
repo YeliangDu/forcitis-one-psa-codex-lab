@@ -11,7 +11,6 @@ import com.forcitis.one.platform.integration.infrastructure.connection.ExternalC
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyVerificationCommand.ReadOnlyConnection;
-import com.forcitis.one.platform.integration.infrastructure.legacy.LegacyInboxConnectionDefinition;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -20,10 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -241,23 +238,10 @@ class ReadOnlyVerificationCommandTest {
     }
 
     @Test
-    @DisplayName("RULING-P3B-17 核实的老待办连接就是运行时的连接：连接名与运行时一致，三个变量是运行时配置前缀的环境变量形，旧名 legacy-approval 不再是连接")
-    void verificationConnectionsAreTheRuntimeOnes() {
-        String variablePrefix = LegacyInboxConnectionDefinition.propertyPrefix().toUpperCase(Locale.ROOT).replace('.', '_').replace("-", "") + "_";
-
-        assertThat(Arrays.stream(ReadOnlyConnection.values()).map(c -> c.connectionName)).contains(LegacyInboxConnectionDefinition.connectionName());
-        ReadOnlyConnection inbox = ReadOnlyConnection.named(LegacyInboxConnectionDefinition.connectionName()).orElseThrow();
-        assertThat(inbox.urlVariable).isEqualTo(variablePrefix + "URL");
-        assertThat(inbox.usernameVariable).isEqualTo(variablePrefix + "USERNAME");
-        assertThat(inbox.passwordVariable).isEqualTo(variablePrefix + "PASSWORD");
-        assertThat(ReadOnlyConnection.named("legacy-approval")).isEmpty();
-    }
-
-    @Test
     @DisplayName("RULING-P3B-17 --connection=legacy-approval 是用法错误（退出码 2），提示新名 integration-legacy-inbox，不核实")
     void theRetiredConnectionNameNamesItsReplacement() {
         assertThat(run("--connection=legacy-approval")).isEqualTo(ReadOnlyVerificationCommand.EXIT_USAGE);
-        assertThat(err.toString(StandardCharsets.UTF_8)).contains("--connection=" + LegacyInboxConnectionDefinition.connectionName());
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains("--connection=integration-legacy-inbox");
         assertThat(output()).doesNotContain("RESULT");
     }
 

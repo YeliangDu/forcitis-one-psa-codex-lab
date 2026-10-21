@@ -6,13 +6,13 @@ import java.time.Instant;
 import java.util.UUID;
 import org.springframework.lang.Nullable;
 
-record InboxItemResponse(String source, String taskId, String title, @Nullable String nodeName, @Nullable Instant createdAt,
-                         boolean claimed, @Nullable String detailUrl, @Nullable Instant deadlineAt, boolean overdue,
+record InboxItemResponse(String taskId, String title, @Nullable String nodeName, @Nullable Instant createdAt,
+                         boolean claimed, @Nullable Instant deadlineAt, boolean overdue,
                          @Nullable ProcessKey processKey, @Nullable UUID documentId, String category) {
 
     static InboxItemResponse of(InboxItem item) {
-        return new InboxItemResponse(item.source().name(), item.taskId(), item.title(), item.nodeName().orElse(null),
-                item.createdAt().orElse(null), item.claimed(), item.detailUrl().orElse(null), item.dueAt().orElse(null),
+        return new InboxItemResponse(item.taskId(), item.title(), item.nodeName().orElse(null),
+                item.createdAt().orElse(null), item.claimed(), item.dueAt().orElse(null),
                 item.overdue(), item.processKey().orElse(null), item.documentId().orElse(null), item.category().name());
     }
 }

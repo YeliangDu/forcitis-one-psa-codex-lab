@@ -14,13 +14,11 @@ import {
   labelOf,
   opinionText,
   recordTitle,
-  safeExternalUrl,
   toneOf,
   useInbox,
   useTaskRecords,
 } from '@forcitis/core';
 import { useState } from 'react';
-import { leaveTo } from '@/shared/platform/browser';
 import { openPage } from '@/shared/platform/navigation';
 import { ActionButton, Segments } from '@/shared/ui/actions';
 import { EmptyHint, LoadingHint, Notice, Tag } from '@/shared/ui/feedback';
@@ -28,13 +26,9 @@ import { ListCard } from '@/shared/ui/list-card';
 import { Screen, ScreenTitle } from '@/shared/ui/screen';
 import { taskPath } from '../model/paths';
 
-function openerOf(item: InboxItem): (() => void) | undefined {
-  if (item.source === 'NEW') {
-    const path = taskPath(item.taskId);
-    return () => openPage(path);
-  }
-  const target = safeExternalUrl(item.detailUrl);
-  return target === undefined ? undefined : () => leaveTo(target);
+function openerOf(item: InboxItem): () => void {
+  const path = taskPath(item.taskId);
+  return () => openPage(path);
 }
 
 function RecordCard({ record }: { record: TaskRecord }) {
@@ -80,14 +74,12 @@ export function InboxPage() {
           <ActionButton variant="default" onClick={() => void pending.refetch()}>刷新</ActionButton>
         </>
       ) : null}
-      {inbox.legacyAvailable ? null : <Notice tone="warning" title="老系统的待办暂时无法读取">当前只显示新系统的待办，请稍后刷新。</Notice>}
       <Segments
         active={view}
         onChange={(key) => setView(inboxViewOf(key))}
         options={[
           { key: 'all', label: `全部 ${inbox.totalCount}` },
           { key: 'new', label: `新系统 ${inbox.newCount}` },
-          { key: 'legacy', label: `老系统 ${inbox.legacyCount}` },
           { key: 'notice', label: `知会 ${inbox.noticeCount}` },
           { key: 'done', label: '已办' },
         ]}
@@ -105,7 +97,7 @@ export function InboxPage() {
             title={inboxTitle(item)}
             subtitle={item.nodeName ?? ''}
             footnote={formatDateTime(item.createdAt)}
-            tag={item.source === 'NEW' ? <Tag tone="info">新系统</Tag> : <Tag tone="neutral">{item.category === 'NOTICE' ? '知会' : '老系统'}</Tag>}
+            tag={<Tag tone="info">{item.category === 'NOTICE' ? '知会' : '新系统'}</Tag>}
             badge={inboxStateOf(item)}
             onOpen={openerOf(item)}
           />

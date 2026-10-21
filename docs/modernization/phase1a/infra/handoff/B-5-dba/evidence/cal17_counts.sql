@@ -1,0 +1,13 @@
+-- 工作日历 17 天核查：这 17 天及其前后各 3 天，每天的工时记录数与审批通过数（只出计数与小时合计，不含人员、单据标识）。one_evidence_ro（ADR-0037 第 7 项）。
+-- 工时：psa_time_sheet_works（deleted=0 的行）、psa_time_sheet（deleted=0 的工时单）；审批：bpm_task_ext 中 result=2（通过）且 end_time 落在当天的任务。
+SET LOCK_TIMEOUT 1000;
+WITH d(day) AS (SELECT CAST(v.day AS date) FROM (VALUES ('2022-01-27'),('2022-01-28'),('2022-01-29'),('2022-01-30'),('2022-01-31'),('2022-02-01'),('2022-02-02'),('2022-02-04'),('2022-02-05'),('2022-02-06'),('2022-02-07'),('2022-02-08'),('2022-02-09'),('2022-02-10'),('2022-02-11'),('2022-02-12'),('2023-01-16'),('2023-01-17'),('2023-01-18'),('2023-01-19'),('2023-01-20'),('2023-01-21'),('2023-01-22'),('2023-01-23'),('2023-01-25'),('2023-01-26'),('2023-01-27'),('2023-01-28'),('2023-01-29'),('2023-01-30'),('2023-01-31'),('2023-02-01'),('2023-02-02'),('2023-02-03'),('2023-04-20'),('2023-04-21'),('2023-04-22'),('2023-04-23'),('2023-04-24'),('2023-04-25'),('2023-04-26'),('2024-02-05'),('2024-02-06'),('2024-02-07'),('2024-02-08'),('2024-02-09'),('2024-02-10'),('2024-02-11'),('2024-02-12'),('2025-01-22'),('2025-01-23'),('2025-01-24'),('2025-01-25'),('2025-01-26'),('2025-01-27'),('2025-01-28'),('2025-01-29'),('2025-01-30'),('2026-02-11'),('2026-02-12'),('2026-02-13'),('2026-02-14'),('2026-02-15'),('2026-02-16'),('2026-02-17')) AS v(day)),
+w AS (SELECT x.works_date AS day, COUNT_BIG(*) AS work_rows, SUM(CAST(x.declare_hours AS float)) AS hours, SUM(CASE WHEN x.approve_status = 3 THEN 1 ELSE 0 END) AS approved_rows
+        FROM [ruoyi-vue-pro].dbo.psa_time_sheet_works AS x WHERE DB_NAME() = N'ruoyi-vue-pro' AND x.deleted = 0 AND x.works_date IN (SELECT day FROM d) GROUP BY x.works_date),
+s AS (SELECT x.works_date AS day, COUNT_BIG(*) AS sheets FROM [ruoyi-vue-pro].dbo.psa_time_sheet AS x WHERE DB_NAME() = N'ruoyi-vue-pro' AND x.deleted = 0 AND x.works_date IN (SELECT day FROM d) GROUP BY x.works_date),
+a AS (SELECT CAST(t.end_time AS date) AS day, COUNT_BIG(*) AS tasks_approved FROM [ruoyi-vue-pro].dbo.bpm_task_ext AS t
+       WHERE DB_NAME() = N'ruoyi-vue-pro' AND t.result = 2 AND t.end_time >= '20220101' AND t.end_time < '20260301' GROUP BY CAST(t.end_time AS date))
+SELECT CONVERT(varchar(10), d.day, 120) AS day, DATENAME(weekday, d.day) AS weekday_name, ISNULL(w.work_rows, 0) AS work_rows, ISNULL(w.hours, 0) AS declared_hours, ISNULL(w.approved_rows, 0) AS approved_work_rows,
+       ISNULL(s.sheets, 0) AS time_sheets, ISNULL(a.tasks_approved, 0) AS approval_tasks_passed
+  FROM d LEFT JOIN w ON w.day = d.day LEFT JOIN s ON s.day = d.day LEFT JOIN a ON a.day = d.day
+ WHERE DB_NAME() = N'ruoyi-vue-pro' ORDER BY d.day OPTION (MAXDOP 1);
