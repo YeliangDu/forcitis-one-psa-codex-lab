@@ -33,6 +33,7 @@ import com.forcitis.one.platform.file.application.IssueDownloadLink;
 import com.forcitis.one.platform.file.application.ListDocumentFiles;
 import com.forcitis.one.platform.file.application.ReadFileContent;
 import com.forcitis.one.platform.file.domain.BindingAudit;
+import com.forcitis.one.platform.file.domain.BindingTarget;
 import com.forcitis.one.platform.file.domain.Classification;
 import com.forcitis.one.platform.file.domain.NewStoredFile;
 import com.forcitis.one.platform.integration.api.BusinessFileStore;
@@ -50,11 +51,13 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
@@ -140,8 +143,8 @@ class FileBindingIT {
         }
     };
 
-    final BindFile bind = new BindFile(bindings, store, audit, keys, clock, new BusinessZone(ZoneId.of("Asia/Shanghai")), transactions,
-            new SimpleMeterRegistry());
+    final SimpleMeterRegistry meters = new SimpleMeterRegistry();
+    final BindFile bind = new BindFile(bindings, store, audit, keys, clock, new BusinessZone(ZoneId.of("Asia/Shanghai")), transactions, meters);
     final HoldFile hold = new HoldFile(bindings, audit, clock, transactions);
     final IssueDownloadLink links = new IssueDownloadLink(bindings, store, audit, Duration.ofMinutes(5), Duration.ofMinutes(15), clock);
     final ReadFileContent content = new ReadFileContent(bindings, store, audit, new SimpleMeterRegistry());
@@ -170,9 +173,13 @@ class FileBindingIT {
     }
 
     private FileId stored(FileStatus status, Lineage lineage) {
+        return stored(status, lineage, uploader);
+    }
+
+    private FileId stored(FileStatus status, Lineage lineage, FileSubject by) {
         FileId id = new FileId(UUID.randomUUID());
         String key = status == FileStatus.QUARANTINED ? keys.quarantine(id).value() : keys.formal(id, AT).value();
-        files.insert(new NewStoredFile(id, key, new ContentHash(sha256(CONTENT)), CONTENT.length, "application/pdf", uploader, status, false, lineage,
+        files.insert(new NewStoredFile(id, key, new ContentHash(sha256(CONTENT)), CONTENT.length, "application/pdf", by, status, false, lineage,
                 "ClamAV 1.4.1", "27435", status == FileStatus.QUARANTINED ? "Eicar-Signature" : null, false, "合同.pdf", AT));
         return id;
     }
@@ -273,6 +280,68 @@ class FileBindingIT {
     }
 
     @Test
+    void aCopyLeftUnlinkedIsCountedAndARefusalBeforeTheCopyIsNot() {
+        FileId file = stored(FileStatus.AVAILABLE, new Lineage.FirstVersion());
+        DocumentReference contract = document();
+        bind.bind(request(file, contract, AccessLevel.INTERNAL, uploader));
+        assertThatThrownBy(() -> bind.bind(request(file, contract, AccessLevel.RESTRICTED, uploader))).isInstanceOf(DomainException.class);
+        assertThat(meters.counter("forcitis.platform.file.binding.failures").count()).isZero();
+        FileId next = stored(FileStatus.AVAILABLE, new Lineage.FirstVersion());
+        DomainException late = FileError.PLATFORM_FILE_BINDING_CONFLICT.refusal("raced");
+        BindFile racing = new BindFile(new JdbcFileBindingRepository(jdbc, UUID::randomUUID) {
+            int locks;
+
+            @Override
+            public Optional<BindingTarget> lockForBinding(FileId id) {
+                if (++locks == 2) {
+                    throw late;
+                }
+                return super.lockForBinding(id);
+            }
+        }, store, audit, keys, clock, new BusinessZone(ZoneId.of("Asia/Shanghai")), transactions, meters);
+        assertThatThrownBy(() -> racing.bind(request(next, document(), AccessLevel.INTERNAL, uploader))).isSameAs(late);
+        assertThat(meters.counter("forcitis.platform.file.binding.failures").count()).isEqualTo(1);
+        assertThat(rows("file_bindings", next)).isZero();
+    }
+
+    @Test
+    void aFileFromAOneTimeLinkIsLinkedByThatLinkOnly() {
+        FileSubject link = new FileSubject(FileSubjectKind.ONE_TIME_LINK, UUID.randomUUID().toString());
+        FileId file = stored(FileStatus.AVAILABLE, new Lineage.FirstVersion(), link);
+        DocumentReference contract = document();
+        assertThatThrownBy(() -> bind.bind(request(file, contract, AccessLevel.INTERNAL, uploader)))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(FileError.PLATFORM_FILE_NOT_FOUND));
+        bind.bind(request(file, contract, AccessLevel.INTERNAL, link));
+        assertThat(promoted).containsExactly("dev/staging/one_time_link/" + file + " -> dev/files/2026/10/" + file);
+    }
+
+    @Test
+    void theCategoryVersionInEffectTodayIsUsedBeforeANewerOneNotYetInEffect() {
+        UUID category = jdbc.sql("select c.preservation_category_id from platform_file.preservation_categories c where c.category_code = ?")
+                .param(this.category.value()).query(UUID.class).single();
+        UUID first = jdbc.sql("select preservation_category_version_id from platform_file.preservation_category_versions where preservation_category_id = ?")
+                .param(category).query(UUID.class).single();
+        jdbc.sql("update platform_file.preservation_category_versions set confirmation_status = 'CONFIRMED', confirmed_by = ?, confirmed_at = now(),"
+                + " updated_at = now() where preservation_category_version_id = ?").params(UUID.randomUUID(), first).update();
+        UUID later = UUID.randomUUID();
+        jdbc.sql("insert into platform_file.preservation_category_versions (preservation_category_version_id, preservation_category_id, version_number,"
+                + " start_basis_text, effective_from_date, decision_ref_key, confirmation_status, authored_at, created_at, updated_at)"
+                + " values (?, ?, 2, '合同终止', date '2026-12-01', 'ADR-0061', 'PENDING', now(), now(), now())").params(later, category).update();
+        jdbc.sql("update platform_file.preservation_category_versions set confirmation_status = 'CONFIRMED', confirmed_by = ?, confirmed_at = now(),"
+                + " updated_at = now() where preservation_category_version_id = ?").params(UUID.randomUUID(), later).update();
+        assertThat(bindings.currentCategoryVersion(this.category, LocalDate.parse("2026-10-21"))).contains(first);
+        assertThat(bindings.currentCategoryVersion(this.category, LocalDate.parse("2026-12-01"))).contains(later);
+    }
+
+    @Test
+    void aPendingVersionIsUsedWhileNoConfirmedOneIsInEffect() {
+        UUID pending = jdbc.sql("select v.preservation_category_version_id from platform_file.preservation_category_versions v"
+                + " join platform_file.preservation_categories c on c.preservation_category_id = v.preservation_category_id where c.category_code = ?")
+                .param(category.value()).query(UUID.class).single();
+        assertThat(bindings.currentCategoryVersion(category, LocalDate.parse("2026-10-21"))).contains(pending);
+    }
+
+    @Test
     void aLinkIsSignedOnlyForTheDocumentTheFileIsLinkedTo() {
         FileId file = stored(FileStatus.AVAILABLE, new Lineage.FirstVersion());
         DocumentReference contract = document();
@@ -322,6 +391,8 @@ class FileBindingIT {
         assertThat(jdbc.sql("select hold_reason from platform_file.file_holds where stored_file_id = ?").param(file.value()).query(String.class).list())
                 .containsExactly("合同争议");
         assertThat(audited).containsExactly("bound INTERNAL", "held");
+        assertThatThrownBy(() -> hold.hold(new HoldRequest(file, document(), uploader, new Reason("理".repeat(501)))))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private static String sha256(byte[] bytes) {

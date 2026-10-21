@@ -49,6 +49,7 @@ public final class BindFile {
         this.clock = clock;
         this.zone = zone;
         this.transaction = new TransactionTemplate(transactions);
+        // Counts only the failed links that left a copy at the formal key; refusals before the copy are not counted here.
         this.unlinkedCopies = Counter.builder("forcitis.platform.file.binding.failures").register(meters);
     }
 
