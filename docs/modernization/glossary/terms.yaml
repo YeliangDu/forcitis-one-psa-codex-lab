@@ -975,19 +975,14 @@ terms:
   snake: baseline_version
   kind: entity
   bc: contract.agreement
-  definition: 单调递增、历史不可变的基线快照（版本2+仅由已批准变更产生）；「内部基线」是它的方言叫法，不用
+  definition: 单调递增、历史不可变的基线快照（版本2+仅由已批准变更产生）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
-  aliases:
-  - name: 内部基线
-    type: dialect
-    deprecated: true
-    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；用户 2026-10-21 用语确认第四批 GL3（提交
-    GL3-20261021-201752-45m，intent 2026-10-21-201913）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_scope
   zh: 合同范围
@@ -2812,7 +2807,7 @@ terms:
   scope: domain
   confirmed: 2026-10-15（用户，B2 类别判定）
 - id: standard_cost_rate_card
-  zh: 标准成本费率表
+  zh: 标准成本费率卡
   en: StandardCostRateCard
   snake: standard_cost_rate_card
   kind: aggregate
@@ -2832,11 +2827,16 @@ terms:
     type: standard-zh
     deprecated: true
     source: docs/modernization/rules/decide/answers/NM3.json#NM3~NM3-08
+  - name: 标准成本费率表
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05：对客侧计费费率卡与成本侧同层，卡、表不混用，英文名本就是 Card）
   forbidden:
   - BU岗位人天单价
   status: approved
   change_ref: G-3
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05：对客侧计费费率卡与成本侧同层，卡、表不混用，英文名本就是
+    Card）（用户裁定，rulings.yaml）
   scope: domain
   note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
 - id: rate_card_version
@@ -12304,7 +12304,7 @@ terms:
   kind: value_object
   bc: platform.integration
   scope: domain
-  definition: 录入来源对照待确认行的人；确认人不得是登记人
+  definition: 录入来源对照待确认行的人（登记人＝录入该行的人），与命令的「起草人」「登记」动作（ADR-0068、0073）不是一回事；确认人不得是登记人
   standard_ref:
   - 'RULES: SOURCE_REFERENCE'
   confidence: medium
@@ -12341,12 +12341,17 @@ terms:
   kind: value_object
   bc: organization.leave
   scope: domain
-  definition: 加班后安排的休息（劳动法第 44 条）；不是日历里要上班的周末（那是调休上班日）
+  definition: 加班后安排的休息（劳动法第 44 条）；不是日历里要上班的周末（那是调休上班日）；「调休」单用易与调休上班日混，列方言
   standard_ref:
   - rules/decide/sheets/GL3.json
   confidence: medium
-  aliases: []
-  forbidden: []
+  aliases:
+  - name: 调休
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见）
+  forbidden:
+  - 调休
   note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
   status: approved
   confirmed: 2026-10-21（用户，用语确认第四批 GL3）
@@ -14080,11 +14085,12 @@ terms:
   kind: value_object
   bc: cost.costing
   scope: domain
-  definition: 用于签约后交付阶段的标准成本费率；由标准成本费率表及其版本承载，与计费费率和实际成本费率分立。
+  definition: 用于签约后交付阶段的标准成本费率；由标准成本费率卡及其版本承载，与计费费率和实际成本费率分立。
   standard_ref:
   - docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md
   status: approved
-  confirmed: 2026-10-15（用户裁定，2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用，docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md）
+  confirmed: 2026-10-15（用户裁定，2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用，docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent
+    2026-10-21-201913）（补充意见 05）（用户裁定，rulings.yaml）
   confidence: medium
   aliases: []
   forbidden: []

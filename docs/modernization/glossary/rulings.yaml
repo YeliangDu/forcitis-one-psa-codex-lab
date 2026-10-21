@@ -2,6 +2,7 @@
 # 每条必须写 source（用户答复或 intent 的出处）；操作：
 #   rename   改正式词条：id / zh / en / definition（可选），旧中文名作方言别名并列入禁用（纯中文），旧英文名作 old-code 别名；
 #   redefine 只改定义；
+#   late: true 的条目在 recon 写回之后才应用（目标词条由 recon 写回产生时用）；
 #   promote  把一条提议转为正式词条：条目内容写在 entry 里（来自转正时的提议原文），提议文件里的同名条目须同批删除，重名即失败。
 rulings:
   - op: rename
@@ -228,7 +229,7 @@ rulings:
       kind: value_object
       bc: platform.integration
       scope: domain
-      definition: 录入来源对照待确认行的人；确认人不得是登记人
+      definition: 录入来源对照待确认行的人（登记人＝录入该行的人），与命令的「起草人」「登记」动作（ADR-0068、0073）不是一回事；确认人不得是登记人
       standard_ref:
       - 'RULES: SOURCE_REFERENCE'
       confidence: medium
@@ -271,12 +272,17 @@ rulings:
       kind: value_object
       bc: organization.leave
       scope: domain
-      definition: 加班后安排的休息（劳动法第 44 条）；不是日历里要上班的周末（那是调休上班日）
+      definition: 加班后安排的休息（劳动法第 44 条）；不是日历里要上班的周末（那是调休上班日）；「调休」单用易与调休上班日混，列方言
       standard_ref:
       - rules/decide/sheets/GL3.json
       confidence: medium
-      aliases: []
-      forbidden: []
+      aliases:
+      - name: 调休
+        type: dialect
+        deprecated: true
+        source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见）
+      forbidden:
+      - 调休
       note: ''
   - op: promote
     id: operating_valuation
@@ -321,10 +327,15 @@ rulings:
     - name: 项目负责人
       type: dialect
     source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  - op: rename
+    late: true
+    id: standard_cost_rate_card
+    zh: 标准成本费率卡
+    en: StandardCostRateCard
+    forbid_old: false
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05：对客侧计费费率卡与成本侧同层，卡、表不混用，英文名本就是 Card）
   - op: redefine
-    id: baseline_version
-    definition: 单调递增、历史不可变的基线快照（版本2+仅由已批准变更产生）；「内部基线」是它的方言叫法，不用
-    add_aliases:
-    - name: 内部基线
-      type: dialect
-    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    late: true
+    id: standard_cost_rate
+    definition: 用于签约后交付阶段的标准成本费率；由标准成本费率卡及其版本承载，与计费费率和实际成本费率分立。
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05）
