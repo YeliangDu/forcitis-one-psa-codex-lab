@@ -37,6 +37,45 @@ relations:
   via: api：单据类型码校验（DocumentTypes）
   status: built
   basis: module-dependencies.txt；ADR-0066 决定 4（IMP-1021-NX5-01）；关系类型为 one-architecture 提议，待架构评审
+- id: organization.workforce>organization.administration
+  upstream: organization.workforce
+  downstream: organization.administration
+  via: api：员工与组织查询；事件：离职（待 workforce 补发，ADR-0068 决定 1.9）
+  status: built
+  basis: module-dependencies.txt；B31_CONSTRUCTION_DESIGN.md §2.4；关系类型为 one-architecture 提议，待架构评审
+- id: platform.approval>organization.administration
+  upstream: platform.approval
+  downstream: organization.administration
+  type: open-host-service
+  via: api、事件：发起审批与审批结果
+  status: built
+  basis: module-dependencies.txt；B31_CONSTRUCTION_DESIGN.md §2.4；关系类型为 one-architecture 提议，待架构评审
+- id: platform.numbering>organization.administration
+  upstream: platform.numbering
+  downstream: organization.administration
+  type: open-host-service
+  via: api：业务编号、单据类型码
+  status: built
+  basis: module-dependencies.txt；B31_CONSTRUCTION_DESIGN.md §2.4；关系类型为 one-architecture 提议，待架构评审
+- id: platform.audit>organization.administration
+  upstream: platform.audit
+  downstream: organization.administration
+  type: open-host-service
+  via: api：写审计
+  status: built
+  basis: module-dependencies.txt；B31_CONSTRUCTION_DESIGN.md §2.4；关系类型为 one-architecture 提议，待架构评审
+- id: platform.file>organization.administration
+  upstream: platform.file
+  downstream: organization.administration
+  via: api：附件写入、绑定、下载、检测
+  status: built
+  basis: module-dependencies.txt；B31_CONSTRUCTION_DESIGN.md §2.4；文件服务准入（ADMISSION_PLATFORM_FILE_2026-10-21）；关系类型为 one-architecture 提议，待架构评审
+- id: accounting.fixedasset>organization.administration
+  upstream: accounting.fixedasset
+  downstream: organization.administration
+  via: api：资产卡片读取
+  status: planned
+  basis: B31_CONSTRUCTION_DESIGN.md §2.4；代码落地时随 module-dependencies.txt 改 built
 - id: platform.audit>organization.attendance
   upstream: platform.audit
   downstream: organization.attendance
