@@ -279,7 +279,7 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
 | `stored_file` | 存储文件 | StoredFile | 领域 · platform.file | 文件服务的根：一份不可变内容及其哈希、大小、媒体类型、上传主体、检测状态与版本 / 派生引用 |  |  |
-| `content_hash` | 内容哈希 | ContentHash | 领域 · platform.file | SHA-256，小写十六进制 64 位，本系统唯一的内容哈希，比对文件以它为准；与 platform.approval 的 ContentHash（待审内容指纹）同名，按 bc 分立 |  |  |
+| `content_hash` | 内容哈希 | ContentHash | 领域 · platform.file | SHA-256，小写十六进制 64 位，本系统唯一的内容哈希，比对文件以它为准；代码里 platform.approval.api 另有同名类型 ContentHash（待审内容指纹，未登记术语），不是同一概念 |  |  |
 | `file_subject` | 文件主体 | FileSubject | 领域 · platform.file | 写入或关联文件的主体（类型 + ID），类型取值用户、一次性链接、平台模块；作上传者时称上传主体，作关联者时称关联主体 |  |  |
 | `uploader` | 上传主体 | Uploader | 领域 · platform.file | 写入文件的文件主体 |  |  |
 | `file_lineage` | 版本与派生 | FileLineage | 领域 · platform.file | 写入时声明、此后不可改的文件引用：首版、上一版本（同一逻辑文件的线性修订）或派生自（经处理得到的新文件）；词 Lineage 作类型名 |  |  |
@@ -302,10 +302,10 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 | `preservation_category` | 保存类别 | PreservationCategory | 领域 · platform.file | 文件所属的保存期限表类别，关联时由所属模块给出；文件保存期限与数据保留期限（data_retention_period）不同：后者管在线库与归档库的留存 |  |  |
 | `preservation_anchor` | 起算单据 | PreservationAnchor | 领域 · platform.file | 其业务事件（合同履行完毕、项目结项、用印完成等）起算文件保存期的单据；关联时给出，无另外起算单据的即本单据 |  |  |
 | `agreed_preservation` | 约定保存年限 | AgreedPreservation | 领域 · platform.file | 合同约定的保存年限，由合同模块写入；到期日取类别默认与约定的较长者 |  |  |
-| `import_rejection_reason` | 迁入文件拒收原因 | ImportRejectionReason | 领域 · platform.file | 迁入文件被拒的原因代码（超上限、类型不允许、加密、已隔离、检测不可用、敏感个人信息），计入核对差异清单；与 platform.integration「迁入拒收」互列 |  |  |
+| `import_rejection_reason` | 迁入文件拒收原因 | ImportRejectionReason | 领域 · platform.file | 迁入文件被拒的原因代码（超上限、类型不允许、加密、已隔离、不可用、敏感个人信息、保存类别不存在），计入核对差异清单；与 platform.integration「迁入拒收」互列 |  |  |
 | `imported` | 已迁入 | Imported | 领域 · platform.file | 迁入文件写入并关联成功的结果 |  |  |
 
-另有错误码 19 个（kind 为 `error_code`），不在表中。
+另有错误码 20 个（kind 为 `error_code`），不在表中。
 
 ## platform.identity（`platform-identity.yaml`）
 

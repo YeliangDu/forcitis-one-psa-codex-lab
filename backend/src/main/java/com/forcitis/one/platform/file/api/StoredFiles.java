@@ -15,14 +15,18 @@ public interface StoredFiles {
     /** Scans in the request (ADR-0070 section 2); a file is created only once the scan decided. */
     StoreResult store(StoreRequest request);
 
-    /** Repeating the same file and document is a no-op; a next version needs its previous version linked to the same document. */
+    /**
+     * A file has one preservation category and anchor: the first link sets them and a later link with others is refused, as is a repeat of
+     * the same file and document with another classification (an identical repeat is a no-op). A next version needs its previous version
+     * linked to the same document.
+     */
     void bind(BindRequest request);
 
     /** Append-only and irreversible: a held file cannot be disposed of within its preservation period. */
     void hold(HoldRequest request);
 
-    /** The default validity applies when validity is null; a longer one than the configured maximum is refused. */
-    DownloadLink issueDownloadLink(FileId file, DocumentReference document, Duration validity);
+    /** The default validity applies when validity is null; a longer one than the configured maximum is refused. requester is audited. */
+    DownloadLink issueDownloadLink(FileId file, DocumentReference document, FileSubject requester, Duration validity);
 
     List<StoredFileSummary> listByDocument(DocumentReference document);
 

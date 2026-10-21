@@ -23,7 +23,7 @@ terms:
   kind: value_object
   bc: platform.file
   scope: domain
-  definition: SHA-256，小写十六进制 64 位，本系统唯一的内容哈希，比对文件以它为准；与 platform.approval 的 ContentHash（待审内容指纹）同名，按 bc 分立
+  definition: SHA-256，小写十六进制 64 位，本系统唯一的内容哈希，比对文件以它为准；代码里 platform.approval.api 另有同名类型 ContentHash（待审内容指纹，未登记术语），不是同一概念
   standard_ref:
   - ADR-0060 文件服务
   confidence: medium
@@ -369,7 +369,7 @@ terms:
   kind: value_object
   bc: platform.file
   scope: domain
-  definition: 迁入文件被拒的原因代码（超上限、类型不允许、加密、已隔离、检测不可用、敏感个人信息），计入核对差异清单；与 platform.integration「迁入拒收」互列
+  definition: 迁入文件被拒的原因代码（超上限、类型不允许、加密、已隔离、不可用、敏感个人信息、保存类别不存在），计入核对差异清单；与 platform.integration「迁入拒收」互列
   standard_ref:
   - ADR-0060 文件服务
   - ADR-0070 恶意文件检测
@@ -564,6 +564,22 @@ terms:
   standard_ref:
   - ADR-0060 文件服务
   - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_binding_conflict
+  zh: 文件关联信息冲突
+  en: PlatformFileBindingConflict
+  snake: platform_file_binding_conflict
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 再次关联时的保存类别、起算单据或同一单据的分级与已有关联不一致（409）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0061 文件保存期
   confidence: medium
   aliases: []
   forbidden: []
