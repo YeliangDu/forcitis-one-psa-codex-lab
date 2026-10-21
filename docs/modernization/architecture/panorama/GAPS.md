@@ -30,7 +30,7 @@
 | 07 业务流程 | prc | 200 |
 | 08 约束与认定规则 | inv | 148 |
 | 09 业务对象 | obj | 104 |
-| 10 受控业务执行 | act | 651 |
+| 10 受控业务执行 | act | 669 |
 | 11 业务事实 | fact | 0 |
 | 12 维度 | dim | 0 |
 | 13 指标与评价 | metric | 79 |
@@ -78,6 +78,7 @@
 | N09-M3 | 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张） | 132 |
 | N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 53 |
 | N09-M5 | 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数） | 0 |
+| N09-M6 | 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口） | 1 |
 | N10-M2 | 每个后端模块在 module-dependencies.txt 登记 | 0 |
 | N10-M3 | 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属） | 0 |
 | N10-1 | 每个受控业务执行（命令）都有 owner BC | 37 |
@@ -747,6 +748,10 @@
 - platform_numbering.numbering_counters（对象 无）
 - platform_numbering.legacy_numbers（对象 无）
 - platform_scheduling.scheduler_locks（对象 无）
+
+## N09-M6 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口）（1）
+
+- organization.workforce/RegisteredEmployee（pending）
 
 ## N10-1 每个受控业务执行（命令）都有 owner BC（37）
 

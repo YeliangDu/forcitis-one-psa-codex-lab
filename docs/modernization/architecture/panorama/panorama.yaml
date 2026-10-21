@@ -6,7 +6,9 @@ meta:
     obj_details: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md
     prc: architecture/proposals/closeout/process-catalog.yaml
     agg: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md
-    built: architecture/ddd/aggregates.yaml
+    planned: architecture/ssot/i03-aggregates/planned.yaml
+    built: architecture/ssot/i03-aggregates/built.yaml
+    agg_map: architecture/ssot/i03-aggregates/mapping.yaml
     sd: architecture/ddd/subdomains.yaml
     bc: architecture/ddd/contexts.yaml
     terms: glossary/terms.yaml
@@ -32,7 +34,7 @@ meta:
     prc: 200
     inv: 148
     obj: 104
-    act: 651
+    act: 669
     fact: 0
     dim: 0
     metric: 79
@@ -76,6 +78,7 @@ meta:
     N09-M3: 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）
     N09-M4: 每张表都能追到聚合，聚合能追到业务对象
     N09-M5: 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数）
+    N09-M6: 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口）
     N10-M2: 每个后端模块在 module-dependencies.txt 登记
     N10-M3: 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属）
     N10-1: 每个受控业务执行（命令）都有 owner BC
@@ -11853,301 +11856,391 @@ nodes:
       bc: null
       state_change: null
       src: architecture/proposals/closeout/revenue/commands.yaml#开始履行协议
-    cost.timesheet/SubmitTimesheet:
-      command: SubmitTimesheet
-      aggregate: cost.timesheet/Timesheet
-      bc: cost.timesheet
-      src: architecture/ddd/aggregates.yaml#cost.timesheet/Timesheet
     cost.timesheet/ApplyApprovalResult:
       command: ApplyApprovalResult
       aggregate: cost.timesheet/Timesheet
       bc: cost.timesheet
-      src: architecture/ddd/aggregates.yaml#cost.timesheet/Timesheet
-    cost.timesheet/WithdrawTimesheet:
-      command: WithdrawTimesheet
-      aggregate: cost.timesheet/Timesheet
-      bc: cost.timesheet
-      src: architecture/ddd/aggregates.yaml#cost.timesheet/Timesheet
+      src: architecture/ssot/i03-aggregates/built.yaml#cost.timesheet/Timesheet
     cost.timesheet/CancelTimesheet:
       command: CancelTimesheet
       aggregate: cost.timesheet/Timesheet
       bc: cost.timesheet
-      src: architecture/ddd/aggregates.yaml#cost.timesheet/Timesheet
-    organization.attendance/MaintainWorkCalendarYear:
-      command: MaintainWorkCalendarYear
-      aggregate: organization.attendance/WorkCalendarYear
-      bc: organization.attendance
-      src: architecture/ddd/aggregates.yaml#organization.attendance/WorkCalendarYear
-    organization.attendance/MaintainLockedWorkCalendarDays:
-      command: MaintainLockedWorkCalendarDays
-      aggregate: organization.attendance/WorkCalendarYear
-      bc: organization.attendance
-      src: architecture/ddd/aggregates.yaml#organization.attendance/WorkCalendarYear
+      src: architecture/ssot/i03-aggregates/built.yaml#cost.timesheet/Timesheet
+    cost.timesheet/GetTimesheet:
+      command: GetTimesheet
+      aggregate: cost.timesheet/Timesheet
+      bc: cost.timesheet
+      src: architecture/ssot/i03-aggregates/built.yaml#cost.timesheet/Timesheet
+    cost.timesheet/SubmitTimesheet:
+      command: SubmitTimesheet
+      aggregate: cost.timesheet/Timesheet
+      bc: cost.timesheet
+      src: architecture/ssot/i03-aggregates/built.yaml#cost.timesheet/Timesheet
+    cost.timesheet/WithdrawTimesheet:
+      command: WithdrawTimesheet
+      aggregate: cost.timesheet/Timesheet
+      bc: cost.timesheet
+      src: architecture/ssot/i03-aggregates/built.yaml#cost.timesheet/Timesheet
     organization.attendance/CalendarMaintenance:
       command: CalendarMaintenance
       aggregate: organization.attendance/WorkCalendarYear
       bc: organization.attendance
-      src: architecture/ddd/aggregates.yaml#organization.attendance/WorkCalendarYear
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.attendance/WorkCalendarYear
+    organization.attendance/WorkCalendarYearView:
+      command: WorkCalendarYearView
+      aggregate: organization.attendance/WorkCalendarYear
+      bc: organization.attendance
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.attendance/WorkCalendarYear
     organization.workforce/CreateLegalEntity:
       command: CreateLegalEntity
       aggregate: organization.workforce/LegalEntity
       bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntity
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/LegalEntity
+    organization.workforce/LegalEntityView:
+      command: LegalEntityView
+      aggregate: organization.workforce/LegalEntity
+      bc: organization.workforce
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/LegalEntity
     organization.workforce/UpdateLegalEntity:
       command: UpdateLegalEntity
       aggregate: organization.workforce/LegalEntity
       bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntity
-    organization.workforce/BeginSyncRun:
-      command: BeginSyncRun
-      aggregate: organization.workforce/SyncRun
-      bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
-    organization.workforce/ApplySourceSnapshot:
-      command: ApplySourceSnapshot
-      aggregate: organization.workforce/SyncRun
-      bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
-    organization.workforce/FailSyncRun:
-      command: FailSyncRun
-      aggregate: organization.workforce/SyncRun
-      bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
-    organization.workforce/RecordSyncRunRelease:
-      command: RecordSyncRunRelease
-      aggregate: organization.workforce/SyncRun
-      bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
-    organization.workforce/ReleaseSyncRunHolds:
-      command: ReleaseSyncRunHolds
-      aggregate: organization.workforce/SyncRun
-      bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
-    organization.workforce/WithdrawSyncRunReleases:
-      command: WithdrawSyncRunReleases
-      aggregate: organization.workforce/SyncRun
-      bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/LegalEntity
     organization.workforce/AttributeLegalEntity:
       command: AttributeLegalEntity
       aggregate: organization.workforce/LegalEntityAttribution
       bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntityAttribution
-    organization.workforce/EndLegalEntityAttribution:
-      command: EndLegalEntityAttribution
-      aggregate: organization.workforce/LegalEntityAttribution
-      bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntityAttribution
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/LegalEntityAttribution
     organization.workforce/CorrectLegalEntityAttribution:
       command: CorrectLegalEntityAttribution
       aggregate: organization.workforce/LegalEntityAttribution
       bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntityAttribution
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/LegalEntityAttribution
+    organization.workforce/EndLegalEntityAttribution:
+      command: EndLegalEntityAttribution
+      aggregate: organization.workforce/LegalEntityAttribution
+      bc: organization.workforce
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/LegalEntityAttribution
+    organization.workforce/LegalEntityAttributionView:
+      command: LegalEntityAttributionView
+      aggregate: organization.workforce/LegalEntityAttribution
+      bc: organization.workforce
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/LegalEntityAttribution
     organization.workforce/PersistRegisteredEmployee:
       command: PersistRegisteredEmployee
       aggregate: organization.workforce/RegisteredEmployee
       bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/RegisteredEmployee
-    organization.workforce/LoginMissRegistration:
-      command: LoginMissRegistration
-      aggregate: organization.workforce/RegisteredEmployee
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/RegisteredEmployee
+    organization.workforce/ApplySourceSnapshot:
+      command: ApplySourceSnapshot
+      aggregate: organization.workforce/SyncRun
       bc: organization.workforce
-      src: architecture/ddd/aggregates.yaml#organization.workforce/RegisteredEmployee
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/SyncRun
+    organization.workforce/BeginSyncRun:
+      command: BeginSyncRun
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/SyncRun
+    organization.workforce/FailSyncRun:
+      command: FailSyncRun
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/SyncRun
+    organization.workforce/RecordSyncRunRelease:
+      command: RecordSyncRunRelease
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/SyncRun
+    organization.workforce/ReleaseSyncRun:
+      command: ReleaseSyncRun
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/SyncRun
+    organization.workforce/ReleaseSyncRunHolds:
+      command: ReleaseSyncRunHolds
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ssot/i03-aggregates/built.yaml#organization.workforce/SyncRun
     platform.approval/Approvals:
       command: Approvals
       aggregate: platform.approval/ApprovalRequest
       bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
-    platform.approval/StartApproval:
-      command: StartApproval
-      aggregate: platform.approval/ApprovalRequest
-      bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
-    platform.approval/Retraction:
-      command: Retraction
-      aggregate: platform.approval/ApprovalRequest
-      bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
-    platform.approval/RefuseApprovalStart:
-      command: RefuseApprovalStart
-      aggregate: platform.approval/ApprovalRequest
-      bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
-    platform.approval/TaskDeadline:
-      command: TaskDeadline
-      aggregate: platform.approval/ApprovalRequest
-      bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
     platform.approval/ClaimTask:
       command: ClaimTask
       aggregate: platform.approval/ApprovalRequest
       bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
-    platform.approval/ReleaseTask:
-      command: ReleaseTask
-      aggregate: platform.approval/ApprovalRequest
-      bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
-    platform.approval/ReassignTask:
-      command: ReassignTask
-      aggregate: platform.approval/ApprovalRequest
-      bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
-    platform.approval/TransferTask:
-      command: TransferTask
-      aggregate: platform.approval/ApprovalRequest
-      bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
     platform.approval/DecideTasks:
       command: DecideTasks
       aggregate: platform.approval/ApprovalRequest
       bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
+    platform.approval/ReassignTask:
+      command: ReassignTask
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
+    platform.approval/RefuseApprovalStart:
+      command: RefuseApprovalStart
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
+    platform.approval/ReleaseTask:
+      command: ReleaseTask
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
+    platform.approval/Retraction:
+      command: Retraction
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
     platform.approval/ReturnToInitiator:
       command: ReturnToInitiator
       aggregate: platform.approval/ApprovalRequest
       bc: platform.approval
-      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
-    platform.identity/AccountProvisioning:
-      command: AccountProvisioning
-      aggregate: platform.identity/UserAccount
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
-    platform.identity/ChangeAccountStatus:
-      command: ChangeAccountStatus
-      aggregate: platform.identity/UserAccount
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
-    platform.identity/GrantRoleByOperations:
-      command: GrantRoleByOperations
-      aggregate: platform.identity/UserAccount
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
-    platform.identity/HandleOrgSnapshotChange:
-      command: HandleOrgSnapshotChange
-      aggregate: platform.identity/UserAccount
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
-    platform.identity/ReplaceAccountRoles:
-      command: ReplaceAccountRoles
-      aggregate: platform.identity/UserAccount
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
-    platform.identity/CreateRole:
-      command: CreateRole
-      aggregate: platform.identity/Role
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/Role
-    platform.identity/UpdateRole:
-      command: UpdateRole
-      aggregate: platform.identity/Role
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/Role
-    platform.identity/DeleteRole:
-      command: DeleteRole
-      aggregate: platform.identity/Role
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/Role
-    platform.identity/RegisterEmergencyAdmin:
-      command: RegisterEmergencyAdmin
-      aggregate: platform.identity/EmergencyAdmin
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
-    platform.identity/EnableEmergencyAdmin:
-      command: EnableEmergencyAdmin
-      aggregate: platform.identity/EmergencyAdmin
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
-    platform.identity/DisableEmergencyAdmin:
-      command: DisableEmergencyAdmin
-      aggregate: platform.identity/EmergencyAdmin
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
-    platform.identity/DisableEmergencyAdminOnSeparation:
-      command: DisableEmergencyAdminOnSeparation
-      aggregate: platform.identity/EmergencyAdmin
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
-    platform.identity/ResetEmergencyAdminCredentials:
-      command: ResetEmergencyAdminCredentials
-      aggregate: platform.identity/EmergencyAdmin
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
-    platform.identity/AuthorizationGate:
-      command: AuthorizationGate
-      aggregate: platform.identity/AuthorizationRequest
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/AuthorizationRequest
-    platform.identity/ConfirmAuthorizationRequest:
-      command: ConfirmAuthorizationRequest
-      aggregate: platform.identity/AuthorizationRequest
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/AuthorizationRequest
-    platform.identity/RejectAuthorizationRequest:
-      command: RejectAuthorizationRequest
-      aggregate: platform.identity/AuthorizationRequest
-      bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/AuthorizationRequest
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
+    platform.approval/StartApproval:
+      command: StartApproval
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
+    platform.approval/TaskDeadline:
+      command: TaskDeadline
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
+    platform.approval/TaskRegistrar:
+      command: TaskRegistrar
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
+    platform.approval/TransferTask:
+      command: TransferTask
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.approval/ApprovalRequest
     platform.identity/ApplyConfirmedAuthorization:
       command: ApplyConfirmedAuthorization
       aggregate: platform.identity/AuthorizationRequest
       bc: platform.identity
-      src: architecture/ddd/aggregates.yaml#platform.identity/AuthorizationRequest
-    platform.integration/RegisterSourceReference:
-      command: RegisterSourceReference
-      aggregate: platform.integration/SourceReference
-      bc: platform.integration
-      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReference
-    platform.integration/ConfirmSourceReference:
-      command: ConfirmSourceReference
-      aggregate: platform.integration/SourceReference
-      bc: platform.integration
-      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReference
-    platform.integration/RejectSourceReference:
-      command: RejectSourceReference
-      aggregate: platform.integration/SourceReference
-      bc: platform.integration
-      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReference
-    platform.integration/AllocateOwnId:
-      command: AllocateOwnId
-      aggregate: platform.integration/SourceReference
-      bc: platform.integration
-      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReference
-    platform.integration/RecordSourceReferenceRefusal:
-      command: RecordSourceReferenceRefusal
-      aggregate: platform.integration/SourceReferenceRefusal
-      bc: platform.integration
-      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReferenceRefusal
-    platform.integration/QueueWecomCard:
-      command: QueueWecomCard
-      aggregate: platform.integration/OutboundDelivery
-      bc: platform.integration
-      src: architecture/ddd/aggregates.yaml#platform.integration/OutboundDelivery
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/AuthorizationRequest
+    platform.identity/AuthorizationGate:
+      command: AuthorizationGate
+      aggregate: platform.identity/AuthorizationRequest
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/AuthorizationRequest
+    platform.identity/AuthorizationRequestView:
+      command: AuthorizationRequestView
+      aggregate: platform.identity/AuthorizationRequest
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/AuthorizationRequest
+    platform.identity/ConfirmAuthorizationRequest:
+      command: ConfirmAuthorizationRequest
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/RejectAuthorizationRequest:
+      command: RejectAuthorizationRequest
+      aggregate: platform.identity/AuthorizationRequest
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/AuthorizationRequest
+    platform.identity/DisableEmergencyAdmin:
+      command: DisableEmergencyAdmin
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/EmergencyAdmin
+    platform.identity/DisableEmergencyAdminOnSeparation:
+      command: DisableEmergencyAdminOnSeparation
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/EmergencyAdmin
+    platform.identity/EmergencyBinding:
+      command: EmergencyBinding
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/EnableEmergencyAdmin:
+      command: EnableEmergencyAdmin
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/EmergencyAdmin
+    platform.identity/LoginAsEmergencyAdmin:
+      command: LoginAsEmergencyAdmin
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/ReconcileEmergencyAdmins:
+      command: ReconcileEmergencyAdmins
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/RegisterEmergencyAdmin:
+      command: RegisterEmergencyAdmin
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/EmergencyAdmin
+    platform.identity/ResetEmergencyAdminCredentials:
+      command: ResetEmergencyAdminCredentials
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/EmergencyAdmin
+    platform.identity/SessionPrincipals:
+      command: SessionPrincipals
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/AdministratorSeparationReview:
+      command: AdministratorSeparationReview
+      aggregate: platform.identity/Role
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/Role
+    platform.identity/CreateRole:
+      command: CreateRole
+      aggregate: platform.identity/Role
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/Role
+    platform.identity/DeleteRole:
+      command: DeleteRole
+      aggregate: platform.identity/Role
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/Role
+    platform.identity/ForceUserLogout:
+      command: ForceUserLogout
+      aggregate: platform.identity/Role
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/Role
+    platform.identity/GrantRoleByOperations:
+      command: GrantRoleByOperations
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/ReplaceAccountRoles:
+      command: ReplaceAccountRoles
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/RevokeRoleByOperations:
+      command: RevokeRoleByOperations
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/RoleView:
+      command: RoleView
+      aggregate: platform.identity/Role
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/Role
+    platform.identity/UpdateRole:
+      command: UpdateRole
+      aggregate: platform.identity/Role
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/Role
+    platform.identity/AccountProvisioning:
+      command: AccountProvisioning
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/ChangeAccountStatus:
+      command: ChangeAccountStatus
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/GetUserAccount:
+      command: GetUserAccount
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/HandleOrgSnapshotChange:
+      command: HandleOrgSnapshotChange
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
+    platform.identity/LoginAdmission:
+      command: LoginAdmission
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.identity/UserAccount
     platform.integration/DeliverWecomCards:
       command: DeliverWecomCards
       aggregate: platform.integration/OutboundDelivery
       bc: platform.integration
-      src: architecture/ddd/aggregates.yaml#platform.integration/OutboundDelivery
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/OutboundDelivery
     platform.integration/MarkWecomCardHandled:
       command: MarkWecomCardHandled
       aggregate: platform.integration/OutboundDelivery
       bc: platform.integration
-      src: architecture/ddd/aggregates.yaml#platform.integration/OutboundDelivery
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/OutboundDelivery
+    platform.integration/QueueWecomCard:
+      command: QueueWecomCard
+      aggregate: platform.integration/OutboundDelivery
+      bc: platform.integration
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/OutboundDelivery
+    platform.integration/AllocateOwnId:
+      command: AllocateOwnId
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/SourceReference
+    platform.integration/ConfirmSourceReference:
+      command: ConfirmSourceReference
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/SourceReference
+    platform.integration/ListSourceReferences:
+      command: ListSourceReferences
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/SourceReference
+    platform.integration/RegisterSourceReference:
+      command: RegisterSourceReference
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/SourceReference
+    platform.integration/RejectSourceReference:
+      command: RejectSourceReference
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/SourceReference
+    platform.integration/SourceReferenceView:
+      command: SourceReferenceView
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/SourceReference
+    platform.integration/RecordSourceReferenceRefusal:
+      command: RecordSourceReferenceRefusal
+      aggregate: platform.integration/SourceReferenceRefusal
+      bc: platform.integration
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.integration/SourceReferenceRefusal
+    platform.numbering/CheckCounterCapacity:
+      command: CheckCounterCapacity
+      aggregate: platform.numbering/NumberingRule
+      bc: platform.numbering
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.numbering/NumberingRule
     platform.numbering/ConfigureNumberingRule:
       command: ConfigureNumberingRule
       aggregate: platform.numbering/NumberingRule
       bc: platform.numbering
-      src: architecture/ddd/aggregates.yaml#platform.numbering/NumberingRule
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.numbering/NumberingRule
     platform.numbering/ConfirmNumberingRule:
       command: ConfirmNumberingRule
       aggregate: platform.numbering/NumberingRule
       bc: platform.numbering
-      src: architecture/ddd/aggregates.yaml#platform.numbering/NumberingRule
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.numbering/NumberingRule
     platform.numbering/ConfirmNumberingRuleByFinance:
       command: ConfirmNumberingRuleByFinance
       aggregate: platform.numbering/NumberingRule
       bc: platform.numbering
-      src: architecture/ddd/aggregates.yaml#platform.numbering/NumberingRule
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.numbering/NumberingRule
+    platform.numbering/IssueDocumentNumber:
+      command: IssueDocumentNumber
+      aggregate: platform.numbering/NumberingRule
+      bc: platform.numbering
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.numbering/NumberingRule
+    platform.numbering/NumberingRuleViews:
+      command: NumberingRuleViews
+      aggregate: platform.numbering/NumberingRule
+      bc: platform.numbering
+      src: architecture/ssot/i03-aggregates/built.yaml#platform.numbering/NumberingRule
   fact: {}
   dim: {}
   metric:
@@ -12560,7 +12653,7 @@ nodes:
       - INV-02
       bc: B-01
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:361
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[0]/AGG-01
     AGG-02:
       name: 资质证书
       objs:
@@ -12569,7 +12662,7 @@ nodes:
       - INV-12
       bc: B-01
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:362
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[1]/AGG-02
     AGG-33:
       name: 建设工程
       objs:
@@ -12578,7 +12671,7 @@ nodes:
       invs: []
       bc: B-01
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:363
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[2]/AGG-33
     AGG-03:
       name: 服务产品版本
       objs:
@@ -12587,7 +12680,7 @@ nodes:
       - INV-34
       bc: B-02
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:372
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[3]/AGG-03
     AGG-04:
       name: 阶段类型版本
       objs:
@@ -12596,7 +12689,7 @@ nodes:
       - INV-34
       bc: B-02
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:373
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[4]/AGG-04
     AGG-05:
       name: 标准成本费率表版本
       objs:
@@ -12606,7 +12699,7 @@ nodes:
       - INV-36
       bc: B-02
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:374
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[5]/AGG-05
     AGG-06:
       name: 计费系数版本
       objs:
@@ -12615,7 +12708,7 @@ nodes:
       - INV-36
       bc: B-02
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:375
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[6]/AGG-06
     AGG-07:
       name: 协议价目
       objs:
@@ -12624,7 +12717,7 @@ nodes:
       - INV-36
       bc: B-02
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:376
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[7]/AGG-07
     AGG-08:
       name: 市场活动
       objs:
@@ -12632,7 +12725,7 @@ nodes:
       invs: []
       bc: B-03
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:382
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[8]/AGG-08
     AGG-09:
       name: 线索
       objs:
@@ -12641,7 +12734,7 @@ nodes:
       - INV-24
       bc: B-03
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:383
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[9]/AGG-09
     AGG-10:
       name: 商机
       objs:
@@ -12653,7 +12746,7 @@ nodes:
       - INV-33
       bc: B-03
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:384
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[10]/AGG-10
     AGG-11:
       name: 投标
       objs:
@@ -12665,7 +12758,7 @@ nodes:
       - INV-33
       bc: B-03
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:385
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[11]/AGG-11
     AGG-12:
       name: 报价版本
       objs:
@@ -12677,7 +12770,7 @@ nodes:
       - INV-32
       bc: B-03
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:386
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[12]/AGG-12
     AGG-18:
       name: 独立性检查
       objs:
@@ -12686,7 +12779,7 @@ nodes:
       - INV-33
       bc: B-03
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:387
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[13]/AGG-18
     AGG-102:
       name: 客户活动
       objs:
@@ -12695,7 +12788,7 @@ nodes:
       - INV-110
       bc: B-03
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:388
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[14]/AGG-102
     AGG-19:
       name: 项目
       objs:
@@ -12705,7 +12798,7 @@ nodes:
       - INV-39
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:396
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[15]/AGG-19
     AGG-20:
       name: 项目 WBS
       objs:
@@ -12715,7 +12808,7 @@ nodes:
       - INV-42
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:397
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[16]/AGG-20
     AGG-21:
       name: 交付计划版本
       objs:
@@ -12724,7 +12817,7 @@ nodes:
       - INV-43
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:398
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[17]/AGG-21
     AGG-22:
       name: 项目预算版本
       objs:
@@ -12733,7 +12826,7 @@ nodes:
       - INV-44
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:399
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[18]/AGG-22
     AGG-23:
       name: 完工估算
       objs:
@@ -12741,7 +12834,7 @@ nodes:
       invs: []
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:400
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[19]/AGG-23
     AGG-24:
       name: 项目团队
       objs:
@@ -12749,7 +12842,7 @@ nodes:
       invs: []
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:401
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[20]/AGG-24
     AGG-25:
       name: 资源需求
       objs:
@@ -12757,7 +12850,7 @@ nodes:
       invs: []
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:402
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[21]/AGG-25
     AGG-26:
       name: 资源分配
       objs:
@@ -12765,7 +12858,7 @@ nodes:
       invs: []
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:403
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[22]/AGG-26
     AGG-31:
       name: 延期申请
       objs:
@@ -12773,7 +12866,7 @@ nodes:
       invs: []
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:404
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[23]/AGG-31
     AGG-103:
       name: 项目复盘
       objs:
@@ -12782,7 +12875,7 @@ nodes:
       - INV-112
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:405
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[24]/AGG-103
     AGG-104:
       name: 项目风险与问题
       objs:
@@ -12791,7 +12884,7 @@ nodes:
       - INV-113
       bc: B-04
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:406
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[25]/AGG-104
     AGG-27:
       name: 交付物
       objs:
@@ -12804,7 +12897,7 @@ nodes:
       - INV-51
       bc: B-28
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:413
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[26]/AGG-27
     AGG-28:
       name: 不符合项
       objs:
@@ -12815,7 +12908,7 @@ nodes:
       - INV-52
       bc: B-28
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:414
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[27]/AGG-28
     AGG-29:
       name: 返工认定
       objs:
@@ -12824,7 +12917,7 @@ nodes:
       - INV-53
       bc: B-28
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:415
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[28]/AGG-29
     AGG-30:
       name: 设计变更
       objs:
@@ -12833,7 +12926,7 @@ nodes:
       - INV-54
       bc: B-28
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:416
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[29]/AGG-30
     AGG-32:
       name: 发包人提供资料
       objs:
@@ -12841,7 +12934,7 @@ nodes:
       invs: []
       bc: B-28
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:417
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[30]/AGG-32
     AGG-38:
       name: 证据
       objs:
@@ -12850,7 +12943,7 @@ nodes:
       - INV-58
       bc: B-28
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:418
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[31]/AGG-38
     AGG-110:
       name: 证据关联
       objs: []
@@ -12858,7 +12951,7 @@ nodes:
       - INV-58
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:419
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[32]/AGG-110
     AGG-105:
       name: 客户满意度调查
       objs:
@@ -12867,7 +12960,7 @@ nodes:
       - INV-111
       bc: B-28
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:420
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[33]/AGG-105
     AGG-34:
       name: 检查计划
       objs:
@@ -12875,7 +12968,7 @@ nodes:
       invs: []
       bc: B-26
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:430
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[34]/AGG-34
     AGG-35:
       name: 检查
       objs:
@@ -12885,7 +12978,7 @@ nodes:
       - INV-56
       bc: B-26
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:431
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[35]/AGG-35
     AGG-36:
       name: 检查表模板版本
       objs:
@@ -12894,7 +12987,7 @@ nodes:
       - INV-34
       bc: B-26
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:432
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[36]/AGG-36
     AGG-37:
       name: 外部检测
       objs:
@@ -12903,7 +12996,7 @@ nodes:
       - INV-57
       bc: B-26
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:433
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[37]/AGG-37
     AGG-13:
       name: 协议
       objs:
@@ -12915,7 +13008,7 @@ nodes:
       - INV-03
       bc: B-05
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:439
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[38]/AGG-13
     AGG-14:
       name: 框架协议限额
       objs: []
@@ -12923,7 +13016,7 @@ nodes:
       - INV-10
       bc: B-05
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:440
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[39]/AGG-14
     AGG-15:
       name: 协议变更
       objs:
@@ -12932,7 +13025,7 @@ nodes:
       - INV-16
       bc: B-05
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:441
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[40]/AGG-15
     AGG-16:
       name: 索赔
       objs:
@@ -12941,7 +13034,7 @@ nodes:
       - INV-17
       bc: B-05
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:442
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[41]/AGG-16
     AGG-17:
       name: 风险交付授权
       objs:
@@ -12951,7 +13044,7 @@ nodes:
       - INV-19
       bc: B-05
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:443
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[42]/AGG-17
     AGG-39:
       name: 工时单
       objs:
@@ -12967,7 +13060,7 @@ nodes:
       - INV-67
       bc: B-06
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:449
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[43]/AGG-39
     AGG-40:
       name: 分摊规则版本
       objs:
@@ -12977,7 +13070,7 @@ nodes:
       - INV-131
       bc: B-07
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:455
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[44]/AGG-40
     AGG-41:
       name: 人工成本分配运行
       objs:
@@ -12986,7 +13079,7 @@ nodes:
       - INV-89
       bc: B-07
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:456
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[45]/AGG-41
     AGG-42:
       name: 分摊运行
       objs:
@@ -12995,7 +13088,7 @@ nodes:
       - INV-90
       bc: B-07
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:457
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[46]/AGG-42
     AGG-43:
       name: 成本结转批次
       objs:
@@ -13004,7 +13097,7 @@ nodes:
       - INV-88
       bc: B-07
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:458
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[47]/AGG-43
     AGG-122:
       name: 售前投入归属登记
       objs: []
@@ -13012,7 +13105,7 @@ nodes:
       - INV-132
       bc: B-07
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:459
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[48]/AGG-122
     AGG-123:
       name: 成本核算参数版本
       objs:
@@ -13022,7 +13115,7 @@ nodes:
       - INV-116
       bc: B-07
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:460
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[49]/AGG-123
     AGG-44:
       name: 开票与收入额度
       objs: []
@@ -13034,7 +13127,7 @@ nodes:
       - INV-86
       bc: B-08
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:466
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[50]/AGG-44
     AGG-45:
       name: 开票申请
       objs:
@@ -13043,7 +13136,7 @@ nodes:
       - INV-71
       bc: B-08
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:467
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[51]/AGG-45
     AGG-46:
       name: 销项发票
       objs:
@@ -13053,7 +13146,7 @@ nodes:
       - INV-73
       bc: B-08
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:468
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[52]/AGG-46
     AGG-47:
       name: 收入确认
       objs:
@@ -13063,7 +13156,7 @@ nodes:
       - INV-86
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:469
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[53]/AGG-47
     AGG-92:
       name: 可触发确认的证据类型开放配置版本
       objs:
@@ -13072,7 +13165,7 @@ nodes:
       - INV-23
       bc: B-08
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:470
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[54]/AGG-92
     AGG-49:
       name: 应收往来款项
       objs:
@@ -13082,7 +13175,7 @@ nodes:
       - INV-77
       bc: B-09
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:476
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[55]/AGG-49
     AGG-50:
       name: 收款
       objs:
@@ -13091,7 +13184,7 @@ nodes:
       - INV-78
       bc: B-09
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:477
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[56]/AGG-50
     AGG-51:
       name: 保证金与押金
       objs:
@@ -13100,7 +13193,7 @@ nodes:
       - INV-20
       bc: B-09
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:478
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[57]/AGG-51
     AGG-52:
       name: 应付往来款项
       objs:
@@ -13109,7 +13202,7 @@ nodes:
       - INV-77
       bc: B-10
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:484
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[58]/AGG-52
     AGG-53:
       name: 付款
       objs:
@@ -13118,7 +13211,7 @@ nodes:
       - INV-78
       bc: B-10
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:485
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[59]/AGG-53
     AGG-54:
       name: 合伙人出资
       objs:
@@ -13128,7 +13221,7 @@ nodes:
       - INV-128
       bc: B-10
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:486
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[60]/AGG-54
     AGG-109:
       name: 利润分配
       objs:
@@ -13137,7 +13230,7 @@ nodes:
       - INV-117
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:487
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[61]/AGG-109
     AGG-55:
       name: 供方协议
       objs:
@@ -13146,7 +13239,7 @@ nodes:
       - INV-03
       bc: B-11
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:495
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[62]/AGG-55
     AGG-56:
       name: 分包变更
       objs:
@@ -13155,7 +13248,7 @@ nodes:
       - INV-16
       bc: B-11
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:496
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[63]/AGG-56
     AGG-57:
       name: 供方履约确认
       objs:
@@ -13165,7 +13258,7 @@ nodes:
       - INV-39
       bc: B-11
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:497
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[64]/AGG-57
     AGG-58:
       name: 供方协议履约额度
       objs: []
@@ -13173,7 +13266,7 @@ nodes:
       - INV-82
       bc: B-11
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:498
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[65]/AGG-58
     AGG-59:
       name: 费用报销
       objs:
@@ -13184,7 +13277,7 @@ nodes:
       - INV-39
       bc: B-12
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:504
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[66]/AGG-59
     AGG-130:
       name: 费用事前申请
       objs:
@@ -13192,7 +13285,7 @@ nodes:
       invs: []
       bc: B-12
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:505
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[67]/AGG-130
     AGG-131:
       name: 差旅订单月账单
       objs:
@@ -13202,7 +13295,7 @@ nodes:
       - INV-137
       bc: B-12
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:506
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[68]/AGG-131
     AGG-132:
       name: 出差申请
       objs:
@@ -13210,7 +13303,7 @@ nodes:
       invs: []
       bc: B-12
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:507
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[69]/AGG-132
     AGG-133:
       name: 出差补贴标准版本
       objs:
@@ -13220,7 +13313,7 @@ nodes:
       - INV-116
       bc: B-12
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:508
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[70]/AGG-133
     AGG-60:
       name: 法人主体
       objs:
@@ -13229,7 +13322,7 @@ nodes:
       - INV-59
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:514
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[71]/AGG-60
     AGG-61:
       name: 组织单元
       objs:
@@ -13238,7 +13331,7 @@ nodes:
       - INV-60
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:515
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[72]/AGG-61
     AGG-62:
       name: 人员
       objs:
@@ -13246,7 +13339,7 @@ nodes:
       invs: []
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:516
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[73]/AGG-62
     AGG-63:
       name: 任职
       objs:
@@ -13255,7 +13348,7 @@ nodes:
       - INV-62
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:517
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[74]/AGG-63
     AGG-64:
       name: 职位目录与职级
       objs:
@@ -13264,7 +13357,7 @@ nodes:
       - INV-63
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:518
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[75]/AGG-64
     AGG-65:
       name: 招聘需求
       objs:
@@ -13272,7 +13365,7 @@ nodes:
       invs: []
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:519
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[76]/AGG-65
     AGG-66:
       name: 注册执业证书
       objs:
@@ -13281,7 +13374,7 @@ nodes:
       - INV-47
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:520
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[77]/AGG-66
     AGG-67:
       name: 劳动合同
       objs:
@@ -13290,7 +13383,7 @@ nodes:
       - INV-14
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:521
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[78]/AGG-67
     AGG-106:
       name: 绩效评估
       objs:
@@ -13299,7 +13392,7 @@ nodes:
       - INV-114
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:522
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[79]/AGG-106
     AGG-117:
       name: 法人归属
       objs:
@@ -13310,7 +13403,7 @@ nodes:
       - INV-59
       bc: B-13
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:523
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[80]/AGG-117
     AGG-68:
       name: 工作日历年度
       objs:
@@ -13318,7 +13411,7 @@ nodes:
       invs: []
       bc: B-14
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:531
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[81]/AGG-68
     AGG-108:
       name: 标准工时版本
       objs:
@@ -13327,7 +13420,7 @@ nodes:
       - INV-116
       bc: B-14
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:532
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[82]/AGG-108
     AGG-69:
       name: 考勤记录
       objs:
@@ -13336,7 +13429,7 @@ nodes:
       - INV-69
       bc: B-27
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:538
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[83]/AGG-69
     AGG-70:
       name: 请假
       objs:
@@ -13344,7 +13437,7 @@ nodes:
       invs: []
       bc: B-27
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:539
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[84]/AGG-70
     AGG-71:
       name: 假期余额账户
       objs:
@@ -13353,7 +13446,7 @@ nodes:
       - INV-68
       bc: B-27
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:540
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[85]/AGG-71
     AGG-72:
       name: 加班
       objs:
@@ -13361,7 +13454,7 @@ nodes:
       invs: []
       bc: B-27
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:541
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[86]/AGG-72
     AGG-97:
       name: 月度考勤确认
       objs:
@@ -13370,7 +13463,7 @@ nodes:
       - INV-105
       bc: B-27
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:542
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[87]/AGG-97
     AGG-118:
       name: 假期类型与额度规则
       objs:
@@ -13379,7 +13472,7 @@ nodes:
       - INV-123
       bc: B-27
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:543
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[88]/AGG-118
     AGG-73:
       name: 月度薪酬结算
       objs:
@@ -13388,7 +13481,7 @@ nodes:
       - INV-70
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:551
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[89]/AGG-73
     AGG-74:
       name: 社保与公积金参保
       objs:
@@ -13396,7 +13489,7 @@ nodes:
       invs: []
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:552
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[90]/AGG-74
     AGG-75:
       name: 激励方案版本
       objs:
@@ -13404,7 +13497,7 @@ nodes:
       invs: []
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:553
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[91]/AGG-75
     AGG-76:
       name: 奖金核定
       objs:
@@ -13412,7 +13505,7 @@ nodes:
       invs: []
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:554
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[92]/AGG-76
     AGG-93:
       name: 人员薪酬档案
       objs:
@@ -13420,7 +13513,7 @@ nodes:
       invs: []
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:555
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[93]/AGG-93
     AGG-95:
       name: 个税扣缴与社保公积金申报
       objs:
@@ -13428,7 +13521,7 @@ nodes:
       invs: []
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:556
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[94]/AGG-95
     AGG-119:
       name: 薪酬规则版本
       objs:
@@ -13437,7 +13530,7 @@ nodes:
       - INV-139
       bc: B-15
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:557
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[95]/AGG-119
     AGG-120:
       name: 专项附加扣除声明
       objs:
@@ -13446,7 +13539,7 @@ nodes:
       invs: []
       bc: B-15
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:558
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[96]/AGG-120
     AGG-77:
       name: 过账
       objs: []
@@ -13458,7 +13551,7 @@ nodes:
       - INV-95
       bc: B-16
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:566
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[97]/AGG-77
     AGG-78:
       name: 口径版本
       objs:
@@ -13467,7 +13560,7 @@ nodes:
       - INV-131
       bc: B-17
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:572
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[98]/AGG-78
     AGG-126:
       name: 勾稽差异案
       objs:
@@ -13476,7 +13569,7 @@ nodes:
       - INV-135
       bc: B-17
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:573
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[99]/AGG-126
     AGG-79:
       name: 经营计划版本
       objs:
@@ -13485,7 +13578,7 @@ nodes:
       - INV-101
       bc: B-18
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:579
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[100]/AGG-79
     AGG-80:
       name: 预算账户
       objs:
@@ -13493,7 +13586,7 @@ nodes:
       invs: []
       bc: B-18
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:580
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[101]/AGG-80
     AGG-81:
       name: 会计期间
       objs:
@@ -13504,7 +13597,7 @@ nodes:
       - INV-92
       bc: B-19
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:586
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[102]/AGG-81
     AGG-96:
       name: 第 13 期启用登记
       objs: []
@@ -13512,7 +13605,7 @@ nodes:
       - INV-104
       bc: B-19
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:587
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[103]/AGG-96
     AGG-82:
       name: 科目表版本
       objs:
@@ -13522,7 +13615,7 @@ nodes:
       - INV-131
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:593
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[104]/AGG-82
     AGG-83:
       name: 账簿
       objs:
@@ -13530,7 +13623,7 @@ nodes:
       invs: []
       bc: null
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:594
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[105]/AGG-83
     AGG-84:
       name: 会计分录
       objs:
@@ -13539,7 +13632,7 @@ nodes:
       - INV-95
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:596
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[106]/AGG-84
     AGG-85:
       name: 收付 ↔ 权责科目映射表版本
       objs: []
@@ -13547,7 +13640,7 @@ nodes:
       - INV-131
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:597
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[107]/AGG-85
     AGG-94:
       name: 控制科目授权表版本
       objs: []
@@ -13556,7 +13649,7 @@ nodes:
       - INV-131
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:598
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[108]/AGG-94
     AGG-98:
       name: 受控手工凭证
       objs:
@@ -13565,7 +13658,7 @@ nodes:
       - INV-108
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:599
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[109]/AGG-98
     AGG-99:
       name: 期末结转运行
       objs: []
@@ -13573,7 +13666,7 @@ nodes:
       - INV-109
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:600
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[110]/AGG-99
     AGG-100:
       name: 期间余额快照
       objs: []
@@ -13581,7 +13674,7 @@ nodes:
       - INV-106
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:601
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[111]/AGG-100
     AGG-101:
       name: 外部法定账对账
       objs:
@@ -13590,7 +13683,7 @@ nodes:
       - INV-107
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:602
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[112]/AGG-101
     AGG-125:
       name: 期初余额
       objs: []
@@ -13599,7 +13692,7 @@ nodes:
       - INV-134
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:603
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[113]/AGG-125
     AGG-127:
       name: 口径转换规则版本
       objs: []
@@ -13607,7 +13700,7 @@ nodes:
       - INV-136
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:604
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[114]/AGG-127
     AGG-128:
       name: 期末结转模板版本
       objs: []
@@ -13616,7 +13709,7 @@ nodes:
       - INV-136
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:605
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[115]/AGG-128
     AGG-129:
       name: 现金流量项目表版本
       objs: []
@@ -13625,7 +13718,7 @@ nodes:
       - INV-136
       bc: B-20
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:606
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[116]/AGG-129
     AGG-86:
       name: 报表行定义版本
       objs:
@@ -13634,7 +13727,7 @@ nodes:
       - INV-91
       bc: B-21
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:614
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[117]/AGG-86
     AGG-87:
       name: 资金账户
       objs:
@@ -13642,7 +13735,7 @@ nodes:
       invs: []
       bc: B-22
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:620
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[118]/AGG-87
     AGG-88:
       name: 银行流水
       objs:
@@ -13651,7 +13744,7 @@ nodes:
       - INV-85
       bc: B-22
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:621
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[119]/AGG-88
     AGG-89:
       name: 进项发票
       objs:
@@ -13661,7 +13754,7 @@ nodes:
       - INV-75
       bc: B-23
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:627
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[120]/AGG-89
     AGG-90:
       name: 增值税、附加税、企业所得税申报
       objs:
@@ -13669,7 +13762,7 @@ nodes:
       invs: []
       bc: B-23
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:628
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[121]/AGG-90
     AGG-91:
       name: 公司资产
       objs:
@@ -13677,7 +13770,7 @@ nodes:
       invs: []
       bc: B-24
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:634
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[122]/AGG-91
     AGG-124:
       name: 资产类别与折旧政策版本
       objs:
@@ -13687,7 +13780,7 @@ nodes:
       - INV-116
       bc: B-24
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:635
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[123]/AGG-124
     AGG-107:
       name: 知识条目
       objs:
@@ -13696,7 +13789,7 @@ nodes:
       - INV-115
       bc: B-30
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:647
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[124]/AGG-107
     AGG-113:
       name: 用印申请
       objs:
@@ -13707,7 +13800,7 @@ nodes:
       - INV-138
       bc: B-31
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:655
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[125]/AGG-113
     AGG-114:
       name: IT 需求工单
       objs:
@@ -13716,7 +13809,7 @@ nodes:
       - INV-120
       bc: B-31
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:656
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[126]/AGG-114
     AGG-115:
       name: IT 资产使用记录
       objs:
@@ -13726,7 +13819,7 @@ nodes:
       - INV-121
       bc: B-31
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:657
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[127]/AGG-115
     AGG-116:
       name: 员工活动申请
       objs:
@@ -13734,7 +13827,7 @@ nodes:
       invs: []
       bc: B-31
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:658
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[128]/AGG-116
     AGG-121:
       name: IT 资产维修单
       objs:
@@ -13742,7 +13835,7 @@ nodes:
       invs: []
       bc: B-31
       tables: []
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:659
+      src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[129]/AGG-121
     cost.timesheet/Timesheet:
       name: Timesheet
       objs: []
@@ -13753,70 +13846,88 @@ nodes:
       - RULE-279
       - RULE-295
       - RULE-303
+      planned:
+      - AGG-39
+      relation: same
       bc: B-06
       module: cost.timesheet
       tables:
       - cost_timesheet.timesheets
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/cost.timesheet/Timesheet
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/cost.timesheet/Timesheet
     organization.attendance/WorkCalendarYear:
       name: WorkCalendarYear
       objs: []
       invs: []
+      planned:
+      - AGG-68
+      relation: same
       bc: B-14
       module: organization.attendance
       tables:
-      - organization_attendance.work_calendar_years
       - organization_attendance.work_calendar_days
+      - organization_attendance.work_calendar_years
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/organization.attendance/WorkCalendarYear
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.attendance/WorkCalendarYear
     organization.workforce/LegalEntity:
       name: LegalEntity
       objs: []
       invs: []
+      planned:
+      - AGG-60
+      relation: same
       bc: B-13
       module: organization.workforce
       tables:
       - organization_workforce.legal_entities
+      - organization_workforce.legal_entity_versions
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntity
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntity
+    organization.workforce/LegalEntityAttribution:
+      name: LegalEntityAttribution
+      objs: []
+      invs:
+      - RULE-385
+      planned:
+      - AGG-117
+      relation: same
+      bc: B-13
+      module: organization.workforce
+      tables:
+      - organization_workforce.employee_legal_entities
+      - organization_workforce.legal_entity_attribution_corrections
+      - organization_workforce.legal_entity_attributions
+      - organization_workforce.org_unit_legal_entities
+      built: true
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntityAttribution
+    organization.workforce/RegisteredEmployee:
+      name: RegisteredEmployee
+      objs: []
+      invs: []
+      planned:
+      - AGG-62
+      relation: pending
+      bc: B-13
+      module: organization.workforce
+      tables: []
+      built: true
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/RegisteredEmployee
     organization.workforce/SyncRun:
       name: SyncRun
       objs: []
       invs:
       - RULE-358
       - RULE-366
+      planned: []
+      relation: none
       bc: B-13
       module: organization.workforce
       tables:
-      - organization_workforce.sync_runs
       - organization_workforce.sync_diffs
       - organization_workforce.sync_run_held_separations
+      - organization_workforce.sync_runs
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/SyncRun
-    organization.workforce/LegalEntityAttribution:
-      name: LegalEntityAttribution
-      objs: []
-      invs:
-      - RULE-385
-      bc: B-13
-      module: organization.workforce
-      tables:
-      - organization_workforce.legal_entity_attributions
-      - organization_workforce.org_unit_legal_entities
-      - organization_workforce.employee_legal_entities
-      - organization_workforce.legal_entity_attribution_corrections
-      built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntityAttribution
-    organization.workforce/RegisteredEmployee:
-      name: RegisteredEmployee
-      objs: []
-      invs: []
-      bc: B-13
-      module: organization.workforce
-      tables: []
-      built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/RegisteredEmployee
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/SyncRun
     platform.approval/ApprovalRequest:
       name: ApprovalRequest
       objs: []
@@ -13836,27 +13947,43 @@ nodes:
       - RULE-309
       - RULE-382
       - RULE-383
+      planned: []
+      relation: none
       bc: platform.approval
       module: platform.approval
       tables:
       - platform_approval.approval_requests
       - platform_approval.approval_task_records
-      - platform_approval.start_rounds
       - platform_approval.approval_tasks
+      - platform_approval.start_rounds
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/platform.approval/ApprovalRequest
-    platform.identity/UserAccount:
-      name: UserAccount
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.approval/ApprovalRequest
+    platform.identity/AuthorizationRequest:
+      name: AuthorizationRequest
       objs: []
-      invs:
-      - RULE-363
+      invs: []
+      planned: []
+      relation: none
       bc: platform.identity
       module: platform.identity
       tables:
-      - platform_identity.user_accounts
-      - platform_identity.account_roles
+      - platform_identity.authorization_requests
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/UserAccount
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/AuthorizationRequest
+    platform.identity/EmergencyAdmin:
+      name: EmergencyAdmin
+      objs: []
+      invs:
+      - RULE-316
+      - RULE-317
+      planned: []
+      relation: none
+      bc: platform.identity
+      module: platform.identity
+      tables:
+      - platform_identity.emergency_admins
+      built: true
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/EmergencyAdmin
     platform.identity/Role:
       name: Role
       objs: []
@@ -13867,76 +13994,80 @@ nodes:
       - RULE-343
       - RULE-345
       - RULE-346
+      planned: []
+      relation: none
       bc: platform.identity
       module: platform.identity
       tables:
-      - platform_identity.roles
       - platform_identity.role_permissions
+      - platform_identity.role_versions
+      - platform_identity.roles
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/Role
-    platform.identity/EmergencyAdmin:
-      name: EmergencyAdmin
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/Role
+    platform.identity/UserAccount:
+      name: UserAccount
       objs: []
       invs:
-      - RULE-316
-      - RULE-317
+      - RULE-363
+      planned: []
+      relation: none
       bc: platform.identity
       module: platform.identity
       tables:
-      - platform_identity.emergency_admins
+      - platform_identity.account_role_grants
+      - platform_identity.account_roles
+      - platform_identity.user_accounts
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/EmergencyAdmin
-    platform.identity/AuthorizationRequest:
-      name: AuthorizationRequest
-      objs: []
-      invs: []
-      bc: platform.identity
-      module: platform.identity
-      tables:
-      - platform_identity.authorization_requests
-      built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/AuthorizationRequest
-    platform.integration/SourceReference:
-      name: SourceReference
-      objs: []
-      invs: []
-      bc: platform.integration
-      module: platform.integration
-      tables:
-      - platform_integration.source_references
-      built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/platform.integration/SourceReference
-    platform.integration/SourceReferenceRefusal:
-      name: SourceReferenceRefusal
-      objs: []
-      invs: []
-      bc: platform.integration
-      module: platform.integration
-      tables: []
-      built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/platform.integration/SourceReferenceRefusal
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/UserAccount
     platform.integration/OutboundDelivery:
       name: OutboundDelivery
       objs: []
       invs:
       - RULE-375
+      planned: []
+      relation: none
       bc: platform.integration
       module: platform.integration
       tables:
       - platform_integration.outbound_deliveries
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/platform.integration/OutboundDelivery
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.integration/OutboundDelivery
+    platform.integration/SourceReference:
+      name: SourceReference
+      objs: []
+      invs: []
+      planned: []
+      relation: none
+      bc: platform.integration
+      module: platform.integration
+      tables:
+      - platform_integration.source_references
+      built: true
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.integration/SourceReference
+    platform.integration/SourceReferenceRefusal:
+      name: SourceReferenceRefusal
+      objs: []
+      invs: []
+      planned: []
+      relation: none
+      bc: platform.integration
+      module: platform.integration
+      tables: []
+      built: true
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.integration/SourceReferenceRefusal
     platform.numbering/NumberingRule:
       name: NumberingRule
       objs: []
       invs: []
+      planned: []
+      relation: none
       bc: platform.numbering
       module: platform.numbering
       tables:
-      - platform_numbering.numbering_rules
       - platform_numbering.numbering_rule_versions
+      - platform_numbering.numbering_rules
       built: true
-      src: architecture/ddd/aggregates.yaml#aggregates/platform.numbering/NumberingRule
+      src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.numbering/NumberingRule
   bc:
     B-01:
       name: 往来单位（含外部工程登记）
@@ -14404,7 +14535,7 @@ nodes:
       - cost.timesheet/Timesheet
       sources:
       - backend/architecture/data-access-registry.yaml#tables/cost_timesheet.timesheets
-      - architecture/ddd/aggregates.yaml#aggregates/cost.timesheet/Timesheet.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/cost.timesheet/Timesheet.tables
       role: BUSINESS_DOCUMENT
       registered: true
       registered_aggregate: Timesheet
@@ -14413,7 +14544,7 @@ nodes:
       - organization.attendance/WorkCalendarYear
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_attendance.work_calendar_years
-      - architecture/ddd/aggregates.yaml#aggregates/organization.attendance/WorkCalendarYear.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.attendance/WorkCalendarYear.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: WorkCalendarYear
@@ -14422,7 +14553,7 @@ nodes:
       - organization.attendance/WorkCalendarYear
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_attendance.work_calendar_days
-      - architecture/ddd/aggregates.yaml#aggregates/organization.attendance/WorkCalendarYear.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.attendance/WorkCalendarYear.tables
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: WorkCalendarYear
@@ -14473,7 +14604,7 @@ nodes:
       - organization.workforce/SyncRun
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_workforce.sync_runs
-      - architecture/ddd/aggregates.yaml#aggregates/organization.workforce/SyncRun.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/SyncRun.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: SyncRun
@@ -14482,7 +14613,7 @@ nodes:
       - organization.workforce/SyncRun
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_workforce.sync_diffs
-      - architecture/ddd/aggregates.yaml#aggregates/organization.workforce/SyncRun.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/SyncRun.tables
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: SyncRun
@@ -14491,7 +14622,7 @@ nodes:
       - organization.workforce/SyncRun
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_workforce.sync_run_held_separations
-      - architecture/ddd/aggregates.yaml#aggregates/organization.workforce/SyncRun.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/SyncRun.tables
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: SyncRun
@@ -14500,14 +14631,16 @@ nodes:
       - organization.workforce/LegalEntity
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_workforce.legal_entities
-      - architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntity.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntity.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: LegalEntity
     organization_workforce.legal_entity_versions:
-      aggregates: []
+      aggregates:
+      - organization.workforce/LegalEntity
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_workforce.legal_entity_versions
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntity.tables
       role: DIMENSION_VERSIONED
       registered: true
       registered_aggregate: LegalEntity
@@ -14516,7 +14649,7 @@ nodes:
       - organization.workforce/LegalEntityAttribution
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_workforce.legal_entity_attributions
-      - architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: LegalEntityAttribution
@@ -14525,7 +14658,7 @@ nodes:
       - organization.workforce/LegalEntityAttribution
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_workforce.org_unit_legal_entities
-      - architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
       role: DIMENSION_VERSIONED
       registered: true
       registered_aggregate: LegalEntityAttribution
@@ -14534,7 +14667,7 @@ nodes:
       - organization.workforce/LegalEntityAttribution
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_workforce.employee_legal_entities
-      - architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
       role: DIMENSION_VERSIONED
       registered: true
       registered_aggregate: LegalEntityAttribution
@@ -14543,7 +14676,7 @@ nodes:
       - organization.workforce/LegalEntityAttribution
       sources:
       - backend/architecture/data-access-registry.yaml#tables/organization_workforce.legal_entity_attribution_corrections
-      - architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
       role: LOG_APPEND_ONLY
       registered: true
       registered_aggregate: LegalEntityAttribution
@@ -14552,7 +14685,7 @@ nodes:
       - platform.approval/ApprovalRequest
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_approval.approval_requests
-      - architecture/ddd/aggregates.yaml#aggregates/platform.approval/ApprovalRequest.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.approval/ApprovalRequest.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: ApprovalRequest
@@ -14561,7 +14694,7 @@ nodes:
       - platform.approval/ApprovalRequest
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_approval.approval_task_records
-      - architecture/ddd/aggregates.yaml#aggregates/platform.approval/ApprovalRequest.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.approval/ApprovalRequest.tables
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: ApprovalRequest
@@ -14570,7 +14703,7 @@ nodes:
       - platform.approval/ApprovalRequest
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_approval.start_rounds
-      - architecture/ddd/aggregates.yaml#aggregates/platform.approval/ApprovalRequest.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.approval/ApprovalRequest.tables
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: ApprovalRequest
@@ -14579,7 +14712,7 @@ nodes:
       - platform.approval/ApprovalRequest
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_approval.approval_tasks
-      - architecture/ddd/aggregates.yaml#aggregates/platform.approval/ApprovalRequest.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.approval/ApprovalRequest.tables
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: ApprovalRequest
@@ -14623,7 +14756,7 @@ nodes:
       - platform.identity/UserAccount
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_identity.user_accounts
-      - architecture/ddd/aggregates.yaml#aggregates/platform.identity/UserAccount.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/UserAccount.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: UserAccount
@@ -14632,7 +14765,7 @@ nodes:
       - platform.identity/Role
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_identity.roles
-      - architecture/ddd/aggregates.yaml#aggregates/platform.identity/Role.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/Role.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: Role
@@ -14641,7 +14774,7 @@ nodes:
       - platform.identity/Role
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_identity.role_permissions
-      - architecture/ddd/aggregates.yaml#aggregates/platform.identity/Role.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/Role.tables
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: Role
@@ -14650,21 +14783,25 @@ nodes:
       - platform.identity/UserAccount
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_identity.account_roles
-      - architecture/ddd/aggregates.yaml#aggregates/platform.identity/UserAccount.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/UserAccount.tables
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: UserAccount
     platform_identity.role_versions:
-      aggregates: []
+      aggregates:
+      - platform.identity/Role
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_identity.role_versions
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/Role.tables
       role: DIMENSION_VERSIONED
       registered: true
       registered_aggregate: Role
     platform_identity.account_role_grants:
-      aggregates: []
+      aggregates:
+      - platform.identity/UserAccount
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_identity.account_role_grants
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/UserAccount.tables
       role: DIMENSION_VERSIONED
       registered: true
       registered_aggregate: UserAccount
@@ -14708,7 +14845,7 @@ nodes:
       - platform.identity/EmergencyAdmin
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_identity.emergency_admins
-      - architecture/ddd/aggregates.yaml#aggregates/platform.identity/EmergencyAdmin.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/EmergencyAdmin.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: EmergencyAdmin
@@ -14717,7 +14854,7 @@ nodes:
       - platform.identity/AuthorizationRequest
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_identity.authorization_requests
-      - architecture/ddd/aggregates.yaml#aggregates/platform.identity/AuthorizationRequest.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/AuthorizationRequest.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: AuthorizationRequest
@@ -14754,7 +14891,7 @@ nodes:
       - platform.integration/OutboundDelivery
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_integration.outbound_deliveries
-      - architecture/ddd/aggregates.yaml#aggregates/platform.integration/OutboundDelivery.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.integration/OutboundDelivery.tables
       role: QUEUE
       registered: true
       registered_aggregate: OutboundDelivery
@@ -14763,7 +14900,7 @@ nodes:
       - platform.integration/SourceReference
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_integration.source_references
-      - architecture/ddd/aggregates.yaml#aggregates/platform.integration/SourceReference.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.integration/SourceReference.tables
       role: AGGREGATE_ROOT
       registered: true
       registered_aggregate: SourceReference
@@ -14779,7 +14916,7 @@ nodes:
       - platform.numbering/NumberingRule
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_numbering.numbering_rules
-      - architecture/ddd/aggregates.yaml#aggregates/platform.numbering/NumberingRule.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.numbering/NumberingRule.tables
       role: CONFIG_VERSIONED
       registered: true
       registered_aggregate: NumberingRule
@@ -14788,7 +14925,7 @@ nodes:
       - platform.numbering/NumberingRule
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_numbering.numbering_rule_versions
-      - architecture/ddd/aggregates.yaml#aggregates/platform.numbering/NumberingRule.tables
+      - architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.numbering/NumberingRule.tables
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: NumberingRule
@@ -40574,519 +40711,519 @@ links:
 - kind: obj-agg
   from: OBJ-01
   to: AGG-01
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:361
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[0]/AGG-01
 - kind: obj-agg
   from: OBJ-02
   to: AGG-01
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:361
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[0]/AGG-01
 - kind: obj-agg
   from: OBJ-03
   to: AGG-01
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:361
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[0]/AGG-01
 - kind: obj-agg
   from: OBJ-65
   to: AGG-02
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:362
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[1]/AGG-02
 - kind: obj-agg
   from: OBJ-46
   to: AGG-33
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:363
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[2]/AGG-33
 - kind: obj-agg
   from: OBJ-47
   to: AGG-33
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:363
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[2]/AGG-33
 - kind: obj-agg
   from: OBJ-24
   to: AGG-03
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:372
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[3]/AGG-03
 - kind: obj-agg
   from: OBJ-25
   to: AGG-04
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:373
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[4]/AGG-04
 - kind: obj-agg
   from: OBJ-26
   to: AGG-05
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:374
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[5]/AGG-05
 - kind: obj-agg
   from: OBJ-27
   to: AGG-06
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:375
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[6]/AGG-06
 - kind: obj-agg
   from: OBJ-05
   to: AGG-07
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:376
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[7]/AGG-07
 - kind: obj-agg
   from: OBJ-16
   to: AGG-08
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:382
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[8]/AGG-08
 - kind: obj-agg
   from: OBJ-17
   to: AGG-09
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:383
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[9]/AGG-09
 - kind: obj-agg
   from: OBJ-18
   to: AGG-10
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:384
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[10]/AGG-10
 - kind: obj-agg
   from: OBJ-20
   to: AGG-11
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:385
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[11]/AGG-11
 - kind: obj-agg
   from: OBJ-05
   to: AGG-11
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:385
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[11]/AGG-11
 - kind: obj-agg
   from: OBJ-21
   to: AGG-12
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:386
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[12]/AGG-12
 - kind: obj-agg
   from: OBJ-22
   to: AGG-12
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:386
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[12]/AGG-12
 - kind: obj-agg
   from: OBJ-23
   to: AGG-18
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:387
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[13]/AGG-18
 - kind: obj-agg
   from: OBJ-105
   to: AGG-102
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:388
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[14]/AGG-102
 - kind: obj-agg
   from: OBJ-29
   to: AGG-19
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:396
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[15]/AGG-19
 - kind: obj-agg
   from: OBJ-30
   to: AGG-20
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:397
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[16]/AGG-20
 - kind: obj-agg
   from: OBJ-31
   to: AGG-21
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:398
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[17]/AGG-21
 - kind: obj-agg
   from: OBJ-32
   to: AGG-22
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:399
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[18]/AGG-22
 - kind: obj-agg
   from: OBJ-33
   to: AGG-23
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:400
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[19]/AGG-23
 - kind: obj-agg
   from: OBJ-34
   to: AGG-24
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:401
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[20]/AGG-24
 - kind: obj-agg
   from: OBJ-44
   to: AGG-25
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:402
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[21]/AGG-25
 - kind: obj-agg
   from: OBJ-45
   to: AGG-26
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:403
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[22]/AGG-26
 - kind: obj-agg
   from: OBJ-41
   to: AGG-31
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:404
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[23]/AGG-31
 - kind: obj-agg
   from: OBJ-107
   to: AGG-103
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:405
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[24]/AGG-103
 - kind: obj-agg
   from: OBJ-108
   to: AGG-104
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:406
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[25]/AGG-104
 - kind: obj-agg
   from: OBJ-35
   to: AGG-27
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:413
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[26]/AGG-27
 - kind: obj-agg
   from: OBJ-37
   to: AGG-27
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:413
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[26]/AGG-27
 - kind: obj-agg
   from: OBJ-38
   to: AGG-28
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:414
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[27]/AGG-28
 - kind: obj-agg
   from: OBJ-39
   to: AGG-29
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:415
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[28]/AGG-29
 - kind: obj-agg
   from: OBJ-40
   to: AGG-30
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:416
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[29]/AGG-30
 - kind: obj-agg
   from: OBJ-42
   to: AGG-32
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:417
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[30]/AGG-32
 - kind: obj-agg
   from: OBJ-53
   to: AGG-38
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:418
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[31]/AGG-38
 - kind: obj-agg
   from: OBJ-106
   to: AGG-105
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:420
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[33]/AGG-105
 - kind: obj-agg
   from: OBJ-48
   to: AGG-34
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:430
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[34]/AGG-34
 - kind: obj-agg
   from: OBJ-49
   to: AGG-35
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:431
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[35]/AGG-35
 - kind: obj-agg
   from: OBJ-50
   to: AGG-36
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:432
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[36]/AGG-36
 - kind: obj-agg
   from: OBJ-52
   to: AGG-37
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:433
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[37]/AGG-37
 - kind: obj-agg
   from: OBJ-05
   to: AGG-13
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:439
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[38]/AGG-13
 - kind: obj-agg
   from: OBJ-06
   to: AGG-13
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:439
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[38]/AGG-13
 - kind: obj-agg
   from: OBJ-07
   to: AGG-13
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:439
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[38]/AGG-13
 - kind: obj-agg
   from: OBJ-08
   to: AGG-13
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:439
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[38]/AGG-13
 - kind: obj-agg
   from: OBJ-09
   to: AGG-15
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:441
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[40]/AGG-15
 - kind: obj-agg
   from: OBJ-10
   to: AGG-16
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:442
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[41]/AGG-16
 - kind: obj-agg
   from: OBJ-12
   to: AGG-17
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:443
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[42]/AGG-17
 - kind: obj-agg
   from: OBJ-66
   to: AGG-39
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:449
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[43]/AGG-39
 - kind: obj-agg
   from: OBJ-67
   to: AGG-39
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:449
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[43]/AGG-39
 - kind: obj-agg
   from: OBJ-78
   to: AGG-40
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:455
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[44]/AGG-40
 - kind: obj-agg
   from: OBJ-76
   to: AGG-41
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:456
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[45]/AGG-41
 - kind: obj-agg
   from: OBJ-79
   to: AGG-42
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:457
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[46]/AGG-42
 - kind: obj-agg
   from: OBJ-80
   to: AGG-43
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:458
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[47]/AGG-43
 - kind: obj-agg
   from: OBJ-124
   to: AGG-123
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:460
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[49]/AGG-123
 - kind: obj-agg
   from: OBJ-82
   to: AGG-45
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:467
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[51]/AGG-45
 - kind: obj-agg
   from: OBJ-83
   to: AGG-46
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:468
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[52]/AGG-46
 - kind: obj-agg
   from: OBJ-81
   to: AGG-47
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:469
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[53]/AGG-47
 - kind: obj-agg
   from: OBJ-124
   to: AGG-92
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:470
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[54]/AGG-92
 - kind: obj-agg
   from: OBJ-85
   to: AGG-49
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:476
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[55]/AGG-49
 - kind: obj-agg
   from: OBJ-86
   to: AGG-50
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:477
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[56]/AGG-50
 - kind: obj-agg
   from: OBJ-13
   to: AGG-51
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:478
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[57]/AGG-51
 - kind: obj-agg
   from: OBJ-85
   to: AGG-52
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:484
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[58]/AGG-52
 - kind: obj-agg
   from: OBJ-86
   to: AGG-53
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:485
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[59]/AGG-53
 - kind: obj-agg
   from: OBJ-91
   to: AGG-54
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:486
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[60]/AGG-54
 - kind: obj-agg
   from: OBJ-112
   to: AGG-109
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:487
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[61]/AGG-109
 - kind: obj-agg
   from: OBJ-05
   to: AGG-55
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:495
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[62]/AGG-55
 - kind: obj-agg
   from: OBJ-09
   to: AGG-56
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:496
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[63]/AGG-56
 - kind: obj-agg
   from: OBJ-87
   to: AGG-57
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:497
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[64]/AGG-57
 - kind: obj-agg
   from: OBJ-88
   to: AGG-59
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:504
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[66]/AGG-59
 - kind: obj-agg
   from: OBJ-118
   to: AGG-130
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:505
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[67]/AGG-130
 - kind: obj-agg
   from: OBJ-121
   to: AGG-131
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:506
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[68]/AGG-131
 - kind: obj-agg
   from: OBJ-120
   to: AGG-131
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:506
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[68]/AGG-131
 - kind: obj-agg
   from: OBJ-119
   to: AGG-132
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:507
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[69]/AGG-132
 - kind: obj-agg
   from: OBJ-124
   to: AGG-133
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:508
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[70]/AGG-133
 - kind: obj-agg
   from: OBJ-54
   to: AGG-60
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:514
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[71]/AGG-60
 - kind: obj-agg
   from: OBJ-55
   to: AGG-61
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:515
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[72]/AGG-61
 - kind: obj-agg
   from: OBJ-56
   to: AGG-62
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:516
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[73]/AGG-62
 - kind: obj-agg
   from: OBJ-57
   to: AGG-63
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:517
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[74]/AGG-63
 - kind: obj-agg
   from: OBJ-58
   to: AGG-64
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:518
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[75]/AGG-64
 - kind: obj-agg
   from: OBJ-60
   to: AGG-65
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:519
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[76]/AGG-65
 - kind: obj-agg
   from: OBJ-64
   to: AGG-66
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:520
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[77]/AGG-66
 - kind: obj-agg
   from: OBJ-05
   to: AGG-67
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:521
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[78]/AGG-67
 - kind: obj-agg
   from: OBJ-109
   to: AGG-106
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:522
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[79]/AGG-106
 - kind: obj-agg
   from: OBJ-55
   to: AGG-117
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:523
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[80]/AGG-117
 - kind: obj-agg
   from: OBJ-56
   to: AGG-117
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:523
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[80]/AGG-117
 - kind: obj-agg
   from: OBJ-28
   to: AGG-68
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:531
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[81]/AGG-68
 - kind: obj-agg
   from: OBJ-28
   to: AGG-108
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:532
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[82]/AGG-108
 - kind: obj-agg
   from: OBJ-70
   to: AGG-69
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:538
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[83]/AGG-69
 - kind: obj-agg
   from: OBJ-68
   to: AGG-70
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:539
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[84]/AGG-70
 - kind: obj-agg
   from: OBJ-122
   to: AGG-71
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:540
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[85]/AGG-71
 - kind: obj-agg
   from: OBJ-72
   to: AGG-72
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:541
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[86]/AGG-72
 - kind: obj-agg
   from: OBJ-111
   to: AGG-97
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:542
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[87]/AGG-97
 - kind: obj-agg
   from: OBJ-124
   to: AGG-118
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:543
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[88]/AGG-118
 - kind: obj-agg
   from: OBJ-73
   to: AGG-73
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:551
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[89]/AGG-73
 - kind: obj-agg
   from: OBJ-62
   to: AGG-74
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:552
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[90]/AGG-74
 - kind: obj-agg
   from: OBJ-74
   to: AGG-75
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:553
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[91]/AGG-75
 - kind: obj-agg
   from: OBJ-104
   to: AGG-76
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:554
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[92]/AGG-76
 - kind: obj-agg
   from: OBJ-123
   to: AGG-93
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:555
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[93]/AGG-93
 - kind: obj-agg
   from: OBJ-92
   to: AGG-95
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:556
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[94]/AGG-95
 - kind: obj-agg
   from: OBJ-124
   to: AGG-119
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:557
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[95]/AGG-119
 - kind: obj-agg
   from: OBJ-61
   to: AGG-120
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:558
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[96]/AGG-120
 - kind: obj-agg
   from: OBJ-56
   to: AGG-120
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:558
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[96]/AGG-120
 - kind: obj-agg
   from: OBJ-124
   to: AGG-78
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:572
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[98]/AGG-78
 - kind: obj-agg
   from: OBJ-117
   to: AGG-126
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:573
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[99]/AGG-126
 - kind: obj-agg
   from: OBJ-100
   to: AGG-79
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:579
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[100]/AGG-79
 - kind: obj-agg
   from: OBJ-100
   to: AGG-80
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:580
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[101]/AGG-80
 - kind: obj-agg
   from: OBJ-97
   to: AGG-81
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:586
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[102]/AGG-81
 - kind: obj-agg
   from: OBJ-95
   to: AGG-82
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:593
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[104]/AGG-82
 - kind: obj-agg
   from: OBJ-96
   to: AGG-83
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:594
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[105]/AGG-83
 - kind: obj-agg
   from: OBJ-98
   to: AGG-84
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:596
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[106]/AGG-84
 - kind: obj-agg
   from: OBJ-98
   to: AGG-98
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:599
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[109]/AGG-98
 - kind: obj-agg
   from: OBJ-125
   to: AGG-101
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:602
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[112]/AGG-101
 - kind: obj-agg
   from: OBJ-99
   to: AGG-86
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:614
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[117]/AGG-86
 - kind: obj-agg
   from: OBJ-89
   to: AGG-87
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:620
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[118]/AGG-87
 - kind: obj-agg
   from: OBJ-90
   to: AGG-88
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:621
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[119]/AGG-88
 - kind: obj-agg
   from: OBJ-83
   to: AGG-89
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:627
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[120]/AGG-89
 - kind: obj-agg
   from: OBJ-92
   to: AGG-90
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:628
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[121]/AGG-90
 - kind: obj-agg
   from: OBJ-93
   to: AGG-91
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:634
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[122]/AGG-91
 - kind: obj-agg
   from: OBJ-124
   to: AGG-124
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:635
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[123]/AGG-124
 - kind: obj-agg
   from: OBJ-110
   to: AGG-107
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:647
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[124]/AGG-107
 - kind: obj-agg
   from: OBJ-113
   to: AGG-113
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:655
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[125]/AGG-113
 - kind: obj-agg
   from: OBJ-114
   to: AGG-114
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:656
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[126]/AGG-114
 - kind: obj-agg
   from: OBJ-115
   to: AGG-115
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:657
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[127]/AGG-115
 - kind: obj-agg
   from: OBJ-93
   to: AGG-115
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:657
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[127]/AGG-115
 - kind: obj-agg
   from: OBJ-116
   to: AGG-116
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:658
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[128]/AGG-116
 - kind: obj-agg
   from: OBJ-115
   to: AGG-121
-  src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:659
+  src: architecture/ssot/i03-aggregates/planned.yaml#aggregates[129]/AGG-121
 - kind: bc-agg
   from: B-01
   to: AGG-01
@@ -41778,127 +41915,142 @@ links:
 - kind: table-agg
   from: cost_timesheet.timesheets
   to: cost.timesheet/Timesheet
-  src: architecture/ddd/aggregates.yaml#aggregates/cost.timesheet/Timesheet.tables
-  via: built
-- kind: table-agg
-  from: organization_attendance.work_calendar_years
-  to: organization.attendance/WorkCalendarYear
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.attendance/WorkCalendarYear.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/cost.timesheet/Timesheet.tables
   via: built
 - kind: table-agg
   from: organization_attendance.work_calendar_days
   to: organization.attendance/WorkCalendarYear
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.attendance/WorkCalendarYear.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.attendance/WorkCalendarYear.tables
+  via: built
+- kind: table-agg
+  from: organization_attendance.work_calendar_years
+  to: organization.attendance/WorkCalendarYear
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.attendance/WorkCalendarYear.tables
   via: built
 - kind: table-agg
   from: organization_workforce.legal_entities
   to: organization.workforce/LegalEntity
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntity.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntity.tables
   via: built
 - kind: table-agg
-  from: organization_workforce.sync_runs
-  to: organization.workforce/SyncRun
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/SyncRun.tables
-  via: built
-- kind: table-agg
-  from: organization_workforce.sync_diffs
-  to: organization.workforce/SyncRun
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/SyncRun.tables
-  via: built
-- kind: table-agg
-  from: organization_workforce.sync_run_held_separations
-  to: organization.workforce/SyncRun
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/SyncRun.tables
-  via: built
-- kind: table-agg
-  from: organization_workforce.legal_entity_attributions
-  to: organization.workforce/LegalEntityAttribution
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
-  via: built
-- kind: table-agg
-  from: organization_workforce.org_unit_legal_entities
-  to: organization.workforce/LegalEntityAttribution
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+  from: organization_workforce.legal_entity_versions
+  to: organization.workforce/LegalEntity
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntity.tables
   via: built
 - kind: table-agg
   from: organization_workforce.employee_legal_entities
   to: organization.workforce/LegalEntityAttribution
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
   via: built
 - kind: table-agg
   from: organization_workforce.legal_entity_attribution_corrections
   to: organization.workforce/LegalEntityAttribution
-  src: architecture/ddd/aggregates.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+  via: built
+- kind: table-agg
+  from: organization_workforce.legal_entity_attributions
+  to: organization.workforce/LegalEntityAttribution
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+  via: built
+- kind: table-agg
+  from: organization_workforce.org_unit_legal_entities
+  to: organization.workforce/LegalEntityAttribution
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/LegalEntityAttribution.tables
+  via: built
+- kind: table-agg
+  from: organization_workforce.sync_diffs
+  to: organization.workforce/SyncRun
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/SyncRun.tables
+  via: built
+- kind: table-agg
+  from: organization_workforce.sync_run_held_separations
+  to: organization.workforce/SyncRun
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/SyncRun.tables
+  via: built
+- kind: table-agg
+  from: organization_workforce.sync_runs
+  to: organization.workforce/SyncRun
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/organization.workforce/SyncRun.tables
   via: built
 - kind: table-agg
   from: platform_approval.approval_requests
   to: platform.approval/ApprovalRequest
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.approval/ApprovalRequest.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.approval/ApprovalRequest.tables
   via: built
 - kind: table-agg
   from: platform_approval.approval_task_records
   to: platform.approval/ApprovalRequest
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.approval/ApprovalRequest.tables
-  via: built
-- kind: table-agg
-  from: platform_approval.start_rounds
-  to: platform.approval/ApprovalRequest
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.approval/ApprovalRequest.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.approval/ApprovalRequest.tables
   via: built
 - kind: table-agg
   from: platform_approval.approval_tasks
   to: platform.approval/ApprovalRequest
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.approval/ApprovalRequest.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.approval/ApprovalRequest.tables
   via: built
 - kind: table-agg
-  from: platform_identity.user_accounts
-  to: platform.identity/UserAccount
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/UserAccount.tables
-  via: built
-- kind: table-agg
-  from: platform_identity.account_roles
-  to: platform.identity/UserAccount
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/UserAccount.tables
-  via: built
-- kind: table-agg
-  from: platform_identity.roles
-  to: platform.identity/Role
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/Role.tables
-  via: built
-- kind: table-agg
-  from: platform_identity.role_permissions
-  to: platform.identity/Role
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/Role.tables
-  via: built
-- kind: table-agg
-  from: platform_identity.emergency_admins
-  to: platform.identity/EmergencyAdmin
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/EmergencyAdmin.tables
+  from: platform_approval.start_rounds
+  to: platform.approval/ApprovalRequest
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.approval/ApprovalRequest.tables
   via: built
 - kind: table-agg
   from: platform_identity.authorization_requests
   to: platform.identity/AuthorizationRequest
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.identity/AuthorizationRequest.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/AuthorizationRequest.tables
   via: built
 - kind: table-agg
-  from: platform_integration.source_references
-  to: platform.integration/SourceReference
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.integration/SourceReference.tables
+  from: platform_identity.emergency_admins
+  to: platform.identity/EmergencyAdmin
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/EmergencyAdmin.tables
+  via: built
+- kind: table-agg
+  from: platform_identity.role_permissions
+  to: platform.identity/Role
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/Role.tables
+  via: built
+- kind: table-agg
+  from: platform_identity.role_versions
+  to: platform.identity/Role
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/Role.tables
+  via: built
+- kind: table-agg
+  from: platform_identity.roles
+  to: platform.identity/Role
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/Role.tables
+  via: built
+- kind: table-agg
+  from: platform_identity.account_role_grants
+  to: platform.identity/UserAccount
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/UserAccount.tables
+  via: built
+- kind: table-agg
+  from: platform_identity.account_roles
+  to: platform.identity/UserAccount
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/UserAccount.tables
+  via: built
+- kind: table-agg
+  from: platform_identity.user_accounts
+  to: platform.identity/UserAccount
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.identity/UserAccount.tables
   via: built
 - kind: table-agg
   from: platform_integration.outbound_deliveries
   to: platform.integration/OutboundDelivery
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.integration/OutboundDelivery.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.integration/OutboundDelivery.tables
   via: built
 - kind: table-agg
-  from: platform_numbering.numbering_rules
-  to: platform.numbering/NumberingRule
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.numbering/NumberingRule.tables
+  from: platform_integration.source_references
+  to: platform.integration/SourceReference
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.integration/SourceReference.tables
   via: built
 - kind: table-agg
   from: platform_numbering.numbering_rule_versions
   to: platform.numbering/NumberingRule
-  src: architecture/ddd/aggregates.yaml#aggregates/platform.numbering/NumberingRule.tables
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.numbering/NumberingRule.tables
+  via: built
+- kind: table-agg
+  from: platform_numbering.numbering_rules
+  to: platform.numbering/NumberingRule
+  src: architecture/ssot/i03-aggregates/built.yaml#aggregates/platform.numbering/NumberingRule.tables
   via: built
 - kind: inv-agg
   from: INV-01

@@ -46,6 +46,35 @@ class ObjectSourceTest(unittest.TestCase):
                     p.load_objects({"obj": {}}, lambda *edge: None)
 
 
+class AggregateSourceTest(unittest.TestCase):
+    def test_arc08_planned_yaml_replaces_section_2_2(self):
+        with tempfile.TemporaryDirectory(dir=p.ROOT) as tmp:
+            root = Path(tmp)
+            planned, draft = root / "planned.yaml", root / "draft.md"
+            text = p.SRC["agg"].read_text(encoding="utf-8")
+            start, end = text.index("### 2.2"), text.index("### 2.3")
+            draft.write_text(text[:start] + text[end:], encoding="utf-8")
+            row = {"id": "AGG-01", "聚合（根）": "往来单位（OBJ-01）", "内含": "OBJ-02", "对应": "一对一", "不变量": "INV-01"}
+            planned.write_text(yaml.safe_dump({"aggregates": [row]}, allow_unicode=True), encoding="utf-8")
+            with patch.dict(p.SRC, planned=planned, agg=draft):
+                model, links, _ = p.load()
+                self.assertEqual(["AGG-01"], [a for a in model["agg"] if a.startswith("AGG-")])
+                self.assertEqual(["OBJ-01", "OBJ-02"], model["agg"]["AGG-01"]["objs"])
+                self.assertEqual("B-01", model["agg"]["AGG-01"]["bc"])
+                self.assertTrue(all("planned.yaml#aggregates" in edge["src"] for edge in links if edge["kind"] == "obj-agg"))
+                planned.write_text(yaml.safe_dump({"aggregates": [row, row]}, allow_unicode=True), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "编号重复"):
+                    p.load_planned_aggregates({"agg": {}}, lambda *args: None)
+                planned.unlink()
+                with self.assertRaises(FileNotFoundError):
+                    p.load_planned_aggregates({"agg": {}}, lambda *args: None)
+
+    def test_arc08_default_sources_are_migrated(self):
+        directory = p.ARCH / "ssot/i03-aggregates"
+        self.assertEqual(directory / "built.yaml", p.SRC["built"])
+        self.assertEqual(directory / "planned.yaml", p.SRC["planned"])
+
+
 class ConstraintNetworkTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)
@@ -146,7 +175,9 @@ class MappingTest(unittest.TestCase):
     def test_table_mappings_and_other_roles(self):
         with tempfile.TemporaryDirectory(dir=p.ROOT) as tmp:
             root = Path(tmp)
-            sources = {key: root / f"{key}.yaml" for key in ("built", "tables", "access")}
+            sources = {key: root / f"{key}.yaml" for key in ("built", "tables", "access", "agg_map")}
+            sources["agg_map"].write_text(yaml.safe_dump({"entries": [{"built": "cost.timesheet/Timesheet",
+                "planned": ["AGG-01"], "relation": "same", "invariants": ["INV-01"]}]}))
             sources["built"].write_text(yaml.safe_dump({"aggregates": [{"id": "cost.timesheet/Timesheet",
                 "bc": "cost.timesheet", "tables": ["cost_timesheet.timesheets"]}]}))
             sources["tables"].write_text(yaml.safe_dump([{"table": "planned.rows", "obj": "OBJ-01"}]))
@@ -159,6 +190,7 @@ class MappingTest(unittest.TestCase):
                 p.load_tables(model, lambda kind, a, b, src, **extra: edges.append(
                     {"kind": kind, "from": a, "to": b, "src": src, **extra}), {"cost.timesheet": "B-06"})
             self.assertEqual(["AGG-01"], model["table"]["planned.rows"]["aggregates"])
+            self.assertEqual(["INV-01"], model["agg"]["cost.timesheet/Timesheet"]["invs"])
             self.assertEqual(["cost.timesheet/Timesheet"], model["table"]["cost_timesheet.timesheets"]["aggregates"])
             gaps = p.defaultdict(list)
             p.check_coverage(model, gaps)

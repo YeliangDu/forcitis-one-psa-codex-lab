@@ -5,8 +5,8 @@
 09 业务对象 · 10 受控业务执行 · 11 业务事实 · 12 维度 · 13 指标与评价 · 14 计算绑定 · 15 决策与行动。
 聚合、BC、子域、表作为 09、10 的领域与实现层映射（检查编号 N09-Mn、N10-Mn）。每条链接带出处（源文件与定位）。
 源：proposals/value-streams.v2.yaml、ssot/10-objects/objects.yaml、ENTERPRISE_INFO_MAP_DRAFT.md §2、closeout/process-catalog.yaml、
-ssot/c1-rules/rules.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §2.2 / §3.2、ddd/aggregates.yaml、ddd/subdomains.yaml、glossary/terms.yaml（kind=metric）、
-data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ddd/aggregates.yaml 的已建表）。
+ssot/c1-rules/rules.yaml、ssot/i03-aggregates/{planned,built}.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §3.2、ddd/subdomains.yaml、glossary/terms.yaml（kind=metric）、
+data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ssot/i03-aggregates/built.yaml 的已建表）。
 缺口只报告、不使构建失败：反复跑到收敛；--check 由 build_all 保证生成物可复现。
 """
 import json
@@ -31,7 +31,9 @@ SRC = {
     "obj_details": ARCH / "proposals/ENTERPRISE_INFO_MAP_DRAFT.md",
     "prc": ARCH / "proposals" / "closeout" / "process-catalog.yaml",
     "agg": ARCH / "proposals" / "ENTERPRISE_AGGREGATES_DRAFT.md",
-    "built": ARCH / "ddd" / "aggregates.yaml",
+    "planned": ARCH / "ssot/i03-aggregates/planned.yaml",
+    "built": ARCH / "ssot/i03-aggregates/built.yaml",
+    "agg_map": ARCH / "ssot/i03-aggregates/mapping.yaml",
     "sd": ARCH / "ddd" / "subdomains.yaml",
     "bc": ARCH / "ddd" / "contexts.yaml",
     "terms": DOCS / "glossary" / "terms.yaml",
@@ -90,6 +92,7 @@ CHECKS = {
     "N09-M3": "每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）",
     "N09-M4": "每张表都能追到聚合，聚合能追到业务对象",
     "N09-M5": "数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数）",
+    "N09-M6": "每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口）",
     "N10-M2": "每个后端模块在 module-dependencies.txt 登记",
     "N10-M3": "每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属）",
     "N10-1": "每个受控业务执行（命令）都有 owner BC",
@@ -331,8 +334,15 @@ def attach_table(m, link, table, agg, src, via):
 
 def load_tables(m, link, mod_to_bc):
     built = read_rows("built", "aggregates")
+    mapped = {e["built"]: e for e in read_rows("agg_map", "entries")}
+    unknown = sorted(set(mapped) - {agg["id"] for agg in built})
+    if unknown:
+        raise ValueError(f"{rel(SRC['agg_map'])} 引用了不存在的已建聚合：{'、'.join(unknown)}")
     for agg in built:
-        m["agg"][agg["id"]] = {"name": agg["id"].split("/")[-1], "objs": [], "invs": agg.get("invariants") or [],
+        m["agg"][agg["id"]] = {"name": agg["id"].split("/")[-1], "objs": [],
+                                "invs": (mapped.get(agg["id"]) or {}).get("invariants") or [],
+                                "planned": (mapped.get(agg["id"]) or {}).get("planned") or [],
+                                "relation": (mapped.get(agg["id"]) or {}).get("relation"),
                                 "bc": mod_to_bc.get(agg["bc"]), "module": agg["bc"], "tables": [], "built": True,
                                 "src": f"{rel(SRC['built'])}#aggregates/{agg['id']}"}
     rows = yaml.safe_load(SRC["tables"].read_text(encoding="utf-8")) if SRC["tables"].exists() else []
@@ -361,6 +371,20 @@ def load_tables(m, link, mod_to_bc):
             node = m["table"].setdefault(table, {"aggregates": [], "sources": []})
             node["sources"].append(src)
             attach_table(m, link, table, agg["id"], src, "built")
+
+
+def load_planned_aggregates(m, link):
+    for index, row in enumerate(read_rows("planned", "aggregates")):
+        aid = row["id"]
+        if not AGG_RE.fullmatch(aid) or aid in m["agg"]:
+            raise ValueError(f"{rel(SRC['planned'])} 编号无效或编号重复：{aid}")
+        name = row.get("聚合（根）") if "聚合（根）" in row else row["聚合"]
+        objs = OBJ_RE.findall(" ".join((name, row["内含"], row["对应"])))
+        src = f"{rel(SRC['planned'])}#aggregates[{index}]/{aid}"
+        m["agg"][aid] = {"name": re.sub(r"（.*", "", name), "objs": sorted(set(objs), key=objs.index),
+                         "invs": expand("INV", row["不变量"]), "bc": None, "tables": [], "src": src}
+        for obj in m["agg"][aid]["objs"]:
+            link("obj-agg", obj, aid, src)
 
 
 def mapping_paths(args):
@@ -456,6 +480,9 @@ def check_coverage(m, gaps):
     for table, node in m["table"].items():
         if node.get("registered") and node["role"] in BUSINESS_ROLES and not node["aggregates"]:
             gaps["N09-M5"].append(f"{table}（{node['role']}，聚合登记 {node.get('registered_aggregate') or '无'}）")
+    for aid, a in m.get("agg", {}).items():
+        if a.get("built") and a.get("relation") in (None, "pending"):
+            gaps["N09-M6"].append(f"{aid}（{a.get('relation') or '未登记对照'}）")
     for module, node in m.get("mod", {}).items():
         if not node["registered"]:
             gaps["N10-M2"].append(module)
@@ -550,14 +577,8 @@ def load():
         for o in OBJ_RE.findall(po):
             link("obj-prc", o, p["id"], f"{rel(SRC['prc'])}#{p['id']}.primary_object")
 
+    load_planned_aggregates(m, link)
     text = SRC["agg"].read_text(encoding="utf-8")
-    for aid, c, no in md_rows(text, "### 2.2", "### 2.3", r"AGG-\d{2,3}"):
-        objs = OBJ_RE.findall(" ".join(c[1:4]))
-        m["agg"][aid] = {"name": re.sub(r"（.*", "", c[1]), "objs": sorted(set(objs), key=objs.index),
-                         "invs": expand("INV", c[4] if len(c) > 4 else ""), "bc": None, "tables": [],
-                         "src": f"{rel(SRC['agg'])}:{no}"}
-        for o in m["agg"][aid]["objs"]:
-            link("obj-agg", o, aid, f"{rel(SRC['agg'])}:{no}")
     for bid, c, no in md_rows(text, "### 3.2", "### 3.3", r"B-\d{2,3}"):
         mod = re.search(r"`([a-z_]+\.[a-z_]+)`", c[2] if len(c) > 2 else "")
         aggs = expand("AGG", c[4] if len(c) > 4 else "")
