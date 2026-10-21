@@ -8,6 +8,7 @@
 - **现行主线 = 开发（用户 10-20 采纳）**：最近里程碑「通用审批先行上线」（TRN-03：用印、合同借阅、IT 工单与资产、员工活动）。A 线 one-1a-par（ADR-0055 拆 A8 同步改人事命令，12 PR，切分方案 #491；R=#489 已签发待正文补「改动的断言」后由 one-merge 入队；F 删老待办交 Codex；其余等 one-architecture 的 ADR-0055 补篇与 one-data W2 设计；PR-I 迁入适配器归它）。B 线 文件服务基础 → 签章服务第一段（ADR-0060/0064 已入库 #488；待用语定名与模块登记）。C 线 行政事务（施工设计 one-architecture @afd9f44d，B31R 已答、行政清单已答、兜底按岗位）。D 线 one-ops（恢复 dev、清单对齐 ADR-0055、生产/演练评估、检测选型）——10-21 已上线。
 - one-architecture：用户只为 W0 相关恢复——①平台 ADR 入库（0060–0065 已合 #488；0066/0067 #490 已批入队）②X1 已完成 ③行政施工设计已完成 ④调度写法已统一 ⑤分层冻结复审已完成；另经用户 #491 评论加做「人事命令设计」：A 类直接裁定、B 类（3、4、8、9、10）出一页裁定稿贴 #491 并在收件箱建一条、A+B 成一份 ADR-0055 补篇。SSOT 重建线与三个架构小组仍暂停。
 - one-data：#489 已签；正做 W2 员工与岗位版本化设计与 WF/SD-1 重判；ADR-0058 设计第 2 版（@65c78cfe）待派 sonnet 复核（排在 W2 之后），实施仍暂停；它交 one-architecture 的三处待定（cause_kind、S5、转换序号）不催。
+- one-data W2 设计草稿已出（claude/one-data-handoff-1 @ae8e4621：data/W2_EMPLOYEE_POSITION_VERSIONING_DESIGN.md + repair-cards/DATA-REPAIR-workforce-REJUDGE-2026-10-21.md）：调度 10-21 09:10 已派 opus 独立首轮复核（任务 DAT-1021-COO-01，结果写 scratchpad 的 R-W2设计复核.md）；若 /clear 后未见结果，按同一任务重派（须对 assignments 去留、个人信息列 D17 豁免两处给明确结论），结果转 one-data。
 - one-glossary：NAM-1020-COO-01（平台新用语与层名「基础层/公共服务层/适配层」、履约义务与合同条款分立）出决策单→先交调度审题→收件箱。
 - 待用户（收件箱已清空）：将来——B 类裁定稿一次批、恶意文件检测选型、生产扩容购买、资产配置标准（用户盘点后提供）、02 关注点 SSOT 认可（暂停中）。
 - 决策渠道：**收件箱是唯一处理点**（intent 14f0deef；记忆 decisions-on-github）；只有已在 GitHub 发起的（如 #491）才在 GitHub 收。用户说「答完」时扫收件箱 + 近期 PR 评论。
