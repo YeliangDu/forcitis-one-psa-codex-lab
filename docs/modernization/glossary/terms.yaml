@@ -975,14 +975,19 @@ terms:
   snake: baseline_version
   kind: entity
   bc: contract.agreement
-  definition: 单调递增、历史不可变的基线快照（版本2+仅由已批准变更产生）
+  definition: 单调递增、历史不可变的基线快照（版本2+仅由已批准变更产生）；「内部基线」是它的方言叫法，不用
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 内部基线
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；用户 2026-10-21 用语确认第四批 GL3（提交
+    GL3-20261021-201752-45m，intent 2026-10-21-201913）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_scope
   zh: 合同范围
@@ -1130,7 +1135,7 @@ terms:
   scope: domain
   confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: rate_card_item
-  zh: 费率表
+  zh: 费率项
   en: RateCardItem
   snake: rate_card_item
   kind: entity
@@ -1146,11 +1151,16 @@ terms:
   - name: psa_bill_rate*, psa_pm_hourlyrate*
     type: legacy-table
     deprecated: true
+  - name: 费率表
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
   forbidden: []
   status: approved
   core: true
   scope: domain
-  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent
+    2026-10-21-201913）（用户裁定，rulings.yaml）
 - id: contract_clause
   zh: 合同条款
   en: ContractClause
@@ -3314,22 +3324,27 @@ terms:
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
 - id: progress_assessment
-  zh: 履约进度认定
+  zh: 进度计量认定
   en: ProgressAssessment
   snake: progress_assessment
   kind: aggregate
   bc: receivables.wip
-  definition: 项目×合同×期间的计量认定单（证据必备、封期锁定）
+  definition: 项目×合同×期间的计量认定单（证据必备、封期锁定），属收入侧计量，与经营口径的「经营估值」分开；进度只作内部估值、不进收入（用户 2026-10-16）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
   - IFRS 15 Revenue from Contracts with Customers
   confidence: medium
-  aliases: []
-  forbidden: []
+  aliases:
+  - name: 履约进度认定
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  forbidden:
+  - 履约进度认定
   status: approved
   note: 履约进度认定单
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，B2 类别判定）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（用户裁定，rulings.yaml）
 - id: input_method
   zh: 投入法
   en: InputMethod
@@ -7061,15 +7076,19 @@ terms:
   snake: project_manager
   kind: role
   bc: platform.approval
-  definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）
+  definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）；「项目负责人」是同一角色的方言，不用
   standard_ref:
   - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 项目负责人
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（原提议 platform-approval.yaml#project_manager，R3-AP-18）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（用户裁定，rulings.yaml）
   scope: domain
 - id: timesheet_approval
   zh: 工时单审批
@@ -8073,7 +8092,7 @@ terms:
   snake: make_up_workday
   kind: value_object
   bc: organization.attendance
-  definition: 工作日历中需要上班的周六或周日
+  definition: 工作日历中需要上班的周六或周日；与「补休」（加班后安排的休息）不是一回事
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §2
   confidence: medium
@@ -8081,7 +8100,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（原提议 organization_attendance.yaml#make_up_workday，R3-AT-10）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（用户裁定，rulings.yaml）
   scope: domain
 - id: work_calendar_year
   zh: 工作日历年度
@@ -12230,6 +12249,123 @@ terms:
   status: approved
   confirmed: 2026-10-16（用户，R-1b P5 门禁）
   note: 用户裁定转正式：用户 2026-10-16 对 R-1b P5 新用语「审计对象类别」答「同意 (Recommended)」（intent 2026-10-16-061803-one-1a-next-4-同意-Recommended-问，one-1a-next-4 会话）
+- id: binding
+  zh: 约束性
+  en: Binding
+  snake: binding
+  kind: value_object
+  bc: platform.approval
+  scope: domain
+  definition: 审批意见对流程有约束力、会推进或终止流程；与「建议性」相对。one-rules 用「正式效力」，名词化后与建议性不成对，改用约束性
+  standard_ref:
+  - 'RULES: APPROVAL_INTEGRITY'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: project_role
+  zh: 项目角色
+  en: ProjectRole
+  snake: project_role
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 人在项目上担任的角色，是数据范围的一个维度（法人 × 部门 × 项目角色）
+  standard_ref:
+  - 'ADR-0009 决定 4；RULES: IDENTITY_SINGLE_OPERATOR'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: identity_confirmation
+  zh: 身份确认
+  en: IdentityConfirmation
+  snake: identity_confirmation
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 外部票据登录后，本人确认「这个账号是我」的步骤；确认前会话无任何权限
+  standard_ref:
+  - 'RULES: IDENTITY_SINGLE_OPERATOR RULE-458'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: registrar
+  zh: 登记人
+  en: Registrar
+  snake: registrar
+  kind: value_object
+  bc: platform.integration
+  scope: domain
+  definition: 录入来源对照待确认行的人；确认人不得是登记人
+  standard_ref:
+  - 'RULES: SOURCE_REFERENCE'
+  confidence: medium
+  aliases:
+  - name: 录入人
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  forbidden:
+  - 录入人
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: finding
+  zh: 发现
+  en: Finding
+  snake: finding
+  kind: entity
+  bc: delivery.inspection
+  scope: domain
+  definition: 检查或审核中查出的问题；与缺陷责任期、质量缺陷率无关
+  standard_ref:
+  - rules/decide/sheets/GL3.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: compensatory_leave
+  zh: 补休
+  en: CompensatoryLeave
+  snake: compensatory_leave
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 加班后安排的休息（劳动法第 44 条）；不是日历里要上班的周末（那是调休上班日）
+  standard_ref:
+  - rules/decide/sheets/GL3.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: operating_valuation
+  zh: 经营估值
+  en: OperatingValuation
+  snake: operating_valuation
+  kind: value_object
+  bc: delivery.execution
+  scope: domain
+  definition: 每期按估计进度形成的内部估值，只作经营管理，不是收入，不进财务账（用户 2026-10-16 intent 2026-10-16-144613）
+  standard_ref:
+  - rules/decide/sheets/GL3.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
 - id: fund_account
   zh: 资金账户
   en: FundAccount

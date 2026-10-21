@@ -159,3 +159,172 @@ rulings:
     ids: [attendance]
     to: organization.leave
     source: 用户 2026-10-16 待决定收件箱 2026-10-16-one-glossary-bc-names 按推荐改名：词条「考勤与休假」改挂 organization.leave，该 bc 中文名改「考勤与休假」，原 organization.attendance 改「工作日历与标准工时」（intent 见该事项）
+  - op: promote
+    id: binding
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: binding
+      zh: 约束性
+      en: Binding
+      snake: binding
+      kind: value_object
+      bc: platform.approval
+      scope: domain
+      definition: 审批意见对流程有约束力、会推进或终止流程；与「建议性」相对。one-rules 用「正式效力」，名词化后与建议性不成对，改用约束性
+      standard_ref:
+      - 'RULES: APPROVAL_INTEGRITY'
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: project_role
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: project_role
+      zh: 项目角色
+      en: ProjectRole
+      snake: project_role
+      kind: value_object
+      bc: platform.identity
+      scope: domain
+      definition: 人在项目上担任的角色，是数据范围的一个维度（法人 × 部门 × 项目角色）
+      standard_ref:
+      - 'ADR-0009 决定 4；RULES: IDENTITY_SINGLE_OPERATOR'
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: identity_confirmation
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: identity_confirmation
+      zh: 身份确认
+      en: IdentityConfirmation
+      snake: identity_confirmation
+      kind: value_object
+      bc: platform.identity
+      scope: domain
+      definition: 外部票据登录后，本人确认「这个账号是我」的步骤；确认前会话无任何权限
+      standard_ref:
+      - 'RULES: IDENTITY_SINGLE_OPERATOR RULE-458'
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: registrar
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: registrar
+      zh: 登记人
+      en: Registrar
+      snake: registrar
+      kind: value_object
+      bc: platform.integration
+      scope: domain
+      definition: 录入来源对照待确认行的人；确认人不得是登记人
+      standard_ref:
+      - 'RULES: SOURCE_REFERENCE'
+      confidence: medium
+      aliases:
+      - name: 录入人
+        type: dialect
+        deprecated: true
+        source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+      forbidden:
+      - 录入人
+      note: ''
+  - op: promote
+    id: finding
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: finding
+      zh: 发现
+      en: Finding
+      snake: finding
+      kind: entity
+      bc: delivery.inspection
+      scope: domain
+      definition: 检查或审核中查出的问题；与缺陷责任期、质量缺陷率无关
+      standard_ref:
+      - rules/decide/sheets/GL3.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: compensatory_leave
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: compensatory_leave
+      zh: 补休
+      en: CompensatoryLeave
+      snake: compensatory_leave
+      kind: value_object
+      bc: organization.leave
+      scope: domain
+      definition: 加班后安排的休息（劳动法第 44 条）；不是日历里要上班的周末（那是调休上班日）
+      standard_ref:
+      - rules/decide/sheets/GL3.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: operating_valuation
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: operating_valuation
+      zh: 经营估值
+      en: OperatingValuation
+      snake: operating_valuation
+      kind: value_object
+      bc: delivery.execution
+      scope: domain
+      definition: 每期按估计进度形成的内部估值，只作经营管理，不是收入，不进财务账（用户 2026-10-16 intent 2026-10-16-144613）
+      standard_ref:
+      - rules/decide/sheets/GL3.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: rename
+    id: rate_card_item
+    zh: 费率项
+    en: RateCardItem
+    forbid_old: false
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  - op: rename
+    id: progress_assessment
+    zh: 进度计量认定
+    en: ProgressAssessment
+    forbid_old: true
+    definition: 项目×合同×期间的计量认定单（证据必备、封期锁定），属收入侧计量，与经营口径的「经营估值」分开；进度只作内部估值、不进收入（用户 2026-10-16）
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  - op: redefine
+    id: make_up_workday
+    definition: 工作日历中需要上班的周六或周日；与「补休」（加班后安排的休息）不是一回事
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  - op: redefine
+    id: project_manager
+    definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）；「项目负责人」是同一角色的方言，不用
+    add_aliases:
+    - name: 项目负责人
+      type: dialect
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  - op: redefine
+    id: baseline_version
+    definition: 单调递增、历史不可变的基线快照（版本2+仅由已批准变更产生）；「内部基线」是它的方言叫法，不用
+    add_aliases:
+    - name: 内部基线
+      type: dialect
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
