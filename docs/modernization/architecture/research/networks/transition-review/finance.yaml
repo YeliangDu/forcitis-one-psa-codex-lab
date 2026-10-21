@@ -1,0 +1,731 @@
+# 状态转换待判清单（finance 组）：ssot/10-objects/transitions.yaml @f8bc2dba 中来源为 proposals/closeout/finance/ 的 pending 与涉及本组对象的 conflicts。
+# 请负责会话逐条判定：pending 写 decided_object（OBJ）或 new_object_needed；conflicts 写 same（同义，取哪个名）或 different（不同义）。
+# 同名异义交 one-glossary；需用户定的标 needs_user。判定写回本文件同一条目下的 decision 字段，回 one-architecture。
+pending:
+- id: OTR-808
+  aggregate: AGG-41
+  from: null
+  to: 已试算
+  command: 试算人工成本分配
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-76
+  reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+- id: OTR-809
+  aggregate: AGG-41
+  from: 已试算
+  to: 已试算
+  command: 试算人工成本分配
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[1]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-76
+  reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+- id: OTR-810
+  aggregate: AGG-41
+  from: 已试算
+  to: 已确认
+  command: 确认人工成本分配
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[2]
+  judgement: pending
+  candidates:
+  - OBJ-76
+  reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+- id: OTR-811
+  aggregate: AGG-41
+  from: 已确认
+  to: 已过账
+  command: 提交过账候选
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[3]
+  judgement: pending
+  candidates:
+  - OBJ-76
+  reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+- id: OTR-812
+  aggregate: AGG-41
+  from:
+  - 已试算
+  - 已确认
+  to: 已作废
+  command: 作废人工成本分配运行
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[4]
+  judgement: pending
+  candidates:
+  - OBJ-76
+  reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+- id: OTR-813
+  aggregate: AGG-41
+  from: 已过账
+  to: 已冲销
+  command: 冲销人工成本分配运行
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[5]
+  judgement: pending
+  candidates:
+  - OBJ-76
+  reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+- id: OTR-814
+  aggregate: AGG-42
+  from: null
+  to: 已试算
+  command: 试算分摊运行
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[2].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-79
+  reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
+- id: OTR-815
+  aggregate: AGG-42
+  from: 已试算
+  to: 已试算
+  command: 试算分摊运行
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[2].transitions[1]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-79
+  reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
+- id: OTR-816
+  aggregate: AGG-42
+  from: 已试算
+  to: 已生效
+  command: 生效分摊运行
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[2].transitions[2]
+  judgement: pending
+  candidates:
+  - OBJ-79
+  reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
+- id: OTR-817
+  aggregate: AGG-42
+  from: 已生效
+  to: 已冲销
+  command: 冲销分摊运行
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[2].transitions[3]
+  judgement: pending
+  candidates:
+  - OBJ-79
+  reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
+- id: OTR-818
+  aggregate: AGG-43
+  from: null
+  to: 已生成
+  command: 售前投入转费用
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-80
+  reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+- id: OTR-819
+  aggregate: AGG-43
+  from: null
+  to: 已生成
+  command: 转入售前投入
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[1]
+  judgement: pending
+  candidates:
+  - OBJ-80
+  reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+- id: OTR-820
+  aggregate: AGG-43
+  from: null
+  to: 已生成
+  command: 终止清算成本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[2]
+  judgement: pending
+  candidates:
+  - OBJ-80
+  reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+- id: OTR-821
+  aggregate: AGG-43
+  from: null
+  to: 已生成
+  command: 结转合同履约成本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[3]
+  judgement: pending
+  candidates:
+  - OBJ-80
+  reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+- id: OTR-822
+  aggregate: AGG-43
+  from: 已生成
+  to: 已生成
+  command: 提交过账候选
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[4]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-80
+  reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+- id: OTR-823
+  aggregate: AGG-43
+  from: 已生成
+  to: 已过账
+  command: 标记成本结转已过账
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[5]
+  judgement: pending
+  candidates:
+  - OBJ-80
+  reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+- id: OTR-824
+  aggregate: AGG-43
+  from: 已过账
+  to: 已生成
+  command: 冲回成本结转
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[6]
+  judgement: pending
+  candidates:
+  - OBJ-80
+  reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+- id: OTR-825
+  aggregate: AGG-85
+  from: null
+  to: 草稿
+  command: 起草映射表版本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[19].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
+- id: OTR-826
+  aggregate: AGG-85
+  from: 草稿
+  to: 已生效
+  command: 发布映射表版本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[19].transitions[1]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
+- id: OTR-827
+  aggregate: AGG-85
+  from: 草稿
+  to: 草稿
+  command: null
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[19].transitions[2]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-124
+  reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
+- id: OTR-828
+  aggregate: AGG-85
+  from: 已生效
+  to: 已取代
+  command: null
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[19].transitions[3]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
+- id: OTR-829
+  aggregate: AGG-94
+  from: null
+  to: 草稿
+  command: 起草授权表版本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[20].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-830
+  aggregate: AGG-94
+  from: 草稿
+  to: 已生效
+  command: 发布授权表版本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[20].transitions[1]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-831
+  aggregate: AGG-94
+  from: 草稿
+  to: 草稿
+  command: null
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[20].transitions[2]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-832
+  aggregate: AGG-94
+  from: 已生效
+  to: 已取代
+  command: null
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[20].transitions[3]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-833
+  aggregate: AGG-99
+  from: null
+  to: 已生成
+  command: 生成期末结转运行
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[22].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-98
+  reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
+- id: OTR-834
+  aggregate: AGG-99
+  from: 已生成
+  to: 已生成
+  command: 生成期末结转运行
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[22].transitions[1]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-98
+  reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
+- id: OTR-835
+  aggregate: AGG-99
+  from: 已生成
+  to: 已过账
+  command: 提交过账候选
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[22].transitions[2]
+  judgement: pending
+  candidates:
+  - OBJ-98
+  reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
+- id: OTR-836
+  aggregate: AGG-99
+  from: 已过账
+  to: 已冲销
+  command: 冲销期末结转运行
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[22].transitions[3]
+  judgement: pending
+  candidates:
+  - OBJ-98
+  reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
+- id: OTR-837
+  aggregate: AGG-128
+  from: null
+  to: 草稿
+  command: 起草期末结转模板版本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[34].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-838
+  aggregate: AGG-128
+  from: 草稿
+  to: 已生效
+  command: 发布期末结转模板版本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[34].transitions[1]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-839
+  aggregate: AGG-128
+  from: 草稿
+  to: 草稿
+  command: null
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[34].transitions[2]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-840
+  aggregate: AGG-128
+  from: 已生效
+  to: 已取代
+  command: null
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[34].transitions[3]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-841
+  aggregate: AGG-129
+  from: null
+  to: 草稿
+  command: 起草现金流量项目表版本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[35].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-842
+  aggregate: AGG-129
+  from: 草稿
+  to: 已生效
+  command: 发布现金流量项目表版本
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[35].transitions[1]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-843
+  aggregate: AGG-129
+  from: 草稿
+  to: 草稿
+  command: null
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[35].transitions[2]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-844
+  aggregate: AGG-129
+  from: 已生效
+  to: 已取代
+  command: null
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[35].transitions[3]
+  judgement: pending
+  candidates:
+  - OBJ-124
+  reason: 同 AGG-85
+- id: OTR-845
+  aggregate: AGG-125
+  from: null
+  to: 编制中
+  command: 编制期初余额
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[37].transitions[0]
+  judgement: pending
+  candidates: []
+  reason: 聚合清单写明「信息图对象号未登记」
+- id: OTR-846
+  aggregate: AGG-125
+  from: 编制中
+  to: 编制中
+  command: 编制期初余额
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[37].transitions[1]
+  judgement: pending
+  self_loop: true
+  candidates: []
+  reason: 聚合清单写明「信息图对象号未登记」
+- id: OTR-847
+  aggregate: AGG-125
+  from: 编制中
+  to: 已生效
+  command: 签字确认期初余额
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[37].transitions[2]
+  judgement: pending
+  candidates: []
+  reason: 聚合清单写明「信息图对象号未登记」
+- id: OTR-848
+  aggregate: AGG-125
+  from: 编制中
+  to: 编制中
+  command: null
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[37].transitions[3]
+  judgement: pending
+  self_loop: true
+  candidates: []
+  reason: 聚合清单写明「信息图对象号未登记」
+- id: OTR-849
+  aggregate: AGG-122
+  from: null
+  to: 等待齐备
+  command: 登记合同已签回
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-18
+  reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+- id: OTR-850
+  aggregate: AGG-122
+  from: 等待齐备
+  to: 等待齐备
+  command: 登记合同已签回
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[1]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-18
+  reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+- id: OTR-851
+  aggregate: AGG-122
+  from: null
+  to: 等待齐备
+  command: 登记项目已建立
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[2]
+  judgement: pending
+  candidates:
+  - OBJ-18
+  reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+- id: OTR-852
+  aggregate: AGG-122
+  from: 等待齐备
+  to: 等待齐备
+  command: 登记项目已建立
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[3]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-18
+  reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+- id: OTR-853
+  aggregate: AGG-122
+  from: 等待齐备
+  to: 等待齐备
+  command: 登记售前投入挂接归属
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[4]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-18
+  reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+- id: OTR-854
+  aggregate: AGG-122
+  from: 等待齐备
+  to: 已转入
+  command: 标记售前投入已转入
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[5]
+  judgement: pending
+  candidates:
+  - OBJ-18
+  reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+- id: OTR-855
+  aggregate: AGG-122
+  from: 等待齐备
+  to: 已转费用
+  command: 标记售前投入已转费用
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[6]
+  judgement: pending
+  candidates:
+  - OBJ-18
+  reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+- id: OTR-856
+  aggregate: AGG-131
+  from: 已登记
+  to: 已登记
+  command: 归属差旅订单
+  by_command: null
+  source: proposals/closeout/finance/state-machines.yaml machines[43].transitions[2]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-120
+  - OBJ-121
+  reason: 归属差旅订单是订单行属性、状态不变，OBJ-120 / OBJ-121 均可
+conflicts:
+- id: CF-002
+  kind: name-variant
+  object: OBJ-09
+  pairs:
+  - - 影响评估
+    - 已评估
+  - - 审批
+    - 变更审批中
+  - - 驳回
+    - 已驳回
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-012
+  kind: name-variant
+  object: OBJ-78
+  pairs:
+  - - 被取代
+    - 已取代
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-014
+  kind: name-variant
+  object: OBJ-83
+  pairs:
+  - - 部分红冲
+    - 已红冲
+  - - 全额红冲
+    - 已红冲
+  - - 进项转出
+    - 已转出
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-015
+  kind: name-variant
+  object: OBJ-85
+  pairs:
+  - - 争议
+    - 争议中
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-016
+  kind: name-variant
+  object: OBJ-88
+  pairs:
+  - - 驳回
+    - 已驳回
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-017
+  kind: name-variant
+  object: OBJ-92
+  pairs:
+  - - 更正申报
+    - 已更正
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-018
+  kind: name-variant
+  object: OBJ-93
+  pairs:
+  - - 处置
+    - 已处置
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-019
+  kind: name-variant
+  object: OBJ-97
+  pairs:
+  - - 未开
+    - 未开放
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-020
+  kind: name-variant
+  object: OBJ-99
+  pairs:
+  - - 草拟
+    - 草稿
+  - - 被取代
+    - 已取代
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-024
+  kind: name-variant
+  object: OBJ-124
+  pairs:
+  - - 版本草稿
+    - 草稿
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-025
+  kind: name-variant
+  object: OBJ-125
+  pairs:
+  - - 已签字
+    - 已签字接受
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+- id: CF-027
+  kind: semantic
+  object: OBJ-98
+  aggregates:
+  - AGG-84
+  - AGG-98
+  key_states_says: 草稿 → 已审核 → 已记账（不可逆）；更正只能冲销
+  transitions_say: AGG-84：分录只追加、不改状态，状态在处理队列项上（待处理 / 待推送 / 已推送 / 死信 / 挂起 / 已确认记账）；AGG-98 受控手工凭证：草稿 → 已复核 → 已审批 → 已提交过账 → 已撤回 / 已作废
+  note: AGG-84 的状态属队列项而非分录；AGG-98 的「已复核 / 已审批」与「已审核」不明确同义；「已记账」无转换到达
+- id: CF-031
+  kind: semantic
+  object: OBJ-05
+  aggregates:
+  - AGG-13
+  - AGG-55
+  - AGG-67
+  - AGG-07
+  key_states_says: 草案 → 审批中 → 已签署生效 → 履行中 → 已完成 → 已结算 / 已终止
+  transitions_say: AGG-13 同；AGG-55 供方协议：草拟 → 审批中 → 已生效 → …；AGG-67 劳动合同：草案 → 审批中 → 已批准 → 已签署生效 → 已终止；AGG-07 协议价目：待生效 → 已生效 → 被取代
+  note: OBJ-05 四个聚合共用一个 OBJ，状态集不同；「已签署生效」与「已生效」、「草案」与「草拟」是否同义，「已批准」「被取代」是否入 OBJ-05 key_states 待定；本稿均挂 OBJ-05
+- id: CF-032
+  kind: semantic
+  object: OBJ-83
+  aggregates:
+  - AGG-46
+  - AGG-89
+  key_states_says: 销项：已开具 → 部分红冲 → 全额红冲；进项：已取得（查验）→ 已用途确认 → 已入账；进项转出；红冲确认中
+  transitions_say: AGG-46：已开具 → 红冲确认中 → 已红冲（无部分 / 全额之分）；AGG-89：已登记 → 已查验 → 已用途确认 → 已占用 → 已转出
+  note: 「已红冲」与「部分红冲 / 全额红冲」粒度不同；「已占用」与「已入账」、「已转出」与「进项转出」是否同义待定
+- id: CF-033
+  kind: semantic
+  object: OBJ-92
+  aggregates:
+  - AGG-90
+  - AGG-95
+  key_states_says: 待申报 → 已申报 → 已缴款；更正申报
+  transitions_say: AGG-90：已生成 → 已提交 → 已缴款 → 已更正；AGG-95：待申报 → 已申报 → 已缴款 → 已更正
+  note: AGG-90 的「已生成 / 已提交」与 key_states「待申报 / 已申报」是否同义待定；「已更正」是状态还是 key_states 所述的动作「更正申报」待定
+- id: CF-034
+  kind: semantic
+  object: OBJ-85
+  aggregates:
+  - AGG-49
+  - AGG-52
+  key_states_says: 未结 → 已部分结清 → 已结清；争议；已核销（坏账）；红冲减少
+  transitions_say: AGG-49：争议中、坏账已核销、已冲减、已转预收或待退、已逾期；AGG-52：已确认、已部分冲抵、已冲抵、预付款已登记、已冲销
+  note: 应收 / 应付两个聚合各自引入的状态（已冲抵、已冲减、已逾期等）在 key_states 中没有；「已冲减」是否即「红冲减少」待定；「已逾期」可能是派生而非状态
+- id: CF-035
+  kind: semantic
+  object: OBJ-86
+  aggregates:
+  - AGG-50
+  - AGG-53
+  key_states_says: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
+  transitions_say: AGG-50 增商票已收到 / 已逾期 / 已兑付（与分配状态正交）、已处置；AGG-53 增已撤回 / 已驳回 / 已退票
+  note: 商票兑付状态是另一正交维度，key_states 未提及；「已退票」与「已失败（退票）」是否同义待定
+- id: CF-036
+  kind: semantic
+  object: OBJ-120
+  aggregates:
+  - AGG-131
+  key_states_says: 超标审批：待审批 → 已批准 / 已驳回
+  transitions_say: AGG-131 的 登记超标订单待审批 / 批准差旅超标订单 / 驳回差旅超标订单 三条转换都是 已登记 → 已登记 自环
+  note: 订单审批状态在订单行上，聚合机没有把它写成 from / to；本稿三条按命令名挂 OBJ-120，状态未到达
+- id: CF-046
+  kind: semantic
+  object: OBJ-124
+  aggregates:
+  - AGG-78
+  - AGG-85
+  - AGG-92
+  - AGG-118
+  - AGG-119
+  - AGG-123
+  - AGG-124
+  - AGG-133
+  key_states_says: 版本草稿 → 已生效 → 已停用（被新版本取代）
+  transitions_say: 各配置版本聚合：草稿 → 已生效 → 已取代 / 已被取代；AGG-92：已开放 / 未开放
+  note: 「已停用」与「已取代」「已被取代」是否同义待定；AGG-92 的开放 / 未开放不是版本状态
+- id: CF-047
+  kind: semantic
+  object: OBJ-78
+  aggregates:
+  - AGG-40
+  key_states_says: 草稿 → 已批准 → 已生效 → 被取代
+  transitions_say: AGG-40：草稿 → 审批中 → 已生效 → 已取代
+  note: 「已批准」无转换，由「审批中」代；OBJ-26、27、74 类似
