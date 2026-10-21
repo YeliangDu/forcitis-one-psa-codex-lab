@@ -1,27 +1,36 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-17 13:28（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-17 09:40（one-coordinator）
-- 清空后第一步：通读 SESSION_PLAYBOOK §11 全文（`sed -n '/^## 11\./,/^## 12\./p'`），再做「开场核对」。
-- 本会话已犯、不得再犯（用户 10-17 指出）：①要用户定、补值、转财务、需配合的事一律写收件箱 inbox（status pending），对话里不问（§11 第 1 条，记忆 inbox-only）；②会话之间技术问题直连，不居中转述、不要求抄送（第 2 条）；③跨会话消息首行标「派工：/通知：/请用户决定：」；④每日简报每天早上发；⑤转述注明已核实 / 已抽查 / 未核实（第 12 条）。
-- 派工用 mcp__ccd_session_mgmt__send_message（会直接开启对方回合）；SendMessage 跨会话常停在「未读」不唤醒空闲会话（10-17 全员停工的原因）。
-- Codex 优先（intent 085534，§5 已改，记忆 codex-first）：各会话能交 Codex 的先交（gpt-6.1-sol xhigh），Claude 只派工、首轮审稿、安全、验收；按日报「Codex 卡数 / 返工轮次」评估，返工两轮以上收回。
-- 在途：strict 已关，快慢两道试行到 10-19（main 并行合入变红一次即 `gh api -X PATCH .../required_status_checks -F strict=true`）；收件箱待答 3 项（N1 五个值、AN-06 转财务、dev 日历）；one-architecture 下一件起草一次投产过渡 ADR（C1，施工图关键路径），前提清单 `architecture/proposals/PREREQ_NAMING_CONSTRUCTION_2026-10-17.md`（分支 one-architecture-adr-governance）；今日简报未发。
-- 主线常驻条（用户 10-17 要求钉住、滚动更新）：本会话 mod mainline-band 读 ~/.modernize/psa/handoff/mainline-band.txt 显示在输入框上方；每个命名主线完成点更新该文件（首行目标，后续行进度，末行「要你做」与更新时间，≤8 行）。同一 mod 另有状态栏（队列、在开 PR、main 红绿、strict 试行剩余天数、Codex 在跑任务自动取；收件箱待答数读 ~/.modernize/psa/handoff/status-extra.txt，收件箱增减时更新）。
-- 本分支待收进文档合集：claude/one-coordinator-two-lanes（intent 4 条、§5 改动、裁定 -05、台账）。
+更新：2026-10-21 09:00（one-coordinator）
+- 清空后第一步：通读 SESSION_PLAYBOOK §11、§5；读本节、作战图「开发主线」行，及 intent 2026-10-20-21xx 起各条（开发主线 b58965a5 起）。
+- **现行主线 = 开发（用户 10-20 采纳）**：最近里程碑「通用审批先行上线」（TRN-03：用印、合同借阅、IT 工单与资产、员工活动）。A 线 one-1a-par（ADR-0055 拆 A8 同步改人事命令，12 PR，切分方案 #491；R=#489 已签发待正文补「改动的断言」后由 one-merge 入队；F 删老待办交 Codex；其余等 one-architecture 的 ADR-0055 补篇与 one-data W2 设计；PR-I 迁入适配器归它）。B 线 文件服务基础 → 签章服务第一段（ADR-0060/0064 已入库 #488；待用语定名与模块登记）。C 线 行政事务（施工设计 one-architecture @afd9f44d，B31R 已答、行政清单已答、兜底按岗位）。D 线 one-ops（恢复 dev、清单对齐 ADR-0055、生产/演练评估、检测选型）——10-21 已上线。
+- one-architecture：用户只为 W0 相关恢复——①平台 ADR 入库（0060–0065 已合 #488；0066/0067 #490 已批入队）②X1 已完成 ③行政施工设计已完成 ④调度写法已统一 ⑤分层冻结复审已完成；另经用户 #491 评论加做「人事命令设计」：A 类直接裁定、B 类（3、4、8、9、10）出一页裁定稿贴 #491 并在收件箱建一条、A+B 成一份 ADR-0055 补篇。SSOT 重建线与三个架构小组仍暂停。
+- one-data：#489 已签；正做 W2 员工与岗位版本化设计与 WF/SD-1 重判；ADR-0058 设计第 2 版（@65c78cfe）待派 sonnet 复核（排在 W2 之后），实施仍暂停；它交 one-architecture 的三处待定（cause_kind、S5、转换序号）不催。
+- one-data W2 设计（@ae8e4621）已独立复核：暂不签发，W-01..17（高 2）、R-01..04，报告 research/R-W2设计复核-2026-10-21.md（@13dd137e）已转 one-data 改稿，改完派 sonnet 改后复核；个人信息三列留根表豁免已进收件箱；两处 ADR 字面冲突交 one-architecture。ADR-0068 人事命令补篇 #493：opus 复审在途（结果写 scratchpad 的 R-ADR0068复审.md，/clear 后若无则重派），one-data 签发中；B 类裁定稿在 #491 评论 6310172649 待用户批。单据类型与审计主体种类注册表改造卡拟派 one-1a-next-5（待用户激活）。
+- one-glossary：NAM-1020-COO-01（平台新用语与层名「基础层/公共服务层/适配层」、履约义务与合同条款分立）出决策单→先交调度审题→收件箱。
+- 待用户（收件箱已清空）：将来——B 类裁定稿一次批、恶意文件检测选型、生产扩容购买、资产配置标准（用户盘点后提供）、02 关注点 SSOT 认可（暂停中）。
+- 决策渠道：**收件箱是唯一处理点**（intent 14f0deef；记忆 decisions-on-github）；只有已在 GitHub 发起的（如 #491）才在 GitHub 收。用户说「答完」时扫收件箱 + 近期 PR 评论。
+- 平台服务成果：ADR-0060–0067；分层总图 GANmVBuBzK58pT27xscJBE（db 驱动，改状态用 ArtifactData 改 items，源 research/platform-fit-2026-10-20/views/分层总图.html）；研究与复核全在 research/platform-fit-2026-10-20/。AI：首批场景工时/报销/经营数据查询，外发闸窄口径 platform.ai，影响评估完成后切换；法务认可草案现行做法。
+- 已定口径（10-20/21）：财务——履约义务与合同条款分立（4911eb0a，取代 10-19）；B31P 均无成文制度、周年规则；B31R 10 题按推荐附收紧，Q3 仅投标可预盖（以备注为准），Q7 过渡通道季度复核+月抽 5 单；兜底按岗位四条规矩。
+- 不得再犯：①要用户定的进收件箱，不另开 GitHub issue；②转述他人报告用户原话先核原句；③确认页答复读 answers-submit 原文，并读每题备注、选项与备注不一致要指出；④自写脚本统计先验证；⑤ArtifactData 批量改条目前先核对条目编号对应（曾把 AI 底座改到计算主机）；⑥会话身份变化（远程→本机）先问用户再确认。
+- 下一个文档合集：本分支 claude/one-coordinator-two-lanes 已推送至最新（intent、台账、研究稿、01 SSOT V2），交 one-merge 收。
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev | one-ops | **暂停**（用户 10-17「ops 这一轮 rc 后，暂时不考虑 dev 的事儿了」）：rc.6 已授角色、单人运维模式开；日历未导（C-6 SQL 已修，one-ops-r56 @ 1da307b9） | 用户说恢复再排 | — |
+| 开发主线（10-20 恢复，intent b58965a5） | A one-1a-par / B 待 ADR 入库 / C one-architecture+B31P / D one-ops | 里程碑=通用审批先行上线（TRN-03）。A：ADR-0055 拆 A8 同步改人事命令（IMP-1020-PAR-01，先报切分）、ADR-0034 收尾、数据范围；B：文件服务基础→签章服务第一段；C：行政事务模块+四类通用审批表单；D：恢复 dev、清单对齐、生产/演练评估、检测选型（one-ops 离线，消息排队） | 各线完成点报调度 | B 等 ADR 占号与用语（NAM-1020-COO-01）；C 等 B31P |
 | 流程与业务架构对齐 | one-architecture + 三组 | 阶段层：SD-01～10 已裁（#422）；对象层：主对象脚本提议、三组确认中；VS01-10 定独立流程「作出参投决策」（#428）；已派五件（#429）：支撑本段、配置补读关系、内部服务价值流评估、集成类型、业务/管理/支撑分类 | 数据到后刷新对齐图（scratchpad(e1ce474b)/align/refresh.sh 后以同 file_path+files 重发；流程栏按业务/管理/支撑分三行，归属实线、支撑虚线，集成单列） | — |
 | 命名与用语 | one-architecture / one-glossary / one-quality | 规则在 PROCESS_METHOD_DRAFT §11、name_id_check.py；用户定「先规范再登记」（#430）：架构产物只用规范名，改名对照表与用语决策单合并交用户，认可后再登记、再定稿；对象名一律名词（结果或记录）；86 个对象未登记 | #431 拆分：审计报告与用语问题先合，提议稿改为规范名+原名别名后随页交用户；one-quality 写架构用语检查 | — |
 | 确认页 | one-architecture | 7 页在收件箱，用户暂不作答，待对齐与命名后一次改版 | PAGE_IMPACT.md | 对齐完成 |
 | CI 与合并 | 调度批准 / one-merge 执行（10-17 已切 scripts/merge/mq.py，队列在 <git-common-dir>/merge-queue/）/ one-quality 写脚本 | 今日合入 #437–#455，队列空；10-17 08:5x 用户定「关」，strict 已关（intent 084339），快慢两道试行至 10-19 | 试行 2 天；main 因并行合入变红一次即恢复 strict（gh api PATCH required_status_checks strict=true） | — |
 
+## 平台服务（10-20）
+- 6 份平台 ADR 已批（intent 95c61e88，批准页 41cbCoxq487u81i1onT5ta），法务认可（dcb519eb），草案与复核在 architecture/research/platform-fit-2026-10-20/；占号入库交 one-architecture（部分恢复，只做五件 W0 事）；用语交 one-glossary NAM-1020-COO-01；AI 首批场景 087abdd0；财务：履约义务与合同条款分立 4911eb0a；平台分档冻结与准入 ADR 草案待复审（647ce42c）；分层总图 GANmVBuBzK58pT27xscJBE（已钉）。
+
 ## 调度惯例（本日新增）
+- 分层总图（已钉左栏）：https://claude.ai/artifact/GANmVBuBzK58pT27xscJBE ——五层＋贯穿＋老系统退役，数据在页面 db（items/i000..，meta/page），状态变化用 ArtifactData update 改对应条目，不重发页面；源数据脚本 scratchpad(e9617959)/layers。
 - 在线页：会话日报 https://claude.ai/artifact/8CAmf8sAJsoaFNwetoGC7x （每天早上：scripts/ops/session_daily.py 出数 → 补 grade/assessment/action → 数据放 scratchpad(19432a27)/daily/site/data/<日期>.json 并更新 index.json → 以同一 file_path 重发 session-daily.html 与 files）；对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL （源与 refresh.sh 在 scratchpad(19432a27)/align，已钉左栏）。
 - 收件箱待用户答：ANM 命名体系与施工图方法 https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey ；N1 规则待定 https://claude.ai/artifact/BTo6TuYzW7H8vgjCanh4Vq 。用户说「答完」即取答复分发。
 - 下一文档合集清单：scratchpad(57026514)/next-docs-train.txt（调度批准、one-merge 中午/晚上收）；调度自己的规则、画像、台账、intent、裁定改动都在分支 claude/one-coordinator-two-lanes。
