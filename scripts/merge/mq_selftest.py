@@ -1,4 +1,5 @@
 """Self-test of mq.py (fake gh, real git for the ssh update, real processes and threads for the queue lock and the lanes). Not run on its own: `mq.py --self-test`."""
+import importlib.util
 import os
 import re
 import subprocess
@@ -1060,13 +1061,21 @@ def _docs_tiers(mq, d):
     # the verdict the queue relies on, from the real relevant_change.py: a doc a test reads is never tier=docs, so a docs merge never makes a code pull request rerun
     repo = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
     check = mq.docs_only(repo)
-    assert check(["docs/modernization/README.md"]) and check(["docs/modernization/sessions/_COMMON.md"]), "plain documentation is tier=docs"
-    for read in ("docs/modernization/events/asyncapi.yaml", "docs/modernization/glossary/terms.yaml", "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml", "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md"):
+    spec = importlib.util.spec_from_file_location("relevant_change", os.path.join(repo, "scripts", "ci", "relevant_change.py"))
+    rc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rc)
+    plain = next(f for f in subprocess.run(["git", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if f.endswith(".md") and not rc.is_relevant(f))
+    assert check([plain]), "plain documentation is tier=docs"
+    # docs that only a container-free test reads (tier=guarded) are found, not named: relevant_change.py takes every script that names a doc for a reader of it
+    listed = [f for f in subprocess.run(["git", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if rc.is_guarded_doc(f)]
+    index, light = rc.ReaderIndex(repo), rc.light_class_names(repo)
+    guarded = [f for f in listed if (rc.plan_for([f], index, light) or {}).get("classes")]
+    for read in ["docs/modernization/events/asyncapi.yaml", "docs/modernization/glossary/terms.yaml", "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml", *guarded]:
         assert not check([read]), f"{read} is read by a test: not docs"
-        assert not check(["docs/modernization/README.md", read]), "one test-read file among docs makes the whole set non-docs"
+        assert not check([plain, read]), "one test-read file among docs makes the whole set non-docs"
 
     # a code pull request whose CI ends after main gained docs commits merges as it is; after a test-read doc or code, it is brought up to date and run again
-    for name, files, reruns in (("docs", ["docs/modernization/README.md"], False), ("guarded", ["docs/modernization/phase1a/infra/INFRA_RUNBOOK.md"], True), ("code", ["docs/modernization/events/asyncapi.yaml"], True), ("mixed", ["docs/modernization/README.md", "backend/pom.xml"], True)):
+    for name, files, reruns in (("docs", [plain], False), *([("guarded", guarded[:1], True)] if guarded else []), ("code", ["docs/modernization/events/asyncapi.yaml"], True), ("mixed", [plain, "backend/pom.xml"], True)):
         gh = FakeGh(); gh.add(210, behind=1)
         gh.prs[210]["behind_files"] = files
         proc, q, log, _ = _proc(mq, d, f"dt-{name}", gh, [210], docs_only_fn=check)
