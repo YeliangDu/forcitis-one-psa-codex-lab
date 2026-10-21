@@ -27,9 +27,9 @@ class NumberingVersionMigrationIT {
 
         assertThat(jdbc.sql("""
                 select version_number || '|' || template_text || '|' || reset_policy || '|' || start_value || '|' || status || '|' || coalesce(author_id::text, 'none')
-                  from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE')
+                  from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE'))
                 """).query(String.class).list()).containsExactly("1|{TYPE}-{LE}-{yyyyMM}-{seq:4}|MONTHLY|1|PENDING_CONFIRMATION|none");
-        assertThat(jdbc.sql("select effective_from_date::text from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE')").query(String.class).single())
+        assertThat(jdbc.sql("select effective_from_date::text from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE'))").query(String.class).single())
                 .as("the seeded template has no author's day to wait for").isEqualTo("2000-01-01");
         assertThat(jdbc.sql("""
                 select count(*) from information_schema.columns where table_schema = 'platform_numbering' and table_name = 'numbering_rules'

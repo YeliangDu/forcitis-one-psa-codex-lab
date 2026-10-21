@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.approval.api.ApprovalError;
+import com.forcitis.one.platform.numbering.api.DocumentTypes;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
@@ -30,8 +31,10 @@ class Approvals {
     private final DomainEvents events;
     private final BusinessTime time;
     private final IdGenerator ids;
+    private final DocumentTypes documentTypes;
 
-    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time, IdGenerator ids) {
+    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time, IdGenerator ids, DocumentTypes documentTypes) {
+        this.documentTypes = documentTypes;
         this.ids = ids;
         this.requests = requests;
         this.engine = engine;
@@ -56,6 +59,7 @@ class Approvals {
     ApprovalRequest openRound(ApprovalStartRequest request, Optional<ApprovalRequest> existing) {
         ApprovalInstanceId instanceId = new ApprovalInstanceId(ids.next());
         Moment now = time.moment();
+        documentTypes.requireInForce(request.document().documentType(), now.date());
         if (existing.isPresent()) {
             existing.get().restart(request.initiator(), instanceId, request.summary(), request.trigger(), now);
             return existing.get();

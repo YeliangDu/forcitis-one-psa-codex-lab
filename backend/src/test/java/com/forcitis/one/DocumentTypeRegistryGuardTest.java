@@ -1,0 +1,65 @@
+package com.forcitis.one;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+/** ADR-0066 decision 4: platform code and tables do not enumerate business documents; the registry is the only place that lists them. */
+class DocumentTypeRegistryGuardTest {
+
+    static final Path MAIN = Path.of("src/main/java/com/forcitis/one");
+    static final Path MIGRATIONS = Path.of("src/main/resources/db/migration");
+    static final Pattern BUSINESS_DOCUMENT_LITERAL = Pattern.compile("\"(TIMESHEET|QUOTE|JOURNAL_VOUCHER)\"");
+    /** ProcessKey still names its document type until the process definition carries it (REG-2, IMP-1021-NX5-01). */
+    static final List<String> REG_2_PENDING = List.of("platform/approval/api/ProcessKey.java");
+
+    @Test
+    @DisplayName("kernel and platform code hold no business document type literal")
+    void platformCodeNamesNoBusinessDocument() throws IOException {
+        List<String> problems = new ArrayList<>();
+        for (String area : List.of("kernel", "platform")) {
+            try (Stream<Path> files = Files.walk(MAIN.resolve(area))) {
+                for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
+                    String relative = MAIN.relativize(file).toString();
+                    if (REG_2_PENDING.contains(relative)) {
+                        continue;
+                    }
+                    Matcher m = BUSINESS_DOCUMENT_LITERAL.matcher(Files.readString(file));
+                    if (m.find()) {
+                        problems.add(relative + " names the business document " + m.group(1) + "; read it from the numbering registry or take the code from the declaring context");
+                    }
+                }
+            }
+        }
+        assertThat(problems).isEmpty();
+    }
+
+    @Test
+    @DisplayName("no table lists document types in a CHECK, and only platform_numbering points a foreign key at the registry")
+    void tablesDoNotEnumerateDocumentTypes() throws IOException {
+        List<String> problems = new ArrayList<>();
+        Pattern enumerated = Pattern.compile("document_type\\w*\\s+text[^,;]*CHECK\\s*\\(\\s*document_type\\w*\\s+IN\\s*\\(|CHECK\\s*\\(\\s*document_type\\w*\\s+IN\\s*\\(", Pattern.CASE_INSENSITIVE);
+        try (Stream<Path> files = Files.walk(MIGRATIONS)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".sql")).toList()) {
+                String sql = Files.readString(file);
+                if (enumerated.matcher(sql).find()) {
+                    problems.add(file.getFileName() + " enumerates document types in a CHECK");
+                }
+                boolean pointsAtRegistry = sql.contains("REFERENCES platform_numbering.document_types");
+                if (pointsAtRegistry && !file.toString().contains("/platform_numbering/")) {
+                    problems.add(file.getFileName() + " has a foreign key across schemas to platform_numbering.document_types");
+                }
+            }
+        }
+        assertThat(problems).isEmpty();
+    }
+}
