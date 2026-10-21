@@ -35,8 +35,8 @@ def retarget(terms, old_id, new_id):
                 t[f] = new_id
 
 
-def apply(terms):
-    doc = yaml.safe_load(open(os.path.join(HERE, "rulings.yaml"), encoding="utf-8"))["rulings"]
+def apply(terms, late=False):
+    doc = [r for r in yaml.safe_load(open(os.path.join(HERE, "rulings.yaml"), encoding="utf-8"))["rulings"] if bool(r.get("late")) == late]
     byid = {t["id"]: t for t in terms}
     done = 0
     for r in doc:
