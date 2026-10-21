@@ -7076,7 +7076,7 @@ terms:
   snake: project_manager
   kind: role
   bc: platform.approval
-  definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）；「项目负责人」是同一角色的方言，不用
+  definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）；「项目负责人」是同一角色的方言，不用；与权责表对齐：revenue/raci.yaml 里暂停、恢复、终止、取消项目的批准人统一写项目.项目经理（VS02-05，intent 2026-10-16-163556）
   standard_ref:
   - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
   confidence: medium
@@ -12371,6 +12371,27 @@ terms:
   note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
   status: approved
   confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: management_layer
+  zh: 管理层
+  en: ManagementLayer
+  snake: management_layer
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 公司管理人员的泛称；指具体的人时写项目经理、项目总监、部门负责人等角色名，不用「经营层」
+  standard_ref:
+  - rules/decide/sheets/GL3.json
+  confidence: medium
+  aliases:
+  - name: 经营层
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  forbidden:
+  - 经营层
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3-11）
 - id: fund_account
   zh: 资金账户
   en: FundAccount

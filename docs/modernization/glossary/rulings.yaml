@@ -322,7 +322,7 @@ rulings:
     source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
   - op: redefine
     id: project_manager
-    definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）；「项目负责人」是同一角色的方言，不用
+    definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）；「项目负责人」是同一角色的方言，不用；与权责表对齐：revenue/raci.yaml 里暂停、恢复、终止、取消项目的批准人统一写项目.项目经理（VS02-05，intent 2026-10-16-163556）
     add_aliases:
     - name: 项目负责人
       type: dialect
@@ -339,3 +339,27 @@ rulings:
     id: standard_cost_rate
     definition: 用于签约后交付阶段的标准成本费率；由标准成本费率卡及其版本承载，与计费费率和实际成本费率分立。
     source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05）
+  - op: promote
+    id: management_layer
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3-11）
+    entry:
+      id: management_layer
+      zh: 管理层
+      en: ManagementLayer
+      snake: management_layer
+      kind: value_object
+      bc: organization.workforce
+      scope: domain
+      definition: 公司管理人员的泛称；指具体的人时写项目经理、项目总监、部门负责人等角色名，不用「经营层」
+      standard_ref:
+      - rules/decide/sheets/GL3.json
+      confidence: medium
+      aliases:
+      - name: 经营层
+        type: dialect
+        deprecated: true
+        source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+      forbidden:
+      - 经营层
+      note: ''
