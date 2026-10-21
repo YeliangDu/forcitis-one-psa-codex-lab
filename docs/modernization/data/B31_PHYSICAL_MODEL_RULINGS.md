@@ -103,3 +103,32 @@ one-architecture 裁定先行期不建 B-31 → `fixedasset` 的依赖边（ADR-
 7. **登记与守护**：数据访问注册表、分级、保留期、`aggregates.yaml`、`module-dependencies.txt`、模块边界测试随移交 PR 改；移交 PR 改两个 schema 的迁移，须带 ADR（one-architecture 起草），并过 `migrations_immutable` 的开放基线规则或走追加迁移。
 8. **核对与回滚**：窗口内核对行数与逐行摘要（借阅表、转换行）、INV-125 唯一索引存在、权限副本一致；任一失败，`SET SCHEMA` 反向执行即可恢复（数据未动，转换行复制可删，权限新码可删）；回滚点之前不删任何旧物。
 9. 移交 PR 的检查清单：本节 1–8 步逐项有对应迁移或配置变更、有集成测试（SET SCHEMA 后写入仍成立、INV-125 仍拒绝并发借出、复制的转换行可读）。
+
+## 12. 更正：先行期资产法人与卡片号来源（取代第 10 节第 2、3 点；2026-10-21，依 ADR-0077 与 one-architecture 对齐）
+
+1. **法人取财务卡片清单里卡片所属的法人**，不取领用人任职法人（资产属于哪个法人与领用人在哪家任职是两回事；也不再依赖人事法人归属表，W5 前后口径一致）。
+   - 根表 `it_asset_usage_records` 加 `legal_entity_id uuid NOT NULL`（卡片所属法人，取自财务清单；跨 schema 不建外键）；第 3 节「根登记无法人归属」作废。
+   - 请求表、期间表的 `legal_entity_id` 在事件发生时**复制根上的值**（事实快照，之后根上的值变化不改历史行）；`state_transitions.legal_entity_id` 取同一值。
+   - 根上的法人**不被增量导入改写**：财务清单对已有卡片给出不同法人时，该行不导入，进冲突报告交财务处置（卡片跨法人转让属 B-24/W5，不在先行期用导入偷换）。
+2. **卡片号只来自财务卡片清单**：取消行政单条「登记资产卡片号」命令，避免形成影子台账。根只有两个来源：迁入入口（按迁入的清单）与「导入资产卡片清单」增量导入命令（幂等：同卡片号同法人跳过；同卡片号不同法人进冲突报告；卡片号格式不符拒收）。命令只能由持有该权限的角色执行（权限码由 one-1a-admin 定），写审计，返回导入、跳过、冲突、拒收的计数与清单，不把冲突明细写进审计 `detail`。
+3. 领用申请的卡片号必须已有根，没有就失败；法人缺失（清单没给）的卡片行拒收。
+4. **W5 回填**：fixedasset 上线时，由其建造卡追加 `company_asset_id uuid`（可空）并按卡片号回填，回填完成再改必填；**回填完整性是 W5 的出口条件**；未匹配的卡片号列清单，交财务处置，不默认、不删除。此条写进 W5 建造卡的验收。
+5. 迁入规格（B-31 历史）里的卡片清单同源（财务清单）；卡片号重复、格式不符、无法人的拒收。
+
+## 13. 数据访问注册表字段 `transferred_aggregate_types`（ADR-0076 第 5 条；形状由我定）
+
+加在**原 schema** 的 `state_transitions` 注册表条目下，列表，每项一个已移交的聚合类型：
+
+```yaml
+platform_x.state_transitions:   # 实际写原 schema 的名字
+  transferred_aggregate_types:
+    - aggregate_type_code: ContractLoan   # 该 schema 的 state_transitions 里 aggregate_type_code 的取值
+      transferred_on: 2027-03-01          # 移交日（业务日，Asia/Shanghai）
+      to_schema: contract_agreement       # 接收 schema
+```
+
+语义与守护：
+1. 原 schema 里该类型的转换行**保留**（只追加表不删），但分析投影与按聚合类型的读取一律**排除**这些行，改读接收 schema 的副本（副本在移交日一次复制，核对行数与逐行摘要，见第 11 节）；
+2. 字段每项三个键齐全，`aggregate_type_code` 必须出现在原 schema 的 `ck_state_transitions_aggregate_type_code` 取值里（历史行还在）且**也**出现在接收 schema 同名 CHECK 里，`to_schema` 必须是已登记的 schema，`transferred_on` 不得晚于当天；这几点由 `DataArchitectureTest` 校验（随移交 PR 加）；
+3. 同一 `aggregate_type_code` 只能移交一次，不得出现在两个 schema 都标「现行」；
+4. 本字段只做登记与投影排除，不改表结构。
