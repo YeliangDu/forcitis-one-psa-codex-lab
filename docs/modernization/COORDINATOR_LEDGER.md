@@ -6,7 +6,7 @@
 更新：2026-10-21 11:45（one-coordinator）
 - 清空后第一步：通读 SESSION_PLAYBOOK §11、§5；读本节、作战图「开发主线」行，及 intent 2026-10-20-21xx 起各条；扫收件箱 pending 与近期 PR 评论（用户也会在 PR 评论里答复）。
 - **现行主线 = 开发**，里程碑「通用审批先行上线」（TRN-03）。已合入 main：#488（ADR-0060–0065）、#489（A 线 R）、#490（ADR-0066/0067）、#491（A 线切分方案）、#494（文档合集）。
-- **在途 PR**：#493 ADR-0068/0069（已采纳，用户批准页 Cqkk935bHV6wAqeQTk4V4E；one-data 第三轮只待 org_structure_commands 等 DDL 补齐后重审变更处；签发后 one-architecture 报入队）；#495 ADR-0070 ClamAV 补篇（提议，叠在 #493 上；已按 opus 复审改完 @0d69a4e9，调度已派 sonnet 改后复核 ARC-1021-COO-06——结果写 scratchpad 的 R2-ADR0070改后复核.md，/clear 后若无则重派；单文件上限 100 MB 须填入决定 6；复核过后做批准页，剩 3 题：加密文件、隔离内容与误报放行、FILDES）。
+- **在途 PR**：#493 ADR-0068/0069（已采纳，用户批准页 Cqkk935bHV6wAqeQTk4V4E；one-data 第三轮只待 org_structure_commands 等 DDL 补齐后重审变更处；签发后 one-architecture 报入队）；#495 ADR-0070 ClamAV 补篇（提议，叠在 #493 上；改后复核 N1–N10 已改入 @ba7c60b0；批准页 https://claude.ai/artifact/7hVc6NZeBJ3Z4Ehp7BSACy 已进收件箱 pending，5 题：E1 加密、E2 隔离与误报、E3 FILDES、A70 批准、S1 七处修订；用户答后转 one-architecture 填回并改「已采纳」、给被取代方加标注）。
 - **各会话**：one-1a-par A 线（F 删老待办交 Codex；其余等 #493 合入；PR-I 迁入适配器；H-1 前置已满足）。one-data（W2 第 4 版：登记即写版本、读生效日≤今天；数据量估算最优先，供 one-ops 定生产规格）。one-ops（ClamAV 运维卡 OPS-1021-OPS-02；生产 P2、演练 R1 先干跑、11-10 前按现规格续费——**下单前报调度转用户确认**；dev 日历续导；新 rc 等 F 合入后）。one-architecture（只做 W0 相关 + 人事命令设计 + ADR-0070）。one-glossary（NAM-1020-COO-01：122 项用语页 + 模块标识小页，先交调度审题再进收件箱；不得自定模块名）。**新会话** one-platform-file（IMP-1021-COO-02 文件服务，先出切分方案与契约草案，定名前代码不落地）、one-1a-next-5（IMP-1021-COO-01 单据类型与审计主体种类注册表改造，冻结前收口窗口内，先出切分方案）。
 - 待安全评审（无 one-security 会话，实施卡开工前安排）：RTF 嵌入对象是否纳入含宏检测；外部访问威胁模型等（见 R-ADR草案复审 §6）。
 - 用户近日口径（详 intent）：B31R/B31P、兜底按岗位、AI 外发闸 platform.ai、履约义务与合同条款分立、法务认可现行做法、恶意文件检测自建 ClamAV、生产 P2/演练 R1、单文件 100 MB、NAS 仅 A8 附件 2.04 TB、A8 入口已撤、D17 三列豁免六边界、工号与岗位编码全局唯一永不复用、离职生效日=最后工作日次日。
