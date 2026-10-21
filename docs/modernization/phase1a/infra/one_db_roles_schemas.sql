@@ -42,7 +42,7 @@ ALTER ROLE one_dev_migrator SET role = one_dev_owner;          -- 迁移建出�
 -- 角色名带 dev：PG 角色是实例级的。生产已定沿用本实例（用户 2026-10-14：「扩容现有实例共用」），另建库 forcitis_one_prod
 -- 与 one_prod_* 一套角色（本脚本把 dev 换成 prod 即可）；dev 凭据不能连生产库。连接数预算与按角色超时、work_mem 按 ADR-0025 第 2 条设置。
 -- 运行角色：应用常驻连接，只有 DML，不能建表、改表
-CREATE ROLE one_dev_app LOGIN NOINHERIT CONNECTION LIMIT 40;
+CREATE ROLE one_dev_app LOGIN NOINHERIT CONNECTION LIMIT 25;
 ALTER ROLE one_dev_app SET search_path = platform_approval, pg_catalog;   -- Flowable 以 platform_approval 为默认 schema
 ALTER ROLE one_dev_app SET statement_timeout = '30s';
 ALTER ROLE one_dev_app SET idle_in_transaction_session_timeout = '60s';
@@ -120,6 +120,9 @@ BEGIN
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
     END LOOP;
 END $$;
+
+-- 单据类型登记（ADR-0066 决定 4）：行只由迁移写（数据访问注册表 MIGRATION_ONLY），运行角色只读；表上的触发器另拒删除、清空与改写已登记的列。
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FROM one_dev_app;
 
 -- 审计月分区（ADR-0048）：两个函数是 SECURITY DEFINER、属主 one_dev_owner，基线已对 PUBLIC 撤销 EXECUTE。
 -- 运行角色只能预建分区（应用的预建作业调用），仍无 CREATE，也不能 DETACH / DROP；删除已归档分区只有维护角色能执行，应用代码不调用。

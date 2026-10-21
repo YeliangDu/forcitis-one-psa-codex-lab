@@ -54,7 +54,7 @@
 - **根因**：写步骤时只核对了「rc.5 比 rc.4 多哪些迁移」的字面（无新增文件），没有核对已有迁移文件是否改过；dev-db-rebuild 剧本的触发判断没有放进部署前步骤里
 - **拦下于**：作者自审（装前列迁移）
 - **漏过于**：OPS_CONTEXT 的步骤清单（没写这条判断）；`deploy_gate` 对 dev 只在门禁里告警，不在手工安装路径上
-- **新增检查项**：OPS_CONTEXT「坑」加一条：任何 dev 部署前先跑 `git diff --name-status <当前运行提交> <目标提交> -- backend/src/main/resources/db/migration`，有 M 即走 dev-db-rebuild.md 并先问用户
+- **新增检查项**：OPS_CONTEXT「坑」加一条：任何 dev 部署前先跑 `git diff --name-status <当前运行提交> <目标提交> -- backend/src/main/resources/db/migration`，有 M 即走 dev-db-rebuild.md 并先问用户；落在 `docs/modernization/phase1a/infra/OPS_CONTEXT.md`、`docs/modernization/phase1a/infra/runbooks/dev-db-rebuild.md`
 - **状态**：已落实（`docs/modernization/phase1a/infra/OPS_CONTEXT.md`「坑」；`runbooks/dev-db-rebuild.md`「何时触发」）
 
 ### OPS-006　推送了一个自带检查失败的提交
@@ -65,7 +65,7 @@
 - **根因**：用 `grep -E "FAIL|verify"` 过滤输出，FAIL 行出现了却被后面的命令串（提交、推送）接着执行；没有把检查脚本的退出码当作提交的前提
 - **拦下于**：作者自审（事后）
 - **漏过于**：推送钩子（precheck 不跑 `c3_dev_db_check.sh`，它需要容器）
-- **新增检查项**：改完 `runbooks/sql/` 下脚本，先单独跑 `c3_dev_db_check.sh` 看退出码为 0，再 add、commit、push；不把检查与提交连在同一条命令里。写入 OPS_CONTEXT「坑」
+- **新增检查项**：改完 `runbooks/sql/` 下脚本，先单独跑 `c3_dev_db_check.sh` 看退出码为 0，再 add、commit、push；不把检查与提交连在同一条命令里。写入 OPS_CONTEXT「坑」；落在 `docs/modernization/phase1a/infra/OPS_CONTEXT.md`、`docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db_check.sh`
 - **状态**：已落实（`docs/modernization/phase1a/infra/OPS_CONTEXT.md`「坑」）
 
 ### OPS-007　回滚脚本对「角色不存在」不幂等，重建时中途报错
@@ -87,7 +87,7 @@
 - **根因**：写 SQL 时没有先看列的取值域（只看了「新系统要什么」），剧本 3.1 的完整性校验只核总行数与每年天数，没核每类例外日各有多少
 - **拦下于**：作者在导入前转换时发现（对照 CSV 分布）
 - **漏过于**：剧本 3.1 校验（只核行数）；独立评审（C-6 剧本复审没要求列出取值域）
-- **新增检查项**：写取数或导出 SQL 条件前，先用只读取证查该列的取值域与分布，写进 SQL 注释和剧本；剧本校验补「每类各有计数、无意外取值」（C-6 剧本 3.1 已补：`holidays`、`make_up_workdays`、`unexpected_workday_values`）
+- **新增检查项**：写取数或导出 SQL 条件前，先用只读取证查该列的取值域与分布，写进 SQL 注释和剧本；剧本校验补「每类各有计数、无意外取值」（C-6 剧本 3.1 已补：`holidays`、`make_up_workdays`、`unexpected_workday_values`）；落在 `docs/modernization/phase1a/infra/runbooks/sql/c6_legacy_readonly_export.sql`、`docs/modernization/phase1a/infra/runbooks/C-6-legacy-export.md`
 - **状态**：已落实（`docs/modernization/phase1a/infra/runbooks/sql/c6_legacy_readonly_export.sql` 3.1；`docs/modernization/phase1a/infra/runbooks/C-6-legacy-export.md` 步骤 3）
 
 ### OPS-009　取证结果「无人名」只抽看前几个取值就下结论，条件表达式里的姓名漏过并入库
@@ -98,5 +98,5 @@
 - **根因**：防线按「属性是否有 2–3 字汉字取值」设计，条件表达式是长字符串，括号内的姓名不在防线里；我的人工复核只打印了每个属性的前 6 个取值，没有对全部出值做模式扫描，就写了「无人名」
 - **拦下于**：独立评审（one-data 复核第四批结果）
 - **漏过于**：SQL 防线（只防短取值）、作者复核（抽看）
-- **新增检查项**：出值类取证结果写入文件前，对全部出值跑模式扫描（`[ ]` 与引号内 2–3 字汉字、`== ` 之后的取值、含「姓名」「人」的字段引用以外的短汉字），命中的人工看过再写；SQL 侧对条件表达式类长字符串只出结构不出值；文件头只写「已扫描 X 项规则」，不写「无人名」；已对 r2、r3、r5 与 r4 按该规则复扫
+- **新增检查项**：出值类取证结果写入文件前，对全部出值跑模式扫描（`[ ]` 与引号内 2–3 字汉字、`== ` 之后的取值、含「姓名」「人」的字段引用以外的短汉字），命中的人工看过再写；SQL 侧对条件表达式类长字符串只出结构不出值；文件头只写「已扫描 X 项规则」，不写「无人名」；已对 r2、r3、r5 与 r4 按该规则复扫；落在 `docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/b31p_r4_result.md`（已复扫）、`docs/modernization/phase1a/infra/LEGACY_READ_REGISTER.md`
 - **状态**：已落实（`docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/` 各结果文件已复扫；规则在本条）
