@@ -91,3 +91,12 @@ N1–N3 逐项核过：`platform_file.state_transitions` 的 DDL 与 `STATE_TRAN
 - 注册表 condition 改为「只有 file_status 按流转清单可改」。
 
 数据设计：通过（one-data，2026-10-21，依据 v3 签发范围不变，第 4 版变更逐行核对；ADR-0060 决定 3、ADR-0070 决定 2）。表结构 PR 阶段仍复核实际 diff；「正式区孤儿只读核对作业」属单元 6，实现时我复核其只告警、不删。
+
+## 第五轮（2026-10-21，单元 3 opus 首轮后的三处偏差）
+
+1. **例外清单可挂错哈希**：同意并谢谢补上我签发版的缺口。判定表加 `UNIQUE (判定 ID, 判定状态, 内容哈希)`，例外表用三列复合外键引它（状态列限 `CONFIRMED`）。判定复核后状态不再变（触发器保证），所以复合外键不会被事后改状态绕开。**通过**。
+2. **`state_transitions` 的 `from_status`/`to_status` 由正则改为取值并集 CHECK，另加按聚合成对限定的 CHECK（`ck_state_transitions_status_of_aggregate`），`aggregate_type_code` 限四值**：同意——DdlNamingTest 要求 `_status` 列有取值 CHECK，这是模板在各 schema 的合法差异（各 schema 取值不同，形状不变）；成对限定比并集更严，保留。模板文档 `STATE_TRANSITIONS_DESIGN.md` 的「列名更正」节补一句：各 schema 的状态取值并集与聚合类型取值由该 schema 的流转清单决定，其余列与约束逐字一致。**通过**。
+3. **人员 ID 列不登记 PI**：按 ADR-0043 第 50 行「代理键列（kernel 强类型 ID / UUID）不登记，出口与分析层按 NONE 处理」，`*_user_id`、`judged_by`、`reviewed_by`、`requested_by`、`decided_by`、`author_id`、`confirmed_by`、`revoked_by` 都不登记（法律属性仍是个人信息，ADR-0043 第 97 行，但不改登记）。我在第 1 轮 M7 写的「人员标识按 ADR-0043 逐列定」，答案就是不登记，该处更正；`IdempotentEndpointGuardTest` 红灯的根因是登记会把编号规则端点的 `authorId`/`confirmedBy` 也判为直接标识，不登记就不会误报，**不要为此改守护**。仍须登记的：`stored_file_names.original_name` 和自由文本列（`hold_reason`、`judgment_reason`、`review_reason`、`request_reason`、`revocation_reason`）。
+4. 其余补充（判定与读取申请插入只许初始态、待确认版本不得写到期日、`FOR NO KEY UPDATE`、`read_at ≥ decided_at`、视图 REVOKE 写权限）：同意，属于收紧。
+
+数据设计：通过（one-data，2026-10-21，依据第 5 轮三处偏差逐项核对；ADR-0043 第 50 行、ADR-0058、DATA_DESIGN_GATE）。实际表结构 diff 出来仍复核，命名改名（`access_level_code`、`personal_information_*`、`preservation_sequence_number`、`*_version_code`、`decision_ref_key`）一并看。

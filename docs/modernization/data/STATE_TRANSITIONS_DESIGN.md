@@ -170,3 +170,5 @@ c3 / c9 两份运行时脚本同步。`DataArchitectureTest` 核对：注册表�
 ## 列名更正（2026-10-21，DdlNamingTest 首次建表时拦下）
 
 模板列名按命名守护改为：`from_state`→`from_status`、`to_state`→`to_status`、`sequence_no`→`sequence_number`、`occurred_on`→`occurred_on_date`、`aggregate_type`→`aggregate_type_code`（`_code` 列有格式 CHECK，G-DDL7）。理由：不放宽守护、不给模板表开豁免（CLAUDE.md 第 5 条）；`platform_file` 是第一个建表的 schema，现在改代价最小。约束名随列名（`ck_state_transitions_from_status` 等），其余形状不变。ADR-0058 正文中的旧列名由 one-architecture 在其修订中同步。
+
+各 schema 的 `from_status`/`to_status` 带取值并集 CHECK（DdlNamingTest 要求 `_status` 列有取值 CHECK），`aggregate_type_code` 限定该 schema 的聚合类型，并可加按聚合成对限定状态的 CHECK；这三处取值由该 schema 的流转清单决定，其余列与约束逐字沿用模板（2026-10-21，platform_file 首次建表时定）。
