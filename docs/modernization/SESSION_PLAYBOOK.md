@@ -154,7 +154,7 @@
 - **任务命名与登记**（用户 2026-10-17「后台任务要显示任务名……要对所有任务卡进行复盘能搞清是什么bc的什么任务」，intent 见本日「任务命名」）：
   - 每张卡（派给 Codex、子代理或工作会话的一件事，含设计、文档、取证、复审）一个**任务号** `<主线码>-<MMDD>-<会话码>-<两位序号>`，如 `NAM-1017-GLO-03`；序号由派卡会话当天自增，全局不重。主线码：NAM 命名、CON 施工图、ARC 架构整合、RUL 规则、DAT 数据、IMP 代码实现、CI 合并与 CI、OPS 运维、GOV 流程治理。会话码取会话名去掉 `one-` 的前三个字母大写（one-glossary→GLO、one-arch-finance→AFI、one-arch-revenue→ARE、one-arch-people→APE、one-architecture→ARC、one-1a-par→PAR、one-1a-next-5→NX5、one-quality→QUA、one-rules→RUL、one-data→DAT、one-ops→OPS、one-merge→MRG、one-coordinator→COO）。
   - **任务名**：`[主线·bc] 动作 + 对象`，bc 取 `glossary/bcs.yaml` 的 id，跨 bc 写 `跨域`，如 `[命名·glossary] 登记 NM5 名词`。
-  - **后台任务显示**：`run_in_background` 的 description 写 `<任务号> <任务名> (<执行者>)`，侧边栏和状态栏据此显示。
+  - **后台任务显示**：`run_in_background` 的 description 写 `<任务号> <任务名> (<执行者>)`，侧边栏和状态栏据此显示。适用于所有后台任务（后台 Bash 与后台子代理），不限派工卡：复审、抽查、采样等非卡任务用所服务的 PR 号或上级任务号代替任务号，如 `#528 sonnet 复审 (sonnet)`、`ARC-1021-ARC-07 对象转换抽查 (sonnet)`；起后台任务时由钩子核对格式（用户 2026-10-21「采纳」）。
   - **登记**：派卡时在 `docs/modernization/tasks/<任务号>.md` 写一个片段（frontmatter：任务号、任务名、主线、bc、种类〔设计/编码/测试/取证/复审/确认页/文档〕、会话、执行者与模型、状态、分支、提交、返工轮次、用时、旧编号；可选「来源: 回填」标记事后补登的卡）；四个键「提交、返工轮次、用时、旧编号」必须出现，值未知写「待核」或留空；完成点更新状态与提交。总表由 `build_all.py` 生成，供复盘与日报统计。原有卡号（F-1、SINGLE-OP、NITS-1、N9、C1、B31 等）写进「旧编号」，不改名。
   - PR 标题、提交说明、完成点报告都带任务号。
 - **上下文节约**（用户 2026-10-21「改，提高质量又提高上下文使用率，这种优化措施要点赞」，intent @7a9609f0；依据：调度对 one-ops 当前会话记录的统计，Bash 输入约占 32%（主要是用脚本整篇写文件）、工具结果约占 38%（主要是 Bash 输出与浏览器截图）、会话间消息合计约 6%；GOV-1021-QUA-02）：
