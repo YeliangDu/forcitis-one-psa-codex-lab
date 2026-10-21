@@ -12,7 +12,7 @@ final class NumberingRuleViews {
     }
 
     static NumberingRuleView of(NumberingRule rule) {
-        return new NumberingRuleView(rule.documentType(), rule.documentType().code(), rule.version(),
+        return new NumberingRuleView(rule.documentType(), rule.type().numberCode(), rule.version(),
                 rule.confirmation(),
                 rule.requiresFinanceConfirmation(), template(rule.current()), rule.pending().map(NumberingRuleViews::template));
     }
