@@ -232,12 +232,12 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 
 ### 现状（取代上两节的队列顺序）
 - **#628**（QUA-07 自清推全员，分支 `claude/one-quality-clear-scope`）：opus 必改两项已改（端到端自测、调度名与 session_id 硬性排除），sonnet 复核通过并贴 PR，head 84c4ed3de，已报 one-coordinator 请批入队。后续观察：`node_of` 判「向 one-coordinator 报告」只认配置里的 ids/names，不认 COORDINATOR 常量（未改）。
-- **#627**（QUA-06 开工单，分支 `claude/one-quality-start-sheet`）：首轮 opus「不通过」→ 已按 one-coordinator 裁定改（画像加「交接源: <路径>#<标题片段>」行、build_sessions 校验、开工单/节点指令/挡停读交接源、快照传入、空断言、接线自测、one-merge.md 与挡停文案去「当前状态」；PLAYBOOK §2.1 第16条不动，规则手册落地时整体替换）→ opus 终审「改后通过」两处小必改（B 段失败明说、C 段认「在途」「不要做」）已改，head 636e1856c，precheck 32 PASS。**sonnet 复核已派，结论在 `~/.modernize/psa/coordinator/reviews/pr627-sonnet-2.md`（读它，通过后贴 PR 并报 one-coordinator 批入队）。** opus 两轮全文：同目录 pr627-opus-1.md、pr627-opus-2.md（均已贴 PR）。
+- **#627**（QUA-06 开工单，分支 `claude/one-quality-start-sheet`）：首轮 opus「不通过」→ 已按 one-coordinator 裁定改（画像加「交接源: <路径>#<标题片段>」行、build_sessions 校验、开工单/节点指令/挡停读交接源、快照传入、空断言、接线自测、one-merge.md 与挡停文案去「当前状态」；PLAYBOOK §2.1 第16条不动，规则手册落地时整体替换）→ opus 终审「改后通过」两处小必改（B 段失败明说、C 段认「在途」「不要做」）已改，head 636e1856c，precheck 32 PASS。**sonnet 复核通过（改坏均失败，无阻塞），已贴 PR 并报 one-coordinator 请批入队。** opus 两轮全文：同目录 pr627-opus-1.md、pr627-opus-2.md（均已贴 PR）。
 - **#589**（QUA-02 生成产物移出 main 第 2 期，分支 `claude/one-quality-gen-out-2`）：已合 main 解冲突（panorama.yaml、GAPS.md 保持不入仓），新 head 3ccbeacb0，CI 跑中，已报 one-coordinator；CI 绿后按新 head 再报它批。该分支有单独工作区 `.claude/worktrees/xin-589`。
 - 本节所在分支 `claude/one-quality-handoff-1022`（工作区 `.claude/worktrees/xin-handoff`）的交接节仍未进 main，另提 docs 提交报 one-merge。
 
 ### 下一步（顺序，one-coordinator 2026-10-22 夜定）
-1. 读 pr627-sonnet-2.md，贴 PR、报批 #627；盯 #589 CI。
+1. 盯 #627 入队与 #589 CI（绿后按新 head 报 one-coordinator）。
 2. 预检提速两项（intent 2026-10-22-213020）：`pre_tool_dispatch` 在 `gh pr create` 时若当前 head 刚在推送前跑过检查并通过则不重跑（按 head sha 记通过标记）；`precheck --pre-push` 只跑与改动相关项。
 3. 新规则手册落地：等 #627、#628 合入后 one-coordinator 发包。
 4. 新卡（片段在 `claude/one-coordinator-two-lanes` @4873b81d7，都是钩子，自己写，每张单列 PR，opus 首轮），顺序 24→25→17→26：GOV-1022-QUA-24 拦截连生产的写操作（生产特征表向 one-ops 要）；QUA-25 拦截须用户决定的命令（起容器、建账号、云 create、对外调用，带收件箱已定事项 id 才放行）；QUA-17 finish.py（卡交出时自动报调度，用户消息像决定时提醒记 intent）；QUA-26 Codex 和 pi 必须后台启动。
