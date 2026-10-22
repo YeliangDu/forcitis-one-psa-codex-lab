@@ -39,7 +39,7 @@ $$;
 - 两处触发器 / 函数改用它；`MEMBER` 统一（不用 `USAGE`）。运行角色 `one_<环境>_app` 与只读角色都不是属主或迁入角色的成员，仍被拒。
 - 种子（`SEEDED`）仍只有属主身份（Flyway）能写：函数对 `SEEDED` 另判「只属主」，迁入角色不放行。
 - 其余有迁入渠道的表（`role_versions`、`account_role_grants` 的 `MIGRATION` 渠道、W2 员工版本表）本批不加触发器：它们的迁入行在 ADR-0036 下由迁入用例经领域校验写入，库层拦截留给迁入规格评审（§14.2 M1/M3）时按「该表有无作者空例外」再定；列在 `MIGRATION_QUALITY_CHECKS.md` 的待办。
-- 函数名固定 `is_migration_writer`，加进 `FUNCTION_SEARCH_PATH_PINNING.md` 附录 A 的 27+2 个函数清单（须 `SET search_path = pg_catalog, pg_temp`）。
+- 函数名固定 `is_migration_writer`，加进 `FUNCTION_SEARCH_PATH_PINNING.md` 附录 A 的函数清单（须 `SET search_path = pg_catalog, pg_temp`）。
 
 ## 4. 验收（给实现会话）
 
