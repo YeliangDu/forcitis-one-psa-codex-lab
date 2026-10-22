@@ -2,3 +2,13 @@
 # 已答页是历史记录，check_pages 不再检查其题面（用户 2026-10-22 经 one-coordinator）；有 rules/decide/answers/<页>.json 导出的页和题自动算已答，不必登记于此。
 # 只追加。登记须有收件箱 decided 或用户答复的出处。
 GL3  # one-coordinator 2026-10-22 消息：GL3 已答完（收件箱 decided）
+STEP3  # 收件箱 2026-10-16-one-architecture-step3 decided（one-coordinator 2026-10-22 核对）
+LOCK  # 收件箱 2026-10-16-one-architecture-lock decided（同上）
+STEP12  # 收件箱 2026-10-16-one-architecture-step12 decided（同上）
+RETRO  # 收件箱 2026-10-16-one-architecture-retro decided（同上）
+ADR5051  # 收件箱 2026-10-16-one-architecture-adr5051 decided（同上）
+FIT  # 收件箱 2026-10-16-one-architecture-fit decided（同上）
+ADR49  # 收件箱 2026-10-16-one-architecture-adr49 decided（同上）
+COMPLETE  # 收件箱 2026-10-16-one-architecture-completeness decided「对象完整性检查与方法第 4 稿（19 题）」，页内 19 题（one-rules 按标题与题数核对 inbox-decided-2026-10-22.tsv）
+ADRB  # 收件箱 2026-10-16-one-architecture-adr-blockers decided「ADR-0050/0051 阻断项（2 题）」，页内 2 题（同上）
+FOLLOW  # 收件箱 2026-10-16-one-architecture-knowledge-presign decided「知识文档算不算对象；合同回签前开票…（2 题）」，页内 2 题（同上）
