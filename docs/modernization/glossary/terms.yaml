@@ -12425,6 +12425,54 @@ terms:
   note: 用户裁定转正式：用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
   status: approved
   confirmed: 2026-10-21（用户，内部基线重定）
+- id: agreement_status__signed
+  zh: 协议已签署
+  en: AgreementSigned
+  snake: agreement_signed
+  kind: state
+  bc: contract.agreement
+  scope: domain
+  definition: 状态显示名「已签署」；协议已签署但尚未满足约定的生效条件；无附条件的协议签署与生效同事务完成，只落已生效
+  standard_ref:
+  - rules/decide/sheets/GL5.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+  status: approved
+  confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+- id: agreement_status__effective
+  zh: 协议已生效
+  en: AgreementEffective
+  snake: agreement_effective
+  kind: state
+  bc: contract.agreement
+  scope: domain
+  definition: 状态显示名「已生效」；协议已生效；只能由业务操作触发，附条件的协议经「确认生效条件满足」命令转入，不能手工改状态；转入时记生效依据：条件类型、证据单据号（如预付款保函编号）、生效日
+  standard_ref:
+  - rules/decide/sheets/GL5.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+  status: approved
+  confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+- id: asset_card
+  zh: 资产卡片
+  en: AssetCard
+  snake: asset_card
+  kind: entity
+  bc: accounting.fixedasset
+  scope: domain
+  definition: 财务为达到固定资产标准的公司资产建的账务档案；卡片、折旧、报废与盘点账务归固定资产模块，行政事务只引用卡片号；不等同于公司资产本身
+  standard_ref:
+  - rules/decide/sheets/GL5.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+  status: approved
+  confirmed: 2026-10-22（用户，用语确认第六批 GL5）
 - id: fund_account
   zh: 资金账户
   en: FundAccount
@@ -12466,7 +12514,7 @@ terms:
   kind: aggregate
   bc: accounting.fixedasset
   scope: domain
-  definition: 本公司拥有或控制并登记管理使用、折旧、摊销及处置情况的资产；公司资产不等同于固定资产会计确认类别。
+  definition: 本公司拥有或控制并登记管理使用、折旧、摊销及处置情况的资产；公司资产是资产本身，不等同于固定资产类别，也不等同于固定资产卡片。
   standard_ref:
   - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-91
   - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=company_asset]
@@ -12475,7 +12523,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）；用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）（用户备注）（用户裁定，rulings.yaml）
 - id: journal_entry
   zh: 会计分录
   en: JournalEntry
