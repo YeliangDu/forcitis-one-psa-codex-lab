@@ -9,7 +9,7 @@
 - **编号对照**：全景（`panorama_build.py`，ADR-0059 v5 的 15 节点）是 11 业务事实、12 维度、13 指标与评价、14 计算绑定，检查编号用 N11-*、N12-*、N13-*、N14-*，不得占用现有编号（N11-1、N13-1～3 已在用）。`ssot/` 目录沿用提案编号：`ssot/12-facts`、`ssot/13-dimensions`、`ssot/14-bindings`、`ssot/15-kpis`（与已建的 `ssot/10-objects`、`ssot/11-commands` 一致）。
 - **W1 对齐**（ADR-0054 决定 1）：W1「主数据与业财主干」含 B-19 `accounting.period`、B-16 `operations.facts`、B-20 `accounting.ledger` 与迁入编排（`proposals/construction-plan.v1.yaml`）。`operations.facts` 是单一过账管道，只追加、更正靠冲销，业务 BC 不认识会计科目（ADR-0016，ADR-0031、0045 补充）。本批每条事实标 `wave`（按产生它的 BC 在 construction-plan 里的批次），W1 的事实优先登记、优先连通。
 - **用语**（one-glossary 已结 NAM-1021-GLO-07）：「经营事实」只指 `operations.facts` 中业务认定的事实；BI 的 OLAP 度量在架构文档里叫「分析事实」，不进代码词表。「经营事实」已不是业务对象（`objects.yaml` OBJ-75 已去掉），事实只能由命令或事件产生（`produced_by`→CMD/EVT），不挂对象。
-- **BI 迁入口径**（ADR-0054 决定 3 第 7 条）：撤 BI 镜像，投产日 BI 读 `reporting`，R0–R6 到 W5 完成；指标定义在 `operations.policy`（ADR-0023 决定 2–4）；财务事实直读过账明细（ADR-0025 决定 3）。`r0/BI_SCOPE.md` §4 的过渡镜像做法已被取代，卡里不得引用。
+- **BI 迁入口径**（ADR-0054 决定 3 第 7 条）：撤 BI 镜像，投产日 BI 读 `reporting`，R0–R6 到 W5 完成；指标定义在 `operations.policy`（ADR-0023 决定 2–4）；财务事实直读过账明细（ADR-0025 决定 3）。`BI_SCOPE.md` §4 的过渡镜像做法已被取代，卡里不得引用。
 - **新前缀先过用语**（U9）：`FACT-`、`DIM-`、`BIND-`、`KPI-`（`M-` 沿用 `r0/METRIC_BASELINE_DRAFT.md`，`RM-` 读模型留第四批），开工前由本会话登记交 one-glossary（架构登记编号、非代码）。**同名异义先开题**：分析「维度」与数据访问注册表 role `DIMENSION_VERSIONED`（版本化主数据）——one-glossary 尚无结论，卡 13 开工前须有。
 - **人工层与用户口径**：指标口径归业务（用户是 BI 负责人）；凡合并三套指标时需要裁定的，一律列「待用户定」攒确认页，本会话不自行裁定口径。
 - 只登记、不改设计文件（SSOT 暂停令）；生成与手写分文件；每卡报条目数、自动生成数、自动化率、缺口数（U2）。基线：`claude/one-architecture-network-batch2` 合入 main 之后的 main。
@@ -18,7 +18,7 @@
 
 - **类别**：功能补做（抽取＋对照）。**执行者**：Codex（抽取，gpt-6.1-sol，medium）＋ one-architecture（经营事实 / 分析事实判定与 `produced_by`，sonnet 提议、本会话定稿）。
 - **做什么**：
-  1. Codex 写 `ssot/12-facts/extract_facts.py`，原样抽三处候选到 `facts.raw.yaml`：`objects.yaml` 的「产生的事实」列（约 81 条真正声明；「—（注释）」单列为未声明）；事件目录 59 条 EVT（标记是否带过账含义，以 `x-event` 实际字段为准，不猜）；`r0/BI_SCOPE.md` §3.2 总线矩阵的 16 行事实。
+  1. Codex 写 `ssot/12-facts/extract_facts.py`，原样抽三处候选到 `facts.raw.yaml`：`objects.yaml` 的「产生的事实」列（约 81 条真正声明；「—（注释）」单列为未声明）；事件目录 59 条 EVT（标记是否带过账含义，以 `x-event` 实际字段为准，不猜）；`BI_SCOPE.md` §3.2 总线矩阵的 16 行事实。
   2. one-architecture 写 `facts.yaml`：`id`（FACT-）、`name`、`kind`（经营事实 / 分析事实）、`produced_by`（CMD / EVT，可多）、`business_time` 与 `record_time` 的取法、`owner_bc`、`wave`、`sources`（三处原文引用）。对不上的列 `pending`。
   3. `panorama_build.py`：节点 11 读 `facts.yaml`；N11-1 改为「— （注释）」也计未声明（报告档，先报差异数再改）；新增 N11-2「每条经营事实有产生它的命令或事件」、N11-3「每条分析事实能追到经营事实」。
 - **验收**：三处候选条数核对；sonnet 抽 15 条判定；W1 的事实单列清单。

@@ -139,3 +139,18 @@
 ## 更正九（2026-10-21，对齐 SEC-1021-COO-01，见 IMP-1021-NX5-03 复核）
 
 作者为空会绕过「确认人不得是作者」。更正二、三里「运维起草单人路径作者可空」撤销：`source_kind` 取值改为 `AUTHORED`（界面起草与运维起草都算，作者必填，确认人不得是作者）与 `MIGRATION`（作者与确认人为空，只由属主身份或约定的迁入角色写入，插入触发器拦运行账号）；`OPERATIONS_DRAFT` 取值取消。其余不变。
+
+## 更正十（2026-10-21，复核表结构 PR #547 @ad1c1f369 的实际 diff 后的裁定）
+
+**对 PR 正文列出的 9 处与签发稿不同的点**：1 三表加 `updated_at`（命名守护强制，不带默认值）、2 `company_leave_register_key`（`_ref` 改 `_key`）、3 `basis_note` 取并集规则、4 不追溯在确认时检查、5 确认时一并写依据列、6 迁入版本写入身份取属主角色成员、7 关闭上一版本只在触发器内、8 同年至多一个待确认且版本号逐个加 1、9 注册表 `optional`+到期日：**全部认可**（5 的列写入范围合理，确认前起草者可留空的依据列由确认者补；6 与编号版本表同款，迁入专用角色的写入通道仍是开放项）。
+
+**三项裁定（均须在本 PR 落实，落实后我只看这三处 diff 即签）**：
+
+1. **待确认版本的撤回出路——加 `WITHDRAWN` 状态**。`confirmation_status` 取值 `PENDING_CONFIRMATION`、`CONFIRMED`、`WITHDRAWN`；`PENDING_CONFIRMATION → WITHDRAWN` 是第二条唯一允许的流转，`WITHDRAWN` 为终态；加列 `withdrawn_by uuid`、`withdrawn_at timestamptz`、`withdraw_reason_text`（非空、≤500 字、前后无空白），具名 CHECK：状态为 `WITHDRAWN` 当且仅当三列非空，且此时确认三列与依据列可以为空；不占 `uk_work_calendar_versions_pending`（索引条件本就是待确认）；版本号已用掉不回收，下一版本仍是最大号加 1。日期行插入守护已限定只能加进待确认版本，撤回后自然不能再加。迁入版本（`MIGRATION`）只有属主角色可撤回。连带改：确认时「上一版本须已确认」改为取**同日历同年中版本号最大的已确认版本**作为被关闭的上一版（且必须仍是开放的）；关闭上一版本的触发器里找后继版本的条件，由「版本号 = 本版 + 1」改为「同日历同年的待确认版本且起算日 = 截止日」。
+2. **倒填绕过不追溯——用事务时间做完整性判定**。「生效日不早于确认日」与「确认日期之前的例外日集合须与上一版一致」两项检查，确认日取 `(transaction_timestamp() AT TIME ZONE 'Asia/Shanghai')::date`，不取应用写入的 `confirmed_at`；`confirmed_at` 仍由应用注入、仍是记录的确认时刻（与注入时钟的约定不冲突），只是不再参与这两项完整性判定。不另加 `confirmed_at` 与事务时间的偏差上限（会与测试固定时钟冲突）。测试里的「确认日」相关用例用库里的 `current_date` 构造日期，不用固定时钟。
+3. **首版生效日不得晚于该年 1 月 1 日**：具名 CHECK `ck_work_calendar_versions_first_version_covers_year`：`version_number <> 1 OR effective_from_date <= make_date(year_number, 1, 1)`；否则首版之前的日子没有版本可取，留下无法补的年初空洞。
+
+**其余复审项**：
+- TEMP 权限：在 c3/c9 核验脚本加 `has_database_privilege(应用账号, 'TEMP') = false`，并把三张新表加进 `one_db_roles_schemas.sql` 撤销 `UPDATE, DELETE, TRUNCATE` 的清单（one-ops 的文件，可同 PR 或 one-ops 另 PR，**首次部署前**必须落地，不阻断本 PR 合并）。
+- REPEATABLE READ 下确认与加日期之间可能漏检：应用只用 READ COMMITTED，记录在迁移注释里即可。
+- `DataArchitectureTest` 的 TRUNCATE/CASCADE 改动与 #521 同类，由 one-coordinator 的 opus 复审统一看（两个 PR 的该处改动须一致）。

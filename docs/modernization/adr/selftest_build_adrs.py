@@ -166,6 +166,8 @@ def run(b):
     assert any("超过" in w for w in b.warnings([adr(mk(status="提议", secs=big))], ctx))
     bad("须拆分", mk(status="已采纳", extra=quote, secs=big))
     ok(mk(status="已采纳", extra=quote, secs={**SECS, "背景": "字" * 6000}))
+    near = {**SECS, "背景": "字" * 6700}
+    assert adr(mk(status="已采纳", extra={**quote, "被部分取代": ["ADR-0101 决定 1"] * 9}, secs=near))["size"] == adr(mk(status="已采纳", extra=quote, secs=near))["size"]
     bad("改用正式档", mk(tier="轻量", status="已采纳", extra=quote, secs={**light, "决定": "字" * 2100}))
     ok(mk(tier="轻量", status="已采纳", extra=quote, secs={**light, "决定": "字" * 1700}))
     # R-9 编号连续：ADR-0029 存在后才失败
