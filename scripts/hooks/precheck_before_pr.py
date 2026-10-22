@@ -8,13 +8,16 @@ precheck 本身失败（FAIL 或前端依赖缺失需先问用户）时，把它
 """
 import json, os, re, subprocess, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from command_words import plain  # noqa: E402
+
 PR_CREATE = re.compile(r"(?:^|[;&|(\s\"'`/])gh\s+pr\s+(?:create|new)(?![\w-])")
 TIMEOUT_SECONDS = 1500
 
 
 # 只看命令字面：写在 echo / commit 信息里的 gh pr create 也会拦（宁可多拦一次，不漏拦）
 def is_pr_create(command):
-    return bool(PR_CREATE.search(command or ""))
+    return bool(PR_CREATE.search(plain(command)))
 
 
 def verdict(output, returncode, action="提 PR", retry="gh pr create"):
