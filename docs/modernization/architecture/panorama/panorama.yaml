@@ -65,14 +65,14 @@ meta:
     rule: 512
     ep: 601
     tc: 1132
-    api: 68
+    api: 70
     mod: 14
     cmd: 624
     otr: 881
     evt: 59
     shcat: 6
     steps: 672
-    perm: 27
+    perm: 29
     srole: 7
     role: 56
   checks:
@@ -163,10 +163,10 @@ meta:
       via:
         publisher: 59
     API→BC:
-      covered: 58
-      total: 58
+      covered: 60
+      total: 60
       via:
-        controller: 58
+        controller: 60
   external_reads:
     databases: 2
     columns: 37
@@ -35595,6 +35595,28 @@ nodes:
       src: frontend/packages/api/openapi.json#/paths//api/v1/platform/authorization-requests/{requestId}:reject/post
       controllers:
       - backend/src/main/java/com/forcitis/one/platform/identity/web/AuthorizationRequestController.java:51
+    POST /api/v1/platform/files:
+      path: /api/v1/platform/files
+      method: POST
+      subdomain: platform
+      bc: platform.file
+      module: platform.file
+      operation_id: upload
+      gap: null
+      src: frontend/packages/api/openapi.json#/paths//api/v1/platform/files/post
+      controllers:
+      - backend/src/main/java/com/forcitis/one/platform/file/web/PlatformFileController.java:53
+    GET /api/v1/platform/files/{fileId}:
+      path: /api/v1/platform/files/{fileId}
+      method: GET
+      subdomain: platform
+      bc: platform.file
+      module: platform.file
+      operation_id: status
+      gap: null
+      src: frontend/packages/api/openapi.json#/paths//api/v1/platform/files/{fileId}/get
+      controllers:
+      - backend/src/main/java/com/forcitis/one/platform/file/web/PlatformFileController.java:73
     GET /api/v1/platform/legacy-numbers:
       path: /api/v1/platform/legacy-numbers
       method: GET
@@ -71344,102 +71366,118 @@ nodes:
       action: approve
       source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:19
       src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:19
+    platform.file:file:create:
+      name: PLATFORM_FILE_FILE_CREATE
+      code: platform.file:file:create
+      module: platform.file
+      resource: file
+      action: create
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
+    platform.file:file:read:
+      name: PLATFORM_FILE_FILE_READ
+      code: platform.file:file:read
+      module: platform.file
+      resource: file
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
     platform.audit:audit-entry:read:
       name: PLATFORM_AUDIT_ENTRY_READ
       code: platform.audit:audit-entry:read
       module: platform.audit
       resource: audit-entry
       action: read
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
     platform.audit:audit-entry:export:
       name: PLATFORM_AUDIT_ENTRY_EXPORT
       code: platform.audit:audit-entry:export
       module: platform.audit
       resource: audit-entry
       action: export
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
     platform.audit:own-login-record:read:
       name: PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ
       code: platform.audit:own-login-record:read
       module: platform.audit
       resource: own-login-record
       action: read
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
     organization.workforce:org-unit:read:
       name: ORGANIZATION_WORKFORCE_ORG_UNIT_READ
       code: organization.workforce:org-unit:read
       module: organization.workforce
       resource: org-unit
       action: read
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
     organization.workforce:sync-run:read:
       name: ORGANIZATION_WORKFORCE_SYNC_RUN_READ
       code: organization.workforce:sync-run:read
       module: organization.workforce
       resource: sync-run
       action: read
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
     organization.workforce:sync-run:execute:
       name: ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE
       code: organization.workforce:sync-run:execute
       module: organization.workforce
       resource: sync-run
       action: execute
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
     organization.workforce:separation-hold:approve:
       name: ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE
       code: organization.workforce:separation-hold:approve
       module: organization.workforce
       resource: separation-hold
       action: approve
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
     organization.workforce:legal-entity:update:
       name: ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE
       code: organization.workforce:legal-entity:update
       module: organization.workforce
       resource: legal-entity
       action: update
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
     organization.workforce:legal-entity-attribution-correction:create:
       name: ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE
       code: organization.workforce:legal-entity-attribution-correction:create
       module: organization.workforce
       resource: legal-entity-attribution-correction
       action: create
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
     organization.attendance:work-calendar:read:
       name: ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ
       code: organization.attendance:work-calendar:read
       module: organization.attendance
       resource: work-calendar
       action: read
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
     organization.attendance:work-calendar:update:
       name: ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE
       code: organization.attendance:work-calendar:update
       module: organization.attendance
       resource: work-calendar
       action: update
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:32
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:32
     organization.attendance:locked-day:update:
       name: ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE
       code: organization.attendance:locked-day:update
       module: organization.attendance
       resource: locked-day
       action: update
-      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
-      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:33
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:33
   srole:
     super_admin:
       code: super_admin
@@ -71464,6 +71502,8 @@ nodes:
       - platform.approval:task:approve
       - platform.approval:task:read
       - platform.audit:own-login-record:read
+      - platform.file:file:create
+      - platform.file:file:read
       source: migration
       source_location: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:526
       permission_sources:
@@ -71472,6 +71512,10 @@ nodes:
         platform.approval:task:approve:
         - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:528
         platform.audit:own-login-record:read:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        platform.file:file:create:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        platform.file:file:read:
         - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
       src: migration
     process_administrator:
@@ -71529,7 +71573,7 @@ nodes:
         platform.integration:source-reference:update:
         - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
         organization.workforce:legal-entity-attribution-correction:create:
-        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:581
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:583
       src: migration
     business_admin:
       code: business_admin
@@ -71571,7 +71615,7 @@ nodes:
         platform.audit:audit-entry:export:
         - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
         organization.workforce:separation-hold:approve:
-        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:575
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:577
       src: migration
     administrator-mode:
       code: administrator-mode
@@ -82581,6 +82625,22 @@ links:
   - backend/src/main/java/com/forcitis/one/platform/identity/web/AuthorizationRequestController.java:51
   bc_src: architecture/ddd/contexts.yaml#contexts/platform.identity
 - kind: api-bc
+  from: POST /api/v1/platform/files
+  to: platform.file
+  src: frontend/packages/api/openapi.json#/paths//api/v1/platform/files/post
+  via: controller
+  controller_src:
+  - backend/src/main/java/com/forcitis/one/platform/file/web/PlatformFileController.java:53
+  bc_src: architecture/ddd/contexts.yaml#contexts/platform.file
+- kind: api-bc
+  from: GET /api/v1/platform/files/{fileId}
+  to: platform.file
+  src: frontend/packages/api/openapi.json#/paths//api/v1/platform/files/{fileId}/get
+  via: controller
+  controller_src:
+  - backend/src/main/java/com/forcitis/one/platform/file/web/PlatformFileController.java:73
+  bc_src: architecture/ddd/contexts.yaml#contexts/platform.file
+- kind: api-bc
   from: GET /api/v1/platform/legacy-numbers
   to: platform.numbering
   src: frontend/packages/api/openapi.json#/paths//api/v1/platform/legacy-numbers/get
@@ -82912,64 +82972,74 @@ links:
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:19
   via: code
 - kind: perm-mod
-  from: platform.audit:audit-entry:read
-  to: platform.audit
+  from: platform.file:file:create
+  to: platform.file
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
   via: code
 - kind: perm-mod
-  from: platform.audit:audit-entry:export
-  to: platform.audit
+  from: platform.file:file:read
+  to: platform.file
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
   via: code
 - kind: perm-mod
-  from: platform.audit:own-login-record:read
+  from: platform.audit:audit-entry:read
   to: platform.audit
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
   via: code
 - kind: perm-mod
-  from: organization.workforce:org-unit:read
-  to: organization.workforce
+  from: platform.audit:audit-entry:export
+  to: platform.audit
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
   via: code
 - kind: perm-mod
-  from: organization.workforce:sync-run:read
-  to: organization.workforce
+  from: platform.audit:own-login-record:read
+  to: platform.audit
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
   via: code
 - kind: perm-mod
-  from: organization.workforce:sync-run:execute
+  from: organization.workforce:org-unit:read
   to: organization.workforce
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
   via: code
 - kind: perm-mod
-  from: organization.workforce:separation-hold:approve
+  from: organization.workforce:sync-run:read
   to: organization.workforce
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
   via: code
 - kind: perm-mod
-  from: organization.workforce:legal-entity:update
+  from: organization.workforce:sync-run:execute
   to: organization.workforce
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
   via: code
 - kind: perm-mod
-  from: organization.workforce:legal-entity-attribution-correction:create
+  from: organization.workforce:separation-hold:approve
   to: organization.workforce
   src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
   via: code
 - kind: perm-mod
+  from: organization.workforce:legal-entity:update
+  to: organization.workforce
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
+  via: code
+- kind: perm-mod
+  from: organization.workforce:legal-entity-attribution-correction:create
+  to: organization.workforce
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
+  via: code
+- kind: perm-mod
   from: organization.attendance:work-calendar:read
   to: organization.attendance
-  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
   via: code
 - kind: perm-mod
   from: organization.attendance:work-calendar:update
   to: organization.attendance
-  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:32
   via: code
 - kind: perm-mod
   from: organization.attendance:locked-day:update
   to: organization.attendance
-  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:33
   via: code
 - kind: srole-perm
   from: employee
@@ -82984,6 +83054,16 @@ links:
 - kind: srole-perm
   from: employee
   to: platform.audit:own-login-record:read
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: employee
+  to: platform.file:file:create
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: employee
+  to: platform.file:file:read
   src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
   via: seed
 - kind: srole-perm
@@ -83004,7 +83084,7 @@ links:
 - kind: srole-perm
   from: org_data_admin
   to: organization.workforce:legal-entity-attribution-correction:create
-  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:581
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:583
   via: seed
 - kind: srole-perm
   from: org_data_admin
@@ -83059,7 +83139,7 @@ links:
 - kind: srole-perm
   from: security_auditor
   to: organization.workforce:separation-hold:approve
-  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:575
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:577
   via: seed
 - kind: srole-perm
   from: security_auditor

@@ -39,7 +39,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -92,9 +91,6 @@ class PlatformFileEndpointsIT {
     MockMvc mvc;
 
     @Autowired
-    JdbcClient jdbc;
-
-    @Autowired
     JsonMapper json;
 
     final List<StoreRequest> requests = new ArrayList<>();
@@ -102,7 +98,6 @@ class PlatformFileEndpointsIT {
 
     @BeforeEach
     void theServiceHashesWhatItReceives() {
-        jdbc.sql("delete from platform_idempotency.idempotent_responses").update();
         requests.clear();
         received.clear();
         when(storeContent.store(any())).thenAnswer(call -> {

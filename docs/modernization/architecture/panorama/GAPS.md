@@ -20,7 +20,7 @@
 | 表→聚合 | 20 / 32 | built: 20、panorama: 0 |
 | 事件→聚合 | 59 / 59 | events: 47、module: 49 |
 | 事件→发布 BC | 59 / 59 | publisher: 59 |
-| API→BC | 58 / 58 | controller: 58 |
+| API→BC | 60 / 60 | controller: 60 |
 
 登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 4、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 8、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
 
@@ -49,14 +49,14 @@
 | 08 约束与认定规则 | rule | 512 |
 | 10 受控业务执行 | ep | 601 |
 | 10 受控业务执行 | tc | 1132 |
-| 10 映射  | api | 68 |
+| 10 映射  | api | 70 |
 | 10 映射  | mod | 14 |
 | 10 受控业务执行 | cmd | 624 |
 | 09/10 映射  | otr | 881 |
 | 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
 | 07 业务流程 | steps | 672 |
-| 01 映射  | perm | 27 |
+| 01 映射  | perm | 29 |
 | 01 映射  | srole | 7 |
 | 01 映射  | role | 56 |
 
