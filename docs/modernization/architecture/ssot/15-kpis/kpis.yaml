@@ -259,10 +259,15 @@ kpis:
   - M-08
   definition: 贡献毛利 ÷ 同层级、同变体的净服务收入；按 OAT 的 CMR 变体（报价、预算、预估、实际）声明；本 KPI 是经营结果度量，不是目标值。（愿景原文分母为不含税收入确认，按 KPI-20261022-085652-r54 KPI-Q03 答复同步；vision.yaml 文字另行同步。）
   caliber_changes:
-  - effective: 待定
+  - effective: 2026-10-22 起（用户 KPI-Q03 答复日）；之前的期间按本记录的前后值对照展示，不改历史报表
     before: 贡献毛利 ÷ 不含税收入确认
     after: 贡献毛利 ÷ 同层级、同变体的净服务收入
-    values: 待 one-rules 重算（基线值与已下达年度目标）；分母换口径后历史期间比率整段跳变（预计上升 5–15 个点），达成率不可比
+    values:
+      basis: 2025 整年，公司合计（one-rules 生产取证，r0/M29_BASELINE_RESULT.md，claude/one-rules-context-2 @46f418648）
+      excluding_bonus: {before: 46.20%, after: 48.50%}
+      including_direct_labor_bonus: {before: 39.51%, after: 41.48%}
+      caveat: 老系统分不出可向客户转收的代垫费用，新值只扣了委外与分包，真实新值会更高；区域分项、敏感性与 5 个未决点见上述文件
+    annual_targets: 无需重算——BI 目标看板（营销三项、项目五项）没有贡献毛利类目标（one-rules 核对）
     source: KPI-Q03
 - id: KPI-14
   aliases: []
