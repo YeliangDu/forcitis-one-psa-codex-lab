@@ -1,4 +1,12 @@
-# one-ops 速查（2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
+# one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
+
+## 2026-10-22 增补（上下文 46% 时按钩子交接；以本节覆盖下面交接节里已变的项）
+
+- **已完成**：ClamAV dev 装好并通过加密项必验与耗时测量、健康检查与 C-7 告警及三类演练（卡 OPS-1021-OPS-02；还差与应用侧联调与 MaxScanTime 复核，等 one-platform-file 约时间，全部做完才报「建成」）；撤 `psa_one_legacy_ro`（卡 OPS-1022-OPS-01，已完成，视图 v_psa_one_legacy_todo 仍在，删与否另请示；dev one.env 的 …LEGACY_INBOX_* 已删）；dev `one_dev_app` 的 search_path 改为 pg_catalog, platform_approval 并重启（c3/c9 脚本与 verify V6c 已改，本机容器检查通过）；dev 核 TEMP：四个账号均 false（#547 待办的 TEMP 核验已完成，三张日历表的 REVOKE 由 #547 自带）。
+- **取证（均已登记，结果在本机 `~/.modernize/psa/ops/adr0073/`，仓库外；用完删，删后补登记）**：ADR-0073 U1 法人归属（老系统与 A8 实质单一法人）、DAT-1021-ARC-01、B-31 用印附件（三步）、入职日期口径、M-29 前后值 Q 批与 B 批（m29*.txt 的删除日期 2026-10-29）。SQL 都在 `handoff/B-5-dba/evidence/`。
+- **WORKFORCE_SYNC_ENABLED**：dev one.env 现值 true（2026-10-16 为 A8 组织同步启用）；one-coordinator 要求不能是 true（W2 PR-B 入队前提）。生产环境尚无新系统实例（ECS i-bp122xlpar8w2uylmal2 是 dev），所以 prod 无此项。是否改回 false 等 one-coordinator 示下，改了要重启。
+- **待办仍在**：12-01 续费提醒；新 rc 与重建 dev（等调度）；ClamAV 联调；工作日历投产写入前置；c14_run.py 自测 PR；回滚脚本 DROP ROLE IF EXISTS 与 check.sh 旧库用例（OPS-007）；#547 合入后的 dev 部署前置（platform_file 等 schema 的建库授权，见在途表）。
+- **本会话踩到的坑**：①取证工具（`b5_evidence_scan.py`）语句超时固定 300 秒，跨库联接要给两侧加 `COLLATE DATABASE_DEFAULT`（排序规则不同会报错，失败时工具只说 Failed，不给原因，先拆小查询二分）；②工具失败退出时服务器上留的临时目录要靠下一次成功运行清理，别忘；③跨库查询在 IF DB_NAME() 里整体外包；④`SUM(CASE WHEN EXISTS(...))` 在 SQL Server 非法（聚合里不能带子查询）；⑤云助手脚本模板：`/tmp/ra.sh`（本会话临时，会丢）= RunCommand + base64 + 轮询 DescribeInvocationResults。
 
 ## 交接（2026-10-21，上下文 83%；分支 origin/claude/one-ops-r56，文档分支，不开 PR，提交号以 `git log -1` 为准）
 
