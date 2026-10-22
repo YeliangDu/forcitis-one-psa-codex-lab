@@ -159,3 +159,65 @@ rulings:
     ids: [attendance]
     to: organization.leave
     source: 用户 2026-10-16 待决定收件箱 2026-10-16-one-glossary-bc-names 按推荐改名：词条「考勤与休假」改挂 organization.leave，该 bc 中文名改「考勤与休假」，原 organization.attendance 改「工作日历与标准工时」（intent 见该事项）
+  - op: promote
+    id: agreement_status__signed
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+    confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+    entry:
+      id: agreement_status__signed
+      zh: 已签署
+      en: Signed
+      snake: signed
+      kind: state
+      bc: contract.agreement
+      scope: domain
+      definition: 协议已签署但尚未满足约定的生效条件；无附条件的协议签署与生效同事务完成，只落已生效
+      standard_ref:
+      - rules/decide/sheets/GL5.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: agreement_status__effective
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+    confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+    entry:
+      id: agreement_status__effective
+      zh: 已生效
+      en: Effective
+      snake: effective
+      kind: state
+      bc: contract.agreement
+      scope: domain
+      definition: 协议已生效；只能由业务操作触发，附条件的协议经「确认生效条件满足」命令转入，不能手工改状态；转入时记生效依据：条件类型、证据单据号（如预付款保函编号）、生效日
+      standard_ref:
+      - rules/decide/sheets/GL5.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: asset_card
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+    confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+    entry:
+      id: asset_card
+      zh: 资产卡片
+      en: AssetCard
+      snake: asset_card
+      kind: entity
+      bc: accounting.fixedasset
+      scope: domain
+      definition: 财务为达到固定资产标准的公司资产建的账务档案；卡片、折旧、报废与盘点账务归固定资产模块，行政事务只引用卡片号；不等同于公司资产本身
+      standard_ref:
+      - rules/decide/sheets/GL5.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: redefine
+    late: true
+    id: company_asset
+    definition: 本公司拥有或控制并登记管理使用、折旧、摊销及处置情况的资产；公司资产是资产本身，不等同于固定资产类别，也不等同于固定资产卡片。
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）（用户备注）

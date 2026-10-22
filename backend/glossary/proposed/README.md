@@ -223,7 +223,6 @@ GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-2
 | `statutory_filing_status__remitted` | 已缴款 | Remitted | 领域 · accounting.tax | 法定申报的状态：税费或社保公积金已缴纳 |  |  |
 | `correct_filing` | 更正申报 | CorrectFiling | 领域 · accounting.tax | 对已申报的法定申报作更正，另起更正申报 |  |  |
 | `asset_card_list` | 资产卡片清单 | AssetCardList | 领域 · organization.administration | 先行期财务提供的资产卡片清单，每行带资产卡片号、所属法人、资产名称，行政事务据此引用信息技术资产；资产卡片一词待 GL5-02 定 |  |  |
-| `asset_card_number` | 资产卡片号 | AssetCardNumber | 领域 · organization.administration | 财务资产卡片的业务键（不是老系统编号），行政事务凭它引用信息技术资产 |  |  |
 | `card_number_status__pending_check` | 待核 | PendingCheck | 领域 · organization.administration | 资产卡片号的状态：清单没到时手工录入的卡片号，等财务清单到后核对，核对前不当作已确认 |  |  |
 
 ## `kernel.yaml`
