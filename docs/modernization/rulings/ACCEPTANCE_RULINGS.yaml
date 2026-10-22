@@ -249,3 +249,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java
     reason: 老待办只读账号已撤，删核实命令 integration-legacy-inbox 入口；删 RULING-P3B-17 用例，旧名并入 missingOrUnknownConnectionIsWrongUsage 并补「无 RESULT 行」断言；两用例改用 LEGACY_NAMES 断言不变
     ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261022-03
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/AuditSubjectColumnsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+    reason: ADR-0069 第 14 条外键取代 CHECK；约束断言改外键并补断言旧 CHECK 不存在；未知类别带 id 与旧前缀改 23503，未知类别且 id 空保持 23514；DisplayName 同步；补登记表集合与 has_object 一致性断言；PR 附预期表结构 diff、改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
