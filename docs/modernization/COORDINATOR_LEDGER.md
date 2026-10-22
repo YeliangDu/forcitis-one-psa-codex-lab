@@ -33,7 +33,7 @@
 - 分层总图（已钉左栏）：https://claude.ai/artifact/GANmVBuBzK58pT27xscJBE ——五层＋贯穿＋老系统退役，数据在页面 db（items/i000..，meta/page），状态变化用 ArtifactData update 改对应条目，不重发页面；源数据脚本 scratchpad(e9617959)/layers。
 - 在线页：会话日报 https://claude.ai/artifact/8CAmf8sAJsoaFNwetoGC7x （每天早上：scripts/ops/session_daily.py 出数 → 补 grade/assessment/action → 数据放 scratchpad(19432a27)/daily/site/data/<日期>.json 并更新 index.json → 以同一 file_path 重发 session-daily.html 与 files）；对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL （源与 refresh.sh 在 scratchpad(19432a27)/align，已钉左栏）。
 - 收件箱待用户答：ANM 命名体系与施工图方法 https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey ；N1 规则待定 https://claude.ai/artifact/BTo6TuYzW7H8vgjCanh4Vq 。用户说「答完」即取答复分发。
-- 攒问（下一张确认页一并出）：分管范围配置由谁维护（one-arch-people）；AGG-21 对客/内部基线一致性（one-arch-revenue，FIDIC/NEC4 条号未核原文，出页前补或改不引条号）；协议生效条件由谁确认、条件不满足停在已签署的时限（GL5-01③，one-arch-revenue 出推荐）。
+- 攒问（下一张确认页一并出）：分管范围配置由谁维护（one-arch-people）；AGG-21 对客/内部基线一致性（one-arch-revenue，FIDIC/NEC4 条号未核原文，出页前补或改不引条号）；协议生效条件由谁确认、条件不满足停在已签署的时限（GL5-01③，推荐已出：closeout/revenue/NOTES.md「GL5-01 待用户定」@803017d1；民法典第 158 条未核原文，出页前核）。
 - 下一文档合集清单：scratchpad(57026514)/next-docs-train.txt（调度批准、one-merge 中午/晚上收）；调度自己的规则、画像、台账、intent、裁定改动都在分支 claude/one-coordinator-two-lanes。
 - 验收裁定登记后立即请 one-merge 加急小合集：acceptance_rulings 守护只认 base（main）上已有的裁定，随实现 PR 带入无效（10-21 F 卡被卡）。
 - 裁定：rulings/COORD-2026-10-17.md（RULING-COORD-20261017-01..04），one-quality 登记 ACCEPTANCE_RULINGS.yaml。
