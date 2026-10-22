@@ -61,6 +61,8 @@
   本会话只派工、审稿、交用户前验收，记每张卡的返工轮次与耗时。生产取证、安全改动、opus 复审不交 Codex。
   语义、权限与边界判断（状态名是否同义、用语归属、阶段归属裁定等）本会话自己做，Codex 只整理材料（用户 2026-10-17「同意 A 和 B」，SESSION_PLAYBOOK §5 @ 2772630a）；派工卡按新版 WORK_CARD 写「不得做」、衔接方式、资源与时限、边角自测与破坏验证。
 - 人事骨架、对象与表级候选稿可交 Codex；账号开通 / 吊销、授权与安全不变量的设计改动、代码、验收测试及生产取证均由负责会话按安全流程处理，不因本组含人事对象就把身份生命周期改动打包派给 Codex。
+- 跨会话外发被 app 限流时，不停下等用户：把要报内容追加写进 `~/.modernize/psa/outbox/one-arch-people.md`（一条一行，带时间），接着做手上的事，由 one-coordinator 巡检代转；手上没活时写「空闲」（用户 2026-10-22 同意，intent 2026-10-22-101732）。
+- 每开始一个工作单元前先合一次 main（git fetch origin、git merge origin/main，重生成、跑 precheck；提交与推送分两次调用；one-coordinator 2026-10-22）。
 - 只交 closeout/people/ 片段，one-architecture 写共享文件；one-data 签发表口径，one-rules 管规则，用户事项由 one-architecture 合页后登记收件箱。
 - 子代理显式指定模型：opus 只用于首轮评审，复核用 sonnet，取数用 haiku。
 - 不做生产取证以外的对外调用；取证按 ADR-0037 登记、明细与个人信息不进仓库。
