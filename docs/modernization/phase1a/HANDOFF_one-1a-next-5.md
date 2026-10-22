@@ -74,3 +74,4 @@
 
 **本期补充教训**：⑦CHECK 先于外键被评估，同一行违反两者时报 CHECK 错误码；⑧REG 类改动先 grep 验收目录里对旧 CHECK 名的引用（`P5Names` 等）并提前要裁定；⑨`git stash` 是共享栈，别用，换分支前把补丁存成文件；⑩推送命令不要和 `cd 临时目录` 放同一次调用（推送前钩子会按命令里的目录出错）。
 
+**15:50 增补**：#599 head 88827c3a 已含 opus 首轮修复；main 的 GOV-1022-QUA-01 把 `FREEZE_FACTS.md` 移出仓库——#546 分支（claude/nx5-p0-acceptance）里我曾重新生成过它，合 main 时 modify/delete 冲突，处理为 `git rm`。验收补丁路径 `…/scratchpad/reg3-acceptance.patch`（会话临时目录，若丢失按第 6 节要点重写：两文件 `AuditSubjectColumnsIT`、`P5Names`）。
