@@ -2,7 +2,7 @@
 
 状态：草稿｜2026-10-17｜负责：one-architecture
 
-按设计时会遇到的问题组织：先给结论，再列依据锚点（`编号#概念名`，见 [NOTES_INDEX.md](NOTES_INDEX.md)、[CONCEPT_INDEX.md](CONCEPT_INDEX.md)）。结论是资料给出的做法与本系统的推荐取舍，不替代已采纳 ADR；与 ADR 不一致时以 ADR 为准，并在本条写「待提议」。
+按设计时会遇到的问题组织：先给结论，再列依据锚点（`编号#概念名`，见 生成的 NOTES_INDEX.md 与 CONCEPT_INDEX.md（不入仓：本地运行 `build_all.py` 或看 generated-docs 分支））。结论是资料给出的做法与本系统的推荐取舍，不替代已采纳 ADR；与 ADR 不一致时以 ADR 为准，并在本条写「待提议」。
 
 ## 反向挂接（第四层）
 

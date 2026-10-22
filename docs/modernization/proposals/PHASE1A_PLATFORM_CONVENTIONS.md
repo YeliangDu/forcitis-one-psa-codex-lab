@@ -3,7 +3,7 @@
 日期：2026-10-14 · 起草：psa-1a-platform-bridge-reimagine · 用户决定：「全部在 1a 做 (Recommended)」。
 
 > **已升格，以下各节不再是现行规则**（正文保留，只作出处）：
-> - §1 ID 策略 → `adr/ADR-0033.md`（自有标识与来源对照，用户 2026-10-15 已批准）；对外 ID 为字符串见 `NAMING_STANDARD.md` §2.6 A-7。
+> - §1 ID 策略 → `adr/src/ADR-0033.md`（自有标识与来源对照，用户 2026-10-15 已批准）；对外 ID 为字符串见 `NAMING_STANDARD.md` §2.6 A-7。
 > - §2 时间与时区、§3 API 规范 → `NAMING_STANDARD.md` §2.6 HTTP 接口约定（用户 2026-10-15 对原则核对 A 答「全部按推荐 (Recommended)」）。其中 API 时刻改为 UTC 带 `Z`，取代 §2 末条的 `+08:00` 写法；业务日计算按 `Asia/Shanghai` 不变。
 > - §4 可观测性 → `GUIDING_PRINCIPLES.md` §11（同一决定）。只用 correlationId，不再承诺 `traceId`。
 > - §5 备份与恢复、§6 配置与密钥仍以本文与 `phase1a/infra/INFRA_RUNBOOK.md` 为准。
@@ -32,7 +32,7 @@
 - 对外 ID 一律用字符串（JSON 中为 string），由 OpenAPI 守护。
 - 守护：新建表的主键必须是 uuid，不得用 identity；快照表列入白名单。
 
-> **已被 ADR-0033 取代（采纳时生效；ADR-0033 现为提议，采纳前仍按上文）**：上文第 1、2、4 条中「外部主数据沿用来源 ID：员工、组织单元用 A8 ID……来源 ID 只存在于对应的快照表里」「老 ID 放进 `legacy_id` 列（唯一约束）」「快照表列入白名单」三句。依据：用户 2026-10-15「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」。上文按 SESSION_PLAYBOOK §12 保留不删。新做法（详见 `adr/ADR-0033.md`）：
+> **已被 ADR-0033 取代（采纳时生效；ADR-0033 现为提议，采纳前仍按上文）**：上文第 1、2、4 条中「外部主数据沿用来源 ID：员工、组织单元用 A8 ID……来源 ID 只存在于对应的快照表里」「老 ID 放进 `legacy_id` 列（唯一约束）」「快照表列入白名单」三句。依据：用户 2026-10-15「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」。上文按 SESSION_PLAYBOOK §12 保留不删。新做法（详见 `adr/src/ADR-0033.md`）：
 > - 自有的每张表一律单列 uuid 主键，由 kernel `IdGenerator` 生成 UUIDv7，自有表零例外（用户「主键统一」「也加，自有表零例外 (Recommended)」）；只有框架自建表（Spring Session、ShedLock、Spring Modulith）登记豁免并逐表写理由。原以组合键为主键的表改为 UUIDv7 主键 + 命名唯一约束；版本 / 生效区间表为 UUIDv7 代理主键 + 自然键（实体自有 ID + 生效区间）排他约束。
 > - 外部系统的标识（A8 人员、部门、岗位 ID，老系统 ID，核算组织编码）只登记在集成层的来源对照 `platform_integration.source_references`，`(来源系统, 来源对象类别, source_id)` 唯一；`source_id` 按来源实际类型存放（A8 为 bigint，可为负数）。迁入数据不在业务表加 `legacy_id` 列，原单据编号仍进 `legacy_numbers`。
 > - `user_accounts.user_id` 为自有 UUIDv7，另有唯一的 `employee_id`；员工编号不作任何键。
