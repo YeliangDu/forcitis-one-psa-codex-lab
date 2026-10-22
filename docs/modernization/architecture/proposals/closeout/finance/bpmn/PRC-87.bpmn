@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_PRC-87" targetNamespace="https://forcitis.one/bpmn/PRC-87" exporter="bpmn_gen" exporterVersion="1">
   <signal id="Signal_1" name="费用报销已核定"/>
-  <dataStore id="DS_AGG-19" name="AGG-19"/>
   <dataStore id="DS_AGG-10" name="AGG-10"/>
-  <dataStore id="DS_AGG-62" name="AGG-62"/>
   <dataStore id="DS_AGG-130" name="AGG-130"/>
   <dataStore id="DS_AGG-132" name="AGG-132"/>
   <dataStore id="DS_AGG-133" name="AGG-133"/>
+  <dataStore id="DS_AGG-19" name="AGG-19"/>
+  <dataStore id="DS_AGG-62" name="AGG-62"/>
   <dataStore id="DS_AGG-89" name="AGG-89"/>
   <dataStore id="DS_AGG-80" name="AGG-80"/>
   <dataStore id="DS_AGG-59" name="AGG-59"/>
@@ -273,6 +273,7 @@
       <outgoing>Flow_33</outgoing>
       <outgoing>Flow_34</outgoing>
       <outgoing>Flow_35</outgoing>
+      <outgoing>Flow_36</outgoing>
     </exclusiveGateway>
     <serviceTask id="S8_26" name="释放预算占用 → B-18">
       <documentation>AGG-80 释放预算占用；B-12；automatic</documentation>
@@ -280,7 +281,7 @@
       <incoming>Flow_21</incoming>
       <incoming>Flow_22</incoming>
       <incoming>Flow_27</incoming>
-      <outgoing>Flow_36</outgoing>
+      <outgoing>Flow_37</outgoing>
       <ioSpecification id="IO_S8_26">
         <dataOutput id="DOut_S8_26_1"/>
         <inputSet></inputSet>
@@ -290,8 +291,8 @@
     </serviceTask>
     <serviceTask id="S9_27" name="释放进项发票占用 → B-23">
       <documentation>AGG-89 释放进项发票占用；B-12；automatic</documentation>
-      <incoming>Flow_36</incoming>
-      <outgoing>Flow_37</outgoing>
+      <incoming>Flow_37</incoming>
+      <outgoing>Flow_38</outgoing>
       <ioSpecification id="IO_S9_27">
         <dataOutput id="DOut_S9_27_1"/>
         <inputSet></inputSet>
@@ -300,37 +301,37 @@
       <dataOutputAssociation id="DOA_S9_27_1"><sourceRef>DOut_S9_27_1</sourceRef><targetRef>SR_S9_27_w1</targetRef></dataOutputAssociation>
     </serviceTask>
     <exclusiveGateway id="S9_gw_28" name="释放进项发票占用？">
-      <incoming>Flow_37</incoming>
-      <outgoing>Flow_38</outgoing>
+      <incoming>Flow_38</incoming>
       <outgoing>Flow_39</outgoing>
+      <outgoing>Flow_40</outgoing>
     </exclusiveGateway>
     <userTask id="S10_29" name="报销冲销审批">
       <documentation>报销冲销审批；B-12；in_system；报销.冲销审批；审批待办（审批平台）；审批平台：费用报销冲销审批</documentation>
       <incoming>Flow_2</incoming>
-      <outgoing>Flow_40</outgoing>
+      <outgoing>Flow_41</outgoing>
       <ioSpecification id="IO_S10_29">
         <inputSet></inputSet>
         <outputSet></outputSet>
       </ioSpecification>
     </userTask>
     <serviceTask id="S10_api_30" name="提交审批 → platform.approval">
-      <incoming>Flow_40</incoming>
-      <outgoing>Flow_41</outgoing>
+      <incoming>Flow_41</incoming>
+      <outgoing>Flow_42</outgoing>
       <ioSpecification id="IO_S10_api_30">
         <inputSet></inputSet>
         <outputSet></outputSet>
       </ioSpecification>
     </serviceTask>
     <exclusiveGateway id="S10_gw_31" name="报销冲销审批？">
-      <incoming>Flow_41</incoming>
-      <outgoing>Flow_42</outgoing>
+      <incoming>Flow_42</incoming>
       <outgoing>Flow_43</outgoing>
       <outgoing>Flow_44</outgoing>
+      <outgoing>Flow_45</outgoing>
     </exclusiveGateway>
     <userTask id="S11_32" name="冲销费用报销">
       <documentation>AGG-59 冲销费用报销；B-12；in_system；报销.冲销；报销核定工作台（冲销）</documentation>
-      <incoming>Flow_42</incoming>
-      <outgoing>Flow_45</outgoing>
+      <incoming>Flow_43</incoming>
+      <outgoing>Flow_46</outgoing>
       <ioSpecification id="IO_S11_32">
         <dataOutput id="DOut_S11_32_1"/>
         <inputSet></inputSet>
@@ -339,14 +340,14 @@
       <dataOutputAssociation id="DOA_S11_32_1"><sourceRef>DOut_S11_32_1</sourceRef><targetRef>SR_S11_32_w1</targetRef></dataOutputAssociation>
     </userTask>
     <exclusiveGateway id="S11_gw_33" name="冲销费用报销？">
-      <incoming>Flow_45</incoming>
-      <outgoing>Flow_46</outgoing>
+      <incoming>Flow_46</incoming>
       <outgoing>Flow_47</outgoing>
+      <outgoing>Flow_48</outgoing>
     </exclusiveGateway>
     <serviceTask id="S12_34" name="冲销并重过账 → B-16">
       <documentation>AGG-77 冲销并重过账；B-12；automatic；调用 PRC-92</documentation>
-      <incoming>Flow_47</incoming>
-      <outgoing>Flow_48</outgoing>
+      <incoming>Flow_48</incoming>
+      <outgoing>Flow_49</outgoing>
       <ioSpecification id="IO_S12_34">
         <dataOutput id="DOut_S12_34_1"/>
         <inputSet></inputSet>
@@ -355,11 +356,11 @@
       <dataOutputAssociation id="DOA_S12_34_1"><sourceRef>DOut_S12_34_1</sourceRef><targetRef>SR_S12_34_w1</targetRef></dataOutputAssociation>
     </serviceTask>
     <exclusiveGateway id="S12_gw_35" name="冲销并重过账？">
-      <incoming>Flow_48</incoming>
-      <outgoing>Flow_49</outgoing>
+      <incoming>Flow_49</incoming>
       <outgoing>Flow_50</outgoing>
       <outgoing>Flow_51</outgoing>
       <outgoing>Flow_52</outgoing>
+      <outgoing>Flow_53</outgoing>
     </exclusiveGateway>
     <endEvent id="End_36" name="已拒收（项目已关闭）">
       <incoming>Flow_7</incoming>
@@ -375,32 +376,33 @@
     </endEvent>
     <endEvent id="End_40" name="过账被拒收">
       <incoming>Flow_32</incoming>
-      <incoming>Flow_51</incoming>
+      <incoming>Flow_52</incoming>
     </endEvent>
     <endEvent id="End_41" name="期间关账中待重试">
       <incoming>Flow_33</incoming>
-      <incoming>Flow_49</incoming>
+      <incoming>Flow_50</incoming>
     </endEvent>
-    <endEvent id="End_42" name="已核定">
+    <endEvent id="End_42" name="已核定（所属期间确定，增值税发票已入账）">
       <incoming>Flow_34</incoming>
       <incoming>Flow_35</incoming>
+      <incoming>Flow_36</incoming>
     </endEvent>
     <endEvent id="End_43" name="已撤回">
-      <incoming>Flow_38</incoming>
-      <incoming>Flow_44</incoming>
+      <incoming>Flow_39</incoming>
+      <incoming>Flow_45</incoming>
     </endEvent>
     <endEvent id="End_44" name="已退回">
-      <incoming>Flow_39</incoming>
+      <incoming>Flow_40</incoming>
     </endEvent>
     <endEvent id="End_45" name="冲销已驳回">
-      <incoming>Flow_43</incoming>
+      <incoming>Flow_44</incoming>
     </endEvent>
     <endEvent id="End_46" name="已拒收（冲销不适用）">
-      <incoming>Flow_46</incoming>
+      <incoming>Flow_47</incoming>
     </endEvent>
     <endEvent id="End_47" name="费用报销已冲销">
-      <incoming>Flow_50</incoming>
-      <incoming>Flow_52</incoming>
+      <incoming>Flow_51</incoming>
+      <incoming>Flow_53</incoming>
     </endEvent>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_3"/>
     <sequenceFlow id="Flow_2" sourceRef="Start_2" targetRef="S10_29"/>
@@ -435,31 +437,32 @@
     <sequenceFlow id="Flow_31" sourceRef="S7_24" targetRef="S7_gw_25"/>
     <sequenceFlow id="Flow_32" name="过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警" sourceRef="S7_gw_25" targetRef="End_40"/>
     <sequenceFlow id="Flow_33" name="所属期间在关账中（已发起关账、未确认），本期过账不接受：返回「期间关账中、可重试」，不进拒收记录，由来源 BC 投递重试" sourceRef="S7_gw_25" targetRef="End_41"/>
-    <sequenceFlow id="Flow_34" name="所属期间已关账（自动落当前开放期间并标原期间）" sourceRef="S7_gw_25" targetRef="End_42"/>
-    <sequenceFlow id="Flow_35" name="其他" sourceRef="S7_gw_25" targetRef="End_42"/>
-    <sequenceFlow id="Flow_36" sourceRef="S8_26" targetRef="S9_27"/>
-    <sequenceFlow id="Flow_37" sourceRef="S9_27" targetRef="S9_gw_28"/>
-    <sequenceFlow id="Flow_38" name="来源为报销人撤回" sourceRef="S9_gw_28" targetRef="End_43"/>
-    <sequenceFlow id="Flow_39" name="其他" sourceRef="S9_gw_28" targetRef="End_44"/>
-    <sequenceFlow id="Flow_40" sourceRef="S10_29" targetRef="S10_api_30"/>
-    <sequenceFlow id="Flow_41" sourceRef="S10_api_30" targetRef="S10_gw_31"/>
-    <sequenceFlow id="Flow_42" name="通过" sourceRef="S10_gw_31" targetRef="S11_32"/>
-    <sequenceFlow id="Flow_43" name="驳回" sourceRef="S10_gw_31" targetRef="End_45"/>
-    <sequenceFlow id="Flow_44" name="撤回" sourceRef="S10_gw_31" targetRef="End_43"/>
-    <sequenceFlow id="Flow_45" sourceRef="S11_32" targetRef="S11_gw_33"/>
-    <sequenceFlow id="Flow_46" name="报销已付或其应付已有核销" sourceRef="S11_gw_33" targetRef="End_46"/>
-    <sequenceFlow id="Flow_47" name="其他" sourceRef="S11_gw_33" targetRef="S12_34"/>
-    <sequenceFlow id="Flow_48" sourceRef="S12_34" targetRef="S12_gw_35"/>
-    <sequenceFlow id="Flow_49" name="所属期间在关账中（已发起关账、未确认），本期过账不接受：返回「期间关账中、可重试」，不进拒收记录，由来源 BC 投递重试" sourceRef="S12_gw_35" targetRef="End_41"/>
-    <sequenceFlow id="Flow_50" name="所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）" sourceRef="S12_gw_35" targetRef="End_47"/>
-    <sequenceFlow id="Flow_51" name="过账管道拒收（原事实不存在或已被冲销、该法人无开放期间、借贷不平），拒收并告警" sourceRef="S12_gw_35" targetRef="End_40"/>
-    <sequenceFlow id="Flow_52" name="其他" sourceRef="S12_gw_35" targetRef="End_47"/>
-    <dataStoreReference id="SR_S1_3_r1" name="AGG-19" dataStoreRef="DS_AGG-19"/>
-    <dataStoreReference id="SR_S1_3_r2" name="AGG-10" dataStoreRef="DS_AGG-10"/>
-    <dataStoreReference id="SR_S1_3_r3" name="AGG-62" dataStoreRef="DS_AGG-62"/>
-    <dataStoreReference id="SR_S1_3_r4" name="AGG-130" dataStoreRef="DS_AGG-130"/>
-    <dataStoreReference id="SR_S1_3_r5" name="AGG-132" dataStoreRef="DS_AGG-132"/>
-    <dataStoreReference id="SR_S1_3_r6" name="AGG-133" dataStoreRef="DS_AGG-133"/>
+    <sequenceFlow id="Flow_34" name="项目费用的报销人成本法人与项目承担法人不一致：记报销人所在法人、标「待内部结算」，列入跨法人清单，项目看板照常归集并标注" sourceRef="S7_gw_25" targetRef="End_42"/>
+    <sequenceFlow id="Flow_35" name="所属期间已关账（自动落当前开放期间并标原期间）" sourceRef="S7_gw_25" targetRef="End_42"/>
+    <sequenceFlow id="Flow_36" name="其他" sourceRef="S7_gw_25" targetRef="End_42"/>
+    <sequenceFlow id="Flow_37" sourceRef="S8_26" targetRef="S9_27"/>
+    <sequenceFlow id="Flow_38" sourceRef="S9_27" targetRef="S9_gw_28"/>
+    <sequenceFlow id="Flow_39" name="来源为报销人撤回" sourceRef="S9_gw_28" targetRef="End_43"/>
+    <sequenceFlow id="Flow_40" name="其他" sourceRef="S9_gw_28" targetRef="End_44"/>
+    <sequenceFlow id="Flow_41" sourceRef="S10_29" targetRef="S10_api_30"/>
+    <sequenceFlow id="Flow_42" sourceRef="S10_api_30" targetRef="S10_gw_31"/>
+    <sequenceFlow id="Flow_43" name="通过" sourceRef="S10_gw_31" targetRef="S11_32"/>
+    <sequenceFlow id="Flow_44" name="驳回" sourceRef="S10_gw_31" targetRef="End_45"/>
+    <sequenceFlow id="Flow_45" name="撤回" sourceRef="S10_gw_31" targetRef="End_43"/>
+    <sequenceFlow id="Flow_46" sourceRef="S11_32" targetRef="S11_gw_33"/>
+    <sequenceFlow id="Flow_47" name="报销已付或其应付已有核销" sourceRef="S11_gw_33" targetRef="End_46"/>
+    <sequenceFlow id="Flow_48" name="其他" sourceRef="S11_gw_33" targetRef="S12_34"/>
+    <sequenceFlow id="Flow_49" sourceRef="S12_34" targetRef="S12_gw_35"/>
+    <sequenceFlow id="Flow_50" name="所属期间在关账中（已发起关账、未确认），本期过账不接受：返回「期间关账中、可重试」，不进拒收记录，由来源 BC 投递重试" sourceRef="S12_gw_35" targetRef="End_41"/>
+    <sequenceFlow id="Flow_51" name="所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）" sourceRef="S12_gw_35" targetRef="End_47"/>
+    <sequenceFlow id="Flow_52" name="过账管道拒收（原事实不存在或已被冲销、该法人无开放期间、借贷不平），拒收并告警" sourceRef="S12_gw_35" targetRef="End_40"/>
+    <sequenceFlow id="Flow_53" name="其他" sourceRef="S12_gw_35" targetRef="End_47"/>
+    <dataStoreReference id="SR_S1_3_r1" name="AGG-10" dataStoreRef="DS_AGG-10"/>
+    <dataStoreReference id="SR_S1_3_r2" name="AGG-130" dataStoreRef="DS_AGG-130"/>
+    <dataStoreReference id="SR_S1_3_r3" name="AGG-132" dataStoreRef="DS_AGG-132"/>
+    <dataStoreReference id="SR_S1_3_r4" name="AGG-133" dataStoreRef="DS_AGG-133"/>
+    <dataStoreReference id="SR_S1_3_r5" name="AGG-19" dataStoreRef="DS_AGG-19"/>
+    <dataStoreReference id="SR_S1_3_r6" name="AGG-62" dataStoreRef="DS_AGG-62"/>
     <dataStoreReference id="SR_S2_8_w1" name="AGG-89" dataStoreRef="DS_AGG-89"/>
     <dataObject id="DObj_OR_S2_8_1"/>
     <dataObjectReference id="OR_S2_8_1" name="电子发票文件或纸质发票扫…" dataObjectRef="DObj_OR_S2_8_1"/>
@@ -871,87 +874,93 @@
         <di:waypoint x="5135" y="603"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_36" bpmnElement="Flow_36">
+        <di:waypoint x="3035" y="610"/>
+        <di:waypoint x="3035" y="644"/>
+        <di:waypoint x="5135" y="644"/>
+        <di:waypoint x="5135" y="603"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_37" bpmnElement="Flow_37">
         <di:waypoint x="3215" y="585"/>
         <di:waypoint x="3285" y="585"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_37" bpmnElement="Flow_37">
+      <bpmndi:BPMNEdge id="Edge_Flow_38" bpmnElement="Flow_38">
         <di:waypoint x="3385" y="585"/>
         <di:waypoint x="3440" y="585"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_38" bpmnElement="Flow_38">
-        <di:waypoint x="3465" y="610"/>
-        <di:waypoint x="3465" y="644"/>
-        <di:waypoint x="5225" y="644"/>
-        <di:waypoint x="5225" y="603"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_39" bpmnElement="Flow_39">
         <di:waypoint x="3465" y="610"/>
         <di:waypoint x="3465" y="639"/>
-        <di:waypoint x="5315" y="639"/>
-        <di:waypoint x="5315" y="603"/>
+        <di:waypoint x="5225" y="639"/>
+        <di:waypoint x="5225" y="603"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_40" bpmnElement="Flow_40">
+        <di:waypoint x="3465" y="610"/>
+        <di:waypoint x="3465" y="634"/>
+        <di:waypoint x="5315" y="634"/>
+        <di:waypoint x="5315" y="603"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_41" bpmnElement="Flow_41">
         <di:waypoint x="3735" y="585"/>
         <di:waypoint x="3805" y="585"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_41" bpmnElement="Flow_41">
+      <bpmndi:BPMNEdge id="Edge_Flow_42" bpmnElement="Flow_42">
         <di:waypoint x="3905" y="585"/>
         <di:waypoint x="3960" y="585"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_42" bpmnElement="Flow_42">
+      <bpmndi:BPMNEdge id="Edge_Flow_43" bpmnElement="Flow_43">
         <di:waypoint x="3985" y="560"/>
         <di:waypoint x="3985" y="325"/>
         <di:waypoint x="4065" y="325"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_43" bpmnElement="Flow_43">
-        <di:waypoint x="3985" y="610"/>
-        <di:waypoint x="3985" y="634"/>
-        <di:waypoint x="5405" y="634"/>
-        <di:waypoint x="5405" y="603"/>
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_44" bpmnElement="Flow_44">
         <di:waypoint x="3985" y="610"/>
         <di:waypoint x="3985" y="644"/>
-        <di:waypoint x="5225" y="644"/>
-        <di:waypoint x="5225" y="603"/>
+        <di:waypoint x="5405" y="644"/>
+        <di:waypoint x="5405" y="603"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_45" bpmnElement="Flow_45">
+        <di:waypoint x="3985" y="610"/>
+        <di:waypoint x="3985" y="639"/>
+        <di:waypoint x="5225" y="639"/>
+        <di:waypoint x="5225" y="603"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_46" bpmnElement="Flow_46">
         <di:waypoint x="4165" y="325"/>
         <di:waypoint x="4220" y="325"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_46" bpmnElement="Flow_46">
+      <bpmndi:BPMNEdge id="Edge_Flow_47" bpmnElement="Flow_47">
         <di:waypoint x="4270" y="325"/>
         <di:waypoint x="5477" y="325"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_47" bpmnElement="Flow_47">
+      <bpmndi:BPMNEdge id="Edge_Flow_48" bpmnElement="Flow_48">
         <di:waypoint x="4245" y="350"/>
         <di:waypoint x="4245" y="585"/>
         <di:waypoint x="4325" y="585"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_48" bpmnElement="Flow_48">
+      <bpmndi:BPMNEdge id="Edge_Flow_49" bpmnElement="Flow_49">
         <di:waypoint x="4425" y="585"/>
         <di:waypoint x="4480" y="585"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_49" bpmnElement="Flow_49">
-        <di:waypoint x="4505" y="610"/>
-        <di:waypoint x="4505" y="639"/>
-        <di:waypoint x="5045" y="639"/>
-        <di:waypoint x="5045" y="603"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_50" bpmnElement="Flow_50">
         <di:waypoint x="4505" y="610"/>
         <di:waypoint x="4505" y="634"/>
-        <di:waypoint x="5585" y="634"/>
-        <di:waypoint x="5585" y="603"/>
+        <di:waypoint x="5045" y="634"/>
+        <di:waypoint x="5045" y="603"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_51" bpmnElement="Flow_51">
-        <di:waypoint x="4530" y="585"/>
-        <di:waypoint x="4937" y="585"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_52" bpmnElement="Flow_52">
         <di:waypoint x="4505" y="610"/>
         <di:waypoint x="4505" y="644"/>
         <di:waypoint x="5585" y="644"/>
+        <di:waypoint x="5585" y="603"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_52" bpmnElement="Flow_52">
+        <di:waypoint x="4530" y="585"/>
+        <di:waypoint x="4937" y="585"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_53" bpmnElement="Flow_53">
+        <di:waypoint x="4505" y="610"/>
+        <di:waypoint x="4505" y="639"/>
+        <di:waypoint x="5585" y="639"/>
         <di:waypoint x="5585" y="603"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Msg_1" bpmnElement="Msg_1">

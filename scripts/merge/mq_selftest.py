@@ -1,4 +1,5 @@
 """Self-test of mq.py (fake gh, real git for the ssh update, real processes and threads for the queue lock and the lanes). Not run on its own: `mq.py --self-test`."""
+import importlib.util
 import os
 import re
 import subprocess
@@ -126,6 +127,10 @@ def run(mq):
             _merge_guards(mq, d)
             _pause(mq, d)
             _signals(mq, d)
+            _ff_main(mq, d)
+            _remove_busy(mq, d)
+            _ignored_conflicts(mq, d)
+            _docs_tiers(mq, d)
             _gh_commands(mq, d)
             _lanes(mq, d)
             _dependencies(mq, d)
@@ -205,8 +210,49 @@ def _scenarios(mq, d):
 
     # conflict: nothing is merged or labelled
     gh = FakeGh(); gh.add(6, merge="DIRTY")
-    proc, q, log, _ = _proc(mq, d, "c", gh, [6])
-    assert proc.process(6) == "CONFLICT" and events(log) == ["START", "CONFLICT"] and gh.calls == []
+    proc, q, log, _ = _proc(mq, d, "c", gh, [6], updater=lambda repo, branch, wt: "conflict")
+    assert proc.process(6) == "CONFLICT" and events(log) == ["START", "SSH-UPDATE-CONFLICT", "CONFLICT"] and not any(c[0] == "merge" for c in gh.calls), events(log)
+
+    # a conflict only in products of build_all.py: the update settles it (AUTO-RESOLVE) and the pull request goes on to its CI and merge; gh update-branch is not asked about a conflicted branch
+    def regenerating_for(gh, n):
+        def update(repo, branch, wt):
+            gh.prs[n]["merge"] = "CLEAN"
+            return "regenerated"
+        return update
+    gh = FakeGh(); gh.add(60, merge="DIRTY")
+
+    def regenerating(repo, branch, wt):
+        gh.prs[60]["merge"] = "CLEAN"
+        return "regenerated"
+    proc, q, log, _ = _proc(mq, d, "c-auto", gh, [60], updater=regenerating)
+    assert proc.process(60) == "MERGED" and "AUTO-RESOLVE" in events(log) and "CONFLICT" not in events(log) and ("update_branch", 60) not in gh.calls, events(log)
+    gh = FakeGh(); gh.add(62, merge="DIRTY")
+    proc, q, log, _ = _proc(mq, d, "c-settle", gh, [62], updater=regenerating_for(gh, 62))
+    settled, why = proc.settle_dirty(62, gh.view(62), None)
+    assert settled["merge"] == "CLEAN" and why is None and "AUTO-RESOLVE" in events(log), "settled"
+    gh = FakeGh(); gh.add(63, merge="DIRTY")
+    proc, q, log, _ = _proc(mq, d, "c-settle2", gh, [63], updater=lambda repo, branch, wt: "conflict")
+    assert proc.settle_dirty(63, gh.view(63), None) == (None, "conflict")
+    gh = FakeGh(); gh.add(64, merge="DIRTY")
+    proc, q, log, _ = _proc(mq, d, "c-settle3", gh, [64], updater=lambda repo, branch, wt: "error")
+    assert proc.settle_dirty(64, gh.view(64), None) == (None, "error") and proc.process(64) == "HOLD" and "CONFLICT" not in events(log), "an update that failed is a HOLD, not a conflict"
+    # GitHub sees the push late: DIRTY for the first two looks, then clean
+    gh = FakeGh(); gh.add(65, merge="DIRTY")
+    looks = {"n": 0}
+    real_view = gh.view
+
+    def late_view(n):
+        v = real_view(n)
+        looks["n"] += 1
+        if looks["n"] >= 4:
+            gh.prs[n]["merge"] = "CLEAN"
+        return v
+    gh.view = late_view
+    proc, q, log, slept = _proc(mq, d, "c-late", gh, [65], updater=lambda repo, branch, wt: "regenerated")
+    assert proc.process(65) == "MERGED" and "CONFLICT" not in events(log) and slept.count(30) >= 2, (events(log), slept)
+    gh = FakeGh(); gh.add(61, merge="DIRTY")
+    proc, q, log, _ = _proc(mq, d, "c-still", gh, [61], updater=lambda repo, branch, wt: "regenerated")
+    assert proc.process(61) == "CONFLICT" and "AUTO-RESOLVE" in events(log), "regenerated but GitHub still sees a conflict: back to the author"
 
     # closed, or gh cannot say: HOLD, never merged
     gh = FakeGh(); gh.add(7, state="CLOSED")
@@ -627,6 +673,7 @@ def _ssh_update(mq, d):
     assert mq.update_over_ssh(work, "pr-conflict", wt) == "conflict"
     g(work, "fetch", "-q", "origin")
     assert g(work, "rev-parse", "origin/pr-conflict") == before and not os.path.exists(wt) and "mq-wt" not in g(work, "worktree", "list")
+    _regenerated(mq, d)
     assert mq.update_over_ssh(work, "no-such-branch", wt) == "error"
     lonely = os.path.join(d, "lonely")
     g(d, "init", "-q", "-b", "main", lonely)
@@ -732,21 +779,10 @@ def _signals(mq, d):
     mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
     assert "ERROR" in events(log) and "disk full" in " ".join(log.lines) and q.numbers() == [] and "MERGED" in events(log), (events(log), q.numbers())
 
-    # the docs lane does not merge while a code pull request is in its final CI; it goes on when that one is done
-    gh = FakeGh(); gh.add(83); gh.add(84)
-    lanes = {83: "code", 84: "docs"}
-    proc, q, log, slept = _proc(mq, d, "s5", gh, [83, 84], lane=lambda g, n: lanes[n])
-    proc.code_testing.add(83)
-
-    def release(seconds):
-        if seconds == 30 and any(" WAIT-CODE-LANE " in l for l in log.lines):
-            proc.code_testing.discard(83)
-    proc.sleep = lambda sec: (slept.append(sec), release(sec))
-    assert proc.process(84) == "MERGED" and "WAIT-CODE-LANE" in events(log) and events(log).index("WAIT-CODE-LANE") < events(log).index("MERGED")
-    gh = FakeGh(); gh.add(85)
-    proc, q, log, slept = _proc(mq, d, "s6", gh, [85], lane=lambda g, n: "code")
-    proc.code_testing.add(999)
-    assert proc.process(85) == "MERGED" and "WAIT-CODE-LANE" not in events(log), "the code lane never waits for the flag"
+    # the docs lane never waits for the code lane: a docs merge leaves a code pull request counted as up to date (see the docs-tier cases below)
+    gh = FakeGh(); gh.add(84)
+    proc, q, log, slept = _proc(mq, d, "s5", gh, [84], lane=lambda g, n: "docs")
+    assert proc.process(84) == "MERGED" and 30 not in slept, (events(log), slept)
 
     # no network failure of the merge decision: compare fails (None) -> HOLD; the pull request closed meanwhile -> HOLD
     gh = FakeGh(); gh.add(86)
@@ -864,26 +900,11 @@ def _signals(mq, d):
     proc, q, log, _ = _proc(mq, d, "bd-strict", gh, [101])
     assert proc.process(101) == "MERGED" and ("update-branch", 101) in gh.calls
 
-    # a code pull request is registered while its final CI runs, and not while it is being brought up to date
-    gh = FakeGh(); gh.add(94, rounds=[dict(pending=3, checks=green())], behind=2)
-    proc, q, log, slept = _proc(mq, d, "s11c", gh, [94])
-    flag = {"during_update": None, "during_wait": []}
-    real_update = gh.update_branch
-
-    def watched_update(n):
-        flag["during_update"] = n in proc.code_testing
-        return real_update(n)
-    gh.update_branch = watched_update
-    proc.sleep = lambda sec: (slept.append(sec), flag["during_wait"].append(94 in proc.code_testing) if sec == 30 and len(slept) > 3 else None)
-    assert proc.process(94) == "MERGED" and flag["during_update"] is False and any(flag["during_wait"]) and 94 not in proc.code_testing, flag
-
-    # checks not registered yet (an empty list) are waited for, not a HOLD at once; the flag is cleared when main moved and the pull request is brought up to date again
+    # checks not registered yet (an empty list) are waited for, not a HOLD at once; main moved meanwhile, so the pull request is brought up to date again
     gh = FakeGh(); gh.add(97)
     proc, q, log, slept = _proc(mq, d, "s11f", gh, [97])
     real_checks = gh.checks
     polls = {"n": 0}
-    seen_flag = []
-    real_update = gh.update_branch
 
     def late_checks(n):
         polls["n"] += 1
@@ -891,17 +912,8 @@ def _signals(mq, d):
             gh.prs[97]["behind"] = 1
         return [] if polls["n"] <= 22 else real_checks(n)   # nothing listed through the registration wait (20 polls) and two more
 
-    def update(n):
-        seen_flag.append(n in proc.code_testing)
-        return real_update(n)
-    gh.checks, gh.update_branch = late_checks, update
-    assert proc.process(97) == "MERGED" and "BEHIND-AT-MERGE" in events(log) and seen_flag == [False], (events(log), seen_flag)
-
-    # the docs lane's wait for the code lane ends at the CI timeout even if the flag never clears
-    gh = FakeGh(); gh.add(95)
-    proc, q, log, slept = _proc(mq, d, "s11d", gh, [95], lane=lambda g, n: "docs", ci_timeout=120)
-    proc.code_testing.add(999)
-    assert proc.process(95) == "MERGED" and slept.count(30) == 4 and "WAIT-CODE-LANE" in events(log)
+    gh.checks = late_checks
+    assert proc.process(97) == "MERGED" and "BEHIND-AT-MERGE" in events(log), events(log)
 
     # a runner that cannot even take a pull request out after three failures keeps its lane
     gh = FakeGh(); gh.add(96)
@@ -915,8 +927,8 @@ def _signals(mq, d):
 
     # a hanging call is a failed call: sh() gives up after its timeout
     started = time.monotonic()
-    r = mq.sh([sys.executable, "-c", "import time; time.sleep(30)"], timeout=1)
-    assert r.returncode == 124 and "timed out" in r.stderr and time.monotonic() - started < 10
+    r = mq.sh([sys.executable, "-c", "import time; time.sleep(300)"], timeout=1)
+    assert r.returncode == 124 and "timed out" in r.stderr and time.monotonic() - started < 120   # a timeout that did not work would take 300 s
 
     # two ssh updates at once never share the scratch worktree
     inside = {"n": 0, "max": 0}
@@ -1000,3 +1012,578 @@ def _gh_commands(mq, d):
     finally:
         for k, v in old.items():
             os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+
+
+def _git(*args, cwd):
+    r = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=cwd, capture_output=True, text=True)
+    assert r.returncode == 0, (args, r.stderr)
+    return r.stdout.strip()
+
+
+def _ff_main(mq, d):
+    # WAIT-SIGNAL is logged for the first unreadable poll whatever the machine's uptime is (monotonic time may be small)
+    gh = FakeGh(); gh.add(200)
+    proc, q, log, _ = _proc(mq, d, "ffs", gh, [200])
+    gh.main_runs["push"] = mq.SignalError("rate limited")
+    proc.pause.clock = lambda: 5.0
+    assert proc.pause.check() is True
+    assert sum(" WAIT-SIGNAL " in l for l in log.lines) == 1, "the first line must not depend on how long the machine has been up"
+
+    # the main checkout after a merge: fast-forwarded when it is clean and on main; left alone, ALERT and both lanes paused otherwise
+    origin = os.path.join(d, "ff-origin.git")
+    _git("init", "-q", "--bare", "-b", "main", origin, cwd=d)
+    seed = os.path.join(d, "ff-seed")
+    _git("clone", "-q", origin, seed, cwd=d)
+    open(os.path.join(seed, "a"), "w").write("1\n")
+    open(os.path.join(seed, "c"), "w").write("c\n")
+    _git("add", "a", "c", cwd=seed); _git("commit", "-qm", "one", cwd=seed); _git("push", "-q", "origin", "main", cwd=seed)
+
+    def checkout(name):
+        path = os.path.join(d, name)
+        _git("clone", "-q", origin, path, cwd=d)
+        return path
+
+    def advance(text):
+        open(os.path.join(seed, "a"), "w").write(text)
+        _git("commit", "-qam", text.strip(), cwd=seed); _git("push", "-q", "origin", "main", cwd=seed)
+
+    def run_ff(name, path):
+        gh = FakeGh(); gh.add(201)
+        proc, q, log, _ = _proc(mq, d, name, gh, [201], main_checkout=path)
+        proc.ff_main(201, 0)
+        return proc, log
+
+    main_dir = checkout("ff-ok")
+    advance("2\n")
+    proc, log = run_ff("ff1", main_dir)
+    assert "FF-MAIN" in events(log) and "ALERT" not in events(log) and _git("rev-parse", "HEAD", cwd=main_dir) == _git("rev-parse", "origin/main", cwd=main_dir) and not proc.pause.is_paused(), log.lines
+
+    wrong = checkout("ff-branch")
+    _git("checkout", "-q", "-b", "work", cwd=wrong)
+    advance("3\n")
+    before = _git("rev-parse", "HEAD", cwd=wrong)
+    proc, log = run_ff("ff2", wrong)
+    assert "ALERT" in events(log) and "FF-MAIN" not in events(log) and proc.pause.is_paused() and "work" in open(proc.pause.paused_file).read() and _git("rev-parse", "HEAD", cwd=wrong) == before, log.lines
+
+    dirty = checkout("ff-dirty")
+    advance("4\n")
+    open(os.path.join(dirty, "c"), "w").write("mine\n")   # a tracked file the fast-forward would not touch: git alone would not refuse
+    proc, log = run_ff("ff3", dirty)
+    assert "ALERT" in events(log) and proc.pause.is_paused() and open(os.path.join(dirty, "c")).read() == "mine\n" and _git("rev-parse", "HEAD", cwd=dirty) != _git("rev-parse", "origin/main", cwd=dirty), log.lines
+
+    local = checkout("ff-local")
+    open(os.path.join(local, "b"), "w").write("x\n")
+    _git("add", "b", cwd=local); _git("commit", "-qm", "local only", cwd=local)   # origin has nothing new: git alone would call the fast-forward a success
+    before = _git("rev-parse", "HEAD", cwd=local)
+    proc, log = run_ff("ff4", local)
+    assert "ALERT" in events(log) and proc.pause.is_paused() and _git("rev-parse", "HEAD", cwd=local) == before, log.lines
+    assert proc.pause.check() is True, "both lanes wait"
+    proc.pause.resume([])
+    assert not proc.pause.is_paused(), "a person's resume lets them go on"
+
+    # a Python file under docs/ is check logic, not plain documentation: a code pull request that lacks it is tested again
+    gh = FakeGh(); gh.add(204, behind=1)
+    gh.prs[204]["behind_files"] = ["docs/x/check_something.py"]
+    proc, q, log, _ = _proc(mq, d, "ffpy", gh, [204], docs_only_fn=lambda files: True)
+    assert proc.process(204) == "MERGED" and "UPDATE" in events(log), events(log)
+
+    # the fast-forward runs under its own lock, and a git command that fails on another command's lock is tried again before anybody is called
+    lock_seen = []
+    gh = FakeGh(); gh.add(205)
+    proc, q, log, slept = _proc(mq, d, "fflock", gh, [205], main_checkout=checkout("ff-lockrun"))
+    real_locked = proc.queue.locked
+    proc.queue.locked = lambda suffix=".lock": (lock_seen.append(suffix), real_locked(suffix))[1]
+    real_sh, tries = mq.sh, {"n": 0}
+
+    def flaky(args, **kw):
+        if "merge" in args and "--ff-only" in args and tries["n"] < 2:
+            tries["n"] += 1
+            return subprocess.CompletedProcess(args, 128, "", "fatal: Unable to create '.git/index.lock': File exists.")
+        return real_sh(args, **kw)
+    mq.sh = flaky
+    try:
+        proc.ff_main(205, 0)
+    finally:
+        mq.sh = real_sh
+    assert lock_seen == [".ff-lock"] and tries["n"] == 2 and "FF-MAIN" in events(log) and "ALERT" not in events(log) and slept.count(5) == 2, (lock_seen, tries, log.lines)
+
+    # the main checkout is found as the first worktree, from a worktree too; a bare repository has none
+    root = checkout("ff-where")
+    _git("worktree", "add", "-q", os.path.join(d, "ff-where-wt"), "-b", "other", cwd=root)
+    cwd = os.getcwd()
+    try:
+        os.chdir(os.path.join(d, "ff-where-wt"))
+        assert os.path.realpath(mq.main_checkout()) == os.path.realpath(root)
+        os.chdir(d)
+        os.chdir(origin)
+        assert mq.main_checkout() is None
+    finally:
+        os.chdir(cwd)
+
+    # unreachable origin: only logged, nothing paused
+    broken = checkout("ff-fetch")
+    _git("remote", "set-url", "origin", os.path.join(d, "nowhere.git"), cwd=broken)
+    proc, log = run_ff("ff5", broken)
+    assert "ALERT" in events(log) and not proc.pause.is_paused(), log.lines
+
+    # the merge itself calls it, and only after a merge that happened
+    gh = FakeGh(); gh.add(202); gh.add(203, merge_results=[(False, "not mergeable")] * 6)
+    proc, q, log, _ = _proc(mq, d, "ff6", gh, [202, 203])
+    called = []
+    proc.ff_main = lambda n, since: called.append(n)
+    assert proc.process(202) == "MERGED" and called == [202]
+    proc.process(203)
+    assert called == [202], "a refused merge does not touch the main checkout"
+
+
+def _docs_tiers(mq, d):
+    # the verdict the queue relies on, from the real relevant_change.py: a doc a test reads is never tier=docs, so a docs merge never makes a code pull request rerun
+    repo = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    check = mq.docs_only(repo)
+    spec = importlib.util.spec_from_file_location("relevant_change", os.path.join(repo, "scripts", "ci", "relevant_change.py"))
+    rc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rc)
+    plain = next(f for f in subprocess.run(["git", "-c", "core.quotepath=off", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if f.endswith(".md") and not rc.is_relevant(f))
+    assert check([plain]), "plain documentation is tier=docs"
+    # docs that only a container-free test reads (tier=guarded) are found, not named: relevant_change.py takes every script that names a doc for a reader of it
+    listed = [f for f in subprocess.run(["git", "-c", "core.quotepath=off", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if rc.is_guarded_doc(f)]
+    index, light = rc.ReaderIndex(repo), rc.light_class_names(repo)
+    guarded = [f for f in listed if (rc.plan_for([f], index, light) or {}).get("classes")]
+    assert guarded, "no doc of the guarded tier is left in the repository: the guarded case below would silently vanish; pick the sample differently"
+    for read in ["docs/modernization/events/asyncapi.yaml", "docs/modernization/glossary/terms.yaml", "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml", *guarded]:
+        assert not check([read]), f"{read} is read by a test: not docs"
+        assert not check([plain, read]), "one test-read file among docs makes the whole set non-docs"
+
+    # a code pull request whose CI ends after main gained docs commits merges as it is; after a test-read doc or code, it is brought up to date and run again
+    for name, files, reruns in (("docs", [plain], False), ("guarded", guarded[:1], True), ("code", ["docs/modernization/events/asyncapi.yaml"], True), ("mixed", [plain, "backend/pom.xml"], True)):
+        gh = FakeGh(); gh.add(210, behind=1)
+        gh.prs[210]["behind_files"] = files
+        proc, q, log, _ = _proc(mq, d, f"dt-{name}", gh, [210], docs_only_fn=check)
+        assert proc.process(210) == "MERGED", log.lines
+        assert ("UPDATE" in events(log)) is reruns, (name, events(log))
+
+
+# the stand-in tree needs mq.py's own path of build_all.py; written in pieces because relevant_change.py takes every script that names a doc path for a reader of it
+MOD = "docs" + "/" + "modernization"
+BUILD_ALL_SOURCE = """import os, sys
+here = os.path.dirname(os.path.abspath(__file__))
+if "--check" in sys.argv:
+    if os.path.exists(os.path.join(here, "CHECKFAIL")):
+        sys.exit("check fails")
+    want = open(os.path.join(here, "GEN.md"), encoding="utf-8").read()
+    got = "".join(open(os.path.join(here, "inputs", n), encoding="utf-8").read() for n in sorted(os.listdir(os.path.join(here, "inputs"))))
+    sys.exit(0 if want == got else "GEN.md is not what the inputs generate")
+if os.path.exists(os.path.join(here, "WRITELOG")):
+    open(os.path.join(here, "build.log"), "w").write("log")
+if os.path.exists(os.path.join(here, "FAIL")):
+    sys.exit("generation failed")
+text = "".join(open(os.path.join(here, "inputs", n), encoding="utf-8").read() for n in sorted(os.listdir(os.path.join(here, "inputs"))))
+open(os.path.join(here, "GEN.md"), "w", encoding="utf-8").write(text)
+"""
+
+
+def _regenerated(mq, d):
+    """Real git and a stand-in build_all.py: a merge that conflicts only in what build_all.py generates is finished by regenerating it; a conflict in anything a person wrote is not."""
+    def g(cwd, *a):
+        r = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *a], cwd=cwd, capture_output=True, text=True)
+        assert r.returncode == 0, (a, r.stderr)
+        return r.stdout.strip()
+
+    origin, work = os.path.join(d, "r.git"), os.path.join(d, "rw")
+    g(d, "init", "-q", "--bare", "-b", "main", origin)
+    g(d, "clone", "-q", origin, work)
+    os.makedirs(os.path.join(work, f"{MOD}/inputs"))
+
+    def write(path, text):
+        with open(os.path.join(work, path), "w", encoding="utf-8") as f:
+            f.write(text)
+
+    def commit(msg):
+        g(work, "add", "-A"); g(work, "commit", "-q", "-m", msg)
+
+    write(f"{MOD}/build_all.py", BUILD_ALL_SOURCE)
+    write(f"{MOD}/inputs/a.txt", "a\n"); write(f"{MOD}/inputs/b.txt", "b\n"); write(f"{MOD}/GEN.md", "a\nb\n")
+    commit("base"); g(work, "push", "-q", "origin", "main")
+
+    def branch(name, edits):
+        g(work, "checkout", "-q", "-B", name, "main")
+        for path, text in edits.items():
+            write(path, text)
+        commit(name); g(work, "push", "-q", "origin", name)
+
+    branch("pr-gen", {f"{MOD}/inputs/a.txt": "a2\n", f"{MOD}/GEN.md": "a2\nb\n"})
+    branch("pr-both", {f"{MOD}/inputs/a.txt": "a-mine\n", f"{MOD}/GEN.md": "a-mine\nb\n"})
+    branch("pr-nogen", {f"{MOD}/inputs/a.txt": "a3\n", f"{MOD}/GEN.md": "a3\nb\n", f"{MOD}/FAIL": "x"})
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/inputs/b.txt", "b2\n"); write(f"{MOD}/GEN.md", "a\nb2\n"); commit("main moves b")
+    g(work, "push", "-q", "origin", "main")
+    wt = os.path.join(d, "mq-wt-r")
+
+    result = mq.update_over_ssh(work, "pr-gen", wt)
+    assert result == "regenerated", result
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "show", f"origin/pr-gen:{MOD}/GEN.md") == "a2\nb2", "both sides' inputs are in the regenerated product"
+    assert g(work, "merge-base", "--is-ancestor", "origin/main", "origin/pr-gen") == "" and not os.path.exists(wt)
+
+    before = g(work, "rev-parse", "origin/pr-both")
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/inputs/a.txt", "a-main\n"); write(f"{MOD}/GEN.md", "a-main\nb2\n"); commit("main moves a")
+    g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-both", wt) == "conflict", "a file a person wrote conflicts too: back to the author"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr-both") == before and not os.path.exists(wt), "nothing pushed"
+
+    before = g(work, "rev-parse", "origin/pr-nogen")
+    assert mq.update_over_ssh(work, "pr-nogen", wt) == "conflict", "build_all.py fails on the merged tree: not settled"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr-nogen") == before
+
+    branch("pr-check", {f"{MOD}/inputs/c.txt": "c\\n", f"{MOD}/GEN.md": "a-main\\nb2\\nc\\n", f"{MOD}/CHECKFAIL": "x"})
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/inputs/b.txt", "b3\\n"); write(f"{MOD}/GEN.md", "a-main\\nb3\\n"); commit("main moves b again")
+    g(work, "push", "-q", "origin", "main")
+    before = g(work, "rev-parse", "origin/pr-check")
+    assert mq.update_over_ssh(work, "pr-check", wt) == "conflict", "build_all.py --check fails on the result: not pushed"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr-check") == before
+
+    # a symbolic link at a conflicted path is never written through; an untracked file build_all.py leaves behind is not committed blindly
+    outside = os.path.join(d, "victim.txt")
+    with open(outside, "w") as f:
+        f.write("untouched\\n")
+    g(work, "checkout", "-q", "main")
+    os.symlink(os.path.join(d, "start"), os.path.join(work, MOD, "link"))
+    commit("main adds a link"); g(work, "push", "-q", "origin", "main")
+    g(work, "checkout", "-q", "-B", "pr-link", "main")
+    os.remove(os.path.join(work, MOD, "link")); os.symlink(outside, os.path.join(work, MOD, "link"))   # the merge leaves the pull request's own link in the work tree
+    commit("pr moves the link"); g(work, "push", "-q", "origin", "pr-link")
+    g(work, "checkout", "-q", "main")
+    os.remove(os.path.join(work, MOD, "link")); os.symlink(os.path.join(d, "elsewhere"), os.path.join(work, MOD, "link"))
+    commit("main moves the link too"); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-link", wt) == "conflict" and open(outside).read() == "untouched\\n", "nothing is written through a link"
+
+    branch("pr-log", {f"{MOD}/inputs/c.txt": "c2\\n", f"{MOD}/GEN.md": "a-main\\nb3\\nc2\\n", f"{MOD}/WRITELOG": "x"})
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/inputs/b.txt", "b4\\n"); write(f"{MOD}/GEN.md", "a-main\\nb4\\n"); commit("main moves b once more")
+    g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-log", wt) == "conflict", "an untracked file build_all.py wrote: not committed, not pushed"
+
+    # a conflict in a file build_all.py does not generate, next to a generated one
+    branch("pr-extra", {f"{MOD}/other.txt": "mine\n", f"{MOD}/inputs/b.txt": "b-mine\n", f"{MOD}/GEN.md": "a-main\nb-mine\n"})
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/other.txt", "main\n"); commit("main touches other")
+    g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-extra", wt) == "conflict"
+
+
+def _remove_busy(mq, d):
+    """`remove` of a pull request a worker is processing: refused, or the worker stops before the merge; never a silent carry-on (#574 was taken out of the queue and merged anyway, 2026-10-22)."""
+    qpath, lpath = os.path.join(d, "rb", "merge.queue"), os.path.join(d, "rb", "merge.log")
+    q = mq.Queue(qpath)
+    q.enqueue(300, 301)
+
+    def cli(*args):
+        try:
+            mq.main(["--queue", qpath, "--log", lpath, *args])
+        except SystemExit as error:
+            return str(error)
+        return None
+
+    # a pull request being processed is refused, and stays queued
+    q.mark_working(300)
+    message = cli("remove", "300")
+    assert message and "cannot be taken back" in message and q.numbers() == [300, 301], (message, q.numbers())
+    assert q.working() == {300: os.getpid()}
+    # one that is not being processed is removed as before, also together with a refused one: nothing is removed then
+    assert cli("remove", "301", "300") is not None and q.numbers() == [300, 301], "a refused remove removes none of them"
+    assert cli("remove", "301") is None and q.numbers() == [300]
+    # --cancel: out of the queue, cancel requested
+    assert cli("remove", "--cancel", "300") is None and q.numbers() == [] and q.cancel_requested(300)
+    q.unmark_working(300)
+    assert not q.cancel_requested(300) and q.working() == {}, "the worker's end clears marker and request"
+    # a marker whose runner is gone is stale: not a reason to refuse
+    with open(qpath + ".working", "w") as f:
+        f.write("300 999999\n")
+    assert q.working() == {}
+    q.enqueue(300)
+    assert cli("remove", "300") is None and q.numbers() == []
+
+    # the worker stops at its checkpoint, before the merge
+    gh = FakeGh(); gh.add(310, rounds=[dict(pending=3, checks=green())])
+    holder = {}
+    proc, q2, log, slept = _proc(mq, d, "rb2", gh, [310], on_sleep=lambda seconds: holder["q"].request_cancel(310) if seconds == 30 else None)
+    holder["q"] = q2
+    assert proc.process(310) == "CANCELLED" and "CANCELLED" in events(log) and not any(c[0] == "merge" for c in gh.calls) and "MERGED" not in events(log), events(log)
+    assert q2.working() == {} and not q2.cancel_requested(310)
+
+    # the request arrives while the merge is being decided (under the merge lock): the last checkpoint stops it before gh is asked
+    gh = FakeGh(); gh.add(313)
+    proc, q5, log, _ = _proc(mq, d, "rb5", gh, [313])
+    real_behind, calls = gh.behind_by, {"n": 0}
+
+    def behind_then_cancel(n, head):
+        calls["n"] += 1
+        if calls["n"] == 2:   # the first look is at the start of the round, the second inside merge_when_fresh
+            q5.request_cancel(n)
+        return real_behind(n, head)
+    gh.behind_by = behind_then_cancel
+    assert proc.process(313) == "CANCELLED" and not any(c[0] == "merge" for c in gh.calls) and "MERGED" not in events(log), (events(log), gh.calls)
+
+    # too late: the merge call has been made when the request comes
+    gh = FakeGh(); gh.add(311)
+    proc, q3, log, _ = _proc(mq, d, "rb3", gh, [311])
+    real_merge = gh.merge
+
+    def merge_then_cancel(n, head):
+        q3.request_cancel(n)
+        return real_merge(n, head)
+    gh.merge = merge_then_cancel
+    assert proc.process(311) == "MERGED" and "CANCELLED" not in events(log) and not q3.cancel_requested(311), events(log)
+
+    # taken out of the queue between the look and the claim: not started
+    gh = FakeGh(); gh.add(312)
+    proc, q4, log, _ = _proc(mq, d, "rb4", gh, [312])
+    real_claim = q4.claim
+    q4.claim = lambda n: (q4.remove(n), real_claim(n))[1]
+    stops = iter([False, True] + [True] * 20)
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "SKIPPED" in events(log) and "START" not in events(log) and not any(c[0] == "merge" for c in gh.calls) and q4.working() == {} and not proc.busy, events(log)
+
+    # check and removal are one step: claimed first -> refused (or cancelled); removed first -> the claim fails
+    q5 = mq.Queue(os.path.join(d, "rb6", "merge.queue"))
+    q5.enqueue(320, 321)
+    assert q5.claim(320) and q5.remove_checked({320, 321}, False) == {320: os.getpid()} and q5.numbers() == [320, 321]
+    assert q5.remove_checked({321}, False) == {} and q5.numbers() == [320]
+    assert q5.remove_checked({320}, True) == {320: os.getpid()} and q5.numbers() == [] and q5.cancel_requested(320)
+    assert not q5.claim(321) and not q5.claim(320), "removed: the claim fails"
+    q5.unmark_working(320)
+    # a request for a pull request nobody is processing is not kept (it would cancel its next round); a mark from an earlier round does not carry a request over
+    q5.request_cancel(330)
+    assert not q5.cancel_requested(330)
+    q5.enqueue(330)
+    assert q5.claim(330)
+    q5.request_cancel(330)
+    q5.unmark_working(330)
+    q5.enqueue(330)
+    assert q5.claim(330) and not q5.cancel_requested(330)
+    with open(os.path.join(d, "rb6", "merge.queue.cancel"), "w") as f:
+        f.write("332\n")   # left over from a round whose worker is gone
+    q5.enqueue(332)
+    assert q5.claim(332) and not q5.cancel_requested(332), "a new round does not inherit an old request"
+    # the runner's start clears what a killed runner left behind (also a pid that is alive by accident)
+    with open(os.path.join(d, "rb6", "merge.queue.working"), "w") as f:
+        f.write("331 1\n")
+    with open(os.path.join(d, "rb6", "merge.queue.cancel"), "w") as f:
+        f.write("331\n")
+    q5.reset_working()
+    assert q5.working() == {} and not q5.cancel_requested(331)
+
+    # CANCELLED does not take a pull request out that was queued again after `remove --cancel`; the queued label comes off
+    gh = FakeGh(); gh.add(340, labels=("queued",), rounds=[dict(pending=3, checks=green())])
+    holder = {}
+    proc, q6, log, _ = _proc(mq, d, "rb7", gh, [340], on_sleep=lambda seconds: holder["q"].request_cancel(340) if seconds == 30 else None)
+    holder["q"] = q6
+    stops = iter([False, True] + [True] * 20)
+    real_process = proc.process
+
+    def process_then_requeue(n):
+        result = real_process(n)
+        q6.enqueue(n)
+        return result
+    proc.process = process_then_requeue
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "CANCELLED" in events(log) and q6.numbers() == [340] and ("label", 340, "queued", False) in gh.calls, (events(log), q6.numbers(), gh.calls)
+
+    # a claim that fails (disk) leaves nothing busy or marked; a failing unmark still frees busy; a request that came too late (the round ended in MERGED) does not take out an entry queued again meanwhile
+    gh = FakeGh(); gh.add(350)
+    proc, q12, log, _ = _proc(mq, d, "rb12", gh, [350])
+    q12.claim = lambda n: (_ for _ in ()).throw(OSError("disk full"))
+    try:
+        proc.pick("code")
+        raise AssertionError("must raise")
+    except OSError:
+        pass
+    assert proc.busy == set() and q12.working() == {}, "a failed claim leaves nothing busy"
+    q12.claim = mq.Queue.claim.__get__(q12)
+    q12.unmark_working = lambda n: (_ for _ in ()).throw(OSError("disk full"))
+    proc.busy.add(350)
+    try:
+        proc.release(350)
+    except OSError:
+        pass
+    assert 350 not in proc.busy, "busy is freed even when the mark cannot be removed"
+    gh = FakeGh(); gh.add(351)
+    holder = {}
+    proc, q13, log, _ = _proc(mq, d, "rb13", gh, [351])
+    real_merge = gh.merge
+
+    def merge_after_cancel_and_requeue(n, head):
+        q13.request_cancel(n)
+        q13.remove(n)
+        q13.enqueue(n)   # remove --cancel, then queued again, while the merge call is already under way
+        return real_merge(n, head)
+    gh.merge = merge_after_cancel_and_requeue
+    stops = iter([False, True] + [True] * 20)
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "MERGED" in events(log) and q13.numbers() == [351], (events(log), q13.numbers())
+
+    # the request stops it while it waits for CI, before the merge is even looked at (the checkpoint in the CI wait)
+    gh = FakeGh(); gh.add(341, rounds=[dict(pending=3, checks=green())])
+    holder = {}
+    looks = {"n": 0}
+    real_behind = gh.behind_by
+    gh.behind_by = lambda n, head: (looks.__setitem__("n", looks["n"] + 1), real_behind(n, head))[1]
+    proc, q7, log, _ = _proc(mq, d, "rb8", gh, [341], on_sleep=lambda seconds: holder["q"].request_cancel(341) if seconds == 30 else None)
+    holder["q"] = q7
+    assert proc.process(341) == "CANCELLED" and looks["n"] == 1, looks
+
+    gh = FakeGh(); gh.add(345)
+    holder = {}
+    proc, q11, log, _ = _proc(mq, d, "rb9b", gh, [345])
+    holder["q"] = q11
+    real_view = gh.view
+    gh.view = lambda n: (holder["q"].request_cancel(n), real_view(n))[1]
+    assert proc.process(345) == "CANCELLED" and ("label", 345, "queued", True) not in gh.calls, gh.calls
+
+    # while it waits for the checks to be listed (before the CI wait proper)
+    gh = FakeGh(); gh.add(344)
+    real_checks = gh.checks
+    polls = {"n": 0}
+    holder = {}
+
+    def light_only(n):
+        polls["n"] += 1
+        return green(light=True) if polls["n"] <= 30 else real_checks(n)
+    gh.checks = light_only
+    proc, q10, log, _ = _proc(mq, d, "rb11", gh, [344], on_sleep=lambda seconds: holder["q"].request_cancel(344) if seconds == 15 else None)
+    holder["q"] = q10
+    assert proc.process(344) == "CANCELLED" and polls["n"] <= 3, polls
+
+    # a request before the branch is updated or labelled stops it there (anything pushed to the branch costs a CI run)
+    gh = FakeGh(); gh.add(342, merge="BEHIND")
+    holder = {}
+    proc, q8, log, _ = _proc(mq, d, "rb9", gh, [342])
+    holder["q"] = q8
+    real_view = gh.view
+    gh.view = lambda n: (holder["q"].request_cancel(n), real_view(n))[1]
+    assert proc.process(342) == "CANCELLED" and not any(c[0] == "update-branch" for c in gh.calls) and ("label", 342, "queued", True) not in gh.calls, gh.calls
+
+    # `once` (no pick) marks the pull request while it is processed
+    gh = FakeGh(); gh.add(343, rounds=[dict(pending=1, checks=green())])
+    seen = []
+    proc, q9, log, _ = _proc(mq, d, "rb10", gh, [], on_sleep=lambda seconds: seen.append(dict(holder["q"].working())))
+    holder["q"] = q9
+    assert proc.process(343) == "MERGED" and any(343 in w for w in seen) and q9.working() == {}, seen
+
+
+STANDIN_BUILD_ALL = """import os, sys
+here = os.path.dirname(os.path.abspath(__file__))
+target = os.path.join(here, "EXTRA.md")
+if "--check" in sys.argv:
+    sys.exit(0 if os.path.exists(target) and open(target, encoding="utf-8").read() == "extra\\n" else "EXTRA.md is not what is generated")
+open(target, "w", encoding="utf-8").write("extra\\n")
+"""
+
+
+def _ignored_conflicts(mq, d):
+    """A product that has moved out of the repository (untracked and ignored) which the other side still changed: modify/delete, in both directions; settled by taking it out of the index. A real delete, or a conflict in a file a person wrote next to it, is not."""
+    def g(cwd, *a):
+        r = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *a], cwd=cwd, capture_output=True, text=True)
+        assert r.returncode == 0, (a, r.stderr)
+        return r.stdout.strip()
+
+    def repo(name):
+        origin, work = os.path.join(d, f"{name}.git"), os.path.join(d, name)
+        g(d, "init", "-q", "--bare", "-b", "main", origin)
+        g(d, "clone", "-q", origin, work)
+        os.makedirs(os.path.join(work, MOD))
+
+        def write(path, text):
+            with open(os.path.join(work, path), "w", encoding="utf-8") as f:
+                f.write(text)
+
+        def commit(message):
+            g(work, "add", "-A"); g(work, "commit", "-q", "-m", message)
+
+        write(f"{MOD}/build_all.py", STANDIN_BUILD_ALL); write(f"{MOD}/EXTRA.md", "extra\n"); write(f"{MOD}/human.txt", "h\n")
+        commit("base"); g(work, "push", "-q", "origin", "main")
+        return work, write, commit
+
+    def untrack(work, write, commit, ignore=True):
+        g(work, "rm", "-q", "--cached", f"{MOD}/EXTRA.md")
+        if ignore:
+            write(".gitignore", f"{MOD}/EXTRA.md\n")
+        else:
+            os.remove(os.path.join(work, MOD, "EXTRA.md"))
+        commit("untrack the product")
+
+    wt = os.path.join(d, "mq-wt-i")
+
+    # main moves the product out, the pull request still changed it
+    work, write, commit = repo("ig1")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/EXTRA.md", "mine\n"); commit("pr edits the product"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); untrack(work, write, commit); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr", wt) == "regenerated"
+    g(work, "fetch", "-q", "origin")
+    assert f"{MOD}/EXTRA.md" not in g(work, "ls-tree", "-r", "--name-only", "origin/pr").splitlines() and g(work, "merge-base", "--is-ancestor", "origin/main", "origin/pr") == ""
+
+    # the pull request moved it out, main changed it
+    work, write, commit = repo("ig2")
+    g(work, "checkout", "-q", "-B", "pr", "main"); untrack(work, write, commit); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); write(f"{MOD}/EXTRA.md", "main\n"); commit("main edits the product"); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr", wt) == "regenerated"
+    g(work, "fetch", "-q", "origin")
+    assert f"{MOD}/EXTRA.md" not in g(work, "ls-tree", "-r", "--name-only", "origin/pr").splitlines()
+
+    # a file a person wrote, deleted on one side and changed on the other: not ignored, so a person decides (also: ignoring a human file is not what makes it settle)
+    work, write, commit = repo("ig3")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/human.txt", "mine\n"); commit("pr edits"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); g(work, "rm", "-q", f"{MOD}/human.txt"); commit("main deletes human.txt"); g(work, "push", "-q", "origin", "main")
+    before = g(work, "rev-parse", "origin/pr")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr") == before
+
+    # a HUMAN file wrongly ignored (main took it out of the index and ignored it by mistake): the pull request's change would be lost, so it is never settled here
+    work, write, commit = repo("ig5")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/human.txt", "mine\n"); commit("pr edits the human file"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); g(work, "rm", "-q", "--cached", f"{MOD}/human.txt"); write(".gitignore", f"{MOD}/human.txt\n"); commit("main ignores the human file"); g(work, "push", "-q", "origin", "main")
+    before = g(work, "rev-parse", "origin/pr")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr") == before
+
+    # ignored only by this machine's own exclude file (not by a .gitignore of the tree): not a moved-out product
+    work, write, commit = repo("ig6")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/EXTRA.md", "mine\n"); commit("pr edits"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); untrack(work, write, commit, ignore=False); g(work, "push", "-q", "origin", "main")
+    with open(os.path.join(work, ".git", "info", "exclude"), "a") as f:
+        f.write(f"{MOD}/EXTRA.md\n")
+    assert mq.moved_out_conflicts.__name__ == "moved_out_conflicts"
+    result = mq.update_over_ssh(work, "pr", wt)
+    g(work, "fetch", "-q", "origin")
+    assert result == "regenerated" and f"{MOD}/EXTRA.md" in g(work, "ls-tree", "-r", "--name-only", "origin/pr").splitlines(), "regenerated like any product, but it stays tracked: the machine's exclude file is no reason to take it out of the index"
+
+    # .gitignore itself conflicting: what is ignored is not known yet
+    work, write, commit = repo("ig7")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(".gitignore", "pr-line\n"); write(f"{MOD}/EXTRA.md", "mine\n"); commit("pr edits both"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); write(".gitignore", "main-line\n"); commit("main edits .gitignore"); untrack(work, write, commit); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict"
+
+    # a link in place of the moved product is never written through, also when it is on its way out of the repository
+    outside = os.path.join(d, "ig8-victim.txt")
+    with open(outside, "w") as f:
+        f.write("untouched\n")
+    work, write, commit = repo("ig8")
+    g(work, "checkout", "-q", "-B", "pr", "main"); os.remove(os.path.join(work, MOD, "EXTRA.md")); os.symlink(outside, os.path.join(work, MOD, "EXTRA.md")); commit("pr turns the product into a link"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); untrack(work, write, commit); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict" and open(outside).read() == "untouched\n"
+
+    # a file a person wrote conflicts next to the moved product
+    work, write, commit = repo("ig4")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/EXTRA.md", "mine\n"); write(f"{MOD}/human.txt", "mine\n"); commit("pr edits both"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); write(f"{MOD}/human.txt", "main\n"); commit("main edits human.txt"); untrack(work, write, commit); g(work, "push", "-q", "origin", "main")
+    before = g(work, "rev-parse", "origin/pr")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr") == before

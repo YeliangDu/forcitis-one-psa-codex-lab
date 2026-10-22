@@ -35,8 +35,8 @@ def retarget(terms, old_id, new_id):
                 t[f] = new_id
 
 
-def apply(terms):
-    doc = yaml.safe_load(open(os.path.join(HERE, "rulings.yaml"), encoding="utf-8"))["rulings"]
+def apply(terms, late=False):
+    doc = [r for r in yaml.safe_load(open(os.path.join(HERE, "rulings.yaml"), encoding="utf-8"))["rulings"] if bool(r.get("late")) == late]
     byid = {t["id"]: t for t in terms}
     done = 0
     for r in doc:
@@ -106,6 +106,11 @@ def apply(terms):
             t["definition"] = r["definition"]
             for a in r.get("add_aliases") or []:
                 add_alias(t, a["name"], a["type"], r["source"])
+            for w in r.get("add_forbidden") or []:
+                if not CJK.fullmatch(w):
+                    raise SystemExit(f"rulings.yaml redefine {rid}：add_forbidden「{w}」须为纯中文")
+                if w not in (t.get("forbidden") or []):
+                    t.setdefault("forbidden", []).append(w)
             confirm(t, confirmed)
         elif op == "rename":
             old_zh, old_en = t["zh"], t["en"]

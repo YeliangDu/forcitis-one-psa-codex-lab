@@ -6,7 +6,7 @@
     <participant id="P_main" name="FORCITIS one" processRef="PRC-34"/>
   </collaboration>
   <process id="PRC-34" name="处置我方成果不符合项" isExecutable="false">
-    <documentation>owner B-28；VS-02.6、VS-02.7</documentation>
+    <documentation>owner B-28；VS-02.2、VS-02.3、VS-02.4、VS-02.6、VS-02.7</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E3" name="设计师和顾问（SH-E3）">
         <flowNodeRef>Start_1</flowNodeRef>

@@ -10,7 +10,7 @@
   <dataStore id="DS_AGG-27" name="AGG-27"/>
   <collaboration id="Collab_PRC-28">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-28"/>
-    <participant id="Pool_1" name="客户决策链·发起人（SH-C6a）"/>
+    <participant id="Pool_1" name="客户·客户决策链·发起人（SH-C6a）"/>
     <messageFlow id="Msg_1" name="交付物客户认可" sourceRef="Pool_1" targetRef="S6_reg_17"/>
   </collaboration>
   <process id="PRC-28" name="编制、评审并签发交付物，送达并登记客户认可" isExecutable="false">

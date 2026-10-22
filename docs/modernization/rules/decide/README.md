@@ -30,8 +30,14 @@
 | STKH 干系人与业务对象对应（10 题，不预选；one-architecture） | `sheets/STKH.json` | https://claude.ai/artifact/QD66je3YcbEgZToGPq9WwT（2026-10-19 起） |
 | STKH2 干系人子类（7 题，不预选；one-architecture） | `sheets/STKH2.json` | https://claude.ai/artifact/L4Ges3vue2F33Zhh4gwF7h（2026-10-19 起） |
 | B31R 行政事务规则要点（10 题，预选推荐；one-architecture） | `sheets/B31R.json` | https://claude.ai/artifact/VMfomUnRLmCHuQ9EfZr51i（2026-10-20 起） |
+| GL5 用语确认第六批：协议状态与资产卡片（2 题，不预选；one-glossary） | `sheets/GL5.json` | https://claude.ai/artifact/UgWURDEPwcMvA4hBZCa4Lw（2026-10-22 起） |
 | GL3 用语确认第四批（11 题，不预选；one-glossary） | `sheets/GL3.json` | https://claude.ai/artifact/EFi9EDMikxT4Pa9c9oBr3m（2026-10-21 起） |
 | A7475 行政事务模块与子状态机转换记录批准（ADR-0074、0075，2 题，不预选；one-architecture） | `sheets/A7475.json` | https://claude.ai/artifact/5VR57YayWQCsNZ4Pdjg4RF（2026-10-21 起，未实看渲染） |
+| A7677 合同原件借阅与信息技术资产引用的先行安排批准（ADR-0076、0077 与外借审批人口径，3 题，不预选；one-architecture） | `sheets/A7677.json` | https://claude.ai/artifact/HTw3rQHuMSDNN7R17W1SQU（2026-10-21 起，未实看渲染） |
+| SGN 签章服务未准入时行政事务的停工范围（1 题，不预选；one-architecture） | `sheets/SGN.json` | https://claude.ai/artifact/JZc7KyLZLB8VSmd6FM4qNd（2026-10-22 起，未实看渲染） |
+| LEB 换法人后的合同与项目归属及四项待定规则（9 题，不预选；one-architecture） | `sheets/LEB.json` | https://claude.ai/artifact/Hk9eivZEUYvKjAvaMHYrH2（2026-10-22 起，未实看渲染） |
+| KPI 指标口径待定（7 题，不预选；one-architecture） | `sheets/KPI.json` | https://claude.ai/artifact/VbwhsaaqdA9BTxpEVbUsqZ（2026-10-22 起，未实看渲染） |
+| FCQ 贡献毛利基线、直接人工费率与工资补发的财务口径（7 题，不预选；one-arch-finance） | `sheets/FCQ.json` | https://claude.ai/artifact/LgVhQxMc6Rv11hS4Z8iSAc（2026-10-22 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|

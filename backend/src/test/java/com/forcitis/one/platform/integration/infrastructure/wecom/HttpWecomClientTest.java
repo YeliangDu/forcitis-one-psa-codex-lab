@@ -44,6 +44,9 @@ class HttpWecomClientTest {
     static final String SEND_PATH = "/cgi-bin/message/send";
     static final String UPDATE_PATH = "/cgi-bin/message/update_template_card";
 
+    /** The read timeout of every case that expects an answer: a ceiling against a stub that stalls on a loaded machine, not a measured wait; the one case that wants a timeout uses its own. */
+    static final Duration GENEROUS = Duration.ofSeconds(30);
+
     static WireMockServer wecom;
     static final String CORP_ID = "corp-" + UUID.randomUUID();
     static final String SECRET = "secret-" + UUID.randomUUID();
@@ -65,13 +68,13 @@ class HttpWecomClientTest {
     @BeforeEach
     void freshClient() {
         wecom.resetAll();
-        client = clientWith(Duration.ofSeconds(5));
+        client = clientWith(GENEROUS);
     }
 
     private List<Integer> duplicateTaskCodes = List.of();
 
     private HttpWecomClient clientWith(Duration readTimeout) {
-        WecomProperties properties = new WecomProperties(true, wecom.baseUrl(), CORP_ID, SECRET, "1000002", Duration.ofSeconds(5),
+        WecomProperties properties = new WecomProperties(true, wecom.baseUrl(), CORP_ID, SECRET, "1000002", GENEROUS,
                 readTimeout, new WecomProperties.Recipients(true, List.of()), new WecomProperties.Delivery(Duration.ofSeconds(5), duplicateTaskCodes));
         return new HttpWecomClient(properties, JsonMapper.builder().build(), clock);
     }
@@ -258,7 +261,7 @@ class HttpWecomClientTest {
         assertThatThrownBy(() -> client.sendCard(delivery())).isInstanceOf(ExternalSystemUnavailableException.class);
 
         duplicateTaskCodes = List.of(42014);
-        assertThat(clientWith(Duration.ofSeconds(5)).sendCard(delivery())).isEmpty();
+        assertThat(clientWith(GENEROUS).sendCard(delivery())).isEmpty();
     }
 
     @Test

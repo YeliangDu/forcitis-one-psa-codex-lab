@@ -1,0 +1,47 @@
+# 合同原件借阅用语（one-glossary 2026-10-21，NAM-1021-GLO-14；ADR-0076 提议，proposed）。bc 按 one-architecture 裁定：先行期 organization.administration，W3 移交 contract.agreement。
+terms:
+- id: contract_original
+  zh: 合同原件
+  en: ContractOriginal
+  snake: contract_original
+  kind: entity
+  bc: organization.administration
+  scope: domain
+  definition: 合同原件的归档记录：法人、合同编号、原件类型、存放位置、归档状态；先行期在行政事务，W3 移交合同模块的协议归档记录（ADR-0076）
+  standard_ref:
+  - ADR-0076
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: loan_record
+  zh: 借阅记录
+  en: LoanRecord
+  snake: loan_record
+  kind: entity
+  bc: organization.administration
+  scope: domain
+  definition: 一份合同原件的一次借出：借用人、借出日、应还日、实际归还日，审批实例必填；借出须原件已归档且无未归还借出（ADR-0076，INV-125）
+  standard_ref:
+  - ADR-0076
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: renewal_record
+  zh: 续借记录
+  en: RenewalRecord
+  snake: renewal_record
+  kind: entity
+  bc: organization.administration
+  scope: domain
+  definition: 一笔借阅的续借，另起一条并引用原借阅记录，带新应还日与续借审批实例，每笔借阅最多续借一次（ADR-0076）
+  standard_ref:
+  - ADR-0076
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''

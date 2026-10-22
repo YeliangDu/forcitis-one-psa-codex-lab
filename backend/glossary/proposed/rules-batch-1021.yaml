@@ -16,21 +16,6 @@ terms:
   forbidden: []
   status: proposed
   note: 'platform.approval.api 现有类型 ContentHash 与 platform.file 的 ContentHash 同名，改名交 platform.approval 会话'
-- id: binding
-  zh: 约束性
-  en: Binding
-  snake: binding
-  kind: value_object
-  bc: platform.approval
-  scope: domain
-  definition: 审批意见对流程有约束力、会推进或终止流程；与「建议性」相对。one-rules 用「正式效力」，名词化后与建议性不成对，改用约束性
-  standard_ref:
-  - "RULES: APPROVAL_INTEGRITY"
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 'one-rules 原写正式效力（binding effect），请确认改用约束性'
 - id: process_administrator
   zh: 流程管理员
   en: ProcessAdministrator
@@ -109,36 +94,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: project_role
-  zh: 项目角色
-  en: ProjectRole
-  snake: project_role
-  kind: value_object
-  bc: platform.identity
-  scope: domain
-  definition: 人在项目上担任的角色，是数据范围的一个维度（法人 × 部门 × 项目角色）
-  standard_ref:
-  - "ADR-0009 决定 4；RULES: IDENTITY_SINGLE_OPERATOR"
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: identity_confirmation
-  zh: 身份确认
-  en: IdentityConfirmation
-  snake: identity_confirmation
-  kind: value_object
-  bc: platform.identity
-  scope: domain
-  definition: 外部票据登录后，本人确认「这个账号是我」的步骤；确认前会话无任何权限
-  standard_ref:
-  - "RULES: IDENTITY_SINGLE_OPERATOR RULE-458"
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: browser_identifier
   zh: 浏览器标识
   en: BrowserIdentifier
@@ -154,21 +109,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: registrar
-  zh: 登记人
-  en: Registrar
-  snake: registrar
-  kind: value_object
-  bc: platform.integration
-  scope: domain
-  definition: 录入来源对照待确认行的人；确认人不得是登记人
-  standard_ref:
-  - "RULES: SOURCE_REFERENCE"
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: '规则文件称 Registrar / Recorder（录入人）；错误码已用「登记人」，录入人不用'
 - id: login_method
   zh: 登录方式
   en: LoginMethod

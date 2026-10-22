@@ -48,6 +48,27 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
     writers: [organization.attendance]
+  # IMP-1021-PAR-02: the versioned calendar below replaces the two tables above once the confirmation flow writes to it; until then both exist.
+  organization_attendance.work_calendars:
+    role: CONFIG_VERSIONED
+    aggregate: WorkCalendar
+    mutability: APPEND_ONLY
+    versions_table: organization_attendance.work_calendar_versions
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+  organization_attendance.work_calendar_versions:
+    role: AGGREGATE_CHILD
+    aggregate: WorkCalendar
+    mutability: CONDITIONAL_UPDATE
+    condition: "PENDING_CONFIRMATION to CONFIRMED or WITHDRAWN, and closing the previous version's effective_to_date when the next one is confirmed (tg_work_calendar_versions_change)"
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
+  organization_attendance.work_calendar_version_days:
+    role: AGGREGATE_CHILD
+    aggregate: WorkCalendar
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
 
   # Identity of positions, org_units and employees comes from platform_integration.source_references, unique on (source_system, source_object_kind, source_id).
   # positions.code, org_units.code and employees.employee_code are display only and not unique in the source (five employee codes sit on several rows, three of them on both

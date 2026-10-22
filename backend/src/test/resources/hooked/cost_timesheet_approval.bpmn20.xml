@@ -5,6 +5,9 @@
              xmlns:forcitis="https://forcitis.com/psa/approval/extension"
              targetNamespace="https://forcitis.com/psa/approval">
   <process id="cost_timesheet_approval" name="Timesheet approval (hooks)" isExecutable="true">
+    <extensionElements>
+      <forcitis:documentType code="TIMESHEET"/>
+    </extensionElements>
     <startEvent id="start"/>
     <sequenceFlow id="toReviewStage" sourceRef="start" targetRef="reviewStage"/>
     <subProcess id="reviewStage" name="Manager review">

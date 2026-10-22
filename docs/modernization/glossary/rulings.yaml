@@ -2,6 +2,7 @@
 # 每条必须写 source（用户答复或 intent 的出处）；操作：
 #   rename   改正式词条：id / zh / en / definition（可选），旧中文名作方言别名并列入禁用（纯中文），旧英文名作 old-code 别名；
 #   redefine 只改定义；
+#   late: true 的条目在 recon 写回之后才应用（目标词条由 recon 写回产生时用）；
 #   promote  把一条提议转为正式词条：条目内容写在 entry 里（来自转正时的提议原文），提议文件里的同名条目须同批删除，重名即失败。
 rulings:
   - op: rename
@@ -159,3 +160,402 @@ rulings:
     ids: [attendance]
     to: organization.leave
     source: 用户 2026-10-16 待决定收件箱 2026-10-16-one-glossary-bc-names 按推荐改名：词条「考勤与休假」改挂 organization.leave，该 bc 中文名改「考勤与休假」，原 organization.attendance 改「工作日历与标准工时」（intent 见该事项）
+  - op: promote
+    id: binding
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: binding
+      zh: 约束性
+      en: Binding
+      snake: binding
+      kind: value_object
+      bc: platform.approval
+      scope: domain
+      definition: 审批意见对流程有约束力、会推进或终止流程；与「建议性」相对。one-rules 用「正式效力」，名词化后与建议性不成对，改用约束性
+      standard_ref:
+      - 'RULES: APPROVAL_INTEGRITY'
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: project_role
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: project_role
+      zh: 项目角色
+      en: ProjectRole
+      snake: project_role
+      kind: value_object
+      bc: platform.identity
+      scope: domain
+      definition: 人在项目上担任的角色，是数据范围的一个维度（法人 × 部门 × 项目角色）
+      standard_ref:
+      - 'ADR-0009 决定 4；RULES: IDENTITY_SINGLE_OPERATOR'
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: identity_confirmation
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: identity_confirmation
+      zh: 身份确认
+      en: IdentityConfirmation
+      snake: identity_confirmation
+      kind: value_object
+      bc: platform.identity
+      scope: domain
+      definition: 外部票据登录后，本人确认「这个账号是我」的步骤；确认前会话无任何权限
+      standard_ref:
+      - 'RULES: IDENTITY_SINGLE_OPERATOR RULE-458'
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: registrar
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: registrar
+      zh: 登记人
+      en: Registrar
+      snake: registrar
+      kind: value_object
+      bc: platform.integration
+      scope: domain
+      definition: 录入来源对照待确认行的人（登记人＝录入该行的人），与命令的「起草人」「登记」动作（ADR-0068、0073）不是一回事；确认人不得是登记人
+      standard_ref:
+      - 'RULES: SOURCE_REFERENCE'
+      confidence: medium
+      aliases:
+      - name: 录入人
+        type: dialect
+        deprecated: true
+        source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+      forbidden:
+      - 录入人
+      note: ''
+  - op: promote
+    id: finding
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: finding
+      zh: 发现
+      en: Finding
+      snake: finding
+      kind: entity
+      bc: delivery.inspection
+      scope: domain
+      definition: 检查或审核中查出的问题；与缺陷责任期、质量缺陷率无关
+      standard_ref:
+      - rules/decide/sheets/GL3.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: compensatory_leave
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: compensatory_leave
+      zh: 补休
+      en: CompensatoryLeave
+      snake: compensatory_leave
+      kind: value_object
+      bc: organization.leave
+      scope: domain
+      definition: 加班后安排的休息（劳动法第 44 条）；不是日历里要上班的周末（那是调休上班日）；「调休」单用易与调休上班日混，列方言
+      standard_ref:
+      - rules/decide/sheets/GL3.json
+      confidence: medium
+      aliases:
+      - name: 调休
+        type: dialect
+        deprecated: true
+        source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见）
+      forbidden:
+      - 调休
+      note: ''
+  - op: promote
+    id: operating_valuation
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+    entry:
+      id: operating_valuation
+      zh: 经营估值
+      en: OperatingValuation
+      snake: operating_valuation
+      kind: value_object
+      bc: delivery.execution
+      scope: domain
+      definition: 每期按估计进度形成的内部估值，只作经营管理，不是收入，不进财务账（用户 2026-10-16 intent 2026-10-16-144613）
+      standard_ref:
+      - rules/decide/sheets/GL3.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: rename
+    id: rate_card_item
+    zh: 费率项
+    en: RateCardItem
+    forbid_old: false
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  - op: rename
+    id: progress_assessment
+    zh: 进度计量认定
+    en: ProgressAssessment
+    forbid_old: true
+    definition: 项目×合同×期间的计量认定单（证据必备、封期锁定），属收入侧计量，与经营口径的「经营估值」分开；进度只作内部估值、不进收入（用户 2026-10-16）
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  - op: redefine
+    id: make_up_workday
+    definition: 工作日历中需要上班的周六或周日；与「补休」（加班后安排的休息）不是一回事
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  - op: redefine
+    id: project_manager
+    definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）；「项目负责人」是同一角色的方言，不用；与权责表对齐：revenue/raci.yaml 里暂停、恢复、终止、取消项目的批准人统一写项目.项目经理（VS02-05，intent 2026-10-16-163556）
+    add_aliases:
+    - name: 项目负责人
+      type: dialect
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  - op: rename
+    late: true
+    id: standard_cost_rate_card
+    zh: 标准成本费率卡
+    en: StandardCostRateCard
+    forbid_old: false
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05：对客侧计费费率卡与成本侧同层，卡、表不混用，英文名本就是 Card）
+  - op: redefine
+    late: true
+    id: standard_cost_rate
+    definition: 用于签约后交付阶段的标准成本费率；由标准成本费率卡及其版本承载，与计费费率和实际成本费率分立。
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05）
+  - op: promote
+    id: management_layer
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+    confirmed: 2026-10-21（用户，用语确认第四批 GL3-11）
+    entry:
+      id: management_layer
+      zh: 管理层
+      en: ManagementLayer
+      snake: management_layer
+      kind: value_object
+      bc: organization.workforce
+      scope: domain
+      definition: 公司管理人员的泛称；指具体的人时写项目经理、项目总监、部门负责人等角色名，不用「经营层」
+      standard_ref:
+      - rules/decide/sheets/GL3.json
+      confidence: medium
+      aliases:
+      - name: 经营层
+        type: dialect
+        deprecated: true
+        source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+      forbidden:
+      - 经营层
+      note: ''
+  - op: promote
+    id: customer_facing_baseline
+    source: 用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
+    confirmed: 2026-10-21（用户，内部基线重定）
+    entry:
+      id: customer_facing_baseline
+      zh: 对客基线
+      en: CustomerFacingBaseline
+      snake: customer_facing_baseline
+      kind: value_object
+      bc: delivery.execution
+      scope: domain
+      definition: 计划基线的一种：经发包人批准后生效；同一时间只有一个生效版本
+      standard_ref:
+      - 交付计划版本 AGG-21（revenue/state-machines.yaml）
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: internal_baseline
+    source: 用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
+    confirmed: 2026-10-21（用户，内部基线重定）
+    entry:
+      id: internal_baseline
+      zh: 内部基线
+      en: InternalBaseline
+      snake: internal_baseline
+      kind: value_object
+      bc: delivery.execution
+      scope: domain
+      definition: 计划基线的一种：项目经理锁定即生效，无需发包人批准，可先于对客基线存在；同一时间只有一个生效版本
+      standard_ref:
+      - 交付计划版本 AGG-21（revenue/state-machines.yaml）
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: redefine
+    id: plan_baseline
+    definition: 交付计划的不可变版本（修订须依据；与经营子域计划基线同名不同义）；按种类分对客基线与内部基线，各自一个生效版本，状态链同为草拟、已批准、被取代
+    source: 用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
+  - op: redefine
+    late: true
+    id: single_operator_relaxation
+    definition: 单人运维模式下被放宽的规则，封闭为五个取值：见证人省略、应急账号下限一个、超级管理员下限一个（只改同步暂停原因文本）、模板版本无作者、日历版本无作者（起草版本作者为空）；写入标注审计的 detail；新增取值须另立 ADR（ADR-0030 第 2 项）
+    source: ADR-0072 决定 2（已采纳 2026-10-21，放宽清单由四值增为五值，增「每个日历版本记录作者」）
+  - op: rename
+    late: true
+    id: it_asset_repair_order
+    zh: 信息技术资产维修单
+    en: ItAssetRepairOrder
+    definition: 记录公司信息技术资产的故障、维修安排与完成情况的维修单。
+    forbid_old: true
+    source: 用户 2026-10-21 用语确认第五批 GL4-04（提交 GL4-20261021-221322-bbn，intent 2026-10-21-221338）
+  - op: redefine
+    late: true
+    id: net_service_revenue
+    definition: 管理口径的净额，不用于法定报表：不含税收入减委外与分包、再减可向客户转收的代垫费用后的余额；信息服务费不在此扣除，计入直接项目费用并在贡献毛利中扣除。法定收入按总额含代垫确认，二者可互相推导：净服务收入 ＝ 法定收入（不含税）− 委外与分包 − 可向客户转收的代垫费用，报表脚注写出推导关系（用户 KPI-Q02）；原「净收入」并入本词（KPI-Q02、NU-13）
+    add_aliases:
+    - name: 净收入
+      type: standard-zh
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: deprecate
+    late: true
+    id: net_revenue
+    replaced_by: net_service_revenue
+    until: '2026-12-31'
+    owner: one-glossary
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: pass_through_cost
+    definition: 为履行合同转付给第三方的成本：分包成本、外包成本（合称委外与分包），以及可向客户转收的代垫费用；在净服务收入中扣减（用户 KPI-Q02）
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: intermediary_fee
+    definition: 居间协议约定的佣金支出；公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；应付登记须挂触发事实，不是转付成本，在贡献毛利中扣减、不在净服务收入中扣（FD-17、FD-41）
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: indirect_cost
+    definition: 不能直接归属项目的成本与费用，按职能（研发、总部、支持、销售、居间等）归集；分摊规则按财务口径 FD-44
+    add_aliases:
+    - name: 间接费用
+      type: dialect
+    add_forbidden:
+    - 间接费用
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: accrual_basis_revenue
+    definition: 权责口径账簿按客户确认（收入确认单）确认的营业收入（不含税）；与收付口径账簿按开票确认的收入相对，经营分析以此为收入主口径
+    add_aliases:
+    - name: 收入确认（不含税）
+      type: standard-zh
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: revenue_including_tax
+    definition: 年度目标跟踪使用的含税收入指标；主收入口径及收入与成本配对仍使用不含税口径。
+    add_aliases:
+    - name: 收入确认（含税）
+      type: standard-zh
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: project_cost
+    definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）；按科目划分的「变动成本」「固定成本」两栏已废弃，不复活旧词；以后按成本性态分析时另立「成本性态」维度（用户 KPI-Q07）
+    add_aliases:
+    - name: 变动成本
+      type: dialect
+    - name: 固定成本
+      type: dialect
+    add_forbidden:
+    - 变动成本
+    - 固定成本
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: promote
+    id: agreement_status__signed
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+    confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+    entry:
+      id: agreement_status__signed
+      zh: 协议已签署
+      en: AgreementSigned
+      snake: agreement_signed
+      kind: state
+      bc: contract.agreement
+      scope: domain
+      definition: 状态显示名「已签署」；协议已签署但尚未满足约定的生效条件；无附条件的协议签署与生效同事务完成，只落已生效
+      standard_ref:
+      - rules/decide/sheets/GL5.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: agreement_status__effective
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+    confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+    entry:
+      id: agreement_status__effective
+      zh: 协议已生效
+      en: AgreementEffective
+      snake: agreement_effective
+      kind: state
+      bc: contract.agreement
+      scope: domain
+      definition: 状态显示名「已生效」；协议已生效；只能由业务操作触发，附条件的协议经「确认生效条件满足」命令转入，不能手工改状态；转入时记生效依据：条件类型、证据单据号（如预付款保函编号）、生效日
+      standard_ref:
+      - rules/decide/sheets/GL5.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: asset_card
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+    confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+    entry:
+      id: asset_card
+      zh: 资产卡片
+      en: AssetCard
+      snake: asset_card
+      kind: entity
+      bc: accounting.fixedasset
+      scope: domain
+      definition: 财务为达到固定资产标准的公司资产建的账务档案；卡片、折旧、报废与盘点账务归固定资产模块，行政事务只引用卡片号；不等同于公司资产本身
+      standard_ref:
+      - rules/decide/sheets/GL5.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: redefine
+    late: true
+    id: company_asset
+    definition: 本公司拥有或控制并登记管理使用、折旧、摊销及处置情况的资产；公司资产是资产本身，不等同于固定资产类别，也不等同于固定资产卡片。
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）（用户备注）
+  - op: redefine
+    late: true
+    id: direct_labor
+    definition: 有效工时乘该变体所用的成本费率，可复算；按变体分费率：预算、预估变体用标准成本费率卡的版本，实际变体用实际成本费率（含加班计价）；挂项目的奖金按服务期间计提计入直接人工：预算、预估变体按费率卡版本的奖金计提率，实际变体按计提并在奖金核定后单列调整行（FCQ-05、FCQ-01）
+    source: 用户 2026-10-22 FCQ-05、FCQ-01（intent 2026-10-22-103824）；公式见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.1、§2.2（@ed99f3b8）
+  - op: redefine
+    late: true
+    id: actual_cost_rate
+    definition: 用于成本核算的实际成本费率，与交付使用的标准成本费率、售前使用的计费费率分立。标准小时费率 r ＝ 当日日薪 ÷ 标准日工时（默认 7.5，按法人可配）；当日人工成本：工作日 r × [min(H, 8) + 1.5 × max(H − 8, 0)]，休息日未补休 r × 2 × H、已补休 r × 1 × H，法定节假日 r × 3 × H（H 为当日总工时；《劳动法》第三十六条、第四十四条；7.5 到 8 小时按 1 倍计）；取代 FD-09 中按 max(当日总工时, 7.5) 摊薄的做法（FCQ-05）
+    source: 用户 2026-10-22 FCQ-05（intent 2026-10-22-103824）；公式见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §2.2（@ed99f3b8）
+  - op: redefine
+    late: true
+    id: standard_cost_rate_card
+    definition: 薪酬脱敏后的版本化政策费率（财务维护）；版本上同时挂奖金计提率，规则类型分合同额百分比与历史比率（默认历史比率），预算、预估、实际三个变体用同一版本（FCQ-01）
+    source: 用户 2026-10-22 FCQ-01（intent 2026-10-22-103824）；见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.2（@ed99f3b8）

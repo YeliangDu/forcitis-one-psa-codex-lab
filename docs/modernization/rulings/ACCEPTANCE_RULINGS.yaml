@@ -230,3 +230,31 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
     reason: 审计主体种类新增 STORED_FILE（one-architecture 裁定，单元 5），KINDS_WITH_OBJECT 只加一项，其余不动；PR 改断言栏写明
     ref: docs/modernization/rulings/COORD-2026-10-21.md
+  - id: RULING-COORD-20261022-01
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/OrgSourceWorldSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/A8SourceFlagsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java
+    reason: 清老待办连接运行时残留（ADR-0055 决定 7），只删相关夹具、参数与无调用方辅助代码，不删用例、不改断言字面；断言用例内查询条件去 TODO_READER 等三项在 PR 单列；核实命令连接保留
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261022-02
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java
+    reason: 老待办只读账号已撤，删核实命令 integration-legacy-inbox 入口；删 RULING-P3B-17 用例，旧名并入 missingOrUnknownConnectionIsWrongUsage 并补「无 RESULT 行」断言；两用例改用 LEGACY_NAMES 断言不变
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261022-03
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/AuditSubjectColumnsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+    reason: ADR-0069 第 14 条外键取代 CHECK；约束断言改外键并补断言旧 CHECK 不存在；未知类别带 id 与旧前缀改 23503，未知类别且 id 空保持 23514；DisplayName 同步；补登记表集合与 has_object 一致性断言；PR 附预期表结构 diff、改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
