@@ -184,3 +184,24 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 代码提交要带任务号或 #PR 号；后台任务/子代理 description 必须 `<任务号或 #PR号> <任务名> (<执行者>)`，Agent 调用也要。
 - Bash 命令文本里出现 `gh pr create` 字样（即使在 heredoc/测试字符串里）会触发 precheck 全量检查；写含该字样的补丁用 Edit，不用 Bash 脚本。
 - 发消息给调度：`mcp__ccd_session_mgmt__send_message` 的 `session_id`（local_10f279cb-81c7-4628-9080-2d5b1efd622d）；清空后协议要求先等调度的「接续」。
+
+## 交接（2026-10-22 深夜，节点：COO-13 PR 已开；第二次清空接续）
+
+### 现状
+- 试点已报 one-coordinator（清空接续协议接上了，开场注入 46938 字节宿主只显示 2KB）。
+- **#616**（GOV-1022-QUA-05 = COO-10 钩子防大小写/引号拆词绕过，分支 `claude/one-quality-hook-bypass`）：opus 复审必改 2 项已修（CD/PUSHD/POPD 不小写、`$'git'` 拆词）并贴 PR，CI 三项绿，已报调度待批入队。复审建议项（`$'g\x69t'`/通配符、`bash <<EOF`、`env -S`、`git -c alias.`、`gh -R`）不在本 PR，调度定是否另开卡。
+- **#627**（GOV-1022-QUA-06 = COO-13 开场一页开工单，分支 `claude/one-quality-start-sheet`，提交 5b535973b）：已开，precheck 32 PASS；**opus 首轮复审还没派**（派前先把 PR 正文里的字节表核一遍；复审重点：start_sheet 的 git grep/路径安全、画像删节后 build_sessions 校验、节点注入、截断到 8KB 的边界、handoff_selftest 改写后是否仍真验证）。
+- 本节所在分支 `claude/one-quality-handoff-1022` 的交接节（150/169/本节）尚未进 main（需另提 docs 提交报 one-merge 或随下个 PR）。
+
+### 下一步（顺序）
+1. 给 #627 派 opus 首轮复审（description：`#627 首轮复审 开工单 (opus)`），改必改项、贴结论、CI 绿后报 one-coordinator 批入队。复审期间不切分支。
+2. #616 批入队后确认已合入（`gh pr view 616`）。
+3. 仓库内容治理第七节（用户已答，三题均选推荐，intent 2026-10-22-201921）：`git rm` + `ARCHIVE_INDEX.md`，不建归档分支；`content_governance.py` 挂 `mq.py` 与 CI（改 mq 单列 PR、opus 首轮）；本机只提醒；50KB/300KB 棘轮一个月后复看。`evidence/` 去留等 one-coordinator 请 one-data 出清单。排在 COO-13 之后。
+4. 登记 RULING-COORD-20261022-05（W2 PR-B 验收改动）到 `ACCEPTANCE_RULINGS.yaml`：**等它进 main 后**再做（one-coordinator 要求）。
+5. 其余：GOV-1022-COO-05 派工台账实现、QUA-05 评测收尾、网络规则 CI。
+
+### 别做 / 坑
+- 规则讨论期冻结：不改 SESSION_PLAYBOOK、CLAUDE.md、记忆；PLAYBOOK §2.1 第 16 条与 66-67 行仍写「当前状态」，等解冻后同步（已在 #627 正文提醒）。
+- Bash 命令文本含 `git push` / `gh pr create` 字样会触发 precheck 或被拦：写补丁脚本用 Write 工具，不用 Bash heredoc。
+- 工作区 `.claude/worktrees/xin-61164f` 唯一可写；PR 分支轮流 checkout，先 `git branch --show-current`。
+- 发消息给调度用 `session_id` local_10f279cb-81c7-4628-9080-2d5b1efd622d；清空后等调度的「接续」。
