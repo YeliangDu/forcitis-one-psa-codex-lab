@@ -14,7 +14,7 @@ SELECT r.rolname, s.setconfig
 SELECT nspname, pg_get_userbyid(nspowner) AS owner
   FROM pg_namespace
  WHERE nspname IN ('one_migration', 'platform_identity', 'platform_approval', 'platform_integration', 'platform_audit',
-                   'platform_numbering', 'platform_scheduling', 'organization_workforce', 'organization_attendance',
+                   'platform_numbering', 'platform_file', 'platform_scheduling', 'organization_workforce', 'organization_attendance',
                    'platform_idempotency', 'cost_timesheet')
  ORDER BY nspname;
 
@@ -59,3 +59,15 @@ SELECT r.rolname, has_function_privilege(r.rolname, to_regprocedure('platform_au
 -- 维护角色只能删除已归档分区：期望 drop = t、create = f
 SELECT has_function_privilege('one_dev_audit_maintainer', to_regprocedure('platform_audit.drop_archived_audit_entry_partition(date)'), 'EXECUTE') AS can_drop,
        has_function_privilege('one_dev_audit_maintainer', to_regprocedure('platform_audit.create_audit_entry_partitions(date,date)'), 'EXECUTE') AS can_create;
+
+-- V10 运行角色不是属主角色的成员（SEC-1021-COO-01）：编号版本表的「无作者行只由迁移写」靠这一点——触发器只放行属主角色的成员，运行账号若是成员，就能绕过编号四眼。
+-- 任一运行角色是成员则本条抛错，ON_ERROR_STOP 使校验失败；期望不抛错。
+DO $$
+DECLARE r text;
+BEGIN
+    FOREACH r IN ARRAY ARRAY['one_dev_app', 'one_dev_readonly', 'one_dev_audit_maintainer'] LOOP
+        IF pg_has_role(r, 'one_dev_owner', 'MEMBER') THEN
+            RAISE EXCEPTION 'V10 failed: runtime role % is a member of one_dev_owner', r;
+        END IF;
+    END LOOP;
+END $$;

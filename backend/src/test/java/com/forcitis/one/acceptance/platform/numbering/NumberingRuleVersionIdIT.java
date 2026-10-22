@@ -107,8 +107,8 @@ class NumberingRuleVersionIdIT {
         try {
             jdbc.sql("delete from " + VERSIONS).update();
             jdbc.sql("""
-                    insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, confirmed_by, confirmed_at)
-                    select uuidv7(), numbering_rule_id, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, DATE '2000-01-01', now(), 'CONFIRMED', '01900000-0000-7000-8000-000000000101', now()
+                    insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, source_kind, confirmed_by, confirmed_at)
+                    select uuidv7(), numbering_rule_id, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, DATE '2000-01-01', now(), 'CONFIRMED', 'SEEDED', '01900000-0000-7000-8000-000000000101', now()
                       from platform_numbering.numbering_rules
                     """).update();
         } finally {

@@ -10,7 +10,6 @@ import {
   documentText,
   filterInbox,
   inboxOf,
-  inboxRowId,
   inboxStateOf,
   inboxTitle,
   inboxViewOf,
@@ -51,7 +50,7 @@ describe('办理意见', () => {
   });
 });
 
-const NEW_ITEM: InboxItem = { source: 'NEW', category: 'TODO', overdue: false, taskId: 'n-1', claimed: false, processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS-1', title: 'COST_TIMESHEET_APPROVAL 42' };
+const NEW_ITEM: InboxItem = { category: 'TODO', overdue: false, taskId: 'n-1', claimed: false, processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS-1', title: 'COST_TIMESHEET_APPROVAL 42' };
 
 describe('待办标题', () => {
   it('新系统的待办按流程和单据号在前端拼出标题，不显示服务端给的英文标题', () => {
@@ -59,12 +58,8 @@ describe('待办标题', () => {
     expect(inboxTitle(NEW_ITEM)).not.toContain('COST_TIMESHEET_APPROVAL');
   });
 
-  it('老系统的待办显示老系统自己的标题', () => {
-    expect(inboxTitle({ source: 'LEGACY', category: 'TODO', overdue: false, taskId: 'l-1', claimed: false, title: '合同评审 HT-2026-001' })).toBe('合同评审 HT-2026-001');
-  });
-
   it('新系统的待办缺少流程或单据号时，显示固定的提示而不是枚举名', () => {
-    expect(inboxTitle({ source: 'NEW', category: 'TODO', overdue: false, taskId: 'n-2', claimed: false, title: 'COST_TIMESHEET_APPROVAL 42' })).toBe(UNRECOGNISED_TASK_TITLE);
+    expect(inboxTitle({ category: 'TODO', overdue: false, taskId: 'n-2', claimed: false, title: 'COST_TIMESHEET_APPROVAL 42' })).toBe(UNRECOGNISED_TASK_TITLE);
   });
 
   it('单据显示为单据类型的名称加单据号', () => {
@@ -73,34 +68,26 @@ describe('待办标题', () => {
 });
 
 describe('待办列表', () => {
-  const page = (items: InboxItem[], counts = { newCount: 1, legacyCount: 1, noticeCount: 0, totalCount: 2, legacyAvailable: true }) => ({ items, ...counts });
+  const page = (items: InboxItem[], counts = { newCount: 1, noticeCount: 0, totalCount: 2 }) => ({ items, ...counts });
 
   it('合并多页：数量取第一页，待办依次排列', () => {
-    const legacy: InboxItem = { source: 'LEGACY', category: 'TODO', overdue: false, taskId: 'l-1', claimed: false, title: 'x' };
-    const inbox = inboxOf([page([NEW_ITEM]), page([legacy], { newCount: 9, legacyCount: 9, noticeCount: 9, totalCount: 9, legacyAvailable: false })]);
-    expect(inbox.items).toEqual([NEW_ITEM, legacy]);
-    expect([inbox.newCount, inbox.legacyCount, inbox.totalCount, inbox.legacyAvailable]).toEqual([1, 1, 2, true]);
+    const second: InboxItem = { ...NEW_ITEM, taskId: 'n-2' };
+    const inbox = inboxOf([page([NEW_ITEM]), page([second], { newCount: 9, noticeCount: 9, totalCount: 9 })]);
+    expect(inbox.items).toEqual([NEW_ITEM, second]);
+    expect([inbox.newCount, inbox.totalCount]).toEqual([1, 2]);
   });
 
-  it('可以按来源筛选', () => {
-    const legacy: InboxItem = { source: 'LEGACY', category: 'TODO', overdue: false, taskId: 'l-1', claimed: false, title: 'x' };
-    const notice: InboxItem = { source: 'LEGACY', category: 'NOTICE', overdue: false, taskId: 'l-2', claimed: false, title: '知会 y' };
-    const all = [NEW_ITEM, legacy, notice];
-    expect(filterInbox(all, 'new')).toEqual([NEW_ITEM]);
-    expect(filterInbox(all, 'legacy')).toEqual([legacy]);
+  it('可以筛选知会', () => {
+    const second: InboxItem = { ...NEW_ITEM, taskId: 'n-2' };
+    const notice: InboxItem = { ...NEW_ITEM, category: 'NOTICE', taskId: 'n-3' };
+    const all = [NEW_ITEM, second, notice];
+    expect(filterInbox(all, 'new')).toEqual(all);
     expect(filterInbox(all, 'notice')).toEqual([notice]);
     expect(filterInbox(all, 'all')).toHaveLength(3);
   });
 });
 
 describe('待办的行', () => {
-  it('新旧待办的编号相同时，行的标识仍然不同', () => {
-    const fresh: InboxItem = { ...NEW_ITEM, taskId: '42' };
-    const old: InboxItem = { source: 'LEGACY', category: 'TODO', overdue: false, taskId: '42', claimed: false, title: 'x' };
-    expect(inboxRowId(fresh)).not.toBe(inboxRowId(old));
-    expect(new Set([inboxRowId(fresh), inboxRowId(old)]).size).toBe(2);
-  });
-
   it('已超时盖过已认领；两者都没有就没有标记', () => {
     expect(inboxStateOf({ overdue: true, claimed: true })).toBe('已超时');
     expect(inboxStateOf({ overdue: false, claimed: true })).toBe('已认领');
@@ -108,7 +95,7 @@ describe('待办的行', () => {
   });
 
   it('页签的值不认识时回到全部', () => {
-    expect(['new', 'legacy', 'notice', 'done', 'all', 'other'].map(inboxViewOf)).toEqual(['new', 'legacy', 'notice', 'done', 'all', 'all']);
+    expect(['new', 'notice', 'done', 'all', 'other'].map(inboxViewOf)).toEqual(['new', 'notice', 'done', 'all', 'all']);
   });
 
   it('已办的标题和待办一样由流程名称与单据号拼出', () => {

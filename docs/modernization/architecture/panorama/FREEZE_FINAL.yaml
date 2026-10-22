@@ -1,0 +1,221 @@
+# 业务对象冻结的裁定记录（手写，one-architecture）：class 为定稿结论；owner 为降级后承接的对象（从属的父对象、事实的主体、维度或参照的使用方）。object_freeze_check.py 据此生成影响清单。
+OBJ-01:
+  class: 确认建模
+OBJ-02:
+  class: 确认建模
+OBJ-03:
+  class: 从属对象（父 OBJ-01）
+  owner: OBJ-01
+OBJ-05:
+  class: 确认建模
+OBJ-06:
+  class: 从属对象（父 OBJ-05）
+  owner: OBJ-05
+OBJ-07:
+  class: 确认建模
+OBJ-08:
+  class: 并入 OBJ-07（合并后名称暂名，待用户确认页；用户 2026-10-19「履约义务就是条款」）
+  owner: OBJ-07
+OBJ-09:
+  class: 确认建模
+OBJ-10:
+  class: 确认建模
+OBJ-100:
+  class: 确认建模
+OBJ-103:
+  class: 降为参照或维度（视图）
+  owner: null
+OBJ-104:
+  class: 确认建模
+OBJ-105:
+  class: 确认建模
+OBJ-106:
+  class: 确认建模
+OBJ-107:
+  class: 确认建模
+OBJ-108:
+  class: 确认建模
+OBJ-109:
+  class: 确认建模
+OBJ-110:
+  class: 确认建模
+OBJ-111:
+  class: 确认建模
+OBJ-112:
+  class: 确认建模
+OBJ-113:
+  class: 确认建模
+OBJ-114:
+  class: 确认建模
+OBJ-115:
+  class: 确认建模
+OBJ-116:
+  class: 确认建模
+OBJ-117:
+  class: 确认建模
+OBJ-118:
+  class: 确认建模
+OBJ-119:
+  class: 确认建模
+OBJ-12:
+  class: 确认建模
+OBJ-120:
+  class: 确认建模
+OBJ-121:
+  class: 确认建模
+OBJ-122:
+  class: 确认建模
+OBJ-123:
+  class: 确认建模
+OBJ-124:
+  class: 确认建模
+OBJ-125:
+  class: 确认建模
+OBJ-13:
+  class: 确认建模
+OBJ-16:
+  class: 确认建模
+OBJ-17:
+  class: 确认建模
+OBJ-18:
+  class: 确认建模
+OBJ-19:
+  class: 降为参照或维度（招标维度；用户 2026-10-19 已定）
+  owner: OBJ-18
+OBJ-20:
+  class: 确认建模
+OBJ-21:
+  class: 确认建模
+OBJ-22:
+  class: 从属对象（父 OBJ-21）
+  owner: OBJ-21
+OBJ-23:
+  class: 确认建模
+OBJ-24:
+  class: 确认建模
+OBJ-25:
+  class: 确认建模
+OBJ-26:
+  class: 确认建模
+OBJ-27:
+  class: 确认建模
+OBJ-28:
+  class: 确认建模
+OBJ-29:
+  class: 确认建模
+OBJ-30:
+  class: 确认建模
+OBJ-31:
+  class: 确认建模
+OBJ-32:
+  class: 确认建模
+OBJ-33:
+  class: 确认建模
+OBJ-34:
+  class: 确认建模
+OBJ-35:
+  class: 确认建模
+OBJ-37:
+  class: 从属对象（父 OBJ-35）
+  owner: OBJ-35
+OBJ-38:
+  class: 确认建模
+OBJ-39:
+  class: 确认建模
+OBJ-40:
+  class: 确认建模
+OBJ-41:
+  class: 确认建模
+OBJ-42:
+  class: 确认建模
+OBJ-44:
+  class: 确认建模
+OBJ-45:
+  class: 确认建模
+OBJ-46:
+  class: 降为参照或维度（并入项目属性，工程维度候选；用户 2026-10-19 已定）
+  owner: OBJ-29
+OBJ-47:
+  class: 从属对象（父 OBJ-46）
+  owner: OBJ-46
+OBJ-48:
+  class: 确认建模
+OBJ-49:
+  class: 确认建模
+OBJ-50:
+  class: 确认建模
+OBJ-52:
+  class: 确认建模
+OBJ-53:
+  class: 确认建模
+OBJ-54:
+  class: 确认建模
+OBJ-55:
+  class: 确认建模
+OBJ-56:
+  class: 确认建模
+OBJ-57:
+  class: 降为参照或维度
+  owner: OBJ-56
+OBJ-58:
+  class: 确认建模
+OBJ-60:
+  class: 确认建模
+OBJ-62:
+  class: 确认建模
+OBJ-64:
+  class: 确认建模
+OBJ-65:
+  class: 确认建模
+OBJ-66:
+  class: 确认建模
+OBJ-68:
+  class: 确认建模
+OBJ-70:
+  class: 改登记为 11 业务事实
+  owner: OBJ-56
+OBJ-72:
+  class: 确认建模
+OBJ-73:
+  class: 确认建模
+OBJ-74:
+  class: 不承接（04 取舍决定：制度文本，不建模；用户 2026-10-19 已定）
+  owner: null
+OBJ-78:
+  class: 确认建模
+OBJ-81:
+  class: 改登记为 11 业务事实（主体为 OBJ-07 合并对象（暂名）；形态随 Q20）
+  owner: OBJ-07
+OBJ-82:
+  class: 确认建模
+OBJ-83:
+  class: 确认建模
+OBJ-85:
+  class: 确认建模
+OBJ-86:
+  class: 确认建模
+OBJ-87:
+  class: 确认建模
+OBJ-88:
+  class: 确认建模
+OBJ-89:
+  class: 确认建模
+OBJ-90:
+  class: 确认建模
+OBJ-91:
+  class: 确认建模
+OBJ-92:
+  class: 确认建模
+OBJ-93:
+  class: 确认建模
+OBJ-95:
+  class: 确认建模
+OBJ-96:
+  class: 降为参照或维度
+  owner: OBJ-54
+OBJ-97:
+  class: 确认建模
+OBJ-98:
+  class: 确认建模
+OBJ-99:
+  class: 确认建模

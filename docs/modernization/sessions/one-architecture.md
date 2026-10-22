@@ -51,6 +51,8 @@
 
 ## 上下文文档
 
+- 系统思考检查单：`docs/modernization/architecture/SYSTEM_THINKING_CHECKLIST.md`（每层判断先读；外部知识先查本地三库，用户 intent `cace83d4`）。
+
 - `docs/modernization/architecture/ARCH_CONTEXT.md`（现状速查）
 - `docs/modernization/architecture/FRAMEWORKS.md`（锁定版本的架构知识框架；做判断以它为准，不凭记忆）
 - `docs/modernization/architecture/METHOD.md`（从愿景到代码的施工图方法与六条接缝）
@@ -74,4 +76,4 @@
 
 ## 当前状态
 
-2026-10-17 15:30+02:00 三组骨架已铺完，转接缝与新决定回写；ADR-0052/0054/0055/0056 已采纳，ADR-0057（报价发出编排模块，部分取代 ADR-0051）已批并采纳，采纳记录与实施完成分开跟踪；命名接续 N9→N7，规范名、指称登记与施工图回写按已批准方法推进，旧改名对照表只作输入；SSOT 整合确认包（ARCH_SSOT_CONSOLIDATION_PLAN，8 册）待 N7 完成后开工。在途：B31 参数清单页（ARC-1017-ARC-06）与 A8 现行做法取证（ARC-1017-ARC-07，one-data 经 one-ops 通道）。实际下一卡见调度派工与 ARCH_CONTEXT，dev 暂停。
+2026-10-21 深夜：ADR-0074～0077 四个 PR（#549、#552、#557、#558，依次叠）；A7475 批准页在收件箱；0076、0077 待出批准页；网络第三批卡 12、13 进行中。交接 `proposals/HANDOFF_2026-10-21_NIGHT2.md`。

@@ -741,6 +741,7 @@ import apply_nm
 print("nm: 应用命名第 2–4 批答复", apply_nm.apply(terms))
 import apply_recon
 print("recon: 已裁定漏登与提议转正", apply_recon.apply(terms))
+print("rulings: recon 之后应用的裁定（late: true）", apply_rulings.apply(terms, late=True), "条")
 _entries = [("terms.yaml", t) for t in terms]
 _proposed = sorted(glob.glob("../../backend/glossary/proposed/*.yaml"))
 if not _proposed:

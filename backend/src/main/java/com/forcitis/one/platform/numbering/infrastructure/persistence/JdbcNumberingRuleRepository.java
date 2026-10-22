@@ -145,8 +145,8 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     private void insert(DocumentTypeCode type, TemplateVersion saved) {
         jdbc.sql("""
                         insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text,
-                                                                                reset_policy, start_value, effective_from_date, author_id, authored_at, status)
-                        select :id, numbering_rule_id, :number, :template, :reset, :start, :effectiveFrom, :author, :authoredAt, :status
+                                                                                reset_policy, start_value, effective_from_date, author_id, authored_at, status, source_kind)
+                        select :id, numbering_rule_id, :number, :template, :reset, :start, :effectiveFrom, :author, :authoredAt, :status, 'AUTHORED'
                           from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = :type)
                         """)
                 .param("id", saved.id().value()).param("type", type.value()).param("number", saved.number()).param("template", saved.pattern().value())
