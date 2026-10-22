@@ -710,7 +710,7 @@
       history_migration: full
       sensitivity: SENSITIVE
       pi: spi
-      column_families: [核定单号, 方案版本 ID, 被核定人员, 法人, 核定期间, 核定金额, 状态（草拟 → 已核定 → 已发放）, 核定人与时间, 乐观锁]
+      column_families: [核定单号, 方案版本 ID, 被核定人员, 法人, 核定期间, 核定金额, 状态（草拟 → 已核定 → 已发放）, 核定人与时间, 重分类过账引用（幂等键；拆分明细随事实存于 B-16，S-4b）, 乐观锁]
       reason: "versioned none：单据，状态由审计还原，已核定后更正另记（D17 第二类）；已发放由 AGG-73 批准后事件置位，本表不存结算引用；SENSITIVE + spi：个人奖金（工资类 L3；SPI 待 U-11 ③，从严），个人信息保护法第 28 条、ADR-0043；迁入来源待取证，原编号经 legacy_numbers（ADR-0036）"
     - name: bonus_determination_evidences
       role: link
@@ -724,6 +724,34 @@
       pi: pi
       column_families: [核定依据的绩效评估 ID]
       reason: "对应 OBJ-104「0..N 绩效评估作核定依据」（完整性检查）；只存评估 ID，评估内容不复制；评估含 SPI 可能（交 U-11），故本表从严 SENSITIVE；随核定行迁入"
+
+# ───────────────────────── AGG-138 奖金计提运行（暂用号，S-6，ARC-1022-APE-01） ─────────────────────────
+- aggregate: AGG-138
+  bc: B-15
+  tables:
+    - name: bonus_accrual_runs
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [法人, 期间, 状态（计算中 → 已计算 → 已提交过账 / 已中止）, 所用费率表版本引用, 中止原因, 过账引用（幂等键）, 乐观锁]
+      reason: "每法人 × 期间一行（唯一），S-6 新增；历史计提随事实迁入 B-16，本表不迁；按项目不到个人，INTERNAL"
+    - name: bonus_accrual_lines
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-19, by: project_id, cross_bc: true}
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [计提运行 ID, 法人, 项目, 业务线, 规则类型（合同额百分比 / 历史比率）, 计提基数, 计提率, 激励方案版本 ID（合同额百分比时填）, 计提额, 基数事实引用]
+      reason: "法人 × 项目一行，供对账与追溯基数；只追加，随运行提交后不改"
 
 - aggregate: AGG-93
   bc: B-15
