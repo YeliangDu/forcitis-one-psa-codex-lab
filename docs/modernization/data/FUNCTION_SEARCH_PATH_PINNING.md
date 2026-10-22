@@ -98,3 +98,5 @@ ALTER FUNCTION platform_numbering.guard_document_type_change() SET search_path =
 ALTER FUNCTION platform_numbering.reject_legacy_number_change() SET search_path = pg_catalog, pg_temp;
 ALTER FUNCTION platform_numbering.guard_rule_version_change() SET search_path = pg_catalog, pg_temp;
 ALTER FUNCTION platform_numbering.guard_rule_version_source() SET search_path = pg_catalog, pg_temp;
+-- platform_numbering 迁入写入通道（IMP-1022-NX5-08，基线内已固定）
+-- platform_numbering.is_owner_member(oid)、platform_numbering.is_migration_writer(oid)：SET search_path = pg_catalog, pg_temp
