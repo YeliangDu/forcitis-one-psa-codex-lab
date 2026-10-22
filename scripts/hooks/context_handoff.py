@@ -4,12 +4,13 @@
 Measure: the usage of the last assistant message of the session's own transcript (hook input `transcript_path`, sub-agent messages skipped):
 input + cache_read + cache_creation tokens, divided by the model's window from scripts/hooks/context_windows.json.
 A model missing from the file is counted against the conservative `default` and says so once per session; an unreadable transcript or config says so once and does nothing else.
-Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= `context_levels.prepare` (shipped 30%, SESSION_PLAYBOOK §2.1 #1) "at the batch boundary update the context documents and hand over, report to one-coordinator" (no clear: the user clears or the session compacts, user 2026-10-21);
+Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= `context_levels.prepare` (shipped 30%, SESSION_PLAYBOOK §2.1 #1) "at the batch boundary update the context documents and hand over, report to one-coordinator" (a session outside the self-clear scope, i.e. the coordinator, is told not to clear_session; one inside it is told to clear itself, see below);
 at >= `context_levels.handover` (shipped 40%) "hand over now". Each level once per session; state lives in the untracked <root>/.claude/context-handoff-state.json (a cleared session has a new id, so starts clean).
 Enforce (Stop): past the prepare level while none of the profile / context documents (SESSION_PLAYBOOK §2.1 #16, same session-name resolution as session_context.py) was modified since the level was first reached, the stop is blocked once per level with the reason; a document written since lets it through.
 Never a loop: `stop_hook_active` lets the stop through, and a level blocks at most once. A crash of this hook never blocks a stop; for the other events it is reported once as additionalContext.
 Bulk (PostToolUse of Bash): a single command longer than `bash_input_chars` or a result longer than `bash_output_chars` (context_windows.json; defaults 5000 / 8000 from the length distribution of 1.6k Bash calls: about p96 / p98) is pointed out once per session and reason as additionalContext, never blocking (SESSION_PLAYBOOK §5 context-saving rules).
 During the pilot `pilot_sessions` in context_windows.json limits the hook to the listed session names (null or absent = every session).
+Self-clear (GOV-1022-COO-13 follow-up, user 2026-10-22): `node_handoff.sessions` (null = all) minus `node_handoff.exclude` is the scope whose sessions write the handover, send one-coordinator「清空接续」and clear_session(self) at a node and from the 30% / 40% reminders; sessions outside it (one-coordinator) are told not to clear_session.
 Usage: context_handoff.py < hook-input.json  |  context_handoff.py --self-test
 """
 import contextlib
@@ -83,7 +84,9 @@ def context_levels(path=None):
 
 def node_config(path=None):
     """(settings or None when the node-event handover is off, warning or None): `node_handoff` in the configuration, e.g.
-    {"enabled": true, "min_percent": 20, "sessions": ["one-quality"] or null for every session, "coordinator_session_ids": ["local_..."], "coordinator_names": ["one-coordinator"]}."""
+    {"enabled": true, "min_percent": 20, "sessions": ["one-quality"] or null for every session, "exclude": ["one-coordinator"], "coordinator_session_ids": ["local_..."], "coordinator_names": ["one-coordinator"]}.
+    A session in scope (listed or `sessions` null, and not in `exclude`) clears itself at a handover node and is told so by the 30% / 40% reminders; the others only hand over and are told not to clear_session.
+    The coordinator (`coordinator_names`, `coordinator_session_ids`, and one-coordinator) is always outside the scope."""
     try:
         with open(path or CONFIG, encoding="utf-8") as stream:
             raw = json.load(stream).get("node_handoff")
@@ -95,13 +98,29 @@ def node_config(path=None):
         sessions = raw.get("sessions")
         if sessions is not None and not (isinstance(sessions, list) and all(isinstance(x, str) for x in sessions)):
             raise ValueError("sessions 必须是会话名数组或 null")
+        exclude = raw.get("exclude", [])
+        if not (isinstance(exclude, list) and all(isinstance(x, str) for x in exclude)):
+            raise ValueError("exclude 必须是会话名数组")
         ids = raw.get("coordinator_session_ids", [])
         names = raw.get("coordinator_names", ["one-coordinator"])
         if not (isinstance(ids, list) and isinstance(names, list) and all(isinstance(x, str) for x in ids + names)):
             raise ValueError("coordinator_session_ids / coordinator_names 必须是字符串数组")
-        return {"min_percent": percent, "sessions": sessions, "ids": ids, "names": names}, None
+        return {"min_percent": percent, "sessions": sessions, "exclude": exclude, "ids": ids, "names": names}, None
     except (OSError, ValueError, TypeError, AttributeError) as error:
         return None, f"节点交接配置有问题（{error}），节点事件交接不生效"
+
+
+COORDINATOR = "one-coordinator"
+
+
+def clears_itself(config, name, session_id=None):
+    """True when the session `name` is in the node-handover scope: it writes the handover, tells one-coordinator and clears itself. An unrecognised session never is,
+    and the coordinator (by name or by session_id, whatever `exclude` says) never is."""
+    if not (config and name):
+        return False
+    if name == COORDINATOR or name in config["names"] or name in config["exclude"] or (session_id and session_id in config["ids"]):
+        return False
+    return config["sessions"] is None or name in config["sessions"]
 
 
 PR_CREATE = re.compile(r"(?:^|[;&|(\s/])gh\s+pr\s+(?:create|new)(?![\w-])")
@@ -183,7 +202,8 @@ def node_instruction(node, percent, name, profile, docs, goals=""):
             f"①更新 {where}（上下文文档与交接，写明下一步和未完成的用户请求）；②提交并推送；"
             f"③给 {target} 发消息「清空接续：{name or '<会话名>'} 交接在 <交接文件路径>」{extra}；"
             f"④调用 clear_session（session_id=self）。清空在本轮结束后才执行：此后不要再发消息或起任务，否则排队消息会让清空被丢弃；"
-            f"{target} 收到后须先 get_session 确认本会话已空闲且已清空，再发『接续』。" + (f"\n{goals}" if goals else ""))
+            f"{target} 收到后须先 get_session 确认本会话已空闲且已清空，再发『接续』。发出「清空接续」后，其他会话找本会话一律经 {target} 转，不直接发给本会话（清空中收到消息会顶掉清空）。"
+            + (f"\n{goals}" if goals else ""))
 
 
 def throttle_limits(path=None):
@@ -378,9 +398,13 @@ def measure(payload, state_entry):
     return tokens * 100.0 / window, tokens, window, warnings
 
 
-def reminder(level, percent, tokens, window, name, handover=LEVELS[1]):
+def reminder(level, percent, tokens, window, name, handover=LEVELS[1], clears=False):
     where = f"sessions/{name}.md" if name else "sessions/<会话名>.md（本会话未识别，先在 .claude/session-name 写入会话名）"
     head = f"【上下文 {percent:.0f}%（{tokens}/{window}）】"
+    if clears:
+        steps = (f"更新 {where} 的上下文文档与交接并提交推送，给 one-coordinator 发「清空接续：{name} 交接在 <交接文件路径>」，再调用 clear_session（session_id=self）；"
+                 "之后其他会话找本会话一律经 one-coordinator 转")
+        return head + ("立即交接：现在就" if level >= handover else "到批次边界：") + steps + "。"
     if level >= handover:
         return head + f"立即交接：现在就更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
     return head + f"到批次边界：更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
@@ -435,7 +459,8 @@ def handle_locked(event, payload, root, now):
             if config_problem and not entry.get("node_config_warned"):
                 entry["node_config_warned"] = True
                 early.append(config_problem)
-            if config and (config["sessions"] is None or entry["name"] in config["sessions"]) and percent >= config["min_percent"] \
+            clears = clears_itself(config, entry["name"], session)
+            if clears and percent >= config["min_percent"] \
                     and now - float(entry.get("node_at", 0)) >= NODE_COOLDOWN_SECONDS and not payload.get("stop_hook_active"):
                 node = node_of(payload, event, root, config)
                 if node:
@@ -456,10 +481,10 @@ def handle_locked(event, payload, root, now):
                 if node_out:
                     out = node_out
                 elif top and not payload.get("stop_hook_active"):
-                    out = stop_decision(root, entry, top, percent, now)
+                    out = stop_decision(root, entry, top, percent, now, clears)
             elif top and str(top) not in entry.setdefault("reminded", []):
                 entry["reminded"].append(str(top))
-                warnings.append(reminder(top, percent, tokens, window, entry["name"] or None, handover))
+                warnings.append(reminder(top, percent, tokens, window, entry["name"] or None, handover, clears))
             if event == "PostToolUse":
                 entry["checked"] = now
                 entry["checked_size"] = transcript_size(payload)
@@ -477,7 +502,7 @@ def handle_locked(event, payload, root, now):
     return None
 
 
-def stop_decision(root, entry, top, percent, now):
+def stop_decision(root, entry, top, percent, now, clears=False):
     blocked = entry.setdefault("blocked", [])
     if str(top) in blocked:
         return None
@@ -496,7 +521,8 @@ def stop_decision(root, entry, top, percent, now):
     blocked.append(str(top))
     todo = "、".join([profile, *docs])
     return {"decision": "block", "reason": f"上下文已用 {percent:.0f}%（过 {top}% 线），但 {todo} 自过线以来没有更新。"
-            f"先更新上下文文档与交接（做到哪、在途、下一步），报 one-coordinator；不要 clear_session，写过之后可以直接结束。"}
+            + ("先更新上下文文档与交接（做到哪、在途、下一步）并提交推送，给 one-coordinator 发「清空接续：" + name + " 交接在 <路径>」，再 clear_session（session_id=self）；清空在本轮结束后执行，之后不再发消息，其他会话找本会话一律经 one-coordinator 转。"
+               if clears else "先更新上下文文档与交接（做到哪、在途、下一步），报 one-coordinator；不要 clear_session，写过之后可以直接结束。")}
 
 
 def transcript_size(payload):
@@ -874,11 +900,26 @@ def self_test():
         LEVELS = (75, 85)
         node_cfg = {"enabled": True, "min_percent": 20, "sessions": ["one-test"], "coordinator_session_ids": ["local_coord"]}
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": node_cfg}))
-        assert node_config(config)[0] == {"min_percent": 20, "sessions": ["one-test"], "ids": ["local_coord"], "names": ["one-coordinator"]}
+        assert node_config(config)[0] == {"min_percent": 20, "sessions": ["one-test"], "exclude": [], "ids": ["local_coord"], "names": ["one-coordinator"]}
         assert node_config(os.path.join(tmp, "absent.json"))[0] is None, "an unreadable configuration turns node events off"
         for bad_cfg in ({**node_cfg, "min_percent": 0}, {**node_cfg, "min_percent": "20"}, {**node_cfg, "sessions": "one-test"}, {**node_cfg, "coordinator_session_ids": [1]}):
             write(config, json.dumps({"windows": {}, "node_handoff": bad_cfg}))
             assert node_config(config)[0] is None and "节点交接配置有问题" in node_config(config)[1], bad_cfg
+        scope = {**node_cfg, "sessions": None, "exclude": ["one-coordinator"]}
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": scope}))
+        scoped = node_config(config)[0]
+        assert scoped["exclude"] == ["one-coordinator"] and scoped["sessions"] is None
+        assert clears_itself(scoped, "one-ops") and clears_itself(scoped, "one-newcomer"), "every session but the excluded ones clears itself"
+        assert not clears_itself(scoped, "one-coordinator") and not clears_itself(scoped, "") and not clears_itself(None, "one-ops"), "excluded, unrecognised or switched-off: no self-clear"
+        assert not clears_itself({**scoped, "sessions": ["one-a"]}, "one-ops") and clears_itself({**scoped, "sessions": ["one-ops"]}, "one-ops")
+        assert node_config(config)[0] is not None
+        assert not clears_itself({**scoped, "exclude": [], "names": []}, "one-coordinator"), "the coordinator is excluded even when the configuration forgets it"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**scope, "exclude": "one-coordinator"}}))
+        assert node_config(config)[0] is None and "exclude" in node_config(config)[1]
+        low = reminder(30, 31, 310, 1000, "one-ops", 40, clears=True)
+        assert "清空接续：one-ops 交接在" in low and "clear_session（session_id=self）" in low and "经 one-coordinator 转" in low and "不要 clear_session" not in low, low
+        assert "立即交接" in reminder(40, 41, 410, 1000, "one-ops", 40, clears=True) and "不要 clear_session" in reminder(40, 41, 410, 1000, "one-coordinator", 40)
+        assert "经 one-coordinator 转" in node_instruction("已开 PR", 25, "one-ops", "p.md", ["d.md"]), "the protocol rule rides with the clear instruction"
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "enabled": False}}))
         assert node_config(config) == (None, None), "off unless enabled is true"
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": node_cfg}))
@@ -937,6 +978,30 @@ def self_test():
         assert stop_at(250, True, "nd7", 4006.0, stop_hook_active=True) is None, "a continued stop is let through"
         assert stop_at(150, True, "nd8", 4007.0) is None, "below min_percent a turn end is not a node"
         assert turn_used_tools(turn_file(250, True)) is True and turn_used_tools(turn_file(250, False)) is False and turn_used_tools(os.path.join(tmp, "none.jsonl")) is False and turn_used_tools(None) is False
+        # self-clear scope end to end (the session is named one-test): node, reminder and Stop fallback follow it
+        def scope_case(extra_cfg, session, base):
+            write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "sessions": None, **extra_cfg}}))
+            step = NODE_COOLDOWN_SECONDS + 1
+            node = stop_at(250, True, session, base)
+            pushed = fire("PostToolUse", 250, base + step, session=session, extra=bash("git push origin b"))
+            nudged = text(fire("PostToolUse", 760, base + 2 * step, session=session))
+            os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
+            os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
+            fallback = stop_at(760, False, session, base + 3 * step)
+            assert fallback and fallback["decision"] == "block", fallback
+            return node, text(pushed), nudged, fallback["reason"]
+
+        node, pushed, nudged, fallback = scope_case({"exclude": []}, "sc-in", 10000.0)
+        assert node and node["decision"] == "block" and "【交接节点】" in node["reason"] and "clear_session" in node["reason"], node
+        assert pushed and "已推送" in pushed and "clear_session" in pushed, pushed
+        assert nudged and "清空接续：one-test" in nudged and "clear_session（session_id=self）" in nudged and "不要 clear_session" not in nudged, nudged
+        assert "clear_session（session_id=self）" in fallback and "不要 clear_session" not in fallback and "之后不再发消息" in fallback, fallback
+        for label, extra_cfg, session in (("exclude", {"exclude": ["one-test"]}, "sc-ex"), ("coordinator_names", {"exclude": [], "coordinator_names": ["one-test"]}, "sc-names"),
+                                          ("coordinator_session_ids", {"exclude": [], "coordinator_session_ids": ["local_coord"]}, "local_coord")):
+            node, pushed, nudged, fallback = scope_case(extra_cfg, session, 20000.0 + 4000 * len(session))
+            assert node is None and pushed is None, (label, node, pushed)
+            assert nudged and "不要 clear_session" in nudged and "清空接续" not in nudged, (label, nudged)
+            assert "不要 clear_session" in fallback and "清空接续" not in fallback, (label, fallback)
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "sessions": ["one-ops"]}}))
         assert stop_at(250, True, "nd9", 4008.0) is None and fire("PostToolUse", 250, 4009.0, session="nd9", extra=bash("git push")) is None, "only the listed (pilot) sessions"
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "sessions": None}}))

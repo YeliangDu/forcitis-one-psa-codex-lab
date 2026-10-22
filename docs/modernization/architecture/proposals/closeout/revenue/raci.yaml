@@ -1082,7 +1082,37 @@ entries:
   sensitive_reason: 认定索赔金额，合同金额敏感
   source_part: revenue
 - object: AGG-16
-  command: 拒绝或撤回索赔
+  command: 提交索赔详细报告
+  raci:
+    A:
+      resolve: instance
+      field: 协议.合同负责人
+      field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
+    R:
+    - SH-E5
+    C: []
+    I: []
+  sensitive: true
+  sensitive_reason: 索赔金额与工期，合同金额敏感
+  source_part: revenue
+- object: AGG-16
+  command: 拒绝索赔
+  raci:
+    A:
+      resolve: instance
+      field: 协议.合同负责人
+      field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
+    R:
+    - SH-E5
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+- object: AGG-16
+  command: 撤回索赔
   raci:
     A:
       resolve: instance
@@ -2047,6 +2077,20 @@ entries:
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-02
+  command: 登记资质延续申请
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 资质管理
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+- object: AGG-02
   command: 延续资质
   raci:
     A:
@@ -2959,7 +3003,49 @@ entries:
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-20
+  command: 发布工作包
+  raci:
+    A:
+      resolve: instance
+      field: 项目.项目经理
+      field_status: proposed
+    R:
+    - SH-E2
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+- object: AGG-20
+  command: 完成工作包
+  raci:
+    A:
+      resolve: instance
+      field: 项目.项目经理
+      field_status: proposed
+    R:
+    - SH-E2
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+- object: AGG-20
   command: 锁定工作包
+  raci:
+    A:
+      resolve: instance
+      field: 项目.项目经理
+      field_status: proposed
+    R:
+    - SH-E2
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+- object: AGG-20
+  command: 转入返工
   raci:
     A:
       resolve: instance

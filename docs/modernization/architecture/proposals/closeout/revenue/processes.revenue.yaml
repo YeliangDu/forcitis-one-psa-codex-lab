@@ -6711,7 +6711,7 @@ processes:
   primary_object: OBJ-10
   owner_bc: B-05
   human_orchestration: true
-  human_note: 已通知 → 已提交 → 已认定 / 已拒绝 / 撤回，索赔时限
+  human_note: 已通知 → 已提交 → 已认定 / 已拒绝 / 已撤回，通知与详细报告两道时限
   migration: 已提出的索赔及其认定结果、时限与证据全部迁入（U-4）；投产时已提交未答复的索赔按当前状态迁入，时限从原通知日续算（时限提醒由迁入编排的一次性离线命令重建待办）
   scope: 按承担法人与项目承担部门的数据范围
   triggers:
@@ -6722,7 +6722,8 @@ processes:
   outcomes:
   - 已提交待答复
   - 索赔已认定
-  - 索赔已拒绝或撤回
+  - 索赔已拒绝
+  - 索赔已撤回
   scenarios:
   - PRC-49-S01
   - PRC-49-S02
@@ -6731,6 +6732,7 @@ processes:
   - PRC-49-S05
   - PRC-49-S06
   - PRC-49-S07
+  - PRC-49-S08
   roles:
   - id: SH-E5
     as: initiator
@@ -6778,20 +6780,16 @@ processes:
     aggregate: AGG-16
     emits:
     - ClaimAsserted
-    desc: 超时限须注明理由（INV-17）；对方答复后由商务据书面答复登记结果
+    desc: 在合同约定时限内发出索赔通知（意向），超时限须注明理由（INV-17）；对方主张的索赔由商务据对方通知登记
     decision:
-    - when: 对方认定索赔
-      goto: 3
-      p: 0.35
-    - when: 对方拒绝，或我方撤回
-      goto: 4
-      p: 0.25
+    - when: 索赔方决定不再主张
+      goto: 6
+      p: 0.05
     - when: otherwise
-      goto: end
-      outcome: 已提交待答复
-      p: 0.4
+      goto: 3
+      p: 0.95
     timeout:
-      after: 合同约定索赔时限（INV-17）；未约定时 P28D 自事项发生日起
+      after: 合同约定索赔通知时限（INV-17）；未约定时 P28D 自知道或应当知道索赔事件之日起
       escalate_to: SH-M1
       interrupting: false
     notify:
@@ -6801,9 +6799,43 @@ processes:
     page: 索赔提出页
     audit: true
     metric_event: true
+    effort:
+      typical_min: 30
+      p90_min: 90
+  - actor: SH-E5
+    where: in_system
+    actor_v1: 商务
+    command: 提交索赔详细报告
+    aggregate: AGG-16
+    desc: 提交载明依据、计算与证据的详细报告，超时限须注明理由（INV-17）；对方答复后由商务据书面答复登记结果
+    decision:
+    - when: 对方认定索赔
+      goto: 4
+      p: 0.35
+    - when: 被索赔方拒绝
+      goto: 5
+      p: 0.2
+    - when: 索赔方撤回
+      goto: 6
+      p: 0.05
+    - when: otherwise
+      goto: end
+      outcome: 已提交待答复
+      p: 0.4
+    timeout:
+      after: 协议上登记的约定详细报告时限，自发出索赔通知之日起（INV-17，不设缺省天数）
+      escalate_to: SH-M1
+      interrupting: false
+    notify:
+    - to: SH-E5
+      how: 企业微信待办（P-08 索赔时限临近）
+    permission: 索赔.提交
+    page: 索赔提出页
+    audit: true
+    metric_event: true
     withdraw:
-      to: 4
-      outcome: 已撤回
+      to: 6
+      outcome: 索赔已撤回
     effort:
       typical_min: 60
       p90_min: 180
@@ -6834,18 +6866,38 @@ processes:
   - actor: SH-E5
     where: offline
     actor_v1: 商务
-    command: 拒绝或撤回索赔
+    command: 拒绝索赔
     aggregate: AGG-16
-    branch: 拒绝或撤回
+    branch: 拒绝
     evidence:
-    - 对方书面拒绝函或我方撤回函
-    - 拒绝或撤回日
+    - 被索赔方书面拒绝函
+    - 拒绝日与理由
     decision:
     - when: otherwise
       goto: end
-    permission: 索赔.拒绝或撤回
+    permission: 索赔.拒绝
     page: 索赔拒绝撤回登记页
-    outcome: 索赔已拒绝或撤回
+    outcome: 索赔已拒绝
+    audit: true
+    effort:
+      typical_min: 15
+      p90_min: 30
+  - actor: SH-E5
+    where: offline
+    actor_v1: 商务
+    command: 撤回索赔
+    aggregate: AGG-16
+    branch: 撤回
+    desc: 已通知或已提交后由索赔方撤回
+    evidence:
+    - 索赔方撤回函
+    - 撤回日与理由
+    decision:
+    - when: otherwise
+      goto: end
+    permission: 索赔.撤回
+    page: 索赔拒绝撤回登记页
+    outcome: 索赔已撤回
     audit: true
     effort:
       typical_min: 15
@@ -9094,7 +9146,9 @@ processes:
   - actor: SH-E6
     where: offline
     added_in: closeout
-    desc: 向发证机关办理延续申请并取得受理回执，新证书取得后再登记（登记见第 5 步）
+    command: 登记资质延续申请
+    aggregate: AGG-02
+    desc: 向发证机关办理延续申请，取得受理回执后登记，资质进入延续中（期间仍有效）；新证书取得后再登记（第 5 步）
     evidence:
     - 延续申请受理回执（发证机关）
     - 申请材料清单
@@ -9114,12 +9168,11 @@ processes:
     wait:
       typical_h: 240
       p90_h: 720
-    gap: 聚合稿 AGG-02 缺「登记资质延续申请」命令（线下办理，进入延续中，见 NOTES 命令缺口）
   - actor: SH-M1
     where: in_system
     command: 延续资质
     aggregate: AGG-02
-    desc: B-01 内单级命令，批准即延续并登记新有效期（D8 建议 ②，B-01 无到 platform.approval 的边，见 NOTES 结构问题）；驳回则资质待到期标记
+    desc: B-01 内单级命令，批准即延续并登记新有效期，旧版本被取代（D8 建议 ②，B-01 无到 platform.approval 的边，见 NOTES 结构问题）；驳回或未获发证机关批准则资质留在延续中，待到期标记
     approval:
       doc_type: 资质延续审批单
       approver: SH-M1
@@ -12376,12 +12429,13 @@ single_aggregate:
   owner_bc: B-04
   migration: 全部历史 WBS（阶段节点与工作包及其状态、起止时间）迁入（U-4）；投产时进行中的阶段按「进行中」迁入，工作包按迁入时的发布状态迁入；已作废的工作包保留并带作废原因
   scope: 按项目的数据范围：项目经理与项目成员可见，项目经理经办；工作包的使用范围另按 INV-66 的有权使用判定
-  frequency_ref: 待取证 E-B1（经验估计：每个项目每阶段 2 次状态推进，工作包按需锁定）
+  frequency_ref: 待取证 E-B1（经验估计：每个项目每阶段 2 次状态推进，工作包按需发布、完成、锁定与返工）
   scenarios:
   - PRC-21-S01
   - PRC-21-S02
   - PRC-21-S03
   - PRC-21-S04
+  - PRC-21-S05
   roles:
   - id: SH-E2
     as: performer
@@ -12404,7 +12458,10 @@ single_aggregate:
     - 已完成
     work_package:
     - 未发布
+    - 进行中
+    - 已完成
     - 已锁定
+    - 返工中
     - 已作废
   transitions:
   - from: 未开始
@@ -12422,19 +12479,42 @@ single_aggregate:
     emits: 阶段已完成
     rule: INV-41
   - from: 未发布
+    to: 进行中
+    command: 发布工作包
+    by: SH-E2
+    kind: 工作包
+    rule: INV-41
+    note: 发布后可记工时，不再可删（INV-42）
+  - from: 进行中
+    to: 已完成
+    command: 完成工作包
+    by: SH-E2
+    kind: 工作包
+  - from: 已完成
     to: 已锁定
     command: 锁定工作包
     by: SH-E2
     kind: 工作包
     emits: 工作包已锁定
     rule: INV-42
-  - from: 已锁定
-    to: 已作废
-    command: 作废工作包
+    note: 停止记工时
+  - from: 已完成
+    to: 返工中
+    command: 转入返工
     by: SH-E2
     kind: 工作包
-    emits: 工作包已作废
-    rule: INV-42
+    note: 返工原因必填
+  - from: 已锁定
+    to: 返工中
+    command: 转入返工
+    by: SH-E2
+    kind: 工作包
+    note: 返工原因必填；返工工时仍须有返工认定（INV-53）
+  - from: 返工中
+    to: 已完成
+    command: 完成工作包
+    by: SH-E2
+    kind: 工作包
   - from: 未发布
     to: 已作废
     command: 作废工作包
@@ -12442,6 +12522,38 @@ single_aggregate:
     kind: 工作包
     emits: 工作包已作废
     rule: INV-42
+  - from: 进行中
+    to: 已作废
+    command: 作废工作包
+    by: SH-E2
+    kind: 工作包
+    emits: 工作包已作废
+    rule: INV-42
+    note: 已发布只作废，原因必填
+  - from: 已完成
+    to: 已作废
+    command: 作废工作包
+    by: SH-E2
+    kind: 工作包
+    emits: 工作包已作废
+    rule: INV-42
+    note: 已发布只作废，原因必填
+  - from: 已锁定
+    to: 已作废
+    command: 作废工作包
+    by: SH-E2
+    kind: 工作包
+    emits: 工作包已作废
+    rule: INV-42
+    note: 已发布只作废，原因必填
+  - from: 返工中
+    to: 已作废
+    command: 作废工作包
+    by: SH-E2
+    kind: 工作包
+    emits: 工作包已作废
+    rule: INV-42
+    note: 已发布只作废，原因必填
   pages:
   - page: 项目WBS进度页
     permission: 项目WBS.推进阶段
@@ -12451,7 +12563,10 @@ single_aggregate:
   - page: 工作包管理页
     permission: 项目WBS.管理工作包
     commands:
+    - 发布工作包
+    - 完成工作包
     - 锁定工作包
+    - 转入返工
     - 作废工作包
   commands:
   - actor: 项目经理
@@ -12469,9 +12584,25 @@ single_aggregate:
       typical_min: 2
       p90_min: 5
   - actor: 项目经理
+    command: 发布工作包
+    effort:
+      typical_min: 2
+      p90_min: 5
+  - actor: 项目经理
+    command: 完成工作包
+    effort:
+      typical_min: 2
+      p90_min: 5
+  - actor: 项目经理
     command: 锁定工作包
     emits:
     - 工作包已锁定
+    effort:
+      typical_min: 3
+      p90_min: 10
+  - actor: 项目经理
+    command: 转入返工
+    branch: 返工
     effort:
       typical_min: 3
       p90_min: 10
@@ -12484,8 +12615,7 @@ single_aggregate:
       typical_min: 3
       p90_min: 10
   desc: 设计师与项目经理按工作进程更新
-  notes: 阶段映射已收窄（⑥a 评审 M4）：去掉 VS-02.7（其进入或退出条件不含 WBS）。阶段节点只记工作进程，不记客户认可（§4.4.1）；工作包删除规则随 D-6（用户已定 a：未发布可删，已发布只作废）。阶段并行、倒序、跳段是常态（S2），故状态转换不要求顺序。阶段已完成事件由 reporting 订阅产生阶段门预警（PRC-22）。「锁定」与「已发布」同指工作包进入使用状态，用语交
-    one-glossary 统一。
+  notes: 阶段映射已收窄（⑥a 评审 M4）：去掉 VS-02.7（其进入或退出条件不含 WBS）。阶段节点只记工作进程，不记客户认可（§4.4.1）；工作包删除规则随 D-6（用户已定 a：未发布可删，已发布只作废）。阶段并行、倒序、跳段是常态（S2），故状态转换不要求顺序。阶段已完成事件由 reporting 订阅产生阶段门预警（PRC-22）。工作包「发布」进入进行中（INV-42 的已发布指进行中及其后各状态），「锁定」是完成后停止记工时，返工经「转入返工」重开（CF-039，ARC-1022-ARE-02；原「锁定即发布」的说法作废）。
   stages_note: '判据①：完成阶段使 WBS 阶段节点 OBJ-30 到「已完成」，是 VS-02.0 退出及 VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 经 exit_common 展开的退出条件。现行检查器已展开 pattern，不再沿用未展开的旧说明；其他通用状态近似项不补标。'
 - id: PRC-27
   name: 登记并处置项目风险与问题

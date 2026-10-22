@@ -61,9 +61,9 @@
 
 ### 全员工作守则
 
-- 可由负责会话审出对错的编码、设计初稿、整理与汇总，优先交 Codex：gpt-6.1-sol，model_reasoning_effort=xhigh；机械活按工作卡可用 high。Claude 负责派卡、首轮独立评审、安全判定、验收及会话沟通。生产取证、连生产操作、安全改动、opus 复审与验收测试不交 Codex。
+- 可由负责会话审出对错的编码、设计初稿、整理与汇总，优先交 Codex：gpt-6.1-sol，推理强度按卡定（low/medium/high/xhigh）。Claude 负责派卡、首轮独立评审、安全判定、验收及会话沟通。生产取证、连生产操作、安全改动、opus 复审与验收测试不交 Codex。
 - Codex 在独立 worktree 执行，不联网，只改卡列文件；先读根 AGENTS.md 与所指规范。用本会话 Bash 的 run_in_background，任务在本会话后台列表可见、完成自动唤醒，不轮询，不用 nohup、& 或 setsid 脱离会话。
-- 调用形式（须禁网；本机 Codex 默认全权限沙箱）：codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果文件> '<完整工作卡提示>' < /dev/null；只读任务用 -s read-only。显式传提示词，关闭 stdin。本组经验：workspace-write 沙箱写不了共享 git 目录，卡上写明不提交，由本会话审后提交。
+- 调用形式（须禁网；本机 Codex 默认全权限沙箱）：codex exec -m gpt-6.1-sol -c model_reasoning_effort=<low|medium|high|xhigh，按卡定> -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果文件> '<完整工作卡提示>' < /dev/null；只读任务用 -s read-only。显式传提示词，关闭 stdin。本组经验：workspace-write 沙箱写不了共享 git 目录，卡上写明不提交，由本会话审后提交。
 - 每卡一个任务号与任务名，按 SESSION_PLAYBOOK §5 登记 docs/modernization/tasks/<任务号>.md（本会话码固定 ARE）；后台 description 为「<任务号> <任务名> (<执行者>)」，PR、提交、完成点报告带任务号；登记返工轮次与耗时。
 - 跨会话派工用可唤醒对方的 mcp__ccd_session_mgmt__send_message，首行「派工：<任务号> <任务名>」，附入口、出口、卡与结果路径；普通 SendMessage 不作已唤醒或已执行的证据。
 - 要用户定、补值、转财务或配合的事一律登记待决定收件箱；子组由 one-architecture 合成确认页后登记链接，不在各自会话另问。用户口头决定当场记 intent 并登记已定；出题先查 DECISION_DIGEST。

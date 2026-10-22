@@ -4350,7 +4350,7 @@ Within that city, the role's standard cost rate comes from today's active scheme
   Then  it is refused with 401 and no process is started
 **Parameters:** none.
 **Legacy behaviour:** the initiator was the caller-supplied `creator` on an `@PermitAll` endpoint (patched in the old system by SEC-005).
-**Open (not covered by the review note, to be asked with the aligned decision page):** how scheduled jobs, which have no logged-in user, start an approval; the rule here covers user requests only.
+**Scheduled jobs (decided by the user on the inbox page, 2026-10-22):** a scheduled job has no logged-in user and therefore never starts an approval; it only produces a to-do or a reminder, and a person starts the approval from it, so the initiator is always a real person (SECURITY_INVARIANTS I-5).
 **Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
 **Confidence:** High.
 

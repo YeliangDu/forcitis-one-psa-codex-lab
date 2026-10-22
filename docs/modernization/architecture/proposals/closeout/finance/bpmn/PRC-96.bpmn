@@ -256,7 +256,7 @@
     <sequenceFlow id="Flow_10" name="其他" sourceRef="S1_gw_6" targetRef="S2_7"/>
     <sequenceFlow id="Flow_11" sourceRef="S2_7" targetRef="S3_8"/>
     <sequenceFlow id="Flow_12" sourceRef="S3_8" targetRef="S3_gw_9"/>
-    <sequenceFlow id="Flow_13" name="分配合计不等于实际人工成本（零容差）" sourceRef="S3_gw_9" targetRef="S2_7"/>
+    <sequenceFlow id="Flow_13" name="项目分配额 + 人工成本分配差异 ≠ 实际人工成本（零容差），退回重新试算" sourceRef="S3_gw_9" targetRef="S2_7"/>
     <sequenceFlow id="Flow_14" name="含跨法人人工：按员工成本法人记、标「待内部结算」，跨法人清单随确认发给财务，继续过账" sourceRef="S3_gw_9" targetRef="S4_10"/>
     <sequenceFlow id="Flow_15" name="其他" sourceRef="S3_gw_9" targetRef="S4_10"/>
     <sequenceFlow id="Flow_16" sourceRef="S4_10" targetRef="S4_gw_11"/>

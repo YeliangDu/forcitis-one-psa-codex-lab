@@ -68,3 +68,10 @@
 **规矩提醒**：合 main 用普通 `git merge`（不被拦）；提交与推送分两次调用；外发被限流写 outbox；取证只走 one-ops，明细与个人信息不进会话；一个后台任务；precheck 只在推送前一次；本地只跑受影响模块测试。
 
 **2026-10-22 下午进展（按 one-coordinator 次序）**：①W2 PR-B 无草案可签（已告知调度，草案到再看 `employment_start_date`）；②DATA_SCORECARD 已补第 35、36 行；③错题本 DATA-001…013、018 已落到可定位处（门禁 §7a、`evidence/name_pattern_scan.py`）；④迁入写入通道设计 `MIGRATION_WRITER_ROLE_DESIGN.md` 已出，opus 首轮复审中（DAT-1022-DAT-01），改后交 one-1a-next-5 / one-1a-par；⑤ADR-0058 补写的数据侧输入 `ADR0058_AMENDMENT_INPUT.md` 已出，交 one-architecture 起草。仍开放：`org_units` 根表收窄设计（A4 答复后 30 天内）、ADR-0075 对 `ConfigSetVersion` 登记。
+
+**2026-10-22 晚交接（以本节为准，覆盖上文下午进展）**：
+- 已完成并推送（分支 claude/one-data-handoff-1 @ae6af5e4c，已报 one-merge）：W2 PR-B 草案签「通过」附 C1–C3 与重复工号拒收口径（`reviews/W2-PR-B.md`）；DATA_SCORECARD 第 35、36 行；错题本 DATA-001…013、018 落点（门禁 §7a、`evidence/name_pattern_scan.py`）；迁入写入通道设计 `MIGRATION_WRITER_ROLE_DESIGN.md`（opus、sonnet 两轮已改，按 one-architecture 判定：迁入角色无 UPDATE、日历应用内确认、日明细守护 SECURITY DEFINER、删属主确认检查）；ADR-0058 不补正文（勘误 E-010）；卡 C DDL 通过附 M1–M3（`reviews/B31-CARD-C-DDL.md`）；取证 115 个文件均可留（`reviews/EVIDENCE-ADR0037-SCAN-2026-10-22.md`）。
+- 在途/等别人：one-1a-par 的 W2 PR-B 实现 PR（我对 `personnel_commands` 与 ADR-0068 附件逐行比较、核 C1–C3）；#599 的 IT 用例；one-1a-next-5 / one-1a-par 按迁入写入通道设计实现，diff 出来我复核；卡 C 改完后的表结构 PR；收件箱 `2026-10-22-one-data-card-c-retention`（T-D10 保留期，等用户）；one-platform-file 单元 7；B-31 其余卡 DDL 草案。
+- 我自己的待办：`org_units` 根表收窄设计（A4 答复后 30 天内）；ADR-0075 对 `ConfigSetVersion` 登记为历史主体（随首个使用方）；DATA-001…013 中非机械项仍是软约束。
+- 规矩：提交与推送分两次调用；docs 提交号直接报 one-merge；子代理任务要写任务号 `DAT-1022-DAT-nn` 并登记 tasks/（种类取受控词、用时写「待核」）；本地只在推送前跑一次 precheck。
+

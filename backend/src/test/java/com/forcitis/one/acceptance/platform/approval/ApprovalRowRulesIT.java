@@ -111,7 +111,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
 
     private void assertReasonRequired(MockHttpServletResponse refused) throws Exception {
         assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(422);
-        assertThat((String) JsonPath.read(refused.getContentAsString(), "$.errorCode")).isEqualTo("PLATFORM_APPROVAL_REASON_REQUIRED");
+        assertThat((String) JsonPath.read(refused.getContentAsString(), "$.errorCode")).isEqualTo("KERNEL_REASON_REQUIRED");
     }
 
     private ApprovalProgress progressOf(DocumentReference document) {
@@ -152,7 +152,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
     // ---- AP-01 ------------------------------------------------------------------------------------------------
 
     @Test
-    @DisplayName("DATA-REPAIR-approval AP-01：驳回无原因（缺失、空串、空白）被拒 422 PLATFORM_APPROVAL_REASON_REQUIRED，任务与请求不变；有原因通过")
+    @DisplayName("DATA-REPAIR-approval AP-01：驳回无原因（缺失、空串、空白）被拒 422 KERNEL_REASON_REQUIRED，任务与请求不变；有原因通过")
     void rejectionWithoutAReasonIsRefused() throws Exception {
         Started c = pending();
         String version = versionOf(c.task(), projectManagerAccount);

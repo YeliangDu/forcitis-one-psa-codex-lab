@@ -33,10 +33,10 @@
 | 05 业务能力 | cap | 24 |
 | 06 价值流与阶段 | vs | 15 |
 | 06 价值流与阶段 | stage | 61 |
-| 07 业务流程 | prc | 202 |
+| 07 业务流程 | prc | 203 |
 | 08 约束与认定规则 | inv | 151 |
 | 09 业务对象 | obj | 104 |
-| 10 受控业务执行 | act | 680 |
+| 10 受控业务执行 | act | 690 |
 | 11 业务事实 | fact | 37 |
 | 12 维度 | dim | 10 |
 | 13 指标与评价 | metric | 112 |
@@ -51,11 +51,11 @@
 | 10 受控业务执行 | tc | 1132 |
 | 10 映射  | api | 68 |
 | 10 映射  | mod | 14 |
-| 10 受控业务执行 | cmd | 613 |
+| 10 受控业务执行 | cmd | 624 |
 | 09/10 映射  | otr | 881 |
 | 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
-| 07 业务流程 | steps | 661 |
+| 07 业务流程 | steps | 672 |
 | 01 映射  | perm | 27 |
 | 01 映射  | srole | 7 |
 | 01 映射  | role | 56 |
@@ -96,9 +96,9 @@
 | N09-M6 | 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口） | 1 |
 | N10-M2 | 每个后端模块在 module-dependencies.txt 登记 | 0 |
 | N10-M3 | 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属） | 0 |
-| N10-1 | 每个受控业务执行（命令）都有 owner BC | 42 |
+| N10-1 | 每个受控业务执行（命令）都有 owner BC | 46 |
 | N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 4 |
-| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 3 |
+| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 6 |
 | N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 47 |
 | N10-4 | 每个已建命令类在 ssot/11-commands/command-mapping.yaml 登记对照（pending 计缺口） | 0 |
 | N10-5 | 每个事件有唯一发布者与版本 | 0 |
@@ -829,7 +829,7 @@
 
 - organization.workforce/RegisteredEmployee（pending）
 
-## N10-1 每个受控业务执行（命令）都有 owner BC（42）
+## N10-1 每个受控业务执行（命令）都有 owner BC（46）
 
 - AGG-109/草拟利润分配（聚合 AGG-109 未归 BC）
 - AGG-109/决议利润分配（聚合 AGG-109 未归 BC）
@@ -858,6 +858,10 @@
 - AGG-76/草拟奖金核定（聚合 AGG-76 未归 BC）
 - AGG-76/核定奖金（聚合 AGG-76 未归 BC）
 - AGG-76/驳回奖金核定（聚合 AGG-76 未归 BC）
+- AGG-76/提交过账候选（聚合 AGG-76 未归 BC）
+- AGG-138/启动奖金计提（聚合 AGG-138 未归 BC）
+- AGG-138/计算奖金计提（聚合 AGG-138 未归 BC）
+- AGG-138/提交过账候选（聚合 AGG-138 未归 BC）
 - AGG-93/建立薪酬档案（聚合 AGG-93 未归 BC）
 - AGG-93/调整薪酬档案（聚合 AGG-93 未归 BC）
 - AGG-93/登记补休转加班工资（聚合 AGG-93 未归 BC）
@@ -881,10 +885,13 @@
 - B-32 报价发出编排（暂名）（模块 None）
 - reporting 经营分析（只读）（模块 reporting）
 
-## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（3）
+## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（6）
 
 - CMD-1afc1f3f 生效账期规则版本（AGG-136 未归 BC）
 - CMD-c401c884 编制账期规则版本（AGG-136 未归 BC）
+- CMD-0d5534b3 启动奖金计提（AGG-138 未归 BC）
+- CMD-930e449f 提交过账候选（AGG-138 未归 BC）
+- CMD-f498a386 计算奖金计提（AGG-138 未归 BC）
 - CMD-c2d24f95 登记招标项目（REF-01 未归 BC）
 
 ## N10-3 每条状态转换有触发命令（含 pending；by_command 为空计缺口）（47）
