@@ -25,6 +25,7 @@ SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_boar
 STEPS.append("rules/build_rule_index.py")   # 规则索引（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("rules/build_rule_index.py")
 SELF_TESTED.append("../../scripts/hooks/playbook_digest.py")
+SELF_TESTED.append("../../scripts/hooks/start_sheet.py")
 SELF_TESTED.append("../../scripts/ci/ci_recurrence.py")   # 每晚复发检测：失败 CI 按错题本报错特征归类
 SELF_TESTED.append("../../scripts/ops/session_daily.py")   # 会话日报取数（调度每天早上用）
 # 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；PyYAML 依赖登记于 SUPPLY_CHAIN.md S1

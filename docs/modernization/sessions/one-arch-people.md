@@ -66,7 +66,3 @@
 - 只交 closeout/people/ 片段，one-architecture 写共享文件；one-data 签发表口径，one-rules 管规则，用户事项由 one-architecture 合页后登记收件箱。
 - 子代理显式指定模型：opus 只用于首轮评审，复核用 sonnet，取数用 haiku。
 - 不做生产取证以外的对外调用；取证按 ADR-0037 登记、明细与个人信息不进仓库。
-
-## 当前状态
-
-2026-10-17 13:40+02:00 人员组流程骨架、表级模型、QC、聚合收敛、阶段与对象对齐已交（分支 claude/one-arch-people-closeout，文档只提交不开 PR）。当天另交：PRC-107 并入云端试点（0d220033）、VS-14 归段（fdba0fd5、A3 379f2483）、B31 答复同步 ARC-1017-APE-01（9aaf20dc）；进行中 ARC-1017-APE-02（按 33e28272 同步 REF-04 用印核验口径、补取消员工活动登记）。B31 制度材料 1–8 仍缺（one-architecture ARCH-B31-materials 经调度转用户）；人事记录系统与业务生效日沿已定口径，身份授权变更交安全流程。

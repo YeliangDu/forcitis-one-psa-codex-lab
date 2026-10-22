@@ -6,10 +6,12 @@
   python3 docs/modernization/build_sessions.py --self-test  校验规则自测
 
 - sessions/<会话名>.md：一个在用会话一份画像，标题「# <会话名>」，其后按 FIELDS 的顺序各一个二级标题，每节非空；
-  会话名为 one-*、与文件名一致、全局唯一；「类型」为「长期」或「工作」；「当前状态」为一行。
+  会话名为 one-*、与文件名一致、全局唯一；「类型」为「长期」或「工作」。画像不写“当前状态”：在途任务看 tasks/ 里的任务卡，交接看上下文文档的交接节
+  （GOV-1022-COO-13，开场只注入一页开工单）。
 - sessions/_retired.md：已交接、一次性会话，每行「- <会话名>：<状态>」，只进汇总表、不写画像。
-- 「上下文文档」一节中反引号括起的 .md 路径（仓库根相对）即清空或压缩后钩子注入的文档（scripts/hooks/session_context.py，
-  解析与路径判定与钩子共用）：路径须为仓库根相对、不含 ..、规范化后仍在仓库根下，且必须存在；长期会话须至少有一份本画像以外的上下文文档。
+- 「上下文文档」一节只列路径、不注入：反引号括起的 .md 路径（仓库根相对；scripts/hooks/session_context.py，解析与路径判定与钩子共用）须为仓库根相对、
+  不含 ..、规范化后仍在仓库根下且存在，不得列调度台账 COORDINATOR_LEDGER.md 与整份批次计划（*BATCH_PLAN*）。
+- 每份画像生成的开工单（scripts/hooks/start_sheet.py）须在 8 KB 内。
 - 独占与不碰靠调度派工、评审时人工核对，不做自动校验（SESSION_PLAYBOOK §2.1 第 16 条）。
 不合规时生成失败，不写产物。
 """
@@ -20,13 +22,11 @@ ROOT = os.path.dirname(os.path.dirname(BASE))
 SESSIONS = os.path.join(BASE, "sessions")
 sys.path.insert(0, os.path.join(ROOT, "scripts", "hooks"))
 from session_context import context_docs, unsafe_reason  # noqa: E402
+import start_sheet  # noqa: E402
 OUT = os.path.join(BASE, "SESSIONS.md")
-FIELDS = ["类型", "职责", "独占", "不碰", "输入", "输出", "触发与节奏", "自动化", "上下文文档", "交接条件", "权限边界", "当前状态"]
+FIELDS = ["类型", "职责", "独占", "不碰", "输入", "输出", "触发与节奏", "自动化", "上下文文档", "交接条件", "权限边界"]
 KINDS = ("长期", "工作")
-STALE_HOURS = 24
-REQUIRE_TIMESTAMP = False   # 画像迁移完成后改为 True，无时间戳即失败
-STAMP = re.compile(r"(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})([+-]\d{2}:\d{2})?")
-MAX_ZONE_SKEW_HOURS = 14   # 不带时区的时刻按本机本地时间算；CI 在 UTC 上生成，相差不超过 14 小时的“未来”不算错
+NOT_CONTEXT = re.compile(r"COORDINATOR_LEDGER\.md$|BATCH_PLAN")   # 开场不再注入，但列了就会被当成“要读的上下文”，整份台账与批次计划动辄几十 KB
 HANDOFF_STATES = ("有效", "已接手")
 HANDOFF_DIR = "handoffs"
 OLD_HANDOFFS = ("phase1a", "architecture/proposals")
@@ -77,9 +77,6 @@ def parse_profile(text, file_name):
             raise ProfileError(f"{file_name}：字段「{k}」为空")
     if body["类型"] not in KINDS:
         raise ProfileError(f"{file_name}：类型须为「长期」或「工作」")
-    one_line(body["当前状态"], f"{file_name} 当前状态")
-    if re.match(r"(?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?:[+-]\d{2}:\d{2})?\s*)?已交接", body["当前状态"]):
-        raise ProfileError(f"{file_name}：当前状态以「已交接」开头，已交接的会话改入 _retired.md，画像不再保留（SESSION_PLAYBOOK §2.1）")
     return {"name": stem, **body}
 
 
@@ -109,31 +106,8 @@ def check(profiles, retired, exists):
                 raise ProfileError(f"sessions/{p['name']}.md：上下文文档 {path} {reason}（只能写仓库根相对路径）")
             if not exists(path):
                 raise ProfileError(f"sessions/{p['name']}.md：上下文文档 {path} 不存在（写仓库根相对路径）")
-        if p["类型"] == "长期" and not [d for d in docs if d != own]:
-            raise ProfileError(f"sessions/{p['name']}.md：长期会话须在「上下文文档」列出至少一份本画像以外的文档")
-
-
-def freshness(status, now):
-    """当前状态须以 YYYY-MM-DD HH:MM[+HH:MM] 开头（建议带时区，如 2026-10-16 17:30+02:00；不带则按生成机器的本地时间，允许最多 14 小时的时区偏差）。
-    返回 (标记, 说明)：ok / stale（超 STALE_HOURS 小时）/ missing（无时间戳）/ invalid（时刻无效或明显在未来）。"""
-    m = STAMP.match(status)
-    if not m:
-        return "missing", "当前状态未以 YYYY-MM-DD HH:MM 开头"
-    try:
-        at = datetime.datetime.strptime(f"{m.group(1)} {m.group(2)}", "%Y-%m-%d %H:%M")
-    except ValueError:
-        return "invalid", f"时刻无效：{m.group(0)}"
-    if m.group(3):
-        sign = 1 if m.group(3)[0] == "+" else -1
-        hours, minutes = int(m.group(3)[1:3]), int(m.group(3)[4:6])
-        at = at.replace(tzinfo=datetime.timezone(sign * datetime.timedelta(hours=hours, minutes=minutes)))
-        now = now.astimezone() if now.tzinfo is None else now
-    elif now.tzinfo is not None:
-        at = at.replace(tzinfo=now.tzinfo)
-    age = (now - at).total_seconds() / 3600
-    if age < -(0 if m.group(3) else MAX_ZONE_SKEW_HOURS) - 0.02:
-        return "invalid", f"时刻在未来：{m.group(0)}"
-    return ("stale", f"已 {age:.0f} 小时未更新") if age > STALE_HOURS else ("ok", "")
+            if NOT_CONTEXT.search(path):
+                raise ProfileError(f"sessions/{p['name']}.md：上下文文档不得列 {path}（调度台账与整份批次计划太大，需要时按任务卡里的链接读）")
 
 
 def handoff_problems(base):
@@ -182,15 +156,13 @@ def render(profiles, retired, now=None):
     head = ("# 会话一览\n\n<!-- 由 docs/modernization/build_sessions.py 从 sessions/*.md 生成，不入仓，不要手改；"
             "改画像后运行 python3 docs/modernization/build_all.py。 -->\n\n"
             "画像规则见 SESSION_PLAYBOOK §2.1 第 16 条；画像全文在 `sessions/<会话名>.md`。\n\n"
-            "| 会话 | 类型 | 职责 | 上下文文档（钩子注入） | 当前状态 |\n|---|---|---|---|---|\n")
+            "| 会话 | 类型 | 职责 | 上下文文档（仅列路径，不注入） |\n|---|---|---|---|\n")
     order = sorted(profiles, key=lambda p: (KINDS.index(p["类型"]), p["name"]))
     rows = []
     for p in order:
         docs = "、".join(f"`{path.removeprefix('docs/modernization/')}`" for path in context_docs(f"## 上下文文档\n{p['上下文文档']}\n")) or "—"
-        mark, why = freshness(p["当前状态"], now or datetime.datetime.now())
-        tag = {"ok": "", "stale": f"【过期：{why}】", "missing": "【无时间戳】", "invalid": f"【{why}】"}[mark]
-        rows.append(f"| {p['name']} | {p['类型']} | {one_line(summary(p['职责']), p['name'] + ' 职责首行')} | {docs} | {tag}{p['当前状态']} |\n")
-    rows += [f"| {n} | 已结束 | — | — | {s} |\n" for n, s in retired]
+        rows.append(f"| {p['name']} | {p['类型']} | {one_line(summary(p['职责']), p['name'] + ' 职责首行')} | {docs} |\n")
+    rows += [f"| {n} | 已结束 | {s} | — |\n" for n, s in retired]
     return head + "".join(rows)
 
 
@@ -202,6 +174,9 @@ def load():
     retired_path = os.path.join(SESSIONS, "_retired.md")
     retired = parse_retired(open(retired_path, encoding="utf-8").read()) if os.path.exists(retired_path) else []
     check(profiles, retired, lambda p: os.path.isfile(os.path.join(ROOT, p)))
+    oversize = start_sheet.check_all(ROOT)
+    if oversize:
+        raise ProfileError("；".join(oversize))
     return profiles, retired
 
 
@@ -217,14 +192,14 @@ def self_test():
         failures.append(f"{name}：应失败但通过")
 
     p = parse_profile(good, "one-x.md")
-    if p["类型"] != "工作" or p["当前状态"] != "内容":
+    if p["类型"] != "工作" or p["权限边界"] != "内容":
         failures.append("合规画像解析结果不对")
     rejects("文件名不一致", lambda: parse_profile(good, "one-y.md"))
     rejects("非 one-* 名", lambda: parse_profile(good.replace("# one-x", "# psa-x"), "psa-x.md"))
     rejects("缺字段", lambda: parse_profile(good.replace("## 权限边界\n\n内容\n\n", ""), "one-x.md"))
     rejects("字段为空", lambda: parse_profile(good.replace("## 独占\n\n内容", "## 独占\n\n"), "one-x.md"))
     rejects("类型不合法", lambda: parse_profile(good.replace("## 类型\n\n工作", "## 类型\n\n临时"), "one-x.md"))
-    rejects("当前状态多行", lambda: parse_profile(good.rstrip("\n") + "\n第二行\n", "one-x.md"))
+    rejects("画像仍有当前状态节", lambda: parse_profile(good + "## 当前状态\n\n在岗\n", "one-x.md"))
     rejects("顺序不对", lambda: parse_profile(good.replace("## 独占", "## TMP").replace("## 不碰", "## 独占").replace("## TMP", "## 不碰"), "one-x.md"))
     own = "docs/modernization/sessions/one-x.md"
     yes = lambda path: True
@@ -234,19 +209,9 @@ def self_test():
     rejects("上下文文档不存在", lambda: check([p], [], lambda path: False))
     rejects("上下文文档为绝对路径", lambda: check([dict(p, 上下文文档="`/etc/x.md`")], [], yes))
     rejects("上下文文档含 ..", lambda: check([dict(p, 上下文文档="`docs/../../x.md`")], [], yes))
-    long_lived = dict(p, 类型="长期")
-    rejects("长期会话缺上下文文档", lambda: check([long_lived], [], yes))
-    check([dict(long_lived, 上下文文档=f"- `docs/a.md`\n- `{own}`")], [], yes)
-    rejects("画像写已交接", lambda: parse_profile(good.rstrip("\n").rsplit("\n", 1)[0] + "\n已交接给 one-y\n", "one-x.md"))
-    rejects("画像带时间戳写已交接", lambda: parse_profile(good.rstrip("\n").rsplit("\n", 1)[0] + "\n2026-10-16 12:00+02:00 已交接给 one-y\n", "one-x.md"))
-    parse_profile(good.rstrip("\n").rsplit("\n", 1)[0] + "\n接手 one-y 已交接的 P2\n", "one-x.md")   # 合法：不是以已交接开头
-    now = datetime.datetime(2026, 10, 16, 12, 0, tzinfo=datetime.timezone.utc)
-    for status, mark in (("2026-10-16 11:30+00:00 在岗", "ok"), ("2026-10-16 11:30 在岗", "ok"), ("2026-10-15 11:00 在岗", "stale"), ("2026-10-15 12:00 在岗", "ok"), ("在岗", "missing"), ("2026-13-40 25:61 x", "invalid"),
-                         ("2026-10-17 12:00 在岗", "invalid"), ("2026-10-16 23:00 在岗", "ok"), ("2026-10-16 14:30+02:00 在岗", "invalid"), ("2026-10-16 12:30+13:00 在岗", "ok")):
-        if freshness(status, now)[0] != mark:
-            failures.append(f"freshness({status!r}) 应为 {mark}：{freshness(status, now)}")
-    if "【过期" not in render([dict(p, 当前状态="2026-10-10 10:00 旧", 上下文文档=f"`{own}`")], [], now) or "【无时间戳】" not in render([dict(p, 上下文文档=f"`{own}`")], [], now):
-        failures.append("render 应标出过期与无时间戳")
+    check([dict(p, 类型="长期", 上下文文档=f"- `docs/a.md`\n- `{own}`")], [], yes)
+    rejects("上下文文档列了调度台账", lambda: check([dict(p, 上下文文档="`docs/modernization/COORDINATOR_LEDGER.md`")], [], yes))
+    rejects("上下文文档列了批次计划", lambda: check([dict(p, 上下文文档="`docs/modernization/phase1a/NEXT_BATCH_PLAN.md`")], [], yes))
     import tempfile
     with tempfile.TemporaryDirectory() as d:
         os.makedirs(os.path.join(d, HANDOFF_DIR)); os.makedirs(os.path.join(d, "phase1a"))
@@ -287,12 +252,6 @@ def main():
     except (ProfileError, StopIteration) as e:
         sys.exit(f"会话画像校验失败：{e}")
     now = datetime.datetime.now()
-    marks = [(p["name"],) + freshness(p["当前状态"], now) for p in profiles]
-    bad = [(n, m, w) for n, m, w in marks if m != "ok"]
-    if REQUIRE_TIMESTAMP and [b for b in bad if b[1] in ("missing", "invalid")]:
-        sys.exit("会话画像校验失败：当前状态须以 YYYY-MM-DD HH:MM 开头且有效：" + "、".join(n for n, m, _ in bad if m in ("missing", "invalid")))
-    if bad:
-        print(f"警告：{len(bad)} 份画像的当前状态过期或无时间戳：" + "、".join(f"{n}（{m}）" for n, m, _ in bad), file=sys.stderr)
     errors, warns = handoff_problems(BASE)
     if warns:
         print(f"警告：{len(warns)} 份旧位置的交接文件不合模板（templates/HANDOFF.md）：" + "；".join(w.split('：')[0] for w in warns), file=sys.stderr)

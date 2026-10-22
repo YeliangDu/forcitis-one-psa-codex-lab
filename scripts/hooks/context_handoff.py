@@ -175,7 +175,7 @@ def node_of(payload, event, root, config):
     return None
 
 
-def node_instruction(node, percent, name, profile, docs):
+def node_instruction(node, percent, name, profile, docs, goals=""):
     target = "one-merge" if name == "one-coordinator" else "one-coordinator"
     where = "、".join([profile or "sessions/<会话名>.md", *docs])
     extra = "（调度自清：one-merge 收到后用 set_remote_control 重开调度的远程并发『接续』）" if name == "one-coordinator" else ""
@@ -183,7 +183,7 @@ def node_instruction(node, percent, name, profile, docs):
             f"①更新 {where}（上下文文档与交接，写明下一步和未完成的用户请求）；②提交并推送；"
             f"③给 {target} 发消息「清空接续：{name or '<会话名>'} 交接在 <交接文件路径>」{extra}；"
             f"④调用 clear_session（session_id=self）。清空在本轮结束后才执行：此后不要再发消息或起任务，否则排队消息会让清空被丢弃；"
-            f"{target} 收到后须先 get_session 确认本会话已空闲且已清空，再发『接续』。")
+            f"{target} 收到后须先 get_session 确认本会话已空闲且已清空，再发『接续』。" + (f"\n{goals}" if goals else ""))
 
 
 def throttle_limits(path=None):
@@ -438,7 +438,13 @@ def handle_locked(event, payload, root, now):
                 if node:
                     entry["node_at"] = now
                     resolved = resolve_session(root)
-                    text = node_instruction(node, percent, resolved[0] or entry["name"] or None, resolved[1], resolved[2])
+                    try:
+                        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+                        import start_sheet
+                        goals = start_sheet.goals_for_node(root, resolved[0] or entry["name"] or "")
+                    except Exception:  # the goals are a courtesy; the instruction itself must still go out
+                        goals = ""
+                    text = node_instruction(node, percent, resolved[0] or entry["name"] or None, resolved[1], resolved[2], goals)
                     if event == "Stop":
                         node_out = {"decision": "block", "reason": text}
                     else:
@@ -877,6 +883,7 @@ def self_test():
         assert fire("PostToolUse", 150, 3000.0, session="nd1", extra=bash("gh pr create --title x")) is None, "below min_percent: no node instruction"
         said = text(fire("PostToolUse", 250, 3001.0, session="nd1", extra=bash("cd w && gh pr create --title x")))
         assert said and "【交接节点】" in said and "已开 PR" in said and "clear_session" in said and "one-coordinator" in said and "get_session" in said and "25%" in said, said
+        assert node_instruction("已开 PR", 25, "one-x", "p.md", ["d.md"], "目标：GOALS").endswith("\n目标：GOALS") and "GOALS" not in node_instruction("已开 PR", 25, "one-x", "p.md", ["d.md"]), "task goals ride along only when there are some"
         assert fire("PostToolUse", 250, 3002.0, session="nd1", extra=bash("git push origin b")) is None, "cooldown: said once per 10 minutes"
         again = text(fire("PostToolUse", 250, 3001.0 + NODE_COOLDOWN_SECONDS + 1, session="nd1", extra=bash("git -C /w push -u origin b")))
         assert again and "已推送" in again, again

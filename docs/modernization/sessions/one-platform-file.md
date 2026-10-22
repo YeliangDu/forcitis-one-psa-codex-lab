@@ -42,7 +42,6 @@
 
 ## 上下文文档
 
-- `docs/modernization/COORDINATOR_LEDGER.md`
 - `docs/modernization/adr/src/ADR-0060.md`
 - `docs/modernization/adr/src/ADR-0061.md`
 - `docs/modernization/adr/src/ADR-0064.md`
@@ -57,7 +56,3 @@
 
 - 须问用户：建账号、起非登记镜像的容器、对外调用（含 clamd 病毒库更新出向，按 one-ops 安全组变更单）；改断言或删测试须写理由并在 PR 单列。
 - 守护文件改动 PR 单列并要 opus 复审。
-
-## 当前状态
-
-2026-10-21 由 one-coordinator 拟定画像，待用户在侧边栏新开。
