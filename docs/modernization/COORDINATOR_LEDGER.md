@@ -8,7 +8,7 @@
 - 下午已定（intent）：交接阈值 30%/40%（154722，§2.1 已改并进 main #602）；降负载不得牺牲开发机功能（151546）；仓库内容治理四项交 one-quality（153421，GOV-1022-COO-06）；one-ops search_path 三项「都做」（155217）。
 - 在开 PR：#603（已批，队列）；#587（已批，等 one-platform-file 解冲突+openapi）；#604 KERR（one-1a-par，等 opus+CI）；#599 REG-3（等 one-data 签发与 M1 裁定，验收补丁按 RULING-COORD-20261022-03）；#589（已批，one-quality）；#606 钩子三合一（守护文件，单列 opus）。
 - 在途派工：one-1a-next-5 已清空、按 claude/nx5-handoff-1022 恢复（RULE-412 PR→REG-3 验收→search_path IMP-1022-COO-03→REG-4）；one-quality：#606 → 治理设计按 opus 8 条改稿（结论「改后交用户」，见本会话）→ 我出确认页；one-data：#599 签发；one-ops：search_path 三项执行报回；one-merge：#601 后删 one-merge-docs2，分支清理已完（146→69，27 个归档 archive/*，清单 ~/.modernize/psa/branch-cleanup-20261022/）。
-- 等用户：Spotlight 隐私排除 ~/Projects、~/actions-runners、~/.m2；开发者工具加 Claude/Terminal；Actions 产物（83 个/192MB）清理或改保留期；治理确认页（待改稿）。
+- 等用户：Spotlight 隐私排除 ~/Projects、~/actions-runners、~/.m2；开发者工具加 Claude/Terminal（用户不在电脑前，待办）；治理确认页（待改稿）。
 - 额度：本周全模型 55%（10-26 重置），超额已停；主会话读缓存是主因，少发会话消息、知会合并。
 - 不得再犯：恢复后只盯合并漏查开发会话；提交信息钩子交接写「等 §5」却不核实前提。
 
@@ -94,6 +94,7 @@
 - CI runner mac-one-1..4（~/actions-runners/one-N）与部署 runner mac-one-deploy（/opt/forcitis-one-runner）；main 分支保护 strict。
 - 私有文件：~/.modernize/psa/ 下 infra/role_holders.md、finance/（问卷 v2/v3、财务答复、FINANCE_DECISIONS.html）、audit/、codex/、handoff/。
 - 持久配置：`~/.cargo/config.toml` 的 `[build] jobs = 4`（10-22 用户「你处理这个」，限 dsm-morden 等 Rust 并行编译；撤销即删该文件）。
+- 仓库设置：Actions 产物与日志保留 14 天（10-22，原 90）。
 - 会话内定时任务：无（用户 2026-10-16 停掉上下文巡检，各会话批次边界自查）。
 
 ## 暂缓清单（用户定生产口径前不开工，intent「生产自成体系」#344）
