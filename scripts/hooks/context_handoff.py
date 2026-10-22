@@ -4,9 +4,9 @@
 Measure: the usage of the last assistant message of the session's own transcript (hook input `transcript_path`, sub-agent messages skipped):
 input + cache_read + cache_creation tokens, divided by the model's window from scripts/hooks/context_windows.json.
 A model missing from the file is counted against the conservative `default` and says so once per session; an unreadable transcript or config says so once and does nothing else.
-Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= 75% "at the batch boundary update the context documents and hand over, report to one-coordinator" (no clear: the user clears or the session compacts, user 2026-10-21);
-at >= 85% "hand over now". Each level once per session; state lives in the untracked <root>/.claude/context-handoff-state.json (a cleared session has a new id, so starts clean).
-Enforce (Stop): past 75% while none of the profile / context documents (SESSION_PLAYBOOK §2.1 #16, same session-name resolution as session_context.py) was modified since the level was first reached, the stop is blocked once per level with the reason; a document written since lets it through.
+Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= `context_levels.prepare` (shipped 30%, SESSION_PLAYBOOK §2.1 #1) "at the batch boundary update the context documents and hand over, report to one-coordinator" (no clear: the user clears or the session compacts, user 2026-10-21);
+at >= `context_levels.handover` (shipped 40%) "hand over now". Each level once per session; state lives in the untracked <root>/.claude/context-handoff-state.json (a cleared session has a new id, so starts clean).
+Enforce (Stop): past the prepare level while none of the profile / context documents (SESSION_PLAYBOOK §2.1 #16, same session-name resolution as session_context.py) was modified since the level was first reached, the stop is blocked once per level with the reason; a document written since lets it through.
 Never a loop: `stop_hook_active` lets the stop through, and a level blocks at most once. A crash of this hook never blocks a stop; for the other events it is reported once as additionalContext.
 Bulk (PostToolUse of Bash): a single command longer than `bash_input_chars` or a result longer than `bash_output_chars` (context_windows.json; defaults 5000 / 8000 from the length distribution of 1.6k Bash calls: about p96 / p98) is pointed out once per session and reason as additionalContext, never blocking (SESSION_PLAYBOOK §5 context-saving rules).
 During the pilot `pilot_sessions` in context_windows.json limits the hook to the listed session names (null or absent = every session).
@@ -30,13 +30,13 @@ import session_context as sc  # noqa: E402
 
 CONFIG = os.environ.get("CONTEXT_WINDOWS_CONFIG") or os.path.join(HERE, "context_windows.json")
 STATE = ".claude/context-handoff-state.json"
-LEVELS = (75, 85)
+LEVELS = (30, 40)
+RESET_MARGIN = 15
 FALLBACK_WINDOW = 200000
 KEEP_SESSIONS = 20
 NAME_RECHECK_SECONDS = 600
 BASH_INPUT_CHARS = 5000
 BASH_OUTPUT_CHARS = 8000
-RESET_BELOW = 60
 TAIL_BYTES = 4 * 1024 * 1024
 SESSIONS = sc.SESSIONS
 
@@ -58,6 +58,22 @@ def load_windows(path=None):
         return default, windows, None
     except (OSError, ValueError, TypeError, AttributeError) as error:
         return FALLBACK_WINDOW, {}, f"上下文窗口配置 {os.path.basename(path)} 读不了（{error}），一律按保守值 {FALLBACK_WINDOW} 计算"
+
+
+def context_levels(path=None):
+    """((prepare, handover) percent, warning or None): `context_levels` in the configuration, two integers 1 <= prepare < handover <= 99 (SESSION_PLAYBOOK §2.1 #1: 30 / 40)."""
+    try:
+        with open(path or CONFIG, encoding="utf-8") as stream:
+            data = json.load(stream)
+        if "context_levels" not in data:
+            return LEVELS, None
+        value = data["context_levels"]
+        prepare, handover = value["prepare"], value["handover"]
+        if any(isinstance(x, bool) or not isinstance(x, int) for x in (prepare, handover)) or not 1 <= prepare < handover <= 99:
+            raise ValueError(f"prepare / handover 必须是 1 <= prepare < handover <= 99 的整数，读到 {value!r}")
+        return (prepare, handover), None
+    except (OSError, ValueError, TypeError, AttributeError, KeyError) as error:
+        return LEVELS, f"交接档位配置有问题（{error}），改用默认值 {LEVELS[0]}% / {LEVELS[1]}%"
 
 
 def pilot_sessions(path=None):
@@ -233,10 +249,10 @@ def measure(payload, state_entry):
     return tokens * 100.0 / window, tokens, window, warnings
 
 
-def reminder(level, percent, tokens, window, name):
+def reminder(level, percent, tokens, window, name, handover=LEVELS[1]):
     where = f"sessions/{name}.md" if name else "sessions/<会话名>.md（本会话未识别，先在 .claude/session-name 写入会话名）"
     head = f"【上下文 {percent:.0f}%（{tokens}/{window}）】"
-    if level >= 85:
+    if level >= handover:
         return head + f"立即交接：现在就更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
     return head + f"到批次边界：更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
 
@@ -262,31 +278,40 @@ def handle_locked(event, payload, root, now):
         entry["name"] = resolve_session(root)[0] or ""
         entry["name_checked"] = now
     pilot = pilot_sessions()
+    (prepare, handover), level_warning = context_levels()
+    levels = (prepare, handover)
     out = None
     warnings = []
+    early = [level_warning] if level_warning and not entry.get("level_warned") else []
+    if level_warning:
+        entry["level_warned"] = True
+    if not entry["name"] and event != "Stop" and not entry.get("noname_warned"):
+        entry["noname_warned"] = True
+        early.append("【会话未识别】没有 .claude/session-name，也无法从工作区目录名或分支名认出会话画像：上下文档位提醒、提交信息的 `Session:` 都用不上；先在 .claude/session-name 写入会话名（SESSION_PLAYBOOK §2.1）。")
     if pilot is None or entry["name"] in pilot:
         percent, tokens, window, warnings = measure(payload, entry)
         warnings += bulk_reminders(dict(payload, hook_event_name=event), entry)
         if percent is not None:
-            if percent < RESET_BELOW:
+            if percent < max(1, prepare - RESET_MARGIN):
                 if "crossed" in entry:
                     entry.pop("bulk", None)
                 for key in ("reminded", "blocked", "crossed"):
                     entry.pop(key, None)
-            for level in LEVELS:
+            for level in levels:
                 if percent >= level:
                     entry.setdefault("crossed", {}).setdefault(str(level), now)
-            top = max((level for level in LEVELS if percent >= level), default=0)
+            top = max((level for level in levels if percent >= level), default=0)
             if event == "Stop":
                 if top and not payload.get("stop_hook_active"):
                     out = stop_decision(root, entry, top, percent, now)
             elif top and str(top) not in entry.setdefault("reminded", []):
                 entry["reminded"].append(str(top))
-                warnings.append(reminder(top, percent, tokens, window, entry["name"] or None))
+                warnings.append(reminder(top, percent, tokens, window, entry["name"] or None, handover))
     try:
         save_state(root, state)
     except OSError as error:
         print(f"context_handoff: 状态文件写不了（{error}），本次提醒照常输出，但同一档位可能重复提醒", file=sys.stderr)
+    warnings = early + warnings
     if event == "Stop":
         for text in warnings:
             print(f"context_handoff: {text}", file=sys.stderr)
@@ -377,8 +402,9 @@ def make_repo(tmp, with_docs=True):
 
 
 def self_test():
-    global CONFIG
-    original_config = CONFIG
+    global CONFIG, LEVELS
+    original_config, original_levels = CONFIG, LEVELS
+    LEVELS = (75, 85)  # the scenarios below are written against 75 / 85; the configured 30 / 40 are exercised in their own block
     with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stderr(io.StringIO()) as quiet:
         config = os.path.join(tmp, "windows.json")
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000, "claude-long": 5000}}))
@@ -532,6 +558,7 @@ def self_test():
             os.chmod(os.path.join(root, ".claude"), 0o700)
 
         # concurrent hooks: every level reminded exactly once, no crash
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 75, "handover": 85}}))
         transcript(trans, 800)
         script_path = os.path.abspath(__file__)
         environment = {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "CONTEXT_WINDOWS_CONFIG": config, "CLAUDE_PROJECT_DIR": root}
@@ -586,7 +613,9 @@ def self_test():
         subprocess.run(["git", "init", "-q", other], check=True, capture_output=True)
         transcript(trans, 860)
         assert handle("Stop", dict(payload, session_id="x1"), other, 500.0) is None
-        assert "<会话名>" in text(handle("PostToolUse", dict(payload, session_id="x2", hook_event_name="PostToolUse"), other, 501.0))
+        unnamed = text(handle("PostToolUse", dict(payload, session_id="x2", hook_event_name="PostToolUse"), other, 501.0))
+        assert "<会话名>" in unnamed and "【会话未识别】" in unnamed, "an unidentified session is told so once, with the reminder"
+        assert "【会话未识别】" not in (text(handle("PostToolUse", dict(payload, session_id="x2", hook_event_name="PostToolUse"), other, 502.0)) or ""), "said once per session"
 
         # a crash does not block a stop
         original = globals()["measure"]
@@ -622,7 +651,30 @@ def self_test():
         assert garbage.returncode == 0 and "出错" in garbage.stderr + garbage.stdout, garbage
         other_event = subprocess.run([sys.executable, "-I", script], input=json.dumps({"hook_event_name": "SessionStart"}), capture_output=True, text=True, env={"LC_ALL": "C"})
         assert other_event.returncode == 0 and not other_event.stdout
+        # configured levels (shipped: 30 / 40): read from the configuration, validated, the reset margin follows the lower one
+        LEVELS = original_levels
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 30, "handover": 40}}))
+        assert context_levels(config) == ((30, 40), None)
+        assert fire("PostToolUse", 250, 2000.0, session="lv") is None, "below 30% is silent"
+        low = text(fire("PostToolUse", 310, 2001.0, session="lv"))
+        assert low and "到批次边界" in low and "31%" in low, low
+        high = text(fire("PostToolUse", 410, 2002.0, session="lv"))
+        assert high and "立即交接" in high, high
+        fire("PostToolUse", 100, 2003.0, session="lv")
+        assert text(fire("PostToolUse", 320, 2004.0, session="lv")) is not None, "after a compaction below the reset margin the level is said again"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}}))
+        assert context_levels(config) == (original_levels, None), "without a configured value the built-in levels apply"
+        for bad in ({"prepare": 40, "handover": 30}, {"prepare": 30}, {"prepare": "30", "handover": 40}, {"prepare": True, "handover": 40}, {"prepare": 0, "handover": 40}, {"prepare": 30, "handover": 100}, [30, 40]):
+            write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": bad}))
+            levels_read, warning = context_levels(config)
+            assert levels_read == original_levels and warning and "交接档位配置有问题" in warning, (bad, warning)
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 40, "handover": 30}}))
+        assert "交接档位配置有问题" in text(fire("PostToolUse", 100, 2005.0, session="lvbad")), "a broken level configuration is said once"
+        assert fire("PostToolUse", 100, 2006.0, session="lvbad") is None
     CONFIG = original_config
+    LEVELS = original_levels
+    real_levels, real_levels_warning = context_levels(original_config)
+    assert real_levels_warning is None and real_levels == (30, 40), "the shipped configuration sets 30 / 40 (SESSION_PLAYBOOK §2.1 #1)"
     real_default, real_windows, real_warning = load_windows(original_config)
     assert real_warning is None and real_default > 0, "the shipped window configuration must be readable"
     for model in ("claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1"):
