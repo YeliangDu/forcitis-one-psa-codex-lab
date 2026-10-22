@@ -5,28 +5,31 @@
 ## 合并核对
 
 - commands finance：171
-- commands people：168
+- commands people：172
 - commands revenue：270
-- commands 合计：609
+- commands 合计：613
 - matrix：603
-- 合并后：620；两处都有：592；仅 commands：17；仅 matrix：11
+- 合并后：624；两处都有：592；仅 commands：21；仅 matrix：11
 - 已建命令类与聚合关系：85（未做类名与 CMD 对照）
 
-## 无 owner_bc（3）
+## 无 owner_bc（6）
 
 - CMD-1afc1f3f — AGG-136 — 生效账期规则版本
 - CMD-c401c884 — AGG-136 — 编制账期规则版本
+- CMD-0d5534b3 — AGG-138 — 启动奖金计提
+- CMD-930e449f — AGG-138 — 提交过账候选
+- CMD-f498a386 — AGG-138 — 计算奖金计提
 - CMD-c2d24f95 — REF-01 — 登记招标项目
 
 owner_bc 仅取 planned.yaml 的 aggregates[].BC 原文；未列入该段的引用不推断 BC。
 actor 只取 raci.A 的 role、function 原文；未声明的字段保留 null，不从实例字段推断角色。
 source.index 为各来源列表的从 0 开始序号；group 汇集 commands 文件分组与 matrix 的 a_source group 值。
 
-## 同名跨聚合（6 组，33 条）
+## 同名跨聚合（6 组，35 条）
 
 - 开具销项发票并改写 WIP：AGG-44 / CMD-cc7b8dce；AGG-46 / CMD-7af93128
 - 提交申报：AGG-90 / CMD-c4c6427c；AGG-95 / CMD-ce706d71
-- 提交过账候选：AGG-109 / CMD-01e1b9fe；AGG-131 / CMD-d7e12434；AGG-39 / CMD-a298af3d；AGG-41 / CMD-c6c46996；AGG-43 / CMD-0e8c882e；AGG-44 / CMD-2fdf7108；AGG-46 / CMD-f86a5a2d；AGG-49 / CMD-e000dd09；AGG-50 / CMD-660c68fb；AGG-51 / CMD-c60405cf；AGG-52 / CMD-7abe02af；AGG-53 / CMD-8760f315；AGG-54 / CMD-29588f43；AGG-57 / CMD-f45ea637；AGG-59 / CMD-7fdb9433；AGG-73 / CMD-e33f0978；AGG-88 / CMD-b0b2bf05；AGG-89 / CMD-4cb5a200；AGG-90 / CMD-6e73407b；AGG-91 / CMD-2438ab38；AGG-95 / CMD-e175f409；AGG-98 / CMD-40938608；AGG-99 / CMD-5a647d09
+- 提交过账候选：AGG-109 / CMD-01e1b9fe；AGG-131 / CMD-d7e12434；AGG-138 / CMD-930e449f；AGG-39 / CMD-a298af3d；AGG-41 / CMD-c6c46996；AGG-43 / CMD-0e8c882e；AGG-44 / CMD-2fdf7108；AGG-46 / CMD-f86a5a2d；AGG-49 / CMD-e000dd09；AGG-50 / CMD-660c68fb；AGG-51 / CMD-c60405cf；AGG-52 / CMD-7abe02af；AGG-53 / CMD-8760f315；AGG-54 / CMD-29588f43；AGG-57 / CMD-f45ea637；AGG-59 / CMD-7fdb9433；AGG-73 / CMD-e33f0978；AGG-76 / CMD-d2d692f0；AGG-88 / CMD-b0b2bf05；AGG-89 / CMD-4cb5a200；AGG-90 / CMD-6e73407b；AGG-91 / CMD-2438ab38；AGG-95 / CMD-e175f409；AGG-98 / CMD-40938608；AGG-99 / CMD-5a647d09
 - 更正申报：AGG-90 / CMD-80764bf6；AGG-95 / CMD-70829ffb
 - 生成申报：AGG-90 / CMD-5d835e89；AGG-95 / CMD-f5007ba9
 - 登记缴款：AGG-90 / CMD-3361ae6b；AGG-95 / CMD-7983b5b2
