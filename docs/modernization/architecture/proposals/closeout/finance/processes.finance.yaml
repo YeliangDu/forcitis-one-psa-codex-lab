@@ -17,6 +17,9 @@ processes:
   - type: time
     name: platform.scheduling 到点调用：立项后回签前挂合同履约成本的投入超过 N 个月未签约（N 取成本核算参数版本 AGG-123，默认 6 个月、可设；A7、GL-026；幂等键 = 聚合 ID + 到期时点；对象键为项目或协议，不是商机）
     entry: 1
+  - type: call
+    name: PRC-25 转入时售前投入所在法人与项目承担法人不一致的部分（LEB-05，成本口径 C-5）
+    entry: 1
   - type: event
     name: BusinessFactAttributed（本批次的过账事实）
     bc: B-16
@@ -43,6 +46,7 @@ processes:
   - PRC-15-S11
   - PRC-15-S12
   - PRC-15-S13
+  - PRC-15-S14
   steps:
   - actor: system
     where: automatic
@@ -154,7 +158,7 @@ processes:
   - VS-04.1
   triggers:
   - type: event
-    name: ContractSigned
+    name: 协议已生效
     bc: B-05
     entry: 1
   - type: event
@@ -169,7 +173,7 @@ processes:
     name: 合同—项目关联已登记
     bc: B-05
     entry: 3
-  migration: 在途：投产日合同已签回但未转入的，按迁入的权责事实存量由本策略继续处理；历史：已转入的批次由迁入事实承载，不重放事件（M7）
+  migration: 在途：投产日协议已生效但未转入的，按迁入的权责事实存量由本策略继续处理；历史：已转入的批次由迁入事实承载，不重放事件（M7）
   outcomes:
   - 售前投入已转入
   - 等待齐备
@@ -194,13 +198,14 @@ processes:
   - PRC-25-S13
   - PRC-25-S14
   - PRC-25-S15
+  - PRC-25-S16
   steps:
   - actor: system
     where: automatic
-    command: 登记合同已签回
+    command: 登记协议已生效
     aggregate: AGG-122
     added_in: closeout
-    desc: 订阅 ContractSigned，登记到按商机持久的归属登记（两事件分别到达，不要求同时；S-31 SQ-18）
+    desc: 订阅协议已生效（不再订阅 ContractSigned：附生效条件的协议签署后可能不生效，按生效转入可免冲回，GL5-01，GL5_SIGNED_EFFECTIVE_SUBSCRIBERS）登记到按商机持久的归属登记（两事件分别到达，不要求同时；S-31 SQ-18）
     decision:
     - when: 该商机的售前投入已转出（重复事件，幂等）
       goto: end
@@ -212,7 +217,7 @@ processes:
     - mode: event
       direction: in
       bc: B-05
-      name: ContractSigned
+      name: 协议已生效
     audit: true
     legal_entity: 承担法人
   - actor: system
@@ -268,8 +273,12 @@ processes:
     - when: 该商机没有未转的售前投入
       goto: end
       outcome: 无需转入
+    - when: 部分售前投入所在法人（投入人员当日成本法人）与项目承担法人不一致：一致部分照常转入；不一致部分不转入，调用 PRC-15 留原法人转费用，列入月末跨法人清单
+      goto: 5
+      rule: INV-93；LEB-05（成本口径 C-5）
     - when: otherwise
       goto: 5
+    calls: PRC-15
     legal_entity: 承担法人
     cross_bc: []
   - actor: system
@@ -1914,6 +1923,9 @@ processes:
     where: automatic
     command: 提交过账候选
     aggregate: AGG-52
+    inner:
+    - command: 〔缺〕登记进项发票入账
+      aggregate: AGG-89
     calls: PRC-92
     period_gate: true
     decision:
@@ -1969,6 +1981,13 @@ processes:
     name: 付款已退票
     publisher: B-10（同 BC，AGG-53）
     entry: 8
+  - type: human
+    name: 出纳收到银行代发部分退回回单（付款已核销之后，部分收款人失败退回）
+    entry: 10
+  - type: event
+    name: 付款已部分退回
+    publisher: B-10（同 BC，AGG-53）
+    entry: 8
   stages:
   - VS-05.5
   - VS-08.3
@@ -2015,6 +2034,7 @@ processes:
   - 发起失败已补偿
   - 已撤回
   - 已登记退票
+  - 已登记代发退回
   - 退票已冲回
   - 重复事件已忽略
   - 过账被拒收
@@ -2053,6 +2073,8 @@ processes:
   - PRC-75-S31
   - PRC-75-S32
   - PRC-75-S33
+  - PRC-75-S34
+  - PRC-75-S35
   roles:
   - id: SH-E6
     as: initiator
@@ -2337,9 +2359,9 @@ processes:
     where: automatic
     command: 冲回应付核销
     aggregate: AGG-52
-    branch: 订阅付款已退票
+    branch: 订阅付款已退票或付款已部分退回
     added_in: closeout
-    desc: 订阅付款已退票，把原核销冲回，恢复未结余额（同 BC）；应付已结清的下游效果（报销置已付、薪酬）的回退待用户定
+    desc: 订阅付款已退票，把原核销冲回，恢复未结余额（同 BC）；订阅付款已部分退回时只冲回退回额，应付从已结清回到已部分结清（PAYROLL_REISSUE_SEAM J-2）；之前发出的应付已结清不撤回，补发付清后再发一次；应付已结清的下游效果（报销置已付）的回退待用户定
     decision:
     - when: 该付款的核销已冲回（事件重复，幂等）
       goto: end
@@ -2381,7 +2403,31 @@ processes:
       bc: B-16
       name: 冲销并重过账
     legal_entity: 资金账户所属法人
-  notes: 应付已结清的订阅方 B-15（薪酬，PRC-127）。原步骤 6–8（核销应付、标记付款已核销、提交过账候选）改为事件策略 PRC-131、PRC-132（⑥a 评审 M6）。审批人 SH-M1 为占位（F-01）。 付款成功后退票（S-30 ③）：步骤 7 登记退票发付款已退票，步骤 8–9 为同 BC 反应（AGG-52 冲回应付核销，再冲销并重过账），不用「已被取代」。 预付款登记（PRC-175
+  - actor: SH-E6
+    where: external:银行
+    evidence:
+    - 银行代发退回回单（回单编号、退回金额、退回收款人、时刻）
+    command: 〔缺〕登记代发退回
+    aggregate: AGG-53
+    branch: 代发部分退回
+    added_in: closeout
+    emits:
+    - 付款已部分退回
+    desc: 代发总额已付并已核销后，部分收款人失败、款项退回：付款仍为已核销，累计退回额增加，发付款已部分退回，由步骤 8 只冲回退回额、步骤 9 冲销对应过账（借 银行存款，贷 应付职工薪酬）；全额退回走步骤 7（PAYROLL_REISSUE_SEAM J-2）
+    decision:
+    - when: 付款尚未核销，或累计退回额将超过付款金额，拒收并告警
+      goto: end
+      rule: 状态机：仅已核销可登记；累计退回额 ≤ 付款金额
+      outcome: 已拒收
+      alert: true
+    - when: otherwise
+      goto: end
+      outcome: 已登记代发退回
+    permission: 付款.登记退票
+    page: 付款执行页（退票）
+    audit: true
+    legal_entity: 资金账户所属法人
+  notes: 应付已结清的订阅方 B-15（薪酬，PRC-127）。薪酬补发不新建应付：退回已把原应付冲回到已部分结清，B-15 PRC-126 收到薪酬补发已发起后在原应付上登记补发明细（AGG-52 登记薪酬补发明细），本流程按明细付清未结余额（one-architecture 2026-10-22 裁定 J-1）。原步骤 6–8（核销应付、标记付款已核销、提交过账候选）改为事件策略 PRC-131、PRC-132（⑥a 评审 M6）。审批人 SH-M1 为占位（F-01）。 付款成功后退票（S-30 ③）：步骤 7 登记退票发付款已退票，步骤 8–9 为同 BC 反应（AGG-52 冲回应付核销，再冲销并重过账），不用「已被取代」。 预付款登记（PRC-175
     步 5）与「预付款冲抵应付」（PRC-176）：预付款进待付清单的触发待补（见 NOTES 结构问题）。
   stages_note: "结局「付款已成功 / 已核销」造出 VS-05.5 完成付款、VS-08.3 完成报销付款、VS-13.5 的退出条件（#421 判据①）；借款发放不让借款结清，不归 VS-08.1；利润分配与出资退回的退出条件由 PRC-163、PRC-114 造出"
   primary_object: OBJ-86
@@ -2594,7 +2640,7 @@ processes:
   - VS-06.1
   owner_bc: B-23
   human_orchestration: false
-  migration: 在途（已生成未提交、已提交未缴款）的申报投产前办结；历史申报与缴款是否迁入、来源（税务端或 U8C）由数据模型组按 R-09 定；AGG-90 到申报阶段再建（D-7），此前本流程不可用
+  migration: 在途（待申报、已申报未缴款）的申报投产前办结；历史申报与缴款是否迁入、来源（税务端或 U8C）由数据模型组按 R-09 定；AGG-90 到申报阶段再建（D-7），此前本流程不可用
   scope: 按纳税法人的数据范围（财务岗位）
   outcomes:
   - 已缴款
@@ -2876,6 +2922,7 @@ processes:
   - PRC-87-S25
   - PRC-87-S26
   - PRC-87-S27
+  - PRC-87-S28
   roles:
   - id: SH-E3
     as: initiator
@@ -3089,6 +3136,9 @@ processes:
     where: automatic
     command: 提交过账候选
     aggregate: AGG-59
+    inner:
+    - command: 〔缺〕登记进项发票入账
+      aggregate: AGG-89
     calls: PRC-92
     cross_bc:
     - mode: api
@@ -3105,6 +3155,10 @@ processes:
       goto: end
       rule: INV-92（S-31 SQ-12）；ADR-0045 决定 1
       outcome: 期间关账中待重试
+    - when: 项目费用的报销人成本法人与项目承担法人不一致：记报销人所在法人、标「待内部结算」，列入跨法人清单，项目看板照常归集并标注
+      goto: end
+      outcome: 已核定（所属期间确定，增值税发票已入账）
+      rule: INV-93；LEB-04
     - when: 所属期间已关账（自动落当前开放期间并标原期间）
       goto: end
       outcome: 已核定（所属期间确定，增值税发票已入账）
@@ -4201,6 +4255,7 @@ processes:
   - PRC-96-S19
   - PRC-96-S20
   - PRC-96-S21
+  - PRC-96-S22
   roles:
   - id: SH-E6
     as: performer
@@ -4252,7 +4307,7 @@ processes:
     where: in_system
     command: 试算人工成本分配
     aggregate: AGG-41
-    desc: P-41 有工时无薪酬、有薪酬无工时预警
+    desc: P-41 有工时无薪酬、有薪酬无工时预警；按工时日期读员工当日的成本法人（当时值，ADR-0073 第 1 条），与项目承担法人比较，不一致的人工记员工成本法人、标「待内部结算」并列入跨法人清单（员工、项目、两边法人、金额、期间），项目看板照常归集并标注（LEB-04；部门换法人后项目不转，见交付执行 LEB-03）
     permission: 成本.人工成本分配试算
     page: 人工成本分配试算页
     legal_entity: 承担法人
@@ -4267,6 +4322,12 @@ processes:
     - when: 分配合计不等于实际人工成本（零容差）
       goto: 2
       rule: INV-89
+    - when: 含跨法人人工：按员工成本法人记、标「待内部结算」，跨法人清单随确认发给财务，继续过账
+      goto: 4
+      rule: INV-93；LEB-04（ADR-0017 第 4 条：内部结算不在本期）
+      notify:
+      - to: SH-E6
+        how: 跨法人清单（月度）
     - when: otherwise
       goto: 4
     permission: 成本.人工成本分配确认
@@ -4629,6 +4690,7 @@ processes:
   - PRC-98-S14
   - PRC-98-S15
   - PRC-98-S16
+  - PRC-98-S17
   roles:
   - id: SH-E6
     as: performer
@@ -4652,6 +4714,11 @@ processes:
       goto: end
       rule: P-42
       outcome: 已结转下期
+    - when: 分摊规则把某一法人的成本池分摊到其他法人的项目，拒收并告警（成本池按法人分别归集，只分摊到同一法人的项目；部门换法人后自生效日起的费用进新法人的池）
+      goto: end
+      rule: INV-93；成本口径 C-4（不变量待聚合稿登记）
+      outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 2
     permission: 成本.分摊运行试算
@@ -7330,7 +7397,7 @@ processes:
   - type: event
     name: 申报已提交
     publisher: B-23（AGG-90）
-  migration: 在途：投产日已提交未缴款的申报，其税费应付按迁入的应付存量承载，不重放事件（M7）；历史：已缴款申报的应付随迁入事实承载
+  migration: 在途：投产日已申报未缴款的申报，其税费应付按迁入的应付存量承载，不重放事件（M7）；历史：已缴款申报的应付随迁入事实承载
   outcomes:
   - 税费应付已确认
   - 无需确认应付

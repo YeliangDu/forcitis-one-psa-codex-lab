@@ -256,9 +256,15 @@ machines:
   - from: 已结清
     to: 已部分结清
     command: 冲回应付核销
-    guard: [退票后仍有其他核销，未结余额大于零]
+    guard: [退票或部分退回后仍有核销，未结余额大于零]
     reverse_of: 核销应付
-    note: S-30 ③：付款已退票后恢复未结余额
+    note: S-30 ③：付款已退票后恢复未结余额；代发部分退回时只冲回退回额（PAYROLL_REISSUE_SEAM J-2）
+  - from: 已部分结清
+    to: 已部分结清
+    command: 登记薪酬补发明细
+    guard: [来源为月度薪酬结算, 累计补发额不超过累计冲回额]
+    reverse_of: null
+    note: 薪酬补发不新建应付，在原应付上登记补发明细，由 PRC-75 付清未结余额（one-architecture 2026-10-22 裁定 J-1）；提议命令
   - from: [已部分结清, 已结清]
     to: 已确认
     command: 冲回应付核销
@@ -414,6 +420,12 @@ machines:
     guard: [INV-78a]
     reverse_of: 登记银行结果
     note: S-30 ③：事件付款已退票，AGG-52 订阅后冲回应付核销
+  - from: 已核销
+    to: 已核销
+    command: 登记代发退回
+    guard: [累计退回额不超过付款金额]
+    reverse_of: null
+    note: 代发部分退回，付款状态不变、累计退回额增加；发付款已部分退回，AGG-52 只冲回退回额（PAYROLL_REISSUE_SEAM J-2）；提议命令
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045）；退票后原付款置「已退票」，重新发起为新付款
 - aggregate: AGG-54
   initial: 已认缴
@@ -1229,6 +1241,7 @@ machines:
   - 已查验
   - 已用途确认
   - 已占用
+  - 已入账
   - {name: 已转出, terminal: true}
   transitions:
   - from: null
@@ -1257,7 +1270,13 @@ machines:
     guard: []
     reverse_of: 占用进项发票入账
     note: 报销被驳回或撤回时释放占用
-  - from: 已用途确认
+  - from: 已占用
+    to: 已入账
+    command: 登记进项发票入账
+    guard: [占用方已过账]
+    reverse_of: null
+    note: 占用方（报销或供方来源应付）过账后登记税务平台的入账状态；入账后不再释放占用，更正走红冲或进项转出（transition-review CF-032）；由谁向税务平台报送入账状态待定（U-55）；提议命令
+  - from: [已用途确认, 已入账]
     to: 已转出
     command: 进项转出
     guard: []
@@ -1276,36 +1295,36 @@ machines:
     note: 过账不改业务状态
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
 - aggregate: AGG-90
-  initial: 已生成
+  initial: 待申报
   states:
-  - 已生成
-  - 已提交
+  - 待申报
+  - 已申报
   - 已缴款
   - {name: 已更正, terminal: true}
   transitions:
   - from: null
-    to: 已生成
+    to: 待申报
     command: 生成申报
     guard: []
     reverse_of: null
-  - from: 已生成
-    to: 已提交
+  - from: 待申报
+    to: 已申报
     command: 提交申报
     guard: [复核通过（SH-M1）]
     reverse_of: null
-  - from: 已生成
-    to: 已生成
+  - from: 待申报
+    to: 待申报
     command: null
     guard: []
     reverse_of: 提交申报
     on_event: 审批已驳回
     note: 复核驳回，退回重新生成
-  - from: 已提交
+  - from: 已申报
     to: 已缴款
     command: 登记缴款
     guard: []
     reverse_of: null
-  - from: [已提交, 已缴款]
+  - from: [已申报, 已缴款]
     to: 已更正
     command: 更正申报
     guard: [更正产生新申报，原申报标已更正]
@@ -1624,15 +1643,15 @@ machines:
   - {name: 已转入, terminal: true}
   - {name: 已转费用, terminal: true}
   transitions:
-  - command: 登记合同已签回
+  - command: 登记协议已生效
     from: null
     guard: [INV-132]
     reverse_of: null
     to: 等待齐备
-  - command: 登记合同已签回
+  - command: 登记协议已生效
     from: 等待齐备
     guard: [INV-132]
-    reverse_of: 登记合同已签回
+    reverse_of: 登记协议已生效
     to: 等待齐备
   - command: 登记项目已建立
     from: null
@@ -1651,7 +1670,7 @@ machines:
     to: 等待齐备
   - command: 标记售前投入已转入
     from: 等待齐备
-    guard: [INV-132, 合同已签回且项目已建立]
+    guard: [INV-132, 协议已生效且项目已建立]
     reverse_of: null
     to: 已转入
   - command: 标记售前投入已转费用
@@ -1768,17 +1787,19 @@ machines:
     guard: []
     reverse_of: null
     to: 已登记
-    note: 超标订单审批状态在订单行上
+    note: 账单状态不变；订单行状态见 sub_machines 差旅订单行
   - command: 批准差旅超标订单
     from: 已登记
     guard: []
     reverse_of: 登记超标订单待审批
     to: 已登记
+    note: 账单状态不变；订单行状态见 sub_machines 差旅订单行
   - command: 驳回差旅超标订单
     from: 已登记
     guard: []
     reverse_of: 登记超标订单待审批
     to: 已登记
+    note: 账单状态不变；订单行状态见 sub_machines 差旅订单行
   - command: 核对差旅月账单
     from: 已登记
     guard: [INV-137]
@@ -1801,3 +1822,34 @@ machines:
     reverse_of: null
     to: 已确认应付
     note: 过账不改业务状态
+  sub_machines:
+  - entity: 差旅订单行
+    object: OBJ-120
+    note: 超标审批是订单行的状态，与月账单状态正交（transition-review CF-036）；未超标订单停在已登记
+    initial: 已登记
+    states:
+    - 已登记
+    - 待审批
+    - {name: 已批准, terminal: true}
+    - {name: 已驳回, terminal: true}
+    transitions:
+    - command: 登记差旅订单与月账单
+      from: null
+      guard: [INV-137]
+      reverse_of: null
+      to: 已登记
+    - command: 登记超标订单待审批
+      from: 已登记
+      guard: []
+      reverse_of: null
+      to: 待审批
+    - command: 批准差旅超标订单
+      from: 待审批
+      guard: []
+      reverse_of: null
+      to: 已批准
+    - command: 驳回差旅超标订单
+      from: 待审批
+      guard: []
+      reverse_of: null
+      to: 已驳回

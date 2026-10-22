@@ -1,0 +1,242 @@
+# 签章服务（platform.signing）提议术语（one-glossary 2026-10-22，NAM-1021-GLO-16；准入第 6 条，proposed）。模块标识 platform.signing、schema platform_signing、权限码前缀 platform.signing（由 bcs.yaml 的 platform.signing 派生，英文名 SigningService，用户 2026-10-21 同意）。英文 seal 只指印章；文件封存用 hold，不用 seal。
+terms:
+- id: seal_ledger
+  zh: 印章台账
+  en: SealLedger
+  snake: seal_ledger
+  kind: aggregate
+  bc: platform.signing
+  scope: domain
+  definition: 公司各法人各类印章的台账，管印章有哪些、什么载体、是否启用、谁保管；用印登记引用其条目（ADR-0064 决定 3）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: seal_ledger_entry
+  zh: 印章台账条目
+  en: SealLedgerEntry
+  snake: seal_ledger_entry
+  kind: entity
+  bc: platform.signing
+  scope: domain
+  definition: 台账中一枚印章的一条记录：粒度为法人 × 印章类型，自有主键 UUIDv7，带载体（实体或电子）与启停状态，同一法人同一印章类型任一时点至多一条启用（ADR-0064 决定 3）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: seal_ledger_entry_version
+  zh: 印章台账条目版本
+  en: SealLedgerEntryVersion
+  snake: seal_ledger_entry_version
+  kind: entity
+  bc: platform.signing
+  scope: domain
+  definition: 印章台账条目的版本行：生效日、失效日左闭右开，只追加、只许关闭不许改写；载体、启停、保管部门进版本表，用印登记按用印时刻取当时有效版本（ADR-0064 决定 3，D17）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: seal_type
+  zh: 印章类型
+  en: SealType
+  snake: seal_type
+  kind: value_object
+  bc: platform.signing
+  scope: domain
+  definition: 印章的种类，如公章、合同章、出图专用章；台账条目由法人加印章类型确定；取值清单随先行上线批登记（ADR-0064 决定 3）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: signing_record
+  zh: 签章记录
+  en: SigningRecord
+  snake: signing_record
+  kind: entity
+  bc: platform.signing
+  scope: domain
+  definition: 签章服务的只追加记录：请求方与申请 ID、台账条目版本或执业印章、经办人或签章人、签前件与签后件的文件标识和内容哈希、服务商交易号、验章结果、时刻；不改不删，更正用新记录关联；只指本模块的记录（ADR-0064 决定 7）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: seal_carrier
+  zh: 印章载体
+  en: SealCarrier
+  snake: seal_carrier
+  kind: value_object
+  bc: platform.signing
+  scope: domain
+  definition: 印章的载体，取值实体章、电子章；台账条目版本上记载体，先行期全部按实体章办理（ADR-0064 决定 3、5）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: custody_department
+  zh: 保管部门
+  en: CustodyDepartment
+  snake: custody_department
+  kind: value_object
+  bc: platform.signing
+  scope: domain
+  definition: 印章台账条目版本上记的保管该印章的部门（ADR-0064 决定 3）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: seal_type_list
+  zh: 印章类型清单
+  en: SealTypeList
+  snake: seal_type_list
+  kind: entity
+  bc: platform.signing
+  scope: domain
+  definition: 行政提供的印章类型取值清单，做成版本化配置表（根表加版本表），不写死枚举；作者与确认人分离，决定出处必填（ADR-0064 决定 3，D15）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: seal_type_list_version
+  zh: 印章类型清单版本
+  en: SealTypeListVersion
+  snake: seal_type_list_version
+  kind: entity
+  bc: platform.signing
+  scope: domain
+  definition: 印章类型清单的一个版本：生效日、决定出处、作者；确认人不得是作者（ADR-0064 决定 3，D15）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_signing_ledger_entry_not_found
+  zh: 印章台账条目不存在
+  en: PlatformSigningLedgerEntryNotFound
+  snake: platform_signing_ledger_entry_not_found
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 按标识找不到印章台账条目，或调用方无权知道它（404）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_signing_no_version_at
+  zh: 用印时刻无有效印章台账版本
+  en: PlatformSigningNoVersionAt
+  snake: platform_signing_no_version_at
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 按用印时刻找不到有效的印章台账条目版本（422）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_signing_entry_inactive
+  zh: 印章台账条目已停用
+  en: PlatformSigningEntryInactive
+  snake: platform_signing_entry_inactive
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 所引印章台账条目已停用，不可用印（409）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_signing_seal_type_unknown
+  zh: 印章类型未登记
+  en: PlatformSigningSealTypeUnknown
+  snake: platform_signing_seal_type_unknown
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 印章类型不在印章类型清单的有效版本里（422）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_signing_active_entry_exists
+  zh: 同一法人同一印章类型已有启用的印章台账条目
+  en: PlatformSigningActiveEntryExists
+  snake: platform_signing_active_entry_exists
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 同一法人同一印章类型任一时点至多一条启用条目（409）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_signing_version_not_editable
+  zh: 印章台账版本只许关闭不许改写
+  en: PlatformSigningVersionNotEditable
+  snake: platform_signing_version_not_editable
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 版本表只追加，只许关闭当前版本、不许改写（409）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_signing_confirmer_is_author
+  zh: 印章类型确认人与作者相同
+  en: PlatformSigningConfirmerIsAuthor
+  snake: platform_signing_confirmer_is_author
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 印章类型清单版本的确认人不得是作者（422）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''

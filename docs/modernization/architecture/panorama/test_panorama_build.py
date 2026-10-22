@@ -1,6 +1,7 @@
 """ARC-1021-ARC-04：登记网络连线与覆盖检查的正反例。"""
 import copy
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +9,7 @@ from unittest.mock import patch
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import panorama_build as p
 
 
@@ -51,12 +53,14 @@ class AggregateSourceTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=p.ROOT) as tmp:
             root = Path(tmp)
             planned, draft = root / "planned.yaml", root / "draft.md"
+            facts = root / "facts.yaml"
+            facts.write_text("facts: []\n", encoding="utf-8")
             text = p.SRC["agg"].read_text(encoding="utf-8")
             start, end = text.index("### 2.2"), text.index("### 2.3")
             draft.write_text(text[:start] + text[end:], encoding="utf-8")
             row = {"id": "AGG-01", "聚合（根）": "往来单位（OBJ-01）", "内含": "OBJ-02", "对应": "一对一", "不变量": "INV-01"}
             planned.write_text(yaml.safe_dump({"aggregates": [row]}, allow_unicode=True), encoding="utf-8")
-            with patch.dict(p.SRC, planned=planned, agg=draft):
+            with patch.dict(p.SRC, planned=planned, agg=draft, facts=facts):
                 model, links, _ = p.load()
                 self.assertEqual(["AGG-01"], [a for a in model["agg"] if a.startswith("AGG-")])
                 self.assertEqual(["OBJ-01", "OBJ-02"], model["agg"]["AGG-01"]["objs"])
@@ -116,7 +120,8 @@ class CommandNetworkTest(unittest.TestCase):
         self.assertEqual(1, len(gaps['N10-2']))
         self.assertEqual(1, len(gaps['N10-3']))
         self.assertEqual({'cmd-agg', 'cmd-obj'}, {e['kind'] for e in edges})
-        self.assertNotIn('N11-2', p.CHECKS)
+        self.assertIn('N11-2', p.CHECKS)
+        self.assertIn('N11-3', p.CHECKS)
         self.assertIn('N11-1', p.CHECKS)
 
     def test_arc09_missing_duplicate_or_invalid_reference_fails(self):
@@ -139,6 +144,131 @@ class CommandNetworkTest(unittest.TestCase):
 
     def test_arc09_repeated_read_has_identical_bytes(self):
         self.assertEqual(yaml.safe_dump(self.load()).encode(), yaml.safe_dump(self.load()).encode())
+
+
+class FactNetworkTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / "facts.yaml"
+        patcher = patch.dict(p.SRC, facts=self.path)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.operating = {"id": "FACT-01", "name": "工时成本事实", "kind": "经营事实",
+                          "owner_bc": "operations.facts", "wave": "W1",
+                          "produced_by": ["CMD-12345678", "EVT:cost.timesheet.TimesheetApproved"],
+                          "sources": {"object": ["OBJ-01"]}}
+        self.analytic = {"id": "FACT-02", "name": "工时汇总", "kind": "分析事实",
+                         "owner_bc": "operations.facts", "wave": "W1", "derives_from": ["FACT-01"],
+                         "analytic_source": "原文" * 30}
+
+    def write(self, rows=None):
+        self.path.write_text(yaml.safe_dump({"facts": rows if rows is not None else [self.analytic, self.operating],
+                                             "pending": [{"id": "P-01"}], "not_facts": [{"id": "NF-01"}]},
+                                            allow_unicode=True), encoding="utf-8")
+
+    def load(self):
+        model = {"fact": {}, "bc": {"B-16": {}}, "cmd": {"CMD-12345678": {}},
+                 "evt": {"cost.timesheet.TimesheetApproved": {}}, "obj": {
+                     "OBJ-01": {"name": "工时单", "active": True, "primary": True, "facts": "工时成本事实"}}}
+        edges = []
+        p.load_facts(model, lambda kind, a, b, src: edges.append(
+            {"kind": kind, "from": a, "to": b, "src": src}), {"operations.facts": "B-16"})
+        return model, edges
+
+    def gaps(self, model):
+        gaps = p.defaultdict(list)
+        p.check_facts(model, gaps)
+        return gaps
+
+    def test_arc16_loads_nodes_links_forward_references_and_repeats(self):
+        self.write()
+        model, edges = self.load()
+        self.assertEqual({"FACT-01", "FACT-02"}, set(model["fact"]))
+        self.assertEqual(("工时成本事实", "经营事实", "operations.facts", "W1"),
+                         tuple(model["fact"]["FACT-01"][key] for key in ("name", "kind", "owner_bc", "wave")))
+        self.assertEqual({("cmd-fact", "CMD-12345678", "FACT-01"),
+                          ("evt-fact", "cost.timesheet.TimesheetApproved", "FACT-01"),
+                          ("fact-fact", "FACT-01", "FACT-02"), ("obj-fact", "OBJ-01", "FACT-01"),
+                          ("fact-bc", "FACT-01", "B-16"), ("fact-bc", "FACT-02", "B-16")},
+                         {(e["kind"], e["from"], e["to"]) for e in edges})
+        self.assertTrue(model["fact"]["FACT-01"]["src"].endswith("facts.yaml#facts[1]/FACT-01"))
+        self.assertTrue(all("#facts[" in e["src"] for e in edges))
+        self.assertEqual([], self.gaps(model)["N11-2"])
+        self.assertEqual([], self.gaps(model)["N11-3"])
+        self.assertEqual(yaml.safe_dump(self.load()).encode(), yaml.safe_dump(self.load()).encode())
+
+    def test_arc16_retired_object_source_is_kept_without_link(self):
+        self.operating["sources"] = {"object": ["OBJ-01", "OBJ-76"]}
+        self.write()
+        _, edges = self.load()
+        self.assertEqual({"OBJ-01"}, {e["from"] for e in edges if e["kind"] == "obj-fact"})
+
+    def test_arc16_missing_file_key_duplicate_invalid_id_and_kind_fail(self):
+        with self.assertRaises(FileNotFoundError):
+            self.load()
+        self.path.write_text("meta: {}\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "facts"):
+            self.load()
+        self.write([self.operating, self.operating])
+        with self.assertRaisesRegex(ValueError, "编号重复"):
+            self.load()
+        for changes, message in (({"id": "FACT-1"}, "编号无效"), ({"kind": "候选"}, "kind")):
+            with self.subTest(changes=changes):
+                self.write([{**self.operating, **changes}])
+                with self.assertRaisesRegex(ValueError, message):
+                    self.load()
+
+    def test_arc16_node_11_renders_fact_count_and_report_gaps(self):
+        self.write([{**self.operating, "id": f"FACT-{index:02d}", "produced_by": []}
+                    for index in range(1, 38)])
+        model, edges = self.load()
+        model.update(inv={}, table={}, api={}, mod={})
+        first = p.render(model, edges, self.gaps(model))
+        self.assertEqual(first, p.render(model, edges, self.gaps(model)))
+        self.assertEqual(37, yaml.safe_load(first[0])["meta"]["counts"]["fact"])
+        self.assertIn("| 11 业务事实 | fact | 37 |", first[1])
+        self.assertIn("## N11-2 每条经营事实有产生它的命令或事件（37）", first[1])
+
+    def test_arc16_unknown_command_event_fact_object_bc_and_bad_producer_fail(self):
+        for changes, message in (({"produced_by": ["CMD-missing"]}, "不存在的 cmd"),
+                                 ({"produced_by": ["EVT:missing"]}, "不存在的 evt"),
+                                 ({"derives_from": ["FACT-99"]}, "不存在的 FACT"),
+                                 ({"sources": {"object": ["OBJ-99"]}}, "不存在的 OBJ"),
+                                 ({"owner_bc": "missing"}, "不存在的 BC"),
+                                 ({"produced_by": ["other"]}, "写法无效")):
+            with self.subTest(changes=changes):
+                self.write([{**self.operating, **changes}])
+                with self.assertRaisesRegex(ValueError, message):
+                    self.load()
+
+    def test_arc16_n11_1_blank_dash_and_notes_are_gaps(self):
+        self.write()
+        model, _ = self.load()
+        for value in ("", " \t", "—", "-", " —（注） ", " -（注）"):
+            with self.subTest(value=value):
+                model["obj"]["OBJ-01"]["facts"] = value
+                self.assertEqual(["OBJ-01 工时单"], self.gaps(model)["N11-1"])
+        model["obj"]["OBJ-01"]["facts"] = " 工时成本事实 "
+        self.assertEqual([], self.gaps(model)["N11-1"])
+        model["obj"]["OBJ-01"].update(facts="—（注）", primary=False)
+        self.assertEqual([], self.gaps(model)["N11-1"])
+
+    def test_arc16_n11_2_missing_producer_is_report_only(self):
+        self.operating["produced_by"] = []
+        self.write()
+        model, _ = self.load()
+        self.assertEqual(["FACT-01 工时成本事实"], self.gaps(model)["N11-2"])
+        self.assertEqual([], self.gaps(model)["N11-3"])
+
+    def test_arc16_n11_3_empty_or_any_analytic_source_is_report_only(self):
+        for refs in ([], ["FACT-01", "FACT-02"]):
+            with self.subTest(refs=refs):
+                self.analytic["derives_from"] = refs
+                self.write()
+                model, _ = self.load()
+                self.assertEqual([f"FACT-02 工时汇总（analytic_source：{'原文' * 20}）"],
+                                 self.gaps(model)["N11-3"])
 
 
 class ConstraintNetworkTest(unittest.TestCase):

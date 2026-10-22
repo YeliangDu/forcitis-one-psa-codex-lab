@@ -289,7 +289,7 @@ commands:
 - name: 冲回应付核销
   aggregate: AGG-52
   params:
-  - 付款引用, 退票回单引用
+  - 付款引用, 退票回单引用, 冲回金额（部分退回时等于退回额）
   preconditions:
   - INV-77a
   - INV-94
@@ -382,6 +382,45 @@ commands:
   idempotency_key:
   - 付款ID
   emits: []
+- name: 登记代发退回
+  aggregate: AGG-53
+  params:
+  - 付款引用
+  - 银行代发退回回单
+  - 退回金额
+  - 退回收款人
+  preconditions:
+  - 付款已核销
+  - 累计退回额不超过付款金额
+  authority:
+    A: 财务负责人
+  idempotency_key:
+  - 付款ID
+  - 银行回单号
+  emits:
+  - 付款已部分退回
+  proposed: true
+  proposed_reason: PAYROLL_REISSUE_SEAM J-2（one-architecture 2026-10-22 定）；骨架 PRC-75 步 10
+- name: 登记薪酬补发明细
+  aggregate: AGG-52
+  params:
+  - 应付薪酬引用
+  - 薪酬行引用
+  - 补发轮次
+  - 收款人与账户
+  - 补发金额（等于原实发）
+  preconditions:
+  - 累计补发额不超过累计冲回额（退回款未登记的拒收并告警）
+  authority:
+    A: 法人财务负责人
+  idempotency_key:
+  - 薪酬行ID
+  - 补发轮次
+  emits: []
+  proposed: true
+  proposed_reason: PAYROLL_REISSUE_SEAM J-1（one-architecture 2026-10-22 定：补发不新建应付，原应付加补发明细）
+  also_used_by: people:PRC-126
+  unused_ok: 由 people 组 PRC-126（B-15）订阅薪酬补发已发起后调用，本组骨架无此步
 - name: 登记退票
   aggregate: AGG-53
   params:
@@ -1425,6 +1464,21 @@ commands:
   idempotency_key:
   - 占用方引用
   emits: []
+- name: 登记进项发票入账
+  aggregate: AGG-89
+  params:
+  - 发票引用
+  - 占用方引用
+  - 入账日期
+  preconditions:
+  - 占用方已过账
+  authority:
+    A: 财务负责人
+  idempotency_key:
+  - 发票引用
+  emits: []
+  proposed: true
+  proposed_reason: transition-review CF-032：已占用（防重复报销）与已入账（税务平台入账状态）分开；骨架 PRC-74 步 2、PRC-87 步 7 inner；报送方待定 U-55
 - name: 生成申报
   aggregate: AGG-90
   params:
@@ -1714,7 +1768,7 @@ commands:
   - 口径版本引用
   emits:
   - 口径版本已生效
-- name: 登记合同已签回
+- name: 登记协议已生效
   aggregate: AGG-122
   params:
   - 商机引用
