@@ -69,4 +69,4 @@
 
 ## 当前状态
 
-2026-10-22 清上下文交接；现行状态与待办见 `data/DATA_CONTEXT.md` 文末「2026-10-22 交接」。等待：#599 的 IT 用例、函数 search_path 实现的 diff、one-platform-file 单元 7 表结构、B-31 各卡 DDL 草案、W2 PR-B。
+2026-10-22 晚交接；现行状态与待办见 `data/DATA_CONTEXT.md` 文末「2026-10-22 晚交接」。等待：W2 PR-B 实现 PR、#599 的 IT 用例、迁入写入通道的实现 diff、卡 C 表结构 PR、one-platform-file 单元 7、B-31 其余卡 DDL 草案；卡 C 保留期等用户在收件箱答复。
