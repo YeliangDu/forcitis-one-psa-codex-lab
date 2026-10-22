@@ -9891,7 +9891,7 @@ nodes:
       command: 登记代发结果
       aggregate: AGG-73
       bc: null
-      state_change: 薪酬行 待支付 → 已实付 / 支付失败；全部行已实付且应付已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
+      state_change: 薪酬行 待支付 → 已实付 / 支付失败；全部行已实付、且经 api 读到 B-10 应付当前为已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
       src: architecture/proposals/closeout/people/commands.yaml#登记代发结果
     AGG-73/发起薪酬补发:
       command: 发起薪酬补发
@@ -48529,6 +48529,8 @@ nodes:
         text: 应付已结清事件的应付类型为应付薪酬（B-15 只处理应付薪酬，结构问题 4②）
       - ref: 薪酬行
         text: 全部薪酬行已实付；有支付失败行时根保持已批准，待补发成功后再置（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））
+      - ref: 应付状态
+        text: 执行时经 api 读 B-10 应付的当前状态为已结清，不用本地缓存的结清标记（退回款会使应付回到已部分结清）
       emits: 薪酬已发放
       group:
       - people

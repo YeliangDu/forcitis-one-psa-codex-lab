@@ -2623,6 +2623,8 @@ commands:
     text: 应付已结清事件的应付类型为应付薪酬（B-15 只处理应付薪酬，结构问题 4②）
   - ref: 薪酬行
     text: 全部薪酬行已实付；有支付失败行时根保持已批准，待补发成功后再置（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））
+  - ref: 应付状态
+    text: 执行时经 api 读 B-10 应付的当前状态为已结清，不用本地缓存的结清标记（退回款会使应付回到已部分结清）
   authority:
     ref: raci:AGG-73/标记薪酬已发放
     A:
@@ -2631,7 +2633,7 @@ commands:
       function: 薪酬岗
     R:
     - system
-  idempotency_key: 应付ID（同一应付结清重复通知无操作）
+  idempotency_key: 应付已结清的事件 ID（同一事件重投无操作）；同一应付可结清两次（退回款后原应付回到已部分结清，补发付清后再发一次，one-arch-finance PAYROLL_REISSUE_SEAM.md J-2），不能只按应付 ID 去重
   state_change: 已批准 → 已发放
   emits: 薪酬已发放
   used_by:
@@ -2663,7 +2665,7 @@ commands:
     R:
     - SH-E6（财务职能人员，持银行回单）
   idempotency_key: 结算ID + 回单批次号
-  state_change: 薪酬行 待支付 → 已实付 / 支付失败；全部行已实付且应付已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
+  state_change: 薪酬行 待支付 → 已实付 / 支付失败；全部行已实付、且经 api 读到 B-10 应付当前为已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
   emits: 薪酬代发结果已登记（仅分析）
   used_by:
   - PRC-201 第 1 步
