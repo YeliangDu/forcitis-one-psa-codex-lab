@@ -32,7 +32,7 @@
 ## 4. 执行步骤（批准后）
 1. 预检（只读）：`psa_one_legacy_ro` 近期无活动连接（取证账号查 `sys.dm_exec_sessions` 的 login_name 计数，只出个数）。有活动连接则停下报告。
 2. 备份回退所需信息：本卡 §5 的重建脚本无需备份凭据（凭据按重建时新生成）。
-3. 删账号前后都回读（只出有无）：`one_legacy_names_ro` 的数据库用户与登录、视图 `v_psa_one_legacy_todo` 与 `v_one_legacy_org_short_name`，均须在；删前 `psa_one_legacy_ro` 在。删账号：RDS 云接口 DeleteAccount（`psa_one_legacy_ro`）。删后回读 DescribeAccounts 与 `sys.server_principals` 均无 `psa_one_legacy_ro`，且上述 `one_legacy_names_ro` 与两个视图仍在；任何一项缺失立即停下报告。
+3. 删账号前后都回读（只出有无；库内用户一项口径 2026-10-22 经 one-coordinator 改为：先看 DescribeAccounts 的 DatabasePrivileges 里 `one_legacy_names_ro` 在 `ruoyi-vue-pro` 的授权记录，只抽 AccountName、DBName、AccountPrivilege；删前看不到就退回「登录在 + 两视图在 + DescribeAccounts 两账号都在」三项，库内用户无法回读，由 DeleteAccount 只删指定账号保证，并在报告里写明）：`one_legacy_names_ro` 的数据库用户与登录、视图 `v_psa_one_legacy_todo` 与 `v_one_legacy_org_short_name`，均须在；删前 `psa_one_legacy_ro` 在。删账号：RDS 云接口 DeleteAccount（`psa_one_legacy_ro`）。删后回读 DescribeAccounts 与 `sys.server_principals` 均无 `psa_one_legacy_ro`，且上述 `one_legacy_names_ro` 与两个视图仍在；任何一项缺失立即停下报告。
 4. dev `one.env` 删四个 LEGACY_INBOX 变量，重启，健康检查与自检通过。
 5. 通知 one-1a-par 可删核实命令入口与手册行；改 `README.md`、`RESOURCES.md`、`OPS_CONTEXT.md` 文本；登记（ADR-0037 配置变更一行，写进 CONFIG_CHANGELOG 片段）。
 
