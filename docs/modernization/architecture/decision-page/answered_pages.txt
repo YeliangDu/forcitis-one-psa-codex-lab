@@ -1,0 +1,4 @@
+# 收件箱已决、但仓库里没有 answers 导出的确认页：一行一个页名（不带 .json），# 后写出处。
+# 已答页是历史记录，check_pages 不再检查其题面（用户 2026-10-22 经 one-coordinator）；有 rules/decide/answers/<页>.json 导出的页和题自动算已答，不必登记于此。
+# 只追加。登记须有收件箱 decided 或用户答复的出处。
+GL3  # one-coordinator 2026-10-22 消息：GL3 已答完（收件箱 decided）
