@@ -424,13 +424,13 @@ rulings:
     confirmed: 2026-10-22（用户，用语确认第六批 GL5）
     entry:
       id: agreement_status__signed
-      zh: 已签署
-      en: Signed
-      snake: signed
+      zh: 协议已签署
+      en: AgreementSigned
+      snake: agreement_signed
       kind: state
       bc: contract.agreement
       scope: domain
-      definition: 协议已签署但尚未满足约定的生效条件；无附条件的协议签署与生效同事务完成，只落已生效
+      definition: 状态显示名「已签署」；协议已签署但尚未满足约定的生效条件；无附条件的协议签署与生效同事务完成，只落已生效
       standard_ref:
       - rules/decide/sheets/GL5.json
       confidence: medium
@@ -443,13 +443,13 @@ rulings:
     confirmed: 2026-10-22（用户，用语确认第六批 GL5）
     entry:
       id: agreement_status__effective
-      zh: 已生效
-      en: Effective
-      snake: effective
+      zh: 协议已生效
+      en: AgreementEffective
+      snake: agreement_effective
       kind: state
       bc: contract.agreement
       scope: domain
-      definition: 协议已生效；只能由业务操作触发，附条件的协议经「确认生效条件满足」命令转入，不能手工改状态；转入时记生效依据：条件类型、证据单据号（如预付款保函编号）、生效日
+      definition: 状态显示名「已生效」；协议已生效；只能由业务操作触发，附条件的协议经「确认生效条件满足」命令转入，不能手工改状态；转入时记生效依据：条件类型、证据单据号（如预付款保函编号）、生效日
       standard_ref:
       - rules/decide/sheets/GL5.json
       confidence: medium
