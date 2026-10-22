@@ -61,7 +61,7 @@ meta:
     agg: 145
     bc: 51
     sd: 13
-    table: 68
+    table: 69
     rule: 512
     ep: 601
     tc: 1132
@@ -18228,6 +18228,13 @@ nodes:
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_approval.act_*
       role: FRAMEWORK
+      registered: true
+      registered_aggregate: null
+    platform_audit.audit_subject_kinds:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_audit.audit_subject_kinds
+      role: CONFIG
       registered: true
       registered_aggregate: null
     platform_audit.audit_entries:

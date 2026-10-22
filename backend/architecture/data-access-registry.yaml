@@ -230,6 +230,13 @@ tables:
     lineage: {source: FRAMEWORK}
     readers: [platform.approval]
 
+  platform_audit.audit_subject_kinds:
+    # ADR-0069 decision 14: uk_audit_subject_kinds_code is the business key and the target of the audit_entries.subject_kind foreign key. Rows are inserted and retired by migrations only.
+    role: CONFIG
+    mutability: MIGRATION_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.audit]
   platform_audit.audit_entries:
     # Online 3 years, archived 10 years in total. Whole months leave the table only as partitions: the maintenance role runs
     # platform_audit.drop_archived_audit_entry_partition after the month is archived and checked (O-8); the application never deletes a row.

@@ -22,7 +22,7 @@
 | 事件→发布 BC | 59 / 59 | publisher: 59 |
 | API→BC | 58 / 58 | controller: 58 |
 
-登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 3、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 7、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
+登记表其他 role（只计数）：CONFIG 4、CONFIG_VERSIONED 3、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 7、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
 
 | 节点 | 层 | 条目数 |
 |---|---|---|
@@ -45,7 +45,7 @@
 | 09/10 映射  | agg | 145 |
 | 09/10 映射  | bc | 51 |
 | 09/10 映射  | sd | 13 |
-| 09/10 映射  | table | 68 |
+| 09/10 映射  | table | 69 |
 | 08 约束与认定规则 | rule | 512 |
 | 10 受控业务执行 | ep | 601 |
 | 10 受控业务执行 | tc | 1132 |
@@ -91,7 +91,7 @@
 | N09-M1 | 每个聚合都归属一个 BC | 10 |
 | N09-M2 | 每个聚合都有不变量 | 36 |
 | N09-M3 | 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张） | 132 |
-| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 68 |
+| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 69 |
 | N09-M5 | 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数） | 10 |
 | N09-M6 | 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口） | 1 |
 | N10-M2 | 每个后端模块在 module-dependencies.txt 登记 | 0 |
@@ -735,7 +735,7 @@
 - organization.workforce/RegisteredEmployee RegisteredEmployee
 - platform.integration/SourceReferenceRefusal SourceReferenceRefusal
 
-## N09-M4 每张表都能追到聚合，聚合能追到业务对象（68）
+## N09-M4 每张表都能追到聚合，聚合能追到业务对象（69）
 
 - cost_timesheet.consumed_events（对象 无）
 - cost_timesheet.timesheets（对象 无）
@@ -765,6 +765,7 @@
 - platform_approval.approval_tasks（对象 无）
 - platform_approval.process_archive_skips（对象 无）
 - platform_approval.act_*（对象 无）
+- platform_audit.audit_subject_kinds（对象 无）
 - platform_audit.audit_entries（对象 无）
 - platform_audit.audit_archive_batches（对象 无）
 - platform_idempotency.idempotent_responses（对象 无）
