@@ -75,4 +75,4 @@ PAR-1..PAR-5 完成或达到 §2.1 第 1 条阈值时在批次边界交接；F-1
 
 ## 当前状态
 
-2026-10-22 晚：#604（KERR）已合 main 并报 one-merge 入队；#611（PAR-03 组织接口清单与守护，IMP-1021-PAR-03）CI 绿、已报入队；W2 PR-B（IMP-1022-PAR-01）实现已推 `claude/one-1a-par-w2-versions` @799d0118c，未开 PR，等 one-coordinator 对验收目录 4 处改动（EmployeeCodeNotKeyIT、WorkforceLengthLimitsIT、WorkforceRowConstraintsIT 两例）出裁定，另有 opus 首轮复审在跑。接下来：裁定与复审结论到后修正、开 PR；之后卡 E（workforce 入职日期与满周年查询）。细节见 phase1a/HANDOFF_one-1a-par.md。
+2026-10-22 深夜：#604、#611 已报入队；W2 PR-B 已开 PR #632（precheck 22 PASS，CI 跑中，不含工号唯一键与验收目录改动；唯一键与隔离路径留 PR-B2，等 ADR-0078，现成实现在分支 claude/one-1a-par-w2-employee-code-unique）。已登记待派卡 IMP-1022-PAR-02..05。接下来：#632 CI 绿后报 one-merge；之后迁入写入通道·日历部分（IMP-1022-PAR-05，安全改动 opus 首轮必做），再卡 E。细节见 phase1a/HANDOFF_one-1a-par.md。

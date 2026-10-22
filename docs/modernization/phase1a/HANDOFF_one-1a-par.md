@@ -5,7 +5,7 @@
 ## 在途
 1. **#604 KERR**（通用错误码进 kernel）：已含 main，CI 绿，已报 one-merge，入队后不再推该分支。
 2. **#611 PAR-03**（`platform-org-interfaces.txt` 及三项守护、`org_interface_notice.py`，PR 正文须写「已通知平台 owner：…」；PR 正文 edited 事件只跑轻量检查，见 CI_RUNNERS.md）：opus 首轮结论已贴 PR，CI 绿，已报入队。
-3. **W2 PR-B**（IMP-1022-PAR-01，分支 `claude/one-1a-par-w2-versions`）：`employee_versions`（含 `employment_start_date`、`employment_start_basis_kind`、月日索引）、`personnel_commands`（`org_structure_command_id` 不加外键，随 `org_structure_commands` 建表批次补）、两个只追加触发器、`employees` 删 `last_sync_run_id`、术语、注册表、`PersonnelVersionTablesIntegrationTest`。one-data 已签。**本 PR 不含工号唯一键**：one-coordinator 定工号全局唯一要走新 ADR-0078（等用户采纳），PR-B 不加 `uk_employees_employee_code`，不改验收目录与 DataArchitectureTest。
+3. **W2 PR-B**（IMP-1022-PAR-01，PR #632，分支 `claude/one-1a-par-w2-versions`，precheck 22 PASS，CI 跑中，绿后报 one-merge；调度已批准路径见 one-coordinator）：`employee_versions`（含 `employment_start_date`、`employment_start_basis_kind`、月日索引）、`personnel_commands`（`org_structure_command_id` 不加外键，随 `org_structure_commands` 建表批次补）、两个只追加触发器、`employees` 删 `last_sync_run_id`、术语、注册表、`PersonnelVersionTablesIntegrationTest`。one-data 已签。**本 PR 不含工号唯一键**：one-coordinator 定工号全局唯一要走新 ADR-0078（等用户采纳），PR-B 不加 `uk_employees_employee_code`，不改验收目录与 DataArchitectureTest。
    - **PR-B2（待 ADR-0078 采纳）**：工号唯一键 + 重复工号隔离路径 + 验收改动，现成实现在分支 `claude/one-1a-par-w2-employee-code-unique` @0426bf3bb（含 SnapshotReconciler 隔离、`IssueKind.DUPLICATE_EMPLOYEE_CODE`、域测试、DataArchitectureTest 放行；尚缺验收 IT 的四处改动与同号并发用例，裁定 RULING-COORD-20261022-05 已进 main，条件：精确等值断言并核列集合、LengthLimits 第 7、8 例与 RowConstraints 第 7、8 例夹具统一 `'WF11-'||uuidv7()::text`、SourceIdMatchingIT 改为断言拒收并告警）；入队前 one-ops 核各环境 `WORKFORCE_SYNC_ENABLED` 未开。
    - 领域规则待实现（不在本批）：命令不得新引入 `LEGACY_*`/`UNKNOWN` 依据，只能原样复制，需领域测试；`not_after` 违反的迁入行拒收进 migration_rejects。
    - 复审遗留已知问题：HELD 命令生效日前放行只能转 EFFECTIVE（附件触发器规则）与设计 §0.2 冲突，交 one-architecture/one-data；`aggregates.yaml` 的 Employee 聚合对应延后；触发器未按设计参数化。
@@ -16,6 +16,8 @@
 - **W2 后续批**（读取改写、命令实现、assignments 去除、position_versions、归属期间表、purge 函数）按 W2 设计第 3、8 节另批，先请 one-data 签。
 
 ## 待办池（不插队）
+- 已登记任务卡 IMP-1022-PAR-02（RULE-387/394）、-03（任职重叠）、-04（聚合对应）、-05（迁入写入通道·日历），状态待派，对应三条旧记忆待 one-coordinator 删除。
+
 - W2：INV-62 与 `ex_assignment_versions_overlap` 不一致 → 先请 one-data 签；RULE-387、RULE-394 在 platform.identity 未实现，W2 组织命令之后、投产前做；`RegisteredEmployee` 对 AGG-62、`SyncRun` 去留，判定后回 one-architecture。
 - 日历后续：PR-B（四眼流程 + Web/OpenAPI/前端，前提是 one-architecture 起轻量 ADR 取代 ADR-0030 第 13 行）、PR-C（使用方记版本）；旧表等 PR-B 接上后下线。
 - F2 遗留 Low：`LegacyAdapterPlacementTest` 的 `moved` 无断言及措辞、`MergedInbox` 命名、前端“新系统”页签等于“全部”、`StalledExternalSourceIT.ordinarySession` 无调用方。
