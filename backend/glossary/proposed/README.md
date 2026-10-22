@@ -502,6 +502,18 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 
 另有错误码 6 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
 
+## platform.signing（`platform-signing.yaml`）
+
+签章服务（platform.signing）提议术语（one-glossary 2026-10-22，NAM-1021-GLO-16；准入第 6 条，proposed）。模块标识 platform.signing、schema platform_signing、权限码前缀 platform.signing（由 bcs.yaml 的 platform.signing 派生，英文名 SigningService，用户 2026-10-21 同意）。英文 seal 只指印章；文件封存用 hold，不用 seal。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `seal_ledger` | 印章台账 | SealLedger | 领域 · platform.signing | 公司各法人各类印章的台账，管印章有哪些、什么载体、是否启用、谁保管；用印登记引用其条目（ADR-0064 决定 3） |  |  |
+| `seal_ledger_entry` | 印章台账条目 | SealLedgerEntry | 领域 · platform.signing | 台账中一枚印章的一条记录：粒度为法人 × 印章类型，自有主键 UUIDv7，带载体（实体或电子）与启停状态，同一法人同一印章类型任一时点至多一条启用（ADR-0064 决定 3） |  |  |
+| `seal_ledger_entry_version` | 印章台账条目版本 | SealLedgerEntryVersion | 领域 · platform.signing | 印章台账条目的版本行：生效日、失效日左闭右开，只追加、只许关闭不许改写；载体、启停、保管部门进版本表，用印登记按用印时刻取当时有效版本（ADR-0064 决定 3，D17） |  |  |
+| `seal_type` | 印章类型 | SealType | 领域 · platform.signing | 印章的种类，如公章、合同章、出图专用章；台账条目由法人加印章类型确定；取值清单随先行上线批登记（ADR-0064 决定 3） |  |  |
+| `signing_record` | 签章记录 | SigningRecord | 领域 · platform.signing | 签章服务的只追加记录：请求方与申请 ID、台账条目版本或执业印章、经办人或签章人、签前件与签后件的文件标识和内容哈希、服务商交易号、验章结果、时刻；不改不删，更正用新记录关联；只指本模块的记录（ADR-0064 决定 7） |  |  |
+
 ## platform.web（`platform-web.yaml`）
 
 无错误码以外的术语。
