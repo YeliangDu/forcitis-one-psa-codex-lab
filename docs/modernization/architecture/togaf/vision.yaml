@@ -160,7 +160,7 @@ goals:
         source: METRIC_BASELINE_DRAFT §3.4（M-29、M-30、M-32）；BI_SCOPE §1.5 E7
       - id: KPI-13
         name: 贡献毛利率
-        definition: 贡献毛利 ÷ 不含税收入确认，按 OAT 的 CMR 变体（报价、预算、预估、实际）声明；本 KPI 是经营结果度量，不是目标值。
+        definition: 贡献毛利 ÷ 同层级、同变体的净服务收入（用户 KPI-Q03，2026-10-22，原为 ÷ 不含税收入确认；口径变更与前后值见 ssot/15-kpis/kpis.yaml KPI-13），按 OAT 的 CMR 变体（报价、预算、预估、实际）声明；本 KPI 是经营结果度量，不是目标值。
         direction: "↑"
         metrics: [M-29, M-08]
         source: BI_SCOPE §6.1 Q6-2；METRIC_BASELINE_DRAFT §3.4（M-29）
