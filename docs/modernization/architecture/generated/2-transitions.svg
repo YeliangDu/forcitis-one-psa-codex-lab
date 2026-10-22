@@ -142,6 +142,8 @@
 <text x="370" y="1025" font-size="13" fill="#0f172a">组织人事 BC</text>
 <rect x="465.4" y="1006" width="76" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
 <text x="477.4" y="1025" font-size="13" fill="#0f172a">文件服务</text>
+<rect x="549.4" y="1006" width="76" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
+<text x="561.4" y="1025" font-size="13" fill="#0f172a">行政事务</text>
 <rect x="16" y="1054" width="1244" height="64" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="28" y="1078" font-size="15" fill="#0f172a" font-weight="600">W1 主数据与业财主干</text>
 <text x="28" y="1100" font-size="12" fill="#475569">未开始；前置 W0</text>
@@ -160,18 +162,16 @@
 <rect x="16" y="1424" width="1244" height="64" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="28" y="1448" font-size="15" fill="#0f172a" font-weight="600">未排期</text>
 <text x="28" y="1470" font-size="12" fill="#475569">已登记、尚未排入任何阶段</text>
-<rect x="358" y="1434" width="76" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="370" y="1453" font-size="13" fill="#0f172a">行政事务</text>
-<rect x="442" y="1434" width="76" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="454" y="1453" font-size="13" fill="#0f172a">签章服务</text>
-<rect x="526" y="1434" width="115" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="538" y="1453" font-size="13" fill="#0f172a">协议与变更索赔</text>
-<rect x="649" y="1434" width="169.6" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="661" y="1453" font-size="13" fill="#0f172a">知识资产与 AI 赋能 BC</text>
-<rect x="826.6" y="1434" width="112.39999999999999" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="838.6" y="1453" font-size="13" fill="#0f172a">银行与现金 BC</text>
-<rect x="947.0" y="1434" width="73.4" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="959.0" y="1453" font-size="13" fill="#0f172a">税费 BC</text>
-<rect x="1028.4" y="1434" width="99.39999999999999" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="1040.4" y="1453" font-size="13" fill="#0f172a">固定资产 BC</text>
+<rect x="358" y="1434" width="76" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="370" y="1453" font-size="13" fill="#0f172a">签章服务</text>
+<rect x="442" y="1434" width="115" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="454" y="1453" font-size="13" fill="#0f172a">协议与变更索赔</text>
+<rect x="565" y="1434" width="169.6" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
+<text x="577" y="1453" font-size="13" fill="#0f172a">知识资产与 AI 赋能 BC</text>
+<rect x="742.6" y="1434" width="112.39999999999999" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="754.6" y="1453" font-size="13" fill="#0f172a">银行与现金 BC</text>
+<rect x="863.0" y="1434" width="73.4" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="875.0" y="1453" font-size="13" fill="#0f172a">税费 BC</text>
+<rect x="944.4" y="1434" width="99.39999999999999" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="956.4" y="1453" font-size="13" fill="#0f172a">固定资产 BC</text>
 </svg>
