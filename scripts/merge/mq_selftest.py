@@ -129,6 +129,7 @@ def run(mq):
             _signals(mq, d)
             _ff_main(mq, d)
             _remove_busy(mq, d)
+            _ignored_conflicts(mq, d)
             _docs_tiers(mq, d)
             _gh_commands(mq, d)
             _lanes(mq, d)
@@ -1473,3 +1474,83 @@ def _remove_busy(mq, d):
     proc, q9, log, _ = _proc(mq, d, "rb10", gh, [], on_sleep=lambda seconds: seen.append(dict(holder["q"].working())))
     holder["q"] = q9
     assert proc.process(343) == "MERGED" and any(343 in w for w in seen) and q9.working() == {}, seen
+
+
+STANDIN_BUILD_ALL = """import os, sys
+here = os.path.dirname(os.path.abspath(__file__))
+target = os.path.join(here, "EXTRA.md")
+if "--check" in sys.argv:
+    sys.exit(0 if os.path.exists(target) and open(target, encoding="utf-8").read() == "extra\\n" else "EXTRA.md is not what is generated")
+if os.path.exists(target) and "MQ-PROBE" in open(target, encoding="utf-8").read():
+    sys.exit("EXTRA.md is read by a later step and cannot be parsed")   # like object_freeze_check reading panorama.yaml: junk in it breaks the run
+open(target, "w", encoding="utf-8").write("extra\\n")
+"""
+
+
+def _ignored_conflicts(mq, d):
+    """A product that has moved out of the repository (untracked and ignored) which the other side still changed: modify/delete, in both directions; settled by taking it out of the index. A real delete, or a conflict in a file a person wrote next to it, is not."""
+    def g(cwd, *a):
+        r = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *a], cwd=cwd, capture_output=True, text=True)
+        assert r.returncode == 0, (a, r.stderr)
+        return r.stdout.strip()
+
+    def repo(name):
+        origin, work = os.path.join(d, f"{name}.git"), os.path.join(d, name)
+        g(d, "init", "-q", "--bare", "-b", "main", origin)
+        g(d, "clone", "-q", origin, work)
+        os.makedirs(os.path.join(work, MOD))
+
+        def write(path, text):
+            with open(os.path.join(work, path), "w", encoding="utf-8") as f:
+                f.write(text)
+
+        def commit(message):
+            g(work, "add", "-A"); g(work, "commit", "-q", "-m", message)
+
+        write(f"{MOD}/build_all.py", STANDIN_BUILD_ALL); write(f"{MOD}/EXTRA.md", "extra\n"); write(f"{MOD}/human.txt", "h\n")
+        commit("base"); g(work, "push", "-q", "origin", "main")
+        return work, write, commit
+
+    def untrack(work, write, commit, ignore=True):
+        g(work, "rm", "-q", "--cached", f"{MOD}/EXTRA.md")
+        if ignore:
+            write(".gitignore", f"{MOD}/EXTRA.md\n")
+        else:
+            os.remove(os.path.join(work, MOD, "EXTRA.md"))
+        commit("untrack the product")
+
+    wt = os.path.join(d, "mq-wt-i")
+
+    # main moves the product out, the pull request still changed it
+    work, write, commit = repo("ig1")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/EXTRA.md", "mine\n"); commit("pr edits the product"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); untrack(work, write, commit); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr", wt) == "regenerated"
+    g(work, "fetch", "-q", "origin")
+    assert f"{MOD}/EXTRA.md" not in g(work, "ls-tree", "-r", "--name-only", "origin/pr").splitlines() and g(work, "merge-base", "--is-ancestor", "origin/main", "origin/pr") == ""
+
+    # the pull request moved it out, main changed it
+    work, write, commit = repo("ig2")
+    g(work, "checkout", "-q", "-B", "pr", "main"); untrack(work, write, commit); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); write(f"{MOD}/EXTRA.md", "main\n"); commit("main edits the product"); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr", wt) == "regenerated"
+    g(work, "fetch", "-q", "origin")
+    assert f"{MOD}/EXTRA.md" not in g(work, "ls-tree", "-r", "--name-only", "origin/pr").splitlines()
+
+    # a file a person wrote, deleted on one side and changed on the other: not ignored, so a person decides (also: ignoring a human file is not what makes it settle)
+    work, write, commit = repo("ig3")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/human.txt", "mine\n"); commit("pr edits"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); g(work, "rm", "-q", f"{MOD}/human.txt"); commit("main deletes human.txt"); g(work, "push", "-q", "origin", "main")
+    before = g(work, "rev-parse", "origin/pr")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr") == before
+
+    # a file a person wrote conflicts next to the moved product
+    work, write, commit = repo("ig4")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/EXTRA.md", "mine\n"); write(f"{MOD}/human.txt", "mine\n"); commit("pr edits both"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); write(f"{MOD}/human.txt", "main\n"); commit("main edits human.txt"); untrack(work, write, commit); g(work, "push", "-q", "origin", "main")
+    before = g(work, "rev-parse", "origin/pr")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr") == before
