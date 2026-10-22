@@ -178,7 +178,7 @@ value_streams:
     any:
       - {ref: OBJ-18, state: 已赢单}
       - {ref: OBJ-12, state: 已批准, note: 先行投入}
-      - {ref: OBJ-05, state: 已签署生效, note: 直接签约的项目合同或任务订单}
+      - {ref: OBJ-05, state: 已生效, note: 直接签约的项目合同或任务订单}
   ends_in:
     - {ref: OBJ-29, state: 已结项 → 已归档}
     - {ref: OBJ-29, state: 已终止 / 已取消, note: 停止}
@@ -227,7 +227,7 @@ value_streams:
         any:
           - {ref: OBJ-18, state: 已赢单}
           - {ref: OBJ-12, state: 已批准, note: 先行投入}
-          - {ref: OBJ-05, state: 已签署生效, note: 直接签约的项目合同或任务订单}
+          - {ref: OBJ-05, state: 已生效, note: 直接签约的项目合同或任务订单}
       exit:
         all:
           - {ref: OBJ-29, state: 已立项 / 执行中, caveat: SC-04, note: 开工后项目即离开「已立项」，只写「已立项」会误报（STEP3 C-01）}
@@ -410,7 +410,7 @@ value_streams:
   starts_when:
     any:
       - {ref: OBJ-18, state: 已赢单}
-      - {ref: OBJ-05, state: 已签署生效}
+      - {ref: OBJ-05, state: 已生效}
   ends_in:
     - {ref: OBJ-35, state: 已认可, note: 检查报告类交付物}
     - {ref: OBJ-48, state: 不再受托, note: 周期检查终止}
@@ -518,7 +518,7 @@ value_streams:
     any:
       - {ref: OBJ-18, state: 已赢单}
       - {ref: OBJ-12, state: 已批准}
-      - {ref: OBJ-05, state: 已签署生效, note: 框架协议下的任务订单}
+      - {ref: OBJ-05, state: 已生效, note: 框架协议下的任务订单}
   ends_in:
     - {ref: OBJ-05, state: 已结算（结算书经双方确认）}
     - {ref: OBJ-85, state: 已结清, note: 应收方向，含质保金类型}
@@ -536,7 +536,7 @@ value_streams:
           - {ref: OBJ-12, state: 已批准}
       exit:
         all:
-          - {ref: OBJ-05, state: 已签署生效（回签即生效，基线 1）}
+          - {ref: OBJ-05, state: 已生效（无生效条件的回签即生效；附生效条件的先「已签署」，经确认生效条件满足后生效；基线 1；GL5-01）}
           - {ref: OBJ-07, state: 已生效}
           - {ref: OBJ-12, state: 已转正（并入协议）, note: 适用条件：有先行投入时；原写作单项 any，改为 all 并注适用条件（STEP3 C-06）}
       in_stage_states:
@@ -554,14 +554,14 @@ value_streams:
       participants: [SH-E2, SH-E5, SH-E6, SH-C6b, SH-C6c, SH-C6a, SH-M1]
       entry:
         all:
-          - {ref: OBJ-05, state: 已签署生效 / 履行中, note: 协议生效后即转「履行中」，只写「已签署生效」会误报（STEP3 C-08）}
+          - {ref: OBJ-05, state: 已生效 / 履行中, note: 协议生效后即转「履行中」，只写「已生效」会误报（STEP3 C-08）}
       exit:
         all:
           - {ref: OBJ-05, state: 已完成, note: 全部履约义务已履行，由编排写回（AGG-13，聚合稿）}
       in_stage_states:
         - {ref: OBJ-09, state: 已生效（新基线）/ 驳回, note: 协议变更在本段重入（STEP3 C-07；SD-02 用户裁定 2026-10-16 自 VS-04.1 移入）}
         - {ref: OBJ-10, state: 已认定 / 已拒绝 / 撤回, note: 索赔在本段重入（STEP3 C-07；SD-02 用户裁定 2026-10-16 自 VS-04.1 移入）}
-        - {ref: OBJ-05, state: 已签署生效, note: 框架协议下的任务订单（框架任务订单，PRC-50）在本段占用框架限额并提交}
+        - {ref: OBJ-05, state: 已生效, note: 框架协议下的任务订单（框架任务订单，PRC-50）在本段占用框架限额并提交}
       value_item: 履行期内的变更、签证与索赔有据可依，价款与范围的调整被及时确认。
       notes: 本段与 VS-04.2 确认收入、VS-04.3 开具发票、VS-04.4 回款在时间上并行，可重入（SD-02 用户裁定 2026-10-16）；增设本段前 VS-04.1 与 VS-04.5 之间没有履约阶段，变更、索赔、任务订单只能挂在合同签订上。
     - id: VS-04.2
@@ -572,7 +572,7 @@ value_streams:
       participants: [SH-E6, SH-E2, SH-C6e]
       entry:
         all:
-          - {ref: OBJ-05, state: 已签署生效 / 履行中 / 已完成, note: 收入确认须协议已生效（intent 2026-10-16-074053 P-1）；协议生效后即转「履行中」，只写「已签署生效」会误报（STEP3 C-08）}
+          - {ref: OBJ-05, state: 已生效 / 履行中 / 已完成, note: 收入确认须协议已生效（intent 2026-10-16-074053 P-1）；协议生效后即转「履行中」，只写「已生效」会误报（STEP3 C-08）}
           - any:
               - {ref: OBJ-35, state: 已认可, caveat: SC-02}
               - all:

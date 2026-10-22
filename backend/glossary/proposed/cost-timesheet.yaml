@@ -30,36 +30,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__cost_timesheet_transition_illegal
-  zh: 状态转换不合法
-  en: CostTimesheetTransitionIllegal
-  snake: cost_timesheet_transition_illegal
-  kind: error_code
-  bc: cost.timesheet
-  scope: domain
-  definition: 工时单在当前状态下不能做这个操作（409）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__cost_timesheet_concurrent_change
-  zh: 被他人同时修改
-  en: CostTimesheetConcurrentChange
-  snake: cost_timesheet_concurrent_change
-  kind: error_code
-  bc: cost.timesheet
-  scope: domain
-  definition: 工时单在读取后被别人改过（409）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__cost_timesheet_reason_required
   zh: 必须填写原因
   en: CostTimesheetReasonRequired
