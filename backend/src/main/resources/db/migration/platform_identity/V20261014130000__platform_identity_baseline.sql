@@ -568,7 +568,9 @@ SELECT uuidv7(), roles.role_id, grants.permission_code
       ('business_admin', 'platform.integration:source-reference:approve'),
       ('security_auditor', 'platform.audit:audit-entry:read'),
       ('security_auditor', 'platform.audit:audit-entry:export'),
-      ('employee', 'platform.audit:own-login-record:read')
+      ('employee', 'platform.audit:own-login-record:read'),
+      ('employee', 'platform.file:file:create'),
+      ('employee', 'platform.file:file:read')
   ) AS grants (role_code, permission_code) ON grants.role_code = roles.code;
 
 -- ADR-0028：安全审计员在普通会话里也能放行管理员离职造成的同步暂停。

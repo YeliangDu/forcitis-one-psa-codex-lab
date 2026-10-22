@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.file.application.BindFile;
 import com.forcitis.one.platform.file.application.FileKeys;
+import com.forcitis.one.platform.file.application.GetUploadStatus;
 import com.forcitis.one.platform.file.application.HoldFile;
 import com.forcitis.one.platform.file.application.IssueDownloadLink;
 import com.forcitis.one.platform.file.application.ListDocumentFiles;
@@ -48,6 +49,11 @@ class FileServiceConfiguration {
                               PlatformTransactionManager transactions, MeterRegistry meters) {
         return new StoreContent(staging, scanner, checks, store, files, audit, new FileKeys(properties.environmentPrefix()),
                 new HashSet<>(properties.allowedMediaTypes()), ids, clock, transactions, meters);
+    }
+
+    @Bean
+    GetUploadStatus getUploadStatus(StoredFileRepository files) {
+        return new GetUploadStatus(files);
     }
 
     @Bean

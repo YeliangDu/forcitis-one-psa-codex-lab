@@ -24,3 +24,4 @@ POST /api/v1/platform/approval-tasks/{taskId}:decide  # DecisionResponse(instanc
 POST /api/v1/platform/approval-tasks/{taskId}:return  # DecisionResponse
 POST /api/v1/platform/approval-tasks/{taskId}:transfer  # 204 without a body
 POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 without a body
+POST /api/v1/platform/files  # UploadedFileResponse(fileId, contentHash, byteCount, mediaType, status, containsMacros); the raw body is the file; no file name in the answer

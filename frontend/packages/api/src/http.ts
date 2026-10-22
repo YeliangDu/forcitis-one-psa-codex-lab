@@ -9,7 +9,10 @@ export type ProblemDetail = Omit<components['schemas']['ProblemDetail'], 'errorC
 export interface RequestArgs {
   path?: Record<string, string | number | boolean>;
   query?: Record<string, string | number | boolean | undefined>;
+  /** A Blob is sent as it is (a file upload, with fileName); anything else is sent as JSON. */
   body?: unknown;
+  /** The name of an uploaded file; the server reads it from Content-Disposition. */
+  fileName?: string;
 }
 
 export interface RequestOptions {
@@ -126,6 +129,11 @@ export function newIdempotencyKey(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+/** RFC 8187 value: every byte that is not an unreserved character is percent-encoded (encodeURIComponent leaves ! ' ( ) * alone). */
+function encodeFileName(name: string): string {
+  return encodeURIComponent(name).replaceAll(/['()*!]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
 function buildUrl(baseUrl: string, template: string, args: RequestArgs): string {
   const path = template.replaceAll(/\{(\w+)\}/g, (_, name: string) => {
     const value = args.path?.[name];
@@ -166,7 +174,12 @@ export function createHttpClient(config: HttpClientConfig = {}) {
   async function request<T>(method: HttpMethod, template: string, args: RequestArgs = {}, options: RequestOptions = {}, schema?: ResponseSchema, traits: RequestTraits = {}): Promise<T> {
     const operation = `${method.toUpperCase()} ${template}`;
     const headers: Record<string, string> = { Accept: 'application/json' };
-    if (args.body !== undefined) headers['Content-Type'] = 'application/json';
+    const upload = args.body instanceof Blob ? args.body : undefined;
+    if (upload !== undefined) {
+      if (args.fileName === undefined || args.fileName === '') throw new Error(`An upload needs fileName for ${operation}`);
+      headers['Content-Type'] = upload.type === '' ? 'application/octet-stream' : upload.type;
+      headers['Content-Disposition'] = `attachment; filename*=UTF-8''${encodeFileName(args.fileName)}`;
+    } else if (args.body !== undefined) headers['Content-Type'] = 'application/json';
     if (!SAFE_METHODS.has(method)) {
       const token = readCookie(CSRF_COOKIE);
       if (token !== undefined) headers[CSRF_HEADER] = token;
@@ -178,7 +191,7 @@ export function createHttpClient(config: HttpClientConfig = {}) {
     }
     if (traits.idempotent === true) headers['Idempotency-Key'] = options.idempotencyKey ?? newKey();
     const init: RequestInit = { method: method.toUpperCase(), headers, credentials: 'include' };
-    if (args.body !== undefined) init.body = JSON.stringify(args.body);
+    if (args.body !== undefined) init.body = upload ?? JSON.stringify(args.body);
 
     const response = await send(buildUrl(baseUrl, template, args), init);
     const body = await readBody(response);

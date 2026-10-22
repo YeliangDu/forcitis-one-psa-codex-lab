@@ -166,6 +166,13 @@ export const ErrorCodeSchema = lenientEnum("ErrorCode", ["COST_TIMESHEET_CUTOFF_
 
 export const ExternalSourceSchema = lenientEnum("ExternalSource", ["ORG_SOURCE", "LEGACY_SYSTEM", "ACCOUNTING_SYSTEM"]);
 
+export const FileStatusSchema = lenientEnum("FileStatus", ["AVAILABLE", "QUARANTINED", "EXPIRED_UNBOUND", "DISPOSED"]);
+
+export const FileStatusResponseSchema = z.object({
+  fileId: z.string(),
+  get status() { return FileStatusSchema; },
+});
+
 export const ForcedLogoutRequestSchema = z.object({
   reason: z.string().optional(),
 });
@@ -551,6 +558,15 @@ export const UpdateLegalEntityRequestSchema = z.object({
   status: z.string().optional(),
 });
 
+export const UploadedFileResponseSchema = z.object({
+  byteCount: z.number().int(),
+  containsMacros: z.boolean(),
+  contentHash: z.string(),
+  fileId: z.string(),
+  mediaType: z.string(),
+  get status() { return FileStatusSchema; },
+});
+
 export const UserAccountResponseSchema = z.object({
   roleCodes: z.array(z.string()),
   status: z.string(),
@@ -601,6 +617,8 @@ export const responseSchemas = {
   getPlatformAuditEntries: CursorPageAuditEntryResponseSchema,
   getPlatformAuditEntriesExport: z.string(),
   getPlatformAuthorizationRequests: CursorPageAuthorizationRequestViewSchema,
+  postPlatformFiles: UploadedFileResponseSchema,
+  getPlatformFilesByFileId: FileStatusResponseSchema,
   getPlatformLegacyNumbers: CursorPageLegacyNumberResponseSchema,
   getPlatformLegacyNumbersResolve: LegacyNumberResponseSchema,
   postPlatformLoginStates: LoginStateResponseSchema,

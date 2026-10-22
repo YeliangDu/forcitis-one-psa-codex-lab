@@ -102,6 +102,20 @@ class JdbcStoredFileRepository implements StoredFileRepository {
                 .query(Boolean.class).single();
     }
 
+    @Override
+    public Optional<FileStatus> unboundStatusUploadedBy(FileId file, UUID uploader) {
+        return jdbc.sql("""
+                        select f.file_status
+                          from platform_file.stored_files f
+                         where f.stored_file_id = :id
+                           and f.uploader_kind = 'USER' and f.uploader_user_id = :user
+                           and not exists (select 1 from platform_file.file_bindings b where b.stored_file_id = f.stored_file_id)
+                        """)
+                .param("id", file.value()).param("user", uploader)
+                .query((rs, n) -> FileStatus.valueOf(rs.getString("file_status")))
+                .optional();
+    }
+
     private static UUID actorId(FileSubject subject) {
         return switch (subject.kind()) {
             case USER -> UUID.fromString(subject.id());

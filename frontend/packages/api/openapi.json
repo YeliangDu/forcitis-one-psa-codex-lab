@@ -456,6 +456,23 @@
         "enum" : [ "ORG_SOURCE", "LEGACY_SYSTEM", "ACCOUNTING_SYSTEM" ],
         "type" : "string"
       },
+      "FileStatus" : {
+        "enum" : [ "AVAILABLE", "QUARANTINED", "EXPIRED_UNBOUND", "DISPOSED" ],
+        "type" : "string"
+      },
+      "FileStatusResponse" : {
+        "properties" : {
+          "fileId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/FileStatus"
+          }
+        },
+        "required" : [ "fileId", "status" ],
+        "type" : "object"
+      },
       "ForcedLogoutRequest" : {
         "properties" : {
           "reason" : {
@@ -1639,6 +1656,32 @@
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "UploadedFileResponse" : {
+        "properties" : {
+          "byteCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "containsMacros" : {
+            "type" : "boolean"
+          },
+          "contentHash" : {
+            "type" : "string"
+          },
+          "fileId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "mediaType" : {
+            "type" : "string"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/FileStatus"
+          }
+        },
+        "required" : [ "byteCount", "containsMacros", "contentHash", "fileId", "mediaType", "status" ],
         "type" : "object"
       },
       "UserAccountResponse" : {
@@ -4350,6 +4393,99 @@
           }
         },
         "tags" : [ "authorization-request-controller" ]
+      }
+    },
+    "/api/v1/platform/files" : {
+      "post" : {
+        "operationId" : "upload",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Content-Disposition",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "The same key with the same request within 24 hours gets the first answer again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/octet-stream" : {
+              "schema" : {
+                "format" : "binary",
+                "type" : "string"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadedFileResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "summary" : "Stores an upload behind the malware scan; the body is the file, its name is in Content-Disposition (filename*=UTF-8''...)",
+        "tags" : [ "platform-file-controller" ]
+      }
+    },
+    "/api/v1/platform/files/{fileId}" : {
+      "get" : {
+        "operationId" : "status",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "fileId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FileStatusResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetail"
+                }
+              }
+            },
+            "description" : "The request was refused"
+          }
+        },
+        "tags" : [ "platform-file-controller" ]
       }
     },
     "/api/v1/platform/legacy-numbers" : {

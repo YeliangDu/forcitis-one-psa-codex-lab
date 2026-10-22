@@ -86,4 +86,23 @@ class JdbcStoredFileRepositoryIT {
                 .params(UUID.randomUUID(), hash, USER, UUID.randomUUID()).update();
         assertThat(files.hasScanException(new ContentHash(hash))).isFalse();
     }
+
+    @Test
+    void anUploadStatusIsSeenOnlyByItsUploaderAndOnlyUntilADocumentLinksIt() {
+        UUID stranger = UUID.randomUUID();
+        NewStoredFile own = file(new FileSubject(FileSubjectKind.USER, USER.toString()), FileStatus.QUARANTINED, new Lineage.FirstVersion(), "f".repeat(64));
+        NewStoredFile byLink = file(new FileSubject(FileSubjectKind.ONE_TIME_LINK, USER.toString()), FileStatus.AVAILABLE, new Lineage.FirstVersion(), "9".repeat(64));
+        files.insert(own);
+        files.insert(byLink);
+
+        assertThat(files.unboundStatusUploadedBy(own.id(), USER)).contains(FileStatus.QUARANTINED);
+        assertThat(files.unboundStatusUploadedBy(own.id(), stranger)).as("someone else's file does not exist for the caller").isEmpty();
+        assertThat(files.unboundStatusUploadedBy(byLink.id(), USER)).as("a link's upload is not a user's").isEmpty();
+        assertThat(files.unboundStatusUploadedBy(new FileId(UUID.randomUUID()), USER)).isEmpty();
+
+        jdbc.sql("insert into platform_file.file_bindings (file_binding_id, stored_file_id, document_type, document_id, access_level_code, personal_information_mark_code,"
+                + " bound_by_kind, bound_by_user_id, bound_at, created_at, updated_at) values (?, ?, 'CONTRACT', ?, 'INTERNAL', 'NONE', 'USER', ?, now(), now(), now())")
+                .params(UUID.randomUUID(), own.id().value(), UUID.randomUUID(), USER).update();
+        assertThat(files.unboundStatusUploadedBy(own.id(), USER)).as("once linked, the status is no longer the uploader's to read").isEmpty();
+    }
 }
