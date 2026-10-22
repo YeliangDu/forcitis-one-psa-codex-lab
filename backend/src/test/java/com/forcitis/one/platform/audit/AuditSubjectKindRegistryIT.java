@@ -44,8 +44,8 @@ class AuditSubjectKindRegistryIT {
     @Autowired
     JdbcClient jdbc;
 
-    private static final String INSERT = "insert into platform_audit.audit_subject_kinds (audit_subject_kind_id, code, owner_bc_code, has_object, status, effective_from_date, retired_date)"
-            + " values (uuidv7(), '%s', 'platform.audit', true, '%s', DATE '2026-01-01', %s)";
+    private static final String INSERT = "insert into platform_audit.audit_subject_kinds (audit_subject_kind_id, code, owner_bc_code, has_object, status, effective_from_date, retired_date, created_at, updated_at)"
+            + " values (uuidv7(), '%s', 'platform.audit', true, '%s', DATE '2026-01-01', %s, now(), now())";
 
     @Test
     @DisplayName("the twenty seeded kinds are there, SYNC_RUN is ACTIVE, and audit_entries.subject_kind is a foreign key to the registry code")
@@ -78,5 +78,21 @@ class AuditSubjectKindRegistryIT {
         assertThat(jdbc.sql("update platform_audit.audit_subject_kinds set status = 'RETIRED', retired_date = DATE '2026-06-01' where code = 'PROBE_FIVE'").update()).isEqualTo(1);
         assertThatThrownBy(() -> jdbc.sql("update platform_audit.audit_subject_kinds set retired_date = DATE '2026-07-01' where code = 'PROBE_FIVE'").update()).hasMessageContaining("set once");
         assertThatThrownBy(() -> jdbc.sql("update platform_audit.audit_subject_kinds set status = 'ACTIVE', retired_date = null where code = 'PROBE_FIVE'").update()).hasMessageContaining("set once");
+    }
+
+    @Test
+    @DisplayName("the kinds ck_audit_entries_subject_id lists (no object) are exactly the registered kinds with has_object false")
+    void noObjectKindsMatchTheSubjectIdCheck() {
+        String definition = jdbc.sql("select pg_get_constraintdef(oid) from pg_constraint where conname = 'ck_audit_entries_subject_id' and conrelid = 'platform_audit.audit_entries'::regclass")
+                .query(String.class).single();
+        java.util.Set<String> listed = new java.util.TreeSet<>();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("'([A-Z_]+)'").matcher(definition);
+        while (m.find()) {
+            listed.add(m.group(1));
+        }
+        java.util.Set<String> registered = new java.util.TreeSet<>(jdbc.sql("select code from platform_audit.audit_subject_kinds where has_object = false and audit_subject_kind_id::text like '019a0000-0000-7000-8000-000000000%'")
+                .query(String.class).list());
+
+        assertThat(listed).isNotEmpty().isEqualTo(registered);
     }
 }

@@ -23,7 +23,7 @@ class AuditSubjectKindGuardTest {
 
     static final Path MIGRATIONS = Path.of("src/main/resources/db/migration/platform_audit");
     static final Path MIGRATION = Path.of("src/main/resources/db/migration/platform_audit/V20261014134000__platform_audit_baseline.sql");
-    static final Pattern SEED = Pattern.compile("\\('[0-9a-f-]{36}', '([A-Z][A-Z0-9_]+)', '([a-z.]+)', (true|false), '(?:ACTIVE|RETIRED)', DATE '[0-9-]+'\\)");
+    static final Pattern SEED = Pattern.compile("\\('[0-9a-f-]{36}', '([A-Z][A-Z0-9_]+)', '([a-z.]+)', (true|false), '(?:ACTIVE|RETIRED)', DATE '[0-9-]+', TIMESTAMPTZ '[^']+', TIMESTAMPTZ '[^']+'\\)");
 
     record Seed(String owner, boolean hasObject) {
     }
@@ -52,6 +52,17 @@ class AuditSubjectKindGuardTest {
         for (AuditSubjectKind kind : AuditSubjectKind.values()) {
             assertThat(seeds.get(kind.name()).hasObject()).as(kind + " has_object").isEqualTo(kind.hasObject());
         }
+    }
+
+    @Test
+    @DisplayName("the kinds without an object are exactly the ones ck_audit_entries_subject_id lists (a new kind without an object must change that CHECK too)")
+    void noObjectKindsMatchTheSubjectIdCheck() throws IOException {
+        Matcher check = Pattern.compile("ck_audit_entries_subject_id CHECK \\(\\(subject_id IS NULL\\) = \\(subject_kind IN \\(([^)]*)\\)\\)\\)").matcher(Files.readString(MIGRATION));
+        assertThat(check.find()).as("ck_audit_entries_subject_id in the baseline").isTrue();
+        Set<String> listed = java.util.Arrays.stream(check.group(1).split(",")).map(v -> v.strip().replace("'", "")).collect(Collectors.toSet());
+        Set<String> registeredWithoutObject = seeds().entrySet().stream().filter(e -> !e.getValue().hasObject()).map(Map.Entry::getKey).collect(Collectors.toSet());
+
+        assertThat(registeredWithoutObject).isEqualTo(listed);
     }
 
     @Test

@@ -11,8 +11,8 @@ CREATE TABLE platform_audit.audit_subject_kinds (
     status                text        NOT NULL,
     effective_from_date   date        NOT NULL,
     retired_date          date,
-    created_at            timestamptz NOT NULL DEFAULT now(),
-    updated_at            timestamptz NOT NULL DEFAULT now(),
+    created_at            timestamptz NOT NULL,
+    updated_at            timestamptz NOT NULL,
     CONSTRAINT pk_audit_subject_kinds PRIMARY KEY (audit_subject_kind_id),
     CONSTRAINT uk_audit_subject_kinds_code UNIQUE (code),
     CONSTRAINT ck_audit_subject_kinds_code CHECK (code ~ '^[A-Z][A-Z0-9_]{1,39}$'),
@@ -21,7 +21,7 @@ CREATE TABLE platform_audit.audit_subject_kinds (
     CONSTRAINT ck_audit_subject_kinds_retired_matches_status CHECK ((status = 'RETIRED') = (retired_date IS NOT NULL)),
     CONSTRAINT ck_audit_subject_kinds_retired_after_effective CHECK (retired_date IS NULL OR retired_date > effective_from_date)
 );
-COMMENT ON TABLE platform_audit.audit_subject_kinds IS '审计对象类别登记：每个可被审计的对象类别一行；平台自有与各业务模块的类别都在此登记，代码常量只作引用。只由迁移增改，运行时只读；已有审计条目只追加、照常可读，被引用的登记行永不删除。粒度：每个对象类别一行';
+COMMENT ON TABLE platform_audit.audit_subject_kinds IS '审计对象类别登记：每个可被审计的对象类别一行；平台自有与各业务模块的类别都在此登记，代码常量只作引用。只由迁移增改，运行时只读；已有审计条目只追加、照常可读，被引用的登记行永不删除。新增一个无对象的类别（审计条目不带对象 ID）须同改 audit_entries 的 ck_audit_entries_subject_id，其列出的类别集合须等于这里 has_object 为假的集合（AuditSubjectKindGuardTest 守护）。粒度：每个对象类别一行';
 COMMENT ON COLUMN platform_audit.audit_subject_kinds.audit_subject_kind_id IS '审计对象类别 ID（UUIDv7）';
 COMMENT ON COLUMN platform_audit.audit_subject_kinds.code IS '对象类别码：业务键，大写字母、数字与下划线，2 至 40 位，全局唯一；审计条目的对象类别外键指向它';
 COMMENT ON COLUMN platform_audit.audit_subject_kinds.owner_bc_code IS '登记属主：声明该类别的限界上下文（glossary/bcs.yaml 中 kind 为 bc 的 id），存在性由守护测试核对';
@@ -54,27 +54,27 @@ CREATE TRIGGER tg_audit_subject_kinds_append_only BEFORE UPDATE OR DELETE ON pla
 CREATE TRIGGER tg_audit_subject_kinds_append_only_truncate BEFORE TRUNCATE ON platform_audit.audit_subject_kinds
     FOR EACH STATEMENT EXECUTE FUNCTION platform_audit.guard_audit_subject_kind_change();
 
-INSERT INTO platform_audit.audit_subject_kinds (audit_subject_kind_id, code, owner_bc_code, has_object, status, effective_from_date) VALUES
-    ('019a0000-0000-7000-8000-000000000601', 'USER_ACCOUNT', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000602', 'EMPLOYEE', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000603', 'ORG_UNIT', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000604', 'EMERGENCY_ADMIN', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000605', 'ROLE', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000606', 'APPROVAL_TASK', 'platform.approval', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000607', 'APPROVAL_REQUEST', 'platform.approval', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000608', 'SYNC_RUN', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000609', 'LEGAL_ENTITY', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000610', 'LEGAL_ENTITY_ATTRIBUTION', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000611', 'TIMESHEET', 'cost.timesheet', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000612', 'WORK_CALENDAR_YEAR', 'organization.attendance', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000613', 'NUMBERING_RULE', 'platform.numbering', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000614', 'SOURCE_REFERENCE', 'platform.integration', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000615', 'SOURCE_REFERENCE_REFUSAL', 'platform.integration', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000616', 'AUTHORIZATION_REQUEST', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000617', 'STORED_FILE', 'platform.file', true, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000618', 'REQUEST', 'platform.audit', false, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000619', 'OPERATION', 'platform.audit', false, 'ACTIVE', DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000620', 'LOGIN_ATTEMPT', 'platform.identity', false, 'ACTIVE', DATE '2000-01-01');
+INSERT INTO platform_audit.audit_subject_kinds (audit_subject_kind_id, code, owner_bc_code, has_object, status, effective_from_date, created_at, updated_at) VALUES
+    ('019a0000-0000-7000-8000-000000000601', 'USER_ACCOUNT', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000602', 'EMPLOYEE', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000603', 'ORG_UNIT', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000604', 'EMERGENCY_ADMIN', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000605', 'ROLE', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000606', 'APPROVAL_TASK', 'platform.approval', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000607', 'APPROVAL_REQUEST', 'platform.approval', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000608', 'SYNC_RUN', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000609', 'LEGAL_ENTITY', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000610', 'LEGAL_ENTITY_ATTRIBUTION', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000611', 'TIMESHEET', 'cost.timesheet', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000612', 'WORK_CALENDAR_YEAR', 'organization.attendance', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000613', 'NUMBERING_RULE', 'platform.numbering', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000614', 'SOURCE_REFERENCE', 'platform.integration', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000615', 'SOURCE_REFERENCE_REFUSAL', 'platform.integration', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000616', 'AUTHORIZATION_REQUEST', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000617', 'STORED_FILE', 'platform.file', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000618', 'REQUEST', 'platform.audit', false, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000619', 'OPERATION', 'platform.audit', false, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000620', 'LOGIN_ATTEMPT', 'platform.identity', false, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00');
 
 -- 审计订阅领域事件：事件号与创建时间一起兼作幂等键，重复投递不产生重复条目；关联号把条目与同一操作的事件、日志串起来。
 -- 按创建时间（UTC 月）范围分区（ADR-0048，O-8）：在线 3 年后归档、校验，再由维护角色整块删除分区；不建默认分区，落不进任何分区的行直接报错。
