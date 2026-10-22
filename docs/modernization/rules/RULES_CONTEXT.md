@@ -82,6 +82,12 @@ A1 后续页已答（intent 2026-10-16-162827）：维持按时点；无法定�
 - 在手未做：one-1a-admin 的卡 C「员工活动申请」规则点 T-R1…R9（分支 claude/one-1a-admin-card-c @890e8cd8b 的 `b31-rules/B31_CARD_C_API.md` 第 11 节：金额为 0、重复办结/取消响应、谁能登记/办结/取消、手工提交周年贺卡类型（已答：一律拒绝）、重登限制、字段上限、草稿与活动发生日、参与人规则、本人/下属范围）；RUL-01～08 逐条回复（`rules/B31_RULING_REPLY.md` 已回 DATA-03/06、RUL-05、SCH-06、周年三问）；RULE-387/394 等原待办见上文。
 - 守则：每个工作单元开始前先合 main；提交与推送分两次调用；FREEZE_FACTS.md 合并冲突取 main 版再 build_all；precheck 约 2 分钟，用后台跑；取证走 one-ops 只读通道、只取聚合并登记；转述的 intent 先核对原文。
 
+## 2026-10-22 晚（接续）
+
+- 待用户清单已写进收件箱（12 项，pending）：RULE-265、311、A10 把关人、补登卡 8 张（423/433/440/457/480/484/501/503）、卡 C 活动发生日；Q-B31-1～5 与 FCQ（含 M-29）用户已答，不再问。
+- 卡 C 的 T-R1…R9 已回 `B31_CARD_C_RULING_REPLY.md`（发生日待用户）；RUL-01～08 与 Q-B31 答复已记入 `B31_RULING_REPLY.md` 第五、六节；§11.2「兜底四条规矩」原文没读到，已请 one-1a-admin 贴来。
+- 仍待办：RULE-387/394 等原待办；新增错误码提议（TYPE_SYSTEM_ONLY、ALREADY_REREGISTERED、PARTICIPANT_NOT_EMPLOYED）交 one-glossary 由 one-1a-admin 汇入。
+
 ## 工作守则要点（画像「权限边界」下有全文）
 
 - 本会话主模型 sonnet；会话上下文 2026-10-16 傍晚到 76%，按手册先更新本文件再 `/clear`；新开后从本文件接续，不凭记忆。
