@@ -3,7 +3,7 @@
 2026-10-22 交接（用户要求清空；上一次 10-21 的交接已全部执行完，本文件整篇替换）。清空后按下面顺序接续，细节以各 PR/分支为准。
 
 ## 在途 PR
-1. **#604 KERR（IMP-1022-COO-02，通用错误码进 kernel）**：分支 `claude/one-1a-par-kernel-error-codes`，头 `446fcdd2f`（本地工作区 `elated-mclaren-be9a20` 现停在 `claude/one-1a-par-handoff-1022-2` 之前是此分支）。one-coordinator 已批（opus 首轮已过、-04 验收裁定已进 main、:99 显示名已按 -04 精神改）。**剩余**：等 CI 绿（头 446fcdd2f 的 run 在排队，上一头 c714d47be 已全绿），绿后直接报 one-merge 入队；入队后不再往该分支推。
+1. **#604 KERR（IMP-1022-COO-02，通用错误码进 kernel）**：分支 `claude/one-1a-par-kernel-error-codes`，头 `446fcdd2f`（本地工作区 `.claude/worktrees/elated-mclaren-be9a20` 里该分支已建好，可直接 `git switch`）。one-coordinator 已批（opus 首轮已过、-04 验收裁定已进 main、:99 显示名已按 -04 精神改）。**剩余**：等 CI 绿（头 446fcdd2f 的 run 在排队，上一头 c714d47be 已全绿），绿后直接报 one-merge 入队；入队后不再往该分支推。
 2. 已合入 main 的本会话 PR（无需再动）：#509（删老待办，F）、#519（Seeyon 超时 10 秒）、#547（日历版本化迁移 PR-A，IMP-1021-PAR-02）、#595（F2 老待办残留清理，IMP-1021-PAR-04）。
 
 ## 下一步（顺序已定）
