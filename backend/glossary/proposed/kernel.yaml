@@ -44,7 +44,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 取代 organization.administration 提议的 EMPLOYEE_ACTIVITY_CANCEL_REASON_REQUIRED；码的实现归 kernel owner。中文名不与 cost.timesheet、platform.approval 已登记的「必须填写原因」同名（错误码中文名全局唯一）；这两个模块码应收进本条，由各 owner 另卡处理。
+  note: 取代 organization.administration 提议的 EMPLOYEE_ACTIVITY_CANCEL_REASON_REQUIRED；码的实现归 kernel owner。中文名不与 cost.timesheet、platform.approval 已登记的「必须填写原因」同名（错误码中文名全局唯一）；这两个模块码已收进本条（IMP-1022-COO-04）。
 common_words:
 - contain
 - containing
