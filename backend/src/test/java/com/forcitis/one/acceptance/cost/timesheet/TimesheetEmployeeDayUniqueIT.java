@@ -96,7 +96,7 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
     }
 
     @Test
-    @DisplayName("TS-UNIQ 同一员工同一工作日并发创建两张工时单，后到者被拒，返回 COST_TIMESHEET_WORK_DATE_DUPLICATE 而不是 COST_TIMESHEET_CONCURRENT_CHANGE，库内只有一行，也没有多发一个单据编号")
+    @DisplayName("TS-UNIQ 同一员工同一工作日并发创建两张工时单，后到者被拒，返回 COST_TIMESHEET_WORK_DATE_DUPLICATE 而不是 KERNEL_CONCURRENT_CHANGE，库内只有一行，也没有多发一个单据编号")
     void concurrentCreationOfTheSameEmployeeDayLeavesOneRowAndOneNumber() throws Exception {
         SignedIn worker = newWorker();
         long issuedBefore = nextTimesheetSequence();
