@@ -45,10 +45,10 @@
 - 队列文件被并发改写会丢行：只经 `mq.py`。
 - 钩子不展开命令里的 shell 变量路径：推送命令用绝对路径 `cd`。
 
-## 现状（2026-10-22 10:15+02:00，重启 app 前交接）
+## 现状（2026-10-22 15:40+02:00）
 
-- #568（队列自动重生成）已合入，队列进程（launchd `com.forcitis.mq`）已 bootout 停止，等用户重启 app 后恢复。队列文件保留：`[572, 574, 570]`（#568 已移出）；主检出已快进到 origin/main。
-- 重启后第一件事：①`launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.forcitis.mq.plist` 恢复队列（加载 #568 新代码）；②`git -C <主检出> fetch` 并核对主检出在 main、与 origin/main 一致；③`mq.py status`，留意 #568 的第一次自动重生成；④#561（行政事务骨架，head 617ccf5f4，冲突）重新同步入队，#573（head 16fc523c4）排在 #572、#570、#561 之后。
-- 在队列：#572（one-glossary GLO-19，head 4f0a7350f）、#574（文档合集 32，含 7 个 .py，调度已放行）、#570（head 26b7c73cd）。
-- 待下一批文档合集：network-batch3 @8847bb71、finance-closeout @e6225f53、arch-revenue c76a52b7（RESPONSIBILITY_MATRIX.yaml 两版冲突以合并后重跑 raci_build --write 或取 finance 版为准，不手工合）、rules-context-2 与 admission-file 的更新提交按各会话所报。
-- 注意：本机推送前门禁要几分钟，main 前进快；生成产物冲突由我同步后立即入队。门禁里 HttpWecomClientTest 偶发超时（#569 已修）。
+- 队列（`mq.py status`）：只有当前在处理的 PR；launchd 代理 `com.forcitis.mq` running，#568（生成产物冲突自动合 main 重生成）、#583（remove 停 worker）、#593（产物移出后一删一改自动 git rm --cached）已合入并已重启。主检出每次合入后由队列自动快进（日志 `FF-MAIN`）。
+- 批准口径：只收 one-coordinator 的批准消息，入队前比对「批准的 head」（后续提交是合 main 或重新生成才算同一批准）；脚本/测试文件改动的文档合集先报 one-coordinator；手写文件冲突先报 one-coordinator 再动，生成产物冲突我在 PR 分支合 main、跑 build_all、必要时 `git rm --cached` 已不入仓的产物、推送后入队。
+- 我自己的合集分支（train-N）合入后分支可删；`mq.py remove` 停不掉正在处理的 PR，要撤只能重启代理；推送门禁要几分钟，main 前进快时易再冲突。
+- 远端分支清理（2026-10-22，one-coordinator）：已合入且无 PR/无 worktree 的已删（清单与 tip 在 `~/.modernize/psa/branch-cleanup-20261022/`）；无主超 3 天的未合入分支不删、改名归档到 `archive/<原名>`（同 tip），清单 `archived.txt`；生成物发布分支 `generated-docs` 必须保留。
+- 待办：①`one-data-handoff-1`、`one-quality-*`、`one-architecture-*`、`one-rules-context-2` 等会话分支的提交号由各会话直报，收进下一文档合集；②每周例行分支与干净工作区清理；③队列清空即扫在开 PR 三类报调度。
