@@ -149,7 +149,7 @@ def guarded_main(argv):
 
 
 def self_test():
-    docs = ["docs/modernization/quality/X.md", "README.md"]
+    docs = ["NOTES.md", "README.md"]
     code = ["scripts/hooks/x.py"]
     ok = "feat(x): 做某事 (CI-1022-QUA-03)\n\n为什么：见 ADR-0038。\n"
     _, e, w = check(ok, code, "one-quality")
@@ -187,7 +187,8 @@ def self_test():
             return r
         run("init", "-q"); run("config", "user.email", "t@t"); run("config", "user.name", "t")
         os.makedirs(f"{tmp}/.claude"); Path(f"{tmp}/.claude/session-name").write_text("one-quality\n")
-        os.makedirs(f"{tmp}/docs/modernization/sessions"); Path(f"{tmp}/docs/modernization/sessions/one-quality.md").write_text("x")
+        import session_context
+        os.makedirs(f"{tmp}/{session_context.SESSIONS}"); Path(f"{tmp}/{session_context.SESSIONS}/one-quality.md").write_text("x")
         os.makedirs(f"{tmp}/scripts"); Path(f"{tmp}/scripts/a.py").write_text("x"); Path(f"{tmp}/n.md").write_text("x")
         run("add", "-A")
         msg = Path(tmp) / "MSG"
