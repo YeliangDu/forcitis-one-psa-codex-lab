@@ -158,6 +158,33 @@ class MigrationWriterRoleIT {
     }
 
     @Test
+    @DisplayName("the migration role cannot use another source kind to insert a confirmed version, nor a pending one that already carries a confirmer")
+    void confirmationCannotBeWrittenThroughAnySourceKind() {
+        assertThatThrownBy(() -> insertAuthoredAs("one_test_history_loader", "CONFIRMED", "'01900000-0000-7000-8000-000000000a01'::uuid"))
+                .hasMessageContaining("can only be inserted pending confirmation");
+        assertThatThrownBy(() -> insertAuthoredAs("one_test_app", "CONFIRMED", "'01900000-0000-7000-8000-000000000a01'::uuid"))
+                .hasMessageContaining("can only be inserted pending confirmation");
+        assertThatThrownBy(() -> insertAs("one_test_history_loader", "MIGRATION", "PENDING_CONFIRMATION", "'01900000-0000-7000-8000-000000000a01'::uuid"))
+                .hasMessageContaining("must be inserted pending confirmation");
+        assertThatCode(() -> insertAuthoredAs("one_test_owner", "CONFIRMED", "'01900000-0000-7000-8000-000000000a01'::uuid")).doesNotThrowAnyException();
+    }
+
+    static void insertAuthoredAs(String role, String status, String confirmedBy) throws SQLException {
+        int n = version++;
+        try (Connection c = connect(); Statement st = c.createStatement()) {
+            st.execute("insert into platform_numbering.document_types (document_type_id, code, owner_bc_code, is_finance_confirmation_required, effective_from_date)"
+                    + " values (uuidv7(), 'MW_TYPE_" + n + "', 'cost.timesheet', false, DATE '2026-01-01')");
+            st.execute("insert into platform_numbering.numbering_rules (numbering_rule_id, document_type_id, version, event_count)"
+                    + " select uuidv7(), document_type_id, 1, 0 from platform_numbering.document_types where code = 'MW_TYPE_" + n + "'");
+            st.execute("set role " + role);
+            st.execute("insert into " + VERSIONS + " (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value,"
+                    + " effective_from_date, author_id, authored_at, status, source_kind, confirmed_by, confirmed_at) select uuidv7(), numbering_rule_id, " + n
+                    + ", '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2027-01-01', '01900000-0000-7000-8000-000000000a02'::uuid, now(), '" + status + "', 'AUTHORED', " + confirmedBy
+                    + ", now() from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'MW_TYPE_" + n + "')");
+        }
+    }
+
+    @Test
     @DisplayName("no SECURITY DEFINER function touches the version table: the trigger would see the definer as the current user and let the caller write seeded rows")
     void noDefinerFunctionWritesTheVersionTable() throws SQLException {
         try (Connection c = connect(); Statement st = c.createStatement();

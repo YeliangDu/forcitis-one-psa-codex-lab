@@ -226,13 +226,16 @@ CREATE FUNCTION platform_numbering.is_migration_writer(table_oid oid) RETURNS bo
             AND r.rolname <> pg_get_userbyid((SELECT relowner FROM pg_catalog.pg_class WHERE oid = table_oid))), 'MEMBER'), false)
 $$;
 -- 作者可空的行只由迁移写：种子行只认属主角色成员，迁入行认属主角色成员或其迁入角色成员，运行角色两者都不是（c3/c9 校验脚本核对），在这里被拒。
--- 迁入行只能以待确认插入：确认要由管理员与财务在界面完成，迁入角色没有 UPDATE，也不能把四眼确认写进插入语句。
+-- 非属主角色（运行角色、迁入角色）只能以待确认插入，任何来源类别都一样：确认要由管理员与财务在界面完成，迁入角色没有 UPDATE，也不能把四眼确认写进插入语句；迁入行连属主也只能待确认插入。
 CREATE FUNCTION platform_numbering.guard_rule_version_source() RETURNS trigger
     LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF NEW.source_kind <> 'AUTHORED' AND NOT (CASE NEW.source_kind WHEN 'MIGRATION' THEN platform_numbering.is_migration_writer(TG_RELID)
                                                                    ELSE platform_numbering.is_owner_member(TG_RELID) END) THEN
         RAISE EXCEPTION 'a numbering template version that is not authored (%) can only be written by a migration', NEW.source_kind USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NOT platform_numbering.is_owner_member(TG_RELID) AND (NEW.status <> 'PENDING_CONFIRMATION' OR NEW.confirmed_by IS NOT NULL OR NEW.finance_confirmed_by IS NOT NULL) THEN
+        RAISE EXCEPTION 'a numbering template version can only be inserted pending confirmation by this role' USING ERRCODE = 'restrict_violation';
     END IF;
     IF NEW.source_kind = 'MIGRATION' AND (NEW.status <> 'PENDING_CONFIRMATION' OR NEW.confirmed_by IS NOT NULL OR NEW.finance_confirmed_by IS NOT NULL) THEN
         RAISE EXCEPTION 'a migrated numbering template version must be inserted pending confirmation' USING ERRCODE = 'restrict_violation';
