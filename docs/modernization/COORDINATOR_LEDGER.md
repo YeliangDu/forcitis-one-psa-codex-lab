@@ -20,6 +20,7 @@
   - 21:10 增：收件箱 one-rules 12 项已审（opus），撤 11 项（withdrawn 注依据），只留 RULE-265 待 one-rules 改题。KERR-2（KERNEL_REASON_REQUIRED）派 one-1a-next-5（search_path 后、NX5-08 前），卡 C 取消命令等它。工号唯一改走 ADR-0078（#619 占号已批；正文分支 claude/one-architecture-adr-0078-body @dd5ef55d6，opus+sonnet 已过）→ one-architecture 开正文 PR 后我出批准页给用户；W2 PR-B 已令拆开：先合不含唯一键部分，唯一键与裁定 -05 那几处等 ADR-0078 采纳后另开 PR-B2。
   - 21:15 答完：RULE-265 定时任务不得发起审批只产生待办/提醒→已转 one-rules；卡 C 保留期答「A」→已转 one-data。收件箱现无 pending。
   - 清空规则：除 coordinator、architecture 外由我管，现钩子未推全员前，会话到线先写交接，等 one-quality PR 合入再自清；我清空要用户 /clear（或 one-merge 重开远程+发接续）。
+- 21:0x 接续核查（新会话）：PB 规则表草稿主体已在（43KB），另三份未出，已重派 opus 续作（草稿自查压到 ≤40KB + DATA_DESIGN_CHECKLIST/mapping/guards-todo）；one-arch-revenue 已完成 AGG-20/16/02（@40be8db36 报 one-merge，三点问 one-architecture）；one-rules、one-glossary 已在自行推进，不另发接续。
 - 接手先做：ReadNotifications；`ls -t ~/.modernize/psa/outbox/`；`gh pr list` + `mq.py status`；逐个查开发会话前置是否满足（不得再犯：只盯合并）；intent 2026-10-22-15* 起为今日下午决定。
 - 下午已定（intent）：交接阈值 30%/40%（154722，§2.1 已改并进 main #602）；降负载不得牺牲开发机功能（151546）；仓库内容治理四项交 one-quality（153421，GOV-1022-COO-06）；one-ops search_path 三项「都做」（155217）。
 - 在开 PR：#603（已批，队列）；#587（已批，等 one-platform-file 解冲突+openapi）；#604 KERR（one-1a-par，等 opus+CI）；#599 REG-3（等 one-data 签发与 M1 裁定，验收补丁按 RULING-COORD-20261022-03）；#589（已批，one-quality）；#606 钩子三合一（守护文件，单列 opus）。
