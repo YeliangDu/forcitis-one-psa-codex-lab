@@ -10,7 +10,7 @@
 - 在途派工：one-1a-next-5 已清空、按 claude/nx5-handoff-1022 恢复（RULE-412 PR→REG-3 验收→search_path IMP-1022-COO-03→REG-4）；one-quality：#606 → 治理设计按 opus 8 条改稿（结论「改后交用户」，见本会话）→ 我出确认页；one-data：#599 签发；one-ops：search_path 三项执行报回；one-merge：#601 后删 one-merge-docs2，分支清理已完（146→69，27 个归档 archive/*，清单 ~/.modernize/psa/branch-cleanup-20261022/）。
 - 等用户：Spotlight 隐私排除 ~/Projects、~/actions-runners、~/.m2；开发者工具加 Claude/Terminal（用户不在电脑前，待办）；治理确认页（待改稿）。
 - 额度：本周全模型 55%（10-26 重置），超额已停；主会话读缓存是主因，少发会话消息、知会合并。
-- **团队体检 GOV-1022-COO-07**（intent 2026-10-22-162957，用户「对，开工吧」）：第 1 步盘点取证交 sonnet 子代理（16:30 派出），产出 ~/.modernize/psa/coordinator/team-audit/inventory.md；清空后若文件已在，直接读它写第 2 步问题归因与第 3 步重整方案（职责表、精简规则集、守护增删、会话合并退役）→ opus 复审一次 → 确认页进收件箱 → 用户批准后分批落地；文件不在则重派同一取证。
+- **团队体检 GOV-1022-COO-07**（intent 2026-10-22-162957，用户「对，开工吧」）：第 1 步盘点已完成（193 条规则：机器强制 18%、部分 23%、靠自觉 58%；问题 58 条，最重：P-01 阈值多处仍 75/85、P-30~32 已批钩子未落地、P-02 PB §7 与 CLAUDE.md 相反、P-09/10/45 当前状态存放矛盾、P-25/29 规范无负责会话），文件 ~/.modernize/psa/coordinator/team-audit/inventory.md；清空后直接读它写第 2 步问题归因与第 3 步重整方案（职责表、精简规则集、守护增删、会话合并退役）→ opus 复审一次 → 确认页进收件箱 → 用户批准后分批落地；文件不在则重派同一取证。
 - 治理设计第二稿（GOV-1022-COO-06）：claude/one-quality-repo-governance @22e083a54，已按 opus 8 条改完，待我审后出确认页（第七节待拍板项）；可与团队体检确认页合并出。#606 已批入队，合入后 one-merge 装 commit-msg 钩子。
 - 其他下午事项：#604 已批（:99 显示名按 -04 覆盖）；Actions 保留期已改 14 天；Spotlight 已排除（用户）；开发者工具待用户回电脑。
 - 不得再犯：恢复后只盯合并漏查开发会话；提交信息钩子交接写「等 §5」却不核实前提。
