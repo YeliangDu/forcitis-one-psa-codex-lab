@@ -180,7 +180,7 @@ relations:
   downstream: platform.signing
   via: api：当前用户与权限（台账、印章类型清单维护端点）
   status: planned
-  basis: ADR-0064 决定 1 第 3 条；代码落地时随 module-dependencies.txt 改 built
+  basis: ADR-0066 决定 2；ADMISSION_PLATFORM_SIGNING 九条复核附；代码落地时随 module-dependencies.txt 改 built
 - id: platform.scheduling>platform.file
   upstream: platform.scheduling
   downstream: platform.file
