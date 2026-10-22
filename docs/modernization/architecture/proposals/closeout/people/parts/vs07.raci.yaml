@@ -103,7 +103,7 @@ entries:
   sensitive: false
   sensitive_reason: 同指定法人归属
 - object: AGG-117
-  command: 终止法人归属
+  command: 结束法人归属
   raci:
     A:
       resolve: type
@@ -117,7 +117,7 @@ entries:
   sensitive: false
   sensitive_reason: 同指定法人归属；结束数据范围法人期间，影响由 P-31「待调整权限」提醒兜底
 - object: AGG-60
-  command: 更正法人代码
+  command: 更正法人主体代码
   raci:
     A:
       resolve: type

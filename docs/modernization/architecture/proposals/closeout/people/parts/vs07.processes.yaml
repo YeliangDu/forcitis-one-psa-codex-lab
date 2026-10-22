@@ -24,8 +24,8 @@ processes:
       - {type: human, name: "人力更名、停用或启用法人主体"}
       - {type: human, name: "人力新建或修改职位"}
       - {type: human, name: "人力更正法人归属"}
-      - {type: human, name: "人力终止法人归属"}
-      - {type: human, name: "人力更正法人代码（未发号前）"}
+      - {type: human, name: "人力结束法人归属"}
+      - {type: human, name: "人力更正法人主体代码（未发号前）"}
     stages: [VS-15.2, VS-15.3]
     stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 组织单元与岗位启用、VS-15.3 停用；法人主体筹建存续不作门；法人主体筹建存续不作门；原支撑理由：B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: OBJ-55
@@ -59,8 +59,8 @@ processes:
           - {when: 新建岗位, goto: 10}
           - {when: 修改岗位, goto: 11}
           - {when: 更正法人归属, goto: 12}
-          - {when: 终止法人归属, goto: 13}
-          - {when: 更正法人代码, goto: 14}
+          - {when: 结束法人归属, goto: 13}
+          - {when: 更正法人主体代码, goto: 14}
           - {when: otherwise, goto: 5}      # 其余即停用职位
       - actor: SH-E6
         where: in_system
@@ -204,8 +204,8 @@ processes:
           - {when: otherwise, goto: end}
       - actor: SH-E6
         where: in_system
-        branch: 终止法人归属
-        command: 终止法人归属        # 已建代码 EndLegalEntityAttribution，规划原缺（one-architecture command-mapping 2026-10-21）
+        branch: 结束法人归属
+        command: 结束法人归属        # 已建代码 EndLegalEntityAttribution，规划原缺（one-architecture command-mapping 2026-10-21）
         aggregate: AGG-117
         desc: 为部门或员工当前的法人归属期间写入结束日，关闭当前期间；只关闭不改写历史，结束日不得早于期间开始日；操作人不得终止本人的归属；发「法人归属已结束」
         permission: 法人归属.终止
@@ -217,8 +217,8 @@ processes:
           - {when: otherwise, goto: end}
       - actor: SH-E6
         where: in_system
-        branch: 更正法人代码
-        command: 更正法人代码        # 已建代码 UpdateLegalEntity 的代码更正分支，规划原缺（one-architecture command-mapping 2026-10-21）
+        branch: 更正法人主体代码
+        command: 更正法人主体代码        # 已建代码 UpdateLegalEntity 的代码更正分支，规划原缺（one-architecture command-mapping 2026-10-21）
         aggregate: AGG-60
         desc: 法人代码登记有误且尚未用该代码发号时更正；已发号则拒绝（INV-59），只能另登法人主体
         permission: 法人主体.更正代码

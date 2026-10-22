@@ -86,7 +86,7 @@ entries:
     I: [SH-E6]
   boundary:
     limit_rule: AR-01、AR-02（金额阈值待用户定 U7′）
-    segregation: [制单人 ≠ A, A 不得审批含本人薪酬行的结算]
+    segregation: [制单人 ≠ A, A 不得审批含本人薪酬结算行的结算]
     delegate: {when: AR-11, to: 汇报线上级}
     escalate: {when: AR-12, to: 上级组织负责人}
     reminder: {after: P2D, to: SH-M1, note: 审批超期提醒，非审批（暂拟，U7′）}
@@ -139,7 +139,7 @@ entries:
     C: []
     I: [SH-E6]
   sensitive: true
-  note: 薪酬行为 SENSITIVE / spi；R 为持银行回单的财务职能人员，I 为薪酬岗
+  note: 薪酬结算行为 SENSITIVE / spi；R 为持银行回单的财务职能人员，I 为薪酬岗
 - object: AGG-73
   command: 发起薪酬补发
   raci:

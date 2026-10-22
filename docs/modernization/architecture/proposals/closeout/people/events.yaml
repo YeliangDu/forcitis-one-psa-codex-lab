@@ -43,7 +43,7 @@ by_part:
       note: 词表已有 法人归属已确立 / 已结束 / 结束日已更正（LegalEntityAttributed 等，已建代码事件）；聚合稿与分片用「法人归属已变更」，是否改用词表名交 one-glossary（vs07conv.notes.md 新用语）
     - name: 法人归属已结束
       published_by: AGG-117
-      by_command: 终止法人归属
+      by_command: 结束法人归属
       payload:
       - 归属对象类型码
       - 归属对象ID

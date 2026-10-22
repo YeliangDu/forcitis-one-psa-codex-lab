@@ -9410,18 +9410,18 @@ nodes:
       bc: null
       state_change: 已指定 → 已指定（追加更正行）
       src: architecture/proposals/closeout/people/commands.yaml#更正法人归属
-    AGG-117/终止法人归属:
-      command: 终止法人归属
+    AGG-117/结束法人归属:
+      command: 结束法人归属
       aggregate: AGG-117
       bc: null
       state_change: 已指定 → 已指定（关闭当前期间）
-      src: architecture/proposals/closeout/people/commands.yaml#终止法人归属
-    AGG-60/更正法人代码:
-      command: 更正法人代码
+      src: architecture/proposals/closeout/people/commands.yaml#结束法人归属
+    AGG-60/更正法人主体代码:
+      command: 更正法人主体代码
       aggregate: AGG-60
       bc: null
       state_change: 有效 → 有效（改代码，状态不变）
-      src: architecture/proposals/closeout/people/commands.yaml#更正法人代码
+      src: architecture/proposals/closeout/people/commands.yaml#更正法人主体代码
     AGG-64/停用岗位:
       command: 停用岗位
       aggregate: AGG-64
@@ -9900,13 +9900,13 @@ nodes:
       command: 登记代发结果
       aggregate: AGG-73
       bc: null
-      state_change: 薪酬行 待支付 → 已实付 / 支付失败；全部行已实付、且经 api 读到 B-10 应付当前为已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
+      state_change: 薪酬结算行 待支付 → 已实付 / 支付失败；全部行已实付、且经 api 读到 B-10 应付当前为已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
       src: architecture/proposals/closeout/people/commands.yaml#登记代发结果
     AGG-73/发起薪酬补发:
       command: 发起薪酬补发
       aggregate: AGG-73
       bc: null
-      state_change: 薪酬行 支付失败 → 待支付
+      state_change: 薪酬结算行 支付失败 → 待支付
       src: architecture/proposals/closeout/people/commands.yaml#发起薪酬补发
     AGG-73/标记薪酬已过账:
       command: 标记薪酬已过账
@@ -37010,9 +37010,9 @@ nodes:
         section: entries
         index: 539
       src: architecture/ssot/11-commands/commands.yaml#commands[118]/CMD-40fee833
-    CMD-ad01d60c:
-      id: CMD-ad01d60c
-      name: 终止法人归属
+    CMD-aeca6cc7:
+      id: CMD-aeca6cc7
+      name: 结束法人归属
       aggregate: AGG-117
       owner_bc: B-13
       objects: *id173
@@ -37039,7 +37039,7 @@ nodes:
       - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
         section: commands
         index: 7
-      src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-ad01d60c
+      src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-aeca6cc7
     CMD-b480c37b:
       id: CMD-b480c37b
       name: 发布假期规则版本
@@ -46261,9 +46261,9 @@ nodes:
         section: entries
         index: 303
       src: architecture/ssot/11-commands/commands.yaml#commands[426]/CMD-280ec80f
-    CMD-636cd384:
-      id: CMD-636cd384
-      name: 更正法人代码
+    CMD-6abcc9ef:
+      id: CMD-6abcc9ef
+      name: 更正法人主体代码
       aggregate: AGG-60
       owner_bc: B-13
       objects: *id230
@@ -46285,7 +46285,7 @@ nodes:
       - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
         section: commands
         index: 8
-      src: architecture/ssot/11-commands/commands.yaml#commands[427]/CMD-636cd384
+      src: architecture/ssot/11-commands/commands.yaml#commands[427]/CMD-6abcc9ef
     CMD-d870db52:
       id: CMD-d870db52
       name: 登记法人主体
@@ -48348,11 +48348,11 @@ nodes:
         role: null
         function: null
       params:
-      - 薪酬行ID
+      - 薪酬结算行ID
       - 补发轮次
       preconditions:
       - ref: 状态
-        text: 薪酬行为支付失败
+        text: 薪酬结算行为支付失败
       - ref: 账户
         text: 员工工资卡账户已更正（存放位置待 U8 / 接缝问题 3）
       - ref: 金额
@@ -48385,7 +48385,7 @@ nodes:
       - ref: INV-70
         text: 代扣只限法定项目；以法定货币支付
       - ref: AR-01/AR-02/AR-11
-        text: 月度薪酬金额按阈值加审；审批人就是制单人或结算含其本人薪酬行的，上交其上级（APPROVAL_RULES，AR-01、AR-02 阈值待用户定 U7′）
+        text: 月度薪酬金额按阈值加审；审批人就是制单人或结算含其本人薪酬结算行的，上交其上级（APPROVAL_RULES，AR-01、AR-02 阈值待用户定 U7′）
       emits: 薪酬已批准
       group:
       - people
@@ -48536,8 +48536,8 @@ nodes:
         text: 结算为已批准
       - ref: 订阅过滤
         text: 应付已结清事件的应付类型为应付薪酬（B-15 只处理应付薪酬，结构问题 4②）
-      - ref: 薪酬行
-        text: 全部薪酬行已实付；有支付失败行时根保持已批准，待补发成功后再置（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））
+      - ref: 薪酬结算行
+        text: 全部薪酬结算行已实付；有支付失败行时根保持已批准，待补发成功后再置（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））
       - ref: 应付状态
         text: 执行时经 api 读 B-10 应付的当前状态为已结清，不用本地缓存的结清标记（退回款会使应付回到已部分结清）
       emits: 薪酬已发放
@@ -48600,9 +48600,9 @@ nodes:
       - 回单行（人员、实发金额、成功或失败、失败原因）
       preconditions:
       - ref: 状态
-        text: 根（月度薪酬结算）为已批准，回单所列薪酬行为待支付
+        text: 根（月度薪酬结算）为已批准，回单所列薪酬结算行为待支付
       - ref: 回单核对
-        text: 回单行与薪酬行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
+        text: 回单行与薪酬结算行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
       - ref: 必填
         text: 失败行须带失败原因，缺失则拒绝并告警
       emits: 薪酬代发结果已登记（仅分析）
@@ -65545,12 +65545,12 @@ nodes:
   - prc: PRC-80
     step: 13
     aggregate: AGG-117
-    command: 终止法人归属
+    command: 结束法人归属
     src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[13]
   - prc: PRC-80
     step: 14
     aggregate: AGG-60
-    command: 更正法人代码
+    command: 更正法人主体代码
     src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[14]
   - prc: PRC-81
     step: 2
@@ -67440,12 +67440,12 @@ nodes:
   - prc: PRC-80
     step: 13
     aggregate: AGG-117
-    command: 终止法人归属
+    command: 结束法人归属
     src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[13]
   - prc: PRC-80
     step: 14
     aggregate: AGG-60
-    command: 更正法人代码
+    command: 更正法人主体代码
     src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[14]
   - prc: PRC-81
     step: 2
@@ -81389,21 +81389,21 @@ links:
   to: OBJ-56
   src: architecture/ssot/11-commands/commands.yaml#commands[118]/CMD-40fee833.objects
 - kind: cmd-agg
-  from: CMD-ad01d60c
+  from: CMD-aeca6cc7
   to: AGG-117
-  src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-ad01d60c.aggregate
+  src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-aeca6cc7.aggregate
 - kind: cmd-bc
-  from: CMD-ad01d60c
+  from: CMD-aeca6cc7
   to: B-13
-  src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-ad01d60c.owner_bc
+  src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-aeca6cc7.owner_bc
 - kind: cmd-obj
-  from: CMD-ad01d60c
+  from: CMD-aeca6cc7
   to: OBJ-55
-  src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-ad01d60c.objects
+  src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-aeca6cc7.objects
 - kind: cmd-obj
-  from: CMD-ad01d60c
+  from: CMD-aeca6cc7
   to: OBJ-56
-  src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-ad01d60c.objects
+  src: architecture/ssot/11-commands/commands.yaml#commands[119]/CMD-aeca6cc7.objects
 - kind: cmd-agg
   from: CMD-b480c37b
   to: AGG-118
@@ -85377,17 +85377,17 @@ links:
   to: OBJ-54
   src: architecture/ssot/11-commands/commands.yaml#commands[426]/CMD-280ec80f.objects
 - kind: cmd-agg
-  from: CMD-636cd384
+  from: CMD-6abcc9ef
   to: AGG-60
-  src: architecture/ssot/11-commands/commands.yaml#commands[427]/CMD-636cd384.aggregate
+  src: architecture/ssot/11-commands/commands.yaml#commands[427]/CMD-6abcc9ef.aggregate
 - kind: cmd-bc
-  from: CMD-636cd384
+  from: CMD-6abcc9ef
   to: B-13
-  src: architecture/ssot/11-commands/commands.yaml#commands[427]/CMD-636cd384.owner_bc
+  src: architecture/ssot/11-commands/commands.yaml#commands[427]/CMD-6abcc9ef.owner_bc
 - kind: cmd-obj
-  from: CMD-636cd384
+  from: CMD-6abcc9ef
   to: OBJ-54
-  src: architecture/ssot/11-commands/commands.yaml#commands[427]/CMD-636cd384.objects
+  src: architecture/ssot/11-commands/commands.yaml#commands[427]/CMD-6abcc9ef.objects
 - kind: cmd-agg
   from: CMD-d870db52
   to: AGG-60

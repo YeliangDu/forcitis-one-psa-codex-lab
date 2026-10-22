@@ -3352,8 +3352,8 @@ commands:
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 539
-- id: CMD-ad01d60c
-  name: 终止法人归属
+- id: CMD-aeca6cc7
+  name: 结束法人归属
   aggregate: AGG-117
   owner_bc: B-13
   objects: *id025
@@ -11987,8 +11987,8 @@ commands:
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 303
-- id: CMD-636cd384
-  name: 更正法人代码
+- id: CMD-6abcc9ef
+  name: 更正法人主体代码
   aggregate: AGG-60
   owner_bc: B-13
   objects: *id082
@@ -13945,11 +13945,11 @@ commands:
     role: null
     function: null
   params:
-  - 薪酬行ID
+  - 薪酬结算行ID
   - 补发轮次
   preconditions:
   - ref: 状态
-    text: 薪酬行为支付失败
+    text: 薪酬结算行为支付失败
   - ref: 账户
     text: 员工工资卡账户已更正（存放位置待 U8 / 接缝问题 3）
   - ref: 金额
@@ -13980,7 +13980,7 @@ commands:
   - ref: INV-70
     text: 代扣只限法定项目；以法定货币支付
   - ref: AR-01/AR-02/AR-11
-    text: 月度薪酬金额按阈值加审；审批人就是制单人或结算含其本人薪酬行的，上交其上级（APPROVAL_RULES，AR-01、AR-02 阈值待用户定 U7′）
+    text: 月度薪酬金额按阈值加审；审批人就是制单人或结算含其本人薪酬结算行的，上交其上级（APPROVAL_RULES，AR-01、AR-02 阈值待用户定 U7′）
   emits: 薪酬已批准
   group:
   - people
@@ -14123,8 +14123,8 @@ commands:
     text: 结算为已批准
   - ref: 订阅过滤
     text: 应付已结清事件的应付类型为应付薪酬（B-15 只处理应付薪酬，结构问题 4②）
-  - ref: 薪酬行
-    text: 全部薪酬行已实付；有支付失败行时根保持已批准，待补发成功后再置（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））
+  - ref: 薪酬结算行
+    text: 全部薪酬结算行已实付；有支付失败行时根保持已批准，待补发成功后再置（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））
   - ref: 应付状态
     text: 执行时经 api 读 B-10 应付的当前状态为已结清，不用本地缓存的结清标记（退回款会使应付回到已部分结清）
   emits: 薪酬已发放
@@ -14183,9 +14183,9 @@ commands:
   - 回单行（人员、实发金额、成功或失败、失败原因）
   preconditions:
   - ref: 状态
-    text: 根（月度薪酬结算）为已批准，回单所列薪酬行为待支付
+    text: 根（月度薪酬结算）为已批准，回单所列薪酬结算行为待支付
   - ref: 回单核对
-    text: 回单行与薪酬行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
+    text: 回单行与薪酬结算行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
   - ref: 必填
     text: 失败行须带失败原因，缺失则拒绝并告警
   emits: 薪酬代发结果已登记（仅分析）

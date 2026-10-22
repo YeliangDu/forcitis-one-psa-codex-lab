@@ -24,8 +24,8 @@ processes:
       - {type: human, name: "人力更名、停用或启用法人主体"}
       - {type: human, name: "人力新建或修改职位"}
       - {type: human, name: "人力更正法人归属"}
-      - {type: human, name: "人力终止法人归属"}
-      - {type: human, name: "人力更正法人代码（未发号前）"}
+      - {type: human, name: "人力结束法人归属"}
+      - {type: human, name: "人力更正法人主体代码（未发号前）"}
     stages: [VS-15.2, VS-15.3]
     stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 组织单元与岗位启用、VS-15.3 停用；法人主体筹建存续不作门；法人主体筹建存续不作门；原支撑理由：B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: OBJ-55
@@ -59,8 +59,8 @@ processes:
           - {when: 新建岗位, goto: 10}
           - {when: 修改岗位, goto: 11}
           - {when: 更正法人归属, goto: 12}
-          - {when: 终止法人归属, goto: 13}
-          - {when: 更正法人代码, goto: 14}
+          - {when: 结束法人归属, goto: 13}
+          - {when: 更正法人主体代码, goto: 14}
           - {when: otherwise, goto: 5}      # 其余即停用职位
       - actor: SH-E6
         where: in_system
@@ -204,8 +204,8 @@ processes:
           - {when: otherwise, goto: end}
       - actor: SH-E6
         where: in_system
-        branch: 终止法人归属
-        command: 终止法人归属        # 已建代码 EndLegalEntityAttribution，规划原缺（one-architecture command-mapping 2026-10-21）
+        branch: 结束法人归属
+        command: 结束法人归属        # 已建代码 EndLegalEntityAttribution，规划原缺（one-architecture command-mapping 2026-10-21）
         aggregate: AGG-117
         desc: 为部门或员工当前的法人归属期间写入结束日，关闭当前期间；只关闭不改写历史，结束日不得早于期间开始日；操作人不得终止本人的归属；发「法人归属已结束」
         permission: 法人归属.终止
@@ -217,8 +217,8 @@ processes:
           - {when: otherwise, goto: end}
       - actor: SH-E6
         where: in_system
-        branch: 更正法人代码
-        command: 更正法人代码        # 已建代码 UpdateLegalEntity 的代码更正分支，规划原缺（one-architecture command-mapping 2026-10-21）
+        branch: 更正法人主体代码
+        command: 更正法人主体代码        # 已建代码 UpdateLegalEntity 的代码更正分支，规划原缺（one-architecture command-mapping 2026-10-21）
         aggregate: AGG-60
         desc: 法人代码登记有误且尚未用该代码发号时更正；已发号则拒绝（INV-59），只能另登法人主体
         permission: 法人主体.更正代码
@@ -1600,9 +1600,9 @@ processes:
     human_orchestration: true
     human_note: 系统计算，薪酬岗提交审核，财务责任人审批，可退回重算（高风险，保留人审）
     migration: "历史月度薪酬结算（老系统算薪审核表与税金计算、工资条约 2.9 万行）按法人 × 月迁入为已发放 / 已过账结算，只迁结果与证据，不重算、不发事件、不重新过账（ADR-0036 M7）；在途月份按当前状态迁入通用审批"
-    scope: "按法人数据范围；薪酬行属敏感个人信息，仅人力薪酬岗与财务主管可见，员工只看本人工资条"
+    scope: "按法人数据范围；薪酬结算行属敏感个人信息，仅人力薪酬岗与财务主管可见，员工只看本人工资条"
     segregation:
-      - {roles: [SH-E6, SH-E6], rule: "提交审核者不得审批同一份结算（制单与审批分离，AR-11）；任何人不得审批含本人薪酬行的结算，含本人时由其上级审批（SH-E6 内部分岗：薪酬岗 / 财务主管）"}
+      - {roles: [SH-E6, SH-E6], rule: "提交审核者不得审批同一份结算（制单与审批分离，AR-11）；任何人不得审批含本人薪酬结算行的结算，含本人时由其上级审批（SH-E6 内部分岗：薪酬岗 / 财务主管）"}
     outcomes: [已批准, 待锁定, 已中止]
     scenarios: [PRC-124-S01, PRC-124-S02, PRC-124-S03, PRC-124-S04, PRC-124-S05, PRC-124-S06, PRC-124-S07, PRC-124-S08, PRC-124-S09, PRC-124-S10]   # S01 全部锁定后计算、提交、审批、批准、提交过账候选（全程）；S02 审批驳回退回重算；S03 有人员未锁定，待锁定；S04 缺薪酬档案或规则版本，已中止并告警；S05 审批 2 日无人处理升级；S06 提交人撤回审批；S07 薪酬岗核对异常清单后重算；S08 薪酬总额超阈值，加一级或两级（AR-01、AR-02）；S09 所属期间已关账，过账路由到开放期间并标原期间；S10 当月有补休到期未休或离职结算的补休余额，按加班工资基数 200% 计入加班费
     roles:
@@ -3162,13 +3162,13 @@ processes:
       - {type: human, name: "财务收到银行代发回单"}
       - {type: human, name: "薪酬岗在员工更正工资卡账户后发起补发", entry: 3}
     stages: [VS-13.5]
-    stages_note: "VS-13.5 代发付款：步 1、4 登记代发结果使薪酬行到已实付，全部行已实付且应付已结清时同一事务推进月度薪酬结算到已发放（OBJ-73，VS-13.5 退出条件）；支付失败行经步 2、3 补发后重入步 4（PAYROLL_LINE_PAYMENT.md，ARC-1022-COO-06）"
+    stages_note: "VS-13.5 代发付款：步 1、4 登记代发结果使薪酬结算行到已实付，全部行已实付且应付已结清时同一事务推进月度薪酬结算到已发放（OBJ-73，VS-13.5 退出条件）；支付失败行经步 2、3 补发后重入步 4（PAYROLL_LINE_PAYMENT.md，ARC-1022-COO-06）"
     primary_object: OBJ-73
     owner_bc: B-15
     human_orchestration: true
     human_note: 银行回单的事实登记与补发都不设人审，由守卫控制（回单逐行核对、补发金额等于原实发）
-    migration: "历史薪酬按已发放迁入，薪酬行写一条 空 → 已实付 初始转换（ADR-0058 决定 8）；老系统失败与补发记录先取证再定，不推定"
-    scope: "薪酬行属敏感个人信息：财务职能人员只见本法人代发结果，薪酬岗见本法人薪酬行，员工只见本人"
+    migration: "历史薪酬按已发放迁入，薪酬结算行写一条 空 → 已实付 初始转换（ADR-0058 决定 8）；老系统失败与补发记录先取证再定，不推定"
+    scope: "薪酬结算行属敏感个人信息：财务职能人员只见本法人代发结果，薪酬岗见本法人薪酬结算行，员工只见本人"
     segregation:
       - {roles: [SH-E6, SH-E6], rule: "登记代发结果者（财务，持回单）与发起补发者（人力薪酬岗）不得为同一人"}
     frequency_ref: 待取证（按法人 × 月一次登记；补发频次待取证）
@@ -3184,14 +3184,14 @@ processes:
         where: in_system
         command: 登记代发结果
         aggregate: AGG-73
-        desc: 上传银行代发回单，逐行与薪酬行核对人员与实发金额，任一不符整批拒绝并列出差异；成功行到已实付，失败行到支付失败（原因必填）；根须为已批准
+        desc: 上传银行代发回单，逐行与薪酬结算行核对人员与实发金额，任一不符整批拒绝并列出差异；成功行到已实付，失败行到支付失败（原因必填）；根须为已批准
         permission: 薪酬代发结果.登记
         page: 薪酬代发结果登记页
         audit: true
         effort: {typical_min: 15, p90_min: 60}
         decision:
-          - {when: 有薪酬行支付失败, goto: 2, p: 0.1}
-          - {when: 全部薪酬行已实付且应付已结清, goto: end, outcome: 已发放, p: 0.6}
+          - {when: 有薪酬结算行支付失败, goto: 2, p: 0.1}
+          - {when: 全部薪酬结算行已实付且应付已结清, goto: end, outcome: 已发放, p: 0.6}
           - {when: otherwise, goto: end, outcome: 待应付结清, p: 0.3}
       - actor: system
         where: automatic
@@ -3207,7 +3207,7 @@ processes:
         command: 发起薪酬补发
         aggregate: AGG-73
         emits: [薪酬补发已发起]
-        desc: 员工工资卡已更正后发起补发，补发金额等于原实发，不重算；薪酬行 支付失败 → 待支付；PRC-126 第 2 步据此调 B-10「登记薪酬补发明细」，在原应付上挂补发明细（不新建应付），由 PRC-75 付清
+        desc: 员工工资卡已更正后发起补发，补发金额等于原实发，不重算；薪酬结算行 支付失败 → 待支付；PRC-126 第 2 步据此调 B-10「登记薪酬补发明细」，在原应付上挂补发明细（不新建应付），由 PRC-75 付清
         permission: 薪酬补发.发起
         page: 薪酬代发结果登记页
         audit: true
@@ -3224,8 +3224,8 @@ processes:
         audit: true
         effort: {typical_min: 5, p90_min: 15}
         decision:
-          - {when: 有薪酬行支付失败, goto: 2, p: 0.05}
-          - {when: 全部薪酬行已实付且应付已结清, goto: end, outcome: 已发放, p: 0.8}
+          - {when: 有薪酬结算行支付失败, goto: 2, p: 0.05}
+          - {when: 全部薪酬结算行已实付且应付已结清, goto: end, outcome: 已发放, p: 0.8}
           - {when: otherwise, goto: end, outcome: 待应付结清, p: 0.15}
     notes: "ARC-1022-COO-06；one-architecture 给号 PRC-201（PRC_ALLOCATIONS.md）。待应付结清时由 PRC-127 收到应付已结清后推进根。已实付后银行再退票不建模（J-4，出现首例再开卡）。"
 
@@ -3302,7 +3302,7 @@ event_policies:
         where: automatic
         command: 登记薪酬补发明细
         aggregate: AGG-52
-        desc: 薪酬补发已发起时，在原应付薪酬上登记补发明细（已部分结清 → 已部分结清，不新建应付；补发金额等于原实发），由 PRC-75 付清代发退回后恢复的未结余额；守卫：累计补发额不超过累计冲回额，退回款（AGG-53 登记代发退回）未登记的拒收并告警；收到付款已部分退回后重发此前被拒的补发明细；幂等键：薪酬行 ID + 补发轮次（one-arch-finance @1565ca88，one-architecture 2026-10-22 定稿 J-1、J-3）
+        desc: 薪酬补发已发起时，在原应付薪酬上登记补发明细（已部分结清 → 已部分结清，不新建应付；补发金额等于原实发），由 PRC-75 付清代发退回后恢复的未结余额；守卫：累计补发额不超过累计冲回额，退回款（AGG-53 登记代发退回）未登记的拒收并告警；收到付款已部分退回后重发此前被拒的补发明细；幂等键：薪酬结算行 ID + 补发轮次（one-arch-finance @1565ca88，one-architecture 2026-10-22 定稿 J-1、J-3）
         audit: true
         legal_entity: 薪酬法人（发薪法人）
         notify: [{to: SH-E6, how: 企业微信待办}]      # 被拒时提醒薪酬岗与出纳
@@ -3336,7 +3336,7 @@ event_policies:
       command: 标记薪酬已发放
       aggregate: AGG-73
       emits: [薪酬已发放]
-      desc: 应付已结清且全部薪酬行已实付才置已发放；有支付失败行时保持已批准，待补发登记成功后由「登记代发结果」同一事务推进（PAYROLL_LINE_PAYMENT.md）；已发放与事实已过账两个条件任一后到者触发置已过账
+      desc: 应付已结清且全部薪酬结算行已实付才置已发放；有支付失败行时保持已批准，待补发登记成功后由「登记代发结果」同一事务推进（PAYROLL_LINE_PAYMENT.md）；已发放与事实已过账两个条件任一后到者触发置已过账
       audit: true
       notify: [{to: SH-E3, how: 企业微信通知（工资条可查看）}]
       decision:
@@ -3450,7 +3450,7 @@ event_policies:
       where: automatic
       command: 标记薪酬已过账
       aggregate: AGG-73
-      desc: 按来源单据 ID 取薪酬行；已发放与事实已过账两个条件任一后到者触发（符合性审查 断链 7）
+      desc: 按来源单据 ID 取薪酬结算行；已发放与事实已过账两个条件任一后到者触发（符合性审查 断链 7）
       audit: true
       decision:
         - {when: 薪酬尚未发放, goto: end, outcome: 待发放后再置位}

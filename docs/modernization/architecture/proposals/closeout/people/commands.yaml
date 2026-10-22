@@ -217,7 +217,7 @@ commands:
   - PRC-80 第 12 步
   orphan: false
   source_part: vs07
-- name: 终止法人归属
+- name: 结束法人归属
   aggregate: AGG-117
   entity: legal_entity_attributions
   kind: human
@@ -235,7 +235,7 @@ commands:
   - ref: 职责分离
     text: 操作人不得终止本人的法人归属（已建代码 OwnAttributionGuard）
   authority:
-    ref: raci:AGG-117/终止法人归属
+    ref: raci:AGG-117/结束法人归属
     A:
       resolve: type
       role: SH-E6
@@ -249,7 +249,7 @@ commands:
   - PRC-80 第 13 步
   orphan: false
   source_part: vs07
-- name: 更正法人代码
+- name: 更正法人主体代码
   aggregate: AGG-60
   entity: legal_entities
   kind: human
@@ -262,7 +262,7 @@ commands:
   - ref: INV-59
     text: 法人代码发号后不可改；仅该代码未用于发号时可更正，已发号则拒绝
   authority:
-    ref: raci:AGG-60/更正法人代码
+    ref: raci:AGG-60/更正法人主体代码
     A:
       resolve: type
       role: SH-E6
@@ -2503,7 +2503,7 @@ commands:
   - ref: INV-70
     text: 代扣只限法定项目；以法定货币支付
   - ref: AR-01/AR-02/AR-11
-    text: 月度薪酬金额按阈值加审；审批人就是制单人或结算含其本人薪酬行的，上交其上级（APPROVAL_RULES，AR-01、AR-02 阈值待用户定 U7′）
+    text: 月度薪酬金额按阈值加审；审批人就是制单人或结算含其本人薪酬结算行的，上交其上级（APPROVAL_RULES，AR-01、AR-02 阈值待用户定 U7′）
   authority:
     ref: raci:AGG-73/批准
     A:
@@ -2621,8 +2621,8 @@ commands:
     text: 结算为已批准
   - ref: 订阅过滤
     text: 应付已结清事件的应付类型为应付薪酬（B-15 只处理应付薪酬，结构问题 4②）
-  - ref: 薪酬行
-    text: 全部薪酬行已实付；有支付失败行时根保持已批准，待补发成功后再置（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））
+  - ref: 薪酬结算行
+    text: 全部薪酬结算行已实付；有支付失败行时根保持已批准，待补发成功后再置（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））
   - ref: 应付状态
     text: 执行时经 api 读 B-10 应付的当前状态为已结清，不用本地缓存的结清标记（退回款会使应付回到已部分结清）
   authority:
@@ -2652,9 +2652,9 @@ commands:
   - 回单行（人员、实发金额、成功或失败、失败原因）
   preconditions:
   - ref: 状态
-    text: 根（月度薪酬结算）为已批准，回单所列薪酬行为待支付
+    text: 根（月度薪酬结算）为已批准，回单所列薪酬结算行为待支付
   - ref: 回单核对
-    text: 回单行与薪酬行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
+    text: 回单行与薪酬结算行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
   - ref: 必填
     text: 失败行须带失败原因，缺失则拒绝并告警
   authority:
@@ -2665,7 +2665,7 @@ commands:
     R:
     - SH-E6（财务职能人员，持银行回单）
   idempotency_key: 结算ID + 回单批次号
-  state_change: 薪酬行 待支付 → 已实付 / 支付失败；全部行已实付、且经 api 读到 B-10 应付当前为已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
+  state_change: 薪酬结算行 待支付 → 已实付 / 支付失败；全部行已实付、且经 api 读到 B-10 应付当前为已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
   emits: 薪酬代发结果已登记（仅分析）
   used_by:
   - PRC-201 第 1 步
@@ -2679,11 +2679,11 @@ commands:
   name_status: 〔缺〕ARC-1022-COO-06 提议，交 one-glossary
   source: OBJ-73 key_states「支付失败（待补发）」；PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06）
   params:
-  - 薪酬行ID
+  - 薪酬结算行ID
   - 补发轮次
   preconditions:
   - ref: 状态
-    text: 薪酬行为支付失败
+    text: 薪酬结算行为支付失败
   - ref: 账户
     text: 员工工资卡账户已更正（存放位置待 U8 / 接缝问题 3）
   - ref: 金额
@@ -2695,8 +2695,8 @@ commands:
       field: 月度薪酬结算.法人.财务负责人
     R:
     - SH-E6（人力资源职能人员，薪酬岗）
-  idempotency_key: 薪酬行ID + 补发轮次
-  state_change: 薪酬行 支付失败 → 待支付
+  idempotency_key: 薪酬结算行ID + 补发轮次
+  state_change: 薪酬结算行 支付失败 → 待支付
   emits: 薪酬补发已发起
   cross_bc_out:
   - PRC-126 第 2 步调 B-10 AGG-52「登记薪酬补发明细」（不新建应付，one-arch-finance @1565ca88，one-architecture 2026-10-22 定稿 J-1、J-3）

@@ -46,7 +46,7 @@ machines:
   - {from: 审核中, to: 已批准, command: 批准月度薪酬, guard: [INV-70, AR-01, AR-02, AR-11], kind: forward, process_outcome: 已批准}
   - {from: 审核中, to: 已退回, command: 退回薪酬重算, guard: [], kind: reverse}
   - {from: 审核中, to: 已退回, command: 撤回薪酬审核, guard: [仅提交人], kind: reverse}
-  - {from: 已批准, to: 已发放, command: 标记薪酬已发放, guard: [应付已结清且应付类型为应付薪酬, 全部薪酬行已实付], kind: forward, process_outcome: 已发放}
+  - {from: 已批准, to: 已发放, command: 标记薪酬已发放, guard: [应付已结清且应付类型为应付薪酬, 全部薪酬结算行已实付], kind: forward, process_outcome: 已发放}
   - {from: 已批准, to: 已批准, command: 标记薪酬已过账, guard: [薪酬尚未发放：只置位过账事实已入账], kind: forward, process_outcome: 待发放后再置位}
   - {from: 已发放, to: 已过账, command: 标记薪酬已过账, guard: [来源单据类型为月度薪酬结算], kind: forward, process_outcome: 已过账}
 
@@ -58,8 +58,8 @@ machines:
   terminal: [已实付]
   added_states: [待支付, 已实付, 支付失败]
   note: |
-    ARC-1022-COO-06（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））。子实体自有状态机（ADR-0075）：转换主体为薪酬行，aggregate_type_code 暂名 PayrollSettlementLine，
-    序号取薪酬行 version；每条命令都推进根 version。计算建行即置待支付并写第一条转换（空 → 待支付，序号 1，决定 3）；
+    ARC-1022-COO-06（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））。子实体自有状态机（ADR-0075）：转换主体为薪酬结算行，aggregate_type_code 为 PayrollSettlementLine（薪酬结算行，one-glossary PR #572），
+    序号取薪酬结算行 version；每条命令都推进根 version。计算建行即置待支付并写第一条转换（空 → 待支付，序号 1，决定 3）；
     批准前重算不删行，只改金额、version 照常推进（允许跳号，决定 5）；登记代发结果前置根为已批准。
     已实付后银行再退票不建模（接缝 J-4）。迁入：历史已发放结算每行写一条 空 → 已实付 初始转换。
   transitions:
