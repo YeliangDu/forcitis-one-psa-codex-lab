@@ -1,0 +1,101 @@
+{
+ "LEB~LEB-01": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "支持，作为低频的合同变更办理（须客户书面同意）",
+  "no": "LEB-01",
+  "note": "",
+  "recommended": true,
+  "submission": "LEB-20261022-082103-ioy",
+  "submitted": "2026-10-22T06:21:03.075Z",
+  "unanswered": false
+ },
+ "LEB~LEB-02": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "原法人把已确认部分开完票、收完款，新法人只接生效日以后的部分",
+  "no": "LEB-02",
+  "note": "",
+  "recommended": true,
+  "submission": "LEB-20261022-082103-ioy",
+  "submitted": "2026-10-22T06:21:03.075Z",
+  "unanswered": false
+ },
+ "LEB~LEB-03": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "不必转，项目留在原法人，只标记提示",
+  "no": "LEB-03",
+  "note": "",
+  "recommended": true,
+  "submission": "LEB-20261022-082103-ioy",
+  "submitted": "2026-10-22T06:21:03.075Z",
+  "unanswered": false
+ },
+ "LEB~LEB-04": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "记在法人 B 账上、标「待内部结算」，项目看板照常归集并标注，等内部结算上线再转",
+  "no": "LEB-04",
+  "note": "",
+  "recommended": true,
+  "submission": "LEB-20261022-082103-ioy",
+  "submitted": "2026-10-22T06:21:03.075Z",
+  "unanswered": false
+ },
+ "LEB~LEB-05": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "按申请授权时承担部门所属的法人立项；合同法人不同的，签约后另立项目",
+  "no": "LEB-05",
+  "note": "",
+  "recommended": true,
+  "submission": "LEB-20261022-082103-ioy",
+  "submitted": "2026-10-22T06:21:03.075Z",
+  "unanswered": false
+ },
+ "LEB~LEB-06": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "人力维护、总经理批准",
+  "no": "LEB-06",
+  "note": "",
+  "recommended": true,
+  "submission": "LEB-20261022-082103-ioy",
+  "submitted": "2026-10-22T06:21:03.075Z",
+  "unanswered": false
+ },
+ "LEB~LEB-07": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "不要求内容一致，但要可追溯：对客基线须注明依据的内部基线版本；内部基线须包含全部合同里程碑，日期晚于对客基线的只提示",
+  "no": "LEB-07",
+  "note": "",
+  "recommended": true,
+  "submission": "LEB-20261022-082103-ioy",
+  "submitted": "2026-10-22T06:21:03.075Z",
+  "unanswered": false
+ },
+ "LEB~LEB-08": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "合同负责人凭证据确认，不另设审批；我方须履行的条件由财务资金岗先登记证据",
+  "no": "LEB-08",
+  "note": "",
+  "recommended": true,
+  "submission": "LEB-20261022-082103-ioy",
+  "submitted": "2026-10-22T06:21:03.075Z",
+  "unanswered": false
+ },
+ "LEB~LEB-09": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "合同约定了期限的按约定；没约定的，签署后 30 天提醒合同负责人，90 天升级部门负责人决定继续等待或终止",
+  "no": "LEB-09",
+  "note": "",
+  "recommended": true,
+  "submission": "LEB-20261022-082103-ioy",
+  "submitted": "2026-10-22T06:21:03.075Z",
+  "unanswered": false
+ }
+}
