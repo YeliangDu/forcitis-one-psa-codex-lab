@@ -13,10 +13,12 @@
 | INV→EP | 3 / 148 | enforces: 0、manual: 3、rule: 0 |
 | INV→TC | 1 / 148 | class_covers: 0、covers: 0、rule: 1 |
 | RULE→TC（有 INV 对照） | 1 / 38 | class_covers: 0、covers: 1 |
-| 表→聚合 | 20 / 20 | built: 20、panorama: 0 |
+| 表→聚合 | 20 / 28 | built: 20、panorama: 0 |
+| 事件→聚合 | 59 / 59 | events: 47、module: 49 |
+| 事件→发布 BC | 59 / 59 | publisher: 59 |
 | API→BC | 58 / 58 | controller: 58 |
 
-登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 1、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 4、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
+登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 2、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 7、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
 
 | 节点 | 层 | 条目数 |
 |---|---|---|
@@ -30,7 +32,7 @@
 | 07 业务流程 | prc | 200 |
 | 08 约束与认定规则 | inv | 148 |
 | 09 业务对象 | obj | 104 |
-| 10 受控业务执行 | act | 669 |
+| 10 受控业务执行 | act | 671 |
 | 11 业务事实 | fact | 0 |
 | 12 维度 | dim | 0 |
 | 13 指标与评价 | metric | 79 |
@@ -39,14 +41,20 @@
 | 09/10 映射  | agg | 145 |
 | 09/10 映射  | bc | 51 |
 | 09/10 映射  | sd | 13 |
-| 09/10 映射  | table | 53 |
+| 09/10 映射  | table | 65 |
 | 08 约束与认定规则 | rule | 512 |
 | 10 受控业务执行 | ep | 601 |
 | 10 受控业务执行 | tc | 1132 |
 | 10 映射  | api | 68 |
 | 10 映射  | mod | 13 |
+| 10 受控业务执行 | cmd | 608 |
+| 09/10 映射  | otr | 873 |
+| 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
-| 07 业务流程 | steps | 647 |
+| 07 业务流程 | steps | 651 |
+| 01 映射  | perm | 27 |
+| 01 映射  | srole | 7 |
+| 01 映射  | role | 56 |
 
 对象按分类：业务对象 96、从属对象 6、参照数据 1、视图 1。
 
@@ -65,6 +73,9 @@
 | N07-1 | 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1） | 0 |
 | N07-2 | 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判） | 0 |
 | N07-P1 | P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml | 0 |
+| N01-R1 | 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查） | 0 |
+| N01-R2 | 每个 ROLE 写明由谁承担（host_category 非空） | 0 |
+| N01-R3 | 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告） | 4 |
 | N08-1 | 每个不变量都归属存在的聚合 | 0 |
 | N08-2 | 每条不变量至少有一个执行点 | 145 |
 | N08-3 | 每条不变量至少有一个用例 | 147 |
@@ -76,13 +87,18 @@
 | N09-M1 | 每个聚合都归属一个 BC | 10 |
 | N09-M2 | 每个聚合都有不变量 | 36 |
 | N09-M3 | 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张） | 132 |
-| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 53 |
-| N09-M5 | 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数） | 0 |
+| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 65 |
+| N09-M5 | 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数） | 8 |
 | N09-M6 | 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口） | 1 |
 | N10-M2 | 每个后端模块在 module-dependencies.txt 登记 | 0 |
 | N10-M3 | 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属） | 0 |
 | N10-1 | 每个受控业务执行（命令）都有 owner BC | 37 |
 | N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 4 |
+| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 1 |
+| N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 47 |
+| N10-4 | 每个已建命令类在 ssot/11-commands/command-mapping.yaml 登记对照（pending 计缺口） | 0 |
+| N10-5 | 每个事件有唯一发布者与版本 | 0 |
+| N10-6 | 跨 BC 只走已发布事件或契约（订阅模块对发布模块的依赖须登记；只按 kernel DomainEvent 信封接收的订阅方除外） | 0 |
 | N11-1 | 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列） | 6 |
 | N13-1 | 每个阶段都有指标 | 61 |
 | N13-2 | 每个指标都能追到阶段或流程 | 79 |
@@ -143,6 +159,13 @@
 - VS-10.0 执行记账结转（门对象 OBJ-97→断、OBJ-98→断）
 - VS-10.1 关闭会计期间（门对象 OBJ-97→断、OBJ-98→断）
 - VS-10.2 发布报表（门对象 OBJ-125→断、OBJ-97→断、OBJ-98→断）
+
+## N01-R3 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告）（4）
+
+- cost.timesheet:timesheet:submit
+- cost.timesheet:timesheet:approve
+- platform.numbering:voucher-numbering-rule:approve
+- platform.numbering:legacy-number:read
 
 ## N08-2 每条不变量至少有一个执行点（145）
 
@@ -693,7 +716,7 @@
 - organization.workforce/RegisteredEmployee RegisteredEmployee
 - platform.integration/SourceReferenceRefusal SourceReferenceRefusal
 
-## N09-M4 每张表都能追到聚合，聚合能追到业务对象（53）
+## N09-M4 每张表都能追到聚合，聚合能追到业务对象（65）
 
 - cost_timesheet.consumed_events（对象 无）
 - cost_timesheet.timesheets（对象 无）
@@ -747,7 +770,30 @@
 - platform_numbering.numbering_rule_versions（对象 无）
 - platform_numbering.numbering_counters（对象 无）
 - platform_numbering.legacy_numbers（对象 无）
+- platform_file.stored_files（对象 无）
+- platform_file.stored_file_names（对象 无）
+- platform_file.file_bindings（对象 无）
+- platform_file.file_holds（对象 无）
+- platform_file.file_preservations（对象 无）
+- platform_file.preservation_categories（对象 无）
+- platform_file.preservation_category_versions（对象 无）
+- platform_file.false_positive_judgments（对象 无）
+- platform_file.scan_exceptions（对象 无）
+- platform_file.scan_exception_revocations（对象 无）
+- platform_file.quarantine_read_requests（对象 无）
+- platform_file.state_transitions（对象 无）
 - platform_scheduling.scheduler_locks（对象 无）
+
+## N09-M5 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数）（8）
+
+- platform_file.stored_files（AGGREGATE_ROOT，聚合登记 StoredFile）
+- platform_file.stored_file_names（AGGREGATE_CHILD，聚合登记 StoredFile）
+- platform_file.file_bindings（AGGREGATE_CHILD，聚合登记 StoredFile）
+- platform_file.file_holds（AGGREGATE_CHILD，聚合登记 StoredFile）
+- platform_file.file_preservations（AGGREGATE_CHILD，聚合登记 StoredFile）
+- platform_file.preservation_category_versions（AGGREGATE_CHILD，聚合登记 PreservationCategory）
+- platform_file.false_positive_judgments（AGGREGATE_ROOT，聚合登记 FalsePositiveJudgment）
+- platform_file.quarantine_read_requests（AGGREGATE_ROOT，聚合登记 QuarantineReadRequest）
 
 ## N09-M6 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口）（1）
 
@@ -799,6 +845,60 @@
 - B-02 服务与定价目录（模块 masterdata.catalog）
 - B-32 报价发出编排（暂名）（模块 None）
 - reporting 经营分析（只读）（模块 reporting）
+
+## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（1）
+
+- CMD-c2d24f95 登记招标项目（REF-01 未归 BC）
+
+## N10-3 每条状态转换有触发命令（含 pending；by_command 为空计缺口）（47）
+
+- OTR-017（transitions，AGG-55，命令 None）
+- OTR-019（transitions，AGG-55，命令 None）
+- OTR-020（transitions，AGG-55，命令 None）
+- OTR-021（transitions，AGG-55，命令 None）
+- OTR-025（transitions，AGG-55，命令 None）
+- OTR-026（transitions，AGG-55，命令 None）
+- OTR-027（transitions，AGG-55，命令 None）
+- OTR-087（transitions，AGG-56，命令 None）
+- OTR-088（transitions，AGG-56，命令 None）
+- OTR-414（transitions，AGG-40，命令 None）
+- OTR-415（transitions，AGG-40，命令 None）
+- OTR-416（transitions，AGG-40，命令 None）
+- OTR-423（transitions，AGG-45，命令 None）
+- OTR-511（transitions，AGG-53，命令 None）
+- OTR-514（transitions，AGG-53，命令 None）
+- OTR-515（transitions，AGG-53，命令 None）
+- OTR-536（transitions，AGG-59，命令 None）
+- OTR-537（transitions，AGG-59，命令 None）
+- OTR-567（transitions，AGG-90，命令 None）
+- OTR-584（transitions，AGG-91，命令 None）
+- OTR-589（transitions，AGG-82，命令 None）
+- OTR-590（transitions，AGG-82，命令 None）
+- OTR-612（transitions，AGG-98，命令 None）
+- OTR-613（transitions，AGG-98，命令 None）
+- OTR-614（transitions，AGG-98，命令 None）
+- OTR-619（transitions，AGG-86，命令 None）
+- OTR-620（transitions，AGG-86，命令 None）
+- OTR-690（transitions，AGG-109，命令 None）
+- OTR-720（transitions，AGG-115，命令 None）
+- OTR-725（transitions，AGG-115，命令 None）
+- OTR-785（transitions，AGG-78，命令 None）
+- OTR-786（transitions，AGG-78，命令 None）
+- OTR-789（transitions，AGG-123，命令 None）
+- OTR-790（transitions，AGG-123，命令 None）
+- OTR-793（transitions，AGG-124，命令 None）
+- OTR-794（transitions，AGG-124，命令 None）
+- OTR-797（transitions，AGG-133，命令 None）
+- OTR-798（transitions，AGG-133，命令 None）
+- OTR-807（transitions，AGG-101，命令 None）
+- OTR-827（transitions，AGG-85，命令 None）
+- OTR-828（transitions，AGG-85，命令 None）
+- OTR-831（transitions，AGG-94，命令 None）
+- OTR-832（transitions，AGG-94，命令 None）
+- OTR-839（transitions，AGG-128，命令 None）
+- OTR-840（transitions，AGG-128，命令 None）
+- OTR-843（transitions，AGG-129，命令 None）
+- OTR-844（transitions，AGG-129，命令 None）
 
 ## N11-1 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）（6）
 
