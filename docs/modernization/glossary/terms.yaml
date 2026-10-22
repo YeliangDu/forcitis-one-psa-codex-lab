@@ -9574,7 +9574,7 @@ terms:
   snake: net_service_revenue
   kind: metric
   bc: operations.policy
-  definition: 收入（不含税）减转付成本（分包、外包与可向客户转收的代垫费用）后的余额；扣减范围按财务口径 FD-41
+  definition: 收入（不含税）减转付成本（分包、外包）后的余额；代垫费用是否扣减口径待定（KPI 页代垫题），用户答复后定稿；其余扣减范围按财务口径 FD-41
   standard_ref:
   - OAT canonical_symbol NR；企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；AEC 行业 Net Service Revenue（PSMJ / Deltek 通行口径）
   confidence: medium
@@ -9582,7 +9582,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-net_service_revenue，R3-RN-03）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；one-coordinator 2026-10-22：FD-41 只定了分包与外包的扣减，没有定代垫费用（用户裁定，rulings.yaml）
   scope: domain
 - id: management_operating_profit
   zh: 经营利润
@@ -9638,7 +9638,7 @@ terms:
   snake: pass_through_cost
   kind: metric
   bc: operations.policy
-  definition: 为履行合同转付给第三方的成本：分包成本、外包成本与可向客户转收的代垫费用；在净服务收入中扣减（FD-41）
+  definition: 为履行合同转付给第三方的成本：分包成本、外包成本；代垫费用是否算转付成本口径待定（KPI 页代垫题），用户答复后定稿；在净服务收入中扣减（FD-41，仅限分包、外包）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；OAT canonical_symbol PTC；AEC 行业 pass-through / reimbursable costs
   confidence: medium
@@ -9646,7 +9646,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-pass_through_cost，R3-RN-07）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；one-coordinator 2026-10-22：FD-41 只定了分包与外包的扣减，没有定代垫费用（用户裁定，rulings.yaml）
   scope: domain
 - id: policy_parameter
   zh: 口径参数

@@ -418,3 +418,11 @@ rulings:
     definition: 记录公司信息技术资产的故障、维修安排与完成情况的维修单。
     forbid_old: true
     source: 用户 2026-10-21 用语确认第五批 GL4-04（提交 GL4-20261021-221322-bbn，intent 2026-10-21-221338）
+  - op: redefine
+    id: net_service_revenue
+    definition: 收入（不含税）减转付成本（分包、外包）后的余额；代垫费用是否扣减口径待定（KPI 页代垫题），用户答复后定稿；其余扣减范围按财务口径 FD-41
+    source: one-coordinator 2026-10-22：FD-41 只定了分包与外包的扣减，没有定代垫费用
+  - op: redefine
+    id: pass_through_cost
+    definition: 为履行合同转付给第三方的成本：分包成本、外包成本；代垫费用是否算转付成本口径待定（KPI 页代垫题），用户答复后定稿；在净服务收入中扣减（FD-41，仅限分包、外包）
+    source: one-coordinator 2026-10-22：FD-41 只定了分包与外包的扣减，没有定代垫费用

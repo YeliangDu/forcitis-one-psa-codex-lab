@@ -1,0 +1,122 @@
+# KPI 页用到的七个未登记词（one-glossary 2026-10-22，NAM-1021-GLO-18；one-coordinator 来单，proposed）。出处：r0/METRIC_BASELINE_DRAFT M-37、M-43、M-46，R1-B-06。
+terms:
+- id: opportunity_hours
+  zh: 商机工时
+  en: OpportunityHours
+  snake: opportunity_hours
+  kind: value_object
+  bc: cost.timesheet
+  scope: domain
+  definition: 员工填报在商机（尚未签约的业务机会）上的工时；与收费工时、非计费工时并列，用于工时结构（M-43）
+  standard_ref:
+  - r0/METRIC_BASELINE_DRAFT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: available_hours
+  zh: 可用工时
+  en: AvailableHours
+  snake: available_hours
+  kind: metric
+  bc: cost.timesheet
+  scope: domain
+  definition: 员工在期间内可供使用的工时，来自工作日历扣除休假后的小时数；利用率的分母（可计费工时 / 可用工时）
+  standard_ref:
+  - r0/METRIC_BASELINE_DRAFT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+  formula: 期间内全部在职员工按工作日历扣除休假后的可工作小时数合计
+  grain: 按员工、部门、期间
+  as_of: 按期间末时点的工作日历与考勤
+- id: default_payment_term
+  zh: 默认账期
+  en: DefaultPaymentTerm
+  snake: default_payment_term
+  kind: value_object
+  bc: contract.agreement
+  scope: domain
+  definition: 合同或客户未另行约定付款周期时采用的账期天数，配置项；到期日由账期与开票日推算（R1-B-06）
+  standard_ref:
+  - r0/METRIC_BASELINE_DRAFT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: excess_authorized_limit_input
+  zh: 超授权额度投入
+  en: ExcessAuthorizedLimitInput
+  snake: excess_authorized_limit_input
+  kind: metric
+  bc: contract.agreement
+  scope: domain
+  definition: 无合同风险敞口超出授权额度的投入金额（M-46）；授权额度按客户等级配置
+  standard_ref:
+  - r0/METRIC_BASELINE_DRAFT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+  formula: 无合同风险敞口的累计投入金额减授权额度，大于零部分
+  grain: 按项目、客户、期间
+  as_of: 按期间末时点的投入与授权额度版本
+- id: hours_structure
+  zh: 工时结构
+  en: HoursStructure
+  snake: hours_structure
+  kind: metric
+  bc: cost.timesheet
+  scope: domain
+  definition: 期间内工时按收费、商机、非计费划分的占比（M-43），与有效 / 无效工时划分对齐
+  standard_ref:
+  - r0/METRIC_BASELINE_DRAFT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+  formula: 收费工时、商机工时、非计费工时各自占已填报工时合计的比例
+  grain: 按部门、项目、期间
+  as_of: 按期间末时点已提交并通过审批的工时
+- id: effective_hours_ratio
+  zh: 有效工时占比
+  en: EffectiveHoursRatio
+  snake: effective_hours_ratio
+  kind: metric
+  bc: cost.timesheet
+  scope: domain
+  definition: 期间内有效工时占全部填报工时的比例；有效工时指经有效性认定的工时
+  standard_ref:
+  - r0/METRIC_BASELINE_DRAFT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+  formula: 有效工时合计除以已填报工时合计
+  grain: 按员工、部门、期间
+  as_of: 按期间末时点已完成有效性认定的工时
+- id: cash_inflow_outflow_ratio
+  zh: 现金流入流出比
+  en: CashInflowOutflowRatio
+  snake: cash_inflow_outflow_ratio
+  kind: metric
+  bc: accounting.cashbank
+  scope: domain
+  definition: 期间现金流入合计除以现金流出合计（M-37）；是否含筹资活动待确认
+  standard_ref:
+  - r0/METRIC_BASELINE_DRAFT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+  formula: 期间现金流入合计除以现金流出合计
+  grain: 按法人、期间
+  as_of: 按期间末时点已入账的收付
