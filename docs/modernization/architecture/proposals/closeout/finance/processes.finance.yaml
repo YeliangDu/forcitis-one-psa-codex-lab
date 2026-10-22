@@ -4268,6 +4268,7 @@ processes:
   - PRC-96-S31
   - PRC-96-S32
   - PRC-96-S33
+  - PRC-96-S34
   roles:
   - id: SH-E6
     as: performer
@@ -4293,9 +4294,9 @@ processes:
       goto: end
       rule: P-41
       outcome: 未到分配条件
-    - when: 本期有已过账事实未带奖金计提率（过账时费率表版本缺该业务线的计提规则），启动失败并告警，不按 0 计
+    - when: 本期有已过账事实未带奖金计提率（过账时费率表版本缺该业务线的计提规则），或规则类型为合同额百分比的事实未带激励方案版本号与其有效期、或业务日期不在该有效期内，启动失败并告警，不按 0 计、不跳过
       goto: end
-      rule: BONUS_OVERTIME_COSTING 1.2；硬规则 6
+      rule: BONUS_OVERTIME_COSTING 1.2；硬规则 6；激励方案版本只在 AGG-05 子项记号、B-02 不校验（S-5 裁定，one-arch-revenue @821fe3e7）；B-07 不读 AGG-75（ADR-0051 决定 9），只校验事实携带的版本号与有效期
       outcome: 奖金计提率缺失
       alert: true
     - when: 目标期间已关账，自动落当前开放期间并标原期间后继续分配

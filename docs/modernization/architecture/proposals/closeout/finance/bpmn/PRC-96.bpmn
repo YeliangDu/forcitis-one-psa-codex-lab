@@ -257,7 +257,7 @@
     <sequenceFlow id="Flow_6" name="本期已有有效的人工成本分配运行（每期间一次有效）" sourceRef="S1_gw_6" targetRef="End_21"/>
     <sequenceFlow id="Flow_7" name="目标期间尚未开放（该法人无开放期间可落），拒收并告警" sourceRef="S1_gw_6" targetRef="End_22"/>
     <sequenceFlow id="Flow_8" name="工时与薪酬事实未齐备（有工时无薪酬或有薪酬无工时，预警）" sourceRef="S1_gw_6" targetRef="End_23"/>
-    <sequenceFlow id="Flow_9" name="本期有已过账事实未带奖金计提率（过账时费率表版本缺该业务线的计提规则），启动失败并告警，不按 0 计" sourceRef="S1_gw_6" targetRef="End_24"/>
+    <sequenceFlow id="Flow_9" name="本期有已过账事实未带奖金计提率（过账时费率表版本缺该业务线的计提规则），或规则类型为合同额百分比的事实未带激励方案版本号与其有效期、或业务日期不在该有效期内，启动失败并告警，不按 0 计、不跳过" sourceRef="S1_gw_6" targetRef="End_24"/>
     <sequenceFlow id="Flow_10" name="目标期间已关账，自动落当前开放期间并标原期间后继续分配" sourceRef="S1_gw_6" targetRef="S2_7"/>
     <sequenceFlow id="Flow_11" name="其他" sourceRef="S1_gw_6" targetRef="S2_7"/>
     <sequenceFlow id="Flow_12" sourceRef="S2_7" targetRef="S3_8"/>
