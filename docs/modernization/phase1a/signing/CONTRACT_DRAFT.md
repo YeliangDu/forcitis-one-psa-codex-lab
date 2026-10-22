@@ -20,7 +20,7 @@
 
 ```java
 interface SealLedger {
-    /** 按用印时刻取当时有效的版本；条目不存在或时刻早于最早版本即抛错并告警（ADR-0064 决定 3 第 3 条）。 */
+    /** 按用印时刻（按业务时区切成日期）取当时有效的版本；条目不存在或时刻早于最早版本即抛错并告警（ADR-0064 决定 3 第 3 条）。 */
     SealLedgerEntryVersionView versionAt(SealLedgerEntryId entry, Instant at);
 
     /** 某法人在某日启用的条目，供用印申请选择；按印章类型排序。 */

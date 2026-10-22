@@ -25,15 +25,7 @@ class ModuleDependencyTest {
 
     @Test
     void dependenciesFollowTheApprovedGraph() throws IOException {
-        Map<String, Set<String>> allowed = new HashMap<>();
-        for (String line : Files.readAllLines(Path.of("architecture/module-dependencies.txt"))) {
-            if (line.isBlank() || line.startsWith("#")) {
-                continue;
-            }
-            String[] parts = line.split("->", -1);
-            allowed.put(parts[0].trim(), Arrays.stream(parts[1].split(",")).map(String::trim).filter(s -> !s.isEmpty())
-                    .collect(Collectors.toSet()));
-        }
+        Map<String, Set<String>> allowed = declaredGraph(Files.readAllLines(Path.of("architecture/module-dependencies.txt")));
         Set<String> violations = new TreeSet<>();
         for (JavaClass c : ArchitectureRulesTest.CLASSES) {
             Optional<String> from = moduleOf(c);
@@ -58,21 +50,43 @@ class ModuleDependencyTest {
         }
     }
 
+    static final Set<String> SIGNING_MAY_REACH = Set.of("platform.audit", "platform.identity", "platform.integration", "platform.file",
+            "platform.web", "organization.workforce");
+
     @Test
-    @DisplayName("ADR-0064 decision 1 item 3 and ADR-0066: the signing service reaches only foundation modules and organization.workforce among business modules, and platform.approval never reaches it")
+    @DisplayName("ADR-0064 decision 1 item 3 and ADR-0066: the signing service reaches only foundation modules and organization.workforce, and only business modules depend on it")
     void signingServiceStaysAtTheFoundationLayer() throws IOException {
-        Map<String, Set<String>> declared = declaredGraph();
-        Set<String> reachable = reachableFrom("platform.signing", declared);
-        Set<String> businessModules = reachable.stream().filter(m -> !m.startsWith("platform.")).collect(Collectors.toCollection(TreeSet::new));
-        assertThat(businessModules).isSubsetOf("organization.workforce");
-        assertThat(declared.get("platform.signing")).isNotNull()
-                .isSubsetOf("platform.audit", "platform.identity", "platform.integration", "platform.file", "organization.workforce");
-        assertThat(reachableFrom("platform.approval", declared)).doesNotContain("platform.signing");
+        assertThat(signingViolations(declaredGraph(Files.readAllLines(Path.of("architecture/module-dependencies.txt"))))).isEmpty();
     }
 
-    private static Map<String, Set<String>> declaredGraph() throws IOException {
+    @Test
+    @DisplayName("ADR-0064 decision 1 item 3 counterexamples: a transitive edge to approval or a business module, or a platform module depending on signing, is reported")
+    void signingServiceViolationsAreReported() {
+        assertThat(signingViolations(declaredGraph(java.util.List.of(
+                "platform.signing -> platform.identity", "platform.identity -> platform.approval", "platform.approval ->")))).isNotEmpty();
+        assertThat(signingViolations(declaredGraph(java.util.List.of(
+                "platform.signing -> platform.audit", "platform.audit -> organization.administration", "organization.administration ->")))).isNotEmpty();
+        assertThat(signingViolations(declaredGraph(java.util.List.of(
+                "platform.signing ->", "platform.audit -> platform.signing")))).isNotEmpty();
+        assertThat(signingViolations(declaredGraph(java.util.List.of(
+                "platform.signing -> platform.audit", "platform.audit ->", "organization.administration -> platform.signing")))).isEmpty();
+    }
+
+    static Set<String> signingViolations(Map<String, Set<String>> declared) {
+        Set<String> violations = new TreeSet<>();
+        reachableFrom("platform.signing", declared).stream().filter(m -> !SIGNING_MAY_REACH.contains(m))
+                .forEach(m -> violations.add("platform.signing reaches " + m));
+        declared.forEach((module, targets) -> {
+            if (module.startsWith("platform.") && targets.contains("platform.signing")) {
+                violations.add(module + " depends on platform.signing");
+            }
+        });
+        return violations;
+    }
+
+    private static Map<String, Set<String>> declaredGraph(java.util.List<String> lines) {
         Map<String, Set<String>> declared = new HashMap<>();
-        for (String line : Files.readAllLines(Path.of("architecture/module-dependencies.txt"))) {
+        for (String line : lines) {
             if (line.isBlank() || line.startsWith("#")) {
                 continue;
             }
