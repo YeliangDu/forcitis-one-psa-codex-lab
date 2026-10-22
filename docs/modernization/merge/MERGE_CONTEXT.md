@@ -23,6 +23,10 @@
 - 例行合入不逐个报；报异常（冲突、挂起、红 main）与合集完成。
 - 队列清空即扫在开 PR（one-coordinator 2026-10-22）：三类一次报——已批准未入队、冲突或 CI 红、超 1 小时没人动，附 PR 号与卡在谁手上。
 
+- 文档合集里只要出现 .py 或测试文件改动，先报 one-coordinator，复审通过前不入队（2026-10-22；#574 因此挂起）。
+- 只在生成产物（FREEZE_FACTS、GAPS、panorama、generated/、tasks/TASKS.md、ssot/11-commands）上冲突的 PR：我在其分支合 main、跑 build_all、推送后直接入队，不退回作者；人写的文件冲突才退回（one-coordinator 2026-10-22）。推送前门禁要几分钟，main 前进快时易再冲突，故 #568（队列自动重生成）合入后以它为主。
+- 待 #574 重建时带入：admission-file、network-batch3、rules-context-2 的最新提交以各会话届时所报为准，one-architecture 的提交号由其直报。
+
 ## 监视
 
 - Monitor 两个（30 分钟到期重挂）：`merge.log` 关键事件（MERGED|CONFLICT|HOLD|ERROR|PAUSED|WAIT-SIGNAL）；main 上 ci 红运行。
