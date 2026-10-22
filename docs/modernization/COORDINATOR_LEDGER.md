@@ -12,6 +12,11 @@
   - one-1a-par：#624 合入后开 PR-B2（唯一键+隔离+验收，分支 claude/one-1a-par-w2-employee-code-unique @0426bf3bb，裁定 -05）；dev WORKFORCE_SYNC_ENABLED=true 不关，走「隔离路径已实现」。PAR-02～05 已登记，三条 handoff 记忆已删（备份 ~/.modernize/psa/memory-backup-20261022/）。
   - one-1a-next-5：KERR-2 等 #630 合入（裁定 -06）。one-ops：46% 待自清（等 #628）。one-arch-finance：空闲。one-glossary：NM8S 存档改 git bundle，不推。
   - 额度：本周 62%（10-26 重置）；opus 会话与调度大上下文是主因（用户已知，未定收紧措施）。
+- **整改收尾清单（用户 23:1x「agent团队整改全部结束了告诉我一下」；全勾才报用户，并 PushNotification）**：
+  批1 □自清推全员 #628 ✔合 □开工单 #627 □防绕过 #616 ✔合 □CLAUDE.md/记忆移仓（@427318381 合入核实＋按 memory-plan 备份后删记忆） ✔三条 handoff 记忆
+  批2 □新 PB 规则表落地（含 DATA_DESIGN_CHECKLIST、playbook_digest/build_sessions 改写、338 处引用） □15 份画像按角色表重写（含交接源字段） □任务卡模板 WORK_CARD 更新 □finish.py（QUA-17） □无主设计扫描（QUA-23）
+  批3 □守护①–⑦（QUA-11～16） □tasks 状态归一 □cron 迁工作流（QUA-22，迁移清单先进收件箱） □MRG-01 批准评论入队 □MRG-02 合入通知 □MRG-03 重启清单 □MRG-04 在制上限 □MRG-05 断档扫描 #635 □MRG-06 head 变出队
+  补充 □QUA-19 子代理 model 必填 □QUA-20 拒 gh pr merge □QUA-21 PR 尺寸 □QUA-24 拦生产写 □QUA-25 拦须用户决定命令 □QUA-26 Codex 后台 □预检提速两项 □OPS-02 Docker 自动拉起
 - 21:00 交接（以下为旧条）
 - **（已解除，用户 20:4x「你一次性到位」，总方案 GOV-1022-COO-15 见 ~/.modernize/psa/coordinator/team-audit/program.md）讨论期冻结（用户 10-22 晚）**：「我想和你很认真的讨论下所有会话的角色和工作方式，这是个过程，所以在我们讨论结束之前，不要有什么决定」——讨论结束前不改会话角色、画像、规则、协议，不开/并/退会话；日常派工、批 PR 照常；确认页 E1CEBZoJ5TCJJX5ncQzkwa A 组与 COO-09 推全员暂停，等讨论。
 - **20:15 现状**：讨论议题 2（任务卡规划、PR 拆分、清空节点）已给用户讨论稿（建议节点=卡交出 finish.py，不用 PR 合入；bc 开卡顺序 签发→骨架→命令→集成/页面；卡 1–3 PR；第一阶段派工卡为模板加目标/完成标准/前置卡号），等用户回三问；下一轮我出「守护覆盖哪些规则」总结。
