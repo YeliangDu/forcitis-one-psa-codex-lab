@@ -4716,7 +4716,7 @@ processes:
       outcome: 已结转下期
     - when: 分摊规则把某一法人的成本池分摊到其他法人的项目，拒收并告警（成本池按法人分别归集，只分摊到同一法人的项目；部门换法人后自生效日起的费用进新法人的池）
       goto: end
-      rule: INV-93；成本口径 C-4（不变量待聚合稿登记）
+      rule: INV-142（成本口径 C-4）
       outcome: 已拒收
       alert: true
     - when: otherwise
