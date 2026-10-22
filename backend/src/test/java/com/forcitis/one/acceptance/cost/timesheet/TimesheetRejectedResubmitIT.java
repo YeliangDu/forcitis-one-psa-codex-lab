@@ -188,7 +188,7 @@ class TimesheetRejectedResubmitIT extends ApprovalIntegrationSupport {
         Throwable refused = catchThrowable(() -> submit(id, day, "6"));
 
         assertThat(refused).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode().code()).isEqualTo("COST_TIMESHEET_TRANSITION_ILLEGAL"));
+                e -> assertThat(e.errorCode().code()).isEqualTo("KERNEL_TRANSITION_ILLEGAL"));
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.APPROVED);
         assertThat(view(id).round()).isEqualTo(1);
     }

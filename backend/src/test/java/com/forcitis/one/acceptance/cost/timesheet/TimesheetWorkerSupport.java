@@ -30,7 +30,7 @@ import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 abstract class TimesheetWorkerSupport extends AccountsAcceptanceSupport {
 
     static final String WORK_DATE_DUPLICATE = "COST_TIMESHEET_WORK_DATE_DUPLICATE";
-    static final String CONCURRENT_CHANGE = "COST_TIMESHEET_CONCURRENT_CHANGE";
+    static final String CONCURRENT_CHANGE = "KERNEL_CONCURRENT_CHANGE";
 
     @Autowired
     protected SubmitTimesheet submitTimesheet;
