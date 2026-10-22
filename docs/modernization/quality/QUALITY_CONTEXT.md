@@ -117,3 +117,27 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 日报新指标（#482）已合入；错题本 QUAL-019 的检查 `scripts/ci/weak_registration_scan.py`（#487）转 --enforce 要跑一周无误报后另开卡；#511 合入后清理本机留下的本地分支/worktree（scratchpad/wt-*）。
 - 每晚 nightly 巡检与复发检测照旧（结果只在本文件记一行）。
 - 钩子试点：#500 的 context_handoff 在 one-coordinator、one-ops 试点一天（15:09 起），异常报调度；我的会话工作区是否出现 `.claude/context-handoff-state.json` 作为生效凭据。
+
+## 交接（2026-10-22 15:00，上下文 75%，一个批次边界；不用 clear_session，自动交接）
+
+### PR 现状（以 `gh pr list --author @me` 为准）
+- 已合入：#531 本机性能（heavy_slot.py，2 槽、后台优先级）、#541 mq（FF-MAIN、docs 档不重跑）、#542 主检出守护、#545 派工登记表（最后更新、陈旧报告、task_backfill.py）、#553 nightly 23:23 UTC、#568 mq 自动重生成（build_all 产物冲突）、#569 HttpWecomClientTest 超时（QUAL-021）、#583 mq remove 取消。
+- 在审：**#573**（生成产物移出 main 第 1 期，head c5737be0f，已合过 main，等 one-merge 入队）、**#589**（第 2 期 panorama.yaml/GAPS.md，叠在 #573 上，opus 已复审可合，head 8704db9c2）、**#593**（mq：产物移出后「一删一改」冲突自动 git rm --cached，opus 首轮复审进行中）。
+- 文档分支（one-merge 收合集）：`claude/one-quality-task-status`（3 张卡改完成）、`claude/one-quality-generated-design`（设计稿 GENERATED_OUT_OF_MAIN_DESIGN.md）、`claude/one-quality-task-ledger`（台账设计稿 TASK_LEDGER_DESIGN.md）。
+
+### 进行中与下一步（顺序）
+1. **盯 #573 → #589 → #593 合入**；合入后更新任务片段 GOV-1022-QUA-01、-02 为完成（#589 的片段已在分支里，状态进行中）。#593 复审意见回来要改。
+2. **生成产物移出 main**（设计稿 `quality/GENERATED_OUT_OF_MAIN_DESIGN.md`，用户按推荐批准，intent 2026-10-22）：第 1、2 期已出 PR；**第 3 期（terms.yaml）暂缓**；**第 4 期（快照归档分支 archive/…）开工前先告诉 one-coordinator，请用户设 archive/* 只读规则**；第 5 期（画像「当前状态」迁任务卡、COORDINATOR_LEDGER 本机化）在第 4 期之后。交接文件每个会话只留最新一份其余归档、evidence/ 留在 main、NM8A/NM8B/B31P/OBDS/PAN 归档、混合体（STAKEHOLDERS.md、transitions.yaml、RESPONSIBILITY_MATRIX、processes.people.yaml）先拆——都是用户 10-22 的决定。四份逐项调研报告在 `~/.modernize/psa/design-gen/`。
+3. **GOV-1022-COO-05 派工台账实现**（设计稿 TASK_LEDGER_DESIGN.md，one-coordinator 六点已确认：回溯卡按分支聚合、随机分支名退回按 PR；路线视图按 transitions.yaml 的 wave，试点类取 waves 第一项，别用 delivers 做模块映射；复审修正提交数近似标可靠度 C，并从今天起复审结论回写固定标题行 `复审第 N 轮：必改 K 条，建议 M 条`，要写进 SESSION_PLAYBOOK §11 第 6 条；gh 导出放 GitHub Actions 定时工作流（守护，单列 PR、opus）；片段加可选字段「修复: <被修任务号>」；日常生成不入仓，每周一入仓一份快照）。抽取与统计交 Codex，回溯认领规则、随机分支名正则、指标口径自己写。#545 已合入，可开工。
+4. **两个钩子等 SESSION_PLAYBOOK §5 新规则原文进 main**：①后台任务描述格式 PreToolUse 钩子（`<任务号或 #PR号> <任务名> (<执行者>)`，不合格式拒并给样例）；②commit-msg 钩子（自动追加 `Session: <会话名>`、改 backend/frontend/scripts 的提交须带任务号或 #PR 号、纯文档与 merge 放行；经 pre-commit 安装；排在①之后）。
+5. QUA-05 评测收尾：Q1 重跑（三方只写代码，整包构建由我排队一次一份，加 taskpolicy -b）、Q3 换题；Q2、Q3 已盲评（Q2 Codex>DeepSeek>sonnet，Q3 DeepSeek>Codex>sonnet），一页结论交 one-coordinator。网络规则 CI（RULE/INV 编号报告档）、QUA-03 七个钩子、AskUserQuestion 门禁（改为规程回合结尾规则，原卡作废）在后。
+
+### 要记住的坑
+- 本会话工作区 `.claude/worktrees/xin-61164f` 是唯一能用 Write 的目录（Write 不能写别的 worktree）；各 PR 分支在它上面轮流 checkout，注意 `git branch --show-current`。
+- 新检出工作树要先 `python3 docs/modernization/build_all.py` 生成不入仓产物（含 panorama.yaml、RULE_INDEX.md 等），全景单测和 notes_check 才能跑。
+- 相对于被移出产物的合并冲突：一律 `git rm --cached` 保留删除，不要保留对方版本（`build_all.py --check` 现在会拦「被忽略的产物又被跟踪」）。
+- mq 合入后 one-merge 要重启 launchd 代理才生效；mq.py/mq_selftest.py 里不要出现点名文档路径的字面量（relevant_change.py 把点名的脚本当读者），用 `MOD = "docs" + "/" + "modernization"` 一类拼接。
+- 复审分级：首轮 opus，改后复核 sonnet；每个 PR 的结论要贴到 PR 上（#583 曾因没贴被问）。
+- 主检出现有 4 个未跟踪文件（architecture/proposals/ 下），同路径文件合入时快进会被 git 拒绝并停队，归属待用户确认。
+- macOS 夜间自动装更新（凌晨 2~5 点）会让 runner 起不来，nightly 已定 01:23 本机避开；系统设置未动。
+

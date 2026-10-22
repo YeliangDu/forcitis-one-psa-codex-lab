@@ -165,21 +165,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__platform_signing_entry_inactive
-  zh: 印章台账条目已停用
-  en: PlatformSigningEntryInactive
-  snake: platform_signing_entry_inactive
-  kind: error_code
-  bc: platform.signing
-  scope: domain
-  definition: 所引印章台账条目已停用，不可用印（409）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_signing_seal_type_unknown
   zh: 印章类型未登记
   en: PlatformSigningSealTypeUnknown

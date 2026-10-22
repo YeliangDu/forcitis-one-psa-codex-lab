@@ -618,7 +618,7 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `seal_type_list_version` | 印章类型清单版本 | SealTypeListVersion | 领域 · platform.signing | 印章类型清单的一个版本：生效日、决定出处、作者；确认人不得是作者（ADR-0064 决定 3，D15） |  |  |
 | `physical` | 实体章 | Physical | 领域 · platform.signing | 印章载体的取值之一：实体印章；先行期全部台账条目按实体章办理，电子章随电子印章批追加（ADR-0064 决定 3、5） |  | 一个 bc 内中英文名查重已做；随签章 api PR 登记，请 one-glossary 复核 |
 
-另有错误码 7 个（kind 为 `error_code`），不在表中。
+另有错误码 6 个（kind 为 `error_code`），不在表中。
 
 ## platform.web（`platform-web.yaml`）
 
