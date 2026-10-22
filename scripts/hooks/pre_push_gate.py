@@ -19,7 +19,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import precheck_before_pr as pr  # noqa: E402
-from command_words import name_of, plain  # noqa: E402
+from command_words import name_of, plain, unquote_dollar  # noqa: E402
 
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "\n"}
 KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
@@ -35,7 +35,7 @@ TIMEOUT_SECONDS = 1400
 
 def segments(command):
     """The simple commands of a shell line as token lists; None when the line cannot be tokenised."""
-    lexer = shlex.shlex(command.replace("`", " ; "), posix=True, punctuation_chars=True)
+    lexer = shlex.shlex(unquote_dollar(command).replace("`", " ; "), posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     lexer.commenters = "#"
     try:
@@ -84,7 +84,7 @@ def pushes(command, cwd="."):
         rest = seg[i:]
         if not rest:
             continue
-        if rest[0].lower() == "cd" and len(rest) > 1:
+        if rest[0] == "cd" and len(rest) > 1:
             here = os.path.normpath(os.path.join(here, os.path.expanduser(rest[1])))
             continue
         if name_of(rest[0]) in SHELLS or rest[0].lower() == "eval":

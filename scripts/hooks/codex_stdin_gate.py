@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from command_words import name_of, plain  # noqa: E402
+from command_words import name_of, plain, unquote_dollar  # noqa: E402
 
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
@@ -55,7 +55,7 @@ def without_heredoc_bodies(command):
 def tokens_of(command):
     """Shell tokens of a command line; lines are tokenised on their own so a # comment ends with its line, and a quote left open continues onto the next line."""
     tokens, pending = [], ""
-    for line in without_heredoc_bodies(command):
+    for line in without_heredoc_bodies(unquote_dollar(command)):
         pending = pending + "\n" + line if pending else line
         lexer = shlex.shlex(pending.replace("`", " ; "), posix=True, punctuation_chars=True)
         lexer.whitespace_split = True

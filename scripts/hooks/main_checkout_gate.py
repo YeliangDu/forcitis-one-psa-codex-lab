@@ -207,11 +207,12 @@ def verdict(command, cwd, depth=0):
         if i >= len(seg):
             continue
         name = name_of(seg[i])
-        if name in ("cd", "pushd", "popd"):
-            if name == "popd":
+        builtin = os.path.basename(seg[i])
+        if builtin in ("cd", "pushd", "popd"):
+            if builtin == "popd":
                 here = stack.pop() if stack else None
                 continue
-            if name == "pushd":
+            if builtin == "pushd":
                 stack.append(here)
             target = next((t for t in seg[i + 1:] if not t.startswith("-")), None)
             here = resolve(here, target) if here and target else (os.path.expanduser("~") if here and not target else None)
@@ -335,6 +336,10 @@ def self_test():
             ("git symbolic-ref refs/heads/main refs/heads/side", work),
             ("git commit -m x \"unterminated", main),
             ("GIT commit -m x", main),
+            ("$'git' commit -m x", main),
+            ("CD " + work + " && git commit -m x", main),
+            ("PUSHD " + work + "; git commit -m x", main),
+            ("POPD; git commit -m x", main),
             ("gi\"\"t commit -m x", main),
             ("g\\it commit -m x", main),
             ("/usr/bin/GIT reset --hard", main),

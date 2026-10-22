@@ -179,10 +179,13 @@ def self_test():
     # 3b. letter case and quote-split names reach the gates and are judged like the plain spelling (GOV-1022-COO-10)
     for plain_text, spelled in (("git push --no-verify", "GIT push --no-verify"), ("git push --no-verify", "gi\"\"t push --no-verify"), ("git push --no-verify", "/usr/bin/GIT push --no-verify"),
                                 ("git push --no-verify", "Env Git push --no-verify"), ("codex exec p", "CODEX exec p"), ("codex exec p", "co\"\"dex exec p"), ("pi -p x", "PI -p x"),
-                                ("pi -p x", "p\"\"i -p x"), ("timeout 9 pi -p x", "TIMEOUT 9 pi -p x")):
+                                ("pi -p x", "p\"\"i -p x"), ("timeout 9 pi -p x", "TIMEOUT 9 pi -p x"), ("git push --no-verify", "$'git' push --no-verify"), ("git push --no-verify", "eval 'GIT push --no-verify'"),
+                                ("git push --no-verify", "echo $(GIT push --no-verify)"), ("codex exec p", "$'codex' exec p"), ("pi -p x", "$'pi' -p x"), ("codex exec p", "echo $(CODEX exec p)")):
         assert dispatch(payload(spelled))[0] == dispatch(payload(plain_text))[0] == 2, spelled
     assert pp.decide("GIT push --no-verify", cwd)[0] == "deny" and pp.decide("gi\"\"t push --no-verify", cwd)[0] == "deny"
-    assert pr.is_pr_create("GH PR create") and pr.is_pr_create("g\"\"h pr create") and not pr.is_pr_create("GH PR view 3")
+    assert pp.decide("CD /tmp && git push --no-verify", cwd)[2] == cwd, "CD is not the cd builtin"
+    assert pp.decide("cd /tmp && git push --no-verify", cwd)[2] == "/tmp"
+    assert pr.is_pr_create("$'gh' pr create") and pr.is_pr_create("GH PR create") and pr.is_pr_create("g\"\"h pr create") and not pr.is_pr_create("GH PR view 3")
     for spelled in ("GH PR create", "GIT status", "CODEX exec p", "PI -p x"):
         assert selected(json.loads(payload(spelled))), spelled
     assert selected(json.loads(payload("PIP install x"))) == []
