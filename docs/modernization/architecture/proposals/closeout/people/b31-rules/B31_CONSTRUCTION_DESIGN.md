@@ -48,6 +48,7 @@ B-31 的“四类表单”是以下四类行政记录，**其中只有用印及�
    - 依据：`A §2.2 AGG-114`；`C/ARCH_VS14.md：B31-2、B31-3`。
 
 3. **IT 资产使用**
+   - 范围：本批只做实物设备；词条 `it_asset_usage_record` 定义里的软件许可不在本批（CS-1.8，one-architecture 裁定，来自 one-glossary 判定 M3）。
    - 聚合：AGG-115；维修另属 AGG-121。
    - 流程：PRC-143 领用、PRC-155 调拨、PRC-156 归还；PRC-157 报修与维修登记。
    - 新领用、调拨、归还、维修均不新增人工审批，`doc_type` 不适用。
@@ -600,7 +601,7 @@ organization.administration:<活动取消资源>:execute
 
 ### 8.2 用语、占号与正式登记
 
-1. 当前 `terms.yaml` 664 条中，未找到 `bc=organization.administration` 的词条。`P/b31.notes.md` 的 `SealApplication` 等仍是提议；PF 使用的 `seal_usage_request` 也不能据研究稿当作当前词表事实。
+1. 当前 `terms.yaml` 已有 5 个 `bc=organization.administration` 的已批准聚合词条：`seal_usage_request`（用印申请）、`it_service_ticket`（信息技术服务工单）、`it_asset_usage_record`（信息技术资产使用记录）、`it_asset_repair_order`（信息技术资产维修单）、`employee_activity_request`（员工活动申请）（2026-10-17 写回）；本文中的「IT 需求工单」「IT 资产使用记录」「seal_applications」等是已废弃旧称或草案名，表名与英文名以词表和 `B31_CONTRACT.md` §2 为准。命令、事件、状态、权限资源、错误码等其余词为提议术语（`backend/glossary/proposed/organization-administration.yaml`）。
 2. “印章类别／印章类型”、用印申请命名、签章模块及文件服务标识、事件、状态和权限资源待 NAM-1020-COO-01。
 3. 本次未读到该用语决策单正文及答复，不声称已知其选择结果。
 4. 签章正式编号及获批决定须入仓；B-31、签章与文件模块的 contexts／依赖表须同步。
