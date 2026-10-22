@@ -62,16 +62,23 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
 
     void verifyDefinitions() {
         List<String> problems = new ArrayList<>();
-        for (ProcessKey key : ProcessKey.values()) {
-            ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(key.key())
-                    .latestVersion().singleResult();
-            if (definition == null) {
-                problems.add(key + ": no deployed process definition " + key.key());
+        List<ProcessDefinition> deployed = repository.createProcessDefinitionQuery().latestVersion().list();
+        if (deployed.isEmpty()) {
+            problems.add("no approval process definition is deployed");
+        }
+        for (ProcessDefinition definition : deployed) {
+            ProcessKey key;
+            try {
+                key = ProcessKey.of(definition.getKey());
+            } catch (IllegalArgumentException e) {
+                problems.add(definition.getKey() + ": " + e.getMessage());
                 continue;
             }
             BpmnModel model = repository.getBpmnModel(definition.getId());
             try {
                 ProcessDocumentType.read(key, model.getMainProcess());
+                ProcessDefinitionData.nameOf(key, model.getMainProcess());
+                ProcessDefinitionData.routingFlagRequired(key, model.getMainProcess());
             } catch (DomainException e) {
                 problems.add(key + ": " + e.getMessage());
             }

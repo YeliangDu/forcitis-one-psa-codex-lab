@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 class DocumentTypeRegistryGuardTest {
 
     static final Path MAIN = Path.of("src/main/java/com/forcitis/one");
+    static final Path PROCESSES = Path.of("src/main/resources/processes");
     static final Path MIGRATIONS = Path.of("src/main/resources/db/migration");
     static final Pattern BUSINESS_DOCUMENT_LITERAL = Pattern.compile("\\b(TIMESHEET|QUOTE|JOURNAL_VOUCHER)\\b");
     /** The audit subject kinds still list TIMESHEET until the registry table replaces the enum (REG-3, ADR-0069 decision 14); the replay report title names the one process it replays. */
@@ -57,6 +58,40 @@ class DocumentTypeRegistryGuardTest {
                 boolean pointsAtRegistry = sql.contains("REFERENCES platform_numbering.document_types");
                 if (pointsAtRegistry && !file.toString().contains("/platform_numbering/")) {
                     problems.add(file.getFileName() + " has a foreign key across schemas to platform_numbering.document_types");
+                }
+            }
+        }
+        assertThat(problems).isEmpty();
+    }
+
+    @Test
+    @DisplayName("kernel and platform code hold no business process key and no business process name (REG-4, ADR-0066 decision 4)")
+    void platformCodeNamesNoBusinessProcess() throws IOException, javax.xml.parsers.ParserConfigurationException, org.xml.sax.SAXException {
+        List<String> literals = new ArrayList<>();
+        javax.xml.parsers.DocumentBuilderFactory factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        try (Stream<Path> definitions = Files.walk(PROCESSES)) {
+            for (Path file : definitions.filter(f -> f.toString().endsWith(".bpmn20.xml")).toList()) {
+                org.w3c.dom.NodeList processes = factory.newDocumentBuilder().parse(file.toFile()).getElementsByTagNameNS("*", "process");
+                for (int i = 0; i < processes.getLength(); i++) {
+                    org.w3c.dom.Element process = (org.w3c.dom.Element) processes.item(i);
+                    literals.add(process.getAttribute("id"));
+                    literals.add(process.getAttribute("name"));
+                }
+            }
+        }
+        assertThat(literals).as("the guard reads at least one business process").isNotEmpty().doesNotContain("");
+        List<String> problems = new ArrayList<>();
+        for (String area : List.of("kernel", "platform")) {
+            try (Stream<Path> files = Files.walk(MAIN.resolve(area))) {
+                for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
+                    String text = Files.readString(file);
+                    for (String literal : literals) {
+                        if (text.contains(literal)) {
+                            problems.add(MAIN.relativize(file) + " names the business process '" + literal + "'; the process owns its key in its context's api and its name in its definition");
+                        }
+                    }
                 }
             }
         }

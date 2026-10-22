@@ -117,7 +117,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         assertThat(context.nodeKey()).isEqualTo("departmentReview");
         assertThat(context.actor()).isEqualTo(TestAccounts.account(s.head()));
         assertThat(context.instanceId()).isEqualTo(instance);
-        assertThat(context.processKey()).isEqualTo(com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL);
+        assertThat(context.processKey()).isEqualTo(com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess.KEY);
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
     }
 

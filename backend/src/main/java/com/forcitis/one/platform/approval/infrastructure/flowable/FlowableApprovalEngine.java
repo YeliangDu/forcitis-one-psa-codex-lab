@@ -127,6 +127,25 @@ class FlowableApprovalEngine implements ApprovalEngine {
     }
 
     @Override
+    public String processNameOf(ProcessKey processKey) {
+        return ProcessDefinitionData.nameOf(processKey, latestModel(processKey).getMainProcess());
+    }
+
+    @Override
+    public boolean routingFlagRequiredOf(ProcessKey processKey) {
+        return ProcessDefinitionData.routingFlagRequired(processKey, latestModel(processKey).getMainProcess());
+    }
+
+    private BpmnModel latestModel(ProcessKey processKey) {
+        ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(processKey.key())
+                .latestVersion().singleResult();
+        if (definition == null) {
+            throw new IllegalStateException("No deployed process definition " + processKey.key());
+        }
+        return repository.getBpmnModel(definition.getId());
+    }
+
+    @Override
     public void startInstance(InstanceStart start) {
         Map<String, Object> engine = new LinkedHashMap<>(EngineVariables.toEngine(start.variables()));
         String businessKey = start.document().documentId().value().toString();
@@ -366,7 +385,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
     private Definition definition(String processDefinitionId) {
         return definitions.computeIfAbsent(processDefinitionId, id -> {
             ProcessDefinition definition = repository.getProcessDefinition(id);
-            return new Definition(ProcessKey.valueOf(definition.getKey().toUpperCase(Locale.ROOT)), repository.getBpmnModel(id));
+            return new Definition(ProcessKey.of(definition.getKey()), repository.getBpmnModel(id));
         });
     }
 }

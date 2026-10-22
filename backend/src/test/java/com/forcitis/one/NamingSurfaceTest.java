@@ -3,7 +3,6 @@ package com.forcitis.one;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.ErrorCode;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.tngtech.archunit.core.domain.JavaClass;
 import java.io.IOException;
@@ -544,16 +543,30 @@ class NamingSurfaceTest {
                 words(where + " userTask id '" + id + "': ", id, problems);
             }
         }
-        for (ProcessKey key : ProcessKey.values()) {
-            if (!processIds.contains(key.key())) {
-                problems.add("ProcessKey." + key.name() + ": no deployed BPMN process with id '" + key.key() + "'");
+        for (String id : processIds) {
+            Matcher d = DEFINITION_ID.matcher(id);
+            if (d.matches() && !declaresProcessKey(d.group("subdomain"), d.group("bc"), id)) {
+                problems.add("process '" + id + "': " + d.group("subdomain") + "." + d.group("bc") + " declares no ProcessKey.of(\"" + id + "\") in its api");
             }
         }
-        Set<String> keys = Arrays.stream(ProcessKey.values()).map(ProcessKey::key).collect(Collectors.toSet());
-        processIds.stream().filter(id -> !keys.contains(id))
-                .forEach(id -> problems.add("process '" + id + "': add ProcessKey." + id.toUpperCase(Locale.ROOT) + " (typed catalogue)"));
         fail("G47 BPMN process / DMN decision id must be {subdomain}_{bc}_{snake_name} of the owning module "
-                + "(= lower-case ProcessKey constant); userTask ids camelCase glossary words", problems);
+                + "(= the ProcessKey constant its owning context declares in its api); userTask ids camelCase glossary words", problems);
+    }
+
+    private static boolean declaresProcessKey(String subdomain, String bc, String id) throws java.io.IOException {
+        Path api = MAIN_JAVA.resolve("com/forcitis/one").resolve(subdomain).resolve(bc).resolve("api");
+        if (!java.nio.file.Files.isDirectory(api)) {
+            return false;
+        }
+        try (java.util.stream.Stream<Path> sources = java.nio.file.Files.walk(api)) {
+            return sources.filter(f -> f.toString().endsWith(".java")).anyMatch(f -> {
+                try {
+                    return java.nio.file.Files.readString(f).contains("ProcessKey.of(\"" + id + "\")");
+                } catch (java.io.IOException e) {
+                    throw new java.io.UncheckedIOException(e);
+                }
+            });
+        }
     }
 
     private static void checkDefinitionId(String where, String id, List<String> problems) {

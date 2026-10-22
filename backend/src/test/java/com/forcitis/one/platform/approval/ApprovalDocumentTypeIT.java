@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DocumentId;
@@ -13,7 +14,6 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ContentHash;
@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 class ApprovalDocumentTypeIT extends ApprovalIntegrationSupport {
 
     private ApprovalStartRequest requestFor(String type) {
-        return new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, new DocumentReference(new DocumentTypeCode(type), new DocumentId(UUID.randomUUID())),
+        return new ApprovalStartRequest(TimesheetApprovalProcess.KEY, new DocumentReference(new DocumentTypeCode(type), new DocumentId(UUID.randomUUID())),
                 LEGAL_ENTITY, TestAccounts.employee(1), new RoundNumber(1), UUID.randomUUID(), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(2).toString()))),
                 new ContentHash("hash"), new ApprovalSummary("summary"));
@@ -45,7 +45,7 @@ class ApprovalDocumentTypeIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("a document type without a process is reported before the round: a QUOTE asked for in round 2 gets NO_PROCESS, not ROUND_MISMATCH")
     void typeMismatchIsReportedBeforeTheRound() {
-        ApprovalStartRequest secondRound = new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL,
+        ApprovalStartRequest secondRound = new ApprovalStartRequest(TimesheetApprovalProcess.KEY,
                 new DocumentReference(new DocumentTypeCode("QUOTE"), new DocumentId(UUID.randomUUID())), LEGAL_ENTITY, TestAccounts.employee(1),
                 new RoundNumber(2), UUID.randomUUID(), Set.of("no-such-flag"), List.of(), new ContentHash("hash"), new ApprovalSummary("summary"));
 
