@@ -45,7 +45,7 @@
   2. 同一脚本从代码抽已建命令（`application` 包中的命令处理类，判据与 `ddd/aggregates.yaml` 的 `commands` 一致），写 `built` 段，按类名列出。
   3. one-architecture 写 `command-mapping.yaml`：已建类 ↔ CMD；以及 `changes`（CMD → OTR，回填卡 7 的 `by_command`）。对不上的列清单不硬挂。
 - **允许改动**：`panorama/scan_commands.py` 及自测；`ssot/11-commands/`；`ssot/10-objects/transitions.yaml` 的 `by_command`；`panorama_build.py` 读取段。
-- **验收**：重跑一致；合并前后条数核对与去重清单；新增检查 N11-1「每个命令有 owner BC」、N11-2「每个已建命令类对上 CMD」、P-1「流程步骤改状态须声明命令」（步骤 `prc` 全空的，先只计数）。
+- **验收**：重跑一致；合并前后条数核对与去重清单；新增检查 N10-2「每个命令有 owner BC」、N10-4「每个已建命令类对上 CMD」、N10-3「每条状态转换有触发命令」（全景沿用 15 节点编号，命令属 10 受控业务执行）、P-1「流程步骤改状态须声明命令」（步骤 `prc` 全空的，先只计数）。
 
 ## 卡 10　ARC-1021-ARC-10　领域事件接入（I04b）
 
