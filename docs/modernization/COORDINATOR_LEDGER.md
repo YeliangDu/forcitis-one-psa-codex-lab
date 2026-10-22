@@ -17,6 +17,7 @@
   - one-merge：改 mq.py（PR 评论批准「调度批准入队 head <sha>」、合入通知、钩子 PR 列需重启会话）；收文档合集含本分支 @427318381 起（新 CLAUDE.md、记忆移仓），合入后我备份再删记忆（memory-plan.md）。
   - 画像 15 份重写等 COO-13 合入后按 program 第一节一次改（含 75/85 残留）。
   - one-1a-par：W2 PR-B（裁定 -05 已进 main，入队前确认 A8 同步已停）→日历迁入通道→登记 3 条 handoff 记忆卡与 KERNEL_REASON_REQUIRED 卡（卡号回来后删那三条记忆）。one-1a-next-5：search_path→NX5-08 编号迁入。one-arch-finance：AFI-02 阻塞等 one-architecture S-5（AGG-137 并入 AGG-05）。one-arch-revenue：AGG-20/16/02。one-rules：卡 C 等 one-1a-admin 贴 §11.2 原文。one-glossary：待办②起。one-data：等各 PR；收件箱 T-D10 待用户。
+  - 21:10 增：收件箱 one-rules 12 项已审（opus），撤 11 项（withdrawn 注依据），只留 RULE-265 待 one-rules 改题。KERR-2（KERNEL_REASON_REQUIRED）派 one-1a-next-5（search_path 后、NX5-08 前），卡 C 取消命令等它。工号唯一改走 ADR-0078（#619 占号已批；正文分支 claude/one-architecture-adr-0078-body @dd5ef55d6，opus+sonnet 已过）→ one-architecture 开正文 PR 后我出批准页给用户；W2 PR-B 已令拆开：先合不含唯一键部分，唯一键与裁定 -05 那几处等 ADR-0078 采纳后另开 PR-B2。
   - 清空规则：除 coordinator、architecture 外由我管，现钩子未推全员前，会话到线先写交接，等 one-quality PR 合入再自清；我清空要用户 /clear（或 one-merge 重开远程+发接续）。
 - 接手先做：ReadNotifications；`ls -t ~/.modernize/psa/outbox/`；`gh pr list` + `mq.py status`；逐个查开发会话前置是否满足（不得再犯：只盯合并）；intent 2026-10-22-15* 起为今日下午决定。
 - 下午已定（intent）：交接阈值 30%/40%（154722，§2.1 已改并进 main #602）；降负载不得牺牲开发机功能（151546）；仓库内容治理四项交 one-quality（153421，GOV-1022-COO-06）；one-ops search_path 三项「都做」（155217）。
