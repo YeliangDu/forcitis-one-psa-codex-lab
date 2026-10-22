@@ -695,26 +695,46 @@ machines:
     - INV-16a
 - aggregate: AGG-16
   name: 索赔
-  initial: 已提出
+  note: 双向（我方主张 / 对方主张）。先通知后提交详细报告（GF-2017-0201 通用条款第 19.1 款、FIDIC 2017 第 20.2 款）；「已拒绝」是被索赔方拒绝，「已撤回」是索赔方撤回，行为人不同分两状态
+  initial: 已通知
   states:
-  - 已提出
+  - 已通知
+  - 已提交
   - name: 已认定
     terminal: true
-  - name: 已拒绝或撤回
+  - name: 已拒绝
+    terminal: true
+  - name: 已撤回
     terminal: true
   transitions:
   - from: null
-    to: 已提出
+    to: 已通知
     command: 提出索赔
     guard:
     - INV-17
-  - from: 已提出
+  - from: 已通知
+    to: 已提交
+    command: 提交索赔详细报告
+    guard:
+    - INV-17
+    note: 拟命令；详细报告时限取协议上登记的约定，超时限须注明理由（INV-17 已扩至详细报告时限，one-architecture 5849fa0f5）
+  - from: 已提交
     to: 已认定
     command: 认定索赔
-  - from: 已提出
-    to: 已拒绝或撤回
-    command: 拒绝或撤回索赔
+  - from: 已提交
+    to: 已拒绝
+    command: 拒绝索赔
+    note: 拟命令；被索赔方书面拒绝，理由必填
+  - from: 已通知
+    to: 已撤回
+    command: 撤回索赔
     reverse_of: 提出索赔
+    note: 拟命令；索赔方撤回，理由必填
+  - from: 已提交
+    to: 已撤回
+    command: 撤回索赔
+    reverse_of: 提出索赔
+    note: 拟命令；索赔方撤回，理由必填
 - aggregate: AGG-17
   name: 风险交付授权
   initial: 已申请
@@ -1474,14 +1494,17 @@ machines:
     - 原因必填
 - aggregate: AGG-02
   name: 资质证书
-  note: 版本化：延续或降级后登记的是新有效期或新等级版本，旧版本被取代；已撤销、已到期不再恢复
+  note: 版本化：延续或降级后登记的是新有效期或新等级版本；延续时旧版本被取代，降级时旧版本到已降级；已撤销、已到期不再恢复。核查中、延续中期间证书仍有效（引用方按有效判断）
   initial: 有效
   states:
   - 有效
   - 核查中
+  - 延续中
   - name: 已到期
     terminal: true
   - name: 已撤销
+    terminal: true
+  - name: 已降级
     terminal: true
   - name: 被取代
     terminal: true
@@ -1498,7 +1521,7 @@ machines:
     guard:
     - 结果=有效
   - from: 核查中
-    to: 被取代
+    to: 已降级
     command: 登记核查结果
     guard:
     - 结果=降级（新等级版本同事务生效）
@@ -1513,11 +1536,15 @@ machines:
     command: 登记核查结果
     guard:
     - 结果=撤销
+  - from: 有效
+    to: 延续中
+    command: 登记资质延续申请
+    note: 拟命令；附发证机关受理回执
   - from: null
     to: 有效
     command: 延续资质
     note: 新有效期版本实例
-  - from: 有效
+  - from: 延续中
     to: 被取代
     command: 延续资质
     note: 同事务：旧版本被取代
@@ -1531,6 +1558,11 @@ machines:
     command: 标记资质已到期
     guard:
     - 到期日届满且未延续
+  - from: 延续中
+    to: 已到期
+    command: 标记资质已到期
+    guard:
+    - 到期日届满且未获延续
 - aggregate: AGG-03
   name: 服务产品版本
   note: 版本化：各版本并行，「启用」= 该版本已发布，「停用」= 已停用（逐版本映射，不是新版取代旧版）
@@ -2054,7 +2086,7 @@ machines:
     command: 归档项目
 - aggregate: AGG-20
   name: 项目 WBS
-  note: 一台机承载两类节点：阶段节点（阶段·前缀）与工作包（工作包·前缀）；已锁定的工作包可作废（见 NOTES）
+  note: 一台机承载两类节点：阶段节点（阶段·前缀）与工作包（工作包·前缀）。工作包「发布」即进入进行中，INV-42 的「已发布」指进行中及其后各状态；「锁定」是完成后停止记工时，返工经「转入返工」重开（返工工时另由 INV-53 在工时侧读返工认定，WBS 不引用返工认定）；未发布的可删或作废，已发布的只作废、原因必填（INV-42、S-33）
   initial: 阶段未开始
   states:
   - 阶段未开始
@@ -2062,7 +2094,10 @@ machines:
   - name: 阶段已完成
     terminal: true
   - 工作包未发布
+  - 工作包进行中
+  - 工作包已完成
   - 工作包已锁定
+  - 工作包返工中
   - name: 工作包已作废
     terminal: true
   transitions:
@@ -2087,23 +2122,65 @@ machines:
     guard:
     - INV-41
   - from: 工作包未发布
+    to: 工作包进行中
+    command: 发布工作包
+    guard:
+    - INV-41
+    note: 拟命令；发布后可记工时，不再可删（INV-42）
+  - from: 工作包进行中
+    to: 工作包已完成
+    command: 完成工作包
+    note: 拟命令；完成后仍可补记工时，至锁定为止
+  - from: 工作包已完成
     to: 工作包已锁定
     command: 锁定工作包
     guard:
     - INV-42
+    note: 锁定即停止记工时
+  - from: 工作包已完成
+    to: 工作包返工中
+    command: 转入返工
+    note: 拟命令；返工原因必填
+  - from: 工作包已锁定
+    to: 工作包返工中
+    command: 转入返工
+    note: 拟命令；返工原因必填，重开记工时（返工工时仍须有返工认定，INV-53）
+  - from: 工作包返工中
+    to: 工作包已完成
+    command: 完成工作包
+    note: 拟命令
   - from: 工作包未发布
     to: 工作包已作废
     command: 作废工作包
     guard:
     - INV-42
+  - from: 工作包进行中
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填
+  - from: 工作包已完成
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填
   - from: 工作包已锁定
     to: 工作包已作废
     command: 作废工作包
     guard:
     - INV-42
+    note: 已发布只作废，原因必填（S-33）
+  - from: 工作包返工中
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填
 - aggregate: AGG-21
   name: 交付计划版本
-  note: 版本化：对客基线与内部基线各只有一个生效版本，新版本批准后旧版本被取代；对客基线须注明依据的内部基线版本（INV-140 暂号，缺即拒），内部基线须含全部合同里程碑、日期晚于对客只提示（INV-141 暂号）；考核按内部基线，延期、结算与索赔按对客基线（用户 LEB-07）
+  note: 版本化：对客基线与内部基线各只有一个生效版本，新版本批准后旧版本被取代；对客基线须注明依据的内部基线版本（INV-140，缺即拒），内部基线须含全部合同里程碑、日期晚于对客只提示（INV-141）；考核按内部基线，延期、结算与索赔按对客基线（用户 LEB-07）
   initial: 草拟
   states:
   - 草拟

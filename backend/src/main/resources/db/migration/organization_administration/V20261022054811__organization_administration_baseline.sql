@@ -60,7 +60,7 @@ CREATE TABLE organization_administration.state_transitions (
 );
 CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on_date ON organization_administration.state_transitions (legal_entity_id, occurred_on_date) WHERE legal_entity_id IS NOT NULL;
 CREATE INDEX ix_state_transitions_recorded_at ON organization_administration.state_transitions (recorded_at, id);
-CREATE FUNCTION organization_administration.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_administration.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP = 'DELETE' AND current_user = (SELECT pg_get_userbyid(c.relowner) FROM pg_class c WHERE c.oid = TG_RELID) THEN
         RETURN OLD;
@@ -115,7 +115,7 @@ COMMENT ON COLUMN organization_administration.config_sets.created_at IS '创建�
 COMMENT ON COLUMN organization_administration.config_sets.updated_at IS '更新时间：只随乐观锁版本变化';
 COMMENT ON COLUMN organization_administration.config_sets.version IS '乐观锁版本：每条命令（起草、确认、撤回，确认时库内关闭前一版本也随确认命令，哪怕只改版本行）都推进它，并发冲突一律在这一行判定（ADR-0075 决定 3）';
 
-CREATE FUNCTION organization_administration.guard_config_set_change() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_administration.guard_config_set_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'organization_administration.config_sets: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
@@ -192,7 +192,7 @@ COMMENT ON COLUMN organization_administration.config_set_versions.created_at IS 
 COMMENT ON COLUMN organization_administration.config_set_versions.updated_at IS '更新时间：确认、撤回、被后继版本关闭时各更新一次';
 COMMENT ON COLUMN organization_administration.config_set_versions.version IS '乐观锁版本：本行自己的 version，起草时为 1，确认、撤回与被关闭各推进一次；同时是本行状态转换的序号来源（ADR-0075 决定 1、2），关闭不写转换故序号可跳号；并发冲突以配置集根的 version 判定，不以本列判定（决定 3）';
 
-CREATE FUNCTION organization_administration.guard_config_set_version_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_administration.guard_config_set_version_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF NEW.version <> 1 THEN
         RAISE EXCEPTION 'organization_administration.config_set_versions: a new version row starts at version 1 (ADR-0075 decision 3)'
@@ -205,7 +205,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
-CREATE FUNCTION organization_administration.guard_config_set_version_change() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_administration.guard_config_set_version_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     confirmation_columns text[] := ARRAY['confirmation_status', 'confirmed_by', 'confirmed_at', 'decision_audit_entry_id', 'updated_at', 'version'];
     withdrawal_columns   text[] := ARRAY['confirmation_status', 'withdrawn_by', 'withdrawn_at', 'withdraw_reason_text', 'updated_at', 'version'];
@@ -270,7 +270,7 @@ CREATE TRIGGER tg_config_set_versions_guard BEFORE UPDATE OR DELETE ON organizat
 CREATE TRIGGER tg_config_set_versions_guard_truncate BEFORE TRUNCATE ON organization_administration.config_set_versions
     FOR EACH STATEMENT EXECUTE FUNCTION organization_administration.guard_config_set_version_change();
 
-CREATE FUNCTION organization_administration.assert_config_version_complete(p_config_set_version_id uuid, p_config_set_code text) RETURNS void LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_administration.assert_config_version_complete(p_config_set_version_id uuid, p_config_set_code text) RETURNS void LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     item_count bigint;
 BEGIN
@@ -287,7 +287,7 @@ BEGIN
 END $$;
 COMMENT ON FUNCTION organization_administration.assert_config_version_complete(uuid, text) IS '配置集版本定版前的完整性检查：确认触发器调用；所有配置集至少一条条目，各配置集特有检查按配置集代码分支，由各卡以追加迁移 CREATE OR REPLACE 追加；尚未装分支的配置集失败而不放行';
 
-CREATE FUNCTION organization_administration.guard_config_item_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_administration.guard_config_item_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     v_status text;
 BEGIN
@@ -301,7 +301,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
-CREATE FUNCTION organization_administration.refuse_append_only_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_administration.refuse_append_only_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION '%.% is append-only: % is not allowed', TG_TABLE_SCHEMA, TG_TABLE_NAME, TG_OP USING ERRCODE = 'restrict_violation';
 END $$;

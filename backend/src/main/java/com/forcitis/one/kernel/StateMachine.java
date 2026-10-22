@@ -29,6 +29,11 @@ public final class StateMachine<S extends Enum<S>> {
         return Set.copyOf(legal.get(from));
     }
 
+    /** The transition the module has no code of its own for: {@link KernelError#KERNEL_TRANSITION_ILLEGAL}. */
+    public S require(S from, S to) {
+        return require(from, to, KernelError.KERNEL_TRANSITION_ILLEGAL);
+    }
+
     public S require(S from, S to, ErrorCode code) {
         if (!allows(from, to)) {
             throw new DomainException(code, ErrorKind.CONFLICT, type.getSimpleName() + " cannot go from " + from + " to " + to);
