@@ -92,3 +92,5 @@
 **本期教训**：⑪提交与推送分两次调用（推送前钩子按当时 HEAD 跑 precheck）；⑫另开 worktree（`git worktree add ../nx5-kerr2 -b <分支> origin/main`）可在 opus 复审读着当前目录时并行做下一张卡，不用切分支；⑬`build_terms` 报「基线已过期」要同时删 `term-rules-baseline.json` 的键并调低对应规则 `count`；⑭合 main 时 `kernel.yaml` 这类提议词条文件最易冲突，先看 main 上是否已有同 id 词条；⑮前端生成物手改后用 `pnpm install --frozen-lockfile --offline` 再跑 precheck，不要靠本机缺依赖放过；⑯本机 Docker 停了不要自行起，写明未实测交 CI。
 
 **22:55 补记**：#634 的 sonnet 复核通过、结论已贴 PR、CI 已绿，等调度批；#629 CI 因 runner 的 docker keychain 报错失败（非代码问题），已重跑失败任务。本轮交接以第 7 节为准。
+
+**23:05 更正（one-coordinator）**：①#634 不批：H1 是越权，须 **opus 终审只审 H1 修法**，sonnet 复核不能代替；终审已派出，结论贴 PR、CI 绿后报调度。②#599 还欠 one-data 一项必改：`AuditSubjectKindRegistryIT` 加用例，断言 `ck_audit_entries_subject_id` 里的类别集合等于 `has_object=false` 的 code 集合，表注释再补一句；改完请 one-data 签发再报批。③one-ops 已问迁入角色名：dev `one_dev_history_loader`、prod `one_prod_history_loader`，仅建。④清空后调度发接续，接着做 #599 必改与 REG-4，不另开会话。
