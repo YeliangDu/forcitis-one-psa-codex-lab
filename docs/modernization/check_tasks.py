@@ -139,13 +139,13 @@ def task_warnings(tasks):
     return warnings
 
 
-def updated_at(value, default_zone=None):
-    """The moment a 最后更新 value names (a date counts as its start), None when it is neither an ISO date nor an ISO date-time."""
+def updated_at(value):
+    """The moment a 最后更新 value names (a date counts as the end of that day, so a card updated "today" is never stale at noon), local time when no zone is given; None when it is neither an ISO date nor an ISO date-time."""
     try:
-        moment = datetime.datetime.fromisoformat(value) if 'T' in value or ' ' in value else datetime.datetime.combine(datetime.date.fromisoformat(value), datetime.time())
+        moment = datetime.datetime.fromisoformat(value) if 'T' in value or ' ' in value else datetime.datetime.combine(datetime.date.fromisoformat(value), datetime.time(23, 59, 59))
     except ValueError:
         return None
-    return moment if moment.tzinfo else moment.astimezone(default_zone) if default_zone else moment.astimezone()
+    return moment if moment.tzinfo else moment.astimezone()
 
 
 def merged_branches(base=BASE, ref='origin/main'):
@@ -159,6 +159,7 @@ def merged_branches(base=BASE, ref='origin/main'):
 def stale_report(tasks, now, merged, hours=STALE_HOURS):
     """Lines of the stale-register report: 进行中 or 阻塞 not updated for more than `hours` (or never), and a branch that is in main while the status is not 完成/作废. Report only."""
     lines = []
+    shared = {b for b, n in collections.Counter(t['分支'] for _, t in tasks).items() if n > 1}   # one branch for several cards (or a branch used again after its merge) says nothing about one of them
     for path, task in tasks:
         status = task['状态']
         done = status in ('完成', '作废') or LEGACY_STATUS.get(status) in ('完成', '作废')
@@ -169,7 +170,7 @@ def stale_report(tasks, now, merged, hours=STALE_HOURS):
             elif now - stamp > datetime.timedelta(hours=hours):
                 lines.append(f'{task["任务号"]}（{task["会话"]}）状态 {status}，最后更新 {task["最后更新"]}，已超过 {hours} 小时')
         branch = task['分支']
-        if merged and branch in merged and not done:
+        if merged and branch in merged and branch not in shared and not done:
             lines.append(f'{task["任务号"]}（{task["会话"]}）分支 {branch} 已合入 main，状态仍是 {status}')
     return lines
 
@@ -417,6 +418,9 @@ def self_test():
     assert stale_report([(path, dict(working, 状态='复审中'))], now, set()) != [], '存量的复审中按进行中算'
     assert len(stale_report([(path, dict(working, 状态='完成', 分支='claude/x'))], now, {'claude/x'})) == 0
     assert len(stale_report([(path, dict(working, 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 1, '分支已合入而状态不是完成'
+    twin = dict(working, 任务号='NAM-1017-GLO-04', 最后更新='2026-10-22T09:00:00+02:00')
+    assert stale_report([(path, dict(working, 最后更新='2026-10-22T09:00:00+02:00')), (path, twin)], now, {'claude/x'}) == [], '几张卡共用一个分支：不凭分支判'
+    assert updated_at('2026-10-22') > updated_at('2026-10-22T12:00:00') and updated_at('2026-10-22').hour == 23, '只写日期按当天结束算'
     assert len(stale_report([(path, dict(working, 状态='已派', 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 1
     assert len(stale_report([(path, dict(working, 状态='已提交', 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 0, '存量的已提交算完成'
     assert len(task_warnings([(path, dict(task, 状态='已合并')), (path, dict(task, 状态='待派'))])) == 1, '存量状态合成一条提示'

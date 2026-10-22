@@ -20,7 +20,7 @@ import check_tasks  # noqa: E402
 BASE = Path(__file__).resolve().parent
 KEEP = ('阻塞', '作废')
 NO_TRACE = '没有找到任务号的任何痕迹'
-NOT_WORK = ':(exclude)docs/modernization/tasks'
+NOT_WORK = ':(top,exclude)docs/modernization/tasks'
 
 
 def git(base, *args):
@@ -28,22 +28,32 @@ def git(base, *args):
     return result.stdout if result.returncode == 0 else ''
 
 
-def evidence(base, task, ref, prs, branches, merged):
+def named_in_subject(output, ident):
+    """The lines of a `--format=%h %s` log whose subject (not body) names the card: a commit that only mentions another card in passing is no work on it; registering a card is none either."""
+    return [line for line in output.splitlines() if ident.lower() in line.lower() and '登记' not in line]
+
+
+def repo_root(base):
+    """The top of the repository: pathspecs and git -C must not depend on which sub-directory the fragments live in."""
+    return git(base, 'rev-parse', '--show-toplevel').strip() or str(base)
+
+
+def evidence(base, task, ref, prs, branches, merged, shared=frozenset()):
     """(suggested status, evidence lines) for one fragment."""
     ident = task['任务号']
     proof, merged_hit, open_hit = [], False, False
-    in_main = git(base, 'log', ref, '--fixed-strings', '--grep', ident, '--format=%h %s', '--', '.', NOT_WORK)
-    if in_main.strip():
+    in_main = named_in_subject(git(base, 'log', ref, '--fixed-strings', '-i', '--grep', ident, '--format=%h %s', '--', ':(top)', NOT_WORK), ident)
+    if in_main:
         merged_hit = True
-        proof.append(f'已在 {ref} 的提交：' + in_main.splitlines()[0][:100])
-    merges = git(base, 'log', ref, '--merges', '--fixed-strings', '--grep', ident, '--format=%h %s')
-    if merges.strip():
+        proof.append(f'已在 {ref} 的提交：' + in_main[0][:100])
+    merges = [line for line in git(base, 'log', ref, '--merges', '--fixed-strings', '-i', '--grep', ident, '--format=%h %s %b').splitlines() if ident.lower() in line.lower() and '登记' not in line]
+    if merges:
         merged_hit = True
-        proof.append('合并说明带任务号：' + merges.splitlines()[0][:100])
-    elsewhere = git(base, 'log', '--all', '--fixed-strings', '--grep', ident, '--format=%h %s', '--', '.', NOT_WORK)
-    if elsewhere.strip() and not merged_hit:
+        proof.append('合并说明带任务号：' + merges[0][:100])
+    elsewhere = named_in_subject(git(base, 'log', '--remotes', '--fixed-strings', '-i', '--grep', ident, '--format=%h %s', '--', ':(top)', NOT_WORK), ident)
+    if elsewhere and not merged_hit:
         open_hit = True
-        proof.append(f'有提交但未合入 {ref}：' + elsewhere.splitlines()[0][:100])
+        proof.append(f'有提交但未合入 {ref}：' + elsewhere[0][:100])
     for name in sorted(branches):
         if ident.lower() in name.lower():
             proof.append(f'分支名带任务号：{name}')
@@ -53,7 +63,9 @@ def evidence(base, task, ref, prs, branches, merged):
                 open_hit = True
     branch = task['分支']
     if branch and branch != check_tasks.UNKNOWN:
-        if branch in merged:
+        if branch in merged and branch in shared:
+            proof.append(f'片段的分支 {branch} 已合入，但几张卡共用它：不作证据')
+        elif branch in merged:
             merged_hit = True
             proof.append(f'片段的分支 {branch} 已合入')
         elif branch in branches:
@@ -67,27 +79,31 @@ def evidence(base, task, ref, prs, branches, merged):
                 merged_hit = True
             elif state == 'OPEN':
                 open_hit = True
-    if task['状态'] in KEEP:
-        return task['状态'], proof + ['人工标注的阻塞或作废，不覆盖']
+    if check_tasks.LEGACY_STATUS.get(task['状态'], task['状态']) in KEEP:
+        return check_tasks.LEGACY_STATUS.get(task['状态'], task['状态']), proof + ['人工标注的阻塞或作废，不覆盖']
     if merged_hit:
         return '完成', proof
     if open_hit:
         return '进行中', proof
-    return '已派', proof or [NO_TRACE]
+    return '已派', ([p for p in proof if '不作证据' not in p] or [NO_TRACE])
 
 
 def suggestions(base, tasks, ref='origin/main', prs=(), only_session=None):
     """[(task, current status, suggested status, evidence lines)] for fragments whose current status differs from the suggestion."""
+    base = repo_root(base)
     branches = {b.removeprefix('origin/') for b in git(base, 'branch', '-r', '--format=%(refname:short)').split()}
     merged = check_tasks.merged_branches(base, ref) or set()
+    shared = {b for b, n in collections.Counter(t['分支'] for _, t in tasks).items() if n > 1}
     rows, unverifiable = [], []
     for _, task in tasks:
         if only_session and task['会话'] != only_session:
             continue
-        status, proof = evidence(base, task, ref, prs, branches, merged)
+        status, proof = evidence(base, task, ref, prs, branches, merged, shared)
         current = check_tasks.LEGACY_STATUS.get(task['状态'], task['状态'])
-        if current in ('完成', '作废') and proof == [NO_TRACE]:   # PRs often name a PR number, not the card: a finished card without a trace is not sent back to 已派, only counted
+        if current in ('完成', '作废') and (proof == [NO_TRACE] or (current == '完成' and status != '完成')):   # PRs often name a PR number, not the card: a finished card without a trace is not sent back to 已派, only counted
             unverifiable.append(task)
+        elif proof == [NO_TRACE] and task['状态'] == check_tasks.UNKNOWN:
+            continue   # status unknown and nothing found: a suggestion of 已派 would be a guess, not a finding
         elif current != status:
             rows.append((task, task['状态'], status, proof))
     return rows, unverifiable
@@ -166,7 +182,8 @@ def self_test():
         run('init', '-q', '-b', 'main')
         cards = {'GOV-1021-QUA-01': dict(), 'GOV-1021-QUA-02': dict(status='已派'), 'GOV-1021-QUA-03': dict(status='已派'), 'GOV-1021-QUA-04': dict(status='阻塞'),
                  'GOV-1021-QUA-05': dict(status='已合并'), 'GOV-1021-QUA-06': dict(status='已派', branch='claude/side'), 'GOV-1021-QUA-07': dict(status='已派'), 'GOV-1021-QUA-08': dict(status='完成'),
-                 'GOV-1021-COO-01': dict(status='已派', session='one-coordinator')}
+                 'GOV-1021-COO-01': dict(status='已派', session='one-coordinator'),
+                 'GOV-1021-QUA-09': dict(status='已取消', branch='claude/side'), 'GOV-1021-QUA-10': dict(status='已派', branch='claude/shared'), 'GOV-1021-QUA-11': dict(status='已派', branch='claude/shared')}
         folder = base / 'docs/modernization/tasks'
         for ident, kw in cards.items():
             (folder / f'{ident}.md').write_text(fragment(ident, **kw), encoding='utf-8')
@@ -178,14 +195,21 @@ def self_test():
         run('checkout', '-q', '-b', 'claude/side')
         commit('无任务号的提交', 'work3.txt')
         run('checkout', '-q', 'main')
+        run('checkout', '-q', '-b', 'claude/shared')
+        run('checkout', '-q', 'main')
+        run('merge', '--no-ff', '-q', '-m', 'merge shared', 'claude/shared')
         run('checkout', '-q', '-b', 'gov-1021-qua-07-branch')
         commit('空提交')
         run('checkout', '-q', 'main')
-        commit('Merge pull request #9 from x/y\n\nGOV-1021-QUA-05 合并说明里的任务号', 'work4.txt')
+        run('checkout', '-q', '-b', 'pr9')
+        commit('work for the pull request', 'work4.txt')
+        run('checkout', '-q', 'main')
+        run('merge', '--no-ff', '-q', '-m', 'Merge pull request #9 from x/y\n\nGOV-1021-QUA-05 合并说明里的任务号', 'pr9')
+        commit('feat: 别的事\n\n正文里顺带提到 GOV-1021-QUA-03', 'work5.txt')   # a body that only mentions a card is no work on it
         remote = Path(raw) / 'remote.git'
         subprocess.run(['git', 'init', '-q', '--bare', str(remote)], check=True)
         run('remote', 'add', 'origin', str(remote))
-        run('push', '-q', 'origin', 'main', 'wip', 'claude/side', 'gov-1021-qua-07-branch')
+        run('push', '-q', 'origin', 'main', 'wip', 'claude/side', 'claude/shared', 'gov-1021-qua-07-branch', 'pr9')
         run('fetch', '-q', 'origin')
 
         tasks = check_tasks.collect(base / 'docs/modernization')
@@ -196,7 +220,13 @@ def self_test():
         assert rows['GOV-1021-QUA-02'][1] == '进行中' and '未合入' in ' '.join(rows['GOV-1021-QUA-02'][2]), '有提交没合入'
         assert 'GOV-1021-QUA-03' not in rows, '已派且没有痕迹：与建议一致，不列'
         assert 'GOV-1021-QUA-04' not in rows, '阻塞不覆盖'
-        assert 'GOV-1021-QUA-05' not in rows, '存量的已合并按完成算，合并说明里有任务号'
+        assert 'GOV-1021-QUA-05' not in rows, '存量的已合并按完成算，真正的合并提交的说明里有任务号'
+        assert 'GOV-1021-QUA-03' not in rows, '正文里顺带提到任务号的提交不算这张卡的工作'
+        assert 'GOV-1021-QUA-09' not in rows, '存量的已取消按作废算，不被分支覆盖'
+        assert 'GOV-1021-QUA-10' not in rows and 'GOV-1021-QUA-11' not in rows, '几张卡共用的分支已合入：不作证据'
+        assert repo_root(base / 'docs/modernization') == str(base.resolve()) or Path(repo_root(base / 'docs/modernization')).resolve() == base.resolve(), '子目录也找到仓库顶层'
+        sub_listed, _ = suggestions(base / 'docs/modernization', tasks, 'origin/main', prs)
+        assert {t['任务号'] for t, *_ in sub_listed} == set(rows), '从片段所在的子目录运行与从仓库根运行结果一致（pathspec 以仓库顶层为准）'
         assert rows['GOV-1021-QUA-06'][1] == '进行中' and '未合入' in ' '.join(rows['GOV-1021-QUA-06'][2]), '片段写的分支在远端未合入'
         assert rows['GOV-1021-QUA-07'][1] == '进行中' and '分支名带任务号' in ' '.join(rows['GOV-1021-QUA-07'][2]), '分支名带任务号'
         assert 'GOV-1021-QUA-08' not in rows and [t['任务号'] for t in unverifiable] == ['GOV-1021-QUA-08'], '状态写完成而没有任何痕迹：不降级，只计数'
