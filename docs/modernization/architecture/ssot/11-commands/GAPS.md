@@ -33,8 +33,8 @@ source.index 为各来源列表的从 0 开始序号；group 汇集 commands 文
 
 ## 转换回填率
 
-- 合计：826/873（94.62%）
-- transitions：817/864；未回填 47
+- 合计：834/881（94.67%）
+- transitions：825/872；未回填 47
 - pending：9/9；未回填 0
 
 只匹配 (aggregate, command 原文)，不去空格、不去「〔缺〕」、不做近似或同义匹配。
