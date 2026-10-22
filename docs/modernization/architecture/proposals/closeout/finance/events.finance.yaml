@@ -52,6 +52,12 @@ events:
   emitted_by: 登记付款失败
   subscribers:
   - 仅分析
+- name: 付款已部分退回
+  publisher: AGG-53
+  emitted_by: 登记代发退回
+  subscribers:
+  - B-10 PRC-75（步 8，AGG-52 冲回应付核销，只冲回退回额）
+  - B-15 PRC-126（入口 2：重发此前因退回款未登记被拒的补发明细，people 组）
 - name: 付款已退票
   publisher: AGG-53
   emitted_by: 登记退票

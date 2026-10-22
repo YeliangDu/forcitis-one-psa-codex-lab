@@ -208,8 +208,49 @@ def _scenarios(mq, d):
 
     # conflict: nothing is merged or labelled
     gh = FakeGh(); gh.add(6, merge="DIRTY")
-    proc, q, log, _ = _proc(mq, d, "c", gh, [6])
-    assert proc.process(6) == "CONFLICT" and events(log) == ["START", "CONFLICT"] and gh.calls == []
+    proc, q, log, _ = _proc(mq, d, "c", gh, [6], updater=lambda repo, branch, wt: "conflict")
+    assert proc.process(6) == "CONFLICT" and events(log) == ["START", "SSH-UPDATE-CONFLICT", "CONFLICT"] and not any(c[0] == "merge" for c in gh.calls), events(log)
+
+    # a conflict only in products of build_all.py: the update settles it (AUTO-RESOLVE) and the pull request goes on to its CI and merge; gh update-branch is not asked about a conflicted branch
+    def regenerating_for(gh, n):
+        def update(repo, branch, wt):
+            gh.prs[n]["merge"] = "CLEAN"
+            return "regenerated"
+        return update
+    gh = FakeGh(); gh.add(60, merge="DIRTY")
+
+    def regenerating(repo, branch, wt):
+        gh.prs[60]["merge"] = "CLEAN"
+        return "regenerated"
+    proc, q, log, _ = _proc(mq, d, "c-auto", gh, [60], updater=regenerating)
+    assert proc.process(60) == "MERGED" and "AUTO-RESOLVE" in events(log) and "CONFLICT" not in events(log) and ("update_branch", 60) not in gh.calls, events(log)
+    gh = FakeGh(); gh.add(62, merge="DIRTY")
+    proc, q, log, _ = _proc(mq, d, "c-settle", gh, [62], updater=regenerating_for(gh, 62))
+    settled, why = proc.settle_dirty(62, gh.view(62), None)
+    assert settled["merge"] == "CLEAN" and why is None and "AUTO-RESOLVE" in events(log), "settled"
+    gh = FakeGh(); gh.add(63, merge="DIRTY")
+    proc, q, log, _ = _proc(mq, d, "c-settle2", gh, [63], updater=lambda repo, branch, wt: "conflict")
+    assert proc.settle_dirty(63, gh.view(63), None) == (None, "conflict")
+    gh = FakeGh(); gh.add(64, merge="DIRTY")
+    proc, q, log, _ = _proc(mq, d, "c-settle3", gh, [64], updater=lambda repo, branch, wt: "error")
+    assert proc.settle_dirty(64, gh.view(64), None) == (None, "error") and proc.process(64) == "HOLD" and "CONFLICT" not in events(log), "an update that failed is a HOLD, not a conflict"
+    # GitHub sees the push late: DIRTY for the first two looks, then clean
+    gh = FakeGh(); gh.add(65, merge="DIRTY")
+    looks = {"n": 0}
+    real_view = gh.view
+
+    def late_view(n):
+        v = real_view(n)
+        looks["n"] += 1
+        if looks["n"] >= 4:
+            gh.prs[n]["merge"] = "CLEAN"
+        return v
+    gh.view = late_view
+    proc, q, log, slept = _proc(mq, d, "c-late", gh, [65], updater=lambda repo, branch, wt: "regenerated")
+    assert proc.process(65) == "MERGED" and "CONFLICT" not in events(log) and slept.count(30) >= 2, (events(log), slept)
+    gh = FakeGh(); gh.add(61, merge="DIRTY")
+    proc, q, log, _ = _proc(mq, d, "c-still", gh, [61], updater=lambda repo, branch, wt: "regenerated")
+    assert proc.process(61) == "CONFLICT" and "AUTO-RESOLVE" in events(log), "regenerated but GitHub still sees a conflict: back to the author"
 
     # closed, or gh cannot say: HOLD, never merged
     gh = FakeGh(); gh.add(7, state="CLOSED")
@@ -630,6 +671,7 @@ def _ssh_update(mq, d):
     assert mq.update_over_ssh(work, "pr-conflict", wt) == "conflict"
     g(work, "fetch", "-q", "origin")
     assert g(work, "rev-parse", "origin/pr-conflict") == before and not os.path.exists(wt) and "mq-wt" not in g(work, "worktree", "list")
+    _regenerated(mq, d)
     assert mq.update_over_ssh(work, "no-such-branch", wt) == "error"
     lonely = os.path.join(d, "lonely")
     g(d, "init", "-q", "-b", "main", lonely)
@@ -1117,3 +1159,116 @@ def _docs_tiers(mq, d):
         proc, q, log, _ = _proc(mq, d, f"dt-{name}", gh, [210], docs_only_fn=check)
         assert proc.process(210) == "MERGED", log.lines
         assert ("UPDATE" in events(log)) is reruns, (name, events(log))
+
+
+# the stand-in tree needs mq.py's own path of build_all.py; written in pieces because relevant_change.py takes every script that names a doc path for a reader of it
+MOD = "docs" + "/" + "modernization"
+BUILD_ALL_SOURCE = """import os, sys
+here = os.path.dirname(os.path.abspath(__file__))
+if "--check" in sys.argv:
+    if os.path.exists(os.path.join(here, "CHECKFAIL")):
+        sys.exit("check fails")
+    want = open(os.path.join(here, "GEN.md"), encoding="utf-8").read()
+    got = "".join(open(os.path.join(here, "inputs", n), encoding="utf-8").read() for n in sorted(os.listdir(os.path.join(here, "inputs"))))
+    sys.exit(0 if want == got else "GEN.md is not what the inputs generate")
+if os.path.exists(os.path.join(here, "WRITELOG")):
+    open(os.path.join(here, "build.log"), "w").write("log")
+if os.path.exists(os.path.join(here, "FAIL")):
+    sys.exit("generation failed")
+text = "".join(open(os.path.join(here, "inputs", n), encoding="utf-8").read() for n in sorted(os.listdir(os.path.join(here, "inputs"))))
+open(os.path.join(here, "GEN.md"), "w", encoding="utf-8").write(text)
+"""
+
+
+def _regenerated(mq, d):
+    """Real git and a stand-in build_all.py: a merge that conflicts only in what build_all.py generates is finished by regenerating it; a conflict in anything a person wrote is not."""
+    def g(cwd, *a):
+        r = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *a], cwd=cwd, capture_output=True, text=True)
+        assert r.returncode == 0, (a, r.stderr)
+        return r.stdout.strip()
+
+    origin, work = os.path.join(d, "r.git"), os.path.join(d, "rw")
+    g(d, "init", "-q", "--bare", "-b", "main", origin)
+    g(d, "clone", "-q", origin, work)
+    os.makedirs(os.path.join(work, f"{MOD}/inputs"))
+
+    def write(path, text):
+        with open(os.path.join(work, path), "w", encoding="utf-8") as f:
+            f.write(text)
+
+    def commit(msg):
+        g(work, "add", "-A"); g(work, "commit", "-q", "-m", msg)
+
+    write(f"{MOD}/build_all.py", BUILD_ALL_SOURCE)
+    write(f"{MOD}/inputs/a.txt", "a\n"); write(f"{MOD}/inputs/b.txt", "b\n"); write(f"{MOD}/GEN.md", "a\nb\n")
+    commit("base"); g(work, "push", "-q", "origin", "main")
+
+    def branch(name, edits):
+        g(work, "checkout", "-q", "-B", name, "main")
+        for path, text in edits.items():
+            write(path, text)
+        commit(name); g(work, "push", "-q", "origin", name)
+
+    branch("pr-gen", {f"{MOD}/inputs/a.txt": "a2\n", f"{MOD}/GEN.md": "a2\nb\n"})
+    branch("pr-both", {f"{MOD}/inputs/a.txt": "a-mine\n", f"{MOD}/GEN.md": "a-mine\nb\n"})
+    branch("pr-nogen", {f"{MOD}/inputs/a.txt": "a3\n", f"{MOD}/GEN.md": "a3\nb\n", f"{MOD}/FAIL": "x"})
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/inputs/b.txt", "b2\n"); write(f"{MOD}/GEN.md", "a\nb2\n"); commit("main moves b")
+    g(work, "push", "-q", "origin", "main")
+    wt = os.path.join(d, "mq-wt-r")
+
+    result = mq.update_over_ssh(work, "pr-gen", wt)
+    assert result == "regenerated", result
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "show", f"origin/pr-gen:{MOD}/GEN.md") == "a2\nb2", "both sides' inputs are in the regenerated product"
+    assert g(work, "merge-base", "--is-ancestor", "origin/main", "origin/pr-gen") == "" and not os.path.exists(wt)
+
+    before = g(work, "rev-parse", "origin/pr-both")
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/inputs/a.txt", "a-main\n"); write(f"{MOD}/GEN.md", "a-main\nb2\n"); commit("main moves a")
+    g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-both", wt) == "conflict", "a file a person wrote conflicts too: back to the author"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr-both") == before and not os.path.exists(wt), "nothing pushed"
+
+    before = g(work, "rev-parse", "origin/pr-nogen")
+    assert mq.update_over_ssh(work, "pr-nogen", wt) == "conflict", "build_all.py fails on the merged tree: not settled"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr-nogen") == before
+
+    branch("pr-check", {f"{MOD}/inputs/c.txt": "c\\n", f"{MOD}/GEN.md": "a-main\\nb2\\nc\\n", f"{MOD}/CHECKFAIL": "x"})
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/inputs/b.txt", "b3\\n"); write(f"{MOD}/GEN.md", "a-main\\nb3\\n"); commit("main moves b again")
+    g(work, "push", "-q", "origin", "main")
+    before = g(work, "rev-parse", "origin/pr-check")
+    assert mq.update_over_ssh(work, "pr-check", wt) == "conflict", "build_all.py --check fails on the result: not pushed"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr-check") == before
+
+    # a symbolic link at a conflicted path is never written through; an untracked file build_all.py leaves behind is not committed blindly
+    outside = os.path.join(d, "victim.txt")
+    with open(outside, "w") as f:
+        f.write("untouched\\n")
+    g(work, "checkout", "-q", "main")
+    os.symlink(os.path.join(d, "start"), os.path.join(work, MOD, "link"))
+    commit("main adds a link"); g(work, "push", "-q", "origin", "main")
+    g(work, "checkout", "-q", "-B", "pr-link", "main")
+    os.remove(os.path.join(work, MOD, "link")); os.symlink(outside, os.path.join(work, MOD, "link"))   # the merge leaves the pull request's own link in the work tree
+    commit("pr moves the link"); g(work, "push", "-q", "origin", "pr-link")
+    g(work, "checkout", "-q", "main")
+    os.remove(os.path.join(work, MOD, "link")); os.symlink(os.path.join(d, "elsewhere"), os.path.join(work, MOD, "link"))
+    commit("main moves the link too"); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-link", wt) == "conflict" and open(outside).read() == "untouched\\n", "nothing is written through a link"
+
+    branch("pr-log", {f"{MOD}/inputs/c.txt": "c2\\n", f"{MOD}/GEN.md": "a-main\\nb3\\nc2\\n", f"{MOD}/WRITELOG": "x"})
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/inputs/b.txt", "b4\\n"); write(f"{MOD}/GEN.md", "a-main\\nb4\\n"); commit("main moves b once more")
+    g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-log", wt) == "conflict", "an untracked file build_all.py wrote: not committed, not pushed"
+
+    # a conflict in a file build_all.py does not generate, next to a generated one
+    branch("pr-extra", {f"{MOD}/other.txt": "mine\n", f"{MOD}/inputs/b.txt": "b-mine\n", f"{MOD}/GEN.md": "a-main\nb-mine\n"})
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/other.txt", "main\n"); commit("main touches other")
+    g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-extra", wt) == "conflict"
