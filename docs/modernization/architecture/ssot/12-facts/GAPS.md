@@ -14,24 +14,24 @@ N11-1 仅以空串、「—」或「-」判缺失，带括注值不会命中该�
 
 - OBJ-01 往来单位：— （「往来单位已合并」事件）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:17`
 - OBJ-04 集团：— （汇总维度）；in_system=false；`docs/modernization/architecture/ssot/10-objects/objects.yaml:75`
-- OBJ-06 合同范围条目：— （承诺比对基准）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:110`
-- OBJ-12 风险交付授权：— （为风险交付工时、金额度量提供维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:223`
-- OBJ-24 服务产品：— （分析维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:446`
-- OBJ-25 阶段类型：— （维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:464`
-- OBJ-26 标准成本费率表：— （计价参数）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:483`
-- OBJ-52 外部检测：— （不进我方成本）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:978`
-- OBJ-54 法人主体：— （各事实的法人维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1016`
-- OBJ-55 组织单元：— （部门维度；区域将作为数据范围维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1034`
-- OBJ-57 任职：— （费率与成本按工作日当日任职取值）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1071`
-- OBJ-61 薪酬档案：— （算薪输入）；in_system=false；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1144`
-- OBJ-63 专项附加扣除信息：— （算薪输入）；in_system=false；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1179`
-- OBJ-69 假期额度：— （余额）；in_system=false；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1290`
-- OBJ-82 开票申请：— （发票开具才产生事实）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1517`
-- OBJ-89 资金账户：— （期末余额）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1649`
-- OBJ-96 账簿：— （期间余额）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1778`
-- OBJ-99 报表行定义：— （某期报表是单据）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1836`
-- OBJ-102 指标定义：— （指标值是派生度量）；in_system=false；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1889`
-- OBJ-110 知识条目：— （不直接产生度量事实）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:2038`
+- OBJ-06 合同范围条目：— （承诺比对基准）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:111`
+- OBJ-12 风险交付授权：— （为风险交付工时、金额度量提供维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:224`
+- OBJ-24 服务产品：— （分析维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:447`
+- OBJ-25 阶段类型：— （维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:465`
+- OBJ-26 标准成本费率表：— （计价参数）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:484`
+- OBJ-52 外部检测：— （不进我方成本）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:979`
+- OBJ-54 法人主体：— （各事实的法人维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1017`
+- OBJ-55 组织单元：— （部门维度；区域将作为数据范围维度）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1035`
+- OBJ-57 任职：— （费率与成本按工作日当日任职取值）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1072`
+- OBJ-61 薪酬档案：— （算薪输入）；in_system=false；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1145`
+- OBJ-63 专项附加扣除信息：— （算薪输入）；in_system=false；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1180`
+- OBJ-69 假期额度：— （余额）；in_system=false；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1291`
+- OBJ-82 开票申请：— （发票开具才产生事实）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1518`
+- OBJ-89 资金账户：— （期末余额）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1650`
+- OBJ-96 账簿：— （期间余额）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1779`
+- OBJ-99 报表行定义：— （某期报表是单据）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1837`
+- OBJ-102 指标定义：— （指标值是派生度量）；in_system=false；`docs/modernization/architecture/ssot/10-objects/objects.yaml:1890`
+- OBJ-110 知识条目：— （不直接产生度量事实）；in_system=true；`docs/modernization/architecture/ssot/10-objects/objects.yaml:2039`
 
 ## 事件 description 原字段缺失（42）
 
