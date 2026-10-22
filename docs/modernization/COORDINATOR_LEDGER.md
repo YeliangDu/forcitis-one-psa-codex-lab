@@ -50,7 +50,7 @@
 - 不向会话要排期、不向用户转报估算（记忆 no-schedule-relay）。
 - 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
 - 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
-- 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r ：sync.py 后 batch set board/{lines,cards,prs,meta}（版本号见 on-merge.txt）。
+- 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r （已钉左栏，10-22 改版）：`python3 scratchpad(08ce11ca)/workbench/sync.py <工作区> <输出目录>` 读任务卡片段、gh、mq 生成 cards/sessions/prs/meta 四个 JSON，ArtifactData batch set board/*（带 if_version）；收到完成点报告和每天早上各同步一次，「要关注」里的停滞卡当天追。
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
