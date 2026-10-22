@@ -611,6 +611,8 @@ commands:
   - 协议
   - 回签日期
   - 基线
+  - 是否附生效条件（附条件时登记条件类型与约定期限）
+  - 生效依据（无附生效条件时同一事务写入：条件类型「签署即生效」、证据单据号、生效日）
   preconditions:
   - INV-05
   - INV-07
@@ -622,6 +624,26 @@ commands:
   - 协议ID
   emits:
   - ContractSigned
+  - 协议已生效（仅无附生效条件时同一事务发出）
+- name: 确认生效条件满足
+  aggregate: AGG-13
+  proposed: true
+  proposed_basis: 用户 GL5-01（intent 2026-10-22-061733）
+  params:
+  - 协议
+  - 条件类型
+  - 证据单据号
+  - 生效日
+  preconditions:
+  - 协议为「已签署」
+  - 生效依据三项必填，证据已登记（AGG-38）
+  authority:
+    A: 待定（推荐见 NOTES「GL5-01 生效条件确认人与停留时限」，随确认页交用户）
+  idempotency_key:
+  - 协议ID
+  emits:
+  - 协议已生效
+  pending_decision: 谁有权确认、条件长期不满足时在「已签署」最多停多久（GL5-01 第 ③ 点，随确认页交用户）
 - name: 应用变更
   aggregate: AGG-13
   params:
@@ -2561,7 +2583,7 @@ commands:
   - 项目已开始执行
   event_subscribers:
     项目已开始执行:
-    - B-05（AGG-13 已签署生效 → 履行中，S-33）
+    - B-05（AGG-13 已生效 → 履行中，S-33）
 - name: 暂停项目
   aggregate: AGG-19
   params:

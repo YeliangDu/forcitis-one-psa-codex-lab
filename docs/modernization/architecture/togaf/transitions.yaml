@@ -1,5 +1,6 @@
 # TOGAF 过渡架构（建设阶段）。ID = TA-<阶段>。每个阶段是一个可运行、可回滚的过渡架构（GUIDING_PRINCIPLES §2，brief §3）。
 # contexts 引用 ddd/contexts.yaml 的 BC ID；delivers 为本阶段新建或切换的 BC，其中 planned 的 BC 边界仍待按能力地图与价值流重审（README「规划项不是目标」）。
+# wave / waves：TA 交付的 BC 所在建造批（construction-plan.v1.yaml 的 wave；平台模块与迁入编排计 W0，reporting 计 W5；退役标识按 ADR-0051 决定 3 后第 86 行去向换算）；wave 取最晚一批，即本 TA 全部完成的批次。
 # status：done / in-progress / not-started。入口与出口条件以 brief 为准，这里只引用，不复制。维护：one-architecture。
 transitions:
 - id: TA-1a
@@ -8,6 +9,8 @@ transitions:
   after: []
   delivers: [platform.identity, platform.approval, platform.integration, platform.audit, platform.numbering, platform.scheduling,
              platform.idempotency, platform.eventing, platform.web, organization.workforce, organization.attendance, cost.timesheet, platform.migration]
+  wave: W3
+  waves: [W0, W3]
   note: cost.timesheet 在 1a 建审批样板（工时单提交与审批），全员切换在 TA-2；platform.migration（ADR-0036 迁入编排，模块名暂定）随各阶段切换使用，首个迁入在 1a（NEXT_BATCH_PLAN §7 P6）
   conditions: MODERNIZATION_BRIEF.md §3「Phase 1a」；批次见 phase1a/NEXT_BATCH_PLAN.md §6–§8
 - id: TA-1b
@@ -15,12 +18,16 @@ transitions:
   status: not-started
   after: [TA-1a]
   delivers: [presales.quoting]
+  wave: W2
+  waves: [W2]
   conditions: MODERNIZATION_BRIEF.md §3「Phase 1b」
 - id: TA-2
   zh: 交付与工时（同一阶段切换）
   status: not-started
   after: [TA-1b]
   delivers: [delivery.execution, cost.timesheet]
+  wave: W3
+  waves: [W2, W3]
   note: 交付与工时行级强耦合，同阶段切换（brief 风险二）
   conditions: MODERNIZATION_BRIEF.md §3「Phase 2」
 - id: TA-3
@@ -28,12 +35,16 @@ transitions:
   status: not-started
   after: [TA-1a]
   delivers: [expense.spend]
+  wave: W4
+  waves: [W4]
   conditions: MODERNIZATION_BRIEF.md §3「Phase 3」
 - id: TA-6a
   zh: 合同与收入（OA 迁入）
   status: not-started
   after: [TA-2]
   delivers: [contract.baseline, contract.changeorder, contract.riskdelivery, receivables.wip, delivery.acceptance]
+  wave: W3
+  waves: [W2, W3]
   note: ADR-0021、ADR-0024：6a–6c 为 Phase 4 出口前置
   conditions: OA_PROCESS_INVENTORY.md「6a」
 - id: TA-6b
@@ -41,18 +52,24 @@ transitions:
   status: not-started
   after: [TA-6a]
   delivers: [receivables.collection]
+  wave: W4
+  waves: [W4]
   conditions: OA_PROCESS_INVENTORY.md「6b」
 - id: TA-6c
   zh: 费用、付款与预提（OA 迁入）
   status: not-started
   after: [TA-3]
   delivers: [expense.spend, payables.payment]
+  wave: W4
+  waves: [W4]
   conditions: OA_PROCESS_INVENTORY.md「6c」
 - id: TA-4
   zh: 成本、收入与核算
   status: not-started
   after: [TA-2, TA-3, TA-6a, TA-6b, TA-6c]
   delivers: [cost.costing, operations.facts, operations.policy, accounting.period, accounting.ledger, accounting.reporting]
+  wave: W5
+  waves: [W1, W5]
   note: ADR-0022 G1 期间 accounting.cashbank / tax / fixedasset 只是 accounting.ledger 内的导入通道
   conditions: MODERNIZATION_BRIEF.md §3「Phase 4」
 - id: TA-6d
@@ -60,12 +77,16 @@ transitions:
   status: not-started
   after: [TA-4]
   delivers: [procurement.subcontracting]
+  wave: W4
+  waves: [W4]
   conditions: OA_PROCESS_INVENTORY.md「6d」
 - id: TA-6e
   zh: 自建 HRM 与薪酬
   status: not-started
   after: [TA-4]
   delivers: [organization.payroll, organization.incentive]
+  wave: W4
+  waves: [W4]
   note: 与已建 organization.attendance 的边界待用户定（架构决策页 Q3）
   conditions: OA_PROCESS_INVENTORY.md「6e」
 - id: TA-6f
@@ -73,12 +94,16 @@ transitions:
   status: not-started
   after: [TA-4]
   delivers: [presales.customer, operations.planning, operations.budgeting]
+  wave: W2
+  waves: [W1, W2]
   conditions: OA_PROCESS_INVENTORY.md「6f」
 - id: TA-5
   zh: 身份全面切换、BI 与老系统下线
   status: not-started
   after: [TA-4]
   delivers: [reporting]
+  wave: W5
+  waves: [W5]
   conditions: MODERNIZATION_BRIEF.md §3「Phase 5」
 # 一次投产路线的建造批 W0–W5（ADR-0054 决定 1 表）：供 ADR「阶段」字段引用。delivers 只列已登记标识；新平台模块待用语决策单 NAM-1020-COO-01 定名后在 contexts.yaml 登记并补入，
 # 其余批次的 BC 清单随架构 SSOT 整合确认包 T 册写入（ADR-0054 后果第 2 条；SSOT 重建线暂停中）。TA-* 为旧读法（ADR-0054「旧时点读法」），暂留供已采纳 ADR 引用。

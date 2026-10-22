@@ -4,16 +4,18 @@
 
 ## 合并核对
 
-- commands finance：168
+- commands finance：171
 - commands people：165
-- commands revenue：261
-- commands 合计：594
-- matrix：587
-- 合并后：608；两处都有：573；仅 commands：21；仅 matrix：14
+- commands revenue：262
+- commands 合计：598
+- matrix：602
+- 合并后：614；两处都有：586；仅 commands：12；仅 matrix：16
 - 已建命令类与聚合关系：85（未做类名与 CMD 对照）
 
-## 无 owner_bc（1）
+## 无 owner_bc（3）
 
+- CMD-1afc1f3f — AGG-136 — 生效账期规则版本
+- CMD-c401c884 — AGG-136 — 编制账期规则版本
 - CMD-c2d24f95 — REF-01 — 登记招标项目
 
 owner_bc 仅取 planned.yaml 的 aggregates[].BC 原文；未列入该段的引用不推断 BC。

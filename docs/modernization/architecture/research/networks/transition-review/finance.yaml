@@ -1,6 +1,7 @@
 # 状态转换待判清单（finance 组）：ssot/10-objects/transitions.yaml @f8bc2dba 中来源为 proposals/closeout/finance/ 的 pending 与涉及本组对象的 conflicts。
 # 请负责会话逐条判定：pending 写 decided_object（OBJ）或 new_object_needed；conflicts 写 same（同义，取哪个名）或 different（不同义）。
 # 同名异义交 one-glossary；需用户定的标 needs_user。判定写回本文件同一条目下的 decision 字段，回 one-architecture。
+# 判定：one-arch-finance（ARC-1021-AFI-01），2026-10-21；decided_object: none 表示不进对象状态网络
 pending:
 - id: OTR-808
   aggregate: AGG-41
@@ -13,6 +14,9 @@ pending:
   candidates:
   - OBJ-76
   reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 人工成本分配运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-809
   aggregate: AGG-41
   from: 已试算
@@ -25,6 +29,9 @@ pending:
   candidates:
   - OBJ-76
   reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 人工成本分配运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-810
   aggregate: AGG-41
   from: 已试算
@@ -36,6 +43,9 @@ pending:
   candidates:
   - OBJ-76
   reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 人工成本分配运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-811
   aggregate: AGG-41
   from: 已确认
@@ -47,6 +57,9 @@ pending:
   candidates:
   - OBJ-76
   reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 人工成本分配运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-812
   aggregate: AGG-41
   from:
@@ -60,6 +73,9 @@ pending:
   candidates:
   - OBJ-76
   reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 人工成本分配运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-813
   aggregate: AGG-41
   from: 已过账
@@ -71,6 +87,9 @@ pending:
   candidates:
   - OBJ-76
   reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 人工成本分配运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-814
   aggregate: AGG-42
   from: null
@@ -82,6 +101,9 @@ pending:
   candidates:
   - OBJ-79
   reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 分摊运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-815
   aggregate: AGG-42
   from: 已试算
@@ -94,6 +116,9 @@ pending:
   candidates:
   - OBJ-79
   reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 分摊运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-816
   aggregate: AGG-42
   from: 已试算
@@ -105,6 +130,9 @@ pending:
   candidates:
   - OBJ-79
   reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 分摊运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-817
   aggregate: AGG-42
   from: 已生效
@@ -116,6 +144,9 @@ pending:
   candidates:
   - OBJ-79
   reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 分摊运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络
 - id: OTR-818
   aggregate: AGG-43
   from: null
@@ -127,6 +158,9 @@ pending:
   candidates:
   - OBJ-80
   reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 成本结转批次：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；OBJ-80 的「草稿 → 已确认」在骨架中不存在（S-30 ① 批次生成即入账候选）
 - id: OTR-819
   aggregate: AGG-43
   from: null
@@ -138,6 +172,9 @@ pending:
   candidates:
   - OBJ-80
   reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 成本结转批次：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；OBJ-80 的「草稿 → 已确认」在骨架中不存在（S-30 ① 批次生成即入账候选）
 - id: OTR-820
   aggregate: AGG-43
   from: null
@@ -149,6 +186,9 @@ pending:
   candidates:
   - OBJ-80
   reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 成本结转批次：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；OBJ-80 的「草稿 → 已确认」在骨架中不存在（S-30 ① 批次生成即入账候选）
 - id: OTR-821
   aggregate: AGG-43
   from: null
@@ -160,6 +200,9 @@ pending:
   candidates:
   - OBJ-80
   reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 成本结转批次：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；OBJ-80 的「草稿 → 已确认」在骨架中不存在（S-30 ① 批次生成即入账候选）
 - id: OTR-822
   aggregate: AGG-43
   from: 已生成
@@ -172,6 +215,9 @@ pending:
   candidates:
   - OBJ-80
   reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 成本结转批次：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；OBJ-80 的「草稿 → 已确认」在骨架中不存在（S-30 ① 批次生成即入账候选）
 - id: OTR-823
   aggregate: AGG-43
   from: 已生成
@@ -183,6 +229,9 @@ pending:
   candidates:
   - OBJ-80
   reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 成本结转批次：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；OBJ-80 的「草稿 → 已确认」在骨架中不存在（S-30 ① 批次生成即入账候选）
 - id: OTR-824
   aggregate: AGG-43
   from: 已过账
@@ -194,6 +243,9 @@ pending:
   candidates:
   - OBJ-80
   reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
+  decision:
+    decided_object: none
+    reason: 成本结转批次：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；OBJ-80 的「草稿 → 已确认」在骨架中不存在（S-30 ① 批次生成即入账候选）
 - id: OTR-825
   aggregate: AGG-85
   from: null
@@ -205,6 +257,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
+  decision:
+    decided_object: OBJ-124
+    reason: 映射表版本是配置类版本，与 PRC-165、166、168、174 同按 CON-1017-ARC-10 O-1 归业务规则（暂名）；「已取代」与 OBJ-124「已停用」同义，见 CF-046
 - id: OTR-826
   aggregate: AGG-85
   from: 草稿
@@ -216,6 +271,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
+  decision:
+    decided_object: OBJ-124
+    reason: 映射表版本是配置类版本，与 PRC-165、166、168、174 同按 CON-1017-ARC-10 O-1 归业务规则（暂名）；「已取代」与 OBJ-124「已停用」同义，见 CF-046
 - id: OTR-827
   aggregate: AGG-85
   from: 草稿
@@ -228,6 +286,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
+  decision:
+    decided_object: OBJ-124
+    reason: 映射表版本是配置类版本，与 PRC-165、166、168、174 同按 CON-1017-ARC-10 O-1 归业务规则（暂名）；「已取代」与 OBJ-124「已停用」同义，见 CF-046
 - id: OTR-828
   aggregate: AGG-85
   from: 已生效
@@ -239,6 +300,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
+  decision:
+    decided_object: OBJ-124
+    reason: 映射表版本是配置类版本，与 PRC-165、166、168、174 同按 CON-1017-ARC-10 O-1 归业务规则（暂名）；「已取代」与 OBJ-124「已停用」同义，见 CF-046
 - id: OTR-829
   aggregate: AGG-94
   from: null
@@ -250,6 +314,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 授权表版本：同 AGG-85
 - id: OTR-830
   aggregate: AGG-94
   from: 草稿
@@ -261,6 +328,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 授权表版本：同 AGG-85
 - id: OTR-831
   aggregate: AGG-94
   from: 草稿
@@ -273,6 +343,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 授权表版本：同 AGG-85
 - id: OTR-832
   aggregate: AGG-94
   from: 已生效
@@ -284,6 +357,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 授权表版本：同 AGG-85
 - id: OTR-833
   aggregate: AGG-99
   from: null
@@ -295,6 +371,9 @@ pending:
   candidates:
   - OBJ-98
   reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
+  decision:
+    decided_object: none
+    reason: 期末结转运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；它产出的期末凭证落 OBJ-98 会计分录，但「已生成 / 已过账 / 已冲销」是运行状态，不是分录状态
 - id: OTR-834
   aggregate: AGG-99
   from: 已生成
@@ -307,6 +386,9 @@ pending:
   candidates:
   - OBJ-98
   reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
+  decision:
+    decided_object: none
+    reason: 期末结转运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；它产出的期末凭证落 OBJ-98 会计分录，但「已生成 / 已过账 / 已冲销」是运行状态，不是分录状态
 - id: OTR-835
   aggregate: AGG-99
   from: 已生成
@@ -318,6 +400,9 @@ pending:
   candidates:
   - OBJ-98
   reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
+  decision:
+    decided_object: none
+    reason: 期末结转运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；它产出的期末凭证落 OBJ-98 会计分录，但「已生成 / 已过账 / 已冲销」是运行状态，不是分录状态
 - id: OTR-836
   aggregate: AGG-99
   from: 已过账
@@ -329,6 +414,9 @@ pending:
   candidates:
   - OBJ-98
   reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
+  decision:
+    decided_object: none
+    reason: 期末结转运行：运行单据（技术聚合），状态只在聚合内表达批次或运行的处理进度；候选对象在对象登记中已标「非对象：去掉（属流程与事实）」，承载流程主对象为 none（CAPINFO-I01），不进对象状态网络；它产出的期末凭证落 OBJ-98 会计分录，但「已生成 / 已过账 / 已冲销」是运行状态，不是分录状态
 - id: OTR-837
   aggregate: AGG-128
   from: null
@@ -340,6 +428,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 期末结转模板版本：同 AGG-85
 - id: OTR-838
   aggregate: AGG-128
   from: 草稿
@@ -351,6 +442,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 期末结转模板版本：同 AGG-85
 - id: OTR-839
   aggregate: AGG-128
   from: 草稿
@@ -363,6 +457,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 期末结转模板版本：同 AGG-85
 - id: OTR-840
   aggregate: AGG-128
   from: 已生效
@@ -374,6 +471,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 期末结转模板版本：同 AGG-85
 - id: OTR-841
   aggregate: AGG-129
   from: null
@@ -385,6 +485,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 现金流量项目表版本：同 AGG-85
 - id: OTR-842
   aggregate: AGG-129
   from: 草稿
@@ -396,6 +499,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 现金流量项目表版本：同 AGG-85
 - id: OTR-843
   aggregate: AGG-129
   from: 草稿
@@ -408,6 +514,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 现金流量项目表版本：同 AGG-85
 - id: OTR-844
   aggregate: AGG-129
   from: 已生效
@@ -419,6 +528,9 @@ pending:
   candidates:
   - OBJ-124
   reason: 同 AGG-85
+  decision:
+    decided_object: OBJ-124
+    reason: 现金流量项目表版本：同 AGG-85
 - id: OTR-845
   aggregate: AGG-125
   from: null
@@ -429,6 +541,9 @@ pending:
   judgement: pending
   candidates: []
   reason: 聚合清单写明「信息图对象号未登记」
+  decision:
+    decided_object: none
+    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 togaf/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
 - id: OTR-846
   aggregate: AGG-125
   from: 编制中
@@ -440,6 +555,9 @@ pending:
   self_loop: true
   candidates: []
   reason: 聚合清单写明「信息图对象号未登记」
+  decision:
+    decided_object: none
+    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 togaf/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
 - id: OTR-847
   aggregate: AGG-125
   from: 编制中
@@ -450,6 +568,9 @@ pending:
   judgement: pending
   candidates: []
   reason: 聚合清单写明「信息图对象号未登记」
+  decision:
+    decided_object: none
+    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 togaf/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
 - id: OTR-848
   aggregate: AGG-125
   from: 编制中
@@ -461,6 +582,9 @@ pending:
   self_loop: true
   candidates: []
   reason: 聚合清单写明「信息图对象号未登记」
+  decision:
+    decided_object: none
+    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 togaf/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
 - id: OTR-849
   aggregate: AGG-122
   from: null
@@ -472,6 +596,9 @@ pending:
   candidates:
   - OBJ-18
   reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+  decision:
+    decided_object: none
+    reason: 售前投入挂接归属是技术聚合（每商机一个），只等待「合同已签回」「项目已建立」两事件齐备后转入或转费用（S-31 SQ-18）；状态描述事件汇合进度，不是商机 OBJ-18 的状态，候选不成立
 - id: OTR-850
   aggregate: AGG-122
   from: 等待齐备
@@ -484,6 +611,9 @@ pending:
   candidates:
   - OBJ-18
   reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+  decision:
+    decided_object: none
+    reason: 售前投入挂接归属是技术聚合（每商机一个），只等待「合同已签回」「项目已建立」两事件齐备后转入或转费用（S-31 SQ-18）；状态描述事件汇合进度，不是商机 OBJ-18 的状态，候选不成立
 - id: OTR-851
   aggregate: AGG-122
   from: null
@@ -495,6 +625,9 @@ pending:
   candidates:
   - OBJ-18
   reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+  decision:
+    decided_object: none
+    reason: 售前投入挂接归属是技术聚合（每商机一个），只等待「合同已签回」「项目已建立」两事件齐备后转入或转费用（S-31 SQ-18）；状态描述事件汇合进度，不是商机 OBJ-18 的状态，候选不成立
 - id: OTR-852
   aggregate: AGG-122
   from: 等待齐备
@@ -507,6 +640,9 @@ pending:
   candidates:
   - OBJ-18
   reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+  decision:
+    decided_object: none
+    reason: 售前投入挂接归属是技术聚合（每商机一个），只等待「合同已签回」「项目已建立」两事件齐备后转入或转费用（S-31 SQ-18）；状态描述事件汇合进度，不是商机 OBJ-18 的状态，候选不成立
 - id: OTR-853
   aggregate: AGG-122
   from: 等待齐备
@@ -519,6 +655,9 @@ pending:
   candidates:
   - OBJ-18
   reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+  decision:
+    decided_object: none
+    reason: 售前投入挂接归属是技术聚合（每商机一个），只等待「合同已签回」「项目已建立」两事件齐备后转入或转费用（S-31 SQ-18）；状态描述事件汇合进度，不是商机 OBJ-18 的状态，候选不成立
 - id: OTR-854
   aggregate: AGG-122
   from: 等待齐备
@@ -530,6 +669,9 @@ pending:
   candidates:
   - OBJ-18
   reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+  decision:
+    decided_object: none
+    reason: 售前投入挂接归属是技术聚合（每商机一个），只等待「合同已签回」「项目已建立」两事件齐备后转入或转费用（S-31 SQ-18）；状态描述事件汇合进度，不是商机 OBJ-18 的状态，候选不成立
 - id: OTR-855
   aggregate: AGG-122
   from: 等待齐备
@@ -541,6 +683,9 @@ pending:
   candidates:
   - OBJ-18
   reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
+  decision:
+    decided_object: none
+    reason: 售前投入挂接归属是技术聚合（每商机一个），只等待「合同已签回」「项目已建立」两事件齐备后转入或转费用（S-31 SQ-18）；状态描述事件汇合进度，不是商机 OBJ-18 的状态，候选不成立
 - id: OTR-856
   aggregate: AGG-131
   from: 已登记
@@ -554,6 +699,9 @@ pending:
   - OBJ-120
   - OBJ-121
   reason: 归属差旅订单是订单行属性、状态不变，OBJ-120 / OBJ-121 均可
+  decision:
+    decided_object: OBJ-120
+    reason: 归属差旅订单改的是订单行的归属对象（项目、合同或部门），月账单状态不变；归订单 OBJ-120。骨架把订单行状态写在账单机上（自环），见 CF-036 的后续修改
 conflicts:
 - id: CF-002
   kind: name-variant
@@ -566,6 +714,9 @@ conflicts:
   - - 驳回
     - 已驳回
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: out_of_scope
+    reason: OBJ-09 协议变更属 revenue 组（AGG-13 侧），本组不判，请交 one-arch-revenue
 - id: CF-012
   kind: name-variant
   object: OBJ-78
@@ -573,6 +724,10 @@ conflicts:
   - - 被取代
     - 已取代
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    name: 已取代
+    reason: 被取代与已取代同义；状态名按「已 + 动词」写法（N7 定稿惯例）取「已取代」，与其他配置版本一致
 - id: CF-014
   kind: name-variant
   object: OBJ-83
@@ -584,6 +739,25 @@ conflicts:
   - - 进项转出
     - 已转出
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    pairs:
+    - pair:
+      - 部分红冲
+      - 已红冲
+      name: 已红冲
+      note: 部分 / 全额是红字累计金额与蓝字金额比较得出的派生属性，不另设状态；全额红冲后不得再红冲由不变量表达
+    - pair:
+      - 全额红冲
+      - 已红冲
+      name: 已红冲
+      note: 同上
+    - pair:
+      - 进项转出
+      - 已转出
+      name: 已转出
+      note: 同义，取状态写法
+    reason: 见各对
 - id: CF-015
   kind: name-variant
   object: OBJ-85
@@ -591,6 +765,10 @@ conflicts:
   - - 争议
     - 争议中
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    name: 争议中
+    reason: 同义；争议是可解除的持续状态，取「争议中」（命令标记争议 / 解除争议待回补，NOTES C-7）
 - id: CF-016
   kind: name-variant
   object: OBJ-88
@@ -598,6 +776,10 @@ conflicts:
   - - 驳回
     - 已驳回
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    name: 已驳回
+    reason: 同义；取词表 platform.approval 的状态「已驳回」，「驳回」在词表中是命令
 - id: CF-017
   kind: name-variant
   object: OBJ-92
@@ -605,6 +787,10 @@ conflicts:
   - - 更正申报
     - 已更正
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    name: 已更正
+    reason: 「更正申报」是动作（另起一份更正申报），原申报的状态是「已更正」（被更正申报取代）；对象登记 key_states 宜改写为「已缴款；更正申报后原申报置已更正」
 - id: CF-018
   kind: name-variant
   object: OBJ-93
@@ -612,6 +798,10 @@ conflicts:
   - - 处置
     - 已处置
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    name: 已处置
+    reason: 同义，取状态写法
 - id: CF-019
   kind: name-variant
   object: OBJ-97
@@ -619,6 +809,10 @@ conflicts:
   - - 未开
     - 未开放
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    name: 未开放
+    reason: 同义；与 N7 定稿「已开放」（NM6-11#9）配对，取「未开放」
 - id: CF-020
   kind: name-variant
   object: OBJ-99
@@ -628,6 +822,20 @@ conflicts:
   - - 被取代
     - 已取代
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    pairs:
+    - pair:
+      - 草拟
+      - 草稿
+      name: 草稿
+      note: 配置版本统一用「草稿」
+    - pair:
+      - 被取代
+      - 已取代
+      name: 已取代
+      note: 同 CF-012
+    reason: 见各对；key_states 中的「财务评审」由发布命令的聚合内批准表达，不另设状态
 - id: CF-024
   kind: name-variant
   object: OBJ-124
@@ -635,6 +843,10 @@ conflicts:
   - - 版本草稿
     - 草稿
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    name: 草稿
+    reason: 同义；各配置版本聚合都用「草稿」
 - id: CF-025
   kind: name-variant
   object: OBJ-125
@@ -642,6 +854,10 @@ conflicts:
   - - 已签字
     - 已签字接受
   note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    verdict: same
+    name: 已签字接受
+    reason: 同义；取骨架 AGG-101 的「已签字接受」，表明签字同时接受剩余差异的解释（PRC-104），比「已签字」信息完整；OBJ-125 为暂名对象，名字最终交 one-glossary
 - id: CF-027
   kind: semantic
   object: OBJ-98
@@ -651,6 +867,10 @@ conflicts:
   key_states_says: 草稿 → 已审核 → 已记账（不可逆）；更正只能冲销
   transitions_say: AGG-84：分录只追加、不改状态，状态在处理队列项上（待处理 / 待推送 / 已推送 / 死信 / 挂起 / 已确认记账）；AGG-98 受控手工凭证：草稿 → 已复核 → 已审批 → 已提交过账 → 已撤回 / 已作废
   note: AGG-84 的状态属队列项而非分录；AGG-98 的「已复核 / 已审批」与「已审核」不明确同义；「已记账」无转换到达
+  decision:
+    verdict: different
+    reason: 三套状态不是同一对象的同一维度：①AGG-84 的待处理 / 待推送 / 已推送 / 死信 / 挂起 / 已确认记账是推送 U8C 队列项的技术状态（INV-95a，S-31 SQ-23），不是分录状态，不入 OBJ-98；②AGG-98 的草稿 → 已复核 → 已审批 → 已提交过账是受控手工凭证（申请单据）的状态，「已审批」相当于 key_states 的「已审核」；③分录本身只追加（ADR-0045），由过账管道写入即为已记账，没有草稿或审核阶段。建议
+      one-architecture 把 OBJ-98 key_states 改为「已记账（追加即记账，不可逆；更正只能冲销）」，草稿与审核移到受控手工凭证上
 - id: CF-031
   kind: semantic
   object: OBJ-05
@@ -662,6 +882,14 @@ conflicts:
   key_states_says: 草案 → 审批中 → 已签署生效 → 履行中 → 已完成 → 已结算 / 已终止
   transitions_say: AGG-13 同；AGG-55 供方协议：草拟 → 审批中 → 已生效 → …；AGG-67 劳动合同：草案 → 审批中 → 已批准 → 已签署生效 → 已终止；AGG-07 协议价目：待生效 → 已生效 → 被取代
   note: OBJ-05 四个聚合共用一个 OBJ，状态集不同；「已签署生效」与「已生效」、「草案」与「草拟」是否同义，「已批准」「被取代」是否入 OBJ-05 key_states 待定；本稿均挂 OBJ-05
+  decision:
+    verdict: partial
+    reason: 只判本组 AGG-55 供方协议：「草拟」与「草案」同义，「已生效」与「已签署生效」同义（供方协议回签即生效），可并入 OBJ-05 的 key_states 写法；AGG-13（revenue）、AGG-67（people）、AGG-07 协议价目（revenue，「被取代」是价目版本状态，不是协议状态）请交各组判
+    same_for: AGG-55
+    names:
+      草拟: 草案
+      已生效: 已签署生效
+    needs_user: false
 - id: CF-032
   kind: semantic
   object: OBJ-83
@@ -671,6 +899,26 @@ conflicts:
   key_states_says: 销项：已开具 → 部分红冲 → 全额红冲；进项：已取得（查验）→ 已用途确认 → 已入账；进项转出；红冲确认中
   transitions_say: AGG-46：已开具 → 红冲确认中 → 已红冲（无部分 / 全额之分）；AGG-89：已登记 → 已查验 → 已用途确认 → 已占用 → 已转出
   note: 「已红冲」与「部分红冲 / 全额红冲」粒度不同；「已占用」与「已入账」、「已转出」与「进项转出」是否同义待定
+  decision:
+    verdict: different
+    pairs:
+    - pair:
+      - 部分红冲 / 全额红冲
+      - 已红冲
+      verdict: same
+      name: 已红冲
+      note: 同 CF-014；AGG-46 属 revenue
+    - pair:
+      - 已入账
+      - 已占用
+      verdict: different
+      note: 「已占用」是发票金额被报销或应付占用（AGG-89，防重复报销），「已入账」是增值税发票在税务平台的入账标识；两者不同义。骨架 AGG-89 未建「已入账」状态，PRC-87 的「发票已入账」事件需对应；本组后续在 AGG-89 补，或由 one-architecture 定是否保留在 key_states
+    - pair:
+      - 进项转出
+      - 已转出
+      verdict: same
+      name: 已转出
+    reason: 见各对
 - id: CF-033
   kind: semantic
   object: OBJ-92
@@ -680,6 +928,12 @@ conflicts:
   key_states_says: 待申报 → 已申报 → 已缴款；更正申报
   transitions_say: AGG-90：已生成 → 已提交 → 已缴款 → 已更正；AGG-95：待申报 → 已申报 → 已缴款 → 已更正
   note: AGG-90 的「已生成 / 已提交」与 key_states「待申报 / 已申报」是否同义待定；「已更正」是状态还是 key_states 所述的动作「更正申报」待定
+  decision:
+    verdict: same
+    names:
+      已生成: 待申报
+      已提交: 已申报
+    reason: AGG-90 的「已生成」即申报表已生成待申报，「已提交」即已向税务机关申报，与 key_states 同义；税务通行说法取「待申报 / 已申报」，与 AGG-95 一致。本组随后改 AGG-90 骨架状态名（须先经 one-glossary 定名）。「已更正」是状态，见 CF-017
 - id: CF-034
   kind: semantic
   object: OBJ-85
@@ -689,6 +943,10 @@ conflicts:
   key_states_says: 未结 → 已部分结清 → 已结清；争议；已核销（坏账）；红冲减少
   transitions_say: AGG-49：争议中、坏账已核销、已冲减、已转预收或待退、已逾期；AGG-52：已确认、已部分冲抵、已冲抵、预付款已登记、已冲销
   note: 应收 / 应付两个聚合各自引入的状态（已冲抵、已冲减、已逾期等）在 key_states 中没有；「已冲减」是否即「红冲减少」待定；「已逾期」可能是派生而非状态
+  decision:
+    verdict: different
+    reason: 只判本组 AGG-52：「已确认」即应付方向的「未结」，同义；「预付款已登记 → 已部分冲抵 → 已冲抵」是预付款支线（以付款形成借方往来、再冲抵应付，S-31 SQ-29），与付款结清路径不同，应作为 OBJ-85 key_states 的预付款分支补入；「已冲销」是撤销利润分配决议后注销未付应付（S-34 ②），属终态，应补入 key_states。AGG-49 应收侧（已冲减、已逾期等）属
+      revenue，请交该组；「已逾期」按到期日派生，建议不作状态
 - id: CF-035
   kind: semantic
   object: OBJ-86
@@ -698,6 +956,9 @@ conflicts:
   key_states_says: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
   transitions_say: AGG-50 增商票已收到 / 已逾期 / 已兑付（与分配状态正交）、已处置；AGG-53 增已撤回 / 已驳回 / 已退票
   note: 商票兑付状态是另一正交维度，key_states 未提及；「已退票」与「已失败（退票）」是否同义待定
+  decision:
+    verdict: different
+    reason: 只判本组 AGG-53：「已失败」是银行支付失败（未成功），「已退票」是成功后被退回（S-30 ③，触发冲回应付核销），两者不同义，key_states 的「已失败（退票）」应拆成「已失败」与「已成功 → 已退票」；「已撤回 / 已驳回」是付款申请审批的状态，与 key_states「审批中」同一维度，应补入。AGG-50 的商票兑付维度属 revenue，请交该组
 - id: CF-036
   kind: semantic
   object: OBJ-120
@@ -706,6 +967,9 @@ conflicts:
   key_states_says: 超标审批：待审批 → 已批准 / 已驳回
   transitions_say: AGG-131 的 登记超标订单待审批 / 批准差旅超标订单 / 驳回差旅超标订单 三条转换都是 已登记 → 已登记 自环
   note: 订单审批状态在订单行上，聚合机没有把它写成 from / to；本稿三条按命令名挂 OBJ-120，状态未到达
+  decision:
+    verdict: same
+    reason: 超标审批状态确属差旅订单 OBJ-120；骨架把三条命令写成账单机上的「已登记 → 已登记」自环是表达缺口。本组后续在 AGG-131 为订单行单列状态（待审批 → 已批准 / 已驳回），不改对象登记
 - id: CF-046
   kind: semantic
   object: OBJ-124
@@ -721,6 +985,10 @@ conflicts:
   key_states_says: 版本草稿 → 已生效 → 已停用（被新版本取代）
   transitions_say: 各配置版本聚合：草稿 → 已生效 → 已取代 / 已被取代；AGG-92：已开放 / 未开放
   note: 「已停用」与「已取代」「已被取代」是否同义待定；AGG-92 的开放 / 未开放不是版本状态
+  decision:
+    verdict: same
+    name: 已取代
+    reason: 「已停用（被新版本取代）」「已被取代」「已取代」同义，统一取「已取代」（与 CF-012 一致），OBJ-124 key_states 宜改为「草稿 → 已生效 → 已取代」；AGG-92 的已开放 / 未开放不是版本状态（AGG-92 不属本组），不归此冲突，请交其所属组判
 - id: CF-047
   kind: semantic
   object: OBJ-78
@@ -729,3 +997,9 @@ conflicts:
   key_states_says: 草稿 → 已批准 → 已生效 → 被取代
   transitions_say: AGG-40：草稿 → 审批中 → 已生效 → 已取代
   note: 「已批准」无转换，由「审批中」代；OBJ-26、27、74 类似
+  decision:
+    verdict: same
+    names:
+      审批中: 审批中
+      被取代: 已取代
+    reason: AGG-40 分摊规则发布即生效（版本按生效日生效，批准与生效是同一步），没有「已批准未生效」的停留态；建议 OBJ-78 key_states 去掉「已批准」，写为「草稿 → 审批中 → 已生效 → 已取代」。OBJ-26、27、74 不属本组

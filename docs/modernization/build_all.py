@@ -48,6 +48,7 @@ SELF_TESTED.append("architecture/panorama/object_freeze_check.py")
 
 STEPS.append("check_tasks.py")   # GOV-1017-COO-01：任务片段检查与 tasks/TASKS.md 总表
 SELF_TESTED.append("check_tasks.py")
+SELF_TESTED.append("task_backfill.py")   # 按任务号在提交、分支、PR 里的引用给出状态补登建议（只写建议，不改片段）
 SELF_TESTED.append("build_all.py")
 
 

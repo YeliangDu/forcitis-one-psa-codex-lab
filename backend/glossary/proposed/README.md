@@ -39,6 +39,16 @@ B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41�
 
 无错误码以外的术语。
 
+## organization.administration（`contract-original-loan.yaml`）
+
+合同原件借阅用语（one-glossary 2026-10-21，NAM-1021-GLO-14；ADR-0076 提议，proposed）。bc 按 one-architecture 裁定：先行期 organization.administration，W3 移交 contract.agreement。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `contract_original` | 合同原件 | ContractOriginal | 领域 · organization.administration | 合同原件的归档记录：法人、合同编号、原件类型、存放位置、归档状态；先行期在行政事务，W3 移交合同模块的协议归档记录（ADR-0076） |  |  |
+| `loan_record` | 借阅记录 | LoanRecord | 领域 · organization.administration | 一份合同原件的一次借出：借用人、借出日、应还日、实际归还日，审批实例必填；借出须原件已归档且无未归还借出（ADR-0076，INV-125） |  |  |
+| `renewal_record` | 续借记录 | RenewalRecord | 领域 · organization.administration | 一笔借阅的续借，另起一条并引用原借阅记录，带新应还日与续借审批实例，每笔借阅最多续借一次（ADR-0076） |  |  |
+
 ## cost.timesheet（`cost-timesheet.yaml`）
 
 cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）。
@@ -121,6 +131,22 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 | `project_cancelled` | 项目已取消 | ProjectCancelled | 领域 · delivery.execution | 项目在开工前被取消（无成本发生）；与终止的区别在是否已有成本。 |  |  |
 | `acceptance_evidence` | 证据 | AcceptanceEvidence | 领域 · delivery.acceptance | 用于证明交付、认可等事实的证据内容；证据本身保存内容与采集人 ID，证据关联记录单独记录其挂在哪个交付物或阶段，归质量与认可 BC。 |  | Q29 按用户裁定保留宽口径“证据”及原定义；AcceptanceEvidence 只是候选英文，尚待确认，词条保持 proposed。 |
 
+## `finance-closeout-terms.yaml`
+
+涉及模块：`accounting.tax`、`cost.costing`。
+
+财务线用语（one-glossary 2026-10-22，NAM-1021-GLO-22；one-arch-finance 来单，proposed）。待申报 / 已申报、跨法人、代发退回、补发明细已在先前批次登记。出处 finance/NOTES.md 新用语表与 BONUS_OVERTIME_COSTING.md §5。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `register_input_invoice_posting` | 登记进项发票入账 | RegisterInputInvoicePosting | 领域 · accounting.tax | 占用方过账后，登记进项发票在税务平台的入账状态；动词登记＝只记录事实；报送方待定（U-55） |  |  |
+| `register_agreement_effective` | 登记协议已生效 | RegisterAgreementEffective | 领域 · cost.costing | 在协议已生效后登记售前投入的归属（AGG-122）；取代原「登记合同已签回」，订阅「协议已生效」 |  |  |
+| `bonus_accrual` | 奖金计提 | BonusAccrual | 领域 · cost.costing | 按服务期间每月为每个项目计提的奖金，计入该项目的直接人工（实际变体），不等奖金核定或发放；计提额 ＝ 当月计提基数 × 奖金计提率 |  |  |
+| `bonus_accrual_rate` | 奖金计提率 | BonusAccrualRate | 领域 · cost.costing | 挂在标准成本费率卡版本上的奖金计提比率；规则类型分合同额百分比与历史比率（默认历史比率），预算、预估、实际三个变体用同一版本 |  |  |
+| `bonus_adjustment_line` | 奖金调整行 | BonusAdjustmentLine | 领域 · cost.costing | 奖金核定后，把「已核定额 − 该项目累计计提额」作为调整行计入当期人工成本；不回改已关账期间，单列供分析计提率准不准 |  |  |
+| `overtime_multiplier` | 加班倍数 | OvertimeMultiplier | 领域 · cost.costing | 加班工时计成本的倍数：工作日 8 小时后 1.5 倍、休息日未补休 2 倍、法定节假日 3 倍（《劳动法》第四十四条）；休息日已补休按 1 倍 |  |  |
+| `labor_cost_allocation_variance` | 人工成本分配差异 | LaborCostAllocationVariance | 领域 · cost.costing | 每月按员工把「按实际成本费率计价的合计 − 当月实际薪酬（含加班费）」记为差异，挂员工所在部门，计期间损益，不进项目；如 7.5 到 8 小时段按 1 倍计价超出日薪的部分（INV-89 改写后项目分配额加差异等于实际人工成本）；这个差异科目是设计（BONUS_OVERTIME_COSTING §2.4，one-architecture 2026-10-22 认可），不是用户原话 |  |  |
+
 ## `finance-decisions.yaml`
 
 财务口径决策单（docs/modernization/r0/FINANCE_DECISIONS.md，2026-10-15）中出现、词表未收的会计与经营用语。
@@ -199,6 +225,22 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 | `release` | 放行 | Release | ACL（过渡期） · platform.integration | 管理员核对同步差异后，让被中止的同步生效的动作 |  | 扫描前端界面文案发现；同步记录页按钮与结果用语 |
 | `org_sync` | 同步 | OrgSync | ACL（过渡期） · platform.integration | 把组织来源的组织单元与员工变化应用到本系统的一次运行 |  | 扫描前端界面文案发现；与「同步记录」「同步差异」配合使用 |
 
+## `gl5-direct.yaml`
+
+涉及模块：`accounting.tax`、`organization.administration`。
+
+GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-21，NAM-1021-GLO-14，proposed）。已被取代、草拟两个状态名是各对象状态链里的取值名，随各对象登记，决定记在 glossary/arch-naming/STATE_NAME_RULINGS.md。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `statutory_filing` | 法定申报 | StatutoryFiling | 领域 · accounting.tax | 法人对税务、社保等机关的周期申报与缴款（增值税及附加、企业所得税、个税扣缴、社保公积金、统计）；其中税务类的申报记录即已登记的「税务申报记录」 |  |  |
+| `statutory_filing_status__pending_filing` | 待申报 | PendingFiling | 领域 · accounting.tax | 法定申报的状态：已生成申报，尚未向机关申报 |  |  |
+| `statutory_filing_status__filed` | 已申报 | Filed | 领域 · accounting.tax | 法定申报的状态：已向机关申报，尚未缴款 |  |  |
+| `statutory_filing_status__remitted` | 已缴款 | Remitted | 领域 · accounting.tax | 法定申报的状态：税费或社保公积金已缴纳 |  |  |
+| `correct_filing` | 更正申报 | CorrectFiling | 领域 · accounting.tax | 对已申报的法定申报作更正，另起更正申报 |  |  |
+| `asset_card_list` | 资产卡片清单 | AssetCardList | 领域 · organization.administration | 先行期财务提供的资产卡片清单，每行带资产卡片号、所属法人、资产名称，行政事务据此引用信息技术资产；资产卡片一词待 GL5-02 定 |  |  |
+| `card_number_status__pending_check` | 待核 | PendingCheck | 领域 · organization.administration | 资产卡片号的状态：清单没到时手工录入的卡片号，等财务清单到后核对，核对前不当作已确认 |  |  |
+
 ## `kernel.yaml`
 
 `tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。`reversal_document`、`correction_document`、`document_nature`、`reversal_category`、`reversible_balance`、`derived_reversal`、`original_period`、`change_order_document`、`reverse_action`、`correct_action` 十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。
@@ -206,6 +248,22 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 无错误码以外的术语。
 
 另有技术词 38 个（`common_words`），不在表中。
+
+## `kpi-page-terms.yaml`
+
+涉及模块：`accounting.cashbank`、`contract.agreement`、`cost.timesheet`。
+
+KPI 页用到的七个未登记词（one-glossary 2026-10-22，NAM-1021-GLO-18；one-coordinator 来单，proposed）。出处：r0/METRIC_BASELINE_DRAFT M-37、M-43、M-46，R1-B-06。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `opportunity_hours` | 商机工时 | OpportunityHours | 领域 · cost.timesheet | 员工填报在商机（尚未签约的业务机会）上的工时；与收费工时、非计费工时并列，用于工时结构（M-43） |  |  |
+| `available_hours` | 可用工时 | AvailableHours | 领域 · cost.timesheet | 员工在期间内可供使用的工时，来自工作日历扣除休假后的小时数；利用率的分母（可计费工时 / 可用工时） |  |  |
+| `default_payment_term` | 默认账期 | DefaultPaymentTerm | 领域 · contract.agreement | 合同或客户未另行约定付款周期时采用的账期天数，配置项；到期日由账期与开票日推算（R1-B-06） |  |  |
+| `excess_authorized_limit_input` | 超授权额度投入 | ExcessAuthorizedLimitInput | 领域 · contract.agreement | 无合同风险敞口超出授权额度的投入金额（M-46）；授权额度按客户等级配置 |  |  |
+| `hours_structure` | 工时结构 | HoursStructure | 领域 · cost.timesheet | 期间内工时按收费、商机、非计费划分的占比（M-43），与有效 / 无效工时划分对齐 |  |  |
+| `effective_hours_ratio` | 有效工时占比 | EffectiveHoursRatio | 领域 · cost.timesheet | 期间内有效工时占全部填报工时的比例；有效工时指经有效性认定的工时 |  |  |
+| `cash_inflow_outflow_ratio` | 现金流入流出比 | CashInflowOutflowRatio | 领域 · accounting.cashbank | 期间现金流入合计除以现金流出合计（M-37）；是否含筹资活动待确认 |  |  |
 
 ## `list-paging.yaml`
 
@@ -354,7 +412,10 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 
 organization.attendance 提议术语（proposed，待业务评审，ADR-0018）。
 
-无错误码以外的术语。
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `official_notice` | 官方通知 | OfficialNotice | 领域 · organization.attendance | 国家或地方政府发布的放假与调休安排通知，以文号和链接标识；工作日历版本确认时必须挂上（IMP-1021-PAR-02，one-data 审查 WORK-CALENDAR-DDL-2026-10-21 更正三、五） |  | 列名 official_notice_number、official_notice_url 用此词，暂名，待 one-glossary 定名 |
+| `make_up_workday_cancelled` | 调休上班日取消 | MakeUpWorkdayCancelled | 领域 · organization.attendance | 官方安排的调休上班日被公司取消、按普通周末休息计的例外日取值；必须是周六或周日，依据为公司加休或手工更正并写明取消的是哪份官方通知里的哪个调休（IMP-1021-PAR-02，更正六） |  | 暂名，待 one-glossary 定名 |
 
 另有错误码 8 个（kind 为 `error_code`）、技术词 8 个（`common_words`），不在表中。
 
@@ -378,6 +439,34 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 | `attribution_subject` | 法人归属对象 | AttributionSubject | 领域 · organization.workforce | 法人归属所指的对象，是一个组织单元或一名员工，由对象类别与对象 ID 共同确定；同一对象在同一时点只归属一个法人 |  | 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列 |
 
 另有错误码 10 个（kind 为 `error_code`）、技术词 86 个（`common_words`），不在表中。
+
+## `payroll-payment-and-people-commands.yaml`
+
+涉及模块：`cost.costing`、`organization.payroll`、`organization.workforce`、`payables.payment`。
+
+薪酬行支付子状态机、人事命令、跨法人用语（one-glossary 2026-10-22，NAM-1021-GLO-19；one-arch-people、one-arch-finance 来单，proposed）。状态名暂定，随用户认可。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `payroll_settlement_line` | 薪酬结算行 | PayrollSettlementLine | 领域 · organization.payroll | 结算单上一名员工的一行，带支付状态；OBJ-73 原文称「薪酬行」，与薪酬结算单对应写全称；也是状态转换记录里该子实体的聚合类型码值（ADR-0075） |  |  |
+| `payroll_disbursement` | 薪酬代发 | PayrollDisbursement | 领域 · organization.payroll | 按薪酬结算行经银行代发渠道向员工账户发放薪酬的动作及其结果 |  |  |
+| `payroll_line_status__pending_payment` | 待支付 | PendingPayment | 领域 · organization.payroll | 薪酬结算行的支付状态：已确认应发，尚未代发或补发后等待再次代发 |  |  |
+| `payroll_line_status__paid` | 已实付 | Paid | 领域 · organization.payroll | 薪酬结算行的支付状态：代发结果登记为成功，实际已付到员工账户（OBJ-73 原文） |  |  |
+| `payroll_line_status__payment_failed` | 支付失败 | PaymentFailed | 领域 · organization.payroll | 薪酬结算行的支付状态：代发结果登记为失败，待更正工资卡后补发 |  |  |
+| `register_payroll_disbursement_result` | 登记代发结果 | RegisterPayrollDisbursementResult | 领域 · organization.payroll | 登记薪酬代发的结果（成功或失败），薪酬结算行由待支付转已实付或支付失败；动词登记＝只记录事实 |  |  |
+| `initiate_payroll_redisbursement` | 发起薪酬补发 | InitiatePayrollRedisbursement | 领域 · organization.payroll | 对支付失败的薪酬结算行发起补发，转回待支付；发出「薪酬补发已发起」 |  |  |
+| `payroll_disbursement_result_registered` | 薪酬代发结果已登记 | PayrollDisbursementResultRegistered | 领域 · organization.payroll | 薪酬代发的结果已登记 |  |  |
+| `payroll_redisbursement_initiated` | 薪酬补发已发起 | PayrollRedisbursementInitiated | 领域 · organization.payroll | 薪酬补发已发起；B-10 订阅 |  |  |
+| `end_legal_entity_attribution` | 结束法人归属 | EndLegalEntityAttribution | 领域 · organization.workforce | 结束一段法人归属并写结束日；与已登记事件「法人归属已结束」对应（one-arch-people 来单称「终止法人归属」，改用「结束」与事件一致） |  |  |
+| `correct_legal_entity_code` | 更正法人主体代码 | CorrectLegalEntityCode | 领域 · organization.workforce | 在未发号前更正法人主体代码（INV-59）；与已登记事件「法人主体代码已更正」对应（来单称「更正法人代码」，补上「主体」与词条一致） |  |  |
+| `oversight_scope` | 分管范围 | OversightScope | 领域 · organization.workforce | 一名分管领导分管的组织单元或事务范围（B-13） |  |  |
+| `oversight_scope_version` | 分管范围版本 | OversightScopeVersion | 领域 · organization.workforce | 分管范围的版本化配置（AGG-135，表 oversight_scope_versions）：生效区间不重叠、只追加 |  |  |
+| `cross_entity_labor` | 跨法人人工 | CrossEntityLabor | 领域 · cost.costing | 员工当日成本法人与项目承担法人不一致的人工与项目费用（用户 LEB-04） |  |  |
+| `cross_entity_list` | 跨法人清单 | CrossEntityList | 领域 · cost.costing | 财务每月收到的清单：跨法人人工、项目费用与未转入售前投入的部分（用户 LEB-05） |  |  |
+| `register_disbursement_return` | 登记代发退回 | RegisterDisbursementReturn | 领域 · payables.payment | 出纳凭银行退回回单登记一笔代发的部分退回，付款仍为已核销，累计退回额增加；幂等键为付款标识加银行回单号；发「付款已部分退回」；全额退回仍走登记退票 |  |  |
+| `payment_partially_returned` | 付款已部分退回 | PaymentPartiallyReturned | 领域 · payables.payment | 一笔付款登记了部分退回；应付侧订阅后冲回等额应付核销 |  |  |
+| `register_payroll_redisbursement_detail` | 登记薪酬补发明细 | RegisterPayrollRedisbursementDetail | 领域 · payables.payment | 在原应付薪酬上登记补发明细，不新建应付、不过账；幂等键为薪酬行标识加补发轮次；付款流程按明细付清原应付的未结余额 |  |  |
+| `payroll_redisbursement_detail` | 补发明细 | PayrollRedisbursementDetail | 领域 · payables.payment | 原应付薪酬上的补发明细：薪酬行、补发轮次、收款人与账户、金额（等于原实发）；与人事侧「薪酬补发」是同一事的应付侧记录 |  |  |
 
 ## platform.approval（`platform-approval.yaml`）
 
@@ -454,6 +543,16 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 
 另有错误码 20 个（kind 为 `error_code`），不在表中。
 
+## platform.identity（`platform-identity-b31-roles.yaml`）
+
+B-31 配置集的三个负责角色（one-glossary 2026-10-22，NAM-1021-GLO-17；one-data 来单，proposed）。角色代码格式按 one-data：小写 snake，^[a-z][a-z0-9_]{1,59}$。后缀沿用词表惯例用 head（部门负责人 OrgUnitHead、法人财务负责人 LegalEntityFinanceHead），不用 manager。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `administration_head` | 行政负责人 | AdministrationHead | 领域 · platform.identity | 负责行政事务（用印、合同原件借阅、员工活动等）的负责人；B-31 配置集的负责角色之一 |  |  |
+| `it_head` | 信息技术负责人 | ItHead | 领域 · platform.identity | 负责信息技术服务与信息技术资产的负责人；B-31 配置集的负责角色之一；中文名以「信息技术」为准，「IT 负责人」不用 |  |  |
+| `employee_relations_head` | 员工关系负责人 | EmployeeRelationsHead | 领域 · platform.identity | 负责员工关系事务（如周年通知接收）的负责人；B-31 配置集的负责角色之一 |  |  |
+
 ## platform.identity（`platform-identity.yaml`）
 
 platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登录、会话、票据、角色与数据范围用到的词。
@@ -501,6 +600,24 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `number_code` | 编号缩写码 | NumberCode | 领域 · platform.numbering | 单据类型在统一编号格式中的缩写，大写字母 2 至 4 位，对应模板占位符 {TYPE}；与 terms.yaml 的 document_type_code 同义，后者与 kernel.DocumentTypeCode 同名异义，已登记给 one-glossary 裁定 |  | REG-1（IMP-1021-NX5-01）新增 |
 
 另有错误码 6 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
+
+## platform.signing（`platform-signing.yaml`）
+
+签章服务（platform.signing）提议术语（one-glossary 2026-10-22，NAM-1021-GLO-16；准入第 6 条，proposed）。模块标识 platform.signing、schema platform_signing、权限码前缀 platform.signing（由 bcs.yaml 的 platform.signing 派生，英文名 SigningService，用户 2026-10-21 同意）。英文 seal 只指印章；文件封存用 hold，不用 seal。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `seal_ledger` | 印章台账 | SealLedger | 领域 · platform.signing | 公司各法人各类印章的台账，管印章有哪些、什么载体、是否启用、谁保管；用印登记引用其条目（ADR-0064 决定 3） |  |  |
+| `seal_ledger_entry` | 印章台账条目 | SealLedgerEntry | 领域 · platform.signing | 台账中一枚印章的一条记录：粒度为法人 × 印章类型，自有主键 UUIDv7，带载体（实体或电子）与启停状态，同一法人同一印章类型任一时点至多一条启用（ADR-0064 决定 3） |  |  |
+| `seal_ledger_entry_version` | 印章台账条目版本 | SealLedgerEntryVersion | 领域 · platform.signing | 印章台账条目的版本行：生效日、失效日左闭右开，只追加、只许关闭不许改写；载体、启停、保管部门进版本表，用印登记按用印时刻取当时有效版本（ADR-0064 决定 3，D17） |  |  |
+| `seal_type` | 印章类型 | SealType | 领域 · platform.signing | 印章的种类，如公章、合同章、出图专用章；台账条目由法人加印章类型确定；取值清单随先行上线批登记（ADR-0064 决定 3） |  |  |
+| `signing_record` | 签章记录 | SigningRecord | 领域 · platform.signing | 签章服务的只追加记录：请求方与申请 ID、台账条目版本或执业印章、经办人或签章人、签前件与签后件的文件标识和内容哈希、服务商交易号、验章结果、时刻；不改不删，更正用新记录关联；只指本模块的记录（ADR-0064 决定 7） |  |  |
+| `seal_carrier` | 印章载体 | SealCarrier | 领域 · platform.signing | 印章的载体，取值实体章、电子章；台账条目版本上记载体，先行期全部按实体章办理（ADR-0064 决定 3、5） |  |  |
+| `custody_department` | 保管部门 | CustodyDepartment | 领域 · platform.signing | 印章台账条目版本上记的保管该印章的部门（ADR-0064 决定 3） |  |  |
+| `seal_type_list` | 印章类型清单 | SealTypeList | 领域 · platform.signing | 行政提供的印章类型取值清单，做成版本化配置表（根表加版本表），不写死枚举；作者与确认人分离，决定出处必填（ADR-0064 决定 3，D15） |  |  |
+| `seal_type_list_version` | 印章类型清单版本 | SealTypeListVersion | 领域 · platform.signing | 印章类型清单的一个版本：生效日、决定出处、作者；确认人不得是作者（ADR-0064 决定 3，D15） |  |  |
+
+另有错误码 7 个（kind 为 `error_code`），不在表中。
 
 ## platform.web（`platform-web.yaml`）
 

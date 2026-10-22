@@ -13,7 +13,7 @@
     <participant id="P_main" name="FORCITIS one" processRef="PRC-23"/>
   </collaboration>
   <process id="PRC-23" name="填报并审批工时单" isExecutable="false">
-    <documentation>owner B-06；VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6</documentation>
+    <documentation>owner B-06；</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E3" name="设计师和顾问（SH-E3）">
         <flowNodeRef>S2_3</flowNodeRef>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_PRC-51" targetNamespace="https://forcitis.one/bpmn/PRC-51" exporter="bpmn_gen" exporterVersion="1">
-  <signal id="Signal_1" name="ContractSigned"/>
+  <signal id="Signal_1" name="协议已生效"/>
   <signal id="Signal_2" name="新基线已生效"/>
   <dataStore id="DS_AGG-44" name="AGG-44"/>
   <collaboration id="Collab_PRC-51">
@@ -16,7 +16,7 @@
         <flowNodeRef>End_4</flowNodeRef>
       </lane>
     </laneSet>
-    <startEvent id="Start_1" name="ContractSigned">
+    <startEvent id="Start_1" name="协议已生效">
       <outgoing>Flow_1</outgoing>
       <signalEventDefinition signalRef="Signal_1"/>
     </startEvent>
