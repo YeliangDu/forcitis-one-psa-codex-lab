@@ -37,6 +37,7 @@
 | SGN 签章服务未准入时行政事务的停工范围（1 题，不预选；one-architecture） | `sheets/SGN.json` | https://claude.ai/artifact/JZc7KyLZLB8VSmd6FM4qNd（2026-10-22 起，未实看渲染） |
 | LEB 换法人后的合同与项目归属及四项待定规则（9 题，不预选；one-architecture） | `sheets/LEB.json` | https://claude.ai/artifact/Hk9eivZEUYvKjAvaMHYrH2（2026-10-22 起，未实看渲染） |
 | KPI 指标口径待定（7 题，不预选；one-architecture） | `sheets/KPI.json` | https://claude.ai/artifact/VbwhsaaqdA9BTxpEVbUsqZ（2026-10-22 起，未实看渲染） |
+| FCQ 贡献毛利基线、直接人工费率与工资补发的财务口径（7 题，不预选；one-arch-finance） | `sheets/FCQ.json` | https://claude.ai/artifact/LgVhQxMc6Rv11hS4Z8iSAc（2026-10-22 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|

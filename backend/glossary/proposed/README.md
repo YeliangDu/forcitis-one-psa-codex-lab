@@ -233,6 +233,22 @@ GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-2
 
 另有技术词 38 个（`common_words`），不在表中。
 
+## `kpi-page-terms.yaml`
+
+涉及模块：`accounting.cashbank`、`contract.agreement`、`cost.timesheet`。
+
+KPI 页用到的七个未登记词（one-glossary 2026-10-22，NAM-1021-GLO-18；one-coordinator 来单，proposed）。出处：r0/METRIC_BASELINE_DRAFT M-37、M-43、M-46，R1-B-06。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `opportunity_hours` | 商机工时 | OpportunityHours | 领域 · cost.timesheet | 员工填报在商机（尚未签约的业务机会）上的工时；与收费工时、非计费工时并列，用于工时结构（M-43） |  |  |
+| `available_hours` | 可用工时 | AvailableHours | 领域 · cost.timesheet | 员工在期间内可供使用的工时，来自工作日历扣除休假后的小时数；利用率的分母（可计费工时 / 可用工时） |  |  |
+| `default_payment_term` | 默认账期 | DefaultPaymentTerm | 领域 · contract.agreement | 合同或客户未另行约定付款周期时采用的账期天数，配置项；到期日由账期与开票日推算（R1-B-06） |  |  |
+| `excess_authorized_limit_input` | 超授权额度投入 | ExcessAuthorizedLimitInput | 领域 · contract.agreement | 无合同风险敞口超出授权额度的投入金额（M-46）；授权额度按客户等级配置 |  |  |
+| `hours_structure` | 工时结构 | HoursStructure | 领域 · cost.timesheet | 期间内工时按收费、商机、非计费划分的占比（M-43），与有效 / 无效工时划分对齐 |  |  |
+| `effective_hours_ratio` | 有效工时占比 | EffectiveHoursRatio | 领域 · cost.timesheet | 期间内有效工时占全部填报工时的比例；有效工时指经有效性认定的工时 |  |  |
+| `cash_inflow_outflow_ratio` | 现金流入流出比 | CashInflowOutflowRatio | 领域 · accounting.cashbank | 期间现金流入合计除以现金流出合计（M-37）；是否含筹资活动待确认 |  |  |
+
 ## `list-paging.yaml`
 
 K-3a 列表分页公共契约新增的纯技术词（proposed，NAMING_STANDARD A-3、A-4）。
@@ -407,6 +423,34 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 | `attribution_subject` | 法人归属对象 | AttributionSubject | 领域 · organization.workforce | 法人归属所指的对象，是一个组织单元或一名员工，由对象类别与对象 ID 共同确定；同一对象在同一时点只归属一个法人 |  | 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列 |
 
 另有错误码 10 个（kind 为 `error_code`）、技术词 86 个（`common_words`），不在表中。
+
+## `payroll-payment-and-people-commands.yaml`
+
+涉及模块：`cost.costing`、`organization.payroll`、`organization.workforce`、`payables.payment`。
+
+薪酬行支付子状态机、人事命令、跨法人用语（one-glossary 2026-10-22，NAM-1021-GLO-19；one-arch-people、one-arch-finance 来单，proposed）。状态名暂定，随用户认可。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `payroll_settlement_line` | 薪酬结算行 | PayrollSettlementLine | 领域 · organization.payroll | 结算单上一名员工的一行，带支付状态；OBJ-73 原文称「薪酬行」，与薪酬结算单对应写全称；也是状态转换记录里该子实体的聚合类型码值（ADR-0075） |  |  |
+| `payroll_disbursement` | 薪酬代发 | PayrollDisbursement | 领域 · organization.payroll | 按薪酬结算行经银行代发渠道向员工账户发放薪酬的动作及其结果 |  |  |
+| `payroll_line_status__pending_payment` | 待支付 | PendingPayment | 领域 · organization.payroll | 薪酬结算行的支付状态：已确认应发，尚未代发或补发后等待再次代发 |  |  |
+| `payroll_line_status__paid` | 已实付 | Paid | 领域 · organization.payroll | 薪酬结算行的支付状态：代发结果登记为成功，实际已付到员工账户（OBJ-73 原文） |  |  |
+| `payroll_line_status__payment_failed` | 支付失败 | PaymentFailed | 领域 · organization.payroll | 薪酬结算行的支付状态：代发结果登记为失败，待更正工资卡后补发 |  |  |
+| `register_payroll_disbursement_result` | 登记代发结果 | RegisterPayrollDisbursementResult | 领域 · organization.payroll | 登记薪酬代发的结果（成功或失败），薪酬结算行由待支付转已实付或支付失败；动词登记＝只记录事实 |  |  |
+| `initiate_payroll_redisbursement` | 发起薪酬补发 | InitiatePayrollRedisbursement | 领域 · organization.payroll | 对支付失败的薪酬结算行发起补发，转回待支付；发出「薪酬补发已发起」 |  |  |
+| `payroll_disbursement_result_registered` | 薪酬代发结果已登记 | PayrollDisbursementResultRegistered | 领域 · organization.payroll | 薪酬代发的结果已登记 |  |  |
+| `payroll_redisbursement_initiated` | 薪酬补发已发起 | PayrollRedisbursementInitiated | 领域 · organization.payroll | 薪酬补发已发起；B-10 订阅 |  |  |
+| `end_legal_entity_attribution` | 结束法人归属 | EndLegalEntityAttribution | 领域 · organization.workforce | 结束一段法人归属并写结束日；与已登记事件「法人归属已结束」对应（one-arch-people 来单称「终止法人归属」，改用「结束」与事件一致） |  |  |
+| `correct_legal_entity_code` | 更正法人主体代码 | CorrectLegalEntityCode | 领域 · organization.workforce | 在未发号前更正法人主体代码（INV-59）；与已登记事件「法人主体代码已更正」对应（来单称「更正法人代码」，补上「主体」与词条一致） |  |  |
+| `oversight_scope` | 分管范围 | OversightScope | 领域 · organization.workforce | 一名分管领导分管的组织单元或事务范围（B-13） |  |  |
+| `oversight_scope_version` | 分管范围版本 | OversightScopeVersion | 领域 · organization.workforce | 分管范围的版本化配置（AGG-135，表 oversight_scope_versions）：生效区间不重叠、只追加 |  |  |
+| `cross_entity_labor` | 跨法人人工 | CrossEntityLabor | 领域 · cost.costing | 员工当日成本法人与项目承担法人不一致的人工与项目费用（用户 LEB-04） |  |  |
+| `cross_entity_list` | 跨法人清单 | CrossEntityList | 领域 · cost.costing | 财务每月收到的清单：跨法人人工、项目费用与未转入售前投入的部分（用户 LEB-05） |  |  |
+| `register_disbursement_return` | 登记代发退回 | RegisterDisbursementReturn | 领域 · payables.payment | 出纳凭银行退回回单登记一笔代发的部分退回，付款仍为已核销，累计退回额增加；幂等键为付款标识加银行回单号；发「付款已部分退回」；全额退回仍走登记退票 |  |  |
+| `payment_partially_returned` | 付款已部分退回 | PaymentPartiallyReturned | 领域 · payables.payment | 一笔付款登记了部分退回；应付侧订阅后冲回等额应付核销 |  |  |
+| `register_payroll_redisbursement_detail` | 登记薪酬补发明细 | RegisterPayrollRedisbursementDetail | 领域 · payables.payment | 在原应付薪酬上登记补发明细，不新建应付、不过账；幂等键为薪酬行标识加补发轮次；付款流程按明细付清原应付的未结余额 |  |  |
+| `payroll_redisbursement_detail` | 补发明细 | PayrollRedisbursementDetail | 领域 · payables.payment | 原应付薪酬上的补发明细：薪酬行、补发轮次、收款人与账户、金额（等于原实发）；与人事侧「薪酬补发」是同一事的应付侧记录 |  |  |
 
 ## platform.approval（`platform-approval.yaml`）
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """ARC-1021-ARC-08：扫描已建聚合，逐行转换规划清单；--check 只比对产物。"""
 import argparse
+import datetime
 import re
 import sys
 from collections import Counter
@@ -16,6 +17,8 @@ OUTPUT = ARCH / 'ssot/i03-aggregates'
 JAVA = Path('backend/src/main/java/com/forcitis/one')
 REGISTRY = Path('backend/architecture/data-access-registry.yaml')
 DRAFT = ARCH / 'proposals/ENTERPRISE_AGGREGATES_DRAFT.md'
+UNBUILT = ARCH / 'panorama/unbuilt_roots.yaml'
+MAX_DUE_DAYS = 60   # 名单只容过渡期，到期日最远为当天起 60 天
 OLD = ARCH / 'ddd/aggregates.yaml'
 PREFIX = 'com.forcitis.one.'
 HEADERS = ['#', '聚合', '内含', '对应', '不变量', '命令（→ 事件；前置 INV）', '对外事件（订阅方）', '引用与依赖方式']
@@ -92,7 +95,29 @@ def published(unit, events):
     return found
 
 
-def collect(root):
+def read_unbuilt(root, today):
+    """Registry roots whose domain class is not written yet; each carries an owner and a due date, and fails once the date has passed."""
+    if not (root / UNBUILT).is_file():
+        return {}
+    rows = read_yaml(root / UNBUILT).get('roots')
+    if not isinstance(rows, list):
+        raise ValueError(f'{UNBUILT}: roots 应为列表')
+    listed = {}
+    for row in rows:
+        if not isinstance(row, dict) or not all(row.get(k) for k in ('table', 'owner', 'due', 'reason')):
+            raise ValueError(f'{UNBUILT}: 每项须有 table、owner、due、reason：{row}')
+        if row['table'] in listed:
+            raise ValueError(f'{UNBUILT}: 重复：{row["table"]}')
+        due = row['due'] if isinstance(row['due'], datetime.date) else datetime.date.fromisoformat(str(row['due']))
+        if due > today + datetime.timedelta(days=MAX_DUE_DAYS):
+            raise ValueError(f'{UNBUILT}: {row["table"]} 到期日 {due} 超过 {MAX_DUE_DAYS} 天上限，须拆小或改期')
+        if due < today:
+            raise ValueError(f'{UNBUILT}: {row["table"]} 已过期（{due}，负责 {row["owner"]}）')
+        listed[row['table']] = {**row, 'due': due.isoformat()}
+    return listed
+
+
+def collect(root, today=None, unbuilt=None):
     files = sorted((root / JAVA).glob('*/*/**/*.java'))
     if not files:
         raise ValueError(f'缺失或空的来源：{JAVA}')
@@ -110,6 +135,7 @@ def collect(root):
     registry = read_yaml(root / REGISTRY).get('tables')
     if not isinstance(registry, dict) or not registry:
         raise ValueError('数据访问注册表 tables 缺失或为空')
+    pending = read_unbuilt(root, today or datetime.date.today())
     roots = {u['fq']: {'code'} for u in units if u['layer'] == 'domain' and u['kind'] == 'class'
              and implements(u, 'extends', PREFIX + 'kernel.AggregateRoot')}
     for table, row in registry.items():
@@ -119,6 +145,12 @@ def collect(root):
             continue
         candidates = [u for u in units if u['layer'] == 'domain' and u['kind'] in {'class', 'record', 'enum'}
                       and u['name'] == row.get('aggregate') and u['module'].replace('.', '_') == table.split('.')[0]]
+        if table in pending:
+            if candidates:
+                raise ValueError(f'{table}: 已有 domain 类 {row.get("aggregate")}，从 {UNBUILT} 删去')
+            if unbuilt is not None:
+                unbuilt.append(pending[table])
+            continue
         if len(candidates) != 1:
             raise ValueError(f'{table}: AGGREGATE_ROOT 未唯一对应 domain 类：{row.get("aggregate")}')
         roots.setdefault(candidates[0]['fq'], set()).add('registry')
@@ -140,6 +172,9 @@ def collect(root):
         if set(e['fq'] for e in module_events) - emitted:
             item['events_in_module'] = sorted(e['module'] + '.' + e['name'] for e in module_events)
         result.append(item)
+    stale = sorted(set(pending) - {t for t, r in registry.items() if isinstance(r, dict) and r.get('role') == 'AGGREGATE_ROOT'})
+    if stale:
+        raise ValueError(f'{UNBUILT}: 不是注册表中的 AGGREGATE_ROOT：' + '、'.join(stale))
     if not result:
         raise ValueError('未扫描到已建聚合')
     return sorted(result, key=lambda row: row['id'])
@@ -223,7 +258,8 @@ def gap_report(built, old, planned):
 
 
 def documents(root):
-    built = collect(root)
+    unbuilt = []
+    built = collect(root, unbuilt=unbuilt)
     planned = parse_planned((root / DRAFT).read_text(encoding='utf-8'))
     old = read_yaml(root / OLD).get('aggregates')
     if not isinstance(old, list) or any(not isinstance(a, dict) or not a.get('id') for a in old):
@@ -232,9 +268,12 @@ def documents(root):
         raise ValueError('历史聚合编号重复')
     counts = Counter(tuple(a['source']) for a in built)
     built_doc = {'meta': {'count': len(built), 'code_only': counts[('code',)], 'registry_only': counts[('registry',)],
-                          'both': counts[('code', 'registry')], 'sources': [JAVA.as_posix(), REGISTRY.as_posix()]},
+                          'both': counts[('code', 'registry')], 'sources': [JAVA.as_posix(), REGISTRY.as_posix()],
+                          'registered_unbuilt': sorted(unbuilt, key=lambda row: row['table'])},
                  'aggregates': built}
     dump = lambda data: '# 由 panorama/scan_aggregates.py 生成，勿手改\n' + yaml.safe_dump(data, allow_unicode=True, sort_keys=False, width=200)
+    for row in unbuilt:
+        print(f'告警：{row["table"]} 已登记为聚合根、domain 类未建（负责 {row["owner"]}，到期 {row["due"]}）', file=sys.stderr)
     return {'built.yaml': dump(built_doc), 'planned.yaml': dump(planned), 'GAPS.md': gap_report(built, old, planned)}
 
 

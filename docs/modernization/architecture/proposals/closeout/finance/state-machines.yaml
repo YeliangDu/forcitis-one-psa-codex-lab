@@ -256,9 +256,15 @@ machines:
   - from: 已结清
     to: 已部分结清
     command: 冲回应付核销
-    guard: [退票后仍有其他核销，未结余额大于零]
+    guard: [退票或部分退回后仍有核销，未结余额大于零]
     reverse_of: 核销应付
-    note: S-30 ③：付款已退票后恢复未结余额
+    note: S-30 ③：付款已退票后恢复未结余额；代发部分退回时只冲回退回额（PAYROLL_REISSUE_SEAM J-2）
+  - from: 已部分结清
+    to: 已部分结清
+    command: 登记薪酬补发明细
+    guard: [来源为月度薪酬结算, 累计补发额不超过累计冲回额]
+    reverse_of: null
+    note: 薪酬补发不新建应付，在原应付上登记补发明细，由 PRC-75 付清未结余额（one-architecture 2026-10-22 裁定 J-1）；提议命令
   - from: [已部分结清, 已结清]
     to: 已确认
     command: 冲回应付核销
@@ -414,6 +420,12 @@ machines:
     guard: [INV-78a]
     reverse_of: 登记银行结果
     note: S-30 ③：事件付款已退票，AGG-52 订阅后冲回应付核销
+  - from: 已核销
+    to: 已核销
+    command: 登记代发退回
+    guard: [累计退回额不超过付款金额]
+    reverse_of: null
+    note: 代发部分退回，付款状态不变、累计退回额增加；发付款已部分退回，AGG-52 只冲回退回额（PAYROLL_REISSUE_SEAM J-2）；提议命令
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045）；退票后原付款置「已退票」，重新发起为新付款
 - aggregate: AGG-54
   initial: 已认缴
