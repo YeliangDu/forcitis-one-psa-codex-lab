@@ -33,11 +33,13 @@ import java.util.Date;
 import java.util.HexFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Standard storage, never overwritten (x-oss-forbid-overwrite), every write read back against size, MD5 and SHA-256. */
 final class OssBusinessFileStore implements BusinessFileStore, AutoCloseable {
     static final String SHA256 = "sha256";
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(OssBusinessFileStore.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OssBusinessFileStore.class);
     private static final String FORBID_OVERWRITE = "x-oss-forbid-overwrite";
     private static final Pattern MEDIA_TYPE = Pattern.compile("[a-z]+/[a-z0-9.+-]{1,100}");
 

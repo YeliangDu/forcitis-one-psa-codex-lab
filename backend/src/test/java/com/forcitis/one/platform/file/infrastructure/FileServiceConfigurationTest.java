@@ -58,7 +58,7 @@ class FileServiceConfigurationTest {
             BusinessFileStore store = mock(BusinessFileStore.class);
             org.mockito.Mockito.when(store.maxLinkValidity()).thenReturn(java.time.Duration.ofMinutes(10));
             return store;
-        }).run(context -> assertThat(context).hasFailed().getFailure().rootCause().hasMessageContaining("download-link-maximum-validity"));
+        }).run(context -> assertThat(context).hasFailed().getFailure().rootCause().hasMessageContaining("exceeds what the business file bucket signs"));
     }
 
     @Test

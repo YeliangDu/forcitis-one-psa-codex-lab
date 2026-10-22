@@ -156,6 +156,10 @@ class OssBusinessFileStoreTest {
         assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
         org.mockito.Mockito.doReturn(stored("1".repeat(32), "1".repeat(64), 9)).when(writer).getObjectMetadata("files-dev", FORMAL.value());
         assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
+        org.mockito.Mockito.doReturn(stored(MD5, SHA, 9)).when(writer).getObjectMetadata("files-dev", FORMAL.value());
+        assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
+        org.mockito.Mockito.doReturn(stored(MD5, "1".repeat(64), 7)).when(writer).getObjectMetadata("files-dev", FORMAL.value());
+        assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
     }
 
     @Test
