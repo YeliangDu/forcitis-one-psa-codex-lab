@@ -23,3 +23,16 @@
 - 本批其余列（`employment_status` 等仍保留在 `employees`）后续批删除，本批不动，同意。
 
 数据设计：通过（one-data，2026-10-22，依据 @0adc05a6d；范围：C1–C3 改后的 `employee_versions` 新增列与约束、`personnel_commands`、`employees` 两处收窄）。
+
+## 补：加 `uk_employees_employee_code` 后同步路径的重复工号口径（2026-10-22，答 RULING-COORD-20261022-05）
+
+事实：老系统 A8 有 5 个重复工号；`sync_runs`/`sync_diffs` 已有「被隔离的人员行」（RULE-365）与数据例外 `ISSUE` 行的机制（`isolated_row_count`、`issue_count`）；同步开关 `forcitis.organization.workforce.sync.enabled` 默认 `false`（`config/organization_workforce.properties`），ADR-0055 下生产不接 A8，同步随 W2 退役。
+
+**① 拒收口径（同步路径，过渡期；不放宽唯一约束，不自动改号）**
+- **拒哪条**：会使「不同来源人」占用已被占用的 `employee_code` 的那一行（新建或改号）。已存在的员工保留；同一次同步里两个新人同号，按来源主键升序，先者建立、后者拒收，保证重跑结果一致。同一来源人的行不受影响。
+- **怎么拒**：该行按「被隔离的人员行」处理（不建员工、不改号），计入 `isolated_row_count` 与 `issue_count`，写一条 `sync_diffs`：`entity_kind = EMPLOYEE`、`change_kind = ISSUE`、`issue_kind = DUPLICATE_EMPLOYEE_CODE`；`detail` 只写命中员工的自有 ID 和来源对照键，**不写姓名、工号以外的个人信息**；`subject_key` 用来源对照键。不新增表，不捕获 23505 后吞掉：先查再写，查不到命中才插入，仍撞约束（并发）则该次同步 `FAILED` 并写 `failure_reason`。
+- **告警给谁**：沿用同步记录页已有的数据例外展示给组织管理员（有 `issue_count > 0` 即显示）；不另造通道。冲突如何处置（合并 / 改号 / 不迁）不在同步里做，归迁入阶段的 `employee_code_conflicts`（W2 §7、`MIGRATION_QUALITY_CHECKS.md` MQ-M-01）。
+- **记在哪里**：`sync_diffs`（上述），保留期随同步记录。同步退役时随 `sync_runs` 一并移除，不迁入新表。
+- `SourceIdMatchingIT`「同号两人各有一条」改为：第二人被隔离、写 `DUPLICATE_EMPLOYEE_CODE` 例外、第一人不受影响、重跑结果相同；另加「同号并发」用例期望该次同步 `FAILED` 而非静默。
+
+**② 有 A8 数据的环境**：同步默认关闭，ADR-0055 下生产不启用。结论：**PR-B 仍须带上面的隔离路径**（SourceIdMatchingIT 本来就走这条路径，且一次 23505 会让整次同步失败）；同时**任何环境不得在隔离路径合入前把 `WORKFORCE_SYNC_ENABLED` 设为 true**——请 one-1a-par 与 one-ops 核各环境配置没有打开它，结果回 one-coordinator。
