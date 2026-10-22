@@ -34,8 +34,8 @@
 | 09 业务对象 | obj | 104 |
 | 10 受控业务执行 | act | 675 |
 | 11 业务事实 | fact | 37 |
-| 12 维度 | dim | 0 |
-| 13 指标与评价 | metric | 79 |
+| 12 维度 | dim | 10 |
+| 13 指标与评价 | metric | 94 |
 | 14 计算绑定 | bind | 0 |
 | 15 决策与行动 | dec | 0 |
 | 09/10 映射  | agg | 145 |
@@ -102,9 +102,11 @@
 | N11-1 | 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列） | 12 |
 | N11-2 | 每条经营事实有产生它的命令或事件 | 0 |
 | N11-3 | 每条分析事实能追到经营事实 | 7 |
+| N12-1 | 每个维度至少切一条事实 | 0 |
+| N12-2 | 总线矩阵的每个 ✔ 格都对上 DIM×FACT | 7 |
 | N13-1 | 每个阶段都有指标 | 61 |
-| N13-2 | 每个指标都能追到阶段或流程 | 79 |
-| N13-3 | 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口） | 79 |
+| N13-2 | 每个指标都能追到阶段或流程 | 92 |
+| N13-3 | 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口） | 92 |
 
 ## N01-1 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）（39）
 
@@ -932,6 +934,16 @@
 - FACT-36 审批时效（累积快照）（analytic_source：platform.approval 领域事件，不过账（ADR-0025）；工作日）
 - FACT-37 线索与投标转化事件（analytic_source：presales.opportunity 线索、投标状态里程碑）
 
+## N12-2 总线矩阵的每个 ✔ 格都对上 DIM×FACT（7）
+
+- 行「预算执行」× 列「期间」未对上 DIM×FACT
+- 行「预算执行」× 列「法人」未对上 DIM×FACT
+- 行「预算执行」× 列「组织」未对上 DIM×FACT
+- 行「预算执行」× 列「项目 / WBS」未对上 DIM×FACT
+- 行「预算执行」× 列「人员」未对上 DIM×FACT
+- 行「预算执行」× 列「成本类型」未对上 DIM×FACT
+- 行「预算执行」× 列「供应商」未对上 DIM×FACT
+
 ## N13-1 每个阶段都有指标（61）
 
 - VS-01.1 采集线索
@@ -996,166 +1008,192 @@
 - VS-15.2 批准生效
 - VS-15.3 修订停用
 
-## N13-2 每个指标都能追到阶段或流程（79）
+## N13-2 每个指标都能追到阶段或流程（92）
 
-- business_variance 经营偏差
-- uncontracted_exposure 无合同风险敞口
-- estimate_to_complete ETC
-- delivery_variance 交付偏差
-- post_completion_service_hours 后期服务工时
-- quality_loss 质量损失
-- rework_rate 返工率
-- defect_rate 质量缺陷率
-- effective_hours 有效工时
-- ineffective_hours 无效工时
-- rework_hours 返工工时
-- billable_hours 可计费工时
-- capacity_realization 产能变现
-- idle_capacity 闲置产能
-- project_cost 项目成本
-- direct_labor 直接人工
-- direct_expense 直接费用
-- outsourcing_cost 外包成本
-- subcontract_cost 分包成本
-- cost_budget 成本预算
-- cost_budget_variance 成本预算偏差
-- unbilled_wip 未开票在制（WIP）
-- measure_of_progress 履约进度
-- uncontracted_wip 无合同 WIP
-- accounts_receivable 应收账款
-- aging 账龄
-- bad_debt_risk 坏账风险
-- impairment_risk 减值风险
-- cash_conversion 现金转化
-- time_capture_rate 工时捕获率
-- statutory_cost 法定成本
-- intercompany_balance 内部往来
-- costs_to_obtain_contract 合同取得成本
-- cost_of_sales 营业成本
-- remaining_performance_obligation 剩余履约义务
-- estimate_at_completion 完工估算
-- planned_value 计划价值
-- earned_value 挣值
-- actual_cost 实际成本
-- cost_performance_index 成本绩效指数
-- schedule_performance_index 进度绩效指数
-- schedule_variance 进度偏差
-- earned_value_cost_variance 挣值成本偏差
-- utilization_rate 利用率
-- accrual_basis_revenue 权责发生制收入
-- reversible_balance 可冲销余额
-- job_failure 作业失败
-- contribution_margin 贡献毛利
-- contribution_margin_ratio 贡献毛利率
-- net_service_revenue 净服务收入
-- management_operating_profit 经营利润
-- management_operating_profit_margin 经营利润率
-- indirect_cost 间接成本
-- pass_through_cost 转付成本
-- labor_cost_multiplier 人工成本产出倍数
-- target_variance 目标偏差
-- available_budget 可用额度
-- plan_target_value 计划目标值
-- target_attainment_rate 目标达成率
-- budget_consumption_rate 预算消耗率
-- new_contract_value 新签合同额
-- project_initiation_value 项目立项金额
-- aged_receivable 账龄超 N 天应收
-- days_sales_outstanding 应收周转天数
-- billing_conversion_rate 开票转化率
-- collection_rate 回款率
-- overdue_billing_commitment 承诺开票超期
-- allowance_for_bad_debts 坏账准备
-- average_headcount 平均在册人数
-- attrition_rate 离职率
-- pipeline_value 商机管道金额
-- win_rate 赢单率
-- lead_conversion_rate 线索转化率
-- expense_payment 费用支付
-- kickoff_completion_rate 启动会完成率
-- internal_review_coverage 内部评审覆盖率
-- net_revenue 净收入
-- revenue_including_tax 含税收入
-- net_new_contract_value 新签净额
+- KPI-01 OA 迁入模板停用率
+- KPI-02 切换后 A8 凭证插件新增凭证行数
+- KPI-03 权责事实遗留类别数
+- KPI-04 经单一过账管道入账的权责事实占比
+- KPI-05 月结对账等式差异数
+- KPI-06 权责口径三大报表按月产出率
+- KPI-07 与 U8C 收付账套对账差异数
+- KPI-08 指标目录 OAT 声明完整率
+- KPI-09 同一指标的并存算法数
+- KPI-10 关账期间快照覆盖率
+- KPI-11 口径差异清单逐期勾稽完成率
+- KPI-12 项目贡献毛利可得覆盖率
+- KPI-13 贡献毛利率
+- KPI-14 老系统与 A8 数据通道下线数
+- KPI-15 过渡镜像对账通过率
+- KPI-16 安全不变量满足数
+- KPI-17 商机管道金额
+- KPI-18 赢单金额
+- KPI-19 赢单率
+- KPI-20 项目立项金额
+- KPI-21 线索转化率
+- KPI-22 新签合同额
+- KPI-23 剩余履约义务
+- KPI-24 待签合同金额
+- KPI-25 开票金额（含税）
+- KPI-26 回款（应收结清，全部方式）
+- KPI-27 现金回款
+- KPI-28 应收账款余额
+- KPI-29 逾期应收（过了到期日）
+- KPI-30 开票转化率
+- KPI-31 回款率
+- KPI-32 减值准备（余额、本期计提）
+- KPI-33 收入冲减
+- KPI-34 信用损失核销
+- KPI-35 商业承兑汇票未兑付余额
+- KPI-36 承诺开票超期金额
+- KPI-37 直接人工
+- KPI-38 直接费用
+- KPI-39 净服务收入
+- KPI-40 贡献毛利
+- KPI-41 BU 贡献（层级）
+- KPI-42 经营利润
+- KPI-43 经营利润率
+- KPI-44 费用（权责，按发生期间）
+- KPI-45 费用支付（按支付日）
+- KPI-46 法定报表数
+- KPI-47 经营活动现金流量净额
+- KPI-48 平均在册人数
+- KPI-49 离职率（主动、被动）
+- KPI-50 计划目标值
+- KPI-51 目标达成率
+- KPI-52 人均产出
+- KPI-53 人工成本产出倍数
+- KPI-54 预算执行
+- KPI-55 可用额度
+- KPI-56 预算消耗率
+- KPI-57 交付质量指标族
+- KPI-58 启动会完成率
+- KPI-59 内部评审覆盖率
+- KPI-60 经营偏差
+- KPI-61 交付偏差
+- KPI-62 后期服务工时
+- KPI-63 质量损失
+- KPI-64 返工率
+- KPI-65 质量缺陷率
+- KPI-66 返工工时
+- KPI-67 产能变现
+- KPI-68 闲置产能
+- KPI-69 成本预算
+- KPI-70 成本预算偏差
+- KPI-71 履约进度
+- KPI-72 无合同 WIP
+- KPI-73 账龄
+- KPI-74 坏账风险
+- KPI-75 减值风险
+- KPI-76 现金转化
+- KPI-77 工时捕获率
+- KPI-78 法定成本
+- KPI-79 内部往来
+- KPI-80 合同取得成本
+- KPI-81 ETC
+- KPI-82 完工估算
+- KPI-83 计划价值
+- KPI-84 挣值
+- KPI-85 实际成本
+- KPI-86 成本绩效指数
+- KPI-87 进度绩效指数
+- KPI-88 进度偏差
+- KPI-89 挣值成本偏差
+- KPI-92 转付成本
+- KPI-93 目标偏差
+- KPI-94 新签净额
 
-## N13-3 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）（79）
+## N13-3 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）（92）
 
-- business_variance 经营偏差
-- uncontracted_exposure 无合同风险敞口
-- estimate_to_complete ETC
-- delivery_variance 交付偏差
-- post_completion_service_hours 后期服务工时
-- quality_loss 质量损失
-- rework_rate 返工率
-- defect_rate 质量缺陷率
-- effective_hours 有效工时
-- ineffective_hours 无效工时
-- rework_hours 返工工时
-- billable_hours 可计费工时
-- capacity_realization 产能变现
-- idle_capacity 闲置产能
-- project_cost 项目成本
-- direct_labor 直接人工
-- direct_expense 直接费用
-- outsourcing_cost 外包成本
-- subcontract_cost 分包成本
-- cost_budget 成本预算
-- cost_budget_variance 成本预算偏差
-- unbilled_wip 未开票在制（WIP）
-- measure_of_progress 履约进度
-- uncontracted_wip 无合同 WIP
-- accounts_receivable 应收账款
-- aging 账龄
-- bad_debt_risk 坏账风险
-- impairment_risk 减值风险
-- cash_conversion 现金转化
-- time_capture_rate 工时捕获率
-- statutory_cost 法定成本
-- intercompany_balance 内部往来
-- costs_to_obtain_contract 合同取得成本
-- cost_of_sales 营业成本
-- remaining_performance_obligation 剩余履约义务
-- estimate_at_completion 完工估算
-- planned_value 计划价值
-- earned_value 挣值
-- actual_cost 实际成本
-- cost_performance_index 成本绩效指数
-- schedule_performance_index 进度绩效指数
-- schedule_variance 进度偏差
-- earned_value_cost_variance 挣值成本偏差
-- utilization_rate 利用率
-- accrual_basis_revenue 权责发生制收入
-- reversible_balance 可冲销余额
-- job_failure 作业失败
-- contribution_margin 贡献毛利
-- contribution_margin_ratio 贡献毛利率
-- net_service_revenue 净服务收入
-- management_operating_profit 经营利润
-- management_operating_profit_margin 经营利润率
-- indirect_cost 间接成本
-- pass_through_cost 转付成本
-- labor_cost_multiplier 人工成本产出倍数
-- target_variance 目标偏差
-- available_budget 可用额度
-- plan_target_value 计划目标值
-- target_attainment_rate 目标达成率
-- budget_consumption_rate 预算消耗率
-- new_contract_value 新签合同额
-- project_initiation_value 项目立项金额
-- aged_receivable 账龄超 N 天应收
-- days_sales_outstanding 应收周转天数
-- billing_conversion_rate 开票转化率
-- collection_rate 回款率
-- overdue_billing_commitment 承诺开票超期
-- allowance_for_bad_debts 坏账准备
-- average_headcount 平均在册人数
-- attrition_rate 离职率
-- pipeline_value 商机管道金额
-- win_rate 赢单率
-- lead_conversion_rate 线索转化率
-- expense_payment 费用支付
-- kickoff_completion_rate 启动会完成率
-- internal_review_coverage 内部评审覆盖率
-- net_revenue 净收入
-- revenue_including_tax 含税收入
-- net_new_contract_value 新签净额
+- KPI-01 OA 迁入模板停用率
+- KPI-02 切换后 A8 凭证插件新增凭证行数
+- KPI-03 权责事实遗留类别数
+- KPI-04 经单一过账管道入账的权责事实占比
+- KPI-05 月结对账等式差异数
+- KPI-06 权责口径三大报表按月产出率
+- KPI-07 与 U8C 收付账套对账差异数
+- KPI-08 指标目录 OAT 声明完整率
+- KPI-09 同一指标的并存算法数
+- KPI-10 关账期间快照覆盖率
+- KPI-11 口径差异清单逐期勾稽完成率
+- KPI-12 项目贡献毛利可得覆盖率
+- KPI-13 贡献毛利率
+- KPI-14 老系统与 A8 数据通道下线数
+- KPI-15 过渡镜像对账通过率
+- KPI-16 安全不变量满足数
+- KPI-17 商机管道金额
+- KPI-18 赢单金额
+- KPI-19 赢单率
+- KPI-20 项目立项金额
+- KPI-21 线索转化率
+- KPI-22 新签合同额
+- KPI-23 剩余履约义务
+- KPI-24 待签合同金额
+- KPI-25 开票金额（含税）
+- KPI-26 回款（应收结清，全部方式）
+- KPI-27 现金回款
+- KPI-28 应收账款余额
+- KPI-29 逾期应收（过了到期日）
+- KPI-30 开票转化率
+- KPI-31 回款率
+- KPI-32 减值准备（余额、本期计提）
+- KPI-33 收入冲减
+- KPI-34 信用损失核销
+- KPI-35 商业承兑汇票未兑付余额
+- KPI-36 承诺开票超期金额
+- KPI-37 直接人工
+- KPI-38 直接费用
+- KPI-39 净服务收入
+- KPI-40 贡献毛利
+- KPI-41 BU 贡献（层级）
+- KPI-42 经营利润
+- KPI-43 经营利润率
+- KPI-44 费用（权责，按发生期间）
+- KPI-45 费用支付（按支付日）
+- KPI-46 法定报表数
+- KPI-47 经营活动现金流量净额
+- KPI-48 平均在册人数
+- KPI-49 离职率（主动、被动）
+- KPI-50 计划目标值
+- KPI-51 目标达成率
+- KPI-52 人均产出
+- KPI-53 人工成本产出倍数
+- KPI-54 预算执行
+- KPI-55 可用额度
+- KPI-56 预算消耗率
+- KPI-57 交付质量指标族
+- KPI-58 启动会完成率
+- KPI-59 内部评审覆盖率
+- KPI-60 经营偏差
+- KPI-61 交付偏差
+- KPI-62 后期服务工时
+- KPI-63 质量损失
+- KPI-64 返工率
+- KPI-65 质量缺陷率
+- KPI-66 返工工时
+- KPI-67 产能变现
+- KPI-68 闲置产能
+- KPI-69 成本预算
+- KPI-70 成本预算偏差
+- KPI-71 履约进度
+- KPI-72 无合同 WIP
+- KPI-73 账龄
+- KPI-74 坏账风险
+- KPI-75 减值风险
+- KPI-76 现金转化
+- KPI-77 工时捕获率
+- KPI-78 法定成本
+- KPI-79 内部往来
+- KPI-80 合同取得成本
+- KPI-81 ETC
+- KPI-82 完工估算
+- KPI-83 计划价值
+- KPI-84 挣值
+- KPI-85 实际成本
+- KPI-86 成本绩效指数
+- KPI-87 进度绩效指数
+- KPI-88 进度偏差
+- KPI-89 挣值成本偏差
+- KPI-92 转付成本
+- KPI-93 目标偏差
+- KPI-94 新签净额

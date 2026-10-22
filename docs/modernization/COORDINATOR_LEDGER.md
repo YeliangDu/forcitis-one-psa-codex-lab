@@ -33,7 +33,7 @@
 - 分层总图（已钉左栏）：https://claude.ai/artifact/GANmVBuBzK58pT27xscJBE ——五层＋贯穿＋老系统退役，数据在页面 db（items/i000..，meta/page），状态变化用 ArtifactData update 改对应条目，不重发页面；源数据脚本 scratchpad(e9617959)/layers。
 - 在线页：会话日报 https://claude.ai/artifact/8CAmf8sAJsoaFNwetoGC7x （每天早上：scripts/ops/session_daily.py 出数 → 补 grade/assessment/action → 数据放 scratchpad(19432a27)/daily/site/data/<日期>.json 并更新 index.json → 以同一 file_path 重发 session-daily.html 与 files）；对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL （源与 refresh.sh 在 scratchpad(19432a27)/align，已钉左栏）。
 - 收件箱待用户答：ANM 命名体系与施工图方法 https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey ；N1 规则待定 https://claude.ai/artifact/BTo6TuYzW7H8vgjCanh4Vq 。用户说「答完」即取答复分发。
-- 攒问（下一张确认页一并出）：分管范围配置由谁维护（one-arch-people）；AGG-21 对客/内部基线一致性（one-arch-revenue，FIDIC/NEC4 条号未核原文，出页前补或改不引条号）；协议生效条件由谁确认、条件不满足停在已签署的时限（GL5-01③，推荐已出：closeout/revenue/NOTES.md「GL5-01 待用户定」@803017d1；民法典第 158 条未核原文，出页前核）。
+- 攒问（下一张确认页一并出）：员工薪酬支付失败后几天内须补发、超时提醒谁（one-arch-people U-1，推荐 3 天、提醒法人财务负责人，依据《工资支付暂行规定》第七条，出页前核原文）。（LEB 三项已于 10-22 答完）
 - 下一文档合集清单：scratchpad(57026514)/next-docs-train.txt（调度批准、one-merge 中午/晚上收）；调度自己的规则、画像、台账、intent、裁定改动都在分支 claude/one-coordinator-two-lanes。
 - 验收裁定登记后立即请 one-merge 加急小合集：acceptance_rulings 守护只认 base（main）上已有的裁定，随实现 PR 带入无效（10-21 F 卡被卡）。
 - 裁定：rulings/COORD-2026-10-17.md（RULING-COORD-20261017-01..04），one-quality 登记 ACCEPTANCE_RULINGS.yaml。
@@ -50,7 +50,7 @@
 - 不向会话要排期、不向用户转报估算（记忆 no-schedule-relay）。
 - 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
 - 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
-- 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r ：sync.py 后 batch set board/{lines,cards,prs,meta}（版本号见 on-merge.txt）。
+- 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r （已钉左栏，10-22 改版）：`python3 scratchpad(08ce11ca)/workbench/sync.py <工作区> <输出目录>` 读任务卡片段、gh、mq 生成 cards/sessions/prs/meta 四个 JSON，ArtifactData batch set board/*（带 if_version）；收到完成点报告和每天早上各同步一次，「要关注」里的停滞卡当天追。
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
