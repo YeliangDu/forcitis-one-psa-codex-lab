@@ -1339,17 +1339,104 @@ def _remove_busy(mq, d):
     gh.merge = merge_then_cancel
     assert proc.process(311) == "MERGED" and "CANCELLED" not in events(log) and not q3.cancel_requested(311), events(log)
 
-    # taken out of the queue between the pick and the start: not started
+    # taken out of the queue between the look and the claim: not started
     gh = FakeGh(); gh.add(312)
     proc, q4, log, _ = _proc(mq, d, "rb4", gh, [312])
-    real_pick = proc.pick
-
-    def pick_then_remove(lane):
-        n = real_pick(lane)
-        if n is not None:
-            q4.remove(n)
-        return n
-    proc.pick = pick_then_remove
+    real_claim = q4.claim
+    q4.claim = lambda n: (q4.remove(n), real_claim(n))[1]
     stops = iter([False, True] + [True] * 20)
     mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
-    assert "SKIPPED" in events(log) and "START" not in events(log) and not any(c[0] == "merge" for c in gh.calls) and q4.working() == {}, events(log)
+    assert "SKIPPED" in events(log) and "START" not in events(log) and not any(c[0] == "merge" for c in gh.calls) and q4.working() == {} and not proc.busy, events(log)
+
+    # check and removal are one step: claimed first -> refused (or cancelled); removed first -> the claim fails
+    q5 = mq.Queue(os.path.join(d, "rb6", "merge.queue"))
+    q5.enqueue(320, 321)
+    assert q5.claim(320) and q5.remove_checked({320, 321}, False) == {320: os.getpid()} and q5.numbers() == [320, 321]
+    assert q5.remove_checked({321}, False) == {} and q5.numbers() == [320]
+    assert q5.remove_checked({320}, True) == {320: os.getpid()} and q5.numbers() == [] and q5.cancel_requested(320)
+    assert not q5.claim(321) and not q5.claim(320), "removed: the claim fails"
+    q5.unmark_working(320)
+    # a request for a pull request nobody is processing is not kept (it would cancel its next round); a mark from an earlier round does not carry a request over
+    q5.request_cancel(330)
+    assert not q5.cancel_requested(330)
+    q5.enqueue(330)
+    assert q5.claim(330)
+    q5.request_cancel(330)
+    q5.unmark_working(330)
+    q5.enqueue(330)
+    assert q5.claim(330) and not q5.cancel_requested(330)
+    with open(os.path.join(d, "rb6", "merge.queue.cancel"), "w") as f:
+        f.write("332\n")   # left over from a round whose worker is gone
+    q5.enqueue(332)
+    assert q5.claim(332) and not q5.cancel_requested(332), "a new round does not inherit an old request"
+    # the runner's start clears what a killed runner left behind (also a pid that is alive by accident)
+    with open(os.path.join(d, "rb6", "merge.queue.working"), "w") as f:
+        f.write("331 1\n")
+    with open(os.path.join(d, "rb6", "merge.queue.cancel"), "w") as f:
+        f.write("331\n")
+    q5.reset_working()
+    assert q5.working() == {} and not q5.cancel_requested(331)
+
+    # CANCELLED does not take a pull request out that was queued again after `remove --cancel`; the queued label comes off
+    gh = FakeGh(); gh.add(340, labels=("queued",), rounds=[dict(pending=3, checks=green())])
+    holder = {}
+    proc, q6, log, _ = _proc(mq, d, "rb7", gh, [340], on_sleep=lambda seconds: holder["q"].request_cancel(340) if seconds == 30 else None)
+    holder["q"] = q6
+    stops = iter([False, True] + [True] * 20)
+    real_process = proc.process
+
+    def process_then_requeue(n):
+        result = real_process(n)
+        q6.enqueue(n)
+        return result
+    proc.process = process_then_requeue
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "CANCELLED" in events(log) and q6.numbers() == [340] and ("label", 340, "queued", False) in gh.calls, (events(log), q6.numbers(), gh.calls)
+
+    # the request stops it while it waits for CI, before the merge is even looked at (the checkpoint in the CI wait)
+    gh = FakeGh(); gh.add(341, rounds=[dict(pending=3, checks=green())])
+    holder = {}
+    looks = {"n": 0}
+    real_behind = gh.behind_by
+    gh.behind_by = lambda n, head: (looks.__setitem__("n", looks["n"] + 1), real_behind(n, head))[1]
+    proc, q7, log, _ = _proc(mq, d, "rb8", gh, [341], on_sleep=lambda seconds: holder["q"].request_cancel(341) if seconds == 30 else None)
+    holder["q"] = q7
+    assert proc.process(341) == "CANCELLED" and looks["n"] == 1, looks
+
+    gh = FakeGh(); gh.add(345)
+    holder = {}
+    proc, q11, log, _ = _proc(mq, d, "rb9b", gh, [345])
+    holder["q"] = q11
+    real_view = gh.view
+    gh.view = lambda n: (holder["q"].request_cancel(n), real_view(n))[1]
+    assert proc.process(345) == "CANCELLED" and ("label", 345, "queued", True) not in gh.calls, gh.calls
+
+    # while it waits for the checks to be listed (before the CI wait proper)
+    gh = FakeGh(); gh.add(344)
+    real_checks = gh.checks
+    polls = {"n": 0}
+    holder = {}
+
+    def light_only(n):
+        polls["n"] += 1
+        return green(light=True) if polls["n"] <= 30 else real_checks(n)
+    gh.checks = light_only
+    proc, q10, log, _ = _proc(mq, d, "rb11", gh, [344], on_sleep=lambda seconds: holder["q"].request_cancel(344) if seconds == 15 else None)
+    holder["q"] = q10
+    assert proc.process(344) == "CANCELLED" and polls["n"] <= 3, polls
+
+    # a request before the branch is updated or labelled stops it there (anything pushed to the branch costs a CI run)
+    gh = FakeGh(); gh.add(342, merge="BEHIND")
+    holder = {}
+    proc, q8, log, _ = _proc(mq, d, "rb9", gh, [342])
+    holder["q"] = q8
+    real_view = gh.view
+    gh.view = lambda n: (holder["q"].request_cancel(n), real_view(n))[1]
+    assert proc.process(342) == "CANCELLED" and not any(c[0] == "update-branch" for c in gh.calls) and ("label", 342, "queued", True) not in gh.calls, gh.calls
+
+    # `once` (no pick) marks the pull request while it is processed
+    gh = FakeGh(); gh.add(343, rounds=[dict(pending=1, checks=green())])
+    seen = []
+    proc, q9, log, _ = _proc(mq, d, "rb10", gh, [], on_sleep=lambda seconds: seen.append(dict(holder["q"].working())))
+    holder["q"] = q9
+    assert proc.process(343) == "MERGED" and any(343 in w for w in seen) and q9.working() == {}, seen

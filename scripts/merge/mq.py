@@ -202,9 +202,52 @@ class Queue:
         with open(self.path + suffix, "w", encoding="utf-8") as f:
             f.write("".join(l + "\n" for l in lines if l))
 
+    def _mark(self, n):
+        self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")] + [f"{n} {os.getpid()}"])
+        self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)])   # a request from an earlier round is not for this one
+
     def mark_working(self, n):
         with self.locked(".work-lock"):
-            self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")] + [f"{n} {os.getpid()}"])
+            self._mark(n)
+
+    def claim(self, n):
+        """A worker takes pull request n: marked as being processed only if it is still queued, in one step with `remove_checked` (lock order: queue lock, then work lock)."""
+        with self.locked(), self.locked(".work-lock"):
+            if not any((m := LINE.match(l)) and int(m.group(1)) == n for l in self._read()):
+                return False
+            self._mark(n)
+            return True
+
+    def remove_checked(self, prs, cancel):
+        """Take prs out of the queue. A pull request a worker is processing is refused (returned, and nothing at all is removed), or, with `cancel`, a cancel request is written for it; the check and the removal are one step."""
+        with self.locked(), self.locked(".work-lock"):
+            busy = {}
+            for line in self._lines(".working"):
+                number, _, pid = line.partition(" ")
+                if number.isdigit() and int(number) in prs and pid.isdigit() and self._alive(int(pid)):
+                    busy[int(number)] = int(pid)
+            if busy and not cancel:
+                return busy
+            for n in busy:
+                self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)] + [str(n)])
+            self._write([l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) in prs)])
+            return busy
+
+    def reset_working(self):
+        """At the start of the runner (there is only one): whatever was marked belongs to a runner that is gone."""
+        with self.locked(".work-lock"):
+            self._store(".working", [])
+            self._store(".cancel", [])
+
+    @staticmethod
+    def _alive(pid):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
 
     def unmark_working(self, n):
         with self.locked(".work-lock"):
@@ -217,19 +260,15 @@ class Queue:
         with self.locked(".work-lock"):
             for line in self._lines(".working"):
                 number, _, pid = line.partition(" ")
-                if number.isdigit() and pid.isdigit():
-                    try:
-                        os.kill(int(pid), 0)
-                    except ProcessLookupError:
-                        continue
-                    except PermissionError:
-                        pass
+                if number.isdigit() and pid.isdigit() and self._alive(int(pid)):
                     out[int(number)] = int(pid)
         return out
 
     def request_cancel(self, n):
+        """Only for a pull request that is marked: a request for one nobody is processing would cancel its next round."""
         with self.locked(".work-lock"):
-            self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)] + [str(n)])
+            if any(l.startswith(f"{n} ") for l in self._lines(".working")):
+                self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)] + [str(n)])
 
     def cancel_requested(self, n):
         with self.locked(".work-lock"):
@@ -573,7 +612,11 @@ class Processor:
                     if n in self.busy:
                         continue
                     self.busy.add(n)
-                self.queue.mark_working(n)
+                if not self.queue.claim(n):   # taken out of the queue since the look: not started
+                    self.log.event("SKIPPED", n, None, None, "taken out of the queue before it was started")
+                    with self.guard:
+                        self.busy.discard(n)
+                    continue
                 return n
         return None
 
@@ -659,7 +702,8 @@ class Processor:
 
     def wait_checks(self, n, since):
         """Checks once none is pending; None when they stayed pending past the CI timeout. A failed gh call is no answer: asked again."""
-        for _ in range(20):   # until the full-named backend check is listed: right after the label only the light run's checks may be there
+        for _ in range(20):
+            self.checkpoint(n)   # until the full-named backend check is listed: right after the label only the light run's checks may be there
             listed = self.gh.checks(n) or []
             if any(c["name"].startswith("backend verify") and not c["name"].endswith("(light)") for c in listed):
                 break
@@ -685,12 +729,14 @@ class Processor:
         since = time.monotonic()
         if n not in self.log.lanes:   # `once` takes a pull request without pick
             self.log.lanes[n] = self.lane(n)
-        self.queue.mark_working(n)
+        if self.queue.working().get(n) != os.getpid():   # `once` takes a pull request without pick
+            self.queue.mark_working(n)
         self.log.event("START", n, None, since)
         try:
             return self._process(n, since)
         except Cancelled:
-            self.log.event("CANCELLED", n, None, since, "stopped before the merge on request (mq.py remove --cancel); what was pushed to the branch (updates, label) stays")
+            self.gh.label(n, "queued", False)   # not queued any more: the label would start heavy CI for nothing
+            self.log.event("CANCELLED", n, None, since, "stopped before the merge on request (mq.py remove --cancel); updates already pushed to the branch stay, the queued label is taken off")
             return "CANCELLED"
         finally:
             self.queue.unmark_working(n)
@@ -723,6 +769,7 @@ class Processor:
                     return "CONFLICT"
             behind = self.stale(n, v["head"])
             if v["merge"] == "BEHIND" or (behind or 0) > 0:
+                self.checkpoint(n)
                 res = self.update(n, v["branch"], since)
                 if res != "ok":
                     if res == "conflict":
@@ -731,6 +778,7 @@ class Processor:
                     return self.hold(n, None, since, "the update could not be pushed")
                 self.sleep(30)
                 v = self.gh.view(n) or v
+            self.checkpoint(n)
             if "queued" not in v["labels"]:
                 if self.gh.label(n, "queued", True):
                     self.log.event("LABEL-QUEUED", n, None, since)
@@ -840,6 +888,7 @@ class Processor:
         Returns 'MERGED', 'moved' (behind main: update and test again), 'changed' (checks not green any more), 'refused' (gh refused the merge: logged with its message), or 'HOLD'."""
         with self.queue.merge_lock():
             while self.pause.check():
+                self.checkpoint(n)
                 self.log.event("WAIT-PAUSED", n, None, since, "main is red: waiting for `mq.py resume`")
                 self.sleep(60)
             v = self.gh.view(n)
@@ -887,19 +936,15 @@ def run_lane(proc, lane, idle=60, stop=lambda: False):
             if n is None:
                 proc.sleep(idle)
                 continue
-            if n not in proc.queue.numbers():   # taken out of the queue between the pick and now: not started
-                proc.log.event("SKIPPED", n, None, None, "taken out of the queue before it was started")
-                proc.queue.unmark_working(n)
-                with proc.guard:
-                    proc.busy.discard(n)
-                continue
             try:
                 result = proc.process(n)
             finally:
+                proc.queue.unmark_working(n)
                 with proc.guard:
                     proc.busy.discard(n)   # whatever happened, no worker holds it any more
             failures.pop(n, None)
-            proc.queue.remove(n)
+            if result != "CANCELLED":   # `remove --cancel` took it out already; it may have been queued again since
+                proc.queue.remove(n)
             proc.log.event("DEQUEUE", n, None, None, result)
         except (Exception, SystemExit) as e:
             if n is None:
@@ -1025,15 +1070,12 @@ def main(argv=None):
             if n not in added:
                 print(f"#{n} is already queued" + (f"; now waits for {sorted(q.deps(n))} (a pull request already being processed does not look at it again)" if a.after else " (a pull request being processed stays queued until it is done)"), file=sys.stderr)
     elif a.cmd == "remove":
-        working = q.working()
-        busy = [n for n in a.prs if n in working]
+        busy = q.remove_checked(set(a.prs), a.cancel)
         if busy and not a.cancel:
-            raise SystemExit("nothing removed: " + ", ".join(f"#{n}" for n in busy) + " is being processed by the runner (pid " + ", ".join(str(working[n]) for n in busy) + "): it cannot be taken back, "
+            raise SystemExit("nothing removed: " + ", ".join(f"#{n}" for n in sorted(busy)) + " is being processed by the runner (pid " + ", ".join(str(busy[n]) for n in sorted(busy)) + "): it cannot be taken back, "
                              "what it has pushed or merged stays. `mq.py remove --cancel <pr>` asks the worker to stop at its next checkpoint (anything before the merge is made); once the merge call has been made it is too late.")
-        for n in busy:
-            q.request_cancel(n)
-            print(f"#{n} is being processed: cancel requested; the worker stops before the merge unless it is already merging (check the log for CANCELLED or MERGED)", file=sys.stderr)
-        q.remove(*a.prs)
+        for n in sorted(busy):
+            print(f"#{n} is being processed: cancel requested; the worker stops before the merge unless it is already merging (the log then says CANCELLED, MERGED, HOLD or CONFLICT)", file=sys.stderr)
     elif a.cmd == "before":
         q.before(a.pr, a.other)
     elif a.cmd == "status":
@@ -1061,6 +1103,7 @@ def main(argv=None):
             print("mq: no main checkout found (bare repository?): FF-MAIN is switched off", file=sys.stderr)
         proc = Processor(Gh(), q, log, root, ci_timeout=a.ci_timeout * 60, main_checkout=checkout)
         with runner_lock(directory):
+            q.reset_working()
             if a.cmd == "once":
                 proc.process(a.pr)
             else:
