@@ -20,6 +20,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
+    from command_words import name_of, plain
     from codex_stdin_gate import ENV, KEYWORDS, SEPARATORS, SHELLS, WRAPPERS, tokens_of
 except Exception as error:   # exit code 1 would mean "not blocked" to a PreToolUse hook
     print(f"main_checkout_gate.py 读不到 codex_stdin_gate.py（{error.__class__.__name__}: {error}），按失败处理", file=sys.stderr)
@@ -75,10 +76,10 @@ def command_start(seg):
         tok = seg[i]
         if ENV.match(tok) or tok in KEYWORDS:
             i += 1
-        elif tok in WRAPPERS:
-            valued = WRAPPERS[tok]
+        elif tok.lower() in WRAPPERS:
+            valued = WRAPPERS[tok.lower()]
             i += 1
-            while i < len(seg) and (seg[i].startswith("-") or ENV.match(seg[i]) or (tok == "timeout" and re.fullmatch(r"[0-9.]+[smhd]?", seg[i]))):
+            while i < len(seg) and (seg[i].startswith("-") or ENV.match(seg[i]) or (tok.lower() == "timeout" and re.fullmatch(r"[0-9.]+[smhd]?", seg[i]))):
                 i += 2 if seg[i] in valued else 1
         else:
             break
@@ -160,13 +161,13 @@ def resolve(base, path):
 
 
 EXEC_WRAPPERS = {"xargs", "find", "parallel", "watch", "entr"}
-UNPARSED = re.compile(r"\bgit\b.*\b(commit|reset|checkout|switch|merge|rebase|cherry-pick|revert|pull|am|restore|clean|stash|update-ref|add|rm|mv|apply)\b")
+UNPARSED = re.compile(r"\bgit\b.*\b(commit|reset|checkout|switch|merge|rebase|cherry-pick|revert|pull|am|restore|clean|stash|update-ref|add|rm|mv|apply)\b", re.IGNORECASE)
 
 
 def env_directory(seg, i, here):
     """Where the command at seg[i] runs when `env -C dir` or GIT_WORK_TREE=/GIT_DIR= in front of it say so (here otherwise)."""
     for k in range(i):
-        if seg[k] == "-C" and k + 1 < len(seg) and os.path.basename(seg[0]) == "env":
+        if seg[k] == "-C" and k + 1 < len(seg) and name_of(seg[0]) == "env":
             here = resolve(here, seg[k + 1]) if here else None
         elif seg[k].startswith("GIT_WORK_TREE="):
             here = resolve(here, seg[k].partition("=")[2]) if here else None
@@ -205,7 +206,7 @@ def verdict(command, cwd, depth=0):
         i = command_start(seg)
         if i >= len(seg):
             continue
-        name = os.path.basename(seg[i])
+        name = name_of(seg[i])
         if name in ("cd", "pushd", "popd"):
             if name == "popd":
                 here = stack.pop() if stack else None
@@ -220,13 +221,13 @@ def verdict(command, cwd, depth=0):
                 return found
         elif name in EXEC_WRAPPERS and here:
             for j in range(i + 1, len(seg)):
-                if os.path.basename(seg[j]) == "git":
+                if name_of(seg[j]) == "git":
                     found = git_verdict(seg, j, here)
                     if found:
                         return found
         elif name in SHELLS and depth < 3 and here:
             for token in seg[i + 1:]:
-                if " " in token or "git" in token:
+                if " " in token or "git" in plain(token):
                     found = verdict(token, here, depth + 1)
                     if found:
                         return found
@@ -246,7 +247,7 @@ def pre_tool_use():
         return 0
     tool_input = payload.get("tool_input")
     command = tool_input.get("command") if isinstance(tool_input, dict) else None
-    if not isinstance(command, str) or "git" not in command:
+    if not isinstance(command, str) or "git" not in plain(command):
         return 0
     cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) else os.getcwd()
     found = verdict(command, cwd)
@@ -333,6 +334,12 @@ def self_test():
             ("git branch -f main side", work),
             ("git symbolic-ref refs/heads/main refs/heads/side", work),
             ("git commit -m x \"unterminated", main),
+            ("GIT commit -m x", main),
+            ("gi\"\"t commit -m x", main),
+            ("g\\it commit -m x", main),
+            ("/usr/bin/GIT reset --hard", main),
+            ("ENV -C " + main + " git commit -m x", work),
+            ("BASH -c 'git commit -m x'", main),
         ]
         allow = [
             ("git status", main),
