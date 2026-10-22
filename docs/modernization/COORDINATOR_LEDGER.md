@@ -12,6 +12,7 @@
   - one-1a-par：#624 合入后开 PR-B2（唯一键+隔离+验收，分支 claude/one-1a-par-w2-employee-code-unique @0426bf3bb，裁定 -05）；dev WORKFORCE_SYNC_ENABLED=true 不关，走「隔离路径已实现」。PAR-02～05 已登记，三条 handoff 记忆已删（备份 ~/.modernize/psa/memory-backup-20261022/）。
   - one-1a-next-5：KERR-2 等 #630 合入（裁定 -06）。one-ops：46% 待自清（等 #628）。one-arch-finance：空闲。one-glossary：NM8S 存档改 git bundle，不推。
   - 额度：本周 62%（10-26 重置）；opus 会话与调度大上下文是主因（用户已知，未定收紧措施）。
+- 清空确认方法（10-22 晚实测）：list_events 显示「idle — 0 of 0 messages」即已清空；新对话文件要到第一条消息才生成，不能用盯文件判断。23:4x 已对 one-1a-next-5、one-quality、one-platform-file 发接续；one-merge 空闲未清空（排队消息顶掉），已令再自清。
 - **整改收尾清单（用户 23:1x「agent团队整改全部结束了告诉我一下」；全勾才报用户，并 PushNotification）**：
   批1 □自清推全员 #628 ✔合 □开工单 #627 □防绕过 #616 ✔合 □CLAUDE.md/记忆移仓（@427318381 合入核实＋按 memory-plan 备份后删记忆） ✔三条 handoff 记忆
   批2 □新 PB 规则表落地（含 DATA_DESIGN_CHECKLIST、playbook_digest/build_sessions 改写、338 处引用） □15 份画像按角色表重写（含交接源字段） □任务卡模板 WORK_CARD 更新 □finish.py（QUA-17） □无主设计扫描（QUA-23）
