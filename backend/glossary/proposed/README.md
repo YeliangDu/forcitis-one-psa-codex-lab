@@ -55,7 +55,7 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 
 无错误码以外的术语。
 
-另有错误码 13 个（kind 为 `error_code`）、技术词 23 个（`common_words`），不在表中。
+另有错误码 11 个（kind 为 `error_code`）、技术词 23 个（`common_words`），不在表中。
 
 ## platform.audit（`data-classification.yaml`）
 
@@ -241,13 +241,13 @@ GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-2
 | `asset_card_list` | 资产卡片清单 | AssetCardList | 领域 · organization.administration | 先行期财务提供的资产卡片清单，每行带资产卡片号、所属法人、资产名称，行政事务据此引用信息技术资产；资产卡片一词待 GL5-02 定 |  |  |
 | `card_number_status__pending_check` | 待核 | PendingCheck | 领域 · organization.administration | 资产卡片号的状态：清单没到时手工录入的卡片号，等财务清单到后核对，核对前不当作已确认 |  |  |
 
-## `kernel.yaml`
+## kernel（`kernel.yaml`）
 
 `tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。`reversal_document`、`correction_document`、`document_nature`、`reversal_category`、`reversible_balance`、`derived_reversal`、`original_period`、`change_order_document`、`reverse_action`、`correct_action` 十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。
 
 无错误码以外的术语。
 
-另有技术词 38 个（`common_words`），不在表中。
+另有错误码 2 个（kind 为 `error_code`）、技术词 38 个（`common_words`），不在表中。
 
 ## `kpi-page-terms.yaml`
 
@@ -474,7 +474,7 @@ platform.approval 提议术语（proposed，待业务评审，ADR-0018）。单�
 
 无错误码以外的术语。
 
-另有错误码 31 个（kind 为 `error_code`）、技术词 111 个（`common_words`），不在表中。
+另有错误码 29 个（kind 为 `error_code`）、技术词 111 个（`common_words`），不在表中。
 
 ## platform.audit（`platform-audit-paging.yaml`）
 
