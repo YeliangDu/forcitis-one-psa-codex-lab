@@ -903,6 +903,7 @@ def self_test():
         assert not clears_itself(scoped, "one-coordinator") and not clears_itself(scoped, "") and not clears_itself(None, "one-ops"), "excluded, unrecognised or switched-off: no self-clear"
         assert not clears_itself({**scoped, "sessions": ["one-a"]}, "one-ops") and clears_itself({**scoped, "sessions": ["one-ops"]}, "one-ops")
         assert node_config(config)[0] is not None
+        assert not clears_itself({**scoped, "exclude": [], "names": []}, "one-coordinator"), "the coordinator is excluded even when the configuration forgets it"
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**scope, "exclude": "one-coordinator"}}))
         assert node_config(config)[0] is None and "exclude" in node_config(config)[1]
         low = reminder(30, 31, 310, 1000, "one-ops", 40, clears=True)
