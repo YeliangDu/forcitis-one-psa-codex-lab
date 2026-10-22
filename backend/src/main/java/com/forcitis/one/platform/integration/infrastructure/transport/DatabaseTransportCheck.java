@@ -8,25 +8,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Function;
-import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
-import org.springframework.boot.context.properties.source.ConfigurationPropertyName.Form;
-import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
-import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
-import org.springframework.boot.context.properties.source.IterableConfigurationPropertySource;
-import org.springframework.core.env.Environment;
 
 /**
  * Checks the JDBC URLs of every database connection against {@link DatabaseTransportRequirement}. PostgreSQL carries sslmode and
  * sslrootcert in the URL; SQL Server carries encrypt, trustServerCertificate and trustStore (the driver has no PEM CA path).
- * The former keys of the legacy inbox connection are no longer read, so a deployment that still sets one is refused instead of
- * silently showing new tasks only.
  */
 final class DatabaseTransportCheck {
     private static final Map<String, String> SOURCES = sources();
-    private static final ConfigurationPropertyName RETIRED_INBOX = ConfigurationPropertyName.of("forcitis.platform.approval.legacy");
-    private static final String INBOX = "forcitis.platform.integration.legacy.inbox";
 
     private DatabaseTransportCheck() {
     }
@@ -37,7 +26,6 @@ final class DatabaseTransportCheck {
         sources.put("migration connection", "spring.flyway.url");
         sources.put("A8 views", "forcitis.platform.integration.seeyon.views.jdbc-url");
         sources.put("legacy short names", "forcitis.platform.integration.legacy.jdbc-url");
-        sources.put("legacy inbox", "forcitis.platform.integration.legacy.inbox.url");
         return sources;
     }
 
@@ -63,27 +51,6 @@ final class DatabaseTransportCheck {
             problems.add("primary database (spring.datasource.url): not configured");
         }
         return problems;
-    }
-
-    /** One line per retired legacy inbox key that is set, from any source (environment variables included), naming its replacement. */
-    static List<String> retiredKeys(Environment environment) {
-        Set<String> lines = new TreeSet<>();
-        for (ConfigurationPropertySource source : ConfigurationPropertySources.get(environment)) {
-            if (source instanceof IterableConfigurationPropertySource iterable) {
-                iterable.stream().filter(RETIRED_INBOX::isAncestorOf).forEach(name -> lines.add(retiredLine(name)));
-            }
-        }
-        return List.copyOf(lines);
-    }
-
-    private static String retiredLine(ConfigurationPropertyName name) {
-        List<String> rest = new ArrayList<>();
-        for (int i = RETIRED_INBOX.getNumberOfElements(); i < name.getNumberOfElements(); i++) {
-            rest.add(name.getElement(i, Form.DASHED));
-        }
-        String replacement = INBOX + "." + String.join("-", rest);
-        return name + " is no longer read: set " + replacement + " (environment " + replacement.toUpperCase(Locale.ROOT).replace('.', '_').replace('-', '_')
-                + ") instead";
     }
 
     private static boolean switchedOff(String name, Function<String, String> property) {
