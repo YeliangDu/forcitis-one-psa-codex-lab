@@ -9,7 +9,7 @@ CREATE TABLE platform_audit.audit_entries (
     action            text        NOT NULL,
     actor_id          uuid,
     on_behalf_of_id   uuid,
-    subject_kind      text        NOT NULL CONSTRAINT ck_audit_entries_subject_kind CHECK (subject_kind IN ('USER_ACCOUNT', 'EMPLOYEE', 'ORG_UNIT', 'EMERGENCY_ADMIN', 'ROLE', 'APPROVAL_TASK', 'APPROVAL_REQUEST', 'SYNC_RUN', 'LEGAL_ENTITY', 'LEGAL_ENTITY_ATTRIBUTION', 'TIMESHEET', 'WORK_CALENDAR_YEAR', 'NUMBERING_RULE', 'SOURCE_REFERENCE', 'SOURCE_REFERENCE_REFUSAL', 'AUTHORIZATION_REQUEST', 'REQUEST', 'OPERATION', 'LOGIN_ATTEMPT')),
+    subject_kind      text        NOT NULL CONSTRAINT ck_audit_entries_subject_kind CHECK (subject_kind IN ('USER_ACCOUNT', 'EMPLOYEE', 'ORG_UNIT', 'EMERGENCY_ADMIN', 'ROLE', 'APPROVAL_TASK', 'APPROVAL_REQUEST', 'SYNC_RUN', 'LEGAL_ENTITY', 'LEGAL_ENTITY_ATTRIBUTION', 'TIMESHEET', 'WORK_CALENDAR_YEAR', 'NUMBERING_RULE', 'SOURCE_REFERENCE', 'SOURCE_REFERENCE_REFUSAL', 'AUTHORIZATION_REQUEST', 'STORED_FILE', 'REQUEST', 'OPERATION', 'LOGIN_ATTEMPT')),
     subject_id        uuid,
     detail            text,
     created_at        timestamptz NOT NULL,

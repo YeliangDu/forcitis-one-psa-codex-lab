@@ -35,7 +35,7 @@ export const AuditEntryResponseSchema = z.object({
 
 export const AuditOutcomeSchema = lenientEnum("AuditOutcome", ["SUCCEEDED", "FAILED"]);
 
-export const AuditSubjectKindSchema = lenientEnum("AuditSubjectKind", ["USER_ACCOUNT", "EMPLOYEE", "ORG_UNIT", "EMERGENCY_ADMIN", "ROLE", "APPROVAL_TASK", "APPROVAL_REQUEST", "SYNC_RUN", "LEGAL_ENTITY", "LEGAL_ENTITY_ATTRIBUTION", "TIMESHEET", "WORK_CALENDAR_YEAR", "NUMBERING_RULE", "SOURCE_REFERENCE", "SOURCE_REFERENCE_REFUSAL", "AUTHORIZATION_REQUEST", "REQUEST", "OPERATION", "LOGIN_ATTEMPT"]);
+export const AuditSubjectKindSchema = lenientEnum("AuditSubjectKind", ["USER_ACCOUNT", "EMPLOYEE", "ORG_UNIT", "EMERGENCY_ADMIN", "ROLE", "APPROVAL_TASK", "APPROVAL_REQUEST", "SYNC_RUN", "LEGAL_ENTITY", "LEGAL_ENTITY_ATTRIBUTION", "TIMESHEET", "WORK_CALENDAR_YEAR", "NUMBERING_RULE", "SOURCE_REFERENCE", "SOURCE_REFERENCE_REFUSAL", "AUTHORIZATION_REQUEST", "STORED_FILE", "REQUEST", "OPERATION", "LOGIN_ATTEMPT"]);
 
 export const AuthorizationRequestViewSchema = z.object({
   kind: z.string().optional(),

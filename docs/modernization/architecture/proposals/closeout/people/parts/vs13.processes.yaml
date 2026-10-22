@@ -1019,10 +1019,12 @@ event_policies:
       events:
         - {event: 劳动合同已签订, aggregate: AGG-67}
         - {event: 〔缺〕法人归属已变更, aggregate: AGG-117}
+        - {event: 法人归属已结束, aggregate: AGG-117}   # 2026-10-21 补：终止归属后三口径可能出现缺口，同样复核
         - {event: 薪酬档案已变更, aggregate: AGG-93}
     triggers:
       - {type: event, name: "劳动合同已签订（B-13）"}
       - {type: event, name: "〔缺〕法人归属已变更（B-13）"}
+      - {type: event, name: "法人归属已结束（B-13）"}
       - {type: event, name: "薪酬档案已变更（同 BC）"}
     stages: [VS-07.3]
     primary_object: none
