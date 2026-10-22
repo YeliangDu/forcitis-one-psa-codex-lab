@@ -1614,8 +1614,8 @@ responsibility_matrix:
       any: 61
     SH-E6:
       A: 93
-      R: 174
-      any: 206
+      R: 176
+      any: 208
     SH-E7:
       A: 1
       R: 2
@@ -1644,3 +1644,7 @@ responsibility_matrix:
       A: 0
       R: 1
       any: 1
+    财务负责人:
+      A: 2
+      R: 0
+      any: 2
