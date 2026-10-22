@@ -54,8 +54,10 @@
 - 用户待定事项先交 one-architecture 合成确认页，不自行出页
 - 子代理显式指定模型：opus 只用于首轮评审，取数用 haiku；执行类先交 Codex（gpt-6.1-sol xhigh，run_in_background，关闭标准输入）
 - 中文；系统称 FORCITIS one / 老系统；老系统只作证据
+- 文档分支的提交号直接报 one-merge 收合集；只有要批、要裁的才报 one-coordinator（调度 2026-10-22）
+- app 限流外发消息时不停下：要报的内容追加写进 `~/.modernize/psa/outbox/one-arch-finance.md`（一条一行，带时间和收件会话），接着做；没活了写一行「空闲」（SESSION_PLAYBOOK §11 消息约定第 7 条）
 - 派卡按 SESSION_PLAYBOOK §5「任务命名与登记」（2026-10-17 起）：任务号 `<主线码>-<MMDD>-AFI-<nn>`、任务名 `[主线·bc] 动作+对象`，每卡在 `docs/modernization/tasks/<任务号>.md` 登记片段，后台任务 description 写 `<任务号> <任务名> (codex)`；PR、提交、报告带任务号
 
 ## 当前状态
 
-2026-10-17 13:25：财务组 54 条流程、44 聚合（105 表）、命令 168、状态机 44、事件 60、场景 662、BPMN 29 张全部通过；已落实 S-15–S-43 涉及本组的裁定、阶段对齐（#421 判据、SD-03/10/11）、对象层（primary_object，#422）；五个价值流有条件通过，C7 已交。分支 claude/one-arch-finance-closeout @ ded5ebab（文档类不开 PR，调度收合集）。等 one-architecture 出确认页与信息层；新活先写派工卡交 Codex（run_in_background），本会话只派工、审稿、验收。接续读本画像、「输入」所列本组提议稿与共享笔记 one-arch-finance-status.md。
+2026-10-22 09:27：财务组骨架全部检查通过；10-17 以来完成 N7 改名回写、VS-15 与闭环两轮对齐、状态转换判定（ARC-1021-AFI-01）及其三处骨架改动、GL5 改订阅与 AGG-122 改名、法人归属口径（ARC-1022-COO-04，LEGAL_ENTITY_COSTING.md，U-L1 已定）与跨法人骨架（ARC-1022-COO-07）、薪酬代发退回与补发（PAYROLL_REISSUE_SEAM.md，J-1、J-2 已裁定）。分支 claude/one-arch-finance-closeout，提交号报 one-merge 收合集；8 条提议术语待分支进 main 后 one-glossary 评审。无在途任务。接续读本画像、「输入」所列本组提议稿与共享笔记 one-arch-finance-status.md。

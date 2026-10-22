@@ -39,6 +39,16 @@ B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41�
 
 无错误码以外的术语。
 
+## organization.administration（`contract-original-loan.yaml`）
+
+合同原件借阅用语（one-glossary 2026-10-21，NAM-1021-GLO-14；ADR-0076 提议，proposed）。bc 按 one-architecture 裁定：先行期 organization.administration，W3 移交 contract.agreement。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `contract_original` | 合同原件 | ContractOriginal | 领域 · organization.administration | 合同原件的归档记录：法人、合同编号、原件类型、存放位置、归档状态；先行期在行政事务，W3 移交合同模块的协议归档记录（ADR-0076） |  |  |
+| `loan_record` | 借阅记录 | LoanRecord | 领域 · organization.administration | 一份合同原件的一次借出：借用人、借出日、应还日、实际归还日，审批实例必填；借出须原件已归档且无未归还借出（ADR-0076，INV-125） |  |  |
+| `renewal_record` | 续借记录 | RenewalRecord | 领域 · organization.administration | 一笔借阅的续借，另起一条并引用原借阅记录，带新应还日与续借审批实例，每笔借阅最多续借一次（ADR-0076） |  |  |
+
 ## cost.timesheet（`cost-timesheet.yaml`）
 
 cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）。
@@ -198,6 +208,22 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 | `held` | 被中止 | Held | ACL（过渡期） · platform.integration | 同步记录的状态：被缩水保护中止，等待管理员放行；与「被中止的同步」指同一状态 |  | 用户 2026-10-14 指定提议；同步记录状态值，第三轮用语确认时与 workforce__held_run 合并 |
 | `release` | 放行 | Release | ACL（过渡期） · platform.integration | 管理员核对同步差异后，让被中止的同步生效的动作 |  | 扫描前端界面文案发现；同步记录页按钮与结果用语 |
 | `org_sync` | 同步 | OrgSync | ACL（过渡期） · platform.integration | 把组织来源的组织单元与员工变化应用到本系统的一次运行 |  | 扫描前端界面文案发现；与「同步记录」「同步差异」配合使用 |
+
+## `gl5-direct.yaml`
+
+涉及模块：`accounting.tax`、`organization.administration`。
+
+GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-21，NAM-1021-GLO-14，proposed）。已被取代、草拟两个状态名是各对象状态链里的取值名，随各对象登记，决定记在 glossary/arch-naming/STATE_NAME_RULINGS.md。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `statutory_filing` | 法定申报 | StatutoryFiling | 领域 · accounting.tax | 法人对税务、社保等机关的周期申报与缴款（增值税及附加、企业所得税、个税扣缴、社保公积金、统计）；其中税务类的申报记录即已登记的「税务申报记录」 |  |  |
+| `statutory_filing_status__pending_filing` | 待申报 | PendingFiling | 领域 · accounting.tax | 法定申报的状态：已生成申报，尚未向机关申报 |  |  |
+| `statutory_filing_status__filed` | 已申报 | Filed | 领域 · accounting.tax | 法定申报的状态：已向机关申报，尚未缴款 |  |  |
+| `statutory_filing_status__remitted` | 已缴款 | Remitted | 领域 · accounting.tax | 法定申报的状态：税费或社保公积金已缴纳 |  |  |
+| `correct_filing` | 更正申报 | CorrectFiling | 领域 · accounting.tax | 对已申报的法定申报作更正，另起更正申报 |  |  |
+| `asset_card_list` | 资产卡片清单 | AssetCardList | 领域 · organization.administration | 先行期财务提供的资产卡片清单，每行带资产卡片号、所属法人、资产名称，行政事务据此引用信息技术资产；资产卡片一词待 GL5-02 定 |  |  |
+| `card_number_status__pending_check` | 待核 | PendingCheck | 领域 · organization.administration | 资产卡片号的状态：清单没到时手工录入的卡片号，等财务清单到后核对，核对前不当作已确认 |  |  |
 
 ## `kernel.yaml`
 
@@ -381,6 +407,34 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 | `attribution_subject` | 法人归属对象 | AttributionSubject | 领域 · organization.workforce | 法人归属所指的对象，是一个组织单元或一名员工，由对象类别与对象 ID 共同确定；同一对象在同一时点只归属一个法人 |  | 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列 |
 
 另有错误码 10 个（kind 为 `error_code`）、技术词 86 个（`common_words`），不在表中。
+
+## `payroll-payment-and-people-commands.yaml`
+
+涉及模块：`cost.costing`、`organization.payroll`、`organization.workforce`、`payables.payment`。
+
+薪酬行支付子状态机、人事命令、跨法人用语（one-glossary 2026-10-22，NAM-1021-GLO-19；one-arch-people、one-arch-finance 来单，proposed）。状态名暂定，随用户认可。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `payroll_settlement_line` | 薪酬结算行 | PayrollSettlementLine | 领域 · organization.payroll | 结算单上一名员工的一行，带支付状态；OBJ-73 原文称「薪酬行」，与薪酬结算单对应写全称；也是状态转换记录里该子实体的聚合类型码值（ADR-0075） |  |  |
+| `payroll_disbursement` | 薪酬代发 | PayrollDisbursement | 领域 · organization.payroll | 按薪酬结算行经银行代发渠道向员工账户发放薪酬的动作及其结果 |  |  |
+| `payroll_line_status__pending_payment` | 待支付 | PendingPayment | 领域 · organization.payroll | 薪酬结算行的支付状态：已确认应发，尚未代发或补发后等待再次代发 |  |  |
+| `payroll_line_status__paid` | 已实付 | Paid | 领域 · organization.payroll | 薪酬结算行的支付状态：代发结果登记为成功，实际已付到员工账户（OBJ-73 原文） |  |  |
+| `payroll_line_status__payment_failed` | 支付失败 | PaymentFailed | 领域 · organization.payroll | 薪酬结算行的支付状态：代发结果登记为失败，待更正工资卡后补发 |  |  |
+| `register_payroll_disbursement_result` | 登记代发结果 | RegisterPayrollDisbursementResult | 领域 · organization.payroll | 登记薪酬代发的结果（成功或失败），薪酬结算行由待支付转已实付或支付失败；动词登记＝只记录事实 |  |  |
+| `initiate_payroll_redisbursement` | 发起薪酬补发 | InitiatePayrollRedisbursement | 领域 · organization.payroll | 对支付失败的薪酬结算行发起补发，转回待支付；发出「薪酬补发已发起」 |  |  |
+| `payroll_disbursement_result_registered` | 薪酬代发结果已登记 | PayrollDisbursementResultRegistered | 领域 · organization.payroll | 薪酬代发的结果已登记 |  |  |
+| `payroll_redisbursement_initiated` | 薪酬补发已发起 | PayrollRedisbursementInitiated | 领域 · organization.payroll | 薪酬补发已发起；B-10 订阅 |  |  |
+| `end_legal_entity_attribution` | 结束法人归属 | EndLegalEntityAttribution | 领域 · organization.workforce | 结束一段法人归属并写结束日；与已登记事件「法人归属已结束」对应（one-arch-people 来单称「终止法人归属」，改用「结束」与事件一致） |  |  |
+| `correct_legal_entity_code` | 更正法人主体代码 | CorrectLegalEntityCode | 领域 · organization.workforce | 在未发号前更正法人主体代码（INV-59）；与已登记事件「法人主体代码已更正」对应（来单称「更正法人代码」，补上「主体」与词条一致） |  |  |
+| `oversight_scope` | 分管范围 | OversightScope | 领域 · organization.workforce | 一名分管领导分管的组织单元或事务范围（B-13） |  |  |
+| `oversight_scope_version` | 分管范围版本 | OversightScopeVersion | 领域 · organization.workforce | 分管范围的版本化配置（AGG-135，表 oversight_scope_versions）：生效区间不重叠、只追加 |  |  |
+| `cross_entity_labor` | 跨法人人工 | CrossEntityLabor | 领域 · cost.costing | 员工当日成本法人与项目承担法人不一致的人工与项目费用（用户 LEB-04） |  |  |
+| `cross_entity_list` | 跨法人清单 | CrossEntityList | 领域 · cost.costing | 财务每月收到的清单：跨法人人工、项目费用与未转入售前投入的部分（用户 LEB-05） |  |  |
+| `register_disbursement_return` | 登记代发退回 | RegisterDisbursementReturn | 领域 · payables.payment | 出纳凭银行退回回单登记一笔代发的部分退回，付款仍为已核销，累计退回额增加；幂等键为付款标识加银行回单号；发「付款已部分退回」；全额退回仍走登记退票 |  |  |
+| `payment_partially_returned` | 付款已部分退回 | PaymentPartiallyReturned | 领域 · payables.payment | 一笔付款登记了部分退回；应付侧订阅后冲回等额应付核销 |  |  |
+| `register_payroll_redisbursement_detail` | 登记薪酬补发明细 | RegisterPayrollRedisbursementDetail | 领域 · payables.payment | 在原应付薪酬上登记补发明细，不新建应付、不过账；幂等键为薪酬行标识加补发轮次；付款流程按明细付清原应付的未结余额 |  |  |
+| `payroll_redisbursement_detail` | 补发明细 | PayrollRedisbursementDetail | 领域 · payables.payment | 原应付薪酬上的补发明细：薪酬行、补发轮次、收款人与账户、金额（等于原实发）；与人事侧「薪酬补发」是同一事的应付侧记录 |  |  |
 
 ## platform.approval（`platform-approval.yaml`）
 
