@@ -2879,6 +2879,7 @@ processes:
   - PRC-87-S25
   - PRC-87-S26
   - PRC-87-S27
+  - PRC-87-S28
   roles:
   - id: SH-E3
     as: initiator
@@ -3111,6 +3112,10 @@ processes:
       goto: end
       rule: INV-92（S-31 SQ-12）；ADR-0045 决定 1
       outcome: 期间关账中待重试
+    - when: 项目费用的报销人成本法人与项目承担法人不一致：记报销人所在法人、标「待内部结算」，列入跨法人清单，项目看板照常归集并标注
+      goto: end
+      outcome: 已核定（所属期间确定，增值税发票已入账）
+      rule: INV-93；LEB-04
     - when: 所属期间已关账（自动落当前开放期间并标原期间）
       goto: end
       outcome: 已核定（所属期间确定，增值税发票已入账）
@@ -4207,6 +4212,7 @@ processes:
   - PRC-96-S19
   - PRC-96-S20
   - PRC-96-S21
+  - PRC-96-S22
   roles:
   - id: SH-E6
     as: performer
@@ -4258,7 +4264,7 @@ processes:
     where: in_system
     command: 试算人工成本分配
     aggregate: AGG-41
-    desc: P-41 有工时无薪酬、有薪酬无工时预警
+    desc: P-41 有工时无薪酬、有薪酬无工时预警；按工时日期读员工当日的成本法人（当时值，ADR-0073 第 1 条），与项目承担法人比较，不一致的人工记员工成本法人、标「待内部结算」并列入跨法人清单（员工、项目、两边法人、金额、期间），项目看板照常归集并标注（LEB-04；部门换法人后项目不转，见交付执行 LEB-03）
     permission: 成本.人工成本分配试算
     page: 人工成本分配试算页
     legal_entity: 承担法人
@@ -4273,6 +4279,12 @@ processes:
     - when: 分配合计不等于实际人工成本（零容差）
       goto: 2
       rule: INV-89
+    - when: 含跨法人人工：按员工成本法人记、标「待内部结算」，跨法人清单随确认发给财务，继续过账
+      goto: 4
+      rule: INV-93；LEB-04（ADR-0017 第 4 条：内部结算不在本期）
+      notify:
+      - to: SH-E6
+        how: 跨法人清单（月度）
     - when: otherwise
       goto: 4
     permission: 成本.人工成本分配确认
