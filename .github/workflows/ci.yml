@@ -96,6 +96,15 @@ jobs:
       - name: toolchain is Java 25
         if: ((steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true') || steps.change.outputs.tier == 'guarded' || github.event_name == 'push'
         run: java -version 2>&1 | head -1 | grep -q '"25'
+      # the local Docker Desktop can be stopped (10-22 22:35-22:50): try to bring it up (scripts/ops/docker_ensure.sh) and otherwise fail with a clear message instead of a pull or keychain error below
+      - name: docker is running
+        if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
+        shell: bash
+        run: |
+          if ! bash scripts/ops/docker_ensure.sh; then
+            echo "::error::Docker 未运行，且自动拉起失败（见 scripts/ops/docker_ensure.sh、本机 ~/.modernize/psa/ops/docker-watch/alert.log）"
+            exit 1
+          fi
       - name: test images are present
         if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
         shell: bash
