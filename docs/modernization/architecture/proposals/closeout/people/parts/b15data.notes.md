@@ -15,7 +15,7 @@
 2. 规则版本是否一类一表：本稿用一个 `payroll_rule_versions`（带规则类别）+ 四张子表，一版本只含一类，使个税法修订与各地社保年度调整可独立生效。备选：四类各自一个根（四个聚合）。推荐前者；请 one-architecture 与 one-data 确认。
 3. 迁入历史结算无规则版本：全部历史迁入但无法复算，历史结算行、项目行只迁结果，所用版本引用留空并标「迁入结果」。D7 要求用到可配置规则时记版本 ID，此处是迁入行的例外，需 one-data 确认不违反守护；备选：给迁入行一条「迁入占位规则版本」。
 4. 专项附加扣除拆表：声明（年度）+ 明细两表，放 AGG-93。明细含受益人（含未成年子女）信息，个人信息保护法第 28 条明列未成年人信息为敏感；是否抽到独立表、独立访问级别，交 U-11 与 one-data。
-5. AGG-73 的聚合边界：薪酬行与项目行同聚合（单据、次级），一法人一月可达数百至千行，批准前整体修改；若行数使乐观锁冲突频繁，需拆「按人员的计算」子聚合。现按全貌级保持一个聚合，规模待 one-data 评估（NAMING_STANDARD §2.4a 第 8 条）。
+5. AGG-73 的聚合边界：薪酬结算行与项目行同聚合（单据、次级），一法人一月可达数百至千行，批准前整体修改；若行数使乐观锁冲突频繁，需拆「按人员的计算」子聚合。现按全貌级保持一个聚合，规模待 one-data 评估（NAMING_STANDARD §2.4a 第 8 条）。
 6. AGG-73 的发放登记：`payroll_settlements` 内含发放日与银行回单引用；标记薪酬已发放为聚合命令。若银行代发需要批次与退票粒度（退票时付款失败、薪酬保持已批准，聚合稿阶段 6），可能要独立「代发批次」次级表，待待用户定 5。
 7. AGG-95 的「更正」：用自引用 `corrects_filing_id` 另立申报，而非原申报加更正行；与聚合稿「申报、缴款、更正」三类一致，请确认。
 8. AGG-75 的个人额度：方案版本额度到法人 / 组织单元，不到个人；个人额度即 AGG-76 的核定金额。若方案需提取比例累计（销售提成）跨期结转，需另立累计表，待方案梳理。
@@ -26,7 +26,7 @@
 | 中文名 | 建议英文名 | 使用范围 | bc | 说明 |
 |---|---|---|---|---|
 | 月度薪酬结算 | payroll_settlement | 领域 | organization.payroll | 聚合稿 AGG-73；词表查无 |
-| 薪酬行 | payroll_settlement_line | 领域 | organization.payroll | 聚合稿「人员薪酬行（工资条是单据）」；「工资条」是对员工的展示单据，不另登记聚合 |
+| 薪酬结算行 | payroll_settlement_line（PayrollSettlementLine，one-glossary 定名（PR #572），原称「薪酬行」） | 领域 | organization.payroll | 聚合稿「人员薪酬行（工资条是单据）」；「工资条」是对员工的展示单据，不另登记聚合 |
 | 薪酬项目行 | payroll_line_item | 领域 | organization.payroll | 计算明细 |
 | 参保 | insurance_enrollment | 领域 | organization.payroll | AGG-74；表名 SAMPLE 已定 |
 | 激励方案 / 激励方案版本 | incentive_plan / incentive_plan_version | 领域 | organization.payroll | AGG-75 |
