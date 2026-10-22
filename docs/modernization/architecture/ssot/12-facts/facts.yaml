@@ -613,7 +613,7 @@ facts:
   - FACT-13
   business_time: 期间末
   record_time: L1 生成时刻
-  owner_bc: reporting（X-RPT 承接 BI）
+  owner_bc: reporting
   wave: W5
   confidence: medium
   sources:
