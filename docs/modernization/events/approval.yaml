@@ -323,7 +323,7 @@ components:
     TaskHandled:
       name: TaskHandled
       title: 任务已办理（通过 / 驳回 / 退回）
-      description: 任务已办理（通过、驳回、退回）；过程事实，不过账。系统自动通过与被跳过的节点不发此事件。effect=ADVISORY 是加签人的驳回，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。 系统自动通过（同一审批人同一节点内容未变，RULE-302）也发本事件，effect 为 AUTOMATIC（D-1a-66）。
+      description: 任务已办理（通过、驳回、退回）；过程事实，不过账。被跳过的节点不发此事件；系统自动通过（同一审批人同一节点内容未变，RULE-302）发本事件，effect 为 AUTOMATIC（D-1a-66）。加签人的驳回只发 effect=ADVISORY，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。
       payload:
         type: object
         properties:
