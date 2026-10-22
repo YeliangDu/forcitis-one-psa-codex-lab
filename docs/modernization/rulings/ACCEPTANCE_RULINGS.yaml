@@ -268,6 +268,18 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetEmployeeDayUniqueIT.java
     reason: KERR 通用错误码进 kernel，工时两条码改名为 KERNEL_TRANSITION_ILLEGAL、KERNEL_CONCURRENT_CHANGE；只改码名字面与显示名，不删用例、不改断言结构；PR 改断言栏单列
     ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261022-05
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/EmployeeCodeNotKeyIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/EmployeeCodeUniquenessIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/WorkforceLengthLimitsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/WorkforceRowConstraintsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/SourceIdMatchingIT.java
+    reason: 用户定工号全局唯一（intent 2026-10-21-100711，ADR-0078 已批准 intent 2026-10-22-211131）；工号键断言改为恰有 uk_employees_employee_code 一项（改名 EmployeeCodeUniquenessIT 按 ADR-0078 守护第 2 条）；WF11 夹具工号改唯一值、断言不变；同号第二人改断言隔离并写 DUPLICATE_EMPLOYEE_CODE 例外（one-data 签）；不删用例；PR 改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
   - id: RULING-COORD-20261022-06
     date: 2026-10-22
     ruled_by: one-coordinator

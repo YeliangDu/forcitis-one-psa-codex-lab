@@ -99,12 +99,12 @@
       </ioSpecification>
       <dataOutputAssociation id="DOA_S3_8_1"><sourceRef>DOut_S3_8_1</sourceRef><targetRef>SR_S3_8_w1</targetRef></dataOutputAssociation>
     </userTask>
-    <boundaryEvent id="S3_8_bd_9" name="期限 合同约定详细报告时限；未约定时 P28D 自发出索赔通知之日起" cancelActivity="false" attachedToRef="S3_8">
+    <boundaryEvent id="S3_8_bd_9" name="期限 协议上登记的约定详细报告时限，自发出索赔通知之日起（INV-17，不设缺省天数）" cancelActivity="false" attachedToRef="S3_8">
       <outgoing>Flow_14</outgoing>
-      <timerEventDefinition><timeDuration>合同约定详细报告时限；未约定时 P28D 自发出索赔通知之日起</timeDuration></timerEventDefinition>
+      <timerEventDefinition><timeDuration>协议上登记的约定详细报告时限，自发出索赔通知之日起（INV-17，不设缺省天数）</timeDuration></timerEventDefinition>
     </boundaryEvent>
     <userTask id="S3_8_esc_10" name="处理超时：提交索赔详细报告">
-      <documentation>升级给 SH-M1；期限 合同约定详细报告时限；未约定时 P28D 自发出索赔通知之日起</documentation>
+      <documentation>升级给 SH-M1；期限 协议上登记的约定详细报告时限，自发出索赔通知之日起（INV-17，不设缺省天数）</documentation>
       <incoming>Flow_14</incoming>
       <outgoing>Flow_15</outgoing>
       <ioSpecification id="IO_S3_8_esc_10">

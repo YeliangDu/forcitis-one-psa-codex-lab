@@ -187,7 +187,7 @@ COMMENT ON COLUMN platform_integration.source_references.version IS '乐观锁�
 COMMENT ON COLUMN platform_integration.source_references.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 
 CREATE FUNCTION platform_integration.guard_source_reference_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF NEW.source_reference_id IS DISTINCT FROM OLD.source_reference_id OR NEW.source_system IS DISTINCT FROM OLD.source_system
        OR NEW.source_object_kind IS DISTINCT FROM OLD.source_object_kind OR NEW.source_id IS DISTINCT FROM OLD.source_id
@@ -212,7 +212,7 @@ CREATE TRIGGER tg_source_references_guard
     FOR EACH ROW EXECUTE FUNCTION platform_integration.guard_source_reference_change();
 
 CREATE FUNCTION platform_integration.reject_source_reference_deletion() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_integration.source_references is closed, never deleted: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
 END;

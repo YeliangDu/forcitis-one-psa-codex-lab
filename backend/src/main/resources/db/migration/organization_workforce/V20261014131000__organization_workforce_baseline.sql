@@ -519,7 +519,7 @@ CREATE INDEX ix_assignment_versions_position_id ON organization_workforce.assign
 CREATE INDEX ix_assignment_versions_reports_to_employee_id ON organization_workforce.assignment_versions (reports_to_employee_id);
 
 CREATE FUNCTION organization_workforce.reject_attribution_correction_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'organization_workforce.legal_entity_attribution_corrections is append-only: % is not allowed', TG_OP
         USING ERRCODE = 'restrict_violation';
@@ -534,7 +534,7 @@ CREATE TRIGGER legal_entity_attribution_corrections_reject_truncate
     BEFORE TRUNCATE ON organization_workforce.legal_entity_attribution_corrections
     FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.reject_attribution_correction_change();
 
-CREATE FUNCTION organization_workforce.refuse_version_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_workforce.refuse_version_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'version rows are append-only: % on %.% is refused', lower(TG_OP), TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
