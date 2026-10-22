@@ -8,7 +8,7 @@ meta:
     kpis: 112
     decided: 15
     retired: 8
-    by_status: {user_decided: 7, design_decided: 5, glossary_pending: 3}
+    by_status: {user_decided: 7, design_decided: 5, glossary_decided: 3}
     baseline: 48
     glossary: 79
     vision: 16
@@ -852,7 +852,7 @@ kpis:
     glossary:
     - docs/modernization/glossary/terms.yaml:9571
   evidence: r0/METRIC_BASELINE_DRAFT.md:102 M-28「净服务收入」；glossary/terms.yaml:9571 net_service_revenue「净服务收入」收入（不含税）减转付成本（分包、外包与可向客户转收的代垫费用）后的余额；扣减范围。基线待决「NR 是否等于 REV − PTC」（F2），词表扣减范围按 FD-41
-  definition: 净收入 = 不含税收入 − 委外与分包 − 可向客户转收的代垫费用；管理口径净额，不用于法定报表；与法定收入可互相推导，报表脚注写推导关系。
+  definition: 净服务收入 ＝ 法定收入（不含税）− 委外与分包 − 可向客户转收的代垫费用；管理口径的净额，不用于法定报表，报表脚注写出与法定收入的推导；信息服务费不在此扣除（计入直接项目费用）。旧称「净收入」弃用至 2026-12-31（one-glossary PR #570；用户 KPI-Q02）。
   merged_names:
   - 净收入
   merged_terms:
@@ -2203,7 +2203,8 @@ kpis:
 - id: KPI-110
   aliases:
   - M-08
-  name: 收入确认（不含税）
+  name: 权责发生制收入
+  former_names: [收入确认（不含税）]
   term: accrual_basis_revenue
   baseline: M-08
   vision_kpi: null
@@ -2216,7 +2217,8 @@ kpis:
 - id: KPI-111
   aliases:
   - M-09
-  name: 收入确认（含税）
+  name: 含税收入
+  former_names: [收入确认（含税）]
   term: revenue_including_tax
   baseline: M-09
   vision_kpi: null
@@ -2230,7 +2232,8 @@ kpis:
 - id: KPI-112
   aliases:
   - M-31
-  name: 间接费用（按职能）
+  name: 间接成本（按职能）
+  former_names: [间接费用（按职能）]
   term: indirect_cost
   baseline: M-31
   vision_kpi: null
@@ -2397,7 +2400,8 @@ decided:
   question: 基线 M-43 自己写明「与词表的有效 / 无效工时划分对齐（S-24）」尚未对齐：基线分可计费、商机、非计费，词表分有效、无效，且可计费包含于有效。以哪套划分为准？
 - id: NU-10
   title: 间接费用与间接成本
-  status: glossary_pending
+  status: glossary_decided
+  glossary_ruling: 以词表「间接成本」为准，「间接费用」列方言（one-glossary PR #570）
   answer: 同义异名，交 one-glossary 按用语规则定，不上确认页
   source: 页首：交 one-glossary
   items:
@@ -2413,7 +2417,8 @@ decided:
   question: 基线名「间接费用（按职能）」，词表名「间接成本」，定义均为按职能归集的不可直接归属项目的部分。名称不同，是否同一概念、用哪个名？
 - id: NU-11
   title: 收入确认（不含税）与权责发生制收入
-  status: glossary_pending
+  status: glossary_decided
+  glossary_ruling: 以「权责发生制收入」为准，「收入确认（不含税）」作别名（one-glossary PR #570）
   answer: 同义异名，交 one-glossary 按用语规则定，不上确认页
   source: 页首：交 one-glossary
   items:
@@ -2429,7 +2434,8 @@ decided:
   question: 两者都是权责、不含税的收入，名称不同。是否同一指标、用哪个名？
 - id: NU-12
   title: 收入确认（含税）与含税收入
-  status: glossary_pending
+  status: glossary_decided
+  glossary_ruling: 以「含税收入」为准，「收入确认（含税）」作别名（one-glossary PR #570）
   answer: 同义异名，交 one-glossary 按用语规则定，不上确认页
   source: 页首：交 one-glossary
   items:
