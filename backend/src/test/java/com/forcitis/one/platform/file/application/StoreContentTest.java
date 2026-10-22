@@ -120,6 +120,11 @@ class StoreContentTest {
         }
 
         @Override
+        public java.time.Duration maxLinkValidity() {
+            return java.time.Duration.ofMinutes(15);
+        }
+
+        @Override
         public void read(StoredObjectKey key, OutputStream sink) {
             throw new AssertionError("not used when storing");
         }

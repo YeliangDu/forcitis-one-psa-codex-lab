@@ -38,6 +38,8 @@
 
 - 事件：收到批准清单即组合集入队；队列事件（合入、冲突、挂起）即处理。
 - 定时：文档合集与积压 PR 盘点每天两次（中午、晚上，SESSION_PLAYBOOK §11 第 14 条）。
+- 生成产物冲突由本会话处理（one-coordinator 2026-10-22）：只在 build_all 写出的文件上冲突的 PR，在其分支合 main、重跑 build_all、推送后直接入队；人写的文件冲突才退回作者。文档合集出现 .py 或测试文件改动，先报 one-coordinator，复审通过前不入队。
+- 队列清空即扫（one-coordinator 2026-10-22 新规）：每当队列清空，扫 GitHub 上在开的 PR，把三类情况一次报 one-coordinator，每个附 PR 号和卡在谁手上：①已批准但没入队；②有冲突或 CI 红；③超过 1 小时没人动。
 
 ## 自动化
 
@@ -66,4 +68,4 @@
 
 ## 当前状态
 
-2026-10-21 18:00+02:00 在岗；队列由 launchd 代理 `com.forcitis.mq` 托管（`scripts/merge/mq.py run`），队列与待办详见 `merge/MERGE_CONTEXT.md`「现状」，不抄数字；模型 sonnet；/clear 后先读该文件再 `mq.py status` 核对。
+2026-10-22 17:00+02:00 在岗，上下文 55% 触发交接（/clear 前）；队列由 launchd 代理 `com.forcitis.mq` 托管，队列与待办详见 `merge/MERGE_CONTEXT.md`「现状」，不抄数字；模型 sonnet；/clear 后先读该文件再 `mq.py status` 核对，并接上：#606 合入后在主检出装 pre-commit 钩子（含 commit-msg）并报 one-coordinator；#607、#604 按批准 head 入队；队列清空即扫在开 PR 三类报调度；每周例行分支与 worktree 清理。

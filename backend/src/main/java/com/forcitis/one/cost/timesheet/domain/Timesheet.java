@@ -20,6 +20,7 @@ import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.cost.timesheet.api.TimesheetDocument;
 import com.forcitis.one.kernel.Hours;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.StateMachine;
@@ -133,7 +134,7 @@ public final class Timesheet extends AggregateRoot {
     public void revise(EmployeeId by, LocalDate newWorkDate, Hours newHours, EmployeeId newProjectManager) {
         requireOwner(by);
         if (!status.isEditable()) {
-            throw TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL.refusal("The timesheet cannot be changed while it is " + status);
+            throw KernelError.KERNEL_TRANSITION_ILLEGAL.refusal("The timesheet cannot be changed while it is " + status);
         }
         if (!workDate.equals(newWorkDate)) {
             throw TimesheetError.COST_TIMESHEET_WORK_DATE_FIXED.refusal(
@@ -145,7 +146,7 @@ public final class Timesheet extends AggregateRoot {
 
     public void submit(EmployeeId by, LocalDate today) {
         requireOwner(by);
-        status = MACHINE.require(status, TimesheetStatus.SUBMITTED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
+        status = MACHINE.require(status, TimesheetStatus.SUBMITTED);
         round++;
         submittedOn = Objects.requireNonNull(today, "today");
         Snapshot at = snapshot();
@@ -162,28 +163,28 @@ public final class Timesheet extends AggregateRoot {
     }
 
     public void approve() {
-        status = MACHINE.require(status, TimesheetStatus.APPROVED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
+        status = MACHINE.require(status, TimesheetStatus.APPROVED);
         Snapshot at = snapshot();
         record("cost.timesheet.TimesheetApproved", envelope -> new TimesheetApproved(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round())));
     }
 
     public void reject(Reason reason) {
-        status = MACHINE.require(status, TimesheetStatus.REJECTED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
+        status = MACHINE.require(status, TimesheetStatus.REJECTED);
         Snapshot at = snapshot();
         record("cost.timesheet.TimesheetRejected", envelope -> new TimesheetRejected(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 
     public void returnForRevision(Reason reason) {
-        status = MACHINE.require(status, TimesheetStatus.RETURNED, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
+        status = MACHINE.require(status, TimesheetStatus.RETURNED);
         Snapshot at = snapshot();
         record("cost.timesheet.TimesheetReturned", envelope -> new TimesheetReturned(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 
     public void cancelSubmission(Reason reason) {
-        status = MACHINE.require(status, TimesheetStatus.DRAFT, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
+        status = MACHINE.require(status, TimesheetStatus.DRAFT);
         Snapshot at = snapshot();
         record("cost.timesheet.TimesheetApprovalWithdrawn", envelope -> new TimesheetApprovalWithdrawn(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));

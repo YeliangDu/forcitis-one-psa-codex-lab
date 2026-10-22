@@ -27,6 +27,10 @@ REVOKE DELETE, TRUNCATE ON platform_file.stored_files, platform_file.stored_file
     platform_file.preservation_category_versions, platform_file.false_positive_judgments, platform_file.quarantine_read_requests FROM one_prod_app;
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_file.current_file_preservations FROM one_prod_app;
 
+-- 行政事务卡 A（R6）：配置集只推进乐观锁，版本头允许确认与撤回，条目与状态转换只追加。
+REVOKE INSERT, DELETE, TRUNCATE ON organization_administration.config_sets FROM one_prod_app;
+REVOKE DELETE, TRUNCATE ON organization_administration.config_set_versions FROM one_prod_app;
+REVOKE UPDATE, DELETE, TRUNCATE ON organization_administration.employee_activity_type_items, organization_administration.state_transitions FROM one_prod_app;
 -- 工作日历（IMP-1021-PAR-02，one-data 签发更正十）：根表与版本日期表只追加，运行角色只留 SELECT、INSERT；
 -- 版本表运行角色只留 SELECT、INSERT、UPDATE（UPDATE 用于确认、撤回，关闭上一版本由触发器完成），不持有 DELETE 与 TRUNCATE。
 REVOKE UPDATE, DELETE, TRUNCATE ON organization_attendance.work_calendars, organization_attendance.work_calendar_version_days FROM one_prod_app;

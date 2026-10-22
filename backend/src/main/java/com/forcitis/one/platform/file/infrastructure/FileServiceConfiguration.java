@@ -64,6 +64,10 @@ class FileServiceConfiguration {
     @Bean
     IssueDownloadLink issueDownloadLink(FileBindingRepository bindings, BusinessFileStore store, BindingAudit audit, FileServiceProperties properties,
                                         Clock clock) {
+        if (properties.downloadLinkMaximumValidity().compareTo(store.maxLinkValidity()) > 0) {
+            throw new IllegalStateException(FileServiceProperties.PREFIX + "download-link-maximum-validity exceeds what the business file bucket signs ("
+                    + store.maxLinkValidity() + ")");
+        }
         return new IssueDownloadLink(bindings, store, audit, properties.downloadLinkValidity(), properties.downloadLinkMaximumValidity(), clock);
     }
 

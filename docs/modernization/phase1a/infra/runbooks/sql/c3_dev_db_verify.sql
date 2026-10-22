@@ -10,11 +10,11 @@ SELECT r.rolname, s.setconfig
   FROM pg_db_role_setting s JOIN pg_roles r ON r.oid = s.setrole
  WHERE r.rolname LIKE 'one\_dev\_%' ORDER BY r.rolname;
 
--- V3 schema 属主：期望 11 行，属主均为 one_dev_owner
+-- V3 schema 属主：期望 13 行，属主均为 one_dev_owner
 SELECT nspname, pg_get_userbyid(nspowner) AS owner
   FROM pg_namespace
  WHERE nspname IN ('one_migration', 'platform_identity', 'platform_approval', 'platform_integration', 'platform_audit',
-                   'platform_numbering', 'platform_file', 'platform_scheduling', 'organization_workforce', 'organization_attendance',
+                   'platform_numbering', 'platform_file', 'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_administration',
                    'platform_idempotency', 'cost_timesheet')
  ORDER BY nspname;
 
@@ -70,4 +70,36 @@ BEGIN
             RAISE EXCEPTION 'V10 failed: runtime role % is a member of one_dev_owner', r;
         END IF;
     END LOOP;
+END $$;
+
+-- V11 每个自定义函数固定 search_path（FUNCTION_SEARCH_PATH_PINNING.md R-SP-1、R-SP-3）：pg_catalog 在前、pg_temp 在最后，中间至多本函数所在 schema（非 public，且除属主外无人可在该 schema 建对象）；SECURITY DEFINER 函数 PUBLIC 不可执行。
+-- 与 DataArchitectureTest 的主守护同一套判定；期望 0 行（扩展成员不计），有行则本条抛错，ON_ERROR_STOP 使校验失败。
+DO $$
+DECLARE bad text;
+BEGIN
+    SELECT string_agg(p.oid::regprocedure::text, ', ') INTO bad
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND p.prokind IN ('f', 'p')
+       AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
+       AND (NOT EXISTS (SELECT 1 FROM unnest(p.proconfig) c
+                         WHERE c = 'search_path=pg_catalog, pg_temp'
+                            OR (c = 'search_path=pg_catalog, ' || n.nspname || ', pg_temp' AND n.nspname <> 'public'
+                                AND NOT EXISTS (SELECT 1 FROM aclexplode(n.nspacl) a WHERE a.privilege_type = 'CREATE' AND a.grantee <> n.nspowner)))
+            OR (p.prosecdef AND has_function_privilege('public', p.oid, 'EXECUTE')));
+    IF bad IS NOT NULL THEN
+        RAISE EXCEPTION 'V11 failed: functions without a pinned search_path or executable by PUBLIC: %', bad;
+    END IF;
+END $$;
+
+-- V12 SECURITY DEFINER 函数的属主不是超级用户（R-SP-3）：定义者权限就是属主权限，超级用户属主等于函数体可做任何事。
+-- 部署库上期望 0 行；测试容器的迁移账号是超级用户，所以这条不进 DataArchitectureTest。
+DO $$
+DECLARE bad text;
+BEGIN
+    SELECT string_agg(p.oid::regprocedure::text, ', ') INTO bad
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace JOIN pg_roles r ON r.oid = p.proowner
+     WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND p.prosecdef AND r.rolsuper;
+    IF bad IS NOT NULL THEN
+        RAISE EXCEPTION 'V12 failed: SECURITY DEFINER functions owned by a superuser: %', bad;
+    END IF;
 END $$;

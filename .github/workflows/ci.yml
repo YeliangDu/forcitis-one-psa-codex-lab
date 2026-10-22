@@ -3,7 +3,7 @@ name: ci
 on:
   pull_request:
     # labeled: the merge queue labels the head of the queue `queued`, which starts the heavy steps (scripts/ci/heavy_gate.py)
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened, labeled, edited]
   push:
     branches: [main]
   # full run of main every night (the push to main runs the light steps only): 21:03 UTC; nightly-legacy-it runs at 23:23 UTC
@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   # a label other than `queued` must not cancel a run in progress, and the nightly full run must not cancel (nor be cancelled by) the push to main that the release gate reads: each gets its own group
-  group: ci-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'queued' && '-other-label' || github.event_name == 'schedule' && '-nightly' || '' }}
+  group: ci-${{ github.ref }}${{ (github.event.action == 'labeled' && github.event.label.name != 'queued' || github.event.action == 'edited') && '-other-label' || github.event_name == 'schedule' && '-nightly' || '' }}
   cancel-in-progress: true
 
 # Self-hosted runners (docs/modernization/CI_RUNNERS.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
@@ -24,7 +24,7 @@ concurrency:
 jobs:
   backend:
     # the check name gains ' (light)' when this pull request run will not run the heavy steps: the required check then stays 'expected' until the queue labels the pull request
-    name: backend verify (Modulith + ArchUnit guardrails + integration tests)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
+    name: backend verify (Modulith + ArchUnit guardrails + integration tests)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || github.event.action == 'edited' || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
     runs-on: [self-hosted, forcitis-one]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -58,6 +58,12 @@ jobs:
           else
             python3 scripts/ci/system_actors_append_only.py "$base"
           fi
+      - name: A changed organization-interface signature snapshot needs 已通知平台 owner in the pull request body (ADR-0066)
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python3 scripts/ci/org_interface_notice.py --self-test
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then python3 scripts/ci/org_interface_notice.py "origin/$GITHUB_BASE_REF"; fi
       - name: Acceptance tests are changed only by the test engineer or under a ruling (SESSION_PLAYBOOK §6.1)
         env:
           BEFORE: ${{ github.event.before }}
@@ -154,7 +160,7 @@ jobs:
             backend/hs_err_pid*.log
 
   frontend:
-    name: frontend verify (typecheck + lint guardrails F1-F14 + structure + build)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
+    name: frontend verify (typecheck + lint guardrails F1-F14 + structure + build)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || github.event.action == 'edited' || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
     runs-on: [self-hosted, forcitis-one]
     defaults:
       run:

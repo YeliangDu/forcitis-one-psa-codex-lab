@@ -141,3 +141,67 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 主检出现有 4 个未跟踪文件（architecture/proposals/ 下），同路径文件合入时快进会被 git 拒绝并停队，归属待用户确认。
 - macOS 夜间自动装更新（凌晨 2~5 点）会让 runner 起不来，nightly 已定 01:23 本机避开；系统设置未动。
 
+### 补记（2026-10-22 傍晚，clear 前）
+- **#573** head 247bcc559（已第三次合 main：FREEZE_FACTS.{md,yaml}、proposed/README.md 被他人反复改，一律 `git rm --cached`），CI 起不来时先看是否又 DIRTY；**#589** 随后合 main 同样处理，opus 已过；两者 CI 绿后直接报 one-merge 入队（one-coordinator 已批）。
+- **#593** head 93615980f：opus 首轮（高：被误忽略的人写文件会丢修改）已修，sonnet 改后复核通过、结论已贴 PR；遗留后续项：全局 excludesFile 当作树内 .gitignore（低）、对 panorama.yaml 探测因 notes_build 先读垃圾而失败（#589 调序后缓解，仍建议用 stage 2/3 合法内容做种子）、--check 失败返回 conflict 语义（低）、自测补三个用例。CI 四绿后报 one-coordinator 批。
+- 工作区 `.claude/worktrees/xin-61164f` 当前停在文档分支 `claude/one-quality-handoff-1022`（本交接）；其余分支：gen-out-1/2、mq-ignored、task-status、generated-design、task-ledger。
+
+
+## 交接（2026-10-22 傍晚，上下文 32%，按新阈值 30%）
+
+### 现状
+- **#606**（提交信息钩子 + 后台任务命名钩子 + 交接档位 30/40）已合入 main。各工作区需重跑 `pre-commit install` 才有 commit-msg 钩子。
+- **#612**（GOV-1022-QUA-04 = COO-08 钩子降开销 + COO-09 会话交接全自动，分支 `claude/one-quality-hook-overhead`，head 见 PR）：已开，opus 首轮复审进行中（agent 后台跑，结果以通知为准）；precheck 31 PASS。实测 100 次工具调用 hook 进程 700→204、CPU 16.1s→5.1s。节点事件试点只开 one-quality（`context_windows.json` 的 `node_handoff`）。
+- **治理设计第二稿**：分支 `claude/one-quality-repo-governance` 提交 22e083a54（`quality/REPO_CONTENT_GOVERNANCE_DESIGN.md`）；生成产物设计分支 `claude/one-quality-generated-design` 提交 fda7fd6b3（已改为不建归档分支）。都待 one-coordinator 审后给用户。
+- #573、#593 已合入；#589 已推送合并 main 的修复，待入队。
+
+### 下一步
+1. 等 #612 复审结果→改必改项→贴结论到 PR→CI 绿后报 one-coordinator 批；合入后在 one-quality 上做**试点**：真走一遍写交接→发「清空接续：one-quality 交接在 <路径>」→clear_session(self)→等 one-coordinator 先 get_session 确认已清空再发「接续」→按交接接上；结果报 one-coordinator，由其改 §2.1 第 1 条与画像再推全员。
+2. 第 4 期（生成产物移出）开工前先报 one-coordinator（archive 分支已取消，改 git rm + ARCHIVE_INDEX.md，不需要用户设保护规则）。
+3. 其余：GOV-1022-COO-05 派工台账实现、QUA-05 评测收尾、网络规则 CI（见上一节交接）。
+
+### 坑
+- 工作区 `.claude/worktrees/xin-61164f` 是唯一能写的目录，各 PR 分支在它上面轮流 checkout，注意 `git branch --show-current`；opus 复审期间不要切分支（它读工作区）。
+- 提交信息现在要带任务号或 #PR 号（代码提交）；任务号本会话用 GOV-1022-QUA-03（#606）、GOV-1022-QUA-04（#612）。
+- 后台任务/子代理 description 必须是 `<任务号或 #PR号> <任务名> (<执行者>)`，Agent 调用也要。
+- 向 one-coordinator 发消息用 `mcp__ccd_session_mgmt__send_message` 的 `session_id`（local_10f279cb-81c7-4628-9080-2d5b1efd622d）。
+
+## 交接（2026-10-22 晚，清空接续试点；#612 已合入）
+
+### 现状
+- **#612**（GOV-1022-QUA-04）已合入 main，钩子已生效（app 已重启）：前置钩子五合一 `pre_tool_dispatch.py`、`context_handoff.py` 节流 + 节点事件交接（`context_windows.json` 的 `node_handoff`，试点只开 one-quality，coordinator_session_ids 为调度会话 id）。**这次清空即试点**：节点触发 → 写交接 → 提交推送 → 给 one-coordinator 发「清空接续」→ clear_session(self) → 调度先 get_session 确认已空闲且已清空再发「接续」→ 我按本节接上。试点结果（是否按协议接上、哪里卡）由我接续后报 one-coordinator。
+- 协议补两点（one-coordinator 实测）：①发「清空接续」后，其他会话找本会话一律经调度转（清空中收到消息会顶掉清空）；②clear_session 不能清已 detach 的会话，只能 self；服务 Remote Control 的会话也清不了。
+- 治理设计第二稿（`claude/one-quality-repo-governance` 22e083a54，`REPO_CONTENT_GOVERNANCE_DESIGN.md`）和生成产物设计（`claude/one-quality-generated-design` fda7fd6b3）待 one-coordinator 审后给用户。
+
+### 接续后的下一步（顺序）
+1. 向 one-coordinator 报试点结果（接上了吗；节点指令是否清楚；有无误触发；clear 后远程是否断）。
+2. **GOV-1022-COO-10**：钩子命令匹配可绕过——大小写（`GIT push`、`CODEX exec p`、`PI -p x`，macOS 文件系统不分大小写）和引号拆词（`gi""t commit` 绕过 main_checkout_gate 的 `"git" not in command`）。涉及 pre_tool_dispatch 前筛、main_checkout_gate、pre_push_gate、precheck_before_pr、codex_stdin_gate；修法=命令先做 shell 词法规整（去引号/转义、小写化命令名再匹配）；守护代码自己写，opus 首轮；新开分支从 origin/main，任务号 GOV-1022-QUA-05 起（先查 tasks/ 避免重号），写任务片段。
+3. 第 4 期（生成产物移出）开工前先报 one-coordinator（归档分支已取消，改 git rm + ARCHIVE_INDEX.md）。
+4. 其余：GOV-1022-COO-05 派工台账实现、QUA-05 评测收尾、网络规则 CI。
+
+### 坑
+- 工作区 `.claude/worktrees/xin-61164f` 是唯一能写的目录；PR 分支在它上面轮流 checkout，每次 `git branch --show-current`；opus 复审期间不要切分支。
+- 代码提交要带任务号或 #PR 号；后台任务/子代理 description 必须 `<任务号或 #PR号> <任务名> (<执行者>)`，Agent 调用也要。
+- Bash 命令文本里出现 `gh pr create` 字样（即使在 heredoc/测试字符串里）会触发 precheck 全量检查；写含该字样的补丁用 Edit，不用 Bash 脚本。
+- 发消息给调度：`mcp__ccd_session_mgmt__send_message` 的 `session_id`（local_10f279cb-81c7-4628-9080-2d5b1efd622d）；清空后协议要求先等调度的「接续」。
+
+## 交接（2026-10-22 深夜，节点：COO-13 PR 已开；第二次清空接续）
+
+### 现状
+- 试点已报 one-coordinator（清空接续协议接上了，开场注入 46938 字节宿主只显示 2KB）。
+- **#616**（GOV-1022-QUA-05 = COO-10 钩子防大小写/引号拆词绕过，分支 `claude/one-quality-hook-bypass`）：opus 复审必改 2 项已修（CD/PUSHD/POPD 不小写、`$'git'` 拆词）并贴 PR，CI 三项绿，已报调度待批入队。复审建议项（`$'g\x69t'`/通配符、`bash <<EOF`、`env -S`、`git -c alias.`、`gh -R`）不在本 PR，调度定是否另开卡。
+- **#627**（GOV-1022-QUA-06 = COO-13 开场一页开工单，分支 `claude/one-quality-start-sheet`，提交 5b535973b）：已开，precheck 32 PASS；**opus 首轮复审还没派**（派前先把 PR 正文里的字节表核一遍；复审重点：start_sheet 的 git grep/路径安全、画像删节后 build_sessions 校验、节点注入、截断到 8KB 的边界、handoff_selftest 改写后是否仍真验证）。
+- 本节所在分支 `claude/one-quality-handoff-1022` 的交接节（150/169/本节）尚未进 main（需另提 docs 提交报 one-merge 或随下个 PR）。
+
+### 下一步（顺序）
+1. 给 #627 派 opus 首轮复审（description：`#627 首轮复审 开工单 (opus)`），改必改项、贴结论、CI 绿后报 one-coordinator 批入队。复审期间不切分支。
+2. #616 批入队后确认已合入（`gh pr view 616`）。
+3. 仓库内容治理第七节（用户已答，三题均选推荐，intent 2026-10-22-201921）：`git rm` + `ARCHIVE_INDEX.md`，不建归档分支；`content_governance.py` 挂 `mq.py` 与 CI（改 mq 单列 PR、opus 首轮）；本机只提醒；50KB/300KB 棘轮一个月后复看。`evidence/` 去留等 one-coordinator 请 one-data 出清单。排在 COO-13 之后。
+4. 登记 RULING-COORD-20261022-05（W2 PR-B 验收改动）到 `ACCEPTANCE_RULINGS.yaml`：**等它进 main 后**再做（one-coordinator 要求）。
+5. 其余：GOV-1022-COO-05 派工台账实现、QUA-05 评测收尾、网络规则 CI。
+
+### 别做 / 坑
+- 规则讨论期冻结：不改 SESSION_PLAYBOOK、CLAUDE.md、记忆；PLAYBOOK §2.1 第 16 条与 66-67 行仍写「当前状态」，等解冻后同步（已在 #627 正文提醒）。
+- Bash 命令文本含 `git push` / `gh pr create` 字样会触发 precheck 或被拦：写补丁脚本用 Write 工具，不用 Bash heredoc。
+- 工作区 `.claude/worktrees/xin-61164f` 唯一可写；PR 分支轮流 checkout，先 `git branch --show-current`。
+- 发消息给调度用 `session_id` local_10f279cb-81c7-4628-9080-2d5b1efd622d；清空后等调度的「接续」。

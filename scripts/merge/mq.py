@@ -25,6 +25,7 @@ required checks (backend verify, frontend verify, secret scan, none of them with
 Conflicts with main in generated files. When main moved so fast that a pull request conflicts only in products of docs/modernization/build_all.py, the queue does not send it back: it merges main in over ssh, runs build_all.py and
 commits the regenerated products (AUTO-RESOLVE in the log), checks the result with `build_all.py --check` and pushes. Which files are products is not listed anywhere: build_all.py is run twice with different junk in every conflicted file and a file
 is a product when both runs rewrite it to the same text; a conflict in a file a person wrote, a failing build_all.py or a failing check leaves the pull request as it was and it goes back to the author. `enqueue` only says that a pull request conflicts; the runner settles it when it takes it. The queue runs the pull request's own build_all.py and its steps on this machine, as its CI runs it on the runners.
+A file that has moved out of the repository meanwhile (a generated product, now untracked and in .gitignore) which one side deleted and the other still changed is no conflict either: it is taken out of the index and kept on disk (the PR's merge commit says so).
 Outcomes: MERGED, CONFLICT (text conflict with main in a file a person wrote: back to the author), HOLD (red after the rerun, CI timeout, closed, an update that could not be pushed, attempts exhausted: reported to the coordinator).
 
 Pause. Before taking a pull request, and again right before a merge, the queue looks at main's push runs and nightly (schedule) runs of the ci workflow: the verdict run is the newest one that has ended and was not
@@ -371,6 +372,40 @@ class Gh:
 BUILD_ALL = os.path.join("docs", "modernization", "build_all.py")
 
 
+def moved_out_conflicts(wt, conflicted):
+    """The conflicted paths that look like a file which has left the repository: deleted by one side and changed by the other (index stages 1+2 or 1+3), present at the merge base under that very path (not the made-up stage 1 of a rename),
+    and ignored by a .gitignore of the merged tree (not by this machine's own exclude files). Only a candidate: it is settled as a generated product only when build_all.py is seen to rewrite it (regenerate_conflicts)."""
+    stages = {}
+    for entry in sh(["git", "-C", wt, "ls-files", "-u", "-z"]).stdout.split("\0"):
+        info, _, name = entry.partition("\t")
+        if name:
+            stages.setdefault(name, set()).add(info.split()[2])
+    base = sh(["git", "-C", wt, "merge-base", "HEAD", "MERGE_HEAD"]).stdout.strip()
+    out = []
+    for name in conflicted:
+        if stages.get(name) not in ({"1", "2"}, {"1", "3"}):
+            continue
+        if not base or sh(["git", "-C", wt, "cat-file", "-e", f"{base}:{name}"]).returncode:
+            continue
+        verdict = sh(["git", "-C", wt, "check-ignore", "-v", "--no-index", "--", name]).stdout
+        if verdict and os.path.basename(verdict.split(":", 1)[0]) == ".gitignore":
+            out.append(name)
+    return out
+
+
+def finish_merge(wt, script, folder, label):
+    """Commit the merge in progress once build_all.py has regenerated what it generates, and check the result; True only when `build_all.py --check` passes on it."""
+    if any(line.startswith("??") for line in sh(["git", "-C", wt, "status", "--porcelain"]).stdout.splitlines()):
+        return None   # build_all.py wrote a file nobody ignores: not committed blindly
+    if sh(["git", "-C", wt, "add", "-A"]).returncode:
+        return None
+    if sh(["git", "-C", wt, "commit", "-q", "-m", "Merge origin/main (merge queue: " + label + ")"]).returncode:
+        return None
+    if sh([sys.executable, script, "--check"], cwd=folder, timeout=900).returncode:
+        return None
+    return True
+
+
 def regenerate_conflicts(wt, conflicted):
     """Inside a merge in progress at `wt`: True when every conflicted path is a product of build_all.py (and the merge is now committed with the products regenerated), else None/False with the merge left as it is.
     The list of products is not written down anywhere: build_all.py is run twice with different junk in every conflicted file, and a file is a product when both runs rewrite it to the same text.
@@ -379,11 +414,14 @@ def regenerate_conflicts(wt, conflicted):
     if not conflicted or not os.path.exists(script):
         return None
     folder = os.path.dirname(script)
+    if ".gitignore" in conflicted:   # what is ignored is not known until a person has settled it
+        return False
     root = os.path.realpath(wt)
     for name in conflicted:   # junk is written to these paths: never through a symbolic link, never outside the work tree
         path = os.path.join(wt, name)
         if os.path.islink(path) or not os.path.realpath(os.path.dirname(path)).startswith(root + os.sep):
             return False
+    moved_out = moved_out_conflicts(wt, conflicted)
     results = []
     for number in (1, 2):
         junk = f"MQ-PROBE-{number}\n"
@@ -397,15 +435,10 @@ def regenerate_conflicts(wt, conflicted):
         results.append({name: open(os.path.join(wt, name), "rb").read() if os.path.exists(os.path.join(wt, name)) else None for name in conflicted})
     if any(results[0][name] is None or results[0][name] != results[1][name] or b"MQ-PROBE" in results[0][name] for name in conflicted):
         return False
-    if any(line.startswith("??") for line in sh(["git", "-C", wt, "status", "--porcelain"]).stdout.splitlines()):
-        return None   # build_all.py wrote a file nobody ignores: not committed blindly
-    if sh(["git", "-C", wt, "add", "-A"]).returncode:
-        return None
-    if sh(["git", "-C", wt, "commit", "-q", "-m", "Merge origin/main (merge queue: regenerated by build_all.py: " + ", ".join(sorted(conflicted)) + ")"]).returncode:
-        return None
-    if sh([sys.executable, script, "--check"], cwd=folder, timeout=900).returncode:
-        return None
-    return True
+    for name in moved_out:   # a generated product that is no longer in the repository: out of the index, regenerated copy stays on disk (add -A would put it back)
+        if sh(["git", "-C", wt, "rm", "-q", "--cached", "--", name]).returncode:
+            return None
+    return finish_merge(wt, script, folder, "regenerated by build_all.py: " + ", ".join(sorted(conflicted)) + ("; out of the index, ignored since: " + ", ".join(sorted(moved_out)) if moved_out else ""))
 
 
 def update_over_ssh(repo, branch, wt):
