@@ -18,6 +18,7 @@
   - 画像 15 份重写等 COO-13 合入后按 program 第一节一次改（含 75/85 残留）。
   - one-1a-par：W2 PR-B（裁定 -05 已进 main，入队前确认 A8 同步已停）→日历迁入通道→登记 3 条 handoff 记忆卡与 KERNEL_REASON_REQUIRED 卡（卡号回来后删那三条记忆）。one-1a-next-5：search_path→NX5-08 编号迁入。one-arch-finance：AFI-02 阻塞等 one-architecture S-5（AGG-137 并入 AGG-05）。one-arch-revenue：AGG-20/16/02。one-rules：卡 C 等 one-1a-admin 贴 §11.2 原文。one-glossary：待办②起。one-data：等各 PR；收件箱 T-D10 待用户。
   - 21:10 增：收件箱 one-rules 12 项已审（opus），撤 11 项（withdrawn 注依据），只留 RULE-265 待 one-rules 改题。KERR-2（KERNEL_REASON_REQUIRED）派 one-1a-next-5（search_path 后、NX5-08 前），卡 C 取消命令等它。工号唯一改走 ADR-0078（#619 占号已批；正文分支 claude/one-architecture-adr-0078-body @dd5ef55d6，opus+sonnet 已过）→ one-architecture 开正文 PR 后我出批准页给用户；W2 PR-B 已令拆开：先合不含唯一键部分，唯一键与裁定 -05 那几处等 ADR-0078 采纳后另开 PR-B2。
+  - 21:15 答完：RULE-265 定时任务不得发起审批只产生待办/提醒→已转 one-rules；卡 C 保留期答「A」→已转 one-data。收件箱现无 pending。
   - 清空规则：除 coordinator、architecture 外由我管，现钩子未推全员前，会话到线先写交接，等 one-quality PR 合入再自清；我清空要用户 /clear（或 one-merge 重开远程+发接续）。
 - 接手先做：ReadNotifications；`ls -t ~/.modernize/psa/outbox/`；`gh pr list` + `mq.py status`；逐个查开发会话前置是否满足（不得再犯：只盯合并）；intent 2026-10-22-15* 起为今日下午决定。
 - 下午已定（intent）：交接阈值 30%/40%（154722，§2.1 已改并进 main #602）；降负载不得牺牲开发机功能（151546）；仓库内容治理四项交 one-quality（153421，GOV-1022-COO-06）；one-ops search_path 三项「都做」（155217）。
@@ -27,7 +28,7 @@
 - 额度：本周全模型 55%（10-26 重置），超额已停；主会话读缓存是主因，少发会话消息、知会合并。
 - **团队体检 GOV-1022-COO-07**（intent 2026-10-22-162957，用户「对，开工吧」）：第 1 步盘点已完成（193 条规则：机器强制 18%、部分 23%、靠自觉 58%；问题 58 条，最重：P-01 阈值多处仍 75/85、P-30~32 已批钩子未落地、P-02 PB §7 与 CLAUDE.md 相反、P-09/10/45 当前状态存放矛盾、P-25/29 规范无负责会话），文件 ~/.modernize/psa/coordinator/team-audit/inventory.md；第 2、3 步已写成 ~/.modernize/psa/coordinator/team-audit/plan.md（6 根因、6 节方案、3 批落地、7 项待拍板），opus 复审「改后通过」已按 9 条必改改成第二稿；确认页 https://claude.ai/artifact/E1CEBZoJ5TCJJX5ncQzkwa（10 题，含治理第二稿第七节 3 题，答复集合 answers/answers-submit）已进收件箱 pending → 用户答完按 plan.md「落地分批」执行；第 1 批不待批部分（P-01/11/57、CS-7.7、_retired、记忆清理）可先做 → 确认页进收件箱 → 用户批准后分批落地；文件不在则重派同一取证。
 - 治理设计第二稿（GOV-1022-COO-06）：claude/one-quality-repo-governance @22e083a54，已按 opus 8 条改完，待我审后出确认页（第七节待拍板项）；可与团队体检确认页合并出。#606 已批入队，合入后 one-merge 装 commit-msg 钩子。
-- **交接全自动 GOV-1022-COO-09**（intent 172418）：节点事件+≥20% 即自清，30/40 兜底；会话报「清空接续」→我 get_session 确认已清空再发「接续」；Remote Control 只保 one-coordinator 与 one-architecture（用户 10-22 17:5x「只保留你和架构会话远程，其他都关了」，已关 one-rules、one-arch-people，其余本已关）（我自清时 one-merge 用 set_remote_control 重开）；已派 one-quality（与 COO-08 合 PR，先自身试点），试点通过后我改 §2.1 第 1 条与画像。
+- **交接全自动 GOV-1022-COO-09**（intent 172418）：节点事件+≥20% 即自清，30/40 兜底；会话报「清空接续」→我 get_session 确认已清空再发「接续」；Remote Control 只保 one-coordinator（21:15 用户把 one-architecture 也交我管、远程已关）（用户 10-22 17:5x「只保留你和架构会话远程，其他都关了」，已关 one-rules、one-arch-people，其余本已关）（我自清时 one-merge 用 set_remote_control 重开）；已派 one-quality（与 COO-08 合 PR，先自身试点），试点通过后我改 §2.1 第 1 条与画像。
 - COO-09 实测（10-22 晚）：①他会话的消息排队会顶掉 self 清空（one-arch-revenue 首次被 one-arch-finance 消息顶掉）→协议须写「清空中的会话不收消息，转调度」；②clear_session 不能清已 detach 的会话（即便由我开出），只能靠 self。重启后 mq.py 存活（15:37 起），新钩子 pre_tool_dispatch 已生效；one-architecture 远程重启后掉线，已重开。
 - 其他下午事项：#604 已批（:99 显示名按 -04 覆盖）；Actions 保留期已改 14 天；Spotlight 已排除（用户）；开发者工具已加并核实。
 - 不得再犯：恢复后只盯合并漏查开发会话；提交信息钩子交接写「等 §5」却不核实前提。
