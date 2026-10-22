@@ -72,9 +72,4 @@
 
 ## 当前状态
 
-2026-10-22 18:55+02:00 批次边界，准备 /clear。分支 `claude/one-arch-revenue-closeout`（文档类，提交号报 one-merge 收合集）。
-- 已完成并交 one-architecture：C7 归段复核与 VS_REVIEW；N7 改名回写与补遗；状态转换待判清单（transition-review/revenue.yaml）；GL5-01 已签署 / 已生效分状态与订阅裁定；ARC-1022-COO-03 法人归属三份口径（legal-entity/，LEB 七题已落地并核对一致）；LEB-07 AGG-21 基线引用（INV-140、141 已正式登记）；ARC-1022-ARE-01 默认账期（DEFAULT_PAYMENT_TERM.md，AGG-136、PRC-202，目录与权责总表已在本分支补）。
-- 本组后续（未派）：状态机真缺口——AGG-20 工作包补进行中 / 已完成 / 返工中，AGG-16 拆「已拒绝」「撤回」并补「已通知」，AGG-02 补延续中 / 已降级；命令卡待定「终止 / 取消项目是否需上级复核」（commands.yaml pending_decision）。
-- 等别人：财务组补 AGG-53「登记代发退回」、AGG-89「登记进项发票入账」权责 A（现为 TODO，全量重建权责总表会使全景生成失败，本分支总表为 main 版加 PRC-202 两条）；三组进 main 后 one-architecture 统一核对目录。
-- 用户待答（本组相关）：Q-04 / VS04-01、Q09、Q13、Q20（MS-17）、Q21、MS-23。
-接续读 closeout/revenue/README.md。
+2026-10-22 18:55+02:00 批次边界，准备 /clear。分支 `claude/one-arch-revenue-closeout`（文档类，提交号报 one-merge 收合集）；已完成并交 one-architecture：C7 归段复核与 VS_REVIEW；N7 改名回写与补遗；状态转换待判清单（transition-review/revenue.yaml）；GL5-01 已签署 / 已生效分状态与订阅裁定；ARC-1022-COO-03 法人归属三份口径（legal-entity/，LEB 七题已落地并核对一致）；LEB-07 AGG-21 基线引用（INV-140、141 已正式登记）；ARC-1022-ARE-01 默认账期（DEFAULT_PAYMENT_TERM.md，AGG-136、PRC-202，目录与权责总表已在本分支补）；本组后续（未派）：状态机真缺口——AGG-20 工作包补进行中 / 已完成 / 返工中，AGG-16 拆「已拒绝」「撤回」并补「已通知」，AGG-02 补延续中 / 已降级；命令卡待定「终止 / 取消项目是否需上级复核」（commands.yaml pending_decision）；等别人：财务组补 AGG-53「登记代发退回」、AGG-89「登记进项发票入账」权责 A（现为 TODO，全量重建权责总表会使全景生成失败，本分支总表为 main 版加 PRC-202 两条）；三组进 main 后 one-architecture 统一核对目录；用户待答（本组相关）：Q-04 / VS04-01、Q09、Q13、Q20（MS-17）、Q21、MS-23；接续读 closeout/revenue/README.md。
