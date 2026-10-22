@@ -87,7 +87,7 @@
 - **根因**：「基线只减不增」的写法与 ADR-0033 第 1 项第 8 条冲突
 - **拦下于**：回测
 - **漏过于**：门禁清单 §5 原写法
-- **新增检查项**：§5：豁免只限框架自建表，卡涉及的非框架例外表在本卡改掉；机械检查：`PrimaryKeyTypeGuardTest`（主键类型与豁免清单 `PrimaryKeyExemptions` 守护）
+- **新增检查项**：§5：豁免只限框架自建表，卡涉及的非框架例外表在本卡改掉；机械检查：`backend/src/test/java/com/forcitis/one/PrimaryKeyTypeGuardTest.java`（主键类型与豁免清单 `PrimaryKeyExemptions` 守护）
 - **状态**：已落实
 
 ### DATA-009　老系统名称进入新表或领域模块（缺陷 e）
@@ -109,7 +109,7 @@
 - **根因**：分级只看列，不看列里写什么
 - **拦下于**：回测
 - **漏过于**：门禁清单
-- **新增检查项**：C4：自由文本、`detail`、`jsonb` 列写「允许写入的内容清单」；机械检查：`AuditDetailGuardTest`（审计 detail 内容边界守护）
+- **新增检查项**：C4：自由文本、`detail`、`jsonb` 列写「允许写入的内容清单」；机械检查：`backend/src/test/java/com/forcitis/one/AuditDetailGuardTest.java`（审计 detail 内容边界守护）
 - **状态**：已落实
 
 ### DATA-011　生产有数据的老系统表（如满意度调查）信息图没有对象（缺陷 g）
