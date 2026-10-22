@@ -174,6 +174,11 @@ ids:
   name: 编制费率版本
   former_names: []
   retired: false
+- id: CMD-0b88b056
+  aggregate: AGG-16
+  name: 提交索赔详细报告
+  former_names: []
+  retired: false
 - id: CMD-0bb24e5f
   aggregate: AGG-27
   name: 登记客户认可
@@ -217,6 +222,11 @@ ids:
 - id: CMD-0f4510c8
   aggregate: AGG-93
   name: 登记补休转加班工资
+  former_names: []
+  retired: false
+- id: CMD-1076762f
+  aggregate: AGG-20
+  name: 转入返工
   former_names: []
   retired: false
 - id: CMD-107b1886
@@ -669,6 +679,11 @@ ids:
   name: 登记薪酬补发顺延
   former_names: []
   retired: false
+- id: CMD-31a5f6ac
+  aggregate: AGG-20
+  name: 发布工作包
+  former_names: []
+  retired: false
 - id: CMD-32157e6e
   aggregate: AGG-114
   name: 解决 IT 需求
@@ -732,6 +747,11 @@ ids:
 - id: CMD-376a9dd9
   aggregate: AGG-17
   name: 批准风险交付授权
+  former_names: []
+  retired: false
+- id: CMD-387b127b
+  aggregate: AGG-02
+  name: 登记资质延续申请
   former_names: []
   retired: false
 - id: CMD-38eba49b
@@ -1364,6 +1384,11 @@ ids:
   name: 变更商机负责人
   former_names: []
   retired: false
+- id: CMD-71715ba9
+  aggregate: AGG-20
+  name: 完成工作包
+  former_names: []
+  retired: false
 - id: CMD-71c31242
   aggregate: AGG-35
   name: 提交检查记录
@@ -1562,6 +1587,11 @@ ids:
 - id: CMD-80764bf6
   aggregate: AGG-90
   name: 更正申报
+  former_names: []
+  retired: false
+- id: CMD-809f1c04
+  aggregate: AGG-16
+  name: 撤回索赔
   former_names: []
   retired: false
 - id: CMD-80a77096
@@ -2932,6 +2962,11 @@ ids:
 - id: CMD-f20170b2
   aggregate: AGG-23
   name: 提出完工估算
+  former_names: []
+  retired: false
+- id: CMD-f346ee1c
+  aggregate: AGG-16
+  name: 拒绝索赔
   former_names: []
   retired: false
 - id: CMD-f3b1234b
