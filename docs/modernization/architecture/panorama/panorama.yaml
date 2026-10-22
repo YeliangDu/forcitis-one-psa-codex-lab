@@ -35601,7 +35601,7 @@ nodes:
       subdomain: platform
       bc: platform.file
       module: platform.file
-      operation_id: upload
+      operation_id: store
       gap: null
       src: frontend/packages/api/openapi.json#/paths//api/v1/platform/files/post
       controllers:
