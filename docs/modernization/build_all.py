@@ -6,7 +6,7 @@
   python3 docs/modernization/build_all.py          生成全部产物
   python3 docs/modernization/build_all.py --check  要求 docs/modernization 与提议术语清单重新生成前后无差异（CI 使用）：
                                                    terms.yaml 过期或缺失时失败；允许已生成一致的未提交改动；
-                                                   ADR 拷贝与索引、brief、提议术语清单 README、frameworks 两个索引、panorama/FREEZE_* 不入仓（.gitignore，生成产物移出 main 第 1 期），只要求能生成；
+                                                   ADR 拷贝与索引、brief、提议术语清单 README、frameworks 两个索引、panorama/ 下 FREEZE_*、panorama.yaml、GAPS.md 不入仓（.gitignore，生成产物移出 main 第 1 期），只要求能生成；
                                                    INTENT / SESSION_LOG / STATUS / DECISION_DIGEST / SESSIONS / glossary/ISSUES / LEGACY_READ_REGISTER / tasks/TASKS / sessions/_COMMON 不入仓（.gitignore），只要求能生成、片段合规
                                                    （会话画像必备字段、会话名 one-* 且唯一；用语问题片段格式）；TASKS 另要求连续两次生成内容一致；
                                                    另校验 RULE_REVIEWS.json 的原结论未被改写（与 origin/main 的合并基点比对；取不到时由 review_revisions.py

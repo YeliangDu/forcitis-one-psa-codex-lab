@@ -122,6 +122,16 @@ def self_test():
     assert VS_RE.findall("见 VS-15、PRC-190、XVS-01") == ["VS-15"]
     import notes_check
     assert "不存在" in notes_check.missing_system_error(None) and notes_check.missing_system_error(({}, set(), {})) is None, "全景模型缺失是错误，不是静默跳过"
+    import contextlib, io
+    saved_panorama, saved_argv = notes_check.PANORAMA, sys.argv
+    notes_check.PANORAMA, sys.argv = Path("/nonexistent/panorama.yaml"), ["notes_check.py"]
+    try:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            status = notes_check.main()
+    finally:
+        notes_check.PANORAMA, sys.argv = saved_panorama, saved_argv
+    assert status == 1 and "ERROR 全景模型" in out.getvalue(), "笔记检查在缺全景模型时必须失败，不能静默跳过编号校验"
     print("self-test ok")
 
 
