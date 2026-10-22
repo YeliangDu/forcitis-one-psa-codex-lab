@@ -120,6 +120,36 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: official_notice
+  zh: 官方通知
+  en: OfficialNotice
+  snake: official_notice
+  kind: value_object
+  bc: organization.attendance
+  scope: domain
+  definition: 国家或地方政府发布的放假与调休安排通知，以文号和链接标识；工作日历版本确认时必须挂上（IMP-1021-PAR-02，one-data 审查 WORK-CALENDAR-DDL-2026-10-21 更正三、五）
+  standard_ref:
+  - ADR-0072
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 列名 official_notice_number、official_notice_url 用此词，暂名，待 one-glossary 定名
+- id: make_up_workday_cancelled
+  zh: 调休上班日取消
+  en: MakeUpWorkdayCancelled
+  snake: make_up_workday_cancelled
+  kind: state
+  bc: organization.attendance
+  scope: domain
+  definition: 官方安排的调休上班日被公司取消、按普通周末休息计的例外日取值；必须是周六或周日，依据为公司加休或手工更正并写明取消的是哪份官方通知里的哪个调休（IMP-1021-PAR-02，更正六）
+  standard_ref:
+  - ADR-0072
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 暂名，待 one-glossary 定名
 common_words:
 - maintain
 - maintained

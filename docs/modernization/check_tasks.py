@@ -21,6 +21,10 @@ FIELDS = ('任务号', '任务名', '主线', 'bc', '种类', '会话', '执行�
 LANES = dict(NAM='命名', CON='施工图', ARC='架构整合', RUL='规则', DAT='数据', IMP='代码实现', CI='合并与 CI', OPS='运维', GOV='流程治理')
 SESSION_CODES = ('GLO', 'AFI', 'ARE', 'APE', 'ARC', 'PAR', 'NX5', 'QUA', 'RUL', 'DAT', 'OPS', 'MRG', 'COO', 'ADM')
 STATUSES = ('待派', '已派', '进行中', '复审中', '返工中', '待验收', '已完成', '已提交', '已合并', '阻塞', '已取消', '待核')
+# 现行取值（用户 2026-10-21，intent 2026-10-21-213907）：STATUSES 里其余的是存量写法，先报告、不失败；LEGACY_STATUS 给出对应的现行取值
+FRAGMENT_STATUSES = ('已派', '进行中', '阻塞', '完成', '作废')
+LEGACY_STATUS = {'待派': '已派', '复审中': '进行中', '返工中': '进行中', '待验收': '进行中', '已完成': '完成', '已提交': '完成', '已合并': '完成', '已取消': '作废'}
+STALE_HOURS = 12
 KINDS = ('设计', '编码', '测试', '取证', '复审', '确认页', '文档')
 TASK_ID = re.compile(r'(' + '|'.join(LANES) + r')-(\d{4})-(' + '|'.join(SESSION_CODES) + r')-(\d{2})')
 UNKNOWN = '待核'
@@ -35,7 +39,7 @@ def parse_task(path, text, warnings=None, *, historical=False):
         raise ValueError(f'{path}：须以完整的 --- 键值头开始')
     fields = {}
     required = ('会话', '执行者与模型', '返工轮次') if historical else FIELDS
-    allowed = (*required, '来源') if historical else (*FIELDS, '来源')
+    allowed = (*required, '来源') if historical else (*FIELDS, '来源', '最后更新')
     for line in front[1].splitlines():
         key, sep, value = line.partition(':')
         key, value = key.strip(), value.strip()
@@ -110,6 +114,8 @@ def validate(tasks, bcs):
             errors.append(f'{tag}：任务名须为 [主线·bc] 动作 + 对象')
         if task['会话'] != UNKNOWN and not re.fullmatch(r'one-[a-z0-9]+(?:-[a-z0-9]+)*', task['会话']):
             errors.append(f'{tag}：会话须为 one-* 或待核')
+        if '最后更新' in task and task['最后更新'] != UNKNOWN and updated_at(task['最后更新']) is None:
+            errors.append(f'{tag}：最后更新须为 ISO 日期或时刻（如 2026-10-21T21:30:00+02:00）或待核')
         for key, parse in (('返工轮次', rounds), ('用时', minutes)):
             try:
                 parse(task[key])
@@ -125,8 +131,48 @@ def task_warnings(tasks):
         if name and (name[1] != LANES.get(task['主线']) or name[2] != task['bc']):
             warnings.append(f'{path}：任务名的主线中文名或 bc 与字段不一致，应为 [{LANES.get(task["主线"], task["主线"])}·{task["bc"]}]')
         if task['状态'] not in STATUSES:
-            warnings.append(f'{path}：状态须取 {"/".join(STATUSES)}（存量先警告）')
+            warnings.append(f'{path}：状态须取 {"/".join(FRAGMENT_STATUSES)}（存量先警告）')
+    legacy = sorted({t['状态'] for _, t in tasks if t['状态'] in LEGACY_STATUS})
+    if legacy:
+        count = sum(t['状态'] in LEGACY_STATUS for _, t in tasks)
+        warnings.append(f'{count} 张片段仍用存量状态值（{"、".join(f"{v}→{LEGACY_STATUS[v]}" for v in legacy)}）；状态现行取值 {"/".join(FRAGMENT_STATUSES)}，task_backfill.py 列出建议，由负责会话确认后改')
     return warnings
+
+
+def updated_at(value):
+    """The moment a 最后更新 value names (a date counts as the end of that day, so a card updated "today" is never stale at noon), local time when no zone is given; None when it is neither an ISO date nor an ISO date-time."""
+    try:
+        moment = datetime.datetime.fromisoformat(value) if 'T' in value or ' ' in value else datetime.datetime.combine(datetime.date.fromisoformat(value), datetime.time(23, 59, 59))
+    except ValueError:
+        return None
+    return moment if moment.tzinfo else moment.astimezone()
+
+
+def merged_branches(base=BASE, ref='origin/main'):
+    """Branch names merged into `ref` (without the origin/ prefix), None when git cannot say."""
+    result = subprocess.run(['git', 'branch', '-r', '--merged', ref, '--format=%(refname:short)'], cwd=base, capture_output=True, text=True)
+    if result.returncode:
+        return None
+    return {name.removeprefix('origin/') for name in result.stdout.split()}
+
+
+def stale_report(tasks, now, merged, hours=STALE_HOURS):
+    """Lines of the stale-register report: 进行中 or 阻塞 not updated for more than `hours` (or never), and a branch that is in main while the status is not 完成/作废. Report only."""
+    lines = []
+    shared = {b for b, n in collections.Counter(t['分支'] for _, t in tasks).items() if n > 1}   # one branch for several cards (or a branch used again after its merge) says nothing about one of them
+    for path, task in tasks:
+        status = task['状态']
+        done = status in ('完成', '作废') or LEGACY_STATUS.get(status) in ('完成', '作废')
+        if LEGACY_STATUS.get(status, status) in ('进行中', '阻塞'):
+            stamp = updated_at(task['最后更新']) if task.get('最后更新', UNKNOWN) != UNKNOWN else None
+            if stamp is None:
+                lines.append(f'{task["任务号"]}（{task["会话"]}）状态 {status}，未填最后更新')
+            elif now - stamp > datetime.timedelta(hours=hours):
+                lines.append(f'{task["任务号"]}（{task["会话"]}）状态 {status}，最后更新 {task["最后更新"]}，已超过 {hours} 小时')
+        branch = task['分支']
+        if merged and branch in merged and branch not in shared and not done:
+            lines.append(f'{task["任务号"]}（{task["会话"]}）分支 {branch} 已合入 main，状态仍是 {status}')
+    return lines
 
 
 def collect(base, warnings=None):
@@ -192,11 +238,15 @@ def pr_warning(title):
 
 def main(argv):
     import os
-    title, check = None, False
+    title, check, now = None, False, None
     while argv:
         arg = argv.pop(0)
         if arg == '--check':
             check = True
+        elif arg == '--now' and argv:
+            now = updated_at(argv.pop(0))
+            if now is None:
+                raise ValueError('--now 须为 ISO 时刻')
         elif arg == '--pr-title' and argv:
             title = argv.pop(0)
         else:
@@ -217,6 +267,16 @@ def main(argv):
     errors = validate(tasks, bcs)
     if errors:
         raise ValueError('\n'.join(errors))
+    merged = merged_branches()
+    if merged is None:
+        print('警告：读不到 origin/main，跳过「分支已合入」核对', file=sys.stderr)
+    stale = stale_report(tasks, now or datetime.datetime.now().astimezone(), merged)
+    if stale:
+        print(f'陈旧报告（先报告档，不失败；{len(stale)} 条）：', file=sys.stderr)
+        for line in stale[:30]:
+            print('  ' + line, file=sys.stderr)
+        if len(stale) > 30:
+            print(f'  …另有 {len(stale) - 30} 条', file=sys.stderr)
     if not check:
         (BASE / 'tasks/TASKS.md').write_text(render(tasks, payload(tasks)), encoding='utf-8')
     print(f'check_tasks：{len(tasks)} 张片段通过' + ('，已生成 tasks/TASKS.md' if not check else ''))
@@ -342,6 +402,29 @@ def self_test():
         later.unlink()
         (base / 'tasks/_RESULT.md').write_text('结果', encoding='utf-8')
         assert len(collect(base)) == 1, '结果文件不可当成片段'
+    assert updated_at('2026-10-21') and updated_at('2026-10-21T21:30:00+02:00') and updated_at('2026-10-21 21:30') and updated_at('昨天') is None
+    assert not validate([(path, dict(task, 最后更新='2026-10-21T21:30:00+02:00'))], set()) and not validate([(path, dict(task, 最后更新=UNKNOWN))], set())
+    assert any('最后更新须为' in e for e in validate([(path, dict(task, 最后更新='昨天'))], set()))
+    assert parse_task(path, text.replace('旧编号: N5', '旧编号: N5\n最后更新: 2026-10-21T21:30:00+02:00'))['最后更新'] == '2026-10-21T21:30:00+02:00'
+    now = updated_at('2026-10-22T10:00:00+02:00')
+    working = dict(task, 状态='进行中', 分支='claude/x')
+    assert stale_report([(path, dict(working, 最后更新='2026-10-22T09:00:00+02:00'))], now, set()) == [], '一小时前更新不陈旧'
+    assert stale_report([(path, dict(working, 最后更新='2026-10-21T22:00:00+02:00'))], now, set()) == [], '恰好十二小时不算超过'
+    assert len(stale_report([(path, dict(working, 最后更新='2026-10-21T21:59:00+02:00'))], now, set())) == 1, '超过十二小时一分钟'
+    assert len(stale_report([(path, dict(working, 最后更新='2026-10-21T21:00:00+02:00'))], now, set())) == 1, '超过十二小时'
+    assert len(stale_report([(path, dict(working, 状态='阻塞', 最后更新='2026-10-20'))], now, set())) == 1, '阻塞同样算'
+    assert len(stale_report([(path, working)], now, set())) == 1, '没填最后更新算陈旧'
+    assert stale_report([(path, dict(working, 状态='完成'))], now, set()) == [] and stale_report([(path, dict(working, 状态='已派'))], now, set()) == [], '只看进行中与阻塞'
+    assert stale_report([(path, dict(working, 状态='复审中'))], now, set()) != [], '存量的复审中按进行中算'
+    assert len(stale_report([(path, dict(working, 状态='完成', 分支='claude/x'))], now, {'claude/x'})) == 0
+    assert len(stale_report([(path, dict(working, 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 1, '分支已合入而状态不是完成'
+    twin = dict(working, 任务号='NAM-1017-GLO-04', 最后更新='2026-10-22T09:00:00+02:00')
+    assert stale_report([(path, dict(working, 最后更新='2026-10-22T09:00:00+02:00')), (path, twin)], now, {'claude/x'}) == [], '几张卡共用一个分支：不凭分支判'
+    assert updated_at('2026-10-22') > updated_at('2026-10-22T12:00:00') and updated_at('2026-10-22').hour == 23, '只写日期按当天结束算'
+    assert len(stale_report([(path, dict(working, 状态='已派', 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 1
+    assert len(stale_report([(path, dict(working, 状态='已提交', 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 0, '存量的已提交算完成'
+    assert len(task_warnings([(path, dict(task, 状态='已合并')), (path, dict(task, 状态='待派'))])) == 1, '存量状态合成一条提示'
+    assert 'task_backfill' in task_warnings([(path, dict(task, 状态='已合并'))])[0]
     print('check_tasks --self-test：通过（格式、兼容字段、白名单、待核汇总、负向样例、生成与 Git 状态无关）')
 
 
