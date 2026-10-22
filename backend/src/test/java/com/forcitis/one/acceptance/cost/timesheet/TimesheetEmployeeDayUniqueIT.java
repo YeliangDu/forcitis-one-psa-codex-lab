@@ -218,7 +218,7 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
     }
 
     @Test
-    @DisplayName("TS-UNIQ timesheet_number 冲突仍映射为 COST_TIMESHEET_CONCURRENT_CHANGE")
+    @DisplayName("TS-UNIQ timesheet_number 冲突仍映射为 KERNEL_CONCURRENT_CHANGE")
     void aTimesheetNumberClashIsStillAConcurrentChange() throws Exception {
         SignedIn first = newWorker();
         SignedIn second = newWorker();
