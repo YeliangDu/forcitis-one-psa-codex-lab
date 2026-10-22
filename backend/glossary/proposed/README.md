@@ -616,6 +616,7 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `custody_department` | 保管部门 | CustodyDepartment | 领域 · platform.signing | 印章台账条目版本上记的保管该印章的部门（ADR-0064 决定 3） |  |  |
 | `seal_type_list` | 印章类型清单 | SealTypeList | 领域 · platform.signing | 行政提供的印章类型取值清单，做成版本化配置表（根表加版本表），不写死枚举；作者与确认人分离，决定出处必填（ADR-0064 决定 3，D15） |  |  |
 | `seal_type_list_version` | 印章类型清单版本 | SealTypeListVersion | 领域 · platform.signing | 印章类型清单的一个版本：生效日、决定出处、作者；确认人不得是作者（ADR-0064 决定 3，D15） |  |  |
+| `physical` | 实体章 | Physical | 领域 · platform.signing | 印章载体的取值之一：实体印章；先行期全部台账条目按实体章办理，电子章随电子印章批追加（ADR-0064 决定 3、5） |  | 一个 bc 内中英文名查重已做；随签章 api PR 登记，请 one-glossary 复核 |
 
 另有错误码 7 个（kind 为 `error_code`），不在表中。
 

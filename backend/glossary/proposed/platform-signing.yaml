@@ -240,3 +240,18 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: physical
+  zh: 实体章
+  en: Physical
+  snake: physical
+  kind: state
+  bc: platform.signing
+  scope: domain
+  definition: 印章载体的取值之一：实体印章；先行期全部台账条目按实体章办理，电子章随电子印章批追加（ADR-0064 决定 3、5）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 一个 bc 内中英文名查重已做；随签章 api PR 登记，请 one-glossary 复核

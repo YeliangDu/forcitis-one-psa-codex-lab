@@ -59,6 +59,32 @@ class ModuleDependencyTest {
     }
 
     @Test
+    @DisplayName("ADR-0064 decision 1 item 3: the signing service depends on foundation modules only, and no foundation module or the approval module depends on it")
+    void signingServiceStaysAtTheFoundationLayer() throws IOException {
+        Map<String, Set<String>> declared = new HashMap<>();
+        for (String line : Files.readAllLines(Path.of("architecture/module-dependencies.txt"))) {
+            if (line.isBlank() || line.startsWith("#")) {
+                continue;
+            }
+            String[] parts = line.split("->", -1);
+            declared.put(parts[0].trim(), Arrays.stream(parts[1].split(",")).map(String::trim).filter(s -> !s.isEmpty())
+                    .collect(Collectors.toSet()));
+        }
+        Set<String> foundation = Set.of("platform.audit", "platform.identity", "platform.integration", "platform.file",
+                "organization.workforce");
+        assertThat(declared.get("platform.signing")).isNotNull().isSubsetOf(foundation);
+        assertThat(declared.get("platform.signing")).doesNotContain("platform.approval", "organization.administration");
+        Set<String> dependents = new TreeSet<>();
+        declared.forEach((module, targets) -> {
+            if (targets.contains("platform.signing")) {
+                dependents.add(module);
+            }
+        });
+        assertThat(dependents).isSubsetOf("organization.administration", "contract.agreement", "delivery.acceptance");
+        assertThat(declared.get("platform.approval")).doesNotContain("platform.signing");
+    }
+
+    @Test
     @DisplayName("P2 recheck M-1 platform.identity uses platform.web only for the NotFromQuery marker, and only from infrastructure.security")
     void identityUsesTheWebModuleOnlyForTheMarker() {
         assertThat(identityUsesOfTheWebModule(ArchitectureRulesTest.CLASSES)).isEmpty();

@@ -66,7 +66,7 @@ meta:
     ep: 601
     tc: 1132
     api: 68
-    mod: 13
+    mod: 14
     cmd: 614
     otr: 873
     evt: 59
@@ -35806,11 +35806,16 @@ nodes:
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/scheduling
       registration_src: backend/architecture/module-dependencies.txt:22
+    platform.signing:
+      bc: platform.signing
+      registered: true
+      src: backend/src/main/java/com/forcitis/one/platform/signing
+      registration_src: backend/architecture/module-dependencies.txt:24
     platform.web:
       bc: platform.web
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/web
-      registration_src: backend/architecture/module-dependencies.txt:23
+      registration_src: backend/architecture/module-dependencies.txt:25
   cmd:
     CMD-9085512f:
       id: CMD-9085512f
@@ -81390,6 +81395,13 @@ links:
   src: backend/src/main/java/com/forcitis/one/platform/scheduling
   via: module
   bc_src: architecture/ddd/contexts.yaml#contexts/platform.scheduling
+  subdomain_src: architecture/ddd/subdomains.yaml#subdomains/platform
+- kind: mod-bc
+  from: platform.signing
+  to: platform.signing
+  src: backend/src/main/java/com/forcitis/one/platform/signing
+  via: module
+  bc_src: architecture/ddd/contexts.yaml#contexts/platform.signing
   subdomain_src: architecture/ddd/subdomains.yaml#subdomains/platform
 - kind: mod-bc
   from: platform.web

@@ -20,4 +20,6 @@ platform.idempotency ->
 platform.integration ->
 platform.numbering -> platform.identity, organization.workforce, platform.integration
 platform.scheduling ->
+# ADR-0064 decision 1 item 3: the signing service depends on foundation modules only; the seal ledger (first segment) needs audit for maintenance commands and identity for web permissions. The electronic seal batch adds integration, file and workforce, not reserved here.
+platform.signing -> platform.audit, platform.identity
 platform.web ->
