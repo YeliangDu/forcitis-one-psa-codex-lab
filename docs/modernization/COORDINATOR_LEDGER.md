@@ -3,7 +3,10 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-21 22:15（one-coordinator，用户要求 clear）
+更新：2026-10-22 10:20（one-coordinator，重启 app 前）
+- 重启后先做：ReadNotifications；读 ~/.modernize/psa/outbox/；one-merge 恢复队列（队列 [572,574,570]，再入 #561、#573）并核主检出 f0c62f519；工作台按 ledger 同步一次。
+- 今日已定（intent 10-22 各片段）：A7475/A7677/GL5/SGN/LEB/KPI 全答；撤 psa_one_legacy_ro 已执行；git 原则 §12.6；生成产物移出 main 按推荐（1/4/5 期先做，2 期上游已修，3 期缓）；工作台钉左栏；outbox 规则；年度目标在 BI 看板（无贡献毛利目标，Q03 结案）。
+- 在途：财务口径确认页 6 题（one-arch-finance 出、我审题）；PAR-04 等两条裁定进 main 后开 PR；one-quality 生成产物 1 期 #573、GOV-1022-COO-05 台账补全；REG-3/REG-4（IMP-1022-COO-01）/KERR（IMP-1022-COO-02）；one-platform-file 签章 api。
 - 清空后第一步：通读 SESSION_PLAYBOOK §11（含战队协作 1–15 条）、§5；读本节与下方各「**…**」行；扫收件箱 pending（https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15，当前 0 项）；intent 见 2026-10-21-15* 以后各片段。卡的状态以 tasks 片段为准，台账只写指针。
 - **今日用户新口径**（详 intent）：交接钩子推全部会话、只交接不清空；回合结尾不向用户提问；后台任务命名适用所有后台任务；提交信息带 Session/任务号/为什么（钩子待做）；小代码 PR 可合批、已批 ADR PR 并入文档合集；纯文档合入不算代码 PR 落后；本机性能三项；分支/工作区清理归 one-merge 每周；重启前后固定步骤（§11 第 15 条）；派工登记表（intent 213907）。
 - **等用户批**：ADR-0074（organization.administration 补进 ADR-0051 BC 清单、审批聚合补 AGG-113/114/合同借阅、合同原件借阅 W3 移交 contract.agreement、「经通用审批办理」对 ADR-0054/0055/0064 部分取代；采纳前 B-31 模块骨架不合入 main）与 ADR-0075（ADR-0058 补篇，子状态机各记转换）——one-architecture 在 opus 复审，批准页出后调度先审题再进收件箱。
