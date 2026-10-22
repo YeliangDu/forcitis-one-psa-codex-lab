@@ -3,7 +3,10 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-22 10:20（one-coordinator，重启 app 前）
+更新：2026-10-22 11:10（one-coordinator，上下文 75% 批次边界）
+- 接手先做：读 ~/.modernize/psa/outbox/；读工作台 board/request、分层总图 meta/request（有新请求就同步）；ListAgents + gh pr list 查断档；intent 2026-10-22-* 为今日决定。
+- 今日已定：A7475/A7677/GL5/SGN/LEB/KPI/FCQ 全答并分发；7.5–8 小时不算加班；撤 psa_one_legacy_ro 已执行；git 原则 §12.6；生成产物移出 main 按推荐（1 期 #573 在队）；工作台钉左栏、按需同步；outbox 规则；年度目标在 BI（无贡献毛利目标）；不建 GitHub Project。
+- 在途待收：FCQ 落地（one-rules 补基线注四件、one-arch-finance 奖金与加班设计 ed99f3b8 待 one-architecture 核、one-arch-people 补发 8be32c18 已交）；#579/#581/#580/#570/#561/#573/#572/#574 在队或待 CI；PAR-04 两条裁定已进 main 后 one-1a-par 开 PR；one-quality 生成产物 4/5 期与 GOV-1022-COO-05；REG-3→RULE-412→REG-4→卡 N；KERR（one-1a-par）；one-platform-file 签章 api（新会话 local_87a73fc1）。
 - 重启后先做：ReadNotifications；读 ~/.modernize/psa/outbox/；one-merge 恢复队列（队列 [572,574,570]，再入 #561、#573）并核主检出 f0c62f519；工作台按 ledger 同步一次。
 - 今日已定（intent 10-22 各片段）：A7475/A7677/GL5/SGN/LEB/KPI 全答；撤 psa_one_legacy_ro 已执行；git 原则 §12.6；生成产物移出 main 按推荐（1/4/5 期先做，2 期上游已修，3 期缓）；工作台钉左栏；outbox 规则；年度目标在 BI 看板（无贡献毛利目标，Q03 结案）。
 - 在途：财务口径确认页 6 题（one-arch-finance 出、我审题）；PAR-04 等两条裁定进 main 后开 PR；one-quality 生成产物 1 期 #573、GOV-1022-COO-05 台账补全；REG-3/REG-4（IMP-1022-COO-01）/KERR（IMP-1022-COO-02）；one-platform-file 签章 api。
