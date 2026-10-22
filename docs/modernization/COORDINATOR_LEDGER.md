@@ -12,6 +12,7 @@
 - 额度：本周全模型 55%（10-26 重置），超额已停；主会话读缓存是主因，少发会话消息、知会合并。
 - **团队体检 GOV-1022-COO-07**（intent 2026-10-22-162957，用户「对，开工吧」）：第 1 步盘点已完成（193 条规则：机器强制 18%、部分 23%、靠自觉 58%；问题 58 条，最重：P-01 阈值多处仍 75/85、P-30~32 已批钩子未落地、P-02 PB §7 与 CLAUDE.md 相反、P-09/10/45 当前状态存放矛盾、P-25/29 规范无负责会话），文件 ~/.modernize/psa/coordinator/team-audit/inventory.md；第 2、3 步已写成 ~/.modernize/psa/coordinator/team-audit/plan.md（6 根因、6 节方案、3 批落地、7 项待拍板），opus 复审「改后通过」已按 9 条必改改成第二稿；确认页 https://claude.ai/artifact/E1CEBZoJ5TCJJX5ncQzkwa（10 题，含治理第二稿第七节 3 题，答复集合 answers/answers-submit）已进收件箱 pending → 用户答完按 plan.md「落地分批」执行；第 1 批不待批部分（P-01/11/57、CS-7.7、_retired、记忆清理）可先做 → 确认页进收件箱 → 用户批准后分批落地；文件不在则重派同一取证。
 - 治理设计第二稿（GOV-1022-COO-06）：claude/one-quality-repo-governance @22e083a54，已按 opus 8 条改完，待我审后出确认页（第七节待拍板项）；可与团队体检确认页合并出。#606 已批入队，合入后 one-merge 装 commit-msg 钩子。
+- **交接全自动 GOV-1022-COO-09**（intent 172418）：节点事件+≥20% 即自清，30/40 兜底；会话报「清空接续」→我 get_session 确认已清空再发「接续」；工作会话不必开 Remote Control，只保我的远程（我自清时 one-merge 用 set_remote_control 重开）；已派 one-quality（与 COO-08 合 PR，先自身试点），试点通过后我改 §2.1 第 1 条与画像。
 - 其他下午事项：#604 已批（:99 显示名按 -04 覆盖）；Actions 保留期已改 14 天；Spotlight 已排除（用户）；开发者工具待用户回电脑。
 - 不得再犯：恢复后只盯合并漏查开发会话；提交信息钩子交接写「等 §5」却不核实前提。
 
