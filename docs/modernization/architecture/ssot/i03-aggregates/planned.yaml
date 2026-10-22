@@ -35,7 +35,7 @@ aggregates:
   引用与依赖方式: AGG-01 上级单位（api）；platform.integration 迁入与同步（api）；platform.audit 审计（api）
   BC: B-01
   bc_heading: '**B-01 往来单位**（新增，暂名；含外部工程登记，原 B-25 并入；D-2 用户已定：新命名空间，两个 BC）'
-  source_line: 361
+  source_line: 364
 - id: AGG-02
   '#': AGG-02
   聚合（根）: 资质证书（OBJ-65）
@@ -47,7 +47,7 @@ aggregates:
   引用与依赖方式: AGG-01 持证往来单位（api）；AGG-60 持证法人主体（api）
   BC: B-01
   bc_heading: '**B-01 往来单位**（新增，暂名；含外部工程登记，原 B-25 并入；D-2 用户已定：新命名空间，两个 BC）'
-  source_line: 362
+  source_line: 365
 - id: AGG-33
   '#': AGG-33
   聚合（根）: 建设工程（OBJ-46，外部引用登记，外部工程登记部分；R5：竣工在用后即受检对象）
@@ -59,7 +59,7 @@ aggregates:
   引用与依赖方式: AGG-01 往来单位（api）；REF-01 招标项目登记（api）；AGG-19 我方项目（不校验）
   BC: B-01
   bc_heading: '**B-01 往来单位**（新增，暂名；含外部工程登记，原 B-25 并入；D-2 用户已定：新命名空间，两个 BC）'
-  source_line: 363
+  source_line: 366
 - id: AGG-03
   '#': AGG-03
   聚合: 服务产品版本（OBJ-24）
@@ -71,7 +71,7 @@ aggregates:
   引用与依赖方式: AGG-04 阶段类型版本（api）；AGG-107 参考的知识条目版本（api）
   BC: B-02
   bc_heading: '**B-02 服务与定价目录**（新增，暂名；D-2 用户已定：与往来单位同属新命名空间）'
-  source_line: 372
+  source_line: 375
 - id: AGG-04
   '#': AGG-04
   聚合: 阶段类型版本（OBJ-25）
@@ -83,7 +83,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-02
   bc_heading: '**B-02 服务与定价目录**（新增，暂名；D-2 用户已定：与往来单位同属新命名空间）'
-  source_line: 373
+  source_line: 376
 - id: AGG-05
   '#': AGG-05
   聚合: 标准成本费率表版本（OBJ-26）
@@ -95,7 +95,7 @@ aggregates:
   引用与依赖方式: AGG-63 职级（api）；platform.approval 审批，S-42（api、事件）
   BC: B-02
   bc_heading: '**B-02 服务与定价目录**（新增，暂名；D-2 用户已定：与往来单位同属新命名空间）'
-  source_line: 374
+  source_line: 377
 - id: AGG-06
   '#': AGG-06
   聚合: 计费系数版本（OBJ-27）（Q18 已答，intent 134134 Q-07：系数由业务线与客户分级共同决定，条目键为业务线 × 客户分级）
@@ -107,7 +107,7 @@ aggregates:
   引用与依赖方式: AGG-05 标准成本费率表（api）
   BC: B-02
   bc_heading: '**B-02 服务与定价目录**（新增，暂名；D-2 用户已定：与往来单位同属新命名空间）'
-  source_line: 375
+  source_line: 378
 - id: AGG-07
   '#': AGG-07
   聚合: 协议价目（OBJ-05 的类型「协议价目」）
@@ -119,7 +119,7 @@ aggregates:
   引用与依赖方式: AGG-01 往来单位（api）
   BC: B-02
   bc_heading: '**B-02 服务与定价目录**（新增，暂名；D-2 用户已定：与往来单位同属新命名空间）'
-  source_line: 376
+  source_line: 379
 - id: AGG-08
   '#': AGG-08
   聚合: 市场活动（OBJ-16）
@@ -131,7 +131,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-03
   bc_heading: '**B-03 售前**（用户已定合为一个，i210513；AGG-102 客户活动归本 BC，即 `presales.opportunity` 所在 BC，用户 intent 072440）'
-  source_line: 382
+  source_line: 385
 - id: AGG-09
   '#': AGG-09
   聚合: 线索（OBJ-17）
@@ -143,7 +143,7 @@ aggregates:
   引用与依赖方式: AGG-01 往来单位，可无（api）；AGG-08 市场活动（api）；AGG-10 转入的商机 ID（不校验）
   BC: B-03
   bc_heading: '**B-03 售前**（用户已定合为一个，i210513；AGG-102 客户活动归本 BC，即 `presales.opportunity` 所在 BC，用户 intent 072440）'
-  source_line: 383
+  source_line: 386
 - id: AGG-10
   '#': AGG-10
   聚合: 商机（OBJ-18）
@@ -157,7 +157,7 @@ aggregates:
   引用与依赖方式: AGG-09 线索（api）；AGG-01 往来单位（api）；AGG-62 负责人（api）；AGG-11 投标结果（api）；AGG-18 独立性检查结论（api）
   BC: B-03
   bc_heading: '**B-03 售前**（用户已定合为一个，i210513；AGG-102 客户活动归本 BC，即 `presales.opportunity` 所在 BC，用户 intent 072440）'
-  source_line: 384
+  source_line: 387
 - id: AGG-11
   '#': AGG-11
   聚合: 投标（OBJ-20）
@@ -170,7 +170,7 @@ aggregates:
   引用与依赖方式: AGG-10 商机（api）；AGG-12 报价版本（api）；REF-01 招标项目登记（api）；AGG-01 联合体成员（api）；AGG-18 独立性检查结论（api）
   BC: B-03
   bc_heading: '**B-03 售前**（用户已定合为一个，i210513；AGG-102 客户活动归本 BC，即 `presales.opportunity` 所在 BC，用户 intent 072440）'
-  source_line: 385
+  source_line: 388
 - id: AGG-12
   '#': AGG-12
   聚合: 报价版本（OBJ-21）
@@ -184,7 +184,7 @@ aggregates:
   引用与依赖方式: AGG-10 商机（api）；AGG-05 标准成本费率表版本（api）；AGG-06 计费系数版本（api）；AGG-07 协议价目（api）；AGG-103 参考的项目复盘（不校验）；AGG-107 参考的知识条目版本（api）；platform.approval 审批及评审结果回调（api、事件）
   BC: B-03
   bc_heading: '**B-03 售前**（用户已定合为一个，i210513；AGG-102 客户活动归本 BC，即 `presales.opportunity` 所在 BC，用户 intent 072440）'
-  source_line: 386
+  source_line: 389
 - id: AGG-18
   '#': AGG-18
   聚合: 独立性检查（OBJ-23）（D-4 用户已定 b：售前拦截，intent 061232）
@@ -196,7 +196,7 @@ aggregates:
   引用与依赖方式: AGG-10 商机（api）；AGG-10 独立性检查要求（事件）；AGG-11 投标（api）；AGG-33 建设工程与我方参与记录（api）
   BC: B-03
   bc_heading: '**B-03 售前**（用户已定合为一个，i210513；AGG-102 客户活动归本 BC，即 `presales.opportunity` 所在 BC，用户 intent 072440）'
-  source_line: 387
+  source_line: 390
 - id: AGG-102
   '#': AGG-102
   聚合: 客户活动（OBJ-105）
@@ -208,7 +208,7 @@ aggregates:
   引用与依赖方式: AGG-01 往来单位客户角色（api）；AGG-09 线索，可无（api）；AGG-10 商机，可无（api）；AGG-62 负责人（api）
   BC: B-03
   bc_heading: '**B-03 售前**（用户已定合为一个，i210513；AGG-102 客户活动归本 BC，即 `presales.opportunity` 所在 BC，用户 intent 072440）'
-  source_line: 388
+  source_line: 391
 - id: AGG-19
   '#': AGG-19
   聚合: 项目（OBJ-29）（Q09 状态机取值仍待定，暂停拒记工时已答，intent 134134 Q-05；Q11 已答：一个项目一个承担法人，跨法人另立项目，intent 134134 Q-06）
@@ -220,7 +220,7 @@ aggregates:
   引用与依赖方式: AGG-10 来源商机（api、事件）；AGG-33 建设工程（api）；AGG-61 承担部门（api）；AGG-62 负责人（api）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 396
+  source_line: 399
 - id: AGG-20
   '#': AGG-20
   聚合: 项目 WBS（OBJ-30，每项目一棵）
@@ -232,19 +232,19 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）；AGG-04 阶段类型版本（api）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 397
+  source_line: 400
 - id: AGG-21
   '#': AGG-21
   聚合: 交付计划版本（OBJ-31）
   内含: 里程碑
   对应: 一对一（每版本一个）
-  不变量: INV-43
+  不变量: INV-43、140、141
   命令（→ 事件；前置 INV）: 编制交付计划版本（→ （内部））；批准交付计划（→ 交付计划已批准）
   对外事件（订阅方）: 交付计划已批准（仅分析）、`MilestoneAccepted`（仅分析；S-42：B-08 不订阅，收入由交付物认可或视为同意触发；随 Q21）
   引用与依赖方式: AGG-19 项目（api）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 398
+  source_line: 401
 - id: AGG-22
   '#': AGG-22
   聚合: 项目预算版本（OBJ-32）
@@ -256,7 +256,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）；AGG-05 费率版本（api）；AGG-12 赢单报价版本（api）；platform.approval 审批，S-42（api、事件）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 399
+  source_line: 402
 - id: AGG-23
   '#': AGG-23
   聚合: 完工估算（OBJ-33）
@@ -268,7 +268,7 @@ aggregates:
   引用与依赖方式: AGG-20 工作包（api）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 400
+  source_line: 403
 - id: AGG-24
   '#': AGG-24
   聚合: 项目团队（OBJ-34）（**待定** Q13：放项目内还是独立聚合，以及是否决定工时范围与审批人）
@@ -280,7 +280,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）；AGG-62 人员（api）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 401
+  source_line: 404
 - id: AGG-25
   '#': AGG-25
   聚合: 资源需求（OBJ-44）
@@ -292,7 +292,7 @@ aggregates:
   引用与依赖方式: AGG-20 工作包（api）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 402
+  source_line: 405
 - id: AGG-26
   '#': AGG-26
   聚合: 资源分配（OBJ-45）
@@ -304,7 +304,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api）；AGG-20 工作包（api）；AGG-25 资源需求（api）；AGG-68 工作日历（api）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 403
+  source_line: 406
 - id: AGG-31
   '#': AGG-31
   聚合: 延期申请（OBJ-41）
@@ -316,7 +316,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 404
+  source_line: 407
 - id: AGG-103
   '#': AGG-103
   聚合: 项目复盘（OBJ-107）
@@ -328,7 +328,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）；AGG-20 WBS 阶段，可无（api）；AGG-62 编制人与评审人（api）；AGG-107 产出的知识条目（api）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 405
+  source_line: 408
 - id: AGG-104
   '#': AGG-104
   聚合: 项目风险与问题（OBJ-108）
@@ -340,7 +340,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）；AGG-62 责任人（api）；AGG-105 来源满意度调查（不校验）
   BC: B-04
   bc_heading: '**B-04 交付执行**（沿用 `delivery.execution`；AGG-103 项目复盘、AGG-104 项目风险与问题的归属论证见 §9 续四；D-3 用户已定改选 c：交付拆为交付执行、质量与认可（B-28）、检查（B-26）三个 BC，不合并）'
-  source_line: 406
+  source_line: 409
 - id: AGG-27
   '#': AGG-27
   聚合: 交付物（OBJ-35）
@@ -354,7 +354,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）；AGG-20 WBS 阶段（api）；AGG-66 签发人执业证书（api）；AGG-28 不符合项（api）；AGG-38 送达证据（api）；AGG-107 参考的知识条目版本（api）
   BC: B-28
   bc_heading: '**B-28 质量与认可**（沿用 `delivery.acceptance` 并扩；AGG-105 客户满意度调查的归属论证见 §9 续四；D-3 用户已定改选 c；位于交付执行下游，单向 B-28 → B-04）'
-  source_line: 413
+  source_line: 416
 - id: AGG-28
   '#': AGG-28
   聚合: 不符合项（OBJ-38，类型：我方成果 / 客户资产）
@@ -367,7 +367,7 @@ aggregates:
   引用与依赖方式: AGG-27 交付物（api）；AGG-35 来源检查（不校验）；AGG-33 部位（api）；AGG-38 证据（api）；AGG-01 整改责任方（api）
   BC: B-28
   bc_heading: '**B-28 质量与认可**（沿用 `delivery.acceptance` 并扩；AGG-105 客户满意度调查的归属论证见 §9 续四；D-3 用户已定改选 c；位于交付执行下游，单向 B-28 → B-04）'
-  source_line: 414
+  source_line: 417
 - id: AGG-29
   '#': AGG-29
   聚合: 返工认定（OBJ-39）
@@ -379,7 +379,7 @@ aggregates:
   引用与依赖方式: AGG-28 不符合项（api）
   BC: B-28
   bc_heading: '**B-28 质量与认可**（沿用 `delivery.acceptance` 并扩；AGG-105 客户满意度调查的归属论证见 §9 续四；D-3 用户已定改选 c；位于交付执行下游，单向 B-28 → B-04）'
-  source_line: 415
+  source_line: 418
 - id: AGG-30
   '#': AGG-30
   聚合: 设计变更（OBJ-40）
@@ -392,7 +392,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）；AGG-27 交付物（api）；AGG-29 返工认定（api）
   BC: B-28
   bc_heading: '**B-28 质量与认可**（沿用 `delivery.acceptance` 并扩；AGG-105 客户满意度调查的归属论证见 §9 续四；D-3 用户已定改选 c；位于交付执行下游，单向 B-28 → B-04）'
-  source_line: 416
+  source_line: 419
 - id: AGG-32
   '#': AGG-32
   聚合: 发包人提供资料（OBJ-42）
@@ -404,7 +404,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）
   BC: B-28
   bc_heading: '**B-28 质量与认可**（沿用 `delivery.acceptance` 并扩；AGG-105 客户满意度调查的归属论证见 §9 续四；D-3 用户已定改选 c；位于交付执行下游，单向 B-28 → B-04）'
-  source_line: 417
+  source_line: 420
 - id: AGG-38
   '#': AGG-38
   聚合: 证据（OBJ-53）（**待定** Q29：窄口径为本 BC 聚合；宽口径为一级，位置另定但须满足证据规则；保存期随 Q34）
@@ -416,7 +416,7 @@ aggregates:
   引用与依赖方式: AGG-62 采集人 ID（不校验）
   BC: B-28
   bc_heading: '**B-28 质量与认可**（沿用 `delivery.acceptance` 并扩；AGG-105 客户满意度调查的归属论证见 §9 续四；D-3 用户已定改选 c；位于交付执行下游，单向 B-28 → B-04）'
-  source_line: 418
+  source_line: 421
 - id: AGG-110
   '#': AGG-110
   聚合: 证据关联（技术聚合，intent 114200 F-1；记「证据 ID → 交付物 / WBS 阶段节点 / 检查 / 不符合项」挂接，证据本身与采集人不在此处）
@@ -428,7 +428,7 @@ aggregates:
   引用与依赖方式: AGG-38 证据（api）；AGG-27 交付物（api）；AGG-20 WBS 阶段（api）；AGG-62 关联人 ID（不校验）；AGG-13 合同引用，B-05 在下游只作回溯线索（不校验）；AGG-35 挂接目标：检查，B-26 在下游，只作回溯线索（不校验）；AGG-28 挂接目标：不符合项，同 BC（api）
   BC: B-28
   bc_heading: '**B-28 质量与认可**（沿用 `delivery.acceptance` 并扩；AGG-105 客户满意度调查的归属论证见 §9 续四；D-3 用户已定改选 c；位于交付执行下游，单向 B-28 → B-04）'
-  source_line: 419
+  source_line: 422
 - id: AGG-105
   '#': AGG-105
   聚合: 客户满意度调查（OBJ-106）
@@ -440,7 +440,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）；AGG-20 WBS 阶段，可无（api）；AGG-01 联系人（api）；AGG-104 低分登记风险（api）；AGG-62 跟进人（api）
   BC: B-28
   bc_heading: '**B-28 质量与认可**（沿用 `delivery.acceptance` 并扩；AGG-105 客户满意度调查的归属论证见 §9 续四；D-3 用户已定改选 c；位于交付执行下游，单向 B-28 → B-04）'
-  source_line: 420
+  source_line: 423
 - id: AGG-34
   '#': AGG-34
   聚合: 检查计划（OBJ-48，仅 IDI）
@@ -452,7 +452,7 @@ aggregates:
   引用与依赖方式: AGG-33 部位（api）；AGG-13 协议（api、事件）
   BC: B-26
   bc_heading: '**B-26 检查**（新增，暂名；位于合同、交付执行与质量与认可下游；D-3 用户已定）'
-  source_line: 430
+  source_line: 433
 - id: AGG-35
   '#': AGG-35
   聚合: 检查（OBJ-49）
@@ -464,7 +464,7 @@ aggregates:
   引用与依赖方式: AGG-19 项目（api）；AGG-36 检查表模板版本（api）；AGG-33 部位（api）；AGG-38 证据（api）；AGG-62 检查人员（api）；AGG-28 发起不符合项（api）；AGG-27 检查报告（api）
   BC: B-26
   bc_heading: '**B-26 检查**（新增，暂名；位于合同、交付执行与质量与认可下游；D-3 用户已定）'
-  source_line: 431
+  source_line: 434
 - id: AGG-36
   '#': AGG-36
   聚合: 检查表模板版本（OBJ-50）
@@ -476,7 +476,7 @@ aggregates:
   引用与依赖方式: AGG-03 服务产品（api）
   BC: B-26
   bc_heading: '**B-26 检查**（新增，暂名；位于合同、交付执行与质量与认可下游；D-3 用户已定）'
-  source_line: 432
+  source_line: 435
 - id: AGG-37
   '#': AGG-37
   聚合: 外部检测（OBJ-52，仅 IDI）
@@ -488,26 +488,27 @@ aggregates:
   引用与依赖方式: AGG-28 不符合项（api）；AGG-35 检查（api）；AGG-01 检测机构（api）；AGG-38 证据（api）
   BC: B-26
   bc_heading: '**B-26 检查**（新增，暂名；位于合同、交付执行与质量与认可下游；D-3 用户已定）'
-  source_line: 433
+  source_line: 436
 - id: AGG-13
   '#': AGG-13
   聚合: 协议（OBJ-05：项目合同、框架协议、任务订单）
   内含: 基线版本、相对方与身份（联合体中标的项目合同含联合体成员与我方份额，份额影响交易价格；联合体协议本身仍属 AGG-11，intent 120544 P-4）、合同范围条目（OBJ-06，挂 WBS 节点 ID）、付款条件项（OBJ-07）、履约义务（OBJ-08，**待定** Q21）、归档记录（原件类型、归档位置、归档日期；C-4）、借阅记录（借阅人、借出与归还日期、经办人；借阅申请是
-    `platform.approval` 载荷，不入本聚合；S-22）、合同—项目关联（关系，只带生效期）、承诺比对结论、视为同意参数（审查期、期限单位、视为同意约定、通知方式与地址，ADR-0047 第 5 条）、发包人代表与通知联系人、属性（承包链位置、是否依法招标、企业规模、承担法人、最终价款）；状态：草案 → 审批中 → 已签署生效 → 履行中 → 已完成 → 已结算 / 已终止（原因必填）（第③步回溯
-    R-01）；「已完成」按 METHOD 第 ④ 步第 7 条：由编排在 B-08 报告全部履约义务已履行后调用「完成协议」命令写回，属上游自身不变量（「已结算」前置）所需，命令携带 B-08 给出的依据；阶段门不引用该状态（第③步回溯 R-01）；「已部分履行 / 已履行」是 B-08 按 AGG-44 累计确认与分摊价格之比计算的派生值，本聚合不记（第③步回溯 R-02）；付款条件项记「可结算」（条件状态），由交付物认可事件触发（AGG-27
-    订阅，B-05 → B-28 边已有）；可开票额度（金额）在 AGG-44，两者分工不同（第④步评审）
+    `platform.approval` 载荷，不入本聚合；S-22）、合同—项目关联（关系，只带生效期）、承诺比对结论、视为同意参数（审查期、期限单位、视为同意约定、通知方式与地址，ADR-0047 第 5 条）、发包人代表与通知联系人、属性（承包链位置、是否依法招标、企业规模、承担法人、最终价款）；状态：草案 → 审批中 → 已签署 → 已生效 → 履行中 → 已完成 → 已结算 / 已终止（原因必填）（第③步回溯
+    R-01；「已签署」「已生效」按 GL5-01 分立，无附生效条件的回签直接到「已生效」，「已签署」可终止）；「已完成」按 METHOD 第 ④ 步第 7 条：由编排在 B-08 报告全部履约义务已履行后调用「完成协议」命令写回，属上游自身不变量（「已结算」前置）所需，命令携带 B-08 给出的依据；阶段门不引用该状态（第③步回溯 R-01）；「已部分履行 / 已履行」是 B-08 按 AGG-44
+    累计确认与分摊价格之比计算的派生值，本聚合不记（第③步回溯 R-02）；付款条件项记「可结算」（条件状态），由交付物认可事件触发（AGG-27 订阅，B-05 → B-28 边已有）；可开票额度（金额）在 AGG-44，两者分工不同（第④步评审）
   对应: 一拆多（协议对象；本聚合内含次级对象，J 检查：OBJ-05 是 4 个聚合的根）（其余类型见 AGG-11、55、67）
   不变量: INV-03a、05、06、07、08、09、33（前置）、124（前置）、125（前置）、126（revenue NOTES 聚合稿回补 1；S-23）
-  命令（→ 事件；前置 INV）: 起草协议（→ （内部））；登记合同—项目关联与范围挂 WBS（→ 合同—项目关联已登记）；登记视为同意参数与发包人代表（→ （内部））；回签（→ 合同已签署（`ContractSigned`）；前置 INV-05、INV-07）；应用变更（→ 新基线已生效）；提交任务订单（→ （内部））；标记付款条件项可结算（→ 付款条件项已可结算）；标记协议履行中（订阅 AGG-19「项目已开始执行」，按协议幂等，不设人工命令，S-33；revenue
-    843b8a82）（→ （内部））；完成协议（→ 协议已完成）；编制结算书（→ （内部））；确认最终价款（→ （内部））；结算协议（→ 协议已结算）；终止协议（→ 协议已终止）；归档协议（→ 协议已归档；前置 INV-124）；登记协议借出（→ 协议原件已借出；前置 INV-125；由本 BC 订阅 `platform.approval` 借阅审批结果后执行，不设「申请借阅协议」命令，S-22）；登记协议归还（→
-    协议原件已归还；前置 INV-126）；标记协议借阅逾期（→ 协议借阅已逾期；定时命令，执行方 `platform.scheduling`，预计归还日届满且未归还即标，已归还的不标；S-23）；借阅逾期催还为事件策略 PRC-146（订阅「协议借阅已逾期」，经 `platform.integration` 发企业微信待办，触发写在策略上；S-23 订正：原写 PRC-145，PRC-145 是三口径预警，不是催还）
-  对外事件（订阅方）: 合同已签署（`ContractSigned`）（B-07、B-08、B-26）、协议已终止（B-07、B-08）、协议已结算（B-08）、新基线已生效（B-08）、合同—项目关联已登记（B-07）、付款条件项已可结算（B-08：可开票申请）、协议已完成（同 BC：B-05 结算流程）、协议已归档 / 协议原件已借出 / 协议原件已归还（仅分析，借阅与归档统计会用；S-23）、协议借阅已逾期（B-05
-    内催还事件策略 PRC-146；S-23）
+  命令（→ 事件；前置 INV）: 起草协议（→ （内部））；登记合同—项目关联与范围挂 WBS（→ 合同—项目关联已登记）；登记视为同意参数与发包人代表（→ （内部））；回签（→ 合同已签署（`ContractSigned`），无附生效条件时同一事务另发协议已生效；前置 INV-05、INV-06、INV-07、INV-33）；确认生效条件满足（→ 协议已生效；前置：协议为「已签署」、生效依据三项必填且证据已登记
+    AGG-38；合同负责人凭证据确认，不设审批，LEB-08；GL5-01）；应用变更（→ 新基线已生效）；提交任务订单（→ （内部））；标记付款条件项可结算（→ 付款条件项已可结算）；标记协议履行中（订阅 AGG-19「项目已开始执行」，按协议幂等，不设人工命令，S-33；revenue 843b8a82）（→ （内部））；完成协议（→ 协议已完成）；编制结算书（→ （内部））；确认最终价款（→
+    （内部））；结算协议（→ 协议已结算）；终止协议（→ 协议已终止）；归档协议（→ 协议已归档；前置 INV-124）；登记协议借出（→ 协议原件已借出；前置 INV-125；由本 BC 订阅 `platform.approval` 借阅审批结果后执行，不设「申请借阅协议」命令，S-22）；登记协议归还（→ 协议原件已归还；前置 INV-126）；标记协议借阅逾期（→ 协议借阅已逾期；定时命令，执行方
+    `platform.scheduling`，预计归还日届满且未归还即标，已归还的不标；S-23）；借阅逾期催还为事件策略 PRC-146（订阅「协议借阅已逾期」，经 `platform.integration` 发企业微信待办，触发写在策略上；S-23 订正：原写 PRC-145，PRC-145 是三口径预警，不是催还）
+  对外事件（订阅方）: 合同已签署（`ContractSigned`）（仅协议自身归档、借阅与审计读取；GL5 裁定后不再作跨 BC 触发）、协议已生效（B-07 售前投入转入、B-08、B-26 检查计划；GL5 裁定 2026-10-22）、协议已终止（B-07、B-08）、协议已结算（B-08）、新基线已生效（B-08）、合同—项目关联已登记（B-07）、付款条件项已可结算（B-08：可开票申请）、协议已完成（同
+    BC：B-05 结算流程）、协议已归档 / 协议原件已借出 / 协议原件已归还（仅分析，借阅与归档统计会用；S-23）、协议借阅已逾期（B-05 内催还事件策略 PRC-146；S-23）
   引用与依赖方式: AGG-01 往来单位（api）；AGG-10 商机（api、事件）；AGG-11 投标承诺快照（api）；AGG-19 项目，订阅项目已开始执行置履行中，S-33（api、事件）；AGG-20 WBS 节点（api）；AGG-27 交付物认可（事件）；AGG-18 独立性检查（api）；AGG-17 风险交付授权（api）；AGG-60 承担法人（api）；platform.approval
     审批与借阅审批结果，S-22（api、事件）；platform.integration 催还通知，S-22（api）
   BC: B-05
   bc_heading: '**B-05 合同**（用户已定三合一，i210513，需新 ADR；协议类型归属随 D-1）'
-  source_line: 439
+  source_line: 442
 - id: AGG-14
   '#': AGG-14
   聚合: 框架协议限额（框架限额占用，词表 `framework_capacity_reservation`）
@@ -519,7 +520,7 @@ aggregates:
   引用与依赖方式: AGG-13 框架协议与任务订单（api）
   BC: B-05
   bc_heading: '**B-05 合同**（用户已定三合一，i210513，需新 ADR；协议类型归属随 D-1）'
-  source_line: 440
+  source_line: 443
 - id: AGG-15
   '#': AGG-15
   聚合: 协议变更（OBJ-09：合同变更、签证）
@@ -531,7 +532,7 @@ aggregates:
   引用与依赖方式: AGG-13 协议（api）；AGG-30 设计变更（api）；AGG-31 延期申请（api）；platform.approval 审批（api）
   BC: B-05
   bc_heading: '**B-05 合同**（用户已定三合一，i210513，需新 ADR；协议类型归属随 D-1）'
-  source_line: 441
+  source_line: 444
 - id: AGG-16
   '#': AGG-16
   聚合: 索赔（OBJ-10）
@@ -543,7 +544,7 @@ aggregates:
   引用与依赖方式: AGG-13 协议（api）；AGG-31 延期申请（api）；AGG-30 设计变更（api）
   BC: B-05
   bc_heading: '**B-05 合同**（用户已定三合一，i210513，需新 ADR；协议类型归属随 D-1）'
-  source_line: 442
+  source_line: 445
 - id: AGG-17
   '#': AGG-17
   聚合: 风险交付授权（OBJ-12）（口径与转正时点待流程梳理，C-56）
@@ -555,7 +556,7 @@ aggregates:
   引用与依赖方式: AGG-10 商机（api）；AGG-19 项目（api）；AGG-13 转正协议（api）；AGG-38 依据证据（api）；platform.approval 审批（api）
   BC: B-05
   bc_heading: '**B-05 合同**（用户已定三合一，i210513，需新 ADR；协议类型归属随 D-1）'
-  source_line: 443
+  source_line: 446
 - id: AGG-39
   '#': AGG-39
   聚合: 工时单（OBJ-66，已建 `Timesheet`）
@@ -568,7 +569,7 @@ aggregates:
     取号（api）；platform.identity 身份（api）；AGG-77 过账（api）；AGG-102 售前工时归集的客户活动（api）
   BC: B-06
   bc_heading: '**B-06 `cost.timesheet`**（已建）'
-  source_line: 449
+  source_line: 452
 - id: AGG-40
   '#': AGG-40
   聚合: 分摊规则版本（OBJ-78，归类待定）
@@ -580,7 +581,7 @@ aggregates:
   引用与依赖方式: AGG-61 组织单元（api）；platform.approval 审批，S-42（api、事件）
   BC: B-07
   bc_heading: '**B-07 `cost.costing`**（规划项重推导；输入取自 `operations.facts`，§3.4）'
-  source_line: 455
+  source_line: 458
 - id: AGG-41
   '#': AGG-41
   聚合: 人工成本分配运行（运行单据）
@@ -592,19 +593,19 @@ aggregates:
   引用与依赖方式: AGG-77 已过账的工时与薪酬事实（api）；AGG-81 会计期间（api）；platform.scheduling 月结日程定时触发试算，不订阅逐笔事实，S-31 SQ-20（api）
   BC: B-07
   bc_heading: '**B-07 `cost.costing`**（规划项重推导；输入取自 `operations.facts`，§3.4）'
-  source_line: 456
+  source_line: 459
 - id: AGG-42
   '#': AGG-42
   聚合: 分摊运行（运行单据）
   内含: 结果行
   对应: 技术聚合（运行单据；信息图原 OBJ-79 已去掉，N-04；S-43）
-  不变量: INV-90
-  命令（→ 事件；前置 INV）: 试算分摊运行（→ （内部））；生效分摊运行（→ 分摊已生效；前置 INV-90）；冲销分摊运行（S-31 SQ-17：经 AGG-77 冲销并重过账）（→ （内部））
+  不变量: INV-90、142
+  命令（→ 事件；前置 INV）: 试算分摊运行（→ （内部）；前置 INV-142）；生效分摊运行（→ 分摊已生效；前置 INV-90）；冲销分摊运行（S-31 SQ-17：经 AGG-77 冲销并重过账）（→ （内部））
   对外事件（订阅方）: 分摊已生效（仅分析，管理口径）
   引用与依赖方式: AGG-40 分摊规则版本（api）；AGG-77 过账事实（api）；AGG-81 会计期间（api）
   BC: B-07
   bc_heading: '**B-07 `cost.costing`**（规划项重推导；输入取自 `operations.facts`，§3.4）'
-  source_line: 457
+  source_line: 460
 - id: AGG-43
   '#': AGG-43
   聚合: 成本结转批次（运行单据）
@@ -617,7 +618,7 @@ aggregates:
   引用与依赖方式: AGG-77 已过账的收入与成本事实（api、事件）；AGG-19 项目结项与终止（事件）；AGG-13 回签与终止（事件）；AGG-10 丢单与放弃（事件）；AGG-122 售前投入归属登记（api）；AGG-123 成本核算参数版本（api）
   BC: B-07
   bc_heading: '**B-07 `cost.costing`**（规划项重推导；输入取自 `operations.facts`，§3.4）'
-  source_line: 458
+  source_line: 461
 - id: AGG-122
   '#': AGG-122
   聚合: 售前投入归属登记（技术；每商机一个；S-31 SQ-18 ①）
@@ -629,7 +630,7 @@ aggregates:
   引用与依赖方式: AGG-13 协议回签（事件）；AGG-19 项目已建立（事件）；AGG-20 WBS 节点，挂接归属只存 ID（不校验）；AGG-10 商机，按商机 ID 持久（不校验）；AGG-123 成本核算参数版本，取 N（api）；platform.scheduling 超期转费用定时，到点调本聚合命令，S-31 SQ-18 ②（api）
   BC: B-07
   bc_heading: '**B-07 `cost.costing`**（规划项重推导；输入取自 `operations.facts`，§3.4）'
-  source_line: 459
+  source_line: 462
 - id: AGG-123
   '#': AGG-123
   聚合: 成本核算参数版本（OBJ-124）（配置型版本化，D15；S-31 SQ-18 ③；表名交 one-data）
@@ -641,7 +642,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-07
   bc_heading: '**B-07 `cost.costing`**（规划项重推导；输入取自 `operations.facts`，§3.4）'
-  source_line: 460
+  source_line: 463
 - id: AGG-44
   '#': AGG-44
   聚合: 开票与收入额度（技术；每协议一个：付款条件项可开票额度与累计开票、履约义务分摊价格与累计确认、收入确认行；原 AGG-48 履约义务收入台账并入）（承担法人唯一，Q11 已答，intent 134134 Q-06）
@@ -656,7 +657,7 @@ aggregates:
     resolve: type，ADR-0047 U-2 (a)，engine platform.approval 下的类型级例外，依据写入 approval.why_human），S-27（api、事件）'
   BC: B-08
   bc_heading: '**B-08 `receivables.wip`**（ADR-0016 决定 4、5，ADR-0047 约束）'
-  source_line: 466
+  source_line: 469
 - id: AGG-45
   '#': AGG-45
   聚合: 开票申请（OBJ-82）
@@ -668,7 +669,7 @@ aggregates:
   引用与依赖方式: AGG-13 协议与付款条件项（api）；AGG-44 开票额度（api）；AGG-38 先于回签的预收 / 首付款证据（api）；platform.approval 审批（api）
   BC: B-08
   bc_heading: '**B-08 `receivables.wip`**（ADR-0016 决定 4、5，ADR-0047 约束）'
-  source_line: 467
+  source_line: 470
 - id: AGG-46
   '#': AGG-46
   聚合: 销项发票（OBJ-83 的销项方向）
@@ -680,7 +681,7 @@ aggregates:
   引用与依赖方式: AGG-45 开票申请（api）；AGG-01 购买方（api）；platform.integration 税务平台（api）；AGG-77 过账（api）
   BC: B-08
   bc_heading: '**B-08 `receivables.wip`**（ADR-0016 决定 4、5，ADR-0047 约束）'
-  source_line: 468
+  source_line: 471
 - id: AGG-47
   '#': AGG-47
   聚合: 收入确认（OBJ-81）（不计：ADR-0016 决定 4 定为无状态规则层；规则在 AGG-44 的收入确认行上执行；Q20 若选有状态对象须新开 ADR）
@@ -692,7 +693,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-08
   bc_heading: '**B-08 `receivables.wip`**（ADR-0016 决定 4、5，ADR-0047 约束）'
-  source_line: 469
+  source_line: 472
 - id: AGG-92
   '#': AGG-92
   聚合: 可触发确认的证据类型开放配置版本（OBJ-124）（技术；ADR-0047 第 4 条第 4 点）
@@ -704,7 +705,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-08
   bc_heading: '**B-08 `receivables.wip`**（ADR-0016 决定 4、5，ADR-0047 约束）'
-  source_line: 470
+  source_line: 473
 - id: AGG-49
   '#': AGG-49
   聚合: 应收往来款项（OBJ-85 应收方向：销售应收、其他应收、客户扣留质保金、我方交存的现金保证金）
@@ -718,7 +719,7 @@ aggregates:
     坏账核销审批、员工借款审批（PRC-61、PRC-86）及结果回调，S-27（api、事件）；platform.integration 催收等通知（notify），S-27（api）
   BC: B-09
   bc_heading: '**B-09 `receivables.collection`**'
-  source_line: 476
+  source_line: 479
 - id: AGG-50
   '#': AGG-50
   聚合: 收款（OBJ-86 收方向）
@@ -731,7 +732,7 @@ aggregates:
   引用与依赖方式: AGG-49 应收往来款项（api）；AGG-87 资金账户（api）；AGG-88 银行流水行（api）；AGG-77 过账（api）
   BC: B-09
   bc_heading: '**B-09 `receivables.collection`**'
-  source_line: 477
+  source_line: 480
 - id: AGG-51
   '#': AGG-51
   聚合: 保证金与押金（OBJ-13；用户已定在应收里管，i210513）
@@ -743,7 +744,7 @@ aggregates:
   引用与依赖方式: AGG-11 投标（api、事件）；AGG-13 协议（api）；AGG-01 往来单位（api）；AGG-77 过账（api）
   BC: B-09
   bc_heading: '**B-09 `receivables.collection`**'
-  source_line: 478
+  source_line: 481
 - id: AGG-52
   '#': AGG-52
   聚合: 应付往来款项（OBJ-85 应付方向：分包 / 采购 / 报销 / 其他应付、预付、我方扣留分包方质保金、应付薪酬（法人 × 月一笔实发合计，明细留在薪酬结算））
@@ -761,7 +762,7 @@ aggregates:
     确认，沿既有边 B-10 → B-23，S-29 SQ-44（事件）
   BC: B-10
   bc_heading: '**B-10 `payables.payment`**'
-  source_line: 484
+  source_line: 487
 - id: AGG-53
   '#': AGG-53
   聚合: 付款（OBJ-86 付方向）
@@ -774,7 +775,7 @@ aggregates:
   引用与依赖方式: AGG-52 应付往来款项（api）；AGG-87 资金账户（api）；AGG-88 银行流水行（api）；AGG-01 往来单位银行账户（api、事件）；platform.approval 审批，S-42（api、事件）；platform.identity 执行人（api）；AGG-77 过账（api）
   BC: B-10
   bc_heading: '**B-10 `payables.payment`**'
-  source_line: 485
+  source_line: 488
 - id: AGG-54
   '#': AGG-54
   聚合: 合伙人出资（OBJ-91）
@@ -786,7 +787,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）；AGG-01 合伙人（api）；AGG-77 过账（api）
   BC: B-10
   bc_heading: '**B-10 `payables.payment`**'
-  source_line: 486
+  source_line: 489
 - id: AGG-109
   '#': AGG-109
   聚合: 利润分配（OBJ-112，法人 × 年度；第 ② 步回补，intent 082311）
@@ -799,7 +800,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）；AGG-01 股东或合伙人（api）；AGG-54 对应出资（api）；AGG-81 所属年度已关账（api）；AGG-100 已关账年度的期间余额快照，取可分配利润（api）；AGG-52 提交应付利润（api）；AGG-52 应付已结清，PRC-163（事件）；AGG-77 过账（api）
   BC: B-10
   bc_heading: '**B-10 `payables.payment`**'
-  source_line: 487
+  source_line: 490
 - id: AGG-55
   '#': AGG-55
   聚合: 供方协议（OBJ-05：分包合同、采购合同、租赁合同、职业责任保险单、居间协议、劳务派遣协议；信息服务费备案并入居间协议类型登记，S-31 SQ-30，把握低：缺 A8 备案字段清单）
@@ -811,7 +812,7 @@ aggregates:
   引用与依赖方式: AGG-13 主协议（api）；AGG-01 往来单位（api）；AGG-02 资质证书（api）；AGG-19 项目（api）；AGG-80 占用预算（api）；platform.approval 审批，S-42（api、事件）
   BC: B-11
   bc_heading: '**B-11 `procurement.subcontracting`**（协议类型随 D-1）'
-  source_line: 495
+  source_line: 498
 - id: AGG-56
   '#': AGG-56
   聚合: 分包变更（OBJ-09 的类型「分包变更」）
@@ -823,7 +824,7 @@ aggregates:
   引用与依赖方式: AGG-55 供方协议（api）；AGG-80 调整预算占用（api）
   BC: B-11
   bc_heading: '**B-11 `procurement.subcontracting`**（协议类型随 D-1）'
-  source_line: 496
+  source_line: 499
 - id: AGG-57
   '#': AGG-57
   聚合: 供方履约确认（OBJ-87）（形态**待定** Q20）
@@ -835,7 +836,7 @@ aggregates:
   引用与依赖方式: AGG-55 供方协议（api）；AGG-58 额度占用（api）；AGG-19 项目（api）；AGG-52 提交应付（api）；AGG-77 过账（api）；AGG-89 进项发票已用途确认，PRC-74 触发，新边 B-11 → B-23，S-42（事件）
   BC: B-11
   bc_heading: '**B-11 `procurement.subcontracting`**（协议类型随 D-1）'
-  source_line: 497
+  source_line: 500
 - id: AGG-58
   '#': AGG-58
   聚合: 供方协议履约额度（技术；每协议一个）
@@ -847,7 +848,7 @@ aggregates:
   引用与依赖方式: AGG-55 供方协议（api）
   BC: B-11
   bc_heading: '**B-11 `procurement.subcontracting`**（协议类型随 D-1）'
-  source_line: 498
+  source_line: 501
 - id: AGG-59
   '#': AGG-59
   聚合: 费用报销（OBJ-88）
@@ -860,7 +861,7 @@ aggregates:
     出差补贴标准版本（api）；platform.approval 审批（api）
   BC: B-12
   bc_heading: '**B-12 `expense.spend`**（不并入 `payables.payment`，§3.4）'
-  source_line: 504
+  source_line: 507
 - id: AGG-130
   '#': AGG-130
   聚合: 费用事前申请（OBJ-118；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；S-31 SQ-26）
@@ -873,7 +874,7 @@ aggregates:
   引用与依赖方式: AGG-62 申请人（api）；AGG-19 归属对象：项目（api）；AGG-10 归属对象：商机（api）；platform.approval 审批及结果回调（api、事件）
   BC: B-12
   bc_heading: '**B-12 `expense.spend`**（不并入 `payables.payment`，§3.4）'
-  source_line: 505
+  source_line: 508
 - id: AGG-131
   '#': AGG-131
   聚合: 差旅订单月账单（OBJ-121；次级在内：差旅订单 OBJ-120；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I07 题；含退改，按出差申请归属）
@@ -887,7 +888,7 @@ aggregates:
     超标订单审批及结果回调（api、事件）
   BC: B-12
   bc_heading: '**B-12 `expense.spend`**（不并入 `payables.payment`，§3.4）'
-  source_line: 506
+  source_line: 509
 - id: AGG-132
   '#': AGG-132
   聚合: 出差申请（OBJ-119；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；S-31 SQ-28）
@@ -899,7 +900,7 @@ aggregates:
   引用与依赖方式: AGG-62 申请人（api）；platform.approval 审批及结果回调（api、事件）；platform.integration 同步差旅服务商（api）
   BC: B-12
   bc_heading: '**B-12 `expense.spend`**（不并入 `payables.payment`，§3.4）'
-  source_line: 507
+  source_line: 510
 - id: AGG-133
   '#': AGG-133
   聚合: 出差补贴标准版本（OBJ-124）（配置型版本化，D15；S-31 SQ-28）
@@ -911,7 +912,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-12
   bc_heading: '**B-12 `expense.spend`**（不并入 `payables.payment`，§3.4）'
-  source_line: 508
+  source_line: 511
 - id: AGG-60
   '#': AGG-60
   聚合: 法人主体（OBJ-54，已建 `LegalEntity`）
@@ -923,7 +924,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 514
+  source_line: 517
 - id: AGG-61
   '#': AGG-61
   聚合: 组织单元（OBJ-55；B-13 自有记录，撤 A8 同步快照来源，S-02）
@@ -935,7 +936,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 515
+  source_line: 518
 - id: AGG-62
   '#': AGG-62
   聚合: 人员（OBJ-56；B-13 自有记录，撤 A8 同步快照来源，S-02）（法人三口径分别记录，Q27 已答，intent 134134 Q-09）
@@ -947,7 +948,7 @@ aggregates:
   引用与依赖方式: platform.audit 审计（api）
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 516
+  source_line: 519
 - id: AGG-63
   '#': AGG-63
   聚合: 任职（OBJ-57）
@@ -959,7 +960,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api）；AGG-61 组织单元（api）；AGG-64 岗位（api）
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 517
+  source_line: 520
 - id: AGG-64
   '#': AGG-64
   聚合: 职位目录与职级（OBJ-58；B-13 自有记录，撤 A8 同步快照来源，S-02；Q26 已答：只要职位目录、不管编制，intent 134134 Q-08；S-03、S-10：口径改为职位目录加职级，暂不拆，职位族与职级方案待 J 系列确认页，按一个聚合出表，可能拆分）
@@ -971,7 +972,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 518
+  source_line: 521
 - id: AGG-65
   '#': AGG-65
   聚合: 招聘需求（OBJ-60）（Q26 已答：不管编制，无超编检查，intent 134134 Q-08）
@@ -983,7 +984,7 @@ aggregates:
   引用与依赖方式: AGG-64 岗位（api）；AGG-61 组织单元（api）；AGG-62 候选人员（api）
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 519
+  source_line: 522
 - id: AGG-66
   '#': AGG-66
   聚合: 注册执业证书（OBJ-64）
@@ -995,7 +996,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api）
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 520
+  source_line: 523
 - id: AGG-67
   '#': AGG-67
   聚合: 劳动合同（OBJ-05 的类型「劳动合同」）（用人单位口径，Q27 已答（intent 134134 Q-09））
@@ -1008,7 +1009,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api）；AGG-60 法人主体（api）
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 521
+  source_line: 524
 - id: AGG-106
   '#': AGG-106
   聚合: 绩效评估（OBJ-109）
@@ -1020,7 +1021,7 @@ aggregates:
   引用与依赖方式: AGG-62 被评人员与评估人（api）；AGG-63 评估时任职，可无（api）
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 522
+  source_line: 525
 - id: AGG-117
   '#': AGG-117
   聚合: 法人归属（已建 `LegalEntityAttribution`，表 `organization_workforce.legal_entity_attributions`；Q-09 三口径中的「数据范围法人」）
@@ -1032,7 +1033,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）；AGG-61 组织单元（api）；AGG-62 人员（api）
   BC: B-13
   bc_heading: '**B-13 `organization.workforce`**（已建，扩；AGG-106 绩效评估的归属论证见 §9 续四）'
-  source_line: 523
+  source_line: 526
 - id: AGG-68
   '#': AGG-68
   聚合: 工作日历年度（OBJ-28，已建）
@@ -1044,7 +1045,7 @@ aggregates:
   引用与依赖方式: platform.audit 审计（api）
   BC: B-14
   bc_heading: '**B-14 `organization.attendance`**（已建；表中按 D-5 推荐 b，只留工作日历；标准工时版本为其下的版本化配置，one-architecture 2026-10-16，供 RULE-398/403/404/405 与 one-data）'
-  source_line: 531
+  source_line: 534
 - id: AGG-108
   '#': AGG-108
   聚合: 标准工时版本（OBJ-28 工作日历下的版本化配置属性，不是新的一级对象；每版本一个聚合 + 排除约束）
@@ -1056,7 +1057,7 @@ aggregates:
   引用与依赖方式: AGG-68 工作日历（api）；platform.audit 审计（api）
   BC: B-14
   bc_heading: '**B-14 `organization.attendance`**（已建；表中按 D-5 推荐 b，只留工作日历；标准工时版本为其下的版本化配置，one-architecture 2026-10-16，供 RULE-398/403/404/405 与 one-data）'
-  source_line: 532
+  source_line: 535
 - id: AGG-69
   '#': AGG-69
   聚合: 考勤记录（OBJ-70；来源系统待定，R2）
@@ -1068,7 +1069,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api）；platform.integration 考勤来源（api）
   BC: B-27
   bc_heading: '**B-27 请假与加班**（新增，暂名；随 D-5）'
-  source_line: 538
+  source_line: 541
 - id: AGG-70
   '#': AGG-70
   聚合: 请假（OBJ-68）
@@ -1080,7 +1081,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api）；AGG-71 假期余额账户（api）；AGG-68 工作日历（api）；AGG-108 标准工时版本（api）；platform.approval 审批，S-42（api、事件）
   BC: B-27
   bc_heading: '**B-27 请假与加班**（新增，暂名；随 D-5）'
-  source_line: 539
+  source_line: 542
 - id: AGG-71
   '#': AGG-71
   聚合: 假期余额账户（OBJ-122；人员 × 假期类型 × 年度；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I08 题）
@@ -1092,7 +1093,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api）；AGG-118 假期规则版本，年度开账按规则版本计算应享（api）；AGG-62 入职生效（年中入职），PRC-160，S-42（事件）
   BC: B-27
   bc_heading: '**B-27 请假与加班**（新增，暂名；随 D-5）'
-  source_line: 540
+  source_line: 543
 - id: AGG-72
   '#': AGG-72
   聚合: 加班（OBJ-72）
@@ -1104,7 +1105,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api）；platform.approval 审批，S-42（api、事件）
   BC: B-27
   bc_heading: '**B-27 请假与加班**（新增，暂名；随 D-5）'
-  source_line: 541
+  source_line: 544
 - id: AGG-97
   '#': AGG-97
   聚合: 月度考勤确认（OBJ-111，人员 × 月；阶段门走查补为运行单据，§4.3.2；第 ② 步回补一级对象检验后为信息图次级对象，intent 082311）
@@ -1116,7 +1117,7 @@ aggregates:
   引用与依赖方式: AGG-69 考勤记录（api）；AGG-70 请假（api）；AGG-72 加班（api）；AGG-68 工作日历（api）；AGG-62 人员（api）
   BC: B-27
   bc_heading: '**B-27 请假与加班**（新增，暂名；随 D-5）'
-  source_line: 542
+  source_line: 545
 - id: AGG-118
   '#': AGG-118
   聚合: 假期类型与额度规则（OBJ-124）（配置型版本，每版本一个聚合 + 部分唯一索引）
@@ -1128,7 +1129,7 @@ aggregates:
   引用与依赖方式: platform.audit 审计（api）
   BC: B-27
   bc_heading: '**B-27 请假与加班**（新增，暂名；随 D-5）'
-  source_line: 543
+  source_line: 546
 - id: AGG-73
   '#': AGG-73
   聚合: 月度薪酬结算（OBJ-73，法人 × 月）（扣缴义务人口径，Q27 已答（intent 134134 Q-09））
@@ -1141,7 +1142,7 @@ aggregates:
     审批，S-42（api、事件）；AGG-52 提交应付薪酬、订阅应付已结清（api、事件）；AGG-77 过账、订阅过账完成事件 `BusinessFactAttributed`（api、事件）
   BC: B-15
   bc_heading: '**B-15 `organization.payroll`**（规划项重推导；激励并入，随 D-5）'
-  source_line: 551
+  source_line: 554
 - id: AGG-74
   '#': AGG-74
   聚合: 社保与公积金参保（OBJ-62）
@@ -1153,7 +1154,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api、事件）；AGG-119 薪酬规则版本，缴费基数上下限（api）
   BC: B-15
   bc_heading: '**B-15 `organization.payroll`**（规划项重推导；激励并入，随 D-5）'
-  source_line: 552
+  source_line: 555
 - id: AGG-75
   '#': AGG-75
   聚合: 激励方案版本（OBJ-74）
@@ -1165,7 +1166,7 @@ aggregates:
   引用与依赖方式: platform.approval 审批，S-42（api、事件）
   BC: B-15
   bc_heading: '**B-15 `organization.payroll`**（规划项重推导；激励并入，随 D-5）'
-  source_line: 553
+  source_line: 556
 - id: AGG-76
   '#': AGG-76
   聚合: 奖金核定（OBJ-104）
@@ -1177,7 +1178,7 @@ aggregates:
   引用与依赖方式: AGG-75 激励方案（api）；AGG-62 人员（api）；AGG-106 核定依据的绩效评估（api）
   BC: B-15
   bc_heading: '**B-15 `organization.payroll`**（规划项重推导；激励并入，随 D-5）'
-  source_line: 554
+  source_line: 557
 - id: AGG-93
   '#': AGG-93
   聚合: 人员薪酬档案（OBJ-123；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题；专项附加扣除仍由 AGG-120 独立承载）
@@ -1189,7 +1190,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员，订阅 Separated 终止薪酬档案，S-32（api、事件）；AGG-119 薪酬规则版本（api）
   BC: B-15
   bc_heading: '**B-15 `organization.payroll`**（规划项重推导；激励并入，随 D-5）'
-  source_line: 555
+  source_line: 558
 - id: AGG-95
   '#': AGG-95
   聚合: 个税扣缴与社保公积金申报（OBJ-92 的人事部分；个税扣缴义务人口径，Q27 已答（intent 134134 Q-09））
@@ -1201,7 +1202,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）；AGG-81 会计期间（api）；AGG-73 薪酬结算（api）；AGG-74 参保（api）；AGG-119 薪酬规则版本，个税税率与比例（api）；AGG-109 利润分配已支付，自然人股东股息红利并入扣缴申报（事件）；platform.integration 申报端（api）；AGG-77 个税与社保公积金过账（api）
   BC: B-15
   bc_heading: '**B-15 `organization.payroll`**（规划项重推导；激励并入，随 D-5）'
-  source_line: 556
+  source_line: 559
 - id: AGG-119
   '#': AGG-119
   聚合: 薪酬规则版本（OBJ-124）（配置型版本，每版本一个聚合 + 生效区间不重叠，沿 AGG-108 写法；S-28）
@@ -1213,7 +1214,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-15
   bc_heading: '**B-15 `organization.payroll`**（规划项重推导；激励并入，随 D-5）'
-  source_line: 557
+  source_line: 560
 - id: AGG-120
   '#': AGG-120
   聚合: 专项附加扣除声明（S-32：B-15 从 AGG-93 拆出；年度生命周期、员工本人发令、含未成年人敏感信息，与薪酬档案版本无共享命令与不变量，QC-OBJECTS 第 3 节）
@@ -1225,7 +1226,7 @@ aggregates:
   引用与依赖方式: AGG-62 人员（api）；AGG-119 薪酬规则版本，取扣除标准（api）
   BC: B-15
   bc_heading: '**B-15 `organization.payroll`**（规划项重推导；激励并入，随 D-5）'
-  source_line: 558
+  source_line: 561
 - id: AGG-77
   '#': AGG-77
   聚合: 过账（技术；ADR-0016 决定 1；信息图已去掉「经营事实」，见 C-39）
@@ -1239,7 +1240,7 @@ aggregates:
   引用与依赖方式: AGG-81 会计期间，同事务读锁（api）；AGG-60 法人主体（api）；B-06 来源单据（不校验）
   BC: B-16
   bc_heading: '**B-16 `operations.facts`**'
-  source_line: 566
+  source_line: 569
 - id: AGG-78
   '#': AGG-78
   聚合: 口径版本（OBJ-124）（S-31 SQ-22 改为计入，复用原号；词表已批准为 `operations.policy` 的 aggregate；ADR-0023 决定 2 L3「口径版本按版本生效、审批留痕」；原写「不计」，理由是 ADR-0016、0023 规定、信息图无对象、指标定义移到第 ⑥ 步，符合性审查 建-9；表名 `policy_versions`）
@@ -1251,7 +1252,7 @@ aggregates:
   引用与依赖方式: AGG-77 过账事实（api）；AGG-81 会计期间关账命令（api）；AGG-84 分录与余额（api）
   BC: B-17
   bc_heading: '**B-17 `operations.policy`**（ADR-0016、0023；本稿不推导其聚合）'
-  source_line: 572
+  source_line: 575
 - id: AGG-126
   '#': AGG-126
   聚合: 勾稽差异案（OBJ-117；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I02 题；ADR-0023 决定 4、INV-135）
@@ -1263,7 +1264,7 @@ aggregates:
   引用与依赖方式: AGG-77 过账事实（api）；AGG-81 会计期间（api）；AGG-84 分录与余额（api）
   BC: B-17
   bc_heading: '**B-17 `operations.policy`**（ADR-0016、0023；本稿不推导其聚合）'
-  source_line: 573
+  source_line: 576
 - id: AGG-79
   '#': AGG-79
   聚合: 经营计划版本（OBJ-100）
@@ -1275,7 +1276,7 @@ aggregates:
   引用与依赖方式: AGG-61 组织单元（api）；platform.approval 审批，S-42（api、事件）
   BC: B-18
   bc_heading: '**B-18 `operations.planning`**（合并 `operations.planning` + `operations.budgeting`，见 §4.5 页面说明 旧稿 D-6）'
-  source_line: 579
+  source_line: 582
 - id: AGG-80
   '#': AGG-80
   聚合: 预算账户（OBJ-100 的类型「预算」）（超额只预警，已定：intent 2026-10-16-162821 F-Q2，§1.3 P-49）
@@ -1288,7 +1289,7 @@ aggregates:
   引用与依赖方式: AGG-79 经营计划版本（api）
   BC: B-18
   bc_heading: '**B-18 `operations.planning`**（合并 `operations.planning` + `operations.budgeting`，见 §4.5 页面说明 旧稿 D-6）'
-  source_line: 580
+  source_line: 583
 - id: AGG-81
   '#': AGG-81
   聚合: 会计期间（OBJ-97，法人 × 会计年度 × 期间序号 1–13；第 13 期启用登记见 AGG-96，ADR-0046；迁入占用见 §14.2 M8）
@@ -1300,7 +1301,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）；AGG-96 第 13 期启用登记（api）；platform.audit 关账检查结果摘要审计，ADR-0046 第 8 项第 5 条（api）
   BC: B-19
   bc_heading: '**B-19 `accounting.period`**'
-  source_line: 586
+  source_line: 589
 - id: AGG-96
   '#': AGG-96
   聚合: 第 13 期启用登记（ADR-0046 决定 4；按会计年度全局，配置类版本：带生效日、财务批准人、决定出处，只追加）
@@ -1312,7 +1313,7 @@ aggregates:
   引用与依赖方式: AGG-81 会计期间（api）
   BC: B-19
   bc_heading: '**B-19 `accounting.period`**'
-  source_line: 587
+  source_line: 590
 - id: AGG-82
   '#': AGG-82
   聚合: 科目表版本（OBJ-95，两张）
@@ -1324,7 +1325,7 @@ aggregates:
   引用与依赖方式: AGG-83 账簿（api）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 593
+  source_line: 596
 - id: AGG-83
   '#': AGG-83
   聚合: 账簿（OBJ-96）（不计：参照数据，每法人两个，随法人登记，按 §14.1 D17 参照数据管理）
@@ -1336,7 +1337,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 594
+  source_line: 597
 - id: AGG-84
   '#': AGG-84
   聚合: 会计分录（OBJ-98）
@@ -1350,7 +1351,7 @@ aggregates:
   引用与依赖方式: AGG-83 账簿（api）；AGG-81 会计期间（api）；AGG-77 已过账事实（事件）；AGG-82 科目表版本（api）；AGG-85 映射表（api）；AGG-94 授权表（api）；AGG-127 口径转换规则版本（api）；AGG-129 现金流量项目表版本，校验现金分录标注（api）；platform.integration 外部法定账推送（api）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 596
+  source_line: 599
 - id: AGG-85
   '#': AGG-85
   聚合: 收付 ↔ 权责科目映射表版本（ADR-0022 第 2 条，配置类）
@@ -1362,7 +1363,7 @@ aggregates:
   引用与依赖方式: AGG-82 科目表版本（api）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 597
+  source_line: 600
 - id: AGG-94
   '#': AGG-94
   聚合: 控制科目授权表版本（ADR-0022 第 3 条，配置类）
@@ -1374,7 +1375,7 @@ aggregates:
   引用与依赖方式: AGG-82 科目表版本（api）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 598
+  source_line: 601
 - id: AGG-98
   '#': AGG-98
   聚合: 受控手工凭证（OBJ-98 会计分录按来源通道拆出的受控手工通道；阶段门走查补，§4.3.3）
@@ -1386,7 +1387,7 @@ aggregates:
   引用与依赖方式: AGG-94 授权表（api）；AGG-82 科目表版本（api）；platform.approval 财务主管审批，S-42（api、事件）；AGG-77 过账（api）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 599
+  source_line: 602
 - id: AGG-99
   '#': AGG-99
   聚合: 期末结转运行（运行单据；损益结转、未分配利润等期末凭证，ADR-0022 第 3 条；法人 × 期间 × 模板版本；阶段门走查补，§4.3.3）
@@ -1398,7 +1399,7 @@ aggregates:
   引用与依赖方式: AGG-84 分录与余额（api）；AGG-77 过账（api）；AGG-81 会计期间（api）；AGG-128 期末结转模板版本（api）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 600
+  source_line: 603
 - id: AGG-100
   '#': AGG-100
   聚合: 期间余额快照（法人 × 账簿 × 期间；ADR-0022 第 3 条「月结生成快照」；含「上年调整」「以前期间更正」栏，ADR-0046 第 6 项第 1 条；阶段门走查补，§4.3.3）
@@ -1410,7 +1411,7 @@ aggregates:
   引用与依赖方式: AGG-84 分录与余额（api）；AGG-81 关账（api、事件）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 601
+  source_line: 604
 - id: AGG-101
   '#': AGG-101
   聚合: 外部法定账对账（OBJ-125）（运行单据；法人 × 期间，收付口径账簿与外部法定账余额与发生额核对，ADR-0022 第 8 条；阶段门走查补，§4.3.3）
@@ -1422,7 +1423,7 @@ aggregates:
   引用与依赖方式: AGG-100 期间余额快照（api）；AGG-84 推送状态（api）；platform.integration 外部法定账余额（api）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 602
+  source_line: 605
 - id: AGG-125
   '#': AGG-125
   聚合: 期初余额（法人 × 账簿；S-31 SQ-21；信息图对象号未登记；表名交 one-data）
@@ -1435,7 +1436,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）；AGG-83 账簿（api）；AGG-77 项目级事实（api）；platform.integration U8C 收付余额（api）
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 603
+  source_line: 606
 - id: AGG-127
   '#': AGG-127
   聚合: 口径转换规则版本（配置型，随发布登记；S-31 SQ-24；规则本身仍是代码，ADR-0022 决定 2）
@@ -1447,7 +1448,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 604
+  source_line: 607
 - id: AGG-128
   '#': AGG-128
   聚合: 期末结转模板版本（配置型；AGG-99 引用；S-31 SQ-24）
@@ -1459,7 +1460,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 605
+  source_line: 608
 - id: AGG-129
   '#': AGG-129
   聚合: 现金流量项目表版本（配置型；两账共用，AGG-84 标注校验要读，B-20 不能读 B-21，所以不放报表侧；S-31 SQ-24）
@@ -1471,7 +1472,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 606
+  source_line: 609
 - id: AGG-86
   '#': AGG-86
   聚合: 报表行定义版本（OBJ-99）
@@ -1483,7 +1484,7 @@ aggregates:
   引用与依赖方式: AGG-82 科目表版本（api）；AGG-100 期间余额快照（api）；AGG-101 外部法定账对账（api）；AGG-81 会计期间，S-31 SQ-03 去掉事件方式（api）
   BC: B-21
   bc_heading: '**B-21 `accounting.reporting`**'
-  source_line: 614
+  source_line: 617
 - id: AGG-87
   '#': AGG-87
   聚合: 资金账户（OBJ-89）
@@ -1495,7 +1496,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）
   BC: B-22
   bc_heading: '**B-22 `accounting.cashbank`**（G1 期间为 ledger 内的导入通道，自建明细账时成 BC，ADR-0022 决定 7）'
-  source_line: 620
+  source_line: 623
 - id: AGG-88
   '#': AGG-88
   聚合: 银行流水（OBJ-90）
@@ -1507,7 +1508,7 @@ aggregates:
   引用与依赖方式: AGG-87 资金账户（api）；platform.integration 银行流水导入，银行文件已到达，S-42（api、事件）；AGG-77 利息与手续费过账（api）
   BC: B-22
   bc_heading: '**B-22 `accounting.cashbank`**（G1 期间为 ledger 内的导入通道，自建明细账时成 BC，ADR-0022 决定 7）'
-  source_line: 621
+  source_line: 624
 - id: AGG-89
   '#': AGG-89
   聚合: 进项发票（OBJ-83 的进项方向，ADR-0022 第 7 条）
@@ -1519,7 +1520,7 @@ aggregates:
   引用与依赖方式: AGG-01 开票方（api）；platform.integration 发票查验（api）；AGG-77 进项转出过账（api）；AGG-52 入账占用方：供方来源的应付（不校验）；AGG-59 入账占用方：报销（不校验）
   BC: B-23
   bc_heading: '**B-23 `accounting.tax`**（D-7 用户已定 b，非推荐项：自 G1 起即为独立 BC，先只含进项发票与入账占用（AGG-89）；AGG-90 申报到申报阶段再建；修订 ADR-0022 决定 7，列入 §4.4.2 一次性 ADR）'
-  source_line: 627
+  source_line: 630
 - id: AGG-90
   '#': AGG-90
   聚合: 增值税、附加税、企业所得税申报（OBJ-92 的税务部分；个税扣缴与社保公积金申报拆到 AGG-95）
@@ -1531,7 +1532,7 @@ aggregates:
   引用与依赖方式: AGG-60 法人主体（api）；AGG-81 会计期间（api）；AGG-46 销项发票（api）；AGG-84 分录与余额（api）；platform.integration 申报端（api）；AGG-77 税费过账（api）；AGG-88 银行流水，PRC-77 读流水匹配完税凭证金额与时刻，新边 B-23 → B-22，S-42（api）
   BC: B-23
   bc_heading: '**B-23 `accounting.tax`**（D-7 用户已定 b，非推荐项：自 G1 起即为独立 BC，先只含进项发票与入账占用（AGG-89）；AGG-90 申报到申报阶段再建；修订 ADR-0022 决定 7，列入 §4.4.2 一次性 ADR）'
-  source_line: 628
+  source_line: 631
 - id: AGG-91
   '#': AGG-91
   聚合: 公司资产（OBJ-93）
@@ -1543,7 +1544,7 @@ aggregates:
   引用与依赖方式: AGG-55 采购或租赁协议（api）；AGG-124 资产类别与折旧政策版本（api）；AGG-52 来源：采购应付，只存 ID（不校验）；AGG-60 法人主体（api）；AGG-77 折旧与处置过账（api）；platform.approval 审批及结果回调，PRC-99，S-42（api、事件）
   BC: B-24
   bc_heading: '**B-24 `accounting.fixedasset`**（G1 期间为 ledger 内的导入通道）'
-  source_line: 634
+  source_line: 637
 - id: AGG-124
   '#': AGG-124
   聚合: '资产类别与折旧政策版本（OBJ-124）（配置型；S-31 SQ-19；维护流程 PRC-166；取值 pending: U-31）'
@@ -1555,7 +1556,7 @@ aggregates:
   引用与依赖方式: —
   BC: B-24
   bc_heading: '**B-24 `accounting.fixedasset`**（G1 期间为 ledger 内的导入通道）'
-  source_line: 635
+  source_line: 638
 - id: AGG-107
   '#': AGG-107
   聚合: 知识条目（OBJ-110）
@@ -1568,7 +1569,7 @@ aggregates:
   引用与依赖方式: AGG-62 审批人（api）
   BC: B-30
   bc_heading: '**B-30 知识**（沿用 `km.knowledge`，由「保持现状、无对象支撑」改为有聚合支撑；用户 intent 074053 K-1；位于 B-02、B-03、B-04、B-28 上游）'
-  source_line: 647
+  source_line: 650
 - id: AGG-113
   '#': AGG-113
   聚合: 用印申请（OBJ-113）
@@ -1582,7 +1583,7 @@ aggregates:
   BC: B-31
   bc_heading: '**B-31 行政事务**（新增，`organization.administration`；用户 intent 2026-10-16-152807 选「新增行政事务 BC」，S-09；用印、IT 需求、IT 资产使用、员工活动四类记录迁入新系统，审批走通用审批；B31-16 的实际用印核验由下游 REF-04 经 api 承担，B-03 不依赖 B-31；依据 CON-1017-ARC-02，设计说明见提议稿
     ADR-0057；人员组负责）'
-  source_line: 655
+  source_line: 658
 - id: AGG-114
   '#': AGG-114
   聚合: IT 需求工单（OBJ-114）
@@ -1596,7 +1597,7 @@ aggregates:
   BC: B-31
   bc_heading: '**B-31 行政事务**（新增，`organization.administration`；用户 intent 2026-10-16-152807 选「新增行政事务 BC」，S-09；用印、IT 需求、IT 资产使用、员工活动四类记录迁入新系统，审批走通用审批；B31-16 的实际用印核验由下游 REF-04 经 api 承担，B-03 不依赖 B-31；依据 CON-1017-ARC-02，设计说明见提议稿
     ADR-0057；人员组负责）'
-  source_line: 656
+  source_line: 659
 - id: AGG-115
   '#': AGG-115
   聚合: IT 资产使用记录（OBJ-115；会计对象仍是 OBJ-93 公司资产，卡片、折旧、报废与盘点账务归 B-24，intent 152926）；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题（页首告知）
@@ -1610,7 +1611,7 @@ aggregates:
   BC: B-31
   bc_heading: '**B-31 行政事务**（新增，`organization.administration`；用户 intent 2026-10-16-152807 选「新增行政事务 BC」，S-09；用印、IT 需求、IT 资产使用、员工活动四类记录迁入新系统，审批走通用审批；B31-16 的实际用印核验由下游 REF-04 经 api 承担，B-03 不依赖 B-31；依据 CON-1017-ARC-02，设计说明见提议稿
     ADR-0057；人员组负责）'
-  source_line: 657
+  source_line: 660
 - id: AGG-116
   '#': AGG-116
   聚合: 员工活动申请（OBJ-116）
@@ -1624,7 +1625,7 @@ aggregates:
   BC: B-31
   bc_heading: '**B-31 行政事务**（新增，`organization.administration`；用户 intent 2026-10-16-152807 选「新增行政事务 BC」，S-09；用印、IT 需求、IT 资产使用、员工活动四类记录迁入新系统，审批走通用审批；B31-16 的实际用印核验由下游 REF-04 经 api 承担，B-03 不依赖 B-31；依据 CON-1017-ARC-02，设计说明见提议稿
     ADR-0057；人员组负责）'
-  source_line: 658
+  source_line: 661
 - id: AGG-121
   '#': AGG-121
   聚合: IT 资产维修单（OBJ-115 的维修工单子生命周期；S-32：B-31 从 AGG-115 拆出，与领用、调拨、使用期无共享命令与不变量，QC-OBJECTS 第 3 节）；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题（页首告知，维修状态沿用草稿 → 已报修 → 已维修登记）
@@ -1637,7 +1638,7 @@ aggregates:
   BC: B-31
   bc_heading: '**B-31 行政事务**（新增，`organization.administration`；用户 intent 2026-10-16-152807 选「新增行政事务 BC」，S-09；用印、IT 需求、IT 资产使用、员工活动四类记录迁入新系统，审批走通用审批；B31-16 的实际用印核验由下游 REF-04 经 api 承担，B-03 不依赖 B-31；依据 CON-1017-ARC-02，设计说明见提议稿
     ADR-0057；人员组负责）'
-  source_line: 659
+  source_line: 662
 references:
 - id: REF-01
   '#': REF-01
@@ -1650,7 +1651,7 @@ references:
   引用与依赖方式: —
   BC: B-01
   bc_heading: '**B-01 往来单位**（新增，暂名；含外部工程登记，原 B-25 并入；D-2 用户已定：新命名空间，两个 BC）'
-  source_line: 364
+  source_line: 367
 - id: REF-03
   '#': REF-03
   聚合: 财务（OBJ-103，汇聚对象；不设聚合，J 检查）
@@ -1662,7 +1663,7 @@ references:
   引用与依赖方式: —
   BC: B-20
   bc_heading: '**B-20 `accounting.ledger`**（G1 期间兼作 cashbank、fixedasset 的导入通道，ADR-0022 决定 7；`accounting.tax` 自 G1 起独立，D-7）'
-  source_line: 595
+  source_line: 598
 - id: REF-02
   '#': REF-02
   聚合: 项目结项编排（无聚合的流程模块：发起结项检查、提交结项申请、实现审批钩子、审批通过后调 AGG-19「结项」）
@@ -1674,7 +1675,7 @@ references:
   引用与依赖方式: AGG-19 项目（api）；AGG-27 已认可与已封存交付物（api）；AGG-44 收入确认行与结论（api）；AGG-55 供方协议状态（api）；AGG-39 工时单审批状态（api）；AGG-13 协议（api）；AGG-17 风险交付授权（api）；platform.approval 结项审批，S-42（api、事件）；platform.audit 结项检查单留痕（api）
   BC: B-29
   bc_heading: '**B-29 项目结项**（模块 `delivery.closeout`，intent 114200 F-5；D-9 用户已定 a：无聚合的流程模块，`delivery` 命名空间，位于 B-04、B-05、B-06、B-08、B-11、B-28 下游；编排内容与论证见 §4.6）'
-  source_line: 641
+  source_line: 644
 - id: REF-04
   '#': REF-04
   聚合: 报价发出编排（暂名；无聚合）
@@ -1686,4 +1687,4 @@ references:
   引用与依赖方式: AGG-11 投标递交与 AGG-12 报价版本读取及发出登记，同属 B-03（api）；AGG-113 同版本、法人及拟发文件的实际用印登记核验（api）；platform.audit 核验、拒绝与调用结果留痕（api）
   BC: B-32
   bc_heading: '**B-32 报价发出编排（暂名）**（REF-04，无聚合的流程模块；B-32 仅为查环图节点编号，不计业务 BC；卡暂号 REF-03 已被财务汇聚对象占用，故改用 REF-04；正式名称、模块标识与命名空间交 one-glossary；CON-1017-ARC-02，提议稿 ADR-0057）'
-  source_line: 672
+  source_line: 675
