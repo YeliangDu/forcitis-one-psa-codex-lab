@@ -128,6 +128,7 @@ def run(mq):
             _pause(mq, d)
             _signals(mq, d)
             _ff_main(mq, d)
+            _remove_busy(mq, d)
             _docs_tiers(mq, d)
             _gh_commands(mq, d)
             _lanes(mq, d)
@@ -1272,3 +1273,83 @@ def _regenerated(mq, d):
     write(f"{MOD}/other.txt", "main\n"); commit("main touches other")
     g(work, "push", "-q", "origin", "main")
     assert mq.update_over_ssh(work, "pr-extra", wt) == "conflict"
+
+
+def _remove_busy(mq, d):
+    """`remove` of a pull request a worker is processing: refused, or the worker stops before the merge; never a silent carry-on (#574 was taken out of the queue and merged anyway, 2026-10-22)."""
+    qpath, lpath = os.path.join(d, "rb", "merge.queue"), os.path.join(d, "rb", "merge.log")
+    q = mq.Queue(qpath)
+    q.enqueue(300, 301)
+
+    def cli(*args):
+        try:
+            mq.main(["--queue", qpath, "--log", lpath, *args])
+        except SystemExit as error:
+            return str(error)
+        return None
+
+    # a pull request being processed is refused, and stays queued
+    q.mark_working(300)
+    message = cli("remove", "300")
+    assert message and "cannot be taken back" in message and q.numbers() == [300, 301], (message, q.numbers())
+    assert q.working() == {300: os.getpid()}
+    # one that is not being processed is removed as before, also together with a refused one: nothing is removed then
+    assert cli("remove", "301", "300") is not None and q.numbers() == [300, 301], "a refused remove removes none of them"
+    assert cli("remove", "301") is None and q.numbers() == [300]
+    # --cancel: out of the queue, cancel requested
+    assert cli("remove", "--cancel", "300") is None and q.numbers() == [] and q.cancel_requested(300)
+    q.unmark_working(300)
+    assert not q.cancel_requested(300) and q.working() == {}, "the worker's end clears marker and request"
+    # a marker whose runner is gone is stale: not a reason to refuse
+    with open(qpath + ".working", "w") as f:
+        f.write("300 999999\n")
+    assert q.working() == {}
+    q.enqueue(300)
+    assert cli("remove", "300") is None and q.numbers() == []
+
+    # the worker stops at its checkpoint, before the merge
+    gh = FakeGh(); gh.add(310, rounds=[dict(pending=3, checks=green())])
+    holder = {}
+    proc, q2, log, slept = _proc(mq, d, "rb2", gh, [310], on_sleep=lambda seconds: holder["q"].request_cancel(310) if seconds == 30 else None)
+    holder["q"] = q2
+    assert proc.process(310) == "CANCELLED" and "CANCELLED" in events(log) and not any(c[0] == "merge" for c in gh.calls) and "MERGED" not in events(log), events(log)
+    assert q2.working() == {} and not q2.cancel_requested(310)
+
+    # the request arrives while the merge is being decided (under the merge lock): the last checkpoint stops it before gh is asked
+    gh = FakeGh(); gh.add(313)
+    proc, q5, log, _ = _proc(mq, d, "rb5", gh, [313])
+    real_behind, calls = gh.behind_by, {"n": 0}
+
+    def behind_then_cancel(n, head):
+        calls["n"] += 1
+        if calls["n"] == 2:   # the first look is at the start of the round, the second inside merge_when_fresh
+            q5.request_cancel(n)
+        return real_behind(n, head)
+    gh.behind_by = behind_then_cancel
+    assert proc.process(313) == "CANCELLED" and not any(c[0] == "merge" for c in gh.calls) and "MERGED" not in events(log), (events(log), gh.calls)
+
+    # too late: the merge call has been made when the request comes
+    gh = FakeGh(); gh.add(311)
+    proc, q3, log, _ = _proc(mq, d, "rb3", gh, [311])
+    real_merge = gh.merge
+
+    def merge_then_cancel(n, head):
+        q3.request_cancel(n)
+        return real_merge(n, head)
+    gh.merge = merge_then_cancel
+    assert proc.process(311) == "MERGED" and "CANCELLED" not in events(log) and not q3.cancel_requested(311), events(log)
+
+    # taken out of the queue between the pick and the start: not started
+    gh = FakeGh(); gh.add(312)
+    proc, q4, log, _ = _proc(mq, d, "rb4", gh, [312])
+    real_pick = proc.pick
+
+    def pick_then_remove(lane):
+        n = real_pick(lane)
+        if n is not None:
+            q4.remove(n)
+        return n
+    proc.pick = pick_then_remove
+    stops = iter([False, True] + [True] * 20)
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "SKIPPED" in events(log) and "START" not in events(log) and not any(c[0] == "merge" for c in gh.calls) and q4.working() == {}, events(log)
