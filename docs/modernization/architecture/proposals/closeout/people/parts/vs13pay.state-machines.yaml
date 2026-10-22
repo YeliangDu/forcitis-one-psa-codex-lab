@@ -59,10 +59,12 @@ machines:
   added_states: [待支付, 已实付, 支付失败]
   note: |
     ARC-1022-COO-06（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））。子实体自有状态机（ADR-0075）：转换主体为薪酬行，aggregate_type_code 暂名 PayrollSettlementLine，
-    序号取薪酬行 version；每条命令都推进根 version。计算建行时无支付状态、不写转换；批准时各行置待支付（序号可跳号，决定 5）。
+    序号取薪酬行 version；每条命令都推进根 version。计算建行即置待支付并写第一条转换（空 → 待支付，序号 1，决定 3）；
+    批准前重算不删行，只改金额、version 照常推进（允许跳号，决定 5）；登记代发结果前置根为已批准。
     已实付后银行再退票不建模（接缝 J-4）。迁入：历史已发放结算每行写一条 空 → 已实付 初始转换。
   transitions:
-  - {from: null, to: 待支付, command: 批准月度薪酬, guard: [根同时 审核中 → 已批准], kind: forward}
+  - {from: null, to: 待支付, command: 计算月度薪酬, guard: [建行时置待支付，version 1、序号 1（ADR-0075 决定 3）], kind: forward}
+  - {from: 待支付, to: 待支付, command: 计算月度薪酬, guard: [批准前重算只改金额不改状态，version 照常推进、不写转换（决定 5）], kind: non_state}
   - {from: 待支付, to: 已实付, command: 登记代发结果, guard: [回单行人员与实发金额一致], kind: forward}
   - {from: 待支付, to: 支付失败, command: 登记代发结果, guard: [失败原因必填], kind: forward}
   - {from: 支付失败, to: 待支付, command: 发起薪酬补发, guard: [工资卡账户已更正, 补发金额等于原实发], kind: reverse}

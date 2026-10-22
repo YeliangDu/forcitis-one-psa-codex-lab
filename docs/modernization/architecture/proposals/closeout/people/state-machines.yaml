@@ -1138,10 +1138,16 @@ machines:
     kind: non_state
   - from: null
     to: payroll_line_payment:待支付
-    command: 批准月度薪酬
+    command: 计算月度薪酬
     guard:
-    - 根同时 审核中 → 已批准
+    - 建行时置待支付，version 1、序号 1（ADR-0075 决定 3）
     kind: forward
+  - from: payroll_line_payment:待支付
+    to: payroll_line_payment:待支付
+    command: 计算月度薪酬
+    guard:
+    - 批准前重算只改金额不改状态，version 照常推进、不写转换（决定 5）
+    kind: non_state
   - from: payroll_line_payment:待支付
     to: payroll_line_payment:已实付
     command: 登记代发结果

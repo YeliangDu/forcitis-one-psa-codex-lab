@@ -59,7 +59,7 @@
 
 聚合稿与信息图把员工的法人口径写为三个关系：劳动合同用人单位（`labor_contracts.employing_legal_entity_id`，AGG-67）、数据范围法人（已建 `employee_legal_entities` / `org_unit_legal_entities`，ADR-0026 D-1）、个税扣缴义务人（B-15 的薪酬档案 AGG-93 与申报 AGG-95，不在 B-13 表里）。任务说明里举例的「社保缴纳主体」不在信息图的三口径里，核对结果见口径 7。三者分别记录，不互相派生；不一致的预警是读模型 / 定时核对（跨 B-13、B-15 读取），不新增 B-13 表；预警归属与读取方向见 NOTES 接缝问题 2。
 
-### 1.5 分管范围配置（LEB-06，提议，聚合号待 one-architecture）
+### 1.5 分管范围配置（LEB-06，提议；AGG-135，one-architecture 给号）
 
 用户 2026-10-22 定分管范围由人力维护、总经理批准（intent 2026-10-22-082120）。提议在 B-13 新增一张 D15 配置表 `oversight_scope_versions`（暂名，交 one-glossary）：
 

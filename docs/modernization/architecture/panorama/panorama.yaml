@@ -67,7 +67,7 @@ meta:
     otr: 873
     evt: 59
     shcat: 6
-    steps: 652
+    steps: 658
     perm: 27
     srole: 7
     role: 56
@@ -9861,7 +9861,7 @@ nodes:
       command: 批准月度薪酬
       aggregate: AGG-73
       bc: null
-      state_change: 审核中 → 已批准；同一事务各薪酬行 空 → 待支付（ADR-0075 子状态机，ARC-1022-COO-06）
+      state_change: 审核中 → 已批准
       src: architecture/proposals/closeout/people/commands.yaml#批准月度薪酬
     AGG-73/退回薪酬重算:
       command: 退回薪酬重算
@@ -48589,7 +48589,7 @@ nodes:
       - 回单行（人员、实发金额、成功或失败、失败原因）
       preconditions:
       - ref: 状态
-        text: 结算为已批准，回单所列薪酬行为待支付
+        text: 根（月度薪酬结算）为已批准，回单所列薪酬行为待支付
       - ref: 回单核对
         text: 回单行与薪酬行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
       - ref: 必填
@@ -66166,6 +66166,21 @@ nodes:
     aggregate: AGG-79
     command: 〔缺〕完成经营动作
     src: architecture/proposals/closeout/people/processes.people.yaml#PRC-181.steps[5]
+  - prc: PRC-201
+    step: 1
+    aggregate: AGG-73
+    command: 登记代发结果
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-201.steps[1]
+  - prc: PRC-201
+    step: 3
+    aggregate: AGG-73
+    command: 发起薪酬补发
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-201.steps[3]
+  - prc: PRC-201
+    step: 4
+    aggregate: AGG-73
+    command: 登记代发结果
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-201.steps[4]
   - prc: PRC-03
     step: 2
     aggregate: AGG-09
@@ -67936,6 +67951,21 @@ nodes:
     aggregate: AGG-95
     command: 提交申报
     src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[8]
+  - prc: PRC-201
+    step: 1
+    aggregate: AGG-73
+    command: 登记代发结果
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-201.steps[1]
+  - prc: PRC-201
+    step: 3
+    aggregate: AGG-73
+    command: 发起薪酬补发
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-201.steps[3]
+  - prc: PRC-201
+    step: 4
+    aggregate: AGG-73
+    command: 登记代发结果
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-201.steps[4]
   perm:
     cost.timesheet:timesheet:submit:
       name: TIMESHEET_SUBMIT

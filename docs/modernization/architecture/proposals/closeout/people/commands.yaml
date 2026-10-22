@@ -2516,7 +2516,7 @@ commands:
       approver: cost_object_owner
       doc_type: 月度薪酬审核
   idempotency_key: 审批实例ID（同一审批实例重复回调不重复生效）
-  state_change: 审核中 → 已批准；同一事务各薪酬行 空 → 待支付（ADR-0075 子状态机，ARC-1022-COO-06）
+  state_change: 审核中 → 已批准
   emits: 薪酬已批准
   used_by:
   - PRC-124 第 4 步
@@ -2650,7 +2650,7 @@ commands:
   - 回单行（人员、实发金额、成功或失败、失败原因）
   preconditions:
   - ref: 状态
-    text: 结算为已批准，回单所列薪酬行为待支付
+    text: 根（月度薪酬结算）为已批准，回单所列薪酬行为待支付
   - ref: 回单核对
     text: 回单行与薪酬行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
   - ref: 必填
@@ -2665,9 +2665,10 @@ commands:
   idempotency_key: 结算ID + 回单批次号
   state_change: 薪酬行 待支付 → 已实付 / 支付失败；全部行已实付且应付已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
   emits: 薪酬代发结果已登记（仅分析）
-  used_by: []
-  orphan: true
-  orphan_reason: 承载流程「登记代发结果并补发薪酬」待 one-architecture 给号（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06） 第 5 节）
+  used_by:
+  - PRC-201 第 1 步
+  - PRC-201 第 4 步
+  orphan: false
   source_part: vs13pay
 - name: 发起薪酬补发
   aggregate: AGG-73
@@ -2696,10 +2697,10 @@ commands:
   state_change: 薪酬行 支付失败 → 待支付
   emits: 薪酬补发已发起
   cross_bc_out:
-  - B-10 订阅生成补发应付（接缝 J-1，待 finance 组）
-  used_by: []
-  orphan: true
-  orphan_reason: 同登记代发结果
+  - PRC-126 提交应付薪酬（应付类型 补发，J-3）
+  used_by:
+  - PRC-201 第 3 步
+  orphan: false
   source_part: vs13pay
 - name: 标记薪酬已过账
   aggregate: AGG-73
