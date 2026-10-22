@@ -28,7 +28,7 @@
 
 - **S-1 §9 漏掉本系统唯一有行业约束力的软件规范。** 财会〔2024〕11 号、12 号在盘点里列为「已在用」却未进 §9；`GL_COMPLIANCE_CHECKLIST.md` 里的《会计档案管理办法》（财政部 国家档案局令第 79 号）、GB/T 24589.1-2024 也未进。对要做法定账的系统，比 #7–#9、#12、#13 加起来更有约束力。
 - **S-2 落点不存在。** §9 写的「安全复审清单」「度量方案」仓库中没有对应文件；阶段出口评审也没有 25010 栏。没有落点、负责会话、守护的标准是摆设。
-- **S-3 OpenTelemetry 前后不一致。** `STACK_DECISION.md:49`、`adr/ADR-0002.md:27` 写「Micrometer + OpenTelemetry → ARMS / SLS」；`GUIDING_PRINCIPLES.md:233`（§11 O-1，用户 2026-10-15「全部按推荐」）写不引入追踪库；`backend/pom.xml` 只有 `micrometer-registry-prometheus`。
+- **S-3 OpenTelemetry 前后不一致。** `STACK_DECISION.md:49`、`adr/src/ADR-0002.md:27` 写「Micrometer + OpenTelemetry → ARMS / SLS」；`GUIDING_PRINCIPLES.md:233`（§11 O-1，用户 2026-10-15「全部按推荐」）写不引入追踪库；`backend/pom.xml` 只有 `micrometer-registry-prometheus`。
 
 建议 §9 重排：本系统的合规义务清单（网络安全法与等保、个人信息保护法、数据安全法、财会〔2024〕11/12 号、会计档案管理办法）在前，可选实践在后，每项写明落点与负责会话。
 

@@ -1,6 +1,6 @@
 # U8C 总账规则 · 财务评审清单
 
-日期：2026-10-14 · 会话：psa-gl-scope · 对应规则卡：[`GL_RULES.md`](GL_RULES.md) · 上级文档：[`../U8C_GL_PRACTICE.md`](../U8C_GL_PRACTICE.md)、[`../adr/ADR-0022.md`](../adr/ADR-0022.md)、[`../proposals/GL_SCOPE_REVISIONS.md`](../proposals/GL_SCOPE_REVISIONS.md) §D
+日期：2026-10-14 · 会话：psa-gl-scope · 对应规则卡：[`GL_RULES.md`](GL_RULES.md) · 上级文档：[`../U8C_GL_PRACTICE.md`](../U8C_GL_PRACTICE.md)、[`../adr/src/ADR-0022.md`](../adr/src/ADR-0022.md)、[`../proposals/GL_SCOPE_REVISIONS.md`](../proposals/GL_SCOPE_REVISIONS.md) §D
 
 > **怎么用**：只列需要财务判断的规则卡（规则卡中「疑点 / 需财务确认」不为「无」的卡）。每行一个问题，「选项建议」给出建议方案，财务可选「同意建议」「选另一项」或写出做法。答复写回对应规则卡（或在评审会话中记录），**标 ★ 的是「G1 开始前必须答」**（GL_SCOPE_REVISIONS §C.2 入口条件）。阶段：**Phase 4** = 成本、收入与核算（含 OA 6a–6c，U8C 推送权切到新系统）；**G1** = 新系统完整总账与权责口径三大报表，U8C 仍是法定账；**G2** = 法定账切换到新系统。
 >
