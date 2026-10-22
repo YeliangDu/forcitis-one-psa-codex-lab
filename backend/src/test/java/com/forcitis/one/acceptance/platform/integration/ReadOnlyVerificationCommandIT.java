@@ -1255,7 +1255,6 @@ class ReadOnlyVerificationCommandIT {
         env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_FEE_EARNER_YES_ENUM_ID", "9002");
         env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_ROOT_PATH", "00000001");
         env.put("INTEGRATION_LEGACY_ENABLED", "true");
-        env.put("FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_DETAIL_URL_TEMPLATE", "https://legacy.example.test/todo/{processInstanceId}/{taskId}");
         accounts.forEach((connection, account) -> {
             env.put(connection.urlVariable, account.url());
             env.put(connection.usernameVariable, account.login());

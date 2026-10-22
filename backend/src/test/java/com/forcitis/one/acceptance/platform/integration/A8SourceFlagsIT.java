@@ -605,7 +605,6 @@ class A8SourceFlagsIT {
                 "--flowable.async-executor-activate=false",
                 "--forcitis.platform.approval.deadline.enabled=false",
                 "--forcitis.platform.integration.legacy.enabled=false",
-                "--forcitis.platform.integration.legacy.inbox.url=",
                 views + "enabled=true",
                 views + "jdbc-url=" + url(database), views + "username=" + reader.user(), views + "password=" + reader.password(),
                 views + "head-relationship-type-id=" + HEAD_TYPE, views + "regional-receivables-manager-relationship-type-id=" + MANAGER_TYPE,

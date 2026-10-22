@@ -75,8 +75,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "forcitis.platform.integration.seeyon.views.delivery-unit-yes-enum-id=9001",
         "forcitis.platform.integration.seeyon.views.fee-earner-yes-enum-id=9002",
         "forcitis.platform.integration.seeyon.views.root-path=00000001",
-        "forcitis.platform.integration.legacy.enabled=true",
-        "forcitis.platform.integration.legacy.inbox.view-name=dbo.v_psa_one_legacy_todo"})
+        "forcitis.platform.integration.legacy.enabled=true"})
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class StalledExternalSourceIT {
@@ -87,22 +86,16 @@ class StalledExternalSourceIT {
     static final Duration BACKGROUND_BUDGET = Duration.ofSeconds(30);
     static final Duration HARD_CAP_BACKGROUND = Duration.ofSeconds(45);
 
-    static final String INBOX = "/api/v1/platform/approval-tasks";
     static final String LOGIN_NAME = "13900008001";
-    /** The person as the old system names them (assignee_user_id), which is the employee id until R-1b P3b. */
-    static final long INBOX_EMPLOYEE = 1001;
     /** The old-system department of the short-name view. */
     static final long SHORT_NAME_UNIT = 2;
     /** R-1b P3b: EmployeeId wraps a UUID; the old system's ids are then reached through (LEGACY_SYSTEM, ...) source references (RULING-P3B-3). */
     static final boolean UUID_IDS = EmployeeId.class.getRecordComponents()[0].getType() == UUID.class;
-    /** The account of that employee: since R-1b P2 an id of its own (RULING-P2-6). */
-    static final UUID INBOX_ACCOUNT = UUID.randomUUID();
     static final long HEAD_TYPE = 7001;
     static final long MANAGER_TYPE = 7002;
 
     static final String SA_PASSWORD = TestMssql.SA_PASSWORD;
     static final String A8_READER_PASSWORD = "Bb2!" + UUID.randomUUID();
-    static final String TODO_READER_PASSWORD = "Cc3!" + UUID.randomUUID();
     static final String NAMES_READER_PASSWORD = "Dd4!" + UUID.randomUUID();
 
     static final PostgreSQLContainer POSTGRES = TestPostgres.container()
@@ -113,7 +106,6 @@ class StalledExternalSourceIT {
     static final String A8_WORLD = TestMssql.database(StalledExternalSourceIT.class, "a8world").name();
     static final String LEGACY_WORLD = TestMssql.database(StalledExternalSourceIT.class, "legacyworld").name();
     static final String A8_READER = TestMssql.login(StalledExternalSourceIT.class, "a8_reader");
-    static final String TODO_READER = TestMssql.login(StalledExternalSourceIT.class, "todo_reader");
     static final String NAMES_READER = TestMssql.login(StalledExternalSourceIT.class, "names_reader");
 
     static {
@@ -129,9 +121,6 @@ class StalledExternalSourceIT {
         registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> url(A8_WORLD));
         registry.add("forcitis.platform.integration.seeyon.views.username", () -> A8_READER);
         registry.add("forcitis.platform.integration.seeyon.views.password", () -> A8_READER_PASSWORD);
-        registry.add("forcitis.platform.integration.legacy.inbox.url", () -> url(LEGACY_WORLD));
-        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> TODO_READER);
-        registry.add("forcitis.platform.integration.legacy.inbox.password", () -> TODO_READER_PASSWORD);
         registry.add("forcitis.platform.integration.legacy.jdbc-url", () -> url(LEGACY_WORLD));
         registry.add("forcitis.platform.integration.legacy.username", () -> NAMES_READER);
         registry.add("forcitis.platform.integration.legacy.password", () -> NAMES_READER_PASSWORD);
@@ -161,9 +150,6 @@ class StalledExternalSourceIT {
     @Autowired
     org.springframework.context.ApplicationContext context;
 
-    /** The employee of the inbox account as the build stores it: the old-system id itself, or since R-1b P3b the own id its reference gives. */
-    Object inboxEmployee;
-
     static final ExecutorService CALLERS = Executors.newCachedThreadPool(runnable -> {
         Thread thread = new Thread(runnable, "request-thread");
         thread.setDaemon(true);
@@ -174,24 +160,12 @@ class StalledExternalSourceIT {
 
     final List<ViewRestore> viewsToRestore = new ArrayList<>();
 
-    /** The session principal is the account; identity maps it to the employee whose old-system todos are read. */
+    /** The short-name view is read through the (LEGACY_SYSTEM, ORG_UNIT) reference of its department (RULING-P3B-3). */
     @BeforeEach
-    void inboxPersonHasAnAccount() throws SQLException {
-        inboxEmployee = INBOX_EMPLOYEE;
+    void shortNameUnitHasAReference() {
         if (UUID_IDS) {
             try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
-                SourceReferencesProbe references = SourceReferencesProbe.of(context);
-                inboxEmployee = references.allocate("LEGACY_SYSTEM", "EMPLOYEE", INBOX_EMPLOYEE);
-                references.allocate("LEGACY_SYSTEM", "ORG_UNIT", SHORT_NAME_UNIT);
-            }
-        }
-        try (Connection c = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
-                Statement path = c.createStatement()) {
-            path.execute("set search_path to platform_identity");
-            try (PreparedStatement insert = c.prepareStatement("insert into user_accounts (user_id, employee_id) values (?, ?) on conflict do nothing")) {
-                insert.setObject(1, INBOX_ACCOUNT);
-                insert.setObject(2, inboxEmployee);
-                insert.executeUpdate();
+                SourceReferencesProbe.of(context).allocate("LEGACY_SYSTEM", "ORG_UNIT", SHORT_NAME_UNIT);
             }
         }
     }
@@ -213,7 +187,7 @@ class StalledExternalSourceIT {
     static void endReaderSessions() throws SQLException {
         List<Integer> sessions = new ArrayList<>();
         try (Connection c = admin("master"); Statement s = c.createStatement();
-                ResultSet rs = s.executeQuery("SELECT session_id FROM sys.dm_exec_sessions WHERE login_name IN ('" + A8_READER + "', '" + TODO_READER + "', '" + NAMES_READER + "')")) {
+                ResultSet rs = s.executeQuery("SELECT session_id FROM sys.dm_exec_sessions WHERE login_name IN ('" + A8_READER + "', '" + NAMES_READER + "')")) {
             while (rs.next()) {
                 sessions.add(rs.getInt(1));
             }
@@ -224,9 +198,8 @@ class StalledExternalSourceIT {
     }
 
     @Test
-    @DisplayName("D1-1 对照：外部库不卡时合并待办含老待办、A8 登录名查得到人、同步成功")
+    @DisplayName("D1-1 对照：外部库不卡时 A8 登录名查得到人、简称读得到、同步成功")
     void controlWithoutAnyStall() throws Exception {
-        String inbox = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse().getContentAsString();
         assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).hasSize(1);
         assertThat(names.readShortNames()).hasSize(1);
         SyncResult result = runSync();
@@ -291,7 +264,7 @@ class StalledExternalSourceIT {
         Map<String, Integer> lockTimeouts = new java.util.TreeMap<>();
         try (Connection c = admin("master"); Statement s = c.createStatement();
                 ResultSet rs = s.executeQuery("SELECT login_name, MIN(lock_timeout) FROM sys.dm_exec_sessions "
-                        + "WHERE is_user_process = 1 AND login_name IN ('" + A8_READER + "', '" + TODO_READER + "', '" + NAMES_READER + "') GROUP BY login_name")) {
+                        + "WHERE is_user_process = 1 AND login_name IN ('" + A8_READER + "', '" + NAMES_READER + "') GROUP BY login_name")) {
             while (rs.next()) {
                 lockTimeouts.put(rs.getString(1), rs.getInt(2));
             }
@@ -327,11 +300,6 @@ class StalledExternalSourceIT {
                 .untilAsserted(() -> assertThat(requestsOf(A8_READER, false)).as("requests of a8_reader still running in sys.dm_exec_requests").isZero());
     }
 
-    Reply inbox() throws Exception {
-        var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse();
-        return new Reply(response.getStatus(), response.getContentAsString());
-    }
-
     static int requestsOf(String login, boolean blockedOnly) throws SQLException {
         try (Connection c = admin("master"); Statement s = c.createStatement();
                 ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM sys.dm_exec_requests r JOIN sys.dm_exec_sessions e ON e.session_id = r.session_id "
@@ -350,9 +318,6 @@ class StalledExternalSourceIT {
 
     static org.springframework.test.web.servlet.request.RequestPostProcessor ordinarySession(UUID userId) {
         return user(userId.toString()).authorities(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
-    }
-
-    record Reply(int status, String body) {
     }
 
     record Outcome<T>(T value, Throwable failure, Duration elapsed, boolean hung) {
@@ -443,14 +408,12 @@ class StalledExternalSourceIT {
         }
     }
 
-    static final String TODO_VIEW = "SELECT assignee_user_id, task_id, process_instance_id, task_def_key, task_name, process_title, created_at FROM dbo.todo_rows";
     static final String MEMBER_VIEW = "SELECT ID, NAME, CODE, ORG_UNIT_ID, ORG_UNIT_PATH, POST_ID, SUPERVISOR_MEMBER_ID, WE_COM_ID, IS_INTERNAL, "
             + "LOGIN_NAME, ENTERPRISE_EMAIL, GENDER, FEE_EARNER_ENUM_ID FROM dbo.ORG_MEMBER";
 
     /** A scalar function that loops for about a minute: CPU only, no lock, and the optimizer cannot skip it (it is not inlined because of the loop). */
     static final String BURN_FUNCTION = "CREATE FUNCTION dbo.burn() RETURNS int AS BEGIN DECLARE @i int = 0; WHILE @i < 2000000000 SET @i = @i + 1; RETURN @i; END";
     static final String SLOW = " WHERE dbo.burn() > 0";
-    static final String SLOW_TODO_VIEW = TODO_VIEW + SLOW;
     static final String SLOW_MEMBER_VIEW = MEMBER_VIEW + SLOW;
 
     record ViewRestore(String database, String view, String select) {
@@ -493,24 +456,17 @@ class StalledExternalSourceIT {
 
     private static void createLegacyWorld() throws SQLException {
         run(LEGACY_WORLD, BURN_FUNCTION,
-                "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64), process_instance_id nvarchar(64), task_def_key nvarchar(64), "
-                        + "task_name nvarchar(128), process_title nvarchar(256), created_at datetime2)",
                 "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
-                "INSERT dbo.todo_rows VALUES (" + INBOX_EMPLOYEE + ", 'T-1', 'I-1', 'approve', N'Approve', N'Legacy item', '2026-10-01T08:00:00')",
                 "INSERT dbo.short_name_rows VALUES (2, N'Delivery')",
-                "CREATE VIEW dbo.v_psa_one_legacy_todo AS " + TODO_VIEW,
                 "CREATE VIEW dbo.v_one_legacy_org_short_name AS SELECT id, short_name FROM dbo.short_name_rows");
     }
 
     /** Checked against the RDS export before any case runs: a fixture that drifted from the baseline would prove nothing about production. */
     private static void createReadOnlyLogins() throws SQLException {
         ReadOnlyBaselineFixture.createViewSchemaReader(StalledExternalSourceIT::run, A8_WORLD, A8_READER, A8_READER_PASSWORD);
-        ReadOnlyBaselineFixture.createSingleViewReader(StalledExternalSourceIT::run, LEGACY_WORLD, "dbo.v_psa_one_legacy_todo", TODO_READER,
-                TODO_READER_PASSWORD);
         ReadOnlyBaselineFixture.createSingleViewReader(StalledExternalSourceIT::run, LEGACY_WORLD, "dbo.v_one_legacy_org_short_name", NAMES_READER,
                 NAMES_READER_PASSWORD);
         ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(A8_WORLD), A8_WORLD, A8_READER, A8_READER_PASSWORD);
-        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(LEGACY_WORLD), LEGACY_WORLD, TODO_READER, TODO_READER_PASSWORD);
         ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(LEGACY_WORLD), LEGACY_WORLD, NAMES_READER, NAMES_READER_PASSWORD);
     }
 }
