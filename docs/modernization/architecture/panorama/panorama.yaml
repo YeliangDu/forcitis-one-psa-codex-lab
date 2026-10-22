@@ -15835,7 +15835,7 @@ nodes:
       vision_kpi: null
       facts: []
       dimensions: []
-      zh: 收入确认（不含税）
+      zh: 权责发生制收入
       src: architecture/ssot/15-kpis/kpis.yaml#kpis[109]/KPI-110
       stages: []
       processes: []
@@ -15848,7 +15848,7 @@ nodes:
       vision_kpi: null
       facts: []
       dimensions: []
-      zh: 收入确认（含税）
+      zh: 含税收入
       src: architecture/ssot/15-kpis/kpis.yaml#kpis[110]/KPI-111
       stages: []
       processes: []
@@ -15861,7 +15861,7 @@ nodes:
       vision_kpi: null
       facts: []
       dimensions: []
-      zh: 间接费用（按职能）
+      zh: 间接成本（按职能）
       src: architecture/ssot/15-kpis/kpis.yaml#kpis[111]/KPI-112
       stages: []
       processes: []
