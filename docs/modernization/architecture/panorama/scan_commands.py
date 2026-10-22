@@ -78,6 +78,83 @@ def command_id(aggregate, name):
     return 'CMD-' + hashlib.sha256(f'{aggregate}::{name}'.encode('utf-8')).hexdigest()[:8]
 
 
+def former_names(row, allow_empty=False):
+    names = row.get('former_names', [])
+    if not isinstance(names, list) or ('former_names' in row and not names and not allow_empty):
+        raise ValueError('former_names 应为非空文本列表')
+    for name in names:
+        string(name, 'former_names')
+    return names
+
+
+def registered_ids(root):
+    path = OUTPUT / 'command-ids.yaml'
+    if (root / path).exists():
+        return rows(read(root, path), 'ids')
+    seed = OUTPUT / 'commands.yaml'
+    return [dict(id=row['id'], aggregate=row['aggregate'], name=row['name'], former_names=[], retired=False)
+            for row in rows(read(root, seed), 'commands')] if (root / seed).exists() else []
+
+
+def registry_index(registry):
+    index, ids = {}, set()
+    for row in registry:
+        key = command_key(row, 'aggregate', 'name')
+        ident = row.get('id')
+        if not isinstance(ident, str) or not re.fullmatch(r'CMD-[0-9a-f]{8}', ident):
+            raise ValueError('无效的命令 id')
+        if ident in ids:
+            raise ValueError(f'id 冲突：{ident}')
+        if not isinstance(row.get('retired'), bool) or 'former_names' not in row:
+            raise ValueError(f'{ident}: 缺失或无效的 retired / former_names')
+        ids.add(ident)
+        for name in [key[1], *former_names(row, allow_empty=True)]:
+            alias = key[0], name
+            if alias in index:
+                raise ValueError(f'登记名称重复：{alias}')
+            index[alias] = row
+    return index, ids
+
+
+def resolve_ids(registry, declarations):
+    index, ids = registry_index(registry)
+    claims, selected = {}, {}
+    for key, names in declarations.items():
+        for name in names:
+            alias = key[0], name
+            if name in claims and claims[name] != key:
+                raise ValueError(f'旧名重复声明：{alias}')
+            claims[name] = key
+            if alias not in index and any(old == name for _, old in index):
+                raise ValueError(f'旧名跨聚合：{key} / {name}')
+    used = {}
+    for key in sorted(declarations):
+        candidates = {index[alias]['id']: index[alias] for alias in
+                      [key, *((key[0], name) for name in declarations[key])] if alias in index}
+        if len(candidates) > 1:
+            raise ValueError(f'旧名指向多个编号：{key}')
+        row = next(iter(candidates.values()), None)
+        if row is None:
+            ident = command_id(*key)
+            if ident in ids:
+                raise ValueError(f'id 冲突：{ident} / {key}')
+            row = dict(id=ident, aggregate=key[0], name=key[1], former_names=[], retired=False)
+            registry.append(row)
+            ids.add(ident)
+        ident = row['id']
+        if ident in used and used[ident] != key:
+            raise ValueError(f'同一编号对应多条命令：{ident}')
+        used[ident] = key
+        row['former_names'] = sorted(set([row['name'], *row['former_names'], *declarations[key]]) - {key[1]})
+        row['name'] = key[1]
+        selected[key] = ident
+    for row in registry:
+        row['retired'] = row['id'] not in used
+    registry.sort(key=lambda row: row['id'])
+    registry_index(registry)
+    return selected
+
+
 def planned_aggregates(root):
     result = {}
     for row in rows(read(root, ARCH / 'ssot/i03-aggregates/planned.yaml'), 'aggregates'):
@@ -96,15 +173,22 @@ def planned_aggregates(root):
     return result
 
 
-def merge_commands(root, aggregates):
-    merged, ids, counts = {}, {}, {}
+def merge_commands(root, aggregates, registry=None):
+    merged, counts, sources, declarations = {}, {}, {}, {}
+    for group in GROUPS:
+        sources[group] = rows(read(root, CLOSEOUT / group / 'commands.yaml'), 'commands')
+        for row in sources[group]:
+            key = command_key(row, 'aggregate', 'name')
+            declarations.setdefault(key, set()).update(former_names(row))
+    entries = rows(read(root, CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml'), 'entries')
+    for row in entries:
+        key = command_key(row, 'object', 'command')
+        declarations.setdefault(key, set()).update(former_names(row))
+    ids = resolve_ids(registered_ids(root) if registry is None else registry, declarations)
 
     def add(key, kind, path, index, group):
         if key not in merged:
-            ident = command_id(*key)
-            if ident in ids:
-                raise ValueError(f'id 冲突：{ident}，{ids[ident]} 与 {key}')
-            ids[ident] = key
+            ident = ids[key]
             merged[key] = {'id': ident, 'name': key[1], 'aggregate': key[0],
                            **aggregates.get(key[0], {'owner_bc': None, 'objects': []}),
                            'actor': {'role': None, 'function': None}, 'params': None,
@@ -119,7 +203,7 @@ def merge_commands(root, aggregates):
 
     for group in GROUPS:
         path = CLOSEOUT / group / 'commands.yaml'
-        commands = rows(read(root, path), 'commands')
+        commands = sources[group]
         counts[group] = len(commands)
         for index, row in enumerate(commands):
             key = command_key(row, 'aggregate', 'name')
@@ -133,7 +217,6 @@ def merge_commands(root, aggregates):
                 raise ValueError(f'{path} commands[{index}]: 同一命令的参数、前提或事件冲突：{key}')
             add(key, 'commands', path, index, group).update(values)
     path = CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml'
-    entries = rows(read(root, path), 'entries')
     counts['matrix'] = len(entries)
     for index, row in enumerate(entries):
         key = command_key(row, 'object', 'command')
@@ -264,11 +347,13 @@ def render(commands, built, counts, transitions):
 
 
 def generate(root=ROOT, check=False):
-    commands, counts = merge_commands(root, planned_aggregates(root))
+    registry = registered_ids(root)
+    commands, counts = merge_commands(root, planned_aggregates(root), registry)
     built = built_commands(root)
     transitions, stats = fill_transitions((root / TRANSITIONS).read_bytes().decode('utf-8'), commands)
     model, gaps = render(commands, built, counts, stats)
-    outputs = {OUTPUT / 'commands.yaml': model, OUTPUT / 'GAPS.md': gaps, TRANSITIONS: transitions}
+    outputs = {OUTPUT / 'commands.yaml': model, OUTPUT / 'GAPS.md': gaps, TRANSITIONS: transitions,
+               OUTPUT / 'command-ids.yaml': yaml.safe_dump({'ids': registry}, allow_unicode=True, sort_keys=False, width=200)}
     different = [path for path, content in outputs.items()
                  if not (root / path).is_file() or (root / path).read_bytes() != content.encode('utf-8')]
     if check and different:
