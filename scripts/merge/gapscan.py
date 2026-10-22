@@ -12,13 +12,14 @@ import os
 import re
 
 SCAN_EVERY = 30 * 60
-OPEN_LIMIT = 40   # gh pr list with commits and comments: 50 and more pull requests exceed GitHub's GraphQL node limit
+OPEN_LIMIT = 41   # gh pr list with commits and comments: 50 and more pull requests exceed GitHub's GraphQL node limit; 41 returned means the list was cut off at 40
 STALE_AFTER = 60 * 60
 REPEAT_AFTER = 4 * 60 * 60
 REASONS = ("CONFLICT", "CI_RED", "APPROVED_NOT_QUEUED", "STALE")
 APPROVER = "YeliangDu"
-APPROVAL = re.compile(r"调度批准入队\s*head\s+([0-9a-f]{7,40})")
-FAILING = ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE")
+APPROVAL = re.compile(r"调度批准入队\s*head\s+([0-9a-f]{7,40})", re.I)
+REQUIRED = ("backend verify", "frontend verify", "secret scan")   # the checks the queue merges on (mq.py REQUIRED); anything else red is not a gap
+FAILING = ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE", "ERROR")
 SESSION_MAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "session_map.json")
 
 
@@ -39,20 +40,24 @@ def author_session(branch, prefixes):
 
 def approved_head(comments, head):
     """True when the newest dispatcher approval comment names `head` (a head that moved since makes the approval void: the newest comment decides)."""
-    heads = [m.group(1) for c in sorted(comments, key=lambda c: c["createdAt"]) if c.get("author") == APPROVER for m in [APPROVAL.search(c.get("body") or "")] if m]
+    head = head.lower()
+    heads = [m.group(1).lower() for c in sorted(comments, key=lambda c: c["createdAt"]) if c.get("author") == APPROVER for m in [APPROVAL.search(c.get("body") or "")] if m]
     return bool(heads) and head.startswith(heads[-1])
 
 
 def red_checks(rollup):
-    """Names of the checks whose latest run (by start time) failed: an old red run that a rerun replaced (or that is running again) is no longer red; a cancelled or skipped run says nothing and is not looked at."""
+    """Names of the required checks (REQUIRED, a name starting with one of them; the " (light)" run of the docs lane is not one) whose latest run failed: an old red run that a rerun replaced (or that is running again)
+    is no longer red; a cancelled or skipped run says nothing and is not looked at. A check run has name/conclusion/startedAt, a commit status context/state."""
     latest = {}
     for c in rollup:
-        if c.get("conclusion") in ("CANCELLED", "SKIPPED"):
+        name = c.get("name") or c.get("context") or ""
+        outcome = c.get("conclusion") or c.get("state") or ""
+        if outcome in ("CANCELLED", "SKIPPED") or not name.startswith(REQUIRED) or name.endswith(" (light)"):
             continue
-        key = (c.get("workflowName") or "", c.get("name") or "")
-        if key not in latest or (c.get("startedAt") or "") > (latest[key].get("startedAt") or ""):
-            latest[key] = c
-    return sorted(k[1] for k, c in latest.items() if c.get("conclusion") in FAILING)
+        key = (c.get("workflowName") or "", name)
+        if key not in latest or (c.get("startedAt") or "") > (latest[key][0] or ""):
+            latest[key] = (c.get("startedAt") or "", outcome)
+    return sorted(k[1] for k, (_, outcome) in latest.items() if outcome in FAILING)
 
 
 def last_move(pr):
@@ -83,47 +88,57 @@ def find_gaps(prs, queued, now, prefixes):
 
 
 def select_new(gaps, state, now):
-    """The gaps to report now; `state` ({"#n:REASON": iso time of the last report}) is updated for them and loses the keys of gaps that are gone, so a gap that comes back is reported at once."""
+    """The gaps to report now; `state` ({"#n:REASON": iso time of the last report}) is updated for them. A key is kept for REPEAT_AFTER whether or not the gap is there in between (a conflict that flickers
+    through mergeable=UNKNOWN after every merge into main, a pull request that leaves the list or the queue and comes back are not new): the same pull request and reason is reported once per REPEAT_AFTER."""
     fresh = []
     for g in gaps:
         key = f"#{g['pr']}:{g['reason']}"
-        last = parse_time(state.get(key))
+        last = parse_time(state.get(key)) if isinstance(state.get(key), str) else None
         if last is None or (now - last).total_seconds() >= REPEAT_AFTER:
             fresh.append(g)
             state[key] = now.isoformat(timespec="seconds")
-    live = {f"#{g['pr']}:{g['reason']}" for g in gaps}
     for key in list(state):
-        if key not in live:
+        last = parse_time(state[key]) if isinstance(state[key], str) else None
+        if last is None or (now - last).total_seconds() >= REPEAT_AFTER:
             del state[key]
     return fresh
 
 
 def render(gaps):
-    return "".join(f"- #{g['pr']} [{g['session']}] {g['reason']}: {g['detail']} ({g['title']})\n" for g in gaps)
+    return "".join(f"#{g['pr']} [{g['session']}] {g['reason']}: {g['detail']} ({g['title']})\n" for g in gaps)
 
 
 def scan(gh, queue, directory, log, now=None, prefixes=None):
-    """One scan: report to the log and to gaps.md. Returns the gaps reported (None when gh could not list the pull requests: logged, nothing else changes)."""
+    """One scan: report to the log and to gaps.md. Returns the gaps reported as new (None when gh could not list the pull requests: logged, nothing else changes)."""
     now = now or datetime.datetime.now(datetime.timezone.utc)
     prs = gh.open_prs()
     if prs is None:
         log.event("ERROR", None, None, None, "gap scan: gh pr list failed")
         return None
     if len(prs) >= OPEN_LIMIT:
-        log.event("ERROR", None, None, None, f"gap scan: {len(prs)} open pull requests, the list is cut off at {OPEN_LIMIT}: the oldest are not looked at")
+        prs = prs[:OPEN_LIMIT - 1]
+        log.event("ERROR", None, None, None, f"gap scan: more than {OPEN_LIMIT - 1} open pull requests, the list is cut off: the oldest are not looked at")
     gaps = find_gaps(prs, set(queue.numbers()), now, prefixes if prefixes is not None else load_prefixes())
     state_path = os.path.join(directory, "gaps.state.json")
     try:
         state = json.load(open(state_path, encoding="utf-8"))
+        if not isinstance(state, dict):
+            state = {}
     except (FileNotFoundError, ValueError):
         state = {}
     fresh = select_new(gaps, state, now)
-    tmp = state_path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(state, f)
-    os.replace(tmp, state_path)
+    write_atomic(state_path, json.dumps(state))
     if fresh:
-        with open(os.path.join(directory, "gaps.md"), "w", encoding="utf-8") as f:
-            f.write(f"# Open pull requests nobody moves ({now.isoformat(timespec='seconds')})\n\n" + render(fresh))
-        log.event("GAPS", None, None, None, "; ".join(f"#{g['pr']} {g['session']} {g['reason']}" for g in fresh))
+        new = {(g["pr"], g["reason"]) for g in fresh}
+        text = f"# Open pull requests nobody moves ({now.isoformat(timespec='seconds')}), new since the last report marked *\n\n"
+        text += "".join(("* " if (g["pr"], g["reason"]) in new else "  ") + line for g, line in zip(gaps, render(gaps).splitlines(True)))
+        write_atomic(os.path.join(directory, "gaps.md"), text)
+        log.event("GAPS", None, None, None, f"{len(fresh)} new of {len(gaps)}: " + "; ".join(f"#{g['pr']} {g['session']} {g['reason']}" for g in fresh[:6]) + (" ..." if len(fresh) > 6 else "") + f" (all in {os.path.join(directory, 'gaps.md')})")
     return fresh
+
+
+def write_atomic(path, text):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp, path)

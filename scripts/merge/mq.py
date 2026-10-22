@@ -208,6 +208,23 @@ class Queue:
         with open(self.path + suffix, "w", encoding="utf-8") as f:
             f.write("".join(l + "\n" for l in lines if l))
 
+    # The head each queued pull request had when it was queued (= approved: the coordinator approves a head and the pull request is queued on that head): "<n> <sha>" lines in <queue>.heads.
+    # Without an entry (queued before this existed, gh could not say, `once`) nothing is compared.
+    def set_head(self, n, head):
+        with self.locked(".heads-lock"):
+            self._store(".heads", [l for l in self._lines(".heads") if not l.startswith(f"{n} ")] + [f"{n} {head}"])
+
+    def head_of(self, n):
+        with self.locked(".heads-lock"):
+            for l in self._lines(".heads"):
+                if l.startswith(f"{n} "):
+                    return l.split()[1]
+        return None
+
+    def drop_head(self, n):
+        with self.locked(".heads-lock"):
+            self._store(".heads", [l for l in self._lines(".heads") if not l.startswith(f"{n} ")])
+
     def _mark(self, n):
         self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")] + [f"{n} {os.getpid()}"])
         self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)])   # a request from an earlier round is not for this one
@@ -641,6 +658,7 @@ class Processor:
         self.waiting, self.wait_repeat = {}, 3600   # pull request -> (the dependencies it was last logged as waiting for, when): logged again when they change and every wait_repeat seconds, so a dependency that never merges stays loud
         self.guard = threading.Lock()
         self.cancel_seen = set()
+        self.own_head = {}   # n -> the head after the queue's own last push (update, settle): a different head later is the author's push
         self.main_checkout = main_checkout
 
     def lane(self, n, head=None):
@@ -808,6 +826,24 @@ class Processor:
                 self.cancel_seen.add(n)   # run_lane must not take out an entry queued again after `remove --cancel`, whatever the round ended with
             self.release(n)
 
+    def head_moved(self, n, v):
+        """The head the pull request should have, when it has another one: what was approved at enqueue (first look) or what the queue itself left after its last push (later looks). None when nothing is wrong or nothing is recorded."""
+        expected = self.own_head.get(n) or self.queue.head_of(n)
+        return expected if expected and expected != v["head"] else None
+
+    def head_changed(self, n, v, expected, since):
+        """The author pushed after the head was approved: not merged, taken out; the log line (HEAD-CHANGED, with both shas and the owning session) is what the watching session forwards to the author and the coordinator."""
+        try:
+            owner = gapscan.author_session(v["branch"], gapscan.load_prefixes())
+        except (OSError, ValueError, KeyError):
+            owner = f"?({v['branch']})"
+        self.queue.drop_head(n)
+        self.own_head.pop(n, None)
+        with contextlib.suppress(Exception):
+            self.gh.label(n, "queued", False)
+        self.log.event("HEAD-CHANGED", n, None, since, f"approved {expected[:9]} now {v['head'][:9]} owner {owner}: not merged, out of the queue; report the new head and have it approved again")
+        return "HEAD-CHANGED"
+
     def hold(self, n, run, since, why):
         self.log.event("HOLD", n, run, since, why)
         return "HOLD"
@@ -825,6 +861,9 @@ class Processor:
                 return "MERGED"
             if v["state"] != "OPEN":
                 return self.hold(n, None, since, f"the pull request is {v['state']}")
+            moved_head = self.head_moved(n, v)
+            if moved_head:
+                return self.head_changed(n, v, moved_head, since)
             if v["merge"] == "DIRTY":
                 v, why = self.settle_dirty(n, v, since)
                 if why == "error":
@@ -844,6 +883,7 @@ class Processor:
                 self.sleep(30)
                 v = self.gh.view(n) or v
             self.checkpoint(n)
+            self.own_head[n] = v["head"]
             if "queued" not in v["labels"]:
                 if self.gh.label(n, "queued", True):
                     self.log.event("LABEL-QUEUED", n, None, since)
@@ -884,6 +924,9 @@ class Processor:
                 attempt += 1
                 continue
             result = self.merge_when_fresh(n, since, checks)
+            if result == "head-changed":
+                now = self.gh.view(n) or v
+                return self.head_changed(n, now, self.head_moved(n, now) or self.own_head.get(n) or "?", since)
             if result == "moved":
                 moved += 1
                 if moved > 6:
@@ -950,7 +993,7 @@ class Processor:
 
     def merge_when_fresh(self, n, since, checks):
         """Under the merge lock: no red main run pauses the queue, the head is the one that was checked, it contains the current main, the checks are all green on it; then the merge, pinned to that head.
-        Returns 'MERGED', 'moved' (behind main: update and test again), 'changed' (checks not green any more), 'refused' (gh refused the merge: logged with its message), or 'HOLD'."""
+        Returns 'MERGED', 'head-changed' (the author pushed: MRG-06), 'moved' (behind main: update and test again), 'changed' (checks not green any more), 'refused' (gh refused the merge: logged with its message), or 'HOLD'."""
         with self.queue.merge_lock():
             while self.pause.check():
                 self.checkpoint(n)
@@ -960,6 +1003,8 @@ class Processor:
             if v is None or v["state"] != "OPEN":
                 return self.hold(n, None, since, "the pull request changed state before the merge")
             head = v["head"]
+            if self.head_moved(n, v):   # the author pushed while the CI ran: what ran is not what would be merged
+                return "head-changed"
             behind = self.stale(n, head)
             if behind is None:
                 return self.hold(n, None, since, "could not tell whether the head contains main")
@@ -1010,6 +1055,8 @@ def run_lane(proc, lane, idle=60, stop=lambda: False):
             proc.cancel_seen.discard(n)
             if not cancelled:
                 proc.queue.remove(n)
+                proc.queue.drop_head(n)
+                proc.own_head.pop(n, None)
             proc.log.event("DEQUEUE", n, None, None, result)
         except (Exception, SystemExit) as e:
             if n is None:
@@ -1104,6 +1151,17 @@ def note_conflicts_at_enqueue(numbers):
         print(f"mq: could not look at conflicts before queueing: {error}", file=sys.stderr)
 
 
+def record_heads(q, numbers):
+    """The head each pull request has at enqueue is the head that was approved (also for one queued again: that is a new approval). gh not answering leaves the pull request without a check, said out loud."""
+    gh = Gh()
+    for n in numbers:
+        v = gh.view(n)
+        if v and v["state"] == "OPEN":
+            q.set_head(n, v["head"])
+        else:
+            print(f"mq: could not read the head of #{n}: it is queued without the head check", file=sys.stderr)
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv == ["--self-test"]:
@@ -1147,11 +1205,14 @@ def main(argv=None):
         except ValueError as e:
             raise SystemExit(f"nothing queued: {e}")
         note_conflicts_at_enqueue(a.prs)
+        record_heads(q, a.prs)
         for n in a.prs:
             if n not in added:
                 print(f"#{n} is already queued" + (f"; now waits for {sorted(q.deps(n))} (a pull request already being processed does not look at it again)" if a.after else " (a pull request being processed stays queued until it is done)"), file=sys.stderr)
     elif a.cmd == "remove":
         busy = q.remove_checked(set(a.prs), a.cancel)
+        for n in set(a.prs) - set(busy):
+            q.drop_head(n)
         if busy and not a.cancel:
             raise SystemExit("nothing removed: " + ", ".join(f"#{n}" for n in sorted(busy)) + " is being processed by the runner (pid " + ", ".join(str(busy[n]) for n in sorted(busy)) + "): it cannot be taken back, "
                              "what it has pushed or merged stays. `mq.py remove --cancel <pr>` asks the worker to stop at its next checkpoint (anything before the merge is made); once the merge call has been made it is too late.")
