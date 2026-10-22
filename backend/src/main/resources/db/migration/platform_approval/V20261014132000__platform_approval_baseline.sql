@@ -69,7 +69,7 @@ COMMENT ON COLUMN platform_approval.start_rounds.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_approval.start_rounds.trigger_event_id IS '触发该轮发起的事件 ID：同一事件重复投递只开一轮（幂等）';
 
 CREATE FUNCTION platform_approval.reject_start_round_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_approval.start_rounds is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
 END;
@@ -211,7 +211,7 @@ CREATE INDEX ix_approval_task_records_task_id ON platform_approval.approval_task
 CREATE INDEX ix_approval_task_records_instance_id ON platform_approval.approval_task_records (instance_id);
 
 CREATE FUNCTION platform_approval.reject_task_record_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_approval.approval_task_records is append-only: % is not allowed', TG_OP
         USING ERRCODE = 'restrict_violation';
@@ -249,7 +249,7 @@ COMMENT ON COLUMN platform_approval.process_archive_skips.created_at IS '创建�
 COMMENT ON COLUMN platform_approval.process_archive_skips.updated_at IS '更新时间';
 
 CREATE FUNCTION platform_approval.reject_process_archive_skip_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_approval.process_archive_skips is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
 END;

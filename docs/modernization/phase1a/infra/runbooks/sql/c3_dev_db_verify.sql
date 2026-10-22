@@ -71,3 +71,19 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
+
+-- V11 每个自定义函数固定 search_path（FUNCTION_SEARCH_PATH_PINNING.md R-SP-1）：pg_catalog 在前、pg_temp 在最后，中间至多本函数所在 schema。
+-- 期望 0 行（扩展成员不计）；有行则本条抛错，ON_ERROR_STOP 使校验失败。
+DO $$
+DECLARE bad text;
+BEGIN
+    SELECT string_agg(p.oid::regprocedure::text, ', ') INTO bad
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND p.prokind IN ('f', 'p')
+       AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
+       AND NOT EXISTS (SELECT 1 FROM unnest(p.proconfig) c
+                        WHERE c IN ('search_path=pg_catalog, pg_temp', 'search_path=pg_catalog, ' || n.nspname || ', pg_temp'));
+    IF bad IS NOT NULL THEN
+        RAISE EXCEPTION 'V11 failed: functions without a pinned search_path: %', bad;
+    END IF;
+END $$;
