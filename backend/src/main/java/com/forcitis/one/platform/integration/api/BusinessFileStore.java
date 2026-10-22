@@ -7,7 +7,7 @@ import java.time.Duration;
 
 /**
  * The business file bucket. Writes never overwrite and are read back against size, MD5 and the SHA-256 (sha256Hex); a mismatch or any
- * store failure throws ExternalSystemUnavailableException. Staging and quarantine keys are never presigned or read through the formal path
+ * store failure throws ExternalSystemUnavailableException (a failing caller sink in read is no store failure and passes through as thrown). Staging and quarantine keys are never presigned or read through the formal path
  * (ADR-0070 section 7); each kind of access runs under its own identity.
  */
 public interface BusinessFileStore {

@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 /** Standard storage, never overwritten (x-oss-forbid-overwrite), every write read back against size, MD5 and SHA-256. */
 final class OssBusinessFileStore implements BusinessFileStore, AutoCloseable {
     static final String SHA256 = "sha256";
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(OssBusinessFileStore.class);
     private static final String FORBID_OVERWRITE = "x-oss-forbid-overwrite";
     private static final Pattern MEDIA_TYPE = Pattern.compile("[a-z]+/[a-z0-9.+-]{1,100}");
 
@@ -111,7 +112,11 @@ final class OssBusinessFileStore implements BusinessFileStore, AutoCloseable {
                 if (!"NoSuchKey".equals(gone.getErrorCode())) {
                     throw gone;
                 }
-                verify(formal, size, etag(writer.getObjectMetadata(properties.bucket(), formal.value())), sha256Hex);
+                ObjectMetadata earlier = writer.getObjectMetadata(properties.bucket(), formal.value());
+                if (earlier.getContentLength() != size || !sha256Hex.equals(earlier.getUserMetadata().get(SHA256))) {
+                    LOG.error("ALERT formal object {} differs in size or SHA-256 from the expected content and the staging object is gone", formal.value());
+                    throw new ExternalSystemUnavailableException("the formal object of an earlier attempt differs in size or SHA-256");
+                }
                 return;
             }
             String md5 = etag(source);
