@@ -7,7 +7,7 @@
     <participant id="P_main" name="FORCITIS one" processRef="PRC-91"/>
   </collaboration>
   <process id="PRC-91" name="认定工时单有效性" isExecutable="false">
-    <documentation>owner B-06；VS-10.1</documentation>
+    <documentation>owner B-06；</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E2" name="项目经理（SH-E2）">
         <flowNodeRef>S2_5</flowNodeRef>

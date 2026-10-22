@@ -1753,7 +1753,7 @@ entries:
     - 起草人 ≠ 批准人（INV-131）
   sensitive: false
 - object: AGG-122
-  command: 登记合同已签回
+  command: 登记协议已生效
   raci:
     A:
       resolve: type

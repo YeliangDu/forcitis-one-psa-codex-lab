@@ -331,10 +331,12 @@ machines:
 - aggregate: AGG-13
   name: 协议
   initial: 草案
+  note: 用户 GL5-01（intent 2026-10-22-061733）：已签署与已生效分为两个状态；转已生效只能由业务操作触发——无附生效条件的回签在同一事务内只落「已生效」，附生效条件的须经「确认生效条件满足」，不得手工改状态（ADR-0058）；转已生效时记生效依据（条件类型、证据单据号、生效日）
   states:
   - 草案
   - 审批中
-  - 已签署生效
+  - 已签署
+  - 已生效
   - 履行中
   - 已完成
   - name: 已结算
@@ -354,8 +356,8 @@ machines:
     guard:
     - INV-09
     - INV-08
-  - from: 已签署生效
-    to: 已签署生效
+  - from: 已生效
+    to: 已生效
     command: 登记合同—项目关联与范围挂 WBS
     guard:
     - INV-09
@@ -383,22 +385,40 @@ machines:
     reverse_of: 提交合同评审
     note: 拟命令；提交人撤回评审同样回草案（平台一侧）
   - from: 审批中
-    to: 已签署生效
+    to: 已生效
     command: 回签
     guard:
     - INV-05
     - INV-06
     - INV-07
     - INV-33
-  - from: 已签署生效
+    - 无附生效条件
+    note: 签署即生效，同一事务记生效依据（条件类型「签署即生效」、证据单据号为回签合同文件、生效日为回签日），不落「已签署」
+  - from: 审批中
+    to: 已签署
+    command: 回签
+    guard:
+    - INV-05
+    - INV-06
+    - INV-07
+    - INV-33
+    - 附生效条件
+  - from: 已签署
+    to: 已生效
+    command: 确认生效条件满足
+    guard:
+    - 生效依据三项必填（条件类型、证据单据号、生效日）
+    - 证据须已登记（AGG-38）
+    note: 拟命令（GL5-01）；唯一由「已签署」转「已生效」的途径，不得手工改状态（ADR-0058）
+  - from: 已生效
     to: 履行中
     command: 开始履行协议
     guard:
     - 事件触发：履行启动（触发条件待定，见 NOTES 结构 3）
     event: 项目已开始执行（AGG-19，B-04）
     note: S-33：由事件触发、不设人工命令。选 AGG-19「项目已开始执行」：协议经合同—项目关联（INV-09）关联的任一项目开始执行即进入履行中，按协议幂等。不选「首个交付物建立」：编制交付物在交付侧是内部命令、不发事件。须给既有边 B-05 → B-04 加「事件」方式，事件订阅方由「仅分析」改为 B-05
-  - from: 已签署生效
-    to: 已签署生效
+  - from: 已生效
+    to: 已生效
     command: 应用变更
     guard:
     - INV-07
@@ -409,8 +429,8 @@ machines:
     guard:
     - INV-07
     - INV-08
-  - from: 已签署生效
-    to: 已签署生效
+  - from: 已生效
+    to: 已生效
     command: 提交任务订单
     guard:
     - INV-10
@@ -421,8 +441,8 @@ machines:
     guard:
     - INV-10
     - INV-03a
-  - from: 已签署生效
-    to: 已签署生效
+  - from: 已生效
+    to: 已生效
     command: 标记付款条件项可结算
   - from: 履行中
     to: 履行中
@@ -430,8 +450,8 @@ machines:
   - from: 已完成
     to: 已完成
     command: 标记付款条件项可结算
-  - from: 已签署生效
-    to: 已签署生效
+  - from: 已生效
+    to: 已生效
     command: 登记付款条件达成
     note: 拟命令
   - from: 履行中
@@ -460,7 +480,7 @@ machines:
     command: 结算协议
     guard:
     - 最终价款已确认
-  - from: 已签署生效
+  - from: 已生效
     to: 已终止
     command: 终止协议
     guard:
@@ -470,8 +490,8 @@ machines:
     command: 终止协议
     guard:
     - 原因必填
-  - from: 已签署生效
-    to: 已签署生效
+  - from: 已生效
+    to: 已生效
     command: 归档协议
     guard:
     - INV-124
@@ -495,8 +515,8 @@ machines:
     command: 归档协议
     guard:
     - INV-124
-  - from: 已签署生效
-    to: 已签署生效
+  - from: 已生效
+    to: 已生效
     command: 登记协议借出
     guard:
     - INV-125
@@ -520,8 +540,8 @@ machines:
     command: 登记协议借出
     guard:
     - INV-125
-  - from: 已签署生效
-    to: 已签署生效
+  - from: 已生效
+    to: 已生效
     command: 登记协议归还
     guard:
     - INV-126
@@ -545,8 +565,8 @@ machines:
     command: 登记协议归还
     guard:
     - INV-126
-  - from: 已签署生效
-    to: 已签署生效
+  - from: 已生效
+    to: 已生效
     command: 标记协议借阅逾期
   - from: 履行中
     to: 履行中
@@ -560,6 +580,36 @@ machines:
   - from: 已终止
     to: 已终止
     command: 标记协议借阅逾期
+  - from: 已签署
+    to: 已签署
+    command: 登记合同—项目关联与范围挂 WBS
+    guard:
+    - INV-09
+    - INV-08
+  - from: 已签署
+    to: 已签署
+    command: 归档协议
+    guard:
+    - INV-124
+  - from: 已签署
+    to: 已签署
+    command: 登记协议借出
+    guard:
+    - INV-125
+  - from: 已签署
+    to: 已签署
+    command: 登记协议归还
+    guard:
+    - INV-126
+  - from: 已签署
+    to: 已签署
+    command: 标记协议借阅逾期
+  - from: 已签署
+    to: 已终止
+    command: 终止协议
+    guard:
+    - 原因必填
+    note: 生效条件确定不能成就或双方解除（GL5-01 停留时限推荐见 NOTES）
 - aggregate: AGG-14
   name: 框架限额占用行
   note: 技术聚合：占用行状态；被拒不落行，只发事件框架限额占用被拒
