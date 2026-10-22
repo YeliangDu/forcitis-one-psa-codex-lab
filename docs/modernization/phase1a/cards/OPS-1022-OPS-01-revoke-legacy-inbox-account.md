@@ -17,7 +17,7 @@
 ## 2. 撤哪个、在哪个实例
 | 对象 | 位置 | 动作 |
 |---|---|---|
-| 登录与数据库用户 `psa_one_legacy_ro` | 生产 RDS SQL Server `rm-bp1690ep53t9778dp`，数据库 `ruoyi-vue-pro` | 删库内用户与登录（经 RDS 云接口 DeleteAccount，或高权限账号执行 `legacy_90_rollback.sql` 中仅含该账号的前两步；不碰 `one_legacy_names_ro`） |
+| 登录与数据库用户 `psa_one_legacy_ro` | 生产 RDS SQL Server `rm-bp1690ep53t9778dp`，数据库 `ruoyi-vue-pro` | 只走 RDS 云接口 DeleteAccount（`psa_one_legacy_ro`）；备选只有两句：`DROP USER [psa_one_legacy_ro]`、`DROP LOGIN [psa_one_legacy_ro]`（逐字，不用脚本、不用变量；备选须先经用户批准高权限账号 u8c）。**不得执行 `legacy_90_rollback.sql`**：它一次删两个用户、两个登录和两个视图，会误删 `one_legacy_names_ro` 与视图 |
 | 视图 `dbo.v_psa_one_legacy_todo`（合并待办视图） | 同库 | **本卡不删**，撤号后随老系统退役另评（视图只读、无账号则无人可读；删视图是对老库的第二次写，单独请示） |
 | dev `one.env` 的四个 `…LEGACY_INBOX_*` 变量 | dev ECS | 撤号后删除（备份 one.env，重启确认自检通过） |
 | 文档 | `handoff/B-5-dba/README.md`（账号表、第 19 行）、`RESOURCES.md`、`OPS_CONTEXT.md`、`INFRA_RUNBOOK.md` 第 103、126 行、`legacy_10/20/90` 脚本与 `legacy_inbox_*.sql` | 撤号后改文本；脚本是否保留由 one-1a-par 与 one-architecture 定（回退要用） |
@@ -32,7 +32,7 @@
 ## 4. 执行步骤（批准后）
 1. 预检（只读）：`psa_one_legacy_ro` 近期无活动连接（取证账号查 `sys.dm_exec_sessions` 的 login_name 计数，只出个数）。有活动连接则停下报告。
 2. 备份回退所需信息：本卡 §5 的重建脚本无需备份凭据（凭据按重建时新生成）。
-3. 删账号：RDS 云接口 DeleteAccount（`psa_one_legacy_ro`），或在 `ruoyi-vue-pro` 执行 `DROP USER` 后删登录；回读 DescribeAccounts 与 `sys.server_principals` 均无该名；`one_legacy_names_ro` 仍在。
+3. 删账号前后都回读（只出有无）：`one_legacy_names_ro` 的数据库用户与登录、视图 `v_psa_one_legacy_todo` 与 `v_one_legacy_org_short_name`，均须在；删前 `psa_one_legacy_ro` 在。删账号：RDS 云接口 DeleteAccount（`psa_one_legacy_ro`）。删后回读 DescribeAccounts 与 `sys.server_principals` 均无 `psa_one_legacy_ro`，且上述 `one_legacy_names_ro` 与两个视图仍在；任何一项缺失立即停下报告。
 4. dev `one.env` 删四个 LEGACY_INBOX 变量，重启，健康检查与自检通过。
 5. 通知 one-1a-par 可删核实命令入口与手册行；改 `README.md`、`RESOURCES.md`、`OPS_CONTEXT.md` 文本；登记（ADR-0037 配置变更一行，写进 CONFIG_CHANGELOG 片段）。
 
@@ -41,7 +41,7 @@
 - 因应用不启用老待办，无需紧急回退；重建约十分钟。
 
 ## 6. 禁止事项
-- 批准前不删账号、不改 `one.env`、不删视图。
+- 批准前不删账号、不改 `one.env`、不删视图；批准后只做 §4，不得执行 `legacy_90_rollback.sql`。
 - 不打印、不写入任何凭据；不触碰 `one_legacy_names_ro`、`one_evidence_ro`、`one_a8_views_ro`。
 - 不改老表、不写老数据。
 
