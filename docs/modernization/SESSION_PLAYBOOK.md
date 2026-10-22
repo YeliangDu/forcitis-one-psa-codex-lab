@@ -19,7 +19,7 @@
 | `DECISION_DIGEST.md`（生成，不入仓；源为 `intent/` 片段加 `decision-digest/topics.txt`、`relations.txt`） | 已定决策速查表：按主题每条一行（要点、原话摘句、intent 文件名、被谁取代），互相矛盾的单列「待用户裁定」；设计组出题前必须对照并在题中引用条目 | 新增片段即自动入表；发现取代或矛盾时在 `relations.txt` 加一行 | 即时 |
 | `adr/`（生成，源文件在 `adr/src/`） | 架构决策（状态：提议 / 已采纳 / 已被取代 / 已废弃；已采纳正文冻结，见 §12），每份 ADR 一个源文件 `adr/src/ADR-NNNN.md` | 产生或改变决策时 | 即时 |
 | `CONFIG_CHANGELOG.md` | 配置类变更（DMN、编号、口径、政策参数）的版本与生效日期，只追加（§12.2） | 起草配置变更的会话 | 即时 |
-| `MODERNIZATION_BRIEF.md` | 阶段计划与入口 / 出口条件（勾选即进度） | 条件满足时只勾选，不改写条件 | 即时 |
+| `MODERNIZATION_BRIEF.template.md` | 阶段计划与入口 / 出口条件（勾选即进度；`MODERNIZATION_BRIEF.md` 由它生成，不入仓） | 条件满足时只勾选，不改写条件 | 即时 |
 | `SECURITY_FINDINGS.md`、`glossary/`、`DS_GAPS.md`、`RULE_REVIEWS.json` | 各专题的状态 | 对应会话 | 即时 |
 | 跨会话记忆（`~/.claude/projects/.../memory/`） | 只放长期偏好与授权（全程中文、设计正本写入授权等） | 会话 | 用户给出长期规则时 |
 | `~/.modernize/psa/`（权限 600） | 凭据原值、凭据补丁 | 安全会话 | 仅本机，永不进任何可共享文件 |
@@ -76,7 +76,7 @@
 
 ## 4. 收尾协议（结束前，或上下文接近上限时）
 
-0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`phase1a/infra/LEGACY_READ_REGISTER.md`（源为 `phase1a/infra/legacy-read/` 片段，用 `new_legacy_read.py` 新增；不入仓）、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief、提议术语清单连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
+0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`phase1a/infra/LEGACY_READ_REGISTER.md`（源为 `phase1a/infra/legacy-read/` 片段，用 `new_legacy_read.py` 新增；不入仓）、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、`adr/INDEX.md`、brief、提议术语清单、`frameworks/` 两个索引、`panorama/FREEZE_*` 都不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」；2026-10-22 起扩大到后几项，git 原则：生成产物不进 main），只提交片段或源，CI 的「generated docs match fragments」一步只要求能生成、重新生成前后一致；main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
 1. 把本会话的决定（用户原话）用 `python3 docs/modernization/new_intent.py --session=<会话名> "<原话>" "<落点>"` 新增为 `intent/` 片段，并写进相应 ADR 的源文件 `adr/src/`。
 2. 勾选 brief 中已满足的条件；不满足的不勾，不改写条件。
 3. 用 `python3 docs/modernization/new_log.py <会话名> "<工作单元>"` 新增一条会话日志片段（模板见 §8），填好各项，写明下一条要运行的命令。
@@ -180,7 +180,7 @@
 - 多个会话可以同时进行，但只在**互不相交的工作单元**上（不同 BC、不同阶段的不同步骤）。
 - 写代码的并行会话各用自己的 git worktree 和分支（`feature/issue-{N}-…`），互不共享工作目录。不论写代码、写文档还是运维，都不在主检出目录工作。
 - **子代理还是会话**（用户 2026-10-15 对「子代理还是会话」评估的三条改进答「采纳」）：边界清楚、交付一个 PR、需要用户拍板的事不超过一两件、数小时内完成的（运维执行、CI / 流水线、复审、文档整理、生产只读取证）派子代理；长期工作线、需反复问用户、需再派子代理并行或需主会话专属工具（如 DesignSync）的开独立会话。开发线开会话、会话内用子代理并行；调度会话用子代理做横向基础设施与复审。
-- 共享记录按「一条记录一个文件」组织（`intent/`、`session-log/`、`status/`、`adr/src/`），各会话新增自己的片段、只改自己认领单元的文件，因此并行分支之间不再在同一文件上冲突；提议术语清单 `backend/glossary/proposed/README.md` 同样由 `proposed/*.yaml` 生成，加术语只改 yaml，不改 README。生成产物（含该 README）若冲突，取任一边后重新运行 `build_all.py` 并提交结果，不要手工合并产物；冲突在 yaml 里时照常合并 yaml，再重新生成。
+- 共享记录按「一条记录一个文件」组织（`intent/`、`session-log/`、`status/`、`adr/src/`），各会话新增自己的片段、只改自己认领单元的文件，因此并行分支之间不再在同一文件上冲突；提议术语清单 `backend/glossary/proposed/README.md` 同样由 `proposed/*.yaml` 生成，加术语只改 yaml，不改 README。该 README 与其他不入仓的生成产物（见本节第 0 条）不会出现在 diff 里；若合并时它们因对方分支改过而显示「一边删除、一边修改」，执行 `git rm --cached <文件>`（保留不入仓），绝不要保留对方版本——`build_all.py --check` 会因「被忽略的产物被跟踪」失败；仍入仓的产物（如 `terms.yaml`）若冲突，取任一边后重新运行 `build_all.py` 并提交结果，不要手工合并产物；冲突在 yaml 里时照常合并 yaml，再重新生成。
 - **公共基础先行**（用户 2026-10-14 对 1a 大修原因分析的五条建议答「采纳」）：并行写业务之前，先由一个代理建好并冻结共用构件——聚合基类与版本模型、状态机、事件信封、错误链（领域异常 → ErrorCode → ProblemDetail）、前端共用包（API 客户端、错误码、共用模型）。功能代理只使用这些构件，不各自另造；需要改共用构件时停下报告，由整合者统一改。
 - **小批复审**（同上）：每个代理交付后先单独做 opus 复审（§14、§14.1），通过后才整合；整合后再做一次整体复审。复审结论到达前不合并（调度会话合并规则）。
 - 会话之间用 `ListAgents` / `SendMessage` 打招呼（例如「我改了 platform.identity 的 api，你那边需要重新编译」）。
@@ -282,7 +282,7 @@
 15. **重启前后**（用户 2026-10-21 采纳，intent 2026-10-21-213907）：用户要重启 app 或电脑时，调度先给所有在用会话发「立即写交接」，逐个核对已推送交接、无后台任务在跑，导出全部在途卡清单（tasks 片段状态为已派/进行中/阻塞者），全部完成后才答复可以重启；重启后照清单逐项恢复并对账。台账只写指针，卡的状态以 tasks 片段为准。
 
 **用户授权调度会话自行决定的事**
-- 审核 PR 并批准入队（用户 2026-10-14：「合 PR 交给你审核，决定权给你」；2026-10-16 起合并执行归 one-merge）。合并前核对：产出与报告一致、生成文件可重现、无凭据原值、与 main 无冲突；变更治理（§12）：已采纳 ADR 的 diff 只有头部可变字段（新稿：状态、日期、被部分取代、理由；旧稿：状态行按 `adr/README.md`「ADR 生命周期与变更规则」第 1 节允许的改动）；勘误登记核对不改变决定含义，性质登记核对有用户原话（ADR 规则修订，intent 134434）；`build_adrs.py` 校验通过，已应用的 Flyway 脚本未被修改，代码类改动能对上 `RULE_REVIEWS.json` 中的规则结论。
+- 审核 PR 并批准入队（用户 2026-10-14：「合 PR 交给你审核，决定权给你」；2026-10-16 起合并执行归 one-merge）。合并前核对：产出与报告一致、生成文件可重现、无凭据原值、与 main 无冲突；变更治理（§12）：已采纳 ADR 的 diff 只有头部可变字段（新稿：状态、日期、被部分取代、理由；旧稿：状态行按 `adr/src/_readme_*.md`（生成为 adr/README.md）「ADR 生命周期与变更规则」第 1 节允许的改动）；勘误登记核对不改变决定含义，性质登记核对有用户原话（ADR 规则修订，intent 134434）；`build_adrs.py` 校验通过，已应用的 Flyway 脚本未被修改，代码类改动能对上 `RULE_REVIEWS.json` 中的规则结论。
 - main 受分支保护（用户 2026-10-14：「只要求 CI 三项通过」）：任何改动（含调度会话自己的 STATUS / INTENT 记录）都经 PR 合入，CI 三项通过后由调度批准入队、one-merge 执行合并。
 - 是否需要新开工作会话、如何划分（用户 2026-10-14：「是否需要新会话这种决策权交给你」）。会话由用户按调度会话给出的名称新开。
 
@@ -302,10 +302,10 @@
 
 ### 12.1 ADR：不改正文，用新 ADR 取代
 
-- 已采纳的 ADR 正文冻结，只允许改头部可变字段（新稿：状态、日期、被部分取代、理由；旧稿：状态行按 `adr/README.md` 第 1 节允许的两类改动）（ADR 规则修订，intent 134434）。决定上的任何变化（修订、补充、例外）都新增一份 ADR，在「取代」中写明被取代的 ADR 与范围（写法见 `adr/README.md`「ADR 生命周期与变更规则」第 4 节：以 `ADR-NNNN` 开头，范围到小节加条号，不超过 30 字）；同一提交中把旧 ADR 改为「已被 ADR-00yy 取代」，或在其「被部分取代」字段（旧稿为状态行括注）加一项，正文保留。
-- 状态集、取代写法、必备小节见 `adr/README.md`「ADR 生命周期与变更规则」。ADR 一律从源文件 `adr/src/ADR-NNNN.md` 由 `adr/build_adrs.py` 生成（经 `build_all.py`），不手改 `adr/ADR-*.md` 与 `adr/README.md`；生成器在状态不合法、新 ADR 缺必备小节、取代未同步标注时失败。
+- 已采纳的 ADR 正文冻结，只允许改头部可变字段（新稿：状态、日期、被部分取代、理由；旧稿：状态行按 `adr/src/_readme_*.md`（生成为 adr/README.md） 第 1 节允许的两类改动）（ADR 规则修订，intent 134434）。决定上的任何变化（修订、补充、例外）都新增一份 ADR，在「取代」中写明被取代的 ADR 与范围（写法见 `adr/src/_readme_*.md`（生成为 adr/README.md）「ADR 生命周期与变更规则」第 4 节：以 `ADR-NNNN` 开头，范围到小节加条号，不超过 30 字）；同一提交中把旧 ADR 改为「已被 ADR-00yy 取代」，或在其「被部分取代」字段（旧稿为状态行括注）加一项，正文保留。
+- 状态集、取代写法、必备小节见 `adr/src/_readme_lifecycle.md`「ADR 生命周期与变更规则」。ADR 一律从源文件 `adr/src/ADR-NNNN.md` 由 `adr/build_adrs.py` 生成（经 `build_all.py`；生成的 `adr/ADR-*.md`、`adr/README.md`、`adr/INDEX.md` 不入仓，本地运行 `build_all.py` 或看 generated-docs 分支），不手改它们；生成器在状态不合法、新 ADR 缺必备小节、取代未同步标注时失败。
 - 新 ADR 必须写**影响面、迁移方案、回滚方案、需同步修改的守护规则**；守护规则（ArchUnit、词表、DDL、前端 lint 等）与 ADR 采纳在同一个 PR 或紧随其后的 PR 中修改，ADR 中写明是哪一个。
-- 提议稿落 `adr/src/`，不放 `architecture/proposals/`；起草前先用 `new_adr.py` 开空壳 PR 占号，空壳合入 main 即占号，之后的草稿与评审按 `adr/README.md` 第 8、9 节（ADR 规则修订，intent 134434）。
+- 提议稿落 `adr/src/`，不放 `architecture/proposals/`；起草前先用 `new_adr.py` 开空壳 PR 占号，空壳合入 main 即占号，之后的草稿与评审按 `adr/src/_readme_*.md`（生成为 adr/README.md） 第 8、9 节（ADR 规则修订，intent 134434）。
 - 过去用「修订稿」「Proposed revision」改 ADR 的做法停止；brief 的入口 / 出口条件仍按 brief 自身的约定追加 `Proposed revision:` 行（brief 不是 ADR）。
 
 ### 12.2 规则调整的三类
@@ -349,7 +349,7 @@
 
 ### 12.5 什么进 ADR，什么进本手册（ADR 规则修订，intent 134434）
 
-协作规则（会话、协议、调度、报告与派工约定）今后只写本手册，不为其开 ADR；ADR-0020 的协作规则以本手册为准，其正文与状态不动（`adr/README.md`「勘误与历史偏差」第 3 节 N-001）。什么进 ADR、什么不进，判据与去处表见 `adr/README.md`「写什么、不写什么」。
+协作规则（会话、协议、调度、报告与派工约定）今后只写本手册，不为其开 ADR；ADR-0020 的协作规则以本手册为准，其正文与状态不动（`adr/src/_readme_*.md`（生成为 adr/README.md）「勘误与历史偏差」第 3 节 N-001）。什么进 ADR、什么不进，判据与去处表见 `adr/src/_readme_*.md`（生成为 adr/README.md）「写什么、不写什么」。
 
 ### 12.6 什么进 git（用户 2026-10-22）
 
