@@ -218,6 +218,11 @@ def test_arc09_consistent_duplicate_sources_merge_with_full_provenance(root):
     assert len(item['source']) == 3
 
 
+def rename_transition(root, name):
+    write(root, s.TRANSITIONS, {'transitions': [
+        {'id': 'OTR-001', 'aggregate': 'AGG-01', 'command': name, 'by_command': None}], 'pending': []})
+
+
 def registry(root):
     return s.read(root, s.OUTPUT / 'command-ids.yaml')['ids']
 
@@ -229,7 +234,9 @@ def test_arc04_seed_preserves_every_existing_id_and_checks_registry_bytes(root):
     seed[0]['id'] = custom
     write(root, s.OUTPUT / 'commands.yaml', {'commands': seed})
     (root / s.OUTPUT / 'command-ids.yaml').unlink()
-    s.generate(root)
+    with pytest.raises(ValueError, match='缺失.*--seed'):
+        s.generate(root)
+    s.generate(root, seed=True)
     expected = {(row['aggregate'], row['name']): row['id'] for row in seed}
     assert {(row['aggregate'], row['name']): row['id'] for row in registry(root)} == expected
     assert all(not row['retired'] and row['former_names'] == [] for row in registry(root))
@@ -254,9 +261,13 @@ def test_arc04_declared_rename_keeps_id_for_commands_and_matrix(root, group):
     write(root, s.CLOSEOUT / group / 'commands.yaml', {'commands': [
         command(name='注册对象', former_names=['登记对象'])]})
     write(root, s.CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml', {'entries': [matrix(name='注册对象')]})
+    with pytest.raises(ValueError, match='OTR-001.*仍用旧名「登记对象」.*注册对象'):
+        s.generate(root)
+    rename_transition(root, '注册对象')
     s.generate(root)
     commands = s.read(root, s.OUTPUT / 'commands.yaml')['commands']
     assert len(commands) == 1 and commands[0]['id'] == ident
+    assert s.read(root, s.TRANSITIONS)['transitions'][0]['by_command'] == ident
     assert commands[0]['in'] == ['commands', 'matrix']
     row = next(row for row in registry(root) if row['id'] == ident)
     assert row == dict(id=ident, aggregate='AGG-01', name='注册对象', former_names=['登记对象'], retired=False)
@@ -337,6 +348,7 @@ def test_arc04_alias_claim_in_later_group_applies_to_earlier_group(root):
     write(root, s.CLOSEOUT / 'revenue/commands.yaml', {'commands': [
         {**renamed, 'former_names': ['登记对象']}]})
     write(root, s.CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml', {'entries': [matrix(name='注册对象')]})
+    rename_transition(root, '注册对象')
     s.generate(root)
     commands = s.read(root, s.OUTPUT / 'commands.yaml')['commands']
     assert len(commands) == 1
@@ -366,4 +378,12 @@ def test_arc04_duplicate_claim_across_aggregates_is_rejected(root):
     write(root, s.CLOSEOUT / 'people/commands.yaml', {'commands': [
         command('AGG-02', '创建对象', former_names=['旧操作'])]})
     with pytest.raises(ValueError, match='旧名重复声明'):
+        s.generate(root)
+
+
+def test_arc04_unregistered_former_name_is_rejected(root):
+    s.generate(root)
+    write(root, s.CLOSEOUT / 'finance/commands.yaml', {'commands': [
+        command(name='注册对象', former_names=['登记对像'])]})
+    with pytest.raises(ValueError, match='旧名未登记'):
         s.generate(root)

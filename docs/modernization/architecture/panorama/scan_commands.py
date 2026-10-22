@@ -87,13 +87,16 @@ def former_names(row, allow_empty=False):
     return names
 
 
-def registered_ids(root):
-    path = OUTPUT / 'command-ids.yaml'
+def registered_ids(root, seed=False):
+    path, source = OUTPUT / 'command-ids.yaml', OUTPUT / 'commands.yaml'
     if (root / path).exists():
         return rows(read(root, path), 'ids')
-    seed = OUTPUT / 'commands.yaml'
+    if not (root / source).exists():
+        return []   # 初始化：两个文件都不存在
+    if not seed:
+        raise ValueError(f'{path} 缺失；退役记录与旧名会丢失。确需从 {source} 重新起底，用 --seed')
     return [dict(id=row['id'], aggregate=row['aggregate'], name=row['name'], former_names=[], retired=False)
-            for row in rows(read(root, seed), 'commands')] if (root / seed).exists() else []
+            for row in rows(read(root, source), 'commands')]
 
 
 def registry_index(registry):
@@ -127,6 +130,10 @@ def resolve_ids(registry, declarations):
             claims[name] = key
             if alias not in index and any(old == name for _, old in index):
                 raise ValueError(f'旧名跨聚合：{key} / {name}')
+    for key, names in declarations.items():
+        for name in names:
+            if (key[0], name) not in index:
+                raise ValueError(f'旧名未登记：{key} 声明的 {name} 不在编号登记中')
     used = {}
     for key in sorted(declarations):
         candidates = {index[alias]['id']: index[alias] for alias in
@@ -265,7 +272,8 @@ def built_commands(root):
     return sorted(result, key=lambda item: (item['aggregate'], item['class']))
 
 
-def fill_transitions(text, commands):
+def fill_transitions(text, commands, renamed=None):
+    renamed = renamed or {}
     data, tree = document(text)
     index = {(item['aggregate'], item['name']): item['id'] for item in commands}
     replacements, statistics, seen = [], {}, set()
@@ -293,6 +301,8 @@ def fill_transitions(text, commands):
             raw = text[value.start_mark.index:value.end_mark.index]
             if value.start_mark.index < field.end_mark.index or '&' in raw:
                 raise ValueError(f'{ident}: by_command 不支持 YAML 锚点或别名')
+            if key not in index and key in renamed:
+                raise ValueError(f'{ident}: 转换的命令原文仍用旧名「{key[1]}」，请同步改为「{renamed[key]}」')
             target = index.get(key)
             if row['by_command'] != target:
                 replacement = target or 'null'
@@ -346,11 +356,12 @@ def render(commands, built, counts, transitions):
     return model, '\n'.join(lines) + '\n'
 
 
-def generate(root=ROOT, check=False):
-    registry = registered_ids(root)
+def generate(root=ROOT, check=False, seed=False):
+    registry = registered_ids(root, seed)
     commands, counts = merge_commands(root, planned_aggregates(root), registry)
     built = built_commands(root)
-    transitions, stats = fill_transitions((root / TRANSITIONS).read_bytes().decode('utf-8'), commands)
+    renamed = {(row['aggregate'], old): row['name'] for row in registry if not row['retired'] for old in row['former_names']}
+    transitions, stats = fill_transitions((root / TRANSITIONS).read_bytes().decode('utf-8'), commands, renamed)
     model, gaps = render(commands, built, counts, stats)
     outputs = {OUTPUT / 'commands.yaml': model, OUTPUT / 'GAPS.md': gaps, TRANSITIONS: transitions,
                OUTPUT / 'command-ids.yaml': yaml.safe_dump({'ids': registry}, allow_unicode=True, sort_keys=False, width=200)}
@@ -369,9 +380,10 @@ def generate(root=ROOT, check=False):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--seed', action='store_true', help='编号登记缺失时从 commands.yaml 重新起底')
     args = parser.parse_args(argv)
     try:
-        generate(check=args.check)
+        generate(check=args.check, seed=args.seed)
         return 0
     except (OSError, UnicodeError, ValueError, yaml.YAMLError) as error:
         print(f'命令登记失败：{error}', file=sys.stderr)
