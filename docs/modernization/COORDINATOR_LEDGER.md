@@ -3,13 +3,21 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-22 20:15（one-coordinator，30% 线）
+更新：2026-10-22 21:00（one-coordinator，41% 交接）
 - **（已解除，用户 20:4x「你一次性到位」，总方案 GOV-1022-COO-15 见 ~/.modernize/psa/coordinator/team-audit/program.md）讨论期冻结（用户 10-22 晚）**：「我想和你很认真的讨论下所有会话的角色和工作方式，这是个过程，所以在我们讨论结束之前，不要有什么决定」——讨论结束前不改会话角色、画像、规则、协议，不开/并/退会话；日常派工、批 PR 照常；确认页 E1CEBZoJ5TCJJX5ncQzkwa A 组与 COO-09 推全员暂停，等讨论。
 - **20:15 现状**：讨论议题 2（任务卡规划、PR 拆分、清空节点）已给用户讨论稿（建议节点=卡交出 finish.py，不用 PR 合入；bc 开卡顺序 签发→骨架→命令→集成/页面；卡 1–3 PR；第一阶段派工卡为模板加目标/完成标准/前置卡号），等用户回三问；下一轮我出「守护覆盖哪些规则」总结。
 - 在途：one-1a-par W2 PR-B 草案 @0adc05a6d 等 one-data 签；one-data 做 DATA_SCORECARD 等；one-1a-admin #599 后开卡 C、INV-138/Q-B31-5 进收件箱；one-arch-revenue、one-arch-finance 已令自清，清空后我 list_events 确认再发接续（revenue→AGG-20/16/02；finance→BONUS_OVERTIME_COSTING §3 PRC-96/AGG-41）；one-quality 试点通过，在做 COO-10；#611 已批入队；one-merge 待收合集：one-1a-par-w2-versions @0adc05a6d、本分支最新。
 - 讨论进度：议题 1 开场注入已定 5 点（intent 本晚，全文 ~/.modernize/psa/coordinator/team-audit/discussion-1-injection.md），等讨论结束一起改；下一议题候选：守护覆盖哪些规则 / 任务卡由谁写。
 - 收件箱重排（用户 10-22 晚「好，照这样改」）：确认页 E1CEBZoJ5TCJJX5ncQzkwa 改为只留仓库内容治理 3 题（v2）；团队规则 7 题撤下并入讨论（用户撤前草选 TEAM-01、TEAM-02 推荐项，未提交，讨论时参考）；业务题攒齐出新页：INV-138 四项、Q-B31-5（one-1a-admin 写收件箱）、终止/取消项目复核（薪酬补发时限与提醒对象已在 FCQ 10-22 08:38 答，删）。
 - 21:0x 等用户 /clear 后我发接续：one-arch-revenue（→AGG-20/16/02）、one-rules（48%，→先写待用户清单进收件箱再做卡 C T-R/RUL）、one-glossary（71%，→glossary/HANDOFF_20261022.md 待办①起）。自清只限 one-quality 试点，别再让其他会话自清（钩子写着不要）。记忆删除等 @427318381 合入后先备份；三条 handoff-* 记忆待办待开卡（one-1a-par）。迁入写入通道两卡（NX5-08、par 日历）前置已解除。
+- **21:00 交接（清空后先读这条）**：团队优化总方案 GOV-1022-COO-15（用户授权「一次性到位」，intent 203954，全文 ~/.modernize/psa/coordinator/team-audit/program.md；同目录 implementation-check.md 为落实核查：已落实 24、部分 13、未落实 1）。在途：
+  - opus 子代理在写新 PB 规则表草稿 → ~/.modernize/psa/coordinator/team-audit/pb/（SESSION_PLAYBOOK.new.md、DATA_DESIGN_CHECKLIST.md、mapping.md、guards-todo.md）；文件齐了我审→sonnet 子代理在本分支落地（含 mapping 里的引用同步改）→报 one-merge。文件不在就重派同一提示（见 program 第三节批 2）。
+  - opus 审题收件箱 one-rules 12 项（RULE-265、311、A10、补登卡 8 张、卡 C 发生日），结论若丢失重派；按结论撤/改题。
+  - one-quality 队列：自清推全员（node_handoff 改排除名单、兜底文案改自清）→COO-13 开工单+画像删节（可改 PB §2.1 第16条）→finish.py→守护①–⑦→cron 迁工作流→仓库内容治理→COO-17 绕过补漏；#616 已批待 CI。
+  - one-merge：改 mq.py（PR 评论批准「调度批准入队 head <sha>」、合入通知、钩子 PR 列需重启会话）；收文档合集含本分支 @427318381 起（新 CLAUDE.md、记忆移仓），合入后我备份再删记忆（memory-plan.md）。
+  - 画像 15 份重写等 COO-13 合入后按 program 第一节一次改（含 75/85 残留）。
+  - one-1a-par：W2 PR-B（裁定 -05 已进 main，入队前确认 A8 同步已停）→日历迁入通道→登记 3 条 handoff 记忆卡与 KERNEL_REASON_REQUIRED 卡（卡号回来后删那三条记忆）。one-1a-next-5：search_path→NX5-08 编号迁入。one-arch-finance：AFI-02 阻塞等 one-architecture S-5（AGG-137 并入 AGG-05）。one-arch-revenue：AGG-20/16/02。one-rules：卡 C 等 one-1a-admin 贴 §11.2 原文。one-glossary：待办②起。one-data：等各 PR；收件箱 T-D10 待用户。
+  - 清空规则：除 coordinator、architecture 外由我管，现钩子未推全员前，会话到线先写交接，等 one-quality PR 合入再自清；我清空要用户 /clear（或 one-merge 重开远程+发接续）。
 - 接手先做：ReadNotifications；`ls -t ~/.modernize/psa/outbox/`；`gh pr list` + `mq.py status`；逐个查开发会话前置是否满足（不得再犯：只盯合并）；intent 2026-10-22-15* 起为今日下午决定。
 - 下午已定（intent）：交接阈值 30%/40%（154722，§2.1 已改并进 main #602）；降负载不得牺牲开发机功能（151546）；仓库内容治理四项交 one-quality（153421，GOV-1022-COO-06）；one-ops search_path 三项「都做」（155217）。
 - 在开 PR：#603（已批，队列）；#587（已批，等 one-platform-file 解冲突+openapi）；#604 KERR（one-1a-par，等 opus+CI）；#599 REG-3（等 one-data 签发与 M1 裁定，验收补丁按 RULING-COORD-20261022-03）；#589（已批，one-quality）；#606 钩子三合一（守护文件，单列 opus）。
