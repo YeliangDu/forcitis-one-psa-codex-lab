@@ -132,3 +132,11 @@ platform_x.state_transitions:   # 实际写原 schema 的名字
 2. 字段每项三个键齐全，`aggregate_type_code` 必须出现在原 schema 的 `ck_state_transitions_aggregate_type_code` 取值里（历史行还在）且**也**出现在接收 schema 同名 CHECK 里，`to_schema` 必须是已登记的 schema，`transferred_on` 不得晚于当天；这几点由 `DataArchitectureTest` 校验（随移交 PR 加）；
 3. 同一 `aggregate_type_code` 只能移交一次，不得出现在两个 schema 都标「现行」；
 4. 本字段只做登记与投影排除，不改表结构。
+
+## 14. AGG-116 员工活动申请（7.8）三处裁定（答 one-1a-admin G-4、G-5、G-11；2026-10-22）
+
+1. **法人口径（G-4）**：`employee_activity_requests.legal_entity_id uuid NOT NULL` = **申请人在业务日期当天的任职法人归属**（`organization.workforce` 的员工法人归属读取接口，按生效日取；缺归属失败告警，不默认——ADR-0058「来源不确定时失败」）。周年自动生成的申请，申请人栏是周年员工，取该员工**在周年日期当天**的法人归属。费用归申请人的法人；参与人可属其他法人，先行期不做跨法人费用分摊（CS-1.8），参与人不带法人列。状态转换行的 `legal_entity_id` 取同一值。前置：人事提供五家法人员工归属表（`MIGRATION_QUALITY_CHECKS.md` 第 7 节 B-1），缺归属的申请先行期失败。
+2. **金额（G-5）**：`estimated_amount numeric(19,2) NOT NULL` + `estimated_currency text NOT NULL`。理由：`kernel.Money` 按 2 位小数 HALF_UP 归一，库内小数位必须与领域值一致；列名按 NAMING_STANDARD §2.4 的 `<名>_amount` + `<名>_currency` 成对写法（币种 ISO 4217，`text` + 具名格式 CHECK `^[A-Z]{3}$`），不用 `_currency_code`。具名 CHECK `estimated_amount >= 0`。本卡是金额列首批，我随后让扫描脚本 M1 同时认 `currency` 与 `currency_code` 两种配对（规格里我写窄了，以 NAMING 为准）。
+3. **审计列与版本列（G-11）**：申请表（聚合根）带 `version bigint NOT NULL DEFAULT 0`（乐观锁）与 `event_count bigint NOT NULL DEFAULT 0`（事件序号，与 `version` 分开），与已有 AggregateRoot 表同款；**不建通用 `created_by`/`updated_by`**——设计 §3.1 那一条取消：谁创建、谁改状态已有业务语义列（`applicant_id`、`cancelled_by` 等）和 `state_transitions.actor_id`，通用 `_by` 与安全审计重复且增加人员标识列。`created_at`、`updated_at` 照常（命名守护要求），时间由应用注入。
+   - 说明：NAMING_STANDARD §2.3 把 `created_by`、`updated_by` 列在审计列里，但 main 上的聚合表实际只有 `platform_integration` 一份基线带 `created_by`，其余都没有、命名守护也不要求；本裁定沿用现有基线实践。若 one-architecture 认为 NAMING 字面要求所有聚合表带这两列，请其判定并通知我，届时改 NAMING 或改本条，不在各表自行取舍。
+4. 前置卡 A（`config_sets`、`config_set_versions`、`employee_activity_type_items`、schema 基线、`state_transitions`）的拆法：同意；`state_transitions` 的聚合类型与状态取值并集随基线按 AGG-116 登记，模板列名用 `transition_sequence_number` 等已更正名。
