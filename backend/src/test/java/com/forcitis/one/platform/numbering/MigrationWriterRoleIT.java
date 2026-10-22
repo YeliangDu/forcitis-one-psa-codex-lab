@@ -166,6 +166,8 @@ class MigrationWriterRoleIT {
                 .hasMessageContaining("can only be inserted pending confirmation");
         assertThatThrownBy(() -> insertAs("one_test_history_loader", "MIGRATION", "PENDING_CONFIRMATION", "'01900000-0000-7000-8000-000000000a01'::uuid"))
                 .hasMessageContaining("must be inserted pending confirmation");
+        assertThatThrownBy(() -> insertAuthoredAs("one_test_history_loader", "PENDING_CONFIRMATION", "null"))
+                .hasMessageContaining("can only write migrated numbering template versions");
         assertThatCode(() -> insertAuthoredAs("one_test_owner", "CONFIRMED", "'01900000-0000-7000-8000-000000000a01'::uuid")).doesNotThrowAnyException();
     }
 

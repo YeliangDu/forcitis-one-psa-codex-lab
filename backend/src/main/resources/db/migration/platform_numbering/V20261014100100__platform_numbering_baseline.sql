@@ -234,11 +234,14 @@ BEGIN
                                                                    ELSE platform_numbering.is_owner_member(TG_RELID) END) THEN
         RAISE EXCEPTION 'a numbering template version that is not authored (%) can only be written by a migration', NEW.source_kind USING ERRCODE = 'restrict_violation';
     END IF;
+    IF NEW.source_kind = 'MIGRATION' AND (NEW.status <> 'PENDING_CONFIRMATION' OR NEW.confirmed_by IS NOT NULL OR NEW.finance_confirmed_by IS NOT NULL) THEN
+        RAISE EXCEPTION 'a migrated numbering template version must be inserted pending confirmation' USING ERRCODE = 'restrict_violation';
+    END IF;
     IF NOT platform_numbering.is_owner_member(TG_RELID) AND (NEW.status <> 'PENDING_CONFIRMATION' OR NEW.confirmed_by IS NOT NULL OR NEW.finance_confirmed_by IS NOT NULL) THEN
         RAISE EXCEPTION 'a numbering template version can only be inserted pending confirmation by this role' USING ERRCODE = 'restrict_violation';
     END IF;
-    IF NEW.source_kind = 'MIGRATION' AND (NEW.status <> 'PENDING_CONFIRMATION' OR NEW.confirmed_by IS NOT NULL OR NEW.finance_confirmed_by IS NOT NULL) THEN
-        RAISE EXCEPTION 'a migrated numbering template version must be inserted pending confirmation' USING ERRCODE = 'restrict_violation';
+    IF NEW.source_kind = 'AUTHORED' AND NOT platform_numbering.is_owner_member(TG_RELID) AND platform_numbering.is_migration_writer(TG_RELID) THEN
+        RAISE EXCEPTION 'the migration role can only write migrated numbering template versions' USING ERRCODE = 'restrict_violation';
     END IF;
     RETURN NEW;
 END;
