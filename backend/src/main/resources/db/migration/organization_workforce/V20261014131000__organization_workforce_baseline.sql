@@ -580,7 +580,7 @@ CREATE TABLE organization_workforce.personnel_commands (
     target_position_id            uuid,
     target_reports_to_employee_id uuid,
     is_target_fee_earner          boolean,
-    target_employment_phase_kind       text,
+    target_employment_phase_kind  text,
     is_target_on_unpaid_leave     boolean,
     org_structure_command_id      uuid,
     applied_at                    timestamptz,
@@ -661,7 +661,7 @@ CREATE TABLE organization_workforce.employee_versions (
     effective_to_date           date,
     revision_number             integer     NOT NULL DEFAULT 0,
     employment_status           text        NOT NULL,
-    employment_phase_kind            text,
+    employment_phase_kind       text,
     is_on_unpaid_leave          boolean     NOT NULL,
     is_fee_earner               boolean     NOT NULL,
     employment_start_date       date,
@@ -729,7 +729,7 @@ COMMENT ON COLUMN organization_workforce.employee_versions.created_at IS '创建
 COMMENT ON COLUMN organization_workforce.employee_versions.updated_at IS '更新时间';
 
 -- 员工版本只追加：关闭列与作废列各只能由空变非空一次，其余列不变；DELETE 只放行表属主（离职满 10 年的清除函数，W2 设计第 8 节）。
-CREATE FUNCTION organization_workforce.refuse_employee_version_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_workforce.refuse_employee_version_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     owner_name name;
     column_name text;
@@ -762,7 +762,7 @@ CREATE TRIGGER tg_employee_versions_append_only_truncate BEFORE TRUNCATE ON orga
     FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_employee_version_rewrite();
 
 -- 人事命令只追加：状态只能前进，时刻列只能由空变非空一次，内容列不变；DELETE 只放行表属主。
-CREATE FUNCTION organization_workforce.refuse_personnel_command_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_workforce.refuse_personnel_command_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     owner_name name;
     column_name text;

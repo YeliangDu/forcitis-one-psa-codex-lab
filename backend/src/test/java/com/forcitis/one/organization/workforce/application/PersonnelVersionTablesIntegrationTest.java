@@ -63,7 +63,7 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
     }
 
     @Test
-    @DisplayName("W2 PR-B a migrated employee whose start date is unknown is stored with the basis UNKNOWN and an empty date, and stays out of the month-day index")
+    @DisplayName("W2 PR-B a migrated employee whose start date is unknown is stored with the basis UNKNOWN and an empty date.")
     void unknownStartIsStorable() {
         version(V1, "2026-01-01", null, "EMPLOYED", null, "UNKNOWN", "MIGRATION", "null", null);
 
@@ -117,6 +117,18 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
                 .hasMessageContaining("is set once");
         assertThatThrownBy(() -> jdbc.sql("update organization_workforce.personnel_commands set status = 'EFFECTIVE', applied_at = now()" + other).update())
                 .hasMessageContaining("cannot move");
+    }
+
+    @Test
+    @DisplayName("W2 PR-B a held separation can be withdrawn but cannot go back to pending")
+    void heldCommandMovesOnlyForward() {
+        String where = " where personnel_command_id = " + COMMAND;
+        jdbc.sql("update organization_workforce.personnel_commands set status = 'HELD', updated_at = now()" + where).update();
+
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.personnel_commands set status = 'PENDING'" + where).update())
+                .hasMessageContaining("cannot move");
+        assertThat(jdbc.sql("update organization_workforce.personnel_commands set status = 'WITHDRAWN', withdrawn_at = now(), withdrawn_by = " + USER
+                + ", withdrawal_reason = 'not leaving', updated_at = now()" + where).update()).isEqualTo(1);
     }
 
     @Test
