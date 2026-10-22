@@ -108,6 +108,7 @@ PR_CREATE = re.compile(r"(?:^|[;&|(\s/])gh\s+pr\s+(?:create|new)(?![\w-])")
 GIT_PUSH = re.compile(r"(?:^|[;&|(\s/])git\s+(?:(?:-[cC]\s+\S+|--[\w-]+(?:=\S+)?)\s+)*push(?![\w-])")
 GIT_COMMIT = re.compile(r"(?:^|[;&|(\s/])git\s+(?:(?:-[cC]\s+\S+|--[\w-]+(?:=\S+)?)\s+)*commit(?![\w-])")
 MESSAGE_TOOLS = ("send_message", "SendMessage")
+QUOTED = re.compile(r"\"[^\"]*\"|'[^']*'")
 
 
 def task_done_in_head(root):
@@ -116,11 +117,38 @@ def task_done_in_head(root):
     return result.returncode == 0 and re.search(r"^\+状态:\s*完成\s*$", result.stdout, re.M) is not None
 
 
+def turn_used_tools(path):
+    """True when the assistant ran a tool since the last real user message (a user message that is not just tool results)."""
+    try:
+        size = os.path.getsize(path)
+        with open(path, "rb") as stream:
+            stream.seek(max(0, size - TAIL_BYTES))
+            lines = stream.read().split(b"\n")
+    except (OSError, TypeError):
+        return False
+    used = False
+    for raw in reversed(lines):
+        try:
+            entry = json.loads(raw)
+        except ValueError:
+            continue
+        message = entry.get("message") if isinstance(entry, dict) else None
+        if not isinstance(message, dict) or entry.get("isSidechain"):
+            continue
+        content = message.get("content")
+        if entry.get("type") == "assistant" and isinstance(content, list) and any(isinstance(c, dict) and c.get("type") == "tool_use" for c in content):
+            used = True
+        if entry.get("type") == "user":
+            if isinstance(content, str) or (isinstance(content, list) and any(isinstance(c, dict) and c.get("type") != "tool_result" for c in content)):
+                return used
+    return used
+
+
 def node_of(payload, event, root, config):
     """The handover node this event is, or None: Stop (a turn ended), a Bash that ran `gh pr create` / `git push`, a commit that set a task to 完成,
     a message to one-coordinator that is not itself the clear notice."""
     if event == "Stop":
-        return "一轮结束"
+        return "一轮结束" if turn_used_tools(payload.get("transcript_path")) else None  # a turn that only answered a question is not a node
     if event != "PostToolUse":
         return None
     tool = str(payload.get("tool_name") or "")
@@ -129,6 +157,7 @@ def node_of(payload, event, root, config):
         command = tool_input.get("command")
         if not isinstance(command, str):
             return None
+        command = QUOTED.sub(" ", command)  # text inside quotes (a commit message, an echo) is not a command
         if PR_CREATE.search(command):
             return "已开 PR"
         if GIT_PUSH.search(command) and "--dry-run" not in command:
@@ -851,19 +880,35 @@ def self_test():
         assert fire("PostToolUse", 250, 3002.0, session="nd1", extra=bash("git push origin b")) is None, "cooldown: said once per 10 minutes"
         again = text(fire("PostToolUse", 250, 3001.0 + NODE_COOLDOWN_SECONDS + 1, session="nd1", extra=bash("git -C /w push -u origin b")))
         assert again and "已推送" in again, again
-        for command in ("git push --dry-run", "git pushd", "git status", "ls", "echo 'gh pr create'", "gh pr view 3", "gh pr checks 3"):
+        for command in ("git commit -m \"修 git push 守护\"", "echo 'x gh pr create'", "git push --dry-run", "git pushd", "git status", "ls", "echo 'gh pr create'", "gh pr view 3", "gh pr checks 3"):
             assert fire("PostToolUse", 250, 4000.0, session="nd-" + command, extra=bash(command)) is None, command
         sent = lambda target, message="状态": {"tool_name": "mcp__ccd_session_mgmt__send_message", "tool_input": {"session_id": target, "message": message}}
         assert "已向 one-coordinator 报告" in text(fire("PostToolUse", 250, 4001.0, session="nd2", extra=sent("local_coord")))
         assert fire("PostToolUse", 250, 4002.0, session="nd3", extra=sent("local_coord", "清空接续：one-test 交接在 x")) is None, "the clear notice itself is not a node"
         assert fire("PostToolUse", 250, 4003.0, session="nd4", extra=sent("local_other")) is None, "a message to another session is not a node"
         assert "已向 one-coordinator 报告" in text(fire("PostToolUse", 250, 4004.0, session="nd5", extra={"tool_name": "SendMessage", "tool_input": {"to": "one-coordinator", "message": "x"}}))
-        stop_node = fire("Stop", 250, 4005.0, session="nd6")
+        def turn_file(tokens, tool_use):
+            usage = {"input_tokens": tokens, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}
+            lines = [{"type": "user", "message": {"role": "user", "content": "请做点事"}}]
+            if tool_use:
+                lines += [{"type": "assistant", "message": {"model": "claude-test", "usage": usage, "content": [{"type": "tool_use", "name": "Bash"}]}},
+                          {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "content": "ok"}]}}]
+            lines.append({"type": "assistant", "message": {"model": "claude-test", "usage": usage, "content": [{"type": "text", "text": "好"}]}})
+            path = os.path.join(tmp, f"turn-{tokens}-{int(tool_use)}.jsonl")
+            write(path, "\n".join(json.dumps(x) for x in lines) + "\n")
+            return path
+
+        def stop_at(tokens, tool_use, session, now, **extra):
+            return handle("Stop", dict(payload, hook_event_name="Stop", session_id=session, transcript_path=turn_file(tokens, tool_use), **extra), root, now)
+
+        stop_node = stop_at(250, True, "nd6", 4005.0)
         assert stop_node and stop_node["decision"] == "block" and "一轮结束" in stop_node["reason"] and "【交接节点】" in stop_node["reason"], stop_node
-        assert fire("Stop", 250, 4006.0, session="nd7", extra={"stop_hook_active": True}) is None, "a continued stop is let through"
-        assert fire("Stop", 150, 4007.0, session="nd8") is None, "below min_percent a turn end is not a node"
+        assert stop_at(250, False, "nd6b", 4005.5) is None, "a turn that only answered a question (no tool ran) is not a node"
+        assert stop_at(250, True, "nd7", 4006.0, stop_hook_active=True) is None, "a continued stop is let through"
+        assert stop_at(150, True, "nd8", 4007.0) is None, "below min_percent a turn end is not a node"
+        assert turn_used_tools(turn_file(250, True)) is True and turn_used_tools(turn_file(250, False)) is False and turn_used_tools(os.path.join(tmp, "none.jsonl")) is False and turn_used_tools(None) is False
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "sessions": ["one-ops"]}}))
-        assert fire("Stop", 250, 4008.0, session="nd9") is None and fire("PostToolUse", 250, 4009.0, session="nd9", extra=bash("git push")) is None, "only the listed (pilot) sessions"
+        assert stop_at(250, True, "nd9", 4008.0) is None and fire("PostToolUse", 250, 4009.0, session="nd9", extra=bash("git push")) is None, "only the listed (pilot) sessions"
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "sessions": None}}))
         assert text(fire("PostToolUse", 250, 4010.0, session="nd10", extra=bash("git push"))), "sessions null = every session"
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}}))

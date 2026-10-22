@@ -9,6 +9,7 @@ Pre-filters only ever skip a gate whose own first step would have allowed the co
   bg_task_name_gate: always for Agent/Task, for Bash only when run_in_background is true.
 Quotes and backslashes are removed before the pre-filter looks (`gi"t" push` still reaches the gates, whose shell tokenisers see `git push`).
 Result: any gate exit != 0 refuses (exit 2, every refusing gate's stderr in order); stdout JSON warnings (additionalContext) are joined; stderr of allowing gates is passed on.
+Time limit: the entry in .claude/settings.json is 3100 s, above the sum of the two slow gates' own limits (pre_push 1400 + precheck_before_pr 1500), because a command such as `git push && gh pr create` runs both one after the other in this process; a hook killed by its time limit does not block.
 An error in the dispatcher itself refuses (exit 2): a crash would exit 1, which Claude Code treats as "do not block".
 Usage: pre_tool_dispatch.py  |  pre_tool_dispatch.py --self-test
 """
@@ -151,6 +152,9 @@ def self_test():
             expected_warn = expected_warn or bool(out.strip())
         code, out, err = dispatch(raw)
         assert (code != 0) == bool(expected_refusals), (command, code, err, expected_refusals)
+        if expected_refusals:
+            first = alone(expected_refusals[0], raw)
+            assert err.startswith(first[2].rstrip("\n")), (command, err, first[2])
         assert code in (0, 2), (command, code)
         assert bool(out.strip()) == (expected_warn and not expected_refusals), (command, out, expected_warn)
     assert stubbed >= 3, "the corpus must include commands that start precheck.sh (covered by the gates' own self-tests)"
