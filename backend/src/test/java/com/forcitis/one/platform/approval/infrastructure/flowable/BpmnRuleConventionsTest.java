@@ -100,6 +100,19 @@ class BpmnRuleConventionsTest {
     }
 
     @Test
+    @DisplayName("ADR-0066 decision 4: every process file declares exactly one forcitis:documentType code, a well-formed DocumentTypeCode")
+    void everyProcessDeclaresItsDocumentType() throws Exception {
+        for (ProcessKey key : ProcessKey.values()) {
+            try (InputStream in = getClass().getResourceAsStream("/processes/" + key.key() + ".bpmn20.xml")) {
+                BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);
+                List<org.flowable.bpmn.model.ExtensionElement> declared = model.getMainProcess().getExtensionElements().get("documentType");
+                assertThat(declared).as("forcitis:documentType of " + key).hasSize(1);
+                assertThat(new com.forcitis.one.kernel.DocumentTypeCode(declared.getFirst().getAttributeValue(null, "code")).value()).isNotBlank();
+            }
+        }
+    }
+
+    @Test
     @DisplayName("1a catalogue: a BPMN node that uses a deferred or a not-offered rule type does not load, and names the node and the type")
     void deferredAndNotOfferedTypesDoNotLoad() {
         for (String type : Stream.concat(AssignmentRuleCodec.DEFERRED_TYPES.stream(), AssignmentRuleCodec.NOT_BUILT_TYPES.stream()).toList()) {
