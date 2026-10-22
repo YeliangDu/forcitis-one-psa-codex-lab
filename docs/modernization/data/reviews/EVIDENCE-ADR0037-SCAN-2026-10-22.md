@@ -1,6 +1,6 @@
 # 取证文件留存核查（ADR-0037 底线①：明细与个人信息不进仓库）
 
-- 核查：one-data，2026-10-22；对象：origin/main 上全部 `evidence/` 目录下 115 个文件 = `docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/` 105 个（SQL 查询 98、结果与登记 7）+ `docs/modernization/data/evidence/` 10 个（SQL 查询 6、说明与汇总 3、扫描脚本 1）。注：`docs/modernization/evidence/` 目录不存在，调度所指应是这两处合计。
+- 核查：one-data，2026-10-22；对象：origin/main 上全部 `evidence/` 目录下 115 个文件 = `docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/` 105 个（绝大多数是 SQL 查询，其余是结果说明与列清单）+ `docs/modernization/data/evidence/` 10 个（SQL 查询、说明与汇总、1 个扫描脚本）。注：`docs/modernization/evidence/` 目录不存在，调度所指应是这两处合计。
 - 方法：脚本逐文件统计手机号、18 位证件号样式、邮箱、IP、凭据字样（`password`、`secret`、`jdbc:` 等）、姓氏开头的括号内 2–3 字片段、内含汉字的 SQL 字面量、`VALUES (`；只看计数；命中处再用「数字→#、汉字→字N」脱敏后看形状。没有把任何内容贴进会话。
 - 结果：**115 个文件均可留；没有发现明细或个人信息。**
   - 手机号、邮箱、IP：0 命中。
