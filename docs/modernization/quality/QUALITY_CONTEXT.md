@@ -146,3 +146,22 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - **#593** head 93615980f：opus 首轮（高：被误忽略的人写文件会丢修改）已修，sonnet 改后复核通过、结论已贴 PR；遗留后续项：全局 excludesFile 当作树内 .gitignore（低）、对 panorama.yaml 探测因 notes_build 先读垃圾而失败（#589 调序后缓解，仍建议用 stage 2/3 合法内容做种子）、--check 失败返回 conflict 语义（低）、自测补三个用例。CI 四绿后报 one-coordinator 批。
 - 工作区 `.claude/worktrees/xin-61164f` 当前停在文档分支 `claude/one-quality-handoff-1022`（本交接）；其余分支：gen-out-1/2、mq-ignored、task-status、generated-design、task-ledger。
 
+
+## 交接（2026-10-22 傍晚，上下文 32%，按新阈值 30%）
+
+### 现状
+- **#606**（提交信息钩子 + 后台任务命名钩子 + 交接档位 30/40）已合入 main。各工作区需重跑 `pre-commit install` 才有 commit-msg 钩子。
+- **#612**（GOV-1022-QUA-04 = COO-08 钩子降开销 + COO-09 会话交接全自动，分支 `claude/one-quality-hook-overhead`，head 见 PR）：已开，opus 首轮复审进行中（agent 后台跑，结果以通知为准）；precheck 31 PASS。实测 100 次工具调用 hook 进程 700→204、CPU 16.1s→5.1s。节点事件试点只开 one-quality（`context_windows.json` 的 `node_handoff`）。
+- **治理设计第二稿**：分支 `claude/one-quality-repo-governance` 提交 22e083a54（`quality/REPO_CONTENT_GOVERNANCE_DESIGN.md`）；生成产物设计分支 `claude/one-quality-generated-design` 提交 fda7fd6b3（已改为不建归档分支）。都待 one-coordinator 审后给用户。
+- #573、#593 已合入；#589 已推送合并 main 的修复，待入队。
+
+### 下一步
+1. 等 #612 复审结果→改必改项→贴结论到 PR→CI 绿后报 one-coordinator 批；合入后在 one-quality 上做**试点**：真走一遍写交接→发「清空接续：one-quality 交接在 <路径>」→clear_session(self)→等 one-coordinator 先 get_session 确认已清空再发「接续」→按交接接上；结果报 one-coordinator，由其改 §2.1 第 1 条与画像再推全员。
+2. 第 4 期（生成产物移出）开工前先报 one-coordinator（archive 分支已取消，改 git rm + ARCHIVE_INDEX.md，不需要用户设保护规则）。
+3. 其余：GOV-1022-COO-05 派工台账实现、QUA-05 评测收尾、网络规则 CI（见上一节交接）。
+
+### 坑
+- 工作区 `.claude/worktrees/xin-61164f` 是唯一能写的目录，各 PR 分支在它上面轮流 checkout，注意 `git branch --show-current`；opus 复审期间不要切分支（它读工作区）。
+- 提交信息现在要带任务号或 #PR 号（代码提交）；任务号本会话用 GOV-1022-QUA-03（#606）、GOV-1022-QUA-04（#612）。
+- 后台任务/子代理 description 必须是 `<任务号或 #PR号> <任务名> (<执行者>)`，Agent 调用也要。
+- 向 one-coordinator 发消息用 `mcp__ccd_session_mgmt__send_message` 的 `session_id`（local_10f279cb-81c7-4628-9080-2d5b1efd622d）。
