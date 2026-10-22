@@ -75,3 +75,18 @@
 **本期补充教训**：⑦CHECK 先于外键被评估，同一行违反两者时报 CHECK 错误码；⑧REG 类改动先 grep 验收目录里对旧 CHECK 名的引用（`P5Names` 等）并提前要裁定；⑨`git stash` 是共享栈，别用，换分支前把补丁存成文件；⑩推送命令不要和 `cd 临时目录` 放同一次调用（推送前钩子会按命令里的目录出错）。
 
 **15:50 增补**：#599 head 88827c3a 已含 opus 首轮修复；main 的 GOV-1022-QUA-01 把 `FREEZE_FACTS.md` 移出仓库——#546 分支（claude/nx5-p0-acceptance）里我曾重新生成过它，合 main 时 modify/delete 冲突，处理为 `git rm`。验收补丁路径 `…/scratchpad/reg3-acceptance.patch`（会话临时目录，若丢失按第 6 节要点重写：两文件 `AuditSubjectColumnsIT`、`P5Names`）。
+
+## 7. 2026-10-22 22:50 增补（上下文 30%，批次边界）
+
+| 项 | PR / 分支 | 状态 |
+|---|---|---|
+| RULE-412 守护（IMP-1022-NX5-07） | #607 | 已合入 |
+| 函数固定 search_path（IMP-1022-COO-03） | #622 | 批入队，条件 CI 全绿；opus 首轮已改、sonnet 复核通过；设计稿偏离三处 one-coordinator 已转 one-data（已写入设计稿第 7 节） |
+| REG-3 审计对象类别（IMP-1022-NX5-06） | #599 | 等 one-data 签发与 M1 裁定；验收补丁已带 `Acceptance-Ruling: RULING-COORD-20261022-03` |
+| KERR-2 `KERNEL_REASON_REQUIRED`（IMP-1022-COO-04） | #629 `claude/nx5-kerr2` | opus 首轮通过；与 main 在 `kernel.yaml` 冲突已解（取 main 版词条，中文名「原因不能为空」），head 817ea2c32→57cc0dab3，CI 绿后须回调度再批；worktree `.claude/worktrees/nx5-kerr2` |
+| 迁入写入通道·编号部分（IMP-1022-NX5-08） | #634 `claude/nx5-migration-writer-numbering` | opus 首轮「需修后再审」：高危 H1（迁入角色可直接插已确认行）已改为迁入行只能待确认插入；M1 补守护、L1 默认拒绝、L3 负例；**sonnet 复核中**；本机 Docker 停了，`MigrationWriterRoleIT` 等 IT 本地未实测，靠 CI；M2「c3/c9 建库脚本未建迁入角色」已报 one-coordinator 转 one-ops |
+| 用语议题 | `glossary/issues/` 两条 | 「原因/理由」「属主角色、迁入角色」已登记给 one-glossary |
+
+**接手顺序**：①等 #634 sonnet 复核结果，改后看 CI（Docker 恢复后可本地跑 `MigrationWriterRoleIT`、`RuleVersionSourceIT`、`NumberingRowRulesIT`），绿后贴结论、报调度批；②#629 CI 绿后回 one-coordinator 说明 head 已变请再批；③#599 看签发；④REG-4（one-architecture 裁定 `REG4_PROCESS_KEY_RULING_2026-10-22.md`，任务号 IMP-1022-COO-01）。
+
+**本期教训**：⑪提交与推送分两次调用（推送前钩子按当时 HEAD 跑 precheck）；⑫另开 worktree（`git worktree add ../nx5-kerr2 -b <分支> origin/main`）可在 opus 复审读着当前目录时并行做下一张卡，不用切分支；⑬`build_terms` 报「基线已过期」要同时删 `term-rules-baseline.json` 的键并调低对应规则 `count`；⑭合 main 时 `kernel.yaml` 这类提议词条文件最易冲突，先看 main 上是否已有同 id 词条；⑮前端生成物手改后用 `pnpm install --frozen-lockfile --offline` 再跑 precheck，不要靠本机缺依赖放过；⑯本机 Docker 停了不要自行起，写明未实测交 CI。

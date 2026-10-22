@@ -112,6 +112,8 @@ machines:
   initial: [草拟]
   terminal: [已核定, 已驳回]
   added_states: [已驳回]
+  non_state_commands:
+  - {command: 提交过账候选, reason: 核定后提交奖金核定重分类记账事实，只写过账引用，不改状态（S-4b）}
   note: |
     数据模型状态列为「草拟 → 已核定 → 已发放」。驳回另补「已驳回」；重新草拟另建新核定单（同一人同期无草拟或已核定时）。
     「已发放」未建模：数据模型说明由 AGG-73 批准后事件置位，但聚合稿与流程都没有置位命令或事件策略，本稿不自造，见 notes 结构问题 2。
@@ -120,6 +122,20 @@ machines:
   - {from: null, to: 草拟, command: 草拟奖金核定, guard: [R-VS13-g, 评估类型为月度], kind: forward}
   - {from: 草拟, to: 已核定, command: 核定奖金, guard: [AR-01, AR-02, AR-11, R-VS13-g：核定人不改额], kind: forward, process_outcome: 已核定}
   - {from: 草拟, to: 已驳回, command: 驳回奖金核定, guard: [], kind: reverse, process_outcome: 已驳回}
+
+- aggregate: AGG-138
+  machine: bonus_accrual_run
+  entity: bonus_accrual_runs
+  states: [计算中, 已计算, 已提交过账, 已中止]
+  initial: [计算中, 已中止]
+  terminal: [已提交过账, 已中止]
+  added_states: [计算中, 已计算, 已提交过账, 已中止]
+  note: S-6 新增（暂用号 AGG-138，ARC-1022-APE-01）；每法人 × 期间一次运行，已中止后人力补齐规则或方案版本再发起另建运行
+  transitions:
+  - {from: null, to: 计算中, command: 启动奖金计提, guard: [计提规则齐备, 激励方案版本在 AGG-75 有效], kind: forward}
+  - {from: null, to: 已中止, command: 启动奖金计提, guard: [缺计提规则或版本校验不过：失败并告警], kind: forward, process_outcome: 已中止}
+  - {from: 计算中, to: 已计算, command: 计算奖金计提, guard: [基数事实已过账], kind: forward}
+  - {from: 已计算, to: 已提交过账, command: 提交过账候选, guard: [INV-92], kind: forward, process_outcome: 已提交过账}
 
 - aggregate: AGG-93
   machine: payroll_profile_version
