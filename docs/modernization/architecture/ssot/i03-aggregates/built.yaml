@@ -7,6 +7,19 @@ meta:
   sources:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
+  registered_unbuilt:
+  - table: platform_file.false_positive_judgments
+    owner: one-platform-file
+    due: '2026-11-15'
+    reason: 单元 3 基线建表，误报判定代码未写（ADR-0070）
+  - table: platform_file.quarantine_read_requests
+    owner: one-platform-file
+    due: '2026-11-15'
+    reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）
+  - table: platform_file.stored_files
+    owner: one-platform-file
+    due: '2026-11-15'
+    reason: 单元 3 建表、单元 5 只写了插入（NewStoredFile + StoredFileRepository）；状态变更上线时补 StoredFile 根类
 aggregates:
 - id: cost.timesheet/Timesheet
   bc: cost.timesheet

@@ -1,0 +1,16 @@
+# 已登记为 AGGREGATE_ROOT、domain 类还没写的表（建表迁移先于代码）。scan_aggregates.py 读它：
+# 根类缺失且不在此表 → 失败；在此表 → 列入 built.yaml meta.registered_unbuilt 并告警；已有根类或已过期 → 失败。
+# 根类写好时同一提交删去该项。
+roots:
+  - table: platform_file.stored_files
+    owner: one-platform-file
+    due: 2026-11-15
+    reason: 单元 3 建表、单元 5 只写了插入（NewStoredFile + StoredFileRepository）；状态变更上线时补 StoredFile 根类
+  - table: platform_file.false_positive_judgments
+    owner: one-platform-file
+    due: 2026-11-15
+    reason: 单元 3 基线建表，误报判定代码未写（ADR-0070）
+  - table: platform_file.quarantine_read_requests
+    owner: one-platform-file
+    due: 2026-11-15
+    reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）
