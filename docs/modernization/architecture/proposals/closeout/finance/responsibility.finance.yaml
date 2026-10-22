@@ -371,6 +371,22 @@ entries:
     segregation:
     - 出纳 ≠ 发起人、审批人（INV-81）
   sensitive: false
+- object: AGG-53
+  command: 登记代发退回
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 出纳 ≠ 发起人、审批人（INV-81）
+  sensitive: false
+  note: 与 PRC-75 登记退票同口径（PAYROLL_REISSUE_SEAM J-2）
 - object: AGG-54
   command: 登记出资认缴
   raci:
@@ -1432,6 +1448,21 @@ entries:
     I: []
   boundary: {}
   sensitive: false
+- object: AGG-89
+  command: 登记进项发票入账
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  note: 与占用进项发票入账同口径；报送方待定 U-55（CF-032）
 - object: AGG-90
   command: 生成申报
   raci:
@@ -1753,7 +1784,7 @@ entries:
     - 起草人 ≠ 批准人（INV-131）
   sensitive: false
 - object: AGG-122
-  command: 登记合同已签回
+  command: 登记协议已生效
   raci:
     A:
       resolve: type
@@ -2370,6 +2401,20 @@ entries:
     I: []
   boundary: {}
   sensitive: false
+- object: AGG-52
+  command: 登记薪酬补发明细
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  note: 由 people PRC-126 订阅薪酬补发已发起后调用（J-1，one-architecture 2026-10-22 裁定）
 - object: AGG-53
   command: 提交过账候选
   raci:

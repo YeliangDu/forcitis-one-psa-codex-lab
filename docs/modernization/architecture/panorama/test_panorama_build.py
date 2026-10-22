@@ -1,6 +1,7 @@
 """ARC-1021-ARC-04：登记网络连线与覆盖检查的正反例。"""
 import copy
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,7 +9,263 @@ from unittest.mock import patch
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import panorama_build as p
+
+
+class DimensionMetricNetworkTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)
+        self.addCleanup(self.tmp.cleanup)
+        self.sources = {key: Path(self.tmp.name) / f"{key}.yaml"
+                        for key in ("dims", "dims_raw", "kpis", "terms", "obj")}
+        patcher = patch.dict(p.SRC, self.sources)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.dimension = {"id": "DIM-01", "name": "期间", "term": None, "scd": {"value": "未定"},
+                          "backed_by": ["OBJ-01", "OBJ-02", "example.rows"],
+                          "sources": {"bi_column": "期间"},
+                          "slices": [{"row": "工时条目", "facts": ["FACT-01"]}]}
+        self.metric = {"id": "KPI-01", "name": "工时", "kind": "业务指标", "term": "hours",
+                       "baseline": "M-01", "vision_kpi": None, "facts": ["FACT-01"], "dimensions": ["DIM-01"]}
+        self.write("obj", {"objects": [{"id": "OBJ-02", "definition": "已非对象"}]})
+        self.write("terms", {"terms": [{"id": "hours", "stages": ["VS-01.1"], "processes": ["PRC-01"]}]})
+        self.write("dims_raw", {"by_bi_bus_matrix": [
+            {"name": "期间", "rows": [{"fact": "工时条目", "cell": "✔"}, {"fact": "费用", "cell": "—"}]},
+            {"name": "阶段", "rows": [{"fact": "工时条目", "cell": "✔"}]}]})
+        self.write_dimensions()
+        self.write("kpis", {"kpis": [self.metric]})
+
+    def write(self, key, data):
+        self.sources[key].write_text(yaml.safe_dump(data, allow_unicode=True), encoding="utf-8")
+
+    def write_dimensions(self, rows=None):
+        self.write("dims", {"dimensions": rows if rows is not None else [self.dimension],
+                            "not_dimensions": [{"sources": {"bi_column": ["阶段"]}}]})
+
+    def load(self):
+        model = {"dim": {}, "metric": {}, "fact": {"FACT-01": {}}, "obj": {"OBJ-01": {}}}
+        edges = []
+        link = lambda kind, a, b, src, **extra: edges.append(
+            {"kind": kind, "from": a, "to": b, "src": src, **extra})
+        p.load_dimensions(model, link)
+        p.load_metrics(model, link)
+        return model, edges
+
+    def test_arc02_loaders_fields_links_and_repeatability(self):
+        model, edges = self.load()
+        self.assertEqual("期间", model["dim"]["DIM-01"]["name"])
+        self.assertEqual({"value": "未定"}, model["dim"]["DIM-01"]["scd"])
+        metric = model["metric"]["KPI-01"]
+        self.assertEqual(("工时", "业务指标", "hours", "M-01", None, ["FACT-01"], ["DIM-01"]),
+                         tuple(metric[k] for k in ("zh", "kind", "term", "baseline", "vision_kpi", "facts", "dimensions")))
+        self.assertEqual((["VS-01.1"], ["PRC-01"]), (metric["stages"], metric["processes"]))
+        self.assertEqual({("dim-fact", "DIM-01", "FACT-01"), ("dim-obj", "DIM-01", "OBJ-01"),
+                          ("metric-fact", "KPI-01", "FACT-01"), ("metric-dim", "KPI-01", "DIM-01"),
+                          ("metric-term", "KPI-01", "hours")}, {(e["kind"], e["from"], e["to"]) for e in edges})
+        self.assertTrue(all("#" in e["src"] for e in edges))
+        self.assertEqual("工时条目", next(e for e in edges if e["kind"] == "dim-fact")["row"])
+        self.assertEqual(yaml.safe_dump(self.load()).encode(), yaml.safe_dump(self.load()).encode())
+
+    def test_arc02_invalid_and_duplicate_ids_fail_for_both_loaders(self):
+        for key, section, row in (("dims", "dimensions", self.dimension), ("kpis", "kpis", self.metric)):
+            original = self.sources[key].read_text()
+            for rows, reason in (([row, row], "编号重复"), ([{**row, "id": "invalid"}], "编号无效"),
+                                 ([{**row, "id": None}], "编号无效")):
+                with self.subTest(key=key, reason=reason):
+                    self.write(key, {section: rows})
+                    with self.assertRaisesRegex(ValueError, reason):
+                        self.load()
+            self.sources[key].write_text(original)
+
+    def test_arc02_missing_references_fail(self):
+        for changes in ({"slices": [{"row": "工时条目", "facts": ["FACT-99"]}]}, {"backed_by": ["OBJ-99"]}):
+            with self.subTest(changes=changes):
+                self.write_dimensions([{**self.dimension, **changes}])
+                with self.assertRaisesRegex(ValueError, "不存在"):
+                    self.load()
+        self.write_dimensions()
+        for changes in ({"facts": ["FACT-99"]}, {"dimensions": ["DIM-99"]}, {"term": "missing"}):
+            with self.subTest(changes=changes):
+                self.write("kpis", {"kpis": [{**self.metric, **changes}]})
+                with self.assertRaisesRegex(ValueError, "不存在"):
+                    self.load()
+
+    def test_arc02_missing_empty_and_malformed_catalogs_fail(self):
+        for key, section in (("dims", "dimensions"), ("kpis", "kpis")):
+            original = self.sources[key].read_text()
+            for content in ("", "[]", f"{section}: invalid\n"):
+                with self.subTest(key=key, content=content):
+                    self.sources[key].write_text(content)
+                    with self.assertRaises(ValueError):
+                        self.load()
+            self.sources[key].unlink()
+            with self.assertRaises(FileNotFoundError):
+                self.load()
+            self.sources[key].write_text(original)
+
+    def test_arc02_n12_1_empty_slices_and_n12_2_missing_row_or_column(self):
+        for slices, expected in ((self.dimension["slices"], (0, 0)), ([], (1, 1)),
+                                 ([{"row": "工时条目", "facts": []}], (1, 1)),
+                                 ([{"row": "其他", "facts": ["FACT-01"]}], (0, 1))):
+            with self.subTest(slices=slices):
+                self.write_dimensions([{**self.dimension, "slices": slices}])
+                gaps = p.defaultdict(list)
+                p.check_dimensions(self.load()[0], gaps)
+                self.assertEqual(expected, (len(gaps["N12-1"]), len(gaps["N12-2"])))
+                if gaps["N12-2"]:
+                    self.assertIn("行「工时条目」× 列「期间」", gaps["N12-2"][0])
+        self.write_dimensions([])
+        gaps = p.defaultdict(list)
+        p.check_dimensions({"dim": {}}, gaps)
+        self.assertEqual(1, len(gaps["N12-2"]))
+
+    def test_metric_kind_outside_the_three_values_fails(self):
+        for kind in ("经营指标", None, ""):
+            self.write("kpis", {"kpis": [{**self.metric, "kind": kind}]})
+            with self.assertRaisesRegex(ValueError, "kind 须为"):
+                self.load()
+
+    def test_arc02_n13_new_source_and_technical_metrics_excluded(self):
+        self.write("terms", {"terms": [{"id": "hours", "stages": ["VS-01.1"], "processes": ["PRC-01"]},
+                                      {"id": "technical", "stages": ["VS-01.2"]}]})
+        self.write("kpis", {"kpis": [self.metric, {**self.metric, "id": "KPI-02", "term": None, "facts": []},
+                                    {**self.metric, "id": "KPI-100", "term": "technical", "kind": "技术度量"},
+                                    {**self.metric, "id": "KPI-101", "term": None, "kind": "技术度量", "facts": []}]})
+        model, _ = self.load()
+        model.update({key: {} for key in ("sh", "con", "act", "vs", "obj", "prc", "agg", "inv", "bc", "sd", "table")})
+        model["fact"] = {}
+        model["stage"] = {sid: {"name": sid, "gates": [], "in_stage": []} for sid in ("VS-01.1", "VS-01.2")}
+        gaps = p.check(model)
+        self.assertEqual(["VS-01.2 VS-01.2"], gaps["N13-1"])
+        self.assertEqual(["KPI-02 工时"], gaps["N13-2"])
+        self.assertEqual(["KPI-01 工时", "KPI-02 工时"], gaps["N13-3"])
+        self.assertEqual(([], []), (model["metric"]["KPI-02"]["stages"], model["metric"]["KPI-02"]["processes"]))
+
+
+class BindingNetworkTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / "bindings.yaml"
+        patcher = patch.dict(p.SRC, bindings=self.path)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.binding = {"id": "BIND-001", "kpi": "KPI-01", "facts": ["FACT-01", "FACT-02"],
+                        "formula": "文字口径", "formula_version": "2026.1", "time_basis": "业务时间",
+                        "grain": "项目 × 月", "source_table": "reporting.rows", "source": "出处原文位置"}
+
+    def write(self, bindings=None, pending=None):
+        self.path.write_text(yaml.safe_dump({"meta": {"status": "proposal"},
+                                            "bindings": [self.binding] if bindings is None else bindings,
+                                            "pending": [] if pending is None else pending}, allow_unicode=True), encoding="utf-8")
+
+    def load(self):
+        model = {"bind": {}, "metric": {f"KPI-0{i}": {"zh": f"指标{i}", "kind": "业务指标",
+                                                   "facts": [], "stages": [], "processes": []} for i in range(1, 5)},
+                 "fact": {"FACT-01": {}, "FACT-02": {}}}
+        model["metric"]["KPI-04"]["kind"] = "技术度量"
+        edges = []
+        p.load_bindings(model, lambda kind, a, b, src: edges.append(
+            {"kind": kind, "from": a, "to": b, "src": src}))
+        return model, edges
+
+    def test_arc03_fields_links_metric_attachment_and_repeatability(self):
+        self.write([self.binding, {**self.binding, "id": "BIND-002", "time_basis": "记录时间"},
+                    {**self.binding, "id": "BIND-003", "time_basis": "期间"}])
+        model, edges = self.load()
+        self.assertEqual(self.binding, {k: v for k, v in model["bind"]["BIND-001"].items() if k != "src"})
+        self.assertEqual(["BIND-001", "BIND-002", "BIND-003"], model["metric"]["KPI-01"]["bind"])
+        self.assertEqual([], model["metric"]["KPI-02"]["bind"])
+        self.assertEqual({(kind, f"BIND-00{i}", target) for i in range(1, 4) for kind, target in
+                          (("bind-metric", "KPI-01"), ("bind-fact", "FACT-01"), ("bind-fact", "FACT-02"))},
+                         {(e["kind"], e["from"], e["to"]) for e in edges})
+        self.assertEqual(9, len(edges))
+        self.assertTrue(all("#bindings[" in e["src"] for e in edges))
+        self.assertTrue(model["bind"]["BIND-001"]["src"].endswith("#bindings[0]/BIND-001"))
+        self.assertEqual(yaml.safe_dump((model, edges)).encode(), yaml.safe_dump(self.load()).encode())
+
+    def test_arc03_invalid_and_duplicate_binding_ids_fail(self):
+        for rows, reason in (([self.binding, self.binding], "编号重复"),
+                             ([{**self.binding, "id": "BIND-01"}], "编号无效"),
+                             ([{**self.binding, "id": None}], "编号无效")):
+            with self.subTest(reason=reason, rows=rows):
+                self.write(rows)
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.load()
+
+    def test_arc03_unknown_kpi_or_fact_and_invalid_time_basis_fail(self):
+        for changes, reason in (({"kpi": "KPI-99"}, "不存在的 KPI"),
+                                ({"facts": ["FACT-99"]}, "不存在的 FACT"),
+                                ({"time_basis": "其他时间"}, "time_basis"),
+                                ({"facts": "FACT-01"}, "facts 应为列表")):
+            with self.subTest(changes=changes):
+                self.write([{**self.binding, **changes}])
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.load()
+
+    def test_arc03_unknown_pending_kpi_or_bound_pending_kpi_fail(self):
+        for kpi, reason in (("KPI-99", "不存在的 KPI"), ("KPI-01", "既有绑定又在 pending")):
+            with self.subTest(kpi=kpi):
+                self.write(pending=[{"kpi": kpi, "reason": "待确认"}])
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.load()
+
+    def test_arc03_malformed_catalogs_fail_and_pending_is_optional(self):
+        for content in ("", "[]", "bindings: invalid", "bindings: [invalid]",
+                        "bindings: []\npending: invalid", "bindings: []\npending: [invalid]"):
+            with self.subTest(content=content):
+                self.path.write_text(content)
+                with self.assertRaises(ValueError):
+                    self.load()
+        self.path.write_text("bindings: []\n")
+        self.assertEqual({}, self.load()[0]["bind"])
+
+    def test_arc03_n14_1_complete_binding_has_no_gap(self):
+        self.write()
+        gaps = p.defaultdict(list)
+        p.check_bindings(self.load()[0], gaps)
+        self.assertEqual([], gaps["N14-1"])
+
+    def test_arc03_n14_1_empty_fields_are_reported_without_loader_error(self):
+        for field in ("facts", "formula_version", "time_basis"):
+            for value in ([[], None] if field == "facts" else ["", None, "   "]):
+                with self.subTest(field=field, value=value):
+                    self.write([{**self.binding, field: value}])
+                    gaps = p.defaultdict(list)
+                    p.check_bindings(self.load()[0], gaps)
+                    self.assertEqual([f"BIND-001（缺 {field}）"], gaps["N14-1"])
+                    self.assertFalse(any(g.startswith("KPI-01 ") for g in gaps["N13-3"]))
+            self.write([{k: v for k, v in self.binding.items() if k != field}])
+            gaps = p.defaultdict(list)
+            p.check_bindings(self.load()[0], gaps)
+            self.assertEqual([f"BIND-001（缺 {field}）"], gaps["N14-1"])
+
+    def test_arc03_n13_3_bound_pending_and_absent_with_report_counts(self):
+        reason = "待确认" * 20
+        self.write(pending=[{"kpi": "KPI-02", "reason": reason}])
+        model, edges = self.load()
+        model.update({key: {} for key in ("sh", "con", "act", "vs", "stage", "obj", "prc", "agg", "inv", "bc", "sd", "table")})
+        model["fact"] = {}
+        gaps = p.check(model)
+        self.assertEqual([f"KPI-02 指标2（pending：{reason[:40]}）", "KPI-03 指标3"], gaps["N13-3"])
+        self.assertEqual(reason, model["metric"]["KPI-02"]["bind_pending"]["reason"])
+        self.assertTrue(model["metric"]["KPI-02"]["bind_pending"]["src"].endswith("#pending[0]"))
+        output, report = p.render(model, edges, gaps)
+        self.assertIn("同一输入按改前判据计 3 个缺口，按改后判据计 2 个缺口", report)
+        self.assertIn("| N14-1 | 每个绑定有事实、公式版本与时间基准 | 0 |", report)
+        self.assertIn("| 14 计算绑定 | bind | 1 |", report)
+        self.assertEqual(["FACT-01", "FACT-02"], yaml.safe_load(output)["nodes"]["bind"]["BIND-001"]["facts"])
+        self.assertEqual((output, report), p.render(model, edges, p.check(model)))
+
+    def test_arc03_absent_file_keeps_node_empty_and_all_business_metrics_as_gaps(self):
+        model, edges = self.load()
+        self.assertEqual({}, model["bind"])
+        self.assertEqual([], edges)
+        gaps = p.defaultdict(list)
+        p.check_bindings(model, gaps)
+        self.assertEqual([f"KPI-0{i} 指标{i}" for i in range(1, 4)], gaps["N13-3"])
+        self.assertEqual([], gaps["N14-1"])
 
 
 class ObjectSourceTest(unittest.TestCase):
@@ -51,12 +308,19 @@ class AggregateSourceTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=p.ROOT) as tmp:
             root = Path(tmp)
             planned, draft = root / "planned.yaml", root / "draft.md"
+            facts = root / "facts.yaml"
+            facts.write_text("facts: []\n", encoding="utf-8")
+            dimensions, kpis = root / "dimensions.yaml", root / "kpis.yaml"
+            dimensions.write_text("dimensions: []\n", encoding="utf-8")
+            kpis.write_text("kpis: []\n", encoding="utf-8")
+            bindings = root / "bindings.yaml"
+            bindings.write_text("bindings: []\n", encoding="utf-8")
             text = p.SRC["agg"].read_text(encoding="utf-8")
             start, end = text.index("### 2.2"), text.index("### 2.3")
             draft.write_text(text[:start] + text[end:], encoding="utf-8")
             row = {"id": "AGG-01", "聚合（根）": "往来单位（OBJ-01）", "内含": "OBJ-02", "对应": "一对一", "不变量": "INV-01"}
             planned.write_text(yaml.safe_dump({"aggregates": [row]}, allow_unicode=True), encoding="utf-8")
-            with patch.dict(p.SRC, planned=planned, agg=draft):
+            with patch.dict(p.SRC, planned=planned, agg=draft, facts=facts, dims=dimensions, kpis=kpis, bindings=bindings):
                 model, links, _ = p.load()
                 self.assertEqual(["AGG-01"], [a for a in model["agg"] if a.startswith("AGG-")])
                 self.assertEqual(["OBJ-01", "OBJ-02"], model["agg"]["AGG-01"]["objs"])
@@ -116,7 +380,8 @@ class CommandNetworkTest(unittest.TestCase):
         self.assertEqual(1, len(gaps['N10-2']))
         self.assertEqual(1, len(gaps['N10-3']))
         self.assertEqual({'cmd-agg', 'cmd-obj'}, {e['kind'] for e in edges})
-        self.assertNotIn('N11-2', p.CHECKS)
+        self.assertIn('N11-2', p.CHECKS)
+        self.assertIn('N11-3', p.CHECKS)
         self.assertIn('N11-1', p.CHECKS)
 
     def test_arc09_missing_duplicate_or_invalid_reference_fails(self):
@@ -139,6 +404,131 @@ class CommandNetworkTest(unittest.TestCase):
 
     def test_arc09_repeated_read_has_identical_bytes(self):
         self.assertEqual(yaml.safe_dump(self.load()).encode(), yaml.safe_dump(self.load()).encode())
+
+
+class FactNetworkTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / "facts.yaml"
+        patcher = patch.dict(p.SRC, facts=self.path)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.operating = {"id": "FACT-01", "name": "工时成本事实", "kind": "经营事实",
+                          "owner_bc": "operations.facts", "wave": "W1",
+                          "produced_by": ["CMD-12345678", "EVT:cost.timesheet.TimesheetApproved"],
+                          "sources": {"object": ["OBJ-01"]}}
+        self.analytic = {"id": "FACT-02", "name": "工时汇总", "kind": "分析事实",
+                         "owner_bc": "operations.facts", "wave": "W1", "derives_from": ["FACT-01"],
+                         "analytic_source": "原文" * 30}
+
+    def write(self, rows=None):
+        self.path.write_text(yaml.safe_dump({"facts": rows if rows is not None else [self.analytic, self.operating],
+                                             "pending": [{"id": "P-01"}], "not_facts": [{"id": "NF-01"}]},
+                                            allow_unicode=True), encoding="utf-8")
+
+    def load(self):
+        model = {"fact": {}, "bc": {"B-16": {}}, "cmd": {"CMD-12345678": {}},
+                 "evt": {"cost.timesheet.TimesheetApproved": {}}, "obj": {
+                     "OBJ-01": {"name": "工时单", "active": True, "primary": True, "facts": "工时成本事实"}}}
+        edges = []
+        p.load_facts(model, lambda kind, a, b, src: edges.append(
+            {"kind": kind, "from": a, "to": b, "src": src}), {"operations.facts": "B-16"})
+        return model, edges
+
+    def gaps(self, model):
+        gaps = p.defaultdict(list)
+        p.check_facts(model, gaps)
+        return gaps
+
+    def test_arc16_loads_nodes_links_forward_references_and_repeats(self):
+        self.write()
+        model, edges = self.load()
+        self.assertEqual({"FACT-01", "FACT-02"}, set(model["fact"]))
+        self.assertEqual(("工时成本事实", "经营事实", "operations.facts", "W1"),
+                         tuple(model["fact"]["FACT-01"][key] for key in ("name", "kind", "owner_bc", "wave")))
+        self.assertEqual({("cmd-fact", "CMD-12345678", "FACT-01"),
+                          ("evt-fact", "cost.timesheet.TimesheetApproved", "FACT-01"),
+                          ("fact-fact", "FACT-01", "FACT-02"), ("obj-fact", "OBJ-01", "FACT-01"),
+                          ("fact-bc", "FACT-01", "B-16"), ("fact-bc", "FACT-02", "B-16")},
+                         {(e["kind"], e["from"], e["to"]) for e in edges})
+        self.assertTrue(model["fact"]["FACT-01"]["src"].endswith("facts.yaml#facts[1]/FACT-01"))
+        self.assertTrue(all("#facts[" in e["src"] for e in edges))
+        self.assertEqual([], self.gaps(model)["N11-2"])
+        self.assertEqual([], self.gaps(model)["N11-3"])
+        self.assertEqual(yaml.safe_dump(self.load()).encode(), yaml.safe_dump(self.load()).encode())
+
+    def test_arc16_retired_object_source_is_kept_without_link(self):
+        self.operating["sources"] = {"object": ["OBJ-01", "OBJ-76"]}
+        self.write()
+        _, edges = self.load()
+        self.assertEqual({"OBJ-01"}, {e["from"] for e in edges if e["kind"] == "obj-fact"})
+
+    def test_arc16_missing_file_key_duplicate_invalid_id_and_kind_fail(self):
+        with self.assertRaises(FileNotFoundError):
+            self.load()
+        self.path.write_text("meta: {}\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "facts"):
+            self.load()
+        self.write([self.operating, self.operating])
+        with self.assertRaisesRegex(ValueError, "编号重复"):
+            self.load()
+        for changes, message in (({"id": "FACT-1"}, "编号无效"), ({"kind": "候选"}, "kind")):
+            with self.subTest(changes=changes):
+                self.write([{**self.operating, **changes}])
+                with self.assertRaisesRegex(ValueError, message):
+                    self.load()
+
+    def test_arc16_node_11_renders_fact_count_and_report_gaps(self):
+        self.write([{**self.operating, "id": f"FACT-{index:02d}", "produced_by": []}
+                    for index in range(1, 38)])
+        model, edges = self.load()
+        model.update(inv={}, table={}, api={}, mod={})
+        first = p.render(model, edges, self.gaps(model))
+        self.assertEqual(first, p.render(model, edges, self.gaps(model)))
+        self.assertEqual(37, yaml.safe_load(first[0])["meta"]["counts"]["fact"])
+        self.assertIn("| 11 业务事实 | fact | 37 |", first[1])
+        self.assertIn("## N11-2 每条经营事实有产生它的命令或事件（37）", first[1])
+
+    def test_arc16_unknown_command_event_fact_object_bc_and_bad_producer_fail(self):
+        for changes, message in (({"produced_by": ["CMD-missing"]}, "不存在的 cmd"),
+                                 ({"produced_by": ["EVT:missing"]}, "不存在的 evt"),
+                                 ({"derives_from": ["FACT-99"]}, "不存在的 FACT"),
+                                 ({"sources": {"object": ["OBJ-99"]}}, "不存在的 OBJ"),
+                                 ({"owner_bc": "missing"}, "不存在的 BC"),
+                                 ({"produced_by": ["other"]}, "写法无效")):
+            with self.subTest(changes=changes):
+                self.write([{**self.operating, **changes}])
+                with self.assertRaisesRegex(ValueError, message):
+                    self.load()
+
+    def test_arc16_n11_1_blank_dash_and_notes_are_gaps(self):
+        self.write()
+        model, _ = self.load()
+        for value in ("", " \t", "—", "-", " —（注） ", " -（注）"):
+            with self.subTest(value=value):
+                model["obj"]["OBJ-01"]["facts"] = value
+                self.assertEqual(["OBJ-01 工时单"], self.gaps(model)["N11-1"])
+        model["obj"]["OBJ-01"]["facts"] = " 工时成本事实 "
+        self.assertEqual([], self.gaps(model)["N11-1"])
+        model["obj"]["OBJ-01"].update(facts="—（注）", primary=False)
+        self.assertEqual([], self.gaps(model)["N11-1"])
+
+    def test_arc16_n11_2_missing_producer_is_report_only(self):
+        self.operating["produced_by"] = []
+        self.write()
+        model, _ = self.load()
+        self.assertEqual(["FACT-01 工时成本事实"], self.gaps(model)["N11-2"])
+        self.assertEqual([], self.gaps(model)["N11-3"])
+
+    def test_arc16_n11_3_empty_or_any_analytic_source_is_report_only(self):
+        for refs in ([], ["FACT-01", "FACT-02"]):
+            with self.subTest(refs=refs):
+                self.analytic["derives_from"] = refs
+                self.write()
+                model, _ = self.load()
+                self.assertEqual([f"FACT-02 工时汇总（analytic_source：{'原文' * 20}）"],
+                                 self.gaps(model)["N11-3"])
 
 
 class ConstraintNetworkTest(unittest.TestCase):

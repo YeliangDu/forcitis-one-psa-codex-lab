@@ -16,7 +16,7 @@ FORCITIS one 只读这两个库（ADR-0037：全库只读；运行时仍经下�
 | 库 | 新增对象 | 专用账号 | 应用侧变量（运维写入 one.env，DBA 只交口令） |
 |---|---|---|---|
 | A8（`a8_db`） | schema `forcitis_one` 与 4 个视图：`v_org_unit`、`v_org_relationship`、`v_org_post`、`v_org_member` | 1 个，默认名 `one_a8_views_ro` | `A8_DB_URL`、`A8_DB_USERNAME`、`A8_DB_PASSWORD` |
-| 老系统（`ruoyi-vue-pro`） | `dbo.v_psa_one_legacy_todo`（合并待办） | `psa_one_legacy_ro` | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL`、`_USERNAME`、`_PASSWORD` |
+| 老系统（`ruoyi-vue-pro`） | `dbo.v_psa_one_legacy_todo`（合并待办） | `psa_one_legacy_ro`（2026-10-22 已撤，OPS-1022-OPS-01；视图仍在） | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL`、`_USERNAME`、`_PASSWORD` |
 | 老系统（`ruoyi-vue-pro`） | `dbo.v_one_legacy_org_short_name`（部门简称） | `one_legacy_names_ro` | `LEGACY_DB_RO_URL`、`LEGACY_DB_RO_USERNAME`、`LEGACY_DB_RO_PASSWORD` |
 
 账号名可改（脚本用 sqlcmd 变量 `READER_LOGIN` / `INBOX_LOGIN` / `NAMES_LOGIN`），改了要告诉运维，用户名写进 one.env。

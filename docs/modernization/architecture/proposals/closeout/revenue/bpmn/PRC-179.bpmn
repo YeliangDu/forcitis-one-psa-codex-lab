@@ -54,7 +54,7 @@
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_3"/>
     <sequenceFlow id="Flow_2" sourceRef="Start_2" targetRef="S1_3"/>
     <sequenceFlow id="Flow_3" sourceRef="S1_3" targetRef="S1_gw_4"/>
-    <sequenceFlow id="Flow_4" name="该项目未关联已签署生效的协议，或（关联登记触发时）关联项目尚未开始执行" sourceRef="S1_gw_4" targetRef="End_5"/>
+    <sequenceFlow id="Flow_4" name="该项目未关联已生效的协议，或（关联登记触发时）关联项目尚未开始执行" sourceRef="S1_gw_4" targetRef="End_5"/>
     <sequenceFlow id="Flow_5" name="关联协议已在履行中或之后状态" sourceRef="S1_gw_4" targetRef="End_5"/>
     <sequenceFlow id="Flow_6" name="其他" sourceRef="S1_gw_4" targetRef="End_6"/>
     <dataStoreReference id="SR_S1_3_w1" name="AGG-13" dataStoreRef="DS_AGG-13"/>

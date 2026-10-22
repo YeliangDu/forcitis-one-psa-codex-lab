@@ -17,6 +17,23 @@
 # gaps         known violations with an owner: {rule, column?, due, owner, ref, note}. Only D3 and D4 may leave out the column; a gap past its due date fails the test. A gap that is no longer violated fails the test, so it is removed in the
 #              same change that fixes it. Gaps are handed over to the owner named; none may be added to hide a new violation.
 tables:
+  cost_timesheet.consumed_events:
+    role: IDEMPOTENCY
+    mutability: APPEND_ONLY
+    retention: {policy: 90d, job: cost.timesheet.consumed.events.purge}
+    lineage: {source: NEW}
+    writers: [cost.timesheet]
+  cost_timesheet.timesheets:
+    role: BUSINESS_DOCUMENT
+    aggregate: Timesheet
+    mutability: MUTABLE
+    business_date_column: work_date
+    document_number_column: timesheet_number
+    retention: {policy: BUSINESS_RECORD}
+    lineage: {source: NEW, migrated_from: [old timesheet rows], via: legacy_numbers}
+    writers: [cost.timesheet]
+
+
   # 卡 A 只建立数据库基线；当前没有 Java SQL 使用方，后续卡随仓储实现登记 writers。
   organization_administration.config_sets:
     role: CONFIG_VERSIONED
@@ -51,23 +68,6 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: []
-  cost_timesheet.consumed_events:
-    role: IDEMPOTENCY
-    mutability: APPEND_ONLY
-    retention: {policy: 90d, job: cost.timesheet.consumed.events.purge}
-    lineage: {source: NEW}
-    writers: [cost.timesheet]
-  cost_timesheet.timesheets:
-    role: BUSINESS_DOCUMENT
-    aggregate: Timesheet
-    mutability: MUTABLE
-    business_date_column: work_date
-    document_number_column: timesheet_number
-    retention: {policy: BUSINESS_RECORD}
-    lineage: {source: NEW, migrated_from: [old timesheet rows], via: legacy_numbers}
-    writers: [cost.timesheet]
-
-
   organization_attendance.work_calendar_years:
     role: AGGREGATE_ROOT
     aggregate: WorkCalendarYear
@@ -82,6 +82,27 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
     writers: [organization.attendance]
+  # IMP-1021-PAR-02: the versioned calendar below replaces the two tables above once the confirmation flow writes to it; until then both exist.
+  organization_attendance.work_calendars:
+    role: CONFIG_VERSIONED
+    aggregate: WorkCalendar
+    mutability: APPEND_ONLY
+    versions_table: organization_attendance.work_calendar_versions
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+  organization_attendance.work_calendar_versions:
+    role: AGGREGATE_CHILD
+    aggregate: WorkCalendar
+    mutability: CONDITIONAL_UPDATE
+    condition: "PENDING_CONFIRMATION to CONFIRMED or WITHDRAWN, and closing the previous version's effective_to_date when the next one is confirmed (tg_work_calendar_versions_change)"
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
+  organization_attendance.work_calendar_version_days:
+    role: AGGREGATE_CHILD
+    aggregate: WorkCalendar
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
 
   # Identity of positions, org_units and employees comes from platform_integration.source_references, unique on (source_system, source_object_kind, source_id).
   # positions.code, org_units.code and employees.employee_code are display only and not unique in the source (five employee codes sit on several rows, three of them on both

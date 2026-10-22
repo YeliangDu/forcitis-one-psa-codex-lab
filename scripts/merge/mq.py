@@ -4,7 +4,7 @@
   mq.py run                       runner: a code lane and a docs lane, each takes the first pull request of its lane from the queue, processes it and removes it; waits when its lane is empty
   mq.py once <pr>                 process one pull request (no queue)
   mq.py enqueue <pr>...           append (a number already queued is not added twice; one being processed is reported)
-  mq.py remove <pr>...            take out
+  mq.py remove [--cancel] <pr>... take out; a pull request a worker is processing is refused (it cannot be taken back), with --cancel the worker is asked to stop at its next checkpoint, any time before the merge call (CANCELLED in the log)
   mq.py before <pr> <other>       put <pr> in front of <other> (appends it when it is not queued)
   mq.py list                      the queue, one number per line
   mq.py status                    queue, lanes, pause state
@@ -22,7 +22,10 @@ Per pull request: cancel the CI runs of the other queued pull requests (they are
 touches .github/workflows is updated by a local merge pushed over ssh, because the gh token lacks the workflow scope), label it `queued` (heavy CI steps run only with the label, scripts/ci/heavy_gate.py), wait for the
 checks while cancelling the others' runs, rerun failed checks once, then merge with a merge commit, pinned to the head that was checked (`--match-head-commit`). Merge only when `gh pr checks` lists the three
 required checks (backend verify, frontend verify, secret scan, none of them with the " (light)" suffix) and every one of them is `pass`; "no failure so far" is never enough (a head still running is not green).
-Outcomes: MERGED, CONFLICT (text conflict with main: back to the author), HOLD (red after the rerun, CI timeout, closed, an update that could not be pushed, attempts exhausted: reported to the coordinator).
+Conflicts with main in generated files. When main moved so fast that a pull request conflicts only in products of docs/modernization/build_all.py, the queue does not send it back: it merges main in over ssh, runs build_all.py and
+commits the regenerated products (AUTO-RESOLVE in the log), checks the result with `build_all.py --check` and pushes. Which files are products is not listed anywhere: build_all.py is run twice with different junk in every conflicted file and a file
+is a product when both runs rewrite it to the same text; a conflict in a file a person wrote, a failing build_all.py or a failing check leaves the pull request as it was and it goes back to the author. `enqueue` only says that a pull request conflicts; the runner settles it when it takes it. The queue runs the pull request's own build_all.py and its steps on this machine, as its CI runs it on the runners.
+Outcomes: MERGED, CONFLICT (text conflict with main in a file a person wrote: back to the author), HOLD (red after the rerun, CI timeout, closed, an update that could not be pushed, attempts exhausted: reported to the coordinator).
 
 Pause. Before taking a pull request, and again right before a merge, the queue looks at main's push runs and nightly (schedule) runs of the ci workflow: the verdict run is the newest one that has ended and was not
 cancelled (a push run is cancelled by the next push, so the newest run alone says nothing). A red verdict pauses both lanes (PAUSED in the log, file <queue dir>/mq.paused) until `mq.py resume <run id>...`; the resume
@@ -188,6 +191,89 @@ class Queue:
                 todo.extend(graph.get(cur, ()))
         return False
 
+    # Pull requests a runner is working on right now ("<n> <runner pid>" lines; a dead pid is a stale line) and cancel requests for them: `remove` of a pull request in the middle of its processing must not leave the worker running on silently.
+    def _lines(self, suffix):
+        try:
+            return open(self.path + suffix, encoding="utf-8").read().split("\n")
+        except FileNotFoundError:
+            return []
+
+    def _store(self, suffix, lines):
+        with open(self.path + suffix, "w", encoding="utf-8") as f:
+            f.write("".join(l + "\n" for l in lines if l))
+
+    def _mark(self, n):
+        self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")] + [f"{n} {os.getpid()}"])
+        self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)])   # a request from an earlier round is not for this one
+
+    def mark_working(self, n):
+        with self.locked(".work-lock"):
+            self._mark(n)
+
+    def claim(self, n):
+        """A worker takes pull request n: marked as being processed only if it is still queued, in one step with `remove_checked` (lock order: queue lock, then work lock)."""
+        with self.locked(), self.locked(".work-lock"):
+            if not any((m := LINE.match(l)) and int(m.group(1)) == n for l in self._read()):
+                return False
+            self._mark(n)
+            return True
+
+    def remove_checked(self, prs, cancel):
+        """Take prs out of the queue. A pull request a worker is processing is refused (returned, and nothing at all is removed), or, with `cancel`, a cancel request is written for it; the check and the removal are one step."""
+        with self.locked(), self.locked(".work-lock"):
+            busy = {}
+            for line in self._lines(".working"):
+                number, _, pid = line.partition(" ")
+                if number.isdigit() and int(number) in prs and pid.isdigit() and self._alive(int(pid)):
+                    busy[int(number)] = int(pid)
+            if busy and not cancel:
+                return busy
+            for n in busy:
+                self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)] + [str(n)])
+            self._write([l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) in prs)])
+            return busy
+
+    def reset_working(self):
+        """At the start of the runner (there is only one): whatever was marked belongs to a runner that is gone."""
+        with self.locked(".work-lock"):
+            self._store(".working", [])
+            self._store(".cancel", [])
+
+    @staticmethod
+    def _alive(pid):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
+
+    def unmark_working(self, n):
+        with self.locked(".work-lock"):
+            self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")])
+            self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)])
+
+    def working(self):
+        """{pull request: pid of the runner working on it}; a line whose process is gone (the runner was killed) does not count."""
+        out = {}
+        with self.locked(".work-lock"):
+            for line in self._lines(".working"):
+                number, _, pid = line.partition(" ")
+                if number.isdigit() and pid.isdigit() and self._alive(int(pid)):
+                    out[int(number)] = int(pid)
+        return out
+
+    def request_cancel(self, n):
+        """Only for a pull request that is marked: a request for one nobody is processing would cancel its next round."""
+        with self.locked(".work-lock"):
+            if any(l.startswith(f"{n} ") for l in self._lines(".working")):
+                self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)] + [str(n)])
+
+    def cancel_requested(self, n):
+        with self.locked(".work-lock"):
+            return str(n) in self._lines(".cancel")
+
     def remove(self, *prs):
         with self.locked():
             self._write([l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) in prs)])
@@ -282,8 +368,49 @@ class Gh:
         return r.returncode == 0, (r.stderr or r.stdout).strip()
 
 
+BUILD_ALL = os.path.join("docs", "modernization", "build_all.py")
+
+
+def regenerate_conflicts(wt, conflicted):
+    """Inside a merge in progress at `wt`: True when every conflicted path is a product of build_all.py (and the merge is now committed with the products regenerated), else None/False with the merge left as it is.
+    The list of products is not written down anywhere: build_all.py is run twice with different junk in every conflicted file, and a file is a product when both runs rewrite it to the same text.
+    A file a person writes keeps the junk (the two runs differ), so a conflict in it is never settled here. Anything unclear (no build_all.py, a run fails, the check afterwards fails) is no resolution."""
+    script = os.path.join(wt, BUILD_ALL)
+    if not conflicted or not os.path.exists(script):
+        return None
+    folder = os.path.dirname(script)
+    root = os.path.realpath(wt)
+    for name in conflicted:   # junk is written to these paths: never through a symbolic link, never outside the work tree
+        path = os.path.join(wt, name)
+        if os.path.islink(path) or not os.path.realpath(os.path.dirname(path)).startswith(root + os.sep):
+            return False
+    results = []
+    for number in (1, 2):
+        junk = f"MQ-PROBE-{number}\n"
+        for name in conflicted:
+            os.makedirs(os.path.dirname(os.path.join(wt, name)), exist_ok=True)
+            with open(os.path.join(wt, name), "w", encoding="utf-8") as f:
+                f.write(junk)
+        run = sh([sys.executable, script], cwd=folder, timeout=600)
+        if run.returncode:
+            return None
+        results.append({name: open(os.path.join(wt, name), "rb").read() if os.path.exists(os.path.join(wt, name)) else None for name in conflicted})
+    if any(results[0][name] is None or results[0][name] != results[1][name] or b"MQ-PROBE" in results[0][name] for name in conflicted):
+        return False
+    if any(line.startswith("??") for line in sh(["git", "-C", wt, "status", "--porcelain"]).stdout.splitlines()):
+        return None   # build_all.py wrote a file nobody ignores: not committed blindly
+    if sh(["git", "-C", wt, "add", "-A"]).returncode:
+        return None
+    if sh(["git", "-C", wt, "commit", "-q", "-m", "Merge origin/main (merge queue: regenerated by build_all.py: " + ", ".join(sorted(conflicted)) + ")"]).returncode:
+        return None
+    if sh([sys.executable, script, "--check"], cwd=folder, timeout=900).returncode:
+        return None
+    return True
+
+
 def update_over_ssh(repo, branch, wt):
-    """Local merge of origin/main into the pull request branch, pushed over ssh (git, not the gh token): 'ok' | 'conflict' | 'error'."""
+    """Local merge of origin/main into the pull request branch, pushed over ssh (git, not the gh token): 'ok' | 'regenerated' | 'conflict' | 'error'.
+    A merge that conflicts only in products of build_all.py is finished by regenerating them ('regenerated'); a conflict in anything a person wrote stays 'conflict'."""
     if sh(["git", "-C", repo, "fetch", "-q", "origin"]).returncode:
         return "error"
     sh(["git", "-C", repo, "worktree", "remove", "-f", wt])
@@ -296,12 +423,21 @@ def update_over_ssh(repo, branch, wt):
         return "error"
     try:
         if sh(["git", "-C", wt, "merge", "-q", "--no-edit", "origin/main"]).returncode:
-            conflicted = sh(["git", "-C", wt, "diff", "--name-only", "--diff-filter=U"]).stdout.strip()
+            conflicted = [name for name in sh(["git", "-C", wt, "diff", "--name-only", "-z", "--diff-filter=U"]).stdout.split("\0") if name]
+            if not conflicted:
+                sh(["git", "-C", wt, "merge", "--abort"])
+                return "error"
+            if regenerate_conflicts(wt, conflicted):
+                return "regenerated" if sh(["git", "-C", wt, "push", "-q", "origin", f"HEAD:{branch}"]).returncode == 0 else "error"
             sh(["git", "-C", wt, "merge", "--abort"])
-            return "conflict" if conflicted else "error"
+            return "conflict"
         return "ok" if sh(["git", "-C", wt, "push", "-q", "origin", f"HEAD:{branch}"]).returncode == 0 else "error"
     finally:
         sh(["git", "-C", repo, "worktree", "remove", "-f", wt])
+
+
+class Cancelled(Exception):
+    """`mq.py remove --cancel` asked the worker to stop; raised at a checkpoint before the merge is made."""
 
 
 class SignalError(Exception):
@@ -453,6 +589,7 @@ class Processor:
         self.lanes, self.busy = {}, set()
         self.waiting, self.wait_repeat = {}, 3600   # pull request -> (the dependencies it was last logged as waiting for, when): logged again when they change and every wait_repeat seconds, so a dependency that never merges stays loud
         self.guard = threading.Lock()
+        self.cancel_seen = set()
         self.main_checkout = main_checkout
 
     def lane(self, n, head=None):
@@ -476,6 +613,15 @@ class Processor:
                     if n in self.busy:
                         continue
                     self.busy.add(n)
+                try:
+                    claimed = self.queue.claim(n)
+                except BaseException:   # the claim itself failed (disk): nobody holds it, it must not stay busy
+                    self.release(n)
+                    raise
+                if not claimed:   # taken out of the queue since the look: not started
+                    self.log.event("SKIPPED", n, None, None, "taken out of the queue before it was started")
+                    self.release(n)
+                    continue
                 return n
         return None
 
@@ -532,24 +678,44 @@ class Processor:
                 if self.gh.cancel_run(run):
                     self.log.event("CANCEL-RUN", other, run, since, f"waiting behind #{head}")
 
-    def update(self, n, branch, since):
-        if self.gh.update_branch(n):
+    def settle_dirty(self, n, v, since):
+        """A pull request GitHub reports as conflicting: the update merges main into it and, when the conflict is only in products of build_all.py, regenerates them (AUTO-RESOLVE).
+        (new view, None) when it is settled; (None, 'conflict') when a person has to settle it (a file a person wrote conflicts, or GitHub still sees a conflict a few minutes after the push); (None, 'error') when the update itself failed."""
+        res = self.update(n, v["branch"], since, via_gh=False)
+        if res == "conflict":
+            return None, "conflict"
+        if res != "ok":
+            return None, "error"
+        for _ in range(5):   # GitHub takes a while to see the push: DIRTY or UNKNOWN right afterwards is not yet an answer
+            self.sleep(30)
+            now = self.gh.view(n) or v
+            if now["merge"] not in ("DIRTY", "UNKNOWN"):
+                return now, None
+        return None, "conflict"
+
+    def update(self, n, branch, since, via_gh=True):
+        if via_gh and self.gh.update_branch(n):
             self.log.event("UPDATE", n, None, since, "gh update-branch")
             return "ok"
         with self.queue.locked(".ssh-lock"):   # one scratch worktree, one fetch and push at a time, whatever lane asks
             res = self.updater(self.repo, branch, self.wt)
+        if res == "regenerated":
+            self.log.event("AUTO-RESOLVE", n, None, since, "main conflicted only in products of build_all.py: merged, regenerated, pushed over ssh")
+            return "ok"
         self.log.event("SSH-UPDATE" if res == "ok" else f"SSH-UPDATE-{res.upper()}", n, None, since, "local merge pushed over ssh")
         return res
 
     def wait_checks(self, n, since):
         """Checks once none is pending; None when they stayed pending past the CI timeout. A failed gh call is no answer: asked again."""
-        for _ in range(20):   # until the full-named backend check is listed: right after the label only the light run's checks may be there
+        for _ in range(20):
+            self.checkpoint(n)   # until the full-named backend check is listed: right after the label only the light run's checks may be there
             listed = self.gh.checks(n) or []
             if any(c["name"].startswith("backend verify") and not c["name"].endswith("(light)") for c in listed):
                 break
             self.sleep(15)
         waited = 0
         while True:
+            self.checkpoint(n)
             checks = self.gh.checks(n)
             if checks and not any(c["bucket"] == "pending" for c in checks):
                 return checks
@@ -559,16 +725,37 @@ class Processor:
             self.sleep(30)
             waited += 30
 
+    def release(self, n):
+        """No worker holds n any more: the mark goes, and busy goes whatever happens to the mark."""
+        try:
+            self.queue.unmark_working(n)
+        finally:
+            with self.guard:
+                self.busy.discard(n)
+
+    def checkpoint(self, n):
+        """Where a cancel request is honoured: anything before the merge call. Once gh has been asked to merge, it is too late and the merge stands."""
+        if self.queue.cancel_requested(n):
+            raise Cancelled(n)
+
     def process(self, n):
         since = time.monotonic()
         if n not in self.log.lanes:   # `once` takes a pull request without pick
             self.log.lanes[n] = self.lane(n)
+        if self.queue.working().get(n) != os.getpid():   # `once` takes a pull request without pick
+            self.queue.mark_working(n)
         self.log.event("START", n, None, since)
         try:
             return self._process(n, since)
+        except Cancelled:
+            with contextlib.suppress(Exception):
+                self.gh.label(n, "queued", False)   # not queued any more: the label would start heavy CI for nothing
+            self.log.event("CANCELLED", n, None, since, "stopped before the merge on request (mq.py remove --cancel); updates already pushed to the branch stay, the queued label is taken off")
+            return "CANCELLED"
         finally:
-            with self.guard:
-                self.busy.discard(n)
+            if self.queue.cancel_requested(n):
+                self.cancel_seen.add(n)   # run_lane must not take out an entry queued again after `remove --cancel`, whatever the round ended with
+            self.release(n)
 
     def hold(self, n, run, since, why):
         self.log.event("HOLD", n, run, since, why)
@@ -578,6 +765,7 @@ class Processor:
         self.cancel_others(n, since)
         attempt, moved, refused = 1, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
         while attempt <= 4:
+            self.checkpoint(n)
             v = self.gh.view(n)
             if v is None:
                 return self.hold(n, None, since, "gh could not tell the state of the pull request")
@@ -587,10 +775,15 @@ class Processor:
             if v["state"] != "OPEN":
                 return self.hold(n, None, since, f"the pull request is {v['state']}")
             if v["merge"] == "DIRTY":
-                self.log.event("CONFLICT", n, None, since, "back to the author (text conflict)")
-                return "CONFLICT"
+                v, why = self.settle_dirty(n, v, since)
+                if why == "error":
+                    return self.hold(n, None, since, "the update could not be pushed")
+                if v is None:
+                    self.log.event("CONFLICT", n, None, since, "back to the author (text conflict)")
+                    return "CONFLICT"
             behind = self.stale(n, v["head"])
             if v["merge"] == "BEHIND" or (behind or 0) > 0:
+                self.checkpoint(n)
                 res = self.update(n, v["branch"], since)
                 if res != "ok":
                     if res == "conflict":
@@ -599,6 +792,7 @@ class Processor:
                     return self.hold(n, None, since, "the update could not be pushed")
                 self.sleep(30)
                 v = self.gh.view(n) or v
+            self.checkpoint(n)
             if "queued" not in v["labels"]:
                 if self.gh.label(n, "queued", True):
                     self.log.event("LABEL-QUEUED", n, None, since)
@@ -708,6 +902,7 @@ class Processor:
         Returns 'MERGED', 'moved' (behind main: update and test again), 'changed' (checks not green any more), 'refused' (gh refused the merge: logged with its message), or 'HOLD'."""
         with self.queue.merge_lock():
             while self.pause.check():
+                self.checkpoint(n)
                 self.log.event("WAIT-PAUSED", n, None, since, "main is red: waiting for `mq.py resume`")
                 self.sleep(60)
             v = self.gh.view(n)
@@ -728,6 +923,7 @@ class Processor:
             if not fresh or not required_state(fresh)[0] or red_checks(fresh):
                 self.log.event("CHECKS-CHANGED", n, None, since, "the checks are no longer all green on this head: run again")
                 return "changed"
+            self.checkpoint(n)   # the last one: under the merge lock, right before gh is asked
             ok, message = self.gh.merge(n, head)
             if ok:
                 self.log.event("MERGED", n, run_id(checks[0].get("link")), since, head[:10])
@@ -757,10 +953,12 @@ def run_lane(proc, lane, idle=60, stop=lambda: False):
             try:
                 result = proc.process(n)
             finally:
-                with proc.guard:
-                    proc.busy.discard(n)   # whatever happened, no worker holds it any more
+                proc.release(n)   # whatever happened, no worker holds it any more
             failures.pop(n, None)
-            proc.queue.remove(n)
+            cancelled = result == "CANCELLED" or n in proc.cancel_seen   # `remove --cancel` took it out already; it may have been queued again since
+            proc.cancel_seen.discard(n)
+            if not cancelled:
+                proc.queue.remove(n)
             proc.log.event("DEQUEUE", n, None, None, result)
         except (Exception, SystemExit) as e:
             if n is None:
@@ -827,6 +1025,18 @@ def positive(text):
     return int(text)
 
 
+def note_conflicts_at_enqueue(numbers):
+    """Only a note before the pull request waits: the settling itself (build_all.py runs for minutes under the ssh lock) is left to the runner, which does it when it takes the pull request."""
+    try:
+        gh = Gh()
+        for n in numbers:
+            v = gh.view(n)
+            if v and v["state"] == "OPEN" and v["merge"] == "DIRTY":
+                print(f"#{n} conflicts with main: the queue tries to settle it when it takes it (only conflicts in products of build_all.py are settled; in a file a person wrote the author has to merge main)", file=sys.stderr)
+    except (Exception, SystemExit) as error:
+        print(f"mq: could not look at conflicts before queueing: {error}", file=sys.stderr)
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv == ["--self-test"]:
@@ -851,7 +1061,9 @@ def main(argv=None):
     e = sub.add_parser("enqueue")
     e.add_argument("prs", type=int, nargs="+")
     e.add_argument("--after", type=positive, action="append", default=[], metavar="M", help="start only once pull request M is merged (repeatable; whatever lane either is in)")
-    sub.add_parser("remove").add_argument("prs", type=int, nargs="+")
+    r = sub.add_parser("remove")
+    r.add_argument("prs", type=int, nargs="+")
+    r.add_argument("--cancel", action="store_true", help="also stop a worker that is processing one of them (before its merge); without it such a pull request is refused")
     b = sub.add_parser("before"); b.add_argument("pr", type=int); b.add_argument("other", type=int)
     a = p.parse_args(argv)
     q = Queue(a.queue or default_queue())
@@ -867,16 +1079,23 @@ def main(argv=None):
             added = q.enqueue(*a.prs, after=a.after)
         except ValueError as e:
             raise SystemExit(f"nothing queued: {e}")
+        note_conflicts_at_enqueue(a.prs)
         for n in a.prs:
             if n not in added:
                 print(f"#{n} is already queued" + (f"; now waits for {sorted(q.deps(n))} (a pull request already being processed does not look at it again)" if a.after else " (a pull request being processed stays queued until it is done)"), file=sys.stderr)
     elif a.cmd == "remove":
-        q.remove(*a.prs)
+        busy = q.remove_checked(set(a.prs), a.cancel)
+        if busy and not a.cancel:
+            raise SystemExit("nothing removed: " + ", ".join(f"#{n}" for n in sorted(busy)) + " is being processed by the runner (pid " + ", ".join(str(busy[n]) for n in sorted(busy)) + "): it cannot be taken back, "
+                             "what it has pushed or merged stays. `mq.py remove --cancel <pr>` asks the worker to stop at its next checkpoint (anything before the merge is made); once the merge call has been made it is too late.")
+        for n in sorted(busy):
+            print(f"#{n} is being processed: cancel requested; the worker stops before the merge unless it is already merging (the log then says CANCELLED, MERGED, HOLD or CONFLICT)", file=sys.stderr)
     elif a.cmd == "before":
         q.before(a.pr, a.other)
     elif a.cmd == "status":
         pause = Pause(directory, Gh(), log)
         print(f"queue: {q.numbers()}")
+        print(f"being processed: {sorted(q.working()) or 'none'}")
         print("paused: " + (open(pause.paused_file).read().strip() if pause.is_paused() else "no"))
         try:
             red = pause.red_runs()
@@ -898,6 +1117,7 @@ def main(argv=None):
             print("mq: no main checkout found (bare repository?): FF-MAIN is switched off", file=sys.stderr)
         proc = Processor(Gh(), q, log, root, ci_timeout=a.ci_timeout * 60, main_checkout=checkout)
         with runner_lock(directory):
+            q.reset_working()
             if a.cmd == "once":
                 proc.process(a.pr)
             else:

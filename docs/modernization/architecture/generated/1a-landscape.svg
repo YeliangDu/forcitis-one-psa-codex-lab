@@ -27,17 +27,20 @@
 <rect x="422" y="124" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
 <text x="432" y="143" font-size="13" fill="#0f172a">商机评估与报价承诺 BC</text>
 <text x="772" y="143" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">presales.quoting</text>
-<rect x="808" y="52" width="380" height="150" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+<rect x="808" y="52" width="380" height="184" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="820" y="76" font-size="15" fill="#0f172a" font-weight="600">合约子域 · contract</text>
-<rect x="818" y="90" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="828" y="109" font-size="13" fill="#0f172a">合约基线 BC</text>
-<text x="1168" y="109" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">contract.baseline</text>
+<rect x="818" y="90" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="828" y="109" font-size="13" fill="#0f172a">协议与变更索赔</text>
+<text x="1168" y="109" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">contract.agreement</text>
 <rect x="818" y="124" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="828" y="143" font-size="13" fill="#0f172a">变更签证索赔 BC</text>
-<text x="1168" y="143" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">contract.changeorder</text>
+<text x="828" y="143" font-size="13" fill="#0f172a">合约基线 BC</text>
+<text x="1168" y="143" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">contract.baseline</text>
 <rect x="818" y="158" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="828" y="177" font-size="13" fill="#0f172a">风险交付 BC</text>
-<text x="1168" y="177" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">contract.riskdelivery</text>
+<text x="828" y="177" font-size="13" fill="#0f172a">变更签证索赔 BC</text>
+<text x="1168" y="177" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">contract.changeorder</text>
+<rect x="818" y="192" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
+<text x="828" y="211" font-size="13" fill="#0f172a">风险交付 BC</text>
+<text x="1168" y="211" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">contract.riskdelivery</text>
 <rect x="412" y="184" width="380" height="116" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="424" y="208" font-size="15" fill="#0f172a" font-weight="600">交付子域 · delivery</text>
 <rect x="422" y="222" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
@@ -46,79 +49,79 @@
 <rect x="422" y="256" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
 <text x="432" y="275" font-size="13" fill="#0f172a">质量返工与验收 BC</text>
 <text x="772" y="275" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">delivery.acceptance</text>
-<rect x="808" y="218" width="380" height="116" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-<text x="820" y="242" font-size="15" fill="#0f172a" font-weight="600">成本子域 · cost</text>
-<rect x="818" y="256" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
-<text x="828" y="275" font-size="13" fill="#0f172a">工时与投入有效性 BC</text>
-<text x="1168" y="275" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">cost.timesheet</text>
-<rect x="818" y="290" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="828" y="309" font-size="13" fill="#0f172a">项目成本归集 BC</text>
-<text x="1168" y="309" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">cost.costing</text>
 <rect x="16" y="252" width="380" height="116" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-<text x="28" y="276" font-size="15" fill="#0f172a" font-weight="600">回款子域 · receivables</text>
-<rect x="26" y="290" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="36" y="309" font-size="13" fill="#0f172a">WIP 与开票准入 BC</text>
-<text x="376" y="309" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">receivables.wip</text>
+<text x="28" y="276" font-size="15" fill="#0f172a" font-weight="600">成本子域 · cost</text>
+<rect x="26" y="290" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
+<text x="36" y="309" font-size="13" fill="#0f172a">工时与投入有效性 BC</text>
+<text x="376" y="309" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">cost.timesheet</text>
 <rect x="26" y="324" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="36" y="343" font-size="13" fill="#0f172a">AR 与现金转化 BC</text>
-<text x="376" y="343" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">receivables.collection</text>
+<text x="36" y="343" font-size="13" fill="#0f172a">项目成本归集 BC</text>
+<text x="376" y="343" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">cost.costing</text>
+<rect x="808" y="252" width="380" height="116" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="820" y="276" font-size="15" fill="#0f172a" font-weight="600">回款子域 · receivables</text>
+<rect x="818" y="290" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
+<text x="828" y="309" font-size="13" fill="#0f172a">WIP 与开票准入 BC</text>
+<text x="1168" y="309" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">receivables.wip</text>
+<rect x="818" y="324" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
+<text x="828" y="343" font-size="13" fill="#0f172a">AR 与现金转化 BC</text>
+<text x="1168" y="343" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">receivables.collection</text>
 <rect x="412" y="316" width="380" height="82" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="424" y="340" font-size="15" fill="#0f172a" font-weight="600">应付子域 · payables</text>
 <rect x="422" y="354" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
 <text x="432" y="373" font-size="13" fill="#0f172a">应付与付款 BC</text>
 <text x="772" y="373" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">payables.payment</text>
-<rect x="808" y="350" width="380" height="82" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-<text x="820" y="374" font-size="15" fill="#0f172a" font-weight="600">费用子域 · expense</text>
-<rect x="818" y="388" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="828" y="407" font-size="13" fill="#0f172a">费用报销与支出管控 BC</text>
-<text x="1168" y="407" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">expense.spend</text>
 <rect x="16" y="384" width="380" height="82" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-<text x="28" y="408" font-size="15" fill="#0f172a" font-weight="600">采购子域 · procurement</text>
+<text x="28" y="408" font-size="15" fill="#0f172a" font-weight="600">费用子域 · expense</text>
 <rect x="26" y="422" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="36" y="441" font-size="13" fill="#0f172a">分包与采购履约 BC</text>
-<text x="376" y="441" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">procurement.subcontracting</text>
+<text x="36" y="441" font-size="13" fill="#0f172a">费用报销与支出管控 BC</text>
+<text x="376" y="441" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">expense.spend</text>
+<rect x="808" y="384" width="380" height="82" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="820" y="408" font-size="15" fill="#0f172a" font-weight="600">采购子域 · procurement</text>
+<rect x="818" y="422" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
+<text x="828" y="441" font-size="13" fill="#0f172a">分包与采购履约 BC</text>
+<text x="1168" y="441" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">procurement.subcontracting</text>
 <rect x="412" y="414" width="380" height="82" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="424" y="438" font-size="15" fill="#0f172a" font-weight="600">知识子域 · km</text>
 <rect x="422" y="452" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
 <text x="432" y="471" font-size="13" fill="#0f172a">知识资产与 AI 赋能 BC</text>
 <text x="772" y="471" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">km.knowledge</text>
-<rect x="808" y="448" width="380" height="218" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-<text x="820" y="472" font-size="15" fill="#0f172a" font-weight="600">组织子域 · organization</text>
-<rect x="818" y="486" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
-<text x="828" y="505" font-size="13" fill="#0f172a">考勤与休假 BC</text>
-<text x="1168" y="505" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.attendance</text>
-<rect x="818" y="520" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
-<text x="828" y="539" font-size="13" fill="#0f172a">行政事务</text>
-<text x="1168" y="539" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.administration</text>
-<rect x="818" y="554" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
-<text x="828" y="573" font-size="13" fill="#0f172a">组织人事 BC</text>
-<text x="1168" y="573" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.workforce</text>
-<rect x="818" y="588" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="828" y="607" font-size="13" fill="#0f172a">假勤薪酬 BC</text>
-<text x="1168" y="607" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.payroll</text>
-<rect x="818" y="622" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="828" y="641" font-size="13" fill="#0f172a">绩效激励 BC</text>
-<text x="1168" y="641" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.incentive</text>
-<rect x="16" y="482" width="380" height="252" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-<text x="28" y="506" font-size="15" fill="#0f172a" font-weight="600">核算子域 · accounting</text>
-<rect x="26" y="520" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
-<text x="36" y="539" font-size="13" fill="#0f172a">财务总账与法定核算 BC</text>
-<text x="376" y="539" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.ledger</text>
-<rect x="26" y="554" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="36" y="573" font-size="13" fill="#0f172a">会计期间 BC</text>
-<text x="376" y="573" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.period</text>
-<rect x="26" y="588" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="36" y="607" font-size="13" fill="#0f172a">报表 BC</text>
-<text x="376" y="607" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.reporting</text>
-<rect x="26" y="622" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="36" y="641" font-size="13" fill="#0f172a">银行与现金 BC</text>
-<text x="376" y="641" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.cashbank</text>
-<rect x="26" y="656" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="36" y="675" font-size="13" fill="#0f172a">税费 BC</text>
-<text x="376" y="675" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.tax</text>
-<rect x="26" y="690" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="36" y="709" font-size="13" fill="#0f172a">固定资产 BC</text>
-<text x="376" y="709" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.fixedasset</text>
+<rect x="16" y="482" width="380" height="218" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="28" y="506" font-size="15" fill="#0f172a" font-weight="600">组织子域 · organization</text>
+<rect x="26" y="520" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
+<text x="36" y="539" font-size="13" fill="#0f172a">考勤与休假 BC</text>
+<text x="376" y="539" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.attendance</text>
+<rect x="26" y="554" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
+<text x="36" y="573" font-size="13" fill="#0f172a">行政事务</text>
+<text x="376" y="573" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.administration</text>
+<rect x="26" y="588" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
+<text x="36" y="607" font-size="13" fill="#0f172a">组织人事 BC</text>
+<text x="376" y="607" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.workforce</text>
+<rect x="26" y="622" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
+<text x="36" y="641" font-size="13" fill="#0f172a">假勤薪酬 BC</text>
+<text x="376" y="641" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.payroll</text>
+<rect x="26" y="656" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
+<text x="36" y="675" font-size="13" fill="#0f172a">绩效激励 BC</text>
+<text x="376" y="675" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">organization.incentive</text>
+<rect x="808" y="482" width="380" height="252" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="820" y="506" font-size="15" fill="#0f172a" font-weight="600">核算子域 · accounting</text>
+<rect x="818" y="520" width="360" height="28" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="4 3"/>
+<text x="828" y="539" font-size="13" fill="#0f172a">财务总账与法定核算 BC</text>
+<text x="1168" y="539" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.ledger</text>
+<rect x="818" y="554" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="828" y="573" font-size="13" fill="#0f172a">会计期间 BC</text>
+<text x="1168" y="573" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.period</text>
+<rect x="818" y="588" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="828" y="607" font-size="13" fill="#0f172a">报表 BC</text>
+<text x="1168" y="607" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.reporting</text>
+<rect x="818" y="622" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="828" y="641" font-size="13" fill="#0f172a">银行与现金 BC</text>
+<text x="1168" y="641" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.cashbank</text>
+<rect x="818" y="656" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="828" y="675" font-size="13" fill="#0f172a">税费 BC</text>
+<text x="1168" y="675" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.tax</text>
+<rect x="818" y="690" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="828" y="709" font-size="13" fill="#0f172a">固定资产 BC</text>
+<text x="1168" y="709" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">accounting.fixedasset</text>
 <rect x="412" y="512" width="380" height="456" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="424" y="536" font-size="15" fill="#0f172a" font-weight="600">平台子域 · platform</text>
 <rect x="422" y="550" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
@@ -157,12 +160,12 @@
 <rect x="422" y="924" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
 <text x="432" y="943" font-size="13" fill="#0f172a">迁入编排</text>
 <text x="772" y="943" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">platform.migration</text>
-<rect x="808" y="682" width="380" height="116" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-<text x="820" y="706" font-size="15" fill="#0f172a" font-weight="600">共享内核与未定子域</text>
-<rect x="818" y="720" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
-<text x="828" y="739" font-size="13" fill="#0f172a">共享内核</text>
-<text x="1168" y="739" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">kernel</text>
-<rect x="818" y="754" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
-<text x="828" y="773" font-size="13" fill="#0f172a">经营分析（只读）</text>
-<text x="1168" y="773" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">reporting</text>
+<rect x="16" y="716" width="380" height="116" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="28" y="740" font-size="15" fill="#0f172a" font-weight="600">共享内核与未定子域</text>
+<rect x="26" y="754" width="360" height="28" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
+<text x="36" y="773" font-size="13" fill="#0f172a">共享内核</text>
+<text x="376" y="773" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">kernel</text>
+<rect x="26" y="788" width="360" height="28" rx="6" fill="#ecfdf5" stroke="#059669" stroke-dasharray="4 3"/>
+<text x="36" y="807" font-size="13" fill="#0f172a">经营分析（只读）</text>
+<text x="376" y="807" font-size="11" fill="#475569" text-anchor="end" font-family="ui-monospace,Menlo,monospace">reporting</text>
 </svg>

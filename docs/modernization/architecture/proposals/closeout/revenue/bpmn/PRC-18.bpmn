@@ -4,7 +4,7 @@
   <dataStore id="DS_AGG-21" name="AGG-21"/>
   <collaboration id="Collab_PRC-18">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-18"/>
-    <participant id="Pool_1" name="客户决策链·发起人（SH-C6a）"/>
+    <participant id="Pool_1" name="客户·客户决策链·发起人（SH-C6a）"/>
     <messageFlow id="Msg_1" name="交付计划发包人批准" sourceRef="Pool_1" targetRef="S2_reg_7"/>
   </collaboration>
   <process id="PRC-18" name="编制并批准交付计划" isExecutable="false">

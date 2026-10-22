@@ -4,21 +4,25 @@
 
 每轮生成一次，反复跑到收敛。缺口是「缺上层」还是「本身多余」，由 one-architecture 逐条判定，写进层笔记的待决问题。
 
+## N13-3 判据变更
+
+同一输入按改前判据计 101 个缺口，按改后判据计 99 个缺口。改前同时要求指标自带 facts 与 bind，改后按计算绑定判定；绑定的事实、公式版本与时间基准缺失由 N14-1 报告。技术度量均排除，pending 仍计缺口并附原因前 40 字。
+
 ## 覆盖率
 
 按起点去重；via 列为每种出处下已覆盖起点数（可重叠），不是执行通过率。表→聚合只统计 data-access-registry 的三类业务表；API→BC 按路径统计，方法数见 api 节点。
 
 | 关系 | 已覆盖 / 总数 | via（已覆盖起点数） |
 |---|---|---|
-| INV→EP | 3 / 148 | enforces: 0、manual: 3、rule: 0 |
-| INV→TC | 1 / 148 | class_covers: 0、covers: 0、rule: 1 |
+| INV→EP | 3 / 151 | enforces: 0、manual: 3、rule: 0 |
+| INV→TC | 1 / 151 | class_covers: 0、covers: 0、rule: 1 |
 | RULE→TC（有 INV 对照） | 1 / 38 | class_covers: 0、covers: 1 |
-| 表→聚合 | 20 / 30 | built: 20、panorama: 0 |
+| 表→聚合 | 20 / 32 | built: 20、panorama: 0 |
 | 事件→聚合 | 59 / 59 | events: 47、module: 49 |
 | 事件→发布 BC | 59 / 59 | publisher: 59 |
 | API→BC | 58 / 58 | controller: 58 |
 
-登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 3、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 8、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
+登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 4、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 8、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
 
 | 节点 | 层 | 条目数 |
 |---|---|---|
@@ -29,29 +33,29 @@
 | 05 业务能力 | cap | 24 |
 | 06 价值流与阶段 | vs | 15 |
 | 06 价值流与阶段 | stage | 61 |
-| 07 业务流程 | prc | 200 |
-| 08 约束与认定规则 | inv | 148 |
+| 07 业务流程 | prc | 202 |
+| 08 约束与认定规则 | inv | 151 |
 | 09 业务对象 | obj | 104 |
-| 10 受控业务执行 | act | 671 |
-| 11 业务事实 | fact | 0 |
-| 12 维度 | dim | 0 |
-| 13 指标与评价 | metric | 79 |
-| 14 计算绑定 | bind | 0 |
+| 10 受控业务执行 | act | 680 |
+| 11 业务事实 | fact | 37 |
+| 12 维度 | dim | 10 |
+| 13 指标与评价 | metric | 112 |
+| 14 计算绑定 | bind | 11 |
 | 15 决策与行动 | dec | 0 |
 | 09/10 映射  | agg | 145 |
 | 09/10 映射  | bc | 51 |
 | 09/10 映射  | sd | 13 |
-| 09/10 映射  | table | 69 |
+| 09/10 映射  | table | 72 |
 | 08 约束与认定规则 | rule | 512 |
 | 10 受控业务执行 | ep | 601 |
 | 10 受控业务执行 | tc | 1132 |
 | 10 映射  | api | 68 |
 | 10 映射  | mod | 14 |
-| 10 受控业务执行 | cmd | 608 |
-| 09/10 映射  | otr | 873 |
+| 10 受控业务执行 | cmd | 613 |
+| 09/10 映射  | otr | 881 |
 | 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
-| 07 业务流程 | steps | 651 |
+| 07 业务流程 | steps | 661 |
 | 01 映射  | perm | 27 |
 | 01 映射  | srole | 7 |
 | 01 映射  | role | 56 |
@@ -73,12 +77,12 @@
 | N07-1 | 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1） | 0 |
 | N07-2 | 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判） | 0 |
 | N07-P1 | P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml | 0 |
-| N01-R1 | 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查） | 0 |
+| N01-R1 | 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查） | 1 |
 | N01-R2 | 每个 ROLE 写明由谁承担（host_category 非空） | 0 |
 | N01-R3 | 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告） | 4 |
 | N08-1 | 每个不变量都归属存在的聚合 | 0 |
-| N08-2 | 每条不变量至少有一个执行点 | 145 |
-| N08-3 | 每条不变量至少有一个用例 | 147 |
+| N08-2 | 每条不变量至少有一个执行点 | 148 |
+| N08-3 | 每条不变量至少有一个用例 | 150 |
 | N08-4 | 每张有不变量对照的 RULE 至少有一个用例 | 37 |
 | N09-1 | 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除） | 1 |
 | N09-2 | 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求） | 2 |
@@ -87,22 +91,27 @@
 | N09-M1 | 每个聚合都归属一个 BC | 10 |
 | N09-M2 | 每个聚合都有不变量 | 36 |
 | N09-M3 | 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张） | 132 |
-| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 69 |
-| N09-M5 | 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数） | 10 |
+| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 72 |
+| N09-M5 | 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数） | 12 |
 | N09-M6 | 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口） | 1 |
 | N10-M2 | 每个后端模块在 module-dependencies.txt 登记 | 0 |
 | N10-M3 | 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属） | 0 |
-| N10-1 | 每个受控业务执行（命令）都有 owner BC | 37 |
+| N10-1 | 每个受控业务执行（命令）都有 owner BC | 42 |
 | N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 4 |
-| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 1 |
+| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 3 |
 | N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 47 |
 | N10-4 | 每个已建命令类在 ssot/11-commands/command-mapping.yaml 登记对照（pending 计缺口） | 0 |
 | N10-5 | 每个事件有唯一发布者与版本 | 0 |
 | N10-6 | 跨 BC 只走已发布事件或契约（订阅模块对发布模块的依赖须登记；只按 kernel DomainEvent 信封接收的订阅方除外） | 0 |
-| N11-1 | 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列） | 6 |
+| N11-1 | 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列） | 12 |
+| N11-2 | 每条经营事实有产生它的命令或事件 | 0 |
+| N11-3 | 每条分析事实能追到经营事实 | 7 |
+| N12-1 | 每个维度至少切一条事实 | 0 |
+| N12-2 | 总线矩阵的每个 ✔ 格都对上 DIM×FACT | 7 |
 | N13-1 | 每个阶段都有指标 | 61 |
-| N13-2 | 每个指标都能追到阶段或流程 | 79 |
-| N13-3 | 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口） | 79 |
+| N13-2 | 每个指标都能追到阶段或流程 | 110 |
+| N13-3 | 度量链：每个指标都有计算绑定（绑定带事实来源） | 99 |
+| N14-1 | 每个绑定有事实、公式版本与时间基准 | 0 |
 
 ## N01-1 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）（39）
 
@@ -160,6 +169,10 @@
 - VS-10.1 关闭会计期间（门对象 OBJ-97→断、OBJ-98→断）
 - VS-10.2 发布报表（门对象 OBJ-125→断、OBJ-97→断、OBJ-98→断）
 
+## N01-R1 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查）（1）
+
+- 财务负责人（权责表引用，未归任何 ROLE）
+
 ## N01-R3 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告）（4）
 
 - cost.timesheet:timesheet:submit
@@ -167,7 +180,7 @@
 - platform.numbering:voucher-numbering-rule:approve
 - platform.numbering:legacy-number:read
 
-## N08-2 每条不变量至少有一个执行点（145）
+## N08-2 每条不变量至少有一个执行点（148）
 
 - INV-01
 - INV-02
@@ -314,8 +327,11 @@
 - INV-137
 - INV-138
 - INV-139
+- INV-140
+- INV-141
+- INV-142
 
-## N08-3 每条不变量至少有一个用例（147）
+## N08-3 每条不变量至少有一个用例（150）
 
 - INV-01
 - INV-02
@@ -464,6 +480,9 @@
 - INV-137
 - INV-138
 - INV-139
+- INV-140
+- INV-141
+- INV-142
 
 ## N08-4 每张有不变量对照的 RULE 至少有一个用例（37）
 
@@ -716,16 +735,19 @@
 - organization.workforce/RegisteredEmployee RegisteredEmployee
 - platform.integration/SourceReferenceRefusal SourceReferenceRefusal
 
-## N09-M4 每张表都能追到聚合，聚合能追到业务对象（69）
+## N09-M4 每张表都能追到聚合，聚合能追到业务对象（72）
 
+- cost_timesheet.consumed_events（对象 无）
+- cost_timesheet.timesheets（对象 无）
 - organization_administration.config_sets（对象 无）
 - organization_administration.config_set_versions（对象 无）
 - organization_administration.employee_activity_type_items（对象 无）
 - organization_administration.state_transitions（对象 无）
-- cost_timesheet.consumed_events（对象 无）
-- cost_timesheet.timesheets（对象 无）
 - organization_attendance.work_calendar_years（对象 无）
 - organization_attendance.work_calendar_days（对象 无）
+- organization_attendance.work_calendars（对象 无）
+- organization_attendance.work_calendar_versions（对象 无）
+- organization_attendance.work_calendar_version_days（对象 无）
 - organization_workforce.positions（对象 无）
 - organization_workforce.org_units（对象 无）
 - organization_workforce.employees（对象 无）
@@ -788,10 +810,12 @@
 - platform_file.state_transitions（对象 无）
 - platform_scheduling.scheduler_locks（对象 无）
 
-## N09-M5 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数）（10）
+## N09-M5 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数）（12）
 
 - organization_administration.config_set_versions（AGGREGATE_CHILD，聚合登记 ConfigSet）
 - organization_administration.employee_activity_type_items（AGGREGATE_CHILD，聚合登记 ConfigSet）
+- organization_attendance.work_calendar_versions（AGGREGATE_CHILD，聚合登记 WorkCalendar）
+- organization_attendance.work_calendar_version_days（AGGREGATE_CHILD，聚合登记 WorkCalendar）
 - platform_file.stored_files（AGGREGATE_ROOT，聚合登记 StoredFile）
 - platform_file.stored_file_names（AGGREGATE_CHILD，聚合登记 StoredFile）
 - platform_file.file_bindings（AGGREGATE_CHILD，聚合登记 StoredFile）
@@ -805,7 +829,7 @@
 
 - organization.workforce/RegisteredEmployee（pending）
 
-## N10-1 每个受控业务执行（命令）都有 owner BC（37）
+## N10-1 每个受控业务执行（命令）都有 owner BC（42）
 
 - AGG-109/草拟利润分配（聚合 AGG-109 未归 BC）
 - AGG-109/决议利润分配（聚合 AGG-109 未归 BC）
@@ -819,6 +843,9 @@
 - AGG-73/撤回薪酬审核（聚合 AGG-73 未归 BC）
 - AGG-73/提交过账候选（聚合 AGG-73 未归 BC）
 - AGG-73/标记薪酬已发放（聚合 AGG-73 未归 BC）
+- AGG-73/登记代发结果（聚合 AGG-73 未归 BC）
+- AGG-73/发起薪酬补发（聚合 AGG-73 未归 BC）
+- AGG-73/登记薪酬补发顺延（聚合 AGG-73 未归 BC）
 - AGG-73/标记薪酬已过账（聚合 AGG-73 未归 BC）
 - AGG-74/参保增员（聚合 AGG-74 未归 BC）
 - AGG-74/参保减员（聚合 AGG-74 未归 BC）
@@ -843,6 +870,8 @@
 - AGG-95/提交过账候选（聚合 AGG-95 未归 BC）
 - AGG-110/关联证据（聚合 AGG-110 未归 BC）
 - AGG-110/解除证据关联（聚合 AGG-110 未归 BC）
+- AGG-136/编制账期规则版本（聚合 AGG-136 未归 BC）
+- AGG-136/生效账期规则版本（聚合 AGG-136 未归 BC）
 - REF-01/登记招标项目（聚合 REF-01 未归 BC）
 
 ## N10-M1 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）（4）
@@ -852,8 +881,10 @@
 - B-32 报价发出编排（暂名）（模块 None）
 - reporting 经营分析（只读）（模块 reporting）
 
-## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（1）
+## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（3）
 
+- CMD-1afc1f3f 生效账期规则版本（AGG-136 未归 BC）
+- CMD-c401c884 编制账期规则版本（AGG-136 未归 BC）
 - CMD-c2d24f95 登记招标项目（REF-01 未归 BC）
 
 ## N10-3 每条状态转换有触发命令（含 pending；by_command 为空计缺口）（47）
@@ -906,14 +937,40 @@
 - OTR-843（transitions，AGG-129，命令 None）
 - OTR-844（transitions，AGG-129，命令 None）
 
-## N11-1 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）（6）
+## N11-1 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）（12）
 
+- OBJ-01 往来单位
+- OBJ-110 知识条目
 - OBJ-19 招标项目
+- OBJ-24 服务产品
+- OBJ-25 阶段类型
+- OBJ-26 标准成本费率表
 - OBJ-28 工作日历
 - OBJ-46 建设工程
 - OBJ-53 证据
+- OBJ-54 法人主体
 - OBJ-58 岗位
 - OBJ-78 分摊规则（原「分摊规则版本」）
+
+## N11-3 每条分析事实能追到经营事实（7）
+
+- FACT-30 商机（累积快照）（analytic_source：presales.opportunity 商机状态里程碑；非过账事实，无经营事实）
+- FACT-31 报价（analytic_source：报价版本（presales.quoting 读模型）；非过账事实）
+- FACT-32 合同与合同条款（累积快照）（analytic_source：contract.agreement 合同基线版本（参照事实，不过账，OA_PR）
+- FACT-33 考勤与休假（analytic_source：organization.leave / attendance 考勤记录、请假、）
+- FACT-34 计划目标与预测（analytic_source：operations.planning 经营计划版本（计划值，不是已发生事实））
+- FACT-36 审批时效（累积快照）（analytic_source：platform.approval 领域事件，不过账（ADR-0025）；工作日）
+- FACT-37 线索与投标转化事件（analytic_source：presales.opportunity 线索、投标状态里程碑）
+
+## N12-2 总线矩阵的每个 ✔ 格都对上 DIM×FACT（7）
+
+- 行「预算执行」× 列「期间」未对上 DIM×FACT
+- 行「预算执行」× 列「法人」未对上 DIM×FACT
+- 行「预算执行」× 列「组织」未对上 DIM×FACT
+- 行「预算执行」× 列「项目 / WBS」未对上 DIM×FACT
+- 行「预算执行」× 列「人员」未对上 DIM×FACT
+- 行「预算执行」× 列「成本类型」未对上 DIM×FACT
+- 行「预算执行」× 列「供应商」未对上 DIM×FACT
 
 ## N13-1 每个阶段都有指标（61）
 
@@ -979,166 +1036,217 @@
 - VS-15.2 批准生效
 - VS-15.3 修订停用
 
-## N13-2 每个指标都能追到阶段或流程（79）
+## N13-2 每个指标都能追到阶段或流程（110）
 
-- business_variance 经营偏差
-- uncontracted_exposure 无合同风险敞口
-- estimate_to_complete ETC
-- delivery_variance 交付偏差
-- post_completion_service_hours 后期服务工时
-- quality_loss 质量损失
-- rework_rate 返工率
-- defect_rate 质量缺陷率
-- effective_hours 有效工时
-- ineffective_hours 无效工时
-- rework_hours 返工工时
-- billable_hours 可计费工时
-- capacity_realization 产能变现
-- idle_capacity 闲置产能
-- project_cost 项目成本
-- direct_labor 直接人工
-- direct_expense 直接费用
-- outsourcing_cost 外包成本
-- subcontract_cost 分包成本
-- cost_budget 成本预算
-- cost_budget_variance 成本预算偏差
-- unbilled_wip 未开票在制（WIP）
-- measure_of_progress 履约进度
-- uncontracted_wip 无合同 WIP
-- accounts_receivable 应收账款
-- aging 账龄
-- bad_debt_risk 坏账风险
-- impairment_risk 减值风险
-- cash_conversion 现金转化
-- time_capture_rate 工时捕获率
-- statutory_cost 法定成本
-- intercompany_balance 内部往来
-- costs_to_obtain_contract 合同取得成本
-- cost_of_sales 营业成本
-- remaining_performance_obligation 剩余履约义务
-- estimate_at_completion 完工估算
-- planned_value 计划价值
-- earned_value 挣值
-- actual_cost 实际成本
-- cost_performance_index 成本绩效指数
-- schedule_performance_index 进度绩效指数
-- schedule_variance 进度偏差
-- earned_value_cost_variance 挣值成本偏差
-- utilization_rate 利用率
-- accrual_basis_revenue 权责发生制收入
-- reversible_balance 可冲销余额
-- job_failure 作业失败
-- contribution_margin 贡献毛利
-- contribution_margin_ratio 贡献毛利率
-- net_service_revenue 净服务收入
-- management_operating_profit 经营利润
-- management_operating_profit_margin 经营利润率
-- indirect_cost 间接成本
-- pass_through_cost 转付成本
-- labor_cost_multiplier 人工成本产出倍数
-- target_variance 目标偏差
-- available_budget 可用额度
-- plan_target_value 计划目标值
-- target_attainment_rate 目标达成率
-- budget_consumption_rate 预算消耗率
-- new_contract_value 新签合同额
-- project_initiation_value 项目立项金额
-- aged_receivable 账龄超 N 天应收
-- days_sales_outstanding 应收周转天数
-- billing_conversion_rate 开票转化率
-- collection_rate 回款率
-- overdue_billing_commitment 承诺开票超期
-- allowance_for_bad_debts 坏账准备
-- average_headcount 平均在册人数
-- attrition_rate 离职率
-- pipeline_value 商机管道金额
-- win_rate 赢单率
-- lead_conversion_rate 线索转化率
-- expense_payment 费用支付
-- kickoff_completion_rate 启动会完成率
-- internal_review_coverage 内部评审覆盖率
-- net_revenue 净收入
-- revenue_including_tax 含税收入
-- net_new_contract_value 新签净额
+- KPI-01 OA 迁入模板停用率
+- KPI-02 切换后 A8 凭证插件新增凭证行数
+- KPI-03 权责事实遗留类别数
+- KPI-04 经单一过账管道入账的权责事实占比
+- KPI-05 月结对账等式差异数
+- KPI-06 权责口径三大报表按月产出率
+- KPI-07 与 U8C 收付账套对账差异数
+- KPI-08 指标目录 OAT 声明完整率
+- KPI-09 同一指标的并存算法数
+- KPI-10 关账期间快照覆盖率
+- KPI-11 口径差异清单逐期勾稽完成率
+- KPI-12 项目贡献毛利可得覆盖率
+- KPI-13 贡献毛利率
+- KPI-14 老系统与 A8 数据通道下线数
+- KPI-15 过渡镜像对账通过率
+- KPI-16 安全不变量满足数
+- KPI-17 商机管道金额
+- KPI-18 赢单金额
+- KPI-19 赢单率
+- KPI-20 项目立项金额
+- KPI-21 线索转化率
+- KPI-22 新签合同额
+- KPI-23 剩余履约义务
+- KPI-24 待签合同金额
+- KPI-25 开票金额（含税）
+- KPI-26 回款（应收结清，全部方式）
+- KPI-27 现金回款
+- KPI-28 应收账款余额
+- KPI-29 逾期应收（过了到期日）
+- KPI-30 开票转化率
+- KPI-31 回款率
+- KPI-32 减值准备（余额、本期计提）
+- KPI-33 收入冲减
+- KPI-34 信用损失核销
+- KPI-35 商业承兑汇票未兑付余额
+- KPI-36 承诺开票超期金额
+- KPI-37 直接人工
+- KPI-38 直接费用
+- KPI-39 净服务收入
+- KPI-40 贡献毛利
+- KPI-41 BU 贡献（层级）
+- KPI-42 经营利润
+- KPI-43 经营利润率
+- KPI-44 费用（权责，按发生期间）
+- KPI-45 费用支付（按支付日）
+- KPI-46 法定报表数
+- KPI-47 经营活动现金流量净额
+- KPI-48 平均在册人数
+- KPI-49 离职率（主动、被动）
+- KPI-50 计划目标值
+- KPI-51 目标达成率
+- KPI-52 人均产出
+- KPI-53 人工成本产出倍数
+- KPI-54 预算执行
+- KPI-55 可用额度
+- KPI-56 预算消耗率
+- KPI-57 交付质量指标族
+- KPI-58 启动会完成率
+- KPI-59 内部评审覆盖率
+- KPI-60 经营偏差
+- KPI-61 交付偏差
+- KPI-62 后期服务工时
+- KPI-63 质量损失
+- KPI-64 返工率
+- KPI-65 质量缺陷率
+- KPI-66 返工工时
+- KPI-67 产能变现
+- KPI-68 闲置产能
+- KPI-69 成本预算
+- KPI-70 成本预算偏差
+- KPI-71 履约进度
+- KPI-72 无合同 WIP
+- KPI-73 账龄
+- KPI-74 坏账风险
+- KPI-75 减值风险
+- KPI-76 现金转化
+- KPI-77 工时捕获率
+- KPI-78 法定成本
+- KPI-79 内部往来
+- KPI-80 合同取得成本
+- KPI-81 ETC
+- KPI-82 完工估算
+- KPI-83 计划价值
+- KPI-84 挣值
+- KPI-85 实际成本
+- KPI-86 成本绩效指数
+- KPI-87 进度绩效指数
+- KPI-88 进度偏差
+- KPI-89 挣值成本偏差
+- KPI-92 转付成本
+- KPI-93 目标偏差
+- KPI-94 新签净额
+- KPI-95 可计费利用率
+- KPI-96 含商机工时的利用率
+- KPI-97 按有效工时算的利用率
+- KPI-98 账龄超 N 天应收
+- KPI-99 无合同投入总规模
+- KPI-100 超授权额度投入
+- KPI-101 分包成本
+- KPI-102 外包成本
+- KPI-103 项目成本（归集）
+- KPI-104 营业成本（结转）
+- KPI-105 合同资产余额
+- KPI-106 未开票在制
+- KPI-107 工时结构（投入去向）
+- KPI-108 工时结构（产出）
+- KPI-109 应收周转天数
+- KPI-110 权责发生制收入
+- KPI-111 含税收入
+- KPI-112 间接成本（按职能）
 
-## N13-3 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）（79）
+## N13-3 度量链：每个指标都有计算绑定（绑定带事实来源）（99）
 
-- business_variance 经营偏差
-- uncontracted_exposure 无合同风险敞口
-- estimate_to_complete ETC
-- delivery_variance 交付偏差
-- post_completion_service_hours 后期服务工时
-- quality_loss 质量损失
-- rework_rate 返工率
-- defect_rate 质量缺陷率
-- effective_hours 有效工时
-- ineffective_hours 无效工时
-- rework_hours 返工工时
-- billable_hours 可计费工时
-- capacity_realization 产能变现
-- idle_capacity 闲置产能
-- project_cost 项目成本
-- direct_labor 直接人工
-- direct_expense 直接费用
-- outsourcing_cost 外包成本
-- subcontract_cost 分包成本
-- cost_budget 成本预算
-- cost_budget_variance 成本预算偏差
-- unbilled_wip 未开票在制（WIP）
-- measure_of_progress 履约进度
-- uncontracted_wip 无合同 WIP
-- accounts_receivable 应收账款
-- aging 账龄
-- bad_debt_risk 坏账风险
-- impairment_risk 减值风险
-- cash_conversion 现金转化
-- time_capture_rate 工时捕获率
-- statutory_cost 法定成本
-- intercompany_balance 内部往来
-- costs_to_obtain_contract 合同取得成本
-- cost_of_sales 营业成本
-- remaining_performance_obligation 剩余履约义务
-- estimate_at_completion 完工估算
-- planned_value 计划价值
-- earned_value 挣值
-- actual_cost 实际成本
-- cost_performance_index 成本绩效指数
-- schedule_performance_index 进度绩效指数
-- schedule_variance 进度偏差
-- earned_value_cost_variance 挣值成本偏差
-- utilization_rate 利用率
-- accrual_basis_revenue 权责发生制收入
-- reversible_balance 可冲销余额
-- job_failure 作业失败
-- contribution_margin 贡献毛利
-- contribution_margin_ratio 贡献毛利率
-- net_service_revenue 净服务收入
-- management_operating_profit 经营利润
-- management_operating_profit_margin 经营利润率
-- indirect_cost 间接成本
-- pass_through_cost 转付成本
-- labor_cost_multiplier 人工成本产出倍数
-- target_variance 目标偏差
-- available_budget 可用额度
-- plan_target_value 计划目标值
-- target_attainment_rate 目标达成率
-- budget_consumption_rate 预算消耗率
-- new_contract_value 新签合同额
-- project_initiation_value 项目立项金额
-- aged_receivable 账龄超 N 天应收
-- days_sales_outstanding 应收周转天数
-- billing_conversion_rate 开票转化率
-- collection_rate 回款率
-- overdue_billing_commitment 承诺开票超期
-- allowance_for_bad_debts 坏账准备
-- average_headcount 平均在册人数
-- attrition_rate 离职率
-- pipeline_value 商机管道金额
-- win_rate 赢单率
-- lead_conversion_rate 线索转化率
-- expense_payment 费用支付
-- kickoff_completion_rate 启动会完成率
-- internal_review_coverage 内部评审覆盖率
-- net_revenue 净收入
-- revenue_including_tax 含税收入
-- net_new_contract_value 新签净额
+- KPI-01 OA 迁入模板停用率（pending：出口条件，非经营度量，不绑定经营事实）
+- KPI-02 切换后 A8 凭证插件新增凭证行数（pending：出口条件，非经营度量，不绑定经营事实）
+- KPI-03 权责事实遗留类别数（pending：出口条件，非经营度量，不绑定经营事实）
+- KPI-04 经单一过账管道入账的权责事实占比（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-05 月结对账等式差异数（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-06 权责口径三大报表按月产出率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-07 与 U8C 收付账套对账差异数（pending：出口条件，非经营度量，不绑定经营事实）
+- KPI-08 指标目录 OAT 声明完整率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-09 同一指标的并存算法数（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-10 关账期间快照覆盖率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-11 口径差异清单逐期勾稽完成率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-12 项目贡献毛利可得覆盖率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-13 贡献毛利率（pending：分子贡献毛利同 KPI-40，所需成本汇集事实 FACT-27 在 W5；分母已）
+- KPI-14 老系统与 A8 数据通道下线数（pending：出口条件，非经营度量，不绑定经营事实）
+- KPI-15 过渡镜像对账通过率（pending：出口条件，非经营度量，不绑定经营事实）
+- KPI-16 安全不变量满足数（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-17 商机管道金额（pending：所需事实非 W1：FACT-30 W2）
+- KPI-18 赢单金额（pending：所需事实非 W1：FACT-31 W2）
+- KPI-19 赢单率（pending：所需事实非 W1：FACT-37 W2、FACT-31 W2）
+- KPI-20 项目立项金额（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-21 线索转化率（pending：所需事实非 W1：FACT-37 W2）
+- KPI-22 新签合同额（pending：所需事实非 W1：FACT-32 W3）
+- KPI-23 剩余履约义务（pending：所需事实非 W1：FACT-29 W5、FACT-32 W3）
+- KPI-24 待签合同金额（pending：所需事实非 W1：FACT-32 W3）
+- KPI-26 回款（应收结清，全部方式）（pending：所需事实非 W1：FACT-28 W4）
+- KPI-27 现金回款（pending：所需事实非 W1：FACT-28 W4）
+- KPI-28 应收账款余额（pending：所需事实非 W1：FACT-29 W5）
+- KPI-29 逾期应收（过了到期日）（pending：所需事实非 W1：FACT-29 W5）
+- KPI-32 减值准备（余额、本期计提）（pending：所需事实非 W1：FACT-29 W5）
+- KPI-33 收入冲减（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-34 信用损失核销（pending：公式无出处：基线 M-21 只给期间 D、加总 A，核销金额口径与「收入冲减」的）
+- KPI-35 商业承兑汇票未兑付余额（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-36 承诺开票超期金额（pending：所需事实非 W1：FACT-34 W2）
+- KPI-38 直接费用（pending：所需事实含 W5（成本台账分录 FACT-27））
+- KPI-40 贡献毛利（pending：所需事实含 W5（成本台账分录 FACT-27）；公式 FD-41 已定，待 F）
+- KPI-41 BU 贡献（层级）（pending：所需事实非 W1：FACT-38 W5）
+- KPI-42 经营利润（pending：所需事实非 W1：FACT-38 W5、FACT-27 W5）
+- KPI-43 经营利润率（pending：所需事实非 W1：FACT-38 W5、FACT-27 W5）
+- KPI-46 法定报表数（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-47 经营活动现金流量净额（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-48 平均在册人数（pending：所需事实非 W1：FACT-29 W5）
+- KPI-49 离职率（主动、被动）（pending：所需事实非 W1：FACT-29 W5）
+- KPI-50 计划目标值（pending：所需事实非 W1：FACT-34 W2）
+- KPI-51 目标达成率（pending：所需事实非 W1：FACT-34 W2）
+- KPI-52 人均产出（pending：所需事实非 W1：FACT-29 W5）
+- KPI-53 人工成本产出倍数（pending：公式出处有，但人工成本范围（是否含奖金、社保）未定（基线 M-45 待决），且所）
+- KPI-54 预算执行（pending：所需事实非 W1：FACT-29 W5）
+- KPI-55 可用额度（pending：所需事实非 W1：FACT-29 W5）
+- KPI-56 预算消耗率（pending：所需事实非 W1：FACT-29 W5）
+- KPI-57 交付质量指标族（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-58 启动会完成率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-59 内部评审覆盖率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-60 经营偏差（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-61 交付偏差（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-62 后期服务工时（pending：所需事实非 W1：FACT-26 W3）
+- KPI-63 质量损失（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-64 返工率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-65 质量缺陷率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-66 返工工时（pending：所需事实非 W1：FACT-26 W3）
+- KPI-67 产能变现（pending：所需事实非 W1：FACT-26 W3、FACT-33 W2）
+- KPI-68 闲置产能（pending：所需事实非 W1：FACT-26 W3、FACT-33 W2）
+- KPI-69 成本预算（pending：所需事实非 W1：FACT-29 W5）
+- KPI-70 成本预算偏差（pending：所需事实非 W1：FACT-29 W5）
+- KPI-71 履约进度（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-72 无合同 WIP（pending：所需事实非 W1：FACT-29 W5）
+- KPI-73 账龄（pending：所需事实非 W1：FACT-29 W5）
+- KPI-74 坏账风险（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-75 减值风险（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-76 现金转化（pending：无出处：基线与财务决策均无现金转化的公式）
+- KPI-77 工时捕获率（pending：所需事实非 W1：FACT-26 W3）
+- KPI-78 法定成本（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-79 内部往来（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-80 合同取得成本（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-81 ETC（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-82 完工估算（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-83 计划价值（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-84 挣值（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-85 实际成本（pending：所需事实非 W1：FACT-27 W5）
+- KPI-86 成本绩效指数（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-87 进度绩效指数（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-88 进度偏差（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-89 挣值成本偏差（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-93 目标偏差（pending：所需事实非 W1：FACT-34 W2）
+- KPI-95 可计费利用率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-96 含商机工时的利用率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-97 按有效工时算的利用率（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-98 账龄超 N 天应收（pending：所需事实 W5（期间快照 FACT-29）；起算日参数已答复 KPI-Q04，待）
+- KPI-99 无合同投入总规模（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-100 超授权额度投入（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-101 分包成本（pending：无出处：词表仅有定义无公式；事实 FACT-18 在 W1 但分包与外包的分拆取）
+- KPI-102 外包成本（pending：无出处：词表仅有定义无公式；事实 FACT-18 在 W1 但分包与外包的分拆取）
+- KPI-103 项目成本（归集）（pending：所需事实 W5（成本台账分录 FACT-27）；归集 DC_BIL = DL +）
+- KPI-104 营业成本（结转）（pending：所需事实 W5（成本台账分录 FACT-27）；结转口径随收入确认）
+- KPI-105 合同资产余额（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-106 未开票在制（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-107 工时结构（投入去向）（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-108 工时结构（产出）（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）
+- KPI-109 应收周转天数（pending：所需事实 W5（期间快照 FACT-29）；公式 FD-39 已定，待事实就绪后）
+- KPI-112 间接成本（按职能）（pending：无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无）

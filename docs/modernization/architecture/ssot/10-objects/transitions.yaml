@@ -3,15 +3,17 @@
 # pending、conflicts 不硬并，交负责会话判定；by_command 由卡 9 回填。
 meta:
   status: proposal
-  transitions: 807
-  pending: 98
+  transitions: 872
+  pending: 9
   judgement:
-    aggregate-single: 789
+    aggregate-single: 797
+    decided: 57
     state-name-match: 18
-    pending: 98
+    pending: 9
   note: by_command 卡 9 回填；id 按 (OBJ 编号, 来源文件, 机器序号, 转换序号) 排序，pending 接在其后
   reviewed_by: one-architecture
   decisions: 三组判定已回写（finance fccf803c、people 690c719a、revenue 71bf731b，2026-10-21）
+  agg13_resplit: AGG-13 按 GL5-01「已签署」「已生效」分立重新登记 54 条（revenue machines[7]，2026-10-22，one-architecture）；原 46 条保号，新增 OTR-906～913
 transitions:
 - id: OTR-001
   object: OBJ-01
@@ -356,8 +358,8 @@ transitions:
 - id: OTR-037
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
-  to: 已签署生效
+  from: 已生效
+  to: 已生效
   command: 登记合同—项目关联与范围挂 WBS
   by_command: CMD-ed6d2965
   source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[2]
@@ -415,28 +417,46 @@ transitions:
   object: OBJ-05
   aggregate: AGG-13
   from: 审批中
-  to: 已签署生效
+  to: 已生效
   command: 回签
   by_command: CMD-7402ce30
   source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[8]
   judgement: aggregate-single
+- id: OTR-906
+  object: OBJ-05
+  aggregate: AGG-13
+  from: 审批中
+  to: 已签署
+  command: 回签
+  by_command: CMD-7402ce30
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[9]
+  judgement: aggregate-single
+- id: OTR-907
+  object: OBJ-05
+  aggregate: AGG-13
+  from: 已签署
+  to: 已生效
+  command: 确认生效条件满足
+  by_command: CMD-15e3dcb6
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[10]
+  judgement: aggregate-single
 - id: OTR-044
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
+  from: 已生效
   to: 履行中
   command: 开始履行协议
   by_command: CMD-77eff609
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[9]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[11]
   judgement: aggregate-single
 - id: OTR-045
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
-  to: 已签署生效
+  from: 已生效
+  to: 已生效
   command: 应用变更
   by_command: CMD-74eaea71
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[10]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[12]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-046
@@ -446,17 +466,17 @@ transitions:
   to: 履行中
   command: 应用变更
   by_command: CMD-74eaea71
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[11]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[13]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-047
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
-  to: 已签署生效
+  from: 已生效
+  to: 已生效
   command: 提交任务订单
   by_command: CMD-6fe95724
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[12]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[14]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-048
@@ -466,17 +486,17 @@ transitions:
   to: 履行中
   command: 提交任务订单
   by_command: CMD-6fe95724
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[13]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[15]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-049
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
-  to: 已签署生效
+  from: 已生效
+  to: 已生效
   command: 标记付款条件项可结算
   by_command: CMD-bb6ab71d
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[14]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[16]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-050
@@ -486,7 +506,7 @@ transitions:
   to: 履行中
   command: 标记付款条件项可结算
   by_command: CMD-bb6ab71d
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[15]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[17]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-051
@@ -496,17 +516,17 @@ transitions:
   to: 已完成
   command: 标记付款条件项可结算
   by_command: CMD-bb6ab71d
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[16]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[18]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-052
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
-  to: 已签署生效
+  from: 已生效
+  to: 已生效
   command: 登记付款条件达成
   by_command: CMD-4ce048a2
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[17]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[19]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-053
@@ -516,7 +536,7 @@ transitions:
   to: 履行中
   command: 登记付款条件达成
   by_command: CMD-4ce048a2
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[18]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[20]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-054
@@ -526,7 +546,7 @@ transitions:
   to: 已完成
   command: 登记付款条件达成
   by_command: CMD-4ce048a2
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[19]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[21]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-055
@@ -536,7 +556,7 @@ transitions:
   to: 已完成
   command: 完成协议
   by_command: CMD-854735cb
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[20]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[22]
   judgement: aggregate-single
 - id: OTR-056
   object: OBJ-05
@@ -545,7 +565,7 @@ transitions:
   to: 已完成
   command: 编制结算书
   by_command: CMD-43fa7202
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[21]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[23]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-057
@@ -555,7 +575,7 @@ transitions:
   to: 已完成
   command: 确认最终价款
   by_command: CMD-6d6568e3
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[22]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[24]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-058
@@ -565,16 +585,16 @@ transitions:
   to: 已结算
   command: 结算协议
   by_command: CMD-9e180a39
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[23]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[25]
   judgement: aggregate-single
 - id: OTR-059
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
+  from: 已生效
   to: 已终止
   command: 终止协议
   by_command: CMD-cc3d8958
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[24]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[26]
   judgement: aggregate-single
 - id: OTR-060
   object: OBJ-05
@@ -583,16 +603,16 @@ transitions:
   to: 已终止
   command: 终止协议
   by_command: CMD-cc3d8958
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[25]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[27]
   judgement: aggregate-single
 - id: OTR-061
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
-  to: 已签署生效
+  from: 已生效
+  to: 已生效
   command: 归档协议
   by_command: CMD-0e420639
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[26]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[28]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-062
@@ -602,7 +622,7 @@ transitions:
   to: 履行中
   command: 归档协议
   by_command: CMD-0e420639
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[27]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[29]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-063
@@ -612,7 +632,7 @@ transitions:
   to: 已完成
   command: 归档协议
   by_command: CMD-0e420639
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[28]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[30]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-064
@@ -622,7 +642,7 @@ transitions:
   to: 已结算
   command: 归档协议
   by_command: CMD-0e420639
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[29]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[31]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-065
@@ -632,17 +652,17 @@ transitions:
   to: 已终止
   command: 归档协议
   by_command: CMD-0e420639
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[30]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[32]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-066
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
-  to: 已签署生效
+  from: 已生效
+  to: 已生效
   command: 登记协议借出
   by_command: CMD-846f1b45
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[31]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[33]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-067
@@ -652,7 +672,7 @@ transitions:
   to: 履行中
   command: 登记协议借出
   by_command: CMD-846f1b45
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[32]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[34]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-068
@@ -662,7 +682,7 @@ transitions:
   to: 已完成
   command: 登记协议借出
   by_command: CMD-846f1b45
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[33]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[35]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-069
@@ -672,7 +692,7 @@ transitions:
   to: 已结算
   command: 登记协议借出
   by_command: CMD-846f1b45
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[34]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[36]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-070
@@ -682,17 +702,17 @@ transitions:
   to: 已终止
   command: 登记协议借出
   by_command: CMD-846f1b45
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[35]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[37]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-071
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
-  to: 已签署生效
+  from: 已生效
+  to: 已生效
   command: 登记协议归还
   by_command: CMD-75c23683
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[36]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[38]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-072
@@ -702,7 +722,7 @@ transitions:
   to: 履行中
   command: 登记协议归还
   by_command: CMD-75c23683
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[37]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[39]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-073
@@ -712,7 +732,7 @@ transitions:
   to: 已完成
   command: 登记协议归还
   by_command: CMD-75c23683
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[38]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[40]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-074
@@ -722,7 +742,7 @@ transitions:
   to: 已结算
   command: 登记协议归还
   by_command: CMD-75c23683
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[39]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[41]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-075
@@ -732,17 +752,17 @@ transitions:
   to: 已终止
   command: 登记协议归还
   by_command: CMD-75c23683
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[40]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[42]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-076
   object: OBJ-05
   aggregate: AGG-13
-  from: 已签署生效
-  to: 已签署生效
+  from: 已生效
+  to: 已生效
   command: 标记协议借阅逾期
   by_command: CMD-a50a0195
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[41]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[43]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-077
@@ -752,7 +772,7 @@ transitions:
   to: 履行中
   command: 标记协议借阅逾期
   by_command: CMD-a50a0195
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[42]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[44]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-078
@@ -762,7 +782,7 @@ transitions:
   to: 已完成
   command: 标记协议借阅逾期
   by_command: CMD-a50a0195
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[43]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[45]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-079
@@ -772,7 +792,7 @@ transitions:
   to: 已结算
   command: 标记协议借阅逾期
   by_command: CMD-a50a0195
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[44]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[46]
   judgement: aggregate-single
   self_loop: true
 - id: OTR-080
@@ -782,9 +802,68 @@ transitions:
   to: 已终止
   command: 标记协议借阅逾期
   by_command: CMD-a50a0195
-  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[45]
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[47]
   judgement: aggregate-single
   self_loop: true
+- id: OTR-908
+  object: OBJ-05
+  aggregate: AGG-13
+  from: 已签署
+  to: 已签署
+  command: 登记合同—项目关联与范围挂 WBS
+  by_command: CMD-ed6d2965
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[48]
+  judgement: aggregate-single
+  self_loop: true
+- id: OTR-909
+  object: OBJ-05
+  aggregate: AGG-13
+  from: 已签署
+  to: 已签署
+  command: 归档协议
+  by_command: CMD-0e420639
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[49]
+  judgement: aggregate-single
+  self_loop: true
+- id: OTR-910
+  object: OBJ-05
+  aggregate: AGG-13
+  from: 已签署
+  to: 已签署
+  command: 登记协议借出
+  by_command: CMD-846f1b45
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[50]
+  judgement: aggregate-single
+  self_loop: true
+- id: OTR-911
+  object: OBJ-05
+  aggregate: AGG-13
+  from: 已签署
+  to: 已签署
+  command: 登记协议归还
+  by_command: CMD-75c23683
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[51]
+  judgement: aggregate-single
+  self_loop: true
+- id: OTR-912
+  object: OBJ-05
+  aggregate: AGG-13
+  from: 已签署
+  to: 已签署
+  command: 标记协议借阅逾期
+  by_command: CMD-a50a0195
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[52]
+  judgement: aggregate-single
+  self_loop: true
+- id: OTR-913
+  object: OBJ-05
+  aggregate: AGG-13
+  from: 已签署
+  to: 已终止
+  command: 终止协议
+  by_command: CMD-cc3d8958
+  source: proposals/closeout/revenue/state-machines.yaml machines[7].transitions[53]
+  judgement: aggregate-single
 - id: OTR-081
   object: OBJ-05
   aggregate: AGG-07

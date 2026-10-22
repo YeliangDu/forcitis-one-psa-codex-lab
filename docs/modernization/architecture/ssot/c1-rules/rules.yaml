@@ -2,7 +2,7 @@
 meta:
   status: proposal
   source: docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md
-  count: 148
+  count: 151
 rules:
   - id: INV-01
     statement: "一个法律主体一份档案：按证件类型部分唯一——有统一社会信用代码的按该代码唯一，境外主体、自然人等按各自证件类型与号码唯一"
@@ -86,13 +86,13 @@ rules:
     source: "OBJ-05；I-8"
     source_line: 98
   - id: INV-07
-    statement: "回签即生效；生效后只能经协议变更产生新基线"
+    statement: "无附生效条件的回签即生效；附生效条件的回签只到「已签署」，只经「确认生效条件满足」生效（生效依据三项必填、证据已登记）；生效后只能经协议变更产生新基线"
     category: "A"
     owner_aggregates: [AGG-13]
     aggregate_note: "AGG-13"
     owner_bc: [contract.agreement]
     group: "往来单位与协议"
-    source: "OBJ-05；I-9"
+    source: "OBJ-05；I-9；GL5-01、LEB-08（2026-10-22）"
     source_line: 99
   - id: INV-08
     statement: "合同范围条目只经协议变更修改，变更记「取代」"
@@ -878,7 +878,7 @@ rules:
     source: "OBJ-80；D17-1–4"
     source_line: 213
   - id: INV-89
-    statement: "人工成本分配只分配已锁定工时，分配合计等于实际人工成本（零容差）；ADR-0016 决定 1 的 `operations.policy` 归集守恒等式为主，INV-89 为对账"
+    statement: "人工成本分配只分配已锁定工时，项目分配额 + 人工成本分配差异 = 实际人工成本（零容差；差异＝加班按法定倍数计价后与公司实付的差额，挂员工所在部门、不进项目）；ADR-0016 决定 1 的 `operations.policy` 归集守恒等式为主，INV-89 为对账"
     category: "A"
     owner_aggregates: [AGG-41]
     aggregate_note: "AGG-41"
@@ -1112,7 +1112,7 @@ rules:
     source: "OBJ-109；用户 intent 072440 C-5（唯一性与不可改为推断，待第 6 步）"
     source_line: 246
   - id: INV-115
-    statement: "知识条目：已发布的版本不得修改，修订产生新版本并引用被取代版本；废止后不得被新引用（已有引用不受影响）"
+    statement: "知识条目：已发布的版本不得修改，修订产生新版本并引用被取代版本；废止后不得被新引用（已有引用不受影响）；评审中仅起草人可撤回，逾期评审仅按规则中断，均回到起草（待第 6 步确认）"
     category: "A"
     owner_aggregates: [AGG-107]
     aggregate_note: "AGG-107"
@@ -1193,7 +1193,7 @@ rules:
     source: "同上（原 INV-新-P6）；D15"
     source_line: 255
   - id: INV-124
-    statement: "归档协议：协议须已签署生效；原件份数与签章齐全，不齐拒绝并告警（退回补齐）"
+    statement: "归档协议：协议须已签署（「已签署」及其后各状态，GL5-01）；原件份数与签章齐全，不齐拒绝并告警（退回补齐）"
     category: "A（前置）"
     owner_aggregates: [AGG-13]
     aggregate_note: "AGG-13"
@@ -1336,3 +1336,30 @@ rules:
     group: "财务与经营"
     source: "S-43；S-28"
     source_line: 271
+  - id: INV-140
+    statement: "对客交付计划基线版本须注明其编制所据的内部基线版本，缺即拒（不得提交发包人批准）"
+    category: "A"
+    owner_aggregates: [AGG-21]
+    aggregate_note: "AGG-21"
+    owner_bc: [delivery.execution]
+    group: "财务与经营"
+    source: "LEB-07（用户 2026-10-22）；revenue NOTES「AGG-21 待定·对客基线与内部基线」"
+    source_line: 272
+  - id: INV-141
+    statement: "内部基线须含对客基线的全部合同里程碑；同名里程碑内部日期晚于对客日期只提示、不拒"
+    category: "A（提示）"
+    owner_aggregates: [AGG-21]
+    aggregate_note: "AGG-21"
+    owner_bc: [delivery.execution]
+    group: "财务与经营"
+    source: "LEB-07（用户 2026-10-22）；进度考核按内部基线，延期、结算与索赔按对客基线"
+    source_line: 273
+  - id: INV-142
+    statement: "间接成本池只分摊到同一法人的项目：分摊规则把某一法人的成本池分摊到其他法人的项目，试算即拒收并告警"
+    category: "A"
+    owner_aggregates: [AGG-42]
+    aggregate_note: "AGG-42"
+    owner_bc: [cost.costing]
+    group: "财务与经营"
+    source: "成本口径 C-4；LEGAL_ENTITY_CONSISTENCY_2026-10-22 第 5 条；PRC-98"
+    source_line: 274
