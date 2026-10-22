@@ -120,6 +120,8 @@ def self_test():
     assert anchor_rows("## 核心思想\n| KIM3#甲、KIM3#乙 | x |\n") == []
     assert link_text("a[b]|c") == "a［b］／c"
     assert VS_RE.findall("见 VS-15、PRC-190、XVS-01") == ["VS-15"]
+    import notes_check
+    assert "不存在" in notes_check.missing_system_error(None) and notes_check.missing_system_error(({}, set(), {})) is None, "全景模型缺失是错误，不是静默跳过"
     print("self-test ok")
 
 

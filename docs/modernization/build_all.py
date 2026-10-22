@@ -40,10 +40,10 @@ else:
     print(f"警告：{sys.executable} 缺少 PyYAML，本次未重新生成 glossary/terms.yaml；--check 会因此失败（依赖见 SUPPLY_CHAIN.md S1）", file=sys.stderr)
 STEPS.append("architecture/check_proposals.py")   # 提议稿状态行检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/check_proposals.py")
+STEPS.append("architecture/panorama/panorama_build.py")   # 全景追溯模型与 TD/BU 缺口（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突；排在 notes_build 之前：笔记检查读它生成的 panorama.yaml）
+SELF_TESTED.append("architecture/panorama/panorama_build.py")
 STEPS.append("architecture/frameworks/notes_build.py")   # 资料笔记格式、锚点断链检查，生成概念索引与总目录（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/frameworks/notes_build.py")
-STEPS.append("architecture/panorama/panorama_build.py")   # 全景追溯模型与 TD/BU 缺口（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
-SELF_TESTED.append("architecture/panorama/panorama_build.py")
 STEPS.append("architecture/panorama/object_freeze_check.py")   # 业务对象冻结：逐对象事实与初判（ADR-0059 判据；每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/panorama/object_freeze_check.py")
 
@@ -62,7 +62,7 @@ def snapshot(base=BASE):
 
 # 不入仓的生成产物（相对 docs/modernization）：--check 要求它们没有被跟踪（.gitignore 对已跟踪文件无效，合并冲突时「保留对方版本」会让它们悄悄回到库里），且生成之后确实存在
 UNTRACKED_PRODUCTS = ("adr/INDEX.md", "adr/README.md", "MODERNIZATION_BRIEF.md", "../../backend/glossary/proposed/README.md", "architecture/frameworks/CONCEPT_INDEX.md",
-                      "architecture/frameworks/NOTES_INDEX.md", "architecture/panorama/FREEZE_FACTS.md", "architecture/panorama/FREEZE_FACTS.yaml", "architecture/panorama/FREEZE_IMPACT.md")
+                      "architecture/frameworks/NOTES_INDEX.md", "architecture/panorama/FREEZE_FACTS.md", "architecture/panorama/FREEZE_FACTS.yaml", "architecture/panorama/FREEZE_IMPACT.md", "architecture/panorama/panorama.yaml", "architecture/panorama/GAPS.md")
 
 
 def check_untracked_products(base=BASE, products=UNTRACKED_PRODUCTS, adr_glob="adr/ADR-*.md"):
