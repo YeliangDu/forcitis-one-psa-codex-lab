@@ -9,7 +9,7 @@ DO $$
 DECLARE t text;
 BEGIN
     FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
-                             'organization_workforce.legal_entity_versions',
+                             'organization_workforce.legal_entity_versions', 'organization_workforce.employee_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
                              'platform_identity.role_versions', 'platform_identity.account_role_grants'] LOOP
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
