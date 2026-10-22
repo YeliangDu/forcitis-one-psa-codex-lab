@@ -1,0 +1,112 @@
+{
+ "B31R~B31R-Q1": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "按用途定人批，行政列一张表",
+  "no": "B31R-Q1",
+  "note": "Q1：①这张表须在 UAT 前定版并带版本号，作为上线出口条件；②每行写“第一审批人 + 兜底审批人”  两列，避免离职、兼岗时空节点卡死；③未列入的用途走行政负责人特批（有单号、可审计），不要  直接拒绝——直接拒绝会把人推到系统外盖章。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ },
+ "B31R~B31R-Q10": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "借出时填归还日，最长 30 天，可续借一次；逾期提醒借用人和其部门负责人",
+  "no": "B31R-Q10",
+  "note": " Q10：同意。续借需原批准人同意（否则等于无审批延期）；逾期提醒 7 天后升级到行政负责人；确  需 30 天以上的由公司负责人批准，别让人改归还日应付。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ },
+ "B31R~B31R-Q2": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "加：该公司负责人再批；担保和两家公司之间的事，先过法务、财务",
+  "no": "B31R-Q2",
+  "note": "Q2：①担保类必须附决议或授权文件，只走流程不附文件不予盖章；②“该公司负责人”指合同签约主体  所属法人，不是申请人所属法人；③题面用语按已定稿订正为“法定代表人名章”，并补“合同专用章”  。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ },
+ "B31R~B31R-Q3": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "一律不盖",
+  "no": "B31R-Q3",
+  "note": "Q3（改选 [1]）：投标预盖无法回避，一刀切禁止只会变成线下偷盖、连登记都没有。仅投标可预盖  ：写明用途与张数、经批准人同意，用完登记收回、未用当场作废；张数上限由行政定。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ },
+ "B31R~B31R-Q4": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "同意",
+  "no": "B31R-Q4",
+  "note": " Q4：同意作为初版。类别按数据维护（可增删改，留版本与操作人），不要写死在代码或迁移里；上  线前由 IT 负责人定版。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ },
+ "B31R~B31R-Q5": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "同意",
+  "no": "B31R-Q5",
+  "note": " Q5：同意。开新权限的审批单必须写有效期或复核日，到期自动收回或提醒；审批人按 Q4 类别表另  列，与 Q1 的表同为上线出口条件。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ },
+ "B31R~B31R-Q6": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "同意，预算上线后再加检查",
+  "no": "B31R-Q6",
+  "note": " Q6：同意。登记时预估金额必填并留底；W2 预算上线后按活动类型回溯一年实际支出，用来定预算  基线。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ },
+ "B31R~B31R-Q7": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "填老系统审批单号、附批准页，行政核对后直接盖",
+  "no": "B31R-Q7",
+  "note": " Q7：同意，但这是过渡通道，需三条：①同一老系统单号累计用印份数在系统内计数，超 INV-138 上  限即拒；②批准页附件必须留，行政核对动作留痕（谁核、何时核）；③合同/报价/投标模块上线即废  止此通道，写进决定。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ },
+ "B31R~B31R-Q8": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "先记在行政事务里，合同模块建成后整批移过去",
+  "no": "B31R-Q8",
+  "note": " Q8：同意，但要求按目标形状建：字段与约束照合同档案，INV-125 的“同一份原件同时只能有一笔  未归还”第一版就建（部分唯一索引）；第三批只搬所有权与界面，不洗数据；过渡期用老系统合同  编号并保留对照，便于迁到 contract_id。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ },
+ "B31R~B31R-Q9": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "合同经办部门负责人批；借到公司外的，再加该公司负责人",
+  "no": "B31R-Q9",
+  "note": "Q9：同意。“外借”定义为离开办公场所或交给外部人员，必须写用途、地点、携带人。",
+  "recommended": true,
+  "submission": "B31R-20261021-083733-ajz",
+  "submitted": "2026-10-21T06:37:33.575Z",
+  "unanswered": false
+ }
+}
