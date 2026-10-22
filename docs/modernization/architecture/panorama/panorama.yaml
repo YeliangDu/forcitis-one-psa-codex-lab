@@ -25,6 +25,9 @@ meta:
     modules: backend/architecture/module-dependencies.txt
     cmd: architecture/ssot/11-commands/commands.yaml
     facts: architecture/ssot/12-facts/facts.yaml
+    dims: architecture/ssot/13-dimensions/dimensions.yaml
+    dims_raw: architecture/ssot/13-dimensions/dimensions.raw.yaml
+    kpis: architecture/ssot/15-kpis/kpis.yaml
     otr: architecture/ssot/10-objects/transitions.yaml
     cmd_map: architecture/ssot/11-commands/command-mapping.yaml
     permissions: architecture/ssot/07-org-roles/permissions.yaml
@@ -50,8 +53,8 @@ meta:
     obj: 104
     act: 675
     fact: 37
-    dim: 0
-    metric: 79
+    dim: 10
+    metric: 94
     bind: 0
     dec: 0
     agg: 145
@@ -114,6 +117,8 @@ meta:
     N11-1: 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）
     N11-2: 每条经营事实有产生它的命令或事件
     N11-3: 每条分析事实能追到经营事实
+    N12-1: 每个维度至少切一条事实
+    N12-2: 总线矩阵的每个 ✔ 格都对上 DIM×FACT
     N13-1: 每个阶段都有指标
     N13-2: 每个指标都能追到阶段或流程
     N13-3: 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）
@@ -13223,401 +13228,1927 @@ nodes:
       analytic_source: cost.costing 分摊运行结果；OBJ-77 原文「只管理口径，不过账」
       evidence: OBJ-77「已分摊 → 项目管理利润（只管理口径，不过账）」；OBJ-79「生效 → 分摊结果（管理口径）」；CMD-16c47cb2 emits 分摊已生效、CMD-74780f62 冲销分摊运行。derives_from 为推断。
       src: architecture/ssot/12-facts/facts.yaml#facts[36]/FACT-38
-  dim: {}
+  dim:
+    DIM-01:
+      id: DIM-01
+      name: 期间
+      term: null
+      term_note: 词表有 accounting_period「会计期间」（accounting.period）；本列「期间」在「费用」行注明权责与支付日两个日期（BI_SCOPE.md:197），是否等同会计期间未裁
+      slices:
+      - row: 商机（累积快照）
+        facts:
+        - FACT-30
+      - row: 报价
+        facts:
+        - FACT-31
+      - row: 合同、合同条款（累积快照）
+        facts:
+        - FACT-32
+      - row: 工时条目
+        facts:
+        - FACT-01
+        - FACT-26
+      - row: 成本台账分录
+        facts:
+        - FACT-02
+        - FACT-03
+        - FACT-18
+        - FACT-27
+      - row: 费用
+        facts:
+        - FACT-10
+        - FACT-11
+      - row: 收入确认
+        facts:
+        - FACT-05
+      - row: 开票
+        facts:
+        - FACT-06
+      - row: 回款分配
+        facts:
+        - FACT-07
+        - FACT-28
+      - row: 付款
+        facts:
+        - FACT-13
+      - row: 考勤、休假
+        facts:
+        - FACT-33
+      - row: 人工成本 / 薪酬
+        facts:
+        - FACT-14
+        - FACT-15
+      - row: 计划目标、预测
+        facts:
+        - FACT-34
+      - row: 预算执行
+        facts: []
+      - row: 审批时效（累积快照）
+        facts:
+        - FACT-36
+      - row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+        facts:
+        - FACT-08
+        - FACT-29
+      scd:
+        value: 未定
+        source: null
+      backed_by:
+      - OBJ-97
+      backed_note: OBJ-97 会计期间为候选支撑对象，列「期间」是否等同会计期间未裁
+      sources:
+        bi_column: 期间
+        metric_oat: []
+        table: []
+      evidence: docs/modernization/BI_SCOPE.md:190 列「期间」16 行全 ✔；docs/modernization/architecture/ssot/10-objects/objects.yaml:1792 OBJ-97 定义「法人 × 月（及第 13 调整期）的记账期间」；未见期间维度版本方式的出处。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01
+    DIM-02:
+      id: DIM-02
+      name: 法人
+      term: legal_entity
+      term_note: 词表中文名为「法人主体」，列名为「法人」
+      slices:
+      - row: 商机（累积快照）
+        facts:
+        - FACT-30
+      - row: 报价
+        facts:
+        - FACT-31
+      - row: 合同、合同条款（累积快照）
+        facts:
+        - FACT-32
+      - row: 工时条目
+        facts:
+        - FACT-01
+        - FACT-26
+      - row: 成本台账分录
+        facts:
+        - FACT-02
+        - FACT-03
+        - FACT-18
+        - FACT-27
+      - row: 费用
+        facts:
+        - FACT-10
+        - FACT-11
+      - row: 收入确认
+        facts:
+        - FACT-05
+      - row: 开票
+        facts:
+        - FACT-06
+      - row: 回款分配
+        facts:
+        - FACT-07
+        - FACT-28
+      - row: 付款
+        facts:
+        - FACT-13
+      - row: 考勤、休假
+        facts:
+        - FACT-33
+      - row: 人工成本 / 薪酬
+        facts:
+        - FACT-14
+        - FACT-15
+      - row: 计划目标、预测
+        facts:
+        - FACT-34
+      - row: 预算执行
+        facts: []
+      - row: 审批时效（累积快照）
+        facts:
+        - FACT-36
+      - row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+        facts:
+        - FACT-08
+        - FACT-29
+      scd:
+        value: 按生效区间版本化
+        source: backend/architecture/data-access-registry.yaml:135 organization_workforce.legal_entity_versions 的 effective_from_date / effective_to_date（raw 登记）
+      backed_by:
+      - OBJ-54
+      sources:
+        bi_column: 法人
+        metric_oat: []
+        table:
+        - organization_workforce.legal_entity_versions
+      evidence: docs/modernization/BI_SCOPE.md:190 列「法人」16 行全 ✔；docs/modernization/architecture/ssot/10-objects/objects.yaml:1016 OBJ-54 facts「各事实的法人维度」；backend/architecture/data-access-registry.yaml:135
+        版本化表。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02
+    DIM-03:
+      id: DIM-03
+      name: 组织
+      term: org_unit
+      term_note: 词表中文名为「组织单元」，列名为「组织」
+      slices:
+      - row: 商机（累积快照）
+        facts:
+        - FACT-30
+      - row: 报价
+        facts:
+        - FACT-31
+      - row: 合同、合同条款（累积快照）
+        facts:
+        - FACT-32
+      - row: 工时条目
+        facts:
+        - FACT-01
+        - FACT-26
+      - row: 成本台账分录
+        facts:
+        - FACT-02
+        - FACT-03
+        - FACT-18
+        - FACT-27
+      - row: 费用
+        facts:
+        - FACT-10
+        - FACT-11
+      - row: 收入确认
+        facts:
+        - FACT-05
+      - row: 开票
+        facts:
+        - FACT-06
+      - row: 回款分配
+        facts:
+        - FACT-07
+        - FACT-28
+      - row: 付款
+        facts:
+        - FACT-13
+      - row: 考勤、休假
+        facts:
+        - FACT-33
+      - row: 人工成本 / 薪酬
+        facts:
+        - FACT-14
+        - FACT-15
+      - row: 计划目标、预测
+        facts:
+        - FACT-34
+      - row: 预算执行
+        facts: []
+      - row: 审批时效（累积快照）
+        facts:
+        - FACT-36
+      - row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+        facts:
+        - FACT-08
+        - FACT-29
+      scd:
+        value: 按生效区间版本化
+        source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1031 OBJ-55「树按生效区间版本化（组织调整产生新版本）」；docs/modernization/BI_SCOPE.md:401 Q10 用户决定「组织归属……按生效期（SCD2）建」
+      backed_by:
+      - OBJ-55
+      sources:
+        bi_column: 组织
+        metric_oat: []
+        table:
+        - organization_workforce.org_unit_versions
+      evidence: docs/modernization/BI_SCOPE.md:190 列「组织」16 行全 ✔；docs/modernization/architecture/ssot/10-objects/objects.yaml:1034 OBJ-55 facts「部门维度；区域将作为数据范围维度」；backend/architecture/data-access-registry.yaml:92
+        版本化表。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03
+    DIM-04:
+      id: DIM-04
+      name: 项目 / WBS
+      term: null
+      term_note: 词表有 project「项目」、wbs_node「工作分解结构节点」；列合并两个层次，是一个维度还是项目 + WBS 层级未裁
+      related_terms:
+      - project
+      - wbs_node
+      slices:
+      - row: 合同、合同条款（累积快照）
+        facts:
+        - FACT-32
+      - row: 工时条目
+        facts:
+        - FACT-01
+        - FACT-26
+      - row: 成本台账分录
+        facts:
+        - FACT-02
+        - FACT-03
+        - FACT-18
+        - FACT-27
+      - row: 费用
+        facts:
+        - FACT-10
+        - FACT-11
+      - row: 收入确认
+        facts:
+        - FACT-05
+      - row: 开票
+        facts:
+        - FACT-06
+      - row: 回款分配
+        facts:
+        - FACT-07
+        - FACT-28
+      - row: 付款
+        facts:
+        - FACT-13
+      - row: 人工成本 / 薪酬
+        facts:
+        - FACT-14
+        - FACT-15
+      - row: 计划目标、预测
+        facts:
+        - FACT-34
+      - row: 预算执行
+        facts: []
+      - row: 审批时效（累积快照）
+        facts:
+        - FACT-36
+      - row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+        facts:
+        - FACT-08
+        - FACT-29
+      scd:
+        value: 按生效期保留历史（SCD2）
+        source: docs/modernization/BI_SCOPE.md:401 Q10 用户决定「项目属性等按生效期（SCD2）建」；docs/modernization/BI_SCOPE.md:181 L1 规则「维度按生效期保留历史（组织归属、项目属性）」；仅覆盖「项目属性」，WBS 节点是否同样版本化未写
+      backed_by:
+      - OBJ-29
+      - OBJ-30
+      sources:
+        bi_column: 项目 / WBS
+        metric_oat: []
+        table: []
+      evidence: docs/modernization/BI_SCOPE.md:190 列「项目 / WBS」16 行中 13 行 ✔；docs/modernization/architecture/ssot/10-objects/objects.yaml:535 OBJ-29 定义「工时、成本、计划的归集坐标」；docs/modernization/architecture/ssot/10-objects/objects.yaml:554
+        OBJ-30 WBS 节点。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04
+    DIM-05:
+      id: DIM-05
+      name: 合同 / 条款
+      term: null
+      term_note: 词表有 contract「合同」、contract_clause「合同条款」；列合并两个层次，是一个维度还是合同 + 条款层级未裁
+      related_terms:
+      - contract
+      - contract_clause
+      slices:
+      - row: 合同、合同条款（累积快照）
+        facts:
+        - FACT-32
+      - row: 成本台账分录
+        facts:
+        - FACT-02
+        - FACT-03
+        - FACT-18
+        - FACT-27
+      - row: 收入确认
+        facts:
+        - FACT-05
+      - row: 开票
+        facts:
+        - FACT-06
+      - row: 回款分配
+        facts:
+        - FACT-07
+        - FACT-28
+      - row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+        facts:
+        - FACT-08
+        - FACT-29
+      scd:
+        value: 未定
+        source: null
+      backed_by:
+      - OBJ-05
+      - OBJ-06
+      backed_note: OBJ-05 协议（合同类型之一）、OBJ-06 合同范围条目为候选；「合同条款」对应的对象是否为 OBJ-07 付款条件项或 OBJ-06 未裁
+      sources:
+        bi_column: 合同 / 条款
+        metric_oat: []
+        table: []
+      evidence: docs/modernization/BI_SCOPE.md:190 列「合同 / 条款」16 行中 6 行 ✔；docs/modernization/architecture/ssot/10-objects/objects.yaml:88 OBJ-05 生效后只经协议变更产生新基线（单据基线版本，不等于维度版本方式）；未见维度版本方式的出处。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05
+    DIM-06:
+      id: DIM-06
+      name: 客户
+      term: customer_role
+      term_note: 词表同名两条：customer_role「客户」（masterdata.counterparty，approved）与 customer「客户」（presales.opportunity，deprecated）；取 approved 者
+      slices:
+      - row: 商机（累积快照）
+        facts:
+        - FACT-30
+      - row: 报价
+        facts:
+        - FACT-31
+      - row: 合同、合同条款（累积快照）
+        facts:
+        - FACT-32
+      - row: 收入确认
+        facts:
+        - FACT-05
+      - row: 开票
+        facts:
+        - FACT-06
+      - row: 回款分配
+        facts:
+        - FACT-07
+        - FACT-28
+      - row: 计划目标、预测
+        facts:
+        - FACT-34
+      - row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+        facts:
+        - FACT-08
+        - FACT-29
+      scd:
+        value: 版本化（版本方式未写明）
+        source: docs/modernization/architecture/ssot/10-objects/objects.yaml:14 OBJ-01 往来单位「档案按 D17 版本化」；客户是 OBJ-02 往来单位角色，客户类型「变更留痕」（docs/modernization/architecture/ssot/10-objects/objects.yaml:31）
+      backed_by:
+      - OBJ-01
+      - OBJ-02
+      backed_note: 客户为 OBJ-02 往来单位角色；BI_SCOPE.md:154 图中写「客户 / 集团」，集团已并入 OBJ-01 上级单位
+      sources:
+        bi_column: 客户
+        metric_oat: []
+        table: []
+      evidence: docs/modernization/BI_SCOPE.md:190 列「客户」16 行中 8 行 ✔；docs/modernization/architecture/ssot/10-objects/objects.yaml:34 OBJ-02「客户角色带客户分级」。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06
+    DIM-07:
+      id: DIM-07
+      name: 人员
+      term: person
+      slices:
+      - row: 商机（累积快照）
+        facts:
+        - FACT-30
+      - row: 报价
+        facts:
+        - FACT-31
+      - row: 合同、合同条款（累积快照）
+        facts:
+        - FACT-32
+      - row: 工时条目
+        facts:
+        - FACT-01
+        - FACT-26
+      - row: 成本台账分录
+        facts:
+        - FACT-02
+        - FACT-03
+        - FACT-18
+        - FACT-27
+      - row: 费用
+        facts:
+        - FACT-10
+        - FACT-11
+      - row: 收入确认
+        facts:
+        - FACT-05
+      - row: 开票
+        facts:
+        - FACT-06
+      - row: 付款
+        facts:
+        - FACT-13
+      - row: 考勤、休假
+        facts:
+        - FACT-33
+      - row: 人工成本 / 薪酬
+        facts:
+        - FACT-14
+        - FACT-15
+      - row: 计划目标、预测
+        facts:
+        - FACT-34
+      - row: 预算执行
+        facts: []
+      - row: 审批时效（累积快照）
+        facts:
+        - FACT-36
+      scd:
+        value: 未定
+        source: null
+      backed_by:
+      - OBJ-56
+      sources:
+        bi_column: 人员
+        metric_oat: []
+        table: []
+      evidence: docs/modernization/BI_SCOPE.md:190 列「人员」16 行中 14 行 ✔；docs/modernization/architecture/ssot/10-objects/objects.yaml:1053 OBJ-56 facts「人数、离职率」；人员本身的版本方式未见出处（任职、法人归属的版本见 not_dimensions）。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07
+    DIM-08:
+      id: DIM-08
+      name: 服务产品
+      term: service_product
+      slices:
+      - row: 商机（累积快照）
+        facts:
+        - FACT-30
+      - row: 报价
+        facts:
+        - FACT-31
+      - row: 合同、合同条款（累积快照）
+        facts:
+        - FACT-32
+      - row: 收入确认
+        facts:
+        - FACT-05
+      - row: 计划目标、预测
+        facts:
+        - FACT-34
+      scd:
+        value: 版本化（版本方式未写明）
+        source: docs/modernization/architecture/ssot/10-objects/objects.yaml:443 OBJ-24「已启用 → 已停用；版本化」
+      backed_by:
+      - OBJ-24
+      sources:
+        bi_column: 服务产品
+        metric_oat: []
+        table: []
+      evidence: docs/modernization/BI_SCOPE.md:190 列「服务产品」16 行中 5 行 ✔；docs/modernization/architecture/ssot/10-objects/objects.yaml:446 OBJ-24 facts「分析维度」。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[7]/DIM-08
+    DIM-09:
+      id: DIM-09
+      name: 成本类型
+      term: null
+      term_note: 词表无「成本类型」；近似词 expense_root_category「费用类型一级分类」（cost.costing）是否同义未裁，不自造
+      slices:
+      - row: 成本台账分录
+        facts:
+        - FACT-02
+        - FACT-03
+        - FACT-18
+        - FACT-27
+      - row: 费用
+        facts:
+        - FACT-10
+        - FACT-11
+      - row: 付款
+        facts:
+        - FACT-13
+      - row: 人工成本 / 薪酬
+        facts:
+        - FACT-14
+        - FACT-15
+      - row: 预算执行
+        facts: []
+      scd:
+        value: 未定
+        source: null
+      backed_by: []
+      backed_note: 无对应主数据对象可对上：OBJ-95 会计科目、费用类型分类与「成本类型」的关系未裁
+      sources:
+        bi_column: 成本类型
+        metric_oat: []
+        table: []
+      evidence: docs/modernization/BI_SCOPE.md:190 列「成本类型」16 行中 5 行 ✔；docs/modernization/BI_SCOPE.md:154 图中写「成本类型」；未见定义或版本方式出处。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09
+    DIM-10:
+      id: DIM-10
+      name: 供应商
+      term: null
+      term_note: 词表无「供应商」条目；OBJ-02 往来单位角色含「供应商」
+      slices:
+      - row: 成本台账分录
+        facts:
+        - FACT-02
+        - FACT-03
+        - FACT-18
+        - FACT-27
+      - row: 费用
+        facts:
+        - FACT-10
+        - FACT-11
+      - row: 付款
+        facts:
+        - FACT-13
+      - row: 预算执行
+        facts: []
+      scd:
+        value: 版本化（版本方式未写明）
+        source: docs/modernization/architecture/ssot/10-objects/objects.yaml:14 OBJ-01 往来单位「档案按 D17 版本化」；供应商是 OBJ-02 往来单位角色
+      backed_by:
+      - OBJ-01
+      - OBJ-02
+      backed_note: 供应商为 OBJ-02 往来单位角色
+      sources:
+        bi_column: 供应商
+        metric_oat: []
+        table: []
+      evidence: docs/modernization/BI_SCOPE.md:190 列「供应商」16 行中 4 行 ✔；docs/modernization/architecture/ssot/10-objects/objects.yaml:31 OBJ-02 type 含供应商（分包方 / 外包方 / 采购供应商等）。
+      src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10
   metric:
-    business_variance:
-      zh: 经营偏差
-      bc: operations.facts
+    KPI-01:
+      kind: 出口条件
+      term: null
+      baseline: null
+      vision_kpi: KPI-01
+      facts: []
+      dimensions: []
+      zh: OA 迁入模板停用率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[0]/KPI-01
       stages: []
       processes: []
-    uncontracted_exposure:
-      zh: 无合同风险敞口
-      bc: contract.agreement
+    KPI-02:
+      kind: 出口条件
+      term: null
+      baseline: null
+      vision_kpi: KPI-02
+      facts: []
+      dimensions: []
+      zh: 切换后 A8 凭证插件新增凭证行数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[1]/KPI-02
       stages: []
       processes: []
-    estimate_to_complete:
-      zh: ETC
-      bc: delivery.execution
+    KPI-03:
+      kind: 出口条件
+      term: null
+      baseline: null
+      vision_kpi: KPI-03
+      facts: []
+      dimensions: []
+      zh: 权责事实遗留类别数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[2]/KPI-03
       stages: []
       processes: []
-    delivery_variance:
-      zh: 交付偏差
-      bc: delivery.execution
+    KPI-04:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-04
+      facts: []
+      dimensions: []
+      zh: 经单一过账管道入账的权责事实占比
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[3]/KPI-04
       stages: []
       processes: []
-    post_completion_service_hours:
-      zh: 后期服务工时
-      bc: delivery.execution
+    KPI-05:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-05
+      facts: []
+      dimensions: []
+      zh: 月结对账等式差异数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[4]/KPI-05
       stages: []
       processes: []
-    quality_loss:
-      zh: 质量损失
-      bc: delivery.acceptance
+    KPI-06:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-06
+      facts: []
+      dimensions: []
+      zh: 权责口径三大报表按月产出率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[5]/KPI-06
       stages: []
       processes: []
-    rework_rate:
-      zh: 返工率
-      bc: delivery.acceptance
+    KPI-07:
+      kind: 出口条件
+      term: null
+      baseline: null
+      vision_kpi: KPI-07
+      facts: []
+      dimensions: []
+      zh: 与 U8C 收付账套对账差异数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[6]/KPI-07
       stages: []
       processes: []
-    defect_rate:
-      zh: 质量缺陷率
-      bc: delivery.acceptance
+    KPI-08:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-08
+      facts: []
+      dimensions: []
+      zh: 指标目录 OAT 声明完整率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[7]/KPI-08
       stages: []
       processes: []
-    effective_hours:
-      zh: 有效工时
-      bc: cost.timesheet
+    KPI-09:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-09
+      facts: []
+      dimensions: []
+      zh: 同一指标的并存算法数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[8]/KPI-09
       stages: []
       processes: []
-    ineffective_hours:
-      zh: 无效工时
-      bc: cost.timesheet
+    KPI-10:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-10
+      facts: []
+      dimensions: []
+      zh: 关账期间快照覆盖率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[9]/KPI-10
       stages: []
       processes: []
-    rework_hours:
-      zh: 返工工时
-      bc: cost.timesheet
+    KPI-11:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-11
+      facts: []
+      dimensions: []
+      zh: 口径差异清单逐期勾稽完成率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[10]/KPI-11
       stages: []
       processes: []
-    billable_hours:
-      zh: 可计费工时
-      bc: cost.timesheet
+    KPI-12:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-12
+      facts: []
+      dimensions: []
+      zh: 项目贡献毛利可得覆盖率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[11]/KPI-12
       stages: []
       processes: []
-    capacity_realization:
-      zh: 产能变现
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    idle_capacity:
-      zh: 闲置产能
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    project_cost:
-      zh: 项目成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    direct_labor:
-      zh: 直接人工
-      bc: cost.costing
-      stages: []
-      processes: []
-    direct_expense:
-      zh: 直接费用
-      bc: cost.costing
-      stages: []
-      processes: []
-    outsourcing_cost:
-      zh: 外包成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    subcontract_cost:
-      zh: 分包成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    cost_budget:
-      zh: 成本预算
-      bc: cost.costing
-      stages: []
-      processes: []
-    cost_budget_variance:
-      zh: 成本预算偏差
-      bc: cost.costing
-      stages: []
-      processes: []
-    unbilled_wip:
-      zh: 未开票在制（WIP）
-      bc: receivables.wip
-      stages: []
-      processes: []
-    measure_of_progress:
-      zh: 履约进度
-      bc: receivables.wip
-      stages: []
-      processes: []
-    uncontracted_wip:
-      zh: 无合同 WIP
-      bc: receivables.wip
-      stages: []
-      processes: []
-    accounts_receivable:
-      zh: 应收账款
-      bc: receivables.collection
-      stages: []
-      processes: []
-    aging:
-      zh: 账龄
-      bc: receivables.collection
-      stages: []
-      processes: []
-    bad_debt_risk:
-      zh: 坏账风险
-      bc: receivables.collection
-      stages: []
-      processes: []
-    impairment_risk:
-      zh: 减值风险
-      bc: receivables.collection
-      stages: []
-      processes: []
-    cash_conversion:
-      zh: 现金转化
-      bc: receivables.collection
-      stages: []
-      processes: []
-    time_capture_rate:
-      zh: 工时捕获率
-      bc: receivables.wip
-      stages: []
-      processes: []
-    statutory_cost:
-      zh: 法定成本
-      bc: accounting.ledger
-      stages: []
-      processes: []
-    intercompany_balance:
-      zh: 内部往来
-      bc: accounting.ledger
-      stages: []
-      processes: []
-    costs_to_obtain_contract:
-      zh: 合同取得成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    cost_of_sales:
-      zh: 营业成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    remaining_performance_obligation:
-      zh: 剩余履约义务
-      bc: contract.agreement
-      stages: []
-      processes: []
-    estimate_at_completion:
-      zh: 完工估算
-      bc: delivery.execution
-      stages: []
-      processes: []
-    planned_value:
-      zh: 计划价值
-      bc: delivery.execution
-      stages: []
-      processes: []
-    earned_value:
-      zh: 挣值
-      bc: delivery.execution
-      stages: []
-      processes: []
-    actual_cost:
-      zh: 实际成本
-      bc: delivery.execution
-      stages: []
-      processes: []
-    cost_performance_index:
-      zh: 成本绩效指数
-      bc: delivery.execution
-      stages: []
-      processes: []
-    schedule_performance_index:
-      zh: 进度绩效指数
-      bc: delivery.execution
-      stages: []
-      processes: []
-    schedule_variance:
-      zh: 进度偏差
-      bc: delivery.execution
-      stages: []
-      processes: []
-    earned_value_cost_variance:
-      zh: 挣值成本偏差
-      bc: delivery.execution
-      stages: []
-      processes: []
-    utilization_rate:
-      zh: 利用率
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    accrual_basis_revenue:
-      zh: 权责发生制收入
-      bc: operations.policy
-      stages: []
-      processes: []
-    reversible_balance:
-      zh: 可冲销余额
-      bc: kernel
-      stages: []
-      processes: []
-    job_failure:
-      zh: 作业失败
-      bc: platform.scheduling
-      stages: []
-      processes: []
-    contribution_margin:
-      zh: 贡献毛利
-      bc: operations.policy
-      stages: []
-      processes: []
-    contribution_margin_ratio:
+    KPI-13:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-13
+      facts: []
+      dimensions: []
       zh: 贡献毛利率
-      bc: operations.policy
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[12]/KPI-13
       stages: []
       processes: []
-    net_service_revenue:
-      zh: 净服务收入
-      bc: operations.policy
+    KPI-14:
+      kind: 出口条件
+      term: null
+      baseline: null
+      vision_kpi: KPI-14
+      facts: []
+      dimensions: []
+      zh: 老系统与 A8 数据通道下线数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[13]/KPI-14
       stages: []
       processes: []
-    management_operating_profit:
-      zh: 经营利润
-      bc: operations.policy
+    KPI-15:
+      kind: 出口条件
+      term: null
+      baseline: null
+      vision_kpi: KPI-15
+      facts: []
+      dimensions: []
+      zh: 过渡镜像对账通过率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[14]/KPI-15
       stages: []
       processes: []
-    management_operating_profit_margin:
-      zh: 经营利润率
-      bc: operations.policy
+    KPI-16:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: KPI-16
+      facts: []
+      dimensions: []
+      zh: 安全不变量满足数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[15]/KPI-16
       stages: []
       processes: []
-    indirect_cost:
-      zh: 间接成本
-      bc: operations.policy
-      stages: []
-      processes: []
-    pass_through_cost:
-      zh: 转付成本
-      bc: operations.policy
-      stages: []
-      processes: []
-    labor_cost_multiplier:
-      zh: 人工成本产出倍数
-      bc: operations.policy
-      stages: []
-      processes: []
-    target_variance:
-      zh: 目标偏差
-      bc: operations.planning
-      stages: []
-      processes: []
-    available_budget:
-      zh: 可用额度
-      bc: operations.planning
-      stages: []
-      processes: []
-    plan_target_value:
-      zh: 计划目标值
-      bc: operations.planning
-      stages: []
-      processes: []
-    target_attainment_rate:
-      zh: 目标达成率
-      bc: operations.planning
-      stages: []
-      processes: []
-    budget_consumption_rate:
-      zh: 预算消耗率
-      bc: operations.planning
-      stages: []
-      processes: []
-    new_contract_value:
-      zh: 新签合同额
-      bc: contract.agreement
-      stages: []
-      processes: []
-    project_initiation_value:
-      zh: 项目立项金额
-      bc: delivery.execution
-      stages: []
-      processes: []
-    aged_receivable:
-      zh: 账龄超 N 天应收
-      bc: receivables.collection
-      stages: []
-      processes: []
-    days_sales_outstanding:
-      zh: 应收周转天数
-      bc: receivables.collection
-      stages: []
-      processes: []
-    billing_conversion_rate:
-      zh: 开票转化率
-      bc: receivables.wip
-      stages: []
-      processes: []
-    collection_rate:
-      zh: 回款率
-      bc: receivables.collection
-      stages: []
-      processes: []
-    overdue_billing_commitment:
-      zh: 承诺开票超期
-      bc: receivables.wip
-      stages: []
-      processes: []
-    allowance_for_bad_debts:
-      zh: 坏账准备
-      bc: receivables.collection
-      stages: []
-      processes: []
-    average_headcount:
-      zh: 平均在册人数
-      bc: organization.workforce
-      stages: []
-      processes: []
-    attrition_rate:
-      zh: 离职率
-      bc: organization.workforce
-      stages: []
-      processes: []
-    pipeline_value:
+    KPI-17:
+      kind: 业务指标
+      term: pipeline_value
+      baseline: M-01
+      vision_kpi: null
+      facts:
+      - FACT-30
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-06
+      - DIM-07
+      - DIM-08
       zh: 商机管道金额
-      bc: presales.opportunity
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[16]/KPI-17
       stages: []
       processes: []
-    win_rate:
+    KPI-18:
+      kind: 业务指标
+      term: null
+      baseline: M-02
+      vision_kpi: null
+      facts:
+      - FACT-31
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-06
+      - DIM-07
+      - DIM-08
+      zh: 赢单金额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[17]/KPI-18
+      stages: []
+      processes: []
+    KPI-19:
+      kind: 业务指标
+      term: win_rate
+      baseline: M-02
+      vision_kpi: null
+      facts:
+      - FACT-37
+      - FACT-31
+      dimensions: []
       zh: 赢单率
-      bc: presales.opportunity
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[18]/KPI-19
       stages: []
       processes: []
-    lead_conversion_rate:
+    KPI-20:
+      kind: 业务指标
+      term: project_initiation_value
+      baseline: M-03
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 项目立项金额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[19]/KPI-20
+      stages: []
+      processes: []
+    KPI-21:
+      kind: 业务指标
+      term: lead_conversion_rate
+      baseline: M-04
+      vision_kpi: null
+      facts:
+      - FACT-37
+      dimensions: []
       zh: 线索转化率
-      bc: presales.opportunity
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[20]/KPI-21
       stages: []
       processes: []
-    expense_payment:
-      zh: 费用支付
-      bc: payables.payment
+    KPI-22:
+      kind: 业务指标
+      term: new_contract_value
+      baseline: M-05
+      vision_kpi: null
+      facts:
+      - FACT-32
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      - DIM-07
+      - DIM-08
+      zh: 新签合同额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22
       stages: []
       processes: []
-    kickoff_completion_rate:
+    KPI-23:
+      kind: 业务指标
+      term: remaining_performance_obligation
+      baseline: M-06
+      vision_kpi: null
+      facts:
+      - FACT-29
+      - FACT-32
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 剩余履约义务
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23
+      stages: []
+      processes: []
+    KPI-24:
+      kind: 业务指标
+      term: null
+      baseline: M-07
+      vision_kpi: null
+      facts:
+      - FACT-32
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      - DIM-07
+      - DIM-08
+      zh: 待签合同金额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24
+      stages: []
+      processes: []
+    KPI-25:
+      kind: 业务指标
+      term: null
+      baseline: M-10
+      vision_kpi: null
+      facts:
+      - FACT-06
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      - DIM-07
+      zh: 开票金额（含税）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[24]/KPI-25
+      stages: []
+      processes: []
+    KPI-26:
+      kind: 业务指标
+      term: null
+      baseline: M-11
+      vision_kpi: null
+      facts:
+      - FACT-07
+      - FACT-28
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 回款（应收结清，全部方式）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[25]/KPI-26
+      stages: []
+      processes: []
+    KPI-27:
+      kind: 业务指标
+      term: null
+      baseline: M-12
+      vision_kpi: null
+      facts:
+      - FACT-07
+      - FACT-28
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 现金回款
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[26]/KPI-27
+      stages: []
+      processes: []
+    KPI-28:
+      kind: 业务指标
+      term: accounts_receivable
+      baseline: M-13
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 应收账款余额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[27]/KPI-28
+      stages: []
+      processes: []
+    KPI-29:
+      kind: 业务指标
+      term: null
+      baseline: M-15
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 逾期应收（过了到期日）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[28]/KPI-29
+      stages: []
+      processes: []
+    KPI-30:
+      kind: 业务指标
+      term: billing_conversion_rate
+      baseline: M-18
+      vision_kpi: null
+      facts:
+      - FACT-06
+      - FACT-05
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      - DIM-07
+      zh: 开票转化率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30
+      stages: []
+      processes: []
+    KPI-31:
+      kind: 业务指标
+      term: collection_rate
+      baseline: M-19
+      vision_kpi: null
+      facts:
+      - FACT-07
+      - FACT-06
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 回款率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31
+      stages: []
+      processes: []
+    KPI-32:
+      kind: 业务指标
+      term: allowance_for_bad_debts
+      baseline: M-20
+      vision_kpi: null
+      facts:
+      - FACT-08
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 减值准备（余额、本期计提）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32
+      stages: []
+      processes: []
+    KPI-33:
+      kind: 业务指标
+      term: null
+      baseline: M-21
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 收入冲减
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[32]/KPI-33
+      stages: []
+      processes: []
+    KPI-34:
+      kind: 业务指标
+      term: null
+      baseline: M-21
+      vision_kpi: null
+      facts:
+      - FACT-08
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 信用损失核销
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[33]/KPI-34
+      stages: []
+      processes: []
+    KPI-35:
+      kind: 业务指标
+      term: null
+      baseline: M-22
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 商业承兑汇票未兑付余额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[34]/KPI-35
+      stages: []
+      processes: []
+    KPI-36:
+      kind: 业务指标
+      term: overdue_billing_commitment
+      baseline: M-23
+      vision_kpi: null
+      facts:
+      - FACT-34
+      - FACT-06
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-06
+      - DIM-07
+      zh: 承诺开票超期金额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36
+      stages: []
+      processes: []
+    KPI-37:
+      kind: 业务指标
+      term: direct_labor
+      baseline: M-24
+      vision_kpi: null
+      facts:
+      - FACT-02
+      - FACT-01
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-07
+      zh: 直接人工
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[36]/KPI-37
+      stages: []
+      processes: []
+    KPI-38:
+      kind: 业务指标
+      term: direct_expense
+      baseline: M-25
+      vision_kpi: null
+      facts:
+      - FACT-10
+      - FACT-27
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-07
+      - DIM-09
+      - DIM-10
+      zh: 直接费用
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38
+      stages: []
+      processes: []
+    KPI-39:
+      kind: 业务指标
+      term: net_service_revenue
+      baseline: M-28
+      vision_kpi: null
+      facts:
+      - FACT-05
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      - DIM-07
+      - DIM-08
+      zh: 净服务收入
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39
+      stages: []
+      processes: []
+    KPI-40:
+      kind: 业务指标
+      term: contribution_margin
+      baseline: M-29
+      vision_kpi: null
+      facts:
+      - FACT-05
+      - FACT-27
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-07
+      zh: 贡献毛利
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40
+      stages: []
+      processes: []
+    KPI-41:
+      kind: 业务指标
+      term: null
+      baseline: M-30
+      vision_kpi: null
+      facts:
+      - FACT-38
+      dimensions: []
+      zh: BU 贡献（层级）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[40]/KPI-41
+      stages: []
+      processes: []
+    KPI-42:
+      kind: 业务指标
+      term: management_operating_profit
+      baseline: M-32
+      vision_kpi: null
+      facts:
+      - FACT-38
+      - FACT-05
+      - FACT-27
+      dimensions: []
+      zh: 经营利润
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[41]/KPI-42
+      stages: []
+      processes: []
+    KPI-43:
+      kind: 业务指标
+      term: management_operating_profit_margin
+      baseline: M-32
+      vision_kpi: null
+      facts:
+      - FACT-38
+      - FACT-05
+      - FACT-27
+      dimensions: []
+      zh: 经营利润率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[42]/KPI-43
+      stages: []
+      processes: []
+    KPI-44:
+      kind: 业务指标
+      term: null
+      baseline: M-33
+      vision_kpi: null
+      facts:
+      - FACT-10
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-07
+      - DIM-09
+      - DIM-10
+      zh: 费用（权责，按发生期间）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[43]/KPI-44
+      stages: []
+      processes: []
+    KPI-45:
+      kind: 业务指标
+      term: expense_payment
+      baseline: M-34
+      vision_kpi: null
+      facts:
+      - FACT-13
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-07
+      - DIM-09
+      - DIM-10
+      zh: 费用支付（按支付日）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45
+      stages: []
+      processes: []
+    KPI-46:
+      kind: 业务指标
+      term: null
+      baseline: M-35
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 法定报表数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[45]/KPI-46
+      stages: []
+      processes: []
+    KPI-47:
+      kind: 业务指标
+      term: null
+      baseline: M-36
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 经营活动现金流量净额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[46]/KPI-47
+      stages: []
+      processes: []
+    KPI-48:
+      kind: 业务指标
+      term: average_headcount
+      baseline: M-38
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 平均在册人数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[47]/KPI-48
+      stages: []
+      processes: []
+    KPI-49:
+      kind: 业务指标
+      term: attrition_rate
+      baseline: M-39
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 离职率（主动、被动）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[48]/KPI-49
+      stages: []
+      processes: []
+    KPI-50:
+      kind: 业务指标
+      term: plan_target_value
+      baseline: M-40
+      vision_kpi: null
+      facts:
+      - FACT-34
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-06
+      - DIM-07
+      - DIM-08
+      zh: 计划目标值
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50
+      stages: []
+      processes: []
+    KPI-51:
+      kind: 业务指标
+      term: target_attainment_rate
+      baseline: M-41
+      vision_kpi: null
+      facts:
+      - FACT-34
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-06
+      - DIM-07
+      - DIM-08
+      zh: 目标达成率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51
+      stages: []
+      processes: []
+    KPI-52:
+      kind: 业务指标
+      term: null
+      baseline: M-44
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 人均产出
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[51]/KPI-52
+      stages: []
+      processes: []
+    KPI-53:
+      kind: 业务指标
+      term: labor_cost_multiplier
+      baseline: M-45
+      vision_kpi: null
+      facts:
+      - FACT-14
+      - FACT-05
+      - FACT-06
+      - FACT-07
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      zh: 人工成本产出倍数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53
+      stages: []
+      processes: []
+    KPI-54:
+      kind: 业务指标
+      term: null
+      baseline: M-47
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 预算执行
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[53]/KPI-54
+      stages: []
+      processes: []
+    KPI-55:
+      kind: 业务指标
+      term: available_budget
+      baseline: M-47
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 可用额度
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[54]/KPI-55
+      stages: []
+      processes: []
+    KPI-56:
+      kind: 业务指标
+      term: budget_consumption_rate
+      baseline: M-47
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 预算消耗率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[55]/KPI-56
+      stages: []
+      processes: []
+    KPI-57:
+      kind: 业务指标
+      term: null
+      baseline: M-48
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 交付质量指标族
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[56]/KPI-57
+      stages: []
+      processes: []
+    KPI-58:
+      kind: 业务指标
+      term: kickoff_completion_rate
+      baseline: M-48
+      vision_kpi: null
+      facts: []
+      dimensions: []
       zh: 启动会完成率
-      bc: delivery.execution
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[57]/KPI-58
       stages: []
       processes: []
-    internal_review_coverage:
+    KPI-59:
+      kind: 业务指标
+      term: internal_review_coverage
+      baseline: M-48
+      vision_kpi: null
+      facts: []
+      dimensions: []
       zh: 内部评审覆盖率
-      bc: delivery.acceptance
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[58]/KPI-59
       stages: []
       processes: []
-    net_revenue:
-      zh: 净收入
-      bc: operations.policy
+    KPI-60:
+      kind: 业务指标
+      term: business_variance
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 经营偏差
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[59]/KPI-60
       stages: []
       processes: []
-    revenue_including_tax:
-      zh: 含税收入
-      bc: operations.policy
+    KPI-61:
+      kind: 业务指标
+      term: delivery_variance
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 交付偏差
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[60]/KPI-61
       stages: []
       processes: []
-    net_new_contract_value:
+    KPI-62:
+      kind: 业务指标
+      term: post_completion_service_hours
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-26
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-07
+      zh: 后期服务工时
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[61]/KPI-62
+      stages: []
+      processes: []
+    KPI-63:
+      kind: 业务指标
+      term: quality_loss
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 质量损失
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[62]/KPI-63
+      stages: []
+      processes: []
+    KPI-64:
+      kind: 业务指标
+      term: rework_rate
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 返工率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[63]/KPI-64
+      stages: []
+      processes: []
+    KPI-65:
+      kind: 业务指标
+      term: defect_rate
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 质量缺陷率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[64]/KPI-65
+      stages: []
+      processes: []
+    KPI-66:
+      kind: 业务指标
+      term: rework_hours
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-26
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-07
+      zh: 返工工时
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[65]/KPI-66
+      stages: []
+      processes: []
+    KPI-67:
+      kind: 业务指标
+      term: capacity_realization
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-26
+      - FACT-33
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-07
+      zh: 产能变现
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[66]/KPI-67
+      stages: []
+      processes: []
+    KPI-68:
+      kind: 业务指标
+      term: idle_capacity
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-26
+      - FACT-33
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-07
+      zh: 闲置产能
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[67]/KPI-68
+      stages: []
+      processes: []
+    KPI-69:
+      kind: 业务指标
+      term: cost_budget
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 成本预算
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[68]/KPI-69
+      stages: []
+      processes: []
+    KPI-70:
+      kind: 业务指标
+      term: cost_budget_variance
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 成本预算偏差
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[69]/KPI-70
+      stages: []
+      processes: []
+    KPI-71:
+      kind: 业务指标
+      term: measure_of_progress
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 履约进度
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[70]/KPI-71
+      stages: []
+      processes: []
+    KPI-72:
+      kind: 业务指标
+      term: uncontracted_wip
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 无合同 WIP
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[71]/KPI-72
+      stages: []
+      processes: []
+    KPI-73:
+      kind: 业务指标
+      term: aging
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-29
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 账龄
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[72]/KPI-73
+      stages: []
+      processes: []
+    KPI-74:
+      kind: 业务指标
+      term: bad_debt_risk
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 坏账风险
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[73]/KPI-74
+      stages: []
+      processes: []
+    KPI-75:
+      kind: 业务指标
+      term: impairment_risk
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 减值风险
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[74]/KPI-75
+      stages: []
+      processes: []
+    KPI-76:
+      kind: 业务指标
+      term: cash_conversion
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-07
+      - FACT-05
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      zh: 现金转化
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76
+      stages: []
+      processes: []
+    KPI-77:
+      kind: 业务指标
+      term: time_capture_rate
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-26
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-07
+      zh: 工时捕获率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[76]/KPI-77
+      stages: []
+      processes: []
+    KPI-78:
+      kind: 业务指标
+      term: statutory_cost
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 法定成本
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[77]/KPI-78
+      stages: []
+      processes: []
+    KPI-79:
+      kind: 业务指标
+      term: intercompany_balance
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 内部往来
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[78]/KPI-79
+      stages: []
+      processes: []
+    KPI-80:
+      kind: 业务指标
+      term: costs_to_obtain_contract
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 合同取得成本
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[79]/KPI-80
+      stages: []
+      processes: []
+    KPI-81:
+      kind: 业务指标
+      term: estimate_to_complete
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: ETC
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[80]/KPI-81
+      stages: []
+      processes: []
+    KPI-82:
+      kind: 业务指标
+      term: estimate_at_completion
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 完工估算
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[81]/KPI-82
+      stages: []
+      processes: []
+    KPI-83:
+      kind: 业务指标
+      term: planned_value
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 计划价值
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[82]/KPI-83
+      stages: []
+      processes: []
+    KPI-84:
+      kind: 业务指标
+      term: earned_value
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 挣值
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[83]/KPI-84
+      stages: []
+      processes: []
+    KPI-85:
+      kind: 业务指标
+      term: actual_cost
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-27
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-07
+      - DIM-09
+      - DIM-10
+      zh: 实际成本
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85
+      stages: []
+      processes: []
+    KPI-86:
+      kind: 业务指标
+      term: cost_performance_index
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 成本绩效指数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[85]/KPI-86
+      stages: []
+      processes: []
+    KPI-87:
+      kind: 业务指标
+      term: schedule_performance_index
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 进度绩效指数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[86]/KPI-87
+      stages: []
+      processes: []
+    KPI-88:
+      kind: 业务指标
+      term: schedule_variance
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 进度偏差
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[87]/KPI-88
+      stages: []
+      processes: []
+    KPI-89:
+      kind: 业务指标
+      term: earned_value_cost_variance
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 挣值成本偏差
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[88]/KPI-89
+      stages: []
+      processes: []
+    KPI-90:
+      kind: 技术度量
+      term: reversible_balance
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 可冲销余额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[89]/KPI-90
+      stages: []
+      processes: []
+    KPI-91:
+      kind: 技术度量
+      term: job_failure
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 作业失败
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[90]/KPI-91
+      stages: []
+      processes: []
+    KPI-92:
+      kind: 业务指标
+      term: pass_through_cost
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-18
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-07
+      - DIM-09
+      - DIM-10
+      zh: 转付成本
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92
+      stages: []
+      processes: []
+    KPI-93:
+      kind: 业务指标
+      term: target_variance
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-34
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-06
+      - DIM-07
+      - DIM-08
+      zh: 目标偏差
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93
+      stages: []
+      processes: []
+    KPI-94:
+      kind: 业务指标
+      term: net_new_contract_value
+      baseline: null
+      vision_kpi: null
+      facts:
+      - FACT-32
+      dimensions:
+      - DIM-01
+      - DIM-02
+      - DIM-03
+      - DIM-04
+      - DIM-05
+      - DIM-06
+      - DIM-07
+      - DIM-08
       zh: 新签净额
-      bc: operations.policy
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94
       stages: []
       processes: []
   bind: {}
@@ -94745,3 +96276,2429 @@ links:
   from: FACT-10
   to: FACT-38
   src: architecture/ssot/12-facts/facts.yaml#facts[36]/FACT-38.derives_from
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-30
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[0].facts
+  row: 商机（累积快照）
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-31
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[1].facts
+  row: 报价
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-32
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[2].facts
+  row: 合同、合同条款（累积快照）
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-01
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[3].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-26
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[3].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-03
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-18
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-27
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-10
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[5].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-11
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[5].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-05
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[6].facts
+  row: 收入确认
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-06
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[7].facts
+  row: 开票
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-07
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[8].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-28
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[8].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-13
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[9].facts
+  row: 付款
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-33
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[10].facts
+  row: 考勤、休假
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-14
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[11].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-15
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[11].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-34
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[12].facts
+  row: 计划目标、预测
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-36
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[14].facts
+  row: 审批时效（累积快照）
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-08
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[15].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-fact
+  from: DIM-01
+  to: FACT-29
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.slices[15].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-obj
+  from: DIM-01
+  to: OBJ-97
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[0]/DIM-01.backed_by
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-30
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[0].facts
+  row: 商机（累积快照）
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-31
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[1].facts
+  row: 报价
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-32
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[2].facts
+  row: 合同、合同条款（累积快照）
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-01
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[3].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-26
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[3].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-03
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-18
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-27
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-10
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[5].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-11
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[5].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-05
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[6].facts
+  row: 收入确认
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-06
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[7].facts
+  row: 开票
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-07
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[8].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-28
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[8].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-13
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[9].facts
+  row: 付款
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-33
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[10].facts
+  row: 考勤、休假
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-14
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[11].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-15
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[11].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-34
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[12].facts
+  row: 计划目标、预测
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-36
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[14].facts
+  row: 审批时效（累积快照）
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-08
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[15].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-fact
+  from: DIM-02
+  to: FACT-29
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.slices[15].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-obj
+  from: DIM-02
+  to: OBJ-54
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[1]/DIM-02.backed_by
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-30
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[0].facts
+  row: 商机（累积快照）
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-31
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[1].facts
+  row: 报价
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-32
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[2].facts
+  row: 合同、合同条款（累积快照）
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-01
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[3].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-26
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[3].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-03
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-18
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-27
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-10
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[5].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-11
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[5].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-05
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[6].facts
+  row: 收入确认
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-06
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[7].facts
+  row: 开票
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-07
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[8].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-28
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[8].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-13
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[9].facts
+  row: 付款
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-33
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[10].facts
+  row: 考勤、休假
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-14
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[11].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-15
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[11].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-34
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[12].facts
+  row: 计划目标、预测
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-36
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[14].facts
+  row: 审批时效（累积快照）
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-08
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[15].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-fact
+  from: DIM-03
+  to: FACT-29
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.slices[15].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-obj
+  from: DIM-03
+  to: OBJ-55
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[2]/DIM-03.backed_by
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-32
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[0].facts
+  row: 合同、合同条款（累积快照）
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-01
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[1].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-26
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[1].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[2].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-03
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[2].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-18
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[2].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-27
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[2].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-10
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[3].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-11
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[3].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-05
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[4].facts
+  row: 收入确认
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-06
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[5].facts
+  row: 开票
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-07
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[6].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-28
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[6].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-13
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[7].facts
+  row: 付款
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-14
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[8].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-15
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[8].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-34
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[9].facts
+  row: 计划目标、预测
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-36
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[11].facts
+  row: 审批时效（累积快照）
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-08
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[12].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-fact
+  from: DIM-04
+  to: FACT-29
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.slices[12].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-obj
+  from: DIM-04
+  to: OBJ-29
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.backed_by
+- kind: dim-obj
+  from: DIM-04
+  to: OBJ-30
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[3]/DIM-04.backed_by
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-32
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[0].facts
+  row: 合同、合同条款（累积快照）
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[1].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-03
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[1].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-18
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[1].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-27
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[1].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-05
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[2].facts
+  row: 收入确认
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-06
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[3].facts
+  row: 开票
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-07
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[4].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-28
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[4].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-08
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[5].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-fact
+  from: DIM-05
+  to: FACT-29
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.slices[5].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-obj
+  from: DIM-05
+  to: OBJ-05
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.backed_by
+- kind: dim-obj
+  from: DIM-05
+  to: OBJ-06
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[4]/DIM-05.backed_by
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-30
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[0].facts
+  row: 商机（累积快照）
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-31
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[1].facts
+  row: 报价
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-32
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[2].facts
+  row: 合同、合同条款（累积快照）
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-05
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[3].facts
+  row: 收入确认
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-06
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[4].facts
+  row: 开票
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-07
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[5].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-28
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[5].facts
+  row: 回款分配
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-34
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[6].facts
+  row: 计划目标、预测
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-08
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[7].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-fact
+  from: DIM-06
+  to: FACT-29
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.slices[7].facts
+  row: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+- kind: dim-obj
+  from: DIM-06
+  to: OBJ-01
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.backed_by
+- kind: dim-obj
+  from: DIM-06
+  to: OBJ-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[5]/DIM-06.backed_by
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-30
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[0].facts
+  row: 商机（累积快照）
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-31
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[1].facts
+  row: 报价
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-32
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[2].facts
+  row: 合同、合同条款（累积快照）
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-01
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[3].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-26
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[3].facts
+  row: 工时条目
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-03
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-18
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-27
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[4].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-10
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[5].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-11
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[5].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-05
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[6].facts
+  row: 收入确认
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-06
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[7].facts
+  row: 开票
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-13
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[8].facts
+  row: 付款
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-33
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[9].facts
+  row: 考勤、休假
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-14
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[10].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-15
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[10].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-34
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[11].facts
+  row: 计划目标、预测
+- kind: dim-fact
+  from: DIM-07
+  to: FACT-36
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.slices[13].facts
+  row: 审批时效（累积快照）
+- kind: dim-obj
+  from: DIM-07
+  to: OBJ-56
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[6]/DIM-07.backed_by
+- kind: dim-fact
+  from: DIM-08
+  to: FACT-30
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[7]/DIM-08.slices[0].facts
+  row: 商机（累积快照）
+- kind: dim-fact
+  from: DIM-08
+  to: FACT-31
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[7]/DIM-08.slices[1].facts
+  row: 报价
+- kind: dim-fact
+  from: DIM-08
+  to: FACT-32
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[7]/DIM-08.slices[2].facts
+  row: 合同、合同条款（累积快照）
+- kind: dim-fact
+  from: DIM-08
+  to: FACT-05
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[7]/DIM-08.slices[3].facts
+  row: 收入确认
+- kind: dim-fact
+  from: DIM-08
+  to: FACT-34
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[7]/DIM-08.slices[4].facts
+  row: 计划目标、预测
+- kind: dim-obj
+  from: DIM-08
+  to: OBJ-24
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[7]/DIM-08.backed_by
+- kind: dim-fact
+  from: DIM-09
+  to: FACT-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09.slices[0].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-09
+  to: FACT-03
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09.slices[0].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-09
+  to: FACT-18
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09.slices[0].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-09
+  to: FACT-27
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09.slices[0].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-09
+  to: FACT-10
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09.slices[1].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-09
+  to: FACT-11
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09.slices[1].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-09
+  to: FACT-13
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09.slices[2].facts
+  row: 付款
+- kind: dim-fact
+  from: DIM-09
+  to: FACT-14
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09.slices[3].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-09
+  to: FACT-15
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[8]/DIM-09.slices[3].facts
+  row: 人工成本 / 薪酬
+- kind: dim-fact
+  from: DIM-10
+  to: FACT-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10.slices[0].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-10
+  to: FACT-03
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10.slices[0].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-10
+  to: FACT-18
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10.slices[0].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-10
+  to: FACT-27
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10.slices[0].facts
+  row: 成本台账分录
+- kind: dim-fact
+  from: DIM-10
+  to: FACT-10
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10.slices[1].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-10
+  to: FACT-11
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10.slices[1].facts
+  row: 费用
+- kind: dim-fact
+  from: DIM-10
+  to: FACT-13
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10.slices[2].facts
+  row: 付款
+- kind: dim-obj
+  from: DIM-10
+  to: OBJ-01
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10.backed_by
+- kind: dim-obj
+  from: DIM-10
+  to: OBJ-02
+  src: architecture/ssot/13-dimensions/dimensions.yaml#dimensions[9]/DIM-10.backed_by
+- kind: metric-fact
+  from: KPI-17
+  to: FACT-30
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[16]/KPI-17.facts
+- kind: metric-dim
+  from: KPI-17
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[16]/KPI-17.dimensions
+- kind: metric-dim
+  from: KPI-17
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[16]/KPI-17.dimensions
+- kind: metric-dim
+  from: KPI-17
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[16]/KPI-17.dimensions
+- kind: metric-dim
+  from: KPI-17
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[16]/KPI-17.dimensions
+- kind: metric-dim
+  from: KPI-17
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[16]/KPI-17.dimensions
+- kind: metric-dim
+  from: KPI-17
+  to: DIM-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[16]/KPI-17.dimensions
+- kind: metric-term
+  from: KPI-17
+  to: pipeline_value
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[16]/KPI-17.term
+- kind: metric-fact
+  from: KPI-18
+  to: FACT-31
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[17]/KPI-18.facts
+- kind: metric-dim
+  from: KPI-18
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[17]/KPI-18.dimensions
+- kind: metric-dim
+  from: KPI-18
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[17]/KPI-18.dimensions
+- kind: metric-dim
+  from: KPI-18
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[17]/KPI-18.dimensions
+- kind: metric-dim
+  from: KPI-18
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[17]/KPI-18.dimensions
+- kind: metric-dim
+  from: KPI-18
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[17]/KPI-18.dimensions
+- kind: metric-dim
+  from: KPI-18
+  to: DIM-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[17]/KPI-18.dimensions
+- kind: metric-fact
+  from: KPI-19
+  to: FACT-37
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[18]/KPI-19.facts
+- kind: metric-fact
+  from: KPI-19
+  to: FACT-31
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[18]/KPI-19.facts
+- kind: metric-term
+  from: KPI-19
+  to: win_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[18]/KPI-19.term
+- kind: metric-term
+  from: KPI-20
+  to: project_initiation_value
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[19]/KPI-20.term
+- kind: metric-fact
+  from: KPI-21
+  to: FACT-37
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[20]/KPI-21.facts
+- kind: metric-term
+  from: KPI-21
+  to: lead_conversion_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[20]/KPI-21.term
+- kind: metric-fact
+  from: KPI-22
+  to: FACT-32
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.facts
+- kind: metric-dim
+  from: KPI-22
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.dimensions
+- kind: metric-dim
+  from: KPI-22
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.dimensions
+- kind: metric-dim
+  from: KPI-22
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.dimensions
+- kind: metric-dim
+  from: KPI-22
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.dimensions
+- kind: metric-dim
+  from: KPI-22
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.dimensions
+- kind: metric-dim
+  from: KPI-22
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.dimensions
+- kind: metric-dim
+  from: KPI-22
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.dimensions
+- kind: metric-dim
+  from: KPI-22
+  to: DIM-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.dimensions
+- kind: metric-term
+  from: KPI-22
+  to: new_contract_value
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[21]/KPI-22.term
+- kind: metric-fact
+  from: KPI-23
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23.facts
+- kind: metric-fact
+  from: KPI-23
+  to: FACT-32
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23.facts
+- kind: metric-dim
+  from: KPI-23
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23.dimensions
+- kind: metric-dim
+  from: KPI-23
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23.dimensions
+- kind: metric-dim
+  from: KPI-23
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23.dimensions
+- kind: metric-dim
+  from: KPI-23
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23.dimensions
+- kind: metric-dim
+  from: KPI-23
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23.dimensions
+- kind: metric-dim
+  from: KPI-23
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23.dimensions
+- kind: metric-term
+  from: KPI-23
+  to: remaining_performance_obligation
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[22]/KPI-23.term
+- kind: metric-fact
+  from: KPI-24
+  to: FACT-32
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24.facts
+- kind: metric-dim
+  from: KPI-24
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24.dimensions
+- kind: metric-dim
+  from: KPI-24
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24.dimensions
+- kind: metric-dim
+  from: KPI-24
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24.dimensions
+- kind: metric-dim
+  from: KPI-24
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24.dimensions
+- kind: metric-dim
+  from: KPI-24
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24.dimensions
+- kind: metric-dim
+  from: KPI-24
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24.dimensions
+- kind: metric-dim
+  from: KPI-24
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24.dimensions
+- kind: metric-dim
+  from: KPI-24
+  to: DIM-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[23]/KPI-24.dimensions
+- kind: metric-fact
+  from: KPI-25
+  to: FACT-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[24]/KPI-25.facts
+- kind: metric-dim
+  from: KPI-25
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[24]/KPI-25.dimensions
+- kind: metric-dim
+  from: KPI-25
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[24]/KPI-25.dimensions
+- kind: metric-dim
+  from: KPI-25
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[24]/KPI-25.dimensions
+- kind: metric-dim
+  from: KPI-25
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[24]/KPI-25.dimensions
+- kind: metric-dim
+  from: KPI-25
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[24]/KPI-25.dimensions
+- kind: metric-dim
+  from: KPI-25
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[24]/KPI-25.dimensions
+- kind: metric-dim
+  from: KPI-25
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[24]/KPI-25.dimensions
+- kind: metric-fact
+  from: KPI-26
+  to: FACT-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[25]/KPI-26.facts
+- kind: metric-fact
+  from: KPI-26
+  to: FACT-28
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[25]/KPI-26.facts
+- kind: metric-dim
+  from: KPI-26
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[25]/KPI-26.dimensions
+- kind: metric-dim
+  from: KPI-26
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[25]/KPI-26.dimensions
+- kind: metric-dim
+  from: KPI-26
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[25]/KPI-26.dimensions
+- kind: metric-dim
+  from: KPI-26
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[25]/KPI-26.dimensions
+- kind: metric-dim
+  from: KPI-26
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[25]/KPI-26.dimensions
+- kind: metric-dim
+  from: KPI-26
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[25]/KPI-26.dimensions
+- kind: metric-fact
+  from: KPI-27
+  to: FACT-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[26]/KPI-27.facts
+- kind: metric-fact
+  from: KPI-27
+  to: FACT-28
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[26]/KPI-27.facts
+- kind: metric-dim
+  from: KPI-27
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[26]/KPI-27.dimensions
+- kind: metric-dim
+  from: KPI-27
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[26]/KPI-27.dimensions
+- kind: metric-dim
+  from: KPI-27
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[26]/KPI-27.dimensions
+- kind: metric-dim
+  from: KPI-27
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[26]/KPI-27.dimensions
+- kind: metric-dim
+  from: KPI-27
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[26]/KPI-27.dimensions
+- kind: metric-dim
+  from: KPI-27
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[26]/KPI-27.dimensions
+- kind: metric-fact
+  from: KPI-28
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[27]/KPI-28.facts
+- kind: metric-dim
+  from: KPI-28
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[27]/KPI-28.dimensions
+- kind: metric-dim
+  from: KPI-28
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[27]/KPI-28.dimensions
+- kind: metric-dim
+  from: KPI-28
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[27]/KPI-28.dimensions
+- kind: metric-dim
+  from: KPI-28
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[27]/KPI-28.dimensions
+- kind: metric-dim
+  from: KPI-28
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[27]/KPI-28.dimensions
+- kind: metric-dim
+  from: KPI-28
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[27]/KPI-28.dimensions
+- kind: metric-term
+  from: KPI-28
+  to: accounts_receivable
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[27]/KPI-28.term
+- kind: metric-fact
+  from: KPI-29
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[28]/KPI-29.facts
+- kind: metric-dim
+  from: KPI-29
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[28]/KPI-29.dimensions
+- kind: metric-dim
+  from: KPI-29
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[28]/KPI-29.dimensions
+- kind: metric-dim
+  from: KPI-29
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[28]/KPI-29.dimensions
+- kind: metric-dim
+  from: KPI-29
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[28]/KPI-29.dimensions
+- kind: metric-dim
+  from: KPI-29
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[28]/KPI-29.dimensions
+- kind: metric-dim
+  from: KPI-29
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[28]/KPI-29.dimensions
+- kind: metric-fact
+  from: KPI-30
+  to: FACT-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.facts
+- kind: metric-fact
+  from: KPI-30
+  to: FACT-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.facts
+- kind: metric-dim
+  from: KPI-30
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.dimensions
+- kind: metric-dim
+  from: KPI-30
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.dimensions
+- kind: metric-dim
+  from: KPI-30
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.dimensions
+- kind: metric-dim
+  from: KPI-30
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.dimensions
+- kind: metric-dim
+  from: KPI-30
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.dimensions
+- kind: metric-dim
+  from: KPI-30
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.dimensions
+- kind: metric-dim
+  from: KPI-30
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.dimensions
+- kind: metric-term
+  from: KPI-30
+  to: billing_conversion_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[29]/KPI-30.term
+- kind: metric-fact
+  from: KPI-31
+  to: FACT-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31.facts
+- kind: metric-fact
+  from: KPI-31
+  to: FACT-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31.facts
+- kind: metric-dim
+  from: KPI-31
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31.dimensions
+- kind: metric-dim
+  from: KPI-31
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31.dimensions
+- kind: metric-dim
+  from: KPI-31
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31.dimensions
+- kind: metric-dim
+  from: KPI-31
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31.dimensions
+- kind: metric-dim
+  from: KPI-31
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31.dimensions
+- kind: metric-dim
+  from: KPI-31
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31.dimensions
+- kind: metric-term
+  from: KPI-31
+  to: collection_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[30]/KPI-31.term
+- kind: metric-fact
+  from: KPI-32
+  to: FACT-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32.facts
+- kind: metric-fact
+  from: KPI-32
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32.facts
+- kind: metric-dim
+  from: KPI-32
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32.dimensions
+- kind: metric-dim
+  from: KPI-32
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32.dimensions
+- kind: metric-dim
+  from: KPI-32
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32.dimensions
+- kind: metric-dim
+  from: KPI-32
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32.dimensions
+- kind: metric-dim
+  from: KPI-32
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32.dimensions
+- kind: metric-dim
+  from: KPI-32
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32.dimensions
+- kind: metric-term
+  from: KPI-32
+  to: allowance_for_bad_debts
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[31]/KPI-32.term
+- kind: metric-fact
+  from: KPI-34
+  to: FACT-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[33]/KPI-34.facts
+- kind: metric-dim
+  from: KPI-34
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[33]/KPI-34.dimensions
+- kind: metric-dim
+  from: KPI-34
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[33]/KPI-34.dimensions
+- kind: metric-dim
+  from: KPI-34
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[33]/KPI-34.dimensions
+- kind: metric-dim
+  from: KPI-34
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[33]/KPI-34.dimensions
+- kind: metric-dim
+  from: KPI-34
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[33]/KPI-34.dimensions
+- kind: metric-dim
+  from: KPI-34
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[33]/KPI-34.dimensions
+- kind: metric-fact
+  from: KPI-36
+  to: FACT-34
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36.facts
+- kind: metric-fact
+  from: KPI-36
+  to: FACT-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36.facts
+- kind: metric-dim
+  from: KPI-36
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36.dimensions
+- kind: metric-dim
+  from: KPI-36
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36.dimensions
+- kind: metric-dim
+  from: KPI-36
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36.dimensions
+- kind: metric-dim
+  from: KPI-36
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36.dimensions
+- kind: metric-dim
+  from: KPI-36
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36.dimensions
+- kind: metric-dim
+  from: KPI-36
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36.dimensions
+- kind: metric-term
+  from: KPI-36
+  to: overdue_billing_commitment
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[35]/KPI-36.term
+- kind: metric-fact
+  from: KPI-37
+  to: FACT-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[36]/KPI-37.facts
+- kind: metric-fact
+  from: KPI-37
+  to: FACT-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[36]/KPI-37.facts
+- kind: metric-dim
+  from: KPI-37
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[36]/KPI-37.dimensions
+- kind: metric-dim
+  from: KPI-37
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[36]/KPI-37.dimensions
+- kind: metric-dim
+  from: KPI-37
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[36]/KPI-37.dimensions
+- kind: metric-dim
+  from: KPI-37
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[36]/KPI-37.dimensions
+- kind: metric-dim
+  from: KPI-37
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[36]/KPI-37.dimensions
+- kind: metric-term
+  from: KPI-37
+  to: direct_labor
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[36]/KPI-37.term
+- kind: metric-fact
+  from: KPI-38
+  to: FACT-10
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.facts
+- kind: metric-fact
+  from: KPI-38
+  to: FACT-27
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.facts
+- kind: metric-dim
+  from: KPI-38
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.dimensions
+- kind: metric-dim
+  from: KPI-38
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.dimensions
+- kind: metric-dim
+  from: KPI-38
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.dimensions
+- kind: metric-dim
+  from: KPI-38
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.dimensions
+- kind: metric-dim
+  from: KPI-38
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.dimensions
+- kind: metric-dim
+  from: KPI-38
+  to: DIM-09
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.dimensions
+- kind: metric-dim
+  from: KPI-38
+  to: DIM-10
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.dimensions
+- kind: metric-term
+  from: KPI-38
+  to: direct_expense
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[37]/KPI-38.term
+- kind: metric-fact
+  from: KPI-39
+  to: FACT-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.facts
+- kind: metric-dim
+  from: KPI-39
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.dimensions
+- kind: metric-dim
+  from: KPI-39
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.dimensions
+- kind: metric-dim
+  from: KPI-39
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.dimensions
+- kind: metric-dim
+  from: KPI-39
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.dimensions
+- kind: metric-dim
+  from: KPI-39
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.dimensions
+- kind: metric-dim
+  from: KPI-39
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.dimensions
+- kind: metric-dim
+  from: KPI-39
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.dimensions
+- kind: metric-dim
+  from: KPI-39
+  to: DIM-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.dimensions
+- kind: metric-term
+  from: KPI-39
+  to: net_service_revenue
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[38]/KPI-39.term
+- kind: metric-fact
+  from: KPI-40
+  to: FACT-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40.facts
+- kind: metric-fact
+  from: KPI-40
+  to: FACT-27
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40.facts
+- kind: metric-dim
+  from: KPI-40
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40.dimensions
+- kind: metric-dim
+  from: KPI-40
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40.dimensions
+- kind: metric-dim
+  from: KPI-40
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40.dimensions
+- kind: metric-dim
+  from: KPI-40
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40.dimensions
+- kind: metric-dim
+  from: KPI-40
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40.dimensions
+- kind: metric-dim
+  from: KPI-40
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40.dimensions
+- kind: metric-term
+  from: KPI-40
+  to: contribution_margin
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[39]/KPI-40.term
+- kind: metric-fact
+  from: KPI-41
+  to: FACT-38
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[40]/KPI-41.facts
+- kind: metric-fact
+  from: KPI-42
+  to: FACT-38
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[41]/KPI-42.facts
+- kind: metric-fact
+  from: KPI-42
+  to: FACT-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[41]/KPI-42.facts
+- kind: metric-fact
+  from: KPI-42
+  to: FACT-27
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[41]/KPI-42.facts
+- kind: metric-term
+  from: KPI-42
+  to: management_operating_profit
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[41]/KPI-42.term
+- kind: metric-fact
+  from: KPI-43
+  to: FACT-38
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[42]/KPI-43.facts
+- kind: metric-fact
+  from: KPI-43
+  to: FACT-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[42]/KPI-43.facts
+- kind: metric-fact
+  from: KPI-43
+  to: FACT-27
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[42]/KPI-43.facts
+- kind: metric-term
+  from: KPI-43
+  to: management_operating_profit_margin
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[42]/KPI-43.term
+- kind: metric-fact
+  from: KPI-44
+  to: FACT-10
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[43]/KPI-44.facts
+- kind: metric-dim
+  from: KPI-44
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[43]/KPI-44.dimensions
+- kind: metric-dim
+  from: KPI-44
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[43]/KPI-44.dimensions
+- kind: metric-dim
+  from: KPI-44
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[43]/KPI-44.dimensions
+- kind: metric-dim
+  from: KPI-44
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[43]/KPI-44.dimensions
+- kind: metric-dim
+  from: KPI-44
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[43]/KPI-44.dimensions
+- kind: metric-dim
+  from: KPI-44
+  to: DIM-09
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[43]/KPI-44.dimensions
+- kind: metric-dim
+  from: KPI-44
+  to: DIM-10
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[43]/KPI-44.dimensions
+- kind: metric-fact
+  from: KPI-45
+  to: FACT-13
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45.facts
+- kind: metric-dim
+  from: KPI-45
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45.dimensions
+- kind: metric-dim
+  from: KPI-45
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45.dimensions
+- kind: metric-dim
+  from: KPI-45
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45.dimensions
+- kind: metric-dim
+  from: KPI-45
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45.dimensions
+- kind: metric-dim
+  from: KPI-45
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45.dimensions
+- kind: metric-dim
+  from: KPI-45
+  to: DIM-09
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45.dimensions
+- kind: metric-dim
+  from: KPI-45
+  to: DIM-10
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45.dimensions
+- kind: metric-term
+  from: KPI-45
+  to: expense_payment
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[44]/KPI-45.term
+- kind: metric-fact
+  from: KPI-48
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[47]/KPI-48.facts
+- kind: metric-dim
+  from: KPI-48
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[47]/KPI-48.dimensions
+- kind: metric-dim
+  from: KPI-48
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[47]/KPI-48.dimensions
+- kind: metric-dim
+  from: KPI-48
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[47]/KPI-48.dimensions
+- kind: metric-dim
+  from: KPI-48
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[47]/KPI-48.dimensions
+- kind: metric-dim
+  from: KPI-48
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[47]/KPI-48.dimensions
+- kind: metric-dim
+  from: KPI-48
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[47]/KPI-48.dimensions
+- kind: metric-term
+  from: KPI-48
+  to: average_headcount
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[47]/KPI-48.term
+- kind: metric-fact
+  from: KPI-49
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[48]/KPI-49.facts
+- kind: metric-dim
+  from: KPI-49
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[48]/KPI-49.dimensions
+- kind: metric-dim
+  from: KPI-49
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[48]/KPI-49.dimensions
+- kind: metric-dim
+  from: KPI-49
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[48]/KPI-49.dimensions
+- kind: metric-dim
+  from: KPI-49
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[48]/KPI-49.dimensions
+- kind: metric-dim
+  from: KPI-49
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[48]/KPI-49.dimensions
+- kind: metric-dim
+  from: KPI-49
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[48]/KPI-49.dimensions
+- kind: metric-term
+  from: KPI-49
+  to: attrition_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[48]/KPI-49.term
+- kind: metric-fact
+  from: KPI-50
+  to: FACT-34
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50.facts
+- kind: metric-dim
+  from: KPI-50
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50.dimensions
+- kind: metric-dim
+  from: KPI-50
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50.dimensions
+- kind: metric-dim
+  from: KPI-50
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50.dimensions
+- kind: metric-dim
+  from: KPI-50
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50.dimensions
+- kind: metric-dim
+  from: KPI-50
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50.dimensions
+- kind: metric-dim
+  from: KPI-50
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50.dimensions
+- kind: metric-dim
+  from: KPI-50
+  to: DIM-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50.dimensions
+- kind: metric-term
+  from: KPI-50
+  to: plan_target_value
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[49]/KPI-50.term
+- kind: metric-fact
+  from: KPI-51
+  to: FACT-34
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51.facts
+- kind: metric-dim
+  from: KPI-51
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51.dimensions
+- kind: metric-dim
+  from: KPI-51
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51.dimensions
+- kind: metric-dim
+  from: KPI-51
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51.dimensions
+- kind: metric-dim
+  from: KPI-51
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51.dimensions
+- kind: metric-dim
+  from: KPI-51
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51.dimensions
+- kind: metric-dim
+  from: KPI-51
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51.dimensions
+- kind: metric-dim
+  from: KPI-51
+  to: DIM-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51.dimensions
+- kind: metric-term
+  from: KPI-51
+  to: target_attainment_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[50]/KPI-51.term
+- kind: metric-fact
+  from: KPI-52
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[51]/KPI-52.facts
+- kind: metric-dim
+  from: KPI-52
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[51]/KPI-52.dimensions
+- kind: metric-dim
+  from: KPI-52
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[51]/KPI-52.dimensions
+- kind: metric-dim
+  from: KPI-52
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[51]/KPI-52.dimensions
+- kind: metric-dim
+  from: KPI-52
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[51]/KPI-52.dimensions
+- kind: metric-dim
+  from: KPI-52
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[51]/KPI-52.dimensions
+- kind: metric-dim
+  from: KPI-52
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[51]/KPI-52.dimensions
+- kind: metric-fact
+  from: KPI-53
+  to: FACT-14
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53.facts
+- kind: metric-fact
+  from: KPI-53
+  to: FACT-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53.facts
+- kind: metric-fact
+  from: KPI-53
+  to: FACT-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53.facts
+- kind: metric-fact
+  from: KPI-53
+  to: FACT-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53.facts
+- kind: metric-dim
+  from: KPI-53
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53.dimensions
+- kind: metric-dim
+  from: KPI-53
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53.dimensions
+- kind: metric-dim
+  from: KPI-53
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53.dimensions
+- kind: metric-dim
+  from: KPI-53
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53.dimensions
+- kind: metric-term
+  from: KPI-53
+  to: labor_cost_multiplier
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[52]/KPI-53.term
+- kind: metric-fact
+  from: KPI-54
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[53]/KPI-54.facts
+- kind: metric-dim
+  from: KPI-54
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[53]/KPI-54.dimensions
+- kind: metric-dim
+  from: KPI-54
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[53]/KPI-54.dimensions
+- kind: metric-dim
+  from: KPI-54
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[53]/KPI-54.dimensions
+- kind: metric-dim
+  from: KPI-54
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[53]/KPI-54.dimensions
+- kind: metric-dim
+  from: KPI-54
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[53]/KPI-54.dimensions
+- kind: metric-dim
+  from: KPI-54
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[53]/KPI-54.dimensions
+- kind: metric-fact
+  from: KPI-55
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[54]/KPI-55.facts
+- kind: metric-dim
+  from: KPI-55
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[54]/KPI-55.dimensions
+- kind: metric-dim
+  from: KPI-55
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[54]/KPI-55.dimensions
+- kind: metric-dim
+  from: KPI-55
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[54]/KPI-55.dimensions
+- kind: metric-dim
+  from: KPI-55
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[54]/KPI-55.dimensions
+- kind: metric-dim
+  from: KPI-55
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[54]/KPI-55.dimensions
+- kind: metric-dim
+  from: KPI-55
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[54]/KPI-55.dimensions
+- kind: metric-term
+  from: KPI-55
+  to: available_budget
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[54]/KPI-55.term
+- kind: metric-fact
+  from: KPI-56
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[55]/KPI-56.facts
+- kind: metric-dim
+  from: KPI-56
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[55]/KPI-56.dimensions
+- kind: metric-dim
+  from: KPI-56
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[55]/KPI-56.dimensions
+- kind: metric-dim
+  from: KPI-56
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[55]/KPI-56.dimensions
+- kind: metric-dim
+  from: KPI-56
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[55]/KPI-56.dimensions
+- kind: metric-dim
+  from: KPI-56
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[55]/KPI-56.dimensions
+- kind: metric-dim
+  from: KPI-56
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[55]/KPI-56.dimensions
+- kind: metric-term
+  from: KPI-56
+  to: budget_consumption_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[55]/KPI-56.term
+- kind: metric-term
+  from: KPI-58
+  to: kickoff_completion_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[57]/KPI-58.term
+- kind: metric-term
+  from: KPI-59
+  to: internal_review_coverage
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[58]/KPI-59.term
+- kind: metric-term
+  from: KPI-60
+  to: business_variance
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[59]/KPI-60.term
+- kind: metric-term
+  from: KPI-61
+  to: delivery_variance
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[60]/KPI-61.term
+- kind: metric-fact
+  from: KPI-62
+  to: FACT-26
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[61]/KPI-62.facts
+- kind: metric-dim
+  from: KPI-62
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[61]/KPI-62.dimensions
+- kind: metric-dim
+  from: KPI-62
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[61]/KPI-62.dimensions
+- kind: metric-dim
+  from: KPI-62
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[61]/KPI-62.dimensions
+- kind: metric-dim
+  from: KPI-62
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[61]/KPI-62.dimensions
+- kind: metric-dim
+  from: KPI-62
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[61]/KPI-62.dimensions
+- kind: metric-term
+  from: KPI-62
+  to: post_completion_service_hours
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[61]/KPI-62.term
+- kind: metric-term
+  from: KPI-63
+  to: quality_loss
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[62]/KPI-63.term
+- kind: metric-term
+  from: KPI-64
+  to: rework_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[63]/KPI-64.term
+- kind: metric-term
+  from: KPI-65
+  to: defect_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[64]/KPI-65.term
+- kind: metric-fact
+  from: KPI-66
+  to: FACT-26
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[65]/KPI-66.facts
+- kind: metric-dim
+  from: KPI-66
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[65]/KPI-66.dimensions
+- kind: metric-dim
+  from: KPI-66
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[65]/KPI-66.dimensions
+- kind: metric-dim
+  from: KPI-66
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[65]/KPI-66.dimensions
+- kind: metric-dim
+  from: KPI-66
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[65]/KPI-66.dimensions
+- kind: metric-dim
+  from: KPI-66
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[65]/KPI-66.dimensions
+- kind: metric-term
+  from: KPI-66
+  to: rework_hours
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[65]/KPI-66.term
+- kind: metric-fact
+  from: KPI-67
+  to: FACT-26
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[66]/KPI-67.facts
+- kind: metric-fact
+  from: KPI-67
+  to: FACT-33
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[66]/KPI-67.facts
+- kind: metric-dim
+  from: KPI-67
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[66]/KPI-67.dimensions
+- kind: metric-dim
+  from: KPI-67
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[66]/KPI-67.dimensions
+- kind: metric-dim
+  from: KPI-67
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[66]/KPI-67.dimensions
+- kind: metric-dim
+  from: KPI-67
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[66]/KPI-67.dimensions
+- kind: metric-term
+  from: KPI-67
+  to: capacity_realization
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[66]/KPI-67.term
+- kind: metric-fact
+  from: KPI-68
+  to: FACT-26
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[67]/KPI-68.facts
+- kind: metric-fact
+  from: KPI-68
+  to: FACT-33
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[67]/KPI-68.facts
+- kind: metric-dim
+  from: KPI-68
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[67]/KPI-68.dimensions
+- kind: metric-dim
+  from: KPI-68
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[67]/KPI-68.dimensions
+- kind: metric-dim
+  from: KPI-68
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[67]/KPI-68.dimensions
+- kind: metric-dim
+  from: KPI-68
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[67]/KPI-68.dimensions
+- kind: metric-term
+  from: KPI-68
+  to: idle_capacity
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[67]/KPI-68.term
+- kind: metric-fact
+  from: KPI-69
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[68]/KPI-69.facts
+- kind: metric-dim
+  from: KPI-69
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[68]/KPI-69.dimensions
+- kind: metric-dim
+  from: KPI-69
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[68]/KPI-69.dimensions
+- kind: metric-dim
+  from: KPI-69
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[68]/KPI-69.dimensions
+- kind: metric-dim
+  from: KPI-69
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[68]/KPI-69.dimensions
+- kind: metric-dim
+  from: KPI-69
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[68]/KPI-69.dimensions
+- kind: metric-dim
+  from: KPI-69
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[68]/KPI-69.dimensions
+- kind: metric-term
+  from: KPI-69
+  to: cost_budget
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[68]/KPI-69.term
+- kind: metric-fact
+  from: KPI-70
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[69]/KPI-70.facts
+- kind: metric-dim
+  from: KPI-70
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[69]/KPI-70.dimensions
+- kind: metric-dim
+  from: KPI-70
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[69]/KPI-70.dimensions
+- kind: metric-dim
+  from: KPI-70
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[69]/KPI-70.dimensions
+- kind: metric-dim
+  from: KPI-70
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[69]/KPI-70.dimensions
+- kind: metric-dim
+  from: KPI-70
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[69]/KPI-70.dimensions
+- kind: metric-dim
+  from: KPI-70
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[69]/KPI-70.dimensions
+- kind: metric-term
+  from: KPI-70
+  to: cost_budget_variance
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[69]/KPI-70.term
+- kind: metric-term
+  from: KPI-71
+  to: measure_of_progress
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[70]/KPI-71.term
+- kind: metric-fact
+  from: KPI-72
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[71]/KPI-72.facts
+- kind: metric-dim
+  from: KPI-72
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[71]/KPI-72.dimensions
+- kind: metric-dim
+  from: KPI-72
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[71]/KPI-72.dimensions
+- kind: metric-dim
+  from: KPI-72
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[71]/KPI-72.dimensions
+- kind: metric-dim
+  from: KPI-72
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[71]/KPI-72.dimensions
+- kind: metric-dim
+  from: KPI-72
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[71]/KPI-72.dimensions
+- kind: metric-dim
+  from: KPI-72
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[71]/KPI-72.dimensions
+- kind: metric-term
+  from: KPI-72
+  to: uncontracted_wip
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[71]/KPI-72.term
+- kind: metric-fact
+  from: KPI-73
+  to: FACT-29
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[72]/KPI-73.facts
+- kind: metric-dim
+  from: KPI-73
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[72]/KPI-73.dimensions
+- kind: metric-dim
+  from: KPI-73
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[72]/KPI-73.dimensions
+- kind: metric-dim
+  from: KPI-73
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[72]/KPI-73.dimensions
+- kind: metric-dim
+  from: KPI-73
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[72]/KPI-73.dimensions
+- kind: metric-dim
+  from: KPI-73
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[72]/KPI-73.dimensions
+- kind: metric-dim
+  from: KPI-73
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[72]/KPI-73.dimensions
+- kind: metric-term
+  from: KPI-73
+  to: aging
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[72]/KPI-73.term
+- kind: metric-term
+  from: KPI-74
+  to: bad_debt_risk
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[73]/KPI-74.term
+- kind: metric-term
+  from: KPI-75
+  to: impairment_risk
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[74]/KPI-75.term
+- kind: metric-fact
+  from: KPI-76
+  to: FACT-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76.facts
+- kind: metric-fact
+  from: KPI-76
+  to: FACT-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76.facts
+- kind: metric-dim
+  from: KPI-76
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76.dimensions
+- kind: metric-dim
+  from: KPI-76
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76.dimensions
+- kind: metric-dim
+  from: KPI-76
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76.dimensions
+- kind: metric-dim
+  from: KPI-76
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76.dimensions
+- kind: metric-dim
+  from: KPI-76
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76.dimensions
+- kind: metric-dim
+  from: KPI-76
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76.dimensions
+- kind: metric-term
+  from: KPI-76
+  to: cash_conversion
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[75]/KPI-76.term
+- kind: metric-fact
+  from: KPI-77
+  to: FACT-26
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[76]/KPI-77.facts
+- kind: metric-dim
+  from: KPI-77
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[76]/KPI-77.dimensions
+- kind: metric-dim
+  from: KPI-77
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[76]/KPI-77.dimensions
+- kind: metric-dim
+  from: KPI-77
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[76]/KPI-77.dimensions
+- kind: metric-dim
+  from: KPI-77
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[76]/KPI-77.dimensions
+- kind: metric-dim
+  from: KPI-77
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[76]/KPI-77.dimensions
+- kind: metric-term
+  from: KPI-77
+  to: time_capture_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[76]/KPI-77.term
+- kind: metric-term
+  from: KPI-78
+  to: statutory_cost
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[77]/KPI-78.term
+- kind: metric-term
+  from: KPI-79
+  to: intercompany_balance
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[78]/KPI-79.term
+- kind: metric-term
+  from: KPI-80
+  to: costs_to_obtain_contract
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[79]/KPI-80.term
+- kind: metric-term
+  from: KPI-81
+  to: estimate_to_complete
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[80]/KPI-81.term
+- kind: metric-term
+  from: KPI-82
+  to: estimate_at_completion
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[81]/KPI-82.term
+- kind: metric-term
+  from: KPI-83
+  to: planned_value
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[82]/KPI-83.term
+- kind: metric-term
+  from: KPI-84
+  to: earned_value
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[83]/KPI-84.term
+- kind: metric-fact
+  from: KPI-85
+  to: FACT-27
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.facts
+- kind: metric-dim
+  from: KPI-85
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.dimensions
+- kind: metric-dim
+  from: KPI-85
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.dimensions
+- kind: metric-dim
+  from: KPI-85
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.dimensions
+- kind: metric-dim
+  from: KPI-85
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.dimensions
+- kind: metric-dim
+  from: KPI-85
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.dimensions
+- kind: metric-dim
+  from: KPI-85
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.dimensions
+- kind: metric-dim
+  from: KPI-85
+  to: DIM-09
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.dimensions
+- kind: metric-dim
+  from: KPI-85
+  to: DIM-10
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.dimensions
+- kind: metric-term
+  from: KPI-85
+  to: actual_cost
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[84]/KPI-85.term
+- kind: metric-term
+  from: KPI-86
+  to: cost_performance_index
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[85]/KPI-86.term
+- kind: metric-term
+  from: KPI-87
+  to: schedule_performance_index
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[86]/KPI-87.term
+- kind: metric-term
+  from: KPI-88
+  to: schedule_variance
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[87]/KPI-88.term
+- kind: metric-term
+  from: KPI-89
+  to: earned_value_cost_variance
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[88]/KPI-89.term
+- kind: metric-term
+  from: KPI-90
+  to: reversible_balance
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[89]/KPI-90.term
+- kind: metric-term
+  from: KPI-91
+  to: job_failure
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[90]/KPI-91.term
+- kind: metric-fact
+  from: KPI-92
+  to: FACT-18
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.facts
+- kind: metric-dim
+  from: KPI-92
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.dimensions
+- kind: metric-dim
+  from: KPI-92
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.dimensions
+- kind: metric-dim
+  from: KPI-92
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.dimensions
+- kind: metric-dim
+  from: KPI-92
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.dimensions
+- kind: metric-dim
+  from: KPI-92
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.dimensions
+- kind: metric-dim
+  from: KPI-92
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.dimensions
+- kind: metric-dim
+  from: KPI-92
+  to: DIM-09
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.dimensions
+- kind: metric-dim
+  from: KPI-92
+  to: DIM-10
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.dimensions
+- kind: metric-term
+  from: KPI-92
+  to: pass_through_cost
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[91]/KPI-92.term
+- kind: metric-fact
+  from: KPI-93
+  to: FACT-34
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93.facts
+- kind: metric-dim
+  from: KPI-93
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93.dimensions
+- kind: metric-dim
+  from: KPI-93
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93.dimensions
+- kind: metric-dim
+  from: KPI-93
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93.dimensions
+- kind: metric-dim
+  from: KPI-93
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93.dimensions
+- kind: metric-dim
+  from: KPI-93
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93.dimensions
+- kind: metric-dim
+  from: KPI-93
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93.dimensions
+- kind: metric-dim
+  from: KPI-93
+  to: DIM-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93.dimensions
+- kind: metric-term
+  from: KPI-93
+  to: target_variance
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[92]/KPI-93.term
+- kind: metric-fact
+  from: KPI-94
+  to: FACT-32
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.facts
+- kind: metric-dim
+  from: KPI-94
+  to: DIM-01
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.dimensions
+- kind: metric-dim
+  from: KPI-94
+  to: DIM-02
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.dimensions
+- kind: metric-dim
+  from: KPI-94
+  to: DIM-03
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.dimensions
+- kind: metric-dim
+  from: KPI-94
+  to: DIM-04
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.dimensions
+- kind: metric-dim
+  from: KPI-94
+  to: DIM-05
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.dimensions
+- kind: metric-dim
+  from: KPI-94
+  to: DIM-06
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.dimensions
+- kind: metric-dim
+  from: KPI-94
+  to: DIM-07
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.dimensions
+- kind: metric-dim
+  from: KPI-94
+  to: DIM-08
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.dimensions
+- kind: metric-term
+  from: KPI-94
+  to: net_new_contract_value
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.term
