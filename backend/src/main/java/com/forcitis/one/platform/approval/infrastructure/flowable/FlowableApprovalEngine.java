@@ -32,7 +32,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import org.flowable.bpmn.model.BpmnModel;
-import org.flowable.bpmn.model.ExtensionElement;
 import org.flowable.bpmn.model.UserTask;
 import org.flowable.common.engine.api.FlowableException;
 import org.flowable.common.engine.api.FlowableOptimisticLockingException;
@@ -124,11 +123,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
         if (definition == null) {
             throw new IllegalStateException("No deployed process definition " + processKey.key());
         }
-        List<ExtensionElement> declared = repository.getBpmnModel(definition.getId()).getMainProcess().getExtensionElements().get("documentType");
-        if (declared == null || declared.size() != 1 || declared.getFirst().getAttributeValue(null, "code") == null) {
-            throw new IllegalStateException("The process " + processKey.key() + " must declare exactly one forcitis:documentType code=\"…\" in its extensionElements");
-        }
-        return new DocumentTypeCode(declared.getFirst().getAttributeValue(null, "code"));
+        return ProcessDocumentType.read(processKey, repository.getBpmnModel(definition.getId()).getMainProcess());
     }
 
     @Override
