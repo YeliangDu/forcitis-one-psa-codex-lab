@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Fail when a pull request changes the signature snapshot of the organization interfaces the platform layer uses without saying the platform owner was told
 (ADR-0066 section "需同步修改的守护规则" item 4; backend/architecture/platform-org-interfaces.signatures.txt).
-The pull request body must contain the words 已通知平台 owner. Runs for pull requests only; the body comes from the PR_BODY environment variable.
+The pull request body must contain 已通知平台 owner：<会话或人，日期>.
+A merge-train pull request (scripts/queue/merge_train.py) is not checked: each member already passed this check in its own pull request. Runs for pull requests only; the body comes from the PR_BODY environment variable.
 Usage: org_interface_notice.py <base-ref>  (reads GITHUB_EVENT_NAME, PR_BODY)  |  org_interface_notice.py --self-test"""
 import os
 import re
@@ -10,7 +11,8 @@ import sys
 from ci_git import CiError, comparison_point, commit_of, git, toplevel
 
 SNAPSHOT = "backend/architecture/platform-org-interfaces.signatures.txt"
-NOTICE = re.compile(r"已通知平台\s*owner", re.IGNORECASE)
+NOTICE = re.compile(r"已通知平台\s*owner[:：]\s*\S", re.IGNORECASE)
+TRAIN_MEMBER = re.compile(r"^Train-Member: #\d+ [0-9a-f]{7,40}$", re.MULTILINE)
 
 
 def snapshot_changed(base, root):
@@ -21,14 +23,36 @@ def snapshot_changed(base, root):
 def check(base, body, root):
     if not snapshot_changed(base, root):
         return []
-    if NOTICE.search(body or ""):
+    if NOTICE.search(body or "") or TRAIN_MEMBER.search(body or ""):
         return []
-    return [f"{SNAPSHOT} changed: the pull request body must say 已通知平台 owner (the platform owner was told of the change to the organization interfaces)"]
+    return [f"{SNAPSHOT} changed: the pull request body must say 已通知平台 owner：<who, date> (the platform owner was told of the change to the organization interfaces)"]
 
 
 def self_test():
-    assert NOTICE.search("已通知平台 owner（one-architecture，10-22）") and NOTICE.search("已通知平台owner")
-    assert not NOTICE.search("已通知 owner") and not NOTICE.search("")
+    assert NOTICE.search("已通知平台 owner：one-architecture，10-22") and NOTICE.search("已通知平台owner: 张三")
+    assert not NOTICE.search("已通知 owner") and not NOTICE.search("") and not NOTICE.search("已通知平台 owner")
+    assert TRAIN_MEMBER.search("Train of reviewed pull requests\n\nTrain-Member: #604 446fcdd2f230\n")
+    import tempfile
+    from ci_git import run
+    with tempfile.TemporaryDirectory() as root:
+        def g(*a):
+            r = run(*a, cwd=root)
+            assert r.returncode == 0, r.stderr
+        g("init", "-q", "-b", "main")
+        g("config", "user.email", "t@t")
+        g("config", "user.name", "t")
+        os.makedirs(os.path.join(root, "backend/architecture"))
+        snap = os.path.join(root, SNAPSHOT)
+        open(snap, "w").write("a\n")
+        g("add", "-A")
+        g("commit", "-q", "-m", "base")
+        g("switch", "-q", "-c", "work")
+        assert check("main", "", root) == []
+        open(snap, "w").write("b\n")
+        g("commit", "-q", "-am", "change")
+        assert len(check("main", "", root)) == 1 and len(check("main", "已通知平台 owner", root)) == 1
+        assert check("main", "已通知平台 owner：one-x，10-22", root) == []
+        assert check("main", "Train-Member: #1 abcdef1", root) == []
     print("org_interface_notice self-test: ok")
     return 0
 

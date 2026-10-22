@@ -21,6 +21,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.modulith.NamedInterface;
 
 class PlatformOrgInterfacesTest {
@@ -92,7 +93,7 @@ class PlatformOrgInterfacesTest {
                 continue;
             }
             String[] sides = line.split("->", -1);
-            String[] target = sides[1].trim().split("::", -1);
+            String[] target = sides.length == 2 ? sides[1].trim().split("::", -1) : new String[0];
             if (sides.length != 2 || target.length != 2) {
                 throw new AssertionError("platform-org-interfaces.txt line not of the form <platform module> -> <organization module>::<interface>: " + raw);
             }
@@ -178,9 +179,15 @@ class PlatformOrgInterfacesTest {
 
     static String interfaceNameOf(JavaClass target) {
         try {
-            Package pkg = Class.forName(target.getName()).getPackage();
-            NamedInterface annotation = pkg == null ? null : pkg.getAnnotation(NamedInterface.class);
-            return annotation == null ? null : annotation.value()[0];
+            Package pkg = Class.forName(target.getName(), false, PlatformOrgInterfacesTest.class.getClassLoader()).getPackage();
+            NamedInterface annotation = pkg == null ? null : AnnotatedElementUtils.findMergedAnnotation(pkg, NamedInterface.class);
+            if (annotation == null) {
+                return null;
+            }
+            if (annotation.value().length != 1) {
+                throw new AssertionError(pkg.getName() + ": @NamedInterface must carry exactly one name, found " + Arrays.toString(annotation.value()));
+            }
+            return annotation.value()[0];
         } catch (ClassNotFoundException e) {
             throw new AssertionError(e);
         }
@@ -194,17 +201,35 @@ class PlatformOrgInterfacesTest {
             }
             for (JavaClass c : ArchitectureRulesTest.CLASSES) {
                 if (ModuleDependencyTest.moduleOf(c).equals(Optional.of(e.organizationModule())) && interfaceNameOf(c) != null
-                        && interfaceNameOf(c).equals(e.interfaceName()) && !c.getSimpleName().equals("package-info") && c.getEnclosingClass().isEmpty()) {
-                    describe(Class.forName(c.getName()), e.organizationModule() + "::" + e.interfaceName(), lines);
+                        && interfaceNameOf(c).equals(e.interfaceName()) && !c.getSimpleName().equals("package-info") && c.getEnclosingClass().isEmpty() && c.getModifiers().contains(com.tngtech.archunit.core.domain.JavaModifier.PUBLIC)) {
+                    describe(Class.forName(c.getName(), false, PlatformOrgInterfacesTest.class.getClassLoader()), e.organizationModule() + "::" + e.interfaceName(), lines);
                 }
             }
         }
         return lines.stream().distinct().sorted().toList();
     }
 
+    private static String nullability(java.lang.annotation.Annotation[] annotations) {
+        return Arrays.stream(annotations).map(a -> a.annotationType().getSimpleName()).filter(n -> n.equals("Nullable") || n.equals("NonNull")).map(n -> "@" + n + " ").collect(Collectors.joining());
+    }
+
     private static void describe(Class<?> type, String scope, List<String> lines) {
         String name = type.getName().replace(ROOT, "");
         lines.add(scope + " " + name + " " + type.toGenericString().replace(ROOT, ""));
+        if (type.getGenericSuperclass() != null) {
+            lines.add(scope + " " + name + " extends " + type.getGenericSuperclass().getTypeName().replace(ROOT, ""));
+        }
+        for (java.lang.reflect.Type parent : type.getGenericInterfaces()) {
+            lines.add(scope + " " + name + " implements " + parent.getTypeName().replace(ROOT, ""));
+        }
+        if (type.isSealed()) {
+            for (Class<?> permitted : type.getPermittedSubclasses()) {
+                lines.add(scope + " " + name + " permits " + permitted.getName().replace(ROOT, ""));
+            }
+        }
+        for (java.lang.reflect.RecordComponent component : type.isRecord() ? type.getRecordComponents() : new java.lang.reflect.RecordComponent[0]) {
+            lines.add(scope + " " + name + " component " + nullability(component.getAnnotations()) + component.getName() + ": " + component.getGenericType().getTypeName().replace(ROOT, ""));
+        }
         for (Constructor<?> k : type.getDeclaredConstructors()) {
             if (java.lang.reflect.Modifier.isPublic(k.getModifiers())) {
                 lines.add(scope + " " + name + " " + k.toGenericString().replace(ROOT, ""));
