@@ -18,17 +18,24 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
-/** ADR-0069 decision 14: the seeded audit subject kinds are the code constants (which only refer to them) and are owned by real bcs. */
+/** ADR-0069 decision 14: the registered audit subject kinds (every audit migration, any status) are the code constants (which only refer to them) and are owned by real bcs. */
 class AuditSubjectKindGuardTest {
 
+    static final Path MIGRATIONS = Path.of("src/main/resources/db/migration/platform_audit");
     static final Path MIGRATION = Path.of("src/main/resources/db/migration/platform_audit/V20261014134000__platform_audit_baseline.sql");
-    static final Pattern SEED = Pattern.compile("\\('[0-9a-f-]{36}', '([A-Z][A-Z0-9_]+)', '([a-z.]+)', (true|false), 'ACTIVE', DATE '[0-9-]+'\\)");
+    static final Pattern SEED = Pattern.compile("\\('[0-9a-f-]{36}', '([A-Z][A-Z0-9_]+)', '([a-z.]+)', (true|false), '(?:ACTIVE|RETIRED)', DATE '[0-9-]+'\\)");
 
     record Seed(String owner, boolean hasObject) {
     }
 
     private static Map<String, Seed> seeds() throws IOException {
-        Matcher m = SEED.matcher(Files.readString(MIGRATION));
+        StringBuilder all = new StringBuilder();
+        try (java.util.stream.Stream<Path> files = Files.list(MIGRATIONS)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".sql")).sorted().toList()) {
+                all.append(Files.readString(file)).append('\n');
+            }
+        }
+        Matcher m = SEED.matcher(all);
         Map<String, Seed> seeds = new LinkedHashMap<>();
         while (m.find()) {
             seeds.put(m.group(1), new Seed(m.group(2), Boolean.parseBoolean(m.group(3))));

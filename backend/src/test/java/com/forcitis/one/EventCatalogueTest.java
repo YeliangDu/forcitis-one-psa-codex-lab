@@ -180,6 +180,16 @@ class EventCatalogueTest {
     }
 
     /** Every aggregate the catalogue names has an audit subject kind, and the kinds of the database CHECK are the enum's. */
+    static String allAuditMigrations() throws IOException {
+        StringBuilder all = new StringBuilder();
+        try (java.util.stream.Stream<Path> files = Files.list(Path.of("src/main/resources/db/migration/platform_audit"))) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".sql")).sorted().toList()) {
+                all.append(Files.readString(file)).append('\n');
+            }
+        }
+        return all.toString();
+    }
+
     static List<String> auditKindProblems(Set<String> aggregates, String checkSql) {
         List<String> problems = new ArrayList<>();
         for (String aggregate : aggregates) {
@@ -189,7 +199,7 @@ class EventCatalogueTest {
                 problems.add("aggregate " + aggregate + " has no AuditSubjectKind: add the kind (enum and registry seed) before the aggregate");
             }
         }
-        Matcher seeds = Pattern.compile("'([A-Z][A-Z0-9_]+)', '[a-z.]+', (?:true|false), 'ACTIVE'").matcher(checkSql);
+        Matcher seeds = Pattern.compile("'([A-Z][A-Z0-9_]+)', '[a-z.]+', (?:true|false), '(?:ACTIVE|RETIRED)'").matcher(checkSql);
         Set<String> inSql = new TreeSet<>();
         while (seeds.find()) {
             inSql.add(seeds.group(1));
@@ -236,7 +246,7 @@ class EventCatalogueTest {
             gatherAggregates(message.getValue(), aggregates);
         }
         assertThat(aggregates).as("aggregates named by the fragments").isNotEmpty();
-        problems.addAll(auditKindProblems(aggregates, Files.readString(Path.of("src/main/resources/db/migration/platform_audit/V20261014134000__platform_audit_baseline.sql"))));
+        problems.addAll(auditKindProblems(aggregates, allAuditMigrations()));
         none("catalogue ids and audit kinds", problems);
     }
 

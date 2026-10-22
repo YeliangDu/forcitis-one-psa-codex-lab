@@ -2,7 +2,7 @@ CREATE SCHEMA IF NOT EXISTS platform_audit;
 COMMENT ON SCHEMA platform_audit IS '审计日志（权限流程与集成平台 BC）';
 
 -- ADR-0069 第 14 条：审计对象类别登记在这里，不再是 CHECK 里的常量串；新增或退休一个类别是一行迁移，不动 DDL 形状。
--- 外键不检查状态，「退休后不再写入」由应用启动校验（AuditSubjectKinds）与行为守护承担。业务单据以类型码记录，审计只校格式。
+-- 外键不检查状态，「退休后不再写入」由应用启动校验（AuditSubjectKindCheck）与行为守护承担。业务单据以类型码记录，审计只校格式。
 CREATE TABLE platform_audit.audit_subject_kinds (
     audit_subject_kind_id uuid        NOT NULL,
     code                  text        NOT NULL,
