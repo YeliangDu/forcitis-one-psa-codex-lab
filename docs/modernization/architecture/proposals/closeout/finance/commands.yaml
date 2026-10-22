@@ -1425,6 +1425,21 @@ commands:
   idempotency_key:
   - 占用方引用
   emits: []
+- name: 登记进项发票入账
+  aggregate: AGG-89
+  params:
+  - 发票引用
+  - 占用方引用
+  - 入账日期
+  preconditions:
+  - 占用方已过账
+  authority:
+    A: 财务负责人
+  idempotency_key:
+  - 发票引用
+  emits: []
+  proposed: true
+  proposed_reason: transition-review CF-032：已占用（防重复报销）与已入账（税务平台入账状态）分开；骨架 PRC-74 步 2、PRC-87 步 7 inner；报送方待定 U-55
 - name: 生成申报
   aggregate: AGG-90
   params:
@@ -1714,7 +1729,7 @@ commands:
   - 口径版本引用
   emits:
   - 口径版本已生效
-- name: 登记合同已签回
+- name: 登记协议已生效
   aggregate: AGG-122
   params:
   - 商机引用
