@@ -66,3 +66,5 @@
 **待办（我自己的）**：①W2 员工版本表 DDL 草案的 `employment_start_date` 一列与索引在签 W2 PR-B 时一起看；②DATA_SCORECARD 的 role_versions/account_role_grants 两行；③errors-bank DATA-001…007、011–013、018 仍待落实；④开放项：MIGRATION 行的迁入专用角色写入通道（编号版本表与日历版本表的 owner 检查）、`org_units` 根表收窄设计（A4 答复后 30 天内）；⑤ADR-0058 补写、ADR-0075 对 `ConfigSetVersion` 登记为历史主体随首个使用方。
 
 **规矩提醒**：合 main 用普通 `git merge`（不被拦）；提交与推送分两次调用；外发被限流写 outbox；取证只走 one-ops，明细与个人信息不进会话；一个后台任务；precheck 只在推送前一次；本地只跑受影响模块测试。
+
+**2026-10-22 下午进展（按 one-coordinator 次序）**：①W2 PR-B 无草案可签（已告知调度，草案到再看 `employment_start_date`）；②DATA_SCORECARD 已补第 35、36 行；③错题本 DATA-001…013、018 已落到可定位处（门禁 §7a、`evidence/name_pattern_scan.py`）；④迁入写入通道设计 `MIGRATION_WRITER_ROLE_DESIGN.md` 已出，opus 首轮复审中（DAT-1022-DAT-01），改后交 one-1a-next-5 / one-1a-par；⑤ADR-0058 补写的数据侧输入 `ADR0058_AMENDMENT_INPUT.md` 已出，交 one-architecture 起草。仍开放：`org_units` 根表收窄设计（A4 答复后 30 天内）、ADR-0075 对 `ConfigSetVersion` 登记。
