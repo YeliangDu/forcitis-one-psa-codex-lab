@@ -441,6 +441,7 @@
 | 计算月度薪酬 | calculate_monthly_payroll（建议，待 one-glossary） | 领域 | organization.payroll | AGG-73 命令；中文名按 N7 定稿（NM6-08#2），原名「计算」 |
 | 登记代发结果 | record_payroll_disbursement_result（建议） | 领域 | organization.payroll | AGG-73 命令，薪酬行 待支付 → 已实付 / 支付失败（ARC-1022-COO-06，PAYROLL_LINE_PAYMENT.md） |
 | 发起薪酬补发 | initiate_payroll_redisbursement（建议） | 领域 | organization.payroll | AGG-73 命令，薪酬行 支付失败 → 待支付；发「薪酬补发已发起」 |
+| 登记薪酬补发明细 | （finance 组提议，AGG-52） | 领域 | payables.payment | B-10 命令，本组 PRC-126 第 2 步调用；名称以 finance 组登记为准（@1565ca88） |
 | 通知支付失败员工更正工资卡 | （平台通知任务，不是聚合命令） | 领域 | organization.payroll | PRC-201 第 2 步，经 platform.notification |
 | 待支付、已实付、支付失败 | （状态，建议 pending_payment / paid / payment_failed） | 领域 | organization.payroll | 薪酬行支付状态，OBJ-73 key_states 原文 |
 | 薪酬代发结果已登记、薪酬补发已发起 | PayrollDisbursementResultRecorded、PayrollRedisbursementInitiated（建议） | 领域 | organization.payroll | AGG-73 事件；后者 B-10 订阅 |

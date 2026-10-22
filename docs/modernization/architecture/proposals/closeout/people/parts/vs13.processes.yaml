@@ -936,7 +936,7 @@ processes:
         command: 发起薪酬补发
         aggregate: AGG-73
         emits: [薪酬补发已发起]
-        desc: 员工工资卡已更正后发起补发，补发金额等于原实发，不重算；薪酬行 支付失败 → 待支付；PRC-126 据此在原应付薪酬上挂补发明细（不新建应付），由 PRC-75 付清
+        desc: 员工工资卡已更正后发起补发，补发金额等于原实发，不重算；薪酬行 支付失败 → 待支付；PRC-126 第 2 步据此调 B-10「登记薪酬补发明细」，在原应付上挂补发明细（不新建应付），由 PRC-75 付清
         permission: 薪酬补发.发起
         page: 薪酬代发结果登记页
         audit: true
@@ -1002,33 +1002,45 @@ event_policies:
         - {event: 付款已部分退回, aggregate: AGG-53}
     triggers:
       - {type: event, name: "薪酬已批准（同 BC）"}
-      - {type: event, name: "薪酬补发已发起（同 BC，PRC-201 第 3 步；补发挂原应付，J-3 更正）"}
-      - {type: event, name: "付款已部分退回（B-10 发布；重发此前因退回款未到账被拒的补发）"}
+      - {type: event, name: "薪酬补发已发起（同 BC，PRC-201 第 3 步）", entry: 2}
+      - {type: event, name: "付款已部分退回（B-10 发布；重发此前因退回款未登记被拒的补发明细）", entry: 2}
     stages: [VS-13.5]
     stages_note: "VS-13.5：触发状态「已批准」（OBJ-73）是 VS-13.5 的进入条件，本策略提交应付薪酬正是 VS-13.5「提交应付薪酬、代发付款」的第一步，结局应付已确认导向 VS-13.5 退出「已结清」；不归 VS-13.4——VS-13.4 申报缴纳与应付无关，同为「已批准」进入只是字面重合；原挂 VS-13.3（触发状态所在段的退出）按 #421 第 6a 项改（2026-10-16）"
     primary_object: OBJ-85
     owner_bc: B-15
     migration: "历史薪酬的应付（老系统付款申请单-人事约 1.5 千行）作为已结清应付迁入，只迁结果与证据；迁入不触发（ADR-0036 M7）"
-    outcomes: [应付已提交, 待退回到账]
-    scenarios: [PRC-126-S01, PRC-126-S02, PRC-126-S03]   # S01 薪酬批准后提交法人 × 月一笔实发合计；S02 重复触发幂等不重复提交
+    outcomes: [应付已提交, 补发明细已登记, 待退回到账]
+    scenarios: [PRC-126-S01, PRC-126-S02, PRC-126-S03, PRC-126-S04]   # S01 批准后提交合计；S02 重复触发幂等；S03 退回款未登记被拒后重发
     roles:
-      - {id: SH-E6, as: informed, org_needs: {responsibility: "财务知悉待付清单出现应付薪酬，按付款流程办理", approval_right: "无", department_hint: "财务部", position_hint: "出纳、应付会计"}}       # 财务：待付清单出现应付薪酬
-    step:
-      actor: system
-      where: automatic
-      command: 提交应付薪酬
-      aggregate: AGG-52
-      emits: [应付已确认]
-      desc: 薪酬已批准时提交法人 × 月一笔实发合计（类型 正常，新建应付）；薪酬补发已发起时仍调提交应付薪酬（类型 补发），B-10 不新建应付，只在原应付薪酬上挂补发明细，由 PRC-75 付清代发退回后恢复的未结余额（one-arch-finance PAYROLL_REISSUE_SEAM.md @363e1b5f，one-architecture 2026-10-22 更正 J-3）；幂等键：正常为薪酬结算 ID，补发为薪酬结算 ID + 类型 + 薪酬行 ID + 补发轮次；之后走 PRC-75“发起、审批并执行付款”（B-10）；P-40 每月至少一次支付工资（工资支付暂行规定第七条）；代发明细（员工 × 账户 × 金额）如何随付款交给银行见 notes 接缝问题 3
-      audit: true
-      legal_entity: 薪酬法人（发薪法人）
-      decision:
-        - {when: 该薪酬结算已提交过应付, goto: end, outcome: 应付已提交}
-        - {when: 补发因退回款未到账被拒, goto: end, outcome: 待退回到账}
-        - {when: otherwise, goto: end, outcome: 应付已提交}
-      cross_bc:
-        - {mode: api, direction: out, bc: B-10, name: 提交应付薪酬}
-    notes: 应付薪酬类型由 B-10 的 AGG-52 承载；付款、核销见 PRC-75、PRC-131、PRC-132（B-10，财务组），本组只写接缝。
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "财务知悉待付清单出现应付薪酬或补发明细，按付款流程办理", approval_right: "无", department_hint: "财务部", position_hint: "出纳、应付会计"}}       # 财务：待付清单出现应付薪酬
+    steps:
+      - actor: system
+        where: automatic
+        command: 提交应付薪酬
+        aggregate: AGG-52
+        emits: [应付已确认]
+        desc: 薪酬已批准时提交法人 × 月一笔实发合计（新建应付），按薪酬结算 ID 幂等；之后走 PRC-75“发起、审批并执行付款”（B-10）；P-40 每月至少一次支付工资（工资支付暂行规定第七条）；代发明细（员工 × 账户 × 金额）如何随付款交给银行见 notes 接缝问题 3
+        audit: true
+        legal_entity: 薪酬法人（发薪法人）
+        decision:
+          - {when: 该薪酬结算已提交过应付, goto: end, outcome: 应付已提交}
+          - {when: otherwise, goto: end, outcome: 应付已提交}
+        cross_bc:
+          - {mode: api, direction: out, bc: B-10, name: 提交应付薪酬}
+      - actor: system
+        where: automatic
+        command: 登记薪酬补发明细
+        aggregate: AGG-52
+        desc: 薪酬补发已发起时，在原应付薪酬上登记补发明细（已部分结清 → 已部分结清，不新建应付；补发金额等于原实发），由 PRC-75 付清代发退回后恢复的未结余额；守卫：累计补发额不超过累计冲回额，退回款（AGG-53 登记代发退回）未登记的拒收并告警；收到付款已部分退回后重发此前被拒的补发明细；幂等键：薪酬行 ID + 补发轮次（one-arch-finance @1565ca88，one-architecture 2026-10-22 定稿 J-1、J-3）
+        audit: true
+        legal_entity: 薪酬法人（发薪法人）
+        notify: [{to: SH-E6, how: 企业微信待办}]      # 被拒时提醒薪酬岗与出纳
+        decision:
+          - {when: 补发因退回款未登记被拒, goto: end, outcome: 待退回到账}
+          - {when: otherwise, goto: end, outcome: 补发明细已登记}
+        cross_bc:
+          - {mode: api, direction: out, bc: B-10, name: 登记薪酬补发明细}
+    notes: 应付薪酬由 B-10 的 AGG-52 承载；补发不新建应付，挂原应付补发明细；付款、核销、代发退回见 PRC-75、PRC-131、PRC-132（B-10，财务组），本组只写接缝。
 
   - id: PRC-127
     name: 标记薪酬已发放

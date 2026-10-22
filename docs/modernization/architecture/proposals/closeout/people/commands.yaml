@@ -2699,7 +2699,7 @@ commands:
   state_change: 薪酬行 支付失败 → 待支付
   emits: 薪酬补发已发起
   cross_bc_out:
-  - PRC-126 提交应付薪酬（类型 补发：B-10 在原应付上挂补发明细、不新建应付，one-arch-finance PAYROLL_REISSUE_SEAM.md @363e1b5f，one-architecture 2026-10-22 更正 J-3）
+  - PRC-126 第 2 步调 B-10 AGG-52「登记薪酬补发明细」（不新建应付，one-arch-finance @1565ca88，one-architecture 2026-10-22 定稿 J-1、J-3）
   used_by:
   - PRC-201 第 3 步
   orphan: false
