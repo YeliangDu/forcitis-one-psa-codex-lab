@@ -52,7 +52,7 @@
 ## 权限边界
 
 - 用户待定事项先交 one-architecture 合成确认页，不自行出页
-- 子代理显式指定模型：opus 只用于首轮评审，取数用 haiku；执行类先交 Codex（gpt-6.1-sol xhigh，run_in_background，关闭标准输入）
+- 子代理显式指定模型：opus 只用于首轮评审，取数用 haiku；执行类先交 Codex（gpt-6.1-sol，推理强度按卡定（low/medium/high/xhigh），run_in_background，关闭标准输入）
 - 中文；系统称 FORCITIS one / 老系统；老系统只作证据
 - 文档分支的提交号直接报 one-merge 收合集；只有要批、要裁的才报 one-coordinator（调度 2026-10-22）；设计稿定稿后或一天一次再报，不每改一次就报（one-merge 2026-10-22）
 - app 限流外发消息时不停下：要报的内容追加写进 `~/.modernize/psa/outbox/one-arch-finance.md`（一条一行，带时间和收件会话），接着做；没活了写一行「空闲」（SESSION_PLAYBOOK §11 消息约定第 7 条）

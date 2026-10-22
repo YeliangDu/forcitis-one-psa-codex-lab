@@ -58,6 +58,9 @@
 - 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
 - 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
 - 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r （已钉左栏，10-22 改版）：`python3 scratchpad(08ce11ca)/workbench/sync.py <工作区> <输出目录>` 读任务卡片段、gh、mq 生成 cards/sessions/prs/meta 四个 JSON，ArtifactData batch set board/*（带 if_version）；收到完成点报告和每天早上各同步一次，「要关注」里的停滞卡当天追。
+- 自检：派工前看作战图、METHOD 当前步骤、相关 ADR 字面；同一件工具派工前查是否已有负责会话。告诉用户「已派/已完成/未做」与转给用户的数字先核实（会话记录、gh、证据文件），注明已核实/已抽查/未核实；说某会话「上下文高」前看实况。自己的裁定当场记 intent。改 scratchpad 合并脚本先 `bash -n`；写在线页时间用 `date -u`。合集分支推送前跑完整 precheck。答应「合入后通知」的挂 Monitor 盯 MERGED。告诉用户可重启前，除问各会话有无 Codex，还 `ps` 查常驻进程与 Monitor，并说明谁在重启后拉起。超 7 天未决的提议 ADR 每周交用户（采纳/拒绝/搁置）。
+- 开会话：start_session 开出后立即 detach_session 解绑为顶层，set_session_title 改为 one-* 名。
+- 用户待答事项再提醒前，先问负责会话是否已拿到答复。
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
