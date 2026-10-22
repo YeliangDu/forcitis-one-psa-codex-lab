@@ -138,6 +138,7 @@ def run(mq):
             _ssh_update(mq, d)
             _queue_lock(mq, d)
             _train(mq)
+            _gapscan(mq, d)
     finally:
         for k, v in old.items():
             os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
@@ -1587,3 +1588,92 @@ def _ignored_conflicts(mq, d):
     assert mq.update_over_ssh(work, "pr", wt) == "conflict"
     g(work, "fetch", "-q", "origin")
     assert g(work, "rev-parse", "origin/pr") == before
+
+
+def _gapscan(mq, d):
+    import datetime
+    import gapscan
+    now = datetime.datetime(2026, 10, 22, 20, 0, tzinfo=datetime.timezone.utc)
+
+    def at(minutes_ago):
+        return (now - datetime.timedelta(minutes=minutes_ago)).isoformat().replace("+00:00", "Z")
+    prefixes = {"claude/one-a": "one-a", "claude/one-a-b": "one-a-b"}
+
+    def pr(n, branch="claude/one-a-x", head="a" * 40, idle=5, mergeable="MERGEABLE", rollup=(), comments=(), draft=False):
+        return dict(number=n, title=f"pull request {n}", headRefName=branch, headRefOid=head, isDraft=draft, mergeable=mergeable, statusCheckRollup=list(rollup),
+                    commits=[dict(committedDate=at(idle))], comments=list(comments), createdAt=at(idle))
+
+    def check(name, conclusion, started):
+        return dict(name=name, workflowName="ci", conclusion=conclusion, startedAt=at(started))
+    approval = lambda head, minutes=1, author=gapscan.APPROVER: dict(author=author, createdAt=at(minutes), body=f"调度批准入队 head {head}")
+
+    assert gapscan.author_session("claude/one-a-b-thing", prefixes) == "one-a-b" and gapscan.author_session("claude/one-a-thing", prefixes) == "one-a"
+    assert gapscan.author_session("claude/one-ab", prefixes) == "?(claude/one-ab)", "a prefix must end at a dash"
+    assert gapscan.author_session("claude/nobody", prefixes) == "?(claude/nobody)"
+
+    assert gapscan.red_checks([check("backend verify", "FAILURE", 30), check("backend verify", "SUCCESS", 10)]) == [], "a rerun that passed replaced the red run"
+    assert gapscan.red_checks([check("backend verify", "SUCCESS", 30), check("backend verify", "FAILURE", 10)]) == ["backend verify"]
+    assert gapscan.red_checks([check("backend verify", "FAILURE", 30), check("backend verify", "CANCELLED", 10)]) == ["backend verify"], "a cancelled newer run does not clear a red one"
+    assert gapscan.red_checks([check("backend verify", "FAILURE", 30), dict(check("backend verify", "", 10), status="IN_PROGRESS")]) == [], "a rerun in progress replaces the red run"
+    assert gapscan.red_checks([check("frontend verify", "CANCELLED", 10)]) == [], "a cancelled run says nothing"
+
+    head = "b" * 40
+    prs = [pr(1, mergeable="CONFLICTING"), pr(2, rollup=[check("backend verify", "FAILURE", 10)]), pr(3, head=head, comments=[approval(head[:9])]),
+           pr(4, idle=61), pr(5, idle=59), pr(6, idle=600, draft=True), pr(7, idle=600, mergeable="CONFLICTING"), pr(8, head=head, comments=[approval("c" * 9)]),
+           pr(9, head=head, comments=[approval(head[:9], author="somebody")]), pr(10, head=head, comments=[approval("c" * 9, 20), approval(head[:9], 5)]),
+           pr(11, head=head, comments=[approval(head[:9], 20), approval("c" * 9, 5)])]
+    gaps = gapscan.find_gaps(prs, {7}, now, prefixes)
+    got = sorted((g["pr"], g["reason"]) for g in gaps)
+    assert got == [(1, "CONFLICT"), (2, "CI_RED"), (3, "APPROVED_NOT_QUEUED"), (4, "STALE"), (10, "APPROVED_NOT_QUEUED")], got
+    assert all(g["session"] == "one-a" for g in gaps)
+
+    state = {}
+    first = gapscan.select_new(gaps, state, now)
+    assert len(first) == 5
+    assert gapscan.select_new(gaps, state, now + datetime.timedelta(hours=3, minutes=59)) == [], "the same reason is reported once in 4 hours"
+    assert len(gapscan.select_new(gaps, state, now + datetime.timedelta(hours=4))) == 5
+    only_conflict = [g for g in gaps if g["reason"] == "CONFLICT"]
+    gapscan.select_new(only_conflict, state, now + datetime.timedelta(hours=4, minutes=30))
+    assert set(state) == {"#1:CONFLICT"}, state
+    assert [(g["pr"], g["reason"]) for g in gapscan.select_new(gaps, state, now + datetime.timedelta(hours=5))] == [(2, "CI_RED"), (3, "APPROVED_NOT_QUEUED"), (4, "STALE"), (10, "APPROVED_NOT_QUEUED")], "only the conflict was kept in the state: the others come back at once"
+    assert {g["pr"] for g in gapscan.select_new(gaps, {}, now)} == {1, 2, 3, 4, 10}
+
+    class Listing:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def open_prs(self):
+            return self.rows
+    directory = os.path.join(d, "gapscan")
+    q = mq.Queue(os.path.join(directory, "merge.queue"))
+    q.enqueue(7)
+    log = mq.Log(os.path.join(directory, "merge.log"), echo=False)
+    fresh = gapscan.scan(Listing(prs), q, directory, log, now=now, prefixes=prefixes)
+    assert len(fresh) == 5 and sum(1 for l in log.lines if " GAPS " in l) == 1, log.lines
+    text = open(os.path.join(directory, "gaps.md"), encoding="utf-8").read()
+    assert "#1 [one-a] CONFLICT" in text and "#7" not in text and "#6" not in text, text
+    assert gapscan.scan(Listing(prs), q, directory, log, now=now, prefixes=prefixes) == []
+    assert sum(1 for l in log.lines if " GAPS " in l) == 1, "nothing new: no second line"
+    before = open(os.path.join(directory, "gaps.state.json"), encoding="utf-8").read()
+    assert gapscan.scan(Listing(None), q, directory, log, now=now, prefixes=prefixes) is None and any(" ERROR " in l and "gap scan" in l for l in log.lines)
+    assert open(os.path.join(directory, "gaps.state.json"), encoding="utf-8").read() == before, "gh failing must not forget what was reported"
+
+    # the thread: scans on its own clock whether or not the queue has anything, and survives a failing scan
+    class Boom(Listing):
+        calls = 0
+
+        def open_prs(self):
+            Boom.calls += 1
+            if Boom.calls == 1:
+                raise RuntimeError("boom")
+            return []
+    slept, stop_after = [], []
+    proc = mq.Processor(Boom([]), q, log, "/repo", sleep=lambda s: slept.append(s))
+    mq.run_scan(proc, directory, every=1800, first=60, stop=lambda: len(slept) > 3)
+    assert slept[:3] == [60, 1800, 1800] and Boom.calls == 3, (slept, Boom.calls)
+    assert any("gap scan: RuntimeError: boom" in l for l in log.lines)
+
+    # the mapping file names real prefixes only and every session profile has one
+    mapped = gapscan.load_prefixes()
+    profiles = {f[:-3] for f in os.listdir(os.path.join(mq.HERE, "..", "..", "docs", "modernization", "sessions")) if f.startswith("one-") and f.endswith(".md")}
+    assert profiles <= set(mapped.values()), profiles - set(mapped.values())

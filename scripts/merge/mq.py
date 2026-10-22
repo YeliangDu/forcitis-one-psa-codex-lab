@@ -37,6 +37,9 @@ Main checkout (FF-MAIN). After every merge the queue fetches and fast-forwards t
 It does so only when that checkout is on main, has no change to a tracked file and no commit origin/main lacks; otherwise it leaves it alone, logs ALERT and pauses both lanes until `mq.py resume` (without run ids) after a person has looked. One `mq.py run` or `once` per queue (flock on mq.runner.lock); the ssh update of two lanes never shares its scratch worktree (flock on <queue>.ssh-lock). A push to main runs the light steps and every container-free
 unit test (ci.yml), the nightly the full ci: together they are the alarm for a merge whose tree no full run tested exactly as merged.
 
+Gap scan. Every 30 minutes the runner looks at all open pull requests, whether or not the queue is empty (scripts/merge/gapscan.py): conflict, red CI, approved but not queued (a comment `调度批准入队 head <sha>`), no commit or comment for an hour.
+It cannot message a session: a GAPS line in the log and <queue dir>/gaps.md say who owns what (branch prefix -> session, scripts/merge/session_map.json), the session watching the log forwards it. The same pull request and reason is reported once in 4 hours.
+
 Queue file: one pull request number per line, optionally "<n> after=<m>[,<m>...]" (`mq.py enqueue <n> --after <m>`: n is not started until every m is MERGED, whatever lane either is in; WAIT-DEP in the log
 while it waits and again every hour, HOLD when a dependency was closed unmerged (also when a merge train closed it: the content is in main, the message is only about the state; the dependent then goes back with `enqueue` without --after);
 `once <n>` does not look at dependencies; after deploying this version restart the running runner first: an older runner does not understand "after=" lines and never starts them, and its enqueue would drop the dependency; a dependency cycle is refused at enqueue), anything else is kept as it is. Every change goes through flock on <queue>.lock and an atomic replace (temporary file, then rename), so an enqueue can no longer be
@@ -60,6 +63,8 @@ import threading
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import gapscan   # noqa: E402
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
 # ci.yml's step that runs the pull request's new or changed test classes again (scripts/ci/repeat_new_tests.py): red there is a flaky new test, and a rerun that passes would let it in
 REPEAT_STEP = "new or changed test classes, repeated"
@@ -298,6 +303,19 @@ class Gh:
             return {"state": d["state"], "merge": d["mergeStateStatus"], "labels": [l["name"] for l in d["labels"]], "branch": d["headRefName"], "head": d["headRefOid"]}
         except (ValueError, KeyError):
             return None
+
+    def open_prs(self):
+        """Every open pull request with what the gap scan (gapscan.py) needs, or None when gh cannot say."""
+        r = sh(["gh", "pr", "list", "--state", "open", "--limit", str(gapscan.OPEN_LIMIT), "--json", "number,title,headRefName,headRefOid,isDraft,mergeable,statusCheckRollup,commits,comments,createdAt"], timeout=120)
+        try:
+            prs = json.loads(r.stdout)
+        except ValueError:
+            return None
+        if r.returncode:
+            return None
+        for pr in prs:
+            pr["comments"] = [dict(c, author=(c.get("author") or {}).get("login")) for c in pr.get("comments", [])]
+        return prs
 
     def behind_by(self, n, head):
         r = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/main...{head}", "--jq", ".behind_by"])
@@ -1013,9 +1031,25 @@ def run_lane(proc, lane, idle=60, stop=lambda: False):
                 proc.sleep(60)
 
 
-def run_loop(proc, idle=60, stop=lambda: False):
-    """Both lanes, each in its own thread, until stop()."""
+def run_scan(proc, directory, every=gapscan.SCAN_EVERY, first=60, stop=lambda: False):
+    """The gap scan thread: first after `first` seconds, then every `every`, whether or not the queue is empty. Nothing a scan raises ends the thread."""
+    wait = first
+    while not stop():
+        proc.sleep(wait)
+        if stop():
+            break
+        wait = every
+        try:
+            gapscan.scan(proc.gh, proc.queue, directory, proc.log)
+        except (Exception, SystemExit) as e:
+            proc.log.event("ERROR", None, None, None, f"gap scan: {type(e).__name__}: {e}")
+
+
+def run_loop(proc, idle=60, stop=lambda: False, directory=None):
+    """Both lanes, each in its own thread, until stop(); with a queue directory also the gap scan."""
     threads = [threading.Thread(target=run_lane, args=(proc, lane, idle, stop), name=f"mq-{lane}", daemon=True) for lane in LANES]
+    if directory:
+        threads.append(threading.Thread(target=run_scan, args=(proc, directory), kwargs=dict(stop=stop), name="mq-gap-scan", daemon=True))
     for t in threads:
         t.start()
     for t in threads:
@@ -1154,7 +1188,7 @@ def main(argv=None):
             if a.cmd == "once":
                 proc.process(a.pr)
             else:
-                run_loop(proc)
+                run_loop(proc, directory=directory)
 
 
 if __name__ == "__main__":
