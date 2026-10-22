@@ -47,7 +47,7 @@
 | 10 受控业务执行 | tc | 1132 |
 | 10 映射  | api | 68 |
 | 10 映射  | mod | 13 |
-| 10 受控业务执行 | cmd | 616 |
+| 10 受控业务执行 | cmd | 613 |
 | 09/10 映射  | otr | 873 |
 | 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
@@ -73,7 +73,7 @@
 | N07-1 | 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1） | 0 |
 | N07-2 | 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判） | 0 |
 | N07-P1 | P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml | 0 |
-| N01-R1 | 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查） | 0 |
+| N01-R1 | 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查） | 1 |
 | N01-R2 | 每个 ROLE 写明由谁承担（host_category 非空） | 0 |
 | N01-R3 | 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告） | 4 |
 | N08-1 | 每个不变量都归属存在的聚合 | 0 |
@@ -94,7 +94,7 @@
 | N10-M3 | 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属） | 0 |
 | N10-1 | 每个受控业务执行（命令）都有 owner BC | 40 |
 | N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 4 |
-| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 1 |
+| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 3 |
 | N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 47 |
 | N10-4 | 每个已建命令类在 ssot/11-commands/command-mapping.yaml 登记对照（pending 计缺口） | 0 |
 | N10-5 | 每个事件有唯一发布者与版本 | 0 |
@@ -161,6 +161,10 @@
 - VS-10.0 执行记账结转（门对象 OBJ-97→断、OBJ-98→断）
 - VS-10.1 关闭会计期间（门对象 OBJ-97→断、OBJ-98→断）
 - VS-10.2 发布报表（门对象 OBJ-125→断、OBJ-97→断、OBJ-98→断）
+
+## N01-R1 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查）（1）
+
+- 财务负责人（权责表引用，未归任何 ROLE）
 
 ## N01-R3 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告）（4）
 
@@ -856,8 +860,10 @@
 - B-32 报价发出编排（暂名）（模块 None）
 - reporting 经营分析（只读）（模块 reporting）
 
-## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（1）
+## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（3）
 
+- CMD-1afc1f3f 生效账期规则版本（AGG-136 未归 BC）
+- CMD-c401c884 编制账期规则版本（AGG-136 未归 BC）
 - CMD-c2d24f95 登记招标项目（REF-01 未归 BC）
 
 ## N10-3 每条状态转换有触发命令（含 pending；by_command 为空计缺口）（47）
