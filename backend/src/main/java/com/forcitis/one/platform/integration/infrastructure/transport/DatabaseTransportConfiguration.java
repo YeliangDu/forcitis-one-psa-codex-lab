@@ -13,10 +13,6 @@ class DatabaseTransportConfiguration {
     @Bean
     static BeanFactoryPostProcessor databaseTransportGuard(Environment environment) {
         return beanFactory -> {
-            var retired = DatabaseTransportCheck.retiredKeys(environment);
-            if (!retired.isEmpty()) {
-                throw new IllegalStateException("Retired configuration keys are set, refusing to start:\n  " + String.join("\n  ", retired));
-            }
             DatabaseTransportRequirement required = DatabaseTransportRequirement.forProfiles(Set.of(environment.getActiveProfiles()));
             var problems = DatabaseTransportCheck.problems(required, environment::getProperty);
             if (!problems.isEmpty()) {
