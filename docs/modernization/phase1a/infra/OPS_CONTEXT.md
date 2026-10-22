@@ -8,7 +8,7 @@
 2. **dev 现状**：rc.6 在位健康；`one_dev_app` 连接上限 25（预算 31，脚本在文档分支）；`forcitis_one` 加了库注释、`it_portal_runtime` 上限 5（该库仍有 172.16.10.52 老系统服务器的活动连接，不 drop）；ECS i-bp122xlpar8w2uylmal2 到期 2027-10-15（RESOURCES 已记，提前 30 天提醒）。
 3. **新 rc 与重建 dev**：等调度通知（A 线 #489 列改名、F 删老待办合入后）。重建走 `runbooks/dev-db-rebuild.md`（回滚脚本对旧库缺角色不幂等，OPS-007）；装 rc 的手工路径与脚本这次会话的临时目录会丢，按 OPS_CONTEXT 与剧本重来；授角色要用户扫码登录一次。
 4. **工作日历**：dev 已导入 2016–2026 共 272 条（临时，按老系统 `workday` 推出），读回一致。对照国办官方通知差异 17 条与老系统工时核查见 `handoff/WORK_CALENDAR_AUDIT_2026-10-21.md`；用户口径：dev 不修；这 16 天以工时核查为公司加休依据，2023-04-23 按官方补。**投产用「官方＋公司加休」表**已出，在本机 `~/.modernize/psa/ops/work-calendar-prod-2016-2026.csv`（及 json、cancelled、README；273 行，不进仓库），投产首次写入时用；写入前要 `work_calendar_days` 加 `basis` 列、OD 补 11 行公司安排的书面依据、2027 年清单另出。dev 导入包（旧）`work-calendar-2016-2026.json` 同目录。
-5. **ClamAV**：dev 已装 clamav 1.4.6 并通过加密项必验与耗时测量（2026-10-21，详见卡 OPS-1021-OPS-02 测量记录与 RESOURCES）。运维侧还差：健康检查（库龄、clamd 可用性、freshclam 失败）与 C-7 告警、库过期演练、与应用侧联调（EICAR 写入→检测→隔离、停 clamd→拒绝＋告警）、MaxScanTime 复核；生产实例上线时同步装；应用侧归 one-platform-file，ADR-0060 补篇归 one-architecture。
+5. **ClamAV**：dev 已装 clamav 1.4.6 并通过加密项必验与耗时测量（2026-10-21，详见卡 OPS-1021-OPS-02 测量记录与 RESOURCES）。健康检查与 C-7 告警及演练已完成（one-clamav-check.timer）；运维侧还差：与应用侧联调（EICAR 写入→检测→隔离、停 clamd→拒绝＋告警）、MaxScanTime 复核；生产实例上线时同步装；应用侧归 one-platform-file，ADR-0060 补篇归 one-architecture。
 6. **NAS 与 WORM**：NAS 取证暂停并已回收（权限组与新挂载点已删，未读内容）；2.04 TB 即全部文件；估价 `handoff/NAS_WORM_COST.md`（冷类型单价未核实，B-13 前到购买页核对；锁定不可逆，先演练再锁）。
 7. **待做代码类**：`c14_run.py` 自测 PR（须与 main 逐字节一致、opus 首轮复审）、回滚脚本 `DROP ROLE IF EXISTS` 与 check.sh 旧库用例（OPS-007）；可交 Codex（卡写四项），取证、部署、凭据类不交。
 

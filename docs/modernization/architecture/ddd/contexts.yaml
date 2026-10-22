@@ -38,6 +38,17 @@ contexts:
   legacy_bc: null
   evidence: backend 模块包与 module-dependencies.txt
   note: Phase 1a 为工作日历先建（用户 2026-10-14）；与 organization.payroll 的边界见 Q3
+- id: organization.administration
+  zh: 行政事务
+  subdomain: organization
+  kind: business
+  status: planned
+  schema: organization_administration
+  blueprint_bc: B-31
+  legacy_bc: null
+  basis: intent
+  evidence: 用户 intent 2026-10-16-152807（新增行政事务 BC）；glossary/bcs.yaml；B-31 2026-10-21 开工（one-1a-admin）
+  note: 不在 ADR-0051 决定 3 的 BC 清单，由 ADR-0074（起草中）补入；采纳前模块不得合入 main（B31_ARCH_RULINGS_2026-10-21.md 第 2 项）
 - id: organization.workforce
   zh: 组织人事 BC
   subdomain: organization
@@ -46,6 +57,7 @@ contexts:
   schema: organization_workforce
   blueprint_bc: BC-P8
   legacy_bc: 组织人事 BC
+  owner: one-1a-par
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L56；02-子域划分.md 02 L194-203；ADR-0017 对照表
 - id: platform.approval
   zh: 审批
@@ -92,6 +104,7 @@ contexts:
   schema: platform_numbering
   blueprint_bc: null
   legacy_bc: null
+  owner: one-1a-next-5
   evidence: backend 模块包与 module-dependencies.txt
 - id: platform.scheduling
   zh: 作业调度
@@ -146,10 +159,28 @@ contexts:
   - ADR-0060
   - ADR-0061
   - ADR-0070
-  admission: 待准入
-  admission_due: W1 结束或首个使用 BC 开工，取早（ADR-0066 决定 7）
+  admission: 已准入
+  admission_date: '2026-10-21'
+  admission_evidence: architecture/proposals/ADMISSION_PLATFORM_FILE_2026-10-21.md（ADR-0066 决定 6 九条；one-coordinator 核对）
   review: 英文名 FileService，定名 2026-10-21 用户同意（bcs.yaml #496）；层名「基础层」暂定，待 one-glossary 终定 tier 取值
   evidence: ADR-0060 决定 1；ADR-0066 决定 2 第 3 条；backend 模块包与 module-dependencies.txt
+- id: platform.signing
+  zh: 签章服务
+  subdomain: platform
+  kind: platform
+  status: planned
+  schema: null
+  blueprint_bc: null
+  legacy_bc: null
+  basis: adr
+  tier: 公共服务层
+  owner: one-platform-file
+  adr:
+  - ADR-0064
+  admission: 待准入
+  admission_due: 已到期（首个使用 BC 行政事务 2026-10-21 开工，ADR-0066 决定 7）；第 4–7、9 条未齐，用印 7.3、7.4 不得开工，补齐路径见 proposals/ADMISSION_PLATFORM_SIGNING_2026-10-22.md
+  review: 英文名 SigningService，定名 2026-10-21 用户同意（bcs.yaml）；模块标识、schema、权限码前缀待 one-glossary 登记，登记前代码不落地（ADR-0064 决定 2 第 2 条）；owner 由 one-coordinator 2026-10-21 指派；层名「公共服务层」暂定，待 one-glossary 终定 tier 取值
+  evidence: ADR-0064；ADR-0066 决定 2 第 3 条（签章服务属公共服务层）、决定 7
 - id: operations.planning
   zh: 战略与经营计划 BC
   subdomain: operations
