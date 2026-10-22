@@ -92,7 +92,7 @@
       <outgoing>Flow_9</outgoing>
       <outgoing>Flow_10</outgoing>
     </exclusiveGateway>
-    <manualTask id="S4_manual_8" name="线下办理向发证机关办理延续申请并取得受理回执，新证书取得后再登记">
+    <manualTask id="S4_manual_8" name="线下办理资质延续申请">
       <documentation>线下办理；证据：延续申请受理回执（发证机关）；申请材料清单</documentation>
       <incoming>Flow_10</incoming>
       <outgoing>Flow_11</outgoing>
@@ -101,16 +101,18 @@
         <outputSet></outputSet>
       </ioSpecification>
     </manualTask>
-    <userTask id="S4_reg_9" name="登记向发证机关办理延续申请并取得受理回执，新证书取得后再登记">
-      <documentation>向发证机关办理延续申请并取得受理回执，新证书取得后再登记；B-01；offline；资质证书.登记延续申请；资质延续申请登记页</documentation>
+    <userTask id="S4_reg_9" name="登记资质延续申请">
+      <documentation>AGG-02 登记资质延续申请；B-01；offline；资质证书.登记延续申请；资质延续申请登记页</documentation>
       <incoming>Flow_11</incoming>
       <outgoing>Flow_12</outgoing>
       <ioSpecification id="IO_S4_reg_9">
         <dataOutput id="DOut_S4_reg_9_1"/>
+        <dataOutput id="DOut_S4_reg_9_2"/>
         <inputSet></inputSet>
-        <outputSet><dataOutputRefs>DOut_S4_reg_9_1</dataOutputRefs></outputSet>
+        <outputSet><dataOutputRefs>DOut_S4_reg_9_1</dataOutputRefs><dataOutputRefs>DOut_S4_reg_9_2</dataOutputRefs></outputSet>
       </ioSpecification>
-      <dataOutputAssociation id="DOA_S4_reg_9_1"><sourceRef>DOut_S4_reg_9_1</sourceRef><targetRef>OR_S4_reg_9_1</targetRef></dataOutputAssociation>
+      <dataOutputAssociation id="DOA_S4_reg_9_1"><sourceRef>DOut_S4_reg_9_1</sourceRef><targetRef>SR_S4_reg_9_w1</targetRef></dataOutputAssociation>
+      <dataOutputAssociation id="DOA_S4_reg_9_2"><sourceRef>DOut_S4_reg_9_2</sourceRef><targetRef>OR_S4_reg_9_1</targetRef></dataOutputAssociation>
     </userTask>
     <userTask id="S5_10" name="延续资质">
       <documentation>AGG-02 延续资质；B-01；in_system；资质证书.延续；资质延续批准页；审批（aggregate）：资质延续审批单</documentation>
@@ -181,6 +183,7 @@
     <dataStoreReference id="SR_S3_reg_6_w1" name="AGG-02" dataStoreRef="DS_AGG-02"/>
     <dataObject id="DObj_OR_S3_reg_6_1"/>
     <dataObjectReference id="OR_S3_reg_6_1" name="年检回执或核查结论通知书" dataObjectRef="DObj_OR_S3_reg_6_1"/>
+    <dataStoreReference id="SR_S4_reg_9_w1" name="AGG-02" dataStoreRef="DS_AGG-02"/>
     <dataObject id="DObj_OR_S4_reg_9_1"/>
     <dataObjectReference id="OR_S4_reg_9_1" name="延续申请受理回执" dataObjectRef="DObj_OR_S4_reg_9_1"/>
     <dataStoreReference id="SR_S5_10_w1" name="AGG-02" dataStoreRef="DS_AGG-02"/>
@@ -268,8 +271,11 @@
       <bpmndi:BPMNShape id="Shape_OR_S3_reg_6_1" bpmnElement="OR_S3_reg_6_1">
         <dc:Bounds x="838" y="4" width="26" height="32"/>
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S4_reg_9_w1" bpmnElement="SR_S4_reg_9_w1">
+        <dc:Bounds x="1226" y="4" width="36" height="26"/>
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_OR_S4_reg_9_1" bpmnElement="OR_S4_reg_9_1">
-        <dc:Bounds x="1247" y="4" width="26" height="32"/>
+        <dc:Bounds x="1268" y="4" width="26" height="32"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S5_10_w1" bpmnElement="SR_S5_10_w1">
         <dc:Bounds x="1417" y="134" width="36" height="26"/>
@@ -375,8 +381,12 @@
         <di:waypoint x="851" y="36"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DOA_S4_reg_9_1" bpmnElement="DOA_S4_reg_9_1">
-        <di:waypoint x="1260" y="35"/>
-        <di:waypoint x="1260" y="36"/>
+        <di:waypoint x="1244" y="35"/>
+        <di:waypoint x="1244" y="30"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DOA_S4_reg_9_2" bpmnElement="DOA_S4_reg_9_2">
+        <di:waypoint x="1281" y="35"/>
+        <di:waypoint x="1281" y="36"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DOA_S5_10_1" bpmnElement="DOA_S5_10_1">
         <di:waypoint x="1435" y="165"/>
