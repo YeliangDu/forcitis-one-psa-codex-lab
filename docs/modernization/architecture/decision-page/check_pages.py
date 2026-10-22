@@ -13,6 +13,7 @@
   R5 事实题不得有预选（任何选项 rec 为真）；选型题同（intent 2026-10-15 ADR-0041 决定 6：选型不预选）
   R6 参数行（kind: param，或选项全是「数字+单位」）须在 ctx / basis / practice / effect 任一处标「经验值，配置可调」，或有出处（src 非空，或 basis 里有 intent / ADR / 标准 / 法规）
   R7 推荐理由（basis 与推荐项的 effect）不得以「老系统 / 老流程 / 与 A8 一致」为主要理由：出现这些词而没有任何权威依据（intent、ADR、规则号、标准、法规、行业做法）即不过
+范围：已答的题不再检查（已答页是历史记录，题面不改、不补 terms_ok；用户 2026-10-22 经 one-coordinator）。已答＝rules/decide/answers/<页>.json 里有 <页>~<题号>，或页名登记在 answered_pages.txt（收件箱已决但没有导出的页）。输出末行写明跳过的已答题数与整页数；本次改动涉及的页里，新增或未答的题照常检查。
 用法：
   check_pages.py                      检查全部确认页（报告全部问题；有问题退出 1）
   check_pages.py <文件.json>…         只检查给定文件
@@ -30,6 +31,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 MOD = os.path.normpath(os.path.join(HERE, "..", ".."))
 ROOT = os.path.normpath(os.path.join(MOD, "..", ".."))
+ANSWERS_DIR = os.path.join(MOD, "rules", "decide", "answers")
+ANSWERED_REGISTRY = os.path.join(HERE, "answered_pages.txt")   # 收件箱已决但没有 answers 导出的页：一行一个页名，# 后写出处
 PAGE_GLOBS = ("docs/modernization/architecture/decision-page/*.json", "docs/modernization/rules/decide/sheets/*.json")
 KINDS = ("choice", "approve", "selection", "fact", "param")
 UNDECIDED = re.compile(r"暂不定|待定|先不选|不预设")
@@ -254,7 +257,52 @@ def intent_files(base="origin/main"):
     return set(os.listdir(folder)) if os.path.isdir(folder) else set()
 
 
-def check_file(path, names, vocab):
+def answered_nos(path, answers_dir=None, registry=None):
+    """用户已答完的题号（历史记录，题面不再检查）：answers/<页>.json 里有 <页>~<题号> 的题，或页名登记在 answered_pages.txt 的整页。返回 (题号集合, 是否整页)。"""
+    stem = os.path.splitext(os.path.basename(path))[0]
+    registry_file = ANSWERED_REGISTRY if registry is None else registry
+    if registry_file and os.path.exists(registry_file):
+        for line in open(registry_file, encoding="utf-8-sig"):
+            if line.split("#")[0].strip() == stem:
+                return set(), True
+    folder = ANSWERS_DIR if answers_dir is None else answers_dir
+    answer_file = os.path.join(folder, stem + ".json")
+    if os.path.exists(answer_file):
+        try:
+            keys = json.load(open(answer_file, encoding="utf-8"))
+        except ValueError as e:
+            print(f"警告 {stem}: answers 导出不是合法 JSON，按未答检查：{e}", file=sys.stderr)
+            return set(), False
+        if not isinstance(keys, dict):
+            print(f"警告 {stem}: answers 导出不是对象，按未答检查", file=sys.stderr)
+            return set(), False
+        return {k.split("~", 1)[1] for k in keys if isinstance(k, str) and k.startswith(stem + "~")}, False
+    return set(), False
+
+
+def canon(item):
+    return json.dumps(item, ensure_ascii=False, sort_keys=True)
+
+
+def base_items(path, base, root=ROOT):
+    """基线版本里各题的规范化内容（题号 → 文本）。没有基线（全量模式）返回 None，已答题按登记整体跳过；
+    有基线而基线里没有这个文件（新页）、或读不出来时返回 {}：什么都对不上，已答登记也不算，照常检查。"""
+    if not base:
+        return None
+    rel = os.path.relpath(path, root)
+    r = subprocess.run(["git", "-c", "core.quotepath=off", "show", f"{base}:{rel}"], cwd=root, capture_output=True, text=True)
+    if r.returncode:
+        return {}
+    try:
+        data = json.loads(r.stdout)
+    except ValueError:
+        return {}
+    items = data.get("items") if isinstance(data, dict) else data
+    return {str(i.get("no")): canon(i) for i in items if isinstance(i, dict)} if isinstance(items, list) else {}
+
+
+def check_file(path, names, vocab, skipped=None, answers_dir=None, registry=None, base=None):
+    """skipped：传入字典时记下跳过的已答题数。base：基线版本里各题的规范化内容（见 base_items）；已答题只有在题面相对基线没变时才跳过，改过的已答题照常检查。"""
     try:
         data = json.load(open(path, encoding="utf-8"))
     except ValueError as e:
@@ -263,13 +311,24 @@ def check_file(path, names, vocab):
     if not isinstance(items, list):
         return [f"{os.path.basename(path)}: 没有 items 列表"]
     page_vocab = None if isinstance(data, dict) and data.get("terms_review") else vocab   # 用语审定页本来就在问未登记的词：整页不查 R4
+    done, whole = answered_nos(path, answers_dir, registry)
     out = []
+    count = 0
     for item in items:
+        no = str(item.get("no"))
+        if whole or no in done:
+            if base is None or (no in base and base[no] == canon(item)):
+                count += 1
+                continue
         seen = []
         for e in check_item(item, names, page_vocab):
             if e not in seen:
                 seen.append(e)
         out += [f"{os.path.basename(path)} {e}" for e in seen]
+    if skipped is not None:
+        skipped["questions"] = skipped.get("questions", 0) + count
+        if items and count == len(items):
+            skipped["pages"] = skipped.get("pages", 0) + 1
     return out
 
 
@@ -289,7 +348,9 @@ def main(argv):
     vocab = load_vocab()
     if vocab is None:
         print("警告：缺少 PyYAML，R4（用语）未检查", file=sys.stderr)
+    base_ref = None
     if argv[:1] == ["--changed"] and len(argv) == 2:
+        base_ref = argv[1]
         files = changed_pages(argv[1])
         if not files:
             print("check_pages: 没有改动的确认页")
@@ -300,20 +361,27 @@ def main(argv):
         files = sorted(f for g in PAGE_GLOBS for f in glob.glob(os.path.join(ROOT, g)))
     else:
         sys.exit(__doc__)
-    problems = [p for f in files for p in check_file(f, names, vocab)]
+    skipped = {}
+    problems = [p for f in files for p in check_file(f, names, vocab, skipped, base=base_items(f, base_ref))]
     for p in problems:
         print(p)
     for f in files:
         try:
             data = json.load(open(f, encoding="utf-8"))
+            done, whole = answered_nos(f)
+            prior = base_items(f, base_ref)
             for item in (data.get("items", []) if isinstance(data, dict) else data):
                 if isinstance(data, dict) and data.get("terms_review"):
                     break
+                no = str(item.get("no"))
+                if (whole or no in done) and (prior is None or (no in prior and prior[no] == canon(item))):
+                    continue
                 for cand in term_candidates(item, vocab):
                     print(f"警告 {os.path.basename(f)} {item.get('no', '?')}: 「{cand}」像业务用语但不在词表（审题时看一眼；确认后登记提议术语或写进 terms_ok）", file=sys.stderr)
         except (ValueError, AttributeError, TypeError):
             pass
-    print(f"check_pages: {len(files)} 张页，{len(problems)} 处问题")
+    note = f"；已答题 {skipped.get('questions', 0)} 道不再检查（其中整页已答 {skipped.get('pages', 0)} 张，依据 rules/decide/answers 导出与 answered_pages.txt）" if skipped.get("questions") else ""
+    print(f"check_pages: {len(files)} 张页，{len(problems)} 处问题{note}")
     return 1 if problems else 0
 
 
@@ -361,6 +429,45 @@ def self_test():
     assert has(item(title="按老叫法口径算"), "R4", dict(vm, words=vm["words"] | {"按老叫法口径算"}))   # 文案允许表等非正式词也不遮盖
     assert not has(item(title="合同「承担部门」审批", terms_ok=["承担部门"]), "R4", v)
     assert not has(item(opts=[dict(label="承担部门审批", effect="", rec=True)]), "R4", v)   # 未加括号的候选只警告，不失败
+    # 已答题是历史记录：含新方言也不报；本次新改的题照常报（用户 2026-10-22 经调度）
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        page = os.path.join(tmp, "PG.json")
+        answers = os.path.join(tmp, "answers")
+        os.makedirs(answers)
+        bad = dict(item(title="合同老叫法", no="Q-OLD"))
+        fresh = dict(item(title="合同老叫法", no="Q-NEW"))
+        json.dump({"items": [bad, fresh]}, open(page, "w", encoding="utf-8"), ensure_ascii=False)
+        json.dump({"PG~Q-OLD": {"choice": 0}}, open(os.path.join(answers, "PG.json"), "w", encoding="utf-8"))
+        skipped = {}
+        out = check_file(page, names, v, skipped, answers_dir=answers, registry="")
+        assert any("Q-NEW" in e and "R4" in e for e in out) and not any("Q-OLD" in e for e in out), out
+        assert skipped == {"questions": 1}, skipped
+        registry = os.path.join(tmp, "answered_pages.txt")
+        open(registry, "w", encoding="utf-8").write("PG  # 收件箱已决\n")
+        skipped = {}
+        assert check_file(page, names, v, skipped, answers_dir=answers, registry=registry) == [] and skipped == {"questions": 2, "pages": 1}, skipped
+        # 已答题的题面相对基线改过，就不再是历史记录：照常检查
+        edited = dict(bad, title="合同老叫法改")
+        base = {"Q-OLD": canon(dict(bad, title="合同收入确认条件")), "Q-NEW": canon(fresh)}
+        json.dump({"items": [edited, fresh]}, open(page, "w", encoding="utf-8"), ensure_ascii=False)
+        out = check_file(page, names, v, {}, answers_dir=answers, registry="", base=base)
+        assert any("Q-OLD" in e and "R4" in e for e in out), out
+        unchanged = {"Q-OLD": canon(edited), "Q-NEW": canon(fresh)}
+        assert not any("Q-OLD" in e for e in check_file(page, names, v, {}, answers_dir=answers, registry="", base=unchanged))
+        # 新页（基线里没有）即使登记在 answered_pages 或 answers 里，也照常检查
+        open(registry, "w", encoding="utf-8").write("PG\n")
+        out = check_file(page, names, v, {}, answers_dir=answers, registry=registry, base={})
+        assert any("Q-OLD" in e and "R4" in e for e in out), out
+        open(registry, "w", encoding="utf-8").write("")
+        # answers 导出损坏、不是对象：按未答检查，不崩
+        open(os.path.join(answers, "PG.json"), "w", encoding="utf-8").write("3")
+        assert any("Q-OLD" in e for e in check_file(page, names, v, {}, answers_dir=answers, registry=""))
+        open(os.path.join(answers, "PG.json"), "w", encoding="utf-8").write("{bad")
+        assert any("Q-OLD" in e for e in check_file(page, names, v, {}, answers_dir=answers, registry=""))
+        # 登记文件：注释、空行、前后空白
+        open(registry, "w", encoding="utf-8").write("# 注释\n\n  PG  # 出处\n#PG2\n")
+        assert answered_nos(page, answers, registry) == (set(), True) and answered_nos(os.path.join(tmp, "PG2.json"), answers, registry) == (set(), False)
     assert term_candidates(item(opts=[dict(label="承担部门审批", effect="", rec=True)]), v) == ["承担部门"]
     assert term_candidates(item(opts=[dict(label="承担部门审批", effect="", rec=True)], terms_ok=["承担部门"]), v) == [] and term_candidates(item(), v) == []
     # R6
