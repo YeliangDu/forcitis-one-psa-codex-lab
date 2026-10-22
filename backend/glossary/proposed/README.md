@@ -145,7 +145,7 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 | `bonus_accrual_rate` | 奖金计提率 | BonusAccrualRate | 领域 · cost.costing | 挂在标准成本费率卡版本上的奖金计提比率；规则类型分合同额百分比与历史比率（默认历史比率），预算、预估、实际三个变体用同一版本 |  |  |
 | `bonus_adjustment_line` | 奖金调整行 | BonusAdjustmentLine | 领域 · cost.costing | 奖金核定后，把「已核定额 − 该项目累计计提额」作为调整行计入当期人工成本；不回改已关账期间，单列供分析计提率准不准 |  |  |
 | `overtime_multiplier` | 加班倍数 | OvertimeMultiplier | 领域 · cost.costing | 加班工时计成本的倍数：工作日 8 小时后 1.5 倍、休息日未补休 2 倍、法定节假日 3 倍（《劳动法》第四十四条）；休息日已补休按 1 倍 |  |  |
-| `labor_cost_allocation_variance` | 人工成本分配差异 | LaborCostAllocationVariance | 领域 · cost.costing | 每月按员工把「按实际成本费率计价的合计 − 当月实际薪酬（含加班费）」记为差异，挂员工所在部门，计期间损益，不进项目；如 7.5 到 8 小时段按 1 倍计价超出日薪的部分（INV-89 改写后项目分配额加差异等于实际人工成本） |  |  |
+| `labor_cost_allocation_variance` | 人工成本分配差异 | LaborCostAllocationVariance | 领域 · cost.costing | 每月按员工把「按实际成本费率计价的合计 − 当月实际薪酬（含加班费）」记为差异，挂员工所在部门，计期间损益，不进项目；如 7.5 到 8 小时段按 1 倍计价超出日薪的部分（INV-89 改写后项目分配额加差异等于实际人工成本）；这个差异科目是设计（BONUS_OVERTIME_COSTING §2.4，one-architecture 2026-10-22 认可），不是用户原话 |  |  |
 
 ## `finance-decisions.yaml`
 
