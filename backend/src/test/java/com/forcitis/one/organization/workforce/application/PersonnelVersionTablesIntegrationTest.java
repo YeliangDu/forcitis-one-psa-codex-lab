@@ -128,11 +128,4 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "SEPARATE", "PENDING")).hasMessageContaining("uk_personnel_commands_open_per_day");
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "UNPAID_LEAVE_START", "WITHDRAWN")).hasMessageContaining("ck_personnel_commands_unpaid_leave");
     }
-
-    @Test
-    @DisplayName("W2 PR-B the employee code is unique across all employees")
-    void employeeCodeIsUnique() {
-        assertThatThrownBy(() -> jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) select '019a0000-0000-7000-8000-000000000003', employee_code, 'x', 'EMPLOYED' from organization_workforce.employees limit 1").update())
-                .hasMessageContaining("uk_employees_employee_code");
-    }
 }

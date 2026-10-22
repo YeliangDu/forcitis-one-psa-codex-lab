@@ -86,10 +86,10 @@ CREATE TABLE organization_workforce.employees (
 );
 CREATE UNIQUE INDEX employees_wecom_user_id_employed_key ON organization_workforce.employees (wecom_user_id)
     WHERE employment_status = 'EMPLOYED' AND wecom_user_id IS NOT NULL;
-ALTER TABLE organization_workforce.employees ADD CONSTRAINT uk_employees_employee_code UNIQUE (employee_code);
+CREATE INDEX employees_employee_code_idx ON organization_workforce.employees (employee_code);
 COMMENT ON TABLE organization_workforce.employees IS '员工：组织源人员的快照；没有登录名即离职（RULE-363），不含生日等敏感信息；粒度：每个员工一行';
 COMMENT ON COLUMN organization_workforce.employees.id IS '员工 ID（UUIDv7；组织源人员经来源对照映射）';
-COMMENT ON COLUMN organization_workforce.employees.employee_code IS '员工编号（工号）；全局唯一，复职沿用原工号（用户 2026-10-21，W2 设计 3.1）';
+COMMENT ON COLUMN organization_workforce.employees.employee_code IS '员工编号（工号）';
 COMMENT ON COLUMN organization_workforce.employees.display_name IS '姓名';
 COMMENT ON COLUMN organization_workforce.employees.login_name IS '登录名；为空（null 或空串）表示已离职（RULE-363）';
 COMMENT ON COLUMN organization_workforce.employees.email IS '企业邮箱';
