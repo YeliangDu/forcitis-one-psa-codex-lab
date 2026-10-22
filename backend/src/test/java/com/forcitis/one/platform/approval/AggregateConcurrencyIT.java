@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalError;
@@ -57,7 +58,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
             staleCopy.approve(NOW);
             requests.save(staleCopy);
         })).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_CONCURRENT_CHANGE));
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
     }
 
@@ -99,7 +100,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
         copy.approve(NOW);
 
         assertThatThrownBy(() -> tx.executeWithoutResult(s -> requests.save(copy))).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_CONCURRENT_CHANGE));
         assertThat(requestStatus(key)).isEqualTo("CANCELLED");
     }
 
@@ -122,7 +123,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
         stale.claimTask(task, TestAccounts.account(initiator), NOW);
 
         assertThatThrownBy(() -> tx.executeWithoutResult(s -> requests.save(stale))).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_CONCURRENT_CHANGE));
         assertThat(jdbc.queryForObject("select assignee_id from platform_approval.approval_tasks where task_id = ?", java.util.UUID.class, task.value()))
                 .isEqualTo(TestAccounts.account(manager).value());
     }

@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.TransitionTable;
@@ -82,7 +83,7 @@ class ApprovalRequestStateMachineTest {
     void runningCannotRestart() {
         ApprovalRequest request = in(ApprovalStatus.RUNNING);
         assertThatThrownBy(() -> restart(request)).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_TRANSITION_ILLEGAL));
         assertThat(request.instanceId()).isEqualTo(com.forcitis.one.TestApprovalIds.instance("i-2"));
         assertThat(request.round()).isEqualTo(2);
     }

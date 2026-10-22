@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.domain;
 
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
@@ -165,12 +166,12 @@ public final class ApprovalTask {
     }
 
     private void move(ApprovalTaskStatus target) {
-        status = MACHINE.require(status, target, ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL);
+        status = MACHINE.require(status, target);
         changed = true;
     }
 
     private com.forcitis.one.kernel.DomainException illegal(String action) {
-        return ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal("Task " + taskId.value() + " cannot " + action + " while " + status);
+        return KernelError.KERNEL_TRANSITION_ILLEGAL.refusal("Task " + taskId.value() + " cannot " + action + " while " + status);
     }
 
     public ApprovalTaskId taskId() {

@@ -6,6 +6,7 @@ import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.cost.timesheet.api.TimesheetDocument;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.AggregateReference;
@@ -114,7 +115,7 @@ public class SubmitTimesheet {
 
     static void requireExpectedVersion(Timesheet timesheet, java.util.OptionalLong expected) {
         if (expected.isPresent() && expected.getAsLong() != timesheet.version()) {
-            throw TimesheetError.COST_TIMESHEET_CONCURRENT_CHANGE.refusal("Timesheet " + timesheet.timesheetId().value()
+            throw KernelError.KERNEL_CONCURRENT_CHANGE.refusal("Timesheet " + timesheet.timesheetId().value()
                     + " changed since it was read (version " + timesheet.version() + ", expected " + expected.getAsLong() + ")");
         }
     }
