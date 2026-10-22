@@ -7,6 +7,8 @@
 # R-1b P3b (RULING-P3B-9): kernel.ExternalSubjectEmployees is asked by platform.integration (the read-only operations command find-accounts-by-external-subject looks up the snapshot employees by an external subject) and implemented by organization.workforce; platform.integration -> organization.workforce would close a cycle. Expires with C1 (federated identity): once C1 lands the port is deleted or reshaped after its identity model, and this line with it (reviewed again at DA-3).
 # REG-1 (ADR-0066 decision 4): platform.approval -> platform.numbering only for platform.numbering.api.DocumentTypes, the write-time check of a document type code (no foreign key across schemas).
 cost.timesheet -> organization.workforce, platform.approval, platform.identity, platform.numbering
+# B-31 (IMP-1021-ADM-01, B31_CONSTRUCTION_DESIGN section 2.4): workforce (api, events), approval (api, events), numbering, audit and file (api). Not platform.scheduling (own @Scheduled jobs, CONVENTIONS section 5); accounting.fixedasset and the signing service join with the first code that uses them.
+organization.administration -> organization.workforce, platform.approval, platform.audit, platform.file, platform.numbering
 organization.attendance -> platform.audit
 organization.workforce -> platform.audit, platform.integration
 platform.approval -> platform.identity, organization.workforce, platform.integration, platform.audit, organization.attendance, platform.numbering
