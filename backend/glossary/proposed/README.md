@@ -39,6 +39,16 @@ B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41�
 
 无错误码以外的术语。
 
+## organization.administration（`contract-original-loan.yaml`）
+
+合同原件借阅用语（one-glossary 2026-10-21，NAM-1021-GLO-14；ADR-0076 提议，proposed）。bc 按 one-architecture 裁定：先行期 organization.administration，W3 移交 contract.agreement。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `contract_original` | 合同原件 | ContractOriginal | 领域 · organization.administration | 合同原件的归档记录：法人、合同编号、原件类型、存放位置、归档状态；先行期在行政事务，W3 移交合同模块的协议归档记录（ADR-0076） |  |  |
+| `loan_record` | 借阅记录 | LoanRecord | 领域 · organization.administration | 一份合同原件的一次借出：借用人、借出日、应还日、实际归还日，审批实例必填；借出须原件已归档且无未归还借出（ADR-0076，INV-125） |  |  |
+| `renewal_record` | 续借记录 | RenewalRecord | 领域 · organization.administration | 一笔借阅的续借，另起一条并引用原借阅记录，带新应还日与续借审批实例，每笔借阅最多续借一次（ADR-0076） |  |  |
+
 ## cost.timesheet（`cost-timesheet.yaml`）
 
 cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）。
@@ -199,6 +209,22 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 | `release` | 放行 | Release | ACL（过渡期） · platform.integration | 管理员核对同步差异后，让被中止的同步生效的动作 |  | 扫描前端界面文案发现；同步记录页按钮与结果用语 |
 | `org_sync` | 同步 | OrgSync | ACL（过渡期） · platform.integration | 把组织来源的组织单元与员工变化应用到本系统的一次运行 |  | 扫描前端界面文案发现；与「同步记录」「同步差异」配合使用 |
 
+## `gl5-direct.yaml`
+
+涉及模块：`accounting.tax`、`organization.administration`。
+
+GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-21，NAM-1021-GLO-14，proposed）。已被取代、草拟两个状态名是各对象状态链里的取值名，随各对象登记，决定记在 glossary/arch-naming/STATE_NAME_RULINGS.md。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `statutory_filing` | 法定申报 | StatutoryFiling | 领域 · accounting.tax | 法人对税务、社保等机关的周期申报与缴款（增值税及附加、企业所得税、个税扣缴、社保公积金、统计）；其中税务类的申报记录即已登记的「税务申报记录」 |  |  |
+| `statutory_filing_status__pending_filing` | 待申报 | PendingFiling | 领域 · accounting.tax | 法定申报的状态：已生成申报，尚未向机关申报 |  |  |
+| `statutory_filing_status__filed` | 已申报 | Filed | 领域 · accounting.tax | 法定申报的状态：已向机关申报，尚未缴款 |  |  |
+| `statutory_filing_status__remitted` | 已缴款 | Remitted | 领域 · accounting.tax | 法定申报的状态：税费或社保公积金已缴纳 |  |  |
+| `correct_filing` | 更正申报 | CorrectFiling | 领域 · accounting.tax | 对已申报的法定申报作更正，另起更正申报 |  |  |
+| `asset_card_list` | 资产卡片清单 | AssetCardList | 领域 · organization.administration | 先行期财务提供的资产卡片清单，每行带资产卡片号、所属法人、资产名称，行政事务据此引用信息技术资产；资产卡片一词待 GL5-02 定 |  |  |
+| `card_number_status__pending_check` | 待核 | PendingCheck | 领域 · organization.administration | 资产卡片号的状态：清单没到时手工录入的卡片号，等财务清单到后核对，核对前不当作已确认 |  |  |
+
 ## `kernel.yaml`
 
 `tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。`reversal_document`、`correction_document`、`document_nature`、`reversal_category`、`reversible_balance`、`derived_reversal`、`original_period`、`change_order_document`、`reverse_action`、`correct_action` 十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。
@@ -354,7 +380,10 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 
 organization.attendance 提议术语（proposed，待业务评审，ADR-0018）。
 
-无错误码以外的术语。
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `official_notice` | 官方通知 | OfficialNotice | 领域 · organization.attendance | 国家或地方政府发布的放假与调休安排通知，以文号和链接标识；工作日历版本确认时必须挂上（IMP-1021-PAR-02，one-data 审查 WORK-CALENDAR-DDL-2026-10-21 更正三、五） |  | 列名 official_notice_number、official_notice_url 用此词，暂名，待 one-glossary 定名 |
+| `make_up_workday_cancelled` | 调休上班日取消 | MakeUpWorkdayCancelled | 领域 · organization.attendance | 官方安排的调休上班日被公司取消、按普通周末休息计的例外日取值；必须是周六或周日，依据为公司加休或手工更正并写明取消的是哪份官方通知里的哪个调休（IMP-1021-PAR-02，更正六） |  | 暂名，待 one-glossary 定名 |
 
 另有错误码 8 个（kind 为 `error_code`）、技术词 8 个（`common_words`），不在表中。
 
@@ -454,6 +483,16 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 
 另有错误码 20 个（kind 为 `error_code`），不在表中。
 
+## platform.identity（`platform-identity-b31-roles.yaml`）
+
+B-31 配置集的三个负责角色（one-glossary 2026-10-22，NAM-1021-GLO-17；one-data 来单，proposed）。角色代码格式按 one-data：小写 snake，^[a-z][a-z0-9_]{1,59}$。后缀沿用词表惯例用 head（部门负责人 OrgUnitHead、法人财务负责人 LegalEntityFinanceHead），不用 manager。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `administration_head` | 行政负责人 | AdministrationHead | 领域 · platform.identity | 负责行政事务（用印、合同原件借阅、员工活动等）的负责人；B-31 配置集的负责角色之一 |  |  |
+| `it_head` | 信息技术负责人 | ItHead | 领域 · platform.identity | 负责信息技术服务与信息技术资产的负责人；B-31 配置集的负责角色之一；中文名以「信息技术」为准，「IT 负责人」不用 |  |  |
+| `employee_relations_head` | 员工关系负责人 | EmployeeRelationsHead | 领域 · platform.identity | 负责员工关系事务（如周年通知接收）的负责人；B-31 配置集的负责角色之一 |  |  |
+
 ## platform.identity（`platform-identity.yaml`）
 
 platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登录、会话、票据、角色与数据范围用到的词。
@@ -501,6 +540,24 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `number_code` | 编号缩写码 | NumberCode | 领域 · platform.numbering | 单据类型在统一编号格式中的缩写，大写字母 2 至 4 位，对应模板占位符 {TYPE}；与 terms.yaml 的 document_type_code 同义，后者与 kernel.DocumentTypeCode 同名异义，已登记给 one-glossary 裁定 |  | REG-1（IMP-1021-NX5-01）新增 |
 
 另有错误码 6 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
+
+## platform.signing（`platform-signing.yaml`）
+
+签章服务（platform.signing）提议术语（one-glossary 2026-10-22，NAM-1021-GLO-16；准入第 6 条，proposed）。模块标识 platform.signing、schema platform_signing、权限码前缀 platform.signing（由 bcs.yaml 的 platform.signing 派生，英文名 SigningService，用户 2026-10-21 同意）。英文 seal 只指印章；文件封存用 hold，不用 seal。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `seal_ledger` | 印章台账 | SealLedger | 领域 · platform.signing | 公司各法人各类印章的台账，管印章有哪些、什么载体、是否启用、谁保管；用印登记引用其条目（ADR-0064 决定 3） |  |  |
+| `seal_ledger_entry` | 印章台账条目 | SealLedgerEntry | 领域 · platform.signing | 台账中一枚印章的一条记录：粒度为法人 × 印章类型，自有主键 UUIDv7，带载体（实体或电子）与启停状态，同一法人同一印章类型任一时点至多一条启用（ADR-0064 决定 3） |  |  |
+| `seal_ledger_entry_version` | 印章台账条目版本 | SealLedgerEntryVersion | 领域 · platform.signing | 印章台账条目的版本行：生效日、失效日左闭右开，只追加、只许关闭不许改写；载体、启停、保管部门进版本表，用印登记按用印时刻取当时有效版本（ADR-0064 决定 3，D17） |  |  |
+| `seal_type` | 印章类型 | SealType | 领域 · platform.signing | 印章的种类，如公章、合同章、出图专用章；台账条目由法人加印章类型确定；取值清单随先行上线批登记（ADR-0064 决定 3） |  |  |
+| `signing_record` | 签章记录 | SigningRecord | 领域 · platform.signing | 签章服务的只追加记录：请求方与申请 ID、台账条目版本或执业印章、经办人或签章人、签前件与签后件的文件标识和内容哈希、服务商交易号、验章结果、时刻；不改不删，更正用新记录关联；只指本模块的记录（ADR-0064 决定 7） |  |  |
+| `seal_carrier` | 印章载体 | SealCarrier | 领域 · platform.signing | 印章的载体，取值实体章、电子章；台账条目版本上记载体，先行期全部按实体章办理（ADR-0064 决定 3、5） |  |  |
+| `custody_department` | 保管部门 | CustodyDepartment | 领域 · platform.signing | 印章台账条目版本上记的保管该印章的部门（ADR-0064 决定 3） |  |  |
+| `seal_type_list` | 印章类型清单 | SealTypeList | 领域 · platform.signing | 行政提供的印章类型取值清单，做成版本化配置表（根表加版本表），不写死枚举；作者与确认人分离，决定出处必填（ADR-0064 决定 3，D15） |  |  |
+| `seal_type_list_version` | 印章类型清单版本 | SealTypeListVersion | 领域 · platform.signing | 印章类型清单的一个版本：生效日、决定出处、作者；确认人不得是作者（ADR-0064 决定 3，D15） |  |  |
+
+另有错误码 7 个（kind 为 `error_code`），不在表中。
 
 ## platform.web（`platform-web.yaml`）
 

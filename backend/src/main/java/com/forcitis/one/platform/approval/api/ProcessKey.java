@@ -1,27 +1,23 @@
 package com.forcitis.one.platform.approval.api;
 
-import com.forcitis.one.kernel.DocumentTypeCode;
 import java.util.Locale;
 
-/** One BPMN file per constant (processes/{key}.bpmn20.xml); constant = {SUBDOMAIN}_{BC}_{NAME} of the owning module (G47). */
+/**
+ * One BPMN file per constant (processes/{key}.bpmn20.xml); constant = {SUBDOMAIN}_{BC}_{NAME} of the owning module (G47).
+ * The document type a process approves is data of its definition (forcitis:documentType), not a field of the constant (ADR-0066 decision 4).
+ */
 public enum ProcessKey {
-    COST_TIMESHEET_APPROVAL(true, new DocumentTypeCode("TIMESHEET"));
+    COST_TIMESHEET_APPROVAL(true);
 
     private final boolean routingFlagRequired;
-    private final DocumentTypeCode documentType;
 
-    ProcessKey(boolean routingFlagRequired, DocumentTypeCode documentType) {
+    ProcessKey(boolean routingFlagRequired) {
         this.routingFlagRequired = routingFlagRequired;
-        this.documentType = documentType;
     }
 
     /** True when the branches are chosen by routing flags: a start with none would route nowhere and is refused. */
     public boolean routingFlagRequired() {
         return routingFlagRequired;
-    }
-
-    public DocumentTypeCode documentType() {
-        return documentType;
     }
 
     public String key() {
