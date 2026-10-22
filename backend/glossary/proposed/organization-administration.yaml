@@ -1833,12 +1833,12 @@ terms:
   note: ''
 - id: employee_activity_type_system_only
   zh: 仅系统生成
-  en: SystemOnly
-  snake: system_only
+  en: IsSystemOnly
+  snake: is_system_only
   kind: value_object
   bc: organization.administration
   scope: domain
-  definition: 员工活动类型版本条目的属性：标为仅系统生成的类型只能由系统作业生成（如周年贺卡），手工提交与重登一律拒绝；契约与代码不写死类型代码，只读该属性；库列 system_only。
+  definition: 员工活动类型版本条目的属性：标为仅系统生成的类型只能由系统作业生成（如周年贺卡），手工提交与重登一律拒绝；契约与代码不写死类型代码，只读该属性；库内布尔列 is_system_only，JSON 字段 isSystemOnly；周年作业走内部用例可生成。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §3.1
   confidence: medium
