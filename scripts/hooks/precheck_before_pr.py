@@ -47,18 +47,22 @@ def git_out(root, *args):
 def tree_state(root):
     """(HEAD, origin/main, git directory) when the working tree is clean and all three are known, else None: only a clean tree can be vouched for by a mark."""
     head, base, gitdir = git_out(root, "rev-parse", "HEAD"), git_out(root, "rev-parse", "origin/main"), git_out(root, "rev-parse", "--absolute-git-dir")
-    dirty = git_out(root, "status", "--porcelain")
+    dirty = git_out(root, "status", "--porcelain", "--untracked-files=normal")
     return (head, base, gitdir) if head and base and gitdir and dirty == "" else None
 
 
-def record_pass(root, now=None):
-    """Called by the pre-push gate after precheck --pre-push ended ready."""
+def record_pass(root, now=None, checked=None):
+    """Called by the pre-push gate after precheck --pre-push ended ready. `checked` is tree_state(root) taken before the checks started: the mark is written only when the tree is still exactly that,
+    so a commit or fetch made while the checks ran never gets vouched for."""
     state = tree_state(root)
-    if state:
-        head, base, gitdir = state
-        with open(os.path.join(gitdir, PASS_MARK), "w", encoding="utf-8") as mark:
-            json.dump({"head": head, "base": base, "at": now if now is not None else time.time()}, mark)
-    return state is not None
+    if state is None or (checked is not None and state != checked):
+        return False
+    head, base, gitdir = state
+    target = os.path.join(gitdir, PASS_MARK)
+    with open(target + ".tmp", "w", encoding="utf-8") as mark:
+        json.dump({"head": head, "base": base, "at": now if now is not None else time.time()}, mark)
+    os.replace(target + ".tmp", target)
+    return True
 
 
 def passed_recently(root, now=None):
@@ -129,6 +133,31 @@ def self_test():
         git("update-ref", "refs/remotes/origin/main", "HEAD")
         open(os.path.join(root, "untracked"), "w").write("x")
         assert not passed_recently(root, now=2060), "an untracked file is a change too"
+        os.remove(os.path.join(root, "untracked"))
+        # a commit made while the checks ran: the tree checked is not the tree now, so no mark
+        checked = tree_state(root)
+        open(os.path.join(root, "f"), "w").write("3")
+        git("commit", "-q", "-a", "-m", "three")
+        assert not record_pass(root, now=3000, checked=checked) and not passed_recently(root, now=3000)
+        assert record_pass(root, now=3000, checked=tree_state(root)) and passed_recently(root, now=3000)
+        # main(): no valid mark -> precheck.sh runs; a valid mark -> it does not
+        from unittest import mock
+        import io
+        raw = json.dumps({"tool_name": "Bash", "tool_input": {"command": "gh pr create"}, "cwd": root})
+        ready = subprocess.CompletedProcess([], 0, "SUMMARY: 1 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", "")
+        here = sys.modules[__name__]
+        real_run = subprocess.run
+        for now, runs in ((3000, 0), (3000 + PASS_MARK_SECONDS + 5, 1)):
+            calls = []
+
+            def fake_run(command, *args, **kwargs):
+                if str(command[0]).endswith("precheck.sh"):
+                    calls.append(command)
+                    return ready
+                return real_run(command, *args, **kwargs)
+            with mock.patch.object(time, "time", return_value=now), mock.patch.object(subprocess, "run", side_effect=fake_run), mock.patch.object(sys, "stdin", io.StringIO(raw)), \
+                    mock.patch.object(sys, "stderr", io.StringIO()), mock.patch.object(here, "repository_of", return_value=root):
+                assert main() == 0 and len(calls) == runs, (now, calls)
     print("precheck_before_pr self-test: ok")
     return 0
 

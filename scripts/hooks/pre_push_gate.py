@@ -183,6 +183,7 @@ def main():
         path = log_bypass(root, branch_of(root), info)
         print(f"推送前钩子已按理由绕过并留痕（{path}）：{info}", file=sys.stderr)
         return 0
+    checked = pr.tree_state(root)
     try:
         run = subprocess.run([os.path.join(root, "scripts", "precheck.sh"), "--pre-push"], cwd=root, capture_output=True, text=True,
                              encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS)
@@ -196,7 +197,7 @@ def main():
     if reason:
         print(reason + "\n（确需绕过：PUSH_BYPASS_REASON=\"<理由>\" git push --no-verify …，会留痕）", file=sys.stderr)
         return 2
-    pr.record_pass(root)
+    pr.record_pass(root, checked=checked)
     return 0
 
 
@@ -244,7 +245,7 @@ def self_test():
         finished = subprocess.CompletedProcess([], code, output, "")
         with mock.patch.object(subprocess, "run", return_value=finished), mock.patch.object(pr, "record_pass") as record, mock.patch.object(pr, "repository_of", return_value="/r"), \
                 mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}, "cwd": "/r"}))), mock.patch.object(sys, "stderr", io.StringIO()):
-            assert main() == (0 if marked else 2) and record.call_count == marked, "only a push the checks let through leaves a pass mark"
+            assert main() == (0 if marked else 2) and record.call_count == marked and (not marked or "checked" in record.call_args.kwargs), "only a push the checks let through leaves a pass mark"
     print("pre_push_gate self-test: ok")
     return 0
 

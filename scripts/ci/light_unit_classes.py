@@ -54,7 +54,8 @@ def mentions(root, needle, main_root=None):
                     texts.setdefault(name[:-5], []).append(re.sub(r"//[^\n]*", " ", re.sub(r"/\*.*?\*/", " ", text, flags=re.S)))
         return texts
 
-    reads = lambda ts: any(needle in lit for t in ts for lit in re.findall(r'"(?:\\.|[^"\\\n])*"', t))
+    hit = needle.search if hasattr(needle, "search") else (lambda lit: needle in lit)
+    reads = lambda ts: any(hit(lit) for t in ts for lit in re.findall(r'"(?:\\.|[^"\\\n])*"', t))
     texts, main_texts = read(root), read(main_root) if main_root else {}
     literal = {n for n, ts in texts.items() if reads(ts)}
     helpers = {n for n in literal if not n.endswith("Test")} | {n for n, ts in main_texts.items() if reads(ts)}
@@ -63,30 +64,74 @@ def mentions(root, needle, main_root=None):
 
 
 MODULE_SOURCE = re.compile(r"^backend/src/(?:main|test)/java/com/forcitis/one/([a-z]+)/([a-z]+)/")
+MODULE_REF = re.compile(r"com\.forcitis\.one\.([a-z]+)\.([a-z]+)\b")
+# a string literal that names a file outside the java sources: the tests that read docs/, frontend/ or other inputs
+FILE_LITERAL = re.compile(r"\.\./|\.(?:ya?ml|sql|template|md|txt|json|csv|env|properties|xml)\b")
 
 
 def changed_modules(paths, main_root):
-    """({"bc.module"} of the changed module sources, whole) — whole is True when a backend/ path is not source of a module that exists in src/main (then every module's tests may be affected)."""
-    modules, whole = set(), False
+    """({"bc.module"} of the changed module sources, whole, outside) — whole is True when a backend/ path is not source of a module that exists in src/main, or is in kernel (then every module's tests may be affected);
+    outside is True when docs/ or frontend/ changed (tests read files there)."""
+    modules, whole, outside = set(), False, False
     for path in paths:
         m = MODULE_SOURCE.match(path)
-        if m and os.path.isdir(os.path.join(main_root, m.group(1), m.group(2))):
+        if m and m.group(1) != "kernel" and os.path.isdir(os.path.join(main_root, m.group(1), m.group(2))):
             modules.add(f"{m.group(1)}.{m.group(2)}")
         elif path.startswith("backend/"):
             whole = True
-    return modules, whole
+        elif path.startswith(("docs/", "frontend/")):
+            outside = True
+    return modules, whole, outside
 
 
-def read_directories(root, main_root):
-    """{simple class name: {module "bc.module" of each file, or None when the file is outside the module directories}}."""
-    where = {}
+def module_of(folder_root, folder, main_root):
+    parts = os.path.relpath(folder, folder_root).split(os.sep)
+    if folder_root != main_root:
+        parts = parts[3:] if parts[:3] == ["com", "forcitis", "one"] else []
+    return f"{parts[0]}.{parts[1]}" if len(parts) >= 2 and os.path.isdir(os.path.join(main_root, parts[0], parts[1])) else None
+
+
+def read_modules(root, main_root):
+    """{simple class name: [(module "bc.module" or None outside the module directories, modules its source mentions)]} for the test sources."""
+    out = {}
     for folder, _, files in os.walk(root):
-        parts = os.path.relpath(folder, root).split(os.sep)
-        module = f"{parts[3]}.{parts[4]}" if len(parts) >= 5 and parts[:3] == ["com", "forcitis", "one"] and os.path.isdir(os.path.join(main_root, parts[3], parts[4])) else None
+        module = module_of(root, folder, main_root)
         for name in files:
             if name.endswith(".java"):
-                where.setdefault(name[:-5], set()).add(module)
-    return where
+                text = open(os.path.join(folder, name), encoding="utf-8").read()
+                out.setdefault(name[:-5], []).append((module, {f"{a}.{b}" for a, b in MODULE_REF.findall(text)}))
+    return out
+
+
+def main_dependencies(main_root):
+    """{module: modules its main sources mention}."""
+    deps = {}
+    for folder, _, files in os.walk(main_root):
+        module = module_of(main_root, folder, main_root)
+        for name in files:
+            if module and name.endswith(".java"):
+                text = open(os.path.join(folder, name), encoding="utf-8").read()
+                deps.setdefault(module, set()).update(f"{a}.{b}" for a, b in MODULE_REF.findall(text))
+    return deps
+
+
+def select(root, main_root, paths, names):
+    """(the light classes the changed paths can affect, a one-line scope): the tests outside the module directories always; a module's tests when it, or a module it depends on (main sources, transitively),
+    changed, or when the test itself mentions a changed module; the tests that read files when docs/ or frontend/ changed; everything when whole."""
+    modules, whole, outside = changed_modules(paths, main_root)
+    if whole:
+        return names, "every light test (a backend path outside module sources, or kernel, changed)"
+    deps = main_dependencies(main_root)
+    affected = set(modules)
+    while True:
+        more = {m for m, d in deps.items() if d & affected and m not in affected}
+        if not more:
+            break
+        affected |= more
+    where = read_modules(root, main_root)
+    readers = mentions(root, FILE_LITERAL) if outside else set()
+    kept = [n for n in names if any(m is None or ({m} | refs) & affected for m, refs in where[n]) or n in readers]
+    return kept, f"tests outside the modules + modules {' '.join(sorted(affected)) or '(none)'}" + (" + the tests that read files" if outside else "")
 
 
 def light_classes(sources):
@@ -166,26 +211,34 @@ def self_test():
     with tempfile.TemporaryDirectory() as base:
         root = os.path.join(base, "src", "test", "java")
         one = os.path.join(root, "com", "forcitis", "one")
-        for rel in ("a/b", "a/c", "a/b/domain", "fixture/doubles", "kernel"):
+        main = os.path.join(base, "src", "main", "java", "com", "forcitis", "one")
+        for rel in ("a/b", "a/c", "a/d", "a/b/domain", "fixture/doubles", "kernel/event"):
             os.makedirs(os.path.join(one, *rel.split("/")))
-        for rel in ("a/b", "a/c"):
-            os.makedirs(os.path.join(base, "src", "main", "java", "com", "forcitis", "one", *rel.split("/")))
-        for rel, name in (("", "TopTest"), ("kernel", "KernelTest"), ("a/b", "BTest"), ("a/b/domain", "BDomainTest"), ("a/c", "CTest"), ("fixture/doubles", "DoublesTest")):
-            open(os.path.join(one, *filter(None, rel.split("/")), name + ".java"), "w", encoding="utf-8").write(f"class {name} {{ }}")
+        for rel in ("a/b", "a/c", "a/d", "kernel/event"):
+            os.makedirs(os.path.join(main, *rel.split("/")))
+        tests = (("", "TopTest", ""), ("kernel", "KernelTest", ""), ("a/b", "BTest", ""), ("a/b/domain", "BDomainTest", ""), ("a/c", "CTest", ""), ("a/d", "DTest", "import com.forcitis.one.a.b.X;"),
+                 ("fixture/doubles", "DoublesTest", ""), ("a/c", "ReadsTest", 'String f = "../docs/x/y.yaml";'))
+        for rel, name, body in tests:
+            open(os.path.join(one, *filter(None, rel.split("/")), name + ".java"), "w", encoding="utf-8").write(f"class {name} {{ {body} }}")
+        # main: c depends on b, d on nothing
+        open(os.path.join(main, "a", "c", "UsesB.java"), "w", encoding="utf-8").write("import com.forcitis.one.a.b.X; class UsesB { }")
         listing = os.path.join(base, "changed")
 
         def narrowed(*paths):
             open(listing, "w", encoding="utf-8").write("\n".join(paths) + "\n")
             return cli(["--changed", listing], root).split(","), cli(["--changed", listing, "--explain"], root)
-        got, _ = narrowed("backend/src/main/java/com/forcitis/one/a/b/domain/X.java")
-        assert got == ["BDomainTest", "BTest", "DoublesTest", "KernelTest", "TopTest"], f"one module changed: its tests and the tests outside the modules: {got}"
-        got, why = narrowed("frontend/src/x.ts", "backend/src/test/java/com/forcitis/one/a/c/CTest.java")
-        assert got == ["CTest", "DoublesTest", "KernelTest", "TopTest"] and "a.c" in why, (got, why)
-        assert narrowed("frontend/src/x.ts")[0] == ["DoublesTest", "KernelTest", "TopTest"], "nothing in backend/: the tests outside the modules"
-        for whole in ("backend/pom.xml", "backend/src/main/resources/db/x.sql", "backend/src/main/java/com/forcitis/one/kernel/K.java", "backend/src/test/java/com/forcitis/one/fixture/doubles/D.java",
-                      "backend/src/main/java/com/forcitis/one/a/gone/G.java", "backend/glossary/x.yaml"):
-            got, why = narrowed("backend/src/main/java/com/forcitis/one/a/b/X.java", whole)
-            assert got == ["BDomainTest", "BTest", "CTest", "DoublesTest", "KernelTest", "TopTest"] and "every light test" in why, (whole, got)
+        got, why = narrowed("backend/src/main/java/com/forcitis/one/a/b/domain/X.java")
+        assert got == ["BDomainTest", "BTest", "CTest", "DTest", "DoublesTest", "KernelTest", "ReadsTest", "TopTest"] and "a.b" in why, f"b changed: its tests, c (main depends on b) and d (the test mentions b), the tests outside: {got}"
+        got, why = narrowed("backend/src/test/java/com/forcitis/one/a/c/CTest.java")
+        assert got == ["CTest", "DoublesTest", "KernelTest", "ReadsTest", "TopTest"], f"c changed: nothing depends on c: {got}"
+        got, why = narrowed("docs/x.md")
+        assert got == ["DoublesTest", "KernelTest", "ReadsTest", "TopTest"] and "read files" in why, f"docs changed: the tests outside the modules and the tests that read files: {got}"
+        assert narrowed("frontend/src/x.ts")[0] == got, "frontend counts like docs"
+        assert narrowed("scripts/x.sh")[0] == ["DoublesTest", "KernelTest", "TopTest"], "nothing the tests read: only the tests outside the modules"
+        for whole in ("backend/pom.xml", "backend/src/main/resources/db/x.sql", "backend/src/main/java/com/forcitis/one/kernel/K.java", "backend/src/main/java/com/forcitis/one/kernel/event/E.java",
+                      "backend/src/test/java/com/forcitis/one/fixture/doubles/D.java", "backend/src/main/java/com/forcitis/one/a/gone/G.java", "backend/glossary/x.yaml"):
+            got, why = narrowed("backend/src/main/java/com/forcitis/one/a/c/X.java", whole)
+            assert got == ["BDomainTest", "BTest", "CTest", "DTest", "DoublesTest", "KernelTest", "ReadsTest", "TopTest"] and "every light test" in why, (whole, got)
     if os.path.isdir(ROOT):
         real = set(cli(["--reading", "architecture"]).split(","))
         assert {"PrimaryKeyTypeGuardTest", "RepositoryWriteGuardTest", "SystemActorCatalogueTest", "CredentialColumnGuardTest", "PrimaryKeyExemptionsTest", "SeeyonSourceScanTest", "QualifiedBaseTableGuardTest", "IdempotencyScopeTest", "SystemActorsTest"} <= real, sorted(real)
@@ -200,12 +253,9 @@ def cli(args, root=ROOT):
     names = light_classes(read_sources(root))
     if listing:
         main_root = os.path.normpath(os.path.join(root, "..", "..", "main", "java", "com", "forcitis", "one"))
-        modules, whole = changed_modules([line.strip() for line in open(listing, encoding="utf-8") if line.strip()], main_root)
+        names, scope = select(root, main_root, [line.strip() for line in open(listing, encoding="utf-8") if line.strip()], names)
         if "--explain" in args:
-            return "every light test (a backend path outside module sources changed)" if whole else f"tests outside the modules + modules: {' '.join(sorted(modules)) or '(none)'}"
-        if not whole:
-            where = read_directories(root, main_root)
-            names = [n for n in names if None in where[n] or where[n] & modules]
+            return scope
     if needle:
         read = mentions(root, needle)
         names = sorted(n for n in read if n.endswith("Test") and n not in names) if "--heavy" in args else [n for n in names if n in read]
