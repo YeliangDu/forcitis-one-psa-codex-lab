@@ -7,6 +7,7 @@ import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.Hours;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -122,7 +123,7 @@ class JdbcTimesheetRepository implements TimesheetRepository {
     }
 
     private static DomainException changedByOthers(Timesheet timesheet) {
-        return TimesheetError.COST_TIMESHEET_CONCURRENT_CHANGE.refusal("Timesheet " + timesheet.timesheetId().value()
+        return KernelError.KERNEL_CONCURRENT_CHANGE.refusal("Timesheet " + timesheet.timesheetId().value()
                 + " was changed by somebody else");
     }
 

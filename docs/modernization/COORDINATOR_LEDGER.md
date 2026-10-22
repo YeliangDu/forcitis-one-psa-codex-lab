@@ -3,28 +3,24 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-22 11:45（one-coordinator，用户要 clear）
-- 接手先做：读 ~/.modernize/psa/outbox/；读工作台 board/request、分层总图 meta/request（有新请求就同步）；ListAgents + gh pr list 查断档；intent 2026-10-22-* 为今日决定。
-- 今日已定：A7475/A7677/GL5/SGN/LEB/KPI/FCQ 全答并分发；7.5–8 小时不算加班；撤 psa_one_legacy_ro 已执行；git 原则 §12.6；生成产物移出 main 按推荐（1 期 #573 在队）；工作台钉左栏、按需同步；outbox 规则；年度目标在 BI（无贡献毛利目标）；不建 GitHub Project。
-- 11:45 补：#574 已合（脚本与复审版逐字节一致）；one-merge 自动入队脚本停用、只按批准手动入队；mq.py remove 停不掉在跑 worker 交 one-quality 修（首轮 opus）；KPI.json（已答页）被 one-architecture 改了题面，已令回退（admission-file b220e6f9 不收）；one-rules 改 check_pages 范围为「改动页+未答页」；M-29 基线四注已写（结转偏差上界约 12.5pt 待财务核，攒问财务）；分层总图 11:00 的请求我漏看、11:40 已补。
-- 不得再犯：回复用户前先读工作台 board/request 与分层总图 meta/request；批准入队后跟到合入。
-- 在途待收：FCQ 落地（one-rules 补基线注四件、one-arch-finance 奖金与加班设计 ed99f3b8 待 one-architecture 核、one-arch-people 补发 8be32c18 已交）；#579/#581/#580/#570/#561/#573/#572/#574 在队或待 CI；PAR-04 两条裁定已进 main 后 one-1a-par 开 PR；one-quality 生成产物 4/5 期与 GOV-1022-COO-05；REG-3→RULE-412→REG-4→卡 N；KERR（one-1a-par）；one-platform-file 签章 api（新会话 local_87a73fc1）。
-- 重启后先做：ReadNotifications；读 ~/.modernize/psa/outbox/；one-merge 恢复队列（队列 [572,574,570]，再入 #561、#573）并核主检出 f0c62f519；工作台按 ledger 同步一次。
-- 今日已定（intent 10-22 各片段）：A7475/A7677/GL5/SGN/LEB/KPI 全答；撤 psa_one_legacy_ro 已执行；git 原则 §12.6；生成产物移出 main 按推荐（1/4/5 期先做，2 期上游已修，3 期缓）；工作台钉左栏；outbox 规则；年度目标在 BI 看板（无贡献毛利目标，Q03 结案）。
-- 在途：财务口径确认页 6 题（one-arch-finance 出、我审题）；PAR-04 等两条裁定进 main 后开 PR；one-quality 生成产物 1 期 #573、GOV-1022-COO-05 台账补全；REG-3/REG-4（IMP-1022-COO-01）/KERR（IMP-1022-COO-02）；one-platform-file 签章 api。
-- 清空后第一步：通读 SESSION_PLAYBOOK §11（含战队协作 1–15 条）、§5；读本节与下方各「**…**」行；扫收件箱 pending（https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15，当前 0 项）；intent 见 2026-10-21-15* 以后各片段。卡的状态以 tasks 片段为准，台账只写指针。
-- **今日用户新口径**（详 intent）：交接钩子推全部会话、只交接不清空；回合结尾不向用户提问；后台任务命名适用所有后台任务；提交信息带 Session/任务号/为什么（钩子待做）；小代码 PR 可合批、已批 ADR PR 并入文档合集；纯文档合入不算代码 PR 落后；本机性能三项；分支/工作区清理归 one-merge 每周；重启前后固定步骤（§11 第 15 条）；派工登记表（intent 213907）。
-- **等用户批**：ADR-0074（organization.administration 补进 ADR-0051 BC 清单、审批聚合补 AGG-113/114/合同借阅、合同原件借阅 W3 移交 contract.agreement、「经通用审批办理」对 ADR-0054/0055/0064 部分取代；采纳前 B-31 模块骨架不合入 main）与 ADR-0075（ADR-0058 补篇，子状态机各记转换）——one-architecture 在 opus 复审，批准页出后调度先审题再进收件箱。
-- **C 线 one-1a-admin**（新，sonnet high，local_d0ced0f9）：ADM-01 契约/术语文档 PR 先走，骨架分支 claude/one-1a-admin-skeleton 等 ADR-0074；7.5/7.8 在分支写；platform.file 已准入（@2790c770）可登记依赖边；FileImports 随 7.10 落地，先行上线前未落地则撤。
-- **队列/合并**：文件服务 #521（修词表）→#525→#527；词表 #536→#537→#538；文档合集按 one-merge 报；one-quality 的 #531（性能三项）、#541（mq：FF-MAIN 等）、主检出守护 PR 在走；主检出 7 个未跟踪提案文件随 admission-file 合集入库后由 one-merge 删。
-- **one-quality 队列**：#531 → #541 → 主检出守护 → 派工登记表（陈旧检查+补登脚本）→ 后台任务命名钩子 → 提交信息钩子 → QUA-05 重跑 → 网络规则 CI → QUA-03。
-- **one-1a-par**：日历改造 PAR-02（DDL 已签发设计层）→ F2 PAR-04 → PAR-03；W2 待办含 INV-62、RULE-387/394、RegisteredEmployee/SyncRun。
-- **one-1a-next-5**：REG-2（verify 中）→ RULE-412 守护 → REG-3（#493 已合，不用等）；ADR-0066 决定 4 注册表改造须在 W0 收口窗口内完成（收口清单 proposals/freeze/W0_CONTRACT_BATCH_REVIEW.md，one-architecture 10-21）；P0 验收 11+2 例合入，RULE-376 缺口卡 IMP-1021-COO-11（待派）。
-- **one-architecture**：ADR-0074/0075 → 回 one-arch-finance/people → 第三批卡 12–15（12 已交 Codex）；B-31 四项归架构（合同借阅 bc、撤回/退回映射、软件许可、§8.2）。
-- **one-glossary**：GL4 写回（工单处理人先问 one-1a-admin 是否可转派）→ 第三批前缀/维度 → n20 → n22 → n21。
-- 其余：one-ops ClamAV 待与应用侧联调后报建成；one-data、one-rules、one-arch-revenue 空闲。
-- 不得再犯（10-22 12:xx 用户问「现在没有开发任务吗」）：恢复与每次巡检必须逐个查开发会话（one-1a-*、one-platform-file）最后一条与前置是否已满足，前置满足即叫醒，不只盯合并。
-- 不得再犯：未核实就转述状态（REG-3 误等 #493）；台账写状态不写指针；重启前只保文件不保在途事。
+更新：2026-10-22 20:15（one-coordinator，30% 线）
+- **讨论期冻结（用户 10-22 晚）**：「我想和你很认真的讨论下所有会话的角色和工作方式，这是个过程，所以在我们讨论结束之前，不要有什么决定」——讨论结束前不改会话角色、画像、规则、协议，不开/并/退会话；日常派工、批 PR 照常；确认页 E1CEBZoJ5TCJJX5ncQzkwa A 组与 COO-09 推全员暂停，等讨论。
+- **20:15 现状**：讨论议题 2（任务卡规划、PR 拆分、清空节点）已给用户讨论稿（建议节点=卡交出 finish.py，不用 PR 合入；bc 开卡顺序 签发→骨架→命令→集成/页面；卡 1–3 PR；第一阶段派工卡为模板加目标/完成标准/前置卡号），等用户回三问；下一轮我出「守护覆盖哪些规则」总结。
+- 在途：one-1a-par W2 PR-B 草案 @0adc05a6d 等 one-data 签；one-data 做 DATA_SCORECARD 等；one-1a-admin #599 后开卡 C、INV-138/Q-B31-5 进收件箱；one-arch-revenue、one-arch-finance 已令自清，清空后我 list_events 确认再发接续（revenue→AGG-20/16/02；finance→BONUS_OVERTIME_COSTING §3 PRC-96/AGG-41）；one-quality 试点通过，在做 COO-10；#611 已批入队；one-merge 待收合集：one-1a-par-w2-versions @0adc05a6d、本分支最新。
+- 讨论进度：议题 1 开场注入已定 5 点（intent 本晚，全文 ~/.modernize/psa/coordinator/team-audit/discussion-1-injection.md），等讨论结束一起改；下一议题候选：守护覆盖哪些规则 / 任务卡由谁写。
+- 收件箱重排（用户 10-22 晚「好，照这样改」）：确认页 E1CEBZoJ5TCJJX5ncQzkwa 改为只留仓库内容治理 3 题（v2）；团队规则 7 题撤下并入讨论（用户撤前草选 TEAM-01、TEAM-02 推荐项，未提交，讨论时参考）；业务题攒齐出新页：INV-138 四项、Q-B31-5（one-1a-admin 写收件箱）、终止/取消项目复核（薪酬补发时限与提醒对象已在 FCQ 10-22 08:38 答，删）。
+- 接手先做：ReadNotifications；`ls -t ~/.modernize/psa/outbox/`；`gh pr list` + `mq.py status`；逐个查开发会话前置是否满足（不得再犯：只盯合并）；intent 2026-10-22-15* 起为今日下午决定。
+- 下午已定（intent）：交接阈值 30%/40%（154722，§2.1 已改并进 main #602）；降负载不得牺牲开发机功能（151546）；仓库内容治理四项交 one-quality（153421，GOV-1022-COO-06）；one-ops search_path 三项「都做」（155217）。
+- 在开 PR：#603（已批，队列）；#587（已批，等 one-platform-file 解冲突+openapi）；#604 KERR（one-1a-par，等 opus+CI）；#599 REG-3（等 one-data 签发与 M1 裁定，验收补丁按 RULING-COORD-20261022-03）；#589（已批，one-quality）；#606 钩子三合一（守护文件，单列 opus）。
+- 在途派工：one-1a-next-5 已清空、按 claude/nx5-handoff-1022 恢复（RULE-412 PR→REG-3 验收→search_path IMP-1022-COO-03→REG-4）；one-quality：#606 → 治理设计按 opus 8 条改稿（结论「改后交用户」，见本会话）→ 我出确认页；one-data：#599 签发；one-ops：search_path 三项执行报回；one-merge：#601 后删 one-merge-docs2，分支清理已完（146→69，27 个归档 archive/*，清单 ~/.modernize/psa/branch-cleanup-20261022/）。
+- 等用户：Spotlight 隐私排除 ~/Projects、~/actions-runners、~/.m2；开发者工具已加（10-22 17:5x 核实：终端、Claude、Ghostty 均开）；治理确认页（待改稿）。
+- 额度：本周全模型 55%（10-26 重置），超额已停；主会话读缓存是主因，少发会话消息、知会合并。
+- **团队体检 GOV-1022-COO-07**（intent 2026-10-22-162957，用户「对，开工吧」）：第 1 步盘点已完成（193 条规则：机器强制 18%、部分 23%、靠自觉 58%；问题 58 条，最重：P-01 阈值多处仍 75/85、P-30~32 已批钩子未落地、P-02 PB §7 与 CLAUDE.md 相反、P-09/10/45 当前状态存放矛盾、P-25/29 规范无负责会话），文件 ~/.modernize/psa/coordinator/team-audit/inventory.md；第 2、3 步已写成 ~/.modernize/psa/coordinator/team-audit/plan.md（6 根因、6 节方案、3 批落地、7 项待拍板），opus 复审「改后通过」已按 9 条必改改成第二稿；确认页 https://claude.ai/artifact/E1CEBZoJ5TCJJX5ncQzkwa（10 题，含治理第二稿第七节 3 题，答复集合 answers/answers-submit）已进收件箱 pending → 用户答完按 plan.md「落地分批」执行；第 1 批不待批部分（P-01/11/57、CS-7.7、_retired、记忆清理）可先做 → 确认页进收件箱 → 用户批准后分批落地；文件不在则重派同一取证。
+- 治理设计第二稿（GOV-1022-COO-06）：claude/one-quality-repo-governance @22e083a54，已按 opus 8 条改完，待我审后出确认页（第七节待拍板项）；可与团队体检确认页合并出。#606 已批入队，合入后 one-merge 装 commit-msg 钩子。
+- **交接全自动 GOV-1022-COO-09**（intent 172418）：节点事件+≥20% 即自清，30/40 兜底；会话报「清空接续」→我 get_session 确认已清空再发「接续」；Remote Control 只保 one-coordinator 与 one-architecture（用户 10-22 17:5x「只保留你和架构会话远程，其他都关了」，已关 one-rules、one-arch-people，其余本已关）（我自清时 one-merge 用 set_remote_control 重开）；已派 one-quality（与 COO-08 合 PR，先自身试点），试点通过后我改 §2.1 第 1 条与画像。
+- COO-09 实测（10-22 晚）：①他会话的消息排队会顶掉 self 清空（one-arch-revenue 首次被 one-arch-finance 消息顶掉）→协议须写「清空中的会话不收消息，转调度」；②clear_session 不能清已 detach 的会话（即便由我开出），只能靠 self。重启后 mq.py 存活（15:37 起），新钩子 pre_tool_dispatch 已生效；one-architecture 远程重启后掉线，已重开。
+- 其他下午事项：#604 已批（:99 显示名按 -04 覆盖）；Actions 保留期已改 14 天；Spotlight 已排除（用户）；开发者工具已加并核实。
+- 不得再犯：恢复后只盯合并漏查开发会话；提交信息钩子交接写「等 §5」却不核实前提。
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
@@ -42,7 +38,7 @@
 - 分层总图（已钉左栏）：https://claude.ai/artifact/GANmVBuBzK58pT27xscJBE ——五层＋贯穿＋老系统退役，数据在页面 db（items/i000..，meta/page），状态变化用 ArtifactData update 改对应条目，不重发页面；源数据脚本 scratchpad(e9617959)/layers。
 - 在线页：会话日报 https://claude.ai/artifact/8CAmf8sAJsoaFNwetoGC7x （每天早上：scripts/ops/session_daily.py 出数 → 补 grade/assessment/action → 数据放 scratchpad(19432a27)/daily/site/data/<日期>.json 并更新 index.json → 以同一 file_path 重发 session-daily.html 与 files）；对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL （源与 refresh.sh 在 scratchpad(19432a27)/align，已钉左栏）。
 - 收件箱待用户答：ANM 命名体系与施工图方法 https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey ；N1 规则待定 https://claude.ai/artifact/BTo6TuYzW7H8vgjCanh4Vq 。用户说「答完」即取答复分发。
-- 攒问（下一张确认页一并出）：员工薪酬支付失败后几天内须补发、超时提醒谁（one-arch-people U-1，推荐 3 天、提醒法人财务负责人，依据《工资支付暂行规定》第七条，出页前核原文）。（LEB 三项已于 10-22 答完）
+- 攒问（下一张确认页一并出）：薪酬补发 U-1 已在 FCQ 答，删。（LEB 三项已于 10-22 答完）；终止/取消项目是否需上级复核（one-arch-revenue 命令卡待定，10-22）
 - 下一文档合集清单：scratchpad(57026514)/next-docs-train.txt（调度批准、one-merge 中午/晚上收）；调度自己的规则、画像、台账、intent、裁定改动都在分支 claude/one-coordinator-two-lanes。
 - 验收裁定登记后立即请 one-merge 加急小合集：acceptance_rulings 守护只认 base（main）上已有的裁定，随实现 PR 带入无效（10-21 F 卡被卡）。
 - 裁定：rulings/COORD-2026-10-17.md（RULING-COORD-20261017-01..04），one-quality 登记 ACCEPTANCE_RULINGS.yaml。
@@ -62,6 +58,9 @@
 - 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
 - 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
 - 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r （已钉左栏，10-22 改版）：`python3 scratchpad(08ce11ca)/workbench/sync.py <工作区> <输出目录>` 读任务卡片段、gh、mq 生成 cards/sessions/prs/meta 四个 JSON，ArtifactData batch set board/*（带 if_version）；收到完成点报告和每天早上各同步一次，「要关注」里的停滞卡当天追。
+- 自检：派工前看作战图、METHOD 当前步骤、相关 ADR 字面；同一件工具派工前查是否已有负责会话。告诉用户「已派/已完成/未做」与转给用户的数字先核实（会话记录、gh、证据文件），注明已核实/已抽查/未核实；说某会话「上下文高」前看实况。自己的裁定当场记 intent。改 scratchpad 合并脚本先 `bash -n`；写在线页时间用 `date -u`。合集分支推送前跑完整 precheck。答应「合入后通知」的挂 Monitor 盯 MERGED。告诉用户可重启前，除问各会话有无 Codex，还 `ps` 查常驻进程与 Monitor，并说明谁在重启后拉起。超 7 天未决的提议 ADR 每周交用户（采纳/拒绝/搁置）。
+- 开会话：start_session 开出后立即 detach_session 解绑为顶层，set_session_title 改为 one-* 名。
+- 用户待答事项再提醒前，先问负责会话是否已拿到答复。
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
@@ -107,6 +106,8 @@
 ## 本机与调度自管
 - CI runner mac-one-1..4（~/actions-runners/one-N）与部署 runner mac-one-deploy（/opt/forcitis-one-runner）；main 分支保护 strict。
 - 私有文件：~/.modernize/psa/ 下 infra/role_holders.md、finance/（问卷 v2/v3、财务答复、FINANCE_DECISIONS.html）、audit/、codex/、handoff/。
+- 持久配置：`~/.cargo/config.toml` 的 `[build] jobs = 4`（10-22 用户「你处理这个」，限 dsm-morden 等 Rust 并行编译；撤销即删该文件）。
+- 仓库设置：Actions 产物与日志保留 14 天（10-22，原 90）。
 - 会话内定时任务：无（用户 2026-10-16 停掉上下文巡检，各会话批次边界自查）。
 
 ## 暂缓清单（用户定生产口径前不开工，intent「生产自成体系」#344）

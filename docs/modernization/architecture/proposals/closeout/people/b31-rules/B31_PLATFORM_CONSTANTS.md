@@ -6,7 +6,9 @@
 
 英文名取自 `backend/glossary/proposed/organization-administration.yaml`，其中仍待 one-glossary 评审的词标「待定」；定名后本表跟改。常量随各施工卡落地，**申请时一次列全**。
 
-## 1. 流程键（`platform.approval.api.ProcessKey`，G47：`{SUBDOMAIN}_{BC}_{NAME}`）
+## 1. 流程键（G47：`{SUBDOMAIN}_{BC}_{NAME}`）
+
+**更正（one-architecture，`REG4_PROCESS_KEY_RULING_2026-10-22.md`）：不往 `platform.approval` 的 `ProcessKey` 枚举加常量。** 该枚举由 REG-4（one-1a-next-5）改成值对象，改完后三个流程键放在本模块自己的 api 里；REG-4 合入前，用到审批的卡（7.4 无来源用印、7.5 受控类别、借阅）只做不依赖流程键的部分。
 
 | 常量 | 对应审批 | 路由标记 | 单据类型码 |
 |---|---|---|---|
