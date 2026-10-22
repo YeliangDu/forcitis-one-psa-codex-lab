@@ -31,16 +31,28 @@
 4. 返回 `(employeeId, employmentStartDate, anniversaryYears, employmentPhase)`，游标分页，每页有上限（D19）；
 5. 入职日期缺失（仅迁入行可能）：**单员工查询**（`currentStartOf`）明确失败 `ORGANIZATION_WORKFORCE_EMPLOYMENT_START_UNKNOWN` 422，不默认；**批量满周年查询**不返回这些员工，另给一个"入职日未知的在职员工计数与清单"查询供人事补，不让批量任务整体失败。
 
-## 5. 迁入口径
+## 5. 迁入口径（按第 6 节取证修订）
 
-- 入职日期**不得用迁入日代替**（W2 第 6 节"取不到用迁入日并标左截断"只适用于版本的生效起点，不适用于入职日期：用迁入日会让周年全部算错）；
-- 来源按优先级：A8 `HR_STAFF_INFO` 里的入职类日期列（若有）> ruoyi `psa_employee_transfer_record` 视图每个人最早的区间起始日（需经取证验证它≈入职日）> 无来源；取证见第 6 节；
-- 无来源的在职员工：迁入行 `employment_start_date` 为空，仅 `change_channel_kind = 'MIGRATION'` 的行允许（具名 CHECK 在第 1 节 CHECK 上加例外），加 `employment_start_basis_code`（`COMPUTED`/`DECLARED`/`UNKNOWN`，迁入行必填，非迁入行恒 `DECLARED`）；`UNKNOWN` 进迁入质量发现（`MQ-M-11`，告警，负责人人事，期限按迁入规格 N 个工作日），由人事补，补录走更正命令（作废旧版本、写新版本，时间线不丢）；
+- 入职日期**不得用迁入日代替**（W2 第 6 节"取不到用迁入日并标左截断"只适用于版本的生效起点，不适用于入职日期：用迁入日会让周年全部算错）。
+- **权威来源 = 人事提供的《在职员工入职日期表》**（工号、入职日期；与 B-1a 员工法人归属表可同一张表加一列，在职约 300 人，人事核对后提供）。迁入规格用它赋值，`employment_start_basis_code = HR_PROVIDED`。老系统数据只用来**预填这张表供人事核对改正**，不直接当权威：
+  - A8 `HR_STAFF_INFO.WORK_STARTING_DATE`：654 行里有值 341，个人档案里没有"入职日期"列，这是唯一像入职的日期（最小值 2005-11-05），字段含义须人事确认；用作预填，迁入时若人事表缺该员工且有此值，`LEGACY_HR_RECORD`；
+  - 老系统 `psa_employee_transfer_record` 每人最早区间起始日：与上一项有值者 96% 完全一致（很可能就取自同一来源），HR 没填的 305 人里它另有来源、2017 年起激增，更像系统启用后补的**岗位区间起点**，不当入职日；仅预填，迁入时若既无人事表也无 HR 值，`LEGACY_ASSIGNMENT_START`（低可信）；
+  - 账号创建时间（A8 `CREATE_TIME`、老系统 `create_time`）：2020、2023 年是批量建账，**不用**。
+- `employment_start_basis_code` 取值：`DECLARED`（原生入职命令）、`HR_PROVIDED`、`LEGACY_HR_RECORD`、`LEGACY_ASSIGNMENT_START`、`UNKNOWN`（后两者以外均有值）；`UNKNOWN` 与迁入行外无来源时 `employment_start_date` 为空，仅 `change_channel_kind = 'MIGRATION'` 的行允许（具名 CHECK）。满周年批量查询只返回 `DECLARED`、`HR_PROVIDED`、`LEGACY_HR_RECORD` 三类，`LEGACY_ASSIGNMENT_START` 与 `UNKNOWN` 不返回，进"待人事确认入职日"清单（计数与清单查询），避免低可信日期触发错误的周年贺卡。
+- 迁入质量规则：`MQ-M-11` 在职员工入职日期缺失或低可信（`UNKNOWN`、`LEGACY_ASSIGNMENT_START`），告警，负责人人事，期限按迁入规格；人事补录走更正命令（作废旧版本、写新版本，时间线不丢）。
 - 左截断：只要有来源值就迁入，不论多早。
 
-## 6. 老系统取证（one-ops 在做，结果回填）
+## 6. 老系统取证结果（one-ops 只读，ADR-0037 已登记，仅聚合）
 
-已知：ruoyi `system_users` 没有入职日期列；`psa_employee_transfer_record`（视图）每人有区间起始日，最早 2005-11-05；A8 `HR_STAFF_INFO` 仅 651 行（A8 人员约 1299），含"参加工作日期 `BEGIN_WORK_DATE`"但"入职日期"列待核。取证结果出来后补本节，并决定第 5 节来源优先级。
+| 事实 | 数 |
+|---|---|
+| A8 `HR_STAFF_INFO` | 30 列，无"入职"列；`WORK_STARTING_DATE` 非空 341/654（2005-11-05～2026-10-12）；`BEGIN_WORK_DATE` 全空 |
+| A8 `ORG_MEMBER.CREATE_TIME` 在职 321 人 | 2020 年 128（A8 上线批量建账）、其余年份 8～68 不等，非入职时间 |
+| 老系统调动视图每人最早起始日 | 1247 人，2005-11-05～2026-10-14；2017 年起每年 66～241 人，2021 年 241 人 |
+| 老系统用户表未删除账号 | 303 人，建账年份 2023 年 166（批量建账） |
+| HR 档案与老系统按工号对上 | 645 人；HR 有值的 340 人中与视图最早日期相差 0 天 328、1～30 天 0、超 30 天 12（全是 HR 日期更早） |
+
+结论：A8 与老系统都**没有可靠的入职日期**；最像的 `WORK_STARTING_DATE` 只覆盖约一半且字段含义未确认，调动视图的日期与它同源或不可信。所以入职日期必须由人事提供，老系统数据只能预填。
 
 ## 7. 对施工卡的影响
 
