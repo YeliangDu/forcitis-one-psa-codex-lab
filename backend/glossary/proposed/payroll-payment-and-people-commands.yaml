@@ -225,3 +225,63 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: register_disbursement_return
+  zh: 登记代发退回
+  en: RegisterDisbursementReturn
+  snake: register_disbursement_return
+  kind: command
+  bc: payables.payment
+  scope: domain
+  definition: 出纳凭银行退回回单登记一笔代发的部分退回，付款仍为已核销，累计退回额增加；幂等键为付款标识加银行回单号；发「付款已部分退回」；全额退回仍走登记退票
+  standard_ref:
+  - 'closeout/finance/PAYROLL_REISSUE_SEAM.md（one-architecture 2026-10-22 对 J-1、J-2 的裁定）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payment_partially_returned
+  zh: 付款已部分退回
+  en: PaymentPartiallyReturned
+  snake: payment_partially_returned
+  kind: domain_event
+  bc: payables.payment
+  scope: domain
+  definition: 一笔付款登记了部分退回；应付侧订阅后冲回等额应付核销
+  standard_ref:
+  - 'closeout/finance/PAYROLL_REISSUE_SEAM.md（one-architecture 2026-10-22 对 J-1、J-2 的裁定）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: register_payroll_redisbursement_detail
+  zh: 登记薪酬补发明细
+  en: RegisterPayrollRedisbursementDetail
+  snake: register_payroll_redisbursement_detail
+  kind: command
+  bc: payables.payment
+  scope: domain
+  definition: 在原应付薪酬上登记补发明细，不新建应付、不过账；幂等键为薪酬行标识加补发轮次；付款流程按明细付清原应付的未结余额
+  standard_ref:
+  - 'closeout/finance/PAYROLL_REISSUE_SEAM.md（one-architecture 2026-10-22 对 J-1、J-2 的裁定）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payroll_redisbursement_detail
+  zh: 补发明细
+  en: PayrollRedisbursementDetail
+  snake: payroll_redisbursement_detail
+  kind: entity
+  bc: payables.payment
+  scope: domain
+  definition: 原应付薪酬上的补发明细：薪酬行、补发轮次、收款人与账户、金额（等于原实发）；与人事侧「薪酬补发」是同一事的应付侧记录
+  standard_ref:
+  - 'closeout/finance/PAYROLL_REISSUE_SEAM.md（one-architecture 2026-10-22 对 J-1、J-2 的裁定）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
