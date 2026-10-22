@@ -10,7 +10,6 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
