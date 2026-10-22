@@ -105,7 +105,7 @@ BEGIN
 END $$;
 
 
--- V13 迁入写入角色（ADR-0036）：窗口外 NOLOGIN、非超级用户/CREATEROLE/CREATEDB；不是属主角色的成员；运行、只读、维护角色都不是属主或迁入角色的成员；
+-- V13 迁入写入角色（ADR-0036）：窗口外 NOLOGIN、非超级用户/CREATEROLE/CREATEDB；不是属主角色的成员；运行、只读、维护角色都不是属主或迁入角色的成员，迁入角色也不是它们（含迁移角色）的成员；
 -- 迁入角色对两张版本表（含列级）无 UPDATE、无 DELETE/TRUNCATE，对库与所有 FORCITIS one schema 无 CREATE。任一不满足则抛错；期望不抛错。
 -- 建库后、迁移之前跑时版本表与 schema 尚不存在，表与 schema 两项会跳过并给出 NOTICE：迁移与 after_migrations 之后必须再跑一次。
 DO $$
@@ -122,6 +122,12 @@ BEGIN
     FOREACH r IN ARRAY ARRAY['one_dev_app', 'one_dev_readonly', 'one_dev_audit_maintainer'] LOOP
         IF pg_has_role(r, 'one_dev_history_loader', 'MEMBER') OR pg_has_role(r, 'one_dev_owner', 'MEMBER') THEN
             RAISE EXCEPTION 'V13 failed: runtime role % is a member of one_dev_history_loader or one_dev_owner', r;
+        END IF;
+    END LOOP;
+    -- 反向：迁入角色不是任何运行类角色（含迁移角色）的成员，也没有被授予这些角色，防止经 SET ROLE 绕过
+    FOREACH r IN ARRAY ARRAY['one_dev_app', 'one_dev_readonly', 'one_dev_audit_maintainer', 'one_dev_migrator'] LOOP
+        IF pg_has_role('one_dev_history_loader', r, 'MEMBER') THEN
+            RAISE EXCEPTION 'V13 failed: one_dev_history_loader is a member of %', r;
         END IF;
     END LOOP;
     IF has_database_privilege('one_dev_history_loader', 'forcitis_one_dev', 'CREATE') THEN
