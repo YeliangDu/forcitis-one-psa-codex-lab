@@ -81683,7 +81683,7 @@ links:
   to: B-31
   src: backend/src/main/java/com/forcitis/one/organization/administration
   via: module
-  bc_src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:778
+  bc_src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:781
   subdomain_src: architecture/ddd/subdomains.yaml#subdomains/organization
 - kind: mod-bc
   from: organization.attendance
