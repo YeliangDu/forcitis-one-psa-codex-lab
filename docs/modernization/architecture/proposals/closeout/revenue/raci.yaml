@@ -1,5 +1,31 @@
 # 收入线组权责片段（one-arch-revenue；A 规则见 NOTES.md；结构同 people_raci.yaml）
 entries:
+- object: AGG-136
+  command: 编制账期规则版本
+  raci:
+    A:
+      resolve: role
+      role: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 配置参数，不含个人信息与资金指令
+  source_part: revenue
+- object: AGG-136
+  command: 生效账期规则版本
+  raci:
+    A:
+      resolve: role
+      role: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 配置参数，不含个人信息与资金指令
+  source_part: revenue
 - object: AGG-34
   command: 登记检查计划
   raci:
@@ -653,7 +679,7 @@ entries:
       resolve: instance
       field: 协议.合同负责人
       field_status: proposed
-      pending: GL5-01 第 ③ 点：谁有权确认生效条件满足，随确认页交用户（推荐见 NOTES）
+      note: 用户 LEB-08：合同负责人凭证据确认，不设审批；我方须履行的条件由财务资金岗先登记证据
     R:
     - SH-E5
     C:

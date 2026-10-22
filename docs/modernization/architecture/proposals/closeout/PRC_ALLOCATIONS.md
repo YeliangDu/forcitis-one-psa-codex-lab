@@ -11,6 +11,8 @@
 | PRC-142 | IT 需求工单 | people | B-31（S-09 已定） | C-5「都迁入新系统通用审批」 | 2026-10-16 |
 | PRC-143 | IT 资产领用、调拨、报修、报废、盘点与采购申请 | people | B-31（S-09 已定）；用户「IT 资产是固定资产」（intent 2026-10-16-152926）：卡片与折旧归 B-24，B-31 只记领用、归还、维修工单，引用 B-24 卡片 ID（B-31 → B-24）；入账与报废的账务步骤由 finance 组在 B-24 流程中补 | C-5；IT 资产采购是否属非项目采购待财务（T-4） | 2026-10-16 |
 | PRC-144 | 员工活动类申请（周年贺卡、节日活动、创新项目发布） | people | B-31（S-09 已定） | C-6「迁入新系统通用审批」 | 2026-10-16 |
+| PRC-201 | 登记代发结果并补发薪酬 | people | B-15 | ARC-1022-COO-06：薪酬行子机 待支付 → 已实付 / 支付失败，补发后回到待支付（ADR-0075）；承载命令「登记代发结果」「发起薪酬补发」（`claude/one-arch-people-closeout` @c9b4922f，PAYROLL_LINE_PAYMENT.md J-3） | 2026-10-22 |
+| PRC-202 | 维护默认账期覆盖规则（财务负责人批准生效） | revenue | B-09 | 用户 KPI-Q04（KPI-20261022-085652-r54）：默认账期 30 日，按协议类型、客户分级覆盖；ARC-1022-ARE-01（`claude/one-arch-revenue-closeout` @9af4685d，DEFAULT_PAYMENT_TERM.md），VS-15 | 2026-10-22 |
 
 ## 新增聚合编号（聚合稿已用到 AGG-110；AGG-111、112 不用，避免与 OBJ-111、112 混看）
 
@@ -39,3 +41,6 @@
 | AGG-131 | 差旅订单月账单 | B-12 | finance | S-31 SQ-27 | 2026-10-16 |
 | AGG-132 | 出差申请 | B-12 | finance | S-31 SQ-28 | 2026-10-16 |
 | AGG-133 | 出差补贴标准版本 | B-12 | finance | S-31 SQ-28 | 2026-10-16 |
+| AGG-135 | 分管范围版本（`oversight_scope_versions`） | B-13 | people | 用户 LEB-06（LEB-20261022-082103-ioy）：人力维护、总经理批准，D15 版本化配置；one-arch-people DATA_MODEL 1.5（@c9b4922f） | 2026-10-22 |
+| AGG-136 | 默认账期覆盖规则版本（`receivable_term_rule_versions`） | B-09 | revenue | 用户 KPI-Q04；作为一版业务规则（OBJ-124）维护（ARC-1022-ARE-01） | 2026-10-22 |
+| AGG-137 | 标准成本费率卡版本 | B-07 | finance | 用户 FCQ 答复（intent 2026-10-22-103824）：奖金计提率挂在费率卡版本上；与 AGG-123 成本核算参数版本分立（费率卡有自己的版本与财务批准，报价、预算也引用）；one-arch-finance BONUS_OVERTIME_COSTING.md S-1 | 2026-10-22 |

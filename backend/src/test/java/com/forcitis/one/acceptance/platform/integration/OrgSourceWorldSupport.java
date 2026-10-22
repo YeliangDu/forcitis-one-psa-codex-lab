@@ -40,8 +40,7 @@ import org.testcontainers.containers.GenericContainer;
         "forcitis.platform.integration.seeyon.views.delivery-unit-yes-enum-id=" + OrgSourceWorldSupport.DELIVERY_YES,
         "forcitis.platform.integration.seeyon.views.fee-earner-yes-enum-id=" + OrgSourceWorldSupport.FEE_EARNER_YES,
         "forcitis.platform.integration.seeyon.views.root-path=" + OrgSourceWorldSupport.ROOT_PATH,
-        "forcitis.platform.integration.legacy.enabled=true",
-        "forcitis.platform.integration.legacy.inbox.view-name=" + OrgSourceWorldSupport.TODO_VIEW})
+        "forcitis.platform.integration.legacy.enabled=true"})
 abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
 
     static final long HEAD_TYPE = 7001;
@@ -49,7 +48,6 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
     static final String DELIVERY_YES = "9001";
     static final String FEE_EARNER_YES = "9002";
     static final String ROOT_PATH = "00000001";
-    static final String TODO_VIEW = "dbo.v_psa_one_legacy_todo";
     static final String SHORT_NAME_VIEW = "dbo.v_one_legacy_org_short_name";
 
     static final long BASE_UNIT = 1;
@@ -64,9 +62,6 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
         registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> World.url(World.A8_WORLD));
         registry.add("forcitis.platform.integration.seeyon.views.username", () -> World.A8_READER);
         registry.add("forcitis.platform.integration.seeyon.views.password", () -> World.A8_READER_PASSWORD);
-        registry.add("forcitis.platform.integration.legacy.inbox.url", () -> World.url(World.LEGACY_WORLD));
-        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> World.TODO_READER);
-        registry.add("forcitis.platform.integration.legacy.inbox.password", () -> World.TODO_READER_PASSWORD);
         registry.add("forcitis.platform.integration.legacy.jdbc-url", () -> World.url(World.LEGACY_WORLD));
         registry.add("forcitis.platform.integration.legacy.username", () -> World.NAMES_READER);
         registry.add("forcitis.platform.integration.legacy.password", () -> World.NAMES_READER_PASSWORD);
@@ -77,7 +72,7 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
         World.run(World.A8_WORLD, "DELETE dbo.ORG_UNIT WHERE ID <> " + BASE_UNIT, "DELETE dbo.post_rows WHERE ID <> " + BASE_POST,
                 "DELETE dbo.member_rows WHERE ID <> " + BASE_PERSON,
                 "DELETE dbo.relationship_rows WHERE NOT (SOURCE_MEMBER_ID = " + BASE_PERSON + " AND ORG_UNIT_ID = " + BASE_UNIT + ")");
-        World.run(World.LEGACY_WORLD, "DELETE dbo.todo_rows", "DELETE dbo.short_name_rows");
+        World.run(World.LEGACY_WORLD, "DELETE dbo.short_name_rows");
     }
 
     @Autowired
@@ -144,11 +139,6 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
     }
 
     // ---- the old system ----
-
-    static void legacyTodo(long legacyPerson, String taskId) throws SQLException {
-        World.run(World.LEGACY_WORLD, "INSERT dbo.todo_rows VALUES (" + legacyPerson + ", '" + taskId + "', 'I-" + taskId + "', 'approve', N'Approve', N'Legacy item', "
-                + "'2026-10-01T08:00:00')");
-    }
 
     static void legacyShortName(long legacyUnit, String shortName) throws SQLException {
         try (Connection c = World.admin(World.LEGACY_WORLD); PreparedStatement insert = c.prepareStatement("INSERT dbo.short_name_rows VALUES (?, ?)")) {
@@ -259,14 +249,12 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
     static final class World {
         static final String SA_PASSWORD = TestMssql.SA_PASSWORD;
         static final String A8_READER_PASSWORD = "Bb2!" + UUID.randomUUID();
-        static final String TODO_READER_PASSWORD = "Cc3!" + UUID.randomUUID();
         static final String NAMES_READER_PASSWORD = "Dd4!" + UUID.randomUUID();
 
         static final GenericContainer<?> MSSQL = TestMssql.shared();
         static final String A8_WORLD = TestMssql.database(OrgSourceWorldSupport.class, "a8world").name();
         static final String LEGACY_WORLD = TestMssql.database(OrgSourceWorldSupport.class, "legacyworld").name();
         static final String A8_READER = TestMssql.login(OrgSourceWorldSupport.class, "a8_reader");
-        static final String TODO_READER = TestMssql.login(OrgSourceWorldSupport.class, "todo_reader");
         static final String NAMES_READER = TestMssql.login(OrgSourceWorldSupport.class, "names_reader");
 
         static {
@@ -275,10 +263,8 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
                 createA8World();
                 createLegacyWorld();
                 ReadOnlyBaselineFixture.createViewSchemaReader(World::run, World.A8_WORLD, World.A8_READER, A8_READER_PASSWORD);
-                ReadOnlyBaselineFixture.createSingleViewReader(World::run, World.LEGACY_WORLD, TODO_VIEW, World.TODO_READER, TODO_READER_PASSWORD);
                 ReadOnlyBaselineFixture.createSingleViewReader(World::run, World.LEGACY_WORLD, SHORT_NAME_VIEW, World.NAMES_READER, NAMES_READER_PASSWORD);
                 ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(World.A8_WORLD), World.A8_WORLD, World.A8_READER, A8_READER_PASSWORD);
-                ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(World.LEGACY_WORLD), World.LEGACY_WORLD, World.TODO_READER, TODO_READER_PASSWORD);
                 ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(World.LEGACY_WORLD), World.LEGACY_WORLD, World.NAMES_READER, NAMES_READER_PASSWORD);
             } catch (SQLException e) {
                 throw new IllegalStateException("cannot prepare the external databases; SQL Server log:\n" + MSSQL.getLogs(), e);
@@ -329,11 +315,7 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
 
         private static void createLegacyWorld() throws SQLException {
             run(World.LEGACY_WORLD,
-                    "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64), process_instance_id nvarchar(64), task_def_key nvarchar(64), "
-                            + "task_name nvarchar(128), process_title nvarchar(256), created_at datetime2)",
                     "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
-                    "CREATE VIEW " + TODO_VIEW + " AS SELECT assignee_user_id, task_id, process_instance_id, task_def_key, task_name, process_title, "
-                            + "created_at FROM dbo.todo_rows",
                     "CREATE VIEW " + SHORT_NAME_VIEW + " AS SELECT id, short_name FROM dbo.short_name_rows");
         }
     }

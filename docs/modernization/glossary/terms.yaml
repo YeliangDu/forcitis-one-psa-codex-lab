@@ -2633,7 +2633,7 @@ terms:
   snake: project_cost
   kind: metric
   bc: cost.costing
-  definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）
+  definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）；按科目划分的「变动成本」「固定成本」两栏已废弃，不复活旧词；以后按成本性态分析时另立「成本性态」维度（用户 KPI-Q07）
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   confidence: medium
@@ -2644,10 +2644,21 @@ terms:
   - name: psa_cost_ledger / psa_cost_summary
     type: legacy-table
     deprecated: true
-  forbidden: []
+  - name: 变动成本
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - name: 固定成本
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden:
+  - 变动成本
+  - 固定成本
   status: approved
   core: true
   scope: domain
+  confirmed: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
 - id: project_cost_account
   zh: 成本账户
   en: ProjectCostAccount
@@ -2690,7 +2701,7 @@ terms:
   snake: direct_labor
   kind: metric
   bc: cost.costing
-  definition: 有效工时×标准费率版本（可复算）
+  definition: 有效工时乘该变体所用的成本费率，可复算；按变体分费率：预算、预估变体用标准成本费率卡的版本，实际变体用实际成本费率（含加班计价）；挂项目的奖金按服务期间计提计入直接人工：预算、预估变体按费率卡版本的奖金计提率，实际变体按计提并在奖金核定后单列调整行（FCQ-05、FCQ-01）
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   - AACE International RP 10S-90 Cost Engineering Terminology
@@ -2699,6 +2710,7 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: 用户 2026-10-22 FCQ-05、FCQ-01（intent 2026-10-22-103824）；公式见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.1、§2.2（@ed99f3b8）（用户裁定，rulings.yaml）
 - id: direct_expense
   zh: 直接费用
   en: DirectExpense
@@ -2813,7 +2825,7 @@ terms:
   snake: standard_cost_rate_card
   kind: aggregate
   bc: cost.costing
-  definition: 薪酬脱敏后的版本化政策费率（财务维护）
+  definition: 薪酬脱敏后的版本化政策费率（财务维护）；版本上同时挂奖金计提率，规则类型分合同额百分比与历史比率（默认历史比率），预算、预估、实际三个变体用同一版本（FCQ-01）
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -2837,7 +2849,7 @@ terms:
   status: approved
   change_ref: G-3
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05：对客侧计费费率卡与成本侧同层，卡、表不混用，英文名本就是
-    Card）（用户裁定，rulings.yaml）
+    Card）（用户裁定，rulings.yaml）；用户 2026-10-22 FCQ-01（intent 2026-10-22-103824）；见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.2（@ed99f3b8）（用户裁定，rulings.yaml）
   scope: domain
   note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
 - id: rate_card_version
@@ -8158,12 +8170,16 @@ terms:
   - name: 权责收入
     type: dialect
     deprecated: true
+  - name: 收入确认（不含税）
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
   forbidden:
   - 产值收入
   - 权责收入
   status: approved
   note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#accrual_revenue，R3-FI-05）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: intermediary_fee
   zh: 居间费用
@@ -8171,7 +8187,7 @@ terms:
   snake: intermediary_fee
   kind: value_object
   bc: expense.spend
-  definition: 居间协议约定的佣金支出；公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；应付登记须挂触发事实，不是转付成本，在贡献毛利中扣减、不在净收入中扣（FD-17、FD-41）
+  definition: 居间协议约定的佣金支出；公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；应付登记须挂触发事实，不是转付成本，在贡献毛利中扣减、不在净服务收入中扣（FD-17、FD-41）
   standard_ref:
   - 企业会计准则第 14 号——收入（第二十八条合同取得成本、第三十四条主要责任人与代理人）
   confidence: medium
@@ -8188,7 +8204,8 @@ terms:
   - 信息服务费
   status: approved
   note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#information_service_fee，R3-FI-06）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-15 财务口径决策页 F-06「就是居间费用的方言」（intent 2026-10-15-222618-one-rules-财务口径决策页-需向财务核实的事）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-15 财务口径决策页 F-06「就是居间费用的方言」（intent 2026-10-15-222618-one-rules-财务口径决策页-需向财务核实的事）（用户裁定，rulings.yaml）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则
+    NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: debt_settlement_asset
   zh: 抵债资产
@@ -9574,15 +9591,19 @@ terms:
   snake: net_service_revenue
   kind: metric
   bc: operations.policy
-  definition: 收入（不含税）减转付成本（分包、外包与可向客户转收的代垫费用）后的余额；扣减范围按财务口径 FD-41
+  definition: 管理口径的净额，不用于法定报表：不含税收入减委外与分包、再减可向客户转收的代垫费用后的余额；信息服务费不在此扣除，计入直接项目费用并在贡献毛利中扣除。法定收入按总额含代垫确认，二者可互相推导：净服务收入 ＝ 法定收入（不含税）− 委外与分包 − 可向客户转收的代垫费用，报表脚注写出推导关系（用户 KPI-Q02）；原「净收入」并入本词（KPI-Q02、NU-13）
   standard_ref:
   - OAT canonical_symbol NR；企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；AEC 行业 Net Service Revenue（PSMJ / Deltek 通行口径）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 净收入
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-net_service_revenue，R3-RN-03）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: management_operating_profit
   zh: 经营利润
@@ -9626,11 +9647,16 @@ terms:
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）（间接费用）；US Cost Accounting Standards 418（Allocation of direct and indirect costs）；OAT canonical_symbol OH
   confidence: medium
-  aliases: []
-  forbidden: []
+  aliases:
+  - name: 间接费用
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden:
+  - 间接费用
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-overhead，R3-RN-06）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: pass_through_cost
   zh: 转付成本
@@ -9638,7 +9664,7 @@ terms:
   snake: pass_through_cost
   kind: metric
   bc: operations.policy
-  definition: 为履行合同转付给第三方的成本：分包成本、外包成本与可向客户转收的代垫费用；在净服务收入中扣减（FD-41）
+  definition: 为履行合同转付给第三方的成本：分包成本、外包成本（合称委外与分包），以及可向客户转收的代垫费用；在净服务收入中扣减（用户 KPI-Q02）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；OAT canonical_symbol PTC；AEC 行业 pass-through / reimbursable costs
   confidence: medium
@@ -9646,7 +9672,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-pass_through_cost，R3-RN-07）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: policy_parameter
   zh: 口径参数
@@ -13965,12 +13991,15 @@ terms:
   formula: 收入（不含税）−委外与分包的转付成本；信息服务费在直接项目费用中扣除
   grain: 法人 × 项目 × 业务期间，按同一币种汇总
   as_of: 所选业务期间末，以该期间已确认收入和配对转付成本为准
-  status: approved
-  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-41）
+  status: deprecated
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-41）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   confidence: medium
   aliases: []
   forbidden: []
   note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  replaced_by: net_service_revenue
+  until: '2026-12-31'
+  owner: one-glossary
 - id: impairment_plan
   zh: 减值计划
   en: ImpairmentPlan
@@ -14065,9 +14094,13 @@ terms:
   grain: 法人 × 年度目标范围 × 业务期间 × 币种
   as_of: 年度目标跟踪的所选业务期间末
   status: approved
-  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-14）
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-14）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 收入确认（含税）
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
   forbidden: []
   note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
 - id: actual_cost_rate
@@ -14077,11 +14110,13 @@ terms:
   kind: value_object
   bc: cost.costing
   scope: domain
-  definition: 用于成本核算的实际成本费率，与交付使用的标准成本费率、售前使用的计费费率分立。
+  definition: 用于成本核算的实际成本费率，与交付使用的标准成本费率、售前使用的计费费率分立。标准小时费率 r ＝ 当日日薪 ÷ 标准日工时（默认 7.5，按法人可配）；当日人工成本：工作日 r × [min(H, 8) + 1.5 × max(H − 8, 0)]，休息日未补休 r × 2 × H、已补休 r × 1 × H，法定节假日 r × 3 × H（H 为当日总工时；《劳动法》第三十六条、第四十四条；7.5
+    到 8 小时按 1 倍计）；取代 FD-09 中按 max(当日总工时, 7.5) 摊薄的做法（FCQ-05）
   standard_ref:
   - docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md
   status: approved
-  confirmed: 2026-10-15（用户裁定，2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用，docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md）
+  confirmed: 2026-10-15（用户裁定，2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用，docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md）；用户 2026-10-22 FCQ-05（intent 2026-10-22-103824）；公式见
+    one-arch-finance finance/BONUS_OVERTIME_COSTING.md §2.2（@ed99f3b8）（用户裁定，rulings.yaml）
   confidence: medium
   aliases: []
   forbidden: []

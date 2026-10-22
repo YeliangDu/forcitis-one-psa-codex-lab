@@ -59,8 +59,8 @@ class ConvertObjectsTest(unittest.TestCase):
     def test_both_machine_sets_and_repeated_aggregates_are_preserved(self):
         docs = c.documents()
         states = docs["state-machines.raw.yaml"]
-        self.assertEqual({"by_object_count": 126, "by_aggregate_count": 130,
-                          "group_counts": {"finance": 44, "people": 34, "revenue": 52}}, states["meta"])
+        self.assertEqual({"by_object_count": 126, "by_aggregate_count": 131,
+                          "group_counts": {"finance": 44, "people": 34, "revenue": 53}}, states["meta"])
         expected = [{"object": o["id"], "key_states_text": o["key_states"],
                      "source": f"{c.SRC.relative_to(c.ROOT)}:{o['source_line']}"}
                     for o in docs["objects.yaml"]["objects"] if o["key_states"]]

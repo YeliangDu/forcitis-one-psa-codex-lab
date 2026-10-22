@@ -229,7 +229,7 @@ commands:
   used_by:
   - PRC-80 第 12 步
   orphan: false
-- name: 终止法人归属
+- name: 结束法人归属
   aggregate: AGG-117
   entity: legal_entity_attributions
   kind: human
@@ -247,7 +247,7 @@ commands:
   - ref: 职责分离
     text: 操作人不得终止本人的法人归属（已建代码 OwnAttributionGuard）
   authority:
-    ref: raci:AGG-117/终止法人归属
+    ref: raci:AGG-117/结束法人归属
     A:
       resolve: type
       role: SH-E6
@@ -260,7 +260,7 @@ commands:
   used_by:
   - PRC-80 第 13 步
   orphan: false
-- name: 更正法人代码
+- name: 更正法人主体代码
   aggregate: AGG-60
   entity: legal_entities
   kind: human
@@ -273,7 +273,7 @@ commands:
   - ref: INV-59
     text: 法人代码发号后不可改；仅该代码未用于发号时可更正，已发号则拒绝
   authority:
-    ref: raci:AGG-60/更正法人代码
+    ref: raci:AGG-60/更正法人主体代码
     A:
       resolve: type
       role: SH-E6

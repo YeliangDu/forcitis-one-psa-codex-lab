@@ -10,6 +10,7 @@ flowchart LR
   subgraph SD_organization["组织子域 · organization"]
     direction TB
     organization_attendance["考勤与休假 BC<br/><small>organization.attendance</small>"]
+    organization_administration["行政事务<br/><small>organization.administration</small>"]
     organization_workforce["组织人事 BC<br/><small>organization.workforce</small>"]
   end
   subgraph SD_platform["平台子域 · platform"]
@@ -34,6 +35,11 @@ flowchart LR
   platform_identity -->|开放主机| cost_timesheet
   platform_numbering -->|开放主机| cost_timesheet
   platform_numbering -->|开放主机| platform_approval
+  organization_workforce -->|依赖| organization_administration
+  platform_approval -->|开放主机| organization_administration
+  platform_numbering -->|开放主机| organization_administration
+  platform_audit -->|开放主机| organization_administration
+  platform_file -->|依赖| organization_administration
   platform_audit -->|开放主机| organization_attendance
   platform_audit -->|开放主机| organization_workforce
   platform_integration -->|防腐层| organization_workforce
@@ -53,5 +59,5 @@ flowchart LR
   platform_web -->|依赖| platform_identity
   platform_integration -->|依赖| platform_file
   platform_audit -->|依赖| platform_file
-  class cost_timesheet,organization_attendance,organization_workforce,platform_approval,platform_audit,platform_identity,platform_integration,platform_numbering,platform_scheduling,platform_idempotency,platform_eventing,platform_web,platform_file built
+  class cost_timesheet,organization_attendance,organization_administration,organization_workforce,platform_approval,platform_audit,platform_identity,platform_integration,platform_numbering,platform_scheduling,platform_idempotency,platform_eventing,platform_web,platform_file built
   class kernel kernel
