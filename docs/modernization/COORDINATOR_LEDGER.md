@@ -8,6 +8,7 @@
 - **20:15 现状**：讨论议题 2（任务卡规划、PR 拆分、清空节点）已给用户讨论稿（建议节点=卡交出 finish.py，不用 PR 合入；bc 开卡顺序 签发→骨架→命令→集成/页面；卡 1–3 PR；第一阶段派工卡为模板加目标/完成标准/前置卡号），等用户回三问；下一轮我出「守护覆盖哪些规则」总结。
 - 在途：one-1a-par W2 PR-B 草案 @0adc05a6d 等 one-data 签；one-data 做 DATA_SCORECARD 等；one-1a-admin #599 后开卡 C、INV-138/Q-B31-5 进收件箱；one-arch-revenue、one-arch-finance 已令自清，清空后我 list_events 确认再发接续（revenue→AGG-20/16/02；finance→BONUS_OVERTIME_COSTING §3 PRC-96/AGG-41）；one-quality 试点通过，在做 COO-10；#611 已批入队；one-merge 待收合集：one-1a-par-w2-versions @0adc05a6d、本分支最新。
 - 讨论进度：议题 1 开场注入已定 5 点（intent 本晚，全文 ~/.modernize/psa/coordinator/team-audit/discussion-1-injection.md），等讨论结束一起改；下一议题候选：守护覆盖哪些规则 / 任务卡由谁写。
+- 收件箱重排（用户 10-22 晚「好，照这样改」）：确认页 E1CEBZoJ5TCJJX5ncQzkwa 改为只留仓库内容治理 3 题（v2）；团队规则 7 题撤下并入讨论（用户撤前草选 TEAM-01、TEAM-02 推荐项，未提交，讨论时参考）；业务题攒齐出新页：INV-138 四项、Q-B31-5（one-1a-admin 写收件箱）、终止/取消项目复核（薪酬补发时限与提醒对象已在 FCQ 10-22 08:38 答，删）。
 - 接手先做：ReadNotifications；`ls -t ~/.modernize/psa/outbox/`；`gh pr list` + `mq.py status`；逐个查开发会话前置是否满足（不得再犯：只盯合并）；intent 2026-10-22-15* 起为今日下午决定。
 - 下午已定（intent）：交接阈值 30%/40%（154722，§2.1 已改并进 main #602）；降负载不得牺牲开发机功能（151546）；仓库内容治理四项交 one-quality（153421，GOV-1022-COO-06）；one-ops search_path 三项「都做」（155217）。
 - 在开 PR：#603（已批，队列）；#587（已批，等 one-platform-file 解冲突+openapi）；#604 KERR（one-1a-par，等 opus+CI）；#599 REG-3（等 one-data 签发与 M1 裁定，验收补丁按 RULING-COORD-20261022-03）；#589（已批，one-quality）；#606 钩子三合一（守护文件，单列 opus）。
@@ -37,7 +38,7 @@
 - 分层总图（已钉左栏）：https://claude.ai/artifact/GANmVBuBzK58pT27xscJBE ——五层＋贯穿＋老系统退役，数据在页面 db（items/i000..，meta/page），状态变化用 ArtifactData update 改对应条目，不重发页面；源数据脚本 scratchpad(e9617959)/layers。
 - 在线页：会话日报 https://claude.ai/artifact/8CAmf8sAJsoaFNwetoGC7x （每天早上：scripts/ops/session_daily.py 出数 → 补 grade/assessment/action → 数据放 scratchpad(19432a27)/daily/site/data/<日期>.json 并更新 index.json → 以同一 file_path 重发 session-daily.html 与 files）；对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL （源与 refresh.sh 在 scratchpad(19432a27)/align，已钉左栏）。
 - 收件箱待用户答：ANM 命名体系与施工图方法 https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey ；N1 规则待定 https://claude.ai/artifact/BTo6TuYzW7H8vgjCanh4Vq 。用户说「答完」即取答复分发。
-- 攒问（下一张确认页一并出）：员工薪酬支付失败后几天内须补发、超时提醒谁（one-arch-people U-1，推荐 3 天、提醒法人财务负责人，依据《工资支付暂行规定》第七条，出页前核原文）。（LEB 三项已于 10-22 答完）；终止/取消项目是否需上级复核（one-arch-revenue 命令卡待定，10-22）
+- 攒问（下一张确认页一并出）：薪酬补发 U-1 已在 FCQ 答，删。（LEB 三项已于 10-22 答完）；终止/取消项目是否需上级复核（one-arch-revenue 命令卡待定，10-22）
 - 下一文档合集清单：scratchpad(57026514)/next-docs-train.txt（调度批准、one-merge 中午/晚上收）；调度自己的规则、画像、台账、intent、裁定改动都在分支 claude/one-coordinator-two-lanes。
 - 验收裁定登记后立即请 one-merge 加急小合集：acceptance_rulings 守护只认 base（main）上已有的裁定，随实现 PR 带入无效（10-21 F 卡被卡）。
 - 裁定：rulings/COORD-2026-10-17.md（RULING-COORD-20261017-01..04），one-quality 登记 ACCEPTANCE_RULINGS.yaml。
@@ -57,6 +58,9 @@
 - 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
 - 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
 - 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r （已钉左栏，10-22 改版）：`python3 scratchpad(08ce11ca)/workbench/sync.py <工作区> <输出目录>` 读任务卡片段、gh、mq 生成 cards/sessions/prs/meta 四个 JSON，ArtifactData batch set board/*（带 if_version）；收到完成点报告和每天早上各同步一次，「要关注」里的停滞卡当天追。
+- 自检：派工前看作战图、METHOD 当前步骤、相关 ADR 字面；同一件工具派工前查是否已有负责会话。告诉用户「已派/已完成/未做」与转给用户的数字先核实（会话记录、gh、证据文件），注明已核实/已抽查/未核实；说某会话「上下文高」前看实况。自己的裁定当场记 intent。改 scratchpad 合并脚本先 `bash -n`；写在线页时间用 `date -u`。合集分支推送前跑完整 precheck。答应「合入后通知」的挂 Monitor 盯 MERGED。告诉用户可重启前，除问各会话有无 Codex，还 `ps` 查常驻进程与 Monitor，并说明谁在重启后拉起。超 7 天未决的提议 ADR 每周交用户（采纳/拒绝/搁置）。
+- 开会话：start_session 开出后立即 detach_session 解绑为顶层，set_session_title 改为 one-* 名。
+- 用户待答事项再提醒前，先问负责会话是否已拿到答复。
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
