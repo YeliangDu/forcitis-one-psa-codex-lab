@@ -43,3 +43,4 @@
 | AGG-133 | 出差补贴标准版本 | B-12 | finance | S-31 SQ-28 | 2026-10-16 |
 | AGG-135 | 分管范围版本（`oversight_scope_versions`） | B-13 | people | 用户 LEB-06（LEB-20261022-082103-ioy）：人力维护、总经理批准，D15 版本化配置；one-arch-people DATA_MODEL 1.5（@c9b4922f） | 2026-10-22 |
 | AGG-136 | 默认账期覆盖规则版本（`receivable_term_rule_versions`） | B-09 | revenue | 用户 KPI-Q04；作为一版业务规则（OBJ-124）维护（ARC-1022-ARE-01） | 2026-10-22 |
+| AGG-137 | 标准成本费率卡版本 | B-07 | finance | 用户 FCQ 答复（intent 2026-10-22-103824）：奖金计提率挂在费率卡版本上；与 AGG-123 成本核算参数版本分立（费率卡有自己的版本与财务批准，报价、预算也引用）；one-arch-finance BONUS_OVERTIME_COSTING.md S-1 | 2026-10-22 |
