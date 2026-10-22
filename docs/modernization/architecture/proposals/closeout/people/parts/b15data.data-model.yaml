@@ -47,7 +47,7 @@
       history_migration: full
       sensitivity: SENSITIVE
       pi: spi
-      column_families: [人员（工资条为单据）, 扣缴义务人法人, 应发合计, 代扣合计, 个税, 实发, 所用档案版本 ID, 所用参保版本 ID, 所用考勤确认 ID, 发放状态]
+      column_families: [人员（工资条为单据）, 扣缴义务人法人, 应发合计, 代扣合计, 个税, 实发, 所用档案版本 ID, 所用参保版本 ID, 所用考勤确认 ID, 发放状态（待支付 / 已实付 / 支付失败，ARC-1022-COO-06）, version（ADR-0075 转换序号来源）, 回单批次号, 实付日期, 失败原因, 银行退回日, 补发截止日, 顺延截止日与顺延通知记录, 是否逾期, 补发轮次]
       reason: "期间快照：批准后不改，记所用版本（D7）；SENSITIVE + spi：个人工资（ADR-0026 第 7 项 L3；工资是否 SPI 交 U-11 ③，未确认按 SPI，ADR-0043 第 2 项），个人信息保护法第 28 条、ADR-0043；迁入行的所用版本引用允许为空并标来源对照，老系统来源待取证；发薪账户不复制，经档案版本 ID 取"
     - name: payroll_line_items
       role: child
