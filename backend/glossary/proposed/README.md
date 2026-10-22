@@ -382,6 +382,30 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 
 另有错误码 10 个（kind 为 `error_code`）、技术词 86 个（`common_words`），不在表中。
 
+## `payroll-payment-and-people-commands.yaml`
+
+涉及模块：`cost.costing`、`organization.payroll`、`organization.workforce`。
+
+薪酬行支付子状态机、人事命令、跨法人用语（one-glossary 2026-10-22，NAM-1021-GLO-19；one-arch-people、one-arch-finance 来单，proposed）。状态名暂定，随用户认可。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `payroll_settlement_line` | 薪酬结算行 | PayrollSettlementLine | 领域 · organization.payroll | 月度薪酬结算单上一名员工的一行，带支付状态；OBJ-73 原文称「薪酬行」，与「月度薪酬结算单」对应写全称；也是状态转换记录里该子实体的聚合类型码值（ADR-0075） |  |  |
+| `payroll_disbursement` | 薪酬代发 | PayrollDisbursement | 领域 · organization.payroll | 按薪酬结算行经银行代发渠道向员工账户发放薪酬的动作及其结果 |  |  |
+| `payroll_line_status__pending_payment` | 待支付 | PendingPayment | 领域 · organization.payroll | 薪酬结算行的支付状态：已确认应发，尚未代发或补发后等待再次代发 |  |  |
+| `payroll_line_status__paid` | 已实付 | Paid | 领域 · organization.payroll | 薪酬结算行的支付状态：代发结果登记为成功，实际已付到员工账户（OBJ-73 原文） |  |  |
+| `payroll_line_status__payment_failed` | 支付失败 | PaymentFailed | 领域 · organization.payroll | 薪酬结算行的支付状态：代发结果登记为失败，待更正工资卡后补发 |  |  |
+| `register_payroll_disbursement_result` | 登记代发结果 | RegisterPayrollDisbursementResult | 领域 · organization.payroll | 登记薪酬代发的结果（成功或失败），薪酬结算行由待支付转已实付或支付失败；动词登记＝只记录事实 |  |  |
+| `initiate_payroll_redisbursement` | 发起薪酬补发 | InitiatePayrollRedisbursement | 领域 · organization.payroll | 对支付失败的薪酬结算行发起补发，转回待支付；发出「薪酬补发已发起」 |  |  |
+| `payroll_disbursement_result_registered` | 薪酬代发结果已登记 | PayrollDisbursementResultRegistered | 领域 · organization.payroll | 薪酬代发的结果已登记 |  |  |
+| `payroll_redisbursement_initiated` | 薪酬补发已发起 | PayrollRedisbursementInitiated | 领域 · organization.payroll | 薪酬补发已发起；B-10 订阅 |  |  |
+| `end_legal_entity_attribution` | 结束法人归属 | EndLegalEntityAttribution | 领域 · organization.workforce | 结束一段法人归属并写结束日；与已登记事件「法人归属已结束」对应（one-arch-people 来单称「终止法人归属」，改用「结束」与事件一致） |  |  |
+| `correct_legal_entity_code` | 更正法人主体代码 | CorrectLegalEntityCode | 领域 · organization.workforce | 在未发号前更正法人主体代码（INV-59）；与已登记事件「法人主体代码已更正」对应（来单称「更正法人代码」，补上「主体」与词条一致） |  |  |
+| `oversight_scope` | 分管范围 | OversightScope | 领域 · organization.workforce | 一名分管领导分管的组织单元或事务范围（B-13） |  |  |
+| `oversight_scope_version` | 分管范围版本 | OversightScopeVersion | 领域 · organization.workforce | 分管范围的版本化配置（AGG-135，表 oversight_scope_versions）：生效区间不重叠、只追加 |  |  |
+| `cross_entity_labor` | 跨法人人工 | CrossEntityLabor | 领域 · cost.costing | 员工当日成本法人与项目承担法人不一致的人工与项目费用（用户 LEB-04） |  |  |
+| `cross_entity_list` | 跨法人清单 | CrossEntityList | 领域 · cost.costing | 财务每月收到的清单：跨法人人工、项目费用与未转入售前投入的部分（用户 LEB-05） |  |  |
+
 ## platform.approval（`platform-approval.yaml`）
 
 platform.approval 提议术语（proposed，待业务评审，ADR-0018）。单词级术语：服务于代码标识、URL、事件键、错误码的命名守护。
