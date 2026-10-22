@@ -75,4 +75,4 @@ PAR-1..PAR-5 完成或达到 §2.1 第 1 条阈值时在批次边界交接；F-1
 
 ## 当前状态
 
-2026-10-22 深夜：#604、#611 已报入队；W2 PR-B 已开 PR #632（precheck 22 PASS，CI 跑中，不含工号唯一键与验收目录改动；唯一键与隔离路径留 PR-B2，等 ADR-0078，现成实现在分支 claude/one-1a-par-w2-employee-code-unique）。已登记待派卡 IMP-1022-PAR-02..05。接下来：#632 CI 绿后报 one-merge；之后迁入写入通道·日历部分（IMP-1022-PAR-05，安全改动 opus 首轮必做），再卡 E。细节见 phase1a/HANDOFF_one-1a-par.md。
+2026-10-22 交接（用户要求清空）：#509、#519、#547（日历版本化迁移）、#595（F2 老待办残留）已合入；在途 #604（KERR，通用错误码进 kernel，头 446fcdd2f）等 CI 绿后报 one-merge 入队。接下来 IMP-1021-PAR-03（组织接口清单）→ 卡 E（workforce 入职日期与满周年，经 one-arch-people，先请 one-data 签表）。W2 待办（INV-62、RULE-387/394、RegisteredEmployee/SyncRun）与其余待办池见 `phase1a/HANDOFF_one-1a-par.md`。本机只跑受影响模块的测试，全量交 CI。
