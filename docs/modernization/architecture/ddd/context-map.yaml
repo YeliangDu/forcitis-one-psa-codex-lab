@@ -173,14 +173,14 @@ relations:
   upstream: platform.audit
   downstream: platform.signing
   via: api：印章台账与印章类型清单维护命令的审计
-  status: built
-  basis: ADR-0064 决定 1 第 3 条；module-dependencies.txt
+  status: planned
+  basis: ADR-0064 决定 1 第 3 条；代码落地时随 module-dependencies.txt 改 built
 - id: platform.identity>platform.signing
   upstream: platform.identity
   downstream: platform.signing
   via: api：当前用户与权限（台账、印章类型清单维护端点）
-  status: built
-  basis: ADR-0064 决定 1 第 3 条；module-dependencies.txt
+  status: planned
+  basis: ADR-0064 决定 1 第 3 条；代码落地时随 module-dependencies.txt 改 built
 - id: platform.scheduling>platform.file
   upstream: platform.scheduling
   downstream: platform.file

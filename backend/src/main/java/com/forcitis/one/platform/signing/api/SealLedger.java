@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface SealLedger {
 
     /**
-     * The version in force at the sealing instant. Throws PLATFORM_SIGNING_LEDGER_ENTRY_NOT_FOUND for an unknown entry and
+     * The version in force at the sealing instant, cut to a date in the kernel BusinessZone. Throws PLATFORM_SIGNING_LEDGER_ENTRY_NOT_FOUND for an unknown entry and
      * PLATFORM_SIGNING_NO_VERSION_AT when the instant has no version (earlier than the first one); a stopped entry is the
      * caller's check on {@link SealLedgerEntryVersionView#active()} (ADR-0064 decision 3).
      */

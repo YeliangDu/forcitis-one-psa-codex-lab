@@ -59,8 +59,18 @@ class ModuleDependencyTest {
     }
 
     @Test
-    @DisplayName("ADR-0064 decision 1 item 3: the signing service depends on foundation modules only, and no foundation module or the approval module depends on it")
+    @DisplayName("ADR-0064 decision 1 item 3 and ADR-0066: the signing service reaches only foundation modules and organization.workforce among business modules, and platform.approval never reaches it")
     void signingServiceStaysAtTheFoundationLayer() throws IOException {
+        Map<String, Set<String>> declared = declaredGraph();
+        Set<String> reachable = reachableFrom("platform.signing", declared);
+        Set<String> businessModules = reachable.stream().filter(m -> !m.startsWith("platform.")).collect(Collectors.toCollection(TreeSet::new));
+        assertThat(businessModules).isSubsetOf("organization.workforce");
+        assertThat(declared.get("platform.signing")).isNotNull()
+                .isSubsetOf("platform.audit", "platform.identity", "platform.integration", "platform.file", "organization.workforce");
+        assertThat(reachableFrom("platform.approval", declared)).doesNotContain("platform.signing");
+    }
+
+    private static Map<String, Set<String>> declaredGraph() throws IOException {
         Map<String, Set<String>> declared = new HashMap<>();
         for (String line : Files.readAllLines(Path.of("architecture/module-dependencies.txt"))) {
             if (line.isBlank() || line.startsWith("#")) {
@@ -70,18 +80,19 @@ class ModuleDependencyTest {
             declared.put(parts[0].trim(), Arrays.stream(parts[1].split(",")).map(String::trim).filter(s -> !s.isEmpty())
                     .collect(Collectors.toSet()));
         }
-        Set<String> foundation = Set.of("platform.audit", "platform.identity", "platform.integration", "platform.file",
-                "organization.workforce");
-        assertThat(declared.get("platform.signing")).isNotNull().isSubsetOf(foundation);
-        assertThat(declared.get("platform.signing")).doesNotContain("platform.approval", "organization.administration");
-        Set<String> dependents = new TreeSet<>();
-        declared.forEach((module, targets) -> {
-            if (targets.contains("platform.signing")) {
-                dependents.add(module);
+        return declared;
+    }
+
+    private static Set<String> reachableFrom(String start, Map<String, Set<String>> declared) {
+        Set<String> seen = new TreeSet<>();
+        java.util.ArrayDeque<String> todo = new java.util.ArrayDeque<>(declared.getOrDefault(start, Set.of()));
+        while (!todo.isEmpty()) {
+            String next = todo.pop();
+            if (seen.add(next)) {
+                todo.addAll(declared.getOrDefault(next, Set.of()));
             }
-        });
-        assertThat(dependents).isSubsetOf("organization.administration", "contract.agreement", "delivery.acceptance");
-        assertThat(declared.get("platform.approval")).doesNotContain("platform.signing");
+        }
+        return seen;
     }
 
     @Test

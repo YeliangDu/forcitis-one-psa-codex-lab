@@ -9,5 +9,8 @@ public record SealTypeView(SealTypeCode code, String name) {
     public SealTypeView {
         Objects.requireNonNull(code, "code");
         Objects.requireNonNull(name, "name");
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("A seal type name must not be blank");
+        }
     }
 }
