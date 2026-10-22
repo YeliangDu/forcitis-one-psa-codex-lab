@@ -100,14 +100,9 @@
 | [ADR-0071](ADR-0071.md) | 迁入质量检查：分层规则、差异清单与提交门槛（ADR-0036 补篇） | 数据 | 全局 | 已采纳 |
 | [ADR-0072](ADR-0072.md) | 工作日历版本四眼：dev 单人路径与完成时点 | 数据 | organization.attendance | 已采纳 |
 | [ADR-0073](ADR-0073.md) | 组织结构与人事命令补充种类：调整组织属性与法人归属 | 业务主干 | organization.workforce | 已采纳 |
-<<<<<<< HEAD
-| [ADR-0074](ADR-0074.md) | 行政事务 BC 补入 BC 清单与审批依赖（ADR-0051 补篇） | 边界与模块 | organization.administration、platform.approval | 提议 |
-| [ADR-0075](ADR-0075.md) | 子实体自有状态机的转换记录（ADR-0058 补篇） | 数据 | 全局 | 提议 |
-| [ADR-0076](ADR-0076.md) | 合同原件借阅的先行期归属与第三批移交 | 边界与模块 | organization.administration、contract.agreement | 提议 |
-=======
 | [ADR-0074](ADR-0074.md) | 行政事务 BC 补入 BC 清单与审批依赖（ADR-0051 补篇） | 边界与模块 | organization.administration、platform.approval | 已采纳 |
 | [ADR-0075](ADR-0075.md) | 子实体自有状态机的转换记录（ADR-0058 补篇） | 数据 | 全局 | 已采纳 |
->>>>>>> claude/one-architecture-adr0075
+| [ADR-0076](ADR-0076.md) | 合同原件借阅的先行期归属与第三批移交 | 边界与模块 | organization.administration、contract.agreement | 已采纳 |
 
 ## ADR 生命周期与变更规则
 
