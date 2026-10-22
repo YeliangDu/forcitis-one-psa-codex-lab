@@ -197,7 +197,8 @@ def main():
     if reason:
         print(reason + "\n（确需绕过：PUSH_BYPASS_REASON=\"<理由>\" git push --no-verify …，会留痕）", file=sys.stderr)
         return 2
-    pr.record_pass(root, checked=checked)
+    if checked is not None:
+        pr.record_pass(root, checked=checked)
     return 0
 
 
@@ -243,9 +244,15 @@ def self_test():
     from unittest import mock
     for output, code, marked in (("SUMMARY: 3 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", 0, 1), ("SUMMARY: 2 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1, 0)):
         finished = subprocess.CompletedProcess([], code, output, "")
+        states = iter(["before the checks", "after the checks"])
         with mock.patch.object(subprocess, "run", return_value=finished), mock.patch.object(pr, "record_pass") as record, mock.patch.object(pr, "repository_of", return_value="/r"), \
+                mock.patch.object(pr, "tree_state", side_effect=lambda r: next(states)), \
                 mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}, "cwd": "/r"}))), mock.patch.object(sys, "stderr", io.StringIO()):
-            assert main() == (0 if marked else 2) and record.call_count == marked and (not marked or "checked" in record.call_args.kwargs), "only a push the checks let through leaves a pass mark"
+            assert main() == (0 if marked else 2) and record.call_count == marked and (not marked or record.call_args.kwargs.get("checked") == "before the checks"), "only a push the checks let through leaves a pass mark"
+    with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "SUMMARY: 1 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", "")), mock.patch.object(pr, "record_pass") as record, \
+            mock.patch.object(pr, "repository_of", return_value="/r"), mock.patch.object(pr, "tree_state", return_value=None), \
+            mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}, "cwd": "/r"}))), mock.patch.object(sys, "stderr", io.StringIO()):
+        assert main() == 0 and record.call_count == 0, "a tree that was dirty when the checks began is never vouched for"
     print("pre_push_gate self-test: ok")
     return 0
 
