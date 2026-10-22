@@ -21,3 +21,4 @@
   - 步骤：api 包（4 方法、值对象、错误码）+ module-dependencies 行（platform.signing -> platform.audit, platform.identity）+ ModuleDependencyTest 禁止边 + contexts.yaml 核对；api 入库时派 opus 复审准入第 2 条（不认识业务单据）；完成后报 one-architecture 复核九条。表结构（契约 §6 四张表）交 one-data 签发后另一 PR。
 - **ADR-0075 决定 2**（one-architecture 2026-10-22）：platform_file.preservation_category_versions 有状态机却无 version 列，下一张迁移卡（单元 7）补列，PreservationCategoryVersion 的转换序号取这一列。
 - 文件服务其余：6b、5a、7，待办与改名见上文各条。
+- 签章用语（one-glossary #564 说明）：权限码前缀 platform.signing（冒号后资源与动作按 ADR-0067 冻结，不在词表）；错误码中文名以提议文件 platform-signing.yaml 为准（统一带「印章台账」），契约草案 §2.3 拟名作废；「印章类别」统一称印章类型。#564 合入 main 后落代码。
