@@ -30,21 +30,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__cost_timesheet_reason_required
-  zh: 必须填写原因
-  en: CostTimesheetReasonRequired
-  snake: cost_timesheet_reason_required
-  kind: error_code
-  bc: cost.timesheet
-  scope: domain
-  definition: 撤回、撤销必须填写原因（422）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__cost_timesheet_cutoff_passed
   zh: 已过撤回截止点
   en: CostTimesheetCutoffPassed
