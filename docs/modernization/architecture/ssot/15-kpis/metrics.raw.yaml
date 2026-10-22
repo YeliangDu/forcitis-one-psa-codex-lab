@@ -1011,7 +1011,7 @@ by_glossary_metric:
   snake: project_cost
   kind: metric
   bc: cost.costing
-  definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）
+  definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）；按科目划分的「变动成本」「固定成本」两栏已废弃，不复活旧词；以后按成本性态分析时另立「成本性态」维度（用户 KPI-Q07）
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   confidence: medium
@@ -1022,10 +1022,21 @@ by_glossary_metric:
   - name: psa_cost_ledger / psa_cost_summary
     type: legacy-table
     deprecated: true
-  forbidden: []
+  - name: 变动成本
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - name: 固定成本
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden:
+  - 变动成本
+  - 固定成本
   status: approved
   core: true
   scope: domain
+  confirmed: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   source: docs/modernization/glossary/terms.yaml:2630
 - id: direct_labor
   zh: 直接人工
@@ -1042,7 +1053,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:2687
+  source: docs/modernization/glossary/terms.yaml:2698
 - id: direct_expense
   zh: 直接费用
   en: DirectExpense
@@ -1057,7 +1068,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:2702
+  source: docs/modernization/glossary/terms.yaml:2713
 - id: outsourcing_cost
   zh: 外包成本
   en: OutsourcingCost
@@ -1079,7 +1090,7 @@ by_glossary_metric:
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:2716
+  source: docs/modernization/glossary/terms.yaml:2727
 - id: subcontract_cost
   zh: 分包成本
   en: SubcontractCost
@@ -1101,7 +1112,7 @@ by_glossary_metric:
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:2737
+  source: docs/modernization/glossary/terms.yaml:2748
 - id: cost_budget
   zh: 成本预算
   en: CostBudget
@@ -1116,7 +1127,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:2878
+  source: docs/modernization/glossary/terms.yaml:2889
 - id: cost_budget_variance
   zh: 成本预算偏差
   en: CostBudgetVariance
@@ -1143,7 +1154,7 @@ by_glossary_metric:
   note: PMBOK 的 CostVariance 专指 EVM 的 CV = EV − AC；本词定义是预算 vs 实际（BURN_STD），换名避免与 EVM 指标同名异义
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:2892
+  source: docs/modernization/glossary/terms.yaml:2903
 - id: unbilled_wip
   zh: 未开票在制（WIP）
   en: UnbilledWip
@@ -1169,7 +1180,7 @@ by_glossary_metric:
   note: WIP 是 PSA 行业管理口径（未开票价值），合同资产是准则口径；两者差异 = 无合同 WIP + 合同负债抵消 + 减值，见 G-8/G-9
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:3224
+  source: docs/modernization/glossary/terms.yaml:3235
 - id: measure_of_progress
   zh: 履约进度
   en: MeasureOfProgress
@@ -1201,7 +1212,7 @@ by_glossary_metric:
   core: true
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:3296
+  source: docs/modernization/glossary/terms.yaml:3307
 - id: uncontracted_wip
   zh: 无合同 WIP
   en: UncontractedWip
@@ -1219,7 +1230,7 @@ by_glossary_metric:
   change_ref: G-9
   note: 无合同即不满足 CAS 14 合同成立条件：永不进入 ContractAsset，只存在于管理口径未开票在制
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:3467
+  source: docs/modernization/glossary/terms.yaml:3478
 - id: accounts_receivable
   zh: 应收账款
   en: AccountsReceivable
@@ -1251,7 +1262,7 @@ by_glossary_metric:
   note: 准则：无条件收款权（仅取决于时间流逝）；代码保留 Ar 前缀写法 ArItem
   confirmed: 2026-10-15（用户，用语确认第三轮）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:3574
+  source: docs/modernization/glossary/terms.yaml:3585
 - id: aging
   zh: 账龄
   en: Aging
@@ -1266,7 +1277,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:3750
+  source: docs/modernization/glossary/terms.yaml:3761
 - id: bad_debt_risk
   zh: 坏账风险
   en: BadDebtRisk
@@ -1281,7 +1292,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:3898
+  source: docs/modernization/glossary/terms.yaml:3909
 - id: impairment_risk
   zh: 减值风险
   en: ImpairmentRisk
@@ -1297,7 +1308,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:3912
+  source: docs/modernization/glossary/terms.yaml:3923
 - id: cash_conversion
   zh: 现金转化
   en: CashConversion
@@ -1313,7 +1324,7 @@ by_glossary_metric:
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:3927
+  source: docs/modernization/glossary/terms.yaml:3938
 - id: time_capture_rate
   zh: 工时捕获率
   en: TimeCaptureRate
@@ -1328,7 +1339,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:3942
+  source: docs/modernization/glossary/terms.yaml:3953
 - id: statutory_cost
   zh: 法定成本
   en: StatutoryCost
@@ -1344,7 +1355,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:4249
+  source: docs/modernization/glossary/terms.yaml:4260
 - id: intercompany_balance
   zh: 内部往来
   en: IntercompanyBalance
@@ -1360,7 +1371,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:4355
+  source: docs/modernization/glossary/terms.yaml:4366
 - id: costs_to_obtain_contract
   zh: 合同取得成本
   en: CostsToObtainContract
@@ -1379,7 +1390,7 @@ by_glossary_metric:
   change_ref: G-10
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5264
+  source: docs/modernization/glossary/terms.yaml:5275
 - id: cost_of_sales
   zh: 营业成本
   en: CostOfSales
@@ -1402,7 +1413,7 @@ by_glossary_metric:
   change_ref: G-10
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5337
+  source: docs/modernization/glossary/terms.yaml:5348
 - id: remaining_performance_obligation
   zh: 剩余履约义务
   en: RemainingPerformanceObligation
@@ -1436,7 +1447,7 @@ by_glossary_metric:
   change_ref: G-21
   confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5359
+  source: docs/modernization/glossary/terms.yaml:5370
 - id: estimate_at_completion
   zh: 完工估算
   en: EstimateAtCompletion
@@ -1457,7 +1468,7 @@ by_glossary_metric:
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5409
+  source: docs/modernization/glossary/terms.yaml:5420
 - id: planned_value
   zh: 计划价值
   en: PlannedValue
@@ -1479,7 +1490,7 @@ by_glossary_metric:
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5429
+  source: docs/modernization/glossary/terms.yaml:5440
 - id: earned_value
   zh: 挣值
   en: EarnedValue
@@ -1501,7 +1512,7 @@ by_glossary_metric:
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5450
+  source: docs/modernization/glossary/terms.yaml:5461
 - id: actual_cost
   zh: 实际成本
   en: ActualCost
@@ -1522,7 +1533,7 @@ by_glossary_metric:
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5471
+  source: docs/modernization/glossary/terms.yaml:5482
 - id: cost_performance_index
   zh: 成本绩效指数
   en: CostPerformanceIndex
@@ -1543,7 +1554,7 @@ by_glossary_metric:
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5491
+  source: docs/modernization/glossary/terms.yaml:5502
 - id: schedule_performance_index
   zh: 进度绩效指数
   en: SchedulePerformanceIndex
@@ -1564,7 +1575,7 @@ by_glossary_metric:
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5511
+  source: docs/modernization/glossary/terms.yaml:5522
 - id: schedule_variance
   zh: 进度偏差
   en: ScheduleVariance
@@ -1585,7 +1596,7 @@ by_glossary_metric:
   change_ref: G-23
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5531
+  source: docs/modernization/glossary/terms.yaml:5542
 - id: earned_value_cost_variance
   zh: 挣值成本偏差
   en: EarnedValueCostVariance
@@ -1607,7 +1618,7 @@ by_glossary_metric:
   change_ref: G-24
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5551
+  source: docs/modernization/glossary/terms.yaml:5562
 - id: utilization_rate
   zh: 利用率
   en: UtilizationRate
@@ -1633,7 +1644,7 @@ by_glossary_metric:
   change_ref: G-2
   confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:5734
+  source: docs/modernization/glossary/terms.yaml:5745
 - id: accrual_basis_revenue
   zh: 权责发生制收入
   en: AccrualBasisRevenue
@@ -1657,14 +1668,18 @@ by_glossary_metric:
   - name: 权责收入
     type: dialect
     deprecated: true
+  - name: 收入确认（不含税）
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
   forbidden:
   - 产值收入
   - 权责收入
   status: approved
   note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#accrual_revenue，R3-FI-05）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:8138
+  source: docs/modernization/glossary/terms.yaml:8149
 - id: reversible_balance
   zh: 可冲销余额
   en: ReversibleBalance
@@ -1681,7 +1696,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（原提议 kernel.yaml#reversible_balance，R3-KN-12）
   confirmed: 2026-10-15（用户，用语确认第三轮）
   scope: kernel
-  source: docs/modernization/glossary/terms.yaml:9116
+  source: docs/modernization/glossary/terms.yaml:9132
 - id: job_failure
   zh: 作业失败
   en: JobFailure
@@ -1701,7 +1716,7 @@ by_glossary_metric:
   formula: 带 SchedulerLock 的定时作业抛出异常的运行次数（作业自己捕获并记录的失败不计）
   grain: 按作业名（锁名）
   as_of: 实时累计，随进程重启归零（指标计数器）
-  source: docs/modernization/glossary/terms.yaml:9491
+  source: docs/modernization/glossary/terms.yaml:9507
 - id: contribution_margin
   zh: 贡献毛利
   en: ContributionMargin
@@ -1742,7 +1757,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-contribution_margin，R3-RN-01）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9510
+  source: docs/modernization/glossary/terms.yaml:9526
 - id: contribution_margin_ratio
   zh: 贡献毛利率
   en: ContributionMarginRatio
@@ -1764,24 +1779,28 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-contribution_margin_ratio，R3-RN-02）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9550
+  source: docs/modernization/glossary/terms.yaml:9566
 - id: net_service_revenue
   zh: 净服务收入
   en: NetServiceRevenue
   snake: net_service_revenue
   kind: metric
   bc: operations.policy
-  definition: 收入（不含税）减转付成本（分包、外包与可向客户转收的代垫费用）后的余额；扣减范围按财务口径 FD-41
+  definition: 管理口径的净额，不用于法定报表：不含税收入减委外与分包、再减可向客户转收的代垫费用后的余额；信息服务费不在此扣除，计入直接项目费用并在贡献毛利中扣除。法定收入按总额含代垫确认，二者可互相推导：净服务收入 ＝ 法定收入（不含税）− 委外与分包 − 可向客户转收的代垫费用，报表脚注写出推导关系（用户 KPI-Q02）；原「净收入」并入本词（KPI-Q02、NU-13）
   standard_ref:
   - OAT canonical_symbol NR；企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；AEC 行业 Net Service Revenue（PSMJ / Deltek 通行口径）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 净收入
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-net_service_revenue，R3-RN-03）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9571
+  source: docs/modernization/glossary/terms.yaml:9587
 - id: management_operating_profit
   zh: 经营利润
   en: ManagementOperatingProfit
@@ -1798,7 +1817,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-operating_profit，R3-RN-04）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9587
+  source: docs/modernization/glossary/terms.yaml:9607
 - id: management_operating_profit_margin
   zh: 经营利润率
   en: ManagementOperatingProfitMargin
@@ -1815,7 +1834,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-operating_profit_margin，R3-RN-05）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9603
+  source: docs/modernization/glossary/terms.yaml:9623
 - id: indirect_cost
   zh: 间接成本
   en: IndirectCost
@@ -1826,20 +1845,25 @@ by_glossary_metric:
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）（间接费用）；US Cost Accounting Standards 418（Allocation of direct and indirect costs）；OAT canonical_symbol OH
   confidence: medium
-  aliases: []
-  forbidden: []
+  aliases:
+  - name: 间接费用
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden:
+  - 间接费用
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-overhead，R3-RN-06）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9619
+  source: docs/modernization/glossary/terms.yaml:9639
 - id: pass_through_cost
   zh: 转付成本
   en: PassThroughCost
   snake: pass_through_cost
   kind: metric
   bc: operations.policy
-  definition: 为履行合同转付给第三方的成本：分包成本、外包成本与可向客户转收的代垫费用；在净服务收入中扣减（FD-41）
+  definition: 为履行合同转付给第三方的成本：分包成本、外包成本（合称委外与分包），以及可向客户转收的代垫费用；在净服务收入中扣减（用户 KPI-Q02）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；OAT canonical_symbol PTC；AEC 行业 pass-through / reimbursable costs
   confidence: medium
@@ -1847,9 +1871,9 @@ by_glossary_metric:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-pass_through_cost，R3-RN-07）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9635
+  source: docs/modernization/glossary/terms.yaml:9660
 - id: labor_cost_multiplier
   zh: 人工成本产出倍数
   en: LaborCostMultiplier
@@ -1891,7 +1915,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-labor_cost_multiplier，R3-RN-09）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9667
+  source: docs/modernization/glossary/terms.yaml:9692
 - id: target_variance
   zh: 目标偏差
   en: TargetVariance
@@ -1908,7 +1932,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-target_variance，R3-RN-17）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9804
+  source: docs/modernization/glossary/terms.yaml:9829
 - id: available_budget
   zh: 可用额度
   en: AvailableBudget
@@ -1925,7 +1949,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-available_budget，R3-RN-25）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:9932
+  source: docs/modernization/glossary/terms.yaml:9957
 - id: plan_target_value
   zh: 计划目标值
   en: PlanTargetValue
@@ -1950,7 +1974,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-plan_target_value，R3-RN-31）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10028
+  source: docs/modernization/glossary/terms.yaml:10053
 - id: target_attainment_rate
   zh: 目标达成率
   en: TargetAttainmentRate
@@ -1972,7 +1996,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-target_attainment_rate，R3-RN-33）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10068
+  source: docs/modernization/glossary/terms.yaml:10093
 - id: budget_consumption_rate
   zh: 预算消耗率
   en: BudgetConsumptionRate
@@ -1989,7 +2013,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_burn_rate，R3-RN-36）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10121
+  source: docs/modernization/glossary/terms.yaml:10146
 - id: new_contract_value
   zh: 新签合同额
   en: NewContractValue
@@ -2006,7 +2030,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-new_contract_value，R3-RN-37）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10137
+  source: docs/modernization/glossary/terms.yaml:10162
 - id: project_initiation_value
   zh: 项目立项金额
   en: ProjectInitiationValue
@@ -2023,7 +2047,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-project_initiation_value，R3-RN-38）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10153
+  source: docs/modernization/glossary/terms.yaml:10178
 - id: aged_receivable
   zh: 账龄超 N 天应收
   en: AgedReceivable
@@ -2045,7 +2069,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-aged_receivable，R3-RN-42）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10205
+  source: docs/modernization/glossary/terms.yaml:10230
 - id: days_sales_outstanding
   zh: 应收周转天数
   en: DaysSalesOutstanding
@@ -2062,7 +2086,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-days_sales_outstanding，R3-RN-43）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10226
+  source: docs/modernization/glossary/terms.yaml:10251
 - id: billing_conversion_rate
   zh: 开票转化率
   en: BillingConversionRate
@@ -2079,7 +2103,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-billing_conversion_rate，R3-RN-44）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10242
+  source: docs/modernization/glossary/terms.yaml:10267
 - id: collection_rate
   zh: 回款率
   en: CollectionRate
@@ -2096,7 +2120,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-collection_rate，R3-RN-45）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10258
+  source: docs/modernization/glossary/terms.yaml:10283
 - id: overdue_billing_commitment
   zh: 承诺开票超期
   en: OverdueBillingCommitment
@@ -2113,7 +2137,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-overdue_billing_commitment，R3-RN-46）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10274
+  source: docs/modernization/glossary/terms.yaml:10299
 - id: allowance_for_bad_debts
   zh: 坏账准备
   en: AllowanceForBadDebts
@@ -2147,7 +2171,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-credit_loss_allowance，R3-RN-49）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10327
+  source: docs/modernization/glossary/terms.yaml:10352
 - id: average_headcount
   zh: 平均在册人数
   en: AverageHeadcount
@@ -2164,7 +2188,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-average_headcount，R3-RN-50）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10360
+  source: docs/modernization/glossary/terms.yaml:10385
 - id: attrition_rate
   zh: 离职率
   en: AttritionRate
@@ -2181,7 +2205,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-attrition_rate，R3-RN-51）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10376
+  source: docs/modernization/glossary/terms.yaml:10401
 - id: pipeline_value
   zh: 商机管道金额
   en: PipelineValue
@@ -2198,7 +2222,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-pipeline_value，R3-RN-55）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10442
+  source: docs/modernization/glossary/terms.yaml:10467
 - id: win_rate
   zh: 赢单率
   en: WinRate
@@ -2215,7 +2239,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-win_rate，R3-RN-56）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10458
+  source: docs/modernization/glossary/terms.yaml:10483
 - id: lead_conversion_rate
   zh: 线索转化率
   en: LeadConversionRate
@@ -2232,7 +2256,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-lead_conversion_rate，R3-RN-57）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10474
+  source: docs/modernization/glossary/terms.yaml:10499
 - id: expense_payment
   zh: 费用支付
   en: ExpensePayment
@@ -2249,7 +2273,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-expense_payment，R3-RN-60）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10522
+  source: docs/modernization/glossary/terms.yaml:10547
 - id: kickoff_completion_rate
   zh: 启动会完成率
   en: KickoffCompletionRate
@@ -2266,7 +2290,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-kickoff_completion_rate，R3-RN-62）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10554
+  source: docs/modernization/glossary/terms.yaml:10579
 - id: internal_review_coverage
   zh: 内部评审覆盖率
   en: InternalReviewCoverage
@@ -2283,7 +2307,7 @@ by_glossary_metric:
   note: 用语确认第三轮转正式（R0 第三轮输入 N-internal_review_coverage，R3-RN-63）
   confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
   scope: domain
-  source: docs/modernization/glossary/terms.yaml:10570
+  source: docs/modernization/glossary/terms.yaml:10595
 - id: net_revenue
   zh: 净收入
   en: NetRevenue
@@ -2297,13 +2321,16 @@ by_glossary_metric:
   formula: 收入（不含税）−委外与分包的转付成本；信息服务费在直接项目费用中扣除
   grain: 法人 × 项目 × 业务期间，按同一币种汇总
   as_of: 所选业务期间末，以该期间已确认收入和配对转付成本为准
-  status: approved
-  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-41）
+  status: deprecated
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-41）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   confidence: medium
   aliases: []
   forbidden: []
   note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
-  source: docs/modernization/glossary/terms.yaml:13955
+  replaced_by: net_service_revenue
+  until: '2026-12-31'
+  owner: one-glossary
+  source: docs/modernization/glossary/terms.yaml:13980
 - id: revenue_including_tax
   zh: 含税收入
   en: RevenueIncludingTax
@@ -2318,12 +2345,16 @@ by_glossary_metric:
   grain: 法人 × 年度目标范围 × 业务期间 × 币种
   as_of: 年度目标跟踪的所选业务期间末
   status: approved
-  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-14）
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-14）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 收入确认（含税）
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
   forbidden: []
   note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
-  source: docs/modernization/glossary/terms.yaml:14054
+  source: docs/modernization/glossary/terms.yaml:14082
 - id: net_new_contract_value
   zh: 新签净额
   en: NetNewContractValue
@@ -2343,7 +2374,7 @@ by_glossary_metric:
   aliases: []
   forbidden: []
   note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
-  source: docs/modernization/glossary/terms.yaml:14153
+  source: docs/modernization/glossary/terms.yaml:14185
 by_vision_kpi:
 - id: KPI-01
   name: OA 迁入模板停用率
