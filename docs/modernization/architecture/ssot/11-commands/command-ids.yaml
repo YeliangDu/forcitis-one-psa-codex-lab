@@ -664,6 +664,11 @@ ids:
   name: 生效协议价目版本
   former_names: []
   retired: false
+- id: CMD-3111a8d0
+  aggregate: AGG-73
+  name: 登记薪酬补发顺延
+  former_names: []
+  retired: false
 - id: CMD-32157e6e
   aggregate: AGG-114
   name: 解决 IT 需求
@@ -1173,7 +1178,7 @@ ids:
   aggregate: AGG-60
   name: 更正法人代码
   former_names: []
-  retired: false
+  retired: true
 - id: CMD-644b3d33
   aggregate: AGG-75
   name: 驳回激励方案版本
@@ -2058,7 +2063,7 @@ ids:
   aggregate: AGG-117
   name: 终止法人归属
   former_names: []
-  retired: false
+  retired: true
 - id: CMD-ad26de60
   aggregate: AGG-115
   name: 归还资产
