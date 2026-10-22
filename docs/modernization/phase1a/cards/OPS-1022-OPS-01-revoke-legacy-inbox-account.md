@@ -1,11 +1,11 @@
 ---
 卡号: OPS-1022-OPS-01
-状态: 待批
+状态: 阻塞
 负责会话: one-ops
 ---
 # 撤号卡 OPS-1022-OPS-01：撤销老待办只读账号 psa_one_legacy_ro
 
-- 任务名：[OPS·platform.approval] 撤销合并待办（老待办）只读账号 psa_one_legacy_ro；主线 OPS；种类 配置
+- 任务名：[OPS·platform.approval] 撤销合并待办（老待办）只读账号 psa_one_legacy_ro；主线 OPS；种类 文档
 - 性质：**生产变更**（老系统生产 RDS 上删账号）。卡写好后经 one-coordinator 交用户批准，**批准前不执行**。
 - 依据：one-architecture 裁定 LEGACY_INBOX_CONNECTION_RULING_2026-10-22（老待办的「受控退役用途」只读账号随老待办一起撤，账号撤了再删入口）；ADR-0037 第 6 项（读取与退役）；one-1a-par 的 F 线删老待办。
 
