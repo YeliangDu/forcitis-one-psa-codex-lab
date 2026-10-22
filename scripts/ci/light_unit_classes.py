@@ -179,9 +179,9 @@ def self_test():
             return cli(["--changed", listing], root).split(","), cli(["--changed", listing, "--explain"], root)
         got, _ = narrowed("backend/src/main/java/com/forcitis/one/a/b/domain/X.java")
         assert got == ["BDomainTest", "BTest", "DoublesTest", "KernelTest", "TopTest"], f"one module changed: its tests and the tests outside the modules: {got}"
-        got, why = narrowed("docs/modernization/x.md", "backend/src/test/java/com/forcitis/one/a/c/CTest.java")
+        got, why = narrowed("frontend/src/x.ts", "backend/src/test/java/com/forcitis/one/a/c/CTest.java")
         assert got == ["CTest", "DoublesTest", "KernelTest", "TopTest"] and "a.c" in why, (got, why)
-        assert narrowed("docs/modernization/x.md")[0] == ["DoublesTest", "KernelTest", "TopTest"], "docs only: the tests outside the modules"
+        assert narrowed("frontend/src/x.ts")[0] == ["DoublesTest", "KernelTest", "TopTest"], "nothing in backend/: the tests outside the modules"
         for whole in ("backend/pom.xml", "backend/src/main/resources/db/x.sql", "backend/src/main/java/com/forcitis/one/kernel/K.java", "backend/src/test/java/com/forcitis/one/fixture/doubles/D.java",
                       "backend/src/main/java/com/forcitis/one/a/gone/G.java", "backend/glossary/x.yaml"):
             got, why = narrowed("backend/src/main/java/com/forcitis/one/a/b/X.java", whole)
