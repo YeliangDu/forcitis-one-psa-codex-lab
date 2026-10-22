@@ -4,6 +4,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.platform.file.api.FileImports;
+import com.forcitis.one.platform.file.api.FileSubjectKind;
 import com.forcitis.one.platform.file.api.PlatformFileContent;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -26,6 +27,16 @@ class PlatformFileContentCallersTest {
             .should().dependOnClassesThat().areAssignableTo(FileImports.class)
             .because("only the migration orchestration imports legacy files (ADR-0060 section 7, ADR-0066 section 8)");
 
+    // A platform module may link any file it is handed (BindFile), so a business module must not speak as one.
+    static final ArchRule ONLY_PLATFORM_MODULES_ACT_AS_ONE = noClasses().that().resideOutsideOfPackage("com.forcitis.one.platform..")
+            .should().accessField(FileSubjectKind.class, FileSubjectKind.PLATFORM_MODULE.name())
+            .because("a business module links files as the user or link it acts for (ADR-0060 section 2)");
+
+    @Test
+    void onlyPlatformModulesActAsAPlatformModule() {
+        ONLY_PLATFORM_MODULES_ACT_AS_ONE.check(production());
+    }
+
     @Test
     void onlyPlatformModulesUsePlatformFileContent() {
         ONLY_PLATFORM_MODULES_READ_CONTENT.check(production());
@@ -43,6 +54,9 @@ class PlatformFileContentCallersTest {
                 .hasMessageContaining("ProbeFileContentReader");
         assertThatThrownBy(() -> ONLY_THE_MIGRATION_IMPORTS.check(probe)).isInstanceOf(AssertionError.class)
                 .hasMessageContaining("ProbeFileContentReader");
+        JavaClasses subject = new ClassFileImporter().importClasses(Class.forName("com.forcitis.one.ProbePlatformModuleSubject"));
+        assertThatThrownBy(() -> ONLY_PLATFORM_MODULES_ACT_AS_ONE.check(subject)).isInstanceOf(AssertionError.class)
+                .hasMessageContaining("ProbePlatformModuleSubject");
     }
 
     private static JavaClasses production() {

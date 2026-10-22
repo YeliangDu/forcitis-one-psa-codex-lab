@@ -174,3 +174,11 @@ c3 / c9 两份运行时脚本同步。`DataArchitectureTest` 核对：注册表�
 各 schema 的 `from_status`/`to_status` 带取值并集 CHECK（DdlNamingTest 要求 `_status` 列有取值 CHECK），`aggregate_type_code` 限定该 schema 的聚合类型，并可加按聚合成对限定状态的 CHECK；这三处取值由该 schema 的流转清单决定，其余列与约束逐字沿用模板（2026-10-21，platform_file 首次建表时定）。
 
 **再更正（2026-10-21）**：`sequence_number` 与词条「流水号」（`platform.numbering`）同名，G39 要求列注释以「流水号」开头，语义不同会误导；本表的序号是聚合内第几次变更，列名定为 `transition_sequence_number`（约束名 `uk_state_transitions_aggregate_id_transition_sequence_number` 共 60 字符，在 63 以内）。不给守护开豁免。
+
+## 子状态机聚合的记法（2026-10-21，B-31 AGG-115 起；与 one-architecture 对齐，ADR-0075 起草依据）
+
+1. **每个有独立状态机的子实体各记各的转换**：`aggregate_type_code` 取子实体类型，`aggregate_id` 取该子行 ID，`legal_entity_id` 取该次命令的法人（根无法人归属时取命令请求上的法人）。注册表在 `aggregates.yaml` 里把这些子实体声明为「历史聚合」，并注明所属根。
+2. **乐观锁与事务以根为准**：一个命令一个事务一个根（SESSION_PLAYBOOK §14 第 1 项不变）；**每条命令都推进根的 `version`**，写入时同时匹配根 `version` 与前置状态。
+3. **转换序号取子行自己的 `version`**：子行每改一次状态自增 1；一条命令里同一子行状态变两次，`version` 增 2，写两条转换（序号 v+1、v+2）；无状态变化的写入不写转换，子行 `version` 是否推进以该子行是否变化为准，序号允许跳号，只要求每个 `aggregate_id` 内严格递增且唯一。
+4. **目标版本由领域方法给出**：转换的 `transition_sequence_number` 与新状态由领域方法返回（子行新 `version`、新状态），仓储把它原样写入子行与转换行，不由仓储自行推算，也不在 SQL 里 `version + 1` 再回读。
+5. 迁入初始转换（第 8 条）对每个子行各写一条。
