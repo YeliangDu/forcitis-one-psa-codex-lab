@@ -119,6 +119,8 @@ def self_test():
         os.utime(precompact, (time.time() + 3600, time.time() + 3600))
         restored = invoke("postcompact_context.sh", new_session, env, repo)
         assert "-clear.md" in restored and "-compact.md" not in restored and "-unrelated.md" not in restored, "the newest snapshot of this worktree is named"
+        part_c_text = restored.split("## C 交接")[1].split("## D")[0]
+        assert "-clear.md" in part_c_text and "也没有交接快照" not in part_c_text, "the snapshot reaches the sheet: part C names it instead of claiming there is none"
         newer.unlink()
         restored = invoke("postcompact_context.sh", new_session, env, repo)
         assert "-compact.md" in restored, "precompact snapshots must also be claimed"

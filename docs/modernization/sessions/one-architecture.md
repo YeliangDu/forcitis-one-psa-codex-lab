@@ -57,6 +57,7 @@
 - `docs/modernization/architecture/FRAMEWORKS.md`（锁定版本的架构知识框架；做判断以它为准，不凭记忆）
 - `docs/modernization/architecture/METHOD.md`（从愿景到代码的施工图方法与六条接缝）
 - `docs/modernization/sessions/one-architecture.md`（本画像）
+- 交接源: docs/modernization/architecture/ARCH_CONTEXT.md#现状
 
 ## 交接条件
 

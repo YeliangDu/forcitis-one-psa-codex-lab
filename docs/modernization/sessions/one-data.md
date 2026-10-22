@@ -54,6 +54,7 @@
 
 - `docs/modernization/data/DATA_CONTEXT.md`（本会话现状速查，开工后建立）
 - `docs/modernization/sessions/one-data.md`（本画像）
+- 交接源: docs/modernization/data/DATA_CONTEXT.md#交接
 
 ## 交接条件
 

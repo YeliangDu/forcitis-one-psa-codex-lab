@@ -320,6 +320,9 @@ def resolve_session(root):
     profile_path = f"{SESSIONS}/{name}.md"
     profile = sc.from_main(root, profile_path) or sc.from_tree(root, profile_path) or ""
     docs = [doc for doc in sc.context_docs(profile) if doc != profile_path and not sc.unsafe_reason(root, doc)]
+    source = sc.handoff_source(profile)
+    if source and source[0] not in docs and not sc.unsafe_reason(root, source[0]):
+        docs.append(source[0])  # the handover source counts for the node instruction and the stop gate even when it is not a listed context document
     return name, profile_path, docs
 
 
@@ -442,8 +445,8 @@ def handle_locked(event, payload, root, now):
                         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
                         import start_sheet
                         goals = start_sheet.goals_for_node(root, resolved[0] or entry["name"] or "")
-                    except Exception:  # the goals are a courtesy; the instruction itself must still go out
-                        goals = ""
+                    except Exception as error:  # the goals are a courtesy; the instruction itself must still go out, saying they are missing
+                        goals = f"（任务卡的目标与完成标准读取失败：{type(error).__name__}，自己读 docs/modernization/tasks/ 里本会话的在途卡）"
                     text = node_instruction(node, percent, resolved[0] or entry["name"] or None, resolved[1], resolved[2], goals)
                     if event == "Stop":
                         node_out = {"decision": "block", "reason": text}
@@ -493,7 +496,7 @@ def stop_decision(root, entry, top, percent, now):
     blocked.append(str(top))
     todo = "、".join([profile, *docs])
     return {"decision": "block", "reason": f"上下文已用 {percent:.0f}%（过 {top}% 线），但 {todo} 自过线以来没有更新。"
-            f"先更新上下文文档与交接（当前状态、在途、下一步），报 one-coordinator；不要 clear_session，写过之后可以直接结束。"}
+            f"先更新上下文文档与交接（做到哪、在途、下一步），报 one-coordinator；不要 clear_session，写过之后可以直接结束。"}
 
 
 def transcript_size(payload):
@@ -908,8 +911,28 @@ def self_test():
         def stop_at(tokens, tool_use, session, now, **extra):
             return handle("Stop", dict(payload, hook_event_name="Stop", session_id=session, transcript_path=turn_file(tokens, tool_use), **extra), root, now)
 
+        card = os.path.join(root, "docs/modernization/tasks/T-1.md")
+        write(card, "---\n任务号: T-1\n会话: one-test\n状态: 进行中\n---\n## 目标\n\n做 A 目标。\n\n## 完成标准\n\n测试过。\n")
         stop_node = stop_at(250, True, "nd6", 4005.0)
         assert stop_node and stop_node["decision"] == "block" and "一轮结束" in stop_node["reason"] and "【交接节点】" in stop_node["reason"], stop_node
+        assert "做 A 目标。" in stop_node["reason"] and "测试过。" in stop_node["reason"], "the open card's goal rides with the node instruction through the hook"
+        os.remove(card)
+        assert "读取失败" not in stop_node["reason"]
+        # the handover source of the profile counts: it is named by the node instruction and the stop gate waits for it
+        write(os.path.join(root, SESSIONS, "one-test.md"), "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n- 交接源: docs/hand.md#交接\n")
+        write(os.path.join(root, "docs/hand.md"), "## 交接\n\nx\n")
+        assert resolve_session(root)[2] == ["docs/ctx.md", "docs/hand.md"], resolve_session(root)
+        os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
+        os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
+        os.utime(os.path.join(root, "docs/hand.md"), (9e9, 9e9))
+        stop_gate = lambda session, now: handle("Stop", dict(payload, hook_event_name="Stop", session_id=session, transcript_path=turn_file(760, False)), root, now)
+        assert stop_gate("src-gate1", 90000.0) is None, "writing the handover source satisfies the stop gate"
+        os.utime(os.path.join(root, "docs/hand.md"), (1, 1))
+        gate = stop_gate("src-gate2", 91000.0)
+        assert gate and gate["decision"] == "block" and "docs/hand.md" in gate["reason"], "a stale handover source is named by the stop gate"
+        write(os.path.join(root, SESSIONS, "one-test.md"), "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n")
+        os.remove(os.path.join(root, "docs/hand.md"))
+        os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
         assert stop_at(250, False, "nd6b", 4005.5) is None, "a turn that only answered a question (no tool ran) is not a node"
         assert stop_at(250, True, "nd7", 4006.0, stop_hook_active=True) is None, "a continued stop is let through"
         assert stop_at(150, True, "nd8", 4007.0) is None, "below min_percent a turn end is not a node"

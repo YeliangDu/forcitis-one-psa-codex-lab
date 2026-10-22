@@ -7,7 +7,8 @@ in sessions/_retired.md take part in the match, so an ended session whose name e
 Profiles are read from origin/main first (the worktree may be stale), then from the worktree; context documents are the
 backticked paths in the profile's 上下文文档 section, read from the worktree first, then origin/main. A context path must be
 relative, free of "..", and stay under the repository root after resolving links.
-build_sessions.py imports context_docs() and unsafe_reason() so the hook and the build check judge paths the same way.
+A line `交接源: <path>#<heading fragment>` in that section names where the session's handover lives (handoff_source()); start_sheet.py, the handover-node
+instruction and the stop gate read it, build_sessions.py checks the file and the heading exist. build_sessions.py imports context_docs() and unsafe_reason() so the hook and the build check judge paths the same way.
 Usage: session_context.py --self-test
 """
 import os, re, subprocess, sys, tempfile
@@ -19,6 +20,13 @@ MARKER = ".claude/session-name"
 def context_docs(profile_text):
     m = re.search(r"(?ms)^## 上下文文档\n(.*?)(?=^## |\Z)", profile_text)
     return re.findall(r"`([^`\s]+\.md)`", m.group(1)) if m else []
+
+
+def handoff_source(profile_text):
+    """(path, heading fragment) of the line `交接源: <repo-relative .md>#<heading fragment>` in the profile's 上下文文档 section, or None."""
+    m = re.search(r"(?ms)^## 上下文文档\n(.*?)(?=^## |\Z)", profile_text)
+    found = re.search(r"(?m)^[-*\s]*交接源[:：]\s*`?([^`\s#]+\.md)#([^`\n]+?)`?\s*$", m.group(1)) if m else None
+    return (found.group(1), found.group(2).strip()) if found else None
 
 
 def unsafe_reason(root, path):
@@ -48,7 +56,11 @@ def retired_names(text):
 
 
 def git(root, *args):
-    r = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True)
+    try:
+        r = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True, timeout=10)
+    except subprocess.TimeoutExpired:
+        print(f"session_context: git {' '.join(args[:2])} 超过 10 秒，按读不到处理", file=sys.stderr)
+        return None
     return r.stdout if r.returncode == 0 else None
 
 
@@ -80,6 +92,10 @@ def self_test():
     profile = "# one-x\n\n## 上下文文档\n\n- `docs/a.md`（速查）、`docs/b.md`\n- 不是路径 `foo`\n\n## 交接条件\n\n`docs/c.md`\n"
     assert context_docs(profile) == ["docs/a.md", "docs/b.md"], context_docs(profile)
     assert context_docs("# one-x\n") == []
+    assert handoff_source("# one-x\n\n## 上下文文档\n\n- `docs/a.md`\n- 交接源: docs/a.md#交接\n\n## 交接条件\n") == ("docs/a.md", "交接")
+    assert handoff_source("## 上下文文档\n交接源：`docs/led.md#2026 交接`\n") == ("docs/led.md", "2026 交接")
+    assert handoff_source("## 上下文文档\n\n- `docs/a.md`\n\n## 其他\n交接源: docs/b.md#交接\n") is None, "only inside the 上下文文档 section"
+    assert handoff_source("# one-x\n") is None
     names = {"one-1a-next-3", "one-1a", "one-ops"}
     assert match(names, "", ["one-1a-next-3-abc", "x"]) == "one-1a-next-3"
     assert match(names, "", ["agent-a1", "one-ops-r40"]) == "one-ops"

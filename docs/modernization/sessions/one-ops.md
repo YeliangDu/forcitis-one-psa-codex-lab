@@ -46,6 +46,7 @@
 
 - `docs/modernization/phase1a/infra/OPS_CONTEXT.md`（现状速查）
 - `docs/modernization/sessions/one-ops.md`（本画像）
+- 交接源: docs/modernization/phase1a/infra/OPS_CONTEXT.md#交接
 
 ## 交接条件
 

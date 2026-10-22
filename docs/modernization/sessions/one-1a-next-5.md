@@ -40,6 +40,7 @@
 
 - `docs/modernization/phase1a/HANDOFF_one-1a-next-4.md`（接手依据）
 - `docs/modernization/phase1a/HANDOFF_one-1a-next-5.md`（本会话产出与后续）
+- 交接源: docs/modernization/phase1a/HANDOFF_one-1a-next-5.md#交接
 
 ## 交接条件
 

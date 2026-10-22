@@ -50,6 +50,7 @@
 
 - `docs/modernization/glossary/GLOSSARY_CONTEXT.md`（现状速查）
 - `docs/modernization/sessions/one-glossary.md`（本画像）
+- 交接源: docs/modernization/glossary/GLOSSARY_CONTEXT.md#现状
 
 ## 交接条件
 

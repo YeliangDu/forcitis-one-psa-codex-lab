@@ -48,6 +48,7 @@
 ## 上下文文档
 
 - `docs/modernization/sessions/one-coordinator.md`（本画像）
+- 交接源: docs/modernization/COORDINATOR_LEDGER.md#交接
 
 ## 交接条件
 

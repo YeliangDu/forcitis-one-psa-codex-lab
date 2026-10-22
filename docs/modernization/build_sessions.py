@@ -11,6 +11,8 @@
 - sessions/_retired.md：已交接、一次性会话，每行「- <会话名>：<状态>」，只进汇总表、不写画像。
 - 「上下文文档」一节只列路径、不注入：反引号括起的 .md 路径（仓库根相对；scripts/hooks/session_context.py，解析与路径判定与钩子共用）须为仓库根相对、
   不含 ..、规范化后仍在仓库根下且存在，不得列调度台账 COORDINATOR_LEDGER.md 与整份批次计划（*BATCH_PLAN*）。
+- 「上下文文档」一节内一行 `交接源: <仓库根相对 .md 路径>#<标题片段>`：长期会话必须有，工作会话可选；文件须存在、标题含该片段的节须找得到
+  （开工单 C 段、交接节点指令、挡停都从它读；它可以是调度台账等不入「上下文文档」列表的文件）。
 - 每份画像生成的开工单（scripts/hooks/start_sheet.py）须在 8 KB 内。
 - 独占与不碰靠调度派工、评审时人工核对，不做自动校验（SESSION_PLAYBOOK §2.1 第 16 条）。
 不合规时生成失败，不写产物。
@@ -21,7 +23,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(BASE))
 SESSIONS = os.path.join(BASE, "sessions")
 sys.path.insert(0, os.path.join(ROOT, "scripts", "hooks"))
-from session_context import context_docs, unsafe_reason  # noqa: E402
+from session_context import context_docs, handoff_source, unsafe_reason  # noqa: E402
 import start_sheet  # noqa: E402
 OUT = os.path.join(BASE, "SESSIONS.md")
 FIELDS = ["类型", "职责", "独占", "不碰", "输入", "输出", "触发与节奏", "自动化", "上下文文档", "交接条件", "权限边界"]
@@ -92,7 +94,7 @@ def parse_retired(text):
     return rows
 
 
-def check(profiles, retired, exists):
+def check(profiles, retired, exists, has_heading=None):
     names = [p["name"] for p in profiles] + [n for n, _ in retired]
     dup = sorted({n for n in names if names.count(n) > 1})
     if dup:
@@ -100,6 +102,17 @@ def check(profiles, retired, exists):
     for p in profiles:
         own = f"docs/modernization/sessions/{p['name']}.md"
         docs = context_docs(f"## 上下文文档\n{p['上下文文档']}\n")
+        source = handoff_source(f"## 上下文文档\n{p['上下文文档']}\n")
+        if source is None and p["类型"] == "长期":
+            raise ProfileError(f"sessions/{p['name']}.md：长期会话的「上下文文档」一节须有一行「交接源: <路径>#<标题片段>」")
+        if source:
+            reason = unsafe_reason(ROOT, source[0])
+            if reason:
+                raise ProfileError(f"sessions/{p['name']}.md：交接源 {source[0]} {reason}（只能写仓库根相对路径）")
+            if not exists(source[0]):
+                raise ProfileError(f"sessions/{p['name']}.md：交接源 {source[0]} 不存在")
+            if has_heading and not has_heading(*source):
+                raise ProfileError(f"sessions/{p['name']}.md：交接源 {source[0]} 里没有标题含「{source[1]}」的节")
         for path in docs:
             reason = unsafe_reason(ROOT, path)
             if reason:
@@ -173,7 +186,8 @@ def load():
             profiles.append(parse_profile(open(os.path.join(SESSIONS, f), encoding="utf-8").read(), f))
     retired_path = os.path.join(SESSIONS, "_retired.md")
     retired = parse_retired(open(retired_path, encoding="utf-8").read()) if os.path.exists(retired_path) else []
-    check(profiles, retired, lambda p: os.path.isfile(os.path.join(ROOT, p)))
+    check(profiles, retired, lambda p: os.path.isfile(os.path.join(ROOT, p)),
+          lambda path, fragment: start_sheet.find_handoff(open(os.path.join(ROOT, path), encoding="utf-8").read(), fragment) is not None)
     oversize = start_sheet.check_all(ROOT)
     if oversize:
         raise ProfileError("；".join(oversize))
@@ -209,8 +223,15 @@ def self_test():
     rejects("上下文文档不存在", lambda: check([p], [], lambda path: False))
     rejects("上下文文档为绝对路径", lambda: check([dict(p, 上下文文档="`/etc/x.md`")], [], yes))
     rejects("上下文文档含 ..", lambda: check([dict(p, 上下文文档="`docs/../../x.md`")], [], yes))
-    check([dict(p, 类型="长期", 上下文文档=f"- `docs/a.md`\n- `{own}`")], [], yes)
+    check([dict(p, 类型="长期", 上下文文档=f"- `docs/a.md`\n- `{own}`\n- 交接源: docs/a.md#交接")], [], yes)
     rejects("上下文文档列了调度台账", lambda: check([dict(p, 上下文文档="`docs/modernization/COORDINATOR_LEDGER.md`")], [], yes))
+    src = lambda line: f"`{own}`\n- 交接源: {line}"
+    check([dict(p, 类型="长期", 上下文文档=src("docs/h.md#交接"))], [], yes, lambda path, fragment: True)
+    rejects("长期会话没有交接源", lambda: check([dict(p, 类型="长期")], [], yes))
+    check([dict(p, 类型="工作")], [], yes)
+    rejects("交接源文件不存在", lambda: check([dict(p, 上下文文档=src("docs/h.md#交接"))], [], lambda path: path == own))
+    rejects("交接源找不到标题", lambda: check([dict(p, 上下文文档=src("docs/h.md#交接"))], [], yes, lambda path, fragment: False))
+    rejects("交接源是绝对路径", lambda: check([dict(p, 上下文文档=src("/etc/h.md#交接"))], [], yes, lambda path, fragment: True))
     rejects("上下文文档列了批次计划", lambda: check([dict(p, 上下文文档="`docs/modernization/phase1a/NEXT_BATCH_PLAN.md`")], [], yes))
     import tempfile
     with tempfile.TemporaryDirectory() as d:

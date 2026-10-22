@@ -46,6 +46,7 @@
 
 - `docs/modernization/phase1a/HANDOFF_one-1a-par.md`（本会话交接：#509 收尾步骤、F2/接口清单/日历的顺序与要点、待办）
 - `docs/modernization/phase1a/a8-split/SPLIT_PLAN.md`（按 ADR-0055 拆 A8 同步的切分方案，A 线；盘点明细同目录 INVENTORY.md）
+- 交接源: docs/modernization/phase1a/HANDOFF_one-1a-par.md#交接
 
 ## 交接条件
 

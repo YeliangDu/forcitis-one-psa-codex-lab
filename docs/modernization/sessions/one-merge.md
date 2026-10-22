@@ -54,10 +54,11 @@
 
 - `docs/modernization/sessions/one-merge.md`（本画像）
 - `docs/modernization/merge/MERGE_CONTEXT.md`（本会话上下文速查；不依赖调度台账里的旧队列指令）
+- 交接源: docs/modernization/merge/MERGE_CONTEXT.md#现状
 
 ## 交接条件
 
-不交接；上下文变长时先更新本画像当前状态再 `/clear`。
+不交接；上下文变长时先更新交接源（`merge/MERGE_CONTEXT.md` 的「现状」节）再 `/clear`。
 
 ## 权限边界
 

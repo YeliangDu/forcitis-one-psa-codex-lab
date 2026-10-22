@@ -51,6 +51,7 @@
 
 - `docs/modernization/rules/RULES_CONTEXT.md`（现状速查）
 - `docs/modernization/sessions/one-rules.md`（本画像）
+- 交接源: docs/modernization/rules/RULES_CONTEXT.md#进度
 
 ## 交接条件
 
