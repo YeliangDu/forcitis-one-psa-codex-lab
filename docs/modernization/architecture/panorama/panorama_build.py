@@ -11,11 +11,13 @@ data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ssot/i03-aggreg
 """
 import json
 import re
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
 import yaml
+import scan_aggregates
 import scan_commands
 import scan_org_roles
 
@@ -547,6 +549,10 @@ def check_dimensions(m, gaps):
                 gaps["N12-2"].append(f"行「{cell['fact']}」× 列「{name}」未对上 DIM×FACT")
 
 
+# 技术度量（kernel 与平台运维度量）不计入 N13 度量链：kpis.yaml 定稿时 one-architecture 判定（KPI-90、KPI-91，2026-10-22）
+METRIC_KINDS = {"业务指标", "出口条件", "技术度量"}
+
+
 def load_metrics(m, link):
     terms = {row["id"]: row for row in read_rows("terms", "terms")}
     for index, row in enumerate(read_rows("kpis", "kpis")):
@@ -559,6 +565,8 @@ def load_metrics(m, link):
         term = row.get("term")
         if term and term not in terms:
             raise ValueError(f"{ident} 引用了不存在的 term：{term}")
+        if row.get("kind") not in METRIC_KINDS:
+            raise ValueError(f"{ident} kind 须为 {'、'.join(sorted(METRIC_KINDS))} 之一：{row.get('kind')}")
         m["metric"][ident] = {key: row.get(key) for key in
                                 ("kind", "term", "baseline", "vision_kpi", "facts", "dimensions")}
         m["metric"][ident].update(zh=row["name"], src=src,
@@ -1421,10 +1429,26 @@ def self_test():
     print("self-test ok")
 
 
+EXTRACTS = [ARCH / "ssot/12-facts/extract_facts.py", ARCH / "ssot/13-dimensions/extract_dimensions.py", ARCH / "ssot/15-kpis/extract_metrics.py"]
+UNIT_TESTS = [Path(__file__).parent / "test_scan_aggregates.py", Path(__file__).parent / "test_panorama_build.py",
+              *(path.with_name("test_" + path.name) for path in EXTRACTS)]
+
+
+def run_unit_tests():
+    for path in UNIT_TESTS:
+        r = subprocess.run([sys.executable, "-m", "unittest", path.stem], cwd=path.parent, capture_output=True, text=True)
+        if r.returncode:
+            raise AssertionError(f"{rel(path)} 未通过：\n{r.stderr[-2000:]}")
+
+
 def main():
     if "--self-test" in sys.argv:
         self_test()
+        run_unit_tests()
         return 0
+    scan_aggregates.generate(ROOT, check="--check" in sys.argv)
+    for script in EXTRACTS:
+        subprocess.run([sys.executable, str(script), *(["--check"] if "--check" in sys.argv else [])], check=True)
     scan_commands.generate(ROOT, check="--check" in sys.argv)
     scan_org_roles.generate(ROOT, check="--check" in sys.argv)
     m, links, _ = load()

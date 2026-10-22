@@ -120,6 +120,12 @@ class DimensionMetricNetworkTest(unittest.TestCase):
         p.check_dimensions({"dim": {}}, gaps)
         self.assertEqual(1, len(gaps["N12-2"]))
 
+    def test_metric_kind_outside_the_three_values_fails(self):
+        for kind in ("经营指标", None, ""):
+            self.write("kpis", {"kpis": [{**self.metric, "kind": kind}]})
+            with self.assertRaisesRegex(ValueError, "kind 须为"):
+                self.load()
+
     def test_arc02_n13_new_source_and_technical_metrics_excluded(self):
         self.write("terms", {"terms": [{"id": "hours", "stages": ["VS-01.1"], "processes": ["PRC-01"]},
                                       {"id": "technical", "stages": ["VS-01.2"]}]})

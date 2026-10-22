@@ -121,7 +121,7 @@ class AggregateScanTest(unittest.TestCase):
     def test_unbuilt_listed_root_is_reported_not_built(self):
         self.registry['cost_timesheet.absent'] = {'role': 'AGGREGATE_ROOT', 'aggregate': 'Absent'}
         self.write_registry()
-        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2099-01-01', 'reason': '建表先于代码'}])
+        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-11-15', 'reason': '建表先于代码'}])
         unbuilt = []
         built = s.collect(self.root, today=datetime.date(2026, 10, 22), unbuilt=unbuilt)
         self.assertEqual(['cost_timesheet.absent'], [row['table'] for row in unbuilt])
@@ -134,12 +134,15 @@ class AggregateScanTest(unittest.TestCase):
         self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-10-21', 'reason': 'r'}])
         with self.assertRaisesRegex(ValueError, '已过期'):
             s.collect(self.root, today=today)
-        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2099-01-01'}])
+        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-11-15'}])
         with self.assertRaisesRegex(ValueError, '每项须有'):
             s.collect(self.root, today=today)
-        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2099-01-01', 'reason': 'r'},
-                            {'table': 'cost_timesheet.nowhere', 'owner': 'one-x', 'due': '2099-01-01', 'reason': 'r'}])
+        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-11-15', 'reason': 'r'},
+                            {'table': 'cost_timesheet.nowhere', 'owner': 'one-x', 'due': '2026-11-15', 'reason': 'r'}])
         with self.assertRaisesRegex(ValueError, '不是注册表中的 AGGREGATE_ROOT'):
+            s.collect(self.root, today=today)
+        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-12-22', 'reason': 'r'}])
+        with self.assertRaisesRegex(ValueError, '超过 60 天上限'):
             s.collect(self.root, today=today)
 
     def test_arc08_duplicate_java_identity_fails(self):
