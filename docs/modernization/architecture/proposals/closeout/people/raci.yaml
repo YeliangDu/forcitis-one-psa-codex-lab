@@ -1681,6 +1681,22 @@ entries:
   sensitive_reason: 同「核定奖金」
   note: 审批人驳回决定经审批平台回调落地
   source_part: vs13pay
+- object: AGG-76
+  command: 提交过账候选
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+    C: []
+    I:
+    - SH-E6
+  sensitive: true
+  sensitive_reason: 事实按人员携带核定额与拆分明细（工资类 L3）
+  note: 系统自动，核定即提交「奖金核定重分类」；过账路由规则见 INV-92
+  source_part: vs13pay
 - object: AGG-93
   command: 建立薪酬档案
   raci:

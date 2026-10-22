@@ -69,4 +69,4 @@
 
 ## 当前状态
 
-2026-10-22 11:10+02:00 交接点（上下文 70%）。分支 claude/one-arch-people-closeout 已合 main、无未提交改动，最新提交见分支。已交并经 one-architecture 核对：VS-14 归段与 B31 答复同步（ARC-1017-APE-01/02）、N7 改名回写（NAM-1017-APE-01）、角色粒度与 LEB-06 分管范围（roles.yaml ROLE-55）、薪酬结算行支付子机与 PRC-201（ARC-1022-COO-06，含 FCQ-06/07 补发时限，最新 7fab38af）、用语按 one-glossary PR #572 定名（9723e6f6）。待接手：ARC-1022-APE-01（奖金核定加重分类过账步，见 tasks/ARC-1022-APE-01.md，未开工）。悬而未决：PRC-127 目录名已被 one-architecture 改为「按逐人实付结果更新薪酬行并标记整期已发放」，骨架未跟；「付款已部分退回」待 finance 入事件目录；工资卡存放位置 U8；命令编号脱钩 PR #580 合入后旧号退役。
+2026-10-22 11:10+02:00 交接点（上下文 70%）。分支 claude/one-arch-people-closeout 已合 main、无未提交改动，最新提交见分支。已交并经 one-architecture 核对：VS-14 归段与 B31 答复同步（ARC-1017-APE-01/02）、N7 改名回写（NAM-1017-APE-01）、角色粒度与 LEB-06 分管范围（roles.yaml ROLE-55）、薪酬结算行支付子机与 PRC-201（ARC-1022-COO-06，含 FCQ-06/07 补发时限，最新 7fab38af）、用语按 one-glossary PR #572 定名（9723e6f6）。ARC-1022-APE-01 已交（10-22 晚，PRC-122 第 5 步提交「奖金核定重分类」记账事实）；其拆分口径与新增 B-15 → B-16 读边待 one-architecture、one-arch-finance 核。悬而未决：PRC-127 目录名已被 one-architecture 改为「按逐人实付结果更新薪酬行并标记整期已发放」，骨架未跟；「付款已部分退回」待 finance 入事件目录；工资卡存放位置 U8；命令编号脱钩 PR #580 合入后旧号退役。

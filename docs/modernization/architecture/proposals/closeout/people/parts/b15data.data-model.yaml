@@ -143,7 +143,7 @@
       history_migration: full
       sensitivity: SENSITIVE
       pi: spi
-      column_families: [核定单号, 方案版本 ID, 被核定人员, 法人, 核定期间, 核定金额, 状态（草拟 → 已核定 → 已发放）, 核定人与时间, 乐观锁]
+      column_families: [核定单号, 方案版本 ID, 被核定人员, 法人, 核定期间, 核定金额, 状态（草拟 → 已核定 → 已发放）, 核定人与时间, 重分类过账引用（幂等键；拆分明细随事实存于 B-16，S-4b）, 乐观锁]
       reason: "versioned none：单据，状态由审计还原，已核定后更正另记（D17 第二类）；已发放由 AGG-73 批准后事件置位，本表不存结算引用；SENSITIVE + spi：个人奖金（工资类 L3；SPI 待 U-11 ③，从严），个人信息保护法第 28 条、ADR-0043；迁入来源待取证，原编号经 legacy_numbers（ADR-0036）"
     - name: bonus_determination_evidences
       role: link
