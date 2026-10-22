@@ -4,15 +4,19 @@
 标准输入是钩子的 JSON（tool_input.command）；退出码 2 + 标准错误 = 拒绝，0 = 放行。命令不是 `gh pr create` 时立刻放行。
 precheck 本身失败（FAIL 或前端依赖缺失需先问用户）时，把它的输出末尾带回给会话。
 注册到 .claude/settings.json 时必须显式写 "timeout": 1500 以上：命令钩子默认 600 秒就被终止，终止不拦截。
+推送前钩子（pre_push_gate.py）刚在同一提交、同一 origin/main、干净工作区上通过时，pre_push_gate 记一个通过标记（<git 目录>/forcitis-precheck-pass.json）；
+本钩子见到有效标记（提交、基线相同，工作区干净，不超过 PASS_MARK_SECONDS）就不再重跑 precheck.sh。推送前的检查没有全历史 gitleaks 与前端完整验证，这两项由 CI 兜底。
 用法：precheck_before_pr.py  |  precheck_before_pr.py --self-test
 """
-import json, os, re, subprocess, sys
+import json, os, re, subprocess, sys, tempfile, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from command_words import plain  # noqa: E402
 
 PR_CREATE = re.compile(r"(?:^|[;&|(\s\"'`/])gh\s+pr\s+(?:create|new)(?![\w-])")
 TIMEOUT_SECONDS = 1500
+PASS_MARK_SECONDS = 2 * 3600
+PASS_MARK = "forcitis-precheck-pass.json"
 
 
 # 只看命令字面：写在 echo / commit 信息里的 gh pr create 也会拦（宁可多拦一次，不漏拦）
@@ -35,6 +39,41 @@ def repository_of(cwd):
     return top.stdout.strip() if top.returncode == 0 and top.stdout.strip() else cwd
 
 
+def git_out(root, *args):
+    run = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True)
+    return run.stdout.strip() if run.returncode == 0 else None
+
+
+def tree_state(root):
+    """(HEAD, origin/main, git directory) when the working tree is clean and all three are known, else None: only a clean tree can be vouched for by a mark."""
+    head, base, gitdir = git_out(root, "rev-parse", "HEAD"), git_out(root, "rev-parse", "origin/main"), git_out(root, "rev-parse", "--absolute-git-dir")
+    dirty = git_out(root, "status", "--porcelain")
+    return (head, base, gitdir) if head and base and gitdir and dirty == "" else None
+
+
+def record_pass(root, now=None):
+    """Called by the pre-push gate after precheck --pre-push ended ready."""
+    state = tree_state(root)
+    if state:
+        head, base, gitdir = state
+        with open(os.path.join(gitdir, PASS_MARK), "w", encoding="utf-8") as mark:
+            json.dump({"head": head, "base": base, "at": now if now is not None else time.time()}, mark)
+    return state is not None
+
+
+def passed_recently(root, now=None):
+    state = tree_state(root)
+    if not state:
+        return False
+    head, base, gitdir = state
+    try:
+        with open(os.path.join(gitdir, PASS_MARK), encoding="utf-8") as mark:
+            data = json.load(mark)
+        return data["head"] == head and data["base"] == base and 0 <= (now if now is not None else time.time()) - float(data["at"]) <= PASS_MARK_SECONDS
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -43,6 +82,9 @@ def main():
     if not isinstance(payload, dict) or payload.get("tool_name", "Bash") != "Bash" or not is_pr_create((payload.get("tool_input") or {}).get("command")):
         return 0
     root = repository_of(payload.get("cwd") or os.getcwd())
+    if passed_recently(root):
+        print("precheck.sh 不重跑：推送前检查刚在同一提交、同一 origin/main、干净工作区上通过（全历史 gitleaks 与前端完整验证由 CI 跑）", file=sys.stderr)
+        return 0
     try:
         run = subprocess.run([os.path.join(root, "scripts", "precheck.sh")], cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
@@ -66,6 +108,27 @@ def self_test():
     assert verdict("SUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 1), "退出码非 0 即拒绝"
     assert verdict("没有 SUMMARY 行\n", 0), "没有 SUMMARY 行即拒绝"
     assert "pnpm install --frozen-lockfile --offline" in verdict("FAIL frontend verify 前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline\nSUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1)
+    with tempfile.TemporaryDirectory() as root:
+        def git(*args):
+            subprocess.run(["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@t", *args], check=True, capture_output=True)
+        git("init", "-q", "-b", "main")
+        open(os.path.join(root, "f"), "w").write("1")
+        git("add", "f"); git("commit", "-q", "-m", "one")
+        git("update-ref", "refs/remotes/origin/main", "HEAD")
+        assert not passed_recently(root), "no mark yet"
+        assert record_pass(root, now=1000) and passed_recently(root, now=1000 + 60)
+        assert not passed_recently(root, now=1000 + PASS_MARK_SECONDS + 1) and not passed_recently(root, now=500), "too old, or from the future"
+        open(os.path.join(root, "f"), "w").write("2")
+        assert not passed_recently(root, now=1060) and not record_pass(root), "a dirty tree is neither recorded nor vouched for"
+        git("commit", "-q", "-a", "-m", "two")
+        assert not passed_recently(root, now=1060), "a new commit needs its own pass"
+        git("update-ref", "refs/remotes/origin/main", "HEAD")
+        assert record_pass(root, now=2000) and passed_recently(root, now=2060)
+        git("update-ref", "refs/remotes/origin/main", "HEAD~1")
+        assert not passed_recently(root, now=2060), "origin/main moved"
+        git("update-ref", "refs/remotes/origin/main", "HEAD")
+        open(os.path.join(root, "untracked"), "w").write("x")
+        assert not passed_recently(root, now=2060), "an untracked file is a change too"
     print("precheck_before_pr self-test: ok")
     return 0
 

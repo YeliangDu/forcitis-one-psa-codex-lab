@@ -9,6 +9,7 @@
 用法：pre_push_gate.py  |  pre_push_gate.py --self-test
 """
 import datetime
+import io
 import json
 import os
 import re
@@ -195,6 +196,7 @@ def main():
     if reason:
         print(reason + "\n（确需绕过：PUSH_BYPASS_REASON=\"<理由>\" git push --no-verify …，会留痕）", file=sys.stderr)
         return 2
+    pr.record_pass(root)
     return 0
 
 
@@ -237,6 +239,12 @@ def self_test():
         log_bypass(root, "claude/c", "再一次", datetime.datetime(2026, 10, 16, 12, 5, 0))
         assert open(path, encoding="utf-8").read() == "2026-10-16 12:00:00\tclaude/b\t理由\n2026-10-16 12:05:00\tclaude/c\t再一次\n"
     assert pr.verdict("SUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1, "推送", "git push").count("git push") == 1
+    from unittest import mock
+    for output, code, marked in (("SUMMARY: 3 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", 0, 1), ("SUMMARY: 2 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1, 0)):
+        finished = subprocess.CompletedProcess([], code, output, "")
+        with mock.patch.object(subprocess, "run", return_value=finished), mock.patch.object(pr, "record_pass") as record, mock.patch.object(pr, "repository_of", return_value="/r"), \
+                mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}, "cwd": "/r"}))), mock.patch.object(sys, "stderr", io.StringIO()):
+            assert main() == (0 if marked else 2) and record.call_count == marked, "only a push the checks let through leaves a pass mark"
     print("pre_push_gate self-test: ok")
     return 0
 
