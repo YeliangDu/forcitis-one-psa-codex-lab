@@ -41,7 +41,7 @@
 4. **R-SP-4**：`IMMUTABLE`/`STABLE` 函数用在 CHECK 或索引表达式里时同样要固定（`is_normalized_code_set`）；固定 `search_path` 会使 SQL 函数不再内联，影响可忽略。
 5. **R-SP-5（库与角色层，交 one-ops，不阻断本设计）**：①运行账号角色级路径改为 `pg_catalog, platform_approval`（pg_catalog 在前）；②运行账号当前没有 `TEMP`（见第 2 节），补校验即可：c3/c9 校验脚本在 V6b 旁加 `has_database_privilege('one_*_app', 库名, 'TEMP') = false`（目前只核了 audit_maintainer）；③`public` schema 无 CREATE 给 PUBLIC（PG15+ 默认）。
 
-## 4. 追加迁移设计
+## 4. 追加迁移设计（**已被 §7 取代：基线开放期改为直改基线**）
 
 - **做法**：对已合入 main 的 27 个函数，每个 schema 一个**追加迁移**（放各自的迁移目录，命名按 NAMING_STANDARD：`V{yyyyMMddHHmmss}__{schema}_pin_function_search_path.sql`），只含 `ALTER FUNCTION <schema>.<name>(<参数类型>) SET search_path = pg_catalog, pg_temp;`，不重写函数体，不改行为；`ALTER FUNCTION ... SET` 需函数属主，Flyway 迁移账号即属主。八个 schema 里 `organization_attendance` 已满足，不用迁移；其余七个 schema 各一份，共 7 份、27 条语句（清单见附录）。
 - **#597 与以后新基线**：基线尚未合入 main 的（`organization_administration`），直接在 `CREATE FUNCTION` 上加 `SET`，不另做追加迁移；#597 的实现卡须在合入前改（opus M1 已列）。
@@ -52,7 +52,7 @@
 ## 5. 守护设计（新函数未固定 search_path 即失败）
 
 1. **主守护（行为型，随 `DataArchitectureTest`）**：在测试用的迁移后数据库里查 `pg_proc`，**范围 = 除 `pg_catalog`、`information_schema`、`pg_toast` 外的全部 schema**（不用自有 schema 白名单，避免漏掉新 schema 与误建到 `public` 的函数），用 `pg_depend.deptype = 'e'` 排除扩展成员（`btree_gist` 所在 schema 取决于执行者路径，不按 schema 名排除），`prokind IN ('f','p')`（聚合不能带 SET）；`proconfig` 是 `text[]`，要**遍历元素**取出 `search_path=` 那一项（两个 DEFINER 函数的数组里还有 `lock_timeout=5s`），按双引号规则拆分，结果须恰好是 `[pg_catalog, (本函数所在 schema)?, pg_temp]`，每项不带引号，不用前缀或包含匹配；含中间项的函数另核该 schema 的 ACL：除该 schema 的属主外没有任何角色（含 PUBLIC，用 `aclexplode(nspacl)` 判断，超级用户不计）有 `CREATE`；`SECURITY DEFINER` 函数另核 `PUBLIC` 无 `EXECUTE`（`has_function_privilege('public', oid, 'EXECUTE') = false`）。失败信息列出函数的全限定签名。这是行为判断，不依赖解析 SQL 文本，不会被 `$$` 引号、`CREATE OR REPLACE` 或 `ALTER FUNCTION` 的写法绕过。
-2. **辅守护（快速反馈，随 `scripts/ci/baseline_ddl_scan.py` 或 `measurable_ddl_scan.py` 的新项 M7）**：静态扫迁移文件中每条 `CREATE FUNCTION` 语句**除函数体以外的全部属性部分**（`SET` 子句可以写在 `AS $$…$$` 之后）有 `SET search_path`（只报告 + 基线只减不增，同 M1–M6），让不跑容器的 precheck 也能早发现。M7 须同时识别后续迁移里的 `ALTER FUNCTION … SET search_path`（本设计的追加迁移就是这样固定旧函数的），把这 27 个旧函数算作已固定，使基线能真正减到 0，不得把它们永久豁免。
+2. **辅守护（~~快速反馈，随 `scripts/ci/baseline_ddl_scan.py` 或 `measurable_ddl_scan.py` 的新项 M7~~ 不做，见 §7）**：静态扫迁移文件中每条 `CREATE FUNCTION` 语句**除函数体以外的全部属性部分**（`SET` 子句可以写在 `AS $$…$$` 之后）有 `SET search_path`（只报告 + 基线只减不增，同 M1–M6），让不跑容器的 precheck 也能早发现。M7 须同时识别后续迁移里的 `ALTER FUNCTION … SET search_path`（本设计的追加迁移就是这样固定旧函数的），把这 27 个旧函数算作已固定，使基线能真正减到 0，不得把它们永久豁免。
 3. **部署前检查**：c3/c9 `*_verify.sql` 加 V11：对已迁移的库跑同一条 `pg_proc` 查询，期望 0 行违规，ON_ERROR_STOP。
 4. **不放宽已有断言**：不改任何现有测试断言；守护是新增。
 
@@ -100,3 +100,12 @@ ALTER FUNCTION platform_numbering.guard_rule_version_change() SET search_path = 
 ALTER FUNCTION platform_numbering.guard_rule_version_source() SET search_path = pg_catalog, pg_temp;
 -- platform_numbering 迁入写入通道（IMP-1022-NX5-08，基线内已固定）
 -- platform_numbering.is_owner_member(oid)、platform_numbering.is_migration_writer(oid)：SET search_path = pg_catalog, pg_temp
+
+## 7. 实现定稿与对设计稿的偏离（2026-10-22，IMP-1022-COO-03 / #622；one-1a-next-5 写入 `tasks/IMP-1022-COO-03.md`，one-coordinator 确认，one-data 回写）
+
+1. **基线直改，不做追加迁移**：基线开放期（`migration-baseline-open`）在八个 schema 的 `CREATE FUNCTION` 上直接加 `SET search_path = pg_catalog, pg_temp`，共 34 个函数（设计时盘点 27 个，加 `organization_administration` 的 7 个）；dev 库需重建。取代 §4 的追加迁移做法。基线封存之后新增或修改函数的迁移仍按本设计的规则 R-SP-1 至 R-SP-4 写在 `CREATE FUNCTION` 上。
+2. **不做静态扫描项 M7**：基线只减不增，且 §5.1 的 `pg_proc` 行为型主守护覆盖全部 schema（含误建在 `public` 的函数），再加静态扫描是重复。§5.2 作废。
+3. **R-SP-3「`SECURITY DEFINER` 函数属主非超级用户」放进校验脚本 V12**：测试容器的迁移账号是超级用户，不能放进 `DataArchitectureTest`；V11 仍是 §5.3 的同一条 `pg_proc` 查询，脚本文本由同一个测试执行。
+4. **中间项约束收紧**：`search_path` 的中间项只允许函数所在 schema；对 `public` 一律拒绝（设计稿原写「默认不需要」，现为硬规则），注入用例含建在 `public` 的未固定函数。
+5. 不变：R-SP-5（库与角色层）仍交 one-ops；函数体行为不变，各 schema 既有 IT 全绿即回归。
+
