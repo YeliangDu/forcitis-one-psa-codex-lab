@@ -29,15 +29,15 @@
 
 - 触发器函数默认 `SECURITY INVOKER`，随执行 DML 的账号运行，路径取该会话的 `search_path`。运行账号 `one_*_app` 的角色级路径是 `platform_approval, pg_catalog`（Flowable 要求），**`pg_catalog` 排在后面**，所以 `platform_approval` 里若有同名对象会先于内建被命中；运行账号对各平台 schema 已被 `REVOKE CREATE`，不能在其中建对象，因此当前不可直接利用。
 - 临时 schema：未显式列入路径时，会话临时 schema 对**关系名与类型名**先于 `pg_catalog` 被搜索（对函数与运算符不会隐式搜索），`pg_class` 这类未限定关系名理论上可被临时表顶替；opus 在 #547 提出，one-1a-par 在 PG18 上未能复现（plpgsql 计划缓存），但没有理由依赖这点。dev、prod 的建库脚本已执行 `REVOKE ALL ON DATABASE ... FROM PUBLIC`，只把 `CONNECT` 授给运行账号，所以运行账号**当前没有** `TEMP` 权限（`one_db_roles_schemas.sql` 里那句 `REVOKE` 被注释掉，测试容器用超级用户）；`TEMP` 是否被误授由校验脚本核。
-- 触发器路径的全部来源：执行 DML 的会话路径（运行账号 `platform_approval, pg_catalog`；Flyway 迁移账号 `one_migration, pg_catalog`，迁移里的 DML 触发的触发器沿用这条路径）；`SECURITY DEFINER` 函数里执行的 DML 所触发的触发器沿用定义者函数的路径。迁移账号与定义者都是可信身份，不构成风险，但规则要覆盖它们。
+- 触发器路径的全部来源：执行 DML 的会话路径（运行账号 `platform_approval, pg_catalog`；Flyway 迁移账号 `one_migration, pg_catalog`（`one_db_roles_schemas.sql` 第 39 行 `ALTER ROLE one_dev_migrator SET search_path`），迁移里的 DML 触发的触发器沿用这条路径）；`SECURITY DEFINER` 函数里执行的 DML 所触发的触发器沿用定义者函数的路径。迁移账号与定义者都是可信身份，不构成风险，但规则要覆盖它们。
 - 唯一具体的顶替路径是 `platform_file.refuse_transition_rewrite` 里未限定的 `pg_class`（可被同名临时表顶替而放行 DELETE），但运行账号对 `state_transitions` 已被收回 DELETE，且没有 `TEMP`，双重覆盖。
 - 所以结论：**纵深防御，不是已知可利用漏洞**；但把触发器放在"拒绝改写"的安全边界上，边界函数的行为不应取决于调用会话的可变状态。成本很低，应做。
 
 ## 3. 统一规则
 
-1. **R-SP-1**：迁移里创建的每个函数（含 `CREATE OR REPLACE`）必须带 `SET search_path`，且值满足：**第一项 `pg_catalog`、最后一项 `pg_temp`**，中间只允许本函数所在 schema（且仅当函数体确需未限定引用本 schema 对象时，默认不需要；该 schema 除函数属主外**无任何角色有 CREATE**，守护用 `has_schema_privilege` 核对）；写法必须是 `SET search_path = pg_catalog, pg_temp`，**不得把整个列表放进一对单引号**（`SET search_path = 'pg_catalog, pg_temp'` 会存成一个不存在的 schema 名，pg_temp 回到隐式最先搜索）；不得含 `public`、`$user`、空值、`DEFAULT`、`FROM CURRENT`。默认值就写 `SET search_path = pg_catalog, pg_temp`。
-2. **R-SP-2**：函数体里引用本 schema 或别的 schema 的对象一律**全限定**（`schema.name`）；可以未限定的只有 `pg_catalog` 里的函数、运算符、类型、类型转换和排序规则。`pg_temp` 列在最后，使临时 schema 最后才被搜索。
-3. **R-SP-3**：`SECURITY DEFINER` 函数在 R-SP-1 之上还须 `REVOKE EXECUTE ... FROM PUBLIC`，再按角色 `GRANT`；现有两个已满足，路径写法含 `platform_audit` 的，视为满足（中间项为本 schema）。
+1. **R-SP-1**：迁移里创建的每个函数（含 `CREATE OR REPLACE`）必须带 `SET search_path`，且值满足：**第一项 `pg_catalog`、最后一项 `pg_temp`**，中间只允许本函数所在 schema（且仅当函数体确需未限定引用本 schema 对象时，默认不需要；该 schema 除其属主外**无任何角色（含 PUBLIC）有 CREATE**，守护用 `aclexplode(nspacl)` 核对，超级用户不计）；写法必须是 `SET search_path = pg_catalog, pg_temp`，**不得把整个列表放进一对单引号**（`SET search_path = 'pg_catalog, pg_temp'` 会存成一个不存在的 schema 名，pg_temp 回到隐式最先搜索）；不得含 `public`、`$user`、空值、`DEFAULT`、`FROM CURRENT`。默认值就写 `SET search_path = pg_catalog, pg_temp`。
+2. **R-SP-2**：函数体里引用本 schema 或别的 schema 的对象一律**全限定**（`schema.name`）；可以未限定的只有 `pg_catalog` 里的函数、运算符、类型、类型转换和排序规则；`pg_catalog` 里的关系（如 `pg_class`）新代码也写 `pg_catalog.pg_class`，既有的未限定 `pg_class` 靠固定路径解析，不另改函数体。`pg_temp` 列在最后，使临时 schema 最后才被搜索。
+3. **R-SP-3**：`SECURITY DEFINER` 函数在 R-SP-1 之上还须 `REVOKE EXECUTE ... FROM PUBLIC`，再按角色 `GRANT`，且函数属主不是超级用户（此条放在部署前检查 V11 里核，不放进随 `DataArchitectureTest` 的主守护——测试容器的迁移账号是超级用户）；现有两个已满足，路径写法含 `platform_audit` 的，视为满足（中间项为本 schema）。
 4. **R-SP-4**：`IMMUTABLE`/`STABLE` 函数用在 CHECK 或索引表达式里时同样要固定（`is_normalized_code_set`）；固定 `search_path` 会使 SQL 函数不再内联，影响可忽略。
 5. **R-SP-5（库与角色层，交 one-ops，不阻断本设计）**：①运行账号角色级路径改为 `pg_catalog, platform_approval`（pg_catalog 在前）；②运行账号当前没有 `TEMP`（见第 2 节），补校验即可：c3/c9 校验脚本在 V6b 旁加 `has_database_privilege('one_*_app', 库名, 'TEMP') = false`（目前只核了 audit_maintainer）；③`public` schema 无 CREATE 给 PUBLIC（PG15+ 默认）。
 
@@ -51,8 +51,8 @@
 
 ## 5. 守护设计（新函数未固定 search_path 即失败）
 
-1. **主守护（行为型，随 `DataArchitectureTest`）**：在测试用的迁移后数据库里查 `pg_proc`，**范围 = 除 `pg_catalog`、`information_schema`、`pg_toast` 外的全部 schema**（不用自有 schema 白名单，避免漏掉新 schema 与误建到 `public` 的函数），用 `pg_depend.deptype = 'e'` 排除扩展成员（`btree_gist` 所在 schema 取决于执行者路径，不按 schema 名排除），`prokind IN ('f','p')`（聚合不能带 SET）；`proconfig` 是 `text[]`，要**遍历元素**取出 `search_path=` 那一项（两个 DEFINER 函数的数组里还有 `lock_timeout=5s`），按双引号规则拆分，结果须恰好是 `[pg_catalog, (本函数所在 schema)?, pg_temp]`，每项不带引号，不用前缀或包含匹配；含中间项的函数另核该 schema 除属主外无角色有 `CREATE`，且函数属主不是超级用户；`SECURITY DEFINER` 函数另核 `PUBLIC` 无 `EXECUTE`（`has_function_privilege('public', oid, 'EXECUTE') = false`）。失败信息列出函数的全限定签名。这是行为判断，不依赖解析 SQL 文本，不会被 `$$` 引号、`CREATE OR REPLACE` 或 `ALTER FUNCTION` 的写法绕过。
-2. **辅守护（快速反馈，随 `scripts/ci/baseline_ddl_scan.py` 或 `measurable_ddl_scan.py` 的新项 M7）**：静态扫迁移文件中每条 `CREATE FUNCTION` 语句**除函数体以外的全部属性部分**（`SET` 子句可以写在 `AS $$…$$` 之后）有 `SET search_path`（只报告 + 基线只减不增，同 M1–M6），让不跑容器的 precheck 也能早发现。
+1. **主守护（行为型，随 `DataArchitectureTest`）**：在测试用的迁移后数据库里查 `pg_proc`，**范围 = 除 `pg_catalog`、`information_schema`、`pg_toast` 外的全部 schema**（不用自有 schema 白名单，避免漏掉新 schema 与误建到 `public` 的函数），用 `pg_depend.deptype = 'e'` 排除扩展成员（`btree_gist` 所在 schema 取决于执行者路径，不按 schema 名排除），`prokind IN ('f','p')`（聚合不能带 SET）；`proconfig` 是 `text[]`，要**遍历元素**取出 `search_path=` 那一项（两个 DEFINER 函数的数组里还有 `lock_timeout=5s`），按双引号规则拆分，结果须恰好是 `[pg_catalog, (本函数所在 schema)?, pg_temp]`，每项不带引号，不用前缀或包含匹配；含中间项的函数另核该 schema 的 ACL：除该 schema 的属主外没有任何角色（含 PUBLIC，用 `aclexplode(nspacl)` 判断，超级用户不计）有 `CREATE`；`SECURITY DEFINER` 函数另核 `PUBLIC` 无 `EXECUTE`（`has_function_privilege('public', oid, 'EXECUTE') = false`）。失败信息列出函数的全限定签名。这是行为判断，不依赖解析 SQL 文本，不会被 `$$` 引号、`CREATE OR REPLACE` 或 `ALTER FUNCTION` 的写法绕过。
+2. **辅守护（快速反馈，随 `scripts/ci/baseline_ddl_scan.py` 或 `measurable_ddl_scan.py` 的新项 M7）**：静态扫迁移文件中每条 `CREATE FUNCTION` 语句**除函数体以外的全部属性部分**（`SET` 子句可以写在 `AS $$…$$` 之后）有 `SET search_path`（只报告 + 基线只减不增，同 M1–M6），让不跑容器的 precheck 也能早发现。M7 须同时识别后续迁移里的 `ALTER FUNCTION … SET search_path`（本设计的追加迁移就是这样固定旧函数的），把这 27 个旧函数算作已固定，使基线能真正减到 0，不得把它们永久豁免。
 3. **部署前检查**：c3/c9 `*_verify.sql` 加 V11：对已迁移的库跑同一条 `pg_proc` 查询，期望 0 行违规，ON_ERROR_STOP。
 4. **不放宽已有断言**：不改任何现有测试断言；守护是新增。
 
