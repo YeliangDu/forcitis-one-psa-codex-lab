@@ -617,7 +617,7 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `seal_type_list` | 印章类型清单 | SealTypeList | 领域 · platform.signing | 行政提供的印章类型取值清单，做成版本化配置表（根表加版本表），不写死枚举；作者与确认人分离，决定出处必填（ADR-0064 决定 3，D15） |  |  |
 | `seal_type_list_version` | 印章类型清单版本 | SealTypeListVersion | 领域 · platform.signing | 印章类型清单的一个版本：生效日、决定出处、作者；确认人不得是作者（ADR-0064 决定 3，D15） |  |  |
 
-另有错误码 7 个（kind 为 `error_code`），不在表中。
+另有错误码 6 个（kind 为 `error_code`），不在表中。
 
 ## platform.web（`platform-web.yaml`）
 
