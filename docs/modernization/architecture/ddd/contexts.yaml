@@ -176,7 +176,7 @@ contexts:
   adr:
   - ADR-0064
   admission: 待准入
-  admission_due: W1 结束或首个使用 BC 开工，取早（ADR-0066 决定 7）；准入判断在 one-platform-file 开工签章第一段时做
+  admission_due: 已到期（首个使用 BC 行政事务 2026-10-21 开工，ADR-0066 决定 7）；第 4–7、9 条未齐，用印 7.3、7.4 不得开工，补齐路径见 proposals/ADMISSION_PLATFORM_SIGNING_2026-10-22.md
   review: 英文名 SigningService，定名 2026-10-21 用户同意（bcs.yaml）；模块标识、schema、权限码前缀待 one-glossary 登记，登记前代码不落地（ADR-0064 决定 2 第 2 条）；owner 由 one-coordinator 2026-10-21 指派；层名「公共服务层」暂定，待 one-glossary 终定 tier 取值
   evidence: ADR-0064；ADR-0066 决定 2 第 3 条（签章服务属公共服务层）、决定 7
 - id: operations.planning
