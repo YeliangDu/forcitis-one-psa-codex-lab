@@ -34,6 +34,10 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- 属主角色：拥有全部 FORCITIS one schema 与对象，不能登录
 CREATE ROLE one_dev_owner NOLOGIN;
 
+-- 迁入写入角色（ADR-0036、MIGRATION_WRITER_ROLE_DESIGN）：名字必须由属主名把 _owner 换成 _history_loader 得出（触发器精确比对）；
+-- 与属主同批建好，免得 PG 16 起持 CREATEROLE 者抢建同名角色。NOLOGIN、不是属主成员、无 CREATEROLE/CREATEDB，表权限到迁入窗口再授（SELECT、INSERT，禁 UPDATE/DELETE）
+CREATE ROLE one_dev_history_loader NOLOGIN;
+
 -- 迁移角色：部署时运行 Flyway（及引擎安装 / 升级时一次性运行 Flowable 建表），继承 one_dev_owner
 CREATE ROLE one_dev_migrator LOGIN INHERIT IN ROLE one_dev_owner CONNECTION LIMIT 2;
 ALTER ROLE one_dev_migrator SET search_path = one_migration, pg_catalog;

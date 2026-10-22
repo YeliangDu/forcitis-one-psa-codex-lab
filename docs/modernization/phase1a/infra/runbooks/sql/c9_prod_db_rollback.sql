@@ -12,6 +12,7 @@ DROP ROLE one_prod_audit_maintainer;
 DROP ROLE one_prod_app;
 DROP ROLE one_prod_readonly;
 DROP ROLE one_prod_migrator;
+DROP ROLE one_prod_history_loader;
 DROP ROLE one_prod_owner;
 
 -- 期望 0 行

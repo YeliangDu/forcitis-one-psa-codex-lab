@@ -12,6 +12,7 @@ DROP ROLE one_dev_audit_maintainer;
 DROP ROLE one_dev_app;
 DROP ROLE one_dev_readonly;
 DROP ROLE one_dev_migrator;
+DROP ROLE one_dev_history_loader;
 DROP ROLE one_dev_owner;
 
 -- 期望 0 行
