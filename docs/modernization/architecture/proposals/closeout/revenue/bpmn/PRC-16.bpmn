@@ -171,7 +171,7 @@
     <sequenceFlow id="Flow_10" name="其他" sourceRef="S3_gw_7" targetRef="S4_8"/>
     <sequenceFlow id="Flow_11" sourceRef="S4_8" targetRef="End_14"/>
     <sequenceFlow id="Flow_12" sourceRef="S5_9" targetRef="S5_gw_10"/>
-    <sequenceFlow id="Flow_13" name="合同已签回" sourceRef="S5_gw_10" targetRef="S6_11"/>
+    <sequenceFlow id="Flow_13" name="协议已生效（订阅「协议已生效」，GL5 订阅裁定）" sourceRef="S5_gw_10" targetRef="S6_11"/>
     <sequenceFlow id="Flow_14" name="授权期限届满或不再签约" sourceRef="S5_gw_10" targetRef="S7_12"/>
     <sequenceFlow id="Flow_15" name="其他" sourceRef="S5_gw_10" targetRef="End_15"/>
     <sequenceFlow id="Flow_16" sourceRef="S6_11" targetRef="End_16"/>
