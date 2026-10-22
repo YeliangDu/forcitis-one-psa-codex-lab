@@ -107,6 +107,7 @@
 ## 本机与调度自管
 - CI runner mac-one-1..4（~/actions-runners/one-N）与部署 runner mac-one-deploy（/opt/forcitis-one-runner）；main 分支保护 strict。
 - 私有文件：~/.modernize/psa/ 下 infra/role_holders.md、finance/（问卷 v2/v3、财务答复、FINANCE_DECISIONS.html）、audit/、codex/、handoff/。
+- 持久配置：`~/.cargo/config.toml` 的 `[build] jobs = 4`（10-22 用户「你处理这个」，限 dsm-morden 等 Rust 并行编译；撤销即删该文件）。
 - 会话内定时任务：无（用户 2026-10-16 停掉上下文巡检，各会话批次边界自查）。
 
 ## 暂缓清单（用户定生产口径前不开工，intent「生产自成体系」#344）
