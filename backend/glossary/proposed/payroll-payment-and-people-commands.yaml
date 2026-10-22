@@ -7,7 +7,7 @@ terms:
   kind: entity
   bc: organization.payroll
   scope: domain
-  definition: 月度薪酬结算单上一名员工的一行，带支付状态；OBJ-73 原文称「薪酬行」，与「月度薪酬结算单」对应写全称；也是状态转换记录里该子实体的聚合类型码值（ADR-0075）
+  definition: 结算单上一名员工的一行，带支付状态；OBJ-73 原文称「薪酬行」，与薪酬结算单对应写全称；也是状态转换记录里该子实体的聚合类型码值（ADR-0075）
   standard_ref:
   - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
   confidence: medium
