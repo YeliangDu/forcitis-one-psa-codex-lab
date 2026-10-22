@@ -106,9 +106,10 @@ END $$;
 
 
 -- V13 迁入写入角色（ADR-0036）：窗口外 NOLOGIN、非超级用户/CREATEROLE/CREATEDB；不是属主角色的成员；运行、只读、维护角色都不是属主或迁入角色的成员；
--- 迁入角色对编号版本表无 UPDATE/DELETE、对 platform_numbering 无 CREATE。任一不满足则抛错；期望不抛错。
+-- 迁入角色对两张版本表（含列级）无 UPDATE、无 DELETE/TRUNCATE，对库与所有 FORCITIS one schema 无 CREATE。任一不满足则抛错；期望不抛错。
+-- 建库后、迁移之前跑时版本表与 schema 尚不存在，表与 schema 两项会跳过并给出 NOTICE：迁移与 after_migrations 之后必须再跑一次。
 DO $$
-DECLARE r text; x pg_roles%ROWTYPE;
+DECLARE r text; t text; x pg_roles%ROWTYPE;
 BEGIN
     SELECT * INTO x FROM pg_roles WHERE rolname = 'one_dev_history_loader';
     IF NOT FOUND THEN RAISE EXCEPTION 'V13 failed: role one_dev_history_loader missing'; END IF;
@@ -119,19 +120,28 @@ BEGIN
         RAISE EXCEPTION 'V13 failed: one_dev_history_loader is a member of one_dev_owner';
     END IF;
     FOREACH r IN ARRAY ARRAY['one_dev_app', 'one_dev_readonly', 'one_dev_audit_maintainer'] LOOP
-        IF pg_has_role(r, 'one_dev_history_loader', 'MEMBER') THEN
-            RAISE EXCEPTION 'V13 failed: runtime role % is a member of one_dev_history_loader', r;
+        IF pg_has_role(r, 'one_dev_history_loader', 'MEMBER') OR pg_has_role(r, 'one_dev_owner', 'MEMBER') THEN
+            RAISE EXCEPTION 'V13 failed: runtime role % is a member of one_dev_history_loader or one_dev_owner', r;
         END IF;
     END LOOP;
-    IF to_regclass('platform_numbering.numbering_rule_versions') IS NOT NULL
-       AND has_table_privilege('one_dev_history_loader', 'platform_numbering.numbering_rule_versions', 'UPDATE, DELETE, TRUNCATE') THEN
-        RAISE EXCEPTION 'V13 failed: one_dev_history_loader can UPDATE/DELETE numbering_rule_versions';
+    IF has_database_privilege('one_dev_history_loader', 'forcitis_one_dev', 'CREATE') THEN
+        RAISE EXCEPTION 'V13 failed: one_dev_history_loader can CREATE in database forcitis_one_dev';
     END IF;
-    IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'platform_numbering')
-       AND has_schema_privilege('one_dev_history_loader', 'platform_numbering', 'CREATE') THEN
-        RAISE EXCEPTION 'V13 failed: one_dev_history_loader can CREATE in platform_numbering';
-    END IF;
+    FOREACH t IN ARRAY ARRAY['platform_numbering.numbering_rule_versions', 'organization_attendance.work_calendar_versions'] LOOP
+        IF to_regclass(t) IS NULL THEN
+            RAISE NOTICE 'V13: % does not exist yet, table privilege check skipped', t;
+        ELSIF has_table_privilege('one_dev_history_loader', t, 'UPDATE, DELETE, TRUNCATE') OR has_any_column_privilege('one_dev_history_loader', t, 'UPDATE') THEN
+            RAISE EXCEPTION 'V13 failed: one_dev_history_loader can UPDATE/DELETE/TRUNCATE %', t;
+        END IF;
+    END LOOP;
+    FOR t IN SELECT nspname FROM pg_namespace
+              WHERE nspname LIKE 'platform\_%' OR nspname LIKE 'organization\_%' OR nspname LIKE 'cost\_%' OR nspname = 'one_migration' LOOP
+        IF has_schema_privilege('one_dev_history_loader', t, 'CREATE') THEN
+            RAISE EXCEPTION 'V13 failed: one_dev_history_loader can CREATE in schema %', t;
+        END IF;
+    END LOOP;
 END $$;
--- V13b 迁入角色的全部成员行（含 PG 16 建角色时自动产生的仅 ADMIN 行）：人工核对只有批准账号，窗口外不应有 SET/INHERIT 为真的非批准成员
+-- V13b 迁入角色的全部成员行：除建角色时自动产生的执行账号那一行（PG 16：仅 ADMIN；RDS 上是 one_admin，admin t、inherit f、set f）外不应有任何其他行——
+-- 触发器按 pg_has_role(..., 'MEMBER') 判定，只有 ADMIN 的成员行也算成员。容器里用超级用户建角色不产生该行，期望 0 行。
 SELECT m.member::regrole AS member, m.admin_option, m.inherit_option, m.set_option
   FROM pg_auth_members m WHERE m.roleid = 'one_dev_history_loader'::regrole ORDER BY 1;

@@ -158,4 +158,4 @@ GRANT EXECUTE ON FUNCTION platform_audit.drop_archived_audit_entry_partition(dat
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
 --             platform_scheduling, organization_workforce, organization_attendance, organization_administration, platform_idempotency, cost_timesheet, one_migration CASCADE;
--- DROP ROLE one_dev_audit_maintainer; DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_owner;
+-- DROP ROLE one_dev_audit_maintainer; DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_history_loader; DROP ROLE one_dev_owner;
