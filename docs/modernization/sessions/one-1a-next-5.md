@@ -53,4 +53,4 @@
 
 ## 当前状态
 
-2026-10-22 15:50+02:00 单据类型登记线进行中，详见 `phase1a/HANDOFF_one-1a-next-5.md` 第 5、6 节。已合入：#507、#524、#528。排队或待批：#562（REG-2）、#546（P0 验收 13 例）。在制：#599（REG-3，审计对象类别登记表；opus 首轮「需修后再审」的 B1/B2/M2/M3 已改，验收两文件补丁待裁定 RULING-COORD-20261022-03 进 main 后带尾注提交）、RULE-412 守护（分支 claude/nx5-rule412 已推待开 PR）。下一步：REG-4（IMP-1022-COO-01，ProcessKey 值对象）；行政事务登记卡改由 one-1a-admin 写，我只复核。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。（15:50：#599 已按 opus 首轮意见改完推到 88827c3a，FREEZE_FACTS.md 已随 main 移出仓库、REG-3 与 #546 合 main 时注意删除；等裁定 RULING-COORD-20261022-03 进 main 后应用验收补丁。）
+2026-10-22 22:50+02:00 上下文 30%，在批次边界交接，详见 `phase1a/HANDOFF_one-1a-next-5.md` 第 7 节。已合入：#507、#524、#528、#607（RULE-412）、#622（search_path，批入队时 CI 全绿为条件，以 gh 为准）。在途：#599（REG-3，等 one-data 签发与 M1 裁定）、#629（KERR-2，head 57cc0dab3，等 CI 绿后调度再批）、#634（NX5-08 迁入写入通道·编号部分，opus 首轮 H1 等已修、sonnet 复核中，本机 Docker 停了，本地 IT 未实测）。下一步：REG-4（IMP-1022-COO-01，ProcessKey 值对象）。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。
