@@ -1397,6 +1397,6 @@ true：往来单位证件与银行账户、费率与价目（tbd 分级）、协
 ### AGG-05 并入奖金计提规则子项（S-5，ARC-1022-ARE-03）
 
 - 新子表 `standard_cost_rate_card_bonus_accrual_rules`：每费率表版本每业务线一行，列族按 one-arch-finance 草稿（BONUS_OVERTIME_COSTING §4，6866f449）；规则类型决定必填列（合同额百分比填激励方案版本号，历史比率填计算区间与依据），不符即拒。
-- 激励方案版本号只记录、不建到 AGG-75 的引用：B-02 在上游，加引用会多出 B-02 → B-15 边；如需校验版本号存在，由编制费率表版本的流程在调用前向 B-15 查，交 one-architecture 定。
+- 激励方案版本号只记录、不建到 AGG-75 的引用，B-02 及其流程也不向 B-15 查（流程层查询同样算 B-02 → B-15 边；one-architecture 裁定）。编制与批准只做格式校验，批准页列出版本号由财务负责人核对；存在性与有效期由套用计提率的一方（按月计提时）校验，取不到或不在有效期即失败并告警，不跳过。
 - 业务线没有自有聚合（terms：organization.workforce 的组织主数据取值），本表与 AGG-06 计费系数一样按取值冻结在版本内。
 - 新用语：奖金计提规则（拟 BonusAccrualRule，表 `standard_cost_rate_card_bonus_accrual_rules`，masterdata.catalog，领域）；奖金计提率、合同额百分比、历史比率随 finance 组登记，不重复。
