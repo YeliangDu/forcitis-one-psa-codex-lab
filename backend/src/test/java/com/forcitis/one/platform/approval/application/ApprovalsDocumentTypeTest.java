@@ -32,7 +32,12 @@ import org.junit.jupiter.api.Test;
 class ApprovalsDocumentTypeTest {
 
     private final RegisteredDocumentTypes registered = mock(RegisteredDocumentTypes.class);
-    private final Approvals approvals = new Approvals(null, null, null, null, null, registered);
+    private final com.forcitis.one.platform.approval.domain.ApprovalEngine engine = mock(com.forcitis.one.platform.approval.domain.ApprovalEngine.class);
+    private final Approvals approvals = new Approvals(null, engine, null, null, null, registered);
+
+    {
+        org.mockito.Mockito.when(engine.documentTypeOf(ProcessKey.COST_TIMESHEET_APPROVAL)).thenReturn(new DocumentTypeCode("TIMESHEET"));
+    }
 
     private ApprovalStartRequest request(String type) {
         return new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, new DocumentReference(new DocumentTypeCode(type), new DocumentId(UUID.randomUUID())),
