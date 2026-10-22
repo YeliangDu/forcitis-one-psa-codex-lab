@@ -559,3 +559,8 @@ rulings:
     id: standard_cost_rate_card
     definition: 薪酬脱敏后的版本化政策费率（财务维护）；版本上同时挂奖金计提率，规则类型分合同额百分比与历史比率（默认历史比率），预算、预估、实际三个变体用同一版本（FCQ-01）
     source: 用户 2026-10-22 FCQ-01（intent 2026-10-22-103824）；见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.2（@ed99f3b8）
+  - op: redefine
+    late: true
+    id: seal_usage_request
+    definition: 保存拟用印文件、印章类型、事由、批准结论及实际用印情况的申请。
+    source: one-glossary 判定 2026-10-22：与已登记的「印章类型」seal_type（platform.signing）统一，「印章类别」不用（交接清单待办②）
