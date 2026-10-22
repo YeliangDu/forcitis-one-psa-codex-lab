@@ -34,6 +34,40 @@ tables:
     writers: [cost.timesheet]
 
 
+  # 卡 A 只建立数据库基线；当前没有 Java SQL 使用方，后续卡随仓储实现登记 writers。
+  organization_administration.config_sets:
+    role: CONFIG_VERSIONED
+    aggregate: ConfigSet
+    mutability: MUTABLE
+    versions_table: organization_administration.config_set_versions
+    business_key: [config_set_code]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []
+  organization_administration.config_set_versions:
+    role: AGGREGATE_CHILD
+    aggregate: ConfigSet
+    mutability: CONDITIONAL_UPDATE
+    condition: 仅允许 PENDING 转 CONFIRMED 或 WITHDRAWN 并推进本行 version；已确认版本只由后继确认触发器关闭，状态转换由使用方同事务写入（ADR-0075）
+    business_key: [config_set_id, version_number]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []
+  organization_administration.employee_activity_type_items:
+    role: AGGREGATE_CHILD
+    aggregate: ConfigSet
+    mutability: APPEND_ONLY
+    business_key: [config_set_version_id, activity_type_code]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []
+  organization_administration.state_transitions:
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    business_key: [aggregate_id, transition_sequence_number]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []
   organization_attendance.work_calendar_years:
     role: AGGREGATE_ROOT
     aggregate: WorkCalendarYear
