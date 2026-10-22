@@ -41,7 +41,7 @@ public final class IssueDownloadLink {
         StoreContent.requireSubject(requester);
         Duration lifetime = validity == null ? defaultValidity : validity;
         if (lifetime.isNegative() || lifetime.isZero()) {
-            throw new IllegalArgumentException("a download link is valid for a positive time");
+            throw FileError.PLATFORM_FILE_LINK_VALIDITY_INVALID.refusal("a download link is valid for a positive time");
         }
         if (lifetime.compareTo(maximumValidity) > 0) {
             throw FileError.PLATFORM_FILE_LINK_VALIDITY_EXCEEDED.refusal("a download link is valid for at most " + maximumValidity);

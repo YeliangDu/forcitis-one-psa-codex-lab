@@ -25,8 +25,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Links a file to a document (ADR-0060 sections 2 and 5): the first link copies it from staging to its formal key, and only a committed link
  * makes it downloadable. The copy runs between two checks under the row lock rather than inside one, so no transaction waits on the bucket;
- * a copy that is retried, or raced by another first link, finds the same formal object and counts as done while the staged copy is still
- * there. Called inside the caller's transaction it joins it, and the row lock then lasts through the copy.
+ * a copy that is retried, or raced by another first link, finds the same formal object and counts as done, also once the staged copy has
+ * expired. Called inside the caller's transaction it joins it, and the row lock then lasts through the copy.
  */
 public final class BindFile {
     private static final Logger LOG = LoggerFactory.getLogger(BindFile.class);

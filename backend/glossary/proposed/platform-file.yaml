@@ -810,6 +810,21 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_file_link_validity_invalid
+  zh: 下载链接时效无效
+  en: PlatformFileLinkValidityInvalid
+  snake: platform_file_link_validity_invalid
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 申请的链接时效为零或负数（400）
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 - id: error__platform_file_content_read_forbidden
   zh: 无权读取文件内容
   en: PlatformFileContentReadForbidden
