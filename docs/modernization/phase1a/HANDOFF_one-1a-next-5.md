@@ -90,3 +90,5 @@
 **接手顺序**：①等 #634 sonnet 复核结果，改后看 CI（Docker 恢复后可本地跑 `MigrationWriterRoleIT`、`RuleVersionSourceIT`、`NumberingRowRulesIT`），绿后贴结论、报调度批；②#629 CI 绿后回 one-coordinator 说明 head 已变请再批；③#599 看签发；④REG-4（one-architecture 裁定 `REG4_PROCESS_KEY_RULING_2026-10-22.md`，任务号 IMP-1022-COO-01）。
 
 **本期教训**：⑪提交与推送分两次调用（推送前钩子按当时 HEAD 跑 precheck）；⑫另开 worktree（`git worktree add ../nx5-kerr2 -b <分支> origin/main`）可在 opus 复审读着当前目录时并行做下一张卡，不用切分支；⑬`build_terms` 报「基线已过期」要同时删 `term-rules-baseline.json` 的键并调低对应规则 `count`；⑭合 main 时 `kernel.yaml` 这类提议词条文件最易冲突，先看 main 上是否已有同 id 词条；⑮前端生成物手改后用 `pnpm install --frozen-lockfile --offline` 再跑 precheck，不要靠本机缺依赖放过；⑯本机 Docker 停了不要自行起，写明未实测交 CI。
+
+**22:55 补记**：#634 的 sonnet 复核通过、结论已贴 PR、CI 已绿，等调度批；#629 CI 因 runner 的 docker keychain 报错失败（非代码问题），已重跑失败任务。本轮交接以第 7 节为准。
