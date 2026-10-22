@@ -6231,7 +6231,7 @@ nodes:
       tcs: []
     INV-89:
       id: INV-89
-      statement: 人工成本分配只分配已锁定工时，分配合计等于实际人工成本（零容差）；ADR-0016 决定 1 的 `operations.policy` 归集守恒等式为主，INV-89 为对账
+      statement: 人工成本分配只分配已锁定工时，项目分配额 + 人工成本分配差异 = 实际人工成本（零容差；差异＝加班按法定倍数计价后与公司实付的差额，挂员工所在部门、不进项目）；ADR-0016 决定 1 的 `operations.policy` 归集守恒等式为主，INV-89 为对账
       category: A
       owner_aggregates: &id098
       - AGG-41
@@ -6680,7 +6680,7 @@ nodes:
       tcs: []
     INV-115:
       id: INV-115
-      statement: 知识条目：已发布的版本不得修改，修订产生新版本并引用被取代版本；废止后不得被新引用（已有引用不受影响）
+      statement: 知识条目：已发布的版本不得修改，修订产生新版本并引用被取代版本；废止后不得被新引用（已有引用不受影响）；评审中仅起草人可撤回，逾期评审仅按规则中断，均回到起草（待第 6 步确认）
       category: A
       owner_aggregates: &id124
       - AGG-107
