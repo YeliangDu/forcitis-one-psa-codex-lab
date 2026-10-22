@@ -121,6 +121,6 @@ platform.signing -> platform.audit, platform.identity
 ## 7. 待交其他会话
 
 - **one-glossary**：模块标识、schema、权限码前缀；印章台账、台账条目、台账条目版本、印章类型（与「印章类别」同名异义）、载体、保管部门、错误码中文名。
-- **one-1a-admin**：确认第一段只用 `activeEntries` / `activeEntry` / `versionAt` 与实体章用印登记引用（准入第 9 条）。
+- **one-1a-admin**：已确认（2026-10-22）够 B-31 用印 7.3、7.4：选条目用 `activeEntries` / `activeEntry`，登记按用印时刻 `versionAt` 取版本并存版本 ID，法人、类型、启停、载体在版本视图内自行校验，用途与类型对应用 `sealTypes`，迁入映射用 `activeEntry`；不需要保管部门、签章记录、事件。要求 `NO_VERSION_AT` 与 `ENTRY_INACTIVE` 两码保持可区分（`versionAt` 只抛前者，停用由调用方按视图 `active` 判并用后者）。
 - **one-data**：第 6 节四张表；`seal_type_code` 是否以清单版本外键或代码校验；W0 载体列只有一个取值是否先建。
 - **one-architecture**：本稿齐后复核九条。
