@@ -103,7 +103,7 @@ class JdbcStoredFileRepository implements StoredFileRepository {
     }
 
     @Override
-    public Optional<FileStatus> unboundStatusUploadedBy(FileId file, UUID uploader) {
+    public Optional<FileStatus> unboundStatusStoredBy(FileId file, UUID uploader) {
         return jdbc.sql("""
                         select f.file_status
                           from platform_file.stored_files f

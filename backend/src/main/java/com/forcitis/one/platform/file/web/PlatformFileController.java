@@ -55,7 +55,7 @@ class PlatformFileController {
     @Operation(summary = "Stores an upload behind the malware scan; the body is the file, its name is in Content-Disposition (filename*=UTF-8''...)",
             requestBody = @RequestBody(required = true, content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE,
                     schema = @Schema(type = "string", format = "binary"))))
-    ResponseEntity<UploadedFileResponse> upload(HttpServletRequest request,
+    ResponseEntity<StoredFileResponse> store(HttpServletRequest request,
             @RequestHeader(HttpHeaders.CONTENT_DISPOSITION) String disposition, UserId caller) throws IOException {
         StoreContent storeContent = store.getIfAvailable();
         if (storeContent == null) {
@@ -64,7 +64,7 @@ class PlatformFileController {
         String name = originalName(disposition);
         String mediaType = declaredMediaType(request.getContentType());
         try (InputStream content = request.getInputStream()) {
-            UploadedFileResponse stored = UploadedFileResponse.of(storeContent.store(new StoreRequest(content, name, mediaType,
+            StoredFileResponse stored = StoredFileResponse.of(storeContent.store(new StoreRequest(content, name, mediaType,
                     new FileSubject(FileSubjectKind.USER, caller.value().toString()), new Lineage.FirstVersion())));
             return ResponseEntity.created(URI.create("/api/v1/platform/files/" + stored.fileId())).body(stored);
         }

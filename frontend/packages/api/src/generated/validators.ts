@@ -452,6 +452,15 @@ export const SourceReferenceResponseSchema = z.object({
   get sourceSystem() { return ExternalSourceSchema; },
 });
 
+export const StoredFileResponseSchema = z.object({
+  byteCount: z.number().int(),
+  containsMacros: z.boolean(),
+  contentHash: z.string(),
+  fileId: z.string(),
+  mediaType: z.string(),
+  get status() { return FileStatusSchema; },
+});
+
 export const SyncDiffResponseSchema = z.object({
   changeKind: z.string(),
   changedFields: z.array(z.string()),
@@ -558,15 +567,6 @@ export const UpdateLegalEntityRequestSchema = z.object({
   status: z.string().optional(),
 });
 
-export const UploadedFileResponseSchema = z.object({
-  byteCount: z.number().int(),
-  containsMacros: z.boolean(),
-  contentHash: z.string(),
-  fileId: z.string(),
-  mediaType: z.string(),
-  get status() { return FileStatusSchema; },
-});
-
 export const UserAccountResponseSchema = z.object({
   roleCodes: z.array(z.string()),
   status: z.string(),
@@ -617,7 +617,7 @@ export const responseSchemas = {
   getPlatformAuditEntries: CursorPageAuditEntryResponseSchema,
   getPlatformAuditEntriesExport: z.string(),
   getPlatformAuthorizationRequests: CursorPageAuthorizationRequestViewSchema,
-  postPlatformFiles: UploadedFileResponseSchema,
+  postPlatformFiles: StoredFileResponseSchema,
   getPlatformFilesByFileId: FileStatusResponseSchema,
   getPlatformLegacyNumbers: CursorPageLegacyNumberResponseSchema,
   getPlatformLegacyNumbersResolve: LegacyNumberResponseSchema,

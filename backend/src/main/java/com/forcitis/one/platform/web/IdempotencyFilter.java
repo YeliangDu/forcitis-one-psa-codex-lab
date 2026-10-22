@@ -42,7 +42,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * A write that carries Idempotency-Key gets the first answer again when it is sent again with the same key and the same request
  * within 24 hours; the same key with another request is refused (422). Runs after the security filters, so the key is the signed-in
- * user's own. The request body is read once into a SpooledBody, a temporary file when it is large (a file upload), and is limited in size. An answer longer than the stored limit is not stored and the key stays "in progress" until it expires: the write has been
+ * user's own. The request body is read once into a CachedBody, a temporary file when it is large (a file upload), and is limited in size. An answer longer than the stored limit is not stored and the key stays "in progress" until it expires: the write has been
  * done, and running it again on a retry would do it twice.
  */
 @Component
@@ -109,10 +109,10 @@ class IdempotencyFilter extends OncePerRequestFilter {
             refuse(response, WebError.PLATFORM_WEB_REQUEST_INVALID, ErrorKind.INVALID);
             return;
         }
-        SpooledBody body;
+        CachedBody body;
         try {
-            body = SpooledBody.read(request.getInputStream(), prefix(request), maxBody);
-        } catch (SpooledBody.TooLarge tooLarge) {
+            body = CachedBody.read(request.getInputStream(), prefix(request), maxBody);
+        } catch (CachedBody.TooLarge tooLarge) {
             refuse(response, WebError.PLATFORM_WEB_REQUEST_INVALID, ErrorKind.INVALID);
             return;
         }
@@ -121,7 +121,7 @@ class IdempotencyFilter extends OncePerRequestFilter {
         }
     }
 
-    private void claimAndRun(HttpServletRequest request, HttpServletResponse response, FilterChain chain, UserId userId, String key, SpooledBody body)
+    private void claimAndRun(HttpServletRequest request, HttpServletResponse response, FilterChain chain, UserId userId, String key, CachedBody body)
             throws ServletException, IOException {
         CachedBodyRequest cached = new CachedBodyRequest(request, body);
         String requestHash = body.hash();
@@ -201,9 +201,9 @@ class IdempotencyFilter extends OncePerRequestFilter {
     }
 
     private static final class CachedBodyRequest extends HttpServletRequestWrapper {
-        private final SpooledBody body;
+        private final CachedBody body;
 
-        CachedBodyRequest(HttpServletRequest request, SpooledBody body) {
+        CachedBodyRequest(HttpServletRequest request, CachedBody body) {
             super(request);
             this.body = body;
         }

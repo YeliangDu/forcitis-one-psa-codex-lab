@@ -17,5 +17,5 @@ public interface StoredFileRepository {
     boolean hasScanException(ContentHash contentHash);
 
     /** The status of a file that this user uploaded and that no document has linked yet; empty for any other file, so nobody learns that it exists. */
-    Optional<FileStatus> unboundStatusUploadedBy(FileId file, UUID uploader);
+    Optional<FileStatus> unboundStatusStoredBy(FileId file, UUID uploader);
 }

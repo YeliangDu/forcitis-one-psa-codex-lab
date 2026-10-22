@@ -95,14 +95,14 @@ class JdbcStoredFileRepositoryIT {
         files.insert(own);
         files.insert(byLink);
 
-        assertThat(files.unboundStatusUploadedBy(own.id(), USER)).contains(FileStatus.QUARANTINED);
-        assertThat(files.unboundStatusUploadedBy(own.id(), stranger)).as("someone else's file does not exist for the caller").isEmpty();
-        assertThat(files.unboundStatusUploadedBy(byLink.id(), USER)).as("a link's upload is not a user's").isEmpty();
-        assertThat(files.unboundStatusUploadedBy(new FileId(UUID.randomUUID()), USER)).isEmpty();
+        assertThat(files.unboundStatusStoredBy(own.id(), USER)).contains(FileStatus.QUARANTINED);
+        assertThat(files.unboundStatusStoredBy(own.id(), stranger)).as("someone else's file does not exist for the caller").isEmpty();
+        assertThat(files.unboundStatusStoredBy(byLink.id(), USER)).as("a link's upload is not a user's").isEmpty();
+        assertThat(files.unboundStatusStoredBy(new FileId(UUID.randomUUID()), USER)).isEmpty();
 
         jdbc.sql("insert into platform_file.file_bindings (file_binding_id, stored_file_id, document_type, document_id, access_level_code, personal_information_mark_code,"
                 + " bound_by_kind, bound_by_user_id, bound_at, created_at, updated_at) values (?, ?, 'CONTRACT', ?, 'INTERNAL', 'NONE', 'USER', ?, now(), now(), now())")
                 .params(UUID.randomUUID(), own.id().value(), UUID.randomUUID(), USER).update();
-        assertThat(files.unboundStatusUploadedBy(own.id(), USER)).as("once linked, the status is no longer the uploader's to read").isEmpty();
+        assertThat(files.unboundStatusStoredBy(own.id(), USER)).as("once linked, the status is no longer the uploader's to read").isEmpty();
     }
 }

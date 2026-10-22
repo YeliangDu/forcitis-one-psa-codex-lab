@@ -18,7 +18,7 @@ import java.util.HexFormat;
  * upload never sits in the heap. The hash of the request (method, address, then the body) is computed while reading. The file is removed on
  * close; a body above the limit is refused before more than the limit has been written.
  */
-final class SpooledBody implements Closeable {
+final class CachedBody implements Closeable {
     static final int MEMORY_LIMIT = 64 * 1024;
 
     /** The body is longer than the limit the filter accepts. */
@@ -32,14 +32,14 @@ final class SpooledBody implements Closeable {
     private final Path file;
     private final String hash;
 
-    private SpooledBody(byte[] memory, Path file, String hash) {
+    private CachedBody(byte[] memory, Path file, String hash) {
         this.memory = memory;
         this.file = file;
         this.hash = hash;
     }
 
     /** prefix is what is hashed before the body, so the same bytes sent elsewhere hash differently. */
-    static SpooledBody read(InputStream in, String prefix, long limit) throws IOException {
+    static CachedBody read(InputStream in, String prefix, long limit) throws IOException {
         MessageDigest digest = sha256();
         digest.update(prefix.getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream head = new ByteArrayOutputStream();
@@ -83,7 +83,7 @@ final class SpooledBody implements Closeable {
             }
             throw failure;
         }
-        return new SpooledBody(spill == null ? head.toByteArray() : null, spill, HexFormat.of().formatHex(digest.digest()));
+        return new CachedBody(spill == null ? head.toByteArray() : null, spill, HexFormat.of().formatHex(digest.digest()));
     }
 
     String hash() {

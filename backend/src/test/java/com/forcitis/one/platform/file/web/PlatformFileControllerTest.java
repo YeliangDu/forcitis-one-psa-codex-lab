@@ -45,7 +45,7 @@ class PlatformFileControllerTest {
         PlatformFileController off = new PlatformFileController(none.getBeanProvider(com.forcitis.one.platform.file.application.StoreContent.class),
                 none.getBeanProvider(com.forcitis.one.platform.file.application.GetUploadStatus.class));
 
-        assertThatThrownBy(() -> off.upload(null, "attachment; filename=\"a.pdf\"", new UserId(UUID.randomUUID()))).isInstanceOfSatisfying(DomainException.class,
+        assertThatThrownBy(() -> off.store(null, "attachment; filename=\"a.pdf\"", new UserId(UUID.randomUUID()))).isInstanceOfSatisfying(DomainException.class,
                 refusal -> {
                     assertThat(refusal.errorCode()).isEqualTo(FileError.PLATFORM_FILE_SCAN_UNAVAILABLE);
                     assertThat(refusal.kind()).isEqualTo(ErrorKind.UNAVAILABLE);

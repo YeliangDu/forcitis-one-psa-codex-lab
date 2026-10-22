@@ -508,7 +508,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Stores an upload behind the malware scan; the body is the file, its name is in Content-Disposition (filename*=UTF-8''...) */
-        post: operations["upload"];
+        post: operations["store"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1447,6 +1447,16 @@ export interface components {
             sourceReferenceId: string;
             sourceSystem: components["schemas"]["ExternalSource"] | (string & {});
         };
+        StoredFileResponse: {
+            /** Format: int64 */
+            byteCount: number;
+            containsMacros: boolean;
+            contentHash: string;
+            /** Format: uuid */
+            fileId: string;
+            mediaType: string;
+            status: components["schemas"]["FileStatus"] | (string & {});
+        };
         SyncDiffResponse: {
             changeKind: string;
             changedFields: string[];
@@ -1576,16 +1586,6 @@ export interface components {
             code?: string;
             name?: string;
             status?: string;
-        };
-        UploadedFileResponse: {
-            /** Format: int64 */
-            byteCount: number;
-            containsMacros: boolean;
-            contentHash: string;
-            /** Format: uuid */
-            fileId: string;
-            mediaType: string;
-            status: components["schemas"]["FileStatus"] | (string & {});
         };
         UserAccountResponse: {
             roleCodes: string[];
@@ -3578,7 +3578,7 @@ export interface operations {
             };
         };
     };
-    upload: {
+    store: {
         parameters: {
             query?: never;
             header: {
@@ -3601,7 +3601,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["UploadedFileResponse"];
+                    "*/*": components["schemas"]["StoredFileResponse"];
                 };
             };
             /** @description The request was refused */

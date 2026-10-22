@@ -18,7 +18,7 @@ public final class GetUploadStatus {
     }
 
     public FileStatus execute(FileId file, UUID uploader) {
-        return files.unboundStatusUploadedBy(file, uploader)
+        return files.unboundStatusStoredBy(file, uploader)
                 .orElseThrow(() -> FileError.PLATFORM_FILE_NOT_FOUND.refusal("no unlinked upload " + file + " of this user"));
     }
 }

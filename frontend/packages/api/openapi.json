@@ -1310,6 +1310,32 @@
         "required" : [ "confirmationStatus", "ownId", "sourceId", "sourceObjectKind", "sourceReferenceId", "sourceSystem" ],
         "type" : "object"
       },
+      "StoredFileResponse" : {
+        "properties" : {
+          "byteCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "containsMacros" : {
+            "type" : "boolean"
+          },
+          "contentHash" : {
+            "type" : "string"
+          },
+          "fileId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "mediaType" : {
+            "type" : "string"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/FileStatus"
+          }
+        },
+        "required" : [ "byteCount", "containsMacros", "contentHash", "fileId", "mediaType", "status" ],
+        "type" : "object"
+      },
       "SyncDiffResponse" : {
         "properties" : {
           "changeKind" : {
@@ -1656,32 +1682,6 @@
             "type" : "string"
           }
         },
-        "type" : "object"
-      },
-      "UploadedFileResponse" : {
-        "properties" : {
-          "byteCount" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "containsMacros" : {
-            "type" : "boolean"
-          },
-          "contentHash" : {
-            "type" : "string"
-          },
-          "fileId" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "mediaType" : {
-            "type" : "string"
-          },
-          "status" : {
-            "$ref" : "#/components/schemas/FileStatus"
-          }
-        },
-        "required" : [ "byteCount", "containsMacros", "contentHash", "fileId", "mediaType", "status" ],
         "type" : "object"
       },
       "UserAccountResponse" : {
@@ -4397,7 +4397,7 @@
     },
     "/api/v1/platform/files" : {
       "post" : {
-        "operationId" : "upload",
+        "operationId" : "store",
         "parameters" : [ {
           "in" : "header",
           "name" : "Content-Disposition",
@@ -4430,7 +4430,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/UploadedFileResponse"
+                  "$ref" : "#/components/schemas/StoredFileResponse"
                 }
               }
             },

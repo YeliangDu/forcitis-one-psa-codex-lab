@@ -150,7 +150,7 @@ class StoreContentTest {
         }
 
         @Override
-        public Optional<FileStatus> unboundStatusUploadedBy(FileId file, java.util.UUID uploader) {
+        public Optional<FileStatus> unboundStatusStoredBy(FileId file, java.util.UUID uploader) {
             throw new AssertionError("not used when storing");
         }
     };
