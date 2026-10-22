@@ -15,6 +15,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
@@ -23,7 +24,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The read is audited before the first byte goes out. The hash is known only at the end, so a mismatch fails the read after the sink has had
- * the bytes: the caller discards what it received whenever this throws.
+ * the bytes: the caller discards what it received whenever this throws. A failing sink (the reader went away) surfaces as an
+ * UncheckedIOException, not as a storage fault.
  */
 public final class ReadFileContent implements PlatformFileContent {
     private static final Logger LOG = LoggerFactory.getLogger(ReadFileContent.class);
@@ -72,14 +74,22 @@ public final class ReadFileContent implements PlatformFileContent {
 
         @Override
         public void write(int b) throws IOException {
-            out.write(b);
+            try {
+                out.write(b);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
             digest.update((byte) b);
             count++;
         }
 
         @Override
         public void write(byte[] bytes, int offset, int length) throws IOException {
-            out.write(bytes, offset, length);
+            try {
+                out.write(bytes, offset, length);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
             digest.update(bytes, offset, length);
             count += length;
         }

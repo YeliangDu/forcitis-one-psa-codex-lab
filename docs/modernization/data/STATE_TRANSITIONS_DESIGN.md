@@ -182,3 +182,7 @@ c3 / c9 两份运行时脚本同步。`DataArchitectureTest` 核对：注册表�
 3. **转换序号取子行自己的 `version`**：子行每改一次状态自增 1；一条命令里同一子行状态变两次，`version` 增 2，写两条转换（序号 v+1、v+2）；无状态变化的写入不写转换，子行 `version` 是否推进以该子行是否变化为准，序号允许跳号，只要求每个 `aggregate_id` 内严格递增且唯一。
 4. **目标版本由领域方法给出**：转换的 `transition_sequence_number` 与新状态由领域方法返回（子行新 `version`、新状态），仓储把它原样写入子行与转换行，不由仓储自行推算，也不在 SQL 里 `version + 1` 再回读。
 5. 迁入初始转换（第 8 条）对每个子行各写一条。
+
+## `status_of_aggregate` 的写法（2026-10-22，B-31 卡 A 验收测试抓出缺陷后补）
+
+按聚合类型成对限定合法流转的 CHECK，**必须逐个 (from, to) 成对写**，并在外层用 `coalesce(… , false)` 包住：`from_status` 为空时，形如 `from_status = 'APPROVED' AND to_status IN (…)` 的分支求值为 NULL，而 CHECK 对 NULL 放行，`∅ → CONCLUDED` 之类的非法初始转换会被误接受；用 `coalesce(…, false)` 把未判定变成不通过。把"目标集合"与"来源集合"分开各写一个 `IN` 再相与（`to_status IN (…) AND (from_status IS NULL OR from_status IN (…))`）不够严：它会接受不在合法清单里的配对（例如 `∅ → CONFIRMED`、`PENDING → READ`）。迁入初始转换（`cause_kind = 'MIGRATION'`）可单列到任一允许的状态。platform_file 基线（#521）当前是后一种宽松写法，已请其以追加迁移改为成对写（见 B31-CARD-A-DDL 复核记录第三轮）。
