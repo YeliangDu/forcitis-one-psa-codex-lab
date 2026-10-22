@@ -1980,6 +1980,7 @@ kpis:
     - docs/modernization/glossary/terms.yaml:2512
   evidence: r0/METRIC_BASELINE_DRAFT.md:126 M-42；glossary/terms.yaml:2512 effective_hours；用户答复 KPI-20261022-085652-r54（KPI-Q01，NU-01）：另设变体「按有效工时算的利用率」，并指定为内部主指标
 - id: KPI-98
+  # E22：r0/REPORT_INVENTORY.md 第 167 行「待签项目超限投入的问责（按客户等级设授权上限，超限部分由负责人分担）」；KPI-98 的默认账期覆盖与本授权上限用同一套客户分级（用户 KPI-Q04）。
   aliases:
   - M-14
   name: 账龄超 N 天应收
@@ -2020,6 +2021,7 @@ kpis:
     - docs/modernization/glossary/terms.yaml:1638
   evidence: r0/METRIC_BASELINE_DRAFT.md:130 M-46「无合同风险敞口、超授权额度投入」；glossary/terms.yaml:1638 uncontracted_exposure；用户答复 KPI-20261022-085652-r54（KPI-Q05，NU-08）：登记为两个指标，用语用「无合同」，不用「待签」
 - id: KPI-100
+  # E22：r0/REPORT_INVENTORY.md 第 167 行「待签项目超限投入的问责（按客户等级设授权上限，超限部分由负责人分担）」；KPI-98 的默认账期覆盖与本授权上限用同一套客户分级（用户 KPI-Q04）。
   aliases: []
   name: 超授权额度投入
   term: null

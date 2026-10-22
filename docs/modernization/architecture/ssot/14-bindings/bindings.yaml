@@ -1,0 +1,323 @@
+# 计算绑定登记（手写；sonnet 起草，one-architecture 定稿）。卡 15：先登记 W1 可算与词表已带公式的，其余 pending，不编造公式。
+meta:
+  status: proposal
+  reviewed_by: one-architecture（sonnet 起草；KPI-13 移入 pending 以与 KPI-40 一致；2026-10-22）
+  note: grain 与 source_table 为拟名：原文未写，读模型建成时按 ADR-0025 reporting 实际表名核对后改。KPI-94 所需事实在 W3，按卡 15「terms.yaml 已带 formula」一类照登。
+  counts:
+    bindings: 11
+    pending: 99
+bindings:
+- id: BIND-001
+  kpi: KPI-25
+  facts:
+  - FACT-06
+  formula: 业务期间内开票事实的含税金额合计；红冲用独立红字记录指向原蓝字记录，按冲减计入
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 项目 × 开票月
+  source_table: reporting 开票过程事实读模型（含红字记录）
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:79（M-10 期间 D、加总 A、含税）；docs/modernization/r0/FINANCE_DECISIONS.md:155（FD-15 红冲表示法）
+- id: BIND-002
+  kpi: KPI-30
+  facts:
+  - FACT-06
+  - FACT-05
+  formula: 开票金额 ÷ 收入确认金额，同一税口径、同一期间
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 项目 × 月
+  source_table: reporting 开票事实与收入确认事实读模型
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:87（M-18 开票 / 产值，分子分母税口径一致）；docs/modernization/glossary/terms.yaml:10242
+- id: BIND-003
+  kpi: KPI-31
+  facts:
+  - FACT-07
+  - FACT-06
+  formula: 回款金额 ÷ 开票金额，含税，同一期间
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 项目 × 月
+  source_table: reporting 回款事实与开票事实读模型
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:88（M-19 回款 / 开票，含税）；docs/modernization/glossary/terms.yaml:10258
+- id: BIND-004
+  kpi: KPI-37
+  facts:
+  - FACT-02
+  - FACT-01
+  formula: 项目直接人工 = 当日成本（日薪）按工时占比分到项目；人天 = 工时 ÷ max(当日总工时, 标准日工时)；标准日工时为按法人可配置参数，默认 7.5
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 项目 × 工作日期所在月
+  source_table: reporting 人工成本分配事实读模型
+  source: docs/modernization/r0/FINANCE_DECISIONS.md:96（FD-09）、docs/modernization/r0/FINANCE_DECISIONS.md:105（FD-10）；docs/modernization/r0/METRIC_BASELINE_DRAFT.md:98（M-24 直接人工）
+- id: BIND-005
+  kpi: KPI-39
+  facts:
+  - FACT-05
+  - FACT-18
+  formula: 净服务收入 = 收入（不含税）− 委外与分包成本 − 可向客户转收的代垫费用；管理口径净额，不用于法定报表（净收入与净服务收入合并为本指标）
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 项目 × 业务期间
+  source_table: reporting 收入确认事实与分包履约事实读模型
+  source: docs/modernization/architecture/ssot/15-kpis/kpis.yaml:2444（NU-13，用户答复 KPI-Q02）；docs/modernization/r0/FINANCE_DECISIONS.md:386（FD-41）；docs/modernization/glossary/terms.yaml:13907（net_revenue 带
+    formula，已并入本指标）
+- id: BIND-006
+  kpi: KPI-44
+  facts:
+  - FACT-10
+  formula: 费用事实按审核时核定的费用所属期间（业务发生日所在月）归属并汇总（不含税）；所属期间已关账的，账上落开放期间并标原期间，分析按所属期间
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 项目 × 费用所属期间
+  source_table: reporting 费用事实读模型
+  source: docs/modernization/r0/FINANCE_DECISIONS.md:164（FD-16）；docs/modernization/r0/METRIC_BASELINE_DRAFT.md:107（M-33，不含税）
+- id: BIND-007
+  kpi: KPI-45
+  facts:
+  - FACT-13
+  formula: 按支付日计的费用付款金额合计（收付口径，含税）
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 支付月
+  source_table: reporting 付款事实读模型
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:108（M-34 期间 D、含税）；docs/modernization/glossary/terms.yaml:10522
+- id: BIND-008
+  kpi: KPI-92
+  facts:
+  - FACT-18
+  formula: 转付成本 = 分包成本 + 外包成本 + 可向客户转收的代垫费用，在净服务收入中扣减
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 项目 × 业务期间
+  source_table: reporting 分包履约事实读模型
+  source: docs/modernization/r0/FINANCE_DECISIONS.md:386（FD-41）；docs/modernization/glossary/terms.yaml:9641（pass_through_cost 定义）
+- id: BIND-009
+  kpi: KPI-110
+  facts:
+  - FACT-05
+  formula: 客户确认（收入确认单）的不含税金额合计，收入期间取客户签字日所在月；税额按单据实际税率，价税分离按 含税 ÷ (1 + 税率) 取到分
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 项目 × 业务期间
+  source_table: reporting 收入确认事实读模型
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:77（M-08）；docs/modernization/r0/FINANCE_DECISIONS.md:56（FD-04）；docs/modernization/adr/src/ADR-0016.md:29（收入期间取客户签字日所在月）
+- id: BIND-010
+  kpi: KPI-111
+  facts:
+  - FACT-05
+  formula: 收入（不含税）＋对应销项税额
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 年度目标范围 × 业务期间 × 币种
+  source_table: reporting 收入确认事实读模型（含税额）
+  source: docs/modernization/glossary/terms.yaml:14016（revenue_including_tax.formula，FD-14）
+- id: BIND-011
+  kpi: KPI-94
+  facts:
+  - FACT-32
+  formula: 新签合同额 − 预计委外与分包金额（与新签合同额使用相同含税口径及币种）；合同新签时锁定金额与预计转付成本
+  formula_version: '2026.1'
+  time_basis: 业务时间
+  grain: 法人 × 新签合同 × 签约期间 × 币种
+  source_table: reporting 合同条款累积快照读模型（事实 FACT-32 属 W3，W1 尚不可算）
+  source: docs/modernization/glossary/terms.yaml:14115（net_new_contract_value.formula，FD-42）
+pending:
+- kpi: KPI-01
+  reason: 出口条件，非经营度量，不绑定经营事实
+- kpi: KPI-02
+  reason: 出口条件，非经营度量，不绑定经营事实
+- kpi: KPI-03
+  reason: 出口条件，非经营度量，不绑定经营事实
+- kpi: KPI-04
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-05
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-06
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-07
+  reason: 出口条件，非经营度量，不绑定经营事实
+- kpi: KPI-08
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-09
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-10
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-11
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-12
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-14
+  reason: 出口条件，非经营度量，不绑定经营事实
+- kpi: KPI-15
+  reason: 出口条件，非经营度量，不绑定经营事实
+- kpi: KPI-16
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-17
+  reason: 所需事实非 W1：FACT-30 W2
+- kpi: KPI-18
+  reason: 所需事实非 W1：FACT-31 W2
+- kpi: KPI-19
+  reason: 所需事实非 W1：FACT-37 W2、FACT-31 W2
+- kpi: KPI-20
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-21
+  reason: 所需事实非 W1：FACT-37 W2
+- kpi: KPI-22
+  reason: 所需事实非 W1：FACT-32 W3
+- kpi: KPI-23
+  reason: 所需事实非 W1：FACT-29 W5、FACT-32 W3
+- kpi: KPI-24
+  reason: 所需事实非 W1：FACT-32 W3
+- kpi: KPI-26
+  reason: 所需事实非 W1：FACT-28 W4
+- kpi: KPI-27
+  reason: 所需事实非 W1：FACT-28 W4
+- kpi: KPI-28
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-29
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-32
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-33
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-34
+  reason: 公式无出处：基线 M-21 只给期间 D、加总 A，核销金额口径与「收入冲减」的拆分（D17-8）未写明
+- kpi: KPI-35
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-36
+  reason: 所需事实非 W1：FACT-34 W2
+- kpi: KPI-38
+  reason: 所需事实含 W5（成本台账分录 FACT-27）
+- kpi: KPI-40
+  reason: 所需事实含 W5（成本台账分录 FACT-27）；公式 FD-41 已定，待 FACT-27 就绪后登记
+- kpi: KPI-41
+  reason: 所需事实非 W1：FACT-38 W5
+- kpi: KPI-42
+  reason: 所需事实非 W1：FACT-38 W5、FACT-27 W5
+- kpi: KPI-43
+  reason: 所需事实非 W1：FACT-38 W5、FACT-27 W5
+- kpi: KPI-46
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-47
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-48
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-49
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-50
+  reason: 所需事实非 W1：FACT-34 W2
+- kpi: KPI-51
+  reason: 所需事实非 W1：FACT-34 W2
+- kpi: KPI-52
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-53
+  reason: 公式出处有，但人工成本范围（是否含奖金、社保）未定（基线 M-45 待决），且所需事实 FACT-14 薪酬需先定范围
+- kpi: KPI-54
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-55
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-56
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-57
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-58
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-59
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-60
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-61
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-62
+  reason: 所需事实非 W1：FACT-26 W3
+- kpi: KPI-63
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-64
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-65
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-66
+  reason: 所需事实非 W1：FACT-26 W3
+- kpi: KPI-67
+  reason: 所需事实非 W1：FACT-26 W3、FACT-33 W2
+- kpi: KPI-68
+  reason: 所需事实非 W1：FACT-26 W3、FACT-33 W2
+- kpi: KPI-69
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-70
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-71
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-72
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-73
+  reason: 所需事实非 W1：FACT-29 W5
+- kpi: KPI-74
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-75
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-76
+  reason: 无出处：基线与财务决策均无现金转化的公式
+- kpi: KPI-77
+  reason: 所需事实非 W1：FACT-26 W3
+- kpi: KPI-78
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-79
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-80
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-81
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-82
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-83
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-84
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-85
+  reason: 所需事实非 W1：FACT-27 W5
+- kpi: KPI-86
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-87
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-88
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-89
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-93
+  reason: 所需事实非 W1：FACT-34 W2
+- kpi: KPI-95
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-96
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-97
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-98
+  reason: 所需事实 W5（期间快照 FACT-29）；起算日参数已答复 KPI-Q04，待事实就绪后登记
+- kpi: KPI-99
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-100
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-101
+  reason: 无出处：词表仅有定义无公式；事实 FACT-18 在 W1 但分包与外包的分拆取法未定
+- kpi: KPI-102
+  reason: 无出处：词表仅有定义无公式；事实 FACT-18 在 W1 但分包与外包的分拆取法未定
+- kpi: KPI-103
+  reason: 所需事实 W5（成本台账分录 FACT-27）；归集 DC_BIL = DL + DE + 分包只在词表定义中
+- kpi: KPI-104
+  reason: 所需事实 W5（成本台账分录 FACT-27）；结转口径随收入确认
+- kpi: KPI-105
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-106
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-107
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-108
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-109
+  reason: 所需事实 W5（期间快照 FACT-29）；公式 FD-39 已定，待事实就绪后登记
+- kpi: KPI-112
+  reason: 无出处：事实未登记且公式在 ADR、r0 口径、财务决策与 KPI 页答复中均无原文
+- kpi: KPI-13
+  reason: 分子贡献毛利同 KPI-40，所需成本汇集事实 FACT-27 在 W5；分母已改为净服务收入（KPI-Q03），基线值待 one-rules 取证重算

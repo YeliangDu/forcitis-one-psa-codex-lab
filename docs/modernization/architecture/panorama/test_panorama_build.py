@@ -137,6 +137,131 @@ class DimensionMetricNetworkTest(unittest.TestCase):
         self.assertEqual(([], []), (model["metric"]["KPI-02"]["stages"], model["metric"]["KPI-02"]["processes"]))
 
 
+class BindingNetworkTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(dir=p.ROOT)
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / "bindings.yaml"
+        patcher = patch.dict(p.SRC, bindings=self.path)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.binding = {"id": "BIND-001", "kpi": "KPI-01", "facts": ["FACT-01", "FACT-02"],
+                        "formula": "文字口径", "formula_version": "2026.1", "time_basis": "业务时间",
+                        "grain": "项目 × 月", "source_table": "reporting.rows", "source": "出处原文位置"}
+
+    def write(self, bindings=None, pending=None):
+        self.path.write_text(yaml.safe_dump({"meta": {"status": "proposal"},
+                                            "bindings": [self.binding] if bindings is None else bindings,
+                                            "pending": [] if pending is None else pending}, allow_unicode=True), encoding="utf-8")
+
+    def load(self):
+        model = {"bind": {}, "metric": {f"KPI-0{i}": {"zh": f"指标{i}", "kind": "业务指标",
+                                                   "facts": [], "stages": [], "processes": []} for i in range(1, 5)},
+                 "fact": {"FACT-01": {}, "FACT-02": {}}}
+        model["metric"]["KPI-04"]["kind"] = "技术度量"
+        edges = []
+        p.load_bindings(model, lambda kind, a, b, src: edges.append(
+            {"kind": kind, "from": a, "to": b, "src": src}))
+        return model, edges
+
+    def test_arc03_fields_links_metric_attachment_and_repeatability(self):
+        self.write([self.binding, {**self.binding, "id": "BIND-002", "time_basis": "记录时间"},
+                    {**self.binding, "id": "BIND-003", "time_basis": "期间"}])
+        model, edges = self.load()
+        self.assertEqual(self.binding, {k: v for k, v in model["bind"]["BIND-001"].items() if k != "src"})
+        self.assertEqual(["BIND-001", "BIND-002", "BIND-003"], model["metric"]["KPI-01"]["bind"])
+        self.assertEqual([], model["metric"]["KPI-02"]["bind"])
+        self.assertEqual({(kind, f"BIND-00{i}", target) for i in range(1, 4) for kind, target in
+                          (("bind-metric", "KPI-01"), ("bind-fact", "FACT-01"), ("bind-fact", "FACT-02"))},
+                         {(e["kind"], e["from"], e["to"]) for e in edges})
+        self.assertEqual(9, len(edges))
+        self.assertTrue(all("#bindings[" in e["src"] for e in edges))
+        self.assertTrue(model["bind"]["BIND-001"]["src"].endswith("#bindings[0]/BIND-001"))
+        self.assertEqual(yaml.safe_dump((model, edges)).encode(), yaml.safe_dump(self.load()).encode())
+
+    def test_arc03_invalid_and_duplicate_binding_ids_fail(self):
+        for rows, reason in (([self.binding, self.binding], "编号重复"),
+                             ([{**self.binding, "id": "BIND-01"}], "编号无效"),
+                             ([{**self.binding, "id": None}], "编号无效")):
+            with self.subTest(reason=reason, rows=rows):
+                self.write(rows)
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.load()
+
+    def test_arc03_unknown_kpi_or_fact_and_invalid_time_basis_fail(self):
+        for changes, reason in (({"kpi": "KPI-99"}, "不存在的 KPI"),
+                                ({"facts": ["FACT-99"]}, "不存在的 FACT"),
+                                ({"time_basis": "其他时间"}, "time_basis"),
+                                ({"facts": "FACT-01"}, "facts 应为列表")):
+            with self.subTest(changes=changes):
+                self.write([{**self.binding, **changes}])
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.load()
+
+    def test_arc03_unknown_pending_kpi_or_bound_pending_kpi_fail(self):
+        for kpi, reason in (("KPI-99", "不存在的 KPI"), ("KPI-01", "既有绑定又在 pending")):
+            with self.subTest(kpi=kpi):
+                self.write(pending=[{"kpi": kpi, "reason": "待确认"}])
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.load()
+
+    def test_arc03_malformed_catalogs_fail_and_pending_is_optional(self):
+        for content in ("", "[]", "bindings: invalid", "bindings: [invalid]",
+                        "bindings: []\npending: invalid", "bindings: []\npending: [invalid]"):
+            with self.subTest(content=content):
+                self.path.write_text(content)
+                with self.assertRaises(ValueError):
+                    self.load()
+        self.path.write_text("bindings: []\n")
+        self.assertEqual({}, self.load()[0]["bind"])
+
+    def test_arc03_n14_1_complete_binding_has_no_gap(self):
+        self.write()
+        gaps = p.defaultdict(list)
+        p.check_bindings(self.load()[0], gaps)
+        self.assertEqual([], gaps["N14-1"])
+
+    def test_arc03_n14_1_empty_fields_are_reported_without_loader_error(self):
+        for field in ("facts", "formula_version", "time_basis"):
+            for value in ([[], None] if field == "facts" else ["", None, "   "]):
+                with self.subTest(field=field, value=value):
+                    self.write([{**self.binding, field: value}])
+                    gaps = p.defaultdict(list)
+                    p.check_bindings(self.load()[0], gaps)
+                    self.assertEqual([f"BIND-001（缺 {field}）"], gaps["N14-1"])
+                    self.assertFalse(any(g.startswith("KPI-01 ") for g in gaps["N13-3"]))
+            self.write([{k: v for k, v in self.binding.items() if k != field}])
+            gaps = p.defaultdict(list)
+            p.check_bindings(self.load()[0], gaps)
+            self.assertEqual([f"BIND-001（缺 {field}）"], gaps["N14-1"])
+
+    def test_arc03_n13_3_bound_pending_and_absent_with_report_counts(self):
+        reason = "待确认" * 20
+        self.write(pending=[{"kpi": "KPI-02", "reason": reason}])
+        model, edges = self.load()
+        model.update({key: {} for key in ("sh", "con", "act", "vs", "stage", "obj", "prc", "agg", "inv", "bc", "sd", "table")})
+        model["fact"] = {}
+        gaps = p.check(model)
+        self.assertEqual([f"KPI-02 指标2（pending：{reason[:40]}）", "KPI-03 指标3"], gaps["N13-3"])
+        self.assertEqual(reason, model["metric"]["KPI-02"]["bind_pending"]["reason"])
+        self.assertTrue(model["metric"]["KPI-02"]["bind_pending"]["src"].endswith("#pending[0]"))
+        output, report = p.render(model, edges, gaps)
+        self.assertIn("同一输入按改前判据计 3 个缺口，按改后判据计 2 个缺口", report)
+        self.assertIn("| N14-1 | 每个绑定有事实、公式版本与时间基准 | 0 |", report)
+        self.assertIn("| 14 计算绑定 | bind | 1 |", report)
+        self.assertEqual(["FACT-01", "FACT-02"], yaml.safe_load(output)["nodes"]["bind"]["BIND-001"]["facts"])
+        self.assertEqual((output, report), p.render(model, edges, p.check(model)))
+
+    def test_arc03_absent_file_keeps_node_empty_and_all_business_metrics_as_gaps(self):
+        model, edges = self.load()
+        self.assertEqual({}, model["bind"])
+        self.assertEqual([], edges)
+        gaps = p.defaultdict(list)
+        p.check_bindings(model, gaps)
+        self.assertEqual([f"KPI-0{i} 指标{i}" for i in range(1, 4)], gaps["N13-3"])
+        self.assertEqual([], gaps["N14-1"])
+
+
 class ObjectSourceTest(unittest.TestCase):
     def test_arc07_yaml_is_the_only_object_table_source(self):
         with tempfile.TemporaryDirectory(dir=p.ROOT) as tmp:
@@ -182,12 +307,14 @@ class AggregateSourceTest(unittest.TestCase):
             dimensions, kpis = root / "dimensions.yaml", root / "kpis.yaml"
             dimensions.write_text("dimensions: []\n", encoding="utf-8")
             kpis.write_text("kpis: []\n", encoding="utf-8")
+            bindings = root / "bindings.yaml"
+            bindings.write_text("bindings: []\n", encoding="utf-8")
             text = p.SRC["agg"].read_text(encoding="utf-8")
             start, end = text.index("### 2.2"), text.index("### 2.3")
             draft.write_text(text[:start] + text[end:], encoding="utf-8")
             row = {"id": "AGG-01", "聚合（根）": "往来单位（OBJ-01）", "内含": "OBJ-02", "对应": "一对一", "不变量": "INV-01"}
             planned.write_text(yaml.safe_dump({"aggregates": [row]}, allow_unicode=True), encoding="utf-8")
-            with patch.dict(p.SRC, planned=planned, agg=draft, facts=facts, dims=dimensions, kpis=kpis):
+            with patch.dict(p.SRC, planned=planned, agg=draft, facts=facts, dims=dimensions, kpis=kpis, bindings=bindings):
                 model, links, _ = p.load()
                 self.assertEqual(["AGG-01"], [a for a in model["agg"] if a.startswith("AGG-")])
                 self.assertEqual(["OBJ-01", "OBJ-02"], model["agg"]["AGG-01"]["objs"])
