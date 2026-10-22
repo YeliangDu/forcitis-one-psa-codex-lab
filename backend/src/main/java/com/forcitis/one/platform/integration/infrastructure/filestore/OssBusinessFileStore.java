@@ -33,10 +33,13 @@ import java.util.Date;
 import java.util.HexFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Standard storage, never overwritten (x-oss-forbid-overwrite), every write read back against size, MD5 and SHA-256. */
 final class OssBusinessFileStore implements BusinessFileStore, AutoCloseable {
     static final String SHA256 = "sha256";
+    private static final Logger LOG = LoggerFactory.getLogger(OssBusinessFileStore.class);
     private static final String FORBID_OVERWRITE = "x-oss-forbid-overwrite";
     private static final Pattern MEDIA_TYPE = Pattern.compile("[a-z]+/[a-z0-9.+-]{1,100}");
 
@@ -103,7 +106,21 @@ final class OssBusinessFileStore implements BusinessFileStore, AutoCloseable {
             throw new IllegalArgumentException("promote copies a staging key to the formal key of the same file");
         }
         try {
-            ObjectMetadata source = writer.getObjectMetadata(properties.bucket(), staging.value());
+            ObjectMetadata source;
+            try {
+                source = writer.getObjectMetadata(properties.bucket(), staging.value());
+            } catch (OSSException gone) {
+                // The staging object expires while a retry is pending: the formal object of an earlier attempt, if intact, counts as done.
+                if (!"NoSuchKey".equals(gone.getErrorCode())) {
+                    throw gone;
+                }
+                ObjectMetadata earlier = writer.getObjectMetadata(properties.bucket(), formal.value());
+                if (earlier.getContentLength() != size || !sha256Hex.equals(earlier.getUserMetadata().get(SHA256))) {
+                    LOG.error("ALERT formal object {} differs in size or SHA-256 from the expected content and the staging object is gone", formal.value());
+                    throw new ExternalSystemUnavailableException("the formal object of an earlier attempt differs in size or SHA-256");
+                }
+                return;
+            }
             String md5 = etag(source);
             verify(staging, size, md5, sha256Hex);
             CopyObjectRequest copy = new CopyObjectRequest(properties.bucket(), staging.value(), properties.bucket(), formal.value());
@@ -120,6 +137,11 @@ final class OssBusinessFileStore implements BusinessFileStore, AutoCloseable {
         } catch (OSSException | ClientException failure) {
             throw new ExternalSystemUnavailableException("cannot promote the business file object", failure);
         }
+    }
+
+    @Override
+    public Duration maxLinkValidity() {
+        return properties.maxLinkValidity();
     }
 
     @Override

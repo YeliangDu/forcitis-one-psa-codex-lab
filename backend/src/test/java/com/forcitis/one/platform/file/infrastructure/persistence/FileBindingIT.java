@@ -101,6 +101,11 @@ class FileBindingIT {
         }
 
         @Override
+        public Duration maxLinkValidity() {
+            return Duration.ofMinutes(15);
+        }
+
+        @Override
         public URI presignDownload(StoredObjectKey formal, Duration validity, String fileName, String mediaType) {
             signed.add(formal.value() + " " + validity + " " + fileName + " " + mediaType);
             return URI.create("https://bucket.example/" + formal.value() + "?signature=s");
@@ -355,6 +360,10 @@ class FileBindingIT {
                 .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(FileError.PLATFORM_FILE_NOT_BOUND_TO_DOCUMENT));
         assertThatThrownBy(() -> links.issue(file, contract, requester, Duration.ofMinutes(16)))
                 .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(FileError.PLATFORM_FILE_LINK_VALIDITY_EXCEEDED));
+        assertThatThrownBy(() -> links.issue(file, contract, requester, Duration.ZERO))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(FileError.PLATFORM_FILE_LINK_VALIDITY_INVALID));
+        assertThatThrownBy(() -> links.issue(file, contract, requester, Duration.ofSeconds(-1)))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(FileError.PLATFORM_FILE_LINK_VALIDITY_INVALID));
         DownloadLink link = links.issue(file, contract, requester, null);
         assertThat(link.expiresAt()).isEqualTo(AT.plus(Duration.ofMinutes(5)));
         assertThat(signed).containsExactly("dev/files/2026/10/" + file + " PT5M 合同.pdf application/pdf");
@@ -377,6 +386,22 @@ class FileBindingIT {
         assertThatThrownBy(() -> content.readContent(file, contract, signing, new ByteArrayOutputStream()))
                 .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(FileError.PLATFORM_FILE_HASH_MISMATCH));
         assertThat(audited).containsExactly("bound INTERNAL", "read", "read", "mismatch");
+    }
+
+    @Test
+    void aFailingSinkIsNotAStorageFaultNorAHashMismatch() {
+        FileId file = stored(FileStatus.AVAILABLE, new Lineage.FirstVersion());
+        DocumentReference contract = document();
+        FileSubject signing = new FileSubject(FileSubjectKind.PLATFORM_MODULE, "platform.signing");
+        bind.bind(request(file, contract, AccessLevel.INTERNAL, uploader));
+        OutputStream broken = new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                throw new IOException("reader went away");
+            }
+        };
+        assertThatThrownBy(() -> content.readContent(file, contract, signing, broken)).isInstanceOf(UncheckedIOException.class);
+        assertThat(audited).containsExactly("bound INTERNAL", "read");
     }
 
     @Test

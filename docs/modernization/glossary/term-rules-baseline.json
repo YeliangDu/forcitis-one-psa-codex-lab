@@ -9,7 +9,7 @@
   "unique_zh_error_code": {
    "owner": "one-1a-next-3",
    "where": "R-5（CS-2.24、G48 通用错误码只在 kernel、中文名全局唯一）：各模块重复的通用错误码收进 kernel 后消失；不适用 homonyms 互列",
-   "count": 10
+   "count": 6
   },
   "used_by": {
    "owner": "one-glossary",
@@ -18,16 +18,12 @@
   }
  },
  "entries": {
-  "proposed/cost-timesheet.yaml#error__cost_timesheet_concurrent_change:unique_zh_error_code": "错误码中文名「被他人同时修改」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__platform_approval_concurrent_change",
   "proposed/cost-timesheet.yaml#error__cost_timesheet_cutoff_passed:unique_zh_error_code": "错误码中文名「已过撤回截止点」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__platform_approval_cutoff_passed",
   "proposed/cost-timesheet.yaml#error__cost_timesheet_reason_required:unique_zh_error_code": "错误码中文名「必须填写原因」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__platform_approval_reason_required",
-  "proposed/cost-timesheet.yaml#error__cost_timesheet_transition_illegal:unique_zh_error_code": "错误码中文名「状态转换不合法」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__platform_approval_transition_illegal",
   "proposed/fix-b.yaml#error__platform_identity_not_signed_in:unique_zh_error_code": "错误码中文名「未登录」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__platform_web_unauthenticated",
   "proposed/fix-b.yaml#error__platform_web_unauthenticated:unique_zh_error_code": "错误码中文名「未登录」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__platform_identity_not_signed_in",
-  "proposed/platform-approval.yaml#error__platform_approval_concurrent_change:unique_zh_error_code": "错误码中文名「被他人同时修改」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__cost_timesheet_concurrent_change",
   "proposed/platform-approval.yaml#error__platform_approval_cutoff_passed:unique_zh_error_code": "错误码中文名「已过撤回截止点」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__cost_timesheet_cutoff_passed",
   "proposed/platform-approval.yaml#error__platform_approval_reason_required:unique_zh_error_code": "错误码中文名「必须填写原因」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__cost_timesheet_reason_required",
-  "proposed/platform-approval.yaml#error__platform_approval_transition_illegal:unique_zh_error_code": "错误码中文名「状态转换不合法」须全局唯一（通用错误码收进 kernel，CS-2.24）：error__cost_timesheet_transition_illegal",
   "terms.yaml#accounts_receivable:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#accrual_basis_revenue:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#actual_cost:metric": "指标须写口径：缺 formula、grain、as_of",
