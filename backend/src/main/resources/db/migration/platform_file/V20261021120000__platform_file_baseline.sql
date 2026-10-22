@@ -53,7 +53,7 @@ CREATE TABLE platform_file.state_transitions (
 );
 CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on_date ON platform_file.state_transitions (legal_entity_id, occurred_on_date) WHERE legal_entity_id IS NOT NULL;
 CREATE INDEX ix_state_transitions_recorded_at ON platform_file.state_transitions (recorded_at, id);
-CREATE FUNCTION platform_file.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     -- 清理只有一条通道：schema 属主角色经 SECURITY DEFINER 函数 platform_file.purge_expired_state_transitions（随保留期清理卡建）删除到期的整个聚合；其他角色都被拒。
     IF TG_OP = 'DELETE' AND current_user = (SELECT pg_get_userbyid(c.relowner) FROM pg_class c WHERE c.oid = TG_RELID) THEN
@@ -177,7 +177,7 @@ COMMENT ON COLUMN platform_file.stored_files.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_file.stored_files.version IS '乐观锁版本';
 
 -- 除 file_status（按流转清单）、updated_at、version 外全部不可改（含 object_key）；禁 DELETE / TRUNCATE。
-CREATE FUNCTION platform_file.guard_stored_file_change() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.guard_stored_file_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_file.stored_files: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
@@ -220,7 +220,7 @@ COMMENT ON COLUMN platform_file.stored_file_names.deidentified_at IS '去标识�
 COMMENT ON COLUMN platform_file.stored_file_names.created_at IS '创建时间';
 COMMENT ON COLUMN platform_file.stored_file_names.updated_at IS '更新时间：去标识时更新一次';
 
-CREATE FUNCTION platform_file.guard_stored_file_name_change() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.guard_stored_file_name_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_file.stored_file_names: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
@@ -237,7 +237,7 @@ CREATE TRIGGER tg_stored_file_names_guard_truncate BEFORE TRUNCATE ON platform_f
     FOR EACH STATEMENT EXECUTE FUNCTION platform_file.guard_stored_file_name_change();
 
 -- 只追加表共用的拒绝函数（形状同 main 上 refuse_version_rewrite）。
-CREATE FUNCTION platform_file.refuse_append_only_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.refuse_append_only_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION '%.% is append-only: % is not allowed', TG_TABLE_SCHEMA, TG_TABLE_NAME, TG_OP USING ERRCODE = 'restrict_violation';
 END $$;
@@ -404,7 +404,7 @@ COMMENT ON COLUMN platform_file.preservation_category_versions.confirmed_at IS '
 COMMENT ON COLUMN platform_file.preservation_category_versions.created_at IS '创建时间';
 COMMENT ON COLUMN platform_file.preservation_category_versions.updated_at IS '更新时间：确认时更新一次';
 
-CREATE FUNCTION platform_file.guard_preservation_category_version_change() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.guard_preservation_category_version_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_file.preservation_category_versions: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
@@ -420,7 +420,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
-CREATE FUNCTION platform_file.guard_preservation_category_version_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.guard_preservation_category_version_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF NEW.confirmation_status <> 'PENDING' OR NEW.confirmed_by IS NOT NULL OR NEW.confirmed_at IS NOT NULL THEN
         RAISE EXCEPTION 'platform_file.preservation_category_versions: a version is inserted PENDING and confirmed by a person later'
@@ -475,7 +475,7 @@ COMMENT ON COLUMN platform_file.file_preservations.recorded_at IS '记录时间'
 COMMENT ON COLUMN platform_file.file_preservations.updated_at IS '更新时间（行不可更新，恒等于创建时间）';
 COMMENT ON COLUMN platform_file.file_preservations.created_at IS '创建时间（恒等于记录时间）';
 
-CREATE FUNCTION platform_file.guard_file_preservation_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.guard_file_preservation_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     last_row platform_file.file_preservations;
 BEGIN
@@ -557,7 +557,7 @@ COMMENT ON COLUMN platform_file.false_positive_judgments.created_at IS '创建�
 COMMENT ON COLUMN platform_file.false_positive_judgments.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_file.false_positive_judgments.version IS '乐观锁版本';
 
-CREATE FUNCTION platform_file.guard_false_positive_judgment_change() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.guard_false_positive_judgment_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_file.false_positive_judgments: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
@@ -569,14 +569,14 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
-CREATE FUNCTION platform_file.guard_judgment_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.guard_judgment_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF NEW.judgment_status <> 'PENDING_REVIEW' THEN
         RAISE EXCEPTION 'platform_file.false_positive_judgments: a judgment starts PENDING_REVIEW' USING ERRCODE = 'check_violation';
     END IF;
     RETURN NEW;
 END $$;
-CREATE FUNCTION platform_file.guard_quarantine_read_request_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.guard_quarantine_read_request_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF NEW.request_status <> 'PENDING' THEN
         RAISE EXCEPTION 'platform_file.quarantine_read_requests: a request starts PENDING' USING ERRCODE = 'check_violation';
@@ -692,7 +692,7 @@ COMMENT ON COLUMN platform_file.quarantine_read_requests.created_at IS '创建�
 COMMENT ON COLUMN platform_file.quarantine_read_requests.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_file.quarantine_read_requests.version IS '乐观锁版本';
 
-CREATE FUNCTION platform_file.guard_quarantine_read_request_change() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_file.guard_quarantine_read_request_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_file.quarantine_read_requests: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
