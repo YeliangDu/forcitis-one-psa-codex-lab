@@ -76,8 +76,8 @@
      | 约束名 | 返回 |
      |---|---|
      | `uk_timesheets_employee_id_work_date` | 新错误码 `COST_TIMESHEET_WORK_DATE_DUPLICATE`（`ErrorKind.CONFLICT`） |
-     | `uk_timesheets_timesheet_number` | `COST_TIMESHEET_CONCURRENT_CHANGE`（保持现状） |
-     | `pk_timesheets` | `COST_TIMESHEET_CONCURRENT_CHANGE`（保持现状；同一工时单被同时创建；`lockForCreate` 按工时单 ID 加锁，正常到不了这里；待复审确认，见第 13 节第 7 条） |
+     | `uk_timesheets_timesheet_number` | `KERNEL_CONCURRENT_CHANGE`（保持现状） |
+     | `pk_timesheets` | `KERNEL_CONCURRENT_CHANGE`（保持现状；同一工时单被同时创建；`lockForCreate` 按工时单 ID 加锁，正常到不了这里；待复审确认，见第 13 节第 7 条） |
      | 其他或取不到约束名 | 不吞：原样抛出并记一条 `ALERT` 日志，**日志不带冲突值**（D1-2 同口径），不得默认当并发修改 |
    - 更新语句路径（`updated != 1`）仍为并发修改，不动。
 5. `backend/src/main/java/com/forcitis/one/cost/timesheet/api/TimesheetError.java`：增 `COST_TIMESHEET_WORK_DATE_DUPLICATE(ErrorKind.CONFLICT)`。
@@ -107,14 +107,14 @@
 - 测试代理：`code-modernization:test-engineer`（**sonnet**），先于实现提交，提交说明带 `Acceptance-Test-Author: test-engineer`；**在 one-data 签发且表结构 PR 合并之后才开工**
 - 路径：`backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/`（新类：`TimesheetEmployeeDayUniqueIT`、`TimesheetRejectedResubmitIT`、`TimesheetStatusConsistencyTest`、`TimesheetNumberingRuleVersionIT`）；前端 `frontend/packages/core/src/` 下既有的错误码文案类型检查原样通过，不另写
 - 测试名（`@DisplayName` 以 `TS-UNIQ` 开头）：
-  1. `TS-UNIQ 同一员工同一工作日并发创建两张工时单，后到者被拒，返回 COST_TIMESHEET_WORK_DATE_DUPLICATE 而不是 COST_TIMESHEET_CONCURRENT_CHANGE，库内只有一行，也没有多发一个单据编号`
+  1. `TS-UNIQ 同一员工同一工作日并发创建两张工时单，后到者被拒，返回 COST_TIMESHEET_WORK_DATE_DUPLICATE 而不是 KERNEL_CONCURRENT_CHANGE，库内只有一行，也没有多发一个单据编号`
   2. `TS-UNIQ 已有草稿、已提交、已退回、已通过、已驳回任一状态的工时单时，同一员工同一工作日新建被预检拒绝，返回 COST_TIMESHEET_WORK_DATE_DUPLICATE，且不消耗单据编号`
   3. `TS-UNIQ 非工作日（周末）与工作日一样，每人每天只能有一张工时单`
   4. `TS-UNIQ 工时单被驳回后，填报人可修改原单并再次提交：状态 REJECTED→SUBMITTED，仍是同一张单，轮次加一，审批发起新一轮；已通过的工时单不能再提交`（覆盖 `platform.approval` 在 `REJECTED` 起点上的第二轮端到端）
   5. `TS-UNIQ REJECTED 与 DRAFT、RETURNED 一样可编辑，APPROVED 与 SUBMITTED 不可编辑`
   6. `TS-UNIQ 撤销审批使 SUBMITTED→DRAFT，发布的事件类型为 cost.timesheet.TimesheetApprovalWithdrawn，旧名不存在`（已有 `TimesheetApprovalWithdrawnRenameIT` 覆盖事件名；本条另断言状态转换，二者都须通过）
   7. `TS-UNIQ 表结构守护：timesheets 上存在唯一约束 uk_timesheets_employee_id_work_date，列为（employee_id, work_date），无谓词；ix_timesheets_employee_id 不存在；uk_timesheets_timesheet_number 仍在；numbering_rule_version_id 列存在、类型 uuid、可空`（读 `pg_constraint`、`pg_index`）
-  8. `TS-UNIQ timesheet_number 冲突仍映射为 COST_TIMESHEET_CONCURRENT_CHANGE`（直接用已有单据编号插入另一员工的单）
+  8. `TS-UNIQ timesheet_number 冲突仍映射为 KERNEL_CONCURRENT_CHANGE`（直接用已有单据编号插入另一员工的单）
   9. `TS-UNIQ 其他约束名的重复键异常不被当作并发修改：原样抛出，且日志不含冲突值`（注入一个未知约束名）
   10. `TS-UNIQ 状态 CHECK 取值 = TimesheetStatus 枚举 = Timesheet.MACHINE 的状态集合 = 事件目录各转换事件的目标状态集合，每个取值都有进入它的转换（初始状态除外）`（B3a 三方一致，写一次，不依赖 G-D12 建成）
   11. `TS-UNIQ 新建的工时单记录发号时所用的编号规则版本 ID，且等于发号时生效的已确认版本；新建路径取不到版本 ID 时失败并告警，不写空值（库内该列可空，为迁入行保留）`
