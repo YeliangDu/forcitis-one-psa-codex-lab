@@ -8,7 +8,7 @@ Writes run=true|false to $GITHUB_OUTPUT.
   anything else heavy (schedule, the nightly full run of main; workflow_dispatch and the like: an explicit request for a full run)
 
 The light steps (secret scan, docs and release-script checks, migration/acceptance guards) run on every event.
-Adding a label other than `queued` runs the light checks only, even when the pull request already carries `queued`: that run must not repeat the heavy steps nor overwrite their result.
+Adding a label other than `queued`, or editing the pull request text, runs the light checks only, even when the pull request already carries `queued`: that run must not repeat the heavy steps nor overwrite their result.
 Usage: heavy_gate.py   (reads GITHUB_EVENT_NAME, LABELS_JSON, the pull request's label names as a JSON array, and EVENT_ACTION / EVENT_LABEL)  |  heavy_gate.py --self-test
 """
 import json
@@ -24,6 +24,8 @@ def decide(event, labels_json, action="", label=""):
     if event == "pull_request":
         if action == "labeled" and label.casefold() != LABEL:
             return False, f"label `{label}` was added: light checks only (it must not start, nor repeat, the heavy steps)"
+        if action == "edited":
+            return False, "the pull request text was edited: light checks only (it must not start, nor repeat, the heavy steps)"
         try:
             labels = json.loads(labels_json or "[]")
         except ValueError:
@@ -56,6 +58,7 @@ def self_test():
     assert decide("workflow_dispatch", "[]")[0] is True and decide("schedule", "")[0] is True
     assert decide("pull_request", '["queued","docs"]', "labeled", "docs")[0] is False   # another label added to a queued pull request: no heavy rerun
     assert decide("pull_request", '["queued"]', "labeled", "queued")[0] is True and decide("pull_request", '["queued"]', "synchronize", "")[0] is True
+    assert decide("pull_request", '["queued"]', "edited", "")[0] is False and decide("pull_request", "[]", "edited", "")[0] is False   # an edited body re-runs the light checks only
     for bad in ("not json", '{"queued": 1}'):
         try:
             decide("pull_request", bad)
