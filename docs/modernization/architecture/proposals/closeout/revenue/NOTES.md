@@ -1366,3 +1366,13 @@ true：往来单位证件与银行账户、费率与价目（tbd 分级）、协
 - LEB-07（本节上方「AGG-21 待定」已定）：INV-140、INV-141 为暂号，编号请 one-architecture 在聚合稿登记；命令前置、数据模型列族、PRC-18 场景 S07、S08 已加。
 - LEB-08（上方「GL5-01 待用户定」第 1 点已定）：确认生效条件满足的 A 为合同负责人，凭证据、不设审批；我方须履行的条件由财务资金岗先登记证据。
 - LEB-09（同上第 2 点已定）：PRC-47 第 7 步 30 天提醒、90 天（timeout P90D）升级部门负责人，不自动终止；场景 S13。
+
+### 新用语·应收默认账期（KPI-Q04，ARC-1022-ARE-01）
+
+| 中文 | 拟英文 | bc | 范围 | 说明 |
+|---|---|---|---|---|
+| 应收默认账期规则版本 | ReceivableTermRuleVersion（表 `receivable_term_rule_versions`） | receivables.collection | 领域 | AGG-136 |
+| 编制账期规则版本 | DraftReceivableTermRule（命令） | receivables.collection | 领域 | PRC-202 |
+| 生效账期规则版本 | ActivateReceivableTermRule（命令） | receivables.collection | 领域 | PRC-202 |
+| 账期规则审批 | ReceivableTermRuleApproval（单据类型） | receivables.collection | 领域 | 财务负责人批准 |
+| 账期来源 | PaymentTermSource（应收列族） | receivables.collection | 领域 | 付款条件项 / 规则版本与覆盖行 / 全局默认 |

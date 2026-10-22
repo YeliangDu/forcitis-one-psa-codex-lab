@@ -1402,6 +1402,32 @@ commands:
   emits:
   - 证据类型已开放
   unused_ok: PRC-52 以 states/transitions 描述，骨架步骤无 aggregate 字段，见 NOTES 接缝 2
+- name: 编制账期规则版本
+  aggregate: AGG-136
+  params:
+  - 全局默认账期（日）
+  - 覆盖行（协议类型可空、客户分级可空、账期天数）
+  preconditions:
+  - 覆盖行不重叠
+  authority:
+    A: 财务负责人
+  idempotency_key:
+  - 版本号
+  emits: []
+- name: 生效账期规则版本
+  aggregate: AGG-136
+  params:
+  - 账期规则版本
+  - 生效日（不早于当日）
+  - 审批实例
+  preconditions:
+  - 财务负责人已批准
+  authority:
+    A: 财务负责人
+  idempotency_key:
+  - 账期规则版本ID
+  emits:
+  - 账期规则版本已生效
 - name: 创建应收
   aggregate: AGG-49
   params:

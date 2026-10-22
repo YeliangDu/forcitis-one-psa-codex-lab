@@ -28,7 +28,7 @@
 
 - 作为一版业务规则（OBJ-124，暂名）维护，状态 草稿 → 已生效 → 已被取代（与 VS-15 其他配置版本同口径，CF-046）；内容是一张覆盖表（协议类型可空、客户分级可空、账期天数、生效区间）加全局默认值一行。
 - 初值：全局默认 30 日，覆盖表为空；变更由财务负责人批准生效（默认值影响逾期分段与催收，与 ADR-0056 起由财务负责人书面确认的同类配置一致）。
-- 聚合与表：拟新增配置版本聚合（AGG 待 one-architecture 给号，归 receivables.collection），表 `receivable_term_rule_versions`（根）、`receivable_term_rule_lines`（子，覆盖行）；维护流程挂 VS-15（同 PRC-165、166 等配置流程），流程编号待目录给号。
+- 聚合与表：AGG-136 应收默认账期规则版本，归 B-09 receivables.collection（one-architecture 4be29180 给号），表 `receivable_term_rule_versions`（根）、`receivable_term_rule_lines`（子，覆盖行）；维护流程 PRC-202「维护应收默认账期规则」挂 VS-15（同 PRC-165、166 等配置流程），骨架已写。
 
 ## 4. 应收上记什么
 

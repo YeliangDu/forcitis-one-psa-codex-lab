@@ -12930,6 +12930,74 @@ single_aggregate:
       position_hint: 财务负责人、财务会计
   gap: 命令缺口：聚合稿 AGG-92 只有「开放证据类型」，无关闭或撤销已开放类型的命令；年度复核发现不再适用时的处理待 one-architecture 补
   frequency_ref: 待取证（E-B1）；经验估计：每年约 1 次
+- id: PRC-202
+  name: 维护应收默认账期规则
+  aggregate: AGG-136
+  owner_bc: B-09
+  stages:
+  - VS-15.1
+  - VS-15.2
+  - VS-15.3
+  stages_note: '用户 KPI-Q04 新增配置（ARC-1022-ARE-01，one-architecture 4be29180 给号）；VS-15.1 编制版本草稿、VS-15.2 已生效、VS-15.3 新版本生效取代旧版本，均由本流程完成；同 PRC-52、165、166 的配置版本口径'
+  primary_object: OBJ-124
+  primary_object_note: 发布一版业务规则（OBJ-124，暂名）：应收默认账期规则，内容为全局默认账期与按协议类型 × 客户分级的覆盖行
+  migration: 老系统无此配置（账龄按开票日起算，已被 FD-37 取代），投产时写首版：全局默认 30 日（用户 KPI-Q04），覆盖表为空
+  states:
+  - 草稿
+  - 已生效
+  - 已被取代
+  transitions:
+  - from: null
+    to: 草稿
+    command: 编制账期规则版本
+    actor: SH-E6
+    desc: 编制全局默认账期与覆盖行（协议类型可空、客户分级可空、账期天数）；客户分级引用往来单位上的客户分级（Q-07），与授权额度所用的客户分级是同一套定义
+    effort:
+      typical_min: 30
+      p90_min: 90
+  - from: 草稿
+    to: 已生效
+    command: 生效账期规则版本
+    actor: SH-E6
+    emits:
+    - 账期规则版本已生效
+    desc: 财务负责人批准后生效，旧版本同事务被取代；生效日不得早于当日（不回算已创建的应收）
+    evidence:
+    - 财务负责人批准记录
+    effort:
+      typical_min: 10
+      p90_min: 30
+    approval:
+      engine: platform.approval
+      doc_type: 账期规则审批
+      approver: 财务负责人
+      why_human: 默认账期决定没有约定期限的应收何时进入逾期分段与催收，是财务负责人的口径判断，系统只校验覆盖行不重叠（用户 KPI-Q04）
+  - from: 已生效
+    to: 已被取代
+    command: 生效账期规则版本
+    actor: SH-E6
+    desc: 新版本生效时旧版本被取代
+  pages:
+  - 账期规则配置页
+  permissions:
+  - 账期规则.编制
+  - 账期规则.生效
+  scope: 集团层级：财务负责人所在角色经办与批准
+  audit: true
+  scenarios:
+  - PRC-202-S01
+  - PRC-202-S02
+  - PRC-202-S03
+  notes: 用户 KPI-Q04（intent 2026-10-22-085722）；取值顺序见 DEFAULT_PAYMENT_TERM.md：付款条件项 > 覆盖（协议类型 × 客户分级） > 全局默认；PRC-59 创建应收读开票日当时有效的版本
+  roles:
+  - id: SH-E6
+    as: performer
+    org_needs:
+      responsibility: 编制并经财务负责人批准生效应收默认账期规则
+      approval_right: 财务负责人批准
+      department_hint: 财务部
+      position_hint: 财务负责人、应收会计
+  frequency_ref: 待取证（E-B1）；经验估计：每年 1 至 2 次
 - id: PRC-68
   name: 终止协议
   aggregate: AGG-13

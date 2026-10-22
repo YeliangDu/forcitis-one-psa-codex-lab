@@ -2181,6 +2181,26 @@ PRC-58:
   path: 迁入后审批中的红冲申请
   outcome: null
   expect: 迁入编排的离线命令重新发起红冲审批，不迁审批实例
+PRC-202:
+- id: PRC-202-S01
+  path: 编制并生效首版
+  outcome: null
+  covers:
+  - 转移「编制账期规则版本」
+  - 转移「生效账期规则版本」草稿→已生效
+  expect: 财务负责人批准后生效，发账期规则版本已生效（仅分析）；PRC-59 之后创建的应收按本版本取账期
+- id: PRC-202-S02
+  path: 新版本生效取代旧版本
+  outcome: null
+  covers:
+  - 转移「生效账期规则版本」已生效→已被取代
+  expect: 旧版本同事务被取代；已创建的应收不回算（记的是创建时的账期与来源）
+- id: PRC-202-S03
+  path: 覆盖行重叠
+  outcome: null
+  covers:
+  - 前置：覆盖行不重叠
+  expect: 同一协议类型 × 客户分级组合出现两行则拒绝并告警
 PRC-59:
 - id: PRC-59-S01
   path: 收到 InvoiceIssued（蓝字）

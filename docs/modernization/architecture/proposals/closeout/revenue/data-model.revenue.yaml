@@ -3020,6 +3020,38 @@
     - 决定出处
     - 作者与确认人
     reason: 配置型版本（D15）：每版本一行、只一个生效、不追溯；老系统无此配置，新系统起点为 ADR-0047 第 4 条初值；历史迁入行用「历史迁入」类型，不依赖本表
+- aggregate: AGG-136
+  bc: B-09
+  tables:
+  - name: receivable_term_rule_versions
+    role: root
+    key: uuid_v7
+    references: []
+    versioned: effective_dated
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    column_families:
+    - 版本号
+    - 全局默认账期（日）
+    - 状态（草稿 / 已生效 / 已被取代）
+    - 生效区间
+    - 批准引用
+    - 审计列
+    reason: 用户 KPI-Q04；老系统无此配置，投产写首版（全局 30 日）；已生效版本不可改（D15），改走新版本
+  - name: receivable_term_rule_lines
+    role: child
+    key: uuid_v7
+    references: []
+    versioned: none
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    column_families:
+    - 协议类型（可空）
+    - 客户分级（可空，引用 Q-07 客户分级定义）
+    - 账期天数
+    reason: 覆盖行；同一版本内协议类型 × 客户分级组合唯一
 - aggregate: AGG-49
   bc: B-09
   tables:
