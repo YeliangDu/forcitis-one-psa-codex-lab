@@ -192,7 +192,7 @@ class ReadOnlyVerificationCommandTest {
     void connectionSettingsOnTheCommandLineAreRefused() {
         String value = "v" + UUID.randomUUID();
         for (String option : new String[] {"--A8_DB_URL=jdbc:sqlserver://h;password=" + value, "--readonly.probe.db.username=" + value,
-                "--forcitis.platform.integration.legacy.inbox.url=" + value, "--spring.application.json={\"A8_DB_PASSWORD\":\"" + value + "\"}"}) {
+                "--spring.application.json={\"A8_DB_PASSWORD\":\"" + value + "\"}"}) {
             out.reset();
             err.reset();
 
@@ -238,11 +238,16 @@ class ReadOnlyVerificationCommandTest {
     }
 
     @Test
-    @DisplayName("RULING-P3B-17 --connection=legacy-approval 是用法错误（退出码 2），提示新名 integration-legacy-inbox，不核实")
-    void theRetiredConnectionNameNamesItsReplacement() {
-        assertThat(run("--connection=legacy-approval")).isEqualTo(ReadOnlyVerificationCommand.EXIT_USAGE);
-        assertThat(err.toString(StandardCharsets.UTF_8)).contains("--connection=integration-legacy-inbox");
-        assertThat(output()).doesNotContain("RESULT");
+    @DisplayName("IMP-1021-PAR-04 老待办连接已退役：--connection=legacy-approval 与 integration-legacy-inbox 同其他未知名一样是用法错误（退出码 2），不核实，提示里不再列出它")
+    void theRetiredConnectionNamesAreUnknown() {
+        for (String retired : new String[] {"legacy-approval", "integration-legacy-inbox"}) {
+            out.reset();
+            err.reset();
+
+            assertThat(run("--connection=" + retired)).as(retired).isEqualTo(ReadOnlyVerificationCommand.EXIT_USAGE);
+            assertThat(err.toString(StandardCharsets.UTF_8)).as(retired).contains("must name one of").doesNotContain("integration-legacy-inbox");
+            assertThat(output()).as(retired).doesNotContain("RESULT");
+        }
     }
 
     @Test
