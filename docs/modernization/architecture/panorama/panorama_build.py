@@ -5,7 +5,7 @@
 09 业务对象 · 10 受控业务执行 · 11 业务事实 · 12 维度 · 13 指标与评价 · 14 计算绑定 · 15 决策与行动。
 聚合、BC、子域、表作为 09、10 的领域与实现层映射（检查编号 N09-Mn、N10-Mn）。每条链接带出处（源文件与定位）。
 源：proposals/value-streams.v2.yaml、ssot/10-objects/objects.yaml、ENTERPRISE_INFO_MAP_DRAFT.md §2、closeout/process-catalog.yaml、
-ssot/c1-rules/rules.yaml、ssot/i03-aggregates/{planned,built}.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §3.2、ddd/subdomains.yaml、glossary/terms.yaml（kind=metric）、
+ssot/c1-rules/rules.yaml、ssot/i03-aggregates/{planned,built}.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §3.2、ddd/subdomains.yaml、ssot/13-dimensions、ssot/15-kpis/kpis.yaml、glossary/terms.yaml、
 data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ssot/i03-aggregates/built.yaml 的已建表）。
 缺口只报告、不使构建失败：反复跑到收敛；--check 由 build_all 保证生成物可复现。
 """
@@ -53,6 +53,9 @@ SRC = {
     "modules": ROOT / "backend/architecture/module-dependencies.txt",
     "cmd": ARCH / "ssot/11-commands/commands.yaml",
     "facts": ARCH / "ssot/12-facts/facts.yaml",
+    "dims": ARCH / "ssot/13-dimensions/dimensions.yaml",
+    "dims_raw": ARCH / "ssot/13-dimensions/dimensions.raw.yaml",
+    "kpis": ARCH / "ssot/15-kpis/kpis.yaml",
     "otr": ARCH / "ssot/10-objects/transitions.yaml",
     "events": DOCS / "events",
     "cmd_map": ARCH / "ssot/11-commands/command-mapping.yaml",
@@ -121,6 +124,8 @@ CHECKS = {
     "N11-1": "每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）",
     "N11-2": "每条经营事实有产生它的命令或事件",
     "N11-3": "每条分析事实能追到经营事实",
+    "N12-1": "每个维度至少切一条事实",
+    "N12-2": "总线矩阵的每个 ✔ 格都对上 DIM×FACT",
     "N13-1": "每个阶段都有指标",
     "N13-2": "每个指标都能追到阶段或流程",
     "N13-3": "度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）",
@@ -496,6 +501,75 @@ def check_facts(m, gaps):
         if fact["kind"] == "分析事实" and (not fact.get("derives_from") or any(
                 m["fact"][ref]["kind"] != "经营事实" for ref in fact["derives_from"])):
             gaps["N11-3"].append(f"{ident} {fact['name']}（analytic_source：{fact.get('analytic_source', '')[:40]}）")
+
+
+def load_dimensions(m, link):
+    retired = {row["id"] for row in read_rows("obj", "objects") if "已非对象" in row["definition"]}
+    for index, row in enumerate(read_rows("dims", "dimensions")):
+        ident = row.get("id")
+        if not isinstance(ident, str) or not re.fullmatch(r"DIM-\d{2}", ident):
+            raise ValueError(f"维度编号无效：{ident}")
+        if ident in m["dim"]:
+            raise ValueError(f"{rel(SRC['dims'])} 编号重复：{ident}")
+        src = f"{rel(SRC['dims'])}#dimensions[{index}]/{ident}"
+        m["dim"][ident] = {**row, "src": src}
+        for slice_index, item in enumerate(row.get("slices") or []):
+            for fact in item.get("facts") or []:
+                if fact not in m["fact"]:
+                    raise ValueError(f"{ident} slices 引用了不存在的 FACT：{fact}")
+                link("dim-fact", ident, fact, f"{src}.slices[{slice_index}].facts", row=item["row"])
+        for ref in row.get("backed_by") or []:
+            if not ref.startswith("OBJ-") or ref in retired:
+                continue
+            if ref not in m["obj"]:
+                raise ValueError(f"{ident} backed_by 引用了不存在的 OBJ：{ref}")
+            link("dim-obj", ident, ref, src + ".backed_by")
+
+
+def check_dimensions(m, gaps):
+    dimensions = m.get("dim", {})
+    for ident, dim in dimensions.items():
+        if not any(item.get("facts") for item in dim.get("slices") or []):
+            gaps["N12-1"].append(f"{ident} {dim['name']}")
+    excluded = {column for row in read_rows("dims", "not_dimensions")
+                for column in (row.get("sources") or {}).get("bi_column") or []}
+    for column in read_rows("dims_raw", "by_bi_bus_matrix"):
+        name = column["name"]
+        if name in excluded:
+            continue
+        candidates = [d for d in dimensions.values() if (d.get("sources") or {}).get("bi_column") == name]
+        for cell in column.get("rows") or []:
+            if cell["cell"] == "✔" and not any(
+                    item["row"] == cell["fact"] and item.get("facts")
+                    for dim in candidates for item in dim.get("slices") or []):
+                gaps["N12-2"].append(f"行「{cell['fact']}」× 列「{name}」未对上 DIM×FACT")
+
+
+def load_metrics(m, link):
+    terms = {row["id"]: row for row in read_rows("terms", "terms")}
+    for index, row in enumerate(read_rows("kpis", "kpis")):
+        ident = row.get("id")
+        if not isinstance(ident, str) or not re.fullmatch(r"KPI-\d{2,3}", ident):
+            raise ValueError(f"指标编号无效：{ident}")
+        if ident in m["metric"]:
+            raise ValueError(f"{rel(SRC['kpis'])} 编号重复：{ident}")
+        src = f"{rel(SRC['kpis'])}#kpis[{index}]/{ident}"
+        term = row.get("term")
+        if term and term not in terms:
+            raise ValueError(f"{ident} 引用了不存在的 term：{term}")
+        m["metric"][ident] = {key: row.get(key) for key in
+                                ("kind", "term", "baseline", "vision_kpi", "facts", "dimensions")}
+        m["metric"][ident].update(zh=row["name"], src=src,
+                                 stages=terms.get(term, {}).get("stages") or [],
+                                 processes=terms.get(term, {}).get("processes") or [])
+        for field, target, kind in (("facts", m["fact"], "metric-fact"),
+                                    ("dimensions", m["dim"], "metric-dim"),
+                                    ("term", terms, "metric-term")):
+            refs = ([term] if term else []) if field == "term" else row.get(field) or []
+            for ref in refs:
+                if ref not in target:
+                    raise ValueError(f"{ident} {field} 引用了不存在的目标：{ref}")
+                link(kind, ident, ref, src + "." + field)
 
 
 def load_org_roles(m, link):
@@ -944,11 +1018,8 @@ def load():
     load_commands(m, link)
     load_events(m, link, mod_to_bc)
     load_facts(m, link, mod_to_bc)
-
-    for t in yaml.safe_load(SRC["terms"].read_text(encoding="utf-8"))["terms"]:
-        if t.get("kind") == "metric":
-            m["metric"][t["id"]] = {"zh": t["zh"], "bc": t.get("bc"), "stages": t.get("stages") or [],
-                                    "processes": t.get("processes") or []}
+    load_dimensions(m, link)
+    load_metrics(m, link)
     return m, links, mod_to_bc
 
 
@@ -963,7 +1034,7 @@ def check(m, anchoring=None):
     obj_with_prc = {o for p in live_prc.values() for o in p["primary_object"]}
     obj_with_agg = {o for a in m["agg"].values() for o in a["objs"]}
     staged_obj = {g["obj"] for s in m["stage"].values() for g in s["gates"]} | {o for s in m["stage"].values() for o in s["in_stage"]}
-    stage_metric = {s for mt in m["metric"].values() for s in mt["stages"]}
+    stage_metric = {s for mt in m["metric"].values() if mt.get("kind") != "技术度量" for s in mt["stages"]}
 
     top = {k for k in primary if m["obj"][k].get("class", "业务对象") == "业务对象"}
 
@@ -1101,8 +1172,10 @@ def check(m, anchoring=None):
         elif not any((a, strip(s["command"])) in registered for a in aggs):
             gaps["N07-P1"].append(f"{s['prc']} 第 {s['step']} 步命令「{s['command']}」未在 {s['aggregate']} 的 commands.yaml 登记")
     check_facts(m, gaps)
+    if "dim" in m:
+        check_dimensions(m, gaps)
     for mid, mt in m["metric"].items():
-        if not mt.get("fact") or not mt.get("bind"):
+        if mt.get("kind") != "技术度量" and (not mt.get("facts") or not mt.get("bind")):
             gaps["N13-3"].append(f"{mid} {mt['zh']}")
 
     for sid, s in m["stage"].items():
@@ -1144,7 +1217,7 @@ def check(m, anchoring=None):
         if not r.get("obj") or r["obj"] not in active_obj:
             gaps["N09-M4"].append(f"{t}（对象 {r.get('obj') or '无'}）")
     for mid, mt in m["metric"].items():
-        if not mt["stages"] and not mt["processes"]:
+        if mt.get("kind") != "技术度量" and not mt["stages"] and not mt["processes"]:
             gaps["N13-2"].append(f"{mid} {mt['zh']}")
     check_coverage(m, gaps)
     check_commands(m, gaps)
