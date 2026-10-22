@@ -3154,6 +3154,90 @@ commands:
   - PRC-122 第 5 步
   orphan: false
   source_part: vs13pay
+- name: 启动奖金计提
+  aggregate: AGG-138
+  entity: bonus_accrual_runs
+  kind: automatic
+  name_status: 〔缺〕S-6 新增（ARC-1022-APE-01）
+  source: S-6 裁定（one-architecture @cfc721a34 附三）
+  params:
+  - 法人ID
+  - 期间
+  preconditions:
+  - ref: 订阅过滤
+    text: BusinessFactAttributed 来源为人工成本分配，按法人 × 期间首次到达
+  - ref: S-6
+    text: 计提规则取 AGG-05 子项（B-02 api）；合同额百分比所引激励方案版本须在 AGG-75 存在、已生效、计提期间在有效期内；不过即失败并告警
+  authority:
+    ref: raci:AGG-138/启动奖金计提
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 法人ID + 期间
+  state_change: 创建 → 计算中 | 已中止
+  emits: （内部）
+  used_by:
+  - PRC-203 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 计算奖金计提
+  aggregate: AGG-138
+  entity: bonus_accrual_runs
+  kind: automatic
+  name_status: 〔缺〕S-6 新增（ARC-1022-APE-01）
+  source: S-6 裁定（one-architecture @cfc721a34 附三）
+  params:
+  - 计提运行ID
+  preconditions:
+  - ref: 状态
+    text: 运行为计算中
+  - ref: 基数
+    text: 本期收入确认与人工成本分配事实已在 B-16 过账；未齐不按缺数计提
+  authority:
+    ref: raci:AGG-138/计算奖金计提
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 计提运行ID
+  state_change: 计算中 → 已计算
+  emits: （内部）
+  used_by:
+  - PRC-203 第 2 步
+  orphan: false
+  source_part: vs13pay
+- name: 提交过账候选
+  aggregate: AGG-138
+  entity: bonus_accrual_runs
+  kind: automatic
+  source: S-6 裁定（one-architecture @cfc721a34 附三）
+  params:
+  - 计提运行ID
+  preconditions:
+  - ref: 状态
+    text: 运行为已计算；只提交一次
+  - ref: INV-92
+    text: 所属会计期间已关账的，按 ADR-0045 路由到开放期间并标原期间，不拒绝
+  authority:
+    ref: raci:AGG-138/提交过账候选
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 计提运行ID + 法人 + 项目
+  state_change: 已计算 → 已提交过账
+  emits: （内部）
+  used_by:
+  - PRC-203 第 3 步
+  orphan: false
+  source_part: vs13pay
 - name: 建立薪酬档案
   aggregate: AGG-93
   entity: payroll_profile_versions

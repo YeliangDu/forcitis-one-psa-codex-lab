@@ -1697,6 +1697,50 @@ entries:
   sensitive_reason: 事实按人员携带核定额与拆分明细（工资类 L3）
   note: 系统自动，核定即提交「奖金核定重分类」；过账路由规则见 INV-92
   source_part: vs13pay
+- object: AGG-138
+  command: 启动奖金计提
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+    C: []
+    I:
+    - SH-E6
+  sensitive: false
+  note: 系统按人工成本分配过账触发；已中止告警人力，人力补齐后重新发起
+  source_part: vs13pay
+- object: AGG-138
+  command: 计算奖金计提
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  note: 计提额按项目、不到个人，内部数据
+  source_part: vs13pay
+- object: AGG-138
+  command: 提交过账候选
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+    C: []
+    I:
+    - SH-E6
+  sensitive: false
+  note: 系统自动；过账路由规则见 INV-92
+  source_part: vs13pay
 - object: AGG-93
   command: 建立薪酬档案
   raci:
