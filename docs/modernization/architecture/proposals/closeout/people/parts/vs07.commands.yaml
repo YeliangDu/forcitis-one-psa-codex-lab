@@ -229,6 +229,63 @@ commands:
   used_by:
   - PRC-80 第 12 步
   orphan: false
+- name: 终止法人归属
+  aggregate: AGG-117
+  entity: legal_entity_attributions
+  kind: human
+  name_status: 〔缺〕规划原缺，已建代码 EndLegalEntityAttribution；词表事件「法人归属已结束」（LegalEntityAttributionEnded），命令中文名交 one-glossary
+  source: 已建代码；one-architecture command-mapping（2026-10-21）
+  params:
+  - 归属对象类型（部门 / 员工）
+  - 归属对象ID
+  - 结束日
+  preconditions:
+  - ref: INV-122
+    text: 只关闭当前期间，结束日不早于开始日；历史只追加不改写
+  - ref: 状态
+    text: 该对象须有当前法人归属，否则拒绝
+  - ref: 职责分离
+    text: 操作人不得终止本人的法人归属（已建代码 OwnAttributionGuard）
+  authority:
+    ref: raci:AGG-117/终止法人归属
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 归属对象 + 乐观锁版本
+  state_change: 已指定 → 已指定（关闭当前期间）
+  emits: 法人归属已结束
+  used_by:
+  - PRC-80 第 13 步
+  orphan: false
+- name: 更正法人代码
+  aggregate: AGG-60
+  entity: legal_entities
+  kind: human
+  name_status: 〔缺〕规划原缺，已建代码 UpdateLegalEntity 的代码更正分支，命令中文名交 one-glossary
+  source: 已建代码；one-architecture command-mapping（2026-10-21）
+  params:
+  - 法人主体ID
+  - 更正后法人代码
+  preconditions:
+  - ref: INV-59
+    text: 法人代码发号后不可改；仅该代码未用于发号时可更正，已发号则拒绝
+  authority:
+    ref: raci:AGG-60/更正法人代码
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 法人主体ID + 乐观锁版本
+  state_change: 有效 → 有效（改代码，状态不变）
+  emits: （内部）
+  used_by:
+  - PRC-80 第 14 步
+  orphan: false
 - name: 停用岗位
   aggregate: AGG-64
   entity: jobs

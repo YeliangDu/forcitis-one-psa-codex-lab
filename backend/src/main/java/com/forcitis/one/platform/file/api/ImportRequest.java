@@ -7,7 +7,7 @@ import java.util.Objects;
 
 /** A file taken over from the legacy system: stored, checked and linked to its target document in one step, without events. */
 public record ImportRequest(MigrationBatchId batch, InputStream content, String originalName, String declaredMediaType,
-                            DocumentReference document, AccessLevel accessLevel, PersonalInfoMark personalInfo,
+                            DocumentReference document, AccessLevel accessLevel, PersonalInformationMark personalInformation,
                             PreservationCategoryCode preservationCategory, DocumentReference preservationAnchor) {
 
     public ImportRequest {
@@ -17,7 +17,7 @@ public record ImportRequest(MigrationBatchId batch, InputStream content, String 
         Objects.requireNonNull(declaredMediaType, "declaredMediaType");
         Objects.requireNonNull(document, "document");
         Objects.requireNonNull(accessLevel, "accessLevel");
-        Objects.requireNonNull(personalInfo, "personalInfo");
+        Objects.requireNonNull(personalInformation, "personalInformation");
         Objects.requireNonNull(preservationCategory, "preservationCategory");
         Objects.requireNonNull(preservationAnchor, "preservationAnchor");
     }
