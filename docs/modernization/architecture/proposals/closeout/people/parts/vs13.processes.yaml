@@ -575,8 +575,8 @@ processes:
     scope: "人力、管理层与奖金归属人本人；奖金属薪酬敏感信息"
     segregation:
       - {roles: [SH-E1, SH-E1], rule: "用人经理既是评估人又是核定人时，奖金由系统按方案规则草拟、不得由其改额；核定人是被核定人本人时按 AR-11 由其上级核定"}
-    outcomes: [已核定, 无需核定, 已中止, 已驳回]
-    scenarios: [PRC-122-S01, PRC-122-S02, PRC-122-S03, PRC-122-S04, PRC-122-S05]   # S01 月度评估确认后草拟并核定（全程）；S02 试用期评估确认不触发；S03 没有生效方案或草拟金额超方案额度，已中止并告警人力；S04 责任人驳回；S05 奖金金额超阈值，加一级或两级（AR-01、AR-02）
+    outcomes: [已核定, 无需核定, 已中止, 已驳回, 期间关账中待重试]
+    scenarios: [PRC-122-S01, PRC-122-S02, PRC-122-S03, PRC-122-S04, PRC-122-S05, PRC-122-S06, PRC-122-S07]   # S01 月度评估确认后草拟、核定并提交重分类（全程）；S02 试用期评估确认不触发；S03 没有生效方案或草拟金额超方案额度，已中止并告警人力；S04 责任人驳回；S05 奖金金额超阈值，加一级或两级（AR-01、AR-02）；S06 核定期间无项目人工，整额留原法人；S07 核定期间人工成本分配未过账或期间关账中，延后重试
     roles:
       - {id: SH-E1, as: approver, org_needs: {responsibility: "作为被评人所在组织单元的责任人，核对草拟奖金是否有规则看不到的情况", approval_right: "正常一级审批（cost_object_owner 解析结果）；本人是被核定人时由上级核定", department_hint: "被评人所在组织单元", position_hint: "部门负责人、用人经理"}}       # 被评人所在组织单元的责任人（cost_object_owner 解析结果）
       - {id: SH-M1, as: approver, org_needs: {responsibility: "奖金金额超阈值时的上一级责任人", approval_right: "加审一级（AR-02 总经理）", department_hint: "公司管理层", position_hint: "总经理"}}       # 金额超阈值时加审（AR-02 总经理一级）
@@ -627,7 +627,8 @@ processes:
         emits: [奖金已核定]
         desc: 审批通过的回调后核定；发放经月度薪酬结算（PRC-124 读取已核定奖金）
         audit: true
-        outcome: 已核定
+        decision:
+          - {when: otherwise, goto: 5}
         cross_bc:
           - {mode: event, direction: in, bc: platform.approval, name: 审批已通过}
       - actor: system
@@ -642,7 +643,92 @@ processes:
         decision:
           - {when: otherwise, goto: end}
         outcome: 已驳回
+      - actor: system
+        where: automatic
+        command: 提交过账候选
+        aggregate: AGG-76
+        calls: PRC-92
+        pending: S-4b 拆分口径（拆分依据与新增 B-15 读 B-16 的边，交 one-architecture、one-arch-finance 核）
+        desc: 核定后提交一次「奖金核定重分类」记账事实（S-4b，one-architecture @a747e42af；finance PRC-96 @0d93dd7e）：只在负债内部重分类、不进成本——借 应付职工薪酬—奖金（计提），贷 应付职工薪酬—奖金（已核定），金额为核定额；按法人与项目拆分：读被核定人员在核定期间已过账的人工事实，按「成本法人 × 项目」的直接人工占比拆核定额，尾差并入金额最大的一行；核定期间没有项目人工的部分拆不到项目，整额记被核定人员的成本法人、不带项目，由 B-07 按 LEB-05 留原法人转费用，不跨法人；拆分明细随事实携带。差额（核定额与累计计提之差）转成本调整行归 B-07（PRC-96 步 2 ③），本步不算。所属会计期间已关账的按 ADR-0045 与 INV-92 路由到开放期间并标原期间
+        audit: true
+        period_gate: true
+        legal_entity: 被核定人员核定期间的成本法人（与人工事实一致，ADR-0073 第 1 条、LEB-04）
+        notify: [{to: SH-E6, how: 企业微信告警}]     # 延后重试超过下次关账仍未提交时才发
+        decision:
+          - {when: "核定期间的人工成本分配尚未过账，或 PRC-92 返回期间关账中，延后由投递重试；到下次关账仍未提交的告警人力", goto: end, outcome: 期间关账中待重试}
+          - {when: "所属会计期间已关账，路由到开放期间", goto: end, rule: INV-92}
+          - {when: otherwise, goto: end}
+        outcome: 已核定
+        cross_bc:
+          - {mode: api, direction: out, bc: B-16, name: 读取已过账人工事实（按人员 × 期间）}
+          - {mode: api, direction: out, bc: B-16, name: 提交过账候选}
     notes: 订阅方 B-15（奖金核定依据）。聚合稿 AGG-76 没有“额度不得超出激励方案”的不变量，草拟时拒绝先按前置检查写，见 notes 结构问题。原 v1 的人力手工草拟取消，catalog 的 human_orchestration 须由 false 改为 true（notes 格式问题）。
+
+  - id: PRC-203
+    name: 按月计提奖金
+    trigger:
+      type: event
+      events:
+        - {event: BusinessFactAttributed, aggregate: AGG-77, filter: "来源为人工成本分配（PRC-96），按法人 × 期间首次到达"}
+    triggers:
+      - {type: event, name: "BusinessFactAttributed（B-16 发布；只处理人工成本分配来源，按法人 × 期间）"}
+      - {type: human, name: "人力在补齐计提规则或激励方案版本后对已中止的法人 × 期间重新发起"}
+    stages: [VS-13.2]
+    stages_note: "S-6（one-architecture @cfc721a34 附三）把按月奖金计提从 B-07 PRC-96 第 1 步移到 B-15；计提是对奖金核定的按服务期预计，与 PRC-122 同段"
+    primary_object: OBJ-104
+    primary_object_note: "奖金计提无独立业务对象：计提额是对奖金核定（OBJ-104）的按月预计，结果落 B-16 记账事实；是否另立对象待 one-architecture 定"
+    owner_bc: B-15
+    human_orchestration: false
+    migration: "2020–2025 历史奖金计提来自老系统线下导入，随历史事实经迁入过账通道写入 B-16，不经本流程（ADR-0036 M7、M8）；老系统按发放期归集的期间错配由 one-rules 在 2025 基线注明（FCQ-01）"
+    scope: "按法人 × 期间；计提额按项目、不到个人，内部数据"
+    outcomes: [已提交过账, 已中止, 期间关账中待重试]
+    scenarios: [PRC-203-S01, PRC-203-S02, PRC-203-S03, PRC-203-S04, PRC-203-S05]   # S01 历史比率与合同额百分比各项目计提并提交（全程）；S02 费率表版本缺该业务线计提规则，已中止告警；S03 合同额百分比所引激励方案版本不存在或业务日期不在有效期，已中止告警；S04 计提基数事实未齐或期间关账中，延后重试；S05 所属期间已关账，路由到开放期间
+    roles:
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收奖金计提已中止的告警，补齐激励方案版本后重新发起；计提规则缺失转财务补费率表版本", approval_right: "无", department_hint: "人力资源部、财务部", position_hint: "薪酬岗、成本会计"}}
+    steps:
+      - actor: system
+        where: automatic
+        command: 〔缺〕启动奖金计提
+        aggregate: AGG-138
+        reads: [AGG-75]
+        desc: 为法人 × 期间建一次计提运行（同一法人 × 期间只一次，幂等）；经 api 从 AGG-05 读本期适用的标准成本费率表版本中的奖金计提规则（按业务线：规则类型、计提率、合同额百分比时所引激励方案版本号）；规则类型为合同额百分比的，在本 BC 对照 AGG-75 校验该激励方案版本存在、已生效且计提期间在其有效期内（S-6 第 2 条、第 5 条）；没有指定规则类型的业务线按历史比率；缺规则、缺计提率或版本校验不过的启动失败并告警，不按 0 计、不跳过（BONUS_OVERTIME_COSTING 1.2，CLAUDE.md 第 8 条）
+        audit: true
+        notify: [{to: SH-E6, how: 企业微信告警（缺计提规则或激励方案版本校验不过的业务线与项目）}]     # 已中止时才发
+        decision:
+          - {when: 费率表版本缺该业务线的计提规则或计提率，已中止, goto: end, outcome: 已中止, alert: true}
+          - {when: 合同额百分比所引激励方案版本不存在、未生效或计提期间不在其有效期内，已中止, goto: end, outcome: 已中止, alert: true}
+          - {when: otherwise, goto: 2}
+        cross_bc:
+          - {mode: event, direction: in, bc: B-16, name: BusinessFactAttributed}
+          - {mode: api, direction: out, bc: B-02, name: 读取奖金计提规则（标准成本费率表版本子项）}
+      - actor: system
+        where: automatic
+        command: 〔缺〕计算奖金计提
+        aggregate: AGG-138
+        desc: 经 api 从 B-16 读本期已过账事实作计提基数：合同额百分比用收入确认事实（当月确认的项目收入），历史比率用人工成本分配事实（当月该项目直接人工，不含奖金）；每项目计提额 = 基数 × 计提率，按「法人 × 项目」出行，法人取基数事实的法人（收入取项目承担法人，人工取员工成本法人，ADR-0073、LEB-04）；基数为 0 的项目不出行；尾差按项目四舍五入到分
+        audit: true
+        decision:
+          - {when: 本期人工成本分配或收入确认尚有法人 × 期间未过账，延后由投递重试；到下次关账仍未齐的告警人力, goto: end, outcome: 期间关账中待重试}
+          - {when: otherwise, goto: 3}
+        cross_bc:
+          - {mode: api, direction: out, bc: B-16, name: 读取已过账事实（收入确认、人工成本分配，按法人 × 期间）}
+      - actor: system
+        where: automatic
+        command: 提交过账候选
+        aggregate: AGG-138
+        calls: PRC-92
+        desc: 按法人与项目提交「奖金计提」记账事实（S-6 第 2 条）：借 合同履约成本—直接人工（项目），贷 应付职工薪酬—奖金（计提），科目与 S-4b 重分类、B-07 调整行同一套；计提率与规则类型随事实携带，供 B-07 只经 B-16 读（ADR-0051 决定 9 不变）；须在该法人本期确认关账前提交，所属会计期间已关账的按 ADR-0045 与 INV-92 路由到开放期间并标原期间
+        audit: true
+        period_gate: true
+        legal_entity: 基数事实的法人
+        decision:
+          - {when: "PRC-92 返回期间关账中，延后由投递重试", goto: end, outcome: 期间关账中待重试}
+          - {when: "所属会计期间已关账，路由到开放期间", goto: end, rule: INV-92}
+          - {when: otherwise, goto: end}
+        outcome: 已提交过账
+        cross_bc:
+          - {mode: api, direction: out, bc: B-16, name: 提交过账候选}
+    notes: "ARC-1022-APE-01（S-6 扩范围）。号 PRC-203、AGG-138 为暂用号，待 one-architecture 在 process-catalog 与 PRC_ALLOCATIONS 确认。新增 B-15 → B-02 api 边（读计提率，S-6 第 2 条）与 B-15 → B-16 读已过账事实的边，B-08 不加边。触发取人工成本分配已过账，因历史比率的基数是 B-07 当月已过账直接人工；计提须赶在关账确认前，否则落下期（结构问题 15）。"
 
   # ───────────── VS-13.3 薪酬结算 ─────────────
 

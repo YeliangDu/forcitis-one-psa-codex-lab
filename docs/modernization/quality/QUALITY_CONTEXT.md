@@ -205,3 +205,25 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - Bash 命令文本含 `git push` / `gh pr create` 字样会触发 precheck 或被拦：写补丁脚本用 Write 工具，不用 Bash heredoc。
 - 工作区 `.claude/worktrees/xin-61164f` 唯一可写；PR 分支轮流 checkout，先 `git branch --show-current`。
 - 发消息给调度用 `session_id` local_10f279cb-81c7-4628-9080-2d5b1efd622d；清空后等调度的「接续」。
+
+## 交接（2026-10-22 深夜 2，节点：自清推全员 PR 已开）
+
+### 现状（取代上一节的下一步顺序）
+- **#616**（COO-10）已批，CI 绿后 one-merge 入队。**#627**（COO-13 开工单，分支 `claude/one-quality-start-sheet`）已开、opus 复审未派；冻结已解除：该 PR 里要**同步改 SESSION_PLAYBOOK §2.1 第 16 条及 66、67 行**（去「当前状态」「上下文文档注入」「长期会话至少一份上下文文档」，改成开工单口径），与画像校验一致，同 PR；画像里 75/85 的残留调度在重写时改。
+- **#628**（GOV-1022-QUA-07 自清推全员，分支 `claude/one-quality-clear-scope`，提交 5aa7147ef）：`node_handoff.sessions` null + `exclude: ["one-coordinator"]`（one-architecture 也纳入自清）、30/40 提示分流、协议句；precheck 11 PASS；**opus 复审未派**。#627 与 #628 在 `context_handoff.py` 的 `node_instruction` 及其调用处相邻，后合入的要解冲突。
+
+### 队列（one-coordinator 2026-10-22 夜，总方案 GOV-1022-COO-15，program.md 在 ~/.modernize/psa/coordinator/team-audit/）
+1. #628、#627 各派 opus 首轮（description：`#628 首轮复审 自清推全员 (opus)`），改必改项，贴结论，CI 绿后报批；#627 先补 PLAYBOOK 同步。
+2. 新卡：`pre_tool_dispatch` 在 `gh pr create` 时，若当前 head 刚在推送前跑过检查并通过则不再重跑（按 head sha 记通过标记）；`precheck --pre-push` 只跑与改动相关的后端测试（按改动路径选，改到守护/公共部分退回全跑）。单列 PR、opus 复审，钩子类自己写（任务号新起 GOV-1022-QUA-08）。
+3. `finish.py <任务号>`（核 PR 已开、复审结论已贴、任务卡改「已交」、写标记文件；节点钩子只认标记文件，不解析 Bash 命令文本）。
+4. 守护①–⑦与 tasks 状态先归一后阻断（program.md 第二节第 11 条；①② 等调度规则表落地后再做）。
+5. 会话内 cron 迁 GitHub 工作流。
+6. 仓库内容治理执行（第七节，用户已答；git rm + ARCHIVE_INDEX.md；content_governance.py 挂 mq.py 与 CI，改 mq 单列 PR；evidence/ 等 one-data 清单）。
+7. GOV-1022-COO-17：COO-10 复审建议项（`$'g\x69t'`/通配符、`bash <<EOF`、`env -S`、`git -c alias.`、`gh -R`），排队尾。
+8. 登记 RULING-COORD-20261022-05 到 `ACCEPTANCE_RULINGS.yaml`（W2 PR-B 验收改动进 main 之后）。
+每项一 PR、opus 首轮；钩子与解析类自己写，其余可交 Codex。
+
+### 坑
+- 本节所在分支 `claude/one-quality-handoff-1022` 的几节交接未进 main；另提 docs 提交报 one-merge。
+- 写补丁脚本用 Write 工具，Bash 命令文本含 `git push` / `gh pr create` 会触发检查。
+- 工作区唯一可写；PR 分支轮流 checkout，先 `git branch --show-current`；opus 复审期间不切分支。
