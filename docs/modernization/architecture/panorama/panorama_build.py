@@ -52,6 +52,7 @@ SRC = {
     "access": ROOT / "backend/architecture/data-access-registry.yaml",
     "modules": ROOT / "backend/architecture/module-dependencies.txt",
     "cmd": ARCH / "ssot/11-commands/commands.yaml",
+    "facts": ARCH / "ssot/12-facts/facts.yaml",
     "otr": ARCH / "ssot/10-objects/transitions.yaml",
     "events": DOCS / "events",
     "cmd_map": ARCH / "ssot/11-commands/command-mapping.yaml",
@@ -118,6 +119,8 @@ CHECKS = {
     "N10-5": "每个事件有唯一发布者与版本",
     "N10-6": "跨 BC 只走已发布事件或契约（订阅模块对发布模块的依赖须登记；只按 kernel DomainEvent 信封接收的订阅方除外）",
     "N11-1": "每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）",
+    "N11-2": "每条经营事实有产生它的命令或事件",
+    "N11-3": "每条分析事实能追到经营事实",
     "N13-1": "每个阶段都有指标",
     "N13-2": "每个指标都能追到阶段或流程",
     "N13-3": "度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）",
@@ -440,6 +443,59 @@ def load_commands(m, link):
                 if not target or (row["aggregate"], row["command"]) != (target["aggregate"], target["name"]):
                     raise ValueError(f"{ident} 的 by_command 未对上同聚合的命令原文：{command}")
                 link("cmd-otr", command, ident, src + ".by_command")
+
+
+def load_facts(m, link, mod_to_bc):
+    retired = {row["id"] for row in read_rows("obj", "objects") if "已非对象" in row["definition"]}
+    for index, row in enumerate(read_rows("facts", "facts")):
+        ident = row.get("id")
+        if not isinstance(ident, str) or not re.fullmatch(r"FACT-\d{2}", ident):
+            raise ValueError(f"事实编号无效：{ident}")
+        if ident in m["fact"]:
+            raise ValueError(f"{rel(SRC['facts'])} 编号重复：{ident}")
+        if row.get("kind") not in ("经营事实", "分析事实"):
+            raise ValueError(f"{ident} kind 须为经营事实或分析事实")
+        m["fact"][ident] = {**row, "src": f"{rel(SRC['facts'])}#facts[{index}]/{ident}"}
+    for ident, fact in m["fact"].items():
+        owner = fact.get("owner_bc")
+        bc = owner if owner in m["bc"] else mod_to_bc.get(owner)
+        if not bc:
+            raise ValueError(f"{ident} 引用了不存在的 BC：{owner}")
+        link("fact-bc", ident, bc, fact["src"] + ".owner_bc")
+        for ref in fact.get("produced_by") or []:
+            if isinstance(ref, str) and ref.startswith("CMD-"):
+                key, target = "cmd", ref
+            elif isinstance(ref, str) and ref.startswith("EVT:"):
+                key, target = "evt", ref[4:]
+            else:
+                raise ValueError(f"{ident} produced_by 写法无效：{ref}")
+            if target not in m[key]:
+                raise ValueError(f"{ident} produced_by 引用了不存在的 {key}：{target}")
+            link(f"{key}-fact", target, ident, fact["src"] + ".produced_by")
+        for ref in fact.get("derives_from") or []:
+            if ref not in m["fact"]:
+                raise ValueError(f"{ident} derives_from 引用了不存在的 FACT：{ref}")
+            link("fact-fact", ref, ident, fact["src"] + ".derives_from")
+        for ref in (fact.get("sources") or {}).get("object") or []:
+            if ref in retired:
+                continue
+            if ref not in m["obj"]:
+                raise ValueError(f"{ident} sources.object 引用了不存在的 OBJ：{ref}")
+            link("obj-fact", ref, ident, fact["src"] + ".sources.object")
+
+
+def check_facts(m, gaps):
+    for ident, obj in sorted(m["obj"].items()):
+        facts = (obj.get("facts") or "").strip()
+        if (obj["active"] and obj["primary"] and obj.get("class", "业务对象") == "业务对象"
+                and (not facts or facts.startswith(("—", "-")))):
+            gaps["N11-1"].append(f"{ident} {obj['name']}")
+    for ident, fact in m.get("fact", {}).items():
+        if fact["kind"] == "经营事实" and not fact.get("produced_by"):
+            gaps["N11-2"].append(f"{ident} {fact['name']}")
+        if fact["kind"] == "分析事实" and (not fact.get("derives_from") or any(
+                m["fact"][ref]["kind"] != "经营事实" for ref in fact["derives_from"])):
+            gaps["N11-3"].append(f"{ident} {fact['name']}（analytic_source：{fact.get('analytic_source', '')[:40]}）")
 
 
 def load_org_roles(m, link):
@@ -887,6 +943,7 @@ def load():
     load_org_roles(m, link)
     load_commands(m, link)
     load_events(m, link, mod_to_bc)
+    load_facts(m, link, mod_to_bc)
 
     for t in yaml.safe_load(SRC["terms"].read_text(encoding="utf-8"))["terms"]:
         if t.get("kind") == "metric":
@@ -1043,9 +1100,7 @@ def check(m, anchoring=None):
             gaps["N07-P1"].append(f"{s['prc']} 第 {s['step']} 步（{s['aggregate']}）未声明 Command")
         elif not any((a, strip(s["command"])) in registered for a in aggs):
             gaps["N07-P1"].append(f"{s['prc']} 第 {s['step']} 步命令「{s['command']}」未在 {s['aggregate']} 的 commands.yaml 登记")
-    for o in sorted(primary):
-        if m["obj"][o].get("class", "业务对象") == "业务对象" and m["obj"][o].get("facts", "—") in ("", "—", "-"):
-            gaps["N11-1"].append(f"{o} {m['obj'][o]['name']}")
+    check_facts(m, gaps)
     for mid, mt in m["metric"].items():
         if not mt.get("fact") or not mt.get("bind"):
             gaps["N13-3"].append(f"{mid} {mt['zh']}")
