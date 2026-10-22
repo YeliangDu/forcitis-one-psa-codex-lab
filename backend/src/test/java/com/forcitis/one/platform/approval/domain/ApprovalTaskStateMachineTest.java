@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.domain;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -17,7 +18,6 @@ import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
-import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
@@ -154,7 +154,7 @@ class ApprovalTaskStateMachineTest {
         assertThatThrownBy(() -> request.transferTask(TASK, OTHER, TestAccounts.account(22), new Reason("r"), NOW)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> request.transferTask(TASK, HOLDER, HOLDER, new Reason("r"), NOW)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> request.transferTask(TASK, HOLDER, OTHER, null, NOW)).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
         request.transferTask(TASK, HOLDER, OTHER, new Reason("on leave"), NOW);
         assertThat(request.task(TASK).assignee()).contains(OTHER);
     }
@@ -166,7 +166,7 @@ class ApprovalTaskStateMachineTest {
             for (TaskOutcome outcome : new TaskOutcome[] {TaskOutcome.REJECTED, TaskOutcome.RETURNED}) {
                 ApprovalRequest request = in(ApprovalTaskStatus.CLAIMED);
                 assertThatThrownBy(() -> request.completeTask(TASK, HOLDER, outcome, advisory, null, new ContentHash("d"), NOW))
-                        .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                        .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
                 assertThat(statusOf(request)).isEqualTo(ApprovalTaskStatus.CLAIMED);
             }
         }
@@ -297,7 +297,7 @@ class ApprovalTaskStateMachineTest {
 
         ApprovalRequest pending = in(ApprovalTaskStatus.PENDING);
         assertThatThrownBy(() -> pending.reassignTask(TASK, ADMIN, OTHER, null, NOW)).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
         pending.reassignTask(TASK, ADMIN, OTHER, new Reason("covering"), NOW);
         assertThat(pending.task(TASK).status()).isEqualTo(ApprovalTaskStatus.CLAIMED);
         assertThat(pending.task(TASK).assignee()).contains(OTHER);

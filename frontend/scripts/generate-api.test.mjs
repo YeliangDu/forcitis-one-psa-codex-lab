@@ -34,7 +34,7 @@ test('enum-valued properties are open in the types (a newer server may send more
   const run = generate(() => undefined);
   assert.match(run.types, /processKey: components\["schemas"\]\["ProcessKey"\] \| \(string & \{\}\);/);
   assert.match(run.types, /ProcessKey: "COST_TIMESHEET_APPROVAL";/);
-  assert.match(run.types, /ErrorCode: "COST_TIMESHEET_CONCURRENT_CHANGE"/);
+  assert.match(run.types, /ErrorCode: "COST_TIMESHEET_CUTOFF_PASSED"/);
 });
 
 test('a document without ProblemDetail or the ErrorCode enum is refused', () => {

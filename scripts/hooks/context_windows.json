@@ -9,5 +9,25 @@
   "pilot_sessions": null,
   "_note": "窗口 1000000 来自 get_usage 的 contextWindow 实测（调度与 one-quality 的会话均报 1000000，97% 自动压缩，2026-10-21 one-coordinator 核对）。",
   "bash_input_chars": 5000,
-  "bash_output_chars": 8000
+  "bash_output_chars": 8000,
+  "context_levels": {
+    "prepare": 30,
+    "handover": 40
+  },
+  "node_handoff": {
+    "enabled": true,
+    "min_percent": 20,
+    "sessions": null,
+    "coordinator_session_ids": [
+      "local_10f279cb-81c7-4628-9080-2d5b1efd622d"
+    ],
+    "coordinator_names": [
+      "one-coordinator"
+    ],
+    "exclude": [
+      "one-coordinator"
+    ]
+  },
+  "throttle_seconds": 30,
+  "throttle_bytes": 150000
 }

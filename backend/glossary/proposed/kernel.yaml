@@ -1,5 +1,50 @@
 # `tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。`reversal_document`、`correction_document`、`document_nature`、`reversal_category`、`reversible_balance`、`derived_reversal`、`original_period`、`change_order_document`、`reverse_action`、`correct_action` 十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。
-terms: []
+terms:
+- id: error__kernel_transition_illegal
+  zh: 状态转换不合法
+  en: KernelTransitionIllegal
+  snake: kernel_transition_illegal
+  kind: error_code
+  bc: kernel
+  scope: kernel
+  definition: 对象在当前状态下不能做这个操作（409）；各模块的状态机没有自己的转换错误码时默认用它（CS-2.24，IMP-1022-COO-02）
+  standard_ref:
+  - proposals/B31_ADM02_RULINGS_2026-10-22.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__kernel_concurrent_change
+  zh: 被他人同时修改
+  en: KernelConcurrentChange
+  snake: kernel_concurrent_change
+  kind: error_code
+  bc: kernel
+  scope: kernel
+  definition: 对象在读取后被别人改过，版本或唯一键冲突（409）（CS-2.24，IMP-1022-COO-02）
+  standard_ref:
+  - proposals/B31_ADM02_RULINGS_2026-10-22.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__kernel_reason_required
+  zh: 原因不能为空
+  en: KernelReasonRequired
+  snake: kernel_reason_required
+  kind: error_code
+  bc: kernel
+  scope: kernel
+  definition: 取消、驳回等须写原因的操作未填写原因（422）；各模块没有自己的缺原因错误码时默认用它（CS-2.24，T-A2，B31_CARD_C_API）
+  standard_ref:
+  - proposals/B31_ADM02_RULINGS_2026-10-22.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 取代 organization.administration 提议的 EMPLOYEE_ACTIVITY_CANCEL_REASON_REQUIRED；码的实现归 kernel owner。中文名不与 cost.timesheet、platform.approval 已登记的「必须填写原因」同名（错误码中文名全局唯一）；这两个模块码已收进本条（IMP-1022-COO-04）。
 common_words:
 - contain
 - containing

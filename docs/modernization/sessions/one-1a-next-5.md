@@ -53,4 +53,4 @@
 
 ## 当前状态
 
-2026-10-22 06:50+02:00 数据修复批与单据类型登记线进行中，详见 `phase1a/HANDOFF_one-1a-next-5.md` 第 5 节。已合入：REG-1 #507、编号版本来源 #524、错误码两项 #528。在途：#562（REG-2 ProcessKey 去入参，补修 D1 后待 sonnet 复核与 CI）、#546（P0 验收测试 13 例，已批准入队待 CI）。下一步：RULE-412 架构守护 → REG-3（审计对象类别登记表，带 STORED_FILE）→ REG-4（ProcessKey 值对象，one-architecture 裁定，待任务号与排序）→ 行政事务单据类型登记卡（IMP-1021-ADM-02 清单）；IMP-1021-NX5-02 前端卡已发 one-quality 评测，不归本会话做。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。
+2026-10-22 22:50+02:00 上下文 30%，在批次边界交接，详见 `phase1a/HANDOFF_one-1a-next-5.md` 第 7 节。已合入：#507、#524、#528、#607（RULE-412）、#622（search_path，批入队时 CI 全绿为条件，以 gh 为准）。在途：#599（REG-3，等 one-data 签发与 M1 裁定）、#629（KERR-2，head 57cc0dab3，等 CI 绿后调度再批）、#634（NX5-08 迁入写入通道·编号部分，opus 首轮 H1 等已修、sonnet 复核中，本机 Docker 停了，本地 IT 未实测）。下一步：REG-4（IMP-1022-COO-01，ProcessKey 值对象）。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。

@@ -68,4 +68,4 @@
 
 ## 当前状态
 
-2026-10-21 18:00+02:00 在岗；队列由 launchd 代理 `com.forcitis.mq` 托管（`scripts/merge/mq.py run`），队列与待办详见 `merge/MERGE_CONTEXT.md`「现状」，不抄数字；模型 sonnet；/clear 后先读该文件再 `mq.py status` 核对。
+2026-10-22 23:00+02:00 在岗，节点交接（/clear 前）；队列由 launchd 代理 `com.forcitis.mq` 托管，队列与待办详见 `merge/MERGE_CONTEXT.md`「现状」，不抄数字；模型 sonnet；/clear 后先读该文件再 `mq.py status` 核对。手上两张 mq.py 卡（GOV-1022-MRG-05 断档扫描 + MRG-06 head 变化出队）合在 PR #635，COO-15 排在其后；收文档合集口径见 MERGE_CONTEXT。

@@ -75,4 +75,4 @@ PAR-1..PAR-5 完成或达到 §2.1 第 1 条阈值时在批次边界交接；F-1
 
 ## 当前状态
 
-2026-10-21 15:34+0200 交接：#509（删老待办）等裁定 -05 进 main 后改 ReadOnlyAccountCheckIT、CI 绿报 one-merge，随后 F2（IMP-1021-PAR-04）、组织接口清单（PAR-03）、日历改造（PAR-02，方案在分支 claude/one-1a-par-calendar-plan）；A、B 及依赖项等 one-architecture 补篇；细节与步骤见 phase1a/HANDOFF_one-1a-par.md。
+2026-10-22 深夜：#604、#611 已报入队；W2 PR-B 已开 PR #632（precheck 22 PASS，CI 跑中，不含工号唯一键与验收目录改动；唯一键与隔离路径留 PR-B2，等 ADR-0078，现成实现在分支 claude/one-1a-par-w2-employee-code-unique）。已登记待派卡 IMP-1022-PAR-02..05。接下来：#632 CI 绿后报 one-merge；之后迁入写入通道·日历部分（IMP-1022-PAR-05，安全改动 opus 首轮必做），再卡 E。细节见 phase1a/HANDOFF_one-1a-par.md。

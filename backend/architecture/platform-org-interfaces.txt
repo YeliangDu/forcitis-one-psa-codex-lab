@@ -1,0 +1,12 @@
+# Organization interfaces used by the platform layer (ADR-0066 decision 1 item 3, ADR-0068 impact section). Reviewed by the IT Admin via CODEOWNERS.
+# Format: <platform module> -> <organization module>::<NamedInterface name>   # purpose + source
+# PlatformOrgInterfacesTest: a platform module may use an organization module's api / events only through a line here (module-dependencies.txt stays the coarse graph);
+# every listed interface must exist as a @NamedInterface; the public signatures of the listed interfaces are pinned in platform-org-interfaces.signatures.txt, and a change to them
+# needs the pull request body to say 已通知平台 owner (scripts/ci/org_interface_notice.py).
+# Only the platform layer is listed on the left; organization modules and cost.* use each other through module-dependencies.txt alone.
+# Regenerate the signature snapshot after an intended change: mvn -q test -Dtest=PlatformOrgInterfacesTest -Dorg.interfaces.update=true
+platform.approval -> organization.attendance::api  # WorkCalendar: working-day arithmetic for deadlines (REG-1)
+platform.approval -> organization.workforce::api  # OrgDirectory, EmployeeProfile, OrgUnitProfile, OrgUnitId, EmploymentStatus, EmploymentVerdict, LoginLookup: assignee resolution and the employment check
+platform.identity -> organization.workforce::api  # OrgDirectory, EmployeeProfile, OrgUnitProfile, OrgUnitId, EmploymentStatus, EmployeeExistence, EmployeeLegalEntities, LoginLookup: account binding and access scopes (ADR-0068)
+platform.identity -> organization.workforce::events  # EmployeeRegistered, OrgSnapshotChanged: grant lifecycle; the ADR-0068 personnel events join here
+platform.numbering -> organization.workforce::api  # LegalEntityCode, LegalEntityDirectory, LegalEntityNumberUsage: legal-entity part of document numbers

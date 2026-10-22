@@ -1253,10 +1253,10 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: complete_employee_activity
-  zh: 完成员工活动
-  en: CompleteEmployeeActivity
-  snake: complete_employee_activity
+- id: conclude_employee_activity
+  zh: 办结员工活动
+  en: ConcludeEmployeeActivity
+  snake: conclude_employee_activity
   kind: command
   bc: organization.administration
   scope: domain
@@ -1265,9 +1265,11 @@ terms:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: medium
   aliases: []
-  forbidden: []
+  forbidden:
+  - 完成员工活动
+  - CompleteEmployeeActivity
   status: proposed
-  note: ''
+  note: 命令名随终态「已办结」（GL4 用户答复）改「办结」词族；接口路径 :conclude，权限资源 employee-activity-conclusion（原 employee-activity-completion），B31_PLATFORM_CONSTANTS §2 与 identity 的 Permission.java 须同步（跨 owner，one-1a-admin 通知 one-identity）。来自 B31_CARD_C_API T-G1。
 - id: cancel_employee_activity_registration
   zh: 取消员工活动登记
   en: CancelEmployeeActivityRegistration
@@ -1282,7 +1284,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 来自 ARC-1017-APE-02 提议。
+  note: 来自 ARC-1017-APE-02 提议。接口路径词 :cancel 与 platform.approval「撤销 cancel」同词不同义：本命令是行政作废已登记的活动，不涉及审批流，不用「撤销」；两处并行使用，以聚合路径区分（T-G4，用语裁定：不合并、不互禁）。
 
 # 命令（由 §9–§11 规则推出，施工卡定稿时核对）
 - id: waive_remaining_seal_copies
@@ -1421,7 +1423,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 使用：用印申请、员工活动申请。员工活动的「已批准」仅表达规则通过，不是人工批准，界面须说明。
+  note: 使用：用印申请、员工活动申请。员工活动的「已批准」仅表达规则通过，不是人工批准，界面须说明。库内值 APPROVED（snake 大写，T-G2）。
 - id: administration_status__withdrawn
   zh: 已撤回
   en: Withdrawn
@@ -1706,7 +1708,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 使用：员工活动申请。
+  note: 使用：员工活动申请。库内值 CANCELLED（snake 大写，T-G2）。
 - id: administration_status__concluded
   zh: 已办结
   en: Concluded
@@ -1721,7 +1723,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 用户 GL4 答复定名「已办结」，不用已完成；使用：员工活动申请。
+  note: 用户 GL4 答复定名「已办结」，不用已完成；使用：员工活动申请。库内值 CONCLUDED（snake 大写，T-G2）。
 - id: pre_stamp_status__registered
   zh: 已登记
   en: Registered
@@ -1767,6 +1769,113 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+
+# 卡 C 契约新增（B31_CARD_C_API §10 T-G2，one-glossary 2026-10-22 登记）
+- id: employee_activity_reregistration
+  zh: 员工活动重登
+  en: EmployeeActivityReregistration
+  snake: employee_activity_reregistration
+  kind: business_rule
+  bc: organization.administration
+  scope: domain
+  definition: 员工活动登记被取消后，另建一条新登记并引用被取消记录；被取消记录不变，同一被取消记录只能有一条重登：重复重登内容相同返回原后继，内容不同拒绝并带后继编号（T-R5）。重登也是手工提交，仍须校验类型与参与人。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 接口形态：提交员工活动申请时带被取消登记引用，不另设 :reregister 命令（T-A4）。
+- id: employee_activity_applicant
+  zh: 员工活动申请人
+  en: EmployeeActivityApplicant
+  snake: employee_activity_applicant
+  kind: value_object
+  bc: organization.administration
+  scope: domain
+  definition: 登记员工活动的人，恒为会话员工；库列 applicant_id。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 全称登记，同 bc 内「申请人」类词在用印申请等聚合另有用法时各自加前缀，避免重名。
+- id: employee_activity_canceller
+  zh: 员工活动取消人
+  en: EmployeeActivityCanceller
+  snake: employee_activity_canceller
+  kind: value_object
+  bc: organization.administration
+  scope: domain
+  definition: 取消员工活动登记的操作人，记其用户账号标识，不设外键；库列 cancelled_by。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: employee_activity_cancelled_from_status
+  zh: 员工活动取消前状态
+  en: EmployeeActivityCancelledFromStatus
+  snake: employee_activity_cancelled_from_status
+  kind: value_object
+  bc: organization.administration
+  scope: domain
+  definition: 登记被取消那一刻所处的状态（已批准或已办结），取消后保留以便追溯；库列 cancelled_from_status。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: employee_activity_type_system_only
+  zh: 仅系统生成
+  en: IsSystemOnly
+  snake: is_system_only
+  kind: value_object
+  bc: organization.administration
+  scope: domain
+  definition: 员工活动类型版本条目的属性：标为仅系统生成的类型只能由系统作业生成（如周年贺卡），手工提交与重登一律拒绝；契约与代码不写死类型代码，只读该属性；库内布尔列 is_system_only，JSON 字段 isSystemOnly；周年作业走内部用例可生成。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §3.1
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 依据用户已定「漏发不补」；T-G6，属性随 one-data T-D15 落库。
+- id: employee_activity_reregistration_successor
+  zh: 重登后继
+  en: EmployeeActivityReregistrationSuccessor
+  snake: employee_activity_reregistration_successor
+  kind: value_object
+  bc: organization.administration
+  scope: domain
+  definition: 被取消登记已有的重登记录；重登内容不同被拒时，响应带后继编号 successorDocumentNumber 与后继标识 successorRequestId 两个扩展属性。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 扩展属性名为 one-1a-admin 提议，T-G6 一并登记。
+- id: employee_activity_reregistration_source
+  zh: 重登来源
+  en: EmployeeActivityReregistrationSource
+  snake: employee_activity_reregistration_source
+  kind: value_object
+  bc: organization.administration
+  scope: domain
+  definition: 重登记录所引用的被取消登记；库列 reregistration_of_request_id，同一被取消登记至多被引用一次。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 接口字段名由 one-1a-admin 定，本条只登记概念。
 
 # 错误码（SUBDOMAIN_BC_REASON；中文名全局唯一；实施卡定稿时可裁剪）
 - id: error__organization_administration_seal_usage_request_not_found
@@ -2286,7 +2395,7 @@ terms:
   kind: error_code
   bc: organization.administration
   scope: domain
-  definition: 有花费的员工活动未填预估金额（422）。
+  definition: 有花费的员工活动未填预估金额（422）；预估金额为 0 表示无费用，允许（T-R1）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q6
   confidence: low
@@ -2294,36 +2403,96 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_administration_employee_activity_cancel_reason_required
-  zh: 取消活动登记须写原因
-  en: OrganizationAdministrationEmployeeActivityCancelReasonRequired
-  snake: organization_administration_employee_activity_cancel_reason_required
+- id: error__organization_administration_employee_activity_applicant_not_employed
+  zh: 申请人未在职
+  en: OrganizationAdministrationEmployeeActivityApplicantNotEmployed
+  snake: organization_administration_employee_activity_applicant_not_employed
   kind: error_code
   bc: organization.administration
   scope: domain
-  definition: 取消员工活动登记时未写取消原因（422）。
+  definition: 员工活动申请人不是在职员工（422）
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
-  confidence: low
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
-- id: error__organization_administration_employee_activity_cancelled
-  zh: 员工活动登记已取消
-  en: OrganizationAdministrationEmployeeActivityCancelled
-  snake: organization_administration_employee_activity_cancelled
+  note: 卡 C 契约新提议（T-G2）。
+- id: error__organization_administration_employee_activity_participant_unknown
+  zh: 参与人不存在
+  en: OrganizationAdministrationEmployeeActivityParticipantUnknown
+  snake: organization_administration_employee_activity_participant_unknown
   kind: error_code
   bc: organization.administration
   scope: domain
-  definition: 已取消的登记不可修改、恢复或完成（409）。
+  definition: 员工活动登记的参与人不在员工表中（422）
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
-  confidence: low
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
+  note: 卡 C 契约新提议（T-G2）。
+- id: error__organization_administration_config_set_version_missing
+  zh: 配置集缺少生效版本
+  en: OrganizationAdministrationConfigSetVersionMissing
+  snake: organization_administration_config_set_version_missing
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 所需配置集没有生效版本，所有配置集共用（422）
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 C 契约新提议（T-G2）。
+- id: error__organization_administration_employee_activity_type_system_only
+  zh: 活动类型仅系统生成
+  en: OrganizationAdministrationEmployeeActivityTypeSystemOnly
+  snake: organization_administration_employee_activity_type_system_only
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 手工提交或重登了标为仅系统生成的活动类型（422）
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 C 契约新提议（T-G6）。
+- id: error__organization_administration_employee_activity_participant_not_employed
+  zh: 参与人已离职
+  en: OrganizationAdministrationEmployeeActivityParticipantNotEmployed
+  snake: organization_administration_employee_activity_participant_not_employed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 参与人中有登记业务日当天不在职的员工（422）
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 C 契约新提议（T-G6）。
+- id: error__organization_administration_employee_activity_already_reregistered
+  zh: 活动登记已重登
+  en: OrganizationAdministrationEmployeeActivityAlreadyReregistered
+  snake: organization_administration_employee_activity_already_reregistered
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 被取消登记已有内容不同的重登记录，响应带后继编号（409）
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 C 契约新提议（T-G6）。
 - id: error__organization_administration_hire_date_unavailable
   zh: 入职日期不可得
   en: OrganizationAdministrationHireDateUnavailable
