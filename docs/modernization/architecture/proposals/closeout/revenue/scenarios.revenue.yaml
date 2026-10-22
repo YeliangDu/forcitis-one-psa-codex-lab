@@ -728,13 +728,13 @@ PRC-18:
   path: 1 对客基线未注明依据的内部基线版本
   outcome: null
   covers:
-  - 第 1 步前置 INV-140（暂号）
+  - 第 1 步前置 INV-140
   expect: 拒绝编制并告警，不得提交发包人批准（用户 LEB-07）
 - id: PRC-18-S08
   path: 1 内部基线缺合同里程碑或日期晚于对客基线
   outcome: null
   covers:
-  - 第 1 步 INV-141（暂号）
+  - 第 1 步 INV-141
   expect: 只提示、不拒绝；考核按内部基线，延期、结算与索赔按对客基线（用户 LEB-07）
 PRC-19:
 - id: PRC-19-S01

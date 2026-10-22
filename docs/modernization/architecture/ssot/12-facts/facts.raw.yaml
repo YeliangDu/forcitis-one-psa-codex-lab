@@ -65,16 +65,16 @@ by_object:
   object_name: 协议
   level: 一级（不依附其他对象）
   in_system: true
-  facts: 已签署生效 → 新签合同额、分包承诺额；协议变更生效 → 合同额变动；已终止 → 终止清算；已结算 → 最终交易价格、结算折让（原 OBJ-15）
+  facts: 已签署 → 新签合同额（按签署日，词表 new_contract_value）；供方协议已生效 → 分包承诺额；协议变更生效 → 合同额变动；已终止 → 终止清算；已结算 → 最终交易价格、结算折让（原 OBJ-15）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:92
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:93
 - object: OBJ-06
   object_name: 合同范围条目
   level: 次级（协议）
   in_system: true
   facts: — （承诺比对基准）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:110
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:111
   note: （承诺比对基准）
 - object: OBJ-07
   object_name: 付款条件项
@@ -82,42 +82,42 @@ by_object:
   in_system: true
   facts: 可结算 → 可开票额度（不产生收入）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:130
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:131
 - object: OBJ-08
   object_name: 履约义务
   level: 次级（协议：项目合同、任务订单）
   in_system: true
   facts: 已履行（部分）→ 收入、合同资产 / 合同负债变动、合同履约成本转出
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:149
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:150
 - object: OBJ-09
   object_name: 协议变更
   level: 次级（协议）
   in_system: true
   facts: 已生效 → 合同额、交易价格变动（含违约金认定）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:169
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:170
 - object: OBJ-10
   object_name: 索赔
   level: 次级（协议）
   in_system: true
   facts: 已认定 → 收入调整或成本补偿
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:188
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:189
 - object: OBJ-11
   object_name: 合同—项目关联
   level: 非对象：协议与项目之间带属性的关系（分配方式、比例或金额、生效期），不单独成对象
   in_system: false
   facts: 决定收入、成本、工时在协议与项目间的归属
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:207
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:208
 - object: OBJ-12
   object_name: 风险交付授权
   level: 次级（商机或项目）
   in_system: true
   facts: — （为风险交付工时、金额度量提供维度）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:223
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:224
   note: （为风险交付工时、金额度量提供维度）
 - object: OBJ-13
   object_name: 保证金与押金
@@ -125,84 +125,84 @@ by_object:
   in_system: true
   facts: 已缴 / 已退 / 已没收 → 其他应收（或其他应付）、受限资金（不计现金等价物，GL-051）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:243
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:244
 - object: OBJ-14
   object_name: 质量保证金
   level: 非对象：并入 OBJ-85（往来款项，类型「质保金」，父对象为财务）
   in_system: false
   facts: 扣留 → 合同资产或应收（待 F-03）；返还 → 资金收付
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:263
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:264
 - object: OBJ-15
   object_name: 协议结算
   level: 非对象：拆为协议状态「已结算」（OBJ-05）+ 单据结算书 + 协议属性最终价款
   in_system: false
   facts: 已确认 → 最终交易价格、结算折让
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:279
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:280
 - object: OBJ-16
   object_name: 市场活动
   level: 一级（不依附其他对象）
   in_system: true
   facts: 活动费用（经费用报销归集）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:295
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:296
 - object: OBJ-17
   object_name: 线索
   level: 一级（不依附其他对象）
   in_system: true
   facts: 已确认 / 已关闭 → 线索计数（转化率）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:313
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:314
 - object: OBJ-18
   object_name: 商机
   level: 一级（不依附其他对象）
   in_system: true
   facts: 赢单 → 赢单金额、计数（赢率）；售前工时、费用记于此，赢单后转入项目
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:331
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:332
 - object: OBJ-19
   object_name: 招标项目
   level: 一级（外部引用；豁免：无自有规则，只记录、不控制）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:349
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:350
 - object: OBJ-20
   object_name: 投标
   level: 次级（商机）
   in_system: true
   facts: 中标 / 未中标 → 计数（中标率）；投标承诺快照（合同比对基准）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:368
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:369
 - object: OBJ-21
   object_name: 报价
   level: 次级（商机）
   in_system: true
   facts: 已通过 → 报价金额、估算工时与成本、毛利（赢单版本为项目预算来源）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:387
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:388
 - object: OBJ-22
   object_name: 报价估算分解
   level: 次级（报价）
   in_system: true
   facts: 估算工时、估算成本（计划值）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:406
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:407
 - object: OBJ-23
   object_name: 独立性检查
   level: 次级（商机或投标）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:426
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:427
 - object: OBJ-24
   object_name: 服务产品
   level: 一级（不依附其他对象）
   in_system: true
   facts: — （分析维度）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:446
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:447
   note: （分析维度）
 - object: OBJ-25
   object_name: 阶段类型
@@ -210,7 +210,7 @@ by_object:
   in_system: true
   facts: — （维度）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:464
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:465
   note: （维度）
 - object: OBJ-26
   object_name: 标准成本费率表
@@ -218,7 +218,7 @@ by_object:
   in_system: true
   facts: — （计价参数）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:483
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:484
   note: （计价参数）
 - object: OBJ-27
   object_name: 计费系数
@@ -226,182 +226,182 @@ by_object:
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:501
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:502
 - object: OBJ-28
   object_name: 工作日历
   level: 一级（不依附其他对象）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:520
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:521
 - object: OBJ-29
   object_name: 项目
   level: 一级（不依附其他对象）
   in_system: true
   facts: 已立项 → 签约前投入起算（A7；用户 2026-10-15 Q19 以合同回签为界，见 C-43）；已终止 → 终止清算（D17-3）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:540
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:541
 - object: OBJ-30
   object_name: WBS 节点
   level: 次级（项目）
   in_system: true
   facts: 阶段已认可 → 收入证据（经交付物）；工作包 ← 实际工时
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:558
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:559
 - object: OBJ-31
   object_name: 交付计划
   level: 次级（项目）
   in_system: true
   facts: 计划日期（按期交付率）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:577
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:578
 - object: OBJ-32
   object_name: 项目预算
   level: 次级（项目）
   in_system: true
   facts: 已锁定 → 预算成本、预算工时
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:596
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:597
 - object: OBJ-33
   object_name: 完工估算
   level: 次级（工作包或项目）
   in_system: true
   facts: 已批准 → 预测成本（减值测试的估计成本，CAS 14 第三十条）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:615
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:616
 - object: OBJ-34
   object_name: 项目团队成员
   level: 次级（项目）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:635
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:636
 - object: OBJ-35
   object_name: 交付物
   level: 次级（项目，挂 WBS 阶段）
   in_system: true
   facts: 已认可 → 收入确认的证据（客户认可证据五类见 §2.7，用户 2026-10-15 Q22）；已交付 → 按期交付度量
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:657
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:658
 - object: OBJ-36
   object_name: 设计文件版本
   level: 非对象：单据（设计文件版本清单）；编号与版本规则挂在交付物 OBJ-35
   in_system: false
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:676
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:677
 - object: OBJ-37
   object_name: 内部评审
   level: 次级（交付物）
   in_system: true
   facts: 评分；内审覆盖率、一次通过率
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:692
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:693
 - object: OBJ-38
   object_name: 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）
   level: 次级（交付物、项目或检查）
   in_system: true
   facts: 缺陷率；闭合率、整改天数
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:713
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:714
 - object: OBJ-39
   object_name: 返工认定
   level: 次级（不符合项）
   in_system: true
   facts: 已认定 → 返工工时、质量损失
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:734
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:735
 - object: OBJ-40
   object_name: 设计变更
   level: 次级（项目）
   in_system: true
   facts: 发出 → 变更工时；联动协议变更金额
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:753
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:754
 - object: OBJ-41
   object_name: 延期申请
   level: 次级（项目）
   in_system: true
   facts: 工期变动
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:772
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:773
 - object: OBJ-42
   object_name: 发包人提供资料
   level: 次级（项目）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:791
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:792
 - object: OBJ-43
   object_name: 项目档案
   level: 非对象：去掉；改为交付物与证据的「已封存」状态、项目的「已归档」状态
   in_system: false
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:810
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:811
 - object: OBJ-44
   object_name: 资源需求
   level: 次级（工作包或阶段）
   in_system: true
   facts: 需求工时
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:826
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:827
 - object: OBJ-45
   object_name: 资源分配
   level: 次级（工作包）
   in_system: true
   facts: 计划工时（利用率预测）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:845
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:846
 - object: OBJ-46
   object_name: 建设工程
   level: 一级（外部引用；豁免：无自有规则，只记录）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:864
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:865
 - object: OBJ-47
   object_name: 建筑系统与部位
   level: 次级（项目；原建设工程，用户 2026-10-19 建设工程并入项目）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:883
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:884
 - object: OBJ-48
   object_name: 检查计划
   level: 次级（建设工程或协议）
   in_system: true
   facts: 计划生效 / 修订 → 当期应检对象、部位及次数的覆盖基准；与实际检查的已安排、已锁定、已取消及逾期未检集合对应，不直接产生金额事实
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:903
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:904
 - object: OBJ-49
   object_name: 检查
   level: 次级（项目）
   in_system: true
   facts: 已完成 → 按次计价的计量依据（UNIT_RATE「品控按次月结」）、检查工时
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:924
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:925
 - object: OBJ-50
   object_name: 检查表模板
   level: 次级（服务产品）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:943
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:944
 - object: OBJ-51
   object_name: 发现
   level: 非对象：并入 OBJ-38 不符合项（类型「客户资产」）；状态机、规则、等级体系随类型保留（用户 2026-10-15 Q32）
   in_system: false
   facts: 闭合率、整改天数
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:962
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:963
 - object: OBJ-52
   object_name: 外部检测
   level: 次级（发现或检查）
   in_system: true
   facts: — （不进我方成本）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:978
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:979
   note: （不进我方成本）
 - object: OBJ-53
   object_name: 证据
@@ -409,14 +409,14 @@ by_object:
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:998
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:999
 - object: OBJ-54
   object_name: 法人主体
   level: 一级（不依附其他对象）
   in_system: true
   facts: — （各事实的法人维度）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1016
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1017
   note: （各事实的法人维度）
 - object: OBJ-55
   object_name: 组织单元
@@ -424,7 +424,7 @@ by_object:
   in_system: true
   facts: — （部门维度；区域将作为数据范围维度）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1034
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1035
   note: （部门维度；区域将作为数据范围维度）
 - object: OBJ-56
   object_name: 人员（原「员工」；用户 2026-10-15 Q38 认可改名）
@@ -432,14 +432,14 @@ by_object:
   in_system: true
   facts: 人数、离职率
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1053
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1054
 - object: OBJ-57
   object_name: 任职
   level: 次级（员工）
   in_system: true
   facts: — （费率与成本按工作日当日任职取值）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1071
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1072
   note: （费率与成本按工作日当日任职取值）
 - object: OBJ-58
   object_name: 岗位
@@ -447,28 +447,28 @@ by_object:
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1091
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1092
 - object: OBJ-59
   object_name: 候选人
   level: 非对象：并入 OBJ-56（员工 / 人员，状态含待入职）
   in_system: false
   facts: 招聘用时
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1109
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1110
 - object: OBJ-60
   object_name: 招聘需求
   level: 次级（岗位）；与组织单元为关系（组织单元不计一级）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1125
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1126
 - object: OBJ-61
   object_name: 薪酬档案
   level: 非对象：原判定被单列业务记录取代，现见 OBJ-123 人员薪酬档案
   in_system: false
   facts: — （算薪输入）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1144
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1145
   note: （算薪输入）
 - object: OBJ-62
   object_name: 社保与公积金参保
@@ -476,14 +476,14 @@ by_object:
   in_system: true
   facts: 缴费基数（算薪输入）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1160
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1161
 - object: OBJ-63
   object_name: 专项附加扣除信息
   level: 非对象：改为员工属性（按年度）
   in_system: false
   facts: — （算薪输入）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1179
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1180
   note: （算薪输入）
 - object: OBJ-64
   object_name: 注册执业证书
@@ -491,42 +491,42 @@ by_object:
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1195
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1196
 - object: OBJ-65
   object_name: 资质证书
   level: 次级（法人主体或往来单位）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1215
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1216
 - object: OBJ-66
   object_name: 工时单
   level: 次级（员工）
   in_system: true
   facts: 已通过 → 工时；已过账 → 人工成本（交易类型 TS）、售前投入
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1235
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1236
 - object: OBJ-67
   object_name: 工时有效性认定
   level: 非对象：改为工时条目的分类属性 +「已认定」事件
   in_system: false
   facts: 已认定 → 有效工时、无效工时
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1254
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1255
 - object: OBJ-68
   object_name: 请假
   level: 次级（员工）
   in_system: true
   facts: 请假小时（可用产能、算薪输入）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1270
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1271
 - object: OBJ-69
   object_name: 假期额度
   level: 非对象：原判定被单列业务记录取代，现见 OBJ-122 假期余额账户
   in_system: false
   facts: — （余额）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1290
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1291
   note: （余额）
 - object: OBJ-70
   object_name: 考勤记录
@@ -534,91 +534,91 @@ by_object:
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1306
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1307
 - object: OBJ-71
   object_name: 月度考勤结果
   level: 非对象：派生汇总；员工确认与锁定经第 ② 步回补升为次级对象 OBJ-111 月度考勤确认（intent 082311，见 §2.17）
   in_system: false
   facts: 出勤天数、加班小时（算薪输入）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1326
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1327
 - object: OBJ-72
   object_name: 加班
   level: 次级（员工 × 日）
   in_system: true
   facts: 加班小时 → 加班工资（150% / 200% / 300%，第 44 条）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1342
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1343
 - object: OBJ-73
   object_name: 月度薪酬结算（原「算薪运行」）
   level: 次级（法人主体 × 月）
   in_system: true
   facts: 已批准 → 职工薪酬（工资、社保、公积金单位部分）、个税代扣；→ 实际成本费率（派生）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1361
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1362
 - object: OBJ-74
   object_name: 激励方案
   level: 一级（不依附其他对象）
   in_system: true
   facts: 奖金核定 → 职工薪酬（或预提）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1380
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1381
 - object: OBJ-75
   object_name: 经营事实
   level: 非对象：去掉（设计构件，BIZBOK p197）；内容由收入确认、发票、资金收付、会计分录承载
   in_system: false
   facts: 本身即事实（带九维归属）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1399
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1400
 - object: OBJ-76
   object_name: 人工成本分配
   level: 非对象：去掉（属流程与事实）
   in_system: false
   facts: 已过账 → 项目人工成本（口径待 FD-09）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1415
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1416
 - object: OBJ-77
   object_name: 间接成本池
   level: 非对象：降为余额载体；定义并入分摊规则（OBJ-78）
   in_system: false
   facts: 已分摊 → 项目管理利润（只管理口径，不过账）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1431
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1432
 - object: OBJ-78
   object_name: 分摊规则（原「分摊规则版本」）
   level: 待定（暂列一级；原父对象间接成本池已去掉；评审结论未涉及此项；S-43）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1447
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1448
 - object: OBJ-79
   object_name: 分摊运行
   level: 非对象：去掉（属流程与事实）
   in_system: false
   facts: 生效 → 分摊结果（管理口径）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1465
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1466
 - object: OBJ-80
   object_name: 成本结转批次
   level: 非对象：去掉（属流程与事实）
   in_system: false
   facts: 已过账 → 合同履约成本余额变动、营业成本
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1481
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1482
 - object: OBJ-81
   object_name: 收入确认
   level: 次级（履约义务）；形态待定（Q20 暂不定）
   in_system: true
   facts: 已确认 → 收入、合同资产 / 合同负债、配对的合同履约成本转出
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1497
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1498
 - object: OBJ-82
   object_name: 开票申请
   level: 次级（协议）
   in_system: true
   facts: — （发票开具才产生事实）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1517
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1518
   note: （发票开具才产生事实）
 - object: OBJ-83
   object_name: 增值税发票
@@ -626,49 +626,49 @@ by_object:
   in_system: true
   facts: 销项已开具 → 销项税额、应收（收付账簿只在开票时记销项，A4）；进项用途确认 → 进项税额 / 转出
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1536
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1537
 - object: OBJ-84
   object_name: 红字发票信息确认单
   level: 非对象：改为发票状态「红冲确认中」+ 外部单据（税务平台登记）
   in_system: false
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1555
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1556
 - object: OBJ-85
   object_name: 往来款项
   level: 次级（财务）
   in_system: true
   facts: 结清 → 回款、付款；核销坏账 → 信用损失
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1572
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1573
 - object: OBJ-86
   object_name: 资金收付
   level: 次级（财务）
   in_system: true
   facts: 已到账 / 已成功 → 回款额、付款额、现金流量项目标注
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1592
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1593
 - object: OBJ-87
   object_name: 供方履约确认
   level: 次级（协议：分包、采购）；保留，形态随 Q20
   in_system: true
   facts: 已确认 → 分包成本（经结转入合同履约成本）、应付
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1611
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1612
 - object: OBJ-88
   object_name: 费用报销
   level: 次级（员工）
   in_system: true
   facts: 已核定 → 直接费用、售前费用；→ 应付（员工）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1630
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1631
 - object: OBJ-89
   object_name: 资金账户
   level: 次级（财务）
   in_system: true
   facts: — （期末余额）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1649
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1650
   note: （期末余额）
 - object: OBJ-90
   object_name: 银行流水
@@ -676,49 +676,49 @@ by_object:
   in_system: true
   facts: 利息、手续费（经导入凭证）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1668
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1669
 - object: OBJ-91
   object_name: 合伙人出资
   level: 次级（法人主体）
   in_system: true
   facts: 实缴 / 退回 → 权益事实
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1687
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1688
 - object: OBJ-92
   object_name: 法定申报
   level: 次级（财务）
   in_system: true
   facts: 已申报 / 已缴款 → 税费计提与缴纳
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1706
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1707
 - object: OBJ-93
   object_name: 公司资产
   level: 一级（不依附其他对象）
   in_system: true
   facts: 折旧、摊销、处置损益
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1725
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1726
 - object: OBJ-94
   object_name: 预提
   level: 非对象：降为会计分录 / 事实的类型（预提、冲回）
   in_system: false
   facts: 已预提 → 预提费用；冲回 → 反向
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1743
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1744
 - object: OBJ-95
   object_name: 会计科目
   level: 次级（账簿）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1759
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1760
 - object: OBJ-96
   object_name: 账簿
   level: 次级（财务）
   in_system: true
   facts: — （期间余额）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1778
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1779
   note: （期间余额）
 - object: OBJ-97
   object_name: 会计期间
@@ -726,21 +726,21 @@ by_object:
   in_system: true
   facts: 关账 → 期间快照
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1798
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1799
 - object: OBJ-98
   object_name: 会计分录
   level: 次级（财务）；落于账簿 × 期间
   in_system: true
   facts: 本身即会计记录
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1817
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1818
 - object: OBJ-99
   object_name: 报表行定义
   level: 次级（财务；两账共用一套，不依附单个账簿）
   in_system: true
   facts: — （某期报表是单据）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1836
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1837
   note: （某期报表是单据）
 - object: OBJ-100
   object_name: 经营计划
@@ -748,21 +748,21 @@ by_object:
   in_system: true
   facts: 计划值；类型「预算」：占用、消耗 → 预算执行额
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1855
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1856
 - object: OBJ-101
   object_name: 预算
   level: 非对象：并入 OBJ-100（经营计划，类型「预算」）
   in_system: false
   facts: 占用、消耗 → 预算执行额
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1873
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1874
 - object: OBJ-102
   object_name: 指标定义
   level: 非对象：去掉；移入第 11 步指标元数据
   in_system: false
   facts: — （指标值是派生度量）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1889
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1890
   note: （指标值是派生度量）
 - object: OBJ-103
   object_name: 财务
@@ -770,56 +770,56 @@ by_object:
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1905
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1906
 - object: OBJ-104
   object_name: 奖金核定
   level: 次级（激励方案）
   in_system: true
   facts: 已核定 → 职工薪酬（或预提分录）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1924
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1925
 - object: OBJ-105
   object_name: 客户活动
   level: 次级（往来单位的客户角色，OBJ-02）
   in_system: true
   facts: 已完成 → 拜访量、计划完成率（派生度量）；归集的售前工时
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1943
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1944
 - object: OBJ-106
   object_name: 客户满意度调查
   level: 次级（项目）
   in_system: true
   facts: 已评分 → 满意度（派生度量，可按项目、阶段、客户统计）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1962
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1963
 - object: OBJ-107
   object_name: 项目复盘
   level: 次级（项目，可指向阶段）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1981
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:1982
 - object: OBJ-108
   object_name: 项目风险与问题
   level: 次级（项目）
   in_system: true
   facts: —
   classification: none
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2000
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2001
 - object: OBJ-109
   object_name: 绩效评估
   level: 次级（人员）
   in_system: true
   facts: 已确认 → 奖金核定与转正的输入
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2019
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2020
 - object: OBJ-110
   object_name: 知识条目
   level: 一级（不依附其他对象）
   in_system: true
   facts: — （不直接产生度量事实）
   classification: none_with_note
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2038
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2039
   note: （不直接产生度量事实）
 - object: OBJ-111
   object_name: 月度考勤确认
@@ -827,112 +827,112 @@ by_object:
   in_system: true
   facts: 已锁定 → 出勤天数、加班小时（算薪输入）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2056
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2057
 - object: OBJ-112
   object_name: 利润分配
   level: 次级（法人主体）
   in_system: true
   facts: 已决议 → 应付利润（权益减少）；已支付 → 付款额；自然人股东股息红利个税代扣
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2075
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2076
 - object: OBJ-113
   object_name: 用印申请
   level: 次级（法人主体，用印法人）
   in_system: true
   facts: 已用印 → 用印台账（实际用印时间、份数、经办人）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2094
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2095
 - object: OBJ-114
   object_name: IT 需求工单
   level: 次级（人员，提出人）
   in_system: true
   facts: 已解决 → 处理时长（仅分析）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2113
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2114
 - object: OBJ-115
   object_name: IT 资产使用记录
   level: 次级（公司资产，按卡片 ID 引用）
   in_system: true
   facts: 已领用 / 已调拨 / 已归还 → 使用台账（离职交接可读）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2132
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2133
 - object: OBJ-116
   object_name: 员工活动申请
   level: 次级（人员，申请人）
   in_system: true
   facts: 已批准 → 活动安排（仅分析）
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2152
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2153
 - object: OBJ-117
   object_name: 勾稽差异案
   level: 次级（财务）
   in_system: true
   facts: 差异额及结案结果
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2171
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2172
 - object: OBJ-118
   object_name: 费用事前申请
   level: 一级（不依附费用报销，申请人是角色引用）
   in_system: true
   facts: 已批准 → 事前批准金额
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2190
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2191
 - object: OBJ-119
   object_name: 出差申请
   level: 一级（不依附费用报销，申请人是角色引用）
   in_system: true
   facts: 已批准 → 行程批准结果
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2208
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2209
 - object: OBJ-120
   object_name: 差旅订单
   level: 次级（出差申请）
   in_system: true
   facts: 订单审批与核对结果
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2226
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2227
 - object: OBJ-121
   object_name: 差旅订单月账单
   level: 次级（财务）
   in_system: true
   facts: 已确认应付 → 实际应付与费用确认依据
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2245
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2246
 - object: OBJ-122
   object_name: 假期余额账户
   level: 次级（人员 × 假期类型 × 年度）
   in_system: true
   facts: 核定、使用、结转、折算与手工调整变动
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2264
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2265
 - object: OBJ-123
   object_name: 人员薪酬档案
   level: 次级（人员）
   in_system: true
   facts: 薪资变更与待计发调整的计薪依据
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2283
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2284
 - object: OBJ-124
   object_name: 业务规则（暂名，待 one-glossary 定名）
   level: 一级（不依附其他对象）
   in_system: true
   facts: 规则版本已生效 → 后续业务按它办
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2302
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2303
 - object: OBJ-125
   object_name: 外部法定账对账（暂名，待 one-glossary 定名）
   level: 次级（财务）
   in_system: true
   facts: 对账已签字 → 期间报告可发布
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2320
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2321
 - object: OBJ-126
   object_name: 股东
   level: 一级（不依附其他对象）
   in_system: true
   facts: 出资、退出、分配的权益事实主体
   classification: declared
-  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2339
+  source: docs/modernization/architecture/ssot/10-objects/objects.yaml:2340
 by_event:
 - event_type: platform.approval.ApprovalCompleted
   title: 审批结束（已通过 / 已驳回 / 已退回 / 已撤销）
