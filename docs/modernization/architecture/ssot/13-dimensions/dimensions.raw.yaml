@@ -1069,6 +1069,25 @@ by_metric_baseline:
   事实 BC: '`delivery.execution`、`delivery.acceptance`'
   source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:132
 by_versioned_master_tables:
+- table: organization_workforce.employee_versions
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: NEW
+  writers: []
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:660
+  - name: effective_to_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:661
+  source: backend/architecture/data-access-registry.yaml:142
 - table: organization_workforce.org_unit_versions
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1088,7 +1107,7 @@ by_versioned_master_tables:
   - name: effective_to_date
     type: date
     source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:321
-  source: backend/architecture/data-access-registry.yaml:145
+  source: backend/architecture/data-access-registry.yaml:163
 - table: organization_workforce.assignment_versions
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1108,26 +1127,7 @@ by_versioned_master_tables:
   - name: effective_to_date
     type: date
     source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:362
-  source: backend/architecture/data-access-registry.yaml:152
-- table: organization_workforce.employee_versions
-  role: DIMENSION_VERSIONED
-  mutability: APPEND_ONLY
-  retention:
-    policy: PERMANENT
-  lineage:
-    source: NEW
-  writers: []
-  readers: null
-  missing_fields:
-  - readers
-  effective_columns:
-  - name: effective_from_date
-    type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:660
-  - name: effective_to_date
-    type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:661
-  source: backend/architecture/data-access-registry.yaml:168
+  source: backend/architecture/data-access-registry.yaml:170
 - table: organization_workforce.legal_entity_versions
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY

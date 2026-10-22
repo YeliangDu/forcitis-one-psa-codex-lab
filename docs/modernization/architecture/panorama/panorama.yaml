@@ -61,7 +61,7 @@ meta:
     agg: 145
     bc: 51
     sd: 13
-    table: 72
+    table: 74
     rule: 512
     ep: 601
     tc: 1132
@@ -147,7 +147,7 @@ meta:
         covers: 1
     表→聚合:
       covered: 20
-      total: 32
+      total: 33
       via:
         built: 20
         panorama: 0
@@ -18113,6 +18113,20 @@ nodes:
       role: SNAPSHOT
       registered: true
       registered_aggregate: null
+    organization_workforce.employee_versions:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/organization_workforce.employee_versions
+      role: DIMENSION_VERSIONED
+      registered: true
+      registered_aggregate: Employee
+    organization_workforce.personnel_commands:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/organization_workforce.personnel_commands
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: Employee
     organization_workforce.org_unit_versions:
       aggregates: []
       sources:
