@@ -4,6 +4,22 @@
 
 每轮生成一次，反复跑到收敛。缺口是「缺上层」还是「本身多余」，由 one-architecture 逐条判定，写进层笔记的待决问题。
 
+## 覆盖率
+
+按起点去重；via 列为每种出处下已覆盖起点数（可重叠），不是执行通过率。表→聚合只统计 data-access-registry 的三类业务表；API→BC 按路径统计，方法数见 api 节点。
+
+| 关系 | 已覆盖 / 总数 | via（已覆盖起点数） |
+|---|---|---|
+| INV→EP | 3 / 148 | enforces: 0、manual: 3、rule: 0 |
+| INV→TC | 1 / 148 | class_covers: 0、covers: 0、rule: 1 |
+| RULE→TC（有 INV 对照） | 1 / 38 | class_covers: 0、covers: 1 |
+| 表→聚合 | 20 / 28 | built: 20、panorama: 0 |
+| 事件→聚合 | 59 / 59 | events: 47、module: 49 |
+| 事件→发布 BC | 59 / 59 | publisher: 59 |
+| API→BC | 58 / 58 | controller: 58 |
+
+登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 2、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 7、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
+
 | 节点 | 层 | 条目数 |
 |---|---|---|
 | 01 干系人 | sh | 39 |
@@ -14,20 +30,31 @@
 | 06 价值流与阶段 | vs | 15 |
 | 06 价值流与阶段 | stage | 61 |
 | 07 业务流程 | prc | 200 |
-| 08 约束与认定规则 | inv | 134 |
+| 08 约束与认定规则 | inv | 148 |
 | 09 业务对象 | obj | 104 |
-| 10 受控业务执行 | act | 651 |
+| 10 受控业务执行 | act | 671 |
 | 11 业务事实 | fact | 0 |
 | 12 维度 | dim | 0 |
 | 13 指标与评价 | metric | 79 |
 | 14 计算绑定 | bind | 0 |
 | 15 决策与行动 | dec | 0 |
-| 09/10 映射  | agg | 130 |
-| 09/10 映射  | bc | 31 |
+| 09/10 映射  | agg | 145 |
+| 09/10 映射  | bc | 51 |
 | 09/10 映射  | sd | 13 |
-| 09/10 映射  | table | 25 |
+| 09/10 映射  | table | 65 |
+| 08 约束与认定规则 | rule | 512 |
+| 10 受控业务执行 | ep | 601 |
+| 10 受控业务执行 | tc | 1132 |
+| 10 映射  | api | 68 |
+| 10 映射  | mod | 13 |
+| 10 受控业务执行 | cmd | 608 |
+| 09/10 映射  | otr | 873 |
+| 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
-| 07 业务流程 | steps | 647 |
+| 07 业务流程 | steps | 651 |
+| 01 映射  | perm | 27 |
+| 01 映射  | srole | 7 |
+| 01 映射  | role | 56 |
 
 对象按分类：业务对象 96、从属对象 6、参照数据 1、视图 1。
 
@@ -46,17 +73,32 @@
 | N07-1 | 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1） | 0 |
 | N07-2 | 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判） | 0 |
 | N07-P1 | P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml | 0 |
+| N01-R1 | 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查） | 0 |
+| N01-R2 | 每个 ROLE 写明由谁承担（host_category 非空） | 0 |
+| N01-R3 | 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告） | 4 |
 | N08-1 | 每个不变量都归属存在的聚合 | 0 |
+| N08-2 | 每条不变量至少有一个执行点 | 145 |
+| N08-3 | 每条不变量至少有一个用例 | 147 |
+| N08-4 | 每张有不变量对照的 RULE 至少有一个用例 | 37 |
 | N09-1 | 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除） | 1 |
 | N09-2 | 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求） | 2 |
 | N09-3 | 每个聚合对应的对象都出现在某个阶段的门或段内状态中 | 8 |
 | N09-4 | 依附链必填：非一级的有效对象「父对象」列填有效 OBJ 编号，一级对象填「—」 | 1 |
 | N09-M1 | 每个聚合都归属一个 BC | 10 |
-| N09-M2 | 每个聚合都有不变量 | 29 |
-| N09-M3 | 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张） | 130 |
-| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 25 |
+| N09-M2 | 每个聚合都有不变量 | 36 |
+| N09-M3 | 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张） | 132 |
+| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 65 |
+| N09-M5 | 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数） | 8 |
+| N09-M6 | 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口） | 1 |
+| N10-M2 | 每个后端模块在 module-dependencies.txt 登记 | 0 |
+| N10-M3 | 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属） | 0 |
 | N10-1 | 每个受控业务执行（命令）都有 owner BC | 37 |
-| N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 3 |
+| N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 4 |
+| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 1 |
+| N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 47 |
+| N10-4 | 每个已建命令类在 ssot/11-commands/command-mapping.yaml 登记对照（pending 计缺口） | 0 |
+| N10-5 | 每个事件有唯一发布者与版本 | 0 |
+| N10-6 | 跨 BC 只走已发布事件或契约（订阅模块对发布模块的依赖须登记；只按 kernel DomainEvent 信封接收的订阅方除外） | 0 |
 | N11-1 | 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列） | 6 |
 | N13-1 | 每个阶段都有指标 | 61 |
 | N13-2 | 每个指标都能追到阶段或流程 | 79 |
@@ -118,6 +160,351 @@
 - VS-10.1 关闭会计期间（门对象 OBJ-97→断、OBJ-98→断）
 - VS-10.2 发布报表（门对象 OBJ-125→断、OBJ-97→断、OBJ-98→断）
 
+## N01-R3 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告）（4）
+
+- cost.timesheet:timesheet:submit
+- cost.timesheet:timesheet:approve
+- platform.numbering:voucher-numbering-rule:approve
+- platform.numbering:legacy-number:read
+
+## N08-2 每条不变量至少有一个执行点（145）
+
+- INV-01
+- INV-02
+- INV-03a
+- INV-03b
+- INV-03c
+- INV-04a
+- INV-04b
+- INV-05
+- INV-06
+- INV-07
+- INV-08
+- INV-09
+- INV-10
+- INV-11
+- INV-12
+- INV-13
+- INV-14
+- INV-15
+- INV-16a
+- INV-16b
+- INV-17
+- INV-18
+- INV-19
+- INV-20
+- INV-21
+- INV-22
+- INV-23
+- INV-24
+- INV-25
+- INV-26
+- INV-27
+- INV-28
+- INV-29
+- INV-30
+- INV-31
+- INV-32
+- INV-33
+- INV-34
+- INV-34a
+- INV-34b
+- INV-35
+- INV-36
+- INV-36a
+- INV-37
+- INV-39
+- INV-39a
+- INV-39b
+- INV-40
+- INV-41
+- INV-42
+- INV-43
+- INV-44
+- INV-46
+- INV-47
+- INV-48
+- INV-49
+- INV-50
+- INV-51
+- INV-52
+- INV-53
+- INV-54
+- INV-55
+- INV-56
+- INV-57
+- INV-58
+- INV-59
+- INV-60
+- INV-63
+- INV-65
+- INV-66
+- INV-67
+- INV-68
+- INV-69
+- INV-70
+- INV-105
+- INV-71
+- INV-72
+- INV-73
+- INV-74
+- INV-75
+- INV-75a
+- INV-76
+- INV-77
+- INV-77a
+- INV-78
+- INV-78a
+- INV-79
+- INV-80
+- INV-81
+- INV-82
+- INV-83
+- INV-84
+- INV-85
+- INV-86
+- INV-88
+- INV-89
+- INV-90
+- INV-91
+- INV-91a
+- INV-92
+- INV-93
+- INV-94
+- INV-95
+- INV-95a
+- INV-96
+- INV-97
+- INV-98
+- INV-99
+- INV-100
+- INV-101
+- INV-103
+- INV-104
+- INV-106
+- INV-107
+- INV-108
+- INV-109
+- INV-110
+- INV-111
+- INV-112
+- INV-113
+- INV-114
+- INV-115
+- INV-116
+- INV-117
+- INV-118
+- INV-119
+- INV-120
+- INV-121
+- INV-123
+- INV-124
+- INV-125
+- INV-126
+- INV-127
+- INV-128
+- INV-129
+- INV-130
+- INV-131
+- INV-132
+- INV-133
+- INV-134
+- INV-135
+- INV-136
+- INV-137
+- INV-138
+- INV-139
+
+## N08-3 每条不变量至少有一个用例（147）
+
+- INV-01
+- INV-02
+- INV-03a
+- INV-03b
+- INV-03c
+- INV-04a
+- INV-04b
+- INV-05
+- INV-06
+- INV-07
+- INV-08
+- INV-09
+- INV-10
+- INV-11
+- INV-12
+- INV-13
+- INV-14
+- INV-15
+- INV-16a
+- INV-16b
+- INV-17
+- INV-18
+- INV-19
+- INV-20
+- INV-21
+- INV-22
+- INV-23
+- INV-24
+- INV-25
+- INV-26
+- INV-27
+- INV-28
+- INV-29
+- INV-30
+- INV-31
+- INV-32
+- INV-33
+- INV-34
+- INV-34a
+- INV-34b
+- INV-35
+- INV-36
+- INV-36a
+- INV-37
+- INV-39
+- INV-39a
+- INV-39b
+- INV-40
+- INV-41
+- INV-42
+- INV-43
+- INV-44
+- INV-46
+- INV-47
+- INV-48
+- INV-49
+- INV-50
+- INV-51
+- INV-52
+- INV-53
+- INV-54
+- INV-55
+- INV-56
+- INV-57
+- INV-58
+- INV-59
+- INV-60
+- INV-62
+- INV-63
+- INV-64
+- INV-65
+- INV-66
+- INV-67
+- INV-68
+- INV-69
+- INV-70
+- INV-105
+- INV-71
+- INV-72
+- INV-73
+- INV-74
+- INV-75
+- INV-75a
+- INV-76
+- INV-77
+- INV-77a
+- INV-78
+- INV-78a
+- INV-79
+- INV-80
+- INV-81
+- INV-82
+- INV-83
+- INV-84
+- INV-85
+- INV-86
+- INV-88
+- INV-89
+- INV-90
+- INV-91
+- INV-91a
+- INV-92
+- INV-93
+- INV-94
+- INV-95
+- INV-95a
+- INV-96
+- INV-97
+- INV-98
+- INV-99
+- INV-100
+- INV-101
+- INV-103
+- INV-104
+- INV-106
+- INV-107
+- INV-108
+- INV-109
+- INV-110
+- INV-111
+- INV-112
+- INV-113
+- INV-114
+- INV-115
+- INV-116
+- INV-117
+- INV-118
+- INV-119
+- INV-120
+- INV-121
+- INV-123
+- INV-124
+- INV-125
+- INV-126
+- INV-127
+- INV-128
+- INV-129
+- INV-130
+- INV-131
+- INV-132
+- INV-133
+- INV-134
+- INV-135
+- INV-136
+- INV-137
+- INV-138
+- INV-139
+
+## N08-4 每张有不变量对照的 RULE 至少有一个用例（37）
+
+- DATA-RULE-01
+- DATA-RULE-03
+- DATA-RULE-07
+- RULE-021
+- RULE-024
+- RULE-025
+- RULE-030
+- RULE-031
+- RULE-032
+- RULE-037
+- RULE-063
+- RULE-070
+- RULE-072
+- RULE-091
+- RULE-092
+- RULE-099
+- RULE-126
+- RULE-134
+- RULE-168
+- RULE-184
+- RULE-185
+- RULE-205
+- RULE-213
+- RULE-219
+- RULE-398
+- RULE-399
+- RULE-400
+- RULE-402
+- RULE-403
+- RULE-404
+- RULE-405
+- RULE-407
+- RULE-408
+- RULE-409
+- RULE-410
+- RULE-411
+- RULE-413
+
 ## N09-1 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）（1）
 
 - OBJ-126 股东（无任何流程读写或以它为主、次对象）
@@ -155,7 +542,7 @@
 - AGG-95 个税扣缴与社保公积金申报
 - AGG-83 账簿
 
-## N09-M2 每个聚合都有不变量（29）
+## N09-M2 每个聚合都有不变量（36）
 
 - AGG-33 建设工程
 - AGG-08 市场活动
@@ -186,8 +573,15 @@
 - AGG-91 公司资产
 - AGG-116 员工活动申请
 - AGG-121 IT 资产维修单
+- organization.attendance/WorkCalendarYear WorkCalendarYear
+- organization.workforce/LegalEntity LegalEntity
+- organization.workforce/RegisteredEmployee RegisteredEmployee
+- platform.identity/AuthorizationRequest AuthorizationRequest
+- platform.integration/SourceReference SourceReference
+- platform.integration/SourceReferenceRefusal SourceReferenceRefusal
+- platform.numbering/NumberingRule NumberingRule
 
-## N09-M3 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）（130）
+## N09-M3 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）（132）
 
 - AGG-01 往来单位
 - AGG-02 资质证书
@@ -319,16 +713,26 @@
 - AGG-115 IT 资产使用记录
 - AGG-116 员工活动申请
 - AGG-121 IT 资产维修单
+- organization.workforce/RegisteredEmployee RegisteredEmployee
+- platform.integration/SourceReferenceRefusal SourceReferenceRefusal
 
-## N09-M4 每张表都能追到聚合，聚合能追到业务对象（25）
+## N09-M4 每张表都能追到聚合，聚合能追到业务对象（65）
 
+- cost_timesheet.consumed_events（对象 无）
 - cost_timesheet.timesheets（对象 无）
 - organization_attendance.work_calendar_years（对象 无）
 - organization_attendance.work_calendar_days（对象 无）
-- organization_workforce.legal_entities（对象 无）
+- organization_workforce.positions（对象 无）
+- organization_workforce.org_units（对象 无）
+- organization_workforce.employees（对象 无）
+- organization_workforce.assignments（对象 无）
+- organization_workforce.org_unit_versions（对象 无）
+- organization_workforce.assignment_versions（对象 无）
 - organization_workforce.sync_runs（对象 无）
 - organization_workforce.sync_diffs（对象 无）
 - organization_workforce.sync_run_held_separations（对象 无）
+- organization_workforce.legal_entities（对象 无）
+- organization_workforce.legal_entity_versions（对象 无）
 - organization_workforce.legal_entity_attributions（对象 无）
 - organization_workforce.org_unit_legal_entities（对象 无）
 - organization_workforce.employee_legal_entities（对象 无）
@@ -337,16 +741,63 @@
 - platform_approval.approval_task_records（对象 无）
 - platform_approval.start_rounds（对象 无）
 - platform_approval.approval_tasks（对象 无）
+- platform_approval.process_archive_skips（对象 无）
+- platform_approval.act_*（对象 无）
+- platform_audit.audit_entries（对象 无）
+- platform_audit.audit_archive_batches（对象 无）
+- platform_idempotency.idempotent_responses（对象 无）
 - platform_identity.user_accounts（对象 无）
-- platform_identity.account_roles（对象 无）
 - platform_identity.roles（对象 无）
 - platform_identity.role_permissions（对象 无）
+- platform_identity.account_roles（对象 无）
+- platform_identity.role_versions（对象 无）
+- platform_identity.account_role_grants（对象 无）
+- platform_identity.navigation_items（对象 无）
+- platform_identity.login_states（对象 无）
+- platform_identity.sso_ticket_uses（对象 无）
+- platform_identity.browser_identifiers（对象 无）
+- platform_identity.ticket_issuers（对象 无）
 - platform_identity.emergency_admins（对象 无）
 - platform_identity.authorization_requests（对象 无）
-- platform_integration.source_references（对象 无）
+- platform_identity.sessions（对象 无）
+- platform_identity.sessions_attributes（对象 无）
+- platform_integration.event_publication（对象 无）
+- platform_integration.event_publication_archive（对象 无）
 - platform_integration.outbound_deliveries（对象 无）
+- platform_integration.source_references（对象 无）
+- platform_numbering.document_types（对象 无）
 - platform_numbering.numbering_rules（对象 无）
 - platform_numbering.numbering_rule_versions（对象 无）
+- platform_numbering.numbering_counters（对象 无）
+- platform_numbering.legacy_numbers（对象 无）
+- platform_file.stored_files（对象 无）
+- platform_file.stored_file_names（对象 无）
+- platform_file.file_bindings（对象 无）
+- platform_file.file_holds（对象 无）
+- platform_file.file_preservations（对象 无）
+- platform_file.preservation_categories（对象 无）
+- platform_file.preservation_category_versions（对象 无）
+- platform_file.false_positive_judgments（对象 无）
+- platform_file.scan_exceptions（对象 无）
+- platform_file.scan_exception_revocations（对象 无）
+- platform_file.quarantine_read_requests（对象 无）
+- platform_file.state_transitions（对象 无）
+- platform_scheduling.scheduler_locks（对象 无）
+
+## N09-M5 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数）（8）
+
+- platform_file.stored_files（AGGREGATE_ROOT，聚合登记 StoredFile）
+- platform_file.stored_file_names（AGGREGATE_CHILD，聚合登记 StoredFile）
+- platform_file.file_bindings（AGGREGATE_CHILD，聚合登记 StoredFile）
+- platform_file.file_holds（AGGREGATE_CHILD，聚合登记 StoredFile）
+- platform_file.file_preservations（AGGREGATE_CHILD，聚合登记 StoredFile）
+- platform_file.preservation_category_versions（AGGREGATE_CHILD，聚合登记 PreservationCategory）
+- platform_file.false_positive_judgments（AGGREGATE_ROOT，聚合登记 FalsePositiveJudgment）
+- platform_file.quarantine_read_requests（AGGREGATE_ROOT，聚合登记 QuarantineReadRequest）
+
+## N09-M6 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口）（1）
+
+- organization.workforce/RegisteredEmployee（pending）
 
 ## N10-1 每个受控业务执行（命令）都有 owner BC（37）
 
@@ -388,11 +839,66 @@
 - AGG-110/解除证据关联（聚合 AGG-110 未归 BC）
 - REF-01/登记招标项目（聚合 REF-01 未归 BC）
 
-## N10-M1 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）（3）
+## N10-M1 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）（4）
 
 - B-01 往来单位（含外部工程登记）（模块 masterdata.counterparty）
 - B-02 服务与定价目录（模块 masterdata.catalog）
 - B-32 报价发出编排（暂名）（模块 None）
+- reporting 经营分析（只读）（模块 reporting）
+
+## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（1）
+
+- CMD-c2d24f95 登记招标项目（REF-01 未归 BC）
+
+## N10-3 每条状态转换有触发命令（含 pending；by_command 为空计缺口）（47）
+
+- OTR-017（transitions，AGG-55，命令 None）
+- OTR-019（transitions，AGG-55，命令 None）
+- OTR-020（transitions，AGG-55，命令 None）
+- OTR-021（transitions，AGG-55，命令 None）
+- OTR-025（transitions，AGG-55，命令 None）
+- OTR-026（transitions，AGG-55，命令 None）
+- OTR-027（transitions，AGG-55，命令 None）
+- OTR-087（transitions，AGG-56，命令 None）
+- OTR-088（transitions，AGG-56，命令 None）
+- OTR-414（transitions，AGG-40，命令 None）
+- OTR-415（transitions，AGG-40，命令 None）
+- OTR-416（transitions，AGG-40，命令 None）
+- OTR-423（transitions，AGG-45，命令 None）
+- OTR-511（transitions，AGG-53，命令 None）
+- OTR-514（transitions，AGG-53，命令 None）
+- OTR-515（transitions，AGG-53，命令 None）
+- OTR-536（transitions，AGG-59，命令 None）
+- OTR-537（transitions，AGG-59，命令 None）
+- OTR-567（transitions，AGG-90，命令 None）
+- OTR-584（transitions，AGG-91，命令 None）
+- OTR-589（transitions，AGG-82，命令 None）
+- OTR-590（transitions，AGG-82，命令 None）
+- OTR-612（transitions，AGG-98，命令 None）
+- OTR-613（transitions，AGG-98，命令 None）
+- OTR-614（transitions，AGG-98，命令 None）
+- OTR-619（transitions，AGG-86，命令 None）
+- OTR-620（transitions，AGG-86，命令 None）
+- OTR-690（transitions，AGG-109，命令 None）
+- OTR-720（transitions，AGG-115，命令 None）
+- OTR-725（transitions，AGG-115，命令 None）
+- OTR-785（transitions，AGG-78，命令 None）
+- OTR-786（transitions，AGG-78，命令 None）
+- OTR-789（transitions，AGG-123，命令 None）
+- OTR-790（transitions，AGG-123，命令 None）
+- OTR-793（transitions，AGG-124，命令 None）
+- OTR-794（transitions，AGG-124，命令 None）
+- OTR-797（transitions，AGG-133，命令 None）
+- OTR-798（transitions，AGG-133，命令 None）
+- OTR-807（transitions，AGG-101，命令 None）
+- OTR-827（transitions，AGG-85，命令 None）
+- OTR-828（transitions，AGG-85，命令 None）
+- OTR-831（transitions，AGG-94，命令 None）
+- OTR-832（transitions，AGG-94，命令 None）
+- OTR-839（transitions，AGG-128，命令 None）
+- OTR-840（transitions，AGG-128，命令 None）
+- OTR-843（transitions，AGG-129，命令 None）
+- OTR-844（transitions，AGG-129，命令 None）
 
 ## N11-1 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）（6）
 

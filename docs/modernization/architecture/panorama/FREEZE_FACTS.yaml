@@ -40,7 +40,7 @@ OBJ-01:
     - 登记往来单位
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:59
+  src: architecture/ssot/10-objects/objects.yaml#objects[0]/OBJ-01
   initial: 确认建模
   why: 有状态且被指向
 OBJ-02:
@@ -73,7 +73,7 @@ OBJ-02:
     - 核实往来单位档案
     - 申请往来单位角色
     - 登记往来单位
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
+  src: architecture/ssot/10-objects/objects.yaml#objects[1]/OBJ-02
   initial: 确认建模
   why: 有状态且被指向
 OBJ-03:
@@ -99,7 +99,7 @@ OBJ-03:
     - 核实往来单位档案
     - 申请往来单位角色
     - 登记往来单位
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
+  src: architecture/ssot/10-objects/objects.yaml#objects[2]/OBJ-03
   initial: 从属对象
   why: OBJD 定论从属对象
 OBJ-05:
@@ -159,6 +159,9 @@ OBJ-05:
     - PRC-83
     - PRC-99
     08:
+    - INV-03a
+    - INV-03b
+    - INV-04a
     - INV-05
     - INV-06
     - INV-07
@@ -170,7 +173,6 @@ OBJ-05:
     - INV-125
     - INV-126
     - INV-13
-    - INV-131
     - INV-14
     - INV-15
     - INV-28
@@ -220,7 +222,7 @@ OBJ-05:
     - 驳回合同评审
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:63
+  src: architecture/ssot/10-objects/objects.yaml#objects[4]/OBJ-05
   initial: 确认建模
   why: 有状态且被指向
 OBJ-06:
@@ -234,6 +236,7 @@ OBJ-06:
   identity_hint: true
   pointers:
     08:
+    - INV-03a
     - INV-05
     - INV-06
     - INV-07
@@ -267,7 +270,7 @@ OBJ-06:
     - 驳回合同评审
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
+  src: architecture/ssot/10-objects/objects.yaml#objects[5]/OBJ-06
   initial: 从属对象
   why: OBJD 定论从属对象
 OBJ-07:
@@ -291,6 +294,7 @@ OBJ-07:
     - PRC-47
     - PRC-56
     08:
+    - INV-03a
     - INV-05
     - INV-06
     - INV-07
@@ -324,7 +328,7 @@ OBJ-07:
     - 驳回合同评审
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
+  src: architecture/ssot/10-objects/objects.yaml#objects[6]/OBJ-07
   initial: 确认建模
   why: 有状态且被指向
 OBJ-08:
@@ -341,6 +345,7 @@ OBJ-08:
     '06':
     - VS-02.7
     08:
+    - INV-03a
     - INV-05
     - INV-06
     - INV-07
@@ -374,7 +379,7 @@ OBJ-08:
     - 驳回合同评审
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
+  src: architecture/ssot/10-objects/objects.yaml#objects[7]/OBJ-08
   initial: 从属对象
   why: OBJD 定论从属对象
 OBJ-09:
@@ -397,7 +402,8 @@ OBJ-09:
     - PRC-48
     - PRC-71
     08:
-    - INV-16
+    - INV-16a
+    - INV-16b
     '10':
     - 提交协议变更审批
     - 提出分包变更
@@ -411,7 +417,7 @@ OBJ-09:
     - 驳回协议变更审批
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
+  src: architecture/ssot/10-objects/objects.yaml#objects[8]/OBJ-09
   initial: 确认建模
   why: 有状态且被指向
 OBJ-10:
@@ -439,7 +445,7 @@ OBJ-10:
     - 认定索赔
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
+  src: architecture/ssot/10-objects/objects.yaml#objects[9]/OBJ-10
   initial: 确认建模
   why: 有状态且被指向
 OBJ-12:
@@ -474,7 +480,7 @@ OBJ-12:
     - 驳回风险交付授权
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
+  src: architecture/ssot/10-objects/objects.yaml#objects[11]/OBJ-12
   initial: 确认建模
   why: 有状态且被指向
 OBJ-13:
@@ -511,7 +517,7 @@ OBJ-13:
     - 退还保证金
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
+  src: architecture/ssot/10-objects/objects.yaml#objects[12]/OBJ-13
   initial: 确认建模
   why: 有状态且被指向
 OBJ-16:
@@ -536,7 +542,7 @@ OBJ-16:
     - 计划市场活动
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:75
+  src: architecture/ssot/10-objects/objects.yaml#objects[15]/OBJ-16
   initial: 确认建模
   why: 有状态且被指向
 OBJ-17:
@@ -567,7 +573,7 @@ OBJ-17:
     - 认领线索
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:76
+  src: architecture/ssot/10-objects/objects.yaml#objects[16]/OBJ-17
   initial: 确认建模
   why: 有状态且被指向
 OBJ-18:
@@ -614,7 +620,7 @@ OBJ-18:
     - 维护商机参与团队
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:77
+  src: architecture/ssot/10-objects/objects.yaml#objects[17]/OBJ-18
   initial: 确认建模
   why: 有状态且被指向
 OBJ-19:
@@ -637,7 +643,7 @@ OBJ-19:
     '07':
     - PRC-08
     - PRC-14
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:78
+  src: architecture/ssot/10-objects/objects.yaml#objects[18]/OBJ-19
   initial: 确认建模
   why: 有状态且被指向
 OBJ-20:
@@ -675,7 +681,7 @@ OBJ-20:
     - 递交投标
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
+  src: architecture/ssot/10-objects/objects.yaml#objects[19]/OBJ-20
   initial: 确认建模
   why: 有状态且被指向
 OBJ-21:
@@ -714,7 +720,7 @@ OBJ-21:
     - 驳回报价评审
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
+  src: architecture/ssot/10-objects/objects.yaml#objects[20]/OBJ-21
   initial: 确认建模
   why: 有状态且被指向
 OBJ-22:
@@ -739,7 +745,7 @@ OBJ-22:
     - 驳回报价评审
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
+  src: architecture/ssot/10-objects/objects.yaml#objects[21]/OBJ-22
   initial: 从属对象
   why: OBJD 定论从属对象
 OBJ-23:
@@ -766,7 +772,7 @@ OBJ-23:
     '10':
     - 创建独立性检查
     - 登记独立性检查结论
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
+  src: architecture/ssot/10-objects/objects.yaml#objects[22]/OBJ-23
   initial: 确认建模
   why: 有状态且被指向
 OBJ-24:
@@ -784,12 +790,14 @@ OBJ-24:
     '07':
     - PRC-12
     - PRC-182
+    08:
+    - INV-34
     '10':
     - 停用服务产品版本
     - 发布服务产品版本
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:84
+  src: architecture/ssot/10-objects/objects.yaml#objects[23]/OBJ-24
   initial: 确认建模
   why: 有状态且被指向
 OBJ-25:
@@ -806,12 +814,14 @@ OBJ-25:
     - VS-15.2
     '07':
     - PRC-12
+    08:
+    - INV-34a
     '10':
     - 停用阶段类型版本
     - 发布阶段类型版本
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:85
+  src: architecture/ssot/10-objects/objects.yaml#objects[24]/OBJ-25
   initial: 确认建模
   why: 有状态且被指向
 OBJ-26:
@@ -836,13 +846,14 @@ OBJ-26:
     08:
     - INV-131
     - INV-35
+    - INV-36
     '10':
     - 批准费率版本
     - 生效费率版本
     - 编制费率版本
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:86
+  src: architecture/ssot/10-objects/objects.yaml#objects[25]/OBJ-26
   initial: 确认建模
   why: 有状态且被指向
 OBJ-27:
@@ -863,12 +874,11 @@ OBJ-27:
     - PRC-07
     - PRC-13
     08:
-    - INV-131
-    - INV-36
+    - INV-36a
     '10':
     - 生效计费系数版本
     - 编制计费系数版本
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
+  src: architecture/ssot/10-objects/objects.yaml#objects[26]/OBJ-27
   initial: 确认建模
   why: 有状态且被指向
 OBJ-28:
@@ -896,7 +906,7 @@ OBJ-28:
     '10':
     - 发布标准工时版本
     - 维护工作日历年度
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:88
+  src: architecture/ssot/10-objects/objects.yaml#objects[27]/OBJ-28
   initial: 确认建模
   why: 有状态且被指向
 OBJ-29:
@@ -946,7 +956,7 @@ OBJ-29:
     - 结项
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:90
+  src: architecture/ssot/10-objects/objects.yaml#objects[28]/OBJ-29
   initial: 确认建模
   why: 有状态且被指向
 OBJ-30:
@@ -990,7 +1000,7 @@ OBJ-30:
     - 锁定工作包
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
+  src: architecture/ssot/10-objects/objects.yaml#objects[29]/OBJ-30
   initial: 确认建模
   why: 有状态且被指向
 OBJ-31:
@@ -1017,7 +1027,7 @@ OBJ-31:
     - 编制交付计划版本
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
+  src: architecture/ssot/10-objects/objects.yaml#objects[30]/OBJ-31
   initial: 确认建模
   why: 有状态且被指向
 OBJ-32:
@@ -1044,7 +1054,7 @@ OBJ-32:
     - 锁定项目预算
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
+  src: architecture/ssot/10-objects/objects.yaml#objects[31]/OBJ-32
   initial: 确认建模
   why: 有状态且被指向
 OBJ-33:
@@ -1077,7 +1087,7 @@ OBJ-33:
     - 提出完工估算
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
+  src: architecture/ssot/10-objects/objects.yaml#objects[32]/OBJ-33
   initial: 确认建模
   why: 有状态且被指向
 OBJ-34:
@@ -1097,7 +1107,7 @@ OBJ-34:
     - PRC-17
     '10':
     - 维护项目团队成员
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
+  src: architecture/ssot/10-objects/objects.yaml#objects[33]/OBJ-34
   initial: 确认建模
   why: 有状态且被指向
 OBJ-35:
@@ -1153,7 +1163,7 @@ OBJ-35:
     - 编制交付物
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:96
+  src: architecture/ssot/10-objects/objects.yaml#objects[34]/OBJ-35
   initial: 确认建模
   why: 有状态且被指向
 OBJ-37:
@@ -1187,7 +1197,7 @@ OBJ-37:
     - 编制交付物
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
+  src: architecture/ssot/10-objects/objects.yaml#objects[36]/OBJ-37
   initial: 从属对象
   why: OBJD 定论从属对象
 OBJ-38:
@@ -1241,7 +1251,7 @@ OBJ-38:
     - 闭合不符合项
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+  src: architecture/ssot/10-objects/objects.yaml#objects[37]/OBJ-38
   initial: 确认建模
   why: 有状态且被指向
 OBJ-39:
@@ -1266,7 +1276,7 @@ OBJ-39:
     - 认定返工
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
+  src: architecture/ssot/10-objects/objects.yaml#objects[38]/OBJ-39
   initial: 确认建模
   why: 有状态且被指向
 OBJ-40:
@@ -1301,7 +1311,7 @@ OBJ-40:
     - 认定变更归因与影响
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
+  src: architecture/ssot/10-objects/objects.yaml#objects[39]/OBJ-40
   initial: 确认建模
   why: 有状态且被指向
 OBJ-41:
@@ -1332,7 +1342,7 @@ OBJ-41:
     - 通知延期
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
+  src: architecture/ssot/10-objects/objects.yaml#objects[40]/OBJ-41
   initial: 确认建模
   why: 有状态且被指向
 OBJ-42:
@@ -1360,7 +1370,7 @@ OBJ-42:
     - 登记资料需求
     - 确认发包人资料
     - 退回发包人资料
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
+  src: architecture/ssot/10-objects/objects.yaml#objects[41]/OBJ-42
   initial: 确认建模
   why: 有状态且被指向
 OBJ-44:
@@ -1386,7 +1396,7 @@ OBJ-44:
     - 标记资源需求已满足
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
+  src: architecture/ssot/10-objects/objects.yaml#objects[43]/OBJ-44
   initial: 确认建模
   why: 有状态且被指向
 OBJ-45:
@@ -1408,7 +1418,7 @@ OBJ-45:
     - 确认资源分配
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
+  src: architecture/ssot/10-objects/objects.yaml#objects[44]/OBJ-45
   initial: 确认建模
   why: 有状态且被指向
 OBJ-46:
@@ -1438,7 +1448,7 @@ OBJ-46:
     - 更新外部状态
     - 登记建设工程
     - 登记我方参与记录
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:108
+  src: architecture/ssot/10-objects/objects.yaml#objects[45]/OBJ-46
   initial: 确认建模
   why: 有状态且被指向
 OBJ-47:
@@ -1460,7 +1470,7 @@ OBJ-47:
     - 更新外部状态
     - 登记建设工程
     - 登记我方参与记录
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
+  src: architecture/ssot/10-objects/objects.yaml#objects[46]/OBJ-47
   initial: 从属对象
   why: OBJD 定论从属对象
 OBJ-48:
@@ -1486,7 +1496,7 @@ OBJ-48:
     - 登记检查计划
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
+  src: architecture/ssot/10-objects/objects.yaml#objects[47]/OBJ-48
   initial: 确认建模
   why: 有状态且被指向
 OBJ-49:
@@ -1527,7 +1537,7 @@ OBJ-49:
     - 锁定检查
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
+  src: architecture/ssot/10-objects/objects.yaml#objects[48]/OBJ-49
   initial: 确认建模
   why: 有状态且被指向
 OBJ-50:
@@ -1550,11 +1560,11 @@ OBJ-50:
     - PRC-42
     - PRC-43
     08:
-    - INV-34
+    - INV-34b
     '10':
     - 停用检查表模板版本
     - 发布检查表模板版本
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
+  src: architecture/ssot/10-objects/objects.yaml#objects[49]/OBJ-50
   initial: 确认建模
   why: 有状态且被指向
 OBJ-52:
@@ -1586,7 +1596,7 @@ OBJ-52:
     - 采信外部检测报告
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
+  src: architecture/ssot/10-objects/objects.yaml#objects[51]/OBJ-52
   initial: 确认建模
   why: 有状态且被指向
 OBJ-53:
@@ -1624,7 +1634,7 @@ OBJ-53:
     - 作废证据
     - 封存证据
     - 采集证据
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:115
+  src: architecture/ssot/10-objects/objects.yaml#objects[52]/OBJ-53
   initial: 确认建模
   why: 有状态且被指向
 OBJ-54:
@@ -1652,10 +1662,11 @@ OBJ-54:
     - 停用法人主体
     - 启用法人主体
     - 更名法人主体
+    - 更正法人代码
     - 登记法人主体
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:117
+  src: architecture/ssot/10-objects/objects.yaml#objects[53]/OBJ-54
   initial: 确认建模
   why: 有状态且被指向
 OBJ-55:
@@ -1686,10 +1697,11 @@ OBJ-55:
     '10':
     - 指定法人归属
     - 更正法人归属
+    - 终止法人归属
     - 调整组织单元
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:118
+  src: architecture/ssot/10-objects/objects.yaml#objects[54]/OBJ-55
   initial: 确认建模
   why: 有状态且被指向
 OBJ-56:
@@ -1760,11 +1772,12 @@ OBJ-56:
     - 登记候选人答复
     - 登记入职
     - 离职生效
+    - 终止法人归属
     - 记录面试
     - 驳回公司终止
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:119
+  src: architecture/ssot/10-objects/objects.yaml#objects[55]/OBJ-56
   initial: 确认建模
   why: 有状态且被指向
 OBJ-57:
@@ -1796,7 +1809,7 @@ OBJ-57:
     - 驳回调岗申请
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:120
+  src: architecture/ssot/10-objects/objects.yaml#objects[56]/OBJ-57
   initial: 待判
   why: 状态写法不是有限状态集（只追加、版本区间等），待对拍判参照、属性或从属
 OBJ-58:
@@ -1822,7 +1835,7 @@ OBJ-58:
     - 修改岗位
     - 停用岗位
     - 新建岗位
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:121
+  src: architecture/ssot/10-objects/objects.yaml#objects[57]/OBJ-58
   initial: 确认建模
   why: 有状态且被指向
 OBJ-60:
@@ -1847,7 +1860,7 @@ OBJ-60:
     - 关闭招聘需求
     - 批准招聘需求
     - 提交招聘需求
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:123
+  src: architecture/ssot/10-objects/objects.yaml#objects[59]/OBJ-60
   initial: 确认建模
   why: 有状态且被指向
 OBJ-62:
@@ -1879,7 +1892,7 @@ OBJ-62:
     - 调整缴费基数
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:125
+  src: architecture/ssot/10-objects/objects.yaml#objects[61]/OBJ-62
   initial: 确认建模
   why: 有状态且被指向
 OBJ-64:
@@ -1904,7 +1917,7 @@ OBJ-64:
     - 注销注册执业证书
     - 登记注册执业证书
     - 登记继续教育学时
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:127
+  src: architecture/ssot/10-objects/objects.yaml#objects[63]/OBJ-64
   initial: 确认建模
   why: 有状态且被指向
 OBJ-65:
@@ -1935,7 +1948,7 @@ OBJ-65:
     - 标记资质已到期
     - 登记核查结果
     - 登记资质证书
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
+  src: architecture/ssot/10-objects/objects.yaml#objects[64]/OBJ-65
   initial: 确认建模
   why: 有状态且被指向
 OBJ-66:
@@ -1960,6 +1973,7 @@ OBJ-66:
     - PRC-91
     08:
     - INV-37
+    - INV-39
     - INV-53
     - INV-64
     - INV-65
@@ -1976,7 +1990,7 @@ OBJ-66:
     - 驳回工时单
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
+  src: architecture/ssot/10-objects/objects.yaml#objects[65]/OBJ-66
   initial: 确认建模
   why: 有状态且被指向
 OBJ-68:
@@ -2008,7 +2022,7 @@ OBJ-68:
     - 驳回请假
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:131
+  src: architecture/ssot/10-objects/objects.yaml#objects[67]/OBJ-68
   initial: 确认建模
   why: 有状态且被指向
 OBJ-70:
@@ -2028,7 +2042,7 @@ OBJ-70:
     '10':
     - 导入考勤记录
     - 补卡
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:133
+  src: architecture/ssot/10-objects/objects.yaml#objects[69]/OBJ-70
   initial: 待判
   why: 状态写法不是有限状态集（只追加、版本区间等），待对拍判参照、属性或从属
 OBJ-72:
@@ -2056,7 +2070,7 @@ OBJ-72:
     - 驳回加班
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:135
+  src: architecture/ssot/10-objects/objects.yaml#objects[71]/OBJ-72
   initial: 确认建模
   why: 有状态且被指向
 OBJ-73:
@@ -2098,7 +2112,7 @@ OBJ-73:
     - 退回薪酬重算
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
+  src: architecture/ssot/10-objects/objects.yaml#objects[72]/OBJ-73
   initial: 确认建模
   why: 有状态且被指向
 OBJ-74:
@@ -2128,7 +2142,7 @@ OBJ-74:
     - 驳回激励方案版本
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:137
+  src: architecture/ssot/10-objects/objects.yaml#objects[73]/OBJ-74
   initial: 确认建模
   why: 有状态且被指向
 OBJ-78:
@@ -2151,12 +2165,12 @@ OBJ-78:
     - PRC-97
     - PRC-98
     08:
-    - INV-131
+    - INV-91
     '10':
     - 批准分摊规则版本
     - 生效分摊规则版本
     - 编制分摊规则版本
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:142
+  src: architecture/ssot/10-objects/objects.yaml#objects[77]/OBJ-78
   initial: 确认建模
   why: 有状态且被指向
 OBJ-81:
@@ -2179,7 +2193,7 @@ OBJ-81:
     - PRC-54
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:146
+  src: architecture/ssot/10-objects/objects.yaml#objects[80]/OBJ-81
   initial: 确认建模
   why: 有状态且被指向
 OBJ-82:
@@ -2210,7 +2224,7 @@ OBJ-82:
     - 驳回开票申请
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
+  src: architecture/ssot/10-objects/objects.yaml#objects[81]/OBJ-82
   initial: 确认建模
   why: 有状态且被指向
 OBJ-83:
@@ -2262,7 +2276,7 @@ OBJ-83:
     - 释放进项发票占用
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:148
+  src: architecture/ssot/10-objects/objects.yaml#objects[82]/OBJ-83
   initial: 确认建模
   why: 有状态且被指向
 OBJ-85:
@@ -2310,9 +2324,10 @@ OBJ-85:
     - PRC-86
     08:
     - INV-130
-    - INV-75
+    - INV-75a
     - INV-76
     - INV-77
+    - INV-77a
     - INV-79
     '10':
     - 人工处置核销差异
@@ -2339,7 +2354,7 @@ OBJ-85:
     - 预付款冲抵应付
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:150
+  src: architecture/ssot/10-objects/objects.yaml#objects[84]/OBJ-85
   initial: 确认建模
   why: 有状态且被指向
 OBJ-86:
@@ -2371,9 +2386,10 @@ OBJ-86:
     - PRC-75
     - PRC-86
     08:
-    - INV-03
-    - INV-04
+    - INV-03c
+    - INV-04b
     - INV-78
+    - INV-78a
     - INV-80
     - INV-81
     '10':
@@ -2390,7 +2406,7 @@ OBJ-86:
     - 记分配行与流水行
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
+  src: architecture/ssot/10-objects/objects.yaml#objects[85]/OBJ-86
   initial: 确认建模
   why: 有状态且被指向
 OBJ-87:
@@ -2411,6 +2427,7 @@ OBJ-87:
     '07':
     - PRC-72
     08:
+    - INV-39a
     - INV-83
     '10':
     - 冲销供方履约确认
@@ -2418,7 +2435,7 @@ OBJ-87:
     - 确认供方履约
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:152
+  src: architecture/ssot/10-objects/objects.yaml#objects[86]/OBJ-87
   initial: 确认建模
   why: 有状态且被指向
 OBJ-88:
@@ -2445,7 +2462,8 @@ OBJ-88:
     - PRC-87
     08:
     - INV-137
-    - INV-39
+    - INV-39b
+    - INV-75
     - INV-84
     '10':
     - 冲销费用报销
@@ -2455,7 +2473,7 @@ OBJ-88:
     - 核定费用报销
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:153
+  src: architecture/ssot/10-objects/objects.yaml#objects[87]/OBJ-88
   initial: 确认建模
   why: 有状态且被指向
 OBJ-89:
@@ -2486,7 +2504,7 @@ OBJ-89:
     - 销户资金账户
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:154
+  src: architecture/ssot/10-objects/objects.yaml#objects[88]/OBJ-89
   initial: 确认建模
   why: 有状态且被指向
 OBJ-90:
@@ -2512,7 +2530,7 @@ OBJ-90:
     - 提交过账候选
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:155
+  src: architecture/ssot/10-objects/objects.yaml#objects[89]/OBJ-90
   initial: 确认建模
   why: 有状态且被指向
 OBJ-91:
@@ -2545,7 +2563,7 @@ OBJ-91:
     - 登记出资退回
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:156
+  src: architecture/ssot/10-objects/objects.yaml#objects[90]/OBJ-91
   initial: 确认建模
   why: 有状态且被指向
 OBJ-92:
@@ -2577,7 +2595,7 @@ OBJ-92:
     - 登记缴款
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:157
+  src: architecture/ssot/10-objects/objects.yaml#objects[91]/OBJ-92
   initial: 确认建模
   why: 有状态且被指向
 OBJ-93:
@@ -2614,7 +2632,7 @@ OBJ-93:
     - 调拨资产
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:158
+  src: architecture/ssot/10-objects/objects.yaml#objects[92]/OBJ-93
   initial: 确认建模
   why: 有状态且被指向
 OBJ-95:
@@ -2639,7 +2657,7 @@ OBJ-95:
     '10':
     - 发布科目表版本
     - 起草科目表版本
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:161
+  src: architecture/ssot/10-objects/objects.yaml#objects[94]/OBJ-95
   initial: 确认建模
   why: 有状态且被指向
 OBJ-96:
@@ -2655,7 +2673,7 @@ OBJ-96:
   pointers:
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:162
+  src: architecture/ssot/10-objects/objects.yaml#objects[95]/OBJ-96
   initial: 降为参照或维度
   why: OBJD 定论参照数据
 OBJ-97:
@@ -2699,7 +2717,7 @@ OBJ-97:
     - 退回开放
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:163
+  src: architecture/ssot/10-objects/objects.yaml#objects[96]/OBJ-97
   initial: 确认建模
   why: 有状态且被指向
 OBJ-98:
@@ -2734,7 +2752,7 @@ OBJ-98:
     - PRC-95
     08:
     - INV-108
-    - INV-95
+    - INV-95a
     - INV-96
     - INV-97
     - INV-98
@@ -2749,7 +2767,7 @@ OBJ-98:
     - 登记外部记账确认
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:164
+  src: architecture/ssot/10-objects/objects.yaml#objects[97]/OBJ-98
   initial: 确认建模
   why: 有状态且被指向
 OBJ-99:
@@ -2772,14 +2790,13 @@ OBJ-99:
     - PRC-105
     - PRC-106
     08:
-    - INV-131
-    - INV-91
+    - INV-91a
     '10':
     - 生效报表行定义版本
     - 编制报表行定义版本
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:165
+  src: architecture/ssot/10-objects/objects.yaml#objects[98]/OBJ-99
   initial: 确认建模
   why: 有状态且被指向
 OBJ-100:
@@ -2833,7 +2850,7 @@ OBJ-100:
     - 释放预算占用
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:166
+  src: architecture/ssot/10-objects/objects.yaml#objects[99]/OBJ-100
   initial: 确认建模
   why: 有状态且被指向
 OBJ-103:
@@ -2844,7 +2861,7 @@ OBJ-103:
   states: []
   identity_hint: true
   pointers: {}
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:170
+  src: architecture/ssot/10-objects/objects.yaml#objects[102]/OBJ-103
   initial: 降为参照或维度
   why: OBJD 定论视图
 OBJ-104:
@@ -2870,7 +2887,7 @@ OBJ-104:
     - 驳回奖金核定
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:171
+  src: architecture/ssot/10-objects/objects.yaml#objects[103]/OBJ-104
   initial: 确认建模
   why: 有状态且被指向
 OBJ-105:
@@ -2898,7 +2915,7 @@ OBJ-105:
     - 计划客户活动
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
+  src: architecture/ssot/10-objects/objects.yaml#objects[104]/OBJ-105
   initial: 确认建模
   why: 有状态且被指向
 OBJ-106:
@@ -2927,7 +2944,7 @@ OBJ-106:
     - 评分满意度调查
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
+  src: architecture/ssot/10-objects/objects.yaml#objects[105]/OBJ-106
   initial: 确认建模
   why: 有状态且被指向
 OBJ-107:
@@ -2953,7 +2970,7 @@ OBJ-107:
     - 发布项目复盘
     - 编制项目复盘
     - 评审项目复盘
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
+  src: architecture/ssot/10-objects/objects.yaml#objects[106]/OBJ-107
   initial: 确认建模
   why: 有状态且被指向
 OBJ-108:
@@ -2980,7 +2997,7 @@ OBJ-108:
     - 接受风险与问题
     - 登记风险与问题
     - 记录应对措施
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
+  src: architecture/ssot/10-objects/objects.yaml#objects[107]/OBJ-108
   initial: 确认建模
   why: 有状态且被指向
 OBJ-109:
@@ -3011,7 +3028,7 @@ OBJ-109:
     - 编制试用期绩效评估
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:177
+  src: architecture/ssot/10-objects/objects.yaml#objects[108]/OBJ-109
   initial: 确认建模
   why: 有状态且被指向
 OBJ-110:
@@ -3046,7 +3063,7 @@ OBJ-110:
     - 起草知识条目
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:178
+  src: architecture/ssot/10-objects/objects.yaml#objects[109]/OBJ-110
   initial: 确认建模
   why: 有状态且被指向
 OBJ-111:
@@ -3077,7 +3094,7 @@ OBJ-111:
     - 默认确认月度考勤
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:180
+  src: architecture/ssot/10-objects/objects.yaml#objects[110]/OBJ-111
   initial: 确认建模
   why: 有状态且被指向
 OBJ-112:
@@ -3107,7 +3124,7 @@ OBJ-112:
     - 草拟利润分配
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:181
+  src: architecture/ssot/10-objects/objects.yaml#objects[111]/OBJ-112
   initial: 确认建模
   why: 有状态且被指向
 OBJ-113:
@@ -3146,7 +3163,7 @@ OBJ-113:
     - 驳回用印申请
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:183
+  src: architecture/ssot/10-objects/objects.yaml#objects[112]/OBJ-113
   initial: 确认建模
   why: 有状态且被指向
 OBJ-114:
@@ -3183,7 +3200,7 @@ OBJ-114:
     - 驳回 IT 需求
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:184
+  src: architecture/ssot/10-objects/objects.yaml#objects[113]/OBJ-114
   initial: 确认建模
   why: 有状态且被指向
 OBJ-115:
@@ -3230,7 +3247,7 @@ OBJ-115:
     - 调拨资产
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
+  src: architecture/ssot/10-objects/objects.yaml#objects[114]/OBJ-115
   initial: 确认建模
   why: 有状态且被指向
 OBJ-116:
@@ -3256,7 +3273,7 @@ OBJ-116:
     - 提交员工活动申请
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
+  src: architecture/ssot/10-objects/objects.yaml#objects[115]/OBJ-116
   initial: 确认建模
   why: 有状态且被指向
 OBJ-117:
@@ -3285,7 +3302,7 @@ OBJ-117:
     - 豁免勾稽差异案
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:189
+  src: architecture/ssot/10-objects/objects.yaml#objects[116]/OBJ-117
   initial: 确认建模
   why: 有状态且被指向
 OBJ-118:
@@ -3316,7 +3333,7 @@ OBJ-118:
     - 驳回费用事前申请
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:190
+  src: architecture/ssot/10-objects/objects.yaml#objects[117]/OBJ-118
   initial: 确认建模
   why: 有状态且被指向
 OBJ-119:
@@ -3347,7 +3364,7 @@ OBJ-119:
     - 驳回出差申请
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:191
+  src: architecture/ssot/10-objects/objects.yaml#objects[118]/OBJ-119
   initial: 确认建模
   why: 有状态且被指向
 OBJ-120:
@@ -3382,7 +3399,7 @@ OBJ-120:
     - 驳回差旅超标订单
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:192
+  src: architecture/ssot/10-objects/objects.yaml#objects[119]/OBJ-120
   initial: 确认建模
   why: 有状态且被指向
 OBJ-121:
@@ -3416,7 +3433,7 @@ OBJ-121:
     - 驳回差旅超标订单
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:193
+  src: architecture/ssot/10-objects/objects.yaml#objects[120]/OBJ-121
   initial: 确认建模
   why: 有状态且被指向
 OBJ-122:
@@ -3454,7 +3471,7 @@ OBJ-122:
     - 释放余额占用
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:194
+  src: architecture/ssot/10-objects/objects.yaml#objects[121]/OBJ-122
   initial: 确认建模
   why: 有状态且被指向
 OBJ-123:
@@ -3483,7 +3500,7 @@ OBJ-123:
     - 调整薪酬档案
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:195
+  src: architecture/ssot/10-objects/objects.yaml#objects[122]/OBJ-123
   initial: 确认建模
   why: 有状态且被指向
 OBJ-124:
@@ -3519,7 +3536,6 @@ OBJ-124:
     - PRC-99
     08:
     - INV-123
-    - INV-131
     - INV-139
     '10':
     - 发布假期规则版本
@@ -3535,7 +3551,7 @@ OBJ-124:
     - 编制资产类别与折旧政策版本
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:196
+  src: architecture/ssot/10-objects/objects.yaml#objects[123]/OBJ-124
   initial: 确认建模
   why: 有状态且被指向
 OBJ-125:
@@ -3560,7 +3576,7 @@ OBJ-125:
     - 签字接受差异
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
+  src: architecture/ssot/10-objects/objects.yaml#objects[124]/OBJ-125
   initial: 确认建模
   why: 有状态且被指向
 OBJ-126:
@@ -3576,6 +3592,6 @@ OBJ-126:
   pointers:
     '11':
     - 信息图「产生的事实」列
-  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:198
+  src: architecture/ssot/10-objects/objects.yaml#objects[125]/OBJ-126
   initial: 补 07 或 10（无指向，对象保留）
   why: 06、07、08、10 均无指向：先查 07 是否应有流程改其状态，有则补 07 或 10，确无业务动作才进 04 或降级

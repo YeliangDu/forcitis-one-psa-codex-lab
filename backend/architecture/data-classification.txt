@@ -23,7 +23,7 @@ organization_workforce.employees.employee_code | SENSITIVE | 个人信息：工�
 platform_integration.outbound_deliveries.recipient_codes | SENSITIVE | 个人信息：收件人的企业微信用户 ID
 platform_integration.outbound_deliveries.skipped_recipient_codes | SENSITIVE | 个人信息：被跳过收件人的企业微信用户 ID
 platform_identity.browser_identifiers.identifier_hash | SENSITIVE | 浏览器标识的摘要：可用于判断某浏览器是否已被本人确认
-platform_audit.audit_entries.detail | INTERNAL | 用途：说明动作的上下文；个人信息 PI（三段格式下以此为准，四段化随 ADR-0043 实施 PR）；不得含直接标识（IP、登录名、企业微信 ID、姓名），人员只写自有 ID
+platform_audit.audit_entries.detail | INTERNAL | 用途：说明动作的上下文；个人信息 PI（三段格式下以此为准，四段化随 ADR-0043 实施 PR）；不得含直接标识（IP、登录名、企业微信 ID、姓名），人员只写自有 ID；文件服务加密拒收（platform.file.upload.encrypted-refused）另写上传人起的原文件名（用户 2026-10-21 决定，intent 2026-10-21-170547）
 platform_audit.audit_entries.change_reason | INTERNAL | 用途：人填的变更理由；个人信息 PI；只提示不拦截
 platform_audit.audit_entries.before_text | INTERNAL | 用途：被变更字段的原值；个人信息 PI；仅 L2 个人信息原值，L3 及以上与 SPI 不记，现在一律不写非空值
 platform_audit.audit_entries.after_text | INTERNAL | 用途：被变更字段的新值；个人信息 PI；同 before_text
@@ -32,3 +32,9 @@ platform_integration.source_references.source_id | INTERNAL | 用途：来源系
 platform_identity.sessions.session_id | RESTRICTED | 会话标识，等同 Cookie 持有凭据（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
 platform_identity.sessions.primary_id | RESTRICTED | 框架内部主键，不进 Cookie，可关联会话内容；按用户决定与 session_id 同级（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
 platform_approval.approval_requests.summary_text | INTERNAL | 用途：审批卡片上显示的业务摘要；目前内容为单据编号、工作日、工时，不含个人信息；写入方新增字段须先评估个人信息
+platform_file.stored_file_names.original_name | INTERNAL | 用途：下载时还原文件名；个人信息 PI；到期去标识
+platform_file.file_holds.hold_reason | INTERNAL | 人填理由，注释要求不填个人信息；个人信息 PI
+platform_file.false_positive_judgments.judgment_reason | INTERNAL | 人填理由；个人信息 PI
+platform_file.false_positive_judgments.review_reason | INTERNAL | 人填意见；个人信息 PI
+platform_file.scan_exception_revocations.revocation_reason | INTERNAL | 人填理由；个人信息 PI
+platform_file.quarantine_read_requests.request_reason | INTERNAL | 人填理由；个人信息 PI

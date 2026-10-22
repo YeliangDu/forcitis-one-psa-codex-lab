@@ -40,6 +40,7 @@
 | B-11 | dev 库按迁移基线重建：迁移基线合并（R-3a，#103，73 个迁移合为 10 份基线）后，任何执行过旧迁移的库都过不了 Flyway 校验（历史表里的版本在仓库中已不存在），只能删库重建，不能清表后续跑。dev 库 `forcitis_one_dev` 目前尚未执行过任何迁移，首次部署前按 C-3 现行脚本补齐（见 C-3）即可；若届时已执行过旧迁移则删库重建 | dev 前 | R-3a 基线；SESSION_PLAYBOOK §12.2 | [C-3](runbooks/C-3-dev-db.md) | ✅ dev 库从未执行过旧迁移，已按 C-3 现行脚本补齐增量（C-3 执行记录），无需重建；首次部署时由安装器执行基线迁移；此后基线开放期内基线文件改动，按 C-16（[dev 库重建剧本](runbooks/dev-db-rebuild.md)）删库重建并重置服务器发布状态（ADR-0038 第 2 项第 2 条） |
 | B-12 | 指定流程管理员：把 `process_administrator` 角色授予 1 名以上的人（建议 2 名，A-4 定人选）；该角色没有任何持有人时应用在任何环境都拒绝启动（只有测试配置可关闭） | dev 前 | D-1a-61；`process_administrator` 角色由 platform_identity 基线迁移建立（基线合并前为 V20261014205200） | — | 🟨 dev 由用户本人兼任（用户决定，人名只在私有 role_holders.md）；首次部署后以运维命令授予；生产前另定 2 名 |
 | B-13 | 归档 OSS bucket `forcitis-one-archive`：第一个归档写入方上线前重新 `InitiateBucketWorm` 2557 天并锁定（锁定不可撤销，锁定前报 one-coordinator）；处理演练对象 `drill/20261015.txt` | 第一个归档写入方上线前 | 用户「现在不锁，第一个写入方上线前再锁 (Recommended)」 | [B-13](handoff/B-13-archive-oss-bucket.md) | 🟨 bucket 与写入方角色已建、演练通过 |
+| B-14 | 投产前角色配置：迁移种子与管理员模式都不持有的 4 个权限码，须由管理员在对应功能投产前建角色并授予——`cost.timesheet:timesheet:submit`、`cost.timesheet:timesheet:approve`（工时提交与审批，随工时全员切换 TA-2）、`platform.numbering:legacy-number:read`（旧编号查询）、`platform.numbering:voucher-numbering-rule:approve`（凭证编号规则审批）；授予须走 ADR-0026 授权申请与四眼，生产前另核职责分离 | 各功能投产前 | ARC-1021-ARC-11 `ssot/07-org-roles/GAPS.md`（检查 N01-R3）；one-coordinator 2026-10-21 | — | ⬜ |
 
 ## C. 由会话执行，执行前须用户确认（对外变更或购买）
 
