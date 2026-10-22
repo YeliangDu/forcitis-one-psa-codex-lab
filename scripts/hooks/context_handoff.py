@@ -39,6 +39,11 @@ BASH_INPUT_CHARS = 5000
 BASH_OUTPUT_CHARS = 8000
 TAIL_BYTES = 4 * 1024 * 1024
 SESSIONS = sc.SESSIONS
+TASKS = os.path.dirname(SESSIONS) + "/tasks"
+THROTTLE_SECONDS = 30
+THROTTLE_BYTES = 150000
+NODE_COOLDOWN_SECONDS = 600
+NODE_MIN_PERCENT = 20
 
 
 class NothingYet(ValueError):
@@ -74,6 +79,98 @@ def context_levels(path=None):
         return (prepare, handover), None
     except (OSError, ValueError, TypeError, AttributeError, KeyError) as error:
         return LEVELS, f"交接档位配置有问题（{error}），改用默认值 {LEVELS[0]}% / {LEVELS[1]}%"
+
+
+def node_config(path=None):
+    """(settings or None when the node-event handover is off, warning or None): `node_handoff` in the configuration, e.g.
+    {"enabled": true, "min_percent": 20, "sessions": ["one-quality"] or null for every session, "coordinator_session_ids": ["local_..."], "coordinator_names": ["one-coordinator"]}."""
+    try:
+        with open(path or CONFIG, encoding="utf-8") as stream:
+            raw = json.load(stream).get("node_handoff")
+        if raw is None or raw.get("enabled") is not True:
+            return None, None
+        percent = raw.get("min_percent", NODE_MIN_PERCENT)
+        if isinstance(percent, bool) or not isinstance(percent, int) or not 1 <= percent <= 99:
+            raise ValueError(f"min_percent 必须是 1..99 的整数，读到 {percent!r}")
+        sessions = raw.get("sessions")
+        if sessions is not None and not (isinstance(sessions, list) and all(isinstance(x, str) for x in sessions)):
+            raise ValueError("sessions 必须是会话名数组或 null")
+        ids = raw.get("coordinator_session_ids", [])
+        names = raw.get("coordinator_names", ["one-coordinator"])
+        if not (isinstance(ids, list) and isinstance(names, list) and all(isinstance(x, str) for x in ids + names)):
+            raise ValueError("coordinator_session_ids / coordinator_names 必须是字符串数组")
+        return {"min_percent": percent, "sessions": sessions, "ids": ids, "names": names}, None
+    except (OSError, ValueError, TypeError, AttributeError) as error:
+        return None, f"节点交接配置有问题（{error}），节点事件交接不生效"
+
+
+PR_CREATE = re.compile(r"(?:^|[;&|(\s/])gh\s+pr\s+(?:create|new)(?![\w-])")
+GIT_PUSH = re.compile(r"(?:^|[;&|(\s/])git\s+(?:(?:-[cC]\s+\S+|--[\w-]+(?:=\S+)?)\s+)*push(?![\w-])")
+GIT_COMMIT = re.compile(r"(?:^|[;&|(\s/])git\s+(?:(?:-[cC]\s+\S+|--[\w-]+(?:=\S+)?)\s+)*commit(?![\w-])")
+MESSAGE_TOOLS = ("send_message", "SendMessage")
+
+
+def task_done_in_head(root):
+    """True when the last commit sets a tasks/*.md fragment's 状态 to 完成."""
+    result = subprocess.run(["git", "-C", root, "show", "HEAD", "--format=", "-U0", "--", TASKS], capture_output=True, text=True, encoding="utf-8", errors="replace")
+    return result.returncode == 0 and re.search(r"^\+状态:\s*完成\s*$", result.stdout, re.M) is not None
+
+
+def node_of(payload, event, root, config):
+    """The handover node this event is, or None: Stop (a turn ended), a Bash that ran `gh pr create` / `git push`, a commit that set a task to 完成,
+    a message to one-coordinator that is not itself the clear notice."""
+    if event == "Stop":
+        return "一轮结束"
+    if event != "PostToolUse":
+        return None
+    tool = str(payload.get("tool_name") or "")
+    tool_input = payload.get("tool_input") if isinstance(payload.get("tool_input"), dict) else {}
+    if tool == "Bash":
+        command = tool_input.get("command")
+        if not isinstance(command, str):
+            return None
+        if PR_CREATE.search(command):
+            return "已开 PR"
+        if GIT_PUSH.search(command) and "--dry-run" not in command:
+            return "已推送"
+        if GIT_COMMIT.search(command) and task_done_in_head(root):
+            return "任务置为完成"
+        return None
+    if tool.endswith(MESSAGE_TOOLS):
+        target = tool_input.get("session_id") or tool_input.get("to")
+        text = str(tool_input.get("message") or "")
+        if "清空接续" in text:
+            return None
+        if target in config["ids"] or target in config["names"]:
+            return "已向 one-coordinator 报告"
+    return None
+
+
+def node_instruction(node, percent, name, profile, docs):
+    target = "one-merge" if name == "one-coordinator" else "one-coordinator"
+    where = "、".join([profile or "sessions/<会话名>.md", *docs])
+    extra = "（调度自清：one-merge 收到后用 set_remote_control 重开调度的远程并发『接续』）" if name == "one-coordinator" else ""
+    return (f"【交接节点】上下文 {percent:.0f}%，刚到节点：{node}。现在按顺序做，本轮不再做别的："
+            f"①更新 {where}（上下文文档与交接，写明下一步和未完成的用户请求）；②提交并推送；"
+            f"③给 {target} 发消息「清空接续：{name or '<会话名>'} 交接在 <交接文件路径>」{extra}；"
+            f"④调用 clear_session（session_id=self）。清空在本轮结束后才执行：此后不要再发消息或起任务，否则排队消息会让清空被丢弃；"
+            f"{target} 收到后须先 get_session 确认本会话已空闲且已清空，再发『接续』。")
+
+
+def throttle_limits(path=None):
+    """(seconds, bytes) of the PostToolUse throttle: `throttle_seconds` / `throttle_bytes` in the configuration, integers >= 0 (0 seconds = no throttle)."""
+    limits = {"throttle_seconds": THROTTLE_SECONDS, "throttle_bytes": THROTTLE_BYTES}
+    try:
+        with open(path or CONFIG, encoding="utf-8") as stream:
+            data = json.load(stream)
+        for key in limits:
+            if key in data:
+                if isinstance(data[key], bool) or not isinstance(data[key], int) or data[key] < 0:
+                    return (THROTTLE_SECONDS, THROTTLE_BYTES)
+                limits[key] = data[key]
+    except (OSError, ValueError, AttributeError):
+        pass
+    return limits["throttle_seconds"], limits["throttle_bytes"]
 
 
 def pilot_sessions(path=None):
@@ -301,12 +398,33 @@ def handle_locked(event, payload, root, now):
                 if percent >= level:
                     entry.setdefault("crossed", {}).setdefault(str(level), now)
             top = max((level for level in levels if percent >= level), default=0)
+            node_out = None
+            config, config_problem = node_config()
+            if config_problem and not entry.get("node_config_warned"):
+                entry["node_config_warned"] = True
+                early.append(config_problem)
+            if config and (config["sessions"] is None or entry["name"] in config["sessions"]) and percent >= config["min_percent"] \
+                    and now - float(entry.get("node_at", 0)) >= NODE_COOLDOWN_SECONDS and not payload.get("stop_hook_active"):
+                node = node_of(payload, event, root, config)
+                if node:
+                    entry["node_at"] = now
+                    resolved = resolve_session(root)
+                    text = node_instruction(node, percent, resolved[0] or entry["name"] or None, resolved[1], resolved[2])
+                    if event == "Stop":
+                        node_out = {"decision": "block", "reason": text}
+                    else:
+                        warnings.append(text)
             if event == "Stop":
-                if top and not payload.get("stop_hook_active"):
+                if node_out:
+                    out = node_out
+                elif top and not payload.get("stop_hook_active"):
                     out = stop_decision(root, entry, top, percent, now)
             elif top and str(top) not in entry.setdefault("reminded", []):
                 entry["reminded"].append(str(top))
                 warnings.append(reminder(top, percent, tokens, window, entry["name"] or None, handover))
+            if event == "PostToolUse":
+                entry["checked"] = now
+                entry["checked_size"] = transcript_size(payload)
     try:
         save_state(root, state)
     except OSError as error:
@@ -343,15 +461,55 @@ def stop_decision(root, entry, top, percent, now):
             f"先更新上下文文档与交接（当前状态、在途、下一步），报 one-coordinator；不要 clear_session，写过之后可以直接结束。"}
 
 
+def transcript_size(payload):
+    path = payload.get("transcript_path")
+    try:
+        return os.path.getsize(path) if isinstance(path, str) and path else -1
+    except OSError:
+        return -1
+
+
+def can_skip(payload, root, now):
+    """Throttle for PostToolUse (SESSION_PLAYBOOK §5, GOV-1022-COO-08): skip the transcript parse and the state write when the session was measured less than
+    THROTTLE_SECONDS ago and its transcript grew by less than THROTTLE_BYTES since. Never skipped: Stop / UserPromptSubmit, sub-agent calls (they return at once anyway),
+    a session with no measurement yet, an oversized Bash input/result (the bulk note), and every possible handover node (when node events are on)."""
+    if payload.get("hook_event_name") != "PostToolUse" or payload.get("agent_id"):
+        return False
+    state = load_state(root).get(str(payload.get("session_id") or "unknown"))
+    if not state or "checked" not in state or not state.get("name") and now - float(state["checked"]) >= NAME_RECHECK_SECONDS:
+        return False
+    seconds, grown = throttle_limits()
+    if now - float(state["checked"]) >= seconds:
+        return False
+    size = transcript_size(payload)
+    if size < 0 or size - int(state.get("checked_size", 0)) >= grown or size < int(state.get("checked_size", 0)):
+        return False
+    tool_input = payload.get("tool_input") if isinstance(payload.get("tool_input"), dict) else {}
+    if payload.get("tool_name") == "Bash":
+        (limit_in, limit_out), _ = bulk_limits()
+        command = tool_input.get("command")
+        if (isinstance(command, str) and len(command) > limit_in) or bash_output_size(payload.get("tool_response")) > limit_out:
+            return False
+    config, _ = node_config()
+    if config and node_of(payload, "PostToolUse", root, config):
+        return False
+    return True
+
+
 def root_of(payload):
     # the desktop app starts a worktree session's hooks with CLAUDE_PROJECT_DIR = the main checkout; the session's own worktree is the hook input's cwd
     cwd = payload.get("cwd")
     candidates = [cwd] if isinstance(cwd, str) and cwd else []
     candidates += [os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()]
     for start in candidates:
-        top = subprocess.run(["git", "-C", start, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
-        if top.returncode == 0 and top.stdout.strip():
-            return top.stdout.strip()
+        directory = os.path.realpath(start)
+        while True:  # the nearest directory with .git (a file in a worktree): what `git rev-parse --show-toplevel` answers, without starting git
+            if os.path.exists(os.path.join(directory, ".git")):
+                return directory
+            parent = os.path.dirname(directory)
+            if parent == directory:
+                break
+            directory = parent
     return candidates[-1]
 
 
@@ -364,7 +522,10 @@ def main():
         event = str(payload.get("hook_event_name") or "unknown")
         if event not in ("PostToolUse", "UserPromptSubmit", "Stop"):
             return 0
-        result = handle(event, payload, root_of(payload))
+        root = root_of(payload)
+        if can_skip(dict(payload, hook_event_name=event), root, time.time()):
+            return 0
+        result = handle(event, payload, root)
         if result:
             print(json.dumps(result, ensure_ascii=False))
         return 0
@@ -558,7 +719,7 @@ def self_test():
             os.chmod(os.path.join(root, ".claude"), 0o700)
 
         # concurrent hooks: every level reminded exactly once, no crash
-        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 75, "handover": 85}}))
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 75, "handover": 85}, "throttle_seconds": 0}))
         transcript(trans, 800)
         script_path = os.path.abspath(__file__)
         environment = {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "CONTEXT_WINDOWS_CONFIG": config, "CLAUDE_PROJECT_DIR": root}
@@ -671,6 +832,88 @@ def self_test():
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 40, "handover": 30}}))
         assert "交接档位配置有问题" in text(fire("PostToolUse", 100, 2005.0, session="lvbad")), "a broken level configuration is said once"
         assert fire("PostToolUse", 100, 2006.0, session="lvbad") is None
+        # node events (GOV-1022-COO-09): handover instruction at a node when the context is >= min_percent, once per cooldown
+        LEVELS = (75, 85)
+        node_cfg = {"enabled": True, "min_percent": 20, "sessions": ["one-test"], "coordinator_session_ids": ["local_coord"]}
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": node_cfg}))
+        assert node_config(config)[0] == {"min_percent": 20, "sessions": ["one-test"], "ids": ["local_coord"], "names": ["one-coordinator"]}
+        assert node_config(os.path.join(tmp, "absent.json"))[0] is None, "an unreadable configuration turns node events off"
+        for bad_cfg in ({**node_cfg, "min_percent": 0}, {**node_cfg, "min_percent": "20"}, {**node_cfg, "sessions": "one-test"}, {**node_cfg, "coordinator_session_ids": [1]}):
+            write(config, json.dumps({"windows": {}, "node_handoff": bad_cfg}))
+            assert node_config(config)[0] is None and "节点交接配置有问题" in node_config(config)[1], bad_cfg
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "enabled": False}}))
+        assert node_config(config) == (None, None), "off unless enabled is true"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": node_cfg}))
+        bash = lambda command: {"tool_name": "Bash", "tool_input": {"command": command}, "tool_response": "ok"}
+        assert fire("PostToolUse", 150, 3000.0, session="nd1", extra=bash("gh pr create --title x")) is None, "below min_percent: no node instruction"
+        said = text(fire("PostToolUse", 250, 3001.0, session="nd1", extra=bash("cd w && gh pr create --title x")))
+        assert said and "【交接节点】" in said and "已开 PR" in said and "clear_session" in said and "one-coordinator" in said and "get_session" in said and "25%" in said, said
+        assert fire("PostToolUse", 250, 3002.0, session="nd1", extra=bash("git push origin b")) is None, "cooldown: said once per 10 minutes"
+        again = text(fire("PostToolUse", 250, 3001.0 + NODE_COOLDOWN_SECONDS + 1, session="nd1", extra=bash("git -C /w push -u origin b")))
+        assert again and "已推送" in again, again
+        for command in ("git push --dry-run", "git pushd", "git status", "ls", "echo 'gh pr create'", "gh pr view 3", "gh pr checks 3"):
+            assert fire("PostToolUse", 250, 4000.0, session="nd-" + command, extra=bash(command)) is None, command
+        sent = lambda target, message="状态": {"tool_name": "mcp__ccd_session_mgmt__send_message", "tool_input": {"session_id": target, "message": message}}
+        assert "已向 one-coordinator 报告" in text(fire("PostToolUse", 250, 4001.0, session="nd2", extra=sent("local_coord")))
+        assert fire("PostToolUse", 250, 4002.0, session="nd3", extra=sent("local_coord", "清空接续：one-test 交接在 x")) is None, "the clear notice itself is not a node"
+        assert fire("PostToolUse", 250, 4003.0, session="nd4", extra=sent("local_other")) is None, "a message to another session is not a node"
+        assert "已向 one-coordinator 报告" in text(fire("PostToolUse", 250, 4004.0, session="nd5", extra={"tool_name": "SendMessage", "tool_input": {"to": "one-coordinator", "message": "x"}}))
+        stop_node = fire("Stop", 250, 4005.0, session="nd6")
+        assert stop_node and stop_node["decision"] == "block" and "一轮结束" in stop_node["reason"] and "【交接节点】" in stop_node["reason"], stop_node
+        assert fire("Stop", 250, 4006.0, session="nd7", extra={"stop_hook_active": True}) is None, "a continued stop is let through"
+        assert fire("Stop", 150, 4007.0, session="nd8") is None, "below min_percent a turn end is not a node"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "sessions": ["one-ops"]}}))
+        assert fire("Stop", 250, 4008.0, session="nd9") is None and fire("PostToolUse", 250, 4009.0, session="nd9", extra=bash("git push")) is None, "only the listed (pilot) sessions"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "sessions": None}}))
+        assert text(fire("PostToolUse", 250, 4010.0, session="nd10", extra=bash("git push"))), "sessions null = every session"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}}))
+        assert fire("PostToolUse", 250, 4011.0, session="nd11", extra=bash("git push")) is None, "off without the configuration"
+        with tempfile.TemporaryDirectory() as repo:
+            def g(*a):
+                return subprocess.run(["git", "-C", repo, *a], capture_output=True, text=True, env={**os.environ, "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1", "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"})
+            g("init", "-q"); os.makedirs(os.path.join(repo, TASKS))
+            fragment = os.path.join(repo, TASKS, "X-1022-QUA-01.md")
+            write(fragment, "---\n状态: 进行中\n---\n"); g("add", "-A"); g("commit", "-q", "-m", "a")
+            assert task_done_in_head(repo) is False
+            write(fragment, "---\n状态: 完成\n---\n"); g("add", "-A"); g("commit", "-q", "-m", "b")
+            assert task_done_in_head(repo) is True
+            write(os.path.join(repo, "other.md"), "状态: 完成\n"); g("add", "-A"); g("commit", "-q", "-m", "c")
+            assert task_done_in_head(repo) is False, "only task fragments count"
+            os.makedirs(os.path.join(repo, "sub", "deep")); nested = {"cwd": os.path.join(repo, "sub", "deep")}
+            assert root_of(nested) == os.path.realpath(repo), "the repository root is found without starting git"
+            write(os.path.join(repo, "sub", ".git"), "gitdir: /elsewhere\n")
+            assert root_of(nested) == os.path.realpath(os.path.join(repo, "sub")), "a worktree's .git file marks its root"
+
+        # throttle: PostToolUse is skipped for a session measured moments ago whose transcript barely grew
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}}))
+        probe = lambda **extra: can_skip(dict(payload, hook_event_name=extra.pop("event", "PostToolUse"), session_id=extra.pop("session", "th"), **extra), root, extra_now[0])
+        extra_now = [5000.0]
+        transcript(trans, 100)
+        assert probe() is False, "a session never measured is not skipped"
+        fire("PostToolUse", 100, 5000.0, session="th")
+        extra_now[0] = 5010.0
+        assert probe() is True, "measured 10 s ago, transcript unchanged: skipped"
+        extra_now[0] = 5000.0 + THROTTLE_SECONDS + 1
+        assert probe() is False, "after the interval it is measured again"
+        extra_now[0] = 5010.0
+        assert probe(event="Stop") is False and probe(event="UserPromptSubmit") is False, "Stop and UserPromptSubmit are never throttled"
+        assert probe(agent_id="a") is False
+        assert probe(tool_name="Bash", tool_input={"command": "x" * (BASH_INPUT_CHARS + 1)}) is False, "an oversized Bash input is never skipped"
+        assert probe(tool_name="Bash", tool_input={"command": "ls"}, tool_response="y" * (BASH_OUTPUT_CHARS + 1)) is False, "an oversized Bash result is never skipped"
+        with open(trans, "a", encoding="utf-8") as grown:
+            grown.write("x" * (THROTTLE_BYTES + 1))
+        assert probe() is False, "a transcript that grew past the limit is measured"
+        transcript(trans, 100)
+        fire("PostToolUse", 100, 5000.0, session="th2")
+        extra_now[0] = 5010.0
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": node_cfg}))
+        assert probe(session="th2", tool_name="Bash", tool_input={"command": "git push"}) is False, "a possible node is never skipped"
+        assert probe(session="th2", tool_name="Bash", tool_input={"command": "ls"}) is True
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "throttle_seconds": 0}))
+        assert probe(session="th2") is False and throttle_limits(config) == (0, THROTTLE_BYTES), "throttle_seconds 0 turns it off"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "throttle_seconds": -1, "throttle_bytes": "x"}))
+        assert throttle_limits(config) == (THROTTLE_SECONDS, THROTTLE_BYTES), "invalid values fall back"
+        LEVELS = original_levels
     CONFIG = original_config
     LEVELS = original_levels
     real_levels, real_levels_warning = context_levels(original_config)
