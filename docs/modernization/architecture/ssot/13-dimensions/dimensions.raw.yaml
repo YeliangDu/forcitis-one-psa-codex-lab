@@ -1187,7 +1187,7 @@ by_versioned_master_tables:
   - name: effective_to_at
     type: timestamptz
     source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:360
-  source: backend/architecture/data-access-registry.yaml:332
+  source: backend/architecture/data-access-registry.yaml:339
 - table: platform_identity.account_role_grants
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1206,4 +1206,4 @@ by_versioned_master_tables:
   - name: effective_to_at
     type: timestamptz
     source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:438
-  source: backend/architecture/data-access-registry.yaml:342
+  source: backend/architecture/data-access-registry.yaml:349
