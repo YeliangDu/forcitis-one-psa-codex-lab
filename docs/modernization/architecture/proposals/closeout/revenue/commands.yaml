@@ -1408,7 +1408,8 @@ commands:
   - 发票或借款来源
   - 购买方或员工
   - 金额
-  - 到期日
+  - 到期日（销售应收：开票日 ＋ 账期，账期依次取付款条件项、账期规则覆盖〔协议类型 × 客户分级〕、全局默认 30 日，KPI-Q04，见 DEFAULT_PAYMENT_TERM.md）
+  - 账期天数与来源
   preconditions:
   - INV-76
   authority:

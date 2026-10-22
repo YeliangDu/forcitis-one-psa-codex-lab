@@ -10782,7 +10782,7 @@ event_policies:
     command: 创建应收
     aggregate: AGG-49
     rule: INV-76
-    desc: 销售应收只由蓝字发票产生（INV-76）；按发票 ID 幂等；读不到购买方则失败并告警
+    desc: 销售应收只由蓝字发票产生（INV-76）；按发票 ID 幂等；读不到购买方则失败并告警。到期日 ＝ 开票日 ＋ 账期，账期依次取付款条件项约定、账期规则覆盖（协议类型 × 客户分级，读开票日当时值）、全局默认 30 日（用户 KPI-Q04，DEFAULT_PAYMENT_TERM.md），应收上记账期天数与来源，规则改后不回算
     cross_bc:
     - mode: event
       direction: in
