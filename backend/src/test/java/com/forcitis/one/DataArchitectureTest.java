@@ -1,6 +1,7 @@
 package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -749,7 +750,7 @@ class DataArchitectureTest {
         assertThat(problems).isEmpty();
     }
 
-    record Function(String signature, String schema, boolean securityDefiner, boolean publicMayExecute, String searchPath, List<String> otherCreators) {}
+    record RoutineRow(String signature, String schema, boolean securityDefiner, boolean publicMayExecute, String searchPath, List<String> otherCreators) {}
 
     static final String FUNCTIONS = """
             SELECT p.oid::regprocedure::text, n.nspname, p.prosecdef, has_function_privilege('public', p.oid, 'EXECUTE'),
@@ -761,12 +762,12 @@ class DataArchitectureTest {
                AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
             """;
 
-    static List<Function> readFunctions(Connection c) throws SQLException {
-        List<Function> functions = new ArrayList<>();
+    static List<RoutineRow> readFunctions(Connection c) throws SQLException {
+        List<RoutineRow> functions = new ArrayList<>();
         try (var st = c.createStatement(); ResultSet rs = st.executeQuery(FUNCTIONS)) {
             while (rs.next()) {
                 Object[] creators = rs.getArray(6) == null ? new Object[0] : (Object[]) rs.getArray(6).getArray();
-                functions.add(new Function(rs.getString(1), rs.getString(2), rs.getBoolean(3), rs.getBoolean(4), rs.getString(5),
+                functions.add(new RoutineRow(rs.getString(1), rs.getString(2), rs.getBoolean(3), rs.getBoolean(4), rs.getString(5),
                         Stream.of(creators).map(String::valueOf).toList()));
             }
         }
@@ -774,9 +775,9 @@ class DataArchitectureTest {
     }
 
     /** R-SP-1 and R-SP-3 (FUNCTION_SEARCH_PATH_PINNING.md): pg_catalog first, pg_temp last, only the own schema in between and only if nobody else may create there. */
-    static List<String> searchPathProblems(List<Function> functions) {
+    static List<String> searchPathProblems(List<RoutineRow> functions) {
         List<String> problems = new ArrayList<>();
-        for (Function f : functions) {
+        for (RoutineRow f : functions) {
             if (f.searchPath() == null) {
                 problems.add(f.signature() + " has no SET search_path");
             } else {
@@ -785,7 +786,7 @@ class DataArchitectureTest {
                 while (item.find()) {
                     items.add(item.group(1) != null ? item.group(1) : item.group(2).strip());
                 }
-                boolean ownSchema = items.size() == 3 && items.get(1).equals(f.schema());
+                boolean ownSchema = items.size() == 3 && items.get(1).equals(f.schema()) && !f.schema().equals("public");
                 if (!(items.size() == 2 || ownSchema) || !items.get(0).equals("pg_catalog") || !items.get(items.size() - 1).equals("pg_temp")) {
                     problems.add(f.signature() + " search_path is [" + f.searchPath() + "], expected pg_catalog, [own schema,] pg_temp");
                 } else if (ownSchema && !f.otherCreators().isEmpty()) {
@@ -803,7 +804,7 @@ class DataArchitectureTest {
     @DisplayName("R-SP-1 every function in the database pins search_path to pg_catalog, [its own schema,] pg_temp, and a SECURITY DEFINER function is not executable by PUBLIC")
     void everyFunctionPinsItsSearchPath() throws SQLException {
         try (Connection c = connect()) {
-            List<Function> functions = readFunctions(c);
+            List<RoutineRow> functions = readFunctions(c);
             assertThat(functions).as("the migrated database has functions to check").hasSizeGreaterThan(30);
             assertThat(searchPathProblems(functions)).isEmpty();
         }
@@ -813,15 +814,16 @@ class DataArchitectureTest {
     @DisplayName("injection (R-SP-1): a function without SET search_path, with a wrong order, a foreign schema or a quoted list is caught, in any schema; a pinned function passes")
     void injectedUnpinnedFunctionsAreCaught() throws SQLException {
         assertThat(searchPathProblems(List.of(
-                new Function("s.a()", "s", false, true, null, List.of()),
-                new Function("s.b()", "s", false, true, "pg_temp, pg_catalog", List.of()),
-                new Function("s.c()", "s", false, true, "pg_catalog, other, pg_temp", List.of()),
-                new Function("s.d()", "s", false, true, "\"pg_catalog, pg_temp\"", List.of()),
-                new Function("s.e()", "s", false, true, "pg_catalog, s, pg_temp", List.of("PUBLIC")),
-                new Function("s.f()", "s", true, true, "pg_catalog, pg_temp", List.of())))).hasSize(6);
+                new RoutineRow("s.a()", "s", false, true, null, List.of()),
+                new RoutineRow("s.b()", "s", false, true, "pg_temp, pg_catalog", List.of()),
+                new RoutineRow("s.c()", "s", false, true, "pg_catalog, other, pg_temp", List.of()),
+                new RoutineRow("s.d()", "s", false, true, "\"pg_catalog, pg_temp\"", List.of()),
+                new RoutineRow("s.e()", "s", false, true, "pg_catalog, s, pg_temp", List.of("PUBLIC")),
+                new RoutineRow("s.f()", "s", true, true, "pg_catalog, pg_temp", List.of()),
+                new RoutineRow("public.i()", "public", false, true, "pg_catalog, public, pg_temp", List.of())))).hasSize(7);
         assertThat(searchPathProblems(List.of(
-                new Function("s.g()", "s", false, true, "pg_catalog, pg_temp", List.of()),
-                new Function("s.h()", "s", true, false, "pg_catalog, s, pg_temp", List.of())))).isEmpty();
+                new RoutineRow("s.g()", "s", false, true, "pg_catalog, pg_temp", List.of()),
+                new RoutineRow("s.h()", "s", true, false, "pg_catalog, s, pg_temp", List.of())))).isEmpty();
         try (Connection c = connect()) {
             c.setAutoCommit(false);
             try (var st = c.createStatement()) {
@@ -834,20 +836,27 @@ class DataArchitectureTest {
     }
 
     @Test
-    @DisplayName("V11 the deployment check for pinned search_path passes on the migrated database and fails for an unpinned function")
+    @DisplayName("V11 the deployment check for pinned search_path passes on the migrated database and fails for an unpinned function, a function whose own schema anyone may create in, and a PUBLIC-executable SECURITY DEFINER function")
     void deploymentCheckV11AgreesWithTheGuard() throws Exception {
+        List<String> breakers = List.of(
+                "CREATE FUNCTION public.unpinned_probe() RETURNS int LANGUAGE sql AS 'SELECT 1'",
+                "CREATE SCHEMA probe; GRANT CREATE ON SCHEMA probe TO PUBLIC;"
+                        + " CREATE FUNCTION probe.unpinned_probe() RETURNS int LANGUAGE sql SET search_path = pg_catalog, probe, pg_temp AS 'SELECT 1'",
+                "CREATE FUNCTION public.unpinned_probe() RETURNS int LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS 'SELECT 1'");
         for (String script : List.of("c3_dev_db_verify.sql", "c9_prod_db_verify.sql")) {
             String text = Files.readString(Path.of("../docs/modernization/phase1a/infra/runbooks/sql", script));
-            String v11 = text.substring(text.indexOf("DO $$", text.indexOf("-- V11")));
+            int from = text.indexOf("DO $$", text.indexOf("-- V11"));
+            String v11 = text.substring(from, text.indexOf("\n-- V", from));
             try (Connection c = connect(); var st = c.createStatement()) {
                 st.execute(v11);
                 c.setAutoCommit(false);
-                try {
-                    st.execute("CREATE FUNCTION public.unpinned_probe() RETURNS int LANGUAGE sql AS 'SELECT 1'");
-                    assertThat(org.junit.jupiter.api.Assertions.assertThrows(SQLException.class, () -> st.execute(v11)).getMessage())
-                            .contains("V11 failed").contains("unpinned_probe()");
-                } finally {
-                    c.rollback();
+                for (String breaker : breakers) {
+                    try {
+                        st.execute(breaker);
+                        assertThatThrownBy(() -> st.execute(v11)).hasMessageContaining("V11 failed").hasMessageContaining("unpinned_probe()");
+                    } finally {
+                        c.rollback();
+                    }
                 }
             }
         }
