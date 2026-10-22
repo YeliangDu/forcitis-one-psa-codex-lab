@@ -13192,7 +13192,7 @@ terms:
   kind: aggregate
   bc: organization.administration
   scope: domain
-  definition: 保存拟用印文件、印章类别、事由、批准结论及实际用印情况的申请。
+  definition: 保存拟用印文件、印章类型、事由、批准结论及实际用印情况的申请。
   standard_ref:
   - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=seal_usage_request]
   confidence: low
@@ -13210,7 +13210,7 @@ terms:
   forbidden:
   - 用印申请记录
   status: approved
-  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）；one-glossary 判定 2026-10-22：与已登记的「印章类型」seal_type（platform.signing）统一，「印章类别」不用（交接清单待办②）（用户裁定，rulings.yaml）
 - id: overtime_record
   zh: 加班记录
   en: OvertimeRecord
