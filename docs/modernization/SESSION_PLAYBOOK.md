@@ -76,7 +76,7 @@
 
 ## 4. 收尾协议（结束前，或上下文接近上限时）
 
-0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`phase1a/infra/LEGACY_READ_REGISTER.md`（源为 `phase1a/infra/legacy-read/` 片段，用 `new_legacy_read.py` 新增；不入仓）、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief、提议术语清单连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
+0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`phase1a/infra/LEGACY_READ_REGISTER.md`（源为 `phase1a/infra/legacy-read/` 片段，用 `new_legacy_read.py` 新增；不入仓）、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、`adr/INDEX.md`、brief、提议术语清单、`frameworks/` 两个索引、`panorama/FREEZE_*` 都不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」；2026-10-22 起扩大到后几项，git 原则：生成产物不进 main），只提交片段或源，CI 的「generated docs match fragments」一步只要求能生成、重新生成前后一致；main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
 1. 把本会话的决定（用户原话）用 `python3 docs/modernization/new_intent.py --session=<会话名> "<原话>" "<落点>"` 新增为 `intent/` 片段，并写进相应 ADR 的源文件 `adr/src/`。
 2. 勾选 brief 中已满足的条件；不满足的不勾，不改写条件。
 3. 用 `python3 docs/modernization/new_log.py <会话名> "<工作单元>"` 新增一条会话日志片段（模板见 §8），填好各项，写明下一条要运行的命令。
@@ -302,7 +302,7 @@
 ### 12.1 ADR：不改正文，用新 ADR 取代
 
 - 已采纳的 ADR 正文冻结，只允许改头部可变字段（新稿：状态、日期、被部分取代、理由；旧稿：状态行按 `adr/README.md` 第 1 节允许的两类改动）（ADR 规则修订，intent 134434）。决定上的任何变化（修订、补充、例外）都新增一份 ADR，在「取代」中写明被取代的 ADR 与范围（写法见 `adr/README.md`「ADR 生命周期与变更规则」第 4 节：以 `ADR-NNNN` 开头，范围到小节加条号，不超过 30 字）；同一提交中把旧 ADR 改为「已被 ADR-00yy 取代」，或在其「被部分取代」字段（旧稿为状态行括注）加一项，正文保留。
-- 状态集、取代写法、必备小节见 `adr/README.md`「ADR 生命周期与变更规则」。ADR 一律从源文件 `adr/src/ADR-NNNN.md` 由 `adr/build_adrs.py` 生成（经 `build_all.py`），不手改 `adr/ADR-*.md` 与 `adr/README.md`；生成器在状态不合法、新 ADR 缺必备小节、取代未同步标注时失败。
+- 状态集、取代写法、必备小节见 `adr/src/_readme_lifecycle.md`「ADR 生命周期与变更规则」。ADR 一律从源文件 `adr/src/ADR-NNNN.md` 由 `adr/build_adrs.py` 生成（经 `build_all.py`；生成的 `adr/ADR-*.md`、`adr/README.md`、`adr/INDEX.md` 不入仓，本地运行 `build_all.py` 或看 generated-docs 分支），不手改它们；生成器在状态不合法、新 ADR 缺必备小节、取代未同步标注时失败。
 - 新 ADR 必须写**影响面、迁移方案、回滚方案、需同步修改的守护规则**；守护规则（ArchUnit、词表、DDL、前端 lint 等）与 ADR 采纳在同一个 PR 或紧随其后的 PR 中修改，ADR 中写明是哪一个。
 - 提议稿落 `adr/src/`，不放 `architecture/proposals/`；起草前先用 `new_adr.py` 开空壳 PR 占号，空壳合入 main 即占号，之后的草稿与评审按 `adr/README.md` 第 8、9 节（ADR 规则修订，intent 134434）。
 - 过去用「修订稿」「Proposed revision」改 ADR 的做法停止；brief 的入口 / 出口条件仍按 brief 自身的约定追加 `Proposed revision:` 行（brief 不是 ADR）。

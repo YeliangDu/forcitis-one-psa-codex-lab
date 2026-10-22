@@ -26,3 +26,14 @@ __pycache__/
 .claude/context-handoff-state.json
 .pi-lens-probe-home/
 .claude/context-handoff-state.json.lock
+# 生成产物不入仓（生成产物移出 main 第 1 期，用户 2026-10-22 git 原则）：本地运行 docs/modernization/build_all.py 生成，或看 generated-docs 分支
+docs/modernization/adr/ADR-*.md
+docs/modernization/adr/INDEX.md
+docs/modernization/adr/README.md
+docs/modernization/MODERNIZATION_BRIEF.md
+backend/glossary/proposed/README.md
+docs/modernization/architecture/frameworks/CONCEPT_INDEX.md
+docs/modernization/architecture/frameworks/NOTES_INDEX.md
+docs/modernization/architecture/panorama/FREEZE_FACTS.md
+docs/modernization/architecture/panorama/FREEZE_FACTS.yaml
+docs/modernization/architecture/panorama/FREEZE_IMPACT.md
