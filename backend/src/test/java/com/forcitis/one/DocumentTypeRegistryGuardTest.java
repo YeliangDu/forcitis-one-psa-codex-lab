@@ -19,7 +19,6 @@ class DocumentTypeRegistryGuardTest {
     static final Path MAIN = Path.of("src/main/java/com/forcitis/one");
     static final Path MIGRATIONS = Path.of("src/main/resources/db/migration");
     static final Pattern BUSINESS_DOCUMENT_LITERAL = Pattern.compile("\\b(TIMESHEET|QUOTE|JOURNAL_VOUCHER)\\b");
-    /** ProcessKey still names its document type until the process definition carries it (REG-2, IMP-1021-NX5-01). */
     /** The audit subject kinds still list TIMESHEET until the registry table replaces the enum (REG-3, ADR-0069 decision 14); the replay report title names the one process it replays. */
     static final List<String> PENDING_OR_TECHNICAL = List.of("platform/audit/api/AuditSubjectKind.java", "platform/approval/infrastructure/replay/ReplayReport.java");
 

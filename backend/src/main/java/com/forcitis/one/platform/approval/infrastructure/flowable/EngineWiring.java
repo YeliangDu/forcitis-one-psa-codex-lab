@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
-import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,7 +60,7 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
         engine.getProcessEngineConfiguration().getEventDispatcher().addEventListener(listener, FlowableEngineEventType.TASK_CREATED);
     }
 
-    private void verifyDefinitions() {
+    void verifyDefinitions() {
         List<String> problems = new ArrayList<>();
         for (ProcessKey key : ProcessKey.values()) {
             ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(key.key())
@@ -78,7 +78,7 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
             for (UserTask task : model.getMainProcess().findFlowElementsOfType(UserTask.class)) {
                 try {
                     NodePolicyReader.read(task);
-                } catch (IllegalStateException e) {
+                } catch (DomainException | IllegalStateException e) {
                     problems.add(key + ": " + e.getMessage());
                 }
             }
