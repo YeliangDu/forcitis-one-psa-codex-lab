@@ -17,6 +17,9 @@ processes:
   - type: time
     name: platform.scheduling 到点调用：立项后回签前挂合同履约成本的投入超过 N 个月未签约（N 取成本核算参数版本 AGG-123，默认 6 个月、可设；A7、GL-026；幂等键 = 聚合 ID + 到期时点；对象键为项目或协议，不是商机）
     entry: 1
+  - type: call
+    name: PRC-25 转入时售前投入所在法人与项目承担法人不一致的部分（LEB-05，成本口径 C-5）
+    entry: 1
   - type: event
     name: BusinessFactAttributed（本批次的过账事实）
     bc: B-16
@@ -43,6 +46,7 @@ processes:
   - PRC-15-S11
   - PRC-15-S12
   - PRC-15-S13
+  - PRC-15-S14
   steps:
   - actor: system
     where: automatic
@@ -194,6 +198,7 @@ processes:
   - PRC-25-S13
   - PRC-25-S14
   - PRC-25-S15
+  - PRC-25-S16
   steps:
   - actor: system
     where: automatic
@@ -268,8 +273,12 @@ processes:
     - when: 该商机没有未转的售前投入
       goto: end
       outcome: 无需转入
+    - when: 部分售前投入所在法人（投入人员当日成本法人）与项目承担法人不一致：一致部分照常转入；不一致部分不转入，调用 PRC-15 留原法人转费用，列入月末跨法人清单
+      goto: 5
+      rule: INV-93；LEB-05（成本口径 C-5）
     - when: otherwise
       goto: 5
+    calls: PRC-15
     legal_entity: 承担法人
     cross_bc: []
   - actor: system
@@ -4647,6 +4656,7 @@ processes:
   - PRC-98-S14
   - PRC-98-S15
   - PRC-98-S16
+  - PRC-98-S17
   roles:
   - id: SH-E6
     as: performer
@@ -4670,6 +4680,11 @@ processes:
       goto: end
       rule: P-42
       outcome: 已结转下期
+    - when: 分摊规则把某一法人的成本池分摊到其他法人的项目，拒收并告警（成本池按法人分别归集，只分摊到同一法人的项目；部门换法人后自生效日起的费用进新法人的池）
+      goto: end
+      rule: INV-93；成本口径 C-4（不变量待聚合稿登记）
+      outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 2
     permission: 成本.分摊运行试算
