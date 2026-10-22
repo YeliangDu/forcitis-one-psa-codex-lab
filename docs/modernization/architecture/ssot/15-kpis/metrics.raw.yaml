@@ -1,0 +1,2522 @@
+# 由 extract_metrics.py 生成，勿手改
+meta:
+  sources:
+  - docs/modernization/r0/METRIC_BASELINE_DRAFT.md
+  - docs/modernization/glossary/terms.yaml
+  - docs/modernization/architecture/togaf/vision.yaml
+  counts:
+    by_metric_baseline: 48
+    by_glossary_metric: 79
+    by_vision_kpi: 16
+  expected_counts:
+    by_metric_baseline: 48
+    by_glossary_metric: 79
+    by_vision_kpi: 16
+  literal_comparison: 基线建议名称、词表 zh、愿景 name 的完整字符串；仅去 Markdown 单元格外围空白，不拆分、不判同义。
+  pairwise_name_intersections:
+    by_metric_baseline__by_glossary_metric: 11
+    by_metric_baseline__by_vision_kpi: 0
+    by_glossary_metric__by_vision_kpi: 1
+  all_three_name_intersection: 0
+  names_only_in_one_source:
+    by_metric_baseline: 37
+    by_glossary_metric: 67
+    by_vision_kpi: 15
+  different_definition_groups: 12
+by_metric_baseline:
+- cells:
+    编号: M-01
+    建议名称: 商机管道金额（未关闭）
+    替代的叫法: 库存商机、在途商机、商机金额
+    OAT: PIPE
+    期间: I
+    加总: S
+    事实 BC: '`presales.customer`'
+    基础: 经
+    含税: 按商机
+    层: L2
+    处置: 合并
+    待决: 加权金额是否作为第二个度量
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:65
+- cells:
+    编号: M-02
+    建议名称: 赢单金额、赢单率
+    替代的叫法: 赢单、赢率、投标转化率
+    OAT: WON_PROPOSAL_VALUE、WR
+    期间: D
+    加总: A / N
+    事实 BC: '`presales.quoting`'
+    基础: 经
+    含税: 按报价
+    层: L1 / L3
+    处置: 合并
+    待决: 赢单率分母为赢单 + 丢单（B6）
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:66
+- cells:
+    编号: M-03
+    建议名称: 项目立项金额（订单前置指标）
+    替代的叫法: 立项、立项金额、项目金额
+    OAT: —（待定扩展原语）
+    期间: D
+    加总: A
+    事实 BC: '`delivery.execution`'
+    基础: 经
+    含税: 待定
+    层: L1
+    处置: 保留（B6）
+    待决: 是否登记为经营扩展原语（`operations.policy`）；含税口径
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:67
+- cells:
+    编号: M-04
+    建议名称: 线索转化率
+    替代的叫法: 线索转化率、已转为商机
+    OAT: CONV
+    期间: D
+    加总: N
+    事实 BC: '`presales.customer`'
+    基础: 经
+    含税: —
+    层: L3
+    处置: 保留
+    待决: —
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:68
+- cells:
+    编号: M-05
+    建议名称: 新签合同额（不含税；含税另列）
+    替代的叫法: 合同、合同额、销售合同、新签合同
+    OAT: SIGNED_NET_BOOKINGS 的变体（不扣转付）
+    期间: D
+    加总: A
+    事实 BC: '`contract.baseline`'
+    基础: 经
+    含税: 不含税为主
+    层: L1
+    处置: 合并
+    待决: 「新签」统一按合同签署日所在期间（K12）；是否扣转付成本（F2）
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:69
+- cells:
+    编号: M-06
+    建议名称: 剩余履约义务
+    替代的叫法: 剩余合同额、在手合同、合约储备、backlog
+    OAT: RPO
+    期间: I
+    加总: S
+    事实 BC: '`contract.baseline` + `receivables.wip`'
+    基础: 权
+    含税: 不含税
+    层: L2
+    处置: 保留
+    待决: 按月末期间快照
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:70
+- cells:
+    编号: M-07
+    建议名称: 待签合同金额
+    替代的叫法: 待签合约、30 天冲刺池
+    OAT: PIPE（近似）
+    期间: I
+    加总: S
+    事实 BC: '`contract.baseline`（合同草案）'
+    基础: 经
+    含税: 含税未定
+    层: L2
+    处置: 保留
+    待决: 待签账龄起算日
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:71
+- cells:
+    编号: M-08
+    建议名称: 收入确认（不含税）
+    替代的叫法: 产值、产值（不含税）、客户产值、已确认产值
+    OAT: REV
+    期间: D
+    加总: A
+    事实 BC: '`receivables.wip` ← `delivery.acceptance`'
+    基础: 权
+    含税: 不含税
+    层: L1
+    处置: 保留
+    待决: F1；税额按单据实际税率，不用 1.06（K2）
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:77
+- cells:
+    编号: M-09
+    建议名称: 收入确认（含税）
+    替代的叫法: 产值（含税）
+    OAT: —
+    期间: D
+    加总: A
+    事实 BC: 同上
+    基础: 权
+    含税: 含税
+    层: L1
+    处置: 保留
+    待决: 只用于与开票、回款对比
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:78
+- cells:
+    编号: M-10
+    建议名称: 开票金额（含税）
+    替代的叫法: 开票、开票收入（含税）、本次开票金额
+    OAT: BILL
+    期间: D
+    加总: A
+    事实 BC: '`receivables.wip`'
+    基础: 收
+    含税: 含税
+    层: L1
+    处置: 保留
+    待决: 「开票收入」归方言；红冲、作废规则只在指标定义中写一次（E4）
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:79
+- cells:
+    编号: M-11
+    建议名称: 回款（应收结清，全部方式）
+    替代的叫法: 回款、回款收入、回款金额
+    OAT: —
+    期间: D
+    加总: A
+    事实 BC: '`receivables.collection`'
+    基础: 收
+    含税: 含税
+    层: L1
+    处置: 合并
+    待决: 「回款方式」维度：现金、保理、商业承兑汇票、工抵、保理发票核销（F9）
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:80
+- cells:
+    编号: M-12
+    建议名称: 现金回款
+    替代的叫法: 现金回款、销售商品收到的现金
+    OAT: CASH 相关
+    期间: D
+    加总: A
+    事实 BC: '`receivables.collection` + `accounting.cashbank`'
+    基础: 收
+    含税: 含税
+    层: L1
+    处置: 新增
+    待决: 与 M-11 的差即非现金结清（K5）
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:81
+- cells:
+    编号: M-13
+    建议名称: 应收账款余额
+    替代的叫法: 应收账款、应收账款金额、已开票未回款
+    OAT: AR
+    期间: I
+    加总: S
+    事实 BC: '`receivables.collection`'
+    基础: 两账差异类，待财务 FQ-03（ADR-0022 评审 C-5）
+    含税: 含税
+    层: L2
+    处置: 保留
+    待决: 单一来源与红冲处理（F4）；两账口径待 FQ-03
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:82
+- cells:
+    编号: M-14
+    建议名称: 账龄超 N 天应收
+    替代的叫法: 超期应收、超期（> 90 天）、逾期金额 > 90 天
+    OAT: —
+    期间: I
+    加总: S
+    事实 BC: 同上
+    基础: —
+    含税: 含税
+    层: L2
+    处置: 合并
+    待决: 分段方案（F3）；按开票日起算
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:83
+- cells:
+    编号: M-15
+    建议名称: 逾期应收（过了到期日）
+    替代的叫法: （老报表没有；只有商业承兑汇票按到期日）
+    OAT: ODAR 的分子
+    期间: I
+    加总: S
+    事实 BC: 同上（到期日取自合同条款）
+    基础: —
+    含税: 含税
+    层: L2
+    处置: 新增
+    待决: Q6②；到期日来源
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:84
+- cells:
+    编号: M-16
+    建议名称: 应收周转天数
+    替代的叫法: DSO、滚动 DSO、当年 DSO
+    OAT: DSO
+    期间: I（区间）
+    加总: N
+    事实 BC: 派生
+    基础: 待定
+    含税: —
+    层: L3
+    处置: 合并
+    待决: 单一算法：分子、天数基准、是否含商业承兑汇票与坏账（F6，K7）
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:85
+- cells:
+    编号: M-17
+    建议名称: 合同资产余额（按形成期间、风险分层）
+    替代的叫法: 已确认未开票、合同资产、存量资产、本年度未开票、不良资产
+    OAT: CA
+    期间: I
+    加总: S
+    事实 BC: '`receivables.wip`'
+    基础: 权（收付账簿为 0，GL-027）
+    含税: 含税（GL-024）
+    层: L2
+    处置: 合并
+    待决: 「本年度」作为「形成期间」维度，不另设指标；风险分层规则配置化（K17）
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:86
+- cells:
+    编号: M-18
+    建议名称: 开票转化率
+    替代的叫法: 开票 / 产值、开票转化
+    OAT: BCR
+    期间: D
+    加总: N
+    事实 BC: 派生
+    基础: —
+    含税: 同口径
+    层: L3
+    处置: 保留
+    待决: 分子分母税口径一致
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:87
+- cells:
+    编号: M-19
+    建议名称: 回款率
+    替代的叫法: 回款 / 开票、回款质量、开回率、当年开回率
+    OAT: COLR
+    期间: D
+    加总: N
+    事实 BC: 派生
+    基础: —
+    含税: 含税
+    层: L3
+    处置: 合并
+    待决: 两种开回率合一（K7）
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:88
+- cells:
+    编号: M-20
+    建议名称: 减值准备（余额、本期计提）
+    替代的叫法: 坏账准备、已计提、计提坏账准备金额
+    OAT: IMP
+    期间: I / D
+    加总: S / A
+    事实 BC: '`receivables.*` → `accounting.ledger`'
+    基础: 权
+    含税: —
+    层: L2
+    处置: 合并
+    待决: 「减值计划」改为 M-40 的一种目标类型（K17，F10）
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:89
+- cells:
+    编号: M-21
+    建议名称: 收入冲减、信用损失核销
+    替代的叫法: 坏账、产值坏账、退回 / 坏账
+    OAT: WO
+    期间: D
+    加总: A
+    事实 BC: '`receivables.*`'
+    基础: 权 / 两账（D17-8）
+    含税: —
+    层: L1
+    处置: 拆分
+    待决: D17-8 两种事实类型
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:90
+- cells:
+    编号: M-22
+    建议名称: 商业承兑汇票未兑付余额
+    替代的叫法: 商票结余、剩余商票、逾期商票
+    OAT: —
+    期间: I
+    加总: S
+    事实 BC: '`receivables.collection`'
+    基础: 收
+    含税: —
+    层: L2
+    处置: 新增
+    待决: 新概念，起草词条
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:91
+- cells:
+    编号: M-23
+    建议名称: 承诺开票超期金额
+    替代的叫法: 承诺超期、已超期、超期率
+    OAT: —
+    期间: I
+    加总: S
+    事实 BC: '`operations.planning`（承诺）× `receivables.wip`'
+    基础: 经
+    含税: 含税
+    层: L3
+    处置: 保留
+    待决: 依赖承诺事实（M-40）
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:92
+- cells:
+    编号: M-24
+    建议名称: 直接人工
+    替代的叫法: 人工费用（项目部分）、人力成本费用
+    OAT: DL
+    期间: D
+    加总: A
+    事实 BC: '`cost.costing` ← `cost.timesheet`'
+    基础: 权
+    含税: 不含税
+    层: L1
+    处置: 保留
+    待决: 有效工时 × 标准费率（词表定义）
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:98
+- cells:
+    编号: M-25
+    建议名称: 直接费用
+    替代的叫法: 项目费用、ODC
+    OAT: DE
+    期间: D
+    加总: A
+    事实 BC: '`cost.costing` ← `expense.spend`'
+    基础: 权
+    含税: 不含税
+    层: L1
+    处置: 保留
+    待决: —
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:99
+- cells:
+    编号: M-26
+    建议名称: 分包成本、外包成本
+    替代的叫法: 委外费、项目委外
+    OAT: PTC / DC
+    期间: D
+    加总: A
+    事实 BC: '`cost.costing` ← `procurement.subcontracting`'
+    基础: 权
+    含税: 不含税
+    层: L1
+    处置: 保留
+    待决: 是否计入转付成本（F2）
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:100
+- cells:
+    编号: M-27
+    建议名称: 项目成本（合同履约成本结转）
+    替代的叫法: 交付成本、成本
+    OAT: DC / COGS
+    期间: D
+    加总: A
+    事实 BC: '`cost.costing`（D17-1、D17-3）'
+    基础: 权
+    含税: 不含税
+    层: L1
+    处置: 合并
+    待决: 收付账簿口径另列（D17-4）
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:101
+- cells:
+    编号: M-28
+    建议名称: 净服务收入
+    替代的叫法: （老报表没有）
+    OAT: NR
+    期间: D
+    加总: A
+    事实 BC: 派生：M-08 − 转付成本
+    基础: 权
+    含税: 不含税
+    层: L3
+    处置: 新增
+    待决: NR 是否等于 REV − PTC（F2）
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:102
+- cells:
+    编号: M-29
+    建议名称: 贡献毛利、贡献毛利率（项目级；变体：报价、预算、预估、实际）
+    替代的叫法: 毛利、毛利率、交付毛利、产值毛利、项目毛利润
+    OAT: CM、CMR
+    期间: D
+    加总: A / N
+    事实 BC: 派生（项目级）
+    基础: 权
+    含税: 不含税
+    层: L3
+    处置: 合并
+    待决: Q6-2；扣减项（F2）；不再用「产值 − 当期全部费用」（K3）；贡献毛利率分母＝同层级、同变体的净服务收入 M-28（用户 KPI-Q03，2026-10-22）
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:103
+- cells:
+    编号: M-30
+    建议名称: BU 贡献（层级：扣客户到合同费用、扣支持分摊）
+    替代的叫法: 区域总毛利（含支持）、BU 毛利、战区毛利润
+    OAT: CM（层级变体）
+    期间: D
+    加总: A
+    事实 BC: 派生 + 分摊政策
+    基础: 经
+    含税: 不含税
+    层: L3
+    处置: 合并
+    待决: 层级定义与分摊规则版本（F8，K19）
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:104
+- cells:
+    编号: M-31
+    建议名称: 间接费用（按职能：研发、总部、控股）
+    替代的叫法: 研发费用、总部费用、总部平台费用、控股费用、OH
+    OAT: OH
+    期间: D
+    加总: A
+    事实 BC: '`cost.costing`、`accounting.ledger`'
+    基础: 权
+    含税: 不含税
+    层: L1
+    处置: 合并
+    待决: 「剔除费用」改为口径差异清单中的一项，不再手工扣减
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:105
+- cells:
+    编号: M-32
+    建议名称: 经营利润、经营利润率（管理口径，分摊后）
+    替代的叫法: 税前利润、税前经营利润、税前净利润、分摊后税前利润
+    OAT: OP、OPM
+    期间: D
+    加总: A / N
+    事实 BC: 派生
+    基础: 经
+    含税: 不含税
+    层: L3
+    处置: 合并
+    待决: 三种公式合一（K4）；分摊政策版本
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:106
+- cells:
+    编号: M-33
+    建议名称: 费用（权责，按发生期间）
+    替代的叫法: 损益表中的办公费、差旅费、居间费等
+    OAT: DE / OE
+    期间: D
+    加总: A
+    事实 BC: '`expense.spend` → `accounting.ledger`'
+    基础: 权
+    含税: 不含税
+    层: L1
+    处置: 保留
+    待决: Q6①；发生期间取哪个日期（F5）
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:107
+- cells:
+    编号: M-34
+    建议名称: 费用支付（按支付日）
+    替代的叫法: 现金流量表中的同名项目
+    OAT: —
+    期间: D
+    加总: A
+    事实 BC: '`payables.payment`'
+    基础: 收
+    含税: 含税
+    层: L1
+    处置: 保留
+    待决: Q6①
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:108
+- cells:
+    编号: M-35
+    建议名称: 法定报表数（营业收入、营业成本、利润总额、净利润等）
+    替代的叫法: 主营业务收入、公司层级报告、净利润、整体利润
+    OAT: REV、P、OP（标准层）
+    期间: D / I
+    加总: —
+    事实 BC: '`accounting.reporting`'
+    基础: 两账分别
+    含税: 不含税
+    层: Ref
+    处置: 改引
+    待决: 不在 reporting 重算；「整体利润」属合并报表，后续路线
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:109
+- cells:
+    编号: M-36
+    建议名称: 经营活动现金流量净额
+    替代的叫法: 经营活动现金流量净额、净流入
+    OAT: OCF
+    期间: D
+    加总: A
+    事实 BC: '`accounting.reporting`（GL-057：两账标注相同）'
+    基础: 两账相同
+    含税: —
+    层: Ref
+    处置: 改引
+    待决: 个人账户、工抵卡是否计入（F7，K15）
+  section: '### 3.5 现金（`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:115
+- cells:
+    编号: M-37
+    建议名称: 现金流入流出比（经营 + 投资）
+    替代的叫法: 现金流入流出比、流入流出比
+    OAT: —
+    期间: D
+    加总: N
+    事实 BC: 派生自 M-36 的明细
+    基础: —
+    含税: —
+    层: L3
+    处置: '**待确认**'
+    待决: 是否保留；是否含筹资只能有一个定义（K15）
+  section: '### 3.5 现金（`accounting.reporting`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:116
+- cells:
+    编号: M-38
+    建议名称: 平均在册人数
+    替代的叫法: 平均人数、交付人数、当前在职（作分母时）
+    OAT: AVG_HEADCOUNT
+    期间: D
+    加总: N
+    事实 BC: '`organization.workforce`'
+    基础: —
+    含税: —
+    层: L2
+    处置: 合并
+    待决: 口径（B2）；Q6④ 统一除数
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:122
+- cells:
+    编号: M-39
+    建议名称: 离职率（主动、被动）
+    替代的叫法: 离职率、主动离职率、被动离职率
+    OAT: EMPLOYEE_SEPARATIONS ÷ AVG_HEADCOUNT
+    期间: D
+    加总: N
+    事实 BC: '`organization.workforce`'
+    基础: —
+    含税: —
+    层: L3
+    处置: 保留
+    待决: 年化规则
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:123
+- cells:
+    编号: M-40
+    建议名称: 计划目标值（目标类型：预算 / 承诺 / 挑战 / 预测 / 减值计划；带版本）
+    替代的叫法: 预算目标、承诺目标、挑战目标、理论目标、线性目标、区域上报目标、Q4 冲刺、滚动预测、承诺清单
+    OAT: PLAN_TARGET_VALUE
+    期间: D / I
+    加总: A
+    事实 BC: '`operations.planning`（目标值）、`operations.budgeting`（额度）'
+    基础: 经
+    含税: 随被考核指标
+    层: L1
+    处置: 合并（B7）
+    待决: 目标类型：预算 / 承诺 / 挑战 / 预测 / 减值计划；理论、线性由参数推导
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:124
+- cells:
+    编号: M-41
+    建议名称: 目标达成率（按目标类型）
+    替代的叫法: 完成率、达成率、预算完成率、承诺完成率、挑战完成率、清单完成率、承诺准确率、预实比
+    OAT: —
+    期间: D
+    加总: N
+    事实 BC: 派生
+    基础: 经
+    含税: —
+    层: L3
+    处置: 合并
+    待决: 名称必须带目标类型；「时间进度」只作参照线，不叫完成率（K11）
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:125
+- cells:
+    编号: M-42
+    建议名称: 利用率
+    替代的叫法: 产能饱和度、工时有效率
+    OAT: UR
+    期间: D
+    加总: N
+    事实 BC: '`cost.timesheet` + 日历参数'
+    基础: —
+    含税: —
+    层: L3
+    处置: 合并
+    待决: 日标准工时参数（B1，Q6③）；分子是可计费工时，还是可计费加商机工时
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:126
+- cells:
+    编号: M-43
+    建议名称: 工时结构（可计费、商机、非计费占比）
+    替代的叫法: 收费工时占比、商机工时占比
+    OAT: HRS 拆分
+    期间: D
+    加总: N
+    事实 BC: '`cost.timesheet`'
+    基础: —
+    含税: —
+    层: L3
+    处置: 保留
+    待决: 与词表的有效 / 无效工时划分对齐（S-24）
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:127
+- cells:
+    编号: M-44
+    建议名称: 人均产出（X ÷ 平均在册人数 ÷ 期间月数）
+    替代的叫法: 人均立项、人均合同、人均产值、人均开票、人均回款
+    OAT: —
+    期间: D
+    加总: N
+    事实 BC: 派生
+    基础: —
+    含税: 随 X
+    层: L3
+    处置: 合并
+    待决: 一个模式套用到任意流量指标，不逐个建
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:128
+- cells:
+    编号: M-45
+    建议名称: 人工成本产出倍数（分子：收入确认 / 开票 / 回款）
+    替代的叫法: 产工比、产值产工比、开票产工比、回款产工比、产值产出比
+    OAT: NRPM（参照）
+    期间: D
+    加总: N
+    事实 BC: 派生：X ÷ 人工成本（`organization.payroll`）
+    基础: 经
+    含税: 不含税为主
+    层: L3
+    处置: 合并（B8）
+    待决: 人工成本范围（是否含奖金、社保）
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:129
+- cells:
+    编号: M-46
+    建议名称: 无合同风险敞口、超授权额度投入
+    替代的叫法: 待签项目已投入、超限、在途仍超限、未做预算先投入
+    OAT: —
+    期间: I
+    加总: S
+    事实 BC: '`contract.riskdelivery`'
+    基础: 经
+    含税: —
+    层: L2
+    处置: 保留
+    待决: 授权额度按客户等级配置（E22）
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:130
+- cells:
+    编号: M-47
+    建议名称: 预算执行（已占用、已消耗、可用额度、消耗率）
+    替代的叫法: 预算使用率、薪酬包余量、超支额、应释放薪酬
+    OAT: BURN
+    期间: I / D
+    加总: S / N
+    事实 BC: '`operations.budgeting`'
+    基础: 经
+    含税: —
+    层: L2 / L3
+    处置: 合并
+    待决: 「应释放薪酬 = 回款 ÷ 目标倍数」是否作为预算规则（B3）
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:131
+- cells:
+    编号: M-48
+    建议名称: 交付质量指标族（启动会完成率、内审覆盖率、内审得分、客户满意度 NPS、客诉数）
+    替代的叫法: 同名
+    OAT: 启动会就绪检查、NPS 相关原语
+    期间: D
+    加总: N / A
+    事实 BC: '`delivery.execution`、`delivery.acceptance`'
+    基础: —
+    含税: —
+    层: L1 / L3
+    处置: 保留（B11）
+    待决: 内审完成率与覆盖率合一，分母为已交付项目
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:132
+by_glossary_metric:
+- id: business_variance
+  zh: 经营偏差
+  en: BusinessVariance
+  snake: business_variance
+  kind: metric
+  bc: operations.facts
+  definition: 经营事实层面的异常与漏损（三偏差术语之一）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:165
+- id: uncontracted_exposure
+  zh: 无合同风险敞口
+  en: UncontractedExposure
+  snake: uncontracted_exposure
+  kind: metric
+  bc: contract.agreement
+  definition: NR+CA+AR 三段合计的无合同敞口（F127A）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: 风险敞口
+    type: dialect
+    deprecated: true
+  - name: RiskExposure
+    type: old-code
+    deprecated: true
+  - name: 待签项目投入
+    type: dialect
+    deprecated: true
+    source: 在用报表：交付中心汇报 5.1–5.2
+    decision: R0 在用报表叫法（R3-RA-03）
+  forbidden:
+  - RiskExposure
+  - 风险敞口
+  - 待签项目投入
+  status: approved
+  change_ref: G-27
+  note: 定义专指无合同敞口（NR+CA+AR，F127A），通用名 RiskExposure 与其它风险敞口歧义；且无合同时不存在准则口径合同资产，CA 段应为未开票在制
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:1638
+- id: estimate_to_complete
+  zh: ETC
+  en: EstimateToComplete
+  snake: estimate_to_complete
+  kind: metric
+  bc: delivery.execution
+  definition: 剩余完工估算
+  standard_ref:
+  - PMI PMBOK Guide
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases:
+  - name: etcHours
+    type: legacy-code
+    deprecated: true
+  - name: psa_task_package.etc_hours
+    type: legacy-table
+    deprecated: true
+  forbidden: []
+  status: approved
+  core: true
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2035
+- id: delivery_variance
+  zh: 交付偏差
+  en: DeliveryVariance
+  snake: delivery_variance
+  kind: metric
+  bc: delivery.execution
+  definition: 交付执行的过程度量
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2113
+- id: post_completion_service_hours
+  zh: 后期服务工时
+  en: PostCompletionServiceHours
+  snake: post_completion_service_hours
+  kind: metric
+  bc: delivery.execution
+  definition: 质保期服务的登记与工时（归属待 Q21）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2144
+- id: quality_loss
+  zh: 质量损失
+  en: QualityLoss
+  snake: quality_loss
+  kind: metric
+  bc: delivery.acceptance
+  definition: 挂不符合项与责任方的损失金额（QL）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL 确认单 B2-E01（用户 2026-10-16 同意）；随不符合项连带改定义（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2379
+- id: rework_rate
+  zh: 返工率
+  en: ReworkRate
+  snake: rework_rate
+  kind: metric
+  bc: delivery.acceptance
+  definition: 质量侧过程度量（F030Q 等）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2394
+- id: defect_rate
+  zh: 质量缺陷率
+  en: DefectRate
+  snake: defect_rate
+  kind: metric
+  bc: delivery.acceptance
+  definition: 质量侧过程度量（F030Q 等）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2409
+- id: effective_hours
+  zh: 有效工时
+  en: EffectiveHours
+  snake: effective_hours
+  kind: metric
+  bc: cost.timesheet
+  definition: 经认定形成有效产出的工时（EFF_HRS 分子）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2512
+- id: ineffective_hours
+  zh: 无效工时
+  en: IneffectiveHours
+  snake: ineffective_hours
+  kind: metric
+  bc: cost.timesheet
+  definition: 认定为未形成有效产出的工时
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2527
+- id: rework_hours
+  zh: 返工工时
+  en: ReworkHours
+  snake: rework_hours
+  kind: metric
+  bc: cost.timesheet
+  definition: 只能由 ReworkRecognized 引用产生的工时分类
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2542
+- id: billable_hours
+  zh: 可计费工时
+  en: BillableHours
+  snake: billable_hours
+  kind: metric
+  bc: cost.timesheet
+  definition: 有效 且 关联 T&M 合同 且 在费率表范围内的工时（可计费 ⊆ 有效）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: billable, BillingUser
+    type: legacy-code
+    deprecated: true
+  - name: psa_time_sheet_works.billable
+    type: legacy-table
+    deprecated: true
+  - name: 收费工时
+    type: dialect
+    deprecated: true
+    source: 在用报表：运营看板人效情况
+    decision: R0 在用报表叫法（R3-RA-04）
+  forbidden:
+  - 收费工时
+  status: approved
+  core: true
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2557
+- id: capacity_realization
+  zh: 产能变现
+  en: CapacityRealization
+  snake: capacity_realization
+  kind: metric
+  bc: cost.timesheet
+  definition: 可用产能转化为有效产出的分析（F022/F187）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 行业近义指标为 Utilization（利用率），口径不同不合并
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2600
+- id: idle_capacity
+  zh: 闲置产能
+  en: IdleCapacity
+  snake: idle_capacity
+  kind: metric
+  bc: cost.timesheet
+  definition: 闲置+待派+无效内部事务（F187 口径）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2616
+- id: project_cost
+  zh: 项目成本
+  en: ProjectCost
+  snake: project_cost
+  kind: metric
+  bc: cost.costing
+  definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）；按科目划分的「变动成本」「固定成本」两栏已废弃，不复活旧词；以后按成本性态分析时另立「成本性态」维度（用户 KPI-Q07）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  confidence: medium
+  aliases:
+  - name: CostLedgerDO / cost_summary
+    type: legacy-code
+    deprecated: true
+  - name: psa_cost_ledger / psa_cost_summary
+    type: legacy-table
+    deprecated: true
+  - name: 变动成本
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - name: 固定成本
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden:
+  - 变动成本
+  - 固定成本
+  status: approved
+  core: true
+  scope: domain
+  confirmed: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
+  source: docs/modernization/glossary/terms.yaml:2630
+- id: direct_labor
+  zh: 直接人工
+  en: DirectLabor
+  snake: direct_labor
+  kind: metric
+  bc: cost.costing
+  definition: 有效工时×标准费率版本（可复算）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2698
+- id: direct_expense
+  zh: 直接费用
+  en: DirectExpense
+  snake: direct_expense
+  kind: metric
+  bc: cost.costing
+  definition: 判定为项目直接的费用（经费用 BC 防腐层）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2713
+- id: outsourcing_cost
+  zh: 外包成本
+  en: OutsourcingCost
+  snake: outsourcing_cost
+  kind: metric
+  bc: cost.costing
+  definition: 人力劳务外包投入：按工时/人月计费、人员受我方管理（Q31 业主定稿 2026-07-04）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: 委外费
+    type: dialect
+    deprecated: true
+    source: 在用报表：损益表、现金流量表（外包或分包待确认）
+    decision: R0 在用报表叫法（R3-RA-05）
+  forbidden:
+  - 委外费
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2727
+- id: subcontract_cost
+  zh: 分包成本
+  en: SubcontractCost
+  snake: subcontract_cost
+  kind: metric
+  bc: cost.costing
+  definition: 成果性专业分包投入：按验收计价、责任随成果转移（Q31 业主定稿 2026-07-04，核算科目与成本路径同步区分）
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
+  - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  confidence: medium
+  aliases:
+  - name: 项目委外
+    type: dialect
+    deprecated: true
+    source: A8 模板「项目委外采购申请 / 采购合同 / 交付确认单」
+  forbidden:
+  - 项目委外
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2748
+- id: cost_budget
+  zh: 成本预算
+  en: CostBudget
+  snake: cost_budget
+  kind: metric
+  bc: cost.costing
+  definition: 预算对照与偏差度量（BURN_STD F058A）
+  standard_ref:
+  - PMI PMBOK Guide
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2889
+- id: cost_budget_variance
+  zh: 成本预算偏差
+  en: CostBudgetVariance
+  snake: cost_budget_variance
+  kind: metric
+  bc: cost.costing
+  definition: 预算对照与偏差度量（BURN_STD F058A）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: CostVariance
+    type: old-code
+    deprecated: true
+  - name: 成本偏差
+    type: dialect
+    deprecated: true
+  forbidden:
+  - CostVariance
+  - 成本偏差
+  status: approved
+  change_ref: G-24
+  note: PMBOK 的 CostVariance 专指 EVM 的 CV = EV − AC；本词定义是预算 vs 实际（BURN_STD），换名避免与 EVM 指标同名异义
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:2903
+- id: unbilled_wip
+  zh: 未开票在制（WIP）
+  en: UnbilledWip
+  snake: unbilled_wip
+  kind: metric
+  bc: receivables.wip
+  definition: 管理口径：累计履约进度收入 − 累计已开票，按项目 × 合同条款计量，含无合同部分；不是准则科目
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: WIP
+    type: dialect
+    deprecated: true
+  - name: Wip
+    type: old-code
+    deprecated: true
+  forbidden:
+  - Wip
+  status: approved
+  change_ref: G-9
+  note: WIP 是 PSA 行业管理口径（未开票价值），合同资产是准则口径；两者差异 = 无合同 WIP + 合同负债抵消 + 减值，见 G-8/G-9
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:3235
+- id: measure_of_progress
+  zh: 履约进度
+  en: MeasureOfProgress
+  snake: measure_of_progress
+  kind: metric
+  bc: receivables.wip
+  definition: 履约义务完成程度的计量值，取值 [0,1]（F041），按投入法或产出法计量
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  confidence: medium
+  aliases:
+  - name: 完工百分比 / POC
+    type: dialect
+    deprecated: true
+  - name: Poc / PercentageOfCompletion / progress
+    type: old-code
+    deprecated: true
+  - name: psa_pm_project.progress_pro
+    type: legacy-table
+    deprecated: true
+  forbidden:
+  - PercentageOfCompletion
+  - Poc
+  - 完工百分比
+  status: approved
+  change_ref: G-13
+  note: 「完工百分比」是已废止的 IAS 11 / CAS 15 建造合同用语；CAS 14 / IFRS 15 §39-45 称履约进度。POC 保留为 KPI 符号别名
+  core: true
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:3307
+- id: uncontracted_wip
+  zh: 无合同 WIP
+  en: UncontractedWip
+  snake: uncontracted_wip
+  kind: metric
+  bc: receivables.wip
+  definition: NOCTR 状态的 WIP：永不可开票，待风险交付转正（F164）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-9
+  note: 无合同即不满足 CAS 14 合同成立条件：永不进入 ContractAsset，只存在于管理口径未开票在制
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:3478
+- id: accounts_receivable
+  zh: 应收账款
+  en: AccountsReceivable
+  snake: accounts_receivable
+  kind: metric
+  bc: receivables.collection
+  definition: 应收账款（发票之后的收款权）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  - ifrs-full:TradeReceivables
+  confidence: medium
+  aliases:
+  - name: AR
+    type: abbr
+    deprecated: false
+  - name: Ar
+    type: old-code
+    deprecated: false
+  - name: 已开票未回款
+    type: dialect
+    deprecated: true
+    source: 在用报表：应收账款分析底表
+    decision: R0 在用报表叫法（R3-RA-10）
+  forbidden:
+  - Ar
+  - 已开票未回款
+  status: approved
+  note: 准则：无条件收款权（仅取决于时间流逝）；代码保留 Ar 前缀写法 ArItem
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:3585
+- id: aging
+  zh: 账龄
+  en: Aging
+  snake: aging
+  kind: metric
+  bc: receivables.collection
+  definition: 应收与 WIP 共用的分桶口径（0-30/30-90/90-180/180+）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:3761
+- id: bad_debt_risk
+  zh: 坏账风险
+  en: BadDebtRisk
+  snake: bad_debt_risk
+  kind: metric
+  bc: receivables.collection
+  definition: 减值前置信号的统称（WIP/AR 两侧事件已拆分，主权唯一）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:3909
+- id: impairment_risk
+  zh: 减值风险
+  en: ImpairmentRisk
+  snake: impairment_risk
+  kind: metric
+  bc: receivables.collection
+  definition: 减值前置信号的统称（WIP/AR 两侧事件已拆分，主权唯一）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
+  - 企业会计准则第 8 号——资产减值
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:3923
+- id: cash_conversion
+  zh: 现金转化
+  en: CashConversion
+  snake: cash_conversion
+  kind: metric
+  bc: receivables.collection
+  definition: 履约到现金的端到端转化（CCR F127）
+  standard_ref:
+  - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:3938
+- id: time_capture_rate
+  zh: 工时捕获率
+  en: TimeCaptureRate
+  snake: time_capture_rate
+  kind: metric
+  bc: receivables.wip
+  definition: T&M 可计费工时 vs 项目工时（HCR F030H）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:3953
+- id: statutory_cost
+  zh: 法定成本
+  en: StatutoryCost
+  snake: statutory_cost
+  kind: metric
+  bc: accounting.ledger
+  definition: 准则口径的成本入账与结转
+  standard_ref:
+  - 企业会计准则第 30 号——财务报表列报
+  - ifrs-full:CostOfSales
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:4260
+- id: intercompany_balance
+  zh: 内部往来
+  en: IntercompanyBalance
+  snake: intercompany_balance
+  kind: metric
+  bc: accounting.ledger
+  definition: 跨法人业务的核算侧表达（成对入账）
+  standard_ref:
+  - 企业会计准则第 33 号——合并财务报表
+  - IFRS 10 Consolidated Financial Statements
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:4366
+- id: costs_to_obtain_contract
+  zh: 合同取得成本
+  en: CostsToObtainContract
+  snake: costs_to_obtain_contract
+  kind: metric
+  bc: cost.costing
+  definition: 为取得合同发生的增量成本（如居间佣金），预期可收回时确认为资产
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - ifrs-full:AssetsRecognisedFromCostsToObtainOrFulfilContractsWithCustomers
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  change_ref: G-10
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5275
+- id: cost_of_sales
+  zh: 营业成本
+  en: CostOfSales
+  snake: cost_of_sales
+  kind: metric
+  bc: cost.costing
+  definition: 随收入确认由合同履约成本转出的成本（原「主营业务成本」）
+  standard_ref:
+  - 企业会计准则第 30 号——财务报表列报
+  - ifrs-full:CostOfSales
+  confidence: medium
+  aliases:
+  - name: 主营业务成本 / 主营成本
+    type: dialect
+    deprecated: true
+  forbidden:
+  - 主营业务成本
+  - 主营成本
+  status: approved
+  change_ref: G-10
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5348
+- id: remaining_performance_obligation
+  zh: 剩余履约义务
+  en: RemainingPerformanceObligation
+  snake: remaining_performance_obligation
+  kind: metric
+  bc: contract.agreement
+  definition: 已签约未履约部分分摊的交易价格（行业称在手合同额 / backlog）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - IFRS 15 Revenue from Contracts with Customers
+  - ifrs-full:TransactionPriceAllocatedToRemainingPerformanceObligations
+  confidence: medium
+  aliases:
+  - name: 在手合同额 / Backlog
+    type: industry
+    deprecated: false
+  - name: 剩余合同额
+    type: dialect
+    deprecated: true
+    source: 在用报表：运营看板人效情况
+    decision: R0 在用报表叫法（R3-RA-17）
+  - name: 合约储备
+    type: dialect
+    deprecated: true
+    source: 在用报表：经营分析报告业绩摘要
+    decision: R0 在用报表叫法（R3-RA-18）
+  forbidden:
+  - 剩余合同额
+  - 合约储备
+  status: approved
+  change_ref: G-21
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5370
+- id: estimate_at_completion
+  zh: 完工估算
+  en: EstimateAtCompletion
+  snake: estimate_at_completion
+  kind: metric
+  bc: delivery.execution
+  definition: EAC = 实际成本 AC + 完工尚需估算 ETC
+  standard_ref:
+  - PMI PMBOK Guide
+  - AACE International RP 10S-90 Cost Engineering Terminology
+  confidence: high
+  aliases:
+  - name: EAC
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5420
+- id: planned_value
+  zh: 计划价值
+  en: PlannedValue
+  snake: planned_value
+  kind: metric
+  bc: delivery.execution
+  definition: 按基线截至某时点计划完成工作的预算价值（PV）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  - GB/T 50358-2017 建设项目工程总承包管理规范
+  confidence: high
+  aliases:
+  - name: PV
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5440
+- id: earned_value
+  zh: 挣值
+  en: EarnedValue
+  snake: earned_value
+  kind: metric
+  bc: delivery.execution
+  definition: 截至某时点已完成工作的预算价值（EV；GB/T 50358 称赢得值）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  - GB/T 50358-2017 建设项目工程总承包管理规范
+  confidence: high
+  aliases:
+  - name: 赢得值 / EV
+    type: standard-zh
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5461
+- id: actual_cost
+  zh: 实际成本
+  en: ActualCost
+  snake: actual_cost
+  kind: metric
+  bc: delivery.execution
+  definition: 截至某时点已完成工作的实际发生成本（AC）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: AC
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5482
+- id: cost_performance_index
+  zh: 成本绩效指数
+  en: CostPerformanceIndex
+  snake: cost_performance_index
+  kind: metric
+  bc: delivery.execution
+  definition: CPI = EV / AC
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: CPI
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5502
+- id: schedule_performance_index
+  zh: 进度绩效指数
+  en: SchedulePerformanceIndex
+  snake: schedule_performance_index
+  kind: metric
+  bc: delivery.execution
+  definition: SPI = EV / PV
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: SPI
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5522
+- id: schedule_variance
+  zh: 进度偏差
+  en: ScheduleVariance
+  snake: schedule_variance
+  kind: metric
+  bc: delivery.execution
+  definition: SV = EV − PV
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: SV
+    type: abbr
+    deprecated: false
+  forbidden: []
+  status: approved
+  change_ref: G-23
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5542
+- id: earned_value_cost_variance
+  zh: 挣值成本偏差
+  en: EarnedValueCostVariance
+  snake: earned_value_cost_variance
+  kind: metric
+  bc: delivery.execution
+  definition: EVM 的 CV = EV − AC（与成本预算偏差 CostBudgetVariance 区分）
+  standard_ref:
+  - PMI PMBOK Guide
+  - PMI Practice Standard for Earned Value Management
+  confidence: high
+  aliases:
+  - name: CV
+    type: abbr
+    deprecated: false
+  forbidden:
+  - CostVariance
+  status: approved
+  change_ref: G-24
+  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5562
+- id: utilization_rate
+  zh: 利用率
+  en: UtilizationRate
+  snake: utilization_rate
+  kind: metric
+  bc: cost.timesheet
+  definition: 可计费工时 / 可用工时（PSA 通行指标）
+  standard_ref:
+  - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  confidence: high
+  aliases:
+  - name: Utilization
+    type: industry
+    deprecated: false
+  - name: 产能饱和度
+    type: dialect
+    deprecated: true
+    source: 在用报表：运营看板人效情况、交付中心汇报
+    decision: R0 在用报表叫法（R3-RA-19）
+  forbidden:
+  - 产能饱和度
+  status: approved
+  change_ref: G-2
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:5745
+- id: accrual_basis_revenue
+  zh: 权责发生制收入
+  en: AccrualBasisRevenue
+  snake: accrual_basis_revenue
+  kind: metric
+  bc: operations.policy
+  definition: 权责口径账簿按客户确认（收入确认单）确认的营业收入（不含税）；与收付口径账簿按开票确认的收入相对，经营分析以此为收入主口径
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - ADR-0022 总账纳入新系统
+  - ADR-0023 经营分析纳入现代化
+  confidence: medium
+  aliases:
+  - name: 产值收入
+    type: dialect
+    deprecated: true
+    source: 财务确认单第 2 版答复（ADR-0023 意见）
+  - name: AccrualRevenue
+    type: old-code
+    deprecated: true
+  - name: 权责收入
+    type: dialect
+    deprecated: true
+  - name: 收入确认（不含税）
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden:
+  - 产值收入
+  - 权责收入
+  status: approved
+  note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#accrual_revenue，R3-FI-05）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:8149
+- id: reversible_balance
+  zh: 可冲销余额
+  en: ReversibleBalance
+  snake: reversible_balance
+  kind: metric
+  bc: kernel
+  definition: 原单某行尚可被冲销的金额，等于原额减去已生效冲销合计；按已通过的冲销单与修正单计算（含待过账），不按已过账事实；冲销单不可再被冲销
+  standard_ref:
+  - ADR-0031 第 2 项第 5 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 kernel.yaml#reversible_balance，R3-KN-12）
+  confirmed: 2026-10-15（用户，用语确认第三轮）
+  scope: kernel
+  source: docs/modernization/glossary/terms.yaml:9132
+- id: job_failure
+  zh: 作业失败
+  en: JobFailure
+  snake: job_failure
+  kind: metric
+  bc: platform.scheduling
+  definition: 带 SchedulerLock 的定时作业抛出异常的一次运行；按作业名（锁名）计数，指标 job.failures。作业自己捕获并记录的失败不在其中，由所属模块的指标覆盖
+  standard_ref:
+  - proposals/EVENT_ANALYTICS_FIELDS.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（原提议 fix-b2b-events.yaml#job_failure，R3-PL-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B2 类别判定）
+  scope: domain
+  formula: 带 SchedulerLock 的定时作业抛出异常的运行次数（作业自己捕获并记录的失败不计）
+  grain: 按作业名（锁名）
+  as_of: 实时累计，随进程重启归零（指标计数器）
+  source: docs/modernization/glossary/terms.yaml:9507
+- id: contribution_margin
+  zh: 贡献毛利
+  en: ContributionMargin
+  snake: contribution_margin
+  kind: metric
+  bc: operations.policy
+  definition: 净服务收入减直接人工与直接项目费用后的余额；按层级（项目、项目小组、区域、公司）与变体（报价、预算、预估、实际）声明；扣减项按财务口径 FD-41
+  standard_ref:
+  - OAT canonical_symbol CM；《管理会计应用指引第 401 号——本量利分析》（边际贡献，口径不同，见 naming_issues）；企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（转付成本是否计入收入总额）
+  confidence: medium
+  aliases:
+  - name: 毛利
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  - name: 交付毛利
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  - name: 产值毛利
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  - name: BU 毛利
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  - name: 项目毛利润
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  forbidden:
+  - 毛利
+  - 交付毛利
+  - 产值毛利
+  - 项目毛利润
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-contribution_margin，R3-RN-01）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9526
+- id: contribution_margin_ratio
+  zh: 贡献毛利率
+  en: ContributionMarginRatio
+  snake: contribution_margin_ratio
+  kind: metric
+  bc: operations.policy
+  definition: 贡献毛利 ÷ 对应层级的净服务收入（不含税）；分母须与贡献毛利同层级、同变体
+  standard_ref:
+  - OAT canonical_symbol CMR；管理会计（准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: 毛利率
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-01）
+  forbidden:
+  - 毛利率
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-contribution_margin_ratio，R3-RN-02）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9566
+- id: net_service_revenue
+  zh: 净服务收入
+  en: NetServiceRevenue
+  snake: net_service_revenue
+  kind: metric
+  bc: operations.policy
+  definition: 管理口径的净额，不用于法定报表：不含税收入减委外与分包、再减可向客户转收的代垫费用后的余额；信息服务费不在此扣除，计入直接项目费用并在贡献毛利中扣除。法定收入按总额含代垫确认，二者可互相推导：净服务收入 ＝ 法定收入（不含税）− 委外与分包 − 可向客户转收的代垫费用，报表脚注写出推导关系（用户 KPI-Q02）；原「净收入」并入本词（KPI-Q02、NU-13）
+  standard_ref:
+  - OAT canonical_symbol NR；企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；AEC 行业 Net Service Revenue（PSMJ / Deltek 通行口径）
+  confidence: medium
+  aliases:
+  - name: 净收入
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-net_service_revenue，R3-RN-03）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9587
+- id: management_operating_profit
+  zh: 经营利润
+  en: ManagementOperatingProfit
+  snake: management_operating_profit
+  kind: metric
+  bc: operations.policy
+  definition: 管理口径：贡献毛利减间接成本与分摊后的余额；法定口径的营业利润由财务报表提供
+  standard_ref:
+  - 企业会计准则第 30 号——财务报表列报（营业利润）；IFRS 18 Presentation and Disclosure in Financial Statements（operating profit or loss 小计、管理层定义的业绩指标）；OAT canonical_symbol OP
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-operating_profit，R3-RN-04）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9607
+- id: management_operating_profit_margin
+  zh: 经营利润率
+  en: ManagementOperatingProfitMargin
+  snake: management_operating_profit_margin
+  kind: metric
+  bc: operations.policy
+  definition: 经营利润 ÷ 收入确认（不含税），层级与经营利润一致
+  standard_ref:
+  - 管理会计（准则 / 国标无对应条目）；IFRS 18（管理层定义的业绩指标）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-operating_profit_margin，R3-RN-05）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9623
+- id: indirect_cost
+  zh: 间接成本
+  en: IndirectCost
+  snake: indirect_cost
+  kind: metric
+  bc: operations.policy
+  definition: 不能直接归属项目的成本与费用，按职能（研发、总部、支持、销售、居间等）归集；分摊规则按财务口径 FD-44
+  standard_ref:
+  - 企业产品成本核算制度（试行）（财会〔2013〕17 号）（间接费用）；US Cost Accounting Standards 418（Allocation of direct and indirect costs）；OAT canonical_symbol OH
+  confidence: medium
+  aliases:
+  - name: 间接费用
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden:
+  - 间接费用
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-overhead，R3-RN-06）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9639
+- id: pass_through_cost
+  zh: 转付成本
+  en: PassThroughCost
+  snake: pass_through_cost
+  kind: metric
+  bc: operations.policy
+  definition: 为履行合同转付给第三方的成本：分包成本、外包成本（合称委外与分包），以及可向客户转收的代垫费用；在净服务收入中扣减（用户 KPI-Q02）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；OAT canonical_symbol PTC；AEC 行业 pass-through / reimbursable costs
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-pass_through_cost，R3-RN-07）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9660
+- id: labor_cost_multiplier
+  zh: 人工成本产出倍数
+  en: LaborCostMultiplier
+  snake: labor_cost_multiplier
+  kind: metric
+  bc: operations.policy
+  definition: 指定分子（收入确认、开票或回款）÷ 同期人工成本；指标名须写明分子，例如「人工成本产出倍数（回款）」；人工成本范围按口径参数
+  standard_ref:
+  - AEC 行业 labor multiplier（PSMJ / Deltek：net multiplier = 净服务收入 ÷ 直接人工）；OAT canonical_symbol NRPM（参照）
+  confidence: medium
+  aliases:
+  - name: 产工比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  - name: 产值产工比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  - name: 开票产工比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  - name: 回款产工比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  - name: 产值产出比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-02）
+  forbidden:
+  - 产工比
+  - 产值产工比
+  - 开票产工比
+  - 回款产工比
+  - 产值产出比
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-labor_cost_multiplier，R3-RN-09）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9692
+- id: target_variance
+  zh: 目标偏差
+  en: TargetVariance
+  snake: target_variance
+  kind: metric
+  bc: operations.planning
+  definition: 计划目标值与实际经营结果之差（三偏差术语之一：目标偏差、经营偏差、勾稽差异）
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-target_variance，R3-RN-17）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9829
+- id: available_budget
+  zh: 可用额度
+  en: AvailableBudget
+  snake: available_budget
+  kind: metric
+  bc: operations.planning
+  definition: 分解额 − 生效占用 − 已消耗 + 已释放，恒可复算
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）；ERP 预算可用性控制（available budget）通行写法
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-available_budget，R3-RN-25）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:9957
+- id: plan_target_value
+  zh: 计划目标值
+  en: PlanTargetValue
+  snake: plan_target_value
+  kind: metric
+  bc: operations.planning
+  definition: 某目标类型、某版本下，组织 × 期间 × 指标的目标值；每次修改留版本
+  standard_ref:
+  - OAT canonical_symbol PLAN_TARGET_VALUE；FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: 预算目标
+    type: standard-zh
+    deprecated: false
+    source: 第三轮并入（R3-RN-14）
+  - name: BudgetTarget
+    type: old-code
+    deprecated: true
+    source: 第三轮并入（R3-RN-14）
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-plan_target_value，R3-RN-31）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10053
+- id: target_attainment_rate
+  zh: 目标达成率
+  en: TargetAttainmentRate
+  snake: target_attainment_rate
+  kind: metric
+  bc: operations.planning
+  definition: 实际 ÷ 指定目标类型的计划目标值；指标名须带目标类型，例如「目标达成率（承诺）」
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases:
+  - name: 预实比
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-04）
+  forbidden:
+  - 预实比
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-target_attainment_rate，R3-RN-33）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10093
+- id: budget_consumption_rate
+  zh: 预算消耗率
+  en: BudgetConsumptionRate
+  snake: budget_consumption_rate
+  kind: metric
+  bc: operations.planning
+  definition: 已消耗 ÷ 预算基线（同一预算账户、同一期间）
+  standard_ref:
+  - 《管理会计应用指引第 200 号——预算管理》（财政部）；OAT canonical_symbol BURN
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_burn_rate，R3-RN-36）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10146
+- id: new_contract_value
+  zh: 新签合同额
+  en: NewContractValue
+  snake: new_contract_value
+  kind: metric
+  bc: contract.agreement
+  definition: 合同签署日落在期间内的合同交易价格之和（不含税为主，含税另列且名称带「含税」）；不扣转付成本，扣预计分包与外包的另设「新签净额」（FD-42）
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号） 第十四条（交易价格）；国家统计局建筑业统计报表制度（本年新签合同额）；OAT canonical_symbol SIGNED_NET_BOOKINGS（变体）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-new_contract_value，R3-RN-37）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10162
+- id: project_initiation_value
+  zh: 项目立项金额
+  en: ProjectInitiationValue
+  snake: project_initiation_value
+  kind: metric
+  bc: delivery.execution
+  definition: 项目立项时登记的预计合同金额（含税口径另列），订单前置指标；与新签合同额分开统计，看立项到签约的转化
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）；拟登记为经营扩展原语（operating_accounting_extension）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-project_initiation_value，R3-RN-38）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10178
+- id: aged_receivable
+  zh: 账龄超 N 天应收
+  en: AgedReceivable
+  snake: aged_receivable
+  kind: metric
+  bc: receivables.collection
+  definition: 账龄超过 N 天的应收账款余额；N 与起算日为口径参数（管理账龄与减值账龄分段见 FD-37）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（财会〔2017〕7 号） 第六十三条（账龄组合）；财会〔2019〕6 号（附注按账龄披露）
+  confidence: medium
+  aliases:
+  - name: 超期应收
+    type: dialect
+    deprecated: true
+    source: R0 已裁定方言（R3-RD-03）
+  forbidden:
+  - 超期应收
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-aged_receivable，R3-RN-42）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10230
+- id: days_sales_outstanding
+  zh: 应收周转天数
+  en: DaysSalesOutstanding
+  snake: days_sales_outstanding
+  kind: metric
+  bc: receivables.collection
+  definition: 应收余额（合同资产、应收账款、应收票据分别及合计）÷ 对应额 × 天数；分子分母与天数基准按 FD-39
+  standard_ref:
+  - OAT canonical_symbol DSO；财务分析通行指标（days sales outstanding）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-days_sales_outstanding，R3-RN-43）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10251
+- id: billing_conversion_rate
+  zh: 开票转化率
+  en: BillingConversionRate
+  snake: billing_conversion_rate
+  kind: metric
+  bc: receivables.wip
+  definition: 开票金额 ÷ 收入确认金额（同一税口径、同一期间）
+  standard_ref:
+  - OAT canonical_symbol BCR；专业服务 / PSA 行业通行写法（Kantata / Certinia / Deltek）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-billing_conversion_rate，R3-RN-44）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10267
+- id: collection_rate
+  zh: 回款率
+  en: CollectionRate
+  snake: collection_rate
+  kind: metric
+  bc: receivables.collection
+  definition: 回款 ÷ 开票金额（同一税口径、同一期间）
+  standard_ref:
+  - OAT canonical_symbol COLR；专业服务 / PSA 行业通行写法（Kantata / Certinia / Deltek）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-collection_rate，R3-RN-45）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10283
+- id: overdue_billing_commitment
+  zh: 承诺开票超期
+  en: OverdueBillingCommitment
+  snake: overdue_billing_commitment
+  kind: metric
+  bc: receivables.wip
+  definition: 承诺开票日已过而未开票的金额
+  standard_ref:
+  - FORCITIS one 内部概念（准则 / 国标无对应条目）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-overdue_billing_commitment，R3-RN-46）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10299
+- id: allowance_for_bad_debts
+  zh: 坏账准备
+  en: AllowanceForBadDebts
+  snake: allowance_for_bad_debts
+  kind: metric
+  bc: receivables.collection
+  definition: 按预期信用损失模型计提的损失准备余额，适用于应收账款、应收票据与合同资产；科目名分别为「坏账准备」「合同资产减值准备」；区别于减值分录（事件）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（财会〔2017〕7 号） 第六十三条；IFRS 9 Financial Instruments §5.5.15、Appendix A（loss allowance）；OAT canonical_symbol IMP
+  confidence: medium
+  aliases:
+  - name: CreditLossAllowance
+    type: standard-en
+    deprecated: false
+    source: IFRS 9 口径（loss allowance）的英文别名
+  - name: 信用损失准备
+    type: dialect
+    deprecated: true
+  - name: 坏账
+    type: dialect
+    deprecated: true
+    source: R0 在用报表叫法（R3-RA-12）
+  - name: 坏账准备计提申请
+    type: standard-zh
+    deprecated: false
+    source: 原「坏账申请」的正式叫法（R3-RA-12）
+  forbidden:
+  - 信用损失准备
+  - 坏账
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-credit_loss_allowance，R3-RN-49）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10352
+- id: average_headcount
+  zh: 平均在册人数
+  en: AverageHeadcount
+  snake: average_headcount
+  kind: metric
+  bc: organization.workforce
+  definition: 期间内在册人数的平均值；计算口径（月初月末平均或日均、是否含实习与外包）待 B2；所有「人均」的统一除数
+  standard_ref:
+  - 国家统计局劳动工资统计报表制度（平均人数）；OAT canonical_symbol AVG_HEADCOUNT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-average_headcount，R3-RN-50）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10385
+- id: attrition_rate
+  zh: 离职率
+  en: AttritionRate
+  snake: attrition_rate
+  kind: metric
+  bc: organization.workforce
+  definition: 期间离职人数 ÷ 平均在册人数，分主动、被动
+  standard_ref:
+  - 人力资源管理通行指标（attrition rate）；OAT EMPLOYEE_SEPARATIONS ÷ AVG_HEADCOUNT
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-attrition_rate，R3-RN-51）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10401
+- id: pipeline_value
+  zh: 商机管道金额
+  en: PipelineValue
+  snake: pipeline_value
+  kind: metric
+  bc: presales.opportunity
+  definition: 未关闭商机的金额；加权口径（× 赢单概率）另列，名称带「加权」
+  standard_ref:
+  - OAT canonical_symbol PIPE；CRM 行业通行写法（sales pipeline）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-pipeline_value，R3-RN-55）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10467
+- id: win_rate
+  zh: 赢单率
+  en: WinRate
+  snake: win_rate
+  kind: metric
+  bc: presales.opportunity
+  definition: 赢单数 ÷（赢单数 + 丢单数）；金额口径另列
+  standard_ref:
+  - OAT canonical_symbol WR；CRM 行业通行写法（win rate）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-win_rate，R3-RN-56）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10483
+- id: lead_conversion_rate
+  zh: 线索转化率
+  en: LeadConversionRate
+  snake: lead_conversion_rate
+  kind: metric
+  bc: presales.opportunity
+  definition: 期间内转为商机的线索数 ÷ 期间线索数
+  standard_ref:
+  - OAT canonical_symbol CONV；CRM 行业通行写法（lead conversion rate）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-lead_conversion_rate，R3-RN-57）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10499
+- id: expense_payment
+  zh: 费用支付
+  en: ExpensePayment
+  snake: expense_payment
+  kind: metric
+  bc: payables.payment
+  definition: 按支付日计的费用付款金额（收付口径，含税），与按发生期间计的费用（权责）对照
+  standard_ref:
+  - 企业会计准则第 31 号——现金流量表（支付的各项费用）；企业会计准则——基本准则 第九条（权责发生制）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-expense_payment，R3-RN-60）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10547
+- id: kickoff_completion_rate
+  zh: 启动会完成率
+  en: KickoffCompletionRate
+  snake: kickoff_completion_rate
+  kind: metric
+  bc: delivery.execution
+  definition: 期间内已开启动会的项目数 ÷ 应开启动会的项目数
+  standard_ref:
+  - PMI PMBOK Guide（kick-off meeting）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-kickoff_completion_rate，R3-RN-62）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10579
+- id: internal_review_coverage
+  zh: 内部评审覆盖率
+  en: InternalReviewCoverage
+  snake: internal_review_coverage
+  kind: metric
+  bc: delivery.acceptance
+  definition: 已完成内部评审的项目 ÷ 已交付项目
+  standard_ref:
+  - GB/T 19001-2016 §8.3.4 设计和开发控制（评审）、§9.2 内部审核（「内审」的标准含义）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-internal_review_coverage，R3-RN-63）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  scope: domain
+  source: docs/modernization/glossary/terms.yaml:10595
+- id: net_revenue
+  zh: 净收入
+  en: NetRevenue
+  snake: net_revenue
+  kind: metric
+  bc: operations.policy
+  scope: domain
+  definition: 收入（不含税）减委外与分包的转付成本；信息服务费不在此扣除，计入直接项目费用并在贡献毛利中扣除。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-41
+  formula: 收入（不含税）−委外与分包的转付成本；信息服务费在直接项目费用中扣除
+  grain: 法人 × 项目 × 业务期间，按同一币种汇总
+  as_of: 所选业务期间末，以该期间已确认收入和配对转付成本为准
+  status: deprecated
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-41）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  replaced_by: net_service_revenue
+  until: '2026-12-31'
+  owner: one-glossary
+  source: docs/modernization/glossary/terms.yaml:13980
+- id: revenue_including_tax
+  zh: 含税收入
+  en: RevenueIncludingTax
+  snake: revenue_including_tax
+  kind: metric
+  bc: operations.policy
+  scope: domain
+  definition: 年度目标跟踪使用的含税收入指标；主收入口径及收入与成本配对仍使用不含税口径。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-14
+  formula: 收入（不含税）＋对应销项税额
+  grain: 法人 × 年度目标范围 × 业务期间 × 币种
+  as_of: 年度目标跟踪的所选业务期间末
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-14）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
+  confidence: medium
+  aliases:
+  - name: 收入确认（含税）
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  source: docs/modernization/glossary/terms.yaml:14082
+- id: net_new_contract_value
+  zh: 新签净额
+  en: NetNewContractValue
+  snake: net_new_contract_value
+  kind: metric
+  bc: operations.policy
+  scope: domain
+  definition: 新签合同额扣预计委外与分包后的净额；新签合同额本身不扣减。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-42
+  formula: 新签合同额−预计委外与分包金额（与新签合同额使用相同含税口径及币种）
+  grain: 法人 × 新签合同 × 签约期间 × 币种
+  as_of: 合同新签时锁定的金额与预计转付成本
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-42）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  source: docs/modernization/glossary/terms.yaml:14185
+by_vision_kpi:
+- id: KPI-01
+  name: OA 迁入模板停用率
+  definition: 已到切换阶段的「迁入」类 A8 模板中，已停用且在途实例为 0 的模板数 ÷ 应迁入模板数（清单共 80 个，OA_PROCESS_INVENTORY §3）。
+  direction: ↑
+  metrics: []
+  source: OA_PROCESS_INVENTORY §0 第 1 点、§6.3 各阶段出口条件；ADR-0021 第 4 条
+  goal_id: GOAL-01
+  goal_name: 权责业务事实只在新系统产生
+- id: KPI-02
+  name: 切换后 A8 凭证插件新增凭证行数
+  definition: 各阶段切换日之后，A8 凭证插件（LEXMISCIF_*）对已迁表单新增的 U8C 凭证行数；出口条件要求为 0。
+  direction: ↓
+  metrics: []
+  source: OA_PROCESS_INVENTORY §0 第 2 点、§6.3（6a、6b、6c 出口条件）
+  goal_id: GOAL-01
+  goal_name: 权责业务事实只在新系统产生
+- id: KPI-03
+  name: 权责事实遗留类别数
+  definition: 用 oa_residual_check.sql 检查，仍留在老系统或 OA 中的权责事实类别数（权责事实完整性矩阵的行）。
+  direction: ↓
+  metrics: []
+  source: ADR-0021 第 4 条；OA_PROCESS_INVENTORY §4；GUIDING_PRINCIPLES §9a 末段「每个阶段的出口条件须证明…没有遗留」
+  goal_id: GOAL-01
+  goal_name: 权责业务事实只在新系统产生
+- id: KPI-04
+  name: 经单一过账管道入账的权责事实占比
+  definition: 已迁入阶段的权责事实中，经 operations.facts 过账管道写入明细事实的比例；绕过管道直接写账的为违规。
+  direction: ↑
+  metrics: []
+  source: ADR-0016 第 1 条；GUIDING_PRINCIPLES §9a「DDD」行（operations.facts 是唯一过账管道）
+  goal_id: GOAL-02
+  goal_name: 业务事实一次过账、事实只追加、期间受控
+- id: KPI-05
+  name: 月结对账等式差异数
+  definition: 月结时对账等式不成立的项数（归集守恒、合同资产滚动恒等式 F113、借贷平衡；两账相同类科目余额不等）。
+  direction: ↓
+  metrics: []
+  source: GUIDING_PRINCIPLES §9a「DAMA」行；ADR-0016 第 1 条；ADR-0022 第 2 条（三条对账等式）
+  goal_id: GOAL-02
+  goal_name: 业务事实一次过账、事实只追加、期间受控
+- id: KPI-06
+  name: 权责口径三大报表按月产出率
+  definition: 期间内新系统已出具三大报表的（法人 × 期间）数 ÷ 应出具数。
+  direction: ↑
+  metrics:
+  - M-35
+  - M-36
+  source: ADR-0022 第 1、4 条；r0/METRIC_BASELINE_DRAFT §3.4（M-35）、§3.5（M-36）
+  goal_id: GOAL-03
+  goal_name: 新系统直接出权责口径三大报表
+- id: KPI-07
+  name: 与 U8C 收付账套对账差异数
+  definition: 每月按 法人 × 科目 对账，新系统收付口径账簿与 U8C 收付账套不一致的项数；第二步入口要求连续若干个月一致。
+  direction: ↓
+  metrics: []
+  source: ADR-0022 第 1、8、9 条
+  goal_id: GOAL-03
+  goal_name: 新系统直接出权责口径三大报表
+- id: KPI-08
+  name: 指标目录 OAT 声明完整率
+  definition: 指标目录中字段声明完整（OAT 原语、词条、单位、期间类型、加总规则、事实归属、核算基础、含税、口径版本）的指标数 ÷ 指标总数。
+  direction: ↑
+  metrics:
+  - M-01..M-48
+  source: ADR-0023 第 3 条；BI_SCOPE §3.3；METRIC_BASELINE_DRAFT §3（共 48 个指标 M-01 至 M-48）
+  goal_id: GOAL-04
+  goal_name: 经营指标一个定义、一套口径
+- id: KPI-09
+  name: 同一指标的并存算法数
+  definition: 同名或同义指标在报表、接口中并存的不同算法个数（老系统基线：应收 4 套、利用率 3 套、收入 3 处来源）。
+  direction: ↓
+  metrics:
+  - M-13
+  - M-42
+  - M-08
+  source: BI_SCOPE §1.5 E1、E2、E3；r0/METRIC_BASELINE_DRAFT §3.3、§3.6
+  goal_id: GOAL-04
+  goal_name: 经营指标一个定义、一套口径
+- id: KPI-10
+  name: 关账期间快照覆盖率
+  definition: 已关账的（期间 × 法人）中，已冻结期间快照的比例。
+  direction: ↑
+  metrics:
+  - M-06
+  - M-13
+  - M-17
+  source: ADR-0023 第 2 条；METRIC_BASELINE_DRAFT §3.2（M-06）、§3.3（M-13、M-17）
+  goal_id: GOAL-05
+  goal_name: 经营管理能回答「上月末是多少」，且经营结果与财务结果可勾稽
+- id: KPI-11
+  name: 口径差异清单逐期勾稽完成率
+  definition: 已关账期间中，经营口径与法定口径差异清单已勾稽并闭合的期数 ÷ 已关账期数。
+  direction: ↑
+  metrics:
+  - M-35
+  source: ADR-0023 第 4 条；BI_SCOPE §0 第 5 点
+  goal_id: GOAL-05
+  goal_name: 经营管理能回答「上月末是多少」，且经营结果与财务结果可勾稽
+- id: KPI-12
+  name: 项目贡献毛利可得覆盖率
+  definition: 在执行项目中，可由事实算出权责口径贡献毛利（实际、预估）的项目数 ÷ 在执行项目数。
+  direction: ↑
+  metrics:
+  - M-29
+  - M-30
+  - M-32
+  source: METRIC_BASELINE_DRAFT §3.4（M-29、M-30、M-32）；BI_SCOPE §1.5 E7
+  goal_id: GOAL-06
+  goal_name: 经营管理可见权责口径成本与毛利
+- id: KPI-13
+  name: 贡献毛利率
+  definition: 贡献毛利 ÷ 同层级、同变体的净服务收入（用户 KPI-Q03，2026-10-22，原为 ÷ 不含税收入确认；口径变更与前后值见 ssot/15-kpis/kpis.yaml KPI-13），按 OAT 的 CMR 变体（报价、预算、预估、实际）声明；本 KPI 是经营结果度量，不是目标值。
+  direction: ↑
+  metrics:
+  - M-29
+  - M-08
+  source: BI_SCOPE §6.1 Q6-2；METRIC_BASELINE_DRAFT §3.4（M-29）
+  note: 方向「↑」是通用经营含义的推定，用户未给出目标值，见 open_questions OQ-02。
+  goal_id: GOAL-06
+  goal_name: 经营管理可见权责口径成本与毛利
+- id: KPI-14
+  name: 老系统与 A8 数据通道下线数
+  definition: 已下线（改读新系统或删除）的老系统与 A8 之间数据通道数 ÷ 总数（基线共约 36 处，其中 26 处承载权责事实）。
+  direction: ↑
+  metrics: []
+  source: OA_PROCESS_INVENTORY §0 第 5 点、§5
+  goal_id: GOAL-07
+  goal_name: 老系统在持续运行中按阶段切换并下线
+- id: KPI-15
+  name: 过渡镜像对账通过率
+  definition: 切换日前，受影响的 T_FST_* 视图中已有形状一致的过渡来源并通过对账的比例。
+  direction: ↑
+  metrics: []
+  source: ADR-0023 第 5 条；BI_SCOPE §6.1 Q7
+  goal_id: GOAL-07
+  goal_name: 老系统在持续运行中按阶段切换并下线
+- id: KPI-16
+  name: 安全不变量满足数
+  definition: phase1a/SECURITY_INVARIANTS.md 中 I-1 至 I-13 已由测试或守护证明成立的条数。
+  direction: ↑
+  metrics: []
+  source: INTENT 2026-10-14「老系统先不管，确保新系统没有这些缺陷」；phase1a/SECURITY_INVARIANTS.md
+  goal_id: GOAL-08
+  goal_name: 新系统不带入老系统的安全缺陷

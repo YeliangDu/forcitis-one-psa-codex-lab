@@ -2633,7 +2633,7 @@ terms:
   snake: project_cost
   kind: metric
   bc: cost.costing
-  definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）
+  definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）；按科目划分的「变动成本」「固定成本」两栏已废弃，不复活旧词；以后按成本性态分析时另立「成本性态」维度（用户 KPI-Q07）
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   confidence: medium
@@ -2644,10 +2644,21 @@ terms:
   - name: psa_cost_ledger / psa_cost_summary
     type: legacy-table
     deprecated: true
-  forbidden: []
+  - name: 变动成本
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - name: 固定成本
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden:
+  - 变动成本
+  - 固定成本
   status: approved
   core: true
   scope: domain
+  confirmed: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
 - id: project_cost_account
   zh: 成本账户
   en: ProjectCostAccount
@@ -8158,12 +8169,16 @@ terms:
   - name: 权责收入
     type: dialect
     deprecated: true
+  - name: 收入确认（不含税）
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
   forbidden:
   - 产值收入
   - 权责收入
   status: approved
   note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#accrual_revenue，R3-FI-05）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: intermediary_fee
   zh: 居间费用
@@ -8171,7 +8186,7 @@ terms:
   snake: intermediary_fee
   kind: value_object
   bc: expense.spend
-  definition: 居间协议约定的佣金支出；公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；应付登记须挂触发事实，不是转付成本，在贡献毛利中扣减、不在净收入中扣（FD-17、FD-41）
+  definition: 居间协议约定的佣金支出；公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；应付登记须挂触发事实，不是转付成本，在贡献毛利中扣减、不在净服务收入中扣（FD-17、FD-41）
   standard_ref:
   - 企业会计准则第 14 号——收入（第二十八条合同取得成本、第三十四条主要责任人与代理人）
   confidence: medium
@@ -8188,7 +8203,8 @@ terms:
   - 信息服务费
   status: approved
   note: 用语确认第三轮转正式（原提议 finance-decisions.yaml#information_service_fee，R3-FI-06）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-15 财务口径决策页 F-06「就是居间费用的方言」（intent 2026-10-15-222618-one-rules-财务口径决策页-需向财务核实的事）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-15 财务口径决策页 F-06「就是居间费用的方言」（intent 2026-10-15-222618-one-rules-财务口径决策页-需向财务核实的事）（用户裁定，rulings.yaml）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则
+    NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: debt_settlement_asset
   zh: 抵债资产
@@ -9574,15 +9590,19 @@ terms:
   snake: net_service_revenue
   kind: metric
   bc: operations.policy
-  definition: 收入（不含税）减转付成本（分包、外包与可向客户转收的代垫费用）后的余额；扣减范围按财务口径 FD-41
+  definition: 管理口径的净额，不用于法定报表：不含税收入减委外与分包、再减可向客户转收的代垫费用后的余额；信息服务费不在此扣除，计入直接项目费用并在贡献毛利中扣除。法定收入按总额含代垫确认，二者可互相推导：净服务收入 ＝ 法定收入（不含税）− 委外与分包 − 可向客户转收的代垫费用，报表脚注写出推导关系（用户 KPI-Q02）；原「净收入」并入本词（KPI-Q02、NU-13）
   standard_ref:
   - OAT canonical_symbol NR；企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；AEC 行业 Net Service Revenue（PSMJ / Deltek 通行口径）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 净收入
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-net_service_revenue，R3-RN-03）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: management_operating_profit
   zh: 经营利润
@@ -9626,11 +9646,16 @@ terms:
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）（间接费用）；US Cost Accounting Standards 418（Allocation of direct and indirect costs）；OAT canonical_symbol OH
   confidence: medium
-  aliases: []
-  forbidden: []
+  aliases:
+  - name: 间接费用
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  forbidden:
+  - 间接费用
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-overhead，R3-RN-06）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: pass_through_cost
   zh: 转付成本
@@ -9638,7 +9663,7 @@ terms:
   snake: pass_through_cost
   kind: metric
   bc: operations.policy
-  definition: 为履行合同转付给第三方的成本：分包成本、外包成本与可向客户转收的代垫费用；在净服务收入中扣减（FD-41）
+  definition: 为履行合同转付给第三方的成本：分包成本、外包成本（合称委外与分包），以及可向客户转收的代垫费用；在净服务收入中扣减（用户 KPI-Q02）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号） 第三十四条（主要责任人与代理人）；OAT canonical_symbol PTC；AEC 行业 pass-through / reimbursable costs
   confidence: medium
@@ -9646,7 +9671,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-pass_through_cost，R3-RN-07）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   scope: domain
 - id: policy_parameter
   zh: 口径参数
@@ -12425,6 +12450,54 @@ terms:
   note: 用户裁定转正式：用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
   status: approved
   confirmed: 2026-10-21（用户，内部基线重定）
+- id: agreement_status__signed
+  zh: 协议已签署
+  en: AgreementSigned
+  snake: agreement_signed
+  kind: state
+  bc: contract.agreement
+  scope: domain
+  definition: 状态显示名「已签署」；协议已签署但尚未满足约定的生效条件；无附条件的协议签署与生效同事务完成，只落已生效
+  standard_ref:
+  - rules/decide/sheets/GL5.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+  status: approved
+  confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+- id: agreement_status__effective
+  zh: 协议已生效
+  en: AgreementEffective
+  snake: agreement_effective
+  kind: state
+  bc: contract.agreement
+  scope: domain
+  definition: 状态显示名「已生效」；协议已生效；只能由业务操作触发，附条件的协议经「确认生效条件满足」命令转入，不能手工改状态；转入时记生效依据：条件类型、证据单据号（如预付款保函编号）、生效日
+  standard_ref:
+  - rules/decide/sheets/GL5.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+  status: approved
+  confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+- id: asset_card
+  zh: 资产卡片
+  en: AssetCard
+  snake: asset_card
+  kind: entity
+  bc: accounting.fixedasset
+  scope: domain
+  definition: 财务为达到固定资产标准的公司资产建的账务档案；卡片、折旧、报废与盘点账务归固定资产模块，行政事务只引用卡片号；不等同于公司资产本身
+  standard_ref:
+  - rules/decide/sheets/GL5.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+  status: approved
+  confirmed: 2026-10-22（用户，用语确认第六批 GL5）
 - id: fund_account
   zh: 资金账户
   en: FundAccount
@@ -12466,7 +12539,7 @@ terms:
   kind: aggregate
   bc: accounting.fixedasset
   scope: domain
-  definition: 本公司拥有或控制并登记管理使用、折旧、摊销及处置情况的资产；公司资产不等同于固定资产会计确认类别。
+  definition: 本公司拥有或控制并登记管理使用、折旧、摊销及处置情况的资产；公司资产是资产本身，不等同于固定资产类别，也不等同于固定资产卡片。
   standard_ref:
   - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-91
   - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=company_asset]
@@ -12475,7 +12548,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）；用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）（用户备注）（用户裁定，rulings.yaml）
 - id: journal_entry
   zh: 会计分录
   en: JournalEntry
@@ -13917,12 +13990,15 @@ terms:
   formula: 收入（不含税）−委外与分包的转付成本；信息服务费在直接项目费用中扣除
   grain: 法人 × 项目 × 业务期间，按同一币种汇总
   as_of: 所选业务期间末，以该期间已确认收入和配对转付成本为准
-  status: approved
-  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-41）
+  status: deprecated
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-41）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   confidence: medium
   aliases: []
   forbidden: []
   note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  replaced_by: net_service_revenue
+  until: '2026-12-31'
+  owner: one-glossary
 - id: impairment_plan
   zh: 减值计划
   en: ImpairmentPlan
@@ -14017,9 +14093,13 @@ terms:
   grain: 法人 × 年度目标范围 × 业务期间 × 币种
   as_of: 年度目标跟踪的所选业务期间末
   status: approved
-  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-14）
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-14）；用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13（用户裁定，rulings.yaml）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 收入确认（含税）
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
   forbidden: []
   note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
 - id: actual_cost_rate

@@ -363,6 +363,10 @@ SQ-01–SQ-33 已由 S-31 裁定：采纳或改写 23 条，已覆盖 3 条（SQ
 | 待申报、已申报 | accounting.tax | AGG-90 法定申报（OBJ-92）状态，取代旧称「已生成」「已提交」（transition-review CF-033；one-glossary 暂定通过，待用户认可） | 交 one-glossary |
 | 登记进项发票入账（RegisterInputInvoicePosting） | accounting.tax | AGG-89 提议命令：占用方过账后登记进项发票在税务平台的入账状态（CF-032；one-glossary 暂定通过，动词「登记」按 V001） | 交 one-glossary |
 | 登记协议已生效（RegisterAgreementEffective） | cost.costing | AGG-122 命令，取代「登记合同已签回」（旧称列方言）；PRC-25 改订阅协议已生效（GL5-01）；one-glossary 暂定通过 | 交 one-glossary |
+| 跨法人人工 | cost.costing | one-glossary PR #572 已登记提议；员工当日成本法人与项目承担法人不一致的人工与项目费用（LEB-04；LEGAL_ENTITY_COSTING C-2、C-3）；记员工所属法人并标「待内部结算」（词表已有） | 交 one-glossary |
+| 跨法人清单 | cost.costing | one-glossary PR #572 已登记提议；财务每月收到的跨法人人工、项目费用与未转入售前投入清单（员工、项目、两边法人、金额、期间）（LEB-04；C-2、C-3、C-5） | 交 one-glossary |
+| 登记代发退回（RegisterDisbursementReturn）、付款已部分退回（PaymentPartiallyReturned） | payables.payment | AGG-53 提议命令与事件：代发总额已付后部分收款人失败退回（PAYROLL_REISSUE_SEAM J-2） | 交 one-glossary |
+| 登记薪酬补发明细（RegisterPayrollRedisbursementDetail）、补发明细（PayrollRedisbursementDetail） | payables.payment | AGG-52 提议命令：薪酬补发不新建应付，在原应付上登记补发明细（J-1，one-architecture 2026-10-22 裁定） | 交 one-glossary |
 | 重提过账候选、登记拒收处置结论 | operations.facts | S-29 SQ-41 命令（PRC-158） | 交 one-glossary |
 | 付款已退票、资金账户已解冻、外部法定账记账回执已到达 | 各 BC | 事件名；回执为 platform.integration 事件 | 交 one-glossary |
 | 已冲销、已退票、已撤销、已作废、挂起、部分实缴、待确认开立、待确认销户、已生成 | 各 BC | 状态值；「已冲销」用于运行单据，「已取代」只用于版本化配置（S-30 ③） | 交 one-glossary |
