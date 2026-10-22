@@ -454,6 +454,16 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 
 另有错误码 20 个（kind 为 `error_code`），不在表中。
 
+## platform.identity（`platform-identity-b31-roles.yaml`）
+
+B-31 配置集的三个负责角色（one-glossary 2026-10-22，NAM-1021-GLO-17；one-data 来单，proposed）。角色代码格式按 one-data：小写 snake，^[a-z][a-z0-9_]{1,59}$。后缀沿用词表惯例用 head（部门负责人 OrgUnitHead、法人财务负责人 LegalEntityFinanceHead），不用 manager。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `administration_head` | 行政负责人 | AdministrationHead | 领域 · platform.identity | 负责行政事务（用印、合同原件借阅、员工活动等）的负责人；B-31 配置集的负责角色之一 |  |  |
+| `it_head` | 信息技术负责人 | ItHead | 领域 · platform.identity | 负责信息技术服务与信息技术资产的负责人；B-31 配置集的负责角色之一；中文名以「信息技术」为准，「IT 负责人」不用 |  |  |
+| `employee_relations_head` | 员工关系负责人 | EmployeeRelationsHead | 领域 · platform.identity | 负责员工关系事务（如周年通知接收）的负责人；B-31 配置集的负责角色之一 |  |  |
+
 ## platform.identity（`platform-identity.yaml`）
 
 platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登录、会话、票据、角色与数据范围用到的词。
