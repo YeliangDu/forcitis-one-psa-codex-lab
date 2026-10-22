@@ -68,6 +68,7 @@ machines:
   - {from: 待支付, to: 已实付, command: 登记代发结果, guard: [回单行人员与实发金额一致], kind: forward}
   - {from: 待支付, to: 支付失败, command: 登记代发结果, guard: [失败原因必填], kind: forward}
   - {from: 支付失败, to: 待支付, command: 发起薪酬补发, guard: [工资卡账户已更正, 补发金额等于原实发], kind: reverse}
+  - {from: 支付失败, to: 支付失败, command: 登记薪酬补发顺延, guard: [原截止日落在长假内, 顺延日为长假前最后或长假后第一个工作日, 已通知员工], kind: non_state}
 
 - aggregate: AGG-74
   machine: insurance_enrollment

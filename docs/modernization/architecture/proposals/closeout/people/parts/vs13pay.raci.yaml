@@ -150,6 +150,15 @@ entries:
   sensitive: true
   note: R 为薪酬岗；I 为补发对象员工
 - object: AGG-73
+  command: 登记薪酬补发顺延
+  raci:
+    A: {resolve: instance, field: 月度薪酬结算.法人.财务负责人}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3]
+  sensitive: true
+  note: R 为薪酬岗；I 为补发对象员工（必须通知）
+- object: AGG-73
   command: 标记薪酬已过账
   raci:
     A: {resolve: type, role: SH-E6, function: 薪酬岗}

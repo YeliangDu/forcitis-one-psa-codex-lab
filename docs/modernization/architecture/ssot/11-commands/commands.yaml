@@ -2,12 +2,12 @@
 meta:
   sources:
     finance: 171
-    people: 167
+    people: 168
     revenue: 262
     matrix: 587
-  count: 615
+  count: 616
   both: 572
-  only_commands: 28
+  only_commands: 29
   only_matrix: 15
   built_count: 85
   missing_owner_bc: 1
@@ -1804,7 +1804,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 140
+    index: 141
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 493
@@ -1831,7 +1831,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 135
+    index: 136
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 494
@@ -1860,7 +1860,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 139
+    index: 140
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 495
@@ -1890,7 +1890,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 141
+    index: 142
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 496
@@ -1916,7 +1916,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 137
+    index: 138
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 497
@@ -1946,7 +1946,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 138
+    index: 139
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 498
@@ -1975,7 +1975,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 136
+    index: 137
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 499
@@ -2458,7 +2458,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 147
+    index: 148
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 509
@@ -2489,7 +2489,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 143
+    index: 144
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 510
@@ -2530,7 +2530,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 142
+    index: 143
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 511
@@ -2559,7 +2559,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 145
+    index: 146
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 512
@@ -2605,7 +2605,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 146
+    index: 147
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 513
@@ -2632,7 +2632,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 144
+    index: 145
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 514
@@ -2664,7 +2664,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 154
+    index: 155
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 515
@@ -2692,7 +2692,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 152
+    index: 153
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 516
@@ -2721,7 +2721,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 149
+    index: 150
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 517
@@ -2755,7 +2755,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 148
+    index: 149
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 518
@@ -2784,7 +2784,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 151
+    index: 152
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 519
@@ -2817,7 +2817,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 153
+    index: 154
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 520
@@ -2844,7 +2844,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 155
+    index: 156
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 521
@@ -2871,7 +2871,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 150
+    index: 151
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 522
@@ -2908,7 +2908,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 161
+    index: 162
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 523
@@ -2975,7 +2975,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 159
+    index: 160
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 526
@@ -3008,7 +3008,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 158
+    index: 159
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 527
@@ -3041,7 +3041,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 156
+    index: 157
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 528
@@ -3076,7 +3076,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 157
+    index: 158
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 529
@@ -3108,7 +3108,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 160
+    index: 161
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 530
@@ -3159,7 +3159,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 166
+    index: 167
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 532
@@ -3187,7 +3187,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 165
+    index: 166
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 533
@@ -3242,7 +3242,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 164
+    index: 165
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 535
@@ -3447,7 +3447,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 113
+    index: 114
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 541
@@ -3669,7 +3669,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 106
+    index: 107
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 542
@@ -3698,7 +3698,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 162
+    index: 163
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 543
@@ -3727,7 +3727,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 163
+    index: 164
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 544
@@ -14216,7 +14216,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 90
+    index: 91
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 367
@@ -14231,14 +14231,16 @@ commands:
   params:
   - 结算ID
   - 回单批次号
-  - 回单行（人员、实发金额、成功或失败、失败原因）
+  - 回单行（人员、实发金额、成功或失败、失败原因、银行退回日）
   preconditions:
   - ref: 状态
     text: 根（月度薪酬结算）为已批准，回单所列薪酬结算行为待支付
   - ref: 回单核对
     text: 回单行与薪酬结算行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
   - ref: 必填
-    text: 失败行须带失败原因，缺失则拒绝并告警
+    text: 失败行须带失败原因与银行退回日，缺失则拒绝并告警
+  - ref: 补发截止日
+    text: 失败行按银行退回日次日起 3 天、遇非工作日提前到最近工作日算出补发截止日并保存（用户 FCQ-06/07，intent 2026-10-22-103824）；工作日历版本缺失时拒绝并告警
   emits: 薪酬代发结果已登记（仅分析）
   group:
   - people
@@ -14248,6 +14250,38 @@ commands:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
     index: 88
+- id: CMD-3111a8d0
+  name: 登记薪酬补发顺延
+  aggregate: AGG-73
+  owner_bc: B-15
+  objects: *id093
+  actor:
+    role: null
+    function: null
+  params:
+  - 薪酬结算行ID
+  - 补发轮次
+  - 顺延截止日
+  - 顺延原因
+  - 员工通知记录
+  preconditions:
+  - ref: 状态
+    text: 薪酬结算行为支付失败
+  - ref: 长假
+    text: 原补发截止日落在长假内，且确实无法在截止日前办完
+  - ref: 顺延日
+    text: 顺延截止日只能是长假前最后一个工作日或长假后第一个工作日（工作日历 AGG-68），否则拒绝
+  - ref: 通知
+    text: 必须通知员工，通知记录缺失则拒绝
+  emits: （内部）
+  group:
+  - people
+  in:
+  - commands
+  source:
+  - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
+    section: commands
+    index: 90
 - id: CMD-0277bdb3
   name: 计算月度薪酬
   aggregate: AGG-73
@@ -14340,7 +14374,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 92
+    index: 93
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 371
@@ -14376,7 +14410,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 91
+    index: 92
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 372
@@ -14411,7 +14445,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 93
+    index: 94
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 373
@@ -14445,7 +14479,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 94
+    index: 95
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 374
@@ -14475,7 +14509,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 98
+    index: 99
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 375
@@ -14505,7 +14539,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 96
+    index: 97
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 376
@@ -14541,7 +14575,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 95
+    index: 96
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 377
@@ -14568,7 +14602,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 97
+    index: 98
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 378
@@ -14600,7 +14634,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 100
+    index: 101
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 379
@@ -14638,7 +14672,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 99
+    index: 100
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 380
@@ -14665,7 +14699,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 101
+    index: 102
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 381
@@ -14861,7 +14895,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 122
+    index: 123
 - id: CMD-d724b6e0
   name: 〔缺〕完成经营动作
   aggregate: AGG-79
@@ -14888,7 +14922,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 126
+    index: 127
 - id: CMD-5f740628
   name: 〔缺〕定稿经营复盘
   aggregate: AGG-79
@@ -14916,7 +14950,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 125
+    index: 126
 - id: CMD-053bdd71
   name: 〔缺〕提交经营计划审批
   aggregate: AGG-79
@@ -14940,7 +14974,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 115
+    index: 116
 - id: CMD-7cf9f977
   name: 〔缺〕撤回经营计划审批
   aggregate: AGG-79
@@ -14964,7 +14998,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 116
+    index: 117
 - id: CMD-eece1cec
   name: 〔缺〕确定经营动作
   aggregate: AGG-79
@@ -14993,7 +15027,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 124
+    index: 125
 - id: CMD-ab45a8c0
   name: 〔缺〕记录偏差解释
   aggregate: AGG-79
@@ -15017,7 +15051,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 123
+    index: 124
 - id: CMD-ceb030be
   name: 〔缺〕通过经营计划审批
   aggregate: AGG-79
@@ -15042,7 +15076,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 118
+    index: 119
 - id: CMD-5d0bb30e
   name: 〔缺〕驳回经营计划审批
   aggregate: AGG-79
@@ -15066,7 +15100,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 117
+    index: 118
 - id: CMD-560144ab
   name: 作废经营计划草稿
   aggregate: AGG-79
@@ -15090,7 +15124,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 134
+    index: 135
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 388
@@ -15119,7 +15153,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 119
+    index: 120
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 389
@@ -15187,7 +15221,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 121
+    index: 122
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 392
@@ -15219,7 +15253,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 114
+    index: 115
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 393
@@ -15250,7 +15284,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 120
+    index: 121
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 394
@@ -15316,7 +15350,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 132
+    index: 133
 - id: CMD-25d8bdc6
   name: 关闭预算账户
   aggregate: AGG-80
@@ -15342,7 +15376,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 133
+    index: 134
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 397
@@ -15374,7 +15408,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 129
+    index: 130
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 403
@@ -15407,7 +15441,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 127
+    index: 128
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 398
@@ -15455,7 +15489,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 128
+    index: 129
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 400
@@ -15487,7 +15521,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 131
+    index: 132
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 401
@@ -15515,7 +15549,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 130
+    index: 131
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 402
@@ -16793,7 +16827,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 102
+    index: 103
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 446
@@ -16828,7 +16862,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 104
+    index: 105
 - id: CMD-9a4e7710
   name: 终止薪酬档案
   aggregate: AGG-93
@@ -16857,7 +16891,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 105
+    index: 106
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 447
@@ -16890,7 +16924,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 103
+    index: 104
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 448
@@ -16976,7 +17010,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 107
+    index: 108
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 451
@@ -17008,7 +17042,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 109
+    index: 110
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 452
@@ -17039,7 +17073,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 112
+    index: 113
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 453
@@ -17092,7 +17126,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 111
+    index: 112
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 454
@@ -17124,7 +17158,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 108
+    index: 109
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 455
@@ -17158,7 +17192,7 @@ commands:
   source:
   - file: docs/modernization/architecture/proposals/closeout/people/commands.yaml
     section: commands
-    index: 110
+    index: 111
   - file: docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX.yaml
     section: entries
     index: 456

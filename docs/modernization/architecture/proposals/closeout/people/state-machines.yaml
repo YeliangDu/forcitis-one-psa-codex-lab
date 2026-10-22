@@ -1167,6 +1167,14 @@ machines:
     - 工资卡账户已更正
     - 补发金额等于原实发
     kind: reverse
+  - from: payroll_line_payment:支付失败
+    to: payroll_line_payment:支付失败
+    command: 登记薪酬补发顺延
+    guard:
+    - 原截止日落在长假内
+    - 顺延日为长假前最后或长假后第一个工作日
+    - 已通知员工
+    kind: non_state
   source_part: vs13pay
   note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-74
