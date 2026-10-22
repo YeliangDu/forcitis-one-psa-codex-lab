@@ -100,9 +100,15 @@ jobs:
       - name: docker is running
         if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
         shell: bash
+        timeout-minutes: 5
         run: |
-          if ! bash scripts/ops/docker_ensure.sh; then
-            echo "::error::Docker 未运行，且自动拉起失败（见 scripts/ops/docker_ensure.sh、本机 ~/.modernize/psa/ops/docker-watch/alert.log）"
+          # --ci: do not open Docker from this runner session (not the graphical login session, no login keychain); ask the launchd agent to do it and wait for the engine
+          if ! test -f scripts/ops/docker_ensure.sh; then
+            echo "::error::scripts/ops/docker_ensure.sh is missing on this branch (merge or rebase main)"
+            exit 1
+          fi
+          if ! bash scripts/ops/docker_ensure.sh --ci; then
+            echo "::error::Docker 未运行，且自动拉起失败（见本机 ~/.modernize/psa/ops/docker-watch/alert.log）"
             exit 1
           fi
       - name: test images are present
