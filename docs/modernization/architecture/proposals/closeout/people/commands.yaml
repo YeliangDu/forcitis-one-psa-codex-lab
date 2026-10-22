@@ -2516,7 +2516,7 @@ commands:
       approver: cost_object_owner
       doc_type: 月度薪酬审核
   idempotency_key: 审批实例ID（同一审批实例重复回调不重复生效）
-  state_change: 审核中 → 已批准
+  state_change: 审核中 → 已批准；同一事务各薪酬行 空 → 待支付（ADR-0075 子状态机，ARC-1022-COO-06）
   emits: 薪酬已批准
   used_by:
   - PRC-124 第 4 步
@@ -2621,8 +2621,8 @@ commands:
     text: 结算为已批准
   - ref: 订阅过滤
     text: 应付已结清事件的应付类型为应付薪酬（B-15 只处理应付薪酬，结构问题 4②）
-  - ref: 遗留
-    text: 代发个别员工退票时应付「结清」语义不清（vs13.notes.md 结构问题 2④），未定前不处理部分失败
+  - ref: 薪酬行
+    text: 全部薪酬行已实付；有支付失败行时根保持已批准，待补发成功后再置（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06））
   authority:
     ref: raci:AGG-73/标记薪酬已发放
     A:
@@ -2637,6 +2637,69 @@ commands:
   used_by:
   - PRC-127 第 1 步
   orphan: false
+  source_part: vs13pay
+- name: 登记代发结果
+  aggregate: AGG-73
+  entity: payroll_settlement_lines
+  kind: human
+  name_status: 〔缺〕ARC-1022-COO-06 提议，交 one-glossary
+  source: OBJ-73 key_states 员工薪酬行支付状态；PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06）
+  params:
+  - 结算ID
+  - 回单批次号
+  - 回单行（人员、实发金额、成功或失败、失败原因）
+  preconditions:
+  - ref: 状态
+    text: 结算为已批准，回单所列薪酬行为待支付
+  - ref: 回单核对
+    text: 回单行与薪酬行的人员、实发金额逐行一致，任一不符整批拒绝并列出差异，不部分写入
+  - ref: 必填
+    text: 失败行须带失败原因，缺失则拒绝并告警
+  authority:
+    ref: raci:AGG-73/登记代发结果
+    A:
+      resolve: instance
+      field: 月度薪酬结算.法人.财务负责人
+    R:
+    - SH-E6（财务职能人员，持银行回单）
+  idempotency_key: 结算ID + 回单批次号
+  state_change: 薪酬行 待支付 → 已实付 / 支付失败；全部行已实付且应付已结清时，同一事务根 已批准 → 已发放（ADR-0075 决定 1、4）
+  emits: 薪酬代发结果已登记（仅分析）
+  used_by: []
+  orphan: true
+  orphan_reason: 承载流程「登记代发结果并补发薪酬」待 one-architecture 给号（PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06） 第 5 节）
+  source_part: vs13pay
+- name: 发起薪酬补发
+  aggregate: AGG-73
+  entity: payroll_settlement_lines
+  kind: human
+  name_status: 〔缺〕ARC-1022-COO-06 提议，交 one-glossary
+  source: OBJ-73 key_states「支付失败（待补发）」；PAYROLL_LINE_PAYMENT.md（ARC-1022-COO-06）
+  params:
+  - 薪酬行ID
+  - 补发轮次
+  preconditions:
+  - ref: 状态
+    text: 薪酬行为支付失败
+  - ref: 账户
+    text: 员工工资卡账户已更正（存放位置待 U8 / 接缝问题 3）
+  - ref: 金额
+    text: 补发金额等于原实发，不重算；需改金额走补发补扣行或冲销
+  authority:
+    ref: raci:AGG-73/发起薪酬补发
+    A:
+      resolve: instance
+      field: 月度薪酬结算.法人.财务负责人
+    R:
+    - SH-E6（人力资源职能人员，薪酬岗）
+  idempotency_key: 薪酬行ID + 补发轮次
+  state_change: 薪酬行 支付失败 → 待支付
+  emits: 薪酬补发已发起
+  cross_bc_out:
+  - B-10 订阅生成补发应付（接缝 J-1，待 finance 组）
+  used_by: []
+  orphan: true
+  orphan_reason: 同登记代发结果
   source_part: vs13pay
 - name: 标记薪酬已过账
   aggregate: AGG-73

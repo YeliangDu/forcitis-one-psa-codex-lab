@@ -971,7 +971,7 @@ event_policies:
       command: 标记薪酬已发放
       aggregate: AGG-73
       emits: [薪酬已发放]
-      desc: 退票时付款已失败，薪酬保持已批准，重入付款；已发放与事实已过账两个条件任一后到者触发置已过账
+      desc: 应付已结清且全部薪酬行已实付才置已发放；有支付失败行时保持已批准，待补发登记成功后由「登记代发结果」同一事务推进（PAYROLL_LINE_PAYMENT.md）；已发放与事实已过账两个条件任一后到者触发置已过账
       audit: true
       notify: [{to: SH-E3, how: 企业微信通知（工资条可查看）}]
       decision:

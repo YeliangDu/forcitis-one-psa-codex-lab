@@ -1030,56 +1030,51 @@ machines:
     kind: reverse
   source_part: vs13pay
 - aggregate: AGG-73
-  machine: payroll_settlement
-  entity: payroll_settlements
-  added_states:
-  - 已退回
-  note: '数据模型状态列为「草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账」。计算由系统自动，没有人工草稿，创建即为已计算，草稿不用；
-
-    审批驳回与提交人撤回后回到第 1 步重算，补「已退回」。已发放与已过账先后不定：过账可先于发放（PRC-134 出口「待发放后再置位」），
-
-    故已批准上有一条只置位的自环；发放时若过账事实已入账，由 PRC-127 回到 PRC-134 补置已过账。结局「待锁定」「已中止」不建结算，不是状态。
-
-    '
+  sub_machines:
+  - payroll_settlement
+  - payroll_line_payment
   states:
-  - 已计算
-  - 审核中
-  - 已批准
-  - 已发放
-  - name: 已过账
+  - payroll_settlement:已计算
+  - payroll_settlement:审核中
+  - payroll_settlement:已批准
+  - payroll_settlement:已发放
+  - name: payroll_settlement:已过账
     terminal: true
-  - 已退回
-  initial: 已计算
+  - payroll_settlement:已退回
+  - payroll_line_payment:待支付
+  - name: payroll_line_payment:已实付
+    terminal: true
+  - payroll_line_payment:支付失败
   transitions:
   - from: null
-    to: 已计算
+    to: payroll_settlement:已计算
     command: 计算月度薪酬
     guard:
     - R-VS13-h
     - INV-70
     - 规则版本取得到（同 INV-116）
     kind: forward
-  - from: 已计算
-    to: 已计算
+  - from: payroll_settlement:已计算
+    to: payroll_settlement:已计算
     command: 计算月度薪酬
     guard:
     - 提交审核前发现输入有误重算
     kind: forward
-  - from: 已退回
-    to: 已计算
+  - from: payroll_settlement:已退回
+    to: payroll_settlement:已计算
     command: 计算月度薪酬
     guard:
     - 退回或撤回后重新计算
     kind: forward
-  - from: 已计算
-    to: 审核中
+  - from: payroll_settlement:已计算
+    to: payroll_settlement:审核中
     command: 提交薪酬审核
     guard:
     - 异常清单已生成
     - 制单人 ≠ 审批人（AR-11）
     kind: forward
-  - from: 审核中
-    to: 已批准
+  - from: payroll_settlement:审核中
+    to: payroll_settlement:已批准
     command: 批准月度薪酬
     guard:
     - INV-70
@@ -1088,60 +1083,86 @@ machines:
     - AR-11
     kind: forward
     process_outcome: 已批准
-  - from: 审核中
-    to: 已退回
+  - from: payroll_settlement:审核中
+    to: payroll_settlement:已退回
     command: 退回薪酬重算
     guard: []
     kind: reverse
-  - from: 审核中
-    to: 已退回
+  - from: payroll_settlement:审核中
+    to: payroll_settlement:已退回
     command: 撤回薪酬审核
     guard:
     - 仅提交人
     kind: reverse
-  - from: 已批准
-    to: 已发放
+  - from: payroll_settlement:已批准
+    to: payroll_settlement:已发放
     command: 标记薪酬已发放
     guard:
     - 应付已结清且应付类型为应付薪酬
-    - 部分退票语义未定（结构问题 2④）
+    - 全部薪酬行已实付
     kind: forward
     process_outcome: 已发放
-  - from: 已批准
-    to: 已批准
+  - from: payroll_settlement:已批准
+    to: payroll_settlement:已批准
     command: 标记薪酬已过账
     guard:
     - 薪酬尚未发放：只置位过账事实已入账
     kind: forward
     process_outcome: 待发放后再置位
-  - from: 已发放
-    to: 已过账
+  - from: payroll_settlement:已发放
+    to: payroll_settlement:已过账
     command: 标记薪酬已过账
     guard:
     - 来源单据类型为月度薪酬结算
     kind: forward
     process_outcome: 已过账
-  - from: 已计算
-    to: 已计算
+  - from: payroll_settlement:已计算
+    to: payroll_settlement:已计算
     command: 提交过账候选
     kind: non_state
-  - from: 审核中
-    to: 审核中
+  - from: payroll_settlement:审核中
+    to: payroll_settlement:审核中
     command: 提交过账候选
     kind: non_state
-  - from: 已批准
-    to: 已批准
+  - from: payroll_settlement:已批准
+    to: payroll_settlement:已批准
     command: 提交过账候选
     kind: non_state
-  - from: 已发放
-    to: 已发放
+  - from: payroll_settlement:已发放
+    to: payroll_settlement:已发放
     command: 提交过账候选
     kind: non_state
-  - from: 已退回
-    to: 已退回
+  - from: payroll_settlement:已退回
+    to: payroll_settlement:已退回
     command: 提交过账候选
     kind: non_state
+  - from: null
+    to: payroll_line_payment:待支付
+    command: 批准月度薪酬
+    guard:
+    - 根同时 审核中 → 已批准
+    kind: forward
+  - from: payroll_line_payment:待支付
+    to: payroll_line_payment:已实付
+    command: 登记代发结果
+    guard:
+    - 回单行人员与实发金额一致
+    kind: forward
+  - from: payroll_line_payment:待支付
+    to: payroll_line_payment:支付失败
+    command: 登记代发结果
+    guard:
+    - 失败原因必填
+    kind: forward
+  - from: payroll_line_payment:支付失败
+    to: payroll_line_payment:待支付
+    command: 发起薪酬补发
+    guard:
+    - 工资卡账户已更正
+    - 补发金额等于原实发
+    kind: reverse
   source_part: vs13pay
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-74
   machine: insurance_enrollment
   entity: insurance_enrollments

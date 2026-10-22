@@ -132,6 +132,24 @@ entries:
   sensitive: false
   note: 应付已结清事件自动执行，不设人工标记
 - object: AGG-73
+  command: 登记代发结果
+  raci:
+    A: {resolve: instance, field: 月度薪酬结算.法人.财务负责人}
+    R: [SH-E6]
+    C: []
+    I: [SH-E6]
+  sensitive: true
+  note: 薪酬行为 SENSITIVE / spi；R 为持银行回单的财务职能人员，I 为薪酬岗
+- object: AGG-73
+  command: 发起薪酬补发
+  raci:
+    A: {resolve: instance, field: 月度薪酬结算.法人.财务负责人}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3]
+  sensitive: true
+  note: R 为薪酬岗；I 为补发对象员工
+- object: AGG-73
   command: 标记薪酬已过账
   raci:
     A: {resolve: type, role: SH-E6, function: 薪酬岗}
