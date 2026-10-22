@@ -11,11 +11,13 @@ data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ssot/i03-aggreg
 """
 import json
 import re
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
 import yaml
+import scan_aggregates
 import scan_commands
 import scan_org_roles
 
@@ -56,6 +58,7 @@ SRC = {
     "dims": ARCH / "ssot/13-dimensions/dimensions.yaml",
     "dims_raw": ARCH / "ssot/13-dimensions/dimensions.raw.yaml",
     "kpis": ARCH / "ssot/15-kpis/kpis.yaml",
+    "bindings": ARCH / "ssot/14-bindings/bindings.yaml",
     "otr": ARCH / "ssot/10-objects/transitions.yaml",
     "events": DOCS / "events",
     "cmd_map": ARCH / "ssot/11-commands/command-mapping.yaml",
@@ -128,7 +131,8 @@ CHECKS = {
     "N12-2": "总线矩阵的每个 ✔ 格都对上 DIM×FACT",
     "N13-1": "每个阶段都有指标",
     "N13-2": "每个指标都能追到阶段或流程",
-    "N13-3": "度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）",
+    "N13-3": "度量链：每个指标都有计算绑定（绑定带事实来源）",
+    "N14-1": "每个绑定有事实、公式版本与时间基准",
 }
 
 
@@ -545,6 +549,10 @@ def check_dimensions(m, gaps):
                 gaps["N12-2"].append(f"行「{cell['fact']}」× 列「{name}」未对上 DIM×FACT")
 
 
+# 技术度量（kernel 与平台运维度量）不计入 N13 度量链：kpis.yaml 定稿时 one-architecture 判定（KPI-90、KPI-91，2026-10-22）
+METRIC_KINDS = {"业务指标", "出口条件", "技术度量"}
+
+
 def load_metrics(m, link):
     terms = {row["id"]: row for row in read_rows("terms", "terms")}
     for index, row in enumerate(read_rows("kpis", "kpis")):
@@ -557,6 +565,8 @@ def load_metrics(m, link):
         term = row.get("term")
         if term and term not in terms:
             raise ValueError(f"{ident} 引用了不存在的 term：{term}")
+        if row.get("kind") not in METRIC_KINDS:
+            raise ValueError(f"{ident} kind 须为 {'、'.join(sorted(METRIC_KINDS))} 之一：{row.get('kind')}")
         m["metric"][ident] = {key: row.get(key) for key in
                                 ("kind", "term", "baseline", "vision_kpi", "facts", "dimensions")}
         m["metric"][ident].update(zh=row["name"], src=src,
@@ -570,6 +580,60 @@ def load_metrics(m, link):
                 if ref not in target:
                     raise ValueError(f"{ident} {field} 引用了不存在的目标：{ref}")
                 link(kind, ident, ref, src + "." + field)
+
+
+def load_bindings(m, link):
+    for metric in m["metric"].values():
+        metric["bind"] = []
+    if not SRC["bindings"].exists():
+        return
+    for index, row in enumerate(read_rows("bindings", "bindings")):
+        ident = row.get("id")
+        if not isinstance(ident, str) or not re.fullmatch(r"BIND-\d{3}", ident):
+            raise ValueError(f"计算绑定编号无效：{ident}")
+        if ident in m["bind"]:
+            raise ValueError(f"{rel(SRC['bindings'])} 编号重复：{ident}")
+        kpi = row.get("kpi")
+        if not isinstance(kpi, str) or kpi not in m["metric"]:
+            raise ValueError(f"{ident} 引用了不存在的 KPI：{kpi}")
+        facts = row.get("facts")
+        if facts is not None and not isinstance(facts, list):
+            raise ValueError(f"{ident} facts 应为列表")
+        time_basis = row.get("time_basis")
+        if time_basis is not None and (not isinstance(time_basis, str) or
+                (time_basis.strip() and time_basis not in ("业务时间", "记录时间", "期间"))):
+            raise ValueError(f"{ident} time_basis 须为业务时间、记录时间或期间")
+        src = f"{rel(SRC['bindings'])}#bindings[{index}]/{ident}"
+        m["bind"][ident] = {**row, "src": src}
+        m["metric"][kpi]["bind"].append(ident)
+        link("bind-metric", ident, kpi, src + ".kpi")
+        for fact in facts or []:
+            if not isinstance(fact, str) or fact not in m["fact"]:
+                raise ValueError(f"{ident} 引用了不存在的 FACT：{fact}")
+            link("bind-fact", ident, fact, src + ".facts")
+    pending = read_mapping(SRC["bindings"]).get("pending", [])
+    if not isinstance(pending, list) or any(not isinstance(row, dict) for row in pending):
+        raise ValueError(f"{rel(SRC['bindings'])}#pending 应为条目列表")
+    for index, row in enumerate(pending):
+        kpi = row.get("kpi")
+        src = f"{rel(SRC['bindings'])}#pending[{index}]"
+        if not isinstance(kpi, str) or kpi not in m["metric"]:
+            raise ValueError(f"{src} 引用了不存在的 KPI：{kpi}")
+        if m["metric"][kpi]["bind"]:
+            raise ValueError(f"{src} 同一 KPI 既有绑定又在 pending：{kpi}")
+        m["metric"][kpi]["bind_pending"] = {**row, "src": src}
+
+
+def check_bindings(m, gaps):
+    for ident, binding in m.get("bind", {}).items():
+        missing = [field for field in ("facts", "formula_version", "time_basis")
+                   if not binding.get(field) or (isinstance(binding[field], str) and not binding[field].strip())]
+        if missing:
+            gaps["N14-1"].append(f"{ident}（缺 {'、'.join(missing)}）")
+    for ident, metric in m["metric"].items():
+        if metric.get("kind") != "技术度量" and not metric.get("bind"):
+            reason = (metric.get("bind_pending") or {}).get("reason") or ""
+            gaps["N13-3"].append(f"{ident} {metric['zh']}" + (f"（pending：{reason[:40]}）" if metric.get("bind_pending") else ""))
 
 
 def load_org_roles(m, link):
@@ -1020,6 +1084,7 @@ def load():
     load_facts(m, link, mod_to_bc)
     load_dimensions(m, link)
     load_metrics(m, link)
+    load_bindings(m, link)
     return m, links, mod_to_bc
 
 
@@ -1174,9 +1239,7 @@ def check(m, anchoring=None):
     check_facts(m, gaps)
     if "dim" in m:
         check_dimensions(m, gaps)
-    for mid, mt in m["metric"].items():
-        if mt.get("kind") != "技术度量" and (not mt.get("facts") or not mt.get("bind")):
-            gaps["N13-3"].append(f"{mid} {mt['zh']}")
+    check_bindings(m, gaps)
 
     for sid, s in m["stage"].items():
         if not s["gates"]:
@@ -1234,6 +1297,8 @@ def source_files():
 
 def render(m, links, gaps):
     coverage = coverage_counts(m, links)
+    old_n13_3 = sum(mt.get("kind") != "技术度量" and (not mt.get("facts") or not mt.get("bind"))
+                    for mt in m.get("metric", {}).values())
     m = {k: v for k, v in m.items() if k not in ("obj_text", "cmd_class")}
     counts = {k: len(v) for k, v in m.items()}
     model = {"meta": {"generator": "architecture/panorama/panorama_build.py", "sources": {k: rel(v) for k, v in source_files().items()},
@@ -1242,6 +1307,9 @@ def render(m, links, gaps):
              "nodes": m, "links": links}
     lines = ["<!-- 由 architecture/panorama/panorama_build.py 生成，勿手改 -->", "", "# 全景追溯缺口", "",
              "每轮生成一次，反复跑到收敛。缺口是「缺上层」还是「本身多余」，由 one-architecture 逐条判定，写进层笔记的待决问题。", "",
+             "## N13-3 判据变更", "",
+             f"同一输入按改前判据计 {old_n13_3} 个缺口，按改后判据计 {len(gaps.get('N13-3', []))} 个缺口。改前同时要求指标自带 facts 与 bind，改后按计算绑定判定；绑定的事实、公式版本与时间基准缺失由 N14-1 报告。技术度量均排除，pending 仍计缺口并附原因前 40 字。", "",
+             *([f"{rel(SRC['bindings'])} 不存在：节点 14 为空，非技术度量指标全部计入 N13-3。", ""] if not SRC["bindings"].exists() else []),
              "## 覆盖率", "", "按起点去重；via 列为每种出处下已覆盖起点数（可重叠），不是执行通过率。表→聚合只统计 data-access-registry 的三类业务表；API→BC 按路径统计，方法数见 api 节点。", "",
              "| 关系 | 已覆盖 / 总数 | via（已覆盖起点数） |", "|---|---|---|",
              *[f"| {k} | {v['covered']} / {v['total']} | " + "、".join(f"{via}: {n}" for via, n in v['via'].items()) + " |" for k, v in coverage.items()], "",
@@ -1361,10 +1429,26 @@ def self_test():
     print("self-test ok")
 
 
+EXTRACTS = [ARCH / "ssot/12-facts/extract_facts.py", ARCH / "ssot/13-dimensions/extract_dimensions.py", ARCH / "ssot/15-kpis/extract_metrics.py"]
+UNIT_TESTS = [Path(__file__).parent / "test_scan_aggregates.py", Path(__file__).parent / "test_panorama_build.py",
+              *(path.with_name("test_" + path.name) for path in EXTRACTS)]
+
+
+def run_unit_tests():
+    for path in UNIT_TESTS:
+        r = subprocess.run([sys.executable, "-m", "unittest", path.stem], cwd=path.parent, capture_output=True, text=True)
+        if r.returncode:
+            raise AssertionError(f"{rel(path)} 未通过：\n{r.stderr[-2000:]}")
+
+
 def main():
     if "--self-test" in sys.argv:
         self_test()
+        run_unit_tests()
         return 0
+    scan_aggregates.generate(ROOT, check="--check" in sys.argv)
+    for script in EXTRACTS:
+        subprocess.run([sys.executable, str(script), *(["--check"] if "--check" in sys.argv else [])], check=True)
     scan_commands.generate(ROOT, check="--check" in sys.argv)
     scan_org_roles.generate(ROOT, check="--check" in sys.argv)
     m, links, _ = load()

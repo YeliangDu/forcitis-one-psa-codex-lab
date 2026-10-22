@@ -18,6 +18,7 @@ JAVA = Path('backend/src/main/java/com/forcitis/one')
 REGISTRY = Path('backend/architecture/data-access-registry.yaml')
 DRAFT = ARCH / 'proposals/ENTERPRISE_AGGREGATES_DRAFT.md'
 UNBUILT = ARCH / 'panorama/unbuilt_roots.yaml'
+MAX_DUE_DAYS = 60   # 名单只容过渡期，到期日最远为当天起 60 天
 OLD = ARCH / 'ddd/aggregates.yaml'
 PREFIX = 'com.forcitis.one.'
 HEADERS = ['#', '聚合', '内含', '对应', '不变量', '命令（→ 事件；前置 INV）', '对外事件（订阅方）', '引用与依赖方式']
@@ -108,6 +109,8 @@ def read_unbuilt(root, today):
         if row['table'] in listed:
             raise ValueError(f'{UNBUILT}: 重复：{row["table"]}')
         due = row['due'] if isinstance(row['due'], datetime.date) else datetime.date.fromisoformat(str(row['due']))
+        if due > today + datetime.timedelta(days=MAX_DUE_DAYS):
+            raise ValueError(f'{UNBUILT}: {row["table"]} 到期日 {due} 超过 {MAX_DUE_DAYS} 天上限，须拆小或改期')
         if due < today:
             raise ValueError(f'{UNBUILT}: {row["table"]} 已过期（{due}，负责 {row["owner"]}）')
         listed[row['table']] = {**row, 'due': due.isoformat()}

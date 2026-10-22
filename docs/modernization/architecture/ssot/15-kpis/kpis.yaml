@@ -1,9 +1,17 @@
-# 指标登记（手写；sonnet 起草，one-architecture 定稿）。三套口径（基线 M-xx、词表 kind=metric、愿景 KPI）并列对照，口径冲突一律进 needs_user，不裁定。
+# 指标登记（手写；sonnet 起草，one-architecture 定稿）。三套口径（基线 M-xx、词表 kind=metric、愿景 KPI）并列对照，口径冲突进 decided 待用户答复；2026-10-22 用户答复 KPI-20261022-085652-r54 已写入，decided 记录各条的决议与去向。
 # retired 只收基线 §4 原文写「废弃 / 并入」的老叫法，它们不在 48/79/16 之内。
 meta:
-  status: proposal
-  reviewed_by: one-architecture（sonnet 起草；覆盖核对 48/79/16 全部落到 KPI、needs_user 或 retired；KPI-90、KPI-91 属 kernel 与平台作业调度，改标技术度量，2026-10-22）
-  note: 指标登记：三套（基线 48 个 M-xx、词表 kind=metric 79 条、愿景 16 个 KPI）的对照；不裁定口径。KPI-01～KPI-16 沿用愿景编号，其余自 KPI-17 起。
+  status: decided
+  reviewed_by: one-architecture（sonnet 起草；覆盖核对 48/79/16 全部落到 KPI、decided 或 retired；KPI-90、KPI-91 属 kernel 与平台作业调度，改标技术度量，2026-10-22；用户答复 KPI-20261022-085652-r54 已写入（2026-10-22））
+  note: 指标登记：三套（基线 48 个 M-xx、词表 kind=metric 79 条、愿景 16 个 KPI）的对照；不裁定口径。KPI-01～KPI-16 沿用愿景编号，其余自 KPI-17 起；KPI-95～KPI-108 为用户答复与设计方自定后新增。
+  counts:
+    kpis: 112
+    decided: 15
+    retired: 8
+    by_status: {user_decided: 7, design_decided: 5, glossary_pending: 3}
+    baseline: 48
+    glossary: 79
+    vision: 16
   inputs:
   - docs/modernization/architecture/ssot/15-kpis/metrics.raw.yaml
   - docs/modernization/architecture/ssot/15-kpis/GAPS.md
@@ -13,7 +21,7 @@ meta:
   - docs/modernization/r0/METRIC_BASELINE_DRAFT.md
   - docs/modernization/architecture/togaf/vision.yaml
   rules:
-    partition: 三套每一条恰好落在 kpis（作为 baseline、term 或 vision_kpi）、needs_user.items 或 retired.items 之一；baseline 的 M-xx 拆成多个 KPI 时，首个带 aliases，其余只写 baseline
+    partition: 三套每一条恰好落在 kpis（作为 baseline、term 或 vision_kpi）、decided.items 或 retired.items 之一（decided 为决议记录，其条目可同时对应 kpis 里新登记的指标）；baseline 的 M-xx 拆成多个 KPI 时，首个带 aliases，其余只写 baseline
     dimensions_rule: dimensions 取 dimensions.yaml 中 slices 同时覆盖该 KPI 全部 facts 的维度；facts 为空则为空
     facts_rule: facts 只在 facts.yaml 的事实与指标来源明显对应时列出，不明确的留空
     kind_rule: 愿景 KPI：定义或来源明写阶段出口、切换、入口条件的标出口条件，其余标业务指标；词表与基线条目一律业务指标
@@ -249,6 +257,13 @@ kpis:
   related_baseline:
   - M-29
   - M-08
+  definition: 贡献毛利 ÷ 同层级、同变体的净服务收入；按 OAT 的 CMR 变体（报价、预算、预估、实际）声明；本 KPI 是经营结果度量，不是目标值。（愿景原文分母为不含税收入确认，按 KPI-20261022-085652-r54 KPI-Q03 答复同步；vision.yaml 文字另行同步。）
+  caliber_changes:
+  - effective: 待定
+    before: 贡献毛利 ÷ 不含税收入确认
+    after: 贡献毛利 ÷ 同层级、同变体的净服务收入
+    values: 待 one-rules 重算（基线值与已下达年度目标）；分母换口径后历史期间比率整段跳变（预计上升 5–15 个点），达成率不可比
+    source: KPI-Q03
 - id: KPI-14
   aliases: []
   name: 老系统与 A8 数据通道下线数
@@ -837,6 +852,12 @@ kpis:
     glossary:
     - docs/modernization/glossary/terms.yaml:9571
   evidence: r0/METRIC_BASELINE_DRAFT.md:102 M-28「净服务收入」；glossary/terms.yaml:9571 net_service_revenue「净服务收入」收入（不含税）减转付成本（分包、外包与可向客户转收的代垫费用）后的余额；扣减范围。基线待决「NR 是否等于 REV − PTC」（F2），词表扣减范围按 FD-41
+  definition: 净收入 = 不含税收入 − 委外与分包 − 可向客户转收的代垫费用；管理口径净额，不用于法定报表；与法定收入可互相推导，报表脚注写推导关系。
+  merged_names:
+  - 净收入
+  merged_terms:
+  - net_revenue
+  merge_source: KPI-20261022-085652-r54（KPI-Q02）
 - id: KPI-40
   aliases:
   - M-29
@@ -862,7 +883,7 @@ kpis:
     - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:103
     glossary:
     - docs/modernization/glossary/terms.yaml:9510
-  evidence: r0/METRIC_BASELINE_DRAFT.md:103 M-29「贡献毛利、贡献毛利率（项目级；变体：报价、预算、预估、实际）」；glossary/terms.yaml:9510 contribution_margin「贡献毛利」净服务收入减直接人工与直接项目费用后的余额；按层级（项目、项目小组、区域、公司）。M-29 同名含「贡献毛利率」，该部分见 needs_user
+  evidence: r0/METRIC_BASELINE_DRAFT.md:103 M-29「贡献毛利、贡献毛利率（项目级；变体：报价、预算、预估、实际）」；glossary/terms.yaml:9510 contribution_margin「贡献毛利」净服务收入减直接人工与直接项目费用后的余额；按层级（项目、项目小组、区域、公司）。M-29 同名含「贡献毛利率」，该部分见 decided
     NU-04
 - id: KPI-41
   aliases:
@@ -1902,9 +1923,330 @@ kpis:
     glossary:
     - docs/modernization/glossary/terms.yaml:14105
   evidence: glossary/terms.yaml:14105 net_new_contract_value「新签净额」新签合同额扣预计委外与分包后的净额；新签合同额本身不扣减。
-needs_user:
+- id: KPI-95
+  aliases:
+  - M-42
+  name: 可计费利用率
+  term: utilization_rate
+  baseline: M-42
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 可计费工时 ÷ 可用工时（词表写法）。
+  usage: 只用于与同行基准比较。依据：行业基准报告的可计费利用率写法；词表的可计费口径只认按工时计费合同，总价项目多的团队会被系统性低估，不宜做内部饱和度主指标。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:126
+    glossary:
+    - docs/modernization/glossary/terms.yaml:5734
+  evidence: r0/METRIC_BASELINE_DRAFT.md:126 M-42「利用率」；glossary/terms.yaml:5734 utilization_rate「利用率」；用户答复 KPI-20261022-085652-r54（KPI-Q01，NU-01）：主指标取词表写法，另设两个有名字的变体
+- id: KPI-96
+  aliases: []
+  name: 含商机工时的利用率
+  term: null
+  baseline: M-42
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: （可计费工时 + 商机工时）÷ 可用工时。
+  usage: 按选项原文：三个利用率各有名字，报表上标明各自适用场景，不混称；本变体是分子加商机工时（售前等）的写法，行业基准报告称「计量利用率」。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:126
+  evidence: r0/METRIC_BASELINE_DRAFT.md:126 M-42 待决「分子是可计费工时，还是可计费加商机工时」；用户答复 KPI-20261022-085652-r54（KPI-Q01，NU-01）：另设变体「含商机工时的利用率」
+- id: KPI-97
+  aliases: []
+  name: 按有效工时算的利用率
+  term: null
+  baseline: M-42
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 有效工时 ÷ 可用工时。
+  usage: 内部饱和度看板主指标。依据：美国建筑师协会手册的直接工时「不论是否已开票，含总价项目」。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:126
+    glossary:
+    - docs/modernization/glossary/terms.yaml:2512
+  evidence: r0/METRIC_BASELINE_DRAFT.md:126 M-42；glossary/terms.yaml:2512 effective_hours；用户答复 KPI-20261022-085652-r54（KPI-Q01，NU-01）：另设变体「按有效工时算的利用率」，并指定为内部主指标
+- id: KPI-98
+  # E22：r0/REPORT_INVENTORY.md 第 167 行「待签项目超限投入的问责（按客户等级设授权上限，超限部分由负责人分担）」；KPI-98 的默认账期覆盖与本授权上限用同一套客户分级（用户 KPI-Q04）。
+  aliases:
+  - M-14
+  name: 账龄超 N 天应收
+  term: aged_receivable
+  baseline: M-14
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 账龄超过 N 天的应收账款余额；N 为口径参数；管理账龄按逾期天数分段、减值账龄按年度段（FD-37）。
+  due_date_rule: 无约定到期日的应收：到期日 = 开票日 + 默认账期。默认账期初值 30 日（国内月结实务；不取 FIDIC 白皮书的 28 日，以免提前两天变逾期、催收清单虚高），可按客户等级或合同类型覆盖（与 E22 授权额度同一维度，覆盖维度由 one-arch-revenue 设计），全局默认只兜底。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:83
+    glossary:
+    - docs/modernization/glossary/terms.yaml:10205
+  evidence: r0/METRIC_BASELINE_DRAFT.md:83 M-14「账龄超 N 天应收」；glossary/terms.yaml:10205 aged_receivable；用户答复 KPI-20261022-085652-r54（KPI-Q04，NU-03）：无到期日的应收按默认账期推算
+- id: KPI-99
+  aliases:
+  - M-46
+  name: 无合同投入总规模
+  term: uncontracted_exposure
+  baseline: M-46
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: NR + CA + AR 三段合计的无合同投入（词表「无合同风险敞口」）。
+  usage: 看无合同投入风险有多大（规模）。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:130
+    glossary:
+    - docs/modernization/glossary/terms.yaml:1638
+  evidence: r0/METRIC_BASELINE_DRAFT.md:130 M-46「无合同风险敞口、超授权额度投入」；glossary/terms.yaml:1638 uncontracted_exposure；用户答复 KPI-20261022-085652-r54（KPI-Q05，NU-08）：登记为两个指标，用语用「无合同」，不用「待签」
+- id: KPI-100
+  # E22：r0/REPORT_INVENTORY.md 第 167 行「待签项目超限投入的问责（按客户等级设授权上限，超限部分由负责人分担）」；KPI-98 的默认账期覆盖与本授权上限用同一套客户分级（用户 KPI-Q04）。
+  aliases: []
+  name: 超授权额度投入
+  term: null
+  baseline: M-46
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 无合同投入中超过授权额度的越线部分；授权额度按客户等级配置（E22），额度另行定。
+  usage: 用于问责，直接拉出要问责的无合同项目清单（基线：无合同项目投入台账与问责 R2）。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:130
+  evidence: r0/METRIC_BASELINE_DRAFT.md:130 M-46；用户答复 KPI-20261022-085652-r54（KPI-Q05，NU-08）：登记超授权额度投入为独立指标
+- id: KPI-101
+  aliases:
+  - M-26
+  name: 分包成本
+  term: subcontract_cost
+  baseline: M-26
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 成果性专业分包投入：按验收计价、责任随成果转移（Q31 业主定稿 2026-07-04）。与外包成本合计称「委外与分包」（FD-41 用语）。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:100
+    glossary:
+    - docs/modernization/glossary/terms.yaml:2737
+  evidence: r0/METRIC_BASELINE_DRAFT.md:100 M-26「分包成本、外包成本」；glossary/terms.yaml:2737 subcontract_cost；NU-05 设计方自定：科目已按 Q31 分开，登记两个指标
+- id: KPI-102
+  aliases: []
+  name: 外包成本
+  term: outsourcing_cost
+  baseline: M-26
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 人力劳务外包投入：按工时/人月计费、人员受我方管理（Q31 业主定稿 2026-07-04）。与分包成本合计称「委外与分包」（FD-41 用语）。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:100
+    glossary:
+    - docs/modernization/glossary/terms.yaml:2716
+  evidence: r0/METRIC_BASELINE_DRAFT.md:100 M-26；glossary/terms.yaml:2716 outsourcing_cost；NU-05 设计方自定：登记两个指标
+- id: KPI-103
+  aliases:
+  - M-27
+  name: 项目成本（归集）
+  term: project_cost
+  baseline: M-27
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:101
+    glossary:
+    - docs/modernization/glossary/terms.yaml:2630
+  evidence: r0/METRIC_BASELINE_DRAFT.md:101 M-27「项目成本（合同履约成本结转）」；glossary/terms.yaml:2630 project_cost；NU-06 设计方自定：收入准则应用指南 PDF 第 13 页，合同履约成本先归集、随收入确认结转，分归集、结转两个指标
+- id: KPI-104
+  aliases: []
+  name: 营业成本（结转）
+  term: cost_of_sales
+  baseline: M-27
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 随收入确认由合同履约成本转出的成本（原「主营业务成本」）。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:101
+    glossary:
+    - docs/modernization/glossary/terms.yaml:5337
+  evidence: r0/METRIC_BASELINE_DRAFT.md:101 M-27；glossary/terms.yaml:5337 cost_of_sales；NU-06 设计方自定：归集、结转两个指标
+- id: KPI-105
+  aliases:
+  - M-17
+  name: 合同资产余额
+  term: null
+  baseline: M-17
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 准则口径合同资产余额，按形成期间、风险分层；不含仅取决于时间流逝的部分（收入准则应用指南 PDF 第 15 页）。
+  reconciliation: 与 KPI-106 未开票在制并存，给对账（管理口径在制与准则合同资产的差异逐项列示）。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:86
+  evidence: r0/METRIC_BASELINE_DRAFT.md:86 M-17「合同资产余额（按形成期间、风险分层）」；NU-07 设计方自定：FD-15 已分合同资产与应收；与未开票在制两个并存并给对账
+- id: KPI-106
+  aliases: []
+  name: 未开票在制
+  term: unbilled_wip
+  baseline: null
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 管理口径：累计履约进度收入 − 累计已开票，按项目 × 合同条款计量，含无合同部分；不是准则科目。
+  reconciliation: 与 KPI-105 合同资产余额并存，给对账。
+  sources:
+    glossary:
+    - docs/modernization/glossary/terms.yaml:3224
+  evidence: glossary/terms.yaml:3224 unbilled_wip「未开票在制（WIP）」；NU-07 设计方自定：与合同资产余额两个并存并给对账
+- id: KPI-107
+  aliases:
+  - M-43
+  name: 工时结构（投入去向）
+  term: billable_hours
+  baseline: M-43
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 可计费、商机、非计费工时各占总工时的比例，看工时投入去向。
+  sources:
+    baseline:
+    - docs/modernization/r0/METRIC_BASELINE_DRAFT.md:127
+    glossary:
+    - docs/modernization/glossary/terms.yaml:2557
+  evidence: r0/METRIC_BASELINE_DRAFT.md:127 M-43「工时结构（可计费、商机、非计费占比）」；glossary/terms.yaml:2557 billable_hours；NU-09 设计方自定：两套划分各出一个指标，互不替代
+- id: KPI-108
+  aliases: []
+  name: 工时结构（产出）
+  term: null
+  baseline: null
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: null
+  answers: []
+  definition: 有效、无效工时各占比，看产出；可计费 ⊆ 有效。
+  related_terms:
+  - effective_hours
+  - ineffective_hours
+  sources:
+    glossary:
+    - docs/modernization/glossary/terms.yaml:2512
+    - docs/modernization/glossary/terms.yaml:2527
+  evidence: glossary/terms.yaml:2512 effective_hours、2527 ineffective_hours；NU-09 设计方自定：与 KPI-107 互不替代
+- id: KPI-109
+  aliases:
+  - M-16
+  name: 应收周转天数
+  term: days_sales_outstanding
+  baseline: M-16
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: L3
+  answers: []
+  definition: 期末余额 ÷ 近 12 个月对应额 × 365；合同资产、应收账款、应收票据三项分别与合计，取账面余额（不扣坏账准备）（FD-39）。
+  evidence: decided NU-02（design_decided，FD-39 已定）
+- id: KPI-110
+  aliases:
+  - M-08
+  name: 收入确认（不含税）
+  term: accrual_basis_revenue
+  baseline: M-08
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: L1
+  answers: []
+  evidence: decided NU-11（glossary_pending：与词表「权责发生制收入」是否同名、用哪个名，由 one-glossary 定，名称随之改）
+- id: KPI-111
+  aliases:
+  - M-09
+  name: 收入确认（含税）
+  term: revenue_including_tax
+  baseline: M-09
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: L1
+  answers: []
+  usage: 与开票、回款对比；年度目标跟踪（FD-14、FD-39）
+  evidence: decided NU-12（glossary_pending：是否与词表「含税收入」同一指标由 one-glossary 定）
+- id: KPI-112
+  aliases:
+  - M-31
+  name: 间接费用（按职能）
+  term: indirect_cost
+  baseline: M-31
+  vision_kpi: null
+  kind: 业务指标
+  facts: []
+  dimensions: []
+  layer: L2
+  answers: []
+  evidence: decided NU-10（glossary_pending：与词表「间接成本」名称由 one-glossary 定）
+decided:
 - id: NU-01
   title: 利用率：分子是什么
+  status: user_decided
+  answer: 主指标取词表写法（可计费工时 ÷ 可用工时），另设两个有名字的变体：含商机工时的利用率、按有效工时算的利用率
+  note: 选 0。但请指定主指标：内部饱和度看板用「按有效工时算的利用率」做主指标，「可计费利用率」只用于与同行基准比较。理由是你自己引的依据——AIA 手册说直接工时「不论是否已开票，含总价项目」；而词表的可计费口径只认按工时计费合同，总价项目多的团队会被系统性低估。三个数各有名字是对的，但报表上必须标明各自适用场景，否则又变成「三个数不知道看哪个」。
+  source: KPI-20261022-085652-r54（KPI-Q01）
   items:
     baseline:
     - M-42
@@ -1918,6 +2260,9 @@ needs_user:
   question: 基线把分子列为未决（可计费工时，还是可计费加商机工时），词表已写分子为可计费工时、分母为可用工时。以哪个为准，是否另开变体？
 - id: NU-02
   title: 应收周转天数：算法
+  status: design_decided
+  answer: 用户已在财务口径单 FD-39 定：词表写法即答案，沿用
+  source: 页首：FD-39 已定
   items:
     baseline:
     - M-16
@@ -1931,6 +2276,10 @@ needs_user:
   question: 基线写 DSO 为单一算法待决（F6、K7：分子用收入还是开票、天数基准、是否含商业承兑汇票与坏账），词表已写应收余额÷对应额×天数、按 FD-39。词表写法是否已是 F6 的答案？
 - id: NU-03
   title: 账龄超 N 天应收：起算日
+  status: user_decided
+  answer: 按默认账期推算到期日（开票日加默认账期）；默认账期是可配置参数，初值参照范本的 28 日
+  note: 选 0，但初值建议 30 日而不是 28 日：28 日出自 FIDIC 白皮书，国内实务普遍是月结 30 天，用 28 日会让这批应收提前两天变逾期、催收清单虚高。且默认账期应按客户等级 / 合同类型可覆盖（你们 E22 的授权额度已是按客户等级配置，用同一个维度），全局默认只作为兜底。
+  source: KPI-20261022-085652-r54（KPI-Q04）
   items:
     baseline:
     - M-14
@@ -1944,6 +2293,10 @@ needs_user:
   question: 基线写「按开票日起算」，词表写 N 与起算日为口径参数。起算日固定为开票日，还是作为参数？
 - id: NU-04
   title: 贡献毛利率：分母
+  status: user_decided
+  answer: 分母用同层级、同变体的净服务收入（词表写法），愿景 KPI-13 的文字随之改
+  note: 选 0，分子分母同口径是对的。但换分母等于换指标：历史期间的贡献毛利率会整段跳变（分母从含税收入换成净服务收入，比率会上升 5–15 个点）。请同时重算基线值与已下达的年度目标，并在指标登记里记一次口径变更（生效期间 + 前后值），否则达成率不可比。
+  source: KPI-20261022-085652-r54（KPI-Q03）
   items:
     baseline: []
     glossary:
@@ -1952,11 +2305,13 @@ needs_user:
   conflict:
   - terms.yaml:9550 contribution_margin_ratio「贡献毛利率」bc=operations.policy：贡献毛利 ÷ 对应层级的净服务收入（不含税）；分母须与贡献毛利同层级、同变体
   - vision.yaml:161 KPI-13「贡献毛利率」：贡献毛利 ÷ 不含税收入确认，按 OAT 的 CMR 变体（报价、预算、预估、实际）声明；本 KPI 是经营结果度量，不是目标值。
-  see_also: 愿景 KPI-13 已作为 KPI 登记（保留愿景编号）；METRIC_BASELINE_DRAFT.md:103 M-29「贡献毛利、贡献毛利率（项目级；变体：报价、预算、预估、实际）」替代叫法：毛利、毛利率、交付毛利、产值毛利、项目毛利润；事实 BC 派生（项目级）；含税 不含税；处置 合并；待决：Q6-2；扣减项（F2）；不再用「产值 − 当期全部费用」（K3）（M-29
-    已作为 KPI 贡献毛利登记，其中「贡献毛利率」部分随本题）
+  see_also: 愿景 KPI-13 已作为 KPI 登记（保留愿景编号）；METRIC_BASELINE_DRAFT.md:103 M-29「贡献毛利、贡献毛利率（项目级；变体：报价、预算、预估、实际）」替代叫法：毛利、毛利率、交付毛利、产值毛利、项目毛利润；事实 BC 派生（项目级）；含税 不含税；处置 合并；待决：Q6-2；扣减项（F2）；不再用「产值 − 当期全部费用」（K3）（M-29 已作为 KPI 贡献毛利登记，其中「贡献毛利率」部分随本题）
   question: 词表分母为同层级的净服务收入，愿景 KPI-13 分母为不含税收入确认。分母用哪个？M-29 基线只写贡献毛利率，未写分母。
 - id: NU-05
   title: 分包成本与外包成本：一个指标还是两个
+  status: design_decided
+  answer: 设计方按已定与准则自定、不请用户选
+  source: 页首：设计方按已定与准则自定
   items:
     baseline:
     - M-26
@@ -1972,6 +2327,9 @@ needs_user:
   question: 基线 M-26 把分包成本、外包成本合为一个指标（OAT PTC / DC），词表按 Q31 定稿分为两条且核算科目与成本路径区分。指标目录登记一个还是两个？
 - id: NU-06
   title: 项目成本：归集还是结转
+  status: design_decided
+  answer: 设计方按已定与准则自定、不请用户选
+  source: 页首：设计方按已定与准则自定
   items:
     baseline:
     - M-27
@@ -1987,6 +2345,9 @@ needs_user:
   question: 基线 M-27 名「项目成本」括注合同履约成本结转，OAT 为 DC / COGS；词表 project_cost 是项目直接投入的归集结果，cost_of_sales 是随收入确认转出的成本。M-27 对应哪条，或拆为归集与结转两个指标？
 - id: NU-07
   title: 合同资产与未开票在制
+  status: design_decided
+  answer: 设计方按已定与准则自定、不请用户选
+  source: 页首：设计方按已定与准则自定
   items:
     baseline:
     - M-17
@@ -2000,6 +2361,9 @@ needs_user:
   question: 基线 M-17 合同资产余额的替代叫法含「已确认未开票」；词表 unbilled_wip 声明「管理口径，不是准则科目」。二者是同一个量，还是管理口径在制与准则合同资产并存？
 - id: NU-08
   title: 无合同风险敞口
+  status: user_decided
+  answer: 登记两个指标：无合同投入总规模（即词表的敞口，三段合计）、超授权额度投入（越线部分）；授权额度另行定
+  source: KPI-20261022-085652-r54（KPI-Q05）
   items:
     baseline:
     - M-46
@@ -2013,6 +2377,9 @@ needs_user:
   question: 基线 M-46 为无合同风险敞口与超授权额度投入（待签项目已投入类），词表为 NR+CA+AR 三段合计。是否同一度量？
 - id: NU-09
   title: 工时结构与有效、无效、可计费工时
+  status: design_decided
+  answer: 设计方按已定与准则自定、不请用户选
+  source: 页首：设计方按已定与准则自定
   items:
     baseline:
     - M-43
@@ -2030,6 +2397,9 @@ needs_user:
   question: 基线 M-43 自己写明「与词表的有效 / 无效工时划分对齐（S-24）」尚未对齐：基线分可计费、商机、非计费，词表分有效、无效，且可计费包含于有效。以哪套划分为准？
 - id: NU-10
   title: 间接费用与间接成本
+  status: glossary_pending
+  answer: 同义异名，交 one-glossary 按用语规则定，不上确认页
+  source: 页首：交 one-glossary
   items:
     baseline:
     - M-31
@@ -2043,6 +2413,9 @@ needs_user:
   question: 基线名「间接费用（按职能）」，词表名「间接成本」，定义均为按职能归集的不可直接归属项目的部分。名称不同，是否同一概念、用哪个名？
 - id: NU-11
   title: 收入确认（不含税）与权责发生制收入
+  status: glossary_pending
+  answer: 同义异名，交 one-glossary 按用语规则定，不上确认页
+  source: 页首：交 one-glossary
   items:
     baseline:
     - M-08
@@ -2056,6 +2429,9 @@ needs_user:
   question: 两者都是权责、不含税的收入，名称不同。是否同一指标、用哪个名？
 - id: NU-12
   title: 收入确认（含税）与含税收入
+  status: glossary_pending
+  answer: 同义异名，交 one-glossary 按用语规则定，不上确认页
+  source: 页首：交 one-glossary
   items:
     baseline:
     - M-09
@@ -2069,6 +2445,10 @@ needs_user:
   question: 基线 M-09 只用于与开票、回款对比，词表含税收入用于年度目标跟踪。用途不同，是否同一指标？
 - id: NU-13
   title: 净收入与净服务收入
+  status: user_decided
+  answer: 扣：净收入 = 不含税收入 − 委外与分包 − 可向客户转收的代垫费用；净收入与净服务收入合为一个指标
+  note: 选 0。请在定义里写死：净收入是管理口径的净额，不用于法定报表。理由：准则 14 号 /IFRS 15 下代垫通常按总额确认收入，所以法定收入含代垫、管理净收入不含——两者必须能互相推导（净收入 = 不含税收入 − 委外分包 − 可转收代垫），并在报表脚注写出这个桥。
+  source: KPI-20261022-085652-r54（KPI-Q02）
   items:
     baseline: []
     glossary:
@@ -2081,6 +2461,9 @@ needs_user:
   question: 净收入只扣委外与分包，净服务收入还扣可向客户转收的代垫费用，名称相近。两条并存还是合并？
 - id: NU-14
   title: 现金流入流出比：是否保留
+  status: user_decided
+  answer: 不保留；现金流用经营活动现金流量净额和按类别的明细表达
+  source: KPI-20261022-085652-r54（KPI-Q06）
   items:
     baseline:
     - M-37
@@ -2092,6 +2475,10 @@ needs_user:
   question: 基线处置写「待确认」：是否保留，是否含筹资只能有一个定义（K15）。
 - id: NU-15
   title: 变动成本、固定成本（老叫法）：是否废弃
+  status: user_decided
+  answer: 废弃；以直接成本、间接成本（按职能）为准
+  note: 选 0。但请在废弃说明里补一句：废弃的是「按科目划分」的变动 / 固定两栏，不是放弃成本性态。以后做保本点、边际贡献、接单定价要按性态分析时，另立「成本性态」维度（对成本项标注性态），不要复活这两个旧词——否则两套分法又会并存。
+  source: KPI-20261022-085652-r54（KPI-Q07）
   items:
     baseline: []
     glossary: []
@@ -2137,6 +2524,37 @@ retired:
 - id: RET-05
   name: 年化（÷ 8 × 12）
   baseline_text: METRIC_BASELINE_DRAFT.md:145 处理「废弃」，理由「改由期间月数参数推导」
+  items:
+    baseline: []
+    glossary: []
+    vision: []
+- id: RET-06
+  name: 净收入（词表 net_revenue）
+  baseline_text: glossary/terms.yaml:13907 net_revenue「净收入」：收入（不含税）减委外与分包；用户答复 KPI-20261022-085652-r54（KPI-Q02，NU-13）：净收入与净服务收入合为一个指标
+  merged_into:
+  - KPI-39
+  reason: 并入 KPI-39 净服务收入；合并后定义：净收入 = 不含税收入 − 委外与分包 − 可向客户转收的代垫费用。
+  source: KPI-20261022-085652-r54（KPI-Q02）
+  items:
+    baseline: []
+    glossary:
+    - net_revenue
+    vision: []
+- id: RET-07
+  name: 现金流入流出比
+  baseline_text: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:116 M-37 处置「待确认」，是否含筹资只能有一个定义（K15）
+  reason: 不保留；现金流用经营活动现金流量净额和按类别的明细表达（KPI-20261022-085652-r54 KPI-Q06 答复选项原文）。
+  source: KPI-20261022-085652-r54（KPI-Q06）
+  items:
+    baseline:
+    - M-37
+    glossary: []
+    vision: []
+- id: RET-08
+  name: 变动成本、固定成本（按科目划分的老叫法）
+  baseline_text: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:140 处理「待确认，建议废弃」
+  reason: 废弃按科目划分的两栏；以后按性态分析另立「成本性态」维度（对成本项标注性态），不复活旧词。以直接成本、间接成本（按职能）为准。
+  source: KPI-20261022-085652-r54（KPI-Q07）
   items:
     baseline: []
     glossary: []
