@@ -23,6 +23,7 @@
 - **one-architecture**：ADR-0074/0075 → 回 one-arch-finance/people → 第三批卡 12–15（12 已交 Codex）；B-31 四项归架构（合同借阅 bc、撤回/退回映射、软件许可、§8.2）。
 - **one-glossary**：GL4 写回（工单处理人先问 one-1a-admin 是否可转派）→ 第三批前缀/维度 → n20 → n22 → n21。
 - 其余：one-ops ClamAV 待与应用侧联调后报建成；one-data、one-rules、one-arch-revenue 空闲。
+- 不得再犯（10-22 12:xx 用户问「现在没有开发任务吗」）：恢复与每次巡检必须逐个查开发会话（one-1a-*、one-platform-file）最后一条与前置是否已满足，前置满足即叫醒，不只盯合并。
 - 不得再犯：未核实就转述状态（REG-3 误等 #493）；台账写状态不写指针；重启前只保文件不保在途事。
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
