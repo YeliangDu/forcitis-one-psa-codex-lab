@@ -258,3 +258,13 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
     reason: ADR-0069 第 14 条外键取代 CHECK；约束断言改外键并补断言旧 CHECK 不存在；未知类别带 id 与旧前缀改 23503，未知类别且 id 空保持 23514；DisplayName 同步；补登记表集合与 has_object 一致性断言；PR 附预期表结构 diff、改断言栏单列
     ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261022-04
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRejectedResubmitIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetWorkerSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetEmployeeDayUniqueIT.java
+    reason: KERR 通用错误码进 kernel，工时两条码改名为 KERNEL_TRANSITION_ILLEGAL、KERNEL_CONCURRENT_CHANGE；只改码名字面与显示名，不删用例、不改断言结构；PR 改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
