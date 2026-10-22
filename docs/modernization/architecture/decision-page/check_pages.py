@@ -285,19 +285,20 @@ def canon(item):
 
 
 def base_items(path, base, root=ROOT):
-    """基线版本里各题的规范化内容（题号 → 文本）；基线没有这个文件时返回 None（无从比较）。"""
+    """基线版本里各题的规范化内容（题号 → 文本）。没有基线（全量模式）返回 None，已答题按登记整体跳过；
+    有基线而基线里没有这个文件（新页）、或读不出来时返回 {}：什么都对不上，已答登记也不算，照常检查。"""
     if not base:
         return None
     rel = os.path.relpath(path, root)
     r = subprocess.run(["git", "-c", "core.quotepath=off", "show", f"{base}:{rel}"], cwd=root, capture_output=True, text=True)
     if r.returncode:
-        return None
+        return {}
     try:
         data = json.loads(r.stdout)
     except ValueError:
-        return None
+        return {}
     items = data.get("items") if isinstance(data, dict) else data
-    return {str(i.get("no")): canon(i) for i in items if isinstance(i, dict)} if isinstance(items, list) else None
+    return {str(i.get("no")): canon(i) for i in items if isinstance(i, dict)} if isinstance(items, list) else {}
 
 
 def check_file(path, names, vocab, skipped=None, answers_dir=None, registry=None, base=None):
@@ -454,6 +455,11 @@ def self_test():
         assert any("Q-OLD" in e and "R4" in e for e in out), out
         unchanged = {"Q-OLD": canon(edited), "Q-NEW": canon(fresh)}
         assert not any("Q-OLD" in e for e in check_file(page, names, v, {}, answers_dir=answers, registry="", base=unchanged))
+        # 新页（基线里没有）即使登记在 answered_pages 或 answers 里，也照常检查
+        open(registry, "w", encoding="utf-8").write("PG\n")
+        out = check_file(page, names, v, {}, answers_dir=answers, registry=registry, base={})
+        assert any("Q-OLD" in e and "R4" in e for e in out), out
+        open(registry, "w", encoding="utf-8").write("")
         # answers 导出损坏、不是对象：按未答检查，不崩
         open(os.path.join(answers, "PG.json"), "w", encoding="utf-8").write("3")
         assert any("Q-OLD" in e for e in check_file(page, names, v, {}, answers_dir=answers, registry=""))
