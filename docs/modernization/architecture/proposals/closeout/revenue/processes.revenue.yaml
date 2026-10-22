@@ -1710,7 +1710,7 @@ processes:
   - id: SH-E5
     as: performer
     org_needs:
-      responsibility: 合同签回后转正风险交付授权，并入协议
+      responsibility: 协议生效后转正风险交付授权，并入协议
       approval_right: 无审批权
       department_hint: 市场与经营部门
       position_hint: 商务
@@ -1841,7 +1841,7 @@ processes:
     - 风险交付授权已批准
     desc: 审批通过后由 B-05 订阅审批结果执行（S-22 同做法）；v1 此步由管理层执行，本批改为审批结果回调
     decision:
-    - when: 合同已签回
+    - when: 协议已生效（订阅「协议已生效」，GL5 订阅裁定）
       goto: 6
       p: 0.6
     - when: 授权期限届满或不再签约
@@ -1872,7 +1872,7 @@ processes:
     branch: 转正
     emits:
     - Regularized
-    desc: 并入协议；转正与叫停互斥（INV-19）
+    desc: 协议已生效后转正并入协议（GL5-01：ContractSigned 只表示已签署，不触发转正）；转正与叫停互斥（INV-19）
     decision:
     - when: otherwise
       goto: end
@@ -4906,7 +4906,7 @@ processes:
   trigger:
     type: event
     events:
-    - event: ContractSigned
+    - event: 协议已生效
       aggregate: AGG-13
     desc: 协议回签生效后，检查负责人制定周期检查计划
   stages:
@@ -4919,7 +4919,7 @@ processes:
   scope: 按承担部门的数据范围：检查负责人可见并经办本部门受托协议的检查计划；委托方（保险公司等）不登录本系统
   triggers:
   - type: event
-    name: ContractSigned
+    name: 协议已生效
     bc: B-05
   outcomes:
   - 计划已生效
@@ -4974,7 +4974,7 @@ processes:
     - mode: event
       direction: in
       bc: B-05
-      name: ContractSigned
+      name: 协议已生效
     - mode: api
       direction: out
       bc: B-05
@@ -6318,15 +6318,15 @@ processes:
     - mode: event
       direction: out
       bc: B-07
-      name: ContractSigned
+      name: 协议已生效
     - mode: event
       direction: out
       bc: B-08
-      name: ContractSigned
+      name: 协议已生效
     - mode: event
       direction: out
       bc: B-26
-      name: ContractSigned
+      name: 协议已生效
     - mode: event
       direction: in
       bc: platform.approval
@@ -6365,6 +6365,19 @@ processes:
       goto: end
       outcome: 协议已生效、付款条件项生效
       p: 0.95
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-07
+      name: 协议已生效
+    - mode: event
+      direction: out
+      bc: B-08
+      name: 协议已生效
+    - mode: event
+      direction: out
+      bc: B-26
+      name: 协议已生效
     permission: 协议.确认生效条件
     page: 协议生效确认页
     outcome: 协议已生效、付款条件项生效
@@ -6379,7 +6392,7 @@ processes:
     wait:
       typical_h: 240
       p90_h: 1440
-  notes: 直建例外须经审批（INV-06）；订阅方 B-07、B-08、B-26。报价版本已生效、独立性检查已有结论无事件消费者，签约时读取，可接受（⑥a 评审 L3）。回签后触发销售合同归档 PRC-141（同事件 ContractSigned）。
+  notes: 直建例外须经审批（INV-06）；B-07、B-08、B-26 订阅「协议已生效」（one-architecture GL5 订阅裁定 a9969cd8：ContractSigned 只表示已签署，不再触发这三处；无附生效条件时回签同事务发出，附条件时由第 7 步发出）。报价版本已生效、独立性检查已有结论无事件消费者，签约时读取，可接受（⑥a 评审 L3）。回签后触发销售合同归档 PRC-141（同事件 ContractSigned）。
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 份
 - id: PRC-48
   name: 提出并生效协议变更或签证

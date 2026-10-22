@@ -626,10 +626,10 @@ PRC-16:
   - 第 4 步 otherwise
   expect: 申请人收到驳回意见；授权不生效，不产生先行投入依据（聚合命令缺口见 NOTES）
 - id: PRC-16-S03
-  path: 5 合同已签回→6
+  path: 5 协议已生效→6
   outcome: 已转正
   covers:
-  - 第 5 步「合同已签回」
+  - 第 5 步「协议已生效（订阅「协议已生效」，GL5 订阅裁定）」
   - 第 6 步 otherwise
   expect: 转正并入协议，发 Regularized（仅分析）；转正与叫停互斥（INV-19）
 - id: PRC-16-S04
@@ -1439,7 +1439,7 @@ PRC-41:
   - 第 4 步超时
   expect: 向检查负责人与市场和客户经理发待办；不改计划状态；上游不订阅下游事件，由人工转线索
 - id: PRC-41-S05
-  path: ContractSigned 事件重复投递
+  path: 协议已生效事件重复投递
   outcome: null
   covers:
   - 触发事件幂等
@@ -1652,7 +1652,7 @@ PRC-47:
   covers:
   - 第 5 步「审批通过」
   - 第 6 步 otherwise
-  expect: 收到「审批已通过」；回签即生效，发 ContractSigned，订阅方 B-07、B-08、B-26
+  expect: 收到「审批已通过」；无附生效条件，回签同事务落「已生效」，发 ContractSigned（仅表示已签署）与协议已生效，B-07、B-08、B-26 订阅协议已生效
 - id: PRC-47-S02
   path: 5 审批驳回→2
   outcome: null
@@ -1849,10 +1849,10 @@ PRC-50:
   expect: 迁入编排的离线命令重新占用并发起审批，不迁占用行与审批实例
 PRC-51:
 - id: PRC-51-S01
-  path: 收到 ContractSigned→更新额度
+  path: 收到协议已生效→更新额度
   outcome: null
   covers:
-  - 触发 ContractSigned
+  - 触发协议已生效
   expect: 建立可开票额度与履约义务额度，发「可开票额度已更新」
 - id: PRC-51-S02
   path: 收到同一协议同一基线的重复事件
