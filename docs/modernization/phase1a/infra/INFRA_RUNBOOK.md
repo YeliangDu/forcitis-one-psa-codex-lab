@@ -123,7 +123,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   |---|---|
   | `integration-seeyon-background` | `A8_DB_URL`、`A8_DB_USERNAME`、`A8_DB_PASSWORD` |
   | `integration-legacy` | `LEGACY_DB_RO_URL`、`LEGACY_DB_RO_USERNAME`、`LEGACY_DB_RO_PASSWORD` |
-  | `integration-legacy-inbox`（旧连接名，仅供受控退役用途账号核实，不读取老待办） | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL`、`_USERNAME`、`_PASSWORD`（仅作核实命令兼容输入，不放入第 5 节常驻配置） |
+  | `integration-legacy-inbox`（老待办运行时账号，随老待办撤，ADR-0055 决定 6、7；撤号前核实用，撤号后删此入口与本行；不读取老待办） | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL`、`_USERNAME`、`_PASSWORD`（仅作核实命令兼容输入，不放入第 5 节常驻配置） |
   | `probe`（C-14 探针登录） | `READONLY_PROBE_DB_URL`、`READONLY_PROBE_DB_USERNAME`、`READONLY_PROBE_DB_PASSWORD` |
 
   三项**只从进程环境变量**读：`-D` 系统属性、命令行参数、`SPRING_APPLICATION_JSON` 里的同名设置一律不读；命令行出现这些变量名（`--A8_DB_URL=…`、`--readonly.probe.db.username=…` 等宽松写法也算）或 `--spring.application.json` 即用法错误。环境变量的给法：按次用 `systemd-run --pipe --wait --collect -p EnvironmentFile=<退役用途专用受保护环境文件> /usr/bin/java …`，不要把 env 文件 source 进交互 shell。只读所指定连接的三项；另两条连接配了什么不影响结果。缺任一项：用法错误，列出缺的变量名（不列值），不做核实。
