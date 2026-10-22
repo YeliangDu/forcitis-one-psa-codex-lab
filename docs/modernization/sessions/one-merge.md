@@ -68,4 +68,4 @@
 
 ## 当前状态
 
-2026-10-21 18:00+02:00 在岗；队列由 launchd 代理 `com.forcitis.mq` 托管（`scripts/merge/mq.py run`），队列与待办详见 `merge/MERGE_CONTEXT.md`「现状」，不抄数字；模型 sonnet；/clear 后先读该文件再 `mq.py status` 核对。
+2026-10-22 17:00+02:00 在岗，上下文 55% 触发交接（/clear 前）；队列由 launchd 代理 `com.forcitis.mq` 托管，队列与待办详见 `merge/MERGE_CONTEXT.md`「现状」，不抄数字；模型 sonnet；/clear 后先读该文件再 `mq.py status` 核对，并接上：#606 合入后在主检出装 pre-commit 钩子（含 commit-msg）并报 one-coordinator；#607、#604 按批准 head 入队；队列清空即扫在开 PR 三类报调度；每周例行分支与 worktree 清理。

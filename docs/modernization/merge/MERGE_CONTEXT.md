@@ -45,10 +45,12 @@
 - 队列文件被并发改写会丢行：只经 `mq.py`。
 - 钩子不展开命令里的 shell 变量路径：推送命令用绝对路径 `cd`。
 
-## 现状（2026-10-22 15:40+02:00）
+## 现状（2026-10-22 16:55+02:00，/clear 前交接）
 
-- 队列（`mq.py status`）：只有当前在处理的 PR；launchd 代理 `com.forcitis.mq` running，#568（生成产物冲突自动合 main 重生成）、#583（remove 停 worker）、#593（产物移出后一删一改自动 git rm --cached）已合入并已重启。主检出每次合入后由队列自动快进（日志 `FF-MAIN`）。
-- 批准口径：只收 one-coordinator 的批准消息，入队前比对「批准的 head」（后续提交是合 main 或重新生成才算同一批准）；脚本/测试文件改动的文档合集先报 one-coordinator；手写文件冲突先报 one-coordinator 再动，生成产物冲突我在 PR 分支合 main、跑 build_all、必要时 `git rm --cached` 已不入仓的产物、推送后入队。
-- 我自己的合集分支（train-N）合入后分支可删；`mq.py remove` 停不掉正在处理的 PR，要撤只能重启代理；推送门禁要几分钟，main 前进快时易再冲突。
-- 远端分支清理（2026-10-22，one-coordinator）：已合入且无 PR/无 worktree 的已删（清单与 tip 在 `~/.modernize/psa/branch-cleanup-20261022/`）；无主超 3 天的未合入分支不删、改名归档到 `archive/<原名>`（同 tip），清单 `archived.txt`；生成物发布分支 `generated-docs` 必须保留。
-- 待办：①`one-data-handoff-1`、`one-quality-*`、`one-architecture-*`、`one-rules-context-2` 等会话分支的提交号由各会话直报，收进下一文档合集；②每周例行分支与干净工作区清理；③队列清空即扫在开 PR 三类报调度。
+- 队列 `[608, 606, 604, 609]`：#608（one-1a-admin-docs@2f74de2f6）、#609（one-1a-par 交接@661688ecd）为文档合集；#606（钩子三合一，守护文件，批准 head c922c7591，队列同步后 head 会变）；#604（KERR，one-1a-par，批准 head 446fcdd2f，与 main 有冲突，队列轮到时只能自动解生成产物，人写文件冲突退回作者）。launchd 代理 `com.forcitis.mq` running。
+- **#606 合入后必做**：在主检出跑 `pre-commit install --install-hooks -t pre-commit -t commit-msg -t pre-push`，核对 `.git/hooks/commit-msg` 存在，报 one-coordinator 一行（钩子目录各工作区共用，装一次）。
+- #587（one-platform-file 签章 api，批准 head a13848a93）卡在 openapi.json 快照过期（backend verify 红），作者会话已归档，等 one-coordinator 定谁接；修好 CI 绿再入。
+- 待收文档（各会话直报提交号，收进下一文档合集）：one-data-handoff-1、one-quality-*、one-architecture-*（admission-file、network-batch3 等）、one-rules-context-2、one-coordinator-two-lanes、one-arch-*-closeout；脚本/测试文件改动先报 one-coordinator。
+- 远端分支：已合入的我自己的合集分支 train-45/46/47/48… 下次清理时删；`archive/*` 27 个为归档（archived.txt）；`generated-docs` 必须保留。每周例行清理待做（已合入分支、干净 worktree；规则见上）。
+- 本机常用脚本（在 /private/tmp/claude-501/，若丢失按下述重写）：`fold.sh <train分支> <sha>…`（建合集：合 main 与各提交，生成产物冲突取一边后 build_all，手写文件冲突中止）；`prbump.sh <PR>`（在 PR 分支的临时 worktree 合 main、解生成产物冲突、build_all；之后手动 `pnpm install --frozen-lockfile --offline` 于其 frontend/，再 `git push origin HEAD:refs/heads/<分支>`）；`autoenq2.sh pr:head…`（等 CI 四项出结果，head 一致且无红才入队）。注意：①zsh 不按换行拆变量，脚本用 bash；②macOS bash3 无 `declare -A`；③钩子在命令开始前跑 precheck，推送与改文件分两次调用；④推送路径不能含 shell 变量；⑤合并 `mq.py remove` 停不掉在处理的 PR；⑥已不入仓的产物（FREEZE_FACTS.md 等）合 main 后要 `git ls-files -ci --exclude-standard` 查并 `git rm --cached`。
+- 批准口径不变：只收 one-coordinator 批准消息，入队前比对批准的 head（后续只是合 main/重生成才算同一批准）；手写文件冲突先报 one-coordinator；文档合集合入后通知相关会话；队列清空即扫在开 PR 三类报调度。
