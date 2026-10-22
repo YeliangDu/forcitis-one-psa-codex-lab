@@ -63,3 +63,5 @@
 2026-10-22 交接：文件单元 3、5、6（#521、#525、#527）在队；下一单元签章服务第一段 api（等 one-glossary #564 合入），再文件 6b、5a、7；明细见 phase1a/file-service/HANDOFF.md 末节。
 
 2026-10-22 接手会话已接手（接 HANDOFF 末节「2026-10-22 交接」）；签章第一段 api 等 #564 合入后落代码。
+
+2026-10-22 one-coordinator 派工并入单元 7：preservation_category_versions 追加迁移补 ①WITHDRAWN 状态（含 state_transitions 取值与转换）②版本头 version 列；设计细则见 one-data 日历审「更正十」与 data/reviews/B31-CARD-A-DDL.md 的 R1、R2；表结构先请 one-data 签发，首次部署前落地。
