@@ -2,7 +2,6 @@
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_PRC-96" targetNamespace="https://forcitis.one/bpmn/PRC-96" exporter="bpmn_gen" exporterVersion="1">
   <dataStore id="DS_AGG-77" name="AGG-77"/>
   <dataStore id="DS_AGG-81" name="AGG-81"/>
-  <dataStore id="DS_AGG-137" name="AGG-137"/>
   <dataStore id="DS_AGG-41" name="AGG-41"/>
   <collaboration id="Collab_PRC-96">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-96"/>
@@ -68,13 +67,11 @@
       <ioSpecification id="IO_S1_5">
         <dataInput id="DIn_S1_5_1"/>
         <dataInput id="DIn_S1_5_2"/>
-        <dataInput id="DIn_S1_5_3"/>
-        <inputSet><dataInputRefs>DIn_S1_5_1</dataInputRefs><dataInputRefs>DIn_S1_5_2</dataInputRefs><dataInputRefs>DIn_S1_5_3</dataInputRefs></inputSet>
+        <inputSet><dataInputRefs>DIn_S1_5_1</dataInputRefs><dataInputRefs>DIn_S1_5_2</dataInputRefs></inputSet>
         <outputSet></outputSet>
       </ioSpecification>
       <dataInputAssociation id="DIA_S1_5_1"><sourceRef>SR_S1_5_r1</sourceRef><targetRef>DIn_S1_5_1</targetRef></dataInputAssociation>
       <dataInputAssociation id="DIA_S1_5_2"><sourceRef>SR_S1_5_r2</sourceRef><targetRef>DIn_S1_5_2</targetRef></dataInputAssociation>
-      <dataInputAssociation id="DIA_S1_5_3"><sourceRef>SR_S1_5_r3</sourceRef><targetRef>DIn_S1_5_3</targetRef></dataInputAssociation>
     </serviceTask>
     <exclusiveGateway id="S1_gw_6" name="读取已过账事实？">
       <incoming>Flow_5</incoming>
@@ -260,7 +257,7 @@
     <sequenceFlow id="Flow_6" name="本期已有有效的人工成本分配运行（每期间一次有效）" sourceRef="S1_gw_6" targetRef="End_21"/>
     <sequenceFlow id="Flow_7" name="目标期间尚未开放（该法人无开放期间可落），拒收并告警" sourceRef="S1_gw_6" targetRef="End_22"/>
     <sequenceFlow id="Flow_8" name="工时与薪酬事实未齐备（有工时无薪酬或有薪酬无工时，预警）" sourceRef="S1_gw_6" targetRef="End_23"/>
-    <sequenceFlow id="Flow_9" name="本期涉及的业务线在生效费率卡版本中缺奖金计提率（规则类型未指定按历史比率，比率缺失；或合同额百分比缺提成比例），启动失败并告警，不按 0 计" sourceRef="S1_gw_6" targetRef="End_24"/>
+    <sequenceFlow id="Flow_9" name="本期有已过账事实未带奖金计提率（过账时费率表版本缺该业务线的计提规则），启动失败并告警，不按 0 计" sourceRef="S1_gw_6" targetRef="End_24"/>
     <sequenceFlow id="Flow_10" name="目标期间已关账，自动落当前开放期间并标原期间后继续分配" sourceRef="S1_gw_6" targetRef="S2_7"/>
     <sequenceFlow id="Flow_11" name="其他" sourceRef="S1_gw_6" targetRef="S2_7"/>
     <sequenceFlow id="Flow_12" sourceRef="S2_7" targetRef="S3_8"/>
@@ -293,7 +290,6 @@
     <sequenceFlow id="Flow_39" name="其他" sourceRef="S8_gw_20" targetRef="End_31"/>
     <dataStoreReference id="SR_S1_5_r1" name="AGG-77" dataStoreRef="DS_AGG-77"/>
     <dataStoreReference id="SR_S1_5_r2" name="AGG-81" dataStoreRef="DS_AGG-81"/>
-    <dataStoreReference id="SR_S1_5_r3" name="AGG-137" dataStoreRef="DS_AGG-137"/>
     <dataStoreReference id="SR_S2_7_w1" name="AGG-41" dataStoreRef="DS_AGG-41"/>
     <dataStoreReference id="SR_S3_8_w1" name="AGG-41" dataStoreRef="DS_AGG-41"/>
     <dataStoreReference id="SR_S4_10_w1" name="AGG-41" dataStoreRef="DS_AGG-41"/>
@@ -416,13 +412,10 @@
         <dc:Bounds x="3597" y="177" width="36" height="36"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S1_5_r1" bpmnElement="SR_S1_5_r1">
-        <dc:Bounds x="265" y="134" width="36" height="26"/>
+        <dc:Bounds x="286" y="134" width="36" height="26"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S1_5_r2" bpmnElement="SR_S1_5_r2">
-        <dc:Bounds x="307" y="134" width="36" height="26"/>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_SR_S1_5_r3" bpmnElement="SR_S1_5_r3">
-        <dc:Bounds x="349" y="134" width="36" height="26"/>
+        <dc:Bounds x="328" y="134" width="36" height="26"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S2_7_w1" bpmnElement="SR_S2_7_w1">
         <dc:Bounds x="567" y="4" width="36" height="26"/>
@@ -647,16 +640,12 @@
         <di:waypoint x="3525" y="213"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DIA_S1_5_1" bpmnElement="DIA_S1_5_1">
-        <di:waypoint x="283" y="160"/>
-        <di:waypoint x="285" y="165"/>
+        <di:waypoint x="304" y="160"/>
+        <di:waypoint x="304" y="165"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DIA_S1_5_2" bpmnElement="DIA_S1_5_2">
-        <di:waypoint x="325" y="160"/>
-        <di:waypoint x="325" y="165"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_DIA_S1_5_3" bpmnElement="DIA_S1_5_3">
-        <di:waypoint x="367" y="160"/>
-        <di:waypoint x="365" y="165"/>
+        <di:waypoint x="346" y="160"/>
+        <di:waypoint x="346" y="165"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DOA_S2_7_1" bpmnElement="DOA_S2_7_1">
         <di:waypoint x="585" y="35"/>
