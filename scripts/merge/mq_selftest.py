@@ -1481,8 +1481,6 @@ here = os.path.dirname(os.path.abspath(__file__))
 target = os.path.join(here, "EXTRA.md")
 if "--check" in sys.argv:
     sys.exit(0 if os.path.exists(target) and open(target, encoding="utf-8").read() == "extra\\n" else "EXTRA.md is not what is generated")
-if os.path.exists(target) and "MQ-PROBE" in open(target, encoding="utf-8").read():
-    sys.exit("EXTRA.md is read by a later step and cannot be parsed")   # like object_freeze_check reading panorama.yaml: junk in it breaks the run
 open(target, "w", encoding="utf-8").write("extra\\n")
 """
 
@@ -1545,6 +1543,41 @@ def _ignored_conflicts(mq, d):
     assert mq.update_over_ssh(work, "pr", wt) == "conflict"
     g(work, "fetch", "-q", "origin")
     assert g(work, "rev-parse", "origin/pr") == before
+
+    # a HUMAN file wrongly ignored (main took it out of the index and ignored it by mistake): the pull request's change would be lost, so it is never settled here
+    work, write, commit = repo("ig5")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/human.txt", "mine\n"); commit("pr edits the human file"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); g(work, "rm", "-q", "--cached", f"{MOD}/human.txt"); write(".gitignore", f"{MOD}/human.txt\n"); commit("main ignores the human file"); g(work, "push", "-q", "origin", "main")
+    before = g(work, "rev-parse", "origin/pr")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict"
+    g(work, "fetch", "-q", "origin")
+    assert g(work, "rev-parse", "origin/pr") == before
+
+    # ignored only by this machine's own exclude file (not by a .gitignore of the tree): not a moved-out product
+    work, write, commit = repo("ig6")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(f"{MOD}/EXTRA.md", "mine\n"); commit("pr edits"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); untrack(work, write, commit, ignore=False); g(work, "push", "-q", "origin", "main")
+    with open(os.path.join(work, ".git", "info", "exclude"), "a") as f:
+        f.write(f"{MOD}/EXTRA.md\n")
+    assert mq.moved_out_conflicts.__name__ == "moved_out_conflicts"
+    result = mq.update_over_ssh(work, "pr", wt)
+    g(work, "fetch", "-q", "origin")
+    assert result == "regenerated" and f"{MOD}/EXTRA.md" in g(work, "ls-tree", "-r", "--name-only", "origin/pr").splitlines(), "regenerated like any product, but it stays tracked: the machine's exclude file is no reason to take it out of the index"
+
+    # .gitignore itself conflicting: what is ignored is not known yet
+    work, write, commit = repo("ig7")
+    g(work, "checkout", "-q", "-B", "pr", "main"); write(".gitignore", "pr-line\n"); write(f"{MOD}/EXTRA.md", "mine\n"); commit("pr edits both"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); write(".gitignore", "main-line\n"); commit("main edits .gitignore"); untrack(work, write, commit); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict"
+
+    # a link in place of the moved product is never written through, also when it is on its way out of the repository
+    outside = os.path.join(d, "ig8-victim.txt")
+    with open(outside, "w") as f:
+        f.write("untouched\n")
+    work, write, commit = repo("ig8")
+    g(work, "checkout", "-q", "-B", "pr", "main"); os.remove(os.path.join(work, MOD, "EXTRA.md")); os.symlink(outside, os.path.join(work, MOD, "EXTRA.md")); commit("pr turns the product into a link"); g(work, "push", "-q", "origin", "pr")
+    g(work, "checkout", "-q", "main"); untrack(work, write, commit); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr", wt) == "conflict" and open(outside).read() == "untouched\n"
 
     # a file a person wrote conflicts next to the moved product
     work, write, commit = repo("ig4")
