@@ -193,6 +193,7 @@ SQ-01–SQ-33 已由 S-31 裁定：采纳或改写 23 条，已覆盖 3 条（SQ
 | S31-结构-10 | AGG-122 引用 AGG-10（商机）、AGG-13（协议）、AGG-19（项目）：B-07 对 B-03、B-05、B-04 以事件边为准，PRC-25 经事件进来 | 沿用既有事件边，不加 api | 待确认 |
 | S31-结构-11 | AGG-126 与勾稽族的关系（案件按勾稽族 × 期间 × 法人一案）未定 | one-data | 待裁定 |
 | S31-结构-12 | PRC-96 作废、冲销（S-31 SQ-17）：冲销经 AR-06 加审，审批人按间接成本池归属财务部门的责任人（SQ-51 解析）；AGG-42、99 同 | 已按 PRC-87 的冲销分支写法落骨架 | 已落骨架 |
+| S-4（BONUS_OVERTIME_COSTING） | PRC-96 读已核定奖金、日期类型、补休安排的来源与「成本核算输入取自 operations.facts」不一致 | 建议日期类型与补休随工时过账事实携带；已核定奖金加 B-07 → B-15 api 边（详见该稿 §4） | 待裁定 |
 
 ## 新用语
 
@@ -543,6 +544,7 @@ U-48 缩窄（S-34 ②）：已过账的应付股利经冲销过账更正，已�
 11. 投产日在用对象初始化（SQ-25）走 platform.migration 导入，来源财务清单或 U8C 导出；company_assets 等表 history_migration 现为 none，应标「初始化」而非「不迁」。
 12. 引用列族已补：AGG-84 journal_entries → AGG-127、journal_entry_lines → AGG-129；AGG-99 → AGG-128；AGG-86 report_line_mappings → AGG-129；AGG-91 company_asset_versions → AGG-124；AGG-59 expense_claims → AGG-130、expense_claim_lines → AGG-132。
 13. 表名用语：presales_investment_attribution、cost_accounting_parameter_version、asset_category_policy_version、opening_balance_set、basis_conversion_rule_version、period_end_carryover_template_version、cash_flow_item_table_version、expense_pre_application、travel_provider_monthly_statement、business_trip_application、travel_allowance_standard_version 待词表登记。
+14. AGG-41 奖金与加班（ARC-1022-AFI-01，BONUS_OVERTIME_COSTING）：`labor_cost_allocation_lines` 加行类型与加班计价、奖金计提、奖金调整列族（按项目、不到人）；新增 `labor_cost_allocation_variances`（每运行每员工一行，pi、sensitive）；`labor_cost_allocation_runs` 加费率卡版本引用（AGG-137 表级模型尚未出）。
 
 ## 验收场景清单
 
