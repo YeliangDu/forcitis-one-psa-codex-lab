@@ -75,4 +75,4 @@ PAR-1..PAR-5 完成或达到 §2.1 第 1 条阈值时在批次边界交接；F-1
 
 ## 当前状态
 
-2026-10-22 交接（用户要求清空）：#509、#519、#547（日历版本化迁移）、#595（F2 老待办残留）已合入；在途 #604（KERR，通用错误码进 kernel，头 446fcdd2f）等 CI 绿后报 one-merge 入队。接下来 IMP-1021-PAR-03（组织接口清单）→ 卡 E（workforce 入职日期与满周年，经 one-arch-people，先请 one-data 签表）。W2 待办（INV-62、RULE-387/394、RegisteredEmployee/SyncRun）与其余待办池见 `phase1a/HANDOFF_one-1a-par.md`。本机只跑受影响模块的测试，全量交 CI。
+2026-10-22 晚：#604（KERR）已合 main 并报 one-merge 入队；#611（PAR-03 组织接口清单与守护，IMP-1021-PAR-03）CI 绿、已报入队；W2 PR-B（IMP-1022-PAR-01）实现已推 `claude/one-1a-par-w2-versions` @799d0118c，未开 PR，等 one-coordinator 对验收目录 4 处改动（EmployeeCodeNotKeyIT、WorkforceLengthLimitsIT、WorkforceRowConstraintsIT 两例）出裁定，另有 opus 首轮复审在跑。接下来：裁定与复审结论到后修正、开 PR；之后卡 E（workforce 入职日期与满周年查询）。细节见 phase1a/HANDOFF_one-1a-par.md。
