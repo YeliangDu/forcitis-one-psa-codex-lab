@@ -1,4 +1,5 @@
 """Self-test of mq.py (fake gh, real git for the ssh update, real processes and threads for the queue lock and the lanes). Not run on its own: `mq.py --self-test`."""
+import importlib.util
 import os
 import re
 import subprocess
@@ -126,6 +127,8 @@ def run(mq):
             _merge_guards(mq, d)
             _pause(mq, d)
             _signals(mq, d)
+            _ff_main(mq, d)
+            _docs_tiers(mq, d)
             _gh_commands(mq, d)
             _lanes(mq, d)
             _dependencies(mq, d)
@@ -732,21 +735,10 @@ def _signals(mq, d):
     mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
     assert "ERROR" in events(log) and "disk full" in " ".join(log.lines) and q.numbers() == [] and "MERGED" in events(log), (events(log), q.numbers())
 
-    # the docs lane does not merge while a code pull request is in its final CI; it goes on when that one is done
-    gh = FakeGh(); gh.add(83); gh.add(84)
-    lanes = {83: "code", 84: "docs"}
-    proc, q, log, slept = _proc(mq, d, "s5", gh, [83, 84], lane=lambda g, n: lanes[n])
-    proc.code_testing.add(83)
-
-    def release(seconds):
-        if seconds == 30 and any(" WAIT-CODE-LANE " in l for l in log.lines):
-            proc.code_testing.discard(83)
-    proc.sleep = lambda sec: (slept.append(sec), release(sec))
-    assert proc.process(84) == "MERGED" and "WAIT-CODE-LANE" in events(log) and events(log).index("WAIT-CODE-LANE") < events(log).index("MERGED")
-    gh = FakeGh(); gh.add(85)
-    proc, q, log, slept = _proc(mq, d, "s6", gh, [85], lane=lambda g, n: "code")
-    proc.code_testing.add(999)
-    assert proc.process(85) == "MERGED" and "WAIT-CODE-LANE" not in events(log), "the code lane never waits for the flag"
+    # the docs lane never waits for the code lane: a docs merge leaves a code pull request counted as up to date (see the docs-tier cases below)
+    gh = FakeGh(); gh.add(84)
+    proc, q, log, slept = _proc(mq, d, "s5", gh, [84], lane=lambda g, n: "docs")
+    assert proc.process(84) == "MERGED" and 30 not in slept, (events(log), slept)
 
     # no network failure of the merge decision: compare fails (None) -> HOLD; the pull request closed meanwhile -> HOLD
     gh = FakeGh(); gh.add(86)
@@ -864,26 +856,11 @@ def _signals(mq, d):
     proc, q, log, _ = _proc(mq, d, "bd-strict", gh, [101])
     assert proc.process(101) == "MERGED" and ("update-branch", 101) in gh.calls
 
-    # a code pull request is registered while its final CI runs, and not while it is being brought up to date
-    gh = FakeGh(); gh.add(94, rounds=[dict(pending=3, checks=green())], behind=2)
-    proc, q, log, slept = _proc(mq, d, "s11c", gh, [94])
-    flag = {"during_update": None, "during_wait": []}
-    real_update = gh.update_branch
-
-    def watched_update(n):
-        flag["during_update"] = n in proc.code_testing
-        return real_update(n)
-    gh.update_branch = watched_update
-    proc.sleep = lambda sec: (slept.append(sec), flag["during_wait"].append(94 in proc.code_testing) if sec == 30 and len(slept) > 3 else None)
-    assert proc.process(94) == "MERGED" and flag["during_update"] is False and any(flag["during_wait"]) and 94 not in proc.code_testing, flag
-
-    # checks not registered yet (an empty list) are waited for, not a HOLD at once; the flag is cleared when main moved and the pull request is brought up to date again
+    # checks not registered yet (an empty list) are waited for, not a HOLD at once; main moved meanwhile, so the pull request is brought up to date again
     gh = FakeGh(); gh.add(97)
     proc, q, log, slept = _proc(mq, d, "s11f", gh, [97])
     real_checks = gh.checks
     polls = {"n": 0}
-    seen_flag = []
-    real_update = gh.update_branch
 
     def late_checks(n):
         polls["n"] += 1
@@ -891,17 +868,8 @@ def _signals(mq, d):
             gh.prs[97]["behind"] = 1
         return [] if polls["n"] <= 22 else real_checks(n)   # nothing listed through the registration wait (20 polls) and two more
 
-    def update(n):
-        seen_flag.append(n in proc.code_testing)
-        return real_update(n)
-    gh.checks, gh.update_branch = late_checks, update
-    assert proc.process(97) == "MERGED" and "BEHIND-AT-MERGE" in events(log) and seen_flag == [False], (events(log), seen_flag)
-
-    # the docs lane's wait for the code lane ends at the CI timeout even if the flag never clears
-    gh = FakeGh(); gh.add(95)
-    proc, q, log, slept = _proc(mq, d, "s11d", gh, [95], lane=lambda g, n: "docs", ci_timeout=120)
-    proc.code_testing.add(999)
-    assert proc.process(95) == "MERGED" and slept.count(30) == 4 and "WAIT-CODE-LANE" in events(log)
+    gh.checks = late_checks
+    assert proc.process(97) == "MERGED" and "BEHIND-AT-MERGE" in events(log), events(log)
 
     # a runner that cannot even take a pull request out after three failures keeps its lane
     gh = FakeGh(); gh.add(96)
@@ -915,8 +883,8 @@ def _signals(mq, d):
 
     # a hanging call is a failed call: sh() gives up after its timeout
     started = time.monotonic()
-    r = mq.sh([sys.executable, "-c", "import time; time.sleep(30)"], timeout=1)
-    assert r.returncode == 124 and "timed out" in r.stderr and time.monotonic() - started < 10
+    r = mq.sh([sys.executable, "-c", "import time; time.sleep(300)"], timeout=1)
+    assert r.returncode == 124 and "timed out" in r.stderr and time.monotonic() - started < 120   # a timeout that did not work would take 300 s
 
     # two ssh updates at once never share the scratch worktree
     inside = {"n": 0, "max": 0}
@@ -1000,3 +968,152 @@ def _gh_commands(mq, d):
     finally:
         for k, v in old.items():
             os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+
+
+def _git(*args, cwd):
+    r = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=cwd, capture_output=True, text=True)
+    assert r.returncode == 0, (args, r.stderr)
+    return r.stdout.strip()
+
+
+def _ff_main(mq, d):
+    # WAIT-SIGNAL is logged for the first unreadable poll whatever the machine's uptime is (monotonic time may be small)
+    gh = FakeGh(); gh.add(200)
+    proc, q, log, _ = _proc(mq, d, "ffs", gh, [200])
+    gh.main_runs["push"] = mq.SignalError("rate limited")
+    proc.pause.clock = lambda: 5.0
+    assert proc.pause.check() is True
+    assert sum(" WAIT-SIGNAL " in l for l in log.lines) == 1, "the first line must not depend on how long the machine has been up"
+
+    # the main checkout after a merge: fast-forwarded when it is clean and on main; left alone, ALERT and both lanes paused otherwise
+    origin = os.path.join(d, "ff-origin.git")
+    _git("init", "-q", "--bare", "-b", "main", origin, cwd=d)
+    seed = os.path.join(d, "ff-seed")
+    _git("clone", "-q", origin, seed, cwd=d)
+    open(os.path.join(seed, "a"), "w").write("1\n")
+    open(os.path.join(seed, "c"), "w").write("c\n")
+    _git("add", "a", "c", cwd=seed); _git("commit", "-qm", "one", cwd=seed); _git("push", "-q", "origin", "main", cwd=seed)
+
+    def checkout(name):
+        path = os.path.join(d, name)
+        _git("clone", "-q", origin, path, cwd=d)
+        return path
+
+    def advance(text):
+        open(os.path.join(seed, "a"), "w").write(text)
+        _git("commit", "-qam", text.strip(), cwd=seed); _git("push", "-q", "origin", "main", cwd=seed)
+
+    def run_ff(name, path):
+        gh = FakeGh(); gh.add(201)
+        proc, q, log, _ = _proc(mq, d, name, gh, [201], main_checkout=path)
+        proc.ff_main(201, 0)
+        return proc, log
+
+    main_dir = checkout("ff-ok")
+    advance("2\n")
+    proc, log = run_ff("ff1", main_dir)
+    assert "FF-MAIN" in events(log) and "ALERT" not in events(log) and _git("rev-parse", "HEAD", cwd=main_dir) == _git("rev-parse", "origin/main", cwd=main_dir) and not proc.pause.is_paused(), log.lines
+
+    wrong = checkout("ff-branch")
+    _git("checkout", "-q", "-b", "work", cwd=wrong)
+    advance("3\n")
+    before = _git("rev-parse", "HEAD", cwd=wrong)
+    proc, log = run_ff("ff2", wrong)
+    assert "ALERT" in events(log) and "FF-MAIN" not in events(log) and proc.pause.is_paused() and "work" in open(proc.pause.paused_file).read() and _git("rev-parse", "HEAD", cwd=wrong) == before, log.lines
+
+    dirty = checkout("ff-dirty")
+    advance("4\n")
+    open(os.path.join(dirty, "c"), "w").write("mine\n")   # a tracked file the fast-forward would not touch: git alone would not refuse
+    proc, log = run_ff("ff3", dirty)
+    assert "ALERT" in events(log) and proc.pause.is_paused() and open(os.path.join(dirty, "c")).read() == "mine\n" and _git("rev-parse", "HEAD", cwd=dirty) != _git("rev-parse", "origin/main", cwd=dirty), log.lines
+
+    local = checkout("ff-local")
+    open(os.path.join(local, "b"), "w").write("x\n")
+    _git("add", "b", cwd=local); _git("commit", "-qm", "local only", cwd=local)   # origin has nothing new: git alone would call the fast-forward a success
+    before = _git("rev-parse", "HEAD", cwd=local)
+    proc, log = run_ff("ff4", local)
+    assert "ALERT" in events(log) and proc.pause.is_paused() and _git("rev-parse", "HEAD", cwd=local) == before, log.lines
+    assert proc.pause.check() is True, "both lanes wait"
+    proc.pause.resume([])
+    assert not proc.pause.is_paused(), "a person's resume lets them go on"
+
+    # a Python file under docs/ is check logic, not plain documentation: a code pull request that lacks it is tested again
+    gh = FakeGh(); gh.add(204, behind=1)
+    gh.prs[204]["behind_files"] = ["docs/x/check_something.py"]
+    proc, q, log, _ = _proc(mq, d, "ffpy", gh, [204], docs_only_fn=lambda files: True)
+    assert proc.process(204) == "MERGED" and "UPDATE" in events(log), events(log)
+
+    # the fast-forward runs under its own lock, and a git command that fails on another command's lock is tried again before anybody is called
+    lock_seen = []
+    gh = FakeGh(); gh.add(205)
+    proc, q, log, slept = _proc(mq, d, "fflock", gh, [205], main_checkout=checkout("ff-lockrun"))
+    real_locked = proc.queue.locked
+    proc.queue.locked = lambda suffix=".lock": (lock_seen.append(suffix), real_locked(suffix))[1]
+    real_sh, tries = mq.sh, {"n": 0}
+
+    def flaky(args, **kw):
+        if "merge" in args and "--ff-only" in args and tries["n"] < 2:
+            tries["n"] += 1
+            return subprocess.CompletedProcess(args, 128, "", "fatal: Unable to create '.git/index.lock': File exists.")
+        return real_sh(args, **kw)
+    mq.sh = flaky
+    try:
+        proc.ff_main(205, 0)
+    finally:
+        mq.sh = real_sh
+    assert lock_seen == [".ff-lock"] and tries["n"] == 2 and "FF-MAIN" in events(log) and "ALERT" not in events(log) and slept.count(5) == 2, (lock_seen, tries, log.lines)
+
+    # the main checkout is found as the first worktree, from a worktree too; a bare repository has none
+    root = checkout("ff-where")
+    _git("worktree", "add", "-q", os.path.join(d, "ff-where-wt"), "-b", "other", cwd=root)
+    cwd = os.getcwd()
+    try:
+        os.chdir(os.path.join(d, "ff-where-wt"))
+        assert os.path.realpath(mq.main_checkout()) == os.path.realpath(root)
+        os.chdir(d)
+        os.chdir(origin)
+        assert mq.main_checkout() is None
+    finally:
+        os.chdir(cwd)
+
+    # unreachable origin: only logged, nothing paused
+    broken = checkout("ff-fetch")
+    _git("remote", "set-url", "origin", os.path.join(d, "nowhere.git"), cwd=broken)
+    proc, log = run_ff("ff5", broken)
+    assert "ALERT" in events(log) and not proc.pause.is_paused(), log.lines
+
+    # the merge itself calls it, and only after a merge that happened
+    gh = FakeGh(); gh.add(202); gh.add(203, merge_results=[(False, "not mergeable")] * 6)
+    proc, q, log, _ = _proc(mq, d, "ff6", gh, [202, 203])
+    called = []
+    proc.ff_main = lambda n, since: called.append(n)
+    assert proc.process(202) == "MERGED" and called == [202]
+    proc.process(203)
+    assert called == [202], "a refused merge does not touch the main checkout"
+
+
+def _docs_tiers(mq, d):
+    # the verdict the queue relies on, from the real relevant_change.py: a doc a test reads is never tier=docs, so a docs merge never makes a code pull request rerun
+    repo = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    check = mq.docs_only(repo)
+    spec = importlib.util.spec_from_file_location("relevant_change", os.path.join(repo, "scripts", "ci", "relevant_change.py"))
+    rc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rc)
+    plain = next(f for f in subprocess.run(["git", "-c", "core.quotepath=off", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if f.endswith(".md") and not rc.is_relevant(f))
+    assert check([plain]), "plain documentation is tier=docs"
+    # docs that only a container-free test reads (tier=guarded) are found, not named: relevant_change.py takes every script that names a doc for a reader of it
+    listed = [f for f in subprocess.run(["git", "-c", "core.quotepath=off", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if rc.is_guarded_doc(f)]
+    index, light = rc.ReaderIndex(repo), rc.light_class_names(repo)
+    guarded = [f for f in listed if (rc.plan_for([f], index, light) or {}).get("classes")]
+    assert guarded, "no doc of the guarded tier is left in the repository: the guarded case below would silently vanish; pick the sample differently"
+    for read in ["docs/modernization/events/asyncapi.yaml", "docs/modernization/glossary/terms.yaml", "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml", *guarded]:
+        assert not check([read]), f"{read} is read by a test: not docs"
+        assert not check([plain, read]), "one test-read file among docs makes the whole set non-docs"
+
+    # a code pull request whose CI ends after main gained docs commits merges as it is; after a test-read doc or code, it is brought up to date and run again
+    for name, files, reruns in (("docs", [plain], False), ("guarded", guarded[:1], True), ("code", ["docs/modernization/events/asyncapi.yaml"], True), ("mixed", [plain, "backend/pom.xml"], True)):
+        gh = FakeGh(); gh.add(210, behind=1)
+        gh.prs[210]["behind_files"] = files
+        proc, q, log, _ = _proc(mq, d, f"dt-{name}", gh, [210], docs_only_fn=check)
+        assert proc.process(210) == "MERGED", log.lines
+        assert ("UPDATE" in events(log)) is reruns, (name, events(log))
