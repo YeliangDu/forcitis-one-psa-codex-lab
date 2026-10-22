@@ -6,7 +6,7 @@
 
 | 类 | 编号 | 内容 |
 |---|---|---|
-| `ConfigSetVersionLifecycleIT` | ADM-A-01 至 34 | 版本头生命周期、四眼、确认日、关闭前一版本、排他、撤回终态、`config_sets` 守护 |
+| `ConfigSetVersionLifecycleIT` | ADM-A-01 至 34、67 | 版本头生命周期、四眼、确认日、关闭前一版本、排他、撤回终态、`config_sets` 守护；67 为迁移种子（五个配置集、无种子版本） |
 | `ConfigSetItemsIT` | ADM-A-35 至 44 | 条目只在待确认时可插入、固定配置集、格式、只追加 |
 | `AdministrationStateTransitionsIT` | ADM-A-45 至 61 | `state_transitions` 合法流转、序号、起因、只追加、与版本行 version 的配合 |
 | `AdministrationGrantsIT` | ADM-A-62 至 66 | 运行账号权限（真实建库脚本 + 运行账号连接） |

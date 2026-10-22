@@ -467,4 +467,22 @@ class ConfigSetVersionLifecycleIT {
         db.accepted(sql(insert, db.id(), SEAL_APPROVERS, "a" + "b".repeat(59), T0, T0, 0));
         db.accepted(sql(insert, db.id(), SEAL_APPROVERS, "a_1", T0, T0, 0));
     }
+
+    @Test
+    @DisplayName("ADM-A-67 给定迁移完成的空库，当查询 config_sets，则有且仅有五行（代码与负责角色按 B31 裁定 §2），id 为 UUID 版本 7、version 为 0，且 config_set_versions 没有任何行")
+    void migrationSeedsExactlyFiveConfigSetsAndNoVersions() throws SQLException {
+        String root = SCHEMA + "config_sets";
+
+        assertThat(db.strings("select config_set_code || ' -> ' || owner_role_code from " + root + " order by config_set_code")).containsExactly(
+                "EMPLOYEE_ACTIVITY_TYPES -> employee_relations_head",
+                "IT_SERVICE_CATEGORIES -> it_head",
+                "POSITION_ASSET_STANDARDS -> administration_head",
+                "REMINDER_RULES -> administration_head",
+                "SEAL_APPROVERS -> administration_head");
+        assertThat(db.count("select count(*) from " + root + " where substring(config_set_id::text from 15 for 1) = '7'"
+                + " and substring(config_set_id::text from 20 for 1) in ('8', '9', 'a', 'b')")).as("ids that are UUID version 7 (RFC variant)").isEqualTo(5);
+        assertThat(db.count("select count(distinct config_set_id) from " + root)).isEqualTo(5);
+        assertThat(db.count("select count(*) from " + root + " where version = 0")).as("rows at the technical initial version").isEqualTo(5);
+        assertThat(db.count("select count(*) from " + TABLE)).as("no seeded versions: every set starts without a confirmed version").isZero();
+    }
 }
