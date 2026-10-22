@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalError;
@@ -39,7 +40,7 @@ public class ReturnToInitiator {
         TaskView task = guard.requireActor(taskId, actor, "return");
         Reason given = Reason.ofNullable(reason);
         if (given == null) {
-            throw ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED.refusal("A return needs a reason");
+            throw KernelError.KERNEL_REASON_REQUIRED.refusal("A return needs a reason");
         }
         ApprovalRequest request = approvals.lock(task.instanceId());
         approvals.requireVersion(request, expectedVersion);

@@ -30,6 +30,21 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__kernel_reason_required
+  zh: 必须填写原因
+  en: KernelReasonRequired
+  snake: kernel_reason_required
+  kind: error_code
+  bc: kernel
+  scope: kernel
+  definition: 驳回、退回、转交、改派、撤回、撤销等操作必须填写原因（422）；各模块没有自己业务含义的原因必填码时统一用它（CS-2.24，IMP-1022-COO-04）
+  standard_ref:
+  - proposals/B31_ADM02_RULINGS_2026-10-22.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - contain
 - containing

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalError;
@@ -18,8 +19,8 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.OptionalLong;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,7 +105,7 @@ public class DecideTasks {
                 throw ApprovalError.PLATFORM_APPROVAL_DECISION_SINGLE_ONLY.refusal("Node " + task.nodeKey() + " takes exactly one decision per submission");
             }
             if (decision.outcome() == DecisionOutcome.REJECT && isBlank(decision.reason())) {
-                throw ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED.refusal("A rejection needs a reason");
+                throw KernelError.KERNEL_REASON_REQUIRED.refusal("A rejection needs a reason");
             }
         }
     }

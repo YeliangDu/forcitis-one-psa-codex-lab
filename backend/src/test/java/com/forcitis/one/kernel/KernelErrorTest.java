@@ -24,6 +24,16 @@ class KernelErrorTest {
     }
 
     @Test
+    @DisplayName("IMP-1022-COO-04 必须填写原因是一个 422 码 KERNEL_REASON_REQUIRED，工时与审批的同义码不再存在")
+    void reasonRequiredIsAKernelUnprocessable() {
+        assertThat(KernelError.KERNEL_REASON_REQUIRED.refusal("x").errorCode().code()).isEqualTo("KERNEL_REASON_REQUIRED");
+        assertThat(KernelError.KERNEL_REASON_REQUIRED.refusal("x").kind()).isEqualTo(ErrorKind.UNPROCESSABLE);
+        assertThat(java.util.stream.Stream.of(com.forcitis.one.cost.timesheet.api.TimesheetError.values(),
+                com.forcitis.one.platform.approval.api.ApprovalError.values()).flatMap(java.util.Arrays::stream).map(Enum::name))
+                .noneMatch(name -> name.endsWith("_REASON_REQUIRED"));
+    }
+
+    @Test
     @DisplayName("IMP-1022-COO-02 StateMachine.require 不给码时默认用 KERNEL_TRANSITION_ILLEGAL，合法转换照常返回目标状态")
     void stateMachineDefaultsToTheKernelCode() {
         assertThat(MACHINE.require(Phase.OPEN, Phase.CLOSED)).isEqualTo(Phase.CLOSED);
