@@ -154,7 +154,7 @@ processes:
   - VS-04.1
   triggers:
   - type: event
-    name: ContractSigned
+    name: 协议已生效
     bc: B-05
     entry: 1
   - type: event
@@ -169,7 +169,7 @@ processes:
     name: 合同—项目关联已登记
     bc: B-05
     entry: 3
-  migration: 在途：投产日合同已签回但未转入的，按迁入的权责事实存量由本策略继续处理；历史：已转入的批次由迁入事实承载，不重放事件（M7）
+  migration: 在途：投产日协议已生效但未转入的，按迁入的权责事实存量由本策略继续处理；历史：已转入的批次由迁入事实承载，不重放事件（M7）
   outcomes:
   - 售前投入已转入
   - 等待齐备
@@ -197,10 +197,10 @@ processes:
   steps:
   - actor: system
     where: automatic
-    command: 登记合同已签回
+    command: 登记协议已生效
     aggregate: AGG-122
     added_in: closeout
-    desc: 订阅 ContractSigned，登记到按商机持久的归属登记（两事件分别到达，不要求同时；S-31 SQ-18）
+    desc: 订阅协议已生效（不再订阅 ContractSigned：附生效条件的协议签署后可能不生效，按生效转入可免冲回，GL5-01，GL5_SIGNED_EFFECTIVE_SUBSCRIBERS）登记到按商机持久的归属登记（两事件分别到达，不要求同时；S-31 SQ-18）
     decision:
     - when: 该商机的售前投入已转出（重复事件，幂等）
       goto: end
@@ -212,7 +212,7 @@ processes:
     - mode: event
       direction: in
       bc: B-05
-      name: ContractSigned
+      name: 协议已生效
     audit: true
     legal_entity: 承担法人
   - actor: system
@@ -1914,6 +1914,9 @@ processes:
     where: automatic
     command: 提交过账候选
     aggregate: AGG-52
+    inner:
+    - command: 〔缺〕登记进项发票入账
+      aggregate: AGG-89
     calls: PRC-92
     period_gate: true
     decision:
@@ -2594,7 +2597,7 @@ processes:
   - VS-06.1
   owner_bc: B-23
   human_orchestration: false
-  migration: 在途（已生成未提交、已提交未缴款）的申报投产前办结；历史申报与缴款是否迁入、来源（税务端或 U8C）由数据模型组按 R-09 定；AGG-90 到申报阶段再建（D-7），此前本流程不可用
+  migration: 在途（待申报、已申报未缴款）的申报投产前办结；历史申报与缴款是否迁入、来源（税务端或 U8C）由数据模型组按 R-09 定；AGG-90 到申报阶段再建（D-7），此前本流程不可用
   scope: 按纳税法人的数据范围（财务岗位）
   outcomes:
   - 已缴款
@@ -3089,6 +3092,9 @@ processes:
     where: automatic
     command: 提交过账候选
     aggregate: AGG-59
+    inner:
+    - command: 〔缺〕登记进项发票入账
+      aggregate: AGG-89
     calls: PRC-92
     cross_bc:
     - mode: api
@@ -7330,7 +7336,7 @@ processes:
   - type: event
     name: 申报已提交
     publisher: B-23（AGG-90）
-  migration: 在途：投产日已提交未缴款的申报，其税费应付按迁入的应付存量承载，不重放事件（M7）；历史：已缴款申报的应付随迁入事实承载
+  migration: 在途：投产日已申报未缴款的申报，其税费应付按迁入的应付存量承载，不重放事件（M7）；历史：已缴款申报的应付随迁入事实承载
   outcomes:
   - 税费应付已确认
   - 无需确认应付
