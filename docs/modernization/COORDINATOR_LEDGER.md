@@ -9,6 +9,7 @@
 - 在途：one-1a-par W2 PR-B 草案 @0adc05a6d 等 one-data 签；one-data 做 DATA_SCORECARD 等；one-1a-admin #599 后开卡 C、INV-138/Q-B31-5 进收件箱；one-arch-revenue、one-arch-finance 已令自清，清空后我 list_events 确认再发接续（revenue→AGG-20/16/02；finance→BONUS_OVERTIME_COSTING §3 PRC-96/AGG-41）；one-quality 试点通过，在做 COO-10；#611 已批入队；one-merge 待收合集：one-1a-par-w2-versions @0adc05a6d、本分支最新。
 - 讨论进度：议题 1 开场注入已定 5 点（intent 本晚，全文 ~/.modernize/psa/coordinator/team-audit/discussion-1-injection.md），等讨论结束一起改；下一议题候选：守护覆盖哪些规则 / 任务卡由谁写。
 - 收件箱重排（用户 10-22 晚「好，照这样改」）：确认页 E1CEBZoJ5TCJJX5ncQzkwa 改为只留仓库内容治理 3 题（v2）；团队规则 7 题撤下并入讨论（用户撤前草选 TEAM-01、TEAM-02 推荐项，未提交，讨论时参考）；业务题攒齐出新页：INV-138 四项、Q-B31-5（one-1a-admin 写收件箱）、终止/取消项目复核（薪酬补发时限与提醒对象已在 FCQ 10-22 08:38 答，删）。
+- 21:0x 等用户 /clear 后我发接续：one-arch-revenue（→AGG-20/16/02）、one-rules（48%，→先写待用户清单进收件箱再做卡 C T-R/RUL）、one-glossary（71%，→glossary/HANDOFF_20261022.md 待办①起）。自清只限 one-quality 试点，别再让其他会话自清（钩子写着不要）。记忆删除等 @427318381 合入后先备份；三条 handoff-* 记忆待办待开卡（one-1a-par）。迁入写入通道两卡（NX5-08、par 日历）前置已解除。
 - 接手先做：ReadNotifications；`ls -t ~/.modernize/psa/outbox/`；`gh pr list` + `mq.py status`；逐个查开发会话前置是否满足（不得再犯：只盯合并）；intent 2026-10-22-15* 起为今日下午决定。
 - 下午已定（intent）：交接阈值 30%/40%（154722，§2.1 已改并进 main #602）；降负载不得牺牲开发机功能（151546）；仓库内容治理四项交 one-quality（153421，GOV-1022-COO-06）；one-ops search_path 三项「都做」（155217）。
 - 在开 PR：#603（已批，队列）；#587（已批，等 one-platform-file 解冲突+openapi）；#604 KERR（one-1a-par，等 opus+CI）；#599 REG-3（等 one-data 签发与 M1 裁定，验收补丁按 RULING-COORD-20261022-03）；#589（已批，one-quality）；#606 钩子三合一（守护文件，单列 opus）。
