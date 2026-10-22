@@ -63,14 +63,11 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
     static final List<String> REFUSED_OPTION_WORDS = List.of("password", "secret", "credential");
     static final String SQL_SERVER_URL = "jdbc:sqlserver:";
     static final String CONFLICTING_PROFILES = "migrate | identity-operations";
-    static final Map<String, ReadOnlyConnection> RETIRED_CONNECTION_NAMES = Map.of("legacy-approval", ReadOnlyConnection.INTEGRATION_LEGACY_INBOX);
     static final List<String> QUIET_LOGGERS = List.of("com.zaxxer.hikari", "com.microsoft.sqlserver", "org.postgresql", "org.springframework.jdbc");
 
     enum ReadOnlyConnection {
         SEEYON_BACKGROUND("integration-seeyon-background", "A8_DB_URL", "A8_DB_USERNAME", "A8_DB_PASSWORD"),
         LEGACY("integration-legacy", "LEGACY_DB_RO_URL", "LEGACY_DB_RO_USERNAME", "LEGACY_DB_RO_PASSWORD"),
-        INTEGRATION_LEGACY_INBOX("integration-legacy-inbox", "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL",
-                "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_USERNAME", "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD"),
         /** The probe login of the C-14 runbook, from /etc/forcitis-one/readonly-probe.env. */
         PROBE("probe", "READONLY_PROBE_DB_URL", "READONLY_PROBE_DB_USERNAME", "READONLY_PROBE_DB_PASSWORD");
 
@@ -218,10 +215,6 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
         long connections = Arrays.stream(arguments).filter(a -> a.startsWith("--" + CONNECTION_OPTION + "=")).count();
         if (connections != 1) {
             return Optional.of("exactly one --" + CONNECTION_OPTION + "=<name> is required");
-        }
-        ReadOnlyConnection renamed = RETIRED_CONNECTION_NAMES.get(connectionName(arguments));
-        if (renamed != null) {
-            return Optional.of("--" + CONNECTION_OPTION + "=" + connectionName(arguments) + " is retired: use --" + CONNECTION_OPTION + "=" + renamed.connectionName);
         }
         if (ReadOnlyConnection.named(connectionName(arguments)).isEmpty()) {
             return Optional.of("--" + CONNECTION_OPTION + " must name one of " + ReadOnlyConnection.names());
