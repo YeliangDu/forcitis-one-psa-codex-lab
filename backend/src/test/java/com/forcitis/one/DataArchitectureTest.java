@@ -833,6 +833,16 @@ class DataArchitectureTest {
         return keys;
     }
 
+    static final Set<String> APPROVED_EMPLOYEE_CODE_KEYS = Set.of(
+            "organization_workforce.employees uk_employees_employee_code (u)",
+            "organization_workforce.employees uk_employees_employee_code (unique index)");
+
+    static List<String> unapprovedKeysOver(Connection c, String column) throws Exception {
+        List<String> keys = new ArrayList<>(keysOver(c, column));
+        keys.removeAll(APPROVED_EMPLOYEE_CODE_KEYS);
+        return keys;
+    }
+
     static List<String> lookupsByEmployeeCode(Map<String, String> sources) {
         List<String> found = new ArrayList<>();
         sources.forEach((file, text) -> {
@@ -848,7 +858,7 @@ class DataArchitectureTest {
     @DisplayName("R-1b P3b ADR-0033 守护 7 EmployeeCodeNotKeyTest：employee_code 不在任何主键、唯一约束、唯一索引、外键、排他约束中，主代码没有按员工编号取单个对象的方法")
     void theEmployeeCodeIsNoKey() throws Exception {
         try (Connection c = connect()) {
-            assertThat(keysOver(c, EMPLOYEE_CODE)).as("keys over employee_code").isEmpty();
+            assertThat(unapprovedKeysOver(c, EMPLOYEE_CODE)).as("keys over employee_code other than the global employee code key (user 2026-10-21, W2 design section 3.1)").isEmpty();
         }
         Map<String, String> sources = new TreeMap<>();
         for (Path file : javaFiles()) {
@@ -865,9 +875,9 @@ class DataArchitectureTest {
             try {
                 statement.execute("create table guard_sample.people (id uuid primary key, employee_code text not null)");
                 statement.execute("create index ix_people_employee_code on guard_sample.people (employee_code)");
-                assertThat(keysOver(c, EMPLOYEE_CODE)).as("a plain index is no key").isEmpty();
+                assertThat(unapprovedKeysOver(c, EMPLOYEE_CODE)).as("a plain index is no key").isEmpty();
                 statement.execute("create unique index uk_people_employee_code on guard_sample.people (employee_code)");
-                assertThat(keysOver(c, EMPLOYEE_CODE)).containsExactly("guard_sample.people uk_people_employee_code (unique index)");
+                assertThat(unapprovedKeysOver(c, EMPLOYEE_CODE)).containsExactly("guard_sample.people uk_people_employee_code (unique index)");
             } finally {
                 statement.execute("drop schema guard_sample cascade");
             }
