@@ -65,3 +65,5 @@
 2026-10-22 接手会话已接手（接 HANDOFF 末节「2026-10-22 交接」）；签章第一段 api 等 #564 合入后落代码。
 
 2026-10-22 one-coordinator 派工并入单元 7：preservation_category_versions 追加迁移补 ①WITHDRAWN 状态（含 state_transitions 取值与转换）②版本头 version 列；设计细则见 one-data 日历审「更正十」与 data/reviews/B31-CARD-A-DDL.md 的 R1、R2；表结构先请 one-data 签发，首次部署前落地。
+
+2026-10-22 one-data 加项并入单元 7 同批迁移：ck_state_transitions_status_of_aggregate 改逐对写法（DROP + ADD … NOT VALID + VALIDATE，coalesce(…,false) 包住），合法对清单见 one-data 来信；写法见 claude/one-data-handoff-1 的 STATE_TRANSITIONS_DESIGN.md 末节，WITHDRAWN/version 设计见 data/reviews/B31-CARD-A-DDL.md R1/R2。
