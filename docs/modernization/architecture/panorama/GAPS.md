@@ -13,12 +13,12 @@
 | INV→EP | 3 / 148 | enforces: 0、manual: 3、rule: 0 |
 | INV→TC | 1 / 148 | class_covers: 0、covers: 0、rule: 1 |
 | RULE→TC（有 INV 对照） | 1 / 38 | class_covers: 0、covers: 1 |
-| 表→聚合 | 20 / 28 | built: 20、panorama: 0 |
+| 表→聚合 | 20 / 30 | built: 20、panorama: 0 |
 | 事件→聚合 | 59 / 59 | events: 47、module: 49 |
 | 事件→发布 BC | 59 / 59 | publisher: 59 |
 | API→BC | 58 / 58 | controller: 58 |
 
-登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 2、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 7、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
+登记表其他 role（只计数）：CONFIG 3、CONFIG_VERSIONED 3、COUNTER 1、DIMENSION_VERSIONED 7、FRAMEWORK 6、IDEMPOTENCY 2、LINEAGE 1、LOG_APPEND_ONLY 7、ONE_TIME 3、QUEUE 1、SNAPSHOT 4。
 
 | 节点 | 层 | 条目数 |
 |---|---|---|
@@ -32,7 +32,7 @@
 | 07 业务流程 | prc | 200 |
 | 08 约束与认定规则 | inv | 148 |
 | 09 业务对象 | obj | 104 |
-| 10 受控业务执行 | act | 672 |
+| 10 受控业务执行 | act | 673 |
 | 11 业务事实 | fact | 0 |
 | 12 维度 | dim | 0 |
 | 13 指标与评价 | metric | 79 |
@@ -41,17 +41,17 @@
 | 09/10 映射  | agg | 145 |
 | 09/10 映射  | bc | 51 |
 | 09/10 映射  | sd | 13 |
-| 09/10 映射  | table | 65 |
+| 09/10 映射  | table | 68 |
 | 08 约束与认定规则 | rule | 512 |
 | 10 受控业务执行 | ep | 601 |
 | 10 受控业务执行 | tc | 1132 |
 | 10 映射  | api | 68 |
 | 10 映射  | mod | 13 |
-| 10 受控业务执行 | cmd | 610 |
+| 10 受控业务执行 | cmd | 611 |
 | 09/10 映射  | otr | 873 |
 | 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
-| 07 业务流程 | steps | 651 |
+| 07 业务流程 | steps | 652 |
 | 01 映射  | perm | 27 |
 | 01 映射  | srole | 7 |
 | 01 映射  | role | 56 |
@@ -87,8 +87,8 @@
 | N09-M1 | 每个聚合都归属一个 BC | 10 |
 | N09-M2 | 每个聚合都有不变量 | 36 |
 | N09-M3 | 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张） | 132 |
-| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 65 |
-| N09-M5 | 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数） | 8 |
+| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 68 |
+| N09-M5 | 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数） | 10 |
 | N09-M6 | 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口） | 1 |
 | N10-M2 | 每个后端模块在 module-dependencies.txt 登记 | 0 |
 | N10-M3 | 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属） | 0 |
@@ -716,12 +716,15 @@
 - organization.workforce/RegisteredEmployee RegisteredEmployee
 - platform.integration/SourceReferenceRefusal SourceReferenceRefusal
 
-## N09-M4 每张表都能追到聚合，聚合能追到业务对象（65）
+## N09-M4 每张表都能追到聚合，聚合能追到业务对象（68）
 
 - cost_timesheet.consumed_events（对象 无）
 - cost_timesheet.timesheets（对象 无）
 - organization_attendance.work_calendar_years（对象 无）
 - organization_attendance.work_calendar_days（对象 无）
+- organization_attendance.work_calendars（对象 无）
+- organization_attendance.work_calendar_versions（对象 无）
+- organization_attendance.work_calendar_version_days（对象 无）
 - organization_workforce.positions（对象 无）
 - organization_workforce.org_units（对象 无）
 - organization_workforce.employees（对象 无）
@@ -784,8 +787,10 @@
 - platform_file.state_transitions（对象 无）
 - platform_scheduling.scheduler_locks（对象 无）
 
-## N09-M5 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数）（8）
+## N09-M5 数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数）（10）
 
+- organization_attendance.work_calendar_versions（AGGREGATE_CHILD，聚合登记 WorkCalendar）
+- organization_attendance.work_calendar_version_days（AGGREGATE_CHILD，聚合登记 WorkCalendar）
 - platform_file.stored_files（AGGREGATE_ROOT，聚合登记 StoredFile）
 - platform_file.stored_file_names（AGGREGATE_CHILD，聚合登记 StoredFile）
 - platform_file.file_bindings（AGGREGATE_CHILD，聚合登记 StoredFile）

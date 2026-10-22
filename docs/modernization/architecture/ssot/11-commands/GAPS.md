@@ -6,10 +6,10 @@
 
 - commands finance：169
 - commands people：165
-- commands revenue：261
-- commands 合计：595
+- commands revenue：262
+- commands 合计：596
 - matrix：587
-- 合并后：610；两处都有：572；仅 commands：23；仅 matrix：15
+- 合并后：611；两处都有：572；仅 commands：24；仅 matrix：15
 - 已建命令类与聚合关系：85（未做类名与 CMD 对照）
 
 ## 无 owner_bc（1）
