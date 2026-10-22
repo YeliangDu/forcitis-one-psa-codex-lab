@@ -717,7 +717,7 @@ machines:
     command: 提交索赔详细报告
     guard:
     - INV-17
-    note: 拟命令；详细报告时限按合同约定，超时限须注明理由（INV-17 同口径，提议扩至详细报告时限）
+    note: 拟命令；详细报告时限取协议上登记的约定，超时限须注明理由（INV-17 已扩至详细报告时限，one-architecture 5849fa0f5）
   - from: 已提交
     to: 已认定
     command: 认定索赔

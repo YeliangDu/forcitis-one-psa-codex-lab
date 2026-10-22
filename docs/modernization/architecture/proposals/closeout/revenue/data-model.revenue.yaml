@@ -436,6 +436,23 @@
     - 标准成本费率
     - 币种
     reason: 同版本表；随版本冻结，生效区间继承版本；建议 SENSITIVE
+  - name: standard_cost_rate_card_bonus_accrual_rules
+    role: child
+    key: uuid_v7
+    references: []
+    versioned: effective_dated
+    history_migration: full
+    sensitivity: internal
+    pi: none
+    column_families:
+    - 费率表版本引用
+    - 业务线（组织主数据取值，随版本冻结）
+    - 规则类型（合同额百分比 / 历史比率）
+    - 奖金计提率
+    - 激励方案版本号（合同额百分比时必填，只记录、不建引用）
+    - 历史比率计算区间与依据（历史比率时必填）
+    - 审计列
+    reason: S-5 裁定（AGG-137 撤销，奖金计提规则作 AGG-05 子项，随费率表版本一同编制与批准，用户 FCQ-01）；每版本每业务线一行（唯一），未列出的业务线按历史比率；规则类型与条件必填列不符即拒；激励方案版本只记版本号，不引用 B-15 的 AGG-75，也不在编制时向 B-15 查（不增 B-02 → B-15 边）；编制与批准只做格式校验、批准页列出版本号由财务负责人核对，读本表的是 B-15（按月计提，新边 B-15 → B-02），激励方案版本存在性与有效期由 B-15 对照 AGG-75 本地校验、失败即告警；B-07、B-08 都不读本表（S-6 裁定，one-architecture cfc721a34）；无个人信息，internal
 - aggregate: AGG-06
   bc: B-02
   tables:
