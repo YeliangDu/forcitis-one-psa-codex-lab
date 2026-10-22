@@ -34,3 +34,11 @@
 ## 连带提醒（不属本卡）
 
 `platform_file.preservation_category_versions`（#521 已签）有同一个"待确认版本无出路"的缺陷：请 one-platform-file 以追加迁移补 `WITHDRAWN`（含 `state_transitions` 取值与转换），首次部署前落地；我会通知。
+
+## 第二轮（2026-10-22，复核 `claude/one-1a-admin-docs` @0c6237507 的 DDL_DRAFT_CARD_A.sql，481 行）
+
+R1–R7 逐项核过已改对：R1 `WITHDRAWN`（状态、三列联动 CHECK、`state_transitions` 取值与 `status_of_aggregate`、撤回触发器分支）；R2 确认日取事务时间；R3 关闭只在后继确认触发器内（嵌套深度、待确认后继、生效日等于关闭日、被关闭的是最大号已确认版本，零长区间保持 `>=`）；R4 `assert_config_version_complete`（本卡 `EMPLOYEE_ACTIVITY_TYPES` 分支，未装分支的配置集失败而不是放行，后续卡追加）；R5 删 `decision_ref_key`、`author_id` 必填、无种子版本；R6 权限回收清单；R7 角色代码占位仍待定名（见下）。W-3 保留 `DRAFT`/`CONCLUDED`/`CANCELLED` 待卡 C 收窄，同意。
+
+数据设计：通过（one-data，2026-10-22，依据 DATA_DESIGN_GATE 表结构草案项、B31_PHYSICAL_MODEL_RULINGS §2 §4 §14、日历审更正十、ADR-0058/0072/0075；范围：schema、`state_transitions`、`config_sets`、`config_set_versions`、`assert_config_version_complete`、`employee_activity_type_items`）。迁移出来后复核实际表结构 diff；七项随附改动（建库脚本、注册表、分级、聚合登记、术语）在表结构 PR 里逐项核。
+
+R7 的角色代码：不是数据设计问题，由 one-glossary 定名、平台身份侧建角色（`platform_identity` 目前只有 6 个系统角色）。建议名（供 one-glossary 参考）：`administration_manager`（行政负责人）、`it_manager`（信息技术负责人）、`employee_relations_manager`（员工关系负责人）。未定名前"空库配置集五行"验收挂起是正确的，迁移里种子不能写占位。
