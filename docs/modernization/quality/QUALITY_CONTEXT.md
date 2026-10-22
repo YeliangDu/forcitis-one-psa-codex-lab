@@ -165,3 +165,22 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 提交信息现在要带任务号或 #PR 号（代码提交）；任务号本会话用 GOV-1022-QUA-03（#606）、GOV-1022-QUA-04（#612）。
 - 后台任务/子代理 description 必须是 `<任务号或 #PR号> <任务名> (<执行者>)`，Agent 调用也要。
 - 向 one-coordinator 发消息用 `mcp__ccd_session_mgmt__send_message` 的 `session_id`（local_10f279cb-81c7-4628-9080-2d5b1efd622d）。
+
+## 交接（2026-10-22 晚，清空接续试点；#612 已合入）
+
+### 现状
+- **#612**（GOV-1022-QUA-04）已合入 main，钩子已生效（app 已重启）：前置钩子五合一 `pre_tool_dispatch.py`、`context_handoff.py` 节流 + 节点事件交接（`context_windows.json` 的 `node_handoff`，试点只开 one-quality，coordinator_session_ids 为调度会话 id）。**这次清空即试点**：节点触发 → 写交接 → 提交推送 → 给 one-coordinator 发「清空接续」→ clear_session(self) → 调度先 get_session 确认已空闲且已清空再发「接续」→ 我按本节接上。试点结果（是否按协议接上、哪里卡）由我接续后报 one-coordinator。
+- 协议补两点（one-coordinator 实测）：①发「清空接续」后，其他会话找本会话一律经调度转（清空中收到消息会顶掉清空）；②clear_session 不能清已 detach 的会话，只能 self；服务 Remote Control 的会话也清不了。
+- 治理设计第二稿（`claude/one-quality-repo-governance` 22e083a54，`REPO_CONTENT_GOVERNANCE_DESIGN.md`）和生成产物设计（`claude/one-quality-generated-design` fda7fd6b3）待 one-coordinator 审后给用户。
+
+### 接续后的下一步（顺序）
+1. 向 one-coordinator 报试点结果（接上了吗；节点指令是否清楚；有无误触发；clear 后远程是否断）。
+2. **GOV-1022-COO-10**：钩子命令匹配可绕过——大小写（`GIT push`、`CODEX exec p`、`PI -p x`，macOS 文件系统不分大小写）和引号拆词（`gi""t commit` 绕过 main_checkout_gate 的 `"git" not in command`）。涉及 pre_tool_dispatch 前筛、main_checkout_gate、pre_push_gate、precheck_before_pr、codex_stdin_gate；修法=命令先做 shell 词法规整（去引号/转义、小写化命令名再匹配）；守护代码自己写，opus 首轮；新开分支从 origin/main，任务号 GOV-1022-QUA-05 起（先查 tasks/ 避免重号），写任务片段。
+3. 第 4 期（生成产物移出）开工前先报 one-coordinator（归档分支已取消，改 git rm + ARCHIVE_INDEX.md）。
+4. 其余：GOV-1022-COO-05 派工台账实现、QUA-05 评测收尾、网络规则 CI。
+
+### 坑
+- 工作区 `.claude/worktrees/xin-61164f` 是唯一能写的目录；PR 分支在它上面轮流 checkout，每次 `git branch --show-current`；opus 复审期间不要切分支。
+- 代码提交要带任务号或 #PR 号；后台任务/子代理 description 必须 `<任务号或 #PR号> <任务名> (<执行者>)`，Agent 调用也要。
+- Bash 命令文本里出现 `gh pr create` 字样（即使在 heredoc/测试字符串里）会触发 precheck 全量检查；写含该字样的补丁用 Edit，不用 Bash 脚本。
+- 发消息给调度：`mcp__ccd_session_mgmt__send_message` 的 `session_id`（local_10f279cb-81c7-4628-9080-2d5b1efd622d）；清空后协议要求先等调度的「接续」。
