@@ -32,7 +32,7 @@
 | 07 业务流程 | prc | 200 |
 | 08 约束与认定规则 | inv | 148 |
 | 09 业务对象 | obj | 104 |
-| 10 受控业务执行 | act | 673 |
+| 10 受控业务执行 | act | 675 |
 | 11 业务事实 | fact | 37 |
 | 12 维度 | dim | 0 |
 | 13 指标与评价 | metric | 79 |
@@ -47,7 +47,7 @@
 | 10 受控业务执行 | tc | 1132 |
 | 10 映射  | api | 68 |
 | 10 映射  | mod | 13 |
-| 10 受控业务执行 | cmd | 611 |
+| 10 受控业务执行 | cmd | 613 |
 | 09/10 映射  | otr | 873 |
 | 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
@@ -92,9 +92,9 @@
 | N09-M6 | 每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口） | 1 |
 | N10-M2 | 每个后端模块在 module-dependencies.txt 登记 | 0 |
 | N10-M3 | 每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属） | 0 |
-| N10-1 | 每个受控业务执行（命令）都有 owner BC | 37 |
+| N10-1 | 每个受控业务执行（命令）都有 owner BC | 39 |
 | N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 4 |
-| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 1 |
+| N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 3 |
 | N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 47 |
 | N10-4 | 每个已建命令类在 ssot/11-commands/command-mapping.yaml 登记对照（pending 计缺口） | 0 |
 | N10-5 | 每个事件有唯一发布者与版本 | 0 |
@@ -806,7 +806,7 @@
 
 - organization.workforce/RegisteredEmployee（pending）
 
-## N10-1 每个受控业务执行（命令）都有 owner BC（37）
+## N10-1 每个受控业务执行（命令）都有 owner BC（39）
 
 - AGG-109/草拟利润分配（聚合 AGG-109 未归 BC）
 - AGG-109/决议利润分配（聚合 AGG-109 未归 BC）
@@ -844,6 +844,8 @@
 - AGG-95/提交过账候选（聚合 AGG-95 未归 BC）
 - AGG-110/关联证据（聚合 AGG-110 未归 BC）
 - AGG-110/解除证据关联（聚合 AGG-110 未归 BC）
+- AGG-136/编制账期规则版本（聚合 AGG-136 未归 BC）
+- AGG-136/生效账期规则版本（聚合 AGG-136 未归 BC）
 - REF-01/登记招标项目（聚合 REF-01 未归 BC）
 
 ## N10-M1 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）（4）
@@ -853,8 +855,10 @@
 - B-32 报价发出编排（暂名）（模块 None）
 - reporting 经营分析（只读）（模块 reporting）
 
-## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（1）
+## N10-2 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行）（3）
 
+- CMD-1afc1f3f 生效账期规则版本（AGG-136 未归 BC）
+- CMD-c401c884 编制账期规则版本（AGG-136 未归 BC）
 - CMD-c2d24f95 登记招标项目（REF-01 未归 BC）
 
 ## N10-3 每条状态转换有触发命令（含 pending；by_command 为空计缺口）（47）
