@@ -226,10 +226,28 @@ def _scenarios(mq, d):
     assert proc.process(60) == "MERGED" and "AUTO-RESOLVE" in events(log) and "CONFLICT" not in events(log) and ("update_branch", 60) not in gh.calls, events(log)
     gh = FakeGh(); gh.add(62, merge="DIRTY")
     proc, q, log, _ = _proc(mq, d, "c-settle", gh, [62], updater=regenerating_for(gh, 62))
-    assert proc.settle_dirty(62, gh.view(62), None)["merge"] == "CLEAN" and "AUTO-RESOLVE" in events(log), "the enqueue-time call settles the same way"
+    settled, why = proc.settle_dirty(62, gh.view(62), None)
+    assert settled["merge"] == "CLEAN" and why is None and "AUTO-RESOLVE" in events(log), "settled"
     gh = FakeGh(); gh.add(63, merge="DIRTY")
     proc, q, log, _ = _proc(mq, d, "c-settle2", gh, [63], updater=lambda repo, branch, wt: "conflict")
-    assert proc.settle_dirty(63, gh.view(63), None) is None
+    assert proc.settle_dirty(63, gh.view(63), None) == (None, "conflict")
+    gh = FakeGh(); gh.add(64, merge="DIRTY")
+    proc, q, log, _ = _proc(mq, d, "c-settle3", gh, [64], updater=lambda repo, branch, wt: "error")
+    assert proc.settle_dirty(64, gh.view(64), None) == (None, "error") and proc.process(64) == "HOLD" and "CONFLICT" not in events(log), "an update that failed is a HOLD, not a conflict"
+    # GitHub sees the push late: DIRTY for the first two looks, then clean
+    gh = FakeGh(); gh.add(65, merge="DIRTY")
+    looks = {"n": 0}
+    real_view = gh.view
+
+    def late_view(n):
+        v = real_view(n)
+        looks["n"] += 1
+        if looks["n"] >= 4:
+            gh.prs[n]["merge"] = "CLEAN"
+        return v
+    gh.view = late_view
+    proc, q, log, slept = _proc(mq, d, "c-late", gh, [65], updater=lambda repo, branch, wt: "regenerated")
+    assert proc.process(65) == "MERGED" and "CONFLICT" not in events(log) and slept.count(30) >= 2, (events(log), slept)
     gh = FakeGh(); gh.add(61, merge="DIRTY")
     proc, q, log, _ = _proc(mq, d, "c-still", gh, [61], updater=lambda repo, branch, wt: "regenerated")
     assert proc.process(61) == "CONFLICT" and "AUTO-RESOLVE" in events(log), "regenerated but GitHub still sees a conflict: back to the author"
@@ -1153,6 +1171,8 @@ if "--check" in sys.argv:
     want = open(os.path.join(here, "GEN.md"), encoding="utf-8").read()
     got = "".join(open(os.path.join(here, "inputs", n), encoding="utf-8").read() for n in sorted(os.listdir(os.path.join(here, "inputs"))))
     sys.exit(0 if want == got else "GEN.md is not what the inputs generate")
+if os.path.exists(os.path.join(here, "WRITELOG")):
+    open(os.path.join(here, "build.log"), "w").write("log")
 if os.path.exists(os.path.join(here, "FAIL")):
     sys.exit("generation failed")
 text = "".join(open(os.path.join(here, "inputs", n), encoding="utf-8").read() for n in sorted(os.listdir(os.path.join(here, "inputs"))))
@@ -1224,6 +1244,27 @@ def _regenerated(mq, d):
     assert mq.update_over_ssh(work, "pr-check", wt) == "conflict", "build_all.py --check fails on the result: not pushed"
     g(work, "fetch", "-q", "origin")
     assert g(work, "rev-parse", "origin/pr-check") == before
+
+    # a symbolic link at a conflicted path is never written through; an untracked file build_all.py leaves behind is not committed blindly
+    outside = os.path.join(d, "victim.txt")
+    with open(outside, "w") as f:
+        f.write("untouched\\n")
+    g(work, "checkout", "-q", "main")
+    os.symlink(os.path.join(d, "start"), os.path.join(work, MOD, "link"))
+    commit("main adds a link"); g(work, "push", "-q", "origin", "main")
+    g(work, "checkout", "-q", "-B", "pr-link", "main")
+    os.remove(os.path.join(work, MOD, "link")); os.symlink(outside, os.path.join(work, MOD, "link"))   # the merge leaves the pull request's own link in the work tree
+    commit("pr moves the link"); g(work, "push", "-q", "origin", "pr-link")
+    g(work, "checkout", "-q", "main")
+    os.remove(os.path.join(work, MOD, "link")); os.symlink(os.path.join(d, "elsewhere"), os.path.join(work, MOD, "link"))
+    commit("main moves the link too"); g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-link", wt) == "conflict" and open(outside).read() == "untouched\\n", "nothing is written through a link"
+
+    branch("pr-log", {f"{MOD}/inputs/c.txt": "c2\\n", f"{MOD}/GEN.md": "a-main\\nb3\\nc2\\n", f"{MOD}/WRITELOG": "x"})
+    g(work, "checkout", "-q", "main")
+    write(f"{MOD}/inputs/b.txt", "b4\\n"); write(f"{MOD}/GEN.md", "a-main\\nb4\\n"); commit("main moves b once more")
+    g(work, "push", "-q", "origin", "main")
+    assert mq.update_over_ssh(work, "pr-log", wt) == "conflict", "an untracked file build_all.py wrote: not committed, not pushed"
 
     # a conflict in a file build_all.py does not generate, next to a generated one
     branch("pr-extra", {f"{MOD}/other.txt": "mine\n", f"{MOD}/inputs/b.txt": "b-mine\n", f"{MOD}/GEN.md": "a-main\nb-mine\n"})
