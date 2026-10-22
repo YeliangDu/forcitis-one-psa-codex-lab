@@ -49,7 +49,7 @@
 - 分层总图（已钉左栏）：https://claude.ai/artifact/GANmVBuBzK58pT27xscJBE ——五层＋贯穿＋老系统退役，数据在页面 db（items/i000..，meta/page），状态变化用 ArtifactData update 改对应条目，不重发页面；源数据脚本 scratchpad(e9617959)/layers。
 - 在线页：会话日报 https://claude.ai/artifact/8CAmf8sAJsoaFNwetoGC7x （每天早上：scripts/ops/session_daily.py 出数 → 补 grade/assessment/action → 数据放 scratchpad(19432a27)/daily/site/data/<日期>.json 并更新 index.json → 以同一 file_path 重发 session-daily.html 与 files）；对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL （源与 refresh.sh 在 scratchpad(19432a27)/align，已钉左栏）。
 - 收件箱待用户答：ANM 命名体系与施工图方法 https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey ；N1 规则待定 https://claude.ai/artifact/BTo6TuYzW7H8vgjCanh4Vq 。用户说「答完」即取答复分发。
-- 攒问（下一张确认页一并出）：薪酬补发 U-1 已在 FCQ 答，删。（LEB 三项已于 10-22 答完）；终止/取消项目是否需上级复核（one-arch-revenue 命令卡待定，10-22）
+- 攒问（下一张确认页一并出）：薪酬补发 U-1 已在 FCQ 答，删。（LEB 三项已于 10-22 答完）；终止/取消项目是否需上级复核（one-arch-revenue 命令卡待定，10-22）；人工成本分配差异表 labor_cost_allocation_variances 含个人薪酬差额的保留期（不能永久，one-data 建议同薪酬类记录；ADR-0043 R-2、D12；出处 finance @587efe0c NOTES 第 14 条）
 - 下一文档合集清单：scratchpad(57026514)/next-docs-train.txt（调度批准、one-merge 中午/晚上收）；调度自己的规则、画像、台账、intent、裁定改动都在分支 claude/one-coordinator-two-lanes。
 - 验收裁定登记后立即请 one-merge 加急小合集：acceptance_rulings 守护只认 base（main）上已有的裁定，随实现 PR 带入无效（10-21 F 卡被卡）。
 - 裁定：rulings/COORD-2026-10-17.md（RULING-COORD-20261017-01..04），one-quality 登记 ACCEPTANCE_RULINGS.yaml。
