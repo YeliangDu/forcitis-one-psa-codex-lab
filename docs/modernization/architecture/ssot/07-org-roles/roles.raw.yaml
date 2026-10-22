@@ -688,7 +688,7 @@ responsibility_matrix:
         approval_right: 无（只报修）
         department_hint: 使用人所在组织单元（全部门）
         position_hint: 任一在职员工，不限职位
-      - responsibility: 本人支付失败时更正工资卡账户
+      - responsibility: 本人支付失败时更正工资卡账户；补发顺延时收到通知
         approval_right: 无
         department_hint: 员工所在部门
         position_hint: 全体在职员工
@@ -1154,15 +1154,15 @@ responsibility_matrix:
         approval_right: 无
         department_hint: 财务部门
         position_hint: 经营分析与管理会计职能岗
-      - responsibility: 按银行代发回单逐行登记代发结果
+      - responsibility: 按银行代发回单逐行登记代发结果（含银行退回日）
         approval_right: 无
         department_hint: 财务部
         position_hint: 财务职能人员（出纳）
-      - responsibility: 支付失败行在员工更正工资卡后发起补发
+      - responsibility: 支付失败行在员工更正工资卡后于补发截止日前发起补发；长假确实办不完时登记顺延并通知员工
         approval_right: 无
         department_hint: 人力资源部
         position_hint: 人力资源职能人员（薪酬岗）
-      - responsibility: 支付失败超时未补发时收到提醒并督办
+      - responsibility: 补发截止日到期未补发时收到提醒并督办
         approval_right: 无
         department_hint: 财务部
         position_hint: 法人财务负责人
@@ -1495,6 +1495,10 @@ responsibility_matrix:
         approval_right: 无
         department_hint: 动作责任人所在组织单元
         position_hint: 组织单元负责人或其指定的动作责任人
+      - responsibility: 补发逾期超过 5 个工作日时收到升级提醒并督办
+        approval_right: 无
+        department_hint: 管理层
+        position_hint: 法人负责人（ROLE-26 总经理，按法人解析）
       - responsibility: 获知知识条目的使用与复审情况
         approval_right: 无
         department_hint: 管理层
@@ -1674,8 +1678,8 @@ responsibility_matrix:
       any: 65
     SH-E6:
       A: 100
-      R: 181
-      any: 218
+      R: 182
+      any: 219
     SH-E7:
       A: 1
       R: 2

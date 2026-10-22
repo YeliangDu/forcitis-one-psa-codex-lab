@@ -1518,9 +1518,10 @@
     - 状态
     - 修订原因
     - 批准引用
+    - 依据的内部基线版本引用（对客基线必填，INV-140 暂号）
     - 被取代版本引用
     - 审计列
-    reason: 每版本一个聚合；同一项目同类只有一个生效基线（INV-43）；已批准版本不可改（D15）
+    reason: 每版本一个聚合；同一项目同类只有一个生效基线（INV-43）；已批准版本不可改（D15）；对客基线引用其依据的内部基线版本（用户 LEB-07）
   - name: milestones
     role: child
     key: uuid_v7
@@ -3019,6 +3020,38 @@
     - 决定出处
     - 作者与确认人
     reason: 配置型版本（D15）：每版本一行、只一个生效、不追溯；老系统无此配置，新系统起点为 ADR-0047 第 4 条初值；历史迁入行用「历史迁入」类型，不依赖本表
+- aggregate: AGG-136
+  bc: B-09
+  tables:
+  - name: receivable_term_rule_versions
+    role: root
+    key: uuid_v7
+    references: []
+    versioned: effective_dated
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    column_families:
+    - 版本号
+    - 全局默认账期（日）
+    - 状态（草稿 / 已生效 / 已被取代）
+    - 生效区间
+    - 批准引用
+    - 审计列
+    reason: 用户 KPI-Q04；老系统无此配置，投产写首版（全局 30 日）；已生效版本不可改（D15），改走新版本
+  - name: receivable_term_rule_lines
+    role: child
+    key: uuid_v7
+    references: []
+    versioned: none
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    column_families:
+    - 协议类型（可空）
+    - 客户分级（可空，引用 Q-07 客户分级定义）
+    - 账期天数
+    reason: 覆盖行；同一版本内协议类型 × 客户分级组合唯一
 - aggregate: AGG-49
   bc: B-09
   tables:
@@ -3051,6 +3084,7 @@
     - 承担法人与业务日期
     - 原始金额与未结余额
     - 到期日与账龄起算日
+    - 账期天数与来源（付款条件项 / 账期规则版本与命中覆盖行 / 全局默认，KPI-Q04）
     - 质保金到期日（缺陷责任期）
     - 状态（未结 / 已结清 / 争议 / 已核销坏账）
     - 审计列与 version
