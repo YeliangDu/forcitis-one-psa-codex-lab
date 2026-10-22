@@ -107,6 +107,10 @@ def parse_text(path, text, size=None):
     if not is_new and no not in LEGACY_FORMAT:
         raise ValueError(f"{path}：ADR-{no} 不在 LEGACY_FORMAT 中，须有「档位」字段（新格式）")
     size = len(text.encode("utf-8")) if size is None else size
+    # 「被部分取代」由后来的 ADR 追加，不是本篇内容，不计入大小上限
+    partly = re.search(r"(?m)^- \*\*被部分取代\*\*：\n(?:  - .*\n)*", header_text) if is_new else None
+    if partly:
+        size -= len(partly.group(0).encode("utf-8"))
     if is_new:
         f = parse_new_header(path, header_lines)
         secs = sections(path, text[cut.start():])
