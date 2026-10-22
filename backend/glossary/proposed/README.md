@@ -249,6 +249,22 @@ GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-2
 
 另有技术词 38 个（`common_words`），不在表中。
 
+## `kpi-page-terms.yaml`
+
+涉及模块：`accounting.cashbank`、`contract.agreement`、`cost.timesheet`。
+
+KPI 页用到的七个未登记词（one-glossary 2026-10-22，NAM-1021-GLO-18；one-coordinator 来单，proposed）。出处：r0/METRIC_BASELINE_DRAFT M-37、M-43、M-46，R1-B-06。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `opportunity_hours` | 商机工时 | OpportunityHours | 领域 · cost.timesheet | 员工填报在商机（尚未签约的业务机会）上的工时；与收费工时、非计费工时并列，用于工时结构（M-43） |  |  |
+| `available_hours` | 可用工时 | AvailableHours | 领域 · cost.timesheet | 员工在期间内可供使用的工时，来自工作日历扣除休假后的小时数；利用率的分母（可计费工时 / 可用工时） |  |  |
+| `default_payment_term` | 默认账期 | DefaultPaymentTerm | 领域 · contract.agreement | 合同或客户未另行约定付款周期时采用的账期天数，配置项；到期日由账期与开票日推算（R1-B-06） |  |  |
+| `excess_authorized_limit_input` | 超授权额度投入 | ExcessAuthorizedLimitInput | 领域 · contract.agreement | 无合同风险敞口超出授权额度的投入金额（M-46）；授权额度按客户等级配置 |  |  |
+| `hours_structure` | 工时结构 | HoursStructure | 领域 · cost.timesheet | 期间内工时按收费、商机、非计费划分的占比（M-43），与有效 / 无效工时划分对齐 |  |  |
+| `effective_hours_ratio` | 有效工时占比 | EffectiveHoursRatio | 领域 · cost.timesheet | 期间内有效工时占全部填报工时的比例；有效工时指经有效性认定的工时 |  |  |
+| `cash_inflow_outflow_ratio` | 现金流入流出比 | CashInflowOutflowRatio | 领域 · accounting.cashbank | 期间现金流入合计除以现金流出合计（M-37）；是否含筹资活动待确认 |  |  |
+
 ## `list-paging.yaml`
 
 K-3a 列表分页公共契约新增的纯技术词（proposed，NAMING_STANDARD A-3、A-4）。
