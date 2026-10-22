@@ -54,7 +54,7 @@ meta:
     act: 671
     fact: 37
     dim: 10
-    metric: 94
+    metric: 112
     bind: 0
     dec: 0
     agg: 145
@@ -15125,6 +15125,204 @@ nodes:
       - DIM-08
       zh: 新签净额
       src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94
+      stages: []
+      processes: []
+    KPI-95:
+      kind: 业务指标
+      term: utilization_rate
+      baseline: M-42
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 可计费利用率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[94]/KPI-95
+      stages: []
+      processes: []
+    KPI-96:
+      kind: 业务指标
+      term: null
+      baseline: M-42
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 含商机工时的利用率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[95]/KPI-96
+      stages: []
+      processes: []
+    KPI-97:
+      kind: 业务指标
+      term: null
+      baseline: M-42
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 按有效工时算的利用率
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[96]/KPI-97
+      stages: []
+      processes: []
+    KPI-98:
+      kind: 业务指标
+      term: aged_receivable
+      baseline: M-14
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 账龄超 N 天应收
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[97]/KPI-98
+      stages: []
+      processes: []
+    KPI-99:
+      kind: 业务指标
+      term: uncontracted_exposure
+      baseline: M-46
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 无合同投入总规模
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[98]/KPI-99
+      stages: []
+      processes: []
+    KPI-100:
+      kind: 业务指标
+      term: null
+      baseline: M-46
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 超授权额度投入
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[99]/KPI-100
+      stages: []
+      processes: []
+    KPI-101:
+      kind: 业务指标
+      term: subcontract_cost
+      baseline: M-26
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 分包成本
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[100]/KPI-101
+      stages: []
+      processes: []
+    KPI-102:
+      kind: 业务指标
+      term: outsourcing_cost
+      baseline: M-26
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 外包成本
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[101]/KPI-102
+      stages: []
+      processes: []
+    KPI-103:
+      kind: 业务指标
+      term: project_cost
+      baseline: M-27
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 项目成本（归集）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[102]/KPI-103
+      stages: []
+      processes: []
+    KPI-104:
+      kind: 业务指标
+      term: cost_of_sales
+      baseline: M-27
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 营业成本（结转）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[103]/KPI-104
+      stages: []
+      processes: []
+    KPI-105:
+      kind: 业务指标
+      term: null
+      baseline: M-17
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 合同资产余额
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[104]/KPI-105
+      stages: []
+      processes: []
+    KPI-106:
+      kind: 业务指标
+      term: unbilled_wip
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 未开票在制
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[105]/KPI-106
+      stages: []
+      processes: []
+    KPI-107:
+      kind: 业务指标
+      term: billable_hours
+      baseline: M-43
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 工时结构（投入去向）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[106]/KPI-107
+      stages: []
+      processes: []
+    KPI-108:
+      kind: 业务指标
+      term: null
+      baseline: null
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 工时结构（产出）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[107]/KPI-108
+      stages: []
+      processes: []
+    KPI-109:
+      kind: 业务指标
+      term: days_sales_outstanding
+      baseline: M-16
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 应收周转天数
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[108]/KPI-109
+      stages: []
+      processes: []
+    KPI-110:
+      kind: 业务指标
+      term: accrual_basis_revenue
+      baseline: M-08
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 收入确认（不含税）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[109]/KPI-110
+      stages: []
+      processes: []
+    KPI-111:
+      kind: 业务指标
+      term: revenue_including_tax
+      baseline: M-09
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 收入确认（含税）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[110]/KPI-111
+      stages: []
+      processes: []
+    KPI-112:
+      kind: 业务指标
+      term: indirect_cost
+      baseline: M-31
+      vision_kpi: null
+      facts: []
+      dimensions: []
+      zh: 间接费用（按职能）
+      src: architecture/ssot/15-kpis/kpis.yaml#kpis[111]/KPI-112
       stages: []
       processes: []
   bind: {}
@@ -98451,3 +98649,55 @@ links:
   from: KPI-94
   to: net_new_contract_value
   src: architecture/ssot/15-kpis/kpis.yaml#kpis[93]/KPI-94.term
+- kind: metric-term
+  from: KPI-95
+  to: utilization_rate
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[94]/KPI-95.term
+- kind: metric-term
+  from: KPI-98
+  to: aged_receivable
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[97]/KPI-98.term
+- kind: metric-term
+  from: KPI-99
+  to: uncontracted_exposure
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[98]/KPI-99.term
+- kind: metric-term
+  from: KPI-101
+  to: subcontract_cost
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[100]/KPI-101.term
+- kind: metric-term
+  from: KPI-102
+  to: outsourcing_cost
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[101]/KPI-102.term
+- kind: metric-term
+  from: KPI-103
+  to: project_cost
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[102]/KPI-103.term
+- kind: metric-term
+  from: KPI-104
+  to: cost_of_sales
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[103]/KPI-104.term
+- kind: metric-term
+  from: KPI-106
+  to: unbilled_wip
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[105]/KPI-106.term
+- kind: metric-term
+  from: KPI-107
+  to: billable_hours
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[106]/KPI-107.term
+- kind: metric-term
+  from: KPI-109
+  to: days_sales_outstanding
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[108]/KPI-109.term
+- kind: metric-term
+  from: KPI-110
+  to: accrual_basis_revenue
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[109]/KPI-110.term
+- kind: metric-term
+  from: KPI-111
+  to: revenue_including_tax
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[110]/KPI-111.term
+- kind: metric-term
+  from: KPI-112
+  to: indirect_cost
+  src: architecture/ssot/15-kpis/kpis.yaml#kpis[111]/KPI-112.term
