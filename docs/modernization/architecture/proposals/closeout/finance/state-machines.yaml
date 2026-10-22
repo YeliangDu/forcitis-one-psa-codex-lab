@@ -1631,15 +1631,15 @@ machines:
   - {name: 已转入, terminal: true}
   - {name: 已转费用, terminal: true}
   transitions:
-  - command: 登记合同已签回
+  - command: 登记协议已生效
     from: null
     guard: [INV-132]
     reverse_of: null
     to: 等待齐备
-  - command: 登记合同已签回
+  - command: 登记协议已生效
     from: 等待齐备
     guard: [INV-132]
-    reverse_of: 登记合同已签回
+    reverse_of: 登记协议已生效
     to: 等待齐备
   - command: 登记项目已建立
     from: null
@@ -1658,7 +1658,7 @@ machines:
     to: 等待齐备
   - command: 标记售前投入已转入
     from: 等待齐备
-    guard: [INV-132, 合同已签回且项目已建立]
+    guard: [INV-132, 协议已生效且项目已建立]
     reverse_of: null
     to: 已转入
   - command: 标记售前投入已转费用

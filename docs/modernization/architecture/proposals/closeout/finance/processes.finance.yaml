@@ -197,7 +197,7 @@ processes:
   steps:
   - actor: system
     where: automatic
-    command: 登记合同已签回
+    command: 登记协议已生效
     aggregate: AGG-122
     added_in: closeout
     desc: 订阅协议已生效（不再订阅 ContractSigned：附生效条件的协议签署后可能不生效，按生效转入可免冲回，GL5-01，GL5_SIGNED_EFFECTIVE_SUBSCRIBERS）登记到按商机持久的归属登记（两事件分别到达，不要求同时；S-31 SQ-18）

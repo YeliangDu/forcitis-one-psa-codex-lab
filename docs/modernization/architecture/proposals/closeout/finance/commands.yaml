@@ -1729,7 +1729,7 @@ commands:
   - 口径版本引用
   emits:
   - 口径版本已生效
-- name: 登记合同已签回
+- name: 登记协议已生效
   aggregate: AGG-122
   params:
   - 商机引用
