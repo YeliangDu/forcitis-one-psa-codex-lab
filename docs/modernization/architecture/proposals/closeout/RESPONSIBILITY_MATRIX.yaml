@@ -621,6 +621,27 @@ entries:
   - revenue:PRC-03#3
   - revenue:片段
 - object: AGG-10
+  command: 作出参投决策
+  raci:
+    A:
+      resolve: instance
+      field: 商机.负责人
+      field_status: proposed
+    R:
+    - SH-E5
+    C: []
+    I:
+    - SH-M1
+  sensitive: false
+  sensitive_reason: 含普通个人信息（员工标识），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+  a_source: group:revenue
+  sources:
+  - revenue:PRC-183#3
+  - revenue:PRC-183#3(审批)
+  - revenue:PRC-183#4
+  - revenue:片段
+- object: AGG-10
   command: 变更商机负责人
   raci:
     A:
@@ -639,26 +660,6 @@ entries:
   - revenue:PRC-03#11
   - revenue:片段
 - object: AGG-10
-  command: 登记商机赢单
-  raci:
-    A:
-      resolve: instance
-      field: 商机.负责人
-      field_status: proposed
-    R:
-    - SH-E5
-    C: []
-    I:
-    - SH-E2
-  sensitive: false
-  sensitive_reason: 含普通个人信息（员工标识），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
-  source_part: revenue
-  a_source: group:revenue
-  sources:
-  - revenue:PRC-08#13
-  - revenue:PRC-08#15
-  - revenue:片段
-- object: AGG-10
   command: 放弃商机
   raci:
     A:
@@ -674,7 +675,8 @@ entries:
   source_part: revenue
   a_source: group:revenue
   sources:
-  - revenue:PRC-08#16
+  - revenue:PRC-08#17
+  - revenue:PRC-183#5
   - revenue:片段
 - object: AGG-10
   command: 新建商机
@@ -696,6 +698,24 @@ entries:
   - revenue:PRC-03#7
   - revenue:片段
 - object: AGG-10
+  command: 登记参投判断
+  raci:
+    A:
+      resolve: instance
+      field: 商机.负责人
+      field_status: proposed
+    R:
+    - SH-E5
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 含普通个人信息（员工标识），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+  a_source: group:revenue
+  sources:
+  - revenue:PRC-183#2
+  - revenue:片段
+- object: AGG-10
   command: 登记商机丢单
   raci:
     A:
@@ -711,8 +731,28 @@ entries:
   source_part: revenue
   a_source: group:revenue
   sources:
+  - revenue:PRC-08#15
+  - revenue:PRC-08#18
+  - revenue:片段
+- object: AGG-10
+  command: 登记商机赢单
+  raci:
+    A:
+      resolve: instance
+      field: 商机.负责人
+      field_status: proposed
+    R:
+    - SH-E5
+    C: []
+    I:
+    - SH-E2
+  sensitive: false
+  sensitive_reason: 含普通个人信息（员工标识），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+  a_source: group:revenue
+  sources:
   - revenue:PRC-08#14
-  - revenue:PRC-08#17
+  - revenue:PRC-08#16
   - revenue:片段
 - object: AGG-10
   command: 维护商机参与团队
@@ -748,7 +788,7 @@ entries:
   source_part: revenue
   a_source: group:revenue
   sources:
-  - revenue:PRC-08#11
+  - revenue:PRC-08#12
   - revenue:片段
 - object: AGG-11
   command: 放弃投标
@@ -766,7 +806,7 @@ entries:
   source_part: revenue
   a_source: group:revenue
   sources:
-  - revenue:PRC-08#12
+  - revenue:PRC-08#13
   - revenue:片段
 - object: AGG-11
   command: 登记中标
@@ -784,7 +824,7 @@ entries:
   source_part: revenue
   a_source: group:revenue
   sources:
-  - revenue:PRC-08#8
+  - revenue:PRC-08#9
   - revenue:片段
 - object: AGG-11
   command: 登记废标
@@ -802,7 +842,7 @@ entries:
   source_part: revenue
   a_source: group:revenue
   sources:
-  - revenue:PRC-08#10
+  - revenue:PRC-08#11
   - revenue:片段
 - object: AGG-11
   command: 登记未中标
@@ -820,7 +860,7 @@ entries:
   source_part: revenue
   a_source: group:revenue
   sources:
-  - revenue:PRC-08#9
+  - revenue:PRC-08#10
   - revenue:片段
 - object: AGG-11
   command: 登记资格预审结果
@@ -856,7 +896,7 @@ entries:
   source_part: revenue
   a_source: group:revenue
   sources:
-  - revenue:PRC-08#7
+  - revenue:PRC-08#8
   - revenue:片段
 - object: AGG-12
   command: 作废报价版本
@@ -874,7 +914,7 @@ entries:
   source_part: revenue
   a_source: group:revenue
   sources:
-  - revenue:PRC-07#8
+  - revenue:PRC-07#10
   - revenue:片段
 - object: AGG-12
   command: 提交报价评审
@@ -911,6 +951,24 @@ entries:
   a_source: group:revenue
   sources:
   - revenue:PRC-07#7
+  - revenue:片段
+- object: AGG-12
+  command: 登记报价发出
+  raci:
+    A:
+      resolve: instance
+      field: 商机.负责人
+      field_status: proposed
+    R:
+    - SH-E5
+    C: []
+    I: []
+  sensitive: true
+  sensitive_reason: 发出记录含客户联系人（个人信息），按商机数据范围授权（ADR-0026）
+  source_part: revenue
+  a_source: group:revenue
+  sources:
+  - revenue:PRC-07#9
   - revenue:片段
 - object: AGG-12
   command: 编制报价版本
@@ -1037,6 +1095,26 @@ entries:
   a_source: group:revenue
   sources:
   - revenue:PRC-48#8
+  - revenue:片段
+- object: AGG-13
+  command: 开始履行协议
+  raci:
+    A:
+      resolve: instance
+      field: 协议.合同负责人
+      field_status: proposed
+      pending: 新题「合同负责人是谁」
+    R:
+    - system
+    C: []
+    I:
+    - SH-E2
+  sensitive: false
+  sensitive_reason: 状态转换，无个人信息与资金动作
+  source_part: revenue
+  a_source: group:revenue
+  sources:
+  - revenue:PRC-179#1
   - revenue:片段
 - object: AGG-13
   command: 归档协议
@@ -1255,6 +1333,27 @@ entries:
   a_source: group:revenue
   sources:
   - revenue:PRC-66#4
+  - revenue:片段
+- object: AGG-13
+  command: 确认生效条件满足
+  raci:
+    A:
+      resolve: instance
+      field: 协议.合同负责人
+      field_status: proposed
+      note: 用户 LEB-08：合同负责人凭证据确认，不设审批；我方须履行的条件由财务资金岗先登记证据
+    R:
+    - SH-E5
+    C:
+    - SH-E6
+    I:
+    - SH-E2
+  sensitive: true
+  sensitive_reason: 合同生效与付款条件生效
+  source_part: revenue
+  a_source: group:revenue
+  sources:
+  - revenue:PRC-47#7
   - revenue:片段
 - object: AGG-13
   command: 终止协议
@@ -1657,18 +1756,11 @@ entries:
     I:
     - SH-E2
     - SH-M1
-  boundary:
-    limit_rule: AR-01
-    delegate:
-      when: AR-11
-    other_rules:
-    - AR-07
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
   a_source: group:revenue
   sources:
-  - revenue:PRC-16#3(审批)
   - revenue:PRC-16#5
   - revenue:片段
 - object: AGG-17
@@ -1751,12 +1843,21 @@ entries:
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E2
+  boundary:
+    limit_rule: AR-01
+    delegate:
+      when: AR-11
+    other_rules:
+    - AR-07
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
   a_source: group:revenue
   sources:
+  - revenue:PRC-16#3(审批)
+  - revenue:PRC-16#4
   - revenue:片段
 - object: AGG-18
   command: 创建独立性检查
@@ -4828,24 +4929,6 @@ entries:
   sources:
   - revenue:片段
 - object: AGG-51
-  command: 登记保证金应缴
-  raci:
-    A:
-      resolve: instance
-      field: 保证金.所属对象负责人（投标保证金取商机.负责人，履约与质量保证金取协议.合同负责人）
-      field_status: proposed
-      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
-    R:
-    - SH-E6
-    C: []
-    I: []
-  sensitive: false
-  sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
-  source_part: revenue
-  a_source: group:revenue
-  sources:
-  - revenue:片段
-- object: AGG-51
   command: 登记保证金缴纳
   raci:
     A:
@@ -5054,6 +5137,24 @@ entries:
   - finance:PRC-175#4
   - finance:片段
 - object: AGG-52
+  command: 登记薪酬补发明细
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E6
+  sensitive: false
+  note: 由 people PRC-126 订阅薪酬补发已发起后调用（J-1，one-architecture 2026-10-22 裁定）
+  a_source: group:finance
+  sources:
+  - people:PRC-126#2
+  - finance:片段
+- object: AGG-52
   command: 登记预付款
   raci:
     A:
@@ -5193,6 +5294,22 @@ entries:
   - finance:PRC-132#1
   - finance:片段
 - object: AGG-53
+  command: 标记付款已核销
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-132#1
+  - finance:片段
+- object: AGG-53
   command: 登记付款失败
   raci:
     A:
@@ -5210,6 +5327,26 @@ entries:
   a_source: group:finance
   sources:
   - finance:PRC-75#6
+  - finance:片段
+- object: AGG-53
+  command: 登记代发退回
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 出纳 ≠ 发起人、审批人（INV-81）
+  sensitive: false
+  note: 与 PRC-75 登记退票同口径（PAYROLL_REISSUE_SEAM J-2）
+  a_source: group:finance
+  sources:
+  - finance:PRC-75#10
   - finance:片段
 - object: AGG-53
   command: 登记退票
@@ -5248,22 +5385,6 @@ entries:
   a_source: group:finance
   sources:
   - finance:PRC-75#5
-  - finance:片段
-- object: AGG-53
-  command: 标记付款已核销
-  raci:
-    A:
-      resolve: type
-      role: SH-M1
-      function: 财务负责人
-    R:
-    - system
-    C: []
-    I: []
-  sensitive: false
-  a_source: group:finance
-  sources:
-  - finance:PRC-132#1
   - finance:片段
 - object: AGG-54
   command: 提交过账候选
@@ -5780,6 +5901,24 @@ entries:
   a_source: group:people
   sources:
   - people:PRC-80#7
+  - people:片段
+- object: AGG-60
+  command: 更正法人主体代码
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 法人代码为 INTERNAL；仅未发号前可改（INV-59）
+  source_part: vs07
+  a_source: group:people
+  sources:
+  - people:PRC-80#14
   - people:片段
 - object: AGG-60
   command: 登记法人主体
@@ -6758,6 +6897,7 @@ entries:
   a_source: group:people
   sources:
   - people:PRC-116#2
+  - people:PRC-117#5
   - people:片段
 - object: AGG-70
   command: 撤销请假
@@ -6852,7 +6992,7 @@ entries:
   - people:PRC-116#8
   - people:片段
 - object: AGG-71
-  command: 年度结转并关闭额度账户
+  command: 年度结转额度账户
   raci:
     A:
       resolve: type
@@ -6906,6 +7046,45 @@ entries:
   - people:PRC-116#5
   - people:片段
 - object: AGG-71
+  command: 补休到期转计薪
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+    - SH-E6
+  sensitive: false
+  note: 定时规则自动执行，不作废；转计薪待处理时告警人力；计发金额归 B-15（PRC-124）
+  source_part: vs13att
+  a_source: group:people
+  sources:
+  - people:片段
+- object: AGG-71
+  command: 计入补休额度
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+    - SH-E1
+  sensitive: false
+  note: 加班批准后由规则自动执行；有效期长度待 U15；员工与直属上级知晓额度与到期日
+  source_part: vs13att
+  a_source: group:people
+  sources:
+  - people:PRC-117#4
+  - people:片段
+- object: AGG-71
   command: 释放余额占用
   raci:
     A:
@@ -6923,27 +7102,6 @@ entries:
   sources:
   - people:PRC-116#6
   - people:PRC-116#7
-  - people:片段
-- object: AGG-72
-  command: 提交加班申请
-  raci:
-    A:
-      resolve: instance
-      field: 员工
-    R:
-    - SH-E3
-    C: []
-    I:
-    - SH-E1
-    - SH-E6
-  boundary:
-    limit_rule: R-c（补登期限、与已批准请假重叠拒绝；月累计超 36 小时只预警知会人力，不拦截；待 U5）
-  sensitive: false
-  note: 用人经理可代员工登记（R 含 SH-E1）；人力仅在超 36 小时时收到知会
-  source_part: vs13att
-  a_source: group:people
-  sources:
-  - people:PRC-117#1
   - people:片段
 - object: AGG-72
   command: 批准加班
@@ -6968,6 +7126,28 @@ entries:
   - people:PRC-117#2
   - people:片段
 - object: AGG-72
+  command: 提交加班申请
+  raci:
+    A:
+      resolve: instance
+      field: 员工
+    R:
+    - SH-E3
+    C: []
+    I:
+    - SH-E1
+    - SH-E6
+  boundary:
+    limit_rule: R-c（补登期限、与已批准请假重叠拒绝；补偿方式按加班日类型限定：法定节假日只付薪、休息日付薪或补休；月累计超 36 小时只预警知会人力，不拦截；待
+      U5）
+  sensitive: false
+  note: 用人经理可代员工登记（R 含 SH-E1）；人力仅在超 36 小时时收到知会
+  source_part: vs13att
+  a_source: group:people
+  sources:
+  - people:PRC-117#1
+  - people:片段
+- object: AGG-72
   command: 标记加班已补偿
   raci:
     A:
@@ -6983,6 +7163,25 @@ entries:
   a_source: group:people
   sources:
   - people:PRC-118#3
+  - people:片段
+- object: AGG-72
+  command: 标记加班已计补休
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  sensitive: false
+  note: 计入补休额度的同一事务内规则自动执行
+  source_part: vs13att
+  a_source: group:people
+  sources:
+  - people:PRC-117#4
   - people:片段
 - object: AGG-72
   command: 驳回加班
@@ -7003,6 +7202,24 @@ entries:
   - people:PRC-117#3
   - people:片段
 - object: AGG-73
+  command: 发起薪酬补发
+  raci:
+    A:
+      resolve: instance
+      field: 月度薪酬结算.法人.财务负责人
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E3
+  sensitive: true
+  note: R 为薪酬岗；I 为补发对象员工
+  source_part: vs13pay
+  a_source: group:people
+  sources:
+  - people:PRC-201#4
+  - people:片段
+- object: AGG-73
   command: 批准月度薪酬
   raci:
     A:
@@ -7020,7 +7237,7 @@ entries:
       to: 汇报线上级
     segregation:
     - 制单人 ≠ A
-    - A 不得审批含本人薪酬行的结算
+    - A 不得审批含本人薪酬结算行的结算
     escalate:
       when: AR-12
       to: 上级组织负责人
@@ -7100,25 +7317,6 @@ entries:
   sources:
   - people:片段
 - object: AGG-73
-  command: 标记薪酬已过账
-  raci:
-    A:
-      resolve: type
-      role: SH-E6
-      function: 薪酬岗
-    R:
-    - system
-    C: []
-    I:
-    - SH-E6
-  sensitive: false
-  note: 过账事实事件自动执行
-  source_part: vs13pay
-  a_source: group:people
-  sources:
-  - people:PRC-134#1
-  - people:片段
-- object: AGG-73
   command: 标记薪酬已发放
   raci:
     A:
@@ -7139,6 +7337,61 @@ entries:
   - people:PRC-127#1
   - people:片段
 - object: AGG-73
+  command: 标记薪酬已过账
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+    C: []
+    I:
+    - SH-E6
+  sensitive: false
+  note: 过账事实事件自动执行
+  source_part: vs13pay
+  a_source: group:people
+  sources:
+  - people:PRC-134#1
+  - people:片段
+- object: AGG-73
+  command: 登记代发结果
+  raci:
+    A:
+      resolve: instance
+      field: 月度薪酬结算.法人.财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: true
+  note: 薪酬结算行为 SENSITIVE / spi；R 为持银行回单的财务职能人员，I 为薪酬岗
+  source_part: vs13pay
+  a_source: group:people
+  sources:
+  - people:PRC-201#1
+  - people:PRC-201#5
+  - people:片段
+- object: AGG-73
+  command: 登记薪酬补发顺延
+  raci:
+    A:
+      resolve: instance
+      field: 月度薪酬结算.法人.财务负责人
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E3
+  sensitive: true
+  note: R 为薪酬岗；I 为补发对象员工（必须通知）
+  source_part: vs13pay
+  a_source: group:people
+  sources:
+  - people:PRC-201#3
+  - people:片段
+- object: AGG-73
   command: 计算月度薪酬
   raci:
     A:
@@ -7151,7 +7404,7 @@ entries:
     I:
     - SH-E6
   sensitive: false
-  note: 系统自动计算，无人持有执行权限；薪酬岗查看结果所需的薪酬查看权限在「提交薪酬审核」条目判定
+  note: 系统自动计算，无人持有执行权限；薪酬岗查看结果所需的薪酬查看权限在「提交审核」条目判定
   source_part: vs13pay
   a_source: group:people
   sources:
@@ -7562,6 +7815,27 @@ entries:
   - people:PRC-88#9
   - people:片段
 - object: AGG-79
+  command: 创建经营复盘
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - system
+    C:
+    - SH-E6
+    I:
+    - SH-M1
+    - SH-E6
+  boundary:
+    rule: 候选规则-复盘期间已关账、候选规则-复盘唯一
+  sensitive: false
+  source_part: vs0911
+  a_source: group:people
+  sources:
+  - people:PRC-181#1
+  - people:片段
+- object: AGG-79
   command: 基线化经营计划
   raci:
     A:
@@ -7585,6 +7859,46 @@ entries:
   sources:
   - people:PRC-88#3(审批)
   - people:PRC-88#6
+  - people:片段
+- object: AGG-79
+  command: 完成经营动作
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    rule: 候选规则-动作责任人本人登记
+    note: 逾期只提醒复盘责任人，不自动完成
+  sensitive: false
+  source_part: vs0911
+  a_source: group:people
+  sources:
+  - people:PRC-181#5
+  - people:片段
+- object: AGG-79
+  command: 定稿经营复盘
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - SH-M1
+    C:
+    - SH-E6
+    I:
+    - SH-O1
+  boundary:
+    rule: 候选规则-偏差须解释、候选规则-定稿后不可改
+    note: 不设审批
+  sensitive: false
+  source_part: vs0911
+  a_source: group:people
+  sources:
+  - people:PRC-181#4
   - people:片段
 - object: AGG-79
   command: 提交经营计划审批
@@ -7620,6 +7934,25 @@ entries:
   source_part: vs0911
   a_source: group:people
   sources:
+  - people:片段
+- object: AGG-79
+  command: 确定经营动作
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - SH-M1
+    C:
+    - SH-E6
+    I: []
+  boundary:
+    rule: 候选规则-动作要素齐全
+  sensitive: false
+  source_part: vs0911
+  a_source: group:people
+  sources:
+  - people:PRC-181#3
   - people:片段
 - object: AGG-79
   command: 编制现金流预测
@@ -7680,6 +8013,25 @@ entries:
   a_source: group:people
   sources:
   - people:PRC-89#1
+  - people:片段
+- object: AGG-79
+  command: 记录偏差解释
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - SH-M1
+    C:
+    - SH-E6
+    I: []
+  boundary:
+    when: 仅复盘中
+  sensitive: false
+  source_part: vs0911
+  a_source: group:people
+  sources:
+  - people:PRC-181#2
   - people:片段
 - object: AGG-79
   command: 通过经营计划审批
@@ -7747,6 +8099,29 @@ entries:
   a_source: group:people
   sources:
   - people:PRC-161#1
+  - people:片段
+- object: AGG-80
+  command: 占用预算
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E2
+    - SH-E3
+    C: []
+    I:
+    - SH-E1
+  boundary:
+    rule: AR-03 / RULE-406 超额只预警
+    note: 拦截或预警待用户定 1
+  sensitive: false
+  source_part: vs0911
+  a_source: group:people
+  sources:
+  - finance:PRC-70#2
+  - finance:PRC-87#3
   - people:片段
 - object: AGG-80
   command: 开立预算账户
@@ -7844,29 +8219,6 @@ entries:
   sources:
   - finance:PRC-70#7
   - finance:PRC-87#8
-  - people:片段
-- object: AGG-80
-  command: 占用预算
-  raci:
-    A:
-      resolve: type
-      role: SH-M1
-      function: 财务负责人
-    R:
-    - SH-E2
-    - SH-E3
-    C: []
-    I:
-    - SH-E1
-  boundary:
-    rule: AR-03 / RULE-406 超额只预警
-    note: 拦截或预警待用户定 1
-  sensitive: false
-  source_part: vs0911
-  a_source: group:people
-  sources:
-  - finance:PRC-70#2
-  - finance:PRC-87#3
   - people:片段
 - object: AGG-81
   command: 发起关账
@@ -8382,6 +8734,25 @@ entries:
   - finance:PRC-87#2
   - finance:片段
 - object: AGG-89
+  command: 登记进项发票入账
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    - system
+    C: []
+    I: []
+  sensitive: false
+  note: 与占用进项发票入账同口径；报送方待定 U-55（CF-032）
+  a_source: group:finance
+  sources:
+  - finance:PRC-74#2
+  - finance:PRC-87#7
+  - finance:片段
+- object: AGG-89
   command: 确认进项发票用途
   raci:
     A:
@@ -8624,6 +8995,28 @@ entries:
   a_source: group:people
   sources:
   - people:PRC-84#2
+  - people:片段
+- object: AGG-93
+  command: 登记补休转加班工资
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+    - SH-E6
+  sensitive: false
+  note: 补休已到期未休或 Separated 触发，系统自动登记补休转加班工资时长，不读写薪资金额与发薪账户，无人持有执行权限；金额由 PRC-124 计算生成；S-41
+    新增
+  source_part: vs13pay
+  a_source: group:people
+  sources:
+  - people:PRC-178#1
+  - people:PRC-178#2
   - people:片段
 - object: AGG-93
   command: 终止薪酬档案
@@ -9521,7 +9914,7 @@ entries:
   source_part: vs0911
   a_source: group:people
   sources:
-  - people:PRC-107#7
+  - people:PRC-107#6
   - people:片段
 - object: AGG-107
   command: 创建知识条目
@@ -9551,6 +9944,7 @@ entries:
     - SH-E4
     C: []
     I:
+    - SH-M1
     - SH-E3
   boundary:
     rule: INV-115
@@ -9559,7 +9953,7 @@ entries:
   source_part: vs0911
   a_source: group:people
   sources:
-  - people:PRC-107#6
+  - people:PRC-107#5
   - people:片段
 - object: AGG-107
   command: 废止知识条目
@@ -9578,7 +9972,7 @@ entries:
   source_part: vs0911
   a_source: group:people
   sources:
-  - people:PRC-107#8
+  - people:PRC-107#7
   - people:片段
 - object: AGG-107
   command: 提交知识条目评审
@@ -9644,24 +10038,6 @@ entries:
   a_source: group:people
   sources:
   - people:PRC-107#2
-  - people:片段
-- object: AGG-107
-  command: 退回知识条目
-  raci:
-    A:
-      resolve: instance
-      field: 知识条目.归属组织单元.负责人
-    R:
-    - SH-E4
-    C: []
-    I: []
-  boundary:
-    note: 评审的退回结论
-  sensitive: false
-  source_part: vs0911
-  a_source: group:people
-  sources:
-  - people:PRC-107#5
   - people:片段
 - object: AGG-108
   command: 发布标准工时版本
@@ -9826,7 +10202,7 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 申请人所在组织单元.负责人
+      field: 按用印用途、法人、归属对象的制度责任配置解析
       alias: cost_object_owner
     R:
     - SH-M1
@@ -9840,11 +10216,11 @@ entries:
     escalate:
       when: AR-12
       to: 上级组织负责人
-    limit_rule: （无金额限额）
-    pending: 'B31-1：是否按印章类别加一级（需新增 guard: approval 规则）'
+    pending: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」：用印人工批准责任及加审范围（ARCH-B31-materials 1、2）
     segregation:
     - 提交人 ≠ A
   sensitive: false
+  note: 仅无来源单据人审，责任及加审按正式制度配置；AR-16 候选不直接启用；来源直通不增加人审
   approval:
     approver: cost_object_owner
     doc_type: 用印审批
@@ -9863,8 +10239,10 @@ entries:
     R:
     - SH-E3
     C: []
-    I: []
+    I:
+    - SH-E6
   sensitive: false
+  note: 有已批准来源单据的，系统经 platform.approval 校验来源审批实例已通过、份数不超审批载荷，通过则直接置已批准，该路径无人审批（规则核对，S-40）；校验不过则拒绝并告诉申请人原因
   source_part: b31
   a_source: group:people
   sources:
@@ -9912,7 +10290,7 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 申请人所在组织单元.负责人
+      field: 按用印用途、法人、归属对象的制度责任配置解析
       alias: cost_object_owner
     R:
     - platform.approval
@@ -9937,7 +10315,7 @@ entries:
     I:
     - SH-E6
   sensitive: false
-  note: 提出人确认关闭；解决后 P5D 未确认由 system 代关〔推〕
+  note: 仅提出人人工确认且有处理结论才关闭（INV-120），无系统代关权，人工超期保持状态
   source_part: b31
   a_source: group:people
   sources:
@@ -9955,10 +10333,6 @@ entries:
     C: []
     I:
     - SH-E3
-  boundary:
-    escalate:
-      when: 受理逾期 P2D〔推〕
-      to: 信息部门负责人（SH-M1）提醒，非审批
   sensitive: false
   source_part: b31
   a_source: group:people
@@ -9970,7 +10344,7 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 提出人所在组织单元.负责人
+      field: 按 IT 类别和正式制度责任配置解析
       alias: cost_object_owner
     R:
     - SH-M1
@@ -9986,6 +10360,8 @@ entries:
       to: 上级组织负责人
     segregation:
     - 提交人 ≠ A
+    pending: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」：IT 受控类别与责任表、IT 金额适用口径（ARCH-B31-materials
+      3、4）
   sensitive: false
   approval:
     approver: cost_object_owner
@@ -10005,7 +10381,8 @@ entries:
     R:
     - SH-E3
     C: []
-    I: []
+    I:
+    - SH-E6
   sensitive: false
   source_part: b31
   a_source: group:people
@@ -10068,7 +10445,7 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 提出人所在组织单元.负责人
+      field: 按 IT 类别和正式制度责任配置解析
       alias: cost_object_owner
     R:
     - platform.approval
@@ -10097,60 +10474,13 @@ entries:
     segregation:
     - 验收人 ≠ 归还人
     escalate:
-      when: 离职后逾期未归还 P7D〔推〕
-      to: 原组织单元负责人（SH-M1）提醒，非审批
+      when: 仅离职生效后 7 个日历日仍未归还
+      to: 原组织单元负责人（SH-M1）提醒，非中断、非审批；完成取消；聚合 ID + 到期时点幂等
   sensitive: false
   source_part: b31
   a_source: group:people
   sources:
   - people:PRC-156#1
-  - people:片段
-- object: AGG-115
-  command: 批准领用
-  raci:
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - SH-M1
-    C: []
-    I:
-    - SH-E3
-  boundary:
-    delegate:
-      when: AR-11
-      to: 汇报线上级
-    escalate:
-      when: AR-12
-      to: 上级组织负责人
-    limit_rule: 岗位标准配置（R-B31-5）：仅超出标准配置才进审批
-    segregation:
-    - 提交人 ≠ A
-  sensitive: false
-  approval:
-    approver: cost_object_owner
-    doc_type: IT资产领用审批
-  source_part: b31
-  a_source: group:people
-  sources:
-  - people:PRC-143#2
-  - people:PRC-143#2(审批)
-  - people:片段
-- object: AGG-115
-  command: 撤回领用
-  raci:
-    A:
-      resolve: instance
-      field: 使用人
-    R:
-    - SH-E3
-    C: []
-    I: []
-  sensitive: false
-  source_part: b31
-  a_source: group:people
-  sources:
   - people:片段
 - object: AGG-115
   command: 撤销调拨申请
@@ -10181,7 +10511,7 @@ entries:
     I:
     - SH-M1
   sensitive: false
-  note: 调拨不设人审，由规则守卫；跨组织单元时知会两侧负责人（B31-6 待用户定是否改为调入方负责人批准）
+  note: 同一核算主体内跨组织只通知调出、调入两侧负责人，不增加批准；交接同事务结束旧期间、开启新期间
   source_part: b31
   a_source: group:people
   sources:
@@ -10197,7 +10527,8 @@ entries:
     - SH-E3
     C:
     - SH-E6
-    I: []
+    I:
+    - SH-E6
   sensitive: false
   source_part: b31
   a_source: group:people
@@ -10223,7 +10554,7 @@ entries:
   source_part: b31
   a_source: group:people
   sources:
-  - people:PRC-143#3
+  - people:PRC-143#2
   - people:片段
 - object: AGG-115
   command: 调拨资产
@@ -10246,23 +10577,6 @@ entries:
   a_source: group:people
   sources:
   - people:PRC-155#2
-  - people:片段
-- object: AGG-115
-  command: 驳回领用
-  raci:
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - platform.approval
-    C: []
-    I:
-    - SH-E3
-  sensitive: false
-  source_part: b31
-  a_source: group:people
-  sources:
   - people:片段
 - object: AGG-116
   command: 取消员工活动登记
@@ -10299,88 +10613,27 @@ entries:
   source_part: b31
   a_source: group:people
   sources:
-  - people:PRC-144#3
-  - people:片段
-- object: AGG-116
-  command: 批准员工活动申请
-  raci:
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - SH-M1
-    C: []
-    I:
-    - SH-E3
-    - SH-E6
-  boundary:
-    limit_rule: AR-01
-    delegate:
-      when: AR-11
-      to: 汇报线上级
-    escalate:
-      when: AR-12
-      to: 上级组织负责人
-    segregation:
-    - 提交人 ≠ A
-  sensitive: false
-  approval:
-    approver: cost_object_owner
-    doc_type: 员工活动审批
-  source_part: b31
-  a_source: group:people
-  sources:
   - people:PRC-144#2
-  - people:PRC-144#2(审批)
   - people:片段
 - object: AGG-116
   command: 提交员工活动申请
   raci:
     A:
-      resolve: instance
-      field: 申请人
+      resolve: type
+      role: SH-E6
+      function: 行政
     R:
+    - system
     - SH-E3
     C: []
-    I: []
+    I:
+    - SH-E6
   sensitive: false
+  note: 周年系统自动，其他活动人工登记；全部规则控制，不设 SH-M1 批准或 AR-01/AR-02 活动金额加审，规则维护责任上线前须填
   source_part: b31
   a_source: group:people
   sources:
   - people:PRC-144#1
-  - people:片段
-- object: AGG-116
-  command: 撤回员工活动申请
-  raci:
-    A:
-      resolve: instance
-      field: 申请人
-    R:
-    - SH-E3
-    C: []
-    I: []
-  sensitive: false
-  source_part: b31
-  a_source: group:people
-  sources:
-  - people:片段
-- object: AGG-116
-  command: 驳回员工活动申请
-  raci:
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - platform.approval
-    C: []
-    I:
-    - SH-E3
-  sensitive: false
-  source_part: b31
-  a_source: group:people
-  sources:
   - people:片段
 - object: AGG-117
   command: 指定法人归属
@@ -10419,6 +10672,25 @@ entries:
   a_source: group:people
   sources:
   - people:PRC-80#12
+  - people:片段
+- object: AGG-117
+  command: 结束法人归属
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-M1
+  sensitive: false
+  sensitive_reason: 同指定法人归属；结束数据范围法人期间，影响由 P-31「待调整权限」提醒兜底
+  source_part: vs07
+  a_source: group:people
+  sources:
+  - people:PRC-80#13
   - people:片段
 - object: AGG-118
   command: 发布假期规则版本
@@ -10460,6 +10732,7 @@ entries:
   source_part: vs13pay
   a_source: group:people
   sources:
+  - people:PRC-180#1
   - people:片段
 - object: AGG-120
   command: 更新专项附加扣除
@@ -10549,7 +10822,7 @@ entries:
   - finance:PRC-15#4
   - finance:片段
 - object: AGG-122
-  command: 登记合同已签回
+  command: 登记协议已生效
   raci:
     A:
       resolve: type
@@ -11260,38 +11533,38 @@ entries:
   a_source: group:finance
   sources:
   - finance:片段
-- a_source: group:revenue
+- object: AGG-136
   command: 生效账期规则版本
-  object: AGG-136
   raci:
     A:
       resolve: role
       role: 财务负责人
-    C: []
-    I: []
     R:
     - SH-E6
+    C: []
+    I: []
   sensitive: false
   sensitive_reason: 配置参数，不含个人信息与资金指令
   source_part: revenue
+  a_source: group:revenue
   sources:
   - revenue:PRC-202#1
   - revenue:PRC-202#1(审批)
   - revenue:片段
-- a_source: group:revenue
+- object: AGG-136
   command: 编制账期规则版本
-  object: AGG-136
   raci:
     A:
       resolve: role
       role: 财务负责人
-    C: []
-    I: []
     R:
     - SH-E6
+    C: []
+    I: []
   sensitive: false
   sensitive_reason: 配置参数，不含个人信息与资金指令
   source_part: revenue
+  a_source: group:revenue
   sources:
   - revenue:片段
 roles:
@@ -11445,7 +11718,7 @@ roles:
       approval_right: 正常一级审批（cost_object_owner 解析结果）；超阈值时 AR-11、AR-12 加审
       department_hint: 员工所在组织单元
       position_hint: 部门负责人、用人经理
-    - responsibility: 知悉下属加班登记，也可代员工登记
+    - responsibility: 知悉下属加班登记，也可代员工登记；补休额度到期前收到提醒，与员工排定补休
       approval_right: 无（加班不设审批，由打卡核实）
       department_hint: 员工所在组织单元
       position_hint: 部门负责人、用人经理
@@ -11632,11 +11905,15 @@ roles:
       approval_right: 无
       department_hint: 所属部门
       position_hint: 被评员工
-    - responsibility: 参与起草（VS-11.1）
+    - responsibility: 参与起草知识条目内容（VS-11.1）
       approval_right: 无
       department_hint: 设计与咨询相关部门
       position_hint: 设计师和顾问
     - responsibility: 提出并对本人申请事项的真实性负责
+      approval_right: 无（本人申请不得自批）
+      department_hint: 员工所在部门
+      position_hint: 全体在职员工
+    - responsibility: 提出并对本人申请事项的真实性负责；在补休额度有效期届满前自行排定并休完补休
       approval_right: 无（本人申请不得自批）
       department_hint: 员工所在部门
       position_hint: 全体在职员工
@@ -11656,7 +11933,7 @@ roles:
       approval_right: 无
       department_hint: 所属部门
       position_hint: 新员工
-    - responsibility: 提出用印申请，写明印章类别、用印法人、文件与份数，并对来源文件的真实性负责
+    - responsibility: 提出用印申请，写明印章类别、用印法人、文件与份数；有已批准来源单据（合同、报价等）的，填来源审批实例 ID，并对来源文件的真实性负责
       approval_right: 无（只提交，不批准、不登记）
       department_hint: 申请人所在组织单元（全部门）
       position_hint: 任一在职员工，不限职位
@@ -11668,7 +11945,7 @@ roles:
       approval_right: 无（只申请）
       department_hint: 使用人所在组织单元（全部门）
       position_hint: 任一在职员工，不限职位
-    - responsibility: 提出员工活动申请，写明活动类型、参与人与费用预估
+    - responsibility: 登记周年贺卡以外的活动类型、参与人和费用预估；周年贺卡由系统自动生成，无需员工申请
       approval_right: 无（只提交）
       department_hint: 申请人所在组织单元（全部门）
       position_hint: 任一在职员工，不限职位
@@ -11684,11 +11961,19 @@ roles:
       approval_right: 无（只报修）
       department_hint: 使用人所在组织单元（全部门）
       position_hint: 任一在职员工，不限职位
+    - responsibility: 本人支付失败时更正工资卡账户；补发顺延时收到通知
+      approval_right: 无
+      department_hint: 员工所在部门
+      position_hint: 全体在职员工
     - responsibility: 查看本人工资条
       approval_right: 无
       department_hint: 员工所在部门
       position_hint: 全体在职员工
     - responsibility: 查看本人当年度假期额度
+      approval_right: 无
+      department_hint: 员工所在部门
+      position_hint: 全体在职员工
+    - responsibility: 知悉本人到期未休的补休余额已转计发加班工资
       approval_right: 无
       department_hint: 员工所在部门
       position_hint: 全体在职员工
@@ -11772,6 +12057,10 @@ roles:
       approval_right: 知识条目评审（类型级专业角色，聚合内单级评审）
       department_hint: 知识条目所属专业类别对应的组织单元（技术委员会）
       position_hint: 专业负责人（技术委员会的专业负责人）
+    - responsibility: 依据使用情况决定知识条目的修订或废止
+      approval_right: 无（只读；修订与废止在 PRC-107）
+      department_hint: 技术委员会及各专业组织单元
+      position_hint: 专业负责人、技术专家
     groups:
     - people
     - revenue
@@ -11791,11 +12080,15 @@ roles:
       approval_right: 无审批权
       department_hint: 市场与经营部门、各区域事业部
       position_hint: 客户经理、商务、投标专员
+    - responsibility: 商机负责人按判断清单逐项评分、写明理由，决定参投或放弃
+      approval_right: 无审批权
+      department_hint: 市场与经营部门、各区域事业部
+      position_hint: 客户经理、商机负责人
     - responsibility: 生效协议价目版本（按往来单位议定的单价条目）
       approval_right: 无审批权
       department_hint: 市场与经营部门
       position_hint: 商务
-    - responsibility: 合同签回后转正风险交付授权，并入协议
+    - responsibility: 协议生效后转正风险交付授权，并入协议
       approval_right: 无审批权
       department_hint: 市场与经营部门
       position_hint: 商务
@@ -11986,6 +12279,10 @@ roles:
       approval_right: 财务负责人书面确认（线下留档）；经办岗无审批权
       department_hint: 财务部
       position_hint: 财务负责人、财务会计
+    - responsibility: 编制并经财务负责人批准生效应收默认账期规则
+      approval_right: 财务负责人批准
+      department_hint: 财务部
+      position_hint: 财务负责人、应收会计
     - responsibility: 查看到期提示并催收质保金
       approval_right: 无
       department_hint: 财务部
@@ -12094,7 +12391,7 @@ roles:
       approval_right: 无
       department_hint: 人力资源部
       position_hint: 人事专员
-    - responsibility: 保管印章，按批准内容实际盖章并登记用印时间、份数、经办人，归档扫描件
+    - responsibility: 保管印章，按已批准内容（来源审批实例已通过，或负责人已批准）核对后实际盖章，并登记用印时间、份数、经办人，归档扫描件
       approval_right: 登记用印（不批准申请）
       department_hint: 行政
       position_hint: 印章保管与行政事务经办人员；岗位体系未定，按职能描述
@@ -12106,8 +12403,8 @@ roles:
       approval_right: 登记领用（不批准申请）
       department_hint: 信息（IT）
       position_hint: IT 资产管理员；岗位体系未定，按职能描述
-    - responsibility: 组织实施活动并确认完成
-      approval_right: 确认完成（不审批）
+    - responsibility: 组织实施活动并确认完成；登记记错或活动取消时办理取消登记，写原因并保留审计，按需要重新登记
+      approval_right: 确认完成、取消员工活动登记（均不审批）
       department_hint: 行政
       position_hint: 行政事务经办人员；岗位体系未定，按职能描述
     - responsibility: 核对并登记交接，结束调出方使用期间并开启调入方使用期间
@@ -12126,11 +12423,27 @@ roles:
       approval_right: 无（只知悉，报废由财务在 B-24 发起）
       department_hint: 财务
       position_hint: 固定资产核算与卡片维护人员；岗位体系未定，按职能描述
+    - responsibility: 经营月报出具后为偏差提供口径说明与财务分析支持
+      approval_right: 无
+      department_hint: 财务部门
+      position_hint: 经营分析与管理会计职能岗
+    - responsibility: 按银行代发回单逐行登记代发结果（含银行退回日）
+      approval_right: 无
+      department_hint: 财务部
+      position_hint: 财务职能人员（出纳）
+    - responsibility: 支付失败行在员工更正工资卡后于补发截止日前发起补发；长假确实办不完时登记顺延并通知员工
+      approval_right: 无
+      department_hint: 人力资源部
+      position_hint: 人力资源职能人员（薪酬岗）
+    - responsibility: 补发截止日到期未补发时收到提醒并督办
+      approval_right: 无
+      department_hint: 财务部
+      position_hint: 法人财务负责人
     - responsibility: 知悉申报批次中出现股息红利并入项
       approval_right: 无
       department_hint: 人力资源部（薪酬、申报岗）
       position_hint: 薪酬岗、申报岗
-    - responsibility: 财务知悉待付清单出现应付薪酬，按付款流程办理
+    - responsibility: 财务知悉待付清单出现应付薪酬或补发明细，按付款流程办理
       approval_right: 无
       department_hint: 财务部
       position_hint: 出纳、应付会计
@@ -12166,6 +12479,10 @@ roles:
       approval_right: 无
       department_hint: 信息部门、人力资源部
       position_hint: 信息管理员、人事专员
+    - responsibility: 接收补休转计发登记待处理的告警并补齐加班工资基数后重新触发
+      approval_right: 无
+      department_hint: 人力资源部
+      position_hint: 薪酬岗
     - responsibility: 办理并登记延续注册
       approval_right: 无
       department_hint: 人力资源部
@@ -12182,6 +12499,10 @@ roles:
       approval_right: 无（区间唯一由不变量守卫）
       department_hint: 人力资源部
       position_hint: 人力资源专员、考勤管理员
+    - responsibility: 依据法规与公司制度编制并发布薪酬规则版本，对依据完整性负责；编制人与确认人不得为同一人（U7③ 推荐）
+      approval_right: 无（区间唯一由不变量守卫；编制与确认分人见 U7③）
+      department_hint: 人力资源部与财务部
+      position_hint: 薪酬岗（编制）、财务确认人（职能：薪酬规则确认）
     groups:
     - finance
     - people
@@ -12223,8 +12544,12 @@ roles:
       approval_right: 按费用或业务归属对象的责任人审批本类单据（谁负责谁批）；基础审批人为商机负责人；命中加审规则时上送财务负责人、总经理；商机负责人本人提交时由汇报线上级代批（AR-11）
       department_hint: 各区域事业部、经营管理部
       position_hint: 事业部负责人、项目总监
-    - responsibility: 投标保证金付款审批与是否参投判断（归属对象责任人，商机负责人的部门负责人）
+    - responsibility: 投标保证金付款审批（归属对象责任人，商机负责人的部门负责人）；参投判断已移至 PRC-183
       approval_right: 投标保证金付款：一级审批，超额按 AR-01、AR-02 加审
+      department_hint: 市场与经营部门或区域事业部
+      position_hint: 部门负责人
+    - responsibility: 触发异常条件（低于毛利底线、超产能、独立性冲突）时审批参投决策（商机负责人的部门负责人）
+      approval_right: 参投例外：一级审批
       department_hint: 市场与经营部门或区域事业部
       position_hint: 部门负责人
     - responsibility: 批准标准成本费率与计费系数版本
@@ -12387,7 +12712,7 @@ roles:
       approval_right: 无
       department_hint: 管理层
       position_hint: 管理层负责人
-    - responsibility: 获知知识条目发布情况
+    - responsibility: 获知知识条目发布情况；评审逾期时收到升级提醒并督办
       approval_right: 无（评审不由管理层做）
       department_hint: 管理层
       position_hint: 管理层负责人
@@ -12419,30 +12744,38 @@ roles:
       approval_right: 批准调岗申请（类型级，单级）
       department_hint: 新组织单元
       position_hint: 部门负责人（职能：新组织单元责任人）
-    - responsibility: 对本组织单元员工提出的用印申请，判断文件是否应当盖章、内部评审是否已完成
-      approval_right: 批准本组织单元员工的用印申请（审批平台，加审按 AR-11、AR-12）
-      department_hint: 申请人所在组织单元
-      position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
-    - responsibility: 对本组织单元员工提出的受控类别 IT 需求（如权限提升），判断业务必要性与范围
-      approval_right: 批准受控类别 IT 需求（审批平台，加审按 AR-11、AR-12）；并作为受理超时的提醒对象（信息部门负责人）
-      department_hint: 提出人所在组织单元；超时提醒对象为信息（IT）部门
-      position_hint: 组织单元负责人（部门负责人），超时提醒对象为信息部门负责人；岗位体系未定，按职能描述
-    - responsibility: 对本组织单元员工超出岗位标准配置的领用，判断业务需要是否成立
-      approval_right: 批准超出岗位标准配置的领用（审批平台，加审按 AR-11、AR-12）
-      department_hint: 申请人所在组织单元
-      position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
-    - responsibility: 对本组织单元提出的节日活动、创新项目发布，判断是否举办与规模
-      approval_right: 批准节日活动、创新项目发布申请（审批平台，加审按 AR-01、AR-11、AR-12）
-      department_hint: 申请人所在组织单元
-      position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
+    - responsibility: 按用印用途、法人、归属对象的正式制度配置判断无来源单据用印；责任归属不由 AR-11、AR-12 代替
+      approval_right: 仅在 D15 用印人工批准责任及加审范围配置完整时批准；AR-16 候选范围不能直接启用
+      department_hint: 按正式制度配置解析，不默认申请人部门
+      position_hint: 正式责任角色与授权层级上线前须填，见 ARCH-B31-materials 1、2
+    - responsibility: 按受控类别和正式制度配置判断业务必要性及范围，不默认提出人部门负责人
+      approval_right: 仅批准已配置为需人审的类别；金额先分清 IT 或采购承载，IT 自身承载才配置两档阈值和币种
+      department_hint: 各类别责任表指定，上线前须填
+      position_hint: 批准角色、类别表提供方与维护方、默认路由及采购交接上线前须填，见 ARCH-B31-materials 3、4
     - responsibility: 知悉跨组织单元的调拨，对本单元资产使用情况负责
-      approval_right: 无（只知悉；是否改为调入方确认见 notes 待用户定 6）
+      approval_right: 无（同一核算主体内跨组织只通知调出、调入两侧负责人，不增加批准）
       department_hint: 调出方、调入方所在组织单元
       position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
     - responsibility: 离职员工原组织单元负责人，对逾期未归还的资产收到提醒并督促
       approval_right: 无（只接收提醒）
       department_hint: 离职员工原组织单元
       position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
+    - responsibility: 对所辖组织单元的经营偏差作出解释，确定经营动作及其责任人和期限，定稿复盘
+      approval_right: 无（复盘记录不设审批）
+      department_hint: 复盘组织单元（部门、事业部；公司级为管理层）
+      position_hint: 组织单元负责人（部门负责人）；公司级为管理层负责人
+    - responsibility: 作为经营动作责任人完成动作并登记完成
+      approval_right: 无
+      department_hint: 动作责任人所在组织单元
+      position_hint: 组织单元负责人或其指定的动作责任人
+    - responsibility: 补发逾期超过 5 个工作日时收到升级提醒并督办
+      approval_right: 无
+      department_hint: 管理层
+      position_hint: 法人负责人（ROLE-26 总经理，按法人解析）
+    - responsibility: 获知知识条目的使用与复审情况
+      approval_right: 无
+      department_hint: 管理层
+      position_hint: 管理层负责人
     groups:
     - finance
     - people
@@ -12452,6 +12785,10 @@ roles:
     - 待岗位体系定
     org_needs:
     - responsibility: 获知经营计划基线
+      approval_right: 无
+      department_hint: 不适用（股东和合伙人）
+      position_hint: 不适用
+    - responsibility: 获知经营复盘结论与动作完成情况
       approval_right: 无
       department_hint: 不适用（股东和合伙人）
       position_hint: 不适用

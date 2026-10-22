@@ -49,8 +49,9 @@ meta:
       needs_user: false
     to_glossary:
     - 词表 director（总监）中文名与定义引了老系统编码 BU-002，按与项目总监合并后改写
-    needs_user:
-    - ROLE-26 拆为总经理与分管领导后，分管领导的分管范围配置由谁维护（D15 配置项责任人），随确认页问用户
+    needs_user: []
+    answered:
+    - LEB-06（提交 LEB-20261022-082103-ioy，intent 2026-10-22-082120）：分管范围由人力维护、总经理批准，按本组推荐 A；写入 ROLE-55 的 config 与 vacancy
   applied: one-architecture 2026-10-21 按 meta.decisions 落地：ROLE-23 停用并入 ROLE-22；ROLE-26 拆出 ROLE-55；ROLE-30 拆出 ROLE-56；ROLE-01～05 标 external
 roles:
 - id: ROLE-01
@@ -362,6 +363,7 @@ roles:
   bears: []
   evidence: 权责表 SH-M1 提示「总经理、分管副总」「管理层负责人」（超时升级、加审、批准资质延续）；SSOT 的 SH-E1 管理层是干系人类别，非角色，此处仅按权责表职责成立。词表无对应。
   decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：按法人解析；分管领导拆出为 ROLE-55
+  also: 批准分管范围配置（ROLE-55 config.approved_by，LEB-06）；分管领导缺位时的改指对象（ROLE-55 vacancy）
 - id: ROLE-27
   name: 法人财务负责人
   aliases:
@@ -693,6 +695,17 @@ roles:
   evidence: 权责表 SH-M1 提示「总经理、分管副总」「管理层负责人」（超时升级、加审、批准资质延续）；SSOT 的 SH-E1 管理层是干系人类别，非角色，此处仅按权责表职责成立。词表无对应。（拆分时 aliases 原样复制，两条共用原出处）
   split_from: ROLE-26
   decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：按 D15 分管配置解析
+  config:
+    item: 分管范围（D15 配置项；表级提议 oversight_scope_versions，见 closeout/people/DATA_MODEL.md 1.5，聚合号待给）
+    maintained_by: ROLE-29 人力资源职能人员（按总经理签发的分工文件录入）
+    approved_by: ROLE-26 总经理
+    version_fields: [生效区间, 分管领导, 分管的组织单元或法人, 批准人, 批准时间, 依据]
+    resolution: 按单据业务日期取当时生效的唯一版本
+    basis: LEB-06（提交 LEB-20261022-082103-ioy，intent 2026-10-22-082120）
+  vacancy:
+    when: 未配置、分管领导已离职或分管范围有空缺
+    then: 改指 ROLE-26 总经理（同 AR-12 角色缺位改指上级），同时提醒维护人补配置，审批单记「因分管缺位改指」；不静默跳过、不自动通过
+    invalid_config: 配置版本缺失或区间重叠时，发起即拒绝并告警
 - id: ROLE-56
   name: 行政职能人员
   aliases:

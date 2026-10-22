@@ -101,7 +101,7 @@ entries:
   sensitive_reason: 同指定法人归属
   source_part: vs07
 - object: AGG-117
-  command: 终止法人归属
+  command: 结束法人归属
   raci:
     A:
       resolve: type
@@ -116,7 +116,7 @@ entries:
   sensitive_reason: 同指定法人归属；结束数据范围法人期间，影响由 P-31「待调整权限」提醒兜底
   source_part: vs07
 - object: AGG-60
-  command: 更正法人代码
+  command: 更正法人主体代码
   raci:
     A:
       resolve: type
@@ -1334,7 +1334,7 @@ entries:
     limit_rule: AR-01、AR-02（金额阈值待用户定 U7′）
     segregation:
     - 制单人 ≠ A
-    - A 不得审批含本人薪酬行的结算
+    - A 不得审批含本人薪酬结算行的结算
     delegate:
       when: AR-11
       to: 汇报线上级
@@ -1411,6 +1411,48 @@ entries:
     - SH-E6
   sensitive: false
   note: 应付已结清事件自动执行，不设人工标记
+  source_part: vs13pay
+- object: AGG-73
+  command: 登记代发结果
+  raci:
+    A:
+      resolve: instance
+      field: 月度薪酬结算.法人.财务负责人
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E6
+  sensitive: true
+  note: 薪酬结算行为 SENSITIVE / spi；R 为持银行回单的财务职能人员，I 为薪酬岗
+  source_part: vs13pay
+- object: AGG-73
+  command: 发起薪酬补发
+  raci:
+    A:
+      resolve: instance
+      field: 月度薪酬结算.法人.财务负责人
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E3
+  sensitive: true
+  note: R 为薪酬岗；I 为补发对象员工
+  source_part: vs13pay
+- object: AGG-73
+  command: 登记薪酬补发顺延
+  raci:
+    A:
+      resolve: instance
+      field: 月度薪酬结算.法人.财务负责人
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E3
+  sensitive: true
+  note: R 为薪酬岗；I 为补发对象员工（必须通知）
   source_part: vs13pay
 - object: AGG-73
   command: 标记薪酬已过账

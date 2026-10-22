@@ -1,5 +1,6 @@
 """ARC-1021-ARC-08：聚合扫描、转换和破坏验证。"""
 import contextlib
+import datetime
 import io
 import tempfile
 import unittest
@@ -112,6 +113,37 @@ class AggregateScanTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as empty:
             with self.assertRaisesRegex(ValueError, '缺失或空'):
                 s.collect(Path(empty))
+
+    def write_unbuilt(self, rows):
+        (self.root / s.UNBUILT).parent.mkdir(parents=True, exist_ok=True)
+        (self.root / s.UNBUILT).write_text(yaml.safe_dump({'roots': rows}, allow_unicode=True), encoding='utf-8')
+
+    def test_unbuilt_listed_root_is_reported_not_built(self):
+        self.registry['cost_timesheet.absent'] = {'role': 'AGGREGATE_ROOT', 'aggregate': 'Absent'}
+        self.write_registry()
+        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-11-15', 'reason': '建表先于代码'}])
+        unbuilt = []
+        built = s.collect(self.root, today=datetime.date(2026, 10, 22), unbuilt=unbuilt)
+        self.assertEqual(['cost_timesheet.absent'], [row['table'] for row in unbuilt])
+        self.assertNotIn('Absent', [row['id'].split('/')[-1] for row in built])
+
+    def test_unbuilt_entry_past_due_stale_or_incomplete_fails(self):
+        self.registry['cost_timesheet.absent'] = {'role': 'AGGREGATE_ROOT', 'aggregate': 'Absent'}
+        self.write_registry()
+        today = datetime.date(2026, 10, 22)
+        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-10-21', 'reason': 'r'}])
+        with self.assertRaisesRegex(ValueError, '已过期'):
+            s.collect(self.root, today=today)
+        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-11-15'}])
+        with self.assertRaisesRegex(ValueError, '每项须有'):
+            s.collect(self.root, today=today)
+        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-11-15', 'reason': 'r'},
+                            {'table': 'cost_timesheet.nowhere', 'owner': 'one-x', 'due': '2026-11-15', 'reason': 'r'}])
+        with self.assertRaisesRegex(ValueError, '不是注册表中的 AGGREGATE_ROOT'):
+            s.collect(self.root, today=today)
+        self.write_unbuilt([{'table': 'cost_timesheet.absent', 'owner': 'one-x', 'due': '2026-12-22', 'reason': 'r'}])
+        with self.assertRaisesRegex(ValueError, '超过 60 天上限'):
+            s.collect(self.root, today=today)
 
     def test_arc08_duplicate_java_identity_fails(self):
         self.java('domain', 'Timesheet', 'class Timesheet {}', module='other.module')

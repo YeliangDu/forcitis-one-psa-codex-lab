@@ -445,7 +445,7 @@ responsibility_matrix:
         approval_right: 正常一级审批（cost_object_owner 解析结果）；超阈值时 AR-11、AR-12 加审
         department_hint: 员工所在组织单元
         position_hint: 部门负责人、用人经理
-      - responsibility: 知悉下属加班登记，也可代员工登记
+      - responsibility: 知悉下属加班登记，也可代员工登记；补休额度到期前收到提醒，与员工排定补休
         approval_right: 无（加班不设审批，由打卡核实）
         department_hint: 员工所在组织单元
         position_hint: 部门负责人、用人经理
@@ -632,11 +632,15 @@ responsibility_matrix:
         approval_right: 无
         department_hint: 所属部门
         position_hint: 被评员工
-      - responsibility: 参与起草（VS-11.1）
+      - responsibility: 参与起草知识条目内容（VS-11.1）
         approval_right: 无
         department_hint: 设计与咨询相关部门
         position_hint: 设计师和顾问
       - responsibility: 提出并对本人申请事项的真实性负责
+        approval_right: 无（本人申请不得自批）
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      - responsibility: 提出并对本人申请事项的真实性负责；在补休额度有效期届满前自行排定并休完补休
         approval_right: 无（本人申请不得自批）
         department_hint: 员工所在部门
         position_hint: 全体在职员工
@@ -656,7 +660,7 @@ responsibility_matrix:
         approval_right: 无
         department_hint: 所属部门
         position_hint: 新员工
-      - responsibility: 提出用印申请，写明印章类别、用印法人、文件与份数，并对来源文件的真实性负责
+      - responsibility: 提出用印申请，写明印章类别、用印法人、文件与份数；有已批准来源单据（合同、报价等）的，填来源审批实例 ID，并对来源文件的真实性负责
         approval_right: 无（只提交，不批准、不登记）
         department_hint: 申请人所在组织单元（全部门）
         position_hint: 任一在职员工，不限职位
@@ -668,7 +672,7 @@ responsibility_matrix:
         approval_right: 无（只申请）
         department_hint: 使用人所在组织单元（全部门）
         position_hint: 任一在职员工，不限职位
-      - responsibility: 提出员工活动申请，写明活动类型、参与人与费用预估
+      - responsibility: 登记周年贺卡以外的活动类型、参与人和费用预估；周年贺卡由系统自动生成，无需员工申请
         approval_right: 无（只提交）
         department_hint: 申请人所在组织单元（全部门）
         position_hint: 任一在职员工，不限职位
@@ -684,11 +688,19 @@ responsibility_matrix:
         approval_right: 无（只报修）
         department_hint: 使用人所在组织单元（全部门）
         position_hint: 任一在职员工，不限职位
+      - responsibility: 本人支付失败时更正工资卡账户；补发顺延时收到通知
+        approval_right: 无
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
       - responsibility: 查看本人工资条
         approval_right: 无
         department_hint: 员工所在部门
         position_hint: 全体在职员工
       - responsibility: 查看本人当年度假期额度
+        approval_right: 无
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      - responsibility: 知悉本人到期未休的补休余额已转计发加班工资
         approval_right: 无
         department_hint: 员工所在部门
         position_hint: 全体在职员工
@@ -772,6 +784,10 @@ responsibility_matrix:
         approval_right: 知识条目评审（类型级专业角色，聚合内单级评审）
         department_hint: 知识条目所属专业类别对应的组织单元（技术委员会）
         position_hint: 专业负责人（技术委员会的专业负责人）
+      - responsibility: 依据使用情况决定知识条目的修订或废止
+        approval_right: 无（只读；修订与废止在 PRC-107）
+        department_hint: 技术委员会及各专业组织单元
+        position_hint: 专业负责人、技术专家
       groups:
       - people
       - revenue
@@ -791,11 +807,15 @@ responsibility_matrix:
         approval_right: 无审批权
         department_hint: 市场与经营部门、各区域事业部
         position_hint: 客户经理、商务、投标专员
+      - responsibility: 商机负责人按判断清单逐项评分、写明理由，决定参投或放弃
+        approval_right: 无审批权
+        department_hint: 市场与经营部门、各区域事业部
+        position_hint: 客户经理、商机负责人
       - responsibility: 生效协议价目版本（按往来单位议定的单价条目）
         approval_right: 无审批权
         department_hint: 市场与经营部门
         position_hint: 商务
-      - responsibility: 合同签回后转正风险交付授权，并入协议
+      - responsibility: 协议生效后转正风险交付授权，并入协议
         approval_right: 无审批权
         department_hint: 市场与经营部门
         position_hint: 商务
@@ -986,6 +1006,10 @@ responsibility_matrix:
         approval_right: 财务负责人书面确认（线下留档）；经办岗无审批权
         department_hint: 财务部
         position_hint: 财务负责人、财务会计
+      - responsibility: 编制并经财务负责人批准生效应收默认账期规则
+        approval_right: 财务负责人批准
+        department_hint: 财务部
+        position_hint: 财务负责人、应收会计
       - responsibility: 查看到期提示并催收质保金
         approval_right: 无
         department_hint: 财务部
@@ -1094,7 +1118,7 @@ responsibility_matrix:
         approval_right: 无
         department_hint: 人力资源部
         position_hint: 人事专员
-      - responsibility: 保管印章，按批准内容实际盖章并登记用印时间、份数、经办人，归档扫描件
+      - responsibility: 保管印章，按已批准内容（来源审批实例已通过，或负责人已批准）核对后实际盖章，并登记用印时间、份数、经办人，归档扫描件
         approval_right: 登记用印（不批准申请）
         department_hint: 行政
         position_hint: 印章保管与行政事务经办人员；岗位体系未定，按职能描述
@@ -1106,8 +1130,8 @@ responsibility_matrix:
         approval_right: 登记领用（不批准申请）
         department_hint: 信息（IT）
         position_hint: IT 资产管理员；岗位体系未定，按职能描述
-      - responsibility: 组织实施活动并确认完成
-        approval_right: 确认完成（不审批）
+      - responsibility: 组织实施活动并确认完成；登记记错或活动取消时办理取消登记，写原因并保留审计，按需要重新登记
+        approval_right: 确认完成、取消员工活动登记（均不审批）
         department_hint: 行政
         position_hint: 行政事务经办人员；岗位体系未定，按职能描述
       - responsibility: 核对并登记交接，结束调出方使用期间并开启调入方使用期间
@@ -1126,11 +1150,27 @@ responsibility_matrix:
         approval_right: 无（只知悉，报废由财务在 B-24 发起）
         department_hint: 财务
         position_hint: 固定资产核算与卡片维护人员；岗位体系未定，按职能描述
+      - responsibility: 经营月报出具后为偏差提供口径说明与财务分析支持
+        approval_right: 无
+        department_hint: 财务部门
+        position_hint: 经营分析与管理会计职能岗
+      - responsibility: 按银行代发回单逐行登记代发结果（含银行退回日）
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 财务职能人员（出纳）
+      - responsibility: 支付失败行在员工更正工资卡后于补发截止日前发起补发；长假确实办不完时登记顺延并通知员工
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人力资源职能人员（薪酬岗）
+      - responsibility: 补发截止日到期未补发时收到提醒并督办
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 法人财务负责人
       - responsibility: 知悉申报批次中出现股息红利并入项
         approval_right: 无
         department_hint: 人力资源部（薪酬、申报岗）
         position_hint: 薪酬岗、申报岗
-      - responsibility: 财务知悉待付清单出现应付薪酬，按付款流程办理
+      - responsibility: 财务知悉待付清单出现应付薪酬或补发明细，按付款流程办理
         approval_right: 无
         department_hint: 财务部
         position_hint: 出纳、应付会计
@@ -1166,6 +1206,10 @@ responsibility_matrix:
         approval_right: 无
         department_hint: 信息部门、人力资源部
         position_hint: 信息管理员、人事专员
+      - responsibility: 接收补休转计发登记待处理的告警并补齐加班工资基数后重新触发
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 薪酬岗
       - responsibility: 办理并登记延续注册
         approval_right: 无
         department_hint: 人力资源部
@@ -1182,6 +1226,10 @@ responsibility_matrix:
         approval_right: 无（区间唯一由不变量守卫）
         department_hint: 人力资源部
         position_hint: 人力资源专员、考勤管理员
+      - responsibility: 依据法规与公司制度编制并发布薪酬规则版本，对依据完整性负责；编制人与确认人不得为同一人（U7③ 推荐）
+        approval_right: 无（区间唯一由不变量守卫；编制与确认分人见 U7③）
+        department_hint: 人力资源部与财务部
+        position_hint: 薪酬岗（编制）、财务确认人（职能：薪酬规则确认）
       groups:
       - finance
       - people
@@ -1223,8 +1271,12 @@ responsibility_matrix:
         approval_right: 按费用或业务归属对象的责任人审批本类单据（谁负责谁批）；基础审批人为商机负责人；命中加审规则时上送财务负责人、总经理；商机负责人本人提交时由汇报线上级代批（AR-11）
         department_hint: 各区域事业部、经营管理部
         position_hint: 事业部负责人、项目总监
-      - responsibility: 投标保证金付款审批与是否参投判断（归属对象责任人，商机负责人的部门负责人）
+      - responsibility: 投标保证金付款审批（归属对象责任人，商机负责人的部门负责人）；参投判断已移至 PRC-183
         approval_right: 投标保证金付款：一级审批，超额按 AR-01、AR-02 加审
+        department_hint: 市场与经营部门或区域事业部
+        position_hint: 部门负责人
+      - responsibility: 触发异常条件（低于毛利底线、超产能、独立性冲突）时审批参投决策（商机负责人的部门负责人）
+        approval_right: 参投例外：一级审批
         department_hint: 市场与经营部门或区域事业部
         position_hint: 部门负责人
       - responsibility: 批准标准成本费率与计费系数版本
@@ -1387,7 +1439,7 @@ responsibility_matrix:
         approval_right: 无
         department_hint: 管理层
         position_hint: 管理层负责人
-      - responsibility: 获知知识条目发布情况
+      - responsibility: 获知知识条目发布情况；评审逾期时收到升级提醒并督办
         approval_right: 无（评审不由管理层做）
         department_hint: 管理层
         position_hint: 管理层负责人
@@ -1419,30 +1471,38 @@ responsibility_matrix:
         approval_right: 批准调岗申请（类型级，单级）
         department_hint: 新组织单元
         position_hint: 部门负责人（职能：新组织单元责任人）
-      - responsibility: 对本组织单元员工提出的用印申请，判断文件是否应当盖章、内部评审是否已完成
-        approval_right: 批准本组织单元员工的用印申请（审批平台，加审按 AR-11、AR-12）
-        department_hint: 申请人所在组织单元
-        position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
-      - responsibility: 对本组织单元员工提出的受控类别 IT 需求（如权限提升），判断业务必要性与范围
-        approval_right: 批准受控类别 IT 需求（审批平台，加审按 AR-11、AR-12）；并作为受理超时的提醒对象（信息部门负责人）
-        department_hint: 提出人所在组织单元；超时提醒对象为信息（IT）部门
-        position_hint: 组织单元负责人（部门负责人），超时提醒对象为信息部门负责人；岗位体系未定，按职能描述
-      - responsibility: 对本组织单元员工超出岗位标准配置的领用，判断业务需要是否成立
-        approval_right: 批准超出岗位标准配置的领用（审批平台，加审按 AR-11、AR-12）
-        department_hint: 申请人所在组织单元
-        position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
-      - responsibility: 对本组织单元提出的节日活动、创新项目发布，判断是否举办与规模
-        approval_right: 批准节日活动、创新项目发布申请（审批平台，加审按 AR-01、AR-11、AR-12）
-        department_hint: 申请人所在组织单元
-        position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
+      - responsibility: 按用印用途、法人、归属对象的正式制度配置判断无来源单据用印；责任归属不由 AR-11、AR-12 代替
+        approval_right: 仅在 D15 用印人工批准责任及加审范围配置完整时批准；AR-16 候选范围不能直接启用
+        department_hint: 按正式制度配置解析，不默认申请人部门
+        position_hint: 正式责任角色与授权层级上线前须填，见 ARCH-B31-materials 1、2
+      - responsibility: 按受控类别和正式制度配置判断业务必要性及范围，不默认提出人部门负责人
+        approval_right: 仅批准已配置为需人审的类别；金额先分清 IT 或采购承载，IT 自身承载才配置两档阈值和币种
+        department_hint: 各类别责任表指定，上线前须填
+        position_hint: 批准角色、类别表提供方与维护方、默认路由及采购交接上线前须填，见 ARCH-B31-materials 3、4
       - responsibility: 知悉跨组织单元的调拨，对本单元资产使用情况负责
-        approval_right: 无（只知悉；是否改为调入方确认见 notes 待用户定 6）
+        approval_right: 无（同一核算主体内跨组织只通知调出、调入两侧负责人，不增加批准）
         department_hint: 调出方、调入方所在组织单元
         position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
       - responsibility: 离职员工原组织单元负责人，对逾期未归还的资产收到提醒并督促
         approval_right: 无（只接收提醒）
         department_hint: 离职员工原组织单元
         position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
+      - responsibility: 对所辖组织单元的经营偏差作出解释，确定经营动作及其责任人和期限，定稿复盘
+        approval_right: 无（复盘记录不设审批）
+        department_hint: 复盘组织单元（部门、事业部；公司级为管理层）
+        position_hint: 组织单元负责人（部门负责人）；公司级为管理层负责人
+      - responsibility: 作为经营动作责任人完成动作并登记完成
+        approval_right: 无
+        department_hint: 动作责任人所在组织单元
+        position_hint: 组织单元负责人或其指定的动作责任人
+      - responsibility: 补发逾期超过 5 个工作日时收到升级提醒并督办
+        approval_right: 无
+        department_hint: 管理层
+        position_hint: 法人负责人（ROLE-26 总经理，按法人解析）
+      - responsibility: 获知知识条目的使用与复审情况
+        approval_right: 无
+        department_hint: 管理层
+        position_hint: 管理层负责人
       groups:
       - finance
       - people
@@ -1452,6 +1512,10 @@ responsibility_matrix:
       - 待岗位体系定
       org_needs:
       - responsibility: 获知经营计划基线
+        approval_right: 无
+        department_hint: 不适用（股东和合伙人）
+        position_hint: 不适用
+      - responsibility: 获知经营复盘结论与动作完成情况
         approval_right: 无
         department_hint: 不适用（股东和合伙人）
         position_hint: 不适用
@@ -1602,40 +1666,40 @@ responsibility_matrix:
       any: 56
     SH-E3:
       A: 2
-      R: 49
-      any: 49
+      R: 47
+      any: 47
     SH-E4:
       A: 13
-      R: 45
-      any: 45
+      R: 44
+      any: 44
     SH-E5:
       A: 5
-      R: 61
-      any: 61
+      R: 65
+      any: 65
     SH-E6:
-      A: 93
-      R: 176
-      any: 208
+      A: 100
+      R: 182
+      any: 219
     SH-E7:
       A: 1
       R: 2
       any: 2
     SH-M1:
-      A: 180
-      R: 46
-      any: 193
+      A: 183
+      R: 48
+      any: 198
     SH-O1:
       A: 2
       R: 2
       any: 2
     platform.approval:
       A: 0
-      R: 10
-      any: 10
+      R: 8
+      any: 8
     system:
       A: 0
-      R: 138
-      any: 138
+      R: 147
+      any: 147
     system（B-11 PRC-71 经 api 调用）:
       A: 0
       R: 1

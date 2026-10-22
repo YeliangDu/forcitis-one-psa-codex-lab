@@ -24,7 +24,9 @@
 | 项 | 值 |
 |---|---|
 | 在途 PR | 无；文档不开 PR，提交推送后报分支 + 提交号，one-merge 按调度批准收合集 |
-| 当前步 | 2026-10-17 13:59：①ADR-0052/0054/0055/0056 已采纳（b4dc1f6a），ADR-0057 报价发出编排模块已批并采纳（bcda802f，部分取代 ADR-0051 三处）；transitions.yaml 与 DDD SSOT 随整合确认包 T、D 册写入（intent 2026-10-17-112814）；②CAPINFO、TRN、B31、ADR57 确认页已答并写回；③命名接续 N9→N7，模块与新命令名随 N7；④SSOT 整合确认包方案 `proposals/ARCH_SSOT_CONSOLIDATION_PLAN.md`（8 册，R 册已记「不引入 DMN、判断走 D15 版本化配置」），N7 完成后开工；⑤在途：B31 参数清单页 ARC-1017-ARC-06（Codex）、A8 现行做法取证 ARC-1017-ARC-07（one-data 经 one-ops 通道，等参数清单）；⑥检查脚本 `--extra` 已落地，云端试点验收通过（`proposals/closeout/pilot/ACCEPTANCE.md`），铺开待调度定 |
+| 当前步 | 2026-10-22：ADR-0074～0077 已采纳；网络第三批卡 12～15 完成（facts、dimensions、kpis、bindings 四份登记接入全景节点 11～14）；#574、#580 已合入。下一步：三组设计分支进 main 后做 GL5 与聚合稿一批；签章服务准入复核。交接 `proposals/HANDOFF_2026-10-22.md` |
+| 已定（2026-10-22） | 命令编号持久登记（`ssot/11-commands/command-ids.yaml`，改名声明 former_names 沿用旧号，登记缺失须 --seed）；聚合根未建须列 `panorama/unbuilt_roots.yaml`（负责人、到期、≤60 天）；指标 kind 只取业务指标、出口条件、技术度量；NAMING §2.3 审计列为 created_at、updated_at、version；号段 PRC 到 202、AGG 到 137 |
+| 规矩（2026-10-22） | 守护与工具脚本单独开 PR；文档分支提交号直报 one-merge；已答确认页题面是历史记录不改；不用 --no-verify |
 | 已定（2026-10-16 晚） | 结构裁定 S-29–S-44；VS-02.7 改名收尾；新增 VS-04.6 履约、VS-08.0 事前申请；归段判据写进 stage_align_check；权责表 586 条冲突 0；跨组接缝清零 |
 | 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
 | 草稿位置 | proposals/：ENTERPRISE_INFO_MAP_DRAFT（一级 21）、ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS + value-streams.v2.yaml、STEP2_CAPABILITIES + capabilities.v2.yaml |
