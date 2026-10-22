@@ -2328,3 +2328,15 @@ processes:
     human_orchestration: false
     bpmn: ~
     note: "main 中 organization.attendance 与 integration 均未见企业微信打卡接口代码。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）"
+  - id: PRC-202
+    name: "维护应收默认账期规则"
+    type: single_aggregate
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "用户 KPI-Q04 新增配置（ARC-1022-ARE-01，one-architecture 4be29180 给号）；VS-15.1 编制版本草稿、VS-15.2 已生效、VS-15.3 新版本生效取代旧版本，均由本流程完成；同 PRC-52、165、166 的配置版本口径"
+    primary_object: "OBJ-124"
+    primary_object_note: "发布一版业务规则（OBJ-124，暂名）：应收默认账期规则，内容为全局默认账期与按协议类型 × 客户分级的覆盖行"
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
