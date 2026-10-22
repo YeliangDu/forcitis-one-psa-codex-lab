@@ -16,7 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * RULE-412 (user decision FD2-05): the timesheet context never reads an overtime approval or a comp-time balance; the leave context owns both.
+ * RULE-412 (user decision FD2-05): the timesheet context never reads an overtime approval or a compensatory-leave balance; the leave context owns both.
  * Hours filed on a non-workday are plain time records. The two contexts meet at one point only (RULE-413, leave hours of a day), which is a
  * later decision and a later rule, so this guard does not allow anything beyond it today.
  */
@@ -24,18 +24,23 @@ class TimesheetOvertimeSeamGuardTest {
 
     static final Path TIMESHEET_MAIN = Path.of("src/main/java/com/forcitis/one/cost/timesheet");
     static final Path TIMESHEET_MIGRATIONS = Path.of("src/main/resources/db/migration/cost_timesheet");
+    static final Path TIMESHEET_PROCESS = Path.of("src/main/resources/processes/cost_timesheet_approval.bpmn20.xml");
+    static final Path TIMESHEET_CONFIG = Path.of("src/main/resources/config/cost_timesheet.properties");
     static final Path MODULE_DEPENDENCIES = Path.of("architecture/module-dependencies.txt");
-    /** Words of the overtime and comp-time vocabulary, as identifiers (camel or snake case) or as table and column names. */
-    static final Pattern OVERTIME_WORD = Pattern.compile("(?i)(overtime|over_time|comp_?time|compensatory|toil_balance)");
+    static final String LEAVE_ROOT = "com.forcitis.one.organization.leave..";
+    /** Terms of the overtime and compensatory-leave vocabulary as identifiers (camel or snake case) or table and column names; the lookbehind keeps words like compTimestamp out. */
+    static final Pattern OVERTIME_WORD = Pattern.compile(
+            "(?i)(?<![a-z])(overtime|over_time|compensatory|leave_balance_account|organization_leave)|(?<![A-Za-z])(OvertimeRecord|CompensatoryLeave|LeaveBalanceAccount)");
 
     @Test
     @DisplayName("RULE-412: no class of cost.timesheet depends on a class of the leave and overtime context")
     void timesheetClassesDoNotDependOnLeave() {
-        noClasses().that().resideInAPackage("..cost.timesheet..")
-                .should().dependOnClassesThat().resideInAnyPackage("..organization.leave..", "..leave..")
-                .allowEmptyShould(true)
-                .because("RULE-412: the timesheet context never reads an overtime approval or a comp-time balance; the leave context owns both")
-                .check(new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS).importPackages(ArchitectureRulesTest.ROOT));
+        var classes = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS).importPackages(ArchitectureRulesTest.ROOT);
+        assertThat(classes.stream().filter(c -> c.getPackageName().startsWith("com.forcitis.one.cost.timesheet"))).isNotEmpty();
+        noClasses().that().resideInAPackage("com.forcitis.one.cost.timesheet..")
+                .should().dependOnClassesThat().resideInAPackage(LEAVE_ROOT)
+                .because("RULE-412: the timesheet context never reads an overtime approval or a compensatory-leave balance; the leave context owns both")
+                .check(classes);
     }
 
     @Test
@@ -45,15 +50,20 @@ class TimesheetOvertimeSeamGuardTest {
     }
 
     @Test
-    @DisplayName("RULE-412: the timesheet code and tables name no overtime approval or comp-time balance")
+    @DisplayName("RULE-412: the timesheet code, tables, process and config name no overtime approval or compensatory-leave balance")
     void timesheetNamesNoOvertimeVocabulary() throws IOException {
-        List<String> problems = new ArrayList<>();
+        List<Path> scanned = new ArrayList<>();
         for (Path root : List.of(TIMESHEET_MAIN, TIMESHEET_MIGRATIONS)) {
             try (Stream<Path> files = Files.walk(root)) {
-                for (Path file : files.filter(f -> f.toString().endsWith(".java") || f.toString().endsWith(".sql")).toList()) {
-                    problems.addAll(vocabularyIn(file.toString(), Files.readString(file)));
-                }
+                scanned.addAll(files.filter(f -> f.toString().endsWith(".java") || f.toString().endsWith(".sql")).toList());
             }
+        }
+        scanned.add(TIMESHEET_PROCESS);
+        scanned.add(TIMESHEET_CONFIG);
+        assertThat(scanned).hasSizeGreaterThan(2);
+        List<String> problems = new ArrayList<>();
+        for (Path file : scanned) {
+            problems.addAll(vocabularyIn(file.toString(), Files.readString(file)));
         }
         assertThat(problems).isEmpty();
     }
@@ -64,14 +74,15 @@ class TimesheetOvertimeSeamGuardTest {
         assertThat(leaveEdges("cost.timesheet -> organization.workforce, organization.leave\norganization.leave -> platform.audit"))
                 .containsExactly("cost.timesheet -> organization.workforce, organization.leave");
         assertThat(leaveEdges("cost.timesheet -> organization.workforce\n# cost.timesheet -> organization.leave")).isEmpty();
-        assertThat(vocabularyIn("T.java", "class Timesheet { Hours overtimeHours; CompTimeBalance balance; }")).hasSize(2);
-        assertThat(vocabularyIn("V.sql", "CREATE TABLE cost_timesheet.t (comp_time_balance numeric);")).hasSize(1);
+        assertThat(vocabularyIn("T.java", "class Timesheet { Hours overtimeHours; CompensatoryLeave balance; }")).hasSize(2);
+        assertThat(vocabularyIn("V.sql", "select * from organization_leave.leave_balance_accounts")).hasSize(2);
+        assertThat(vocabularyIn("T.java", "class Timesheet { long compTimestamp; }")).isEmpty();
         assertThat(vocabularyIn("T.java", "class Timesheet { Hours workHours; }")).isEmpty();
     }
 
     static List<String> leaveEdges(String moduleDependencies) {
         return moduleDependencies.lines().filter(l -> !l.strip().startsWith("#")).filter(l -> l.strip().startsWith("cost.timesheet"))
-                .filter(l -> l.contains("organization.leave") || l.matches(".*->.*\\bleave\\b.*")).toList();
+                .filter(l -> l.matches(".*->.*\\borganization\\.leave\\b.*")).toList();
     }
 
     static List<String> vocabularyIn(String where, String text) {
