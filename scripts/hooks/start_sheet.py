@@ -65,7 +65,7 @@ def front_matter(text):
 
 
 def git_lines(root, *args):
-    result = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True, timeout=10)
+    result = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True, timeout=3)
     return result.stdout.splitlines() if result.returncode == 0 else []
 
 
@@ -187,7 +187,7 @@ def part_c(root, source, cards, snapshot):
         return f"交接源 {path} 里没有标题含「{fragment}」的节，报调度" + shot
     line, title, level, date, body = found
     picks = []
-    for keys, label in ((("现状", "做到哪"), "做到哪"), (("下一步",), "下一步"), (("坑", "别做"), "别做")):
+    for keys, label in ((("现状", "做到哪", "在途"), "做到哪"), (("下一步",), "下一步"), (("坑", "别做", "不要做"), "别做")):
         for heading, content in sections(body, "#" * (level + 1)).items():
             if any(k in heading for k in keys):
                 items = [squash(row).lstrip("-*0123456789. ") for row in content.splitlines() if row.strip()]
@@ -246,11 +246,13 @@ def build(root, name=None, today=None, snapshot=None, intents=True):
     source = sc.handoff_source(profile)
     if source and sc.unsafe_reason(root, source[0]):
         source = None
-    cards = guarded("B", lambda: open_cards(root, name), [])
+    cards = guarded("B", lambda: open_cards(root, name), f"（本段生成失败，读 {TASKS}/ 里本会话的在途卡）")
+    cards_failed = cards if isinstance(cards, str) else None
+    cards = [] if cards_failed else cards
     bcs = sorted({f["bc"] for _, f, _ in cards if f.get("bc") and f["bc"] != "跨域"})
     out = [f"【开工单】会话 {name}｜画像 {profile_path}（长输出宿主只显示开头，本页在 {SHEET_LIMIT // 1024} KB 内）",
            "\n## A 身份", guarded("A", lambda: part_a(profile)),
-           "\n## B 当前任务", guarded("B", lambda: part_b(cards)),
+           "\n## B 当前任务", cards_failed or guarded("B", lambda: part_b(cards)),
            "\n## C 交接", guarded("C", lambda: part_c(root, source, cards, snapshot)),
            f"\n## D 近 {INTENT_DAYS} 天相关决定（intent/）", guarded("D", lambda: part_d(root, name, bcs, today)) if intents else "x" * D_LIMIT,
            "\n## 按需读（不注入）：" + ("、".join(docs) if docs else "无上下文文档") + "；规则细则 CLAUDE.md、docs/modernization/SESSION_PLAYBOOK.md"]
@@ -336,9 +338,9 @@ def self_test():
         write("docs/ctx.md", "# 上下文\n\n## 别的\n")
         assert "没有标题含「交接」的节" in build(root, "one-x", today)
         # other real layouts: a level-1 template with ## parts, an undated "现状" section without parts, the newest of several dated sections
-        write("docs/ctx.md", "# 交接报告：one-x\n\n## 1. 先读\n- 先读 R\n\n## 2. 现状\n- 做到 Q\n\n## 4. 下一步命令\n1. 跑 T\n")
+        write("docs/ctx.md", "# 交接报告：one-x\n\n## 1. 先读\n- 先读 R\n\n## 2. 在途（PR、分支）\n- 做到 Q\n\n## 4. 下一步命令\n1. 跑 T\n\n## 5. 不要做的事\n- 别碰 Z\n")
         level1 = build(root, "one-x", today)
-        assert "做到 Q" in level1 and "跑 T" in level1 and "先读 R" not in level1, level1
+        assert "做到 Q" in level1 and "跑 T" in level1 and "别碰 Z" in level1 and "先读 R" not in level1, level1
         write(f"{sc.SESSIONS}/one-x.md", open(os.path.join(root, f"{sc.SESSIONS}/one-x.md"), encoding="utf-8").read().replace("#交接", "#现状"))
         write("docs/ctx.md", "# 速查\n\n## 现状（2026-10-22 16:55，清空前）\n\n- 在做 U\n- 等 V\n\n## 别的\n\nW\n")
         flat = build(root, "one-x", today)
@@ -349,6 +351,17 @@ def self_test():
         write(f"{sc.SESSIONS}/one-x.md", open(os.path.join(root, f"{sc.SESSIONS}/one-x.md"), encoding="utf-8").read().replace("- 交接源: docs/ctx.md#交接\n", ""))
         assert "画像没有交接源" in build(root, "one-x", today)
         assert "告警" in build(root, "one-nobody", today)
+        # an unsafe handover source is not read
+        write(f"{sc.SESSIONS}/one-x.md", open(os.path.join(root, f"{sc.SESSIONS}/one-x.md"), encoding="utf-8").read().replace("## 上下文文档\n", "## 上下文文档\n\n- 交接源: /etc/hosts.md#交接\n"))
+        assert "画像没有交接源" in build(root, "one-x", today)
+        # a failing card read is said, never reported as "no card"
+        real_open_cards = open_cards
+        globals()["open_cards"] = lambda *a, **k: (_ for _ in ()).throw(OSError("boom"))
+        try:
+            nocards = build(root, "one-x", today)
+        finally:
+            globals()["open_cards"] = real_open_cards
+        assert "## B 当前任务\n（本段生成失败" in nocards and "无在途任务" not in nocards and "## C 交接" in nocards, nocards
         # a failing part says so and the others stay
         real_part_c = part_c
         part_c_error = lambda *a, **k: (_ for _ in ()).throw(OSError("boom"))
