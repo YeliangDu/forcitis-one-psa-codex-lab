@@ -1778,7 +1778,7 @@ terms:
   kind: business_rule
   bc: organization.administration
   scope: domain
-  definition: 员工活动登记被取消后，另建一条新登记并引用被取消记录；被取消记录不变，同一被取消记录只能有一条重登，重复重登返回原后继。
+  definition: 员工活动登记被取消后，另建一条新登记并引用被取消记录；被取消记录不变，同一被取消记录只能有一条重登：重复重登内容相同返回原后继，内容不同拒绝并带后继编号（T-R5）。重登也是手工提交，仍须校验类型与参与人。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
   confidence: medium
@@ -1808,7 +1808,7 @@ terms:
   kind: value_object
   bc: organization.administration
   scope: domain
-  definition: 取消员工活动登记的行政人员；库列 cancelled_by（外键引用员工，列名按 NAMING 以事实命名）。
+  definition: 取消员工活动登记的操作人，记其用户账号标识，不设外键；库列 cancelled_by。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
   confidence: medium
@@ -1831,6 +1831,36 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: employee_activity_type_system_only
+  zh: 仅系统生成
+  en: SystemOnly
+  snake: system_only
+  kind: value_object
+  bc: organization.administration
+  scope: domain
+  definition: 员工活动类型版本条目的属性：标为仅系统生成的类型只能由系统作业生成（如周年贺卡），手工提交与重登一律拒绝；契约与代码不写死类型代码，只读该属性；库列 system_only。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §3.1
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 依据用户已定「漏发不补」；T-G6，属性随 one-data T-D15 落库。
+- id: employee_activity_reregistration_successor
+  zh: 重登后继
+  en: EmployeeActivityReregistrationSuccessor
+  snake: employee_activity_reregistration_successor
+  kind: value_object
+  bc: organization.administration
+  scope: domain
+  definition: 被取消登记已有的重登记录；重登内容不同被拒时，响应带后继编号 successorDocumentNumber 与后继标识 successorRequestId 两个扩展属性。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 扩展属性名为 one-1a-admin 提议，T-G6 一并登记。
 - id: employee_activity_reregistration_source
   zh: 重登来源
   en: EmployeeActivityReregistrationSource
@@ -2365,7 +2395,7 @@ terms:
   kind: error_code
   bc: organization.administration
   scope: domain
-  definition: 有花费的员工活动未填预估金额（422）。
+  definition: 有花费的员工活动未填预估金额（422）；预估金额为 0 表示无费用，允许（T-R1）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q6
   confidence: low
@@ -2418,6 +2448,51 @@ terms:
   forbidden: []
   status: proposed
   note: 卡 C 契约新提议（T-G2）。
+- id: error__organization_administration_employee_activity_type_system_only
+  zh: 活动类型仅系统生成
+  en: OrganizationAdministrationEmployeeActivityTypeSystemOnly
+  snake: organization_administration_employee_activity_type_system_only
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 手工提交或重登了标为仅系统生成的活动类型（422）
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 C 契约新提议（T-G6）。
+- id: error__organization_administration_employee_activity_participant_not_employed
+  zh: 参与人已离职
+  en: OrganizationAdministrationEmployeeActivityParticipantNotEmployed
+  snake: organization_administration_employee_activity_participant_not_employed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 参与人中有登记业务日当天不在职的员工（422）
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 C 契约新提议（T-G6）。
+- id: error__organization_administration_employee_activity_already_reregistered
+  zh: 活动登记已重登
+  en: OrganizationAdministrationEmployeeActivityAlreadyReregistered
+  snake: organization_administration_employee_activity_already_reregistered
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 被取消登记已有内容不同的重登记录，响应带后继编号（409）
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 C 契约新提议（T-G6）。
 - id: error__organization_administration_hire_date_unavailable
   zh: 入职日期不可得
   en: OrganizationAdministrationHireDateUnavailable
