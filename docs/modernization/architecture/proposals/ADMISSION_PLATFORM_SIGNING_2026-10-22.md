@@ -58,7 +58,7 @@ ADR-0066 决定 7 的到期条件是「W1 结束，或该模块的首个使用 B
 |---|---|---|
 | 1 | 满足 | 过渡条款，同上表 |
 | 2 | 满足 | api 4 个方法只收台账条目 ID、`LegalEntityId`、印章类型码、时刻或日期，不收任何业务单据参数；`DocumentReference` 随电子用印批的签章记录使用，第一段不预留。opus 复审按此口径通过 |
-| 3 | 满足 | `module-dependencies.txt` 增 `platform.signing ->`（第一段无依赖）；`ModuleDependencyTest` 按传递闭包断言：可达的业务模块只许 `organization.workforce`，直接依赖不超出 ADR-0064 所列，`platform.approval` 不可达签章服务 |
+| 3 | 满足 | `module-dependencies.txt` 增 `platform.signing ->`（第一段无依赖）；`ModuleDependencyTest` 按传递闭包断言：可达的业务模块只许 `organization.workforce`，直接依赖不超出 ADR-0064 所列加 `platform.identity`（见下附），`platform.approval` 不可达签章服务 |
 | 4 | 满足 | 契约 §4：印章类型取值与电子印章就绪开关都放 D15 版本化配置表（开关列随电子印章批建）；条目载体是 D17 版本表上的事实列 |
 | 5 | 满足（随 #587 合入） | `platform.signing.api.SealLedger` 4 个方法 ≤12 |
 | 6 | 满足 | #564 已合；错误码中文名另交 one-glossary |
