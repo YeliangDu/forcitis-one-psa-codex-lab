@@ -48,6 +48,27 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
     writers: [organization.attendance]
+  # IMP-1021-PAR-02: the versioned calendar below replaces the two tables above once the confirmation flow writes to it; until then both exist.
+  organization_attendance.work_calendars:
+    role: CONFIG_VERSIONED
+    aggregate: WorkCalendar
+    mutability: APPEND_ONLY
+    versions_table: organization_attendance.work_calendar_versions
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+  organization_attendance.work_calendar_versions:
+    role: AGGREGATE_CHILD
+    aggregate: WorkCalendar
+    mutability: CONDITIONAL_UPDATE
+    condition: "PENDING_CONFIRMATION to CONFIRMED or WITHDRAWN, and closing the previous version's effective_to_date when the next one is confirmed (tg_work_calendar_versions_change)"
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
+  organization_attendance.work_calendar_version_days:
+    role: AGGREGATE_CHILD
+    aggregate: WorkCalendar
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
 
   # Identity of positions, org_units and employees comes from platform_integration.source_references, unique on (source_system, source_object_kind, source_id).
   # positions.code, org_units.code and employees.employee_code are display only and not unique in the source (five employee codes sit on several rows, three of them on both
@@ -416,6 +437,101 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: MIGRATION, migrated_from: [old document numbers], via: legacy_numbers}
     writers: [platform.numbering]
+
+  # platform.file (ADR-0060, 0061, 0070; data design signed by one-data, IMP-1021-COO-02 unit 3). Writers and readers are added with the use cases (units 5-7).
+  # Retention: files and their links are kept permanently until the disposal of ADR-0061 is built (90 days before the first possible expiry);
+  # the person columns follow RETENTION_PROPOSAL with a separate clean-up card, as source_references does.
+  platform_file.stored_files:
+    # Only file_status changes, along the transitions listed in the migration; everything else, the object key included, is refused by a trigger.
+    role: AGGREGATE_ROOT
+    aggregate: StoredFile
+    mutability: CONDITIONAL_UPDATE
+    condition: only file_status along the listed transitions (tg_stored_files_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+    references: {previous_file_id: platform_file.stored_files, derived_from_file_id: platform_file.stored_files}
+  platform_file.stored_file_names:
+    # De-identified once to a fixed placeholder by the disposal job platform.file.deidentify-file-names (built with ADR-0061 disposal).
+    role: AGGREGATE_CHILD
+    aggregate: StoredFile
+    mutability: CONDITIONAL_UPDATE
+    condition: one de-identification to the fixed placeholder (tg_stored_file_names_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+  platform_file.file_bindings:
+    role: AGGREGATE_CHILD
+    aggregate: StoredFile
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+  platform_file.file_holds:
+    role: AGGREGATE_CHILD
+    aggregate: StoredFile
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+  platform_file.file_preservations:
+    # The current row of a file is the one with the highest preservation_sequence_number; read it through current_file_preservations only.
+    role: AGGREGATE_CHILD
+    aggregate: StoredFile
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+  platform_file.preservation_categories:
+    role: CONFIG_VERSIONED
+    aggregate: PreservationCategory
+    mutability: MUTABLE
+    versions_table: platform_file.preservation_category_versions
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.file]
+  platform_file.preservation_category_versions:
+    # Inserted PENDING only (seed included) and confirmed once by another person; content never changes.
+    role: AGGREGATE_CHILD
+    aggregate: PreservationCategory
+    mutability: CONDITIONAL_UPDATE
+    condition: PENDING to CONFIRMED with the confirmation columns only (tg_preservation_category_versions_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.file]
+  platform_file.false_positive_judgments:
+    role: AGGREGATE_ROOT
+    aggregate: FalsePositiveJudgment
+    mutability: CONDITIONAL_UPDATE
+    condition: one review of a pending judgment (tg_false_positive_judgments_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+  platform_file.scan_exceptions:
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.file]
+  platform_file.scan_exception_revocations:
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.file]
+  platform_file.quarantine_read_requests:
+    role: AGGREGATE_ROOT
+    aggregate: QuarantineReadRequest
+    mutability: CONDITIONAL_UPDATE
+    condition: PENDING to APPROVED or REJECTED, APPROVED to READ (tg_quarantine_read_requests_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+  platform_file.state_transitions:
+    # Retention follows the aggregates' records once the user approves it; clean-up channel per STATE_TRANSITIONS_DESIGN section 4.
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
 
   platform_scheduling.scheduler_locks:
     role: FRAMEWORK
