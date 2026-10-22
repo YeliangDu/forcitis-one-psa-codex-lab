@@ -2,7 +2,7 @@
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_PRC-47" targetNamespace="https://forcitis.one/bpmn/PRC-47" exporter="bpmn_gen" exporterVersion="1">
   <signal id="Signal_1" name="OpportunityAccepted"/>
   <signal id="Signal_2" name="合同—项目关联已登记"/>
-  <signal id="Signal_3" name="ContractSigned"/>
+  <signal id="Signal_3" name="协议已生效"/>
   <dataStore id="DS_AGG-10" name="AGG-10"/>
   <dataStore id="DS_AGG-11" name="AGG-11"/>
   <dataStore id="DS_AGG-12" name="AGG-12"/>
@@ -26,14 +26,18 @@
         <flowNodeRef>S6_evt_19</flowNodeRef>
         <flowNodeRef>S6_gw_20</flowNodeRef>
         <flowNodeRef>S7_21</flowNodeRef>
-        <flowNodeRef>S7_gw_22</flowNodeRef>
-        <flowNodeRef>End_25</flowNodeRef>
-        <flowNodeRef>End_26</flowNodeRef>
-        <flowNodeRef>End_27</flowNodeRef>
+        <flowNodeRef>S7_evt_24</flowNodeRef>
+        <flowNodeRef>S7_gw_25</flowNodeRef>
+        <flowNodeRef>End_28</flowNodeRef>
+        <flowNodeRef>End_29</flowNodeRef>
+        <flowNodeRef>End_30</flowNodeRef>
+        <flowNodeRef>S7_21_bd_22</flowNodeRef>
       </lane>
       <lane id="Lane_SH-M1" name="管理层（SH-M1）">
         <flowNodeRef>S5_11_esc_13</flowNodeRef>
-        <flowNodeRef>End_24</flowNodeRef>
+        <flowNodeRef>S7_21_esc_23</flowNodeRef>
+        <flowNodeRef>End_27</flowNodeRef>
+        <flowNodeRef>End_31</flowNodeRef>
       </lane>
       <lane id="Lane_system" name="系统">
         <flowNodeRef>Start_1</flowNodeRef>
@@ -46,7 +50,7 @@
         <flowNodeRef>S5_api_14</flowNodeRef>
         <flowNodeRef>S5_gw_15</flowNodeRef>
         <flowNodeRef>S6_api_18</flowNodeRef>
-        <flowNodeRef>End_23</flowNodeRef>
+        <flowNodeRef>End_26</flowNodeRef>
         <flowNodeRef>S5_11_bd_12</flowNodeRef>
       </lane>
     </laneSet>
@@ -209,7 +213,7 @@
         <outputSet></outputSet>
       </ioSpecification>
     </serviceTask>
-    <intermediateThrowEvent id="S6_evt_19" name="ContractSigned">
+    <intermediateThrowEvent id="S6_evt_19" name="协议已生效">
       <incoming>Flow_20</incoming>
       <outgoing>Flow_21</outgoing>
       <signalEventDefinition signalRef="Signal_3"/>
@@ -232,26 +236,47 @@
       </ioSpecification>
       <dataOutputAssociation id="DOA_S7_21_1"><sourceRef>DOut_S7_21_1</sourceRef><targetRef>SR_S7_21_w1</targetRef></dataOutputAssociation>
     </userTask>
-    <exclusiveGateway id="S7_gw_22" name="确认生效条件满足？">
+    <boundaryEvent id="S7_21_bd_22" name="期限 P90D（约定了条件成就期限的按约定）" cancelActivity="false" attachedToRef="S7_21">
+      <outgoing>Flow_30</outgoing>
+      <timerEventDefinition><timeDuration>P90D（约定了条件成就期限的按约定）</timeDuration></timerEventDefinition>
+    </boundaryEvent>
+    <userTask id="S7_21_esc_23" name="处理超时：确认生效条件满足">
+      <documentation>升级给 SH-M1；期限 P90D（约定了条件成就期限的按约定）</documentation>
+      <incoming>Flow_30</incoming>
+      <outgoing>Flow_31</outgoing>
+      <ioSpecification id="IO_S7_21_esc_23">
+        <inputSet></inputSet>
+        <outputSet></outputSet>
+      </ioSpecification>
+    </userTask>
+    <intermediateThrowEvent id="S7_evt_24" name="协议已生效">
       <incoming>Flow_26</incoming>
       <outgoing>Flow_27</outgoing>
+      <signalEventDefinition signalRef="Signal_3"/>
+    </intermediateThrowEvent>
+    <exclusiveGateway id="S7_gw_25" name="确认生效条件满足？">
+      <incoming>Flow_27</incoming>
       <outgoing>Flow_28</outgoing>
+      <outgoing>Flow_29</outgoing>
     </exclusiveGateway>
-    <endEvent id="End_23" name="已撤回">
+    <endEvent id="End_26" name="已撤回">
       <incoming>Flow_14</incoming>
     </endEvent>
-    <endEvent id="End_24" name="已提醒">
+    <endEvent id="End_27" name="已提醒">
       <incoming>Flow_17</incoming>
     </endEvent>
-    <endEvent id="End_25" name="签约被拒">
+    <endEvent id="End_28" name="签约被拒">
       <incoming>Flow_22</incoming>
     </endEvent>
-    <endEvent id="End_26" name="协议已生效、付款条件项生效">
+    <endEvent id="End_29" name="协议已生效、付款条件项生效">
       <incoming>Flow_25</incoming>
+      <incoming>Flow_29</incoming>
+    </endEvent>
+    <endEvent id="End_30" name="生效条件未成就">
       <incoming>Flow_28</incoming>
     </endEvent>
-    <endEvent id="End_27" name="生效条件未成就">
-      <incoming>Flow_27</incoming>
+    <endEvent id="End_31" name="已提醒">
+      <incoming>Flow_31</incoming>
     </endEvent>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_3"/>
     <sequenceFlow id="Flow_2" sourceRef="Start_2" targetRef="S1_3"/>
@@ -266,21 +291,24 @@
     <sequenceFlow id="Flow_11" sourceRef="S5_11" targetRef="S5_api_14"/>
     <sequenceFlow id="Flow_12" sourceRef="S5_api_14" targetRef="S5_gw_15"/>
     <sequenceFlow id="Flow_13" name="审批通过" sourceRef="S5_gw_15" targetRef="S6_manual_16"/>
-    <sequenceFlow id="Flow_14" name="提交人撤回评审" sourceRef="S5_gw_15" targetRef="End_23"/>
+    <sequenceFlow id="Flow_14" name="提交人撤回评审" sourceRef="S5_gw_15" targetRef="End_26"/>
     <sequenceFlow id="Flow_15" name="其他" sourceRef="S5_gw_15" targetRef="S2_4"/>
     <sequenceFlow id="Flow_16" sourceRef="S5_11_bd_12" targetRef="S5_11_esc_13"/>
-    <sequenceFlow id="Flow_17" sourceRef="S5_11_esc_13" targetRef="End_24"/>
+    <sequenceFlow id="Flow_17" sourceRef="S5_11_esc_13" targetRef="End_27"/>
     <sequenceFlow id="Flow_18" sourceRef="S6_manual_16" targetRef="S6_reg_17"/>
     <sequenceFlow id="Flow_19" sourceRef="S6_reg_17" targetRef="S6_api_18"/>
     <sequenceFlow id="Flow_20" sourceRef="S6_api_18" targetRef="S6_evt_19"/>
     <sequenceFlow id="Flow_21" sourceRef="S6_evt_19" targetRef="S6_gw_20"/>
-    <sequenceFlow id="Flow_22" name="我方为风险管理机构且独立性检查有冲突、无书面同意" sourceRef="S6_gw_20" targetRef="End_25"/>
+    <sequenceFlow id="Flow_22" name="我方为风险管理机构且独立性检查有冲突、无书面同意" sourceRef="S6_gw_20" targetRef="End_28"/>
     <sequenceFlow id="Flow_23" name="客户拒绝回签，或依法招标项目与中标承诺实质背离" sourceRef="S6_gw_20" targetRef="S2_4"/>
     <sequenceFlow id="Flow_24" name="合同附生效条件（如预付款到账、履约保函提交、主管部门批复）" sourceRef="S6_gw_20" targetRef="S7_21"/>
-    <sequenceFlow id="Flow_25" name="其他" sourceRef="S6_gw_20" targetRef="End_26"/>
-    <sequenceFlow id="Flow_26" sourceRef="S7_21" targetRef="S7_gw_22"/>
-    <sequenceFlow id="Flow_27" name="生效条件确定不能成就或双方解除" sourceRef="S7_gw_22" targetRef="End_27"/>
-    <sequenceFlow id="Flow_28" name="其他" sourceRef="S7_gw_22" targetRef="End_26"/>
+    <sequenceFlow id="Flow_25" name="其他" sourceRef="S6_gw_20" targetRef="End_29"/>
+    <sequenceFlow id="Flow_26" sourceRef="S7_21" targetRef="S7_evt_24"/>
+    <sequenceFlow id="Flow_27" sourceRef="S7_evt_24" targetRef="S7_gw_25"/>
+    <sequenceFlow id="Flow_28" name="生效条件确定不能成就或双方解除" sourceRef="S7_gw_25" targetRef="End_30"/>
+    <sequenceFlow id="Flow_29" name="其他" sourceRef="S7_gw_25" targetRef="End_29"/>
+    <sequenceFlow id="Flow_30" sourceRef="S7_21_bd_22" targetRef="S7_21_esc_23"/>
+    <sequenceFlow id="Flow_31" sourceRef="S7_21_esc_23" targetRef="End_31"/>
     <dataStoreReference id="SR_S1_3_r1" name="AGG-10" dataStoreRef="DS_AGG-10"/>
     <dataStoreReference id="SR_S1_3_r2" name="AGG-11" dataStoreRef="DS_AGG-11"/>
     <dataStoreReference id="SR_S1_3_r3" name="AGG-12" dataStoreRef="DS_AGG-12"/>
@@ -298,20 +326,22 @@
     <association id="Assoc_Ann_1" sourceRef="S3_evt_9" targetRef="Ann_1" associationDirection="None"/>
     <textAnnotation id="Ann_2"><text>对方 BC：B-07、B-08、B-26</text></textAnnotation>
     <association id="Assoc_Ann_2" sourceRef="S6_evt_19" targetRef="Ann_2" associationDirection="None"/>
+    <textAnnotation id="Ann_3"><text>对方 BC：B-07、B-08、B-26</text></textAnnotation>
+    <association id="Assoc_Ann_3" sourceRef="S7_evt_24" targetRef="Ann_3" associationDirection="None"/>
   </process>
   <bpmndi:BPMNDiagram id="Diagram_PRC-47">
     <bpmndi:BPMNPlane id="Plane_PRC-47" bpmnElement="Collab_PRC-47">
       <bpmndi:BPMNShape id="Shape_P_main" bpmnElement="P_main" isHorizontal="true">
-        <dc:Bounds x="0" y="0" width="3550" height="390"/>
+        <dc:Bounds x="0" y="0" width="3900" height="390"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_SH-E5" bpmnElement="Lane_SH-E5" isHorizontal="true">
-        <dc:Bounds x="30" y="0" width="3520" height="130"/>
+        <dc:Bounds x="30" y="0" width="3870" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_SH-M1" bpmnElement="Lane_SH-M1" isHorizontal="true">
-        <dc:Bounds x="30" y="130" width="3520" height="130"/>
+        <dc:Bounds x="30" y="130" width="3870" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_system" bpmnElement="Lane_system" isHorizontal="true">
-        <dc:Bounds x="30" y="260" width="3520" height="130"/>
+        <dc:Bounds x="30" y="260" width="3870" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Start_1" bpmnElement="Start_1">
         <dc:Bounds x="87" y="307" width="36" height="36"/>
@@ -378,24 +408,36 @@
       <bpmndi:BPMNShape id="Shape_S7_21" bpmnElement="S7_21">
         <dc:Bounds x="2845" y="35" width="100" height="60"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_S7_gw_22" bpmnElement="S7_gw_22" isMarkerVisible="true">
-        <dc:Bounds x="3000" y="40" width="50" height="50"/>
-        <bpmndi:BPMNLabel><dc:Bounds x="2980" y="6" width="90" height="28"/></bpmndi:BPMNLabel>
+      <bpmndi:BPMNShape id="Shape_S7_21_bd_22" bpmnElement="S7_21_bd_22">
+        <dc:Bounds x="2902" y="77" width="36" height="36"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_End_23" bpmnElement="End_23">
-        <dc:Bounds x="3097" y="307" width="36" height="36"/>
+      <bpmndi:BPMNShape id="Shape_S7_21_esc_23" bpmnElement="S7_21_esc_23">
+        <dc:Bounds x="3015" y="165" width="100" height="60"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_End_24" bpmnElement="End_24">
-        <dc:Bounds x="3187" y="177" width="36" height="36"/>
+      <bpmndi:BPMNShape id="Shape_S7_evt_24" bpmnElement="S7_evt_24">
+        <dc:Bounds x="3177" y="47" width="36" height="36"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_End_25" bpmnElement="End_25">
-        <dc:Bounds x="3277" y="47" width="36" height="36"/>
+      <bpmndi:BPMNShape id="Shape_S7_gw_25" bpmnElement="S7_gw_25" isMarkerVisible="true">
+        <dc:Bounds x="3260" y="40" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="3240" y="6" width="90" height="28"/></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_End_26" bpmnElement="End_26">
-        <dc:Bounds x="3367" y="47" width="36" height="36"/>
+        <dc:Bounds x="3357" y="307" width="36" height="36"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_End_27" bpmnElement="End_27">
-        <dc:Bounds x="3457" y="47" width="36" height="36"/>
+        <dc:Bounds x="3447" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_28" bpmnElement="End_28">
+        <dc:Bounds x="3537" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_29" bpmnElement="End_29">
+        <dc:Bounds x="3627" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_30" bpmnElement="End_30">
+        <dc:Bounds x="3717" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_31" bpmnElement="End_31">
+        <dc:Bounds x="3807" y="177" width="36" height="36"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S1_3_r1" bpmnElement="SR_S1_3_r1">
         <dc:Bounds x="245" y="264" width="22" height="26"/>
@@ -438,6 +480,9 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Ann_2" bpmnElement="Ann_2">
         <dc:Bounds x="2632" y="6" width="86" height="30"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Ann_3" bpmnElement="Ann_3">
+        <dc:Bounds x="3152" y="6" width="86" height="30"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Edge_Flow_1" bpmnElement="Flow_1">
         <di:waypoint x="105" y="343"/>
@@ -509,8 +554,8 @@
       <bpmndi:BPMNEdge id="Edge_Flow_14" bpmnElement="Flow_14">
         <di:waypoint x="2075" y="350"/>
         <di:waypoint x="2075" y="379"/>
-        <di:waypoint x="3115" y="379"/>
-        <di:waypoint x="3115" y="343"/>
+        <di:waypoint x="3375" y="379"/>
+        <di:waypoint x="3375" y="343"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_15" bpmnElement="Flow_15">
         <di:waypoint x="2075" y="350"/>
@@ -525,8 +570,10 @@
         <di:waypoint x="1775" y="225"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_17" bpmnElement="Flow_17">
-        <di:waypoint x="1825" y="195"/>
-        <di:waypoint x="3187" y="195"/>
+        <di:waypoint x="1775" y="225"/>
+        <di:waypoint x="1775" y="254"/>
+        <di:waypoint x="3465" y="254"/>
+        <di:waypoint x="3465" y="213"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_18" bpmnElement="Flow_18">
         <di:waypoint x="2255" y="65"/>
@@ -551,8 +598,8 @@
       <bpmndi:BPMNEdge id="Edge_Flow_22" bpmnElement="Flow_22">
         <di:waypoint x="2765" y="90"/>
         <di:waypoint x="2765" y="124"/>
-        <di:waypoint x="3295" y="124"/>
-        <di:waypoint x="3295" y="83"/>
+        <di:waypoint x="3555" y="124"/>
+        <di:waypoint x="3555" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_23" bpmnElement="Flow_23">
         <di:waypoint x="2765" y="90"/>
@@ -567,24 +614,39 @@
       <bpmndi:BPMNEdge id="Edge_Flow_25" bpmnElement="Flow_25">
         <di:waypoint x="2765" y="90"/>
         <di:waypoint x="2765" y="114"/>
-        <di:waypoint x="3385" y="114"/>
-        <di:waypoint x="3385" y="83"/>
+        <di:waypoint x="3645" y="114"/>
+        <di:waypoint x="3645" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_26" bpmnElement="Flow_26">
         <di:waypoint x="2945" y="65"/>
-        <di:waypoint x="3000" y="65"/>
+        <di:waypoint x="3177" y="65"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_27" bpmnElement="Flow_27">
-        <di:waypoint x="3025" y="90"/>
-        <di:waypoint x="3025" y="124"/>
-        <di:waypoint x="3475" y="124"/>
-        <di:waypoint x="3475" y="83"/>
+        <di:waypoint x="3213" y="65"/>
+        <di:waypoint x="3260" y="65"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_28" bpmnElement="Flow_28">
-        <di:waypoint x="3025" y="90"/>
-        <di:waypoint x="3025" y="119"/>
-        <di:waypoint x="3385" y="119"/>
-        <di:waypoint x="3385" y="83"/>
+        <di:waypoint x="3285" y="90"/>
+        <di:waypoint x="3285" y="124"/>
+        <di:waypoint x="3735" y="124"/>
+        <di:waypoint x="3735" y="83"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_29" bpmnElement="Flow_29">
+        <di:waypoint x="3285" y="90"/>
+        <di:waypoint x="3285" y="119"/>
+        <di:waypoint x="3645" y="119"/>
+        <di:waypoint x="3645" y="83"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_30" bpmnElement="Flow_30">
+        <di:waypoint x="2920" y="113"/>
+        <di:waypoint x="2920" y="195"/>
+        <di:waypoint x="3015" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_31" bpmnElement="Flow_31">
+        <di:waypoint x="3065" y="225"/>
+        <di:waypoint x="3065" y="249"/>
+        <di:waypoint x="3825" y="249"/>
+        <di:waypoint x="3825" y="213"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Assoc_Ann_1" bpmnElement="Assoc_Ann_1">
         <di:waypoint x="1305" y="36"/>
@@ -593,6 +655,10 @@
       <bpmndi:BPMNEdge id="Edge_Assoc_Ann_2" bpmnElement="Assoc_Ann_2">
         <di:waypoint x="2675" y="36"/>
         <di:waypoint x="2675" y="47"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Ann_3" bpmnElement="Assoc_Ann_3">
+        <di:waypoint x="3195" y="36"/>
+        <di:waypoint x="3195" y="47"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DIA_S1_3_1" bpmnElement="DIA_S1_3_1">
         <di:waypoint x="256" y="290"/>

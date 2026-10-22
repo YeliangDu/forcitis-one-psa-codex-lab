@@ -42,13 +42,20 @@ contexts:
   zh: 行政事务
   subdomain: organization
   kind: business
-  status: planned
+  status: built
   schema: organization_administration
   blueprint_bc: B-31
   legacy_bc: null
-  basis: intent
-  evidence: 用户 intent 2026-10-16-152807（新增行政事务 BC）；glossary/bcs.yaml；B-31 2026-10-21 开工（one-1a-admin）
-  note: 不在 ADR-0051 决定 3 的 BC 清单，由 ADR-0074（起草中）补入；采纳前模块不得合入 main（B31_ARCH_RULINGS_2026-10-21.md 第 2 项）
+  basis: adr
+  adr:
+  - ADR-0054
+  - ADR-0055
+  - ADR-0057
+  - ADR-0060
+  - ADR-0064
+  - ADR-0074
+  evidence: 用户 intent 2026-10-16-152807；ADR-0074；backend 模块包与 module-dependencies.txt
+  note: 用印申请与登记、信息技术服务工单、信息技术资产使用与维修、员工活动申请；审批走 platform.approval，印章台账归签章服务；不依赖 platform.scheduling
 - id: organization.workforce
   zh: 组织人事 BC
   subdomain: organization

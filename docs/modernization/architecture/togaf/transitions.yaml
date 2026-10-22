@@ -112,7 +112,7 @@ transitions:
   status: in-progress
   after: []
   delivers: [platform.identity, platform.approval, platform.integration, platform.audit, platform.numbering, platform.scheduling,
-             platform.idempotency, platform.eventing, platform.web, organization.workforce, platform.file]
+             platform.idempotency, platform.eventing, platform.web, organization.workforce, platform.file, organization.administration]
   note: 边界按 ADR-0055；最近里程碑为通用审批先行上线（TRN-03，intent 2026-10-20-230855）；签章服务、一次性链接（ADR-0063、0064）定名后补入
   conditions: ADR-0054 决定 1
 - id: W1

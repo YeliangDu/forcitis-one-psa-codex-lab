@@ -49,3 +49,23 @@ ADR-0066 决定 7 的到期条件是「W1 结束，或该模块的首个使用 B
 - 7.5 至 7.9 与合同原件借阅中，没有未建模的线下盖章动作。
 - 归入 7.4 队列：用印审批人表、预盖空白页登记、过渡通道及其季度与月度作业、历史用印迁入映射。
 
+
+## 九条复核（2026-10-22 晚，one-architecture）
+
+证据：PR #587（`claude/one-platform-signing-api` @1f7ae51a6）与其中的 `phase1a/signing/CONTRACT_DRAFT.md`；opus 复审第 2 条通过（one-platform-file 转来）。
+
+| # | 结论 | 依据 |
+|---|---|---|
+| 1 | 满足 | 过渡条款，同上表 |
+| 2 | 满足 | api 4 个方法只收台账条目 ID、`LegalEntityId`、印章类型码、时刻或日期，不收任何业务单据参数；`DocumentReference` 随电子用印批的签章记录使用，第一段不预留。opus 复审按此口径通过 |
+| 3 | 满足 | `module-dependencies.txt` 增 `platform.signing ->`（第一段无依赖）；`ModuleDependencyTest` 按传递闭包断言：可达的业务模块只许 `organization.workforce`，直接依赖不超出 ADR-0064 所列加 `platform.identity`（见下附），`platform.approval` 不可达签章服务 |
+| 4 | 满足 | 契约 §4：印章类型取值与电子印章就绪开关都放 D15 版本化配置表（开关列随电子印章批建）；条目载体是 D17 版本表上的事实列 |
+| 5 | 满足（随 #587 合入） | `platform.signing.api.SealLedger` 4 个方法 ≤12 |
+| 6 | 满足 | #564 已合；错误码中文名另交 one-glossary |
+| 7 | 满足 | owner one-platform-file；守护落点见契约 §5（本批落 1、3、5、6 项） |
+| 8 | 满足 | ADR-0064 |
+| 9 | 满足 | 建造范围：one-platform-file 契约 §1；使用方确认：one-1a-admin 2026-10-22，见上 |
+
+**裁定**：#587 合入 main 当时，九条全部满足，`contexts.yaml` 改 `admission: 已准入`（one-architecture 在 main 上改，证据指本节）；改后用印 7.3、7.4 即可开工。
+
+**附：`platform.identity` 依赖。**ADR-0064 决定 1 第 3 条所列依赖里没有 `platform.identity`。台账与印章类型清单的维护端点要做权限校验，这是每个带 web 端点的模块都有的依赖；identity 属基础层，签章服务属公共服务层，按 ADR-0066 决定 2 的分层是向下依赖，不成环。本裁定认可签章服务在维护命令落地时依赖 `platform.identity`，只用于当前用户与权限；ADR-0064 该条随下一批 ADR 订正补列。`context-map.yaml` 中 `platform.identity>platform.signing` 的 basis 应改为「ADR-0066 决定 2；本节」，不写 ADR-0064。
