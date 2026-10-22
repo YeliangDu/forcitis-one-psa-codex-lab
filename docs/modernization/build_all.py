@@ -60,6 +60,23 @@ def snapshot(base=BASE):
             for name in files if name and name != "tasks/TASKS.md"}
 
 
+# 不入仓的生成产物（相对 docs/modernization）：--check 要求它们没有被跟踪（.gitignore 对已跟踪文件无效，合并冲突时「保留对方版本」会让它们悄悄回到库里），且生成之后确实存在
+UNTRACKED_PRODUCTS = ("adr/INDEX.md", "adr/README.md", "MODERNIZATION_BRIEF.md", "../../backend/glossary/proposed/README.md", "architecture/frameworks/CONCEPT_INDEX.md",
+                      "architecture/frameworks/NOTES_INDEX.md", "architecture/panorama/FREEZE_FACTS.md", "architecture/panorama/FREEZE_FACTS.yaml", "architecture/panorama/FREEZE_IMPACT.md")
+
+
+def check_untracked_products(base=BASE, products=UNTRACKED_PRODUCTS, adr_glob="adr/ADR-*.md"):
+    problems = []
+    tracked = subprocess.run(["git", "ls-files", "-ci", "--exclude-standard", "-z"], cwd=base, capture_output=True, text=True, check=True).stdout.split("\0")
+    problems += [f"{name} 是生成产物（.gitignore），却被跟踪：git rm --cached 它，保留源文件的改动" for name in tracked if name]
+    problems += [f"{name} 生成之后不存在：生成步骤没有写出它" for name in products if not Path(base, name).is_file()]
+    if not list(Path(base).glob(adr_glob)):
+        problems.append(f"{adr_glob} 生成之后一个都没有：build_adrs.py 没有写出 ADR 拷贝")
+    if problems:
+        sys.exit("不入仓的生成产物不对：\n" + "\n".join(problems))
+    print("check: 不入仓的生成产物没有被跟踪，且都已生成")
+
+
 def run_steps(steps, base=BASE):
     for step in steps:
         r = subprocess.run([sys.executable, os.path.join(base, step)], cwd=base, capture_output=True, text=True)
@@ -129,7 +146,26 @@ def self_test():
         checked_failure("连续两次生成内容不一致")
         (base / "check_tasks.py").write_text("raise SystemExit('generation failed')\n", encoding="utf-8")
         checked_failure("generation failed")
-    print("build_all --self-test：通过（手改、删除、漏生成失败；一致未提交产物通过；TASKS 缺失或手改可重建、两次不一致或生成失败被拦截）")
+    with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+        root = Path(tmp)
+        git = lambda *args: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=root, capture_output=True, text=True, check=True)
+        git("init", "-q", "-b", "main")
+        (root / ".gitignore").write_text("gen.md\nA-*.md\n", encoding="utf-8")
+        (root / "gen.md").write_text("g", encoding="utf-8")
+        (root / "A-1.md").write_text("a", encoding="utf-8")
+        def outcome(**kw):
+            try:
+                check_untracked_products(root, **kw)
+            except SystemExit as error:
+                return str(error)
+            return "ok"
+        assert outcome(products=("gen.md",), adr_glob="A-*.md") == "ok", "已生成且未被跟踪：通过"
+        assert "生成之后不存在" in outcome(products=("gen.md", "missing.md"), adr_glob="A-*.md"), "生成步骤没写出：失败"
+        assert "一个都没有" in outcome(products=("gen.md",), adr_glob="B-*.md"), "ADR 拷贝一个都没有：失败"
+        git("add", "-f", "gen.md")
+        git("add", ".gitignore")
+        assert "却被跟踪" in outcome(products=("gen.md",), adr_glob="A-*.md"), "被忽略的文件又被跟踪（冲突时保留对方版本）：失败"
+    print("build_all --self-test：通过（不入仓产物被跟踪或没生成即失败；手改、删除、漏生成失败；一致未提交产物通过；TASKS 缺失或手改可重建、两次不一致或生成失败被拦截）")
 
 
 def build_common(check):
@@ -151,6 +187,7 @@ def main():
     build_common("--check" in sys.argv)
     generate("--check" in sys.argv)
     if "--check" in sys.argv:
+        check_untracked_products()
         for step in SELF_TESTED:
             r = subprocess.run([sys.executable, os.path.join(BASE, step), "--self-test"], cwd=BASE, capture_output=True, text=True)
             if r.returncode:
