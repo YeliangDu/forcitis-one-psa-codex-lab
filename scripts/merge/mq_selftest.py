@@ -1393,6 +1393,39 @@ def _remove_busy(mq, d):
     mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
     assert "CANCELLED" in events(log) and q6.numbers() == [340] and ("label", 340, "queued", False) in gh.calls, (events(log), q6.numbers(), gh.calls)
 
+    # a claim that fails (disk) leaves nothing busy or marked; a failing unmark still frees busy; a request that came too late (the round ended in MERGED) does not take out an entry queued again meanwhile
+    gh = FakeGh(); gh.add(350)
+    proc, q12, log, _ = _proc(mq, d, "rb12", gh, [350])
+    q12.claim = lambda n: (_ for _ in ()).throw(OSError("disk full"))
+    try:
+        proc.pick("code")
+        raise AssertionError("must raise")
+    except OSError:
+        pass
+    assert proc.busy == set() and q12.working() == {}, "a failed claim leaves nothing busy"
+    q12.claim = mq.Queue.claim.__get__(q12)
+    q12.unmark_working = lambda n: (_ for _ in ()).throw(OSError("disk full"))
+    proc.busy.add(350)
+    try:
+        proc.release(350)
+    except OSError:
+        pass
+    assert 350 not in proc.busy, "busy is freed even when the mark cannot be removed"
+    gh = FakeGh(); gh.add(351)
+    holder = {}
+    proc, q13, log, _ = _proc(mq, d, "rb13", gh, [351])
+    real_merge = gh.merge
+
+    def merge_after_cancel_and_requeue(n, head):
+        q13.request_cancel(n)
+        q13.remove(n)
+        q13.enqueue(n)   # remove --cancel, then queued again, while the merge call is already under way
+        return real_merge(n, head)
+    gh.merge = merge_after_cancel_and_requeue
+    stops = iter([False, True] + [True] * 20)
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "MERGED" in events(log) and q13.numbers() == [351], (events(log), q13.numbers())
+
     # the request stops it while it waits for CI, before the merge is even looked at (the checkpoint in the CI wait)
     gh = FakeGh(); gh.add(341, rounds=[dict(pending=3, checks=green())])
     holder = {}

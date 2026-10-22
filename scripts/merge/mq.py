@@ -589,6 +589,7 @@ class Processor:
         self.lanes, self.busy = {}, set()
         self.waiting, self.wait_repeat = {}, 3600   # pull request -> (the dependencies it was last logged as waiting for, when): logged again when they change and every wait_repeat seconds, so a dependency that never merges stays loud
         self.guard = threading.Lock()
+        self.cancel_seen = set()
         self.main_checkout = main_checkout
 
     def lane(self, n, head=None):
@@ -612,10 +613,14 @@ class Processor:
                     if n in self.busy:
                         continue
                     self.busy.add(n)
-                if not self.queue.claim(n):   # taken out of the queue since the look: not started
+                try:
+                    claimed = self.queue.claim(n)
+                except BaseException:   # the claim itself failed (disk): nobody holds it, it must not stay busy
+                    self.release(n)
+                    raise
+                if not claimed:   # taken out of the queue since the look: not started
                     self.log.event("SKIPPED", n, None, None, "taken out of the queue before it was started")
-                    with self.guard:
-                        self.busy.discard(n)
+                    self.release(n)
                     continue
                 return n
         return None
@@ -720,6 +725,14 @@ class Processor:
             self.sleep(30)
             waited += 30
 
+    def release(self, n):
+        """No worker holds n any more: the mark goes, and busy goes whatever happens to the mark."""
+        try:
+            self.queue.unmark_working(n)
+        finally:
+            with self.guard:
+                self.busy.discard(n)
+
     def checkpoint(self, n):
         """Where a cancel request is honoured: anything before the merge call. Once gh has been asked to merge, it is too late and the merge stands."""
         if self.queue.cancel_requested(n):
@@ -735,13 +748,14 @@ class Processor:
         try:
             return self._process(n, since)
         except Cancelled:
-            self.gh.label(n, "queued", False)   # not queued any more: the label would start heavy CI for nothing
+            with contextlib.suppress(Exception):
+                self.gh.label(n, "queued", False)   # not queued any more: the label would start heavy CI for nothing
             self.log.event("CANCELLED", n, None, since, "stopped before the merge on request (mq.py remove --cancel); updates already pushed to the branch stay, the queued label is taken off")
             return "CANCELLED"
         finally:
-            self.queue.unmark_working(n)
-            with self.guard:
-                self.busy.discard(n)
+            if self.queue.cancel_requested(n):
+                self.cancel_seen.add(n)   # run_lane must not take out an entry queued again after `remove --cancel`, whatever the round ended with
+            self.release(n)
 
     def hold(self, n, run, since, why):
         self.log.event("HOLD", n, run, since, why)
@@ -939,11 +953,11 @@ def run_lane(proc, lane, idle=60, stop=lambda: False):
             try:
                 result = proc.process(n)
             finally:
-                proc.queue.unmark_working(n)
-                with proc.guard:
-                    proc.busy.discard(n)   # whatever happened, no worker holds it any more
+                proc.release(n)   # whatever happened, no worker holds it any more
             failures.pop(n, None)
-            if result != "CANCELLED":   # `remove --cancel` took it out already; it may have been queued again since
+            cancelled = result == "CANCELLED" or n in proc.cancel_seen   # `remove --cancel` took it out already; it may have been queued again since
+            proc.cancel_seen.discard(n)
+            if not cancelled:
                 proc.queue.remove(n)
             proc.log.event("DEQUEUE", n, None, None, result)
         except (Exception, SystemExit) as e:
