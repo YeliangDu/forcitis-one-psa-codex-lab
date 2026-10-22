@@ -6,6 +6,9 @@
              xmlns:forcitis="https://forcitis.com/psa/approval/extension"
              targetNamespace="https://forcitis.com/psa/approval">
   <process id="cost_timesheet_approval" name="Timesheet approval (repeat, manual)" isExecutable="true">
+    <extensionElements>
+      <forcitis:documentType code="TIMESHEET"/>
+    </extensionElements>
     <startEvent id="start"/>
     <sequenceFlow id="toRepeatReview" sourceRef="start" targetRef="repeatReview"/>
     <userTask id="repeatReview" name="Repeat review">
