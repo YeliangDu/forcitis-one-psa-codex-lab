@@ -138,6 +138,32 @@ class OssBusinessFileStoreTest {
     }
 
     @Test
+    void aRetryAfterTheStagingObjectExpiredCountsAsDoneWhenTheFormalObjectIsIntact() {
+        com.aliyun.oss.OSSException gone = new com.aliyun.oss.OSSException("gone", "NoSuchKey", null, null, null, null, null);
+        when(writer.getObjectMetadata("files-dev", STAGING.value())).thenThrow(gone);
+        when(writer.getObjectMetadata("files-dev", FORMAL.value())).thenReturn(stored(MD5, SHA, 7));
+
+        store.promote(STAGING, FORMAL, SHA, 7);
+
+        verify(writer, never()).copyObject(any(CopyObjectRequest.class));
+    }
+
+    @Test
+    void aRetryAfterTheStagingObjectExpiredFailsWhenTheFormalObjectIsMissingOrDiffers() {
+        com.aliyun.oss.OSSException gone = new com.aliyun.oss.OSSException("gone", "NoSuchKey", null, null, null, null, null);
+        when(writer.getObjectMetadata("files-dev", STAGING.value())).thenThrow(gone);
+        when(writer.getObjectMetadata("files-dev", FORMAL.value())).thenThrow(gone);
+        assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
+        org.mockito.Mockito.doReturn(stored("1".repeat(32), "1".repeat(64), 9)).when(writer).getObjectMetadata("files-dev", FORMAL.value());
+        assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
+    }
+
+    @Test
+    void maxLinkValidityIsThePropertiesCeiling() {
+        assertThat(store.maxLinkValidity()).isEqualTo(Duration.ofMinutes(15));
+    }
+
+    @Test
     void aStagingObjectThatDiffersIsNotPromoted() {
         when(writer.getObjectMetadata("files-dev", STAGING.value())).thenReturn(stored(MD5, "0".repeat(64), 7));
         assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);

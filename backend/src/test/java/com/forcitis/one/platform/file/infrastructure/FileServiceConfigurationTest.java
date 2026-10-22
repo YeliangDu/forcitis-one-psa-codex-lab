@@ -46,39 +46,54 @@ class FileServiceConfigurationTest {
                         "forcitis.platform.file.store.download-link-maximum-validity=PT15M");
     }
 
+    private static BusinessFileStore bucket() {
+        BusinessFileStore store = mock(BusinessFileStore.class);
+        org.mockito.Mockito.when(store.maxLinkValidity()).thenReturn(java.time.Duration.ofMinutes(15));
+        return store;
+    }
+
+    @Test
+    void aLinkCeilingAboveWhatTheBucketSignsDoesNotStart() {
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> {
+            BusinessFileStore store = mock(BusinessFileStore.class);
+            org.mockito.Mockito.when(store.maxLinkValidity()).thenReturn(java.time.Duration.ofMinutes(10));
+            return store;
+        }).run(context -> assertThat(context).hasFailed());
+    }
+
     @Test
     void onWithBothPortsStores() {
-        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket)
                 .run(context -> assertThat(context).hasNotFailed().hasSingleBean(StoreContent.class).hasSingleBean(BindFile.class)
                         .hasSingleBean(IssueDownloadLink.class).hasSingleBean(PlatformFileContent.class));
     }
 
     @Test
     void onWithoutTheScannerOrTheBucketDoesNotStart() {
-        runner().withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class)).run(context -> assertThat(context).hasFailed());
+        runner().withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket).run(context -> assertThat(context).hasFailed());
         runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void aSizeAboveWhatClamAvScansDoesNotStart() {
-        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket)
                 .withPropertyValues("forcitis.platform.file.store.max-file-size=3GB").run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void aSweepAgeNotAboveTheUploadDeadlineDoesNotStart() {
-        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket)
                 .withPropertyValues("forcitis.platform.file.store.staging-sweep-age=PT10M").run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void aDownloadLinkLongerThanFifteenMinutesOrADefaultAboveTheMaximumDoesNotStart() {
-        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket)
                 .withPropertyValues("forcitis.platform.file.store.download-link-maximum-validity=PT16M").run(context -> assertThat(context).hasFailed());
-        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket)
                 .withPropertyValues("forcitis.platform.file.store.download-link-maximum-validity=PT8M", "forcitis.platform.file.store.download-link-validity=PT10M")
                 .run(context -> assertThat(context).hasFailed());
-        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket)
                 .withPropertyValues("forcitis.platform.file.store.download-link-validity=").run(context -> assertThat(context).hasFailed());
     }
 
