@@ -418,3 +418,144 @@ rulings:
     definition: 记录公司信息技术资产的故障、维修安排与完成情况的维修单。
     forbid_old: true
     source: 用户 2026-10-21 用语确认第五批 GL4-04（提交 GL4-20261021-221322-bbn，intent 2026-10-21-221338）
+  - op: redefine
+    late: true
+    id: net_service_revenue
+    definition: 管理口径的净额，不用于法定报表：不含税收入减委外与分包、再减可向客户转收的代垫费用后的余额；信息服务费不在此扣除，计入直接项目费用并在贡献毛利中扣除。法定收入按总额含代垫确认，二者可互相推导：净服务收入 ＝ 法定收入（不含税）− 委外与分包 − 可向客户转收的代垫费用，报表脚注写出推导关系（用户 KPI-Q02）；原「净收入」并入本词（KPI-Q02、NU-13）
+    add_aliases:
+    - name: 净收入
+      type: standard-zh
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: deprecate
+    late: true
+    id: net_revenue
+    replaced_by: net_service_revenue
+    until: '2026-12-31'
+    owner: one-glossary
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: pass_through_cost
+    definition: 为履行合同转付给第三方的成本：分包成本、外包成本（合称委外与分包），以及可向客户转收的代垫费用；在净服务收入中扣减（用户 KPI-Q02）
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: intermediary_fee
+    definition: 居间协议约定的佣金支出；公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；应付登记须挂触发事实，不是转付成本，在贡献毛利中扣减、不在净服务收入中扣（FD-17、FD-41）
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: indirect_cost
+    definition: 不能直接归属项目的成本与费用，按职能（研发、总部、支持、销售、居间等）归集；分摊规则按财务口径 FD-44
+    add_aliases:
+    - name: 间接费用
+      type: dialect
+    add_forbidden:
+    - 间接费用
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: accrual_basis_revenue
+    definition: 权责口径账簿按客户确认（收入确认单）确认的营业收入（不含税）；与收付口径账簿按开票确认的收入相对，经营分析以此为收入主口径
+    add_aliases:
+    - name: 收入确认（不含税）
+      type: standard-zh
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: revenue_including_tax
+    definition: 年度目标跟踪使用的含税收入指标；主收入口径及收入与成本配对仍使用不含税口径。
+    add_aliases:
+    - name: 收入确认（含税）
+      type: standard-zh
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: redefine
+    late: true
+    id: project_cost
+    definition: 项目直接投入的归集结果（DC_BIL = DL + DE + 分包）；按科目划分的「变动成本」「固定成本」两栏已废弃，不复活旧词；以后按成本性态分析时另立「成本性态」维度（用户 KPI-Q07）
+    add_aliases:
+    - name: 变动成本
+      type: dialect
+    - name: 固定成本
+      type: dialect
+    add_forbidden:
+    - 变动成本
+    - 固定成本
+    source: 用户 2026-10-22 指标口径页 KPI（提交 KPI-20261022-085652-r54，KPI-Q02、KPI-Q07）及用语规则 NU-10～13
+  - op: promote
+    id: agreement_status__signed
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+    confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+    entry:
+      id: agreement_status__signed
+      zh: 协议已签署
+      en: AgreementSigned
+      snake: agreement_signed
+      kind: state
+      bc: contract.agreement
+      scope: domain
+      definition: 状态显示名「已签署」；协议已签署但尚未满足约定的生效条件；无附条件的协议签署与生效同事务完成，只落已生效
+      standard_ref:
+      - rules/decide/sheets/GL5.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: agreement_status__effective
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+    confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+    entry:
+      id: agreement_status__effective
+      zh: 协议已生效
+      en: AgreementEffective
+      snake: agreement_effective
+      kind: state
+      bc: contract.agreement
+      scope: domain
+      definition: 状态显示名「已生效」；协议已生效；只能由业务操作触发，附条件的协议经「确认生效条件满足」命令转入，不能手工改状态；转入时记生效依据：条件类型、证据单据号（如预付款保函编号）、生效日
+      standard_ref:
+      - rules/decide/sheets/GL5.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: asset_card
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）
+    confirmed: 2026-10-22（用户，用语确认第六批 GL5）
+    entry:
+      id: asset_card
+      zh: 资产卡片
+      en: AssetCard
+      snake: asset_card
+      kind: entity
+      bc: accounting.fixedasset
+      scope: domain
+      definition: 财务为达到固定资产标准的公司资产建的账务档案；卡片、折旧、报废与盘点账务归固定资产模块，行政事务只引用卡片号；不等同于公司资产本身
+      standard_ref:
+      - rules/decide/sheets/GL5.json
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: redefine
+    late: true
+    id: company_asset
+    definition: 本公司拥有或控制并登记管理使用、折旧、摊销及处置情况的资产；公司资产是资产本身，不等同于固定资产类别，也不等同于固定资产卡片。
+    source: 用户 2026-10-22 用语确认第六批 GL5（提交 GL5-20261022-061239-ywg，intent 2026-10-22-061733）（用户备注）
+  - op: redefine
+    late: true
+    id: direct_labor
+    definition: 有效工时乘该变体所用的成本费率，可复算；按变体分费率：预算、预估变体用标准成本费率卡的版本，实际变体用实际成本费率（含加班计价）；挂项目的奖金按服务期间计提计入直接人工：预算、预估变体按费率卡版本的奖金计提率，实际变体按计提并在奖金核定后单列调整行（FCQ-05、FCQ-01）
+    source: 用户 2026-10-22 FCQ-05、FCQ-01（intent 2026-10-22-103824）；公式见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.1、§2.2（@ed99f3b8）
+  - op: redefine
+    late: true
+    id: actual_cost_rate
+    definition: 用于成本核算的实际成本费率，与交付使用的标准成本费率、售前使用的计费费率分立。标准小时费率 r ＝ 当日日薪 ÷ 标准日工时（默认 7.5，按法人可配）；当日人工成本：工作日 r × [min(H, 8) + 1.5 × max(H − 8, 0)]，休息日未补休 r × 2 × H、已补休 r × 1 × H，法定节假日 r × 3 × H（H 为当日总工时；《劳动法》第三十六条、第四十四条；7.5 到 8 小时按 1 倍计）；取代 FD-09 中按 max(当日总工时, 7.5) 摊薄的做法（FCQ-05）
+    source: 用户 2026-10-22 FCQ-05（intent 2026-10-22-103824）；公式见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §2.2（@ed99f3b8）
+  - op: redefine
+    late: true
+    id: standard_cost_rate_card
+    definition: 薪酬脱敏后的版本化政策费率（财务维护）；版本上同时挂奖金计提率，规则类型分合同额百分比与历史比率（默认历史比率），预算、预估、实际三个变体用同一版本（FCQ-01）
+    source: 用户 2026-10-22 FCQ-01（intent 2026-10-22-103824）；见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.2（@ed99f3b8）

@@ -117,6 +117,16 @@ class FlowableApprovalEngine implements ApprovalEngine {
     }
 
     @Override
+    public DocumentTypeCode documentTypeOf(ProcessKey processKey) {
+        ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(processKey.key())
+                .latestVersion().singleResult();
+        if (definition == null) {
+            throw new IllegalStateException("No deployed process definition " + processKey.key());
+        }
+        return ProcessDocumentType.read(processKey, repository.getBpmnModel(definition.getId()).getMainProcess());
+    }
+
+    @Override
     public void startInstance(InstanceStart start) {
         Map<String, Object> engine = new LinkedHashMap<>(EngineVariables.toEngine(start.variables()));
         String businessKey = start.document().documentId().value().toString();

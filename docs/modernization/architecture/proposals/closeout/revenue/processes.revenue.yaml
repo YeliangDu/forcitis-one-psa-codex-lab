@@ -1710,7 +1710,7 @@ processes:
   - id: SH-E5
     as: performer
     org_needs:
-      responsibility: 合同签回后转正风险交付授权，并入协议
+      responsibility: 协议生效后转正风险交付授权，并入协议
       approval_right: 无审批权
       department_hint: 市场与经营部门
       position_hint: 商务
@@ -1748,7 +1748,7 @@ processes:
     where: in_system
     command: 申请风险交付授权
     aggregate: AGG-17
-    desc: 同一对象同类型同时段唯一（INV-18），重复申请被拒
+    desc: 同一对象同类型同时段唯一（INV-18），重复申请被拒；先行投入按申请授权时承担部门所属法人立项，协议生效后协议承担法人不同的另立项目（用户 LEB-05）
     cross_bc:
     - mode: api
       direction: out
@@ -1841,7 +1841,7 @@ processes:
     - 风险交付授权已批准
     desc: 审批通过后由 B-05 订阅审批结果执行（S-22 同做法）；v1 此步由管理层执行，本批改为审批结果回调
     decision:
-    - when: 合同已签回
+    - when: 协议已生效（订阅「协议已生效」，GL5 订阅裁定）
       goto: 6
       p: 0.6
     - when: 授权期限届满或不再签约
@@ -1872,7 +1872,7 @@ processes:
     branch: 转正
     emits:
     - Regularized
-    desc: 并入协议；转正与叫停互斥（INV-19）
+    desc: 协议已生效后转正并入协议（GL5-01：ContractSigned 只表示已签署，不触发转正）；转正与叫停互斥（INV-19）
     decision:
     - when: otherwise
       goto: end
@@ -2139,6 +2139,8 @@ processes:
   - PRC-18-S04
   - PRC-18-S05
   - PRC-18-S06
+  - PRC-18-S07
+  - PRC-18-S08
   roles:
   - id: SH-E2
     as: initiator
@@ -2167,7 +2169,7 @@ processes:
     actor_v1: 项目经理
     command: 编制交付计划版本
     aggregate: AGG-21
-    desc: 里程碑按阶段编制；修订须写原因（INV-43）；同一项目对客与内部各只有一个生效基线
+    desc: 里程碑按阶段编制；修订须写原因（INV-43）；同一项目对客与内部各只有一个生效基线。对客基线须注明依据的内部基线版本，缺即拒（INV-140 暂号）；内部基线须含全部合同里程碑，内部日期晚于对客只提示（INV-141 暂号）；进度考核按内部基线，延期、结算与索赔按对客基线（用户 LEB-07）
     decision:
     - when: 本版本是对客基线（需发包人批准）
       goto: 2
@@ -4906,7 +4908,7 @@ processes:
   trigger:
     type: event
     events:
-    - event: ContractSigned
+    - event: 协议已生效
       aggregate: AGG-13
     desc: 协议回签生效后，检查负责人制定周期检查计划
   stages:
@@ -4919,7 +4921,7 @@ processes:
   scope: 按承担部门的数据范围：检查负责人可见并经办本部门受托协议的检查计划；委托方（保险公司等）不登录本系统
   triggers:
   - type: event
-    name: ContractSigned
+    name: 协议已生效
     bc: B-05
   outcomes:
   - 计划已生效
@@ -4974,7 +4976,7 @@ processes:
     - mode: event
       direction: in
       bc: B-05
-      name: ContractSigned
+      name: 协议已生效
     - mode: api
       direction: out
       bc: B-05
@@ -6096,7 +6098,8 @@ processes:
   - type: human
     name: 直接委托经审批的直建例外，商务起草（INV-06）
   outcomes:
-  - 协议已签署生效、付款条件项生效
+  - 协议已生效、付款条件项生效
+  - 生效条件未成就
   - 签约被拒
   - 已撤回
   scenarios:
@@ -6109,6 +6112,10 @@ processes:
   - PRC-47-S07
   - PRC-47-S08
   - PRC-47-S09
+  - PRC-47-S10
+  - PRC-47-S11
+  - PRC-47-S12
+  - PRC-47-S13
   roles:
   - id: SH-E5
     as: initiator
@@ -6288,7 +6295,7 @@ processes:
     evidence:
     - 客户盖章回签合同扫描件
     - 回签日与回签人（须为合同登记的授权人）
-    desc: 回签即生效；基线化前比对承诺（INV-05、07）；签约前再读独立性检查结论（INV-33）
+    desc: 基线化前比对承诺（INV-05、07）；签约前再读独立性检查结论（INV-33）。无附生效条件的，签署与生效同一事务完成，只落「已生效」并记生效依据（签署即生效、回签合同文件号、回签日）；附生效条件的落「已签署」，待第 7 步确认（用户 GL5-01）
     decision:
     - when: 我方为风险管理机构且独立性检查有冲突、无书面同意
       goto: end
@@ -6299,9 +6306,13 @@ processes:
       goto: 2
       rule: INV-05
       p: 0.1
+    - when: 合同附生效条件（如预付款到账、履约保函提交、主管部门批复）
+      goto: 7
+      p: 0.09
     - when: otherwise
       goto: end
-      p: 0.89
+      outcome: 协议已生效、付款条件项生效
+      p: 0.8
     cross_bc:
     - mode: api
       direction: out
@@ -6310,22 +6321,22 @@ processes:
     - mode: event
       direction: out
       bc: B-07
-      name: ContractSigned
+      name: 协议已生效
     - mode: event
       direction: out
       bc: B-08
-      name: ContractSigned
+      name: 协议已生效
     - mode: event
       direction: out
       bc: B-26
-      name: ContractSigned
+      name: 协议已生效
     - mode: event
       direction: in
       bc: platform.approval
       name: 审批已通过
     permission: 协议.回签
     page: 协议回签登记页
-    outcome: 协议已签署生效、付款条件项生效
+    outcome: 协议已生效、付款条件项生效
     audit: true
     metric_event: true
     legal_entity: 承担法人
@@ -6338,7 +6349,57 @@ processes:
     wait:
       typical_h: 72
       p90_h: 240
-  notes: 直建例外须经审批（INV-06）；订阅方 B-07、B-08、B-26。报价版本已生效、独立性检查已有结论无事件消费者，签约时读取，可接受（⑥a 评审 L3）。回签后触发销售合同归档 PRC-141（同事件 ContractSigned）。
+  - actor: SH-E5
+    where: in_system
+    added_in: closeout
+    command: 确认生效条件满足
+    aggregate: AGG-13
+    emits:
+    - 协议已生效
+    desc: 拟命令（用户 GL5-01）。生效条件成就后登记生效依据（条件类型、证据单据号、生效日），协议由「已签署」转「已生效」，付款条件项随之生效；只能经本命令转换，不得手工改状态（ADR-0058）。合同负责人凭证据确认，不另设审批；我方须履行的条件（如履约保函提交）由财务资金岗先登记证据（用户 LEB-08）。约定了条件成就期限的按约定；未约定的签署后 30 天提醒合同负责人，90 天升级部门负责人决定继续等待或经 PRC-68 终止，不自动终止（用户 LEB-09）
+    evidence:
+    - 生效条件成就的证据（如预付款到账回单、履约保函、批复文件）
+    decision:
+    - when: 生效条件确定不能成就或双方解除
+      goto: end
+      outcome: 生效条件未成就
+      p: 0.05
+    - when: otherwise
+      goto: end
+      outcome: 协议已生效、付款条件项生效
+      p: 0.95
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-07
+      name: 协议已生效
+    - mode: event
+      direction: out
+      bc: B-08
+      name: 协议已生效
+    - mode: event
+      direction: out
+      bc: B-26
+      name: 协议已生效
+    permission: 协议.确认生效条件
+    page: 协议生效确认页
+    outcome: 协议已生效、付款条件项生效
+    audit: true
+    metric_event: true
+    notify:
+    - to: SH-E5
+      how: 企业微信待办（协议已签署待生效：未约定期限的签署后 30 天提醒合同负责人，LEB-09）
+    timeout:
+      after: P90D（约定了条件成就期限的按约定）
+      escalate_to: SH-M1
+      interrupting: false
+    effort:
+      typical_min: 10
+      p90_min: 30
+    wait:
+      typical_h: 240
+      p90_h: 1440
+  notes: 直建例外须经审批（INV-06）；B-07、B-08、B-26 订阅「协议已生效」（one-architecture GL5 订阅裁定 a9969cd8：ContractSigned 只表示已签署，不再触发这三处；无附生效条件时回签同事务发出，附条件时由第 7 步发出）。报价版本已生效、独立性检查已有结论无事件消费者，签约时读取，可接受（⑥a 评审 L3）。回签后触发销售合同归档 PRC-141（同事件 ContractSigned）。
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 份
 - id: PRC-48
   name: 提出并生效协议变更或签证
@@ -6376,6 +6437,7 @@ processes:
   - PRC-48-S10
   - PRC-48-S11
   - PRC-48-S12
+  - PRC-48-S13
   roles:
   - id: SH-E5
     as: initiator
@@ -6435,6 +6497,7 @@ processes:
     where: in_system
     actor_v1: 商务
     command: 提出协议变更
+    desc: 变更类型含变更、签证与合同主体变更；合同主体变更须客户书面同意（三方协议），新承担法人须在五家之内，生效后原项目结项（或终止）、新法人另立项目，已确认部分由原法人开完票、收完款（用户 LEB-01、LEB-02）
     aggregate: AGG-15
     decision:
     - when: 现场签证事项
@@ -6809,7 +6872,7 @@ processes:
     name: 商务按框架协议起草任务订单
   outcomes:
   - 占用被拒
-  - 任务订单已签署生效
+  - 任务订单已生效
   - 限额已释放
   scenarios:
   - PRC-50-S01
@@ -6886,7 +6949,7 @@ processes:
     decision:
     - when: 审批通过
       goto: end
-      outcome: 任务订单已签署生效
+      outcome: 任务订单已生效
       p: 0.88
     - when: 提交人撤回订单
       goto: 3
@@ -10459,7 +10522,7 @@ event_policies:
   trigger:
     type: event
     events:
-    - event: ContractSigned
+    - event: 协议已生效
       aggregate: AGG-13
     - event: 新基线已生效
       aggregate: AGG-13
@@ -10475,7 +10538,7 @@ event_policies:
   migration: 迁入协议的额度行由迁入事实重放建立：累计开票额与累计确认额取自迁入的发票与确认事实（U-4），不重复发事件；投产前已回签的协议，由迁入编排模块的一次性离线命令在迁入完成时建额度；额度改动只追加变动行（data-model 补丁 L7）
   triggers:
   - type: event
-    name: ContractSigned
+    name: 协议已生效
     publisher: B-05
   - type: event
     name: 新基线已生效
@@ -10492,7 +10555,7 @@ event_policies:
     - mode: event
       direction: in
       bc: B-05
-      name: ContractSigned
+      name: 协议已生效
     - mode: event
       direction: in
       bc: B-05
@@ -10512,7 +10575,7 @@ event_policies:
   - PRC-51-S03
   - PRC-51-S04
   - PRC-51-S05
-  notes: 协议已终止、协议已结算的订阅反应见 PRC-149（冲销收入确认，H2）；额度调整留变动行，记因哪个基线版本、谁、何时改。
+  notes: 用户 GL5-01 后改订阅「协议已生效」：额度在协议生效时建立，附生效条件的协议签署后不建额度。协议已终止、协议已结算的订阅反应见 PRC-149（冲销收入确认，H2）；额度调整留变动行，记因哪个基线版本、谁、何时改。
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 次
 - id: PRC-53
   name: 确认收入
@@ -10719,7 +10782,7 @@ event_policies:
     command: 创建应收
     aggregate: AGG-49
     rule: INV-76
-    desc: 销售应收只由蓝字发票产生（INV-76）；按发票 ID 幂等；读不到购买方则失败并告警
+    desc: 销售应收只由蓝字发票产生（INV-76）；按发票 ID 幂等；读不到购买方则失败并告警。到期日 ＝ 开票日 ＋ 账期，账期依次取付款条件项约定、账期规则覆盖（协议类型 × 客户分级，读开票日当时值）、全局默认 30 日（用户 KPI-Q04，DEFAULT_PAYMENT_TERM.md），应收上记账期天数与来源，规则改后不回算
     cross_bc:
     - mode: event
       direction: in
@@ -11337,7 +11400,7 @@ event_policies:
       bc: B-04
       name: 读关联项目是否已开始执行
     decision:
-    - when: 该项目未关联已签署生效的协议，或（关联登记触发时）关联项目尚未开始执行
+    - when: 该项目未关联已生效的协议，或（关联登记触发时）关联项目尚未开始执行
       goto: end
       outcome: 无需处理
       p: 0.1
@@ -11349,7 +11412,7 @@ event_policies:
       goto: end
       outcome: 协议已转入履行中
       p: 0.6
-    desc: S-33：经合同—项目关联（INV-09，生效期内）找到已签署生效的协议，转入履行中；一份协议关联多个项目时任一项目开始执行即转；按协议 ID 幂等，重复事件不重复转换；先立项后签约的情形：协议回签后登记合同—项目关联时（同 BC 事件）读关联项目状态，已在执行即转入履行中，否则等项目开始执行事件
+    desc: S-33：经合同—项目关联（INV-09，生效期内）找到已生效的协议，转入履行中；一份协议关联多个项目时任一项目开始执行即转；按协议 ID 幂等，重复事件不重复转换；先立项后签约的情形：协议回签后登记合同—项目关联时（同 BC 事件）读关联项目状态，已在执行即转入履行中，否则等项目开始执行事件
   notes: S-42 接缝承接：AGG-19「项目已开始执行」订阅方 B-05；B-05 → B-04 边已加事件方式（cb39fc65）
   stages_note: '按 one-architecture 已有裁定保留 VS-04.6：项目开始执行后，协议由「已签署生效」转「履行中」，承接 VS-04.6 进入状态的履约反应。不加 VS-02.0：项目「执行中」是本策略读取的触发状态，本策略只改协议、不造启动段退出对象状态；跨价值流共享状态不据此把协议履约反应归为项目启动。不加 VS-04.1：协议已签署生效由 PRC-47 回签造出。'
 single_aggregate:
@@ -12867,6 +12930,74 @@ single_aggregate:
       position_hint: 财务负责人、财务会计
   gap: 命令缺口：聚合稿 AGG-92 只有「开放证据类型」，无关闭或撤销已开放类型的命令；年度复核发现不再适用时的处理待 one-architecture 补
   frequency_ref: 待取证（E-B1）；经验估计：每年约 1 次
+- id: PRC-202
+  name: 维护应收默认账期规则
+  aggregate: AGG-136
+  owner_bc: B-09
+  stages:
+  - VS-15.1
+  - VS-15.2
+  - VS-15.3
+  stages_note: '用户 KPI-Q04 新增配置（ARC-1022-ARE-01，one-architecture 4be29180 给号）；VS-15.1 编制版本草稿、VS-15.2 已生效、VS-15.3 新版本生效取代旧版本，均由本流程完成；同 PRC-52、165、166 的配置版本口径'
+  primary_object: OBJ-124
+  primary_object_note: 发布一版业务规则（OBJ-124，暂名）：应收默认账期规则，内容为全局默认账期与按协议类型 × 客户分级的覆盖行
+  migration: 老系统无此配置（账龄按开票日起算，已被 FD-37 取代），投产时写首版：全局默认 30 日（用户 KPI-Q04），覆盖表为空
+  states:
+  - 草稿
+  - 已生效
+  - 已被取代
+  transitions:
+  - from: null
+    to: 草稿
+    command: 编制账期规则版本
+    actor: SH-E6
+    desc: 编制全局默认账期与覆盖行（协议类型可空、客户分级可空、账期天数）；客户分级引用往来单位上的客户分级（Q-07），与授权额度所用的客户分级是同一套定义
+    effort:
+      typical_min: 30
+      p90_min: 90
+  - from: 草稿
+    to: 已生效
+    command: 生效账期规则版本
+    actor: SH-E6
+    emits:
+    - 账期规则版本已生效
+    desc: 财务负责人批准后生效，旧版本同事务被取代；生效日不得早于当日（不回算已创建的应收）
+    evidence:
+    - 财务负责人批准记录
+    effort:
+      typical_min: 10
+      p90_min: 30
+    approval:
+      engine: platform.approval
+      doc_type: 账期规则审批
+      approver: 财务负责人
+      why_human: 默认账期决定没有约定期限的应收何时进入逾期分段与催收，是财务负责人的口径判断，系统只校验覆盖行不重叠（用户 KPI-Q04）
+  - from: 已生效
+    to: 已被取代
+    command: 生效账期规则版本
+    actor: SH-E6
+    desc: 新版本生效时旧版本被取代
+  pages:
+  - 账期规则配置页
+  permissions:
+  - 账期规则.编制
+  - 账期规则.生效
+  scope: 集团层级：财务负责人所在角色经办与批准
+  audit: true
+  scenarios:
+  - PRC-202-S01
+  - PRC-202-S02
+  - PRC-202-S03
+  notes: 用户 KPI-Q04（intent 2026-10-22-085722）；取值顺序见 DEFAULT_PAYMENT_TERM.md：付款条件项 > 覆盖（协议类型 × 客户分级） > 全局默认；PRC-59 创建应收读开票日当时有效的版本
+  roles:
+  - id: SH-E6
+    as: performer
+    org_needs:
+      responsibility: 编制并经财务负责人批准生效应收默认账期规则
+      approval_right: 财务负责人批准
+      department_hint: 财务部
+      position_hint: 财务负责人、应收会计
+  frequency_ref: 待取证（E-B1）；经验估计：每年 1 至 2 次
 - id: PRC-68
   name: 终止协议
   aggregate: AGG-13
@@ -12876,11 +13007,42 @@ single_aggregate:
   primary_object: OBJ-05
   migration: 已终止的协议及终止原因、依据文件全部迁入（U-4）；投产时处于终止办理中的协议按当前状态迁入，审批中的终止申请不迁审批实例（ADR-0036 第 5 条），由迁入编排模块的一次性离线命令重新发起
   states:
-  - 已签署生效
+  - 已签署
+  - 已生效
   - 履行中
   - 已终止
   transitions:
-  - from: 已签署生效
+  - from: 已签署
+    to: 已终止
+    command: 终止协议
+    actor: SH-E5
+    emits:
+    - 协议已终止
+    desc: 已签署未生效的协议因生效条件确定不能成就或双方解除而终止，原因必填（GL5-01）
+    effort:
+      typical_min: 20
+      p90_min: 60
+    approval:
+      engine: platform.approval
+      doc_type: 协议终止审批单
+      approver: cost_object_owner
+      owner_object: 协议（合同负责人，待新题「合同负责人是谁」）
+      why_human: 终止的法律与商务后果（违约责任、已完成工作量的结算、对价款与项目成本清算的影响）需要责任人判断；终止原因必填由不变量守卫。
+      escalation_rules:
+      - AR-01
+      - AR-02
+      - AR-07
+      on_reject: 协议保持原状态
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-07
+      name: 协议已终止
+    - mode: event
+      direction: out
+      bc: B-08
+      name: 协议已终止
+  - from: 已生效
     to: 已终止
     command: 终止协议
     actor: SH-E5
@@ -12948,6 +13110,7 @@ single_aggregate:
   audit: true
   metric_event: true
   scenarios:
+  - PRC-68-S00
   - PRC-68-S01
   - PRC-68-S02
   - PRC-68-S03

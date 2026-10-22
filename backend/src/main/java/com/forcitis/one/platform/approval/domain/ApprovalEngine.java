@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.domain;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.util.Collection;
 import java.util.List;
@@ -17,6 +18,9 @@ public interface ApprovalEngine {
 
     /** The form field names the process definition reads; a field outside this set would be ignored, so a start that carries one is refused. */
     Set<String> formFieldsOf(ProcessKey processKey);
+
+    /** The document type the latest deployed definition of the process approves (its forcitis:documentType); a definition without one is a deployment fault. */
+    DocumentTypeCode documentTypeOf(ProcessKey processKey);
 
     void startInstance(InstanceStart start);
 

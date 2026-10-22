@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.numbering.api.NumberingError;
@@ -75,9 +76,10 @@ class Approvals {
      * with the approval's own code, and a type the registry does not know is refused with the approval's code too (the registry's code stays inside numbering).
      */
     void requireAcceptedDocumentType(ApprovalStartRequest request) {
-        if (!request.document().documentType().equals(request.processKey().documentType())) {
+        DocumentTypeCode approved = engine.documentTypeOf(request.processKey());
+        if (!request.document().documentType().equals(approved)) {
             throw ApprovalError.PLATFORM_APPROVAL_NO_PROCESS.refusal("No approval process for " + request.document().documentType() + " documents: "
-                    + request.processKey() + " approves " + request.processKey().documentType() + " only");
+                    + request.processKey() + " approves " + approved + " only");
         }
         try {
             documentTypes.requireRegistered(request.document().documentType());

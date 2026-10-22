@@ -611,6 +611,8 @@ commands:
   - 协议
   - 回签日期
   - 基线
+  - 是否附生效条件（附条件时登记条件类型与约定期限）
+  - 生效依据（无附生效条件时同一事务写入：条件类型「签署即生效」、证据单据号、生效日）
   preconditions:
   - INV-05
   - INV-07
@@ -622,6 +624,26 @@ commands:
   - 协议ID
   emits:
   - ContractSigned
+  - 协议已生效（仅无附生效条件时同一事务发出）
+- name: 确认生效条件满足
+  aggregate: AGG-13
+  proposed: true
+  proposed_basis: 用户 GL5-01（intent 2026-10-22-061733）
+  params:
+  - 协议
+  - 条件类型
+  - 证据单据号
+  - 生效日
+  preconditions:
+  - 协议为「已签署」
+  - 生效依据三项必填，证据已登记（AGG-38）
+  authority:
+    A: 合同负责人（用户 LEB-08，凭证据确认，不设审批）；我方须履行的条件由财务资金岗（SH-E6）先登记证据
+  idempotency_key:
+  - 协议ID
+  emits:
+  - 协议已生效
+  timing: 约定了条件成就期限的按约定；未约定的签署后 30 天提醒合同负责人，90 天升级部门负责人决定继续等待或终止，不自动终止（用户 LEB-09）
 - name: 应用变更
   aggregate: AGG-13
   params:
@@ -829,9 +851,12 @@ commands:
   aggregate: AGG-15
   params:
   - 协议
-  - 变更类型（变更或签证）
+  - 变更类型（变更、签证、合同主体变更）
   - 内容
   - 所主张设计变更与延期
+  - 新承担法人与三方协议证据（仅合同主体变更）
+  preconditions:
+  - 合同主体变更须有客户书面同意（三方协议）证据，新承担法人须在 ADR-0022 五家之内（用户 LEB-01）
   authority:
     A: 待定（权责表未登）
   idempotency_key:
@@ -1377,13 +1402,40 @@ commands:
   emits:
   - 证据类型已开放
   unused_ok: PRC-52 以 states/transitions 描述，骨架步骤无 aggregate 字段，见 NOTES 接缝 2
+- name: 编制账期规则版本
+  aggregate: AGG-136
+  params:
+  - 全局默认账期（日）
+  - 覆盖行（协议类型可空、客户分级可空、账期天数）
+  preconditions:
+  - 覆盖行不重叠
+  authority:
+    A: 财务负责人
+  idempotency_key:
+  - 版本号
+  emits: []
+- name: 生效账期规则版本
+  aggregate: AGG-136
+  params:
+  - 账期规则版本
+  - 生效日（不早于当日）
+  - 审批实例
+  preconditions:
+  - 财务负责人已批准
+  authority:
+    A: 财务负责人
+  idempotency_key:
+  - 账期规则版本ID
+  emits:
+  - 账期规则版本已生效
 - name: 创建应收
   aggregate: AGG-49
   params:
   - 发票或借款来源
   - 购买方或员工
   - 金额
-  - 到期日
+  - 到期日（销售应收：开票日 ＋ 账期，账期依次取付款条件项、账期规则覆盖〔协议类型 × 客户分级〕、全局默认 30 日，KPI-Q04，见 DEFAULT_PAYMENT_TERM.md）
+  - 账期天数与来源
   preconditions:
   - INV-76
   authority:
@@ -2561,7 +2613,7 @@ commands:
   - 项目已开始执行
   event_subscribers:
     项目已开始执行:
-    - B-05（AGG-13 已签署生效 → 履行中，S-33）
+    - B-05（AGG-13 已生效 → 履行中，S-33）
 - name: 暂停项目
   aggregate: AGG-19
   params:
@@ -2700,14 +2752,16 @@ commands:
   - 工作包已作废
 - name: 编制交付计划版本
   aggregate: AGG-21
-  pending_decision: 对客基线是否须与某一内部基线一致（用户追问，见 NOTES「AGG-21 待定·对客基线与内部基线」）；推荐：不要求内容一致，要求对客基线版本引用来源内部基线版本，合同里程碑日期不早于内部基线同名里程碑时只警告
   params:
   - 项目
   - 基线类别（对客、内部）
   - 里程碑
   - 修订原因
+  - 依据的内部基线版本（对客基线必填）
   preconditions:
   - INV-43
+  - INV-140：对客基线须注明依据的内部基线版本，缺即拒（用户 LEB-07）
+  - INV-141：内部基线须含对客基线的全部合同里程碑，内部日期晚于对客日期只提示、不拒（用户 LEB-07）
   authority:
     A: 待定（权责表未登）
   idempotency_key:
@@ -2722,6 +2776,7 @@ commands:
   - 发包人书面批准（对客基线）
   preconditions:
   - INV-43
+  - INV-140
   authority:
     A: 待定（权责表未登）
   idempotency_key:

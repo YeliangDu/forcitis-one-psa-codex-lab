@@ -25,7 +25,7 @@
 | 新 ECS | i-bp122xlpar8w2uylmal2，实例角色 forcitis-one-ecs-archive | 用 | C-4 |
 | 老系统应用服务器 | i-bp1b34hcl0g1cnkdtrb9 | 只读探针 | B-5 |
 | RDS PG | pgm-bp13vak0sew3m003 / forcitis_one_dev / one_admin | 用 | [C-3](runbooks/C-3-dev-db.md)、#131 |
-| RDS SQL Server 2016 | rm-bp1690ep53t9778dp；one_a8_views_ro、psa_one_legacy_ro、one_legacy_names_ro、one_evidence_ro；u8c = RDS 高权限（只用于授权变更，破例读须用户批准） | 全库只读 | #135、#143、#167 |
+| RDS SQL Server 2016 | rm-bp1690ep53t9778dp；one_a8_views_ro、one_legacy_names_ro、one_evidence_ro（psa_one_legacy_ro 2026-10-22 已撤）；u8c = RDS 高权限（只用于授权变更，破例读须用户批准） | 全库只读 | #135、#143、#167 |
 | SLS | forcitis-one-observability（nginx / ops 180 天） | 用 | [C-7](runbooks/C-7-alerts.md)、#123 |
 | OSS 归档 | forcitis-one-archive（WORM 未锁） | 待锁 | B-13 |
 | OIDC 提供商 | acs:ram::1980847222980247:oidc-provider/github-actions | ✅ | [RELEASE](runbooks/RELEASE.md) R-4、#144 |
@@ -51,6 +51,7 @@
 | dev-db-rebuild 剧本 | 补一步「重新导入 2016–2026 与 2027 工作日历」（#396 合入后下次 dev 部署须按此重建开发库） | 待写（文档分支） |
 | 运维手册 profile 形态 | 改 --spring.profiles.active=<自身> 为 --spring.profiles.include=<自身>（dev 开单人模式前必须改好；随 SINGLE-OP-GATE 一并） | 同上 |
 | platform_file schema（one-platform-file 单元 3，分支 claude/one-platform-file-u3，PR 待开） | 含该 PR 的 rc 部署 dev/生产前，按 c3/c9 建库脚本建 schema platform_file 并授权（Flyway create-schemas=false）；after_migrations 新增两条 REVOKE；重建 dev 时一并带上 | 等 PR 合入、出新 rc |
+| #547 工作日历版本化的首次部署前待办（one-coordinator 派，已更正） | 只做核验运行账号的 TEMP 权限（三张日历表的 REVOKE 由 #547 自己带）；完成点报 one-coordinator | 等 #547 合入，排在 ClamAV 联调之后 |
 | 审计分区维护角色（#370） | 单开 PR：c3/c9 建库脚本新建 one_*_audit_maintainer（LOGIN NOINHERIT CONNECTION LIMIT 1）、*_after_migrations.sql 授权、INFRA_RUNBOOK §5.3「在线行暂不删除」是否改写 | 等 #370 合入、出下一个 rc |
 | 迁入 ID 对照 | 抽取 | ADR-0037 实现 |
 

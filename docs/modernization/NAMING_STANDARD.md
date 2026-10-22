@@ -226,7 +226,7 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 - **PostgreSQL**：
   - 一个 BC 一个 schema，schema 名为 `<subdomain>_<bc>`（例如 `cost_timesheet`）；表名用 snake_case 复数，不加 `psa_` 前缀。
-  - 外部引用写 `<对象>_id`；审计列为 `created_at`、`created_by`、`updated_at`、`updated_by`、`version`；布尔列以 `is_` / `has_` 开头。
+  - 外部引用写 `<对象>_id`；审计列为 `created_at`、`updated_at`、`version`；「谁做的」不建通用的 `created_by`、`updated_by` 列：状态变化的操作人记在 `state_transitions.actor_id`（ADR-0058），其他动作记审计（`platform_audit`），只有业务含义的操作人才建列（如 `confirmed_by`、`released_by`，列名写明动作）（one-architecture 2026-10-22，依 one-data 对 main 基线实践的核对）；布尔列以 `is_` / `has_` 开头。
   - 金额成对存放 `<名>_amount` + `<名>_currency`；状态存枚举名（`text` + `CHECK`）。
   - Flyway 脚本放在各模块目录下，命名为 `V{yyyyMMddHHmmss}__{module}_{描述}.sql`，描述用英文 snake_case（中文说明写在脚本首行注释）。
 - **HTTP**：路径为 `/api/v{n}/{subdomain}/{复数资源}`（ADR-0008，例如 `/api/v1/cost/timesheets`；第二段是**子域** slug，不是 BC 或功能名），用 kebab-case；动作写成 `:submit` / `:approve`；**所有 JSON（接口、领域事件载荷、外部投递）字段一律 camelCase**，snake_case 只用于数据库；错误码按模块分段；跨模块通用的错误（状态转换不合法、被他人同时修改、必须填写原因、已过撤回截止点、未登录等）只在公共基础 `kernel` 定义一次，各模块直接使用，模块只定义本模块特有的错误（用户 2026-10-15 对抽规则答「通用错误码只在公共基础定义」）。状态码、列表、类型表示、并发与错误响应等接口约定见 §2.6。
