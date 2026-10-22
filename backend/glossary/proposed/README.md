@@ -513,6 +513,12 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `seal_ledger_entry_version` | 印章台账条目版本 | SealLedgerEntryVersion | 领域 · platform.signing | 印章台账条目的版本行：生效日、失效日左闭右开，只追加、只许关闭不许改写；载体、启停、保管部门进版本表，用印登记按用印时刻取当时有效版本（ADR-0064 决定 3，D17） |  |  |
 | `seal_type` | 印章类型 | SealType | 领域 · platform.signing | 印章的种类，如公章、合同章、出图专用章；台账条目由法人加印章类型确定；取值清单随先行上线批登记（ADR-0064 决定 3） |  |  |
 | `signing_record` | 签章记录 | SigningRecord | 领域 · platform.signing | 签章服务的只追加记录：请求方与申请 ID、台账条目版本或执业印章、经办人或签章人、签前件与签后件的文件标识和内容哈希、服务商交易号、验章结果、时刻；不改不删，更正用新记录关联；只指本模块的记录（ADR-0064 决定 7） |  |  |
+| `seal_carrier` | 印章载体 | SealCarrier | 领域 · platform.signing | 印章的载体，取值实体章、电子章；台账条目版本上记载体，先行期全部按实体章办理（ADR-0064 决定 3、5） |  |  |
+| `custody_department` | 保管部门 | CustodyDepartment | 领域 · platform.signing | 印章台账条目版本上记的保管该印章的部门（ADR-0064 决定 3） |  |  |
+| `seal_type_list` | 印章类型清单 | SealTypeList | 领域 · platform.signing | 行政提供的印章类型取值清单，做成版本化配置表（根表加版本表），不写死枚举；作者与确认人分离，决定出处必填（ADR-0064 决定 3，D15） |  |  |
+| `seal_type_list_version` | 印章类型清单版本 | SealTypeListVersion | 领域 · platform.signing | 印章类型清单的一个版本：生效日、决定出处、作者；确认人不得是作者（ADR-0064 决定 3，D15） |  |  |
+
+另有错误码 7 个（kind 为 `error_code`），不在表中。
 
 ## platform.web（`platform-web.yaml`）
 
