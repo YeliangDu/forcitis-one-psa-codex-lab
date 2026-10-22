@@ -33,6 +33,5 @@
 - 插入守护：配置版本 `CONFIRMED` + 区间含业务日期 + 条目启用 + 重登引用必为已取消；`daterange(from, to)` 默认半开，与卡 A 一致。`FOR SHARE` 锁配置版本行需要运行角色对 `config_set_versions` 有 `UPDATE`，卡 A 只回收 `DELETE`、`TRUNCATE`，成立。
 - 索引：列表、数据范围、"我提交的"、复合外键前导均覆盖；重登部分唯一索引可服务外键查找（`= $1` 蕴含 `IS NOT NULL`）。
 - 权限回收文本与注册表清单同意；`db_scripts_aligned.py` 要求三处一致、单表一条的写法正确。
-- 草案文件含非 UTF-8 字节（编辑器以 GBK 之类打开会乱码），落成迁移文件前请确认是 UTF-8。
 
 数据设计：通过（one-data，2026-10-22，依据 @890e8cd8b；范围：M1–M3 改后的 `employee_activity_requests`、`employee_activity_participants`、第 0 节收窄与三个守护触发器；T-D10 保留期待用户认可）。
