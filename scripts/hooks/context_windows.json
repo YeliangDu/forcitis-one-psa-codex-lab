@@ -9,5 +9,9 @@
   "pilot_sessions": null,
   "_note": "窗口 1000000 来自 get_usage 的 contextWindow 实测（调度与 one-quality 的会话均报 1000000，97% 自动压缩，2026-10-21 one-coordinator 核对）。",
   "bash_input_chars": 5000,
-  "bash_output_chars": 8000
+  "bash_output_chars": 8000,
+  "context_levels": {
+    "prepare": 30,
+    "handover": 40
+  }
 }
