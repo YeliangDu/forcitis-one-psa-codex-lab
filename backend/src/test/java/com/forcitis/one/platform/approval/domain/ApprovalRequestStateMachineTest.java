@@ -4,16 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.TransitionTable;
-import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -34,7 +35,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import com.forcitis.one.fixture.doubles.TestAccounts;
 
 class ApprovalRequestStateMachineTest {
 
@@ -212,9 +212,9 @@ class ApprovalRequestStateMachineTest {
             }
         }
         assertThatThrownBy(() -> in(ApprovalStatus.RUNNING).withdraw(INITIATOR, false, null, NOW)).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
         assertThatThrownBy(() -> in(ApprovalStatus.RUNNING).cancel(INITIATOR, false, null, NOW)).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
     }
 
     @Test
@@ -224,7 +224,7 @@ class ApprovalRequestStateMachineTest {
                 r -> r.reject(null, NOW), r -> r.returnRound(null, NOW), r -> r.cancel(INITIATOR, false, null, NOW))) {
             ApprovalRequest request = in(ApprovalStatus.RUNNING);
             assertThatThrownBy(() -> ending.accept(request)).isInstanceOfSatisfying(DomainException.class,
-                    e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                    e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
             assertThat(request.status()).isEqualTo(ApprovalStatus.RUNNING);
         }
     }

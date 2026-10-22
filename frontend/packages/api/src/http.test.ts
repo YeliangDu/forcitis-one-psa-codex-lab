@@ -130,10 +130,10 @@ describe('HTTP client', () => {
   });
 
   it('keeps the whole ProblemDetail of an error answer, with its correlation id', async () => {
-    const { client } = clientWith({ status: 422, body: { ...problem(422, 'PLATFORM_APPROVAL_REASON_REQUIRED'), detail: 'reason is required', extra: null } });
+    const { client } = clientWith({ status: 422, body: { ...problem(422, 'KERNEL_REASON_REQUIRED'), detail: 'reason is required', extra: null } });
     const failure = await client.request('post', '/things', { body: {} }).catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(ApiError);
-    expect((failure as ApiError).problem).toMatchObject({ errorCode: 'PLATFORM_APPROVAL_REASON_REQUIRED', status: 422, correlationId: 'c-1' });
+    expect((failure as ApiError).problem).toMatchObject({ errorCode: 'KERNEL_REASON_REQUIRED', status: 422, correlationId: 'c-1' });
   });
 
   it('an error code this client does not know keeps the whole body (legacyLoginUrl included), has no known code, and is reported once', async () => {

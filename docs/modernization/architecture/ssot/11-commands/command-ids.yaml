@@ -209,6 +209,11 @@ ids:
   name: 标记资源需求已满足
   former_names: []
   retired: false
+- id: CMD-0d5534b3
+  aggregate: AGG-138
+  name: 启动奖金计提
+  former_names: []
+  retired: false
 - id: CMD-0e420639
   aggregate: AGG-13
   name: 归档协议
@@ -1799,6 +1804,11 @@ ids:
   name: 登记出资实缴
   former_names: []
   retired: false
+- id: CMD-930e449f
+  aggregate: AGG-138
+  name: 提交过账候选
+  former_names: []
+  retired: false
 - id: CMD-938007c4
   aggregate: AGG-79
   name: 提交经营计划审批
@@ -2559,6 +2569,11 @@ ids:
   name: 登记检查计划
   former_names: []
   retired: false
+- id: CMD-d2d692f0
+  aggregate: AGG-76
+  name: 提交过账候选
+  former_names: []
+  retired: false
 - id: CMD-d2f69893
   aggregate: AGG-37
   name: 不采信外部检测报告
@@ -2982,6 +2997,11 @@ ids:
 - id: CMD-f45ea637
   aggregate: AGG-57
   name: 提交过账候选
+  former_names: []
+  retired: false
+- id: CMD-f498a386
+  aggregate: AGG-138
+  name: 计算奖金计提
   former_names: []
   retired: false
 - id: CMD-f5007ba9
