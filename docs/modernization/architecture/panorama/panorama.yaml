@@ -66,7 +66,7 @@ meta:
     ep: 601
     tc: 1132
     api: 68
-    mod: 13
+    mod: 14
     cmd: 613
     otr: 873
     evt: 59
@@ -35801,66 +35801,71 @@ nodes:
       registered: true
       src: backend/src/main/java/com/forcitis/one/cost/timesheet
       registration_src: backend/architecture/module-dependencies.txt:9
+    organization.administration:
+      bc: B-31
+      registered: true
+      src: backend/src/main/java/com/forcitis/one/organization/administration
+      registration_src: backend/architecture/module-dependencies.txt:11
     organization.attendance:
       bc: B-14
       registered: true
       src: backend/src/main/java/com/forcitis/one/organization/attendance
-      registration_src: backend/architecture/module-dependencies.txt:10
+      registration_src: backend/architecture/module-dependencies.txt:12
     organization.workforce:
       bc: B-13
       registered: true
       src: backend/src/main/java/com/forcitis/one/organization/workforce
-      registration_src: backend/architecture/module-dependencies.txt:11
+      registration_src: backend/architecture/module-dependencies.txt:13
     platform.approval:
       bc: platform.approval
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/approval
-      registration_src: backend/architecture/module-dependencies.txt:12
+      registration_src: backend/architecture/module-dependencies.txt:14
     platform.audit:
       bc: platform.audit
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/audit
-      registration_src: backend/architecture/module-dependencies.txt:13
+      registration_src: backend/architecture/module-dependencies.txt:15
     platform.eventing:
       bc: platform.eventing
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/eventing
-      registration_src: backend/architecture/module-dependencies.txt:14
+      registration_src: backend/architecture/module-dependencies.txt:16
     platform.file:
       bc: platform.file
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/file
-      registration_src: backend/architecture/module-dependencies.txt:16
+      registration_src: backend/architecture/module-dependencies.txt:18
     platform.idempotency:
       bc: platform.idempotency
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/idempotency
-      registration_src: backend/architecture/module-dependencies.txt:19
+      registration_src: backend/architecture/module-dependencies.txt:21
     platform.identity:
       bc: platform.identity
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/identity
-      registration_src: backend/architecture/module-dependencies.txt:18
+      registration_src: backend/architecture/module-dependencies.txt:20
     platform.integration:
       bc: platform.integration
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/integration
-      registration_src: backend/architecture/module-dependencies.txt:20
+      registration_src: backend/architecture/module-dependencies.txt:22
     platform.numbering:
       bc: platform.numbering
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/numbering
-      registration_src: backend/architecture/module-dependencies.txt:21
+      registration_src: backend/architecture/module-dependencies.txt:23
     platform.scheduling:
       bc: platform.scheduling
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/scheduling
-      registration_src: backend/architecture/module-dependencies.txt:22
+      registration_src: backend/architecture/module-dependencies.txt:24
     platform.web:
       bc: platform.web
       registered: true
       src: backend/src/main/java/com/forcitis/one/platform/web
-      registration_src: backend/architecture/module-dependencies.txt:23
+      registration_src: backend/architecture/module-dependencies.txt:25
   cmd:
     CMD-9085512f:
       id: CMD-9085512f
@@ -81502,6 +81507,13 @@ links:
   via: module
   bc_src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:754
   subdomain_src: architecture/ddd/subdomains.yaml#subdomains/cost
+- kind: mod-bc
+  from: organization.administration
+  to: B-31
+  src: backend/src/main/java/com/forcitis/one/organization/administration
+  via: module
+  bc_src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:778
+  subdomain_src: architecture/ddd/subdomains.yaml#subdomains/organization
 - kind: mod-bc
   from: organization.attendance
   to: B-14
