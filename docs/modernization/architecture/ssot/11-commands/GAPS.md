@@ -8,8 +8,8 @@
 - commands people：165
 - commands revenue：264
 - commands 合计：598
-- matrix：587
-- 合并后：613；两处都有：572；仅 commands：26；仅 matrix：15
+- matrix：598
+- 合并后：608；两处都有：588；仅 commands：10；仅 matrix：10
 - 已建命令类与聚合关系：85（未做类名与 CMD 对照）
 
 ## 无 owner_bc（3）
