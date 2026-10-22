@@ -1,6 +1,6 @@
 ---
 卡号: OPS-1022-OPS-01
-状态: 阻塞
+状态: 完成
 负责会话: one-ops
 ---
 # 撤号卡 OPS-1022-OPS-01：撤销老待办只读账号 psa_one_legacy_ro
@@ -47,3 +47,9 @@
 
 ## 7. 报告去向
 - 起草完成报 one-coordinator（交用户批准）；批准并执行后向 one-coordinator 与 one-1a-par 报完成点。
+
+## 8. 执行记录（2026-10-22，用户在 one-ops 会话直接回「批」）
+- 删前：登录 psa_one_legacy_ro 与 one_legacy_names_ro 均在，两个视图在，psa_one_legacy_ro 活动连接 0；DescribeAccounts 看不到 one_legacy_names_ro 的 DatabasePrivileges（账号为 SQL 建，RDS 不展示库授权），按改后口径退回「登录在 + 两视图在 + DescribeAccounts 两账号都在」三项，库内用户一项无法回读，由 DeleteAccount 只删指定账号保证。
+- 执行：RDS DeleteAccount（psa_one_legacy_ro，RequestId 01A16224-6CA5-5160-872B-CB6F32C4D3A1）。
+- 删后回读：DescribeAccounts 账号 13→12，psa_one_legacy_ro 已无；one_legacy_names_ro 登录在；v_one_legacy_org_short_name、v_psa_one_legacy_todo 仍在。
+- dev：one.env 备份 one.env.bak-20261022134603，删 FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL/_USERNAME/_PASSWORD/_DETAIL_URL_TEMPLATE 四项，重启 forcitis-one，active，管理端口 8081 健康 200，启动日志无错误。
