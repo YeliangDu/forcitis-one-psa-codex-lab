@@ -7,6 +7,7 @@ SESSION_PLAYBOOK §5 任务命名与登记「提交信息」(intent 2026-10-21-2
   2. A commit that stages a code path (backend/, frontend/, scripts/, .github/, .pre-commit-config.yaml) must name a task id (XXX-MMDD-XXX-NN) or a PR (#123)
      in the message, else the commit is refused (exit 1). Documentation-only commits and merge/fixup/squash commits are not checked.
   3. Warnings only (exit 0): no body line beyond the title and trailers (the why), or a code commit whose body cites no basis (ADR-NNNN, intent file, #PR, task id).
+A crash of this hook refuses the commit (exit 1): hooks are never skipped (no --no-verify), so a broken hook is fixed, not bypassed.
 `git commit --amend` only sees the newly staged paths, so an amend that adds code to a docs-only commit is not caught there; the push gate still runs precheck.
 Usage: commit_msg_gate.py <message-file>  |  commit_msg_gate.py --self-test
 """
@@ -20,9 +21,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 CODE_PATHS = re.compile(r"^(backend/|frontend/|scripts/|\.github/|\.pre-commit-config\.yaml$|\.claude/settings\.json$)")
-TASK_ID = re.compile(r"\b[A-Z]{2,3}-\d{4}-[A-Z0-9]{3}-\d{2}\b")
-PR_REF = re.compile(r"(?<![\w/])#\d+\b|/pull/\d+")
-BASIS = re.compile(r"ADR-\d{4}|\b20\d\d-\d\d-\d\d-\d{6}|intent|" + TASK_ID.pattern + r"|" + PR_REF.pattern)
+from task_ids import TASK_ID, TASK_ID_PATTERN  # noqa: E402
+
+PR_REF = re.compile(r"(?<![A-Za-z0-9])#\d+(?![A-Za-z0-9])|/pull/\d+")
+BASIS = re.compile(r"ADR-\d{4}|20\d\d-\d\d-\d\d-\d{6}|intent|" + TASK_ID.pattern + r"|" + PR_REF.pattern)
 SKIP_TITLE = re.compile(r"^(Merge |fixup! |squash! |amend! )")
 TRAILER = re.compile(r"^[A-Z][A-Za-z0-9-]*:\s")
 NO_ID = ("代码提交（改了 backend/、frontend/、scripts/ 或 .github/）须在提交信息里带任务号（如 CI-1022-QUA-03）或 PR 号（如 #589）；"
@@ -42,7 +44,7 @@ def message_lines(text):
     for line in text.split("\n"):
         if line.startswith("# ------------------------ >8"):
             break
-        if not line.startswith("#"):
+        if not (line == "#" or line.startswith("# ") or line.startswith("#\t")):
             out.append(line)
     return out
 
@@ -84,7 +86,11 @@ def session_name(root):
 
 def merge_in_progress(root):
     git_dir = Path(git("rev-parse", "--absolute-git-dir", cwd=root).strip())
-    return (git_dir / "MERGE_HEAD").exists()
+    return any((git_dir / head).exists() for head in ("MERGE_HEAD", "REVERT_HEAD", "CHERRY_PICK_HEAD"))
+
+
+def has_session(text):
+    return any(line.startswith("Session:") for line in message_lines(text))
 
 
 def check(text, paths, name, merging=False):
@@ -103,7 +109,7 @@ def check(text, paths, name, merging=False):
         warnings.append("提交信息只有标题：正文请写一行为什么这样改，并引用依据（intent 文件名、ADR 编号、PR 号或任务号）。")
     elif code and not BASIS.search("\n".join(body)):
         warnings.append("代码提交正文没有引用依据：请在正文引用 intent 文件名、ADR 编号、PR 号或任务号。")
-    if any(line.startswith("Session:") for line in trailers):
+    if has_session(text):
         return text, errors, warnings
     if not name:
         warnings.append("本会话未识别，没有追加 `Session:`：在 .claude/session-name 写入会话名（SESSION_PLAYBOOK §2.1）。")
@@ -135,7 +141,7 @@ def main(argv):
             print(f"commit-msg 拒绝：{error}", file=sys.stderr)
         return 1
     title, _, trailers = split_message(text)
-    if name and title and not SKIP_TITLE.match(title) and not merge_in_progress(root) and not any(l.startswith("Session:") for l in trailers):
+    if name and title and not SKIP_TITLE.match(title) and not merge_in_progress(root) and not has_session(text):
         append_trailer(path, name, root)
     return 0
 
@@ -156,6 +162,13 @@ def self_test():
     assert not e and not w, (e, w)
     _, e, _ = check("feat(x): 改脚本\n\n为什么：ADR-0038。\n", code, "one-quality")
     assert e, "code commit without task id or PR is refused"
+    for ok_text in ("feat: x\n\n按CI-1022-QUA-03的要求，ADR-0038。\n", "feat: x\n\n（见#593）ADR-0038。\n", "#593 修复钩子\n\nADR-0038。\n", "feat: x\n\n#593 的复审意见，ADR-0038。\n"):
+        _, e, _ = check(ok_text, code, "one-quality")
+        assert not e, ok_text
+    for bad_text in ("feat: x\n\nABC-9999-ZZZ-99 ADR-0038。\n", "feat: x\n\nXCI-1022-QUA-03 ADR-0038\n", "feat: x\n\nabc#593 ADR-0038\n"):
+        _, e, _ = check(bad_text, code, "one-quality")
+        assert e, bad_text
+    assert has_session("t\nSession: x\n") and not has_session("t\n# Session: x\n"), "a Session line anywhere counts; comments do not"
     _, e, _ = check("fix: 改 #593 的钩子\n\n为什么：intent。\n", code, "one-quality")
     assert not e, "a PR number is accepted"
     _, e, w = check("docs: 改说明\n\n为什么：y。\n", docs, "one-quality")
