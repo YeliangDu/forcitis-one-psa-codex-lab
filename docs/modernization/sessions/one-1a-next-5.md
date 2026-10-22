@@ -53,4 +53,4 @@
 
 ## 当前状态
 
-2026-10-22 06:50+02:00 数据修复批与单据类型登记线进行中，详见 `phase1a/HANDOFF_one-1a-next-5.md` 第 5 节。已合入：REG-1 #507、编号版本来源 #524、错误码两项 #528。在途：#562（REG-2 ProcessKey 去入参，补修 D1 后待 sonnet 复核与 CI）、#546（P0 验收测试 13 例，已批准入队待 CI）。下一步：RULE-412 架构守护 → REG-3（审计对象类别登记表，带 STORED_FILE）→ REG-4（ProcessKey 值对象，one-architecture 裁定，待任务号与排序）→ 行政事务单据类型登记卡（IMP-1021-ADM-02 清单）；IMP-1021-NX5-02 前端卡已发 one-quality 评测，不归本会话做。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。
+2026-10-22 15:20+02:00 单据类型登记线进行中，详见 `phase1a/HANDOFF_one-1a-next-5.md` 第 5、6 节。已合入：#507、#524、#528。排队或待批：#562（REG-2）、#546（P0 验收 13 例）。在制：#599（REG-3，审计对象类别登记表；opus 首轮「需修后再审」的 B1/B2/M2/M3 已改，验收两文件补丁待裁定 RULING-COORD-20261022-03 进 main 后带尾注提交）、RULE-412 守护（分支 claude/nx5-rule412 已推待开 PR）。下一步：REG-4（IMP-1022-COO-01，ProcessKey 值对象）；行政事务登记卡改由 one-1a-admin 写，我只复核。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。
