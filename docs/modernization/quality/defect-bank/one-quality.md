@@ -214,3 +214,14 @@
 - **漏过于**：作者自审（成功路径的用例与“故意超时”的用例共用了同一量级的墙钟超时）。
 - **新增检查项**：测试修复——期望成功的用例（`loginName`、`invalidAnswers`）改用宽松超时（例如 10 秒，仅作兜底，不影响用时），“故意超时”的用例保持 500 ms 对 2000 ms 服务端延迟不变；不隔离、不放宽断言。机械检查另议：扫描测试里“期望成功却用 ≤3 秒的真实网络超时”，先只报告。
 - **状态**：待落实（负责：one-1a-par 2026-10-28；归属 platform.integration，待核）
+
+### QUAL-021　HttpWecomClientTest 在机器繁忙时偶发 HttpTimeoutException：成功路径用例用 5 秒墙钟读超时
+
+- **日期**：2026-10-22
+- **类别**：局部测试
+- **现象**：one-architecture 在 pre-push 预检里，`HttpWecomClientTest.sendReturnsTheResponseCode`（第 161 行）报 `ExternalSystemUnavailableException: WeCom call failed: HttpTimeoutException`，本次只改了文档，重跑通过。
+- **根因**：被测类对每次调用都发真实 HTTP 到测试里的 WireMock，读超时是 `freshClient` 里传入的 5 秒墙钟（连接超时也是 5 秒）；本机同时跑着多份构建与测试容器（负载曾到 80/18 核），WireMock 的 Jetty 首个请求（冷启动）被饿死超过 5 秒就超时。与 QUAL-020 同类：成功路径用例与「故意超时」用例共用了同一量级的墙钟超时。
+- **拦下于**：pre-push 预检（偶发，重跑通过）。
+- **漏过于**：作者自审（没有区分「期望成功的用例的兜底超时」与「要测超时的用例的超时」）。
+- **新增检查项**：测试修复——成功路径用例的连接与读超时改为 30 秒兜底（不影响用时，只在桩卡死时才用到），故意超时的用例（`impatient`，300 ms 对 1500 ms 延迟）保持不变；同类扫描留给「集成测试反模式检查」（固定时间等待、墙钟超时，QUALITY_CONTEXT 待办 6）。
+- **状态**：待落实（修复 PR 合入后改已落实；负责：one-quality 2026-10-24）
