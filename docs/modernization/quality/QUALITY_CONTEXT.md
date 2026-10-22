@@ -141,3 +141,8 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 主检出现有 4 个未跟踪文件（architecture/proposals/ 下），同路径文件合入时快进会被 git 拒绝并停队，归属待用户确认。
 - macOS 夜间自动装更新（凌晨 2~5 点）会让 runner 起不来，nightly 已定 01:23 本机避开；系统设置未动。
 
+### 补记（2026-10-22 傍晚，clear 前）
+- **#573** head 247bcc559（已第三次合 main：FREEZE_FACTS.{md,yaml}、proposed/README.md 被他人反复改，一律 `git rm --cached`），CI 起不来时先看是否又 DIRTY；**#589** 随后合 main 同样处理，opus 已过；两者 CI 绿后直接报 one-merge 入队（one-coordinator 已批）。
+- **#593** head 93615980f：opus 首轮（高：被误忽略的人写文件会丢修改）已修，sonnet 改后复核通过、结论已贴 PR；遗留后续项：全局 excludesFile 当作树内 .gitignore（低）、对 panorama.yaml 探测因 notes_build 先读垃圾而失败（#589 调序后缓解，仍建议用 stage 2/3 合法内容做种子）、--check 失败返回 conflict 语义（低）、自测补三个用例。CI 四绿后报 one-coordinator 批。
+- 工作区 `.claude/worktrees/xin-61164f` 当前停在文档分支 `claude/one-quality-handoff-1022`（本交接）；其余分支：gen-out-1/2、mq-ignored、task-status、generated-design、task-ledger。
+
