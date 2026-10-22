@@ -21,7 +21,7 @@
   - 21:15 答完：RULE-265 定时任务不得发起审批只产生待办/提醒→已转 one-rules；卡 C 保留期答「A」→已转 one-data。收件箱现无 pending。
   - 清空规则：除 coordinator、architecture 外由我管，现钩子未推全员前，会话到线先写交接，等 one-quality PR 合入再自清；我清空要用户 /clear（或 one-merge 重开远程+发接续）。
 - 21:0x 接续核查（新会话）：PB 规则表草稿主体已在（43KB），另三份未出，已重派 opus 续作（草稿自查压到 ≤40KB + DATA_DESIGN_CHECKLIST/mapping/guards-todo）；one-arch-revenue 已完成 AGG-20/16/02（@40be8db36 报 one-merge，三点问 one-architecture）；one-rules、one-glossary 已在自行推进，不另发接续。
-- one-arch-finance：AFI-02 作废（S-5 撤 AGG-137），S-4/S-5 已落 PRC-96、AGG-41（@6866f4494）；S-4b（奖金核定事实入账方式）已转 one-architecture 裁，裁后派 one-arch-people 给 B-15 核定流程加过账步。
+- one-arch-finance：AFI-02 作废（S-5 撤 AGG-137），S-4/S-5 已落 PRC-96、AGG-41（@6866f4494）；S-4b 已裁（@a747e42af，负债内部重分类）；派 one-arch-people 给 B-15 加「奖金核定重分类」过账步（outbox 待发，限流）。ADR-0078 用户已批（intent 211131）；裁定 -05/-06 补登 ACCEPTANCE_RULINGS（@dd62eee26）待 one-merge 加急；one-1a-par W2 PR-B 等 one-ops 核 WORKFORCE_SYNC_ENABLED、HELD→PENDING 交 architecture+data。PB 规则表四份草稿已齐待我审（新 PB 须与 playbook_digest.py 改写同 PR；TEAM-47 改仓库设置须问用户）。
 - 接手先做：ReadNotifications；`ls -t ~/.modernize/psa/outbox/`；`gh pr list` + `mq.py status`；逐个查开发会话前置是否满足（不得再犯：只盯合并）；intent 2026-10-22-15* 起为今日下午决定。
 - 下午已定（intent）：交接阈值 30%/40%（154722，§2.1 已改并进 main #602）；降负载不得牺牲开发机功能（151546）；仓库内容治理四项交 one-quality（153421，GOV-1022-COO-06）；one-ops search_path 三项「都做」（155217）。
 - 在开 PR：#603（已批，队列）；#587（已批，等 one-platform-file 解冲突+openapi）；#604 KERR（one-1a-par，等 opus+CI）；#599 REG-3（等 one-data 签发与 M1 裁定，验收补丁按 RULING-COORD-20261022-03）；#589（已批，one-quality）；#606 钩子三合一（守护文件，单列 opus）。
