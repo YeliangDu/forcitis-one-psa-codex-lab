@@ -7,6 +7,19 @@ meta:
   sources:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
+  registered_unbuilt:
+  - table: platform_file.false_positive_judgments
+    owner: one-platform-file
+    due: '2026-11-15'
+    reason: 单元 3 基线建表，误报判定代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
+  - table: platform_file.quarantine_read_requests
+    owner: one-platform-file
+    due: '2026-11-15'
+    reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
+  - table: platform_file.stored_files
+    owner: one-platform-file
+    due: '2026-11-15'
+    reason: 单元 3 建表、单元 5 只写了插入（NewStoredFile + StoredFileRepository）；根类随 6b（过期作业改状态）补；到期日 one-platform-file 2026-10-22 确认
 aggregates:
 - id: cost.timesheet/Timesheet
   bc: cost.timesheet
