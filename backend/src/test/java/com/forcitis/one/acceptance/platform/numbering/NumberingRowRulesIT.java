@@ -21,10 +21,12 @@ class NumberingRowRulesIT {
 
     private static final UUID TIMESHEET_RULE = UUID.fromString("019a0000-0000-7000-8000-000000000302");
     private static final String VERSION = "insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id,"
-            + " version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, confirmed_by,"
+            + " version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, source_kind, confirmed_by,"
             + " confirmed_at, finance_confirmed_by, finance_confirmed_at) values (?, ?, 2, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2027-01-01', null, now(), ?,"
-            + " ?, ?, ?, ?)";
-    private static final String COUNTER = "insert into platform_numbering.numbering_counters (numbering_counter_id, document_type, counter_scope_kind,"
+            + " 'SEEDED', ?, ?, ?, ?)";
+    private static final String COUNTER = "insert into platform_numbering.numbering_counters (numbering_counter_id, document_type_id, counter_scope_kind,"
+            + " legal_entity_id, period_key, last_value) values (?, (select document_type_id from platform_numbering.document_types where code = ?), 'GLOBAL', null, ?, ?)";
+    private static final String COUNTER_BY_TYPE_ID = "insert into platform_numbering.numbering_counters (numbering_counter_id, document_type_id, counter_scope_kind,"
             + " legal_entity_id, period_key, last_value) values (?, ?, 'GLOBAL', null, ?, ?)";
 
     private RowRuleProbe db;
@@ -86,17 +88,17 @@ class NumberingRowRulesIT {
                 .isZero();
         assertThat(db.column("select column_name from information_schema.columns where table_schema = 'platform_numbering'"
                 + " and table_name = 'numbering_rules' order by column_name"))
-                .containsExactlyInAnyOrder("created_at", "document_type", "event_count", "numbering_rule_id", "updated_at", "version");
+                .containsExactlyInAnyOrder("created_at", "document_type_id", "event_count", "numbering_rule_id", "updated_at", "version");
     }
 
     @Test
     @DisplayName("DATA-REPAIR-approval AP-11: the three seed rules stay with event_count 0 and the seed versions keep their template")
     void seedsKeepTheirTemplateAndStartAtEventCountZero() throws SQLException {
-        assertThat(db.column("select document_type || ':' || event_count || ':' || version from platform_numbering.numbering_rules order by document_type"))
+        assertThat(db.column("select t.code || ':' || r.event_count || ':' || r.version from platform_numbering.numbering_rules r join platform_numbering.document_types t using (document_type_id) order by t.code"))
                 .containsExactly("JOURNAL_VOUCHER:0:1", "QUOTE:0:1", "TIMESHEET:0:1");
-        assertThat(db.column("select r.document_type || '|' || v.template_text || '|' || v.reset_policy || '|' || v.start_value || '|' || v.status"
+        assertThat(db.column("select t.code || '|' || v.template_text || '|' || v.reset_policy || '|' || v.start_value || '|' || v.status"
                 + " || '|' || v.version_number || '|' || v.numbering_rule_version_id from platform_numbering.numbering_rule_versions v"
-                + " join platform_numbering.numbering_rules r using (numbering_rule_id) order by r.document_type"))
+                + " join platform_numbering.numbering_rules r using (numbering_rule_id) join platform_numbering.document_types t using (document_type_id) order by t.code"))
                 .containsExactly(
                         "JOURNAL_VOUCHER|{TYPE}-{LE}-{yyyyMM}-{seq:4}|MONTHLY|1|PENDING_CONFIRMATION|1|019a0000-0000-7000-8000-000000000503",
                         "QUOTE|{TYPE}-{LE}-{yyyyMM}-{seq:4}|MONTHLY|1|PENDING_CONFIRMATION|1|019a0000-0000-7000-8000-000000000501",
@@ -104,13 +106,13 @@ class NumberingRowRulesIT {
     }
 
     @Test
-    @DisplayName("DATA-REPAIR-approval AP-14: numbering still takes QUOTE and JOURNAL_VOUCHER, only an unknown document type is refused (ck_numbering_counters_document_type)")
+    @DisplayName("DATA-REPAIR-approval AP-14: numbering still takes QUOTE and JOURNAL_VOUCHER, only a document type id that is not registered is refused (fk_numbering_counters_document_type_id)")
     void numberingKeepsQuoteAndJournalVoucher() throws SQLException {
-        assertThat(db.column("select document_type from platform_numbering.numbering_rules order by document_type"))
+        assertThat(db.column("select t.code from platform_numbering.numbering_rules r join platform_numbering.document_types t using (document_type_id) order by t.code"))
                 .containsExactly("JOURNAL_VOUCHER", "QUOTE", "TIMESHEET");
         db.accepted(COUNTER, UUID.randomUUID(), "QUOTE", "202610", 1L);
         db.accepted(COUNTER, UUID.randomUUID(), "JOURNAL_VOUCHER", "202610", 1L);
-        db.checkRefused("ck_numbering_counters_document_type", COUNTER, UUID.randomUUID(), "PAYMENT", "202610", 1L);
+        db.refused("23503", "fk_numbering_counters_document_type_id", COUNTER_BY_TYPE_ID, UUID.randomUUID(), UUID.randomUUID(), "202610", 1L);
     }
 
     @Test
@@ -145,10 +147,10 @@ class NumberingRowRulesIT {
     }
 
     @Test
-    @DisplayName("DATA-REPAIR-approval AP-17: a document type outside QUOTE, TIMESHEET, JOURNAL_VOUCHER is refused by ck_numbering_counters_document_type")
+    @DisplayName("DATA-REPAIR-approval AP-17: a document type id outside the registry is refused by fk_numbering_counters_document_type_id")
     void unknownCounterDocumentTypeRefused() throws SQLException {
-        for (String type : List.of("PAYMENT", "", "timesheet", "INVOICE")) {
-            db.checkRefused("ck_numbering_counters_document_type", COUNTER, UUID.randomUUID(), type, "202610", 1L);
+        for (int attempt = 0; attempt < 4; attempt++) {
+            db.refused("23503", "fk_numbering_counters_document_type_id", COUNTER_BY_TYPE_ID, UUID.randomUUID(), UUID.randomUUID(), "202610", 1L);
         }
     }
 }

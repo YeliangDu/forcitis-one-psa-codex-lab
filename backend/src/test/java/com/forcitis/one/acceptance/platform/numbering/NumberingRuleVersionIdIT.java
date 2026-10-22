@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.TestAccounts;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
@@ -107,8 +107,8 @@ class NumberingRuleVersionIdIT {
         try {
             jdbc.sql("delete from " + VERSIONS).update();
             jdbc.sql("""
-                    insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, confirmed_by, confirmed_at)
-                    select uuidv7(), numbering_rule_id, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, DATE '2000-01-01', now(), 'CONFIRMED', '01900000-0000-7000-8000-000000000101', now()
+                    insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, source_kind, confirmed_by, confirmed_at)
+                    select uuidv7(), numbering_rule_id, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, DATE '2000-01-01', now(), 'CONFIRMED', 'SEEDED', '01900000-0000-7000-8000-000000000101', now()
                       from platform_numbering.numbering_rules
                     """).update();
         } finally {
@@ -121,18 +121,18 @@ class NumberingRuleVersionIdIT {
     }
 
     private IssuedNumber issue(LocalDate day) {
-        return tx.execute(status -> numbers.next(DocumentType.QUOTE, LE1, day));
+        return tx.execute(status -> numbers.next(new DocumentTypeCode("QUOTE"), LE1, day));
     }
 
     private UUID versionRowId(int versionNumber) {
         return jdbc.sql("select numbering_rule_version_id from " + VERSIONS
-                + " where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = :n")
+                + " where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = :n")
                 .param("n", versionNumber).query(UUID.class).single();
     }
 
     private String versionStatus(int versionNumber) {
         return jdbc.sql("select status from " + VERSIONS
-                + " where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = :n")
+                + " where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = :n")
                 .param("n", versionNumber).query(String.class).single();
     }
 
@@ -141,7 +141,7 @@ class NumberingRuleVersionIdIT {
     }
 
     private void saveSecondVersionEffectiveOn(LocalDate effectiveFrom) throws Exception {
-        String etag = "\"" + jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'").query(Long.class).single() + "\"";
+        String etag = "\"" + jdbc.sql("select version from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')").query(Long.class).single() + "\"";
         String tomorrow = effectiveFrom.toString();
         mvc.perform(put(RULES + "/QUOTE").header("If-Match", etag).with(csrf()).with(AUTHOR).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + tomorrow + "\"}"))

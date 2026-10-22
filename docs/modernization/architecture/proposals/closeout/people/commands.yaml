@@ -1,0 +1,4822 @@
+# 人员组合并产物（由 parts/rebuild.py 从分片生成，不手改；改分片后重跑）
+commands:
+- name: 登记法人主体
+  aggregate: AGG-60
+  entity: legal_entities
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 法人代码
+  - 法人名称
+  - 法人类型
+  - 生效日
+  preconditions:
+  - ref: INV-59
+    text: 法人代码发号后不可改；同代码重复登记返回已有结果
+  - ref: R-B13-1
+    text: 五家法人由初始化录入，之后新增走本命令（DATA_MODEL B-13）
+  authority:
+    ref: raci:AGG-60/登记法人主体
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 法人代码（同代码重复登记返回已有结果）
+  state_change: 创建 → 有效
+  emits: （内部）
+  used_by:
+  - PRC-80 第 2 步
+  orphan: false
+  source_part: vs07
+- name: 更名法人主体
+  aggregate: AGG-60
+  entity: legal_entity_versions
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；词表事件「法人主体已更名」
+  source: 词表事件法人主体已更名、已建代码；聚合稿命令列只有登记法人主体
+  params:
+  - 法人主体ID
+  - 新名称
+  - 生效日
+  preconditions:
+  - ref: INV-59
+    text: 法人代码发号后不可改；更名只改名称，不改代码
+  - ref: 状态
+    text: 法人主体为有效
+  authority:
+    ref: raci:AGG-60/更名法人主体
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 法人主体ID + 生效日（同键重提无操作）
+  state_change: 有效 → 有效（追加名称版本）
+  emits: （内部）
+  used_by:
+  - PRC-80 第 7 步
+  orphan: false
+  source_part: vs07
+- name: 停用法人主体
+  aggregate: AGG-60
+  entity: legal_entity_versions
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；词表事件「法人主体已停用」
+  source: 词表事件法人主体已停用、已建代码；聚合稿命令列只有登记法人主体
+  params:
+  - 法人主体ID
+  - 停用日
+  - 停用原因
+  preconditions:
+  - ref: 状态
+    text: 法人主体为有效
+  - ref: 待定
+    text: 法人主体仍有有效法人归属或在职任职时是否拒绝，聚合稿与词表均未定（vs07.notes.md 结构问题 19），本命令暂只校验状态
+  authority:
+    ref: raci:AGG-60/停用法人主体
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 法人主体ID（已停用再停用无操作）
+  state_change: 有效 → 已停用
+  emits: （内部）
+  used_by:
+  - PRC-80 第 8 步
+  orphan: false
+  source_part: vs07
+- name: 启用法人主体
+  aggregate: AGG-60
+  entity: legal_entity_versions
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；词表事件「法人主体已启用」
+  source: 词表事件法人主体已启用、已建代码；聚合稿命令列只有登记法人主体
+  params:
+  - 法人主体ID
+  - 启用日
+  preconditions:
+  - ref: 状态
+    text: 法人主体为已停用（词表另区分已登记与已启用，本稿登记即有效，见 vs07.notes.md 结构问题 19）
+  authority:
+    ref: raci:AGG-60/启用法人主体
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 法人主体ID（有效再启用无操作）
+  state_change: 已停用 → 有效（恢复）
+  emits: （内部）
+  used_by:
+  - PRC-80 第 9 步
+  orphan: false
+  source_part: vs07
+- name: 调整组织单元
+  aggregate: AGG-61
+  entity: org_units
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 组织单元ID（新建时为空）
+  - 调整类型（新建 / 变更 / 停用 / 恢复启用 / 撤销）
+  - 名称与简称
+  - 上级组织单元
+  - 单元类型
+  - 是否交付单元
+  - 负责人（人员ID）
+  - 业务生效日
+  preconditions:
+  - ref: INV-60
+    text: 撤销的组织单元下仍有在职任职则拒绝并提示先调岗（PRC-136），人力改正后重提
+  - ref: 状态
+    text: 已撤销的组织单元不可再调整
+  - ref: 结构问题 14
+    text: 负责人（责任人）是 cost_object_owner 的解析来源，须在版本表按生效区间保存；变更负责人即改变审批归属
+  authority:
+    ref: raci:AGG-61/调整组织单元
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 调整请求ID（客户端预生成 UUIDv7）
+  state_change: 创建 → 启用；启用 ⇄ 停用；启用 / 停用 → 已撤销
+  emits: 组织单元已调整
+  used_by:
+  - PRC-80 第 3 步
+  orphan: false
+  source_part: vs07
+- name: 指定法人归属
+  aggregate: AGG-117
+  entity: legal_entity_attributions
+  kind: human
+  source: 分片 vs07.notes.md 新用语、聚合稿 AGG-117 回补（聚合稿现列「指定法人归属」）
+  params:
+  - 归属对象类型（部门 / 员工）
+  - 归属对象ID
+  - 法人主体ID
+  - 期间起
+  - 期间止（可空）
+  preconditions:
+  - ref: INV-122
+    text: 同一部门 / 员工的法人归属期间不重叠（原 INV-新-P5；EXCLUDE 约束），重叠则拒绝，人力改正后重提
+  - ref: INV-59
+    text: 读：法人主体须存在
+  - ref: Q-09
+    text: 三口径之一，与用人单位、扣缴义务人不一致只预警（B-15 PRC-145），本命令不拒绝
+  authority:
+    ref: raci:AGG-117/指定法人归属
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 归属请求ID（客户端预生成 UUIDv7）
+  state_change: 创建 / 追加期间 → 已指定
+  emits: 〔缺〕法人归属已变更
+  used_by:
+  - PRC-80 第 4 步
+  orphan: false
+  source_part: vs07
+- name: 更正法人归属
+  aggregate: AGG-117
+  entity: legal_entity_attribution_corrections
+  kind: human
+  source: 聚合稿 AGG-117（命令名以已建代码为准，交 one-glossary）
+  params:
+  - 归属对象类型
+  - 归属对象ID
+  - 原期间
+  - 更正后结束日
+  - 更正理由
+  preconditions:
+  - ref: INV-122
+    text: 更正后期间仍不重叠；更正只追加，不改写历史
+  - ref: 状态
+    text: 仅已关闭期间的结束日可更正（词表：法人归属结束日已更正）
+  authority:
+    ref: raci:AGG-117/更正法人归属
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 更正序号（同对象同期间单调递增）
+  state_change: 已指定 → 已指定（追加更正行）
+  emits: （内部）
+  used_by:
+  - PRC-80 第 12 步
+  orphan: false
+  source_part: vs07
+- name: 终止法人归属
+  aggregate: AGG-117
+  entity: legal_entity_attributions
+  kind: human
+  name_status: 〔缺〕规划原缺，已建代码 EndLegalEntityAttribution；词表事件「法人归属已结束」（LegalEntityAttributionEnded），命令中文名交 one-glossary
+  source: 已建代码；one-architecture command-mapping（2026-10-21）
+  params:
+  - 归属对象类型（部门 / 员工）
+  - 归属对象ID
+  - 结束日
+  preconditions:
+  - ref: INV-122
+    text: 只关闭当前期间，结束日不早于开始日；历史只追加不改写
+  - ref: 状态
+    text: 该对象须有当前法人归属，否则拒绝
+  - ref: 职责分离
+    text: 操作人不得终止本人的法人归属（已建代码 OwnAttributionGuard）
+  authority:
+    ref: raci:AGG-117/终止法人归属
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 归属对象 + 乐观锁版本
+  state_change: 已指定 → 已指定（关闭当前期间）
+  emits: 法人归属已结束
+  used_by:
+  - PRC-80 第 13 步
+  orphan: false
+  source_part: vs07
+- name: 更正法人代码
+  aggregate: AGG-60
+  entity: legal_entities
+  kind: human
+  name_status: 〔缺〕规划原缺，已建代码 UpdateLegalEntity 的代码更正分支，命令中文名交 one-glossary
+  source: 已建代码；one-architecture command-mapping（2026-10-21）
+  params:
+  - 法人主体ID
+  - 更正后法人代码
+  preconditions:
+  - ref: INV-59
+    text: 法人代码发号后不可改；仅该代码未用于发号时可更正，已发号则拒绝
+  authority:
+    ref: raci:AGG-60/更正法人代码
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 法人主体ID + 乐观锁版本
+  state_change: 有效 → 有效（改代码，状态不变）
+  emits: （内部）
+  used_by:
+  - PRC-80 第 14 步
+  orphan: false
+  source_part: vs07
+- name: 停用岗位
+  aggregate: AGG-64
+  entity: jobs
+  kind: human
+  source: 聚合稿 AGG 命令列（Q-08 后改称职位目录条目，命令名交 one-glossary）
+  params:
+  - 职位ID
+  - 停用日
+  preconditions:
+  - ref: INV-63
+    text: 职位仍被在职任职引用则拒绝，人力改正后重提
+  - ref: 状态
+    text: 职位为启用
+  authority:
+    ref: raci:AGG-64/停用岗位
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 职位ID（已停用再停用无操作）
+  state_change: 启用 → 已停用
+  emits: 岗位已停用
+  used_by:
+  - PRC-80 第 5 步
+  orphan: false
+  source_part: vs07
+- name: 新建岗位
+  aggregate: AGG-64
+  entity: jobs
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；Q-08 后为职位目录条目，命令名交 one-glossary
+  source: jobs 数据模型（职位编码跨版本不变）、vs07.notes.md 结构问题 8
+  params:
+  - 职位编码
+  - 名称
+  - 职位族
+  - 职级
+  - 启用日
+  preconditions:
+  - ref: 数据模型
+    text: 职位编码跨版本不变，同编码重复新建返回已有结果
+  - ref: JOB_CATALOG P-0
+    text: 职位与职级是两个独立维度；职级、职位族暂随本聚合不拆（S-10）
+  authority:
+    ref: raci:AGG-64/新建岗位
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 职位编码（同编码重复新建返回已有）
+  state_change: 创建 → 启用
+  emits: （内部）
+  used_by:
+  - PRC-80 第 10 步
+  orphan: false
+  source_part: vs07
+- name: 修改岗位
+  aggregate: AGG-64
+  entity: job_versions
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；Q-08 后为职位目录条目，命令名交 one-glossary
+  source: job_versions 数据模型、vs07.notes.md 结构问题 8
+  params:
+  - 职位ID
+  - 名称
+  - 职位族
+  - 职级
+  - 生效日
+  preconditions:
+  - ref: 状态
+    text: 职位为启用；已停用的职位不可修改
+  authority:
+    ref: raci:AGG-64/修改岗位
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 职位ID + 生效日（同键重提无操作）
+  state_change: 启用 → 启用（追加版本）
+  emits: （内部）
+  used_by:
+  - PRC-80 第 11 步
+  orphan: false
+  source_part: vs07
+- name: 提交招聘需求
+  aggregate: AGG-65
+  entity: recruitment_requisitions
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 需求ID（客户端预生成）
+  - 职位ID
+  - 组织单元ID
+  - 需求人数
+  - 期望到岗日
+  - 需求说明
+  preconditions:
+  - ref: R-01
+    text: 职位须启用、组织单元须有效，违反拒绝并退回改正
+  - ref: 状态
+    text: 需求为草稿
+  authority:
+    ref: raci:AGG-65/提交招聘需求
+    A:
+      resolve: instance
+      field: 招聘需求.提出人
+    R:
+    - SH-E1
+  idempotency_key: 需求ID（同一 ID 重复提交返回已有结果）
+  state_change: 草稿 → 已提交
+  emits: （内部）
+  used_by:
+  - PRC-81 第 2 步
+  orphan: false
+  source_part: vs07
+- name: 批准招聘需求
+  aggregate: AGG-65
+  entity: recruitment_requisitions
+  kind: human
+  source: 聚合稿 AGG 命令列（B-13 聚合内单级批准，F-3，不经 platform.approval）
+  params:
+  - 需求ID
+  - 批准意见
+  preconditions:
+  - ref: 状态
+    text: 需求为已提交
+  - ref: AR-11/AR-12
+    text: 提出人本人就是归属组织单元责任人则上交其上级；责任人缺位上交上级组织负责人（待 V-18）
+  - ref: 职责分离
+    text: 提出人 ≠ 批准人
+  authority:
+    ref: raci:AGG-65/批准招聘需求
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+    approval:
+      approver: SH-M1
+      doc_type: 招聘需求批准
+  idempotency_key: 需求ID（已批准再批准无操作）
+  state_change: 已提交 → 已批准
+  emits: 招聘需求已批准
+  used_by:
+  - PRC-81 第 3 步
+  orphan: false
+  source_part: vs07
+- name: 关闭招聘需求
+  aggregate: AGG-65
+  entity: recruitment_requisitions
+  kind: human
+  source: 聚合稿 AGG 命令列（v1 以关闭代驳回）
+  params:
+  - 需求ID
+  - 关闭原因（驳回 / 撤回 / 取消 / 录满）
+  preconditions:
+  - ref: 状态
+    text: 需求为已提交（批准人驳回，或提出人撤回），或已批准（取消、录满）
+  - ref: PG-08
+    text: 录满无触发，暂由人力或提出人手工关闭
+  authority:
+    ref: raci:AGG-65/关闭招聘需求
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+    - SH-E1
+    - SH-E6
+  idempotency_key: 需求ID（已关闭再关闭无操作）
+  state_change: 已提交 / 已批准 → 已关闭
+  emits: 招聘需求已关闭
+  used_by:
+  - PRC-81 第 4 步（含第 2 步 withdraw 边进入）
+  orphan: false
+  note: 驳回是批准人决定，A 同批准；提出人撤回与已批准后取消 / 录满由提出人或人力执行同一命令（R）
+  source_part: vs07
+- name: 登记候选人
+  aggregate: AGG-62
+  entity: employees
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 姓名
+  - 联系方式
+  - 应聘职位或招聘需求ID
+  - 来源（应聘 / 推荐）
+  preconditions:
+  - ref: T-5
+    text: 候选人并入人员的候选阶段，个人信息保护，访问限招聘相关角色（ADR-0043）
+  authority:
+    ref: raci:AGG-62/登记候选人
+    A:
+      resolve: type
+      role: SH-E6
+      function: 招聘
+    R:
+    - SH-E6
+  idempotency_key: 人员ID（客户端预生成 UUIDv7）；同姓名同联系方式疑似重复时提示不静默合并
+  state_change: 创建 → 人员:候选人
+  emits: 人员已登记
+  used_by:
+  - PRC-82 第 1 步
+  orphan: false
+  source_part: vs07
+- name: 记录面试
+  aggregate: AGG-62
+  entity: interviews
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 人员ID
+  - 招聘需求ID
+  - 面试轮次
+  - 面试时间
+  - 面试人
+  - 评价与结论（通过 / 不通过）
+  preconditions:
+  - ref: 状态
+    text: 人员为候选人
+  - ref: T-5
+    text: 评价属个人信息，访问限招聘相关角色
+  authority:
+    ref: raci:AGG-62/记录面试
+    A:
+      resolve: instance
+      field: 招聘需求.提出人
+    R:
+    - SH-E1
+  idempotency_key: 人员ID + 面试轮次
+  state_change: 人员:候选人 → 人员:候选人（追加面试行）
+  emits: （内部）
+  used_by:
+  - PRC-82 第 2 步
+  orphan: false
+  source_part: vs07
+- name: 作出录用决定
+  aggregate: AGG-62
+  entity: hiring_decisions
+  kind: human
+  source: 聚合稿 AGG 命令列（V-8：不另设审批）
+  params:
+  - 人员ID
+  - 招聘需求ID
+  - 录用结论
+  - 拟入职日
+  - 拟任职位ID
+  - 拟职级ID
+  preconditions:
+  - ref: R-02
+    text: 拟任职位须启用，违反拒绝
+  - ref: 状态
+    text: 人员为候选人且最近一轮面试通过
+  authority:
+    ref: raci:AGG-62/作出录用决定
+    A:
+      resolve: instance
+      field: 招聘需求.提出人
+    R:
+    - SH-E1
+  idempotency_key: 人员ID + 招聘需求ID（同对重复作出返回已有）
+  state_change: 人员:候选人 → 人员:待答复
+  emits: （内部）
+  used_by:
+  - PRC-82 第 3 步
+  orphan: false
+  note: 聚合稿把「录用决定已作出」挂在本命令；本稿改挂登记候选人答复（vs07.notes.md 结构问题 4）
+  source_part: vs07
+- name: 登记候选人答复
+  aggregate: AGG-62
+  entity: hiring_decisions
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：RecordCandidateReply）
+  source: 分片 vs07.notes.md 结构问题 4、17
+  params:
+  - 人员ID
+  - 答复（接受 / 放弃）
+  - 确认日
+  - 确认的入职日
+  - 回执引用（邮件或签回的录用通知）
+  preconditions:
+  - ref: 状态
+    text: 人员为待答复
+  - ref: V-19
+    text: 答复期限缺省 7 日，逾期提醒用人经理决定是否撤销录用，不自动失效
+  authority:
+    ref: raci:AGG-62/登记候选人答复
+    A:
+      resolve: type
+      role: SH-E6
+      function: 招聘
+    R:
+    - SH-E6
+  idempotency_key: 人员ID + 招聘需求ID（已答复再答复返回已有）
+  state_change: 人员:待答复 → 人员:录用已确认（接受）/ 人员:候选人已放弃（放弃）
+  emits: 录用决定已作出
+  used_by:
+  - PRC-82 第 4 步
+  orphan: false
+  source_part: vs07
+- name: 标记未录用
+  aggregate: AGG-62
+  entity: hiring_decisions
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 人员ID
+  - 未录用原因类别
+  preconditions:
+  - ref: 状态
+    text: 人员为候选人且面试结论为不通过
+  authority:
+    ref: raci:AGG-62/标记未录用
+    A:
+      resolve: instance
+      field: 招聘需求.提出人
+    R:
+    - SH-E1
+  idempotency_key: 人员ID（已标记再标记无操作）
+  state_change: 人员:候选人 → 人员:未录用
+  emits: （内部）
+  used_by:
+  - PRC-82 第 5 步
+  orphan: false
+  source_part: vs07
+- name: 登记入职
+  aggregate: AGG-62
+  entity: employees
+  kind: human
+  source: 聚合稿 AGG 命令列（样板 S3：登记入职 → 入职已登记）
+  params:
+  - 人员ID
+  - 入职日（人事业务生效日，U-12）
+  - 用工类型
+  - 是否收费员工
+  - 试用期约定（可空）
+  preconditions:
+  - ref: 状态
+    text: 人员为录用已确认；非招聘入职（调入、返聘）无候选阶段时直接登记〔推〕
+  - ref: U-12
+    text: 入职日可早于或晚于登记日；工号由本系统发号
+  authority:
+    ref: raci:AGG-62/登记入职
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - SH-E6
+  idempotency_key: 人员ID（已登记入职再登记无操作）
+  state_change: 人员:录用已确认 / 创建 → 人员:待入职
+  emits: 〔缺〕入职已登记
+  used_by:
+  - PRC-83 第 1 步
+  orphan: false
+  source_part: vs07
+- name: 入职生效
+  aggregate: AGG-62
+  entity: employment_versions
+  kind: automatic
+  name_status: 〔缺〕沿用样板（SAMPLE S3：TakeOnboardingEffect，系统定时）
+  source: SAMPLE.md S3、聚合稿回补第 4 节
+  params:
+  - 人员ID
+  - 入职日
+  preconditions:
+  - ref: U-12
+    text: 入职日到达（当天开始）时执行；补登（入职日不晚于登记日）时登记后立即执行，生效日仍为登记的入职日
+  - ref: 状态
+    text: 人员为待入职
+  authority:
+    ref: raci:AGG-62/入职生效
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - system
+  idempotency_key: 人员ID（已生效无操作）
+  state_change: 人员:待入职 → 人员:试用期 / 人员:正式
+  emits: Employed
+  used_by:
+  - PRC-83 第 2 步
+  orphan: false
+  source_part: vs07
+- name: 办理转正
+  aggregate: AGG-62
+  entity: employment_versions
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 人员ID
+  - 转正日（业务生效日）
+  preconditions:
+  - ref: P-46
+    text: 转正前读试用期绩效评估（AGG-106）；评估结论是输入，不是拒绝条件
+  - ref: 状态
+    text: 人员为试用期
+  - ref: V-10
+    text: 不予转正转入离职办理（公司单方终止，PRC-128）
+  authority:
+    ref: raci:AGG-62/办理转正
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - SH-E6
+  idempotency_key: 人员ID + 转正日（已转正再办理无操作）
+  state_change: 人员:试用期 → 人员:正式
+  emits: 〔缺〕转正已办理
+  used_by:
+  - PRC-85 第 3 步
+  orphan: false
+  source_part: vs07
+- name: 申请离职
+  aggregate: AGG-62
+  entity: separation_requests
+  kind: human
+  source: 聚合稿 AGG 命令列（V-20 后员工提出的离职不批准）
+  params:
+  - 人员ID
+  - 来源（员工 / 公司终止）
+  - 期望离职日（人事业务生效日）
+  - 原因类别
+  - 终止依据（来源为公司终止时必填）
+  preconditions:
+  - ref: R-03
+    text: 期望离职日早于法定通知期（试用期 3 日、其余 30 日）且无协商一致依据只预警，不拒绝
+  - ref: 状态
+    text: 人员为试用期或正式，且无进行中的离职申请
+  - ref: V-20
+    text: 来源为员工：申请后自动受理；来源为公司终止：进入批准
+  authority:
+    ref: raci:AGG-62/申请离职
+    A:
+      resolve: instance
+      field: 离职申请.发起人
+    R:
+    - SH-E3
+    - SH-E6
+  idempotency_key: 离职申请ID（客户端预生成 UUIDv7）
+  state_change: 创建 → 离职申请:已受理（来源=员工）/ 离职申请:已申请（来源=公司终止）
+  emits: （内部）
+  used_by:
+  - PRC-128 第 1 步
+  orphan: false
+  source_part: vs07
+- name: 批准公司终止
+  aggregate: AGG-62
+  entity: separation_requests
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：ApproveCompanyTermination；取代聚合稿「批准离职申请」）
+  source: 分片 vs07.notes.md 结构问题 13
+  params:
+  - 离职申请ID
+  - 批准意见
+  preconditions:
+  - ref: 状态
+    text: 离职申请为已申请（来源=公司终止）
+  - ref: AR-11/AR-12
+    text: 被终止员工本人就是责任人则上交其上级；责任人缺位上交上级组织负责人（待 V-18）
+  - ref: 职责分离
+    text: 发起人 ≠ 批准人
+  authority:
+    ref: raci:AGG-62/批准公司终止
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+    approval:
+      approver: SH-M1
+      doc_type: 公司终止批准
+  idempotency_key: 离职申请ID（已批准再批准无操作）
+  state_change: 离职申请:已申请 → 离职申请:已批准
+  emits: （内部）
+  used_by:
+  - PRC-128 第 2 步
+  orphan: false
+  source_part: vs07
+- name: 驳回公司终止
+  aggregate: AGG-62
+  entity: separation_requests
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 结构问题 13 增驳回命令）
+  source: 分片 vs07.processes.yaml PRC-128 第 3 步
+  params:
+  - 离职申请ID
+  - 驳回意见
+  preconditions:
+  - ref: 状态
+    text: 离职申请为已申请（来源=公司终止）
+  authority:
+    ref: raci:AGG-62/驳回公司终止
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+  idempotency_key: 离职申请ID
+  state_change: 离职申请:已申请 → 离职申请:已驳回
+  emits: （内部）
+  used_by:
+  - PRC-128 第 3 步
+  orphan: false
+  note: B-13 聚合内决定，非审批平台回调，R 为批准人本人
+  source_part: vs07
+- name: 撤回离职申请
+  aggregate: AGG-62
+  entity: separation_requests
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：WithdrawSeparationRequest）
+  source: 分片 vs07.notes.md 新用语
+  params:
+  - 离职申请ID
+  - 撤回原因
+  preconditions:
+  - ref: 状态
+    text: 离职申请为已受理（来源=员工），尚未登记离职日
+  - ref: 权限
+    text: 仅申请人本人（人力代录入的由人力代撤回并留痕）
+  authority:
+    ref: raci:AGG-62/撤回离职申请
+    A:
+      resolve: instance
+      field: 离职申请.申请人
+    R:
+    - SH-E3
+    - SH-E6
+  idempotency_key: 离职申请ID（已撤回再撤回无操作）
+  state_change: 离职申请:已受理 → 离职申请:已撤回
+  emits: （内部）
+  used_by:
+  - PRC-128 第 4 步
+  orphan: false
+  source_part: vs07
+- name: 办理离职
+  aggregate: AGG-62
+  entity: separation_requests
+  kind: human
+  source: 聚合稿 AGG 命令列（现改为登记，Separated 由离职生效到日发出，PG-12）
+  params:
+  - 离职申请ID
+  - 离职日（最后在职日，人事业务生效日）
+  - 原因类别
+  preconditions:
+  - ref: 状态
+    text: 离职申请为已受理或已批准
+  - ref: U-12
+    text: 离职日不晚于登记日（补登、即时终止）则登记后立即离职生效
+  - ref: V-1
+    text: 离职日为最后在职日，生效在离职日结束（待用户定）
+  authority:
+    ref: raci:AGG-62/办理离职
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - SH-E6
+  idempotency_key: 离职申请ID（已登记再登记无操作，改离职日走撤销后重办）
+  state_change: 离职申请:已受理 / 已批准 → 离职申请:已登记；人员:试用期 / 正式 → 人员:待离职（同事务）
+  emits: （内部）
+  used_by:
+  - PRC-128 第 6 步
+  orphan: false
+  source_part: vs07
+- name: 离职生效
+  aggregate: AGG-62
+  entity: employment_versions
+  kind: automatic
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：TakeSeparationEffect，系统定时）
+  source: 分片 vs07.notes.md 结构问题 1
+  params:
+  - 离职申请ID
+  - 离职日
+  preconditions:
+  - ref: U-12
+    text: 离职日结束时执行；离职日不晚于登记日则登记时立即执行
+  - ref: 状态
+    text: 人员为待离职
+  - ref: G-2
+    text: 发 Separated 即吊销会话（RULE-363），不因任职或合同终止失败而推迟（PG-12）
+  authority:
+    ref: raci:AGG-62/离职生效
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - system
+  idempotency_key: 离职申请ID（已生效无操作）
+  state_change: 人员:待离职 → 人员:已离职；离职申请:已登记 → 离职申请:已生效（同事务）
+  emits: Separated
+  used_by:
+  - PRC-128 第 7 步
+  orphan: false
+  source_part: vs07
+- name: 撤销离职登记
+  aggregate: AGG-62
+  entity: separation_requests
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：CancelSeparationRegistration）
+  source: 分片 vs07.notes.md 新用语
+  params:
+  - 离职申请ID
+  - 撤销原因
+  preconditions:
+  - ref: 状态
+    text: 离职申请为已登记且未到离职日；离职日后不可撤销（已吊销访问，需走再入职）
+  authority:
+    ref: raci:AGG-62/撤销离职登记
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - SH-E6
+  idempotency_key: 离职申请ID（已撤销再撤销无操作）
+  state_change: 离职申请:已登记 → 离职申请:已撤销；人员:待离职 → 人员:试用期 / 正式（同事务）
+  emits: 〔缺〕离职登记已撤销
+  used_by:
+  - PRC-128 第 10 步
+  orphan: false
+  source_part: vs07
+- name: 建立任职
+  aggregate: AGG-63
+  entity: assignments
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 人员ID
+  - 组织单元ID
+  - 职位ID
+  - 职级ID
+  - 汇报线（直属上级人员ID）
+  - 主任职 / 兼任
+  - 生效日
+  preconditions:
+  - ref: INV-62
+    text: 同一人员的主任职区间不重叠，重叠拒绝，人力改正后重提；兼任不受此限
+  - ref: INV-63
+    text: 职位须启用
+  - ref: INV-60
+    text: 组织单元须有效
+  authority:
+    ref: raci:AGG-63/建立任职
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - SH-E6
+  idempotency_key: 任职ID（客户端预生成 UUIDv7）
+  state_change: 创建 → 任职:生效中
+  emits: 任职已变更
+  used_by:
+  - PRC-83 第 3 步
+  orphan: false
+  source_part: vs07
+- name: 终止任职
+  aggregate: AGG-63
+  entity: assignments
+  kind: automatic
+  source: 聚合稿 AGG 命令列（随离职生效自动）
+  params:
+  - 人员ID
+  - 终止日（= 离职日）
+  preconditions:
+  - ref: 状态
+    text: 任职为生效中
+  - ref: PG-12
+    text: Separated 已先发出，platform.identity 对已离职人员的「任职已变更」忽略
+  authority:
+    ref: raci:AGG-63/终止任职
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - system
+  idempotency_key: 人员ID + 终止日（已终止无操作）
+  state_change: 任职:生效中 → 任职:已终止
+  emits: 任职已变更
+  used_by:
+  - PRC-128 第 8 步
+  orphan: false
+  source_part: vs07
+- name: 提交调岗申请
+  aggregate: AGG-63
+  entity: assignments
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：SubmitTransferRequest）
+  source: 分片 vs07.notes.md 结构问题 5
+  params:
+  - 人员ID
+  - 新组织单元
+  - 新职位与职级
+  - 汇报线
+  - 主 / 兼
+  - 业务生效日
+  preconditions:
+  - ref: INV-63
+    text: 新职位须启用
+  - ref: INV-60
+    text: 新组织单元须有效，违反拒绝并退回改正
+  - ref: 跨法人
+    text: 系统比对新组织单元默认法人与当前用人单位，标记是否跨法人调动
+  authority:
+    ref: raci:AGG-63/提交调岗申请
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - SH-E6
+  idempotency_key: 调岗申请ID（客户端预生成 UUIDv7）
+  state_change: 创建 → 调岗申请:已提交
+  emits: （内部）
+  used_by:
+  - PRC-136 第 1 步
+  orphan: false
+  source_part: vs07
+- name: 批准调岗申请
+  aggregate: AGG-63
+  entity: assignments
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：ApproveTransferRequest）
+  source: 分片 vs07.notes.md 结构问题 5（B-13 聚合内单级批准，F-3）
+  params:
+  - 调岗申请ID
+  - 批准意见
+  preconditions:
+  - ref: 状态
+    text: 调岗申请为已提交
+  - ref: AR-11/AR-12
+    text: 待 V-18
+  - ref: 职责分离
+    text: 提交人 ≠ 批准人
+  - ref: V-5
+    text: 批准人为新组织单元（接收方，承担人工成本）责任人
+  authority:
+    ref: raci:AGG-63/批准调岗申请
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+    approval:
+      approver: SH-M1
+      doc_type: 调岗批准
+  idempotency_key: 调岗申请ID
+  state_change: 调岗申请:已提交 → 调岗申请:已批准
+  emits: （内部）
+  used_by:
+  - PRC-136 第 2 步
+  orphan: false
+  source_part: vs07
+- name: 驳回调岗申请
+  aggregate: AGG-63
+  entity: assignments
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：RejectTransferRequest）
+  source: 分片 vs07.notes.md 结构问题 5
+  params:
+  - 调岗申请ID
+  - 驳回意见 / 撤回说明
+  preconditions:
+  - ref: 状态
+    text: 调岗申请为已提交
+  - ref: 权限
+    text: 批准人驳回；提交人在批准前撤回走同一命令
+  authority:
+    ref: raci:AGG-63/驳回调岗申请
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+    - SH-E6
+  idempotency_key: 调岗申请ID
+  state_change: 调岗申请:已提交 → 调岗申请:已驳回
+  emits: （内部）
+  used_by:
+  - PRC-136 第 3 步（含第 1 步 withdraw 边进入）
+  orphan: false
+  source_part: vs07
+- name: 变更任职
+  aggregate: AGG-63
+  entity: assignment_versions
+  kind: automatic
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：ChangeAssignment）
+  source: 分片 vs07.notes.md 结构问题 5（PG-05）
+  params:
+  - 调岗申请ID
+  - 人员ID
+  - 业务生效日
+  preconditions:
+  - ref: INV-62
+    text: 原子关旧开新，主任职区间不得重叠，冲突拒绝并退回第 1 步改正
+  - ref: 跨法人
+    text: 跨法人调动须新劳动合同已签订（读 AGG-67），主体变更须在生效日前完成
+  - ref: 状态
+    text: 调岗申请为已批准
+  authority:
+    ref: raci:AGG-63/变更任职
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - system
+  idempotency_key: 调岗申请ID（已写入再写入无操作）
+  state_change: 任职:生效中 → 任职:变更待生效；调岗申请:已批准 → 调岗申请:已写入（同事务）
+  emits: （内部）
+  used_by:
+  - PRC-136 第 6 步
+  orphan: false
+  source_part: vs07
+- name: 任职变更生效
+  aggregate: AGG-63
+  entity: assignment_versions
+  kind: automatic
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：TakeAssignmentChangeEffect，系统定时）
+  source: 分片 vs07.notes.md 结构问题 5、6
+  params:
+  - 调岗申请ID
+  - 业务生效日
+  preconditions:
+  - ref: U-12
+    text: 业务生效日到达时执行；补登 / 当日登记则立即执行，事件在业务生效日发出而不是写版本时
+  - ref: 状态
+    text: 任职为变更待生效
+  authority:
+    ref: raci:AGG-63/任职变更生效
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - system
+  idempotency_key: 调岗申请ID（已生效无操作）
+  state_change: 任职:变更待生效 → 任职:生效中；调岗申请:已写入 → 调岗申请:已生效（同事务）
+  emits: 任职已变更
+  used_by:
+  - PRC-136 第 7 步
+  orphan: false
+  source_part: vs07
+- name: 登记继续教育学时
+  aggregate: AGG-66
+  entity: continuing_education_records
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 证书ID
+  - 学时类别（必修 / 选修）
+  - 学时数
+  - 完成日期
+  - 课程或活动说明
+  - 证明材料引用
+  preconditions:
+  - ref: 状态
+    text: 证书为有效
+  - ref: 追加
+    text: 按注册期累计，更正另记，不改写已有行
+  authority:
+    ref: raci:AGG-66/登记继续教育学时
+    A:
+      resolve: instance
+      field: 证书.持有人
+    R:
+    - SH-E7
+  idempotency_key: 证书ID + 学时行ID（客户端预生成）
+  state_change: 有效 → 有效（追加学时）
+  emits: （内部）
+  used_by:
+  - PRC-79 登记继续教育学时
+  orphan: false
+  source_part: vs07
+- name: 延续注册执业证书
+  aggregate: AGG-66
+  entity: certificate_registration_periods
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 证书ID
+  - 新注册期起止
+  - 延续回执或新证书扫描件引用
+  - 新有效期止
+  preconditions:
+  - ref: V-14
+    text: 注册期内累计学时达标是延续注册条件；延续已在系统外发生，未达标只预警，不拒绝登记
+  - ref: 状态
+    text: 证书为有效
+  authority:
+    ref: raci:AGG-66/延续注册执业证书
+    A:
+      resolve: type
+      role: SH-E6
+      function: 执业证书管理
+    R:
+    - SH-E6
+  idempotency_key: 证书ID + 新注册期起（同键返回已有）
+  state_change: 有效 → 有效（追加注册期）
+  emits: （内部）
+  used_by:
+  - PRC-79 延续注册执业证书
+  orphan: false
+  source_part: vs07
+- name: 标记执业证书已到期
+  aggregate: AGG-66
+  entity: practice_certificates
+  kind: automatic
+  source: 聚合稿 AGG 命令列（定时命令约定缺，PG-10 同类）
+  params:
+  - 证书ID
+  - 到期日
+  preconditions:
+  - ref: 规则
+    text: 有效期届满且无新注册期覆盖
+  - ref: 状态
+    text: 证书为有效
+  authority:
+    ref: raci:AGG-66/标记执业证书已到期
+    A:
+      resolve: type
+      role: SH-E6
+      function: 执业证书管理
+    R:
+    - system
+  idempotency_key: 证书ID + 到期日（已到期无操作）
+  state_change: 有效 → 已到期
+  emits: 执业证书已到期
+  used_by:
+  - PRC-79 标记执业证书已到期
+  orphan: false
+  source_part: vs07
+- name: 登记注册执业证书
+  aggregate: AGG-66
+  entity: practice_certificates
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；数据模型 practice_certificates 已有证书登记
+  source: practice_certificates 数据模型（状态列：有效 / 到期 / 注销）、vs07conv.notes.md 结构问题 1
+  params:
+  - 持有人（人员ID）
+  - 资格类别
+  - 证书编号
+  - 发证与注册机构
+  - 首个注册期起止
+  - 证书扫描件引用
+  preconditions:
+  - ref: INV-47
+    text: 签发人须具备约定资格（在交付物处读证书有效性）
+  - ref: 幂等
+    text: 同持有人、同证书编号重复登记返回已有结果
+  authority:
+    ref: raci:AGG-66/登记注册执业证书
+    A:
+      resolve: type
+      role: SH-E6
+      function: 执业证书管理
+    R:
+    - SH-E6
+  idempotency_key: 持有人 + 证书编号（同键返回已有）
+  state_change: 创建 → 有效
+  emits: （内部）
+  used_by:
+  - PRC-79 登记注册执业证书
+  orphan: false
+  source_part: vs07
+- name: 注销注册执业证书
+  aggregate: AGG-66
+  entity: practice_certificates
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；数据模型状态列「注销」
+  source: practice_certificates 数据模型状态列、vs07conv.notes.md 结构问题 1
+  params:
+  - 证书ID
+  - 注销日
+  - 注销原因（持有人离职、转出、吊销等）
+  - 注销回执引用
+  preconditions:
+  - ref: 状态
+    text: 证书为有效；已到期或已注销的不可注销
+  - ref: 线下
+    text: 注销在注册执业管理机构办理，本系统只登记结果与回执，与延续注册同
+  authority:
+    ref: raci:AGG-66/注销注册执业证书
+    A:
+      resolve: type
+      role: SH-E6
+      function: 执业证书管理
+    R:
+    - SH-E6
+  idempotency_key: 证书ID（已注销再注销无操作）
+  state_change: 有效 → 已注销
+  emits: （内部）
+  used_by:
+  - PRC-79 注销注册执业证书
+  orphan: false
+  source_part: vs07
+- name: 提交劳动合同
+  aggregate: AGG-67
+  entity: labor_contracts
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 合同ID（客户端预生成）
+  - 人员ID
+  - 用人单位（法人主体ID）
+  - 合同类型与期限
+  - 试用期
+  - 岗位与薪酬约定
+  preconditions:
+  - ref: INV-14
+    text: 试用期不超过法定上限，违反拒绝并退回改正
+  - ref: R-04
+    text: 跨法人调动：用人单位须为已批准调岗的新法人、工龄连续、不重设试用期，合同要素与已批准调岗一致时免二次批准（草案 → 已批准）；否则不放行
+  - ref: 状态
+    text: 合同为草案
+  authority:
+    ref: raci:AGG-67/提交劳动合同
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - SH-E6
+  idempotency_key: 合同ID（同一 ID 重复提交返回已有结果）
+  state_change: 草案 → 审批中（常规）/ 草案 → 已批准（R-04 跨法人免批）
+  emits: （内部）
+  used_by:
+  - PRC-83 第 4 步
+  - PRC-136 第 4 步
+  orphan: false
+  source_part: vs07
+- name: 批准劳动合同
+  aggregate: AGG-67
+  entity: labor_contracts
+  kind: human
+  source: 聚合稿 AGG 命令列（B-13 聚合内单级批准，F-3，S11）
+  params:
+  - 合同ID
+  - 批准意见
+  preconditions:
+  - ref: 状态
+    text: 合同为审批中
+  - ref: AR-11/AR-12
+    text: 待 V-18
+  - ref: 职责分离
+    text: 提交人（人力）≠ 批准人（新员工归属组织单元负责人）
+  authority:
+    ref: raci:AGG-67/批准劳动合同
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+    approval:
+      approver: SH-M1
+      doc_type: 劳动合同批准
+  idempotency_key: 合同ID（已批准再批准无操作）
+  state_change: 审批中 → 已批准
+  emits: （内部）
+  used_by:
+  - PRC-83 第 5 步
+  orphan: false
+  source_part: vs07
+- name: 驳回劳动合同
+  aggregate: AGG-67
+  entity: labor_contracts
+  kind: human
+  source: 聚合稿 AGG 命令列（回补第 4 节：样板第 5 步退回分支）
+  params:
+  - 合同ID
+  - 驳回意见
+  preconditions:
+  - ref: 状态
+    text: 合同为审批中
+  authority:
+    ref: raci:AGG-67/驳回劳动合同
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+  idempotency_key: 合同ID
+  state_change: 审批中 → 草案（退回人力修改）
+  emits: （内部）
+  used_by: []
+  unused_ok: '由骨架 approval.on_reject 边触发（PRC-83 第 5 步 on_reject: 4，退回人力修改；骨架无独立驳回步）'
+  orphan: false
+  note: B-13 聚合内决定，非审批平台回调
+  source_part: vs07
+- name: 签订劳动合同
+  aggregate: AGG-67
+  entity: labor_contracts
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 合同ID
+  - 签署日
+  - 已签署合同扫描件引用
+  preconditions:
+  - ref: INV-14
+    text: 前置：试用期不超过法定上限
+  - ref: 状态
+    text: 合同为已批准
+  - ref: P-05
+    text: 用工满一个月仍未签订只提醒，不拒绝
+  authority:
+    ref: raci:AGG-67/签订劳动合同
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - SH-E6
+  idempotency_key: 合同ID（已签署再签署无操作）
+  state_change: 已批准 → 已签署生效
+  emits: 劳动合同已签订
+  used_by:
+  - PRC-83 第 6 步
+  - PRC-136 第 5 步
+  orphan: false
+  source_part: vs07
+- name: 登记劳动合同终止依据
+  aggregate: AGG-67
+  entity: labor_contracts
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：RecordContractTerminationBasis）
+  source: 分片 vs07.notes.md 结构问题 3
+  params:
+  - 合同ID
+  - 依据类型（协议 / 解除 / 终止通知）
+  - 依据文件引用
+  - 签署或送达日
+  - 离职日
+  preconditions:
+  - ref: 状态
+    text: 合同为已签署生效
+  - ref: 证据
+    text: 离职协议或解除 / 终止通知的线下文件扫描件
+  authority:
+    ref: raci:AGG-67/登记劳动合同终止依据
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - SH-E6
+  idempotency_key: 合同ID + 依据类型（同键返回已有）
+  state_change: 已签署生效 → 已签署生效（登记依据）
+  emits: （内部）
+  used_by:
+  - PRC-128 第 5 步
+  orphan: false
+  source_part: vs07
+- name: 终止劳动合同
+  aggregate: AGG-67
+  entity: labor_contracts
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 合同ID
+  - 终止日
+  - 终止原因（离职 / 调动）
+  preconditions:
+  - ref: 状态
+    text: 合同为已签署生效
+  - ref: 规则
+    text: 离职：终止日 = 离职日，失败告警人力并重试，不回滚 Separated；跨法人调动：原合同终止于业务生效日，与新合同衔接、工龄连续
+  authority:
+    ref: raci:AGG-67/终止劳动合同
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事办理
+    R:
+    - system
+  idempotency_key: 合同ID + 终止日（已终止无操作）
+  state_change: 已签署生效 → 已终止
+  emits: 劳动合同已终止
+  used_by:
+  - PRC-128 第 9 步
+  - PRC-136 第 8 步
+  orphan: false
+  source_part: vs07
+- name: 导入考勤记录
+  aggregate: AGG-69
+  entity: attendance_records
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 导入批次号
+  - 拉取日期
+  - 记录条数
+  - 校验和
+  - 打卡记录（外部记录标识、来源对照标识、打卡时刻、记录类型）
+  preconditions:
+  - ref: INV-69
+    text: 只追加不可改；以外部记录标识幂等
+  - ref: CLAUDE.md 第 6 条
+    text: 来源对照解析不到人员的记录整批失败并告警，不静默跳过
+  authority:
+    ref: raci:AGG-69/导入考勤记录
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 外部记录标识 + 来源系统（重复拉取不重复写入）
+  emits: （内部）
+  used_by:
+  - PRC-115 第 1 步
+  orphan: false
+  source_part: vs13att
+- name: 补卡
+  aggregate: AGG-69
+  entity: attendance_records
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 员工ID
+  - 缺卡日期
+  - 补卡时刻
+  - 被补记录引用（可空）
+  - 补卡事由
+  preconditions:
+  - ref: INV-69
+    text: 原记录不改，补卡另记一条
+  - ref: R-b
+    text: 只能补该日缺失的打卡、每月补卡次数不超上限、不超补卡时限，违反即拒绝并停留补卡页（次数与时限待 U4）
+  - ref: INV-105
+    text: 所属月月度考勤已锁定的，补卡照常记录，其对考勤的影响计入下月更正行并标原月份
+  authority:
+    ref: raci:AGG-69/补卡
+    A:
+      resolve: instance
+      field: 员工
+    R:
+    - SH-E3
+  idempotency_key: 补卡请求ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by:
+  - PRC-115 第 3 步
+  - PRC-118 第 5 步
+  orphan: false
+  source_part: vs13att
+- name: 提交请假
+  aggregate: AGG-70
+  entity: leave_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 请假ID
+  - 员工ID
+  - 假期类型
+  - 起止时刻
+  - 事由
+  - 余额占用ID
+  - 证明材料引用（可空）
+  preconditions:
+  - ref: INV-68
+    text: 已占用余额（先调用占用余额，同一次操作）；额度不足且政策不允许透支则在占用处被拒
+  - ref: INV-116
+    text: 按日拆分取当日生效的标准工时版本，取不到失败并告警，不回退默认值
+  - ref: R-a
+    text: 分流：额度内、假期规则允许、单次天数不超免审批阈值且该假别无需证明材料 → 已提交（自动批准路径）；其余 → 审批中（阈值与假别清单待 U3）
+  - ref: 状态
+    text: 请假为草稿
+  authority:
+    ref: raci:AGG-70/提交请假
+    A:
+      resolve: instance
+      field: 员工
+    R:
+    - SH-E3
+  idempotency_key: 请假ID（客户端预生成 UUIDv7；同一 ID 重复提交返回已有结果）
+  emits: （内部）
+  used_by:
+  - PRC-116 第 2 步
+  - PRC-117 第 5 步
+  orphan: false
+  source_part: vs13att
+- name: 批准请假
+  aggregate: AGG-70
+  entity: leave_requests
+  kind: callback
+  kind_note: 人审路径为审批平台回调；规则内自动批准路径由系统直接发令（automatic）。两条路径汇合在同一命令
+  source: 聚合稿 AGG 命令列
+  params:
+  - 请假ID
+  - 审批实例ID（人审路径；自动批准路径为空）
+  preconditions:
+  - ref: 状态
+    text: 自动路径：请假为已提交；人审路径：请假为审批中且审批实例ID一致
+  - ref: R-a
+    text: 自动路径复核同一规则，守卫不成立不得自动批准
+  - ref: AR-11/AR-12
+    text: 人审路径：申请人本人是部门负责人时按 AR-11 由其上级审批；负责人缺位按 AR-12 上交（APPROVAL_RULES，已有）
+  authority:
+    ref: raci:AGG-70/批准请假
+    A:
+      resolve: instance
+      field: 申请人所在组织单元.负责人
+      alias: cost_object_owner
+    R:
+    - SH-E1
+    - system
+    approval:
+      approver: cost_object_owner
+      doc_type: 请假审批
+  idempotency_key: 请假ID + 审批实例ID（同一审批实例重复回调不重复生效）
+  emits: 请假已批准
+  used_by:
+  - PRC-116 第 4 步
+  orphan: false
+  source_part: vs13att
+- name: 驳回请假
+  aggregate: AGG-70
+  entity: leave_requests
+  kind: callback
+  name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语：驳回请假，reject_leave_request）
+  source: 分片 vs13.notes.md 新用语；聚合稿 AGG-70 无驳回命令
+  params:
+  - 审批实例ID
+  - 驳回意见
+  preconditions:
+  - ref: 状态
+    text: 请假为审批中且审批实例ID一致
+  authority:
+    ref: raci:AGG-70/驳回请假
+    A:
+      resolve: instance
+      field: 申请人所在组织单元.负责人
+      alias: cost_object_owner
+    R:
+    - platform.approval
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by:
+  - PRC-116 第 6 步
+  orphan: false
+  source_part: vs13att
+- name: 撤销请假
+  aggregate: AGG-70
+  entity: leave_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 请假ID
+  - 撤销原因
+  preconditions:
+  - ref: 状态
+    text: 请假为审批中，或已批准且尚未开始；已开始的只能销假
+  - ref: 权限
+    text: 仅申请人本人
+  - ref: 接缝
+    text: 审批中撤销须同时撤回审批实例（platform.approval 取消能力，vs13.notes.md 接缝问题 1）
+  authority:
+    ref: raci:AGG-70/撤销请假
+    A:
+      resolve: instance
+      field: 员工
+    R:
+    - SH-E3
+  idempotency_key: 请假ID（已撤销再撤销无操作）
+  emits: 请假已撤销
+  used_by:
+  - PRC-116 第 7 步（由第 3 步 withdraw 边与第 5 步撤销出口进入）
+  orphan: false
+  source_part: vs13att
+- name: 销假
+  aggregate: AGG-70
+  entity: leave_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 请假ID
+  - 实际结束时刻
+  preconditions:
+  - ref: 状态
+    text: 请假为已批准且已开始、尚未休完
+  - ref: 权限
+    text: 仅申请人本人；销假是事实登记，不再审批
+  authority:
+    ref: raci:AGG-70/销假
+    A:
+      resolve: instance
+      field: 员工
+    R:
+    - SH-E3
+  idempotency_key: 请假ID（已销假再销假无操作）
+  emits: 请假已销假
+  used_by:
+  - PRC-116 第 8 步
+  orphan: false
+  source_part: vs13att
+- name: 占用余额
+  aggregate: AGG-71
+  entity: leave_balance_holds
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 员工ID
+  - 假期类型
+  - 年度（补休类无，改记所冲抵的补休额度行）
+  - 占用时长（分钟）
+  - 请假ID
+  preconditions:
+  - ref: INV-68
+    text: 占用后不得超过可用额度；政策允许透支的假期类型例外，例外进入人审（R-a）
+  - ref: 账户存在
+    text: 该人员 × 假期类型 × 年度账户已开账，否则失败并告警，不隐式开账；假期类型为补休的不看年度账户，改按到期日先后冲抵该员工的补休额度行（有效且请假日不晚于到期日），无可冲抵的额度行即额度不足
+  - ref: 读取
+    text: 按日拆分读工作日历（AGG-68）与标准工时版本（AGG-108），取不到当日生效版本失败（INV-116）
+  authority:
+    ref: raci:AGG-71/占用余额
+    A:
+      resolve: instance
+      field: 员工
+    R:
+    - SH-E3
+  idempotency_key: 请假ID（同一请假重复占用返回已有占用行）
+  emits: （内部）
+  used_by:
+  - PRC-116 第 1 步
+  orphan: false
+  source_part: vs13att
+- name: 批准转已用
+  aggregate: AGG-71
+  entity: leave_balance_holds
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 占用ID
+  preconditions:
+  - ref: 状态
+    text: 占用行为占用
+  authority:
+    ref: raci:AGG-71/批准转已用
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 占用ID（已转用无操作）
+  emits: （内部）
+  used_by:
+  - PRC-116 第 5 步
+  orphan: false
+  source_part: vs13att
+- name: 释放余额占用
+  aggregate: AGG-71
+  entity: leave_balance_holds
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 占用ID
+  - 释放原因（驳回 / 审批中撤销 / 孤儿占用）
+  preconditions:
+  - ref: 状态
+    text: 占用行为占用
+  authority:
+    ref: raci:AGG-71/释放余额占用
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 占用ID（已释放无操作）
+  emits: （内部）
+  used_by:
+  - PRC-116 第 6 步 inner
+  - PRC-116 第 7 步 inner
+  - 事件策略「孤儿占用定时释放」
+  orphan: false
+  source_part: vs13att
+- name: 回冲已用额度
+  aggregate: AGG-71
+  entity: leave_balance_holds
+  kind: automatic
+  name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语：回冲已用额度，refund_used_leave_balance）
+  source: 分片 vs13.notes.md 新用语；聚合稿 AGG-71 无此命令
+  params:
+  - 占用ID
+  - 回冲时长（分钟）
+  - 回冲原因（已批准后撤销 / 销假）
+  preconditions:
+  - ref: 状态
+    text: 占用行为已转用
+  - ref: 回冲上限
+    text: 回冲时长不超过该行已用时长；销假为未休完部分，撤销为全部；补休类回冲回原补休额度行
+  authority:
+    ref: raci:AGG-71/回冲已用额度
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 占用ID + 回冲来源（请假ID + 撤销 / 销假）
+  emits: （内部）
+  used_by:
+  - PRC-116 第 7 步 inner
+  - PRC-116 第 8 步 inner
+  orphan: false
+  source_part: vs13att
+- name: 开立年度额度账户
+  aggregate: AGG-71
+  entity: leave_balance_accounts
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（open_leave_balance_account）
+  source: 收敛新增（聚合稿 AGG-71 写「年度开账按规则版本计算应享」而无命令）
+  params:
+  - 员工ID
+  - 假期类型
+  - 年度
+  preconditions:
+  - ref: INV-123
+    text: 按该假期类型当日生效的假期规则版本计算应享（含上年结转）；取不到生效版本失败并告警，不回退默认值
+  - ref: 唯一
+    text: 人员 × 假期类型 × 年度至多一个账户；假期类型补休不开年度账户（补休额度行独立于年度，按有效期到期，见计入补休额度）
+  authority:
+    ref: raci:AGG-71/开立年度额度账户
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 员工ID + 假期类型 + 年度（已开账无操作）
+  emits: （内部）
+  used_by:
+  - PRC-160 第 2 步（事件策略「年度开账」）
+  orphan: false
+  source_part: vs13att
+- name: 年度结转额度账户
+  aggregate: AGG-71
+  entity: leave_balance_accounts
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（carry_over_leave_balance_account）
+  source: 收敛新增（AGG-118 已有结转规则，AGG-71 缺年度届满的终结命令）
+  params:
+  - 员工ID
+  - 假期类型
+  - 年度
+  preconditions:
+  - ref: 结转规则
+    text: 按 AGG-118 当日生效规则版本的结转与清零规则计算结转额度，记在本账户并置已结转；下一年度账户开立时读取该结转额度计入应享；取不到规则版本失败并告警
+  - ref: 状态
+    text: 账户为已开账，年度已届满，无占用中的占用行（占用中的跨年请假先处理）
+  authority:
+    ref: raci:AGG-71/年度结转额度账户
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 员工ID + 假期类型 + 年度（已结转无操作）
+  state_change: 已开账 → 已结转
+  emits: （内部）
+  used_by: []
+  orphan: false
+  source_part: vs13att
+- name: 计入补休额度
+  aggregate: AGG-71
+  entity: leave_comp_grants
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（credit_comp_leave_grant）
+  source: 用户页 P13-05（2026-10-16 审题）：休息日加班计补休，按加班时长给员工计补休额度；依据劳动法第四十四条
+  params:
+  - 加班ID
+  - 员工ID
+  - 额度时长（分钟，= 批准加班时长）
+  - 到期日（= 加班日 + 补休有效期，U15）
+  preconditions:
+  - ref: 来源
+    text: 加班为已批准，加班类型为休息日（法定节假日只能付薪），且直属上级未标「不能安排补休」（即补偿方式为补休）；工作日延时按现有补偿政策；本期工时（B-06）不读加班审批与补休余额（S-44、RULE-412）
+  - ref: 补休有效期
+    text: 取当日生效的假期规则版本（AGG-118）中假期类型补休的有效期长度（U15 待用户定）；取不到失败并告警，不回退默认值
+  - ref: 唯一
+    text: 一笔加班至多一条额度行，以加班 ID 幂等
+  authority:
+    ref: raci:AGG-71/计入补休额度
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 加班ID（已计入无操作）
+  state_change: 创建 → 有效
+  emits: （内部）
+  used_by:
+  - PRC-117 第 4 步
+  orphan: false
+  source_part: vs13att
+- name: 补休到期转计薪
+  aggregate: AGG-71
+  entity: leave_comp_grants
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（convert_expired_comp_leave_to_pay）
+  source: 用户页 P13-05；劳动法第四十四条（不能安排补休的支付不低于 200% 工资报酬）、工资支付暂行规定第十三条（以加班工资基数折算）
+  params:
+  - 补休额度行ID
+  preconditions:
+  - ref: 到期
+    text: 到期日届满；未休余额不作废，转为计薪时长并关闭额度行（余额为零时只关闭）
+  - ref: 占用
+    text: 额度行无占用中的补休请假，否则结局为转计薪待处理，告警人力，不改状态
+  - ref: 计发
+    text: 本命令不算钱；转为已转计薪后发补休已到期未休，由 B-15 在 PRC-178 读取余额并计入加班工资（200% 以加班工资基数，S-41）
+  authority:
+    ref: raci:AGG-71/补休到期转计薪
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 补休额度行ID（已转计薪或已休完无操作）
+  state_change: 有效 → 已转计薪（余额大于零）；有效 → 已休完（余额为零）
+  emits: 补休已到期未休（余额大于零时）
+  used_by:
+  - 事件策略「补休额度到期转计薪」（计发见 PRC-178 入口 1）
+  unused_ok: 由事件策略「补休额度到期转计薪」（定时）调用，不在流程步骤；计发归 B-15 的 PRC-178（S-41）
+  orphan: false
+  source_part: vs13att
+- name: 提交加班申请
+  aggregate: AGG-72
+  entity: overtime_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 加班ID
+  - 员工ID
+  - 加班日期与时长
+  - 加班类型（工作日延时 / 休息日 / 法定节假日）
+  - 补偿方式（付薪 / 补休）
+  - 登记人（员工本人或用人经理代登记）
+  preconditions:
+  - ref: R-c
+    text: 补登不超过允许期限；加班时段与已批准请假重叠则拒绝；补偿方式按加班日类型由规则限定（法定节假日只能付薪；休息日默认补休，不能安排补休的付薪；工作日延时按现有补偿政策，口径不变）；当月累计超 36 小时只预警留痕不拦截（期限待 U5）
+  authority:
+    ref: raci:AGG-72/加班申请
+    A:
+      resolve: instance
+      field: 员工
+    R:
+    - SH-E3
+    - SH-E1
+  idempotency_key: 加班ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by:
+  - PRC-117 第 1 步
+  orphan: false
+  source_part: vs13att
+- name: 批准加班
+  aggregate: AGG-72
+  entity: overtime_requests
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 加班ID
+  - 打卡可证实时长（分钟）
+  preconditions:
+  - ref: R-d
+    text: 加班日考勤记录（AGG-69）能支持登记的加班时长即批准，以打卡可证实时长为准；不支持则走驳回加班
+  - ref: 状态
+    text: 加班为已申请，且加班日考勤已导入
+  authority:
+    ref: raci:AGG-72/批准加班
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 加班ID（已批准无操作）
+  emits: 加班已批准
+  used_by:
+  - PRC-117 第 2 步
+  orphan: false
+  source_part: vs13att
+- name: 驳回加班
+  aggregate: AGG-72
+  entity: overtime_requests
+  kind: automatic
+  name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语：驳回加班，reject_overtime_request）
+  source: 分片 vs13.notes.md 新用语；聚合稿 AGG-72 无驳回命令
+  params:
+  - 加班ID
+  - 驳回原因（打卡不支持登记时长）
+  preconditions:
+  - ref: R-d
+    text: 打卡记录不支持登记的加班时长
+  - ref: 状态
+    text: 加班为已申请
+  authority:
+    ref: raci:AGG-72/驳回加班
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 加班ID
+  emits: （内部）
+  used_by:
+  - PRC-117 第 3 步
+  orphan: false
+  source_part: vs13att
+- name: 标记加班已补偿
+  aggregate: AGG-72
+  entity: overtime_requests
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 加班ID
+  - 月度考勤确认ID
+  preconditions:
+  - ref: 状态
+    text: 加班为已批准，且补偿方式为付薪（补偿方式为补休的由计入补休额度时标已计入补休额度，不走本命令）
+  authority:
+    ref: raci:AGG-72/标记加班已补偿
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 加班ID（已补偿无操作）
+  emits: 加班已补偿
+  used_by:
+  - PRC-118 第 3 步
+  orphan: false
+  source_part: vs13att
+- name: 标记加班已计补休
+  aggregate: AGG-72
+  entity: overtime_requests
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（mark_overtime_credited_to_comp_leave）
+  source: 用户页 P13-05；vs13att.notes.md 结构问题 5 的落地
+  params:
+  - 加班ID
+  - 补休额度行ID
+  preconditions:
+  - ref: 状态
+    text: 加班为已批准，补偿方式为补休，且已计入补休额度
+  authority:
+    ref: raci:AGG-72/标记加班已计补休
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 加班ID（已计入无操作）
+  state_change: 已批准 → 已计入补休额度
+  emits: （内部）
+  used_by:
+  - PRC-117 第 4 步 inner
+  orphan: false
+  source_part: vs13att
+- name: 生成月度考勤
+  aggregate: AGG-97
+  entity: monthly_attendance_confirmations
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 员工ID
+  - 月份
+  preconditions:
+  - ref: CLAUDE.md 第 6 条
+    text: 月内存在无导入批次或批次失败的日期时失败并告警（暂缓生成），不得当作全勤
+  - ref: INV-116
+    text: 读工作日历与标准工时版本，取不到当日生效版本失败
+  - ref: INV-105
+    text: 审批中的请假不汇入，批准后计入下月更正行并标原月份
+  authority:
+    ref: raci:AGG-97/生成月度考勤
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 员工ID + 月份（已生成无操作；已确认或已锁定不重生成）
+  emits: （内部）
+  used_by:
+  - PRC-118 第 1 步
+  orphan: false
+  source_part: vs13att
+- name: 员工确认
+  aggregate: AGG-97
+  entity: monthly_attendance_confirmations
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 月度考勤确认ID
+  preconditions:
+  - ref: INV-105
+    text: 状态为已生成且在确认期限内；确认后不再重新生成
+  - ref: 权限
+    text: 仅本人；这是数据主体对自己事实的确认，不是审批
+  authority:
+    ref: raci:AGG-97/员工确认
+    A:
+      resolve: instance
+      field: 员工
+    R:
+    - SH-E3
+  idempotency_key: 月度考勤确认ID（已确认无操作）
+  emits: 月度考勤已确认
+  used_by:
+  - PRC-118 第 2 步
+  orphan: false
+  source_part: vs13att
+- name: 重新生成月度考勤
+  aggregate: AGG-97
+  entity: monthly_attendance_confirmations
+  kind: automatic
+  name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语：重新生成月度考勤，regenerate_monthly_attendance）
+  source: 分片 vs13.notes.md 新用语；聚合稿 AGG-97 无此命令
+  params:
+  - 月度考勤确认ID
+  preconditions:
+  - ref: INV-105
+    text: 仅已生成（未确认、未锁定）可重新生成，依据最新考勤、请假、加班重新汇总，幂等
+  authority:
+    ref: raci:AGG-97/重新生成月度考勤
+    A:
+      resolve: instance
+      field: 员工
+    R:
+    - system
+  idempotency_key: 月度考勤确认ID + 数据版本（同一数据重算结果相同）
+  emits: （内部）
+  used_by:
+  - PRC-118 第 6 步
+  orphan: false
+  source_part: vs13att
+- name: 默认确认月度考勤
+  aggregate: AGG-97
+  entity: monthly_attendance_confirmations
+  kind: automatic
+  name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语：默认确认月度考勤，confirm_monthly_attendance_by_default）；取代分片早稿「代员工确认」
+  source: 分片 vs13.notes.md 新用语；聚合稿 AGG-97 无此命令
+  params:
+  - 月度考勤确认ID
+  - 默认确认原因（逾期未确认 / 已离职）
+  preconditions:
+  - ref: R-e
+    text: 确认期限届满仍未确认，或人员当月已离职（账号已吊销本人无法确认）；按生成结果默认确认并留存标记与审计
+  - ref: 状态
+    text: 月度考勤为已生成
+  authority:
+    ref: raci:AGG-97/默认确认月度考勤
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 月度考勤确认ID（已确认无操作）
+  emits: 月度考勤已确认
+  used_by:
+  - PRC-118 第 7 步
+  - 事件策略「确认期限届满默认确认」
+  - 事件策略「离职当月考勤默认确认」
+  orphan: false
+  source_part: vs13att
+- name: 锁定
+  aggregate: AGG-97
+  entity: monthly_attendance_confirmations
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 月度考勤确认ID
+  preconditions:
+  - ref: R-e
+    text: 确认期限届满自动锁定；未确认者已先默认确认并标记；人力不再手工锁定
+  - ref: INV-105
+    text: 锁定后不改，补卡、请假、加班变动计入下月更正行并标原月份
+  - ref: 状态
+    text: 月度考勤为已确认
+  authority:
+    ref: raci:AGG-97/锁定
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 员工ID + 假期类型 + 年度（已关闭无操作）
+  emits: （内部）
+  used_by:
+  - PRC-160 第 1 步
+  orphan: false
+  source_part: vs13att
+- name: 发布假期规则版本
+  aggregate: AGG-118
+  entity: leave_entitlement_rule_versions
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 假期类型
+  - 适用范围（城市类别）
+  - 生效日
+  - 年度应享规则（按工龄档）
+  - 结转与清零规则
+  - 免审批阈值（待 one-architecture 裁定放此处）
+  - 确认人
+  - 依据引用
+  preconditions:
+  - ref: INV-123
+    text: 同一假期类型同一适用范围只有一个生效版本（部分唯一索引）
+  - ref: D15
+    text: 生效后不得修改，更正另发布新版本，不追溯已结算额度
+  authority:
+    ref: raci:AGG-118/发布假期规则版本
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - SH-E6
+  idempotency_key: 假期类型 + 适用范围 + 生效日（重复发布同一版本返回已有版本）
+  emits: 假期规则已生效
+  used_by:
+  - PRC-162 第 1 步
+  orphan: false
+  source_part: vs13att
+- name: 维护工作日历年度
+  aggregate: AGG-68
+  entity: work_calendar_years
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 日历年度
+  - 法人（空为默认日历）
+  - 法定节假日与调休上班日集合
+  - 依据文件引用
+  preconditions:
+  - ref: 锁定日期
+    text: 过去日期锁定，不得修改（现状为整集替换，过去日期锁定；是否改按配置型版本化待 one-data）
+  authority:
+    ref: raci:AGG-68/维护工作日历年度
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - SH-E6
+  idempotency_key: 日历年度 + 法人（整集替换幂等）
+  emits: 工作日历锁定日期已修改
+  used_by:
+  - PRC-119 第 1 步
+  orphan: false
+  source_part: vs13att
+- name: 发布标准工时版本
+  aggregate: AGG-108
+  entity: standard_work_hour_versions
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 法人（空为默认）
+  - 生效区间
+  - 日类型每日标准工时（分钟）
+  - 日期覆盖（半天调休）
+  - 确认人
+  - 依据引用
+  preconditions:
+  - ref: INV-116
+    text: 同一法人（空为默认）生效区间不重叠；生效后不得修改，更正另追加新版本，不追溯已确认的工时与请假拆分
+  authority:
+    ref: raci:AGG-108/发布标准工时版本
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - SH-E6
+  idempotency_key: 法人 + 生效起始日（重复发布同一版本返回已有版本）
+  emits: 标准工时版本已生效
+  used_by:
+  - PRC-119 第 2 步
+  orphan: false
+  source_part: vs13att
+- name: 编制绩效评估
+  aggregate: AGG-106
+  entity: performance_reviews
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 被评人员
+  - 评估人
+  - 评估期间
+  - 评估类型（月度）
+  - 评估时任职版本（可空）
+  preconditions:
+  - ref: INV-114
+    text: 同一人同期同类型只有一份评估（部分唯一索引）；已有已确认评估则返回已有结果而不是报错（PRC-120 步 1 出口）
+  - ref: 状态
+    text: 评估期间已结束（定时提醒用人经理）
+  authority:
+    ref: raci:AGG-106/编制绩效评估
+    A:
+      resolve: instance
+      field: 绩效评估.评估人
+    R:
+    - SH-E1
+  idempotency_key: 评估ID（客户端预生成 UUIDv7）；同人同期同类型重复提交返回已有
+  state_change: 创建草拟
+  emits: （内部）
+  used_by:
+  - PRC-120 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 编制试用期绩效评估
+  aggregate: AGG-106
+  entity: performance_reviews
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 被评人员
+  - 评估人
+  - 试用期届满日（作评估期间）
+  - 评估时任职版本（可空）
+  preconditions:
+  - ref: INV-114
+    text: 同一人同期同类型只有一份评估
+  - ref: 状态
+    text: 人员处于试用期且试用期届满前 N 日已生成评估待办（N 待用户定，V-12）
+  authority:
+    ref: raci:AGG-106/编制试用期绩效评估
+    A:
+      resolve: instance
+      field: 绩效评估.评估人
+    R:
+    - SH-E1
+  idempotency_key: 评估ID（客户端预生成 UUIDv7）
+  state_change: 创建草拟
+  emits: （内部）
+  used_by:
+  - PRC-85 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 提交绩效评估
+  aggregate: AGG-106
+  entity: performance_reviews
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 评估ID
+  preconditions:
+  - ref: 状态
+    text: 评估为草拟
+  - ref: U11
+    text: 提交的接收方（上级复核、被评人阅知或申诉）未定；本稿不设审批，只改状态
+  authority:
+    ref: raci:AGG-106/提交绩效评估
+    A:
+      resolve: instance
+      field: 绩效评估.评估人
+    R:
+    - SH-E1
+  idempotency_key: 评估ID（已提交再提交无操作）
+  state_change: 草拟 → 已提交
+  emits: （内部）
+  used_by:
+  - PRC-120 第 2 步
+  orphan: false
+  source_part: vs13pay
+- name: 确认绩效评估
+  aggregate: AGG-106
+  entity: performance_reviews
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 评估ID
+  - 结论
+  preconditions:
+  - ref: INV-114
+    text: 确认后不得改，更正另记
+  - ref: 状态
+    text: 月度评估须已提交（U11）；试用期评估无提交环节，可由草拟直接确认（PRC-85 步 2）〔推〕
+  authority:
+    ref: raci:AGG-106/确认绩效评估
+    A:
+      resolve: instance
+      field: 绩效评估.评估人
+    R:
+    - SH-E1
+  idempotency_key: 评估ID（已确认再确认无操作）
+  state_change: 已提交 → 已确认（试用期可草拟 → 已确认）
+  emits: 绩效评估已确认
+  used_by:
+  - PRC-120 第 3 步
+  - PRC-85 第 2 步
+  orphan: false
+  source_part: vs13pay
+- name: 登记绩效更正
+  aggregate: AGG-106
+  entity: performance_review_corrections
+  kind: human
+  name_status: 〔缺〕S-32 裁定新增，待回补聚合稿，待 one-glossary 登记（register_performance_correction）
+  source: S-32（one-architecture 裁定）；INV-114（已确认后不得改，更正另记）
+  params:
+  - 原评估ID
+  - 更正项
+  - 更正后结论
+  - 更正原因
+  - 依据引用
+  preconditions:
+  - ref: INV-114
+    text: 原评估须已确认；更正追加一条记录引用原评估，不改原评估
+  - ref: 下游
+    text: 原评估已被奖金核定引用的，更正登记后通知人力核对，由人力在 PRC-122 人力触发入口重新草拟（不自动改已核定奖金；S-35）
+  authority:
+    ref: raci:AGG-106/登记绩效更正
+    A:
+      resolve: instance
+      field: 绩效评估.评估人
+    R:
+    - SH-E1
+  idempotency_key: 原评估ID + 更正序号（同序号重复提交返回已有）
+  state_change: 已确认 → 已确认（追加更正记录，不改状态）
+  emits: （内部）
+  used_by:
+  - PRC-120 第 4 步
+  orphan: false
+  source_part: vs13pay
+- name: 计算月度薪酬
+  aggregate: AGG-73
+  entity: payroll_settlements
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 薪酬法人（扣缴义务人口径）
+  - 薪酬月份
+  - 重算序号
+  preconditions:
+  - ref: R-VS13-h
+    text: 该法人当月在职人员的月度考勤全部已锁定（AGG-97）；有未锁定的结局为「待锁定」，不建结算也不改状态
+  - ref: 数据齐备
+    text: 每人有生效薪酬档案版本（AGG-93）、应参保人员有参保基数（AGG-74）、适用的薪酬规则版本取得到（同 INV-116，取不到失败并告警）；缺则结局为「已中止」，不静默跳过
+  - ref: 补休转计薪
+    text: 读取本 BC 当月 PRC-178 登记的补休转加班工资（到期未休、离职），转计薪时长 × 加班工资基数折算的时薪 × 200% 计入加班费（劳动法第四十四条、工资支付暂行规定第十三条）；已计入结算的登记不重复计；加班工资基数取不到，结局为「已中止」，不静默按零
+  - ref: INV-70
+    text: 代扣只限法定项目；以法定货币支付
+  - ref: 状态
+    text: 无结算、或结算为已计算（提交审核前发现输入有误重算）、或已退回（重新计算）
+  - ref: R-VS13-h
+    text: 同时生成异常清单（环比波动超阈值、实发为负、入离职折算、含补发补扣行），只提示不拦截
+  authority:
+    ref: raci:AGG-73/计算
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 薪酬法人 + 薪酬月份 + 重算序号（同一序号重复执行返回已有结果）
+  state_change: 创建 → 已计算；已计算 → 已计算（重算）；已退回 → 已计算
+  emits: （内部）
+  used_by:
+  - PRC-124 第 1 步（第 2 步判断出口、第 3 步驳回与撤回出口回到本步）
+  orphan: false
+  source_part: vs13pay
+- name: 提交薪酬审核
+  aggregate: AGG-73
+  entity: payroll_settlements
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 结算ID
+  - 异常清单核对确认
+  preconditions:
+  - ref: 状态
+    text: 结算为已计算且异常清单已生成
+  - ref: 职责分离
+    text: 提交人记为制单人，不得审批同一份结算（PRC-124 segregation）
+  - ref: 副作用
+    text: 发起月度薪酬审核（platform.approval）
+  authority:
+    ref: raci:AGG-73/提交审核
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - SH-E6
+  idempotency_key: 结算ID + 计算序号（同一计算结果重复提交返回已有审批实例）
+  state_change: 已计算 → 审核中
+  emits: （内部）
+  used_by:
+  - PRC-124 第 2 步
+  orphan: false
+  source_part: vs13pay
+- name: 批准月度薪酬
+  aggregate: AGG-73
+  entity: payroll_settlements
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params:
+  - 审批实例ID
+  - 审批结果（通过）
+  preconditions:
+  - ref: 状态
+    text: 结算为审核中且审批实例ID一致
+  - ref: INV-70
+    text: 代扣只限法定项目；以法定货币支付
+  - ref: AR-01/AR-02/AR-11
+    text: 月度薪酬金额按阈值加审；审批人就是制单人或结算含其本人薪酬行的，上交其上级（APPROVAL_RULES，AR-01、AR-02 阈值待用户定 U7′）
+  authority:
+    ref: raci:AGG-73/批准
+    A:
+      resolve: instance
+      field: 薪酬结算.薪酬法人.财务责任人
+      alias: cost_object_owner
+    R:
+    - SH-E6
+    approval:
+      approver: cost_object_owner
+      doc_type: 月度薪酬审核
+  idempotency_key: 审批实例ID（同一审批实例重复回调不重复生效）
+  state_change: 审核中 → 已批准
+  emits: 薪酬已批准
+  used_by:
+  - PRC-124 第 4 步
+  orphan: false
+  source_part: vs13pay
+- name: 退回薪酬重算
+  aggregate: AGG-73
+  unused_ok: 审批驳回回调，由 PRC-124 第 3 步 on_reject 边触发
+  entity: payroll_settlements
+  kind: callback
+  name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语、结构问题 2①）
+  source: 分片 vs13.notes.md 新用语〔缺〕退回薪酬重算（return_payroll_for_recalculation）
+  params:
+  - 审批实例ID
+  - 驳回意见
+  preconditions:
+  - ref: 状态
+    text: 结算为审核中且审批实例ID一致
+  authority:
+    ref: raci:AGG-73/退回薪酬重算
+    A:
+      resolve: instance
+      field: 薪酬结算.薪酬法人.财务责任人
+      alias: cost_object_owner
+    R:
+    - platform.approval
+  idempotency_key: 审批实例ID
+  state_change: 审核中 → 已退回
+  emits: （内部）
+  used_by:
+  - PRC-124 第 3 步（on_reject 回到第 1 步）
+  orphan: false
+  source_part: vs13pay
+- name: 撤回薪酬审核
+  aggregate: AGG-73
+  entity: payroll_settlements
+  kind: human
+  name_status: 〔缺〕收敛新增，沿用 b31「撤回用印申请」命名模式，待 one-glossary 登记
+  source: 收敛新增（分片只在 PRC-124 第 3 步写了 withdraw 边，无命令）
+  params:
+  - 结算ID
+  - 撤回原因
+  preconditions:
+  - ref: 状态
+    text: 结算为审核中
+  - ref: 权限
+    text: 仅提交人本人
+  authority:
+    ref: raci:AGG-73/撤回薪酬审核
+    A:
+      resolve: instance
+      field: 薪酬结算.提交人
+    R:
+    - SH-E6
+  idempotency_key: 结算ID（已退回再撤回无操作）
+  state_change: 审核中 → 已退回
+  emits: （内部）
+  used_by:
+  - PRC-124 第 3 步（撤回边 withdraw 回到第 1 步）
+  orphan: false
+  source_part: vs13pay
+  unused_ok: 由骨架 withdraw 边触发
+- name: 提交过账候选
+  aggregate: AGG-73
+  entity: payroll_settlements
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 结算ID
+  preconditions:
+  - ref: 状态
+    text: 结算为已批准；批准时只提交一次候选（符合性审查 断链 7）
+  - ref: INV-92
+    text: 所属会计期间已关账的，按 ADR-0045 路由到开放期间并标原期间，不拒绝
+  authority:
+    ref: raci:AGG-73/提交过账候选
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 结算ID（只提交一次）
+  state_change: none（只写过账引用，不改状态）
+  emits: （内部）
+  used_by:
+  - PRC-124 第 5 步
+  orphan: false
+  source_part: vs13pay
+- name: 标记薪酬已发放
+  aggregate: AGG-73
+  entity: payroll_settlements
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 结算ID
+  - 应付ID
+  - 发放日
+  - 银行回单引用
+  preconditions:
+  - ref: 状态
+    text: 结算为已批准
+  - ref: 订阅过滤
+    text: 应付已结清事件的应付类型为应付薪酬（B-15 只处理应付薪酬，结构问题 4②）
+  - ref: 遗留
+    text: 代发个别员工退票时应付「结清」语义不清（vs13.notes.md 结构问题 2④），未定前不处理部分失败
+  authority:
+    ref: raci:AGG-73/标记薪酬已发放
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 应付ID（同一应付结清重复通知无操作）
+  state_change: 已批准 → 已发放
+  emits: 薪酬已发放
+  used_by:
+  - PRC-127 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 标记薪酬已过账
+  aggregate: AGG-73
+  entity: payroll_settlements
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 结算ID
+  - 过账ID
+  preconditions:
+  - ref: 订阅过滤
+    text: BusinessFactAttributed 的来源单据类型为月度薪酬结算（结构问题 4③）
+  - ref: 状态
+    text: 结算已发放则置为已过账；尚未发放只置位「过账事实已入账」，待发放后由 PRC-127 回到 PRC-134 再置位（结构问题 13）
+  authority:
+    ref: raci:AGG-73/标记已过账
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 过账ID
+  state_change: 已发放 → 已过账；已批准 → 已批准（只置位）
+  emits: （内部）
+  used_by:
+  - PRC-134 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 参保增员
+  aggregate: AGG-74
+  entity: insurance_enrollments
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 人员
+  - 缴纳主体法人
+  - 参保地
+  - 险种
+  - 缴费基数
+  - 增员生效日
+  - 增员回执引用
+  preconditions:
+  - ref: 人员有效
+    text: 人员已入职（读 B-13）；同一人员同缴纳主体无在缴登记
+  - ref: 候选规则
+    text: 用工类型为退休返聘或实习的不办理参保〔推〕；PRC-84 步 1 两个分支都指向第 2 步，未写「无需增员」结局，见 notes 接缝问题 3
+  - ref: P-32
+    text: 入职 30 日内申报，超期预警提醒不拦截（社会保险法第五十八条）
+  authority:
+    ref: raci:AGG-74/参保增员
+    A:
+      resolve: type
+      role: SH-E6
+      function: 社保岗
+    R:
+    - SH-E6
+  idempotency_key: 人员 + 缴纳主体 + 增员生效日（同键返回已有）
+  state_change: 创建 → 在缴
+  emits: 参保已增员
+  used_by:
+  - PRC-84 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 参保减员
+  aggregate: AGG-74
+  entity: insurance_enrollments
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 参保登记ID
+  - 减员生效日
+  - 减员回执引用
+  preconditions:
+  - ref: 状态
+    text: 登记为在缴
+  - ref: 候选规则
+    text: 用工类型为退休返聘或实习的结局为「无需减员」，不改状态（PRC-130 步 1）
+  authority:
+    ref: raci:AGG-74/参保减员
+    A:
+      resolve: type
+      role: SH-E6
+      function: 社保岗
+    R:
+    - SH-E6
+  idempotency_key: 参保登记ID（已减员再减员无操作）
+  state_change: 在缴 → 已减员
+  emits: 参保已减员
+  used_by:
+  - PRC-130 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 变更参保缴纳主体
+  aggregate: AGG-74
+  entity: insurance_enrollments
+  kind: human
+  name_status: 〔缺〕聚合稿无此命令；PRC-136（跨法人调岗）第 12 步用到，沿 vs07.notes.md 新用语 ChangeInsuranceContributor
+  source: 分片 vs07.notes.md 新用语、PRC-136 第 12 步
+  params:
+  - 参保登记ID
+  - 新缴纳主体法人
+  - 变更生效日
+  - 原主体减员回执引用
+  - 新主体增员回执引用
+  - 缴费基数
+  preconditions:
+  - ref: 状态
+    text: 原登记为在缴，新缴纳主体与原主体不同
+  - ref: 同主体唯一
+    text: 同一人员在新缴纳主体无在缴登记
+  - ref: P-32
+    text: 与入职增员同属 P-32 范畴，新主体增员超期预警不拦截
+  authority:
+    ref: raci:AGG-74/变更参保缴纳主体
+    A:
+      resolve: type
+      role: SH-E6
+      function: 社保岗
+    R:
+    - SH-E6
+  idempotency_key: 参保登记ID + 新缴纳主体 + 变更生效日（同键返回已有）
+  state_change: 原登记 在缴 → 已减员；同事务为新缴纳主体创建登记 → 在缴
+  emits: 参保已减员、参保已增员
+  used_by:
+  - PRC-136 第 12 步
+  orphan: false
+  source_part: vs13pay
+- name: 调整缴费基数
+  aggregate: AGG-74
+  entity: insurance_enrollment_versions
+  kind: human
+  name_status: 〔缺〕S-32 裁定新增，待回补聚合稿，待 one-glossary 登记（adjust_contribution_base）
+  source: S-32（one-architecture 裁定）；对象增删改查检查 QC-OBJECTS.md（缴费基数年度调整无命令）
+  params:
+  - 参保登记ID
+  - 缴费年度
+  - 新缴费基数
+  - 生效日
+  - 基数核定依据引用（核定通知或工资基数）
+  preconditions:
+  - ref: 状态
+    text: 登记为在缴；已减员的登记不得调整
+  - ref: D17
+    text: 追加新版本，同事务结束旧版本区间；同一登记同一缴费年度至多一次调整，更正另出新版本
+  - ref: 重新入职
+    text: 重新入职建新参保登记（同一人员同缴纳主体至多一个在缴），不在已减员登记上调整
+  authority:
+    ref: raci:AGG-74/调整缴费基数
+    A:
+      resolve: type
+      role: SH-E6
+      function: 社保岗
+    R:
+    - SH-E6
+  idempotency_key: 参保登记ID + 缴费年度（同键返回已有版本）
+  state_change: 在缴 → 在缴（追加新版本，不改状态）
+  emits: （内部）
+  used_by:
+  - PRC-125 第 7 步
+  orphan: false
+  source_part: vs13pay
+- name: 编制激励方案版本
+  aggregate: AGG-75
+  entity: incentive_plan_versions
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 方案（新方案或既有方案）
+  - 规则条款
+  - 额度（法人或组织单元 × 金额或提取比例）
+  - 生效日期
+  - 决定出处
+  preconditions:
+  - ref: R-VS13-f
+    text: 生效日期不得早于已核定奖金所属期，违反拒绝并停留在编制页
+  - ref: D15
+    text: 版本只追加，生效区间不与同方案既有版本重叠
+  - ref: 状态
+    text: 版本为草稿（含被驳回后回到草稿）
+  - ref: 副作用
+    text: 发起激励方案审批（platform.approval）
+  authority:
+    ref: raci:AGG-75/编制激励方案版本
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力
+    R:
+    - SH-E6
+  idempotency_key: 方案版本ID（客户端预生成 UUIDv7）+ 提交序号
+  state_change: 草稿 → 审批中
+  emits: （内部）
+  used_by:
+  - PRC-121 第 1 步（驳回回到本步）
+  orphan: false
+  source_part: vs13pay
+- name: 生效激励方案版本
+  aggregate: AGG-75
+  entity: incentive_plan_versions
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params:
+  - 审批实例ID（审批通过触发时）
+  preconditions:
+  - ref: 状态
+    text: 版本为审批中且审批实例ID一致；或已批准且生效日期到达（定时触发）
+  - ref: AR-01/AR-02
+    text: 激励方案额度按阈值加审（APPROVAL_RULES）
+  - ref: D15
+    text: 后继版本生效时，同事务结束前一版本的生效区间
+  authority:
+    ref: raci:AGG-75/生效激励方案版本
+    A:
+      resolve: instance
+      field: 激励方案版本.适用范围.责任人
+      alias: cost_object_owner
+    R:
+    - system
+    approval:
+      approver: cost_object_owner
+      doc_type: 激励方案审批
+  idempotency_key: 审批实例ID（审批回调）；方案版本ID + 生效日（定时触发）
+  state_change: 审批中 → 已生效或已批准；已批准 → 已生效；已生效 → 已结束（旧版本，同事务）
+  emits: 激励方案已生效
+  used_by:
+  - PRC-121 第 3 步
+  orphan: false
+  source_part: vs13pay
+- name: 驳回激励方案版本
+  aggregate: AGG-75
+  unused_ok: 审批驳回回调，由 PRC-121 第 2 步 on_reject 边触发
+  entity: incentive_plan_versions
+  kind: callback
+  name_status: 〔缺〕收敛新增，沿用 b31「驳回 IT 需求」命名模式，待 one-glossary 登记
+  source: 收敛新增（分片只在 PRC-121 第 2 步写了 on_reject 指向第 1 步，无命令）
+  params:
+  - 审批实例ID
+  - 驳回意见
+  preconditions:
+  - ref: 状态
+    text: 版本为审批中且审批实例ID一致
+  authority:
+    ref: raci:AGG-75/驳回激励方案版本
+    A:
+      resolve: instance
+      field: 激励方案版本.适用范围.责任人
+      alias: cost_object_owner
+    R:
+    - platform.approval
+  idempotency_key: 审批实例ID
+  state_change: 审批中 → 草稿
+  emits: （内部）
+  used_by:
+  - PRC-121 第 2 步（on_reject 回到第 1 步）
+  orphan: false
+  source_part: vs13pay
+- name: 撤回激励方案版本
+  aggregate: AGG-75
+  entity: incentive_plan_versions
+  kind: human
+  name_status: 〔缺〕收敛新增，沿用 b31「撤回用印申请」命名模式，待 one-glossary 登记
+  source: 收敛新增（分片只在 PRC-121 第 2 步写了 withdraw 边，无命令）
+  params:
+  - 方案版本ID
+  - 撤回原因
+  preconditions:
+  - ref: 状态
+    text: 版本为审批中
+  - ref: 权限
+    text: 仅编制人本人
+  authority:
+    ref: raci:AGG-75/撤回激励方案版本
+    A:
+      resolve: instance
+      field: 激励方案版本.编制人
+    R:
+    - SH-E6
+  idempotency_key: 方案版本ID（已撤回再撤回无操作）
+  state_change: 审批中 → 已撤回
+  emits: （内部）
+  used_by:
+  - PRC-121 第 2 步（撤回边 withdraw）
+  orphan: false
+  source_part: vs13pay
+  unused_ok: 由骨架 withdraw 边触发
+- name: 草拟奖金核定
+  aggregate: AGG-76
+  entity: bonus_determinations
+  kind: automatic
+  name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语 draft_bonus_determination）
+  source: 分片 vs13.notes.md 结构问题 8、新用语
+  params:
+  - 绩效评估ID
+  - 被核定人员
+  - 法人
+  - 激励方案版本ID
+  - 核定期间
+  preconditions:
+  - ref: 订阅过滤
+    text: 评估类型为月度；试用期评估结局为「无需核定」，不建核定单
+  - ref: R-VS13-g
+    text: 须有生效的激励方案版本；草拟金额不得超出方案额度；否则结局为「已中止」并告警，不静默
+  - ref: 唯一性
+    text: 同一人同核定期间无草拟或已核定的核定单；被驳回后重新草拟另建新核定单
+  - ref: U10
+    text: 评分到金额的映射不足以自动算时回到人力草拟
+  - ref: 副作用
+    text: 发起奖金核定审批（platform.approval）
+  authority:
+    ref: raci:AGG-76/草拟奖金核定
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 绩效评估ID + 重新草拟序号（同一评估同一序号重复事件无操作）
+  state_change: 创建 → 草拟
+  emits: （内部）
+  used_by:
+  - PRC-122 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 核定奖金
+  aggregate: AGG-76
+  entity: bonus_determinations
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params:
+  - 审批实例ID
+  - 审批结果（通过）
+  preconditions:
+  - ref: 状态
+    text: 核定单为草拟且审批实例ID一致
+  - ref: R-VS13-g
+    text: 核定金额等于草拟金额，核定人只批准或驳回不改额
+  - ref: AR-01/AR-02/AR-11
+    text: 金额超阈值加审；核定人就是被核定人本人的上交其上级
+  authority:
+    ref: raci:AGG-76/核定奖金
+    A:
+      resolve: instance
+      field: 被核定人员所在组织单元.负责人
+      alias: cost_object_owner
+    R:
+    - SH-E1
+    approval:
+      approver: cost_object_owner
+      doc_type: 奖金核定审批
+  idempotency_key: 审批实例ID
+  state_change: 草拟 → 已核定
+  emits: 奖金已核定
+  used_by:
+  - PRC-122 第 3 步
+  orphan: false
+  source_part: vs13pay
+- name: 驳回奖金核定
+  aggregate: AGG-76
+  entity: bonus_determinations
+  kind: callback
+  name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语 reject_bonus_determination）
+  source: 分片 vs13.notes.md 新用语
+  params:
+  - 审批实例ID
+  - 驳回意见
+  preconditions:
+  - ref: 状态
+    text: 核定单为草拟且审批实例ID一致
+  authority:
+    ref: raci:AGG-76/驳回奖金核定
+    A:
+      resolve: instance
+      field: 被核定人员所在组织单元.负责人
+      alias: cost_object_owner
+    R:
+    - platform.approval
+  idempotency_key: 审批实例ID
+  state_change: 草拟 → 已驳回
+  emits: （内部）
+  used_by:
+  - PRC-122 第 4 步
+  orphan: false
+  source_part: vs13pay
+- name: 建立薪酬档案
+  aggregate: AGG-93
+  entity: payroll_profile_versions
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 人员
+  - 薪资结构与标准
+  - 个税扣缴义务人法人
+  - 发薪账户
+  - 生效日
+  preconditions:
+  - ref: 人员有效
+    text: 人员已入职（读 B-13）；一人一份薪酬档案
+  - ref: 法人有效
+    text: 个税扣缴义务人是申请日有效法人主体（三口径之一，P-48）
+  authority:
+    ref: raci:AGG-93/建立薪酬档案
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - SH-E6
+  idempotency_key: 人员 + 生效日（同键返回已有）
+  state_change: 创建 → 生效（首个版本）
+  emits: 薪酬档案已变更
+  used_by:
+  - PRC-84 第 2 步
+  orphan: false
+  source_part: vs13pay
+- name: 调整薪酬档案
+  aggregate: AGG-93
+  entity: payroll_profile_versions
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 档案ID
+  - 薪资结构与标准
+  - 生效日
+  - 调薪决定依据引用
+  preconditions:
+  - ref: R-VS13-j
+    text: 必须引用调薪决定依据（审批单据 ID 或决定文件），无依据拒绝（结局「调整被拒」）
+  - ref: D17
+    text: 追加新版本，同事务结束旧版本区间；生效日依据人事业务生效日（U-12）
+  - ref: 遗留
+    text: 生效日早于已批准月度薪酬所属月时仍记录新版本，对已批准月份的影响由 AGG-73 补发补扣行承接（结构问题 2②），本命令不改已批准结算
+  authority:
+    ref: raci:AGG-93/调整薪酬档案
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - SH-E6
+    pending: U9（若调薪决定进 platform.approval，A 改为员工所在组织单元负责人，并拆出提交与批准两条命令）
+  idempotency_key: 档案ID + 生效日（同键返回已有版本）
+  state_change: 创建 → 生效（新版本）；生效 → 已结束（旧版本，同事务）
+  emits: 薪酬档案已变更
+  used_by:
+  - PRC-123 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 登记补休转加班工资
+  aggregate: AGG-93
+  entity: payroll_comp_leave_conversions
+  kind: automatic
+  name_status: 〔缺〕S-41 裁定新增，待回补聚合稿，待 one-glossary 登记（register_comp_leave_overtime_pay）
+  source: S-41（one-architecture 裁定）；用户页 P13-05；劳动法第四十四条、工资支付暂行规定第十三条
+  params:
+  - 人员
+  - 补休额度行ID
+  - 转计发时长（分钟）
+  - 来源（到期未休 / 离职）
+  - 所属薪酬月份
+  preconditions:
+  - ref: 来源
+    text: 到期入口由 B-27 发的补休已到期未休触发，离职入口由 B-13 的 Separated 触发；经既有边 B-15 → B-27（api）读取额度行未休余额，读取失败则失败并告警薪酬岗，不静默
+  - ref: 加班工资基数
+    text: 取薪酬档案生效版本的加班工资基数；取不到则失败并告警薪酬岗，不静默按零（CLAUDE.md 第 6 条）
+  - ref: 计发
+    text: 本命令只登记时长与来源，不算钱；计入加班工资的金额（时长 × 加班工资基数折算的时薪 × 200%）由 PRC-124 计算时读取登记生成
+  - ref: 离职
+    text: 离职入口读取该员工全部未休余额，余额为零无需登记
+  authority:
+    ref: raci:AGG-93/登记补休转加班工资
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 补休额度行ID（已登记无操作）
+  state_change: none（只追加登记行，不改状态）
+  emits: （内部）
+  used_by:
+  - PRC-178 第 1 步、第 2 步
+  orphan: false
+  source_part: vs13pay
+- name: 终止薪酬档案
+  aggregate: AGG-93
+  entity: payroll_profile_versions
+  kind: automatic
+  name_status: 〔缺〕S-32 裁定新增（B-15 订阅 Separated 后结束最后一个生效版本，显式优于由人员状态推断），待回补聚合稿，待 one-glossary 登记（terminate_payroll_profile）
+  source: S-32（one-architecture 裁定）；对象增删改查检查 QC-OBJECTS.md（离职后薪酬档案版本无结束命令）
+  params:
+  - 人员
+  - 终止日（离职日）
+  - 离职事件ID
+  preconditions:
+  - ref: 状态
+    text: 人员存在生效或未来生效的档案版本；无任何版本失败并告警薪酬岗，不静默（CLAUDE.md 第 6 条）；最后一个版本已终止则无操作
+  - ref: D17
+    text: 结束最后一个生效版本的区间，止于离职日；终止日之后才生效的版本一并作废；离职当月的入离职折算仍读离职日之前有效的版本，不受影响
+  - ref: 重新入职
+    text: 重新入职按 PRC-84 在原档案根下建立新版本，不重用已终止版本
+  authority:
+    ref: raci:AGG-93/终止薪酬档案
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 人员 + 离职事件ID（已终止无操作）
+  state_change: 生效 → 已结束（最后一个版本）
+  emits: （内部）
+  used_by:
+  - PRC-130 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 更新专项附加扣除
+  aggregate: AGG-120
+  entity: payroll_special_deduction_declarations
+  kind: human
+  source: 聚合稿 AGG 命令列（S-32 自 AGG-93 拆出为 AGG-120 专项附加扣除声明）
+  params:
+  - 人员
+  - 扣除年度
+  - 扣除项目（类别、月扣除额、分摊比例、受益人、证明材料引用）
+  - 来源（本人填报或个税端下载）
+  preconditions:
+  - ref: D17
+    text: 年度属性；年内修改追加新声明并结束旧声明
+  - ref: 规则版本
+    text: 扣除额不超所用扣除标准版本的标准额（薪酬规则版本）
+  - ref: 发令人
+    text: 员工本人发令（自助填报）；人力代录入是否保留见 U9；本命令与薪酬档案版本无共享命令与不变量，按人员 ID 关联档案（AGG-93），不读写档案内容
+  authority:
+    ref: raci:AGG-120/更新专项附加扣除
+    A:
+      resolve: instance
+      field: 专项附加扣除声明.所属人员
+    R:
+    - SH-E6
+    - SH-E3
+  idempotency_key: 人员 + 扣除年度 + 提交序号
+  state_change: 创建 → 有效；有效 → 已取代（旧声明，同事务）
+  emits: （内部）
+  used_by:
+  - PRC-123 第 2 步
+  orphan: false
+  source_part: vs13pay
+- name: 并入扣缴申报
+  aggregate: AGG-95
+  entity: tax_social_filings
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 利润分配ID
+  - 股东
+  - 所属期
+  - 股息红利金额
+  - 代扣税额（B-10 随事件带，结构问题 4）
+  preconditions:
+  - ref: 订阅过滤
+    text: 股东为自然人；法人或机构股东结局为「无需扣缴」，不改状态
+  - ref: 状态
+    text: 所属期的个税扣缴申报为待申报或尚无（无则创建）；已申报则失败并告警，不静默（CLAUDE.md 第 6 条），处理方式见 notes 结构问题 5
+  authority:
+    ref: raci:AGG-95/并入扣缴申报
+    A:
+      resolve: type
+      role: SH-E6
+      function: 申报岗
+    R:
+    - system
+  idempotency_key: 利润分配ID + 股东（同一分配行重复通知无操作）
+  state_change: 创建 → 待申报；待申报 → 待申报（追加行）
+  emits: （内部）
+  used_by:
+  - PRC-113 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 生成申报
+  aggregate: AGG-95
+  entity: tax_social_filings
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 扣缴义务人法人
+  - 所属期
+  - 申报类别（个税扣缴、社保、公积金）
+  preconditions:
+  - ref: R-VS13-i
+    text: 人员证件信息齐全、申报金额与薪酬结算一致，不一致失败并告警（结局「已中止」）
+  - ref: 数据齐备
+    text: 所属期薪酬结算为已批准或有股息红利并入项；所属期取自会计期间（读 B-19）
+  authority:
+    ref: raci:AGG-95/生成申报
+    A:
+      resolve: type
+      role: SH-E6
+      function: 申报岗
+    R:
+    - system
+  idempotency_key: 扣缴义务人法人 + 所属期 + 申报类别 + 生成序号
+  state_change: 创建 → 待申报；待申报 → 待申报（重新汇总）
+  emits: （内部）
+  used_by:
+  - PRC-125 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 提交申报
+  aggregate: AGG-95
+  entity: tax_social_filings
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 申报ID
+  - 申报日
+  - 回执引用（受理回执）
+  preconditions:
+  - ref: 状态
+    text: 申报为待申报且已登记受理回执（线下在申报端完成，U1、U2）
+  - ref: P-39
+    text: 个税法定期限次月十五日内〔中，核对原文〕，超期只提醒不拦截
+  - ref: 事件条件
+    text: 当期个税、社保、公积金三类申报均已提交后才发布「个税与社保公积金申报已提交」
+  authority:
+    ref: raci:AGG-95/提交申报
+    A:
+      resolve: type
+      role: SH-E6
+      function: 申报岗
+    R:
+    - SH-E6
+  idempotency_key: 申报ID（已申报再提交无操作）
+  state_change: 待申报 → 已申报
+  emits: 个税与社保公积金申报已提交
+  used_by:
+  - PRC-125 第 2 步（个税）
+  - PRC-125 第 3 步（社保公积金）
+  - PRC-125 第 8 步（年度基数调整）
+  orphan: false
+  source_part: vs13pay
+- name: 登记缴款
+  aggregate: AGG-95
+  entity: tax_social_payments
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 申报ID
+  - 缴款日
+  - 缴款金额
+  - 缴款渠道
+  - 银行回单引用
+  preconditions:
+  - ref: 状态
+    text: 申报为已申报，且未被退回或发现差错（有差错先更正申报）
+  - ref: 职责分离
+    text: 登记人不得是缴款资金支出人（B-10 出纳，PRC-125 segregation）
+  authority:
+    ref: raci:AGG-95/登记缴款
+    A:
+      resolve: type
+      role: SH-E6
+      function: 申报岗
+    R:
+    - SH-E6
+  idempotency_key: 申报ID + 银行回单引用（同一回单重复登记返回已有）
+  state_change: 已申报 → 已缴款
+  emits: （内部）
+  used_by:
+  - PRC-125 第 4 步
+  orphan: false
+  source_part: vs13pay
+- name: 更正申报
+  aggregate: AGG-95
+  entity: tax_social_filings
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 原申报ID
+  - 更正原因
+  - 更正回执引用
+  preconditions:
+  - ref: 状态
+    text: 原申报为已申报，且被退回或发现差错（PRC-125 步 4 出口）
+  - ref: 数据
+    text: 更正生成新申报行并引用原申报（corrects_filing_id），原申报置为已更正
+  authority:
+    ref: raci:AGG-95/更正申报
+    A:
+      resolve: type
+      role: SH-E6
+      function: 申报岗
+    R:
+    - SH-E6
+  idempotency_key: 原申报ID + 更正序号
+  state_change: 原申报 已申报 → 已更正；创建 → 已申报（新申报行）
+  emits: （内部）
+  used_by:
+  - PRC-125 第 5 步
+  orphan: false
+  source_part: vs13pay
+- name: 提交过账候选
+  aggregate: AGG-95
+  entity: tax_social_payments
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 申报ID
+  - 缴款登记ID
+  preconditions:
+  - ref: 状态
+    text: 申报为已缴款
+  - ref: INV-92
+    text: 所属会计期间已关账的，按 ADR-0045 路由到开放期间并标原期间，不拒绝
+  authority:
+    ref: raci:AGG-95/提交过账候选
+    A:
+      resolve: type
+      role: SH-E6
+      function: 申报岗
+    R:
+    - system
+  idempotency_key: 缴款登记ID（只提交一次）
+  state_change: none（只写过账引用，不改状态）
+  emits: （内部）
+  used_by:
+  - PRC-125 第 6 步
+  orphan: false
+  source_part: vs13pay
+- name: 发布薪酬规则版本
+  aggregate: AGG-119
+  entity: payroll_rule_versions
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语 publish_payroll_rule_version）
+  source: 分片 vs13.notes.md 结构问题 1、新用语
+  params:
+  - 规则类别（个税税率与起征、专项附加扣除标准、社保公积金比例与基数、计算口径）
+  - 适用范围（参保地或法人，可空为全国默认）
+  - 生效区间
+  - 规则明细
+  - 依据引用（法规条文或公司制度）
+  preconditions:
+  - ref: INV-139
+    text: 同一规则类别同一适用范围的生效区间不重叠（每版本一个聚合，D15；S-43 给号）
+  - ref: U7③
+    text: 编制与确认由谁维护待定（人力出、财务确认）；推荐编制人 ≠ 确认人〔推〕
+  - ref: 状态
+    text: 版本为草稿
+  authority:
+    ref: raci:AGG-119/发布薪酬规则版本
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬规则确认
+    R:
+    - SH-E6
+  idempotency_key: 规则版本ID（客户端预生成 UUIDv7）
+  state_change: 草稿 → 已生效；已生效 → 已被取代（前一版本，同事务）
+  emits: 薪酬规则已生效
+  used_by:
+  - PRC-180 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 编制经营计划版本
+  aggregate: AGG-79
+  status: 聚合稿已有
+  params:
+  - 计划（新建时给目标类型与计划周期）
+  - 归属组织单元
+  - 目标值（组织 × 期间 × 指标）
+  - 经营动作
+  - 被取代版本引用（调整时）
+  preconditions:
+  - ref: INV-101
+    desc: 已基线的版本不得修改；复盘后调整另起新版本
+  - ref: 候选规则-编制人不审自己
+    desc: 见 notes 结构问题 9（属提交与审批，不在本命令）
+  raci_A:
+    resolve: instance
+    field: 经营计划版本.归属组织单元.负责人
+  raci_R:
+  - SH-M1
+  idempotency_key: 创建=请求ID；编辑=版本ID + 乐观锁版本
+  emits: []
+  used_by:
+  - PRC-88#1
+  orphan: false
+  source_part: vs0911
+- name: 〔缺〕提交经营计划审批
+  aggregate: AGG-79
+  status: 〔缺〕（notes 新用语 submit_business_plan_for_approval；gap G-02）
+  params:
+  - 版本ID
+  preconditions:
+  - ref: INV-101
+    desc: 仅编制中的版本可提交
+  - ref: 候选规则-目标值完整
+    desc: 目标值按组织 × 期间 × 指标填齐（沿 PRC-107 提交评审同类必填校验的写法，待 one-rules 定）
+  raci_A:
+    resolve: instance
+    field: 经营计划版本.归属组织单元.负责人
+  raci_R:
+  - SH-M1
+  idempotency_key: 版本ID（已审批中则幂等返回）
+  emits: []
+  cross_bc_out:
+  - platform.approval 提交审批
+  used_by:
+  - PRC-88#2
+  orphan: false
+  source_part: vs0911
+- name: 〔缺〕撤回经营计划审批
+  aggregate: AGG-79
+  status: 〔缺〕（notes 新用语 withdraw_business_plan_approval）
+  params:
+  - 版本ID
+  preconditions:
+  - ref: 版本状态
+    desc: 审批未结束（审批中）
+  - ref: 平台能力
+    desc: platform.approval 能取消审批实例（接缝问题，同请假撤销）
+  raci_A:
+    resolve: instance
+    field: 经营计划版本.归属组织单元.负责人
+  raci_R:
+  - SH-M1
+  idempotency_key: 版本ID + 审批实例ID
+  emits: []
+  used_by:
+  - PRC-88#3（withdraw）
+  orphan: false
+  source_part: vs0911
+  unused_ok: 由骨架 withdraw 边触发
+- name: 〔缺〕驳回经营计划审批
+  aggregate: AGG-79
+  status: 〔缺〕（notes 新用语 reject_business_plan；审批平台回调）
+  params:
+  - 版本ID
+  - 审批实例ID
+  - 驳回意见
+  preconditions:
+  - ref: 版本状态
+    desc: 审批中
+  raci_A:
+    resolve: instance
+    field: 经营计划版本.归属组织单元.负责人
+  raci_R:
+  - platform.approval（回调）
+  idempotency_key: 审批实例ID
+  emits: []
+  cross_bc_in:
+  - platform.approval 审批已驳回（事件，方向待 one-architecture 确认，notes 接缝问题 3、6）
+  used_by:
+  - PRC-88#4
+  orphan: false
+  source_part: vs0911
+- name: 〔缺〕通过经营计划审批
+  aggregate: AGG-79
+  status: 〔缺〕（notes 新用语 approve_business_plan；审批平台回调）
+  params:
+  - 版本ID
+  - 审批实例ID
+  preconditions:
+  - ref: 版本状态
+    desc: 审批中
+  - ref: 候选规则-编制人不审自己
+    desc: 审批人不得是编制人（AR-11 改指上级），由审批平台在派单时守卫，回调只收结果
+  raci_A:
+    resolve: instance
+    field: 经营计划版本.归属组织单元.负责人
+  raci_R:
+  - platform.approval（回调）
+  idempotency_key: 审批实例ID
+  emits: []
+  cross_bc_in:
+  - platform.approval 审批已通过（事件）
+  used_by:
+  - PRC-88#5
+  orphan: false
+  source_part: vs0911
+- name: 基线化经营计划
+  aggregate: AGG-79
+  status: 聚合稿已有
+  params:
+  - 版本ID
+  preconditions:
+  - ref: INV-101
+    desc: 基线不可变，只出新版本；基线化后同计划上一基线版本变被取代
+  - ref: 候选规则-审批通过自动基线化
+    desc: 审批已通过即自动执行，不设人工确认（待用户定 9）
+  raci_A:
+    resolve: instance
+    field: 经营计划版本.归属组织单元.负责人
+  raci_R:
+  - system
+  idempotency_key: 版本ID
+  emits:
+  - 经营计划已基线化
+  used_by:
+  - PRC-88#6
+  orphan: false
+  source_part: vs0911
+- name: 编制预测版本
+  aggregate: AGG-79
+  status: 聚合稿已有
+  params:
+  - 计划周期
+  - 人员
+  - 目标值（人员 × 期间 × 指标）
+  - 滚动序号
+  preconditions:
+  - ref: 候选规则-预测不审批
+    desc: 预测是预期不是承诺，每次滚动即新版本，不设审批（待用户定 4）
+  - ref: INV-101
+    desc: 只追加新版本，已编制版本不被改写
+  raci_A:
+    resolve: instance
+    field: 预测人员.直属上级
+  raci_R:
+  - SH-E5
+  idempotency_key: 人员ID + 计划周期 + 滚动序号
+  emits: []
+  used_by:
+  - PRC-89#1
+  orphan: false
+  source_part: vs0911
+- name: 编制现金流预测
+  aggregate: AGG-79
+  status: 聚合稿已有
+  params:
+  - 计划周期
+  - 现金流指标目标值
+  - 所依当期销售预测版本引用
+  preconditions:
+  - ref: 流程顺序
+    desc: 在当期销售预测版本之后编制（PRC-89#2 接在#1 之后）
+  - ref: INV-101
+    desc: 只追加新版本
+  raci_A:
+    resolve: type
+    role: SH-M1
+    function: 财务负责人
+  raci_R:
+  - SH-E6
+  idempotency_key: 计划周期 + 滚动序号
+  emits: []
+  used_by:
+  - PRC-89#2
+  orphan: false
+  source_part: vs0911
+- name: 〔缺〕创建经营复盘
+  aggregate: AGG-79
+  status: 〔缺〕（notes 新用语 create_business_review；聚合稿无经营复盘的命令，结构问题 11）
+  params:
+  - 复盘组织单元
+  - 复盘期间（或综合复盘周期）
+  - 所复盘的基线版本引用
+  - 复盘类型（月度、季度、年度）
+  preconditions:
+  - ref: 候选规则-复盘期间已关账
+    desc: 所复盘期间已关账方可创建；综合复盘到点而期间未关账则不创建并告警，关账后由月度触发补建
+  - ref: 候选规则-复盘唯一
+    desc: 同一组织单元 × 复盘期间只一条经营复盘（幂等）
+  raci_A:
+    resolve: instance
+    field: 经营复盘.复盘组织单元.负责人
+  raci_R:
+  - system
+  idempotency_key: 复盘组织单元ID + 复盘期间
+  emits: []
+  cross_bc_in:
+  - B-19 AccountingPeriodClosed（事件，边待 one-architecture 定，notes 接缝问题 8）
+  used_by:
+  - PRC-181#1
+  orphan: false
+  source_part: vs0911
+- name: 〔缺〕记录偏差解释
+  aggregate: AGG-79
+  status: 〔缺〕（notes 新用语 record_variance_explanation）
+  params:
+  - 经营复盘ID
+  - 指标
+  - 偏差解释（原因、是否可持续）
+  preconditions:
+  - ref: 状态
+    desc: 经营复盘为复盘中，已定稿不可改
+  raci_A:
+    resolve: instance
+    field: 经营复盘.复盘组织单元.负责人
+  raci_R:
+  - SH-M1
+  idempotency_key: 经营复盘ID + 指标 + 乐观锁版本
+  emits: []
+  used_by:
+  - PRC-181#2
+  orphan: false
+  source_part: vs0911
+- name: 〔缺〕确定经营动作
+  aggregate: AGG-79
+  status: 〔缺〕（notes 新用语 decide_action_item；经营动作 action_item 词表已有，命令无）
+  params:
+  - 经营复盘ID
+  - 动作描述
+  - 动作类型（含调整经营计划）
+  - 责任人
+  - 期限
+  - 来源偏差
+  preconditions:
+  - ref: 状态
+    desc: 经营复盘为复盘中
+  - ref: 候选规则-动作要素齐全
+    desc: 动作须有责任人和期限
+  raci_A:
+    resolve: instance
+    field: 经营复盘.复盘组织单元.负责人
+  raci_R:
+  - SH-M1
+  idempotency_key: 经营复盘ID + 请求ID
+  emits: []
+  cross_bc_out:
+  - B-13 读取动作责任人（api，B-18 → B-13 边已有）
+  used_by:
+  - PRC-181#3
+  orphan: false
+  source_part: vs0911
+- name: 〔缺〕定稿经营复盘
+  aggregate: AGG-79
+  status: 〔缺〕（notes 新用语 finalize_business_review）
+  params:
+  - 经营复盘ID
+  preconditions:
+  - ref: 候选规则-偏差须解释
+    desc: 目标偏差超出容忍度的指标都有解释才可定稿
+  - ref: 候选规则-定稿后不可改
+    desc: 定稿后偏差解释与动作清单不可改，更正另记经营动作
+  - ref: 状态
+    desc: 经营复盘为复盘中；无动作的定稿直接闭环
+  raci_A:
+    resolve: instance
+    field: 经营复盘.复盘组织单元.负责人
+  raci_R:
+  - SH-M1
+  idempotency_key: 经营复盘ID（已定稿则幂等返回）
+  emits:
+  - 经营复盘已定稿
+  - 经营复盘已闭环（无动作时）
+  used_by:
+  - PRC-181#4
+  orphan: false
+  source_part: vs0911
+- name: 〔缺〕完成经营动作
+  aggregate: AGG-79
+  status: 〔缺〕（notes 新用语 complete_action_item）
+  params:
+  - 经营动作ID
+  - 完成说明
+  - 关联的经营计划新版本引用（调整类动作）
+  preconditions:
+  - ref: 状态
+    desc: 经营动作为待完成，所属经营复盘已定稿
+  - ref: 候选规则-动作责任人本人登记
+    desc: 仅动作责任人或复盘责任人可登记完成
+  raci_A:
+    resolve: instance
+    field: 经营复盘.复盘组织单元.负责人
+  raci_R:
+  - SH-M1（动作责任人）
+  idempotency_key: 经营动作ID（已完成无操作）
+  emits:
+  - 经营复盘已闭环（最后一个动作完成时）
+  used_by:
+  - PRC-181#5
+  orphan: false
+  source_part: vs0911
+- name: 开立预算账户
+  aggregate: AGG-80
+  status: 聚合稿已有
+  params:
+  - 预算基线版本引用
+  - 预算主体（组织单元、预算科目）
+  - 预算期间
+  - 初始额度
+  preconditions:
+  - ref: INV-101
+    desc: 所依版本须为已基线的预算类型版本
+  - ref: 候选规则-预算类型分流
+    desc: 仅目标类型为预算的基线可开立；其他类型不开户（PRC-88#6 分流）
+  - ref: 候选规则-额度不超基线
+    desc: 各账户额度合计不超基线额度总额（预算分解）
+  raci_A:
+    resolve: type
+    role: SH-M1
+    function: 财务负责人
+  raci_R:
+  - SH-E6
+  idempotency_key: 预算基线版本ID + 预算主体 + 预算期间
+  emits: []
+  used_by:
+  - PRC-88#7
+  orphan: false
+  source_part: vs0911
+- name: 调整预算
+  aggregate: AGG-80
+  status: 聚合稿已有（口径待定：词表「预算调整」= 基线新版本，notes 结构问题 2）
+  params:
+  - 预算账户
+  - 调整额
+  - 原因
+  preconditions:
+  - ref: 候选规则-额度总额内调剂
+    desc: 只在该预算基线已定额度总额内调剂；超出或要改目标值即拒绝并提示走新版本（INV-101 路径）；留审计
+  raci_A:
+    resolve: type
+    role: SH-M1
+    function: 财务负责人
+  raci_R:
+  - SH-E6
+  idempotency_key: 调整请求ID
+  emits:
+  - BudgetAdjusted
+  used_by:
+  - PRC-88#8
+  orphan: false
+  source_part: vs0911
+- name: 占用预算
+  aggregate: AGG-80
+  unused_ok: 他组流程：由财务组 PRC-70、PRC-87 调用
+  status: 聚合稿已有
+  params:
+  - 预算账户
+  - 占用额
+  - 占用方类型
+  - 占用方单据ID（不校验）
+  preconditions:
+  - ref: G-3
+    desc: 超可用额度拦截还是预警待定（待用户定 1；推荐预警：照记并返回是否超额标志；拦截则补 INV-102）
+  - ref: AR-03 / RULE-406
+    desc: 超预算只预警，不审批
+  raci_A:
+    resolve: type
+    role: SH-M1
+    function: 财务负责人
+  raci_R:
+  - system（B-11 供方协议、B-12 费用报销经 api 调用）
+  idempotency_key: 占用方类型 + 占用方单据ID + 行号
+  emits:
+  - BudgetReserved
+  used_by:
+  - PRC-88#7（仅 cross_bc 入口声明）
+  - PRC-70（他组，未核）
+  - PRC-87（他组，未核）
+  orphan: false
+  note: 命令的发起步骤在 B-11、B-12 的流程（PRC-70、PRC-87），不在本片段；合并稿 processes.people.yaml 仅有 PRC-88 的入口声明。
+  source_part: vs0911
+- name: 释放预算占用
+  aggregate: AGG-80
+  unused_ok: 他组流程：由财务组 PRC-70、PRC-87 调用
+  status: 聚合稿已有
+  params:
+  - 占用ID
+  - 释放原因
+  preconditions:
+  - ref: 占用状态
+    desc: 占用中
+  raci_A:
+    resolve: type
+    role: SH-M1
+    function: 财务负责人
+  raci_R:
+  - system（B-11、B-12 驳回、作废、终止时；孤儿占用定时释放与对账）
+  idempotency_key: 占用ID
+  emits:
+  - BudgetReleased
+  used_by:
+  - PRC-70（他组，未核）
+  - PRC-87（他组，未核）
+  orphan: false
+  note: 同预算占用，发起步骤不在本片段；额度占用模式要求孤儿占用定时释放与对账兜底（聚合稿 §额度占用）。
+  source_part: vs0911
+- name: 调整预算占用
+  aggregate: AGG-80
+  unused_ok: 他组流程：由财务组 PRC-71 分包变更跨 BC 调用（B-11 → B-18 api，S-31 SQ-08）
+  status: 聚合稿回补（S-31 SQ-08）
+  params:
+  - 占用ID
+  - 增减额
+  - 调整原因（分包变更）
+  - 分包变更ID
+  preconditions:
+  - ref: 占用状态
+    desc: 占用中
+  - ref: INV-102 / F-Q2
+    desc: 调整后超可用额度只预警、不拦截
+  raci_A:
+    resolve: type
+    role: SH-M1
+    function: 财务负责人
+  raci_R:
+  - system（B-11 PRC-71 分包变更经 api 调用）
+  idempotency_key: 分包变更ID
+  emits:
+  - BudgetAdjusted
+  used_by:
+  - PRC-71（他组）
+  orphan: false
+  note: 按增减额一次调整，避免「释放 + 重占」两次跨 BC 调用之间留下孤儿占用（S-31 SQ-08；聚合稿 §7 第 6 条）。事件沿用聚合稿 AGG-80 已有的 BudgetAdjusted，是否另立占用级事件交 one-glossary。
+  source_part: vs0911
+- name: 〔缺〕消耗预算占用
+  aggregate: AGG-80
+  unused_ok: 他组流程：由财务组流程（PRC-70、PRC-87 等）调用，归属待 one-architecture 定
+  status: 〔缺〕（聚合稿事件列有 BudgetConsumed，命令列无对应命令；名为本稿提议，沿用事件名译，待 one-glossary 核）
+  params:
+  - 占用ID
+  - 消耗额
+  preconditions:
+  - ref: 占用状态
+    desc: 占用中
+  raci_A:
+    resolve: type
+    role: SH-M1
+    function: 财务负责人
+  raci_R:
+  - system
+  idempotency_key: 占用ID + 消耗事件ID
+  emits:
+  - BudgetConsumed
+  used_by: []
+  orphan: false
+  note: 孤儿：本片段无步骤，PRC-70、PRC-87 是否有消耗步骤未核；交 one-architecture 定命令名与归属。
+  source_part: vs0911
+- name: 关闭预算账户
+  aggregate: AGG-80
+  status: 〔缺〕（收敛新增；聚合稿与数据模型仅写「可冻结」，无关闭命令；S-32 裁定由 PRC-161 年末触发，名待 one-glossary 核）
+  params:
+  - 预算账户
+  - 关闭原因（周期结束、被新基线取代）
+  preconditions:
+  - ref: 状态
+    desc: 账户为已开立
+  - ref: 占用
+    desc: 无占用中的占用行
+  raci_A:
+    resolve: type
+    role: SH-M1
+    function: 财务负责人
+  raci_R:
+  - system
+  - SH-E6
+  idempotency_key: 预算账户ID（已关闭无操作）
+  emits: []
+  used_by:
+  - PRC-161#1
+  orphan: false
+  source_part: vs0911
+- name: 作废经营计划草稿
+  aggregate: AGG-79
+  status: 〔缺〕（S-32 裁定新增，待回补聚合稿，名待 one-glossary 核；notes 结构问题 10(a)）
+  params:
+  - 版本ID
+  - 作废原因
+  preconditions:
+  - ref: INV-101
+    desc: 仅编制中的版本可作废；审批中须先撤回，基线不可作废（只出新版本）
+  raci_A:
+    resolve: instance
+    field: 经营计划版本.归属组织单元.负责人
+  raci_R:
+  - SH-M1
+  idempotency_key: 版本ID（已作废无操作）
+  emits: []
+  used_by:
+  - PRC-88 第 9 步
+  orphan: false
+  source_part: vs0911
+- name: 创建知识条目
+  aggregate: AGG-107
+  status: 聚合稿已有
+  params:
+  - 类别
+  - 来源复盘ID（可选，只记录不校验）
+  preconditions:
+  - ref: 必填
+    desc: 类别必填
+  raci_A:
+    resolve: instance
+    field: 知识条目.归属组织单元.负责人
+  raci_R:
+  - SH-E4
+  - SH-E2（经 B-04 提炼入口调用同一命令）
+  idempotency_key: 请求ID（提炼入口用 来源复盘ID + 请求ID）
+  emits: []
+  cross_bc_in:
+  - B-04 创建知识条目（api）
+  used_by:
+  - PRC-107#1
+  orphan: false
+  merge_note: 与「起草知识条目」不合并：创建出条目与首版本，起草是改版本内容；聚合稿分列，流程也分两步。
+  source_part: vs0911
+- name: 起草知识条目
+  aggregate: AGG-107
+  status: 聚合稿已有
+  params:
+  - 版本ID
+  - 标题与内容
+  - 适用范围
+  - 有效期
+  preconditions:
+  - ref: INV-115
+    desc: 已发布的版本不得修改（只能起草中版本）
+  raci_A:
+    resolve: instance
+    field: 知识条目.归属组织单元.负责人
+  raci_R:
+  - SH-E4
+  - SH-E3
+  idempotency_key: 版本ID + 乐观锁版本
+  emits: []
+  used_by:
+  - PRC-107#2
+  orphan: false
+  source_part: vs0911
+- name: 提交知识条目评审
+  aggregate: AGG-107
+  status: 聚合稿已有
+  params:
+  - 版本ID
+  preconditions:
+  - ref: 候选规则-必填校验
+    desc: 类别、适用范围、有效期缺一不得提交；案例类含客户信息须脱敏确认（待用户定 6）
+  raci_A:
+    resolve: instance
+    field: 知识条目.归属组织单元.负责人
+  raci_R:
+  - SH-E4
+  idempotency_key: 版本ID（已评审中则幂等返回）
+  emits: []
+  used_by:
+  - PRC-107#3
+  orphan: false
+  source_part: vs0911
+- name: 评审知识条目
+  aggregate: AGG-107
+  status: 聚合稿已有
+  params:
+  - 版本ID
+  - 评审结论（通过 / 退回）
+  - 意见
+  preconditions:
+  - ref: 候选规则-评审人不是起草人
+    desc: 评审人不得是起草人本人；责任人就是起草人时由系统改指其上级（AR-11），责任人缺位改指上级组织负责人（AR-12）
+  - ref: INV-115
+    desc: 已发布版本不得修改
+  raci_A:
+    resolve: type
+    role: SH-E4
+  raci_R:
+  - SH-E4
+  idempotency_key: 版本ID + 评审轮次
+  emits: []
+  cross_bc_out:
+  - B-13 读取审批人（api）
+  used_by:
+  - PRC-107#4
+  orphan: false
+  note: 聚合内单级评审，不经 platform.approval（notes 结构问题 1、8）；结论为退回时版本回到起草中，不另设退回命令（试点 VS-11 第 1 条，one-architecture 2026-10-17 裁定）。
+  source_part: vs0911
+- name: 发布知识条目
+  aggregate: AGG-107
+  status: 聚合稿已有
+  params:
+  - 版本ID
+  preconditions:
+  - ref: INV-115
+    desc: 已发布版本不得修改；发布新版本时其引用的被取代版本变被取代
+  - ref: 版本状态
+    desc: 已评审通过
+  raci_A:
+    resolve: instance
+    field: 知识条目.归属组织单元.负责人
+  raci_R:
+  - SH-E4
+  idempotency_key: 版本ID
+  emits:
+  - 知识条目已发布
+  cross_bc_in:
+  - B-02、B-03、B-04、B-28 校验知识条目版本存在且未废止（api）
+  used_by:
+  - PRC-107#5
+  orphan: false
+  source_part: vs0911
+- name: 修订知识条目
+  aggregate: AGG-107
+  status: 聚合稿已有
+  params:
+  - 被取代版本引用
+  - 修订原因
+  preconditions:
+  - ref: INV-115
+    desc: 只能由已发布版本修订，产生新版本，须重新评审
+  raci_A:
+    resolve: instance
+    field: 知识条目.归属组织单元.负责人
+  raci_R:
+  - SH-E4
+  idempotency_key: 被取代版本ID + 请求ID
+  emits:
+  - 知识条目已修订
+  used_by:
+  - PRC-107#6
+  orphan: false
+  source_part: vs0911
+- name: 废止知识条目
+  aggregate: AGG-107
+  status: 聚合稿已有
+  params:
+  - 版本ID
+  - 废止原因
+  preconditions:
+  - ref: INV-115
+    desc: 废止后不得被新引用，已有引用不受影响
+  - ref: 版本状态
+    desc: 已发布
+  raci_A:
+    resolve: instance
+    field: 知识条目.归属组织单元.负责人
+  raci_R:
+  - SH-E4
+  idempotency_key: 版本ID
+  emits:
+  - 知识条目已废止
+  used_by:
+  - PRC-107#7
+  orphan: false
+  source_part: vs0911
+- name: 提交用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 印章类别（公章 / 合同专用章 / 法定代表人名章 / 财务章等）
+  - 用印法人
+  - 用印事由
+  - 用印文件（名称、份数、引用）
+  - 申请份数
+  - 来源单据（类型、审批实例ID，可空；无来源单据的申请为空）
+  - 审批轮次（原单重提时新轮）
+  - 所用制度配置版本
+  preconditions:
+  - ref: R-B31-1
+    text: 用印法人须为申请日有效法人主体，否则拒绝并留在草稿
+  - ref: R-B31-12
+    text: 填了来源审批实例ID的，经 platform.approval 校验实例已通过；校验不过则拒绝并告诉申请人原因，留在草稿，不静默
+  - ref: INV-138
+    text: 同一来源审批实例的累计用印份数（本申请份数加上该实例已被其他有效用印申请占用的份数）不超审批载荷份数；超出则拒绝并告诉申请人原因，留在草稿，不静默
+  - ref: 状态
+    text: 申请为草稿或已驳回、已撤回；原单重提保留原编号及旧轮次，新建本轮审批实例，旧回调不得作用新轮
+  - ref: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」
+    text: 无来源单据时用印责任、加审配置须完整有效，否则拒绝并告警；来源直通仍按 INV-138
+  authority:
+    ref: raci:AGG-113/提交用印申请
+    A:
+      resolve: instance
+      field: 申请人
+    R:
+    - SH-E3
+  idempotency_key: 申请ID + 提交轮次（同轮重试回放，重提增加轮次并保留历史）
+  emits: 用印申请已批准（仅来源审批校验通过时直接置已批准；其余情形为内部）
+  used_by:
+  - PRC-139 第 1 步
+  orphan: false
+  source_part: b31
+- name: 批准用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params:
+  - 审批实例ID
+  - 审批结果（通过）
+  preconditions:
+  - ref: 状态
+    text: 申请为审批中且审批实例ID一致；仅无来源单据的申请有此审批；须匹配当前审批轮次，历史或重复回调不得作用新轮
+  - ref: R-B31-11
+    text: 按业务日期取已批准且已生效的唯一 D15 版本；版本只追加，含版本、生效日、作者、批准人、确认时间及制度名称、版本、条款或本次答复依据；单据保存所用版本。配置缺失、重叠、无有效版或不能执行时拒绝并告警，不设默认负责人、不补零、不当不限额；AR-11、AR-12 不替代责任归属
+  - ref: R-B31-12
+    text: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」：用印加审范围与授权层级须有正式制度版本；AR-16 候选范围不直接启用
+  authority:
+    ref: raci:AGG-113/批准用印申请
+    A:
+      resolve: instance
+      field: 按用印用途、法人、归属对象的制度责任配置解析
+      alias: cost_object_owner
+    R:
+    - SH-M1
+    approval:
+      approver: cost_object_owner
+      doc_type: 用印审批
+  idempotency_key: 审批实例ID（同一审批实例重复回调不重复生效）
+  emits: 用印申请已批准
+  used_by:
+  - PRC-139 第 2 步
+  orphan: false
+  source_part: b31
+- name: 驳回用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params:
+  - 审批实例ID
+  - 驳回意见
+  preconditions:
+  - ref: 状态
+    text: 申请为审批中且审批实例ID一致；须匹配当前审批轮次，历史或重复回调不得作用新轮
+  authority:
+    ref: raci:AGG-113/驳回用印申请
+    A:
+      resolve: instance
+      field: 按用印用途、法人、归属对象的制度责任配置解析
+      alias: cost_object_owner
+    R:
+    - platform.approval
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by:
+  - PRC-139 第 3 步
+  orphan: false
+  source_part: b31
+- name: 撤回用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（notes 新用语）
+  source: 分片 b31.notes.md 新用语〔缺〕撤回用印申请（WithdrawSealApplication）
+  params:
+  - 申请ID
+  - 撤回原因
+  preconditions:
+  - ref: 状态
+    text: 申请为审批中
+  - ref: 权限
+    text: 仅申请人本人
+  authority:
+    ref: raci:AGG-113/撤回用印申请
+    A:
+      resolve: instance
+      field: 申请人
+    R:
+    - SH-E3
+  idempotency_key: 申请ID（已撤回再撤回无操作）
+  emits: （内部）
+  used_by:
+  - PRC-139 第 2 步（撤回边 withdraw）
+  orphan: false
+  source_part: b31
+  unused_ok: 由骨架 withdraw 边触发
+- name: 登记用印
+  aggregate: AGG-113
+  entity: seal_usage_records
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 申请ID
+  - 登记请求ID
+  - 实际用印时间
+  - 本次用印份数
+  - 经办人
+  - 盖章文件扫描件引用
+  - 确认放弃剩余份数（是 / 否）
+  - 报价版本引用（报价用途，仅记录）
+  - 用印法人
+  - 拟发文件及实际盖章凭据对应
+  - 所用核验配置版本
+  preconditions:
+  - ref: INV-118
+    text: 申请须已批准（来源审批校验通过或负责人已批准）
+  - ref: INV-119
+    text: 累计登记份数不得超过批准份数
+  - ref: R-B31-2
+    text: 本次用印份数为 0 仅当确认放弃剩余份数〔推〕；达到批准份数或确认放弃后触发关闭
+  - ref: 职责分离
+    text: 经办人不得是申请人本人（PRC-139 segregation）
+  - ref: INV-138
+    text: 同一来源实例累计用印份数不超过批准份数
+  - ref: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」
+    text: 报价实际用印须与同一报价版本、用印法人、拟发文件和实际盖章凭据可核验对应；缺失或不一致拒绝并告警，审批通过不算已用印
+  authority:
+    ref: raci:AGG-113/登记用印
+    A:
+      resolve: type
+      role: SH-E6
+      function: 行政经办
+    R:
+    - SH-E6
+  idempotency_key: 登记请求ID（客户端预生成 UUIDv7；重复登记返回已有登记行）
+  emits: 用印已办理
+  used_by:
+  - PRC-139 第 4 步
+  orphan: false
+  source_part: b31
+- name: 关闭用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 申请ID
+  preconditions:
+  - ref: R-B31-2
+    text: 累计登记份数已达批准份数，或经办人已确认放弃剩余份数；不设人工关闭
+  - ref: 凭据保留
+    text: 关闭不抹去实际用印登记和凭据对应，已关闭仍可核验
+  authority:
+    ref: raci:AGG-113/关闭用印申请
+    A:
+      resolve: type
+      role: SH-E6
+      function: 行政经办
+    R:
+    - system
+  idempotency_key: 申请ID（已关闭无操作）
+  emits: （内部）
+  used_by:
+  - PRC-139 第 5 步
+  orphan: false
+  source_part: b31
+- name: 提交 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 需求类别
+  - 描述
+  - 优先级
+  - 所用类别、责任及金额适用配置版本
+  - 提交轮次
+  preconditions:
+  - ref: R-B31-3
+    text: 逐类填是否需人审、理由、批准责任人、提供方、维护方、默认路由及采购交接；未列类别或无有效版拒绝并告警，不默认常规支持
+  - ref: 状态
+    text: 工单为草稿或已退回、已撤回；仅提出人原单重提，保留旧轮次、意见和原编号，新轮重新核对配置
+  - ref: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」
+    text: 先明确金额由 IT 或采购承载；采购金额留采购，IT 自身承载须有两档阈值和币种，不补零、不作不限额
+  authority:
+    ref: raci:AGG-114/提交 IT 需求
+    A:
+      resolve: instance
+      field: 提出人
+    R:
+    - SH-E3
+  idempotency_key: 工单ID + 提交轮次（同轮回放，重提增加轮次）
+  emits: （内部）
+  used_by:
+  - PRC-142 第 1 步
+  orphan: false
+  source_part: b31
+- name: 批准 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params:
+  - 审批实例ID
+  - 审批结果（通过）
+  preconditions:
+  - ref: 状态
+    text: 工单为审批中且审批实例ID一致；须匹配当前审批轮次，历史或重复回调不得作用新轮
+  - ref: R-B31-11
+    text: 按业务日期取已批准且已生效的唯一 D15 版本；版本只追加，含版本、生效日、作者、批准人、确认时间及制度名称、版本、条款或本次答复依据；单据保存所用版本。配置缺失、重叠、无有效版或不能执行时拒绝并告警，不设默认负责人、不补零、不当不限额；本人及缺位沿 AR-11、AR-12，不能替代制度责任归属
+  authority:
+    ref: raci:AGG-114/批准 IT 需求
+    A:
+      resolve: instance
+      field: 按 IT 类别和正式制度责任配置解析
+      alias: cost_object_owner
+    R:
+    - SH-M1
+    approval:
+      approver: cost_object_owner
+      doc_type: IT需求审批
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by:
+  - PRC-142 第 2 步
+  orphan: false
+  source_part: b31
+- name: 驳回 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: callback
+  name_status: 〔缺〕沿用分片提议名（notes 新用语）
+  source: 分片 b31.notes.md 新用语〔缺〕驳回 IT 需求（RejectItRequest）；与「退回 IT 需求」终态同为已退回，但发令方不同（审批回调 vs 信息部门），保留两条
+  params:
+  - 审批实例ID
+  - 驳回意见
+  preconditions:
+  - ref: 状态
+    text: 工单为审批中且审批实例ID一致；须匹配当前审批轮次，历史或重复回调不得作用新轮
+  authority:
+    ref: raci:AGG-114/驳回 IT 需求
+    A:
+      resolve: instance
+      field: 按 IT 类别和正式制度责任配置解析
+      alias: cost_object_owner
+    R:
+    - platform.approval
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by:
+  - PRC-142 第 7 步
+  orphan: false
+  source_part: b31
+- name: 撤回 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  name_status: 〔缺〕收敛新增，沿用分片命名模式，待 one-glossary 登记
+  source: 收敛新增（分片仅写 withdraw 边，无命令）
+  params:
+  - 工单ID
+  - 撤回原因
+  preconditions:
+  - ref: 状态
+    text: 工单为审批中
+  - ref: 权限
+    text: 仅提出人本人
+  authority:
+    ref: raci:AGG-114/撤回 IT 需求
+    A:
+      resolve: instance
+      field: 提出人
+    R:
+    - SH-E3
+  idempotency_key: 工单ID
+  emits: （内部）
+  used_by:
+  - PRC-142 第 2 步（撤回边 withdraw）
+  orphan: false
+  source_part: b31
+  unused_ok: 由骨架 withdraw 边触发
+- name: 受理 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 工单ID
+  - 处理人
+  - 重开说明（提出人反馈未解决时）
+  preconditions:
+  - ref: 状态
+    text: 工单为已提交；或已解决且提出人反馈未解决（重开，回处理中）
+  authority:
+    ref: raci:AGG-114/受理 IT 需求
+    A:
+      resolve: type
+      role: SH-E6
+      function: 信息（IT）资产管理员/处理人
+    R:
+    - SH-E6
+  idempotency_key: 工单ID + 受理序号（重开后为新序号）
+  emits: （内部）
+  used_by:
+  - PRC-142 第 3 步（重开经 第 5 步 判断出口回到第 3 步）
+  orphan: false
+  source_part: b31
+- name: 解决 IT 需求
+  aggregate: AGG-114
+  entity: it_request_handlings
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 工单ID
+  - 处理时间
+  - 处理说明
+  - 处理结论
+  preconditions:
+  - ref: 状态
+    text: 工单为处理中
+  - ref: INV-120
+    text: 解决须写出处理结论（供关闭时校验）
+  - ref: A3
+    text: 受理之后解决之前已判定需求成立且可实现；否则由处理中直接退回，不写已解决、不发解决事件
+  authority:
+    ref: raci:AGG-114/解决 IT 需求
+    A:
+      resolve: type
+      role: SH-E6
+      function: 信息（IT）资产管理员/处理人
+    R:
+    - SH-E6
+  idempotency_key: 工单ID + 处理记录ID（客户端预生成 UUIDv7）
+  emits: IT 需求已解决
+  used_by:
+  - PRC-142 第 4 步
+  orphan: false
+  source_part: b31
+- name: 关闭 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 工单ID
+  - 提出人人工确认
+  preconditions:
+  - ref: 状态
+    text: 工单为已解决且仅提出人本人确认；系统无代关权
+  - ref: INV-120
+    text: 关闭须有处理结论；无结论拒绝；未解决可回受理重开
+  - ref: R-B31-4
+    text: 人工超期不自动改变状态；不登记受理提醒或代关任务，保留人工催办和逾期查询
+  authority:
+    ref: raci:AGG-114/关闭 IT 需求
+    A:
+      resolve: instance
+      field: 提出人
+    R:
+    - SH-E3
+  idempotency_key: 工单ID（已关闭无操作）
+  emits: （内部）
+  used_by:
+  - PRC-142 第 5 步
+  orphan: false
+  source_part: b31
+- name: 退回 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 工单ID
+  - 退回原因
+  preconditions:
+  - ref: 状态
+    text: 工单为处理中；需求不成立或无法实现
+  authority:
+    ref: raci:AGG-114/退回 IT 需求
+    A:
+      resolve: type
+      role: SH-E6
+      function: 信息（IT）资产管理员/处理人
+    R:
+    - SH-E6
+  idempotency_key: 工单ID（已退回无操作）
+  emits: （内部）
+  used_by:
+  - PRC-142 第 6 步
+  orphan: false
+  source_part: b31
+- name: 申请领用资产
+  aggregate: AGG-115
+  entity: it_asset_use_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 资产卡片ID（AGG-91，仅引用）
+  - 使用人
+  - 领用说明
+  - 所用领用规则及清单配置版本
+  preconditions:
+  - ref: R-B31-5
+    text: 全部领用只登记，岗位标准及超配可执行规则通过直达已通过；规则缺失、无有效版或不满足拒绝并告警，不转人审；清单提供方及维护责任上线前须填
+  - ref: R-B31-6
+    text: 资产无未归还使用人，申请时提前拒绝（INV-121 的提前判定）
+  - ref: 卡片有效
+    text: 卡片存在、未处置、属 IT 资产类别（读 B-24）
+  authority:
+    ref: raci:AGG-115/申请领用资产
+    A:
+      resolve: instance
+      field: 使用人
+    R:
+    - SH-E3
+  idempotency_key: 申请ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by:
+  - PRC-143 第 1 步
+  orphan: false
+  source_part: b31
+- name: 登记领用
+  aggregate: AGG-115
+  entity: it_asset_use_periods
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 申请ID
+  - 领用人签收
+  - 交付日期（使用期间起始日）
+  - 设备实物状态
+  preconditions:
+  - ref: INV-121
+    text: 同一资产同一时刻只有一个使用人，使用期间不重叠
+  - ref: R-B31-6
+    text: 登记时兜底拒绝已有未归还使用人的资产
+  - ref: 状态
+    text: 申请为已通过（岗位标准及超配规则已通过，无审批回调前提）
+  - ref: 职责分离
+    text: 使用人不得登记自己的领用
+  authority:
+    ref: raci:AGG-115/登记领用
+    A:
+      resolve: type
+      role: SH-E6
+      function: 信息（IT）资产管理员/处理人
+    R:
+    - SH-E6
+  idempotency_key: 申请ID（同一申请只开一个使用期间）
+  emits: 资产已领用
+  used_by:
+  - PRC-143 现第 2 步（原第 3 步）
+  orphan: false
+  source_part: b31
+- name: 申请调拨资产
+  aggregate: AGG-115
+  entity: it_asset_use_requests
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（notes 新用语）
+  source: 分片 b31.notes.md 新用语〔缺〕申请调拨资产（RequestAssetTransfer）
+  params:
+  - 资产卡片ID
+  - 调出使用人
+  - 调入使用人
+  - 调拨说明
+  preconditions:
+  - ref: R-B31-7
+    text: 调入使用人须在调拨日在职；资产无当前使用人转领用；跨组织单元通知两侧负责人；同一核算主体内跨组织只通知双方，不增批准；跨法人转让归固定资产流程
+  - ref: R-B31-6
+    text: 调出方须为当前使用人
+  - ref: 卡片有效
+    text: 卡片存在、未处置且属于同一核算主体；跨法人转让归 B-24 固定资产流程，不在本命令办理
+  authority:
+    ref: raci:AGG-115/申请调拨资产
+    A:
+      resolve: instance
+      field: 调出使用人
+    R:
+    - SH-E3
+  idempotency_key: 申请ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by:
+  - PRC-155 第 1 步
+  orphan: false
+  source_part: b31
+- name: 撤销调拨申请
+  aggregate: AGG-115
+  entity: it_asset_use_requests
+  kind: human
+  name_status: 〔缺〕收敛新增，沿用分片命名模式，待 one-glossary 登记
+  source: 收敛新增（分片仅写 withdraw 边，无命令）
+  params:
+  - 申请ID
+  - 撤销原因
+  preconditions:
+  - ref: 状态
+    text: 申请为已申请（未登记交接）
+  - ref: 权限
+    text: 调出使用人或资产管理员
+  authority:
+    ref: raci:AGG-115/撤销调拨申请
+    A:
+      resolve: instance
+      field: 调出使用人
+    R:
+    - SH-E3
+    - SH-E6
+  idempotency_key: 申请ID
+  emits: （内部）
+  used_by:
+  - PRC-155 第 1 步（撤回边 withdraw）
+  orphan: false
+  source_part: b31
+  unused_ok: 由骨架 withdraw 边触发
+- name: 调拨资产
+  aggregate: AGG-115
+  entity: it_asset_use_periods
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 申请ID
+  - 调出方与调入方交接确认
+  - 交接日期
+  preconditions:
+  - ref: INV-121
+    text: 同一事务结束调出方使用期间并开启调入方使用期间
+  - ref: R-B31-6
+    text: 调出方须为该资产当前使用人，否则拒绝
+  - ref: 职责分离
+    text: 调出使用人不得登记自己的调拨
+  authority:
+    ref: raci:AGG-115/调拨资产
+    A:
+      resolve: type
+      role: SH-E6
+      function: 信息（IT）资产管理员/处理人
+    R:
+    - SH-E6
+  idempotency_key: 申请ID（同一申请只换一次使用人）
+  emits: 资产已调拨
+  used_by:
+  - PRC-155 第 2 步
+  orphan: false
+  source_part: b31
+- name: 归还资产
+  aggregate: AGG-115
+  entity: it_asset_use_periods
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 资产卡片ID
+  - 归还验收人
+  - 归还日期
+  - 归还时设备状态
+  - 离职生效时点（仅离职入口）
+  - 固定到期时点及所用提醒配置版本（仅离职入口）
+  preconditions:
+  - ref: R-B31-9
+    text: 资产须有未结束的使用期间，否则拒绝（待办重复或已先行归还）
+  - ref: 职责分离
+    text: 资产管理员不得验收登记自己名下资产的归还
+  - ref: R-B31-9
+    text: 仅 Separated 生效后生成待办，生效后 7 个日历日未归还非中断提醒原组织单元负责人；归还完成取消；聚合 ID + 到期时点幂等，晚到及重试不重置；手工入口不套期限
+  authority:
+    ref: raci:AGG-115/归还资产
+    A:
+      resolve: type
+      role: SH-E6
+      function: 信息（IT）资产管理员/处理人
+    R:
+    - SH-E6
+  idempotency_key: 使用期间ID（已结束无操作）
+  emits: 资产已归还
+  used_by:
+  - PRC-156 第 1 步
+  orphan: false
+  source_part: b31
+- name: 报修资产
+  aggregate: AGG-121
+  entity: it_asset_repair_orders
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 资产卡片ID
+  - 报修人
+  - 故障描述
+  preconditions:
+  - ref: R-B31-8
+    text: 报修人须为该资产当前使用人（资产管理员代报时选使用人）；当前使用人由 AGG-115 的使用期间读取（同 BC 跨聚合按 ID 读，AGG-121 不共享 AGG-115 的命令与不变量）
+  authority:
+    ref: raci:AGG-121/报修资产
+    A:
+      resolve: instance
+      field: 使用人
+    R:
+    - SH-E3
+  idempotency_key: 维修工单ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by:
+  - PRC-157 第 1 步
+  orphan: false
+  source_part: b31
+- name: 登记维修结果
+  aggregate: AGG-121
+  entity: it_asset_repair_orders
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 维修工单ID
+  - 维修结果（已修复 / 无法修复）
+  - 完成日期
+  - 维修单或发票引用
+  preconditions:
+  - ref: 状态
+    text: 工单为已报修
+  authority:
+    ref: raci:AGG-121/登记维修结果
+    A:
+      resolve: type
+      role: SH-E6
+      function: 信息（IT）资产管理员/处理人
+    R:
+    - SH-E6
+  idempotency_key: 维修工单ID（已登记无操作）
+  emits: （内部）
+  used_by:
+  - PRC-157 第 2 步
+  orphan: false
+  source_part: b31
+- name: 提交员工活动申请
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params:
+  - 活动类型码
+  - 参与人
+  - 说明
+  - 费用预估引用（只记录）
+  - 员工引用（周年）
+  - 入职日期（B-13）
+  - 周年日期
+  - 所用活动与周年规则配置版本
+  - 被取消登记引用（显式重登时）
+  preconditions:
+  - ref: R-B31-10
+    text: 全部活动只登记，类型、预算、组织安排可执行规则通过直达已批准；规则或维护责任缺失、无有效版或不满足拒绝并告警，不设人工批准或活动金额加审
+  - ref: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」
+    text: 周年自动生成读取 B-13 人员事实，由 platform.scheduling 按业务日触发；适用员工、闰日、重新入职、补跑口径须填，缺失拒绝并告警；未实现触发器
+  authority:
+    ref: raci:AGG-116/提交员工活动申请
+    A:
+      resolve: type
+      role: SH-E6
+      function: 行政
+    R:
+    - system
+    - SH-E3
+  idempotency_key: 周年自动入口：员工 + 入职日期 + 周年日期 + 活动类型；其他活动首次登记：申请ID；显式重登：被取消登记引用；重复请求返回原记录或已有后继登记，不重办
+  emits: 员工活动申请已批准（规则通过，非人审）
+  used_by:
+  - PRC-144 第 1 步
+  orphan: false
+  note: 周年由系统自动登记；其他活动保留人工登记入口，仍经相同规则校验。登记内容不可改，记错或活动取消先取消再重登；自动调度及补跑返回原记录（含已取消），显式重登另建登记并关联被取消原单，不覆盖旧单或历史。
+  source_part: b31
+- name: 完成员工活动
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params:
+  - 申请ID
+  - 活动完成确认
+  - 实际参与人〔推〕
+  preconditions:
+  - ref: 状态
+    text: 申请为已批准（类型、预算及组织安排规则通过，无审批回调前提）；重复命令返回已有完成结果；已取消拒绝完成，不修改原登记内容
+  authority:
+    ref: raci:AGG-116/完成员工活动
+    A:
+      resolve: type
+      role: SH-E6
+      function: 行政
+    R:
+    - SH-E6
+  idempotency_key: 申请ID（已完成回放原完成结果；已取消拒绝完成）
+  emits: （内部）
+  used_by:
+  - PRC-144 现第 2 步（原第 3 步）
+  orphan: false
+  source_part: b31
+- name: 取消员工活动登记
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: human
+  name_status: 〔缺〕ARC-1017-APE-02 提议命令，待 one-glossary 定名
+  source: one-architecture 2026-10-17 答复②（B31-8）；分片 b31.notes.md 新用语 CancelEmployeeActivityRegistration
+  params:
+  - 申请ID
+  - 取消原因
+  preconditions:
+  - ref: 状态
+    text: 登记为已批准或已完成；取消到提议终态已取消，不能在原单恢复或修改内容
+  - ref: B31-8
+    text: 登记内容不可修改，记错或活动取消时先取消再按需重登；不设人审，不恢复审批期撤回
+  - ref: 审计
+    text: 取消原因必填，缺失拒绝并告警；取消人从执行身份取得，时间由应用传入；保留原状态、登记与完成历史
+  authority:
+    ref: raci:AGG-116/取消员工活动登记
+    A:
+      resolve: type
+      role: SH-E6
+      function: 行政
+    R:
+    - SH-E6
+  idempotency_key: 申请ID（已取消重试回放原结果，不覆盖首次取消原因、人和时间）
+  emits: （内部）
+  used_by:
+  - PRC-144 第 3 步（已批准或已完成的取消入口）
+  orphan: false
+  note: 无跨 BC 消费需求，不新增领域事件；审计留痕，不删除历史，不自动冲销费用、报销或采购；已取消不作 VS-14.4 退出。
+  source_part: b31

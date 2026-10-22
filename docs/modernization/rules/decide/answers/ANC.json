@@ -1,0 +1,24 @@
+{
+ "ANC~ANC-01": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "不单列，挂到用它的阶段",
+  "no": "ANC-01",
+  "note": "",
+  "recommended": false,
+  "submission": "ANC-20261017-181237-som",
+  "submitted": "2026-10-17T16:12:37.185Z",
+  "unanswered": false
+ },
+ "ANC~ANC-02": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "移出，记到平台作业登记",
+  "no": "ANC-02",
+  "note": "",
+  "recommended": false,
+  "submission": "ANC-20261017-181237-som",
+  "submitted": "2026-10-17T16:12:37.185Z",
+  "unanswered": false
+ }
+}

@@ -11,6 +11,7 @@
 - 冲突：生成产物取一边后跑 `build_all.py`，推送前跑 `scripts/precheck.sh`；非生成文件或语义冲突不改，报调度。
 - 合入后收尾：关掉被合集包含的原 PR；按清单刷新工作台与对齐图；向 one-coordinator 报完成点（合入哪些、CI 次数、失败原因）。
 - 积压 PR 盘点（用户 2026-10-16 同意）：每次组文档合集时（中午、晚上）列积压 PR 清单报 one-coordinator，分「被合集包含待关、冲突、超 48 小时无进展、草稿、原因不明」五类；按调度逐条定的去向执行（关闭、退回作者、入队）。
+- 分支与工作区清理（用户 2026-10-21 起归本会话）：每周清一次已合入分支与干净工作区，规则见 `merge/MERGE_CONTEXT.md`「分支清理」。
 - 运行与反馈队列脚本问题：反馈 one-quality（附日志时间戳与 PR 号）；脚本由 one-quality 编写与维护。
 
 ## 独占
@@ -65,4 +66,4 @@
 
 ## 当前状态
 
-2026-10-17 13:40+02:00 在岗；按 one-coordinator 批准清单运行 `scripts/merge/mq.py`（pid 见队列目录 `run.pid`）；strict 已关试行至 10-19，只走受管队列；当前队列与失败看 `mq.py status` 与 `merge.log`，不沿用台账旧队列数字；模型 sonnet。
+2026-10-21 18:00+02:00 在岗；队列由 launchd 代理 `com.forcitis.mq` 托管（`scripts/merge/mq.py run`），队列与待办详见 `merge/MERGE_CONTEXT.md`「现状」，不抄数字；模型 sonnet；/clear 后先读该文件再 `mq.py status` 核对。

@@ -1,8 +1,9 @@
 """Closeout coverage check (read-only): do the three closeout process drafts line up with the aggregates and objects?
 
-Usage: python3 -I closeout_check.py [--local] [--write]
+Usage: python3 -I closeout_check.py [--local] [--extra PATH]... [--write] | --self-test
   default       read processes.<group>.yaml, SAMPLE.md and data-model.<group>.yaml from origin/claude/one-arch-<group>-closeout (git show)
   --local       read them from closeout/<group>/ in this working tree instead
+  --extra PATH  overlay process units by ID, in argument order; new IDs are appended
   --write       also write COVERAGE_REPORT.md next to this script
 
 Checks per step (a: aggregate exists in section 2.2 of ENTERPRISE_AGGREGATES_DRAFT.md or in PRC_ALLOCATIONS.md new aggregates;
@@ -16,6 +17,7 @@ Findings only, no judgement of design quality; exit code is always 0.
       in scenarios.<group>.yaml (heuristic text match, only if the file exists); task and command names in glossary terms.yaml or in the group's NOTES
       "新用语" sections (report only). Report only, exit code 0; --all lists every finding instead of the first 12 per item.
 """
+import argparse
 import collections
 import difflib
 import re
@@ -148,6 +150,69 @@ def units_of(doc):
                     yield key, u
 
 
+def extra_paths(argv):
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--extra", action="append", type=Path, default=[])
+    return parser.parse_known_args(argv)[0].extra
+
+
+def load_extra_units(paths):
+    units = {}
+    for path in paths:
+        try:
+            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError) as error:
+            raise ValueError(f"--extra {path}：无法读取骨架：{error}") from error
+        if not isinstance(doc, dict) or not list(units_of(doc)):
+            raise ValueError(f"--extra {path}：骨架必须是含流程列表的 YAML 映射，且至少有一个流程")
+        meta = doc.get("meta", {})
+        if not isinstance(meta, dict) or (meta.get("group") is not None and not isinstance(meta["group"], str)):
+            raise ValueError(f"--extra {path}：meta 必须是映射，group 必须是组名字符串")
+        group = meta.get("group")
+        for key, val in doc.items():
+            if not isinstance(val, list):
+                continue
+            for unit in val:
+                if not isinstance(unit, dict) or not isinstance(unit.get("id"), str) or not unit["id"].strip() or not isinstance(unit.get("name"), str) or not unit["name"].strip():
+                    raise ValueError(f"--extra {path}：{key} 中每个流程必须有非空 id 和 name")
+                if unit.get("group") is not None and not isinstance(unit["group"], str):
+                    raise ValueError(f"--extra {path}：{unit['id']} 的 group 必须是组名字符串")
+                units[unit["id"]] = (key, unit, group)
+    return units
+
+
+def merge_process_docs(docs, extra):
+    owners = {u["id"]: g for g, doc in docs.items() for _, u in units_of(doc)}
+    out = {g: {k: [u for u in v if not isinstance(u, dict) or u.get("id") not in extra] if isinstance(v, list) else v
+               for k, v in doc.items()} for g, doc in docs.items()}
+    for pid, (key, unit, group) in extra.items():
+        target = owners.get(pid) or unit.get("group") or group or "extra"
+        out.setdefault(target, {}).setdefault(key, []).append(unit)
+    return out
+
+
+def load_process_docs(local, extra=None):
+    docs = {}
+    for g in GROUPS:
+        txt = read_group_file(g, "proc", local)
+        if txt:
+            docs[g] = yaml.safe_load(txt) or {}
+        else:
+            print(f"警告：读不到 {g} 组骨架（{'本地' if local else 'origin 分支'}）", file=sys.stderr)
+    return merge_process_docs(docs, extra or {})
+
+
+def overlay_catalog(catalog, extra):
+    out = {p["id"]: dict(p) for p in catalog}
+    types = {"processes": "business", "event_policies": "event_policy", "single_aggregate": "single_aggregate", "read_models": "read_model"}
+    for pid, (key, unit, group) in extra.items():
+        prior = out.get(pid, {})
+        out[pid] = dict(prior, **unit)
+        out[pid]["type"] = unit.get("type") or types.get(key, prior.get("type", "business"))
+        out[pid].setdefault("group", group or "extra")
+    return list(out.values())
+
+
 def unit_steps(u):
     steps = list(u.get("steps") or [])
     if isinstance(u.get("step"), dict):
@@ -179,7 +244,7 @@ def classify(step, unit):
     return "nocommand"
 
 
-def main():
+def main(extra=None):
     local = "--local" in sys.argv
     aggs = load_aggregates()
     new_aggs, alloc_prcs = load_allocations()
@@ -275,12 +340,15 @@ def main():
             return
         result[label] = (st, used)
 
-    for g in GROUPS:
-        text = read_group_file(g, "proc", local)
-        if text is None:
+    docs = load_process_docs(local, extra)
+    groups = list(dict.fromkeys(GROUPS + list(docs)))
+    for g in groups:
+        if g not in docs:
             notes.append(f"{g}: 取不到 processes.{g}.yaml")
             continue
-        run(g, yaml.safe_load(text))
+        run(g, docs[g])
+        if g not in GROUPS:
+            continue
         dm = read_group_file(g, "dm", local)
         if dm:
             for e in yaml.safe_load(dm) or []:
@@ -321,14 +389,14 @@ def main():
 
     # c) aggregate -> object, over aggregates used by the three groups
     group_used = collections.defaultdict(set)
-    for g in GROUPS:
+    for g in groups:
         if g in result:
             for a in result[g][1]:
                 group_used[g].add(a)
     all_used = set().union(*group_used.values()) if group_used else set()
-    dist = {g: collections.Counter() for g in GROUPS}
+    dist = {g: collections.Counter() for g in groups}
     dist["合计（去重）"] = collections.Counter()
-    for g in GROUPS:
+    for g in groups:
         for a in group_used[g]:
             v = all_aggs.get(a)
             if v:
@@ -350,7 +418,7 @@ def main():
             obj_gaps.append((a, v["name"], "新增聚合，聚合稿未收，无信息图对象对应"))
 
     return dict(result=result, gaps=gaps, notes=notes, prc_status=prc_status, agg_status=agg_status, dist=dist,
-                aggs=aggs, all_aggs=all_aggs, group_used=group_used, obj_gaps=obj_gaps, new_aggs=new_aggs)
+                aggs=aggs, all_aggs=all_aggs, group_used=group_used, obj_gaps=obj_gaps, new_aggs=new_aggs, groups=groups)
 
 
 def pct(a, b):
@@ -361,8 +429,9 @@ def render(R):
     out = []
     P = out.append
     res = R["result"]
+    groups = R["groups"]
     tot = collections.Counter()
-    for g in GROUPS:
+    for g in groups:
         if g in res:
             tot.update(res[g][0])
     cmd_steps = tot["command"] + tot["proposed"]
@@ -372,7 +441,7 @@ def render(R):
     P("")
     P("## 一屏结论")
     P("")
-    P(f"- 三组共 {sum(res[g][0]['units'] for g in GROUPS if g in res)} 个流程单元、{tot['steps']} 步；其中命令步骤 {cmd_steps}（含提议新增 {tot['proposed']}），只读 {tot['read']}，平台 {tot['platform']}，无命令（外部或线下动作，只有说明）{tot['nocommand']}。")
+    P(f"- 三组及附加骨架共 {sum(res[g][0]['units'] for g in groups if g in res)} 个流程单元、{tot['steps']} 步；其中命令步骤 {cmd_steps}（含提议新增 {tot['proposed']}），只读 {tot['read']}，平台 {tot['platform']}，无命令（外部或线下动作，只有说明）{tot['nocommand']}。")
     P(f"- 命令能在聚合稿命令列查到：{pct(tot['cmd_ok'], tot['cmd_checked'])}（已核对 {tot['cmd_checked']} 条有聚合的命令；另有 {tot['cmd_newagg']} 条落在无命令列的新增聚合上，无从核对；提议新增命令 {tot['proposed']} 条另计）。")
     P(f"- 聚合缺失（不在聚合稿也不在新增登记）：{tot['agg_missing'] + tot['agg_bad']} 处。")
     pr = R["prc_status"]
@@ -392,7 +461,7 @@ def render(R):
     for g in list(res):
         s = res[g][0]
         P(f"| {g} | {s['units']} | {s['steps']} | {s['command'] + s['proposed']} | {pct(s['cmd_ok'], s['cmd_checked'])} | {s['proposed']} | {s['read']} | {s['platform']} | {s['nocommand']} | {s['agg_missing'] + s['agg_bad']} |")
-    P(f"| 三组合计 | {sum(res[g][0]['units'] for g in GROUPS if g in res)} | {tot['steps']} | {cmd_steps} | {pct(tot['cmd_ok'], tot['cmd_checked'])} | {tot['proposed']} | {tot['read']} | {tot['platform']} | {tot['nocommand']} | {tot['agg_missing'] + tot['agg_bad']} |")
+    P(f"| 合计 | {sum(res[g][0]['units'] for g in groups if g in res)} | {tot['steps']} | {cmd_steps} | {pct(tot['cmd_ok'], tot['cmd_checked'])} | {tot['proposed']} | {tot['read']} | {tot['platform']} | {tot['nocommand']} | {tot['agg_missing'] + tot['agg_bad']} |")
     P("")
     P("口径：命令步骤 = 有 `command` 且不是只读与平台步骤；步骤里的 `inner`、`also`、`reads` 中的聚合也核对存在性，`inner` 的命令一并核对命令列。事件策略与单聚合维护的单元也计入。finance 的 `event_policies_cross_bc`、`single_aggregate_cross_bc` 只有接缝，没有步骤，只计单元数。")
     for n in R["notes"]:
@@ -401,14 +470,14 @@ def render(R):
     P("## 二、聚合到信息图对象的对应方式（三组实际触及的聚合）")
     P("")
     kinds = []
-    for g in GROUPS:
+    for g in groups:
         kinds += list(R["dist"][g])
     kinds += list(R["dist"]["合计（去重）"])
     kinds = sorted(set(kinds), key=lambda k: (k.replace("配置型·", ""), k))
-    P("| 对应方式 | " + " | ".join(GROUPS) + " | 合计（去重） |")
-    P("|---|" + "---|" * (len(GROUPS) + 1))
+    P("| 对应方式 | " + " | ".join(groups) + " | 合计（去重） |")
+    P("|---|" + "---|" * (len(groups) + 1))
     for k in kinds:
-        P(f"| {k} | " + " | ".join(str(R["dist"][g][k]) for g in GROUPS) + f" | {R['dist']['合计（去重）'][k]} |")
+        P(f"| {k} | " + " | ".join(str(R["dist"][g][k]) for g in groups) + f" | {R['dist']['合计（去重）'][k]} |")
     P("")
     P("取自聚合稿 §2.2 表「对应」列；「配置型·」表示聚合名或对应列含「配置」。组间聚合会重叠（同一聚合被多组触及），合计列去重。")
     P("")
@@ -553,7 +622,7 @@ def a_matches(approver, entry):
     return approver in (a.get("role"), a.get("id"))
 
 
-def qc(local, matrix_path, show_all):
+def qc(local, matrix_path, show_all, extra=None):
     rules = {r["id"]: r for r in yaml.safe_load(RULES.read_text(encoding="utf-8"))["rules"]}
     matrix = {}
     if matrix_path and Path(matrix_path).exists():
@@ -569,12 +638,12 @@ def qc(local, matrix_path, show_all):
         detail[item].append(f"{g} {pid} 第{n}步：{msg}")
         cnt[item] += 1
 
-    for g in GROUPS:
-        text = read_group_file(g, "proc", local)
-        if text is None:
+    docs = load_process_docs(local, extra)
+    for g in dict.fromkeys(GROUPS + list(docs)):
+        if g not in docs:
             out.append(f"- {g}: 取不到 processes.{g}.yaml")
             continue
-        doc = yaml.safe_load(text)
+        doc = docs[g]
         sc_text = read_group_file(g, "scen", local)
         scen = yaml.safe_load(sc_text) if sc_text else None
         notes = new_term_text(read_group_aux(g, local, lambda n: "notes" in n.lower()))
@@ -679,12 +748,73 @@ def json_text(x):
     return " ".join(str(v) for v in x.values()) if isinstance(x, dict) else str(x)
 
 
+def self_test():
+    import contextlib
+    import io
+    import tempfile
+    from unittest.mock import patch
+
+    base = {"finance": {"read_models": [{"id": "P1", "name": "重复旧流程"}]},
+            "people": {"processes": [{"id": "P1", "name": "旧", "steps": [{"command": "旧命令"}]},
+                                      {"id": "P2", "name": "保留"}]}}
+    with tempfile.TemporaryDirectory() as directory:
+        first, last = Path(directory) / "first.yaml", Path(directory) / "last.yaml"
+        first.write_text(yaml.safe_dump({"meta": {"group": "pilot"}, "processes": [
+            {"id": "P1", "name": "首稿", "steps": [{"command": "首稿命令"}]}, {"id": "P3", "name": "新增"}]}), encoding="utf-8")
+        last.write_text(yaml.safe_dump({"processes": [{"id": "P1", "name": "末稿"}]}), encoding="utf-8")
+        paths = extra_paths(["--local", "--extra", str(first), f"--extra={last}", "--qc"])
+        assert paths == [first, last]
+        extra = load_extra_units(paths)
+        merged = merge_process_docs(base, extra)
+        all_units = {u["id"]: u for d in merged.values() for _, u in units_of(d)}
+        assert set(all_units) == {"P1", "P2", "P3"}
+        assert all_units["P1"] == {"id": "P1", "name": "末稿"}, all_units
+        assert sum(u["id"] == "P1" for d in merged.values() for _, u in units_of(d)) == 1
+        assert list(units_of(merged["pilot"]))[0][1]["id"] == "P3"
+        assert base["people"]["processes"][0]["name"] == "旧"
+        assert merge_process_docs(base, {}) == base
+        cat = overlay_catalog([{"id": "P1", "name": "旧", "type": "business", "group": "people"}], extra)
+        assert [p["id"] for p in cat] == ["P1", "P3"] and cat[0]["group"] == "people"
+        with patch(__name__ + ".read_group_file", side_effect=lambda g, *_: yaml.safe_dump(base[g]) if g in base else None):
+            with contextlib.redirect_stderr(io.StringIO()):
+                assert load_process_docs(True, extra) == merged
+        for bad in ("", "[]", "processes: []", "processes: [{name: 缺编号}]", "processes: [{id: P1}]", "processes: [1]", "processes: [", "meta: []\nprocesses: [{id: P1, name: 甲}]"):
+            last.write_text(bad, encoding="utf-8")
+            try:
+                load_extra_units([last])
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f"无效骨架未拦下：{bad}")
+        try:
+            load_extra_units([Path(directory) / "missing.yaml"])
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("缺失 --extra 文件未拦下")
+        with contextlib.redirect_stderr(io.StringIO()):
+            try:
+                extra_paths(["--extra"])
+            except SystemExit as error:
+                assert error.code == 2
+            else:
+                raise AssertionError("缺少 --extra 参数值未拦下")
+    print("self-test 通过：--extra 重复覆盖、追加、跨组去重、原输入不变、无效输入失败")
+
+
 if __name__ == "__main__":
+    if "--self-test" in sys.argv:
+        self_test()
+        sys.exit(0)
+    try:
+        extra = load_extra_units(extra_paths(sys.argv[1:]))
+    except ValueError as error:
+        sys.exit(str(error))
     if "--qc" in sys.argv:
         mp = sys.argv[sys.argv.index("--matrix") + 1] if "--matrix" in sys.argv else MATRIX
-        print(qc("--local" in sys.argv, mp, "--all" in sys.argv))
+        print(qc("--local" in sys.argv, mp, "--all" in sys.argv, extra))
         sys.exit(0)
-    R = main()
+    R = main(extra)
     text = render(R)
     print(text)
     if "--write" in sys.argv:

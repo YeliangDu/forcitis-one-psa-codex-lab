@@ -2,7 +2,7 @@ package com.forcitis.one.platform.approval.infrastructure.persistence;
 
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -63,21 +63,21 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
     @Override
     public void lockForStart(ProcessKey processKey, DocumentReference document) {
         jdbc.sql("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))")
-                .param("key", "approval-start:" + processKey.name() + ":" + document.documentType().name() + ":" + document.documentId())
+                .param("key", "approval-start:" + processKey.name() + ":" + document.documentType().value() + ":" + document.documentId())
                 .query().singleValue();
     }
 
     @Override
     public Optional<ApprovalRequest> find(ProcessKey processKey, DocumentReference document) {
         return select("WHERE process_key = :processKey AND document_type = :type AND document_id = :id", "")
-                .param("processKey", processKey.name()).param("type", document.documentType().name())
+                .param("processKey", processKey.name()).param("type", document.documentType().value())
                 .param("id", document.documentId().value()).query((rs, n) -> readRow(rs)).optional().map(this::restore);
     }
 
     @Override
     public Optional<ApprovalRequest> findForUpdate(ProcessKey processKey, DocumentReference document) {
         return select("WHERE process_key = :processKey AND document_type = :type AND document_id = :id", " FOR UPDATE")
-                .param("processKey", processKey.name()).param("type", document.documentType().name())
+                .param("processKey", processKey.name()).param("type", document.documentType().value())
                 .param("id", document.documentId().value()).query((rs, n) -> readRow(rs)).optional().map(this::restore);
     }
 
@@ -167,7 +167,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
                            current_round, current_instance_id, status, result_reason, summary_text, event_count, version)
                     VALUES (:requestId, :processKey, :type, :id, :legalEntity, :initiator, :round, :instance, :status, :reason, :summary, :sequence, :next)
                     """)
-                    .param("requestId", request.id().value()).param("processKey", request.processKey().name()).param("type", request.document().documentType().name())
+                    .param("requestId", request.id().value()).param("processKey", request.processKey().name()).param("type", request.document().documentType().value())
                     .param("id", request.document().documentId().value()).param("legalEntity", request.legalEntityId().value())
                     .param("initiator", request.initiator().value()).param("round", request.round())
                     .param("instance", request.instanceId().value()).param("status", request.status().name())
@@ -265,7 +265,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
     private static Row readRow(ResultSet rs) throws SQLException {
         String reason = rs.getString("result_reason");
         return new Row(new ApprovalRequestId(rs.getObject("id", UUID.class)), ProcessKey.valueOf(rs.getString("process_key")),
-                new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(rs.getObject("document_id", UUID.class))),
+                new DocumentReference(DocumentTypeCode.of(rs.getString("document_type")), new DocumentId(rs.getObject("document_id", UUID.class))),
                 new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)), new EmployeeId(rs.getObject("initiator_id", UUID.class)),
                 rs.getInt("current_round"), new ApprovalInstanceId(rs.getObject("current_instance_id", UUID.class)),
                 ApprovalStatus.valueOf(rs.getString("status")), reason == null ? null : new Reason(reason),
