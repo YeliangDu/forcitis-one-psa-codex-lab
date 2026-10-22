@@ -61,7 +61,7 @@ meta:
     agg: 145
     bc: 51
     sd: 13
-    table: 68
+    table: 72
     rule: 512
     ep: 601
     tc: 1132
@@ -147,7 +147,7 @@ meta:
         covers: 1
     表→聚合:
       covered: 20
-      total: 30
+      total: 32
       via:
         built: 20
         panorama: 0
@@ -18018,6 +18018,34 @@ nodes:
       role: BUSINESS_DOCUMENT
       registered: true
       registered_aggregate: Timesheet
+    organization_administration.config_sets:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/organization_administration.config_sets
+      role: CONFIG_VERSIONED
+      registered: true
+      registered_aggregate: ConfigSet
+    organization_administration.config_set_versions:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/organization_administration.config_set_versions
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: ConfigSet
+    organization_administration.employee_activity_type_items:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/organization_administration.employee_activity_type_items
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: ConfigSet
+    organization_administration.state_transitions:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/organization_administration.state_transitions
+      role: LOG_APPEND_ONLY
+      registered: true
+      registered_aggregate: null
     organization_attendance.work_calendar_years:
       aggregates:
       - organization.attendance/WorkCalendarYear

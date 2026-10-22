@@ -21,6 +21,11 @@
 - 文档合集每天两次（中午、晚上）；阻塞类插队合集随时。合集分支 `claude/one-merge-train-N`，逐个分支合并，不用 octopus；推送前 `build_all.py` 与 `scripts/precheck.sh`，输出摘要贴 PR。
 - 每次合集同时报积压 PR 盘点（被包含待关、冲突、超 48 小时、草稿、原因不明）。
 - 例行合入不逐个报；报异常（冲突、挂起、红 main）与合集完成。
+- 队列清空即扫在开 PR（one-coordinator 2026-10-22）：三类一次报——已批准未入队、冲突或 CI 红、超 1 小时没人动，附 PR 号与卡在谁手上。
+
+- 文档合集里只要出现 .py 或测试文件改动，先报 one-coordinator，复审通过前不入队（2026-10-22；#574 因此挂起）。
+- 只在生成产物（FREEZE_FACTS、GAPS、panorama、generated/、tasks/TASKS.md、ssot/11-commands）上冲突的 PR：我在其分支合 main、跑 build_all、推送后直接入队，不退回作者；人写的文件冲突才退回（one-coordinator 2026-10-22）。推送前门禁要几分钟，main 前进快时易再冲突，故 #568（队列自动重生成）合入后以它为主。
+- 待 #574 重建时带入：admission-file、network-batch3、rules-context-2 的最新提交以各会话届时所报为准，one-architecture 的提交号由其直报。
 
 ## 监视
 
@@ -32,6 +37,7 @@
 - 未合入的远端分支逐个问负责会话再定。2026-10-21 首轮：本地 794 个、远端 506 个已清。
 
 - 下一趟文档合集待收：one-rules-context-2@10b2bb2c（仅 docs、与 main 无冲突，one-coordinator 此前已批同分支，新提交号为 one-rules 报）；one-quality-window-note@adc95768（已解冲突，调度已批；除 docs 外只含 context_windows.json 的 _note 一行）；one-architecture 画像时间戳修正待其报提交号。
+- 预批待报提交号：claude/one-arch-revenue-closeout（4 个提交、全在 docs/；one-arch-revenue 解完冲突后报我，核 tip 与提交号一致再收）。
 
 ## 坑
 
@@ -39,11 +45,10 @@
 - 队列文件被并发改写会丢行：只经 `mq.py`。
 - 钩子不展开命令里的 shell 变量路径：推送命令用绝对路径 `cd`。
 
-## 现状（2026-10-21 18:00+02:00，/clear 前交接）
+## 现状（2026-10-22 15:40+02:00）
 
-- 队列（`mq.py status`）：523（代码合批：#511 #517 #519 #520，合入后把四个原 PR 标为由合集带入并关闭）→ 521 → 525（`--after 510,521`）→ 524；#510 已合入。launchd 代理 `com.forcitis.mq` running，app/电脑重启后自起（已验证）。
-- 等通知再入队（不挂轮询，本机负载高）：#516 已随 #518 合入；#506 等 one-architecture 改基 main（#501 已进）→ 然后 #508（次序 #506→#508，各报我后核对基与 CI 再入）；#511 已并入 #523。
-- 下一趟文档合集待收（逐项核对只含 docs/，锁文件与脚本不收）：one-data-handoff-1 最新（≥5378d121，只取 docs/，measurable_ddl_scan.py 已另走）、one-quality-window-note@1845a5ef（context_windows.json 仅 _note 一行）、one-merge-docs2（本文件）、one-1a-par-handoff-1022@e1f2c30a（只取 sessions/one-1a-par.md 与 HANDOFF_one-1a-par.md，`.claude/*.lock` 不收）、one-quality-ci-hostspec@0c96e620、one-rules-context-2@fb216b0a（替换 98aefc43）、one-coordinator-two-lanes 最新（含 9c8c0399）、one-architecture 画像时间戳修正（未报提交号）。纯文档 PR 以后一律并进当前合集，不单排。
-- 批准口径：one-coordinator 给的有条件批准，实现会话报条件满足后我核对 head、基、CI 即入队；未见 one-coordinator 批准的（实现会话转述的）先问它。守护文件在 PR 正文单列。
-- 做法教训：①`mq.py remove` 对已在处理的 PR 不会终止其 worker，要 `launchctl kickstart -k` 重启代理；②非必需检查（assertion drift）卡成僵尸作业会挡住队列，整体 `gh run rerun <run>` 重跑；③`enqueue n --after a --after b` 要重复写 `--after`；④钩子脚本改动合入后快进主检出，只有改 settings.json 才请用户重启；⑤条件入队的 Monitor 用 90 秒间隔、到期不重挂，改事件驱动。
-- 上下文文档：`COORDINATOR_LEDGER.md` 的旧队列指令不再适用。
+- 队列（`mq.py status`）：只有当前在处理的 PR；launchd 代理 `com.forcitis.mq` running，#568（生成产物冲突自动合 main 重生成）、#583（remove 停 worker）、#593（产物移出后一删一改自动 git rm --cached）已合入并已重启。主检出每次合入后由队列自动快进（日志 `FF-MAIN`）。
+- 批准口径：只收 one-coordinator 的批准消息，入队前比对「批准的 head」（后续提交是合 main 或重新生成才算同一批准）；脚本/测试文件改动的文档合集先报 one-coordinator；手写文件冲突先报 one-coordinator 再动，生成产物冲突我在 PR 分支合 main、跑 build_all、必要时 `git rm --cached` 已不入仓的产物、推送后入队。
+- 我自己的合集分支（train-N）合入后分支可删；`mq.py remove` 停不掉正在处理的 PR，要撤只能重启代理；推送门禁要几分钟，main 前进快时易再冲突。
+- 远端分支清理（2026-10-22，one-coordinator）：已合入且无 PR/无 worktree 的已删（清单与 tip 在 `~/.modernize/psa/branch-cleanup-20261022/`）；无主超 3 天的未合入分支不删、改名归档到 `archive/<原名>`（同 tip），清单 `archived.txt`；生成物发布分支 `generated-docs` 必须保留。
+- 待办：①`one-data-handoff-1`、`one-quality-*`、`one-architecture-*`、`one-rules-context-2` 等会话分支的提交号由各会话直报，收进下一文档合集；②每周例行分支与干净工作区清理；③队列清空即扫在开 PR 三类报调度。
