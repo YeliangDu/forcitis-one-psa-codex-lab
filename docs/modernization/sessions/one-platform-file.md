@@ -60,4 +60,12 @@
 
 ## 当前状态
 
-2026-10-22 接手会话：签章第一段 api 的 PR #587 已批、反复与 main 的 openapi 生成物冲突，最新 head de4557aa9 等 CI 绿后由 one-merge 入队（本机无 Docker，openapi 快照为手工补入六个签章错误码，以 CI 导出为准）；文件 6b-1 的 PR #603 已合；6b 余下两块未开工：上传与状态端点（POST /api/v1/platform/files 带幂等键、GET 状态；需 Permission 码、identity 迁移、idempotent-endpoints.txt 一行、openapi 先行；无 multipart 先例，幂等过滤器会把整个请求体读入内存须先定）与两个作业（未关联已过期转 EXPIRED_UNBOUND 并补 StoredFile 根类、正式区孤儿只读核对，@Scheduled 加 @SchedulerLock 放 file/infrastructure/scheduling，unbuilt_roots 到期 2026-11-15）；其后 5a、单元 7（并入 WITHDRAWN 状态与 version 列、状态转换约束逐对改写，表结构先请 one-data 签发）；PI/SPI 改名与 has_macros 等 one-glossary gl-10 合入与 one-data 答复；经验：main 常动 openapi，合 main 取其 openapi 与生成物再重生成，无 Docker 时手补枚举；代码提交须带任务号或 PR 号。
+2026-10-23 接手会话交接：签章第一段 api 的 PR #587 已在合并队列。文件 6b-2（上传与状态端点）已提交 c2565de91，分支 claude/one-platform-file-6b2（基于 origin/main c40f38872），任务号 IMP-1021-COO-02；`scripts/precheck.sh --run-backend` 在后台跑，未见结果前未开 PR——接手先重跑 precheck，过了再推送、开 PR、报 one-coordinator 要 opus 首轮复审（代码 PR 须 opus 首轮）。
+
+6b-2 要点（PR 说明须写明）：①上传是原始请求体不是 multipart（幂等过滤器读一次再交还，multipart 的分段读不到），文件名走 Content-Disposition filename*，类型取 Content-Type；②IdempotencyFilter 请求体超 64 KiB 落临时文件、边读边算哈希（口径不变），新增 forcitis.platform.web.idempotency.max-body-size=128MB，G46 不许文件模块读该键，故只有测试守默认值不小于 100MB，生产配置须运维保证文件上限小于它；③服务未开时上传答不可用、状态答不存在；④Permission platform.file:file:create/read 授 employee（改 identity 基线迁移）；⑤前端 api 生成器放行二进制上传的 Content-Disposition、http.ts 按 Blob 直发（前端公共代码，须点出）；⑥会话码表无文件会话码，任务号沿用 IMP-1021-COO-02。
+
+下一步按 one-coordinator 顺序：6b-3 两个作业（未关联已过期转 EXPIRED_UNBOUND 并补 StoredFile 根类、正式区孤儿只读核对，@Scheduled 加 @SchedulerLock 放 file/infrastructure/scheduling，unbuilt_roots 到期 2026-11-15）→ ClamdScannerTest.aSilentClamdTimesOutAndIsRetriedWithinTheLimitThenRefused 偶发失败：断言前改带上限的确定性等待（CountDownLatch 或 awaitility），不隔离、不放宽 → 5a → 单元 7（并入 WITHDRAWN 状态与 version 列、状态转换约束逐对改写，表结构先请 one-data 签发）。另待：PI/SPI 改名与 has_macros 等 one-glossary gl-10 合入与 one-data 答复。
+
+经验：本机有 Docker，可跑 ITs 与 OpenApiExportTest（verify 阶段会重生成 frontend/packages/api/openapi.json，再 `node frontend/scripts/generate-api.mjs`）；mvnw 输出很长，重定向到文件再 grep；后台任务 description 须 `<任务号> <名> (<执行者>)`；代码提交须带任务号或 PR 号。
+
+无未完成的用户请求。
