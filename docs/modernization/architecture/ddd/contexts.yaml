@@ -57,6 +57,7 @@ contexts:
   schema: organization_workforce
   blueprint_bc: BC-P8
   legacy_bc: 组织人事 BC
+  owner: one-1a-par
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L56；02-子域划分.md 02 L194-203；ADR-0017 对照表
 - id: platform.approval
   zh: 审批
@@ -103,6 +104,7 @@ contexts:
   schema: platform_numbering
   blueprint_bc: null
   legacy_bc: null
+  owner: one-1a-next-5
   evidence: backend 模块包与 module-dependencies.txt
 - id: platform.scheduling
   zh: 作业调度
