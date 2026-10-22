@@ -216,3 +216,174 @@ def test_arc09_consistent_duplicate_sources_merge_with_full_provenance(root):
     assert counts['people'] == 1
     assert item['group'] == ['finance', 'people']
     assert len(item['source']) == 3
+
+
+def rename_transition(root, name):
+    write(root, s.TRANSITIONS, {'transitions': [
+        {'id': 'OTR-001', 'aggregate': 'AGG-01', 'command': name, 'by_command': None}], 'pending': []})
+
+
+def registry(root):
+    return s.read(root, s.OUTPUT / 'command-ids.yaml')['ids']
+
+
+def test_arc04_seed_preserves_every_existing_id_and_checks_registry_bytes(root):
+    s.generate(root)
+    seed = s.read(root, s.OUTPUT / 'commands.yaml')['commands']
+    custom = 'CMD-00000001'
+    seed[0]['id'] = custom
+    write(root, s.OUTPUT / 'commands.yaml', {'commands': seed})
+    (root / s.OUTPUT / 'command-ids.yaml').unlink()
+    with pytest.raises(ValueError, match='缺失.*--seed'):
+        s.generate(root)
+    s.generate(root, seed=True)
+    expected = {(row['aggregate'], row['name']): row['id'] for row in seed}
+    assert {(row['aggregate'], row['name']): row['id'] for row in registry(root)} == expected
+    assert all(not row['retired'] and row['former_names'] == [] for row in registry(root))
+    paths = [s.OUTPUT / name for name in ('commands.yaml', 'command-ids.yaml', 'GAPS.md')]
+    before = {path: (root / path).read_bytes() for path in paths}
+    s.generate(root, check=True)
+    s.generate(root)
+    assert before == {path: (root / path).read_bytes() for path in paths}
+    path = s.OUTPUT / 'command-ids.yaml'
+    (root / path).write_bytes(before[path] + b'\n')
+    with pytest.raises(ValueError, match='生成物不一致.*command-ids.yaml'):
+        s.generate(root, check=True)
+    assert (root / path).read_bytes() == before[path] + b'\n'
+
+
+@pytest.mark.parametrize('group', s.GROUPS)
+def test_arc04_declared_rename_keeps_id_for_commands_and_matrix(root, group):
+    s.generate(root)
+    ident = s.command_id('AGG-01', '登记对象')
+    for source in s.GROUPS:
+        write(root, s.CLOSEOUT / source / 'commands.yaml', {'commands': []})
+    write(root, s.CLOSEOUT / group / 'commands.yaml', {'commands': [
+        command(name='注册对象', former_names=['登记对象'])]})
+    write(root, s.CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml', {'entries': [matrix(name='注册对象')]})
+    with pytest.raises(ValueError, match='OTR-001.*仍用旧名「登记对象」.*注册对象'):
+        s.generate(root)
+    rename_transition(root, '注册对象')
+    s.generate(root)
+    commands = s.read(root, s.OUTPUT / 'commands.yaml')['commands']
+    assert len(commands) == 1 and commands[0]['id'] == ident
+    assert s.read(root, s.TRANSITIONS)['transitions'][0]['by_command'] == ident
+    assert commands[0]['in'] == ['commands', 'matrix']
+    row = next(row for row in registry(root) if row['id'] == ident)
+    assert row == dict(id=ident, aggregate='AGG-01', name='注册对象', former_names=['登记对象'], retired=False)
+    s.generate(root, check=True)
+    s.generate(root)
+    assert row == next(row for row in registry(root) if row['id'] == ident)
+
+
+def test_arc04_matrix_only_rename_and_retired_alias_reactivation(root):
+    s.generate(root)
+    old = s.command_id('AGG-01', '仅权责表')
+    entry = {**matrix(name='权责操作'), 'former_names': ['仅权责表']}
+    write(root, s.CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml', {'entries': [entry]})
+    s.generate(root)
+    assert next(row for row in registry(root) if row['id'] == old)['name'] == '权责操作'
+    write(root, s.CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml', {'entries': []})
+    s.generate(root)
+    assert next(row for row in registry(root) if row['id'] == old)['retired']
+    write(root, s.CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml', {'entries': [matrix(name='仅权责表')]})
+    s.generate(root)
+    row = next(row for row in registry(root) if row['id'] == old)
+    assert not row['retired'] and row['name'] == '仅权责表'
+    assert row['former_names'] == ['权责操作']
+
+
+def test_arc04_undeclared_rename_allocates_new_id_and_retires_old(root):
+    s.generate(root)
+    old = s.command_id('AGG-01', '登记对象')
+    write(root, s.CLOSEOUT / 'finance/commands.yaml', {'commands': [command(name='注册对象')]})
+    write(root, s.CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml', {'entries': []})
+    s.generate(root)
+    assert next(row for row in registry(root) if row['id'] == old)['retired']
+    new = next(row for row in registry(root) if row['name'] == '注册对象')
+    assert new['id'] == s.command_id('AGG-01', '注册对象') and new['id'] != old
+    write(root, s.CLOSEOUT / 'finance/commands.yaml', {'commands': [command()]})
+    s.generate(root)
+    assert not next(row for row in registry(root) if row['id'] == old)['retired']
+
+
+@pytest.mark.parametrize('retired', [False, True])
+def test_arc04_hash_collision_including_retired_ids_fails_without_writes(root, retired):
+    s.generate(root)
+    rows = registry(root)
+    rows[0]['retired'] = retired
+    write(root, s.OUTPUT / 'command-ids.yaml', {'ids': rows})
+    before = (root / s.OUTPUT / 'command-ids.yaml').read_bytes()
+    write(root, s.CLOSEOUT / 'people/commands.yaml', {'commands': [command(name='新命令')]})
+    with patch.object(s, 'command_id', return_value=rows[0]['id']):
+        with pytest.raises(ValueError, match='id 冲突'):
+            s.generate(root)
+    assert (root / s.OUTPUT / 'command-ids.yaml').read_bytes() == before
+
+
+@pytest.mark.parametrize('names', [None, '', {}, [], [None], [42], [''], ['  ']])
+def test_arc04_invalid_former_names_fail(root, names):
+    write(root, s.CLOSEOUT / 'people/commands.yaml', {'commands': [command(former_names=names)]})
+    with pytest.raises(ValueError, match='former_names'):
+        s.generate(root)
+
+
+def test_arc04_duplicate_old_name_claim_and_cross_aggregate_fail(root):
+    s.generate(root)
+    write(root, s.CLOSEOUT / 'people/commands.yaml', {'commands': [
+        command(name='注册对象', former_names=['登记对象']),
+        command(name='创建对象', former_names=['登记对象'])]})
+    with pytest.raises(ValueError, match='旧名重复声明'):
+        s.generate(root)
+    write(root, s.CLOSEOUT / 'people/commands.yaml', {'commands': [
+        command('AGG-03', '注册对象', former_names=['登记对象'])]})
+    with pytest.raises(ValueError, match='旧名跨聚合'):
+        s.generate(root)
+
+
+def test_arc04_alias_claim_in_later_group_applies_to_earlier_group(root):
+    s.generate(root)
+    renamed = command(name='注册对象')
+    write(root, s.CLOSEOUT / 'finance/commands.yaml', {'commands': [renamed]})
+    write(root, s.CLOSEOUT / 'revenue/commands.yaml', {'commands': [
+        {**renamed, 'former_names': ['登记对象']}]})
+    write(root, s.CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml', {'entries': [matrix(name='注册对象')]})
+    rename_transition(root, '注册对象')
+    s.generate(root)
+    commands = s.read(root, s.OUTPUT / 'commands.yaml')['commands']
+    assert len(commands) == 1
+    assert commands[0]['id'] == s.command_id('AGG-01', '登记对象')
+    assert commands[0]['group'] == ['finance', 'revenue']
+    s.generate(root, check=True)
+
+
+@pytest.mark.parametrize('changes, message', [
+    ({'id': 'bad'}, '无效的命令 id'), ({'retired': 'false'}, 'retired'),
+    ({'former_names': None}, 'former_names'), ({'former_names': ['登记对象']}, '登记名称重复')])
+def test_arc04_invalid_registry_fails_before_writing(root, changes, message):
+    s.generate(root)
+    values = registry(root)
+    row = next(row for row in values if row['aggregate'] == 'AGG-01' and row['name'] == '登记对象')
+    row.update(changes)
+    write(root, s.OUTPUT / 'command-ids.yaml', {'ids': values})
+    before = (root / s.OUTPUT / 'commands.yaml').read_bytes()
+    with pytest.raises(ValueError, match=message):
+        s.generate(root)
+    assert (root / s.OUTPUT / 'commands.yaml').read_bytes() == before
+
+
+def test_arc04_duplicate_claim_across_aggregates_is_rejected(root):
+    write(root, s.CLOSEOUT / 'finance/commands.yaml', {'commands': [
+        command(name='注册对象', former_names=['旧操作'])]})
+    write(root, s.CLOSEOUT / 'people/commands.yaml', {'commands': [
+        command('AGG-02', '创建对象', former_names=['旧操作'])]})
+    with pytest.raises(ValueError, match='旧名重复声明'):
+        s.generate(root)
+
+
+def test_arc04_unregistered_former_name_is_rejected(root):
+    s.generate(root)
+    write(root, s.CLOSEOUT / 'finance/commands.yaml', {'commands': [
+        command(name='注册对象', former_names=['登记对像'])]})
+    with pytest.raises(ValueError, match='旧名未登记'):
+        s.generate(root)
