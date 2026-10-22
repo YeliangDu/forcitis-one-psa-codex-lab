@@ -25,7 +25,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- ===== STEP 2 schema 冲突检查（新库内，应为 0 行）=====
 SELECT nspname FROM pg_namespace
- WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering',
+ WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering', 'platform_file',
                    'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet', 'one_migration');
 
 -- ===== STEP 3 角色 =====
@@ -67,6 +67,7 @@ CREATE SCHEMA platform_approval       AUTHORIZATION one_prod_owner;
 CREATE SCHEMA platform_integration    AUTHORIZATION one_prod_owner;
 CREATE SCHEMA platform_audit          AUTHORIZATION one_prod_owner;
 CREATE SCHEMA platform_numbering      AUTHORIZATION one_prod_owner;
+CREATE SCHEMA platform_file          AUTHORIZATION one_prod_owner;  -- 文件服务
 CREATE SCHEMA platform_scheduling     AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_workforce  AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_attendance AUTHORIZATION one_prod_owner;
@@ -77,7 +78,7 @@ CREATE SCHEMA platform_idempotency    AUTHORIZATION one_prod_owner;
 DO $$
 DECLARE s text;
 BEGIN
-  FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering',
+  FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering', 'platform_file',
                            'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_prod_app, one_prod_readonly', s);
@@ -92,7 +93,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT 
 ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT USAGE, SELECT ON SEQUENCES TO one_prod_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT SELECT ON TABLES TO one_prod_readonly;
 
-REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
+REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
                         platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration
   FROM one_prod_app, one_prod_readonly, one_prod_audit_maintainer;
 

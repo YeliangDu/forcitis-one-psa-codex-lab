@@ -1,0 +1,3493 @@
+# 命令目录·收入链 VS-01–VS-04 全部聚合（提议稿；结构见 RESPONSIBILITY_MATRIX_SPEC.md B 节；财务组 AGG-52/53/59 不在内）
+# 前 124 条为 VS-03/VS-04 批（不改），其后为 VS-01/VS-02 批。authority 取权责表 A；权责表目前只登 AGG-44 占用收入额度一条，其余写待定。proposed: true 为聚合稿尚无、骨架或已建代码已用的命令。
+commands:
+- name: 登记检查计划
+  aggregate: AGG-34
+  params:
+  - 协议
+  - 受检部位
+  - 到期日
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 受检部位ID
+  emits: []
+- name: 生效检查计划
+  aggregate: AGG-34
+  params:
+  - 检查计划
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查计划ID
+  emits: []
+- name: 标记检查计划不再受托
+  aggregate: AGG-34
+  params:
+  - 检查计划
+  - 原因
+  preconditions:
+  - 拟规则：原因必填（VS-03 待用户定 10）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查计划ID
+  emits: []
+- name: 安排检查
+  aggregate: AGG-35
+  params:
+  - 项目
+  - 检查表模板版本
+  - 受检部位范围
+  - 我方法律角色
+  - 检查日期
+  preconditions:
+  - INV-56（指派时）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 检查序号
+  emits: []
+- name: 指派检查人员
+  aggregate: AGG-35
+  params:
+  - 检查
+  - 检查人员
+  preconditions:
+  - INV-56
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查ID
+  - 检查人员ID
+  emits: []
+- name: 开始现场检查
+  aggregate: AGG-35
+  proposed: true
+  proposed_basis: NOTES VS-03 结构问题 2：状态「现场进行中」无进入命令
+  params:
+  - 检查
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查ID
+  emits: []
+  unused_ok: 拟命令：骨架未写
+- name: 提交检查记录
+  aggregate: AGG-35
+  params:
+  - 检查
+  - 检查项结果或未检原因
+  - 证据引用
+  preconditions:
+  - INV-55
+  - 拟规则-VS03-01
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查ID
+  - 提交轮次
+  emits: []
+- name: 审核检查记录
+  aggregate: AGG-35
+  params:
+  - 检查
+  - 审核结论
+  preconditions:
+  - 提交人≠审核人（segregation）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查ID
+  - 提交轮次
+  emits: []
+- name: 锁定检查
+  aggregate: AGG-35
+  params:
+  - 检查
+  preconditions:
+  - INV-55
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查ID
+  emits:
+  - 检查已锁定
+- name: 关联检查报告
+  aggregate: AGG-35
+  params:
+  - 检查
+  - 检查报告（交付物ID）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查ID
+  - 交付物ID
+  emits: []
+- name: 复查检查
+  aggregate: AGG-35
+  params:
+  - 原不符合项
+  - 复查范围
+  - 复查日期
+  preconditions:
+  - 拟规则-VS03-03
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  - 整改轮次
+  emits: []
+- name: 取消检查
+  aggregate: AGG-35
+  proposed: true
+  proposed_basis: NOTES VS-03 结构问题 2：OBJ-49 状态机提议「取消（原因必填）」无命令
+  params:
+  - 检查
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查ID
+  emits: []
+  unused_ok: 拟命令：骨架未写，待 one-architecture 定是否进聚合稿
+- name: 发布检查表模板版本
+  aggregate: AGG-36
+  params:
+  - 服务产品
+  - 检查项
+  - 等级映射
+  preconditions:
+  - INV-34b
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 服务产品ID
+  - 版本号
+  emits:
+  - 检查表模板版本已生效
+- name: 停用检查表模板版本
+  aggregate: AGG-36
+  proposed: true
+  proposed_basis: NOTES VS-03 命令缺口：OBJ-50 有停用而 AGG-36 缺
+  params:
+  - 检查表模板版本
+  - 原因
+  preconditions:
+  - INV-34b
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 检查表模板版本ID
+  emits: []
+  unused_ok: 拟命令：骨架未写
+- name: 建议外部检测
+  aggregate: AGG-37
+  params:
+  - 不符合项
+  - 检测项目
+  - 建议检测机构
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  - 检测项目
+  emits: []
+- name: 登记业主委托外部检测
+  aggregate: AGG-37
+  params:
+  - 外部检测
+  - 检测机构
+  - 委托日期
+  - 出具期限
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 外部检测ID
+  emits: []
+- name: 登记外部检测报告
+  aggregate: AGG-37
+  params:
+  - 外部检测
+  - 报告原件（证据）
+  - 出具日期
+  preconditions:
+  - INV-57
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 外部检测ID
+  - 报告编号
+  emits: []
+- name: 采信外部检测报告
+  aggregate: AGG-37
+  params:
+  - 外部检测报告
+  - 采信依据
+  preconditions:
+  - INV-57
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 外部检测报告ID
+  emits:
+  - 外部检测报告已采信
+- name: 不采信外部检测报告
+  aggregate: AGG-37
+  params:
+  - 外部检测报告
+  - 不采信理由
+  preconditions:
+  - INV-57
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 外部检测报告ID
+  emits:
+  - 外部检测报告未采信
+- name: 登记不符合项
+  aggregate: AGG-28
+  params:
+  - 类型
+  - 来源（交付物或检查ID）
+  - 等级体系版本与等级值
+  - 部位
+  - 整改责任方
+  preconditions:
+  - 拟规则-VS03-02（等级偏离模板映射须写理由）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 来源ID
+  - 部位ID
+  - 登记序号
+  emits: []
+- name: 确认不符合项
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 确认等级
+  - 是否阻断
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits:
+  - 不符合项已确认
+- name: 让步接受不符合项
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 客户书面确认（附件）
+  preconditions:
+  - INV-49
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits: []
+- name: 关闭不符合项
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 关闭依据或理由
+  preconditions:
+  - INV-48（阻断性须关闭后方可认可，读取）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits:
+  - 不符合项已关闭
+- name: 复核不符合项
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 复核结论
+  preconditions:
+  - 登记人≠复核人（segregation）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits: []
+- name: 发布不符合项
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 证据引用
+  preconditions:
+  - INV-50
+  - INV-52
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits:
+  - 不符合项已发布
+- name: 登记不符合项送达
+  aggregate: AGG-28
+  proposed: true
+  proposed_basis: NOTES VS-03 命令缺口、待用户定 9
+  params:
+  - 不符合项
+  - 送达回执（证据）
+  - 送达日期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  - 回执编号
+  emits: []
+  unused_ok: 拟命令：PRC-44 步 4 以 gap 标注，骨架未写 command
+- name: 记录重大险情已报告
+  aggregate: AGG-28
+  proposed: true
+  proposed_basis: NOTES VS-03 结构问题 6：INV-52 无对应命令
+  params:
+  - 不符合项
+  - 报告对象
+  - 报告时间
+  preconditions:
+  - INV-52
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits: []
+  unused_ok: 拟命令：骨架未写
+- name: 开始整改
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 整改期限
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits: []
+- name: 登记整改申报
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 申报日期
+  - 整改说明
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  - 整改轮次
+  emits: []
+- name: 闭合不符合项
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 复查或整改证据引用
+  preconditions:
+  - INV-50
+  - 拟规则-VS03-04
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits:
+  - 不符合项已闭合
+- name: 退回整改
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 未通过原因
+  - 新整改期限
+  preconditions:
+  - 拟规则-VS03-03
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  - 整改轮次
+  emits: []
+- name: 登记客户接受风险
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 委托人书面确认（证据）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits: []
+- name: 停止跟踪不符合项
+  aggregate: AGG-28
+  params:
+  - 不符合项
+  - 原因
+  preconditions:
+  - 拟规则：原因必填
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 不符合项ID
+  emits: []
+- name: 采集证据
+  aggregate: AGG-38
+  params:
+  - 证据类型
+  - 采集时间（设备）
+  - 采集人
+  - 地点
+  - 原件
+  - 摘要
+  preconditions:
+  - INV-58（只追加）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 采集人ID
+  - 设备采集时间
+  - 内容哈希
+  emits: []
+- name: 上传证据摘要
+  aggregate: AGG-38
+  params:
+  - 证据
+  - 摘要
+  preconditions:
+  - INV-58
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 证据ID
+  - 内容哈希
+  emits: []
+- name: 封存证据
+  aggregate: AGG-38
+  params:
+  - 证据
+  preconditions:
+  - INV-58
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 证据ID
+  emits:
+  - 证据已封存
+- name: 作废证据
+  aggregate: AGG-38
+  params:
+  - 证据
+  - 原因
+  preconditions:
+  - INV-58
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 证据ID
+  emits: []
+- name: 关联证据
+  aggregate: AGG-110
+  params:
+  - 证据
+  - 挂接目标类型
+  - 目标ID
+  - 提交轮次
+  - 合同引用
+  preconditions:
+  - INV-58
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 证据ID
+  - 目标类型
+  - 目标ID
+  - 提交轮次
+  emits: []
+- name: 解除证据关联
+  aggregate: AGG-110
+  params:
+  - 证据关联
+  - 原因
+  preconditions:
+  - INV-58
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 证据关联ID
+  emits: []
+  unused_ok: PRC-33 维护中用到，但骨架把「关联证据」「解除证据关联」挂在 AGG-38（聚合稿在 AGG-110），见 NOTES 接缝 1
+- name: 起草协议
+  aggregate: AGG-13
+  params:
+  - 相对方
+  - 协议类型
+  - 来源（商机或直建例外）
+  - 承诺快照
+  - 承担法人
+  preconditions:
+  - INV-03a
+  - INV-06
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 商机ID
+  - 协议类型
+  emits: []
+- name: 登记合同—项目关联与范围挂 WBS
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 项目
+  - WBS节点
+  - 生效期
+  preconditions:
+  - INV-09
+  - INV-08
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 项目ID
+  - 生效起日
+  emits:
+  - 合同—项目关联已登记
+- name: 登记视为同意参数与发包人代表
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 审查期
+  - 期限单位
+  - 视为同意约定
+  - 通知方式与地址
+  - 发包人代表
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  emits: []
+- name: 提交合同评审
+  aggregate: AGG-13
+  proposed: true
+  proposed_basis: NOTES S1 命令缺口候选
+  params:
+  - 协议
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 评审轮次
+  emits: []
+  unused_ok: 拟命令：评审挂平台任务步（PRC-47 步 5），骨架无聚合命令步
+- name: 通过合同评审
+  aggregate: AGG-13
+  proposed: true
+  proposed_basis: NOTES S1 命令缺口候选（对照 AGG-12）
+  params:
+  - 协议
+  - 审批实例
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 审批实例ID
+  emits: []
+  unused_ok: 拟命令：同上
+- name: 驳回合同评审
+  aggregate: AGG-13
+  proposed: true
+  proposed_basis: NOTES S1 命令缺口候选（对照 AGG-12）
+  params:
+  - 协议
+  - 审批实例
+  - 理由
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 审批实例ID
+  emits: []
+  unused_ok: 拟命令：同上
+- name: 回签
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 回签日期
+  - 基线
+  preconditions:
+  - INV-05
+  - INV-07
+  - INV-33
+  - INV-06
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  emits:
+  - ContractSigned
+- name: 应用变更
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 协议变更
+  preconditions:
+  - INV-07
+  - INV-08
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议变更ID
+  emits:
+  - 新基线已生效
+- name: 提交任务订单
+  aggregate: AGG-13
+  params:
+  - 框架协议
+  - 任务订单内容
+  - 框架限额占用
+  preconditions:
+  - INV-10
+  - INV-03a
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 框架协议ID
+  - 订单号
+  emits: []
+- name: 标记付款条件项可结算
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 付款条件项
+  - 提交轮次或达成行
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 付款条件项ID
+  - 提交轮次
+  emits:
+  - 付款条件项已可结算
+- name: 登记付款条件达成
+  aggregate: AGG-13
+  proposed: true
+  proposed_basis: PRC-152 新增，聚合稿 AGG-13 无（H5）
+  params:
+  - 协议
+  - 付款条件项
+  - 外部证据
+  - 达成日期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 付款条件项ID
+  - 达成日期
+  - 证据ID
+  emits: []
+- name: 完成协议
+  aggregate: AGG-13
+  params:
+  - 协议
+  - B-08 给出的依据
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  emits:
+  - 协议已完成
+- name: 编制结算书
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 结算书版本
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 结算书版本
+  emits: []
+- name: 确认最终价款
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 最终价款
+  - 结算书版本
+  preconditions:
+  - 拟规则：低于协议价须先过让价审批
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 结算书版本
+  emits: []
+- name: 结算协议
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 最终价款
+  preconditions:
+  - 拟规则：最终价款已确认
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  emits:
+  - 协议已结算
+- name: 终止协议
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 终止原因
+  preconditions:
+  - 原因必填（R-01）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  emits:
+  - 协议已终止
+  unused_ok: PRC-68 以 states/transitions 描述，骨架步骤无 aggregate 字段，见 NOTES 接缝 2
+- name: 归档协议
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 原件类型
+  - 归档位置
+  - 归档日期
+  preconditions:
+  - INV-124
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 原件编号
+  emits: []
+- name: 登记协议借出
+  aggregate: AGG-13
+  params:
+  - 协议
+  - 借阅人
+  - 借出日期
+  - 预计归还日
+  - 借阅审批实例
+  preconditions:
+  - INV-125
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 借阅审批实例ID
+  emits: []
+- name: 登记协议归还
+  aggregate: AGG-13
+  params:
+  - 协议借阅
+  - 归还日期
+  preconditions:
+  - INV-126
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 借阅记录ID
+  emits: []
+- name: 标记协议借阅逾期
+  aggregate: AGG-13
+  params:
+  - 协议借阅
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 借阅记录ID
+  emits:
+  - 协议借阅已逾期
+- name: 占用框架限额
+  aggregate: AGG-14
+  params:
+  - 框架协议
+  - 任务订单
+  - 占用额
+  preconditions:
+  - INV-10
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 任务订单ID
+  - 变更序号
+  emits:
+  - 限额已占用
+  - 框架限额占用被拒
+- name: 释放框架限额
+  aggregate: AGG-14
+  params:
+  - 占用行
+  - 原因
+  preconditions:
+  - INV-10
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 占用行ID
+  emits:
+  - 限额已释放
+- name: 提出协议变更
+  aggregate: AGG-15
+  params:
+  - 协议
+  - 变更类型（变更或签证）
+  - 内容
+  - 所主张设计变更与延期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 变更序号
+  emits: []
+- name: 评估变更影响
+  aggregate: AGG-15
+  params:
+  - 协议变更
+  - 影响评估
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议变更ID
+  emits: []
+- name: 提交协议变更审批
+  aggregate: AGG-15
+  proposed: true
+  proposed_basis: NOTES S1 命令缺口候选
+  params:
+  - 协议变更
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议变更ID
+  - 审批轮次
+  emits: []
+  unused_ok: 拟命令：审批挂平台任务步（PRC-48 步 4）
+- name: 通过协议变更审批
+  aggregate: AGG-15
+  proposed: true
+  proposed_basis: 对照 AGG-12 审批回调模式（本批补）
+  params:
+  - 协议变更
+  - 审批实例
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 审批实例ID
+  emits: []
+  unused_ok: 拟命令：同上
+- name: 驳回协议变更审批
+  aggregate: AGG-15
+  proposed: true
+  proposed_basis: 对照 AGG-12 审批回调模式（本批补）
+  params:
+  - 协议变更
+  - 审批实例
+  - 理由
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 审批实例ID
+  emits: []
+  unused_ok: 拟命令：同上
+- name: 登记发包人书面同意
+  aggregate: AGG-15
+  proposed: true
+  proposed_basis: PRC-48 步 5 新用语（H4）
+  params:
+  - 协议变更
+  - 书面同意附件
+  - 同意或拒绝
+  - 日期
+  preconditions:
+  - 发包人书面同意附件已上传（H4）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议变更ID
+  emits: []
+- name: 生效协议变更
+  aggregate: AGG-15
+  params:
+  - 协议变更
+  - 发包人书面同意引用
+  preconditions:
+  - INV-16a
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议变更ID
+  emits:
+  - ChangeOrderApproved
+- name: 确认现场签证
+  aggregate: AGG-15
+  params:
+  - 协议变更（签证类）
+  - 发包人书面同意引用
+  preconditions:
+  - INV-16a
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议变更ID
+  emits:
+  - SiteVisaConfirmed
+- name: 提出索赔
+  aggregate: AGG-16
+  params:
+  - 协议
+  - 方向
+  - 事项
+  - 通知日期
+  - 所引变更或延期
+  preconditions:
+  - INV-17
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 索赔序号
+  emits:
+  - ClaimAsserted
+- name: 认定索赔
+  aggregate: AGG-16
+  params:
+  - 索赔
+  - 认定金额与工期
+  - 书面答复
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 索赔ID
+  emits:
+  - ClaimSettled
+- name: 拒绝或撤回索赔
+  aggregate: AGG-16
+  params:
+  - 索赔
+  - 理由
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 索赔ID
+  emits: []
+- name: 申请风险交付授权
+  aggregate: AGG-17
+  params:
+  - 对象（商机或项目）
+  - 类型
+  - 额度
+  - 期限
+  - 依据证据
+  preconditions:
+  - INV-18
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 对象ID
+  - 类型
+  - 起止期
+  emits: []
+- name: 提交风险交付授权审批
+  aggregate: AGG-17
+  proposed: true
+  proposed_basis: NOTES S1 命令缺口候选
+  params:
+  - 风险交付授权
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 风险交付授权ID
+  - 审批轮次
+  emits: []
+  unused_ok: 拟命令：审批挂平台任务步（PRC-16 步 3）
+- name: 批准风险交付授权
+  aggregate: AGG-17
+  params:
+  - 风险交付授权
+  - 审批实例
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 审批实例ID
+  emits:
+  - 风险交付授权已批准
+- name: 驳回风险交付授权
+  aggregate: AGG-17
+  params:
+  - 风险交付授权
+  - 审批实例
+  - 理由
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 审批实例ID
+  emits: []
+- name: 撤回风险交付授权申请
+  aggregate: AGG-17
+  proposed: true
+  proposed_basis: PRC-16 gap：聚合稿缺撤回
+  params:
+  - 风险交付授权
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 风险交付授权ID
+  emits: []
+  unused_ok: 拟命令：骨架步未写 command
+- name: 转正风险交付授权
+  aggregate: AGG-17
+  params:
+  - 风险交付授权
+  - 转入协议
+  preconditions:
+  - INV-19
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 风险交付授权ID
+  emits:
+  - Regularized
+- name: 叫停风险交付授权
+  aggregate: AGG-17
+  params:
+  - 风险交付授权
+  - 原因
+  preconditions:
+  - INV-19
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 风险交付授权ID
+  emits:
+  - Halted
+- name: 更新开票与收入额度
+  aggregate: AGG-44
+  params:
+  - 协议
+  - 基线版本
+  - 付款条件项
+  - 履约义务
+  preconditions:
+  - INV-21
+  - INV-22
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议ID
+  - 基线版本
+  emits:
+  - 可开票额度已更新
+- name: 占用收入额度
+  aggregate: AGG-44
+  proposed: true
+  proposed_basis: Q04_STORAGE §5：AGG-44 订正补命令
+  params:
+  - 协议
+  - 履约义务
+  - 金额
+  - 证据类型
+  - 认可日
+  - 来源（认可或视为同意认定）
+  preconditions:
+  - INV-23
+  - INV-22
+  - INV-86
+  authority:
+    A: SH-E6（类型级；ADR-0047 U-2 (a) 财务复核，权责表 AGG-44 占用收入额度）
+  idempotency_key:
+  - 交付物ID
+  - 提交轮次
+  - 履约义务ID
+  emits: []
+- name: 认定视为同意成立
+  aggregate: AGG-44
+  merged_from:
+  - 确认视为同意期满
+  params:
+  - 交付物
+  - 送达日
+  - 无异议声明
+  - 审查期
+  preconditions:
+  - ADR-0049 决定 1、2、5
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 交付物ID
+  - 提交轮次
+  emits:
+  - 视为同意已成立
+- name: 追加收入确认事实并占用转实
+  aggregate: AGG-44
+  merged_from:
+  - 确认收入
+  params:
+  - 占用行
+  - 审批实例
+  - 金额含税与不含税
+  - 认可日与期间
+  - 证据引用
+  - 规则与配置版本
+  preconditions:
+  - INV-23
+  - INV-22
+  - INV-86
+  - RULE-222（二次校验）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 审批实例ID
+  emits:
+  - RevenueRecognized
+- name: 释放收入额度占用
+  aggregate: AGG-44
+  proposed: true
+  proposed_basis: Q04_STORAGE §5：AGG-44 订正补命令
+  params:
+  - 占用行
+  - 原因（驳回、撤回或二次校验失败）
+  preconditions:
+  - 拟规则：二次校验失败的占用不自动释放，由财务负责人处置（M14）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 审批实例ID
+  - 占用行ID
+  emits: []
+- name: 冲销收入确认
+  aggregate: AGG-44
+  proposed: true
+  proposed_basis: PRC-149 新用语（Q-04 C 更正只靠冲销行）
+  params:
+  - 原收入确认事实
+  - 冲销原因
+  - 冲销额
+  preconditions:
+  - 冲销额≤原确认事实未冲销余额
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 原确认事实ID
+  - 冲销申请号
+  emits: []
+- name: 占用冲销额度
+  aggregate: AGG-44
+  proposed: true
+  proposed_basis: PRC-149 新用语（随 Q-04 C）
+  params:
+  - 冲销申请
+  - 冲销额
+  preconditions:
+  - 在途冲销合计≤原确认事实未冲销余额
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 原确认事实ID
+  - 冲销申请号
+  emits: []
+- name: 追加冲销行并占用转实
+  aggregate: AGG-44
+  proposed: true
+  proposed_basis: PRC-149 新用语
+  params:
+  - 占用行
+  - 审批实例
+  - 冲销原因
+  preconditions:
+  - INV-22
+  - RULE-222（二次校验）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 审批实例ID
+  emits:
+  - 收入确认已冲销
+- name: 开具销项发票并改写 WIP
+  aggregate: AGG-44
+  params:
+  - 开票申请
+  - 发票
+  - 付款条件项
+  - 金额
+  preconditions:
+  - INV-21
+  - INV-73
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 开票申请ID
+  emits: []
+  unused_ok: 聚合稿同名命令在 AGG-44 与 AGG-46 各列一次（INV-73，C 类同事务）；骨架只在 AGG-46 步出现，AGG-44 侧是其同事务改写（建议改名「开票占用转实」，见 NOTES 结构 2）
+- name: 回冲开票额度
+  aggregate: AGG-44
+  params:
+  - 开票占用
+  - 红冲发票
+  preconditions:
+  - INV-73
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 红冲发票ID
+  emits: []
+- name: 提交过账候选
+  aggregate: AGG-44
+  params:
+  - 过账来源事实
+  preconditions:
+  - INV-92
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 来源事实ID
+  emits: []
+- name: 提交开票申请
+  aggregate: AGG-45
+  params:
+  - 协议
+  - 付款条件项
+  - 购买方
+  - 金额
+  - 开票原因
+  - 委托函或中标通知书（预收类）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 付款条件项ID
+  - 申请序号
+  emits: []
+- name: 准入开票申请
+  aggregate: AGG-45
+  params:
+  - 开票申请
+  preconditions:
+  - INV-71
+  - RULE-407
+  - RULE-411
+  - INV-21
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 开票申请ID
+  emits:
+  - InvoiceEligibilityConfirmed
+- name: 驳回开票申请
+  aggregate: AGG-45
+  params:
+  - 开票申请
+  - 理由
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 开票申请ID
+  emits:
+  - 开票申请已驳回
+- name: 作废开票申请
+  aggregate: AGG-45
+  params:
+  - 开票申请
+  - 原因
+  preconditions:
+  - INV-71（只在开具前）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 开票申请ID
+  emits:
+  - 开票申请已作废
+- name: 开具销项发票并改写 WIP
+  aggregate: AGG-46
+  params:
+  - 开票申请
+  - 购买方
+  - 发票行
+  - 税务平台结果
+  preconditions:
+  - INV-72
+  - INV-73
+  - INV-92
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 开票申请ID
+  emits:
+  - InvoiceIssued
+- name: 提交过账候选
+  aggregate: AGG-46
+  params:
+  - 发票（蓝字或红字）
+  preconditions:
+  - INV-92
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 发票ID
+  - 过账类型
+  emits: []
+- name: 发起红字信息确认
+  aggregate: AGG-46
+  params:
+  - 蓝字发票
+  - 红冲原因
+  preconditions:
+  - INV-72
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 蓝字发票ID
+  emits: []
+- name: 撤销红字信息确认
+  aggregate: AGG-46
+  proposed: true
+  proposed_basis: NOTES VS-04 新用语·命令缺口（PRC-58 gap）
+  params:
+  - 红字信息确认
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 红字信息确认ID
+  emits: []
+  unused_ok: 拟命令：骨架步未写 command
+- name: 红冲发票
+  aggregate: AGG-46
+  params:
+  - 蓝字发票
+  - 红字信息确认
+  preconditions:
+  - INV-72
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 蓝字发票ID
+  emits:
+  - 发票已红冲
+- name: 开放证据类型
+  aggregate: AGG-92
+  params:
+  - 证据类型
+  - 生效日
+  - 批准人
+  - 依据文件
+  preconditions:
+  - INV-23（被读取）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 证据类型
+  - 生效日
+  emits:
+  - 证据类型已开放
+  unused_ok: PRC-52 以 states/transitions 描述，骨架步骤无 aggregate 字段，见 NOTES 接缝 2
+- name: 创建应收
+  aggregate: AGG-49
+  params:
+  - 发票或借款来源
+  - 购买方或员工
+  - 金额
+  - 到期日
+  preconditions:
+  - INV-76
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 来源发票ID或借款单ID
+  emits: []
+- name: 在应收上核销占用
+  aggregate: AGG-49
+  params:
+  - 应收
+  - 核销金额
+  - 来源（流水或分配）
+  preconditions:
+  - INV-77
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 应收ID
+  - 分配行ID
+  emits:
+  - 应收已结清
+- name: 检测应收逾期
+  aggregate: AGG-49
+  params:
+  - 应收
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 应收ID
+  - 检测日
+  emits:
+  - ArOverdueDetected
+- name: 登记争议与处置分类
+  aggregate: AGG-49
+  params:
+  - 应收
+  - 处置分类
+  - 附件引用
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 应收ID
+  - 处置序号
+  emits: []
+- name: 核销坏账
+  aggregate: AGG-49
+  params:
+  - 应收
+  - 核销依据
+  preconditions:
+  - 拟规则：坏账核销审批（VS-04 结构问题 3 未解决）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 应收ID
+  emits:
+  - ArWrittenOff
+- name: 提交过账候选
+  aggregate: AGG-49
+  params:
+  - 过账来源事实
+  preconditions:
+  - INV-92
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 来源事实ID
+  emits: []
+- name: 释放占用、恢复应收
+  aggregate: AGG-49
+  params:
+  - 核销占用
+  - 原因（商票逾期等）
+  preconditions:
+  - INV-77
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 核销占用ID
+  emits: []
+- name: 冲抵员工借款
+  aggregate: AGG-49
+  params:
+  - 应收（借款类）
+  - 费用报销
+  - 冲抵额
+  preconditions:
+  - INV-77
+  - 拟规则 FIN-R1（冲抵限同一法人）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 费用报销ID
+  emits:
+  - 应收已结清
+- name: 冲减应收
+  aggregate: AGG-49
+  proposed: true
+  proposed_basis: PRC-150 新用语
+  params:
+  - 蓝字发票
+  - 红冲额
+  preconditions:
+  - INV-77
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 红冲发票ID
+  emits: []
+- name: 转预收或待退
+  aggregate: AGG-49
+  proposed: true
+  proposed_basis: PRC-150 新用语
+  params:
+  - 应收
+  - 金额
+  - 去向（预收或待退）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 红冲发票ID
+  emits: []
+- name: 收款认领
+  aggregate: AGG-50
+  params:
+  - 银行流水行
+  - 收款方式
+  - 应收
+  - 付款方
+  - 委托付款函（第三方）
+  preconditions:
+  - AR-09
+  - RULE-410
+  - AR-15
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 流水行ID
+  emits:
+  - CashReceived
+- name: 记分配行与流水行
+  aggregate: AGG-50
+  params:
+  - 收款
+  - 分配行
+  - 超收部分去向
+  preconditions:
+  - INV-78
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 收款ID
+  - 分配序号
+  emits:
+  - 收款已分配
+- name: 登记商票兑付
+  aggregate: AGG-50
+  params:
+  - 收款（商票）
+  - 兑付日期
+  - 到账流水
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 收款ID
+  emits: []
+- name: 标记商票已逾期
+  aggregate: AGG-50
+  params:
+  - 收款（商票）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 收款ID
+  - 到期日
+  emits:
+  - 商票已逾期
+- name: 处置待认领流水
+  aggregate: AGG-50
+  proposed: true
+  proposed_basis: PRC-60 步 7 新用语
+  params:
+  - 收款（待认领）
+  - 去向（转其他应付或退回）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 流水行ID
+  emits: []
+- name: 提交过账候选
+  aggregate: AGG-50
+  params:
+  - 收款
+  preconditions:
+  - INV-92
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 收款ID
+  - 过账类型
+  emits: []
+- name: 登记保证金缴纳
+  aggregate: AGG-51
+  params:
+  - 保证金
+  - 银行回单
+  - 缴纳日期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 保证金ID
+  - 回单号
+  emits:
+  - 保证金已缴
+- name: 登记保函开立
+  aggregate: AGG-51
+  params:
+  - 保证金（保函形式）
+  - 保函号
+  - 金额
+  - 有效期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 保函号
+  emits: []
+- name: 扣减保证金
+  aggregate: AGG-51
+  params:
+  - 保证金
+  - 扣减额
+  - 依据
+  preconditions:
+  - INV-20
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 保证金ID
+  - 扣减序号
+  emits: []
+- name: 退还保证金
+  aggregate: AGG-51
+  params:
+  - 保证金
+  - 银行回单
+  - 收款账户
+  preconditions:
+  - INV-20
+  - AR-09（RULE-410）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 保证金ID
+  emits:
+  - 保证金已退
+- name: 没收保证金
+  aggregate: AGG-51
+  params:
+  - 保证金
+  - 依据
+  preconditions:
+  - INV-20
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 保证金ID
+  emits:
+  - 保证金已没收
+- name: 登记保函到期或索赔
+  aggregate: AGG-51
+  params:
+  - 保函
+  - 结果（到期或被索赔）
+  - 日期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 保函号
+  - 结果
+  emits:
+  - 保函已到期
+- name: 提交过账候选
+  aggregate: AGG-51
+  params:
+  - 保证金变动
+  preconditions:
+  - INV-92
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 保证金变动ID
+  emits: []
+- name: 登记往来单位
+  aggregate: AGG-01
+  params:
+  - 名称
+  - 证件类型与号码
+  - 角色
+  - 上级单位
+  preconditions:
+  - INV-01
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 证件类型
+  - 证件号码
+  emits:
+  - 往来单位已登记
+- name: 变更银行账户
+  aggregate: AGG-01
+  params:
+  - 往来单位
+  - 账户信息
+  - 证明材料
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 往来单位ID
+  - 账户号
+  emits:
+  - 银行账户已变更
+- name: 核实往来单位档案
+  aggregate: AGG-01
+  params:
+  - 往来单位
+  - 核实结论
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 往来单位ID
+  emits:
+  - 往来单位已核实
+- name: 合并往来单位
+  aggregate: AGG-01
+  params:
+  - 被合并往来单位
+  - 保留往来单位
+  preconditions:
+  - INV-01
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 被合并往来单位ID
+  emits:
+  - 往来单位已合并
+- name: 停用往来单位
+  aggregate: AGG-01
+  params:
+  - 往来单位
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 往来单位ID
+  emits:
+  - 往来单位已停用
+- name: 申请往来单位角色
+  aggregate: AGG-01
+  params:
+  - 往来单位
+  - 角色
+  preconditions:
+  - INV-02
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 往来单位ID
+  - 角色
+  emits: []
+- name: 核准往来单位角色合格
+  aggregate: AGG-01
+  params:
+  - 往来单位角色
+  preconditions:
+  - INV-02
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 角色ID
+  emits:
+  - 角色已合格
+- name: 暂停往来单位角色
+  aggregate: AGG-01
+  params:
+  - 往来单位角色
+  - 原因
+  preconditions:
+  - INV-02
+  - INV-04a
+  - INV-04b
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 角色ID
+  emits:
+  - 角色已暂停
+- name: 停用往来单位角色
+  aggregate: AGG-01
+  params:
+  - 往来单位角色
+  - 原因
+  preconditions:
+  - INV-02
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 角色ID
+  emits:
+  - 角色已停用
+- name: 登记资质证书
+  aggregate: AGG-02
+  params:
+  - 持证往来单位或法人主体
+  - 类别与等级
+  - 有效期
+  - 查验记录
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 持证主体ID
+  - 证书编号
+  emits: []
+- name: 发起资质核查
+  aggregate: AGG-02
+  params:
+  - 资质证书
+  - 核查事由
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资质证书ID
+  - 核查序号
+  emits: []
+- name: 登记核查结果
+  aggregate: AGG-02
+  params:
+  - 资质证书
+  - 核查结果（有效、降级、撤销）
+  - 新等级
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资质证书ID
+  - 核查序号
+  emits:
+  - 资质已撤销
+- name: 延续资质
+  aggregate: AGG-02
+  params:
+  - 资质证书
+  - 新证书编号
+  - 新有效期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资质证书ID
+  - 新证书编号
+  emits: []
+- name: 标记资质已到期
+  aggregate: AGG-02
+  params:
+  - 资质证书
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资质证书ID
+  - 有效期止
+  emits:
+  - 资质已到期
+- name: 登记建设工程
+  aggregate: AGG-33
+  params:
+  - 工程名称
+  - 建设单位、业主、物业
+  - 建筑系统与部位（IDI）
+  - 外部状态与来源
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工程标识
+  emits:
+  - 建设工程已登记
+  unused_ok: 骨架挂在 REF-01（PRC-14），见 NOTES 接缝 2
+- name: 更新外部状态
+  aggregate: AGG-33
+  params:
+  - 建设工程
+  - 外部状态
+  - 登记日期
+  - 来源
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 建设工程ID
+  - 登记日期
+  - 来源
+  emits: []
+  unused_ok: 骨架挂在 REF-01（PRC-14），见 NOTES 接缝 2
+- name: 登记我方参与记录
+  aggregate: AGG-33
+  params:
+  - 建设工程
+  - 项目
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 建设工程ID
+  - 项目ID
+  emits: []
+- name: 登记招标项目
+  aggregate: REF-01
+  params:
+  - 招标标识
+  - 采购方式
+  - 标段
+  - 外部状态与来源
+  preconditions:
+  - INV-28（唯一键的一部分）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 招标标识
+  - 标段
+  emits: []
+- name: 发布服务产品版本
+  aggregate: AGG-03
+  params:
+  - 服务产品
+  - 默认阶段组合
+  - 版本号
+  preconditions:
+  - INV-34
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 服务产品ID
+  - 版本号
+  emits:
+  - 服务产品版本已发布
+- name: 停用服务产品版本
+  aggregate: AGG-03
+  params:
+  - 服务产品版本
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 服务产品版本ID
+  emits: []
+- name: 发布阶段类型版本
+  aggregate: AGG-04
+  params:
+  - 阶段类型
+  - 默认交付物
+  - 评审要求
+  - 对应国标与 RIBA 阶段
+  preconditions:
+  - INV-34a
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 阶段类型ID
+  - 版本号
+  emits:
+  - 阶段类型版本已发布
+  unused_ok: 骨架 PRC-12 的单元聚合写 AGG-03，命令级写 AGG-04（接缝 1）
+- name: 停用阶段类型版本
+  aggregate: AGG-04
+  params:
+  - 阶段类型版本
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 阶段类型版本ID
+  emits: []
+  unused_ok: 同上
+- name: 编制费率版本
+  aggregate: AGG-05
+  proposed: true
+  proposed_basis: 骨架 PRC-13 步 2 为人工步骤，未写 command；版本需有创建动作
+  params:
+  - 条目（职级×薪档×城市类别）
+  - 生效区间
+  preconditions:
+  - INV-35
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 费率表标识
+  - 版本号
+  emits: []
+  unused_ok: 拟命令：骨架未写 command
+- name: 批准费率版本
+  aggregate: AGG-05
+  params:
+  - 费率版本
+  preconditions:
+  - INV-36
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 费率版本ID
+  - 审批实例ID
+  emits: []
+- name: 生效费率版本
+  aggregate: AGG-05
+  params:
+  - 费率版本
+  preconditions:
+  - INV-35
+  - INV-36
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 费率版本ID
+  emits:
+  - 费率版本已生效
+  - 费率版本已被取代
+- name: 编制计费系数版本
+  aggregate: AGG-06
+  proposed: true
+  proposed_basis: 同 AGG-05：PRC-13 步 2 未写 command
+  params:
+  - 系数条目（业务线×客户分级）
+  - 生效区间
+  preconditions:
+  - INV-36a
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 系数表标识
+  - 版本号
+  emits: []
+  unused_ok: 拟命令：骨架未写 command
+- name: 生效计费系数版本
+  aggregate: AGG-06
+  params:
+  - 计费系数版本
+  preconditions:
+  - INV-36a
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 计费系数版本ID
+  emits:
+  - 计费系数版本已生效
+- name: 编制协议价目版本
+  aggregate: AGG-07
+  proposed: true
+  proposed_basis: 同 AGG-05：PRC-13 步 2 未写 command
+  params:
+  - 往来单位
+  - 单价条目
+  - 生效期
+  preconditions:
+  - INV-36
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 往来单位ID
+  - 版本号
+  emits: []
+  unused_ok: 拟命令：骨架未写 command
+- name: 生效协议价目版本
+  aggregate: AGG-07
+  params:
+  - 协议价目版本
+  preconditions:
+  - INV-36
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 协议价目版本ID
+  emits:
+  - 协议价目版本已生效
+- name: 计划市场活动
+  aggregate: AGG-08
+  params:
+  - 活动名称
+  - 计划时段
+  - 负责部门
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 活动编号
+  emits: []
+- name: 开展市场活动
+  aggregate: AGG-08
+  params:
+  - 市场活动
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 市场活动ID
+  emits: []
+- name: 结束市场活动
+  aggregate: AGG-08
+  params:
+  - 市场活动
+  - 结果摘要
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 市场活动ID
+  emits:
+  - 市场活动已结束
+- name: 登记线索
+  aggregate: AGG-09
+  params:
+  - 来源（可含市场活动）
+  - 联系人信息
+  - 需求描述
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 来源
+  - 联系人
+  - 登记序号
+  emits: []
+- name: 认领线索
+  aggregate: AGG-09
+  params:
+  - 线索
+  - 认领人
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 线索ID
+  emits: []
+- name: 挂起线索
+  aggregate: AGG-09
+  params:
+  - 线索
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 线索ID
+  emits: []
+- name: 恢复线索
+  aggregate: AGG-09
+  params:
+  - 线索
+  preconditions:
+  - INV-24
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 线索ID
+  emits: []
+- name: 确认线索
+  aggregate: AGG-09
+  params:
+  - 线索
+  - 商机ID
+  preconditions:
+  - INV-24
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 线索ID
+  - 商机ID
+  emits:
+  - 线索已确认
+- name: 关闭线索
+  aggregate: AGG-09
+  params:
+  - 线索
+  - 原因
+  preconditions:
+  - INV-24
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 线索ID
+  emits:
+  - 线索已关闭
+- name: 新建商机
+  aggregate: AGG-10
+  params:
+  - 来源线索（可无）
+  - 往来单位
+  - 负责人
+  - 委托方式
+  preconditions:
+  - INV-25
+  - INV-26
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 来源线索ID
+  - 往来单位ID
+  - 商机序号
+  emits:
+  - 独立性检查要求
+  event_subscribers:
+    独立性检查要求:
+    - B-03 同 BC：AGG-18 创建独立性检查（服务产品要求独立性时才发，如 IDI、TIS 检查）
+- name: 变更商机负责人
+  aggregate: AGG-10
+  params:
+  - 商机
+  - 新负责人
+  preconditions:
+  - INV-26
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 商机ID
+  - 新负责人ID
+  emits: []
+- name: 维护商机参与团队
+  aggregate: AGG-10
+  params:
+  - 商机
+  - 团队成员与角色
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 商机ID
+  - 成员ID
+  emits: []
+- name: 登记商机赢单
+  aggregate: AGG-10
+  params:
+  - 商机
+  - 中标通知书或委托证据
+  preconditions:
+  - INV-27
+  - INV-33
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 商机ID
+  emits:
+  - OpportunityAccepted
+- name: 登记商机丢单
+  aggregate: AGG-10
+  params:
+  - 商机
+  - 原因
+  - 竞争对手
+  - 中标单位
+  - 中标价
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 商机ID
+  emits:
+  - 商机已丢单
+- name: 放弃商机
+  aggregate: AGG-10
+  params:
+  - 商机
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 商机ID
+  emits:
+  - 商机已放弃
+- name: 登记参投判断
+  aggregate: AGG-10
+  params:
+  - 商机
+  - 判断清单评分（风险、产能、赢率、利润、客户资信）
+  - 理由
+  preconditions:
+  - 商机为「跟进中」
+  - 判断清单必填项齐全（规则卡待 one-rules）
+  authority:
+    A: 商机负责人（SH-E5）
+  idempotency_key:
+  - 商机ID
+  - 判断序号
+  emits: []
+- name: 作出参投决策
+  aggregate: AGG-10
+  params:
+  - 商机
+  - 参投判断引用
+  - 审批实例（触发异常条件时）
+  preconditions:
+  - 商机为「跟进中」且已登记参投判断
+  - 触发异常条件（低于毛利底线、超产能、独立性冲突）时须审批已通过
+  authority:
+    A: 商机负责人（SH-E5）；例外时部门负责人（SH-M1）审批
+  idempotency_key:
+  - 商机ID
+  emits:
+  - 商机已决定参投
+- name: 登记资格预审结果
+  aggregate: AGG-11
+  params:
+  - 招标项目登记
+  - 标段
+  - 参与方式
+  - 预审结论
+  preconditions:
+  - INV-28
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 招标项目登记ID
+  - 标段
+  emits: []
+- name: 递交投标
+  aggregate: AGG-11
+  params:
+  - 投标
+  - 投标报价（报价版本）
+  - 承诺快照
+  - 投标文件终稿
+  - 用印登记 ID
+  preconditions:
+  - INV-33
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 投标ID
+  - 递交序号
+  emits:
+  - 投标已递交
+- name: 登记中标
+  aggregate: AGG-11
+  params:
+  - 投标
+  - 中标通知书（文件引用与日期）
+  preconditions:
+  - INV-29
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 投标ID
+  emits:
+  - 投标已中标
+- name: 登记未中标
+  aggregate: AGG-11
+  params:
+  - 投标
+  - 结果通知
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 投标ID
+  emits:
+  - 投标未中标
+- name: 登记废标
+  aggregate: AGG-11
+  params:
+  - 投标
+  - 废标原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 投标ID
+  emits:
+  - 投标已废标
+- name: 撤回或撤销投标
+  aggregate: AGG-11
+  params:
+  - 投标
+  - 原因
+  - 截止前后
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 投标ID
+  emits:
+  - 投标已撤销
+- name: 放弃投标
+  aggregate: AGG-11
+  params:
+  - 投标
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 投标ID
+  emits:
+  - 投标已放弃
+- name: 编制报价版本
+  aggregate: AGG-12
+  params:
+  - 商机
+  - 标段
+  - 费率版本
+  - 系数版本
+  - 协议价目版本
+  - 估算分解
+  preconditions:
+  - INV-32
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 商机ID
+  - 标段
+  - 版本号
+  emits: []
+- name: 提交报价评审
+  aggregate: AGG-12
+  params:
+  - 报价版本
+  preconditions:
+  - INV-31
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 报价版本ID
+  - 评审轮次
+  emits: []
+- name: 通过报价评审
+  aggregate: AGG-12
+  params:
+  - 报价版本
+  - 审批实例
+  preconditions:
+  - INV-31
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 报价版本ID
+  - 审批实例ID
+  emits: []
+- name: 驳回报价评审
+  aggregate: AGG-12
+  params:
+  - 报价版本
+  - 审批实例
+  - 驳回意见
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 报价版本ID
+  - 审批实例ID
+  emits: []
+- name: 生效报价版本
+  aggregate: AGG-12
+  params:
+  - 报价版本
+  preconditions:
+  - INV-30
+  - INV-31
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 报价版本ID
+  emits:
+  - 报价版本已生效
+  - 报价版本已被取代
+- name: 登记报价发出
+  aggregate: AGG-12
+  params:
+  - 报价版本
+  - 发出方式
+  - 日期
+  - 客户联系人
+  - 用印登记 ID
+  preconditions:
+  - 报价版本为「已生效」
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 报价版本ID
+  - 发出序号
+  emits: []
+- name: 作废报价版本
+  aggregate: AGG-12
+  params:
+  - 报价版本
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 报价版本ID
+  emits: []
+- name: 登记独立性检查结论
+  aggregate: AGG-18
+  params:
+  - 商机
+  - 检查范围
+  - 结论
+  - 书面同意（有冲突时，文件引用、同意方、日期）
+  preconditions:
+  - INV-33
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 商机ID
+  - 检查序号
+  emits:
+  - 独立性检查已有结论
+- name: 计划客户活动
+  aggregate: AGG-102
+  params:
+  - 往来单位或商机
+  - 类型（拜访、跟进）
+  - 计划日期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 计划人ID
+  - 往来单位ID
+  - 计划日期
+  emits:
+  - 客户活动已计划
+- name: 变更客户活动
+  aggregate: AGG-102
+  params:
+  - 客户活动
+  - 新计划日期
+  - 变更原因
+  preconditions:
+  - INV-110
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 客户活动ID
+  - 变更序号
+  emits:
+  - 客户活动已变更
+- name: 完成客户活动
+  aggregate: AGG-102
+  params:
+  - 客户活动
+  - 结果反馈
+  preconditions:
+  - INV-110
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 客户活动ID
+  emits:
+  - 客户活动已完成
+- name: 取消客户活动
+  aggregate: AGG-102
+  params:
+  - 客户活动
+  - 取消原因
+  preconditions:
+  - INV-110
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 客户活动ID
+  emits:
+  - 客户活动已取消
+- name: 建立项目
+  aggregate: AGG-19
+  params:
+  - 项目类型与业务线
+  - 负责人
+  - 承担部门
+  - 承担法人
+  - 来源商机（可无）
+  preconditions:
+  - INV-39
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目编号
+  emits:
+  - 项目已建立
+- name: 开始执行项目
+  aggregate: AGG-19
+  params:
+  - 项目
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  emits:
+  - 项目已开始执行
+  event_subscribers:
+    项目已开始执行:
+    - B-05（AGG-13 已签署生效 → 履行中，S-33）
+- name: 暂停项目
+  aggregate: AGG-19
+  params:
+  - 项目
+  - 原因
+  preconditions:
+  - INV-39
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 暂停序号
+  emits:
+  - 项目已暂停
+- name: 恢复项目
+  aggregate: AGG-19
+  params:
+  - 项目
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 暂停序号
+  emits:
+  - 项目已恢复
+- name: 终止项目
+  aggregate: AGG-19
+  pending_decision: 是否需上级复核待定（用户 GL3 提醒：批准人即项目经理本人，复核与否单独定，不靠改名）；出卡给推荐，需用户定的随确认页改版
+  params:
+  - 项目
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  emits:
+  - 项目已终止
+- name: 取消项目
+  aggregate: AGG-19
+  pending_decision: 是否需上级复核待定（用户 GL3 提醒：批准人即项目经理本人，复核与否单独定，不靠改名）；出卡给推荐，需用户定的随确认页改版
+  params:
+  - 项目
+  - 原因
+  preconditions:
+  - 拟规则：无任何投入（B-07 订阅后核对）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  emits:
+  - 项目已取消
+- name: 结项
+  aggregate: AGG-19
+  params:
+  - 项目
+  - 结项申请
+  preconditions:
+  - INV-40
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 结项申请ID
+  emits:
+  - 项目已结项
+- name: 归档项目
+  aggregate: AGG-19
+  params:
+  - 项目
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  emits:
+  - 项目已归档
+- name: 建立项目 WBS
+  aggregate: AGG-20
+  params:
+  - 项目
+  - 阶段裁剪依据
+  - 阶段与工作包
+  preconditions:
+  - INV-41
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  emits: []
+- name: 开始阶段
+  aggregate: AGG-20
+  params:
+  - WBS 阶段节点
+  preconditions:
+  - INV-41
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 阶段节点ID
+  emits:
+  - 阶段已开始
+- name: 完成阶段
+  aggregate: AGG-20
+  params:
+  - WBS 阶段节点
+  preconditions:
+  - INV-41
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 阶段节点ID
+  emits:
+  - 阶段已完成
+- name: 锁定工作包
+  aggregate: AGG-20
+  params:
+  - 工作包
+  preconditions:
+  - INV-42
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工作包ID
+  emits:
+  - 工作包已锁定
+- name: 作废工作包
+  aggregate: AGG-20
+  params:
+  - 工作包
+  - 原因
+  preconditions:
+  - INV-42
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工作包ID
+  emits:
+  - 工作包已作废
+- name: 编制交付计划版本
+  aggregate: AGG-21
+  pending_decision: 对客基线是否须与某一内部基线一致（用户追问，见 NOTES「AGG-21 待定·对客基线与内部基线」）；推荐：不要求内容一致，要求对客基线版本引用来源内部基线版本，合同里程碑日期不早于内部基线同名里程碑时只警告
+  params:
+  - 项目
+  - 基线类别（对客、内部）
+  - 里程碑
+  - 修订原因
+  preconditions:
+  - INV-43
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 基线类别
+  - 版本号
+  emits: []
+- name: 批准交付计划
+  aggregate: AGG-21
+  params:
+  - 交付计划版本
+  - 发包人书面批准（对客基线）
+  preconditions:
+  - INV-43
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 交付计划版本ID
+  emits:
+  - 交付计划已批准
+- name: 编制项目预算版本
+  aggregate: AGG-22
+  params:
+  - 项目
+  - 计划工时与非人工类别（按 WBS）
+  - 修订原因
+  preconditions:
+  - INV-44
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 版本号
+  emits: []
+- name: 锁定项目预算
+  aggregate: AGG-22
+  params:
+  - 项目预算版本
+  preconditions:
+  - INV-44
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目预算版本ID
+  emits:
+  - 项目预算已锁定
+- name: 提出完工估算
+  aggregate: AGG-23
+  params:
+  - 项目
+  - ETC
+  - EAC
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 估算序号
+  emits: []
+- name: 批准完工估算
+  aggregate: AGG-23
+  params:
+  - 完工估算
+  preconditions:
+  - 提出人≠批准人（segregation）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 完工估算ID
+  emits:
+  - 完工估算已批准
+- name: 填报产值估计
+  aggregate: AGG-23
+  proposed: true
+  proposed_basis: 骨架 PRC-151 步 1 已用，聚合稿 §2.2 AGG-23 无此命令
+  params:
+  - 项目
+  - 协议
+  - 期间
+  - 当期累计产值估计
+  preconditions:
+  - 只追加，更正以新行追加（PRC-151）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 协议ID
+  - 期间
+  - 行序号
+  emits: []
+- name: 维护项目团队成员
+  aggregate: AGG-24
+  params:
+  - 项目
+  - 成员
+  - 角色
+  - 期间
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 成员ID
+  - 期间起
+  emits: []
+- name: 提出资源需求
+  aggregate: AGG-25
+  params:
+  - 工作包
+  - 角色、职级、专业
+  - 时段
+  - 工时
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工作包ID
+  - 需求序号
+  emits:
+  - 资源需求已提出
+- name: 确认资源分配
+  aggregate: AGG-26
+  params:
+  - 资源需求
+  - 具名人员
+  - 时段
+  - 计划工时
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资源需求ID
+  - 人员ID
+  emits:
+  - 资源分配已确认
+- name: 编制交付物
+  aggregate: AGG-27
+  params:
+  - 项目
+  - 工作包
+  - 文件版本清单
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 工作包ID
+  - 提交轮次
+  emits: []
+- name: 登记内部评审结论
+  aggregate: AGG-27
+  params:
+  - 交付物
+  - 评审层级
+  - 结论
+  preconditions:
+  - AR-13
+  - AR-14
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 交付物ID
+  - 提交轮次
+  - 评审层级
+  emits: []
+- name: 签发交付物
+  aggregate: AGG-27
+  params:
+  - 交付物
+  - 签发人
+  preconditions:
+  - INV-47
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 交付物ID
+  - 提交轮次
+  emits:
+  - 交付物已签发
+- name: 登记提交轮次送达
+  aggregate: AGG-27
+  params:
+  - 交付物
+  - 送达日
+  - 送达回执（证据）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 交付物ID
+  - 提交轮次
+  emits:
+  - 交付物已送达
+- name: 登记客户认可
+  aggregate: AGG-27
+  params:
+  - 交付物
+  - 认可证据类型
+  - 认可日
+  - 签认人
+  preconditions:
+  - INV-48
+  - INV-51
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 交付物ID
+  - 提交轮次
+  emits:
+  - 交付物已认可
+- name: 登记客户退回
+  aggregate: AGG-27
+  params:
+  - 交付物
+  - 退回意见（证据）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 交付物ID
+  - 提交轮次
+  emits:
+  - AcceptanceReturned
+- name: 登记项目经理的无异议声明
+  aggregate: AGG-27
+  params:
+  - 交付物
+  - 往来函件检索记录（证据）
+  preconditions:
+  - INV-46
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 交付物ID
+  - 提交轮次
+  emits:
+  - 无异议已声明
+- name: 封存交付物
+  aggregate: AGG-27
+  params:
+  - 交付物
+  preconditions:
+  - INV-40
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 交付物ID
+  emits:
+  - 交付物已封存
+- name: 认定返工
+  aggregate: AGG-29
+  params:
+  - 项目
+  - 原因分类
+  - 返工范围
+  preconditions:
+  - INV-53
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 返工序号
+  emits:
+  - 返工已认定
+- name: 撤销返工认定
+  aggregate: AGG-29
+  params:
+  - 返工认定
+  - 原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 返工认定ID
+  emits:
+  - 返工认定已撤销
+- name: 提出设计变更
+  aggregate: AGG-30
+  params:
+  - 项目
+  - 变更内容
+  - 涉及交付物与部位
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 变更序号
+  emits: []
+- name: 认定变更归因与影响
+  aggregate: AGG-30
+  params:
+  - 设计变更
+  - 归因
+  - 影响
+  preconditions:
+  - INV-54
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 设计变更ID
+  emits: []
+- name: 内审设计变更
+  aggregate: AGG-30
+  params:
+  - 设计变更
+  - 内审结论
+  preconditions:
+  - 提出人≠内审人（segregation）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 设计变更ID
+  emits: []
+- name: 发出设计变更
+  aggregate: AGG-30
+  params:
+  - 设计变更
+  - 发出回执（证据）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 设计变更ID
+  emits:
+  - 设计变更已发出
+- name: 标记待主张
+  aggregate: AGG-30
+  params:
+  - 设计变更
+  - 待主张或不主张及理由
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 设计变更ID
+  emits: []
+- name: 关闭设计变更
+  aggregate: AGG-30
+  params:
+  - 设计变更
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 设计变更ID
+  emits: []
+- name: 通知延期
+  aggregate: AGG-31
+  params:
+  - 项目
+  - 事由
+  - 通知日期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 事由
+  - 通知日期
+  emits: []
+- name: 提交延期详细说明
+  aggregate: AGG-31
+  params:
+  - 延期申请
+  - 详细说明
+  - 送达日
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 延期申请ID
+  emits: []
+- name: 登记延期批准
+  aggregate: AGG-31
+  params:
+  - 延期申请
+  - 发包人书面答复
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 延期申请ID
+  emits:
+  - 延期已批准
+- name: 登记延期拒绝
+  aggregate: AGG-31
+  params:
+  - 延期申请
+  - 发包人书面答复
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 延期申请ID
+  emits:
+  - 延期已拒绝
+- name: 登记延期视为批准
+  aggregate: AGG-31
+  params:
+  - 延期申请
+  preconditions:
+  - 合同约定答复期满
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 延期申请ID
+  emits:
+  - 延期已视为批准
+- name: 登记资料需求
+  aggregate: AGG-32
+  proposed: true
+  proposed_basis: 骨架 PRC-26 步 1 已用，聚合稿 §2.2 AGG-32 无此命令
+  params:
+  - 项目
+  - 资料清单
+  - 计划提供日
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 资料项
+  emits: []
+- name: 登记资料已提供
+  aggregate: AGG-32
+  params:
+  - 发包人提供资料
+  - 提供日
+  - 收件凭证
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资料ID
+  - 提供轮次
+  emits: []
+- name: 确认发包人资料
+  aggregate: AGG-32
+  params:
+  - 发包人提供资料
+  - 确认结论
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资料ID
+  - 提供轮次
+  emits:
+  - 发包人资料已确认
+- name: 退回发包人资料
+  aggregate: AGG-32
+  params:
+  - 发包人提供资料
+  - 缺陷与补充要求
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资料ID
+  - 提供轮次
+  emits:
+  - 发包人资料已退回
+- name: 编制项目复盘
+  aggregate: AGG-103
+  params:
+  - 项目
+  - 复盘内容
+  - 被取代版本（更正时）
+  preconditions:
+  - INV-112
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 版本号
+  emits: []
+- name: 评审项目复盘
+  aggregate: AGG-103
+  params:
+  - 项目复盘
+  - 评审记录
+  preconditions:
+  - INV-112
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目复盘ID
+  - 评审轮次
+  emits: []
+- name: 发布项目复盘
+  aggregate: AGG-103
+  params:
+  - 项目复盘
+  preconditions:
+  - INV-112
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目复盘ID
+  emits:
+  - 项目复盘已发布
+- name: 登记风险与问题
+  aggregate: AGG-104
+  params:
+  - 项目
+  - 类型（风险、问题）
+  - 描述
+  - 来源（可含调查ID）
+  preconditions:
+  - INV-113
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 来源ID
+  - 登记序号
+  emits:
+  - 风险与问题已登记
+- name: 记录应对措施
+  aggregate: AGG-104
+  params:
+  - 风险与问题
+  - 应对措施
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 记录ID
+  - 措施序号
+  emits: []
+- name: 关闭风险与问题
+  aggregate: AGG-104
+  params:
+  - 风险与问题
+  - 关闭理由
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 记录ID
+  emits:
+  - 风险与问题已关闭
+- name: 接受风险与问题
+  aggregate: AGG-104
+  params:
+  - 风险与问题
+  - 接受人
+  - 依据
+  preconditions:
+  - INV-113
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 记录ID
+  emits:
+  - 风险与问题已接受
+- name: 发出满意度调查
+  aggregate: AGG-105
+  params:
+  - 项目
+  - 调查对象联系人
+  - 阶段节点（可无）
+  - 发出证据
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 项目ID
+  - 联系人ID
+  - 调查序号
+  emits: []
+- name: 登记调查回收
+  aggregate: AGG-105
+  params:
+  - 满意度调查
+  - 回收日期
+  - 回收内容
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 调查ID
+  emits: []
+- name: 评分满意度调查
+  aggregate: AGG-105
+  params:
+  - 满意度调查
+  - 评分
+  preconditions:
+  - INV-111
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 调查ID
+  emits:
+  - 满意度调查已评分
+- name: 登记满意度跟进
+  aggregate: AGG-105
+  params:
+  - 满意度调查
+  - 跟进说明
+  preconditions:
+  - INV-111
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 调查ID
+  emits:
+  - 满意度调查已跟进
+- name: 起草工时单
+  aggregate: AGG-39
+  proposed: true
+  proposed_basis: 已建 Timesheet.draft() 创建草稿，聚合稿与骨架均无此命令
+  params:
+  - 员工
+  - 工作日
+  - 工时条目
+  preconditions:
+  - INV-64
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 员工ID
+  - 工作日
+  emits: []
+  unused_ok: 拟命令：已建代码有，骨架未写 command
+- name: 提交工时单
+  aggregate: AGG-39
+  params:
+  - 工时单
+  preconditions:
+  - INV-39
+  - INV-64
+  - INV-65
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工时单ID
+  - 提交轮次
+  emits:
+  - TimesheetSubmitted
+- name: 通过工时单
+  aggregate: AGG-39
+  params:
+  - 工时单
+  - 审批结果
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工时单ID
+  - 提交轮次
+  emits:
+  - TimesheetApproved
+- name: 退回工时单
+  aggregate: AGG-39
+  params:
+  - 工时单
+  - 审批结果
+  - 退回原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工时单ID
+  - 提交轮次
+  emits:
+  - TimesheetReturned
+- name: 驳回工时单
+  aggregate: AGG-39
+  params:
+  - 工时单
+  - 审批结果
+  - 驳回原因
+  preconditions:
+  - 驳回须写原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工时单ID
+  - 提交轮次
+  emits:
+  - TimesheetRejected
+- name: 撤回工时单
+  aggregate: AGG-39
+  proposed: true
+  proposed_basis: 骨架 PRC-23 步 7 与已建代码 cancelSubmission 已有，聚合稿 §2.2 AGG-39 无此命令
+  params:
+  - 工时单
+  - 审批结果（撤回或取消）
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工时单ID
+  - 提交轮次
+  emits:
+  - TimesheetApprovalWithdrawn
+- name: 认定工时有效性
+  aggregate: AGG-39
+  params:
+  - 工时单
+  - 条目分类（有效、无效、返工、可计费）
+  preconditions:
+  - INV-53
+  - INV-66
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工时单ID
+  - 条目ID
+  emits:
+  - 工时已认定
+- name: 提交过账候选
+  aggregate: AGG-39
+  params:
+  - 工时单
+  preconditions:
+  - INV-37
+  - INV-67
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工时单ID
+  - 费率版本ID
+  emits:
+  - 工时已过账
+- name: 创建独立性检查
+  aggregate: AGG-18
+  proposed: true
+  trigger_event: 独立性检查要求（AGG-10，同 BC）
+  params:
+  - 商机
+  - 服务产品
+  - 往来单位
+  preconditions: []
+  authority:
+    A: 系统（事件触发）
+  idempotency_key:
+  - 商机ID
+  emits: []
+- name: 标记资源需求已满足
+  aggregate: AGG-25
+  proposed: true
+  trigger_event: 资源分配已确认（AGG-26，同 BC；分配工时累计达到需求工时）
+  params:
+  - 资源需求
+  - 资源分配
+  preconditions: []
+  authority:
+    A: 系统（事件触发）
+  idempotency_key:
+  - 资源需求ID
+  emits: []
+- name: 关闭资源需求
+  aggregate: AGG-25
+  proposed: true
+  params:
+  - 资源需求
+  - 关闭原因（必填：不再需要 / 范围变更 / 改外协）
+  preconditions: []
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资源需求ID
+  emits: []
+- name: 撤销设计变更
+  aggregate: AGG-30
+  proposed: true
+  params:
+  - 原记录
+  - 撤销原因与依据
+  preconditions:
+  - 原记录已发出且未关闭
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 原记录ID
+  emits: []
+  note: S-37 采纳
+- name: 撤回延期通知
+  aggregate: AGG-31
+  proposed: true
+  params:
+  - 原记录
+  - 撤销原因与依据
+  preconditions:
+  - 原记录已发出且未关闭
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 原记录ID
+  emits: []
+  note: S-37 采纳
+- name: 开始履行协议
+  aggregate: AGG-13
+  proposed: true
+  trigger_event: 项目已开始执行（AGG-19，B-04）
+  params:
+  - 协议
+  - 项目
+  preconditions:
+  - INV-09
+  authority:
+    A: 协议.合同负责人（待新题）
+  idempotency_key:
+  - 协议ID
+  emits: []
+  note: S-33、S-42；PRC-179

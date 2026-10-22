@@ -1,0 +1,112 @@
+{
+ "STKH~STKH-01": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "认可",
+  "no": "STKH-01",
+  "note": "",
+  "recommended": true,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ },
+ "STKH~STKH-02": {
+  "choice": 2,
+  "defaulted": false,
+  "label": "新增一级对象「股东」",
+  "no": "STKH-02",
+  "note": "",
+  "recommended": false,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ },
+ "STKH~STKH-03": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "补为合作伙伴，往来单位角色「供应商」",
+  "no": "STKH-03",
+  "note": "",
+  "recommended": true,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ },
+ "STKH~STKH-04": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "补为合作伙伴，往来单位角色「金融机构」",
+  "no": "STKH-04",
+  "note": "",
+  "recommended": true,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ },
+ "STKH~STKH-05": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "补为合作伙伴·供应商的「出租方」",
+  "no": "STKH-05",
+  "note": "",
+  "recommended": true,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ },
+ "STKH~STKH-06": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "触发与受益只写客户子类，决策链角色只作阶段参与者",
+  "no": "STKH-06",
+  "note": "",
+  "recommended": true,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ },
+ "STKH~STKH-07": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "客户角色加属性「客户类型」",
+  "no": "STKH-07",
+  "note": "",
+  "recommended": true,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ },
+ "STKH~STKH-08": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "往来单位加角色「主管机关」",
+  "no": "STKH-08",
+  "note": "",
+  "recommended": true,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ },
+ "STKH~STKH-09": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "认可",
+  "no": "STKH-09",
+  "note": "",
+  "recommended": true,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ },
+ "STKH~STKH-10": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "认可",
+  "no": "STKH-10",
+  "note": "",
+  "recommended": true,
+  "submission": "STKH-20261019-202526-si5",
+  "submitted": "2026-10-19T18:25:26.273Z",
+  "unanswered": false
+ }
+}

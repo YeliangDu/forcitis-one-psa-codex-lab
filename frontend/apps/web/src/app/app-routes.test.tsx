@@ -17,7 +17,7 @@ const NAVIGATION = [
   },
 ];
 
-const EMPTY_INBOX = { items: [], newCount: 0, legacyCount: 0, noticeCount: 0, totalCount: 0, legacyAvailable: true };
+const EMPTY_INBOX = { items: [], newCount: 0, noticeCount: 0, totalCount: 0 };
 
 describe('应用外壳与登录状态', () => {
   it('导航来自当前用户接口', async () => {

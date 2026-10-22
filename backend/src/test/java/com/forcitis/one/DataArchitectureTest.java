@@ -203,14 +203,26 @@ class DataArchitectureTest {
         return found;
     }
 
-    /** Behaviour, not names: TRUNCATE inside a transaction that is rolled back; refused means the restrict_violation of a trigger, not a foreign key. */
+    /**
+     * Behaviour, not names: TRUNCATE inside a transaction that is rolled back; refused means the restrict_violation of a trigger, not a foreign
+     * key. A table another table references cannot be truncated alone (0A000, before any trigger fires), so it is tried again with CASCADE,
+     * which fires the table's own BEFORE TRUNCATE trigger.
+     */
     static boolean truncateIsRefused(Connection c, String table) throws SQLException {
+        String refusal = truncateRefusal(c, "truncate table " + table);
+        if ("0A000".equals(refusal)) {
+            refusal = truncateRefusal(c, "truncate table " + table + " cascade");
+        }
+        return "23001".equals(refusal);
+    }
+
+    private static String truncateRefusal(Connection c, String sql) throws SQLException {
         c.setAutoCommit(false);
         try (var statement = c.createStatement()) {
-            statement.execute("truncate table " + table);
-            return false;
+            statement.execute(sql);
+            return null;
         } catch (SQLException refused) {
-            return "23001".equals(refused.getSQLState());
+            return refused.getSQLState();
         } finally {
             c.rollback();
             c.setAutoCommit(true);
@@ -296,7 +308,9 @@ class DataArchitectureTest {
     }
 
     static boolean refusesRewrite(Table t) {
-        return t.triggers.stream().anyMatch(g -> g.refuses(16, true)) && t.triggers.stream().anyMatch(g -> g.refuses(8, true)) && t.truncateRefused;
+        // The table's own statement-level TRUNCATE trigger as well: with CASCADE, another table's trigger could otherwise do the refusing.
+        return t.triggers.stream().anyMatch(g -> g.refuses(16, true)) && t.triggers.stream().anyMatch(g -> g.refuses(8, true))
+                && t.triggers.stream().anyMatch(g -> g.refuses(32, false)) && t.truncateRefused;
     }
 
     private static void d2(List<Violation> v, Table t, Entry e, String role) {
@@ -619,7 +633,7 @@ class DataArchitectureTest {
     }
 
     static final List<String> SCHEMAS = List.of("platform_idempotency", "cost_timesheet", "organization_attendance", "organization_workforce", "platform_approval",
-            "platform_audit", "platform_identity", "platform_integration", "platform_numbering", "platform_scheduling");
+            "platform_audit", "platform_file", "platform_identity", "platform_integration", "platform_numbering", "platform_scheduling");
     static final Pattern STRING = Pattern.compile("\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);
     static final Pattern TABLE_USE = Pattern.compile("\\b(from|join|into|update|delete\\s+from|truncate\\s+table|truncate)\\s+((?:" + String.join("|", SCHEMAS)
             + ")\\.[a-z_0-9]+)", Pattern.CASE_INSENSITIVE);
