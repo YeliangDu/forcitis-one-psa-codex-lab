@@ -128,6 +128,7 @@ def run(mq):
             _pause(mq, d)
             _signals(mq, d)
             _ff_main(mq, d)
+            _remove_busy(mq, d)
             _docs_tiers(mq, d)
             _gh_commands(mq, d)
             _lanes(mq, d)
@@ -1272,3 +1273,203 @@ def _regenerated(mq, d):
     write(f"{MOD}/other.txt", "main\n"); commit("main touches other")
     g(work, "push", "-q", "origin", "main")
     assert mq.update_over_ssh(work, "pr-extra", wt) == "conflict"
+
+
+def _remove_busy(mq, d):
+    """`remove` of a pull request a worker is processing: refused, or the worker stops before the merge; never a silent carry-on (#574 was taken out of the queue and merged anyway, 2026-10-22)."""
+    qpath, lpath = os.path.join(d, "rb", "merge.queue"), os.path.join(d, "rb", "merge.log")
+    q = mq.Queue(qpath)
+    q.enqueue(300, 301)
+
+    def cli(*args):
+        try:
+            mq.main(["--queue", qpath, "--log", lpath, *args])
+        except SystemExit as error:
+            return str(error)
+        return None
+
+    # a pull request being processed is refused, and stays queued
+    q.mark_working(300)
+    message = cli("remove", "300")
+    assert message and "cannot be taken back" in message and q.numbers() == [300, 301], (message, q.numbers())
+    assert q.working() == {300: os.getpid()}
+    # one that is not being processed is removed as before, also together with a refused one: nothing is removed then
+    assert cli("remove", "301", "300") is not None and q.numbers() == [300, 301], "a refused remove removes none of them"
+    assert cli("remove", "301") is None and q.numbers() == [300]
+    # --cancel: out of the queue, cancel requested
+    assert cli("remove", "--cancel", "300") is None and q.numbers() == [] and q.cancel_requested(300)
+    q.unmark_working(300)
+    assert not q.cancel_requested(300) and q.working() == {}, "the worker's end clears marker and request"
+    # a marker whose runner is gone is stale: not a reason to refuse
+    with open(qpath + ".working", "w") as f:
+        f.write("300 999999\n")
+    assert q.working() == {}
+    q.enqueue(300)
+    assert cli("remove", "300") is None and q.numbers() == []
+
+    # the worker stops at its checkpoint, before the merge
+    gh = FakeGh(); gh.add(310, rounds=[dict(pending=3, checks=green())])
+    holder = {}
+    proc, q2, log, slept = _proc(mq, d, "rb2", gh, [310], on_sleep=lambda seconds: holder["q"].request_cancel(310) if seconds == 30 else None)
+    holder["q"] = q2
+    assert proc.process(310) == "CANCELLED" and "CANCELLED" in events(log) and not any(c[0] == "merge" for c in gh.calls) and "MERGED" not in events(log), events(log)
+    assert q2.working() == {} and not q2.cancel_requested(310)
+
+    # the request arrives while the merge is being decided (under the merge lock): the last checkpoint stops it before gh is asked
+    gh = FakeGh(); gh.add(313)
+    proc, q5, log, _ = _proc(mq, d, "rb5", gh, [313])
+    real_behind, calls = gh.behind_by, {"n": 0}
+
+    def behind_then_cancel(n, head):
+        calls["n"] += 1
+        if calls["n"] == 2:   # the first look is at the start of the round, the second inside merge_when_fresh
+            q5.request_cancel(n)
+        return real_behind(n, head)
+    gh.behind_by = behind_then_cancel
+    assert proc.process(313) == "CANCELLED" and not any(c[0] == "merge" for c in gh.calls) and "MERGED" not in events(log), (events(log), gh.calls)
+
+    # too late: the merge call has been made when the request comes
+    gh = FakeGh(); gh.add(311)
+    proc, q3, log, _ = _proc(mq, d, "rb3", gh, [311])
+    real_merge = gh.merge
+
+    def merge_then_cancel(n, head):
+        q3.request_cancel(n)
+        return real_merge(n, head)
+    gh.merge = merge_then_cancel
+    assert proc.process(311) == "MERGED" and "CANCELLED" not in events(log) and not q3.cancel_requested(311), events(log)
+
+    # taken out of the queue between the look and the claim: not started
+    gh = FakeGh(); gh.add(312)
+    proc, q4, log, _ = _proc(mq, d, "rb4", gh, [312])
+    real_claim = q4.claim
+    q4.claim = lambda n: (q4.remove(n), real_claim(n))[1]
+    stops = iter([False, True] + [True] * 20)
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "SKIPPED" in events(log) and "START" not in events(log) and not any(c[0] == "merge" for c in gh.calls) and q4.working() == {} and not proc.busy, events(log)
+
+    # check and removal are one step: claimed first -> refused (or cancelled); removed first -> the claim fails
+    q5 = mq.Queue(os.path.join(d, "rb6", "merge.queue"))
+    q5.enqueue(320, 321)
+    assert q5.claim(320) and q5.remove_checked({320, 321}, False) == {320: os.getpid()} and q5.numbers() == [320, 321]
+    assert q5.remove_checked({321}, False) == {} and q5.numbers() == [320]
+    assert q5.remove_checked({320}, True) == {320: os.getpid()} and q5.numbers() == [] and q5.cancel_requested(320)
+    assert not q5.claim(321) and not q5.claim(320), "removed: the claim fails"
+    q5.unmark_working(320)
+    # a request for a pull request nobody is processing is not kept (it would cancel its next round); a mark from an earlier round does not carry a request over
+    q5.request_cancel(330)
+    assert not q5.cancel_requested(330)
+    q5.enqueue(330)
+    assert q5.claim(330)
+    q5.request_cancel(330)
+    q5.unmark_working(330)
+    q5.enqueue(330)
+    assert q5.claim(330) and not q5.cancel_requested(330)
+    with open(os.path.join(d, "rb6", "merge.queue.cancel"), "w") as f:
+        f.write("332\n")   # left over from a round whose worker is gone
+    q5.enqueue(332)
+    assert q5.claim(332) and not q5.cancel_requested(332), "a new round does not inherit an old request"
+    # the runner's start clears what a killed runner left behind (also a pid that is alive by accident)
+    with open(os.path.join(d, "rb6", "merge.queue.working"), "w") as f:
+        f.write("331 1\n")
+    with open(os.path.join(d, "rb6", "merge.queue.cancel"), "w") as f:
+        f.write("331\n")
+    q5.reset_working()
+    assert q5.working() == {} and not q5.cancel_requested(331)
+
+    # CANCELLED does not take a pull request out that was queued again after `remove --cancel`; the queued label comes off
+    gh = FakeGh(); gh.add(340, labels=("queued",), rounds=[dict(pending=3, checks=green())])
+    holder = {}
+    proc, q6, log, _ = _proc(mq, d, "rb7", gh, [340], on_sleep=lambda seconds: holder["q"].request_cancel(340) if seconds == 30 else None)
+    holder["q"] = q6
+    stops = iter([False, True] + [True] * 20)
+    real_process = proc.process
+
+    def process_then_requeue(n):
+        result = real_process(n)
+        q6.enqueue(n)
+        return result
+    proc.process = process_then_requeue
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "CANCELLED" in events(log) and q6.numbers() == [340] and ("label", 340, "queued", False) in gh.calls, (events(log), q6.numbers(), gh.calls)
+
+    # a claim that fails (disk) leaves nothing busy or marked; a failing unmark still frees busy; a request that came too late (the round ended in MERGED) does not take out an entry queued again meanwhile
+    gh = FakeGh(); gh.add(350)
+    proc, q12, log, _ = _proc(mq, d, "rb12", gh, [350])
+    q12.claim = lambda n: (_ for _ in ()).throw(OSError("disk full"))
+    try:
+        proc.pick("code")
+        raise AssertionError("must raise")
+    except OSError:
+        pass
+    assert proc.busy == set() and q12.working() == {}, "a failed claim leaves nothing busy"
+    q12.claim = mq.Queue.claim.__get__(q12)
+    q12.unmark_working = lambda n: (_ for _ in ()).throw(OSError("disk full"))
+    proc.busy.add(350)
+    try:
+        proc.release(350)
+    except OSError:
+        pass
+    assert 350 not in proc.busy, "busy is freed even when the mark cannot be removed"
+    gh = FakeGh(); gh.add(351)
+    holder = {}
+    proc, q13, log, _ = _proc(mq, d, "rb13", gh, [351])
+    real_merge = gh.merge
+
+    def merge_after_cancel_and_requeue(n, head):
+        q13.request_cancel(n)
+        q13.remove(n)
+        q13.enqueue(n)   # remove --cancel, then queued again, while the merge call is already under way
+        return real_merge(n, head)
+    gh.merge = merge_after_cancel_and_requeue
+    stops = iter([False, True] + [True] * 20)
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "MERGED" in events(log) and q13.numbers() == [351], (events(log), q13.numbers())
+
+    # the request stops it while it waits for CI, before the merge is even looked at (the checkpoint in the CI wait)
+    gh = FakeGh(); gh.add(341, rounds=[dict(pending=3, checks=green())])
+    holder = {}
+    looks = {"n": 0}
+    real_behind = gh.behind_by
+    gh.behind_by = lambda n, head: (looks.__setitem__("n", looks["n"] + 1), real_behind(n, head))[1]
+    proc, q7, log, _ = _proc(mq, d, "rb8", gh, [341], on_sleep=lambda seconds: holder["q"].request_cancel(341) if seconds == 30 else None)
+    holder["q"] = q7
+    assert proc.process(341) == "CANCELLED" and looks["n"] == 1, looks
+
+    gh = FakeGh(); gh.add(345)
+    holder = {}
+    proc, q11, log, _ = _proc(mq, d, "rb9b", gh, [345])
+    holder["q"] = q11
+    real_view = gh.view
+    gh.view = lambda n: (holder["q"].request_cancel(n), real_view(n))[1]
+    assert proc.process(345) == "CANCELLED" and ("label", 345, "queued", True) not in gh.calls, gh.calls
+
+    # while it waits for the checks to be listed (before the CI wait proper)
+    gh = FakeGh(); gh.add(344)
+    real_checks = gh.checks
+    polls = {"n": 0}
+    holder = {}
+
+    def light_only(n):
+        polls["n"] += 1
+        return green(light=True) if polls["n"] <= 30 else real_checks(n)
+    gh.checks = light_only
+    proc, q10, log, _ = _proc(mq, d, "rb11", gh, [344], on_sleep=lambda seconds: holder["q"].request_cancel(344) if seconds == 15 else None)
+    holder["q"] = q10
+    assert proc.process(344) == "CANCELLED" and polls["n"] <= 3, polls
+
+    # a request before the branch is updated or labelled stops it there (anything pushed to the branch costs a CI run)
+    gh = FakeGh(); gh.add(342, merge="BEHIND")
+    holder = {}
+    proc, q8, log, _ = _proc(mq, d, "rb9", gh, [342])
+    holder["q"] = q8
+    real_view = gh.view
+    gh.view = lambda n: (holder["q"].request_cancel(n), real_view(n))[1]
+    assert proc.process(342) == "CANCELLED" and not any(c[0] == "update-branch" for c in gh.calls) and ("label", 342, "queued", True) not in gh.calls, gh.calls
+
+    # `once` (no pick) marks the pull request while it is processed
+    gh = FakeGh(); gh.add(343, rounds=[dict(pending=1, checks=green())])
+    seen = []
+    proc, q9, log, _ = _proc(mq, d, "rb10", gh, [], on_sleep=lambda seconds: seen.append(dict(holder["q"].working())))
+    holder["q"] = q9
+    assert proc.process(343) == "MERGED" and any(343 in w for w in seen) and q9.working() == {}, seen
