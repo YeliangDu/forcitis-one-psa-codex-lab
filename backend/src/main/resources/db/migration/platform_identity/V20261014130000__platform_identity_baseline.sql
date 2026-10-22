@@ -328,7 +328,7 @@ COMMENT ON COLUMN platform_identity.authorization_requests.event_count IS '事�
 COMMENT ON COLUMN platform_identity.authorization_requests.created_at IS '创建时间';
 COMMENT ON COLUMN platform_identity.authorization_requests.updated_at IS '更新时间';
 
-CREATE FUNCTION platform_identity.is_normalized_code_set(codes text[]) RETURNS boolean LANGUAGE sql IMMUTABLE STRICT AS $$
+CREATE FUNCTION platform_identity.is_normalized_code_set(codes text[]) RETURNS boolean LANGUAGE sql IMMUTABLE STRICT SET search_path = pg_catalog, pg_temp AS $$
     SELECT (array_ndims(codes) IS NULL OR array_ndims(codes) = 1)
        AND array_position(codes, NULL) IS NULL
        AND codes = ARRAY(SELECT c FROM (SELECT DISTINCT c FROM unnest(codes) AS c) AS d ORDER BY c COLLATE "C")
@@ -336,7 +336,7 @@ $$;
 COMMENT ON FUNCTION platform_identity.is_normalized_code_set(text[]) IS '代码集合是否已规范化：一维、无空元素、无重复、按 C 排序升序；应用写入前先规范化（ADR-0034 第 1 项第 2 条）';
 
 -- 两张授权历史表共用：开放行只能被关闭一次（只改 TG_ARGV 所列的关闭列），已关闭的行不能改，任何行不能删或清空。
-CREATE FUNCTION platform_identity.refuse_history_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_identity.refuse_history_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'authorization history is append-only: % on %.% is refused', lower(TG_OP), TG_TABLE_SCHEMA, TG_TABLE_NAME
@@ -486,7 +486,7 @@ CREATE INDEX ix_account_role_grants_grant_authorization_request_id ON platform_i
 CREATE INDEX ix_account_role_grants_revocation_authorization_request_id ON platform_identity.account_role_grants (revocation_authorization_request_id)
     WHERE revocation_authorization_request_id IS NOT NULL;
 
-CREATE FUNCTION platform_identity.require_open_role_version() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION platform_identity.require_open_role_version() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM platform_identity.role_versions v WHERE v.role_id = NEW.role_id AND v.effective_to_at IS NULL) THEN
         RAISE EXCEPTION 'role % has no open version (deleted) and cannot be granted', NEW.role_id USING ERRCODE = 'restrict_violation';

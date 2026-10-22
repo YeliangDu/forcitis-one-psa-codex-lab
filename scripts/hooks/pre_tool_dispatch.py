@@ -7,7 +7,7 @@ conservative string pre-filter says the command could concern it, then calls the
 Pre-filters only ever skip a gate whose own first step would have allowed the command: they are tested against the gates run on their own (--self-test).
   main_checkout_gate: "git" in the command; pre_push_gate: "git"; precheck_before_pr: "gh" and "pr"; codex_stdin_gate: "codex" or a `pi` word;
   bg_task_name_gate: always for Agent/Task, for Bash only when run_in_background is true.
-Quotes and backslashes are removed before the pre-filter looks (`gi"t" push` still reaches the gates, whose shell tokenisers see `git push`).
+Quotes and backslashes are removed and the text lower-cased before the pre-filter looks (`GIT` too; `gi"t" push` still reaches the gates, whose shell tokenisers see `git push`).
 Result: any gate exit != 0 refuses (exit 2, every refusing gate's stderr in order); stdout JSON warnings (additionalContext) are joined; stderr of allowing gates is passed on.
 Time limit: the entry in .claude/settings.json is 3100 s, above the sum of the two slow gates' own limits (pre_push 1400 + precheck_before_pr 1500), because a command such as `git push && gh pr create` runs both one after the other in this process; a hook killed by its time limit does not block.
 An error in the dispatcher itself refuses (exit 2): a crash would exit 1, which Claude Code treats as "do not block".
@@ -25,9 +25,9 @@ from pathlib import Path
 
 HERE = str(Path(__file__).resolve().parent)
 sys.path.insert(0, HERE)
+from command_words import plain  # noqa: E402
 
 PI_WORD = re.compile(r"(?<![A-Za-z0-9_])pi(?![A-Za-z0-9_])")
-QUOTES = re.compile(r"[\\'\"]")
 # (module, entry, applies(tool_name, command_text, tool_input)), cheapest first
 GATES = (
     ("bg_task_name_gate", "guarded_main", lambda tool, text, tool_input: tool in ("Agent", "Task") or (tool == "Bash" and tool_input.get("run_in_background") is True)),
@@ -62,7 +62,7 @@ def selected(payload):
     tool = payload.get("tool_name", "Bash")
     tool_input = payload.get("tool_input") if isinstance(payload.get("tool_input"), dict) else {}
     command = tool_input.get("command")
-    text = QUOTES.sub("", command) if isinstance(command, str) else ""
+    text = plain(command)
     return [(name, entry) for name, entry, applies in GATES if applies(tool, text, tool_input)]
 
 
@@ -175,6 +175,20 @@ def self_test():
     assert dispatch(json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}))[0] == 2
     assert dispatch(json.dumps({"tool_name": "Agent", "tool_input": {"description": "#606 复审 (opus)", "prompt": "p"}})) == (0, "", "")
     assert dispatch(json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}})) == (0, "", ""), "other tools start nothing"
+
+    # 3b. letter case and quote-split names reach the gates and are judged like the plain spelling (GOV-1022-COO-10)
+    for plain_text, spelled in (("git push --no-verify", "GIT push --no-verify"), ("git push --no-verify", "gi\"\"t push --no-verify"), ("git push --no-verify", "/usr/bin/GIT push --no-verify"),
+                                ("git push --no-verify", "Env Git push --no-verify"), ("codex exec p", "CODEX exec p"), ("codex exec p", "co\"\"dex exec p"), ("pi -p x", "PI -p x"),
+                                ("pi -p x", "p\"\"i -p x"), ("timeout 9 pi -p x", "TIMEOUT 9 pi -p x"), ("git push --no-verify", "$'git' push --no-verify"), ("git push --no-verify", "eval 'GIT push --no-verify'"),
+                                ("git push --no-verify", "echo $(GIT push --no-verify)"), ("codex exec p", "$'codex' exec p"), ("pi -p x", "$'pi' -p x"), ("codex exec p", "echo $(CODEX exec p)")):
+        assert dispatch(payload(spelled))[0] == dispatch(payload(plain_text))[0] == 2, spelled
+    assert pp.decide("GIT push --no-verify", cwd)[0] == "deny" and pp.decide("gi\"\"t push --no-verify", cwd)[0] == "deny"
+    assert pp.decide("CD /tmp && git push --no-verify", cwd)[2] == cwd, "CD is not the cd builtin"
+    assert pp.decide("cd /tmp && git push --no-verify", cwd)[2] == "/tmp"
+    assert pr.is_pr_create("$'gh' pr create") and pr.is_pr_create("GH PR create") and pr.is_pr_create("g\"\"h pr create") and not pr.is_pr_create("GH PR view 3")
+    for spelled in ("GH PR create", "GIT status", "CODEX exec p", "PI -p x"):
+        assert selected(json.loads(payload(spelled))), spelled
+    assert selected(json.loads(payload("PIP install x"))) == []
 
     # 4. unreadable input is judged by the gates themselves
     for raw in ("not json", "[1]", "{"):
