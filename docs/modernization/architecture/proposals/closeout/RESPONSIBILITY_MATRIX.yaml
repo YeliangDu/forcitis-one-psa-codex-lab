@@ -5311,6 +5311,19 @@ entries:
   - finance:PRC-75#6
   - finance:片段
 - object: AGG-53
+  command: 登记代发退回
+  raci:
+    A:
+      resolve: TODO
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  a_source: none
+  sources:
+  - finance:PRC-75#10
+- object: AGG-53
   command: 登记退票
   raci:
     A:
