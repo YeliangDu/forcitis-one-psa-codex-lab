@@ -17,6 +17,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from command_words import name_of, plain, unquote_dollar  # noqa: E402
+
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
 # wrapper -> options that take a value
@@ -52,7 +55,7 @@ def without_heredoc_bodies(command):
 def tokens_of(command):
     """Shell tokens of a command line; lines are tokenised on their own so a # comment ends with its line, and a quote left open continues onto the next line."""
     tokens, pending = [], ""
-    for line in without_heredoc_bodies(command):
+    for line in without_heredoc_bodies(unquote_dollar(command)):
         pending = pending + "\n" + line if pending else line
         lexer = shlex.shlex(pending.replace("`", " ; "), posix=True, punctuation_chars=True)
         lexer.whitespace_split = True
@@ -83,7 +86,7 @@ def is_pi_run(seg, i):
     """True when seg[i] is pi started on the agent path. Without a TTY pi reads all of standard input before it starts (pi 1.3.0, dist/main.js readPipedStdin) whatever the mode,
     so every pi run waits on it except the package commands (install, list, auth, ...) and the meta options (--help, --version, ...)."""
     rest = seg[i + 1:]
-    if os.path.basename(seg[i]) != "pi" or any(t in PI_META for t in rest):
+    if name_of(seg[i]) != "pi" or any(t in PI_META for t in rest):
         return False
     first = next((t for t in rest if not t.startswith("-")), None)
     return not (first in PI_SUBCOMMANDS and rest.index(first) == 0)
@@ -91,7 +94,7 @@ def is_pi_run(seg, i):
 
 def is_codex_exec(seg, i):
     """True when seg[i] is codex and its first sub-command is exec (not --help)."""
-    if os.path.basename(seg[i]) != "codex":
+    if name_of(seg[i]) != "codex":
         return False
     j = i + 1
     while j < len(seg) and seg[j].startswith("-"):
@@ -100,12 +103,12 @@ def is_codex_exec(seg, i):
 
 
 def codex_invocations(command, depth=0, closed=False):
-    if not AGENT.search(command):
+    if not AGENT.search(plain(command)):
         return
     try:
         tokens = tokens_of(command)
     except ValueError:
-        if (re.search(r"\bcodex\b", command) and re.search(r"\bexec\b", command)) or re.search(r"(?<![\w./-])pi(?![\w-])", command):
+        if (re.search(r"\bcodex\b", plain(command)) and re.search(r"\bexec\b", plain(command))) or re.search(r"(?<![\w./-])pi(?![\w-])", plain(command)):
             yield [], True
         return
     segments, cur, piped = [], [], False
@@ -121,17 +124,17 @@ def codex_invocations(command, depth=0, closed=False):
     for seg, piped_in in segments:
         if depth < 3:
             for token in seg:
-                if "$(" in token and AGENT.search(token):
+                if "$(" in token and AGENT.search(plain(token)):
                     yield from codex_invocations(token.replace("$(", " ; ").replace(")", " ; "), depth + 1, piped_in or closed)
         i = 0
         while i < len(seg):
             tok = seg[i]
             if ENV.match(tok) or tok in KEYWORDS:
                 i += 1
-            elif tok in WRAPPERS:
-                valued = WRAPPERS[tok]
+            elif tok.lower() in WRAPPERS:
+                valued = WRAPPERS[tok.lower()]
                 i += 1
-                while i < len(seg) and (seg[i].startswith("-") or ENV.match(seg[i]) or (tok == "timeout" and re.fullmatch(r"[0-9.]+[smhd]?", seg[i]))):
+                while i < len(seg) and (seg[i].startswith("-") or ENV.match(seg[i]) or (tok.lower() == "timeout" and re.fullmatch(r"[0-9.]+[smhd]?", seg[i]))):
                     i += 2 if seg[i] in valued else 1
             else:
                 break
@@ -141,9 +144,9 @@ def codex_invocations(command, depth=0, closed=False):
             yield seg[i + 1:], stdin_open(seg, piped_in or closed)
         elif is_pi_run(seg, i):
             yield None, stdin_open(seg, piped_in or closed)
-        elif depth < 3 and os.path.basename(seg[i]) in SHELLS:
+        elif depth < 3 and name_of(seg[i]) in SHELLS:
             for token in seg[i + 1:]:
-                if " " in token and AGENT.search(token):
+                if " " in token and AGENT.search(plain(token)):
                     yield from codex_invocations(token, depth + 1, piped_in or closed or any(t in REDIRECTS for t in seg))
 
 
