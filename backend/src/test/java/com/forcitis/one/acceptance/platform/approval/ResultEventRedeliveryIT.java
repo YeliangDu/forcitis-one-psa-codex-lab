@@ -82,7 +82,7 @@ class ResultEventRedeliveryIT extends P5Support {
         }
         assertThat(publicationsOf("event_publication", APPROVAL_COMPLETED, document)).as("the unacknowledged publication").hasSize(1);
 
-        incomplete.resubmitIncompletePublications(publication -> true);
+        incomplete.resubmitIncompletePublications(publication -> publication.getIdentifier().equals(publicationId));
 
         Awaitility.await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(100))
                 .until(() -> publicationsOf("event_publication", APPROVAL_COMPLETED, document).isEmpty());
@@ -94,16 +94,22 @@ class ResultEventRedeliveryIT extends P5Support {
         assertThat(after.stream().filter(found -> found.get("id").equals(publicationId)).findFirst().orElseThrow().get("completion_date")).isNotNull();
     }
 
+    private static long distinctEvents(List<Map<String, Object>> publications) {
+        return publications.stream().map(found -> JSON.readTree(found.get("serialized_event").toString()).path("envelope").path("eventId").asString()).distinct().count();
+    }
+
     @Test
-    @DisplayName("RULE-304：结果事件与决定同事务写入登记簿——任务办结后登记簿里已有该单据的 TaskHandled 与 ApprovalCompleted，各只一个事件")
-    void theDecisionAndItsResultEventsAreRegisteredTogether() throws Exception {
+    @DisplayName("RULE-304：任务办结后，登记簿里该单据按事件编号去重恰好有 1 个 TaskHandled 与 1 个 ApprovalCompleted，内容为通过（同事务写入的失败注入未做，此例只断言登记的事实）")
+    void theDecisionIsRegisteredAsExactlyOneTaskResultAndOneProcessResult() throws Exception {
         DocumentReference document = decidedByTheProjectManager();
 
         List<Map<String, Object>> handled = allPublicationsOf(TASK_HANDLED, document);
         List<Map<String, Object>> completed = allPublicationsOf(APPROVAL_COMPLETED, document);
-        assertThat(handled).as("the register holds the task result of the decision").isNotEmpty();
-        assertThat(completed).as("the register holds the process result of the decision").isNotEmpty();
-        assertThat(handled.stream().map(found -> found.get("serialized_event")).map(Object::toString).toList()).allSatisfy(json -> assertThat(json).contains("APPROVED"));
+
+        assertThat(distinctEvents(handled)).as("task results of the decision").isEqualTo(1);
+        assertThat(distinctEvents(completed)).as("process results of the decision").isEqualTo(1);
+        assertThat(handled.stream().map(found -> found.get("serialized_event").toString()).toList()).allSatisfy(json -> assertThat(json).contains("APPROVED"));
+        assertThat(completed.stream().map(found -> found.get("serialized_event").toString()).toList()).allSatisfy(json -> assertThat(json).contains("APPROVED"));
     }
 
     @Test

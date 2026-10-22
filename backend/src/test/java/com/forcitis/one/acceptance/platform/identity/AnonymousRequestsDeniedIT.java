@@ -67,7 +67,7 @@ class AnonymousRequestsDeniedIT extends AccountsAcceptanceSupport {
                 continue;
             }
             List<String> methods = info.getMethodsCondition().getMethods().stream().map(Enum::name).toList();
-            for (String method : methods.isEmpty() ? List.of("GET") : methods) {
+            for (String method : methods.isEmpty() ? List.of("GET", "POST", "PUT", "PATCH", "DELETE") : methods) {
                 for (String pattern : info.getPathPatternsCondition().getPatternValues()) {
                     String path = pattern.replaceAll("\\{[^/}]+\\}", UUID.randomUUID().toString());
                     if (seen.add(method + " " + path)) {
@@ -112,7 +112,6 @@ class AnonymousRequestsDeniedIT extends AccountsAcceptanceSupport {
         orgUnit(unit, null, null);
         UUID person = newEmployeeId();
         employee(person, unit, null);
-        grantByOperations(person, "super_admin");
         SignedIn someone = signIn(person);
         String forged = "{\"id\":\"" + someone.userId() + "\",\"userType\":2,\"tenantId\":1}";
 

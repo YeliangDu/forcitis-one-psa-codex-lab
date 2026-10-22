@@ -115,7 +115,8 @@ class TypedResultEventIT extends P5Support {
             assertThat(json).contains("APPROVED");
         });
         Awaitility.await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(100))
-                .until(() -> !registeredEnvelopes("TimesheetApproved").isEmpty());
+                .until(() -> registeredEnvelopes("TimesheetApproved").stream()
+                        .anyMatch(envelope -> envelope.path("aggregateId").asString().equals(timesheet.value().toString())));
     }
 
     @Test
@@ -131,9 +132,12 @@ class TypedResultEventIT extends P5Support {
 
         transaction.executeWithoutResult(status -> publisher.publishEvent(late));
 
-        Awaitility.await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(100)).until(() -> query("platform_integration",
-                "select 1 from event_publication_archive where event_type like '%.ApprovalCompleted' and serialized_event like ?",
-                "%" + envelope.eventId() + "%").size() >= 1);
+        // ApprovalCompleted has two listeners; the check is only meaningful after the timesheet's own listener has acknowledged this event.
+        Awaitility.await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(100)).until(() ->
+                !query("platform_integration", "select 1 from event_publication_archive where listener_id like '%ApplyApprovalResult%' and serialized_event like ?",
+                        "%" + envelope.eventId() + "%").isEmpty()
+                        && query("platform_integration", "select 1 from event_publication where completion_date is null and serialized_event like ?",
+                                "%" + envelope.eventId() + "%").isEmpty());
         assertThat(statusOf(timesheet)).as("the late rejection changed nothing").isEqualTo(TimesheetStatus.APPROVED);
     }
 

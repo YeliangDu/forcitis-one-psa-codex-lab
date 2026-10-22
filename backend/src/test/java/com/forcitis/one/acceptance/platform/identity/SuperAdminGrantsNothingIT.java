@@ -86,6 +86,14 @@ class SuperAdminGrantsNothingIT extends AccountsAcceptanceSupport {
         assertRefusedEverywhere(administrator, "ordinary session");
 
         assertThat(permissionsOf(administrator)).as("permissions of an ordinary session of a super_admin holder").doesNotContainAnyElementsOf(BUSINESS_PERMISSIONS);
+        UUID unit = newOrgUnitId();
+        orgUnit(unit, null, null);
+        UUID colleague = newEmployeeId();
+        employee(colleague, unit, null);
+        SignedIn withoutSuperAdmin = signIn(colleague);
+        assertThat(permissionsOf(administrator)).as("same filing, the only difference being the super_admin role: the same permissions")
+                .containsExactlyInAnyOrderElementsOf(permissionsOf(withoutSuperAdmin));
+        assertRefusedEverywhere(withoutSuperAdmin, "colleague without super_admin");
     }
 
     @Test
