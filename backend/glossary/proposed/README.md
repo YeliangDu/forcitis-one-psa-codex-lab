@@ -582,16 +582,12 @@ one-rules 规则卡 RULE-418～504 提到的待登记词（one-glossary 2026-10-
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
 | `content_digest` | 内容摘要 | ContentDigest | 领域 · platform.approval | 待审内容在提交审批时的指纹（列 approved_hash 的取值），用于核对审批的内容未被改动；与文件服务的内容哈希（platform.file）是两个概念，不同 bc |  | platform.approval.api 现有类型 ContentHash 与 platform.file 的 ContentHash 同名，改名交 platform.approval 会话 |
-| `binding` | 约束性 | Binding | 领域 · platform.approval | 审批意见对流程有约束力、会推进或终止流程；与「建议性」相对。one-rules 用「正式效力」，名词化后与建议性不成对，改用约束性 |  | one-rules 原写正式效力（binding effect），请确认改用约束性 |
 | `process_administrator` | 流程管理员 | ProcessAdministrator | 领域 · platform.approval | 负责审批流程兜底、取不到办理人时接手待办的管理角色 |  |  |
 | `operations_command` | 运维命令 | OperationsCommand | 领域 · platform.identity | 命令行的运维操作族（授予角色、撤销角色、登记应急管理员等），须有见证人，区别于界面发起的业务命令 |  |  |
 | `usable_emergency_admin` | 可用应急管理员 | UsableEmergencyAdmin | 领域 · platform.identity | 应急管理员中本身启用、所绑定账号启用且仍持有超级管理员的人 |  | 规则文件称 emergency account，沿用词表的应急管理员 |
 | `relaxation_mark` | 放宽标注 | RelaxationMark | 领域 · platform.identity | 单人运维放宽项生效时写入的审计记录（single-operator-mode.applied） |  |  |
 | `canonical_employee_id` | 规范员工标识 | CanonicalEmployeeId | 共享内核 · kernel | 员工标识的唯一文本形式（UUID 字符串），运维命令的 --employee-id 只接受它 |  |  |
-| `project_role` | 项目角色 | ProjectRole | 领域 · platform.identity | 人在项目上担任的角色，是数据范围的一个维度（法人 × 部门 × 项目角色） |  |  |
-| `identity_confirmation` | 身份确认 | IdentityConfirmation | 领域 · platform.identity | 外部票据登录后，本人确认「这个账号是我」的步骤；确认前会话无任何权限 |  |  |
 | `browser_identifier` | 浏览器标识 | BrowserIdentifier | 领域 · platform.identity | 身份确认后下发给浏览器的标识 cookie，用于识别是否新浏览器 |  |  |
-| `registrar` | 登记人 | Registrar | 领域 · platform.integration | 录入来源对照待确认行的人；确认人不得是登记人 |  | 规则文件称 Registrar / Recorder（录入人）；错误码已用「登记人」，录入人不用 |
 | `login_method` | 登录方式 | LoginMethod | 领域 · platform.audit | 本人登录记录里这次登录所用的方式 |  |  |
 | `login_outcome` | 登录结果 | LoginOutcome | 领域 · platform.audit | 本人登录记录里这次登录成功或失败的结果 |  |  |
 | `submitted_date` | 提交日 | SubmittedDate | 领域 · cost.timesheet | 员工提交工时单审批的业务日期（列 submitted_date，与工作日期是两件事） |  |  |
