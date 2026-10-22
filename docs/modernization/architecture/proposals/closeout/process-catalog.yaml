@@ -2328,6 +2328,18 @@ processes:
     human_orchestration: false
     bpmn: ~
     note: "main 中 organization.attendance 与 integration 均未见企业微信打卡接口代码。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）"
+  - id: PRC-201
+    name: "登记代发结果并补发薪酬"
+    type: business
+    stages: [VS-13.5]
+    stages_note: "VS-13.5 代发付款：登记代发结果使薪酬行到已实付，全部行已实付且应付已结清时推进月度薪酬结算到已发放（OBJ-73，VS-13.5 退出条件）；支付失败行经补发重入（ARC-1022-COO-06，people/PAYROLL_LINE_PAYMENT.md）"
+    primary_object: "OBJ-73"
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    note: "号由 one-architecture 分配（PRC_ALLOCATIONS.md，admission-file @ad261446）；owner_bc 写 B-15（薪酬结算 AGG-73 所在 BC），派工原文写 B-13，待 one-architecture 确认"
   - id: PRC-202
     name: "维护应收默认账期规则"
     type: single_aggregate

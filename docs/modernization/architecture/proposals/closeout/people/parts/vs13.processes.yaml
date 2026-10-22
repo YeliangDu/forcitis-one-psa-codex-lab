@@ -661,9 +661,9 @@ processes:
     human_orchestration: true
     human_note: 系统计算，薪酬岗提交审核，财务责任人审批，可退回重算（高风险，保留人审）
     migration: "历史月度薪酬结算（老系统算薪审核表与税金计算、工资条约 2.9 万行）按法人 × 月迁入为已发放 / 已过账结算，只迁结果与证据，不重算、不发事件、不重新过账（ADR-0036 M7）；在途月份按当前状态迁入通用审批"
-    scope: "按法人数据范围；薪酬行属敏感个人信息，仅人力薪酬岗与财务主管可见，员工只看本人工资条"
+    scope: "按法人数据范围；薪酬结算行属敏感个人信息，仅人力薪酬岗与财务主管可见，员工只看本人工资条"
     segregation:
-      - {roles: [SH-E6, SH-E6], rule: "提交审核者不得审批同一份结算（制单与审批分离，AR-11）；任何人不得审批含本人薪酬行的结算，含本人时由其上级审批（SH-E6 内部分岗：薪酬岗 / 财务主管）"}
+      - {roles: [SH-E6, SH-E6], rule: "提交审核者不得审批同一份结算（制单与审批分离，AR-11）；任何人不得审批含本人薪酬结算行的结算，含本人时由其上级审批（SH-E6 内部分岗：薪酬岗 / 财务主管）"}
     outcomes: [已批准, 待锁定, 已中止]
     scenarios: [PRC-124-S01, PRC-124-S02, PRC-124-S03, PRC-124-S04, PRC-124-S05, PRC-124-S06, PRC-124-S07, PRC-124-S08, PRC-124-S09, PRC-124-S10]   # S01 全部锁定后计算、提交、审批、批准、提交过账候选（全程）；S02 审批驳回退回重算；S03 有人员未锁定，待锁定；S04 缺薪酬档案或规则版本，已中止并告警；S05 审批 2 日无人处理升级；S06 提交人撤回审批；S07 薪酬岗核对异常清单后重算；S08 薪酬总额超阈值，加一级或两级（AR-01、AR-02）；S09 所属期间已关账，过账路由到开放期间并标原期间；S10 当月有补休到期未休或离职结算的补休余额，按加班工资基数 200% 计入加班费
     roles:
@@ -881,6 +881,103 @@ processes:
         outcome: 基数已调整
     notes: "申报方式用户未定（intent 2026-10-16-152603 只定“个税公司代扣代缴”），骨架先按 a) 画：系统生成申报数据，人工在外部申报端申报并回填回执（offline + 证据）。“生成申报”由人力手工改为系统自动（质检修订）；S-35：年度基数调整分支（步 7、8）承载 AGG-74 调整缴费基数，年度调整期由定时触发，办理在经办平台（offline 带回执），回填后出新参保版本；v1“申报端回执、更正申报无超时或退回分支，按非人工编排（⑥a 评审 M1）”保留。次要对象：OBJ-62 社保与公积金参保（年度基数调整分支产生新参保版本）。"
 
+  - id: PRC-201
+    name: 登记代发结果并补发薪酬
+    type: business
+    trigger:
+      type: human
+      desc: 财务收到银行代发回单后登记；有支付失败行时经更正工资卡账户发起补发
+    triggers:
+      - {type: human, name: "财务收到银行代发回单"}
+      - {type: human, name: "薪酬岗在员工更正工资卡账户后发起补发", entry: 4}
+    stages: [VS-13.5]
+    stages_note: "VS-13.5 代发付款：步 1、5 登记代发结果使薪酬结算行到已实付，全部行已实付且应付已结清时同一事务推进月度薪酬结算到已发放（OBJ-73，VS-13.5 退出条件）；支付失败行经步 2–4 补发后重入步 5（PAYROLL_LINE_PAYMENT.md，ARC-1022-COO-06）"
+    primary_object: OBJ-73
+    owner_bc: B-15
+    human_orchestration: true
+    human_note: 银行回单的事实登记与补发都不设人审，由守卫控制（回单逐行核对、补发金额等于原实发、补发截止日按工作日历计算）
+    migration: "历史薪酬按已发放迁入，薪酬结算行写一条 空 → 已实付 初始转换（ADR-0058 决定 8）；老系统失败与补发记录先取证再定，不推定"
+    scope: "薪酬结算行属敏感个人信息：财务职能人员只见本法人代发结果，薪酬岗见本法人薪酬结算行，员工只见本人"
+    segregation:
+      - {roles: [SH-E6, SH-E6], rule: "登记代发结果者（财务，持回单）与发起补发者（人力薪酬岗）不得为同一人"}
+    frequency_ref: 待取证（按法人 × 月一次登记；补发频次待取证）
+    outcomes: [已发放, 待应付结清, 已提醒]
+    scenarios: [PRC-201-S01, PRC-201-S02, PRC-201-S03, PRC-201-S04, PRC-201-S05, PRC-201-S06]
+    roles:
+      - {id: SH-E6, as: performer, org_needs: {responsibility: "按银行代发回单逐行登记代发结果（含银行退回日）", approval_right: "无", department_hint: "财务部", position_hint: "财务职能人员（出纳）"}}
+      - {id: SH-E6, as: initiator, org_needs: {responsibility: "支付失败行在员工更正工资卡后于补发截止日前发起补发；长假确实办不完时登记顺延并通知员工", approval_right: "无", department_hint: "人力资源部", position_hint: "人力资源职能人员（薪酬岗）"}}
+      - {id: SH-E3, as: informed, org_needs: {responsibility: "本人支付失败时更正工资卡账户；补发顺延时收到通知", approval_right: "无", department_hint: "员工所在部门", position_hint: "全体在职员工"}}
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "补发截止日到期未补发时收到提醒并督办", approval_right: "无", department_hint: "财务部", position_hint: "法人财务负责人"}}
+      - {id: SH-M1, as: informed, org_needs: {responsibility: "补发逾期超过 5 个工作日时收到升级提醒并督办", approval_right: "无", department_hint: "管理层", position_hint: "法人负责人（ROLE-26 总经理，按法人解析）"}}
+    steps:
+      - actor: SH-E6
+        where: in_system
+        command: 登记代发结果
+        aggregate: AGG-73
+        desc: 上传银行代发回单，逐行与薪酬结算行核对人员与实发金额，任一不符整批拒绝并列出差异；成功行到已实付，失败行到支付失败（失败原因、银行退回日必填）；根须为已批准；失败行同时算出补发截止日（见步 2）
+        permission: 薪酬代发结果.登记
+        page: 薪酬代发结果登记页
+        audit: true
+        effort: {typical_min: 15, p90_min: 60}
+        decision:
+          - {when: 有薪酬结算行支付失败, goto: 2, p: 0.1}
+          - {when: 全部薪酬结算行已实付且应付已结清, goto: end, outcome: 已发放, p: 0.6}
+          - {when: otherwise, goto: end, outcome: 待应付结清, p: 0.3}
+      - actor: system
+        where: automatic
+        command: 通知支付失败员工更正工资卡
+        platform_task: true
+        service: platform.notification
+        desc: >-
+          通知失败员工与薪酬岗，并经 platform.scheduling 按补发截止日登记到期提醒（幂等键：薪酬结算行 ID + 补发轮次 + 截止日）。
+          补发截止日（用户 FCQ-06，intent 2026-10-22-103824）：自银行退回日的次日起算 3 天，第 3 天为截止日；截止日遇节假日或休息日，提前到最近的工作日；
+          工作日按 ADR-0072 已确认的工作日历（AGG-68）判定，日历版本缺失时拒绝计算并告警。工资卡账户存放与更正位置待 U8（vs13.notes.md 接缝问题 3）。
+        notify:
+          - {to: SH-E3, how: 企业微信通知}
+          - {to: SH-E6, how: "企业微信待办（薪酬岗）；到期提醒：到期日 = 退回日次日起 3 天，遇节假日或休息日提前到最近工作日，到期未补发计入逾期统计（FCQ-06/07）"}
+          - {to: SH-E6, how: "到期提醒法人财务负责人：到期日 = 退回日次日起 3 天（同上）"}
+        timeout: {after: "到期后 5 个工作日", escalate_to: ROLE-26, interrupting: false}   # 仍未补发升级到法人负责人（ROLE-26 总经理，按法人解析）；与 ADR-0073 会签逾期链同一纪律（FCQ-07）
+        metric_event: true
+        decision:
+          - {when: 补发截止日落在长假内且确实无法在截止日前办完, goto: 3, p: 0.05}
+          - {when: otherwise, goto: 4, p: 0.95}
+      - actor: SH-E6
+        where: in_system
+        command: 登记薪酬补发顺延
+        aggregate: AGG-73
+        desc: 长假确实没法在 3 天内办完时可顺延：顺延截止日只能是长假前最后一个工作日或长假后第一个工作日（按工作日历），并必须通知员工；不满足则拒绝；顺延后仍未办完照常进逾期统计（FCQ-06）
+        permission: 薪酬补发.顺延
+        page: 薪酬代发结果登记页
+        audit: true
+        effort: {typical_min: 3, p90_min: 10}
+        notify: [{to: SH-E3, how: 企业微信通知（补发顺延及新截止日）}]
+      - actor: SH-E6
+        where: in_system
+        command: 发起薪酬补发
+        aggregate: AGG-73
+        emits: [薪酬补发已发起]
+        desc: 员工工资卡已更正后于补发截止日（或顺延截止日）前发起补发，补发金额等于原实发，不重算；薪酬结算行 支付失败 → 待支付；PRC-126 第 2 步据此调 B-10「登记薪酬补发明细」，在原应付上挂补发明细（不新建应付），由 PRC-75 付清；截止日后才发起的照常补发，但该行已计入逾期统计
+        permission: 薪酬补发.发起
+        page: 薪酬代发结果登记页
+        audit: true
+        effort: {typical_min: 5, p90_min: 15}
+        cross_bc:
+          - {mode: event, direction: out, bc: B-15, name: 薪酬补发已发起}
+      - actor: SH-E6
+        where: in_system
+        command: 登记代发结果
+        aggregate: AGG-73
+        desc: 登记补发回单；最后一行已实付且应付已结清时同一事务推进根到已发放；补发成功即取消该行的到期提醒
+        permission: 薪酬代发结果.登记
+        page: 薪酬代发结果登记页
+        audit: true
+        effort: {typical_min: 5, p90_min: 15}
+        decision:
+          - {when: 有薪酬结算行支付失败, goto: 2, p: 0.05}
+          - {when: 全部薪酬结算行已实付且应付已结清, goto: end, outcome: 已发放, p: 0.8}
+          - {when: otherwise, goto: end, outcome: 待应付结清, p: 0.15}
+    notes: "ARC-1022-COO-06；one-architecture 给号 PRC-201（PRC_ALLOCATIONS.md）。补发时限与提醒按用户 FCQ-06/07（intent 2026-10-22-103824）。待应付结清时由 PRC-127 收到应付已结清后推进根。已实付后银行再退票不建模（J-4，出现首例再开卡）。"
+
 event_policies:
 
   - id: PRC-113
@@ -921,32 +1018,49 @@ event_policies:
       type: event
       events:
         - {event: 薪酬已批准, aggregate: AGG-73}
+        - {event: 薪酬补发已发起, aggregate: AGG-73}
+        - {event: 付款已部分退回, aggregate: AGG-53}
     triggers:
       - {type: event, name: "薪酬已批准（同 BC）"}
+      - {type: event, name: "薪酬补发已发起（同 BC，PRC-201 第 3 步）", entry: 2}
+      - {type: event, name: "付款已部分退回（B-10 发布；重发此前因退回款未登记被拒的补发明细）", entry: 2}
     stages: [VS-13.5]
     stages_note: "VS-13.5：触发状态「已批准」（OBJ-73）是 VS-13.5 的进入条件，本策略提交应付薪酬正是 VS-13.5「提交应付薪酬、代发付款」的第一步，结局应付已确认导向 VS-13.5 退出「已结清」；不归 VS-13.4——VS-13.4 申报缴纳与应付无关，同为「已批准」进入只是字面重合；原挂 VS-13.3（触发状态所在段的退出）按 #421 第 6a 项改（2026-10-16）"
     primary_object: OBJ-85
     owner_bc: B-15
     migration: "历史薪酬的应付（老系统付款申请单-人事约 1.5 千行）作为已结清应付迁入，只迁结果与证据；迁入不触发（ADR-0036 M7）"
-    outcomes: [应付已提交]
-    scenarios: [PRC-126-S01, PRC-126-S02]   # S01 薪酬批准后提交法人 × 月一笔实发合计；S02 重复触发幂等不重复提交
+    outcomes: [应付已提交, 补发明细已登记, 待退回到账]
+    scenarios: [PRC-126-S01, PRC-126-S02, PRC-126-S03, PRC-126-S04]   # S01 批准后提交合计；S02 重复触发幂等；S03 退回款未登记被拒后重发
     roles:
-      - {id: SH-E6, as: informed, org_needs: {responsibility: "财务知悉待付清单出现应付薪酬，按付款流程办理", approval_right: "无", department_hint: "财务部", position_hint: "出纳、应付会计"}}       # 财务：待付清单出现应付薪酬
-    step:
-      actor: system
-      where: automatic
-      command: 提交应付薪酬
-      aggregate: AGG-52
-      emits: [应付已确认]
-      desc: 法人 × 月一笔实发合计，按来源单据 ID 幂等；之后走 PRC-75“发起、审批并执行付款”（B-10）；P-40 每月至少一次支付工资（工资支付暂行规定第七条）；代发明细（员工 × 账户 × 金额）如何随付款交给银行见 notes 接缝问题 3
-      audit: true
-      legal_entity: 薪酬法人（发薪法人）
-      decision:
-        - {when: 该薪酬结算已提交过应付, goto: end, outcome: 应付已提交}
-        - {when: otherwise, goto: end, outcome: 应付已提交}
-      cross_bc:
-        - {mode: api, direction: out, bc: B-10, name: 提交应付薪酬}
-    notes: 应付薪酬类型由 B-10 的 AGG-52 承载；付款、核销见 PRC-75、PRC-131、PRC-132（B-10，财务组），本组只写接缝。
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "财务知悉待付清单出现应付薪酬或补发明细，按付款流程办理", approval_right: "无", department_hint: "财务部", position_hint: "出纳、应付会计"}}       # 财务：待付清单出现应付薪酬
+    steps:
+      - actor: system
+        where: automatic
+        command: 提交应付薪酬
+        aggregate: AGG-52
+        emits: [应付已确认]
+        desc: 薪酬已批准时提交法人 × 月一笔实发合计（新建应付），按薪酬结算 ID 幂等；之后走 PRC-75“发起、审批并执行付款”（B-10）；P-40 每月至少一次支付工资（工资支付暂行规定第七条）；代发明细（员工 × 账户 × 金额）如何随付款交给银行见 notes 接缝问题 3
+        audit: true
+        legal_entity: 薪酬法人（发薪法人）
+        decision:
+          - {when: 该薪酬结算已提交过应付, goto: end, outcome: 应付已提交}
+          - {when: otherwise, goto: end, outcome: 应付已提交}
+        cross_bc:
+          - {mode: api, direction: out, bc: B-10, name: 提交应付薪酬}
+      - actor: system
+        where: automatic
+        command: 登记薪酬补发明细
+        aggregate: AGG-52
+        desc: 薪酬补发已发起时，在原应付薪酬上登记补发明细（已部分结清 → 已部分结清，不新建应付；补发金额等于原实发），由 PRC-75 付清代发退回后恢复的未结余额；守卫：累计补发额不超过累计冲回额，退回款（AGG-53 登记代发退回）未登记的拒收并告警；收到付款已部分退回后重发此前被拒的补发明细；幂等键：薪酬结算行 ID + 补发轮次（one-arch-finance @1565ca88，one-architecture 2026-10-22 定稿 J-1、J-3）
+        audit: true
+        legal_entity: 薪酬法人（发薪法人）
+        notify: [{to: SH-E6, how: 企业微信待办}]      # 被拒时提醒薪酬岗与出纳
+        decision:
+          - {when: 补发因退回款未登记被拒, goto: end, outcome: 待退回到账}
+          - {when: otherwise, goto: end, outcome: 补发明细已登记}
+        cross_bc:
+          - {mode: api, direction: out, bc: B-10, name: 登记薪酬补发明细}
+    notes: 应付薪酬由 B-10 的 AGG-52 承载；补发不新建应付，挂原应付补发明细；付款、核销、代发退回见 PRC-75、PRC-131、PRC-132（B-10，财务组），本组只写接缝。
 
   - id: PRC-127
     name: 标记薪酬已发放
@@ -971,7 +1085,7 @@ event_policies:
       command: 标记薪酬已发放
       aggregate: AGG-73
       emits: [薪酬已发放]
-      desc: 退票时付款已失败，薪酬保持已批准，重入付款；已发放与事实已过账两个条件任一后到者触发置已过账
+      desc: 应付已结清且全部薪酬结算行已实付才置已发放；有支付失败行时保持已批准，待补发登记成功后由「登记代发结果」同一事务推进（PAYROLL_LINE_PAYMENT.md）；已发放与事实已过账两个条件任一后到者触发置已过账
       audit: true
       notify: [{to: SH-E3, how: 企业微信通知（工资条可查看）}]
       decision:
@@ -1003,7 +1117,7 @@ event_policies:
       where: automatic
       command: 标记薪酬已过账
       aggregate: AGG-73
-      desc: 按来源单据 ID 取薪酬行；已发放与事实已过账两个条件任一后到者触发（符合性审查 断链 7）
+      desc: 按来源单据 ID 取薪酬结算行；已发放与事实已过账两个条件任一后到者触发（符合性审查 断链 7）
       audit: true
       decision:
         - {when: 薪酬尚未发放, goto: end, outcome: 待发放后再置位}

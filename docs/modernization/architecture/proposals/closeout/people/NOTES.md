@@ -41,7 +41,7 @@
 
 1. **审批结果回调与取消**：B-15、B-27 → `platform.approval` 在 §4.1 只登记 `api`，而审批通过 / 驳回要回到业务聚合（批准请假、批准加班、批准薪酬等）；平台不能依赖业务模块，只能由业务 BC 订阅平台事件，边需补「事件」方式，事件名〔缺〕「审批已通过」「审批已驳回」。另需平台提供「取消审批实例」（审批中撤销请假，PRC-116 步骤 8）。PRC-116、117、121、124 均受影响。
 2. **定时触发的边**：PRC-115（每日）、118（月末与确认期限届满）、120（评估期末）、125（申报期提醒）都靠 `platform.scheduling`，B-27、B-13、B-15 → `platform.scheduling` 在 §4.1 无登记（STEP6A G-04 未处理）；yaml 不写 cross_bc，待统一约定。
-3. **代发：员工银行账户与 B-10 收款方**：B-10 的 AGG-53 收款方只引用 AGG-01 往来单位的银行账户（INV-80），应付薪酬（AGG-52）是法人 × 月一笔合计，没有“员工 × 账户 × 金额”的代发明细。代发明细在 B-15（AGG-73 薪酬行），但 B-10 不能依赖 B-15（B-15 → B-10 已有，反向成环）。选项：① B-15 提交应付薪酬时把代发明细作为附件引用随 api 参数交给 B-10，由付款执行时生成银行代发文件；② 代发文件由 B-15 生成，B-10 只付一笔合计给代发银行（往来单位账户，符合 INV-80），员工到账由银行代发；③ 员工作为 AGG-01 的个人往来单位登记银行账户（与薪酬档案账户重复，且个人信息扩散）。员工银行账户（SENSITIVE）放在 AGG-93 还是 B-13 也待定。建议 ②，代价最小，但退票按人处理见结构问题 2。
+3. **代发：员工银行账户与 B-10 收款方**：B-10 的 AGG-53 收款方只引用 AGG-01 往来单位的银行账户（INV-80），应付薪酬（AGG-52）是法人 × 月一笔合计，没有“员工 × 账户 × 金额”的代发明细。代发明细在 B-15（AGG-73 薪酬结算行），但 B-10 不能依赖 B-15（B-15 → B-10 已有，反向成环）。选项：① B-15 提交应付薪酬时把代发明细作为附件引用随 api 参数交给 B-10，由付款执行时生成银行代发文件；② 代发文件由 B-15 生成，B-10 只付一笔合计给代发银行（往来单位账户，符合 INV-80），员工到账由银行代发；③ 员工作为 AGG-01 的个人往来单位登记银行账户（与薪酬档案账户重复，且个人信息扩散）。员工银行账户（SENSITIVE）放在 AGG-93 还是 B-13 也待定。建议 ②，代价最小，但退票按人处理见结构问题 2。
 4. **股息红利个税扣缴额须在支付前确定**：PRC-113 订阅“利润分配已支付”，此时钱已付；个税应在支付时代扣，实付给自然人股东的是税后金额，B-10 在提交应付利润时就要知道扣缴额，但 B-10 不得读 B-15（反向成环）。选项：在 AGG-109 的分配行上由 B-10 按股东类型和法定税率算出代扣额并随事件带给 B-15；或扣缴额由 B-15 在“利润分配已决议”（现为仅分析）时计算，再由 B-10 经 api 读取——后者需 B-10 → B-15 边，不可。建议前者；税率 20% 见个人所得税法第三条〔高〕，是否按股东类型分别处理交财务。
 5. **缴款资金与银行流水**：AGG-95 只“登记缴款”，缴款凭证与银行流水（B-22 AGG-88）的对账无引用；B-22 不能引用 B-15。个税与社保公积金多由银行三方协议扣款〔中〕，流水对账归 B-22 的匹配规则，需 one-architecture 定是 B-22 订阅“个税与社保公积金申报已提交”还是 B-15 经 api 读取流水。
 6. **企业微信成员到人员的对照位置**：PRC-115 步骤 1 假定来源对照在 `platform.integration`（NOTES 数据接缝 3 已提，D16 外部 ID 只作来源对照，userid 不留在 `employees`），B-27 → `platform.integration` api 可解析；若对照放在 `platform.identity`，B-27 无到它的边。请确认拉取适配器由 integration 调 B-27 写入还是 B-27 调 integration 拉取（本稿按后者，方向合乎 B-27 → integration）。
@@ -206,7 +206,7 @@
 ### VS-13 薪酬类聚合收敛
 
 1. **数据模型状态列需回填**：本稿新增的状态取值（交 one-data 写回 `data-model.people.yaml`）：AGG-73「已退回」（草稿不用，计算创建即为已计算）；AGG-74「在缴、已减员」；AGG-75「草稿、已批准、已撤回」（数据模型为编制 → 审批 → 生效 → 结束）；AGG-76「已驳回」；AGG-93 版本「生效、已结束」与扣除声明「有效、已取代」；AGG-95「已更正」；薪酬规则版本「草稿、已生效、已结束」。
-2. **AGG-76「已发放」无命令**：数据模型状态列为「草拟 → 已核定 → 已发放」，且说明「已发放由 AGG-73 批准后事件置位」，但聚合稿 AGG-76 只有核定奖金一个命令，流程里也没有置位步骤或事件策略。本稿不自造命令，状态机只到已核定（暂作终态）。建议 one-architecture 增事件策略「薪酬批准后标记奖金已发放」（订阅薪酬已批准，按薪酬行里的奖金核定引用 `bonus_determination_id` 置位），并加命令〔缺〕标记奖金已发放；补上后已核定变为非终态。
+2. **AGG-76「已发放」无命令**：数据模型状态列为「草拟 → 已核定 → 已发放」，且说明「已发放由 AGG-73 批准后事件置位」，但聚合稿 AGG-76 只有核定奖金一个命令，流程里也没有置位步骤或事件策略。本稿不自造命令，状态机只到已核定（暂作终态）。建议 one-architecture 增事件策略「薪酬批准后标记奖金已发放」（订阅薪酬已批准，按薪酬结算行里的奖金核定引用 `bonus_determination_id` 置位），并加命令〔缺〕标记奖金已发放；补上后已核定变为非终态。
 3. **薪酬规则版本维护流程（S-43 已解）**：原先发布薪酬规则版本没有流程步骤；S-43 裁定新增 PRC-180「发布薪酬规则版本」（B-15 单聚合维护，AGG-119，VS-13.3）与 INV-139「薪酬规则版本生效区间不重叠」，命令不再标 unused_ok，PRC-124 第 1 步 reads 补 AGG-119、AGG-120。规则版本由谁编制谁确认仍见 U7③。AGG-119 状态机标 perpetual，旧版本被后继取代置「已被取代」（原「已结束」改名，口径同 AGG-118）。
 4. **AGG-73 缺冲销与补发补扣的命令**：数据模型有「结算类型（正常 / 冲销）」「冲销的原结算」和「更正」类行项目，分片结构问题 2② 也提了补发补扣行，但聚合稿 AGG-73 命令列、流程步骤都没有对应命令（冲销已批准结算、锁定后更正、追溯调薪）。本稿不造命令；影响是：调整薪酬档案的生效日早于已批准月份时，对该月的影响无处落地，当前只记新版本、不改已批准结算。代发个别退票的部分失败同样无命令（分片结构问题 2④）。
 5. **AGG-95 并入与更正的边界**：① 并入扣缴申报时若所属期个税申报已是「已申报」，本稿让命令失败并告警（不静默），实际应并入下一期还是走更正申报，要财务定（涉及股息红利的申报所属期，分片结构问题 11）；② 更正申报只允许从「已申报」发起（PRC-125 步 4 的出口），已缴款后发现差错无命令路径，待 U1、U2 定申报方式后再补；③ 三类申报（个税、社保、公积金）各一条申报行，「个税与社保公积金申报已提交」要等三类都到已申报才发，需要在命令里查同期兄弟行，请 one-architecture 确认放在命令内还是事件策略。
@@ -225,7 +225,7 @@
 2. 规则版本是否一类一表：本稿用一个 `payroll_rule_versions`（带规则类别）+ 四张子表，一版本只含一类，使个税法修订与各地社保年度调整可独立生效。备选：四类各自一个根（四个聚合）。推荐前者；请 one-architecture 与 one-data 确认。
 3. 迁入历史结算无规则版本：全部历史迁入但无法复算，历史结算行、项目行只迁结果，所用版本引用留空并标「迁入结果」。D7 要求用到可配置规则时记版本 ID，此处是迁入行的例外，需 one-data 确认不违反守护；备选：给迁入行一条「迁入占位规则版本」。
 4. 专项附加扣除拆表：声明（年度）+ 明细两表，放 AGG-93。明细含受益人（含未成年子女）信息，个人信息保护法第 28 条明列未成年人信息为敏感；是否抽到独立表、独立访问级别，交 U-11 与 one-data。
-5. AGG-73 的聚合边界：薪酬行与项目行同聚合（单据、次级），一法人一月可达数百至千行，批准前整体修改；若行数使乐观锁冲突频繁，需拆「按人员的计算」子聚合。现按全貌级保持一个聚合，规模待 one-data 评估（NAMING_STANDARD §2.4a 第 8 条）。
+5. AGG-73 的聚合边界：薪酬结算行与项目行同聚合（单据、次级），一法人一月可达数百至千行，批准前整体修改；若行数使乐观锁冲突频繁，需拆「按人员的计算」子聚合。现按全貌级保持一个聚合，规模待 one-data 评估（NAMING_STANDARD §2.4a 第 8 条）。
 6. AGG-73 的发放登记：`payroll_settlements` 内含发放日与银行回单引用；标记薪酬已发放为聚合命令。若银行代发需要批次与退票粒度（退票时付款失败、薪酬保持已批准，聚合稿阶段 6），可能要独立「代发批次」次级表，待待用户定 5。
 7. AGG-95 的「更正」：用自引用 `corrects_filing_id` 另立申报，而非原申报加更正行；与聚合稿「申报、缴款、更正」三类一致，请确认。
 8. AGG-75 的个人额度：方案版本额度到法人 / 组织单元，不到个人；个人额度即 AGG-76 的核定金额。若方案需提取比例累计（销售提成）跨期结转，需另立累计表，待方案梳理。
@@ -284,8 +284,8 @@
 | 变更任职、任职变更生效 | ChangeAssignment、TakeAssignmentChangeEffect | 命令 | 领域 | organization.workforce | 前者原子关旧开新，后者到业务生效日发任职已变更 |
 | 转正已办理 | ProbationConfirmed | 事件 | 领域 | organization.workforce | 供 B-15 复核转正后薪酬 |
 | 指定法人归属、法人归属已变更 | AssignLegalEntityAttribution、LegalEntityAttributionChanged | 命令、事件 | 领域 | organization.workforce | AGG-117 已建，名称以代码为准 |
-| 终止法人归属 | EndLegalEntityAttribution | 命令 | 领域 | organization.workforce | AGG-117 已建代码；事件「法人归属已结束」词表已有；PRC-80 步 13（2026-10-21 补） |
-| 更正法人代码 | （已建代码 UpdateLegalEntity 的代码更正分支，无独立英文名，待 one-glossary） | 命令 | 领域 | organization.workforce | AGG-60，仅未发号前（INV-59）；PRC-80 步 14（2026-10-21 补） |
+| 结束法人归属 | EndLegalEntityAttribution | 命令 | 领域 | organization.workforce | one-glossary 定名（PR #572），原拟「终止法人归属」；AGG-117 已建代码；事件「法人归属已结束」词表已有；PRC-80 步 13（2026-10-21 补） |
+| 更正法人主体代码 | CorrectLegalEntityCode（one-glossary 定名（PR #572）；事件「法人主体代码已更正」） | 命令 | 领域 | organization.workforce | AGG-60，仅未发号前（INV-59）；PRC-80 步 14（2026-10-21 补） |
 | 重算默认角色与数据范围 | RecalculateDefaultGrants | 命令（事件反应） | 共享内核 | platform.identity | 任职已变更触发 |
 | 停用登录身份 | DisableLoginIdentity | 命令 | 共享内核 | platform.identity | 已见 PROCESS_SKELETONS 第 5 节 |
 | 删除全部角色授予 | RevokeAllRoleGrants | 命令 | 共享内核 | platform.identity | ADR-0027 第 1 项第 6 点 |
@@ -439,6 +439,15 @@
 | 核定奖金 | determine_bonus | 领域 | organization.payroll | AGG-76 命令 |
 | 奖金核定审批 | bonus_determination_approval | 领域 | organization.payroll | 审批单据类型 |
 | 计算月度薪酬 | calculate_monthly_payroll（建议，待 one-glossary） | 领域 | organization.payroll | AGG-73 命令；中文名按 N7 定稿（NM6-08#2），原名「计算」 |
+| 登记代发结果 | RegisterPayrollDisbursementResult（one-glossary 定名（PR #572）） | 领域 | organization.payroll | AGG-73 命令，薪酬结算行 待支付 → 已实付 / 支付失败（ARC-1022-COO-06，PAYROLL_LINE_PAYMENT.md） |
+| 发起薪酬补发 | InitiatePayrollRedisbursement（one-glossary 定名（PR #572）） | 领域 | organization.payroll | AGG-73 命令，薪酬结算行 支付失败 → 待支付；发「薪酬补发已发起」 |
+| 登记薪酬补发明细 | （finance 组提议，AGG-52） | 领域 | payables.payment | B-10 命令，本组 PRC-126 第 2 步调用；名称以 finance 组登记为准（@1565ca88） |
+| 登记薪酬补发顺延 | （建议 RegisterPayrollRedisbursementExtension，待 one-glossary） | 领域 | organization.payroll | AGG-73 命令，长假顺延补发截止日（FCQ-06） |
+| 补发截止日 | （建议 redisbursement_due_date，待 one-glossary） | 领域 | organization.payroll | 银行退回日次日起 3 天、遇非工作日提前（FCQ-06） |
+| 通知支付失败员工更正工资卡 | （平台通知任务，不是聚合命令） | 领域 | organization.payroll | PRC-201 第 2 步，经 platform.notification；one-glossary 判为通知文案，不登记术语 |
+| 待支付、已实付、支付失败 | PendingPayment / Paid / PaymentFailed（one-glossary 定名（PR #572），暂定随用户认可） | 领域 | organization.payroll | 薪酬结算行支付状态，OBJ-73 key_states 原文 |
+| 薪酬代发结果已登记、薪酬补发已发起 | PayrollDisbursementResultRegistered、PayrollRedisbursementInitiated（one-glossary 定名（PR #572），以 PR #572 为准） | 领域 | organization.payroll | AGG-73 事件；后者 B-10 订阅 |
+| 薪酬结算行（转换主体类型码） | PayrollSettlementLine（one-glossary 定名（PR #572）；原称「薪酬行」） | 领域 | organization.payroll | ADR-0075 子实体 aggregate_type_code |
 | 提交薪酬审核 | submit_payroll_for_review | 领域 | organization.payroll | AGG-73 命令，薪酬岗提交；中文名按 N7 定稿（NM6-08#3） |
 | 薪酬审核 | payroll_review | 领域 | organization.payroll | 审批步骤任务名，单据类型见下一行 |
 | 月度薪酬审核 | monthly_payroll_review_approval | 领域 | organization.payroll | 审批单据类型 |
@@ -507,7 +516,7 @@
 | 中文名 | 建议英文名 | 使用范围 | bc | 说明 |
 |---|---|---|---|---|
 | 月度薪酬结算 | payroll_settlement | 领域 | organization.payroll | 聚合稿 AGG-73；词表查无 |
-| 薪酬行 | payroll_settlement_line | 领域 | organization.payroll | 聚合稿「人员薪酬行（工资条是单据）」；「工资条」是对员工的展示单据，不另登记聚合 |
+| 薪酬结算行 | payroll_settlement_line（PayrollSettlementLine，one-glossary 定名（PR #572），原称「薪酬行」） | 领域 | organization.payroll | 聚合稿「人员薪酬行（工资条是单据）」；「工资条」是对员工的展示单据，不另登记聚合 |
 | 薪酬项目行 | payroll_line_item | 领域 | organization.payroll | 计算明细 |
 | 参保 | insurance_enrollment | 领域 | organization.payroll | AGG-74；表名 SAMPLE 已定 |
 | 激励方案 / 激励方案版本 | incentive_plan / incentive_plan_version | 领域 | organization.payroll | AGG-75 |
@@ -875,7 +884,7 @@ PRC-181 / PRC-182 新增（均为领域用语，bc operations.planning；PRC-182
 
 **U13 敏感权限的颗粒度与授予**（新）：本稿判 true 的 11 条（提交审核、批准、退回薪酬重算、参保增员、草拟奖金核定、核定奖金、驳回奖金核定、建立薪酬档案、调整薪酬档案、提交申报、更正申报）对应用户点名的薪酬查看、调薪、发薪账户三类权限。依据 ADR-0032 第 2 项第 4 条把薪酬与日薪等 L3 敏感读资源登记为双人逐人，只授给人；请确认两点：① 审批人（财务责任人、被核定人所在组织单元负责人）看审批页里的薪酬明细，是否也须逐人授予薪酬查看权限（本稿判是；若走「参与审批即可读」，须 ADR-0026 的审批参与访问另行规定，该机制在 1b 之后）；② 绩效评估与专项附加扣除是 SPI 但不在 ADR-0032 首批登记资源内，是否升为双人逐人（本稿判 false，交 one-rules 复核）。
 
-**U14 奖金已发放的置位方式**（新）：见结构问题 2，选事件策略置位（推荐）还是由薪酬行引用查询得出（不存状态，已核定即终态）。
+**U14 奖金已发放的置位方式**（新）：见结构问题 2，选事件策略置位（推荐）还是由薪酬结算行引用查询得出（不存状态，已核定即终态）。
 
 ### B-15 薪酬表
 
