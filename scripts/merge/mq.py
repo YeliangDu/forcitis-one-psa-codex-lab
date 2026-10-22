@@ -27,13 +27,17 @@ Outcomes: MERGED, CONFLICT (text conflict with main: back to the author), HOLD (
 Pause. Before taking a pull request, and again right before a merge, the queue looks at main's push runs and nightly (schedule) runs of the ci workflow: the verdict run is the newest one that has ended and was not
 cancelled (a push run is cancelled by the next push, so the newest run alone says nothing). A red verdict pauses both lanes (PAUSED in the log, file <queue dir>/mq.paused) until `mq.py resume <run id>...`; the resume
 acknowledges exactly the runs named, so the same red run does not pause again, a new red run does. When gh cannot answer, the lanes wait without a pause file (WAIT-SIGNAL).
-Priority. While a code pull request is in its final CI (up to date with main, label on), the docs lane does not merge (WAIT-CODE-LANE): a docs merge would make that pull request stale again, and a 3 minute docs lane
-would starve a 14 minute code lane. One `mq.py run` or `once` per queue (flock on mq.runner.lock); the ssh update of two lanes never shares its scratch worktree (flock on <queue>.ssh-lock). A push to main runs the light steps and every container-free
+Docs merges and code pull requests. A docs pull request (tier=docs: nothing a build or test reads) that merges while a code pull request is in its CI does not make that one stale: the code pull request is counted as up to date
+and merges on the CI it already has (no BEHIND-AT-MERGE, no new run), so the docs lane never waits for the code lane. That rests on relevant_change.py, whose self-test fails when a build or test reads a doc it does not list.
+Main checkout (FF-MAIN). After every merge the queue fetches and fast-forwards the main checkout (the repository root, not a worktree) to origin/main, so the hooks and scripts there never run old versions.
+It does so only when that checkout is on main, has no change to a tracked file and no commit origin/main lacks; otherwise it leaves it alone, logs ALERT and pauses both lanes until `mq.py resume` (without run ids) after a person has looked. One `mq.py run` or `once` per queue (flock on mq.runner.lock); the ssh update of two lanes never shares its scratch worktree (flock on <queue>.ssh-lock). A push to main runs the light steps and every container-free
 unit test (ci.yml), the nightly the full ci: together they are the alarm for a merge whose tree no full run tested exactly as merged.
 
-Queue file: one pull request number per line, anything else is kept as it is. Every change goes through flock on <queue>.lock and an atomic replace (temporary file, then rename), so an enqueue can no longer be
+Queue file: one pull request number per line, optionally "<n> after=<m>[,<m>...]" (`mq.py enqueue <n> --after <m>`: n is not started until every m is MERGED, whatever lane either is in; WAIT-DEP in the log
+while it waits and again every hour, HOLD when a dependency was closed unmerged (also when a merge train closed it: the content is in main, the message is only about the state; the dependent then goes back with `enqueue` without --after);
+`once <n>` does not look at dependencies; after deploying this version restart the running runner first: an older runner does not understand "after=" lines and never starts them, and its enqueue would drop the dependency; a dependency cycle is refused at enqueue), anything else is kept as it is. Every change goes through flock on <queue>.lock and an atomic replace (temporary file, then rename), so an enqueue can no longer be
 lost to the runner removing a finished entry (a raw `echo n >> merge.queue` or `sed -i` outside this script is not safe). Log: one line per event,
-"<ISO time> <EVENT> pr=#<n> run=<ci run id or -> elapsed=<seconds since the pull request was taken>s <detail>", appended to <queue dir>/merge.log and echoed. A failing runner step is logged as ERROR and retried
+"<ISO time> <EVENT> pr=#<n> run=<ci run id or -> elapsed=<seconds since the pull request was taken>s [lane=code|docs] <detail>" (lane= once the lane of the pull request is known), appended to <queue dir>/merge.log and echoed. A failing runner step is logged as ERROR and retried
 with a growing pause; the third failure in a row puts the pull request on HOLD and takes it out of the queue.
 """
 import argparse
@@ -56,7 +60,7 @@ REQUIRED = ("backend verify", "frontend verify", "secret scan")
 # ci.yml's step that runs the pull request's new or changed test classes again (scripts/ci/repeat_new_tests.py): red there is a flaky new test, and a rerun that passes would let it in
 REPEAT_STEP = "new or changed test classes, repeated"
 OK = ("pass", "skipping")
-LINE = re.compile(r"^\s*(\d+)\s*$")
+LINE = re.compile(r"^\s*(\d+)(?:\s+after=([\d,]+))?\s*$")   # "<n>" or "<n> after=<m>[,<m>...]": n waits until every m is merged
 LANES = ("code", "docs")
 FAILING = ("failure", "timed_out", "startup_failure")
 
@@ -78,10 +82,13 @@ class Log:
         self.now = now or (lambda: datetime.datetime.now().astimezone())
         self.lines = []
         self.lock = threading.Lock()
+        self.lanes = {}   # pull request -> lane, set when a worker takes it; its events then say which lane they belong to
 
     def event(self, ev, pr=None, run=None, since=None, detail=""):
         started = since if since is not None else time.monotonic()
         line = f"{self.now().isoformat(timespec='seconds')} {ev} pr=#{pr if pr is not None else '-'} run={run if run else '-'} elapsed={max(0, int(time.monotonic() - started))}s"
+        if pr in self.lanes:
+            line += f" lane={self.lanes[pr]}"
         line += f" {' '.join(str(detail).split())[:400]}" if detail else ""
         with self.lock:
             self.lines.append(line)
@@ -133,16 +140,53 @@ class Queue:
         with self.locked():
             return [int(m.group(1)) for l in self._read() if (m := LINE.match(l))]
 
-    def enqueue(self, *prs):
+    def deps(self, n):
+        """The pull requests that must be merged before n is started."""
+        with self.locked():
+            for l in self._read():
+                if (m := LINE.match(l)) and int(m.group(1)) == n:
+                    return {int(x) for x in (m.group(2) or "").split(",") if x}
+        return set()
+
+    @staticmethod
+    def _entry(n, after):
+        return f"{n} after={','.join(str(x) for x in sorted(after))}" if after else str(n)
+
+    def enqueue(self, *prs, after=()):
+        """Queue prs (once each); `after`: pull requests each of them waits for. Already queued with a new dependency: the dependencies are added. A self-dependency or a cycle is refused (ValueError)."""
+        after = set(after)
         added = []
         with self.locked():
             lines = self._read()
+            graph = {int(m.group(1)): {int(x) for x in (m.group(2) or "").split(",") if x} for l in lines if (m := LINE.match(l))}
             for n in prs:
-                if not any((m := LINE.match(l)) and int(m.group(1)) == n for l in lines):
-                    lines.append(str(n))
+                if n in after:
+                    raise ValueError(f"#{n} cannot wait for itself")
+                merged = graph.get(n, set()) | after
+                if any(self._reaches(graph, m, n) for m in merged):
+                    raise ValueError(f"#{n} after {sorted(after)} would make a dependency cycle")
+                graph[n] = merged
+            for n in prs:
+                at = next((i for i, l in enumerate(lines) if (m := LINE.match(l)) and int(m.group(1)) == n), None)
+                if at is None:
+                    lines.append(self._entry(n, after))
                     added.append(n)
+                elif after:
+                    lines[at] = self._entry(n, graph[n])
             self._write(lines)
         return added
+
+    @staticmethod
+    def _reaches(graph, start, target):
+        seen, todo = set(), [start]
+        while todo:
+            cur = todo.pop()
+            if cur == target:
+                return True
+            if cur not in seen:
+                seen.add(cur)
+                todo.extend(graph.get(cur, ()))
+        return False
 
     def remove(self, *prs):
         with self.locked():
@@ -150,9 +194,10 @@ class Queue:
 
     def before(self, pr, other):
         with self.locked():
+            own = next((l.strip() for l in self._read() if (m := LINE.match(l)) and int(m.group(1)) == pr), str(pr))
             lines = [l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) == pr)]
             at = next((i for i, l in enumerate(lines) if (m := LINE.match(l)) and int(m.group(1)) == other), len(lines))
-            lines.insert(at, str(pr))
+            lines.insert(at, own)
             self._write(lines)
 
 
@@ -292,7 +337,8 @@ class Pause:
         self.directory = directory
         self.paused_file, self.acked_file, self.gh, self.log = os.path.join(directory, "mq.paused"), os.path.join(directory, "mq.acked"), gh, log
         self.lock = threading.Lock()
-        self.last_signal_log = 0.0
+        self.clock = time.monotonic
+        self.last_signal_log = None   # monotonic time of the last WAIT-SIGNAL line; None until the first one
 
     @contextlib.contextmanager
     def exclusive(self):
@@ -329,8 +375,8 @@ class Pause:
             try:
                 red = self.red_runs()
             except SignalError as e:
-                if time.monotonic() - self.last_signal_log > 300:
-                    self.last_signal_log = time.monotonic()
+                if self.last_signal_log is None or self.clock() - self.last_signal_log > 300:
+                    self.last_signal_log = self.clock()
                     self.log.event("WAIT-SIGNAL", None, None, None, f"cannot read main's runs ({e}); both lanes wait")
                 return True
             fresh = [(kind, rid) for kind, rid in red if rid not in self.acked()]
@@ -341,6 +387,11 @@ class Pause:
                 f.write(reason + "\n")
             self.log.event("PAUSED", None, fresh[0][1], None, reason + "; both lanes wait for `mq.py resume <run id>...`")
             return True
+
+    def hold(self, reason):
+        """Pauses both lanes for a reason no red run explains (the main checkout could not be fast-forwarded); `mq.py resume` with no run id lets them go on once a person has looked."""
+        with self.exclusive(), open(self.paused_file, "w", encoding="utf-8") as f:
+            f.write(reason + "\n")
 
     def resume(self, ack=None):
         """Acknowledge exactly the red runs named (None: whatever is red now, for the self-test); a different set is refused, so a run that turned red after the coordinator looked is never acknowledged blind."""
@@ -392,15 +443,17 @@ def default_lane(repo):
 
 
 class Processor:
-    def __init__(self, gh, queue, log, repo, sleep=time.sleep, updater=update_over_ssh, ci_timeout=90 * 60, wt=None, lane=None, pause=None, docs_only_fn=None):
+    def __init__(self, gh, queue, log, repo, sleep=time.sleep, updater=update_over_ssh, ci_timeout=90 * 60, wt=None, lane=None, pause=None, docs_only_fn=None, main_checkout=None):
         self.gh, self.queue, self.log, self.repo, self.sleep = gh, queue, log, repo, sleep
         self.updater, self.ci_timeout = updater, ci_timeout
         self.wt = wt or os.path.join(os.path.dirname(os.path.abspath(queue.path)), "mq-wt")
         self.lane_of = lane or default_lane(repo)
         self.docs_only = docs_only_fn or docs_only(repo)
         self.pause = pause or Pause(os.path.dirname(os.path.abspath(queue.path)), gh, log)
-        self.lanes, self.busy, self.code_testing = {}, set(), set()
+        self.lanes, self.busy = {}, set()
+        self.waiting, self.wait_repeat = {}, 3600   # pull request -> (the dependencies it was last logged as waiting for, when): logged again when they change and every wait_repeat seconds, so a dependency that never merges stays loud
         self.guard = threading.Lock()
+        self.main_checkout = main_checkout
 
     def lane(self, n, head=None):
         key = (n, head)
@@ -416,12 +469,41 @@ class Processor:
                     continue
             v = self.gh.view(n)
             if self.lane(n, v["head"] if v else None) == lane:
+                self.log.lanes[n] = lane
+                if not self.dependencies_met(n):
+                    continue
                 with self.guard:
                     if n in self.busy:
                         continue
                     self.busy.add(n)
                 return n
         return None
+
+    def dependencies_met(self, n):
+        """True when every pull request n was queued after is merged; otherwise logs once per change of what it waits for (WAIT-DEP) and False. A dependency closed unmerged puts n on HOLD and takes it out."""
+        unmet, closed, unknown = [], [], []
+        for m in sorted(self.queue.deps(n)):
+            v = self.gh.view(m)
+            if v and v["state"] == "MERGED":
+                continue
+            if v is None:
+                unknown.append(m)
+            (closed if v and v["state"] == "CLOSED" else unmet).append(m)
+        if closed:
+            self.log.event("HOLD", n, None, None, f"dependency #{closed[0]} was closed without merge")
+            self.queue.remove(n)
+            self.log.event("DEQUEUE", n, None, None, "HOLD")
+            self.waiting.pop(n, None)
+            return False
+        if unmet:
+            now = time.monotonic()
+            if self.waiting.get(n, (None,))[0] != tuple(unmet) or now - self.waiting[n][1] >= self.wait_repeat:
+                queued = set(self.queue.numbers())
+                self.log.event("WAIT-DEP", n, None, None, f"waits for {' '.join('#' + str(m) + ('' if m in queued else ' (not in the queue)') for m in unmet)} to be merged" + (f"; gh could not tell the state of {' '.join('#' + str(m) for m in unknown)}" if unknown else ""))
+                self.waiting[n] = (tuple(unmet), now)
+            return False
+        self.waiting.pop(n, None)
+        return True
 
     def stale(self, n, head):
         """None when gh cannot say; 0 when the head contains main, or lacks only commits that changed nothing a build or test reads (docs only: counted as up to date, no sync, no new CI run);
@@ -430,7 +512,8 @@ class Processor:
         if not behind:
             return behind
         files = self.gh.behind_files(head)
-        if files is not None and self.docs_only(files):
+        # a Python file under docs/ is check logic (build_all.py, check_*.py run in every pull request's secret scan job): it is no plain documentation for this purpose, the pull request is tested again against it
+        if files is not None and self.docs_only(files) and not any(f.endswith(".py") for f in files):
             return 0
         return behind
 
@@ -478,13 +561,14 @@ class Processor:
 
     def process(self, n):
         since = time.monotonic()
+        if n not in self.log.lanes:   # `once` takes a pull request without pick
+            self.log.lanes[n] = self.lane(n)
         self.log.event("START", n, None, since)
         try:
             return self._process(n, since)
         finally:
             with self.guard:
                 self.busy.discard(n)
-            self.code_testing.discard(n)
 
     def hold(self, n, run, since, why):
         self.log.event("HOLD", n, run, since, why)
@@ -494,7 +578,6 @@ class Processor:
         self.cancel_others(n, since)
         attempt, moved, refused = 1, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
         while attempt <= 4:
-            self.code_testing.discard(n)
             v = self.gh.view(n)
             if v is None:
                 return self.hold(n, None, since, "gh could not tell the state of the pull request")
@@ -520,8 +603,6 @@ class Processor:
                 if self.gh.label(n, "queued", True):
                     self.log.event("LABEL-QUEUED", n, None, since)
                 self.sleep(20)
-            if self.lane(n, v["head"]) == "code":
-                self.code_testing.add(n)   # while a code pull request is in its final CI, the docs lane does not merge (it would make the code pull request stale again)
             checks = self.wait_checks(n, since)
             if checks is None:
                 return self.hold(n, None, since, f"CI still pending after {self.ci_timeout // 60} minutes")
@@ -557,7 +638,7 @@ class Processor:
                 self.sleep(10)
                 attempt += 1
                 continue
-            result = self.merge_when_fresh(n, since, checks, self.lane(n, v["head"]))
+            result = self.merge_when_fresh(n, since, checks)
             if result == "moved":
                 moved += 1
                 if moved > 6:
@@ -580,15 +661,51 @@ class Processor:
             return result
         return self.hold(n, None, since, "attempts exhausted")
 
-    def merge_when_fresh(self, n, since, checks, lane="code"):
+    def ff_main(self, n, since):
+        """After a merge: the main checkout (where the hooks and scripts every session reads live) is fast-forwarded to origin/main, so it never runs old code for hours.
+        It is touched only when it is on main, has no change to a tracked file and no commit origin/main lacks; otherwise it is left alone, the log says ALERT and both lanes pause until a person has looked
+        (`mq.py resume`). A failed fetch is only logged: the next merge tries again."""
+        checkout = self.main_checkout
+        if not checkout:
+            return
+        with self.queue.locked(".ff-lock"):   # two lanes merging one after the other must not fetch and merge in the main checkout at the same time (index.lock)
+            self._ff_main(n, since, checkout)
+
+    def _ff_main(self, n, since, checkout):
+        for attempt in range(3):   # a fetch or fast-forward that fails because another git command holds a lock in that checkout is tried again before anybody is called
+            fetched = sh(["git", "-C", checkout, "fetch", "--quiet", "origin", "main"], timeout=120)
+            if fetched.returncode == 0:
+                break
+            self.sleep(5)
+        else:
+            self.log.event("ALERT", n, None, since, f"FF-MAIN: fetch failed, main checkout not updated: {fetched.stderr.strip()[:200]}")
+            return
+        branch = sh(["git", "-C", checkout, "symbolic-ref", "--short", "-q", "HEAD"]).stdout.strip()
+        dirty = sh(["git", "-C", checkout, "status", "--porcelain", "--untracked-files=no"]).stdout.strip()
+        ahead = sh(["git", "-C", checkout, "rev-list", "--count", "origin/main..HEAD"]).stdout.strip()
+        why = None
+        if branch != "main":
+            why = f"the main checkout is on {branch or 'a detached HEAD'}, not main"
+        elif dirty:
+            why = "the main checkout has changes to tracked files"
+        elif ahead != "0":
+            why = f"the main checkout has {ahead or 'an unknown number of'} commit(s) origin/main lacks"
+        else:
+            for attempt in range(3):
+                merged = sh(["git", "-C", checkout, "merge", "--ff-only", "--quiet", "origin/main"])
+                if merged.returncode == 0 or "lock" not in merged.stderr:
+                    break
+                self.sleep(5)
+            if merged.returncode == 0:
+                self.log.event("FF-MAIN", n, None, since, sh(["git", "-C", checkout, "rev-parse", "--short", "HEAD"]).stdout.strip())
+                return
+            why = f"fast-forward refused: {merged.stderr.strip()[:200]}"
+        self.log.event("ALERT", n, None, since, f"FF-MAIN: {why}; main checkout left as it is, both lanes pause for `mq.py resume`")
+        self.pause.hold(f"FF-MAIN: {why}")
+
+    def merge_when_fresh(self, n, since, checks):
         """Under the merge lock: no red main run pauses the queue, the head is the one that was checked, it contains the current main, the checks are all green on it; then the merge, pinned to that head.
         Returns 'MERGED', 'moved' (behind main: update and test again), 'changed' (checks not green any more), 'refused' (gh refused the merge: logged with its message), or 'HOLD'."""
-        waited = 0
-        while lane == "docs" and self.code_testing and waited < self.ci_timeout:   # not for ever: a code pull request stuck in its CI does not hold the docs lane past the CI timeout
-            if not waited:
-                self.log.event("WAIT-CODE-LANE", n, None, since, f"docs lane waits: code pull request(s) {sorted(self.code_testing)} are in their final CI")
-            self.sleep(30)
-            waited += 30
         with self.queue.merge_lock():
             while self.pause.check():
                 self.log.event("WAIT-PAUSED", n, None, since, "main is red: waiting for `mq.py resume`")
@@ -614,7 +731,9 @@ class Processor:
             ok, message = self.gh.merge(n, head)
             if ok:
                 self.log.event("MERGED", n, run_id(checks[0].get("link")), since, head[:10])
-                return "MERGED"
+        if ok:
+            self.ff_main(n, since)
+            return "MERGED"
         v = self.gh.view(n) or {}
         names = [f"{c['name']}={c['bucket']}" for c in red_checks(self.gh.checks(n) or [])]
         self.log.event("RETRY-MERGE", n, None, since, f"refused: mergeState={v.get('merge')} failing={names or 'none'} gh: {message}")
@@ -679,6 +798,15 @@ def train_module():
     return mod
 
 
+def main_checkout():
+    """The main checkout: the first entry of `git worktree list` (a bare repository has none: None)."""
+    r = sh(["git", "worktree", "list", "--porcelain"])
+    first = r.stdout.split("\n\n")[0].splitlines() if r.returncode == 0 else []
+    if not first or not first[0].startswith("worktree ") or "bare" in first:
+        return None
+    return first[0][len("worktree "):]
+
+
 def repo_root():
     r = sh(["git", "rev-parse", "--show-toplevel"])
     if r.returncode:
@@ -691,6 +819,12 @@ def default_queue():
     if common.returncode:
         raise SystemExit("start mq.py inside the repository, or give --queue")
     return os.path.join(common.stdout.strip(), "merge-queue", "merge.queue")
+
+
+def positive(text):
+    if not text.isdigit() or int(text) < 1:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a pull request number")
+    return int(text)
 
 
 def main(argv=None):
@@ -714,19 +848,28 @@ def main(argv=None):
         sub.add_parser(name)
     sub.add_parser("resume").add_argument("runs", nargs="*", help="the red run ids that paused the queue, exactly as `status` shows them")
     sub.add_parser("once").add_argument("pr", type=int)
-    for name in ("enqueue", "remove"):
-        sub.add_parser(name).add_argument("prs", type=int, nargs="+")
+    e = sub.add_parser("enqueue")
+    e.add_argument("prs", type=int, nargs="+")
+    e.add_argument("--after", type=positive, action="append", default=[], metavar="M", help="start only once pull request M is merged (repeatable; whatever lane either is in)")
+    sub.add_parser("remove").add_argument("prs", type=int, nargs="+")
     b = sub.add_parser("before"); b.add_argument("pr", type=int); b.add_argument("other", type=int)
     a = p.parse_args(argv)
     q = Queue(a.queue or default_queue())
     directory = os.path.dirname(os.path.abspath(q.path))
     log = Log(a.log or os.path.join(directory, "merge.log"))
     if a.cmd == "list":
-        print("\n".join(map(str, q.numbers())))
+        for l in q._read():
+            if l.strip() and not LINE.match(l):
+                print(f"mq: line not understood, never started, kept as it is: {l!r}", file=sys.stderr)
+        print("\n".join(f"{n}" + (f" after={','.join(map(str, sorted(q.deps(n))))}" if q.deps(n) else "") for n in q.numbers()))
     elif a.cmd == "enqueue":
+        try:
+            added = q.enqueue(*a.prs, after=a.after)
+        except ValueError as e:
+            raise SystemExit(f"nothing queued: {e}")
         for n in a.prs:
-            if not q.enqueue(n):
-                print(f"#{n} is already queued (a pull request being processed stays queued until it is done)", file=sys.stderr)
+            if n not in added:
+                print(f"#{n} is already queued" + (f"; now waits for {sorted(q.deps(n))} (a pull request already being processed does not look at it again)" if a.after else " (a pull request being processed stays queued until it is done)"), file=sys.stderr)
     elif a.cmd == "remove":
         q.remove(*a.prs)
     elif a.cmd == "before":
@@ -739,7 +882,7 @@ def main(argv=None):
             red = pause.red_runs()
             print(f"red main runs: {[(k, r, 'acknowledged' if r in pause.acked() else 'NEW') for k, r in red] or 'none'}")
             if pause.is_paused():
-                print(f"to resume: mq.py resume {' '.join(r for _, r in red)}")
+                print(f"to resume: mq.py resume {' '.join(r for _, r in red)}".rstrip())
         except SignalError as e:
             print(f"red main runs: unknown ({e})")
     elif a.cmd == "resume":
@@ -750,7 +893,10 @@ def main(argv=None):
         print(f"resumed; acknowledged {[r for _, r in red] or 'no red run'}")
     else:
         root = repo_root()
-        proc = Processor(Gh(), q, log, root, ci_timeout=a.ci_timeout * 60)
+        checkout = main_checkout()
+        if not checkout:
+            print("mq: no main checkout found (bare repository?): FF-MAIN is switched off", file=sys.stderr)
+        proc = Processor(Gh(), q, log, root, ci_timeout=a.ci_timeout * 60, main_checkout=checkout)
         with runner_lock(directory):
             if a.cmd == "once":
                 proc.process(a.pr)

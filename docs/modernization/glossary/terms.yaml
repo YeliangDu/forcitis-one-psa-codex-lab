@@ -1130,7 +1130,7 @@ terms:
   scope: domain
   confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: rate_card_item
-  zh: 费率表
+  zh: 费率项
   en: RateCardItem
   snake: rate_card_item
   kind: entity
@@ -1146,11 +1146,16 @@ terms:
   - name: psa_bill_rate*, psa_pm_hourlyrate*
     type: legacy-table
     deprecated: true
+  - name: 费率表
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
   forbidden: []
   status: approved
   core: true
   scope: domain
-  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent
+    2026-10-21-201913）（用户裁定，rulings.yaml）
 - id: contract_clause
   zh: 合同条款
   en: ContractClause
@@ -1820,16 +1825,17 @@ terms:
   confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: wbs_node
-  zh: WBS
+  zh: 工作分解结构节点
   en: WbsNode
   snake: wbs_node
   kind: entity
   bc: delivery.execution
-  definition: 工作分解结构，节点必须挂接合同范围条目或已批准变更
+  definition: 项目工作分解结构树中代表阶段、子项或工作包的具备身份的节点；节点必须挂接合同范围条目或已批准变更。
   standard_ref:
   - PMI PMBOK Guide
   - PMI Practice Standard for Work Breakdown Structures
   - GB/T 50326-2017 建设工程项目管理规范
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-20
   confidence: high
   aliases:
   - name: BudgetClause / BudgetDeliverable
@@ -1841,10 +1847,24 @@ terms:
   - name: BudgetClause/BudgetDeliverable
     type: legacy-code
     deprecated: true
+  - name: WBS 节点
+    type: standard-zh
+    deprecated: true
+    context: delivery.execution
+    source: NM3~NM3-13
+    note: 本概念不再首选此旧指称；与上下文或其他词条的中文名称、定义存在子串重合，不全局禁用。
+  - name: WBS
+    type: standard-zh
+    deprecated: true
+    context: delivery.execution
+    source: NM3~NM3-13
+    note: 仅禁用于本概念旧指称；其他已登记含义及通用动作不受此别名影响。
   forbidden: []
   status: approved
   core: true
   scope: domain
+  note: N9 名词写回（N5-036）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
 - id: delivery_package
   zh: 交付包
   en: DeliveryPackage
@@ -1942,7 +1962,7 @@ terms:
   snake: plan_baseline
   kind: entity
   bc: delivery.execution
-  definition: 交付计划的不可变版本（修订须依据；与经营子域计划基线同名不同义）
+  definition: 交付计划的不可变版本（修订须依据；与经营子域计划基线同名不同义）；按种类分对客基线与内部基线，各自一个生效版本，状态链同为草拟、已批准、被取代
   standard_ref:
   - PMI PMBOK Guide
   confidence: high
@@ -1958,6 +1978,7 @@ terms:
   note: PMBOK performance measurement baseline
   core: true
   scope: domain
+  confirmed: 用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）（用户裁定，rulings.yaml）
 - id: milestone
   zh: 里程碑
   en: Milestone
@@ -2787,7 +2808,7 @@ terms:
   scope: domain
   confirmed: 2026-10-15（用户，B2 类别判定）
 - id: standard_cost_rate_card
-  zh: 标准费率
+  zh: 标准成本费率卡
   en: StandardCostRateCard
   snake: standard_cost_rate_card
   kind: aggregate
@@ -2796,18 +2817,29 @@ terms:
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  - docs/modernization/rules/decide/answers/NM3.json#NM3~NM3-08
   confidence: high
   aliases:
   - name: BU岗位人天单价
     type: dialect
     deprecated: true
     source: A8 档案 formmain_1176
+  - name: 标准费率
+    type: standard-zh
+    deprecated: true
+    source: docs/modernization/rules/decide/answers/NM3.json#NM3~NM3-08
+  - name: 标准成本费率表
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05：对客侧计费费率卡与成本侧同层，卡、表不混用，英文名本就是 Card）
   forbidden:
   - BU岗位人天单价
   status: approved
   change_ref: G-3
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05：对客侧计费费率卡与成本侧同层，卡、表不混用，英文名本就是
+    Card）（用户裁定，rulings.yaml）
   scope: domain
+  note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
 - id: rate_card_version
   zh: 费率版本
   en: RateCardVersion
@@ -2951,7 +2983,6 @@ terms:
   - WipEntry
   - 成本 WIP
   - 在制成本
-  - 合同履约成本
   status: approved
   change_ref: G-10
   note: 准则科目名「合同履约成本」（IFRS 15 §95-98 costs to fulfil a contract；ACC-R12 要求 1/2 级科目用准则原词）；与回款侧未开票在制同名异物（09-业务规则 §7 警示），代码禁用裸 Wip
@@ -3294,22 +3325,27 @@ terms:
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
 - id: progress_assessment
-  zh: 履约进度认定
+  zh: 进度计量认定
   en: ProgressAssessment
   snake: progress_assessment
   kind: aggregate
   bc: receivables.wip
-  definition: 项目×合同×期间的计量认定单（证据必备、封期锁定）
+  definition: 项目×合同×期间的计量认定单（证据必备、封期锁定），属收入侧计量，与经营口径的「经营估值」分开；进度只作内部估值、不进收入（用户 2026-10-16）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
   - IFRS 15 Revenue from Contracts with Customers
   confidence: medium
-  aliases: []
-  forbidden: []
+  aliases:
+  - name: 履约进度认定
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  forbidden:
+  - 履约进度认定
   status: approved
   note: 履约进度认定单
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，B2 类别判定）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（用户裁定，rulings.yaml）
 - id: input_method
   zh: 投入法
   en: InputMethod
@@ -3611,20 +3647,35 @@ terms:
   snake: cash_receipt
   kind: aggregate
   bc: receivables.collection
-  definition: 一笔到账的认领与分配载体（分配合计=到账金额）
+  definition: 仅记录已到账款项的认领与分配，分配合计等于到账金额；尚未兑付的商票按票据跟踪，到账后再体现为回款。
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-50
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-53
   confidence: high
   aliases:
   - name: 回款单档案
     type: dialect
     deprecated: true
     source: A8 档案 formmain_0569
+  - name: 收款
+    type: standard-zh
+    deprecated: true
+    context: receivables.collection
+    source: NM2~NM2-12
+    note: 作为回款单的旧对象名禁用；收款行为及已认可的收款核销不是该单据的方言。
+  - name: 资金收付
+    type: standard-zh
+    deprecated: true
+    context: receivables.collection
+    source: NM2~NM2-12
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
   forbidden:
   - 回款单档案
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
   scope: domain
+  note: N9 名词写回（N5-102）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
 - id: receipt_claiming
   zh: 到账认领
   en: ReceiptClaiming
@@ -3824,19 +3875,26 @@ terms:
   scope: domain
 - id: ecl_alert
   zh: ECL 预警
-  en: EclAlert
-  snake: ecl_alert
+  en: EclAlerted
+  snake: ecl_alerted
   kind: domain_event
   bc: receivables.collection
   definition: 预期信用损失的前置信号（预警在本 BC、法定计提在核算）
   standard_ref:
   - 企业会计准则第 22 号——金融工具确认和计量（预期信用损失）
   - IFRS 9 Financial Instruments（expected credit losses）
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   confidence: high
-  aliases: []
+  aliases:
+  - name: EclAlert
+    type: old-code
+    deprecated: true
+    source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   forbidden: []
   status: approved
   scope: domain
+  note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
+  confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
 - id: bad_debt_risk
   zh: 坏账风险
   en: BadDebtRisk
@@ -3943,14 +4001,15 @@ terms:
   confirmed: 2026-10-15（用户，B1 用语登记规则决策页）
 - id: retention_money_release_due
   zh: 质量保证金到期返还
-  en: RetentionMoneyReleaseDue
-  snake: retention_money_release_due
+  en: RetentionMoneyReleaseDueReached
+  snake: retention_money_release_due_reached
   kind: domain_event
   bc: receivables.collection
   definition: 质保期届满、质保金应收进入可回收状态
   standard_ref:
   - 建设工程质量保证金管理办法（建质〔2017〕138 号）
   - FIDIC Conditions of Contract for Construction 2017（Red Book）
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   confidence: medium
   aliases:
   - name: 质保金到期
@@ -3959,13 +4018,17 @@ terms:
   - name: RetentionDue
     type: old-code
     deprecated: true
+  - name: RetentionMoneyReleaseDue
+    type: old-code
+    deprecated: true
+    source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   forbidden:
   - RetentionDue
   - 质保金到期
   status: approved
   change_ref: G-17
-  note: 期间称「缺陷责任期」（建质〔2017〕138 号），「质保期」为别名
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  note: 期间称「缺陷责任期」（建质〔2017〕138 号），「质保期」为别名；NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
   scope: domain
 - id: final_account
   zh: 竣工结算
@@ -4031,7 +4094,7 @@ terms:
   snake: journal_voucher
   kind: aggregate
   bc: accounting.ledger
-  definition: 可追溯来源业务事件的分录载体（外购系统承载，主权在本 BC）
+  definition: 记账凭证承载会计分录，并承载制单、审核与记账信息，可追溯来源业务事件；主权在 accounting.ledger，与其中的借贷记录会计分录分开。
   standard_ref:
   - 会计基础工作规范（财政部）
   confidence: high
@@ -4053,7 +4116,7 @@ terms:
   - 会计凭证
   status: approved
   core: true
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B2 类别判定）；2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
   scope: domain
 - id: general_ledger
   zh: 总账
@@ -4070,20 +4133,33 @@ terms:
   status: approved
   scope: domain
 - id: account
-  zh: 科目
+  zh: 会计科目
   en: Account
   snake: account
   kind: entity
   bc: accounting.ledger
-  definition: 法定账簿与报表对象（外购系统承载）
+  definition: 在账簿科目表中按会计要素分类并受启停及入账来源控制的会计账户。
   standard_ref:
   - 会计基础工作规范（财政部）
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-82
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=account_title]
   confidence: high
-  aliases: []
+  aliases:
+  - name: 科目
+    type: standard-zh
+    deprecated: true
+    context: accounting.ledger
+    source: NM2~NM2-22
+    note: 仅禁用于本概念旧指称；其他已登记含义及通用动作不受此别名影响。
+  - name: AccountTitle
+    type: old-code
+    deprecated: true
+    source: NM2~NM2-22
   forbidden: []
   status: approved
-  note: 会计科目；1/2 级科目用准则原词（ACC-R12）
+  note: 会计科目；1/2 级科目用准则原词（ACC-R12）；N9 名词写回（N5-007）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
   scope: domain
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
 - id: balance_sheet
   zh: 资产负债
   en: BalanceSheet
@@ -4297,7 +4373,7 @@ terms:
   snake: intercompany_elimination
   kind: command
   bc: accounting.ledger
-  definition: 对销恒等：A 内部应收 = B 内部应付，差额不清零期间不关
+  definition: 对销恒等：A 内部应收 = B 内部应付，差额不清零期间不关；报表中按规定相互抵去内部交易等金额的处理称抵销，不与预付款冲抵、收入冲减、错误冲销混用，不据此批准任意净额列示或新增合并报表功能。
   standard_ref:
   - 企业会计准则第 33 号——合并财务报表
   - IFRS 10 Consolidated Financial Statements
@@ -4311,7 +4387,7 @@ terms:
   status: approved
   change_ref: G-25
   note: CAS 33 原文用「抵销」，不用「对销」
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
   scope: domain
 - id: intercompany_settlement
   zh: 内部结算
@@ -4743,7 +4819,7 @@ terms:
   snake: job_grade
   kind: value_object
   bc: organization.workforce
-  definition: 员工职级 T1-T7 七级（组织主数据，计费费率与折扣权限的档位依据）
+  definition: 员工职级 T1-T7 七级（组织主数据，计费费率与折扣权限的档位依据）；NM4-07 要求职位、岗位、职级分别命名，职级仍表示等级；不改变岗位既有的岗级体系含义、等级档位与费率规则。
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
@@ -4757,7 +4833,7 @@ terms:
   forbidden: []
   status: approved
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
   scope: domain
 - id: position
   zh: 岗位
@@ -4765,7 +4841,7 @@ terms:
   snake: position
   kind: value_object
   bc: organization.workforce
-  definition: 任职与费率适用的岗级体系
+  definition: 任职与费率适用的岗级体系；NM4-07 要求职位、岗位、职级分别命名，本次仅追加区分说明，保留既有任职与费率约束，不将本概念改定义为实际用人位置。
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
@@ -4779,7 +4855,7 @@ terms:
   forbidden: []
   status: approved
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
   scope: domain
 - id: accounting_period
   zh: 会计期间
@@ -4958,20 +5034,26 @@ terms:
   scope: domain
 - id: rule_execution
   zh: 规则执行
-  en: RuleExecution
-  snake: rule_execution
+  en: RuleExecuted
+  snake: rule_executed
   kind: domain_event
   bc: platform.approval
   definition: 只承载执行；规则定义与版本主权归业务 BC（红线）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   confidence: high
-  aliases: []
+  aliases:
+  - name: RuleExecution
+    type: old-code
+    deprecated: true
+    source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   forbidden: []
   status: approved
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
   scope: domain
+  note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
 - id: dead_letter_queue
   zh: 异常队列
   en: DeadLetterQueue
@@ -5153,22 +5235,32 @@ terms:
   confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_modification
-  zh: 合同变更（会计口径）
-  en: ContractModification
-  snake: contract_modification
+  zh: 合同已变更
+  en: ContractModified
+  snake: contract_modified
   kind: domain_event
   bc: contract.agreement
   definition: 经批准的合同范围或价格变更在收入核算上的处理事实（单独合同 / 原合同终止新立 / 累积追加调整）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
   - IFRS 15 Revenue from Contracts with Customers
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   confidence: high
-  aliases: []
+  aliases:
+  - name: ContractModification
+    type: old-code
+    deprecated: true
+    source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
+  - name: 合同变更（会计口径）
+    type: standard-zh
+    deprecated: true
+    source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   forbidden: []
   status: approved
   change_ref: G-21
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
   scope: domain
+  note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
 - id: costs_to_obtain_contract
   zh: 合同取得成本
   en: CostsToObtainContract
@@ -5602,7 +5694,7 @@ terms:
   snake: reversing_entry
   kind: entity
   bc: operations.facts
-  definition: 生成反向事实与新序号的更正方式，原行保留并双向关联
+  definition: 生成反向事实与新序号的更正方式，原行保留并双向关联；保留冲销叫法，不以删除原记录更正，不与预付款冲抵、收入冲减或报表抵销混用。
   standard_ref:
   - 会计基础工作规范（财政部）
   - ADR-0016 权责发生制业财一体主干
@@ -5621,7 +5713,7 @@ terms:
   - 红字冲销
   status: approved
   change_ref: G-16
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
   scope: domain
 - id: bill_rate_card
   zh: 计费费率卡
@@ -6461,10 +6553,7 @@ terms:
   standard_ref:
   - 已批准词条 uphold_permission_action（维持授权）；ISO/IEC 27001:2022 控制 5.18 定期复核
   confidence: medium
-  aliases:
-  - name: UpholdExpiry
-    type: old-code
-    deprecated: true
+  aliases: []
   forbidden: []
   status: approved
   note: 开工前术语门禁 F-1（GATE-F-1-G02）
@@ -6988,15 +7077,19 @@ terms:
   snake: project_manager
   kind: role
   bc: platform.approval
-  definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）
+  definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）；「项目负责人」是同一角色的方言，不用；与权责表对齐：revenue/raci.yaml 里暂停、恢复、终止、取消项目的批准人统一写项目.项目经理（VS02-05，intent 2026-10-16-163556）
   standard_ref:
   - 'REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）'
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 项目负责人
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（原提议 platform-approval.yaml#project_manager，R3-AP-18）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（用户裁定，rulings.yaml）
   scope: domain
 - id: timesheet_approval
   zh: 工时单审批
@@ -8000,7 +8093,7 @@ terms:
   snake: make_up_workday
   kind: value_object
   bc: organization.attendance
-  definition: 工作日历中需要上班的周六或周日
+  definition: 工作日历中需要上班的周六或周日；与「补休」（加班后安排的休息）不是一回事
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §2
   confidence: medium
@@ -8008,7 +8101,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（原提议 organization_attendance.yaml#make_up_workday，R3-AT-10）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（用户裁定，rulings.yaml）
   scope: domain
 - id: work_calendar_year
   zh: 工作日历年度
@@ -8655,23 +8748,28 @@ terms:
   scope: domain
 - id: forced_logout
   zh: 强制登出
-  en: ForcedLogout
-  snake: forced_logout
+  en: ForceLogout
+  snake: force_logout
   kind: command
   bc: platform.identity
   definition: 管理员结束某个人的全部会话：一次一人、须写理由、不能对自己，结束超级管理员或安全审计员的会话会告警（ADR-0027 第 3 项）
   standard_ref:
   - adr/src/ADR-0027.md
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B10
   confidence: medium
   aliases:
   - name: 强制下线
     type: dialect
     deprecated: true
+  - name: ForcedLogout
+    type: old-code
+    deprecated: true
+    source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B10
   forbidden:
   - 强制下线
   status: approved
-  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#forced_logout，R3-ID-32）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B2 类别判定）
+  note: 用语确认第三轮转正式（原提议 fix-b1-identity.yaml#forced_logout，R3-ID-32）；NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B2 类别判定）；2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B10）
   scope: domain
 - id: access_grant
   zh: 数据范围授权
@@ -9070,7 +9168,7 @@ terms:
   snake: reverse
   kind: command
   bc: kernel
-  definition: 权限码与接口中发起冲销的动作 reverse，对应路径 :reverse，授予范围与该单据的提交权限相同
+  definition: 权限码与接口中发起冲销的动作 reverse，对应路径 :reverse，授予范围与该单据的提交权限相同；冲销保留原记录并追加反向记录，不等同额度恢复或开具红字发票。
   standard_ref:
   - ADR-0031 第 7 项第 6 条
   - ADR-0022 第 125 行
@@ -9083,7 +9181,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#reverse_action，R3-KN-15）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
   scope: kernel
 - id: correct
   zh: 修正动作
@@ -10207,19 +10305,24 @@ terms:
   scope: domain
 - id: revenue_reduction
   zh: 收入冲减
-  en: RevenueReduction
-  snake: revenue_reduction
+  en: RevenueReduced
+  snake: revenue_reduced
   kind: domain_event
   bc: receivables.wip
-  definition: 可变对价（结算折让、扣款等）导致的已确认收入减少（D17-8），区别于信用损失与会计冲销
+  definition: 可变对价（结算折让、扣款等）导致的已确认收入减少（D17-8），动作称冲减；与无法收回形成的信用损失、会计冲销区分。
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）（可变对价）；IFRS 15 §50–59 Variable consideration；D17-8
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   confidence: medium
-  aliases: []
+  aliases:
+  - name: RevenueReduction
+    type: old-code
+    deprecated: true
+    source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
   forbidden: []
   status: approved
-  note: 用语确认第三轮转正式（R0 第三轮输入 N-revenue_reduction，R3-RN-48）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  note: 用语确认第三轮转正式（R0 第三轮输入 N-revenue_reduction，R3-RN-48）；NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）；2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
   scope: domain
 - id: allowance_for_bad_debts
   zh: 坏账准备
@@ -11900,16 +12003,31 @@ terms:
   kind: aggregate
   bc: receivables.collection
   scope: domain
-  definition: 应收账款与其他应收款的往来款项；开票产生是它的一种来源；不含质量保证金、保证金（各自是聚合）
+  definition: 应收账款与其他应收款的往来款项；开票产生是它的一种来源；不含质量保证金、保证金（各自是聚合）；现金保证金与一般应收分开列示，质保金与工抵仍按性质分开记账并设专项台账。
   standard_ref:
   - 企业会计准则第 22 号——金融工具确认和计量（应收款项）
   - GL2 B2-X04
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-49
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-52
+  - docs/modernization/intent/2026-10-15-124316-one-coordinator-财务确认单第-2-版答复的-13.md
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 应收往来款项
+    type: standard-zh
+    deprecated: true
+    context: receivables.collection
+    source: NM2~NM2-11
+    note: 本概念不再首选此旧指称；与上下文或其他词条的中文名称、定义存在子串重合，不全局禁用。
+  - name: 往来款项
+    type: standard-zh
+    deprecated: true
+    context: receivables.collection
+    source: NM2~NM2-11
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
   forbidden: []
-  note: B2-X04：取代已弃用的 ar_item（应收单）
+  note: B2-X04：取代已弃用的 ar_item（应收单）；N9 名词写回（N5-103）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
   status: approved
-  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）；2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
 - id: payable
   zh: 应付款项
   en: Payable
@@ -12132,6 +12250,3554 @@ terms:
   status: approved
   confirmed: 2026-10-16（用户，R-1b P5 门禁）
   note: 用户裁定转正式：用户 2026-10-16 对 R-1b P5 新用语「审计对象类别」答「同意 (Recommended)」（intent 2026-10-16-061803-one-1a-next-4-同意-Recommended-问，one-1a-next-4 会话）
+- id: binding
+  zh: 约束性
+  en: Binding
+  snake: binding
+  kind: value_object
+  bc: platform.approval
+  scope: domain
+  definition: 审批意见对流程有约束力、会推进或终止流程；与「建议性」相对。one-rules 用「正式效力」，名词化后与建议性不成对，改用约束性
+  standard_ref:
+  - 'RULES: APPROVAL_INTEGRITY'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: project_role
+  zh: 项目角色
+  en: ProjectRole
+  snake: project_role
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 人在项目上担任的角色，是数据范围的一个维度（法人 × 部门 × 项目角色）
+  standard_ref:
+  - 'ADR-0009 决定 4；RULES: IDENTITY_SINGLE_OPERATOR'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: identity_confirmation
+  zh: 身份确认
+  en: IdentityConfirmation
+  snake: identity_confirmation
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 外部票据登录后，本人确认「这个账号是我」的步骤；确认前会话无任何权限
+  standard_ref:
+  - 'RULES: IDENTITY_SINGLE_OPERATOR RULE-458'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: registrar
+  zh: 登记人
+  en: Registrar
+  snake: registrar
+  kind: value_object
+  bc: platform.integration
+  scope: domain
+  definition: 录入来源对照待确认行的人（登记人＝录入该行的人），与命令的「起草人」「登记」动作（ADR-0068、0073）不是一回事；确认人不得是登记人
+  standard_ref:
+  - 'RULES: SOURCE_REFERENCE'
+  confidence: medium
+  aliases:
+  - name: 录入人
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  forbidden:
+  - 录入人
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: finding
+  zh: 发现
+  en: Finding
+  snake: finding
+  kind: entity
+  bc: delivery.inspection
+  scope: domain
+  definition: 检查或审核中查出的问题；与缺陷责任期、质量缺陷率无关
+  standard_ref:
+  - rules/decide/sheets/GL3.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: compensatory_leave
+  zh: 补休
+  en: CompensatoryLeave
+  snake: compensatory_leave
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 加班后安排的休息（劳动法第 44 条）；不是日历里要上班的周末（那是调休上班日）；「调休」单用易与调休上班日混，列方言
+  standard_ref:
+  - rules/decide/sheets/GL3.json
+  confidence: medium
+  aliases:
+  - name: 调休
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见）
+  forbidden:
+  - 调休
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: operating_valuation
+  zh: 经营估值
+  en: OperatingValuation
+  snake: operating_valuation
+  kind: value_object
+  bc: delivery.execution
+  scope: domain
+  definition: 每期按估计进度形成的内部估值，只作经营管理，不是收入，不进财务账（用户 2026-10-16 intent 2026-10-16-144613）
+  standard_ref:
+  - rules/decide/sheets/GL3.json
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3）
+- id: management_layer
+  zh: 管理层
+  en: ManagementLayer
+  snake: management_layer
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 公司管理人员的泛称；指具体的人时写项目经理、项目总监、部门负责人等角色名，不用「经营层」
+  standard_ref:
+  - rules/decide/sheets/GL3.json
+  confidence: medium
+  aliases:
+  - name: 经营层
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  forbidden:
+  - 经营层
+  note: 用户裁定转正式：用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）
+  status: approved
+  confirmed: 2026-10-21（用户，用语确认第四批 GL3-11）
+- id: customer_facing_baseline
+  zh: 对客基线
+  en: CustomerFacingBaseline
+  snake: customer_facing_baseline
+  kind: value_object
+  bc: delivery.execution
+  scope: domain
+  definition: 计划基线的一种：经发包人批准后生效；同一时间只有一个生效版本
+  standard_ref:
+  - 交付计划版本 AGG-21（revenue/state-machines.yaml）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
+  status: approved
+  confirmed: 2026-10-21（用户，内部基线重定）
+- id: internal_baseline
+  zh: 内部基线
+  en: InternalBaseline
+  snake: internal_baseline
+  kind: value_object
+  bc: delivery.execution
+  scope: domain
+  definition: 计划基线的一种：项目经理锁定即生效，无需发包人批准，可先于对客基线存在；同一时间只有一个生效版本
+  standard_ref:
+  - 交付计划版本 AGG-21（revenue/state-machines.yaml）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 用户裁定转正式：用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
+  status: approved
+  confirmed: 2026-10-21（用户，内部基线重定）
+- id: fund_account
+  zh: 资金账户
+  en: FundAccount
+  snake: fund_account
+  kind: aggregate
+  bc: accounting.cashbank
+  scope: domain
+  definition: 由本公司开立并管理开户、冻结与销户状态的现金或银行资金账户。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-87
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=fund_account]
+  confidence: medium
+  note: N9 名词写回（N5-001）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: bank_statement
+  zh: 银行流水
+  en: BankStatement
+  snake: bank_statement
+  kind: aggregate
+  bc: accounting.cashbank
+  scope: domain
+  definition: 某资金账户的一整份银行交易明细表，承载多笔流水明细；银行流水不用于指其中的单笔交易。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-88
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=bank_statement_line]
+  confidence: low
+  note: N9 名词写回（N5-002）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: company_asset
+  zh: 公司资产
+  en: CompanyAsset
+  snake: company_asset
+  kind: aggregate
+  bc: accounting.fixedasset
+  scope: domain
+  definition: 本公司拥有或控制并登记管理使用、折旧、摊销及处置情况的资产；公司资产不等同于固定资产会计确认类别。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-91
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=company_asset]
+  confidence: medium
+  note: N9 名词写回（N5-003）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: journal_entry
+  zh: 会计分录
+  en: JournalEntry
+  snake: journal_entry
+  kind: aggregate
+  bc: accounting.ledger
+  scope: domain
+  definition: 一次经济业务的借贷科目及金额记录；由记账凭证承载，区别于承载制单、审核和记账的整张凭证。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-84
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-98
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=journal_entry]
+  confidence: low
+  note: N9 名词写回（N5-005）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: controlled_manual_voucher
+  zh: 受控手工凭证
+  en: ControlledManualVoucher
+  snake: controlled_manual_voucher
+  kind: aggregate
+  bc: accounting.ledger
+  scope: domain
+  definition: 财务附理由与附件并经复核审批后提交过账的手工记账凭证，承载会计分录；分录与凭证分开命名。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-98
+  confidence: medium
+  note: N9 名词写回（N5-008）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: chart_of_accounts_version
+  zh: 科目表版本
+  en: ChartOfAccountsVersion
+  snake: chart_of_accounts_version
+  kind: aggregate
+  bc: accounting.ledger
+  scope: domain
+  definition: 某账簿在指定生效期使用的会计科目集合及其层级和控制属性版本。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-82
+  confidence: medium
+  note: N9 名词写回（N5-017）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: report_line_definition
+  zh: 报表行定义
+  en: ReportLineDefinition
+  snake: report_line_definition
+  kind: aggregate
+  bc: accounting.reporting
+  scope: domain
+  definition: 规定报表行与科目取数关系并按版本发布的报表结构配置。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-86
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=report_line_definition]
+  confidence: medium
+  note: N9 名词写回（N5-019）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 报表行定义版本
+    type: standard-zh
+    deprecated: true
+    context: accounting.reporting
+    source: NM2~NM2-02
+    note: 本概念不再首选此旧指称；与上下文或其他词条的中文名称、定义存在子串重合，不全局禁用。
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: tax_filing_record
+  zh: 税务申报记录
+  en: TaxFilingRecord
+  snake: tax_filing_record
+  kind: aggregate
+  bc: accounting.tax
+  scope: domain
+  definition: 记录增值税、附加税或企业所得税的一次申报、缴款与更正情况的记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-90
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-95
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=statutory_filing]
+  confidence: medium
+  note: N9 名词写回（N5-020）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 增值税、附加税、企业所得税申报
+    type: dialect
+    deprecated: true
+    context: accounting.tax
+    source: NM2~NM2-03
+  - name: 法定申报
+    type: standard-zh
+    deprecated: true
+    context: accounting.tax
+    source: NM2~NM2-03
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: StatutoryFiling
+    type: old-code
+    deprecated: true
+    source: NM2~NM2-03
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: allocation_rule
+  zh: 分摊规则
+  en: AllocationRule
+  snake: allocation_rule
+  kind: aggregate
+  bc: cost.costing
+  scope: domain
+  definition: 规定间接费用的分摊池、依据与步骤并按版本生效的配置。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-40
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=allocation_rule]
+  confidence: medium
+  note: N9 名词写回（N5-026）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 分摊规则版本
+    type: standard-zh
+    deprecated: true
+    context: cost.costing
+    source: NM2~NM2-04
+    note: 本概念不再首选此旧指称；与上下文或其他词条的中文名称、定义存在子串重合，不全局禁用。
+  - name: 分摊规则（原「分摊规则版本」）
+    type: standard-zh
+    deprecated: true
+    context: cost.costing
+    source: NM2~NM2-04
+    note: 仅禁用于本概念旧指称；其他已登记含义及通用动作不受此别名影响。
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: client_supplied_material
+  zh: 发包人提供资料
+  en: ClientSuppliedMaterial
+  snake: client_supplied_material
+  kind: aggregate
+  bc: delivery.acceptance
+  scope: domain
+  definition: 由发包人提供并登记接收、版本与处置情况的设计或检查输入资料。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-32
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=client_supplied_material]
+  confidence: medium
+  note: N9 名词写回（N5-030）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: customer_satisfaction_survey_record
+  zh: 客户满意度调查记录
+  en: CustomerSatisfactionSurveyRecord
+  snake: customer_satisfaction_survey_record
+  kind: aggregate
+  bc: delivery.acceptance
+  scope: domain
+  definition: 记录客户对成果与服务的问卷、评价及调查结论的记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-105
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=customer_satisfaction_survey]
+  confidence: medium
+  note: N9 名词写回（N5-031）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 客户满意度调查
+    type: standard-zh
+    deprecated: true
+    context: delivery.acceptance
+    source: NM3~NM3-01
+    note: 本概念不再首选此旧指称；与上下文或其他词条的中文名称、定义存在子串重合，不全局禁用。
+  - name: CustomerSatisfactionSurvey
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-01
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: design_change
+  zh: 设计变更
+  en: DesignChange
+  snake: design_change
+  kind: aggregate
+  bc: delivery.acceptance
+  scope: domain
+  definition: 设计成果发生变化时记录原因、范围、影响与主张情况的变更事项。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-30
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=design_change]
+  confidence: medium
+  note: N9 名词写回（N5-032）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: extension_request
+  zh: 延期申请
+  en: ExtensionRequest
+  snake: extension_request
+  kind: aggregate
+  bc: delivery.execution
+  scope: domain
+  definition: 保存项目延期事由、详细说明及批准或拒绝结论的申请。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-31
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=extension_request]
+  confidence: low
+  note: N9 名词写回（N5-037）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 延期申请记录
+    type: dialect
+    deprecated: true
+    context: delivery.execution
+    source: NM3~NM3-12
+  - name: ExtensionRequestRecord
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-12
+  forbidden:
+  - 延期申请记录
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: resource_assignment_record
+  zh: 资源分配记录
+  en: ResourceAssignmentRecord
+  snake: resource_assignment_record
+  kind: aggregate
+  bc: delivery.execution
+  scope: domain
+  definition: 记录某人员在项目或工作包中承担角色、时段与计划工时的分配安排。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-26
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=resource_assignment]
+  confidence: medium
+  note: N9 名词写回（N5-038）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 资源分配
+    type: standard-zh
+    deprecated: true
+    context: delivery.execution
+    source: NM3~NM3-13
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: ResourceAssignment
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-13
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: resource_requirement
+  zh: 资源需求
+  en: ResourceRequirement
+  snake: resource_requirement
+  kind: aggregate
+  bc: delivery.execution
+  scope: domain
+  definition: 项目或工作包在一定时段对角色、职级、专业及工时提出的资源要求。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-25
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=resource_requirement]
+  confidence: medium
+  note: N9 名词写回（N5-039）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: project_team
+  zh: 项目团队
+  en: ProjectTeam
+  snake: project_team
+  kind: aggregate
+  bc: delivery.execution
+  scope: domain
+  definition: 覆盖参与项目全部人员的团队名册，记录成员、角色及有效期间；对客户承诺的关键人员另作标记，标记不授予审批权。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-24
+  confidence: low
+  note: N9 名词写回（N5-040）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: project_team_member
+  zh: 项目团队成员
+  en: ProjectTeamMember
+  snake: project_team_member
+  kind: entity
+  bc: delivery.execution
+  scope: domain
+  definition: 某人员在项目团队中承担某角色及其有效期间的一条成员关系；覆盖全部参与人员，关键人员另作标记。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-24
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=project_team_member]
+  confidence: medium
+  note: N9 名词写回（N5-041）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: project_retrospective_report
+  zh: 项目复盘报告
+  en: ProjectRetrospectiveReport
+  snake: project_retrospective_report
+  kind: aggregate
+  bc: delivery.execution
+  scope: domain
+  definition: 保存项目做法、成本与进度总结以及评审、发布和替代版本的复盘报告。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-103
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=project_retrospective]
+  confidence: medium
+  note: N9 名词写回（N5-042）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 项目复盘
+    type: standard-zh
+    deprecated: true
+    context: delivery.execution
+    source: NM3~NM3-13
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: ProjectRetrospective
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-13
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: project_risk_and_issue_record
+  zh: 项目风险与问题记录
+  en: ProjectRiskAndIssueRecord
+  snake: project_risk_and_issue_record
+  kind: aggregate
+  bc: delivery.execution
+  scope: domain
+  definition: 登记项目风险或问题的描述、应对措施、责任人、接受依据与关闭情况的记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-104
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=project_risk_and_issue]
+  confidence: medium
+  note: N9 名词写回（N5-044）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 项目风险与问题
+    type: standard-zh
+    deprecated: true
+    context: delivery.execution
+    source: NM3~NM3-13
+    note: 本概念不再首选此旧指称；与上下文或其他词条的中文名称、定义存在子串重合，不全局禁用。
+  - name: ProjectRiskAndIssue
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-13
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: external_test_record
+  zh: 外部检测记录
+  en: ExternalTestRecord
+  snake: external_test_record
+  kind: aggregate
+  bc: delivery.inspection
+  scope: domain
+  definition: 保存受委托外部检测的委托信息、报告及结果的检测记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-37
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=external_testing]
+  confidence: medium
+  note: N9 名词写回（N5-045）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 外部检测
+    type: standard-zh
+    deprecated: true
+    context: delivery.inspection
+    source: NM3~NM3-02
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: ExternalTesting
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-02
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: inspection_checklist_template
+  zh: 检查表模板
+  en: InspectionChecklistTemplate
+  snake: inspection_checklist_template
+  kind: aggregate
+  bc: delivery.inspection
+  scope: domain
+  definition: 按版本发布并规定检查范围、检查项及结果填写要求的检查表模板。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-36
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=inspection_checklist_template]
+  confidence: medium
+  note: N9 名词写回（N5-046）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 检查表模板版本
+    type: dialect
+    deprecated: true
+    context: delivery.inspection
+    source: NM3~NM3-02
+  forbidden:
+  - 检查表模板版本
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: inspection_plan
+  zh: 检查计划
+  en: InspectionPlan
+  snake: inspection_plan
+  kind: aggregate
+  bc: delivery.inspection
+  scope: domain
+  definition: 安排检查对象、频次和时间并管理排期变化的计划。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-34
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=inspection_plan]
+  confidence: medium
+  note: N9 名词写回（N5-047）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: inspection_record
+  zh: 检查记录
+  en: InspectionRecord
+  snake: inspection_record
+  kind: aggregate
+  bc: delivery.inspection
+  scope: domain
+  definition: 保存一次检查的范围、检查项结果或未检原因并经审核锁定的记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-35
+  confidence: medium
+  note: N9 名词写回（N5-048）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 检查
+    type: standard-zh
+    deprecated: true
+    context: delivery.inspection
+    source: NM3~NM3-02
+    note: 仅禁用于本概念旧指称；其他已登记含义及通用动作不受此别名影响。
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: knowledge_item
+  zh: 知识条目
+  en: KnowledgeItem
+  snake: knowledge_item
+  kind: aggregate
+  bc: km.knowledge
+  scope: domain
+  definition: 按版本发布和停用并记录类别、适用范围与评审依据的可复用知识内容。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-107
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=knowledge_item]
+  confidence: medium
+  note: N9 名词写回（N5-054）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: service_product
+  zh: 服务产品
+  en: ServiceProduct
+  snake: service_product
+  kind: aggregate
+  bc: masterdata.catalog
+  scope: domain
+  definition: 规定可提供服务及默认阶段组合并按版本发布和停用的服务目录条目。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-03
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=service_product]
+  confidence: medium
+  note: N9 名词写回（N5-056）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 服务产品版本
+    type: dialect
+    deprecated: true
+    context: masterdata.catalog
+    source: NM3~NM3-14
+  forbidden:
+  - 服务产品版本
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: billing_factor_version
+  zh: 计费系数版本
+  en: BillingFactorVersion
+  snake: billing_factor_version
+  kind: aggregate
+  bc: masterdata.catalog
+  scope: domain
+  definition: 在指定生效期规定由标准成本费率换算计费费率所用系数的配置版本。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-06
+  - docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md
+  confidence: low
+  note: N9 名词写回（N5-058）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: phase_type_version
+  zh: 阶段类型版本
+  en: PhaseTypeVersion
+  snake: phase_type_version
+  kind: aggregate
+  bc: masterdata.catalog
+  scope: domain
+  definition: 按版本发布并规定阶段默认交付物及评审要求的阶段目录配置。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-04
+  - docs/modernization/intent/2026-10-16-061232-one-architecture-阶段类型与-BC-划分确认页提交.md
+  confidence: low
+  note: N9 名词写回（N5-059）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: qualification_certificate
+  zh: 资质证书
+  en: QualificationCertificate
+  snake: qualification_certificate
+  kind: aggregate
+  bc: masterdata.counterparty
+  scope: domain
+  definition: 由我方法人或往来单位持有并记录类别、等级及有效期的资质证书。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-02
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=qualification_certificate]
+  confidence: medium
+  note: N9 名词写回（N5-060）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: it_service_ticket
+  zh: 信息技术服务工单
+  en: ItServiceTicket
+  snake: it_service_ticket
+  kind: aggregate
+  bc: organization.administration
+  scope: domain
+  definition: 登记信息技术服务需求并跟踪受理、处理与关闭的服务工单。
+  standard_ref:
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=it_service_ticket]
+  confidence: low
+  note: N9 名词写回（N5-064）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: IT 需求工单
+    type: standard-zh
+    deprecated: true
+    context: organization.administration
+    source: NM4~NM4-03
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: it_asset_usage_record
+  zh: 信息技术资产使用记录
+  en: ItAssetUsageRecord
+  snake: it_asset_usage_record
+  kind: aggregate
+  bc: organization.administration
+  scope: domain
+  definition: 登记公司信息技术实物设备和软件许可的领用人、分配、收回及使用情况的记录，区分设备与软件许可。
+  standard_ref:
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=it_asset_usage_record]
+  confidence: low
+  note: N9 名词写回（N5-065）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: IT 资产使用记录
+    type: dialect
+    deprecated: true
+    context: organization.administration
+    source: NM4~NM4-03、NM4~NM4-08
+  - name: 信息技术设备使用记录
+    type: standard-zh
+    deprecated: true
+    context: organization.administration
+    source: NM4~NM4-03、NM4~NM4-08
+    note: 仅禁用于本概念旧指称；其他已登记含义及通用动作不受此别名影响。
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: it_asset_repair_order
+  zh: 信息技术资产维修单
+  en: ItAssetRepairOrder
+  snake: it_asset_repair_order
+  kind: aggregate
+  bc: organization.administration
+  scope: domain
+  definition: 记录公司信息技术资产的故障、维修安排与完成情况的维修单。
+  standard_ref:
+  - .codex-inputs/nouns.json /17/1/1
+  confidence: low
+  note: N9 名词写回（N5-066）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: IT 资产维修单
+    type: dialect
+    deprecated: true
+    context: organization.administration
+    source: NM4~NM4-03
+  - name: 信息技术设备维修单
+    type: dialect
+    deprecated: true
+    source: 用户 2026-10-21 用语确认第五批 GL4-04（提交 GL4-20261021-221322-bbn，intent 2026-10-21-221338）
+  forbidden:
+  - 信息技术设备维修单
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）；用户 2026-10-21 用语确认第五批 GL4-04（提交 GL4-20261021-221322-bbn，intent 2026-10-21-221338）（用户裁定，rulings.yaml）
+- id: employee_activity_request
+  zh: 员工活动申请
+  en: EmployeeActivityRequest
+  snake: employee_activity_request
+  kind: aggregate
+  bc: organization.administration
+  scope: domain
+  definition: 记录员工集体活动的计划、费用及批准结论的申请。
+  standard_ref:
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=employee_activity_request]
+  confidence: low
+  note: N9 名词写回（N5-067）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 员工活动申请记录
+    type: standard-zh
+    deprecated: true
+    context: organization.administration
+    source: NM3~NM3-12
+    note: 本概念不再首选此旧指称；与上下文或其他词条的中文名称、定义存在子串重合，不全局禁用。
+  - name: EmployeeActivityRequestRecord
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-12
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: seal_usage_request
+  zh: 用印申请
+  en: SealUsageRequest
+  snake: seal_usage_request
+  kind: aggregate
+  bc: organization.administration
+  scope: domain
+  definition: 保存拟用印文件、印章类别、事由、批准结论及实际用印情况的申请。
+  standard_ref:
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=seal_usage_request]
+  confidence: low
+  note: N9 名词写回（N5-068）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 用印申请记录
+    type: dialect
+    deprecated: true
+    context: organization.administration
+    source: NM3~NM3-12
+  - name: SealUsageRequestRecord
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-12
+  forbidden:
+  - 用印申请记录
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: overtime_record
+  zh: 加班记录
+  en: OvertimeRecord
+  snake: overtime_record
+  kind: aggregate
+  bc: organization.leave
+  scope: domain
+  definition: 保存人员加班时段、工作情况及补偿方式的记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-72
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=overtime]
+  confidence: medium
+  note: N9 名词写回（N5-072）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 加班
+    type: standard-zh
+    deprecated: true
+    context: organization.leave
+    source: NM4~NM4-02
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: Overtime
+    type: old-code
+    deprecated: true
+    source: NM4~NM4-02
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: monthly_attendance_confirmation_sheet
+  zh: 月度考勤确认表
+  en: MonthlyAttendanceConfirmationSheet
+  snake: monthly_attendance_confirmation_sheet
+  kind: aggregate
+  bc: organization.leave
+  scope: domain
+  definition: 汇总某人员某月出勤、请假与加班并记录员工确认及更正的确认表。；考勤仅用于本记录名称，不恢复为单独业务汇称或模块名。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-97
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=monthly_attendance_confirmation]
+  confidence: medium
+  note: N9 名词写回（N5-073）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 月度考勤确认
+    type: dialect
+    deprecated: true
+    context: organization.leave
+    source: NM4~NM4-02、NM4~NM4-06
+  - name: MonthlyAttendanceConfirmation
+    type: old-code
+    deprecated: true
+    source: NM4~NM4-02、NM4~NM4-06
+  forbidden:
+  - 月度考勤确认
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: attendance_record
+  zh: 考勤记录
+  en: AttendanceRecord
+  snake: attendance_record
+  kind: aggregate
+  bc: organization.leave
+  scope: domain
+  definition: 按人员和日期追加打卡与出勤事实及其来源的记录。；考勤仅用于本记录名称，不恢复为单独业务汇称或模块名。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-69
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=attendance_record]
+  - docs/modernization/intent/2026-10-16-061232-one-architecture-阶段类型与-BC-划分确认页提交.md
+  confidence: low
+  note: N9 名词写回（N5-074）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: leave_request
+  zh: 请假申请
+  en: LeaveRequest
+  snake: leave_request
+  kind: aggregate
+  bc: organization.leave
+  scope: domain
+  definition: 记录人员假期类型、起止时刻、分日时长及审批结论并关联额度占用的申请。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-70
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=leave_request]
+  confidence: low
+  note: N9 名词写回（N5-075）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 请假
+    type: standard-zh
+    deprecated: true
+    context: organization.leave
+    source: NM3~NM3-12
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: 请假申请记录
+    type: dialect
+    deprecated: true
+    context: organization.leave
+    source: NM3~NM3-12
+  - name: LeaveRequestRecord
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-12
+  forbidden:
+  - 请假申请记录
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: special_additional_deduction_declaration
+  zh: 专项附加扣除声明
+  en: SpecialAdditionalDeductionDeclaration
+  snake: special_additional_deduction_declaration
+  kind: aggregate
+  bc: organization.payroll
+  scope: domain
+  definition: 由人员按纳税年度声明适用扣除项目并供薪酬计税引用的声明记录。
+  standard_ref:
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=special_additional_deduction_declaration]
+  confidence: low
+  note: N9 名词写回（N5-076）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: payroll_statutory_filing_record
+  zh: 个税及社保公积金申报记录
+  en: PayrollStatutoryFilingRecord
+  snake: payroll_statutory_filing_record
+  kind: aggregate
+  bc: organization.payroll
+  scope: domain
+  definition: 记录个人所得税、社会保险或住房公积金的一次申报、缴款与更正情况；按种类分别称个人所得税申报、社会保险申报、住房公积金申报，整体展示可用此汇称。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-90
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-95
+  confidence: medium
+  note: N9 名词写回（N5-077）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 个税扣缴与社保公积金申报
+    type: dialect
+    deprecated: true
+    context: organization.payroll
+    source: NM4~NM4-10、NM4~NM4-09
+  - name: 法定申报
+    type: standard-zh
+    deprecated: true
+    context: organization.payroll
+    source: NM4~NM4-10、NM4~NM4-09
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  forbidden:
+  - 个税扣缴与社保公积金申报
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: bonus_determination_sheet
+  zh: 奖金核定表
+  en: BonusDeterminationSheet
+  snake: bonus_determination_sheet
+  kind: aggregate
+  bc: organization.payroll
+  scope: domain
+  definition: 保存按激励方案核定人员奖金及其确认结论的核定表。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-76
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=bonus_determination]
+  confidence: medium
+  note: N9 名词写回（N5-079）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 奖金核定
+    type: standard-zh
+    deprecated: true
+    context: organization.payroll
+    source: NM4~NM4-10
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: BonusDetermination
+    type: old-code
+    deprecated: true
+    source: NM4~NM4-10
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: monthly_payroll_settlement_statement
+  zh: 月度薪酬结算单
+  en: MonthlyPayrollSettlementStatement
+  snake: monthly_payroll_settlement_statement
+  kind: aggregate
+  bc: organization.payroll
+  scope: domain
+  definition: 汇集某法人某月人员薪酬行并记录计算、审核、发放与过账状态的结算单。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-73
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=monthly_payroll_settlement]
+  confidence: medium
+  note: N9 名词写回（N5-080）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 月度薪酬结算
+    type: dialect
+    deprecated: true
+    context: organization.payroll
+    source: NM4~NM4-10
+  - name: 月度薪酬结算（原「算薪运行」）
+    type: standard-zh
+    deprecated: true
+    context: organization.payroll
+    source: NM4~NM4-10
+    note: 仅禁用于本概念旧指称；其他已登记含义及通用动作不受此别名影响。
+  - name: MonthlyPayrollSettlement
+    type: old-code
+    deprecated: true
+    source: NM4~NM4-10
+  forbidden:
+  - 月度薪酬结算
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: incentive_plan
+  zh: 激励方案
+  en: IncentivePlan
+  snake: incentive_plan
+  kind: aggregate
+  bc: organization.payroll
+  scope: domain
+  definition: 规定适用人员、奖金计算规则与额度并按版本生效的激励方案。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-75
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=incentive_plan]
+  confidence: medium
+  note: N9 名词写回（N5-081）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 激励方案版本
+    type: dialect
+    deprecated: true
+    context: organization.payroll
+    source: NM4~NM4-10
+  forbidden:
+  - 激励方案版本
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: social_insurance_and_housing_fund_enrollment_record
+  zh: 社保与公积金参保记录
+  en: SocialInsuranceAndHousingFundEnrollmentRecord
+  snake: social_insurance_and_housing_fund_enrollment_record
+  kind: aggregate
+  bc: organization.payroll
+  scope: domain
+  definition: 记录人员参加社会保险和住房公积金的缴费主体、基数及增减员情况的记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-74
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=social_insurance_enrollment]
+  confidence: medium
+  note: N9 名词写回（N5-082）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 社保与公积金参保
+    type: dialect
+    deprecated: true
+    context: organization.payroll
+    source: NM4~NM4-10
+  - name: SocialInsuranceEnrollment
+    type: old-code
+    deprecated: true
+    source: NM4~NM4-10
+  forbidden:
+  - 社保与公积金参保
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: recruitment_requisition
+  zh: 招聘需求
+  en: RecruitmentRequisition
+  snake: recruitment_requisition
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 记录岗位招聘所需人员要求及批准、招聘和关闭状态的需求。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-65
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=recruitment_requisition]
+  confidence: medium
+  note: N9 名词写回（N5-086）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: registered_practice_certificate
+  zh: 注册执业证书
+  en: RegisteredPracticeCertificate
+  snake: registered_practice_certificate
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 登记人员执业资格的证书、有效期和继续教育情况的证书记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-66
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=registered_practice_certificate]
+  confidence: medium
+  note: N9 名词写回（N5-087）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: performance_appraisal_result
+  zh: 绩效评估结果
+  en: PerformanceAppraisalResult
+  snake: performance_appraisal_result
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 保存人员某评估期间的评价内容、评估人及确认结论的结果。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-106
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=performance_appraisal]
+  confidence: medium
+  note: N9 名词写回（N5-088）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 绩效评估
+    type: standard-zh
+    deprecated: true
+    context: organization.workforce
+    source: NM4~NM4-11
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: PerformanceAppraisal
+    type: old-code
+    deprecated: true
+    source: NM4~NM4-11
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: job_and_grade_catalog
+  zh: 职位职级目录
+  en: JobAndGradeCatalog
+  snake: job_and_grade_catalog
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 规定职位及职级类别和适用关系的目录；职位指从事的工作类别，职位、岗位、职级分别命名；岗位和职级保留既有 position、job_grade 的定义与约束，本次不据此批准岗位编制或目录存储结构。
+  standard_ref:
+  - .codex-inputs/nouns.json /21/1/4
+  confidence: low
+  note: N9 名词写回（N5-089）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 职位目录与职级
+    type: standard-zh
+    deprecated: true
+    context: organization.workforce
+    source: NM4~NM4-05、NM4~NM4-07
+    note: 本概念不再首选此旧指称；与上下文或其他词条的中文名称、定义存在子串重合，不全局禁用。
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 4 批确认页，提交 NM4-20261017-105806-n04）
+- id: profit_distribution_plan
+  zh: 利润分配方案
+  en: ProfitDistributionPlan
+  snake: profit_distribution_plan
+  kind: aggregate
+  bc: payables.payment
+  scope: domain
+  definition: 按法人及年度保存向股东或合伙人的分配行、决议及支付进度的方案。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-109
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=profit_distribution]
+  confidence: medium
+  note: N9 名词写回（N5-091）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 利润分配
+    type: standard-zh
+    deprecated: true
+    context: payables.payment
+    source: NM2~NM2-05
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: ProfitDistribution
+    type: old-code
+    deprecated: true
+    source: NM2~NM2-05
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: partner_capital_contribution_record
+  zh: 合伙人出资记录
+  en: PartnerCapitalContributionRecord
+  snake: partner_capital_contribution_record
+  kind: aggregate
+  bc: payables.payment
+  scope: domain
+  definition: 记录合伙人认缴、实缴及退回情况的出资记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-54
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=partner_capital_contribution]
+  confidence: medium
+  note: N9 名词写回（N5-092）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 合伙人出资
+    type: standard-zh
+    deprecated: true
+    context: payables.payment
+    source: NM2~NM2-05
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: PartnerCapitalContribution
+    type: old-code
+    deprecated: true
+    source: NM2~NM2-05
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: customer_activity
+  zh: 客户活动
+  en: CustomerActivity
+  snake: customer_activity
+  kind: aggregate
+  bc: presales.opportunity
+  scope: domain
+  definition: 面向客户安排并记录计划日期、跟进或拜访结果及变更情况的活动事项。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-102
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=customer_activity]
+  confidence: medium
+  note: N9 名词写回（N5-094）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: marketing_campaign
+  zh: 市场活动
+  en: MarketingCampaign
+  snake: marketing_campaign
+  kind: aggregate
+  bc: presales.opportunity
+  scope: domain
+  definition: 具有计划、开展与结束阶段并可形成线索的市场推广活动事项。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-08
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=marketing_campaign]
+  confidence: medium
+  note: N9 名词写回（N5-095）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: independence_check_record
+  zh: 独立性检查记录
+  en: IndependenceCheckRecord
+  snake: independence_check_record
+  kind: aggregate
+  bc: presales.opportunity
+  scope: domain
+  definition: 保存接受业务前利益冲突与独立性检查的范围、结论及所需书面同意的记录。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-18
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=independence_check]
+  confidence: medium
+  note: N9 名词写回（N5-097）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 独立性检查
+    type: standard-zh
+    deprecated: true
+    context: presales.opportunity
+    source: NM3~NM3-04
+    note: 仅为本概念不再首选的旧指称；通用短语及其他已登记含义不全局禁用。
+  - name: IndependenceCheck
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-04
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: supplier_performance_confirmation_statement
+  zh: 供方履约确认单
+  en: SupplierPerformanceConfirmationStatement
+  snake: supplier_performance_confirmation_statement
+  kind: aggregate
+  bc: procurement.subcontracting
+  scope: domain
+  definition: 保存对供方协议已履约工作或金额的确认行及确认依据的单据。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-57
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=supplier_performance_confirmation]
+  confidence: low
+  note: N9 名词写回（N5-099）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases:
+  - name: 供方履约确认
+    type: standard-zh
+    deprecated: true
+    context: procurement.subcontracting
+    source: NM3~NM3-07
+    note: 本概念不再首选此旧指称；与上下文或其他词条的中文名称、定义存在子串重合，不全局禁用。
+  - name: SupplierPerformanceConfirmation
+    type: old-code
+    deprecated: true
+    source: NM3~NM3-07
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+- id: bond_and_deposit
+  zh: 保证金与押金
+  en: BondAndDeposit
+  snake: bond_and_deposit
+  kind: aggregate
+  bc: receivables.collection
+  scope: domain
+  definition: 记录保证金或押金的性质、方向、形式及退还、扣减或没收情况；现金保证金与一般应收款项分开列示，科目和独立清单存储设计不由名称决定。
+  standard_ref:
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-51
+  - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=bond_and_deposit]
+  confidence: low
+  note: N9 名词写回（N5-101）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: bank_statement_line
+  zh: 流水明细
+  en: BankStatementLine
+  snake: bank_statement_line
+  kind: entity
+  bc: accounting.cashbank
+  scope: domain
+  definition: 一份银行流水中的单笔入账或出账交易明细，供对账与收付核销引用。
+  standard_ref:
+  - n5-nouns-draft.yaml N5-002 prior_draft_names（BankStatementLine）及 rationale（单行/entity）
+  confidence: medium
+  note: NM2-09 拆分整表与单笔；英文与 entity 分类沿用 N5-002 追溯的单行草稿。
+  aliases:
+  - name: 银行流水
+    type: standard-zh
+    deprecated: true
+    context: accounting.cashbank
+    source: NM2~NM2-09
+    note: 仅禁用于本概念旧指称；其他已登记含义及通用动作不受此别名影响。
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+- id: legal_entity_finance_head
+  zh: 法人财务负责人
+  en: LegalEntityFinanceHead
+  snake: legal_entity_finance_head
+  kind: role
+  scope: domain
+  bc: organization.workforce
+  definition: 某一法人范围内承担财务职责的负责人；每个法人分别明确其财务负责人。跨法人事项须另行写明由哪个法人的财务负责人承担；具体任职、代理人与权限配置沿用已定授权规则。
+  standard_ref:
+  - rules/decide/answers/NM5.json NM5-01
+  - ADR-0053 决定2第1条、决定7第1条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 5 批确认页，提交 NM5-20261017-113346-5l9）
+  note: NAM-1017-GLO-02；沿组织人事已有部门负责人、区域应收负责人归集职责角色；名称与定义均限定法人范围。
+- id: allocation_base
+  zh: 分摊基数
+  en: AllocationBase
+  snake: allocation_base
+  kind: value_object
+  scope: domain
+  bc: cost.costing
+  definition: 分摊规则据以分摊成本的量；每条分摊规则须写明所用的具体量与单位。与用于计算社会保险及住房公积金缴费额的缴费基数分别定义，不将两者合并，也不在本次指定各规则的公式、档位或数值。
+  standard_ref:
+  - rules/decide/answers/NM5.json NM5-02
+  - ADR-0053 决定2第1条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 5 批确认页，提交 NM5-20261017-113346-5l9）
+  note: NAM-1017-GLO-02；归集于分摊规则所属 BC；值对象表达量及单位，具体规则仍由业务给定。
+- id: contribution_base
+  zh: 缴费基数
+  en: ContributionBase
+  snake: contribution_base
+  kind: value_object
+  scope: domain
+  bc: organization.payroll
+  definition: 人员参加社会保险或住房公积金时，据以计算相应缴费额的基数；按缴费项目及适用期间明确其金额与币种，不作为成本分摊的分摊基数。本次不设定具体缴费标准、上下限或费率。
+  standard_ref:
+  - rules/decide/answers/NM5.json NM5-02
+  - glossary/arch-naming/n5-nouns-draft.yaml terms[draft_id=N5-082]
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 5 批确认页，提交 NM5-20261017-113346-5l9）
+  note: NAM-1017-GLO-02；与社保与公积金参保记录同 BC；本卡只区分词义，不批准具体缴费政策。
+- id: professional_discipline
+  zh: 专业
+  en: ProfessionalDiscipline
+  snake: professional_discipline
+  kind: value_object
+  scope: domain
+  bc: organization.workforce
+  definition: 人员擅长的专业类别，供项目团队成员等人员使用场景引用；实际类别清单由业务提供。与表示组织结构的业务线及表示所提供服务的服务产品区分，不指人员在本次项目承担的服务类别。
+  standard_ref:
+  - rules/decide/answers/NM5.json NM5-03
+  - ADR-0053 决定2第1条、决定7第1条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户，命名第 5 批确认页，提交 NM5-20261017-113346-5l9）
+  note: NAM-1017-GLO-02；与人员的岗位、职级同 BC，使用值对象表达分类；不编造目录取值，不扩展为生命周期状态。
+- id: expense_preapproval
+  zh: 费用事前申请
+  en: ExpensePreapproval
+  snake: expense_preapproval
+  kind: aggregate
+  scope: domain
+  bc: expense.spend
+  definition: 费用发生前就事由及预计金额提出的独立批准申请；承载金额批准并与后续费用关联，不与批准行程的出差申请混同。
+  standard_ref:
+  - ../../.codex-inputs/CAPINFO_NEWTERMS.md OBJ-118
+  - glossary/arch-naming/n5-nouns-draft.yaml transferred_c5[draft_id=N5-053]
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+  note: NAM-1017-GLO-02；英文采用 one-architecture 的 CAPINFO 建议；聚合类别承接已确认的独立对象，不推定权限、存储或实现已验收。
+- id: travel_request
+  zh: 出差申请
+  en: TravelRequest
+  snake: travel_request
+  kind: aggregate
+  scope: domain
+  bc: expense.spend
+  definition: 就出差目的、行程及预计费用提出的独立行程批准申请；供行程同步与后续费用关联，不替代独立的费用金额批准。
+  standard_ref:
+  - ../../.codex-inputs/CAPINFO_NEWTERMS.md OBJ-119
+  - glossary/arch-naming/n5-nouns-draft.yaml transferred_c5[draft_id=N5-049]
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+  note: NAM-1017-GLO-02；英文采用 one-architecture 的 CAPINFO 建议；聚合类别承接已确认的独立对象，不推定权限、存储或实现已验收。
+- id: travel_order
+  zh: 差旅订单
+  en: TravelOrder
+  snake: travel_order
+  kind: aggregate
+  scope: domain
+  bc: expense.spend
+  definition: 差旅预订形成的订单；作为订单行超标审批、退改、归属及结算核对的依据，领域定义不包含外部系统名称。
+  standard_ref:
+  - ../../.codex-inputs/CAPINFO_NEWTERMS.md OBJ-120
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+  note: NAM-1017-GLO-02；英文采用 one-architecture 的 CAPINFO 建议；聚合类别承接已确认的独立对象，不推定权限、存储或实现已验收。
+- id: travel_monthly_statement
+  zh: 差旅订单月账单
+  en: TravelMonthlyStatement
+  snake: travel_monthly_statement
+  kind: aggregate
+  scope: domain
+  bc: expense.spend
+  definition: 供应商按月汇总差旅订单形成的账单；承载逐项核对与签字、差异处理及应付确认，区别于单笔差旅订单。
+  standard_ref:
+  - ../../.codex-inputs/CAPINFO_NEWTERMS.md OBJ-121
+  - glossary/arch-naming/n5-nouns-draft.yaml transferred_c5[draft_id=N5-051]
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+  note: NAM-1017-GLO-02；英文采用 one-architecture 的 CAPINFO 建议；聚合类别承接已确认的独立对象，不推定权限、存储或实现已验收。
+- id: leave_balance_account
+  zh: 假期余额账户
+  en: LeaveBalanceAccount
+  snake: leave_balance_account
+  kind: aggregate
+  scope: domain
+  bc: organization.leave
+  definition: 一名人员在一个假期类型、一个年度内的余额账户，承载额度核定、使用、结转、折算与手工调整；记录应享、已用及占用（待批请假）三项数量，守住「已用加占用不超过应享」。本概念的账户指假期额度载体，与会计账户区分。
+  standard_ref:
+  - ../../.codex-inputs/CAPINFO_NEWTERMS.md OBJ-122
+  - backend/glossary/proposed/enterprise-aggregates.yaml terms[id=leave_balance]
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-71
+  - 《职工带薪年休假条例》
+  confidence: medium
+  aliases:
+  - name: 假期余额
+    type: standard-zh
+    deprecated: true
+    context: organization.leave
+    source: backend/glossary/proposed/enterprise-aggregates.yaml#leave_balance
+    note: 原提议中文名；本对象首选名按 CAPINFO 改为假期余额账户，不全局禁用假期余额。
+  - name: LeaveBalance
+    type: old-code
+    deprecated: true
+    source: backend/glossary/proposed/enterprise-aggregates.yaml#leave_balance
+    note: 原提议英文名；CAPINFO 已确认对象采用 LeaveBalanceAccount，保留旧英文供追溯。
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+  note: NAM-1017-GLO-02 返工第1轮；合并原提议 leave_balance 的数量边界与标准依据，CAPINFO 的账户叫法取代原提议否定账户的说明；organization.leave 已在 bcs.yaml 登记。按本卡保留提议源的要求，以正式名称对应 id 登记并在 N9_WRITEBACK.md 交接原提议删除；不另批准业务实现。
+- id: employee_compensation_profile
+  zh: 人员薪酬档案
+  en: EmployeeCompensationProfile
+  snake: employee_compensation_profile
+  kind: aggregate
+  scope: domain
+  bc: organization.payroll
+  definition: 关联人员与任职、按生效日期只追加薪资历史的档案，保留薪酬属性版本（职级、薪档等），供按月开展的薪酬结算引用；专项附加扣除等独立扣除记录另行关联，不并入本档案属性。含敏感个人信息，按 ADR-0043 登记访问级别。
+  standard_ref:
+  - ../../.codex-inputs/CAPINFO_NEWTERMS.md OBJ-123
+  - backend/glossary/proposed/enterprise-aggregates.yaml terms[id=employee_compensation]
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-93
+  - 企业会计准则第 9 号——职工薪酬
+  confidence: medium
+  aliases:
+  - name: 员工薪酬
+    type: standard-zh
+    deprecated: true
+    context: organization.payroll
+    source: backend/glossary/proposed/enterprise-aggregates.yaml#employee_compensation
+    note: 原提议中文名；仅标记本对象旧指称，不全局禁用员工薪酬。
+  - name: EmployeeCompensation
+    type: old-code
+    deprecated: true
+    source: backend/glossary/proposed/enterprise-aggregates.yaml#employee_compensation
+    note: 原提议英文名；CAPINFO 已确认对象采用 EmployeeCompensationProfile，保留旧英文供追溯。
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+  note: NAM-1017-GLO-02 返工第1轮；合并原提议 employee_compensation 的薪酬版本、敏感分级与标准依据；人员薪酬档案已获 CAPINFO 确认，不沿用旧提议把该首选名列作 dialect 的判定，独立扣除记录按本次对象范围分开。按本卡保留提议源的要求，以正式名称对应 id 登记并在 N9_WRITEBACK.md 交接原提议删除；不另批准业务实现。
+- id: personal_income_tax_filing
+  zh: 个人所得税申报
+  en: PersonalIncomeTaxFiling
+  snake: personal_income_tax_filing
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 个税及社保公积金申报记录按税费种类显示的个人所得税申报；记录申报、缴款与更正情况，不另拆聚合。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM4.json#NM4~NM4-09
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM4，提交 NM4-20261017-105806-n04）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: housing_provident_fund_filing
+  zh: 住房公积金申报
+  en: HousingProvidentFundFiling
+  snake: housing_provident_fund_filing
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 个税及社保公积金申报记录按税费种类显示的住房公积金申报；记录申报、缴款与更正情况，不另拆聚合。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM4.json#NM4~NM4-09
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM4，提交 NM4-20261017-105806-n04）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: bank_reconciliation_statement
+  zh: 余额调节表
+  en: BankReconciliationStatement
+  snake: bank_reconciliation_statement
+  kind: read_model
+  bc: accounting.cashbank
+  scope: domain
+  definition: 银行流水与收付款事实自动匹配后形成的余额调节表；未匹配的利息、手续费按规则生成系统凭证，其余未匹配项进待处理队列，队列非空不得关账。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-31
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-31）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: net_revenue
+  zh: 净收入
+  en: NetRevenue
+  snake: net_revenue
+  kind: metric
+  bc: operations.policy
+  scope: domain
+  definition: 收入（不含税）减委外与分包的转付成本；信息服务费不在此扣除，计入直接项目费用并在贡献毛利中扣除。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-41
+  formula: 收入（不含税）−委外与分包的转付成本；信息服务费在直接项目费用中扣除
+  grain: 法人 × 项目 × 业务期间，按同一币种汇总
+  as_of: 所选业务期间末，以该期间已确认收入和配对转付成本为准
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-41）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: impairment_plan
+  zh: 减值计划
+  en: ImpairmentPlan
+  snake: impairment_plan
+  kind: read_model
+  bc: operations.planning
+  scope: domain
+  definition: 减值的预算与预测，只供经营分析与已计提金额对比，不生成入账事实。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-36
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-36）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: impairment_aging
+  zh: 减值账龄
+  en: ImpairmentAging
+  snake: impairment_aging
+  kind: value_object
+  bc: receivables.collection
+  scope: domain
+  definition: 用于预期信用损失矩阵的账龄口径：自确认或开票日起按年度分为 1 年内、1–2、2–3、3–4、4–5、5 年以上，与管理账龄分开。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-37
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-37）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: region
+  zh: 区域
+  en: Region
+  snake: region
+  kind: entity
+  bc: organization.workforce
+  scope: domain
+  definition: 介于项目和公司之间、变动频率较高的组织层次；与事业部区分，登记为后续范围维度并排期，不据此启用权限或建立新 BC。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/F1.json#F1~F1-05
+  status: approved
+  confirmed: 2026-10-15（用户裁定，F1，docs/modernization/rules/decide/answers/F1.json#F1~F1-05）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: fund_account__restricted
+  zh: 受限
+  en: Restricted
+  snake: restricted
+  kind: value_object
+  bc: accounting.cashbank
+  scope: domain
+  definition: 银行资金账户的支用属性取值；须注明受限原因，标注变更按版本生效；保函、银行承兑汇票、农民工工资保证金与司法冻结默认受限。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-33
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-33）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: fund_account__available_on_demand
+  zh: 可随时支用
+  en: AvailableOnDemand
+  snake: available_on_demand
+  kind: value_object
+  bc: accounting.cashbank
+  scope: domain
+  definition: 银行资金账户的支用属性取值，表示资金可随时支用；与受限分开标注，属性变更按版本生效。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-33
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-33）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: revenue_including_tax
+  zh: 含税收入
+  en: RevenueIncludingTax
+  snake: revenue_including_tax
+  kind: metric
+  bc: operations.policy
+  scope: domain
+  definition: 年度目标跟踪使用的含税收入指标；主收入口径及收入与成本配对仍使用不含税口径。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-14
+  formula: 收入（不含税）＋对应销项税额
+  grain: 法人 × 年度目标范围 × 业务期间 × 币种
+  as_of: 年度目标跟踪的所选业务期间末
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-14）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: actual_cost_rate
+  zh: 实际成本费率
+  en: ActualCostRate
+  snake: actual_cost_rate
+  kind: value_object
+  bc: cost.costing
+  scope: domain
+  definition: 用于成本核算的实际成本费率，与交付使用的标准成本费率、售前使用的计费费率分立。
+  standard_ref:
+  - docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md
+  status: approved
+  confirmed: 2026-10-15（用户裁定，2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用，docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: prior_period_correction
+  zh: 对以前期间的更正
+  en: PriorPeriodCorrection
+  snake: prior_period_correction
+  kind: value_object
+  bc: accounting.ledger
+  scope: domain
+  definition: 差错更正归属原期间；原期间已关账时记入当前开放期间并标原期间，列为对以前期间的更正。业务冲回依其业务日期归期，不属此类。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-23
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-23）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: impairment__recognized
+  zh: 已计提
+  en: ImpairmentRecognized
+  snake: impairment_recognized
+  kind: value_object
+  bc: accounting.ledger
+  scope: domain
+  definition: 减值已按准则模型测算并入账：应收账款与合同资产按 CAS 22 简化方法计提整个存续期预期信用损失，合同履约成本按 CAS 14 第三十条；与不入账的减值计划区分。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-36
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-36）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: measurement_event
+  zh: 度量事件
+  en: MeasurementEvent
+  snake: measurement_event
+  kind: value_object
+  bc: operations.policy
+  scope: domain
+  definition: 经营分析总线矩阵的一行，表示有明确粒度、维度与度量的业务过程度量；这是架构与分析用语，不作为领域事件或消息发布。
+  standard_ref:
+  - docs/modernization/intent/2026-10-16-112800-one-architecture-锁定对照标准与-ADR-0047.md
+  status: approved
+  confirmed: 2026-10-16（用户裁定，2026-10-16-112800-one-architecture-锁定对照标准与-ADR-0047，docs/modernization/intent/2026-10-16-112800-one-architecture-锁定对照标准与-ADR-0047.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: expanded_preliminary_design
+  zh: 扩初设计
+  en: ExpandedPreliminaryDesign
+  snake: expanded_preliminary_design
+  kind: value_object
+  bc: masterdata.catalog
+  scope: domain
+  definition: 景观等服务产品线在深化阶段内使用的子阶段名；不并入初步设计，不加入全局阶段类型目录。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/GL2.json#GL2~B2-X10
+  status: approved
+  confirmed: 2026-10-16（用户裁定，GL2，docs/modernization/rules/decide/answers/GL2.json#GL2~B2-X10）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: net_new_contract_value
+  zh: 新签净额
+  en: NetNewContractValue
+  snake: net_new_contract_value
+  kind: metric
+  bc: operations.policy
+  scope: domain
+  definition: 新签合同额扣预计委外与分包后的净额；新签合同额本身不扣减。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-42
+  formula: 新签合同额−预计委外与分包金额（与新签合同额使用相同含税口径及币种）
+  grain: 法人 × 新签合同 × 签约期间 × 币种
+  as_of: 合同新签时锁定的金额与预计转付成本
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-42）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: accrual_ledger
+  zh: 权责账簿
+  en: AccrualLedger
+  snake: accrual_ledger
+  kind: entity
+  bc: accounting.ledger
+  scope: domain
+  definition: 按权责口径登记的账簿，与收付账簿并列，作为账簿的业务种类及对应实例，不另设总账 BC 或新的聚合边界。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-43
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-43）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: standard_cost_rate
+  zh: 标准成本费率
+  en: StandardCostRate
+  snake: standard_cost_rate
+  kind: value_object
+  bc: cost.costing
+  scope: domain
+  definition: 用于签约后交付阶段的标准成本费率；由标准成本费率卡及其版本承载，与计费费率和实际成本费率分立。
+  standard_ref:
+  - docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md
+  status: approved
+  confirmed: 2026-10-15（用户裁定，2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用，docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent
+    2026-10-21-201913）（补充意见 05）（用户裁定，rulings.yaml）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: social_insurance_filing
+  zh: 社会保险申报
+  en: SocialInsuranceFiling
+  snake: social_insurance_filing
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 个税及社保公积金申报记录按税费种类显示的社会保险申报；记录申报、缴款与更正情况，不另拆聚合。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM4.json#NM4~NM4-09
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM4，提交 NM4-20261017-105806-n04）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: lease_modification
+  zh: 租赁变更
+  en: LeaseModification
+  snake: lease_modification
+  kind: entity
+  bc: procurement.subcontracting
+  scope: domain
+  definition: 按租赁协议类型命名的变更记录，记录租赁范围或价款等的变更；属于供方协议变更，不另拆新的聚合。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM3.json#NM3~NM3-11
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: thirteenth_period
+  zh: 第 13 期
+  en: ThirteenthPeriod
+  snake: thirteenth_period
+  kind: value_object
+  bc: accounting.period
+  scope: domain
+  definition: 只接收年度审计调整的第 13 个会计期间；启用时间与两账闸门按 ADR-0046 及其后续决策，不等同第十三期启用记录。
+  standard_ref:
+  - docs/modernization/intent/2026-10-15-124316-one-coordinator-财务确认单第-2-版答复的-13.md
+  status: approved
+  confirmed: 2026-10-15（用户裁定，2026-10-15-124316-one-coordinator-财务确认单第-2-版答复的-13，docs/modernization/intent/2026-10-15-124316-one-coordinator-财务确认单第-2-版答复的-13.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: management_aging
+  zh: 管理账龄
+  en: ManagementAging
+  snake: management_aging
+  kind: value_object
+  bc: receivables.collection
+  scope: domain
+  definition: 催收用逾期天数口径：未逾期、1–45、46–90、91–180、181–365、1 年以上；与用于减值矩阵的减值账龄分开定义。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-37
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-37）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: job_position
+  zh: 职位
+  en: JobPosition
+  snake: job_position
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 职位职级目录中的工作角色类别，与岗位（组织编制中的具体位置）、职级（等级）分别命名；不把职位职级目录拆成新的聚合。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM4.json#NM4~NM4-07
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM4，提交 NM4-20261017-105806-n04）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: billing_rate
+  zh: 计费费率
+  en: BillingRate
+  snake: billing_rate
+  kind: value_object
+  bc: masterdata.catalog
+  scope: domain
+  definition: 售前报价使用的费率，等于标准成本费率乘计费系数；报价须记使用版本，费率配置是售前与成本共同上游，不在两侧重复登记。
+  standard_ref:
+  - docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md
+  status: approved
+  confirmed: 2026-10-15（用户裁定，2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用，docs/modernization/intent/2026-10-15-211139-one-architecture-我们存在三套费率-标准成本费率用.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: expense_attribution_period
+  zh: 费用所属期间
+  en: ExpenseAttributionPeriod
+  snake: expense_attribution_period
+  kind: value_object
+  bc: expense.spend
+  scope: domain
+  definition: 审核时核定的费用业务发生日所在月份；已关账时账上落当前开放期间并标注原期间，经营分析仍按所属期间归属。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-16
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-16）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: migrated_fact_difference_statement
+  zh: 迁入事实差异说明
+  en: MigratedFactDifferenceStatement
+  snake: migrated_fact_difference_statement
+  kind: read_model
+  bc: accounting.ledger
+  scope: domain
+  definition: 关账资料中的迁入事实差异说明，列期间、法人、科目、金额、批次；控制科目一致性检查排除迁入标记事实，说明其原期间与当前开放期间的差异。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/FD.json#FD~FD-19
+  status: approved
+  confirmed: 2026-10-15（用户裁定，FD，docs/modernization/rules/decide/answers/FD.json#FD~FD-19）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: purchase_modification
+  zh: 采购变更
+  en: PurchaseModification
+  snake: purchase_modification
+  kind: entity
+  bc: procurement.subcontracting
+  scope: domain
+  definition: 按采购协议类型命名的变更记录，记录采购范围或价款等变更；与分包变更、租赁变更分别命名，不另拆聚合。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM3.json#NM3~NM3-11
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- bc: masterdata.catalog
+  en: AgreementPrice
+  id: agreement_price
+  kind: value_object
+  scope: domain
+  zh: 协议价格
+  snake: agreement_price
+  standard_ref:
+  - docs/modernization/intent/2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独.md
+  definition: 战略协议约定、供具体项目签约与报价采用的服务单价；是协议价目中的价格值，与管理条目、生效期及版本的协议价目区分。
+  status: approved
+  confirmed: 2026-10-15（用户裁定，2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独，docs/modernization/intent/2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- bc: masterdata.catalog
+  en: AgreementPriceList
+  id: agreement_price_list
+  kind: aggregate
+  scope: domain
+  zh: 协议价目
+  snake: agreement_price_list
+  standard_ref:
+  - docs/modernization/intent/2026-10-15-210513-one-architecture-售前聚合与-BC-确认页保存-一.md
+  definition: 只约定服务单价的战略价格表，含单价条目、生效期及版本；不承诺总额限额，具体项目仍签约并采用其中协议价格。
+  status: approved
+  confirmed: 2026-10-15（用户裁定，2026-10-15-210513-one-architecture-售前聚合与-BC-确认页保存-一，docs/modernization/intent/2026-10-15-210513-one-architecture-售前聚合与-BC-确认页保存-一.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- aliases: []
+  bc: platform.approval
+  confidence: medium
+  definition: 任务超过审批时限仍未处理；只提醒，不自动通过，计入时效统计
+  en: ApprovalTaskBecameOverdue
+  forbidden: []
+  id: approval_task_became_overdue
+  kind: domain_event
+  scope: domain
+  snake: approval_task_became_overdue
+  standard_ref:
+  - events/approval.yaml
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-A27
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B02
+  status: approved
+  zh: 任务已超时
+  confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-A27）；2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B02）
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- aliases: []
+  bc: presales.opportunity
+  confidence: medium
+  definition: 一次投标的全过程：招标项目与标段、参与方式、联合体协议、资格预审、投标报价、承诺快照、撤回与撤销。不是商机（opportunity）：一个商机可对应一次或多次投标。
+  en: Bid
+  forbidden: []
+  id: bid
+  kind: aggregate
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: bid
+  standard_ref:
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-11
+  - 《招标投标法》
+  - docs/modernization/intent/2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独.md
+  status: approved
+  zh: 投标
+  confirmed: 2026-10-15（用户裁定，2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独，docs/modernization/intent/2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独.md）
+- aliases: []
+  bc: receivables.collection
+  confidence: medium
+  definition: 商业承兑汇票从收到到兑付的状态：收到 → 已兑付 / 逾期；到期日到而未兑付为逾期
+  en: BillRedemptionStatus
+  forbidden: []
+  id: bill_redemption_status
+  kind: state
+  note: OBJ-35 之外：商票作回款方式、加到期日与兑付状态，不单独成对象；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: bill_redemption_status
+  standard_ref:
+  - 票据法（商业汇票）
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  - docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md
+  status: approved
+  zh: 兑付状态
+  confirmed: 2026-10-16（用户裁定，2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0，docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md）
+- aliases: []
+  bc: receivables.collection
+  confidence: medium
+  definition: 商业承兑汇票到期日已过而未兑付；与应收账款的逾期（逾期应收）、审批任务的已超时不同
+  en: BillOverdue
+  forbidden: []
+  id: bill_redemption_status__overdue
+  kind: value_object
+  scope: domain
+  snake: bill_overdue
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  - docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md
+  status: approved
+  zh: 已逾期
+  confirmed: 2026-10-16（用户裁定，2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0，docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md）
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- aliases: []
+  bc: receivables.collection
+  confidence: medium
+  definition: 商业承兑汇票已收到，尚未到期兑付
+  en: Received
+  forbidden: []
+  id: bill_redemption_status__received
+  kind: value_object
+  scope: domain
+  snake: received
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  - docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md
+  status: approved
+  zh: 收到
+  confirmed: 2026-10-16（用户裁定，2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0，docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md）
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- aliases: []
+  bc: receivables.collection
+  confidence: medium
+  definition: 商业承兑汇票到期已兑付，计现金流入（FD-40）
+  en: Redeemed
+  forbidden: []
+  id: bill_redemption_status__redeemed
+  kind: value_object
+  scope: domain
+  snake: redeemed
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  - docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md
+  status: approved
+  zh: 已兑付
+  confirmed: 2026-10-16（用户裁定，2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0，docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md）
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- aliases: []
+  bc: masterdata.counterparty
+  confidence: medium
+  definition: 建设单位的工程项目的外部引用登记（含竣工在用后成为受检对象的工程）：被售前、交付执行、合同、检查共同引用，位于最上游；内含我方参与记录和往来单位角色（建设单位、业主、物业，带起止）。不是我方交付的项目（项目 project）。
+  en: ConstructionProject
+  forbidden: []
+  id: construction_project
+  kind: aggregate
+  note: 本条不在草案 §8 清单内，因我方参与记录需要其聚合名而一并提议；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: construction_project
+  standard_ref:
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-33
+  - 《建设工程质量管理条例》
+  - docs/modernization/intent/2026-10-15-234418-one-architecture-答复复核-R1–R5-提交-已提.md
+  status: approved
+  zh: 建设工程
+  confirmed: 2026-10-15（用户裁定，2026-10-15-234418-one-architecture-答复复核-R1–R5-提交-已提，docs/modernization/intent/2026-10-15-234418-one-architecture-答复复核-R1–R5-提交-已提.md）
+- aliases: []
+  bc: organization.workforce
+  confidence: medium
+  definition: 注册执业证书的属性：持证人在注册有效期内累计完成的继续教育学时，分必修与选修；达标是延续注册的条件
+  en: ContinuingEducationHours
+  forbidden: []
+  id: continuing_education_hours
+  kind: value_object
+  note: 依据已由 one-architecture 核对原文（2026-10-16）；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: continuing_education_hours
+  standard_ref:
+  - 注册建筑师条例实施细则（建设部令第 167 号）第三十四、三十五条与注建〔2022〕3 号
+  - 勘察设计注册工程师管理规定（建设部令第 137 号，2016 修正）第二十四、二十五条
+  - 注册监理工程师管理规定（建设部令第 147 号）第二十三条
+  - 注册建造师管理规定（建设部令第 153 号）第二十三条
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  - docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md
+  status: approved
+  zh: 继续教育学时
+  confirmed: 2026-10-16（用户裁定，2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0，docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md）
+- aliases: []
+  bc: masterdata.counterparty
+  confidence: medium
+  definition: 与我方发生业务往来的法律主体（企业、事业单位或自然人）的主数据：唯一法定标识，合并保留历史；客户、供方、联合体成员、建设单位等是它带准入状态的角色，不是不同的主体。不含我方法人（法人主体，组织人事）和员工。
+  en: Counterparty
+  forbidden: []
+  id: counterparty
+  kind: aggregate
+  note: 与 presales.customer 的 customer（客户）定义同源，处置见确认单 B2-X02；英文 Counterparty 取 IFRS 9 通行写法；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: counterparty
+  standard_ref:
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-01
+  - 会计基础工作规范（往来结算）
+  - docs/modernization/intent/2026-10-15-210513-one-architecture-售前聚合与-BC-确认页保存-一.md
+  status: approved
+  zh: 往来单位
+  confirmed: 2026-10-15（用户裁定，2026-10-15-210513-one-architecture-售前聚合与-BC-确认页保存-一，docs/modernization/intent/2026-10-15-210513-one-architecture-售前聚合与-BC-确认页保存-一.md）
+- aliases: []
+  bc: receivables.wip
+  confidence: medium
+  definition: 收入侧按合同条款核验送达、审查期届满与无异议等证据是否成立视为同意；可作为收入证据，期间按期满日所在月。交付物不设视为同意状态（ADR-0049）。
+  en: DeemedAcceptance
+  forbidden: []
+  id: deemed_acceptance
+  kind: business_rule
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: deemed_acceptance
+  standard_ref:
+  - ADR-0047 第 5 条
+  - GF-2015-0209 第 8.1 条
+  - docs/modernization/intent/2026-10-16-061232-one-architecture-阶段类型与-BC-划分确认页提交.md
+  - docs/modernization/adr/src/ADR-0049.md#决定
+  status: approved
+  zh: 视为同意
+  confirmed: 2026-10-16（用户裁定，2026-10-16-061232-one-architecture-阶段类型与-BC-划分确认页提交，docs/modernization/intent/2026-10-16-061232-one-architecture-阶段类型与-BC-划分确认页提交.md）；2026-10-16（用户裁定，决定，docs/modernization/adr/src/ADR-0049.md#决定）
+- aliases: []
+  bc: delivery.acceptance
+  confidence: medium
+  definition: 施工图审查通过后出具的合格书，作证据类型
+  en: DrawingReviewCertificate
+  forbidden: []
+  id: drawing_review_certificate
+  kind: value_object
+  scope: domain
+  snake: drawing_review_certificate
+  standard_ref:
+  - 建设工程质量管理条例（施工图审查）
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  - docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md
+  status: approved
+  zh: 施工图审查合格书
+  confirmed: 2026-10-16（用户裁定，2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0，docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md）
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- aliases: []
+  bc: delivery.acceptance
+  confidence: medium
+  definition: 施工图审查机构对施工图出具的审查意见，作证据类型
+  en: DrawingReviewOpinion
+  forbidden: []
+  id: drawing_review_opinion
+  kind: value_object
+  note: 随证据（Q29）暂不定的部分一并确认；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: drawing_review_opinion
+  standard_ref:
+  - 建设工程质量管理条例（施工图审查）
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  - docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md
+  status: approved
+  zh: 施工图审查意见
+  confirmed: 2026-10-16（用户裁定，2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0，docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md）
+- bc: organization.workforce
+  en: EmploymentContract
+  id: employment_contract
+  kind: aggregate
+  scope: domain
+  zh: 劳动合同
+  snake: employment_contract
+  standard_ref:
+  - docs/modernization/intent/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md
+  definition: 人员与本公司法人订立的劳动合同，在组织人事 BC 内按单级批准，与招聘需求、离职申请同属人事管理范围。
+  status: approved
+  confirmed: 2026-10-16（用户裁定，2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至，docs/modernization/intent/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- bc: delivery.acceptance
+  en: EvidenceLinkRecord
+  id: evidence_link_record
+  kind: aggregate
+  scope: domain
+  zh: 证据关联记录
+  snake: evidence_link_record
+  standard_ref:
+  - docs/modernization/intent/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md
+  definition: 在质量与认可 BC 记录一份证据关联到哪个交付物或阶段的关系；与保存内容及采集人 ID 的证据分开，不新增 BC。
+  status: approved
+  confirmed: 2026-10-16（用户裁定，2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至，docs/modernization/intent/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- aliases: []
+  bc: accounting.tax
+  confidence: medium
+  definition: 我方取得的增值税发票：查验、用途确认、入账占用和进项转出的载体；发票总额由入账占用分次消耗。
+  en: InputInvoice
+  forbidden: []
+  id: input_invoice
+  kind: aggregate
+  note: bc accounting.tax 须先登记入 bcs.yaml（ADR-0022 第 7 条）；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: input_invoice
+  standard_ref:
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-89
+  - 《增值税暂行条例》进项税额
+  - docs/modernization/intent/2026-10-16-072440-one-architecture-对象完整性与方法第-4-稿确认页.md
+  status: approved
+  zh: 进项发票
+  confirmed: 2026-10-16（用户裁定，2026-10-16-072440-one-architecture-对象完整性与方法第-4-稿确认页，docs/modernization/intent/2026-10-16-072440-one-architecture-对象完整性与方法第-4-稿确认页.md）
+- bc: presales.opportunity
+  en: Lead
+  id: lead
+  kind: aggregate
+  scope: domain
+  zh: 线索
+  snake: lead
+  standard_ref:
+  - docs/modernization/intent/2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独.md
+  - docs/modernization/intent/2026-10-15-205406-one-architecture-售前信息图确认页保存-合同与项目.md
+  definition: 潜在业务的信息记录，来源包括招标公告、老客户再委托、介绍、主动开发、市场活动和内部推荐；确认后才建立商机，线索不强制建客户。
+  status: approved
+  confirmed: 2026-10-15（用户裁定，2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独，docs/modernization/intent/2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独.md）；2026-10-15（用户裁定，2026-10-15-205406-one-architecture-售前信息图确认页保存-合同与项目，docs/modernization/intent/2026-10-15-205406-one-architecture-售前信息图确认页保存-合同与项目.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- aliases: []
+  bc: receivables.collection
+  confidence: medium
+  definition: 往来款项处置分类之一：已进入诉讼或仲裁程序
+  en: Litigation
+  forbidden: []
+  id: litigation
+  kind: value_object
+  scope: domain
+  snake: litigation
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  - docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md
+  status: approved
+  zh: 诉讼
+  confirmed: 2026-10-16（用户裁定，2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0，docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md）
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 一个迁入批次按期间 × 法人 × 对象类型比对来源侧聚合与暂存的行数、金额合计、来源 ID 摘要与按来源单号的行数金额的结果；零差异或经财务签字后批次才能提交（ADR-0036 第 8 条）
+  en: MigrationTieOut
+  forbidden: []
+  id: migration_tie_out
+  kind: entity
+  note: 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: acl
+  snake: migration_tie_out
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/glossary/decisions-gate-R-1b-0.json#GATE-R-1b-0-G03
+  status: approved
+  zh: 迁入核对
+  confirmed: 2026-10-15（用户裁定，GATE-R-1b-0-G03，docs/modernization/glossary/decisions-gate-R-1b-0.json#GATE-R-1b-0-G03）
+- aliases: []
+  bc: delivery.acceptance
+  confidence: medium
+  definition: 交付物内由项目经理作出的声明：截至某日未收到发包人的书面异议，附函件检索记录；是视为同意成立的须附证据之一。
+  en: NoObjectionDeclaration
+  forbidden: []
+  id: no_objection_declaration
+  kind: entity
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: no_objection_declaration
+  standard_ref:
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-27
+  - ADR-0047 第 5 条
+  - FIDIC notice of no-objection
+  - docs/modernization/intent/2026-10-16-061232-one-architecture-阶段类型与-BC-划分确认页提交.md
+  status: approved
+  zh: 无异议声明
+  confirmed: 2026-10-16（用户裁定，2026-10-16-061232-one-architecture-阶段类型与-BC-划分确认页提交，docs/modernization/intent/2026-10-16-061232-one-architecture-阶段类型与-BC-划分确认页提交.md）
+- bc: cost.costing
+  en: PrecontractInvestment
+  id: precontract_investment
+  kind: aggregate
+  scope: domain
+  zh: 签约前投入
+  snake: precontract_investment
+  standard_ref:
+  - docs/modernization/intent/2026-10-15-124316-one-coordinator-财务确认单第-2-版答复的-13.md
+  definition: 签约前已发生的业务投入，先挂账，超过规定 N 个月仍未签约时转费用；N 由财务确定，词条不预设数值。
+  status: approved
+  confirmed: 2026-10-15（用户裁定，2026-10-15-124316-one-coordinator-财务确认单第-2-版答复的-13，docs/modernization/intent/2026-10-15-124316-one-coordinator-财务确认单第-2-版答复的-13.md）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- aliases: []
+  bc: receivables.collection
+  confidence: medium
+  definition: 应收、应付往来款项出现争议或无法正常收付时的处置分类，诉讼是其中一类；其余取值未定（信息图候选：复工、结算、诉讼、核销，待用户确认页定）
+  en: ReceivableDispositionCategory
+  forbidden: []
+  id: receivable_disposition_category
+  kind: state
+  note: 信息图候选取值：复工、结算、诉讼、核销，待用户确认页定，目前只登记诉讼；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: receivable_disposition_category
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  - docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md
+  status: approved
+  zh: 往来款项处置分类
+  confirmed: 2026-10-16（用户裁定，2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0，docs/modernization/intent/2026-10-16-090004-one-architecture-阶段写实-对象回补与-ADR-0.md）
+- aliases: []
+  bc: receivables.wip
+  confidence: medium
+  definition: 开票与收入额度内的一次收入确认记录：引用证据、证据类型、认可日和视为同意判定；收入期间由认可日派生，请求携带期间的一律拒绝。
+  en: RevenueRecognitionLine
+  forbidden: []
+  id: revenue_recognition_line
+  kind: entity
+  note: 与词表 revenue_recognition（收入确认单，聚合）的关系见确认单 B2-X06；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: revenue_recognition_line
+  standard_ref:
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-44
+  - ADR-0047 第 3 条
+  - docs/modernization/rules/decide/answers/GL2.json#GL2~B2-X06
+  status: approved
+  zh: 收入确认行
+  confirmed: 2026-10-16（用户裁定，GL2，docs/modernization/rules/decide/answers/GL2.json#GL2~B2-X06）
+- aliases:
+  - name: RoleDeleted
+    type: old-code
+    deprecated: true
+    source: GL~B2-B06
+  bc: platform.identity
+  confidence: low
+  definition: 一个角色被废除，不再可用
+  en: RoleAbolished
+  forbidden: []
+  id: role_deleted
+  kind: domain_event
+  note: GL B2-B06 已裁定「角色已废除 / RoleAbolished」；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: role_abolished
+  standard_ref:
+  - events/identity.yaml
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B06
+  status: approved
+  zh: 角色已废除
+  confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B06）
+- aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 有人试图人工登记只能由同步或导入写入的来源对照，被拒绝，未存储任何对照
+  en: SourceReferenceRefused
+  forbidden: []
+  id: source_reference_refused
+  kind: domain_event
+  note: 聚合 SourceReferenceRefusal；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: acl
+  snake: source_reference_refused
+  standard_ref:
+  - events/integration.yaml
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-A54
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B05
+  status: approved
+  zh: 来源对照登记已被拒绝
+  acl_class: 过渡期
+  confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-A54）；2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B05）
+- aliases: []
+  bc: procurement.subcontracting
+  confidence: medium
+  definition: 对分包协议金额、范围或工期的正式修改（含影响评估）；生效后调整供方协议履约额度。与客户侧变更（change_order）相对，二者不互相取代。
+  en: SubcontractChange
+  forbidden: []
+  id: subcontract_change
+  kind: aggregate
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+  scope: domain
+  snake: subcontract_change
+  standard_ref:
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-56
+  - FIDIC Variation
+  - docs/modernization/rules/decide/answers/NM3.json#NM3~NM3-11
+  status: approved
+  zh: 分包变更
+  confirmed: 2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）
+- aliases: []
+  bc: cost.timesheet
+  confidence: medium
+  definition: 填报人撤销审批，工时单回到草稿；不记为驳回；以工作日期记业务日
+  en: TimesheetApprovalWithdrawn
+  forbidden: []
+  id: timesheet_approval_withdrawn
+  kind: domain_event
+  scope: domain
+  snake: timesheet_approval_withdrawn
+  standard_ref:
+  - events/timesheet.yaml (RULE-279)
+  - docs/modernization/rules/decide/answers/GL.json#GL~B2-B07
+  status: approved
+  zh: 工时单已撤回审批
+  confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B07）
+  note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+- id: start_project_execution
+  zh: 开始执行项目
+  en: StartProjectExecution
+  snake: start_project_execution
+  kind: command
+  bc: delivery.execution
+  scope: domain
+  definition: 使项目从已立项进入执行中的命令。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM6.json#NM6~NM6-07
+  - docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md
+  - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=2
+  - docs/modernization/rules/decide/sheets/NM6.json#NM6-07
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-19
+  - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V046
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
+  confidence: medium
+  aliases:
+  - name: 开始执行
+    type: standard-zh
+    deprecated: true
+    context: delivery.execution
+    source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=2
+  forbidden: []
+  note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。
+- id: mark_inspection_plan_as_no_longer_entrusted
+  zh: 标记检查计划不再受托
+  en: MarkInspectionPlanAsNoLongerEntrusted
+  snake: mark_inspection_plan_as_no_longer_entrusted
+  kind: command
+  bc: delivery.inspection
+  scope: domain
+  definition: 将检查计划标记为不再受托状态的命令。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM6.json#NM6~NM6-07
+  - docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md
+  - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=3
+  - docs/modernization/rules/decide/sheets/NM6.json#NM6-07
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-34
+  - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V004
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
+  confidence: medium
+  aliases:
+  - name: 标记不再受托
+    type: standard-zh
+    deprecated: true
+    context: delivery.inspection
+    source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=3
+  forbidden: []
+  note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。
+- id: register_opportunity_win
+  zh: 登记商机赢单
+  en: RegisterOpportunityWin
+  snake: register_opportunity_win
+  kind: command
+  bc: presales.opportunity
+  scope: domain
+  definition: 登记商机已赢单事实的命令。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM6.json#NM6~NM6-07
+  - docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md
+  - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=1
+  - docs/modernization/rules/decide/sheets/NM6.json#NM6-07
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-10
+  - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V001
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
+  confidence: medium
+  aliases:
+  - name: 商机赢单
+    type: standard-zh
+    deprecated: true
+    context: presales.opportunity
+    source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=1
+  forbidden: []
+  note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。
+- id: calculate_monthly_payroll
+  zh: 计算月度薪酬
+  en: CalculateMonthlyPayroll
+  snake: calculate_monthly_payroll
+  kind: command
+  bc: organization.payroll
+  scope: domain
+  definition: 计算某法人某月人员薪酬并形成月度薪酬结算结果的命令。
+  standard_ref:
+  - docs/modernization/rules/decide/answers/NM6.json#NM6~NM6-08
+  - docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md
+  - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-08/row_no=2
+  - docs/modernization/rules/decide/sheets/NM6.json#NM6-08
+  - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-73
+  - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V158
+  status: approved
+  confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
+  confidence: medium
+  aliases:
+  - name: 计算
+    type: standard-zh
+    deprecated: true
+    context: organization.payroll
+    source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-08/row_no=2
+  forbidden: []
+  note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。 动词表增补项：计算；负责会话已裁定本名称使用 Calculate / Calculated / calculate，N4 的 V158 由负责会话另行补入。
+- aliases: []
+  bc: organization.workforce
+  confidence: medium
+  definition: 集成层翻译成新系统用语后交给组织人事的一批组织单元、员工与任职变更；以同步记录 ID 作幂等键，整批在一个事务内应用
+  en: OrgChangeSet
+  forbidden: []
+  id: org_change_set
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: domain
+  snake: org_change_set
+  standard_ref:
+  - ADR-0039
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 组织变更集
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 一次历史数据迁入运行；登记来源系统、对象类型、范围、状态、行数与来源 ID 摘要；批次挂在来源对照与原编号对照上，业务表不带批次列
+  en: MigrationBatch
+  forbidden:
+  - 导入批次
+  - import_batch
+  - ImportBatch
+  id: migration_batch
+  kind: aggregate
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: migration_batch
+  standard_ref:
+  - 用户 2026-10-15 批次术语统一
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 迁入批次
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入时被拒绝的一条来源行，带批次、来源对象、来源 ID 与原因代码；处置经应用内带权限的操作录入，批次提交前须逐条处置（ADR-0036 第 7 条）
+  en: MigrationReject
+  forbidden: []
+  id: migration_reject
+  kind: entity
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: migration_reject
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 迁入拒收
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入拒收原因代码：来源取值在映射表中没有对应的自有取值（ADR-0036 第 7 条）
+  en: UnmappableValue
+  forbidden: []
+  id: migration_reject_reason__unmappable_value
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: unmappable_value
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 取值无法映射
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入拒收原因代码：目标必填项在来源中为空（ADR-0036 第 7 条）
+  en: RequiredMissing
+  forbidden: []
+  id: migration_reject_reason__required_missing
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: required_missing
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 必填缺失
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入拒收原因代码：原编号与已有编号在（单据类型, 编号）上冲突（ADR-0036 第 7 条）
+  en: NumberConflict
+  forbidden: []
+  id: migration_reject_reason__number_conflict
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: number_conflict
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 编号冲突
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入拒收原因代码：冲销行的原行不在本批次也不在目标库中（ADR-0036 第 7 条）
+  en: OriginalMissing
+  forbidden: []
+  id: migration_reject_reason__original_missing
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: original_missing
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 原行缺失
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入拒收原因代码：来源行的法人不在新系统的法人范围内（ADR-0036 第 7 条）
+  en: LegalEntityOutOfScope
+  forbidden: []
+  id: migration_reject_reason__legal_entity_out_of_scope
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: legal_entity_out_of_scope
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 法人不在范围
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入拒收原因代码：试提交中领域校验或数据库约束不通过（ADR-0036 第 7 条）
+  en: TrialCommitFailed
+  forbidden: []
+  id: migration_reject_reason__trial_commit_failed
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: trial_commit_failed
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 试提交失败
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入拒收处置取值：修正映射或来源后由新的暂存重跑（ADR-0036 第 7 条）
+  en: RerunAfterFix
+  forbidden: []
+  id: migration_reject_disposition__rerun_after_fix
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: rerun_after_fix
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 修正后重跑
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入拒收处置取值：确认该行不迁入；权责事实须财务负责人确认，其他由业务管理员确认（ADR-0036 第 7 条）
+  en: Excluded
+  forbidden: []
+  id: migration_reject_disposition__excluded
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: excluded
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 确认不迁
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 来源行转换为目标形状后存放的集成层暂存表（Flyway 按对象类型建固定表，带批次列、来源键、摘要与核对所需来源取值）；试提交与核对都针对它，核对通过后才提交目标库（ADR-0036 第 7 条）
+  en: MigrationStaging
+  forbidden: []
+  id: migration_staging
+  kind: entity
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: migration_staging
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 迁入暂存
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入批次状态取值：正在抽取、转换与暂存，可试提交（ADR-0036 第 3 条）
+  en: Staging
+  forbidden: []
+  id: migration_batch_status__staging
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: staging
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 暂存中
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入批次状态取值：暂存与试提交完成，等待核对通过或签字（ADR-0036 第 3 条）
+  en: AwaitingTieOut
+  forbidden: []
+  id: migration_batch_status__awaiting_tie_out
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: awaiting_tie_out
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 待核对
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入批次状态取值：核对已通过，正在分块提交目标库（ADR-0036 第 3 条）
+  en: Committing
+  forbidden: []
+  id: migration_batch_status__committing
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: committing
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 提交中
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入批次状态取值：提交阶段失败或生效后发现错误，事实行已整批冲销，终态；重跑为新批次（ADR-0036 第 3 条）
+  en: Reversed
+  forbidden: []
+  id: migration_batch_status__reversed
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: reversed
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 已冲销
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 迁入批次状态取值：提交前放弃，目标库未受影响，终态（ADR-0036 第 3 条）
+  en: Abandoned
+  forbidden: []
+  id: migration_batch_status__abandoned
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: abandoned
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 已放弃
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 来源对照行的状态：当前 CURRENT / 已冲销 REVERSED；只有事实类对照可为已冲销，冲销与关闭旧对照同一事务（ADR-0036 第 3、9 条）
+  en: SourceReferenceStatus
+  forbidden: []
+  id: source_reference_status
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: source_reference_status
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 对照状态
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 对照状态取值：该对照仍指向有效的自有行（ADR-0036 第 3 条）
+  en: Current
+  forbidden: []
+  id: source_reference_status__current
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: current
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 当前
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 来源行规范化后的 SHA-256，存于来源对照与暂存行，用于重跑时判断同一来源行是否变化（ADR-0036 第 3、7 条）
+  en: SourceRowDigest
+  forbidden: []
+  id: source_row_digest
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记迁入解析、暂存、拒收或对照的技术结构与枚举；不改变业务数据范围、财务签字规则和过账口径。
+  scope: acl
+  snake: source_row_digest
+  standard_ref:
+  - ADR-0036 历史数据迁入
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 来源行摘要
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- aliases: []
+  bc: kernel
+  confidence: medium
+  definition: 以 SYSTEM 身份发出事件的作业、监听器或运维入口；名字人为声明在 backend/architecture/system-actors.txt，事件信封 actorId 为该名字在固定命名空间下的 UUIDv5，同一名字恒定、不同于任何用户 ID，任何实例都可由目录反查名字（RULING-P2-C5）
+  en: SystemActor
+  forbidden: []
+  id: system_actor
+  kind: role
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: kernel
+  snake: system_actor
+  standard_ref:
+  - ADR-0033 第 7 项第 1 条
+  - phase1a/NEXT_BATCH_PLAN.md 7.2 C5
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 系统操作主体
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+  used_by:
+  - cost.timesheet
+  - organization.workforce
+  - platform.approval
+  - platform.audit
+  - platform.idempotency
+  - platform.identity
+  - platform.integration
+  - platform.numbering
+- aliases: []
+  bc: kernel
+  confidence: medium
+  definition: 员工在企业即时通讯平台上的账号，作为外部主体的一种；kernel 端口 ExternalSubjectEmployees 只以中性文本接收它的标识，平台取值只在集成层翻译（RULING-P3B-9）
+  en: MessagingAccount
+  forbidden: []
+  id: messaging_account
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: kernel
+  snake: messaging_account
+  standard_ref:
+  - ADR-0033 第 3 项第 6 条
+  - phase1a/cards/R-1b-P3b.md 第 13 节
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  used_by:
+  - platform.integration
+  - organization.workforce
+  zh: 即时通讯账号
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- aliases: []
+  bc: kernel
+  confidence: medium
+  definition: 员工在外部身份提供方的登录名，作为外部主体的一种；与新系统自身账号的登录无关
+  en: ExternalLoginName
+  forbidden: []
+  id: external_login_name
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: kernel
+  snake: external_login_name
+  standard_ref:
+  - ADR-0033 第 3 项第 6 条
+  - phase1a/cards/R-1b-P3b.md 第 13 节
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  used_by:
+  - platform.integration
+  - organization.workforce
+  zh: 外部登录名
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: organization.workforce
+  confidence: high
+  definition: A8 返回的有效部门数或在职人数降幅超过 20 % 时中止同步，等管理员人工放行
+  en: ShrinkGuard
+  forbidden: []
+  id: workforce__shrink_guard
+  kind: business_rule
+  note: NAM-1017-GLO-07 返工第2轮：只登记同步差异比较、数据隔离及异常中止的技术结构，不批准人事生效含义。
+  scope: acl
+  snake: shrink_guard
+  standard_ref:
+  - RULE-358
+  - RULE-366
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 缩水保护
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: organization.workforce
+  confidence: high
+  definition: 被缩水保护中止、等待管理员放行的同步运行
+  en: HeldRun
+  forbidden: []
+  id: workforce__held_run
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记同步差异比较、数据隔离及异常中止的技术结构，不批准人事生效含义。
+  scope: acl
+  snake: held_run
+  standard_ref:
+  - RULE-358
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 被中止的同步
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: organization.workforce
+  confidence: high
+  definition: 缺部门或缺岗位的人员行：不写入、告警，不中断整批同步
+  en: IsolatedRow
+  forbidden: []
+  id: workforce__isolated_row
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记同步差异比较、数据隔离及异常中止的技术结构，不批准人事生效含义。
+  scope: acl
+  snake: isolated_row
+  standard_ref:
+  - RULE-365
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 被隔离的行
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: organization.workforce
+  confidence: high
+  definition: A8 返回的部门缺少上级路径；整次同步中止，什么都不写
+  en: BrokenOrgTree
+  forbidden: []
+  id: workforce__broken_org_tree
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记同步差异比较、数据隔离及异常中止的技术结构，不批准人事生效含义。
+  scope: acl
+  snake: broken_org_tree
+  standard_ref:
+  - RULE-354
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 断裂的组织树
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.identity
+  confidence: medium
+  definition: 票据签发方签名密钥的编码（票据头部的 kid），一方一把；原列名 key_id 按 ADR-0033 影响面改为以 _code 结尾（R-1b P2）
+  en: SigningKeyCode
+  forbidden: []
+  id: signing_key_code
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: signing_key_code
+  standard_ref:
+  - ADR-0033 影响面「ticket_issuers.key_id 改名」
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 签名密钥编码
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.identity
+  confidence: medium
+  definition: 一次性登录凭据：致远 OA 票据，或外部系统的签名票据
+  en: Ticket
+  forbidden: []
+  id: ticket
+  kind: entity
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: ticket
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 票据
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.identity
+  confidence: medium
+  definition: 被允许签发签名票据的外部系统（KM、组织门户、YD 门户、BI），每方一把密钥，默认关闭
+  en: TicketIssuer
+  forbidden: []
+  id: ticket_issuer
+  kind: aggregate
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: ticket_issuer
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 票据签发方
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.identity
+  confidence: medium
+  definition: 用户账号在某个身份提供方（企业微信、致远登录）中的标识与该账号的绑定，带绑定区间；登录只经此绑定解析用户
+  en: ExternalIdentity
+  forbidden: []
+  id: external_identity
+  kind: entity
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: external_identity
+  standard_ref:
+  - adr/ADR-0033.md
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 外部身份
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.identity
+  confidence: medium
+  definition: 外部身份所属的身份提供方类别，如企业微信用户 ID、致远登录名
+  en: ProviderKind
+  forbidden: []
+  id: provider_kind
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: provider_kind
+  standard_ref:
+  - adr/ADR-0033.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 身份提供方类别
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.identity
+  confidence: medium
+  definition: 身份提供方给出的用户标识文本（企业微信 userid、致远登录名），只存于外部身份绑定
+  en: ExternalSubject
+  forbidden: []
+  id: external_subject
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: external_subject
+  standard_ref:
+  - adr/ADR-0033.md
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 外部主体标识
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- aliases: []
+  bc: platform.identity
+  confidence: medium
+  definition: 仅 dev 环境、仅在进程启动时按配置读定的运行方式：运维命令可省略见证人，应急账号与超级管理员下限按 1 计，并可经运维命令起草无作者的编号模板版本；放宽项封闭为单人运维放宽项的取值，每次放宽都写标注审计（ADR-0030）
+  en: SingleOperatorMode
+  forbidden: []
+  id: single_operator_mode
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: domain
+  snake: single_operator_mode
+  standard_ref:
+  - adr/src/ADR-0030.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 单人运维模式
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- aliases: []
+  bc: platform.identity
+  confidence: medium
+  definition: 单人运维模式下被放宽的规则，封闭为五个取值：见证人省略、应急账号下限一个、超级管理员下限一个（只改同步暂停原因文本）、模板版本无作者、日历版本无作者（起草版本作者为空）；写入标注审计的 detail；新增取值须另立 ADR（ADR-0030 第 2 项）
+  en: SingleOperatorRelaxation
+  forbidden: []
+  id: single_operator_relaxation
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: domain
+  snake: single_operator_relaxation
+  standard_ref:
+  - adr/src/ADR-0030.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 单人运维放宽项
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07；ADR-0072 决定 2（已采纳 2026-10-21，放宽清单由四值增为五值，增「每个日历版本记录作者」）（用户裁定，rulings.yaml）
+- aliases: []
+  bc: platform.identity
+  confidence: medium
+  definition: 持有全部平台管理权限的内置角色的角色码；单人运维放宽项「超级管理员下限一个」的取值名由它构成（ADR-0027、ADR-0030）
+  en: SuperAdmin
+  forbidden: []
+  id: super_admin
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: domain
+  snake: super_admin
+  standard_ref:
+  - adr/src/ADR-0030.md
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 超级管理员
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 一条待发往外部系统（企业微信）的消息及其发送结果；事务提交后由投递作业发送，失败退避重试，次数用尽进死信
+  en: OutboundDelivery
+  forbidden: []
+  id: outbound_delivery
+  kind: aggregate
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: outbound_delivery
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.7 §3.9
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 外发投递
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 消息的接收人，用企业微信用户 ID 精确指定；不允许按部门、标签或全员投递
+  en: Recipient
+  forbidden: []
+  id: recipient
+  kind: role
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: recipient
+  standard_ref:
+  - SECURITY_INVARIANTS.md I-6
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 收件人
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 外部系统或老系统中一个对象的标识与 FORCITIS one 自有 ID 的对应；只在集成层，领域只用自有 ID；同一来源系统、同一类别下来源 ID 与自有 ID 在任一时点各自唯一
+  en: SourceReference
+  forbidden: []
+  id: source_reference
+  kind: aggregate
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: source_reference
+  standard_ref:
+  - adr/ADR-0033.md
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 来源对照
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 来源对照所属的外部系统，取值为组织源（ORG_SOURCE）、老系统（LEGACY_SYSTEM）、核算系统（ACCOUNTING_SYSTEM），只在集成层与迁入登记中出现
+  en: SourceSystem
+  forbidden: []
+  id: source_system
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: source_system
+  standard_ref:
+  - adr/ADR-0033.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 来源系统
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 来源对照所指的自有对象类别（员工、组织单元、岗位、法人主体等），决定自有 ID 指向哪类对象
+  en: SourceObjectKind
+  forbidden: []
+  id: source_object_kind
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: source_object_kind
+  standard_ref:
+  - adr/ADR-0033.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 来源对象类别
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 来源对照的确认状态之一：登记的对照被另一个人拒绝，不占自然键约束，不用于出站
+  en: RejectedState
+  forbidden: []
+  id: rejected_state
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: rejected_state
+  standard_ref:
+  - adr/ADR-0033.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 已拒绝
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 长期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 已确认的后继对照从生效日起取代生效中的对照：旧对照在后继的生效日结束，两行的来源标识与自有 ID 都不改写
+  en: SupersedeSourceReference
+  forbidden: []
+  id: supersede
+  kind: command
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: supersede_source_reference
+  standard_ref:
+  - adr/ADR-0033.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 取代
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 运维命令：对一条只读外部连接的登录跑与启动校验同一套判定，逐项（ADR-0037 第 4 项 (a)–(g)）输出核实通过、确认违规或判定不了，判定不了时只带 SQL 错误号与 SQLState，按结果给退出码；不输出数据、消息原文与凭据，不监听端口、不迁移、不起作业，口令只从环境读
+  en: VerifyReadOnlyConnection
+  forbidden: []
+  id: read_only_verification
+  kind: command
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: verify_read_only_connection
+  standard_ref:
+  - adr/ADR-0037.md
+  - phase1a/infra/PREDEPLOY_CHECKLIST.md C-14
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 只读核实
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 只读核实对每一项与对整条连接给出的结论，取核实通过、确认违规、判定不了之一；整条连接有任一项确认违规即为确认违规，否则有判定不了即为判定不了
+  en: ReadOnlyVerificationResult
+  forbidden: []
+  id: read_only_verification_result
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: read_only_verification_result
+  standard_ref:
+  - adr/ADR-0037.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 只读核实结果
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 只读核实结果的取值：该项（或全部各项）与 RDS 平台基线一致
+  en: Passed
+  forbidden: []
+  id: read_only_verification_result__passed
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: passed
+  standard_ref:
+  - adr/ADR-0037.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 核实通过
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 只读核实结果的取值：数据库目录确实显示该项超出或缺少基线（与「判定不了」相对）
+  en: Violated
+  forbidden: []
+  id: read_only_verification_result__violated
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: violated
+  standard_ref:
+  - adr/ADR-0037.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 确认违规
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 只读核实结果的取值：查询出错、超时、连不上或返回为空，该项无法判定；启动时同样拒绝启动（ADR-0037 第 4 项第 2 条）
+  en: Undetermined
+  forbidden: []
+  id: read_only_verification_result__undetermined
+  kind: state
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: undetermined
+  standard_ref:
+  - adr/ADR-0037.md
+  - docs/modernization/adr/src/ADR-0053.md#3
+  status: approved
+  zh: 判定不了
+  confirmed: 设计方定稿，ADR-0053 决定 3 条，NAM-1017-GLO-07
+- acl_class: 过渡期
+  aliases: []
+  bc: platform.integration
+  confidence: medium
+  definition: 已授予、但被同级或更高层级的 DENY 覆盖、实际不生效的权限；只读核实按有效权限判定时不算违规，只作提示。
+  en: OverriddenGrant
+  forbidden: []
+  id: overridden_grant
+  kind: value_object
+  note: NAM-1017-GLO-07 返工第2轮：只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。
+  scope: acl
+  snake: overridden_grant
+  standard_ref:
+  - adr/ADR-0037.md
+  - SQL Server 权限层级中 DENY 优先于 GRANT（Microsoft 文档 Permissions Hierarchy）
+  - docs/modernization/adr/src/ADR-0053.md#4
+  status: approved
+  zh: 被拒绝覆盖的授权
+  confirmed: 设计方定稿，ADR-0053 决定 4 条，NAM-1017-GLO-07
 common_words:
 - Id
 - Uuid

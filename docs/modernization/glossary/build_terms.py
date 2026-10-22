@@ -629,7 +629,7 @@ for t in terms:
                 al["type"] = "dialect"
                 fb = t.setdefault("forbidden", [])
                 for n in _split(al["name"]):
-                    if n not in fb and not re.fullmatch(r"[A-Za-z]+", n):
+                    if n not in fb and n != t["zh"] and not re.fullmatch(r"[A-Za-z]+", n):
                         fb.append(n)
             elif al["name"] == t["zh"]:
                 al["type"] = "standard-zh"   # 叫法与正式用语相同
@@ -737,6 +737,11 @@ for t in terms:
         _to_kernel.append(t["id"])
     t.update(_x)
 print("term_rules: bc 为 kernel 的领域词条转为共享内核", len(_to_kernel), "条：", "、".join(_to_kernel))
+import apply_nm
+print("nm: 应用命名第 2–4 批答复", apply_nm.apply(terms))
+import apply_recon
+print("recon: 已裁定漏登与提议转正", apply_recon.apply(terms))
+print("rulings: recon 之后应用的裁定（late: true）", apply_rulings.apply(terms, late=True), "条")
 _entries = [("terms.yaml", t) for t in terms]
 _proposed = sorted(glob.glob("../../backend/glossary/proposed/*.yaml"))
 if not _proposed:

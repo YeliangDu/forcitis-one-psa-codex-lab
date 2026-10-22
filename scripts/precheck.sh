@@ -25,6 +25,10 @@ done
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "FAIL  not inside a git repository"; exit 1; }
 cd "$root" || exit 1
+# Heavy builds and test runs queue for one of two machine-wide slots and run at background priority (scripts/ci/heavy_slot.py)
+heavy="$root/scripts/ci/heavy_slot.py"
+# the push hook gives precheck 1400 s: a push that waits or runs longer than 600 s each fails here, the wrapper stopping its command, instead of being killed from outside with a half-run command left holding the slot
+$pre_push && export FORCITIS_HEAVY_WAIT_SECONDS=${FORCITIS_HEAVY_WAIT_SECONDS:-600} FORCITIS_HEAVY_RUN_SECONDS=${FORCITIS_HEAVY_RUN_SECONDS:-600}
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/precheck.XXXXXX")
 trap 'rm -rf "$work"' EXIT
@@ -63,7 +67,7 @@ backend_classes() {
   local classes=$1 class
   for class in $(printf '%s' "$classes" | tr ',' ' '); do rm -f backend/target/surefire-reports/*"$class".* backend/target/surefire-reports/TEST-*."$class".xml; done
   # surefire:test after test-compile, not the test phase: pom.xml binds the export-openapi execution (OpenApiExportTest: a PostgreSQL container, rewrites openapi.json) to process-test-classes, and -Dtest cannot switch it off
-  (cd backend && ./mvnw -q test-compile surefire:test -Dtest="$classes") || return 1
+  (cd backend && python3 -I "$heavy" -- ./mvnw -q test-compile surefire:test -Dtest="$classes") || return 1
   for class in $(printf '%s' "$classes" | tr ',' ' '); do
     ls backend/target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run"; return 1; }
   done
@@ -130,12 +134,7 @@ if [ "$relevant_status" -ne 0 ] || printf '%s\n' "$relevant_output" | grep -qx '
   legacy_it_relevant=true
 fi
 
-records_dir=$(dirname docs/modernization/build_all.py)
-if [ -n "$(gitq status --porcelain -- "$records_dir" backend/glossary/proposed)" ]; then
-  report SKIP "generated docs (build_all --check)" "$records_dir or backend/glossary/proposed has uncommitted changes: commit first, then run again (请先提交再运行)"
-else
-  run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
-fi
+run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
 if touches 'rules/decide/(build_decision_page\.py|page-template\.html)$'; then
   run_step "decision page generator (self-test)" py docs/modernization/rules/decide/build_decision_page.py --self-test
@@ -159,13 +158,15 @@ else
   report SKIP "system actors append-only" "system-actors.txt and its script did not change"
 fi
 
-if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/test/resources/acceptance/|frontend/.*__acceptance__/|scripts/ci/(acceptance_|ci_git))'; then
+if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/test/resources/acceptance/|frontend/.*__acceptance__/|docs/modernization/rulings/|scripts/ci/(acceptance_|ci_git))'; then
   run_step "acceptance guard (self-test)" py scripts/ci/acceptance_guard.py --self-test
   run_step "acceptance reports (self-test)" py scripts/ci/acceptance_reports.py --self-test
+  run_step "acceptance rulings (self-test)" py scripts/ci/acceptance_rulings.py --self-test
   if grep -Eq '__acceptance__/|/acceptance/' "$work/uncommitted"; then
     echo "      note: uncommitted acceptance changes are judged only once committed (trailers live in commit messages)"
   fi
   run_step "acceptance guard" py scripts/ci/acceptance_guard.py "$base"
+  run_step "acceptance rulings" py scripts/ci/acceptance_rulings.py "$base"
 else
   report SKIP "acceptance guard" "no acceptance test changed"
 fi
@@ -223,6 +224,16 @@ if touches 'src/test/.*\.java$|scripts/ci/shared_mock_verify_scan\.py$'; then
     printf '%s\n' "$mock_scan" | tail -n 6 | sed 's/^/      | /'
   fi
 fi
+if touches 'src/(test|main)/.*\.java$|scripts/ci/weak_registration_scan\.py$'; then
+  run_step "weak-registration scan (self-test)" py scripts/ci/weak_registration_scan.py --self-test
+  if weak_scan=$(py scripts/ci/weak_registration_scan.py 2>&1); then
+    report PASS "weak-registration scan (report only)" "$(printf '%s\n' "$weak_scan" | tail -n 1)"
+    printf '%s\n' "$weak_scan" | head -n 6 | grep -v '^weak-registration scan' | sed 's/^/      | /' || true
+  else
+    report FAIL "weak-registration scan (report only)" "the scan itself failed:"
+    printf '%s\n' "$weak_scan" | tail -n 6 | sed 's/^/      | /'
+  fi
+fi
 
 grep -E '\.sh$' "$work/changed" >"$work/shell" || true
 : >"$work/shell.present"
@@ -275,17 +286,25 @@ if [ -n "$guard_run" ]; then
 else
   report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
 fi
-if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate)\.py|scripts/ci/(light_unit_classes|heavy_gate|docker_diagnostics|failure_summary|repeat_new_tests)\.py|\.claude/settings\.json)$'; then
+if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate|codex_stdin_gate)\.py|scripts/ci/(heavy_slot|light_unit_classes|heavy_gate|docker_diagnostics|failure_summary|repeat_new_tests)\.py|\.claude/settings\.json)$'; then
   for guard in migrations_immutable acceptance_guard acceptance_reports db_scripts_aligned relevant_change assertion_drift; do
     run_step "guards: $guard (self-test)" py "scripts/ci/$guard.py" --self-test
   done
   run_step "guards: precheck_before_pr (self-test)" py scripts/hooks/precheck_before_pr.py --self-test
   run_step "guards: pre_push_gate (self-test)" py scripts/hooks/pre_push_gate.py --self-test
+  run_step "guards: codex_stdin_gate (self-test)" py scripts/hooks/codex_stdin_gate.py --self-test
   run_step "guards: light_unit_classes (self-test)" py scripts/ci/light_unit_classes.py --self-test
   run_step "guards: heavy_gate (self-test)" py scripts/ci/heavy_gate.py --self-test
+  run_step "guards: heavy_slot (self-test)" py scripts/ci/heavy_slot.py --self-test
   run_step "guards: docker_diagnostics (self-test)" py scripts/ci/docker_diagnostics.py --self-test
   run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
   run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
+fi
+if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context|context_handoff)\.py)|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
+  run_step "guards: playbook_digest (self-test)" py scripts/hooks/playbook_digest.py --self-test
+  run_step "guards: handoff (self-test)" py scripts/hooks/handoff_selftest.py --self-test
+  run_step "guards: session_context (self-test)" py scripts/hooks/session_context.py --self-test
+  run_step "guards: context_handoff (self-test)" py scripts/hooks/context_handoff.py --self-test
 fi
 
 if [ "$builds_relevant" = true ]; then
@@ -343,17 +362,19 @@ if $builds_relevant; then
     tests="$guards"
     scope="no module code changed (shared inputs, resources, build or architecture lists)"
   fi
-  if $pre_push; then
+  if $pre_push && ! touches '^(backend/|docs/|frontend/)'; then
+    report SKIP "pre-push: unit tests" "nothing the backend tests read changed; CI runs them"
+  elif $pre_push; then
     run_step "pre-push: unit tests that start no container" light_unit_tests
   elif [ -z "$tests" ]; then
     if $run_backend; then
-      run_step "backend verify (full)" scripts/ci/backend_verify.sh
+      run_step "backend verify (full)" python3 -I "$heavy" -- scripts/ci/backend_verify.sh
     else
       report SKIP "backend tests" "not run by default; $scope"
       echo "      run the full suite: scripts/ci/backend_verify.sh (Testcontainers: ask the user before starting containers)"
     fi
   elif $run_backend; then
-    run_step "backend tests (affected + guards)" sh -c 'cd backend && ./mvnw -q test-compile surefire:test -Dtest="$1" -Dsurefire.failIfNoSpecifiedTests=false' precheck "$tests"
+    run_step "backend tests (affected + guards)" sh -c 'cd backend && python3 -I "$1" -- ./mvnw -q test-compile surefire:test -Dtest="$2" -Dsurefire.failIfNoSpecifiedTests=false' precheck "$heavy" "$tests"
   else
     report SKIP "backend tests" "not run by default; $scope"
     echo "      run: (cd backend && ./mvnw -q test-compile surefire:test -Dtest='$tests' -Dsurefire.failIfNoSpecifiedTests=false)"
@@ -385,7 +406,7 @@ if $legacy_it_relevant; then
   elif ! command -v docker >/dev/null || ! docker info >/dev/null 2>&1; then
     report SKIP "SQL Server integration tests" "Docker is not installed or not running; CI runs scripts/ci/legacy_it.sh"
   else
-    run_step "SQL Server integration tests (legacy-it)" scripts/ci/legacy_it.sh
+    run_step "SQL Server integration tests (legacy-it)" python3 -I "$heavy" -- scripts/ci/legacy_it.sh
   fi
 else
   report SKIP "SQL Server integration tests" "relevant_change.py: nothing the *MssqlIT tests exercise changed"

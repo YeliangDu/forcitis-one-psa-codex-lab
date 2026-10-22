@@ -1,7 +1,7 @@
 import type { Schema } from '@forcitis/api';
 
 export type ProcessKey = NonNullable<Schema<'ProcessKey'>>;
-export type DocumentType = Schema<'DocumentType'>;
+export type DocumentType = string;
 export type TaskRecordAction = Schema<'TaskRecordAction'>;
 
 /** A value the table does not know (a newer server) shows as a dash; the client reports it once (G-1). */
@@ -18,7 +18,7 @@ export const PROCESS_LABELS: Readonly<Record<ProcessKey, string>> = {
   COST_TIMESHEET_APPROVAL: '工时单审批',
 };
 
-export const DOCUMENT_TYPE_LABELS: Readonly<Record<DocumentType, string>> = {
+export const DOCUMENT_TYPE_LABELS: Readonly<Record<string, string>> = {
   JOURNAL_VOUCHER: '会计凭证',
   QUOTE: '报价单',
   TIMESHEET: '工时单',

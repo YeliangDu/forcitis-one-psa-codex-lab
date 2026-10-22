@@ -1012,8 +1012,6 @@ commands:
   - 风险交付授权已批准
 - name: 驳回风险交付授权
   aggregate: AGG-17
-  proposed: true
-  proposed_basis: NOTES S1/VS-01 命令缺口：PRC-16 步 4
   params:
   - 风险交付授权
   - 审批实例
@@ -1023,7 +1021,6 @@ commands:
   idempotency_key:
   - 审批实例ID
   emits: []
-  unused_ok: 拟命令：骨架步 4 无 command（gap）
 - name: 撤回风险交付授权申请
   aggregate: AGG-17
   proposed: true
@@ -2592,6 +2589,7 @@ commands:
   - 项目已恢复
 - name: 终止项目
   aggregate: AGG-19
+  pending_decision: 是否需上级复核待定（用户 GL3 提醒：批准人即项目经理本人，复核与否单独定，不靠改名）；出卡给推荐，需用户定的随确认页改版
   params:
   - 项目
   - 原因
@@ -2603,6 +2601,7 @@ commands:
   - 项目已终止
 - name: 取消项目
   aggregate: AGG-19
+  pending_decision: 是否需上级复核待定（用户 GL3 提醒：批准人即项目经理本人，复核与否单独定，不靠改名）；出卡给推荐，需用户定的随确认页改版
   params:
   - 项目
   - 原因
@@ -2701,6 +2700,7 @@ commands:
   - 工作包已作废
 - name: 编制交付计划版本
   aggregate: AGG-21
+  pending_decision: 对客基线是否须与某一内部基线一致（用户追问，见 NOTES「AGG-21 待定·对客基线与内部基线」）；推荐：不要求内容一致，要求对客基线版本引用来源内部基线版本，合同里程碑日期不早于内部基线同名里程碑时只警告
   params:
   - 项目
   - 基线类别（对客、内部）

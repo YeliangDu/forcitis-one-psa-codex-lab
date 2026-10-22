@@ -103,8 +103,7 @@ public class DecideTasks {
             if (!nodes.add(task.nodeKey())) {
                 throw ApprovalError.PLATFORM_APPROVAL_DECISION_SINGLE_ONLY.refusal("Node " + task.nodeKey() + " takes exactly one decision per submission");
             }
-            boolean hookDecidesReason = task.beforeHookKey().filter(key -> !key.isBlank()).isPresent();
-            if (decision.outcome() == DecisionOutcome.REJECT && isBlank(decision.reason()) && !hookDecidesReason) {
+            if (decision.outcome() == DecisionOutcome.REJECT && isBlank(decision.reason())) {
                 throw ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED.refusal("A rejection needs a reason");
             }
         }

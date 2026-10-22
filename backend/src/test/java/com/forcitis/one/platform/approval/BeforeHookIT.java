@@ -201,15 +201,18 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-272 a rejection may omit its reason when the node's hook decides it; the hook sees REJECT")
-    void rejectionReasonCanBeLeftToTheHook() {
+    @DisplayName("RULE-272 a rejection needs a reason even when the node has a hook; the hook is not asked")
+    void rejectionWithoutReasonIsRefusedEvenWhenTheNodeHasAHook() {
         deploy("hooked/cost_timesheet_approval.bpmn20.xml");
         Staff s = staff();
         String key = newKey("hook");
         ApprovalInstanceId instance = atDepartmentNode(s, key);
-        decideTasks.execute(TestAccounts.account(s.head()), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.REJECT, null)), java.util.OptionalLong.empty());
-        assertThat(hook.calls.getFirst().action()).isEqualTo(HookAction.REJECT);
-        assertThat(requestStatus(key)).isEqualTo("REJECTED");
+        ApprovalTaskId task = openTaskId(instance);
+        int before = hook.calls.size();
+        assertThatThrownBy(() -> decideTasks.execute(TestAccounts.account(s.head()), List.of(new TaskDecision(task, DecisionOutcome.REJECT, null)), java.util.OptionalLong.empty()))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+        assertThat(hook.calls).hasSize(before);
+        assertThat(requestStatus(key)).isEqualTo("RUNNING");
     }
 
     @Test

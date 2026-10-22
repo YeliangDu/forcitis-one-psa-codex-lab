@@ -1666,7 +1666,7 @@ components:
     TaskHandled:
       name: TaskHandled
       title: 任务已办理（通过 / 驳回 / 退回）
-      description: 任务已办理（通过、驳回、退回）；过程事实，不过账。系统自动通过与被跳过的节点不发此事件。effect=ADVISORY 是加签人的驳回，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。 系统自动通过（同一审批人同一节点内容未变，RULE-302）也发本事件，effect 为 AUTOMATIC（D-1a-66）。
+      description: 任务已办理（通过、驳回、退回）；过程事实，不过账。被跳过的节点不发此事件；系统自动通过（同一审批人同一节点内容未变，RULE-302）发本事件，effect 为 AUTOMATIC（D-1a-66）。加签人的驳回只发 effect=ADVISORY，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。
       x-event:
         eventType: platform.approval.TaskHandled
         version: 1
@@ -4299,6 +4299,10 @@ x-system-actors:
   actorId: 304a2664-74ef-54c4-82d6-ceacbf79aa27
   module: platform.audit
   description: 作业：审计归档探测
+- name: platform.audit.entry.partitions
+  actorId: 1f8be478-7a1b-5986-b21a-577054158fb6
+  module: platform.audit
+  description: 作业：预建审计月分区
 - name: platform.idempotency.cleanup
   actorId: 5dcad602-9ae4-5a53-be29-95914598ca0d
   module: platform.idempotency
@@ -4355,3 +4359,15 @@ x-system-actors:
   actorId: 2f073d56-6f12-5145-b01b-ed9cf06a8b00
   module: platform.numbering
   description: 作业：编号计数容量检查
+- name: platform.file.one-time-link-holder
+  actorId: af5fd2b9-1c66-5f5a-9803-ffe3839894a6
+  module: platform.file
+  description: 一次性链接持有人上传与提交关联的状态转换操作者（ADR-0058，one-data 签发 P1）
+- name: platform.file.platform-module-call
+  actorId: 9dd1c4f7-f0ad-54c9-8190-62e09e87ee8f
+  module: platform.file
+  description: 平台模块（签章服务等）调用写入、关联、封存的状态转换操作者
+- name: platform.file.staging.expire
+  actorId: 18a840ca-d8f0-5830-8e12-1bcd5ecad2f3
+  module: platform.file
+  description: 作业：临时区到期未关联的文件置「未关联已过期」

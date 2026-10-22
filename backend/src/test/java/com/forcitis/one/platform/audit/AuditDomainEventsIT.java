@@ -91,6 +91,9 @@ class AuditDomainEventsIT {
         assertThat(entry.get("actor_id")).isEqualTo(TestAccounts.account(9001).value());
         assertThat(entry.get("event_id")).isEqualTo(event.envelope().eventId());
         assertThat(entry.get("correlation_id")).isEqualTo(correlation);
+        assertThat(jdbc.sql("select created_at from platform_audit.audit_entries where event_id = :id").param("id", event.envelope().eventId()).query(java.sql.Timestamp.class).single().toInstant())
+                .as("DATA-REPAIR-timesheet-audit TB-07 the entry carries the moment of the event, which is what makes a redelivery land on the same key")
+                .isEqualTo(event.envelope().occurredAt());
     }
 
     @Test

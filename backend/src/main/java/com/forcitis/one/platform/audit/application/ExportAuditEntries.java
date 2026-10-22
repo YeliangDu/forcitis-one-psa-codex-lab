@@ -2,6 +2,7 @@ package com.forcitis.one.platform.audit.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.ListLimits;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditError;
@@ -9,7 +10,6 @@ import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
-import com.forcitis.one.platform.audit.domain.AuditQuery;
 import com.forcitis.one.platform.audit.domain.AuditRecord;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -28,26 +28,19 @@ public class ExportAuditEntries {
     ExportAuditEntries(AuditEntryQueries entries, AuditLog audit, @Value("${forcitis.platform.audit.export.max-rows}") int maxRows) {
         this.entries = entries;
         this.audit = audit;
+        if (maxRows < 1 || maxRows > ListLimits.EXPORT_MAX) {
+            throw new IllegalArgumentException("forcitis.platform.audit.export.max-rows must be between 1 and " + ListLimits.EXPORT_MAX);
+        }
         this.maxRows = maxRows;
     }
 
     @Transactional
     public AuditExport execute(AuditSearch search, UserId actor) {
-        AuditQuery filters;
-        try {
-            filters = new AuditQuery(search.actorId() == null ? null : new UserId(search.actorId()),
-                    search.onBehalfOfId() == null ? null : new UserId(search.onBehalfOfId()), AuditSearch.blankToNull(search.action()),
-                    AuditSearch.blankToNull(search.actionPrefix()), search.subjectKind(), search.subject(),
-                    AuditSearch.blankToNull(search.sourceAddress()), search.outcome(), search.from(), search.to(), null, AuditQuery.MAX_LIMIT);
-        } catch (IllegalArgumentException invalid) {
-            throw new DomainException(AuditError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, invalid.getMessage());
-        }
-        long matching = entries.count(filters);
-        if (matching > maxRows) {
+        List<AuditRecord> rows = entries.findLatest(search.toFilter(), maxRows + 1);
+        if (rows.size() > maxRows) {
             throw new DomainException(AuditError.PLATFORM_AUDIT_EXPORT_TOO_LARGE, ErrorKind.UNPROCESSABLE,
-                    matching + " entries match; narrow the filter to at most " + maxRows);
+                    "more than " + maxRows + " entries match; narrow the filter");
         }
-        List<AuditRecord> rows = entries.findAll(filters, maxRows);
         audit.record(new AuditEntry("platform.audit.audit-entry.exported", actor, null, AuditSubject.without(AuditSubjectKind.OPERATION),
                 "rows=" + rows.size() + " filter=" + search.describe()));
         return new AuditExport(AuditCsv.write(rows).getBytes(StandardCharsets.UTF_8), rows.size());

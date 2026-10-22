@@ -1,0 +1,48 @@
+# 由 panorama/scan_org_roles.py 生成，勿手改
+meta:
+  count: 6
+categories:
+- table: organization_workforce.org_units
+  column: status
+  constraint: null
+  values:
+  - ACTIVE
+  - DISABLED
+  - REVOKED
+  source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:33
+- table: organization_workforce.org_units
+  column: region_category
+  constraint: null
+  values:
+  - HEADQUARTERS
+  - REGIONAL
+  source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:36
+- table: organization_workforce.legal_entities
+  column: status
+  constraint: null
+  values:
+  - ACTIVE
+  - INACTIVE
+  source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:223
+- table: organization_workforce.org_unit_versions
+  column: status
+  constraint: ck_org_unit_versions_status
+  values:
+  - ACTIVE
+  - DISABLED
+  - REVOKED
+  source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:327
+- table: organization_workforce.org_unit_versions
+  column: region_kind
+  constraint: ck_org_unit_versions_region_kind
+  values:
+  - HEADQUARTERS
+  - REGIONAL
+  source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:330
+- table: organization_workforce.legal_entity_versions
+  column: status
+  constraint: ck_legal_entity_versions_status
+  values:
+  - ACTIVE
+  - INACTIVE
+  source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:399

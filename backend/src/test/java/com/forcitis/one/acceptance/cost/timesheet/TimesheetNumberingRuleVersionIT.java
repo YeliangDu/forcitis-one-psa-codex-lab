@@ -7,7 +7,7 @@ import static org.mockito.Mockito.doAnswer;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.application.TimesheetView;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import com.forcitis.one.platform.numbering.api.IssuedNumber;
 import java.util.List;

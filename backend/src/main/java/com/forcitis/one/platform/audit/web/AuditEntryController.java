@@ -2,15 +2,13 @@ package com.forcitis.one.platform.audit.web;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.CursorPage;
-import com.forcitis.one.kernel.DomainException;
-import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.PageRequest;
-import com.forcitis.one.platform.audit.api.AuditError;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.application.AuditEntryPageView;
 import com.forcitis.one.platform.audit.application.AuditSearch;
 import com.forcitis.one.platform.audit.application.SearchAuditEntries;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import java.time.Instant;
 import java.util.UUID;
@@ -32,6 +30,7 @@ class AuditEntryController {
     }
 
     @GetMapping
+    @Operation(description = "Newest first, in the fixed order created_at desc, id desc (id only breaks ties between entries of the same instant). The order cannot be chosen, so there is no sort parameter.")
     @PreAuthorize("hasAuthority('" + AuditPermissions.ENTRY_READ + "')")
     CursorPage<AuditEntryResponse> list(@RequestParam(required = false) UUID actorId, @RequestParam(required = false) UUID onBehalfOfId,
                            @RequestParam(required = false) String action, @RequestParam(required = false) String actionPrefix,
@@ -40,13 +39,8 @@ class AuditEntryController {
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
                            @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor, UserId caller) {
-        AuditEntryPageView page;
-        try {
-            page = search.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKind, subjectId, sourceAddress, outcome, from, to,
-                    PageRequest.of(limit, cursor, "audit-entries")), caller);
-        } catch (IllegalArgumentException invalid) {
-            throw new DomainException(AuditError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, invalid.getMessage());
-        }
+        AuditEntryPageView page = search.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKind, subjectId, sourceAddress, outcome, from, to),
+                PageRequest.of(limit, cursor, "audit-entries"), caller);
         return CursorPage.of(page.items().stream().map(AuditEntryResponse::of).toList(), page.nextCursor());
     }
 }

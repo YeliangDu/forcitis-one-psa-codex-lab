@@ -19,12 +19,12 @@
 -- 以下检查连到 forcitis_one_dev 执行（角色是实例级，库内 schema 检查针对新库）
 SELECT rolname FROM pg_roles WHERE rolname LIKE 'one\_dev\_%';
 SELECT nspname FROM pg_namespace
- WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering',
+ WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering', 'platform_file',
                    'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet', 'one_migration');
 -- it_portal 现有对象一览（供核对，不修改）
 SELECT nspname, pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname NOT LIKE 'pg\_%' AND nspname <> 'information_schema';
 
--- 扩展：法人归属期间表用 EXCLUDE 约束防重叠，需要 btree_gist（PG 自带，属「受信任扩展」，库属主角色可建）。
+-- 扩展：法人归属期间表、角色版本与角色授予用 EXCLUDE 约束防重叠，需要 btree_gist（身份与集成的基线迁移只检查它存在）（PG 自带，属「受信任扩展」，库属主角色可建）。
 -- Flyway 迁移里也有 CREATE EXTENSION IF NOT EXISTS btree_gist；若迁移角色无权建扩展，先由有权限的账号在新库执行下面一句。
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
@@ -42,7 +42,7 @@ ALTER ROLE one_dev_migrator SET role = one_dev_owner;          -- 迁移建出�
 -- 角色名带 dev：PG 角色是实例级的。生产已定沿用本实例（用户 2026-10-14：「扩容现有实例共用」），另建库 forcitis_one_prod
 -- 与 one_prod_* 一套角色（本脚本把 dev 换成 prod 即可）；dev 凭据不能连生产库。连接数预算与按角色超时、work_mem 按 ADR-0025 第 2 条设置。
 -- 运行角色：应用常驻连接，只有 DML，不能建表、改表
-CREATE ROLE one_dev_app LOGIN NOINHERIT CONNECTION LIMIT 40;
+CREATE ROLE one_dev_app LOGIN NOINHERIT CONNECTION LIMIT 25;
 ALTER ROLE one_dev_app SET search_path = platform_approval, pg_catalog;   -- Flowable 以 platform_approval 为默认 schema
 ALTER ROLE one_dev_app SET statement_timeout = '30s';
 ALTER ROLE one_dev_app SET idle_in_transaction_session_timeout = '60s';
@@ -50,7 +50,10 @@ ALTER ROLE one_dev_app SET idle_in_transaction_session_timeout = '60s';
 -- 只读排障角色（可选）：运维排查只读，不授予审计以外的个人数据写权限
 CREATE ROLE one_dev_readonly LOGIN NOINHERIT CONNECTION LIMIT 3;
 
-GRANT CONNECT ON DATABASE forcitis_one_dev TO one_dev_migrator, one_dev_app, one_dev_readonly;
+-- 审计维护角色：只用来执行「删除已归档并校验的审计在线月分区」函数（O-8、ADR-0048）；应用不使用此角色，口令由运维设置，连接上限 1
+CREATE ROLE one_dev_audit_maintainer LOGIN NOINHERIT CONNECTION LIMIT 1;
+
+GRANT CONNECT ON DATABASE forcitis_one_dev TO one_dev_migrator, one_dev_app, one_dev_readonly, one_dev_audit_maintainer;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §2 schema（与 backend/src/main/resources/db/migration/<schema>/ 一一对应；Flyway 历史表单独放 one_migration）
@@ -61,6 +64,7 @@ CREATE SCHEMA platform_approval      AUTHORIZATION one_dev_owner;  -- 审批请�
 CREATE SCHEMA platform_integration   AUTHORIZATION one_dev_owner;  -- 出站投递、event_publication
 CREATE SCHEMA platform_audit         AUTHORIZATION one_dev_owner;  -- 审计（只追加）
 CREATE SCHEMA platform_numbering     AUTHORIZATION one_dev_owner;  -- 单据编号规则与计数
+CREATE SCHEMA platform_file          AUTHORIZATION one_dev_owner;  -- 文件服务
 CREATE SCHEMA platform_scheduling    AUTHORIZATION one_dev_owner;  -- ShedLock
 CREATE SCHEMA organization_workforce AUTHORIZATION one_dev_owner;  -- 组织快照（过渡态，来源可替换）
 CREATE SCHEMA organization_attendance AUTHORIZATION one_dev_owner;  -- 工作日历（考勤与休假 BC，1a 只含工作日历）
@@ -74,7 +78,7 @@ CREATE SCHEMA platform_idempotency AUTHORIZATION one_dev_owner;  -- 幂等键：
 DO $$
 DECLARE s text;
 BEGIN
-  FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering',
+  FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering', 'platform_file',
                            'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_dev_app, one_dev_readonly', s);
@@ -91,7 +95,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT U
 ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT SELECT ON TABLES TO one_dev_readonly;
 
 -- 运行角色不得建对象
-REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
+REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
                         platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration FROM one_dev_app, one_dev_readonly;
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -112,14 +116,32 @@ DECLARE t text;
 BEGIN
     FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
                              'organization_workforce.legal_entity_versions',
-                             'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities'] LOOP
+                             'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
+                             'platform_identity.role_versions', 'platform_identity.account_role_grants'] LOOP
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
     END LOOP;
 END $$;
 
+-- 单据类型登记（ADR-0066 决定 4）：行只由迁移写（数据访问注册表 MIGRATION_ONLY），运行角色只读；表上的触发器另拒删除、清空与改写已登记的列。
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FROM one_dev_app;
+
+-- 文件服务（ADR-0060、0061、0070；one-data 签发 IMP-1021-COO-02 单元 3）：只追加表与状态转换表运行角色只留 SELECT、INSERT；
+-- 其余表运行角色不持有 DELETE 与 TRUNCATE（保存类别根表可改名称，其余由触发器限定只改状态或确认列）；视图只读。
+REVOKE UPDATE, DELETE, TRUNCATE ON platform_file.file_bindings, platform_file.file_holds, platform_file.file_preservations,
+    platform_file.scan_exceptions, platform_file.scan_exception_revocations, platform_file.state_transitions FROM one_dev_app;
+REVOKE DELETE, TRUNCATE ON platform_file.stored_files, platform_file.stored_file_names, platform_file.preservation_categories,
+    platform_file.preservation_category_versions, platform_file.false_positive_judgments, platform_file.quarantine_read_requests FROM one_dev_app;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_file.current_file_preservations FROM one_dev_app;
+
+-- 审计月分区（ADR-0048）：两个函数是 SECURITY DEFINER、属主 one_dev_owner，基线已对 PUBLIC 撤销 EXECUTE。
+-- 运行角色只能预建分区（应用的预建作业调用），仍无 CREATE，也不能 DETACH / DROP；删除已归档分区只有维护角色能执行，应用代码不调用。
+GRANT EXECUTE ON FUNCTION platform_audit.create_audit_entry_partitions(date, date) TO one_dev_app;
+GRANT USAGE ON SCHEMA platform_audit TO one_dev_audit_maintainer;
+GRANT EXECUTE ON FUNCTION platform_audit.drop_archived_audit_entry_partition(date) TO one_dev_audit_maintainer;
+
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）
 -- ---------------------------------------------------------------------------------------------------------------------
--- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
+-- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
 --             platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration CASCADE;
--- DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_owner;
+-- DROP ROLE one_dev_audit_maintainer; DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_owner;

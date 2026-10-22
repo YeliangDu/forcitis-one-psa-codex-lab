@@ -6,12 +6,14 @@
 #              LOG_APPEND_ONLY | QUEUE | ONE_TIME | LINEAGE | COUNTER | IDEMPOTENCY | FRAMEWORK | PLACEHOLDER
 # mutability   MUTABLE (needs a version column) | CONDITIONAL_UPDATE (needs `condition`) | REPLACE_SET | APPEND_ONLY | INSERT_DELETE |
 #              MIGRATION_ONLY | FRAMEWORK
+# retention    (an optional failed_policy <n>d | <n>y is the second tier of a two-tier purge)
 # retention    policy PERMANENT | BUSINESS_RECORD | CURRENT_STATE | FRAMEWORK | EXPIRY | <n>d | <n>y; a time-bound policy names the ShedLock job (`job`)
 # lineage      source NEW | ORG_SOURCE | MIGRATION | FRAMEWORK; migrated_from lists the old-system objects, via says how they are traced (legacy_numbers | ONE_OFF_IMPORT)
 # writers      modules whose code writes the table; readers: modules that only read it. A module outside the schema's own module needs `cross_module`.
 # references   role columns that point at a table of the same schema although the name does not say which (K6)
 # optional     the table exists only on one side of a pending integration; the entry is checked when the table is there and then removed or made required.
 #              An optional entry carries a due date (due) and fails once it has passed.
+# partition     a range-partitioned table (ADR-0048): key column, granularity, the job that pre-creates partitions and who removes an archived one
 # gaps         known violations with an owner: {rule, column?, due, owner, ref, note}. Only D3 and D4 may leave out the column; a gap past its due date fails the test. A gap that is no longer violated fails the test, so it is removed in the
 #              same change that fixes it. Gaps are handed over to the owner named; none may be added to hide a new violation.
 tables:
@@ -47,12 +49,17 @@ tables:
     lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
     writers: [organization.attendance]
 
+  # Identity of positions, org_units and employees comes from platform_integration.source_references, unique on (source_system, source_object_kind, source_id).
+  # positions.code, org_units.code and employees.employee_code are display only and not unique in the source (five employee codes sit on several rows, three of them on both
+  # an employed and a separated record), so no local unique constraint exists; whether they are unique within some scope is open (card DATA-REPAIR-workforce, open item 4).
   organization_workforce.positions:
     role: SNAPSHOT
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     writers: [organization.workforce]
+  # 使用方未建，由同步原样入库 (no consumer built yet, stored as the sync gives them): regional_receivables_manager_id (exposed through
+  # OrgDirectory.findRegionalReceivablesManager, no caller yet) and is_delivery_unit (read-only exposure in OrgUnitResponse).
   organization_workforce.org_units:
     role: SNAPSHOT
     mutability: MUTABLE
@@ -62,6 +69,7 @@ tables:
       last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
     references: {regional_receivables_manager_id: organization_workforce.employees}
     writers: [organization.workforce]
+  # is_fee_earner: 使用方未建，由同步原样入库 (cost.costing and others are not built); exposed through EmployeeProfile, and it does not mean billable.
   organization_workforce.employees:
     role: SNAPSHOT
     mutability: MUTABLE
@@ -76,24 +84,22 @@ tables:
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     writers: [organization.workforce]
+  # Columns of org_units left out of the versions on purpose: sort_order (only orders siblings for display, nothing reads it by date), short_name (not a source column:
+  # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version),
+  # last_sync_run_id (moves to the change set with split a).
+  # 使用方未建，由同步原样入库: regional_receivables_manager_id and is_delivery_unit, as on org_units.
   organization_workforce.org_unit_versions:
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
-    fk_exceptions:
-      parent_org_unit_id: a past version points at units and people as they were; snapshot rows are never deleted, but a version carries no key of its own
-      head_employee_id: same as parent_org_unit_id
-      regional_receivables_manager_id: same as parent_org_unit_id
+    references: {regional_receivables_manager_id: organization_workforce.employees}
     writers: [organization.workforce]
   organization_workforce.assignment_versions:
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
-    fk_exceptions:
-      position_id: a past version points at the post as it was; see org_unit_versions
-      reports_to_employee_id: same as position_id
     writers: [organization.workforce]
   organization_workforce.sync_runs:
     role: AGGREGATE_ROOT
@@ -116,6 +122,8 @@ tables:
     retention: {policy: 1y, job: organization.workforce.sync.purge}
     lineage: {source: NEW}
     writers: [organization.workforce]
+  # legal_entities is the current-value projection of the open row of legal_entity_versions: code, name and status are written in the same transaction as the version
+  # (history in the versions table); WorkforceRowConstraintsIntegrationTest checks that the root equals its open version.
   organization_workforce.legal_entities:
     role: AGGREGATE_ROOT
     aggregate: LegalEntity
@@ -202,11 +210,16 @@ tables:
     readers: [platform.approval]
 
   platform_audit.audit_entries:
+    # Online 3 years, archived 10 years in total. Whole months leave the table only as partitions: the maintenance role runs
+    # platform_audit.drop_archived_audit_entry_partition after the month is archived and checked (O-8); the application never deletes a row.
     role: LOG_APPEND_ONLY
     mutability: APPEND_ONLY
+    partition: {key: created_at, granularity: month_utc, precreate_job: platform.audit.entry.partitions, drop: audit maintenance role via platform_audit.drop_archived_audit_entry_partition}
     retention: {policy: 3y, job: platform.audit.entry.archive}
     lineage: {source: NEW}
     writers: [platform.audit]
+  # 批次区间不重叠、无缺口不设数据库约束：区间由作业按 (created_at, id) 推进产生，由 AuditArchiveJob.reconcile 对账（只比在线月份）；
+  # 分区摘除前由 drop_archived_audit_entry_partition 逐月核对批次条数之和。区间不重叠、无缺口由对账承担；已摘除月份的缺口，库内此后无法再核验。
   platform_audit.audit_archive_batches:
     role: LOG_APPEND_ONLY
     fk_exceptions:
@@ -256,6 +269,28 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.identity]
+  platform_identity.role_versions:
+    # Retention (ADR-0034 0034-Q2): 3 years online, archived until 10 years. The purge job is built with the online deletion of audit entries (ADR-0034, impact list), then this becomes {policy: 3y, job: ...}.
+    # Owner: one-1a-par. Due: within 30 months after the first production deployment. The purge runs in dependency order: account_role_grants first, then role_versions, then the rows they reference
+    # (role_version_custom_org_units of F-1 goes with its role version).
+    # D17 rule 2: dimension table, effective basis DECLARED. roles.code, kind and is_administrative are not versioned: they decide what a role is and have no change path (ADR-0034 item 1.1).
+    role: DIMENSION_VERSIONED
+    aggregate: Role
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {recorded_by: platform_identity.user_accounts, closed_by: platform_identity.user_accounts}
+    writers: []
+  platform_identity.account_role_grants:
+    # Retention as role_versions above (0034-Q2; owner one-1a-par; due within 30 months after the first production deployment; purge job built with the audit online deletion; account_role_grants is purged before role_versions).
+    # D17 rule 2: effective basis DECLARED; the current value is the row that is not closed.
+    role: DIMENSION_VERSIONED
+    aggregate: UserAccount
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {granted_by: platform_identity.user_accounts, revoked_by: platform_identity.user_accounts}
+    writers: []
   platform_identity.navigation_items:
     # uk_navigation_items_parent_item_id_name (parent_item_id, name) is the business key and also serves as the index of the parent_item_id foreign key (DATA-REPAIR-identity ID-11).
     role: CONFIG
@@ -333,17 +368,24 @@ tables:
     role: QUEUE
     aggregate: OutboundDelivery
     mutability: MUTABLE
-    retention: {policy: 90d, job: platform.integration.outbound.purge}
+    retention: {policy: 90d, failed_policy: 1y, job: platform.integration.outbound.purge}  # policy: SENT、SKIPPED；failed_policy: FAILED、DEAD_LETTER（OutboundDeliveryPurgeJob）；PENDING 不删
     lineage: {source: NEW}
     writers: [platform.integration]
   platform_integration.source_references:
     role: AGGREGATE_ROOT
     aggregate: SourceReference
     mutability: MUTABLE
-    retention: {policy: PERMANENT}
-    lineage: {source: NEW}
+    retention: {policy: PERMANENT}  # 人员类 source_id 按 RETENTION_PROPOSAL 离职满 10 年删除，清理作业另卡；R-2 守护建成后转 gap
+    lineage: {source: ORG_SOURCE, migrated_from: [老系统人员与部门对照], via: ONE_OFF_IMPORT}
     writers: [platform.integration]
 
+  platform_numbering.document_types:
+    # ADR-0066 decision 4: uk_document_types_code is the business key. Rows are inserted by migrations only; platform.approval and the business contexts check codes through platform.numbering.api.DocumentTypes, never by reading this table.
+    role: CONFIG
+    mutability: MIGRATION_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.numbering]
   platform_numbering.numbering_rules:
     role: CONFIG_VERSIONED
     aggregate: NumberingRule
@@ -352,6 +394,8 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.numbering]
+  # AP-09: the database only checks CONFIRMED has a business confirmer; a JOURNAL_VOUCHER version also needs the finance confirmation,
+  # which depends on the document type and is enforced by the aggregate (NumberingRule.completeIfAllGiven), not by a CHECK.
   platform_numbering.numbering_rule_versions:
     role: AGGREGATE_CHILD
     aggregate: NumberingRule
@@ -372,6 +416,101 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: MIGRATION, migrated_from: [old document numbers], via: legacy_numbers}
     writers: [platform.numbering]
+
+  # platform.file (ADR-0060, 0061, 0070; data design signed by one-data, IMP-1021-COO-02 unit 3). Writers and readers are added with the use cases (units 5-7).
+  # Retention: files and their links are kept permanently until the disposal of ADR-0061 is built (90 days before the first possible expiry);
+  # the person columns follow RETENTION_PROPOSAL with a separate clean-up card, as source_references does.
+  platform_file.stored_files:
+    # Only file_status changes, along the transitions listed in the migration; everything else, the object key included, is refused by a trigger.
+    role: AGGREGATE_ROOT
+    aggregate: StoredFile
+    mutability: CONDITIONAL_UPDATE
+    condition: only file_status along the listed transitions (tg_stored_files_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+    references: {previous_file_id: platform_file.stored_files, derived_from_file_id: platform_file.stored_files}
+  platform_file.stored_file_names:
+    # De-identified once to a fixed placeholder by the disposal job platform.file.deidentify-file-names (built with ADR-0061 disposal).
+    role: AGGREGATE_CHILD
+    aggregate: StoredFile
+    mutability: CONDITIONAL_UPDATE
+    condition: one de-identification to the fixed placeholder (tg_stored_file_names_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+  platform_file.file_bindings:
+    role: AGGREGATE_CHILD
+    aggregate: StoredFile
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+  platform_file.file_holds:
+    role: AGGREGATE_CHILD
+    aggregate: StoredFile
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+  platform_file.file_preservations:
+    # The current row of a file is the one with the highest preservation_sequence_number; read it through current_file_preservations only.
+    role: AGGREGATE_CHILD
+    aggregate: StoredFile
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
+  platform_file.preservation_categories:
+    role: CONFIG_VERSIONED
+    aggregate: PreservationCategory
+    mutability: MUTABLE
+    versions_table: platform_file.preservation_category_versions
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.file]
+  platform_file.preservation_category_versions:
+    # Inserted PENDING only (seed included) and confirmed once by another person; content never changes.
+    role: AGGREGATE_CHILD
+    aggregate: PreservationCategory
+    mutability: CONDITIONAL_UPDATE
+    condition: PENDING to CONFIRMED with the confirmation columns only (tg_preservation_category_versions_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.file]
+  platform_file.false_positive_judgments:
+    role: AGGREGATE_ROOT
+    aggregate: FalsePositiveJudgment
+    mutability: CONDITIONAL_UPDATE
+    condition: one review of a pending judgment (tg_false_positive_judgments_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+  platform_file.scan_exceptions:
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.file]
+  platform_file.scan_exception_revocations:
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.file]
+  platform_file.quarantine_read_requests:
+    role: AGGREGATE_ROOT
+    aggregate: QuarantineReadRequest
+    mutability: CONDITIONAL_UPDATE
+    condition: PENDING to APPROVED or REJECTED, APPROVED to READ (tg_quarantine_read_requests_guard)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+  platform_file.state_transitions:
+    # Retention follows the aggregates' records once the user approves it; clean-up channel per STATE_TRANSITIONS_DESIGN section 4.
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.file]
 
   platform_scheduling.scheduler_locks:
     role: FRAMEWORK

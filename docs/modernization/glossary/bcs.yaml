@@ -170,12 +170,6 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: ""
-- id: organization.administration
-  zh: 行政事务
-  subdomain: organization
-  kind: bc
-  business_owner: 用户兼任
-  description: "用印、印章等行政事务（B-31；用户 intent 2026-10-16-152807 选新增行政事务 BC）"
 - id: accounting
   zh: 财务
   subdomain: accounting
@@ -239,6 +233,24 @@ bcs:
   business_owner: 用户兼任
   description: ""
   words: [单据]
+- id: platform.signing
+  zh: 签章服务
+  subdomain: platform
+  kind: bc
+  business_owner: 用户兼任
+  description: "印章台账、电子用印的发起与结果回收、签章记录（含电子签章、CA 数字证书、图纸签章）；英文名 SigningService，定名 2026-10-21 用户同意"
+- id: platform.file
+  zh: 文件服务
+  subdomain: platform
+  kind: bc
+  business_owner: 用户兼任
+  description: "文件内容存储、版本、关联、封存与下载链接；英文名 FileService，定名 2026-10-21 用户同意"
+- id: platform.linkaccess
+  zh: 外部一次性链接访问
+  subdomain: platform
+  kind: bc
+  business_owner: 用户兼任
+  description: "向合作方发一次性链接，供下载、回传、回签；英文名 OneTimeLinkAccess，链接持有人不叫外部主体，定名 2026-10-21 用户同意（收件箱原文「外部一次性链接访问」）"
 - id: platform.scheduling
   zh: 调度
   subdomain: platform
@@ -380,7 +392,7 @@ bcs:
   subdomain: organization
   kind: bc
   business_owner: 用户兼任
-  description: "用印申请与登记、IT 需求工单、IT 资产领用调拨报修报废盘点与采购申请、员工活动类申请的业务记录（B-31，用户 2026-10-16 定新增，intent 2026-10-16-152807）；审批走 platform.approval；合同借阅与归档归 contract.agreement，资产卡片与折旧归 accounting.fixedasset"
+  description: "用印申请与登记、信息技术服务工单、信息技术资产领用调拨归还与维修、员工活动申请的业务记录（B-31，用户 2026-10-16 定新增，intent 2026-10-16-152807）；先行期含合同原件借阅（W3 移交 contract.agreement）；审批只用于用印与受控信息技术类别，走 platform.approval；资产卡片、折旧、报废与盘点账务归 accounting.fixedasset，采购由采购所属 BC 处理（one-architecture 裁定 2026-10-21，B31_ARCH_RULINGS）"
 - id: organization.leave
   zh: 考勤与休假
   subdomain: organization

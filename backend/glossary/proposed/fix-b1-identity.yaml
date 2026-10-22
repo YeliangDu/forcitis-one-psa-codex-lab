@@ -210,21 +210,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__platform_audit_query_invalid
-  zh: 审计查询条件非法
-  en: PlatformAuditQueryInvalid
-  snake: platform_audit_query_invalid
-  kind: error_code
-  bc: platform.audit
-  scope: domain
-  definition: 查询条件的取值范围或时间先后不对（400）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__organization_workforce_own_attribution_forbidden
   zh: 不能改本人的法人归属
   en: OrganizationWorkforceOwnAttributionForbidden

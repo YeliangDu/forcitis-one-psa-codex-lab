@@ -25,7 +25,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- ===== STEP 2 schema 冲突检查（新库内，应为 0 行）=====
 SELECT nspname FROM pg_namespace
- WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering',
+ WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering', 'platform_file',
                    'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet', 'one_migration');
 
 -- ===== STEP 3 角色 =====
@@ -40,7 +40,7 @@ ALTER ROLE one_prod_migrator SET search_path = one_migration, pg_catalog;
 ALTER ROLE one_prod_migrator SET role = one_prod_owner;
 ALTER ROLE one_prod_migrator SET lock_timeout = '10s';
 
-CREATE ROLE one_prod_app LOGIN NOINHERIT CONNECTION LIMIT 40;
+CREATE ROLE one_prod_app LOGIN NOINHERIT CONNECTION LIMIT 25;   -- 连接池 10 个常驻，运维命令的池最多再 10 个，余量 5（2026-10-21 用户「照做」；原 40）
 ALTER ROLE one_prod_app SET search_path = platform_approval, pg_catalog;
 ALTER ROLE one_prod_app SET statement_timeout = '30s';
 ALTER ROLE one_prod_app SET idle_in_transaction_session_timeout = '60s';
@@ -52,7 +52,13 @@ ALTER ROLE one_prod_readonly SET statement_timeout = '60s';
 ALTER ROLE one_prod_readonly SET idle_in_transaction_session_timeout = '60s';
 ALTER ROLE one_prod_readonly SET work_mem = '8MB';
 
-GRANT CONNECT ON DATABASE forcitis_one_prod TO one_prod_migrator, one_prod_app, one_prod_readonly;
+-- 审计维护角色：只用来执行「删除已归档并校验的审计在线月分区」函数（O-8、ADR-0048）；应用不使用此角色，口令由运维设置，连接上限 1
+CREATE ROLE one_prod_audit_maintainer LOGIN NOINHERIT CONNECTION LIMIT 1;
+-- 删除函数持 ACCESS EXCLUSIVE 锁并做 count(*)：语句时限放宽到 10 分钟，空闲事务 60 秒断开，免得不提交的会话堵住审计写入
+ALTER ROLE one_prod_audit_maintainer SET statement_timeout = '10min';
+ALTER ROLE one_prod_audit_maintainer SET idle_in_transaction_session_timeout = '60s';
+
+GRANT CONNECT ON DATABASE forcitis_one_prod TO one_prod_migrator, one_prod_app, one_prod_readonly, one_prod_audit_maintainer;
 
 -- ===== STEP 4 schema =====
 CREATE SCHEMA one_migration           AUTHORIZATION one_prod_owner;
@@ -61,6 +67,7 @@ CREATE SCHEMA platform_approval       AUTHORIZATION one_prod_owner;
 CREATE SCHEMA platform_integration    AUTHORIZATION one_prod_owner;
 CREATE SCHEMA platform_audit          AUTHORIZATION one_prod_owner;
 CREATE SCHEMA platform_numbering      AUTHORIZATION one_prod_owner;
+CREATE SCHEMA platform_file          AUTHORIZATION one_prod_owner;  -- 文件服务
 CREATE SCHEMA platform_scheduling     AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_workforce  AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_attendance AUTHORIZATION one_prod_owner;
@@ -71,7 +78,7 @@ CREATE SCHEMA platform_idempotency    AUTHORIZATION one_prod_owner;
 DO $$
 DECLARE s text;
 BEGIN
-  FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering',
+  FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering', 'platform_file',
                            'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_prod_app, one_prod_readonly', s);
@@ -81,13 +88,13 @@ BEGIN
   END LOOP;
 END $$;
 
-GRANT USAGE ON SCHEMA platform_audit TO one_prod_app, one_prod_readonly;
+GRANT USAGE ON SCHEMA platform_audit TO one_prod_app, one_prod_readonly, one_prod_audit_maintainer;
 ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT SELECT, INSERT ON TABLES TO one_prod_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT USAGE, SELECT ON SEQUENCES TO one_prod_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT SELECT ON TABLES TO one_prod_readonly;
 
-REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
+REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
                         platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration
-  FROM one_prod_app, one_prod_readonly;
+  FROM one_prod_app, one_prod_readonly, one_prod_audit_maintainer;
 
--- 下一步：c9_prod_db_verify.sql；每次迁移之后执行 c9_prod_db_after_migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_prod_migrator、one_prod_app、one_prod_readonly 设口令（≥24 位随机）。
+-- 下一步：c9_prod_db_verify.sql；每次迁移之后执行 c9_prod_db_after_migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_prod_migrator、one_prod_app、one_prod_readonly、one_prod_audit_maintainer 设口令（≥24 位随机）。

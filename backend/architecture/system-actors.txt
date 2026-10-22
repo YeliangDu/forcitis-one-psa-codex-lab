@@ -18,6 +18,7 @@ platform.approval.task-notification | 51984a1a-a49c-5d8e-b9a4-14bd612cfcda | pla
 platform.audit.domain-event-audit | 20dc3642-9a1a-5e06-96a1-780f9174629f | platform.audit | 监听器 AuditDomainEvents：把领域事件写进审计
 platform.audit.entry.archive | 821c149d-4ce7-53b3-b7cb-2798a78bba98 | platform.audit | 作业：审计条目归档
 platform.audit.entry.archive.probe | 304a2664-74ef-54c4-82d6-ceacbf79aa27 | platform.audit | 作业：审计归档探测
+platform.audit.entry.partitions | 1f8be478-7a1b-5986-b21a-577054158fb6 | platform.audit | 作业：预建审计月分区
 platform.idempotency.cleanup | 5dcad602-9ae4-5a53-be29-95914598ca0d | platform.idempotency | 作业：清理过期的幂等应答
 platform.identity.account-provisioning | 6405fb15-3e76-548c-b34c-479c690b2588 | platform.identity | 开通账号（入职事件监听器 HandleEmployeeRegistered 与各建账号入口）
 platform.identity.authorization | 39e3e313-517f-55c7-add4-a4c531b5831a | platform.identity | 监听器 ApplyConfirmedAuthorization：执行已确认的授权申请
@@ -32,3 +33,6 @@ platform.integration.outbound.purge | 3285c99d-cb76-5fc7-b30d-4e9e41642e40 | pla
 platform.integration.wecom.delivery | ba200165-2aef-5bc9-85cd-4c489c33b763 | platform.integration | 企业微信卡片投递（不在作业内调用时的执行人）
 platform.integration.wecom.delivery.send | 2d7aa6d3-413d-5201-b3ec-453926546405 | platform.integration | 作业：企业微信卡片投递
 platform.numbering.counter.capacity.check | 2f073d56-6f12-5145-b01b-ed9cf06a8b00 | platform.numbering | 作业：编号计数容量检查
+platform.file.one-time-link-holder | af5fd2b9-1c66-5f5a-9803-ffe3839894a6 | platform.file | 一次性链接持有人上传与提交关联的状态转换操作者（ADR-0058，one-data 签发 P1）
+platform.file.platform-module-call | 9dd1c4f7-f0ad-54c9-8190-62e09e87ee8f | platform.file | 平台模块（签章服务等）调用写入、关联、封存的状态转换操作者
+platform.file.staging.expire | 18a840ca-d8f0-5830-8e12-1bcd5ecad2f3 | platform.file | 作业：临时区到期未关联的文件置「未关联已过期」

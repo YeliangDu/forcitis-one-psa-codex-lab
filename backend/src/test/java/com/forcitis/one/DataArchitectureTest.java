@@ -61,6 +61,8 @@ class DataArchitectureTest {
         final Map<String, Column> columns = new LinkedHashMap<>();
         final List<Constraint> constraints = new ArrayList<>();
         final List<Trigger> triggers = new ArrayList<>();
+        /** pg_get_constraintdef of the CHECK constraints. */
+        final List<String> checks = new ArrayList<>();
         boolean truncateRefused;
 
         Table(String name) {
@@ -136,7 +138,7 @@ class DataArchitectureTest {
             try (ResultSet rs = c.createStatement().executeQuery("""
                     select n.nspname || '.' || r.relname, obj_description(r.oid, 'pg_class')
                       from pg_class r join pg_namespace n on n.oid = r.relnamespace
-                     where r.relkind in ('r', 'p') and n.nspname not like 'pg\\_%' and n.nspname not in ('information_schema', 'public', 'one_migration')
+                     where r.relkind in ('r', 'p') and not r.relispartition and n.nspname not like 'pg\\_%' and n.nspname not in ('information_schema', 'public', 'one_migration')
                     """)) {
                 while (rs.next()) {
                     Table t = new Table(rs.getString(1));
@@ -171,6 +173,18 @@ class DataArchitectureTest {
                 }
             }
             try (ResultSet rs = c.createStatement().executeQuery("""
+                    select n.nspname || '.' || r.relname, pg_get_constraintdef(k.oid)
+                      from pg_constraint k join pg_class r on r.oid = k.conrelid join pg_namespace n on n.oid = r.relnamespace
+                     where k.contype = 'c'
+                    """)) {
+                while (rs.next()) {
+                    Table t = found.get(rs.getString(1));
+                    if (t != null) {
+                        t.checks.add(rs.getString(2));
+                    }
+                }
+            }
+            try (ResultSet rs = c.createStatement().executeQuery("""
                     select n.nspname || '.' || r.relname, g.tgname, g.tgtype, g.tgenabled = 'O', p.prosrc
                       from pg_trigger g join pg_class r on r.oid = g.tgrelid join pg_namespace n on n.oid = r.relnamespace join pg_proc p on p.oid = g.tgfoid
                      where not g.tgisinternal
@@ -189,14 +203,26 @@ class DataArchitectureTest {
         return found;
     }
 
-    /** Behaviour, not names: TRUNCATE inside a transaction that is rolled back; refused means the restrict_violation of a trigger, not a foreign key. */
+    /**
+     * Behaviour, not names: TRUNCATE inside a transaction that is rolled back; refused means the restrict_violation of a trigger, not a foreign
+     * key. A table another table references cannot be truncated alone (0A000, before any trigger fires), so it is tried again with CASCADE,
+     * which fires the table's own BEFORE TRUNCATE trigger.
+     */
     static boolean truncateIsRefused(Connection c, String table) throws SQLException {
+        String refusal = truncateRefusal(c, "truncate table " + table);
+        if ("0A000".equals(refusal)) {
+            refusal = truncateRefusal(c, "truncate table " + table + " cascade");
+        }
+        return "23001".equals(refusal);
+    }
+
+    private static String truncateRefusal(Connection c, String sql) throws SQLException {
         c.setAutoCommit(false);
         try (var statement = c.createStatement()) {
-            statement.execute("truncate table " + table);
-            return false;
+            statement.execute(sql);
+            return null;
         } catch (SQLException refused) {
-            return "23001".equals(refused.getSQLState());
+            return refused.getSQLState();
         } finally {
             c.rollback();
             c.setAutoCommit(true);
@@ -282,7 +308,9 @@ class DataArchitectureTest {
     }
 
     static boolean refusesRewrite(Table t) {
-        return t.triggers.stream().anyMatch(g -> g.refuses(16, true)) && t.triggers.stream().anyMatch(g -> g.refuses(8, true)) && t.truncateRefused;
+        // The table's own statement-level TRUNCATE trigger as well: with CASCADE, another table's trigger could otherwise do the refusing.
+        return t.triggers.stream().anyMatch(g -> g.refuses(16, true)) && t.triggers.stream().anyMatch(g -> g.refuses(8, true))
+                && t.triggers.stream().anyMatch(g -> g.refuses(32, false)) && t.truncateRefused;
     }
 
     private static void d2(List<Violation> v, Table t, Entry e, String role) {
@@ -291,6 +319,10 @@ class DataArchitectureTest {
         }
         if (!"APPEND_ONLY".equals(e.text("mutability"))) {
             v.add(new Violation("D2", t.name, "mutability", "a versioned dimension is APPEND_ONLY: history is closed and appended to, never rewritten"));
+        }
+        if (t.columns.containsKey("effective_from_at") || t.columns.containsKey("effective_to_at")) {
+            d2Moment(v, t);
+            return;
         }
         Column from = t.columns.get("effective_from_date");
         Column to = t.columns.get("effective_to_date");
@@ -302,6 +334,24 @@ class DataArchitectureTest {
         }
         if (t.constraints.stream().noneMatch(c -> c.kind() == 'x')) {
             v.add(new Violation("D2", t.name, "exclude", "a versioned dimension has an EXCLUDE USING gist constraint against overlapping periods"));
+        }
+    }
+
+    /** The moment variant of D2 (ADR-0034 guard 2): the period is a half-open timestamptz range, so the bounds must be finite moments and the exclusion constraint must be on that range. */
+    private static void d2Moment(List<Violation> v, Table t) {
+        Column from = t.columns.get("effective_from_at");
+        Column to = t.columns.get("effective_to_at");
+        if (from == null || !from.type().equals("timestamp with time zone") || !from.notNull()) {
+            v.add(new Violation("D2", t.name, "effective_from_at", "a moment-versioned dimension has effective_from_at timestamptz NOT NULL"));
+        }
+        if (to == null || !to.type().equals("timestamp with time zone") || to.notNull()) {
+            v.add(new Violation("D2", t.name, "effective_to_at", "a moment-versioned dimension has a nullable effective_to_at timestamptz (empty = still valid)"));
+        }
+        if (t.constraints.stream().noneMatch(c -> c.kind() == 'x')) {
+            v.add(new Violation("D2", t.name, "exclude", "a moment-versioned dimension has an EXCLUDE USING gist constraint against overlapping periods"));
+        }
+        if (t.checks.stream().noneMatch(c -> c.contains("isfinite(effective_from_at)") && c.contains("isfinite(effective_to_at)"))) {
+            v.add(new Violation("D2", t.name, "isfinite", "a moment-versioned dimension has a CHECK that both bounds are finite (isfinite), so infinity cannot hide an open period"));
         }
     }
 
@@ -583,7 +633,7 @@ class DataArchitectureTest {
     }
 
     static final List<String> SCHEMAS = List.of("platform_idempotency", "cost_timesheet", "organization_attendance", "organization_workforce", "platform_approval",
-            "platform_audit", "platform_identity", "platform_integration", "platform_numbering", "platform_scheduling");
+            "platform_audit", "platform_file", "platform_identity", "platform_integration", "platform_numbering", "platform_scheduling");
     static final Pattern STRING = Pattern.compile("\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);
     static final Pattern TABLE_USE = Pattern.compile("\\b(from|join|into|update|delete\\s+from|truncate\\s+table|truncate)\\s+((?:" + String.join("|", SCHEMAS)
             + ")\\.[a-z_0-9]+)", Pattern.CASE_INSENSITIVE);
@@ -649,6 +699,35 @@ class DataArchitectureTest {
             Entry overdue = new Entry(bad.name, entry.raw(), List.of(new Gap("D5", "display_name", "X", "ref", "note", LocalDate.of(2026, 10, 1))));
             assertThat(problems(found, Map.of(bad.name, overdue, owners.name, ownersEntry), LocalDate.of(2026, 10, 15))).anyMatch(p -> p.contains("was due on 2026-10-01"));
         }
+    }
+
+    @Test
+    @DisplayName("injection: the moment variant of D2 fails for a table without EXCLUDE, without the isfinite CHECK, with a nullable effective_from_at or with a date period, and passes for a table that has all of them")
+    void injectedMomentVersionTablesAreCaught() {
+        Map<String, Table> model = new LinkedHashMap<>();
+        Map<String, Entry> entries = new LinkedHashMap<>();
+        for (String variant : List.of("good", "no_exclude", "no_isfinite", "nullable_from", "date_period")) {
+            Table table = new Table("platform_audit.moment_" + variant);
+            table.comment = "moment sample";
+            boolean date = variant.equals("date_period");
+            table.columns.put("effective_from_at", new Column("effective_from_at", date ? "date" : "timestamp with time zone", !variant.equals("nullable_from"), "from"));
+            table.columns.put("effective_to_at", new Column("effective_to_at", date ? "date" : "timestamp with time zone", false, "to"));
+            if (!variant.equals("no_exclude")) {
+                table.constraints.add(new Constraint("ex_moment_" + variant, 'x', List.of("effective_from_at", "effective_to_at"), "", false));
+            }
+            if (!variant.equals("no_isfinite")) {
+                table.checks.add("CHECK ((isfinite(effective_from_at) AND ((effective_to_at IS NULL) OR isfinite(effective_to_at))))");
+            }
+            model.put(table.name, table);
+            entries.put(table.name, new Entry(table.name, new LinkedHashMap<>(Map.of("role", "DIMENSION_VERSIONED", "mutability", "APPEND_ONLY",
+                    "retention", Map.of("policy", "PERMANENT"), "lineage", Map.of("source", "NEW"))), List.of()));
+        }
+        Set<String> found = new TreeSet<>();
+        violations(model, entries, Map.of(), Set.of()).stream().filter(x -> x.rule().equals("D2")).forEach(x -> found.add(x.table() + "." + x.column()));
+
+        assertThat(found).containsExactlyInAnyOrder("platform_audit.moment_no_exclude.exclude", "platform_audit.moment_no_isfinite.isfinite",
+                "platform_audit.moment_nullable_from.effective_from_at", "platform_audit.moment_date_period.effective_from_at",
+                "platform_audit.moment_date_period.effective_to_at");
     }
 
     static final Pattern DML = Pattern.compile("^\\s*(insert\\s+into|update|delete\\s+from|truncate\\s+table|truncate)\\s+([a-z0-9_.\"]+)", Pattern.CASE_INSENSITIVE);

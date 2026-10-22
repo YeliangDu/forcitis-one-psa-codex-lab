@@ -4,7 +4,7 @@ import com.forcitis.one.platform.identity.api.RoleCode;
 import java.util.Set;
 import java.util.function.Function;
 
-/** Same type names are written in BPMN and in TIMESHEET replay exports. */
+/** Same type names are written in BPMN and in the replay exports of the timesheet process. */
 public final class AssignmentRuleCodec {
 
     /** Types that exist in the rule cards but are not built yet; a process that uses one does not deploy. */

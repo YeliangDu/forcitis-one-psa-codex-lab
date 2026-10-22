@@ -1,9 +1,10 @@
 name: nightly-legacy-it
 
-# cron is UTC: 19:23 UTC = 03:23 Beijing time the next day (UTC+8, no daylight saving); the odd minute avoids the top-of-hour queue on GitHub's scheduler.
+# cron is UTC: 23:23 UTC = 01:23 on the build machine (CEST, UTC+2; 00:23 in winter): after the day's pull requests have run their CI, before macOS installs updates and restarts (about 02:00 to 05:00 local, AutomaticallyInstallMacOSUpdates is on). At 19:23 UTC (21:23 local) it shared the machine with the day's last pull requests and took 19.5 minutes against 13 (2026-10-21, one-coordinator).
+# The odd minute avoids the top-of-hour queue on GitHub's scheduler.
 on:
   schedule:
-    - cron: "23 19 * * *"
+    - cron: "23 23 * * *"
   workflow_dispatch:
 
 permissions:
@@ -36,7 +37,9 @@ jobs:
         run: scripts/ci/backend_verify.sh -Plegacy-it -Dtest.forks=2 -Dtest.fork.timeout=1800
       - name: the SQL Server integration tests ran
         shell: bash
-        run: compgen -G 'backend/target/failsafe-reports/TEST-*MssqlIT.xml'
+        run: |
+          compgen -G 'backend/target/failsafe-reports/TEST-*MssqlIT.xml'
+          python3 scripts/ci/acceptance_reports.py --tier full
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
