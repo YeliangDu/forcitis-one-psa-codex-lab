@@ -15,6 +15,7 @@ import com.forcitis.one.cost.timesheet.events.TimesheetApprovalWithdrawn;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentTypeCode;
@@ -496,7 +497,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         tx.executeWithoutResult(s -> timesheetRepository.save(first));
 
         assertThatThrownBy(() -> tx.executeWithoutResult(s -> timesheetRepository.save(stale)))
-                .satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_CONCURRENT_CHANGE));
+                .satisfies(thrown -> domainError(thrown, KernelError.KERNEL_CONCURRENT_CHANGE));
     }
 
     @Test
