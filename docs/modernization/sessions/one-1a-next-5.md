@@ -53,4 +53,4 @@
 
 ## 当前状态
 
-2026-10-22 22:55+02:00 上下文 32%，在批次边界交接，详见 `phase1a/HANDOFF_one-1a-next-5.md` 第 7 节。已合入：#507、#524、#528、#607（RULE-412）、#622（search_path，批入队时 CI 全绿为条件，以 gh 为准）。在途：#599（REG-3，等 one-data 签发与 M1 裁定）、#629（KERR-2，head 57cc0dab3，等 CI 绿后调度再批）、#634（NX5-08 迁入写入通道·编号部分，opus 首轮 H1 等已修、sonnet 复核通过、**opus 终审（只审 H1）进行中**，通过前不批，本机 Docker 停了，本地 IT 未实测）。下一步：#599 的 one-data 必改项（AuditSubjectKindRegistryIT 加用例、表注释补一句），然后 REG-4（IMP-1022-COO-01，ProcessKey 值对象）。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。
+2026-10-22 23:35+02:00 上下文 34%，清空前，在批次边界交接，详见 `phase1a/HANDOFF_one-1a-next-5.md` 第 7 节。已合入：#507、#524、#528、#607（RULE-412）、#622（search_path，批入队时 CI 全绿为条件，以 gh 为准）。在途：#599（REG-3，等 one-data 签发与 M1 裁定）、#629（KERR-2，head 57cc0dab3，等 CI 绿后调度再批）、#634（NX5-08 迁入写入通道·编号部分，opus 首轮 H1 等已修、sonnet 复核通过、**opus 终审两轮已改（8f73aa8ca），第三轮终审待接续会话派**，通过前不批，本机 Docker 停了，本地 IT 未实测）。下一步：#599 的 one-data 必改项（AuditSubjectKindRegistryIT 加用例、表注释补一句），然后 REG-4（IMP-1022-COO-01，ProcessKey 值对象）。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。
