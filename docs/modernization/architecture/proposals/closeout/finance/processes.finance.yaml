@@ -1981,6 +1981,13 @@ processes:
     name: 付款已退票
     publisher: B-10（同 BC，AGG-53）
     entry: 8
+  - type: human
+    name: 出纳收到银行代发部分退回回单（付款已核销之后，部分收款人失败退回）
+    entry: 10
+  - type: event
+    name: 付款已部分退回
+    publisher: B-10（同 BC，AGG-53）
+    entry: 8
   stages:
   - VS-05.5
   - VS-08.3
@@ -2027,6 +2034,7 @@ processes:
   - 发起失败已补偿
   - 已撤回
   - 已登记退票
+  - 已登记代发退回
   - 退票已冲回
   - 重复事件已忽略
   - 过账被拒收
@@ -2065,6 +2073,8 @@ processes:
   - PRC-75-S31
   - PRC-75-S32
   - PRC-75-S33
+  - PRC-75-S34
+  - PRC-75-S35
   roles:
   - id: SH-E6
     as: initiator
@@ -2349,9 +2359,9 @@ processes:
     where: automatic
     command: 冲回应付核销
     aggregate: AGG-52
-    branch: 订阅付款已退票
+    branch: 订阅付款已退票或付款已部分退回
     added_in: closeout
-    desc: 订阅付款已退票，把原核销冲回，恢复未结余额（同 BC）；应付已结清的下游效果（报销置已付、薪酬）的回退待用户定
+    desc: 订阅付款已退票，把原核销冲回，恢复未结余额（同 BC）；订阅付款已部分退回时只冲回退回额，应付从已结清回到已部分结清（PAYROLL_REISSUE_SEAM J-2）；之前发出的应付已结清不撤回，补发付清后再发一次；应付已结清的下游效果（报销置已付）的回退待用户定
     decision:
     - when: 该付款的核销已冲回（事件重复，幂等）
       goto: end
@@ -2393,7 +2403,31 @@ processes:
       bc: B-16
       name: 冲销并重过账
     legal_entity: 资金账户所属法人
-  notes: 应付已结清的订阅方 B-15（薪酬，PRC-127）。原步骤 6–8（核销应付、标记付款已核销、提交过账候选）改为事件策略 PRC-131、PRC-132（⑥a 评审 M6）。审批人 SH-M1 为占位（F-01）。 付款成功后退票（S-30 ③）：步骤 7 登记退票发付款已退票，步骤 8–9 为同 BC 反应（AGG-52 冲回应付核销，再冲销并重过账），不用「已被取代」。 预付款登记（PRC-175
+  - actor: SH-E6
+    where: external:银行
+    evidence:
+    - 银行代发退回回单（回单编号、退回金额、退回收款人、时刻）
+    command: 〔缺〕登记代发退回
+    aggregate: AGG-53
+    branch: 代发部分退回
+    added_in: closeout
+    emits:
+    - 付款已部分退回
+    desc: 代发总额已付并已核销后，部分收款人失败、款项退回：付款仍为已核销，累计退回额增加，发付款已部分退回，由步骤 8 只冲回退回额、步骤 9 冲销对应过账（借 银行存款，贷 应付职工薪酬）；全额退回走步骤 7（PAYROLL_REISSUE_SEAM J-2）
+    decision:
+    - when: 付款尚未核销，或累计退回额将超过付款金额，拒收并告警
+      goto: end
+      rule: 状态机：仅已核销可登记；累计退回额 ≤ 付款金额
+      outcome: 已拒收
+      alert: true
+    - when: otherwise
+      goto: end
+      outcome: 已登记代发退回
+    permission: 付款.登记退票
+    page: 付款执行页（退票）
+    audit: true
+    legal_entity: 资金账户所属法人
+  notes: 应付已结清的订阅方 B-15（薪酬，PRC-127）。薪酬补发不新建应付：退回已把原应付冲回到已部分结清，B-15 PRC-126 收到薪酬补发已发起后在原应付上登记补发明细（AGG-52 登记薪酬补发明细），本流程按明细付清未结余额（one-architecture 2026-10-22 裁定 J-1）。原步骤 6–8（核销应付、标记付款已核销、提交过账候选）改为事件策略 PRC-131、PRC-132（⑥a 评审 M6）。审批人 SH-M1 为占位（F-01）。 付款成功后退票（S-30 ③）：步骤 7 登记退票发付款已退票，步骤 8–9 为同 BC 反应（AGG-52 冲回应付核销，再冲销并重过账），不用「已被取代」。 预付款登记（PRC-175
     步 5）与「预付款冲抵应付」（PRC-176）：预付款进待付清单的触发待补（见 NOTES 结构问题）。
   stages_note: "结局「付款已成功 / 已核销」造出 VS-05.5 完成付款、VS-08.3 完成报销付款、VS-13.5 的退出条件（#421 判据①）；借款发放不让借款结清，不归 VS-08.1；利润分配与出资退回的退出条件由 PRC-163、PRC-114 造出"
   primary_object: OBJ-86
