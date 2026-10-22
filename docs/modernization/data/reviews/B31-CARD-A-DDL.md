@@ -42,3 +42,10 @@ R1–R7 逐项核过已改对：R1 `WITHDRAWN`（状态、三列联动 CHECK、`
 数据设计：通过（one-data，2026-10-22，依据 DATA_DESIGN_GATE 表结构草案项、B31_PHYSICAL_MODEL_RULINGS §2 §4 §14、日历审更正十、ADR-0058/0072/0075；范围：schema、`state_transitions`、`config_sets`、`config_set_versions`、`assert_config_version_complete`、`employee_activity_type_items`）。迁移出来后复核实际表结构 diff；七项随附改动（建库脚本、注册表、分级、聚合登记、术语）在表结构 PR 里逐项核。
 
 R7 的角色代码：不是数据设计问题，由 one-glossary 定名、平台身份侧建角色（`platform_identity` 目前只有 6 个系统角色）。建议名（供 one-glossary 参考）：`administration_manager`（行政负责人）、`it_manager`（信息技术负责人）、`employee_relations_manager`（员工关系负责人）。未定名前"空库配置集五行"验收挂起是正确的，迁移里种子不能写占位。
+
+## 第三轮（2026-10-22，答 one-1a-admin：验收测试抓出 `status_of_aggregate` 缺陷）
+
+1. **缺陷认定**：`ck_state_transitions_status_of_aggregate` 在 `from_status` 为空时，非空分支求值为 NULL，CHECK 放行，`∅ → CONCLUDED`、`∅ → CANCELLED`（员工活动）与 `∅ → CONFIRMED`（配置集版本）被误接受。我签发的草案漏了这一点。
+2. **修法复签**：`@2f74de2f6` 的草案用 `coalesce(…, false)` 包住整个表达式，并把 `ConfigSetVersion` 分支改为成对写（`∅ → PENDING`、`PENDING → CONFIRMED | WITHDRAWN`；迁入的配置集版本本卡没有，已去掉）；`EmployeeActivityRequest` 分支保留迁入初始转换。核过：NULL 情形一律落到不通过。**复签通过。**
+3. **platform_file 同类**：`platform_file` 基线（#521 已合入）的该 CHECK 不是 NULL 误放行，但写成"目标集合 AND（来源为空或来源集合）"，**不按 (from, to) 配对**，会接受 `∅ → CONFIRMED/REJECTED/APPROVED/READ`、`PENDING → READ`、`APPROVED → REJECTED` 等非法配对。需以追加迁移（`DROP + ADD … NOT VALID + VALIDATE`）改为成对写并 `coalesce`；并入 one-platform-file 单元 7（待确认版本 `WITHDRAWN` 同批）。`STATE_TRANSITIONS_DESIGN.md` 已补写法要求，防止后续 schema 再犯。
+4. 实际表结构 diff 待 PR 出来后复核。
