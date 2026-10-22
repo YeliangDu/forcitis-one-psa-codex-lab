@@ -113,6 +113,8 @@ public final class SnapshotReconciler {
             }
         }
 
+        isolateTakenEmployeeCodes(valid, currentStaff, isolated, diffs);
+
         Set<EmployeeId> keepWecom = wecomUserIdsToKeep(valid, isolated, currentStaff, diffs);
 
         Map<EmployeeId, EmploymentStatus> statusAfter = new HashMap<>();
@@ -191,6 +193,33 @@ public final class SnapshotReconciler {
     }
 
     /** A WeCom user id is the login key: when several employed rows share it, none keeps it (login fails closed). */
+    /** The employee code is unique: a row whose code another person holds is isolated, never renumbered; an existing employee is served before a new one, and of two new people with one code the smaller source id is built. */
+    private static void isolateTakenEmployeeCodes(Map<EmployeeId, SourcePerson> valid, Map<EmployeeId, StaffEmployee> currentStaff,
+                                                  Set<EmployeeId> isolated, List<SyncDiff> diffs) {
+        Map<String, EmployeeId> holders = new HashMap<>();
+        currentStaff.forEach((id, s) -> {
+            if (!valid.containsKey(id)) {
+                holders.put(s.employee().employeeCode(), id);
+            }
+        });
+        List<EmployeeId> rejected = new ArrayList<>();
+        valid.entrySet().stream()
+                .sorted(Comparator.<Map.Entry<EmployeeId, SourcePerson>, Boolean>comparing(entry -> !currentStaff.containsKey(entry.getKey()))
+                        .thenComparing(Map.Entry.comparingByKey(Comparator.comparing(EmployeeId::value))))
+                .forEach(entry -> {
+                    EmployeeId holder = holders.putIfAbsent(entry.getValue().employeeCode(), entry.getKey());
+                    if (holder != null && !holder.equals(entry.getKey())) {
+                        rejected.add(entry.getKey());
+                        diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + entry.getKey().value(), IssueKind.DUPLICATE_EMPLOYEE_CODE,
+                                "the employee code is already held by employee " + holder.value() + "; the row is isolated"));
+                    }
+                });
+        rejected.forEach(id -> {
+            valid.remove(id);
+            isolated.add(id);
+        });
+    }
+
     private static Set<EmployeeId> wecomUserIdsToKeep(Map<EmployeeId, SourcePerson> valid, Set<EmployeeId> isolated,
                                                   Map<EmployeeId, StaffEmployee> currentStaff, List<SyncDiff> diffs) {
         Map<WecomUserId, Integer> employedHolders = new HashMap<>();

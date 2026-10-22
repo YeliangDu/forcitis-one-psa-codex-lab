@@ -89,7 +89,7 @@ CREATE UNIQUE INDEX employees_wecom_user_id_employed_key ON organization_workfor
 ALTER TABLE organization_workforce.employees ADD CONSTRAINT uk_employees_employee_code UNIQUE (employee_code);
 COMMENT ON TABLE organization_workforce.employees IS '员工：组织源人员的快照；没有登录名即离职（RULE-363），不含生日等敏感信息；粒度：每个员工一行';
 COMMENT ON COLUMN organization_workforce.employees.id IS '员工 ID（UUIDv7；组织源人员经来源对照映射）';
-COMMENT ON COLUMN organization_workforce.employees.employee_code IS '员工编号（工号）';
+COMMENT ON COLUMN organization_workforce.employees.employee_code IS '员工编号（工号）；全局唯一，复职沿用原工号（用户 2026-10-21，W2 设计 3.1）';
 COMMENT ON COLUMN organization_workforce.employees.display_name IS '姓名';
 COMMENT ON COLUMN organization_workforce.employees.login_name IS '登录名；为空（null 或空串）表示已离职（RULE-363）';
 COMMENT ON COLUMN organization_workforce.employees.email IS '企业邮箱';
@@ -647,7 +647,7 @@ COMMENT ON COLUMN organization_workforce.personnel_commands.is_target_on_unpaid_
 COMMENT ON COLUMN organization_workforce.personnel_commands.org_structure_command_id IS '组织结构命令 ID：只用于合并产生的逐人调岗；外键随 org_structure_commands 建表批次补';
 COMMENT ON COLUMN organization_workforce.personnel_commands.applied_at IS '生效落地时刻；有值当且仅当状态为已生效';
 COMMENT ON COLUMN organization_workforce.personnel_commands.withdrawn_at IS '撤回时刻';
-COMMENT ON COLUMN organization_workforce.personnel_commands.withdrawn_by IS '撤回人（员工 ID）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.withdrawn_by IS '撤回人（用户账号 ID，跨 schema 只存 ID）';
 COMMENT ON COLUMN organization_workforce.personnel_commands.withdrawal_reason IS '撤回原因（1 至 500 字）';
 COMMENT ON COLUMN organization_workforce.personnel_commands.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.personnel_commands.created_by IS '录入人（用户账号 ID，跨 schema 只存 ID）';

@@ -198,6 +198,42 @@ class EmployeeSyncRulesTest {
                 IssueKind.SUPERVISOR_SEPARATED, IssueKind.SUPERVISOR_CYCLE, IssueKind.SUPERVISOR_CYCLE);
     }
 
+    private static SourcePerson withCode(SourcePerson base, String code) {
+        return new SourcePerson(base.personId(), code, base.displayName(), base.unitId(), base.positionId(), base.supervisorId(),
+                base.loginName(), base.email(), base.gender(), base.wecomUserId(), base.feeEarner());
+    }
+
+    @Test
+    @DisplayName("W2 PR-B the employee code is unique: of two new people with one code the smaller source id is built, the other is isolated and reported")
+    void secondNewPersonWithTheSameCodeIsIsolated() {
+        Reconciliation changes = first(tree(withCode(person(2, 2, 100L, null, "13900000002", null), "E-SAME"),
+                withCode(person(1, 2, 100L, null, "13900000001", null), "E-SAME")));
+        OrgSnapshot snapshot = apply(OrgSnapshot.empty(), changes);
+
+        assertThat(snapshot.staffById()).containsOnlyKeys(user(1));
+        assertThat(issues(changes, IssueKind.DUPLICATE_EMPLOYEE_CODE)).hasSize(1);
+        assertThat(changes.diffs()).anyMatch(d -> d.subjectKey().equals("employee:" + user(2).value()) && d.changeKind() == ChangeKind.ISSUE
+                && d.detail().contains(user(1).value().toString()) && !d.detail().contains("E-SAME"));
+        assertThat(changes.stats().isolatedRowCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("W2 PR-B an existing employee keeps the code against a new person with a smaller source id, and a repeated sync gives the same result")
+    void existingHolderWinsAndRerunIsStable() {
+        OrgSnapshot existing = apply(OrgSnapshot.empty(), first(tree(withCode(person(5, 2, 100L, null, "13900000005", null), "E-SAME"))));
+        SourceOrgSnapshot source = tree(withCode(person(1, 2, 100L, null, "13900000001", null), "E-SAME"),
+                withCode(person(5, 2, 100L, null, "13900000005", null), "E-SAME"));
+
+        Reconciliation changes = SnapshotReconciler.reconcile(existing, source);
+        OrgSnapshot after = apply(existing, changes);
+
+        assertThat(after.staffById()).containsOnlyKeys(user(5));
+        assertThat(issues(changes, IssueKind.DUPLICATE_EMPLOYEE_CODE)).hasSize(1);
+        Reconciliation again = SnapshotReconciler.reconcile(after, source);
+        assertThat(issues(again, IssueKind.DUPLICATE_EMPLOYEE_CODE)).hasSize(1);
+        assertThat(again.changedEmployees()).isEmpty();
+    }
+
     @Test
     @DisplayName("RULE-362 one WeCom user id identifies one employed person: duplicates are stored for nobody and reported")
     void duplicateWecomUserIdIsNotStored() {

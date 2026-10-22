@@ -110,6 +110,13 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
         assertThat(jdbc.sql("update organization_workforce.personnel_commands set status = 'EFFECTIVE', applied_at = now(), updated_at = now()" + where).update()).isEqualTo(1);
         assertThatThrownBy(() -> jdbc.sql("update organization_workforce.personnel_commands set status = 'PENDING', applied_at = null" + where).update())
                 .hasMessageContaining("cannot move");
+        String other = " where personnel_command_id = " + LATER_COMMAND;
+        assertThat(jdbc.sql("update organization_workforce.personnel_commands set status = 'WITHDRAWN', withdrawn_at = now(), withdrawn_by = " + USER
+                + ", withdrawal_reason = 'wrong date', updated_at = now()" + other).update()).isEqualTo(1);
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.personnel_commands set withdrawal_reason = 'changed'" + other).update())
+                .hasMessageContaining("is set once");
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.personnel_commands set status = 'EFFECTIVE', applied_at = now()" + other).update())
+                .hasMessageContaining("cannot move");
     }
 
     @Test
@@ -119,7 +126,7 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "TRANSFER", "HELD")).hasMessageContaining("ck_personnel_commands_held_kind");
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "CORRECTION", "PENDING")).hasMessageContaining("ck_personnel_commands_correction_immediate");
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "SEPARATE", "PENDING")).hasMessageContaining("uk_personnel_commands_open_per_day");
-        assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "UNPAID_LEAVE_START", "WITHDRAWN")).hasMessageContaining("ck_personnel_commands");
+        assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "UNPAID_LEAVE_START", "WITHDRAWN")).hasMessageContaining("ck_personnel_commands_unpaid_leave");
     }
 
     @Test
