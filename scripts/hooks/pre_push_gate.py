@@ -19,6 +19,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import precheck_before_pr as pr  # noqa: E402
+from command_words import name_of, plain, unquote_dollar  # noqa: E402
 
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "\n"}
 KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
@@ -34,7 +35,7 @@ TIMEOUT_SECONDS = 1400
 
 def segments(command):
     """The simple commands of a shell line as token lists; None when the line cannot be tokenised."""
-    lexer = shlex.shlex(command.replace("`", " ; "), posix=True, punctuation_chars=True)
+    lexer = shlex.shlex(unquote_dollar(command).replace("`", " ; "), posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     lexer.commenters = "#"
     try:
@@ -59,11 +60,11 @@ def pushes(command, cwd="."):
     found, here = [], cwd
     segs = segments(command)
     if segs is None:
-        return [(cwd, [], {})] if re.search(r"\bgit\b.*\bpush\b", command) else []
+        return [(cwd, [], {})] if re.search(r"\bgit\b.*\bpush\b", plain(command)) else []
     for seg in segs:
         env, i = {}, 0
         while i < len(seg):
-            tok = seg[i]
+            tok = seg[i] if ENV.match(seg[i]) else seg[i].lower()
             if ENV.match(tok):
                 k, v = tok.split("=", 1)
                 env[k] = v
@@ -86,12 +87,12 @@ def pushes(command, cwd="."):
         if rest[0] == "cd" and len(rest) > 1:
             here = os.path.normpath(os.path.join(here, os.path.expanduser(rest[1])))
             continue
-        if os.path.basename(rest[0]) in SHELLS or rest[0] == "eval":
-            flag = next((k for k, t in enumerate(rest[1:], 1) if re.fullmatch(r"-[a-z]*c", t)), None) if rest[0] != "eval" else 0
+        if name_of(rest[0]) in SHELLS or rest[0].lower() == "eval":
+            flag = next((k for k, t in enumerate(rest[1:], 1) if re.fullmatch(r"-[a-z]*c", t)), None) if rest[0].lower() != "eval" else 0
             if flag is not None and flag + 1 < len(rest):
                 found += pushes(rest[flag + 1], here)
             continue
-        if os.path.basename(rest[0]) != "git":
+        if name_of(rest[0]) != "git":
             continue
         j, where = 1, here
         while j < len(rest) and rest[j].startswith("-"):

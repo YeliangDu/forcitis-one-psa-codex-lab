@@ -6807,7 +6807,7 @@ processes:
     actor_v1: 商务
     command: 提交索赔详细报告
     aggregate: AGG-16
-    desc: 提交载明依据、计算与证据的详细报告，超时限须注明理由（INV-17 同口径）；对方答复后由商务据书面答复登记结果
+    desc: 提交载明依据、计算与证据的详细报告，超时限须注明理由（INV-17）；对方答复后由商务据书面答复登记结果
     decision:
     - when: 对方认定索赔
       goto: 4
@@ -6823,7 +6823,7 @@ processes:
       outcome: 已提交待答复
       p: 0.4
     timeout:
-      after: 合同约定详细报告时限；未约定时 P28D 自发出索赔通知之日起
+      after: 协议上登记的约定详细报告时限，自发出索赔通知之日起（INV-17，不设缺省天数）
       escalate_to: SH-M1
       interrupting: false
     notify:
