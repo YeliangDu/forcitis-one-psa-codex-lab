@@ -32,7 +32,7 @@ COMMENT ON COLUMN platform_numbering.document_types.created_at IS '创建时间'
 COMMENT ON COLUMN platform_numbering.document_types.updated_at IS '更新时间';
 
 CREATE FUNCTION platform_numbering.guard_document_type_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_numbering.document_types is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
@@ -124,7 +124,7 @@ COMMENT ON COLUMN platform_numbering.legacy_numbers.created_at IS '创建时间'
 COMMENT ON COLUMN platform_numbering.legacy_numbers.updated_at IS '更新时间（行不可更新，恒等于创建时间）';
 
 CREATE FUNCTION platform_numbering.reject_legacy_number_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_numbering.legacy_numbers is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
 END;
@@ -189,7 +189,7 @@ COMMENT ON COLUMN platform_numbering.numbering_rule_versions.created_at IS '创�
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.updated_at IS '更新时间';
 
 CREATE FUNCTION platform_numbering.guard_rule_version_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_numbering.numbering_rule_versions is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
@@ -214,7 +214,7 @@ END;
 $$;
 -- 作者可空的行（种子、迁入）只由迁移写：运行账号不是属主角色的成员（c3/c9 校验脚本核对），在这里被拒。
 CREATE FUNCTION platform_numbering.guard_rule_version_source() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF NEW.source_kind <> 'AUTHORED'
        AND NOT COALESCE(pg_has_role(current_user, (SELECT relowner FROM pg_catalog.pg_class WHERE oid = TG_RELID), 'MEMBER'), false) THEN

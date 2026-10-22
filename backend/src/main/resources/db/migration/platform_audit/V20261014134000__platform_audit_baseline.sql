@@ -58,7 +58,7 @@ COMMENT ON COLUMN platform_audit.audit_entries.outcome_kind IS '结果：SUCCEED
 COMMENT ON COLUMN platform_audit.audit_entries.login_method_kind IS '登录方式：企业微信（工作台、小程序、扫码）、单点登录、签名票据、应急登录；登录、会话、管理员模式、特权请求类条目才有，强制下线、拒绝访问等为空；有登录方式必有结果';
 
 CREATE FUNCTION platform_audit.reject_audit_entry_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_audit.audit_entries is append-only: % is not allowed', TG_OP
         USING ERRCODE = 'restrict_violation';
@@ -108,7 +108,7 @@ COMMENT ON COLUMN platform_audit.audit_archive_batches.created_at IS '创建时�
 COMMENT ON COLUMN platform_audit.audit_archive_batches.updated_at IS '更新时间';
 
 CREATE FUNCTION platform_audit.reject_archive_batch_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_audit.audit_archive_batches is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
 END;

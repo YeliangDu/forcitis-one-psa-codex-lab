@@ -48,3 +48,30 @@
 
 - ② 工作日历 DDL 审已完成：`data/reviews/WORK-CALENDAR-DDL-2026-10-21.md`（结论：需修改；改法为 `work_calendar_versions` / `work_calendar_version_days` 只追加版本表，含四眼、来源、不追溯触发器；待 one-1a-par 出表结构 PR 后复核实际 diff 再签）。
 - ① 迁入质量检查要求已完成初稿：`data/MIGRATION_QUALITY_CHECKS.md`（按数据类规则、差异清单含负责人与期限、不通过不入库七条门槛、缺口 Q-1…Q-10）；待 one-architecture/one-coordinator 并入 ADR-0036 与 §14.2 M11；需用户定抽样比例、阈值、期限默认值。
+
+## 2026-10-22 交接（用户清上下文；以本节为准，覆盖上文 10-21 的待办）
+
+**已签（设计层或表结构，均有评论或记录）**：日历 #547（c476dba5e，WITHDRAWN/事务时间/首版）；文件服务 #521（9421b798）与审计允许表 #527（9bb49348）；编号版本来源 #524（f87f85f6）；审计对象类别 #599 先签 68fc3543（条件见下）；B-31 卡 A #597（f1aa1375）；卡 A 草案与 `status_of_aggregate` 复签（B31-CARD-A-DDL 第三轮）。记录在 `data/reviews/`。
+
+**在等别人（我这边不用动，来消息再处理）**：
+- #599 @88827c3a：one-1a-next-5 须加 `AuditSubjectKindRegistryIT` 用例（`ck_audit_entries_subject_id` 类别集合 = 登记表 `has_object=false`）与表注释一句，改完我再签。opus M1（生成列+复合外键）已裁不采纳。
+- 函数固定 search_path：设计 `data/FUNCTION_SEARCH_PATH_PINNING.md` 已报调度，实现派 one-1a-next-5（基线开放期直接改各基线 `CREATE FUNCTION` 加 `SET search_path = pg_catalog, pg_temp`，27 个函数清单见附录 A；#597 同批）；迁移 diff 出来我复核。
+- one-platform-file 单元 7（新会话 `local_87a73fc1…`，按名字发）：`platform_file.preservation_category_versions` 加 WITHDRAWN 与版本头 `version` 列，`state_transitions` 的 `status_of_aggregate` 改成对写并 `coalesce`；表结构先送我签。
+- 日历 PR-B/C（四眼流程、使用方记版本）、B-31 其余卡（7.4 用印、7.5 IT 工单、7.6 资产使用、7.7 维修、卡 C 员工活动）：DDL 草案按 `B31_PHYSICAL_MODEL_RULINGS.md` §2–§14 验收，逐卡送我签。
+- 迁入阻塞项 B-1a/b/c（人事五家法人归属表、财务项目/合同→法人对照表、人事在职入职日期表，首次全量演练前一周）：用户已定，调度跟踪；老系统无来源（DAT-1021-ARC-01 三步取证）。
+- 扫描脚本 #504/#515 已入队或合入；`measurable_ddl_scan.py` M6 认 `decision_ref`/`decision_ref_key`，认 `decision_audit_entry_id` 的补丁与 M1 同时认 `currency`/`currency_code` 的补丁尚未做（小 PR，opus 复审后由调度排）；M7（函数 search_path）随实现。
+
+**本会话新产出的文档（分支 claude/one-data-handoff-1，提交 5aa0ca6d1 后；已报 one-merge 收合集）**：`B31_PHYSICAL_MODEL_RULINGS.md`（§2–§14）、`B31_HISTORY_SEAL_MIGRATION_REQUIREMENTS.md`、`EMPLOYMENT_START_DATE_OPINION.md`、`FUNCTION_SEARCH_PATH_PINNING.md`、`MIGRATION_QUALITY_CHECKS.md`（含第 7 节 B-1）、`STATE_TRANSITIONS_DESIGN.md`（列名更正、子状态机记法、status_of_aggregate 写法）、`reviews/` 各记录、`evidence/` 取证 SQL。
+
+**待办（我自己的）**：①W2 员工版本表 DDL 草案的 `employment_start_date` 一列与索引在签 W2 PR-B 时一起看；②DATA_SCORECARD 的 role_versions/account_role_grants 两行；③errors-bank DATA-001…007、011–013、018 仍待落实；④开放项：MIGRATION 行的迁入专用角色写入通道（编号版本表与日历版本表的 owner 检查）、`org_units` 根表收窄设计（A4 答复后 30 天内）；⑤ADR-0058 补写、ADR-0075 对 `ConfigSetVersion` 登记为历史主体随首个使用方。
+
+**规矩提醒**：合 main 用普通 `git merge`（不被拦）；提交与推送分两次调用；外发被限流写 outbox；取证只走 one-ops，明细与个人信息不进会话；一个后台任务；precheck 只在推送前一次；本地只跑受影响模块测试。
+
+**2026-10-22 下午进展（按 one-coordinator 次序）**：①W2 PR-B 无草案可签（已告知调度，草案到再看 `employment_start_date`）；②DATA_SCORECARD 已补第 35、36 行；③错题本 DATA-001…013、018 已落到可定位处（门禁 §7a、`evidence/name_pattern_scan.py`）；④迁入写入通道设计 `MIGRATION_WRITER_ROLE_DESIGN.md` 已出，opus 首轮复审中（DAT-1022-DAT-01），改后交 one-1a-next-5 / one-1a-par；⑤ADR-0058 补写的数据侧输入 `ADR0058_AMENDMENT_INPUT.md` 已出，交 one-architecture 起草。仍开放：`org_units` 根表收窄设计（A4 答复后 30 天内）、ADR-0075 对 `ConfigSetVersion` 登记。
+
+**2026-10-22 晚交接（以本节为准，覆盖上文下午进展）**：
+- 已完成并推送（分支 claude/one-data-handoff-1 @ae6af5e4c，已报 one-merge）：W2 PR-B 草案签「通过」附 C1–C3 与重复工号拒收口径（`reviews/W2-PR-B.md`）；DATA_SCORECARD 第 35、36 行；错题本 DATA-001…013、018 落点（门禁 §7a、`evidence/name_pattern_scan.py`）；迁入写入通道设计 `MIGRATION_WRITER_ROLE_DESIGN.md`（opus、sonnet 两轮已改，按 one-architecture 判定：迁入角色无 UPDATE、日历应用内确认、日明细守护 SECURITY DEFINER、删属主确认检查）；ADR-0058 不补正文（勘误 E-010）；卡 C DDL 通过附 M1–M3（`reviews/B31-CARD-C-DDL.md`）；取证 115 个文件均可留（`reviews/EVIDENCE-ADR0037-SCAN-2026-10-22.md`）。
+- 在途/等别人：one-1a-par 的 W2 PR-B 实现 PR（我对 `personnel_commands` 与 ADR-0068 附件逐行比较、核 C1–C3）；#599 的 IT 用例；one-1a-next-5 / one-1a-par 按迁入写入通道设计实现，diff 出来我复核；卡 C 改完后的表结构 PR；收件箱 `2026-10-22-one-data-card-c-retention`（T-D10 保留期，等用户）；one-platform-file 单元 7；B-31 其余卡 DDL 草案。
+- 我自己的待办：`org_units` 根表收窄设计（A4 答复后 30 天内）；ADR-0075 对 `ConfigSetVersion` 登记为历史主体（随首个使用方）；DATA-001…013 中非机械项仍是软约束。
+- 规矩：提交与推送分两次调用；docs 提交号直接报 one-merge；子代理任务要写任务号 `DAT-1022-DAT-nn` 并登记 tasks/（种类取受控词、用时写「待核」）；本地只在推送前跑一次 precheck。
+

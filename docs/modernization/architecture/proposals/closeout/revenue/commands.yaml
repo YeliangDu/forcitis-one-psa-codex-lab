@@ -984,11 +984,41 @@ commands:
   - 索赔ID
   emits:
   - ClaimSettled
-- name: 拒绝或撤回索赔
+- name: 提交索赔详细报告
   aggregate: AGG-16
+  proposed: true
+  proposed_basis: CF-042（transition-review/revenue.yaml）：先通知后提交详细报告，「已通知 → 已提交」两步；ARC-1022-ARE-02
   params:
   - 索赔
-  - 理由
+  - 索赔依据与计算
+  - 索赔金额与工期
+  - 超时限理由
+  preconditions:
+  - INV-17
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 索赔ID
+  emits: []
+- name: 拒绝索赔
+  aggregate: AGG-16
+  proposed: true
+  proposed_basis: CF-042（transition-review/revenue.yaml）：原「拒绝或撤回索赔」拆分，被索赔方拒绝；ARC-1022-ARE-02
+  params:
+  - 索赔
+  - 书面拒绝与理由
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 索赔ID
+  emits: []
+- name: 撤回索赔
+  aggregate: AGG-16
+  proposed: true
+  proposed_basis: CF-042（transition-review/revenue.yaml）：原「拒绝或撤回索赔」拆分，索赔方撤回；ARC-1022-ARE-02
+  params:
+  - 索赔
+  - 撤回理由
   authority:
     A: 待定（权责表未登）
   idempotency_key:
@@ -1895,6 +1925,20 @@ commands:
   - 资质证书ID
   - 新证书编号
   emits: []
+- name: 登记资质延续申请
+  aggregate: AGG-02
+  proposed: true
+  proposed_basis: CF-048（transition-review/revenue.yaml）：OBJ-65「有效 → 延续中」无进入命令（PRC-78 第 4 步 gap）；ARC-1022-ARE-02
+  params:
+  - 资质证书
+  - 受理回执
+  - 申请日期
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资质证书ID
+  - 有效期止
+  emits: []
 - name: 标记资质已到期
   aggregate: AGG-02
   params:
@@ -2737,6 +2781,44 @@ commands:
   - 工作包ID
   emits:
   - 工作包已锁定
+- name: 发布工作包
+  aggregate: AGG-20
+  proposed: true
+  proposed_basis: CF-039（transition-review/revenue.yaml）：OBJ-30 工作包「进行中 → 已完成 → 已锁定 → 返工中」缺命令；ARC-1022-ARE-02
+  params:
+  - 工作包
+  preconditions:
+  - INV-41
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工作包ID
+  emits: []
+- name: 完成工作包
+  aggregate: AGG-20
+  proposed: true
+  proposed_basis: CF-039（transition-review/revenue.yaml）：OBJ-30 工作包「进行中 → 已完成 → 已锁定 → 返工中」缺命令；ARC-1022-ARE-02
+  params:
+  - 工作包
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工作包ID
+  - 完成序号
+  emits: []
+- name: 转入返工
+  aggregate: AGG-20
+  proposed: true
+  proposed_basis: CF-039（transition-review/revenue.yaml）：OBJ-30 工作包「进行中 → 已完成 → 已锁定 → 返工中」缺命令；ARC-1022-ARE-02
+  params:
+  - 工作包
+  - 返工原因
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 工作包ID
+  - 返工序号
+  emits: []
 - name: 作废工作包
   aggregate: AGG-20
   params:
