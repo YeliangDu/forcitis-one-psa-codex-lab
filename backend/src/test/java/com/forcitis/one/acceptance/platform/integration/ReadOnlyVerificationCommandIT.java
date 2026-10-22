@@ -116,9 +116,7 @@ class ReadOnlyVerificationCommandIT {
     /** The connection names of the running service (the pool and metric tag names) and the environment variables of each, as in one.env. */
     enum ReadOnlyConnection {
         A8("integration-seeyon-background", A8_WORLD, "A8_DB_URL", "A8_DB_USERNAME", "A8_DB_PASSWORD"),
-        LEGACY_NAMES("integration-legacy", LEGACY_WORLD, "LEGACY_DB_RO_URL", "LEGACY_DB_RO_USERNAME", "LEGACY_DB_RO_PASSWORD"),
-        INTEGRATION_LEGACY_INBOX("integration-legacy-inbox", LEGACY_WORLD, "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL", "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_USERNAME",
-                "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD");
+        LEGACY_NAMES("integration-legacy", LEGACY_WORLD, "LEGACY_DB_RO_URL", "LEGACY_DB_RO_USERNAME", "LEGACY_DB_RO_PASSWORD");
 
         final String connectionName;
         final String database;
@@ -344,10 +342,10 @@ class ReadOnlyVerificationCommandIT {
     @Test
     @DisplayName("C-14 (f) 纳入基线（用户 2026-10-15）：msdb 本人用户只属于三个 SQLAgent 角色的子集（只剩 SQLAgentReaderRole）时 (f) 通过、结果通过、退出 0；角色信息行列出 msdb 的一个角色与 rdscore 的无角色")
     void msdbOwnUserInASubsetOfTheAgentRolesPasses() throws Exception {
-        Account account = baselineAccount(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX);
+        Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
         run("msdb", "ALTER ROLE SQLAgentOperatorRole DROP MEMBER " + q(account.login()), "ALTER ROLE SQLAgentUserRole DROP MEMBER " + q(account.login()));
 
-        CommandRun run = verify(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX, account);
+        CommandRun run = verify(ReadOnlyConnection.LEGACY_NAMES, account);
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
         for (char item : ITEMS) {
@@ -964,14 +962,14 @@ class ReadOnlyVerificationCommandIT {
     @Test
     @DisplayName("ADR-0037 第 4 项第 2 条、C-14：目标库不存在（不可达）时七项都判定不了，只输出驱动报的错误号与 SQLState，不输出含库名的消息原文")
     void missingDatabaseIsUndeterminedWithoutTheMessage() throws Exception {
-        Account baseline = baselineAccount(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX);
+        Account baseline = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
         String marker = marker();
         Account account = new Account(baseline.connection(), baseline.login(), baseline.password(), url("nodb_" + marker));
         SQLException refused = connectionFailure(account);
         assertThat(refused.getErrorCode()).as("SQL Server: cannot open the database requested by the login").isEqualTo(4060);
         assertThat(refused.getMessage()).as("the driver's message names the database, so printing it would leak the marker").contains(marker);
 
-        CommandRun run = verify(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX, account);
+        CommandRun run = verify(ReadOnlyConnection.LEGACY_NAMES, account);
 
         assertUndeterminedOnEveryItem(run, refused);
         assertThat(run.output()).as("no database message text").doesNotContain(marker);
@@ -1011,7 +1009,7 @@ class ReadOnlyVerificationCommandIT {
     }
 
     @ParameterizedTest(name = "[{0}]")
-    @ValueSource(strings = {"", "no-such-connection"})
+    @ValueSource(strings = {"", "no-such-connection", "legacy-approval", "integration-legacy-inbox"})
     @DisplayName("PAR-2：未指定连接名或连接名不是现有只读连接时退出用法错误码，不做核实")
     void missingOrUnknownConnectionIsWrongUsage(String connectionName) throws Exception {
         Account account = baselineAccount(ReadOnlyConnection.A8);
@@ -1025,23 +1023,7 @@ class ReadOnlyVerificationCommandIT {
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_USAGE);
         assertThat(run.items()).as(run.output()).isEmpty();
-        assertStayedOffTheNetworkAndTheApplicationDatabase(run);
-        assertTellsNothingSecret(run, account);
-    }
-
-    @Test
-    @DisplayName("RULING-P3B-17：老待办连接已改名，--connection=legacy-approval 退出用法错误码、不做核实（无项行、无 RESULT 行），提示新名 integration-legacy-inbox")
-    void retiredConnectionNameIsWrongUsageAndNamesTheNewOne() throws Exception {
-        Account account = baselineAccount(ReadOnlyConnection.A8);
-        Map<String, String> environment = environment(Map.of(ReadOnlyConnection.A8, account));
-        List<String> arguments = List.of("--spring.profiles.active=" + PROFILE, CONNECTION_OPTION + "legacy-approval");
-
-        CommandRun run = launch(command(arguments), environment);
-
-        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_USAGE);
-        assertThat(run.items()).as(run.output()).isEmpty();
         assertThat(run.results()).as(run.output()).isEmpty();
-        assertThat(run.output()).as("the message names the new connection").contains(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX.connectionName);
         assertStayedOffTheNetworkAndTheApplicationDatabase(run);
         assertTellsNothingSecret(run, account);
     }
@@ -1255,7 +1237,6 @@ class ReadOnlyVerificationCommandIT {
         env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_FEE_EARNER_YES_ENUM_ID", "9002");
         env.put("FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_ROOT_PATH", "00000001");
         env.put("INTEGRATION_LEGACY_ENABLED", "true");
-        env.put("FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_DETAIL_URL_TEMPLATE", "https://legacy.example.test/todo/{processInstanceId}/{taskId}");
         accounts.forEach((connection, account) -> {
             env.put(connection.urlVariable, account.url());
             env.put(connection.usernameVariable, account.login());
@@ -1386,8 +1367,6 @@ class ReadOnlyVerificationCommandIT {
                 case A8 -> ReadOnlyBaselineFixture.createViewSchemaReader(ReadOnlyVerificationCommandIT::run, connection.database, login, password);
                 case LEGACY_NAMES -> ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyVerificationCommandIT::run, connection.database,
                         "dbo.v_one_legacy_org_short_name", login, password);
-                case INTEGRATION_LEGACY_INBOX -> ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyVerificationCommandIT::run, connection.database,
-                        "dbo.v_psa_one_legacy_todo", login, password);
             }
         } catch (SQLException e) {
             throw new IllegalStateException("cannot create the read-only login " + login, e);
@@ -1436,9 +1415,7 @@ class ReadOnlyVerificationCommandIT {
                     "CREATE TABLE dbo.member_rows (ID bigint PRIMARY KEY, NAME nvarchar(64), LOGIN_NAME nvarchar(64))",
                     "CREATE VIEW " + ReadOnlyBaselineFixture.VIEW_SCHEMA + ".v_org_member AS SELECT ID, NAME, LOGIN_NAME FROM dbo.member_rows");
             run(LEGACY_WORLD,
-                    "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64))",
                     "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
-                    "CREATE VIEW dbo.v_psa_one_legacy_todo AS SELECT assignee_user_id, task_id FROM dbo.todo_rows",
                     "CREATE VIEW dbo.v_one_legacy_org_short_name AS SELECT id, short_name FROM dbo.short_name_rows");
         } catch (SQLException e) {
             throw new IllegalStateException("cannot prepare the external databases; SQL Server log:\n" + MSSQL.getLogs(), e);

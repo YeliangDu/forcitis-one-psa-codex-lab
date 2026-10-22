@@ -219,7 +219,7 @@ jobs:
             echo "$PWD" >> "$GITHUB_PATH"
           fi
       - run: gitleaks git --redact --no-banner --exit-code 1 .
-      # 记录与 ADR 由片段生成：ADR、brief、提议术语清单（backend/glossary/proposed/README.md）与已提交产物不一致即失败；INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成
+      # 记录与 ADR 由片段生成：terms.yaml 等仍入仓的产物与重新生成的结果不一致即失败；ADR 拷贝与索引、brief、提议术语清单 README、INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成且没被跟踪
       - name: python3 has PyYAML 6.0.3 (SUPPLY_CHAIN S1)
         run: |
           python3 - <<'PY'

@@ -1,0 +1,287 @@
+# 薪酬行支付子状态机、人事命令、跨法人用语（one-glossary 2026-10-22，NAM-1021-GLO-19；one-arch-people、one-arch-finance 来单，proposed）。状态名暂定，随用户认可。
+terms:
+- id: payroll_settlement_line
+  zh: 薪酬结算行
+  en: PayrollSettlementLine
+  snake: payroll_settlement_line
+  kind: entity
+  bc: organization.payroll
+  scope: domain
+  definition: 结算单上一名员工的一行，带支付状态；OBJ-73 原文称「薪酬行」，与薪酬结算单对应写全称；也是状态转换记录里该子实体的聚合类型码值（ADR-0075）
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payroll_disbursement
+  zh: 薪酬代发
+  en: PayrollDisbursement
+  snake: payroll_disbursement
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 按薪酬结算行经银行代发渠道向员工账户发放薪酬的动作及其结果
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payroll_line_status__pending_payment
+  zh: 待支付
+  en: PendingPayment
+  snake: pending_payment
+  kind: state
+  bc: organization.payroll
+  scope: domain
+  definition: 薪酬结算行的支付状态：已确认应发，尚未代发或补发后等待再次代发
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payroll_line_status__paid
+  zh: 已实付
+  en: Paid
+  snake: paid
+  kind: state
+  bc: organization.payroll
+  scope: domain
+  definition: 薪酬结算行的支付状态：代发结果登记为成功，实际已付到员工账户（OBJ-73 原文）
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payroll_line_status__payment_failed
+  zh: 支付失败
+  en: PaymentFailed
+  snake: payment_failed
+  kind: state
+  bc: organization.payroll
+  scope: domain
+  definition: 薪酬结算行的支付状态：代发结果登记为失败，待更正工资卡后补发
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: register_payroll_disbursement_result
+  zh: 登记代发结果
+  en: RegisterPayrollDisbursementResult
+  snake: register_payroll_disbursement_result
+  kind: command
+  bc: organization.payroll
+  scope: domain
+  definition: 登记薪酬代发的结果（成功或失败），薪酬结算行由待支付转已实付或支付失败；动词登记＝只记录事实
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: initiate_payroll_redisbursement
+  zh: 发起薪酬补发
+  en: InitiatePayrollRedisbursement
+  snake: initiate_payroll_redisbursement
+  kind: command
+  bc: organization.payroll
+  scope: domain
+  definition: 对支付失败的薪酬结算行发起补发，转回待支付；发出「薪酬补发已发起」
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payroll_disbursement_result_registered
+  zh: 薪酬代发结果已登记
+  en: PayrollDisbursementResultRegistered
+  snake: payroll_disbursement_result_registered
+  kind: domain_event
+  bc: organization.payroll
+  scope: domain
+  definition: 薪酬代发的结果已登记
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payroll_redisbursement_initiated
+  zh: 薪酬补发已发起
+  en: PayrollRedisbursementInitiated
+  snake: payroll_redisbursement_initiated
+  kind: domain_event
+  bc: organization.payroll
+  scope: domain
+  definition: 薪酬补发已发起；B-10 订阅
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: end_legal_entity_attribution
+  zh: 结束法人归属
+  en: EndLegalEntityAttribution
+  snake: end_legal_entity_attribution
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 结束一段法人归属并写结束日；与已登记事件「法人归属已结束」对应（one-arch-people 来单称「终止法人归属」，改用「结束」与事件一致）
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: correct_legal_entity_code
+  zh: 更正法人主体代码
+  en: CorrectLegalEntityCode
+  snake: correct_legal_entity_code
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 在未发号前更正法人主体代码（INV-59）；与已登记事件「法人主体代码已更正」对应（来单称「更正法人代码」，补上「主体」与词条一致）
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: oversight_scope
+  zh: 分管范围
+  en: OversightScope
+  snake: oversight_scope
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 一名分管领导分管的组织单元或事务范围（B-13）
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: oversight_scope_version
+  zh: 分管范围版本
+  en: OversightScopeVersion
+  snake: oversight_scope_version
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 分管范围的版本化配置（AGG-135，表 oversight_scope_versions）：生效区间不重叠、只追加
+  standard_ref:
+  - 'closeout/people/parts/vs13.notes.md 与 vs07.notes.md 新用语表'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: cross_entity_labor
+  zh: 跨法人人工
+  en: CrossEntityLabor
+  snake: cross_entity_labor
+  kind: value_object
+  bc: cost.costing
+  scope: domain
+  definition: 员工当日成本法人与项目承担法人不一致的人工与项目费用（用户 LEB-04）
+  standard_ref:
+  - 'finance/NOTES.md 新用语表（one-arch-finance）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: cross_entity_list
+  zh: 跨法人清单
+  en: CrossEntityList
+  snake: cross_entity_list
+  kind: value_object
+  bc: cost.costing
+  scope: domain
+  definition: 财务每月收到的清单：跨法人人工、项目费用与未转入售前投入的部分（用户 LEB-05）
+  standard_ref:
+  - 'finance/NOTES.md 新用语表（one-arch-finance）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: register_disbursement_return
+  zh: 登记代发退回
+  en: RegisterDisbursementReturn
+  snake: register_disbursement_return
+  kind: command
+  bc: payables.payment
+  scope: domain
+  definition: 出纳凭银行退回回单登记一笔代发的部分退回，付款仍为已核销，累计退回额增加；幂等键为付款标识加银行回单号；发「付款已部分退回」；全额退回仍走登记退票
+  standard_ref:
+  - 'closeout/finance/PAYROLL_REISSUE_SEAM.md（one-architecture 2026-10-22 对 J-1、J-2 的裁定）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payment_partially_returned
+  zh: 付款已部分退回
+  en: PaymentPartiallyReturned
+  snake: payment_partially_returned
+  kind: domain_event
+  bc: payables.payment
+  scope: domain
+  definition: 一笔付款登记了部分退回；应付侧订阅后冲回等额应付核销
+  standard_ref:
+  - 'closeout/finance/PAYROLL_REISSUE_SEAM.md（one-architecture 2026-10-22 对 J-1、J-2 的裁定）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: register_payroll_redisbursement_detail
+  zh: 登记薪酬补发明细
+  en: RegisterPayrollRedisbursementDetail
+  snake: register_payroll_redisbursement_detail
+  kind: command
+  bc: payables.payment
+  scope: domain
+  definition: 在原应付薪酬上登记补发明细，不新建应付、不过账；幂等键为薪酬行标识加补发轮次；付款流程按明细付清原应付的未结余额
+  standard_ref:
+  - 'closeout/finance/PAYROLL_REISSUE_SEAM.md（one-architecture 2026-10-22 对 J-1、J-2 的裁定）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: payroll_redisbursement_detail
+  zh: 补发明细
+  en: PayrollRedisbursementDetail
+  snake: payroll_redisbursement_detail
+  kind: entity
+  bc: payables.payment
+  scope: domain
+  definition: 原应付薪酬上的补发明细：薪酬行、补发轮次、收款人与账户、金额（等于原实发）；与人事侧「薪酬补发」是同一事的应付侧记录
+  standard_ref:
+  - 'closeout/finance/PAYROLL_REISSUE_SEAM.md（one-architecture 2026-10-22 对 J-1、J-2 的裁定）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
