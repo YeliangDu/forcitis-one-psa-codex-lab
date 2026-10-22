@@ -45,7 +45,7 @@ meta:
     cap: 24
     vs: 15
     stage: 61
-    prc: 200
+    prc: 201
     inv: 148
     obj: 104
     act: 675
@@ -4526,6 +4526,15 @@ nodes:
       primary_object: []
       bc: platform.integration（接口）与 B-27 organization.attendance（落考勤记录）
       group: platform
+    PRC-201:
+      name: 登记代发结果并补发薪酬
+      type: business
+      stages:
+      - VS-13.5
+      primary_object:
+      - OBJ-73
+      bc: B-15
+      group: people
   inv:
     INV-01:
       id: INV-01
@@ -74665,6 +74674,14 @@ links:
   from: OBJ-18
   to: PRC-183
   src: architecture/proposals/closeout/process-catalog.yaml#PRC-183.primary_object
+- kind: stage-prc
+  from: VS-13.5
+  to: PRC-201
+  src: architecture/proposals/closeout/process-catalog.yaml#PRC-201.stages
+- kind: obj-prc
+  from: OBJ-73
+  to: PRC-201
+  src: architecture/proposals/closeout/process-catalog.yaml#PRC-201.primary_object
 - kind: obj-agg
   from: OBJ-01
   to: AGG-01
