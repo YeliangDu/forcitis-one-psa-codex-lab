@@ -1,4 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
+-- 更正（2026-10-22，卡 A 验收测试发现）：status_of_aggregate 的 CHECK 在 from_status 为空时非空分支求值为 NULL，CHECK 对 NULL 放行，∅→CONCLUDED 等非法行被接受；已用 coalesce(…, false) 包住。
 -- DDL 草案（供 one-data 签发）——行政事务（organization.administration）卡 A：基线、配置集、状态转换、员工活动类型
 -- 草案状态：未签发，不是迁移文件。签发并改好后落成
 --   backend/src/main/resources/db/migration/organization_administration/V<yyyyMMddHHmmss>__organization_administration_baseline.sql
@@ -128,7 +129,7 @@ CREATE TABLE organization_administration.state_transitions (
         AND (cause_kind <> 'MIGRATION' OR num_nonnulls(command_id, event_id) = 0)),
     CONSTRAINT ck_state_transitions_reversal CHECK ((cause_kind IN ('REVERSAL', 'CORRECTION')) = (reverses_transition_id IS NOT NULL)),
     CONSTRAINT ck_state_transitions_migration CHECK (cause_kind <> 'MIGRATION' OR from_status IS NULL),
-    CONSTRAINT ck_state_transitions_status_of_aggregate CHECK (
+    CONSTRAINT ck_state_transitions_status_of_aggregate CHECK (coalesce(
         (aggregate_type_code = 'EmployeeActivityRequest'
             AND ((from_status IS NULL AND (to_status IN ('DRAFT', 'APPROVED')
                                            OR (cause_kind = 'MIGRATION' AND to_status IN ('DRAFT', 'APPROVED', 'CONCLUDED', 'CANCELLED'))))
@@ -137,7 +138,7 @@ CREATE TABLE organization_administration.state_transitions (
                  OR (from_status = 'CONCLUDED' AND to_status = 'CANCELLED')))
         OR (aggregate_type_code = 'ConfigSetVersion'
             AND ((from_status IS NULL AND to_status = 'PENDING')
-                 OR (from_status = 'PENDING' AND to_status IN ('CONFIRMED', 'WITHDRAWN'))))),
+                 OR (from_status = 'PENDING' AND to_status IN ('CONFIRMED', 'WITHDRAWN')))), false)),
     CONSTRAINT ck_state_transitions_times CHECK (created_at = recorded_at AND updated_at = recorded_at)
 );
 CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on_date ON organization_administration.state_transitions (legal_entity_id, occurred_on_date) WHERE legal_entity_id IS NOT NULL;
