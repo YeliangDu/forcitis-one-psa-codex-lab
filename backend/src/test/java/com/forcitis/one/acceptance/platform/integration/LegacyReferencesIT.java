@@ -40,12 +40,6 @@ class LegacyReferencesIT extends OrgSourceWorldSupport {
     @Autowired
     RefreshShortNames refreshShortNames;
 
-    private String inboxOf(SignedIn signedIn) throws Exception {
-        MockHttpServletResponse inbox = mvc.perform(get(INBOX).with(session(signedIn))).andReturn().getResponse();
-        assertThat(inbox.getStatus()).as(inbox.getContentAsString()).isEqualTo(200);
-        return inbox.getContentAsString();
-    }
-
     private String shortNameOf(UUID unit) throws Exception {
         try (Connection workforce = schemaConnection("organization_workforce");
              PreparedStatement select = workforce.prepareStatement("select short_name from org_units where id::text = ?")) {
@@ -64,42 +58,6 @@ class LegacyReferencesIT extends OrgSourceWorldSupport {
             update.setString(2, text(unit));
             update.executeUpdate();
         }
-    }
-
-    @Test
-    @DisplayName("R-1b P3b ADR-0033 第 2 项第 9 条 / C8：当前员工没有老系统对照时，合并待办的老系统来源为「不可用」并告警，不按 0 条处理")
-    void withoutALegacyReferenceTheOldToDosAreUnavailable() throws Exception {
-        UUID unit = newOrgUnitId();
-        orgUnit(unit, null, null);
-        UUID person = newEmployeeId();
-        employee(person, unit, null);
-        SignedIn signedIn = signIn(person);
-        legacyTodo(serialOf(person), "T-unmapped");
-        int mark = logMark();
-
-        String inbox = inboxOf(signedIn);
-
-        assertThat((Boolean) JsonPath.read(inbox, "$.legacyAvailable")).as("the old to-dos of a person without reference: %s", inbox).isFalse();
-        assertThat(inbox).doesNotContain("T-unmapped");
-        assertThat(alertsSince(mark)).as("alerts for the missing legacy reference").isNotEmpty();
-    }
-
-    @Test
-    @DisplayName("R-1b P3b ADR-0033 第 2 项第 9 条（对照）：有 (LEGACY_SYSTEM, EMPLOYEE) 对照时按对照取老系统人员 ID 读老待办，合并待办含该条")
-    void withALegacyReferenceTheOldToDosComeThrough() throws Exception {
-        long legacyPerson = 5_002;
-        UUID person = adoptId(allocate(LEGACY_SYSTEM, EMPLOYEE, legacyPerson));
-        UUID unit = newOrgUnitId();
-        orgUnit(unit, null, null);
-        employee(person, unit, null);
-        SignedIn signedIn = signIn(person);
-        legacyTodo(legacyPerson, "T-mapped");
-
-        String inbox = inboxOf(signedIn);
-
-        assertThat((Boolean) JsonPath.read(inbox, "$.legacyAvailable")).as(inbox).isTrue();
-        assertThat((Integer) JsonPath.read(inbox, "$.legacyCount")).isEqualTo(1);
-        assertThat(inbox).contains("T-mapped");
     }
 
     @Test

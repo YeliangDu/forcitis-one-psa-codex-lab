@@ -177,7 +177,7 @@ class CredentialColumnGuardTest {
     void integrationSqlNamesItsColumns() throws IOException {
         List<Path> layer = integrationLayer();
         assertThat(layer).as("the integration layer includes the adapters of both external databases")
-                .anyMatch(p -> p.toString().contains("seeyon")).anyMatch(p -> p.endsWith("JdbcLegacyInbox.java"));
+                .anyMatch(p -> p.toString().contains("seeyon"));
         List<String> violations = new ArrayList<>();
         for (Path file : layer) {
             starSelections(stringLiterals(Files.readString(file))).forEach(star -> violations.add(file + " selects " + star));

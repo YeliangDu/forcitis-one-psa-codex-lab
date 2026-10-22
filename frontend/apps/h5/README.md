@@ -6,7 +6,7 @@ Phase 1a 的 H5 页面：静默登录、待办、审批详情。接口以 `packa
 
 | 页面 | 入口 | 说明 |
 |---|---|---|
-| 待办 | `src/app/pages/inbox.tsx` | 合并待办：新系统的进入审批详情，老系统的跳转老系统；按来源筛选 |
+| 待办 | `src/app/pages/inbox.tsx` | 本系统审批待办：进入审批详情；支持知会筛选 |
 | 审批详情 | `src/app/pages/task.tsx?taskId=` | 认领、通过、驳回、退回；驳回和退回必须填写理由；按钮按办理权限和 `canAct` 显示 |
 | 静默登录 | `src/modules/session` | 不是页面，是整个应用外面的一道门（`SessionGate`） |
 

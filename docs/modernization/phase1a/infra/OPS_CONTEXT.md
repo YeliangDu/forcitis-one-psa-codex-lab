@@ -1,17 +1,20 @@
-# one-ops 速查（2026-10-21 12:00+02:00：D 线恢复——dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev）
+# one-ops 速查（2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
-## 待办与待等（2026-10-21 清上下文前）
+## 交接（2026-10-21，上下文 83%；分支 origin/claude/one-ops-r56，文档分支，不开 PR，提交号以 `git log -1` 为准）
 
-- **RDS 已续费 1 个月（2026-10-21，订单 2006474717310288，¥1,456，原规格；到期 2026-12-19 00:00 北京时间）**：降单节点官方文档不支持、控制台无法试，按用户订正兜底原规格续；原订单 2006464782890288 已取消。12-10 前决定下月续法（降配另评估，单节点新购询价 2C4G 405、2C8G 520、4C8G 771，月，40 GB）。B、C 不下单（条件：首次按量演练跑通、规格实测、距投产≥4 周，一次按年下）。
-- **dev 连接上限与 forcitis_one（2026-10-21 已做）**：`one_dev_app` 40→25（脚本与 C-3/C-9 预算 46→31 在 docs 分支，实例已改并回读）；`forcitis_one` 加库注释、`it_portal_runtime` 连接上限 5（方案 B，可逆）；该库仍有 172.16.10.52 的活动连接，不 drop。
-- **工作日历**：导入包已备好 `~/.modernize/psa/ops/work-calendar-2016-2026.json` + `README-work-calendar.md`（含 If-Match: "0" 的要求），调度开新会话在用户 Chrome 里执行；dev 现无日历。
-- **ClamAV**：实施卡 `phase1a/cards/OPS-1021-OPS-02-clamav.md`（用户定单文件上限 100 MB；P99 实测 97 MB；还差单次扫描 P95 耗时，dev 装 clamd 后测）；应用侧归 one-platform-file。
-- **取证登记**：A8 附件大小、迁入数据量、B31P 五批等均已登记；评估稿与方案在 `handoff/`（生产与演练评估、持续成本、候选、NAS_WORM_COST（冷类型单价未核实，B-13 前核对）、ORDER_PROPOSAL）。
-- **NAS 合同取证**：暂停并已回收（权限组与新挂载点已删，未读内容）；用户后来说 NAS 除 A8 附件外无其他文件，2.04 TB 即全部。
-- **c14_run 自测 PR、回滚脚本幂等（OPS-007）**：待做（排在 rc 与 dev 恢复之后，可交 Codex）。
-- **用户行为**：付款、下单、改安全组、生产变更必须先报调度并等用户确认；要用户定的事进收件箱，不直接问；在本会话用户的话优先于转述。
+**未完事项与触发条件**
 
-规矩：持久资源先报再做、回读再报 one-coordinator；不部署（门禁 090 / 100）；不打印密钥；取证登记 [LEGACY_READ_REGISTER](legacy-read/)（片段；总表由 build_all 生成，不入仓）。
+1. **RDS 续费（dev/测试库，`pgm-bp13vak0sew3m003`）**：已续 1 个月（订单 2006474717310288，¥1,456），到期 **2026-12-19 00:00 北京时间**；**自动续费已关**（回读 Duration 0）。**12-01 提醒：把下月续费方案报 one-coordinator**（用户说这件影响 dev，可报用户）；不续则断库。高可用降单节点官方文档不支持、控制台没法试；单节点新购询价（40 GB ESSD，月）2C4G 405、2C8G 520、4C8G 771，原高可用续 1,456；降配走「新买基础版并重建 dev、旧实例到期不续」另评估。B、C（生产 RDS 8C32G/200G 3,084/月；生产 ECS 802/月）**不下单**，条件：首次按量演练跑通、规格实测、距投产≥4 周，一次按年下（B 省 8,868、C 省 2,650；B 带 200 GB 自动扩容，备份与 WAL 归档月成本另列）。付款纪律：付款前报订单号、实付、规格、周期并等确认，订单号或付款方式变了（含取消重下）也先报（错题本 OPS-010）。
+2. **dev 现状**：rc.6 在位健康；`one_dev_app` 连接上限 25（预算 31，脚本在文档分支）；`forcitis_one` 加了库注释、`it_portal_runtime` 上限 5（该库仍有 172.16.10.52 老系统服务器的活动连接，不 drop）；ECS i-bp122xlpar8w2uylmal2 到期 2027-10-15（RESOURCES 已记，提前 30 天提醒）。
+3. **新 rc 与重建 dev**：等调度通知（A 线 #489 列改名、F 删老待办合入后）。重建走 `runbooks/dev-db-rebuild.md`（回滚脚本对旧库缺角色不幂等，OPS-007）；装 rc 的手工路径与脚本这次会话的临时目录会丢，按 OPS_CONTEXT 与剧本重来；授角色要用户扫码登录一次。
+4. **工作日历**：dev 已导入 2016–2026 共 272 条（临时，按老系统 `workday` 推出），读回一致。对照国办官方通知差异 17 条与老系统工时核查见 `handoff/WORK_CALENDAR_AUDIT_2026-10-21.md`；用户口径：dev 不修；这 16 天以工时核查为公司加休依据，2023-04-23 按官方补。**投产用「官方＋公司加休」表**已出，在本机 `~/.modernize/psa/ops/work-calendar-prod-2016-2026.csv`（及 json、cancelled、README；273 行，不进仓库），投产首次写入时用；写入前要 `work_calendar_days` 加 `basis` 列、OD 补 11 行公司安排的书面依据、2027 年清单另出。dev 导入包（旧）`work-calendar-2016-2026.json` 同目录。
+5. **ClamAV**：dev 已装 clamav 1.4.6 并通过加密项必验与耗时测量（2026-10-21，详见卡 OPS-1021-OPS-02 测量记录与 RESOURCES）。健康检查与 C-7 告警及演练已完成（one-clamav-check.timer）；运维侧还差：与应用侧联调（EICAR 写入→检测→隔离、停 clamd→拒绝＋告警）、MaxScanTime 复核；生产实例上线时同步装；应用侧归 one-platform-file，ADR-0060 补篇归 one-architecture。
+6. **NAS 与 WORM**：NAS 取证暂停并已回收（权限组与新挂载点已删，未读内容）；2.04 TB 即全部文件；估价 `handoff/NAS_WORM_COST.md`（冷类型单价未核实，B-13 前到购买页核对；锁定不可逆，先演练再锁）。
+7. **待做代码类**：`c14_run.py` 自测 PR（须与 main 逐字节一致、opus 首轮复审）、回滚脚本 `DROP ROLE IF EXISTS` 与 check.sh 旧库用例（OPS-007）；可交 Codex（卡写四项），取证、部署、凭据类不交。
+
+**本会话产出的文档（都在 `docs/modernization/phase1a/infra/handoff/` 与 `evidence/`）**：PROD_AND_DRILL_ENV_ASSESSMENT、PROD_RUNNING_COST、MALWARE_SCAN_CANDIDATES、NAS_CONTRACT_EVIDENCE_PLAN、NAS_WORM_COST、ORDER_PROPOSAL_2026-10-21、RDS_DEV_ASSESSMENT_2026-10-21、WORK_CALENDAR_AUDIT_2026-10-21；取证结果在 `B-5-dba/evidence/`（B31P 五批、附件大小、迁入数据量、日历核查）；INFRA_RUNBOOK 已按 ADR-0055 对齐（§5 有过渡说明，现有 rc 仍读 A8 变量，别删 dev 的 one.env）。
+
+**工作方式提醒**：本机取证工具要从仓库检出、与 origin/main 逐字节一致才能运行（`b5_evidence_scan.py <输出> <sql>`，两库各跑一次，SQL 用 DB_NAME() 守卫；只出聚合，出值类结果写文件前必须对全部出值做模式扫描，错题本 OPS-009）；`git push` 的钩子会在命令开头按当时的 HEAD 跑 precheck，所以改文件、提交、推送要分成不同的调用；会话 scratchpad 里的临时脚本会丢。云助手执行脚本的 `ecs.py` 之类也在 scratchpad（会丢）：用 `aliyun ecs RunCommand` + base64 内容，输出 24 KB 上限，gzip+base64 分块。
 
 ## 资源
 
@@ -47,6 +50,7 @@
 | 缺陷卡（首次部署暴露，部署后开） | ①current→bootstrap 被当版本比较（cmd_pull）；②应用没有 migrate 模式（无 application-migrate.properties，旧路径 web=none 起不来）；③one.env.template 与安装器校验缺 ARCHIVE_STORE_* 五项；④服务单元 ReadWritePaths 缺归档目录（INFRA_RUNBOOK §5.3 与单元不一致）；⑤首次启动 process_administrator 鸡生蛋 | 待开卡报 one-coordinator |
 | dev-db-rebuild 剧本 | 补一步「重新导入 2016–2026 与 2027 工作日历」（#396 合入后下次 dev 部署须按此重建开发库） | 待写（文档分支） |
 | 运维手册 profile 形态 | 改 --spring.profiles.active=<自身> 为 --spring.profiles.include=<自身>（dev 开单人模式前必须改好；随 SINGLE-OP-GATE 一并） | 同上 |
+| platform_file schema（one-platform-file 单元 3，分支 claude/one-platform-file-u3，PR 待开） | 含该 PR 的 rc 部署 dev/生产前，按 c3/c9 建库脚本建 schema platform_file 并授权（Flyway create-schemas=false）；after_migrations 新增两条 REVOKE；重建 dev 时一并带上 | 等 PR 合入、出新 rc |
 | 审计分区维护角色（#370） | 单开 PR：c3/c9 建库脚本新建 one_*_audit_maintainer（LOGIN NOINHERIT CONNECTION LIMIT 1）、*_after_migrations.sql 授权、INFRA_RUNBOOK §5.3「在线行暂不删除」是否改写 | 等 #370 合入、出下一个 rc |
 | 迁入 ID 对照 | 抽取 | ADR-0037 实现 |
 

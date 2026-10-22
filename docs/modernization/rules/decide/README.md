@@ -30,6 +30,8 @@
 | STKH 干系人与业务对象对应（10 题，不预选；one-architecture） | `sheets/STKH.json` | https://claude.ai/artifact/QD66je3YcbEgZToGPq9WwT（2026-10-19 起） |
 | STKH2 干系人子类（7 题，不预选；one-architecture） | `sheets/STKH2.json` | https://claude.ai/artifact/L4Ges3vue2F33Zhh4gwF7h（2026-10-19 起） |
 | B31R 行政事务规则要点（10 题，预选推荐；one-architecture） | `sheets/B31R.json` | https://claude.ai/artifact/VMfomUnRLmCHuQ9EfZr51i（2026-10-20 起） |
+| GL3 用语确认第四批（11 题，不预选；one-glossary） | `sheets/GL3.json` | https://claude.ai/artifact/EFi9EDMikxT4Pa9c9oBr3m（2026-10-21 起） |
+| A7475 行政事务模块与子状态机转换记录批准（ADR-0074、0075，2 题，不预选；one-architecture） | `sheets/A7475.json` | https://claude.ai/artifact/5VR57YayWQCsNZ4Pdjg4RF（2026-10-21 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|

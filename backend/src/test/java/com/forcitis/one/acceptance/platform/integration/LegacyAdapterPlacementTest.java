@@ -26,7 +26,7 @@ class LegacyAdapterPlacementTest {
     /** The port through which an adapter obtains an external connection; since R-1b P3b in platform.integration.domain (RULING-P3B-12). */
     static final String EXTERNAL_CONNECTIONS = INTEGRATION + ".domain.ExternalConnections";
     /** The types that move into platform.integration under their present names (RULING-P3B-D2). */
-    static final List<String> MOVED_TYPES = List.of("JdbcLegacyInbox", "LegacyInboxConfiguration", "LegacyTodo", "LegacyInstanceId", "LegacyInbox");
+    static final List<String> MOVED_TYPES = List.of("LegacyInstanceId");
 
     static final JavaClasses MAIN = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS).importPackages(ROOT);
 
@@ -52,7 +52,6 @@ class LegacyAdapterPlacementTest {
         }
 
         assertThat(left).as("old-system to-do types still in platform.approval").isEmpty();
-        assertThat(moved).as("the old to-do types in platform.integration").containsAll(List.of("JdbcLegacyInbox", "LegacyTodo"));
     }
 
     /** The classes outside platform.integration that depend on the external connection port. */
