@@ -75,6 +75,8 @@
 | 32 | `platform_numbering.numbering_counters` | 计数器 | ✓ | ✓ 代理主键 numbering_counter_id；（单据类型，法人，周期）唯一，法人为空表示全局计数 | —（原子递增） | — | ✓ | — | — | ✓ | 永久 | — | 新系统 | — |
 | 33 | `platform_numbering.legacy_numbers` | 对照（血缘） | ✓ | △ 唯一约束未按 `uk_` 命名 | —（只插入） | — | ✓ | — | ✓ | ✓ | ✓ 永久 | — | 迁入 | — |
 | 34 | `platform_scheduling.scheduler_locks` | 框架 | 框架 | ✓ | — | — | ✓ | — | — | ✓ | — | — | 框架 | 豁免 |
+| 35 | `platform_identity.role_versions` | 维度（版本，角色定义） | ✓ | ✓ 代理主键 role_version_id；（角色，版本号）唯一；同角色、同名（不分大小写）生效区间 EXCLUDE；外键均 RESTRICT | —（只追加，版本号即并发序） | ✓ 角色状态、范围类型、变更渠道 | ✓ timestamptz，有限值 CHECK | ✓ `effective_from_at`/`effective_to_at` 半开区间 + EXCLUDE | — | ✓ 含粒度 | 永久（3 年在线、10 年归档，清理作业随审计在线删除，首次生产部署后 30 个月内，owner one-1a-par） | —（无个人信息） | 新系统；ADR-0034 | — |
+| 36 | `platform_identity.account_role_grants` | 关联（版本，账号持有角色） | ✓ | ✓ 代理主键；（账号，角色）生效区间 EXCLUDE；外键均 RESTRICT；授予渠道与收回原因的互斥 CHECK | —（只追加，关闭开放行） | ✓ 授予渠道、收回原因 | ✓ timestamptz，有限值 CHECK | ✓ 同上 | — | ✓ 含粒度 | 同 `role_versions`，先于它清理 | — | 新系统；ADR-0034（迁入行 MIGRATION 渠道带批次） | — |
 
 主键、唯一约束未按 `pk_` / `uk_` 命名的项（第 3、12、13、22、33 行）已在 main 的命名守护基线中，或将被它捕获，不另列问题。
 
