@@ -262,7 +262,7 @@ def answered_nos(path, answers_dir=None, registry=None):
     stem = os.path.splitext(os.path.basename(path))[0]
     registry_file = ANSWERED_REGISTRY if registry is None else registry
     if registry_file and os.path.exists(registry_file):
-        for line in open(registry_file, encoding="utf-8"):
+        for line in open(registry_file, encoding="utf-8-sig"):
             if line.split("#")[0].strip() == stem:
                 return set(), True
     folder = ANSWERS_DIR if answers_dir is None else answers_dir
@@ -270,14 +270,38 @@ def answered_nos(path, answers_dir=None, registry=None):
     if os.path.exists(answer_file):
         try:
             keys = json.load(open(answer_file, encoding="utf-8"))
-        except ValueError:
+        except ValueError as e:
+            print(f"警告 {stem}: answers 导出不是合法 JSON，按未答检查：{e}", file=sys.stderr)
+            return set(), False
+        if not isinstance(keys, dict):
+            print(f"警告 {stem}: answers 导出不是对象，按未答检查", file=sys.stderr)
             return set(), False
         return {k.split("~", 1)[1] for k in keys if isinstance(k, str) and k.startswith(stem + "~")}, False
     return set(), False
 
 
-def check_file(path, names, vocab, skipped=None, answers_dir=None, registry=None):
-    """skipped：传入 {'questions': 0, 'pages': 0} 之类的字典时，把跳过的已答题数记进去。"""
+def canon(item):
+    return json.dumps(item, ensure_ascii=False, sort_keys=True)
+
+
+def base_items(path, base, root=ROOT):
+    """基线版本里各题的规范化内容（题号 → 文本）；基线没有这个文件时返回 None（无从比较）。"""
+    if not base:
+        return None
+    rel = os.path.relpath(path, root)
+    r = subprocess.run(["git", "-c", "core.quotepath=off", "show", f"{base}:{rel}"], cwd=root, capture_output=True, text=True)
+    if r.returncode:
+        return None
+    try:
+        data = json.loads(r.stdout)
+    except ValueError:
+        return None
+    items = data.get("items") if isinstance(data, dict) else data
+    return {str(i.get("no")): canon(i) for i in items if isinstance(i, dict)} if isinstance(items, list) else None
+
+
+def check_file(path, names, vocab, skipped=None, answers_dir=None, registry=None, base=None):
+    """skipped：传入字典时记下跳过的已答题数。base：基线版本里各题的规范化内容（见 base_items）；已答题只有在题面相对基线没变时才跳过，改过的已答题照常检查。"""
     try:
         data = json.load(open(path, encoding="utf-8"))
     except ValueError as e:
@@ -290,9 +314,11 @@ def check_file(path, names, vocab, skipped=None, answers_dir=None, registry=None
     out = []
     count = 0
     for item in items:
-        if whole or str(item.get("no")) in done:
-            count += 1
-            continue
+        no = str(item.get("no"))
+        if whole or no in done:
+            if base is None or (no in base and base[no] == canon(item)):
+                count += 1
+                continue
         seen = []
         for e in check_item(item, names, page_vocab):
             if e not in seen:
@@ -321,7 +347,9 @@ def main(argv):
     vocab = load_vocab()
     if vocab is None:
         print("警告：缺少 PyYAML，R4（用语）未检查", file=sys.stderr)
+    base_ref = None
     if argv[:1] == ["--changed"] and len(argv) == 2:
+        base_ref = argv[1]
         files = changed_pages(argv[1])
         if not files:
             print("check_pages: 没有改动的确认页")
@@ -333,17 +361,19 @@ def main(argv):
     else:
         sys.exit(__doc__)
     skipped = {}
-    problems = [p for f in files for p in check_file(f, names, vocab, skipped)]
+    problems = [p for f in files for p in check_file(f, names, vocab, skipped, base=base_items(f, base_ref))]
     for p in problems:
         print(p)
     for f in files:
         try:
             data = json.load(open(f, encoding="utf-8"))
             done, whole = answered_nos(f)
+            prior = base_items(f, base_ref)
             for item in (data.get("items", []) if isinstance(data, dict) else data):
                 if isinstance(data, dict) and data.get("terms_review"):
                     break
-                if whole or str(item.get("no")) in done:
+                no = str(item.get("no"))
+                if (whole or no in done) and (prior is None or (no in prior and prior[no] == canon(item))):
                     continue
                 for cand in term_candidates(item, vocab):
                     print(f"警告 {os.path.basename(f)} {item.get('no', '?')}: 「{cand}」像业务用语但不在词表（审题时看一眼；确认后登记提议术语或写进 terms_ok）", file=sys.stderr)
@@ -416,6 +446,22 @@ def self_test():
         open(registry, "w", encoding="utf-8").write("PG  # 收件箱已决\n")
         skipped = {}
         assert check_file(page, names, v, skipped, answers_dir=answers, registry=registry) == [] and skipped == {"questions": 2, "pages": 1}, skipped
+        # 已答题的题面相对基线改过，就不再是历史记录：照常检查
+        edited = dict(bad, title="合同老叫法改")
+        base = {"Q-OLD": canon(dict(bad, title="合同收入确认条件")), "Q-NEW": canon(fresh)}
+        json.dump({"items": [edited, fresh]}, open(page, "w", encoding="utf-8"), ensure_ascii=False)
+        out = check_file(page, names, v, {}, answers_dir=answers, registry="", base=base)
+        assert any("Q-OLD" in e and "R4" in e for e in out), out
+        unchanged = {"Q-OLD": canon(edited), "Q-NEW": canon(fresh)}
+        assert not any("Q-OLD" in e for e in check_file(page, names, v, {}, answers_dir=answers, registry="", base=unchanged))
+        # answers 导出损坏、不是对象：按未答检查，不崩
+        open(os.path.join(answers, "PG.json"), "w", encoding="utf-8").write("3")
+        assert any("Q-OLD" in e for e in check_file(page, names, v, {}, answers_dir=answers, registry=""))
+        open(os.path.join(answers, "PG.json"), "w", encoding="utf-8").write("{bad")
+        assert any("Q-OLD" in e for e in check_file(page, names, v, {}, answers_dir=answers, registry=""))
+        # 登记文件：注释、空行、前后空白
+        open(registry, "w", encoding="utf-8").write("# 注释\n\n  PG  # 出处\n#PG2\n")
+        assert answered_nos(page, answers, registry) == (set(), True) and answered_nos(os.path.join(tmp, "PG2.json"), answers, registry) == (set(), False)
     assert term_candidates(item(opts=[dict(label="承担部门审批", effect="", rec=True)]), v) == ["承担部门"]
     assert term_candidates(item(opts=[dict(label="承担部门审批", effect="", rec=True)], terms_ok=["承担部门"]), v) == [] and term_candidates(item(), v) == []
     # R6
