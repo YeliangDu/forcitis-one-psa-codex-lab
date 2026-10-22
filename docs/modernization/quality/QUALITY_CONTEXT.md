@@ -249,3 +249,17 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 当前工作区 `xin-61164f` 停在 `claude/one-quality-start-sheet`；PR 分支各用独立工作区或轮流 checkout，先 `git branch --show-current`；opus/sonnet 复审期间不切分支。
 - 推送单独一次调用；pre_push_gate 会跑 precheck（约 8 分钟）。
 - 发消息给调度用 `session_id` local_10f279cb-81c7-4628-9080-2d5b1efd622d；清空后等调度的「接续」。
+
+## 交接（2026-10-23 凌晨，节点：#641 已推送；第四次清空接续）
+
+### 现状
+- **#589** 已报 one-merge（head 3ccbeacb0，CI 绿，调度已批）。
+- **#627**（开工单，分支 `claude/one-quality-start-sheet`）：#628 合入后与 main 冲突，已合 main 解冲突并推送，head 99181cf1e，自测全过；等 CI 绿由 one-merge 重新入队，已告知调度。
+- **#641**（GOV-1022-QUA-08 预检提速，分支 `claude/one-quality-precheck-speed`，head 2e7574d75）：提 PR 认推送前通过标记；推送前测试按改动选。opus 首轮必改 5 项已改，sonnet 复核通过并提的两项小问题已改（检查前脏树不记标记；自测核对传入检查前状态）。**还没报调度**：下一步报 one-coordinator「#641 opus 首轮已改、sonnet 复核通过，CI 绿后请批入队」，并把 opus 结论贴 PR（opus 全文在会话里，要点：kernel 子包全跑、模块依赖闭包、docs/frontend 读文件的测试、标记以检查前状态为准、自测补 main 路径）。
+- 提醒：Bash 命令文本含 `gh pr create` 字样（含 python 脚本里）会触发完整 precheck；改文件用 Edit。
+
+### 下一步（顺序）
+1. 报调度 #641；盯 #627、#589、#641 合入。
+2. #627 合入后落地新规则手册（草稿 `~/.modernize/psa/coordinator/team-audit/pb/`：新 PB、DATA_DESIGN_CHECKLIST、playbook_digest/build_sessions 改写、mapping.md 列的 338 处引用，引用同步可派 sonnet），单开一个 PR。
+3. 钩子卡顺序 24→25→17→26（片段在 `claude/one-coordinator-two-lanes` @4873b81d7）。
+4. 本分支交接节仍未进 main，另提 docs 提交报 one-merge。
