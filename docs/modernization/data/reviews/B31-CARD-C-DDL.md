@@ -35,3 +35,6 @@
 - 权限回收文本与注册表清单同意；`db_scripts_aligned.py` 要求三处一致、单表一条的写法正确。
 
 数据设计：通过（one-data，2026-10-22，依据 @890e8cd8b；范围：M1–M3 改后的 `employee_activity_requests`、`employee_activity_participants`、第 0 节收窄与三个守护触发器；T-D10 保留期待用户认可）。
+
+## T-D10 已由用户定（2026-10-22 18:49，收件箱 2026-10-22-one-data-card-c-retention，用户原文「A」，intent `2026-10-22-205226-one-data-A`）
+`employee_activity_requests`、`employee_activity_participants`、`state_transitions`（本 schema 的员工活动申请聚合部分）保留期 = 10 年后归档到对象存储、在线按期删除（`BUSINESS_RECORD`，同审批四表与工时单）。注册表该项可进卡 C 表结构 PR；到期清理作业随审批、工时的归档一起做，不在卡 C 范围。
