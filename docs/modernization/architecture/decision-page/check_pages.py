@@ -114,8 +114,13 @@ def check_item_main(item, intent_names, vocab=None):
         shown = [str(item.get("title", ""))] + [str(o.get("label", "")) for o in opts]
         okset = set(item.get("terms_ok", []) or []) | PAGE_WORDS
         for text in shown:
+            formal = sorted((w for w in vocab.get("formal", set()) if len(w) > 1), key=len, reverse=True)
             for phrase in vocab["forbidden"]:
-                if phrase in text:
+                masked = text
+                for w in formal:
+                    if phrase in w and w != phrase:
+                        masked = masked.replace(w, "")   # 正式词里含方言字串（贡献毛利 / 毛利）不算方言
+                if phrase in masked:
                     errors.append(f"{no}: R4 用了词表登记的方言「{phrase}」（应写「{vocab['forbidden'][phrase]}」）")
         declared = [str(t) for t in item.get("terms", []) or []] + [m for text in shown for m in QUOTED.findall(text)]
         for term in sorted(set(declared)):
@@ -231,12 +236,13 @@ def load_vocab(root=ROOT):
         for w in c.get("words", []) or []:
             if isinstance(w, str):
                 words.add(w)
+    formal = set(words)   # 只含词表正式词（terms.yaml、backend/glossary、bcs.yaml）；R4 方言遮盖只用它，不含文案允许表与作者自填的 terms_ok
     allow = load("frontend/scripts/copy-allow-list.yaml")
     connectors = {w for w in allow.get("words", []) or [] if isinstance(w, str) and len(w) == 1}
     for w in allow.get("words", []) or []:
         if isinstance(w, str) and len(w) > 1:
             words.add(w)
-    return dict(words=words | connectors, connectors=connectors, forbidden=forbidden, longest=max([1] + [len(w) for w in words]))
+    return dict(words=words | connectors, formal=formal, connectors=connectors, forbidden=forbidden, longest=max([1] + [len(w) for w in words]))
 
 
 def intent_files(base="origin/main"):
@@ -348,6 +354,11 @@ def self_test():
     assert has(item(title="合同老叫法"), "R4", v) and has(item(opts=[dict(label="按老叫法办", effect="", rec=True)]), "R4", v)
     assert has(item(title="合同「承担部门」审批"), "R4", v) and has(item(terms=["承担部门"]), "R4", v)
     assert not has(item(title="合同「收入」审批"), "R4", v) and not has(item(), "R4", v)
+    vm = dict(v, words=v["words"] | {"贡献老叫法"}, formal={"贡献老叫法"})
+    assert not has(item(opts=[dict(label="在「贡献老叫法」里扣", effect="", rec=True)]), "R4", vm)   # 正式词里含方言字串不报
+    assert has(item(opts=[dict(label="在「贡献老叫法」和老叫法里扣", effect="", rec=True)]), "R4", vm)   # 单独出现仍报
+    assert has(item(title="按老叫法口径算", terms_ok=["按老叫法口径算"]), "R4", vm)   # 作者自填 terms_ok 的含方言长串不能遮盖方言
+    assert has(item(title="按老叫法口径算"), "R4", dict(vm, words=vm["words"] | {"按老叫法口径算"}))   # 文案允许表等非正式词也不遮盖
     assert not has(item(title="合同「承担部门」审批", terms_ok=["承担部门"]), "R4", v)
     assert not has(item(opts=[dict(label="承担部门审批", effect="", rec=True)]), "R4", v)   # 未加括号的候选只警告，不失败
     assert term_candidates(item(opts=[dict(label="承担部门审批", effect="", rec=True)]), v) == ["承担部门"]
