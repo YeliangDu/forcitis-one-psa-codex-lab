@@ -1801,21 +1801,6 @@ terms:
   forbidden: []
   status: proposed
   note: 全称登记，同 bc 内「申请人」类词在用印申请等聚合另有用法时各自加前缀，避免重名。
-- id: employee_activity_submission_key
-  zh: 员工活动提交键
-  en: EmployeeActivitySubmissionKey
-  snake: employee_activity_submission_key
-  kind: value_object
-  bc: organization.administration
-  scope: domain
-  definition: 调用方为一次员工活动登记提供的 16–64 位幂等键，与申请人组合唯一，重复提交返回原记录；库列 submission_key。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 业务键幂等（T-A3、T-D3），不使用 Idempotency-Key 请求头。
 - id: employee_activity_canceller
   zh: 员工活动取消人
   en: EmployeeActivityCanceller
@@ -2411,21 +2396,6 @@ terms:
   bc: organization.administration
   scope: domain
   definition: 员工活动登记的参与人不在员工表中（422）
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 卡 C 契约新提议（T-G2）。
-- id: error__organization_administration_employee_activity_submission_key_reused
-  zh: 提交键被复用
-  en: OrganizationAdministrationEmployeeActivitySubmissionKeyReused
-  snake: organization_administration_employee_activity_submission_key_reused
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 同一申请人用同一提交键提交了内容不同的登记（422）
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
   confidence: medium
