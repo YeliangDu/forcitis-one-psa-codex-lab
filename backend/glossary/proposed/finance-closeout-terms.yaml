@@ -191,7 +191,7 @@ terms:
 - id: bonus_adjustment_run_status__none_for_period
   zh: 本期无奖金调整
   en: NoBonusAdjustmentForPeriod
-  snake: bonus_adjustment_run_status__none_for_period
+  snake: no_bonus_adjustment_for_period
   kind: state
   bc: cost.costing
   scope: domain
@@ -207,7 +207,7 @@ terms:
 - id: bonus_adjustment_run_status__adjusted_for_period
   zh: 本期已调整
   en: AdjustedForPeriod
-  snake: bonus_adjustment_run_status__adjusted_for_period
+  snake: adjusted_for_period
   kind: state
   bc: cost.costing
   scope: domain
@@ -223,7 +223,7 @@ terms:
 - id: bonus_adjustment_run_status__not_ready
   zh: 奖金调整未到条件
   en: BonusAdjustmentNotReady
-  snake: bonus_adjustment_run_status__not_ready
+  snake: bonus_adjustment_not_ready
   kind: state
   bc: cost.costing
   scope: domain
