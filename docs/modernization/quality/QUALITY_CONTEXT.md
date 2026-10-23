@@ -330,3 +330,21 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 临时工作区：`.claude/worktrees/qua01-merge`（#651 分支）、`qua03-wt`（#654 分支）；用完 `git worktree remove`。主工作区 `xin-61164f` 停在 #653 分支，Codex 复核读它，**复核期间不切分支**。其下 `sessions/_COMMON.md` 是未跟踪的生成物，别提交——今天 `git add -A .` 在 cd 失败后误把它提交到 #653 分支，已 `reset --mixed` 撤掉（未推送）。**教训：`cd X && …` 的 cd 失败时后面的命令仍可能在原目录跑；改用 `git -C <绝对路径>`，不用 `git add -A`。**
 - 推送单独一次 Bash 调用、放后台（precheck 约 8 分钟，命令的 description 须写成 `<任务号或 #PR> <任务名> (<执行者>)`）；命令文本含 `gh pr create`/`git push` 字样会触发检查。#653 的 `prod_targets.json` 说明里不能写 docs 路径（relevant_change 自测）。
 - 发消息给调度用 session_id local_10f279cb-81c7-4628-9080-2d5b1efd622d；清空后等调度的「接续」。
+
+## 交接（2026-10-23 傍晚，节点：#653 第二轮返工推送中；第八次清空接续，接在第七次之后，以本节为准）
+
+### 做到哪
+- **#651**（QUA-01）已解冲突推送，head 609b74a33，已报调度，等重批。
+- **#653**（QUA-24 生产写门，分支 `claude/one-quality-gate-prod-write`）：opus 首轮「不通过」→ 全改；**Codex 复核「不通过」（17 条缺口、若干误拒，全文 scratchpad `codex653.md`）→ 已全改**：带引号状态的 SQL 词法、SET 白名单、sqlcmd/mysql/psql 危险选项、heredoc 只在语法位置识别、进程替换、嵌套超 3 层报错、export 传播、ANSI-C 按字节解码、不连接工具改具体用法白名单（git 本地子命令、rg 无 --pre、sed 无 e/w）、写文档脚本与守护 `--self-test` 精确豁免、花括号展开、curl 协议/--quote/-K、scp/rsync 程序选项、ssh date 合并选项、环境变量被显式主机覆盖、aliyun ROA、表缺失时解释器拒绝、预筛并集；并入 one-ops 只读取证工具通道（`prod_targets.json` 的 `readonly_tools`：base + files，SDK 通道，五个已入库工具）。破坏验证 23 项全变红（改坏记录在 scratchpad `mut24.txt`、`mut24b.txt`）。**最新提交 3d4dcbfbc，推送在后台跑（任务 bziuwb9ik，本地 precheck 32 PASS 0 FAIL）；完成后确认远端 head。**
+- **#654**（QUA-03 发帖门，分支 `claude/one-quality-gate-approve-post`，base 为 #653 分支）：opus 首轮「不通过」→ 已在本地重写并提交 599fd8e86（**未推送**）：先看正文再看外壳（全文含「调度批准入队 head」只放行不联网/只读命令）、gh 全局选项不挤开、运行时正文（`$(…)`、printf、base64、先写文件再发、cd、通配符、不存在的文件）一律拒、gh 别名拒、改名 gh 按 realpath 认、会话名只认 `$CLAUDE_PROJECT_DIR/.claude/session-name` 标记（去掉目录名/分支名兜底）。其自测有一例（`$'\\xe8…'` 字节序列）依赖 #653 的 ANSI-C 字节解码修复。
+
+### 下一步（顺序）
+1. 确认 #653 推送成功；在 `xin-61164f` `git switch claude/one-quality-gate-approve-post`，`git merge claude/one-quality-gate-prod-write`（会冲突在 `pre_tool_dispatch.py` 的 GATES：取 #653 的 could_concern 预筛并保留 approve_post_gate 一行），重跑 `approve_post_gate`、`prod_write_gate`、`command_words`、`pre_tool_dispatch`、`codex_stdin_gate`、`main_checkout_gate` 自测；补：①SESSION_PLAYBOOK 的 TEAM-45 末列补本门（opus 完成标准）；②对必改 1–4 各类的破坏验证清单写进 PR（改坏 → 哪条变红，仿 #653 评论里的表）；③approve_post_gate 加进 precheck 触发列表（已有）。推送（单独一次调用，放后台），贴 #654 回复（残余风险：同一 OS 用户下钩子只防误发不防有意伪造，建议 mq.py 侧补强 approvals.log、独立账号等，自动入队开关取舍由调度/用户定），报调度。
+2. 在 #653 贴「Codex 复核处理」评论（17 条逐条已改、误拒已改、特征表 readonly_tools、破坏验证）；请调度派 opus 二轮（安全门，TEAM-68）。
+3. 之后沿用第七次交接：QUA-04（预检通过标记复用）→ QUA-25 → 20 → 19 → 26；审 21/15/02；派 13、14；23 在 11/13 后；QUA-02 加 openapi 快照与生成 TS 移出 main。写代码交 Codex 后台（钩子与解析类自写）。
+4. one-ops 发来：只读通道已写入其 PROD_FINGERPRINT 第五节（`claude/one-ops-r56`），本门已按 readonly_tools 放行；一次性授权变更工具（b5_evidence_run.py、b5_read_all_run.py）不在内。
+
+### 现场
+- 工作区：`xin-61164f` 现停在 #653 分支（`claude/one-quality-gate-prod-write`）；`xin-handoff-1023b` 是本交接分支（`claude/one-quality-handoff-1023b`，文档分支，提交号报 one-merge）；`qua01-merge` 是 #651 的临时工作区（可 `git worktree remove`）。Write/Edit 工具不能写别的工作区的文件，需要写某分支就把它 switch 到 `xin-61164f`。
+- `sessions/_COMMON.md` 是未跟踪生成物，别提交；`git add` 只加具体文件，别用 `-A`；`cd X && …` 失败时后面的命令仍在原目录跑，用 `git -C <绝对路径>`。
+- 推送单独一次 Bash 调用、放后台，description 写成 `<任务号或 #PR> <任务名> (<执行者>)`；precheck 若失败会把失败输出放在报错里（本次两次都是 relevant_change 的字面 docs 路径自测：门和特征表里不要写字面 docs 路径，用 DOCS_ROOT 拼）。
