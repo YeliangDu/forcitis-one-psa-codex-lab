@@ -6,16 +6,14 @@
 
 ## 职责
 
-- CI、测试、守护与钩子负责会话；诊断不稳定测试、检查失效、重复计算与执行时长，按卡修复。
-- 守护前 10 优先：按风险维护优先队列；常规实现交 Codex，钩子与解析自写，并发类守护亦自写（TEAM-102）。
-- 维护测试公共件、守护基线、验收治理工具与错题本复发检查；环境故障交 one-ops，队列工具与 one-merge 衔接。
+- 规则与守护的设计、落实核查与复核负责会话（intent 2026-10-23-145436 起不再写钩子与 CI 代码，实现归 one-ops）；诊断不稳定测试、检查失效与执行时长，开卡交 one-ops 实现。
+- 守护前 10 优先：按风险维护优先队列，写清每张守护卡的拦截范围、失败行为与破坏验证要求，并核对 one-ops 的实现。
+- 维护验收治理、错题本复发检查与整改核查材料。
 
 ## 独占
 
-- `docs/modernization/quality/`；`scripts/hooks/`；`scripts/precheck.sh`。
-- `scripts/queue/merge_train.py` 的源码与自测（`scripts/merge/` 归 one-merge，调度 10-23 裁定）。
-- `scripts/ci/relevant_change.py`、`scripts/ci/ci_recurrence.py`、`scripts/ci/acceptance_rulings.py`、`scripts/ci/repeat_new_tests.py`、`scripts/ci/docker_diagnostics.py`、`scripts/ci/failure_summary.py`。
-- `docs/modernization/architecture/decision-page/check_pages.py`；测试基础设施公共件的受派修复。
+- `docs/modernization/quality/`（规则、核查与复核材料）。
+- 钩子、CI、队列脚本源码 10-23 起归 one-ops；本会话只出设计与复核。
 
 ## 不碰
 

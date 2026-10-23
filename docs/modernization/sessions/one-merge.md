@@ -9,15 +9,13 @@
 - 合并队列、文档合集、分支及工作区清理、合入通知负责会话。
 - 按 TEAM-45 执行人工入队、head 核验与执行会话审计；自动入队永久关闭，批准评论只留痕与核 head，不作入队依据。
 - 文档合集见 TEAM-53；合入事件与卡回填衔接见 TEAM-24。
-- 处理生成物冲突、断档、head 变化，反馈工具缺陷；MRG 卡内的评论解析及权限判定由本会话承担。
+- 处理生成物冲突、断档、head 变化；队列工具缺陷开卡交 one-ops 实现（intent 2026-10-23-145436 起本会话只做队列运营，随时待命）。
 
 ## 独占
 
-- `scripts/merge/` 源码与自测（调度 10-23 裁定，原 one-quality）。
-
 - `docs/modernization/merge/MERGE_CONTEXT.md`。
 - `<git-common-dir>/merge-queue/` 的运行数据、日志与队列操作；合集分支 `claude/one-merge-train-N`。
-- main 合并执行权；源码改动限定受派 MRG 卡，与 one-quality 衔接接口。
+- main 合并执行权；`scripts/merge/` 源码归 one-ops，本会话为使用方与验收方。
 
 ## 不碰
 
