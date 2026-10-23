@@ -188,7 +188,8 @@ def main():
     if reason:
         print(reason, file=sys.stderr)
         return 2
-    record_pass(root, checked=checked)
+    if checked is not None:
+        record_pass(root, checked=checked)
     return 0
 
 
@@ -225,6 +226,10 @@ def self_test():
     with mock.patch.object(subprocess, "run", return_value=ready) as ran, mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_input": {"command": "gh pr create"}, "cwd": "/r"}))), \
             mock.patch.object(sys.modules[__name__], "passed_recently", return_value=False), mock.patch.object(sys.modules[__name__], "record_pass") as record, mock.patch.object(sys.modules[__name__], "repository_of", return_value="/r"), mock.patch.object(sys.modules[__name__], "tree_state", return_value=("h", "b", "g")):
         assert main() == 0 and ran.call_args[0][0][-1] == "--pre-push" and record.called, "gh pr create runs the push-time checks and leaves the same mark"
+    # the tree was dirty (or unreadable) when the checks began: even if it is clean at the end, nothing vouches for what was checked
+    with mock.patch.object(subprocess, "run", return_value=ready), mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_input": {"command": "gh pr create"}, "cwd": "/r"}))), \
+            mock.patch.object(sys.modules[__name__], "passed_recently", return_value=False), mock.patch.object(sys.modules[__name__], "record_pass") as record, mock.patch.object(sys.modules[__name__], "repository_of", return_value="/r"), mock.patch.object(sys.modules[__name__], "tree_state", return_value=None):
+        assert main() == 0 and not record.called, "a dirty or unreadable start leaves no mark"
     with tempfile.TemporaryDirectory() as root:
         def git(*args):
             subprocess.run(["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@t", *args], check=True, capture_output=True)
