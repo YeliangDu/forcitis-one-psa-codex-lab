@@ -29,7 +29,7 @@ READ_BY_BUILDS = (
     "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml",
     # R-1b P5 acceptance (EventEnvelopeContractTest, the rename ITs) read the field list and the aggregate register
     "docs/modernization/proposals/EVENT_ANALYTICS_FIELDS.md",
-    "docs/modernization/architecture/ddd/aggregates.yaml",
+    "docs/modernization/architecture/ssot/i03-aggregates/built.yaml",
     # ADR37-1 guards: the credential deny list (CredentialColumnGuardTest) and the runbook that must not list a check switch (ReadOnlyCheckSwitchGuardTest)
     "docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/credential_columns.csv",
     "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md",
@@ -58,7 +58,7 @@ LOCAL_ONLY = ("scripts/precheck.sh", "scripts/hooks/")
 # read only by steps of the gitleaks job or the assertion-drift job that run unconditionally, or by scripts/precheck.sh; docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/architecture/proposals/j_checks.py",
-    "docs/modernization/architecture/togaf/transitions.yaml",
+    "docs/modernization/architecture/ssot/t-transitions/transitions.yaml",
     "docs/modernization/phase1a/infra/runbooks/sql/",
     "docs/modernization/build_all.py",
     # 错题本：build_all.py 的自测步骤（scripts/ci/ci_recurrence.py 读册、quality/defect-bank/defect_bank_check.py 检查册）在 gitleaks 作业里无条件运行

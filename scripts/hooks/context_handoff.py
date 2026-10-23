@@ -454,11 +454,18 @@ def handle_locked(event, payload, root, now):
             if percent < max(1, prepare - RESET_MARGIN):
                 if "crossed" in entry:
                     entry.pop("bulk", None)
-                for key in ("reminded", "blocked", "crossed"):
+                for key in ("reminded", "blocked", "crossed", "source_digest"):
                     entry.pop(key, None)
             for level in levels:
-                if percent >= level:
-                    entry.setdefault("crossed", {}).setdefault(str(level), now)
+                if percent >= level and str(level) not in entry.setdefault("crossed", {}):
+                    entry["crossed"][str(level)] = now
+                    try:
+                        found = source_state(root)
+                        digest = found[2] if found else None
+                    except Exception as error:  # a digest that cannot be taken lets the stop through with a warning (TEAM-109 4: fail open)
+                        print(f"context_handoff: 交接源摘要取不到（{error.__class__.__name__}: {error}），本档位挡停放行", file=sys.stderr)
+                        digest = "unavailable"
+                    entry.setdefault("source_digest", {})[str(level)] = digest
             top = max((level for level in levels if percent >= level), default=0)
             node_out = None
             config, config_problem = node_config()
@@ -508,6 +515,23 @@ def handle_locked(event, payload, root, now):
     return None
 
 
+def source_state(root):
+    """(path, heading fragment, digest of the newest matching section) of the profile's declared handover source, or None when it declares none.
+    The digest is None when the file or the section is missing or empty: no handover is written yet."""
+    name, profile, _ = resolve_session(root)
+    if not name:
+        return None
+    text = sc.from_main(root, profile) or sc.from_tree(root, profile) or ""
+    source = sc.handoff_source(text)
+    if not source or sc.unsafe_reason(root, source[0]):
+        return None
+    import hashlib
+    import start_sheet
+    found = start_sheet.find_handoff(start_sheet.read(root, source[0]) or "", source[1])
+    body = found[4].strip() if found else ""
+    return source[0], source[1], hashlib.sha256(f"{found[1]}\n{body}".encode("utf-8")).hexdigest() if body else None
+
+
 def stop_decision(root, entry, top, percent, now, clears=False):
     blocked = entry.setdefault("blocked", [])
     if str(top) in blocked:
@@ -517,16 +541,29 @@ def stop_decision(root, entry, top, percent, now, clears=False):
     if not name:
         print("context_handoff: 本会话未识别（无画像），无法检查上下文文档，不挡停；请在 .claude/session-name 写入会话名", file=sys.stderr)
         return None
-    modified = []
-    for path in [profile, *docs]:
+    state = source_state(root)
+    if state:
+        # the profile declares a handover source: only a changed handover section there counts; a file time (touch, profile edit) or any other document does not (GOV-1023-QUA-07)
+        path, fragment, digest = state
         full = os.path.join(root, path)
-        if os.path.isfile(full):
-            modified.append(os.path.getmtime(full))
-    if modified and max(modified) >= crossed:
-        return None
-    blocked.append(str(top))
-    todo = "、".join([profile, *docs])
-    return {"decision": "block", "reason": f"上下文已用 {percent:.0f}%（过 {top}% 线），但 {todo} 自过线以来没有更新。"
+        before = entry.get("source_digest", {}).get(str(top))
+        if before == "unavailable":
+            return None
+        if digest and digest != before and os.path.isfile(full) and os.path.getmtime(full) >= crossed:
+            return None
+        blocked.append(str(top))
+        todo = f"交接源 {path}（标题含「{fragment}」的节）"
+    else:
+        modified = []
+        for path in [profile, *docs]:
+            full = os.path.join(root, path)
+            if os.path.isfile(full):
+                modified.append(os.path.getmtime(full))
+        if modified and max(modified) >= crossed:
+            return None
+        blocked.append(str(top))
+        todo = "、".join([profile, *docs])
+    return {"decision": "block", "reason": f"上下文已用 {percent:.0f}%（过 {top}% 线），但 {todo} 自过线以来没有更新" + ("（只改文件时间或画像不算）。" if state else "。")
             + ("先更新上下文文档与交接（做到哪、在途、下一步）并提交推送，给 one-coordinator 发「清空接续：" + name + " 交接在 <路径>」，再 clear_session（session_id=self）；清空在本轮结束后执行，之后不再发消息，其他会话找本会话一律经 one-coordinator 转。"
                if clears else "先更新上下文文档与交接（做到哪、在途、下一步），报 one-coordinator；不要 clear_session，写过之后可以直接结束。")}
 
@@ -583,21 +620,6 @@ def root_of(payload):
     return candidates[-1]
 
 
-def status_gate(payload, root):
-    """The Stop status-declaration gate (stop_status_gate.py, GOV-1023-QUA-01) as a hook output or None; its own failure only warns, never blocks a stop."""
-    try:
-        import stop_status_gate
-        config, _ = node_config()
-        targets = set(config["ids"] + config["names"] + [COORDINATOR]) if config else {COORDINATOR}
-        output, warnings = stop_status_gate.gate(payload, root, resolve_session(root)[0], targets, time.time())
-        for text in warnings:
-            print(text, file=sys.stderr)
-        return output
-    except Exception as error:
-        print(f"stop_status_gate 出错（{error.__class__.__name__}: {error}），状态声明检查本次不生效", file=sys.stderr)
-        return None
-
-
 def main():
     event = "unknown"
     try:
@@ -608,18 +630,9 @@ def main():
         if event not in ("PostToolUse", "UserPromptSubmit", "Stop"):
             return 0
         root = root_of(payload)
-        declared = status_gate(payload, root) if event == "Stop" else None  # both Stop gates run, one block carries both reasons
         if can_skip(dict(payload, hook_event_name=event), root, time.time()):
             return 0
-        try:
-            result = handle(event, payload, root)
-        except Exception as error:
-            if not declared:
-                raise
-            print(f"context_handoff 出错（{error.__class__.__name__}: {error}），本次交接检查不生效，状态声明挡停照常给出", file=sys.stderr)
-            result = None
-        if declared:
-            result = dict(declared, reason=declared["reason"] + ("\n\n" + result["reason"] if result and result.get("decision") == "block" else ""))
+        result = handle(event, payload, root)
         if result:
             print(json.dumps(result, ensure_ascii=False))
         return 0
@@ -904,43 +917,6 @@ def self_test():
         os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
         stop_run = run("Stop", 800, session="e2e-stop")
         assert stop_run.returncode == 0 and json.loads(stop_run.stdout)["decision"] == "block", stop_run
-        # the status gate (GOV-1023-QUA-01) comes first on Stop, end to end through the one hook entry
-        psa = os.path.join(tmp, "psa")
-        gate_env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "CONTEXT_WINDOWS_CONFIG": config, "MODERNIZE_PSA_HOME": psa}
-
-        def gate_run(final_text, session="gate-e2e", extra=None):
-            transcript(trans, 100, final_text=final_text)
-            data = json.dumps(dict(payload, hook_event_name="Stop", session_id=session, cwd=root, **(extra or {})))
-            return subprocess.run([sys.executable, "-I", script], input=data, capture_output=True, text=True, env=gate_env)
-
-        # both Stop gates in one block: past the prepare line with stale context documents AND no status declaration
-        os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
-        os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
-        transcript(trans, 800, final_text="好了")
-        both = subprocess.run([sys.executable, "-I", script], input=json.dumps(dict(payload, hook_event_name="Stop", session_id="gate-both2", cwd=root)), capture_output=True, text=True, env=gate_env)
-        reason = json.loads(both.stdout)["reason"]
-        assert "状态：继续" in reason and "上下文已用" in reason, both
-        undeclared = gate_run("好了")
-        assert undeclared.returncode == 0 and json.loads(undeclared.stdout)["decision"] == "block" and "状态：继续" in json.loads(undeclared.stdout)["reason"], undeclared
-        unsent = gate_run("报告\n状态：等调度")
-        assert json.loads(unsent.stdout)["decision"] == "block" and len(os.listdir(os.path.join(psa, "mailbox"))) == 1, unsent  # blocked, but the report is already in the mailbox
-        # a failing hand-over check must not swallow the status block
-        globals()["measure"], real_measure = (lambda *a: (_ for _ in ()).throw(RuntimeError("boom2"))), globals()["measure"]
-        try:
-            transcript(trans, 100, final_text="没声明")
-            real_stdin, sys.stdin = sys.stdin, io.StringIO(json.dumps(dict(payload, hook_event_name="Stop", session_id="gate-crash", cwd=root)))
-            out = io.StringIO()
-            try:
-                with contextlib.redirect_stdout(out):
-                    assert main() == 0
-            finally:
-                sys.stdin = real_stdin
-        finally:
-            globals()["measure"] = real_measure
-        assert json.loads(out.getvalue())["decision"] == "block" and "boom2" in quiet.getvalue(), "the status block survives a crash of the context check"
-        assert not gate_run("好了\n状态：继续").stdout, "a declared 继续 passes"
-        fallback = gate_run("报告\n状态：等调度", session="gate-e2e-2", extra={"stop_hook_active": True})
-        assert not fallback.stdout and "信箱兜底" in fallback.stderr and len(os.listdir(os.path.join(psa, "mailbox"))) == 2, fallback
         garbage = subprocess.run([sys.executable, "-I", script], input="not json", capture_output=True, text=True, env={"LC_ALL": "C"})
         assert garbage.returncode == 0 and "出错" in garbage.stderr + garbage.stdout, garbage
         other_event = subprocess.run([sys.executable, "-I", script], input=json.dumps({"hook_event_name": "SessionStart"}), capture_output=True, text=True, env={"LC_ALL": "C"})
@@ -1059,11 +1035,34 @@ def self_test():
         os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
         os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
         os.utime(os.path.join(root, "docs/hand.md"), (9e9, 9e9))
-        stop_gate = lambda session, now: handle("Stop", dict(payload, hook_event_name="Stop", session_id=session, transcript_path=turn_file(760, False)), root, now)
-        assert stop_gate("src-gate1", 90000.0) is None, "writing the handover source satisfies the stop gate"
-        os.utime(os.path.join(root, "docs/hand.md"), (1, 1))
-        gate = stop_gate("src-gate2", 91000.0)
-        assert gate and gate["decision"] == "block" and "docs/hand.md" in gate["reason"], "a stale handover source is named by the stop gate"
+        future_time = (9e9, 9e9)
+        profile_file, hand_file = os.path.join(root, f"{SESSIONS}/one-test.md"), os.path.join(root, "docs/hand.md")
+        cross_at = lambda event, session, now: handle(event, dict(payload, hook_event_name=event, session_id=session, transcript_path=turn_file(760, False)), root, now)
+        stop_gate = lambda session, now: cross_at("Stop", session, now)
+
+        def source_case(session, base, before, act):
+            """Cross the level with the handover source `before`, let `act` change files, then stop."""
+            write(hand_file, before)
+            os.utime(hand_file, (1, 1))
+            cross_at("PostToolUse", session, base)
+            act()
+            return stop_gate(session, base + 1)
+        # GOV-1023-QUA-07: once the profile declares a handover source, only a changed handover section there satisfies the stop gate
+        assert source_case("src-ok", 90000.0, "## 交接\n\nx\n", lambda: (write(hand_file, "## 交接\n\ny\n"), os.utime(hand_file, future_time))) is None, "writing the handover source satisfies the stop gate"
+        assert source_case("src-new", 90100.0, "## 其他\n\nx\n", lambda: (write(hand_file, "## 其他\n\nx\n\n## 交接（新）\n\n做到 A\n"), os.utime(hand_file, future_time))) is None, "a handover section that appears after the cross_at counts"
+        for label, act in (("only the file time", lambda: os.utime(hand_file, future_time)),
+                           ("only the profile", lambda: (write(profile_file, open(profile_file, encoding="utf-8").read() + "\n改一行\n"), os.utime(profile_file, future_time))),
+                           ("another context document", lambda: (write(os.path.join(root, "docs/ctx.md"), "ctx2\n"), os.utime(os.path.join(root, "docs/ctx.md"), future_time))),
+                           ("a changed source with an old file time", lambda: (write(hand_file, "## 交接\n\ny\n"), os.utime(hand_file, (1, 1)))),
+                           ("an emptied section", lambda: (write(hand_file, "## 交接\n\n"), os.utime(hand_file, future_time)))):
+            write(profile_file, "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n- 交接源: docs/hand.md#交接\n")
+            gate = source_case("src-" + label.replace(" ", "-"), 91000.0 + 10 * len(label), "## 交接\n\nx\n", act)
+            assert gate and gate["decision"] == "block" and "交接源 docs/hand.md" in gate["reason"] and "只改文件时间或画像不算" in gate["reason"], (label, gate)
+        globals()["source_state"], real_state = (lambda r: 1 / 0), globals()["source_state"]  # fails while the level is crossed, works again at the stop
+        assert source_case("src-fail-open", 92000.0, "## 交接\n\nx\n", lambda: globals().update(source_state=real_state)) is None, "a digest that cannot be taken lets the stop through"
+        write(profile_file, "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n- 交接源: docs/hand.md#交接\n")
+        kept = load_state(root)  # the sessions above would crowd older ones out of the KEEP_SESSIONS most recent
+        save_state(root, {k: v for k, v in kept.items() if not k.startswith("src-")})
         write(os.path.join(root, SESSIONS, "one-test.md"), "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n")
         os.remove(os.path.join(root, "docs/hand.md"))
         os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))

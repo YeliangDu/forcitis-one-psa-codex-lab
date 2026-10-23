@@ -88,11 +88,11 @@ def esc(s):
 
 
 def model():
-    subs = load("ddd/subdomains.yaml")["subdomains"]
-    ctx = load("ddd/contexts.yaml")["contexts"]
-    rels = load("ddd/context-map.yaml")["relations"]
-    tas = load("togaf/transitions.yaml")["transitions"]
-    aggs = load("ddd/aggregates.yaml")["aggregates"]
+    subs = load("ssot/d-domain/subdomains.yaml")["subdomains"]
+    ctx = load("ssot/d-domain/contexts.yaml")["contexts"]
+    rels = load("ssot/d-domain/context-map.yaml")["relations"]
+    tas = load("ssot/t-transitions/transitions.yaml")["transitions"]
+    aggs = load("ssot/i03-aggregates/built.yaml")["aggregates"]
     events = catalogue()
     problems = []
     sids = {s["id"] for s in subs}
@@ -139,7 +139,7 @@ def context_map(subs, ctx, rels):
     by_sub = {}
     for c in ctx:
         by_sub.setdefault(c.get("subdomain") or "", []).append(c)
-    L = ["%% 生成文件，勿手改：python3 architecture/build_architecture.py（源：ddd/*.yaml）",
+    L = ["%% 生成文件，勿手改：python3 architecture/build_architecture.py（源：ssot/d-domain/*.yaml）",
          "flowchart LR",
          "  classDef built fill:#dbeafe,stroke:#1d4ed8,color:#0f172a",
          "  classDef planned fill:#f8fafc,stroke:#94a3b8,stroke-dasharray:4 3,color:#475569",
@@ -250,7 +250,7 @@ def event_chain(ctx, aggs, events):
     """③ cross-BC event chain among built BCs: aggregate -> event -> consuming BC; audit fan-in collapsed to one edge per publisher."""
     zh = {c["id"]: c["zh"] for c in ctx}
     agg_of = {e: a for a in aggs for e in a.get("events") or []}
-    L = ["%% 生成文件，勿手改：python3 architecture/build_architecture.py（源：ddd/aggregates.yaml、events/*.yaml）",
+    L = ["%% 生成文件，勿手改：python3 architecture/build_architecture.py（源：ssot/i03-aggregates/built.yaml、events/*.yaml）",
          "flowchart LR",
          "  classDef bc fill:#dbeafe,stroke:#1d4ed8,color:#0f172a",
          "  classDef evt fill:#fff7ed,stroke:#c2410c,color:#0f172a",
@@ -283,11 +283,11 @@ def event_chain(ctx, aggs, events):
 
 
 def tactical(ctx, aggs):
-    """④ plain SVG: one card per aggregate, commands on the left, events on the right, states underneath."""
+    """④ plain SVG: one card per aggregate, commands on the left, events on the right; states live in ssot/10-objects."""
     zh = {c["id"]: c["zh"] for c in ctx}
     W, cw, gap, line = 1260, 600, 20, 20
     cols, col_y, body = 2, [52, 52], []
-    body.append(text(16, 30, "每张卡：左列命令（写这个聚合的用例），右列它产生的事件，底部为状态取值；来源 ddd/aggregates.yaml 与事件目录", 13, "#475569"))
+    body.append(text(16, 30, "每张卡：左列命令（写这个聚合的用例），右列它产生的事件（只计本模块事件）；状态不在此图，见 ssot/10-objects 对象状态网络；来源 ssot/i03-aggregates/built.yaml 与事件目录", 13, "#475569"))
     for a in sorted(aggs, key=lambda a: a["id"]):
         cmds = list(a.get("commands") or []) + [c + "（经端口）" for c in a.get("commands_via") or []]
         evs = [e.split(".")[-1] for e in a.get("events") or []]

@@ -1,5 +1,5 @@
 # 聚合、命令、事件（DDD 战术设计）。只覆盖已建模块；ID = <模块>/<聚合类名>。events 引用事件目录 x-event.eventType，tables 引用数据访问注册表键，invariants 引用规则卡。
-# 已迁至 ssot/i03-aggregates/built.yaml（ARC-1021-ARC-08），本文件只作历史
+# 已迁至 ssot/i03-aggregates/built.yaml（ARC-1021-ARC-08），本文件只作历史；已退役（GOV-1023-ARC-01），冻结不改，待两个改名验收测试改读 built.yaml 后删除
 # 初稿：2026-10-15 由 sonnet 子代理从 origin/main 抽取，one-architecture 核对；不一致项见各条 note，已报 one-coordinator。维护：one-architecture；新聚合先在此登记再写代码。
 meta:
   generated: '2026-10-15'

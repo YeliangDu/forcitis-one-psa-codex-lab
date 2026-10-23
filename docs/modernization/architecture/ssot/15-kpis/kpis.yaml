@@ -19,7 +19,7 @@ meta:
   - docs/modernization/architecture/ssot/13-dimensions/dimensions.yaml
   - docs/modernization/glossary/terms.yaml
   - docs/modernization/r0/METRIC_BASELINE_DRAFT.md
-  - docs/modernization/architecture/togaf/vision.yaml
+  - docs/modernization/architecture/ssot/04-goals/vision.yaml
   rules:
     partition: 三套每一条恰好落在 kpis（作为 baseline、term 或 vision_kpi）、decided.items 或 retired.items 之一（decided 为决议记录，其条目可同时对应 kpis 里新登记的指标）；baseline 的 M-xx 拆成多个 KPI 时，首个带 aliases，其余只写 baseline
     dimensions_rule: dimensions 取 dimensions.yaml 中 slices 同时覆盖该 KPI 全部 facts 的维度；facts 为空则为空
@@ -41,8 +41,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:54
-  evidence: togaf/vision.yaml:54 愿景 KPI-01「OA 迁入模板停用率」；来源 OA_PROCESS_INVENTORY §0 第 1 点、§6.3 各阶段出口条件；ADR-0021 第 4 条
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:54
+  evidence: ssot/04-goals/vision.yaml:54 愿景 KPI-01「OA 迁入模板停用率」；来源 OA_PROCESS_INVENTORY §0 第 1 点、§6.3 各阶段出口条件；ADR-0021 第 4 条
 - id: KPI-02
   aliases: []
   name: 切换后 A8 凭证插件新增凭证行数
@@ -57,8 +57,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:60
-  evidence: togaf/vision.yaml:60 愿景 KPI-02「切换后 A8 凭证插件新增凭证行数」；来源 OA_PROCESS_INVENTORY §0 第 2 点、§6.3（6a、6b、6c 出口条件）
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:60
+  evidence: ssot/04-goals/vision.yaml:60 愿景 KPI-02「切换后 A8 凭证插件新增凭证行数」；来源 OA_PROCESS_INVENTORY §0 第 2 点、§6.3（6a、6b、6c 出口条件）
 - id: KPI-03
   aliases: []
   name: 权责事实遗留类别数
@@ -73,8 +73,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:66
-  evidence: togaf/vision.yaml:66 愿景 KPI-03「权责事实遗留类别数」；来源 ADR-0021 第 4 条；OA_PROCESS_INVENTORY §4；GUIDING_PRINCIPLES §9a 末段「每个阶段的出口条件须证明…没有遗留」
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:66
+  evidence: ssot/04-goals/vision.yaml:66 愿景 KPI-03「权责事实遗留类别数」；来源 ADR-0021 第 4 条；OA_PROCESS_INVENTORY §4；GUIDING_PRINCIPLES §9a 末段「每个阶段的出口条件须证明…没有遗留」
 - id: KPI-04
   aliases: []
   name: 经单一过账管道入账的权责事实占比
@@ -89,8 +89,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:79
-  evidence: togaf/vision.yaml:79 愿景 KPI-04「经单一过账管道入账的权责事实占比」；来源 ADR-0016 第 1 条；GUIDING_PRINCIPLES §9a「DDD」行（operations.facts 是唯一过账管道）
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:79
+  evidence: ssot/04-goals/vision.yaml:79 愿景 KPI-04「经单一过账管道入账的权责事实占比」；来源 ADR-0016 第 1 条；GUIDING_PRINCIPLES §9a「DDD」行（operations.facts 是唯一过账管道）
 - id: KPI-05
   aliases: []
   name: 月结对账等式差异数
@@ -105,8 +105,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:85
-  evidence: togaf/vision.yaml:85 愿景 KPI-05「月结对账等式差异数」；来源 GUIDING_PRINCIPLES §9a「DAMA」行；ADR-0016 第 1 条；ADR-0022 第 2 条（三条对账等式）
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:85
+  evidence: ssot/04-goals/vision.yaml:85 愿景 KPI-05「月结对账等式差异数」；来源 GUIDING_PRINCIPLES §9a「DAMA」行；ADR-0016 第 1 条；ADR-0022 第 2 条（三条对账等式）
 - id: KPI-06
   aliases: []
   name: 权责口径三大报表按月产出率
@@ -121,8 +121,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:98
-  evidence: togaf/vision.yaml:98 愿景 KPI-06「权责口径三大报表按月产出率」；来源 ADR-0022 第 1、4 条；r0/METRIC_BASELINE_DRAFT §3.4（M-35）、§3.5（M-36）
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:98
+  evidence: ssot/04-goals/vision.yaml:98 愿景 KPI-06「权责口径三大报表按月产出率」；来源 ADR-0022 第 1、4 条；r0/METRIC_BASELINE_DRAFT §3.4（M-35）、§3.5（M-36）
   related_baseline:
   - M-35
   - M-36
@@ -140,8 +140,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:104
-  evidence: togaf/vision.yaml:104 愿景 KPI-07「与 U8C 收付账套对账差异数」；来源 ADR-0022 第 1、8、9 条
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:104
+  evidence: ssot/04-goals/vision.yaml:104 愿景 KPI-07「与 U8C 收付账套对账差异数」；来源 ADR-0022 第 1、8、9 条
 - id: KPI-08
   aliases: []
   name: 指标目录 OAT 声明完整率
@@ -156,8 +156,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:117
-  evidence: togaf/vision.yaml:117 愿景 KPI-08「指标目录 OAT 声明完整率」；来源 ADR-0023 第 3 条；BI_SCOPE §3.3；METRIC_BASELINE_DRAFT §3（共 48 个指标 M-01 至 M-48）
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:117
+  evidence: ssot/04-goals/vision.yaml:117 愿景 KPI-08「指标目录 OAT 声明完整率」；来源 ADR-0023 第 3 条；BI_SCOPE §3.3；METRIC_BASELINE_DRAFT §3（共 48 个指标 M-01 至 M-48）
   related_baseline:
   - M-01..M-48
 - id: KPI-09
@@ -174,8 +174,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:123
-  evidence: togaf/vision.yaml:123 愿景 KPI-09「同一指标的并存算法数」；来源 BI_SCOPE §1.5 E1、E2、E3；r0/METRIC_BASELINE_DRAFT §3.3、§3.6
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:123
+  evidence: ssot/04-goals/vision.yaml:123 愿景 KPI-09「同一指标的并存算法数」；来源 BI_SCOPE §1.5 E1、E2、E3；r0/METRIC_BASELINE_DRAFT §3.3、§3.6
   related_baseline:
   - M-13
   - M-42
@@ -194,8 +194,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:136
-  evidence: togaf/vision.yaml:136 愿景 KPI-10「关账期间快照覆盖率」；来源 ADR-0023 第 2 条；METRIC_BASELINE_DRAFT §3.2（M-06）、§3.3（M-13、M-17）
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:136
+  evidence: ssot/04-goals/vision.yaml:136 愿景 KPI-10「关账期间快照覆盖率」；来源 ADR-0023 第 2 条；METRIC_BASELINE_DRAFT §3.2（M-06）、§3.3（M-13、M-17）
   related_baseline:
   - M-06
   - M-13
@@ -214,8 +214,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:142
-  evidence: togaf/vision.yaml:142 愿景 KPI-11「口径差异清单逐期勾稽完成率」；来源 ADR-0023 第 4 条；BI_SCOPE §0 第 5 点
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:142
+  evidence: ssot/04-goals/vision.yaml:142 愿景 KPI-11「口径差异清单逐期勾稽完成率」；来源 ADR-0023 第 4 条；BI_SCOPE §0 第 5 点
   related_baseline:
   - M-35
 - id: KPI-12
@@ -232,8 +232,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:155
-  evidence: togaf/vision.yaml:155 愿景 KPI-12「项目贡献毛利可得覆盖率」；来源 METRIC_BASELINE_DRAFT §3.4（M-29、M-30、M-32）；BI_SCOPE §1.5 E7
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:155
+  evidence: ssot/04-goals/vision.yaml:155 愿景 KPI-12「项目贡献毛利可得覆盖率」；来源 METRIC_BASELINE_DRAFT §3.4（M-29、M-30、M-32）；BI_SCOPE §1.5 E7
   related_baseline:
   - M-29
   - M-30
@@ -252,8 +252,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:161
-  evidence: togaf/vision.yaml:161 愿景 KPI-13「贡献毛利率」；来源 BI_SCOPE §6.1 Q6-2；METRIC_BASELINE_DRAFT §3.4（M-29）
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:161
+  evidence: ssot/04-goals/vision.yaml:161 愿景 KPI-13「贡献毛利率」；来源 BI_SCOPE §6.1 Q6-2；METRIC_BASELINE_DRAFT §3.4（M-29）
   related_baseline:
   - M-29
   - M-08
@@ -283,8 +283,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:175
-  evidence: togaf/vision.yaml:175 愿景 KPI-14「老系统与 A8 数据通道下线数」；来源 OA_PROCESS_INVENTORY §0 第 5 点、§5
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:175
+  evidence: ssot/04-goals/vision.yaml:175 愿景 KPI-14「老系统与 A8 数据通道下线数」；来源 OA_PROCESS_INVENTORY §0 第 5 点、§5
 - id: KPI-15
   aliases: []
   name: 过渡镜像对账通过率
@@ -299,8 +299,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:181
-  evidence: togaf/vision.yaml:181 愿景 KPI-15「过渡镜像对账通过率」；来源 ADR-0023 第 5 条；BI_SCOPE §6.1 Q7
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:181
+  evidence: ssot/04-goals/vision.yaml:181 愿景 KPI-15「过渡镜像对账通过率」；来源 ADR-0023 第 5 条；BI_SCOPE §6.1 Q7
 - id: KPI-16
   aliases: []
   name: 安全不变量满足数
@@ -315,8 +315,8 @@ kpis:
   answers: []
   sources:
     vision:
-    - docs/modernization/architecture/togaf/vision.yaml:194
-  evidence: togaf/vision.yaml:194 愿景 KPI-16「安全不变量满足数」；来源 INTENT 2026-10-14「老系统先不管，确保新系统没有这些缺陷」；phase1a/SECURITY_INVARIANTS.md
+    - docs/modernization/architecture/ssot/04-goals/vision.yaml:194
+  evidence: ssot/04-goals/vision.yaml:194 愿景 KPI-16「安全不变量满足数」；来源 INTENT 2026-10-14「老系统先不管，确保新系统没有这些缺陷」；phase1a/SECURITY_INVARIANTS.md
 - id: KPI-17
   aliases:
   - M-01
