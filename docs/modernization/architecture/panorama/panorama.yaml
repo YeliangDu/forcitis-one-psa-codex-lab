@@ -4547,8 +4547,7 @@ nodes:
       type: business
       stages:
       - VS-13.2
-      primary_object:
-      - OBJ-104
+      primary_object: []
       bc: B-15
       group: people
     PRC-202:
@@ -41919,7 +41918,7 @@ nodes:
       - ref: 状态
         text: 运行为计算中
       - ref: 基数
-        text: 本期收入确认与人工成本分配事实已在 B-16 过账；未齐不按缺数计提
+        text: 本期收入确认与人工成本分配事实已在 B-16 过账；人工基数只取人工成本分配来源，不含奖金计提、重分类、调整行；未齐不按缺数计提
       emits: （内部）
       group:
       - people
@@ -51870,7 +51869,7 @@ nodes:
       - ref: S-4b
         text: 只在负债内部重分类（借 奖金（计提）贷 奖金（已核定）），按法人与项目拆分，拆分合计等于核定额；拆不到项目的整额记成本法人、不带项目（LEB-05）
       - ref: 人工事实
-        text: 核定期间的人工成本分配已过账；未过账的不按缺数拆分，延后重试
+        text: 核定覆盖的服务期间（考核期间）各月人工成本分配已过账；未齐不按缺数拆分，延后重试（one-architecture @3541ced0b 第 3 点）
       - ref: INV-92
         text: 所属会计期间已关账的，按 ADR-0045 路由到开放期间并标原期间，不拒绝
       emits: （内部）
@@ -77932,10 +77931,6 @@ links:
   from: VS-13.2
   to: PRC-203
   src: architecture/proposals/closeout/process-catalog.yaml#PRC-203.stages
-- kind: obj-prc
-  from: OBJ-104
-  to: PRC-203
-  src: architecture/proposals/closeout/process-catalog.yaml#PRC-203.primary_object
 - kind: stage-prc
   from: VS-15.1
   to: PRC-202
