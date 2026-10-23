@@ -1,18 +1,20 @@
 # FORCITIS one 现代化——会话须知
 
-开场钩子注入「开工单」。没出现或显示不可用时，读 `docs/modernization/sessions/<会话名>.md`，再向 one-coordinator 要卡。
+开工先读 `docs/modernization/RULES.md` 与本角色文件 `docs/modernization/roles/<角色>.md`（会话对应哪个角色见其「过渡映射」）。
 
-## 底线（详细条文与例外见 `docs/modernization/SESSION_PLAYBOOK.md`「1. 底线」）
+## 底线（条文与执行见 RULES ①）
 
-1. 用中文：对话、报告、跨会话消息、子代理回复。
-2. 老代码、老系统、外部系统只作证据，不照搬结构与命名；复刻老行为以生产数据为证。
+1. 用中文。
+2. 老代码、老系统、外部系统只作证据，不照搬；复刻老行为以生产数据为证。
 3. 不写、不打印密钥，不调用会返回密钥的接口。
-4. 生产只读：取证只用专用只读账号，明细与个人信息不进会话与仓库，不做任何生产写操作。
-5. 须用户决定的事写收件箱等答复，不替用户拍板；用户口头决定当场用 `docs/modernization/new_intent.py` 记原话。
-6. 不为过测试放宽或删断言；钩子或 CI 挡住按提示改，不绕过。
+4. 生产只读：只用专用只读账号，明细与个人信息不进会话与仓库。
+5. 用户已定的照做；须用户决定的写进决定库等答复，口头决定用 new_intent 记原话。
+6. 不绕过钩子与 CI，不为过测试放宽断言，实现方不改验收测试。
+7. 宣告完成须附可复现验证，转述先核原文。
+8. 只在自己的工作区与分支干活，主检出不留改动。
 
-## 做什么就打开哪里
+## 入口
 
-- 团队规则、派工、PR 与合并、消息：`docs/modernization/SESSION_PLAYBOOK.md`
-- 写后端代码、DDL、迁移：先读 `backend/CLAUDE.md`
-- 用语与确认页：先读 `docs/modernization/glossary/CLAUDE.md`
+- 数值与配置：`policy.json`
+- 后端代码、DDL、迁移：`backend/CLAUDE.md`
+- 用语与决定页：`docs/modernization/glossary/CLAUDE.md`
