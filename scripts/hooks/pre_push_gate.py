@@ -183,6 +183,9 @@ def main():
         path = log_bypass(root, branch_of(root), info)
         print(f"推送前钩子已按理由绕过并留痕（{path}）：{info}", file=sys.stderr)
         return 0
+    if pr.passed_recently(root):
+        print("precheck.sh --pre-push 不重跑：同一提交、同一 origin/main、干净工作区上已有有效通过标记（手动 scripts/precheck.sh 或上一次推送前检查留下，TEAM-106）", file=sys.stderr)
+        return 0
     checked = pr.tree_state(root)
     try:
         run = subprocess.run([os.path.join(root, "scripts", "precheck.sh"), "--pre-push"], cwd=root, capture_output=True, text=True,
@@ -245,14 +248,21 @@ def self_test():
     for output, code, marked in (("SUMMARY: 3 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", 0, 1), ("SUMMARY: 2 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1, 0)):
         finished = subprocess.CompletedProcess([], code, output, "")
         states = iter(["before the checks", "after the checks"])
-        with mock.patch.object(subprocess, "run", return_value=finished), mock.patch.object(pr, "record_pass") as record, mock.patch.object(pr, "repository_of", return_value="/r"), \
+        with mock.patch.object(subprocess, "run", return_value=finished), mock.patch.object(pr, "record_pass") as record, mock.patch.object(pr, "repository_of", return_value="/r"), mock.patch.object(pr, "passed_recently", return_value=False), \
                 mock.patch.object(pr, "tree_state", side_effect=lambda r: next(states)), \
                 mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}, "cwd": "/r"}))), mock.patch.object(sys, "stderr", io.StringIO()):
             assert main() == (0 if marked else 2) and record.call_count == marked and (not marked or record.call_args.kwargs.get("checked") == "before the checks"), "only a push the checks let through leaves a pass mark"
     with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "SUMMARY: 1 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", "")), mock.patch.object(pr, "record_pass") as record, \
-            mock.patch.object(pr, "repository_of", return_value="/r"), mock.patch.object(pr, "tree_state", return_value=None), \
+            mock.patch.object(pr, "repository_of", return_value="/r"), mock.patch.object(pr, "passed_recently", return_value=False), mock.patch.object(pr, "tree_state", return_value=None), \
             mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}, "cwd": "/r"}))), mock.patch.object(sys, "stderr", io.StringIO()):
         assert main() == 0 and record.call_count == 0, "a tree that was dirty when the checks began is never vouched for"
+    # a valid mark (left by a manual precheck or an earlier push) lets the push through without running precheck.sh; no mark, a stale mark or a moved tree runs it
+    for marked, runs in ((True, 0), (False, 1)):
+        with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "SUMMARY: 1 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", "")) as ran, \
+                mock.patch.object(pr, "passed_recently", return_value=marked), mock.patch.object(pr, "record_pass"), mock.patch.object(pr, "repository_of", return_value="/r"), \
+                mock.patch.object(pr, "tree_state", return_value=None), mock.patch.object(sys, "stderr", io.StringIO()), \
+                mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}, "cwd": "/r"}))):
+            assert main() == 0 and ran.call_count == runs, f"marked={marked}"
     print("pre_push_gate self-test: ok")
     return 0
 

@@ -62,6 +62,9 @@ class FakeGh:
                 return p.get("behind_files")
         return None
 
+    def files(self, n):
+        return self.prs[n].get("files", [])
+
     def update_branch(self, n):
         self.calls.append(("update-branch", n))
         p = self.prs[n]
@@ -134,6 +137,7 @@ def run(mq):
             _docs_tiers(mq, d)
             _gh_commands(mq, d)
             _lanes(mq, d)
+            _urgent(mq, d)
             _dependencies(mq, d)
             _runner(mq, d)
             _ssh_update(mq, d)
@@ -450,6 +454,25 @@ def _pause(mq, d):
         return orig(n)
     gh.checks = checks
     assert proc.process(41) == "MERGED" and "WAIT-PAUSED" in events(log) and "RESUMED" in events(log) and events(log).index("WAIT-PAUSED") < events(log).index("MERGED"), events(log)
+
+
+def _urgent(mq, d):
+    # an urgent pull request is picked before the ones queued earlier, and the queue does not cancel its CI runs
+    gh = FakeGh()
+    for n in (80, 81, 82):
+        gh.add(n)
+    gh.prs[82]["labels"].add(mq.URGENT_LABEL)
+    proc, q, log, _ = _proc(mq, d, "u1", gh, [80, 81, 82])
+    assert proc.pick("code") == 82 and proc.pick("code") == 80 and proc.pick("code") == 81, "urgent first, the rest in queue order"
+    gh = FakeGh()
+    for n in (83, 84):
+        gh.add(n)
+        gh.runs[f"b{n}"] = [n * 10]
+    gh.prs[84]["labels"].add(mq.URGENT_LABEL)
+    proc, q, log, _ = _proc(mq, d, "u2", gh, [83, 84, 85])
+    gh.add(85); gh.runs["b85"] = [850]
+    proc.cancel_others(83, None)
+    assert ("cancel", 840) not in gh.calls and ("cancel", 850) in gh.calls, "only the pull request without the label loses its run"
 
 
 def _lanes(mq, d):
@@ -837,6 +860,15 @@ def _signals(mq, d):
         return out
     gh.update_branch, gh.checks = update, checks
     assert proc.process(90) == "MERGED" and "BEHIND-AFTER-FAIL" in events(log) and ("rerun", "5") not in gh.calls, events(log)
+
+    # a pull request that changes .github/workflows (or whose file list gh cannot give) is never updated with `gh pr update-branch` (it exits 0 without pushing: the token lacks the workflow scope): ssh straight away; any other still goes through gh
+    for name, files, via_ssh in (("plain", ["backend/a.java"], False), ("workflow", ["backend/a.java", ".github/workflows/ci.yml"], True), ("unknown", None, True)):
+        gh = FakeGh(); gh.add(110, behind=3)
+        gh.prs[110]["files"] = files
+        seen = []
+        proc, q, log, _ = _proc(mq, d, "wf-" + name, gh, [110], updater=lambda repo, branch, wt, gh=gh, seen=seen: (seen.append(branch), gh.prs[110].update(merge="CLEAN", behind=0), "ok")[2])
+        assert proc.process(110) == "MERGED", name
+        assert (("update-branch", 110) in gh.calls) == (not via_ssh) and bool(seen) == via_ssh and ("SSH-UPDATE" in events(log)) == via_ssh, (name, gh.calls, events(log))
 
     # right after the label only the light run's checks are listed: the queue waits for the full-named backend check instead of judging the light ones
     gh = FakeGh(); gh.add(93)
