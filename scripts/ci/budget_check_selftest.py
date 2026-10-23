@@ -183,9 +183,12 @@ def main():
         extra["tools_lib"]["dir"] = "~/.modernize/lib"
         rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：ghost\n"}, extra, env)
         check("H9 名单有而本机无：只出信息行，不增违例", not viol and "名单有而本机无「ghost」" in out, out)
-        for name, pol in (("有目录", lib_pol), ("无目录", with_policy(["tools_lib", "checks"], CK))):
-            rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor、board\n"}, pol, env)
-            check(f"H9 {name}：违例相同（只报 board）", viol == [f"H9 {RULES}:1 「甲」执行栏引用的检查名「board」不存在"], out)
+        short = with_policy(["tools_lib", "checks"], CK[:2])   # 名单比本机目录少 stop_sh：白名单若改回「名单加目录」就会漏报
+        short["tools_lib"]["dir"] = "~/.modernize/lib"
+        want = [f"H9 {RULES}:1 「甲」执行栏引用的检查名「{n}」不存在" for n in ("stop_sh", "board")]
+        for name, pol in (("有目录", short), ("无目录", with_policy(["tools_lib", "checks"], CK[:2]))):
+            rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor、stop_sh、board\n"}, pol, env)
+            check(f"H9 {name}：目录里有而名单没有的 stop_sh 照报，违例相同", viol == want, out)
         rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor\n"}, with_policy(["tools_lib", "checks"], "janitor"), env)
         check("H9 tools_lib.checks 非列表报格式违例", any(v.startswith("H9 policy.json") for v in viol), out)
         for bad in ("board", "handoff", "legacy", ".hidden", "_priv"):
@@ -294,7 +297,7 @@ def main():
           and any(v.startswith("H23 policy.json 检查无法完成") and "max_lines_total" in v for v in viol)
           and any(v.startswith("H23 scripts/merge+queue") for v in viol), out)
     # policy 上限值是 NaN、Infinity、非正数或非数字：检查无法完成，不静默通过
-    for label, v in (("NaN", float("nan")), ("Infinity", float("inf")), ("0", 0), ("负数", -5), ("字符串", "99"), ("布尔", True)):
+    for label, v in (("NaN", float("nan")), ("Infinity", float("inf")), ("0", 0), ("负数", -5), ("字符串", "99"), ("布尔", True), ("超大整数", 10 ** 400)):
         for path, hit in ((["mq", "max_lines_total"], "H23 policy.json 检查无法完成"), (["rules", "rules_md_max_kb"], "H7 policy.json 检查无法完成"),
                           (["gates", "runtime_max_lines"], "H1 policy.json 检查无法完成"), (["tools_lib", "max_lines_total"], "H23 policy.json 检查无法完成")):
             rc, out, viol = run(GOOD, with_policy(path, v))

@@ -55,10 +55,19 @@ class Report:
         self.infos.append(f"信息 {code} {path} {msg}")
 
     def cap(self, code, path, val, limit, msg, policy=True):
-        if policy and (isinstance(limit, bool) or not isinstance(limit, (int, float)) or not math.isfinite(limit) or limit <= 0):
-            raise ValueError(f"上限 {limit!r} 须是有限正数")  # NaN、Infinity、非正数、非数字：检查无法完成
+        if policy:
+            check_limit(limit)
         if val > limit:
             self.viol(code, path, msg)
+
+def check_limit(v):
+    """policy 上限值须是有限正数；NaN、Infinity、超大整数、非正数、非数字都抛 ValueError（检查无法完成）。"""
+    try:
+        ok = not isinstance(v, bool) and isinstance(v, (int, float)) and math.isfinite(v) and v > 0
+    except OverflowError:
+        ok = False
+    if not ok:
+        raise ValueError(f"上限 {str(v)[:20]!r} 须是有限正数")
 
 def read(path):
     return path.read_text("utf-8", errors="replace")
@@ -180,8 +189,7 @@ def check_mq_total(root, pol, rep):
 def check_tools_lib_total(root, pol, rep):
     """H23 后半：tools_lib.max_lines_total 管的工具库在仓库外，由工具库自测或 janitor 查，这里只出一行信息。"""
     total = pol["tools_lib"]["max_lines_total"]
-    if isinstance(total, bool) or not isinstance(total, (int, float)) or not math.isfinite(total) or total <= 0:
-        raise ValueError(f"上限 {total!r} 须是有限正数")
+    check_limit(total)
     rep.info("H23", "tools_lib", f"工具库在仓库外，tools_lib.max_lines_total（{total}）由工具库自测或 janitor 查")
 
 def leaves(node, path=""):

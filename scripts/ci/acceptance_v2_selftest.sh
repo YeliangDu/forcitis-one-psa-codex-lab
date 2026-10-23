@@ -25,6 +25,9 @@ SUMMARY0="budget_check：违例 0 条，模式 warn"
 # RULES.md or roles missing or empty is never a pass (skip, or a failure under ACCEPT_STRICT=1)
 stub_budget "'信息 H7 docs/modernization/RULES.md 尚无\\nH23 docs/x.sh 运维脚本\\nbudget_check：违例 1 条，模式 warn'"
 expect "V01 缺 RULES 与 roles 不得通过" 0 '^V01 跳过\(.*RULES.md' V01
+# 变量紧跟全角字符：macOS bash 3.2 在 C.UTF-8 下会读错变量名，RULES 缺失时 V01 曾打印「通过」；显式用 /bin/bash 加 LC_ALL=C.UTF-8 再跑一遍
+out=$(env ACCEPT_ROOT="$tmp/root" ONE_SESSION_TOOLS="$tmp/tools" ACCEPT_BUDGET_DIR="$tmp/budget" ACCEPT_ONLY=V01 LC_ALL=C.UTF-8 /bin/bash "$here/acceptance_v2.sh" 2>&1)
+printf '%s\n' "$out" | grep -Eq '^V01 跳过\(.*RULES.md' || { echo "失败 V01 缺 RULES 在 /bin/bash＋C.UTF-8 下"; printf '%s\n' "$out" | sed 's/^/    /'; bad=1; }
 expect "V01 缺文件严格模式失败" nz '^V01 不通过' "$ALL" ACCEPT_STRICT=1
 mkdir -p "$tmp/root/docs/modernization/roles"; : >"$RULES"
 expect "V01 RULES.md 0 字节不得通过" 0 '^V01 跳过\(.*RULES.md' V01
