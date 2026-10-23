@@ -29,7 +29,7 @@ READ_BY_BUILDS = (
     "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml",
     # R-1b P5 acceptance (EventEnvelopeContractTest, the rename ITs) read the field list and the aggregate register
     "docs/modernization/proposals/EVENT_ANALYTICS_FIELDS.md",
-    "docs/modernization/architecture/ddd/aggregates.yaml",
+    "docs/modernization/architecture/ssot/i03-aggregates/built.yaml",
     # ADR37-1 guards: the credential deny list (CredentialColumnGuardTest) and the runbook that must not list a check switch (ReadOnlyCheckSwitchGuardTest)
     "docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/credential_columns.csv",
     "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md",
