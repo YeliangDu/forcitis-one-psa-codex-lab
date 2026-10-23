@@ -47,8 +47,8 @@
 
 ## 上下文文档
 
-- `docs/modernization/COORDINATOR_LEDGER.md`（现状速查）
 - `docs/modernization/sessions/one-coordinator.md`（本画像）
+- 交接源: docs/modernization/COORDINATOR_LEDGER.md#交接
 
 ## 交接条件
 
@@ -58,7 +58,3 @@
 
 - 自定：批准 PR 入队（代码 PR 须有 opus 复审结论）、开会话与派子代理、会话划分。
 - 须问用户：部署、生产变更、购买、对外账号、ADR 变更与采纳、用语裁定、财务口径。
-
-## 当前状态
-
-2026-10-22 22:2x 30% 交接；#628 自清推全员待改后入队、新 PB 草稿已审待落地；交接见台账「交接」节 22:2x 条。

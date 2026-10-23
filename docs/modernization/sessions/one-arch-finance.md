@@ -57,12 +57,8 @@
 ## 权限边界
 
 - 用户待定事项先交 one-architecture 合成确认页，不自行出页
-- 子代理显式指定模型：opus 只用于首轮评审，取数用 haiku；执行类先交 Codex（gpt-6.1-sol，推理强度按卡定（low/medium/high/xhigh），run_in_background，关闭标准输入）
+- 子代理显式指定模型：opus 只用于首轮评审，取数用 haiku；执行类先交 Codex（gpt-6.1-sol xhigh，run_in_background，关闭标准输入）
 - 中文；系统称 FORCITIS one / 老系统；老系统只作证据
 - 文档分支的提交号直接报 one-merge 收合集；只有要批、要裁的才报 one-coordinator（调度 2026-10-22）；设计稿定稿后或一天一次再报，不每改一次就报（one-merge 2026-10-22）
 - app 限流外发消息时不停下：要报的内容追加写进 `~/.modernize/psa/outbox/one-arch-finance.md`（一条一行，带时间和收件会话），接着做；没活了写一行「空闲」（SESSION_PLAYBOOK §11 消息约定第 7 条）
 - 派卡按 SESSION_PLAYBOOK §5「任务命名与登记」（2026-10-17 起）：任务号 `<主线码>-<MMDD>-AFI-<nn>`、任务名 `[主线·bc] 动作+对象`，每卡在 `docs/modernization/tasks/<任务号>.md` 登记片段，后台任务 description 写 `<任务号> <任务名> (codex)`；PR、提交、报告带任务号
-
-## 当前状态
-
-2026-10-22 22:10：无在途任务，可交接。10-22 晚完成 ARC-1022-AFI-01（PRC-96、AGG-41 纳入加班计价、已核定奖金调整、人工成本分配差异；场景 S24–S33；one-data 复核 F1–F6 已入表注）；ARC-1022-AFI-02 作废（S-5 撤销 AGG-137）。one-architecture 裁定（FINANCE_S4_S5_RULINGS_2026-10-22 及附二、附三）：日期类型与补休随工时过账事实携带；奖金计提规则作 AGG-05 子项（表归 one-arch-revenue）；核定只在负债内部重分类；按月奖金计提归 B-15，B-07 只读 B-16。本分支提交至 f4933940，已报 one-merge。等别组或用户：B-15 计提与核定过账步（people 组，待派卡）；差异表保留期（确认页）；DM-8 未定前 AGG-41 不进表结构 PR。接续读「上下文文档」与共享笔记 one-arch-finance-status.md。
