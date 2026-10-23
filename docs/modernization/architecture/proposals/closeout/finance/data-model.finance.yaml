@@ -103,24 +103,30 @@ aggregates:
     history_migration: none
     sensitivity: internal
     pi: none
+    references:
+    - to: AGG-77
+      by: business_fact_id
+      cross_bc: true
     reason: 运行单据（技术聚合，PEOPLE_APE01_RULINGS_2026-10-23 附第 1 条）：结果由 B-16 记账事实承载，不迁
     column_families:
     - 法人（员工成本法人）
-    - 业务日期
+    - 业务日期（落账期间末日）
     - 单据编号
     - 落账期间（会计年度、期间序号）
     - 状态
+    - 币种（运行法人本位币，各行共用）
+    - 记账事实引用（整单一个过账候选；只存 ID、不建外键；为空表示尚未提交过账候选，与状态成对 CHECK）
     - version
     - 审计列
-    notes: 每法人 × 期间一次有效，冲销后失效（部分唯一索引）
+    notes: 每法人 × 期间一次有效，冲销后失效（部分唯一索引兜底重复触发 S37，不另设幂等键）；整单提交一个过账候选，记账事实引用在根表（one-data G1、G5、G7，BONUS_OVERTIME_COSTING §6.2）
   - name: bonus_adjustment_lines
     role: child
     key: uuid_v7
     references:
     - to: bonus_adjustment_runs
       by: bonus_adjustment_run_id
-    - to: AGG-77
-      by: business_fact_id
+    - to: AGG-19
+      by: project_id
       cross_bc: true
     versioned: none
     history_migration: none
@@ -128,11 +134,11 @@ aggregates:
     pi: none
     reason: 按法人 × 项目的调整行，不到人；结果由记账事实承载，不迁
     column_families:
-    - 项目引用（拆不到项目时为空，转费用，LEB-05）
-    - 读取时的「奖金（计提）」余额快照
-    - 调整金额与币种（正为冲回多提、负为补计）
-    - 待内部结算标记（跨法人，LEB-04）
-    notes: 余额快照为生成时点值、行不可变（沿 one-data F3）；不带员工引用（沿 F1③）；(run, 项目) 唯一，项目为空的每运行至多一行；调整后该「法人 × 项目」余额归零（S-4b 条件 1）由对账查询守住；交 one-data 复核
+    - 项目引用（为空表示拆不到项目，转费用，LEB-05）
+    - 项目承担法人（生成时点值，ADR-0073 第 1 条；项目为空时为空）
+    - 读取时的「奖金（计提）」余额快照（贷方余额为正，非零）
+    - 调整金额（记入「奖金（计提）」的贷方净额：正为补计、负为冲回多提；恒等于负的余额快照）
+    notes: 行不可变（不留 version 与修改审计列，重做走冲销 + 新运行，DDL 守住，沿 one-data F3）；不带员工引用（沿 F1③）；UNIQUE NULLS NOT DISTINCT (run, 项目)；CHECK 调整金额 = −余额快照且非零（S-4b 条件 1、S36）；「待内部结算」不存标记，由运行法人 ≠ 项目承担法人推出（D1）；one-data 复核通过附 G1–G7，答复见 BONUS_OVERTIME_COSTING §6.2
 - aggregate: AGG-42
   bc: B-07
   tables:

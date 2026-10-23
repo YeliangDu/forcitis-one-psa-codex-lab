@@ -65,4 +65,4 @@
 
 ## 当前状态
 
-2026-10-23 09:30：无在途任务，可交接。ARC-1022-AFI-01 完成并按 one-architecture 全部裁定收口（FINANCE_S4_S5_RULINGS_2026-10-22 及附二、附三；PEOPLE_APE01_RULINGS_2026-10-23 及附 @909d83c5）：PRC-96 第 2 步只含加班计价与人工成本分配差异；按月奖金计提归 B-15 PRC-203；奖金调整另立 AGG-139 作 PRC-96 第 9、10 步，由月结日程在发起关账前触发；PRC-101、PRC-102 前置检查经 B-16 查本期奖金计提（零额完成记录 INV-143）与核定期间奖金调整；AGG-41 只含工时人工行，新增 bonus_adjustment_runs、bonus_adjustment_lines。ARC-1022-AFI-02 作废。下一步（等别组）：one-data 复核 AGG-139 两张新表；one-glossary 登记 NOTES「新用语」奖金调整一行；AGG-139 进 PRC_ALLOCATIONS 合入后 closeout_check 的「聚合缺失 2 处」消失；差异表保留期待用户在确认页定；DM-8。本分支至 18bf2e34 之后的提交未报 one-merge。接续读「上下文文档」与 BONUS_OVERTIME_COSTING §4、§6.1。
+2026-10-23：无在途任务，待命。ARC-1022-AFI-01 收口；one-data 复核 AGG-139 两张表设计层通过（G1–G7，@166c3101），已答 G3（调整额 = −余额快照，加等式与非零 CHECK，符号统一为正补计负冲回）、G5（整单一个过账候选，记账事实引用上移根表）、G6（行存项目承担法人当时值、不存布尔），写入 BONUS_OVERTIME_COSTING §6.2 与 data-model。待别组：one-data DDL 阶段逐行核 G1–G7；one-glossary 登记奖金调整用语；AGG-139 进 PRC_ALLOCATIONS 后 closeout_check「聚合缺失」中 PRC-96 两处消失；差异表保留期待用户定；DM-8。接续读「上下文文档」与 BONUS_OVERTIME_COSTING §6.1–6.2。
