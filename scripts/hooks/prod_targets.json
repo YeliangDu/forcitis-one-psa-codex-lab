@@ -45,11 +45,9 @@
   ],
   "readonly_tools": {
     "owner": "one-ops",
-    "note": "路径 = docs 根（docs 下的 modernization 目录）+ base + files。已入库的只读取证工具（阿里云 Python SDK ecs.run_command，命令名 one-ops-b5，目标仅旧系统应用服务器，只用三个只读账号）；b5_evidence_run.py、b5_read_all_run.py 会改授权，不在内。出自 one-ops 的生产特征表第五节。",
+    "note": "路径 = docs 根（docs 下的 modernization 目录）+ base + files。只登记整支都只读的入口（阿里云 Python SDK ecs.run_command，命令名 one-ops-b5，目标仅旧系统应用服务器，只用三个只读账号）；b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。脚本内容须与 origin/main 上逐字节一致才算可信。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。出自 one-ops 的生产特征表第五节。",
     "files": [
-      "b5_legacy_run.py",
       "b5_evidence_scan.py",
-      "c14_run.py",
       "c14_orphan_check.py",
       "c14_u8c_status.py"
     ],

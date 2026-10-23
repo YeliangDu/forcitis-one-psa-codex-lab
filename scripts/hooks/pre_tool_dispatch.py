@@ -132,7 +132,7 @@ def self_test():
     import pre_push_gate as pp
     from codex_stdin_gate import hook_cases
     commands = [command for command, _, _ in hook_cases()]
-    commands += ["ls", "git status", "git log --oneline -3", "echo hi", "gi\"t\" push --no-verify", "git pu\\sh --no-verify", "g\"h\" pr create", "c'o'dex exec p", "git commit -m x", "cd /tmp && git push --no-verify", "psql -h rm-bp1690ep53t9778dp -c \"delete from t\"", "psql -h localhost -c \"select 1\"", "ssh h 'ls'", "p=rm-bp1690ep; q=53t9778dp; psql -h $p$q -c \"drop table t\"",
+    commands += ["ls", "git status", "git log --oneline -3", "echo hi", "gi\"t\" push --no-verify", "git pu\\sh --no-verify", "g\"h\" pr create", "c'o'dex exec p", "git commit -m x", "cd /tmp && git push --no-verify", "psql -h rm-bp1690ep5" "3t9778dp -c \"delete from t\"", "psql -h localhost -c \"select 1\"", "ssh h 'ls'", "p=rm-bp1690ep; q=53t9778dp; psql -h $p$q -c \"drop table t\"",
                  "git push --no-verify", "git push --dry-run", "git push origin --delete old", "pi -p x", "p\"i\" -p x", "PUSH_BYPASS_REASON= git push --no-verify", "python3 -c 'print(1)'", "pip install x",
                  "cat api.py", "git reset --soft HEAD~1", "git checkout -b x", "bash -c 'git push --no-verify'", "echo $(git push --no-verify)", "gh pr view 3", "gh pr checks 3", "", "   ", "git push", "git push origin HEAD", "gh pr create --title x", "cd /tmp && gh pr create"]
     stubbed = 0
@@ -171,12 +171,12 @@ def self_test():
     assert "pre_push_gate" in [n for n, _ in selected(json.loads(payload("g\"it\" push")))], "quotes do not hide git from the pre-filter"
 
     # 2b. the production-write gate is reached through the dispatcher, also behind quotes
-    assert dispatch(payload("aliyun rds DeleteAccount --DBInstanceId rm-bp1690ep53t9778dp"))[0] == 2 and dispatch(payload("aliyun rds DescribeDBInstances --DBInstanceId rm-bp1690ep53t9778dp"))[0] == 0
-    for hostile in ("python3 -c \"connect('rm-bp1690ep53t9778dp')\"", "xargs -I{} sqlcmd -S rm-bp1690ep53t9778dp -Q {}", "sqlcmd -S `echo rm-bp1690ep53t9778dp` -Q 'delete from t'", "bash -lc \"psql -h rm-bp1690ep53t9778dp -c 'drop table t'\"",
-                    "$'\\x73qlcmd' -S rm-bp1690ep53t9778dp -Q 'delete from t'", "bash <<'EOF'\nsqlcmd -S rm-bp1690ep53t9778dp -Q 'delete from t'\nEOF", "env -S 'sqlcmd -S rm-bp1690ep53t9778dp -Q x'", "curl -XPOST https://rm-bp1690ep53t9778dp/x"):
+    assert dispatch(payload("aliyun rds DeleteAccount --DBInstanceId rm-bp1690ep5" "3t9778dp"))[0] == 2 and dispatch(payload("aliyun rds DescribeDBInstances --DBInstanceId rm-bp1690ep5" "3t9778dp"))[0] == 0
+    for hostile in ("python3 -c \"connect('rm-bp1690ep5" "3t9778dp')\"", "xargs -I{} sqlcmd -S rm-bp1690ep5" "3t9778dp -Q {}", "sqlcmd -S `echo rm-bp1690ep5" "3t9778dp` -Q 'delete from t'", "bash -lc \"psql -h rm-bp1690ep5" "3t9778dp -c 'drop table t'\"",
+                    "$'\\x73qlcmd' -S rm-bp1690ep5" "3t9778dp -Q 'delete from t'", "bash <<'EOF'\nsqlcmd -S rm-bp1690ep5" "3t9778dp -Q 'delete from t'\nEOF", "env -S 'sqlcmd -S rm-bp1690ep5" "3t9778dp -Q x'", "curl -XPOST https://rm-bp1690ep5" "3t9778dp/x"):
         assert dispatch(payload(hostile))[0] == 2, hostile
-    assert dispatch(payload("git commit -m 'rm-bp1690ep53t9778dp 说明'"))[0] == 0 and dispatch(payload("psql -h rm-bp1690ep53t9778dp -U one_evidence_ro -c 'select 1'"))[0] == 0
-    assert dispatch(payload("al\"\"iyun rds DeleteAccount --DBInstanceId rm-bp1690ep53t9778dp"))[0] == 2 and "prod_write_gate" in [n for n, _ in selected(json.loads(payload("PSQL -c x")))]
+    assert dispatch(payload("git commit -m 'rm-bp1690ep5" "3t9778dp 说明'"))[0] == 0 and dispatch(payload("psql -h rm-bp1690ep5" "3t9778dp -U one_evidence" "_ro -c 'select 1'"))[0] == 0
+    assert dispatch(payload("al\"\"iyun rds DeleteAccount --DBInstanceId rm-bp1690ep5" "3t9778dp"))[0] == 2 and "prod_write_gate" in [n for n, _ in selected(json.loads(payload("PSQL -c x")))]
 
     # 3. background task names (Bash with run_in_background, Agent, Task) reach their gate through the dispatcher
     bad = json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})

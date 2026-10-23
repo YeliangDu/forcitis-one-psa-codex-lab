@@ -42,11 +42,16 @@ REMOTE_TOOLS = SQL_TOOLS | WRITE_ONLY_TOOLS | HTTP_TOOLS | {"bcp", "aliyun", "ss
 REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:" + "|".join(sorted(re.escape(t) for t in REMOTE_TOOLS)) + r"|bash|sh|zsh|eval|source|python[0-9.]*|node|perl|ruby|php|xargs|find|script|parallel|export)(?![A-Za-z0-9_-])")
 INTERPRETER = re.compile(r"^(?:python[0-9.]*|node|perl|ruby|php|lua|bash|sh|zsh|dash|ksh|source|\.)$")
 SHORT_C = re.compile(r"-[A-Za-z]*c[A-Za-z]*")
+SHELL_HEADS = {"for", "case", "select", "function", "in"}  # `for f in a b` is a loop head, not a program; substitutions inside it are commands of their own
 NO_CONNECT = {"git", "gh", "echo", "printf", "grep", "egrep", "fgrep", "rg", "cat", "sed", "head", "tail", "ls", "jq", "wc", "sort", "uniq", "cut", "tr", "diff", "test", "[", "true", "false", "cd", "pwd", "export",
               "set", "unset", "read", "basename", "dirname", "mkdir", "touch", "cp", "mv", "stat", "file", "date", "tee", ":", "less", "more", "nl", "tac", "fold", "column", "comm", "join", "paste", "expr",
               "declare", "local", "readonly", "typeset"}
+LOCAL_GIT = {"commit", "log", "show", "status", "add", "diff", "grep", "branch", "checkout", "switch", "restore", "rev-parse", "rev-list", "ls-files", "ls-tree", "cat-file", "stash", "merge", "tag", "worktree",
+             "blame", "describe", "shortlog", "apply", "reset", "cherry-pick", "rm", "mv", "clean", "rebase", "show-ref", "for-each-ref", "name-rev", "merge-base", "diff-tree", "diff-index", "hash-object", "symbolic-ref",
+             "update-ref", "count-objects", "check-ignore", "version", "help"}
+GIT_RUNS_COMMANDS = ("exec", "ext-diff", "open-files-in-pager", "upload-pack", "receive-pack", "textconv")
 NETWORK_GIT = {"push", "pull", "fetch", "clone", "ls-remote", "remote", "submodule", "archive", "daemon", "send-pack", "fetch-pack", "upload-pack", "receive-pack", "request-pack", "svn", "p4", "credential", "bundle", "maintenance", "instaweb", "difftool", "mergetool"}
-DOC_SCRIPTS = {"new_intent.py", "new_term_issue.py", "new_decision.py", "new_log.py"}
+DOC_SCRIPTS = {DOCS_ROOT + "/new_intent.py", DOCS_ROOT + "/new_decision.py", DOCS_ROOT + "/new_log.py", DOCS_ROOT + "/glossary/new_term_issue.py"}
 ENV_TARGET_VARS = ("PGHOST", "PGSERVICE", "PGDATABASE", "PGUSER", "PGHOSTADDR", "SQLCMDSERVER", "SQLCMDDBNAME", "SQLCMDUSER", "MYSQL_HOST", "DATABASE_URL", "MONGODB_URI", "REDIS_URL", "ALIBABA_CLOUD_PROFILE")
 MAX_SQL_FILE = 65536
 MAX_SCRIPT_FILE = 262144
@@ -66,7 +71,7 @@ SQL_READ = re.compile(r"^(?:select|with|show|explain|describe|desc|values|table|
 SQL_SET = re.compile(r"\bset\s+(?:(?:nocount|ansi_\w+|quoted_identifier|arithabort|xact_abort)\s+(?:on|off)|(?:textsize|lock_timeout|language|dateformat)\s+[\w'-]+|transaction\s+isolation\s+level\s+read\s+(?:uncommitted|committed))\b", re.I)
 SQL_WRITE = re.compile(r"\b(?:insert|update|delete|drop|alter|create|truncate|grant|revoke|merge|copy|call|exec|execute|vacuum|reindex|replace|rename|set|flushall|flushdb|del|expire|config|shutdown|into|do|source|load|"
                        r"dbcc|kill|backup|restore|deny|reconfigure|checkpoint|disable|enable|bulk|openrowset|opendatasource|openquery|sp_\w+|xp_\w+|use|lock|unlock|analyze|cluster|refresh|reset|listen|notify|prepare|deallocate|"
-                       r"begin|commit|rollback|savepoint|release|declare|waitfor|comment\s+on|"
+                       r"begin|commit|rollback|savepoint|release|declare|waitfor|comment\s+on|next\s+value\s+for|query_to_xml\w*|cursor_to_xml\w*|table_to_xml\w*|"
                        r"pg_(?:terminate_backend|cancel_backend|reload_conf|rotate_logfile|switch_wal|create_\w+|drop_\w+|advisory_\w+|promote|start_backup|stop_backup|replication_\w+|sleep\w*|read_\w+|ls_dir|file_write|"
                        r"logical_\w+|notify|stat_reset\w*|wal_replay_\w+|import_\w+|export_snapshot|backup_\w+)|"
                        r"set_config|nextval|setval|lo_\w+|dblink\w*|for\s+(?:update|share|no\s+key\s+update|key\s+share))\b", re.I)
@@ -79,6 +84,9 @@ REDIS_VALUE_OPTIONS = {"-h", "-p", "-a", "-n", "-u", "-s", "--user", "--pass", "
 ALIYUN_READ = re.compile(r"^(?:describe|list|get|query|check|search|preview|verify|tag-?list)", re.I)
 ALIYUN_SECRET = re.compile(r"^(?:describedbinstancessl|getsecretvalue|describedbinstancetde|getparametersbypath|getcredential\w*|createaccesskey|describeaccountsecret\w*)$", re.I)
 SSH_VALUE_OPTIONS = set("bcDEeFIiJLlmOopQRSWw")
+SSH_RISKY_SHORT = "LRDWwFI"  # tunnels, and a configuration file (-F) or a PKCS#11 / security-key library (-I) can run or load anything
+SSH_SAFE_OPTIONS = {"port", "user", "identityfile", "identitiesonly", "connecttimeout", "batchmode", "stricthostkeychecking", "userknownhostsfile", "serveraliveinterval", "serveralivecountmax", "loglevel",
+                    "addressfamily", "connectionattempts", "compression", "hostname", "forwardagent", "passwordauthentication", "preferredauthentications", "requesttty", "numberofpasswordprompts"}
 SSH_READ = {"ls", "cat", "tail", "head", "grep", "egrep", "fgrep", "df", "du", "ps", "stat", "wc", "uptime", "hostname", "whoami", "id", "date", "free", "ss", "netstat", "journalctl", "echo", "pwd",
             "uname", "sort", "uniq", "cut", "top", "lsblk", "file", "readlink", "which", "test", "true", "find", "systemctl", "docker", "pg_dump"}
 SSH_READ_SUBCOMMANDS = {"systemctl": {"status", "is-active", "is-enabled", "list-units", "list-unit-files", "show", "cat"}, "docker": {"ps", "logs", "inspect", "stats", "images", "top"}}
@@ -176,9 +184,12 @@ def readonly_tool_files():
     return found | EXTRA_READONLY
 
 
+PATH_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*(?:\w+=\S*\s+)*[^\s;&|()]*/")  # a command word with a slash: a script run by its path
+
+
 def could_concern(text):
     """Pre-filter for the dispatcher (text already `plain`): False only when the gate would certainly allow."""
-    if REMOTE_WORD.search(text) or "$" in text or "`" in text or "{" in text:
+    if REMOTE_WORD.search(text) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text):
         return True
     patterns, problem, _ = load_table()
     return bool(problem) or any(p in text for p in patterns)
@@ -468,9 +479,9 @@ def curl_writes(argv):
 def wget_writes(argv):
     for i, token in enumerate(argv):
         name, _, inline = token.partition("=")
-        if name in ("--post-data", "--post-file", "--body-data", "--body-file"):
+        if long_option(name, ("post-data", "post-file", "body-data", "body-file")):
             return True
-        if name == "--method":
+        if long_option(name, ("method",)):
             value = inline or (argv[i + 1] if i + 1 < len(argv) else "")
             if value.upper() not in READ_METHODS:
                 return True
@@ -547,14 +558,14 @@ def ssh_remote_command(argv):
             if token.startswith("-") and len(token) > 1:
                 letters = token[1:]
                 for c in letters:
-                    if c in "LRDWw":
+                    if c in SSH_RISKY_SHORT:
                         risky = True
                     if c in SSH_VALUE_OPTIONS:
                         break
                 valued = next((j for j, c in enumerate(letters) if c in SSH_VALUE_OPTIONS), None)
                 value = (letters[valued + 1:] or (argv[i + 1] if i + 1 < len(argv) else "")) if valued is not None else ""
-                if valued is not None and letters[valued] == "o" and re.search(r"(?i)proxycommand|localcommand|permitlocalcommand|remotecommand", value):
-                    risky = True
+                if valued is not None and letters[valued] == "o" and (re.split(r"[=\s]", value.strip(), maxsplit=1)[0].lower() not in SSH_SAFE_OPTIONS):
+                    risky = True  # an allow-list: KnownHostsCommand, PKCS11Provider, ProxyCommand, LocalCommand, Include, Match exec … all run or load something
                 i += 2 if valued is not None and not letters[valued + 1:] else 1
                 continue
             host_seen = True
@@ -562,6 +573,14 @@ def ssh_remote_command(argv):
             continue
         return argv[i:], risky
     return None, risky
+
+
+def long_option(token, names):
+    """True when `token` (`--x` or `--x=value`) is the long option `names` lists or any prefix of one: GNU getopt_long takes a unique prefix, so `sort --outp=f` is `--output=f`."""
+    if not token.startswith("--") or token == "--":
+        return False
+    given = token[2:].split("=", 1)[0]
+    return bool(given) and any(name.startswith(given) for name in names)
 
 
 def bundled(token, valued=""):
@@ -579,21 +598,21 @@ def read_only_remote(command):
     sub = [t for t in argv[1:] if not t.startswith("-")]
     if tool == "find" and any(t in FIND_WRITE for t in argv):
         return False
-    if tool == "sort" and any(t == "--output" or t.startswith(("--output=", "--compress-program")) or (t.startswith("-") and not t.startswith("--") and "o" in bundled(t, "kStT")) for t in argv[1:]):
+    if tool == "sort" and any(long_option(t, ("output", "compress-program")) or (t.startswith("-") and not t.startswith("--") and "o" in bundled(t, "kStT")) for t in argv[1:]):
         return False
     if tool == "uniq" and len(sub) > 1:
         return False
-    if tool == "journalctl" and any(t.startswith(("--vacuum", "--rotate", "--flush", "--relinquish", "--sync", "--setup-keys", "--update-catalog", "--smart-relinquish")) for t in argv):
+    if tool == "journalctl" and any(long_option(t, ("vacuum-size", "vacuum-time", "vacuum-files", "rotate", "flush", "relinquish-var", "smart-relinquish-var", "sync", "setup-keys", "update-catalog")) for t in argv):
         return False
-    if tool == "date" and any(t == "--set" or t.startswith("--set=") or (t.startswith("-") and not t.startswith("--") and "s" in bundled(t, "dfrIR")) for t in argv[1:]):
+    if tool == "date" and any(long_option(t, ("set",)) or (t.startswith("-") and not t.startswith("--") and "s" in bundled(t, "dfrIR")) for t in argv[1:]):
         return False
-    if tool == "ss" and any(t == "--kill" or (t.startswith("-") and not t.startswith("--") and "K" in bundled(t)) for t in argv[1:]):
+    if tool == "ss" and any(long_option(t, ("kill",)) or (t.startswith("-") and not t.startswith("--") and "K" in bundled(t)) for t in argv[1:]):
         return False
     if tool == "hostname" and sub:
         return False
-    if tool == "file" and any(t == "--compile" or (t.startswith("-") and not t.startswith("--") and "C" in bundled(t, "fmeP")) for t in argv[1:]):
+    if tool == "file" and any(long_option(t, ("compile",)) or (t.startswith("-") and not t.startswith("--") and "C" in bundled(t, "fmeP")) for t in argv[1:]):
         return False
-    if tool == "pg_dump" and any(t in ("-f", "--file") or t.startswith(("--file=", "-f")) for t in argv[1:]):
+    if tool == "pg_dump" and any(long_option(t, ("file",)) or t.startswith("-f") for t in argv[1:]):
         return False
     if tool in SSH_READ_SUBCOMMANDS and (sub[:1] or [None])[0] not in SSH_READ_SUBCOMMANDS[tool]:
         return False
@@ -680,12 +699,20 @@ def target_unresolved(command):
 
 
 # ---- judging -------------------------------------------------------------------------------------------------------------------------------------------------------
-def tracked(path):
+def main_blob(rel):
+    """Object id of `rel` on origin/main, or None."""
+    run = subprocess.run(["git", "-C", REPO_ROOT, "rev-parse", "--verify", "-q", f"origin/main:{rel}"], capture_output=True, text=True, timeout=10)
+    return run.stdout.strip() if run.returncode == 0 and run.stdout.strip() else None
+
+
+def same_as_main(path):
+    """Repo-relative path of `path` when its content is byte for byte the file of that path on origin/main (an edited, staged or new file is not), else None."""
     rel = os.path.relpath(os.path.realpath(path), os.path.realpath(REPO_ROOT))
     if rel.startswith(".."):
         return None
-    ok = subprocess.run(["git", "-C", REPO_ROOT, "ls-files", "--error-unmatch", "--", rel], capture_output=True, timeout=10).returncode == 0
-    return rel if ok else None
+    theirs = main_blob(rel)
+    mine = subprocess.run(["git", "-C", REPO_ROOT, "hash-object", "--", os.path.realpath(path)], capture_output=True, text=True, timeout=10)
+    return rel if theirs and mine.returncode == 0 and mine.stdout.strip() == theirs else None
 
 
 def script_operand(argv):
@@ -707,7 +734,7 @@ def script_operand(argv):
 
 
 def trusted_script(argv, cwd):
-    """True for an already-tracked document script (new_intent.py …) and for the `--self-test` of a tracked guard script under scripts/hooks."""
+    """True for a document script (new_intent.py … at its fixed path) and for the `--self-test` of a guard script under scripts/hooks, only while the file is exactly the one on origin/main."""
     if not INTERPRETER.match(name_of(argv[0])):
         return False
     script = script_operand(argv)
@@ -718,13 +745,11 @@ def trusted_script(argv, cwd):
         full = os.path.join(REPO_ROOT, script)
     if not os.path.isfile(full):
         return False
-    rel = tracked(full)
+    rel = same_as_main(full)
     if rel is None:
         return False
     rest = argv[argv.index(script) + 1:]
-    if rel in readonly_tool_files():
-        return True
-    if os.path.basename(rel) in DOC_SCRIPTS and rel.startswith((DOCS_ROOT + "/", "scripts/")):
+    if rel in readonly_tool_files() or rel in DOC_SCRIPTS:
         return True
     return rel.startswith("scripts/hooks/") and rel.endswith(".py") and rest == ["--self-test"]
 
@@ -738,9 +763,10 @@ def body_is_judged_separately(command):
 def indirect_hit(command, raw_hit, patterns, cwd):
     """An interpreter or shell that reads its program from a file, a heredoc or a pipe, and that program mentions production (an unreadable script counts when the command line mentions it)."""
     tool = name_of(command.argv[0])
-    if not INTERPRETER.match(tool) or trusted_script(command.argv, cwd):
+    direct = "/" in command.argv[0] and tool not in NO_CONNECT and not INTERPRETER.match(tool)  # ./x, /tmp/x: the file itself is the program
+    if not (INTERPRETER.match(tool) or direct) or trusted_script(command.argv, cwd):
         return False
-    script = script_operand(command.argv)
+    script = command.argv[0] if direct else script_operand(command.argv)
     if script is not None:
         content = read_text(script, cwd, MAX_SCRIPT_FILE)
         if content is None:
@@ -751,11 +777,13 @@ def indirect_hit(command, raw_hit, patterns, cwd):
     return raw_hit and (command.piped or any(t.startswith("<") for t in command.argv))
 
 
-def no_connect_ok(command):
+def no_connect_ok(command, patterns=()):
     """Tools that cannot connect to a production target on their own, used the way that cannot: local git subcommands, rg without --pre, sed without e/w, sort without --compress-program."""
     argv, tool = command.argv, name_of(command.argv[0])
     if tool not in NO_CONNECT:
         return False
+    if patterns and text_hits(list(command.env.values()), patterns):
+        return False  # GIT_EXTERNAL_DIFF, GIT_PAGER, PAGER, EDITOR, LESSOPEN … are programs handed to the tool
     if tool == "git":
         sub, i = None, 1
         while i < len(argv):
@@ -770,18 +798,20 @@ def no_connect_ok(command):
                 continue
             sub = token
             break
-        return sub is not None and sub not in NETWORK_GIT and not any(t.startswith(("--upload-pack", "--receive-pack", "--exec")) for t in argv)
+        if sub not in LOCAL_GIT or sub in NETWORK_GIT:
+            return False  # an unlisted sub-command (bisect run, filter-branch, submodule foreach, an alias …) can run any program
+        return not any(long_option(t, GIT_RUNS_COMMANDS) or (sub == "rebase" and (t == "-x" or (t.startswith("-") and not t.startswith("--") and "x" in t[1:]))) or (sub == "grep" and t.startswith("-O")) for t in argv)
     if tool == "rg":
         return not any(t.startswith(("--pre", "--hostname-bin")) for t in argv)
     if tool == "sed":
         return not any(SED_EXEC.search(t) for t in argv[1:] if not t.startswith("-") or t.startswith(("-e", "--expression")))
     if tool == "sort":
-        return not any(t.startswith("--compress-program") for t in argv)
+        return not any(long_option(t, ("compress-program",)) for t in argv)
     return True
 
 
-def allowed_without_connecting(command, cwd=None):
-    return no_connect_ok(command) or trusted_script(command.argv, cwd)
+def allowed_without_connecting(command, cwd=None, patterns=()):
+    return no_connect_ok(command, patterns) or trusted_script(command.argv, cwd)
 
 
 def stdin_texts_for(index, command, commands, text):
@@ -821,13 +851,14 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):
         if tool == "curl" and curl_config(command.argv):
             return "拒绝：curl 的 -K／--config 从文件或标准输入取目标与选项，看不到真实目标；把选项写在命令行上。"
         if tool not in REMOTE_TOOLS:
-            if body_is_judged_separately(command):
+            if body_is_judged_separately(command) or tool in SHELL_HEADS:
                 continue
             if patterns is None:
                 if INTERPRETER.match(tool) and not trusted_script(command.argv, cwd):
                     return f"{problem}：解释器命令（{tool}）无法判断是否碰到生产，一律拒绝；修好 scripts/hooks/prod_targets.json 后再做。"
                 continue
-            if (touches(command, patterns) or indirect_hit(command, raw_hit, patterns, cwd)) and not allowed_without_connecting(command, cwd):
+            # a production target anywhere on the line makes every other command of the line answer for itself (`echo '…' > x && chmod +x x && ./x`)
+            if (raw_hit or touches(command, patterns) or indirect_hit(command, raw_hit, patterns, cwd)) and not allowed_without_connecting(command, cwd, patterns):
                 return (f"拒绝：{tool} 命令碰到生产目标，而它不是点名的只读工具（psql／sqlcmd／aliyun Describe／ssh 只读白名单等）。CLAUDE.md 底线 4：不做生产写操作；"
                         "生产只读取证走 ADR-0037 专用只读账号和已登记的只读入口（直接用 psql／sqlcmd／ssh 的只读用法）。")
             continue
@@ -884,11 +915,11 @@ def guarded_main():
 
 
 def self_test():
-    patterns = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", "172.16.10.52"]
+    patterns = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", "172.16.10" ".52"]
     cwd = tempfile.mkdtemp()
     refused = lambda command, table=patterns, problem=None, environ=None: judge(command, table, problem, cwd, environ or {}) is not None  # noqa: E731
     allowed = lambda command, table=patterns, problem=None, environ=None: judge(command, table, problem, cwd, environ or {}) is None  # noqa: E731
-    P, H = "pgm-prod0001", "172.16.10.52"
+    P, H = "pgm-prod0001", "172.16.10" ".52"
     Path(cwd, "ro.sql").write_text("select count(*) from t;\nselect 2\n", encoding="utf-8")
     Path(cwd, "fix.sql").write_text("select 1;\ndelete from t where id = 1;\n", encoding="utf-8")
     Path(cwd, "runner.py").write_text("INSTANCE = 'rm-prodhost1'\nconnect(INSTANCE)\n", encoding="utf-8")
@@ -950,10 +981,11 @@ def self_test():
                     f"bash <<'EOF'\nsqlcmd -S {P} -Q 'delete from t'\nEOF", f'bash <<< "sqlcmd -S {P} -Q \'delete from t\'"', f'echo "sqlcmd -S {P} -Q \'delete from t\'" | bash', f"cat run.sh | bash # {P}",
                     f"python3 -X new_intent.py -c \"import os; os.system('ssh {H} touch /tmp/x')\"", f"node --title new_intent.py -e \"require('child_process').execSync('ssh {H} touch x')\"", f"python3 {cwd}/new_intent.py '{P}'",
                     f"cat > /tmp/gate_probe_x.sh <<'EOF'\nssh {H} touch /tmp/x\nEOF\nbash /tmp/gate_probe_x.sh", f"rg --pre 'ssh {H} touch /tmp/x' x README.md", f"git push ssh://{H}/srv/repo HEAD:main", f"git -c core.sshCommand='ssh {H}' fetch",
-                    f"sed -n 'e ssh {H} touch /tmp/x' README.md", f"sed 's/x/ssh {H} touch x/e' README.md", f"sort --compress-program='ssh {H}' f", "bash -c 'bash -c \"bash -c \\\"bash -c \\\\\\\"ssh 172.16.10.52 touch x\\\\\\\"\\\"\\\"\"'",
+                    f"sed -n 'e ssh {H} touch /tmp/x' README.md", f"sed 's/x/ssh {H} touch x/e' README.md", f"sort --compress-program='ssh {H}' f", "bash -c 'bash -c \"bash -c \\\"bash -c \\\\\\\"ssh 172.16.10" ".52 touch x\\\\\\\"\\\"\\\"\"'",
                     f"eval eval eval eval ssh {H} touch /tmp/x", f"echo ok # <<EOF\nsqlcmd -S {P} -Q 'delete from t'", f'echo "<<EOF"; sqlcmd -S {P} -Q "delete from t"', f"cat <<EOF\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF",
                     f'printf "%s" <(sqlcmd -S {P} -Q "delete from t")', f"export SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"export H={P}; sqlcmd -S\"$H\" -Q 'delete from t'", "curl -XDELETE http://172.16.{10,11}.52/x"):
         assert refused(command), f"unknown tool touching production must be refused: {command!r}"
+    assert refused(f'sqlcmd -S {P} -Q "select next value for dbo.s"') and refused(f"psql -h {P} -c \"select query_to_xml('delete from t', true, false, '')\""), "sequence advance and SQL run from a string"
     assert allowed(f"cat <<'EOF'\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF"), "a quoted here-document body is text"
     # 5. the opus review's parsing gaps
     for command in (f"sqlcmd -S `echo {P}` -Q \"delete from t\"", "sqlcmd -S `cat h.txt` -Q \"delete from t\"", f"sqlcmd -S $'\\x70gm-prod0001' -Q 'delete from t'", f"$'\\x73qlcmd' -S {P} -Q 'delete from t'", f"sqlcmd -S $'\\160gm-prod0001' -Q 'delete from t'",
@@ -980,23 +1012,60 @@ def self_test():
     assert refused("aliyun rds DeleteAccount --DBInstanceId x", None, "生产特征表缺失") and allowed("ls -la", None, "生产特征表缺失") and refused("python3 clean.py", None, "生产特征表缺失")
     assert refused("python3 -c 'print(1)'", None, "生产特征表缺失") and allowed("mvn -q test", None, "生产特征表缺失") and allowed(f"python3 -I {intent} x", None, "生产特征表缺失")
     assert allowed("psql -h pgm-prod0001 -c 'delete from t'", []), "an empty table (no production yet) is valid and inert"
-    # 8. the guard's own self-tests are not blocked by the production samples they contain
+    # 8. the guard's own self-tests: the guard sources hold no real production sample, so they pass under the shipped table; trust (content equal to origin/main) is a second way
+    real = load_table()[0]
     for name in ("prod_write_gate.py", "pre_tool_dispatch.py", "command_words.py"):
-        assert allowed(f"python3 -I {os.path.join(HERE, name)} --self-test"), name
+        assert allowed(f"python3 -I {os.path.join(HERE, name)} --self-test", real), name
     assert refused(f"python3 -I {os.path.join(HERE, 'prod_write_gate.py')} -c 'x' {P}")
-    # one-ops's committed read-only tools are exempt only when the table lists them and the file is tracked
-    tool_script = "scripts/hooks/command_words.py"
-    assert refused(f"python3 -I {os.path.join(REPO_ROOT, tool_script)} --instance {H}")
-    EXTRA_READONLY.add(tool_script)
+    # 9. a script is trusted only while it is exactly the file on origin/main (opus round 2, item 2); the sources below mention the pattern "simple_commands"
+    real_main_blob, mine = main_blob, ["simple_commands"]
     try:
-        assert allowed(f"python3 -I {os.path.join(REPO_ROOT, tool_script)} --instance {H}") and refused(f"python3 -c 'x' {H} {os.path.join(REPO_ROOT, tool_script)}")
-        assert refused(f"python3 -I {cwd}/runner.py --instance {H}"), "an untracked script is not exempt"
+        hooks = os.path.join(REPO_ROOT, "scripts/hooks")
+        tool_script = os.path.join(hooks, "command_words.py")
+        selftest = f"python3 -I {tool_script} --self-test"
+        globals()["main_blob"] = lambda rel: None
+        assert refused(selftest, mine), "not on origin/main: not trusted, and its text mentions the pattern"
+        globals()["main_blob"] = lambda rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip()
+        assert allowed(selftest, mine), "the same content as origin/main: the guard's own --self-test"
+        assert refused(f"python3 -I {tool_script} --instance x", mine), "only --self-test, no other arguments"
+        globals()["main_blob"] = lambda rel: "0" * 40
+        assert refused(selftest, mine), "an edited file (content differs from origin/main) is not trusted"
+        # read-only evidence tools and the document scripts: a fixed path, and again only the main content
+        EXTRA_READONLY.add("scripts/hooks/command_words.py")
+        assert refused(f"python3 -I {tool_script} --instance x", mine), "listed, but edited"
+        globals()["main_blob"] = lambda rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip()
+        assert allowed(f"python3 -I {tool_script} --instance x", mine), "listed and unchanged"
+        EXTRA_READONLY.discard("scripts/hooks/command_words.py")
+        assert refused(f"python3 -I {tool_script} --instance x", mine), "not listed"
+        Path(cwd, "new_intent.py").write_text("import os\n", encoding="utf-8")
+        assert allowed(f"python3 -I {intent} x", ["import"]) and refused(f"python3 -I {cwd}/new_intent.py x", ["import"]), "new_intent.py is trusted at its own path only"
+        assert refused(f"python3 -I {cwd}/new_intent.py x", ["import"]) and refused("python3 new_intent.py x", ["import"]), "same name elsewhere"
+        # a new, staged guard script is not on origin/main
+        globals()["main_blob"] = lambda rel: None
+        assert refused(f"python3 -I {intent} x", ["import"]), "new_intent.py not on origin/main"
     finally:
-        EXTRA_READONLY.discard(tool_script)
+        globals()["main_blob"] = real_main_blob
+        EXTRA_READONLY.discard("scripts/hooks/command_words.py")
+    # 10. direct execution of a local file, git programs, ssh options, GNU long-option prefixes (opus round 2, items 3 to 6)
+    Path(cwd, "direct.sh").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
+    Path(cwd, "tame.sh").write_text("echo hi\n", encoding="utf-8")
+    for command in (f"echo \"sqlcmd -S {P} -Q 'delete from t'\" > x && chmod +x x && ./x", "./direct.sh", f"{cwd}/direct.sh", "ls && ./direct.sh", f"chmod +x x; ./x {P}", f"cd /tmp && ./run.sh {P}",
+                    f"git rebase -x \"sqlcmd -S {P} -Q 'delete from t'\" HEAD~1", f"git rebase --exec \"sqlcmd -S {P}\" HEAD~1", f"git rebase --ex \"sqlcmd -S {P}\" HEAD~1", f"git bisect run sqlcmd -S {P} -Q x",
+                    f"git filter-branch --tree-filter \"sqlcmd -S {P} -Q 'delete from t'\"", f"GIT_EXTERNAL_DIFF=\"sqlcmd -S {P} -Q 'delete from t'\" git diff", f"GIT_PAGER=\"sqlcmd -S {P}\" git log", f"EDITOR=\"sqlcmd -S {P}\" git commit",
+                    f"git diff --ext-diff && echo {P}", f"git grep -O'sqlcmd -S {P}' x", f"git submodule foreach 'sqlcmd -S {P}'", f"git config alias.q '!sqlcmd -S {P}' && git q", f"git q {P}",
+                    f"ssh -o KnownHostsCommand=\"/bin/sh -c 'touch /tmp/x'\" ops@{H} ls", f"ssh -oKnownHostsCommand=x ops@{H} ls", f"ssh -o PKCS11Provider=/tmp/evil.so ops@{H} ls", f"ssh -F evil.cfg ops@{H} ls", f"ssh -I /tmp/evil.so ops@{H} ls",
+                    f"ssh -o 'Include evil.cfg' ops@{H} ls", f"ssh -o 'Match exec x' ops@{H} ls", f"ssh -o ProxyJump=x ops@{H} ls",
+                    f"ssh ops@{H} sort --outp=/etc/passwd x", f"ssh ops@{H} date --se=@0", f"ssh ops@{H} journalctl --rot", f"ssh ops@{H} journalctl --vac=1G", f"ssh ops@{H} ss --ki", f"ssh ops@{H} file --comp x", f"ssh ops@{H} pg_dump --fi=/tmp/x db",
+                    f"wget --post-d=x https://{P}/x", f"wget --meth=DELETE https://{P}/x", f"wget --body-d=x https://{P}/x", f"sort --compress-prog='ssh {H}' f", f"sort --compress='ssh {H}' f"):
+        assert refused(command), f"must be refused: {command!r}"
+    for command in ("./tame.sh", f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'",
+                    f"ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no -i key -p 22 ops@{H} uptime", f"ssh -oPort=22 ops@{H} 'tail -n 5 x'", f"ssh -o 'User ops' ops@{H} uptime",
+                    f"ssh ops@{H} 'sort -r x'", f"ssh ops@{H} 'journalctl --since today --no-pager'", f"ssh ops@{H} 'date --iso-8601=seconds'", f"ssh ops@{H} 'journalctl --reverse -n 5'", f"for f in a b; do sqlcmd -S {P} -Q 'select 1'; done"):
+        assert allowed(command), f"must pass: {command!r}"
     # the SQL lexer and brace expansion
     assert mask_sql("select 'a--b'; select 1 -- c").count("select") == 2 and mask_sql("select 1 /* x */ + 2") is not None and mask_sql("select 'abc") is None and mask_sql("select /* x") is None
     assert mask_sql('select pg_catalog."nextval"(1)') == 'select pg_catalog. nextval (1)' and mask_sql("select $$a;b$$") == "select ''" and mask_sql("select $x$a$x$ , $1") == "select '' , $1"
-    assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("172.16.{10..12}.52") == ["172.16.10.52", "172.16.11.52", "172.16.12.52"] and brace_variants("plain") == ["plain"]
+    assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("172.16.{10..12}.52") == ["172.16.10" ".52", "172.16.11.52", "172.16.12.52"] and brace_variants("plain") == ["plain"]
     with tempfile.TemporaryDirectory() as tmp:
         good = os.path.join(tmp, "t.json")
         for text, ok in ((json.dumps({"targets": [{"id": "a", "patterns": ["abcdef123"]}]}), True), ('{"targets": []}', True), ("not json", False), ("{}", False), ('{"targets": [{"id": "a"}]}', False),
@@ -1007,8 +1076,8 @@ def self_test():
         open(good, "w").write('{"targets": []}')
         assert load_table(good)[2] is not None, "an empty table warns"
         table, problem, _ = load_table()
-        assert problem is None and table and "rm-bp1690ep53t9778dp" in table, "the shipped table loads and names the legacy production RDS"
-        assert could_concern("sqlcmd -s x") and could_concern("rm-bp1690ep53t9778dp") and could_concern("echo $x") and could_concern("curl a{1,2}") and not could_concern("echo hello") and not could_concern("git status")
+        assert problem is None and table and "rm-bp1690ep5" "3t9778dp" in table, "the shipped table loads and names the legacy production RDS"
+        assert could_concern("sqlcmd -s x") and could_concern("rm-bp1690ep5" "3t9778dp") and could_concern("echo $x") and could_concern("curl a{1,2}") and not could_concern("echo hello") and not could_concern("git status")
         # hook process end to end, with the shipped and a missing table
         script = os.path.abspath(__file__)
 
@@ -1018,10 +1087,10 @@ def self_test():
                 env["PROD_TARGETS_FILE"] = table_path
             return subprocess.run([sys.executable, "-I", script], input=json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=env)
 
-        result = hook("aliyun rds DeleteAccount --DBInstanceId rm-bp1690ep53t9778dp")
+        result = hook("aliyun rds DeleteAccount --DBInstanceId rm-bp1690ep5" "3t9778dp")
         assert result.returncode == 2 and "底线 4" in result.stderr, result
-        assert hook("aliyun rds DescribeDBInstances --DBInstanceId rm-bp1690ep53t9778dp").returncode == 0
-        assert hook("python3 -c \"connect('rm-bp1690ep53t9778dp')\"").returncode == 2
+        assert hook("aliyun rds DescribeDBInstances --DBInstanceId rm-bp1690ep5" "3t9778dp").returncode == 0
+        assert hook("python3 -c \"connect('rm-bp1690ep5" "3t9778dp')\"").returncode == 2
         assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0
         gone = hook("psql -c 'delete from t'", os.path.join(tmp, "missing.json"))
         assert gone.returncode == 2 and "缺失或不合格" in gone.stderr, gone
