@@ -137,6 +137,7 @@ def run(mq):
             _docs_tiers(mq, d)
             _gh_commands(mq, d)
             _lanes(mq, d)
+            _urgent(mq, d)
             _dependencies(mq, d)
             _runner(mq, d)
             _ssh_update(mq, d)
@@ -453,6 +454,25 @@ def _pause(mq, d):
         return orig(n)
     gh.checks = checks
     assert proc.process(41) == "MERGED" and "WAIT-PAUSED" in events(log) and "RESUMED" in events(log) and events(log).index("WAIT-PAUSED") < events(log).index("MERGED"), events(log)
+
+
+def _urgent(mq, d):
+    # an urgent pull request is picked before the ones queued earlier, and the queue does not cancel its CI runs
+    gh = FakeGh()
+    for n in (80, 81, 82):
+        gh.add(n)
+    gh.prs[82]["labels"].add(mq.URGENT_LABEL)
+    proc, q, log, _ = _proc(mq, d, "u1", gh, [80, 81, 82])
+    assert proc.pick("code") == 82 and proc.pick("code") == 80 and proc.pick("code") == 81, "urgent first, the rest in queue order"
+    gh = FakeGh()
+    for n in (83, 84):
+        gh.add(n)
+        gh.runs[f"b{n}"] = [n * 10]
+    gh.prs[84]["labels"].add(mq.URGENT_LABEL)
+    proc, q, log, _ = _proc(mq, d, "u2", gh, [83, 84, 85])
+    gh.add(85); gh.runs["b85"] = [850]
+    proc.cancel_others(83, None)
+    assert ("cancel", 840) not in gh.calls and ("cancel", 850) in gh.calls, "only the pull request without the label loses its run"
 
 
 def _lanes(mq, d):
