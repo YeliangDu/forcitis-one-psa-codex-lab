@@ -204,6 +204,7 @@ WIDE = re.compile(r"""[(,]\s*(["'`](?:docs|modernization)["'`])|(?<=\.\./)(docs\
 # sources that match WIDE without reading docs at all (a pull request label named "docs" in a test string); every entry must still match, the self-test fails on a stale one
 WIDE_NOT_READERS = {
     "scripts/ci/heavy_gate.py": "the test strings use \"docs\" as a label name",
+    "scripts/ci/light_unit_classes.py": "docs/ is only a changed-path prefix and a fixture path in its self-test (a literal \"../docs/...\" in a temporary test source); it reads no document of this repository",
     "scripts/release/ci_passed.py": "its self-test builds a temporary git repository with a docs directory; it reads no document of this repository",
     "scripts/merge/mq.py": "\"docs\" is the name of a merge lane (and of the train subcommand); the only path it builds is relevant_change.py's, to ask it about a pull request's file list",
     "scripts/merge/mq_selftest.py": "lane names, and a stub relevant_change.py in a temporary directory; it reads no document of this repository",
