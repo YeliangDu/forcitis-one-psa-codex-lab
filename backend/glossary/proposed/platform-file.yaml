@@ -889,3 +889,213 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: one_time_link
+  zh: 一次性链接
+  en: OneTimeLink
+  snake: one_time_link
+  kind: aggregate
+  bc: platform.file
+  scope: domain
+  definition: 签发时绑定一张单据、一个动作、一个对方联系人与待阅文件、签发后不可改的外部访问链接，供链接持有人回签或上传；同一单据、动作、对方联系人同时只有一条有效链接（ADR-0063 决定 1）
+  standard_ref:
+  - ADR-0063 外部参与方一次性链接访问
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '暂名，ADR-0063 第 4 条要求不得叫外部主体（external_subject）'
+- id: one_time_link_holder
+  zh: 一次性链接的持有人
+  en: OneTimeLinkHolder
+  snake: one_time_link_holder
+  kind: role
+  bc: platform.file
+  scope: domain
+  definition: 凭一次性链接访问的外部参与方，没有账号、会话与权限，能做的事完全由链接限定；简称链接持有人（ADR-0063 决定 1）
+  standard_ref:
+  - ADR-0063 外部参与方一次性链接访问
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '简称链接持有人；不得叫外部主体'
+- id: masked_display_name
+  zh: 脱敏显示名
+  en: MaskedDisplayName
+  snake: masked_display_name
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 签发一次性链接时由所属模块传入并冻结在链接记录里的对方联系人脱敏名称，打开链接时不回查业务模块（ADR-0063 决定 9）
+  standard_ref:
+  - ADR-0063 外部参与方一次性链接访问
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: external_return
+  zh: 外部回传
+  en: ExternalReturn
+  snake: external_return
+  kind: entity
+  bc: platform.file
+  scope: domain
+  definition: 链接持有人提交所生成的一条记录，不改单据状态、不触发收入、不形成证据；所属模块人员审核后接收或退回（ADR-0063 决定 4，ADR-0060）
+  standard_ref:
+  - ADR-0063 外部参与方一次性链接访问
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '涉及收入证据的接收口径须经财务确认（ADR-0018）'
+- id: document_to_read
+  zh: 待阅文件
+  en: DocumentToRead
+  snake: document_to_read
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 签发一次性链接时冻结的文件服务中不可变文件引用与哈希，回签必填、上传可空；持有人只能查看，不能修改（ADR-0063 决定 1、3）
+  standard_ref:
+  - ADR-0063 外部参与方一次性链接访问
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: preservation_schedule
+  zh: 文件保存期限表
+  en: PreservationSchedule
+  snake: preservation_schedule
+  kind: aggregate
+  bc: platform.file
+  scope: domain
+  definition: 按保存类别列出默认保存年限与起算依据的版本化配置表，由文件服务对文件执行，新版本生效后重算未处置文件的到期日；工作名保存期限表（ADR-0061 决定 1、2）
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '与数据保留期限（data_retention_period）不同：后者管在线库与归档库的留存'
+- id: preservation_period
+  zh: 文件保存期限
+  en: PreservationPeriod
+  snake: preservation_period
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 文件按其保存类别应保存的最短年限及据此算得的到期日，到期日取类别默认与合同约定的较长者（ADR-0061 决定 1）
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '与数据保留期限（data_retention_period）不同'
+- id: default_preservation_years
+  zh: 默认保存年限
+  en: DefaultPreservationYears
+  snake: default_preservation_years
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 保存期限表中各保存类别的默认年限，如「不少于 10 年」（经验值，待法务确认），含个人信息文件可另设更短年限（ADR-0061 决定 2、3）
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '涉及收入的类别（合同及变更文件，客户确认及收入证据文件）须经财务确认（ADR-0018）'
+- id: preservation_review_list
+  zh: 文件保存复核清单
+  en: PreservationReviewList
+  snake: preservation_review_list
+  kind: read_model
+  bc: platform.file
+  scope: domain
+  definition: 每日作业生成的到期文件清单，以及起算事件长期不发生的含个人信息文件的兜底复核项；由复核人与确认人两人处置，可选删除、去标识、延长，不自动删除（ADR-0061 决定 3、6）
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: contract_and_amendment_files
+  zh: 合同及变更文件
+  en: ContractAndAmendmentFiles
+  snake: contract_and_amendment_files
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 保存期限表类别：合同、补充协议与变更文件；默认年限不少于 10 年，自合同履行完毕起算（ADR-0061 决定 2）；涉及收入，年限与起算须经财务确认（ADR-0018）
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '表头暂用名，用户 GL7 已批准；收入相关，须经财务确认（ADR-0018）'
+- id: customer_confirmation_and_revenue_evidence_files
+  zh: 客户确认及收入证据文件
+  en: CustomerConfirmationAndRevenueEvidenceFiles
+  snake: customer_confirmation_and_revenue_evidence_files
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 保存期限表类别：客户确认单与收入证据文件（ADR-0047 八类）；默认年限不少于 10 年，自所属合同履行完毕起算（ADR-0061 决定 2）；涉及收入，年限与起算须经财务确认（ADR-0018）
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '表头暂用名，用户 GL7 已批准；收入相关，须经财务确认（ADR-0018）'
+- id: signing_and_sealing_files
+  zh: 签署与用印文件
+  en: SigningAndSealingFiles
+  snake: signing_and_sealing_files
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 保存期限表类别：用印附件、签前件、签后件；默认年限不少于 10 年，自所属合同履行完毕起算，无合同的自用印或签署完成日起算（ADR-0061 决定 2、ADR-0064）；签章记录是库表行，不属本类别，由签章服务自行处置
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '表头暂用名，用户 GL7 已批准'
+- id: delivered_design_files_and_reports
+  zh: 交付设计文件及报告
+  en: DeliveredDesignFilesAndReports
+  snake: delivered_design_files_and_reports
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 保存期限表类别：交付物各版本的设计文件与报告；默认年限不少于 10 年，自项目结项起算（ADR-0061 决定 2）
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '表头暂用名，用户 GL7 已批准'
+- id: general_approval_attachments_excluding_sealing
+  zh: 非用印通用审批附件
+  en: GeneralApprovalAttachmentsExcludingSealing
+  snake: general_approval_attachments_excluding_sealing
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 保存期限表类别：用印以外的通用审批附件（合同借阅、IT 工单与资产、员工活动）；年限未定，未定前按不处置保存（ADR-0061 决定 2、4）
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '表头暂用名，用户 GL7 已批准'

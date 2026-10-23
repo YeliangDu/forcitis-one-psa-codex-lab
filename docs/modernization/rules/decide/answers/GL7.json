@@ -1,0 +1,46 @@
+{
+ "GL7~GL7-01": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "批准",
+  "no": "GL7-01",
+  "note": "",
+  "recommended": true,
+  "submission": "GL7-20261023-121210-4yj",
+  "submitted": "2026-10-23T10:12:10.749Z",
+  "unanswered": false
+ },
+ "GL7~GL7-02": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "统一叫「执业印章」",
+  "no": "GL7-02",
+  "note": "",
+  "recommended": true,
+  "submission": "GL7-20261023-121210-4yj",
+  "submitted": "2026-10-23T10:12:10.749Z",
+  "unanswered": false
+ },
+ "GL7~GL7-03": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "沿用「件」",
+  "no": "GL7-03",
+  "note": "",
+  "recommended": true,
+  "submission": "GL7-20261023-121210-4yj",
+  "submitted": "2026-10-23T10:12:10.749Z",
+  "unanswered": false
+ },
+ "GL7~GL7-04": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "批准",
+  "no": "GL7-04",
+  "note": "",
+  "recommended": true,
+  "submission": "GL7-20261023-121210-4yj",
+  "submitted": "2026-10-23T10:12:10.749Z",
+  "unanswered": false
+ }
+}

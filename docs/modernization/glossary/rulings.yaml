@@ -575,3 +575,45 @@ rulings:
     kind: value_object
     definition: 数据留在在线库或归档库的期限值，到期后删除或转归档；与「质保金」无关。
     source: one-glossary 2026-10-23 自修：名称已由 R3-IN-08 定，原 kind 误标 command，实为期限值（one-coordinator 审题 gl6-gl7-review-1 页级问题第 10 条）
+  - op: redefine
+    id: delivery_package
+    definition: 介于合同条款与工作包之间的一层交付单元，是验收对象类型之一；与工作包不同义，不与它合并。
+    source: 用户 2026-10-23 GL6-01（提交 GL6-20261023-121143-xi1）：选「分开叫，另写交付包的实例」，说明「交付包是工作包和合同条款的中间层，这个之前有决断，意思不应该一致」；此前决断为 2026-10-14 用语确认页 C83 正式词条（交付包）
+  - op: redefine
+    id: work_package
+    definition: WBS 最底层、可估算并管理成本和工期、可记工时的工作单元；与交付包不同义。
+    source: 用户 2026-10-23 GL6-01（同上，分开叫）；最底层含义依 PMBOK 与 WBS 标准（交接材料 WBS3、PMB6，未复核原件）
+  - op: redefine
+    id: earned_value
+    definition: 截至某时点已完成工作的预算价值（EV；GB/T 50358 称赢得值）；过去口头说的管理进展估计（旧称经营产值）按此口径算。
+    add_forbidden: [经营产值]
+    source: 用户 2026-10-23 GL6-02（提交 GL6-20261023-121143-xi1）：选「按已做完部分的预算价值（即挣值）」；该题标须经财务确认（ADR-0018），待财务核实
+  - op: rename
+    id: expense_claim
+    to_id: expense_confirmation
+    zh: 费用确认单
+    en: ExpenseConfirmation
+    definition: 引用已批申请（或政策豁免）的费用确认载体；员工垫付后还员工的报销与公司直付服务商或发卡机构共用这一张单，分别记付款方。
+    source: 用户 2026-10-23 GL6-03（提交 GL6-20261023-121143-xi1）：选「共用一张单，改叫费用确认单」；该题标须经财务确认（ADR-0018）
+  - op: redefine
+    id: position
+    definition: 组织编制里的具体用人位置（例如「结构二所主任工程师」）；费率档位只看职级，职位指工作类别。
+    source: 用户 2026-10-23 GL6-04（提交 GL6-20261023-121143-xi1）：选 A「岗位是组织编制里的具体用人位置」
+  - op: redefine
+    id: job_grade
+    definition: 员工职级 T1-T7 七级（组织主数据，计费费率与折扣权限的档位依据）；职位指工作类别、岗位指组织编制中的具体用人位置，职级只表示等级档位。
+    source: 用户 2026-10-23 GL6-04（同上），随岗位定义订正职级定义中「岗位的岗级体系」一句
+  - op: rename
+    id: social_insurance_and_housing_fund_enrollment_record
+    to_id: social_insurance_enrollment_and_housing_fund_contribution_record
+    zh: 社会保险参保与住房公积金缴存记录
+    en: SocialInsuranceEnrollmentAndHousingFundContributionRecord
+    definition: 同一份记录里分别记录社会保险参保（缴费主体、基数、增减员）与住房公积金缴存（账户设立、转移、封存）；公积金封存不等于保险终止参保。
+    forbid_old: false
+    late: true
+    source: 用户 2026-10-23 GL6-05（提交 GL6-20261023-121143-xi1）：选「共用记录，改叫社会保险参保与住房公积金缴存记录」
+  - op: redefine
+    id: partner_capital_contribution_record
+    late: true
+    definition: 记录合伙人认缴、实缴及退回情况的出资记录；出资人只含合伙人，不含普通股东。
+    source: 用户 2026-10-23 GL6-06（提交 GL6-20261023-121143-xi1）：「公司出资人里除合伙人外是否有需记录出资的普通股东」选「没有」；该题标须经财务确认（ADR-0018）
