@@ -86,6 +86,31 @@ jobs:
         run: |
           python3 scripts/ci/relevant_change.py --self-test
           python3 scripts/ci/relevant_change.py "$BASE_REF"
+      # the hook and CI-script self-tests left scripts/precheck.sh --pre-push (GOV-1023-QUA-04); they run here because this job is a required check, unlike assertion drift (warning only)
+      - name: hook and CI-script self-tests
+        run: |
+          python3 scripts/hooks/pre_push_gate.py --self-test
+          python3 scripts/hooks/command_words.py --self-test
+          python3 scripts/hooks/prod_write_gate.py --self-test
+          python3 scripts/hooks/pre_tool_dispatch.py --self-test
+          python3 scripts/hooks/codex_stdin_gate.py --self-test
+          python3 scripts/hooks/main_checkout_gate.py --self-test
+          python3 scripts/hooks/context_handoff.py --self-test
+          python3 scripts/ci/light_unit_classes.py --self-test
+          python3 scripts/ci/heavy_gate.py --self-test
+          python3 scripts/ci/docker_diagnostics.py --self-test
+          python3 scripts/ci/failure_summary.py --self-test
+          python3 scripts/ci/repeat_new_tests.py --self-test
+          python3 scripts/hooks/precheck_before_pr.py --self-test
+          python3 scripts/hooks/commit_msg_gate.py --self-test
+          python3 scripts/hooks/bg_task_name_gate.py --self-test
+          python3 scripts/ci/heavy_slot.py --self-test
+          python3 scripts/hooks/handoff_selftest.py --self-test
+          python3 scripts/hooks/session_context.py --self-test
+          python3 scripts/hooks/start_sheet.py --self-test
+          python3 scripts/hooks/stop_status_gate.py --self-test
+          python3 scripts/coord/mailbox.py --self-test
+          python3 scripts/hooks/run_from_main_selftest.py
       - name: heavy steps allowed? (pull request labelled `queued`; never on a push to main)
         id: heavy
         env:
@@ -245,7 +270,7 @@ jobs:
             echo "$PWD" >> "$GITHUB_PATH"
           fi
       - run: gitleaks git --redact --no-banner --exit-code 1 .
-      # 记录与 ADR 由片段生成：terms.yaml 等仍入仓的产物与重新生成的结果不一致即失败；ADR 拷贝与索引、brief、提议术语清单 README、全景 panorama.yaml 与 GAPS.md、INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成且没被跟踪
+      # 记录与 ADR 由片段生成：terms.yaml 等仍入仓的产物与重新生成的结果不一致即失败；ADR 拷贝与索引、brief、提议术语清单 README、全景 panorama.yaml 与 GAPS.md、ssot/11-commands/{commands.yaml,GAPS.md}、INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成且没被跟踪；命令编号登记与转换仍校验一致
       - name: python3 has PyYAML 6.0.3 (SUPPLY_CHAIN S1)
         run: |
           python3 - <<'PY'
@@ -318,18 +343,6 @@ jobs:
         with:
           fetch-depth: 0
       - run: python3 scripts/ci/assertion_drift.py --self-test
-      - run: python3 scripts/hooks/pre_push_gate.py --self-test
-      - run: python3 scripts/hooks/command_words.py --self-test
-      - run: python3 scripts/hooks/prod_write_gate.py --self-test
-      - run: python3 scripts/hooks/pre_tool_dispatch.py --self-test
-      - run: python3 scripts/hooks/codex_stdin_gate.py --self-test
-      - run: python3 scripts/hooks/main_checkout_gate.py --self-test
-      - run: python3 scripts/hooks/context_handoff.py --self-test
-      - run: python3 scripts/ci/light_unit_classes.py --self-test
-      - run: python3 scripts/ci/heavy_gate.py --self-test
-      - run: python3 scripts/ci/docker_diagnostics.py --self-test
-      - run: python3 scripts/ci/failure_summary.py --self-test
-      - run: python3 scripts/ci/repeat_new_tests.py --self-test
       - run: python3 scripts/ci/assertion_drift.py origin/${{ github.base_ref }}
       # report only (SCAN_SUPPLEMENT, one-data): findings never fail the job; the self-test does, and so does a crash of the scan (bash -e with pipefail); statements the scan cannot model raise a warning
       - name: baseline DDL scan (report only)

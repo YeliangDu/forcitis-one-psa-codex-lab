@@ -23,9 +23,9 @@
 
 | 项 | 值 |
 |---|---|
-| 在途 PR | #673（GOV-1023-ARC-01 第①步，分支 claude/one-architecture-ssot-step1，预检 0 FAIL，待 opus 首轮复审，入队排在预检提速之后）；另 admission-file 分支 @148d3c4af（签章准入、续记四）待 one-merge 收 |
-| 当前步 | 2026-10-23 晚清空前交接：GOV-1023-ARC-01 第①步已开 #673（ssot/ 为架构唯一来源，intent 2026-10-23-154833；路径对照与 proposals/ 限期例外见 ssot/PATHS.md）。下一步：①等 #673 复审与合入，复审意见按 opus 首轮处理；②请 test-engineer 把两个改名验收测试的 ddd/aggregates.yaml 改读 ssot/i03-aggregates/built.yaml，合入后本会话删 ddd/aggregates.yaml 并把 relevant_change 该行改回；③第②步流程合一（process/、bpmn/processes.yaml、closeout/process-catalog.yaml 合成一份，脚本改读正本，加检查拦脚本读 proposals/，按 PATHS.md §2 放行限期例外）；④第③步清重复（他会话文件出改法、归属会话提交）。只在 PR 节点报 one-coordinator。待触发：D2 后 integration api 超 12 即开卡拆文件桶端口。签章服务已准入（10-23）。未完成的用户请求：GOV-1023-ARC-01 第②③步与回表 |
-| 已定（2026-10-22） | 命令编号持久登记（`ssot/11-commands/command-ids.yaml`，改名声明 former_names 沿用旧号，登记缺失须 --seed）；聚合根未建须列 `panorama/unbuilt_roots.yaml`（负责人、到期、≤60 天）；指标 kind 只取业务指标、出口条件、技术度量；NAMING §2.3 审计列为 created_at、updated_at、version；号段 PRC 到 202、AGG 到 137 |
+| 在途 PR | 无；文档交付与四节点报告按 TEAM-53，合集自扫分支，one-merge 按调度批准收合集 |
+| 当前步 | 2026-10-22：ADR-0074～0077 已采纳；网络第三批卡 12～15 完成（facts、dimensions、kpis、bindings 四份登记接入全景节点 11～14）；#574、#580 已合入。下一步：三组设计分支进 main 后做 GL5 与聚合稿一批；签章服务准入复核。交接 `proposals/HANDOFF_2026-10-22.md` |
+| 已定（2026-10-22） | 命令编号持久登记（`ssot/11-commands/command-ids.yaml`，改名声明 former_names 沿用旧号，登记缺失先从 git 恢复 command-ids.yaml；确需起底才 --seed，且须先从 generated-docs 分支或备份恢复 commands.yaml 快照）；聚合根未建须列 `panorama/unbuilt_roots.yaml`（负责人、到期、≤60 天）；指标 kind 只取业务指标、出口条件、技术度量；NAMING §2.3 审计列为 created_at、updated_at、version；号段 PRC 到 202、AGG 到 137 |
 | 规矩（2026-10-22） | 守护与工具脚本单独开 PR；文档合集按 TEAM-53 由 one-merge 自扫分支；已答确认页题面是历史记录不改；不用 --no-verify |
 | 已定（2026-10-16 晚） | 结构裁定 S-29–S-44；VS-02.7 改名收尾；新增 VS-04.6 履约、VS-08.0 事前申请；归段判据写进 stage_align_check；权责表 586 条冲突 0；跨组接缝清零 |
 | 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
