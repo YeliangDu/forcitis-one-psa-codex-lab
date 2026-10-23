@@ -371,16 +371,13 @@ class StorageTests(unittest.TestCase):
                 with self.assertRaises(snapshot.SnapshotError):
                     snapshot.latest(directory, "/source", "source", deadline=10)
 
-    def test_precheck_trigger_registration(self):
-        script = (HOOKS.parent / "precheck.sh").read_text(encoding="utf-8")
-        condition = re.search(r"(?m)^if (.*); then\n  run_step \"guards: handoff \(self-test\)", script).group(1)
-        with tempfile.TemporaryDirectory() as tmp:
-            for path in ["scripts/hooks/session_context.py", "scripts/hooks/precompact_snapshot.sh", "scripts/hooks/handoff_safe_selftest.py", "scripts/hooks/handoff_storage_selftest.py"]:
-                with self.subTest(path=path):
-                    (Path(tmp) / "changed").write_text(path + "\n", encoding="utf-8")
-                    code = 'touches() { grep -Eq "$1" "$work/changed"; }; if ' + condition + '; then exit 0; else exit 1; fi'
-                    result = subprocess.run(["/bin/bash", "-c", code], env={"PATH": "/usr/bin:/bin", "work": tmp}, capture_output=True, text=True)
-                    self.assertEqual(result.returncode, 0, "handoff self-tests must be triggered")
+    def test_ci_runs_handoff_selftests(self):
+        # the handoff self-tests left scripts/precheck.sh (GOV-1023-QUA-04) for the required CI job: an unconditional step, so every change to these files is exercised
+        workflow = (HOOKS.parents[1] / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        step = re.search(r"(?m)^      - name: hook and CI-script self-tests\n((?:        .*\n|\n)+)", workflow)
+        self.assertIsNotNone(step, "the required CI job has no hook and CI-script self-tests step")
+        self.assertNotIn("if:", step.group(1).split("run:")[0], "the step must not be conditional")
+        self.assertIn("scripts/hooks/handoff_selftest.py --self-test", step.group(1))
 
 
 if __name__ == "__main__":

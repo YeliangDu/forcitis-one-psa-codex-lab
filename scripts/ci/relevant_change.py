@@ -704,6 +704,8 @@ def main():
     if sys.argv[1:] == ["--self-test"]:
         self_test()
         return
+    if len(sys.argv) == 3 and sys.argv[1] == "--reads-docs":   # precheck.sh: exit 0 when a listed path is a file the builds read (READ_BY_BUILDS only: the always-run checks are CI's)
+        sys.exit(0 if any(not p.startswith(NOT_READ_BY_BUILDS) and p.startswith(READ_BY_BUILDS) for p in Path(sys.argv[2]).read_text(encoding="utf-8").splitlines() if p) else 1)
     if len(sys.argv) == 3 and sys.argv[1] == "--paths-from":
         paths = Path(sys.argv[2]).read_text(encoding="utf-8").splitlines()
         print(flag("relevant", any_relevant(paths)))
