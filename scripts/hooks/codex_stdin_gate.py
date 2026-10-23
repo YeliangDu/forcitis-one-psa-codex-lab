@@ -18,57 +18,15 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from command_words import name_of, plain, unquote_dollar  # noqa: E402
+from command_words import ENV, HEREDOC, KEYWORDS, SEPARATORS, SHELLS, WRAPPERS, name_of, plain, tokens_of, unquote_dollar, without_heredoc_bodies  # noqa: E402,F401
 
-SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
-KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
-# wrapper -> options that take a value
-WRAPPERS = {"command": set(), "env": {"-u", "-C", "-S"}, "time": {"-f", "-o"}, "exec": {"-a"}, "nohup": set(), "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U"},
-            "builtin": set(), "timeout": {"-s", "-k"}, "nice": {"-n"}, "stdbuf": {"-i", "-o", "-e"}}
-SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "eval"}
 CODEX_VALUE_OPTIONS = {"-c", "--config", "-m", "--model", "-p", "--profile", "-C", "--cd", "-s", "--sandbox", "-a", "--ask-for-approval", "--enable", "--disable", "-i", "--image"}
 REDIRECTS = {"<", "<<", "<<-", "<<<", "<&"}
-ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-HEREDOC = re.compile(r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
 MESSAGE = ("codex exec / pi 没有关闭标准输入，会一直读标准输入干等（codex 停在「Reading additional input from stdin」，pi 在没有终端时先读完标准输入才开始）。"
            "在命令末尾加 `< /dev/null`（SESSION_PLAYBOOK TEAM-34）；确需从管道或文件喂提示词时用 `| codex exec -`、`| pi -p` 或 `< 文件`。")
 NETWORK_WARNING = ("告警：codex exec 未显式禁网，或使用了 danger-full-access / --dangerously-bypass-approvals-and-sandbox。"
                    "按 SESSION_PLAYBOOK TEAM-34 使用 `-c sandbox_workspace_write.network_access=false` 与受限沙箱（或 `-s read-only`）；"
                    "前端命令使用 `pnpm --offline --config.verify-deps-before-run=false`。本告警不拦截调用。")
-
-
-def without_heredoc_bodies(command):
-    """The lines of a command line, with here-document bodies dropped (a body is text, not commands)."""
-    lines, out, end = command.replace("\\\n", " ").split("\n"), [], None
-    for line in lines:
-        if end is not None:
-            if line.strip() == end:
-                end = None
-            continue
-        out.append(line)
-        found = HEREDOC.search(line)
-        if found and "<<<" not in line[found.start():found.start() + 3]:
-            end = next(g for g in found.groups() if g)
-    return out
-
-
-def tokens_of(command):
-    """Shell tokens of a command line; lines are tokenised on their own so a # comment ends with its line, and a quote left open continues onto the next line."""
-    tokens, pending = [], ""
-    for line in without_heredoc_bodies(unquote_dollar(command)):
-        pending = pending + "\n" + line if pending else line
-        lexer = shlex.shlex(pending.replace("`", " ; "), posix=True, punctuation_chars=True)
-        lexer.whitespace_split = True
-        lexer.commenters = "#"
-        try:
-            found = list(lexer)
-        except ValueError:
-            continue
-        tokens += found if found and found[-1] in ("|", "&&", "||", "|&") else found + [";"]
-        pending = ""
-    if pending:
-        raise ValueError("unterminated quote")
-    return tokens
 
 
 def stdin_open(seg, piped_in):

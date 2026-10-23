@@ -2,12 +2,12 @@
 
 一行一项，过程放链接（SESSION_PLAYBOOK TEAM-07、08）。接续会话先读本文件、`sessions/one-quality.md`、`quality/defect-bank/one-quality.md`，再 `gh pr list --author @me` 核对在途 PR（以 gh 为准，下表会过期）。
 
-## 工作守则要点（全文见画像）
+## 规则入口（以现行 SESSION_PLAYBOOK 为准）
 - 动基础设施前过「兼容性预检清单」（Colima 试点事故，QUAL-004）；耗时类改动先按步骤拆数据；新增自测先破坏验证；接钩子/CI 的脚本端到端各跑一次放行与拦截；评审意见先核实再采信；交出前回测错题本。
-- 子代理显式指定模型：取数 sonnet/haiku，首轮复审 opus，改后复核 sonnet；子代理用中文。
+- 模型与待命：TEAM-32、33、67（Codex 先行；代码首轮 opus，一般改后作者交 Codex 复核，安全门 opus）；以下已完成复审的模型是历史执行证据，未执行步骤一律用现行矩阵。
 - **推送前钩子在整条命令执行前检查**：改动/提交与 `git push` 分两条命令；`cd` 用绝对路径、不用 `$变量`；检查在命令所在目录的仓库上跑。
-- 新开 PR 规则（用户 2026-10-16 采纳）：文档不开 PR，在制代码 PR ≤1，一个提交不混文档与代码；代码 PR 只在工作单元完成（验收、实现、opus 复审齐）时开，中间只提交；PR 开出必须报 one-coordinator；Auto-fix 已由用户在 app 统一关闭。
-- 文档提交推到会话分支 `claude/one-quality-docs` 后报「分支 + 提交号」，调度每天中午、晚上收进合集（`merge_train.py docs`，逐个合并、只许 docs/）；合集合入后同步一次 main；工具一个工作单元一个 PR，复审齐备即入队。
+- PR、在制上限、同主题契约同步及报告分别按 TEAM-40、43、53、106；复审按 TEAM-67；Auto-fix 按 TEAM-13。
+- 文档分支 `claude/one-quality-docs` 的合集与通信按 TEAM-53；人工入队、评论留痕及批次审计按 TEAM-45；自动入队永久关闭。
 
 ## 派工序列与现状（one-coordinator，2026-10-17 更新；顺序固定）
 1. docs 子命令 PR：分支 `claude/one-quality-train-docs`（merge_train.py docs 子命令 + precheck 前端依赖文案），已过 opus 复审；等 #410 合入后同步 main 再开 PR。
@@ -78,8 +78,8 @@
 - 已出结果：Q2-sonnet 完成（子代理报 duration 146749 ms、85974 tokens；提交 927a7b0c，4 个用例，破坏验证 3 个变红，守护测试全过）。Q3-sonnet 完成（308711 ms、101502 tokens；提交 33b19b4a，554 个执行点，enforces 非空率 9.0%，精确破坏验证通过，precheck 3 PASS/0 FAIL）。其余四个执行者（q2-codex、q2-ds、q3-codex、q3-ds）接续时先看对应 `.end` 与 worktree 的 `git log`/`RESULT.md`。
 - 注意：评测期间各 worktree 不要合并/推送；测试用 `./mvnw -o test-compile surefire:test -Dtest=…`，不要触发 export-openapi。
 
-### 用户新定（2026-10-21 intent 153432）：不用自动清空，只需要能自动交接
-#511 合入后接一张卡：`context_handoff.py` 提醒文案删去 `clear_session self`，只要求更新上下文文档与交接节并报 one-coordinator；`context_windows.json` 的 `pilot_sessions` 改为全部会话（null）。之前“试 clear_session self”作废，不再清空自己。
+### 历史决定（2026-10-21 intent 153432，已被 10-22-172418 取代）：不用自动清空，只需要能自动交接
+以下是已撤回的历史方案，不再派卡；当前自清按 TEAM-07、GOV-1022-QUA-07。原方案：#511 合入后 `context_handoff.py` 提醒文案删去 `clear_session self`，只要求更新上下文文档与交接节并报 one-coordinator；`context_windows.json` 的 `pilot_sessions` 改为全部会话（null）。之前“试 clear_session self”作废，不再清空自己。
 
 ### QUA-05 现状快照（2026-10-21 16:20，上下文 86%，调度要求立即交接后停手，等用户清空）
 **已跑完（可直接盲评）**：
@@ -101,7 +101,7 @@
 
 ### QUA-03：七个钩子（用户回「加」，intent @1e24e8b6；钩子自己写，单列 PR，opus 首轮，每个带 --self-test，误拦有放行写法，先 one-coordinator、one-ops 试点）
 1 派子代理（Agent）不写 model 就拒绝；2 直接 Edit/Write 生成产物（INTENT.md、SESSION_LOG.md、STATUS.md、adr/ADR-*.md、adr/README.md）就拒绝并提示改片段；3 在主检出目录 /Users/yeliang/Projects/FORCITIS/forcitis-one-psa 里改文件、提交就拒绝（快进合并放行，one-merge 要用）；4 改 ci.yml、scripts/ci、.claude、scripts/hooks、验收测试时提示：守护文件单列 PR、opus 复审、验收改动先有 main 上的裁定；5 命令输出疑似密钥就告警并提示改写，拦已知返回私钥的调用（如阿里云 DescribeDBInstanceSSL 原样输出）；6 run_in_background 等启动常驻进程时提示登记台账并写明重启后由谁拉起；**7（调度扩）SessionStart（startup|clear|compact）检查落后 origin/main 的提交数：分支无独有提交→自动 fast-forward 并报一行；有独有提交→不自动合，只注入「先合入 main 再开工」+落后数；冲突留给会话，钩子里不做**。
-- 经验：桌面 app 钩子读的是**主检出**的 .claude/settings.json 且 CLAUDE_PROJECT_DIR 是主检出；钩子类 PR 合入后须先把主检出快进到 origin/main 再重启 app（stop_hook_summary 里出现脚本名即生效）；root 取 payload.cwd。
+- 经验：桌面 app 钩子读的是**主检出**的 .claude/settings.json 且 CLAUDE_PROJECT_DIR 是主检出；钩子类 PR 合入后须先把主检出快进到 origin/main ；settings 注册变化需重启 app。钩子及子调用从主检出运行待 GOV-1023-QUA-06，stop_hook_summary 出现脚本名不等于全员已加载正确版本；root 取 payload.cwd。
 
 ### 新卡：AskUserQuestion 门禁（用户定，intent 2026-10-21-160954；排在 QUA-05 评测后、QUA-03 前）
 PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordinator 时 deny，理由写「按 SESSION_PLAYBOOK TEAM-60、62：技术问题报 one-coordinator，要用户定的写收件箱」；会话名解析沿用 session_context.py（`identify`），解析不出时放行并告警一次；钩子崩溃不得挡住；带自测；SESSION_PLAYBOOK 同步一句；改 .claude/settings.json，PR 要 opus 复审，合入后调度请用户重启。起因：one-1a-par 用提问框问用户 #509 重跑还是排查。
@@ -137,7 +137,7 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 新检出工作树要先 `python3 docs/modernization/build_all.py` 生成不入仓产物（含 panorama.yaml、RULE_INDEX.md 等），全景单测和 notes_check 才能跑。
 - 相对于被移出产物的合并冲突：一律 `git rm --cached` 保留删除，不要保留对方版本（`build_all.py --check` 现在会拦「被忽略的产物又被跟踪」）。
 - mq 合入后 one-merge 要重启 launchd 代理才生效；mq.py/mq_selftest.py 里不要出现点名文档路径的字面量（relevant_change.py 把点名的脚本当读者），用 `MOD = "docs" + "/" + "modernization"` 一类拼接。
-- 复审分级：首轮 opus，改后复核 sonnet；每个 PR 的结论要贴到 PR 上（#583 曾因没贴被问）。
+- 复审按 TEAM-67；每个 PR 的结论要贴到 PR 上（#583 曾因没贴被问）。
 - 主检出现有 4 个未跟踪文件（architecture/proposals/ 下），同路径文件合入时快进会被 git 拒绝并停队，归属待用户确认。
 - macOS 夜间自动装更新（凌晨 2~5 点）会让 runner 起不来，nightly 已定 01:23 本机避开；系统设置未动。
 
@@ -262,7 +262,7 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 1. 报调度 #641；盯 #627、#589、#641 合入。
 2. #627 合入后落地新规则手册（草稿 `~/.modernize/psa/coordinator/team-audit/pb/`：新 PB、DATA_DESIGN_CHECKLIST、playbook_digest/build_sessions 改写、mapping.md 列的 338 处引用，引用同步可派 sonnet），单开一个 PR。
 3. 钩子卡顺序 24→25→17→26（片段在 `claude/one-coordinator-two-lanes` @4873b81d7）。
-4. 本分支交接节仍未进 main，另提 docs 提交报 one-merge。
+4. 本分支交接节仍未进 main，文档合集按 TEAM-53 自扫分支。
 
 ## 交接（2026-10-23 上午，节点：#645 必改已推送；第五次清空接续）
 
@@ -272,7 +272,7 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 与草稿的偏离已写 PR 正文：保留画像「上下文文档」节（承载交接源）。
 
 ### 下一步（顺序，one-coordinator 2026-10-23 定）
-1. Codex 复核结论 → 贴 #645 → 报 one-coordinator head。
+1. Codex 复核结论 → 贴 #645 → 按 TEAM-53 在全绿请批节点报调度（head 写 PR）。
 2. **GOV-1023-QUA-01 会话通信可靠投递（加急，排在其他守护卡前）**：卡在 `claude/one-coordinator-two-lanes` @abf470cf9（`git show origin/claude/one-coordinator-two-lanes:docs/modernization/tasks/GOV-1023-QUA-01.md`）。要点：Stop 钩子要求末行「状态：继续｜待命｜等调度｜等用户｜完成点」；等调度/完成点须本轮有发往 one-coordinator 的发消息调用，否则挡；钩子把末条消息写 `~/.modernize/psa/mailbox/`；`scripts/coord/mailbox.py list --unacked|ack|stale`。设计想法：Stop 目前只有 `context_handoff.py` 一个入口（settings.json），新建 `scripts/hooks/stop_status_gate.py` 做判定函数，由 context_handoff 的 Stop 路径先调用，不新增并行入口。钩子与解析自己写，信箱脚本与自测可交 Codex，破坏验证与端到端演示按卡。单列 PR、opus 首轮。
 3. 之后：QUA-24→25→17→26，再 QUA-11～16、19～23、MRG-04 钩子侧（QUA-22 迁移清单先进收件箱）；QUA-14 里顺带把已合入卡改「完成」，QUA-17 任务名前缀改 [流程治理·跨域]。
 4. 其后沿用原队列：仓库内容治理执行、GOV-1022-COO-17、登记 RULING-COORD-20261022-05。
@@ -353,20 +353,23 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - **GOV-1023-QUA-06 加急（排在 #653/#654 返工之前，自写，opus 首轮；卡在 `claude/one-coordinator-two-lanes` @1e482dd53，正文推送后可读，先按此开工）**：①`.claude/settings.json` 钩子统一从主检出的 scripts/hooks 运行（各工作区钩子落后：one-data 落后 553、one-ops 落后 381 次提交，均无 start_sheet.py，开工单 24 小时失败 11 次）；②推送门被拦只回 FAIL 行与日志路径（现回末 40 行约 3.8k 字、日 59 次）；③交接节点提示只列卡号；④context_handoff 按会话读阈值（调度 50/60）；⑤同一 PR 给仓库 `.claude/settings.json` 加项目级 `enabledPlugins`：kotlin-lsp@claude-plugins-official、claude-code-setup@claude-plugins-official、code-modernization@claude-plugins-official 设 false（mattpocock-skills、code-simplifier 保留），PR 写明需各会话重启生效。
 - **QUA-21 收窄（用户 10-23）**：TEAM-41 的 800 行／15 文件改为复审参考线，不做硬拦截；QUA-21 只在 PR 检查里提示超线并要求 PR 写理由，不阻断；Codex 在做的那份按此收窄。TEAM-72 重复跑三遍不变。
 
-## 交接（2026-10-23 午后，节点：#653 二轮必改已推送；第九次清空接续）
+## 交接（2026-10-23 午后，节点：#653 合 main 并补强已推送；第九次清空接续）
 
 ### 现状
-- 调度 10-23 整改总验收 GOV-1023-COO-01（清单 `~/.modernize/psa/coordinator/team-audit/acceptance-1023.md`，54 项）：顺序 QUA-06 → #653/#654＋QUA-08 → QUA-04 → QUA-07 → QUA-02 → 其余；代码类交 Codex，钩子与解析自写。QUA-21 改「撤硬拦只提示」，QUA-12 不禁整节上下文文档。1023 的 QUA-06～10 卡在 `origin/claude/one-coordinator-two-lanes`，随 train-71 进 main。
-- **QUA-06 已开 PR #659**（分支 `claude/one-quality-hooks-main-checkout`，head fb56502d2）：run_from_main.sh 启动器＋settings 全部钩子改走它、handoff_snapshot 子调用用自身目录、verdict ≤15 行＋完整日志路径、节点提示只列卡号标题、调度 50/60；自测与破坏验证齐，等调度安排 opus 首轮。
-- **#653 二轮 6 项必改已改并推送**（head 80bf77e25）：只读通道删 b5_legacy_run.py／c14_run.py；可信脚本认 origin/main 内容；`./x` 直接执行与行级兜底；git 本地子命令白名单；ssh -o 白名单；GNU 长选项任意前缀。8 处破坏验证均变红。**待办：交 sonnet 逐条复核（对照 `~/.modernize/psa/coordinator/reviews/pr653-opus-2.md`），结论贴 PR，报调度 head；PR 描述补「通道整支只读」依据，并请 one-ops 核剩余三支。**
-- #654 等新 #653 后推（调度语）。
+- 调度整改总验收 GOV-1023-COO-01（清单 `~/.modernize/psa/coordinator/team-audit/acceptance-1023.md`）。**借调（用户同意）**：QUA-02、QUA-23 转 one-1a-par；QUA-09、QUA-10 转 one-platform-file（Codex 执行、它们审）。我专守 **#653 → #654 → QUA-08 → QUA-04 → QUA-07**；碰我独占路径有异议直接告诉调度。1023 的 QUA-06～10 卡在 `origin/claude/one-coordinator-two-lanes`。
+- **#659（QUA-06）**：opus 首轮必改 7 项＋sonnet 复核补强已改，sonnet 复核通过，**调度已批入队**（head 36f2056f1）。代价：合入后须 one-merge 立即快进主检出，再发“合并 main 并重启会话”通知，否则已合并会话在主检出尚无启动器时钩子 127。
+- **#653（QUA-24）**：opus 二轮 6 项必改已改，调度的 sonnet 复核通过；与 main 冲突已合并（`scripts/precheck.sh` 触发正则取并集，合并提交 b599259b9）；我自己的 sonnet 复核又给新绕过，最严重两处已修（信任锚改全名 `refs/remotes/origin/main`、tag／update-ref 移出 git 白名单、git grep -O 合并写法），**新 head 013cf4b0f，已报调度，等调度批**。
+- 余项转 QUA-08（共享解析一并）：A 可信脚本的同目录 import 依赖不比对；B 同目录影子模块（需 -I／目录洁净）；D script_operand 对 bash -e／-o、`< x` 重定向读文件、/usr/bin/env bash 不一致；F 远端命令环境变量前缀（SYSTEMD_PAGER／LD_PRELOAD）；G journalctl --cursor-file、ss -D 写文件；H wget -e；I Makefile／git hook 间接执行（文件头已承认）。另有 opus 二轮建议：select next value、query_to_xml 已加；sed 地址 e 命令、aliyun 布尔全局选项、`psql "$DATABASE_URL"` 误杀提示未做。
+- 低优先待办：ClamdScannerTest.aSilentClamdTimesOutAndIsRetriedWithinTheLimitThenRefused 偶发超时（one-architecture 报，@aacc7d521 附近）——登记 CI 复发跟踪（不稳定测试台账），定性后若属文件服务测试自身转 one-platform-file。
 
 ### 下一步（顺序）
-1. sonnet 复核 #653 → 贴 PR → 报 head。
-2. QUA-08（command_words 缺口统一修，与 #653/#654 的共享解析一并）→ #654 返工 → QUA-04 → QUA-07 → QUA-02 → 其余（QUA-09、10 交 Codex）。
-3. 本交接文档的提交号报 one-merge。
+1. #654 按新 #653 重基并返工（发帖侧门；删去“通过后开启自动入队”条件；同一套 command_words 缺口）→ opus／sonnet 复审。
+2. QUA-08：command_words.py 共享解析余项（反引号、$'..'、反斜杠换行、bash -lc／多参 eval／heredoc／herestring／管道喂 shell、env -S、gh 全局选项）＋上面 A–I；全部门自测重跑；COO-17 待建指针收口。
+3. QUA-04（调度定义）→ QUA-07 交接源与挡停闭环（只更新交接源放行、只改时间戳拦截，两组反例）。
+4. 本交接文档的提交号报 one-merge。
 
 ### 坑
-- 唯一可写工作区 `xin-61164f`：先 `git branch --show-current`；PR 分支轮流 checkout（#653 `claude/one-quality-gate-prod-write`、#659 `claude/one-quality-hooks-main-checkout`）。
+- 唯一可写工作区 `xin-61164f`：先 `git branch --show-current`；PR 分支轮流 checkout（#653 `claude/one-quality-gate-prod-write`、#659 `claude/one-quality-hooks-main-checkout`、交接 `claude/one-quality-handoff-6`）。合并 main 前未跟踪的 `docs/modernization/sessions/_COMMON.md` 要先移走（已存到 scratchpad）。
 - macOS sed -i 需 `''`；改文件用 Edit／python 脚本。拆源码里的真实特征字面量用相邻字符串拼接（`"a" "b"`）。
-- 守护自测里「相对常量断言」会同义反复（EXCERPT_LINES+3），写死数字。
+- 自测里“相对常量断言”会同义反复，写死数字；复核用 Agent 时 description 须写成 `#PR号 名称 (执行者)`，后台 Bash 同理。
+- 清空前若有用户消息在排队，clear_session 会被拒；先等其处理。
