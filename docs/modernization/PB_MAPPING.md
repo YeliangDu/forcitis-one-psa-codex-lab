@@ -1,6 +1,6 @@
-# 旧 PB → 新 PB 对照与引用同步清单（GOV-1022-COO-15 草稿）
+# 旧 PB → 现行 PB 对照与引用迁移记录（GOV-1022-COO-15）
 
-旧 PB = `docs/modernization/SESSION_PLAYBOOK.md`（分支 claude/one-coordinator-two-lanes，112 KB，含 a73d2ed52 记忆移回）。新 PB = `pb/SESSION_PLAYBOOK.new.md`；DDC = `pb/DATA_DESIGN_CHECKLIST.md`。
+旧 PB 指规则表合并前的历史版本；现行正本为 `SESSION_PLAYBOOK.md`，DDC 为 `DATA_DESIGN_CHECKLIST.md`。本文件保留迁移时的旧节／旧号对照，不是执行入口；新引用用 PB「旧编号并入指向」的最终主条。下列历史预案与行号不代表当前未完成项，现行规则以最新 intent 和 PB 为准。
 
 ## 一、逐节逐条对照
 
@@ -9,7 +9,7 @@
 | §0 核心原则 1–4 | 删除 | 背景进 intent；仍有效的落 TEAM-07（状态写文件）、TEAM-21（一卡一单元）、TEAM-91–94（人做决定）、TEAM-14（固定开场） |
 | §1 状态文件表 | TEAM-15、24、56、76；STATUS.md、SESSION_LOG.md 行删除 | status/、session-log/ 已停（总方案第二节第 9 条）；「版本化（待用户确认）」已过时，删除 |
 | §2 会话种类表 | 删除；角色见附表 A | 种类表是 10-14 的旧划分 |
-| §2.1 第 1 条 生命周期与交接 | TEAM-05、06、07 | 30/40 阈值（P-01）；75/85 旧值删 |
+| §2.1 第 1 条 生命周期与交接 | TEAM-05、06、07 | 现行调度 50/60、其余 30/40（TEAM-05；intent 081732） |
 | §2.1 第 2 条 命名与唯一 | TEAM-02 | |
 | §2.1 第 3、4 条 权限模式、推理强度 | TEAM-13 | |
 | §2.1 第 5 条 工作区纪律 | TEAM-86 | |
@@ -80,7 +80,7 @@
 | §11 战队协作 11 三道防线 | TEAM-71、72 | |
 | §11 战队协作 12 抽审与转述 | TEAM-74、70 | 胜任力评审改周一出数 |
 | §11 战队协作 13 ADR 提议复审 | TEAM-74；`adr/src/_readme_lifecycle.md` §10 | 台账节改为周一出数（lifecycle §10 须同步） |
-| §11 战队协作 14 合入节奏 | TEAM-47、53、54、42 | 组批归 one-merge 执行、调度定分组（P-06）；文档提交号直报 one-merge（P-57） |
+| §11 战队协作 14 合入节奏 | TEAM-47、53、54、42 | 组批归 one-merge 执行、调度定分组（P-06）；文档合集自扫分支，常规四节点按 TEAM-53（intent 111209 取代 P-57 的报号要求） |
 | §11 战队协作 15 重启前后 | TEAM-10 | |
 | §11 用户授权调度自行决定 | TEAM-45、46、47、01 | 「任何改动都经 PR」删除（P-03） |
 | §11 边界 | TEAM-99、76 | 台账不再被他人引用（P-10） |
@@ -100,7 +100,7 @@
 1. `scripts/hooks/playbook_digest.py` 按 `## 5` 与 §2.1、§11 编号条目解析旧 PB 生成摘要，自测对真实文件断言（`scripts/ci/relevant_change.py:70`、`docs/modernization/build_all.py:27,173`、`scripts/hooks/handoff_snapshot.py:315`、`handoff_selftest.py:75,124`、`handoff_storage_selftest.py:376-380`、`scripts/precheck.sh:304-305`）。新 PB 合入必须同一 PR 改写或下线它（开工单 COO-13 已取代整份注入，建议下线），属钩子与解析类，one-quality 自写。
 2. `docs/modernization/build_sessions.py` 仍要求画像有「上下文文档」「当前状态」节并在 docstring 引 §2.1 第 16 条，须随 COO-13/QUA-12 改（TEAM-03）。
 3. `scripts/hooks/session_context.py` 与 `context_handoff.py` 头部引旧节号，见下表。
-4. CLAUDE.md（最先改，同一提交）建议新写法：底线 5「须用户决定的事（PB §7）」→「（PB TEAM-91–92）」；索引：数据设计→`DATA_DESIGN_CHECKLIST.md` §14/14.1、迁入 §14.2、集成 §14.3；用语登记→PB 附 M5⑤、附 M6；Codex/DeepSeek→PB TEAM-32–38 + templates/WORK_CARD.md；子代理模型、任务号→TEAM-31、67、23、26；取证、迁入读取→TEAM-95、96、ADR-0037；交接、开会话、画像、后台登记→TEAM-01–13、78 + templates/HANDOFF.md；记录片段、进不进 git→TEAM-56、57；消息、outbox→TEAM-58–61；ADR 与规则变更→附 M3、TEAM-82；流程→附 M4；修复批→附 M1；外部知识、架构判断→TEAM-73。AGENTS.md 同理。
+4. CLAUDE.md 的此段为迁移前历史建议，已被 intent 2026-10-23-121807 取代（入口只写动作／文件／章节，不写 TEAM 号）：底线 5「须用户决定的事（PB §7）」→「（PB TEAM-91–92）」；索引：数据设计→`DATA_DESIGN_CHECKLIST.md` §14/14.1、迁入 §14.2、集成 §14.3；用语登记→PB 附 M5⑤、附 M6；Codex/DeepSeek→PB TEAM-32–38 + templates/WORK_CARD.md；子代理模型、任务号→TEAM-31、67、23、26；取证、迁入读取→TEAM-95、96、ADR-0037；交接、开会话、画像、后台登记→TEAM-01–13、78 + templates/HANDOFF.md；记录片段、进不进 git→TEAM-56、57；消息、outbox→TEAM-58–61；ADR 与规则变更→附 M3、TEAM-82；流程→附 M4；修复批→附 M1；外部知识、架构判断→TEAM-73。AGENTS.md 同理。
 5. CODING_STANDARD.md 第 15、25–41 行等以 `SESSION_PLAYBOOK.md#5-上下文管理` 锚点作出处：改为 `SESSION_PLAYBOOK.md#附-m方法不是团队规则仍有效`（附 M5）或直接写「PB 附 M5 第二批第 n 条」；§14 系列改指 DATA_DESIGN_CHECKLIST.md。CS 条文归 one-architecture（TEAM-81），由它改。
 
 ## 三、引用旧节号、需同步改的文件:行

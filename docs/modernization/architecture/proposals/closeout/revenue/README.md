@@ -1,6 +1,6 @@
 # 收入线组（one-arch-revenue）现状速查
 
-更新：2026-10-22 18:55+02:00（批次边界，准备 /clear）。分支 `claude/one-arch-revenue-closeout`（文档类不开 PR，报分支与提交号由 one-merge 收合集）。
+更新：2026-10-22 18:55+02:00（批次边界，准备 /clear）。分支 `claude/one-arch-revenue-closeout`（文档按 TEAM-53 由 one-merge 自扫远端收合集）。
 
 | 项 | 现状 |
 |---|---|

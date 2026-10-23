@@ -193,7 +193,7 @@ def main():
     if "unknown option: --pre-push" in run.stdout + run.stderr:
         print("这个检出的 scripts/precheck.sh 还没有 --pre-push：先把 origin/main 合进当前分支（git merge origin/main）再推送。", file=sys.stderr)
         return 2
-    reason = pr.verdict(run.stdout + run.stderr, run.returncode, "推送", "git push")
+    reason = pr.verdict(run.stdout + run.stderr, run.returncode, "推送", "git push", root=root)
     if reason:
         print(reason + "\n（确需绕过：PUSH_BYPASS_REASON=\"<理由>\" git push --no-verify …，会留痕）", file=sys.stderr)
         return 2
