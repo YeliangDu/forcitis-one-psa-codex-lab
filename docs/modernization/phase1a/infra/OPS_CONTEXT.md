@@ -10,6 +10,7 @@
 - **第二批待办**：build_sessions 角色文件补非空检查（455de7e15 复审建议）。**二乙验收（调度裁定）**：移走/删掉 start_sheet、session_context、codex_stdin_gate、command_words 后，scripts/gates+hooks 运行代码连同 hooks_manifest.sh（单独文件，不并进 install.sh）须 ≤8 个文件、≤1,500 行；批一 H1 只告警。H23 scripts/merge+queue 超限为批一已知例外（222945 不改 mq），不归 one-ops。
 - **再更新（10-24）**：终审/首轮已过：cd0014b51 终审、f756c32fc、e88824f83、535d321e2、242bb442d 首轮。新报待审：O7 修 fcacecd45（M1 重解包、M2 hooks_manifest.sh 清单核对＋只读、M3 无 CLAUDE_PROJECT_DIR 不认 cwd）、O2 修 dca117c93（裸赋值目标变量按导出、xh 整词）、policy budget_check 450 adcac8c22（intent 000537）。回退 v1 调度裁定：git 恢复 settings 旧挂载，不走 install.sh。H1 文件数/行数超（11 个、2,267 行）已报调度，待定 hooks_manifest 落点。
 - **下一步（清空接续）**：①读 `~/.modernize/psa/coordinator/reviews/redesign/<完整sha>.md/.final.md` 看 fcacecd45、dca117c93、adcac8c22 的结论，必改就在 ops-fv2-b1 上加「修：」提交（opus 子代理），报 sha；②O8（sonnet，门自测合一 ≤1000 行含 17 例）→ O9（只做轻作业）→ O10。b1 当前 tip adcac8c22，工作区干净。
+- **清空前收到、未做（调度 O7 首轮，看 535c03bfe）**：①必改：`install.sh --switch current`（或解析成 current 自身的参数）把 current 链向自己却退出 0，之后全员 Bash 被拒；改为参数先校验成 40 位 sha 或已装版本目录名，不合格退出 1、不碰 current，补自测。②必补测试：复审 7 处变异 4 处存活，其中 2 处要补，见 reviews/redesign/535c03bfeefea67c3098d9753a8e1f2ff55ada84.md。③建议：先校验参数再建目录；并发装同一提交时发现版本目录已就绪就退出 0。M3 已由 fcacecd45 修；p99 依赖字节码缓存判不用修。回退：current 不动、只用 git 恢复 settings（调度在找用户确认定稿文字，cutover 文档先按此写）。做法：opus 子代理在 ops-fv2-b1 上加「修：」提交（install.sh 已 60 行，不许压行，放不下就拆到小文件），报 sha。
 - **在途卡**：OPS-1022-OPS-02（Docker 自动拉起）、OPS-1023-OPS-01（search_path/TEMP 核验、M-29 取证 SQL）本轮仍未动，用户要求先做流程重构；无未完成的用户直接请求。
 
 ## 2026-10-24 凌晨四次增补（第九次交接；流程重构第一批，以本节为准，覆盖三次增补同名项）
