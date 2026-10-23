@@ -74,7 +74,7 @@
 1. **先统计**：把 origin/main 上已采纳的 ADR 逐份过一遍，只统计、不回填，数出「每类节点被多少份决定改过」。统计表另成文件（`research/networks/ADR_NODE_FREQUENCY.md`），交 one-coordinator 审后派工。
 2. **按频次排批次**，同频次时**能自动生成的层优先**（业务对象、聚合、规则、命令、事件、表、模块等可从代码或登记表自动出）。
 3. **纯人工层放最后并标「人工维护」**：02 关注点、04 取舍决定、05 价值主张。用户原话：「手工登记的层一定会腐坏，而网络的可信度 = 自动化率。」每批完成后报告该层的自动化率（自动生成条目 / 总条目）。
-4. 每补一类，跑一次 `panorama_build.py --check` 直到收敛。
+4. 每补一类，先运行 `python3 docs/modernization/build_all.py` 生成命令目录与全景，再运行 `python3 docs/modernization/architecture/panorama/panorama_build.py --check` 直到收敛。命令目录与全景产物不入仓，也可在 generated-docs 分支阅读快照；缺失时校验失败，不以空目录代替。
 
 ## 2. 决定走网络（提议）
 
