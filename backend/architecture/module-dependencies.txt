@@ -22,4 +22,6 @@ platform.idempotency ->
 platform.integration ->
 platform.numbering -> platform.identity, organization.workforce, platform.integration
 platform.scheduling ->
+# ADR-0064 decision 1 item 3: the signing service depends on foundation modules only. The first segment is the seal ledger query api, which uses none; audit and identity (maintenance commands, web permissions) land with the commands that use them.
+platform.signing ->
 platform.web ->
