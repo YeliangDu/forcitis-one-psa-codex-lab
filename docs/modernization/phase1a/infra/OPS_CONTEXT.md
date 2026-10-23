@@ -1,5 +1,13 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-23 增补（上下文 21% 时交接；以本节覆盖下面的同名项）
+
+- **#637（迁入角色 history_loader，OPS-1022-OPS-03）**：opus 首轮与终审均已过并改完，one-coordinator 已批入队；dev 库已补建 `one_dev_history_loader`（用户经收件箱批准，云助手 t-hz070ulib73ylts，已登记 C-3 手册）。V13 待下次含本 PR 的发布后在 dev 跑；prod 无实例。
+- **OPS-1022-OPS-02（Docker 自动拉起）进行中**：PR #639（scripts/ops：docker_ensure.sh、自测、docker_watch_install.sh、plist 模板、RESOURCES 行）分支 claude/one-ops-docker-watch @9a13cb984，已按 opus 首轮必改改完（--ci 不拿锁、假 launchctl 真跑代理的并发自测、不再 pkill、nocli/paused 告警、安装脚本），自测全过，**还没报 one-coordinator、等 sonnet 复核**；PR #640（ci.yml，分支 claude/one-ops-ci-docker-check @4f5c08e3f）**还没跟改**。
+- **下一步（按序）**：①报 one-coordinator：#639 改完 @9a13cb984，并把 `~/.modernize/psa/coordinator/reviews/pr639-640-opus-1.md` 的结论贴到 #639/#640（一条 PR 评论）。②#640：#639 合入后 rebase；把「docker is running」挪到 docker events 记录器之前（或成功后重启记录器）；在 CI 的「release and deploy scripts self-test」步加 `shellcheck scripts/ops/*.sh` 与 `scripts/ops/docker_ensure_selftest.sh`；复核 `timeout-minutes: 5` 与脚本最坏耗时（--ci 约 10+120+14≈145 秒）；失败文案已带「已暂停/未安装」；注释里「10-22 22:35-22:50」改指任务卡；nightly-legacy-it.yml 同样加（可另开 PR）。③两 PR 合入后：`scripts/ops/docker_watch_install.sh` 装 launchd 代理（卡与 intent 2026-10-22-230334 已授权，one-coordinator 10-23 确认不进收件箱）。④演练：挑合并队列空、无 CI 在跑时退出 Docker，两分钟内应自动恢复；**同时验证 runner 会话（SessionCreate）能 `launchctl kickstart gui/501/com.forcitis.docker-watch`**（只靠推断，没验过）。⑤RESOURCES 登记装机与演练结果，演练记录回填任务卡，报 one-coordinator。
+- **仍等 one-coordinator 示下**：dev one.env 的 WORKFORCE_SYNC_ENABLED（现 true，要求不能是 true）。
+- **本会话踩到的坑**：①macOS 的 `seq 1 0` 会输出 1、0（倒数），循环次数为 0 时别用 seq；②pre-push 钩子跑 backend 单测时 ClamdScannerTest 的超时重试用例偶发失败（已转 one-platform-file），重推即过；③云助手连 dev RDS 要 `PGSSLROOTCERT=/etc/forcitis-one/rds-ca.pem`，pgpass 第一行取主机；模板 `/private/tmp/claude-501/ra.sh`（会丢）= RunCommand + base64 + 轮询 DescribeInvocationResults；④`git push` 被中断时先 `git status -sb` 看是否 ahead 再重推。
+
 ## 2026-10-22 增补（上下文 46% 时按钩子交接；以本节覆盖下面交接节里已变的项）
 
 - **已完成**：ClamAV dev 装好并通过加密项必验与耗时测量、健康检查与 C-7 告警及三类演练（卡 OPS-1021-OPS-02；还差与应用侧联调与 MaxScanTime 复核，等 one-platform-file 约时间，全部做完才报「建成」）；撤 `psa_one_legacy_ro`（卡 OPS-1022-OPS-01，已完成，视图 v_psa_one_legacy_todo 仍在，删与否另请示；dev one.env 的 …LEGACY_INBOX_* 已删）；dev `one_dev_app` 的 search_path 改为 pg_catalog, platform_approval 并重启（c3/c9 脚本与 verify V6c 已改，本机容器检查通过）；dev 核 TEMP：四个账号均 false（#547 待办的 TEMP 核验已完成，三张日历表的 REVOKE 由 #547 自带）。

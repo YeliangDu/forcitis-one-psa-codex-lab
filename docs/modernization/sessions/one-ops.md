@@ -60,4 +60,4 @@
 
 ## 当前状态
 
-2026-10-21 13:30+02:00 交接：dev 在 rc.6 并授完角色；D 线恢复（用户 2026-10-20 采纳开发主线），本日已出生产与演练评估、持续成本、恶意文件检测候选与 ClamAV 实施卡、NAS+WORM 估价、INFRA_RUNBOOK 对齐 ADR-0055、日历审计与投产日历表；RDS 已续 1 个月（自动续费关，12-01 提醒报下月续费方案）。待触发：A 线 #489 与 F 合入后出新 rc 并重建 dev；B、C 不下单（条件见 OPS_CONTEXT）；ClamAV 测扫描 P95；c14_run 自测与 OPS-007。取证、部署不交 Codex。细节见 OPS_CONTEXT「交接」。 【2026-10-22 增补，详见 phase1a/infra/OPS_CONTEXT.md 开头「2026-10-22 增补」节：撤号完成、search_path 已改、ClamAV 健康检查已装、取证批次已登记、WORKFORCE_SYNC_ENABLED dev 为 true 待 one-coordinator 示下】
+2026-10-21 13:30+02:00 交接：dev 在 rc.6 并授完角色；D 线恢复（用户 2026-10-20 采纳开发主线），本日已出生产与演练评估、持续成本、恶意文件检测候选与 ClamAV 实施卡、NAS+WORM 估价、INFRA_RUNBOOK 对齐 ADR-0055、日历审计与投产日历表；RDS 已续 1 个月（自动续费关，12-01 提醒报下月续费方案）。待触发：A 线 #489 与 F 合入后出新 rc 并重建 dev；B、C 不下单（条件见 OPS_CONTEXT）；ClamAV 测扫描 P95；c14_run 自测与 OPS-007。取证、部署不交 Codex。细节见 OPS_CONTEXT「交接」。 【2026-10-22 增补，详见 phase1a/infra/OPS_CONTEXT.md 开头「2026-10-22 增补」节：撤号完成、search_path 已改、ClamAV 健康检查已装、取证批次已登记、WORKFORCE_SYNC_ENABLED dev 为 true 待 one-coordinator 示下】 【2026-10-23 增补：#637 迁入角色已批入队、dev 已补建；OPS-1022-OPS-02 的 #639 已改待复核、#640 待跟改，之后装 launchd 并演练，详见 OPS_CONTEXT 开头「2026-10-23 增补」】
