@@ -42,9 +42,8 @@ class Report:
 def tree(root):  # 仓库内全部文件的相对路径，剪掉 PRUNE 与 .claude/worktrees
     out = []
     for dirpath, dirs, files in os.walk(root):
-        here = Path(dirpath)
-        dirs[:] = [d for d in dirs if d not in PRUNE and not (here.name == ".claude" and d == "worktrees")]
-        out += [posix(here / f, root) for f in files]
+        dirs[:] = [d for d in dirs if d not in PRUNE and not (Path(dirpath).name == ".claude" and d == "worktrees")]
+        out += [posix(Path(dirpath, f), root) for f in files]
     return sorted(out)
 def headings(text):  # 每个「## 」二级标题一条：(行号, 标题, 其下各行)
     lines = text.splitlines()
@@ -117,13 +116,11 @@ def check_single_source(root, pol, rep):  # 逐行查，无任何豁免（PROMPT
     docs = [root / t for t in (CLAUDE, RULES, TEMPLATE, PROMPT)] + role_files(root) + sorted(root.glob(".github/ISSUE_TEMPLATE/**/*"))
     for p in (d for d in docs if d.is_file()):
         for no, line in enumerate(read(p).splitlines(), 1):
-            hits = {}
-            for path, m in ((path, m) for path, pat in pats if (m := pat.search(line))):
-                hits.setdefault(m.group().strip(), []).append(path)
-            for lit, keys in hits.items():
-                rep.viol("H8", f"{posix(p, root)}:{no}", f"字面值「{lit}」与 policy.json {'、'.join(keys)} 相同，改引用键名")
+            hits = sorted((m.group().strip(), path) for path, pat in pats if (m := pat.search(line)))
+            for lit, g in itertools.groupby(hits, key=lambda h: h[0]):
+                rep.viol("H8", f"{posix(p, root)}:{no}", f"字面值「{lit}」与 policy.json {'、'.join(k for _, k in g)} 相同，改引用键名")
 
-def check_names(root, pol):  # scripts/、docs/ 下的 .py/.sh，backend/src/test 下的测试类，workflow 文件名与 job 名，gates.max_lines 的键
+def check_names(root, pol, rep):  # scripts/、docs/ 的 .py/.sh，backend/src/test 测试类，workflow 文件名与 job 名，gates.max_lines 键，工具库一级子目录
     names = set(pol["gates"]["max_lines"])
     for rel in tree(root):
         if ((p := Path(rel)).suffix in SCRIPT_EXT and rel.startswith(("scripts/", "docs/"))
@@ -131,6 +128,10 @@ def check_names(root, pol):  # scripts/、docs/ 下的 .py/.sh，backend/src/tes
             names.add(p.stem)
         elif rel.startswith(".github/workflows/") and p.suffix in (".yml", ".yaml"):
             names |= {p.stem, *re.findall(r"^  ([\w-]+):", read(root / rel).partition("\njobs:")[2], re.M)}
+    if (lib := (pol.get("tools_lib") or {}).get("dir")) and (d := Path(os.path.expanduser(str(lib)))).is_dir():
+        names |= {x.name for x in d.iterdir() if x.is_dir()}
+    else:
+        rep.info("H9", "policy.tools_lib.dir", "未配置或不存在，工具库检查名未纳入")
     return names
 def check_exec_column(root, pol, rep):  # H9：每条规则下单独一行「执行：名1、名2」或「人工：<角色>／<节奏>」
     rules = headings(text := read(root / RULES) if (root / RULES).is_file() else "")
@@ -139,9 +140,8 @@ def check_exec_column(root, pol, rep):  # H9：每条规则下单独一行「执
     for p in role_files(root):
         if re.search(r"^[^\w\n]*专属规则", t := read(p), re.M) and not any(h.startswith("专属规则") for _, h, _ in headings(t)):
             rep.viol("H9", posix(p, root), "写了「专属规则」却不是「## 专属规则」二级标题，格式不符约定")
-    names = check_names(root, pol) if rules else set()
-    for no, title, body in rules:
-        where = f"{RULES}:{no}"
+    names = check_names(root, pol, rep) if rules else set()
+    for (no, title, body), where in ((r, f"{RULES}:{r[0]}") for r in rules):
         cols = [m.group(1).strip() for m in (re.match(r"\s*[-*]?\s*执行[：:]\s*(.*)$", b) for b in body) if m]
         if not cols or not cols[0]:
             rep.viol("H9", where, f"「{title}」缺执行栏或执行栏为空")
@@ -182,7 +182,7 @@ def check_ownership(root, pol, rep):  # H17：前 15 行内「独占路径：a/,
             if not PATH_TOKEN.fullmatch(tok):
                 rep.viol("H17", rel, f"「独占路径：」只写路径，「{tok}」不是路径（不支持排除写法，说明另起一行）")
             elif t := tuple(x for x in re.sub(r"/?\*\*$", "", re.sub(r"^\./", "", tok)).rstrip("/").split("/") if x):
-                owned.append((rel, tok, t))
+                owned.append((rel, tok, t[:next((i for i, x in enumerate(t[:-1]) if "*" in x), len(t))]))  # 中间通配符：比到它为止
     for (fa, ra, ta), (fb, rb, tb) in itertools.combinations(owned, 2):
         if fa != fb and (ta[:len(tb)] == tb or tb[:len(ta)] == ta):
             rep.viol("H17", fa, f"独占路径 {ra} 与 {fb} 的 {rb} 交叠")
@@ -226,8 +226,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="按 policy.json 核对规则与钩子体量、单一出处等")
     ap.add_argument("--root", default=str(Path(__file__).resolve().parents[2]))
     ap.add_argument("--self-test", action="store_true")
-    args = ap.parse_args(argv)
-    if args.self_test:
+    if (args := ap.parse_args(argv)).self_test:
         return subprocess.run([sys.executable, str(Path(__file__).with_name("budget_check_selftest.py"))]).returncode
     try:
         pol = json.loads(((root := Path(args.root).resolve()) / "policy.json").read_text("utf-8"))

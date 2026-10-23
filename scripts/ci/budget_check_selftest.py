@@ -44,7 +44,7 @@ GOOD = {
 FAILS = []
 
 
-def run(files, policy=POLICY):
+def run(files, policy=POLICY, env=None):
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         for rel, text in files.items():
@@ -52,7 +52,7 @@ def run(files, policy=POLICY):
             (root / rel).write_text(text, "utf-8")
         if policy is not None:
             (root / "policy.json").write_text(json.dumps(policy, ensure_ascii=False), "utf-8")
-        r = subprocess.run([sys.executable, SCRIPT, "--root", tmp], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, SCRIPT, "--root", tmp], capture_output=True, text=True, env={**os.environ, **(env or {})})
         viol = [ln for ln in r.stdout.splitlines() if ln and not ln.startswith(("信息", "budget_check："))]
         return r.returncode, r.stdout + r.stderr, viol
 
@@ -159,6 +159,21 @@ def main():
     expect_hit("H9 人工未写角色", {RULES: "## 甲\n执行：人工\n"}, "H9", RULES + ":1")
     expect_clean("H9 实存检查名从仓库生成", {RULES: "## 甲\n执行：acceptance_guard.py、LegacyShapeTest、light、ci、prod_write_gate --check\n"})
     expect_clean("H9 gates.max_lines 的键可作检查名", {RULES: "## 甲\n执行：commit_msg_gate\n"})
+    with tempfile.TemporaryDirectory() as home:   # 工具库：一级子目录是检查，顶层文件不是；dir 从 policy 读并展开 ~
+        for d in ("janitor", "budget_level"):
+            (Path(home) / "lib" / d).mkdir(parents=True)
+        (Path(home) / "lib" / "board").write_text("x\n", "utf-8")
+        lib_pol, env = with_policy(["tools_lib", "dir"], "~/lib"), {"HOME": home}
+        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor、budget_level\n"}, lib_pol, env)
+        check("H9 认工具库一级子目录（~ 展开），不报未配置", not viol and "工具库检查名未纳入" not in out, out)
+        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：board\n"}, lib_pol, env)
+        check("H9 工具库顶层文件不算检查", any(v.startswith(f"H9 {RULES}:1") for v in viol), out)
+        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：handoff\n"}, lib_pol, env)
+        check("H9 工具库里没有的名字照报", any(v.startswith(f"H9 {RULES}:1") for v in viol), out)
+    for name, pol in (("键缺失", POLICY), ("目录不存在", with_policy(["tools_lib", "dir"], "/nonexistent/lib"))):
+        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor\n"}, pol)
+        check(f"H9 tools_lib.dir {name}：白名单外照报，另出一行信息", any(v.startswith(f"H9 {RULES}:1") for v in viol)
+              and "信息 H9 policy.tools_lib.dir 未配置或不存在，工具库检查名未纳入" in out, out)
     expect_hit("H9 RULES 无二级标题不静默", {RULES: "# 规则\n1. 写测试\n2. 不绕过\n"}, "H9", RULES)
     expect_hit("H9 「### 专属规则」不静默", {ROLE + "lead.md": "独占路径：x/\n### 专属规则\n- a\n"}, "H9", ROLE + "lead.md")
     # H13
@@ -193,6 +208,10 @@ def main():
     expect_clean("H17 列更细前缀不交叠", {ROLE + "dev.md": "独占路径：backend/src/、frontend/\n",
                                           ROLE + "language.md": "独占路径：backend/glossary/\n"})
     expect_clean("H17 本机路径（~/ 开头）算路径", {ROLE + "platform.md": "独占路径：scripts/ci/、`~/.modernize/psa/tools/**`\n"})
+    expect_hit("H17 中间通配符按其前的前缀比（宁报不漏）", {ROLE + "design.md": "独占路径：frontend/**/__acceptance__/**\n",
+                                                        ROLE + "dev.md": "独占路径：frontend/scripts/\n"}, "H17", ROLE)
+    expect_clean("H17 末段通配符不截断", {ROLE + "design.md": "独占路径：docs/arch/*.md\n",
+                                          ROLE + "language.md": "独占路径：docs/arch/decision-page/**\n"})
     # H21
     expect_hit("H21 别处加标签", {"scripts/merge/mq.py": 'sh(["gh", "pr", "edit", "1", "--add-label", "复审通过"])\n'},
                "H21", "scripts/merge/mq.py:1")
