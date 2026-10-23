@@ -90,6 +90,8 @@ def check_item_main(item, intent_names, vocab=None):
     if kind in ("fact", "selection") and recs:
         errors.append(f"{no}: R5 {'事实题' if kind == 'fact' else '选型题'}不得预选，但选项「{recs[0].get('label', '')[:20]}」带了推荐")
     if kind in ("choice", "param", "approve"):
+        if len(opts) < 2:
+            errors.append(f"{no}: R1 须至少两个选项")
         if not recs:
             errors.append(f"{no}: R1 没有推荐项（选型题、事实题须标 kind: selection / fact）")
         elif all(UNDECIDED.search(str(o.get("label", ""))) for o in recs):
@@ -405,6 +407,7 @@ def self_test():
     # R1
     assert has(item(opts=[dict(label="A", effect="", rec=False), dict(label="B", effect="", rec=False)]), "R1")
     assert has(item(opts=[dict(label="暂不定（我先不选）", effect="", rec=True), dict(label="B", effect="", rec=False)]), "R1")
+    assert has(item(opts=[dict(label="项目经理审批", effect="", rec=True)]), "R1")
     assert not has(item(kind="selection", opts=[dict(label="A", effect="", rec=False)]), "R1") and not has(item(kind="fact", opts=[dict(label="A", effect="", rec=False)]), "R1")
     assert has(item(kind="bogus"), "kind") or errs(item(kind="bogus"))
     # R5

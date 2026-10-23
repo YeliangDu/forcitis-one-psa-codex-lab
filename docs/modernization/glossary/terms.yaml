@@ -8896,9 +8896,9 @@ terms:
   zh: 数据保留期限
   en: DataRetentionPeriod
   snake: data_retention_period
-  kind: command
+  kind: value_object
   bc: platform.integration
-  definition: 把数据留在在线库或归档库的期限，到期后删除或转归档；与「质保金」无关
+  definition: 数据留在在线库或归档库的期限值，到期后删除或转归档；与「质保金」无关。
   standard_ref:
   - phase1a/DATA_SCORECARD.md
   confidence: medium
@@ -8913,7 +8913,7 @@ terms:
   - 保留
   status: approved
   note: 用语确认第三轮转正式（原提议 fix-b2-data.yaml#keep，R3-IN-08）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；one-glossary 2026-10-23 自修：名称已由 R3-IN-08 定，原 kind 误标 command，实为期限值（one-coordinator 审题 gl6-gl7-review-1 页级问题第 10 条）（用户裁定，rulings.yaml）
   scope: domain
 - id: event_quarantine
   zh: 事件隔离区
