@@ -93,6 +93,7 @@
 | TEAM-102 | 治理冻结：整改总验收完成起两周不新增规则与守护；事故或安全缺口经用户批准例外，在途整改卡照做（用户 2026-10-23，intent 104603）；待建守护 one-quality 按风险只排前 10，其余标复审或不做并写理由；实施遵守 TEAM-32、TEAM-33、TEAM-67，在途整改范围不能作为新增治理的授权 | one-coordinator | 无 |  |
 | TEAM-103 | 新守护或收紧既有守护合入前，先对全部在开 PR 跑一遍；会撞上的先修或在 PR 里给过渡期，不得让它首次在队首变红（intent 104603） | 改动方 | 无 | 预跑待建：MRG-10 |
 | TEAM-108 | SSOT 每类一份正本、一个归属会话（intent 2026-10-23-153705）：术语与 BC 名称 glossary/terms.yaml、bcs.yaml→one-glossary；架构、流程→one-architecture（正本路径以 GOV-1023-ARC-01 定稿为准）；业务规则 rules/、RULE_REVIEWS.json→one-glossary；数据 data/ 与数据访问登记表→one-data；决策 intent/ 记原话为唯一来源，ADR 只引 intent 号不抄原话→one-coordinator；团队规则只认本表，MEMORY.md、CLAUDE.md 只引 TEAM 号→one-coordinator；任务 tasks/ 格式与状态枚举由调度定、各会话写自己的卡；资源 phase1a/infra/RESOURCES.md→one-ops。proposals/ 不算权威，脚本不读。开发线（one-1a-par、one-1a-admin、one-platform-file）只写提议目录和自己的卡，改正本提给归属会话，正本 PR 由归属会话提交 | 全员 | 无 | 收编：GOV-1023-ARC-01 |
+| TEAM-109 | 推送前预检只放几秒内能挡真问题的检查；新增推送前检查须在 PR 写明多花几秒、挡什么问题，写不出的一律放 CI 与合入队列（intent 2026-10-23-154800） | 全员；复核 one-quality | 无 | 首轮瘦身：GOV-1023-QUA-04 |
 
 ## 旧编号并入指向
 
