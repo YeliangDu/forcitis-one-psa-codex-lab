@@ -65,8 +65,9 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/quality/defect-bank/",
     # ruling record: read by scripts/ci/acceptance_rulings.py in the always-run acceptance step
     "docs/modernization/rulings/",
-    # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py
+    # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py; commit_msg_gate.py takes session names from both folders
     "docs/modernization/sessions/",
+    "docs/modernization/roles/",
     # start_sheet.py 的开工单按需读列表里点名它；handoff_selftest.py 的夹具写同名路径
     "docs/modernization/SESSION_PLAYBOOK.md",
     "docs/modernization/check_legacy_name.py",
