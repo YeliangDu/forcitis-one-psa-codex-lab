@@ -34,7 +34,7 @@
       "selftest": 1000,
       "stop_check": 120,
       "agent_tier_gate": 40,
-      "budget_check": 350
+      "budget_check": 450
     },
     "install_dir": "~/.modernize/psa/tools/hooks",
     "install_current_link": "current"
