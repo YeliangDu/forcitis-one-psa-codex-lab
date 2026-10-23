@@ -348,3 +348,7 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 工作区：`xin-61164f` 现停在 #653 分支（`claude/one-quality-gate-prod-write`）；`xin-handoff-1023b` 是本交接分支（`claude/one-quality-handoff-1023b`，文档分支，提交号报 one-merge）；`qua01-merge` 是 #651 的临时工作区（可 `git worktree remove`）。Write/Edit 工具不能写别的工作区的文件，需要写某分支就把它 switch 到 `xin-61164f`。
 - `sessions/_COMMON.md` 是未跟踪生成物，别提交；`git add` 只加具体文件，别用 `-A`；`cd X && …` 失败时后面的命令仍在原目录跑，用 `git -C <绝对路径>`。
 - 推送单独一次 Bash 调用、放后台，description 写成 `<任务号或 #PR> <任务名> (<执行者>)`；precheck 若失败会把失败输出放在报错里（本次两次都是 relevant_change 的字面 docs 路径自测：门和特征表里不要写字面 docs 路径，用 DOCS_ROOT 拼）。
+
+### 第八次交接补记（清空前新到的三条指令，优先级高于上面「下一步」第 1 项）
+- **GOV-1023-QUA-06 加急（排在 #653/#654 返工之前，自写，opus 首轮；卡在 `claude/one-coordinator-two-lanes` @1e482dd53，正文推送后可读，先按此开工）**：①`.claude/settings.json` 钩子统一从主检出的 scripts/hooks 运行（各工作区钩子落后：one-data 落后 553、one-ops 落后 381 次提交，均无 start_sheet.py，开工单 24 小时失败 11 次）；②推送门被拦只回 FAIL 行与日志路径（现回末 40 行约 3.8k 字、日 59 次）；③交接节点提示只列卡号；④context_handoff 按会话读阈值（调度 50/60）；⑤同一 PR 给仓库 `.claude/settings.json` 加项目级 `enabledPlugins`：kotlin-lsp@claude-plugins-official、claude-code-setup@claude-plugins-official、code-modernization@claude-plugins-official 设 false（mattpocock-skills、code-simplifier 保留），PR 写明需各会话重启生效。
+- **QUA-21 收窄（用户 10-23）**：TEAM-41 的 800 行／15 文件改为复审参考线，不做硬拦截；QUA-21 只在 PR 检查里提示超线并要求 PR 写理由，不阻断；Codex 在做的那份按此收窄。TEAM-72 重复跑三遍不变。
