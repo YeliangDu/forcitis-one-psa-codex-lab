@@ -288,11 +288,11 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 ### 现状
 - **#645**（新规则手册）已合入 main。**#651**（QUA-01 状态闸门与信箱，分支 `claude/one-quality-comm-delivery`，head 991d363c1）：opus 必改与 Codex 复核意见均已改并贴 PR，已报调度请批入队；盯 CI/合入，合入后改卡 GOV-1023-QUA-01 状态。
 - 调度新排序（one-coordinator 10-23，依据团队核查 `~/.modernize/psa/coordinator/team-audit/audit-1023.md` 第三、五节）：①#651 合入跟进；②安全门自写：QUA-24 → QUA-25 → QUA-20 → QUA-19 → QUA-26，附核查指出的绕过（变量拼接 push、worktree 内 `commit --no-verify`）；③QUA-02、11、13、14、15、16、21、23 并行（Codex 开独立 worktree，我审）；④共享解析器 `command_words.py` 改动触发钩子自测、CI 补跑 dispatcher/context_handoff 自测（QUA-24 PR 已含）。每张合入即改卡状态。
-- **QUA-24**（生产写门）：分支 `claude/one-quality-gate-prod-write` head 762a114c1 已推送，**未开 PR、未做 opus 首轮**。含 `scripts/hooks/prod_write_gate.py`、`prod_targets.json`（只放了老系统生产 RDS rm-bp1690ep53t9778dp，一one-ops 须补全：生产 ECS/库连接特征，当前 ECS i-bp122xlpar8w2uylmal2 仍跑 dev，故未列入）、`command_words.py` 新增共享 `simple_commands`（含变量拼接还原；codex_stdin_gate 的分词常量已移入）、dispatcher 接入、precheck 与 CI 自测接线。自测全过，破坏验证 5 项变红。开 PR 用 `gh pr create`（预检标记已有），贴自测与破坏验证，派 opus 首轮（description 须 `<任务号或#PR> <名> (<执行者>)`）。
+- **QUA-24**（生产写门）：分支 `claude/one-quality-gate-prod-write` head 762a114c1 已推送，**未开 PR、未做 opus 首轮**。含 `scripts/hooks/prod_write_gate.py`、`prod_targets.json`（只放了老系统生产 RDS rm-bp1690ep53t9778dp，one-ops 须补全：生产 ECS/库连接特征，当前 ECS i-bp122xlpar8w2uylmal2 仍跑 dev，故未列入）、`command_words.py` 新增共享 `simple_commands`（含变量拼接还原；codex_stdin_gate 的分词常量已移入）、dispatcher 接入、precheck 与 CI 自测接线。自测全过，破坏验证 5 项变红。开 PR 用 `gh pr create`（预检标记已有），贴自测与破坏验证，派 opus 首轮（description 须 `<任务号或#PR> <名> (<执行者>)`）。
 - **Codex 并行（worktree 在 `.claude/worktrees/codex-quaNN`，分支 `claude/one-quality-codex-quaNN`；提示词与结果在 `/tmp/cx/`）**：
   - QUA-21（PR 尺寸，补授权重跑完成）：实现在 codex-qua21 工作树**未提交**（`scripts/ci/pr_size_guard.py`、precheck/ci.yml 接线、PB TEAM-41 标「守」）；Codex 沙箱 `git add` 不了，我来审、提交。自述正反向自测过、10/10 破坏验证变红；build_all.py 未接（待判）。结果 `/tmp/cx/out21b.md`。
-  - QUA-15（确认页检查，补授权重跑中）：结果 `/tmp/cx/out15b.md`。
-  - QUA-02（命令目录生成物移出 git）：Codex 仍在跑或已停，工作树 codex-qua02 已有未提交改动（.gitignore、panorama_build.py、scan_commands.py、ci.yml 等），结果 `/tmp/cx/out02.md`。
+  - QUA-15（确认页检查，补授权重跑已完成）：产出在 codex-qua15 工作树（未提交？先 git status），结果 `/tmp/cx/out15b.md`。
+  - QUA-02（命令目录生成物移出 git）：Codex 已跑完，工作树 codex-qua02 已有未提交改动（.gitignore、panorama_build.py、scan_commands.py、ci.yml 等），结果 `/tmp/cx/out02.md`。
   - QUA-13：Codex 停下——现有画像独占路径已有相交（contexts.yaml: admin/platform-file；processes/data-model: finance/people/revenue；scripts/ci: quality/architecture），`_overlaps.txt` 不存在，需调度裁定例外清单或改画像；报调度。
   - QUA-14：Codex 停下——190 卡中 22 张无正文、8 张状态「待核」，目标与完成标准要负责会话补；结果 `docs/modernization/tasks/_GOV-1022-QUA-14-RESULT.md`（codex-qua14 未跟踪）。状态口径三套未统一（check_tasks 五值／TEAM-24 终态／WORK_CARD 六值），须调度先定。
   - QUA-23：Codex 停下（卡无文件范围，且依赖 QUA-11 的 check_rule_table 与 QUA-13 的相交检查）；等 11、13 落地后再派。
