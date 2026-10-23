@@ -3,6 +3,12 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 22:2x（one-coordinator，60% 交接）
+- **重构实施第一批（只本机提交，用户验收后才推送合入，intent 214702）**：派工书 ~/.modernize/psa/coordinator/redesign-1023/workorders/（README 第 9 节：兼容任务号 GOV-1023-COO-01；复审结论只落 ~/.modernize/psa/coordinator/reviews/redesign/<sha>.md，钩子类另有 .final.md）。整合分支 claude/one-ops-flow-v2 @6981e351a（基点 d71e8977b 通过），暂存 -next 有 O1 修 502054a9e（通过）。
+- **复审状态**：T1 c7cdd3d43 通过；T2 1f9c5df76 首轮必改已修（ccb45e2），终审通过；T3 2f5111c9b 必改 7 条（one-quality 改）；DA1 三提交通过（one-data 第一批完）；one-architecture AR0 无漂移（第一批完）。
+- **等用户**：T2 提醒方式「挡一次（复审建议）」或「只给我看」（改定稿 1.6 字面）；B1 凭据比对 `python3 -I ~/.modernize/psa/ops/b1_compare.py --repo ~/Projects/FORCITIS/forcitis-one-psa` 结果。
+- **我在途**：C1～C5 起草子代理在跑（输出 ~/.modernize/psa/coordinator/redesign-1023/drafts/coordinator/），出来后从 -next 切 claude/one-coordinator-flow-v2-b1 提交，C1/C2 派 opus 复审。one-merge M1～M6、one-ops O2～O8（opus）、one-quality T4 与 Q1～Q4 在写。
+- **注意**：跨会话消息有频率上限（用户不发言时约 10 条即暂停），复审结论走文件，少发消息。额度 81%（22:0x），停线 92%。
 更新：2026-10-23 21:3x（one-coordinator，50% 交接）
 - **开发流程重构（intent 205403、205756、211258）**：五份 opus 盘点与方案在 ~/.modernize/psa/coordinator/redesign-1023/（inventory-1～5、proposal.md 第二稿、decisions.json 45 条）。确认页 https://claude.ai/artifact/JR9PndKfbj3emFuCngYRHp（db：answers/<Dxx> {choice,note,at}；meta/submit 为用户交卷），生成源 ~/.modernize/psa/coordinator/redesign-1023/page-template.html。下一步：用户勾选并交卷后读 answers，按决定改方案定稿，再派实施（方案 4 节：10-24～25 准备，10-26 起写整合分支，10-28 一次合入）。期间不开任何新卡、不合任何非业务 PR。
 - 额度：周用量 80%（10-23 21:0x），额外用量已停；本次盘点加方案约耗数个百分点。
