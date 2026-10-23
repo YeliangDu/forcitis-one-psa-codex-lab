@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_说明": "流程数值与枚举的唯一出处（定稿 P4、H8）。规则、角色、模板只引用键名，不写字面值。改动走普通文档 PR，正文引用 intent。",
+  "_说明": "流程数值与枚举的唯一出处（定稿 P4、H8）。规则、角色、模板只引用键名，不写字面值。改动走普通文档 PR，正文引用 intent。约定：值为 null 表示「待定」，读取方按最保守处理（拦截类不开、上限类不放宽），例外在键旁注明；delegate.billing 里 monthly_cap 为 null 表示「不设上限」（D34）。枚举：budget_check.mode 与 budget.level_mode 取 warn｜enforce。",
   "rules": {
     "claude_md_max_kb": 1.5,
     "rules_md_max_kb": 5,
@@ -33,16 +33,34 @@
       "install": 60,
       "selftest": 1000,
       "stop_check": 120,
-      "agent_tier_gate": 40
+      "agent_tier_gate": 40,
+      "post_review": 200,
+      "budget_check": 250,
+      "light_sh": 120,
+      "relevant_change": 600,
+      "build_all": 150,
+      "build_decisions": 200,
+      "new_intent": 90,
+      "start_sheet": 300,
+      "delegate": 350,
+      "mq": 1200,
+      "mq_selftest": 1200
     },
     "install_dir": "~/.modernize/psa/tools/hooks",
     "install_current_link": "current"
   },
   "review": {
     "no_verdict_alert_minutes": 30,
-    "verdicts": ["通过", "必改"],
+    "verdicts": [
+      "通过",
+      "必改"
+    ],
     "final_reviewer_tag": "opus-终审",
-    "header_fields": ["复审结论", "commit", "复审者"]
+    "header_fields": [
+      "复审结论",
+      "commit",
+      "复审者"
+    ]
   },
   "labels": {
     "review_passed": "复审通过",
@@ -55,7 +73,11 @@
     "enqueue_alert_minutes": 45,
     "ready_to_merged_p90_minutes": 45,
     "merged_per_hour_min": 8,
-    "merge_method": {"default": "squash", "integration": "merge"}
+    "merge_method": {
+      "default": "squash",
+      "integration": "merge"
+    },
+    "max_lines_total": 2500
   },
   "ci": {
     "light_job_p90_minutes": 2,
@@ -70,8 +92,12 @@
     "jsonl_logs": 14,
     "snapshot_backup": 7
   },
-  "janitor": {"daily_at": "03:00"},
-  "board": {"interval_minutes": 10},
+  "janitor": {
+    "daily_at": "03:00"
+  },
+  "board": {
+    "interval_minutes": 10
+  },
   "decisions": {
     "current_page_max_kb": 10,
     "daily_decide_at": "20:00"
@@ -80,18 +106,55 @@
   "budget": {
     "level_interval_minutes": 30,
     "level_file": "~/.modernize/psa/budget/level.json",
-    "line": {"from_pct": 0, "to_pct": 95, "end_hours_before_reset": 12},
+    "line": {
+      "from_pct": 0,
+      "to_pct": 95,
+      "end_hours_before_reset": 12
+    },
     "ladder": {
-      "L0": {"over_line_max_pts": 3},
-      "L1": {"over_line_min_pts": 3, "over_line_max_pts": 8},
-      "L2": {"over_line_min_pts": 8},
-      "L3": {"usage_min_pct": 95}
+      "L0": {
+        "over_line_max_pts": 3
+      },
+      "L1": {
+        "over_line_min_pts": 3,
+        "over_line_max_pts": 8
+      },
+      "L2": {
+        "over_line_min_pts": 8,
+        "keep_sessions": [
+          "one-lead",
+          "one-platform"
+        ],
+        "platform_scope": "blocking_fixes_only",
+        "keep_business_line_key": "budget.l2_keep_business_line"
+      },
+      "L3": {
+        "usage_min_pct": 95
+      }
     },
     "l2_keep_business_line": "one-dev-par",
     "agent_tier_gate_enabled": false,
     "reading_validation_days": 7,
     "reading_max_deviation_pts": null,
-    "weekly_share_max": {
+    "share_overrun_factor": 1.5,
+    "night_window": {
+      "from": "22:00",
+      "to": "08:00"
+    },
+    "level_mode": "warn",
+    "_level_mode_说明": "验证期只告警（D32）。reading_max_deviation_pts 为 null 时，budget_level 与 agent_tier_gate 一律按不开拦截处理，失败关闭。",
+    "review_days_after_enable": [
+      7,
+      14
+    ],
+    "revoke_no_l1_weeks": 2,
+    "revoke_l2_stuck_hours": 24,
+    "coordinator_model": {
+      "day": "opus",
+      "night": "sonnet",
+      "level_ge_L1": "sonnet"
+    },
+    "weekly_share": {
       "coordinator": 0.08,
       "design": 0.2,
       "opus_review_security": 0.15,
@@ -100,14 +163,67 @@
       "language_ops_evidence": 0.1,
       "reserve": 0.05
     },
-    "share_overrun_factor": 1.5,
-    "night_window": {"from": "22:00", "to": "08:00"}
+    "weekly_share_capped": [
+      "coordinator",
+      "design",
+      "quality_infra"
+    ]
   },
-  "budget_check": {"mode": "warn"},
-  "machine": {"ci_runners": 4},
+  "budget_check": {
+    "mode": "warn"
+  },
+  "machine": {
+    "ci_runners": 4,
+    "heavy_parallel_max": null,
+    "delegate_nice": null,
+    "_说明": "heavy_parallel_max、delegate_nice 定稿 1.15 点名未给数，由 one-ops 与 one-platform 定。"
+  },
   "sessions": {
     "resident_max": 4,
     "config": {}
   },
-  "measures": []
+  "measures": [
+    {
+      "id": "budget-ladder",
+      "措施": "额度预算线加 L0～L3 梯子（D32）",
+      "指标": [
+        "每日超速量",
+        "各档停留时长",
+        "降级期间合入数",
+        "降级期间 High 数"
+      ],
+      "基线": null,
+      "_基线说明": "拦截开启前一周的读数，由 one-platform 落实读数后填",
+      "复盘日": "budget.review_days_after_enable",
+      "撤销条件": [
+        "连续 budget.revoke_no_l1_weeks 周没进过 L1",
+        "进入 L2 后 budget.revoke_l2_stuck_hours 小时仍回不到线下"
+      ]
+    }
+  ],
+  "tools_lib": {
+    "max_lines_total": 1800
+  },
+  "delegate": {
+    "billing": {
+      "codex": {
+        "mode": "subscription",
+        "monthly_cap": null
+      },
+      "deepseek": {
+        "mode": "record_only",
+        "monthly_cap": null
+      }
+    },
+    "pilot": {
+      "categories": [
+        "写测试",
+        "机械改写",
+        "长文阅读"
+      ],
+      "cards_per_category": 5,
+      "first_pass_rate_min_vs_sonnet_pts": -10,
+      "claude_cost_max_vs_sonnet_self": 0.5
+    }
+  }
 }
