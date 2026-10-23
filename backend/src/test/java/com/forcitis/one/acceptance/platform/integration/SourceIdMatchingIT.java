@@ -41,7 +41,7 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
     void theSyncMatchesBySourceIdAndCreatesOnlyForNewOnes() throws Exception {
         unit(UNIT, "C9100", "Matching unit", UNIT_PATH);
         member(CHANGING, "Before", "E9101", UNIT, UNIT_PATH, BASE_POST, null, "wx-world-9101", "world-9101");
-        syncOnce();
+        String firstRun = syncOnce().syncRunId().value().toString();
         UUID person = ownIdOf(EMPLOYEE, CHANGING);
         assertThat(snapshotValue("employees", person, "display_name")).isEqualTo("Before");
         int employeeReferences = references(EMPLOYEE);
@@ -55,6 +55,8 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
         assertThat(snapshotValue("employees", person, "employee_code")).as("the issued code is kept, the changed source code is reported").isEqualTo("E9101");
         assertThat(snapshotValue("employees", person, "login_name")).isEqualTo("world-9101-new");
         assertThat(issuesOfRun(renameRun, "EMPLOYEE_CODE_CHANGE_IGNORED")).as("the ignored code change is reported once").isEqualTo(1);
+        assertThat(runCount(renameRun, "issue_count") - runCount(firstRun, "issue_count")).as("the exception counts as one issue (RULING-COORD-20261023-08)").isEqualTo(1);
+        assertThat(runCount(renameRun, "isolated_row_count")).as("the person is kept, not isolated").isEqualTo(runCount(firstRun, "isolated_row_count"));
         String detail = issueDetail(renameRun, "EMPLOYEE_CODE_CHANGE_IGNORED", "employee:" + person);
         assertThat(detail).as("the exception names no code value (ADR-0078 decision 8)").isNotBlank().doesNotContain("E9101").doesNotContain("E9101-NEW");
         assertThat(references(EMPLOYEE)).as("no reference is made for a person already seen").isEqualTo(employeeReferences);
@@ -91,6 +93,17 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
         assertThat(snapshotValue("employees", first, "display_name")).as("the first person is not affected").isEqualTo("First");
         assertThat(employeesWithCode(SHARED_CODE)).isEqualTo(1);
         assertThat(issuesOfRun(rerun, "DUPLICATE_EMPLOYEE_CODE")).as("the same result on a rerun").isEqualTo(1);
+    }
+
+    private int runCount(String run, String column) throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce"); PreparedStatement select = workforce.prepareStatement(
+                "select coalesce(" + column + ", 0) from sync_runs where id::text = ?")) {
+            select.setString(1, run);
+            try (ResultSet rs = select.executeQuery()) {
+                assertThat(rs.next()).as("sync run " + run).isTrue();
+                return rs.getInt(1);
+            }
+        }
     }
 
     private int employeesWithCode(String code) throws SQLException {

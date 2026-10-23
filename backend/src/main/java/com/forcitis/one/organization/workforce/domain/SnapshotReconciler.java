@@ -198,7 +198,7 @@ public final class SnapshotReconciler {
         return new Staff(changed, changedEmployees, separatedEmployees, isolated, statusAfter, incomingEmployed, withoutWecom);
     }
 
-    /** The employee code is unique: a row whose code another person holds is isolated, never renumbered; an existing employee keeps its issued code (the source code is not read for it) and is served before a new one, and of two new people with one code the smaller source id is built. */
+    /** The employee code is unique: a row whose code another person holds is isolated, never renumbered; an existing employee keeps its issued code (the source code is not read for it) and is served before a new one, and of two new people with one code the one with the smaller own id is built. */
     private static void isolateTakenEmployeeCodes(Map<EmployeeId, SourcePerson> valid, Map<EmployeeId, StaffEmployee> currentStaff,
                                                   Set<EmployeeId> isolated, List<SyncDiff> diffs) {
         Map<String, EmployeeId> holders = new HashMap<>();

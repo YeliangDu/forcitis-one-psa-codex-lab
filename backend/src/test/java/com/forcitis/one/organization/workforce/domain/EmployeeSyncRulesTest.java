@@ -248,6 +248,9 @@ class EmployeeSyncRulesTest {
         assertThat(changes.diffs()).filteredOn(d -> d.issueKind() == IssueKind.EMPLOYEE_CODE_CHANGE_IGNORED)
                 .allMatch(d -> !d.detail().contains("E-OLD") && !d.detail().contains("E-NEW"));
         assertThat(changes.changedEmployees()).isEmpty();
+
+        Reconciliation again = SnapshotReconciler.reconcile(after, tree(withCode(person(5, 2, 100L, null, "13900000005", null), "E-NEW")));
+        assertThat(issues(again, IssueKind.EMPLOYEE_CODE_CHANGE_IGNORED)).as("each sync reports it again, no dedup across runs").hasSize(1);
     }
 
     @Test
