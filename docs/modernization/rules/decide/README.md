@@ -30,6 +30,8 @@
 | STKH 干系人与业务对象对应（10 题，不预选；one-architecture） | `sheets/STKH.json` | https://claude.ai/artifact/QD66je3YcbEgZToGPq9WwT（2026-10-19 起） |
 | STKH2 干系人子类（7 题，不预选；one-architecture） | `sheets/STKH2.json` | https://claude.ai/artifact/L4Ges3vue2F33Zhh4gwF7h（2026-10-19 起） |
 | B31R 行政事务规则要点（10 题，预选推荐；one-architecture） | `sheets/B31R.json` | https://claude.ai/artifact/VMfomUnRLmCHuQ9EfZr51i（2026-10-20 起） |
+| GL6 用语确认第七批：交付、结算与人员用语（6 题，不预选；one-glossary） | `sheets/GL6.json` | https://claude.ai/artifact/3cPAbRYnkQjZLz1pgZqGEK（2026-10-23 起，未实看渲染） |
+| GL7 用语确认第八批：签章、链接与文件保存用语（4 题，不预选；one-glossary） | `sheets/GL7.json` | https://claude.ai/artifact/Wj1G14p8ox4yVaca6EDgy3（2026-10-23 起，未实看渲染） |
 | GL5 用语确认第六批：协议状态与资产卡片（2 题，不预选；one-glossary） | `sheets/GL5.json` | https://claude.ai/artifact/UgWURDEPwcMvA4hBZCa4Lw（2026-10-22 起） |
 | GL3 用语确认第四批（11 题，不预选；one-glossary） | `sheets/GL3.json` | https://claude.ai/artifact/EFi9EDMikxT4Pa9c9oBr3m（2026-10-21 起） |
 | A7475 行政事务模块与子状态机转换记录批准（ADR-0074、0075，2 题，不预选；one-architecture） | `sheets/A7475.json` | https://claude.ai/artifact/5VR57YayWQCsNZ4Pdjg4RF（2026-10-21 起，未实看渲染） |

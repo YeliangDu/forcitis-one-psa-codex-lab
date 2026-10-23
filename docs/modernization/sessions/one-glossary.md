@@ -50,6 +50,7 @@
 
 - `docs/modernization/glossary/GLOSSARY_CONTEXT.md`（现状速查）
 - `docs/modernization/sessions/one-glossary.md`（本画像）
+- 交接源: docs/modernization/glossary/GLOSSARY_CONTEXT.md#现状
 
 ## 交接条件
 
@@ -85,7 +86,3 @@
 - 派卡时在 `docs/modernization/tasks/<任务号>.md` 写登记片段（frontmatter：任务号、任务名、主线、bc、种类、会话、执行者与模型、状态、分支、提交、返工轮次、用时、旧编号），完成点更新状态与提交。
 - PR 标题、提交说明、完成点报告都带任务号。
 - codex exec 命令末尾加 `< /dev/null`，用 run_in_background 启动；收到完成通知后先确认结果文件存在再算完成。
-
-## 当前状态
-
-2026-10-23 晚交接：one-rules 已并入本会话（会话名仍 one-glossary，规则卡与确认页模板由我接，原交接见 claude/one-rules-context-2 @a706eb820 的 RULES_CONTEXT.md「交接」节）；GL6（6 题）、GL7 改第八批（4 题）按两轮审题改完，check_pages 0 问题，分支 claude/one-glossary-handoff-1022 已推送，one-coordinator 二审「改后发布」不必再审；下一步发布这两页进收件箱（做法见 glossary/HANDOFF_20261022.md 末节），之后按岗位题答复修 position/job_position 定义并办 HANDOFF 末节的规则卡待办。
