@@ -3,6 +3,13 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 19:0x（one-coordinator，50% 交接；清空后先读本条）
+- **清空后第一件事**：CronCreate 每 5 分钟巡检（ReadNotifications、mailbox list --unacked/stale、mq.py status、在开非草稿 PR 逐个写卡点、派出复审超 30 分钟查是否在跑、reviews/ 新结论转实现与复核方）。批准前必须见该 head 轻量 CI 全绿；队列里的 PR CI 会被取消，属已知缺陷。
+- **队列**：[667,680,673,678,679,682]（#673 须在 #680 后）；main 绿（#681 修了 pre_tool_dispatch 自测 cwd 问题）。#654 head bfa67700f 等 CI 全绿后批（改 TEAM-45 守护索引列「A」，与 two-lanes 的 TEAM-45 文本冲突时：文本取 two-lanes、索引取 A）。运行器 scripts/merge/ 有改动合入须空档重启（one-merge 做）。
+- **复审在跑**：#683（QUA-06 第①步，自测挪 tests/，one-ops）opus 首轮子代理，结论落 ~/.modernize/psa/coordinator/reviews/pr683-opus-1.md，出来后转 one-ops，再交 one-quality 验收。
+- **等用户**：①合入策略补充意见（用户说会给，171926 已记并改 TEAM-45/47/53/24；未派代码）——到了再定：恢复 MRG-08 合批、#669 重定范围（必改：删 record_update 用 await_new_head+parents）、cancel_others 不取消轻量 CI、#654 批准门放宽到 one-quality；②#677 openapi 三方合并做法（偏离原话「取 main 版」）待用户「同意」；③提速方案四条（合批/放开测试并发/代码 PR 不夹带状态文件/补入队时间戳）待派；④「超 1 分钟命令放后台」规则待定。
+- **我待做**：总验收清单按保留卡改写为剩余 35 项（打分 ~/.modernize/psa/coordinator/team-audit/acceptance-1023-rescore-1845.md），改 COO-01 完成标准；运行设置回读、strict 结论；七值校验 PR 等清账文档合集入 main 后 rebase 推（本地 c95808768，子代理工作区 agent-a7d705e3f87bbfbe0）；文档合集收 one-data 22268017a、fa158558e 须在 #673 后。
+- **会话**：one-ops 做 QUA-06（排序：QUA-06 → QUA-02 第二段 → MRG-04）；one-quality 只复核；one-merge 盯队列；one-architecture 等 #673 合入后做 ARC-01 第②步并删 ddd/aggregates.yaml（#680 合后）；开发线待命至总验收通过。
 更新：2026-10-23 16:5x（one-coordinator）
 - **#668 合入后待办**：①#673（ARC-01 第①步）令 one-architecture 合 main 解冲突、报 head 后派 opus 首轮；②派 test-engineer 改 TimesheetApprovalWithdrawnRenameIT、SourceReferenceRefusedRenameIT 路径常量为 ssot/i03-aggregates/built.yaml（断言不变），合入后通知 one-architecture 删 ddd/aggregates.yaml；③七值校验：本地分支 claude/one-coordinator-task-status-7 @c95808768（子代理工作区 .claude/worktrees/agent-a7d705e3f87bbfbe0），推送被预检拦（旧卡数据未进 main，预期），不绕过；等含清账提交（@957384cf0）的文档合集合入 main 后 rebase 重推开 PR，交 one-quality 复核。
 - **在途**：#668 改后通过待 one-ops 改 2 项（自测挪必需作业、--reads-docs 只认 READ_BY_BUILDS）；急修（one-merge 借调，run_from_main 第 52/54、63–76 行，LAST_LOG 以 #668 为准）；#667 必改已裁定交 one-ops；#669 暂停让急修；#654 等 #671 合入后放回；#672 草稿。
