@@ -8,7 +8,7 @@ terms:
   kind: metric
   bc: delivery.execution
   scope: domain
-  definition: 管理进展估计的金额：经营产值 ＝ Σ（合同条款履约进度 × 合同条款金额），即按合同价计的完成价值（收入口径），与收入分开记；区别于按预算成本计的挣值（EVM 的 BCWP）。
+  definition: 管理进展估计的金额：经营产值 ＝ Σ（合同条款履约进度 × 合同条款金额），即按合同价计的挣值，管理口径，与收入确认分开记；区别于按预算成本计的挣值（EVM 的 BCWP）。
   formula: Σ（合同条款履约进度 × 合同条款金额），逐条合同条款相加
   grain: 按项目、合同条款
   as_of: 截至进度确认时点
