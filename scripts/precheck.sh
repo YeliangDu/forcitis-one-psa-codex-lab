@@ -4,7 +4,7 @@
 #   base-ref       defaults to origin/main; the script never fetches, so fetch first if the base may be stale
 #   --run-backend  also run the suggested backend tests (Testcontainers starts containers: ask the user first, CLAUDE.md)
 #   --pre-push     what scripts/hooks/pre_push_gate.py runs before `git push`: the checks above, plus the unit test classes that start no container and that the change can affect (all of them when backend/ changed outside module sources); no gitleaks history scan, no full frontend verify (CI does both)
-# A check the change requires but this machine cannot run is a FAIL, not a SKIP (SESSION_PLAYBOOK §11): the term tests when the glossary changed, the frontend
+# A check the change requires but this machine cannot run is a FAIL, not a SKIP (SESSION_PLAYBOOK TEAM-44): the term tests when the glossary changed, the frontend
 # when frontend/ or the glossary changed. scripts/hooks/precheck_before_pr.py runs this before `gh pr create` and blocks the PR unless it ends "ready".
 # Reviewers do not run this on a branch they do not trust: it executes the branch's own scripts. CI is the gate there.
 # Bash 3.2 compatible (macOS): no associative arrays, no mapfile.

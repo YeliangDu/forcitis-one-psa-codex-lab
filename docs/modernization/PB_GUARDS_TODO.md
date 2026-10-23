@@ -15,7 +15,7 @@
 | GOV-1022-QUA-16 | TEAM-46（⑦） | 数据登记文件被改却无 one-data 签发 | ci.yml 新步骤：PR diff 触及登记文件清单（由 one-data 给出路径表）时，PR 说明或提交 trailer 须有「数据设计：通过（one-data，日期）」；本地 precheck 同查 | 自写（判定签发真伪属权限边界；可让 Codex 起草测试） |
 | GOV-1022-COO-17 | TEAM-87（⑧，COO-10 即 #616 已合入，余项） | `$'g\x69t'`、通配符、`bash <<EOF`、`env -S`、`git -c alias.`、`gh -R` 仍可绕过钩子命令匹配 | 分发器分词补这几类，差分自测 | 自写（钩子、解析类） |
 | GOV-1022-QUA-17 | TEAM-25 | 卡交出不核 PR 与复审结论；节点自清无可靠信号 | 新 `scripts/finish.py <任务号>`：`gh pr list` 核 PR 已开、PR 评论有复审结论，改卡为「已交」，写 `.claude/node-marker`；context_handoff 只认标记文件 | 自写（与钩子联动；finish.py 本体可 Codex 起草） |
-| GOV-1022-QUA-18 | TEAM-06 | 节点自清只在部分会话生效；清空前未交接 | context_handoff.py 读 node-marker 与用量 ≥20% 时注入固定自清文案，适用会话改为全员（除 coordinator、architecture） | 自写（钩子） |
+| GOV-1022-QUA-18 | TEAM-06 | 节点自清只在部分会话生效；清空前未交接 | context_handoff.py 读 node-marker 与用量 ≥20% 时注入固定自清文案，适用会话改为全员（除 coordinator；已由 #628 完成，兜底文案余项另议） | 自写（钩子） |
 | GOV-1022-QUA-19 | TEAM-31、67 | 派子代理不写 model，默认继承 opus；opus 用在复核、取数 | PreToolUse 分发器加 Agent/Task 检查：`model` 缺失即拒绝；Workflow 脚本由 precheck grep `agent(` 调用须带 model | 自写（钩子） |
 | GOV-1022-QUA-20 | TEAM-47 | 会话绕过 mq.py 用 `gh pr merge` 或 API 合并 | 分发器拒绝 `gh pr merge`、`gh api .../merge`（one-merge 的 mq.py 进程内调用除外）；网页合并不加仓库规则集（调度定：合并只有用户账号与其会话有权限，靠 TEAM-47 自觉，不改仓库设置） | 自写（钩子） |
 | GOV-1022-QUA-21 | TEAM-41 | PR 过大难复审、难回退 | ci.yml 步骤：非生成文件改动 >800 行或 >15 文件即失败，生成物按 .gitattributes `linguist-generated` 排除；超限须 PR 说明写理由并由调度批准评论放行 | Codex |
@@ -23,7 +23,7 @@
 | GOV-1022-QUA-23 | TEAM-28、74 | 无主设计无人认领；周一出数靠手工 | `scripts/weekly_numbers.py`：跑守护①–③、列陈旧卡、超期 ADR 提议、在制 PR 数、Codex 返工率、无卡的设计稿与提议稿，输出给调度日报；可挂 schedule 工作流 | Codex |
 | GOV-1022-MRG-01 | TEAM-45 | 入队依据靠跨会话消息转述，易错 head | mq.py：入队前读 PR 评论，须有调度账号发的「调度批准入队 head <sha>」且 sha 等于当前 head，否则拒绝 | one-merge（mq.py 单列 PR、opus 复审） |
 | GOV-1022-MRG-02 | TEAM-49 | 合入后负责会话不知道，卡不关 | mq.py 合入后按 PR 标题任务号查 `tasks/` 负责会话，经 ccd send_message 发「#N 已合入（任务号）」给负责会话与调度 | one-merge（同上） |
-| GOV-1022-MRG-03 | TEAM-09 | 钩子改动合入后旧会话仍跑旧钩子 | mq.py 合入触及 `scripts/hooks/`、`.claude/settings.json` 的 PR 后，列出启动早于合入时刻的会话报调度 | one-merge（同上） |
+| GOV-1022-MRG-03 | TEAM-09 | 钩子改动合入后旧会话仍跑旧钩子 | mq.py 合入触及 `.claude/settings.json` 的 PR 后，列出启动早于合入时刻的会话报调度 | one-merge（同上） |
 | GOV-1022-MRG-04 | TEAM-43 | 单会话在制代码 PR 超 3 个 | mq.py 或 precheck_before_pr：`gh pr create` 前数本会话（按 Session trailer 或分支前缀）开着的代码 PR，≥3 即拒绝 | 钩子侧自写；mq.py 侧 one-merge |
 
 ## 不建（写理由）

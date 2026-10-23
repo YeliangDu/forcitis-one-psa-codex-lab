@@ -186,7 +186,7 @@
 | CS-7.2 | PR 模板各栏如实填写：改动的断言 / 测试及理由、新增术语、OpenAPI 与架构文档同步、验收测试 trailer、precheck 输出；Codex 实现的在「Codex 实现（模型、强度）」一栏注明 | `.github/pull_request_template.md`；SESSION_PLAYBOOK TEAM-32–38 | 复审（调度合并前核对） |
 | CS-7.3 | **只改卡上文件**，越界先报告；缺陷修复、功能补做、结构性重构分开派工、分开提交；缺陷修复手术式（最小改动 + 回归测试），不顺手重构、改名、统一风格 | SESSION_PLAYBOOK 附 M1 第 1、5、6 条 | 复审；派工卡模板 `templates/WORK_CARD.md` |
 | CS-7.4 | **记录只改片段**：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `build_all.py` 生成；用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段（文件名由脚本按时刻与会话名生成，不手工起名），改完运行 `build_all.py`；INTENT / SESSION_LOG / STATUS、ADR 拷贝与索引、brief 等生成产物都不入仓（只提交片段或源；本地运行 `build_all.py` 或看 generated-docs 分支）；不直接编辑生成产物 | SESSION_PLAYBOOK TEAM-56 | 守护：`build_all.py --check` |
-| CS-7.5 | **变更治理自查**：已采纳 ADR 只改状态行；新 ADR 带四个必备小节；代码类改动先有 `RULE_REVIEWS.json` 结论；配置变更登记版本与生效日期 | SESSION_PLAYBOOK TEAM-97、附 M3 | 守护：`adr/build_adrs.py`（经 `build_all.py`）；复审 |
+| CS-7.5 | **变更治理自查**：已采纳 ADR 只改状态行；新 ADR 带四个必备小节；代码类改动先有 `RULE_REVIEWS.json` 结论；配置变更登记版本与生效日期 | SESSION_PLAYBOOK TEAM-46、附 M3 | 守护：`adr/build_adrs.py`（经 `build_all.py`）；复审 |
 | CS-7.6 | **并行子代理同一基线出发** | [SESSION_PLAYBOOK 附 M5「第二批」第 9 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
 | CS-7.7 | **合并**：main 受分支保护，所有改动经 PR，CI 三项通过且本批 opus 复审结论到达后，由调度会话 one-coordinator 合并；工作会话结束前向 one-coordinator 报告 | CLAUDE.md；SESSION_PLAYBOOK TEAM-45、47、59 | CI；调度核对 |
 | CS-7.8 | 提交说明中文，格式 `type(scope): 摘要`，scope 用子域 slug；验收测试 trailer 见 CS-5.3 | NAMING_STANDARD §7 第 21 项 | 复审 |
@@ -214,7 +214,7 @@
 
 | 编号 | 内容 | 建议取舍 |
 |---|---|---|
-| C-1 | `CLAUDE.md` 写「DATA_DESIGN_CHECKLIST §14、§14.1 D1–D16」，§14.1 现已到 D17（D18 在途） | 建议：引用写「§14.1 全部条目」，不写区间，免得每加一条就漂移（本次精简 CLAUDE.md 已这样改，未改规则含义） |
+| C-1 | `CLAUDE.md` 写「SESSION_PLAYBOOK §14、§14.1 D1–D16」（旧版），§14.1 现已到 D17（D18 在途） | 建议：引用写「§14.1 全部条目」，不写区间，免得每加一条就漂移（本次精简 CLAUDE.md 已这样改，未改规则含义） |
 | C-2 | 迁移规则三处写法：§12.2 表「Flyway 只追加」、§12.4 表「Flyway 迁移：只新增脚本」、§4 第 6 步「Flyway 只新增文件」与同节「首次部署前的迁移基线」（开放期直接改基线）并存 | 建议：§12.2 / §12.4 / §4 的「只追加」后加「（基线开放期内按『首次部署前的迁移基线』）」，以开放标记为准；`migrations_immutable.py` 已按此实现 |
 | C-3 | NAMING_STANDARD §2.4 `_id` 类型「`bigint`、`uuid`」、`_by` 类型 `bigint`，与 §14.1 D16「所有自有表主键 UUIDv7」及 R-1（ID 改 UUID）不一致 | 建议：R-1 合入时同步改 §2.4：`_id` 为 `uuid`（外部来源对照列 `text`），`_by` 随 `UserId` 类型 |
 | C-4 | Testcontainers 版本：GUIDING_PRINCIPLES §9 与 NAMING_STANDARD 序言写 PG17，CI 与测试实际用 `postgres:18` | 建议：以 CI 为准，两处改为「镜像以 CI 为准」，不写死版本号 |
@@ -224,7 +224,7 @@
 | C-8 | 测试命名：NAMING_STANDARD §5 写方法名 `RULE_012_clauseTotal…`，§4 计划「以 `RULE_NNN_` 开头的测试」；现有代码统一用 `@DisplayName("RULE-356 …")`；SESSION_PLAYBOOK 附 M4 写「测试名或注解引用」 | 建议：以 `@DisplayName` 开头引用编号为准（现状、可读、支持 D / ADR / 复审编号），G-T4 守护按 `@DisplayName` 前缀实现；§5 示例同步改 |
 | C-9 | `@Nullable` 两套：`org.jspecify.annotations.Nullable`（33 个文件）与 `org.springframework.lang.Nullable`（8 个文件，`platform.approval.web` 与 `OpenApiRequiredProperties`）；`NullableResponseGuardTest` 只认 JSpecify | 建议：统一 JSpecify（Spring 7 本身已转 JSpecify），G-C3 禁 Spring 的注解；8 个文件走结构性重构批 |
 | C-10 | 覆盖率门槛：GUIDING_PRINCIPLES §9「行 ≥ 80%、分支 ≥ 70%」，CI `backend_verify.sh` 为 `-Djacoco.skip=true`（「nothing in CI reads coverage」），门槛无人检查 | 待决：恢复覆盖率门槛进 CI，或在 GUIDING_PRINCIPLES 写明「复审参考，不作门槛」 |
-| C-11 | 分支命名：SESSION_PLAYBOOK TEAM-86 与 NAMING_STANDARD §7 第 21 项写 `feature/issue-{N}-…`，实际会话分支为 `claude/one-*` worktree 分支 | 建议：两处改为「会话 worktree 分支（`claude/<会话名>`）」，或决定沿用哪种 |
+| C-11 | 分支命名：旧版 SESSION_PLAYBOOK §6 与 NAMING_STANDARD §7 第 21 项写 `feature/issue-{N}-…`，实际会话分支为 `claude/one-*` worktree 分支 | 建议：两处改为「会话 worktree 分支（`claude/<会话名>`）」，或决定沿用哪种 |
 | C-12 | `CLAUDE.md`、`AGENTS.md` 与 SESSION_PLAYBOOK 附 M5「第二批」逐条重复（11 条），措辞略有差异 | 本次已处理：CLAUDE.md 保留最硬的条目并指向本文件，AGENTS.md 指向本文件；第二批原文仍在 SESSION_PLAYBOOK 附 M5「第二批」，本文件引用 |
 | C-13 | CLAUDE.md「数据设计有自己的规则……所有自有表主键 UUIDv7……」与 §14.1 原则段、D16 重复 | 本次已处理：CLAUDE.md 只留一句指向，正文以 §14.1 为准（CS-3.3、CS-3.4） |
 | C-14 | NAMING_STANDARD §2.3「Flyway 描述中文说明写在脚本首行注释」与 CS-1.1「注释能不写就不写」有张力；表与列含义已由 `COMMENT ON` 承载（D3、D10） | 建议：首行注释只写「为什么」（如基线合并来源），含义一律写 `COMMENT ON` |
