@@ -21,6 +21,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = str(Path(__file__).resolve().parent)
@@ -175,7 +176,8 @@ def self_test():
     for hostile in ("python3 -c \"connect('rm-bp1690ep5" "3t9778dp')\"", "xargs -I{} sqlcmd -S rm-bp1690ep5" "3t9778dp -Q {}", "sqlcmd -S `echo rm-bp1690ep5" "3t9778dp` -Q 'delete from t'", "bash -lc \"psql -h rm-bp1690ep5" "3t9778dp -c 'drop table t'\"",
                     "$'\\x73qlcmd' -S rm-bp1690ep5" "3t9778dp -Q 'delete from t'", "bash <<'EOF'\nsqlcmd -S rm-bp1690ep5" "3t9778dp -Q 'delete from t'\nEOF", "env -S 'sqlcmd -S rm-bp1690ep5" "3t9778dp -Q x'", "curl -XPOST https://rm-bp1690ep5" "3t9778dp/x"):
         assert dispatch(payload(hostile))[0] == 2, hostile
-    assert dispatch(payload("git commit -m 'rm-bp1690ep5" "3t9778dp 说明'"))[0] == 0 and dispatch(payload("psql -h rm-bp1690ep5" "3t9778dp -U one_evidence" "_ro -c 'select 1'"))[0] == 0
+    with tempfile.TemporaryDirectory() as elsewhere:  # not the repository: CI's push event checks out main itself, where main_checkout_gate refuses any commit
+        assert dispatch(payload("git commit -m 'rm-bp1690ep5" "3t9778dp 说明'", cwd=elsewhere))[0] == 0 and dispatch(payload("psql -h rm-bp1690ep5" "3t9778dp -U one_evidence" "_ro -c 'select 1'", cwd=elsewhere))[0] == 0
     assert dispatch(payload("al\"\"iyun rds DeleteAccount --DBInstanceId rm-bp1690ep5" "3t9778dp"))[0] == 2 and "prod_write_gate" in [n for n, _ in selected(json.loads(payload("PSQL -c x")))]
 
     # 3. background task names (Bash with run_in_background, Agent, Task) reach their gate through the dispatcher
