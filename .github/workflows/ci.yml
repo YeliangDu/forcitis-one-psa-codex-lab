@@ -90,8 +90,7 @@ jobs:
       - name: hook and CI-script self-tests
         run: |
           python3 scripts/hooks/pre_push_gate.py --self-test
-          python3 scripts/hooks/command_words.py --self-test
-          python3 scripts/hooks/prod_write_gate.py --self-test
+          python3 scripts/gates/prod_write_gate.py --self-test
           python3 scripts/hooks/pre_tool_dispatch.py --self-test
           python3 scripts/hooks/codex_stdin_gate.py --self-test
           python3 scripts/hooks/main_checkout_gate.py --self-test

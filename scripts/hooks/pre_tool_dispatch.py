@@ -26,7 +26,7 @@ from pathlib import Path
 
 HERE = str(Path(__file__).resolve().parent)
 sys.path.insert(0, HERE)
-from command_words import plain  # noqa: E402
+from command_words import plain  # noqa: E402  (the compatibility layer puts scripts/gates on sys.path)
 from prod_write_gate import could_concern  # noqa: E402
 
 PI_WORD = re.compile(r"(?<![A-Za-z0-9_])pi(?![A-Za-z0-9_])")
@@ -116,7 +116,8 @@ def main():
 
 
 def alone(script, raw, cwd=None):
-    result = subprocess.run([sys.executable, "-I", str(Path(HERE) / script)], input=raw, capture_output=True, text=True, encoding="utf-8", timeout=120, cwd=cwd,
+    path = Path(HERE).parent / "gates" / script if script == "prod_write_gate.py" else Path(HERE) / script  # the gate moved to scripts/gates (GOV-1023-FV2 O2)
+    result = subprocess.run([sys.executable, "-I", str(path)], input=raw, capture_output=True, text=True, encoding="utf-8", timeout=120, cwd=cwd,
                             env={"LC_ALL": "C", "PATH": os.environ.get("PATH", "")})
     return result.returncode, result.stdout, result.stderr
 
