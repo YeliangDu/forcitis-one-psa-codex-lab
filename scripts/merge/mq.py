@@ -382,6 +382,14 @@ class Gh:
         except ValueError:
             return []
 
+    def ci_started(self, branch, head):
+        """True when a ci run for exactly this head exists (any state); False when none is listed yet or gh does not answer."""
+        r = sh(["gh", "run", "list", "--branch", branch, "--workflow", "ci", "--limit", "10", "--json", "headSha"])
+        try:
+            return any(x.get("headSha") == head for x in json.loads(r.stdout))
+        except ValueError:
+            return False
+
     def cancel_run(self, run):
         return sh(["gh", "run", "cancel", str(run)]).returncode == 0
 
@@ -800,6 +808,26 @@ class Processor:
             self.sleep(60)
         return False
 
+    def await_new_head(self, n, v, since):
+        """After an update: the view of the pull request once its head differs from the old one (GitHub takes a while to show the push); the last view when it never did."""
+        for _ in range(8):
+            now = self.gh.view(n) or v
+            if now["head"] != v["head"]:
+                return now
+            self.sleep(15)
+        self.log.event("NEW-HEAD-NOT-SEEN", n, None, since, "the head did not change after the update; going on with the head as it is")
+        return self.gh.view(n) or v
+
+    def await_new_ci(self, n, v, since):
+        """True once a ci run exists for the head of v (polled up to 5 minutes); the checks listed before that belong to an older head."""
+        for _ in range(20):
+            self.checkpoint(n)
+            if self.gh.ci_started(v["branch"], v["head"]):
+                return True
+            self.sleep(15)
+        self.log.event("NEW-CI-NOT-SEEN", n, None, since, "no CI run was seen on the updated head within 5 minutes; going on")
+        return False
+
     def wait_checks(self, n, since):
         """Checks once none is pending; None when they stayed pending past the CI timeout. A failed gh call is no answer: asked again."""
         for _ in range(20):
@@ -876,7 +904,7 @@ class Processor:
 
     def _process(self, n, since):
         self.cancel_others(n, since)
-        attempt, moved, refused, env_failures = 1, 0, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
+        attempt, moved, refused, unseen, env_failures = 1, 0, 0, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
         while attempt <= 4:
             self.checkpoint(n)
             v = self.gh.view(n)
@@ -907,7 +935,10 @@ class Processor:
                         return "CONFLICT"
                     return self.hold(n, None, since, "the update could not be pushed")
                 self.sleep(30)
-                v = self.gh.view(n) or v
+                v = self.await_new_head(n, v, since)
+                new_ci_seen = self.await_new_ci(n, v, since)
+            else:
+                new_ci_seen = True   # no update this round: the CI that runs is the one of the head as it is
             self.checkpoint(n)
             self.own_head[n] = v["head"]
             self.queue.set_head(n, v["head"])   # kept on disk too: a runner restarted in the middle must not take the queue's own update for the author's push
@@ -965,6 +996,13 @@ class Processor:
             if result == "head-changed":
                 now = self.gh.view(n) or v
                 return self.head_changed(n, now, self.head_moved(n, now) or self.own_head.get(n) or "?", since)
+            if result == "moved" and not new_ci_seen:   # nothing ran on the new head: the verdict was read off the old one, that is no main moving
+                unseen += 1
+                self.log.event("MOVED-NOT-COUNTED", n, None, since, "no CI run was seen on the updated head: not counted as main moving")
+                if unseen > 6:
+                    return self.hold(n, None, since, "the CI of the updated head never started")
+                self.sleep(30)
+                continue
             if result == "moved":
                 moved += 1
                 if moved > 6:
