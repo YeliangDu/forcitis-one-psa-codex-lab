@@ -1,8 +1,8 @@
-# 签章服务第一段契约草案（CS-1.10，工作名）
+# 签章服务第一段契约（CS-1.10）
 
 - 作者：one-platform-file，2026-10-22；回应 one-architecture 准入裁定 `ADMISSION_PLATFORM_SIGNING_2026-10-22.md`（claude/one-architecture-admission-file @a62cb635）第 4、5、7、9 条。
 - 依据：ADR-0064 决定 1、2、3、9 与迁移方案第 2 条（先行上线批）；ADR-0066 决定 3–6；SESSION_PLAYBOOK §14.1 D15、D17。
-- 模块：签章服务，暂名 `platform.signing`，schema 暂名 `platform_signing`，权限码前缀暂名 `platform.signing:`。**以上与下文英文标识均为工作名**，one-glossary 登记模块标识、schema、权限码前缀与台账类术语后替换；登记前不落代码（ADR-0064 决定 2 第 2 条）。
+- 模块：签章服务 `platform.signing`，schema `platform_signing`，权限码前缀 `platform.signing`（冒号后资源与动作按 ADR-0067 冻结，不在词表）；模块标识与台账类术语已由 one-glossary 登记（#564，proposed）。
 
 ## 1. 第一段范围（准入第 9 条）
 
@@ -20,7 +20,7 @@
 
 ```java
 interface SealLedger {
-    /** 按用印时刻取当时有效的版本；条目不存在或时刻早于最早版本即抛错并告警（ADR-0064 决定 3 第 3 条）。 */
+    /** 按用印时刻（按业务时区切成日期）取当时有效的版本；条目不存在或时刻早于最早版本即抛错并告警（ADR-0064 决定 3 第 3 条）。 */
     SealLedgerEntryVersionView versionAt(SealLedgerEntryId entry, Instant at);
 
     /** 某法人在某日启用的条目，供用印申请选择；按印章类型排序。 */
@@ -35,7 +35,7 @@ interface SealLedger {
 
 record SealLedgerEntryId(UUID value)                    // UUIDv7，条目 ID 不随版本变
 record SealLedgerEntryVersionId(UUID value)
-record SealTypeCode(String value)                        // 构造即校验格式；是否登记由清单表校验
+record SealTypeCode(String value)                        // 构造即校验非空；是否登记由清单表校验
 enum SealCarrier { PHYSICAL }                            // W0 只有实体；电子印章批追加 ELECTRONIC（冻结后兼容新增）
 record SealLedgerEntryView(SealLedgerEntryId id, LegalEntityId legalEntity, SealTypeCode sealType, SealLedgerEntryVersionId currentVersion,
                            SealCarrier carrier, LocalDate effectiveFrom)
@@ -55,13 +55,12 @@ record SealTypeView(SealTypeCode code, String name)
 
 W0 不发布事件：维护命令的结果由维护人当场得知；administration 按用印时刻查版本，不需要订阅（CS-1.8）。
 
-### 2.3 错误码（`SealLedgerError`，中文名待 one-glossary，全局唯一）
+### 2.3 错误码（`SigningError`，中文名以 `backend/glossary/proposed/platform-signing.yaml` 为准，全局唯一）
 
-| 码 | ErrorKind | 拟中文名 |
+| 码 | ErrorKind | 中文名 |
 |---|---|---|
 | `PLATFORM_SIGNING_LEDGER_ENTRY_NOT_FOUND` | NOT_FOUND | 印章台账条目不存在 |
 | `PLATFORM_SIGNING_NO_VERSION_AT` | UNPROCESSABLE | 用印时刻无有效台账版本 |
-| `PLATFORM_SIGNING_ENTRY_INACTIVE` | CONFLICT | 印章台账条目已停用 |
 | `PLATFORM_SIGNING_SEAL_TYPE_UNKNOWN` | UNPROCESSABLE | 印章类型未登记 |
 | `PLATFORM_SIGNING_ACTIVE_ENTRY_EXISTS` | CONFLICT | 同一法人同一印章类型已有启用条目 |
 | `PLATFORM_SIGNING_VERSION_NOT_EDITABLE` | CONFLICT | 台账版本只许关闭不许改写 |
@@ -89,11 +88,11 @@ W0 不发布事件：维护命令的结果由维护人当场得知；administrat
 
 ## 5. 模块依赖与守护落点（准入第 3、7 条）
 
-`module-dependencies.txt` 拟增（随 api PR，守护文件单列、opus 复审）：
+`module-dependencies.txt` 增一行（随 api PR，守护文件单列、opus 复审）；第一段 api 不用任何模块，登记空行，audit（维护命令审计）与 identity（web 权限；ADR-0064 决定 1 第 3 条未列，待 one-architecture 认）随维护命令落地时再加：
 
 ```
-# ADR-0064 decision 1 item 3: the signing service depends on foundation modules only; W0 (seal ledger) needs audit and identity (web permissions).
-platform.signing -> platform.audit, platform.identity
+# ADR-0064 decision 1 item 3: the signing service depends on foundation modules only; the first segment (seal ledger query api) uses none yet.
+platform.signing ->
 ```
 
 - 电子印章批再加 `platform.integration`、`platform.file`、`organization.workforce`（ADR-0064 决定 1 第 3 条），不预留。
@@ -120,7 +119,7 @@ platform.signing -> platform.audit, platform.identity
 
 ## 7. 待交其他会话
 
-- **one-glossary**：模块标识、schema、权限码前缀；印章台账、台账条目、台账条目版本、印章类型（与「印章类别」同名异义）、载体、保管部门、错误码中文名。
-- **one-1a-admin**：已确认（2026-10-22）够 B-31 用印 7.3、7.4：选条目用 `activeEntries` / `activeEntry`，登记按用印时刻 `versionAt` 取版本并存版本 ID，法人、类型、启停、载体在版本视图内自行校验，用途与类型对应用 `sealTypes`，迁入映射用 `activeEntry`；不需要保管部门、签章记录、事件。要求 `NO_VERSION_AT` 与 `ENTRY_INACTIVE` 两码保持可区分（`versionAt` 只抛前者，停用由调用方按视图 `active` 判并用后者）。
+- **one-glossary**：模块标识、schema、权限码前缀与台账类术语已登记（#564）。待删词条 `error__platform_signing_entry_inactive`（印章台账条目已停用）：停用由调用方按版本视图 `active` 判，签章服务不发此码；签章服务自己的命令需要时再登记。「印章类别」与印章类型同名异义，统一称印章类型。
+- **one-1a-admin**：已确认（2026-10-22）够 B-31 用印 7.3、7.4：选条目用 `activeEntries` / `activeEntry`，登记按用印时刻 `versionAt` 取版本并存版本 ID，法人、类型、启停、载体在版本视图内自行校验，用途与类型对应用 `sealTypes`，迁入映射用 `activeEntry`；不需要保管部门、签章记录、事件。`versionAt` 只抛 `NO_VERSION_AT`；停用由调用方按视图 `active` 判，用 administration 自己的错误码，签章服务不发 `ENTRY_INACTIVE`（one-architecture 2026-10-22）。
 - **one-data**：第 6 节四张表；`seal_type_code` 是否以清单版本外键或代码校验；W0 载体列只有一个取值是否先建。
 - **one-architecture**：本稿齐后复核九条。

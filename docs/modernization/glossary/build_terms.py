@@ -691,7 +691,7 @@ for _f in _round2_sources:
         _e["forbidden"] += [x for x in _forbid if x not in _e["forbidden"]]
         terms.append(_e)
 
-# 开工前术语门禁（SESSION_PLAYBOOK §5）：每张卡的小决策页答复 glossary/decisions-gate-<卡号>.json，规则在 glossary/gate/apply_gate.py
+# 开工前术语门禁（SESSION_PLAYBOOK 附 M6）：每张卡的小决策页答复 glossary/decisions-gate-<卡号>.json，规则在 glossary/gate/apply_gate.py
 sys.path.insert(0, "glossary/gate")
 import apply_gate
 print("gate: 新增正式词条", apply_gate.apply(terms))

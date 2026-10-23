@@ -34,15 +34,13 @@ jobs:
           cp "$src/INTENT.md" "$src/SESSION_LOG.md" "$src/STATUS.md" "$src/SESSIONS.md" "$src/DECISION_DIGEST.md" "$src/MODERNIZATION_BRIEF.md" "$out/"
           cp "$src/glossary/ISSUES.md" "$out/GLOSSARY_ISSUES.md"
           cp "$src/phase1a/infra/LEGACY_READ_REGISTER.md" "$src/tasks/TASKS.md" "$out/"
-          mkdir -p "$out/sessions"
-          cp "$src/sessions/_COMMON.md" "$out/sessions/"
           mkdir -p "$out/adr"
           cp "$src"/adr/ADR-*.md "$src/adr/README.md" "$src/adr/INDEX.md" "$out/adr/"
           mkdir -p "$out/architecture/frameworks" "$out/architecture/panorama" "$out/glossary-proposed"
           cp "$src/architecture/frameworks/CONCEPT_INDEX.md" "$src/architecture/frameworks/NOTES_INDEX.md" "$out/architecture/frameworks/"
           cp "$src/architecture/panorama/FREEZE_FACTS.md" "$src/architecture/panorama/FREEZE_FACTS.yaml" "$src/architecture/panorama/FREEZE_IMPACT.md" "$src/architecture/panorama/panorama.yaml" "$src/architecture/panorama/GAPS.md" "$out/architecture/panorama/"
           cp backend/glossary/proposed/README.md "$out/glossary-proposed/"
-          printf '# 生成文档快照\n\n由 main@%s 的片段生成（docs/modernization/build_all.py），每次 main 更新时整体覆盖。不要在此分支上修改；改片段后合入 main。\n\n- [INTENT.md](INTENT.md)\n- [SESSION_LOG.md](SESSION_LOG.md)\n- [STATUS.md](STATUS.md)\n- [SESSIONS.md](SESSIONS.md)\n- [sessions/_COMMON.md](sessions/_COMMON.md)\n- [TASKS.md](TASKS.md)\n- [DECISION_DIGEST.md](DECISION_DIGEST.md)\n- [GLOSSARY_ISSUES.md](GLOSSARY_ISSUES.md)\n- [MODERNIZATION_BRIEF.md](MODERNIZATION_BRIEF.md)\n- [adr/README.md](adr/README.md)\n- [adr/INDEX.md](adr/INDEX.md)\n- [architecture/frameworks/CONCEPT_INDEX.md](architecture/frameworks/CONCEPT_INDEX.md)\n- [architecture/frameworks/NOTES_INDEX.md](architecture/frameworks/NOTES_INDEX.md)\n- [architecture/panorama/FREEZE_FACTS.md](architecture/panorama/FREEZE_FACTS.md)\n- [architecture/panorama/FREEZE_IMPACT.md](architecture/panorama/FREEZE_IMPACT.md)\n- [architecture/panorama/panorama.yaml](architecture/panorama/panorama.yaml)\n- [architecture/panorama/GAPS.md](architecture/panorama/GAPS.md)\n- [glossary-proposed/README.md](glossary-proposed/README.md)\n' "$GITHUB_SHA" > "$out/README.md"
+          printf '# 生成文档快照\n\n由 main@%s 的片段生成（docs/modernization/build_all.py），每次 main 更新时整体覆盖。不要在此分支上修改；改片段后合入 main。\n\n- [INTENT.md](INTENT.md)\n- [SESSION_LOG.md](SESSION_LOG.md)\n- [STATUS.md](STATUS.md)\n- [SESSIONS.md](SESSIONS.md)\n- [TASKS.md](TASKS.md)\n- [DECISION_DIGEST.md](DECISION_DIGEST.md)\n- [GLOSSARY_ISSUES.md](GLOSSARY_ISSUES.md)\n- [MODERNIZATION_BRIEF.md](MODERNIZATION_BRIEF.md)\n- [adr/README.md](adr/README.md)\n- [adr/INDEX.md](adr/INDEX.md)\n- [architecture/frameworks/CONCEPT_INDEX.md](architecture/frameworks/CONCEPT_INDEX.md)\n- [architecture/frameworks/NOTES_INDEX.md](architecture/frameworks/NOTES_INDEX.md)\n- [architecture/panorama/FREEZE_FACTS.md](architecture/panorama/FREEZE_FACTS.md)\n- [architecture/panorama/FREEZE_IMPACT.md](architecture/panorama/FREEZE_IMPACT.md)\n- [architecture/panorama/panorama.yaml](architecture/panorama/panorama.yaml)\n- [architecture/panorama/GAPS.md](architecture/panorama/GAPS.md)\n- [glossary-proposed/README.md](glossary-proposed/README.md)\n' "$GITHUB_SHA" > "$out/README.md"
           cd "$out"
           git init -q -b generated-docs
           git add -A

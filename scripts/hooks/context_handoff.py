@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Hook (PostToolUse, UserPromptSubmit, Stop): hand a session over before its context fills up (SESSION_PLAYBOOK §2.1 #1, GOV-1021-QUA-01).
+"""Hook (PostToolUse, UserPromptSubmit, Stop): hand a session over before its context fills up (SESSION_PLAYBOOK TEAM-05, GOV-1021-QUA-01).
 
 Measure: the usage of the last assistant message of the session's own transcript (hook input `transcript_path`, sub-agent messages skipped):
 input + cache_read + cache_creation tokens, divided by the model's window from scripts/hooks/context_windows.json.
 A model missing from the file is counted against the conservative `default` and says so once per session; an unreadable transcript or config says so once and does nothing else.
-Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= `context_levels.prepare` (shipped 30%, SESSION_PLAYBOOK §2.1 #1) "at the batch boundary update the context documents and hand over, report to one-coordinator" (a session outside the self-clear scope, i.e. the coordinator, is told not to clear_session; one inside it is told to clear itself, see below);
+Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= `context_levels.prepare` (shipped 30%, SESSION_PLAYBOOK TEAM-05) "at the batch boundary update the context documents and hand over, report to one-coordinator" (a session outside the self-clear scope, i.e. the coordinator, is told not to clear_session; one inside it is told to clear itself, see below);
 at >= `context_levels.handover` (shipped 40%) "hand over now". Each level once per session; state lives in the untracked <root>/.claude/context-handoff-state.json (a cleared session has a new id, so starts clean).
-Enforce (Stop): past the prepare level while none of the profile / context documents (SESSION_PLAYBOOK §2.1 #16, same session-name resolution as session_context.py) was modified since the level was first reached, the stop is blocked once per level with the reason; a document written since lets it through.
+Enforce (Stop): past the prepare level while none of the profile / context documents (SESSION_PLAYBOOK TEAM-03、08, same session-name resolution as session_context.py) was modified since the level was first reached, the stop is blocked once per level with the reason; a document written since lets it through.
 Never a loop: `stop_hook_active` lets the stop through, and a level blocks at most once. A crash of this hook never blocks a stop; for the other events it is reported once as additionalContext.
-Bulk (PostToolUse of Bash): a single command longer than `bash_input_chars` or a result longer than `bash_output_chars` (context_windows.json; defaults 5000 / 8000 from the length distribution of 1.6k Bash calls: about p96 / p98) is pointed out once per session and reason as additionalContext, never blocking (SESSION_PLAYBOOK §5 context-saving rules).
+Bulk (PostToolUse of Bash): a single command longer than `bash_input_chars` or a result longer than `bash_output_chars` (context_windows.json; defaults 5000 / 8000 from the length distribution of 1.6k Bash calls: about p96 / p98) is pointed out once per session and reason as additionalContext, never blocking (SESSION_PLAYBOOK TEAM-90 context-saving rules).
 During the pilot `pilot_sessions` in context_windows.json limits the hook to the listed session names (null or absent = every session).
 Self-clear (GOV-1022-COO-13 follow-up, user 2026-10-22): `node_handoff.sessions` (null = all) minus `node_handoff.exclude` is the scope whose sessions write the handover, send one-coordinator「清空接续」and clear_session(self) at a node and from the 30% / 40% reminders; sessions outside it (one-coordinator) are told not to clear_session.
 Usage: context_handoff.py < hook-input.json  |  context_handoff.py --self-test
@@ -67,7 +67,7 @@ def load_windows(path=None):
 
 
 def context_levels(path=None):
-    """((prepare, handover) percent, warning or None): `context_levels` in the configuration, two integers 1 <= prepare < handover <= 99 (SESSION_PLAYBOOK §2.1 #1: 30 / 40)."""
+    """((prepare, handover) percent, warning or None): `context_levels` in the configuration, two integers 1 <= prepare < handover <= 99 (SESSION_PLAYBOOK TEAM-05: 30 / 40)."""
     try:
         with open(path or CONFIG, encoding="utf-8") as stream:
             data = json.load(stream)
@@ -273,11 +273,11 @@ def bulk_reminders(payload, entry):
     size_in = len(command) if isinstance(command, str) else 0
     if size_in > limit_in and "input" not in seen:
         seen.append("input")
-        notes.append(f"【上下文节约】本次 Bash 命令输入 {size_in} 字符（阈值 {limit_in}）：改文件用 Edit 改片段，不要用脚本整篇重写；新文件用 Write，长正文先写文件再用 --body-file 或 < 传入（SESSION_PLAYBOOK §5）。")
+        notes.append(f"【上下文节约】本次 Bash 命令输入 {size_in} 字符（阈值 {limit_in}）：改文件用 Edit 改片段，不要用脚本整篇重写；新文件用 Write，长正文先写文件再用 --body-file 或 < 传入（SESSION_PLAYBOOK TEAM-90）。")
     size_out = bash_output_size(payload.get("tool_response"))
     if size_out > limit_out and "output" not in seen:
         seen.append("output")
-        notes.append(f"【上下文节约】本次 Bash 输出 {size_out} 字符（阈值 {limit_out}）：先统计、筛选再读具体段，长输出存文件按需读；报错与测试失败的输出要完整读，不要用 head/tail 截掉（SESSION_PLAYBOOK §5）。")
+        notes.append(f"【上下文节约】本次 Bash 输出 {size_out} 字符（阈值 {limit_out}）：先统计、筛选再读具体段，长输出存文件按需读；报错与测试失败的输出要完整读，不要用 head/tail 截掉（SESSION_PLAYBOOK TEAM-90）。")
     return notes
 
 
@@ -440,7 +440,7 @@ def handle_locked(event, payload, root, now):
         entry["level_warned"] = True
     if not entry["name"] and event != "Stop" and not entry.get("noname_warned"):
         entry["noname_warned"] = True
-        early.append("【会话未识别】没有 .claude/session-name，也无法从工作区目录名或分支名认出会话画像：上下文档位提醒、提交信息的 `Session:` 都用不上；先在 .claude/session-name 写入会话名（SESSION_PLAYBOOK §2.1）。")
+        early.append("【会话未识别】没有 .claude/session-name，也无法从工作区目录名或分支名认出会话画像：上下文档位提醒、提交信息的 `Session:` 都用不上；先在 .claude/session-name 写入会话名（SESSION_PLAYBOOK TEAM-02）。")
     if pilot is None or entry["name"] in pilot:
         percent, tokens, window, warnings = measure(payload, entry)
         warnings += bulk_reminders(dict(payload, hook_event_name=event), entry)
@@ -534,7 +534,7 @@ def transcript_size(payload):
 
 
 def can_skip(payload, root, now):
-    """Throttle for PostToolUse (SESSION_PLAYBOOK §5, GOV-1022-COO-08): skip the transcript parse and the state write when the session was measured less than
+    """Throttle for PostToolUse (SESSION_PLAYBOOK TEAM-90, GOV-1022-COO-08): skip the transcript parse and the state write when the session was measured less than
     THROTTLE_SECONDS ago and its transcript grew by less than THROTTLE_BYTES since. Never skipped: Stop / UserPromptSubmit, sub-agent calls (they return at once anyway),
     a session with no measurement yet, an oversized Bash input/result (the bulk note), and every possible handover node (when node events are on)."""
     if payload.get("hook_event_name") != "PostToolUse" or payload.get("agent_id"):
@@ -1057,7 +1057,7 @@ def self_test():
     CONFIG = original_config
     LEVELS = original_levels
     real_levels, real_levels_warning = context_levels(original_config)
-    assert real_levels_warning is None and real_levels == (30, 40), "the shipped configuration sets 30 / 40 (SESSION_PLAYBOOK §2.1 #1)"
+    assert real_levels_warning is None and real_levels == (30, 40), "the shipped configuration sets 30 / 40 (SESSION_PLAYBOOK TEAM-05)"
     real_default, real_windows, real_warning = load_windows(original_config)
     assert real_warning is None and real_default > 0, "the shipped window configuration must be readable"
     for model in ("claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1"):

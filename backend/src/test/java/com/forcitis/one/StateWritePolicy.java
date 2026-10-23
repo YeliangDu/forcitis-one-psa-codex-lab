@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Status changes belong to the aggregate (SESSION_PLAYBOOK section 13, item 2). The application and infrastructure layers may read
+ * Status changes belong to the aggregate (DATA_DESIGN_CHECKLIST section 14, item 2). The application and infrastructure layers may read
  * and compare a status; they may not produce a new value, neither as an enum constant nor as a SQL literal.
  */
 final class StateWritePolicy {

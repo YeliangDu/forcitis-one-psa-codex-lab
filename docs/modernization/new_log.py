@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""新增一条会话日志片段 session-log/<日期>-<HHMMSS>-<会话名>.md（按 SESSION_PLAYBOOK §8 模板预填），然后重新生成 SESSION_LOG.md。
+"""新增一条会话日志片段 session-log/<日期>-<HHMMSS>-<会话名>.md（按日志模板预填；session-log 已停，见 SESSION_PLAYBOOK TEAM-15），然后重新生成 SESSION_LOG.md。
 
 用法：python3 docs/modernization/new_log.py <会话名> "<工作单元>" [--date=YYYY-MM-DD]
 生成后编辑该片段填写各项，再运行 build_all.py。

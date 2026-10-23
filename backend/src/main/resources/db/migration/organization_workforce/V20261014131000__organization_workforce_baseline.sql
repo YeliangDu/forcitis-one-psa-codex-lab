@@ -86,10 +86,10 @@ CREATE TABLE organization_workforce.employees (
 );
 CREATE UNIQUE INDEX employees_wecom_user_id_employed_key ON organization_workforce.employees (wecom_user_id)
     WHERE employment_status = 'EMPLOYED' AND wecom_user_id IS NOT NULL;
-CREATE INDEX employees_employee_code_idx ON organization_workforce.employees (employee_code);
+ALTER TABLE organization_workforce.employees ADD CONSTRAINT uk_employees_employee_code UNIQUE (employee_code);
 COMMENT ON TABLE organization_workforce.employees IS '员工：组织源人员的快照；没有登录名即离职（RULE-363），不含生日等敏感信息；粒度：每个员工一行';
 COMMENT ON COLUMN organization_workforce.employees.id IS '员工 ID（UUIDv7；组织源人员经来源对照映射）';
-COMMENT ON COLUMN organization_workforce.employees.employee_code IS '员工编号（工号）';
+COMMENT ON COLUMN organization_workforce.employees.employee_code IS '员工编号（工号）；全局唯一，复职沿用原工号（用户 2026-10-21，W2 设计 3.1）';
 COMMENT ON COLUMN organization_workforce.employees.display_name IS '姓名';
 COMMENT ON COLUMN organization_workforce.employees.login_name IS '登录名；为空（null 或空串）表示已离职（RULE-363）';
 COMMENT ON COLUMN organization_workforce.employees.email IS '企业邮箱';
@@ -760,6 +760,14 @@ CREATE TRIGGER tg_employee_versions_append_only BEFORE UPDATE OR DELETE ON organ
     FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_employee_version_rewrite();
 CREATE TRIGGER tg_employee_versions_append_only_truncate BEFORE TRUNCATE ON organization_workforce.employee_versions
     FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_employee_version_rewrite();
+
+-- 工号发号后禁改（ADR-0078 决定 3）：库层拒绝改写 employee_code，登记错的工号保留原值。
+CREATE FUNCTION organization_workforce.refuse_employee_code_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+    RAISE EXCEPTION 'organization_workforce.employees.employee_code cannot be changed once issued' USING ERRCODE = 'restrict_violation';
+END $$;
+CREATE TRIGGER tg_employees_employee_code_fixed BEFORE UPDATE OF employee_code ON organization_workforce.employees
+    FOR EACH ROW WHEN (OLD.employee_code IS DISTINCT FROM NEW.employee_code) EXECUTE FUNCTION organization_workforce.refuse_employee_code_change();
 
 -- 人事命令只追加：状态只能前进，时刻列只能由空变非空一次，内容列不变；DELETE 只放行表属主。
 CREATE FUNCTION organization_workforce.refuse_personnel_command_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$

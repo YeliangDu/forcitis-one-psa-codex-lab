@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从 adr/src/ 生成 ADR-*.md、README.md 与 INDEX.md（规则：README「ADR 生命周期与变更规则」，变更治理：SESSION_PLAYBOOK §12）。
+"""从 adr/src/ 生成 ADR-*.md、README.md 与 INDEX.md（规则：README「ADR 生命周期与变更规则」，变更治理：SESSION_PLAYBOOK 附 M3）。
 
 每份 ADR 一个源文件 src/ADR-NNNN.md，生成的 ADR-NNNN.md 与源文件逐字相同。两种格式，按头部区是否有「档位」行判定：
   新稿：# ADR-NNNN：标题，然后按序的字段行（状态、日期、档位、起草、类别、BC、阶段、取代、被部分取代、用户原话、批准证据、理由；多值字段为下一级列表）

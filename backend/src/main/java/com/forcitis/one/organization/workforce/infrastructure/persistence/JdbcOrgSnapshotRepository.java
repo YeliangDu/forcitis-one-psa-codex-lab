@@ -143,7 +143,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                        wecom_user_id, employment_status, is_fee_earner, separated_at, created_at, updated_at, event_count)
                 values (:id, :code, :name, :login, :email, :gender, :wecom, :status, :feeEarner,
                         case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :now, :now, 0)
-                on conflict (id) do update set employee_code = excluded.employee_code, display_name = excluded.display_name,
+                on conflict (id) do update set display_name = excluded.display_name,
                        login_name = excluded.login_name, email = excluded.email, gender = excluded.gender,
                        wecom_user_id = excluded.wecom_user_id, employment_status = excluded.employment_status,
                        is_fee_earner = excluded.is_fee_earner,

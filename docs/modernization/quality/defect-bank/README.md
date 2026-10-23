@@ -1,6 +1,6 @@
 # 错题本（三道防线之第三道：回测）
 
-依据：SESSION_PLAYBOOK §11 第 11 条（用户 2026-10-16 采纳「三道防线」）。每个会话维护**本领域已知缺陷清单** `docs/modernization/quality/defect-bank/<会话名>.md`；新产出交出前，对着清单逐条回测；漏了就补一条检查项，新出的错**当日**入册。第一道（机械检查）见 `scripts/precheck.sh`，第二道（独立评审）见 [../review-briefs/](../review-briefs/README.md)。
+依据：SESSION_PLAYBOOK TEAM-71、72（用户 2026-10-16 采纳「三道防线」）。每个会话维护**本领域已知缺陷清单** `docs/modernization/quality/defect-bank/<会话名>.md`；新产出交出前，对着清单逐条回测；漏了就补一条检查项，新出的错**当日**入册。第一道（机械检查）见 `scripts/precheck.sh`，第二道（独立评审）见 [../review-briefs/](../review-briefs/README.md)。
 
 ## 一个会话一个文件，一条一个小节
 
