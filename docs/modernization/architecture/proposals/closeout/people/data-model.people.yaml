@@ -725,7 +725,7 @@
       column_families: [核定依据的绩效评估 ID]
       reason: "对应 OBJ-104「0..N 绩效评估作核定依据」（完整性检查）；只存评估 ID，评估内容不复制；评估含 SPI 可能（交 U-11），故本表从严 SENSITIVE；随核定行迁入"
 
-# ───────────────────────── AGG-138 奖金计提运行（暂用号，S-6，ARC-1022-APE-01） ─────────────────────────
+# ───────────────────────── AGG-138 奖金计提运行（技术聚合·运行单据，同 AGG-41；S-6，ARC-1022-APE-01） ─────────────────────────
 - aggregate: AGG-138
   bc: B-15
   tables:
@@ -739,7 +739,7 @@
       sensitivity: INTERNAL
       pi: none
       column_families: [法人, 期间, 状态（计算中 → 已计算 → 已提交过账 / 已中止）, 所用费率表版本引用, 中止原因, 过账引用（幂等键）, 乐观锁]
-      reason: "每法人 × 期间一行（唯一），S-6 新增；历史计提随事实迁入 B-16，本表不迁；按项目不到个人，INTERNAL"
+      reason: "技术聚合（运行单据），无业务对象（one-architecture @3541ced0b 第 6 点）；每法人 × 期间一行（唯一），S-6 新增；历史计提随事实迁入 B-16，本表不迁；按项目不到个人，INTERNAL"
     - name: bonus_accrual_lines
       role: child
       key: uuid_v7
