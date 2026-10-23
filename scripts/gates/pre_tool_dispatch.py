@@ -2,7 +2,7 @@
 """PreToolUse 分发（Bash）：只挂生产写门 prod_write_gate（底线 4，生产只读）。
 
 只看 Bash；其他工具（Agent、Read…）直接放行。先用门自己的保守预筛 could_concern（只在门必然放行时才跳过），命中再在本进程里调门的 decide。
-安全门失败关闭：钩子输入读不懂、门导入失败或运行出错，一律退出码 2 并给一句中文原因（崩溃的退出码 1 对 PreToolUse 是「不拦」）。
+安全门失败关闭：钩子输入读不懂（含 Bash 而 command 缺失或不是字符串）、门导入失败或运行出错，一律退出码 2 并给一句中文原因（崩溃的退出码 1 对 PreToolUse 是「不拦」）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行（门的告警以 JSON additionalContext 写标准输出）。
 用法：pre_tool_dispatch.py  |  pre_tool_dispatch.py --self-test（自测在 pre_tool_dispatch_selftest.py，O8 合并）
 """
@@ -33,7 +33,7 @@ def dispatch(raw, gate_loader=load_gate):
     tool_input = payload.get("tool_input")
     command = tool_input.get("command") if isinstance(tool_input, dict) else None
     if not isinstance(command, str):
-        return 0, "", ""
+        return 2, "", "pre_tool_dispatch：Bash 钩子输入里没有字符串形式的 command，生产写门无法判断，按拒绝处理。\n"
     gate = gate_loader()
     if not gate.could_concern(gate.plain(command)):
         return 0, "", ""

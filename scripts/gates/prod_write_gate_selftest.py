@@ -317,6 +317,13 @@ def gate_self_test():
         firsts = shipped_firsts()
         assert problem is None and table and firsts and all(v.lower() in table for v in firsts.values()), "the shipped table loads and every target's first pattern is in it"
         assert could_concern("sqlcmd -s x") and all(could_concern(v.lower()) for v in firsts.values()) and could_concern("echo $x") and could_concern("curl a{1,2}") and not could_concern("echo hello") and not could_concern("git status")
+        # the pre-filter names every interpreter, shell and remote tool the gate acts on, and `. file` (O3 review, M1)
+        for name in sorted(g.INTERPRETERS | g.SHELLS | g.REMOTE_TOOLS | g.RUNS_OTHERS):
+            word = "python3" if name == "python" else name
+            for command in (f"{word} deploy", f"nohup {word} deploy", f"cd x && {word} deploy", f"({word} deploy)"):
+                assert could_concern(plain(command)), command
+            assert g.INTERPRETER.match(word) or name not in g.INTERPRETERS, word
+        assert could_concern(plain("cat sshd_conf 'oops")) and not could_concern(plain("ls ./x")) and not could_concern(plain("echo a. b")), "a substring of a remote tool counts; a dot elsewhere does not"
         # hook process end to end, with the shipped and a missing table
         script = os.path.join(HERE, "prod_write_gate.py")
 

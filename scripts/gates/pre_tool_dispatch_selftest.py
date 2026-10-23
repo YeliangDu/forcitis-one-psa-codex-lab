@@ -32,6 +32,14 @@ def self_test():
         for command in corpus:
             raw = payload(command, cwd=elsewhere)
             assert d.dispatch(raw) == gate.decide(json.loads(raw)), command
+        # 1b. what the old pre-filter hid (O3 review, M1): interpreters outside its own list, `. file`, a command shlex cannot read; each script names production
+        for name in ("deploy", "deploy.lua"):
+            with open(os.path.join(elsewhere, name), "w", encoding="utf-8") as f:
+                f.write(f"ssh {PROD_H} rm -rf /srv/x\n")
+        hidden = ["lua deploy.lua", "dash deploy", "ksh deploy", ". deploy", "nohup dash deploy", "lua deploy.lua && echo ok", "cat sshd_conf 'oops", "sudo -u x ksh deploy", "(. deploy)"]
+        for command in hidden:
+            raw = payload(command, cwd=elsewhere)
+            assert gate.decide(json.loads(raw))[0] == 2 and d.dispatch(raw) == gate.decide(json.loads(raw)), command
     # 2. every one of the 17 cases is refused through the dispatcher, with the gate's own reason
     for number, commands in seventeen(PROD_P, PROD_H, PROD_D).items():
         for command in commands:
@@ -41,8 +49,12 @@ def self_test():
     for command in ("ls", "echo hi", "git status", "npm test", "codex exec p", "git push --no-verify", "gh pr create --title x"):
         assert d.dispatch(payload(command)) == (0, "", ""), command
     for raw in (json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}), json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}}),
-                json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}}), json.dumps({"tool_name": "Bash", "tool_input": {}})):
+                json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})):
         assert d.dispatch(raw) == (0, "", ""), raw
+    # a Bash call without a string command fails closed (O3 review, suggestion 2; it used to pass)
+    for raw in (json.dumps({"tool_name": "Bash", "tool_input": {}}), json.dumps({"tool_name": "Bash", "tool_input": {"command": 1}}), json.dumps({"tool_name": "Bash"}), json.dumps({"tool_input": {"command": None}})):
+        code, out, err = d.dispatch(raw)
+        assert code == 2 and "按拒绝处理" in err and gate.decide(json.loads(raw))[0] == 2, raw
     # 4. fail closed: unreadable input, a gate that cannot be imported, a gate that crashes
     for raw in ("not json", "[1]", "{"):
         code, out, err = d.dispatch(raw)

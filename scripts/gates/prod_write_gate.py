@@ -335,8 +335,11 @@ SQL_TOOLS = {"psql", "mysql", "mariadb", "sqlcmd", "osql", "mssql-cli", "mongosh
 WRITE_ONLY_TOOLS = {"sqlpackage", "sftp"}
 HTTP_TOOLS = {"curl", "wget", "http", "https", "xh", "xhs"}
 REMOTE_TOOLS = SQL_TOOLS | WRITE_ONLY_TOOLS | HTTP_TOOLS | {"bcp", "aliyun", "ssh", "scp", "rsync"}
-REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:" + "|".join(sorted(re.escape(t) for t in REMOTE_TOOLS)) + r"|bash|sh|zsh|eval|source|python[0-9.]*|node|perl|ruby|php|xargs|find|script|parallel|export)(?![A-Za-z0-9_-])")
-INTERPRETER = re.compile(r"^(?:python[0-9.]*|node|perl|ruby|php|lua|bash|sh|zsh|dash|ksh|source|\.)$")
+INTERPRETERS = {"python", "node", "perl", "ruby", "php", "lua", "bash", "sh", "zsh", "dash", "ksh", "source", "."}  # "python" stands for python3, python3.12 …
+RUNS_OTHERS = {"xargs", "find", "script", "parallel", "export", "source"}  # commands that run another command or carry its environment
+INTERPRETER = re.compile(r"^(?:python[0-9.]*|" + "|".join(re.escape(n) for n in sorted(INTERPRETERS - {"python"})) + r")$")
+REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:python[0-9.]*|" + "|".join(re.escape(n) for n in sorted((REMOTE_TOOLS | SHELLS | INTERPRETERS | RUNS_OTHERS) - {"python", "."}))
+                         + r")(?![A-Za-z0-9_-])|(?:^|[\s;&|(])\.\s")  # the pre-filter's names come from these sets only, plus `. file`
 SHELL_HEADS = {"for", "case", "select", "function", "in"}  # `for f in a b` is a loop head; substitutions inside it are commands of their own
 NO_CONNECT = {"git", "gh", "echo", "printf", "grep", "egrep", "fgrep", "rg", "cat", "sed", "head", "tail", "ls", "jq", "wc", "sort", "uniq", "cut", "tr", "diff", "test", "[", "true", "false", "cd", "pwd", "export", "set", "unset", "read", "basename", "dirname", "mkdir", "touch", "cp", "mv", "stat", "file", "date", "tee", ":", "less", "more", "nl", "tac", "fold", "column", "comm", "join", "paste", "expr", "declare", "local", "readonly", "typeset"}
 LOCAL_GIT = {"commit", "log", "show", "status", "add", "diff", "grep", "branch", "checkout", "switch", "restore", "rev-parse", "rev-list", "ls-files", "ls-tree", "cat-file", "stash", "merge", "worktree", "blame", "describe", "shortlog", "apply", "reset", "cherry-pick", "rm", "mv", "clean", "rebase", "show-ref", "for-each-ref", "name-rev", "merge-base", "diff-tree", "diff-index", "hash-object", "symbolic-ref", "count-objects", "check-ignore", "version", "help"}
@@ -468,8 +471,8 @@ def readonly_tool_files():  # Repo-relative paths of the committed read-only evi
     return found | EXTRA_READONLY
 
 
-def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow.
-    if REMOTE_WORD.search(text) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text):
+def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow; a remote tool's name as a substring, as judge reads an unreadable line.
+    if REMOTE_WORD.search(text) or any(t in text for t in REMOTE_TOOLS) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text):
         return True
     patterns, problem, _ = load_table()
     return bool(problem) or any(p in text for p in patterns)
@@ -1049,7 +1052,7 @@ def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict
     tool_input = payload.get("tool_input")
     command = tool_input.get("command") if isinstance(tool_input, dict) else None
     if not isinstance(command, str):
-        return 0, "", ""
+        return 2, "", "prod_write_gate.py：Bash 钩子输入里没有字符串形式的 command，无法判断，按拒绝处理。\n"
     cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) and payload.get("cwd") else None
     patterns, problem, warning = load_table()
     reason = judge(command, patterns, problem, cwd)
