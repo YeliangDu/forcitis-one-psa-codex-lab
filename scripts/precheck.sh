@@ -363,9 +363,10 @@ if $builds_relevant; then
     scope="no module code changed (shared inputs, resources, build or architecture lists)"
   fi
   # the default run covers everything --pre-push runs (these unit tests included), so a ready default run can leave the pass mark the push gate accepts (GOV-1023-QUA-04)
-  # Java unit tests (compile + run, about 90 s) only when backend/ itself changed; the tests that read docs, scripts or workflow files run in CI and the merge queue (GOV-1023-QUA-04; cost: such a break shows up there, not before the push)
-  if ! touches '^backend/'; then
-    $pre_push && report SKIP "pre-push: unit tests" "no backend/ file changed; CI runs them"
+  # Java unit tests (compile + run, about 90 s) only when backend/ or a file those tests read changed (paths found by grepping backend/src/test: docs/modernization events, audit list, glossary, db role SQL, runbook files, SEEYON_VIEWS, ddd aggregates, infra runbook, credential evidence csv; frontend openapi/generated/error-messages/copy-allow-list); intent/, tasks/, sessions/ and other docs are not read by any test, so they skip (GOV-1023-QUA-04; cost: a break in some other file shows up in CI and the merge queue, not before the push)
+  test_inputs='^(backend/|docs/modernization/(events/|audit/MUST_AUDIT_ACTIONS\.yaml$|glossary/(bcs|terms)\.yaml$|architecture/ddd/aggregates\.yaml$|proposals/EVENT_ANALYTICS_FIELDS\.md$|phase1a/(SEEYON_VIEWS\.sql$|infra/(one_db_roles_schemas\.sql$|INFRA_RUNBOOK\.md$|runbooks/(sql/|files/)|handoff/B-5-dba/evidence/credential_columns\.csv$)))|frontend/(packages/api/(openapi\.json$|src/generated/)|packages/core/src/error-messages\.ts$|scripts/copy-allow-list\.yaml$))'
+  if ! touches "$test_inputs"; then
+    $pre_push && report SKIP "pre-push: unit tests" "no backend/ file or test input (docs/frontend files the tests read) changed; CI runs them"
   else
     run_step "pre-push: unit tests that start no container" light_unit_tests
   fi

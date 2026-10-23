@@ -66,14 +66,19 @@ def load_windows(path=None):
         return FALLBACK_WINDOW, {}, f"上下文窗口配置 {os.path.basename(path)} 读不了（{error}），一律按保守值 {FALLBACK_WINDOW} 计算"
 
 
-def context_levels(path=None):
-    """((prepare, handover) percent, warning or None): `context_levels` in the configuration, two integers 1 <= prepare < handover <= 99 (SESSION_PLAYBOOK TEAM-05: 30 / 40)."""
+def context_levels(path=None, name=None):
+    """((prepare, handover) percent, warning or None): `context_levels` in the configuration, two integers 1 <= prepare < handover <= 99 (SESSION_PLAYBOOK TEAM-05: 30 / 40).
+    `context_levels_by_session[name]` overrides it for that session (the coordinator: 50 / 60, user 2026-10-23, intent 2026-10-23-081732)."""
     try:
         with open(path or CONFIG, encoding="utf-8") as stream:
             data = json.load(stream)
-        if "context_levels" not in data:
+        overrides = data.get("context_levels_by_session") or {}
+        if name and name in overrides:
+            value = overrides[name]
+        elif "context_levels" not in data:
             return LEVELS, None
-        value = data["context_levels"]
+        else:
+            value = data["context_levels"]
         prepare, handover = value["prepare"], value["handover"]
         if any(isinstance(x, bool) or not isinstance(x, int) for x in (prepare, handover)) or not 1 <= prepare < handover <= 99:
             raise ValueError(f"prepare / handover 必须是 1 <= prepare < handover <= 99 的整数，读到 {value!r}")
@@ -405,9 +410,10 @@ def reminder(level, percent, tokens, window, name, handover=LEVELS[1], clears=Fa
         steps = (f"更新 {where} 的上下文文档与交接并提交推送，给 one-coordinator 发「清空接续：{name} 交接在 <交接文件路径>」，再调用 clear_session（session_id=self）；"
                  "之后其他会话找本会话一律经 one-coordinator 转")
         return head + ("立即交接：现在就" if level >= handover else "到批次边界：") + steps + "。"
+    report = "" if name == COORDINATOR else "，报 one-coordinator"
     if level >= handover:
-        return head + f"立即交接：现在就更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
-    return head + f"到批次边界：更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
+        return head + f"立即交接：现在就更新 {where} 的上下文文档与交接{report}；不要 clear_session。"
+    return head + f"到批次边界：更新 {where} 的上下文文档与交接{report}；不要 clear_session。"
 
 
 def handle(event, payload, root, now=None):
@@ -431,7 +437,7 @@ def handle_locked(event, payload, root, now):
         entry["name"] = resolve_session(root)[0] or ""
         entry["name_checked"] = now
     pilot = pilot_sessions()
-    (prepare, handover), level_warning = context_levels()
+    (prepare, handover), level_warning = context_levels(name=entry["name"] or None)
     levels = (prepare, handover)
     out = None
     warnings = []
@@ -959,6 +965,24 @@ def self_test():
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 40, "handover": 30}}))
         assert "交接档位配置有问题" in text(fire("PostToolUse", 100, 2005.0, session="lvbad")), "a broken level configuration is said once"
         assert fire("PostToolUse", 100, 2006.0, session="lvbad") is None
+        # the coordinator's own levels (50 / 60) through the hook path, not just the configuration reader (GOV-1023-QUA-06, opus round 1 item 6)
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 30, "handover": 40},
+                                  "context_levels_by_session": {"one-coordinator": {"prepare": 50, "handover": 60}}}))
+        coordinator_root = os.path.join(tmp, "one-coordinator")
+        subprocess.run(["git", "init", "-q", coordinator_root], check=True, capture_output=True)
+        write(os.path.join(coordinator_root, f"{SESSIONS}/one-coordinator.md"), "# one-coordinator\n\n## 上下文文档\n\n- `docs/ctx.md`\n")
+        write(os.path.join(coordinator_root, "docs/ctx.md"), "ctx\n")
+
+        def fire_in(where, tokens, now, session):
+            transcript(trans, tokens, "claude-test", None)
+            return handle("PostToolUse", dict(payload, hook_event_name="PostToolUse", session_id=session, cwd=where), where, now)
+        ordinary = text(fire_in(root, 450, 2100.0, "lvord"))
+        assert ordinary and "立即交接" in ordinary and "报 one-coordinator" in ordinary, "an ordinary session is at 40 % handover by 45 %"
+        assert fire_in(coordinator_root, 450, 2101.0, "lvcoo") is None, "the coordinator is silent at 45 %"
+        at_prepare = text(fire_in(coordinator_root, 520, 2102.0, "lvcoo"))
+        assert at_prepare and "到批次边界" in at_prepare and "报 one-coordinator" not in at_prepare and "不要 clear_session" in at_prepare, at_prepare
+        at_handover = text(fire_in(coordinator_root, 620, 2103.0, "lvcoo"))
+        assert at_handover and "立即交接" in at_handover and "报 one-coordinator" not in at_handover, at_handover
         # node events (GOV-1022-COO-09): handover instruction at a node when the context is >= min_percent, once per cooldown
         LEVELS = (75, 85)
         node_cfg = {"enabled": True, "min_percent": 20, "sessions": ["one-test"], "coordinator_session_ids": ["local_coord"]}
@@ -983,6 +1007,12 @@ def self_test():
         assert "清空接续：one-ops 交接在" in low and "clear_session（session_id=self）" in low and "经 one-coordinator 转" in low and "不要 clear_session" not in low, low
         assert "立即交接" in reminder(40, 41, 410, 1000, "one-ops", 40, clears=True) and "不要 clear_session" in reminder(40, 41, 410, 1000, "one-coordinator", 40)
         assert "经 one-coordinator 转" in node_instruction("已开 PR", 25, "one-ops", "p.md", ["d.md"]), "the protocol rule rides with the clear instruction"
+        coord = reminder(50, 52, 520, 1000, "one-coordinator", 60)
+        assert "报 one-coordinator" not in coord and "不要 clear_session" in coord and "报 one-coordinator" in reminder(30, 31, 310, 1000, "one-ops", 40), "the coordinator is not told to report to itself"
+        write(config, json.dumps({"default": 200000, "windows": {}, "context_levels": {"prepare": 30, "handover": 40}, "context_levels_by_session": {"one-coordinator": {"prepare": 50, "handover": 60}}}))
+        assert context_levels(config, "one-coordinator")[0] == (50, 60) and context_levels(config, "one-ops")[0] == (30, 40) and context_levels(config)[0] == (30, 40), "coordinator 50 / 60, everyone else 30 / 40"
+        write(config, json.dumps({"default": 200000, "windows": {}, "context_levels_by_session": {"one-coordinator": {"prepare": 70, "handover": 60}}}))
+        assert context_levels(config, "one-coordinator")[1] and context_levels(config, "one-coordinator")[0] == LEVELS, "a bad override warns and falls back"
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": {**node_cfg, "enabled": False}}))
         assert node_config(config) == (None, None), "off unless enabled is true"
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "node_handoff": node_cfg}))
@@ -1016,10 +1046,10 @@ def self_test():
             return handle("Stop", dict(payload, hook_event_name="Stop", session_id=session, transcript_path=turn_file(tokens, tool_use), **extra), root, now)
 
         card = os.path.join(root, "docs/modernization/tasks/T-1.md")
-        write(card, "---\n任务号: T-1\n会话: one-test\n状态: 进行中\n---\n## 目标\n\n做 A 目标。\n\n## 完成标准\n\n测试过。\n")
+        write(card, "---\n任务号: T-1\n任务名: 测试卡标题\n会话: one-test\n状态: 进行中\n---\n## 目标\n\n做 A 目标。\n\n## 完成标准\n\n测试过。\n")
         stop_node = stop_at(250, True, "nd6", 4005.0)
         assert stop_node and stop_node["decision"] == "block" and "一轮结束" in stop_node["reason"] and "【交接节点】" in stop_node["reason"], stop_node
-        assert "做 A 目标。" in stop_node["reason"] and "测试过。" in stop_node["reason"], "the open card's goal rides with the node instruction through the hook"
+        assert "T-1 测试卡标题" in stop_node["reason"] and "做 A 目标。" not in stop_node["reason"], "the open card's number and title (not its goal) ride with the node instruction through the hook"
         os.remove(card)
         assert "读取失败" not in stop_node["reason"]
         # the handover source of the profile counts: it is named by the node instruction and the stop gate waits for it
@@ -1121,6 +1151,7 @@ def self_test():
     LEVELS = original_levels
     real_levels, real_levels_warning = context_levels(original_config)
     assert real_levels_warning is None and real_levels == (30, 40), "the shipped configuration sets 30 / 40 (SESSION_PLAYBOOK TEAM-05)"
+    assert context_levels(name="one-coordinator") == ((50, 60), None), "the shipped configuration sets 50 / 60 for the coordinator (user 2026-10-23)"
     real_default, real_windows, real_warning = load_windows(original_config)
     assert real_warning is None and real_default > 0, "the shipped window configuration must be readable"
     for model in ("claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1"):

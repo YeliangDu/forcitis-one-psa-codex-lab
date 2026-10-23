@@ -339,6 +339,7 @@ jobs:
       - run: python3 scripts/hooks/start_sheet.py --self-test
       - run: python3 scripts/hooks/stop_status_gate.py --self-test
       - run: python3 scripts/coord/mailbox.py --self-test
+      - run: python3 scripts/hooks/run_from_main_selftest.py
       - run: python3 scripts/ci/assertion_drift.py origin/${{ github.base_ref }}
       # report only (SCAN_SUPPLEMENT, one-data): findings never fail the job; the self-test does, and so does a crash of the scan (bash -e with pipefail); statements the scan cannot model raise a warning
       - name: baseline DDL scan (report only)
