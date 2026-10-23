@@ -11,6 +11,7 @@
 set -uo pipefail
 
 base="origin/main"
+base_given=false
 run_backend=false
 pre_push=false
 for argument in "$@"; do
@@ -19,7 +20,7 @@ for argument in "$@"; do
     --pre-push) pre_push=true ;;
     -h|--help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "unknown option: $argument" >&2; exit 2 ;;
-    *) base="$argument" ;;
+    *) base="$argument"; base_given=true ;;
   esac
 done
 
@@ -116,6 +117,7 @@ fi
 changed_count=$(grep -c . "$work/changed")
 uncommitted=$(grep -c . "$work/uncommitted")
 
+if ! $pre_push && ! $base_given; then py scripts/hooks/precheck_before_pr.py --snapshot >"$work/snapshot.json" 2>/dev/null || echo null >"$work/snapshot.json"; fi
 echo "precheck: base $base ($(git rev-parse --short "$base")), HEAD $(git rev-parse --short HEAD), $changed_count changed files ($uncommitted uncommitted)"
 echo
 
@@ -370,10 +372,14 @@ if $builds_relevant; then
     tests="$guards"
     scope="no module code changed (shared inputs, resources, build or architecture lists)"
   fi
-  if $pre_push && ! touches '^(backend/|docs/|frontend/)'; then
-    report SKIP "pre-push: unit tests" "nothing the backend tests read changed; CI runs them"
-  elif $pre_push; then
+  # the default run covers everything --pre-push runs (these unit tests included), so a ready default run can leave the pass mark the push gate accepts (GOV-1023-QUA-04)
+  if ! touches '^(backend/|docs/|frontend/)'; then
+    $pre_push && report SKIP "pre-push: unit tests" "nothing the backend tests read changed; CI runs them"
+  else
     run_step "pre-push: unit tests that start no container" light_unit_tests
+  fi
+  if $pre_push; then
+    :
   elif [ -z "$tests" ]; then
     if $run_backend; then
       run_step "backend verify (full)" python3 -I "$heavy" -- scripts/ci/backend_verify.sh
@@ -427,3 +433,8 @@ if [ "$failed" -gt 0 ]; then
   exit 1
 fi
 echo "$summary — ready"
+# A ready run of the full set on the default base leaves the pass mark (precheck_before_pr.py): the push gate and the PR hook then do not run it again while commit, origin/main and a clean tree stay the same.
+# Not for --pre-push (the gate writes its own), a base other than origin/main, or a tree that was dirty when the run began.
+if ! $pre_push && ! $base_given; then
+  py scripts/hooks/precheck_before_pr.py --record "$work/snapshot.json" || echo "note: pass mark not written"
+fi
