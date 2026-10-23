@@ -1,0 +1,5 @@
+# Tables that may carry the employee code (a column named employee_code, or a column registered as the code in data-classification.txt). ADR-0078 guard 1.
+# The code is an attribute and a unique business identifier of one employee; every other table refers to the employee by employee_id (ADR-0033 decision 1).
+# A line whose table is gone, or has no such column, fails EmployeeCodeKeyScopeTest. The conflict list of the migration (original_code) is added with its card.
+# Format: <schema.table>  # reason
+organization_workforce.employees  # the employee row: the issued code, unique over all employees (uk_employees_employee_code)
