@@ -113,6 +113,8 @@ public final class SnapshotReconciler {
             }
         }
 
+        isolateTakenEmployeeCodes(valid, currentStaff, isolated, diffs);
+
         Set<EmployeeId> keepWecom = wecomUserIdsToKeep(valid, isolated, currentStaff, diffs);
 
         Map<EmployeeId, EmploymentStatus> statusAfter = new HashMap<>();
@@ -138,7 +140,13 @@ public final class SnapshotReconciler {
         Map<EmployeeId, StaffEmployee> after = new LinkedHashMap<>(currentStaff);
 
         valid.forEach((id, m) -> {
-            Employee employee = EmployeeChecks.toEmployee(m, keepWecom.contains(id));
+            Employee fromSource = EmployeeChecks.toEmployee(m, keepWecom.contains(id));
+            StaffEmployee stored = currentStaff.get(id);
+            Employee employee = stored == null ? fromSource : fromSource.withEmployeeCode(stored.employee().employeeCode());
+            if (stored != null && !employee.employeeCode().equals(fromSource.employeeCode())) {
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + id.value(), IssueKind.EMPLOYEE_CODE_CHANGE_IGNORED,
+                        "the source carries another employee code; the issued code is kept"));
+            }
             boolean employed = employee.employmentStatus() == EmploymentStatus.EMPLOYED;
             EmployeeId supervisor = SourceTerms.person(m.supervisorId());
             EmployeeId leader = employed ? acceptedSupervisors.get(id) : (id.equals(supervisor) ? null : supervisor);
@@ -188,6 +196,35 @@ public final class SnapshotReconciler {
                 .filter(s -> s.employee().employmentStatus() == EmploymentStatus.EMPLOYED && s.employee().wecomUserId() == null)
                 .count();
         return new Staff(changed, changedEmployees, separatedEmployees, isolated, statusAfter, incomingEmployed, withoutWecom);
+    }
+
+    /** The employee code is unique: a row whose code another person holds is isolated, never renumbered; an existing employee keeps its issued code (the source code is not read for it) and is served before a new one, and of two new people with one code the one with the smaller own id is built. */
+    private static void isolateTakenEmployeeCodes(Map<EmployeeId, SourcePerson> valid, Map<EmployeeId, StaffEmployee> currentStaff,
+                                                  Set<EmployeeId> isolated, List<SyncDiff> diffs) {
+        Map<String, EmployeeId> holders = new HashMap<>();
+        currentStaff.forEach((id, s) -> {
+            if (!valid.containsKey(id)) {
+                holders.put(s.employee().employeeCode(), id);
+            }
+        });
+        List<EmployeeId> rejected = new ArrayList<>();
+        valid.entrySet().stream()
+                .sorted(Comparator.<Map.Entry<EmployeeId, SourcePerson>, Boolean>comparing(entry -> !currentStaff.containsKey(entry.getKey()))
+                        .thenComparing(Map.Entry.comparingByKey(Comparator.comparing(EmployeeId::value))))
+                .forEach(entry -> {
+                    StaffEmployee stored = currentStaff.get(entry.getKey());
+                    String code = stored == null ? entry.getValue().employeeCode() : stored.employee().employeeCode();
+                    EmployeeId holder = holders.putIfAbsent(code, entry.getKey());
+                    if (holder != null && !holder.equals(entry.getKey())) {
+                        rejected.add(entry.getKey());
+                        diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + entry.getKey().value(), IssueKind.DUPLICATE_EMPLOYEE_CODE,
+                                "the employee code is already held by employee " + holder.value() + "; the row is isolated"));
+                    }
+                });
+        rejected.forEach(id -> {
+            valid.remove(id);
+            isolated.add(id);
+        });
     }
 
     /** A WeCom user id is the login key: when several employed rows share it, none keeps it (login fails closed). */

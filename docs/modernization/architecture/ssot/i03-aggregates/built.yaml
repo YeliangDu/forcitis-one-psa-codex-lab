@@ -1,9 +1,9 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 15
+  count: 16
   code_only: 5
   registry_only: 0
-  both: 10
+  both: 11
   sources:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
@@ -16,10 +16,6 @@ meta:
     owner: one-platform-file
     due: '2026-11-15'
     reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
-  - table: platform_file.stored_files
-    owner: one-platform-file
-    due: '2026-11-15'
-    reason: 单元 3 建表、单元 5 只写了插入（NewStoredFile + StoredFileRepository）；根类随 6b（过期作业改状态）补；到期日 one-platform-file 2026-10-22 确认
 aggregates:
 - id: cost.timesheet/Timesheet
   bc: cost.timesheet
@@ -230,6 +226,21 @@ aggregates:
   - platform.approval.TaskReassigned
   - platform.approval.TaskReleased
   - platform.approval.TaskTransferred
+- id: platform.file/StoredFile
+  bc: platform.file
+  root_class: backend/src/main/java/com/forcitis/one/platform/file/domain/StoredFile.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_file.file_bindings
+  - platform_file.file_holds
+  - platform_file.file_preservations
+  - platform_file.stored_file_names
+  - platform_file.stored_files
+  commands:
+  - ExpireUnboundFiles
+  events: []
 - id: platform.identity/AuthorizationRequest
   bc: platform.identity
   root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/AuthorizationRequest.java

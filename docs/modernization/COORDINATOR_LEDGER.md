@@ -30,6 +30,7 @@
 - 07:0x 增（app 卡死重启后）：#641、#643 已合；本分支已合 main（开工单生效）。用户定「补卡并派出去，优先把规则先落地」（intent 070452）：15 张守护卡 @22b0acfd9（QUA-11～16、19～23→one-quality，MRG-01～03 及 MRG-04 mq 侧→one-merge）；one-quality 先落地新规则手册。#635 sonnet 改后通过（one-merge 改）；#639/#640 opus 改后通过（one-ops 改）；#599 head 变需重批；#632 冲突（one-1a-par）；APE-01 六点交 one-architecture。
 - 00:5x 增：裁定 RULING-COORD-20261022-07（REG-4 验收引用替换，one-1a-next-5）已登记 @60564d38e，已请 one-merge 加急合集；REG-4 PR 待其进 main 后过守护。
 - 会话间消息 app 限流：连续 10 条后须用户发言；超限写 ~/.modernize/psa/outbox/one-coordinator.md，用户发话后补发并标「已转」。
+- 取信定时（GOV-1023-QUA-01）：每次清空或重开后第一件事重设 CronCreate 每 10 分钟跑 `python3 scripts/coord/mailbox.py list --unacked` 与 `stale --minutes=20`，处理后 `ack`；换新调度会话时同步改 context_windows.json 的 coordinator_session_ids。
 - 22:2x 交接（以下为旧条）
 - **22:2x 在途**：
   - #628 自清推全员（排除只留 one-coordinator，intent 214820/214856）：opus 首轮「改后通过」（~/.modernize/psa/coordinator/reviews/pr628-opus-1.md，两项必改：端到端自测 D–G、调度硬排除）→ one-quality（已清空、已发接续）改→sonnet 复核→我批入队。合入后 one-ops、one-architecture 可自清；之前它们拒自清（钩子文案），one-architecture 已请自清待看结果。

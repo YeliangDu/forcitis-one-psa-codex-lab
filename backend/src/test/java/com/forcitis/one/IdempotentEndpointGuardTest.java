@@ -87,7 +87,7 @@ class IdempotentEndpointGuardTest {
             }
         }
         assertThat(applying).as("a line without a POST handler, or a POST handler the list covers twice").containsExactlyInAnyOrderElementsOf(rows.keySet());
-        assertThat(rows).hasSize(20);
+        assertThat(rows).hasSize(21);
     }
 
     @Test

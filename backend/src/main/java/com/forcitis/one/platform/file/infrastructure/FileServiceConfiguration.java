@@ -2,8 +2,11 @@ package com.forcitis.one.platform.file.infrastructure;
 
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.platform.file.api.FileSubjectKind;
 import com.forcitis.one.platform.file.application.BindFile;
+import com.forcitis.one.platform.file.application.ExpireUnboundFiles;
 import com.forcitis.one.platform.file.application.FileKeys;
+import com.forcitis.one.platform.file.application.GetUploadStatus;
 import com.forcitis.one.platform.file.application.HoldFile;
 import com.forcitis.one.platform.file.application.IssueDownloadLink;
 import com.forcitis.one.platform.file.application.ListDocumentFiles;
@@ -19,6 +22,7 @@ import com.forcitis.one.platform.integration.api.MalwareScanner;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +52,19 @@ class FileServiceConfiguration {
                               PlatformTransactionManager transactions, MeterRegistry meters) {
         return new StoreContent(staging, scanner, checks, store, files, audit, new FileKeys(properties.environmentPrefix()),
                 new HashSet<>(properties.allowedMediaTypes()), ids, clock, transactions, meters);
+    }
+
+    @Bean
+    ExpireUnboundFiles expireUnboundFiles(StoredFileRepository files, FileServiceProperties properties, Clock clock, PlatformTransactionManager transactions,
+                                          MeterRegistry meters) {
+        return new ExpireUnboundFiles(files, Map.of(FileSubjectKind.USER, properties.unboundExpiryAge(),
+                FileSubjectKind.PLATFORM_MODULE, properties.unboundExpiryAge(),
+                FileSubjectKind.ONE_TIME_LINK, properties.oneTimeLinkUnboundExpiryAge()), clock, transactions, meters);
+    }
+
+    @Bean
+    GetUploadStatus getUploadStatus(StoredFileRepository files) {
+        return new GetUploadStatus(files);
     }
 
     @Bean

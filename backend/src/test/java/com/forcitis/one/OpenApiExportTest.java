@@ -120,7 +120,7 @@ class OpenApiExportTest {
             "LegalEntityAttributionResponse.subjectId", "ReassignTaskRequest.assigneeId", "TransferTaskRequest.assigneeId",
             "DecisionResponse.instanceId", "HandledTaskResponse.taskId", "HandledTaskResponse.instanceId", "HandledTaskResponse.documentId", "HistoryEntry.taskId",
             "TaskDetailResponse.taskId", "TaskDetailResponse.instanceId", "TaskDetailResponse.documentId", "TaskOverviewResponse.taskId", "TaskOverviewResponse.documentId",
-            "InboxItemResponse.documentId", "parameter taskId",
+            "InboxItemResponse.documentId", "parameter taskId", "StoredFileResponse.fileId", "FileStatusResponse.fileId", "parameter fileId",
             "parameter orgUnitId", "parameter employeeId",
             "AuthorizationRequestView.requestedBy", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy",
             "TaskDetailResponse.initiator", "TaskDetailResponse.assignee", "TaskOverviewResponse.assignee");

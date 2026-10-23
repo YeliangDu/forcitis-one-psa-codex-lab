@@ -230,7 +230,8 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(me.path("displayName").asString()).isEqualTo("Employee 1001");
         assertThat(me.path("orgUnitName").asString()).isEqualTo("Delivery");
         assertThat(me.path("permissionCodes").valueStream().map(n -> n.asString()).toList())
-                .containsExactly("platform.approval:task:approve", "platform.approval:task:read", "platform.audit:own-login-record:read");
+                .containsExactly("platform.approval:task:approve", "platform.approval:task:read", "platform.audit:own-login-record:read",
+                        "platform.file:file:create", "platform.file:file:read");
         assertThat(me.path("navigation").valueStream().map(n -> n.path("name").asString()).toList())
                 .containsExactly("待办");
     }

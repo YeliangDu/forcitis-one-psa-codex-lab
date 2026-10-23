@@ -10,7 +10,9 @@ export const { request } = createHttpClient({ handlers: () => handlers });
 
 type PathArgs<Op> = Op extends { parameters: { path: infer P } } ? { path: P } : unknown;
 type QueryArgs<Op> = Op extends { parameters: { query?: infer Q } } ? ([NonNullable<Q>] extends [never] ? unknown : { query?: NonNullable<Q> }) : unknown;
-type BodyArgs<Op> = Op extends { requestBody: { content: { 'application/json': infer B } } }
+type BodyArgs<Op> = Op extends { requestBody: { content: { 'application/octet-stream': unknown } } }
+  ? { body: Blob; fileName: string }
+  : Op extends { requestBody: { content: { 'application/json': infer B } } }
   ? { body: B }
   : Op extends { requestBody?: { content: { 'application/json': infer B } } }
     ? { body?: B }
