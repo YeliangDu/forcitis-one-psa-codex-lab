@@ -762,8 +762,14 @@ class Processor:
                 return now, None
         return None, "conflict"
 
+    def touches_workflows(self, n):
+        """A pull request that changes .github/workflows cannot be updated with `gh pr update-branch`: the gh token lacks the workflow scope, GitHub accepts the call and the push is dropped afterwards (exit 0, head unchanged).
+        A file list gh cannot give counts as touching: the ssh update is the safe way."""
+        files = self.gh.files(n)
+        return files is None or any(f.startswith(".github/workflows/") for f in files)
+
     def update(self, n, branch, since, via_gh=True):
-        if via_gh and self.gh.update_branch(n):
+        if via_gh and not self.touches_workflows(n) and self.gh.update_branch(n):
             self.log.event("UPDATE", n, None, since, "gh update-branch")
             return "ok"
         with self.queue.locked(".ssh-lock"):   # one scratch worktree, one fetch and push at a time, whatever lane asks
