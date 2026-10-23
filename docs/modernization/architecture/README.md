@@ -5,8 +5,8 @@
 | 目录 | 内容 | 状态 |
 |---|---|---|
 | `ssot/` | **架构唯一来源**（GOV-1023-ARC-01，intent 2026-10-23-154833）：按登记网络 v5 节点分目录（ADR-0059）；`d-domain/` 子域、限界上下文、上下文映射（节点 09、10 的领域映射层）；`t-transitions/transitions.yaml` 过渡架构（阶段 → BC）；`04-goals/vision.yaml` 目标与愿景 KPI（草稿）；`i03-aggregates/` 聚合 | 各文件头标明手写或生成 |
-| 已退役 | `ddd/aggregates.yaml`（由 `ssot/i03-aggregates/` 取代；暂留供两个验收测试读，冻结不改）、`togaf/value-streams.yaml`（由价值流 v2 取代，待升正本）、`togaf/capabilities.yaml`（由信息图重建时直接进 ssot）；旧路径对照见 `ssot/PATHS.md` | — |
-| `bpmn/processes.yaml`、`dmn/decisions.yaml` | 流程清单（1 个可执行、6 个仅文档；改为由 `.bpmn20.xml` 生成前暂手写）、决策点清单（15 处，均在代码中；DMN 推迟，FRAMEWORKS §7） | 初稿（PR-C） |
+| 已退役 | `ddd/aggregates.yaml`、`bpmn/processes.yaml`（已删，分别由 `ssot/i03-aggregates/`、`ssot/09-processes/` 取代）、`togaf/value-streams.yaml`（由价值流 v2 取代，待升正本）、`togaf/capabilities.yaml`（由信息图重建时直接进 ssot）；旧路径对照见 `ssot/PATHS.md` | — |
+| `ssot/09-processes/catalog.yaml`、`dmn/decisions.yaml` | 业务流程唯一登记（PRC 编号，含可执行 BPMN 引用 `runtime_bpmn` 与流程梳理文档 `flow_docs`；`CATALOG.md` 由同目录 `build_catalog.py` 生成并校验）、决策点清单（15 处，均在代码中；DMN 推迟，FRAMEWORKS §7） | 目录条目多为 draft；决策点初稿（PR-C） |
 | （OLAP） | 不另建文件：指标口径以 OAT 与 METRIC_BASELINE 为准，KPI → M-xx 在 `ssot/15-kpis/kpis.yaml` 登记（愿景 KPI 原文在 `ssot/04-goals/vision.yaml`）（ADR-0041 决定 4） | — |
 | `generated/` | ①a 上下文全景、①b 已建上下文映射、② 过渡架构、③ 跨 BC 事件链路、④ 战术聚合与契约；mermaid 源、SVG、`index.html`（生成，勿手改）。`build_architecture.py --svg` 本机渲染（mermaid-cli，SUPPLY_CHAIN S1），`--check` 校验 | PR-B |
 

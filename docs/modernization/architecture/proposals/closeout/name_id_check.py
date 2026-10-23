@@ -16,12 +16,12 @@ import yaml
 
 HERE = Path(__file__).resolve().parent
 PROPOSALS = HERE.parent
-CATALOG = HERE / "process-catalog.yaml"
+CATALOG = Path(__file__).resolve().parents[1].parent / "ssot" / "09-processes" / "catalog.yaml"   # 流程目录正本
 VS_FILE = PROPOSALS / "value-streams.v2.yaml"
 CAPS = PROPOSALS / "capabilities.v2.yaml"
 LAYER = HERE / "object-layer.yaml"
 INFO_MAP = PROPOSALS / "ENTERPRISE_INFO_MAP_DRAFT.md"
-REPO_PATH = "docs/modernization/architecture/proposals/closeout/process-catalog.yaml"
+REPO_PATH = "docs/modernization/architecture/ssot/09-processes/catalog.yaml"
 PROC_MAX, STAGE_MAX = 12, 6
 VERBS = tuple(("选定 获得 约定 支付 确认 任用 报销 达成 沉淀 签订 开具 开票 收回 回款 付款 申报 缴纳 维护 招聘 录用 入职 申请 借支 核定 编制 预测 复盘 "
          "关账 发布 起草 评审 修订 废止 出资 分配 退回 结算 发放 结清 启动 策划 检查 整改 跟踪 认可 准入 签约 履约 履行 登记 提出 建立 处置 获取 "

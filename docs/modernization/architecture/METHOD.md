@@ -70,7 +70,7 @@
 | ③ 阶段门映射与能力—阶段对账 | ① 的价值流、② 的对象状态与能力图；公司手册 | `business/value-streams.yaml` 阶段段；手册概念 → 框架概念对照表；**能力—阶段对照表** | 用户 | 每个阶段门指到某对象的某状态，指不到即回 ② 补对象；每个一级能力至少支撑一个阶段（否则写「不支撑价值流」+ 理由），每个阶段至少一个能力 |
 | ④ 不变量、聚合与事件 | ② 的「拒」规则；规则卡；会计规则；已采纳 ADR | 全企业聚合规划经确认包 D 册写入 `ssot/i03-aggregates/`（规划 planned.yaml、已建 built.yaml、对照 mapping.yaml）；事件与多聚合例外分别在 `events/*.yaml`、`backend/architecture/multi-aggregate-exceptions.txt`，实现状态另记 | 本会话提议，opus 评审，用户裁定结构性选择 | A 类恰在一个聚合内；B 类有约束；C 类有 ADR 并登记；EventCatalogueTest、SingleAggregateGuardTest |
 | ⑤ BC、依赖方向与命名空间 | ④ 的聚合与引用；`glossary/terms.yaml`；已建模块依赖 | 全企业提议稿与查环输出；已认可规划经 D 册进入 `ssot/d-domain/contexts.yaml`、`ssot/d-domain/subdomains.yaml`、`ssot/d-domain/context-map.yaml`；`backend/architecture/module-dependencies.txt` 对照已建边 | 用户定边界、深浅与命名空间；名称交 one-glossary | 查环脚本退出码 0；built 边 = `module-dependencies.txt`（A1）；每个 BC 恰属一个命名空间，与 Java 包、schema 前缀一致 |
-| ⑥a 全企业流程目录 | ③ 的阶段、④⑤ 的命令与事件 | 提议期 `proposals/closeout/process-catalog.yaml`；按价值流确认后，目录条目与骨架同批进入 `bpmn/` | 本会话提议，评审后每价值流一页交用户，只列业务判断与待定题 | 五类条目判类；每个阶段有流程或「无需系统支持」理由；每个业务流程有触发；改变状态的步骤对应聚合命令 |
+| ⑥a 全企业流程目录 | ③ 的阶段、④⑤ 的命令与事件 | 目录 `ssot/09-processes/catalog.yaml`（GOV-1023-ARC-01 第②步迁入，条目 status 标确认进度）；骨架提议期在 `proposals/closeout/<组>/`，按价值流确认后进入 `ssot/09-processes/` | 本会话提议，评审后每价值流一页交用户，只列业务判断与待定题 | 五类条目判类；每个阶段有流程或「无需系统支持」理由；每个业务流程有触发；改变状态的步骤对应聚合命令 |
 | ⑥b 流程图、数据与分析 | ⑥a 目录；③ 阶段；④⑤ 命令与事件 | 全企业骨架与生成的描述级 BPMN 协作图；可执行 `.bpmn20.xml`、实现登记、数据访问注册表、迁移脚本、总线矩阵与 METRIC_BASELINE 随实现交付 | 骨架按价值流确认；实现经评审；分析口径由用户定 | 描述图重跑一致；场景覆盖判断出口、超时、结局；可执行版流程编号与用户任务集合对齐骨架；DataArchitectureTest |
 | ⑦ 一次投产路线与守护 | ①–⑥ 全企业设计 | `ssot/t-transitions/transitions.yaml` 随 T 册确认后写入；ADR；CI（A1–A7、查环）随实现补齐 | 用户确认整合包，按准入证据决定投产 | W0–W5 建造验证；统一准入、演练与恢复；结构变化先改 SSOT 再改代码 |
 
@@ -157,7 +157,7 @@
 
 - **判据与四个去处**：业务流程同时满足三条：①由业务事件或人的业务决定触发；②跨两个以上聚合，或跨两个以上角色并有交接；③结果是某价值流阶段的进入或退出状态（ADR-0050 决定 15，ADR-0052 决定 5 保留）。不满足的分别归事件策略（一个事件、一步命令）、单聚合维护（第④步状态机）、读模型（只读无命令，归 `reporting`）、已合并（同一业务链合并，保留被并入编号的去向），不计入业务流程数；目录登记五类，流程与价值流阶段多对多（BIZBOK §3.4）。
 - **唯一登记**：编号、名称、类型、阶段、编排 BC、组、状态只手写在流程目录，所属阶段为 `stages`（可多个）；骨架与图只引用目录编号。计数与目录页由目录生成；目录仅引用可执行实现登记，不复制 `ProcessKey` 或指派（ADR-0052 决定 1–2）。
-- **交付与确认**：提议期目录在 `proposals/closeout/process-catalog.yaml`，骨架在各组 `proposals/closeout/<组>/`。每个价值流铺开并评审完成即出一页，只列业务判断与待定题（AN-02，提交 `ANM-20261017-075455-3xc`）；用户确认后，该价值流目录条目与对应骨架同时进入 `bpmn/`，按价值流逐个进，具体命名与路径按 ADR-0053（ADR-0052 决定 5–6）。
+- **交付与确认**：目录在 `ssot/09-processes/catalog.yaml`（2026-10-23 起；此前提议期在 `proposals/closeout/process-catalog.yaml`），骨架在各组 `proposals/closeout/<组>/`。每个价值流铺开并评审完成即出一页，只列业务判断与待定题（AN-02，提交 `ANM-20261017-075455-3xc`）；用户确认后，该价值流条目的 status 改为 user_confirmed，对应骨架进入 `ssot/09-processes/`，按价值流逐个进；ADR-0053（ADR-0052 决定 5–6）所写的 `bpmn/` 路径按 `ssot/PATHS.md` 读。
 - **用语**：业务流程用 BIZBOK / BPMN 含义；Kimball 总线矩阵的行称「度量事件」，用语以词表为准。
 - **校验**：每个价值流阶段有流程或明确无需系统支持；每个业务流程有触发，改变系统状态的步骤对应某聚合的命令；`processes_check.py` 按 ADR-0052 决定 6 改读目录与骨架，事件订阅覆盖判据保留，后续工具卡交付前不声称已覆盖新输入。
 

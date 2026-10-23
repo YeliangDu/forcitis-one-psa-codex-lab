@@ -43,6 +43,10 @@ else:
     print(f"警告：{sys.executable} 缺少 PyYAML，本次未重新生成 glossary/terms.yaml；--check 会因此失败（依赖见 SUPPLY_CHAIN.md S1）", file=sys.stderr)
 STEPS.append("architecture/check_proposals.py")   # 提议稿状态行检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/check_proposals.py")
+STEPS.append("architecture/proposal_reads.py")   # 拦截代码读 proposals/，例外登记到期即失败（TEAM-108；每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
+SELF_TESTED.append("architecture/proposal_reads.py")
+STEPS.append("architecture/ssot/09-processes/build_catalog.py")   # 流程目录正本校验并生成 CATALOG.md（GOV-1023-ARC-01 第②步；每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
+SELF_TESTED.append("architecture/ssot/09-processes/build_catalog.py")
 STEPS.append("architecture/panorama/scan_commands.py")   # 命令目录不入仓，先生成再由全景读取；编号登记与转换仍入仓
 SELF_TESTED.append("architecture/panorama/scan_commands.py")
 STEPS.append("architecture/panorama/panorama_build.py")   # 全景追溯模型与 TD/BU 缺口（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突；排在 notes_build 之前：笔记检查读它生成的 panorama.yaml）

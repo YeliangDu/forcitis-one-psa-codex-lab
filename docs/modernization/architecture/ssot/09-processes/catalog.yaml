@@ -1,4 +1,7 @@
-# 流程目录（提议稿，唯一手写来源；CATALOG.md 由 build_catalog.py 生成）
+# 流程目录：业务流程的唯一登记（正本，GOV-1023-ARC-01 第②步由 proposals/closeout/process-catalog.yaml 迁入，并入原 bpmn/processes.yaml；维护：one-architecture）。
+# CATALOG.md 由同目录 build_catalog.py 生成并校验。条目 status 仍为 draft 的是未确认内容，正本只表示登记位置唯一，不表示已确认。
+# bpmn：描述级图（ADR-0052，生成物）；runtime_bpmn：可执行 BPMN（backend/src/main/resources/processes/ 下每个文件须恰被一条引用）；
+# flow_docs：阶段流程梳理文档（SESSION_PLAYBOOK 附 M4，process/<阶段>/）。平台机制（审批引擎、编号、审计、登录）不进目录，其梳理文档只在 process/ 下。
 # 初值：processes.v1.yaml 五类 135 条 + PRC_ALLOCATIONS.md 的 PRC-136–144；stages 为空的条目待各组补；human_orchestration 为 null 表示待定。
 
 processes:
@@ -258,6 +261,8 @@ processes:
     status: draft
     human_orchestration: true
     bpmn: ~
+    runtime_bpmn: backend/src/main/resources/processes/cost_timesheet_approval.bpmn20.xml
+    flow_docs: [docs/modernization/process/1a/TIMESHEET审批.md]
     support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；工时为业务拓展与交付各段提供贯穿成本输入，不因输入给阶段补人员管理"
   - id: PRC-24
     name: "变更项目状态"
