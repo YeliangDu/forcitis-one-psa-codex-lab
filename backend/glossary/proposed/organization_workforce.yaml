@@ -277,6 +277,36 @@ terms:
   forbidden: []
   status: proposed
   note: 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列
+- id: personnel_command
+  zh: 人事命令
+  en: PersonnelCommand
+  snake: personnel_command
+  kind: entity
+  bc: organization.workforce
+  scope: domain
+  definition: 员工聚合内的人事异动第一手记录：入职、转正、调岗、离职、复职、更正、停薪留职开始与结束，只追加；生效日为人事业务生效日
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: W2 PR-B，IMP-1022-PAR-01
+- id: unpaid_leave
+  zh: 停薪留职
+  en: UnpaidLeave
+  snake: unpaid_leave
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 员工在职期间暂停发薪的状态，不是雇佣状态；员工版本以 is_on_unpaid_leave 记录，人事命令以开始、结束两种种类改变它
+  standard_ref:
+  - ADR-0068 第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: W2 PR-B，IMP-1022-PAR-01
 common_words:
 - listed
 - lookup
@@ -364,3 +394,5 @@ common_words:
 - rename
 - renamed
 - usage
+- applied
+- superseding

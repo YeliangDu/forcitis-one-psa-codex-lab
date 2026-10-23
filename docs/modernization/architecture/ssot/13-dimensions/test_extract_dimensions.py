@@ -36,7 +36,7 @@ class ExtractDimensionsTest(unittest.TestCase):
     def test_counts_and_all_bus_cells_preserved_without_symbol_interpretation(self):
         raw = self.raw()
         self.assertEqual({'by_bi_bus_matrix': 14, 'by_metric_baseline': 48,
-                          'by_versioned_master_tables': 7,
+                          'by_versioned_master_tables': 8,
                           'literal_differences': {'only_bi_bus_matrix': 14, 'only_metric_baseline_oat': 39}},
                          raw['meta']['counts'])
         lines = (self.root / ed.facts.BI).read_text().splitlines()
@@ -65,7 +65,7 @@ class ExtractDimensionsTest(unittest.TestCase):
     def test_registry_values_absence_empty_lists_and_ddl_source_lines(self):
         original = yaml.safe_load((self.root / ed.REGISTRY).read_text())['tables']
         rows = ed.by_versioned_master_tables(self.root)
-        self.assertEqual(7, len(rows))
+        self.assertEqual(8, len(rows))
         for row in rows:
             expected = original[row['table']]
             for field in ('role', 'mutability', 'retention', 'lineage', 'writers', 'readers'):
