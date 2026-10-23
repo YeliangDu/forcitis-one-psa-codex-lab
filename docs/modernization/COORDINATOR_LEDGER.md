@@ -7,7 +7,7 @@
 - **清空后第一件事**：CronCreate 每 5 分钟巡检（分层总图 meta/request、工作台 board/request、`python3 scripts/coord/mailbox.py list --unacked` 与 `stale --minutes=20`、ReadNotifications）；会话内定时随清空失效。
 - **总验收 GOV-1023-COO-01**：清单 ~/.modernize/psa/coordinator/team-audit/acceptance-1023.md（53 项，Docker 演练已撤 intent 131757）；约一半落地。业务代码暂停（intent 125230），验收通过后恢复并通知 one-1a-admin、one-platform-file：签章已准入，用印 7.3/7.4 可开工；#658 冻结待恢复后派复审。
 - **队列与已批 head**：队列 [662,659,663,654,665]；#659 批 9f074ec18（合入后 one-merge 先核 FF-MAIN 再发全员合 main 并重启）；#654 f43d94496；#662 9ccc5cee9；#663 30ffa0b31；#665 f1c4f9e53；#653 已合。
-- **在复审/在改**：#664 QUA-09（one-platform-file，opus 改后通过已裁定豁免与登记位置）；#666 QUA-23（one-1a-par，opus 首轮在跑，报告 reviews/pr666-opus-1.md）；#652 MRG-07 由 one-merge 交 Codex 重跑（收窄范围）；QUA-08、QUA-02 第二段（one-1a-par）；QUA-10（one-platform-file）；QUA-04→QUA-07（one-quality）。复审报告均在 ~/.modernize/psa/coordinator/reviews/。
+- **在复审/在改**：#664 QUA-09（one-platform-file，opus 改后通过已裁定豁免与登记位置）；#666 QUA-23（one-1a-par，opus 改后通过 6 项必改已转，报告 reviews/pr666-opus-1.md）；#652 MRG-07 由 one-merge 交 Codex 重跑（收窄范围）；QUA-08、QUA-02 第二段（one-1a-par）；QUA-10（one-platform-file）；QUA-04→QUA-07（one-quality）。复审报告均在 ~/.modernize/psa/coordinator/reviews/。
 - **今日结构决定**：研发基建实现并入 one-ops（intent 145436，画像 @8d3cbb1fb）；one-quality 只做设计与复核；one-merge 只做队列运营；借调：QUA-02/08/23→one-1a-par，QUA-09/10→one-platform-file（intent 134131、141142）；归档 revenue、people、rules、finance、next-5，在用画像 10 份；MEMORY.md 已压缩（备份 ~/.modernize/psa/memory-backup-20261023）；自动入队永久关闭＋入队审计（intent 115815）；只在 PR 节点上报（TEAM-53）；规则表 52 条（#656 已合）。
 - **我待做**：COO-03 收尾核对（画像与实际会话清单）、COO-04 运行设置回读、COO-08 strict 复盘、MRG-12 统一切分支（等整改 PR 全合入）、最终独立核验。two-lanes 最新提交待 one-merge 下趟收。
 更新：2026-10-23 11:4x（one-coordinator，40% 记录，不清空）
