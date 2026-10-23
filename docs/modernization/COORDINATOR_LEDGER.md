@@ -3,6 +3,10 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 15:3x（one-coordinator，GOV 卡整理，intent 151800）
+- **GOV 卡 53→保留 11**：COO-01（并 COO-03/04/05/06/08、QUA-10、MRG-12）、1023-QUA-06/04/07/01/05/08、1022-MRG-04 → one-ops；1023-MRG-10、1022-MRG-02 → one-merge；1023-QUA-02 收尾（#665 在队）。收尾不扩：1023-QUA-03（#654 在队）、1023-MRG-07（#652，排在做 3 张后）。挂起（阻塞）20 张；其余作废「并入 X」。
+- **在做上限 3**：QUA-06（#659 冲突）→QUA-04（#668）→QUA-07（#667），均 one-ops；已批在队的不计。one-quality 只复核；#664、#666 转草稿，借调 one-platform-file、one-1a-par 归还（#665 合入后 one-1a-par 归还）。
+- check_tasks 的 STATUSES 不含「完成/作废」，新五值也报警告（QUA-14 已挂起，待基建冻结后处理）。
 更新：2026-10-23 15:1x（one-coordinator，清空前交接；清空后先读本条）
 - **清空后第一件事**：CronCreate 每 5 分钟巡检（分层总图 meta/request、工作台 board/request、`python3 scripts/coord/mailbox.py list --unacked` 与 `stale --minutes=20`、ReadNotifications）；会话内定时随清空失效。
 - **总验收 GOV-1023-COO-01**：清单 ~/.modernize/psa/coordinator/team-audit/acceptance-1023.md（53 项，Docker 演练已撤 intent 131757）；约一半落地。业务代码暂停（intent 125230），验收通过后恢复并通知 one-1a-admin、one-platform-file：签章已准入，用印 7.3/7.4 可开工；#658 冻结待恢复后派复审。
