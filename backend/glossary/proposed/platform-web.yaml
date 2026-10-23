@@ -75,20 +75,6 @@ terms:
   status: proposed
   note: ''
 
-common_words:
-- are
-- do
-- filter
-- global
-- handle
-- instantiated
-- property
-- singleton
-- web
-- formatter
-- module
-- query
-- oversize
 - id: error__platform_web_request_too_large
   zh: 请求体过大
   en: PlatformWebRequestTooLarge
@@ -104,3 +90,18 @@ common_words:
   forbidden: []
   status: proposed
   note: ''
+
+common_words:
+- are
+- do
+- filter
+- global
+- handle
+- instantiated
+- property
+- singleton
+- web
+- formatter
+- module
+- query
+- oversize
