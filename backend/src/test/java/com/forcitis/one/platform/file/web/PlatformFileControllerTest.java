@@ -27,6 +27,7 @@ class PlatformFileControllerTest {
             assertThatThrownBy(() -> PlatformFileController.originalName(bad)).as(bad).isInstanceOf(InvalidRequestException.class);
         }
         assertThat(PlatformFileController.originalName("attachment; filename=\"" + "a".repeat(255) + "\"")).hasSize(255);
+        assertThat(PlatformFileController.originalName("attachment; filename=\"a\u200Db.pdf\"")).isEqualTo("a\u200Db.pdf");
     }
 
     @Test
@@ -35,6 +36,7 @@ class PlatformFileControllerTest {
         assertThat(PlatformFileController.declaredMediaType("application/pdf; version=1")).isEqualTo("application/pdf");
         assertThat(PlatformFileController.declaredMediaType(null)).isEqualTo("application/octet-stream");
         assertThat(PlatformFileController.declaredMediaType(" ")).isEqualTo("application/octet-stream");
+        assertThat(PlatformFileController.declaredMediaType("application/pdf")).isEqualTo("application/pdf");
         assertThatThrownBy(() -> PlatformFileController.declaredMediaType("not a type")).isInstanceOf(InvalidRequestException.class);
         assertThatThrownBy(() -> PlatformFileController.declaredMediaType("multipart/form-data; boundary=x")).isInstanceOf(InvalidRequestException.class);
         assertThatThrownBy(() -> PlatformFileController.declaredMediaType("application/x-www-form-urlencoded")).isInstanceOf(InvalidRequestException.class);
