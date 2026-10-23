@@ -257,7 +257,7 @@ def start(payload):
         print("【交接快照】告警：读取交接快照超时或失败；请核对当前实况。")
     try:
         shot = [f"--snapshot={safe(snapshot[0])}"] if snapshot else []
-        sheet = command([sys.executable, "-I", str(Path(root) / "scripts/hooks/start_sheet.py"), root, *shot], root, deadline, timeout=10)
+        sheet = command([sys.executable, "-I", str(Path(__file__).resolve().parent / "start_sheet.py"), root, *shot], root, deadline, timeout=10)
     except SnapshotError:
         sheet = None
     if sheet is None:
