@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""生产写门的自测（临时独立文件：门本体运行代码须 ≤800 行；O8 合并进统一自测）。由 `prod_write_gate.py --self-test` 调起，也可直接运行。
+"""生产写门的自测（临时独立文件：门本体行数上限见 policy.json gates.max_lines.prod_write_gate；O8 合并进统一自测）。由 `prod_write_gate.py --self-test` 调起，也可直接运行。
 含三部分：原 command_words 解析自测、原 prod_write_gate 自测、「生产写门 17 例」（Codex 复核 #653 的 17 条 P1 缺口，每条的原样复现命令，测试表与真实特征表下都须拒绝）。
-本文件不写真实生产样本的字面值（拼接而成），否则门会拦自己的自测。"""
+本文件不写任何真实生产样本的字面值，拆段拼接也不行（O2 复审 M3）：真实特征在运行时按 target id 从 prod_targets.json 取；门自测用虚构样本（192.0.2.x 是文档专用地址）。"""
+import ast
 import inspect
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -17,11 +19,30 @@ from prod_write_gate import (DOCS_ROOT, EXTRA_READONLY, REPO_ROOT, brace_variant
                              plain, simple_commands, tokens_of)
 
 HOOKS = os.path.join(REPO_ROOT, "scripts", "hooks")
-RDS, IP, PRODDB = "rm-bp1690ep5" "3t9778dp", "172.16.10" ".52", "forcitis_one" "_prod"
+TEST_IP = "192.0.2.15"  # RFC 5737 documentation address, not a production host
+SAMPLE_IDS = ("legacy-rds-sqlserver", "legacy-ecs", "new-prod-names")  # the 17 cases' P, H, D: the first pattern of each of these targets
+
+
+def shipped_firsts():
+    """{target id: its first pattern} of the shipped prod_targets.json, read at run time (the guard sources hold no production sample)."""
+    with open(os.path.join(HERE, "prod_targets.json"), encoding="utf-8") as f:
+        return {t["id"]: t["patterns"][0].strip() for t in json.load(f)["targets"]}
+
+
+def real_samples():
+    """(P, H, D) for the 17 cases under the real table."""
+    firsts = shipped_firsts()
+    return tuple(firsts[i] for i in SAMPLE_IDS)
+
+
+def braced(word):
+    """`word` with one character written as a brace expansion `{c,c}`: bash (and curl) turn it back into `word`, the word itself is not on the line."""
+    k = len(word) // 2
+    return word[:k] + "{" + word[k] + "," + word[k] + "}" + word[k + 1:]
 
 
 def seventeen(P, H, D):
-    """生产写门 17 例：编号 = Codex 复核 #653（2026-10-22）的 P1 缺口序号，命令取自其复现样本（P 为 RDS 实例、H 为应用服务器 IP、D 为生产库名）。"""
+    """生产写门 17 例：编号 = Codex 复核 #653（2026-10-22）的 P1 缺口序号，命令取自其复现样本（P 为 RDS 实例、H 为应用服务器、D 为生产库名；第 12 例的花括号按 braced 生成）。"""
     return {
         1: [f"sqlcmd -S {P} -Q \"SELECT '--'; DELETE FROM dbo.t\"", f"sqlcmd -S {P} -Q \"SELECT '/*'; DELETE FROM dbo.t; SELECT '*/'\""],  # SQL 注释藏写语句
         2: [f"sqlcmd -S {P} -Q \"SET NOCOUNT ON\nDELETE FROM dbo.t\""],  # SET 开头夹带写
@@ -35,8 +56,7 @@ def seventeen(P, H, D):
         9: [f"python3 -X new_intent.py -c \"import os; os.system('ssh {H} touch /tmp/review')\"", f"node --title new_intent.py -e \"require('child_process').execSync('ssh {H} touch /tmp/review')\""],  # 冒充文档脚本
         10: [f"cat > /tmp/prod_gate_review_f13574.sh <<'EOF'\nssh {H} touch /tmp/review\nEOF\nbash /tmp/prod_gate_review_f13574.sh"],  # 先生成脚本再执行
         11: [f"rg --pre \"ssh {H} touch /tmp/review\" x README.md", f"git push ssh://{H}/srv/repo HEAD:main"],  # 不连接工具的执行入口
-        12: [f"curl -XDELETE http://{H.rsplit('.', 2)[0]}.{{{H.split('.')[2]},{H.split('.')[2]}}}.{H.split('.')[3]}/api/item/1",
-             f"curl -XDELETE 'http://{H.rsplit('.', 2)[0]}.{{{H.split('.')[2]},{H.split('.')[2]}}}.{H.split('.')[3]}/api/item/1'"],  # 花括号展开藏目标
+        12: [f"curl -XDELETE http://{braced(H)}/api/item/1", f"curl -XDELETE 'http://{braced(H)}/api/item/1'"],  # 花括号展开藏目标
         13: [f"curl --quote \"rm /tmp/x\" sftp://{H}/", f"curl 'gopher://{H}:6379/_SET%20x%201%0D%0A'"],  # curl 非 HTTP 协议
         14: [f"printf 'url = \"http://{H}/api\"\\ndata = \"x=1\"\\n' | curl -K -"],  # curl 从管道读配置
         15: [f"scp -o 'ProxyCommand=ssh {H} touch /tmp/review' {H}:/var/log/app.log ./app.log", f"rsync -e 'ssh -oProxyCommand=\"ssh {H} touch /tmp/review\"' {H}:/var/log/ ./logs/",
@@ -82,6 +102,9 @@ def words_self_test():
     except ValueError:
         pass
     assert simple_commands("export SQLCMDSERVER=prod; sqlcmd -Q x")[-1].env == {"SQLCMDSERVER": "prod"} and simple_commands("export A=1; unset A; ls")[-1].env == {}
+    assert simple_commands("A=1; export A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; declare -x A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; ls")[-1].env == {}
+    assert simple_commands("set -a; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -o allexport; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -a; set +a; A=1; ls")[-1].env == {}
+    assert simple_commands("A=1; declare -a A; ls")[-1].env == {} and simple_commands("export B; ls")[-1].env == {}, "an array declaration or an unknown name exports nothing"
     assert argvs("export H=prod; sqlcmd -S\"$H\" -Q x")[-1][:2] == ["sqlcmd", "-Sprod"]
     # unreadable input
     try:
@@ -93,11 +116,11 @@ def words_self_test():
 
 
 def gate_self_test():
-    patterns = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", "172.16.10" ".52"]
+    patterns = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP]
     cwd = tempfile.mkdtemp()
     refused = lambda command, table=patterns, problem=None, environ=None: judge(command, table, problem, cwd, environ or {}) is not None  # noqa: E731
     allowed = lambda command, table=patterns, problem=None, environ=None: judge(command, table, problem, cwd, environ or {}) is None  # noqa: E731
-    P, H = "pgm-prod0001", "172.16.10" ".52"
+    P, H = "pgm-prod0001", TEST_IP
     Path(cwd, "ro.sql").write_text("select count(*) from t;\nselect 2\n", encoding="utf-8")
     Path(cwd, "fix.sql").write_text("select 1;\ndelete from t where id = 1;\n", encoding="utf-8")
     Path(cwd, "runner.py").write_text("INSTANCE = 'rm-prodhost1'\nconnect(INSTANCE)\n", encoding="utf-8")
@@ -144,7 +167,7 @@ def gate_self_test():
                     f"rsync -e 'ssh -oProxyCommand=\"ssh {H} touch /tmp/x\"' {H}:/var/log/ ./logs/", f"scp -O '{H}:$(touch /tmp/x)/a' ./a", f"scp -S ./evil {H}:/a ./a",
                     f"curl -X POST https://{P}/api", f"curl -XPOST https://{P}/api", f"curl -sd x=1 https://{P}/api", f"curl --data=x https://{P}/api", f"curl -K cfg https://{P}/api", f"curl -d x=1 https://db.prod.example.com/api",
                     f"curl -X DELETE https://db.prod.example.com/x", f"curl -T f.bin https://db.prod.example.com/up", f"curl --json '{{}}' https://{P}/x", f"curl https://{P}/a --next https://{P}/b -d x",
-                    f"curl --quote 'rm /tmp/x' sftp://{H}/", f"curl 'gopher://{H}:6379/_SET%20x%201'", f"printf 'url = \"http://{H}/api\"' | curl -K -", "curl -XDELETE http://172.16.{10,10}.52/api/item/1", "curl -XDELETE 'http://172.16.{10,10}.52/api/item/1'",
+                    f"curl --quote 'rm /tmp/x' sftp://{H}/", f"curl 'gopher://{H}:6379/_SET%20x%201'", f"printf 'url = \"http://{H}/api\"' | curl -K -", "curl -XDELETE http://192.0.{2,2}.15/api/item/1", "curl -XDELETE 'http://192.0.{2,2}.15/api/item/1'",
                     f"wget --method=DELETE https://{P}/x", f"wget --post-data=x https://{P}/x", f"http POST https://{P}/x", f"http https://{P}/x name=a", f"xh PUT https://{P}/x"):
         assert refused(command), f"write must be refused: {command!r}"
     # 3. writes elsewhere pass
@@ -159,9 +182,9 @@ def gate_self_test():
                     f"bash <<'EOF'\nsqlcmd -S {P} -Q 'delete from t'\nEOF", f'bash <<< "sqlcmd -S {P} -Q \'delete from t\'"', f'echo "sqlcmd -S {P} -Q \'delete from t\'" | bash', f"cat run.sh | bash # {P}",
                     f"python3 -X new_intent.py -c \"import os; os.system('ssh {H} touch /tmp/x')\"", f"node --title new_intent.py -e \"require('child_process').execSync('ssh {H} touch x')\"", f"python3 {cwd}/new_intent.py '{P}'",
                     f"cat > /tmp/gate_probe_x.sh <<'EOF'\nssh {H} touch /tmp/x\nEOF\nbash /tmp/gate_probe_x.sh", f"rg --pre 'ssh {H} touch /tmp/x' x README.md", f"git push ssh://{H}/srv/repo HEAD:main", f"git -c core.sshCommand='ssh {H}' fetch",
-                    f"sed -n 'e ssh {H} touch /tmp/x' README.md", f"sed 's/x/ssh {H} touch x/e' README.md", f"sort --compress-program='ssh {H}' f", "bash -c 'bash -c \"bash -c \\\"bash -c \\\\\\\"ssh 172.16.10" ".52 touch x\\\\\\\"\\\"\\\"\"'",
+                    f"sed -n 'e ssh {H} touch /tmp/x' README.md", f"sed 's/x/ssh {H} touch x/e' README.md", f"sort --compress-program='ssh {H}' f", "bash -c 'bash -c \"bash -c \\\"bash -c \\\\\\\"ssh 192.0.2.15 touch x\\\\\\\"\\\"\\\"\"'",
                     f"eval eval eval eval ssh {H} touch /tmp/x", f"echo ok # <<EOF\nsqlcmd -S {P} -Q 'delete from t'", f'echo "<<EOF"; sqlcmd -S {P} -Q "delete from t"', f"cat <<EOF\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF",
-                    f'printf "%s" <(sqlcmd -S {P} -Q "delete from t")', f"export SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"export H={P}; sqlcmd -S\"$H\" -Q 'delete from t'", "curl -XDELETE http://172.16.{10,11}.52/x"):
+                    f'printf "%s" <(sqlcmd -S {P} -Q "delete from t")', f"export SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"export H={P}; sqlcmd -S\"$H\" -Q 'delete from t'", "curl -XDELETE http://192.0.{2,3}.15/x"):
         assert refused(command), f"unknown tool touching production must be refused: {command!r}"
     assert refused(f'sqlcmd -S {P} -Q "select next value for dbo.s"') and refused(f"psql -h {P} -c \"select query_to_xml('delete from t', true, false, '')\""), "sequence advance and SQL run from a string"
     assert allowed(f"cat <<'EOF'\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF"), "a quoted here-document body is text"
@@ -179,6 +202,11 @@ def gate_self_test():
     assert allowed("psql -h localhost -c \"insert into t values ($X)\"") and allowed("curl -X POST http://localhost:8080/api -d $BODY"), "`$` in a statement or data is not a target"
     assert refused("psql -h 'pgm-prod0001 -c 'delete'"), "unreadable command with a remote tool is refused"
     assert allowed("echo 'unterminated"), "unreadable command with no remote tool is not this gate's business"
+    # 5b. a bare assignment exported afterwards: `export NAME`, `declare -x`, `typeset -x`, or under `set -a` / `set -o allexport` (O2 review, M4)
+    for command in (f"PGHOST={P}; export PGHOST; psql -c 'delete from t'", f"set -a; PGHOST={P}; psql -c 'delete from t'", f"PGHOST={P}; declare -x PGHOST; psql -c 'delete from t'",
+                    f"PGHOST={P}; typeset -x PGHOST; psql -c 'delete from t'", f"set -o allexport; SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"set -ea; PGHOST={P}; psql -c 'delete from t'"):
+        assert refused(command), f"exported later must be refused: {command!r}"
+    assert allowed("PGHOST=localhost; export PGHOST; psql -c 'delete from t'") and allowed("set -a; PGHOST=localhost; psql -c 'delete from t'"), "an exported non-production host passes"
     # 6. secrets (bottom line 3) and the environment
     for command in ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"):
         assert refused(command), command
@@ -189,7 +217,36 @@ def gate_self_test():
     assert refused('psql -h localhost -c "insert into t values (1)"', None, "生产特征表缺失") and allowed('psql -h x -c "select 1"', None, "生产特征表缺失")
     assert refused("aliyun rds DeleteAccount --DBInstanceId x", None, "生产特征表缺失") and allowed("ls -la", None, "生产特征表缺失") and refused("python3 clean.py", None, "生产特征表缺失")
     assert refused("python3 -c 'print(1)'", None, "生产特征表缺失") and allowed("mvn -q test", None, "生产特征表缺失") and allowed(f"python3 -I {intent} x", None, "生产特征表缺失")
-    assert allowed("psql -h pgm-prod0001 -c 'delete from t'", []), "an empty table (no production yet) is valid and inert"
+    assert allowed("psql -h pgm-prod0001 -c 'delete from t'", []), "judge itself: an empty list refuses nothing (load_table turns an empty union into a problem, below)"
+    # 7b. the local table empty and origin/main unreadable (git fails) or without a table: a problem, so writes and interpreters are refused, reads pass (O2 review, M2)
+    with tempfile.TemporaryDirectory() as tmp:
+        empty = os.path.join(tmp, "empty.json")
+        Path(empty).write_text('{"targets": []}', encoding="utf-8")
+        real_table, real_main, real_root = g.TABLE, g.main_table_text, g.REPO_ROOT
+        try:
+            g.TABLE = empty
+            for main_result in ((None, "fatal: not a git repository"), (None, None), ('{"targets": []}', None)):
+                g.main_table_text = lambda result=main_result: result
+                table, problem, warning = load_table()
+                assert table is None and problem and "为空" in problem, main_result
+                assert (warning is not None) == (main_result[1] is not None), ("a git failure warns, a missing table does not", main_result)
+                assert refused('psql -h localhost -c "delete from t"', table, problem) and refused("python3 clean.py", table, problem) and allowed('psql -h x -c "select 1"', table, problem), main_result
+            g.TABLE = os.path.join(HERE, "prod_targets.json")
+            g.main_table_text = lambda: (None, "fatal: x")
+            table, problem, warning = load_table()
+            assert table and problem is None and warning and "git 出错" in warning, "a git failure with a usable local table warns and keeps the local table"
+            g.TABLE = empty
+            g.main_table_text = lambda: (json.dumps({"targets": [{"id": "a", "patterns": ["pgm-prod0001"]}]}), None)
+            table, problem, warning = load_table()
+            assert table == ["pgm-prod0001"] and problem is None and warning, "an empty local table still takes origin/main's patterns"
+            g.main_table_text, g.REPO_ROOT = real_main, tmp
+            text, failure = g.main_table_text()
+            assert text is None and failure and "输出不完整" not in failure, ("not a repository: git's own error is the failure", failure)
+            subprocess.run(["git", "init", "-q", tmp], check=True)
+            assert g.main_table_text() == (None, None), "a repository without origin/main: missing, no failure"
+        finally:
+            g.TABLE, g.main_table_text, g.REPO_ROOT = real_table, real_main, real_root
+        assert load_table.__code__.co_names.count("environ") == 0, "PROD_TARGETS_FILE does not switch the origin/main union off (O2 review, suggestion 1)"
     # 8. the guard's own self-tests: the guard sources hold no real production sample, so they pass under the shipped table; trust (content equal to origin/main) is a second way
     real = load_table()[0]
     for path in (os.path.join(HERE, "prod_write_gate.py"), os.path.join(HERE, "prod_write_gate_selftest.py"), os.path.join(HOOKS, "command_words.py"), os.path.join(HERE, "pre_tool_dispatch.py"),
@@ -246,7 +303,7 @@ def gate_self_test():
     # the SQL lexer and brace expansion
     assert mask_sql("select 'a--b'; select 1 -- c").count("select") == 2 and mask_sql("select 1 /* x */ + 2") is not None and mask_sql("select 'abc") is None and mask_sql("select /* x") is None
     assert mask_sql('select pg_catalog."nextval"(1)') == 'select pg_catalog. nextval (1)' and mask_sql("select $$a;b$$") == "select ''" and mask_sql("select $x$a$x$ , $1") == "select '' , $1"
-    assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("172.16.{10..12}.52") == ["172.16.10" ".52", "172.16.11.52", "172.16.12.52"] and brace_variants("plain") == ["plain"]
+    assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("192.0.{2..4}.15") == [TEST_IP, "192.0.3.15", "192.0.4.15"] and brace_variants("plain") == ["plain"]
     with tempfile.TemporaryDirectory() as tmp:
         good = os.path.join(tmp, "t.json")
         for text, ok in ((json.dumps({"targets": [{"id": "a", "patterns": ["abcdef123"]}]}), True), ('{"targets": []}', True), ("not json", False), ("{}", False), ('{"targets": [{"id": "a"}]}', False),
@@ -257,8 +314,9 @@ def gate_self_test():
         open(good, "w").write('{"targets": []}')
         assert load_table(good)[2] is not None, "an empty table warns"
         table, problem, _ = load_table()
-        assert problem is None and table and "rm-bp1690ep5" "3t9778dp" in table, "the shipped table loads and names the legacy production RDS"
-        assert could_concern("sqlcmd -s x") and could_concern("rm-bp1690ep5" "3t9778dp") and could_concern("echo $x") and could_concern("curl a{1,2}") and not could_concern("echo hello") and not could_concern("git status")
+        firsts = shipped_firsts()
+        assert problem is None and table and firsts and all(v.lower() in table for v in firsts.values()), "the shipped table loads and every target's first pattern is in it"
+        assert could_concern("sqlcmd -s x") and all(could_concern(v.lower()) for v in firsts.values()) and could_concern("echo $x") and could_concern("curl a{1,2}") and not could_concern("echo hello") and not could_concern("git status")
         # hook process end to end, with the shipped and a missing table
         script = os.path.join(HERE, "prod_write_gate.py")
 
@@ -268,15 +326,20 @@ def gate_self_test():
                 env["PROD_TARGETS_FILE"] = table_path
             return subprocess.run([sys.executable, "-I", script], input=json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=env)
 
-        result = hook("aliyun rds DeleteAccount --DBInstanceId rm-bp1690ep5" "3t9778dp")
+        result = hook("aliyun rds DeleteAccount --DBInstanceId " + firsts["legacy-rds-sqlserver"])
         assert result.returncode == 2 and "底线 4" in result.stderr, result
-        assert hook("aliyun rds DescribeDBInstances --DBInstanceId rm-bp1690ep5" "3t9778dp").returncode == 0
-        assert hook("python3 -c \"connect('rm-bp1690ep5" "3t9778dp')\"").returncode == 2
+        assert hook("aliyun rds DescribeDBInstances --DBInstanceId " + firsts["legacy-rds-sqlserver"]).returncode == 0
+        assert hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"").returncode == 2
         assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0
         gone = hook("psql -c 'delete from t'", os.path.join(tmp, "missing.json"))
         assert gone.returncode == 2 and "缺失或不合格" in gone.stderr, gone
         warned = hook("psql -c 'select 1'", os.path.join(tmp, "missing.json"))
         assert warned.returncode == 0 and "告警" in warned.stdout, warned
+        Path(tmp, "empty.json").write_text('{"targets": []}', encoding="utf-8")
+        no_git = {"LC_ALL": "C", "PATH": tmp, "PROD_TARGETS_FILE": os.path.join(tmp, "empty.json")}
+        for command, code in (("psql -h db.example.org -c 'delete from t'", 2), ("python3 clean.py", 2), ("psql -h db.example.org -c 'select 1'", 0)):
+            run = subprocess.run([sys.executable, "-I", script], input=json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=no_git)
+            assert run.returncode == code and ("为空" in run.stderr if code else "为空" in run.stdout and "git 出错" in run.stdout), (command, run)
         for raw in ("not json", "[1]"):
             bad = subprocess.run([sys.executable, "-I", script], input=raw, capture_output=True, text=True, env={"LC_ALL": "C"})
             assert bad.returncode == 2, raw
@@ -284,23 +347,54 @@ def gate_self_test():
 
 
 def seventeen_self_test():
-    """17 例全拦：测试表（门自测的样本主机）与真实特征表（本仓库 prod_targets.json 加 origin/main 并集）下各跑一遍；读不懂、未拦的例子逐条列出。"""
+    """17 例全拦：真实特征表（本仓库 prod_targets.json 加 origin/main 并集）与测试表下各跑；读不懂、未拦的例子逐条列出（只列轮次和编号，不打印命令，免得带出生产值）。
+    真实表下：SAMPLE_IDS 三个 target 的第一项作 P、H、D 跑一轮，再用每个 target 的第一项填满 P、H、D 各跑一轮（O2 复审 M3）。"""
     cwd = tempfile.mkdtemp()
     real = load_table()[0]
-    assert real and RDS in real and IP in real and PRODDB in real, "真实特征表须含 17 例用到的三个生产特征"
-    cases = seventeen(RDS, IP, PRODDB)
+    firsts = shipped_firsts()
+    assert real and firsts and all(v.lower() in real for v in firsts.values()), "真实特征表每个 target 至少一项，且都在门用的特征里"
+    assert set(SAMPLE_IDS) <= set(firsts), f"真实特征表须有这几个 target：{SAMPLE_IDS}"
+    cases = seventeen(*real_samples())
     assert sorted(cases) == list(range(1, 18)) and sum(len(v) for v in cases.values()) >= 17
-    missed = [(n, c) for n, cs in cases.items() for c in cs if judge(c, real, None, cwd, {}) is None]
-    test_table = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", IP, "prod_db_0001"]
-    missed += [(n, c) for n, cs in seventeen("pgm-prod0001", IP, "prod_db_0001").items() for c in cs if judge(c, test_table, None, cwd, {}) is None]
-    assert not missed, f"生产写门 17 例有未拦的：{missed}"
-    print(f"prod_write_gate 17 例: ok（{sum(len(v) for v in cases.values())} 条复现命令 × 2 张表全拦）")
+    test_table = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP, "prod_db_0001"]
+    runs = [("真实表 P/H/D", cases, real)] + [(f"真实表 {i}", seventeen(v, v, v), real) for i, v in firsts.items()]
+    runs.append(("测试表", seventeen("pgm-prod0001", TEST_IP, "prod_db_0001"), test_table))
+    missed = [(label, n, k) for label, run, table in runs for n, cs in run.items() for k, c in enumerate(cs) if judge(c, table, None, cwd, {}) is None]
+    assert not missed, f"生产写门 17 例有未拦的（轮次、例号、第几条）：{missed}"
+    print(f"prod_write_gate 17 例: ok（{sum(len(v) for v in cases.values())} 条复现命令 × {len(runs)} 轮全拦：真实表 {len(runs) - 1} 轮、测试表 1 轮）")
+
+
+def layout_self_test():
+    """门本体的版式与出处：行数不超 policy.json 的上限；一行一条语句、块体另起一行（O2 复审 M1）；守护源码里没有生产样本，拆段拼接也算（O2 复审 M3）。"""
+    gate_path = os.path.join(HERE, "prod_write_gate.py")
+    with open(os.path.join(REPO_ROOT, "policy.json"), encoding="utf-8") as f:
+        limit = json.load(f)["gates"]["max_lines"]["prod_write_gate"]
+    with open(gate_path, encoding="utf-8") as f:
+        source = f.read()
+    assert source.count("\n") <= limit, f"prod_write_gate.py 超过 {limit} 行"
+    lines = source.split("\n")
+    crowded = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.stmt):
+            line = lines[node.lineno - 1].encode("utf-8")
+            if node.col_offset != len(line) - len(line.lstrip(b" ")):
+                crowded.append(node.lineno)
+    assert not crowded, f"prod_write_gate.py 有一行多条语句或块体与条件同行：{sorted(set(crowded))[:20]}"
+    folded = [re.sub(r"[^0-9a-z]", "", v.lower()) for v in load_table()[0]]
+    sources = [os.path.join(HERE, name) for name in sorted(os.listdir(HERE)) if name.endswith(".py")] + [os.path.join(HOOKS, "command_words.py")]
+    for path in sources:
+        with open(path, encoding="utf-8") as f:
+            text = re.sub(r"[^0-9a-z]", "", f.read().lower())
+        found = sum(1 for v in folded if v in text)
+        assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
+    print("prod_write_gate layout: ok")
 
 
 def self_test():
     words_self_test()
     gate_self_test()
     seventeen_self_test()
+    layout_self_test()
     return 0
 
 

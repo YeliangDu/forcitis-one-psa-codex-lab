@@ -26,7 +26,7 @@
     "per_call_total_ms": 300,
     "precommit_max_seconds": 10,
     "max_lines": {
-      "prod_write_gate": 800,
+      "prod_write_gate": 1100,
       "pre_tool_dispatch": 80,
       "main_checkout_gate": 120,
       "commit_msg_gate": 60,

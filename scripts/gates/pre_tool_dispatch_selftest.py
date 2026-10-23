@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """pre_tool_dispatch 的自测（临时独立文件，分发本体须 ≤80 行；O8 合并进统一自测）。由 `pre_tool_dispatch.py --self-test` 调起，也可直接运行。
-不写真实生产样本的字面值（拼接而成），否则门会拦自己的自测。"""
+不写任何真实生产样本的字面值（拆段拼接也不行）：真实特征运行时按 target id 从 prod_targets.json 取（prod_write_gate_selftest.real_samples）。"""
 import json
 import os
 import subprocess
@@ -11,9 +11,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import pre_tool_dispatch as d  # noqa: E402
 import prod_write_gate as gate  # noqa: E402
-from prod_write_gate_selftest import IP, PRODDB, RDS, seventeen  # noqa: E402
+from prod_write_gate_selftest import real_samples, seventeen  # noqa: E402
 
 SCRIPT = os.path.join(HERE, "pre_tool_dispatch.py")
+PROD_P, PROD_H, PROD_D = real_samples()
 
 
 def payload(command, **extra):
@@ -22,17 +23,17 @@ def payload(command, **extra):
 
 def self_test():
     # 1. the pre-filter never hides a refusal: for every command the dispatcher decides exactly what the gate decides on its own
-    corpus = [c for cs in seventeen(RDS, IP, PRODDB).values() for c in cs]
-    corpus += ["ls", "git status", "echo hi", "cat api.py", "npm test", "", "   ", "python3 x.py", f"git commit -m '{RDS} 说明'", f"psql -h {RDS} -c 'select 1'", f"aliyun rds DeleteAccount --DBInstanceId {RDS}",
-               f"aliyun rds DescribeDBInstances --DBInstanceId {RDS}", f"python3 -c \"connect('{RDS}')\"", f"xargs -I{{}} sqlcmd -S {RDS} -Q {{}}", f"sqlcmd -S `echo {RDS}` -Q 'delete from t'",
-               f"bash -lc \"psql -h {RDS} -c 'drop table t'\"", f"$'\\x73qlcmd' -S {RDS} -Q 'delete from t'", f"bash <<'EOF'\nsqlcmd -S {RDS} -Q 'delete from t'\nEOF", f"env -S 'sqlcmd -S {RDS} -Q x'",
-               f"curl -XPOST https://{RDS}/x", f"al\"\"iyun rds DeleteAccount --DBInstanceId {RDS}", "PSQL -c x", "codex exec p", "git push --no-verify", "gh pr create --title x"]
+    corpus = [c for cs in seventeen(PROD_P, PROD_H, PROD_D).values() for c in cs]
+    corpus += ["ls", "git status", "echo hi", "cat api.py", "npm test", "", "   ", "python3 x.py", f"git commit -m '{PROD_P} 说明'", f"psql -h {PROD_P} -c 'select 1'", f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}",
+               f"aliyun rds DescribeDBInstances --DBInstanceId {PROD_P}", f"python3 -c \"connect('{PROD_P}')\"", f"xargs -I{{}} sqlcmd -S {PROD_P} -Q {{}}", f"sqlcmd -S `echo {PROD_P}` -Q 'delete from t'",
+               f"bash -lc \"psql -h {PROD_P} -c 'drop table t'\"", f"$'\\x73qlcmd' -S {PROD_P} -Q 'delete from t'", f"bash <<'EOF'\nsqlcmd -S {PROD_P} -Q 'delete from t'\nEOF", f"env -S 'sqlcmd -S {PROD_P} -Q x'",
+               f"curl -XPOST https://{PROD_P}/x", f"al\"\"iyun rds DeleteAccount --DBInstanceId {PROD_P}", "PSQL -c x", "codex exec p", "git push --no-verify", "gh pr create --title x"]
     with tempfile.TemporaryDirectory() as elsewhere:
         for command in corpus:
             raw = payload(command, cwd=elsewhere)
             assert d.dispatch(raw) == gate.decide(json.loads(raw)), command
     # 2. every one of the 17 cases is refused through the dispatcher, with the gate's own reason
-    for number, commands in seventeen(RDS, IP, PRODDB).items():
+    for number, commands in seventeen(PROD_P, PROD_H, PROD_D).items():
         for command in commands:
             code, out, err = d.dispatch(payload(command))
             assert code == 2 and err.strip(), (number, command)
@@ -64,7 +65,7 @@ def self_test():
     real_stdin = sys.stdin
     try:
         for loader in (broken_import, lambda: Crashing):
-            sys.stdin = __import__("io").StringIO(payload(f"psql -h {RDS} -c 'select 1'"))
+            sys.stdin = __import__("io").StringIO(payload(f"psql -h {PROD_P} -c 'select 1'"))
             err = __import__("io").StringIO()
             real_stderr, sys.stderr = sys.stderr, err
             try:
@@ -77,7 +78,7 @@ def self_test():
     # 5. end to end as a hook process under the system python, also with -I
     env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", "")}
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):
-        refused = subprocess.run([*runner, SCRIPT], input=payload(f"aliyun rds DeleteAccount --DBInstanceId {RDS}"), capture_output=True, text=True, env=env)
+        refused = subprocess.run([*runner, SCRIPT], input=payload(f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}"), capture_output=True, text=True, env=env)
         assert refused.returncode == 2 and "底线 4" in refused.stderr, refused
         passed = subprocess.run([*runner, SCRIPT], input=payload("ls"), capture_output=True, text=True, env=env)
         assert passed.returncode == 0 and not passed.stdout and not passed.stderr, passed
