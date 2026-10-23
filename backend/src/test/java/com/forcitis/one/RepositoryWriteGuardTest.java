@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** SESSION_PLAYBOOK section 14 items 2 and 4 (review H-4, guard 3): nothing changes state behind the aggregate's back. */
+/** DATA_DESIGN_CHECKLIST section 14 items 2 and 4 (review H-4, guard 3): nothing changes state behind the aggregate's back. */
 class RepositoryWriteGuardTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Path METHOD_EXCEPTIONS = Path.of("architecture/repository-write-exceptions.txt");

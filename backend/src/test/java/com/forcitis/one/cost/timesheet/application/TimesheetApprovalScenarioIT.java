@@ -1,5 +1,6 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +33,6 @@ import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.events.DocumentSubmittedForApproval;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.DecideTasks;
@@ -161,7 +161,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     /** TaskAssigned is published inside the listener's transaction, so a second thread can still find no approval of that round when the event arrives. */
     void awaitApprovalCommitted(DocumentReference document, int round) {
         org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(15)).pollInterval(java.time.Duration.ofMillis(50))
-                .until(() -> approvalProcesses.progress(ProcessKey.COST_TIMESHEET_APPROVAL, document)
+                .until(() -> approvalProcesses.progress(TimesheetApprovalProcess.KEY, document)
                         .filter(progress -> progress.round().equals(new RoundNumber(round))).isPresent());
     }
 
@@ -242,7 +242,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         tx.executeWithoutResult(s -> approvalProcesses.start(again));
 
         assertThat(inboxOf(id)).as("the first start opened one task and the repeats opened nothing").hasSize(1);
-        assertThat(approvalProcesses.progress(ProcessKey.COST_TIMESHEET_APPROVAL, document)).hasValueSatisfying(
+        assertThat(approvalProcesses.progress(TimesheetApprovalProcess.KEY, document)).hasValueSatisfying(
                 progress -> assertThat(progress.round()).isEqualTo(new RoundNumber(1)));
     }
 
@@ -275,7 +275,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         submit(id, "5");
         EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", UUID.randomUUID(), 9);
 
-        tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope, document, ProcessKey.COST_TIMESHEET_APPROVAL,
+        tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope, document, TimesheetApprovalProcess.KEY,
                 com.forcitis.one.TestApprovalIds.instance("i"), new RoundNumber(7), TestAccounts.employee(employee), ApprovalOutcome.APPROVED, null, null)));
 
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.SUBMITTED);
@@ -289,7 +289,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         for (UUID documentId : List.of(com.forcitis.one.TestIds.uuid(900001), com.forcitis.one.TestIds.uuid(900002))) {
             EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", UUID.randomUUID(), 1);
             tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope,
-                    new DocumentReference(new DocumentTypeCode("TIMESHEET"), new DocumentId(documentId)), ProcessKey.COST_TIMESHEET_APPROVAL,
+                    new DocumentReference(new DocumentTypeCode("TIMESHEET"), new DocumentId(documentId)), TimesheetApprovalProcess.KEY,
                     com.forcitis.one.TestApprovalIds.instance("i"), new RoundNumber(1), TestAccounts.employee(employee), ApprovalOutcome.APPROVED, null, null)));
         }
         assertThat(meters.counter("forcitis.cost.timesheet.approval.result.unknown").count()).isEqualTo(before + 2);

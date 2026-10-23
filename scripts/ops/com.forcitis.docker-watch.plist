@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Docker 停了自动拉起（OPS-1022-OPS-02）。安装与卸载用 scripts/ops/docker_watch_install.sh [--dry-run] [--uninstall]（复制脚本到 ~/.modernize/psa/ops/bin/、替换 __HOME__、plutil -lint、bootstrap）；脚本更新后重跑一次。临时停 Docker：touch ~/.modernize/psa/ops/docker-watch/pause，用完删。撤销见 RESOURCES.md -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.forcitis.docker-watch</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__HOME__/.modernize/psa/ops/bin/docker_ensure.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string></dict>
+  <key>StartInterval</key><integer>90</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardErrorPath</key><string>__HOME__/.modernize/psa/ops/docker-watch/launchd.err.log</string>
+  <key>StandardOutPath</key><string>__HOME__/.modernize/psa/ops/docker-watch/launchd.out.log</string>
+</dict>
+</plist>

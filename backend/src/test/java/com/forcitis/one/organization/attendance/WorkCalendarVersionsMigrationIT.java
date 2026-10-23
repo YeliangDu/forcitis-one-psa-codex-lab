@@ -427,8 +427,8 @@ class WorkCalendarVersionsMigrationIT {
     }
 
     @Test
-    @DisplayName("迁入版本：没有作者与确认人、恒为第 1 版、要有核对签字的审计记录，只有属主角色写得进，运行账号被拒")
-    void aMigratedVersionHasNoPeopleIsTheFirstAndOnlyTheOwnerWritesIt() throws Exception {
+    @DisplayName("迁入版本：没有作者、恒为第 1 版，只有属主角色或迁入角色写得进，运行账号被拒；确认由业务人员做，确认人必填")
+    void aMigratedVersionHasNoAuthorIsTheFirstAndIsConfirmedByAPerson() throws Exception {
         String application = "calendar_app_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         String password = "Pw1!" + UUID.randomUUID();
         try (Connection db = connect()) {
@@ -460,21 +460,15 @@ class WorkCalendarVersionsMigrationIT {
 
             UUID migrated = version(db, calendar, 1, "MIGRATION", LocalDate.of(2020, 1, 1));
             day(db, migrated, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
-            refused(CHECK_VIOLATION, "ck_work_calendar_versions_confirmation_columns", () -> confirm(db, migrated, CONFIRMER, CONFIRMED_AT, "NONE"));
-            try (Connection runtime = DriverManager.getConnection(postgres.getJdbcUrl(), application, password)) {
-                refused(INSUFFICIENT_PRIVILEGE, "owner role", () -> run(runtime, """
-                        update organization_attendance.work_calendar_versions set confirmation_status = 'WITHDRAWN', withdrawn_by = ?, withdrawn_at = ?, withdraw_reason_text = 'x' where id = ?
-                        """, AUTHOR, CONFIRMED_AT, migrated));
-                refused(INSUFFICIENT_PRIVILEGE, "owner role", () -> run(runtime, """
-                        update organization_attendance.work_calendar_versions set confirmation_status = 'CONFIRMED', confirmed_at = ?, decision_audit_entry_id = ?,
-                               official_notice_number = 'n', official_notice_url = ?, company_leave_register_kind = 'NONE' where id = ?
-                        """, CONFIRMED_AT, UUID.randomUUID(), NOTICE_URL, migrated));
-            }
-            run(db, """
+            refused(CHECK_VIOLATION, "ck_work_calendar_versions_confirmation_columns", () -> run(db, """
                     update organization_attendance.work_calendar_versions set confirmation_status = 'CONFIRMED', confirmed_at = ?, decision_audit_entry_id = ?,
                            official_notice_number = 'n', official_notice_url = ?, company_leave_register_kind = 'NONE' where id = ?
-                    """, CONFIRMED_AT, UUID.randomUUID(), NOTICE_URL, migrated);
+                    """, CONFIRMED_AT, UUID.randomUUID(), NOTICE_URL, migrated));
+            try (Connection runtime = DriverManager.getConnection(postgres.getJdbcUrl(), application, password)) {
+                confirm(runtime, migrated, CONFIRMER, CONFIRMED_AT, "NONE");
+            }
             assertThat(text(db, "select confirmation_status from organization_attendance.work_calendar_versions where id = ?", migrated)).isEqualTo("CONFIRMED");
+            assertThat(text(db, "select confirmed_by::text from organization_attendance.work_calendar_versions where id = ?", migrated)).isEqualTo(CONFIRMER.toString());
 
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_migration_is_first_version", () -> run(db, """
                     insert into organization_attendance.work_calendar_versions (id, work_calendar_id, year_number, version_number, confirmation_status, source_kind, effective_from_date,

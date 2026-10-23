@@ -34,7 +34,7 @@ public interface StoredFiles {
     /** Applies to every file not yet disposed of whose preservation anchor is the given document; returns how many. */
     int setPreservationStart(DocumentReference preservationAnchor, LocalDate startDate);
 
-    /** Written by the contract module; the longer of the category default and the agreed years counts. Returns how many files. */
+    /** Written by the module that holds the agreed years; the longer of the category default and the agreed years counts. Returns how many files. */
     int setAgreedPreservation(DocumentReference preservationAnchor, PreservationYears agreed);
 
     /** One date per file, since a file has one category and anchor; empty while the start date is unknown or the category has no years yet. */

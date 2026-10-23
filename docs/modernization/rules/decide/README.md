@@ -30,6 +30,8 @@
 | STKH 干系人与业务对象对应（10 题，不预选；one-architecture） | `sheets/STKH.json` | https://claude.ai/artifact/QD66je3YcbEgZToGPq9WwT（2026-10-19 起） |
 | STKH2 干系人子类（7 题，不预选；one-architecture） | `sheets/STKH2.json` | https://claude.ai/artifact/L4Ges3vue2F33Zhh4gwF7h（2026-10-19 起） |
 | B31R 行政事务规则要点（10 题，预选推荐；one-architecture） | `sheets/B31R.json` | https://claude.ai/artifact/VMfomUnRLmCHuQ9EfZr51i（2026-10-20 起） |
+| GL6 用语确认第七批：交付、结算与人员用语（6 题，不预选；one-glossary） | `sheets/GL6.json` | https://claude.ai/artifact/3cPAbRYnkQjZLz1pgZqGEK（2026-10-23 起，未实看渲染） |
+| GL7 用语确认第八批：签章、链接与文件保存用语（4 题，不预选；one-glossary） | `sheets/GL7.json` | https://claude.ai/artifact/Wj1G14p8ox4yVaca6EDgy3（2026-10-23 起，未实看渲染） |
 | GL5 用语确认第六批：协议状态与资产卡片（2 题，不预选；one-glossary） | `sheets/GL5.json` | https://claude.ai/artifact/UgWURDEPwcMvA4hBZCa4Lw（2026-10-22 起） |
 | GL3 用语确认第四批（11 题，不预选；one-glossary） | `sheets/GL3.json` | https://claude.ai/artifact/EFi9EDMikxT4Pa9c9oBr3m（2026-10-21 起） |
 | A7475 行政事务模块与子状态机转换记录批准（ADR-0074、0075，2 题，不预选；one-architecture） | `sheets/A7475.json` | https://claude.ai/artifact/5VR57YayWQCsNZ4Pdjg4RF（2026-10-21 起，未实看渲染） |
@@ -48,6 +50,13 @@
 | 5. 写回 | 答复写回规则卡（如 `rules/GL_FINANCE_DECISIONS.*`、`r0/FINANCE_QUESTIONS.md` 去向），用户原话记 intent；会计类经财务（ADR-0018） |
 
 提交前页面只是草稿；「检查答案」先列出全部题的选择与按推荐（其中没动过的）、改选、暂不定、写了说明各几题，用户确认后写一份提交记录（含全部题的选择，没动过的题标 `defaulted`）。
+
+## 出页守则
+
+- 出页先审题：确认页做好先交 one-coordinator 派 opus 独立审题，按报告改完、调度复审后才进收件箱（status 写 `pending`）。题面过滤：设计方按原则能自定的不上页（页首列清单）；期限、天数类并成参数表，每值给出处，无出处写「经验值」；推荐理由引用户原话、规则卡或法规；已答的不再问（逐条核 intent 原文）；审批人按「这条命令的负责人」问；财务、审计、法务题由顾问给推荐；存储、选型题不预选。
+- 手机与网络：只用系统字体栈，不引 fonts.googleapis 等任何境外资源；不在 html/body 设 overflow 隐藏，只在内容外框用 `overflow-x:clip`；一屏只画一组（≤120 条），快照回调合并重画，屏外条目 `content-visibility:auto`。
+- 每条只给「同意建议 / 保持原样 / 改为…」几个按钮，每组可一键全部同意；点选只算草稿，须「检查答案」后提交才算答复。
+- 发布后用浏览器打开核对渲染（先点一下页面使标签页在前台）。
 
 ## sheets/<单子>.json 格式
 

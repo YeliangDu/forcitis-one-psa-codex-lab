@@ -1376,3 +1376,27 @@ true：往来单位证件与银行账户、费率与价目（tbd 分级）、协
 | 生效账期规则版本 | ActivateReceivableTermRule（命令） | receivables.collection | 领域 | PRC-202 |
 | 账期规则审批 | ReceivableTermRuleApproval（单据类型） | receivables.collection | 领域 | 财务负责人批准 |
 | 账期来源 | PaymentTermSource（应收列族） | receivables.collection | 领域 | 付款条件项 / 规则版本与覆盖行 / 全局默认 |
+
+### 状态机缺口补齐（CF-039、042、048，ARC-1022-ARE-02）
+
+- AGG-20 工作包：未发布 →「发布工作包」→ 进行中 →「完成工作包」→ 已完成 →「锁定工作包」→ 已锁定；已完成或已锁定 →「转入返工」（原因必填）→ 返工中 →「完成工作包」→ 已完成；除未发布外各状态只作废、原因必填。INV-42 的「已发布」= 进行中及其后各状态，「锁定」改指完成后停止记工时（原「锁定即发布」作废，上文「工作包锁定与已发布」一行随之了结）。WBS 不引用返工认定（交付执行不读质量与认可），返工工时仍由 INV-53 在工时侧判。PRC-21 状态、页面、场景 S02、S05 随改。
+- AGG-16 索赔：已通知 →「提交索赔详细报告」→ 已提交 → 已认定 / 已拒绝 / 已撤回；「拒绝或撤回索赔」拆为「拒绝索赔」（被索赔方）与「撤回索赔」（索赔方，已通知或已提交均可）。依据 GF-2017-0201 通用条款第 19.1 款（28 天通知、其后 28 天正式报告）、FIDIC 2017 第 20.2 款；条款号出自模型知识，**未核实**原文。PRC-49 改为 6 步，场景 S01–S08。INV-17 已扩至详细报告时限，时限取协议上登记的约定、不写死天数（one-architecture 裁定，admission-file 5849fa0f5）；本组 PRC-49 第 3 步已去掉 P28D 缺省。
+- AGG-02 资质证书：有效 →「登记资质延续申请」→ 延续中 →「延续资质」→ 旧版本被取代、新版本有效；延续中到期未获延续 → 已到期；核查降级时旧版本到「已降级」（不再记为被取代），新等级版本同事务生效。核查中、延续中期间证书仍有效。PRC-78 第 4 步去掉 gap，场景 S03–S05 随改。OBJ-65 key_states 补「被取代」、降级旧版本记「已降级」已由 one-architecture 改信息图（5849fa0f5）；拆出的两条索赔命令不继承旧号，旧号进 main 后由 scan_commands 标 retired。INV-42 文字已在本分支改（聚合稿）。
+
+### 新用语·状态机缺口（ARC-1022-ARE-02）
+
+| 中文 | 种类 | bc | 范围 | 说明 |
+|---|---|---|---|---|
+| 发布工作包、完成工作包、转入返工 | 命令 | delivery.execution | 领域 | AGG-20 |
+| 进行中、已完成、返工中（工作包） | 状态 | delivery.execution | 领域 | 「已锁定」与 organization.attendance 的 ui_locked_day 同名异义，互列 |
+| 提交索赔详细报告、拒绝索赔、撤回索赔 | 命令 | contract.agreement | 领域 | AGG-16 |
+| 已通知、已提交、已拒绝、已撤回（索赔） | 状态 | contract.agreement | 领域 | 「已通知」对应事件 ClaimAsserted「索赔通知」 |
+| 登记资质延续申请 | 命令 | masterdata.counterparty | 领域 | AGG-02 |
+| 延续中、已降级（资质证书） | 状态 | masterdata.counterparty | 领域 | |
+
+### AGG-05 并入奖金计提规则子项（S-5，ARC-1022-ARE-03）
+
+- 新子表 `standard_cost_rate_card_bonus_accrual_rules`：每费率表版本每业务线一行，列族按 one-arch-finance 草稿（BONUS_OVERTIME_COSTING §4，6866f449）；规则类型决定必填列（合同额百分比填激励方案版本号，历史比率填计算区间与依据），不符即拒。
+- 激励方案版本号只记录、不建到 AGG-75 的引用，B-02 及其流程也不向 B-15 查（流程层查询同样算 B-02 → B-15 边；one-architecture 裁定）。编制与批准只做格式校验，批准页列出版本号由财务负责人核对；存在性与有效期由按月计提的 B-15 对照 AGG-75 本地校验，取不到或不在有效期即失败并告警，不跳过（S-6 裁定，cfc721a34：计提由 B-15 读已过账收入确认事实或工时事实作基数自算自过账，新边 B-15 → B-02；收入确认事实不带计提率与版本号，PRC-148、revenue_recognitions 不改）。
+- 业务线没有自有聚合（terms：organization.workforce 的组织主数据取值），本表与 AGG-06 计费系数一样按取值冻结在版本内。
+- 新用语：奖金计提规则（拟 BonusAccrualRule，表 `standard_cost_rate_card_bonus_accrual_rules`，masterdata.catalog，领域）；奖金计提率、合同额百分比、历史比率随 finance 组登记，不重复。

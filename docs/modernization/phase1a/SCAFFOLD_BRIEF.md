@@ -29,7 +29,7 @@
 - 时间来自注入的 `Clock`；金额使用 `Money`；id 使用类型化 record；状态使用枚举。
 - 完成标准：在 `backend/` 下执行 `./mvnw -B verify` 全绿（含全部守护测试）。然后在你的分支上提交，提交信息中文，结尾加一行 `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`。**不推送**。
 
-## 老代码只作证据（用户 2026-10-14：「三项都加」；SESSION_PLAYBOOK §5）
+## 老代码只作证据（用户 2026-10-14：「三项都加」；SESSION_PLAYBOOK 附 M5 第 1 项）
 - 老仓库（/Users/yeliang/Projects/FORCITIS/psa）**只用于理解行为**：规则卡、file:line 引用、等价判定。
 - 新代码**只**依据规格、规则卡、ADR 和 `terms.yaml` 编写。**不复制**老代码的片段、类结构、表结构、接口路径或命名，包括：`psa_` / `system_` / `bpm_` 表名、`/admin-api/`、yudao 包名与基类、Service/ServiceImpl/Convert/DO/VO/Mapper 分层、老字段名（paramsId、dataStamp、deliveryDeptId、manager_id 等）、老角色码字面量（如 BU-002）、拼音缩写。
 - 与老系统行为等价，要靠以 RULE-id 命名的测试来证明，不靠照搬代码。
@@ -40,7 +40,7 @@
 - 领域模块的类名、包名、配置键、表名、事件名都按角色命名，例如组织数据来源用 `OrgSource`。
 - 领域模块只经 `platform.integration` 的 api 端口取数，来源可以替换（例如自建 HRM 之后只换实现）。
 
-## 代码注释能不写就不写（用户 2026-10-14：「给 agent 一个写代码的规则，代码注释能不写就不写。」；SESSION_PLAYBOOK §5）
+## 代码注释能不写就不写（用户 2026-10-14：「给 agent 一个写代码的规则，代码注释能不写就不写。」；SESSION_PLAYBOOK 附 M5 第 1 项）
 - 默认不写注释，用命名、类型和结构表达意图。
 - 只在「为什么」从代码里看不出来时写一行，例如：反直觉的约束、规范条款、外部系统的怪癖、并发或性能上的取舍。
 - 不写以下内容：
@@ -61,7 +61,7 @@
 - 集成测试只断言本模块自身的效果，例如本模块的表、事件、响应、审计动作前缀。不得断言其他模块的异步副作用，也不得写成「任何调用都不应发生」这种全局断言。
 - 不得把精确断言弱化成范围断言（如 isEqualTo → isGreaterThan / atLeast）。确有必要时，在报告中写明理由，并填写 PR 模板的「改动的断言」栏。CI 会对断言减少或弱化发出警告。
 
-## DDD 检查清单（SESSION_PLAYBOOK §14）
+## DDD 检查清单（DATA_DESIGN_CHECKLIST §14）
 实施和自检都按 §14 的 12 项逐项对照：
 - 聚合边界与单事务单聚合；状态机在聚合内；事件由聚合产生；乐观锁或前置状态条件。
 - 法人与期间维度：缺失即失败；按类型化 ID 引用；值对象。

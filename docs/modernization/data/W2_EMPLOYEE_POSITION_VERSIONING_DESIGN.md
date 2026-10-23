@@ -210,6 +210,7 @@ CREATE INDEX ix_employee_versions_separated_effective_from_date ON organization_
 
 - **`org_units` 根表收窄**：根表仍存当前值，同步撤销后没有写入方；提前改隶会让「按日期取任职、按当前取组织树」算错子树（复核 C-d）。触发点：one-architecture 答复补篇第 4 条（组织单元命令）；**时限：答复后 30 天内**（用户 2026-10-21）；负责人：one-data 出收窄设计；在此之前，范围、权限相关读取对组织树仍用当前值，这一已知风险登记在本设计。
 - **转正落点、停薪留职状态**：等 A3；**岗位命令表**：等 A4。
+- **`personnel_commands.org_structure_command_id` 的外键**（W2 PR-B 只建列、不加外键，one-data 2026-10-22 同意，`reviews/W2-PR-B.md`）：触发点 = 建 `org_structure_commands` 的批次；该批次在同一迁移里补 `fk_personnel_commands_org_structure_command_id`（`ON DELETE RESTRICT`），基线开放期直接改基线；one-data 签那批表结构时核。
 
 ## 10. 等 one-architecture 的字面冲突与请求（W-07、N-03）
 

@@ -23,3 +23,29 @@
 - 本批其余列（`employment_status` 等仍保留在 `employees`）后续批删除，本批不动，同意。
 
 数据设计：通过（one-data，2026-10-22，依据 @0adc05a6d；范围：C1–C3 改后的 `employee_versions` 新增列与约束、`personnel_commands`、`employees` 两处收窄）。
+
+## 补：加 `uk_employees_employee_code` 后同步路径的重复工号口径（2026-10-22，答 RULING-COORD-20261022-05）
+
+事实：老系统 A8 有 5 个重复工号；`sync_runs`/`sync_diffs` 已有「被隔离的人员行」（RULE-365）与数据例外 `ISSUE` 行的机制（`isolated_row_count`、`issue_count`）；同步开关 `forcitis.organization.workforce.sync.enabled` 默认 `false`（`config/organization_workforce.properties`），ADR-0055 下生产不接 A8，同步随 W2 退役。
+
+**① 拒收口径（同步路径，过渡期；不放宽唯一约束，不自动改号）**
+- **拒哪条**：会使「不同来源人」占用已被占用的 `employee_code` 的那一行（新建或改号）。已存在的员工保留；同一次同步里两个新人同号，按来源主键升序，先者建立、后者拒收，保证重跑结果一致。同一来源人的行不受影响。
+- **怎么拒**：该行按「被隔离的人员行」处理（不建员工、不改号），计入 `isolated_row_count` 与 `issue_count`，写一条 `sync_diffs`：`entity_kind = EMPLOYEE`、`change_kind = ISSUE`、`issue_kind = DUPLICATE_EMPLOYEE_CODE`；`detail` 只写命中员工的自有 ID 和来源对照键，**不写姓名、工号以外的个人信息**；`subject_key` 用来源对照键。不新增表，不捕获 23505 后吞掉：先查再写，查不到命中才插入，仍撞约束（并发）则该次同步 `FAILED` 并写 `failure_reason`。
+- **告警给谁**：沿用同步记录页已有的数据例外展示给组织管理员（有 `issue_count > 0` 即显示）；不另造通道。冲突如何处置（合并 / 改号 / 不迁）不在同步里做，归迁入阶段的 `employee_code_conflicts`（W2 §7、`MIGRATION_QUALITY_CHECKS.md` MQ-M-01）。
+- **记在哪里**：`sync_diffs`（上述），保留期随同步记录。同步退役时随 `sync_runs` 一并移除，不迁入新表。
+- `SourceIdMatchingIT`「同号两人各有一条」改为：第二人被隔离、写 `DUPLICATE_EMPLOYEE_CODE` 例外、第一人不受影响、重跑结果相同；另加「同号并发」用例期望该次同步 `FAILED` 而非静默。
+
+**② 有 A8 数据的环境**：同步默认关闭，ADR-0055 下生产不启用。结论：**PR-B 仍须带上面的隔离路径**（SourceIdMatchingIT 本来就走这条路径，且一次 23505 会让整次同步失败）；同时**任何环境不得在隔离路径合入前把 `WORKFORCE_SYNC_ENABLED` 设为 true**——请 one-1a-par 与 one-ops 核各环境配置没有打开它，结果回 one-coordinator。
+
+## 补：签发 issue_kind `EMPLOYEE_CODE_CHANGE_IGNORED`（2026-10-23，答 RULING-COORD-20261023-08，PR-B2）
+
+**① 类型**：`sync_diffs.issue_kind = EMPLOYEE_CODE_CHANGE_IGNORED`，与 `DUPLICATE_EMPLOYEE_CODE` 并列；`entity_kind = EMPLOYEE`、`change_kind = ISSUE`、`subject_key` 用来源对照键。含义：已发号员工的源端工号与本系统已发工号不同，同步只记例外、**不改工号**（工号一经发出不随源端变动，与上节「不自动改号」同源）。
+- `detail` 只写命中员工的自有 ID 与来源对照键，**不写新旧工号值、姓名等个人信息**（要看值去源端与员工档案各自核对）。
+- 计入 `issue_count`，不计 `isolated_row_count`（行本身没被隔离，该员工其余字段照常同步）。
+- 若 `issue_kind` 有枚举 CHECK 或应用枚举，随本类型一起加值（基线直改，同 `DUPLICATE_EMPLOYEE_CODE` 的做法）；`issue_kind` 是枚举类标记，不是错误码，不进错误码表。
+
+**② 重复同步的口径：每次同步各记一条，不跨次去重。**
+- 理由：`sync_diffs` 是 `sync_runs` 的子记录，语义是「这一次同步看到了什么」；跨次去重要查历史或加状态列，等于新造一套「例外是否已处理」的生命周期，同步已定退役（ADR-0055），不值得。组织管理员看的是最近一次同步的 `issue_count`，源端工号仍不一致则每次都应看到。
+- 约束：同一次同步内同一员工至多一条（按员工自有 ID 唯一，重跑同一 run 不重复插入）；源端工号改回与已发号一致后下次同步不再产生。
+- 噪声界限：条数 ≤ 每次同步中工号不一致的员工数，随 `sync_runs` 保留期清理，同步开关默认 false；若日后同步长期保留再起去重设计，不在本批做。
+- 测试要求：①已发号员工源端改号 → 工号不变、写一条该类型例外、其他字段仍同步；②连续两次同步 → 各一条；③源端改回 → 第三次无例外；④`detail` 不含工号值（守护断言）。

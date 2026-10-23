@@ -1350,8 +1350,9 @@ components:
                 format: uuid
           processKey:
             type: string
-            enum:
-            - COST_TIMESHEET_APPROVAL
+            x-type: ProcessKey
+            pattern: ^[a-z]+_[a-z]+_[a-z]+(_[a-z]+)*$
+            description: 流程定义 id（小写 {子域}_{bc}_{名}，即 BPMN id）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
@@ -1427,8 +1428,9 @@ components:
             $ref: '#/components/schemas/EventEnvelope'
           processKey:
             type: string
-            enum:
-            - COST_TIMESHEET_APPROVAL
+            x-type: ProcessKey
+            pattern: ^[a-z]+_[a-z]+_[a-z]+(_[a-z]+)*$
+            description: 流程定义 id（小写 {子域}_{bc}_{名}，即 BPMN id）
           document:
             type: object
             required:
@@ -2258,8 +2260,9 @@ components:
                 format: uuid
           processKey:
             type: string
-            enum:
-            - COST_TIMESHEET_APPROVAL
+            x-type: ProcessKey
+            pattern: ^[a-z]+_[a-z]+_[a-z]+(_[a-z]+)*$
+            description: 流程定义 id（小写 {子域}_{bc}_{名}，即 BPMN id）
           instanceId:
             type: string
             x-type: ApprovalInstanceId

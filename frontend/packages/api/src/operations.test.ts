@@ -14,7 +14,7 @@ function stubFetch(status: number, body: unknown, headers: Record<string, string
 const TASK_DETAIL = {
   taskId: '019a0000-0000-7000-8000-000000000042',
   instanceId: '019a0000-0000-7000-8000-000000000009',
-  processKey: 'COST_TIMESHEET_APPROVAL',
+  processKey: 'cost_timesheet_approval',
   documentType: 'TIMESHEET',
   documentId: '019a0000-0000-7000-8000-000000000007',
   nodeKey: 'pm',
@@ -127,7 +127,7 @@ describe('a value outside the contract', () => {
     forgetReportedViolations();
     const reports: string[] = [];
     setContractViolationSink((message) => reports.push(message));
-    const record = { recordId: 'r', taskId: 't', instanceId: 'i', processKey: 'COST_TIMESHEET_APPROVAL', documentType: 'TIMESHEET', documentId: 'D', nodeKey: 'n', nodeName: 'N', actorId: '019a0000-0000-7000-8000-000000000001', actorName: 'A', decidedAt: '2026-10-14T00:00:00Z', round: 1 };
+    const record = { recordId: 'r', taskId: 't', instanceId: 'i', processKey: 'cost_timesheet_approval', documentType: 'TIMESHEET', documentId: 'D', nodeKey: 'n', nodeName: 'N', actorId: '019a0000-0000-7000-8000-000000000001', actorName: 'A', decidedAt: '2026-10-14T00:00:00Z', round: 1 };
     const page = { items: [{ ...record, action: 'APPROVED' }, { ...record, recordId: 'r2', action: 'ESCALATED' }, { ...record, recordId: 'r3', action: 'ESCALATED' }] };
     stubFetch(200, page);
     const result = await operations.getPlatformApprovalTaskRecords();

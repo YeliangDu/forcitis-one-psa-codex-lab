@@ -1,6 +1,6 @@
 # Phase 1a 下一批派工草案
 
-起草：psa-1a-platform-bridge-reimagine，2026-10-14。依据 SESSION_PLAYBOOK §6.1 第 9–11 条（用户「采纳」）：缺陷修复、功能补做、结构性重构分开派；缺陷按卡手术式修、小 PR 直合 main，不再攒大整合分支。修复批整合复审中的 Medium / Low 与新发现的「应交付未做」逐条追加到本草案，带复审编号。
+起草：psa-1a-platform-bridge-reimagine，2026-10-14。依据 SESSION_PLAYBOOK 附 M1 第 5–7 条（用户「采纳」）：缺陷修复、功能补做、结构性重构分开派；缺陷按卡手术式修、小 PR 直合 main，不再攒大整合分支。修复批整合复审中的 Medium / Low 与新发现的「应交付未做」逐条追加到本草案，带复审编号。
 
 每份派工单须写明：平台限制、授权外动作、须转用户的决定；「用户已决定的事照做，有异议停下报告，不得自行推迟或改变」；改动只在自己的分支提交。
 
@@ -9,7 +9,7 @@
 | # | 项 | 依据 | 备注 |
 |---|---|---|---|
 | F-1 | ADR-0026「1a 交付范围」整套数据范围机制：类型下沉、`CurrentAccess`、角色范围授予明细表、直接下属查询、注册表 SCOPED / GLOBAL、`DataAccessRegistryTest` / `onlyRegisteredPersistenceTouchesTheDatabase` / `ScopedRepositoryContract`、部门浏览与人员详情接入范围 | 用户「本批堵漏洞，整套放下一批」；status/blockers/090 | **首次部署任何环境前必须完成**；完成后删 090。一并实现（用户 2026-10-15「采纳，敏感权限授给人」）：敏感清单内的权限只能授给具体的人，禁止经岗位或组织同步自动授予（守护）；组织同步发现敏感权限持有人调岗、离岗时，生成「待调整权限」待办给组织数据管理员与安全审计员，人工确认后才改，不自动收回或授予；与 ADR-0027 离职删除授予衔接 |
-| F-2 | 守护 G-T1（应用服务只写一个聚合的仓储，读 §14 已登记例外）、G-T2（法人 / 组织 / 员工维度 ID 写死或默认值，全生产代码）、G-T4（contract.md 与本阶段 ADR 交付条款到测试的对照，豁免清单入仓） | 用户采纳 PR #57；SESSION_PLAYBOOK §14 | G-T1 已有 SingleAggregateGuardTest（核对是否按仓储判定并读 §14 例外）；G-T2 仅部分覆盖（CurrentUserGuardTest），补全到全生产代码；G-T3 已由 TestIsolationGuardTest 覆盖 |
+| F-2 | 守护 G-T1（应用服务只写一个聚合的仓储，读 DATA_DESIGN_CHECKLIST §14 已登记例外）、G-T2（法人 / 组织 / 员工维度 ID 写死或默认值，全生产代码）、G-T4（contract.md 与本阶段 ADR 交付条款到测试的对照，豁免清单入仓） | 用户采纳 PR #57；DATA_DESIGN_CHECKLIST §14 | G-T1 已有 SingleAggregateGuardTest（核对是否按仓储判定并读 §14 例外）；G-T2 仅部分覆盖（CurrentUserGuardTest），补全到全生产代码；G-T3 已由 TestIsolationGuardTest 覆盖 |
 | F-3 | 前端运行时配置：PC `login-config.ts`、`login-page.tsx`，H5 `config/index.ts` 的构建期变量改为运行时配置（一次构建、多环境部署） | PR #59 第 4 项 | |
 | F-4 | 契约中前端未做的条目：D-1a-139 管理员全部待办视图、D-1a-75 转交 / D-1a-77 批量与代理界面、D-1a-47/48 管理模式 1 小时横幅（`administratorModeExpiresAt`） | 修复批 C 报告 | 后端接口已有的先做 |
 | F-5 | 审批契约未做条目：D-1a-67、76、91、128、130、131、181（逐条核对契约原文是否 1a 必做） | 修复批 A 报告 | |
@@ -26,7 +26,7 @@
 |---|---|---|---|
 | R-1 | UUIDv7 主键：全部聚合 ID 类型、迁移、事件载荷、OpenAPI；`IdGenerator` 与「单列主键必须是 uuid」守护已在修复批落地 | 用户「UUIDv7 (Recommended)」；B3 擅自推迟已如实登记 | 在迁移基线之前完成；可与 R-2 同批 |
 | R-2 | 79 项命名改名（ddl-naming-baseline 实有条目；原写 84，one-1a-next 2026-10-15 清点更正）与「web/api 出参不得暴露 SENSITIVE / RESTRICTED 列」守护（若修复批 B2b 未完成） | #44 | |
-| R-4 | 数据库时钟默认值（102 处、31 个文件，其中 `DEFAULT` 写法 99 处，另 3 处 DML `now()` 即 INT-L23；原写约 91 处、28 个）改为不依赖数据库时钟：在开放基线中去掉默认值（SESSION_PLAYBOOK §12.2），各 INSERT 显式传入注入 Clock 的时刻；并入时间守护 | 修复批时区项范围外发现（`TimeSourceGuardTest` 已禁止 SQL 字符串读数据库时钟） | 宜并入 R-3 迁移基线一并处理 |
+| R-4 | 数据库时钟默认值（102 处、31 个文件，其中 `DEFAULT` 写法 99 处，另 3 处 DML `now()` 即 INT-L23；原写约 91 处、28 个）改为不依赖数据库时钟：在开放基线中去掉默认值（SESSION_PLAYBOOK 附 M3「迁移基线」），各 INSERT 显式传入注入 Clock 的时刻；并入时间守护 | 修复批时区项范围外发现（`TimeSourceGuardTest` 已禁止 SQL 字符串读数据库时钟） | 宜并入 R-3 迁移基线一并处理 |
 | R-3 | 迁移基线 PR：已合入迁移合并为一份基线，opus 用两个空库对比 `pg_dump --schema-only`，diff 为空的证据写进 PR 正文；同 PR 实现「迁移只增不删不改名」守护（基线开放标记移除后生效，破坏性变更走 expand / contract 并登记例外） | §12.2；one-coordinator 2026-10-14 | 顺序与写法以 `NEXT_BATCH_PLAN.md` 为准：先 R-3a 纯合并基线（diff 为空），再 R-1、R-2、R-4 直接改基线（用户「开放期内直接改基线」）；B2 011000 / 011100 已为无条件，剩建库脚本 §4b 的 `to_regclass`；`application.properties` 中退役的 `delivery_execution`（INT-L24）一并移除 |
 
 ## 三、缺陷修复（按卡手术式，小 PR 直合 main）

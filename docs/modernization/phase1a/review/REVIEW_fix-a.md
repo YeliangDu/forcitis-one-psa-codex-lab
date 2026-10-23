@@ -49,7 +49,7 @@
 
 ### Medium
 - **A-M1　(b) 时限规则卡正文过时**：表头已经改为 D-1a-111，但第 5 行仍写「T counts from the submission day」，RULE-377（第 9、18、22 行）仍按提交日，RULE-378（第 10、36、40 行）仍写决策表。需按调度要求明确写出「T 取任务创建所在工作日，不取工作日期，也不取提交日」，并重写 RULE-377、378。
-- **A-M2　(f) 多聚合例外没有登记进 §14**：只写在 `multi-aggregate-exceptions.txt`。需要登记进 SESSION_PLAYBOOK §14「已登记的例外」，理由写「编号与单据同生同灭，避免空号或重号」。另外实际写的是编号计数器（`reserveNext`），并不是 `NumberingRule` 聚合，登记名称要对上。
+- **A-M2　(f) 多聚合例外没有登记进 DATA_DESIGN_CHECKLIST §14**：只写在 `multi-aggregate-exceptions.txt`。需要登记进 DATA_DESIGN_CHECKLIST §14「已登记的例外」，理由写「编号与单据同生同灭，避免空号或重号」。另外实际写的是编号计数器（`reserveNext`），并不是 `NumberingRule` 聚合，登记名称要对上。
 - **A-M3　(l) 新增依赖的两个条件都没满足**：
   - REIMAGINED_ARCHITECTURE §2.2 上下文图没有加 TS→WF、TS→NM 两条边（第 136-138 行）。
   - `module-dependencies.txt`（10ae858）与架构文档（b05be7a）不在同一个提交。

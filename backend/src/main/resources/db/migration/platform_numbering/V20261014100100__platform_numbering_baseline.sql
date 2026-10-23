@@ -32,7 +32,7 @@ COMMENT ON COLUMN platform_numbering.document_types.created_at IS '创建时间'
 COMMENT ON COLUMN platform_numbering.document_types.updated_at IS '更新时间';
 
 CREATE FUNCTION platform_numbering.guard_document_type_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_numbering.document_types is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
@@ -124,7 +124,7 @@ COMMENT ON COLUMN platform_numbering.legacy_numbers.created_at IS '创建时间'
 COMMENT ON COLUMN platform_numbering.legacy_numbers.updated_at IS '更新时间（行不可更新，恒等于创建时间）';
 
 CREATE FUNCTION platform_numbering.reject_legacy_number_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_numbering.legacy_numbers is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
 END;
@@ -179,7 +179,7 @@ COMMENT ON COLUMN platform_numbering.numbering_rule_versions.start_value IS '每
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.effective_from_date IS '生效日：作者提交内容的一部分，不可改写；业务日期从这一天起用该版本发号。确认时若早于当天则拒绝，作者改日期重新提交；种子默认模板为 2000-01-01';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.author_id IS '作者用户 ID：保存该版本的人；种子默认模板为空；确认人不得是作者（四眼）';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.authored_at IS '保存该版本的时间';
-COMMENT ON COLUMN platform_numbering.numbering_rule_versions.source_kind IS '来源类别：AUTHORED 界面起草（作者必填，确认人不得是作者）/ SEEDED 种子默认模板 / MIGRATION 迁入；只有种子与迁入的行允许作者为空，且只能由迁移角色写入（插入触发器核对属主角色成员），运行账号写不进';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.source_kind IS '来源类别：AUTHORED 界面起草（作者必填，确认人不得是作者）/ SEEDED 种子默认模板 / MIGRATION 迁入；只有种子与迁入的行允许作者为空：种子只由属主角色成员写，迁入只由属主角色成员或其迁入角色成员写（插入触发器核对），运行角色写不进';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.status IS '版本状态：PENDING_CONFIRMATION 待确认 / CONFIRMED 已确认 / SUPERSEDED 被新版本取代而未经确认';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.confirmed_by IS '业务确认人用户 ID：持有 numbering-rule:approve 的人；为空表示尚未业务确认，已确认状态必填';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.confirmed_at IS '业务确认时间';
@@ -189,7 +189,7 @@ COMMENT ON COLUMN platform_numbering.numbering_rule_versions.created_at IS '创�
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.updated_at IS '更新时间';
 
 CREATE FUNCTION platform_numbering.guard_rule_version_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_numbering.numbering_rule_versions is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
@@ -212,13 +212,36 @@ BEGIN
     RETURN NEW;
 END;
 $$;
--- 作者可空的行（种子、迁入）只由迁移写：运行账号不是属主角色的成员（c3/c9 校验脚本核对），在这里被拒。
+-- 判定函数是 SECURITY INVOKER：current_user 就是执行插入的角色，若改成 SECURITY DEFINER 则恒为属主、等于放行所有人。
+CREATE FUNCTION platform_numbering.is_owner_member(table_oid oid) RETURNS boolean
+    LANGUAGE sql STABLE SET search_path = pg_catalog, pg_temp AS $$
+    SELECT COALESCE(pg_has_role(current_user, (SELECT relowner FROM pg_catalog.pg_class WHERE oid = table_oid), 'MEMBER'), false)
+$$;
+-- 迁入角色的名字由属主角色名推出（ADR-0036：one_<环境>_owner 对 one_<环境>_history_loader），按推出的名字精确比对，不用正则匹配；该角色须由部署脚本先建好，否则持 CREATEROLE 的账号可抢建同名角色。
+CREATE FUNCTION platform_numbering.is_migration_writer(table_oid oid) RETURNS boolean
+    LANGUAGE sql STABLE SET search_path = pg_catalog, pg_temp AS $$
+    SELECT platform_numbering.is_owner_member(table_oid) OR COALESCE(pg_has_role(current_user,
+        (SELECT r.oid FROM pg_catalog.pg_roles r
+          WHERE r.rolname = regexp_replace(pg_get_userbyid((SELECT relowner FROM pg_catalog.pg_class WHERE oid = table_oid)), '_owner$', '_history_loader')
+            AND r.rolname <> pg_get_userbyid((SELECT relowner FROM pg_catalog.pg_class WHERE oid = table_oid))), 'MEMBER'), false)
+$$;
+-- 作者可空的行只由迁移写：种子行只认属主角色成员，迁入行认属主角色成员或其迁入角色成员，运行角色两者都不是（c3/c9 校验脚本核对），在这里被拒。
+-- 非属主角色（运行角色、迁入角色）只能以待确认插入，任何来源类别都一样：确认要由管理员与财务在界面完成，迁入角色没有 UPDATE，也不能把四眼确认写进插入语句；迁入行连属主也只能待确认插入。
 CREATE FUNCTION platform_numbering.guard_rule_version_source() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
-    IF NEW.source_kind <> 'AUTHORED'
-       AND NOT COALESCE(pg_has_role(current_user, (SELECT relowner FROM pg_catalog.pg_class WHERE oid = TG_RELID), 'MEMBER'), false) THEN
+    IF NEW.source_kind <> 'AUTHORED' AND NOT (CASE NEW.source_kind WHEN 'MIGRATION' THEN platform_numbering.is_migration_writer(TG_RELID)
+                                                                   ELSE platform_numbering.is_owner_member(TG_RELID) END) THEN
         RAISE EXCEPTION 'a numbering template version that is not authored (%) can only be written by a migration', NEW.source_kind USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NEW.source_kind = 'MIGRATION' AND (NEW.status <> 'PENDING_CONFIRMATION' OR NEW.confirmed_by IS NOT NULL OR NEW.finance_confirmed_by IS NOT NULL) THEN
+        RAISE EXCEPTION 'a migrated numbering template version must be inserted pending confirmation' USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NOT platform_numbering.is_owner_member(TG_RELID) AND (NEW.status <> 'PENDING_CONFIRMATION' OR NEW.confirmed_by IS NOT NULL OR NEW.finance_confirmed_by IS NOT NULL) THEN
+        RAISE EXCEPTION 'a numbering template version can only be inserted pending confirmation by this role' USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NEW.source_kind = 'AUTHORED' AND NOT platform_numbering.is_owner_member(TG_RELID) AND platform_numbering.is_migration_writer(TG_RELID) THEN
+        RAISE EXCEPTION 'the migration role can only write migrated numbering template versions' USING ERRCODE = 'restrict_violation';
     END IF;
     RETURN NEW;
 END;

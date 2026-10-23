@@ -47,7 +47,7 @@ import com.forcitis.one.organization.workforce.api.AttributionId;
 import com.forcitis.one.platform.numbering.api.NumberingRuleId;
 
 /**
- * SESSION_PLAYBOOK section 14 item 3 (review H-5, guard 4): whatever operations are tried on an aggregate, the sequence numbers of its
+ * DATA_DESIGN_CHECKLIST section 14 item 3 (review H-5, guard 4): whatever operations are tried on an aggregate, the sequence numbers of its
  * events run 1..n without a gap, and a save without events does not move them. Illegal operations are refused and leave no trace.
  */
 class EventSequenceContinuityTest {
@@ -131,6 +131,15 @@ class EventSequenceContinuityTest {
         checkMany(() -> SyncRun.restore(new SyncRunId(TestIds.uuid(1)), SyncTrigger.SCHEDULED, "RUNNING", NOW, null, null, null, null, null, null, null, 0, 0),
                 List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of()), LocalDate.of(2026, 10, 13)), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
                         r -> r.release(null, new SyncRunId(TestIds.uuid(2)), NOW, null)));
+    }
+
+    @Test
+    @DisplayName("StoredFile: no events, the lock version still moves once per save")
+    void storedFile() {
+        checkMany(() -> com.forcitis.one.platform.file.domain.StoredFile.restore(new com.forcitis.one.platform.file.api.FileId(TestIds.uuid(4)),
+                        com.forcitis.one.platform.file.api.FileSubjectKind.USER, NOW.minus(java.time.Duration.ofDays(3)), false,
+                        com.forcitis.one.platform.file.api.FileStatus.AVAILABLE, 0),
+                List.of(f -> f.expire(NOW, java.time.Duration.ofDays(2))));
     }
 
     @Test

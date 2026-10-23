@@ -1,11 +1,11 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +31,6 @@ public class CancelTimesheet {
             throw TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet");
         }
         SubmitTimesheet.requireExpectedVersion(timesheet, expectedVersion);
-        Retractions.require(approvals.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, timesheet.document(), currentUser.userId(), reason));
+        Retractions.require(approvals.cancel(TimesheetApprovalProcess.KEY, timesheet.document(), currentUser.userId(), reason));
     }
 }

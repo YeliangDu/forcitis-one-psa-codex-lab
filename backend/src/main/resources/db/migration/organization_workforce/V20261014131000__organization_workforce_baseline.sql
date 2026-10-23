@@ -76,7 +76,6 @@ CREATE TABLE organization_workforce.employees (
     employment_status text        NOT NULL CHECK (employment_status IN ('EMPLOYED', 'SEPARATED')),
     is_fee_earner     boolean     NOT NULL DEFAULT false,
     separated_at      timestamptz,
-    last_sync_run_id  uuid,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
     version           bigint      NOT NULL DEFAULT 0,
@@ -87,10 +86,10 @@ CREATE TABLE organization_workforce.employees (
 );
 CREATE UNIQUE INDEX employees_wecom_user_id_employed_key ON organization_workforce.employees (wecom_user_id)
     WHERE employment_status = 'EMPLOYED' AND wecom_user_id IS NOT NULL;
-CREATE INDEX employees_employee_code_idx ON organization_workforce.employees (employee_code);
+ALTER TABLE organization_workforce.employees ADD CONSTRAINT uk_employees_employee_code UNIQUE (employee_code);
 COMMENT ON TABLE organization_workforce.employees IS '员工：组织源人员的快照；没有登录名即离职（RULE-363），不含生日等敏感信息；粒度：每个员工一行';
 COMMENT ON COLUMN organization_workforce.employees.id IS '员工 ID（UUIDv7；组织源人员经来源对照映射）';
-COMMENT ON COLUMN organization_workforce.employees.employee_code IS '员工编号（工号）';
+COMMENT ON COLUMN organization_workforce.employees.employee_code IS '员工编号（工号）；全局唯一，复职沿用原工号（用户 2026-10-21，W2 设计 3.1）';
 COMMENT ON COLUMN organization_workforce.employees.display_name IS '姓名';
 COMMENT ON COLUMN organization_workforce.employees.login_name IS '登录名；为空（null 或空串）表示已离职（RULE-363）';
 COMMENT ON COLUMN organization_workforce.employees.email IS '企业邮箱';
@@ -99,7 +98,6 @@ COMMENT ON COLUMN organization_workforce.employees.wecom_user_id IS '企业微�
 COMMENT ON COLUMN organization_workforce.employees.employment_status IS '在职状态：EMPLOYED 在职 / SEPARATED 离职（含不在组织源结果中的离职候选，RULE-366）';
 COMMENT ON COLUMN organization_workforce.employees.is_fee_earner IS '是否收费员工：组织源的人事分类，只是可计费性判定的输入之一，不等于可计费';
 COMMENT ON COLUMN organization_workforce.employees.separated_at IS '离职时间（首次同步到离职的时间）';
-COMMENT ON COLUMN organization_workforce.employees.last_sync_run_id IS '最近一次改动它的同步记录';
 COMMENT ON COLUMN organization_workforce.employees.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.employees.updated_at IS '更新时间';
 COMMENT ON COLUMN organization_workforce.employees.version IS '乐观锁版本';
@@ -519,7 +517,7 @@ CREATE INDEX ix_assignment_versions_position_id ON organization_workforce.assign
 CREATE INDEX ix_assignment_versions_reports_to_employee_id ON organization_workforce.assignment_versions (reports_to_employee_id);
 
 CREATE FUNCTION organization_workforce.reject_attribution_correction_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'organization_workforce.legal_entity_attribution_corrections is append-only: % is not allowed', TG_OP
         USING ERRCODE = 'restrict_violation';
@@ -534,7 +532,7 @@ CREATE TRIGGER legal_entity_attribution_corrections_reject_truncate
     BEFORE TRUNCATE ON organization_workforce.legal_entity_attribution_corrections
     FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.reject_attribution_correction_change();
 
-CREATE FUNCTION organization_workforce.refuse_version_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION organization_workforce.refuse_version_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'version rows are append-only: % on %.% is refused', lower(TG_OP), TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
@@ -570,3 +568,240 @@ CREATE TRIGGER tg_employee_legal_entities_append_only BEFORE UPDATE OR DELETE ON
     FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_version_rewrite();
 CREATE TRIGGER tg_employee_legal_entities_append_only_truncate BEFORE TRUNCATE ON organization_workforce.employee_legal_entities
     FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_version_rewrite();
+
+-- W2 PR-B（one-data 签发 reviews/W2-PR-B.md）：人事命令与员工版本。命令表先于版本表建（版本表对它有真外键）。
+CREATE TABLE organization_workforce.personnel_commands (
+    personnel_command_id          uuid        NOT NULL,
+    employee_id                   uuid        NOT NULL,
+    command_kind                  text        NOT NULL,
+    effective_date                date        NOT NULL,
+    status                        text        NOT NULL,
+    target_org_unit_id            uuid,
+    target_position_id            uuid,
+    target_reports_to_employee_id uuid,
+    is_target_fee_earner          boolean,
+    target_employment_phase_kind  text,
+    is_target_on_unpaid_leave     boolean,
+    org_structure_command_id      uuid,
+    applied_at                    timestamptz,
+    withdrawn_at                  timestamptz,
+    withdrawn_by                  uuid,
+    withdrawal_reason             text,
+    created_at                    timestamptz NOT NULL,
+    created_by                    uuid        NOT NULL,
+    updated_at                    timestamptz NOT NULL,
+    version                       bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT pk_personnel_commands PRIMARY KEY (personnel_command_id),
+    CONSTRAINT uk_personnel_commands_id_employee UNIQUE (personnel_command_id, employee_id),
+    CONSTRAINT fk_personnel_commands_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_personnel_commands_target_org_unit_id FOREIGN KEY (target_org_unit_id) REFERENCES organization_workforce.org_units (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_personnel_commands_target_position_id FOREIGN KEY (target_position_id) REFERENCES organization_workforce.positions (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_personnel_commands_target_reports_to FOREIGN KEY (target_reports_to_employee_id) REFERENCES organization_workforce.employees (id) ON DELETE RESTRICT,
+    CONSTRAINT ck_personnel_commands_command_kind CHECK (command_kind IN ('HIRE', 'REGULARIZE', 'TRANSFER', 'SEPARATE', 'REINSTATE', 'CORRECTION', 'UNPAID_LEAVE_START', 'UNPAID_LEAVE_END')),
+    CONSTRAINT ck_personnel_commands_status CHECK (status IN ('PENDING', 'HELD', 'EFFECTIVE', 'WITHDRAWN')),
+    CONSTRAINT ck_personnel_commands_held_kind CHECK (status <> 'HELD' OR command_kind = 'SEPARATE'),
+    CONSTRAINT ck_personnel_commands_correction_immediate CHECK (command_kind <> 'CORRECTION' OR status = 'EFFECTIVE'),
+    CONSTRAINT ck_personnel_commands_applied CHECK ((status = 'EFFECTIVE') = (applied_at IS NOT NULL)),
+    CONSTRAINT ck_personnel_commands_withdrawn CHECK ( (status = 'WITHDRAWN') = (withdrawn_at IS NOT NULL) AND (withdrawn_at IS NULL) = (withdrawn_by IS NULL) AND (withdrawn_at IS NULL) = (withdrawal_reason IS NULL)),
+    CONSTRAINT ck_personnel_commands_withdrawal_reason CHECK (withdrawal_reason IS NULL OR (char_length(withdrawal_reason) BETWEEN 1 AND 500 AND btrim(withdrawal_reason) <> '')),
+    CONSTRAINT ck_personnel_commands_effective_date_finite CHECK (isfinite(effective_date)),
+    CONSTRAINT ck_personnel_commands_employment_phase_kind CHECK (target_employment_phase_kind IS NULL OR target_employment_phase_kind IN ('PROBATION', 'REGULAR')),
+    CONSTRAINT ck_personnel_commands_reports_to_not_self CHECK (target_reports_to_employee_id IS DISTINCT FROM employee_id),
+    CONSTRAINT ck_personnel_commands_hire_columns CHECK (command_kind <> 'HIRE' OR ( target_org_unit_id IS NOT NULL AND target_position_id IS NOT NULL AND is_target_fee_earner IS NOT NULL AND target_employment_phase_kind IS NOT NULL)),
+    CONSTRAINT ck_personnel_commands_reinstate_columns CHECK (command_kind <> 'REINSTATE' OR ( target_org_unit_id IS NOT NULL AND target_position_id IS NOT NULL AND is_target_fee_earner IS NOT NULL AND target_employment_phase_kind IS NOT NULL)),
+    CONSTRAINT ck_personnel_commands_transfer_columns CHECK (command_kind <> 'TRANSFER' OR ( target_employment_phase_kind IS NULL AND num_nonnulls(target_org_unit_id, target_position_id, target_reports_to_employee_id, is_target_fee_earner) >= 1)),
+    CONSTRAINT ck_personnel_commands_contentless_columns CHECK (command_kind NOT IN ('REGULARIZE', 'SEPARATE') OR num_nonnulls(target_org_unit_id, target_position_id, target_reports_to_employee_id, is_target_fee_earner, target_employment_phase_kind) = 0),
+    CONSTRAINT ck_personnel_commands_unpaid_leave CHECK ( (command_kind = 'UNPAID_LEAVE_START') = (is_target_on_unpaid_leave IS TRUE) AND (command_kind = 'UNPAID_LEAVE_END') = (is_target_on_unpaid_leave IS FALSE)),
+    CONSTRAINT ck_personnel_commands_unpaid_leave_columns CHECK ( command_kind NOT IN ('UNPAID_LEAVE_START', 'UNPAID_LEAVE_END') OR num_nonnulls(target_org_unit_id, target_position_id, target_reports_to_employee_id, is_target_fee_earner, target_employment_phase_kind) = 0),
+    CONSTRAINT ck_personnel_commands_org_structure_command CHECK (org_structure_command_id IS NULL OR command_kind = 'TRANSFER')
+);
+CREATE UNIQUE INDEX uk_personnel_commands_open_per_day
+    ON organization_workforce.personnel_commands (employee_id, effective_date)
+    WHERE status IN ('PENDING', 'HELD');
+CREATE INDEX ix_personnel_commands_due
+    ON organization_workforce.personnel_commands (effective_date) WHERE status = 'PENDING';
+CREATE INDEX ix_personnel_commands_employee_id
+    ON organization_workforce.personnel_commands (employee_id, effective_date);
+CREATE UNIQUE INDEX uk_personnel_commands_merge_employee
+    ON organization_workforce.personnel_commands (org_structure_command_id, employee_id)
+    WHERE org_structure_command_id IS NOT NULL;
+CREATE INDEX ix_personnel_commands_target_org_unit_id
+    ON organization_workforce.personnel_commands (target_org_unit_id) WHERE target_org_unit_id IS NOT NULL;
+CREATE INDEX ix_personnel_commands_target_position_id
+    ON organization_workforce.personnel_commands (target_position_id) WHERE target_position_id IS NOT NULL;
+CREATE INDEX ix_personnel_commands_target_reports_to
+    ON organization_workforce.personnel_commands (target_reports_to_employee_id)
+    WHERE target_reports_to_employee_id IS NOT NULL;
+COMMENT ON TABLE organization_workforce.personnel_commands IS '人事命令：入职、转正、调岗、离职、复职、更正等人事异动的第一手记录，只追加；生效日为人事业务生效日（ADR-0055 决定 2、ADR-0068 第 1 条）。粒度：每条人事命令一行';
+COMMENT ON COLUMN organization_workforce.personnel_commands.personnel_command_id IS '人事命令 ID（UUIDv7，由应用层生成；所有种类共用一个 ID 空间）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.employee_id IS '员工 ID';
+COMMENT ON COLUMN organization_workforce.personnel_commands.command_kind IS '命令种类：HIRE 入职 / REGULARIZE 转正 / TRANSFER 调岗 / SEPARATE 离职 / REINSTATE 复职 / CORRECTION 更正 / UNPAID_LEAVE_START 停薪留职开始 / UNPAID_LEAVE_END 停薪留职结束';
+COMMENT ON COLUMN organization_workforce.personnel_commands.effective_date IS '生效日：人事业务生效日，即新状态的第一天';
+COMMENT ON COLUMN organization_workforce.personnel_commands.status IS '状态：PENDING 待生效 / HELD 待放行（仅离职）/ EFFECTIVE 已生效 / WITHDRAWN 已撤回';
+COMMENT ON COLUMN organization_workforce.personnel_commands.target_org_unit_id IS '目标组织单元 ID（入职、复职、调岗）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.target_position_id IS '目标岗位 ID（入职、复职、调岗）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.target_reports_to_employee_id IS '目标直属领导（员工 ID）（入职、复职、调岗）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.is_target_fee_earner IS '目标是否收费员工（入职、复职、调岗）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.target_employment_phase_kind IS '目标雇佣阶段：PROBATION 试用 / REGULAR 正式（入职、复职）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.is_target_on_unpaid_leave IS '目标是否停薪留职：开始恒为真，结束恒为假，其他种类为空';
+COMMENT ON COLUMN organization_workforce.personnel_commands.org_structure_command_id IS '组织结构命令 ID：只用于合并产生的逐人调岗；外键随 org_structure_commands 建表批次补';
+COMMENT ON COLUMN organization_workforce.personnel_commands.applied_at IS '生效落地时刻；有值当且仅当状态为已生效';
+COMMENT ON COLUMN organization_workforce.personnel_commands.withdrawn_at IS '撤回时刻';
+COMMENT ON COLUMN organization_workforce.personnel_commands.withdrawn_by IS '撤回人（用户账号 ID，跨 schema 只存 ID）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.withdrawal_reason IS '撤回原因（1 至 500 字）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.created_at IS '创建时间';
+COMMENT ON COLUMN organization_workforce.personnel_commands.created_by IS '录入人（用户账号 ID，跨 schema 只存 ID）';
+COMMENT ON COLUMN organization_workforce.personnel_commands.updated_at IS '更新时间';
+COMMENT ON COLUMN organization_workforce.personnel_commands.version IS '乐观锁版本';
+
+CREATE TABLE organization_workforce.employee_versions (
+    employee_version_id         uuid        NOT NULL,
+    employee_id                 uuid        NOT NULL,
+    effective_from_date         date        NOT NULL,
+    effective_to_date           date,
+    revision_number             integer     NOT NULL DEFAULT 0,
+    employment_status           text        NOT NULL,
+    employment_phase_kind       text,
+    is_on_unpaid_leave          boolean     NOT NULL,
+    is_fee_earner               boolean     NOT NULL,
+    employment_start_date       date,
+    employment_start_basis_kind text,
+    change_channel_kind         text        NOT NULL,
+    change_command_id           uuid,
+    version_audit_entry_id      uuid,
+    closed_at                   timestamptz,
+    superseded_at               timestamptz,
+    superseding_command_id      uuid,
+    corrected_from_version_id   uuid,
+    created_at                  timestamptz NOT NULL,
+    updated_at                  timestamptz NOT NULL,
+    CONSTRAINT pk_employee_versions PRIMARY KEY (employee_version_id),
+    CONSTRAINT fk_employee_versions_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_employee_versions_change_command_id FOREIGN KEY (change_command_id) REFERENCES organization_workforce.personnel_commands (personnel_command_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_employee_versions_superseding_command_id FOREIGN KEY (superseding_command_id) REFERENCES organization_workforce.personnel_commands (personnel_command_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_employee_versions_corrected_from_version_id FOREIGN KEY (corrected_from_version_id) REFERENCES organization_workforce.employee_versions (employee_version_id) ON DELETE RESTRICT,
+    CONSTRAINT uk_employee_versions_revision UNIQUE (employee_id, effective_from_date, revision_number),
+    CONSTRAINT ck_employee_versions_range CHECK (effective_to_date IS NULL OR effective_to_date >= effective_from_date),
+    CONSTRAINT ck_employee_versions_finite CHECK (isfinite(effective_from_date) AND (effective_to_date IS NULL OR isfinite(effective_to_date))),
+    CONSTRAINT ck_employee_versions_employment_status CHECK (employment_status IN ('EMPLOYED', 'SEPARATED')),
+    CONSTRAINT ck_employee_versions_employment_phase_kind CHECK (employment_phase_kind IN ('PROBATION', 'REGULAR')),
+    CONSTRAINT ck_employee_versions_phase_status CHECK ((employment_status = 'EMPLOYED') = (employment_phase_kind IS NOT NULL)),
+    CONSTRAINT ck_employee_versions_leave_employed CHECK (NOT is_on_unpaid_leave OR employment_status = 'EMPLOYED'),
+    CONSTRAINT ck_employee_versions_revision_number CHECK (revision_number >= 0),
+    CONSTRAINT ck_employee_versions_change_channel_kind CHECK (change_channel_kind IN ('COMMAND', 'MIGRATION')),
+    CONSTRAINT ck_employee_versions_command CHECK ((change_channel_kind = 'COMMAND') = (change_command_id IS NOT NULL)),
+    CONSTRAINT ck_employee_versions_audit CHECK (change_channel_kind <> 'COMMAND' OR version_audit_entry_id IS NOT NULL),
+    CONSTRAINT ck_employee_versions_closed CHECK ((effective_to_date IS NULL) = (closed_at IS NULL)),
+    CONSTRAINT ck_employee_versions_superseded CHECK ((superseded_at IS NULL) = (superseding_command_id IS NULL)),
+    CONSTRAINT ck_employee_versions_employment_start_basis_kind CHECK (employment_start_basis_kind IS NULL OR employment_start_basis_kind IN ('DECLARED', 'HR_PROVIDED', 'LEGACY_HR_RECORD', 'LEGACY_ASSIGNMENT_START', 'UNKNOWN')),
+    CONSTRAINT ck_employee_versions_employment_start_employed CHECK ((employment_status = 'EMPLOYED') = (employment_start_basis_kind IS NOT NULL)),
+    CONSTRAINT ck_employee_versions_employment_start_known CHECK ( (employment_start_date IS NULL) = (employment_start_basis_kind IS NULL OR employment_start_basis_kind = 'UNKNOWN')),
+    CONSTRAINT ck_employee_versions_employment_start_not_after CHECK (employment_start_date IS NULL OR employment_start_date <= effective_from_date),
+    CONSTRAINT ex_employee_versions_overlap EXCLUDE USING gist (employee_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&) WHERE (superseded_at IS NULL)
+);
+CREATE INDEX ix_employee_versions_change_command_id ON organization_workforce.employee_versions (change_command_id) WHERE change_command_id IS NOT NULL;
+CREATE INDEX ix_employee_versions_superseding_command_id ON organization_workforce.employee_versions (superseding_command_id) WHERE superseding_command_id IS NOT NULL;
+CREATE INDEX ix_employee_versions_corrected_from_version_id ON organization_workforce.employee_versions (corrected_from_version_id) WHERE corrected_from_version_id IS NOT NULL;
+CREATE INDEX ix_employee_versions_separated_effective_from_date ON organization_workforce.employee_versions (effective_from_date) WHERE employment_status = 'SEPARATED' AND superseded_at IS NULL;
+CREATE INDEX ix_employee_versions_employment_start_month_day
+    ON organization_workforce.employee_versions ((EXTRACT(MONTH FROM employment_start_date)), (EXTRACT(DAY FROM employment_start_date)))
+    WHERE employment_status = 'EMPLOYED' AND superseded_at IS NULL AND employment_start_date IS NOT NULL;
+COMMENT ON TABLE organization_workforce.employee_versions IS '员工版本：在职状态、雇佣阶段、停薪留职、收费员工与入职日期的变化历史，只追加（关闭、作废只能由空变非空一次）；生效依据为人事业务生效日（DECLARED）；粒度：每个员工的每个生效区间每个修订一行';
+COMMENT ON COLUMN organization_workforce.employee_versions.employee_version_id IS '员工版本 ID（UUIDv7）';
+COMMENT ON COLUMN organization_workforce.employee_versions.employee_id IS '员工 ID';
+COMMENT ON COLUMN organization_workforce.employee_versions.effective_from_date IS '生效日（含），人事业务生效日';
+COMMENT ON COLUMN organization_workforce.employee_versions.effective_to_date IS '失效日（不含）；为空表示至今';
+COMMENT ON COLUMN organization_workforce.employee_versions.revision_number IS '修订序号：同一生效日内的序号，作废并替换时递增';
+COMMENT ON COLUMN organization_workforce.employee_versions.employment_status IS '在职状态：EMPLOYED 在职 / SEPARATED 离职';
+COMMENT ON COLUMN organization_workforce.employee_versions.employment_phase_kind IS '雇佣阶段：PROBATION 试用 / REGULAR 正式；只在在职版本有值';
+COMMENT ON COLUMN organization_workforce.employee_versions.is_on_unpaid_leave IS '是否停薪留职；离职版本恒为假';
+COMMENT ON COLUMN organization_workforce.employee_versions.is_fee_earner IS '是否收费员工';
+COMMENT ON COLUMN organization_workforce.employee_versions.employment_start_date IS '入职日期：本段在职期间的入职日（复职取复职之日）；转正、调岗等版本原样复制；入职日期未知的迁入行为空';
+COMMENT ON COLUMN organization_workforce.employee_versions.employment_start_basis_kind IS '入职日期依据：DECLARED 入职命令声明 / HR_PROVIDED 人事提供 / LEGACY_HR_RECORD 老系统人事档案 / LEGACY_ASSIGNMENT_START 老系统任职起点（低可信）/ UNKNOWN 未知；在职版本必填，离职版本为空';
+COMMENT ON COLUMN organization_workforce.employee_versions.change_channel_kind IS '写入渠道：COMMAND 人事命令 / MIGRATION 迁入';
+COMMENT ON COLUMN organization_workforce.employee_versions.change_command_id IS '写入本行的人事命令 ID；迁入行为空';
+COMMENT ON COLUMN organization_workforce.employee_versions.version_audit_entry_id IS '写入本行的同一事务里写下的审计条目 ID（跨 schema 只存 ID）；迁入行可空';
+COMMENT ON COLUMN organization_workforce.employee_versions.closed_at IS '关闭时刻：写失效日的同时写入，由空变非空一次';
+COMMENT ON COLUMN organization_workforce.employee_versions.superseded_at IS '作废时刻：被更正或补登替换的行，由空变非空一次';
+COMMENT ON COLUMN organization_workforce.employee_versions.superseding_command_id IS '作废它的人事命令 ID';
+COMMENT ON COLUMN organization_workforce.employee_versions.corrected_from_version_id IS '重新追加行的来源：指向被作废的行';
+COMMENT ON COLUMN organization_workforce.employee_versions.created_at IS '创建时间，即记录时刻';
+COMMENT ON COLUMN organization_workforce.employee_versions.updated_at IS '更新时间';
+
+-- 员工版本只追加：关闭列与作废列各只能由空变非空一次，其余列不变；DELETE 只放行表属主（离职满 10 年的清除函数，W2 设计第 8 节）。
+CREATE FUNCTION organization_workforce.refuse_employee_version_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+    owner_name name;
+    column_name text;
+BEGIN
+    IF TG_OP = 'TRUNCATE' THEN
+        RAISE EXCEPTION 'employee versions are append-only: truncate on %.% is refused', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF TG_OP = 'DELETE' THEN
+        SELECT pg_get_userbyid(relowner) INTO owner_name FROM pg_class WHERE oid = TG_RELID;
+        IF current_user <> owner_name THEN
+            RAISE EXCEPTION 'employee versions are append-only: delete on %.% is refused', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+        END IF;
+        RETURN OLD;
+    END IF;
+    FOREACH column_name IN ARRAY ARRAY['effective_to_date', 'closed_at', 'superseded_at', 'superseding_command_id'] LOOP
+        IF (to_jsonb(OLD) -> column_name) <> 'null'::jsonb AND (to_jsonb(NEW) -> column_name) IS DISTINCT FROM (to_jsonb(OLD) -> column_name) THEN
+            RAISE EXCEPTION 'column % of %.% is set once and cannot change', column_name, TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+        END IF;
+    END LOOP;
+    IF (to_jsonb(NEW) - 'effective_to_date' - 'closed_at' - 'superseded_at' - 'superseding_command_id' - 'updated_at')
+            <> (to_jsonb(OLD) - 'effective_to_date' - 'closed_at' - 'superseded_at' - 'superseding_command_id' - 'updated_at') THEN
+        RAISE EXCEPTION 'only the closing and superseding columns of %.% can change', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+COMMENT ON FUNCTION organization_workforce.refuse_employee_version_rewrite() IS '员工版本只追加的触发器：关闭列与作废列各只放行由空变非空一次，其余列不变，DELETE 只放行表属主，TRUNCATE 拒绝';
+CREATE TRIGGER tg_employee_versions_append_only BEFORE UPDATE OR DELETE ON organization_workforce.employee_versions
+    FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_employee_version_rewrite();
+CREATE TRIGGER tg_employee_versions_append_only_truncate BEFORE TRUNCATE ON organization_workforce.employee_versions
+    FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_employee_version_rewrite();
+
+-- 工号发号后禁改（ADR-0078 决定 3）：库层拒绝改写 employee_code，登记错的工号保留原值。
+CREATE FUNCTION organization_workforce.refuse_employee_code_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+    RAISE EXCEPTION 'organization_workforce.employees.employee_code cannot be changed once issued' USING ERRCODE = 'restrict_violation';
+END $$;
+CREATE TRIGGER tg_employees_employee_code_fixed BEFORE UPDATE OF employee_code ON organization_workforce.employees
+    FOR EACH ROW WHEN (OLD.employee_code IS DISTINCT FROM NEW.employee_code) EXECUTE FUNCTION organization_workforce.refuse_employee_code_change();
+
+-- 人事命令只追加：状态只能前进，时刻列只能由空变非空一次，内容列不变；DELETE 只放行表属主。
+CREATE FUNCTION organization_workforce.refuse_personnel_command_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+    owner_name name;
+    column_name text;
+BEGIN
+    IF TG_OP = 'TRUNCATE' THEN
+        RAISE EXCEPTION 'personnel commands are append-only: truncate on %.% is refused', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF TG_OP = 'DELETE' THEN
+        SELECT pg_get_userbyid(relowner) INTO owner_name FROM pg_class WHERE oid = TG_RELID;
+        IF current_user <> owner_name THEN
+            RAISE EXCEPTION 'personnel commands are append-only: delete on %.% is refused', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+        END IF;
+        RETURN OLD;
+    END IF;
+    IF NEW.status <> OLD.status AND NOT ((OLD.status = 'PENDING' AND NEW.status IN ('EFFECTIVE', 'WITHDRAWN', 'HELD'))
+            OR (OLD.status = 'HELD' AND NEW.status IN ('EFFECTIVE', 'WITHDRAWN'))) THEN
+        RAISE EXCEPTION 'personnel command status cannot move from % to %', OLD.status, NEW.status USING ERRCODE = 'restrict_violation';
+    END IF;
+    FOREACH column_name IN ARRAY ARRAY['applied_at', 'withdrawn_at', 'withdrawn_by', 'withdrawal_reason'] LOOP
+        IF (to_jsonb(OLD) -> column_name) <> 'null'::jsonb AND (to_jsonb(NEW) -> column_name) IS DISTINCT FROM (to_jsonb(OLD) -> column_name) THEN
+            RAISE EXCEPTION 'column % of %.% is set once and cannot change', column_name, TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+        END IF;
+    END LOOP;
+    IF (to_jsonb(NEW) - 'status' - 'applied_at' - 'withdrawn_at' - 'withdrawn_by' - 'withdrawal_reason' - 'updated_at' - 'version')
+            <> (to_jsonb(OLD) - 'status' - 'applied_at' - 'withdrawn_at' - 'withdrawn_by' - 'withdrawal_reason' - 'updated_at' - 'version') THEN
+        RAISE EXCEPTION 'only the status and timestamp columns of %.% can change', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+COMMENT ON FUNCTION organization_workforce.refuse_personnel_command_rewrite() IS '人事命令只追加的触发器：状态按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD 以及 HELD 到 EFFECTIVE、WITHDRAWN 前进，时刻列只放行由空变非空一次，内容列不变，DELETE 只放行表属主，TRUNCATE 拒绝';
+CREATE TRIGGER tg_personnel_commands_append_only BEFORE UPDATE OR DELETE ON organization_workforce.personnel_commands
+    FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_personnel_command_rewrite();
+CREATE TRIGGER tg_personnel_commands_append_only_truncate BEFORE TRUNCATE ON organization_workforce.personnel_commands
+    FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_personnel_command_rewrite();

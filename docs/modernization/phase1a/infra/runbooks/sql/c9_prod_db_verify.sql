@@ -1,7 +1,7 @@
 -- FORCITIS one · C-9 校验（只读；连 forcitis_one_prod 执行，结果截图或导出留档）
 -- 用法：psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_prod -f c9_prod_db_verify.sql
 
--- V1 角色与属性：期望 5 行；owner 不可登录；app / readonly / audit_maintainer 为 NOINHERIT；连接上限 migrator 2、app 25、readonly 3、audit_maintainer 1
+-- V1 角色与属性：期望 6 行（含 history_loader，不可登录）；owner 不可登录；app / readonly / audit_maintainer 为 NOINHERIT；连接上限 migrator 2、app 25、readonly 3、audit_maintainer 1
 SELECT rolname, rolcanlogin, rolinherit, rolconnlimit
   FROM pg_roles WHERE rolname LIKE 'one\_prod\_%' ORDER BY rolname;
 
@@ -71,3 +71,88 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
+
+-- V11 每个自定义函数固定 search_path（FUNCTION_SEARCH_PATH_PINNING.md R-SP-1、R-SP-3）：pg_catalog 在前、pg_temp 在最后，中间至多本函数所在 schema（非 public，且除属主外无人可在该 schema 建对象）；SECURITY DEFINER 函数 PUBLIC 不可执行。
+-- 与 DataArchitectureTest 的主守护同一套判定；期望 0 行（扩展成员不计），有行则本条抛错，ON_ERROR_STOP 使校验失败。
+DO $$
+DECLARE bad text;
+BEGIN
+    SELECT string_agg(p.oid::regprocedure::text, ', ') INTO bad
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND p.prokind IN ('f', 'p')
+       AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
+       AND (NOT EXISTS (SELECT 1 FROM unnest(p.proconfig) c
+                         WHERE c = 'search_path=pg_catalog, pg_temp'
+                            OR (c = 'search_path=pg_catalog, ' || n.nspname || ', pg_temp' AND n.nspname <> 'public'
+                                AND NOT EXISTS (SELECT 1 FROM aclexplode(n.nspacl) a WHERE a.privilege_type = 'CREATE' AND a.grantee <> n.nspowner)))
+            OR (p.prosecdef AND has_function_privilege('public', p.oid, 'EXECUTE')));
+    IF bad IS NOT NULL THEN
+        RAISE EXCEPTION 'V11 failed: functions without a pinned search_path or executable by PUBLIC: %', bad;
+    END IF;
+END $$;
+
+-- V12 SECURITY DEFINER 函数的属主不是超级用户（R-SP-3）：定义者权限就是属主权限，超级用户属主等于函数体可做任何事。
+-- 部署库上期望 0 行；测试容器的迁移账号是超级用户，所以这条不进 DataArchitectureTest。
+DO $$
+DECLARE bad text;
+BEGIN
+    SELECT string_agg(p.oid::regprocedure::text, ', ') INTO bad
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace JOIN pg_roles r ON r.oid = p.proowner
+     WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast') AND p.prosecdef AND r.rolsuper;
+    IF bad IS NOT NULL THEN
+        RAISE EXCEPTION 'V12 failed: SECURITY DEFINER functions owned by a superuser: %', bad;
+    END IF;
+END $$;
+
+
+-- V13 迁入写入角色（ADR-0036）：窗口外 NOLOGIN、非超级用户/CREATEROLE/CREATEDB；不是属主角色的成员；运行、只读、维护角色都不是属主或迁入角色的成员，迁入角色也不是它们（含迁移角色）的成员；
+-- 迁入角色对两张版本表（含列级）无 UPDATE、无 DELETE/TRUNCATE，对库无 CREATE、TEMP，对所有 FORCITIS one schema 无 CREATE；它不属于任何角色，成员行只有执行账号那一行仅 ADMIN。任一不满足则抛错；期望不抛错。
+-- 建库后、迁移之前跑时版本表与 schema 尚不存在，表与 schema 两项会跳过并给出 NOTICE：迁移与 after_migrations 之后必须再跑一次。
+DO $$
+DECLARE r text; t text; bad text; x pg_roles%ROWTYPE;
+BEGIN
+    SELECT * INTO x FROM pg_roles WHERE rolname = 'one_prod_history_loader';
+    IF NOT FOUND THEN RAISE EXCEPTION 'V13 failed: role one_prod_history_loader missing'; END IF;
+    IF x.rolcanlogin OR x.rolsuper OR x.rolcreaterole OR x.rolcreatedb OR x.rolbypassrls OR x.rolreplication THEN
+        RAISE EXCEPTION 'V13 failed: one_prod_history_loader must be NOLOGIN without SUPERUSER/CREATEROLE/CREATEDB/BYPASSRLS/REPLICATION';
+    END IF;
+    IF pg_has_role('one_prod_history_loader', 'one_prod_owner', 'MEMBER') THEN
+        RAISE EXCEPTION 'V13 failed: one_prod_history_loader is a member of one_prod_owner';
+    END IF;
+    FOREACH r IN ARRAY ARRAY['one_prod_app', 'one_prod_readonly', 'one_prod_audit_maintainer'] LOOP
+        IF pg_has_role(r, 'one_prod_history_loader', 'MEMBER') OR pg_has_role(r, 'one_prod_owner', 'MEMBER') THEN
+            RAISE EXCEPTION 'V13 failed: runtime role % is a member of one_prod_history_loader or one_prod_owner', r;
+        END IF;
+    END LOOP;
+    -- 反向：迁入角色不属于任何角色（含运行类、迁移角色、RDS 高权限账号与内建 pg_* 角色），防止经 SET ROLE 或继承绕过
+    SELECT string_agg(roleid::regrole::text, ', ') INTO bad FROM pg_auth_members WHERE member = 'one_prod_history_loader'::regrole;
+    IF bad IS NOT NULL THEN
+        RAISE EXCEPTION 'V13 failed: one_prod_history_loader is a member of %', bad;
+    END IF;
+    -- 它的成员行只允许建角色时自动产生的、仅 ADMIN 的那一行（inherit、set 均为假）；其余一律不许，免得被抢建或被人拉进别的账号
+    SELECT string_agg(member::regrole::text, ', ') INTO bad FROM pg_auth_members
+     WHERE roleid = 'one_prod_history_loader'::regrole AND (inherit_option OR set_option);
+    IF bad IS NOT NULL THEN
+        RAISE EXCEPTION 'V13 failed: one_prod_history_loader has members with INHERIT or SET: %', bad;
+    END IF;
+    IF has_database_privilege('one_prod_history_loader', 'forcitis_one_prod', 'CREATE, TEMP') THEN
+        RAISE EXCEPTION 'V13 failed: one_prod_history_loader can CREATE or TEMP in database forcitis_one_prod';
+    END IF;
+    FOREACH t IN ARRAY ARRAY['platform_numbering.numbering_rule_versions', 'organization_attendance.work_calendar_versions'] LOOP
+        IF to_regclass(t) IS NULL THEN
+            RAISE NOTICE 'V13: % does not exist yet, table privilege check skipped', t;
+        ELSIF has_table_privilege('one_prod_history_loader', t, 'UPDATE, DELETE, TRUNCATE') OR has_any_column_privilege('one_prod_history_loader', t, 'UPDATE') THEN
+            RAISE EXCEPTION 'V13 failed: one_prod_history_loader can UPDATE/DELETE/TRUNCATE %', t;
+        END IF;
+    END LOOP;
+    FOR t IN SELECT nspname FROM pg_namespace
+              WHERE nspname LIKE 'platform\_%' OR nspname LIKE 'organization\_%' OR nspname LIKE 'cost\_%' OR nspname = 'one_migration' LOOP
+        IF has_schema_privilege('one_prod_history_loader', t, 'CREATE') THEN
+            RAISE EXCEPTION 'V13 failed: one_prod_history_loader can CREATE in schema %', t;
+        END IF;
+    END LOOP;
+END $$;
+-- V13b 迁入角色的全部成员行：除建角色时自动产生的执行账号那一行（PG 16：仅 ADMIN；RDS 上是 one_admin，admin t、inherit f、set f）外不应有任何其他行——
+-- 触发器按 pg_has_role(..., 'MEMBER') 判定，只有 ADMIN 的成员行也算成员。容器里用超级用户建角色不产生该行，期望 0 行。
+SELECT m.member::regrole AS member, m.admin_option, m.inherit_option, m.set_option
+  FROM pg_auth_members m WHERE m.roleid = 'one_prod_history_loader'::regrole ORDER BY 1;

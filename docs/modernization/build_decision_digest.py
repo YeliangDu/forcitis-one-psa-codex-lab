@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """从 intent/ 片段自动汇总「已定决策速查表」DECISION_DIGEST.md（用户 2026-10-16 批准，one-coordinator 转达）。
 
-设计组出题前对照本表并在题中引用条目（条目标识即 intent 文件名，SESSION_PLAYBOOK §11 第 1 条）。产物不入仓（.gitignore），由 build_all.py 生成。
+设计组出题前对照本表并在题中引用条目（条目标识即 intent 文件名，SESSION_PLAYBOOK TEAM-62）。产物不入仓（.gitignore），由 build_all.py 生成。
 摘句不作依据：引用前打开 intent 原文（SESSION_PLAYBOOK「转述前先核对原文」）。
 - 主题：decision-digest/topics.txt 的关键词记分（先剔除编号引用；ASCII 词按词边界；次高分且不低于 70% 也列出），都为 0 分归「未分类」
 - 取代：片段里的「## 取代」段（new_intent.py --supersedes=）与 decision-digest/relations.txt 的「取代」行；矛盾登记在 relations.txt

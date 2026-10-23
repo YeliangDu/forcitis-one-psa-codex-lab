@@ -268,3 +268,59 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetEmployeeDayUniqueIT.java
     reason: KERR 通用错误码进 kernel，工时两条码改名为 KERNEL_TRANSITION_ILLEGAL、KERNEL_CONCURRENT_CHANGE；只改码名字面与显示名，不删用例、不改断言结构；PR 改断言栏单列
     ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261022-05
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/EmployeeCodeNotKeyIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/EmployeeCodeUniquenessIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/WorkforceLengthLimitsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/WorkforceRowConstraintsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/SourceIdMatchingIT.java
+    reason: 用户定工号全局唯一（intent 2026-10-21-100711，ADR-0078 已批准 intent 2026-10-22-211131）；工号键断言改为恰有 uk_employees_employee_code 一项（改名 EmployeeCodeUniquenessIT 按 ADR-0078 守护第 2 条）；WF11 夹具工号改唯一值、断言不变；同号第二人改断言隔离并写 DUPLICATE_EMPLOYEE_CODE 例外（one-data 签）；不删用例；PR 改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261022-06
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
+    reason: KERR-2（IMP-1022-COO-04）KERNEL_REASON_REQUIRED 进 kernel，期望码 PLATFORM_APPROVAL_REASON_REQUIRED 改为 KERNEL_REASON_REQUIRED、DisplayName 同步；只改码名字面，不删用例、不改断言结构与场景；PR 改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261022-07
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/ApprovalP4Support.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRejectedResubmitIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRoundSubmittedCheckIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalOrderNotFromIdsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRequestTextAndRecordRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/AssigneeInputUuidIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/RetractionInitiatorAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/TypedResultEventIT.java
+    reason: REG-4（IMP-1022-COO-01）ProcessKey 枚举改登记字符串值对象；验收测试只把 ProcessKey.COST_TIMESHEET_APPROVAL 换为 TimesheetApprovalProcess.KEY、直插 SQL 字面量改为登记键值 cost_timesheet_approval；不删用例、不改断言结构；PR 改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261023-08
+    date: 2026-10-23
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/SourceIdMatchingIT.java
+    reason: PR-B2 按 ADR-0078 决定 3（工号发号后禁改）改 theSyncMatchesBySourceIdAndCreatesOnlyForNewOnes：employee_code 由 E9101-NEW 改为仍为 E9101，补 EMPLOYEE_CODE_CHANGE_IGNORED 例外断言（detail 不含工号值）；display_name、login_name 随源更新断言保留；不删用例；PR 改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-23.md
+  - id: RULING-COORD-20261023-09
+    date: 2026-10-23
+    ruled_by: one-coordinator
+    implementer: one-1a-admin
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/AdministrationStateTransitionsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/AdministrationDb.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/ConfigSetItemsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/README.md
+    reason: 卡 C（IMP-1022-ADM-01）迁移使 DRAFT 不落库、条目表新增必填列 is_system_only；卡 A 的 ADM-A-46/48/49/50 去 DRAFT 或降为 SQLSTATE，条目夹具显式给 is_system_only=false；不删用例，ADM-A-35 至 44、61 断言原样；PR 改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-23.md

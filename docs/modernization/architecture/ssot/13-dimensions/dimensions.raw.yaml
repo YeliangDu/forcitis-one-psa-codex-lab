@@ -8,7 +8,7 @@ meta:
   counts:
     by_bi_bus_matrix: 14
     by_metric_baseline: 48
-    by_versioned_master_tables: 7
+    by_versioned_master_tables: 8
     literal_differences:
       only_bi_bus_matrix: 14
       only_metric_baseline_oat: 39
@@ -1069,6 +1069,25 @@ by_metric_baseline:
   事实 BC: '`delivery.execution`、`delivery.acceptance`'
   source: docs/modernization/r0/METRIC_BASELINE_DRAFT.md:132
 by_versioned_master_tables:
+- table: organization_workforce.employee_versions
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: NEW
+  writers: []
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:660
+  - name: effective_to_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:661
+  source: backend/architecture/data-access-registry.yaml:142
 - table: organization_workforce.org_unit_versions
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1084,11 +1103,11 @@ by_versioned_master_tables:
   effective_columns:
   - name: effective_from_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:322
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:320
   - name: effective_to_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:323
-  source: backend/architecture/data-access-registry.yaml:147
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:321
+  source: backend/architecture/data-access-registry.yaml:163
 - table: organization_workforce.assignment_versions
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1104,11 +1123,11 @@ by_versioned_master_tables:
   effective_columns:
   - name: effective_from_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:363
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:361
   - name: effective_to_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:364
-  source: backend/architecture/data-access-registry.yaml:154
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:362
+  source: backend/architecture/data-access-registry.yaml:170
 - table: organization_workforce.legal_entity_versions
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1124,11 +1143,11 @@ by_versioned_master_tables:
   effective_columns:
   - name: effective_from_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:394
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:392
   - name: effective_to_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:396
-  source: backend/architecture/data-access-registry.yaml:190
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:394
+  source: backend/architecture/data-access-registry.yaml:206
 - table: organization_workforce.org_unit_legal_entities
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1144,11 +1163,11 @@ by_versioned_master_tables:
   effective_columns:
   - name: effective_from_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:272
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:270
   - name: effective_to_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:273
-  source: backend/architecture/data-access-registry.yaml:204
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:271
+  source: backend/architecture/data-access-registry.yaml:220
 - table: organization_workforce.employee_legal_entities
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1164,11 +1183,11 @@ by_versioned_master_tables:
   effective_columns:
   - name: effective_from_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:297
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:295
   - name: effective_to_date
     type: date
-    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:298
-  source: backend/architecture/data-access-registry.yaml:211
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:296
+  source: backend/architecture/data-access-registry.yaml:227
 - table: platform_identity.role_versions
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1187,7 +1206,7 @@ by_versioned_master_tables:
   - name: effective_to_at
     type: timestamptz
     source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:360
-  source: backend/architecture/data-access-registry.yaml:332
+  source: backend/architecture/data-access-registry.yaml:355
 - table: platform_identity.account_role_grants
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1206,4 +1225,4 @@ by_versioned_master_tables:
   - name: effective_to_at
     type: timestamptz
     source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:438
-  source: backend/architecture/data-access-registry.yaml:342
+  source: backend/architecture/data-access-registry.yaml:365
