@@ -38,7 +38,7 @@ definition:
   待决: NR 是否等于 REV − PTC（F2）
 ```
 
-- by_glossary_metric / net_service_revenue；出处：docs/modernization/glossary/terms.yaml:9589
+- by_glossary_metric / net_service_revenue；出处：docs/modernization/glossary/terms.yaml:9599
 
 ```yaml
 definition: 管理口径的净额，不用于法定报表：不含税收入减委外与分包、再减可向客户转收的代垫费用后的余额；信息服务费不在此扣除，计入直接项目费用并在贡献毛利中扣除。法定收入按总额含代垫确认，二者可互相推导：净服务收入 ＝ 法定收入（不含税）− 委外与分包 − 可向客户转收的代垫费用，报表脚注写出推导关系（用户 KPI-Q02）；原「净收入」并入本词（KPI-Q02、NU-13）
@@ -64,7 +64,7 @@ definition:
   待决: 日标准工时参数（B1，Q6③）；分子是可计费工时，还是可计费加商机工时
 ```
 
-- by_glossary_metric / utilization_rate；出处：docs/modernization/glossary/terms.yaml:5747
+- by_glossary_metric / utilization_rate；出处：docs/modernization/glossary/terms.yaml:5757
 
 ```yaml
 definition: 可计费工时 / 可用工时（PSA 通行指标）
@@ -90,7 +90,7 @@ definition:
   待决: 按月末期间快照
 ```
 
-- by_glossary_metric / remaining_performance_obligation；出处：docs/modernization/glossary/terms.yaml:5372
+- by_glossary_metric / remaining_performance_obligation；出处：docs/modernization/glossary/terms.yaml:5382
 
 ```yaml
 definition: 已签约未履约部分分摊的交易价格（行业称在手合同额 / backlog）
@@ -116,7 +116,7 @@ definition:
   待决: 两种开回率合一（K7）
 ```
 
-- by_glossary_metric / collection_rate；出处：docs/modernization/glossary/terms.yaml:10285
+- by_glossary_metric / collection_rate；出处：docs/modernization/glossary/terms.yaml:10295
 
 ```yaml
 definition: 回款 ÷ 开票金额（同一税口径、同一期间）
@@ -142,7 +142,7 @@ definition:
   待决: 口径（B2）；Q6④ 统一除数
 ```
 
-- by_glossary_metric / average_headcount；出处：docs/modernization/glossary/terms.yaml:10387
+- by_glossary_metric / average_headcount；出处：docs/modernization/glossary/terms.yaml:10397
 
 ```yaml
 definition: 期间内在册人数的平均值；计算口径（月初月末平均或日均、是否含实习与外包）待 B2；所有「人均」的统一除数
@@ -168,7 +168,7 @@ definition:
   待决: 单一算法：分子、天数基准、是否含商业承兑汇票与坏账（F6，K7）
 ```
 
-- by_glossary_metric / days_sales_outstanding；出处：docs/modernization/glossary/terms.yaml:10253
+- by_glossary_metric / days_sales_outstanding；出处：docs/modernization/glossary/terms.yaml:10263
 
 ```yaml
 definition: 应收余额（合同资产、应收账款、应收票据分别及合计）÷ 对应额 × 天数；分子分母与天数基准按 FD-39
@@ -194,7 +194,7 @@ definition:
   待决: 分子分母税口径一致
 ```
 
-- by_glossary_metric / billing_conversion_rate；出处：docs/modernization/glossary/terms.yaml:10269
+- by_glossary_metric / billing_conversion_rate；出处：docs/modernization/glossary/terms.yaml:10279
 
 ```yaml
 definition: 开票金额 ÷ 收入确认金额（同一税口径、同一期间）
@@ -220,7 +220,7 @@ definition:
   待决: 有效工时 × 标准费率（词表定义）
 ```
 
-- by_glossary_metric / direct_labor；出处：docs/modernization/glossary/terms.yaml:2698
+- by_glossary_metric / direct_labor；出处：docs/modernization/glossary/terms.yaml:2699
 
 ```yaml
 definition: 有效工时乘该变体所用的成本费率，可复算；按变体分费率：预算、预估变体用标准成本费率卡的版本，实际变体用实际成本费率（含加班计价）；挂项目的奖金按服务期间计提计入直接人工：预算、预估变体按费率卡版本的奖金计提率，实际变体按计提并在奖金核定后单列调整行（FCQ-05、FCQ-01）
@@ -246,7 +246,7 @@ definition:
   待决: —
 ```
 
-- by_glossary_metric / direct_expense；出处：docs/modernization/glossary/terms.yaml:2714
+- by_glossary_metric / direct_expense；出处：docs/modernization/glossary/terms.yaml:2715
 
 ```yaml
 definition: 判定为项目直接的费用（经费用 BC 防腐层）
@@ -272,7 +272,7 @@ definition:
   待决: —
 ```
 
-- by_glossary_metric / lead_conversion_rate；出处：docs/modernization/glossary/terms.yaml:10501
+- by_glossary_metric / lead_conversion_rate；出处：docs/modernization/glossary/terms.yaml:10511
 
 ```yaml
 definition: 期间内转为商机的线索数 ÷ 期间线索数
@@ -280,7 +280,7 @@ definition: 期间内转为商机的线索数 ÷ 期间线索数
 
 ### 贡献毛利率
 
-- by_glossary_metric / contribution_margin_ratio；出处：docs/modernization/glossary/terms.yaml:9568
+- by_glossary_metric / contribution_margin_ratio；出处：docs/modernization/glossary/terms.yaml:9578
 
 ```yaml
 definition: 贡献毛利 ÷ 对应层级的净服务收入（不含税）；分母须与贡献毛利同层级、同变体
@@ -312,7 +312,7 @@ definition:
   待决: 分段方案（F3）；按开票日起算
 ```
 
-- by_glossary_metric / aged_receivable；出处：docs/modernization/glossary/terms.yaml:10232
+- by_glossary_metric / aged_receivable；出处：docs/modernization/glossary/terms.yaml:10242
 
 ```yaml
 definition: 账龄超过 N 天的应收账款余额；N 与起算日为口径参数（管理账龄与减值账龄分段见 FD-37）

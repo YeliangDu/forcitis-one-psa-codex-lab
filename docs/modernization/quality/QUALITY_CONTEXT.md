@@ -353,20 +353,23 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - **GOV-1023-QUA-06 加急（排在 #653/#654 返工之前，自写，opus 首轮；卡在 `claude/one-coordinator-two-lanes` @1e482dd53，正文推送后可读，先按此开工）**：①`.claude/settings.json` 钩子统一从主检出的 scripts/hooks 运行（各工作区钩子落后：one-data 落后 553、one-ops 落后 381 次提交，均无 start_sheet.py，开工单 24 小时失败 11 次）；②推送门被拦只回 FAIL 行与日志路径（现回末 40 行约 3.8k 字、日 59 次）；③交接节点提示只列卡号；④context_handoff 按会话读阈值（调度 50/60）；⑤同一 PR 给仓库 `.claude/settings.json` 加项目级 `enabledPlugins`：kotlin-lsp@claude-plugins-official、claude-code-setup@claude-plugins-official、code-modernization@claude-plugins-official 设 false（mattpocock-skills、code-simplifier 保留），PR 写明需各会话重启生效。
 - **QUA-21 收窄（用户 10-23）**：TEAM-41 的 800 行／15 文件改为复审参考线，不做硬拦截；QUA-21 只在 PR 检查里提示超线并要求 PR 写理由，不阻断；Codex 在做的那份按此收窄。TEAM-72 重复跑三遍不变。
 
-## 交接（2026-10-23 午后，节点：#653 二轮必改已推送；第九次清空接续）
+## 交接（2026-10-23 午后，节点：#653 合 main 并补强已推送；第九次清空接续）
 
 ### 现状
-- 调度 10-23 整改总验收 GOV-1023-COO-01（清单 `~/.modernize/psa/coordinator/team-audit/acceptance-1023.md`，54 项）：顺序 QUA-06 → #653/#654＋QUA-08 → QUA-04 → QUA-07 → QUA-02 → 其余；代码类交 Codex，钩子与解析自写。QUA-21 改「撤硬拦只提示」，QUA-12 不禁整节上下文文档。1023 的 QUA-06～10 卡在 `origin/claude/one-coordinator-two-lanes`，随 train-71 进 main。
-- **QUA-06 已开 PR #659**（分支 `claude/one-quality-hooks-main-checkout`，head fb56502d2）：run_from_main.sh 启动器＋settings 全部钩子改走它、handoff_snapshot 子调用用自身目录、verdict ≤15 行＋完整日志路径、节点提示只列卡号标题、调度 50/60；自测与破坏验证齐，等调度安排 opus 首轮。
-- **#653 二轮 6 项必改已改并推送**（head 80bf77e25）：只读通道删 b5_legacy_run.py／c14_run.py；可信脚本认 origin/main 内容；`./x` 直接执行与行级兜底；git 本地子命令白名单；ssh -o 白名单；GNU 长选项任意前缀。8 处破坏验证均变红。**待办：交 sonnet 逐条复核（对照 `~/.modernize/psa/coordinator/reviews/pr653-opus-2.md`），结论贴 PR，报调度 head；PR 描述补「通道整支只读」依据，并请 one-ops 核剩余三支。**
-- #654 等新 #653 后推（调度语）。
+- 调度整改总验收 GOV-1023-COO-01（清单 `~/.modernize/psa/coordinator/team-audit/acceptance-1023.md`）。**借调（用户同意）**：QUA-02、QUA-23 转 one-1a-par；QUA-09、QUA-10 转 one-platform-file（Codex 执行、它们审）。我专守 **#653 → #654 → QUA-08 → QUA-04 → QUA-07**；碰我独占路径有异议直接告诉调度。1023 的 QUA-06～10 卡在 `origin/claude/one-coordinator-two-lanes`。
+- **#659（QUA-06）**：opus 首轮必改 7 项＋sonnet 复核补强已改，sonnet 复核通过，**调度已批入队**（head 36f2056f1）。代价：合入后须 one-merge 立即快进主检出，再发“合并 main 并重启会话”通知，否则已合并会话在主检出尚无启动器时钩子 127。
+- **#653（QUA-24）**：opus 二轮 6 项必改已改，调度的 sonnet 复核通过；与 main 冲突已合并（`scripts/precheck.sh` 触发正则取并集，合并提交 b599259b9）；我自己的 sonnet 复核又给新绕过，最严重两处已修（信任锚改全名 `refs/remotes/origin/main`、tag／update-ref 移出 git 白名单、git grep -O 合并写法），**新 head 013cf4b0f，已报调度，等调度批**。
+- 余项转 QUA-08（共享解析一并）：A 可信脚本的同目录 import 依赖不比对；B 同目录影子模块（需 -I／目录洁净）；D script_operand 对 bash -e／-o、`< x` 重定向读文件、/usr/bin/env bash 不一致；F 远端命令环境变量前缀（SYSTEMD_PAGER／LD_PRELOAD）；G journalctl --cursor-file、ss -D 写文件；H wget -e；I Makefile／git hook 间接执行（文件头已承认）。另有 opus 二轮建议：select next value、query_to_xml 已加；sed 地址 e 命令、aliyun 布尔全局选项、`psql "$DATABASE_URL"` 误杀提示未做。
+- 低优先待办：ClamdScannerTest.aSilentClamdTimesOutAndIsRetriedWithinTheLimitThenRefused 偶发超时（one-architecture 报，@aacc7d521 附近）——登记 CI 复发跟踪（不稳定测试台账），定性后若属文件服务测试自身转 one-platform-file。
 
 ### 下一步（顺序）
-1. sonnet 复核 #653 → 贴 PR → 报 head。
-2. QUA-08（command_words 缺口统一修，与 #653/#654 的共享解析一并）→ #654 返工 → QUA-04 → QUA-07 → QUA-02 → 其余（QUA-09、10 交 Codex）。
-3. 本交接文档的提交号报 one-merge。
+1. #654 按新 #653 重基并返工（发帖侧门；删去“通过后开启自动入队”条件；同一套 command_words 缺口）→ opus／sonnet 复审。
+2. QUA-08：command_words.py 共享解析余项（反引号、$'..'、反斜杠换行、bash -lc／多参 eval／heredoc／herestring／管道喂 shell、env -S、gh 全局选项）＋上面 A–I；全部门自测重跑；COO-17 待建指针收口。
+3. QUA-04（调度定义）→ QUA-07 交接源与挡停闭环（只更新交接源放行、只改时间戳拦截，两组反例）。
+4. 本交接文档的提交号报 one-merge。
 
 ### 坑
-- 唯一可写工作区 `xin-61164f`：先 `git branch --show-current`；PR 分支轮流 checkout（#653 `claude/one-quality-gate-prod-write`、#659 `claude/one-quality-hooks-main-checkout`）。
+- 唯一可写工作区 `xin-61164f`：先 `git branch --show-current`；PR 分支轮流 checkout（#653 `claude/one-quality-gate-prod-write`、#659 `claude/one-quality-hooks-main-checkout`、交接 `claude/one-quality-handoff-6`）。合并 main 前未跟踪的 `docs/modernization/sessions/_COMMON.md` 要先移走（已存到 scratchpad）。
 - macOS sed -i 需 `''`；改文件用 Edit／python 脚本。拆源码里的真实特征字面量用相邻字符串拼接（`"a" "b"`）。
-- 守护自测里「相对常量断言」会同义反复（EXCERPT_LINES+3），写死数字。
+- 自测里“相对常量断言”会同义反复，写死数字；复核用 Agent 时 description 须写成 `#PR号 名称 (执行者)`，后台 Bash 同理。
+- 清空前若有用户消息在排队，clear_session 会被拒；先等其处理。
