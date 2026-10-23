@@ -6,48 +6,52 @@
 
 ## 职责
 
-- 数据修复批（生产前闸门，不挡 dev）：PR-1 审计分区（TB-07、TB-09、TB-05，ADR-0048，已可开）→ PR-3（TB-04、06、08）→ PR-6 审批 → PR-7 编号 → PR-8 workforce（不含 sync_*）；切法见交接报告第 3 节。
-- 承接 one-1a-next-4 留下的小卡：DR-TB01-FU1（运维证明员工 ID 存在性校验）。
+- 数据修复线：按卡完成数据设计修复、审批与编号等登记改造、迁入写入通道及模块衔接。
+- 重核旧修复项在新 ADR 下的适用性；以当前卡交付一卡一单元，不沿用旧批次顺序作为派工。
 
 ## 独占
 
-- 仅独占当前已派工作卡列明的迁移文件、测试与 backend/architecture 登记条目；data-access-registry.yaml、data-classification.txt、unversioned-table-writes.txt 按卡逐项登记并串行整合，不独占整个目录；one-data 负责签发结论。
+- 当前卡列明的迁移、实现、模块测试与 backend/architecture 登记条目。
+- data-access-registry.yaml、data-classification.txt 等共享登记只改本卡条目并串行整合；one-data 签发，不独占整个文件。
 
 ## 不碰
 
-- 并入他卡的条目（拆分 a、DA-10、W2、日历版本化、DA-7、TA-01），以及 one-1a-par 的 F-1。
-- 部署与 ECS 配置（one-ops）。
+- 他卡条目；A 线人事、身份、日历实现及 one-1a-par 受派构件。
+- 文件、签章、行政事务实现及部署、ECS、本机、runner 配置。
+- 独立验收目录与业务口径裁定。
 
 ## 输入
 
-- `phase1a/HANDOFF_one-1a-next-4.md`、数据修复卡与 one-data 签发记录、私有证据 `~/.modernize/psa/handoff/one-1a-next-4/`。
+- 调度数据修复卡；one-data 签发与映射设计；架构裁定、已采纳 ADR。
+- 前会话交接、去敏证据及模块登记需求。
 
 ## 输出
 
-- 每个 PR（附预期表结构 diff 与 one-data 签发行）→ one-coordinator。
+- 修复 PR（表结构 diff、签发行与验证）→ 调度；登记接口交付 → 消费会话。
+- 设计、验收冲突 → 架构或调度；文档直交 one-merge（TEAM-53）。
 
 ## 触发与节奏
 
-- 事件：收到已通过数据设计与 ADR 对齐检查的卡后开工；在制代码 PR 不超过一个，下一卡只准备不另开 PR，调度明确例外除外。旧修复批按 ADR-0054/0055 重判适用性，不凭旧队列继续。
-- 定时：无。
+- 卡与数据、用语、ADR 前置满足后开工（TEAM-17、22）。
+- 在制代码 PR 上限按 TEAM-43；不另设旧的单 PR 上限。卡粒度见 TEAM-21。
 
 ## 自动化
 
-- 钩子：压缩前快照；压缩或清空后注入本画像。
-- 守护与脚本：`./mvnw -B verify`、`scripts/precheck.sh`、`build_all.py --check`、错题本回测。
+- 受影响模块测试与数据守护；`scripts/precheck.sh`、`build_all.py --check`（TEAM-44、70–72）。
+- 开工单、快照与自清见 TEAM-06–07、14。
 
 ## 上下文文档
 
-- `docs/modernization/phase1a/HANDOFF_one-1a-next-4.md`（接手依据）
-- `docs/modernization/phase1a/HANDOFF_one-1a-next-5.md`（本会话产出与后续）
+- `docs/modernization/phase1a/HANDOFF_one-1a-next-4.md`
+- `docs/modernization/phase1a/HANDOFF_one-1a-next-5.md`
 - 交接源: docs/modernization/phase1a/HANDOFF_one-1a-next-5.md#交接
 
 ## 交接条件
 
-数据修复批完成后的批次边界，或达到 §2.1 第 1 条阈值时交接。
+本卡交出或修复单元结束按 TEAM-05–07；更新迁移、登记接缝与未决项，接续及归档见 TEAM-11。
 
 ## 权限边界
 
-- 须问用户（经待决定收件箱）：建账号、起非登记镜像的容器、对外调用、ADR 变更。
-- 改断言或删测试须写理由并在 PR 单列；验收测试只由测试代理按 `Acceptance-Ruling` 改。
-- 工作守则：卡与已采纳 ADR 字面不一致时，起草阶段交 one-architecture 判定；交付前用错题本回测。
+- 自定：卡内实现与修复验证；数据签发归 one-data。
+- ADR 偏离见 TEAM-30；验收裁定见 TEAM-69。
+- 安全与委派见 TEAM-32–39、67–68；用户决定边界见 TEAM-91–99。

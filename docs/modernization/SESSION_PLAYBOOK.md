@@ -11,7 +11,7 @@
 | TEAM-02 | 会话名 `one-*`、全局唯一（含远程）；每个在用会话一份画像 `sessions/<会话名>.md`，新会话先写或认领画像，随第一份提交入库 | one-coordinator | 半 | build_sessions.py（只校名称与字段） |
 | TEAM-03 | 画像只写类型、职责、独占、不碰、输入、输出、触发、自动化、交接条件、权限边界，引用 TEAM 号不抄条文；不写「当前状态」「工作守则」；「上下文文档」一节只放路径与 `交接源:` 行，现行事实见 TEAM-08 | one-coordinator | 半 | build_sessions.py（字段集严格相等，多出或缺少即失败；不查是否抄条文） |
 | TEAM-04 | 各画像「独占」路径两两不相交；相交由调度裁定，同一提交改两份画像 | one-coordinator | 无 | 待建：GOV-1022-QUA-13 |
-| TEAM-05 | 用量 30% 准备交接（不接新大块、交接写到最新），40% 在下一批次边界交接；连续约 8 小时或已压缩两次也交接 | 全员 | 半 | context_handoff.py |
+| TEAM-05 | 用量 30% 准备交接（不接新大块、交接写到最新），40% 在下一批次边界交接；连续约 8 小时或已压缩两次也交接；调度例外：50% 准备、60% 交接（用户 2026-10-23，intent 081732） | 全员 | 半 | context_handoff.py |
 | TEAM-06 | 节点自清：除 one-coordinator 外（intent 2026-10-22-214856；one-architecture 也自清），遇节点（卡交出、推送、开 PR、报完成点、一轮结束）且用量 ≥20%，写交接→报调度→`clear_session(self)`，调度确认后发接续；发给清空中会话的消息经调度转 | 全员 | 半 | context_handoff.py |
 | TEAM-07 | 交接按 `templates/HANDOFF.md`（在途分支与 PR、未完事项、待用户的事、下一步）；压缩前与会话结束时钩子写快照到 `~/.modernize/psa/handoff/`，恢复后先核实况 | 全员 | 半 | precompact_snapshot.sh、sessionend_snapshot.sh |
 | TEAM-08 | 长期会话的现行事实（资源标识、在建步骤、坑与处置）写在专题文件（OPS_CONTEXT、GLOSSARY_CONTEXT 等），一行一项，不记过程与密钥 | 长期会话 | 无 | |
@@ -163,6 +163,10 @@
 | TEAM-99 | 不替用户批准，不让其他会话代做本会话被拒的操作；消息无回执不算已执行，以对方报告或文件为准 | 全员 | 无 | |
 | TEAM-100 | SECURITY_INVARIANTS、SECURITY_FINDINGS 生产前由 one-architecture 代管，one-security 设立后移交；身份、授权、单人模式改动遵守 SECURITY_INVARIANTS 并走 opus | one-architecture | 无 | |
 | TEAM-101 | 引入或升级依赖、改 CI 工作流与 runner，按 `SUPPLY_CHAIN.md` S1–S7 | 改动方 | 半 | ci.yml（PyYAML、shellcheck 版本校验） |
+| TEAM-102 | 治理冻结：整改总验收完成起两周不新增规则与守护；事故或安全缺口经用户批准例外，在途整改卡照做（用户 2026-10-23，intent 104603） | one-coordinator | 无 | |
+| TEAM-103 | 新守护或收紧既有守护合入前，先对全部在开 PR 跑一遍；会撞上的先修或在 PR 里给过渡期，不得让它首次在队首变红（intent 104603） | 改动方 | 无 | 待建：随 GOV-1023-MRG-10 预跑整轮 CI |
+| TEAM-104 | 每个 bc 设一个牵头会话从签发到命令卡负责到底，架构、数据、用语限时审阅不接力；临时流程组阶段结束即归档，在用会话控制在约 10–12 个（intent 104603） | one-coordinator | 无 | |
+| TEAM-105 | 每周一出效率数：业务功能 PR 合入数、产品代码行数、摩擦时长（挂起、冲突、等批准累计），连同上周对比报用户（intent 104603） | one-quality | 无 | 待建：GOV-1022-QUA-23 |
 
 ## 附 M：方法（不是团队规则，仍有效）
 
