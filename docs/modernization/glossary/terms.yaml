@@ -1871,7 +1871,7 @@ terms:
   snake: delivery_package
   kind: entity
   bc: delivery.execution
-  definition: 介于合同条款与工作包之间的一层交付单元，是验收对象类型之一；与工作包不同义，不与它合并。
+  definition: WBS 内部的一层交付单元，是验收对象类型之一；是否采用按合同而定；与工作包（WBS 最底层）不同义，不合并。
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: low
@@ -1880,7 +1880,8 @@ terms:
   status: approved
   change_ref: G-22
   note: 与 WorkPackage 是否同一概念待业务确认（验收对象类型含交付包）
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；用户 2026-10-23 GL6-01（提交 GL6-20261023-121143-xi1）：选「分开叫，另写交付包的实例」，说明「交付包是工作包和合同条款的中间层，这个之前有决断，意思不应该一致」；此前决断为 2026-10-14 用语确认页 C83 正式词条（交付包）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；用户 2026-10-23 GL6-01（提交 GL6-20261023-121143-xi1）：选「分开叫，另写交付包的实例」，说明「交付包是工作包和合同条款的中间层，这个之前有决断，意思不应该一致」；经 one-coordinator 补问，用户补答「交付包是wbs内部，但是根据合同看看是否采用」；此前决断为 2026-10-14
+    用语确认页 C83 正式词条（交付包）（用户裁定，rulings.yaml）
   scope: domain
 - id: work_package
   zh: 工作包
@@ -5475,7 +5476,7 @@ terms:
   snake: earned_value
   kind: metric
   bc: delivery.execution
-  definition: 截至某时点已完成工作的预算价值（EV；GB/T 50358 称赢得值）；过去口头说的管理进展估计（旧称经营产值）按此口径算。
+  definition: 截至某时点已完成工作的预算价值（EV；GB/T 50358 称赢得值），按预算成本计；区别于按合同价计的经营产值。
   standard_ref:
   - PMI PMBOK Guide
   - PMI Practice Standard for Earned Value Management
@@ -5485,11 +5486,10 @@ terms:
   - name: 赢得值 / EV
     type: standard-zh
     deprecated: false
-  forbidden:
-  - 经营产值
+  forbidden: []
   status: approved
   change_ref: G-23
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；用户 2026-10-23 GL6-02（提交 GL6-20261023-121143-xi1）：选「按已做完部分的预算价值（即挣值）」；该题标须经财务确认（ADR-0018），待财务核实（用户裁定，rulings.yaml）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；用户 2026-10-23 GL6-02 补答（经 one-coordinator）：「经营产值就是按照合同条款poc和合同条款金额计算出来的金额」；挣值仍为 EVM 的 BCWP，两者口径分立（用户裁定，rulings.yaml）
   scope: domain
 - id: actual_cost
   zh: 实际成本

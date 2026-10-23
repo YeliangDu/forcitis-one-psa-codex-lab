@@ -577,17 +577,16 @@ rulings:
     source: one-glossary 2026-10-23 自修：名称已由 R3-IN-08 定，原 kind 误标 command，实为期限值（one-coordinator 审题 gl6-gl7-review-1 页级问题第 10 条）
   - op: redefine
     id: delivery_package
-    definition: 介于合同条款与工作包之间的一层交付单元，是验收对象类型之一；与工作包不同义，不与它合并。
-    source: 用户 2026-10-23 GL6-01（提交 GL6-20261023-121143-xi1）：选「分开叫，另写交付包的实例」，说明「交付包是工作包和合同条款的中间层，这个之前有决断，意思不应该一致」；此前决断为 2026-10-14 用语确认页 C83 正式词条（交付包）
+    definition: WBS 内部的一层交付单元，是验收对象类型之一；是否采用按合同而定；与工作包（WBS 最底层）不同义，不合并。
+    source: 用户 2026-10-23 GL6-01（提交 GL6-20261023-121143-xi1）：选「分开叫，另写交付包的实例」，说明「交付包是工作包和合同条款的中间层，这个之前有决断，意思不应该一致」；经 one-coordinator 补问，用户补答「交付包是wbs内部，但是根据合同看看是否采用」；此前决断为 2026-10-14 用语确认页 C83 正式词条（交付包）
   - op: redefine
     id: work_package
     definition: WBS 最底层、可估算并管理成本和工期、可记工时的工作单元；与交付包不同义。
     source: 用户 2026-10-23 GL6-01（同上，分开叫）；最底层含义依 PMBOK 与 WBS 标准（交接材料 WBS3、PMB6，未复核原件）
   - op: redefine
     id: earned_value
-    definition: 截至某时点已完成工作的预算价值（EV；GB/T 50358 称赢得值）；过去口头说的管理进展估计（旧称经营产值）按此口径算。
-    add_forbidden: [经营产值]
-    source: 用户 2026-10-23 GL6-02（提交 GL6-20261023-121143-xi1）：选「按已做完部分的预算价值（即挣值）」；该题标须经财务确认（ADR-0018），待财务核实
+    definition: 截至某时点已完成工作的预算价值（EV；GB/T 50358 称赢得值），按预算成本计；区别于按合同价计的经营产值。
+    source: 用户 2026-10-23 GL6-02 补答（经 one-coordinator）：「经营产值就是按照合同条款poc和合同条款金额计算出来的金额」；挣值仍为 EVM 的 BCWP，两者口径分立
   - op: rename
     id: expense_claim
     to_id: expense_confirmation
