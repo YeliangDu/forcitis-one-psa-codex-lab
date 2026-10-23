@@ -1,12 +1,12 @@
 # 派工卡模板
 
-用途：负责会话或调度会话派一张编码卡（给子代理、Codex 或工作会话）时，复制下方「模板」填写。规则出处：SESSION_PLAYBOOK TEAM-32–38、附 M1、TEAM-20；CODING_STANDARD §7。一张卡只属于一类工作（SESSION_PLAYBOOK 附 M1 第 5 条），卡上没写的不做。
+用途：负责会话或调度会话派一张编码卡（给子代理、Codex 或工作会话）时，复制下方「模板」填写。规则出处：SESSION_PLAYBOOK TEAM-32、TEAM-33、TEAM-34、TEAM-86、TEAM-52、附 M1、TEAM-20；CODING_STANDARD §7。一张卡只属于一类工作（SESSION_PLAYBOOK 附 M1 第 5 条），卡上没写的不做。
 
 ## 模板
 
 ```markdown
 ---
-卡号: <任务号，如 NAM-1017-GLO-03（SESSION_PLAYBOOK TEAM-23、26）>
+卡号: <任务号，如 NAM-1017-GLO-03（SESSION_PLAYBOOK TEAM-23、TEAM-26）>
 任务名: <[主线·bc] 动作 + 对象>
 主线: <NAM|CON|ARC|RUL|DAT|IMP|CI|OPS|GOV>
 bc: <bcs.yaml id 或 跨域>
@@ -71,13 +71,13 @@ bc: <bcs.yaml id 或 跨域>
 - 报告分开写「已验证」与「未运行」
 
 ## 9. 复审要求（SESSION_PLAYBOOK 附 M1 第 2、7 条）
-- Blocker / High：opus 复核，合并前修完
+- Blocker / High：合并前修完，复核模型与责任按 TEAM-67
 - Medium / Low：执行者补测试、CI 通过即关闭，负责会话抽查；不阻塞合并的登记进下一批
 - 复审清单：DATA_DESIGN_CHECKLIST §14、§14.1；CODING_STANDARD 相关节：<…>
 
 ## 10. 报告去向
-- 完成、部分完成或阻塞，都向 <负责会话>，抄 one-coordinator（SESSION_PLAYBOOK TEAM-59）
-- 报告包含：提交号与分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、未完成项、需要用户决定的事；Codex 卡另记返工轮次与耗时
+- 常规状态在 TEAM-53 四节点上报；阻塞、安全事件、用户决定与需动作的请求按该条送达 <负责会话>，需调度处理的报 one-coordinator
+- PR／卡／交接记录：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、未完成项、需用户决定事项；提交号写 PR 描述或分支，不单独发，文档合集按 TEAM-53 自扫认领；Codex 卡另记返工轮次与耗时（TEAM-52）
 ```
 
 ## 示例：R-4 去数据库时钟默认值
@@ -139,8 +139,8 @@ bc: <bcs.yaml id 或 跨域>
 
 ## 9. 复审要求
 - opus 核对：表结构 diff 只含声明的默认值删除；每处 INSERT 都传入时刻（无遗漏写 `null`）；守护对迁移生效且例外清单为空
-- Blocker / High 合并前修完并由 opus 复核；Medium / Low 登记进下一批
+- Blocker / High 合并前修完并按 TEAM-67 复核；Medium / Low 登记进下一批
 
 ## 10. 报告去向
-- 向 one-1a-next 报告，抄 one-coordinator；附返工轮次与耗时，与同类 sonnet 卡对比（SESSION_PLAYBOOK TEAM-32–38）
+- 节点报告与需动作的请求按 TEAM-53 送负责会话；返工轮次与耗时写卡及 PR（TEAM-52），不单独报提交号
 ```

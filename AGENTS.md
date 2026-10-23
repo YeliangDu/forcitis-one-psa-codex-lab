@@ -10,3 +10,5 @@ Codex 在本仓库只接受 one-coordinator 或负责会话派出的工作卡（
 - 交付前运行 `scripts/precheck.sh`，把输出附在结果里。通过标准：最后一行 `SUMMARY` 为 `0 FAIL`（退出码 0），每个 SKIP 都有理由；卡上验收测试转绿；有 FAIL 不算完成，在结果里写明原因。
 - 结果里分开写「已验证」与「未运行」。
 - 结果与报告用中文书写（用户要求，见 CLAUDE.md 第 0 条）。
+
+进入 `backend/` 或 `docs/modernization/glossary/` 等目录工作前，先读该目录下的 `CLAUDE.md`（Codex 不会自动加载子目录 CLAUDE.md）。
