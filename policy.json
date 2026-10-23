@@ -135,7 +135,7 @@
     "l2_keep_business_line": "one-dev-par",
     "agent_tier_gate_enabled": false,
     "reading_validation_days": 7,
-    "reading_max_deviation_pts": null,
+    "reading_max_deviation_pts": 5,
     "share_overrun_factor": 1.5,
     "night_window": {
       "from": "22:00",
@@ -167,7 +167,10 @@
       "coordinator",
       "design",
       "quality_infra"
-    ]
+    ],
+    "week_reset_anchor": "2026-10-26T09:00Z",
+    "reading_max_age_min": 360,
+    "_reading_说明": "week_reset_anchor 取自用量页周重置时间（北京时间周一 17:00），按 7 天推算；reading_max_age_min：读数源每天只采样 3～4 次，超过即视为无读数；reading_max_deviation_pts=5 为验证期暂定（本地 80%、用量页 82% 一次对照），验证满一周后复核再定。"
   },
   "budget_check": {
     "mode": "warn"
