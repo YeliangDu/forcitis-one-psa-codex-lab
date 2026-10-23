@@ -289,18 +289,33 @@ def _scenarios(mq, d):
     proc, q, log, _ = _proc(mq, d, "rp1", gh, [110])
     assert proc.process(110) == "HOLD" and not any(c[0] == "rerun" for c in gh.calls) and "repeat runs" in log.lines[-1] and "run=31" in log.lines[-1] and not any(c[0] == "merge" for c in gh.calls)
     # the environment failed (container runtime down), not the pull request: wait for it, run again, no attempt used up; it never recovers: HOLD naming the environment
-    gh = FakeGh(); gh.add(113, rounds=[dict(pending=0, checks=red(61)), dict(pending=0, checks=red(62)), dict(pending=0, checks=green(63))]); gh.docker_down = 2
+    gh = FakeGh(); gh.add(113, rounds=[dict(pending=0, checks=red(61)), dict(pending=0, checks=red(62)), dict(pending=0, checks=green(63))]); gh.docker_down = 3
     gh.step_failures = {"61": ["test images are present"]}
     proc, q, log, slept = _proc(mq, d, "env1", gh, [113])
     assert proc.process(113) == "MERGED" and "ENV" in events(log) and slept.count(60) == 2 and ("rerun", "61") in gh.calls, (events(log), slept)
     gh = FakeGh(); gh.add(114, rounds=[dict(pending=0, checks=red(71))]); gh.docker_down = 10 ** 6
-    gh.step_failures = {"71": ["docker_ensure"]}
+    gh.step_failures = {"71": ["docker is running"]}
     proc, q, log, _ = _proc(mq, d, "env2", gh, [114])
     assert proc.process(114) == "HOLD" and "environment" in log.lines[-1] and not any(c[0] == "rerun" for c in gh.calls), log.lines[-1]
     gh = FakeGh(); gh.add(115, rounds=[dict(pending=0, checks=red(81))] * 5)
     gh.step_failures = {"81": ["test images are present"]}
+    flips = iter([False, True] * 20)   # down when the verdict is made, up again when waited for
+    gh.docker_ok = lambda: next(flips)
     proc, q, log, _ = _proc(mq, d, "env3", gh, [115])
     assert proc.process(115) == "HOLD" and events(log).count("ENV") == 4 and "environment" in log.lines[-1], "an environment that keeps failing is not rerun for ever"
+    # not an environment failure: docker answers (a wrong test-images.txt), or another step failed too, or one of two red runs failed in a real step
+    gh = FakeGh(); gh.add(116, rounds=[dict(pending=0, checks=red(91)), dict(pending=0, checks=green(92))])
+    gh.step_failures = {"91": ["test images are present"]}
+    proc, q, log, _ = _proc(mq, d, "env4", gh, [116])
+    assert proc.process(116) == "MERGED" and "ENV" not in events(log) and "RERUN-FAILED" in events(log), "docker is fine: the pull request's own failure, rerun once as any other"
+    gh = FakeGh(); gh.add(117, rounds=[dict(pending=0, checks=red(93)), dict(pending=0, checks=green(94))]); gh.docker_down = 10 ** 6
+    gh.step_failures = {"93": ["docker is running", "surefire and failsafe, side by side"]}
+    proc, q, log, _ = _proc(mq, d, "env5", gh, [117])
+    assert proc.process(117) == "MERGED" and "ENV" not in events(log), "a real failure next to the environment step is not swallowed"
+    gh = FakeGh(); gh.add(118, rounds=[dict(pending=0, checks=red(95) + red(96)), dict(pending=0, checks=green(97))]); gh.docker_down = 10 ** 6
+    gh.step_failures = {"95": ["docker is running"], "96": ["surefire and failsafe, side by side"]}
+    proc, q, log, _ = _proc(mq, d, "env6", gh, [118])
+    assert "ENV" not in events(log) and proc.process(118) == "MERGED", "one red run with a real failure: no environment verdict for the batch"
     gh = FakeGh(); gh.add(112, rounds=[dict(pending=0, checks=red(51)), dict(pending=0, checks=green(52))])
     gh.failed_steps = lambda run: None
     proc, q, log, _ = _proc(mq, d, "rp3", gh, [112])

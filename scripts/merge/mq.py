@@ -68,7 +68,7 @@ import gapscan   # noqa: E402
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
 # ci.yml's step that runs the pull request's new or changed test classes again (scripts/ci/repeat_new_tests.py): red there is a flaky new test, and a rerun that passes would let it in
 URGENT_LABEL = "急"   # put on by the coordinator: the pull request is picked before the others of its lane and the queue never cancels its CI runs
-ENV_STEPS = ("test images are present", "docker_ensure")   # CI steps that fail when the machine's container runtime is down: no verdict on the pull request
+ENV_STEPS = ("docker is running", "test images are present")   # exact names in ci.yml of the steps that go red when the machine's container runtime is down
 REPEAT_STEP = "new or changed test classes, repeated"
 OK = ("pass", "skipping")
 LINE = re.compile(r"^\s*(\d+)(?:\s+after=([\d,]+))?\s*$")   # "<n>" or "<n> after=<m>[,<m>...]": n waits until every m is merged
@@ -932,7 +932,8 @@ class Processor:
                 unknown = [r for r, st in steps.items() if st is None]
                 if unknown:   # gh could not say which step failed: the one rerun still happens (the lenient direction), but it is on record
                     self.log.event("FAILED-STEPS-UNKNOWN", n, unknown[0], since, "could not read the failed steps; a failed repeat step would not be recognised")
-                env_runs = [r for r, st in steps.items() if any(mark in name for name in (st or []) for mark in ENV_STEPS)]
+                # an environment failure: every red run failed only in environment steps, and the container runtime really is down (a wrong test-images.txt turns the same step red with docker fine)
+                env_runs = runs if runs and all(steps[r] and all(name in ENV_STEPS for name in steps[r]) for r in runs) and not self.gh.docker_ok() else []
                 if env_runs:   # the machine, not the pull request: wait for the container runtime, run again, and the author's attempt is not used up
                     env_failures += 1
                     self.log.event("ENV", n, env_runs[0], since, f"{', '.join(c['name'] for c in red)}: the environment failed, not the pull request (#{env_failures}); waiting for the container runtime")
