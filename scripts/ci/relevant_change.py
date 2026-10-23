@@ -67,7 +67,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/rulings/",
     # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py
     "docs/modernization/sessions/",
-    # SESSION_PLAYBOOK §11: playbook_digest.py 的自测对真实文件断言；SessionStart 钩子读取它
+    # start_sheet.py 的开工单按需读列表里点名它；handoff_selftest.py 的夹具写同名路径
     "docs/modernization/SESSION_PLAYBOOK.md",
     "docs/modernization/check_legacy_name.py",
     # task register: check_tasks.py runs in build_all.py; session_daily.py reads origin/main's tasks/
@@ -640,8 +640,6 @@ def self_test():
     assert not is_covered("docs/modernization/glossary/issues/x.md"), "a build reading NOT_READ_BY_BUILDS must fail the scan"
     assert not is_covered("docs/modernization/glossary/issues")
     assert is_covered("docs/modernization/sessions/one-ops.md")
-    assert is_covered("docs/modernization/sessions/_COMMON.md")
-    assert not is_relevant("docs/modernization/sessions/_COMMON.md")
     assert is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
     assert is_relevant("docs/modernization/status/blockers/080-1a-no-deploy-until-fix.md")
     assert not is_relevant("docs/modernization/adr/src/ADR-0001.md")

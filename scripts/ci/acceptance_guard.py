@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail when a commit of the pull request changes an acceptance test without saying who may (SESSION_PLAYBOOK §6.1 item 8).
+"""Fail when a commit of the pull request changes an acceptance test without saying who may (SESSION_PLAYBOOK 附 M1 第 4 条、TEAM-69).
 Acceptance tests are the files under backend/src/test/java/com/forcitis/one/acceptance/, backend/src/test/resources/acceptance/
 and any frontend `__acceptance__` directory (not `acceptance` packages inside modules, e.g. the delivery.acceptance context).
 A commit that changes them needs a trailer `Acceptance-Test-Author: test-engineer` or `Acceptance-Ruling: <ruling id>` (ids look

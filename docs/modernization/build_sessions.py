@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从 sessions/ 的会话功能画像生成 SESSIONS.md（一表一屏；不入仓，与 INTENT.md 同类，SESSION_PLAYBOOK §2.1 第 16 条）。
+"""从 sessions/ 的会话功能画像生成 SESSIONS.md（一表一屏；不入仓，与 INTENT.md 同类，SESSION_PLAYBOOK TEAM-02、03）。
 
 用法：
   python3 docs/modernization/build_sessions.py              校验画像并生成 SESSIONS.md
@@ -14,7 +14,7 @@
 - 「上下文文档」一节内一行 `交接源: <仓库根相对 .md 路径>#<标题片段>`：长期会话必须有，工作会话可选；文件须存在、标题含该片段的节须找得到
   （开工单 C 段、交接节点指令、挡停都从它读；它可以是调度台账等不入「上下文文档」列表的文件）。
 - 每份画像生成的开工单（scripts/hooks/start_sheet.py）须在 8 KB 内。
-- 独占与不碰靠调度派工、评审时人工核对，不做自动校验（SESSION_PLAYBOOK §2.1 第 16 条）。
+- 独占与不碰靠调度派工、评审时人工核对，不做自动校验（SESSION_PLAYBOOK TEAM-02、03）。
 不合规时生成失败，不写产物。
 """
 import datetime, os, re, sys
@@ -168,7 +168,7 @@ def summary(text):
 def render(profiles, retired, now=None):
     head = ("# 会话一览\n\n<!-- 由 docs/modernization/build_sessions.py 从 sessions/*.md 生成，不入仓，不要手改；"
             "改画像后运行 python3 docs/modernization/build_all.py。 -->\n\n"
-            "画像规则见 SESSION_PLAYBOOK §2.1 第 16 条；画像全文在 `sessions/<会话名>.md`。\n\n"
+            "画像规则见 SESSION_PLAYBOOK TEAM-02、03；画像全文在 `sessions/<会话名>.md`。\n\n"
             "| 会话 | 类型 | 职责 | 上下文文档（仅列路径，不注入） |\n|---|---|---|---|\n")
     order = sorted(profiles, key=lambda p: (KINDS.index(p["类型"]), p["name"]))
     rows = []

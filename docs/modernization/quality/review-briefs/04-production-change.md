@@ -11,7 +11,7 @@
 
 1. 产出本身（剧本、命令、参数、回读与回滚步骤）。
 2. `phase1a/infra/INFRA_RUNBOOK.md` 相关章节与 `runbooks/` 里相邻剧本的写法；`PREDEPLOY_CHECKLIST.md`（A–D 节）；`runbooks/prod-approvals.txt`；`phase1a/infra/RESOURCES.md`。
-3. 授权依据：用户原话 intent 片段，或待决定收件箱里已答复的事项（用 ArtifactData 读回，不信转述）。SESSION_PLAYBOOK §7（必须由用户决定的事）。
+3. 授权依据：用户原话 intent 片段，或待决定收件箱里已答复的事项（用 ArtifactData 读回，不信转述）。SESSION_PLAYBOOK TEAM-91–94（必须由用户决定的事）。
 4. 涉及取证账号 / 外部库时：ADR-0037；涉及依赖、runner、CI 时：`SUPPLY_CHAIN.md`、`CI_RUNNERS.md`。
 5. 相关 ADR 原文（B4）；`CLAUDE.md` 第 8、9 条（密钥、起容器与常驻环境先问）。
 

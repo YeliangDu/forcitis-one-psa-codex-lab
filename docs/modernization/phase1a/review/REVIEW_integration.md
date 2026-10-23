@@ -221,7 +221,7 @@
 | INT-L13 | `frontend/scripts/copy-allow-list.yaml`（`standalone`） | 清单里有单字词，削弱用语守护 | `copy-glossary.test.mjs`：`standalone` 不得含单字词 |
 | INT-L14 | `src/test/.../EmergencyLoginIntegrationTest`、`AuditExportAndOwnRecordsIT`、`SyncLockoutGuardIntegrationTest.anEmergencySessionNeedsTheSnapshot` | 缺「快照过期」用例；缺离职吊销记录的造数；应急放行用例不断言错误码，也没有正向对照 | `INT-L14 …`（三个用例） |
 | INT-L15 | `docs/modernization/adr/src/ADR-0027.md` 第 3 项第 2 条；`SensitivePermissions.CODES` | 文档敏感清单与代码不一致；测试只断言 `contains`，不断言集合相等 | `INT-L15 敏感清单集合相等`（ADR 正文冻结，用新 ADR 或 SECURITY_INVARIANTS 对齐） |
-| INT-L16 | `docs/modernization/SESSION_PLAYBOOK.md:257` | §14「已登记的例外」还没写入 `ApplySourceSnapshot SyncRun+OrgSnapshot` | 文档项（psa-coordinator） |
+| INT-L16 | `docs/modernization/DATA_DESIGN_CHECKLIST.md:24` | §14「已登记的例外」还没写入 `ApplySourceSnapshot SyncRun+OrgSnapshot` | 文档项（psa-coordinator） |
 | INT-L17 | `organization/workforce/infrastructure/.../JdbcOrgSnapshotRepository.java:123,148` | 撤销和离职时刻由 SQL 推出，不由领域对象给出 | `DDD-2 撤销与离职时刻由领域对象给出` |
 | INT-L18 | `ReplaceAccountRoles.java:56`、`ChangeAccountStatus.java:31`、`UpdateRole.java:53`、`DeleteRole.java:39`、`ReleaseSyncRun.java:45`；`kernel/IdempotentResponses.java:21-27` | 应用层与 kernel 端口用裸 long | `DDD-6 应用服务与 kernel 端口使用类型化 ID` |
 | INT-L19 | `src/test/.../ErrorCodeGlossaryTest.java:18` | `PENDING_MODULES` 豁免已过期 | `DDD-10 错误码守护无模块豁免` |

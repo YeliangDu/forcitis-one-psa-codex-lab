@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse 钩子（Bash）：`gh pr create` 之前运行 scripts/precheck.sh，没有以「ready」收尾就拒绝提 PR（SESSION_PLAYBOOK §11）。
+"""PreToolUse 钩子（Bash）：`gh pr create` 之前运行 scripts/precheck.sh，没有以「ready」收尾就拒绝提 PR（SESSION_PLAYBOOK TEAM-44）。
 
 标准输入是钩子的 JSON（tool_input.command）；退出码 2 + 标准错误 = 拒绝，0 = 放行。命令不是 `gh pr create` 时立刻放行。
 precheck 本身失败（FAIL 或前端依赖缺失需先问用户）时，把它的输出末尾带回给会话。

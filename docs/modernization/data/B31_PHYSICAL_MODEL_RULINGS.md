@@ -1,6 +1,6 @@
 # B-31（organization.administration）物理承载裁定
 
-- 日期：2026-10-21；作者：one-data；依据：one-1a-admin 的 `B31_ALIGNMENT_AUDIT.md`（claude/one-1a-admin-skeleton @d2f0b69d）DATA-01–11、GLO-09，`B31_CONSTRUCTION_DESIGN.md` §3、§10、§11，`B31_TERM_GAPS.md` §2.1；SESSION_PLAYBOOK §14、§14.1 D1–D19；ADR-0058；DATA_DESIGN_GATE。
+- 日期：2026-10-21；作者：one-data；依据：one-1a-admin 的 `B31_ALIGNMENT_AUDIT.md`（claude/one-1a-admin-skeleton @d2f0b69d）DATA-01–11、GLO-09，`B31_CONSTRUCTION_DESIGN.md` §3、§10、§11，`B31_TERM_GAPS.md` §2.1；DATA_DESIGN_CHECKLIST §14、§14.1 D1–D19；ADR-0058；DATA_DESIGN_GATE。
 - 性质：本文定**物理承载的规则与形状**，不是 DDL 签发。7.5（AGG-114）、7.8（AGG-116）开表前仍须带 DDL 草案送审，我逐表签「数据设计：通过」；7.4、7.6 同理。未出 DDL 之前，下列裁定是 DDL 草案的验收口径。
 - schema：`organization_administration`；表名按词表（B31_TERM_GAPS §2.1 M1、M2、M5，已批准的采用批准名；M6 等 one-glossary 未裁的名字，裁后跟随，不阻塞结构）。
 

@@ -63,7 +63,7 @@
 | CC-N02 | 舍入模式 | 1b | 1b 已定「四舍五入到分」（RULE-141、RULE-142）；会计口径（凭证、分摊）财务未确认 | 无 | `HALF_UP` 写死在 `K/Money.java:16` | 无 | 老系统有三处用 `DOWN` 或 `FLOOR`（BR 场景 3、4、12，见 §3.4）；凭证口径未经财务确认 | **待决**（FQ-23） |
 | CC-N03 | 按权重拆分原语：总额守恒、确定性、偏差有界 | 1b（报价条款拆分 RULE-159；整单尾调 RULE-142）；2（人天拆分 RULE-004） | 无 | 无；GP:92 只规定「取整、分摊写在领域层」 | 无 `divide`、无拆分原语（`K/Money.java`） | 无 | 各模块会各自手写 `divide`，老系统就是这样形成了三种倒挤法；`allocate` 已被术语 `allocate_indirect_cost`（terms.yaml:2813）占用，拆分原语须另立术语 | **地基**（§3.3；XD-08「先按建议建」、XD-07 术语「按权重拆分 prorate」已定，2026-10-15） |
 | CC-N04 | 尾差归属规则 | 1b | 无；brief 把「分摊余数归属」放在 Phase 4 入口（brief:208），晚于首次需要 | 无 | 老系统三种做法：最大余数法（年终奖）、全部记入最大行（OH）、记入最后一行（重分类、商机费用、差旅）；OH 的文档写最大余数法，代码却是全部记入最大行（BR:1316，RULE-069 疑似缺陷） | 无 | 无统一约定；入口条件放错了阶段 | **待决**（FQ-24；入口条件已按 XD-09「提前到 1b」以 Proposed revision 移到 Phase 1b） |
-| CC-N05 | 冲销镜像 | 2（首个过账事实：工时成本） | ADR-0022 评审 C-8 选「红字」；冲销按原分录逐行取反，不按现行规则重推（ADR-0022:32） | ADR-0016:23；SP §12.3 | `K/Money.java:39` 有 `negate`；拆分结果的镜像（拆 −X 是否等于拆 X 后取负）无从谈起；冲销工厂不存在 | G34 只覆盖审计表只追加 | 老系统红冲是「按当前规则重算再取负」（GL-076），与 ADR-0022 相反；部分冲销的拆分规则未定 | 决定层已覆盖（ADR-0031，提议） |
+| CC-N05 | 冲销镜像 | 2（首个过账事实：工时成本） | ADR-0022 评审 C-8 选「红字」；冲销按原分录逐行取反，不按现行规则重推（ADR-0022:32） | ADR-0016:23；SP 附 M3「已过账事实」 | `K/Money.java:39` 有 `negate`；拆分结果的镜像（拆 −X 是否等于拆 X 后取负）无从谈起；冲销工厂不存在 | G34 只覆盖审计表只追加 | 老系统红冲是「按当前规则重算再取负」（GL-076），与 ADR-0022 相反；部分冲销的拆分规则未定 | 决定层已覆盖（ADR-0031，提议） |
 | CC-N06 | 币种与小数位 | 1b | 只用人民币（GL-124；GL_COMPLIANCE_CHECKLIST:40「外币折算暂不需要」） | ADR-0006:12（2 位）；NS:116（ISO 4217） | `SCALE = 2` 固定，不看 `Currency.getDefaultFractionDigits`；`Money.of("1","JPY")` 会静默得到 2 位 | 无 | 不是 2 位小数的币种被静默接受；DDL 无 `CHECK (length(currency)=3)` | **地基**：拒绝不是 2 位小数的币种。不改 ADR-0006；按币种取小数位推迟到出现外币时，理由是现在只有人民币，做了也无从验证 |
 | CC-N07 | 汇率与折算 | R0（判定是否真有外币）；G2（现金流量表汇率变动行） | 外币折算「暂不需要」 | EAF:73（汇率不进事件，由语义层折算） | 无 | 无 | 老 BI 有财务手工汇率 CSV（BI_SCOPE:64），但用途不明 | **阶段**：R0 入口「确认手工汇率 CSV 的用途；有外币则新开 ADR」 |
 | CC-N08 | 税额计算、价税分离、发票误差容忍 | 1b（RULE-144 按表头税率拆税） | RULE-144 不复刻：不含税 = Σ行 + 尾调 ÷（1+税率），不用 1.06；收入「不含税为准，含税另列」（intent 经营分析 Q6-1） | ADR-0016:27（含税存储，另存不含税额与税额）；EAF:53 | 无 | 无 | 税额的计算方式（减法得出还是乘税率）、逐行还是整单、发票与账面的误差容忍度都没有决定；数电对接时（6b）误差容忍是硬约束 | **待决**（FQ-27） |
@@ -98,10 +98,10 @@
 | CC-C01 | 请求幂等（`Idempotency-Key`） | 1a | PC:45（已决定，按建议） | 只在 PC，不在 ADR | 过滤器 `M/platform/web/IdempotencyFilter.java`，范围 `IdempotencyScope`（只对 `A/idempotent-endpoints.txt` 登记的 POST 生效，ADR-0043 §4）；存储 `JdbcIdempotentResponses`、迁移 `platform_idempotency_baseline`、清理 `PurgeExpiredResponses`；OpenAPI 声明 `OpenApiProblems.java:93-95`；前端 `packages/api/src/http.ts:179` 发送 | `T/IdempotentEndpointGuardTest`（登记簿与代码一致、应答不含直接标识）、`IdempotentResponseSizeTest`、`platform/web/IdempotencyScopeTest`、`HttpContractIT:160`、`http.test.ts:215` | 按设计只覆盖白名单内 POST（目前约 20 条） | **已覆盖**（范围按 `idempotent-endpoints.txt` 白名单，ADR-0043 §4） |
 | CC-C02 | 更新的并发版本（`If-Match` / `ETag`） | 1a | PC:46（「未单独作答，按建议」） | 只在 PC | 共用类型 `K/ExpectedVersion.java`（解析，428、400、412 三态，`etag()`）及三个异常；法人、法人归属、工作日历、角色、账号状态、编号规则、审批任务等控制器共用（约 20 个文件）；OpenAPI 必填 `OpenApiProblems.java:71-76`；前端 `http.ts` `versioned` | 各模块分散（如 `T/platform/approval/TaskVersionHttpIT`） | 共用类型已建，缺全局 OpenAPI 契约守护 G-X3（每个更新类接口必须声明 `If-Match`）与统一 ETag 契约测试；是否漏接靠各控制器自觉 | **地基** |
 | CC-C03 | 事件消费幂等 | 1a | 契约 D-1a-82、98、106（至少一次投递，消费方幂等） | EAF:62 | 只有 `cost_timesheet.consumed_events` 一张表；审计按事件 id 去重 | `ConsumedEventsPurgeJobIT` | 每个消费模块各建一张表，或者不建 | **地基**：共用的消费幂等构件，加守护「每个 `@ApplicationModuleListener` 都经过它或登记例外」 |
-| CC-C04 | 聚合乐观锁与事件序号 | 1a | 「法人维度与乐观锁直接实施」 | GP:131；SP §14 第 4 项 | `K/AggregateRoot.java:13-60`（`version` 与 `eventSequence` 两个计数器） | `T/kernel/EventSequenceContinuityTest`；`T/DataArchitectureTest.java:269-275`（D1） | — | **已覆盖** |
+| CC-C04 | 聚合乐观锁与事件序号 | 1a | 「法人维度与乐观锁直接实施」 | GP:131；DATA_DESIGN_CHECKLIST §14 第 4 项 | `K/AggregateRoot.java:13-60`（`version` 与 `eventSequence` 两个计数器） | `T/kernel/EventSequenceContinuityTest`；`T/DataArchitectureTest.java:269-275`（D1） | — | **已覆盖** |
 | CC-C05 | 主键 UUIDv7 | 1a | 「UUIDv7 (Recommended)」 | GP:113；PC:9-29 | `K/Uuids.java`、`TimeOrderedIds.java`、`IdGenerator` 默认 UUIDv7（提交 `a59805d7`、`aac92d51`）；仅 5 张框架表豁免（`A/primary-key-exemptions.txt`） | `T/PrimaryKeyTypeGuardTest`（ADR-0033：每表单列 uuid 主键，不得序列、标识列或数据库默认值）；`T/IdMakingGuardTest`（`UUID.randomUUID` 仅 1 例）；`UuidsTest`、`TimeOrderedIdsTest` | 无；审计表分区主键例外见 ADR-0048（已决定，迁移未落） | **已覆盖** |
-| CC-C06 | 生效区间与追溯修改 | 1a | 配置类不追溯（SP §12.2）；员工与部门的法人归属带生效区间（ADR-0026:70-77） | 契约 D-1a-27、147 | 维度版本表、编号规则版本表（#72 `platform_numbering.rule_versions`） | `T/DataArchitectureTest`（D2、D10） | 法人表本身缺生效区间（DS:106 K4），待核实 #72 是否已修 | **已覆盖** |
-| CC-C07 | 已过账事实的冲销与更正 | 2 | SP §12.3；ADR-0016:23 | brief:169（Phase 2 入口） | 过账管道不存在 | G34 | 同 CC-N05 的镜像要求 | 决定层已覆盖（ADR-0031，提议） |
+| CC-C06 | 生效区间与追溯修改 | 1a | 配置类不追溯（SP 附 M3「规则调整三类」）；员工与部门的法人归属带生效区间（ADR-0026:70-77） | 契约 D-1a-27、147 | 维度版本表、编号规则版本表（#72 `platform_numbering.rule_versions`） | `T/DataArchitectureTest`（D2、D10） | 法人表本身缺生效区间（DS:106 K4），待核实 #72 是否已修 | **已覆盖** |
+| CC-C07 | 已过账事实的冲销与更正 | 2 | SP 附 M3「已过账事实」；ADR-0016:23 | brief:169（Phase 2 入口） | 过账管道不存在 | G34 | 同 CC-N05 的镜像要求 | 决定层已覆盖（ADR-0031，提议） |
 | CC-C08 | 删除策略 | 1a | 业务事实与审计只追加，到期归档（GP:112） | 契约 D-1a-154、176 | 无软删除列；17 处硬删除都在清理作业与子表替换 | `T/DataArchitectureTest.java:280`（只追加触发器）、`:674`（撤销 DELETE） | 业务单据作废的通用做法 1b 起才需要 | **已覆盖** |
 | CC-C09 | 业务编号 | 1a | ADR-0010、ADR-0027 与契约 D-1a-144..161 | 同左 | `M/platform/numbering/` | `NumberingRulesIT` 等 5 个测试；G45 | — | **已覆盖** |
 | CC-C10 | 新旧 ID 映射与来源标记 | 1a | GP:113（`legacy_id` 唯一）；契约 D-1a-152、161 | ADR-0025:130、147 | `platform_numbering.legacy_numbers`；`K/event/SourceSystem.java`、`EventSource.java:7-16` | `T/DataArchitectureTest.java:407-416`（D8） | 行级没有来源列，来源只在登记表与事件信封（按设计如此） | **已覆盖** |
@@ -120,14 +120,14 @@
 | CC-P06 | 代理审批（RULE-270） | 1a | 契约 D-1a-77「仅流程管理员、逐次、填原因、通知被代理人」 | — | 审批模块 | — | `phase1a/DEFERRED.md:17` 仍写「1b 前单独评审」，与 D-1a-77 不一致，属文档漂移 | **已覆盖**（另需修文档） |
 | CC-P07 | 职责分离 | 1a；G1（凭证制单、审核、记账） | ADR-0026:91-100；ADR-0027:43-49 | 同左 | `K/SeparationReview.java`；四眼确认 | `SensitiveGrantTwoPersonIntegrationTest`、`NumberingRuleFourEyesIT` | 凭证三岗分离在 G1 定（现状：审核人 = 记账人 998 张） | **已覆盖**（1a）；G1 部分见 CC-X11 |
 | CC-P08 | 通用导出控制：权限、审计、行数上限、掩码、防公式注入 | 1b（第一个业务导出） | 审计导出已定（契约 D-1a-172） | ADR-0025:63,69（长导出写对象存储、配额） | `K/ListLimits.java` 的 `EXPORT_MAX = 10_000`、`IMPORT_MAX`；仅审计导出一处实现（`ExportAuditEntries`、`AuditCsv`、`AuditExportController`） | `T/ListPagingGuardTest:147`（A-3，导出、导入行数上限不得超约定）；`AuditExportAndOwnRecordsIT` | `EXPORT_MAX` 常量与配置上限守护已建，通用构件未建：权限、审计、行数上限、公式注入、掩码未一体；公式注入处理仍私有于审计模块；无 G-X5；掩码依赖 P04。老 BI 166 人几乎人人导出（BI_SCOPE:81） | **地基** |
-| CC-P09 | 维度 ID 不得写死（G-T2） | 1a | SP §14 G-T2 | — | `T/CurrentUserGuardTest` 对 `CurrentUser`、`EmployeeLegalEntities` 的实现禁止字面量、常量、`orElse` 默认的法人 ID，禁止现场 `new CurrentUser(`；类型化 ID 已有 `EmployeeId`、`UserId`、`ProjectId`、`WbsNodeId` 等 | `T/CurrentUserGuardTest`、`TypedIdComparisonGuardTest`、`IdMakingGuardTest`、`IdPrintingGuardTest` | `CurrentUserGuardTest` 仍只认 `LegalEntityId`，G-X7 要求的扩到全部维度 ID（`OrgUnitId`、`UserId` 等）与配置默认值未做 | **地基**（已排） |
+| CC-P09 | 维度 ID 不得写死（G-T2） | 1a | DATA_DESIGN_CHECKLIST §14 G-T2 | — | `T/CurrentUserGuardTest` 对 `CurrentUser`、`EmployeeLegalEntities` 的实现禁止字面量、常量、`orElse` 默认的法人 ID，禁止现场 `new CurrentUser(`；类型化 ID 已有 `EmployeeId`、`UserId`、`ProjectId`、`WbsNodeId` 等 | `T/CurrentUserGuardTest`、`TypedIdComparisonGuardTest`、`IdMakingGuardTest`、`IdPrintingGuardTest` | `CurrentUserGuardTest` 仍只认 `LegalEntityId`，G-X7 要求的扩到全部维度 ID（`OrgUnitId`、`UserId` 等）与配置默认值未做 | **地基**（已排） |
 | CC-P10 | 敏感数据可见角色与授予方式 | 1b（报价成本与毛利、费率与日薪）；6e（薪酬、银行卡） | 用户 2026-10-15：「采纳，敏感权限授给人」；ADR-0026:122-129（敏感分级）、敏感权限两人确认与季度复核 | — | 敏感授予两人确认已实现：`M/platform/identity/domain/SensitivePermissions.java`（6 个敏感权限码）、`AuthorizationGate`、`PrivilegeCeiling`、`ReplaceAccountRoles`、`UpdateRole` | `T/platform/identity/SensitiveGrantTwoPersonIntegrationTest`、`OrgDataAdminRoleIntegrationTest` | 禁止经岗位 / 同步自动授予的守护未建；调岗、离岗生成「待调整权限」待办未建（代码中无相应概念）；各阶段可见角色按 §13 第 7 步逐阶段问用户；非敏感权限按岗位授予属新增能力，待 ADR-0029（F-9） | **地基 · 下一批 F-1** |
 
 ### 2.5 多主体
 
 | 编号 | 关注点 | 首次阶段 | 用户 / 财务决定 | ADR / 契约 | 实现现状 | 守护 | 缺口 | 类别 |
 |---|---|---|---|---|---|---|---|---|
-| CC-E01 | 业务行带法人 | 1a | SP §14 第 5 项 | EAF:18；DS D7 | `K/LegalEntityId.java`；`timesheets.legal_entity_id NOT NULL` | `T/DataArchitectureTest.java:387-403`（D7） | — | **已覆盖** |
+| CC-E01 | 业务行带法人 | 1a | DATA_DESIGN_CHECKLIST §14 第 5 项 | EAF:18；DS D7 | `K/LegalEntityId.java`；`timesheets.legal_entity_id NOT NULL` | `T/DataArchitectureTest.java:387-403`（D7） | — | **已覆盖** |
 | CC-E02 | 会话按哪个法人生效、数据范围授予表由谁维护 | 1b | 契约 D-1a-58「在 1b 流程梳理时定」 | — | — | — | — | **阶段**（1b 入口已排） |
 | CC-E03 | 内部交易与抵销 | G2 之后 | D11、D12 不在 brief 内（ADR-0017:17） | — | — | — | 52 个收付公司档案里有一个内部往来抵销专用账套（U8C_GL_PRACTICE:17）；抵销规则无证据 | **阶段**（G2 入口「跨法人结算与抵销是否纳入」） |
 | CC-E04 | 组织调整对历史的影响（组织维度的历史） | 1a | DS:123 T1「组织维度无历史，1a 上线到 R1 之间的变化会丢」未决 | ADR-0025:110-111（按事实发生时的组织） | 基线迁移 `organization_workforce_baseline.sql`：`org_unit_versions`（排他约束 `ex_org_unit_versions_overlap`）、`assignment_versions`、`legal_entity_versions`、`legal_entity_attributions`，均有区间不重叠约束；实现 `M/organization/workforce/infrastructure/persistence/OrgHistory.java` | `T/organization/workforce/application/OrgHistoryAppendOnlyIntegrationTest`；跨 schema 版本引用守护 `A/cross-schema-version-references.txt` + `T/CrossSchemaVersionReferences`（`c6db7c12`） | 无；组织、岗位版本相关的新增行为随 R1 迁入再核 | **已覆盖** |
@@ -140,7 +140,7 @@
 | CC-I02 | Excel 导入导出 | 2（预算导入 RULE-210） | 「各模块各自实现，共用一个小工具」（ADR-0019:32） | 同左 | 无 | 无 | 老系统成本修正的 Excel 导入可以批量绕过校验（RULE-102） | **阶段**：第一个用到的阶段，入口要求「导入走领域校验，不绕过；共用工具已建」 |
 | CC-I03 | 附件存储 | 1b / 6a | 阿里云 OSS（ADR-0019:28） | 契约 D-1a-119（审批参与人只读） | 无 | 无 | 保留期未定 | **阶段**：首个上传附件的阶段，入口要求「保留期、病毒扫描、权限随单据」 |
 | CC-I04 | 通知 | 1a | 「短信不迁移，审批通知走企业微信」 | 契约 D-1a-83..92、128..143 | `M/platform/integration/` 企业微信适配器 | `WecomDeliveryIT` | — | **已覆盖** |
-| CC-I05 | 错误文案 | 1a | — | SP §14 第 10 项；NS:232 G48 | 后端 `detail` 为英文；中文文案在 `frontend/packages/core/src/error-messages.ts`，一码一条 | `ErrorChainTest`；前端类型检查；`check-copy-glossary.mjs` | 前端有后端不存在的死码（`COST_TIMESHEET_EXCEEDS_REMAINING_HOURS`） | **已覆盖** |
+| CC-I05 | 错误文案 | 1a | — | DATA_DESIGN_CHECKLIST §14 第 10 项；NS:232 G48 | 后端 `detail` 为英文；中文文案在 `frontend/packages/core/src/error-messages.ts`，一码一条 | `ErrorChainTest`；前端类型检查；`check-copy-glossary.mjs` | 前端有后端不存在的死码（`COST_TIMESHEET_EXCEEDS_REMAINING_HOURS`） | **已覆盖** |
 | CC-I06 | 统一分页与上限 | 1a | 「游标分页 (Recommended)」，`limit` 默认 50、上限 200（PC:42） | 只在 PC | `K/ListLimits.java`（默认 50、上限 200）、`CursorPage`、`PageRequest`、`InvalidCursorException`；前端 `packages/api/src/paging.ts` | `T/ListPagingGuardTest`（G-A2 `{items,nextCursor}` 并声明 `cursor`、`limit`；G-P1 `limit` 最小 1、最大 200、默认 50；A-3 不得内存切页）；`HttpContractIT:119`、`ListPagingContractIT`、`ListPagingKernelTest` | 守护 G-A2、G-P1、A-3 已建；`A/list-paging-gaps.txt` 登记缺口 8 行待清（组织单元列表、本人登录记录、审批任务非游标例外、`AuditQuery.MAX_LIMIT`、授权申请、旧号、编号规则切片、审计导出 `max-rows` 配置） | **地基** |
 | CC-I07 | 外部接口限流与频控 | 1a（企业微信） | — | ADR-0002:26（nginx 限流） | 企业微信出站无频控；`duplicate-task-error-codes` 为空 | — | — | **阶段**：3 与 6b 入口「对方频控限制已查明并配置」 |
 | CC-I08 | 报表打印与版式文件 | 1b（报价单含印章，DS_GAPS:11）；G1（凭证、账簿 PDF/OFD） | — | GL_COMPLIANCE_CHECKLIST:73 | 无 | — | — | **阶段** |
@@ -179,8 +179,8 @@
 | 编号 | 关注点 | 首次阶段 | 用户 / 财务决定 | 实现现状与缺口 | 类别 |
 |---|---|---|---|---|---|
 | CC-B01 | 税率上下文 TaxContext：税率按版本保存，带生效日 | 1b（RULE-144 按表头税率拆税） | 用户 2026-10-15 核查清单；税率是配置类参数，须版本化（METRIC_BASELINE_DRAFT:17） | 无实现。没有它，各单据会各自保存一份税率，税率调整时无法按业务日期取值 | **地基**（下一批 F-7） |
-| CC-B02 | 通用时态生效基座：生效区间、按业务日期取值、版本只追加、区间不重叠 | 1a | 用户 2026-10-15 核查清单；SP §14.1 D6、D15 | 现在是逐表各自实现（维度版本表、`rule_versions`），没有共用基座。费率卡、税率、利润中心标识、科目映射都要用到 | **地基**（下一批 F-8） |
-| CC-B03 | 业务单据锁定、红冲、修正的通用模式 | 2（首个过账事实） | 用户 2026-10-15 核查清单；SP §12.3；ADR-0016:23；ADR-0022:32 | 无共用模式；与 CC-N05、CC-C07 是同一件事在单据层的体现 | 决定层已覆盖（ADR-0031，提议） |
+| CC-B02 | 通用时态生效基座：生效区间、按业务日期取值、版本只追加、区间不重叠 | 1a | 用户 2026-10-15 核查清单；DATA_DESIGN_CHECKLIST §14.1 D6、D15 | 现在是逐表各自实现（维度版本表、`rule_versions`），没有共用基座。费率卡、税率、利润中心标识、科目映射都要用到 | **地基**（下一批 F-8） |
+| CC-B03 | 业务单据锁定、红冲、修正的通用模式 | 2（首个过账事实） | 用户 2026-10-15 核查清单；SP 附 M3「已过账事实」；ADR-0016:23；ADR-0022:32 | 无共用模式；与 CC-N05、CC-C07 是同一件事在单据层的体现 | 决定层已覆盖（ADR-0031，提议） |
 | CC-B04 | 利润中心 | 2（工时成本归属） | 用户 2026-10-15 原话：「利润中心就是某一级部门」 | 无实现。组织单元上加利润中心标识，带生效区间（依赖 CC-B02 与 XD-06 的组织版本表） | **地基**（下一批） |
 | CC-B05 | 内部借调工时结算（跨利润中心） | 2 | 用户 2026-10-15 核查清单 | 无 | **阶段**：Phase 2 流程梳理入口「借调工时的成本归属与跨利润中心结算规则已定」 |
 | CC-B06 | 项目经理可以看到的人工成本粒度 | 1b / 2 | 用户 2026-10-15 原话：「按职级标准费率看到个人行」 | 掩码组件（CC-P04）尚未实现；须区分职级标准费率（可见）与真实薪资（L3 掩码） | **阶段**：1b 与 Phase 2 流程梳理入口；依赖 CC-P04 与 F-8 |
@@ -213,7 +213,7 @@ one-coordinator 的初步判断全部成立，另有三处需要细化：
   - 不提供 `divide(BigDecimal)`：除法只经 `prorate` 或下面的计算类型。
 - **不舍入的计算类型**（名称待术语登记，暂称 `MoneyCalculation`）：保留全部精度做乘除和累加，`settle()` 时只按统一口径舍入一次，得到 `Money`。工时成本 = 工时 × 时薪、不含税额 = 含税 ÷ (1 + 税率) 都走这条路。
 - **`Rate`**（单价、费率，带分母单位，例如「元 / 小时」）与 **`Ratio`**（0–1 的比率，表示方式见 XD-02）：小数位按 FQ-25 的答复，不在构造时舍入到 2 位。
-- **舍入口径集中一处**：`HALF_UP` 与 2 位只出现在 kernel 的一个常量里；财务若答 FQ-23 改口径，只改这一处，并按配置类规则从某个会计期间首日起生效、不追溯（SP §12.2）。
+- **舍入口径集中一处**：`HALF_UP` 与 2 位只出现在 kernel 的一个常量里；财务若答 FQ-23 改口径，只改这一处，并按配置类规则从某个会计期间首日起生效、不追溯（SP 附 M3「规则调整三类」）。
 
 ### 3.3 按权重拆分（`prorate`）的规格
 
@@ -270,7 +270,7 @@ one-coordinator 的初步判断全部成立，另有三处需要细化：
 
 ## 4. 固化建议
 
-### 4.1 写进 SESSION_PLAYBOOK §13 的步骤（XD-10 已采纳，2026-10-15 已写入 §13「横切关注点矩阵」；brief 各阶段入口已加 Proposed revision 行）
+### 4.1 写进 SESSION_PLAYBOOK 附 M4 的步骤（XD-10 已采纳，2026-10-15 已写入附 M4「横切关注点」；brief 各阶段入口已加 Proposed revision 行）
 
 > **横切关注点矩阵**（每个阶段开工前更新）：流程梳理开始前，负责会话先更新 `CROSS_CUTTING_MATRIX.md`：
 > 1. 对矩阵中「首次阶段」为本阶段、或「加重阶段」包含本阶段的每一行，重新核对证据（ADR、契约、实现、守护），更新类别；

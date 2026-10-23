@@ -3,7 +3,7 @@
 > 2026-10-22（15:50 复核仍成立）注：本报告第 3 节的数据修复批已全部完成并合入（见 `HANDOFF_one-1a-next-5.md` 第 2、5 节）；接手依据以 next-5 报告为准，本报告只留历史证据。
 
 
-交接时点：2026-10-16，上下文约 75%（SESSION_PLAYBOOK §2.1 第 1 条），批次边界：数据修复 PR-2 开出之后。
+交接时点：2026-10-16，上下文约 75%（SESSION_PLAYBOOK TEAM-05、06），批次边界：数据修复 PR-2 开出之后。
 
 **会话约定**：全程中文；派子代理显式指定模型并要求中文回复，一律 `isolation: worktree`；权限模式与 one-coordinator 一致；开 PR 后立即 `mcp__ccd_pr__set_monitor` 关 Auto-fix（以 `get_status` 为准）；PR 由 one-coordinator 审核入队，本线不合并；跨会话消息一到三行，只在对方要做事时发（§11）；用户决定走「待决定收件箱」，不在会话里用提问框。
 

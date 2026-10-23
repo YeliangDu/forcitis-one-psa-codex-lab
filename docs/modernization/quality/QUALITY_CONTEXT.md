@@ -1,6 +1,6 @@
 # one-quality 速查（2026-10-17 13:15+02:00）
 
-一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。接续会话先读本文件、`sessions/one-quality.md`、`quality/defect-bank/one-quality.md`，再 `gh pr list --author @me` 核对在途 PR（以 gh 为准，下表会过期）。
+一行一项，过程放链接（SESSION_PLAYBOOK TEAM-07、08）。接续会话先读本文件、`sessions/one-quality.md`、`quality/defect-bank/one-quality.md`，再 `gh pr list --author @me` 核对在途 PR（以 gh 为准，下表会过期）。
 
 ## 工作守则要点（全文见画像）
 - 动基础设施前过「兼容性预检清单」（Colima 试点事故，QUAL-004）；耗时类改动先按步骤拆数据；新增自测先破坏验证；接钩子/CI 的脚本端到端各跑一次放行与拦截；评审意见先核实再采信；交出前回测错题本。
@@ -104,7 +104,7 @@
 - 经验：桌面 app 钩子读的是**主检出**的 .claude/settings.json 且 CLAUDE_PROJECT_DIR 是主检出；钩子类 PR 合入后须先把主检出快进到 origin/main 再重启 app（stop_hook_summary 里出现脚本名即生效）；root 取 payload.cwd。
 
 ### 新卡：AskUserQuestion 门禁（用户定，intent 2026-10-21-160954；排在 QUA-05 评测后、QUA-03 前）
-PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordinator 时 deny，理由写「按 SESSION_PLAYBOOK §11 战队协作第 1 条：技术问题报 one-coordinator，要用户定的写收件箱」；会话名解析沿用 session_context.py（`identify`），解析不出时放行并告警一次；钩子崩溃不得挡住；带自测；SESSION_PLAYBOOK 同步一句；改 .claude/settings.json，PR 要 opus 复审，合入后调度请用户重启。起因：one-1a-par 用提问框问用户 #509 重跑还是排查。
+PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordinator 时 deny，理由写「按 SESSION_PLAYBOOK TEAM-60、62：技术问题报 one-coordinator，要用户定的写收件箱」；会话名解析沿用 session_context.py（`identify`），解析不出时放行并告警一次；钩子崩溃不得挡住；带自测；SESSION_PLAYBOOK 同步一句；改 .claude/settings.json，PR 要 opus 复审，合入后调度请用户重启。起因：one-1a-par 用提问框问用户 #509 重跑还是排查。
 
 ### 网络 v2/v7 规则写成 CI 检查（新卡，排在 QUA-03 之后）
 把实现网络 v2 右下角「可自动核验」的 9 条接缝规则，以及 v7 的判定规则（05 只承接 04 中决定做的、约束不满射即架构未定、无执行点即未求解）写成 CI 检查。图在 claude/one-coordinator-two-lanes 的 docs/modernization/architecture/research/networks/。**等 one-architecture 的登记文件方案批了再开工。**
@@ -128,8 +128,8 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 ### 进行中与下一步（顺序）
 1. **盯 #573 → #589 → #593 合入**；合入后更新任务片段 GOV-1022-QUA-01、-02 为完成（#589 的片段已在分支里，状态进行中）。#593 复审意见回来要改。
 2. **生成产物移出 main**（设计稿 `quality/GENERATED_OUT_OF_MAIN_DESIGN.md`，用户按推荐批准，intent 2026-10-22）：第 1、2 期已出 PR；**第 3 期（terms.yaml）暂缓**；**第 4 期（快照归档分支 archive/…）开工前先告诉 one-coordinator，请用户设 archive/* 只读规则**；第 5 期（画像「当前状态」迁任务卡、COORDINATOR_LEDGER 本机化）在第 4 期之后。交接文件每个会话只留最新一份其余归档、evidence/ 留在 main、NM8A/NM8B/B31P/OBDS/PAN 归档、混合体（STAKEHOLDERS.md、transitions.yaml、RESPONSIBILITY_MATRIX、processes.people.yaml）先拆——都是用户 10-22 的决定。四份逐项调研报告在 `~/.modernize/psa/design-gen/`。
-3. **GOV-1022-COO-05 派工台账实现**（设计稿 TASK_LEDGER_DESIGN.md，one-coordinator 六点已确认：回溯卡按分支聚合、随机分支名退回按 PR；路线视图按 transitions.yaml 的 wave，试点类取 waves 第一项，别用 delivers 做模块映射；复审修正提交数近似标可靠度 C，并从今天起复审结论回写固定标题行 `复审第 N 轮：必改 K 条，建议 M 条`，要写进 SESSION_PLAYBOOK §11 第 6 条；gh 导出放 GitHub Actions 定时工作流（守护，单列 PR、opus）；片段加可选字段「修复: <被修任务号>」；日常生成不入仓，每周一入仓一份快照）。抽取与统计交 Codex，回溯认领规则、随机分支名正则、指标口径自己写。#545 已合入，可开工。
-4. **两个钩子等 SESSION_PLAYBOOK §5 新规则原文进 main**：①后台任务描述格式 PreToolUse 钩子（`<任务号或 #PR号> <任务名> (<执行者>)`，不合格式拒并给样例）；②commit-msg 钩子（自动追加 `Session: <会话名>`、改 backend/frontend/scripts 的提交须带任务号或 #PR 号、纯文档与 merge 放行；经 pre-commit 安装；排在①之后）。
+3. **GOV-1022-COO-05 派工台账实现**（设计稿 TASK_LEDGER_DESIGN.md，one-coordinator 六点已确认：回溯卡按分支聚合、随机分支名退回按 PR；路线视图按 transitions.yaml 的 wave，试点类取 waves 第一项，别用 delivers 做模块映射；复审修正提交数近似标可靠度 C，并从今天起复审结论回写固定标题行 `复审第 N 轮：必改 K 条，建议 M 条`，要写进 SESSION_PLAYBOOK TEAM-68；gh 导出放 GitHub Actions 定时工作流（守护，单列 PR、opus）；片段加可选字段「修复: <被修任务号>」；日常生成不入仓，每周一入仓一份快照）。抽取与统计交 Codex，回溯认领规则、随机分支名正则、指标口径自己写。#545 已合入，可开工。
+4. **两个钩子等 SESSION_PLAYBOOK TEAM-23、26 新规则原文进 main**：①后台任务描述格式 PreToolUse 钩子（`<任务号或 #PR号> <任务名> (<执行者>)`，不合格式拒并给样例）；②commit-msg 钩子（自动追加 `Session: <会话名>`、改 backend/frontend/scripts 的提交须带任务号或 #PR 号、纯文档与 merge 放行；经 pre-commit 安装；排在①之后）。
 5. QUA-05 评测收尾：Q1 重跑（三方只写代码，整包构建由我排队一次一份，加 taskpolicy -b）、Q3 换题；Q2、Q3 已盲评（Q2 Codex>DeepSeek>sonnet，Q3 DeepSeek>Codex>sonnet），一页结论交 one-coordinator。网络规则 CI（RULE/INV 编号报告档）、QUA-03 七个钩子、AskUserQuestion 门禁（改为规程回合结尾规则，原卡作废）在后。
 
 ### 要记住的坑

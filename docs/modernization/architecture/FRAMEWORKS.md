@@ -56,7 +56,7 @@
 |---|---|---|
 | Ubiquitous Language | 统一语言 | `glossary/terms.yaml`（ADR-0018） |
 | Bounded Context | 限界上下文 | 一个 BC = 一个模块 = 一个 schema（ADR-0003）。**边界由统一语言与模型的一致范围决定**，同名异义处必须切开；不变量与事务一致性决定的是聚合，不是 BC（DDD Reference 2015「Bounded Context」「Aggregates」两节）【已定】（intent `2026-10-16-112800` L-7）（取代 ADR-0041 版「边界由统一语言的一致范围、不变量与事务一致性决定」的读法）。不由能力或老系统模块决定。技术模块（`platform.web`、`idempotency`、`eventing`、`scheduling` 等）在 `ddd/contexts.yaml` 标 `kind: technical`，不称 BC |
-| Aggregate、Entity、Value Object、Domain Event、Service、Repository | 聚合、实体、值对象、领域事件、领域服务、仓储 | 一个事务只改一个聚合（SESSION_PLAYBOOK §14 第 1 项）；不变量分 A / B / C 三类（METHOD 第 4 稿第 ④ 步）；聚合与表的对应以数据访问注册表 `aggregate` 字段为准 |
+| Aggregate、Entity、Value Object、Domain Event、Service、Repository | 聚合、实体、值对象、领域事件、领域服务、仓储 | 一个事务只改一个聚合（DATA_DESIGN_CHECKLIST §14 第 1 项）；不变量分 A / B / C 三类（METHOD 第 4 稿第 ④ 步）；聚合与表的对应以数据访问注册表 `aggregate` 字段为准 |
 | Context Map：只用有代码后果的四种关系——Anticorruption Layer、Open-host Service + Published Language、Shared Kernel、Conformist | 上下文映射 | `ddd/context-map.yaml` 登记已建与已认可的规划边，分别标明实现状态，记方向、经由（`api` 或 `events` 契约）与上述关系；含 Q-11 的规划边与聚合随整合确认包 D 册经用户确认后写入，已建边才与代码依赖对账（ADR-0054 迁移第 2 步，intent `2026-10-17-112814`）；防腐层 = `platform.integration`（ADR-0039）。只用四种关系【已定】（L-10，intent `2026-10-16-112800`）。Partnership、Customer/Supplier、Separate Ways 是团队间关系，单团队单体中不用。引用的依赖方式（不校验 / api / 事件）与查环见 METHOD 第 4 稿第 ⑤ 步 |
 | Subdomain | 子域 | **只作命名空间分组**：Java 包、schema、URL、权限码的前缀，与 BC 一起定；已建模块以代码为准，改名另开 ADR。不按 DDD 原意作问题空间分区、不先于 BC【已定】（intent `2026-10-15-221201`）；不做核心 / 支撑 / 通用分类【推出】（ADR-0041 决定 1：三分类已改为「深建模 / 薄 CRUD」一个标记，标在 BC 上） |
 | 深建模 / 薄 CRUD | — | 标在 BC 上：规则密集或触账的 BC 深建模（聚合、不变量、事件），其余薄 CRUD。标记由用户定（ADR-0041 决定 1） |
@@ -162,7 +162,7 @@
 
 ## 6. 数据管理（以本仓库规则为准）
 
-DAMA-DMBOK 第 2 版修订版（2024，https://dama.org/dama-dmbok-revision/ ）只作概念参照：System of Record（记录系统）、Reference and Master Data（主数据）、敏感分级、保留期、血缘、数据质量规则落为约束。本项目的规则与登记以 SESSION_PLAYBOOK §14.1 D1–D19、`backend/architecture/data-access-registry.yaml`（DataArchitectureTest 双向校验）、`backend/architecture/data-classification.txt`（访问级别 + 个人信息标记两维度，ADR-0043）为准；不另建 `dama/data-objects.yaml`。业务对象（BIZBOK）不等于数据对象：信息图不进注册表（第 3.3 节）。
+DAMA-DMBOK 第 2 版修订版（2024，https://dama.org/dama-dmbok-revision/ ）只作概念参照：System of Record（记录系统）、Reference and Master Data（主数据）、敏感分级、保留期、血缘、数据质量规则落为约束。本项目的规则与登记以 DATA_DESIGN_CHECKLIST §14.1 D1–D19、`backend/architecture/data-access-registry.yaml`（DataArchitectureTest 双向校验）、`backend/architecture/data-classification.txt`（访问级别 + 个人信息标记两维度，ADR-0043）为准；不另建 `dama/data-objects.yaml`。业务对象（BIZBOK）不等于数据对象：信息图不进注册表（第 3.3 节）。
 
 ## 7. C4 model（只用 L1、L2）
 
@@ -189,7 +189,7 @@ DAMA-DMBOK 第 2 版修订版（2024，https://dama.org/dama-dmbok-revision/ ）
 | 项 | 本系统相关要点 | 落点 / 负责 |
 |---|---|---|
 | 网络安全法（2025 年修正，主席令第六十一号，2026-01-01 施行）第二十三条；GB/T 22239-2019 等保 2.0；GB/T 22240-2020 定级指南 | 实行等级保护；日志留存不少于六个月。**级别上生产前再定**（用户「保持现在」）。已知：公网安〔2020〕1960 号要求新建网络在规划设计阶段定级；定三级则每年测评、测评通过才能投入运行、同步密评；按 GB/T 22240-2020 初判第二级有依据 | 部署方案；用户组织定级评审与备案 |
-| 个人信息保护法（2021）+ GB/T 35273-2020 | 与法律同等采纳（用户「保持现在」）。法定要点：金融账户属敏感个人信息（第二十八条）；处理敏感个人信息前须做个人信息保护影响评估，记录至少保存三年（第五十五、五十六条）；定期合规审计（第五十四条，网信办令第 18 号）。另：GB/T 35273 正在修订（2026-06-17 征求意见稿）；敏感个人信息国标 GB/T 45574-2025 | SESSION_PLAYBOOK §14.1；`data-classification.txt`（访问级别 + 个人信息标记两维度，ADR-0043） |
+| 个人信息保护法（2021）+ GB/T 35273-2020 | 与法律同等采纳（用户「保持现在」）。法定要点：金融账户属敏感个人信息（第二十八条）；处理敏感个人信息前须做个人信息保护影响评估，记录至少保存三年（第五十五、五十六条）；定期合规审计（第五十四条，网信办令第 18 号）。另：GB/T 35273 正在修订（2026-06-17 征求意见稿）；敏感个人信息国标 GB/T 45574-2025 | DATA_DESIGN_CHECKLIST §14.1；`data-classification.txt`（访问级别 + 个人信息标记两维度，ADR-0043） |
 | 数据安全法（2021）第二十七条 + 网络数据安全管理条例（国务院令第 790 号，2025-01-01 施行） | 在等保基础上履行数据安全保护义务 | 与等保同一份部署与安全方案 |
 | 财会〔2024〕11 号《会计信息化工作规范》、12 号《会计软件基本功能和服务规范》（2025-01-01 施行） | 11 号第四十条按等保落实保护要求；12 号规定会计软件基本功能（不可逆记账、结账检查、操作日志、防重复入账等），第三十七条用到密码技术时遵守密码主管部门规定 | `GL_COMPLIANCE_CHECKLIST.md`；`accounting` |
 | 会计档案管理办法（财政部、国家档案局令第 79 号） | 凭证、账簿保存 30 年；只存电子件须满足第八条五项条件，外部电子凭证见第九条 | GL 清单 §4；过账审计 30 年（D-1a-173） |

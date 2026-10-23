@@ -28,7 +28,7 @@
 
 ## 步骤
 
-0. **基线开放标记不再是 dev 部署的前置**（用户 2026-10-15，intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`）：`backend/architecture/migration-baseline-open` 在 dev 期间保持开放，`deploy_gate` 对 dev 只告警、对 prod 拦截；标记在首次生产部署前由单独 PR 删除（SESSION_PLAYBOOK §12.2 第 4 条，PREDEPLOY_CHECKLIST C-15）。开放期内基线文件改过后，dev 库与服务器发布状态按 dev 库重建剧本（[`runbooks/dev-db-rebuild.md`](dev-db-rebuild.md)，one-ops）一起重置，不追加迁移；依据 ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等）。建库建角色（下面的步骤）不受影响，已于 2026-10-15 完成。
+0. **基线开放标记不再是 dev 部署的前置**（用户 2026-10-15，intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`）：`backend/architecture/migration-baseline-open` 在 dev 期间保持开放，`deploy_gate` 对 dev 只告警、对 prod 拦截；标记在首次生产部署前由单独 PR 删除（SESSION_PLAYBOOK 附 M3「迁移基线」，PREDEPLOY_CHECKLIST C-15）。开放期内基线文件改过后，dev 库与服务器发布状态按 dev 库重建剧本（[`runbooks/dev-db-rebuild.md`](dev-db-rebuild.md)，one-ops）一起重置，不追加迁移；依据 ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等）。建库建角色（下面的步骤）不受影响，已于 2026-10-15 完成。
 
 0.1 **首次部署前确认 `platform_integration.event_publication` 没有未完成记录**：事件负载里的类型化 ID 已改写成标量字符串（R-1b P1），旧的 `{"value": …}` 格式读不回，重投会失败。首次部署前该表应为空；若不空，先让未完成的事件投递完成，或经负责会话批准后清理。
 
