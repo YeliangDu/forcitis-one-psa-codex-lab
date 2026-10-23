@@ -11,7 +11,7 @@ POLICY = {
               "role_files_max": 8, "role_rules_max": 3, "total_max_kb": 20, "total_max_items": 25},
     "gates": {"runtime_max_lines": 1500, "runtime_max_files": 8,
               "max_lines": {"prod_write_gate": 800, "selftest": 1000, "commit_msg_gate": 60, "stop_check": 120,
-                            "post_review": 200, "budget_check": 250, "light_sh": 120, "build_x": 90}},
+                            "post_review": 200, "budget_check": 450, "light_sh": 120, "build_x": 90}},
     "labels": {"review_passed": "复审通过"},
     "mq": {"enqueue_alert_minutes": 45, "max_lines_total": 2500},
     "tools_lib": {"max_lines_total": 1800},
@@ -102,6 +102,13 @@ def main():
     expect_hit("H7 角色文件超 KB", {ROLE + "lead.md": "独占路径：x/\n" + "字" * 1100}, "H7", ROLE + "lead.md")
     expect_hit("H7 角色专属规则超条数", {ROLE + "lead.md": "独占路径：x/\n## 专属规则\n- a\n- b\n- c\n- d\n"},
                "H7", ROLE + "lead.md")
+    for name, text, no in (("缩进", "## 甲\n执行：mq\n ## 乙\n执行：mq\n", 3), ("制表符", "## 甲\n执行：mq\n##\t乙\n", 3),
+                           ("空标题", "## 甲\n执行：mq\n##\n", 3), ("setext", "## 甲\n执行：mq\n\n乙\n---\n", 5)):
+        expect_hit(f"H7 非标准二级标题（{name}）报格式违例", {RULES: text}, "H7", f"{RULES}:{no}")
+    expect_clean("H7 分隔线、表格不算 setext", {RULES: "## 甲\n执行：mq\n\n---\n\n| a |\n|---|\n- x\n---\n"})
+    for name, item in (("「+ 」", "+ c"), ("「1) 」", "1) c"), ("缩进", "  - c")):
+        expect_hit(f"H7 专属规则下非标准列表项（{name}）报格式违例",
+                   {ROLE + "lead.md": f"独占路径：x/\n## 专属规则\n- a\n{item}\n"}, "H7", ROLE + "lead.md:4")
     expect_hit("H7 合计超条数", {}, "H7", "(合计)", with_policy(["rules", "total_max_items"], 3))
     expect_hit("H7 合计超 KB", {}, "H7", "(合计)", with_policy(["rules", "total_max_kb"], 0.3))
     expect_clean("H7 CLAUDE.md 底线摘要不计条数（第 11 节）", {"CLAUDE.md": "# 底线\n" + "".join(f"{i}. 条\n" for i in range(1, 7))},
@@ -159,22 +166,38 @@ def main():
     expect_hit("H9 人工未写角色", {RULES: "## 甲\n执行：人工\n"}, "H9", RULES + ":1")
     expect_clean("H9 实存检查名从仓库生成", {RULES: "## 甲\n执行：acceptance_guard.py、LegacyShapeTest、light、ci、prod_write_gate --check\n"})
     expect_clean("H9 gates.max_lines 的键可作检查名", {RULES: "## 甲\n执行：commit_msg_gate\n"})
-    with tempfile.TemporaryDirectory() as home:   # 工具库：一级子目录是检查，顶层文件不是；dir 从 policy 读并展开 ~
-        for d in ("janitor", "budget_level"):
-            (Path(home) / "lib" / d).mkdir(parents=True)
-        (Path(home) / "lib" / "board").write_text("x\n", "utf-8")
-        lib_pol, env = with_policy(["tools_lib", "dir"], "~/lib"), {"HOME": home}
-        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor、budget_level\n"}, lib_pol, env)
-        check("H9 认工具库一级子目录（~ 展开），不报未配置", not viol and "工具库检查名未纳入" not in out, out)
-        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：board\n"}, lib_pol, env)
-        check("H9 工具库顶层文件不算检查", any(v.startswith(f"H9 {RULES}:1") for v in viol), out)
-        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：handoff\n"}, lib_pol, env)
-        check("H9 工具库里没有的名字照报", any(v.startswith(f"H9 {RULES}:1") for v in viol), out)
-    for name, pol in (("键缺失", POLICY), ("目录不存在", with_policy(["tools_lib", "dir"], "/nonexistent/lib"))):
-        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor\n"}, pol)
+    with tempfile.TemporaryDirectory() as home:   # 工具库：只认含入口文件的一级子目录；dir 须在 ~/.modernize/ 下
+        lib = Path(home) / ".modernize" / "lib"
+        for d, entry in (("janitor", "janitor.py"), ("budget_level", "__main__.py"), ("stop_sh", "stop_sh.sh"),
+                         ("legacy", "README.md"), (".hidden", ".hidden.py"), ("_priv", "_priv.py")):
+            (lib / d).mkdir(parents=True)
+            (lib / d / entry).write_text("x\n", "utf-8")
+        (lib / "board").write_text("x\n", "utf-8")
+        lib_pol, env = with_policy(["tools_lib", "dir"], "~/.modernize/lib"), {"HOME": home}
+        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor、budget_level、stop_sh\n"}, lib_pol, env)
+        check("H9 认含入口文件的工具库子目录（~ 展开），出本机口径信息", not viol and "本机口径" in out
+              and "未配置或不存在" not in out, out)
+        for bad in ("board", "handoff", "legacy", ".hidden", "_priv"):
+            rc, out, viol = run({**GOOD, RULES: f"## 甲\n执行：{bad}\n"}, lib_pol, env)
+            check(f"H9 工具库里不算检查的「{bad}」照报", any(v.startswith(f"H9 {RULES}:1") for v in viol), out)
+        for wide in ("~", "~/", "~/.modernize", "~/.modernize/", "~/.modernize/../x", "/abs/lib", "lib", 3):
+            rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor\n"}, with_policy(["tools_lib", "dir"], wide), env)
+            check(f"H9 tools_lib.dir={wide!r} 过宽或越界报格式违例", any(v.startswith("H9 policy.json") for v in viol), out)
+    missing = with_policy(["tools_lib", "dir"], "~/.modernize/no-such-lib")
+    for name, pol in (("键缺失", POLICY), ("目录不存在", missing)):
+        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor\n"}, pol, {"HOME": "/nonexistent-home"})
         check(f"H9 tools_lib.dir {name}：白名单外照报，另出一行信息", any(v.startswith(f"H9 {RULES}:1") for v in viol)
               and "信息 H9 policy.tools_lib.dir 未配置或不存在，工具库检查名未纳入" in out, out)
+    expect_clean("H9 「人工」写在执行栏第一个不崩溃", {RULES: "## 甲\n执行：人工：one-lead／每周\n"})
+    rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：no_such、人工：one-lead／每周\n"})
+    check("H9 「不存在的名、人工」只报一次", [v for v in viol if v.startswith("H9")] == [
+        f"H9 {RULES}:1 「甲」执行栏引用的检查名「no_such」不存在"] and "Traceback" not in out, out)
+    expect_hit("H9 RULES 为空报违例", {RULES: ""}, "H9", RULES)
+    expect_hit("H9 RULES 全空白报违例", {RULES: "\n  \n\t\n"}, "H9", RULES)
     expect_hit("H9 RULES 无二级标题不静默", {RULES: "# 规则\n1. 写测试\n2. 不绕过\n"}, "H9", RULES)
+    expect_hit("H9 「## 本角色专属规则」不静默", {ROLE + "lead.md": "独占路径：x/\n## 本角色专属规则\n- a\n"}, "H9",
+               ROLE + "lead.md:2")
+    expect_hit("H9 加粗「专属规则」不静默", {ROLE + "lead.md": "独占路径：x/\n**专属规则**\n- a\n"}, "H9", ROLE + "lead.md:2")
     expect_hit("H9 「### 专属规则」不静默", {ROLE + "lead.md": "独占路径：x/\n### 专属规则\n- a\n"}, "H9", ROLE + "lead.md")
     # H13
     m = POLICY["measures"][0]
@@ -212,6 +235,15 @@ def main():
                                                         ROLE + "dev.md": "独占路径：frontend/scripts/\n"}, "H17", ROLE)
     expect_clean("H17 末段通配符不截断", {ROLE + "design.md": "独占路径：docs/arch/*.md\n",
                                           ROLE + "language.md": "独占路径：docs/arch/decision-page/**\n"})
+    for name, a, b in (("末段 *", "scripts/*", "scripts/ci/budget_check.py"), ("末段 *.md", "docs/*.md", "docs/a.md"),
+                       ("中段 *", "docs/*/x.md", "docs/arch/x.md"), ("折叠 ..", "docs/../x/", "x/y/"),
+                       ("两边通配", "docs/*.md", "docs/a*")):
+        expect_hit(f"H17 {name} 交叠", {ROLE + "design.md": f"独占路径：{a}\n", ROLE + "dev.md": f"独占路径：{b}\n"},
+                   "H17", ROLE)
+    expect_clean("H17 末段 *.md 不匹配 *.py 之外的同级名", {ROLE + "design.md": "独占路径：docs/arch/*.md\n",
+                                                          ROLE + "dev.md": "独占路径：docs/arch/a.py、docs/arch/b/\n"})
+    expect_hit("H17 越出仓库的 .. 报格式违例", {ROLE + "dev.md": "独占路径：../x/\n"}, "H17", ROLE + "dev.md")
+    expect_hit("H17 头部第二行声明也读", {ROLE + "dev.md": "# dev\n独占路径：无\n独占路径：scripts/\n"}, "H17", ROLE)
     # H21
     expect_hit("H21 别处加标签", {"scripts/merge/mq.py": 'sh(["gh", "pr", "edit", "1", "--add-label", "复审通过"])\n'},
                "H21", "scripts/merge/mq.py:1")
@@ -235,6 +267,21 @@ def main():
     check("H23 只报运维脚本本身，别的目录同名不受牵连", [v.split()[1] for v in viol if v.startswith("H23")] == ["docs/ops/b5_run.py"], out)
     expect_hit("H23 docs 下带 main 的 Java", {"docs/ops/Probe.java": "class Probe { public static void main(String[] a) {} }\n"},
                "H23", "docs/ops/Probe.java")
+    # 读文件出错、policy 缺键：该项失败关闭报违例，其他检查照跑
+    rc, out, viol = run({**GOOD, ROLE + "broken.md/x": "目录冒充角色文件\n", "docs/ops/probe.sh": "echo\n"})
+    check("读文件出错转违例行，不出 traceback，其他检查照跑", rc == 0 and "Traceback" not in out
+          and any("检查无法完成" in v and "读不了文件" in v and "IsADirectoryError" in v for v in viol)
+          and any(v.startswith("H23 docs/ops/probe.sh") for v in viol), out)
+    pol = with_policy(["mq"], {"enqueue_alert_minutes": 45})
+    rc, out, viol = run({**GOOD, "scripts/review/post_review.py": "p = 1\n" * 201}, pol)
+    check("缺 mq.max_lines_total：报违例，单文件上限与 tools_lib 信息照出", rc == 0 and "Traceback" not in out
+          and any(v.startswith("H23 policy.json 检查无法完成") and "max_lines_total" in v for v in viol)
+          and any(v.startswith("H23 scripts/review/post_review.py") for v in viol) and "信息 H23 tools_lib" in out, out)
+    rc, out, viol = run({**GOOD, "scripts/queue/merge_train.py": "q = 1\n" * 30}, with_policy(["mq", "max_lines_total"], 30)
+                        | {"tools_lib": {}})
+    check("缺 tools_lib.max_lines_total：报违例，mq 总行数照查", rc == 0 and "Traceback" not in out
+          and any(v.startswith("H23 policy.json 检查无法完成") and "max_lines_total" in v for v in viol)
+          and any(v.startswith("H23 scripts/merge+queue") for v in viol), out)
     # 模式：policy 的枚举 warn｜enforce
     bad = {**GOOD, "docs/ops/probe.sh": "echo\n"}
     check("warn 有违例退出 0", run(bad)[0] == 0)
