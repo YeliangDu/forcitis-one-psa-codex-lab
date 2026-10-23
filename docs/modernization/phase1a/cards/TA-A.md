@@ -210,7 +210,7 @@
 
 ## 10. 报告去向
 - 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）；A1、A2、A3 各报一次
-- 报告包含：提交号与分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事
+- PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事
 
 ## 11. 本卡新词（开工前术语门禁，SESSION_PLAYBOOK §5）
 已查 `docs/modernization/glossary/terms.yaml`（见 `backend/glossary/terms.yaml` 与 `backend/glossary/proposed/*.yaml`）：本卡没有新标识符、界面文字、表列名、错误码；新增的只有三个约束名，按 NAMING_STANDARD §2.4 `ck_<表>_<规则>` 组合已有词（`timesheets`、`round`、`submitted`、`work_calendar_days`），约束名不属术语登记对象。新注释文本用已有中文名（轮次、提交日、工作日期、法人主体、迁入单据）；「迁入单」作为说明性短语出现在注释中，与 TS-UNIQ 注释所用「迁入单据」同义，开工前由实现者在词表中再核一次，查不到同义词条且需要登记时，当场在 `backend/glossary/proposed/` 登记提议术语并写明使用范围与 bc，不自行裁定。
