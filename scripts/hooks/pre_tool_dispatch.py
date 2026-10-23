@@ -26,15 +26,15 @@ from pathlib import Path
 HERE = str(Path(__file__).resolve().parent)
 sys.path.insert(0, HERE)
 from command_words import plain  # noqa: E402
+from prod_write_gate import could_concern  # noqa: E402
 
-REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:psql|mysql|mariadb|sqlcmd|mongosh|mongo|redis-cli|usql|aliyun|ssh|scp|rsync|sftp|curl|bash|sh|zsh|eval)(?![A-Za-z0-9_])")
 PI_WORD = re.compile(r"(?<![A-Za-z0-9_])pi(?![A-Za-z0-9_])")
 # (module, entry, applies(tool_name, command_text, tool_input)), cheapest first
 GATES = (
     ("bg_task_name_gate", "guarded_main", lambda tool, text, tool_input: tool in ("Agent", "Task") or (tool == "Bash" and tool_input.get("run_in_background") is True)),
     ("main_checkout_gate", "pre_tool_use_guarded", lambda tool, text, tool_input: tool == "Bash" and "git" in text),
     ("codex_stdin_gate", "guarded_main", lambda tool, text, tool_input: tool == "Bash" and ("codex" in text or PI_WORD.search(text) is not None)),
-    ("prod_write_gate", "guarded_main", lambda tool, text, tool_input: tool == "Bash" and (REMOTE_WORD.search(text) is not None or "$" in text)),
+    ("prod_write_gate", "guarded_main", lambda tool, text, tool_input: tool == "Bash" and could_concern(text)),
     ("pre_push_gate", "guarded_main", lambda tool, text, tool_input: tool == "Bash" and "git" in text),
     ("precheck_before_pr", "guarded_main", lambda tool, text, tool_input: tool == "Bash" and "gh" in text and "pr" in text),
 )
@@ -162,8 +162,9 @@ def self_test():
     assert stubbed >= 3, "the corpus must include commands that start precheck.sh (covered by the gates' own self-tests)"
 
     # 2. pre-filters: commands no gate cares about start no gate at all
-    for command in ("ls", "echo hi", "python3 x.py", "cat api.py", "pip install x", "npm test", "mvn -q test"):
+    for command in ("ls", "echo hi", "cat api.py", "pip install x", "npm test", "mvn -q test"):
         assert selected(json.loads(payload(command))) == [], command
+    assert "prod_write_gate" in [n for n, _ in selected(json.loads(payload("python3 x.py")))], "an interpreter may run a script that names production"
     assert [n for n, _ in selected(json.loads(payload("git status")))] == ["main_checkout_gate", "pre_push_gate"]
     assert "precheck_before_pr" in [n for n, _ in selected(json.loads(payload("gh pr create")))]
     assert "codex_stdin_gate" in [n for n, _ in selected(json.loads(payload("pi -p x")))] and "codex_stdin_gate" not in [n for n, _ in selected(json.loads(payload("pip install x")))]
@@ -171,6 +172,10 @@ def self_test():
 
     # 2b. the production-write gate is reached through the dispatcher, also behind quotes
     assert dispatch(payload("aliyun rds DeleteAccount --DBInstanceId rm-bp1690ep53t9778dp"))[0] == 2 and dispatch(payload("aliyun rds DescribeDBInstances --DBInstanceId rm-bp1690ep53t9778dp"))[0] == 0
+    for hostile in ("python3 -c \"connect('rm-bp1690ep53t9778dp')\"", "xargs -I{} sqlcmd -S rm-bp1690ep53t9778dp -Q {}", "sqlcmd -S `echo rm-bp1690ep53t9778dp` -Q 'delete from t'", "bash -lc \"psql -h rm-bp1690ep53t9778dp -c 'drop table t'\"",
+                    "$'\\x73qlcmd' -S rm-bp1690ep53t9778dp -Q 'delete from t'", "bash <<'EOF'\nsqlcmd -S rm-bp1690ep53t9778dp -Q 'delete from t'\nEOF", "env -S 'sqlcmd -S rm-bp1690ep53t9778dp -Q x'", "curl -XPOST https://rm-bp1690ep53t9778dp/x"):
+        assert dispatch(payload(hostile))[0] == 2, hostile
+    assert dispatch(payload("git commit -m 'rm-bp1690ep53t9778dp 说明'"))[0] == 0 and dispatch(payload("psql -h rm-bp1690ep53t9778dp -U one_evidence_ro -c 'select 1'"))[0] == 0
     assert dispatch(payload("al\"\"iyun rds DeleteAccount --DBInstanceId rm-bp1690ep53t9778dp"))[0] == 2 and "prod_write_gate" in [n for n, _ in selected(json.loads(payload("PSQL -c x")))]
 
     # 3. background task names (Bash with run_in_background, Agent, Task) reach their gate through the dispatcher

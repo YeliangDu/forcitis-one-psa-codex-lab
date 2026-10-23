@@ -295,6 +295,7 @@ if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(pre
   run_step "guards: precheck_before_pr (self-test)" py scripts/hooks/precheck_before_pr.py --self-test
   run_step "guards: pre_push_gate (self-test)" py scripts/hooks/pre_push_gate.py --self-test
   run_step "guards: codex_stdin_gate (self-test)" py scripts/hooks/codex_stdin_gate.py --self-test
+  run_step "guards: command_words (self-test)" py scripts/hooks/command_words.py --self-test
   run_step "guards: prod_write_gate (self-test)" py scripts/hooks/prod_write_gate.py --self-test
   run_step "guards: main_checkout_gate (self-test)" py scripts/hooks/main_checkout_gate.py --self-test
   run_step "guards: commit_msg_gate (self-test)" py scripts/hooks/commit_msg_gate.py --self-test
