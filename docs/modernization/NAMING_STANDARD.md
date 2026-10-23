@@ -603,7 +603,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | 18 | `reporting` 视图与 BI 列 | 视图名 `rpt_<主题>`，列名与词表 `snake` 一致 | 无 | ○ Phase 5 前补 |
 | 19 | 外部投递通道与防腐层 | 外部系统名统一（`wecom`、`seeyon`、`u8c`、`fenbeitong`），外部字段只在防腐层内出现 | G1（防腐层隔离） | ○ 补名称约定守护 |
 | 20 | 日志字段、追踪属性 | 结构化日志键 camelCase，业务键取词表；字段集与追踪键见 GUIDING_PRINCIPLES §11 O-1 | G-O1、G-O3（待实现） | ○ |
-| 21 | Git 分支、提交、PR | 沿用老仓库约定（`feature/issue-{N}-…`、`type(scope): 中文`，scope 用子域 slug） | 老仓库 pr-hygiene | ○ 新仓库 CI 复用 |
+| 21 | Git 分支、提交、PR | 会话 worktree 分支 `claude/<会话名>-<主题>`（SESSION_PLAYBOOK TEAM-86）；提交 `type(scope): 中文`，scope 用子域 slug；PR 与文档合集按 TEAM-40、53 | commit-msg 门；其余复审 | ○ 不以旧仓库分支格式作门槛 |
 | 22 | 概念、指称、用途角色与语言 | §2.1.1–2.1.3；ADR-0053 决定 2、5–6；登记方案「共用结构与职责」、§2 | 现有 `term_rules.py / GlossaryTest` 查旧结构 | ○ 新 schema、角色及状态组合待补守护（切换前） |
 | 23 | 动词、状态体标记、事件组合与模板 | §2.1.5；ADR-0053 决定 3；登记方案 §1、§5 | 现有事件词形守护 | ○ 正向渲染与例外引用待补守护（组合迁移前） |
 | 24 | PostgreSQL 标识符长度与缩写 | §2.1.4 N3-L1–L3；ADR-0053「需同步修改的守护规则」 | `DdlNamingTest` 尚无长度检查 | ○ 待补守护（新命名 / 改名 DDL 应用前） |
