@@ -164,7 +164,7 @@ CREATE FUNCTION organization_attendance.is_owner_member(table_oid oid) RETURNS b
     SELECT COALESCE(pg_has_role(current_user, (SELECT relowner FROM pg_catalog.pg_class WHERE oid = table_oid), 'MEMBER'), false)
 $$;
 COMMENT ON FUNCTION organization_attendance.is_owner_member(oid) IS '当前角色是否属主角色的成员；表不存在或属主不存在时为假';
--- 迁入角色的名字由属主角色名推出（ADR-0036：one_<环境>_owner 对 one_<环境>_history_loader），按推出的名字精确比对，不用正则匹配；该角色须由部署脚本先建好。
+-- 迁入角色的名字由属主角色名推出（ADR-0036：one_<环境>_owner 对 one_<环境>_history_loader），由属主名替换后缀推出，按推出的全名精确比对；该角色须由部署脚本先建好。
 CREATE FUNCTION organization_attendance.is_migration_writer(table_oid oid) RETURNS boolean
     LANGUAGE sql STABLE SET search_path = pg_catalog, pg_temp AS $$
     SELECT organization_attendance.is_owner_member(table_oid) OR COALESCE(pg_has_role(current_user,

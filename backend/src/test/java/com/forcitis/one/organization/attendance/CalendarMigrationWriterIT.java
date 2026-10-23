@@ -129,6 +129,8 @@ class CalendarMigrationWriterIT {
         assertThatThrownBy(() -> confirmAs("one_test_app", version, "null", "REGISTERED")).hasMessageContaining("ck_work_calendar_versions_confirmation_columns");
         assertThatThrownBy(() -> confirmAs("one_test_app", version, "'" + PERSON + "'::uuid", "NONE")).hasMessageContaining("REGISTERED");
         assertThatCode(() -> confirmAs("one_test_app", version, "'" + PERSON + "'::uuid", "REGISTERED")).doesNotThrowAnyException();
+        UUID rolledBack = migratedAs("one_test_history_loader", calendar(), "MIGRATION");
+        assertThatCode(() -> withdrawAs("one_test_app", rolledBack)).as("a migrated batch is rolled back by a person through withdrawal").doesNotThrowAnyException();
         assertThatThrownBy(() -> {
             try (Connection c = connect(); Statement st = c.createStatement()) {
                 st.execute("set role one_test_history_loader");
@@ -149,14 +151,19 @@ class CalendarMigrationWriterIT {
     void migratedVersionsAreNeverInsertedConfirmed() throws SQLException {
         UUID calendar = calendar();
         for (String role : new String[] {"one_test_history_loader", "one_test_owner"}) {
-            assertThatThrownBy(() -> {
-                try (Connection c = connect(); Statement st = c.createStatement()) {
-                    st.execute("set role " + role);
-                    st.execute("insert into " + VERSIONS + " (id, work_calendar_id, year_number, version_number, confirmation_status, source_kind, effective_from_date, confirmed_by, confirmed_at,"
-                            + " decision_audit_entry_id, official_notice_number, official_notice_url, company_leave_register_kind, created_at, updated_at) values (uuidv7(), '" + calendar
-                            + "', 2026, 1, 'CONFIRMED', 'MIGRATION', DATE '2020-01-01', '" + PERSON + "', now(), uuidv7(), 'n', 'https://www.gov.cn/n', 'NONE', now(), now())");
-                }
-            }).hasMessageContaining("starts as PENDING_CONFIRMATION");
+            assertThatThrownBy(() -> insertConfirmed(role, calendar, "AUTHORED")).as("authored, " + role).hasMessageContaining("starts as PENDING_CONFIRMATION");
+
+            assertThatThrownBy(() -> insertConfirmed(role, calendar, "MIGRATION")).hasMessageContaining("starts as PENDING_CONFIRMATION");
+        }
+    }
+
+    static void insertConfirmed(String role, UUID calendar, String source) throws SQLException {
+        try (Connection c = connect(); Statement st = c.createStatement()) {
+            st.execute("set role " + role);
+            st.execute("insert into " + VERSIONS + " (id, work_calendar_id, year_number, version_number, confirmation_status, source_kind, effective_from_date, authored_by, authored_at, confirmed_by, confirmed_at,"
+                    + " decision_audit_entry_id, official_notice_number, official_notice_url, company_leave_register_kind, created_at, updated_at) values (uuidv7(), '" + calendar
+                    + "', 2026, 1, 'CONFIRMED', '" + source + "', DATE '2020-01-01', " + (source.equals("MIGRATION") ? "null, null" : "'" + PERSON + "', now()") + ", '" + PERSON
+                    + "', now(), uuidv7(), 'n', 'https://www.gov.cn/n', 'NONE', now(), now())");
         }
     }
 
@@ -197,8 +204,30 @@ class CalendarMigrationWriterIT {
             }
             assertThat(seen).isEqualTo(4);
             try (ResultSet rs = st.executeQuery("select p.oid::regprocedure::text from pg_proc p where p.prosecdef and p.pronamespace = 'organization_attendance'::regnamespace"
-                    + " and (p.prosrc ~* 'insert\\s+into' or p.prosrc ~* 'update\\s+organization' or p.prosrc ~* 'delete\\s+from') and p.proname <> 'guard_work_calendar_version_change'")) {
+                    + " and (p.prosrc ~* 'insert\\s+into' or p.prosrc ~* 'update\\s+organization' or p.prosrc ~* 'delete\\s+from')")) {
                 assertThat(rs.next()).as("a SECURITY DEFINER function of the schema that writes").isFalse();
+            }
+            try (ResultSet rs = st.executeQuery("select string_agg(p.proname, ',' order by p.proname) from pg_proc p where p.prosecdef and p.pronamespace = 'organization_attendance'::regnamespace")) {
+                rs.next();
+                assertThat(rs.getString(1)).as("the only SECURITY DEFINER function of the schema").isEqualTo("guard_work_calendar_version_day_insert");
+            }
+            try (ResultSet rs = st.executeQuery("select string_agg(p.proname, ',' order by p.proname) from pg_proc p where p.pronamespace = 'organization_attendance'::regnamespace"
+                    + " and not coalesce(p.proconfig::text ~ 'search_path=pg_catalog, pg_temp', false)")) {
+                rs.next();
+                assertThat(rs.getString(1)).as("functions of the schema without the pinned search_path").isNull();
+            }
+            for (String role : new String[] {"one_test_app", "one_test_other", "one_x_history_loader"}) {
+                try (ResultSet rs = st.executeQuery("select has_function_privilege('" + role + "', 'organization_attendance.guard_work_calendar_version_day_insert()', 'EXECUTE')")) {
+                    rs.next();
+                    assertThat(rs.getBoolean(1)).as(role + " cannot execute the definer day guard directly").isFalse();
+                }
+            }
+            for (String role : new String[] {"one_test_history_loader", "one_test_app"}) {
+                try (ResultSet rs = st.executeQuery("select has_function_privilege('" + role + "', 'organization_attendance.is_migration_writer(oid)', 'EXECUTE'),"
+                        + " has_function_privilege('" + role + "', 'organization_attendance.is_owner_member(oid)', 'EXECUTE')")) {
+                    rs.next();
+                    assertThat(rs.getBoolean(1) && rs.getBoolean(2)).as(role + " may execute the decision functions").isTrue();
+                }
             }
         }
     }
