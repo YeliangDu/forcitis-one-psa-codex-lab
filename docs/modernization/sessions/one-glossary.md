@@ -88,6 +88,4 @@
 
 ## 当前状态
 
-2026-10-23 上下文 20% 交接；待办①②与 T-G6、standard_cost_rate_card 改 bc 已办；NM8S 暂缓（bundle 备份）；下一步审 Codex 两张用语页卡成果（GL6/GL7），清单见 glossary/HANDOFF_20261022.md「2026-10-23 续」。
-
-2026-10-23 晚交接：one-rules 已并入本会话（会话名仍 one-glossary，规则卡与确认页模板由我接，原交接见 claude/one-rules-context-2 @a706eb820 的 RULES_CONTEXT.md「交接」节）。GL6（6 题）、GL7 改第八批（4 题）按两轮审题改完，check_pages 0 问题，分支 claude/one-glossary-handoff-1022 @0afb195e7 已推送；one-coordinator 二审结论「改后发布」，不必再审。**下一步：发布这两页进收件箱**（生成 html 见 HANDOFF_20261022.md 末节命令；Artifact 新建，contract 0.2.80，能力 db（集合 answers、answers-submit 只许 owner 写）+ user；发布后在收件箱页建 pending 事项并报 one-coordinator 页链接）。之后：岗位那题有答复后修 position/job_position 定义；规则卡写回清单见 HANDOFF 末节。
+2026-10-23 晚交接：one-rules 已并入本会话（会话名仍 one-glossary，规则卡与确认页模板由我接，原交接见 claude/one-rules-context-2 @a706eb820 的 RULES_CONTEXT.md「交接」节）；GL6（6 题）、GL7 改第八批（4 题）按两轮审题改完，check_pages 0 问题，分支 claude/one-glossary-handoff-1022 已推送，one-coordinator 二审「改后发布」不必再审；下一步发布这两页进收件箱（做法见 glossary/HANDOFF_20261022.md 末节），之后按岗位题答复修 position/job_position 定义并办 HANDOFF 末节的规则卡待办。
