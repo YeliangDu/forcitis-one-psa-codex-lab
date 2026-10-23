@@ -305,9 +305,14 @@ def read_table_file(path):
     except OSError as error: return None, f"生产特征表 {os.path.basename(path)} 缺失或不合格（{error.__class__.__name__}: {error}）"
 
 def main_table_text():  # The table on origin/main, read by its full ref name (a tag called origin/main cannot shadow it), or None.
-    for rel in MAIN_TABLE_PATHS:
-        text = git("show", f"refs/remotes/origin/main:{rel}")
-        if text is not None: return text
+    try: data = subprocess.run(["git", "-C", REPO_ROOT, "cat-file", "--batch"], input="".join(f"refs/remotes/origin/main:{rel}\n" for rel in MAIN_TABLE_PATHS).encode(), capture_output=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError): return None
+    at = 0  # one process for every path (a hook's p99 budget): "<id> blob <size>\n<content>\n" or "<name> missing\n" per path, in order
+    for _ in MAIN_TABLE_PATHS:
+        end = data.find(b"\n", at); head = data[at:end].split() if end >= 0 else []
+        if len(head) == 3 and head[1] == b"blob": return data[end + 1:end + 1 + int(head[2])].decode("utf-8", "replace")
+        at = end + 1 + (int(head[2]) + 1 if len(head) == 3 and head[2].isdigit() else 0)
+        if end < 0: return None
     return None
 
 def load_table(path=None):  # (patterns, problem, warning). Without `path` the local table is unioned with origin/main's (missing entries or an empty union warn).

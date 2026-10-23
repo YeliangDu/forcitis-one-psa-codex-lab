@@ -192,7 +192,8 @@ def gate_self_test():
     assert allowed("psql -h pgm-prod0001 -c 'delete from t'", []), "an empty table (no production yet) is valid and inert"
     # 8. the guard's own self-tests: the guard sources hold no real production sample, so they pass under the shipped table; trust (content equal to origin/main) is a second way
     real = load_table()[0]
-    for path in (os.path.join(HERE, "prod_write_gate.py"), os.path.join(HERE, "prod_write_gate_selftest.py"), os.path.join(HOOKS, "command_words.py"), os.path.join(HOOKS, "pre_tool_dispatch.py")):
+    for path in (os.path.join(HERE, "prod_write_gate.py"), os.path.join(HERE, "prod_write_gate_selftest.py"), os.path.join(HOOKS, "command_words.py"), os.path.join(HERE, "pre_tool_dispatch.py"),
+                 os.path.join(HERE, "pre_tool_dispatch_selftest.py")):
         assert allowed(f"python3 -I {path} --self-test", real), path
     assert refused(f"python3 -I {os.path.join(HERE, 'prod_write_gate.py')} -c 'x' {P}")
     # 9. a script is trusted only while it is exactly the file on origin/main (opus round 2, item 2); the sources below mention the pattern "simple_commands"

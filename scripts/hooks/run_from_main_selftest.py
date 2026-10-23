@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """run_from_main.sh 自测（GOV-1023-QUA-06）：落后的工作区里钩子取主检出的版本；定位不看工作目录；主检出不在 main 或 scripts/hooks 有改动时退回并告警；
-钩子崩溃按失败处理；告警进日志和（SessionStart）标准输出；settings.json 里每个钩子都经启动器，PreToolUse 带 --strict，三个无关插件关闭。"""
+钩子崩溃按失败处理；告警进日志和（SessionStart）标准输出；settings.json 里每个钩子都经启动器，PreToolUse 只挂 Bash 的 gates/pre_tool_dispatch.py 且带 --strict，三个无关插件关闭；gates/<名字> 取 scripts/gates。"""
 import json, os, shlex, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -40,12 +40,16 @@ def main():
         put(os.path.join(hooks, "crash.sh"), "#!/bin/bash\nexit 1\n")
         put(os.path.join(hooks, "block.sh"), "#!/bin/bash\necho no >&2\nexit 2\n")
         put(os.path.join(hooks, "syntax.py"), "#!/usr/bin/env python3\ndef (:\n")
+        gates = os.path.join(main_repo, "scripts/gates")  # GOV-1023-FV2 O3: `gates/<name>` runs scripts/gates/<name>
+        put(os.path.join(gates, "gprobe.sh"), PROBE.replace("{tag}", "GMAIN"))
+        put(os.path.join(gates, "pre_tool_dispatch.py"), "#!/bin/bash\necho DISPATCH-GATES\n")
         git(main_repo, "add", "-A")
         git(main_repo, "commit", "-q", "-m", "one")
         git(main_repo, "worktree", "add", "-q", "-b", "wt", stale)
         # the stale workspace: an old probe, a probe main does not have, an old launcher copy-equal
         put(os.path.join(stale, "scripts/hooks/probe.sh"), PROBE.replace("{tag}", "STALE"))
         put(os.path.join(stale, "scripts/hooks/only_here.sh"), PROBE.replace("{tag}", "ONLYHERE"))
+        put(os.path.join(stale, "scripts/gates/gprobe.sh"), PROBE.replace("{tag}", "GSTALE"))
         # a foreign repository with a hook of the same name
         os.makedirs(foreign)
         git(foreign, "init", "-q", "-b", "main")
@@ -64,6 +68,17 @@ def main():
         assert f"MAIN cwd={sub}" in launch(stale, "probe.sh", "a", cwd=sub, project=stale).stdout
         assert "MAIN" in launch(stale, "probe.sh", "a").stdout, "no CLAUDE_PROJECT_DIR: located by the launcher's own place"
         assert not os.path.exists(log), "no fallback, no log"
+        # 1b. gates/<name>: scripts/gates of the main checkout; the old dispatcher name is an alias of gates/pre_tool_dispatch.py (settings.json loaded before the move)
+        r = launch(stale, "gates/gprobe.sh", "g", project=stale, stdin="p")
+        assert r.returncode == 0 and r.stdout.strip() == f"g GMAIN cwd={stale} in=p" and not r.stderr, (r.stdout, r.stderr)
+        for name in ("pre_tool_dispatch.py", "gates/pre_tool_dispatch.py"):
+            r = launch(stale, name, project=stale, flags=("--strict",))
+            assert r.returncode == 0 and r.stdout.strip() == "DISPATCH-GATES" and not r.stderr, (name, r.stdout, r.stderr)
+        put(os.path.join(gates, "gprobe.sh"), PROBE.replace("{tag}", "GDIRTY"))
+        r = launch(stale, "gates/gprobe.sh", "g", project=stale)
+        assert "GSTALE" in r.stdout and "GDIRTY" not in r.stdout and "未提交或未跟踪" in r.stderr, "uncommitted edits in main's scripts/gates are not run"
+        git(main_repo, "checkout", "--", "scripts/gates/gprobe.sh")
+        reset_log()
         # 2. the working directory takes no part: a session that cd'd into another repository does not run that repository's hook (opus round 1 item 1)
         r = launch(stale, "probe.sh", "a", cwd=foreign, project=stale)
         assert "MAIN" in r.stdout and "FOREIGN" not in r.stdout, r.stdout
@@ -126,7 +141,7 @@ def main():
         for flags, code in ((("--strict",), 2), ((), 1)):
             r = launch(stale, "nowhere.sh", project=stale, flags=flags)
             assert r.returncode == code and "不存在或不可执行" in r.stderr, (flags, r.returncode)
-        for bad in ("", "../probe.sh", "a/b", ".hidden"):
+        for bad in ("", "../probe.sh", "a/b", ".hidden", "gates/", "gates/../probe.sh", "gates/a/b", "gates/.x", "hooks/probe.sh"):
             assert launch(stale, bad, project=stale).returncode == 1 and launch(stale, bad, project=stale, flags=("--strict",)).returncode == 2, f"bad hook name {bad!r}"
         # 5. a crashing hook is a failure, not a pass: exit 1 means "do not block" to Claude Code (opus round 1 item 2); 0 and 2 are the hook's own answers
         reset_log()
@@ -148,9 +163,10 @@ def main():
                     words = shlex.split(hook["command"])
                     assert words[0].endswith("/scripts/hooks/run_from_main.sh"), (event, hook["command"])
                     name = next(w for w in words[1:] if not w.startswith("--"))
-                    assert os.path.exists(os.path.join(HERE, name)), (event, name)
+                    assert os.path.exists(os.path.join(HERE, "..", name) if name.startswith("gates/") else os.path.join(HERE, name)), (event, name)
                     seen.setdefault(name, set()).add((event, tuple(w for w in words[1:] if w.startswith("--"))))
-        assert all("--strict" in flags for _, flags in seen["pre_tool_dispatch.py"]) and all("--strict" not in flags for n, v in seen.items() if n != "pre_tool_dispatch.py" for _, flags in v)
+        assert all("--strict" in flags for _, flags in seen["gates/pre_tool_dispatch.py"]) and all("--strict" not in flags for n, v in seen.items() if n != "gates/pre_tool_dispatch.py" for _, flags in v)
+        assert [g["matcher"] for g in settings["hooks"]["PreToolUse"]] == ["Bash"], "PreToolUse hangs only the production-write gate, on Bash"
         assert all("--stdout-warn" in flags for n in ("git_ceiling_env.sh", "postcompact_context.sh") for _, flags in seen[n]), "SessionStart output reaches the model"
         for plugin in ("kotlin-lsp", "claude-code-setup", "code-modernization"):
             assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
