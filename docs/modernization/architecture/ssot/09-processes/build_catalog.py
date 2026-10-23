@@ -2,7 +2,7 @@
 
 Usage: python3 -I build_catalog.py [--check | --self-test]
 Errors exit 1 and write nothing; --check validates without writing. Warnings (business without bpmn or stages) do not fail.
-Runtime BPMN: every backend/src/main/resources/processes/*.bpmn20.xml is referenced by exactly one entry's runtime_bpmn,
+Runtime BPMN (errors): every backend/src/main/resources/processes/*.bpmn20.xml is referenced by exactly one entry's runtime_bpmn,
 and its <process id> equals the file name; flow_docs paths exist.
 """
 import collections
@@ -68,8 +68,8 @@ def check_runtime(rows, repo=REPO):
     return errors
 
 
-def check(rows):
-    errors, warns = [], check_runtime(rows)
+def check(rows, repo=REPO):
+    errors, warns = check_runtime(rows, repo), []
     stages, owners = valid_stages(), valid_owners()
     by_id = {}
     for r in rows:
@@ -175,6 +175,7 @@ def self_test():
         assert any("runtime_bpmn" in e for e in check_runtime([row, {"id": "PRC-02", "runtime_bpmn": f"{RUNTIME}/gone.bpmn20.xml"}], repo))
         bpmn.write_text('<definitions><process id="other"/></definitions>', encoding="utf-8")
         assert any("<process id" in e for e in check_runtime([row], repo)), "process id 与文件名不符须失败"
+        assert any("<process id" in e for e in check([], repo)[0]), "可执行 BPMN 的问题须算错误，不算警告"
     print("build_catalog self-test: ok")
 
 
