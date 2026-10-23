@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_说明": "流程数值与枚举的唯一出处（定稿 P4、H8）。规则、角色、模板只引用键名，不写字面值。改动走普通文档 PR，正文引用 intent。约定：值为 null 表示「待定」，读取方按最保守处理（拦截类不开、上限类不放宽），例外在键旁注明；delegate.billing 里 monthly_cap 为 null 表示「不设上限」（D34）。枚举：budget_check.mode 与 budget.level_mode 取 warn｜enforce。",
+  "_说明": "流程数值与枚举的唯一出处（定稿 P4、H8）。规则、角色、模板只引用键名，不写字面值。改动走普通文档 PR，正文引用 intent。约定：值为 null 表示「待定」，读取方按最保守处理（拦截类不开、上限类不放宽），例外在键旁注明；delegate.billing 用 no_cap: true 表示不设上限（D34）。枚举：budget_check.mode 与 budget.level_mode 取 warn｜enforce。",
   "rules": {
     "claude_md_max_kb": 1.5,
     "rules_md_max_kb": 5,
@@ -60,7 +60,21 @@
       "复审结论",
       "commit",
       "复审者"
-    ]
+    ],
+    "final_paths": [
+      "scripts/gates/",
+      "scripts/hooks/",
+      "scripts/merge/",
+      "scripts/queue/",
+      "scripts/review/",
+      "scripts/ci/",
+      ".claude/",
+      ".github/",
+      "policy.json",
+      ".gitleaks.toml",
+      ".pre-commit-config.yaml"
+    ],
+    "_final_paths_说明": "仓库根起的完整前缀，改动路径以任一项开头即须 opus 终审。不得写裸目录名或空表（空表等于关闭终审）。"
   },
   "labels": {
     "review_passed": "复审通过",
@@ -211,11 +225,11 @@
     "billing": {
       "codex": {
         "mode": "subscription",
-        "monthly_cap": null
+        "no_cap": true
       },
       "deepseek": {
         "mode": "record_only",
-        "monthly_cap": null
+        "no_cap": true
       }
     },
     "pilot": {
