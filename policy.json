@@ -61,15 +61,18 @@
     "light_job_p90_minutes": 2,
     "light_job_cancel_rate_max": 0.05,
     "infra_pr_weekly_share_max": 0.2,
-    "infra_release_weekday": "monday"
+    "infra_release_weekday": "monday",
+    "new_test_repeat": 3
   },
   "retention_days": {
     "worktree_after_merge": 1,
     "branch_cleanup_backup": 7,
     "handoff_history": 7,
     "jsonl_logs": 14,
-    "snapshot_backup": 7
+    "snapshot_backup": 7,
+    "evidence": 7
   },
+  "shell": {"foreground_max_seconds": 60},
   "janitor": {"daily_at": "03:00"},
   "board": {"interval_minutes": 10},
   "decisions": {
