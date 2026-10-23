@@ -5,7 +5,7 @@
 该项检查报「检查无法完成」违例（失败关闭），其他检查照跑。各检查的格式约定写在对应函数的说明里。
 用法：budget_check.py [--root DIR] | budget_check.py --self-test
 """
-import argparse, datetime, fnmatch, functools, itertools, json, os, posixpath, re, subprocess, sys
+import argparse, datetime, fnmatch, functools, itertools, json, math, os, posixpath, re, subprocess, sys
 from pathlib import Path
 
 CLAUDE, RULES, ROLES = "CLAUDE.md", "docs/modernization/RULES.md", "docs/modernization/roles"
@@ -54,8 +54,10 @@ class Report:
     def info(self, code, path, msg):
         self.infos.append(f"信息 {code} {path} {msg}")
 
-    def cap(self, code, path, val, limit, msg):
-        if val > limit:  # 上限为 null 时比较出 TypeError，该项检查失败关闭
+    def cap(self, code, path, val, limit, msg, policy=True):
+        if policy and (isinstance(limit, bool) or not isinstance(limit, (int, float)) or not math.isfinite(limit) or limit <= 0):
+            raise ValueError(f"上限 {limit!r} 须是有限正数")  # NaN、Infinity、非正数、非数字：检查无法完成
+        if val > limit:
             self.viol(code, path, msg)
 
 def read(path):
@@ -152,7 +154,7 @@ def check_gate_volume(root, pol, rep):
     rep.cap("H1", where, run_lines, g["runtime_max_lines"], f"运行代码 {run_lines} 行超过 gates.runtime_max_lines")
     rep.cap("H1", where, len(run_files), g["runtime_max_files"],
             f"运行代码 {len(run_files)} 个文件超过 gates.runtime_max_files")
-    rep.cap("H1", where, test_lines, run_lines, f"自测 {test_lines} 行多于运行代码 {run_lines} 行")
+    rep.cap("H1", where, test_lines, run_lines, f"自测 {test_lines} 行多于运行代码 {run_lines} 行", policy=False)
 
 def check_line_caps(root, pol, rep):
     """gates.max_lines.<名> 按文件名或「名_后缀」对 scripts/** 与 docs/**/*.py；门与钩子报 H1，其余报 H23。
@@ -178,6 +180,8 @@ def check_mq_total(root, pol, rep):
 def check_tools_lib_total(root, pol, rep):
     """H23 后半：tools_lib.max_lines_total 管的工具库在仓库外，由工具库自测或 janitor 查，这里只出一行信息。"""
     total = pol["tools_lib"]["max_lines_total"]
+    if isinstance(total, bool) or not isinstance(total, (int, float)) or not math.isfinite(total) or total <= 0:
+        raise ValueError(f"上限 {total!r} 须是有限正数")
     rep.info("H23", "tools_lib", f"工具库在仓库外，tools_lib.max_lines_total（{total}）由工具库自测或 janitor 查")
 
 def leaves(node, path=""):
@@ -215,27 +219,32 @@ def check_single_source(root, pol, rep):
                 rep.viol("H8", where, f"字面值「{lit}」与 policy.json {'、'.join(keys)} 相同，改引用键名")
 
 def tools_lib_names(pol, rep):
-    """policy tools_lib.dir 下含入口文件（<名>/<名>.py、<名>.sh 或 __main__.py）的一级子目录，不认 . 与 _ 开头的。
-    dir 须是 ~/.modernize/ 下的具体目录（与工作目录、--root 无关），过宽或含 .. 报格式违例。本机口径：
-    CI 上没有该目录时这些名字照报，故另出一行信息列出认得的名字。"""
+    """H9 白名单只取 policy tools_lib.checks（工具名列表）。tools_lib.dir 只用来核对名单里的工具在本机存在
+    （含入口文件 <名>/<名>.py、<名>.sh 或 __main__.py 的一级子目录），有差异只出信息行，不改违例。
+    dir 须是 ~/.modernize/ 下的具体目录，过宽或含 .. 报格式违例。"""
     conf = pol.get("tools_lib")
     raw = conf.get("dir") if isinstance(conf, dict) else None
+    checks = conf.get("checks") if isinstance(conf, dict) else None
+    if checks is not None and not (isinstance(checks, list) and all(isinstance(c, str) for c in checks)):
+        rep.viol("H9", "policy.json", "tools_lib.checks 须是工具名字符串列表，格式违例")
+        return set()
+    names = set(checks or [])
+    if checks is None:
+        rep.info("H9", "policy.tools_lib.checks", "未配置，工具库检查名未纳入")
     if raw is not None:
         deep = isinstance(raw, str) and raw.startswith(TOOLS_LIB_ROOT) and raw.rstrip("/") != TOOLS_LIB_ROOT[:-1]
         if not deep or ".." in raw.split("/"):
             rep.viol("H9", "policy.json", f"tools_lib.dir「{raw}」须写成 {TOOLS_LIB_ROOT} 下的具体目录，格式违例")
-            return set()
+            return names
     lib = Path(os.path.expanduser(raw)) if raw else None
     if lib is None or not lib.is_dir():
-        rep.info("H9", "policy.tools_lib.dir", "未配置或不存在，工具库检查名未纳入")
-        return set()
-    names = set()
-    for d in sorted(lib.iterdir()):
-        entries = (d / f"{d.name}.py", d / f"{d.name}.sh", d / "__main__.py")
-        if d.is_dir() and not d.name.startswith((".", "_")) and any(e.is_file() for e in entries):
-            names.add(d.name)
-    shown = "、".join(sorted(names)) or "无"
-    rep.info("H9", "policy.tools_lib.dir", f"本机口径，从工具库认得：{shown}（CI 上没有该目录时这些名字照报）")
+        rep.info("H9", "policy.tools_lib.dir", "未配置或不存在，本机未核对 tools_lib.checks")
+        return names
+    local = {d.name for d in lib.iterdir() if d.is_dir() and not d.name.startswith((".", "_"))
+             and any(e.is_file() for e in (d / f"{d.name}.py", d / f"{d.name}.sh", d / "__main__.py"))}
+    if names != local:
+        rep.info("H9", "policy.tools_lib.dir", f"本机核对：名单有而本机无「{'、'.join(sorted(names - local)) or '无'}」，"
+                 f"本机有而名单无「{'、'.join(sorted(local - names)) or '无'}」")
     return names
 
 def check_names(root, pol, rep):

@@ -173,10 +173,21 @@ def main():
             (lib / d).mkdir(parents=True)
             (lib / d / entry).write_text("x\n", "utf-8")
         (lib / "board").write_text("x\n", "utf-8")
+        CK = ["janitor", "budget_level", "stop_sh"]
         lib_pol, env = with_policy(["tools_lib", "dir"], "~/.modernize/lib"), {"HOME": home}
+        lib_pol["tools_lib"]["checks"] = CK
         rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor、budget_level、stop_sh\n"}, lib_pol, env)
-        check("H9 认含入口文件的工具库子目录（~ 展开），出本机口径信息", not viol and "本机口径" in out
+        check("H9 白名单取 tools_lib.checks，本机目录与名单一致时无差异信息", not viol and "本机核对" not in out
               and "未配置或不存在" not in out, out)
+        extra = with_policy(["tools_lib", "checks"], CK + ["ghost"]) | {}
+        extra["tools_lib"]["dir"] = "~/.modernize/lib"
+        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：ghost\n"}, extra, env)
+        check("H9 名单有而本机无：只出信息行，不增违例", not viol and "名单有而本机无「ghost」" in out, out)
+        for name, pol in (("有目录", lib_pol), ("无目录", with_policy(["tools_lib", "checks"], CK))):
+            rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor、board\n"}, pol, env)
+            check(f"H9 {name}：违例相同（只报 board）", viol == [f"H9 {RULES}:1 「甲」执行栏引用的检查名「board」不存在"], out)
+        rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor\n"}, with_policy(["tools_lib", "checks"], "janitor"), env)
+        check("H9 tools_lib.checks 非列表报格式违例", any(v.startswith("H9 policy.json") for v in viol), out)
         for bad in ("board", "handoff", "legacy", ".hidden", "_priv"):
             rc, out, viol = run({**GOOD, RULES: f"## 甲\n执行：{bad}\n"}, lib_pol, env)
             check(f"H9 工具库里不算检查的「{bad}」照报", any(v.startswith(f"H9 {RULES}:1") for v in viol), out)
@@ -184,10 +195,10 @@ def main():
             rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor\n"}, with_policy(["tools_lib", "dir"], wide), env)
             check(f"H9 tools_lib.dir={wide!r} 过宽或越界报格式违例", any(v.startswith("H9 policy.json") for v in viol), out)
     missing = with_policy(["tools_lib", "dir"], "~/.modernize/no-such-lib")
-    for name, pol in (("键缺失", POLICY), ("目录不存在", missing)):
+    for name, pol in (("键缺失", with_policy(["tools_lib", "checks"], [])), ("目录不存在", missing)):
         rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：janitor\n"}, pol, {"HOME": "/nonexistent-home"})
-        check(f"H9 tools_lib.dir {name}：白名单外照报，另出一行信息", any(v.startswith(f"H9 {RULES}:1") for v in viol)
-              and "信息 H9 policy.tools_lib.dir 未配置或不存在，工具库检查名未纳入" in out, out)
+        check(f"H9 tools_lib.dir {name}：名单外照报，另出一行信息", any(v.startswith(f"H9 {RULES}:1") for v in viol)
+              and "信息 H9 policy.tools_lib.dir 未配置或不存在，本机未核对 tools_lib.checks" in out, out)
     expect_clean("H9 「人工」写在执行栏第一个不崩溃", {RULES: "## 甲\n执行：人工：one-lead／每周\n"})
     rc, out, viol = run({**GOOD, RULES: "## 甲\n执行：no_such、人工：one-lead／每周\n"})
     check("H9 「不存在的名、人工」只报一次", [v for v in viol if v.startswith("H9")] == [
@@ -282,6 +293,12 @@ def main():
     check("缺 tools_lib.max_lines_total：报违例，mq 总行数照查", rc == 0 and "Traceback" not in out
           and any(v.startswith("H23 policy.json 检查无法完成") and "max_lines_total" in v for v in viol)
           and any(v.startswith("H23 scripts/merge+queue") for v in viol), out)
+    # policy 上限值是 NaN、Infinity、非正数或非数字：检查无法完成，不静默通过
+    for label, v in (("NaN", float("nan")), ("Infinity", float("inf")), ("0", 0), ("负数", -5), ("字符串", "99"), ("布尔", True)):
+        for path, hit in ((["mq", "max_lines_total"], "H23 policy.json 检查无法完成"), (["rules", "rules_md_max_kb"], "H7 policy.json 检查无法完成"),
+                          (["gates", "runtime_max_lines"], "H1 policy.json 检查无法完成"), (["tools_lib", "max_lines_total"], "H23 policy.json 检查无法完成")):
+            rc, out, viol = run(GOOD, with_policy(path, v))
+            check(f"policy {'.'.join(path)}={label}：检查无法完成", any(x.startswith(hit) for x in viol) and "Traceback" not in out, out)
     # 模式：policy 的枚举 warn｜enforce
     bad = {**GOOD, "docs/ops/probe.sh": "echo\n"}
     check("warn 有违例退出 0", run(bad)[0] == 0)

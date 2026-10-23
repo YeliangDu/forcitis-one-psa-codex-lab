@@ -14,9 +14,9 @@ ONLY=${ACCEPT_ONLY-$ALL}
 fails=0; passes=0; skips=0
 OUT=""
 STRICT=${ACCEPT_STRICT-0}
-case "$STRICT" in 0|1) ;; *) echo "ACCEPT_STRICT 只认 0 或 1，收到「$STRICT」"; exit 2 ;; esac
+case "$STRICT" in 0|1) ;; *) echo "ACCEPT_STRICT 只认 0 或 1，收到「${STRICT}」"; exit 2 ;; esac
 if [ "$STRICT" = 1 ] && [ "$(echo $ONLY)" != "$ALL" ]; then
-  echo "严格模式必须跑全部批一项（$ALL），不接受 ACCEPT_ONLY 缩小范围"; exit 2
+  echo "严格模式必须跑全部批一项（${ALL}），不接受 ACCEPT_ONLY 缩小范围"; exit 2
 fi
 
 report() {  # id pass|skip|env|fail [detail]; env = skip because the environment lacks something (a failure under ACCEPT_STRICT=1)
@@ -58,8 +58,8 @@ RULES_MD=docs/modernization/RULES.md ROLES_DIR=docs/modernization/roles
 has_roles() { local f; for f in "$ROOT/$ROLES_DIR"/*.md; do [ -f "$f" ] && grep -q '[^[:space:]]' "$f" && return 0; done; return 1; }
 missing_docs() {
   local m=""
-  grep -q '^## ' "$ROOT/$RULES_MD" 2>/dev/null || m="$RULES_MD（缺失或无规则内容）"
-  has_roles || m="${m:+$m、}$ROLES_DIR/*.md（缺失或为空）"
+  grep -q '^## ' "$ROOT/$RULES_MD" 2>/dev/null || m="${RULES_MD}（缺失或无规则内容）"
+  has_roles || m="${m:+${m}、}$ROLES_DIR/*.md（缺失或为空）"
   printf '%s' "$m"
 }
 
@@ -105,7 +105,7 @@ v02() {
 
 v05() {
   local h="$TOOLS/handoff/handoff.py" s="$TOOLS/stop_check/stop_check_selftest.py"
-  local m=""; [ -f "$h" ] || m="handoff.py"; [ -f "$s" ] || m="${m:+$m、}stop_check_selftest.py"
+  local m=""; [ -f "$h" ] || m="handoff.py"; [ -f "$s" ] || m="${m:+${m}、}stop_check_selftest.py"
   [ -z "$m" ] || { report V05 env "工具库 $TOOLS 缺 $m"; return; }
   run_ok "self-test: ok" python3 -I "$h" --self-test || { report V05 fail 'handoff --self-test 退出非 0 或无通过行'; tail_out; return; }
   run_ok "self-test: ok" python3 -I "$s" || { report V05 fail 'stop_check_selftest 退出非 0 或无通过行'; tail_out; return; }
@@ -229,6 +229,6 @@ for item in $ONLY; do
     *) report "$item" fail '未知项' ;;
   esac
 done
-echo "acceptance_v2：通过 $passes、跳过 $skips、不通过 $fails"
+echo "acceptance_v2：通过 ${passes}、跳过 ${skips}、不通过 $fails"
 [ $((passes + skips + fails)) -gt 0 ] || { echo "一项都没有跑（ACCEPT_ONLY 为空？）"; exit 1; }
 [ "$fails" -eq 0 ]

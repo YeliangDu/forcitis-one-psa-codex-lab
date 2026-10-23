@@ -12,8 +12,8 @@ expect() {
   local name=$1 want=$2 re=$3 items=$4; shift 4
   local out rc
   out=$(env ACCEPT_ROOT="$tmp/root" ONE_SESSION_TOOLS="$tmp/tools" ACCEPT_BUDGET_DIR="$tmp/budget" ACCEPT_ONLY="$items" "$@" bash "$here/acceptance_v2.sh" 2>&1); rc=$?
-  if { [ "$want" = 0 ] && [ "$rc" = 0 ]; } || { [ "$want" = nz ] && [ "$rc" != 0 ]; }; then :; else echo "失败 $name：退出码 $rc"; bad=1; fi
-  printf '%s\n' "$out" | grep -Eq "$re" || { echo "失败 $name：输出不含 /$re/"; printf '%s\n' "$out" | sed 's/^/    /'; bad=1; }
+  if { [ "$want" = 0 ] && [ "$rc" = 0 ]; } || { [ "$want" = nz ] && [ "$rc" != 0 ]; }; then :; else echo "失败 ${name}：退出码 $rc"; bad=1; fi
+  printf '%s\n' "$out" | grep -Eq "$re" || { echo "失败 ${name}：输出不含 /$re/"; printf '%s\n' "$out" | sed 's/^/    /'; bad=1; }
 }
 stub_budget() { printf 'print(%s)\n' "$1" >"$tmp/root/scripts/ci/budget_check.py"; }
 ok_py() { printf 'print("%s")\n' "${2:-ok}" >"$1"; }   # a self-test that passes and prints its pass line
@@ -70,6 +70,11 @@ mkdir -p "$tmp/root/scripts/hooks"
 expect "V02 只有 hooks 也要查：无自测" nz '^V02 不通过.*没有自测' V02
 ok_py "$tmp/root/scripts/hooks/a_selftest.py"
 expect "V02 hooks 自测通过" 0 '^V02 通过' V02
+printf 'import sys\nif sys.argv[1:] != ["--self-test"]:\n    sys.exit("usage: b_selftest.py --self-test")\nprint("ok")\n' >"$tmp/root/scripts/hooks/b_selftest.py"
+expect "V02 自测要求 --self-test 参数：带参数跑才通过" 0 '^V02 通过' V02
+printf 'import sys\nprint("ok")\nsys.exit(0 if sys.argv[1:] == [] else 1)\n' >"$tmp/root/scripts/hooks/b_selftest.py"
+expect "V02 自测不收参数：不带参数跑" 0 '^V02 通过' V02
+rm "$tmp/root/scripts/hooks/b_selftest.py"
 expect "V02 p99 与版本单列跳过" 0 'V02\(p99、版本、17 条用例\) 跳过\(无看板数据' V02
 : >"$tmp/root/scripts/hooks/a_selftest.py"
 expect "V02 0 字节自测不得通过" nz '^V02 不通过' V02
