@@ -83,7 +83,7 @@ for d, (s, b) in by.items():
         dfx = (re.search(r"\*\*Suspected defect:\*\*\s*(.+)", body[r[0]]) or [None, ""])[1]
         L.append(contract_line(r, dfx))
 tpl = open(os.path.join(BASE, "MODERNIZATION_BRIEF.template.md"), encoding="utf-8").read()
-PC = ["### 流程梳理结论（按阶段，SESSION_PLAYBOOK §13）", "",
+PC = ["### 流程梳理结论（按阶段，SESSION_PLAYBOOK 附 M4）", "",
       "每个阶段实施前做端到端流程梳理，差异清单逐条由用户决定；结论来自 `process/<阶段>/contract.md`，生成到这里。"]
 for ph in re.findall(r"(?m)^#### Phase (\S+) —", tpl):
     src = os.path.join(BASE, "process", ph, "contract.md")

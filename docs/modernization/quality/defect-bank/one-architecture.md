@@ -1,6 +1,6 @@
 # one-architecture 错题本
 
-三道防线自审（SESSION_PLAYBOOK §11 第 11 条，#308）。格式待 one-quality 的 README 提交后对齐；每条：日期、问题、根因、改法与守护。
+三道防线自审（SESSION_PLAYBOOK TEAM-71、72，#308）。格式待 one-quality 的 README 提交后对齐；每条：日期、问题、根因、改法与守护。
 
 | 日期 | 问题 | 根因 | 改法与守护 |
 |---|---|---|---|

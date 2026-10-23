@@ -47,7 +47,7 @@ import com.forcitis.one.organization.workforce.api.AttributionId;
 import com.forcitis.one.platform.numbering.api.NumberingRuleId;
 
 /**
- * SESSION_PLAYBOOK section 14 item 3 (review H-5, guard 4): whatever operations are tried on an aggregate, the sequence numbers of its
+ * DATA_DESIGN_CHECKLIST section 14 item 3 (review H-5, guard 4): whatever operations are tried on an aggregate, the sequence numbers of its
  * events run 1..n without a gap, and a save without events does not move them. Illegal operations are refused and leave no trace.
  */
 class EventSequenceContinuityTest {

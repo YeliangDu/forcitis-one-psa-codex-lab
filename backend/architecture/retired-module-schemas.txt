@@ -1,4 +1,4 @@
-# A module that was deleted has no Flyway folder while the migration baseline is open (SESSION_PLAYBOOK 12.2). Once applied migrations are append-only again,
+# A module that was deleted has no Flyway folder while the migration baseline is open (SESSION_PLAYBOOK appendix M3, migration baseline). Once applied migrations are append-only again,
 # a deleted module keeps its folder and the last migration in it drops its schema. NamingSurfaceTest accepts such a folder only when the last migration drops the schema;
 # SchemaPlacementIT checks that spring.flyway.schemas does not list a retired schema and that the migrated database has none.
 # <schema>  # why the module is gone

@@ -7,7 +7,7 @@
 
 - 问题片段 issues/<日期>-<HHMMSS>-<会话名>-<短名>.md 由 new_term_issue.py 生成（格式见 TEMPLATE），只增不改，状态恒为「待处理」。
 - 处理片段 issues/<问题文件名去 .md>.resolution.md 由 one-glossary 用 resolve_term_issue.py 写（格式见 RESOLUTION），
-  记当前状态与处理；问题的状态以它为准（SESSION_PLAYBOOK §5「提议术语按批次清理」）。
+  记当前状态与处理；问题的状态以它为准（SESSION_PLAYBOOK 附 M6）。
 - 决策单片段 decision-sheets/<日期>.md：每出一次用语决策单一份，首行「# 用语决策单 <日期>」。
 - 门槛（用户 2026-10-15：「门槛只算业务用语，错误码单列」）：业务用语积压 = backend/glossary/proposed/*.yaml 中 status 为
   proposed 且 kind 不是 error_code 的条目 + 未关闭的问题，达到 THRESHOLD 即出决策单；错误码单列，归结构重构主线。
@@ -152,7 +152,7 @@ def render(items, business, codes, sheet, today):
         since = "尚无决策单"
     head = ("# 用语问题清单\n\n<!-- 由 docs/modernization/glossary/build_issues.py 生成，不入仓，不要手改。 -->\n\n"
             "登记：`python3 docs/modernization/glossary/new_term_issue.py --session=<会话名> \"<词或现象>\" \"<出处>\" "
-            "[--kind=new|dialect|conflict|duplicate|other]`；只登记、不自行裁定，由 one-glossary 处理（SESSION_PLAYBOOK §5）。\n\n"
+            "[--kind=new|dialect|conflict|duplicate|other]`；只登记、不自行裁定，由 one-glossary 处理（SESSION_PLAYBOOK 附 M6）。\n\n"
             f"**业务用语积压 {backlog} 条**（达到 {THRESHOLD} 条即出决策单，{'已达到' if backlog >= THRESHOLD else '未达到'}）："
             f"业务提议术语 {business} 条、未关闭问题 {len(open_items)} 条；{since}。\n\n"
             f"错误码提议 {codes} 条单列，不计入门槛，归结构重构主线（R-5、CS-2.24），阶段出口前清零。\n")

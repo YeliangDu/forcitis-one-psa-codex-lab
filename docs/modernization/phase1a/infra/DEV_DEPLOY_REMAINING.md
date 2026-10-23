@@ -26,7 +26,7 @@
 |---|---|---|---|---|---|
 | 0-1 | 1a 修复批合并，且 opus 复审通过（status/blockers/080） | 1a | 否 | — | ✅ 修复批已合并，blockers/080 已删除 |
 | 0-2 | 发布流水线 PR #59 合并（发布包、签名、部署工作流） | 发布会话 → one-coordinator | 否 | — | ✅ 发布流水线已合并并多次使用（rc.1–rc.3 已发布并验签） |
-| 0-3 | 迁移基线：基线开放标记改为首次生产部署前删除（SESSION_PLAYBOOK §12.2，PREDEPLOY_CHECKLIST C-15），不再是 dev 部署前置；dev 期间基线改动后按 dev 库重建剧本重建 dev 库 | 1a | 否 | — | 不阻塞 dev |
+| 0-3 | 迁移基线：基线开放标记改为首次生产部署前删除（SESSION_PLAYBOOK 附 M3「迁移基线」，PREDEPLOY_CHECKLIST C-15），不再是 dev 部署前置；dev 期间基线改动后按 dev 库重建剧本重建 dev 库 | 1a | 否 | — | 不阻塞 dev |
 
 ## 第 1 层：资源与账号（可与第 0 层并行）
 

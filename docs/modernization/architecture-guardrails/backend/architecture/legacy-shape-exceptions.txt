@@ -1,4 +1,4 @@
-# Old-system identifiers that an approved anti-corruption layer may carry (LegacyShapeTest, SESSION_PLAYBOOK section 5).
+# Old-system identifiers that an approved anti-corruption layer may carry (LegacyShapeTest, SESSION_PLAYBOOK appendix M5).
 # Format, one line per FILE:  <path relative to backend/> | <RULE>[, <RULE>...] | <reason>
 # A rule named here is allowed in that file only. Only these areas may appear (the test enforces it): the Seeyon adapters and
 # the old short-name view reader in platform.integration, the old to-do view reader and the replay tool in platform.approval.

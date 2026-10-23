@@ -7,7 +7,7 @@
   python3 docs/modernization/build_all.py --check  要求 docs/modernization 与提议术语清单重新生成前后无差异（CI 使用）：
                                                    terms.yaml 过期或缺失时失败；允许已生成一致的未提交改动；
                                                    ADR 拷贝与索引、brief、提议术语清单 README、frameworks 两个索引、panorama/ 下 FREEZE_*、panorama.yaml、GAPS.md 不入仓（.gitignore，生成产物移出 main 第 1 期），只要求能生成；
-                                                   INTENT / SESSION_LOG / STATUS / DECISION_DIGEST / SESSIONS / glossary/ISSUES / LEGACY_READ_REGISTER / tasks/TASKS / sessions/_COMMON 不入仓（.gitignore），只要求能生成、片段合规
+                                                   INTENT / SESSION_LOG / STATUS / DECISION_DIGEST / SESSIONS / glossary/ISSUES / LEGACY_READ_REGISTER / tasks/TASKS 不入仓（.gitignore），只要求能生成、片段合规
                                                    （会话画像必备字段、会话名 one-* 且唯一；用语问题片段格式）；TASKS 另要求连续两次生成内容一致；
                                                    另校验 RULE_REVIEWS.json 的原结论未被改写（与 origin/main 的合并基点比对；取不到时由 review_revisions.py
                                                    按环境处理：CI 失败，本地告警），
@@ -24,7 +24,6 @@ SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_boar
                "phase1a/infra/build_legacy_read_register.py", STEPS[-1]]
 STEPS.append("rules/build_rule_index.py")   # 规则索引（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("rules/build_rule_index.py")
-SELF_TESTED.append("../../scripts/hooks/playbook_digest.py")
 SELF_TESTED.append("../../scripts/hooks/start_sheet.py")
 SELF_TESTED.append("../../scripts/ci/ci_recurrence.py")   # 每晚复发检测：失败 CI 按错题本报错特征归类
 SELF_TESTED.append("../../scripts/ops/session_daily.py")   # 会话日报取数（调度每天早上用）
@@ -169,23 +168,10 @@ def self_test():
     print("build_all --self-test：通过（不入仓产物被跟踪或没生成即失败；手改、删除、漏生成失败；一致未提交产物通过；TASKS 缺失或手改可重建、两次不一致或生成失败被拦截）")
 
 
-def build_common(check):
-    """sessions/_COMMON.md（不入仓）：SESSION_PLAYBOOK §2.1/§5/§11 的最小摘要；--check 要求两次生成无告警且内容一致。"""
-    spec = importlib.util.spec_from_file_location("playbook_digest", os.path.join(BASE, "../../scripts/hooks/playbook_digest.py"))
-    digest = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(digest)
-    try:
-        digest.write_common(os.path.join(BASE, "SESSION_PLAYBOOK.md"), os.path.join(BASE, "sessions/_COMMON.md"), check=check)
-    except (OSError, ValueError) as error:
-        sys.exit(f"sessions/_COMMON.md 失败：{error}")
-    print("sessions/_COMMON.md: 两次生成无告警且内容一致" if check else "sessions/_COMMON.md: 已生成")
-
-
 def main():
     if sys.argv[1:] == ["--self-test"]:
         self_test()
         return
-    build_common("--check" in sys.argv)
     generate("--check" in sys.argv)
     if "--check" in sys.argv:
         check_untracked_products()
