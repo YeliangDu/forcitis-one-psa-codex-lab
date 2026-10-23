@@ -3,11 +3,11 @@ package com.forcitis.one.platform.approval;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -66,7 +66,7 @@ class ApprovalRoundProjectionIT extends ApprovalIntegrationSupport {
         assertThat(instanceOf(key)).isEqualTo(second.value());
         assertEveryRequestPointsAtItsNewestRound();
 
-        RetractionResult withdrawn = tx.execute(status -> approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.account(initiator), "wrong hours"));
+        RetractionResult withdrawn = tx.execute(status -> approvals.withdraw(TimesheetApprovalProcess.KEY, document(key), TestAccounts.account(initiator), "wrong hours"));
         assertThat(withdrawn).isEqualTo(RetractionResult.DONE);
         ApprovalInstanceId third = startFor(key, initiator, manager);
         assertThat(third).isNotEqualTo(second);

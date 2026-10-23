@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.DocumentId;
@@ -15,7 +16,6 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ContentHash;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import java.time.Instant;
 import java.util.Optional;
@@ -32,7 +32,7 @@ final class OpenTasks {
     }
 
     static TaskView claimedBy(EmployeeId initiator, UserId handler) {
-        return new TaskView(TASK, INSTANCE, ProcessKey.COST_TIMESHEET_APPROVAL, new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("7")),
+        return new TaskView(TASK, INSTANCE, TimesheetApprovalProcess.KEY, new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("7")),
                 new LegalEntityId(TestIds.uuid(1)), "approverReview", "Approver review", initiator, Optional.of(handler), Set.of(handler),
                 Instant.EPOCH, false, Optional.empty(), false, new ContentHash("hash"));
     }

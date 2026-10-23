@@ -1,6 +1,6 @@
 import type { Schema } from '@forcitis/api';
 
-export type ProcessKey = NonNullable<Schema<'ProcessKey'>>;
+export type ProcessKey = string;
 export type DocumentType = string;
 export type TaskRecordAction = Schema<'TaskRecordAction'>;
 
@@ -15,7 +15,7 @@ export function toneOf<Tone extends string>(tones: Readonly<Record<string, Tone>
 }
 
 export const PROCESS_LABELS: Readonly<Record<ProcessKey, string>> = {
-  COST_TIMESHEET_APPROVAL: '工时单审批',
+  cost_timesheet_approval: '工时单审批',
 };
 
 export const DOCUMENT_TYPE_LABELS: Readonly<Record<string, string>> = {
