@@ -36,7 +36,7 @@ jobs:
           echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
           nohup docker events --filter type=container --since "$(date +%s)" --format '{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}' > "$RUNNER_TEMP/docker-events.log" 2>&1 &
           echo "DOCKER_EVENTS_PID=$!" >> "$GITHUB_ENV"
-      - name: "Flyway migrations: baseline-open marker, append-only, monotonic versions (SESSION_PLAYBOOK §12.2)"
+      - name: "Flyway migrations: baseline-open marker, append-only, monotonic versions (SESSION_PLAYBOOK 附 M3「迁移基线」)"
         env:
           BEFORE: ${{ github.event.before }}
         run: |
@@ -64,7 +64,7 @@ jobs:
         run: |
           python3 scripts/ci/org_interface_notice.py --self-test
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then python3 scripts/ci/org_interface_notice.py "origin/$GITHUB_BASE_REF"; fi
-      - name: Acceptance tests are changed only by the test engineer or under a ruling (SESSION_PLAYBOOK §6.1)
+      - name: Acceptance tests are changed only by the test engineer or under a ruling (SESSION_PLAYBOOK 附 M1)
         env:
           BEFORE: ${{ github.event.before }}
         run: |
@@ -96,6 +96,26 @@ jobs:
       - name: toolchain is Java 25
         if: ((steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true') || steps.change.outputs.tier == 'guarded' || github.event_name == 'push'
         run: java -version 2>&1 | head -1 | grep -q '"25'
+      # the local Docker Desktop can be stopped (task OPS-1022-OPS-02): try to bring it up (scripts/ops/docker_ensure.sh) and otherwise fail with a clear message instead of a pull or keychain error below
+      - name: docker is running
+        if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
+        shell: bash
+        timeout-minutes: 5
+        run: |
+          # --ci: do not open Docker from this runner session (not the graphical login session, no login keychain); ask the launchd agent to do it and wait for the engine
+          if ! test -f scripts/ops/docker_ensure.sh; then
+            echo "::error::scripts/ops/docker_ensure.sh is missing on this branch (merge or rebase main)"
+            exit 1
+          fi
+          if ! bash scripts/ops/docker_ensure.sh --ci; then
+            echo "::error::Docker 未运行，且自动拉起失败（见本机 ~/.modernize/psa/ops/docker-watch/alert.log；若报「已暂停」或「未安装」，先看 docker_watch_install.sh 的装机状态）"
+            exit 1
+          fi
+          # the recorder above started before the engine was confirmed up and exits at once if it was down: restart it now
+          if ! kill -0 "${DOCKER_EVENTS_PID:-0}" 2>/dev/null; then
+            nohup docker events --filter type=container --since "$(date +%s)" --format '{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}' > "$RUNNER_TEMP/docker-events.log" 2>&1 &
+            echo "DOCKER_EVENTS_PID=$!" >> "$GITHUB_ENV"
+          fi
       - name: test images are present
         if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
         shell: bash
@@ -239,7 +259,7 @@ jobs:
           PY
       - name: generated docs match fragments
         run: python3 docs/modernization/build_all.py --check
-      # 规则评审的原结论不得改写，改决定只能追加 revisions（SESSION_PLAYBOOK §12.2）；基线由本步骤显式给出
+      # 规则评审的原结论不得改写，改决定只能追加 revisions（SESSION_PLAYBOOK 附 M3「修订评审结论」）；基线由本步骤显式给出
       - name: rule review revisions are append-only
         env:
           BEFORE: ${{ github.event.before }}
@@ -275,11 +295,13 @@ jobs:
         run: |
           for script in scripts/release/*.sh; do bash -n "$script"; done
           shellcheck -x scripts/release/*.sh
+          shellcheck -x scripts/ops/*.sh
           python3 -I scripts/release/ci_passed.py --self-test
           python3 -I scripts/release/manifest.py --self-test
           python3 -I scripts/release/deploy_gate.py --self-test
           scripts/release/install_request_test.sh
           scripts/release/ship_test.sh
+          bash scripts/ops/docker_ensure_selftest.sh
       # 建库脚本（C-3 / C-9）与参考 DDL、迁移模块目录的 schema 清单和版本表清单须一致（人工同步易漂移）；前面步骤失败也照跑
       - name: database scripts aligned
         if: ${{ !cancelled() }}

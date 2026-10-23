@@ -11,7 +11,7 @@
   coordinating session deletes the entry, or the marker, when the blocking work is merged.
 - prod: the migration baseline-open marker (backend/architecture/migration-baseline-open) stops the deployment, both on main and in the
   commit the bundle was built from (a release tagged while the baseline was open stays undeployable to prod); it is removed before the
-  first production deployment, in a pull request of its own (SESSION_PLAYBOOK §12.2 step 4).
+  first production deployment, in a pull request of its own (SESSION_PLAYBOOK 附 M3「迁移基线」).
 - dev: an open baseline is allowed and only warned about. While it is open the baseline files may change after a dev deployment; when they
   did, the dev database and the server's release state are reset first (C-16 of PREDEPLOY_CHECKLIST.md), the installer refuses
   changed migrations otherwise.
@@ -115,7 +115,7 @@ def check(root, environment, version):
     if environment == "prod":
         if baseline_open(root):
             problems.append(f"{BASELINE_MARKER} exists: the migration baseline is still open; prod needs it closed, remove the marker first "
-                            "(SESSION_PLAYBOOK §12.2 step 4)")
+                            "(SESSION_PLAYBOOK 附 M3「迁移基线」)")
         if "-" in version:
             problems.append(f"prod takes released versions only, not the pre-release {version}")
         with open(os.path.join(root, CHECKLIST), encoding="utf-8") as handle:

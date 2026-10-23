@@ -15,6 +15,10 @@ public record Employee(EmployeeId employeeId, String employeeCode, String displa
         Objects.requireNonNull(employmentStatus, "employmentStatus");
     }
 
+    public Employee withEmployeeCode(String newCode) {
+        return new Employee(employeeId, newCode, displayName, loginName, email, gender, wecomUserId, employmentStatus, feeEarner);
+    }
+
     public Employee withEmploymentStatus(EmploymentStatus newStatus) {
         return new Employee(employeeId, employeeCode, displayName, loginName, email, gender, wecomUserId, newStatus, feeEarner);
     }

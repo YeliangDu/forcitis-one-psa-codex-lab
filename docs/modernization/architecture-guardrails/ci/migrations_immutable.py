@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fail when a Flyway migration that already exists on the base branch was changed, renamed or deleted (append-only,
-SESSION_PLAYBOOK §12). Usage: migrations_immutable.py [base-ref]  |  migrations_immutable.py --self-test"""
+SESSION_PLAYBOOK 附 M3「迁移基线」). Usage: migrations_immutable.py [base-ref]  |  migrations_immutable.py --self-test"""
 import os
 import subprocess
 import sys

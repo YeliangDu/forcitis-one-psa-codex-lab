@@ -39,6 +39,9 @@ REVOKE UPDATE, DELETE, TRUNCATE ON organization_administration.employee_activity
 REVOKE UPDATE, DELETE, TRUNCATE ON organization_attendance.work_calendars, organization_attendance.work_calendar_version_days FROM one_dev_app;
 REVOKE DELETE, TRUNCATE ON organization_attendance.work_calendar_versions FROM one_dev_app;
 
+-- 审计对象类别登记（ADR-0069 第 14 条）：行只由迁移写，运行角色只读；与 one_db_roles_schemas.sql §4b 同步。
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_audit.audit_subject_kinds FROM one_dev_app;
+
 -- 审计月分区预建（ADR-0048）：函数是 SECURITY DEFINER、属主 one_dev_owner，基线已对 PUBLIC 撤销 EXECUTE；运行角色经预建作业调用，缺此授权则 AuditPartitionJob 每天被拒、基线 6 个月分区用尽后审计写入失败。
 -- 与 one_db_roles_schemas.sql §4b 同步；函数随基线迁移建出，故在迁移之后执行。
 GRANT EXECUTE ON FUNCTION platform_audit.create_audit_entry_partitions(date, date) TO one_dev_app;

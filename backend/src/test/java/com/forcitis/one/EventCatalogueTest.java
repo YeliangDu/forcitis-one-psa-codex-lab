@@ -180,30 +180,40 @@ class EventCatalogueTest {
     }
 
     /** Every aggregate the catalogue names has an audit subject kind, and the kinds of the database CHECK are the enum's. */
+    static String allAuditMigrations() throws IOException {
+        StringBuilder all = new StringBuilder();
+        try (java.util.stream.Stream<Path> files = Files.list(Path.of("src/main/resources/db/migration/platform_audit"))) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".sql")).sorted().toList()) {
+                all.append(Files.readString(file)).append('\n');
+            }
+        }
+        return all.toString();
+    }
+
     static List<String> auditKindProblems(Set<String> aggregates, String checkSql) {
         List<String> problems = new ArrayList<>();
         for (String aggregate : aggregates) {
             try {
                 AuditSubjectKind.ofAggregateType(aggregate);
             } catch (IllegalArgumentException unknown) {
-                problems.add("aggregate " + aggregate + " has no AuditSubjectKind: add the kind (enum and CHECK) before the aggregate");
+                problems.add("aggregate " + aggregate + " has no AuditSubjectKind: add the kind (enum and registry seed) before the aggregate");
             }
         }
-        Matcher check = Pattern.compile("ck_audit_entries_subject_kind CHECK \\(subject_kind IN \\(([^)]*)\\)\\)").matcher(checkSql);
-        if (!check.find()) {
-            problems.add("ck_audit_entries_subject_kind is not in the baseline");
-            return problems;
-        }
+        Matcher seeds = Pattern.compile("'([A-Z][A-Z0-9_]+)', '[a-z.]+', (?:true|false), '(?:ACTIVE|RETIRED)'").matcher(checkSql);
         Set<String> inSql = new TreeSet<>();
-        for (String value : check.group(1).split(",")) {
-            inSql.add(value.strip().replace("'", ""));
+        while (seeds.find()) {
+            inSql.add(seeds.group(1));
+        }
+        if (inSql.isEmpty()) {
+            problems.add("no audit_subject_kinds seed is in the baseline");
+            return problems;
         }
         Set<String> inEnum = new TreeSet<>();
         for (AuditSubjectKind kind : AuditSubjectKind.values()) {
             inEnum.add(kind.name());
         }
         if (!inSql.equals(inEnum)) {
-            problems.add("the CHECK of audit_entries.subject_kind lists " + inSql + " but AuditSubjectKind has " + inEnum);
+            problems.add("the audit_subject_kinds seeds list " + inSql + " but AuditSubjectKind has " + inEnum);
         }
         return problems;
     }
@@ -236,12 +246,12 @@ class EventCatalogueTest {
             gatherAggregates(message.getValue(), aggregates);
         }
         assertThat(aggregates).as("aggregates named by the fragments").isNotEmpty();
-        problems.addAll(auditKindProblems(aggregates, Files.readString(Path.of("src/main/resources/db/migration/platform_audit/V20261014134000__platform_audit_baseline.sql"))));
+        problems.addAll(auditKindProblems(aggregates, allAuditMigrations()));
         none("catalogue ids and audit kinds", problems);
     }
 
     @Test
-    @DisplayName("injected: an envelope with source or a text aggregateId, a typed id without format: uuid, an aggregate without a kind and a CHECK that differs from the enum are caught")
+    @DisplayName("injected: an envelope with source or a text aggregateId, a typed id without format: uuid, an aggregate without a kind and registry seeds that differ from the enum are caught")
     void catalogueGuardsCatchInjectedSamples() {
         Map<String, Object> envelope = new Yaml().load("""
                 required: [eventId, source]
@@ -266,9 +276,9 @@ class EventCatalogueTest {
                 """);
         assertThat(typedIdProblems("Sample", payload)).containsExactlyInAnyOrder("Sample (RoleId) is not format: uuid", "Sample (RoleId) is not format: uuid");
 
-        String check = "ck_audit_entries_subject_kind CHECK (subject_kind IN ('USER_ACCOUNT', 'ROLE'))";
+        String check = "('019a0000-0000-7000-8000-000000000601', 'USER_ACCOUNT', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01'), ('019a0000-0000-7000-8000-000000000605', 'ROLE', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01')";
         assertThat(auditKindProblems(Set.of("NoSuchThing"), check)).anyMatch(p -> p.startsWith("aggregate NoSuchThing has no AuditSubjectKind"))
-                .anyMatch(p -> p.startsWith("the CHECK of audit_entries.subject_kind lists"));
-        assertThat(auditKindProblems(Set.of("UserAccount"), "no check here")).containsExactly("ck_audit_entries_subject_kind is not in the baseline");
+                .anyMatch(p -> p.startsWith("the audit_subject_kinds seeds list"));
+        assertThat(auditKindProblems(Set.of("UserAccount"), "no check here")).containsExactly("no audit_subject_kinds seed is in the baseline");
     }
 }

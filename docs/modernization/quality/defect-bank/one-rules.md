@@ -1,6 +1,6 @@
 # one-rules 错题本
 
-三道防线自审（SESSION_PLAYBOOK §11 第 11 条）。每条一行：现象、根因、回测检查。决策页发布前，对着下表回测一遍。格式按 one-quality 的 defect-bank README 对齐（该 README 提交后若有出入，随下一个 PR 改）。
+三道防线自审（SESSION_PLAYBOOK TEAM-71、72）。每条一行：现象、根因、回测检查。决策页发布前，对着下表回测一遍。格式按 one-quality 的 defect-bank README 对齐（该 README 提交后若有出入，随下一个 PR 改）。
 
 | 编号 | 日期 | 现象 | 根因 | 回测检查（发布或写回前） | 状态 |
 |---|---|---|---|---|---|
