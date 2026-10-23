@@ -569,3 +569,9 @@ rulings:
     ids: [standard_cost_rate_card]
     to: masterdata.catalog
     source: ADR-0051 决定 3（AGG-05 标准成本费率表版本归 B-02 masterdata.catalog，用户 D-2、i211634「费率放主数据」）；one-architecture 2026-10-22 指出，依据 admission-file @bd451f556 FINANCE_S4_S5_RULINGS_2026-10-22.md S-5
+  - op: redefine
+    late: true
+    id: data_retention_period
+    kind: value_object
+    definition: 数据留在在线库或归档库的期限值，到期后删除或转归档；与「质保金」无关。
+    source: one-glossary 2026-10-23 自修：名称已由 R3-IN-08 定，原 kind 误标 command，实为期限值（one-coordinator 审题 gl6-gl7-review-1 页级问题第 10 条）
