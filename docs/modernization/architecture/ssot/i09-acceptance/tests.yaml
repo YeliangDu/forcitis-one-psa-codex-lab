@@ -1027,7 +1027,7 @@ tests:
     covers: []
     location: "backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java:215"
   - key: "com.forcitis.one.acceptance.platform.approval.ApprovalRowRulesIT#rejectionWithoutAReasonIsRefused"
-    display_name: "DATA-REPAIR-approval AP-01：驳回无原因（缺失、空串、空白）被拒 422 PLATFORM_APPROVAL_REASON_REQUIRED，任务与请求不变；有原因通过"
+    display_name: "DATA-REPAIR-approval AP-01：驳回无原因（缺失、空串、空白）被拒 422 KERNEL_REASON_REQUIRED，任务与请求不变；有原因通过"
     kind: "acceptance"
     class_covers: []
     covers: []

@@ -2341,6 +2341,19 @@ processes:
     human_orchestration: true
     bpmn: ~
     note: "号由 one-architecture 分配（PRC_ALLOCATIONS.md，admission-file @ad261446）；owner_bc 写 B-15（薪酬结算 AGG-73 所在 BC），派工原文写 B-13，待 one-architecture 确认"
+  - id: PRC-203
+    name: "按月计提奖金"
+    type: business
+    stages: [VS-13.2]
+    stages_note: "S-6（one-architecture @cfc721a34 附三）把按月奖金计提从 B-07 PRC-96 第 1 步移到 B-15；计提是对奖金核定的按服务期预计，与 PRC-122 同段"
+    primary_object: "none"
+    primary_object_note: "运行单据（AGG-138 技术聚合），结果是 B-16 记账事实，同 PRC-96（one-architecture @3541ced0b 第 6 点）"
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "号由 one-architecture 确认（admission-file @3541ced0b，PEOPLE_APE01_RULINGS_2026-10-23.md）；ARC-1022-APE-01，S-6 扩范围；AGG-138 奖金计提运行为技术聚合（运行单据）"
   - id: PRC-202
     name: "维护应收默认账期规则"
     type: single_aggregate

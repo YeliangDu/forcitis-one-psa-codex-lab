@@ -42,7 +42,6 @@
 
 ## 上下文文档
 
-- `docs/modernization/COORDINATOR_LEDGER.md`
 - `docs/modernization/adr/src/ADR-0060.md`
 - `docs/modernization/adr/src/ADR-0061.md`
 - `docs/modernization/adr/src/ADR-0064.md`
@@ -57,7 +56,3 @@
 
 - 须问用户：建账号、起非登记镜像的容器、对外调用（含 clamd 病毒库更新出向，按 one-ops 安全组变更单）；改断言或删测试须写理由并在 PR 单列。
 - 守护文件改动 PR 单列并要 opus 复审。
-
-## 当前状态
-
-2026-10-22 接手（接 HANDOFF 末节）：签章第一段 api 已落 claude/one-platform-signing-api，待 opus 复审准入第 2 条后报 one-architecture；随后文件 6b、5a、7；单元 7 并入 ①preservation_category_versions 的 WITHDRAWN 状态与 version 列 ②ck_state_transitions_status_of_aggregate 改逐对写法（DROP + ADD NOT VALID + VALIDATE，coalesce 包住），设计见 data/reviews/B31-CARD-A-DDL.md R1/R2，表结构先请 one-data 签发；明细见 phase1a/file-service/HANDOFF.md 末节。

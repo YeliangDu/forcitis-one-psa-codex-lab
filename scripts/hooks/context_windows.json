@@ -17,13 +17,14 @@
   "node_handoff": {
     "enabled": true,
     "min_percent": 20,
-    "sessions": [
-      "one-quality"
-    ],
+    "sessions": null,
     "coordinator_session_ids": [
       "local_10f279cb-81c7-4628-9080-2d5b1efd622d"
     ],
     "coordinator_names": [
+      "one-coordinator"
+    ],
+    "exclude": [
       "one-coordinator"
     ]
   },

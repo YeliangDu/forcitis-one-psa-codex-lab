@@ -57,7 +57,7 @@
 
 - 不自行出确认页，用户待定事项交 one-architecture。
 - 执行类产出先交 Codex（用户 2026-10-17，intent 085534；SESSION_PLAYBOOK §5「Codex 派工」「任务命名与登记」）：派工单用 `templates/WORK_CARD.md`，派卡时登记 `tasks/<任务号>.md`（`ARC-MMDD-APE-nn`）；本会话用 Bash `run_in_background` 启动，description 写 `<任务号> <任务名> (codex)`，完整提示词随命令传入，跑完由通知唤醒，不轮询：
-  `codex exec -m gpt-6.1-sol -c model_reasoning_effort=<low|medium|high|xhigh，按卡定> -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果> "<完整提示词>" < /dev/null > <日志> 2>&1`
+  `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果> "<完整提示词>" < /dev/null > <日志> 2>&1`
   本会话只派工、审稿、交用户前验收，记每张卡的返工轮次与耗时。生产取证、安全改动、opus 复审不交 Codex。
   语义、权限与边界判断（状态名是否同义、用语归属、阶段归属裁定等）本会话自己做，Codex 只整理材料（用户 2026-10-17「同意 A 和 B」，SESSION_PLAYBOOK §5 @ 2772630a）；派工卡按新版 WORK_CARD 写「不得做」、衔接方式、资源与时限、边角自测与破坏验证。
 - 人事骨架、对象与表级候选稿可交 Codex；账号开通 / 吊销、授权与安全不变量的设计改动、代码、验收测试及生产取证均由负责会话按安全流程处理，不因本组含人事对象就把身份生命周期改动打包派给 Codex。
@@ -66,7 +66,3 @@
 - 只交 closeout/people/ 片段，one-architecture 写共享文件；one-data 签发表口径，one-rules 管规则，用户事项由 one-architecture 合页后登记收件箱。
 - 子代理显式指定模型：opus 只用于首轮评审，复核用 sonnet，取数用 haiku。
 - 不做生产取证以外的对外调用；取证按 ADR-0037 登记、明细与个人信息不进仓库。
-
-## 当前状态
-
-2026-10-22 11:10+02:00 交接点（上下文 70%）。分支 claude/one-arch-people-closeout 已合 main、无未提交改动，最新提交见分支。已交并经 one-architecture 核对：VS-14 归段与 B31 答复同步（ARC-1017-APE-01/02）、N7 改名回写（NAM-1017-APE-01）、角色粒度与 LEB-06 分管范围（roles.yaml ROLE-55）、薪酬结算行支付子机与 PRC-201（ARC-1022-COO-06，含 FCQ-06/07 补发时限，最新 7fab38af）、用语按 one-glossary PR #572 定名（9723e6f6）。待接手：ARC-1022-APE-01（奖金核定加重分类过账步，见 tasks/ARC-1022-APE-01.md，未开工）。悬而未决：PRC-127 目录名已被 one-architecture 改为「按逐人实付结果更新薪酬行并标记整期已发放」，骨架未跟；「付款已部分退回」待 finance 入事件目录；工资卡存放位置 U8；命令编号脱钩 PR #580 合入后旧号退役。
