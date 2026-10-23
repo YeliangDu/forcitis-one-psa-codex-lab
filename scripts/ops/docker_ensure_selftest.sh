@@ -10,18 +10,27 @@ check() { if [ "$2" = "$3" ]; then echo "PASS  $1"; else echo "FAIL  $1（期望
 # 假 docker：up 文件在就应答；hang 文件在就挂住
 cat > "$tmp/docker" <<'F'
 #!/usr/bin/env bash
-[ -e "$FAKE/hang" ] && sleep 60
+if [ -e "$FAKE/hang" ]; then echo $$ > "$FAKE/hang.pid"; exec sleep 60; fi
 [ -e "$FAKE/up" ]
 F
-# 假 open / launchctl：记一次调用；mode=start 时拉起（建 up），mode=never 时不动
-for tool in open launchctl; do
-  cat > "$tmp/$tool" <<F
+# 假 open：记一次调用；mode=start 时拉起（建 up），mode=never 时不动
+cat > "$tmp/open" <<'F'
 #!/usr/bin/env bash
-echo x >> "\$FAKE/$tool-calls"
-[ "\$(cat "\$FAKE/mode" 2>/dev/null)" = start ] && touch "\$FAKE/up"
+echo x >> "$FAKE/open-calls"
+[ "$(cat "$FAKE/mode" 2>/dev/null)" = start ] && touch "$FAKE/up"
 exit 0
 F
-done
+# 假 launchctl：print 在 noagent 文件存在时失败（代理未安装）；kickstart 记一次调用，runagent 文件在时真的在后台跑一份默认模式的脚本（模拟 launchd 代理，同一 STATE），否则按 mode 直接拉起
+cat > "$tmp/launchctl" <<'F'
+#!/usr/bin/env bash
+case "$1" in
+  print) [ -e "$FAKE/noagent" ] && exit 1; exit 0 ;;
+  kickstart)
+    echo x >> "$FAKE/launchctl-calls"
+    if [ -e "$FAKE/runagent" ]; then ( "$SCRIPT" >/dev/null 2>&1 & ); else [ "$(cat "$FAKE/mode" 2>/dev/null)" = start ] && touch "$FAKE/up"; fi
+    exit 0 ;;
+esac
+F
 # 假 pgrep：proc 文件在就说「Docker Desktop 进程在」
 cat > "$tmp/pgrep" <<'F'
 #!/usr/bin/env bash
@@ -35,7 +44,7 @@ seed_launches() { local n="$2"; while [ "$n" -gt 0 ]; do echo "$3" >> "$tmp/$1/s
 # run <名> [参数...]：跑一次，记退出码
 run() {
   local d="$tmp/$1"; shift
-  FAKE="$d" DOCKER_BIN="$tmp/docker" OPEN_BIN="$tmp/open" PGREP_BIN="$tmp/pgrep" LAUNCHCTL_BIN="$tmp/launchctl" \
+  SCRIPT="$here/docker_ensure.sh" FAKE="$d" DOCKER_BIN="${DOCKER_BIN_TEST:-$tmp/docker}" OPEN_BIN="$tmp/open" PGREP_BIN="$tmp/pgrep" LAUNCHCTL_BIN="$tmp/launchctl" \
     DOCKER_ENSURE_STATE="$d/state" DOCKER_ENSURE_OUTBOX="$d/outbox.md" \
     DOCKER_ENSURE_WAIT_SECONDS="${WAIT:-4}" DOCKER_ENSURE_POLL_SECONDS=1 DOCKER_ENSURE_PROBE_SECONDS=2 DOCKER_ENSURE_LOCK_EXTRA_SECONDS="${EXTRA:-30}" \
     "$here/docker_ensure.sh" "$@" >"$d/out" 2>"$d/err"
@@ -96,14 +105,41 @@ check "--ci 经 launchctl 请求拉起并成功" "$(rc ci)" 0
 check "--ci 调一次 launchctl" "$(calls ci launchctl)" 1
 check "--ci 不自己 open" "$(calls ci open)" 0
 
+# 真实互动：代理（默认模式的脚本）由 kickstart 在后台起来，--ci 不拿锁，所以两边不互等；open 恰好一次
+newcase agent down start; touch "$tmp/agent/runagent"; WAIT=8 run agent --ci
+check "--ci 与代理同一状态目录并发：成功" "$(rc agent)" 0
+sleep 1
+check "--ci 与代理并发：open 恰好一次" "$(calls agent open)" 1
+check "--ci 成功后没有残留锁" "$([ -e "$tmp/agent/state/lock.d" ] && echo yes || echo no)" no
+
+newcase cilive down start; mkdir "$tmp/cilive/state/lock.d"; echo $$ > "$tmp/cilive/state/lock.d/pid"; run cilive --ci
+check "--ci 不被别人持的锁挡住" "$(rc cilive)" 0
+
 newcase cipause down never; touch "$tmp/cipause/state/pause"; run cipause --ci
 check "--ci 忽略暂停文件，拉不起来退出 1" "$(rc cipause)" 1
+check "--ci 失败文案写明常驻检查已暂停" "$(has cipause '已暂停' err)" yes
+
+newcase ciagent down never; touch "$tmp/ciagent/noagent"; run ciagent --ci
+check "--ci 代理未安装时失败并写明" "$(has ciagent '未安装' err)" yes
+check "--ci 失败文案含「Docker 未运行」" "$(has ciagent 'Docker 未运行' err)" yes
+
+newcase nocli down start; DOCKER_BIN_TEST=/nonexistent/docker run nocli
+check "找不到 docker 命令时退出 1" "$(rc nocli)" 1
+check "找不到 docker 命令时不 open" "$(calls nocli open)" 0
+check "找不到 docker 命令时告警 nocli" "$(has nocli '找不到 docker 命令' outbox.md)" yes
+
+newcase stalepause down start; touch "$tmp/stalepause/state/pause"; touch -t 200001010000 "$tmp/stalepause/state/pause"; run stalepause
+check "暂停文件过期仍退出 0" "$(rc stalepause)" 0
+check "暂停文件超过 12 小时告警" "$(has stalepause '已超过 12 小时' outbox.md)" yes
+
+mkdir -p "$tmp/nodir"; : > "$tmp/nodir/file"; DOCKER_ENSURE_STATE="$tmp/nodir/file/x" DOCKER_ENSURE_OUTBOX="$tmp/nodir/o.md" DOCKER_BIN="$tmp/docker" "$here/docker_ensure.sh" >/dev/null 2>"$tmp/nodir/err"; code=$?
+check "状态目录建不了时退出 2 并写 stderr" "$code" 2
 
 # 引擎挂住：探测有上限，不会卡死
 newcase hang down never; touch "$tmp/hang/hang"
 start="$(date +%s)"; run hang
 check "引擎挂住时按超时失败而不是卡死" "$(rc hang)" 1
 check "引擎挂住时耗时有限（< 40 秒）" "$([ $(( $(date +%s) - start )) -lt 40 ] && echo yes || echo no)" yes
-pkill -f "sleep 60" 2>/dev/null || true
+[ -s "$tmp/hang/hang.pid" ] && kill "$(cat "$tmp/hang/hang.pid")" 2>/dev/null || true
 
 if [ "$fail" -eq 0 ]; then echo "docker_ensure selftest passed"; else echo "docker_ensure selftest FAILED"; exit 1; fi
