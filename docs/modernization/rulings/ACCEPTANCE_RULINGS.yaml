@@ -288,3 +288,20 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
     reason: KERR-2（IMP-1022-COO-04）KERNEL_REASON_REQUIRED 进 kernel，期望码 PLATFORM_APPROVAL_REASON_REQUIRED 改为 KERNEL_REASON_REQUIRED、DisplayName 同步；只改码名字面，不删用例、不改断言结构与场景；PR 改断言栏单列
     ref: docs/modernization/rulings/COORD-2026-10-22.md
+  - id: RULING-COORD-20261022-07
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/ApprovalP4Support.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRejectedResubmitIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRoundSubmittedCheckIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalOrderNotFromIdsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRequestTextAndRecordRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/AssigneeInputUuidIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/RetractionInitiatorAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/TypedResultEventIT.java
+    reason: REG-4（IMP-1022-COO-01）ProcessKey 枚举改登记字符串值对象；验收测试只把 ProcessKey.COST_TIMESHEET_APPROVAL 换为 TimesheetApprovalProcess.KEY、直插 SQL 字面量改为登记键值 cost_timesheet_approval；不删用例、不改断言结构；PR 改断言栏单列
+    ref: docs/modernization/rulings/COORD-2026-10-22.md
