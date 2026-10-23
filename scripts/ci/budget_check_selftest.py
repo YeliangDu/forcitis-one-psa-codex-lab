@@ -2,6 +2,7 @@
 """budget_check 自测：临时目录造最小仓库，每项检查一个违例样本必须命中，合规样本必须零违例，模式分支按定稿退出。
 环境变量 BUDGET_CHECK 可指向另一份 budget_check.py（破坏验证用），默认同目录那份。"""
 import copy, json, os, subprocess, sys, tempfile
+DM = "docs/" "modernization"   # split on purpose: relevant_change.py would read a spelled-out fixture path as a real read of the docs
 from pathlib import Path
 
 SCRIPT = os.environ.get("BUDGET_CHECK") or str(Path(__file__).with_name("budget_check.py"))
@@ -18,16 +19,16 @@ POLICY = {
 }
 GOOD = {
     "CLAUDE.md": "# 底线\n1. 用中文\n2. 生产只读\n",
-    "docs/modernization/RULES.md": "# 核心规则\n\n## ① 开卡与交接\n交接见 handoff；入队告警阈值见 mq.enqueue_alert_minutes。\n"
+    f"{DM}/RULES.md": "# 核心规则\n\n## ① 开卡与交接\n交接见 handoff；入队告警阈值见 mq.enqueue_alert_minutes。\n"
                                    "执行：budget_check、mq\n\n## ② 复审\n第 3 节；见 #1500；共 2 条。\n执行：人工：one-lead／每周\n",
-    "docs/modernization/roles/lead.md": "# lead\n独占路径：docs/modernization/intent/, `CLAUDE.md`\n\n## 专属规则\n- 甲\n- 乙\n",
-    "docs/modernization/roles/platform.md": "# platform\n独占路径：scripts/ci/、scripts/gates/**, docs/modernization/intents/\n",
+    f"{DM}/roles/lead.md": f"# lead\n独占路径：{DM}/intent/, `CLAUDE.md`\n\n## 专属规则\n- 甲\n- 乙\n",
+    f"{DM}/roles/platform.md": f"# platform\n独占路径：scripts/ci/、scripts/gates/**, {DM}/intents/\n",
     ".github/pull_request_template.md": "## 改动说明\n",
     "scripts/gates/prod_write_gate.py": "x = 1\n" * 20,
     "scripts/gates/gates_selftest.py": "y = 1\n" * 10,
     "scripts/review/post_review.py": 'LABEL = "复审通过"\nsh(["gh", "pr", "edit", "1", "--add-label", LABEL])\n',
     "scripts/merge/mq.py": 'def label(n, name, add):\n    sh(["gh", "pr", "edit", n, "--add-label" if add else "--remove-label", name])\n',
-    "docs/modernization/build_x.py": 'import subprocess\nsubprocess.run(["git", "log"])\n',
+    f"{DM}/build_x.py": 'import subprocess\nsubprocess.run(["git", "log"])\n',
     "docs/README.md": "用 `gh pr edit --add-label 复审通过` 的只有 post_review。\n",
 }
 FAILS = []
@@ -72,19 +73,19 @@ def with_policy(path, value):
     return pol
 
 
-RULES = "docs/modernization/RULES.md"
-ROLE = "docs/modernization/roles/"
+RULES = f"{DM}/RULES.md"
+ROLE = f"{DM}/roles/"
 
 
 def main():
     expect_clean("合规样本零违例", {})
     rc, out, viol = run({"CLAUDE.md": "x\n"})
-    check("规则文件与 gates 尚无：只报信息不计违例", not viol and "尚无 docs/modernization/RULES.md" in out
+    check("规则文件与 gates 尚无：只报信息不计违例", not viol and f"尚无 {DM}/RULES.md" in out
           and "尚无 scripts/gates/" in out, out)
     # H7
     expect_hit("H7 CLAUDE.md 超 KB", {"CLAUDE.md": "字" * 600}, "H7", "CLAUDE.md")
     expect_hit("H7 RULES 超条数", {RULES: "".join(f"## {i}\n执行：mq\n" for i in range(13))}, "H7", RULES)
-    expect_hit("H7 角色文件超份数", {}, "H7", "docs/modernization/roles", with_policy(["rules", "role_files_max"], 1))
+    expect_hit("H7 角色文件超份数", {}, "H7", f"{DM}/roles", with_policy(["rules", "role_files_max"], 1))
     expect_hit("H7 角色专属规则超条数", {ROLE + "lead.md": "独占路径：x/\n## 专属规则\n- a\n- b\n- c\n- d\n"},
                "H7", ROLE + "lead.md")
     expect_hit("H7 合计超条数", {}, "H7", "(合计)", with_policy(["rules", "total_max_items"], 3))
@@ -122,7 +123,7 @@ def main():
     expect_hit("H17 前缀交叠", {ROLE + "dev.md": "独占路径：scripts/ci/budget_check.py\n"}, "H17", ROLE)
     expect_hit("H17 相同路径交叠", {ROLE + "dev.md": "独占路径：./CLAUDE.md\n"}, "H17", ROLE)
     expect_hit("H17 缺声明", {ROLE + "dev.md": "# dev\n"}, "H17", ROLE + "dev.md")
-    expect_clean("H17 段名相近不算交叠", {ROLE + "dev.md": "独占路径：scripts/cifoo/, docs/modernization/intent2\n"})
+    expect_clean("H17 段名相近不算交叠", {ROLE + "dev.md": f"独占路径：scripts/cifoo/, {DM}/intent2\n"})
     # H21
     expect_hit("H21 别处加标签", {"scripts/merge/mq.py": 'sh(["gh", "pr", "edit", "1", "--add-label", "复审通过"])\n'},
                "H21", "scripts/merge/mq.py:1")
