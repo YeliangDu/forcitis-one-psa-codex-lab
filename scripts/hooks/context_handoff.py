@@ -448,11 +448,16 @@ def handle_locked(event, payload, root, now):
             if percent < max(1, prepare - RESET_MARGIN):
                 if "crossed" in entry:
                     entry.pop("bulk", None)
-                for key in ("reminded", "blocked", "crossed"):
+                for key in ("reminded", "blocked", "crossed", "source_digest"):
                     entry.pop(key, None)
             for level in levels:
-                if percent >= level:
-                    entry.setdefault("crossed", {}).setdefault(str(level), now)
+                if percent >= level and str(level) not in entry.setdefault("crossed", {}):
+                    entry["crossed"][str(level)] = now
+                    try:
+                        found = source_state(root)
+                    except Exception:  # a digest that cannot be taken only makes the stop gate stricter
+                        found = None
+                    entry.setdefault("source_digest", {})[str(level)] = found[2] if found else None
             top = max((level for level in levels if percent >= level), default=0)
             node_out = None
             config, config_problem = node_config()
@@ -502,6 +507,23 @@ def handle_locked(event, payload, root, now):
     return None
 
 
+def source_state(root):
+    """(path, heading fragment, digest of the newest matching section) of the profile's declared handover source, or None when it declares none.
+    The digest is None when the file or the section is missing or empty: no handover is written yet."""
+    name, profile, _ = resolve_session(root)
+    if not name:
+        return None
+    text = sc.from_main(root, profile) or sc.from_tree(root, profile) or ""
+    source = sc.handoff_source(text)
+    if not source or sc.unsafe_reason(root, source[0]):
+        return None
+    import hashlib
+    import start_sheet
+    found = start_sheet.find_handoff(start_sheet.read(root, source[0]) or "", source[1])
+    body = found[4].strip() if found else ""
+    return source[0], source[1], hashlib.sha256(f"{found[1]}\n{body}".encode("utf-8")).hexdigest() if body else None
+
+
 def stop_decision(root, entry, top, percent, now, clears=False):
     blocked = entry.setdefault("blocked", [])
     if str(top) in blocked:
@@ -511,16 +533,27 @@ def stop_decision(root, entry, top, percent, now, clears=False):
     if not name:
         print("context_handoff: 本会话未识别（无画像），无法检查上下文文档，不挡停；请在 .claude/session-name 写入会话名", file=sys.stderr)
         return None
-    modified = []
-    for path in [profile, *docs]:
+    state = source_state(root)
+    if state:
+        # the profile declares a handover source: only a changed handover section there counts; a file time (touch, profile edit) or any other document does not (GOV-1023-QUA-07)
+        path, fragment, digest = state
         full = os.path.join(root, path)
-        if os.path.isfile(full):
-            modified.append(os.path.getmtime(full))
-    if modified and max(modified) >= crossed:
-        return None
-    blocked.append(str(top))
-    todo = "、".join([profile, *docs])
-    return {"decision": "block", "reason": f"上下文已用 {percent:.0f}%（过 {top}% 线），但 {todo} 自过线以来没有更新。"
+        before = entry.get("source_digest", {}).get(str(top))
+        if digest and digest != before and os.path.isfile(full) and os.path.getmtime(full) >= crossed:
+            return None
+        blocked.append(str(top))
+        todo = f"交接源 {path}（标题含「{fragment}」的节）"
+    else:
+        modified = []
+        for path in [profile, *docs]:
+            full = os.path.join(root, path)
+            if os.path.isfile(full):
+                modified.append(os.path.getmtime(full))
+        if modified and max(modified) >= crossed:
+            return None
+        blocked.append(str(top))
+        todo = "、".join([profile, *docs])
+    return {"decision": "block", "reason": f"上下文已用 {percent:.0f}%（过 {top}% 线），但 {todo} 自过线以来没有更新" + ("（只改文件时间或画像不算）。" if state else "。")
             + ("先更新上下文文档与交接（做到哪、在途、下一步）并提交推送，给 one-coordinator 发「清空接续：" + name + " 交接在 <路径>」，再 clear_session（session_id=self）；清空在本轮结束后执行，之后不再发消息，其他会话找本会话一律经 one-coordinator 转。"
                if clears else "先更新上下文文档与交接（做到哪、在途、下一步），报 one-coordinator；不要 clear_session，写过之后可以直接结束。")}
 
@@ -1029,11 +1062,32 @@ def self_test():
         os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
         os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
         os.utime(os.path.join(root, "docs/hand.md"), (9e9, 9e9))
-        stop_gate = lambda session, now: handle("Stop", dict(payload, hook_event_name="Stop", session_id=session, transcript_path=turn_file(760, False)), root, now)
-        assert stop_gate("src-gate1", 90000.0) is None, "writing the handover source satisfies the stop gate"
-        os.utime(os.path.join(root, "docs/hand.md"), (1, 1))
-        gate = stop_gate("src-gate2", 91000.0)
-        assert gate and gate["decision"] == "block" and "docs/hand.md" in gate["reason"], "a stale handover source is named by the stop gate"
+        future_time = (9e9, 9e9)
+        profile_file, hand_file = os.path.join(root, f"{SESSIONS}/one-test.md"), os.path.join(root, "docs/hand.md")
+        cross_at = lambda event, session, now: handle(event, dict(payload, hook_event_name=event, session_id=session, transcript_path=turn_file(760, False)), root, now)
+        stop_gate = lambda session, now: cross_at("Stop", session, now)
+
+        def source_case(session, base, before, act):
+            """Cross the level with the handover source `before`, let `act` change files, then stop."""
+            write(hand_file, before)
+            os.utime(hand_file, (1, 1))
+            cross_at("PostToolUse", session, base)
+            act()
+            return stop_gate(session, base + 1)
+        # GOV-1023-QUA-07: once the profile declares a handover source, only a changed handover section there satisfies the stop gate
+        assert source_case("src-ok", 90000.0, "## 交接\n\nx\n", lambda: (write(hand_file, "## 交接\n\ny\n"), os.utime(hand_file, future_time))) is None, "writing the handover source satisfies the stop gate"
+        assert source_case("src-new", 90100.0, "## 其他\n\nx\n", lambda: (write(hand_file, "## 其他\n\nx\n\n## 交接（新）\n\n做到 A\n"), os.utime(hand_file, future_time))) is None, "a handover section that appears after the cross_at counts"
+        for label, act in (("only the file time", lambda: os.utime(hand_file, future_time)),
+                           ("only the profile", lambda: (write(profile_file, open(profile_file, encoding="utf-8").read() + "\n改一行\n"), os.utime(profile_file, future_time))),
+                           ("another context document", lambda: (write(os.path.join(root, "docs/ctx.md"), "ctx2\n"), os.utime(os.path.join(root, "docs/ctx.md"), future_time))),
+                           ("a changed source with an old file time", lambda: (write(hand_file, "## 交接\n\ny\n"), os.utime(hand_file, (1, 1)))),
+                           ("an emptied section", lambda: (write(hand_file, "## 交接\n\n"), os.utime(hand_file, future_time)))):
+            write(profile_file, "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n- 交接源: docs/hand.md#交接\n")
+            gate = source_case("src-" + label.replace(" ", "-"), 91000.0 + 10 * len(label), "## 交接\n\nx\n", act)
+            assert gate and gate["decision"] == "block" and "交接源 docs/hand.md" in gate["reason"] and "只改文件时间或画像不算" in gate["reason"], (label, gate)
+        write(profile_file, "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n- 交接源: docs/hand.md#交接\n")
+        kept = load_state(root)  # the sessions above would crowd older ones out of the KEEP_SESSIONS most recent
+        save_state(root, {k: v for k, v in kept.items() if not k.startswith("src-")})
         write(os.path.join(root, SESSIONS, "one-test.md"), "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n")
         os.remove(os.path.join(root, "docs/hand.md"))
         os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
