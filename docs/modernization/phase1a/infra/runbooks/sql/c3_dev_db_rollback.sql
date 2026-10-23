@@ -7,12 +7,13 @@ SELECT pid, usename, application_name FROM pg_stat_activity WHERE datname = 'for
 
 DROP DATABASE forcitis_one_dev;
 
--- 角色是实例级；库已删除，角色不再拥有对象
-DROP ROLE one_dev_audit_maintainer;
-DROP ROLE one_dev_app;
-DROP ROLE one_dev_readonly;
-DROP ROLE one_dev_migrator;
-DROP ROLE one_dev_owner;
+-- 角色是实例级；库已删除，角色不再拥有对象。用 IF EXISTS：按旧脚本建的库没有 history_loader（OPS-007）
+DROP ROLE IF EXISTS one_dev_audit_maintainer;
+DROP ROLE IF EXISTS one_dev_app;
+DROP ROLE IF EXISTS one_dev_readonly;
+DROP ROLE IF EXISTS one_dev_migrator;
+DROP ROLE IF EXISTS one_dev_history_loader;
+DROP ROLE IF EXISTS one_dev_owner;
 
 -- 期望 0 行
 SELECT rolname FROM pg_roles WHERE rolname LIKE 'one\_dev\_%';
