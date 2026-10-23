@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[5]
 OUTPUT = Path('docs/modernization/architecture/ssot/15-kpis')
 BASELINE = Path('docs/modernization/r0/METRIC_BASELINE_DRAFT.md')
 GLOSSARY = Path('docs/modernization/glossary/terms.yaml')
-VISION = Path('docs/modernization/architecture/togaf/vision.yaml')
+VISION = Path('docs/modernization/architecture/ssot/04-goals/vision.yaml')
 HEADER = ['编号', '建议名称', '替代的叫法', 'OAT', '期间', '加总', '事实 BC',
           '基础', '含税', '层', '处置', '待决']
 EXPECTED = {'by_metric_baseline': 48, 'by_glossary_metric': 79, 'by_vision_kpi': 16}

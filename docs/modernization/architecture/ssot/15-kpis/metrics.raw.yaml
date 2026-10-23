@@ -3,7 +3,7 @@ meta:
   sources:
   - docs/modernization/r0/METRIC_BASELINE_DRAFT.md
   - docs/modernization/glossary/terms.yaml
-  - docs/modernization/architecture/togaf/vision.yaml
+  - docs/modernization/architecture/ssot/04-goals/vision.yaml
   counts:
     by_metric_baseline: 48
     by_glossary_metric: 79

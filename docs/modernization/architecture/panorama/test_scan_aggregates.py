@@ -86,6 +86,14 @@ class AggregateScanTest(unittest.TestCase):
                   'class SubmitTimesheet { Timesheet sheet; Object unused = new TimesheetRejected(); }')
         self.assertEqual(['cost.timesheet.TimesheetSubmitted'], s.collect(self.root)[0]['events'])
 
+    def test_arc08_root_emit_helper_is_evidence(self):
+        self.java('domain', 'Timesheet', 'import com.forcitis.one.kernel.AggregateRoot;\n'
+                  'import com.forcitis.one.cost.timesheet.events.TimesheetRejected;\n'
+                  'public class Timesheet extends AggregateRoot {\n'
+                  'void reject() { emit("TimesheetRejected", now, envelope -> new TimesheetRejected()); } }')
+        sheet = s.collect(self.root)[0]
+        self.assertEqual(['cost.timesheet.TimesheetRejected'], sheet['events'])
+
     def test_arc08_application_record_referencing_root_is_a_class(self):
         self.java('application', 'SheetView', 'import com.forcitis.one.cost.timesheet.domain.Timesheet;\n'
                   'record SheetView(Timesheet sheet) {}')
@@ -154,7 +162,6 @@ class AggregateScanTest(unittest.TestCase):
 
     def test_arc08_generation_is_byte_identical_and_check_does_not_write(self):
         self.write(s.DRAFT, planned_text())
-        self.write(s.OLD, yaml.safe_dump({'aggregates': [{'id': 'cost.timesheet/Timesheet'}]}))
         with contextlib.redirect_stdout(io.StringIO()):
             s.generate(self.root)
             first = {p.name: p.read_bytes() for p in (self.root / s.OUTPUT).iterdir()}
