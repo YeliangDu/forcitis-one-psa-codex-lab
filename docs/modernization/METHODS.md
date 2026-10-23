@@ -1,3 +1,5 @@
+# 方法（原附 M）
+
 原 SESSION_PLAYBOOK 附 M，义务继续有效；二甲按主题拆到 CODING_STANDARD 等
 
 ## 附 M：方法（义务继续有效，按适用工作读取）

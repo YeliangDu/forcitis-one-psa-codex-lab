@@ -1,6 +1,6 @@
 # 角色：lead
 
-独占路径：`CLAUDE.md`、`AGENTS.md`、`backend/CLAUDE.md`、`docs/modernization/RULES.md`、`docs/modernization/roles/**`、`docs/modernization/intent/**`、`docs/modernization/new_intent.py`、`docs/modernization/rulings/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
+独占路径：`CLAUDE.md`、`AGENTS.md`、`backend/CLAUDE.md`、`docs/modernization/RULES.md`、`docs/modernization/METHODS.md`、`docs/modernization/roles/**`、`docs/modernization/intent/**`、`docs/modernization/new_intent.py`、`docs/modernization/rulings/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
 
 `docs/modernization/glossary/CLAUDE.md` 归 language，本角色只改其中的规则指针行。
 
