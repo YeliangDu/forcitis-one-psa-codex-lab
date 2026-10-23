@@ -18,7 +18,7 @@ CI ran on that head, the docs lane syncs main and waits for the light run before
 counts as up to date: no sync, no new CI run; a lack that includes a middle-tier or code file is synced and tested again. The safety net for the docs-only case is main's push alarm and the nightly full run (see Pause). main is changed only through this queue (SESSION_PLAYBOOK TEAM-47): a manual `gh pr merge` bypasses the lock and, with the protection off, GitHub no longer stops it. Merges are serialized by a lock, so two lanes never merge on a stale main: the one that comes second sees it is behind,
 updates and goes through CI again.
 
-Per pull request: cancel the CI runs of the other queued pull requests (they are re-run after their own update; until then they only take runners), bring the branch up to date (gh update-branch; a pull request that
+Per pull request: cancel the CI runs of the other queued pull requests (not those of one labelled `急`, which is also picked first in its lane) (they are re-run after their own update; until then they only take runners), bring the branch up to date (gh update-branch; a pull request that
 touches .github/workflows is updated by a local merge pushed over ssh, because the gh token lacks the workflow scope), label it `queued` (heavy CI steps run only with the label, scripts/ci/heavy_gate.py), wait for the
 checks while cancelling the others' runs, rerun failed checks once, then merge with a merge commit, pinned to the head that was checked (`--match-head-commit`). Merge only when `gh pr checks` lists the three
 required checks (backend verify, frontend verify, secret scan, none of them with the " (light)" suffix) and every one of them is `pass`; "no failure so far" is never enough (a head still running is not green).
@@ -67,6 +67,7 @@ sys.path.insert(0, HERE)
 import gapscan   # noqa: E402
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
 # ci.yml's step that runs the pull request's new or changed test classes again (scripts/ci/repeat_new_tests.py): red there is a flaky new test, and a rerun that passes would let it in
+URGENT_LABEL = "急"   # put on by the coordinator: the pull request is picked before the others of its lane and the queue never cancels its CI runs
 REPEAT_STEP = "new or changed test classes, repeated"
 OK = ("pass", "skipping")
 LINE = re.compile(r"^\s*(\d+)(?:\s+after=([\d,]+))?\s*$")   # "<n>" or "<n> after=<m>[,<m>...]": n waits until every m is merged
@@ -668,12 +669,18 @@ class Processor:
         return self.lanes[key]
 
     def pick(self, lane):
-        """First queued pull request of this lane that no worker has."""
+        """First queued pull request of this lane that no worker has; one labelled `急` (URGENT_LABEL, put on by the coordinator) comes before the others."""
+        views = {}
         for n in self.queue.numbers():
             with self.guard:
                 if n in self.busy:
                     continue
-            v = self.gh.view(n)
+            views[n] = self.gh.view(n)
+        for n in sorted(views, key=lambda m: URGENT_LABEL not in (views[m] or {}).get("labels", ())):
+            with self.guard:
+                if n in self.busy:
+                    continue
+            v = views[n]
             if self.lane(n, v["head"] if v else None) == lane:
                 self.log.lanes[n] = lane
                 if not self.dependencies_met(n):
@@ -738,7 +745,7 @@ class Processor:
                 if other == head or other in self.busy:   # a pull request the other lane is working on keeps its runs
                     continue
             v = self.gh.view(other)
-            if not v:
+            if not v or URGENT_LABEL in v["labels"]:   # an urgent pull request keeps its runs: it runs first, whoever is in front
                 continue
             for run in self.gh.active_runs(v["branch"]):
                 with self.guard:
