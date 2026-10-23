@@ -80,6 +80,14 @@ class FakeGh:
     def active_runs(self, branch):
         return list(self.runs.get(branch, []))
 
+    def ci_started(self, branch, head):
+        for p in self.prs.values():
+            if p["branch"] == branch:
+                if p.get("ci_late", 0) > 0:
+                    p["ci_late"] -= 1
+                    return False
+        return True
+
     def cancel_run(self, run):
         self.calls.append(("cancel", run))
         for k in self.runs:
@@ -391,6 +399,15 @@ def _merge_guards(mq, d):
     behind_values = iter([0] + [1] * 80)
     gh.behind_by = lambda n, head: next(behind_values)
     assert proc.process(33) == "HOLD" and "main moved" in log.lines[-1] and not any(c[0] == "merge" for c in gh.calls), "main that never stops moving is a HOLD, not an endless loop"
+    # after the update the queue waits for the CI of the new head to start; a main-moved verdict before that is not counted
+    gh = FakeGh(); gh.add(134, merge="BEHIND", behind=2); gh.prs[134]["ci_late"] = 3
+    proc, q, log, slept = _proc(mq, d, "nc1", gh, [134])
+    assert proc.process(134) == "MERGED" and slept.count(15) >= 3 and "NEW-CI-NOT-SEEN" not in events(log), (events(log), slept)
+    gh = FakeGh(); gh.add(135, merge="BEHIND", behind=2); gh.prs[135]["ci_late"] = 10 ** 6
+    proc, q, log, _ = _proc(mq, d, "nc2", gh, [135])
+    behind_values = iter([2] + [1] * 80)
+    gh.behind_by = lambda n, head: next(behind_values)
+    assert proc.process(135) == "HOLD" and "NEW-CI-NOT-SEEN" in events(log) and "MOVED-NOT-COUNTED" in events(log) and "main moved" not in log.lines[-1] and "never started" in log.lines[-1], (events(log), log.lines[-1])
 
     # the checks are no longer green on this head when the merge is about to happen (a push): not merged, tried again from the checks
     gh = FakeGh(); gh.add(34, rounds=[dict(pending=0, checks=green()), dict(pending=0, checks=green())])
