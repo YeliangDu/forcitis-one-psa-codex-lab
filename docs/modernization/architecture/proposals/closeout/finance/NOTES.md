@@ -546,6 +546,7 @@ U-48 缩窄（S-34 ②）：已过账的应付股利经冲销过账更正，已�
 12. 引用列族已补：AGG-84 journal_entries → AGG-127、journal_entry_lines → AGG-129；AGG-99 → AGG-128；AGG-86 report_line_mappings → AGG-129；AGG-91 company_asset_versions → AGG-124；AGG-59 expense_claims → AGG-130、expense_claim_lines → AGG-132。
 13. 表名用语：presales_investment_attribution、cost_accounting_parameter_version、asset_category_policy_version、opening_balance_set、basis_conversion_rule_version、period_end_carryover_template_version、cash_flow_item_table_version、expense_pre_application、travel_provider_monthly_statement、business_trip_application、travel_allowance_standard_version 待词表登记。
 14. AGG-41 奖金与加班（ARC-1022-AFI-01，BONUS_OVERTIME_COSTING）：`labor_cost_allocation_lines` 加行类型与加班计价、奖金调整列族（按项目、不到人；奖金计提列族随 S-6 移出，按月计提归 B-15）；新增 `labor_cost_allocation_variances`（每运行每员工一行，pi、sensitive）；`labor_cost_allocation_runs` 不引用费率表版本（S-5 撤销 AGG-137，计提率随事实携带）。one-data 2026-10-22 设计层通过附 F1–F6（claude/one-data-handoff-1 @00ab9f42 `data/reviews/ARC-1022-AFI-01-AGG41.md`），已写入表注；待办：差异表保留期须用户认可（D12，随下一张确认页交 one-architecture）；F5 随 AGG-137 撤销不适用；DM-8 仍开；DDL 草案出来再送 one-data。调整行已移到 AGG-139（`bonus_adjustment_runs`、`bonus_adjustment_lines`），F1、F3 随之移过去，请 one-data 复核新表。
+15. AGG-139（`bonus_adjustment_runs`、`bonus_adjustment_lines`）：one-data 2026-10-23 设计层通过附 G1–G7（claude/one-data-handoff-1 @166c3101d `data/reviews/ARC-1022-AFI-01-AGG139.md`）；G3、G5、G6 已答并经 one-data 核过（BONUS_OVERTIME_COSTING §6.2，@cefc0805d）。待办：DDL 草案出来送 one-data 逐行核 G1–G7（根表引用与状态成对、承担法人与项目成对、行表无 version、快照只加非零 CHECK）。
 
 ## 验收场景清单
 
