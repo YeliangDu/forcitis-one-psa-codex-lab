@@ -117,7 +117,7 @@ public class StartApproval {
     }
 
     private void requireKnownRoute(ApprovalStartRequest request) {
-        if (request.processKey().routingFlagRequired() && request.routingFlags().isEmpty()) {
+        if (engine.routingFlagRequiredOf(request.processKey()) && request.routingFlags().isEmpty()) {
             throw ApprovalError.PLATFORM_APPROVAL_NO_ROUTE.refusal("No routing flag is set: " + request.processKey() + " would route nowhere");
         }
         Set<String> known = engine.routingFlagsOf(request.processKey());

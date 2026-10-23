@@ -7,6 +7,7 @@
   <process id="cost_timesheet_approval" name="Timesheet approval (cut-off)" isExecutable="true">
     <extensionElements>
       <forcitis:documentType code="TIMESHEET"/>
+      <forcitis:routingFlagRequired value="true"/>
     </extensionElements>
     <startEvent id="start"/>
     <sequenceFlow id="toFirst" sourceRef="start" targetRef="firstReview"/>

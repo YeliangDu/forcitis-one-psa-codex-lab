@@ -2,12 +2,14 @@ package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalTaskQueries;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,10 +35,11 @@ public class ListInbox {
         List<TaskView> open = engine.findOpenTasksFor(user);
         Map<ApprovalTaskId, Instant> deadlines = tasks.dueAtOf(open.stream().map(TaskView::taskId).toList());
         Instant now = time.now();
+        Map<ProcessKey, String> processNames = new HashMap<>();
         for (TaskView task : open) {
             Optional<Instant> due = Optional.ofNullable(deadlines.get(task.taskId()));
             items.add(new InboxItem(task.taskId().toString(),
-                    ApprovalTexts.inboxTitle(task.processKey(), task.document()), Optional.of(task.nodeName()),
+                    ApprovalTexts.inboxTitle(processNames.computeIfAbsent(task.processKey(), engine::processNameOf), task.document()), Optional.of(task.nodeName()),
                     Optional.of(task.createdAt()), task.isClaimed(), due, due.map(now::isAfter).orElse(false), Optional.of(task.processKey()),
                     Optional.of(task.document().documentId().value()), InboxCategory.TODO));
         }

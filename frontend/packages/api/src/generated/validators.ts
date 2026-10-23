@@ -186,7 +186,7 @@ export const HandledTaskResponseSchema = z.object({
   nodeKey: z.string(),
   nodeName: z.string(),
   onBehalfOfName: z.string().nullable().optional(),
-  get processKey() { return ProcessKeySchema; },
+  processKey: z.string(),
   reason: z.string().nullable().optional(),
   recordId: z.string(),
   round: z.number().int(),
@@ -216,7 +216,7 @@ export const InboxItemResponseSchema = z.object({
   documentId: z.string().nullable().optional(),
   nodeName: z.string().nullable().optional(),
   overdue: z.boolean(),
-  get processKey() { return ProcessKeySchema.optional(); },
+  processKey: z.string().nullable().optional(),
   taskId: z.string(),
   title: z.string(),
 });
@@ -376,8 +376,6 @@ export const ProblemDetailSchema = z.object({
   type: z.string().optional(),
 });
 
-export const ProcessKeySchema = lenientEnum("ProcessKey", ["COST_TIMESHEET_APPROVAL"]).nullable();
-
 export const ReassignTaskRequestSchema = z.object({
   assigneeId: z.string().optional(),
   reason: z.string().optional(),
@@ -509,7 +507,7 @@ export const TaskDetailResponseSchema = z.object({
   nodeName: z.string().nullable().optional(),
   outcome: z.string().nullable().optional(),
   overdue: z.boolean(),
-  get processKey() { return ProcessKeySchema; },
+  processKey: z.string(),
   reason: z.string().nullable().optional(),
   status: z.string(),
   summary: z.string().nullable().optional(),
@@ -529,7 +527,7 @@ export const TaskOverviewResponseSchema = z.object({
   dueAt: z.string().nullable().optional(),
   nodeKey: z.string(),
   overdue: z.boolean(),
-  get processKey() { return ProcessKeySchema; },
+  processKey: z.string(),
   status: z.string(),
   taskId: z.string(),
 });
