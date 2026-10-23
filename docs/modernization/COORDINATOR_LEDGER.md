@@ -3,7 +3,12 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-22 22:2x（one-coordinator，30% 交接；清空后先读本条）
+更新：2026-10-23 00:4x（one-coordinator，40% 交接；清空后先读本条，再读下面 22:2x 条与「整改收尾清单」）
+- **00:4x 现状**：#628 自清推全员已合并生效（只排除 one-coordinator）；#616、#622、#624、#630、#631 已合。今晚各会话已自清并接续：one-arch-people、one-quality（多次）、one-1a-next-5、one-platform-file、one-merge、one-data；one-ops、one-architecture 下次节点自清（钩子已生效）。清空确认用 list_events「idle — 0 of 0」。
+- **在途 PR**：队列中/已批 #589 #627(head 99181cf1e) #629 #633 #634 #587 #599(a4c562253) #637(421886101) #638 #641(2e7574d75)；待复审 #635（MRG-05/06，sonnet 复核后批）、#639/#640（OPS-02 Docker 自动拉起，合入后 one-ops 直接装与演练）、#642（6b-2 上传，opus 首轮改后通过，全文 ~/.modernize/psa/coordinator/reviews/pr642-opus-1.md，one-platform-file 在改）；#632 W2 PR-B 有条件批（opus 结论贴评论＋sonnet、文档移出、CI 绿）；REG-4 待开 PR；PR-B2 在 #624 已合后可开。
+- **下一步**：#627 合入→one-quality 落地新 PB（草稿 ~/.modernize/psa/coordinator/team-audit/pb/，审前备份 .bak-pre-review）→钩子卡 QUA-24/25/17/26；one-merge 做 #635 后 COO-15（批准评论协议等 MRG-01..04）；按「整改收尾清单」全勾后 PushNotification 告诉用户（intent 233247）。用户批：dev 补建 one_dev_history_loader 已执行（intent 233703）。Docker 22:3x 停过已拉起，OPS-02 防再犯。
+- 会话间消息 app 限流：连续 10 条后须用户发言；超限写 ~/.modernize/psa/outbox/one-coordinator.md，用户发话后补发并标「已转」。
+- 22:2x 交接（以下为旧条）
 - **22:2x 在途**：
   - #628 自清推全员（排除只留 one-coordinator，intent 214820/214856）：opus 首轮「改后通过」（~/.modernize/psa/coordinator/reviews/pr628-opus-1.md，两项必改：端到端自测 D–G、调度硬排除）→ one-quality（已清空、已发接续）改→sonnet 复核→我批入队。合入后 one-ops、one-architecture 可自清；之前它们拒自清（钩子文案），one-architecture 已请自清待看结果。
   - one-quality 队列：#628 必改→#627 派 opus→预检提速两项（intent 213020：开 PR 不重跑推送已跑检查、预检只跑相关测试）→新 PB 落地（#627、#628 合入后整包交：新 PB+DATA_DESIGN_CHECKLIST+playbook_digest/build_sessions 改写+mapping 338 处引用）。
