@@ -22,3 +22,9 @@
 - **ADR-0075 决定 2**（one-architecture 2026-10-22）：platform_file.preservation_category_versions 有状态机却无 version 列，下一张迁移卡（单元 7）补列，PreservationCategoryVersion 的转换序号取这一列。
 - 文件服务其余：6b、5a、7，待办与改名见上文各条。
 - 签章用语（one-glossary #564 说明）：权限码前缀 platform.signing（冒号后资源与动作按 ADR-0067 冻结，不在词表）；错误码中文名以提议文件 platform-signing.yaml 为准（统一带「印章台账」），契约草案 §2.3 拟名作废；「印章类别」统一称印章类型。#564 合入 main 后落代码。
+
+## 2026-10-23 #642 复审后待办（6b-3 一并处理）
+
+- PLATFORM_FILE_TOO_LARGE 词条写 413、代码为 400（ErrorKind.INVALID）：对齐（一般改为 TOO_LARGE 413，同步契约与前端）。
+- 带 Idempotency-Key 的上传临时目录与扫描暂存双落盘（≤128MB×2）且无并发限额：限并发或放受配额目录。
+- OpenAPI 上传成功响应改 201；generate-api.mjs 放行 Content-Disposition 补负向测试；空体上传端点测试。

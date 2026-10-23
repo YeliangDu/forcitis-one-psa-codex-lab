@@ -31,6 +31,22 @@ class PlatformFileControllerTest {
     }
 
     @Test
+    @DisplayName("direction marks, line breaks and control characters are refused at both ends of every range; joiners, variation selectors and emoji pass")
+    void unsafeCharactersInTheName() {
+        int[] refused = {0x061C, 0x200E, 0x200F, 0x202A, 0x202E, 0x2066, 0x2069, 0x2028, 0x2029, 0x0085, 0x009F, 0x000A, 0x0009};
+        for (int c : refused) {
+            String name = "a" + new String(Character.toChars(c)) + "b.pdf";
+            assertThatThrownBy(() -> PlatformFileController.originalName("attachment; filename=\"" + name + "\"")).as("U+%04X", c)
+                    .isInstanceOf(InvalidRequestException.class);
+        }
+        for (String ok : new String[] {"a\u200Cb.pdf", "a\u200Db.pdf", "a\uFE0Fb.pdf", "\uD83D\uDE00.pdf", "\uD83D\uDC68\u200D\uD83D\uDC69.pdf"}) {
+            assertThat(PlatformFileController.originalName("attachment; filename=\"" + ok + "\"")).isEqualTo(ok);
+        }
+        assertThat(PlatformFileController.originalName("attachment; filename=\"" + "\uD83D\uDE00".repeat(255) + "\"")).hasSize(510);
+        assertThatThrownBy(() -> PlatformFileController.originalName("attachment; filename=\"" + "\uD83D\uDE00".repeat(256) + "\"")).isInstanceOf(InvalidRequestException.class);
+    }
+
+    @Test
     @DisplayName("the declared media type is type/subtype without parameters; none means octet-stream; garbage is refused")
     void theDeclaredMediaType() {
         assertThat(PlatformFileController.declaredMediaType("application/pdf; version=1")).isEqualTo("application/pdf");

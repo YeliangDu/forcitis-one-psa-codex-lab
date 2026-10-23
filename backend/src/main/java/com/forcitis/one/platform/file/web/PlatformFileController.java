@@ -93,15 +93,15 @@ class PlatformFileController {
             throw new InvalidRequestException("Content-Disposition needs the file name (filename*=UTF-8''...)");
         }
         String name = filename.substring(Math.max(filename.lastIndexOf('/'), filename.lastIndexOf('\\')) + 1).strip();
-        if (name.isEmpty() || name.length() > MAX_NAME_LENGTH || name.chars().anyMatch(c -> Character.isISOControl(c) || changesDirection(c))) {
+        if (name.isEmpty() || name.codePointCount(0, name.length()) > MAX_NAME_LENGTH || name.chars().anyMatch(c -> Character.isISOControl(c) || isUnsafe(c))) {
             throw new InvalidRequestException("The file name must be 1 to " + MAX_NAME_LENGTH + " characters without control or direction-changing characters");
         }
         return name;
     }
 
-    /** Bidirectional marks and overrides (U+202E would show "gpj.fdp" as "pdf.jpg"); joiners such as U+200D stay, real names need them. */
-    private static boolean changesDirection(int c) {
-        return c == 0x061C || c == 0x200E || c == 0x200F || (c >= 0x202A && c <= 0x202E) || (c >= 0x2066 && c <= 0x2069);
+    /** Bidirectional marks and overrides, and the line and paragraph separators (U+202E would show "gpj.fdp" as "pdf.jpg"); joiners such as U+200D stay, real names need them. */
+    private static boolean isUnsafe(int c) {
+        return c == 0x061C || c == 0x200E || c == 0x200F || (c >= 0x202A && c <= 0x202E) || (c >= 0x2066 && c <= 0x2069) || c == 0x2028 || c == 0x2029;
     }
 
     /** Type and subtype only; the registered type is judged from the content, this is a hint. */
