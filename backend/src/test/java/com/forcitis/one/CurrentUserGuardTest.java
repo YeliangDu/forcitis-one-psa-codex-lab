@@ -13,7 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * SESSION_PLAYBOOK section 14, items 5 and 12 (review B-1, B3-M1): whoever answers "which legal entity is this person in" for the session
+ * DATA_DESIGN_CHECKLIST section 14, items 5 and 12 (review B-1, B3-M1): whoever answers "which legal entity is this person in" for the session
  * (CurrentUser) or for a date (EmployeeLegalEntities) answers from the organisation or fails. No literal, no constant, no default, and no
  * CurrentUser made on the spot in production code.
  */

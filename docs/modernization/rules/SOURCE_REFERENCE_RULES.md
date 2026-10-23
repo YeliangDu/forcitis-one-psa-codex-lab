@@ -115,7 +115,7 @@ Scope: platform.integration source references (`source_references`) as the new s
 ### RULE-469: Source references are closed, never deleted, and their source id and own id are never rewritten
 **Category:** Policy
 **Priority:** P0
-**Source:** ADR-0033 section 2 item 1 (last paragraph: in no case rewrite `source_id` or `own_id`), SESSION_PLAYBOOK §14.1 D17 (close, keep history). Tests: `com.forcitis.one.acceptance.platform.integration.SourceReferenceConstraintIT#referencesAreNeverDeleted`, `com.forcitis.one.acceptance.platform.integration.SourceReferenceConstraintIT#sourceIdAndOwnIdAreNeverRewritten`
+**Source:** ADR-0033 section 2 item 1 (last paragraph: in no case rewrite `source_id` or `own_id`), DATA_DESIGN_CHECKLIST §14.1 D17 (close, keep history). Tests: `com.forcitis.one.acceptance.platform.integration.SourceReferenceConstraintIT#referencesAreNeverDeleted`, `com.forcitis.one.acceptance.platform.integration.SourceReferenceConstraintIT#sourceIdAndOwnIdAreNeverRewritten`
 **Plain English:** A reference can change status or be closed, but not removed or re-pointed: DELETE and TRUNCATE are refused, and updating the source id or own id is refused.
 **Specification:**
 - Given a synchronised reference and a pending registration, When deleted or the table truncated, Then refused and both rows remain.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse 钩子（Bash）：`codex exec` 未接管标准输入就拒绝，未显式禁网则告警。
 
-起因：不带 `< /dev/null` 的 codex exec 会停在「Reading additional input from stdin」干等（one-coordinator 2026-10-17，SESSION_PLAYBOOK §5）。
+起因：不带 `< /dev/null` 的 codex exec 会停在「Reading additional input from stdin」干等（one-coordinator 2026-10-17，SESSION_PLAYBOOK TEAM-34、35）。
 放行：同一段命令里有输入重定向（`<`、`<<`、`<<<`）、或前面接着管道（`x | codex exec -`）。
 只看命令位置的 codex（echo、grep 里写的不算），`bash -c '…'` 的引号内容递归检查；读不懂的命令行含 `codex exec` 时按拒绝。
 退出码 2 + 标准错误 = 拒绝；0 + JSON additionalContext = 告警；0 + 无输出 = 放行。拒绝不叠加告警。
@@ -31,9 +31,9 @@ REDIRECTS = {"<", "<<", "<<-", "<<<", "<&"}
 ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 HEREDOC = re.compile(r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
 MESSAGE = ("codex exec / pi 没有关闭标准输入，会一直读标准输入干等（codex 停在「Reading additional input from stdin」，pi 在没有终端时先读完标准输入才开始）。"
-           "在命令末尾加 `< /dev/null`（SESSION_PLAYBOOK §5）；确需从管道或文件喂提示词时用 `| codex exec -`、`| pi -p` 或 `< 文件`。")
+           "在命令末尾加 `< /dev/null`（SESSION_PLAYBOOK TEAM-34）；确需从管道或文件喂提示词时用 `| codex exec -`、`| pi -p` 或 `< 文件`。")
 NETWORK_WARNING = ("告警：codex exec 未显式禁网，或使用了 danger-full-access / --dangerously-bypass-approvals-and-sandbox。"
-                   "按 SESSION_PLAYBOOK §5 使用 `-c sandbox_workspace_write.network_access=false` 与受限沙箱（或 `-s read-only`）；"
+                   "按 SESSION_PLAYBOOK TEAM-34 使用 `-c sandbox_workspace_write.network_access=false` 与受限沙箱（或 `-s read-only`）；"
                    "前端命令使用 `pnpm --offline --config.verify-deps-before-run=false`。本告警不拦截调用。")
 
 

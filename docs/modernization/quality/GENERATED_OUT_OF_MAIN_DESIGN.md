@@ -1,6 +1,6 @@
 # 生成产物、状态记录与历史快照移出 main——设计（待 one-coordinator 给用户看过再实施）
 
-依据：用户 2026-10-22 定的 git 原则（intent 2026-10-22-080434，SESSION_PLAYBOOK §12.6）；起因是合并队列里 PR 反复只在生成产物上冲突、挂十几个小时，和用户问「文档为什么这么大」。本文只设计，不改仓库。四份逐项调研报告（含文件:行证据）见 `~/.modernize/psa/design-gen/`（A 纯生成判定、B 读者清单、C 快照与一次性产出、D 画像与调度台账），本文引用时写「报告 A/B/C/D」。
+依据：用户 2026-10-22 定的 git 原则（intent 2026-10-22-080434，SESSION_PLAYBOOK TEAM-57）；起因是合并队列里 PR 反复只在生成产物上冲突、挂十几个小时，和用户问「文档为什么这么大」。本文只设计，不改仓库。四份逐项调研报告（含文件:行证据）见 `~/.modernize/psa/design-gen/`（A 纯生成判定、B 读者清单、C 快照与一次性产出、D 画像与调度台账），本文引用时写「报告 A/B/C/D」。
 
 ## 〇、结论与建议
 
@@ -99,13 +99,13 @@
 - 要改：
   - `build_sessions.py:25` `FIELDS` 把「当前状态」去掉必填；`:82`「以已交接开头报错」规则去掉或改成对任务卡状态的检查；`:116` 起的 24 小时 freshness 检查改成读任务卡片段的「最后更新」（#545 已加该字段）。
   - `session_context.py` 开场注入画像时改为注入「该会话名下状态为进行中/阻塞的任务卡片段摘要」（读 `tasks/*.md`）；`handoff_snapshot.py` 的开场摘要、`context_handoff.py` 的「是否更新过」判定同步改。
-  - SESSION_PLAYBOOK §2.1 第 13、14、16 条（「现状原地覆盖、当前状态一行」）改写；记 intent。
+  - SESSION_PLAYBOOK TEAM-07、08（「现状原地覆盖、当前状态一行」）改写；记 intent。
 - 画像里的「当前状态」节删除（或改成一句指针「见 tasks/ 中本会话的进行中卡」）。
 
 ### 六-2 `COORDINATOR_LEDGER.md` 本机化
 
 - 18 KB、105 行、15 节，10-18 起被改 39 次（10-21 一天 31 次）；钩子、`build_*.py`、CLAUDE.md 都没有硬编码引用，靠四份画像（one-coordinator、one-1a-admin、one-1a-par、one-platform-file）的「上下文文档」被注入；全仓约 37 个文件提到它，多数是历史片段。
-- 拆分：状态类（交接、会话、合并、技术裁定在途、部署阻塞）和待办类（待用户、暂缓、排定后续）→ 本机；决定记录类（授权与边界、风险登记）→ 补成 intent 片段入仓；稳定类（作战图、开场核对、长效惯例）→ 升入 SESSION_PLAYBOOK §11。
+- 拆分：状态类（交接、会话、合并、技术裁定在途、部署阻塞）和待办类（待用户、暂缓、排定后续）→ 本机；决定记录类（授权与边界、风险登记）→ 补成 intent 片段入仓；稳定类（作战图、开场核对、长效惯例）→ 升入 SESSION_PLAYBOOK（TEAM-27 等）。
 - 本机路径 `~/.modernize/psa/coordinator/LEDGER.md`；每次覆盖前自动备份到 `coordinator/backups/`（保留 14 天或 100 份），/clear 前再复制一份进现有 `~/.modernize/psa/handoff/`（那里是一次一个的快照，别混放）。
 - 要改：`session_context.py` 的 `unsafe_reason` 现在禁绝对路径，需加受控本机路径白名单；`build_sessions.py` 的「上下文文档必须存在」校验对本机路径放行；SESSION_PLAYBOOK 5 处、ADR-0038（引用「部署阻塞」节和行号）、MERGE_CONTEXT 和画像的提及要改。
 
