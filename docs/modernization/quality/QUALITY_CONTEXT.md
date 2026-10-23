@@ -227,3 +227,22 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 - 本节所在分支 `claude/one-quality-handoff-1022` 的几节交接未进 main；另提 docs 提交报 one-merge。
 - 写补丁脚本用 Write 工具，Bash 命令文本含 `git push` / `gh pr create` 会触发检查。
 - 工作区唯一可写；PR 分支轮流 checkout，先 `git branch --show-current`；opus 复审期间不切分支。
+
+## 交接（2026-10-23 上午，节点：#645 必改已推送；第五次清空接续）
+
+### 现状
+- #627、#641 已合入。**#645**（新规则手册落地，分支 `claude/one-quality-playbook-v2`，GOV-1022-COO-15）：opus 首轮「改后通过」，必改 4 条与大部分建议已改并推送（head 3afb15171 之后可能多一个本交接提交）。**改后复核已交 Codex（gpt-6.1-sol，只读）在后台跑**，结果文件 `/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS/forcitis-one-psa--claude-worktrees-xin-61164f/a750f6c4-b28c-487a-ba49-f375cacb07f7/scratchpad/codex-645-out.md`（清空后若无此文件，重派同卡：核四条必改已解决、列新问题）。结论通过后贴 PR、报 one-coordinator 当前 head 请批入队。opus 全文要点见 PR 评论（未贴则补贴：必改 4 条已改）。
+- relevant_change 自测失败一事已撤回（one-1a-admin 自己的测试写法所致），无需处理。
+- 与草稿的偏离已写 PR 正文：保留画像「上下文文档」节（承载交接源）。
+
+### 下一步（顺序，one-coordinator 2026-10-23 定）
+1. Codex 复核结论 → 贴 #645 → 报 one-coordinator head。
+2. **GOV-1023-QUA-01 会话通信可靠投递（加急，排在其他守护卡前）**：卡在 `claude/one-coordinator-two-lanes` @abf470cf9（`git show origin/claude/one-coordinator-two-lanes:docs/modernization/tasks/GOV-1023-QUA-01.md`）。要点：Stop 钩子要求末行「状态：继续｜待命｜等调度｜等用户｜完成点」；等调度/完成点须本轮有发往 one-coordinator 的发消息调用，否则挡；钩子把末条消息写 `~/.modernize/psa/mailbox/`；`scripts/coord/mailbox.py list --unacked|ack|stale`。设计想法：Stop 目前只有 `context_handoff.py` 一个入口（settings.json），新建 `scripts/hooks/stop_status_gate.py` 做判定函数，由 context_handoff 的 Stop 路径先调用，不新增并行入口。钩子与解析自己写，信箱脚本与自测可交 Codex，破坏验证与端到端演示按卡。单列 PR、opus 首轮。
+3. 之后：QUA-24→25→17→26，再 QUA-11～16、19～23、MRG-04 钩子侧（QUA-22 迁移清单先进收件箱）；QUA-14 里顺带把已合入卡改「完成」，QUA-17 任务名前缀改 [流程治理·跨域]。
+4. 其后沿用原队列：仓库内容治理执行、GOV-1022-COO-17、登记 RULING-COORD-20261022-05。
+
+### 坑
+- Bash 命令文本含 `git push` / `gh pr create` 字样会触发检查；写补丁用 Edit/Write 或 python 脚本。推送单独一次调用，precheck 约 8 分钟，放后台。
+- 唯一可写工作区 `xin-61164f`，PR 分支轮流 checkout，先 `git branch --show-current`；复审（含 Codex）期间不切分支。
+- 提交到有改动验收测试目录或已答确认页的分支会被验收守护/check_pages 拦：别改这些目录里的引用文字。
+- 发消息给调度用 session_id local_10f279cb-81c7-4628-9080-2d5b1efd622d；清空后等调度的「接续」。
