@@ -549,8 +549,36 @@ class NamingSurfaceTest {
                 problems.add("process '" + id + "': " + d.group("subdomain") + "." + d.group("bc") + " declares no ProcessKey.of(\"" + id + "\") in its api");
             }
         }
+        List<String> declaredKeys = declaredProcessKeys();
+        for (String declared : declaredKeys) {
+            if (!processIds.contains(declared) || java.util.Collections.frequency(declaredKeys, declared) > 1) {
+                problems.add("ProcessKey.of(\"" + declared + "\") declared in an api has no BPMN process of that id under processes/, or is declared more than once");
+            }
+        }
         fail("G47 BPMN process / DMN decision id must be {subdomain}_{bc}_{snake_name} of the owning module "
                 + "(= the ProcessKey constant its owning context declares in its api); userTask ids camelCase glossary words", problems);
+    }
+
+    private static final java.util.regex.Pattern PROCESS_KEY_LITERAL = java.util.regex.Pattern.compile("ProcessKey\\.of\\(\"([^\"]+)\"\\)");
+
+    /** The ids of every ProcessKey.of("...") a context declares in an api package (code only, comments skipped); a duplicate is listed twice. */
+    private static List<String> declaredProcessKeys() throws java.io.IOException {
+        List<String> found = new ArrayList<>();
+        try (java.util.stream.Stream<Path> sources = java.nio.file.Files.walk(MAIN_JAVA)) {
+            for (Path f : sources.filter(f -> f.toString().endsWith(".java") && f.toString().contains("/api/")).toList()) {
+                for (String line : java.nio.file.Files.readAllLines(f)) {
+                    String code = line.strip();
+                    if (code.startsWith("*") || code.startsWith("//") || code.startsWith("/*")) {
+                        continue;
+                    }
+                    Matcher m = PROCESS_KEY_LITERAL.matcher(code);
+                    while (m.find()) {
+                        found.add(m.group(1));
+                    }
+                }
+            }
+        }
+        return found;
     }
 
     private static boolean declaresProcessKey(String subdomain, String bc, String id) throws java.io.IOException {

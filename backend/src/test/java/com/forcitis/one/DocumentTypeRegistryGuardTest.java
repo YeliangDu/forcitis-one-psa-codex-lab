@@ -87,14 +87,37 @@ class DocumentTypeRegistryGuardTest {
             try (Stream<Path> files = Files.walk(MAIN.resolve(area))) {
                 for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
                     String text = Files.readString(file);
-                    for (String literal : literals) {
-                        if (text.contains(literal)) {
-                            problems.add(MAIN.relativize(file) + " names the business process '" + literal + "'; the process owns its key in its context's api and its name in its definition");
-                        }
+                    for (String literal : processLiteralsIn(text, literals)) {
+                        problems.add(MAIN.relativize(file) + " names the business process '" + literal + "'; the process owns its key in its context's api and its name in its definition");
+                    }
+                }
+            }
+        }
+        Path migrations = Path.of("src/main/resources/db/migration");
+        if (Files.isDirectory(migrations)) {
+            try (Stream<Path> scripts = Files.walk(migrations)) {
+                for (Path file : scripts.filter(f -> f.toString().endsWith(".sql") && f.toString().contains("/platform_")).toList()) {
+                    for (String literal : processLiteralsIn(Files.readString(file), literals)) {
+                        problems.add(file.getFileName() + " enumerates the business process '" + literal + "'");
                     }
                 }
             }
         }
         assertThat(problems).isEmpty();
     }
+
+    @Test
+    @DisplayName("the process-literal guard catches an id in any letter case and a process name (injection)")
+    void processLiteralGuardCatchesInjectedLiterals() {
+        List<String> literals = List.of("cost_timesheet_approval", "工时审批");
+        assertThat(processLiteralsIn("if (\"COST_TIMESHEET_APPROVAL\".equals(x)) {}", literals)).containsExactly("cost_timesheet_approval");
+        assertThat(processLiteralsIn("String t = \"工时审批\";", literals)).containsExactly("工时审批");
+        assertThat(processLiteralsIn("String t = \"another_process\";", literals)).isEmpty();
+    }
+
+    private static List<String> processLiteralsIn(String text, List<String> literals) {
+        String lower = text.toLowerCase(java.util.Locale.ROOT);
+        return literals.stream().filter(l -> lower.contains(l.toLowerCase(java.util.Locale.ROOT))).toList();
+    }
 }
+

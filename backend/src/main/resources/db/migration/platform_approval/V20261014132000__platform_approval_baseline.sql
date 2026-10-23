@@ -4,7 +4,7 @@ COMMENT ON SCHEMA platform_approval IS '审批（权限流程与集成平台 BC 
 
 CREATE TABLE platform_approval.approval_requests (
     id                  uuid        PRIMARY KEY,
-    process_key         text        NOT NULL,
+    process_key         text        NOT NULL CONSTRAINT ck_approval_requests_process_key CHECK (process_key ~ '^[a-z]+_[a-z]+_[a-z]+(_[a-z]+)*$'),
     document_id         uuid        NOT NULL,
     initiator_id        uuid        NOT NULL,
     current_round       integer     NOT NULL,
