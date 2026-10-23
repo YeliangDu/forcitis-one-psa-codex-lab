@@ -1,5 +1,12 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 凌晨五次增补（以本节为准）
+
+- **b1 新提交（均已报调度待审）**：O6 必改 242bb442d → O2 必改 cd0014b51 → O3 必改 f756c32fc → O4 必改＋主检出一律拒 e88824f83 → policy tools_lib.dir 5ae1a8e59。
+- **用户已定（intent 225957）**：O2 上限 1,100、一行一句；主检出一律拒；codex_stdin_gate 按定稿 O21 删（O3 起已不挂），临时人工规则「codex 带 </dev/null 并禁网」由调度 C6 写 RULES；TEAM-90 大输出提醒改人工规则，归调度。
+- **D40 已办**：~/.codex/config.toml sandbox_mode 改 workspace-write（approval never 不变），备份在 ~/.modernize/psa/ops/backup-20261023-flow-v2/。
+- **在途**：O7 已派 opus 子代理在 ops-fv2-b1 上写（含堵生产写门入口缺失退出 127 放行）。清空后收不到汇报：看 `git -C ../ops-fv2-b1 log` 有无 O7 提交，有就读正文报待审，没有就重派。之后 O8 → O9 → O10。
+
 ## 2026-10-24 凌晨四次增补（第九次交接；流程重构第一批，以本节为准，覆盖三次增补同名项）
 
 - **子分支 `claude/one-ops-flow-v2-b1`（工作区 `.claude/worktrees/ops-fv2-b1`，本机，不推送）现有提交**：O2 d4eedf9c1 → O3 e3fe6dcbd → O4 79a2d005e → O5 610fca580 → O5 补 848c57731（relevant_change 列 roles/）→ O5 必改 05c144e8b（目录名优先）→ O6 9e80a8810（settings 只剩 4 挂载、删 12 个钩子文件、start_sheet 加 --hook、Stop 挂工具库 stop_check 且 `; exit 0`）→ policy 三键 cf938271d（retention_days.evidence=7、shell.foreground_max_seconds=60、ci.new_test_repeat=3，守护类要终审）→ build_sessions 指针画像 455de7e15（调度 C4 画像一行指针；标题可选，正文一行恰一个 roles/*.md 指针）。均已报「待审」。
