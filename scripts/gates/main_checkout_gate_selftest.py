@@ -55,13 +55,14 @@ def self_test():
         assert gate(os.path.join(main, ".claude"))[0] == 1, "a subdirectory of the main checkout is the main checkout"
         assert gate(work) == (0, ""), "a commit in a linked worktree goes ahead"
         git(main, "checkout", "-q", "-b", "elsewhere")
-        assert gate(main)[0] == 0, "the main checkout on another branch is not guarded (same as before the rewrite)"
+        code, message = gate(main)
+        assert code == 1 and REFUSED in message and "refs/heads/elsewhere" in message, "the main checkout on another branch is refused too (intent 225957)"
         w2 = os.path.join(between, "w2")
         git(main, "worktree", "add", "-q", w2, "main")
         assert gate(w2)[0] == 0, "a linked worktree that has main checked out is not the main checkout"
         git(main, "worktree", "remove", "--force", w2)
         git(main, "checkout", "-q", "--detach", "main")
-        assert gate(main)[0] == 0, "detached HEAD in the main checkout moves no branch"
+        assert gate(main)[0] == 1, "detached HEAD in the main checkout is refused: commit, then update-ref main, moves main in two steps"
         git(main, "checkout", "-q", "main")
 
         # 2. fails closed: no repository, no git, git that says nonsense or fails
@@ -96,6 +97,15 @@ def self_test():
         assert r.returncode != 0 and REFUSED in r.stderr, "real commit from .claude/worktrees/ must fail"
         r = run("git", "commit", "-q", "--allow-empty", "-m", "x", cwd=work)
         assert r.returncode == 0, f"real commit in the worktree must go ahead: {r.stderr}"
+        os.makedirs(os.path.join(work, "sub"))
+        r = run("git", "commit", "-q", "--allow-empty", "-m", "x", cwd=os.path.join(work, "sub"))
+        assert r.returncode == 0, f"a commit from a worktree subdirectory (git sets GIT_PREFIX) goes ahead: {r.stderr}"
+        # the repository is named from the worktree: git hands the hook the main checkout's git-dir (O4 review item 1)
+        main_git = os.path.join(main, ".git")
+        for argv, extra in ((("git", "commit", "-q", "--allow-empty", "-m", "d"), {"GIT_DIR": main_git, "GIT_WORK_TREE": work}),
+                            (("git", "--git-dir=" + main_git, "--work-tree=" + work, "commit", "-q", "--allow-empty", "-m", "e"), {})):
+            r = run(*argv, cwd=work, **extra)
+            assert r.returncode != 0 and REFUSED in r.stderr and git(main, "rev-parse", "main").stdout == before, (argv, extra, r.returncode, r.stderr)
 
         # 4. the session-start script: ceiling at <main checkout>/.claude, once however often it runs
         env_file = os.path.join(d, "claude.env")
