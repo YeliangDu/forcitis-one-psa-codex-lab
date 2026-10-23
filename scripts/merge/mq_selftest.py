@@ -30,6 +30,7 @@ def red(run=100, bucket="fail"):
 class FakeGh:
     def __init__(self):
         self.prs, self.calls, self.runs, self.main_runs, self.lock, self.slow, self.step_failures = {}, [], {}, {"push": None, "schedule": None}, threading.RLock(), False, {}
+        self.docker_down = 0
 
     def add(self, n, merge="CLEAN", labels=(), rounds=None, update_ok=True, merge_results=((True, ""),), behind=0, state="OPEN"):
         self.prs[n] = dict(state=state, merge=merge, labels=set(labels), branch=f"b{n}", head=f"{n:040x}", behind=behind, rounds=rounds or [dict(pending=0, checks=green())], round=0, pend=None,
@@ -85,6 +86,12 @@ class FakeGh:
         for k in self.runs:
             if run in self.runs[k]:
                 self.runs[k].remove(run)
+        return True
+
+    def docker_ok(self):
+        if self.docker_down > 0:
+            self.docker_down -= 1
+            return False
         return True
 
     def failed_steps(self, run):
@@ -281,6 +288,19 @@ def _scenarios(mq, d):
     gh.step_failures = {"31": ["new or changed test classes, repeated"]}
     proc, q, log, _ = _proc(mq, d, "rp1", gh, [110])
     assert proc.process(110) == "HOLD" and not any(c[0] == "rerun" for c in gh.calls) and "repeat runs" in log.lines[-1] and "run=31" in log.lines[-1] and not any(c[0] == "merge" for c in gh.calls)
+    # the environment failed (container runtime down), not the pull request: wait for it, run again, no attempt used up; it never recovers: HOLD naming the environment
+    gh = FakeGh(); gh.add(113, rounds=[dict(pending=0, checks=red(61)), dict(pending=0, checks=red(62)), dict(pending=0, checks=green(63))]); gh.docker_down = 2
+    gh.step_failures = {"61": ["test images are present"]}
+    proc, q, log, slept = _proc(mq, d, "env1", gh, [113])
+    assert proc.process(113) == "MERGED" and "ENV" in events(log) and slept.count(60) == 2 and ("rerun", "61") in gh.calls, (events(log), slept)
+    gh = FakeGh(); gh.add(114, rounds=[dict(pending=0, checks=red(71))]); gh.docker_down = 10 ** 6
+    gh.step_failures = {"71": ["docker_ensure"]}
+    proc, q, log, _ = _proc(mq, d, "env2", gh, [114])
+    assert proc.process(114) == "HOLD" and "environment" in log.lines[-1] and not any(c[0] == "rerun" for c in gh.calls), log.lines[-1]
+    gh = FakeGh(); gh.add(115, rounds=[dict(pending=0, checks=red(81))] * 5)
+    gh.step_failures = {"81": ["test images are present"]}
+    proc, q, log, _ = _proc(mq, d, "env3", gh, [115])
+    assert proc.process(115) == "HOLD" and events(log).count("ENV") == 4 and "environment" in log.lines[-1], "an environment that keeps failing is not rerun for ever"
     gh = FakeGh(); gh.add(112, rounds=[dict(pending=0, checks=red(51)), dict(pending=0, checks=green(52))])
     gh.failed_steps = lambda run: None
     proc, q, log, _ = _proc(mq, d, "rp3", gh, [112])
@@ -961,9 +981,8 @@ def _signals(mq, d):
     assert events(log).count("ERROR") >= 3, events(log)
 
     # a hanging call is a failed call: sh() gives up after its timeout
-    started = time.monotonic()
     r = mq.sh([sys.executable, "-c", "import time; time.sleep(300)"], timeout=1)
-    assert r.returncode == 124 and "timed out" in r.stderr and time.monotonic() - started < 120   # a timeout that did not work would take 300 s
+    assert r.returncode == 124 and "timed out" in r.stderr   # a timeout that did not work would come back 0 after 300 s (no wall-clock bound: a loaded machine made it flaky)
 
     # two ssh updates at once never share the scratch worktree
     inside = {"n": 0, "max": 0}

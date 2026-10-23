@@ -68,6 +68,7 @@ import gapscan   # noqa: E402
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
 # ci.yml's step that runs the pull request's new or changed test classes again (scripts/ci/repeat_new_tests.py): red there is a flaky new test, and a rerun that passes would let it in
 URGENT_LABEL = "急"   # put on by the coordinator: the pull request is picked before the others of its lane and the queue never cancels its CI runs
+ENV_STEPS = ("test images are present", "docker_ensure")   # CI steps that fail when the machine's container runtime is down: no verdict on the pull request
 REPEAT_STEP = "new or changed test classes, repeated"
 OK = ("pass", "skipping")
 LINE = re.compile(r"^\s*(\d+)(?:\s+after=([\d,]+))?\s*$")   # "<n>" or "<n> after=<m>[,<m>...]": n waits until every m is merged
@@ -364,6 +365,9 @@ class Gh:
         """Names of the steps that failed in a ci run, or None when gh cannot say."""
         r = sh(["gh", "run", "view", str(run), "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'])
         return r.stdout.splitlines() if r.returncode == 0 else None
+
+    def docker_ok(self):
+        return sh(["docker", "info"], timeout=60).returncode == 0
 
     def update_branch(self, n):
         return sh(["gh", "pr", "update-branch", str(n)]).returncode == 0
@@ -787,6 +791,15 @@ class Processor:
         self.log.event("SSH-UPDATE" if res == "ok" else f"SSH-UPDATE-{res.upper()}", n, None, since, "local merge pushed over ssh")
         return res
 
+    def wait_container_runtime(self, n, minutes=30):
+        """True once `docker info` answers (polled every minute); False when it did not within `minutes`."""
+        for _ in range(minutes):
+            self.checkpoint(n)
+            if self.gh.docker_ok():
+                return True
+            self.sleep(60)
+        return False
+
     def wait_checks(self, n, since):
         """Checks once none is pending; None when they stayed pending past the CI timeout. A failed gh call is no answer: asked again."""
         for _ in range(20):
@@ -863,7 +876,7 @@ class Processor:
 
     def _process(self, n, since):
         self.cancel_others(n, since)
-        attempt, moved, refused = 1, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
+        attempt, moved, refused, env_failures = 1, 0, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
         while attempt <= 4:
             self.checkpoint(n)
             v = self.gh.view(n)
@@ -919,6 +932,16 @@ class Processor:
                 unknown = [r for r, st in steps.items() if st is None]
                 if unknown:   # gh could not say which step failed: the one rerun still happens (the lenient direction), but it is on record
                     self.log.event("FAILED-STEPS-UNKNOWN", n, unknown[0], since, "could not read the failed steps; a failed repeat step would not be recognised")
+                env_runs = [r for r, st in steps.items() if any(mark in name for name in (st or []) for mark in ENV_STEPS)]
+                if env_runs:   # the machine, not the pull request: wait for the container runtime, run again, and the author's attempt is not used up
+                    env_failures += 1
+                    self.log.event("ENV", n, env_runs[0], since, f"{', '.join(c['name'] for c in red)}: the environment failed, not the pull request (#{env_failures}); waiting for the container runtime")
+                    if env_failures > 3 or not self.wait_container_runtime(n):
+                        return self.hold(n, ",".join(env_runs), since, "the environment did not recover (container runtime still down): not the author's failure")
+                    for r in runs:
+                        self.gh.rerun(r)
+                    self.sleep(30)
+                    continue
                 repeated = [r for r, st in steps.items() if REPEAT_STEP in (st or [])]
                 if repeated:   # a new test that fails when it runs again is flaky: no rerun (it would pass the second time and get in), straight to the author
                     return self.hold(n, ",".join(repeated), since, f"a new or changed test class failed its repeat runs ({REPEAT_STEP}): not rerun, back to the author")
