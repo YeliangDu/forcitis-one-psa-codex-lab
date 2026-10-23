@@ -5,7 +5,7 @@
 #   --stdout-warn  告警同时写标准输出：SessionStart 的标准输出会进模型上下文，别的事件的标准错误在退出码 0 时模型看不到。
 # 主检出 = 启动器所在仓库的 git 公共目录的上级；定位只看 CLAUDE_PROJECT_DIR 与启动器自身位置，不看工作目录
 #   （会话 cd 进别的仓库时，不能跑那个仓库里的同名钩子）。CLAUDE_PROJECT_DIR 指向别的仓库时，用启动器自己的副本并告警。
-# 只在主检出处于 main 分支、scripts/hooks 没有未提交或未跟踪改动时才用它；否则退回本工作区的副本并告警（一处改坏不会让全员守护失败开放）。
+# 只在主检出处于 main 分支、scripts/hooks 的 .py/.sh/.json 没有未提交或未跟踪改动时才用它（被忽略的文件如 .DS_Store 不算）；否则退回本工作区的副本并告警，没有工作区副本时仍用主检出的副本并告警（一处改坏不会让全员守护失败开放）。
 # 所有退回、崩溃都追加到 <git 目录>/hooks-fallback.log，开工单（start_sheet.py）把当日的几行带给会话。
 strict=0
 warn_stdout=0
@@ -49,9 +49,12 @@ else
   head_ref="$(git -C "$main" symbolic-ref -q HEAD 2>/dev/null)"
   if [ "$head_ref" != "refs/heads/main" ]; then
     reason="主检出 $main 不在 main 分支（HEAD=${head_ref:-游离}）"
-  elif [ -n "$(git -C "$main" status --porcelain -- scripts/hooks 2>/dev/null)" ] \
-      || [ -n "$(git -C "$main" ls-files -v -- scripts/hooks 2>/dev/null | grep -v '^H ')" ] \
-      || [ -n "$(git -C "$main" ls-files --others --ignored --exclude-standard -- scripts/hooks 2>/dev/null | grep -v '__pycache__')" ]; then
+  elif ! dirty="$(git -C "$main" status --porcelain --untracked-files=all -- 'scripts/hooks/*.py' 'scripts/hooks/*.sh' 'scripts/hooks/*.json' 2>/dev/null)" \
+      || ! assumed="$(git -C "$main" ls-files -v -- scripts/hooks 2>/dev/null)"; then
+    # git itself failed: neither "clean" nor "dirty"; the main copy is used with a warning (a git problem must not shut every session's Bash)
+    warn "主检出 $main 的 scripts/hooks 状态读不出（git 调用失败），按主检出副本运行，未验证是否干净"
+    target="$main/scripts/hooks/$name"
+  elif [ -n "$dirty" ] || [ -n "$(printf '%s\n' "$assumed" | grep -v '^H ')" ]; then
     reason="主检出 $main 的 scripts/hooks 有未提交或未跟踪改动"
   elif [ ! -x "$main/scripts/hooks/$name" ]; then
     reason="主检出 $main（$(git -C "$main" rev-parse --short HEAD 2>/dev/null)）没有可执行的 scripts/hooks/$name"
@@ -70,8 +73,9 @@ if [ -n "$reason" ]; then
       target="$wt/scripts/hooks/$name"
       warn "$reason，退回会话自己的工作区 $wt 的副本（可能落后；主检出 HEAD $(git -C "$main" rev-parse --short HEAD 2>/dev/null)）"
     else
-      warn "$reason，主检出的副本不安全且找不到会话自己的工作区副本，不执行钩子，按失败处理（主检出 HEAD $(git -C "$main" rev-parse --short HEAD 2>/dev/null)）"
-      exit "$failcode"
+      # no workspace copy to fall back to: the main copy runs, with a warning (--strict is for a crashing hook, not for this: failing here shuts the Bash of every session at once)
+      target="$main/scripts/hooks/$name"
+      warn "$reason，找不到会话自己的工作区副本，仍运行主检出的副本（主检出 HEAD $(git -C "$main" rev-parse --short HEAD 2>/dev/null)）"
     fi
   else
     warn "$reason，退回本工作区的副本（可能落后；主检出 HEAD $(git -C "${main:-.}" rev-parse --short HEAD 2>/dev/null || echo 无)）"
