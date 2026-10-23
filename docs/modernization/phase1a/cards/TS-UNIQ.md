@@ -165,7 +165,7 @@
 
 ## 10. 报告去向
 - 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
-- 报告包含：提交号与分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事；合并后通知 `DATA-REPAIR-timesheet-audit` A 部分执行者（TA-01 可开工）与 one-data
+- PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事；合并后通知 `DATA-REPAIR-timesheet-audit` A 部分执行者（TA-01 可开工）与 one-data
 
 ## 11. 本卡新词（开工前术语门禁，SESSION_PLAYBOOK §5）
 已查 `docs/modernization/glossary/terms.yaml` 与 `backend/glossary/proposed/*.yaml`：下列各词均无同名、同中文名条目。起草本卡时已把第一条登记为提议术语（`backend/glossary/proposed/cost-timesheet.yaml`，`status: proposed`），其余是已有词条的组合，无需新增。

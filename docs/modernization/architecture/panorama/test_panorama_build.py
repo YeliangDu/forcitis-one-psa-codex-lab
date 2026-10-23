@@ -399,7 +399,7 @@ class CommandNetworkTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '原文'):
             self.load()
         self.sources['cmd'].unlink()
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaisesRegex(FileNotFoundError, 'build_all.py.*generated-docs'):
             self.load()
 
     def test_arc09_repeated_read_has_identical_bytes(self):

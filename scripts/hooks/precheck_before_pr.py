@@ -24,13 +24,74 @@ def is_pr_create(command):
     return bool(PR_CREATE.search(plain(command)))
 
 
-def verdict(output, returncode, action="提 PR", retry="gh pr create"):
+EXCERPT_LINES = 15
+BLOCK_TAIL = 4
+OUTPUT_TAIL = 3
+
+
+def excerpt(output):
+    """What failed, in at most EXCERPT_LINES lines: each `FAIL …` line with the last BLOCK_TAIL lines of the `      | …` block precheck.sh prints under it (the real error is at the end of that block),
+    the SUMMARY line, and the last OUTPUT_TAIL lines of the whole output. Many failures share the room: the block tails shrink first, then only the FAIL lines stay.
+    No FAIL line at all (precheck.sh itself broke): the last 8 lines."""
+    lines = output.splitlines()
+    fails = [i for i, line in enumerate(lines) if line.startswith("FAIL")]
+    summary = [i for i, line in enumerate(lines) if line.startswith("SUMMARY:")][-1:]
+    if not fails:
+        return "\n".join(lines[-8:])
+    blocks = []
+    for i in fails:
+        end = i + 1
+        while end < len(lines) and lines[end].lstrip().startswith("|"):
+            end += 1
+        blocks.append((i, list(range(i + 1, end))))
+    tail = [i for i in range(len(lines) - OUTPUT_TAIL, len(lines)) if i >= 0 and lines[i].strip() and i not in summary]
+    room = EXCERPT_LINES - len(summary)
+    # the FAIL lines first (all of them if they fit), then the room is shared round-robin so every failure keeps the END of its block, the real cause, before any gets more
+    shown = blocks[:max(1, room // 2)]  # a FAIL line and the last line of its block is the least that says what failed
+    heads = [i for i, _ in shown]
+    taken = [min(1, len(body)) for _, body in shown]
+    spare = room - len(heads) - sum(taken)
+    tail_room = min(OUTPUT_TAIL, max(0, spare))
+    spare -= tail_room
+    while spare > 0:
+        grew = False
+        for n in range(len(heads)):
+            if spare > 0 and taken[n] < min(BLOCK_TAIL, len(blocks[n][1])):
+                taken[n] += 1
+                spare -= 1
+                grew = True
+        if not grew:
+            break
+    picked = list(heads)
+    for n, (_, body) in enumerate(blocks[:len(heads)]):
+        picked += body[len(body) - taken[n]:] if taken[n] else []
+    spare_tail = room - len(picked)
+    picked += [i for i in tail if i not in picked][-spare_tail:] if spare_tail > 0 else []
+    return "\n".join(lines[i] for i in sorted(set(picked) | set(summary)))
+
+
+def save_log(root, output):
+    """Writes the full output under the git directory and returns its path, or None when that is not possible."""
+    gitdir = git_out(root, "rev-parse", "--absolute-git-dir") if root else None
+    if not gitdir:
+        return None
+    try:
+        path = os.path.join(gitdir, LAST_LOG)
+        with open(path, "w", encoding="utf-8") as log:
+            log.write(output)
+        return path
+    except OSError:
+        return None
+
+
+def verdict(output, returncode, action="提 PR", retry="gh pr create", root=None):
     last = [line for line in output.splitlines() if line.startswith("SUMMARY:")]
     if returncode == 0 and last and last[-1].endswith("— ready"):
         return None
-    tail = "\n".join(output.splitlines()[-40:])
+    log = save_log(root, output)
     ask = "\n前端依赖未装：先用 pnpm install --frozen-lockfile --offline（只用本机缓存、不下载）；缓存缺包而失败时，再问用户是否联网安装。" if "前端依赖未安装" in output else ""
-    return f"precheck.sh 未全过（退出码 {returncode}），不能{action}。先修好或按提示问用户，再重新 {retry}：{ask}\n{tail}"
+    where = f"\n完整日志：{log}" if log else ""
+    return f"precheck.sh 未全过（退出码 {returncode}），不能{action}。先修好或按提示问用户，再重新 {retry}：{ask}\n{excerpt(output)}{where}"
 
 
 def repository_of(cwd):
@@ -94,7 +155,7 @@ def main():
     except subprocess.TimeoutExpired:
         print(f"precheck.sh 超过 {TIMEOUT_SECONDS} 秒未结束，不能提 PR", file=sys.stderr)
         return 2
-    reason = verdict(run.stdout + run.stderr, run.returncode)
+    reason = verdict(run.stdout + run.stderr, run.returncode, root=root)
     if reason:
         print(reason, file=sys.stderr)
         return 2
@@ -111,7 +172,22 @@ def self_test():
     assert verdict("SUMMARY: 6 PASS, 1 FAIL, 7 SKIP (base origin/main) — not ready\n", 1)
     assert verdict("SUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 1), "退出码非 0 即拒绝"
     assert verdict("没有 SUMMARY 行\n", 0), "没有 SUMMARY 行即拒绝"
-    assert "pnpm install --frozen-lockfile --offline" in verdict("FAIL frontend verify 前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline\nSUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1)
+    def block(name, tail):
+        return f"FAIL  {name}  exit 1 — last lines:\n" + "\n".join(f"      | {line}" for line in tail) + "\n"
+    real = "PASS  a  ok\n" * 30 + block("guards: x (self-test)", [f"line {i}" for i in range(19)] + ["AssertionError: the real cause"]) + "SKIP  b\n" + "SUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    shown = verdict(real, 1)
+    assert "FAIL  guards: x" in shown and "AssertionError: the real cause" in shown and "line 3" not in shown and "PASS  a" not in shown and "SUMMARY:" in shown and shown.count("\n") <= 18, shown
+    many = "".join(block(f"g{i}", ["noise", f"cause {i}"]) for i in range(40)) + "SUMMARY: 0 PASS, 40 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    cut = verdict(many, 1)
+    assert cut.count("\n") <= 18 and "SUMMARY:" in cut and "FAIL  g0 " in cut, "capped, summary kept, failures shown first"
+    two = block("one", ["a", "b", "c", "d", "e", "cause-one"]) + block("two", ["x", "cause-two"]) + "SUMMARY: 0 PASS, 2 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    assert "cause-one" in verdict(two, 1) and "cause-two" in verdict(two, 1), "every failure keeps the end of its block"
+    assert "last" in verdict("x\n" * 20 + "last\n", 1), "no FAIL line: the tail of the output"
+    six = "".join(block(f"g{i}", ["n1", "n2", "n3", "n4", f"REAL-{i}"]) for i in range(6)) + "SUMMARY: 0 PASS, 6 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    shown6 = verdict(six, 1)
+    assert all(f"REAL-{i}" in shown6 for i in range(6)) and shown6.count("\n") <= 18, "with many failures every one keeps the end of its block"
+    twenty = "".join(block(f"g{i}", ["noise", f"REAL-{i}"]) for i in range(20)) + "SUMMARY: 0 PASS, 20 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    assert verdict(twenty, 1).count("REAL-") >= 6 and "SUMMARY:" in verdict(twenty, 1), "20 failures: the first ones with their cause, not 14 bare FAIL lines"
     with tempfile.TemporaryDirectory() as root:
         def git(*args):
             subprocess.run(["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@t", *args], check=True, capture_output=True)

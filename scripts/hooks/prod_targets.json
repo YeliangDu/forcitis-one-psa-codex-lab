@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "owner": "one-ops",
+  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。碰到任一 pattern 的命令，除点名只读用法与不连接命令外一律被 prod_write_gate 拒绝；改动由 one-ops 提，PR 过 opus 复审。间接引用（别名、ssh_config、DSN）不覆盖，靠只读账号兜底。",
+  "targets": [
+    {
+      "id": "legacy-rds-sqlserver",
+      "kind": "rds",
+      "patterns": [
+        "rm-bp1690ep53t9778dp"
+      ],
+      "note": "老系统与 A8 生产 SQL Server（PROD_FINGERPRINT.md 一）；只读取证走 ADR-0037 专用只读账号"
+    },
+    {
+      "id": "legacy-read-accounts",
+      "kind": "account",
+      "patterns": [
+        "one_a8_views_ro",
+        "one_legacy_names_ro",
+        "one_evidence_ro"
+      ],
+      "note": "生产只读账号名：出现即视为连生产（只读用法放行）"
+    },
+    {
+      "id": "legacy-ecs",
+      "kind": "ecs",
+      "patterns": [
+        "i-bp1b34hcl0g1cnkdtrb9",
+        "i-bp1dqbdqgf4vj53qd1q9",
+        "172.16.10.52",
+        "172.16.235.83"
+      ],
+      "note": "老系统与 A8 应用服务器实例 ID 与私网 IP；i-bp122xlpar8w2uylmal2 名叫 production 实为 dev，不入表"
+    },
+    {
+      "id": "new-prod-names",
+      "kind": "name",
+      "patterns": [
+        "forcitis_one_prod",
+        "one_prod_",
+        "forcitis-one-deploy-request-prod"
+      ],
+      "note": "新系统生产命名（库、角色前缀、OOS 参数）；实例建成后 one-ops 补实例 ID 与端点"
+    }
+  ],
+  "readonly_tools": {
+    "owner": "one-ops",
+    "note": "路径 = docs 根（docs 下的 modernization 目录）+ base + files。只登记整支都只读的入口（阿里云 Python SDK ecs.run_command，命令名 one-ops-b5，目标仅旧系统应用服务器，只用三个只读账号）；b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。脚本内容须与 origin/main 上逐字节一致才算可信。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。出自 one-ops 的生产特征表第五节。",
+    "files": [
+      "b5_evidence_scan.py",
+      "c14_orphan_check.py",
+      "c14_u8c_status.py"
+    ],
+    "base": "phase1a/infra/handoff/B-5-dba/tools/"
+  }
+}

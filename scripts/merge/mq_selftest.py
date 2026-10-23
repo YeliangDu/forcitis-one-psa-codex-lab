@@ -62,6 +62,9 @@ class FakeGh:
                 return p.get("behind_files")
         return None
 
+    def files(self, n):
+        return self.prs[n].get("files", [])
+
     def update_branch(self, n):
         self.calls.append(("update-branch", n))
         p = self.prs[n]
@@ -837,6 +840,15 @@ def _signals(mq, d):
         return out
     gh.update_branch, gh.checks = update, checks
     assert proc.process(90) == "MERGED" and "BEHIND-AFTER-FAIL" in events(log) and ("rerun", "5") not in gh.calls, events(log)
+
+    # a pull request that changes .github/workflows (or whose file list gh cannot give) is never updated with `gh pr update-branch` (it exits 0 without pushing: the token lacks the workflow scope): ssh straight away; any other still goes through gh
+    for name, files, via_ssh in (("plain", ["backend/a.java"], False), ("workflow", ["backend/a.java", ".github/workflows/ci.yml"], True), ("unknown", None, True)):
+        gh = FakeGh(); gh.add(110, behind=3)
+        gh.prs[110]["files"] = files
+        seen = []
+        proc, q, log, _ = _proc(mq, d, "wf-" + name, gh, [110], updater=lambda repo, branch, wt, gh=gh, seen=seen: (seen.append(branch), gh.prs[110].update(merge="CLEAN", behind=0), "ok")[2])
+        assert proc.process(110) == "MERGED", name
+        assert (("update-branch", 110) in gh.calls) == (not via_ssh) and bool(seen) == via_ssh and ("SSH-UPDATE" in events(log)) == via_ssh, (name, gh.calls, events(log))
 
     # right after the label only the light run's checks are listed: the queue waits for the full-named backend check instead of judging the light ones
     gh = FakeGh(); gh.add(93)
