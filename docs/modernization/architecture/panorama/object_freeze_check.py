@@ -101,7 +101,7 @@ def fingerprint(nodes_doc):
     import hashlib
     srcs = sorted((nodes_doc.get("meta") or {}).get("sources", {}).values())
     h = hashlib.sha256()
-    for s in srcs + ["architecture/proposals/closeout/process-catalog.yaml"]:
+    for s in srcs + ["architecture/ssot/09-processes/catalog.yaml"]:
         f = ARCH.parent / s
         if f.exists():
             h.update(s.encode())

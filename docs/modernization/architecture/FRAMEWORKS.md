@@ -135,7 +135,7 @@
 | 概念 | 本项目怎么用 |
 |---|---|
 | Collaboration / Process（Event、Activity、Gateway、Sequence Flow、Lane；Participant 与 Message Flow） | 全部业务流程画描述级协作图，由骨架生成，随骨架做；描述级图是生成物，不进 SSOT。人工编排流程的可执行版随实现 PR 出，放 `platform.approval`，由骨架生成初稿后补执行属性，只编排人工步骤、超时与退回，不做业务计算（ADR-0007；ADR-0052 决定 3） |
-| 目录、骨架与实现登记 | 目录唯一手写编号、名称、类型、`stages`、编排 BC、组、状态；骨架唯一手写步骤与命令、判断、证据等设计，骨架与图只引用目录编号。`bpmn/processes.yaml` 仅为已建可执行流程的 `ProcessKey`、`.bpmn20.xml` 路径及用户任务指派登记，仍可由可执行文件生成，目录只引用它（ADR-0052 决定 1–2） |
+| 目录、骨架与实现登记 | 目录唯一手写编号、名称、类型、`stages`、编排 BC、组、状态；骨架唯一手写步骤与命令、判断、证据等设计，骨架与图只引用目录编号。已建可执行流程由目录条目的 `runtime_bpmn` 引用 `.bpmn20.xml`，`ProcessKey` 与用户任务指派以文件为准，不另登记（ADR-0052 决定 1–2；原 `bpmn/processes.yaml` 于 GOV-1023-ARC-01 并入目录 `ssot/09-processes/catalog.yaml`） |
 | 阶段与校验 | 流程与价值流阶段多对多（BIZBOK B4）；BPMN 2.0.2 无里程碑元素，阶段不画成中间事件。描述图重跑一致，实现 PR 核对可执行版流程编号与用户任务集合对齐骨架（ADR-0052 决定 3） |
 
 **流程画法与验收参照**（ADR-0052 决定 4，锁定采用范围）：

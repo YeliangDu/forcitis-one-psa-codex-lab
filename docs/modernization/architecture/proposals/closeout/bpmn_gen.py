@@ -16,7 +16,7 @@ from xml.sax.saxutils import escape, quoteattr
 import yaml
 
 HERE = Path(__file__).resolve().parent
-CATALOG = HERE / "process-catalog.yaml"
+CATALOG = Path(__file__).resolve().parents[1].parent / "ssot" / "09-processes" / "catalog.yaml"   # 流程目录正本
 STAKEHOLDERS = HERE.parent / "value-streams.v2.yaml"
 CHECKER = HERE / "bpmn_check.py"
 
@@ -960,7 +960,7 @@ def main(argv):
             continue
         c = cat.get(pid)
         if not c:
-            print(f"跳过 {pid}：不在 process-catalog.yaml")
+            print(f"跳过 {pid}：不在流程目录 ssot/09-processes/catalog.yaml")
             continue
         if c.get("type") != "business":
             continue
