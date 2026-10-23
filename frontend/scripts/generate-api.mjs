@@ -40,6 +40,7 @@ function operationName(method, path) {
 
 const IF_MATCH = 'If-Match';
 const IDEMPOTENCY_KEY = 'Idempotency-Key';
+const CONTENT_DISPOSITION = 'Content-Disposition';
 const PAGING_PARAMETERS_FORBIDDEN = new Set(['page', 'size', 'offset', 'pageSize', 'pageNo']);
 
 function requireSchema(name) {
@@ -71,7 +72,9 @@ function checkConventions(operation, where) {
   }
   for (const parameter of parameters) {
     if (parameter.in === 'query' && PAGING_PARAMETERS_FORBIDDEN.has(parameter.name)) failures.push(`uses the query parameter "${parameter.name}"; lists page by cursor + limit`);
-    if (parameter.in === 'header' && parameter.name !== IF_MATCH && parameter.name !== IDEMPOTENCY_KEY) failures.push(`declares the header parameter "${parameter.name}"; only ${IF_MATCH} and ${IDEMPOTENCY_KEY} are managed by the client`);
+    const carriesUpload = operation.requestBody?.content?.['application/octet-stream'] !== undefined;
+    const managed = parameter.name === IF_MATCH || parameter.name === IDEMPOTENCY_KEY || (carriesUpload && parameter.name === CONTENT_DISPOSITION);
+    if (parameter.in === 'header' && !managed) failures.push(`declares the header parameter "${parameter.name}"; only ${IF_MATCH}, ${IDEMPOTENCY_KEY} and, on a binary upload, ${CONTENT_DISPOSITION} are managed by the client`);
     if (parameter.in === 'header' && parameter.name === IF_MATCH && parameter.required !== true) failures.push('declares an optional If-Match; a versioned update must require it');
   }
   const hasCursor = parameters.some((parameter) => parameter.in === 'query' && parameter.name === 'cursor');

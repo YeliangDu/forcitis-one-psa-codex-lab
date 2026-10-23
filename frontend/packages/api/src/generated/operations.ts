@@ -111,6 +111,12 @@ export const postPlatformAuthorizationRequestsByRequestIdConfirm = (...[args, op
 export const postPlatformAuthorizationRequestsByRequestIdReject = (...[args, options]: Call<paths['/api/v1/platform/authorization-requests/{requestId}:reject']['post']>) =>
   request<Result<paths['/api/v1/platform/authorization-requests/{requestId}:reject']['post']>>('post', '/api/v1/platform/authorization-requests/{requestId}:reject', args, options, undefined, { idempotent: true });
 
+export const postPlatformFiles = (...[args, options]: Call<paths['/api/v1/platform/files']['post']>) =>
+  request<Result<paths['/api/v1/platform/files']['post']>>('post', '/api/v1/platform/files', args, options, responseSchemas.postPlatformFiles, { idempotent: true });
+
+export const getPlatformFilesByFileId = (...[args, options]: Call<paths['/api/v1/platform/files/{fileId}']['get']>) =>
+  request<Result<paths['/api/v1/platform/files/{fileId}']['get']>>('get', '/api/v1/platform/files/{fileId}', args, options, responseSchemas.getPlatformFilesByFileId);
+
 export const getPlatformLegacyNumbers = (...[args, options]: Call<paths['/api/v1/platform/legacy-numbers']['get']>) =>
   request<Result<paths['/api/v1/platform/legacy-numbers']['get']>>('get', '/api/v1/platform/legacy-numbers', args, options, responseSchemas.getPlatformLegacyNumbers);
 

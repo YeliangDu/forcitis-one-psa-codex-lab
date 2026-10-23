@@ -1,6 +1,6 @@
 # 由 panorama/scan_org_roles.py 生成，勿手改
 meta:
-  permissions: 27
+  permissions: 29
   system_roles: 7
 permissions:
 - name: TIMESHEET_SUBMIT
@@ -93,78 +93,90 @@ permissions:
   resource: source-reference
   action: approve
   source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:19
+- name: PLATFORM_FILE_FILE_CREATE
+  code: platform.file:file:create
+  module: platform.file
+  resource: file
+  action: create
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
+- name: PLATFORM_FILE_FILE_READ
+  code: platform.file:file:read
+  module: platform.file
+  resource: file
+  action: read
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
 - name: PLATFORM_AUDIT_ENTRY_READ
   code: platform.audit:audit-entry:read
   module: platform.audit
   resource: audit-entry
   action: read
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
 - name: PLATFORM_AUDIT_ENTRY_EXPORT
   code: platform.audit:audit-entry:export
   module: platform.audit
   resource: audit-entry
   action: export
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
 - name: PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ
   code: platform.audit:own-login-record:read
   module: platform.audit
   resource: own-login-record
   action: read
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
 - name: ORGANIZATION_WORKFORCE_ORG_UNIT_READ
   code: organization.workforce:org-unit:read
   module: organization.workforce
   resource: org-unit
   action: read
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
 - name: ORGANIZATION_WORKFORCE_SYNC_RUN_READ
   code: organization.workforce:sync-run:read
   module: organization.workforce
   resource: sync-run
   action: read
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
 - name: ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE
   code: organization.workforce:sync-run:execute
   module: organization.workforce
   resource: sync-run
   action: execute
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
 - name: ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE
   code: organization.workforce:separation-hold:approve
   module: organization.workforce
   resource: separation-hold
   action: approve
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
 - name: ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE
   code: organization.workforce:legal-entity:update
   module: organization.workforce
   resource: legal-entity
   action: update
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
 - name: ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE
   code: organization.workforce:legal-entity-attribution-correction:create
   module: organization.workforce
   resource: legal-entity-attribution-correction
   action: create
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
 - name: ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ
   code: organization.attendance:work-calendar:read
   module: organization.attendance
   resource: work-calendar
   action: read
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
 - name: ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE
   code: organization.attendance:work-calendar:update
   module: organization.attendance
   resource: work-calendar
   action: update
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:32
 - name: ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE
   code: organization.attendance:locked-day:update
   module: organization.attendance
   resource: locked-day
   action: update
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:33
 system_roles:
 - code: super_admin
   name: 超级管理员
@@ -186,6 +198,8 @@ system_roles:
   - platform.approval:task:approve
   - platform.approval:task:read
   - platform.audit:own-login-record:read
+  - platform.file:file:create
+  - platform.file:file:read
   source: migration
   source_location: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:526
   permission_sources:
@@ -194,6 +208,10 @@ system_roles:
     platform.approval:task:approve:
     - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:528
     platform.audit:own-login-record:read:
+    - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+    platform.file:file:create:
+    - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+    platform.file:file:read:
     - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
 - code: process_administrator
   name: 流程管理员
@@ -247,7 +265,7 @@ system_roles:
     platform.integration:source-reference:update:
     - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
     organization.workforce:legal-entity-attribution-correction:create:
-    - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:581
+    - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:583
 - code: business_admin
   name: 业务管理员
   kind: SYSTEM
@@ -285,7 +303,7 @@ system_roles:
     platform.audit:audit-entry:export:
     - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
     organization.workforce:separation-hold:approve:
-    - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:575
+    - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:577
 - code: administrator-mode
   name: 管理员模式
   source: code
