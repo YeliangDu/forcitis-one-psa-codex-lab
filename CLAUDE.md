@@ -18,3 +18,4 @@
 - 数值与配置：`policy.json`
 - 后端代码、DDL、迁移：`backend/CLAUDE.md`
 - 用语与决定页：`docs/modernization/glossary/CLAUDE.md`
+- 质量、验收、数据、用语等方法义务（原附 M）：`docs/modernization/METHODS.md`
