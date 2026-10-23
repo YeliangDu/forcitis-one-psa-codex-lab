@@ -68,7 +68,7 @@
 
 | 号 | 规则 | 负责 | 强制 | 守护索引 |
 |---|---|---|---|---|
-| TEAM-45 | PR 按 TEAM-53 报调度；opus 首轮结论到达后调度对照必改清单及复核材料核准，在 PR 留「调度批准入队 head <sha>」；批准评论只留痕与核 head，不作入队依据，自动入队永久关闭；one-merge 按调度明确批准的清单人工入队，每次 mq.py 入队记录执行会话名，调度每批边界对照批准清单审计，不符报用户，不建独立账号（intent 115815）；批准前核对：产出与报告一致、生成文件可重现、无凭据原值、已采纳 ADR 只改头部可变字段、已应用迁移未改（基线开放期按附 M3）、代码改动符合 RULE_REVIEWS.json 结论、登记文件有 one-data 签发行；head 读取失败或不一致即不入队，已有 MRG-01／07 以本条最新边界实施 | 作者；one-coordinator；one-merge | 半 | G、M、R；签发、入队审计等见待建索引 |
+| TEAM-45 | PR 按 TEAM-53 报调度；opus 首轮结论到达后调度对照必改清单及复核材料核准，在 PR 留「调度批准入队 head <sha>」；批准评论只留痕与核 head，不作入队依据，自动入队永久关闭；one-merge 按调度明确批准的清单人工入队，每次 mq.py 入队记录执行会话名，调度每批边界对照批准清单审计，不符报用户，不建独立账号（intent 115815）；批准前核对：产出与报告一致、生成文件可重现、无凭据原值、已采纳 ADR 只改头部可变字段、已应用迁移未改（基线开放期按附 M3）、代码改动符合 RULE_REVIEWS.json 结论、登记文件有 one-data 签发行；head 读取失败或不一致即不入队，已有 MRG-01／07 以本条最新边界实施；发帖侧门（GOV-1023-QUA-03）只防作者会话误发批准评论，同机共用账号下不防有意伪造 | 作者；one-coordinator；one-merge | 半 | G、M、R；签发、入队审计等见待建索引 |
 | TEAM-47 | 合并只由 one-merge 经 mq.py 队列执行，任何会话不得 `gh pr merge` 或网页合并；部署与阻塞相关随时插队；已复审、约 5 个文件内的小 PR 由调度定分组、one-merge 执行合批；one-merge 一轮超过 15 分钟未处理调度批准时，调度可自行 mq.py enqueue（只入队），事后告知 one-merge；该例外按 intent 113916 在 MRG-07 上线后退场，仍遵守 TEAM-45 的人工批准与入队审计，禁止恢复自动入队 | one-merge | 半 | Q；直合门待建 QUA-20 |
 | TEAM-48 | 代码 PR 合并前必过 backend verify、frontend verify、secret scan（非 light）；纯文档道按 TEAM-50；冲突与 CI 红由 one-merge 退回作者并报调度；超 48 小时无进展的 PR 调度追问，推进或关闭 | one-merge | 半 | Q、CI |
 | TEAM-50 | 快慢两道（队列语义）：分支保护 strict 的试行决定不变；code 道须通过完整三项 CI，docs 道同步 main 后通过轻检查；head 包含当前 main，或仅落后构建与测试均不读取的纯文档提交时可复用有效 CI，否则同步并重跑；无法判明则暂停处理；main 推送或每晚运行变红暂停两道，main 因并行合入变红一次，one-merge 报调度后恢复 strict、结束试行；实时保护设置另核，不以条文代替实况 | one-merge | 半 | Q |
@@ -92,6 +92,7 @@
 | TEAM-101 | 引入或升级依赖、改 CI 工作流与 runner，按 `SUPPLY_CHAIN.md` S1–S7 | 改动方 | 半 | CI（部分版本） |
 | TEAM-102 | 治理冻结：整改总验收完成起两周不新增规则与守护；事故或安全缺口经用户批准例外，在途整改卡照做（用户 2026-10-23，intent 104603）；待建守护 one-quality 按风险只排前 10，其余标复审或不做并写理由；实施遵守 TEAM-32、TEAM-33、TEAM-67，在途整改范围不能作为新增治理的授权 | one-coordinator | 无 |  |
 | TEAM-103 | 新守护或收紧既有守护合入前，先对全部在开 PR 跑一遍；会撞上的先修或在 PR 里给过渡期，不得让它首次在队首变红（intent 104603） | 改动方 | 无 | 预跑待建：MRG-10 |
+| TEAM-108 | SSOT 每类一份正本、一个归属会话（intent 2026-10-23-153705）：术语与 BC 名称 glossary/terms.yaml、bcs.yaml→one-glossary；架构、流程→one-architecture（正本路径以 GOV-1023-ARC-01 定稿为准）；业务规则 rules/、RULE_REVIEWS.json→one-glossary；数据 data/ 与数据访问登记表→one-data；决策 intent/ 记原话为唯一来源，ADR 只引 intent 号不抄原话→one-coordinator；团队规则只认本表，MEMORY.md、CLAUDE.md 只引 TEAM 号→one-coordinator；任务 tasks/ 格式与状态枚举由调度定、各会话写自己的卡；资源 phase1a/infra/RESOURCES.md→one-ops。proposals/ 不算权威，脚本不读。开发线（one-1a-par、one-1a-admin、one-platform-file）只写提议目录和自己的卡，改正本提给归属会话，正本 PR 由归属会话提交 | 全员 | 无 | 收编：GOV-1023-ARC-01 |
 
 ## 旧编号并入指向
 

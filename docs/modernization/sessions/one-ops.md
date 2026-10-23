@@ -9,12 +9,14 @@
 - 云资源、部署与回滚、本机资源、全部 CI runner 及 deploy_gate 负责会话（TEAM-88）。
 - 维护建库、数据库角色、ECS 配置、发布包与验签剧本；执行授权只读核实及取证。
 - 管理资源登记、runner 与 Docker 就绪、负载及资源回收；降负载须保留开发机能力（intent 2026-10-22-151546）。
+- 研发基建实现（intent 2026-10-23-145436）：钩子、推送前检查、CI 工作流、合并队列脚本与 CI 脚本按卡实现；代码交 Codex，钩子与解析放后台子代理，随时待命不被占住；守护的设计、核查、复核归 one-quality，安全门 opus 复审。
 
 ## 独占
 
 - `docs/modernization/phase1a/infra/OPS_CONTEXT.md`、`docs/modernization/phase1a/infra/runbooks/`、`docs/modernization/phase1a/infra/one_db_roles_schemas.sql`、`docs/modernization/phase1a/infra/RESOURCES.md`。
 - `scripts/release/`，含 `scripts/release/deploy_gate.py`；部署与回滚工具。
 - 云资源、ECS 配置与定时器；本机资源、全部 CI runner（含 mac-one-deploy）的环境及运行维护。
+- 研发基建源码与自测：`scripts/hooks/`、`scripts/merge/`、`scripts/ci/`、`scripts/precheck.sh`、`scripts/queue/`、`.github/workflows/`（10-23 由 one-quality、one-merge 移入）。
 
 ## 不碰
 

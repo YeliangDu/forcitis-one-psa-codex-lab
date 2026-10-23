@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""按来源原文生成命令编号；--check 只逐字节比较，不写文件。"""
+"""按来源原文生成命令目录（不入仓）；--check 只逐字节比较，不写文件。
+
+先运行 python3 docs/modernization/build_all.py，再运行 --check。
+command-ids.yaml 是持久登记，transitions.yaml 是转换正本，二者仍入仓。
+"""
 import argparse
 import hashlib
 import re
@@ -91,10 +95,11 @@ def registered_ids(root, seed=False):
     path, source = OUTPUT / 'command-ids.yaml', OUTPUT / 'commands.yaml'
     if (root / path).exists():
         return rows(read(root, path), 'ids')
-    if not (root / source).exists():
-        return []   # 初始化：两个文件都不存在
+    if seed and not (root / source).is_file():
+        raise ValueError(f'{source} 缺失，无法 --seed；请从 generated-docs 分支或已核实的备份恢复快照；'
+                         f'优先从 git 恢复 {path}，不要重建空登记')
     if not seed:
-        raise ValueError(f'{path} 缺失；退役记录与旧名会丢失。确需从 {source} 重新起底，用 --seed')
+        raise ValueError(f'{path} 缺失；请从 git 恢复，退役记录与旧名会丢失。确需从 {source} 重新起底，用 --seed')
     return [dict(id=row['id'], aggregate=row['aggregate'], name=row['name'], former_names=[], retired=False)
             for row in rows(read(root, source), 'commands')]
 
@@ -368,7 +373,8 @@ def generate(root=ROOT, check=False, seed=False):
     different = [path for path, content in outputs.items()
                  if not (root / path).is_file() or (root / path).read_bytes() != content.encode('utf-8')]
     if check and different:
-        raise ValueError('生成物不一致：' + '、'.join(map(str, different)))
+        raise ValueError('生成物不一致：' + '、'.join(map(str, different)) +
+                         '；请先运行 python3 docs/modernization/build_all.py 生成，再运行 --check')
     if not check:
         for path in different:
             (root / path).parent.mkdir(parents=True, exist_ok=True)
@@ -377,12 +383,34 @@ def generate(root=ROOT, check=False, seed=False):
           '、'.join(f'{section} {part["filled"]}/{part["total"]}' for section, part in stats.items()))
 
 
+def self_test():
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        for seed in (False, True):
+            try:
+                registered_ids(root, seed=seed)
+            except ValueError as error:
+                assert ('generated-docs' if seed else '从 git 恢复') in str(error)
+            else:
+                raise AssertionError('登记或起底快照缺失应失败')
+        path = root / OUTPUT / 'command-ids.yaml'
+        path.parent.mkdir(parents=True)
+        path.write_text('ids: []\n', encoding='utf-8')
+        assert registered_ids(root) == [], '有显式登记时不依赖生成快照'
+    print('scan_commands --self-test：通过（登记缺失、起底快照缺失失败；有登记无需生成快照）')
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
-    parser.add_argument('--seed', action='store_true', help='编号登记缺失时从 commands.yaml 重新起底')
+    parser.add_argument('--seed', action='store_true', help='编号登记缺失时从已恢复的 commands.yaml 快照重新起底（不恢复退役记录与旧名）')
+    parser.add_argument('--self-test', action='store_true')
     args = parser.parse_args(argv)
     try:
+        if args.self_test:
+            self_test()
+            return 0
         generate(check=args.check, seed=args.seed)
         return 0
     except (OSError, UnicodeError, ValueError, yaml.YAMLError) as error:

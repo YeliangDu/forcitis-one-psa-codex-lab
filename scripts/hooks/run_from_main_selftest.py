@@ -89,8 +89,17 @@ def main():
         put(os.path.join(hooks, "ignored.sh"), "#!/bin/bash\n")
         put(os.path.join(main_repo, ".gitignore"), "ignored.sh\n")
         git(main_repo, "add", ".gitignore"); git(main_repo, "commit", "-q", "-m", "ignore")
-        assert "未提交或未跟踪" in launch(stale, "probe.sh", "a", project=stale).stderr, "an ignored file in scripts/hooks counts"
-        os.remove(os.path.join(hooks, "ignored.sh"))
+        # an ignored file is no change (Finder drops .DS_Store into the directory again and again; counting it shut every session's Bash): main's copy runs, exit 0, no warning
+        put(os.path.join(hooks, ".DS_Store"), "x", 0o644)
+        for ignored in ("ignored.sh", ".DS_Store"):
+            r = launch(stale, "probe.sh", "a", project=stale, flags=("--strict",))
+            assert r.returncode == 0 and "MAIN" in r.stdout and not r.stderr, (ignored, r.returncode, r.stdout, r.stderr)
+            r = launch(main_repo, "probe.sh", "a", cwd=foreign, project=main_repo, flags=("--strict",))
+            assert r.returncode == 0 and "MAIN" in r.stdout and not r.stderr, "launcher in main, no workspace copy needed"
+            os.remove(os.path.join(hooks, ignored))
+            if ignored == "ignored.sh":
+                put(os.path.join(hooks, ".DS_Store"), "x", 0o644)
+        assert not os.path.exists(os.path.join(hooks, "ignored.sh")) and not os.path.exists(os.path.join(hooks, ".DS_Store"))
         git(main_repo, "update-index", "--assume-unchanged", "scripts/hooks/probe.sh")
         put(os.path.join(hooks, "probe.sh"), PROBE.replace("{tag}", "HIDDEN"))
         r = launch(stale, "probe.sh", "a", project=stale)
@@ -101,9 +110,10 @@ def main():
         put(os.path.join(hooks, "probe.sh"), PROBE.replace("{tag}", "DIRTY"))
         r = launch(main_repo, "probe.sh", "a", cwd=stale, project=main_repo)
         assert "STALE" in r.stdout and "DIRTY" not in r.stdout and "会话自己的工作区" in r.stderr, "falls back to the session's worktree, not to main's dirty copy"
-        r = launch(main_repo, "probe.sh", "a", cwd=foreign, project=main_repo, flags=("--strict",))
-        assert r.returncode == 2 and "DIRTY" not in r.stdout and "FOREIGN" not in r.stdout and "不执行钩子" in r.stderr, "another repository's working directory is no fallback: fail"
-        assert launch(main_repo, "probe.sh", "a", cwd=foreign, project=main_repo).returncode == 1
+        # no workspace copy to fall back to (another repository's working directory is no fallback): main's copy runs with a warning, never exit 2 (that shut every session's Bash at once)
+        for flags in (("--strict",), ()):
+            r = launch(main_repo, "probe.sh", "a", cwd=foreign, project=main_repo, flags=flags)
+            assert r.returncode == 0 and "DIRTY" in r.stdout and "FOREIGN" not in r.stdout and "仍运行主检出的副本" in r.stderr, (flags, r.returncode, r.stdout, r.stderr)
         git(main_repo, "checkout", "--", "scripts/hooks/probe.sh")
         git(main_repo, "checkout", "-q", "-b", "other2")
         r = launch(main_repo, "probe.sh", "a", cwd=stale, project=main_repo)
