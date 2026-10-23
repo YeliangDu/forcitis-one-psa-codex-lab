@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.EmployeeId;
@@ -26,7 +27,6 @@ import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.EscalationTarget;
 import com.forcitis.one.platform.approval.api.NodeKey;
 import com.forcitis.one.platform.approval.api.NodeName;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.ProcessName;
 import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
@@ -78,7 +78,7 @@ class ApprovalTaskStateMachineTest {
     }
 
     static ApprovalRequest requestWith(ApprovalTask task) {
-        return ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1, INSTANCE,
+        return ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), TimesheetApprovalProcess.KEY, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1, INSTANCE,
                 ApprovalStatus.RUNNING, null, new ApprovalSummary("summary"), List.of(task), 0, 0);
     }
 
@@ -210,7 +210,7 @@ class ApprovalTaskStateMachineTest {
         assertThat(advisory.task(TASK).approvedHash()).isEmpty();
         assertThat(((TaskHandled) advisory.drainEvents(ENVELOPES).getFirst()).effect()).isEqualTo(TaskEffect.ADVISORY);
 
-        ApprovalRequest request = ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
+        ApprovalRequest request = ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), TimesheetApprovalProcess.KEY, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
                 new ApprovalSummary("summary"), UUID.randomUUID(), NOW);
         request.drainEvents(ENVELOPES);
         TaskAssignment assignment = new TaskAssignment(com.forcitis.one.TestApprovalIds.task("t-3"), INSTANCE, NODE, new NodeName("Review"),
@@ -229,7 +229,7 @@ class ApprovalTaskStateMachineTest {
     @Test
     @DisplayName("RULE-295 M-4 every task event carries the request's running event number; opening a round and closing a task are events too")
     void eventsCarryTheRequestsSequence() {
-        ApprovalRequest request = ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
+        ApprovalRequest request = ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), TimesheetApprovalProcess.KEY, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
                 new ApprovalSummary("summary"), UUID.randomUUID(), NOW);
         TaskAssignment first = new TaskAssignment(TASK, INSTANCE, NODE, new NodeName("项目经理审批"), new ProcessName("工时审批"),
                 List.of(HOLDER, OTHER), Optional.of(PLAN));

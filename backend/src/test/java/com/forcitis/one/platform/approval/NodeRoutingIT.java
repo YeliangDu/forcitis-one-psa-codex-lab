@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -12,7 +13,6 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
 import com.forcitis.one.platform.approval.application.TaskDecision;
@@ -64,7 +64,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("M-10 D-1a-100 the routing flags the process reacts to are the ones its nodes declare")
     void theProcessDeclaresItsFlags() {
-        assertThat(engine.routingFlagsOf(ProcessKey.COST_TIMESHEET_APPROVAL)).containsExactlyInAnyOrder("projectHours", "preSalesHours",
+        assertThat(engine.routingFlagsOf(TimesheetApprovalProcess.KEY)).containsExactlyInAnyOrder("projectHours", "preSalesHours",
                 "overheadHours");
     }
 

@@ -93,8 +93,8 @@ class ApplicationIntegrationTest {
         postgres.register(registry);
     }
 
-    /** HTTP header names are fixed by RFC 9110 and the Idempotency-Key convention; they are not JSON names. */
-    static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key");
+    /** HTTP header names are fixed by RFC 9110/6266 and the Idempotency-Key convention; they are not JSON names. */
+    static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key", "Content-Disposition");
 
     static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
 
@@ -387,6 +387,9 @@ class ApplicationIntegrationTest {
         }
         if (type == String.class) {
             return "x";
+        }
+        if (type == com.forcitis.one.platform.approval.api.ProcessKey.class) {
+            return com.forcitis.one.platform.approval.api.ProcessKey.of("cost_timesheet_approval");
         }
         if (type == java.util.UUID.class) {
             return java.util.UUID.fromString("0198a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b");

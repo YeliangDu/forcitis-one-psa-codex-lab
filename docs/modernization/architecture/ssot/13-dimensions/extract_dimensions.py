@@ -150,8 +150,8 @@ def by_versioned_master_tables(root):
                        'missing_fields': [key for key in ('writers', 'readers') if key not in row],
                        'effective_columns': effective_columns(root, name),
                        'source': facts.location(REGISTRY, origins[name])})
-    if len(result) != 7:
-        raise ValueError(f'版本化主数据表应有 7 张，实际 {len(result)}')
+    if len(result) != 8:
+        raise ValueError(f'版本化主数据表应有 8 张，实际 {len(result)}')
     return result
 
 
