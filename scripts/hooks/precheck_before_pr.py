@@ -24,13 +24,41 @@ def is_pr_create(command):
     return bool(PR_CREATE.search(plain(command)))
 
 
-def verdict(output, returncode, action="提 PR", retry="gh pr create"):
+EXCERPT_LINES = 15
+LAST_LOG = "forcitis-precheck-last.log"
+
+
+def excerpt(output):
+    """The FAIL lines with 2 lines around each, then the SUMMARY line, at most EXCERPT_LINES lines; with no FAIL line the last 8 lines (GOV-1023-QUA-06: the old 40-line tail cost ~3.8k characters a refusal)."""
+    lines = output.splitlines()
+    keep = sorted({j for i, line in enumerate(lines) if line.startswith("FAIL") for j in range(max(0, i - 2), min(len(lines), i + 3))})
+    summary = [i for i, line in enumerate(lines) if line.startswith("SUMMARY:")][-1:]
+    picked = [i for i in keep if i not in summary][:EXCERPT_LINES - len(summary)] + summary if keep else list(range(max(0, len(lines) - 8), len(lines)))
+    return "\n".join(lines[i] for i in picked[:EXCERPT_LINES])
+
+
+def save_log(root, output):
+    """Writes the full output under the git directory and returns its path, or None when that is not possible."""
+    gitdir = git_out(root, "rev-parse", "--absolute-git-dir") if root else None
+    if not gitdir:
+        return None
+    try:
+        path = os.path.join(gitdir, LAST_LOG)
+        with open(path, "w", encoding="utf-8") as log:
+            log.write(output)
+        return path
+    except OSError:
+        return None
+
+
+def verdict(output, returncode, action="提 PR", retry="gh pr create", root=None):
     last = [line for line in output.splitlines() if line.startswith("SUMMARY:")]
     if returncode == 0 and last and last[-1].endswith("— ready"):
         return None
-    tail = "\n".join(output.splitlines()[-40:])
+    log = save_log(root, output)
     ask = "\n前端依赖未装：先用 pnpm install --frozen-lockfile --offline（只用本机缓存、不下载）；缓存缺包而失败时，再问用户是否联网安装。" if "前端依赖未安装" in output else ""
-    return f"precheck.sh 未全过（退出码 {returncode}），不能{action}。先修好或按提示问用户，再重新 {retry}：{ask}\n{tail}"
+    where = f"\n完整日志：{log}" if log else ""
+    return f"precheck.sh 未全过（退出码 {returncode}），不能{action}。先修好或按提示问用户，再重新 {retry}：{ask}\n{excerpt(output)}{where}"
 
 
 def repository_of(cwd):
@@ -94,7 +122,7 @@ def main():
     except subprocess.TimeoutExpired:
         print(f"precheck.sh 超过 {TIMEOUT_SECONDS} 秒未结束，不能提 PR", file=sys.stderr)
         return 2
-    reason = verdict(run.stdout + run.stderr, run.returncode)
+    reason = verdict(run.stdout + run.stderr, run.returncode, root=root)
     if reason:
         print(reason, file=sys.stderr)
         return 2
@@ -111,6 +139,11 @@ def self_test():
     assert verdict("SUMMARY: 6 PASS, 1 FAIL, 7 SKIP (base origin/main) — not ready\n", 1)
     assert verdict("SUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 1), "退出码非 0 即拒绝"
     assert verdict("没有 SUMMARY 行\n", 0), "没有 SUMMARY 行即拒绝"
+    noisy = "\n".join(f"ok line {i}" for i in range(200)) + "\nFAIL gate-x broke\ndetail 1\n" + "\n".join(f"more {i}" for i in range(100)) + "\nSUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    shown = verdict(noisy, 1)
+    assert "FAIL gate-x broke" in shown and "SUMMARY:" in shown and "ok line 100" not in shown and shown.count("\n") <= 18, "only the failure and its surroundings, at most 15 lines"
+    many = "\n".join(f"FAIL g{i}\nd{i}" for i in range(40)) + "\nSUMMARY: 0 PASS, 40 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    assert verdict(many, 1).count("\n") <= 18 and "SUMMARY:" in verdict(many, 1), "capped, summary kept"
     assert "pnpm install --frozen-lockfile --offline" in verdict("FAIL frontend verify 前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline\nSUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1)
     with tempfile.TemporaryDirectory() as root:
         def git(*args):

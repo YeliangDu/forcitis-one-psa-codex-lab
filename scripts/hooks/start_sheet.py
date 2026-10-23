@@ -149,9 +149,14 @@ def part_b(cards, limit=B_LIMIT, with_paths=True):
 
 
 def goals_for_node(root, name):
-    """Goal and completion criteria of the open cards, about 0.5 KB, for the handover-node instruction."""
+    """Card numbers and titles of the open cards (one line each, at most 8) for the handover-node instruction; the goals stay in the cards (GOV-1023-QUA-06)."""
     cards = open_cards(root, name)
-    return "当前任务卡的目标与完成标准（交接要写明做到哪）：\n" + part_b(cards, 520, with_paths=False) if cards else ""
+    if not cards:
+        return ""
+    lines = [f"- {fields.get('任务号', os.path.basename(path)[:-3])} {fields.get('任务名', '')}".rstrip() for path, fields, _ in cards[:8]]
+    if len(cards) > 8:
+        lines.append(f"（另有 {len(cards) - 8} 张在途卡）")
+    return "在途任务卡（交接要写明做到哪，目标见卡）：\n" + "\n".join(lines)
 
 
 def card_date(root, path):
@@ -314,7 +319,7 @@ def self_test():
         assert "T-2" in text and "卡不完整（缺完成标准），报调度" in text and "不该出现" not in text and "别人的" not in text
         assert "无在途任务" not in text
         node = goals_for_node(root, "one-x")
-        assert "做 A。" in node and "tasks/" not in node and size(node) <= 700, node
+        assert "T-1" in node and "做 A。" not in node and "tasks/" not in node and size(node) <= 300, node
         assert goals_for_node(root, "one-nobody") == ""
         # 3. intents: this session by name, by bc keyword, too old, unrelated; at most 8 lines
         write(f"{INTENTS}/2026-10-21-100000-one-x-新决定.md", "x")
