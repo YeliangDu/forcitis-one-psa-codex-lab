@@ -68,7 +68,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py; commit_msg_gate.py takes session names from both folders
     "docs/modernization/sessions/",
     "docs/modernization/roles/",
-    # start_sheet.py 的开工单按需读列表里点名它；handoff_selftest.py 的夹具写同名路径
+    # start_sheet.py 的开工单按需读列表里点名它
     "docs/modernization/SESSION_PLAYBOOK.md",
     "docs/modernization/check_legacy_name.py",
     # task register: check_tasks.py runs in build_all.py; session_daily.py reads origin/main's tasks/

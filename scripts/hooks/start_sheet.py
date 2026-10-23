@@ -9,12 +9,13 @@ D decisions  intent fragments of the last 7 days that name this session or its b
 Missing things are said out loud (no card, incomplete card, no handoff source), never skipped; a part that fails says so and the others stay. Context documents are listed as paths only.
 Usage: start_sheet.py <repo-root> [session] [--snapshot=<path>]  |  start_sheet.py --check <repo-root>  (every profile fits)  |  start_sheet.py --self-test
        start_sheet.py --hook   SessionStart hook (GOV-1023-FV2 O6, replaces handoff_snapshot.py --start): the repo root is the toplevel of the
-                               payload's cwd on stdin; any failure prints one warning line instead of the sheet and exits 0.
+                               payload's cwd on stdin; any failure, or HOOK_DEADLINE passing, prints one warning line instead of the sheet and exits 0.
 """
 import datetime
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -26,6 +27,7 @@ SHEET_LIMIT = 8192
 A_LIMIT, B_LIMIT, C_LIMIT, D_LIMIT = 1500, 2500, 1000, 1000
 GOAL_LIMIT = 520
 INTENT_DAYS, INTENT_MAX = 7, 8
+HOOK_DEADLINE = 10  # seconds; the SessionStart mount kills the hook at 15 and a killed hook prints nothing
 OPEN_STATES = ("已派", "进行中", "阻塞")
 A_SECTIONS = ("职责", "独占", "不碰", "输入", "输出", "权限边界")
 TASKS = "docs/modernization/tasks"
@@ -431,6 +433,11 @@ if __name__ == "__main__":
     if args == ["--self-test"]:
         self_test()
     elif args == ["--hook"]:
+        def overdue(*_):
+            raise TimeoutError
+
+        signal.signal(signal.SIGALRM, overdue)
+        signal.alarm(HOOK_DEADLINE)
         try:
             cwd = json.load(sys.stdin).get("cwd") or os.getcwd()
             root = subprocess.run(["git", "-C", cwd, "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=5, check=True).stdout.strip()

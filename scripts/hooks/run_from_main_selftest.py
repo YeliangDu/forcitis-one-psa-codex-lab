@@ -173,6 +173,12 @@ def main():
         assert [g["matcher"] for g in settings["hooks"]["PreToolUse"]] == ["Bash"], "PreToolUse hangs only the production-write gate, on Bash"
         assert all("--stdout-warn" in flags for n in ("git_ceiling_env.sh", "start_sheet.py") for _, flags in seen[n]), "SessionStart output reaches the model"
         assert sorted(seen) == ["gates/pre_tool_dispatch.py", "git_ceiling_env.sh", "start_sheet.py"], sorted(seen)
+        # the launcher runs only executable targets, so a 644 target means that hook never runs once merged (O6 review item 1: start_sheet.py had no exec bit)
+        root = os.path.normpath(os.path.join(HERE, "../.."))
+        for name in seen:
+            rel = "scripts/" + (name if name.startswith("gates/") else "hooks/" + name)
+            mode = git(root, "ls-files", "-s", "--", rel).split()[:1]
+            assert mode == ["100755"], (rel, mode)
         for plugin in ("kotlin-lsp", "claude-code-setup", "code-modernization"):
             assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
     print("run_from_main self-test: ok")
