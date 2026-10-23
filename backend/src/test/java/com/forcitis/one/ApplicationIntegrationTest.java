@@ -93,8 +93,8 @@ class ApplicationIntegrationTest {
         postgres.register(registry);
     }
 
-    /** HTTP header names are fixed by RFC 9110 and the Idempotency-Key convention; they are not JSON names. */
-    static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key");
+    /** HTTP header names are fixed by RFC 9110/6266 and the Idempotency-Key convention; they are not JSON names. */
+    static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key", "Content-Disposition");
 
     static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
 

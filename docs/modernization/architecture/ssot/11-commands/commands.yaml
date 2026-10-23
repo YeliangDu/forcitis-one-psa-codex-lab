@@ -9,7 +9,7 @@ meta:
   both: 592
   only_commands: 21
   only_matrix: 11
-  built_count: 85
+  built_count: 86
   missing_owner_bc: 6
   same_name_groups: 6
   same_name_commands: 35
@@ -18127,6 +18127,9 @@ built:
 - class: TransferTask
   module: platform.approval
   aggregate: platform.approval/ApprovalRequest
+- class: ExpireUnboundFiles
+  module: platform.file
+  aggregate: platform.file/StoredFile
 - class: ApplyConfirmedAuthorization
   module: platform.identity
   aggregate: platform.identity/AuthorizationRequest

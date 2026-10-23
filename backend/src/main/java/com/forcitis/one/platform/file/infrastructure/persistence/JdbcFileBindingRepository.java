@@ -44,10 +44,11 @@ class JdbcFileBindingRepository implements FileBindingRepository {
 
     @Override
     public Optional<BindingTarget> lockForBinding(FileId file) {
-        return jdbc.sql("""
+        // Lock first, ask about bindings in a second statement: a binding committed while this call waited for the lock is invisible to the
+        // first statement's snapshot (see JdbcStoredFileRepository.lockForExpiry).
+        Optional<BindingTarget> locked = jdbc.sql("""
                         select f.stored_file_id, f.file_status, f.uploader_kind, f.uploader_user_id, f.uploader_link_id, f.uploader_module_code,
-                               f.previous_file_id, f.object_key, f.content_hash, f.byte_count,
-                               exists (select 1 from platform_file.file_bindings b where b.stored_file_id = f.stored_file_id) as bound
+                               f.previous_file_id, f.object_key, f.content_hash, f.byte_count
                           from platform_file.stored_files f
                          where f.stored_file_id = :id
                            for no key update
@@ -55,8 +56,15 @@ class JdbcFileBindingRepository implements FileBindingRepository {
                 .param("id", file.value())
                 .query((rs, n) -> new BindingTarget(new FileId(rs.getObject("stored_file_id", UUID.class)), FileStatus.valueOf(rs.getString("file_status")),
                         subject(rs, "uploader"), Optional.ofNullable(rs.getObject("previous_file_id", UUID.class)).map(FileId::new),
-                        rs.getString("object_key"), new ContentHash(rs.getString("content_hash")), rs.getLong("byte_count"), rs.getBoolean("bound")))
+                        rs.getString("object_key"), new ContentHash(rs.getString("content_hash")), rs.getLong("byte_count"), false))
                 .optional();
+        if (locked.isEmpty()) {
+            return locked;
+        }
+        boolean bound = jdbc.sql("select exists (select 1 from platform_file.file_bindings where stored_file_id = :id)")
+                .param("id", file.value()).query(Boolean.class).single();
+        BindingTarget t = locked.get();
+        return Optional.of(new BindingTarget(t.id(), t.status(), t.uploader(), t.previous(), t.objectKey(), t.contentHash(), t.size(), bound));
     }
 
     @Override
