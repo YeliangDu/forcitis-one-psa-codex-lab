@@ -352,3 +352,21 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 ### 第八次交接补记（清空前新到的三条指令，优先级高于上面「下一步」第 1 项）
 - **GOV-1023-QUA-06 加急（排在 #653/#654 返工之前，自写，opus 首轮；卡在 `claude/one-coordinator-two-lanes` @1e482dd53，正文推送后可读，先按此开工）**：①`.claude/settings.json` 钩子统一从主检出的 scripts/hooks 运行（各工作区钩子落后：one-data 落后 553、one-ops 落后 381 次提交，均无 start_sheet.py，开工单 24 小时失败 11 次）；②推送门被拦只回 FAIL 行与日志路径（现回末 40 行约 3.8k 字、日 59 次）；③交接节点提示只列卡号；④context_handoff 按会话读阈值（调度 50/60）；⑤同一 PR 给仓库 `.claude/settings.json` 加项目级 `enabledPlugins`：kotlin-lsp@claude-plugins-official、claude-code-setup@claude-plugins-official、code-modernization@claude-plugins-official 设 false（mattpocock-skills、code-simplifier 保留），PR 写明需各会话重启生效。
 - **QUA-21 收窄（用户 10-23）**：TEAM-41 的 800 行／15 文件改为复审参考线，不做硬拦截；QUA-21 只在 PR 检查里提示超线并要求 PR 写理由，不阻断；Codex 在做的那份按此收窄。TEAM-72 重复跑三遍不变。
+
+## 交接（2026-10-23 午后，节点：#653 二轮必改已推送；第九次清空接续）
+
+### 现状
+- 调度 10-23 整改总验收 GOV-1023-COO-01（清单 `~/.modernize/psa/coordinator/team-audit/acceptance-1023.md`，54 项）：顺序 QUA-06 → #653/#654＋QUA-08 → QUA-04 → QUA-07 → QUA-02 → 其余；代码类交 Codex，钩子与解析自写。QUA-21 改「撤硬拦只提示」，QUA-12 不禁整节上下文文档。1023 的 QUA-06～10 卡在 `origin/claude/one-coordinator-two-lanes`，随 train-71 进 main。
+- **QUA-06 已开 PR #659**（分支 `claude/one-quality-hooks-main-checkout`，head fb56502d2）：run_from_main.sh 启动器＋settings 全部钩子改走它、handoff_snapshot 子调用用自身目录、verdict ≤15 行＋完整日志路径、节点提示只列卡号标题、调度 50/60；自测与破坏验证齐，等调度安排 opus 首轮。
+- **#653 二轮 6 项必改已改并推送**（head 80bf77e25）：只读通道删 b5_legacy_run.py／c14_run.py；可信脚本认 origin/main 内容；`./x` 直接执行与行级兜底；git 本地子命令白名单；ssh -o 白名单；GNU 长选项任意前缀。8 处破坏验证均变红。**待办：交 sonnet 逐条复核（对照 `~/.modernize/psa/coordinator/reviews/pr653-opus-2.md`），结论贴 PR，报调度 head；PR 描述补「通道整支只读」依据，并请 one-ops 核剩余三支。**
+- #654 等新 #653 后推（调度语）。
+
+### 下一步（顺序）
+1. sonnet 复核 #653 → 贴 PR → 报 head。
+2. QUA-08（command_words 缺口统一修，与 #653/#654 的共享解析一并）→ #654 返工 → QUA-04 → QUA-07 → QUA-02 → 其余（QUA-09、10 交 Codex）。
+3. 本交接文档的提交号报 one-merge。
+
+### 坑
+- 唯一可写工作区 `xin-61164f`：先 `git branch --show-current`；PR 分支轮流 checkout（#653 `claude/one-quality-gate-prod-write`、#659 `claude/one-quality-hooks-main-checkout`）。
+- macOS sed -i 需 `''`；改文件用 Edit／python 脚本。拆源码里的真实特征字面量用相邻字符串拼接（`"a" "b"`）。
+- 守护自测里「相对常量断言」会同义反复（EXCERPT_LINES+3），写死数字。
