@@ -26,7 +26,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- ===== STEP 2 schema 冲突检查（新库内，应为 0 行）=====
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering', 'platform_file',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration');
 
 -- ===== STEP 3 角色 =====
 CREATE ROLE one_prod_owner NOLOGIN;
@@ -34,6 +34,10 @@ CREATE ROLE one_prod_owner NOLOGIN;
 GRANT one_prod_owner TO CURRENT_USER WITH INHERIT FALSE, SET TRUE;
 -- 迁移脚本含 CREATE SCHEMA IF NOT EXISTS，PG 在判断 IF NOT EXISTS 之前先检查库级 CREATE 权限
 GRANT CREATE ON DATABASE forcitis_one_prod TO one_prod_owner;
+
+-- 迁入写入角色（ADR-0036、MIGRATION_WRITER_ROLE_DESIGN）：名字必须由属主名把 _owner 换成 _history_loader 得出（触发器精确比对）；
+-- 与属主同批建好，免得 PG 16 起持 CREATEROLE 者抢建同名角色。NOLOGIN、不是属主成员、无 CREATEROLE/CREATEDB，表权限到迁入窗口再授（SELECT、INSERT，禁 UPDATE/DELETE）
+CREATE ROLE one_prod_history_loader NOLOGIN;
 
 CREATE ROLE one_prod_migrator LOGIN INHERIT IN ROLE one_prod_owner CONNECTION LIMIT 2;
 ALTER ROLE one_prod_migrator SET search_path = one_migration, pg_catalog;
@@ -71,6 +75,7 @@ CREATE SCHEMA platform_file          AUTHORIZATION one_prod_owner;  -- 文件服
 CREATE SCHEMA platform_scheduling     AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_workforce  AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_attendance AUTHORIZATION one_prod_owner;
+CREATE SCHEMA organization_administration AUTHORIZATION one_prod_owner;
 CREATE SCHEMA cost_timesheet          AUTHORIZATION one_prod_owner;
 CREATE SCHEMA platform_idempotency    AUTHORIZATION one_prod_owner;
 
@@ -79,7 +84,7 @@ DO $$
 DECLARE s text;
 BEGIN
   FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering', 'platform_file',
-                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet']
+                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_administration', 'platform_idempotency', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_prod_app, one_prod_readonly', s);
     EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_prod_app', s);
@@ -94,7 +99,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT 
 ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT SELECT ON TABLES TO one_prod_readonly;
 
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
-                        platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration
+                        platform_scheduling, organization_workforce, organization_attendance, organization_administration, platform_idempotency, cost_timesheet, one_migration
   FROM one_prod_app, one_prod_readonly, one_prod_audit_maintainer;
 
 -- 下一步：c9_prod_db_verify.sql；每次迁移之后执行 c9_prod_db_after_migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_prod_migrator、one_prod_app、one_prod_readonly、one_prod_audit_maintainer 设口令（≥24 位随机）。

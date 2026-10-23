@@ -40,6 +40,7 @@
 
 - `docs/modernization/phase1a/HANDOFF_one-1a-next-4.md`（接手依据）
 - `docs/modernization/phase1a/HANDOFF_one-1a-next-5.md`（本会话产出与后续）
+- 交接源: docs/modernization/phase1a/HANDOFF_one-1a-next-5.md#交接
 
 ## 交接条件
 
@@ -50,7 +51,3 @@
 - 须问用户（经待决定收件箱）：建账号、起非登记镜像的容器、对外调用、ADR 变更。
 - 改断言或删测试须写理由并在 PR 单列；验收测试只由测试代理按 `Acceptance-Ruling` 改。
 - 工作守则：卡与已采纳 ADR 字面不一致时，起草阶段交 one-architecture 判定；交付前用错题本回测。
-
-## 当前状态
-
-2026-10-22 06:50+02:00 数据修复批与单据类型登记线进行中，详见 `phase1a/HANDOFF_one-1a-next-5.md` 第 5 节。已合入：REG-1 #507、编号版本来源 #524、错误码两项 #528。在途：#562（REG-2 ProcessKey 去入参，补修 D1 后待 sonnet 复核与 CI）、#546（P0 验收测试 13 例，已批准入队待 CI）。下一步：RULE-412 架构守护 → REG-3（审计对象类别登记表，带 STORED_FILE）→ REG-4（ProcessKey 值对象，one-architecture 裁定，待任务号与排序）→ 行政事务单据类型登记卡（IMP-1021-ADM-02 清单）；IMP-1021-NX5-02 前端卡已发 one-quality 评测，不归本会话做。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。

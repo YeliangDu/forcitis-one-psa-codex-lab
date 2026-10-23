@@ -20,7 +20,7 @@
 SELECT rolname FROM pg_roles WHERE rolname LIKE 'one\_dev\_%';
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering', 'platform_file',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration');
 -- it_portal 现有对象一览（供核对，不修改）
 SELECT nspname, pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname NOT LIKE 'pg\_%' AND nspname <> 'information_schema';
 
@@ -33,6 +33,10 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 属主角色：拥有全部 FORCITIS one schema 与对象，不能登录
 CREATE ROLE one_dev_owner NOLOGIN;
+
+-- 迁入写入角色（ADR-0036、MIGRATION_WRITER_ROLE_DESIGN）：名字必须由属主名把 _owner 换成 _history_loader 得出（触发器精确比对）；
+-- 与属主同批建好，免得 PG 16 起持 CREATEROLE 者抢建同名角色。NOLOGIN、不是属主成员、无 CREATEROLE/CREATEDB，表权限到迁入窗口再授（SELECT、INSERT，禁 UPDATE/DELETE）
+CREATE ROLE one_dev_history_loader NOLOGIN;
 
 -- 迁移角色：部署时运行 Flyway（及引擎安装 / 升级时一次性运行 Flowable 建表），继承 one_dev_owner
 CREATE ROLE one_dev_migrator LOGIN INHERIT IN ROLE one_dev_owner CONNECTION LIMIT 2;
@@ -68,6 +72,7 @@ CREATE SCHEMA platform_file          AUTHORIZATION one_dev_owner;  -- 文件服�
 CREATE SCHEMA platform_scheduling    AUTHORIZATION one_dev_owner;  -- ShedLock
 CREATE SCHEMA organization_workforce AUTHORIZATION one_dev_owner;  -- 组织快照（过渡态，来源可替换）
 CREATE SCHEMA organization_attendance AUTHORIZATION one_dev_owner;  -- 工作日历（考勤与休假 BC，1a 只含工作日历）
+CREATE SCHEMA organization_administration AUTHORIZATION one_dev_owner;
 CREATE SCHEMA cost_timesheet         AUTHORIZATION one_dev_owner;  -- 工时单与幂等记录（cost.timesheet 是 1a 正式模块）
 -- 注：delivery.execution（delivery_execution）已删除（D-1a-127），不建 schema
 CREATE SCHEMA platform_idempotency AUTHORIZATION one_dev_owner;  -- 幂等键：写请求重复发送时的应答存储（24 小时）
@@ -79,7 +84,7 @@ DO $$
 DECLARE s text;
 BEGIN
   FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering', 'platform_file',
-                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'platform_idempotency', 'cost_timesheet']
+                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_administration', 'platform_idempotency', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_dev_app, one_dev_readonly', s);
     EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_dev_app', s);
@@ -96,7 +101,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT S
 
 -- 运行角色不得建对象
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
-                        platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration FROM one_dev_app, one_dev_readonly;
+                        platform_scheduling, organization_workforce, organization_attendance, organization_administration, platform_idempotency, cost_timesheet, one_migration FROM one_dev_app, one_dev_readonly;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §4 Flowable 引擎表（ACT_*）
@@ -133,6 +138,10 @@ REVOKE DELETE, TRUNCATE ON platform_file.stored_files, platform_file.stored_file
     platform_file.preservation_category_versions, platform_file.false_positive_judgments, platform_file.quarantine_read_requests FROM one_dev_app;
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_file.current_file_preservations FROM one_dev_app;
 
+-- 行政事务卡 A（R6）：配置集只推进乐观锁，版本头允许确认与撤回，条目与状态转换只追加。
+REVOKE INSERT, DELETE, TRUNCATE ON organization_administration.config_sets FROM one_dev_app;
+REVOKE DELETE, TRUNCATE ON organization_administration.config_set_versions FROM one_dev_app;
+REVOKE UPDATE, DELETE, TRUNCATE ON organization_administration.employee_activity_type_items, organization_administration.state_transitions FROM one_dev_app;
 -- 工作日历（IMP-1021-PAR-02，one-data 签发更正十）：根表与版本日期表只追加，运行角色只留 SELECT、INSERT；
 -- 版本表运行角色只留 SELECT、INSERT、UPDATE（UPDATE 用于确认、撤回，关闭上一版本由触发器完成），不持有 DELETE 与 TRUNCATE。
 REVOKE UPDATE, DELETE, TRUNCATE ON organization_attendance.work_calendars, organization_attendance.work_calendar_version_days FROM one_dev_app;
@@ -148,5 +157,5 @@ GRANT EXECUTE ON FUNCTION platform_audit.drop_archived_audit_entry_partition(dat
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
---             platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration CASCADE;
--- DROP ROLE one_dev_audit_maintainer; DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_owner;
+--             platform_scheduling, organization_workforce, organization_attendance, organization_administration, platform_idempotency, cost_timesheet, one_migration CASCADE;
+-- DROP ROLE one_dev_audit_maintainer; DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_history_loader; DROP ROLE one_dev_owner;

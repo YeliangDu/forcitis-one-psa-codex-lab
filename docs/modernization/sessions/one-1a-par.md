@@ -44,10 +44,9 @@
 
 ## 上下文文档
 
-- `docs/modernization/COORDINATOR_LEDGER.md`（当前派工与暂停项；冲突处以本日决定原文核对）
-- `docs/modernization/phase1a/NEXT_BATCH_PLAN.md`（历史卡与设计依据；须结合当前派工重判适用性，下一步卡仍从调度取得）
 - `docs/modernization/phase1a/HANDOFF_one-1a-par.md`（本会话交接：#509 收尾步骤、F2/接口清单/日历的顺序与要点、待办）
 - `docs/modernization/phase1a/a8-split/SPLIT_PLAN.md`（按 ADR-0055 拆 A8 同步的切分方案，A 线；盘点明细同目录 INVENTORY.md）
+- 交接源: docs/modernization/phase1a/HANDOFF_one-1a-par.md#交接
 
 ## 交接条件
 
@@ -72,7 +71,3 @@ PAR-1..PAR-5 完成或达到 §2.1 第 1 条阈值时在批次边界交接；F-1
 10. 往文件写含反引号或 `$` 的文字用 `<<'EOF'` 或脚本，写完回读（PAR-006）。
 
 要用户定的事提交「待决定收件箱」在线页，不在会话里用提问框；技术协调直接找 one-1a-next-5、one-ops、one-data；复审分级：安全和生产相关 opus 首轮加 opus 终审，代码 opus 首轮加 sonnet 复核，最多两轮，之后新发现的非 High 列为残余项。涉数据的卡先交 one-data 签发（DATA_DESIGN_GATE.md），表结构 PR 先合并，再写验收和实现。
-
-## 当前状态
-
-2026-10-21 15:34+0200 交接：#509（删老待办）等裁定 -05 进 main 后改 ReadOnlyAccountCheckIT、CI 绿报 one-merge，随后 F2（IMP-1021-PAR-04）、组织接口清单（PAR-03）、日历改造（PAR-02，方案在分支 claude/one-1a-par-calendar-plan）；A、B 及依赖项等 one-architecture 补篇；细节与步骤见 phase1a/HANDOFF_one-1a-par.md。

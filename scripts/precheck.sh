@@ -286,7 +286,7 @@ if [ -n "$guard_run" ]; then
 else
   report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
 fi
-if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate|codex_stdin_gate|main_checkout_gate)\.py|scripts/ci/(heavy_slot|light_unit_classes|heavy_gate|docker_diagnostics|failure_summary|repeat_new_tests)\.py|\.claude/settings\.json)$'; then
+if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate|codex_stdin_gate|main_checkout_gate|commit_msg_gate|bg_task_name_gate|task_ids|pre_tool_dispatch)\.py|scripts/ci/(heavy_slot|light_unit_classes|heavy_gate|docker_diagnostics|failure_summary|repeat_new_tests)\.py|\.claude/settings\.json)$'; then
   for guard in migrations_immutable acceptance_guard acceptance_reports db_scripts_aligned relevant_change assertion_drift; do
     run_step "guards: $guard (self-test)" py "scripts/ci/$guard.py" --self-test
   done
@@ -294,6 +294,9 @@ if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(pre
   run_step "guards: pre_push_gate (self-test)" py scripts/hooks/pre_push_gate.py --self-test
   run_step "guards: codex_stdin_gate (self-test)" py scripts/hooks/codex_stdin_gate.py --self-test
   run_step "guards: main_checkout_gate (self-test)" py scripts/hooks/main_checkout_gate.py --self-test
+  run_step "guards: commit_msg_gate (self-test)" py scripts/hooks/commit_msg_gate.py --self-test
+  run_step "guards: bg_task_name_gate (self-test)" py scripts/hooks/bg_task_name_gate.py --self-test
+  run_step "guards: pre_tool_dispatch (self-test)" py scripts/hooks/pre_tool_dispatch.py --self-test
   run_step "guards: light_unit_classes (self-test)" py scripts/ci/light_unit_classes.py --self-test
   run_step "guards: heavy_gate (self-test)" py scripts/ci/heavy_gate.py --self-test
   run_step "guards: heavy_slot (self-test)" py scripts/ci/heavy_slot.py --self-test
@@ -301,10 +304,11 @@ if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(pre
   run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
   run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
 fi
-if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context|context_handoff)\.py)|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
+if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context|start_sheet|context_handoff)\.py)|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
   run_step "guards: playbook_digest (self-test)" py scripts/hooks/playbook_digest.py --self-test
   run_step "guards: handoff (self-test)" py scripts/hooks/handoff_selftest.py --self-test
   run_step "guards: session_context (self-test)" py scripts/hooks/session_context.py --self-test
+  run_step "guards: start_sheet (self-test)" py scripts/hooks/start_sheet.py --self-test
   run_step "guards: context_handoff (self-test)" py scripts/hooks/context_handoff.py --self-test
 fi
 

@@ -90,21 +90,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__platform_approval_reason_required
-  zh: 必须填写原因
-  en: PlatformApprovalReasonRequired
-  snake: platform_approval_reason_required
-  kind: error_code
-  bc: platform.approval
-  scope: domain
-  definition: 驳回、退回、转交、改派、撤回、撤销必须填写原因（422）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_approval_hook_blocked
   zh: 钩子拒绝办理
   en: PlatformApprovalHookBlocked
@@ -225,21 +210,6 @@ terms:
   forbidden: []
   status: proposed
   note: R-1b P4 D5-06 / RULING-P4-D10 登记
-- id: error__platform_approval_transition_illegal
-  zh: 状态转换不合法
-  en: PlatformApprovalTransitionIllegal
-  snake: platform_approval_transition_illegal
-  kind: error_code
-  bc: platform.approval
-  scope: domain
-  definition: 审批请求或任务在当前状态下不能做这个操作（409）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_approval_round_mismatch
   zh: 轮次不符
   en: PlatformApprovalRoundMismatch
@@ -308,21 +278,6 @@ terms:
   bc: platform.approval
   scope: domain
   definition: 只有流程管理员能做这个操作（403）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__platform_approval_concurrent_change
-  zh: 被他人同时修改
-  en: PlatformApprovalConcurrentChange
-  snake: platform_approval_concurrent_change
-  kind: error_code
-  bc: platform.approval
-  scope: domain
-  definition: 审批请求在读取后被别人改过，需重新读取（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
   confidence: medium

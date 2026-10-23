@@ -9,6 +9,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -178,7 +179,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
 
         assertThat(ask.apply(1)).isEqualTo(first);
         assertThatThrownBy(() -> ask.apply(2)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_TRANSITION_ILLEGAL));
         assertThatThrownBy(() -> ask.apply(3)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ROUND_MISMATCH));
         assertThat(requestStatus(key)).isEqualTo("RUNNING");

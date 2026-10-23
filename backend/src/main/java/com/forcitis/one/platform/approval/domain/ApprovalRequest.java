@@ -1,10 +1,10 @@
 package com.forcitis.one.platform.approval.domain;
 
-import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.kernel.IdGenerator;
-import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.StateMachine;
@@ -19,6 +19,7 @@ import com.forcitis.one.platform.approval.api.ApprovalRequestId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.EscalationTarget;
 import com.forcitis.one.platform.approval.api.NodeKey;
@@ -27,21 +28,21 @@ import com.forcitis.one.platform.approval.api.ReturnSource;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
+import com.forcitis.one.platform.approval.api.TaskRecordAction;
+import com.forcitis.one.platform.approval.api.TaskRecordId;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalRoundStarted;
-import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
 import com.forcitis.one.platform.approval.events.TaskClosed;
+import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.approval.events.TaskReassigned;
 import com.forcitis.one.platform.approval.events.TaskReleased;
-import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
-import com.forcitis.one.platform.approval.api.TaskRecordAction;
-import com.forcitis.one.platform.approval.api.TaskRecordId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -126,7 +127,7 @@ public final class ApprovalRequest extends AggregateRoot {
         if (!initiator.equals(by)) {
             throw ApprovalError.PLATFORM_APPROVAL_NOT_INITIATOR.refusal("Only the initiator of the previous round may start the next one");
         }
-        status = MACHINE.require(status, ApprovalStatus.RUNNING, ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL);
+        status = MACHINE.require(status, ApprovalStatus.RUNNING);
         round++;
         instanceId = Objects.requireNonNull(newInstance, "newInstance");
         trigger = Objects.requireNonNull(newTrigger, "newTrigger");
@@ -278,7 +279,7 @@ public final class ApprovalRequest extends AggregateRoot {
         switch (checkWithdraw(actor, cutoffPassed)) {
             case NOT_INITIATOR -> throw ApprovalError.PLATFORM_APPROVAL_NOT_INITIATOR.refusal("Only the initiator may withdraw or cancel");
             case CUTOFF_PASSED -> throw ApprovalError.PLATFORM_APPROVAL_CUTOFF_PASSED.refusal("A cut-off node has already finished a task");
-            case NOT_RUNNING -> throw ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal(
+            case NOT_RUNNING -> throw KernelError.KERNEL_TRANSITION_ILLEGAL.refusal(
                     "The approval cannot be withdrawn or cancelled while it is " + status);
             case ALLOWED -> {
             }
@@ -290,7 +291,7 @@ public final class ApprovalRequest extends AggregateRoot {
         if (target != ApprovalStatus.APPROVED) {
             requireReason(reason, "A rejection, a return or a cancellation");
         }
-        status = MACHINE.require(status, target, ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL);
+        status = MACHINE.require(status, target);
         for (ApprovalTask open : openTasks()) {
             closeOne(open, now);
         }
@@ -335,17 +336,17 @@ public final class ApprovalRequest extends AggregateRoot {
 
     private void requireOpenRound(TaskAssignment assignment) {
         if (status != ApprovalStatus.RUNNING || !assignment.instanceId().equals(instanceId)) {
-            throw ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal(
+            throw KernelError.KERNEL_TRANSITION_ILLEGAL.refusal(
                     "Task " + assignment.taskId().value() + " does not belong to the running round of " + id.value());
         }
         if (tasks.stream().anyMatch(task -> task.taskId().equals(assignment.taskId()))) {
-            throw ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal("Task " + assignment.taskId().value() + " exists already");
+            throw KernelError.KERNEL_TRANSITION_ILLEGAL.refusal("Task " + assignment.taskId().value() + " exists already");
         }
     }
 
     private static void requireReason(Reason reason, String what) {
         if (reason == null) {
-            throw ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED.refusal(what + " needs a reason");
+            throw KernelError.KERNEL_REASON_REQUIRED.refusal(what + " needs a reason");
         }
     }
 

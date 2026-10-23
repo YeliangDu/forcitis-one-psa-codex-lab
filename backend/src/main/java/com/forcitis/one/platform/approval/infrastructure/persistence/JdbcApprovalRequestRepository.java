@@ -5,10 +5,10 @@ import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalRequestId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
@@ -241,7 +241,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
                 .param("hash", task.approvedHash().map(ContentHash::value).orElse(null)).param("id", task.taskId().value()).param("updatedAt", Timestamp.from(clock.instant()))
                 .update();
         if (updated != 1) {
-            throw ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.refusal("Task " + task.taskId().value() + " vanished while it was saved");
+            throw KernelError.KERNEL_CONCURRENT_CHANGE.refusal("Task " + task.taskId().value() + " vanished while it was saved");
         }
     }
 
@@ -301,7 +301,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
     }
 
     private static com.forcitis.one.kernel.DomainException concurrentChange(ApprovalRequest request) {
-        return ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.refusal("Approval request " + request.id().value()
+        return KernelError.KERNEL_CONCURRENT_CHANGE.refusal("Approval request " + request.id().value()
                 + " was changed by somebody else");
     }
 

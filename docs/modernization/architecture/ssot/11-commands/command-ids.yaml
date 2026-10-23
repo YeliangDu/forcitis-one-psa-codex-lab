@@ -174,6 +174,11 @@ ids:
   name: 编制费率版本
   former_names: []
   retired: false
+- id: CMD-0b88b056
+  aggregate: AGG-16
+  name: 提交索赔详细报告
+  former_names: []
+  retired: false
 - id: CMD-0bb24e5f
   aggregate: AGG-27
   name: 登记客户认可
@@ -204,6 +209,11 @@ ids:
   name: 标记资源需求已满足
   former_names: []
   retired: false
+- id: CMD-0d5534b3
+  aggregate: AGG-138
+  name: 启动奖金计提
+  former_names: []
+  retired: false
 - id: CMD-0e420639
   aggregate: AGG-13
   name: 归档协议
@@ -217,6 +227,11 @@ ids:
 - id: CMD-0f4510c8
   aggregate: AGG-93
   name: 登记补休转加班工资
+  former_names: []
+  retired: false
+- id: CMD-1076762f
+  aggregate: AGG-20
+  name: 转入返工
   former_names: []
   retired: false
 - id: CMD-107b1886
@@ -669,6 +684,11 @@ ids:
   name: 登记薪酬补发顺延
   former_names: []
   retired: false
+- id: CMD-31a5f6ac
+  aggregate: AGG-20
+  name: 发布工作包
+  former_names: []
+  retired: false
 - id: CMD-32157e6e
   aggregate: AGG-114
   name: 解决 IT 需求
@@ -732,6 +752,11 @@ ids:
 - id: CMD-376a9dd9
   aggregate: AGG-17
   name: 批准风险交付授权
+  former_names: []
+  retired: false
+- id: CMD-387b127b
+  aggregate: AGG-02
+  name: 登记资质延续申请
   former_names: []
   retired: false
 - id: CMD-38eba49b
@@ -1364,6 +1389,11 @@ ids:
   name: 变更商机负责人
   former_names: []
   retired: false
+- id: CMD-71715ba9
+  aggregate: AGG-20
+  name: 完成工作包
+  former_names: []
+  retired: false
 - id: CMD-71c31242
   aggregate: AGG-35
   name: 提交检查记录
@@ -1562,6 +1592,11 @@ ids:
 - id: CMD-80764bf6
   aggregate: AGG-90
   name: 更正申报
+  former_names: []
+  retired: false
+- id: CMD-809f1c04
+  aggregate: AGG-16
+  name: 撤回索赔
   former_names: []
   retired: false
 - id: CMD-80a77096
@@ -1767,6 +1802,11 @@ ids:
 - id: CMD-9308ed71
   aggregate: AGG-54
   name: 登记出资实缴
+  former_names: []
+  retired: false
+- id: CMD-930e449f
+  aggregate: AGG-138
+  name: 提交过账候选
   former_names: []
   retired: false
 - id: CMD-938007c4
@@ -2529,6 +2569,11 @@ ids:
   name: 登记检查计划
   former_names: []
   retired: false
+- id: CMD-d2d692f0
+  aggregate: AGG-76
+  name: 提交过账候选
+  former_names: []
+  retired: false
 - id: CMD-d2f69893
   aggregate: AGG-37
   name: 不采信外部检测报告
@@ -2934,6 +2979,11 @@ ids:
   name: 提出完工估算
   former_names: []
   retired: false
+- id: CMD-f346ee1c
+  aggregate: AGG-16
+  name: 拒绝索赔
+  former_names: []
+  retired: false
 - id: CMD-f3b1234b
   aggregate: AGG-45
   name: 驳回开票申请
@@ -2947,6 +2997,11 @@ ids:
 - id: CMD-f45ea637
   aggregate: AGG-57
   name: 提交过账候选
+  former_names: []
+  retired: false
+- id: CMD-f498a386
+  aggregate: AGG-138
+  name: 计算奖金计提
   former_names: []
   retired: false
 - id: CMD-f5007ba9

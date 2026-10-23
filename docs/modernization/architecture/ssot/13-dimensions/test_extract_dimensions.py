@@ -137,7 +137,13 @@ class ExtractDimensionsTest(unittest.TestCase):
                          ('writers: []', 'writers: null')]:
             with self.subTest(old=old):
                 path.write_text(original)
-                self.change(ed.REGISTRY, old, new)
+                if old == 'writers: []':
+                    # first empty writers list of a versioned master table: an earlier table may legitimately have none
+                    start = original.index('role: DIMENSION_VERSIONED')
+                    at = original.index(old, start)
+                    path.write_text(original[:at] + new + original[at + len(old):])
+                else:
+                    self.change(ed.REGISTRY, old, new)
                 with self.assertRaises(ValueError):
                     ed.by_versioned_master_tables(self.root)
         path.write_text(original + '\ntables: {}\n')
