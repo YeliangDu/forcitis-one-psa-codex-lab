@@ -9,14 +9,16 @@ flowchart LR
     organization_workforce__RegisteredEmployee["RegisteredEmployee"]:::bc
     organization_workforce__SyncRun["SyncRun"]:::bc
   end
-  platform_approval["审批<br/><small>platform.approval</small>"]:::bc
+  subgraph platform_approval["审批 · platform.approval"]
+    platform_approval__ApprovalRequest["ApprovalRequest"]:::bc
+  end
   platform_audit["审计<br/><small>platform.audit</small>"]:::audit
   platform_identity["身份与权限<br/><small>platform.identity</small>"]:::bc
   platform_integration["外部集成（防腐层）<br/><small>platform.integration</small>"]:::bc
   platform_numbering["单据编号<br/><small>platform.numbering</small>"]:::bc
   organization_workforce__RegisteredEmployee --> E_organization_workforce_EmployeeRegistered(["EmployeeRegistered"]):::evt --> platform_identity
   organization_workforce__SyncRun --> E_organization_workforce_OrgSnapshotChanged(["OrgSnapshotChanged"]):::evt --> platform_identity
-  platform_approval --> E_platform_approval_ApprovalCompleted(["ApprovalCompleted"]):::evt --> cost_timesheet
+  platform_approval__ApprovalRequest --> E_platform_approval_ApprovalCompleted(["ApprovalCompleted"]):::evt --> cost_timesheet
   cost_timesheet -.->|5 个事件| platform_audit
   organization_attendance -.->|2 个事件| platform_audit
   organization_workforce -.->|14 个事件| platform_audit

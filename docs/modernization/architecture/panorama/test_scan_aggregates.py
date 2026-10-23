@@ -86,6 +86,14 @@ class AggregateScanTest(unittest.TestCase):
                   'class SubmitTimesheet { Timesheet sheet; Object unused = new TimesheetRejected(); }')
         self.assertEqual(['cost.timesheet.TimesheetSubmitted'], s.collect(self.root)[0]['events'])
 
+    def test_arc08_root_emit_helper_is_evidence(self):
+        self.java('domain', 'Timesheet', 'import com.forcitis.one.kernel.AggregateRoot;\n'
+                  'import com.forcitis.one.cost.timesheet.events.TimesheetRejected;\n'
+                  'public class Timesheet extends AggregateRoot {\n'
+                  'void reject() { emit("TimesheetRejected", now, envelope -> new TimesheetRejected()); } }')
+        sheet = s.collect(self.root)[0]
+        self.assertEqual(['cost.timesheet.TimesheetRejected'], sheet['events'])
+
     def test_arc08_application_record_referencing_root_is_a_class(self):
         self.java('application', 'SheetView', 'import com.forcitis.one.cost.timesheet.domain.Timesheet;\n'
                   'record SheetView(Timesheet sheet) {}')

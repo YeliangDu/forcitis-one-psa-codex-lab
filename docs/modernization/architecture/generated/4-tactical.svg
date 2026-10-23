@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1276" height="1712" viewBox="0 0 1276 1712" font-family="-apple-system,PingFang SC,Microsoft YaHei,sans-serif" style="background-color:white">
-<text x="16" y="30" font-size="13" fill="#475569">每张卡：左列命令（写这个聚合的用例），右列它产生的事件，底部为状态取值；来源 ssot/i03-aggregates/built.yaml 与事件目录</text>
+<text x="16" y="30" font-size="13" fill="#475569">每张卡：左列命令（写这个聚合的用例），右列它产生的事件（只计本模块事件）；状态不在此图，见 ssot/10-objects 对象状态网络；来源 ssot/i03-aggregates/built.yaml 与事件目录</text>
 <rect x="16" y="52" width="600" height="164" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="28" y="74" font-size="15" fill="#0f172a" font-weight="600">Timesheet</text>
 <text x="604" y="74" font-size="11" fill="#475569" text-anchor="end">工时与投入有效性 BC · cost.timesheet</text>
@@ -76,7 +76,17 @@
 <text x="648" y="692" font-size="12" fill="#1d4ed8">▸ TaskDeadline</text>
 <text x="648" y="712" font-size="12" fill="#1d4ed8">▸ TaskRegistrar</text>
 <text x="648" y="732" font-size="12" fill="#1d4ed8">▸ TransferTask</text>
-<text x="942.0" y="512" font-size="12" fill="#94a3b8">（无事件）</text>
+<text x="942.0" y="512" font-size="12" fill="#c2410c">◆ ApprovalCompleted</text>
+<text x="942.0" y="532" font-size="12" fill="#c2410c">◆ ApprovalRoundStarted</text>
+<text x="942.0" y="552" font-size="12" fill="#c2410c">◆ ApprovalTaskBecameOverdue</text>
+<text x="942.0" y="572" font-size="12" fill="#c2410c">◆ ApprovalTaskEscalated</text>
+<text x="942.0" y="592" font-size="12" fill="#c2410c">◆ TaskAssigned</text>
+<text x="942.0" y="612" font-size="12" fill="#c2410c">◆ TaskClaimed</text>
+<text x="942.0" y="632" font-size="12" fill="#c2410c">◆ TaskClosed</text>
+<text x="942.0" y="652" font-size="12" fill="#c2410c">◆ TaskHandled</text>
+<text x="942.0" y="672" font-size="12" fill="#c2410c">◆ TaskReassigned</text>
+<text x="942.0" y="692" font-size="12" fill="#c2410c">◆ TaskReleased</text>
+<text x="942.0" y="712" font-size="12" fill="#c2410c">◆ TaskTransferred</text>
 <rect x="16" y="604" width="600" height="84" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="28" y="626" font-size="15" fill="#0f172a" font-weight="600">StoredFile</text>
 <text x="604" y="626" font-size="11" fill="#475569" text-anchor="end">文件服务 · platform.file</text>

@@ -7,7 +7,7 @@
 - 已建：16；仅 code 5；仅 registry 0；两者 11。
 - registry 来源只取 role=AGGREGATE_ROOT；tables 取同模块全部同名 aggregate 表。
 - commands 取同模块 application 中直接引用根类型的类（含 record、查询视图和辅助类），不追间接调用。
-- events 仅取同模块 DomainEvent 类型在根或上述类的 record/publish 参数内直接构造的证据；不做跨方法数据流推断。
+- events 仅取同模块 DomainEvent 类型在根或上述类的 record/emit/publish 参数内直接构造的证据；不做跨方法数据流推断。
 - 有未证实发布关系的同模块事件时，events_in_module 列出该模块全部事件；这不是发布归属结论。跨模块事件不计入 events。
 - 旧手写登记 ddd/aggregates.yaml 已退役（GOV-1023-ARC-01，intent 2026-10-23-154833）；其 invariants 已迁入 mapping.yaml，其余见 git 历史。
 

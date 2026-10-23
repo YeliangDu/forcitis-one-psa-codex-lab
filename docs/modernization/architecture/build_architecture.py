@@ -283,11 +283,11 @@ def event_chain(ctx, aggs, events):
 
 
 def tactical(ctx, aggs):
-    """④ plain SVG: one card per aggregate, commands on the left, events on the right, states underneath."""
+    """④ plain SVG: one card per aggregate, commands on the left, events on the right; states live in ssot/10-objects."""
     zh = {c["id"]: c["zh"] for c in ctx}
     W, cw, gap, line = 1260, 600, 20, 20
     cols, col_y, body = 2, [52, 52], []
-    body.append(text(16, 30, "每张卡：左列命令（写这个聚合的用例），右列它产生的事件，底部为状态取值；来源 ssot/i03-aggregates/built.yaml 与事件目录", 13, "#475569"))
+    body.append(text(16, 30, "每张卡：左列命令（写这个聚合的用例），右列它产生的事件（只计本模块事件）；状态不在此图，见 ssot/10-objects 对象状态网络；来源 ssot/i03-aggregates/built.yaml 与事件目录", 13, "#475569"))
     for a in sorted(aggs, key=lambda a: a["id"]):
         cmds = list(a.get("commands") or []) + [c + "（经端口）" for c in a.get("commands_via") or []]
         evs = [e.split(".")[-1] for e in a.get("events") or []]
