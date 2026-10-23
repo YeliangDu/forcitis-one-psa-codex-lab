@@ -3,6 +3,16 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 22:4x（one-coordinator，清空前交接；清空后先读本条）
+- **清空后第一件事**：CronCreate 每 5 分钟巡检（ReadNotifications、mailbox unacked/stale、mq.py status、在开 PR；reviews/redesign/ 新结论转作者；派出复审超 30 分钟查；每 30 分钟 get_usage，周用量到 92% 叫停）。重构期间跨会话消息有频率上限，复审结论只落文件。
+- **重构第一批（只本机提交，用户验收后才推送合入，intent 214702）**：派工书 ~/.modernize/psa/coordinator/redesign-1023/workorders/（README §9 兼容任务号 GOV-1023-COO-01；§10 机读头统一解析；§11 budget_check 口径裁定）。复审结论 ~/.modernize/psa/coordinator/reviews/redesign/<sha>.md（守护类另有 .final.md）。整合分支 claude/one-ops-flow-v2 @6981e351a，暂存 -next（O1 修若干，均通过）。
+- **用户新定（今晚）**：本次优化**不改合入队列**（intent 222945，one-merge M1～M6 暂停、分支 claude/one-merge-flow-v2-b1 @8c21377f6 原样保留；巡检照常看队列）；T2 stop_check「挡一次」（每会话一生最多挡一次，221359）；取消 B1 凭据比对（221336）；模型按任务难度由调度定（214818，one-ops opus，其余执行会话 sonnet，复审 opus 子代理）；T2/T3 建议取舍见 223101、223432。
+- **各项状态**：
+  - one-quality：T1、T2（至 2c45e61）、T3（至 e6ec51b＋24e0248、452a2ac）、T4（e5ff2d0a2）、Q1（至 b7a91d96e）、Q2（至 484de869e）均通过。Q3（4d75f99c9 必改 10、dbe1c982f 必改 3）在改；Q4 2f6742ea8 与 7152afdde 复审在跑；V08 无数据须判跳过（已令修）。
+  - one-ops：基点、O1 系列通过；O2 d4eedf9c1、O3 e3fe6dcbd、O4 79a2d005e 复审在跑（opus 首轮＋终审，重点：O4 删 PreToolUse 后主检出 reset/checkout 不再拦是否可接受）；接着 O5。依赖新 mq 的项已标搁置（O13 全项、O7 自动 install、O9 二甲改名、MRG-08/02/04）；fv2-b1 判据第 2 条改为「现行 mq 自测仍全过」。
+  - one-data DA1、one-architecture AR0 完成。
+  - 调度自己：C0～C5（分支 claude/one-coordinator-flow-v2-b1，工作区 .claude/worktrees/coord-flow-v2）首轮多数必改，opus 修复子代理在做，汇报写 ~/.modernize/psa/coordinator/redesign-1023/coord-fix-report.md；读后把 policy 键清单转 one-ops、别人范围指针清单转对应会话，再派复审。
+- **额度**：周用量 83%（22:2x），10-26 17:00 重置。
 更新：2026-10-23 22:2x（one-coordinator，60% 交接）
 - **重构实施第一批（只本机提交，用户验收后才推送合入，intent 214702）**：派工书 ~/.modernize/psa/coordinator/redesign-1023/workorders/（README 第 9 节：兼容任务号 GOV-1023-COO-01；复审结论只落 ~/.modernize/psa/coordinator/reviews/redesign/<sha>.md，钩子类另有 .final.md）。整合分支 claude/one-ops-flow-v2 @6981e351a（基点 d71e8977b 通过），暂存 -next 有 O1 修 502054a9e（通过）。
 - **复审状态**：T1 c7cdd3d43 通过；T2 1f9c5df76 首轮必改已修（ccb45e2），终审通过；T3 2f5111c9b 必改 7 条（one-quality 改）；DA1 三提交通过（one-data 第一批完）；one-architecture AR0 无漂移（第一批完）。
