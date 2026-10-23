@@ -16,7 +16,22 @@ import com.forcitis.one.platform.file.api.Lineage;
 import com.forcitis.one.platform.file.domain.LineageTarget;
 import com.forcitis.one.platform.file.domain.NewStoredFile;
 import com.forcitis.one.platform.file.domain.StoredFile;
+import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.DocumentTypeCode;
+import com.forcitis.one.platform.file.api.AccessLevel;
+import com.forcitis.one.platform.file.api.PersonalInformationMark;
+import com.forcitis.one.platform.file.domain.BindingTarget;
+import com.forcitis.one.platform.file.domain.Classification;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -29,7 +44,10 @@ class JdbcStoredFileRepositoryIT {
     static final Instant AT = Instant.parse("2026-10-21T02:00:00Z");
     static final UUID USER = UUID.fromString("01900000-0000-7000-8000-00000000000a");
 
-    final JdbcClient jdbc = JdbcClient.create(new SimpleDriverDataSource(new org.postgresql.Driver(), DATABASE.url(), DATABASE.username(), DATABASE.password()));
+    final SimpleDriverDataSource source = new SimpleDriverDataSource(new org.postgresql.Driver(), DATABASE.url(), DATABASE.username(), DATABASE.password());
+    final JdbcClient jdbc = JdbcClient.create(source);
+    final TransactionTemplate transaction = new TransactionTemplate(new DataSourceTransactionManager(source));
+    final JdbcFileBindingRepository bindings = new JdbcFileBindingRepository(jdbc, UUID::randomUUID);
     final JdbcStoredFileRepository files = new JdbcStoredFileRepository(jdbc, UUID::randomUUID, new BusinessZone(ZoneId.of("Asia/Shanghai")));
 
     private NewStoredFile file(FileSubject uploader, FileStatus status, Lineage lineage, String hash) {
@@ -138,5 +156,91 @@ class JdbcStoredFileRepositoryIT {
         jdbc.sql("update platform_file.stored_files set version = 5 where stored_file_id = ?").param(file.id().value()).update();
         first.expire(later, java.time.Duration.ofDays(2));
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> files.saveExpiry(first, later)).isInstanceOf(IllegalStateException.class);
+    }
+
+    private static final Duration KEPT = Duration.ofDays(2);
+    private static final Classification CLASSIFICATION = new Classification(AccessLevel.INTERNAL, PersonalInformationMark.NONE);
+
+    private void waitUntilBlocked() throws InterruptedException {
+        for (int i = 0; i < 100; i++) {
+            if (jdbc.sql("select count(*) from pg_stat_activity where wait_event_type = 'Lock' and datname = current_database()").query(Long.class).single() > 0) {
+                return;
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("the second transaction never waited for the row lock");
+    }
+
+    /** A link committed while the expiry job waits for the row lock must be seen by it: the file stays AVAILABLE. */
+    @Test
+    void aLinkCommittedWhileExpiryWaitsForTheLockKeepsTheFile() throws Exception {
+        NewStoredFile file = file(new FileSubject(FileSubjectKind.USER, USER.toString()), FileStatus.AVAILABLE, new Lineage.FirstVersion(), "3".repeat(64));
+        files.insert(file);
+        Instant later = AT.plusSeconds(3 * 86400);
+        CountDownLatch linked = new CountDownLatch(1);
+        CountDownLatch commit = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> binder = pool.submit(() -> transaction.executeWithoutResult(status -> {
+                bindings.lockForBinding(file.id()).orElseThrow();
+                bindings.insertBinding(file.id(), new DocumentReference(new DocumentTypeCode("CONTRACT"), new DocumentId(UUID.randomUUID())), CLASSIFICATION,
+                        new FileSubject(FileSubjectKind.USER, USER.toString()), later);
+                linked.countDown();
+                await(commit);
+            }));
+            assertThat(linked.await(10, TimeUnit.SECONDS)).isTrue();
+            Future<StoredFile> expiry = pool.submit(() -> transaction.execute(status -> files.lockForExpiry(file.id()).orElseThrow()));
+            waitUntilBlocked();
+            commit.countDown();
+            binder.get(10, TimeUnit.SECONDS);
+            StoredFile seen = expiry.get(10, TimeUnit.SECONDS);
+            assertThat(seen.hasExpired(later, KEPT)).as("a file with a document is never expired").isFalse();
+            assertThat(seen.status()).isEqualTo(FileStatus.AVAILABLE);
+        } finally {
+            commit.countDown();
+            pool.shutdownNow();
+        }
+    }
+
+    /** The other order: an expiry committed first is what the linker then reads, and it cannot link. */
+    @Test
+    void anExpiryCommittedWhileLinkingWaitsForTheLockIsSeenByTheLinker() throws Exception {
+        NewStoredFile file = file(new FileSubject(FileSubjectKind.USER, USER.toString()), FileStatus.AVAILABLE, new Lineage.FirstVersion(), "4".repeat(64));
+        files.insert(file);
+        Instant later = AT.plusSeconds(3 * 86400);
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch commit = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> expiry = pool.submit(() -> transaction.executeWithoutResult(status -> {
+                StoredFile row = files.lockForExpiry(file.id()).orElseThrow();
+                row.expire(later, KEPT);
+                files.saveExpiry(row, later);
+                locked.countDown();
+                await(commit);
+            }));
+            assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+            Future<BindingTarget> binder = pool.submit(() -> transaction.execute(status -> bindings.lockForBinding(file.id()).orElseThrow()));
+            waitUntilBlocked();
+            commit.countDown();
+            expiry.get(10, TimeUnit.SECONDS);
+            BindingTarget seen = binder.get(10, TimeUnit.SECONDS);
+            assertThat(seen.status()).isEqualTo(FileStatus.EXPIRED_UNBOUND);
+            assertThat(seen.bound()).isFalse();
+        } finally {
+            commit.countDown();
+            pool.shutdownNow();
+        }
+    }
+
+    private static void await(CountDownLatch latch) {
+        try {
+            if (!latch.await(20, TimeUnit.SECONDS)) {
+                throw new AssertionError("the test never released the transaction");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
     }
 }

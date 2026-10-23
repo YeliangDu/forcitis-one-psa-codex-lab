@@ -136,17 +136,26 @@ class JdbcStoredFileRepository implements StoredFileRepository {
 
     @Override
     public Optional<StoredFile> lockForExpiry(FileId file) {
-        return jdbc.sql("""
-                        select f.uploader_kind, f.stored_at, f.file_status, f.version,
-                               exists (select 1 from platform_file.file_bindings b where b.stored_file_id = f.stored_file_id) as bound
+        // Lock first, ask about bindings in a second statement: a binding committed while this call waited for the lock is invisible to the
+        // first statement's snapshot, and the binder never updates the file row, so the row is not re-read either.
+        record Locked(FileSubjectKind uploaderKind, Instant storedAt, FileStatus status, long version) { }
+        Optional<Locked> locked = jdbc.sql("""
+                        select f.uploader_kind, f.stored_at, f.file_status, f.version
                           from platform_file.stored_files f
                          where f.stored_file_id = :id
                            for no key update
                         """)
                 .param("id", file.value())
-                .query((rs, n) -> StoredFile.restore(file, FileSubjectKind.valueOf(rs.getString("uploader_kind")), rs.getTimestamp("stored_at").toInstant(),
-                        rs.getBoolean("bound"), FileStatus.valueOf(rs.getString("file_status")), rs.getLong("version")))
+                .query((rs, n) -> new Locked(FileSubjectKind.valueOf(rs.getString("uploader_kind")), rs.getTimestamp("stored_at").toInstant(),
+                        FileStatus.valueOf(rs.getString("file_status")), rs.getLong("version")))
                 .optional();
+        if (locked.isEmpty()) {
+            return Optional.empty();
+        }
+        boolean bound = jdbc.sql("select exists (select 1 from platform_file.file_bindings where stored_file_id = :id)")
+                .param("id", file.value()).query(Boolean.class).single();
+        Locked row = locked.get();
+        return Optional.of(StoredFile.restore(file, row.uploaderKind(), row.storedAt(), bound, row.status(), row.version()));
     }
 
     @Override
