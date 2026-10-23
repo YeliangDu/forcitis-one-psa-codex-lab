@@ -3,6 +3,14 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 07:5x（one-coordinator，30% 交接；清空后先读本条）
+- **新职责**：周额度归调度管（intent 071705，记忆 weekly-quota-owner）。10-23 07:5x 周用量 69%；检查点 10-24 09:00≤78%、10-25≤88%、10-26≤98%；每批边界 get_usage，超速先停 opus 再停设计类会话。云端额度可随意用（intent 071931），但用户远程控制时开不了云端会话，只能等用户在桌面端发话时开。
+- **在队/待合**：#632（head 19be09d1a）、#639（b4af543ae）、#644（a4921821f，合入后 dev 须重建→one-ops 进收件箱问用户）已批；#635 one-merge 按 sonnet 必改在改；#642 等 one-platform-file 补黑名单用例，CI 绿直接批（不再复核）；#640 待 #639 合入后 one-ops 跟改；#645 新规则手册 opus 首轮在跑（one-quality）；#599 head 变+CI 红待 one-1a-next-5 修后重批。
+- **裁定**：-08（PR-B2 工号禁改）、-09（卡 C 随改卡 A；E5 拆出不予放行）@5fd2a5aeb，已请 one-merge 加急合集；one-data 签 EMPLOYEE_CODE_CHANGE_IGNORED @c1e78036a 同批。
+- **等清空/接续**：one-1a-par 发了清空接续（交接 @c20cecf7d）但未清空，#632 合入后确认 0 of 0 再发接续（推 PR-B2、PAR-05）；补 IMP-1022-PAR-01 卡（在 #632 内，合入后补）。one-arch-finance 在答 one-data AGG-139 三问（G3/G5/G6），回来转 one-data、one-merge。
+- **待审**：GL6/GL7 用语页 47 题（@51ead6852）等云端审题（opus），审完 one-glossary 才发布进收件箱。
+- **整改**：15 张守护卡 @22b0acfd9 已派（one-quality 先 #645，再守护卡；one-merge MRG-01～04 待 #635 合）。
+- **不得再犯**：会话回合末尾向调度提问不发消息——每批后读 idle 会话最后一条（已入记忆 coordinator-self-checks）。
 更新：2026-10-23 00:4x（one-coordinator，40% 交接；清空后先读本条，再读下面 22:2x 条与「整改收尾清单」）
 - **00:4x 现状**：#628 自清推全员已合并生效（只排除 one-coordinator）；#616、#622、#624、#630、#631 已合。今晚各会话已自清并接续：one-arch-people、one-quality（多次）、one-1a-next-5、one-platform-file、one-merge、one-data；one-ops、one-architecture 下次节点自清（钩子已生效）。清空确认用 list_events「idle — 0 of 0」。
 - **在途 PR**：队列中/已批 #589 #627(head 99181cf1e) #629 #633 #634 #587 #599(a4c562253) #637(421886101) #638 #641(2e7574d75)；待复审 #635（MRG-05/06，sonnet 复核后批）、#639/#640（OPS-02 Docker 自动拉起，合入后 one-ops 直接装与演练）、#642（6b-2 上传，opus 首轮改后通过，全文 ~/.modernize/psa/coordinator/reviews/pr642-opus-1.md，one-platform-file 在改）；#632 W2 PR-B 有条件批（opus 结论贴评论＋sonnet、文档移出、CI 绿）；REG-4 待开 PR；PR-B2 在 #624 已合后可开。
