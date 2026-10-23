@@ -244,6 +244,9 @@ class EmployeeSyncRulesTest {
 
         assertThat(after.staffById().get(user(5)).employee().employeeCode()).isEqualTo("E-OLD");
         assertThat(issues(changes, IssueKind.EMPLOYEE_CODE_CHANGE_IGNORED)).hasSize(1);
+        assertThat(changes.stats().isolatedRowCount()).as("the person is kept, not isolated").isZero();
+        assertThat(changes.diffs()).filteredOn(d -> d.issueKind() == IssueKind.EMPLOYEE_CODE_CHANGE_IGNORED)
+                .allMatch(d -> !d.detail().contains("E-OLD") && !d.detail().contains("E-NEW"));
         assertThat(changes.changedEmployees()).isEmpty();
     }
 
