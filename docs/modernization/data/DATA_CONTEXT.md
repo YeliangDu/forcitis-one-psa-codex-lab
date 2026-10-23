@@ -27,7 +27,7 @@
 | 对象 ↔ 表 | `data/TABLE_OBJECT_LIST.md`（已有 + 已提议 5 张）与 `TABLE_OBJECT_LIST_PROPOSED.md`（三组 362 表项）已交 one-architecture；等《业务对象界定标准》经用户认可后它按标准复核，结论会回我 |
 | C-6 日历导出缺陷 | `data/CALENDAR_EXPORT_DEFECT.md` @c1f73f06：条件在 SQL:46 与 `c6_relay.py:162` 两处，需 one-ops 修并重导出；回放报告不受影响 |
 | 其他待办 | 填报义务实现的数据设计（等 one-rules 规则卡）；触发器命名条款提议 `TRIGGER_NAMING_PROPOSAL.md`；迁入映射与对账方案（等施工方案）；错题本 DATA-001…007、011–013、018 待落实（负责 one-data，2026-10-24 前；暂停期间顺延） |
-| 工作规则 | 文档类提交不开 PR，推本会话分支，报分支+提交号；消息一到三行、只在对方要做事时发；Codex 先交（取证汇总、设计初稿），生产取证和签发本人做；任务号 `ARC-1017-DAT-nn`，登记片段在 `tasks/` |
+| 工作规则 | 文档交付与四节点报告按 TEAM-53，合集自扫分支；消息一到三行、只在对方要做事时发；Codex 先交（取证汇总、设计初稿），生产取证和签发本人做；任务号 `ARC-1017-DAT-nn`，登记片段在 `tasks/` |
 
 ## 2026-10-21 交接（用户清上下文，设计恢复后的状态）
 
@@ -42,7 +42,7 @@
 | B31P 取证 | 汇总稿 `B31P_EVIDENCE_SUMMARY_DRAFT.md` 已交；one-ops 的 `b31p_r4_result.md` 含一个姓名，已批准改写该分支历史清除；核对取证结果只用 `grep -c`/行号（错题本 DATA-018） |
 | 待回填 | 用户收件箱里 W2 相关两题已答，已回填；N-03 `CORRECTION` 命令种类 one-architecture 已并入 #493 |
 | 其他待办 | 触发器命名条款 `TRIGGER_NAMING_PROPOSAL.md`；填报义务实现的数据设计（等 one-rules）；迁入映射与对账方案；SD-1 带入迁入核对设计（负责人 one-data，触发点迁入核对卡签发）；错题本 DATA-001…007、011–013、018 待落实（2026-10-24 前，已逾期顺延）；`ARC-1017-DAT-01/02` 任务登记已按 check_tasks 格式修 |
-| 规则提醒 | 文档类提交不开 PR，推本会话分支、报分支+提交号；代码 PR ≤3 且一单元一个；消息一到三行、只在对方要做事时发（连续发 10 条左右会被限流，到用户发言才解）；Codex 先交（取证汇总、设计初稿），生产取证、签发、守护/钩子/并发/解析类代码自己做；任务号 `<主线码>-<MMDD>-DAT-<nn>`，登记片段在 `tasks/`；会话长时先看 `get_usage` |
+| 规则提醒 | 文档交付与四节点报告按 TEAM-53，合集自扫分支；代码 PR ≤3 且一单元一个；消息一到三行、只在对方要做事时发（连续发 10 条左右会被限流，到用户发言才解）；Codex 先交（取证汇总、设计初稿），生产取证、签发、守护/钩子/并发/解析类代码自己做；任务号 `<主线码>-<MMDD>-DAT-<nn>`，登记片段在 `tasks/`；会话长时先看 `get_usage` |
 
 ### 2026-10-21 交接补充（one-coordinator 新派两项，已完成初稿）
 
@@ -73,12 +73,12 @@
 - 已完成并推送（分支 claude/one-data-handoff-1 @ae6af5e4c，已报 one-merge）：W2 PR-B 草案签「通过」附 C1–C3 与重复工号拒收口径（`reviews/W2-PR-B.md`）；DATA_SCORECARD 第 35、36 行；错题本 DATA-001…013、018 落点（门禁 §7a、`evidence/name_pattern_scan.py`）；迁入写入通道设计 `MIGRATION_WRITER_ROLE_DESIGN.md`（opus、sonnet 两轮已改，按 one-architecture 判定：迁入角色无 UPDATE、日历应用内确认、日明细守护 SECURITY DEFINER、删属主确认检查）；ADR-0058 不补正文（勘误 E-010）；卡 C DDL 通过附 M1–M3（`reviews/B31-CARD-C-DDL.md`）；取证 115 个文件均可留（`reviews/EVIDENCE-ADR0037-SCAN-2026-10-22.md`）。
 - 在途/等别人：one-1a-par 的 W2 PR-B 实现 PR（我对 `personnel_commands` 与 ADR-0068 附件逐行比较、核 C1–C3）；#599 的 IT 用例；one-1a-next-5 / one-1a-par 按迁入写入通道设计实现，diff 出来我复核；卡 C 改完后的表结构 PR；收件箱 `2026-10-22-one-data-card-c-retention`（T-D10 保留期，等用户）；one-platform-file 单元 7；B-31 其余卡 DDL 草案。
 - 我自己的待办：`org_units` 根表收窄设计（A4 答复后 30 天内）；ADR-0075 对 `ConfigSetVersion` 登记为历史主体（随首个使用方）；DATA-001…013 中非机械项仍是软约束。
-- 规矩：提交与推送分两次调用；docs 提交号直接报 one-merge；子代理任务要写任务号 `DAT-1022-DAT-nn` 并登记 tasks/（种类取受控词、用时写「待核」）；本地只在推送前跑一次 precheck。
+- 规矩：提交与推送分两次调用；文档合集按 TEAM-53 由 one-merge 自扫分支；子代理任务要写任务号 `DAT-1022-DAT-nn` 并登记 tasks/（种类取受控词、用时写「待核」）；本地只在推送前跑一次 precheck。
 
 **2026-10-22 深夜交接（37% 清空；以本节为准，覆盖上文「晚交接」的在途项）**：
 - 本段新增已完成：卡 C 第二轮复核通过（`reviews/B31-CARD-C-DDL.md`，T-D10 用户已定 A=10 年归档，intent `2026-10-22-205226-one-data-A`；T-D14 应答只放 ID/编号/状态；T-D15 `is_system_only` 加列 + 紧接 DROP DEFAULT，one-1a-admin 已落 @c520f149c，待表结构 PR 复核实际 diff）；AGG-41 表级改动设计层通过（`reviews/ARC-1022-AFI-01-AGG41.md`，F1–F6，DM-8 仍开，FD-09 前 lines 的 pi 待判）；#599 签「通过」并已在 PR 留言（head a4c562253，等调度批）；函数 search_path 设计稿回写 #622 偏离（§7）；W2 设计 §9 登记 org_structure_command_id 外键触发点；重复工号拒收口径（`reviews/W2-PR-B.md` 末节）。
 - 在等（来消息再处理）：one-1a-par 的 W2 PR-B 实现 PR（对 `personnel_commands` 与 ADR-0068 附件逐行比较、核 C1–C3、拒收路径）；#622 实际 diff（基线 34 个函数）；迁入写入通道实现 diff（编号 one-1a-next-5、日历 one-1a-par；日历应用内确认、日明细守护 SECURITY DEFINER、删属主确认检查）；卡 C 表结构 PR；one-platform-file 单元 7；B-31 其余卡 DDL 草案；one-arch-finance 的 AGG-41 DDL 草案。
 - 未完成的跨会话事项：W2 HELD 放行题（生效日前放行）我已回 one-architecture 倾向 B（界面拒绝提前放行，到日后放行并补版本，数据零改动；A 要改状态转换/成对守护/剩余超管数判定并起新 ADR），等它与调度裁定；之后若走 A，要复核状态转换与 `separation_holds` 守护的 diff。无待回用户请求。
 - 自己的待办：`org_units` 根表收窄设计（A4 答复后 30 天内）；ADR-0075 对 `ConfigSetVersion` 登记为历史主体（随首个使用方）；卡 D 的 DDL 审时核四元组唯一与 `submission_key` 已删的幂等替代。
-- 规矩：提交与推送分两次调用；docs 提交号直接报 one-merge；子代理任务号 `DAT-1022-DAT-nn`（已用 01、02）并登记 tasks/；收件箱 inbox 集合在 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15；清空后他会话经 one-coordinator 转。
+- 规矩：提交与推送分两次调用；文档合集按 TEAM-53 由 one-merge 自扫分支；子代理任务号 `DAT-1022-DAT-nn`（已用 01、02）并登记 tasks/；收件箱 inbox 集合在 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15；清空后他会话经 one-coordinator 转。
 

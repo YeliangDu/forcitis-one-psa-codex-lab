@@ -3,6 +3,13 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 15:1x（one-coordinator，清空前交接；清空后先读本条）
+- **清空后第一件事**：CronCreate 每 5 分钟巡检（分层总图 meta/request、工作台 board/request、`python3 scripts/coord/mailbox.py list --unacked` 与 `stale --minutes=20`、ReadNotifications）；会话内定时随清空失效。
+- **总验收 GOV-1023-COO-01**：清单 ~/.modernize/psa/coordinator/team-audit/acceptance-1023.md（53 项，Docker 演练已撤 intent 131757）；约一半落地。业务代码暂停（intent 125230），验收通过后恢复并通知 one-1a-admin、one-platform-file：签章已准入，用印 7.3/7.4 可开工；#658 冻结待恢复后派复审。
+- **队列与已批 head**：队列 [662,659,663,654,665]；#659 批 9f074ec18（合入后 one-merge 先核 FF-MAIN 再发全员合 main 并重启）；#654 f43d94496；#662 9ccc5cee9；#663 30ffa0b31；#665 f1c4f9e53；#653 已合。
+- **在复审/在改**：#664 QUA-09（one-platform-file，opus 改后通过已裁定豁免与登记位置）；#666 QUA-23（one-1a-par，opus 改后通过 6 项必改已转，报告 reviews/pr666-opus-1.md）；#652 MRG-07 由 one-merge 交 Codex 重跑（收窄范围）；QUA-08、QUA-02 第二段（one-1a-par）；QUA-10（one-platform-file）；QUA-04→QUA-07（one-quality）。复审报告均在 ~/.modernize/psa/coordinator/reviews/。
+- **今日结构决定**：研发基建实现并入 one-ops（intent 145436，画像 @8d3cbb1fb）；one-quality 只做设计与复核；one-merge 只做队列运营；借调：QUA-02/08/23→one-1a-par，QUA-09/10→one-platform-file（intent 134131、141142）；归档 revenue、people、rules、finance、next-5，在用画像 10 份；MEMORY.md 已压缩（备份 ~/.modernize/psa/memory-backup-20261023）；自动入队永久关闭＋入队审计（intent 115815）；只在 PR 节点上报（TEAM-53）；规则表 52 条（#656 已合）。
+- **我待做**：COO-03 收尾核对（画像与实际会话清单）、COO-04 运行设置回读、COO-08 strict 复盘、MRG-12 统一切分支（等整改 PR 全合入）、最终独立核验。two-lanes 最新提交待 one-merge 下趟收。
 更新：2026-10-23 11:4x（one-coordinator，40% 记录，不清空）
 - **新决定**：111209 只在 PR 节点上报（TEAM-53、MRG-11）；111722/112228 归档 revenue、people、rules（rules 并入 one-glossary，名不改）；113112 复盘优化（QUA-04、QUA-02 加 openapi、MRG-02 回填、TEAM-106/107）；113916 one-merge/quality 代码交 Codex、调度超 15 分钟可自行 enqueue；104603 治理冻结 TEAM-102～105。
 - **在开 PR**：#642(72020a4f8)、#650(870799258 after #642) 已批未入队（one-merge 忙，11:5x 未入队则我 enqueue）；#651 DIRTY 待 one-quality；#652 按 opus 改；#653 opus 不通过返工；#654 QUA-03 opus 首轮在跑。
@@ -104,7 +111,7 @@
 - **首要目标（用户 2026-10-17）**：把每个会话调成本项目最优秀的团队——会话日报（每天早上，同一在线页）→ 每周胜任力评审 → 改进动作落为守护、评审模板、画像工作守则（intent 本日）。
 - 云端额度（用户免费额度，2026-11-05 到期）：先试点一个价值流的流程骨架（等 #405 后，one-architecture 写派单）；497 处改名待 ADR-0053 批准、用户认可规范名后考虑走云端（intent 062720）。
 - 合并执行归 one-merge（10-17 切到 mq.py），调度只批准入队。
-- 合并：用户 10-16 定——文档不开 PR（会话报分支+提交号）；代码一工作单元一 PR、在制 ≤1（代码合集化暂不动）；main 只经队列合入；Auto-fix 已由用户在 app 统一关闭。
+- 合并：用户 10-16 定——文档合集与报告按 TEAM-53 自扫分支；代码工作单元与在制上限按 TEAM-40、43（本行旧报号与 ≤1 口径已取代）；main 只经队列合入；Auto-fix 已由用户在 app 统一关闭。
 - 积压 PR：one-merge 每天两次盘点五类报调度，调度定去向（intent 222637）。
 - 分支落后（10-22 用户问）：会话每开始一个工作单元先用命令合 main（不走 app 同步工具）；调度每天早上跑一次活跃工作区落后数，>100 的点名合；117 个 worktree 清理派 one-merge（已合入的删、有未推送的报调度）。
 - 页面「请调度同步／更新」按钮（用户 10-22 选按需同步）：工作台写 board/request、分层总图写 meta/request（字段 at）；每次巡检读这两个文档，request.at 晚于上次同步（board/meta.at、meta/page.at）就同步一次，同步时写回新的 at。
@@ -113,7 +120,7 @@
 - 错题本：只抓两主线（落实须有真实检查、每晚复发检测）+ 新测试重复跑（intent 235811）。
 - 不稳定测试：不隔离、不放宽；外部失败找测试作者修。
 - 不向会话要排期、不向用户转报估算（记忆 no-schedule-relay）。
-- 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
+- 交接兜底按 TEAM-05：调度 50% 准备、60% 批次边界交接，其余 30%／40%；节点自清按 TEAM-07，接线待 GOV-1023-QUA-06。
 - 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
 - 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r （已钉左栏，10-22 改版）：`python3 scratchpad(08ce11ca)/workbench/sync.py <工作区> <输出目录>` 读任务卡片段、gh、mq 生成 cards/sessions/prs/meta 四个 JSON，ArtifactData batch set board/*（带 if_version）；收到完成点报告和每天早上各同步一次，「要关注」里的停滞卡当天追。
 - 自检：派工前看作战图、METHOD 当前步骤、相关 ADR 字面；同一件工具派工前查是否已有负责会话。告诉用户「已派/已完成/未做」与转给用户的数字先核实（会话记录、gh、证据文件），注明已核实/已抽查/未核实；说某会话「上下文高」前看实况。自己的裁定当场记 intent。改 scratchpad 合并脚本先 `bash -n`；写在线页时间用 `date -u`。合集分支推送前跑完整 precheck。答应「合入后通知」的挂 Monitor 盯 MERGED。告诉用户可重启前，除问各会话有无 Codex，还 `ps` 查常驻进程与 Monitor，并说明谁在重启后拉起。超 7 天未决的提议 ADR 每周交用户（采纳/拒绝/搁置）。
