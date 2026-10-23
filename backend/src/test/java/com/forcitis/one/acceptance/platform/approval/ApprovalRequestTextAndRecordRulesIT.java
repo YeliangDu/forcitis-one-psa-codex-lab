@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 class ApprovalRequestTextAndRecordRulesIT {
 
     private static final String REQUEST = "insert into platform_approval.approval_requests (id, process_key, document_id, initiator_id, current_round,"
-            + " current_instance_id, status, document_type, legal_entity_id, summary_text) values (?, 'COST_TIMESHEET_APPROVAL', ?, ?, 1, ?, 'RUNNING', ?, ?, ?)";
+            + " current_instance_id, status, document_type, legal_entity_id, summary_text) values (?, 'cost_timesheet_approval', ?, ?, 1, ?, 'RUNNING', ?, ?, ?)";
 
     private static final List<String> ACTIONS_WITHOUT_PEOPLE = List.of("CLAIMED", "RELEASED", "APPROVED", "REJECTED", "RETURNED", "ADVISED",
             "PASSED_AUTOMATICALLY");

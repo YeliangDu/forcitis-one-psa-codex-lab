@@ -1,6 +1,6 @@
 # 交接报告：one-1a-next → one-1a-next-2
 
-交接时点：2026-10-15，R-1a（#125）合并后的批次边界。依据：SESSION_PLAYBOOK §2.1 第 1 条；用户「one-1a-next 在 R-1a 合并后交接 (Recommended)」（经 one-coordinator）。
+交接时点：2026-10-15，R-1a（#125）合并后的批次边界。依据：SESSION_PLAYBOOK TEAM-05、06；用户「one-1a-next 在 R-1a 合并后交接 (Recommended)」（经 one-coordinator）。
 
 **会话约定**：全程中文——与用户对话、报告、跨会话消息、子代理最终回复一律中文；派子代理时在提示开头写「全程中文，最终回复用中文」（用户「始终保持中文会话，新开会话继承这个要求」，CLAUDE.md 第 0 条）。权限模式与 one-coordinator 一致（bypass）；整合、复审用 high。
 
@@ -49,7 +49,7 @@
 ## 5. 待用户 / one-coordinator 决定
 
 - 无本会话发起的未决用户问题（ADR-0033 / 0034 子问题已全部答复）。
-- 规则条文（NAMING §2.6、GUIDING §7a / §11、PLAYBOOK §14.2 / §14.3、SUPPLY_CHAIN.md、ADR-0035 契约演进、ADR-0036 历史数据迁入）由 one-coordinator 另派起草，出来后核对并排守护。
+- 规则条文（NAMING §2.6、GUIDING §7a / §11、DATA_DESIGN_CHECKLIST §14.2 / §14.3、SUPPLY_CHAIN.md、ADR-0035 契约演进、ADR-0036 历史数据迁入）由 one-coordinator 另派起草，出来后核对并排守护。
 - one-ops 的审计分区量级取证已获批准，结果回来后定分区粒度（按月或按周）。
 
 ## 6. 经验与注意

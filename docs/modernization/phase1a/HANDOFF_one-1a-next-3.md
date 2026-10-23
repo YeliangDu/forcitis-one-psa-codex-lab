@@ -1,6 +1,6 @@
 # 交接报告：one-1a-next-3 → one-1a-next-4（结构重构主线）
 
-交接时点：2026-10-15，上下文 76%（SESSION_PLAYBOOK §2.1 第 1 条：75% 准备交接、85% 在批次边界交接）。批次边界：P3b 第二轮修复、FLAKY-SESS 复核在途时。
+交接时点：2026-10-15，上下文 76%（SESSION_PLAYBOOK TEAM-05、06：75% 准备交接、85% 在批次边界交接）。批次边界：P3b 第二轮修复、FLAKY-SESS 复核在途时。
 
 **会话约定**：全程中文（对话、报告、跨会话消息、子代理最终回复）；派子代理在提示开头写「全程中文，最终回复用中文」并显式指定模型；权限模式与 one-coordinator 一致（bypass）；每开 PR 立即用 `mcp__ccd_pr__set_monitor` 关 Auto-fix（应用常误报「已开启」，以 `get_status` 为准）；完成点报 one-coordinator，PR 由它审核入队，本线不合并。
 

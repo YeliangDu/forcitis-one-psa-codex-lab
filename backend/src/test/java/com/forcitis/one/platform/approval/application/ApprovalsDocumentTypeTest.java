@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
@@ -17,7 +18,6 @@ import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ContentHash;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.RegisteredDocumentTypes;
@@ -36,11 +36,11 @@ class ApprovalsDocumentTypeTest {
     private final Approvals approvals = new Approvals(null, engine, null, null, null, registered);
 
     {
-        org.mockito.Mockito.when(engine.documentTypeOf(ProcessKey.COST_TIMESHEET_APPROVAL)).thenReturn(new DocumentTypeCode("TIMESHEET"));
+        org.mockito.Mockito.when(engine.documentTypeOf(TimesheetApprovalProcess.KEY)).thenReturn(new DocumentTypeCode("TIMESHEET"));
     }
 
     private ApprovalStartRequest request(String type) {
-        return new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, new DocumentReference(new DocumentTypeCode(type), new DocumentId(UUID.randomUUID())),
+        return new ApprovalStartRequest(TimesheetApprovalProcess.KEY, new DocumentReference(new DocumentTypeCode(type), new DocumentId(UUID.randomUUID())),
                 new com.forcitis.one.kernel.LegalEntityId(TestIds.uuid(1)), TestAccounts.employee(1), new RoundNumber(1), UUID.randomUUID(), Set.of(), List.of(),
                 new ContentHash("hash"), new ApprovalSummary("summary"));
     }

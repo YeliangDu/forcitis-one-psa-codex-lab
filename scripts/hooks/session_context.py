@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Which session this checkout is, and the paths of its profile and context documents; start_sheet.py builds the start-up page from them (SESSION_PLAYBOOK §2.1 #13, #16, GOV-1022-COO-13).
+"""Which session this checkout is, and the paths of its profile and context documents; start_sheet.py builds the start-up page from them (SESSION_PLAYBOOK TEAM-03、08, GOV-1022-COO-13).
 
 Session name, first hit wins: the untracked marker <root>/.claude/session-name; otherwise the longest profile name that the
 worktree directory name or the current branch without "claude/" equals or starts with followed by "-"; ended sessions listed

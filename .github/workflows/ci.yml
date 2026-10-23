@@ -36,7 +36,7 @@ jobs:
           echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
           nohup docker events --filter type=container --since "$(date +%s)" --format '{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}' > "$RUNNER_TEMP/docker-events.log" 2>&1 &
           echo "DOCKER_EVENTS_PID=$!" >> "$GITHUB_ENV"
-      - name: "Flyway migrations: baseline-open marker, append-only, monotonic versions (SESSION_PLAYBOOK §12.2)"
+      - name: "Flyway migrations: baseline-open marker, append-only, monotonic versions (SESSION_PLAYBOOK 附 M3「迁移基线」)"
         env:
           BEFORE: ${{ github.event.before }}
         run: |
@@ -64,7 +64,7 @@ jobs:
         run: |
           python3 scripts/ci/org_interface_notice.py --self-test
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then python3 scripts/ci/org_interface_notice.py "origin/$GITHUB_BASE_REF"; fi
-      - name: Acceptance tests are changed only by the test engineer or under a ruling (SESSION_PLAYBOOK §6.1)
+      - name: Acceptance tests are changed only by the test engineer or under a ruling (SESSION_PLAYBOOK 附 M1)
         env:
           BEFORE: ${{ github.event.before }}
         run: |
@@ -239,7 +239,7 @@ jobs:
           PY
       - name: generated docs match fragments
         run: python3 docs/modernization/build_all.py --check
-      # 规则评审的原结论不得改写，改决定只能追加 revisions（SESSION_PLAYBOOK §12.2）；基线由本步骤显式给出
+      # 规则评审的原结论不得改写，改决定只能追加 revisions（SESSION_PLAYBOOK 附 M3「修订评审结论」）；基线由本步骤显式给出
       - name: rule review revisions are append-only
         env:
           BEFORE: ${{ github.event.before }}

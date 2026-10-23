@@ -176,7 +176,7 @@ contexts:
   subdomain: platform
   kind: platform
   status: planned
-  schema: null
+  schema: platform_signing
   blueprint_bc: null
   legacy_bc: null
   basis: adr

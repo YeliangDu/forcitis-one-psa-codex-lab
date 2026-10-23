@@ -353,7 +353,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     @DisplayName("M-7 an open task of an earlier round does not fail the job every run: it is closed, as an event, under the lock of its request")
     void aLeftoverTaskOfAnEarlierRoundIsClosed() {
         Scene s = scene(true);
-        tx.executeWithoutResult(t -> approvals.withdraw(com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, document(s.key()),
+        tx.executeWithoutResult(t -> approvals.withdraw(com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess.KEY, document(s.key()),
                 TestAccounts.account(s.initiator()), "wrong hours"));
         start(s.key(), s.initiator(), s.manager());
         jdbc.update("update platform_approval.approval_tasks set status = 'PENDING', completed_at = null, due_at = ?, remind_at = ?, escalate_at = ?"

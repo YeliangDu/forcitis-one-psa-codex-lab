@@ -11,6 +11,7 @@
   <process id="cost_timesheet_approval" name="工时审批（不可跳过）" isExecutable="true">
     <extensionElements>
       <forcitis:documentType code="TIMESHEET"/>
+      <forcitis:routingFlagRequired value="true"/>
     </extensionElements>
     <startEvent id="start"/>
     <sequenceFlow id="toReviewStage" sourceRef="start" targetRef="reviewStage"/>

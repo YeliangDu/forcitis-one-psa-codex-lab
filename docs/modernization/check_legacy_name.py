@@ -11,7 +11,7 @@
 只查大写词元 PSA（前后不是字母、数字、_、-）；psa_*、psa-backend、forcitis-one-psa、psa-* 会话名等标识符不受影响。
 
 例外（不报）：
-1. 冻结或只追加的记录：已采纳 ADR 正文 adr/src/ADR-*.md 及生成的 adr/ADR-*.md、adr/README.md、adr/INDEX.md（SESSION_PLAYBOOK §12.1）；
+1. 冻结或只追加的记录：已采纳 ADR 正文 adr/src/ADR-*.md 及生成的 adr/ADR-*.md、adr/README.md、adr/INDEX.md（SESSION_PLAYBOOK 附 M3「ADR」）；
    session-log/ 片段与 SESSION_LOG.md（只追加）。
 2. 生成产物（检查其片段 / 模板即可）：INTENT.md、STATUS.md、MODERNIZATION_BRIEF.md。
 3. 证据与机器产物目录：rules/raw/、map/、runtime/、u8c/。

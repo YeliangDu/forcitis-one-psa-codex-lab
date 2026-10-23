@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
@@ -19,7 +20,6 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
@@ -48,12 +48,12 @@ class RetractionInitiatorGateTest {
     final DenialAudit denials = mock(DenialAudit.class);
     final BusinessTime time = mock(BusinessTime.class);
     final Retraction retraction = new Retraction(requests, engine, approvals, denials, time, TestAccounts.everyoneHasOne());
-    final ApprovalRequest running = ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1,
+    final ApprovalRequest running = ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), TimesheetApprovalProcess.KEY, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1,
             com.forcitis.one.TestApprovalIds.instance("i-1"), ApprovalStatus.RUNNING, null, new ApprovalSummary("TS-1"), List.of(), 3, 2);
 
     RetractionInitiatorGateTest() {
-        when(requests.find(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT)).thenReturn(Optional.of(running));
-        when(requests.findForUpdate(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT)).thenReturn(Optional.of(running));
+        when(requests.find(TimesheetApprovalProcess.KEY, DOCUMENT)).thenReturn(Optional.of(running));
+        when(requests.findForUpdate(TimesheetApprovalProcess.KEY, DOCUMENT)).thenReturn(Optional.of(running));
         when(time.moment()).thenReturn(new com.forcitis.one.platform.approval.domain.Moment(java.time.Instant.parse("2026-10-14T02:00:00Z"),
                 java.time.LocalDate.of(2026, 10, 14)));
     }
@@ -61,32 +61,32 @@ class RetractionInitiatorGateTest {
     @Test
     @DisplayName("the check allows the account of the initiator's employee and answers NOT_INITIATOR for the account that merely has the initiator's number")
     void checkIsOnTheEmployeeSide() {
-        assertThat(retraction.check(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, INITIATORS_ACCOUNT)).isEqualTo(WithdrawCheck.ALLOWED);
-        assertThat(retraction.check(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, ACCOUNT_NUMBERED_LIKE_THE_INITIATOR))
+        assertThat(retraction.check(TimesheetApprovalProcess.KEY, DOCUMENT, INITIATORS_ACCOUNT)).isEqualTo(WithdrawCheck.ALLOWED);
+        assertThat(retraction.check(TimesheetApprovalProcess.KEY, DOCUMENT, ACCOUNT_NUMBERED_LIKE_THE_INITIATOR))
                 .isEqualTo(WithdrawCheck.NOT_INITIATOR);
     }
 
     @Test
     @DisplayName("withdrawing ends the round for the initiator's account; the account with the initiator's number is refused, audited, and changes nothing")
     void withdrawIsOnTheEmployeeSide() {
-        assertThatThrownBy(() -> retraction.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, ACCOUNT_NUMBERED_LIKE_THE_INITIATOR, "wrong amount"))
+        assertThatThrownBy(() -> retraction.withdraw(TimesheetApprovalProcess.KEY, DOCUMENT, ACCOUNT_NUMBERED_LIKE_THE_INITIATOR, "wrong amount"))
                 .isInstanceOf(AccessDeniedException.class);
         verify(denials).record(any());
         verify(engine, never()).endAsReturned(any());
 
-        assertThat(retraction.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, INITIATORS_ACCOUNT, "wrong amount")).isEqualTo(RetractionResult.DONE);
+        assertThat(retraction.withdraw(TimesheetApprovalProcess.KEY, DOCUMENT, INITIATORS_ACCOUNT, "wrong amount")).isEqualTo(RetractionResult.DONE);
         verify(engine).endAsReturned(com.forcitis.one.TestApprovalIds.instance("i-1"));
     }
 
     @Test
     @DisplayName("cancelling ends the approval for the initiator's account; the account with the initiator's number is refused and audited")
     void cancelIsOnTheEmployeeSide() {
-        assertThatThrownBy(() -> retraction.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, ACCOUNT_NUMBERED_LIKE_THE_INITIATOR, "not needed"))
+        assertThatThrownBy(() -> retraction.cancel(TimesheetApprovalProcess.KEY, DOCUMENT, ACCOUNT_NUMBERED_LIKE_THE_INITIATOR, "not needed"))
                 .isInstanceOf(AccessDeniedException.class);
         verify(denials).record(any());
         verify(engine, never()).terminate(any(), any());
 
-        assertThat(retraction.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, INITIATORS_ACCOUNT, "not needed")).isEqualTo(RetractionResult.DONE);
+        assertThat(retraction.cancel(TimesheetApprovalProcess.KEY, DOCUMENT, INITIATORS_ACCOUNT, "not needed")).isEqualTo(RetractionResult.DONE);
         verify(engine).terminate(com.forcitis.one.TestApprovalIds.instance("i-1"), "CANCELLED");
     }
 }

@@ -1,5 +1,5 @@
 # Transactions that change more than one aggregate, one reviewed line each: <use case class> | <aggregates, joined by +> | <why>.
-# A transaction changes ONE aggregate (SESSION_PLAYBOOK section 14, item 1). SingleAggregateGuardTest fails for a transaction in the integration
+# A transaction changes ONE aggregate (DATA_DESIGN_CHECKLIST section 14, item 1). SingleAggregateGuardTest fails for a transaction in the integration
 # tests that saves other aggregate sets, for a use case here that no longer exists, and for an event of such a transaction without relatedAggregates.
 # Changes need design review.
 com.forcitis.one.cost.timesheet.application.SubmitTimesheet | Timesheet+NumberingRule | A document number must come from a gapless counter in the same transaction that inserts the document (DocumentNumbers.next); the TimesheetSubmitted of that transaction names NumberingRule in relatedAggregates

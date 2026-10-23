@@ -57,7 +57,7 @@
 1. **PR-A**：本说明、SSOT 骨架、`subdomains.yaml` / `contexts.yaml` / `context-map.yaml` 初稿（从老 `02`、`04`、`05` 抽取并按目标架构修正）、`ARCH_CONTEXT.md`、画像；同时发布架构决策页（§6）。
 2. **PR-B**：生成器与图 ①②，在线图页。
 3. **PR-C**：`aggregates.yaml`、BPMN / DMN / DAMA / OLAP 清单，图 ③④。
-4. **PR-D**：`architecture_check.py` 与 change guard（守护，opus 复审）；SESSION_PLAYBOOK §14 增加「架构施工图」一条。
+4. **PR-D**：`architecture_check.py` 与 change guard（守护，opus 复审）；DATA_DESIGN_CHECKLIST §14 增加「架构施工图」一条。
 
 ## 6. 待决
 
