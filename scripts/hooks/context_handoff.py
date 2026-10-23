@@ -965,6 +965,24 @@ def self_test():
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 40, "handover": 30}}))
         assert "交接档位配置有问题" in text(fire("PostToolUse", 100, 2005.0, session="lvbad")), "a broken level configuration is said once"
         assert fire("PostToolUse", 100, 2006.0, session="lvbad") is None
+        # the coordinator's own levels (50 / 60) through the hook path, not just the configuration reader (GOV-1023-QUA-06, opus round 1 item 6)
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "context_levels": {"prepare": 30, "handover": 40},
+                                  "context_levels_by_session": {"one-coordinator": {"prepare": 50, "handover": 60}}}))
+        coordinator_root = os.path.join(tmp, "one-coordinator")
+        subprocess.run(["git", "init", "-q", coordinator_root], check=True, capture_output=True)
+        write(os.path.join(coordinator_root, f"{SESSIONS}/one-coordinator.md"), "# one-coordinator\n\n## 上下文文档\n\n- `docs/ctx.md`\n")
+        write(os.path.join(coordinator_root, "docs/ctx.md"), "ctx\n")
+
+        def fire_in(where, tokens, now, session):
+            transcript(trans, tokens, "claude-test", None)
+            return handle("PostToolUse", dict(payload, hook_event_name="PostToolUse", session_id=session, cwd=where), where, now)
+        ordinary = text(fire_in(root, 450, 2100.0, "lvord"))
+        assert ordinary and "立即交接" in ordinary and "报 one-coordinator" in ordinary, "an ordinary session is at 40 % handover by 45 %"
+        assert fire_in(coordinator_root, 450, 2101.0, "lvcoo") is None, "the coordinator is silent at 45 %"
+        at_prepare = text(fire_in(coordinator_root, 520, 2102.0, "lvcoo"))
+        assert at_prepare and "到批次边界" in at_prepare and "报 one-coordinator" not in at_prepare and "不要 clear_session" in at_prepare, at_prepare
+        at_handover = text(fire_in(coordinator_root, 620, 2103.0, "lvcoo"))
+        assert at_handover and "立即交接" in at_handover and "报 one-coordinator" not in at_handover, at_handover
         # node events (GOV-1022-COO-09): handover instruction at a node when the context is >= min_percent, once per cooldown
         LEVELS = (75, 85)
         node_cfg = {"enabled": True, "min_percent": 20, "sessions": ["one-test"], "coordinator_session_ids": ["local_coord"]}

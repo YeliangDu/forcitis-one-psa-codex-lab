@@ -236,6 +236,24 @@ def guarded(part, make, fallback=None):
         return fallback if fallback is not None else f"（本段生成失败：{type(error).__name__}，读原文）"
 
 
+def hook_warnings(root, today):
+    """Today's lines of <git directory>/hooks-fallback.log (run_from_main.sh fell back to this workspace's possibly stale hooks, or a hook crashed), at most 3 distinct ones, as a section; "" when there are none."""
+    gitdir = git_lines(root, "rev-parse", "--absolute-git-dir")
+    try:
+        with open(os.path.join(gitdir[0], "hooks-fallback.log"), encoding="utf-8", errors="replace") as log:
+            lines = [line.strip() for line in log if line.startswith(today.isoformat())]
+    except (IndexError, OSError):
+        return ""
+    seen = []
+    for line in reversed(lines):
+        text = line.split(" ", 1)[1] if " " in line else line
+        if text not in seen:
+            seen.append(text)
+    if not seen:
+        return ""
+    return "\n## 钩子告警（今日；含「退回本工作区」说明守护跑的可能是落后的副本，先合并 main 再重启会话）\n" + "\n".join("- " + fit(t, 200) for t in reversed(seen[:3]))
+
+
 def build(root, name=None, today=None, snapshot=None, intents=True):
     """The start sheet text for the session `name` (identified from the checkout when None)."""
     today = today or datetime.date.today()
@@ -256,6 +274,7 @@ def build(root, name=None, today=None, snapshot=None, intents=True):
     cards = [] if cards_failed else cards
     bcs = sorted({f["bc"] for _, f, _ in cards if f.get("bc") and f["bc"] != "跨域"})
     out = [f"【开工单】会话 {name}｜画像 {profile_path}（长输出宿主只显示开头，本页在 {SHEET_LIMIT // 1024} KB 内）",
+           guarded("W", lambda: hook_warnings(root, today)) or "",
            "\n## A 身份", guarded("A", lambda: part_a(profile)),
            "\n## B 当前任务", cards_failed or guarded("B", lambda: part_b(cards)),
            "\n## C 交接", guarded("C", lambda: part_c(root, source, cards, snapshot)),
@@ -318,6 +337,14 @@ def self_test():
         assert "T-1 状态：进行中" in text and "目标：做 A。" in text and "完成标准：测试 AT-1 过。" in text
         assert "T-2" in text and "卡不完整（缺完成标准），报调度" in text and "不该出现" not in text and "别人的" not in text
         assert "无在途任务" not in text
+        assert "钩子告警" not in text
+        subprocess.run(["git", "init", "-q", root], check=True, capture_output=True)
+        gd = git_lines(root, "rev-parse", "--absolute-git-dir")[0]
+        write_log = lambda body: open(os.path.join(gd, "hooks-fallback.log"), "w", encoding="utf-8").write(body)
+        write_log(f"{today.isoformat()}T10:00:00 context_handoff.py 主检出不在 main 分支，退回本工作区的副本（可能落后）\n2000-01-01T10:00:00 old.py 太旧\n")
+        text = build(root, "one-x", today)
+        assert "钩子告警" in text and "退回本工作区" in text and "太旧" not in text, text
+        os.remove(os.path.join(gd, "hooks-fallback.log"))
         node = goals_for_node(root, "one-x")
         assert "T-1" in node and "做 A。" not in node and "tasks/" not in node and size(node) <= 300, node
         assert goals_for_node(root, "one-nobody") == ""

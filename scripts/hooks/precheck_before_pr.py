@@ -25,16 +25,34 @@ def is_pr_create(command):
 
 
 EXCERPT_LINES = 15
-LAST_LOG = "forcitis-precheck-last.log"
+BLOCK_TAIL = 4
+OUTPUT_TAIL = 3
 
 
 def excerpt(output):
-    """The FAIL lines with 2 lines around each, then the SUMMARY line, at most EXCERPT_LINES lines; with no FAIL line the last 8 lines (GOV-1023-QUA-06: the old 40-line tail cost ~3.8k characters a refusal)."""
+    """What failed, in at most EXCERPT_LINES lines: each `FAIL …` line with the last BLOCK_TAIL lines of the `      | …` block precheck.sh prints under it (the real error is at the end of that block),
+    the SUMMARY line, and the last OUTPUT_TAIL lines of the whole output. Many failures share the room: the block tails shrink first, then only the FAIL lines stay.
+    No FAIL line at all (precheck.sh itself broke): the last 8 lines."""
     lines = output.splitlines()
-    keep = sorted({j for i, line in enumerate(lines) if line.startswith("FAIL") for j in range(max(0, i - 2), min(len(lines), i + 3))})
+    fails = [i for i, line in enumerate(lines) if line.startswith("FAIL")]
     summary = [i for i, line in enumerate(lines) if line.startswith("SUMMARY:")][-1:]
-    picked = [i for i in keep if i not in summary][:EXCERPT_LINES - len(summary)] + summary if keep else list(range(max(0, len(lines) - 8), len(lines)))
-    return "\n".join(lines[i] for i in picked[:EXCERPT_LINES])
+    if not fails:
+        return "\n".join(lines[-8:])
+    blocks = []
+    for i in fails:
+        end = i + 1
+        while end < len(lines) and lines[end].lstrip().startswith("|"):
+            end += 1
+        blocks.append((i, list(range(i + 1, end))))
+    tail = [i for i in range(len(lines) - OUTPUT_TAIL, len(lines)) if i >= 0 and lines[i].strip() and i not in summary]
+    room = EXCERPT_LINES - len(summary)
+    for keep in (BLOCK_TAIL, 2, 0):
+        picked = [j for i, body in blocks for j in [i, *(body[-keep:] if keep else [])]]
+        if len(picked) <= room:
+            break
+    picked = picked[:room]
+    picked += [i for i in tail if i not in picked][-(room - len(picked)):] if room > len(picked) else []
+    return "\n".join(lines[i] for i in sorted(set(picked) | set(summary)))
 
 
 def save_log(root, output):
@@ -139,12 +157,17 @@ def self_test():
     assert verdict("SUMMARY: 6 PASS, 1 FAIL, 7 SKIP (base origin/main) — not ready\n", 1)
     assert verdict("SUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 1), "退出码非 0 即拒绝"
     assert verdict("没有 SUMMARY 行\n", 0), "没有 SUMMARY 行即拒绝"
-    noisy = "\n".join(f"ok line {i}" for i in range(200)) + "\nFAIL gate-x broke\ndetail 1\n" + "\n".join(f"more {i}" for i in range(100)) + "\nSUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n"
-    shown = verdict(noisy, 1)
-    assert "FAIL gate-x broke" in shown and "SUMMARY:" in shown and "ok line 100" not in shown and shown.count("\n") <= 18, "only the failure and its surroundings, at most 15 lines"
-    many = "\n".join(f"FAIL g{i}\nd{i}" for i in range(40)) + "\nSUMMARY: 0 PASS, 40 FAIL, 0 SKIP (base origin/main) — not ready\n"
-    assert verdict(many, 1).count("\n") <= 18 and "SUMMARY:" in verdict(many, 1), "capped, summary kept"
-    assert "pnpm install --frozen-lockfile --offline" in verdict("FAIL frontend verify 前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline\nSUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1)
+    def block(name, tail):
+        return f"FAIL  {name}  exit 1 — last lines:\n" + "\n".join(f"      | {line}" for line in tail) + "\n"
+    real = "PASS  a  ok\n" * 30 + block("guards: x (self-test)", [f"line {i}" for i in range(19)] + ["AssertionError: the real cause"]) + "SKIP  b\n" + "SUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    shown = verdict(real, 1)
+    assert "FAIL  guards: x" in shown and "AssertionError: the real cause" in shown and "line 3" not in shown and "PASS  a" not in shown and "SUMMARY:" in shown and shown.count("\n") <= 18, shown
+    many = "".join(block(f"g{i}", ["noise", f"cause {i}"]) for i in range(40)) + "SUMMARY: 0 PASS, 40 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    cut = verdict(many, 1)
+    assert cut.count("\n") <= 18 and "SUMMARY:" in cut and "FAIL  g0 " in cut, "capped, summary kept, failures shown first"
+    two = block("one", ["a", "b", "c", "d", "e", "cause-one"]) + block("two", ["x", "cause-two"]) + "SUMMARY: 0 PASS, 2 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    assert "cause-one" in verdict(two, 1) and "cause-two" in verdict(two, 1), "every failure keeps the end of its block"
+    assert "last" in verdict("x\n" * 20 + "last\n", 1), "no FAIL line: the tail of the output"
     with tempfile.TemporaryDirectory() as root:
         def git(*args):
             subprocess.run(["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@t", *args], check=True, capture_output=True)
