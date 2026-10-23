@@ -186,7 +186,7 @@ else
   report SKIP "docs read by builds are registered" "no backend, frontend or script changed"
 fi
 
-if touches '(^(backend/src/main/resources/db/migration/|backend/architecture/(data-classification\.txt|module-dependencies\.txt)|scripts/ci/baseline_ddl_scan)|/togaf/transitions\.yaml$)'; then
+if touches '(^(backend/src/main/resources/db/migration/|backend/architecture/(data-classification\.txt|module-dependencies\.txt)|scripts/ci/baseline_ddl_scan)|/t-transitions/transitions\.yaml$)'; then
   run_step "baseline DDL scan (self-test)" py scripts/ci/baseline_ddl_scan.py --self-test
   ddl_scan=$(py scripts/ci/baseline_ddl_scan.py 2>&1) && ddl_counts=$(printf '%s\n' "$ddl_scan" | grep '^== [1-8]' | sed -E 's/^== ([1-8]) [^:]*: ([0-9]+).*/\1=\2/' | paste -sd' ' -)
   if [ -n "${ddl_counts:-}" ]; then

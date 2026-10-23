@@ -5,7 +5,7 @@
 09 业务对象 · 10 受控业务执行 · 11 业务事实 · 12 维度 · 13 指标与评价 · 14 计算绑定 · 15 决策与行动。
 聚合、BC、子域、表作为 09、10 的领域与实现层映射（检查编号 N09-Mn、N10-Mn）。每条链接带出处（源文件与定位）。
 源：proposals/value-streams.v2.yaml、ssot/10-objects/objects.yaml、ENTERPRISE_INFO_MAP_DRAFT.md §2、closeout/process-catalog.yaml、
-ssot/c1-rules/rules.yaml、ssot/i03-aggregates/{planned,built}.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §3.2、ddd/subdomains.yaml、ssot/13-dimensions、ssot/15-kpis/kpis.yaml、glossary/terms.yaml、
+ssot/c1-rules/rules.yaml、ssot/i03-aggregates/{planned,built}.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §3.2、ssot/d-domain/subdomains.yaml、ssot/13-dimensions、ssot/15-kpis/kpis.yaml、glossary/terms.yaml、
 data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ssot/i03-aggregates/built.yaml 的已建表）。
 缺口只报告、不使构建失败：反复跑到收敛；panorama.yaml、GAPS.md 不入仓（只要求能生成）；STAKEHOLDERS.md 仍入仓，由 build_all 的前后快照比对守护。
 """
@@ -38,8 +38,8 @@ SRC = {
     "planned": ARCH / "ssot/i03-aggregates/planned.yaml",
     "built": ARCH / "ssot/i03-aggregates/built.yaml",
     "agg_map": ARCH / "ssot/i03-aggregates/mapping.yaml",
-    "sd": ARCH / "ddd" / "subdomains.yaml",
-    "bc": ARCH / "ddd" / "contexts.yaml",
+    "sd": ARCH / "ssot/d-domain/subdomains.yaml",
+    "bc": ARCH / "ssot/d-domain/contexts.yaml",
     "terms": DOCS / "glossary" / "terms.yaml",
     "tables": DOCS / "data" / "PANORAMA_TABLES.yaml",
     "decr": HERE / "tradeoffs.yaml",

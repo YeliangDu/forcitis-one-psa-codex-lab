@@ -11077,7 +11077,7 @@ outside_network:
   reason: 聚合清单写明「信息图对象号未登记」
   decision:
     decided_object: none
-    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 togaf/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
+    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 ssot/t-transitions/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
     group: finance
     commit: fccf803c
 - id: OTR-846
@@ -11093,7 +11093,7 @@ outside_network:
   reason: 聚合清单写明「信息图对象号未登记」
   decision:
     decided_object: none
-    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 togaf/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
+    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 ssot/t-transitions/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
     group: finance
     commit: fccf803c
 - id: OTR-847
@@ -11108,7 +11108,7 @@ outside_network:
   reason: 聚合清单写明「信息图对象号未登记」
   decision:
     decided_object: none
-    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 togaf/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
+    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 ssot/t-transitions/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
     group: finance
     commit: fccf803c
 - id: OTR-848
@@ -11124,7 +11124,7 @@ outside_network:
   reason: 聚合清单写明「信息图对象号未登记」
   decision:
     decided_object: none
-    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 togaf/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
+    reason: 期初余额只在投产时编制一次（ADR-0022 决定 11），承载流程 PRC-167 已退役并移入迁移规划 ssot/t-transitions/transitions.yaml（CON-1017-ARC-10 R-2）；不是运行期业务对象，不进对象状态网络
     group: finance
     commit: fccf803c
 - id: OTR-849

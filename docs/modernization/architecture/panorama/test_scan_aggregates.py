@@ -154,7 +154,6 @@ class AggregateScanTest(unittest.TestCase):
 
     def test_arc08_generation_is_byte_identical_and_check_does_not_write(self):
         self.write(s.DRAFT, planned_text())
-        self.write(s.OLD, yaml.safe_dump({'aggregates': [{'id': 'cost.timesheet/Timesheet'}]}))
         with contextlib.redirect_stdout(io.StringIO()):
             s.generate(self.root)
             first = {p.name: p.read_bytes() for p in (self.root / s.OUTPUT).iterdir()}

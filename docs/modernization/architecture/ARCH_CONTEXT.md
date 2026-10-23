@@ -24,7 +24,7 @@
 | 项 | 值 |
 |---|---|
 | 在途 PR | 无；文档交付与四节点报告按 TEAM-53，合集自扫分支，one-merge 按调度批准收合集 |
-| 当前步 | 2026-10-22：ADR-0074～0077 已采纳；网络第三批卡 12～15 完成（facts、dimensions、kpis、bindings 四份登记接入全景节点 11～14）；#574、#580 已合入。下一步：三组设计分支进 main 后做 GL5 与聚合稿一批；签章服务准入复核。交接 `proposals/HANDOFF_2026-10-22.md` |
+| 当前步 | 2026-10-23 晚：GOV-1023-ARC-01 第①步 PR（ssot/ 为架构唯一来源，用户 intent 2026-10-23-154833；路径对照与 proposals/ 限期例外见 ssot/PATHS.md），之后第②步流程合一、第③步清重复。2026-10-22：ADR-0074～0077 已采纳；网络第三批卡 12～15 完成（facts、dimensions、kpis、bindings 四份登记接入全景节点 11～14）；#574、#580 已合入。下一步：三组设计分支进 main 后做 GL5 与聚合稿一批；签章服务准入复核。交接 `proposals/HANDOFF_2026-10-22.md` |
 | 已定（2026-10-22） | 命令编号持久登记（`ssot/11-commands/command-ids.yaml`，改名声明 former_names 沿用旧号，登记缺失须 --seed）；聚合根未建须列 `panorama/unbuilt_roots.yaml`（负责人、到期、≤60 天）；指标 kind 只取业务指标、出口条件、技术度量；NAMING §2.3 审计列为 created_at、updated_at、version；号段 PRC 到 202、AGG 到 137 |
 | 规矩（2026-10-22） | 守护与工具脚本单独开 PR；文档合集按 TEAM-53 由 one-merge 自扫分支；已答确认页题面是历史记录不改；不用 --no-verify |
 | 已定（2026-10-16 晚） | 结构裁定 S-29–S-44；VS-02.7 改名收尾；新增 VS-04.6 履约、VS-08.0 事前申请；归段判据写进 stage_align_check；权责表 586 条冲突 0；跨组接缝清零 |

@@ -42,8 +42,8 @@
 | 档位 | 是 | 单 | `正式` 或 `轻量`（第 6 节）；也是新旧格式的判定字段（第 1 节） |
 | 起草 | 是 | 单 | 负责会话名（如 `one-architecture`），复审提醒发给它 |
 | 类别 | 是 | 单 | 第 3.1 节枚举之一 |
-| BC | 是 | 多 | `architecture/ddd/contexts.yaml` 的 `id`；跨全部 BC 写 `全局` |
-| 阶段 | 是 | 多 | `architecture/togaf/transitions.yaml` 的 `id`（如 `TA-1a`）；不限阶段写 `全阶段` |
+| BC | 是 | 多 | `architecture/ssot/d-domain/contexts.yaml` 的 `id`；跨全部 BC 写 `全局` |
+| 阶段 | 是 | 多 | `architecture/ssot/t-transitions/transitions.yaml` 的 `id`（如 `TA-1a`）；不限阶段写 `全阶段` |
 | 取代 | 否 | 多 | 见第 4 节 |
 | 被部分取代 | 否 | 多 | 写在被部分取代的一方，列出取代它的 ADR 与范围；见第 4 节；只由后来的 ADR 采纳时添加 |
 | 用户原话 | 视状态 | 多 | 每项：「原话」（YYYY-MM-DD，intent `文件名.md`）；只摘决定性的一句，全文在 intent |

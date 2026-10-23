@@ -1,5 +1,5 @@
 # TOGAF 过渡架构（建设阶段）。ID = TA-<阶段>。每个阶段是一个可运行、可回滚的过渡架构（GUIDING_PRINCIPLES §2，brief §3）。
-# contexts 引用 ddd/contexts.yaml 的 BC ID；delivers 为本阶段新建或切换的 BC，其中 planned 的 BC 边界仍待按能力地图与价值流重审（README「规划项不是目标」）。
+# contexts 引用 ssot/d-domain/contexts.yaml 的 BC ID；delivers 为本阶段新建或切换的 BC，其中 planned 的 BC 边界仍待按能力地图与价值流重审（README「规划项不是目标」）。
 # wave / waves：TA 交付的 BC 所在建造批（construction-plan.v1.yaml 的 wave；平台模块与迁入编排计 W0，reporting 计 W5；退役标识按 ADR-0051 决定 3 后第 86 行去向换算）；wave 取最晚一批，即本 TA 全部完成的批次。
 # status：done / in-progress / not-started。入口与出口条件以 brief 为准，这里只引用，不复制。维护：one-architecture。
 transitions:
