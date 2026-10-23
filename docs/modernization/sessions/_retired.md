@@ -6,3 +6,5 @@
 - one-1a-next-4：已交接（→ one-1a-next-5），已归档
 - one-glossary-b1：实现完成（#234 已合），已归档
 - one-glossary-b2：实现完成（#272 已合），已归档
+- one-arch-revenue：临时流程组结束（ARE-03 完成，@07c564244 在 main），10-23 归档（intent 111722）
+- one-arch-people：临时流程组结束（收尾 @399727388 在 main），10-23 归档（intent 111722）
