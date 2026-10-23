@@ -48,12 +48,15 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
 
         renameMember(CHANGING, "After", "E9101-NEW", "world-9101-new");
         countAllocations();
-        syncOnce();
+        String renameRun = syncOnce().syncRunId().value().toString();
 
         assertThat(ownIdsOf(EMPLOYEE, CHANGING)).as("still the one reference of the same source id").containsExactly(person);
         assertThat(snapshotValue("employees", person, "display_name")).as("the entry of the same own id took the new name").isEqualTo("After");
         assertThat(snapshotValue("employees", person, "employee_code")).as("the issued code is kept, the changed source code is reported").isEqualTo("E9101");
         assertThat(snapshotValue("employees", person, "login_name")).isEqualTo("world-9101-new");
+        assertThat(issuesOfRun(renameRun, "EMPLOYEE_CODE_CHANGE_IGNORED")).as("the ignored code change is reported once").isEqualTo(1);
+        String detail = issueDetail(renameRun, "EMPLOYEE_CODE_CHANGE_IGNORED", "employee:" + person);
+        assertThat(detail).as("the exception names no code value (ADR-0078 decision 8)").isNotBlank().doesNotContain("E9101").doesNotContain("E9101-NEW");
         assertThat(references(EMPLOYEE)).as("no reference is made for a person already seen").isEqualTo(employeeReferences);
         assertThat(allocationStatements()).as("no allocation for objects that have a reference").isZero();
 
@@ -109,6 +112,18 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
             try (ResultSet rs = select.executeQuery()) {
                 rs.next();
                 return rs.getInt(1);
+            }
+        }
+    }
+
+    private String issueDetail(String run, String issueKind, String subjectKey) throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce"); PreparedStatement select = workforce.prepareStatement(
+                "select detail from sync_diffs where sync_run_id::text = ? and issue_kind = ? and subject_key = ?")) {
+            select.setString(1, run);
+            select.setString(2, issueKind);
+            select.setString(3, subjectKey);
+            try (ResultSet rs = select.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
             }
         }
     }
