@@ -47,7 +47,7 @@ ALTER ROLE one_dev_migrator SET role = one_dev_owner;          -- 迁移建出�
 -- 与 one_prod_* 一套角色（本脚本把 dev 换成 prod 即可）；dev 凭据不能连生产库。连接数预算与按角色超时、work_mem 按 ADR-0025 第 2 条设置。
 -- 运行角色：应用常驻连接，只有 DML，不能建表、改表
 CREATE ROLE one_dev_app LOGIN NOINHERIT CONNECTION LIMIT 25;
-ALTER ROLE one_dev_app SET search_path = pg_catalog, platform_approval;   -- pg_catalog 在前，防同名对象顶替内建函数；platform_approval 仍是 Flowable 的默认 schema
+ALTER ROLE one_dev_app SET search_path = platform_approval, pg_catalog;   -- Flowable 以 platform_approval 为默认 schema
 ALTER ROLE one_dev_app SET statement_timeout = '30s';
 ALTER ROLE one_dev_app SET idle_in_transaction_session_timeout = '60s';
 
