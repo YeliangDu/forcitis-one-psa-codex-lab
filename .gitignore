@@ -38,3 +38,6 @@ docs/modernization/architecture/panorama/FREEZE_FACTS.yaml
 docs/modernization/architecture/panorama/FREEZE_IMPACT.md
 docs/modernization/architecture/panorama/panorama.yaml
 docs/modernization/architecture/panorama/GAPS.md
+# 命令目录纯生成产物不入仓：本地运行 docs/modernization/build_all.py 生成，或看 generated-docs 分支（GOV-1023-QUA-02）
+docs/modernization/architecture/ssot/11-commands/commands.yaml
+docs/modernization/architecture/ssot/11-commands/GAPS.md

@@ -244,6 +244,9 @@ def read_mapping(path):
 
 
 def read_rows(key, field):
+    if key == "cmd" and not SRC[key].is_file():
+        raise FileNotFoundError(f"{rel(SRC[key])} 是不入仓的命令目录，当前缺失；"
+                                "请先运行 python3 docs/modernization/build_all.py 生成，或从 generated-docs 分支读取快照")
     rows = read_mapping(SRC[key]).get(field)
     if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
         raise ValueError(f"{rel(SRC[key])}#{field} 应为条目列表")
