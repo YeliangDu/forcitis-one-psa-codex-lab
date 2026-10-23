@@ -648,35 +648,33 @@ processes:
         command: 提交过账候选
         aggregate: AGG-76
         calls: PRC-92
-        pending: S-4b 拆分口径（拆分依据与新增 B-15 读 B-16 的边，交 one-architecture、one-arch-finance 核）
-        desc: 核定后提交一次「奖金核定重分类」记账事实（S-4b，one-architecture @a747e42af；finance PRC-96 @0d93dd7e）：只在负债内部重分类、不进成本——借 应付职工薪酬—奖金（计提），贷 应付职工薪酬—奖金（已核定），金额为核定额；按法人与项目拆分：读被核定人员在核定期间已过账的人工事实，按「成本法人 × 项目」的直接人工占比拆核定额，尾差并入金额最大的一行；核定期间没有项目人工的部分拆不到项目，整额记被核定人员的成本法人、不带项目，由 B-07 按 LEB-05 留原法人转费用，不跨法人；拆分明细随事实携带。差额（核定额与累计计提之差）转成本调整行归 B-07（PRC-96 步 2 ③），本步不算。所属会计期间已关账的按 ADR-0045 与 INV-92 路由到开放期间并标原期间
+        desc: 核定后提交一次「奖金核定重分类」记账事实（S-4b，one-architecture @a747e42af；finance PRC-96 @0d93dd7e）：只在负债内部重分类、不进成本——借 应付职工薪酬—奖金（计提），贷 应付职工薪酬—奖金（已核定），金额为核定额；按法人与项目拆分：读被核定人员在本次核定覆盖的服务期间（激励方案版本的考核期间，不是核定当月；one-architecture @3541ced0b 第 3 点）内已过账的人工成本分配事实，按「成本法人 × 项目」的直接人工占比拆核定额，尾差并入金额最大的一行；服务期间没有项目人工的部分拆不到项目，整额记被核定人员的成本法人、不带项目，由 B-07 按 LEB-05 留原法人转费用，不跨法人；成本法人与项目承担法人不同的行标「待内部结算」，列入跨法人清单（LEB-04，同 PRC-96 第 2 步），项目承担法人一侧只在看板归集、不入账（one-arch-finance 会签 @9efc6842 第 5 点）；拆分明细随事实携带。差额（核定额与累计计提之差，各项目有正有负，one-arch-finance 会签第 3 点接受）由 B-07 在 PRC-96 独立入口「过账奖金调整」（AGG-139 奖金调整运行，one-architecture @7776166a1 附）出调整行，本步不算；本步须在核定所在期间发起关账前完成（月结日程触发，INV-92）。所属会计期间已关账的按 ADR-0045 与 INV-92 路由到开放期间并标原期间
         audit: true
         period_gate: true
-        legal_entity: 被核定人员核定期间的成本法人（与人工事实一致，ADR-0073 第 1 条、LEB-04）
-        notify: [{to: SH-E6, how: 企业微信告警}]     # 延后重试超过下次关账仍未提交时才发
+        legal_entity: 被核定人员服务期间的成本法人（与人工事实一致，ADR-0073 第 1 条、LEB-04）
+        notify: [{to: SH-E6, how: 企业微信告警}]     # 延后重试时发
         decision:
-          - {when: "核定期间的人工成本分配尚未过账，或 PRC-92 返回期间关账中，延后由投递重试；到下次关账仍未提交的告警人力", goto: end, outcome: 期间关账中待重试}
+          - {when: "核定覆盖的服务期间内还有月份未关账或人工成本分配未过账，或 PRC-92 返回期间关账中，延后由投递重试并告警人力", goto: end, outcome: 期间关账中待重试}
           - {when: "所属会计期间已关账，路由到开放期间", goto: end, rule: INV-92}
           - {when: otherwise, goto: end}
         outcome: 已核定
         cross_bc:
-          - {mode: api, direction: out, bc: B-16, name: 读取已过账人工事实（按人员 × 期间）}
+          - {mode: api, direction: out, bc: B-16, name: 读取已过账事实（人工成本分配，按人员 × 服务期间）}
           - {mode: api, direction: out, bc: B-16, name: 提交过账候选}
     notes: 订阅方 B-15（奖金核定依据）。聚合稿 AGG-76 没有“额度不得超出激励方案”的不变量，草拟时拒绝先按前置检查写，见 notes 结构问题。原 v1 的人力手工草拟取消，catalog 的 human_orchestration 须由 false 改为 true（notes 格式问题）。
 
   - id: PRC-203
     name: 按月计提奖金
     trigger:
-      type: event
-      events:
-        - {event: BusinessFactAttributed, aggregate: AGG-77, filter: "来源为人工成本分配（PRC-96），按法人 × 期间首次到达"}
+      type: time
+      desc: 月结日程（platform.scheduling）在发起关账前、PRC-96 人工成本分配过账之后按法人 × 期间触发（one-architecture @7776166a1 附第 2 条）
     triggers:
-      - {type: event, name: "BusinessFactAttributed（B-16 发布；只处理人工成本分配来源，按法人 × 期间）"}
+      - {type: time, name: "月结日程到点（platform.scheduling；发起关账前依次触发 PRC-96 → 本流程 → 核定期间 PRC-122 第 5 步 → 过账奖金调整）"}
       - {type: human, name: "人力在补齐计提规则或激励方案版本后对已中止的法人 × 期间重新发起"}
     stages: [VS-13.2]
     stages_note: "S-6（one-architecture @cfc721a34 附三）把按月奖金计提从 B-07 PRC-96 第 1 步移到 B-15；计提是对奖金核定的按服务期预计，与 PRC-122 同段"
-    primary_object: OBJ-104
-    primary_object_note: "奖金计提无独立业务对象：计提额是对奖金核定（OBJ-104）的按月预计，结果落 B-16 记账事实；是否另立对象待 one-architecture 定"
+    primary_object: none
+    primary_object_note: "运行单据（AGG-138 技术聚合），结果是 B-16 记账事实，同 PRC-96（one-architecture @3541ced0b 第 6 点）"
     owner_bc: B-15
     human_orchestration: false
     migration: "2020–2025 历史奖金计提来自老系统线下导入，随历史事实经迁入过账通道写入 B-16，不经本流程（ADR-0036 M7、M8）；老系统按发放期归集的期间错配由 one-rules 在 2025 基线注明（FCQ-01）"
@@ -699,13 +697,13 @@ processes:
           - {when: 合同额百分比所引激励方案版本不存在、未生效或计提期间不在其有效期内，已中止, goto: end, outcome: 已中止, alert: true}
           - {when: otherwise, goto: 2}
         cross_bc:
-          - {mode: event, direction: in, bc: B-16, name: BusinessFactAttributed}
+          - {mode: event, direction: in, bc: platform.scheduling, name: 月结日程到点}
           - {mode: api, direction: out, bc: B-02, name: 读取奖金计提规则（标准成本费率表版本子项）}
       - actor: system
         where: automatic
         command: 〔缺〕计算奖金计提
         aggregate: AGG-138
-        desc: 经 api 从 B-16 读本期已过账事实作计提基数：合同额百分比用收入确认事实（当月确认的项目收入），历史比率用人工成本分配事实（当月该项目直接人工，不含奖金）；每项目计提额 = 基数 × 计提率，按「法人 × 项目」出行，法人取基数事实的法人（收入取项目承担法人，人工取员工成本法人，ADR-0073、LEB-04）；基数为 0 的项目不出行；尾差按项目四舍五入到分
+        desc: 经 api 从 B-16 读本期已过账事实作计提基数：合同额百分比用收入确认事实（当月确认的项目收入），历史比率用 B-07 已过账的人工成本分配事实（当月该项目直接人工）；人工基数只取人工成本分配这一类来源，不含奖金计提、核定重分类和调整行，否则会把奖金算进自己的基数（one-architecture @3541ced0b 第 2 点）；每项目计提额 = 基数 × 计提率，按「法人 × 项目」出行；两种规则类型的法人都取员工成本法人（ADR-0073、LEB-04，与人工成本、核定重分类、实际发放同一法人；one-architecture @3541ced0b 第 5 点，one-arch-finance 会签 @9efc6842）：历史比率直接取人工事实的成本法人，合同额百分比先按项目收入算出项目计提额，再按该项目当月已过账直接人工的成本法人占比拆到各法人，尾差并入金额最大的一行；当月没有人工的项目，计提额记项目承担法人，到核定期间由 B-07 调整行冲回；成本法人与项目承担法人不同的行标「待内部结算」，列入跨法人清单（LEB-04，同 PRC-96 第 2 步），项目承担法人一侧只在看板归集、不入账，成本转移照既有跨法人规则（LEB 系列、INV-142），本流程不另做；每次运行只出本法人的行；基数为 0 的项目不出行；尾差按项目四舍五入到分
         audit: true
         decision:
           - {when: 本期人工成本分配或收入确认尚有法人 × 期间未过账，延后由投递重试；到下次关账仍未齐的告警人力, goto: end, outcome: 期间关账中待重试}
@@ -717,18 +715,19 @@ processes:
         command: 提交过账候选
         aggregate: AGG-138
         calls: PRC-92
-        desc: 按法人与项目提交「奖金计提」记账事实（S-6 第 2 条）：借 合同履约成本—直接人工（项目），贷 应付职工薪酬—奖金（计提），科目与 S-4b 重分类、B-07 调整行同一套；计提率与规则类型随事实携带，供 B-07 只经 B-16 读（ADR-0051 决定 9 不变）；须在该法人本期确认关账前提交，所属会计期间已关账的按 ADR-0045 与 INV-92 路由到开放期间并标原期间
+        desc: 按法人与项目提交「奖金计提」记账事实（S-6 第 2 条）：借 合同履约成本—直接人工（项目），贷 应付职工薪酬—奖金（计提），科目与 S-4b 重分类、B-07 调整行同一套；计提率与规则类型随事实携带，供 B-07 只经 B-16 读（ADR-0051 决定 9 不变）；本法人本期没有计提额的，提交一条零额完成记录：只有事实头、没有分录行的奖金计提事实，标零额完成，不生成凭证，供发起关账的前置检查区分「不用计提」与「漏了」（硬规则 6；B-16 接受，INV-143：只有登记为完成记录的事实类型可无分录行，不生成分录、不推 B-20，幂等键法人 × 期间，INV-94）。关账顺序（one-architecture @3541ced0b 第 4 点、@7776166a1 附，one-arch-finance 会签 @9efc6842）：月结日程在发起关账前依次触发 PRC-96 人工成本分配过账 → 本流程计提 → 核定所在期间 PRC-122 第 5 步核定重分类 → B-07 调整行（PRC-96 独立入口「过账奖金调整」，AGG-139 奖金调整运行，不在 PRC-96 当期试算内、不计入 INV-89）→ 发起关账；进入关账中后按 INV-92 不收本期过账，所以都在发起关账前完成。发起关账的前置检查经 B-16 读「本期奖金计提已过账」（含零额完成记录），核定期间加查「奖金调整已过账」，查不到退回开放并告警（ADR-0045 决定 1）。所属会计期间已关账的（例外，如重开后补提）按 ADR-0045 与 INV-92 路由到开放期间并标原期间
         audit: true
         period_gate: true
-        legal_entity: 基数事实的法人
+        legal_entity: 员工成本法人；当月没有人工的项目取项目承担法人（第 5 点会签）
         decision:
+          - {when: "本法人本期没有计提额，提交零额完成记录（无分录行，不生成凭证）", goto: end, outcome: 已提交过账}
           - {when: "PRC-92 返回期间关账中，延后由投递重试", goto: end, outcome: 期间关账中待重试}
           - {when: "所属会计期间已关账，路由到开放期间", goto: end, rule: INV-92}
           - {when: otherwise, goto: end}
         outcome: 已提交过账
         cross_bc:
           - {mode: api, direction: out, bc: B-16, name: 提交过账候选}
-    notes: "ARC-1022-APE-01（S-6 扩范围）。号 PRC-203、AGG-138 为暂用号，待 one-architecture 在 process-catalog 与 PRC_ALLOCATIONS 确认。新增 B-15 → B-02 api 边（读计提率，S-6 第 2 条）与 B-15 → B-16 读已过账事实的边，B-08 不加边。触发取人工成本分配已过账，因历史比率的基数是 B-07 当月已过账直接人工；计提须赶在关账确认前，否则落下期（结构问题 15）。"
+    notes: "ARC-1022-APE-01（S-6 扩范围）。号 PRC-203、AGG-138 已确认（one-architecture @3541ced0b 第 1 点）。B-15 → B-02 api 边读计提率（S-6 第 2 条）；B-15 → B-16 为已有边，只加 api「读取已过账事实」（第 2 点），B-08 不加边。第 4、5 点经 one-arch-finance 会签（BONUS_OVERTIME_COSTING §6 @9efc6842）已落：关账顺序与零额完成记录、计提法人统一取员工成本法人、跨法人标待内部结算。触发取人工成本分配已过账，因历史比率的基数是 B-07 当月已过账直接人工；计提须赶在关账确认前，否则落下期（结构问题 15）。one-architecture 已裁会签条件（@7776166a1 附）：调整另立 AGG-139 奖金调整运行（B-07），命令「生成奖金调整」「提交过账候选」「冲销奖金调整运行」为提议名（交 one-glossary）；计提、重分类、调整都由月结日程在发起关账前触发；零额完成记录登记 INV-143；跨法人待内部结算认可。"
 
   # ───────────── VS-13.3 薪酬结算 ─────────────
 
