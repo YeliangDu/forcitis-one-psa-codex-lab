@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "owner": "one-ops",
+  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、连接串片段、aliyun profile 名），大小写不敏感。写操作命令只要碰到任一 pattern 就被 prod_write_gate 拒绝；改动由 one-ops 提，PR 过 opus 复审。",
+  "targets": [
+    {"id": "legacy-rds-sqlserver", "kind": "rds", "patterns": ["rm-bp1690ep53t9778dp"], "note": "老系统生产 SQL Server（RESOURCES.md）；只读取证走 ADR-0037 专用只读账号"}
+  ]
+}
