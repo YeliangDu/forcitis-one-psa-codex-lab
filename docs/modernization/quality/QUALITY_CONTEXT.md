@@ -357,12 +357,12 @@ PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordi
 
 ### 现状
 - 调度 10-23 整改总验收 GOV-1023-COO-01（清单 `~/.modernize/psa/coordinator/team-audit/acceptance-1023.md`，54 项）：顺序 QUA-06 → #653/#654＋QUA-08 → QUA-04 → QUA-07 → QUA-02 → 其余；代码类交 Codex，钩子与解析自写。QUA-21 改「撤硬拦只提示」，QUA-12 不禁整节上下文文档。1023 的 QUA-06～10 卡在 `origin/claude/one-coordinator-two-lanes`，随 train-71 进 main。
-- **QUA-06 已开 PR #659**（分支 `claude/one-quality-hooks-main-checkout`，head fb56502d2）：run_from_main.sh 启动器＋settings 全部钩子改走它、handoff_snapshot 子调用用自身目录、verdict ≤15 行＋完整日志路径、节点提示只列卡号标题、调度 50/60；自测与破坏验证齐，等调度安排 opus 首轮。
+- **QUA-06 = PR #659**（分支 `claude/one-quality-hooks-main-checkout`）：opus 首轮「改后通过」，必改 7 项**已改并推送，head 569c5eacf**（启动器只认 CLAUDE_PROJECT_DIR、只跑 main 干净内容、崩溃按失败、告警进日志＋开工单＋SessionStart 标准输出、摘录含块尾报错、关三个插件、调度阈值钩子路径测试、落后 517 提交工作区实测；说明已贴 PR 评论）。**待办：交 sonnet 逐条复核（对照 `~/.modernize/psa/coordinator/reviews/pr659-opus-1.md`）→ 贴 PR → 报调度 head。**
 - **#653 二轮 6 项必改已改并推送**（head 80bf77e25）：只读通道删 b5_legacy_run.py／c14_run.py；可信脚本认 origin/main 内容；`./x` 直接执行与行级兜底；git 本地子命令白名单；ssh -o 白名单；GNU 长选项任意前缀。8 处破坏验证均变红。**待办：交 sonnet 逐条复核（对照 `~/.modernize/psa/coordinator/reviews/pr653-opus-2.md`），结论贴 PR，报调度 head；PR 描述补「通道整支只读」依据，并请 one-ops 核剩余三支。**
 - #654 等新 #653 后推（调度语）。
 
 ### 下一步（顺序）
-1. sonnet 复核 #653 → 贴 PR → 报 head。
+1. sonnet 复核 #659 与 #653（可并行，两个子代理，各给对应复审全文）→ 贴 PR → 报调度 head。
 2. QUA-08（command_words 缺口统一修，与 #653/#654 的共享解析一并）→ #654 返工 → QUA-04 → QUA-07 → QUA-02 → 其余（QUA-09、10 交 Codex）。
 3. 本交接文档的提交号报 one-merge。
 
