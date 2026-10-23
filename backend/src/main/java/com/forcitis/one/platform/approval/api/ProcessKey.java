@@ -1,26 +1,40 @@
 package com.forcitis.one.platform.approval.api;
 
-import java.util.Locale;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.forcitis.one.kernel.ValueObject;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
- * One BPMN file per constant (processes/{key}.bpmn20.xml); constant = {SUBDOMAIN}_{BC}_{NAME} of the owning module (G47).
- * The document type a process approves is data of its definition (forcitis:documentType), not a field of the constant (ADR-0066 decision 4).
+ * The id of a deployed approval process: {subdomain}_{bc}_{name} of the business context that owns it (G47), the same text as its
+ * BPMN file name (processes/{key}.bpmn20.xml) and process id. The platform lists no process; the owning context declares its own
+ * constant in its api. What the process is called to a person and whether its branches need routing flags are data of the definition.
  */
-public enum ProcessKey {
-    COST_TIMESHEET_APPROVAL(true);
+@ValueObject
+public record ProcessKey(String value) {
 
-    private final boolean routingFlagRequired;
+    private static final Pattern FORMAT = Pattern.compile("[a-z]+_[a-z]+_[a-z]+(?:_[a-z]+)*");
 
-    ProcessKey(boolean routingFlagRequired) {
-        this.routingFlagRequired = routingFlagRequired;
+    public ProcessKey {
+        Objects.requireNonNull(value, "ProcessKey");
+        if (!FORMAT.matcher(value).matches()) {
+            throw new IllegalArgumentException("ProcessKey must match " + FORMAT.pattern() + ": " + value);
+        }
     }
 
-    /** True when the branches are chosen by routing flags: a start with none would route nowhere and is refused. */
-    public boolean routingFlagRequired() {
-        return routingFlagRequired;
+    @JsonCreator
+    public static ProcessKey of(String value) {
+        return new ProcessKey(value);
     }
 
     public String key() {
-        return name().toLowerCase(Locale.ROOT);
+        return value;
+    }
+
+    @JsonValue
+    @Override
+    public String toString() {
+        return value;
     }
 }

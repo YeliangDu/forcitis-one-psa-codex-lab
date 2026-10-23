@@ -90,24 +90,44 @@ class BpmnRuleConventionsTest {
     @Test
     @DisplayName("every deployed process file of the code base passes the conventions (also checked at startup)")
     void shippedProcessesAreValid() throws Exception {
-        for (ProcessKey key : ProcessKey.values()) {
-            try (InputStream in = getClass().getResourceAsStream("/processes/" + key.key() + ".bpmn20.xml")) {
-                assertThat(in).as("BPMN file of " + key).isNotNull();
+        for (Path file : shippedProcessFiles()) {
+            try (InputStream in = Files.newInputStream(file)) {
                 BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);
                 model.getMainProcess().findFlowElementsOfType(UserTask.class).forEach(NodePolicyReader::read);
             }
         }
     }
 
+    private static List<Path> shippedProcessFiles() throws java.io.IOException {
+        try (Stream<Path> files = Files.list(Path.of("src/main/resources/processes"))) {
+            List<Path> found = files.filter(f -> f.toString().endsWith(".bpmn20.xml")).sorted().toList();
+            assertThat(found).as("shipped process files").isNotEmpty();
+            return found;
+        }
+    }
+
     @Test
     @DisplayName("ADR-0066 decision 4: every process file declares exactly one forcitis:documentType code, a well-formed DocumentTypeCode")
     void everyProcessDeclaresItsDocumentType() throws Exception {
-        for (ProcessKey key : ProcessKey.values()) {
-            try (InputStream in = getClass().getResourceAsStream("/processes/" + key.key() + ".bpmn20.xml")) {
+        for (Path file : shippedProcessFiles()) {
+            try (InputStream in = Files.newInputStream(file)) {
                 BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);
                 List<org.flowable.bpmn.model.ExtensionElement> declared = model.getMainProcess().getExtensionElements().get("documentType");
-                assertThat(declared).as("forcitis:documentType of " + key).hasSize(1);
+                assertThat(declared).as("forcitis:documentType of " + file.getFileName()).hasSize(1);
                 assertThat(new com.forcitis.one.kernel.DocumentTypeCode(declared.getFirst().getAttributeValue(null, "code")).value()).isNotBlank();
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("REG-4: every process file carries the name a person reads and declares forcitis:routingFlagRequired, and its id is a ProcessKey")
+    void everyProcessDeclaresItsNameAndRoutingFlagRule() throws Exception {
+        for (Path file : shippedProcessFiles()) {
+            try (InputStream in = Files.newInputStream(file)) {
+                BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);
+                ProcessKey key = ProcessKey.of(model.getMainProcess().getId());
+                assertThat(ProcessDefinitionDeclarations.nameOf(key, model.getMainProcess())).isNotBlank();
+                ProcessDefinitionDeclarations.routingFlagRequired(key, model.getMainProcess());
             }
         }
     }

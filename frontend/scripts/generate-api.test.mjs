@@ -32,8 +32,8 @@ test('the committed document passes and carries the traits', () => {
 
 test('enum-valued properties are open in the types (a newer server may send more), the enum components stay closed for exhaustive tables', () => {
   const run = generate(() => undefined);
-  assert.match(run.types, /processKey: components\["schemas"\]\["ProcessKey"\] \| \(string & \{\}\);/);
-  assert.match(run.types, /ProcessKey: "COST_TIMESHEET_APPROVAL";/);
+  assert.match(run.types, /outcome\?: components\["schemas"\]\["AuditOutcome"\] \| \(string & \{\}\);/);
+  assert.match(run.types, /AuditOutcome: "SUCCEEDED" \| "FAILED";/);
   assert.match(run.types, /ErrorCode: "COST_TIMESHEET_CUTOFF_PASSED"/);
 });
 

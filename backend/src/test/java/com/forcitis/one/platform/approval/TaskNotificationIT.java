@@ -72,7 +72,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         assertThat(card.title()).contains("项目经理审批");
         assertThat(card.targetUrl()).contains(task.value().toString());
         assertThat(card.description()).contains("工时审批").contains("summary of " + key).contains("发起人").contains("发起时间").contains("截止");
-        assertThat(card.title() + card.description()).doesNotContain("COST_TIMESHEET_APPROVAL").doesNotContain("timesheet:");
+        assertThat(card.title() + card.description()).doesNotContain("cost_timesheet_approval").doesNotContain("timesheet:");
     }
 
     @Test
