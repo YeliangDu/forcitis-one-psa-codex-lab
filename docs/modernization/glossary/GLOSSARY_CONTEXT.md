@@ -1,6 +1,6 @@
 # one-glossary 速查（2026-10-15）
 
-规矩：只预判、不裁定，用户答复为准；会计类经财务（ADR-0018）；一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。
+规矩：只预判、不裁定，用户答复为准；会计类经财务（ADR-0018）；一行一项，过程放链接（SESSION_PLAYBOOK TEAM-07、08）。
 
 bcs.yaml 每个 bc 的 `words`（不另立词条的业务用语）能给界面文字背书，作用同正式词条（B2 #272，用户新定）：往里加词也走用语登记流程，由 one-glossary 把关、用户确认，不当第二个放行清单；规则——纯中文、两字以上，不得是正式词条名或禁用写法，要成为词条先走用语流程，前端脚本会检查；正式登记成词条时同时从 words 删掉。
 
@@ -41,7 +41,7 @@ bcs.yaml 每个 bc 的 `words`（不另立词条的业务用语）能给界面�
 | 积压 | 以 `glossary/ISSUES.md` 首段为准（门槛只算业务用语；错误码单列归 R-5，用户 2026-10-15） |
 | 已知重复 | 中文名重复 5 组（§5 起因）；同义错误码 4 组（R-5 卡） |
 | 在途 | 来单驱动的预判与登记（任务登记在 `tasks/NAM-*-GLO-*.md`，最新到 NAM-1021-GLO-23）；GL3、GL4、GL5 已答复写回；待办清单见 glossary/HANDOFF_20261022.md |
-| 下一步 | /clear 后读本文件、glossary/HANDOFF_20261022.md、sessions/one-glossary.md、`tasks/` 本会话片段；先办 one-1a-admin 卡 C 的 T-G1…G5，再 codex-n20/n22/n21 成果写回；规则：模块标识与业务用语不自定，先审题再进收件箱 |
+| 下一步 | /clear 后读本文件、glossary/HANDOFF_20261022.md、sessions/one-glossary.md、`tasks/` 本会话片段；按 HANDOFF_20261022.md「2026-10-23 续」：先收 Codex 两张用语页卡（GL6/GL7）审题；规则：模块标识与业务用语不自定，先审题再进收件箱 |
 | B2 | B2（分支 claude/one-glossary-b2）：类别统一为 DDD 十种（判定表 `glossary/b2/kind-judgement.json`，subdomain/module/system 移入 bcs.yaml，属性挂 attributes），term_rules 加 kind 与命名规则，GlossaryTest 加 G40–G42（聚合根/领域事件反查词条，基线 `backend/glossary/code-term-baseline.txt`），59 条缺失的聚合与事件登记为提议（`proposed/code-aggregates-events.yaml`）；待用户确认清单在共享笔记 b2-confirm-list.md。已合：#212、#214、#234（B1）、#236 |
 | 用语规范 | evidence 只用于「证据」义（fact_evidence 等）；判定结果用 verdict（在职判定 EmploymentVerdict） |
 | 定时 | 每周积压检查（会话内定时任务，开会话后设，记在画像） |

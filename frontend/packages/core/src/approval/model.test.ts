@@ -50,16 +50,16 @@ describe('办理意见', () => {
   });
 });
 
-const NEW_ITEM: InboxItem = { category: 'TODO', overdue: false, taskId: 'n-1', claimed: false, processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS-1', title: 'COST_TIMESHEET_APPROVAL 42' };
+const NEW_ITEM: InboxItem = { category: 'TODO', overdue: false, taskId: 'n-1', claimed: false, processKey: 'cost_timesheet_approval', documentId: 'TS-1', title: 'cost_timesheet_approval 42' };
 
 describe('待办标题', () => {
   it('新系统的待办按流程和单据号在前端拼出标题，不显示服务端给的英文标题', () => {
-    expect(inboxTitle(NEW_ITEM)).toBe(`${PROCESS_LABELS.COST_TIMESHEET_APPROVAL} TS-1`);
-    expect(inboxTitle(NEW_ITEM)).not.toContain('COST_TIMESHEET_APPROVAL');
+    expect(inboxTitle(NEW_ITEM)).toBe(`${PROCESS_LABELS.cost_timesheet_approval} TS-1`);
+    expect(inboxTitle(NEW_ITEM)).not.toContain('cost_timesheet_approval');
   });
 
   it('新系统的待办缺少流程或单据号时，显示固定的提示而不是枚举名', () => {
-    expect(inboxTitle({ category: 'TODO', overdue: false, taskId: 'n-2', claimed: false, title: 'COST_TIMESHEET_APPROVAL 42' })).toBe(UNRECOGNISED_TASK_TITLE);
+    expect(inboxTitle({ category: 'TODO', overdue: false, taskId: 'n-2', claimed: false, title: 'cost_timesheet_approval 42' })).toBe(UNRECOGNISED_TASK_TITLE);
   });
 
   it('单据显示为单据类型的名称加单据号', () => {
@@ -99,22 +99,22 @@ describe('待办的行', () => {
   });
 
   it('已办的标题和待办一样由流程名称与单据号拼出', () => {
-    expect(recordTitle({ processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS-9' })).toBe(`${PROCESS_LABELS.COST_TIMESHEET_APPROVAL} TS-9`);
+    expect(recordTitle({ processKey: 'cost_timesheet_approval', documentId: 'TS-9' })).toBe(`${PROCESS_LABELS.cost_timesheet_approval} TS-9`);
   });
 
   it('服务端新加的流程或单据类型，名称显示为破折号而不是 undefined', () => {
     expect(labelOf(PROCESS_LABELS, 'FUTURE_PROCESS')).toBe('—');
-    expect(inboxTitle({ ...NEW_ITEM, processKey: 'FUTURE_PROCESS' as 'COST_TIMESHEET_APPROVAL' })).toBe('— TS-1');
+    expect(inboxTitle({ ...NEW_ITEM, processKey: 'future_process' })).toBe('— TS-1');
   });
 });
 
 describe('服务端新加的枚举值', () => {
   it('类型上就是开放的：直接用它查表无法通过类型检查，必须经过 labelOf', () => {
-    const key = NEW_ITEM.processKey ?? 'COST_TIMESHEET_APPROVAL';
+    const key = NEW_ITEM.processKey ?? 'cost_timesheet_approval';
     // @ts-expect-error a value of a newer server may be outside the table; look it up with labelOf
     const direct: string = PROCESS_LABELS[key];
-    expect(direct).toBe(PROCESS_LABELS.COST_TIMESHEET_APPROVAL);
-    expect(labelOf(PROCESS_LABELS, key)).toBe(PROCESS_LABELS.COST_TIMESHEET_APPROVAL);
+    expect(direct).toBe(PROCESS_LABELS.cost_timesheet_approval);
+    expect(labelOf(PROCESS_LABELS, key)).toBe(PROCESS_LABELS.cost_timesheet_approval);
   });
 });
 

@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * SESSION_PLAYBOOK section 14 items 2 and 4 (review H-4): what a persistence adapter may write and where. Statements are read from the
+ * DATA_DESIGN_CHECKLIST section 14 items 2 and 4 (review H-4): what a persistence adapter may write and where. Statements are read from the
  * SQL string literals of the adapters; the table structure comes from the migrations.
  */
 final class RepositoryWritePolicy {

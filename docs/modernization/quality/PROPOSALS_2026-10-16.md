@@ -39,7 +39,7 @@
 1. **生成产物不入仓 / 冲突时重新生成**（约占冲突的三成）：`proposed/README.md`、`adr/README.md` 与 INTENT.md 同类，改为不入仓、由 `build_all.py` 生成并发布到 generated-docs 分支，`--check` 只要求“能生成、片段合规”；`terms.yaml`（运行时被读）和 `adr/ADR-*.md`（每文件独立，不冲突）保留入仓，但提供 `scripts/regenerate_conflicts.sh`：合并冲突时取任一边再跑 `build_all.py`，不手工解。
 2. **已批准的五个**：INFRA_RUNBOOK 的 §3 E 表与 §5 变量表、PREDEPLOY_CHECKLIST、DEV_DEPLOY_REMAINING、DEFERRED、RESOURCES（需先和 one-ops 约时机，门禁 `deploy_gate.py` 改读片段目录，失败关闭）。
 3. **提议术语按词条一个片段**（`proposed/<模块>/<词条>.yaml`，现有 `build_proposed_index.py` 合并）：影响 one-glossary 的校验器、前端 `check:copy`、后端 `GlossaryTest`，**先问 one-glossary 再定**。
-4. **SESSION_PLAYBOOK 与两份规范的“追加型条目”**（§5 写代码规则、§11 战队协作、§12.x）：建议抽成 `playbook/rules/<日期>-<slug>.md` 片段，主文件由生成器按序拼出；这是规范正本，改动大，**需调度 + 用户定**，先不动。
+4. **SESSION_PLAYBOOK 与两份规范的“追加型条目”**（附 M5 写代码规则、TEAM-58–66 战队协作、附 M3）：建议抽成 `playbook/rules/<日期>-<slug>.md` 片段，主文件由生成器按序拼出；这是规范正本，改动大，**需调度 + 用户定**，先不动。
 5. **COORDINATOR_LEDGER**：调度独占却自冲突 7 次，说明它被多个调度分支同时改；建议每条台账一个片段，或调度只在一个分支上改。
 6. 不处理：会话画像“当前状态”（每会话独占自己的文件，24 小时内无冲突）、测试基础件重构（一次性）。
 

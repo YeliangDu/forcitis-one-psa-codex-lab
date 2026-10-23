@@ -90,7 +90,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                     .param("ids", staffIds).update();
         }
         for (StaffEmployee s : changes.staff()) {
-            upsertStaff(s, run, at);
+            upsertStaff(s, at);
         }
         history.recordAssignments(changes.staff().stream().map(StaffEmployee::assignment).toList(), snapshotDate);
     }
@@ -98,7 +98,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     @Override
     public void saveRegisteredEmployee(RegisteredEmployee registered, Instant now) {
         LocalDate day = zone.dateOf(now);
-        upsertStaff(registered.staff(), null, Timestamp.from(now));
+        upsertStaff(registered.staff(), Timestamp.from(now));
         history.recordAssignments(List.of(registered.staff().assignment()), day);
         jdbc.sql("update organization_workforce.employees set event_count = :sequence where id = :id")
                 .param("sequence", registered.eventSequenceAfterSave()).param("id", registered.staff().employeeId().value()).update();
@@ -135,27 +135,27 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .param("run", run).param("now", now).update();
     }
 
-    private void upsertStaff(StaffEmployee s, UUID run, Timestamp now) {
+    private void upsertStaff(StaffEmployee s, Timestamp now) {
         Employee e = s.employee();
         Assignment a = s.assignment();
         jdbc.sql("""
                 insert into organization_workforce.employees (id, employee_code, display_name, login_name, email, gender,
-                       wecom_user_id, employment_status, is_fee_earner, separated_at, last_sync_run_id, created_at, updated_at, event_count)
+                       wecom_user_id, employment_status, is_fee_earner, separated_at, created_at, updated_at, event_count)
                 values (:id, :code, :name, :login, :email, :gender, :wecom, :status, :feeEarner,
-                        case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :run, :now, :now, 0)
+                        case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :now, :now, 0)
                 on conflict (id) do update set employee_code = excluded.employee_code, display_name = excluded.display_name,
                        login_name = excluded.login_name, email = excluded.email, gender = excluded.gender,
                        wecom_user_id = excluded.wecom_user_id, employment_status = excluded.employment_status,
                        is_fee_earner = excluded.is_fee_earner,
                        separated_at = case when excluded.employment_status = 'SEPARATED'
                                            then coalesce(employees.separated_at, excluded.updated_at) end,
-                       last_sync_run_id = excluded.last_sync_run_id, updated_at = excluded.updated_at, version = employees.version + 1
+                       updated_at = excluded.updated_at, version = employees.version + 1
                 """)
                 .param("id", e.employeeId().value()).param("code", e.employeeCode()).param("name", e.displayName())
                 .param("login", e.loginName()).param("email", e.email()).param("gender", e.gender() == null ? null : e.gender().name())
                 .param("wecom", e.wecomUserId() == null ? null : e.wecomUserId().value())
                 .param("status", e.employmentStatus().name()).param("feeEarner", e.feeEarner())
-                .param("run", run).param("now", now).update();
+                .param("now", now).update();
         jdbc.sql("""
                 insert into organization_workforce.assignments (employee_id, org_unit_id, position_id, reports_to_employee_id,
                        created_at, updated_at)

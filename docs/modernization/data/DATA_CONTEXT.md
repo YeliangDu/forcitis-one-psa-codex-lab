@@ -1,6 +1,6 @@
 # one-data 速查
 
-只记现行状态，一行一项（SESSION_PLAYBOOK §2.1 第 13 条）。**2026-10-21 11:58+02:00 清上下文交接，现行状态见文末「2026-10-21 交接」一节，以它为准**；下面 2026-10-17 的暂停交接（one-coordinator：用户额度紧，只保留命名主线；ADR-0058 设计修订、开发卡、DDL 扫描全部暂停）。
+只记现行状态，一行一项（SESSION_PLAYBOOK TEAM-07、08）。**2026-10-21 11:58+02:00 清上下文交接，现行状态见文末「2026-10-21 交接」一节，以它为准**；下面 2026-10-17 的暂停交接（one-coordinator：用户额度紧，只保留命名主线；ADR-0058 设计修订、开发卡、DDL 扫描全部暂停）。
 
 | 项 | 值 |
 |---|---|
@@ -74,4 +74,11 @@
 - 在途/等别人：one-1a-par 的 W2 PR-B 实现 PR（我对 `personnel_commands` 与 ADR-0068 附件逐行比较、核 C1–C3）；#599 的 IT 用例；one-1a-next-5 / one-1a-par 按迁入写入通道设计实现，diff 出来我复核；卡 C 改完后的表结构 PR；收件箱 `2026-10-22-one-data-card-c-retention`（T-D10 保留期，等用户）；one-platform-file 单元 7；B-31 其余卡 DDL 草案。
 - 我自己的待办：`org_units` 根表收窄设计（A4 答复后 30 天内）；ADR-0075 对 `ConfigSetVersion` 登记为历史主体（随首个使用方）；DATA-001…013 中非机械项仍是软约束。
 - 规矩：提交与推送分两次调用；docs 提交号直接报 one-merge；子代理任务要写任务号 `DAT-1022-DAT-nn` 并登记 tasks/（种类取受控词、用时写「待核」）；本地只在推送前跑一次 precheck。
+
+**2026-10-22 深夜交接（37% 清空；以本节为准，覆盖上文「晚交接」的在途项）**：
+- 本段新增已完成：卡 C 第二轮复核通过（`reviews/B31-CARD-C-DDL.md`，T-D10 用户已定 A=10 年归档，intent `2026-10-22-205226-one-data-A`；T-D14 应答只放 ID/编号/状态；T-D15 `is_system_only` 加列 + 紧接 DROP DEFAULT，one-1a-admin 已落 @c520f149c，待表结构 PR 复核实际 diff）；AGG-41 表级改动设计层通过（`reviews/ARC-1022-AFI-01-AGG41.md`，F1–F6，DM-8 仍开，FD-09 前 lines 的 pi 待判）；#599 签「通过」并已在 PR 留言（head a4c562253，等调度批）；函数 search_path 设计稿回写 #622 偏离（§7）；W2 设计 §9 登记 org_structure_command_id 外键触发点；重复工号拒收口径（`reviews/W2-PR-B.md` 末节）。
+- 在等（来消息再处理）：one-1a-par 的 W2 PR-B 实现 PR（对 `personnel_commands` 与 ADR-0068 附件逐行比较、核 C1–C3、拒收路径）；#622 实际 diff（基线 34 个函数）；迁入写入通道实现 diff（编号 one-1a-next-5、日历 one-1a-par；日历应用内确认、日明细守护 SECURITY DEFINER、删属主确认检查）；卡 C 表结构 PR；one-platform-file 单元 7；B-31 其余卡 DDL 草案；one-arch-finance 的 AGG-41 DDL 草案。
+- 未完成的跨会话事项：W2 HELD 放行题（生效日前放行）我已回 one-architecture 倾向 B（界面拒绝提前放行，到日后放行并补版本，数据零改动；A 要改状态转换/成对守护/剩余超管数判定并起新 ADR），等它与调度裁定；之后若走 A，要复核状态转换与 `separation_holds` 守护的 diff。无待回用户请求。
+- 自己的待办：`org_units` 根表收窄设计（A4 答复后 30 天内）；ADR-0075 对 `ConfigSetVersion` 登记为历史主体（随首个使用方）；卡 D 的 DDL 审时核四元组唯一与 `submission_key` 已删的幂等替代。
+- 规矩：提交与推送分两次调用；docs 提交号直接报 one-merge；子代理任务号 `DAT-1022-DAT-nn`（已用 01、02）并登记 tasks/；收件箱 inbox 集合在 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15；清空后他会话经 one-coordinator 转。
 

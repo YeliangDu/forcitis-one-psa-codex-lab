@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import java.time.LocalDate;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
@@ -20,7 +21,6 @@ import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ContentHash;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
@@ -226,7 +226,7 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     protected static ApprovalStartRequest startRequest(String key, EmployeeId initiator, Set<String> flags, List<ApprovalField> fields, int round) {
-        return new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, initiator, new RoundNumber(round),
+        return new ApprovalStartRequest(TimesheetApprovalProcess.KEY, document(key), LEGAL_ENTITY, initiator, new RoundNumber(round),
                 UUID.randomUUID(), flags, fields, new ContentHash("hash"), new ApprovalSummary("summary of " + key));
     }
 

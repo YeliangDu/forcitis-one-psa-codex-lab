@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse hook (Bash, Agent): a background task's description must read `<任务号或 #PR号> <任务名> (<执行者>)`.
 
-SESSION_PLAYBOOK §5 任务命名与登记「后台任务显示」(intent 2026-10-21-212849): the sidebar and status bar show the description, so a background Bash
+SESSION_PLAYBOOK TEAM-26 (intent 2026-10-21-212849): the sidebar and status bar show the description, so a background Bash
 (`run_in_background: true`) or any Agent/Task call (sub-agents always run in the background) is refused when its description does not follow the format; the refusal carries examples.
 Task id: XXX-MMDD-XXX-NN (two or three capital letters for the lane); non-card tasks (review, spot check, sampling) use the PR number they serve (#528) or the parent task id.
 Foreground Bash calls are not checked; Workflow has no description and is not covered. Exit code 2 + stderr = refuse; 0 + no output = allow. Any failure is caught and refuses with exit 2 (an uncaught crash would exit 1, which a hook treats as "do not block").
@@ -19,7 +19,7 @@ from task_ids import TASK_ID_PATTERN  # noqa: E402
 FOREGROUND_TOO = {"Agent", "Task"}  # the Agent tool has no run_in_background parameter: its sub-agents always run in the background
 TOOLS = {"Bash"} | FOREGROUND_TOO
 FORMAT = re.compile(r"^(?:" + TASK_ID_PATTERN + r"|#\d+) \S.* \(\S.*\)$")
-MESSAGE = ("后台任务的 description 须写成 `<任务号或 #PR号> <任务名> (<执行者>)`，侧边栏和状态栏据此显示（SESSION_PLAYBOOK §5 任务命名与登记）。"
+MESSAGE = ("后台任务的 description 须写成 `<任务号或 #PR号> <任务名> (<执行者>)`，侧边栏和状态栏据此显示（SESSION_PLAYBOOK TEAM-26）。"
            "例：`NAM-1017-GLO-03 [命名·glossary] 登记 NM5 名词 (Codex gpt-6.1-sol)`、`#528 sonnet 复审 (sonnet)`、`ARC-1021-ARC-07 对象转换抽查 (sonnet)`。"
            "当前 description：{current!r}")
 

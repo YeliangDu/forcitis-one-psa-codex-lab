@@ -1,5 +1,6 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,7 +29,6 @@ import com.forcitis.one.organization.workforce.api.EmployeeLegalEntities;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.identity.api.CurrentUser;
@@ -91,7 +91,7 @@ class TimesheetOwnerGateTest {
 
         when(timesheets.find(ID)).thenReturn(Optional.of(submittedBy(EMPLOYEE)));
         assertThat(get.execute(ID).canWithdraw()).isTrue();
-        verify(approvals).checkWithdraw(eq(ProcessKey.COST_TIMESHEET_APPROVAL), any(), eq(ACCOUNT));
+        verify(approvals).checkWithdraw(eq(TimesheetApprovalProcess.KEY), any(), eq(ACCOUNT));
     }
 
     @Test
@@ -106,7 +106,7 @@ class TimesheetOwnerGateTest {
 
         when(timesheets.find(ID)).thenReturn(Optional.of(submittedBy(EMPLOYEE)));
         cancel.execute(ID, "wrong day", OptionalLong.empty());
-        verify(approvals).cancel(eq(ProcessKey.COST_TIMESHEET_APPROVAL), any(), eq(ACCOUNT), eq("wrong day"));
+        verify(approvals).cancel(eq(TimesheetApprovalProcess.KEY), any(), eq(ACCOUNT), eq("wrong day"));
     }
 
     @Test
@@ -121,7 +121,7 @@ class TimesheetOwnerGateTest {
 
         when(timesheets.find(ID)).thenReturn(Optional.of(submittedBy(EMPLOYEE)));
         withdraw.execute(ID, "wrong day", OptionalLong.empty());
-        verify(approvals).withdraw(eq(ProcessKey.COST_TIMESHEET_APPROVAL), any(), eq(ACCOUNT), eq("wrong day"));
+        verify(approvals).withdraw(eq(TimesheetApprovalProcess.KEY), any(), eq(ACCOUNT), eq("wrong day"));
     }
 
     @Test

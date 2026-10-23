@@ -10,7 +10,7 @@ processes:
   name: 工时审批
   file: backend/src/main/resources/processes/cost_timesheet_approval.bpmn20.xml
   bc: cost.timesheet
-  process_key_enum: backend/src/main/java/com/forcitis/one/platform/approval/api/ProcessKey.java（COST_TIMESHEET_APPROVAL）
+  process_key: backend/src/main/java/com/forcitis/one/cost/timesheet/api/TimesheetApprovalProcess.java（KEY = ProcessKey.of("cost_timesheet_approval")，值即 BPMN id）
   owner_runtime: platform.approval（引擎与指派）；发起模块 cost.timesheet（经 DocumentSubmittedForApproval 事件）
   structure: 子流程 reviewStage（审核）内：包容网关 reviewFork 按路由旗标分叉 → 三个并行用户任务 → 包容网关 reviewJoin 汇合；每节点为会签（multiInstance，一个候选人一个任务，全部通过）
   user_tasks:

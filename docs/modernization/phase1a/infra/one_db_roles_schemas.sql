@@ -120,7 +120,7 @@ DO $$
 DECLARE t text;
 BEGIN
     FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
-                             'organization_workforce.legal_entity_versions',
+                             'organization_workforce.legal_entity_versions', 'organization_workforce.employee_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
                              'platform_identity.role_versions', 'platform_identity.account_role_grants'] LOOP
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
@@ -129,6 +129,9 @@ END $$;
 
 -- 单据类型登记（ADR-0066 决定 4）：行只由迁移写（数据访问注册表 MIGRATION_ONLY），运行角色只读；表上的触发器另拒删除、清空与改写已登记的列。
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FROM one_dev_app;
+
+-- 人事命令只追加（ADR-0068 第 1 条 7）：触发器之外，运行角色也不持有 DELETE 与 TRUNCATE；离职满 10 年的清除经属主的 SECURITY DEFINER 函数。
+REVOKE DELETE, TRUNCATE ON organization_workforce.personnel_commands FROM one_dev_app;
 
 -- 文件服务（ADR-0060、0061、0070；one-data 签发 IMP-1021-COO-02 单元 3）：只追加表与状态转换表运行角色只留 SELECT、INSERT；
 -- 其余表运行角色不持有 DELETE 与 TRUNCATE（保存类别根表可改名称，其余由触发器限定只改状态或确认列）；视图只读。
@@ -146,6 +149,9 @@ REVOKE UPDATE, DELETE, TRUNCATE ON organization_administration.employee_activity
 -- 版本表运行角色只留 SELECT、INSERT、UPDATE（UPDATE 用于确认、撤回，关闭上一版本由触发器完成），不持有 DELETE 与 TRUNCATE。
 REVOKE UPDATE, DELETE, TRUNCATE ON organization_attendance.work_calendars, organization_attendance.work_calendar_version_days FROM one_dev_app;
 REVOKE DELETE, TRUNCATE ON organization_attendance.work_calendar_versions FROM one_dev_app;
+
+-- 审计对象类别登记（ADR-0069 第 14 条）：行只由迁移写，运行角色只读。
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_audit.audit_subject_kinds FROM one_dev_app;
 
 -- 审计月分区（ADR-0048）：两个函数是 SECURITY DEFINER、属主 one_dev_owner，基线已对 PUBLIC 撤销 EXECUTE。
 -- 运行角色只能预建分区（应用的预建作业调用），仍无 CREATE，也不能 DETACH / DROP；删除已归档分区只有维护角色能执行，应用代码不调用。

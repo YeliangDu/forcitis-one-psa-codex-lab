@@ -1,6 +1,6 @@
 # DATA-RULE-01…08 评审（one-rules，2026-10-17；作者 one-data，评审独立于作者）
 
-对象：`DATA_ARCHITECTURE_RULES.md` 的 8 条规则卡。对照：SESSION_PLAYBOOK §14.1（D2、D6、D8、D12、D15、D17 及其已定口径）、各卡所引用的用户决定。评审只读不改卡；结论用词与规则索引一致（沿用 / 需修正 / 待议）。本评审是评审者的意见，不是用户裁定，不写入 `RULE_REVIEWS.json`（那里只记用户作答）。
+对象：`DATA_ARCHITECTURE_RULES.md` 的 8 条规则卡。对照：DATA_DESIGN_CHECKLIST §14.1（D2、D6、D8、D12、D15、D17 及其已定口径）、各卡所引用的用户决定。评审只读不改卡；结论用词与规则索引一致（沿用 / 需修正 / 待议）。本评审是评审者的意见，不是用户裁定，不写入 `RULE_REVIEWS.json`（那里只记用户作答）。
 
 | 规则 | 结论 | 要点 |
 |---|---|---|
