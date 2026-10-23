@@ -16,7 +16,10 @@ run() { if [ "$dry" -eq 1 ]; then echo "[dry-run] $*"; else "$@"; fi; }
 if [ "$uninstall" -eq 1 ]; then
   run launchctl bootout "$domain/$label" 2>/dev/null || true
   run rm -f "$plist" "$bin_dir/docker_ensure.sh"
-  echo "已卸载 $label（状态目录 $state_dir 保留）"
+  if [ "$dry" -eq 0 ] && launchctl print "$domain/$label" >/dev/null 2>&1; then
+    echo "卸载失败：${label} 仍在 launchd 中" >&2; exit 1
+  fi
+  echo "已卸载 ${label}（状态目录 ${state_dir} 保留）"
   exit 0
 fi
 

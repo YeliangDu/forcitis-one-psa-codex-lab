@@ -140,6 +140,5 @@ newcase hang down never; touch "$tmp/hang/hang"
 start="$(date +%s)"; run hang
 check "引擎挂住时按超时失败而不是卡死" "$(rc hang)" 1
 check "引擎挂住时耗时有限（< 40 秒）" "$([ $(( $(date +%s) - start )) -lt 40 ] && echo yes || echo no)" yes
-[ -s "$tmp/hang/hang.pid" ] && kill "$(cat "$tmp/hang/hang.pid")" 2>/dev/null || true
 
 if [ "$fail" -eq 0 ]; then echo "docker_ensure selftest passed"; else echo "docker_ensure selftest FAILED"; exit 1; fi

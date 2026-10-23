@@ -55,7 +55,7 @@ alert() {
   last="$(cat "$mark" 2>/dev/null || echo 0)"
   [ $((now - last)) -lt 3600 ] && return 0
   echo "$now" > "$mark"
-  line="$(date '+%F %H:%M') → one-coordinator：本机 Docker 告警：$text（来自 docker_ensure.sh，日志 $alert_log）"
+  line="$(date '+%F %H:%M') → one-coordinator：本机 Docker 告警：${text}（来自 docker_ensure.sh，日志 ${alert_log}）"
   printf '%s\n' "$line" >> "$alert_log"
   printf '%s\n' "- $line" >> "$outbox"
   printf '%s\n' "$line" >&2
@@ -75,8 +75,8 @@ break_stale_lock() {
 }
 
 if ! command -v "$docker_bin" >/dev/null 2>&1; then
-  alert nocli "找不到 docker 命令（$docker_bin），PATH 可能出错，已不拉起"
-  echo "Docker 未运行（找不到 docker 命令 $docker_bin）" >&2
+  alert nocli "找不到 docker 命令（${docker_bin}），PATH 可能出错，已不拉起"
+  echo "Docker 未运行（找不到 docker 命令 ${docker_bin}）" >&2
   exit 1
 fi
 if [ "$ci" -eq 0 ] && [ -e "$state/pause" ]; then
