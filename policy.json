@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "_说明": "流程数值与枚举的唯一出处（定稿 P4、H8）。规则、角色、模板只引用键名，不写字面值。改动走普通文档 PR，正文引用 intent。",
+  "rules": {
+    "claude_md_max_kb": 1.5,
+    "rules_md_max_kb": 5,
+    "rules_md_max_items": 12,
+    "role_file_max_kb": 3,
+    "role_files_max": 8,
+    "role_rules_max": 3,
+    "total_max_kb": 20,
+    "total_max_items": 25,
+    "branch_rule_change_alert_hours": 24
+  },
+  "start": {
+    "inject_max_kb": 8,
+    "required_read_max_kb": 15,
+    "start_sheet_p99_seconds": 2,
+    "handoff_max_kb": 2,
+    "context_remind_pct": 70
+  },
+  "gates": {
+    "runtime_max_lines": 1500,
+    "runtime_max_files": 8,
+    "hook_p99_ms": 100,
+    "per_call_total_ms": 300,
+    "precommit_max_seconds": 10,
+    "max_lines": {
+      "prod_write_gate": 800,
+      "pre_tool_dispatch": 80,
+      "main_checkout_gate": 120,
+      "commit_msg_gate": 60,
+      "install": 60,
+      "selftest": 1000,
+      "stop_check": 120,
+      "agent_tier_gate": 40
+    },
+    "install_dir": "~/.modernize/psa/tools/hooks",
+    "install_current_link": "current"
+  },
+  "review": {
+    "no_verdict_alert_minutes": 30,
+    "verdicts": ["通过", "必改"],
+    "final_reviewer_tag": "opus-终审",
+    "header_fields": ["复审结论", "commit", "复审者"]
+  },
+  "labels": {
+    "review_passed": "复审通过",
+    "hold": "hold",
+    "integration": "整合"
+  },
+  "mq": {
+    "batch_max_prs": 5,
+    "batch_branch_prefix": "mq/batch-",
+    "enqueue_alert_minutes": 45,
+    "ready_to_merged_p90_minutes": 45,
+    "merged_per_hour_min": 8,
+    "merge_method": {"default": "squash", "integration": "merge"}
+  },
+  "ci": {
+    "light_job_p90_minutes": 2,
+    "light_job_cancel_rate_max": 0.05,
+    "infra_pr_weekly_share_max": 0.2,
+    "infra_release_weekday": "monday"
+  },
+  "retention_days": {
+    "worktree_after_merge": 1,
+    "branch_cleanup_backup": 7,
+    "handoff_history": 7,
+    "jsonl_logs": 14,
+    "snapshot_backup": 7
+  },
+  "janitor": {"daily_at": "03:00"},
+  "board": {"interval_minutes": 10},
+  "decisions": {
+    "current_page_max_kb": 10,
+    "daily_decide_at": "20:00"
+  },
+  "memory_max_kb": 2,
+  "budget": {
+    "level_interval_minutes": 30,
+    "level_file": "~/.modernize/psa/budget/level.json",
+    "line": {"from_pct": 0, "to_pct": 95, "end_hours_before_reset": 12},
+    "ladder": {
+      "L0": {"over_line_max_pts": 3},
+      "L1": {"over_line_min_pts": 3, "over_line_max_pts": 8},
+      "L2": {"over_line_min_pts": 8},
+      "L3": {"usage_min_pct": 95}
+    },
+    "l2_keep_business_line": "one-dev-par",
+    "agent_tier_gate_enabled": false,
+    "reading_validation_days": 7,
+    "reading_max_deviation_pts": null,
+    "weekly_share_max": {
+      "coordinator": 0.08,
+      "design": 0.2,
+      "opus_review_security": 0.15,
+      "business": 0.35,
+      "quality_infra": 0.07,
+      "language_ops_evidence": 0.1,
+      "reserve": 0.05
+    },
+    "share_overrun_factor": 1.5,
+    "night_window": {"from": "22:00", "to": "08:00"}
+  },
+  "budget_check": {"mode": "warn"},
+  "machine": {"ci_runners": 4},
+  "sessions": {
+    "resident_max": 4,
+    "config": {}
+  },
+  "measures": []
+}
