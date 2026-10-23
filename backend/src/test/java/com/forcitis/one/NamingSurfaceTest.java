@@ -589,7 +589,9 @@ class NamingSurfaceTest {
         try (java.util.stream.Stream<Path> sources = java.nio.file.Files.walk(api)) {
             return sources.filter(f -> f.toString().endsWith(".java")).anyMatch(f -> {
                 try {
-                    return java.nio.file.Files.readString(f).contains("ProcessKey.of(\"" + id + "\")");
+                    return java.nio.file.Files.readAllLines(f).stream().map(String::strip)
+                            .filter(l -> !l.startsWith("*") && !l.startsWith("//") && !l.startsWith("/*"))
+                            .anyMatch(l -> l.contains("ProcessKey.of(\"" + id + "\")"));
                 } catch (java.io.IOException e) {
                     throw new java.io.UncheckedIOException(e);
                 }

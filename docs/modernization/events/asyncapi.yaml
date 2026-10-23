@@ -1351,7 +1351,7 @@ components:
           processKey:
             type: string
             x-type: ProcessKey
-            pattern: ^[a-z]+(_[a-z]+)+$
+            pattern: ^[a-z]+_[a-z]+_[a-z]+(_[a-z]+)*$
             description: 流程定义 id（小写 {子域}_{bc}_{名}，即 BPMN id）
           instanceId:
             type: string
@@ -1429,7 +1429,7 @@ components:
           processKey:
             type: string
             x-type: ProcessKey
-            pattern: ^[a-z]+(_[a-z]+)+$
+            pattern: ^[a-z]+_[a-z]+_[a-z]+(_[a-z]+)*$
             description: 流程定义 id（小写 {子域}_{bc}_{名}，即 BPMN id）
           document:
             type: object
@@ -2261,7 +2261,7 @@ components:
           processKey:
             type: string
             x-type: ProcessKey
-            pattern: ^[a-z]+(_[a-z]+)+$
+            pattern: ^[a-z]+_[a-z]+_[a-z]+(_[a-z]+)*$
             description: 流程定义 id（小写 {子域}_{bc}_{名}，即 BPMN id）
           instanceId:
             type: string
