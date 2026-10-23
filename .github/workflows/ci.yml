@@ -103,7 +103,7 @@ jobs:
           python3 scripts/hooks/session_context.py --self-test
           python3 scripts/hooks/start_sheet.py --self-test
           python3 scripts/coord/mailbox.py --self-test
-          python3 scripts/hooks/run_from_main_selftest.py
+          python3 scripts/gates/install_selftest.py
       - name: heavy steps allowed? (pull request labelled `queued`; never on a push to main)
         id: heavy
         env:
