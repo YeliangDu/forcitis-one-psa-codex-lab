@@ -45,7 +45,7 @@ ALTER ROLE one_prod_migrator SET role = one_prod_owner;
 ALTER ROLE one_prod_migrator SET lock_timeout = '10s';
 
 CREATE ROLE one_prod_app LOGIN NOINHERIT CONNECTION LIMIT 25;   -- 连接池 10 个常驻，运维命令的池最多再 10 个，余量 5（2026-10-21 用户「照做」；原 40）
-ALTER ROLE one_prod_app SET search_path = platform_approval, pg_catalog;
+ALTER ROLE one_prod_app SET search_path = pg_catalog, platform_approval;
 ALTER ROLE one_prod_app SET statement_timeout = '30s';
 ALTER ROLE one_prod_app SET idle_in_transaction_session_timeout = '60s';
 ALTER ROLE one_prod_app SET work_mem = '16MB';
