@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse 钩子（Bash）：`gh pr create` 之前运行 scripts/precheck.sh，没有以「ready」收尾就拒绝提 PR（SESSION_PLAYBOOK TEAM-44）。
+"""PreToolUse 钩子（Bash）：`gh pr create` 之前运行 scripts/precheck.sh --pre-push（与推送前同一套检查，全过后同样留标记；不再跑全量默认预检，GOV-1023-QUA-04 第二批），没有以「ready」收尾就拒绝提 PR（SESSION_PLAYBOOK TEAM-44）。
 
 标准输入是钩子的 JSON（tool_input.command）；退出码 2 + 标准错误 = 拒绝，0 = 放行。命令不是 `gh pr create` 时立刻放行。
 precheck 本身失败（FAIL 或前端依赖缺失需先问用户）时，把它的输出末尾带回给会话。
@@ -178,8 +178,9 @@ def main():
     if passed_recently(root):
         print("precheck.sh 不重跑：推送前检查刚在同一提交、同一 origin/main、干净工作区上通过（全历史 gitleaks 与前端完整验证由 CI 跑）", file=sys.stderr)
         return 0
+    checked = tree_state(root)
     try:
-        run = subprocess.run([os.path.join(root, "scripts", "precheck.sh")], cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS)
+        run = subprocess.run([os.path.join(root, "scripts", "precheck.sh"), "--pre-push"], cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         print(f"precheck.sh 超过 {TIMEOUT_SECONDS} 秒未结束，不能提 PR", file=sys.stderr)
         return 2
@@ -187,6 +188,7 @@ def main():
     if reason:
         print(reason, file=sys.stderr)
         return 2
+    record_pass(root, checked=checked)
     return 0
 
 
@@ -219,6 +221,10 @@ def self_test():
     assert all(f"REAL-{i}" in shown6 for i in range(6)) and shown6.count("\n") <= 18, "with many failures every one keeps the end of its block"
     twenty = "".join(block(f"g{i}", ["noise", f"REAL-{i}"]) for i in range(20)) + "SUMMARY: 0 PASS, 20 FAIL, 0 SKIP (base origin/main) — not ready\n"
     assert verdict(twenty, 1).count("REAL-") >= 6 and "SUMMARY:" in verdict(twenty, 1), "20 failures: the first ones with their cause, not 14 bare FAIL lines"
+    ready = subprocess.CompletedProcess([], 0, "SUMMARY: 1 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", "")
+    with mock.patch.object(subprocess, "run", return_value=ready) as ran, mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_input": {"command": "gh pr create"}, "cwd": "/r"}))), \
+            mock.patch.object(sys.modules[__name__], "passed_recently", return_value=False), mock.patch.object(sys.modules[__name__], "record_pass") as record, mock.patch.object(sys.modules[__name__], "repository_of", return_value="/r"), mock.patch.object(sys.modules[__name__], "tree_state", return_value=("h", "b", "g")):
+        assert main() == 0 and ran.call_args[0][0][-1] == "--pre-push" and record.called, "gh pr create runs the push-time checks and leaves the same mark"
     with tempfile.TemporaryDirectory() as root:
         def git(*args):
             subprocess.run(["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@t", *args], check=True, capture_output=True)
