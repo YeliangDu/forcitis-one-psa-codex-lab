@@ -30,6 +30,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import java.time.ZoneId;
@@ -161,27 +164,37 @@ class JdbcStoredFileRepositoryIT {
     private static final Duration KEPT = Duration.ofDays(2);
     private static final Classification CLASSIFICATION = new Classification(AccessLevel.INTERNAL, PersonalInformationMark.NONE);
 
-    private void waitUntilBlocked() throws InterruptedException {
-        for (int i = 0; i < 100; i++) {
-            if (jdbc.sql("select count(*) from pg_stat_activity where wait_event_type = 'Lock' and datname = current_database()").query(Long.class).single() > 0) {
-                return;
-            }
-            Thread.sleep(50);
-        }
-        throw new AssertionError("the second transaction never waited for the row lock");
+    private int backendPid() {
+        return jdbc.sql("select pg_backend_pid()").query(Integer.class).single();
     }
 
-    /** A link committed while the expiry job waits for the row lock must be seen by it: the file stays AVAILABLE. */
+    /** Waits until the waiter's backend is blocked by exactly the holder's backend, so the race order is the one the test names. */
+    private void waitUntilBlockedBy(AtomicInteger holder, AtomicInteger waiter) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < deadline) {
+            if (waiter.get() != 0 && holder.get() != 0 && Boolean.TRUE.equals(jdbc.sql("select ? = any(pg_blocking_pids(?))")
+                    .params(holder.get(), waiter.get()).query(Boolean.class).single())) {
+                return;
+            }
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(20));
+        }
+        throw new AssertionError("the second transaction was never blocked by the first on the row lock");
+    }
+
     @Test
+    @DisplayName("ADR-0060 a link committed while the expiry job waits for the row lock is seen by it: the file stays AVAILABLE")
     void aLinkCommittedWhileExpiryWaitsForTheLockKeepsTheFile() throws Exception {
         NewStoredFile file = file(new FileSubject(FileSubjectKind.USER, USER.toString()), FileStatus.AVAILABLE, new Lineage.FirstVersion(), "3".repeat(64));
         files.insert(file);
         Instant later = AT.plusSeconds(3 * 86400);
         CountDownLatch linked = new CountDownLatch(1);
         CountDownLatch commit = new CountDownLatch(1);
+        AtomicInteger holder = new AtomicInteger();
+        AtomicInteger waiter = new AtomicInteger();
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             Future<?> binder = pool.submit(() -> transaction.executeWithoutResult(status -> {
+                holder.set(backendPid());
                 bindings.lockForBinding(file.id()).orElseThrow();
                 bindings.insertBinding(file.id(), new DocumentReference(new DocumentTypeCode("CONTRACT"), new DocumentId(UUID.randomUUID())), CLASSIFICATION,
                         new FileSubject(FileSubjectKind.USER, USER.toString()), later);
@@ -189,8 +202,11 @@ class JdbcStoredFileRepositoryIT {
                 await(commit);
             }));
             assertThat(linked.await(10, TimeUnit.SECONDS)).isTrue();
-            Future<StoredFile> expiry = pool.submit(() -> transaction.execute(status -> files.lockForExpiry(file.id()).orElseThrow()));
-            waitUntilBlocked();
+            Future<StoredFile> expiry = pool.submit(() -> transaction.execute(status -> {
+                waiter.set(backendPid());
+                return files.lockForExpiry(file.id()).orElseThrow();
+            }));
+            waitUntilBlockedBy(holder, waiter);
             commit.countDown();
             binder.get(10, TimeUnit.SECONDS);
             StoredFile seen = expiry.get(10, TimeUnit.SECONDS);
@@ -198,21 +214,24 @@ class JdbcStoredFileRepositoryIT {
             assertThat(seen.status()).isEqualTo(FileStatus.AVAILABLE);
         } finally {
             commit.countDown();
-            pool.shutdownNow();
+            stop(pool);
         }
     }
 
-    /** The other order: an expiry committed first is what the linker then reads, and it cannot link. */
     @Test
+    @DisplayName("ADR-0060 an expiry committed while linking waits for the row lock is what the linker reads, and it cannot link")
     void anExpiryCommittedWhileLinkingWaitsForTheLockIsSeenByTheLinker() throws Exception {
         NewStoredFile file = file(new FileSubject(FileSubjectKind.USER, USER.toString()), FileStatus.AVAILABLE, new Lineage.FirstVersion(), "4".repeat(64));
         files.insert(file);
         Instant later = AT.plusSeconds(3 * 86400);
         CountDownLatch locked = new CountDownLatch(1);
         CountDownLatch commit = new CountDownLatch(1);
+        AtomicInteger holder = new AtomicInteger();
+        AtomicInteger waiter = new AtomicInteger();
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             Future<?> expiry = pool.submit(() -> transaction.executeWithoutResult(status -> {
+                holder.set(backendPid());
                 StoredFile row = files.lockForExpiry(file.id()).orElseThrow();
                 row.expire(later, KEPT);
                 files.saveExpiry(row, later);
@@ -220,8 +239,11 @@ class JdbcStoredFileRepositoryIT {
                 await(commit);
             }));
             assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
-            Future<BindingTarget> binder = pool.submit(() -> transaction.execute(status -> bindings.lockForBinding(file.id()).orElseThrow()));
-            waitUntilBlocked();
+            Future<BindingTarget> binder = pool.submit(() -> transaction.execute(status -> {
+                waiter.set(backendPid());
+                return bindings.lockForBinding(file.id()).orElseThrow();
+            }));
+            waitUntilBlockedBy(holder, waiter);
             commit.countDown();
             expiry.get(10, TimeUnit.SECONDS);
             BindingTarget seen = binder.get(10, TimeUnit.SECONDS);
@@ -229,8 +251,13 @@ class JdbcStoredFileRepositoryIT {
             assertThat(seen.bound()).isFalse();
         } finally {
             commit.countDown();
-            pool.shutdownNow();
+            stop(pool);
         }
+    }
+
+    private static void stop(ExecutorService pool) throws InterruptedException {
+        pool.shutdownNow();
+        assertThat(pool.awaitTermination(10, TimeUnit.SECONDS)).as("no transaction is left running after the test").isTrue();
     }
 
     private static void await(CountDownLatch latch) {
