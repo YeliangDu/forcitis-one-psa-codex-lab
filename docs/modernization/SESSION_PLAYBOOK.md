@@ -93,7 +93,7 @@
 | TEAM-102 | 治理冻结：整改总验收完成起两周不新增规则与守护；事故或安全缺口经用户批准例外，在途整改卡照做（用户 2026-10-23，intent 104603）；待建守护 one-quality 按风险只排前 10，其余标复审或不做并写理由；实施遵守 TEAM-32、TEAM-33、TEAM-67，在途整改范围不能作为新增治理的授权 | one-coordinator | 无 |  |
 | TEAM-103 | 新守护或收紧既有守护合入前，先对全部在开 PR 跑一遍；会撞上的先修或在 PR 里给过渡期，不得让它首次在队首变红（intent 104603） | 改动方 | 无 | 预跑待建：MRG-10 |
 | TEAM-108 | SSOT 每类一份正本、一个归属会话（intent 2026-10-23-153705）：术语与 BC 名称 glossary/terms.yaml、bcs.yaml→one-glossary；架构、流程→one-architecture（正本路径以 GOV-1023-ARC-01 定稿为准）；业务规则 rules/、RULE_REVIEWS.json→one-glossary；数据 data/ 与数据访问登记表→one-data；决策 intent/ 记原话为唯一来源，ADR 只引 intent 号不抄原话→one-coordinator；团队规则只认本表，MEMORY.md、CLAUDE.md 只引 TEAM 号→one-coordinator；任务 tasks/ 格式与状态枚举由调度定、各会话写自己的卡；资源 phase1a/infra/RESOURCES.md→one-ops。proposals/ 不算权威，脚本不读。开发线（one-1a-par、one-1a-admin、one-platform-file）只写提议目录和自己的卡，改正本提给归属会话，正本 PR 由归属会话提交 | 全员 | 无 | 收编：GOV-1023-ARC-01 |
-| TEAM-109 | 门与规则的成本（intent 2026-10-23-154800、intent 2026-10-23-155830）：推送前预检只放秒级、能挡真问题的检查，总耗时预算 60 秒，CI 量到超预算即报警，谁加的谁瘦回；改动范围按本次推送算，不按整条分支对 base 算；新加任何门（推送前、CI、钩子）须在 PR 写明成本（多花几秒）、挡什么问题与下线条件，写不出的放 CI；造门的会话不能自己验收门；规则表新增一条须同时标明退掉哪条；画像沿用开工单 8KB 上限；scripts/hooks/context_handoff.py 冻结功能，只删不加 | 全员；复核 one-quality | 无 | 首轮瘦身：GOV-1023-QUA-04、QUA-06 |
+| TEAM-109 | 门与钩子的成本与防熵增（intent 2026-10-23-154800、155830、162125）：①上限：scripts/hooks/ 运行代码 ≤2500 行、≤150KB、≤12 个文件，超了 CI 红；推送前预检总耗时预算 60 秒，超了报警，谁加的谁瘦回；②一进一出：新检查（推送前、CI、钩子）须在 PR 写明每次调用耗时、防的事故与删除条件，到上限先删一条再加，写不出的放 CI；③共用函数唯一：命令解析、主检出判断、会话名、读会话记录只许从公共模块调用，CI 查重复实现；④默认失败放行：环境判断出错一律告警放行，只有推送、开 PR、写生产三类允许失败即拦；⑤测试与运行代码分离，自测放 scripts/hooks/tests/ 只在 CI 跑，不随每次调用加载；⑥造检查的会话不得自己验收；改动范围按本次推送算；规则表新增一条须标明退掉哪条；画像沿用开工单 8KB 上限；context_handoff.py 冻结只删不加 | 全员；复核 one-quality | CI 检查待建：GOV-1023-QUA-06 | 首轮瘦身：GOV-1023-QUA-04、QUA-06 |
 
 ## 旧编号并入指向
 
