@@ -1,5 +1,18 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 凌晨三次增补（上下文 21% 第八次交接；流程重构第一批，以本节为准）
+
+- **已完成**：①整合分支备份已推 `claude/one-ops-infra-batch`＝0059c2df7（不开 PR）。②B1 比对脚本 `~/.modernize/psa/ops/b1_compare.py`（不入库）已交调度转用户：查用户输入的凭据是否出现在 security_remediation 两件的任一历史版本里，只输出匹配／不匹配。③本机残留 `.git/hooks/pre-push` 已移到 `~/.modernize/psa/ops/backup-20261023-flow-v2/`。
+- **派工**：`~/.modernize/psa/coordinator/redesign-1023/workorders/{README,one-ops}.md`；定稿 `../proposal-final.md`。只本机提交，不推送、不开 PR、不合入。兼容任务号：正文写「门兼容：GOV-1023-COO-01」，后台任务描述也以它开头（GOV-1023-FV2 过不了现行门）。每个提交给调度发「待审 <sha> <项号>」；结论自己读 `~/.modernize/psa/coordinator/reviews/redesign/<sha>.md`（守护类另有 `.final.md`）。改 policy.json 的提交都算守护类。
+- **分支**：本机标签 `pre-flow-v2`＝38c98b4ff。整合分支 `claude/one-ops-flow-v2`＝6981e351a（工作区 `.claude/worktrees/flow-v2`，**该工作区当前检出的是 -next**）。暂存分支 `claude/one-ops-flow-v2-next`：基 d71e8977b（通过）→ O1 6981e351a（必改，已由下面的修订补齐）→ 修 502054a9e（通过）→ 660aee138（通过）→ 36bba5d02（首轮＋终审通过，加 review.final_paths）→ 65feb5308（删 final_reviewer_tag，待审）。我的子分支 `claude/one-ops-flow-v2-b1`（工作区 `.claude/worktrees/ops-fv2-b1`）：O2 d4eedf9c1、O3 e3fe6dcbd（均待审，要终审）。
+- **在途**：O4（主检出保护只留 pre-commit）已派 opus 子代理在 ops-fv2-b1 上写，清空后它的汇报收不到；接续时看 `git -C ../ops-fv2-b1 log` 有没有 O4 提交，有就读提交正文后报待审，没有就重派。
+- **下一步**：O5（sonnet，commit-msg 只追加 trailer，删 task_ids；注意 bg_task_name_gate 依赖 task_ids）→ O6（sonnet，删定稿 2.1 所列钩子，settings.json 只剩 4 个挂载）→ O7（opus，install.sh 原子切换，删 run_from_main 和 O3 加的旧名别名）→ O8（sonnet，门自测合一 ≤1000 行，含 17 例）→ O9（等 one-quality Q3 4d75f99c9 复审通过并合进暂存）→ O10（等 T3；改读 state/<会话>/handoff.md，并让 start_sheet、session_context 改读 roles/）。
+- **调度加派（裁定由我改）**：①等 coordinator C4b 合进暂存后，build_sessions.py 接受指针画像（只校验指向的 roles 文件存在），让 build_all --check 回绿；②SESSION_PLAYBOOK 读者改指 RULES.md／roles：relevant_change.py:71、build_work_board.py、scripts/ci 下 3 个、release/deploy_gate.py、留下的 scripts/hooks 文件、docs/modernization 下 5 个 .py；ci.yml 随 O9，start_sheet 随 O10；mq.py 归 one-merge。
+- **合暂存**：各会话子分支复审通过（守护类有 .final.md）后由我 merge 进 -next；顺序见 README §5。现有子分支：one-data（b3cd899f7、c8de7ace3、d261f7a1c）、one-quality（Q3 4d75f99c9 等）、one-merge（到 8c21377f6）、one-coordinator（C0～C5，复审中，过了调度会告诉我）。整批齐后整合分支快进到 -next，打 fv2-b1，写 `../acceptance/b1.md`。
+- **待调度定**：O2 靠压版式到 796 行能否接受；O3 起 codex_stdin_gate 空档（到二乙）是否补人工规则；O3 最小环境 p99 压线。
+- **用户待办**：B1 脚本由用户运行；改本机 Codex 全局为 workspace-write＋never 前须再问用户一次（D40）。
+- **在途卡 OPS-1022-OPS-02、OPS-1023-OPS-01**：本轮未动，用户要求先做流程重构。
+
 ## 2026-10-24 凌晨二次增补（上下文 20% 第七次交接；以本节覆盖下面同名项）
 
 - **用户新决定（经 one-coordinator，intent 2026-10-23-202455 等）**：基建 PR 全部并进**一个整合 PR**，原 5+ 个 PR 由调度在整合 PR 开出后关闭；规则表（SESSION_PLAYBOOK.md）改动不放整合分支，走调度的单独小 PR（intent 191447 第〇项）。**等「目前合入结束、队列清空」的通知后才从最新 main 并/变基并开草稿 PR；之前一律不推送**（#685、#688、#690 在合，#685 合完就不用再并）。
