@@ -1,7 +1,7 @@
 ---
 卡号: DATA-REPAIR-timesheet-audit
 状态: 进行中
-负责会话: one-1a-next-5
+负责会话: one-1a-par
 前置: R-1b-P5, TS-UNIQ
 ---
 # 派工卡 DATA-REPAIR-timesheet-audit：工时、考勤日历、审计、幂等已建表的数据设计缺陷修复（草稿）
