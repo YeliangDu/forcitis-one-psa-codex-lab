@@ -7,7 +7,7 @@
 - **D40 已办**：~/.codex/config.toml sandbox_mode 改 workspace-write（approval never 不变），备份在 ~/.modernize/psa/ops/backup-20261023-flow-v2/。
 - **更新**：policy 提交改写为 535d321e2（tools_lib.dir、tools_lib/mq.max_lines_total 1800/2500、gates.max_lines.budget_check 350，替换 5ae1a8e59）；O7 535c03bfe（install.sh 59 行，settings 直调 current，127 两层堵），均已报待审。
 - **待调度定**：回退 v1 不能用 pre-flow-v2（无 scripts/gates），子代理建议 5ae1a8e59。
-- **第二批待办**：build_sessions 角色文件补非空检查（455de7e15 复审建议）。
+- **第二批待办**：build_sessions 角色文件补非空检查（455de7e15 复审建议）。**二乙验收（调度裁定）**：移走/删掉 start_sheet、session_context、codex_stdin_gate、command_words 后，scripts/gates+hooks 运行代码连同 hooks_manifest.sh（单独文件，不并进 install.sh）须 ≤8 个文件、≤1,500 行；批一 H1 只告警。H23 scripts/merge+queue 超限为批一已知例外（222945 不改 mq），不归 one-ops。
 - **再更新（10-24）**：终审/首轮已过：cd0014b51 终审、f756c32fc、e88824f83、535d321e2、242bb442d 首轮。新报待审：O7 修 fcacecd45（M1 重解包、M2 hooks_manifest.sh 清单核对＋只读、M3 无 CLAUDE_PROJECT_DIR 不认 cwd）、O2 修 dca117c93（裸赋值目标变量按导出、xh 整词）、policy budget_check 450 adcac8c22（intent 000537）。回退 v1 调度裁定：git 恢复 settings 旧挂载，不走 install.sh。H1 文件数/行数超（11 个、2,267 行）已报调度，待定 hooks_manifest 落点。
 - **下一步**：等复审结论；O8 → O9 → O10。
 
