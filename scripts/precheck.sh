@@ -3,9 +3,9 @@
 # Usage: scripts/precheck.sh [base-ref] [--run-backend] [--pre-push]
 #   base-ref       defaults to origin/main; the script never fetches, so fetch first if the base may be stale
 #   --run-backend  also run the suggested backend tests (Testcontainers starts containers: ask the user first, CLAUDE.md)
-#   --pre-push     what scripts/hooks/pre_push_gate.py runs before `git push`: the checks above, plus the unit test classes that start no container and that the change can affect (all of them when backend/ changed outside module sources); no gitleaks history scan, no full frontend verify (CI does both)
+#   --pre-push     the narrower pre-push set (the push gate that ran it was removed in GOV-1023-FV2 O6; light.sh replaces this script in O9): the checks above, plus the unit test classes that start no container and that the change can affect (all of them when backend/ changed outside module sources); no gitleaks history scan, no full frontend verify (CI does both)
 # A check the change requires but this machine cannot run is a FAIL, not a SKIP (SESSION_PLAYBOOK TEAM-44): the term tests when the glossary changed, the frontend
-# when frontend/ or the glossary changed. scripts/hooks/precheck_before_pr.py runs this before `gh pr create` and blocks the PR unless it ends "ready".
+# when frontend/ or the glossary changed. Run it before opening a PR; CI runs the same checks.
 # Reviewers do not run this on a branch they do not trust: it executes the branch's own scripts. CI is the gate there.
 # Bash 3.2 compatible (macOS): no associative arrays, no mapfile.
 set -uo pipefail
@@ -128,7 +128,6 @@ fi
 changed_count=$(grep -c . "$work/changed")
 uncommitted=$(grep -c . "$work/uncommitted")
 
-if ! $pre_push && ! $base_given; then py scripts/hooks/precheck_before_pr.py --snapshot >"$work/snapshot.json" 2>/dev/null || echo null >"$work/snapshot.json"; fi
 echo "precheck: base $base ($(git rev-parse --short "$base")), HEAD $(git rev-parse --short HEAD), $changed_count changed files ($uncommitted uncommitted)"
 echo
 
@@ -303,7 +302,7 @@ if [ -n "$guard_run" ]; then
 else
   report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
 fi
-# The hook and CI-script self-tests (precheck_before_pr, pre_push_gate, pre_tool_dispatch, handoff, ... 21 of them, about 85 s together) no longer run before a push: CI's
+# The hook and CI-script self-tests (pre_tool_dispatch, prod_write_gate, ... about 85 s together) no longer run before a push: CI's
 # "assertion drift" job runs every one of them (.github/workflows/ci.yml), and a hook you edit is exercised by your own next push. Cost of the gate: a broken hook is found by CI, not locally.
 # Retire this note when the self-tests are cheap enough (<10 s together) to come back. GOV-1023-QUA-04, intent 2026-10-23-154800.
 
@@ -362,7 +361,7 @@ if $builds_relevant; then
     tests="$guards"
     scope="no module code changed (shared inputs, resources, build or architecture lists)"
   fi
-  # the default run covers everything --pre-push runs (these unit tests included), so a ready default run can leave the pass mark the push gate accepts (GOV-1023-QUA-04)
+  # the default run covers everything --pre-push runs (these unit tests included)
   # Java unit tests (compile + run, about 90 s) only when backend/ or a file the builds read changed: the list of read files is READ_BY_BUILDS in scripts/ci/relevant_change.py (its self-test keeps it equal to what the tests open), plus the frontend files the tests read; intent, tasks, sessions and the other notes are read by no test, so they skip (GOV-1023-QUA-04; cost: a break in some other file shows up in CI and the merge queue, not before the push)
   reads_inputs() {
     touches '^(backend/|frontend/(packages/api/(openapi\.json$|src/generated/)|packages/core/src/error-messages\.ts$|scripts/copy-allow-list\.yaml$))' && return 0
@@ -428,8 +427,3 @@ if [ "$failed" -gt 0 ]; then
   exit 1
 fi
 echo "$summary — ready"
-# A ready run of the full set on the default base leaves the pass mark (precheck_before_pr.py): the push gate and the PR hook then do not run it again while commit, origin/main and a clean tree stay the same.
-# Not for --pre-push (the gate writes its own), a base other than origin/main, or a tree that was dirty when the run began.
-if ! $pre_push && ! $base_given; then
-  py scripts/hooks/precheck_before_pr.py --record "$work/snapshot.json" || echo "note: pass mark not written"
-fi

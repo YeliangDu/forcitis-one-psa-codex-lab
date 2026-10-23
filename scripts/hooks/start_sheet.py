@@ -8,8 +8,11 @@ C handoff    the profile's `交接源: <path>#<heading fragment>`: the newest ma
 D decisions  intent fragments of the last 7 days that name this session or its bc, one line each, at most 8   <= 1000 bytes
 Missing things are said out loud (no card, incomplete card, no handoff source), never skipped; a part that fails says so and the others stay. Context documents are listed as paths only.
 Usage: start_sheet.py <repo-root> [session] [--snapshot=<path>]  |  start_sheet.py --check <repo-root>  (every profile fits)  |  start_sheet.py --self-test
+       start_sheet.py --hook   SessionStart hook (GOV-1023-FV2 O6, replaces handoff_snapshot.py --start): the repo root is the toplevel of the
+                               payload's cwd on stdin; any failure prints one warning line instead of the sheet and exits 0.
 """
 import datetime
+import json
 import os
 import re
 import subprocess
@@ -414,6 +417,12 @@ def self_test():
             assert check_all(root) and "one-x" in check_all(root)[0], "a sheet over the limit fails the check"
         finally:
             SHEET_LIMIT = real
+        hook = lambda stdin: subprocess.run([sys.executable, "-I", os.path.abspath(__file__), "--hook"], input=stdin, capture_output=True, text=True, timeout=60)
+        r = hook(json.dumps({"cwd": os.path.join(root, "docs")}))
+        assert r.returncode == 0 and r.stdout.startswith("【开工单】") and "告警" not in r.stdout.splitlines()[0], ("--hook builds the sheet of the payload cwd's repo", r.stdout[:200], r.stderr)
+        for bad in ("{bad", json.dumps({"cwd": tmp})):
+            r = hook(bad)
+            assert r.returncode == 0 and r.stdout.startswith("【开工单】告警"), ("--hook never fails the session start", bad, r.stdout, r.stderr)
     print("start_sheet self-test: ok")
 
 
@@ -421,6 +430,13 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     if args == ["--self-test"]:
         self_test()
+    elif args == ["--hook"]:
+        try:
+            cwd = json.load(sys.stdin).get("cwd") or os.getcwd()
+            root = subprocess.run(["git", "-C", cwd, "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=5, check=True).stdout.strip()
+            print(build(root))
+        except Exception as error:
+            print(f"【开工单】告警：start_sheet.py 出错（{error.__class__.__name__}），没有开工单；手动读 docs/modernization/sessions/<会话名>.md 并向调度要卡。")
     elif len(args) == 2 and args[0] == "--check":
         found = check_all(args[1])
         print("\n".join(found) if found else f"start_sheet: {len(profile_names(args[1]))} 份画像的开工单都在 {SHEET_LIMIT} 字节内")

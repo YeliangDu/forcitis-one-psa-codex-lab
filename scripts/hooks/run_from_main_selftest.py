@@ -154,9 +154,13 @@ def main():
         r = launch(stale, "block.sh", project=stale, flags=("--strict",))
         assert r.returncode == 2 and r.stderr.strip() == "no", "the hook's own refusal passes through unchanged"
         assert launch(stale, "probe.sh", "a", project=stale, flags=("--strict",)).returncode == 0
-        # 6. settings.json: every hook goes through the launcher, the dispatcher is strict, SessionStart hooks warn on stdout, three plugins are off
+        # 6. settings.json (GOV-1023-FV2 O6): four hooks; all but Stop go through the launcher, the dispatcher is strict, SessionStart hooks warn on stdout,
+        #    Stop runs the tool library's stop_check and always exits 0 (a missing file must not block every stop), three plugins are off
         settings = json.load(open(os.path.join(HERE, "../../.claude/settings.json"), encoding="utf-8"))
         seen = {}
+        stop = [h["command"] for g in settings["hooks"].pop("Stop") for h in g["hooks"]]
+        assert len(stop) == 1 and "/.modernize/psa/tools/one-session/stop_check/stop_check.py" in stop[0] and stop[0].rstrip().endswith("; exit 0"), stop
+        assert sorted(settings["hooks"]) == ["PreToolUse", "SessionStart"], sorted(settings["hooks"])
         for event, groups in settings["hooks"].items():
             for group in groups:
                 for hook in group["hooks"]:
@@ -167,7 +171,8 @@ def main():
                     seen.setdefault(name, set()).add((event, tuple(w for w in words[1:] if w.startswith("--"))))
         assert all("--strict" in flags for _, flags in seen["gates/pre_tool_dispatch.py"]) and all("--strict" not in flags for n, v in seen.items() if n != "gates/pre_tool_dispatch.py" for _, flags in v)
         assert [g["matcher"] for g in settings["hooks"]["PreToolUse"]] == ["Bash"], "PreToolUse hangs only the production-write gate, on Bash"
-        assert all("--stdout-warn" in flags for n in ("git_ceiling_env.sh", "postcompact_context.sh") for _, flags in seen[n]), "SessionStart output reaches the model"
+        assert all("--stdout-warn" in flags for n in ("git_ceiling_env.sh", "start_sheet.py") for _, flags in seen[n]), "SessionStart output reaches the model"
+        assert sorted(seen) == ["gates/pre_tool_dispatch.py", "git_ceiling_env.sh", "start_sheet.py"], sorted(seen)
         for plugin in ("kotlin-lsp", "claude-code-setup", "code-modernization"):
             assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
     print("run_from_main self-test: ok")
