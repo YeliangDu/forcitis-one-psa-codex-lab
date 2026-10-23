@@ -306,12 +306,14 @@ if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(pre
   run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
   run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
 fi
-if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context|start_sheet|context_handoff)\.py)|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
+if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context|start_sheet|context_handoff|stop_status_gate)\.py)|scripts/coord/mailbox\.py|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
   run_step "guards: playbook_digest (self-test)" py scripts/hooks/playbook_digest.py --self-test
   run_step "guards: handoff (self-test)" py scripts/hooks/handoff_selftest.py --self-test
   run_step "guards: session_context (self-test)" py scripts/hooks/session_context.py --self-test
   run_step "guards: start_sheet (self-test)" py scripts/hooks/start_sheet.py --self-test
   run_step "guards: context_handoff (self-test)" py scripts/hooks/context_handoff.py --self-test
+  run_step "guards: stop_status_gate (self-test)" py scripts/hooks/stop_status_gate.py --self-test
+  run_step "guards: mailbox (self-test)" py scripts/coord/mailbox.py --self-test
 fi
 
 if [ "$builds_relevant" = true ]; then

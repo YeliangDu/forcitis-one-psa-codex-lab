@@ -577,6 +577,21 @@ def root_of(payload):
     return candidates[-1]
 
 
+def status_gate(payload, root):
+    """The Stop status-declaration gate (stop_status_gate.py, GOV-1023-QUA-01) as a hook output or None; its own failure only warns, never blocks a stop."""
+    try:
+        import stop_status_gate
+        config, _ = node_config()
+        targets = set(config["ids"] + config["names"] + [COORDINATOR]) if config else {COORDINATOR}
+        output, warnings = stop_status_gate.gate(payload, root, resolve_session(root)[0], targets, time.time())
+        for text in warnings:
+            print(text, file=sys.stderr)
+        return output
+    except Exception as error:
+        print(f"stop_status_gate 出错（{error.__class__.__name__}: {error}），状态声明检查本次不生效", file=sys.stderr)
+        return None
+
+
 def main():
     event = "unknown"
     try:
@@ -587,6 +602,11 @@ def main():
         if event not in ("PostToolUse", "UserPromptSubmit", "Stop"):
             return 0
         root = root_of(payload)
+        if event == "Stop":
+            blocked = status_gate(payload, root)
+            if blocked:
+                print(json.dumps(blocked, ensure_ascii=False))
+                return 0
         if can_skip(dict(payload, hook_event_name=event), root, time.time()):
             return 0
         result = handle(event, payload, root)
@@ -608,10 +628,11 @@ def write(path, text):
         stream.write(text)
 
 
-def transcript(path, tokens, model="claude-test", sidechain_tokens=None):
+def transcript(path, tokens, model="claude-test", sidechain_tokens=None, final_text="好了\n状态：继续"):
     lines = [{"type": "user", "message": {"content": "hi"}}]
-    lines.append({"type": "assistant", "isSidechain": False, "message": {"model": model, "usage": {"input_tokens": 3, "cache_read_input_tokens": tokens - 103, "cache_creation_input_tokens": 100}}})
-    lines.append({"type": "user", "message": {"content": "tool result"}})
+    lines.append({"type": "assistant", "isSidechain": False, "message": {"model": model, "content": [{"type": "text", "text": final_text}],
+                                                                           "usage": {"input_tokens": 3, "cache_read_input_tokens": tokens - 103, "cache_creation_input_tokens": 100}}})
+    lines.append({"type": "user", "message": {"content": [{"type": "tool_result", "content": "tool result"}]}})
     if sidechain_tokens is not None:
         lines.append({"type": "assistant", "isSidechain": True, "message": {"model": model, "usage": {"input_tokens": sidechain_tokens}}})
     write(path, "\n".join(json.dumps(line) for line in lines) + "\n")
@@ -843,6 +864,7 @@ def self_test():
         assert "【会话未识别】" not in (text(handle("PostToolUse", dict(payload, session_id="x2", hook_event_name="PostToolUse"), other, 502.0)) or ""), "said once per session"
 
         # a crash does not block a stop
+        transcript(trans, 100)
         original = globals()["measure"]
         globals()["measure"] = lambda *args: (_ for _ in ()).throw(RuntimeError("boom"))
         try:
@@ -872,6 +894,22 @@ def self_test():
         os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
         stop_run = run("Stop", 800, session="e2e-stop")
         assert stop_run.returncode == 0 and json.loads(stop_run.stdout)["decision"] == "block", stop_run
+        # the status gate (GOV-1023-QUA-01) comes first on Stop, end to end through the one hook entry
+        psa = os.path.join(tmp, "psa")
+        gate_env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "CONTEXT_WINDOWS_CONFIG": config, "MODERNIZE_PSA_HOME": psa}
+
+        def gate_run(final_text, session="gate-e2e", extra=None):
+            transcript(trans, 100, final_text=final_text)
+            data = json.dumps(dict(payload, hook_event_name="Stop", session_id=session, cwd=root, **(extra or {})))
+            return subprocess.run([sys.executable, "-I", script], input=data, capture_output=True, text=True, env=gate_env)
+
+        undeclared = gate_run("好了")
+        assert undeclared.returncode == 0 and json.loads(undeclared.stdout)["decision"] == "block" and "状态：继续" in json.loads(undeclared.stdout)["reason"], undeclared
+        unsent = gate_run("报告\n状态：等调度")
+        assert json.loads(unsent.stdout)["decision"] == "block" and not os.path.exists(os.path.join(psa, "mailbox")), unsent
+        assert not gate_run("好了\n状态：继续").stdout, "a declared 继续 passes"
+        fallback = gate_run("报告\n状态：等调度", session="gate-e2e-2", extra={"stop_hook_active": True})
+        assert not fallback.stdout and "信箱兜底" in fallback.stderr and len(os.listdir(os.path.join(psa, "mailbox"))) == 1, fallback
         garbage = subprocess.run([sys.executable, "-I", script], input="not json", capture_output=True, text=True, env={"LC_ALL": "C"})
         assert garbage.returncode == 0 and "出错" in garbage.stderr + garbage.stdout, garbage
         other_event = subprocess.run([sys.executable, "-I", script], input=json.dumps({"hook_event_name": "SessionStart"}), capture_output=True, text=True, env={"LC_ALL": "C"})
