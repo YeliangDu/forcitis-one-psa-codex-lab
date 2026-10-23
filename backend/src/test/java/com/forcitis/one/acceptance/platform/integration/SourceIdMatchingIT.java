@@ -2,6 +2,10 @@ package com.forcitis.one.acceptance.platform.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,7 +17,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * R-1b P3b, ADR-0033 section 2 item 3 and guard 7 (card section 4 items 2 and 3): the sync matches a source object by its source id through
  * the source references and creates a reference and an object only for a source id it has not seen. A person whose name, employee code
- * and login name all change stays the same own id; the employee code is no key, so two people with the same code each get their entry.
+ * and login name all change stays the same own id; the employee code is unique and fixed once issued (ADR-0078), so a second person with a code already issued is isolated and reported.
  * The evidence is the number of references and the number of allocation statements, read black-box.
  */
 @Testcontainers
@@ -48,7 +52,7 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
 
         assertThat(ownIdsOf(EMPLOYEE, CHANGING)).as("still the one reference of the same source id").containsExactly(person);
         assertThat(snapshotValue("employees", person, "display_name")).as("the entry of the same own id took the new name").isEqualTo("After");
-        assertThat(snapshotValue("employees", person, "employee_code")).isEqualTo("E9101-NEW");
+        assertThat(snapshotValue("employees", person, "employee_code")).as("the issued code is kept, the changed source code is reported").isEqualTo("E9101");
         assertThat(snapshotValue("employees", person, "login_name")).isEqualTo("world-9101-new");
         assertThat(references(EMPLOYEE)).as("no reference is made for a person already seen").isEqualTo(employeeReferences);
         assertThat(allocationStatements()).as("no allocation for objects that have a reference").isZero();
@@ -65,20 +69,47 @@ class SourceIdMatchingIT extends OrgSourceWorldSupport {
     }
 
     @Test
-    @DisplayName("R-1b P3b ADR-0033 守护 7 / 第 6 项第 1 条：员工编号不作键——两人同编号都正常建档，各得一个自有 ID")
-    void twoPeopleWithTheSameCodeBothGetAnEntry() throws Exception {
+    @DisplayName("ADR-0078：员工编号全局唯一——两人同编号时来源 ID 小的建档，另一人被隔离并写 DUPLICATE_EMPLOYEE_CODE 例外，重跑结果相同")
+    void theSecondPersonWithTheSameCodeIsIsolated() throws Exception {
         unit(UNIT + 50, "C9150", "Same code unit", ROOT_PATH + "0022");
         member(SAME_CODE_FIRST, "First", SHARED_CODE, UNIT + 50, ROOT_PATH + "0022", BASE_POST, null, "wx-world-9102", "world-9102");
         member(SAME_CODE_SECOND, "Second", SHARED_CODE, UNIT + 50, ROOT_PATH + "0022", BASE_POST, null, "wx-world-9103", "world-9103");
 
-        syncOnce();
+        String run = syncOnce().syncRunId().value().toString();
 
         UUID first = ownIdOf(EMPLOYEE, SAME_CODE_FIRST);
-        UUID second = ownIdOf(EMPLOYEE, SAME_CODE_SECOND);
-        assertThat(second).isNotEqualTo(first);
         assertThat(snapshotValue("employees", first, "employee_code")).isEqualTo(SHARED_CODE);
-        assertThat(snapshotValue("employees", second, "employee_code")).isEqualTo(SHARED_CODE);
         assertThat(snapshotValue("employees", first, "display_name")).isEqualTo("First");
-        assertThat(snapshotValue("employees", second, "display_name")).isEqualTo("Second");
+        assertThat(employeesWithCode(SHARED_CODE)).as("only the first person is built").isEqualTo(1);
+        assertThat(issuesOfRun(run, "DUPLICATE_EMPLOYEE_CODE")).as("the second person is reported once").isEqualTo(1);
+
+        String rerun = syncOnce().syncRunId().value().toString();
+
+        assertThat(snapshotValue("employees", first, "display_name")).as("the first person is not affected").isEqualTo("First");
+        assertThat(employeesWithCode(SHARED_CODE)).isEqualTo(1);
+        assertThat(issuesOfRun(rerun, "DUPLICATE_EMPLOYEE_CODE")).as("the same result on a rerun").isEqualTo(1);
+    }
+
+    private int employeesWithCode(String code) throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce"); PreparedStatement select = workforce.prepareStatement(
+                "select count(*) from employees where employee_code = ?")) {
+            select.setString(1, code);
+            try (ResultSet rs = select.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
+
+    private int issuesOfRun(String run, String issueKind) throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce"); PreparedStatement select = workforce.prepareStatement(
+                "select count(*) from sync_diffs where sync_run_id::text = ? and issue_kind = ?")) {
+            select.setString(1, run);
+            select.setString(2, issueKind);
+            try (ResultSet rs = select.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
     }
 }
