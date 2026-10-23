@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """commit-msg hook (pre-commit stage commit-msg): append `Session: <name>`, require a task id or PR number on code commits, warn on a missing why-line.
 
-SESSION_PLAYBOOK §5 任务命名与登记「提交信息」(intent 2026-10-21-212849):
+SESSION_PLAYBOOK TEAM-23 (intent 2026-10-21-212849):
   1. `Session: <会话名>` is appended as a trailer when absent. The name comes from session_context.identify() (marker file, then worktree/branch);
      an unidentified session gets a warning and no trailer, never a guessed one.
   2. A commit that stages a code path (backend/, frontend/, scripts/, .github/, .pre-commit-config.yaml) must name a task id (XXX-MMDD-XXX-NN) or a PR (#123)
@@ -28,7 +28,7 @@ BASIS = re.compile(r"ADR-\d{4}|20\d\d-\d\d-\d\d-\d{6}|intent|" + TASK_ID.pattern
 SKIP_TITLE = re.compile(r"^(Merge |fixup! |squash! |amend! )")
 TRAILER = re.compile(r"^[A-Z][A-Za-z0-9-]*:\s")
 NO_ID = ("代码提交（改了 backend/、frontend/、scripts/ 或 .github/）须在提交信息里带任务号（如 CI-1022-QUA-03）或 PR 号（如 #589）；"
-         "文档提交不强制（SESSION_PLAYBOOK §5 任务命名与登记）。请补上后重新提交。")
+         "文档提交不强制（SESSION_PLAYBOOK TEAM-23）。请补上后重新提交。")
 
 
 def git(*args, cwd=None):
@@ -112,7 +112,7 @@ def check(text, paths, name, merging=False):
     if has_session(text):
         return text, errors, warnings
     if not name:
-        warnings.append("本会话未识别，没有追加 `Session:`：在 .claude/session-name 写入会话名（SESSION_PLAYBOOK §2.1）。")
+        warnings.append("本会话未识别，没有追加 `Session:`：在 .claude/session-name 写入会话名（SESSION_PLAYBOOK TEAM-02）。")
         return text, errors, warnings
     return text, errors, warnings
 

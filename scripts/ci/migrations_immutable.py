@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Flyway guard (SESSION_PLAYBOOK §12.2). Fails when
+"""Flyway guard (SESSION_PLAYBOOK 附 M3「迁移基线」). Fails when
   - a migration that already exists on the base branch was changed, renamed or deleted, unless the base branch carries
     the baseline-open marker (then the baseline may be edited directly);
   - the marker is added although the base branch has had one before (it may be added once, never reopened), or a file

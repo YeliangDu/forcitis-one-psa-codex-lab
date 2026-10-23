@@ -198,6 +198,74 @@ class EmployeeSyncRulesTest {
                 IssueKind.SUPERVISOR_SEPARATED, IssueKind.SUPERVISOR_CYCLE, IssueKind.SUPERVISOR_CYCLE);
     }
 
+    private static SourcePerson withCode(SourcePerson base, String code) {
+        return new SourcePerson(base.personId(), code, base.displayName(), base.unitId(), base.positionId(), base.supervisorId(),
+                base.loginName(), base.email(), base.gender(), base.wecomUserId(), base.feeEarner());
+    }
+
+    @Test
+    @DisplayName("W2 PR-B the employee code is unique: of two new people with one code the smaller source id is built, the other is isolated and reported")
+    void secondNewPersonWithTheSameCodeIsIsolated() {
+        Reconciliation changes = first(tree(withCode(person(2, 2, 100L, null, "13900000002", null), "E-SAME"),
+                withCode(person(1, 2, 100L, null, "13900000001", null), "E-SAME")));
+        OrgSnapshot snapshot = apply(OrgSnapshot.empty(), changes);
+
+        assertThat(snapshot.staffById()).containsOnlyKeys(user(1));
+        assertThat(issues(changes, IssueKind.DUPLICATE_EMPLOYEE_CODE)).hasSize(1);
+        assertThat(changes.diffs()).anyMatch(d -> d.subjectKey().equals("employee:" + user(2).value()) && d.changeKind() == ChangeKind.ISSUE
+                && d.detail().contains(user(1).value().toString()) && !d.detail().contains("E-SAME"));
+        assertThat(changes.stats().isolatedRowCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("W2 PR-B an existing employee keeps the code against a new person with a smaller source id, and a repeated sync gives the same result")
+    void existingHolderWinsAndRerunIsStable() {
+        OrgSnapshot existing = apply(OrgSnapshot.empty(), first(tree(withCode(person(5, 2, 100L, null, "13900000005", null), "E-SAME"))));
+        SourceOrgSnapshot source = tree(withCode(person(1, 2, 100L, null, "13900000001", null), "E-SAME"),
+                withCode(person(5, 2, 100L, null, "13900000005", null), "E-SAME"));
+
+        Reconciliation changes = SnapshotReconciler.reconcile(existing, source);
+        OrgSnapshot after = apply(existing, changes);
+
+        assertThat(after.staffById()).containsOnlyKeys(user(5));
+        assertThat(issues(changes, IssueKind.DUPLICATE_EMPLOYEE_CODE)).hasSize(1);
+        Reconciliation again = SnapshotReconciler.reconcile(after, source);
+        assertThat(issues(again, IssueKind.DUPLICATE_EMPLOYEE_CODE)).hasSize(1);
+        assertThat(again.changedEmployees()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("ADR-0078 an issued employee code is kept when the source carries another one, and the change is reported")
+    void anIssuedCodeIsNotRewrittenBySync() {
+        OrgSnapshot existing = apply(OrgSnapshot.empty(), first(tree(withCode(person(5, 2, 100L, null, "13900000005", null), "E-OLD"))));
+
+        Reconciliation changes = SnapshotReconciler.reconcile(existing, tree(withCode(person(5, 2, 100L, null, "13900000005", null), "E-NEW")));
+        OrgSnapshot after = apply(existing, changes);
+
+        assertThat(after.staffById().get(user(5)).employee().employeeCode()).isEqualTo("E-OLD");
+        assertThat(issues(changes, IssueKind.EMPLOYEE_CODE_CHANGE_IGNORED)).hasSize(1);
+        assertThat(changes.stats().isolatedRowCount()).as("the person is kept, not isolated").isZero();
+        assertThat(changes.diffs()).filteredOn(d -> d.issueKind() == IssueKind.EMPLOYEE_CODE_CHANGE_IGNORED)
+                .allMatch(d -> !d.detail().contains("E-OLD") && !d.detail().contains("E-NEW"));
+        assertThat(changes.changedEmployees()).isEmpty();
+
+        Reconciliation again = SnapshotReconciler.reconcile(after, tree(withCode(person(5, 2, 100L, null, "13900000005", null), "E-NEW")));
+        assertThat(issues(again, IssueKind.EMPLOYEE_CODE_CHANGE_IGNORED)).as("each sync reports it again, no dedup across runs").hasSize(1);
+    }
+
+    @Test
+    @DisplayName("ADR-0078 a new person cannot take the code an existing employee was issued, even when the source gave that employee another code")
+    void aNewPersonCannotTakeAnIssuedCode() {
+        OrgSnapshot existing = apply(OrgSnapshot.empty(), first(tree(withCode(person(5, 2, 100L, null, "13900000005", null), "E-OLD"))));
+
+        Reconciliation changes = SnapshotReconciler.reconcile(existing, tree(withCode(person(5, 2, 100L, null, "13900000005", null), "E-NEW"),
+                withCode(person(1, 2, 100L, null, "13900000001", null), "E-OLD")));
+        OrgSnapshot after = apply(existing, changes);
+
+        assertThat(after.staffById()).containsOnlyKeys(user(5));
+        assertThat(issues(changes, IssueKind.DUPLICATE_EMPLOYEE_CODE)).hasSize(1);
+    }
+
     @Test
     @DisplayName("RULE-362 one WeCom user id identifies one employed person: duplicates are stored for nobody and reported")
     void duplicateWecomUserIdIsNotStored() {

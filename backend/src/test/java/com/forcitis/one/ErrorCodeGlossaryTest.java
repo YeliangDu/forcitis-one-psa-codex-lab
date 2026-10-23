@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** SESSION_PLAYBOOK section 14 item 10 (review H-3): an error code is a term, with its Chinese name and its meaning. */
+/** DATA_DESIGN_CHECKLIST section 14 item 10 (review H-3): an error code is a term, with its Chinese name and its meaning. */
 class ErrorCodeGlossaryTest {
     /** Modules whose error entries are written by their own work stream; remove the entry when the entries are merged. */
     static final Set<String> PENDING_MODULES = Set.of("com.forcitis.one.platform.approval", "com.forcitis.one.cost.timesheet");
