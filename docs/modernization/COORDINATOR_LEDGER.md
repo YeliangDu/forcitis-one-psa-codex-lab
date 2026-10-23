@@ -3,6 +3,11 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 11:4x（one-coordinator，40% 记录，不清空）
+- **新决定**：111209 只在 PR 节点上报（TEAM-53、MRG-11）；111722/112228 归档 revenue、people、rules（rules 并入 one-glossary，名不改）；113112 复盘优化（QUA-04、QUA-02 加 openapi、MRG-02 回填、TEAM-106/107）；113916 one-merge/quality 代码交 Codex、调度超 15 分钟可自行 enqueue；104603 治理冻结 TEAM-102～105。
+- **在开 PR**：#642(72020a4f8)、#650(870799258 after #642) 已批未入队（one-merge 忙，11:5x 未入队则我 enqueue）；#651 DIRTY 待 one-quality；#652 按 opus 改；#653 opus 不通过返工；#654 QUA-03 opus 首轮在跑。
+- **收件箱**：GL6/第八批 10 题二审「改后发布」，one-glossary 改完直接发布，报链接后转用户。
+- **待开**：bc 准入清单（等 PR 清空、整改验收后）；one-arch-finance 收尾后归档；one-1a-next-5 做完 NX5-01 后并入或归档。
 更新：2026-10-23 11:0x（one-coordinator，30% 记录；调度阈值已放宽为 50%/60%，intent 081732，不清空）
 - **今日用户决定（intent）**：081732 调度阈值 50/60、子代理先交 Codex；083031 代码首轮仍 opus；090202 开 QUA-01 通信守护；090817 合入提速（MRG-07～09，复核由作者交 Codex）；092636 冲突根治（QUA-02、MRG-10）；101623 先清 PR、核团队落实再开新工作。
 - **定时取信**：本会话 CronCreate 每 5 分钟查分层总图 meta/request、工作台 board/request、mailbox、通知（任务 eb7b6047，7 天过期）；**清空/交接后须重设**。页面按钮不会唤醒会话。
