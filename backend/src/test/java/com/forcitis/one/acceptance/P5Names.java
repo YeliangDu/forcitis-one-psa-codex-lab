@@ -26,6 +26,7 @@ public final class P5Names {
     /** Constraints and indexes. */
     public static final String IX_SUBJECT = "audit_entries_subject_idx";
     public static final String CK_SUBJECT_KIND = "ck_audit_entries_subject_kind";
+    public static final String FK_SUBJECT_KIND = "fk_audit_entries_subject_kind";
     public static final String CK_SUBJECT_ID = "ck_audit_entries_subject_id";
 
     /**

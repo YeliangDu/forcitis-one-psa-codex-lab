@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,7 +15,6 @@ import java.util.Optional;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ContentHash;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.time.Instant;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 class TaskPolicyTest {
 
     static TaskView task(UserId assignee, Set<UserId> candidates) {
-        return new TaskView(com.forcitis.one.TestApprovalIds.task("t1"), com.forcitis.one.TestApprovalIds.instance("i1"), ProcessKey.COST_TIMESHEET_APPROVAL,
+        return new TaskView(com.forcitis.one.TestApprovalIds.task("t1"), com.forcitis.one.TestApprovalIds.instance("i1"), TimesheetApprovalProcess.KEY,
                 new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("doc-1")), new LegalEntityId(TestIds.uuid(1)), "approverReview",
                 "Approver review", TestAccounts.employee(1), Optional.ofNullable(assignee), candidates, Instant.EPOCH, true, Optional.empty(), false,
                 new ContentHash("hash"));

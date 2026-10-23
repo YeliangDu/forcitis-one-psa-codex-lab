@@ -1,5 +1,6 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
@@ -18,7 +19,6 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalProgress;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.numbering.api.IssuedNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
@@ -106,7 +106,7 @@ public class SubmitTimesheet {
     }
 
     private void requireRoundStillRunning(Timesheet timesheet) {
-        Optional<ApprovalProgress> progress = approvals.progress(ProcessKey.COST_TIMESHEET_APPROVAL, timesheet.document());
+        Optional<ApprovalProgress> progress = approvals.progress(TimesheetApprovalProcess.KEY, timesheet.document());
         if (progress.isPresent() && progress.get().round().value() == timesheet.round() && progress.get().status() != ApprovalStatus.RUNNING) {
             throw TimesheetError.COST_TIMESHEET_RESULT_PENDING.refusal("The approval of round " + timesheet.round() + " ended as "
                     + progress.get().status() + " and the timesheet has not taken that over yet");

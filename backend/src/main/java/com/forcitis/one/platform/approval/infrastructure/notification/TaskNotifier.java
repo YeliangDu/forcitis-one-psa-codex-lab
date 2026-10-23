@@ -11,6 +11,7 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.application.ApprovalTexts;
+import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
@@ -54,9 +55,11 @@ class TaskNotifier {
     private final BusinessZone zone;
     private final MeterRegistry meters;
     private final AccountEmployees accountEmployees;
+    private final ApprovalEngine engine;
 
     TaskNotifier(OrgDirectory org, WecomGateway wecom, NotificationProperties properties, BusinessZone zone, MeterRegistry meters,
-            AccountEmployees accountEmployees) {
+            AccountEmployees accountEmployees, ApprovalEngine engine) {
+        this.engine = engine;
         this.accountEmployees = accountEmployees;
         this.org = org;
         this.wecom = wecom;
@@ -127,7 +130,7 @@ class TaskNotifier {
             return;
         }
         send(null, List.of(initiator.get()), ApprovalTexts.completedTitle(event.outcome()),
-                ApprovalTexts.completedBody(event.processKey(), event.document(), event.round().value(),
+                ApprovalTexts.completedBody(engine.processNameOf(event.processKey()), event.document(), event.round().value(),
                         event.reason() == null ? null : event.reason().value()),
                 completed(event));
     }

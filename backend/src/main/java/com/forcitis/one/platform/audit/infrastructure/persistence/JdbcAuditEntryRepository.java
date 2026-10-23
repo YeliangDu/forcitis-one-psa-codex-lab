@@ -29,7 +29,10 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     private final JdbcClient jdbc;
     private final IdGenerator ids;
 
-    JdbcAuditEntryRepository(JdbcClient jdbc, IdGenerator ids) {
+    private final AuditSubjectKindCheck kinds;
+
+    JdbcAuditEntryRepository(JdbcClient jdbc, IdGenerator ids, AuditSubjectKindCheck kinds) {
+        this.kinds = kinds;
         this.jdbc = jdbc;
         this.ids = ids;
     }
@@ -46,6 +49,7 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     }
 
     private AuditEntryId insert(AuditEntry entry, Instant createdAt, String sourceAddress) {
+        kinds.refuseWhenRetired(entry.subject().kind());
         UUID id = ids.next();
         jdbc.sql("""
                         insert into platform_audit.audit_entries (id, created_at, updated_at, action, actor_id, on_behalf_of_id, subject_kind, subject_id, detail,
@@ -83,6 +87,7 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     }
 
     private boolean insertForEvent(AuditEntry entry, Instant createdAt, UUID eventId, UUID correlationId) {
+        kinds.refuseWhenRetired(entry.subject().kind());
         return jdbc.sql("""
                         insert into platform_audit.audit_entries (id, created_at, updated_at, action, actor_id, on_behalf_of_id, subject_kind, subject_id, detail,
                                                                   event_id, correlation_id, change_reason, before_text, after_text)

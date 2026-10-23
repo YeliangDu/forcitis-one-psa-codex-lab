@@ -1,5 +1,6 @@
 package com.forcitis.one.cost.timesheet.domain;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
@@ -10,7 +11,6 @@ import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
 import com.forcitis.one.platform.approval.api.ApprovalField;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoutingFlag;
 import com.forcitis.one.platform.approval.events.DocumentSubmittedForApproval;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
@@ -158,7 +158,7 @@ public final class Timesheet extends AggregateRoot {
         List<RoutingFlag> routing = flags.stream().map(flag -> new RoutingFlag(flag.flagName())).toList();
         List<ApprovalField> fields = List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
                 List.of(String.valueOf(projectManager.value()))));
-        record("platform.approval.DocumentSubmittedForApproval", envelope -> new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL,
+        record("platform.approval.DocumentSubmittedForApproval", envelope -> new DocumentSubmittedForApproval(envelope, TimesheetApprovalProcess.KEY,
                 at.document(), at.employee(), new RoundNumber(at.round()), routing, fields, hash, summary));
     }
 

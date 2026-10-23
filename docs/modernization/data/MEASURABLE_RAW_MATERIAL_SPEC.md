@@ -1,7 +1,7 @@
 # 建表规范草稿：业务库 DDL 的「可度量原料」五条
 
 - 作者：one-data，2026-10-17（度量设计第③项，one-coordinator 派工，one-architecture 对口；依据 Kimball《数据仓库工具箱》第 3 版的事实表类型、Adamson 的星型模式、Snodgrass 的时态数据）。
-- 状态：**草稿**。采纳后写入 NAMING_STANDARD 新节（建议 §2.4b）与 SESSION_PLAYBOOK §14 的建表检查；我的分支落后 main 约 1000 提交，等用户在应用里确认 origin 后同步，再改这两个共享文件（避免合并冲突）。检查脚本 `scripts/ci/measurable_ddl_scan.py` 已写好，**现在只报告**，接进 `build_all --check` 的时点见第 7 节。
+- 状态：**草稿**。采纳后写入 NAMING_STANDARD 新节（建议 §2.4b）与 DATA_DESIGN_CHECKLIST §14 的建表检查；我的分支落后 main 约 1000 提交，等用户在应用里确认 origin 后同步，再改这两个共享文件（避免合并冲突）。检查脚本 `scripts/ci/measurable_ddl_scan.py` 已写好，**现在只报告**，接进 `build_all --check` 的时点见第 7 节。
 - 总线矩阵对齐：行（度量事件）与列（维度）的口径由 one-architecture 定，草稿出来后我对这五条里与之相关的项（时间、币种、单位、状态转换、版本）逐项核对。
 
 ## 1. 金额带币种，数量带单位（M1）

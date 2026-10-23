@@ -404,7 +404,7 @@ QUAL-009/010/011/012/013/015 说明被延后的问题可能包含异步提交、
 - **[S6]** `scripts/merge/mq.py:1–41,320–329,331–400,499–508,552–696`：文档字符串、必需检查、Pause、落后自查与合并锁。此为静态机制证据，没有证明正在运行的队列进程已装载该版本。
 - **[S7]** `backend/src/test/java/com/forcitis/one/TestPostgres.java:25–229`；`TestDatabase.java`；`TestMssql.java`；`TestContainerGuardTest.java`；`TestIsolationGuardTest.java`：工厂、单例、模板、回收与守护范围。
 - **[S8]** `docs/modernization/CI_RUNNERS.md`；`.github/workflows/nightly-legacy-it.yml`；`scripts/release/ci_passed.py`：机器、缓存、运行政策与发布关联。说明文档部分旧段仍写“各4fork”“push全量”，与当前yml冲突；本评估以yml及实际日志为准。
-- **[S9]** `docs/modernization/CODING_STANDARD.md:149–165`（CS-5.x）；`SESSION_PLAYBOOK.md` §5、§6.1、§11「战队协作」第6/11/14条：评审分级、复发检查/三遍重跑、合入节奏；`CLAUDE.md`、`NAMING_STANDARD.md`：优先级与边界。
+- **[S9]** `docs/modernization/CODING_STANDARD.md:149–165`（CS-5.x）；`SESSION_PLAYBOOK.md` 附 M5、附 M1、TEAM-68（评审分级）、TEAM-71–72（复发检查/三遍重跑）、TEAM-47（合入节奏）；`CLAUDE.md`、`NAMING_STANDARD.md`：优先级与边界。
 - **[S10]** `docs/modernization/quality/defect-bank/one-quality.md:25–173`：QUAL-003/004/009–016。正文保留条目“待落实、推断、未证实”等限定；未以册中状态替代源码核对。
 - **[S11]** `scripts/ci/ci_recurrence.py` 的文档字符串、`Gh.runs`、`report`、`render`：覆盖范围、复发判定与缺日志边界；没有运行它的联网取数模式。
 - **[S12]** `scripts/ci/repeat_new_tests.py:1–12` 及选择/执行实现；`scripts/merge/mq.py:617–619`：新增测试重复与重复步骤失败不重跑放行。
