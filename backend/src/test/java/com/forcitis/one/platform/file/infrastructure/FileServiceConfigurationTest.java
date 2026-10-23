@@ -44,7 +44,8 @@ class FileServiceConfigurationTest {
                         "forcitis.platform.file.store.max-file-size=100MB", "forcitis.platform.file.store.allowed-media-types=application/pdf",
                         "forcitis.platform.file.store.staging-root=" + staging, "forcitis.platform.file.store.upload-deadline=PT10M", "forcitis.platform.file.store.staging-sweep-age=PT1H",
                         "forcitis.platform.file.store.staging-sweep-interval=PT10M", "forcitis.platform.file.store.download-link-validity=PT5M",
-                        "forcitis.platform.file.store.download-link-maximum-validity=PT15M");
+                        "forcitis.platform.file.store.download-link-maximum-validity=PT15M", "forcitis.platform.file.store.unbound-expiry-age=P2D",
+                        "forcitis.platform.file.store.one-time-link-unbound-expiry-age=P16D", "forcitis.platform.file.store.unbound-expiry-interval=PT10M");
     }
 
     private static BusinessFileStore bucket() {

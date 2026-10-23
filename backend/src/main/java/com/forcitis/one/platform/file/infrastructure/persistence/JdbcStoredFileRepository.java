@@ -12,8 +12,11 @@ import com.forcitis.one.platform.file.api.FileSubjectKind;
 import com.forcitis.one.platform.file.api.Lineage;
 import com.forcitis.one.platform.file.domain.LineageTarget;
 import com.forcitis.one.platform.file.domain.NewStoredFile;
+import com.forcitis.one.platform.file.domain.StoredFile;
 import com.forcitis.one.platform.file.domain.StoredFileRepository;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Repository;
 class JdbcStoredFileRepository implements StoredFileRepository {
     static final String ONE_TIME_LINK_HOLDER = "platform.file.one-time-link-holder";
     static final String PLATFORM_MODULE_CALL = "platform.file.platform-module-call";
+    static final String STAGING_EXPIRE = "platform.file.staging.expire";
 
     private final JdbcClient jdbc;
     private final IdGenerator ids;
@@ -114,6 +118,60 @@ class JdbcStoredFileRepository implements StoredFileRepository {
                 .param("id", file.value()).param("user", uploader)
                 .query((rs, n) -> FileStatus.valueOf(rs.getString("file_status")))
                 .optional();
+    }
+
+    @Override
+    public List<FileId> unboundStoredBefore(FileSubjectKind uploaderKind, Instant cutoff, int limit) {
+        return jdbc.sql("""
+                        select f.stored_file_id
+                          from platform_file.stored_files f
+                         where f.file_status = 'AVAILABLE' and f.uploader_kind = :kind and f.stored_at < :cutoff
+                           and not exists (select 1 from platform_file.file_bindings b where b.stored_file_id = f.stored_file_id)
+                         order by f.stored_at, f.stored_file_id
+                         limit :limit
+                        """)
+                .param("kind", uploaderKind.name()).param("cutoff", Timestamp.from(cutoff)).param("limit", limit)
+                .query((rs, n) -> new FileId(rs.getObject("stored_file_id", UUID.class))).list();
+    }
+
+    @Override
+    public Optional<StoredFile> lockForLifecycle(FileId file) {
+        return jdbc.sql("""
+                        select f.uploader_kind, f.stored_at, f.file_status, f.version,
+                               exists (select 1 from platform_file.file_bindings b where b.stored_file_id = f.stored_file_id) as bound
+                          from platform_file.stored_files f
+                         where f.stored_file_id = :id
+                           for no key update
+                        """)
+                .param("id", file.value())
+                .query((rs, n) -> StoredFile.restore(file, FileSubjectKind.valueOf(rs.getString("uploader_kind")), rs.getTimestamp("stored_at").toInstant(),
+                        rs.getBoolean("bound"), FileStatus.valueOf(rs.getString("file_status")), rs.getLong("version")))
+                .optional();
+    }
+
+    @Override
+    public void saveExpiry(StoredFile file, Instant at) {
+        Timestamp now = Timestamp.from(at);
+        int changed = jdbc.sql("""
+                        update platform_file.stored_files
+                           set file_status = :status, version = :next, updated_at = :at
+                         where stored_file_id = :id and version = :version
+                        """)
+                .param("status", file.status().name()).param("next", file.versionAfterSave()).param("at", now)
+                .param("id", file.id().value()).param("version", file.version())
+                .update();
+        if (changed != 1) {
+            throw new IllegalStateException("file " + file.id() + " changed while it was locked");
+        }
+        jdbc.sql("""
+                        insert into platform_file.state_transitions (id, aggregate_type_code, aggregate_id, transition_sequence_number, from_status, to_status,
+                            occurred_on_date, recorded_at, actor_type, actor_id, cause_kind, correlation_id, created_at, updated_at)
+                        values (:id, 'StoredFile', :file, :sequence, :from, :to, :day, :at, 'SYSTEM', :actor, 'SYSTEM_JOB', :correlation, :at, :at)
+                        """)
+                .param("id", ids.next()).param("file", file.id().value()).param("sequence", file.versionAfterSave())
+                .param("from", file.loadedStatus().name()).param("to", file.status().name()).param("day", zone.dateOf(at)).param("at", now)
+                .param("actor", SystemActors.idOf(STAGING_EXPIRE)).param("correlation", WorkContext.correlationId().orElseGet(ids::next))
+                .update();
     }
 
     private static UUID actorId(FileSubject subject) {

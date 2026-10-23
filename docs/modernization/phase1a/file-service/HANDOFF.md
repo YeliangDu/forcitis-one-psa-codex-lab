@@ -28,3 +28,8 @@
 - PLATFORM_FILE_TOO_LARGE 词条写 413、代码为 400（ErrorKind.INVALID）：对齐（一般改为 TOO_LARGE 413，同步契约与前端）。
 - 带 Idempotency-Key 的上传临时目录与扫描暂存双落盘（≤128MB×2）且无并发限额：限并发或放受配额目录。
 - OpenAPI 上传成功响应改 201；generate-api.mjs 放行 Content-Disposition 补负向测试；空体上传端点测试。
+
+## 2026-10-23 6b-3 进展（分支 claude/one-platform-file-6b3，叠在 #642 上）
+
+- 已做：StoredFile 根类 + 「未关联已过期」作业（ExpireUnboundFiles、UnboundFileExpiryJob，ShedLock platform.file.unbound.expire；时效配置 unbound-expiry-age、one-time-link-unbound-expiry-age ≥16 天、unbound-expiry-interval，部署须配）；unbuilt_roots 去 stored_files；PLATFORM_FILE_TOO_LARGE 改 413；setAgreedPreservation 注释。
+- 未做：正式区孤儿只读核对（需给 BusinessFileStore 加列举方法，改 platform.integration 先告知 one-architecture，且应用 RAM 需 ListObjects）；pi/spi/HasMacros 改名（'PI' 代码值是否随改待 one-glossary、one-data）；#642 余下三项（并发限额、201、generate-api 负向）。

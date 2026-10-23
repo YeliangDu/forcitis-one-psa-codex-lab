@@ -15,6 +15,7 @@ import com.forcitis.one.platform.file.api.FileSubjectKind;
 import com.forcitis.one.platform.file.api.Lineage;
 import com.forcitis.one.platform.file.domain.LineageTarget;
 import com.forcitis.one.platform.file.domain.NewStoredFile;
+import com.forcitis.one.platform.file.domain.StoredFile;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.UUID;
@@ -104,5 +105,38 @@ class JdbcStoredFileRepositoryIT {
                 + " bound_by_kind, bound_by_user_id, bound_at, created_at, updated_at) values (?, ?, 'CONTRACT', ?, 'INTERNAL', 'NONE', 'USER', ?, now(), now(), now())")
                 .params(UUID.randomUUID(), own.id().value(), UUID.randomUUID(), USER).update();
         assertThat(files.unboundStatusStoredBy(own.id(), USER)).as("once linked, the status is no longer the uploader's to read").isEmpty();
+    }
+
+    @Test
+    void anUnlinkedFileExpiresWithItsTransitionByTheJobActor() {
+        NewStoredFile file = file(new FileSubject(FileSubjectKind.USER, USER.toString()), FileStatus.AVAILABLE, new Lineage.FirstVersion(), "1".repeat(64));
+        files.insert(file);
+        Instant later = AT.plusSeconds(3 * 86400);
+        assertThat(files.unboundStoredBefore(FileSubjectKind.USER, later.minusSeconds(2 * 86400), 500)).contains(file.id());
+        assertThat(files.unboundStoredBefore(FileSubjectKind.PLATFORM_MODULE, later, 500)).doesNotContain(file.id());
+        assertThat(files.unboundStoredBefore(FileSubjectKind.USER, AT, 500)).doesNotContain(file.id());
+
+        StoredFile locked = files.lockForLifecycle(file.id()).orElseThrow();
+        locked.expire(later, java.time.Duration.ofDays(2));
+        files.saveExpiry(locked, later);
+
+        assertThat(jdbc.sql("select file_status || ' ' || version from platform_file.stored_files where stored_file_id = ?").param(file.id().value())
+                .query(String.class).single()).isEqualTo("EXPIRED_UNBOUND 1");
+        assertThat(jdbc.sql("select from_status || '>' || to_status || ' ' || transition_sequence_number || ' ' || cause_kind || ' ' || actor_type || ' ' || actor_id"
+                + " from platform_file.state_transitions where aggregate_id = ? and transition_sequence_number = 1").param(file.id().value()).query(String.class).single())
+                .isEqualTo("AVAILABLE>EXPIRED_UNBOUND 1 SYSTEM_JOB SYSTEM " + SystemActors.idOf(JdbcStoredFileRepository.STAGING_EXPIRE));
+        assertThat(files.unboundStoredBefore(FileSubjectKind.USER, later, 500)).doesNotContain(file.id());
+        assertThat(files.lineageTarget(file.id())).contains(new LineageTarget(FileStatus.EXPIRED_UNBOUND, false));
+    }
+
+    @Test
+    void aStaleVersionIsNotWritten() {
+        NewStoredFile file = file(new FileSubject(FileSubjectKind.USER, USER.toString()), FileStatus.AVAILABLE, new Lineage.FirstVersion(), "2".repeat(64));
+        files.insert(file);
+        Instant later = AT.plusSeconds(3 * 86400);
+        StoredFile first = files.lockForLifecycle(file.id()).orElseThrow();
+        jdbc.sql("update platform_file.stored_files set version = 5 where stored_file_id = ?").param(file.id().value()).update();
+        first.expire(later, java.time.Duration.ofDays(2));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> files.saveExpiry(first, later)).isInstanceOf(IllegalStateException.class);
     }
 }

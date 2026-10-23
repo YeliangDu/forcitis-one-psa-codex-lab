@@ -15,11 +15,14 @@ import org.springframework.util.unit.DataSize;
 @ConfigurationProperties("forcitis.platform.file.store")
 record FileServiceProperties(@DefaultValue("false") boolean enabled, String environmentPrefix, DataSize maxFileSize, List<String> allowedMediaTypes,
                              Path stagingRoot, Duration uploadDeadline, Duration stagingSweepAge,
-                             Duration stagingSweepInterval, Duration downloadLinkValidity, Duration downloadLinkMaximumValidity) {
+                             Duration stagingSweepInterval, Duration downloadLinkValidity, Duration downloadLinkMaximumValidity,
+                             Duration unboundExpiryAge, Duration oneTimeLinkUnboundExpiryAge, Duration unboundExpiryInterval) {
 
     static final String PREFIX = "forcitis.platform.file.store.";
     static final DataSize SCANNABLE = DataSize.ofGigabytes(2);
     static final Duration LINK_CEILING = Duration.ofMinutes(15);
+    /** An external draft link is valid for up to 14 days; its staging copy is kept two days longer (ADR-0060 section 5 item 2). */
+    static final Duration ONE_TIME_LINK_FLOOR = Duration.ofDays(16);
 
     FileServiceProperties {
         if (enabled) {
@@ -48,6 +51,13 @@ record FileServiceProperties(@DefaultValue("false") boolean enabled, String envi
                 throw new IllegalArgumentException(PREFIX + "download-link-maximum-validity is at most 15 minutes and download-link-validity at most that "
                         + "(ADR-0060 section 2)");
             }
+            positive(unboundExpiryAge, "unbound-expiry-age");
+            positive(oneTimeLinkUnboundExpiryAge, "one-time-link-unbound-expiry-age");
+            if (oneTimeLinkUnboundExpiryAge.compareTo(ONE_TIME_LINK_FLOOR) < 0) {
+                throw new IllegalArgumentException(PREFIX + "one-time-link-unbound-expiry-age is at least 16 days: the link is valid for up to 14 days and "
+                        + "a file handed in on the last day must still be linkable for two more (ADR-0060 section 5)");
+            }
+            positive(unboundExpiryInterval, "unbound-expiry-interval");
         }
     }
 
