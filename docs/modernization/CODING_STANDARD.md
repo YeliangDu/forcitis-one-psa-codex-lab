@@ -173,7 +173,7 @@
 | CS-6.3 | **测试不写密钥字面量**（与 CS-5.7 同一条，此处为密钥视角的索引） | [SESSION_PLAYBOOK 附 M5「第二批」第 6 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 守护：pre-commit、CI gitleaks、`scripts/precheck.sh` |
 | CS-6.4 | **密钥不进会话记录** | [SESSION_PLAYBOOK TEAM-97](SESSION_PLAYBOOK.md#12-安全生产与须用户决定) | 复审 |
 | CS-6.5 | 凭据原值只在 `~/.modernize/psa/`（权限 600）或 KMS，不进任何可共享文件 | SESSION_PLAYBOOK TEAM-97 | 守护：gitleaks；复审 |
-| CS-6.6 | 身份、授权、单人模式防线遵守 `phase1a/SECURITY_INVARIANTS.md` 的 I-1…I-13；这类改动不交给 Codex | SECURITY_INVARIANTS；SESSION_PLAYBOOK TEAM-32–38 | 守护：各不变量对应测试；复审 |
+| CS-6.6 | 身份、授权、单人模式防线遵守 `phase1a/SECURITY_INVARIANTS.md` 的 I-1…I-13；这类改动不交给 Codex | SECURITY_INVARIANTS；SESSION_PLAYBOOK TEAM-32、33、34、52、67、86、95 | 守护：各不变量对应测试；复审 |
 | CS-6.7 | 生产配置不含测试值、固定验证码或 mock 取值 | SECURITY_INVARIANTS I-4 | 守护：`ProductionConfigSanityTest`（按 SECURITY_INVARIANTS） |
 | CS-6.8 | **建账号、起容器、对外调用前先问用户**（Testcontainers 本机临时测试容器除外） | [SESSION_PLAYBOOK 附 M5「第二批」第 10 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处)；TEAM-92 | 复审 |
 | CS-6.9 | **生产取证不逐次请示（两条底线）** | [SESSION_PLAYBOOK TEAM-95](SESSION_PLAYBOOK.md#12-安全生产与须用户决定)、ADR-0037 第 7 项 | 复审 |
@@ -183,12 +183,12 @@
 | # | 规则 | 出处 | 检查 |
 |---|---|---|---|
 | CS-7.1 | **交付前运行 `scripts/precheck.sh`**（默认基线 `origin/main`，可传参数），全部 PASS 或有理由的 SKIP 才开 PR；输出贴进 PR「precheck.sh 输出」一栏。脚本会执行分支自带的检查脚本，复审方在不可信分支上不运行 precheck，以 CI 为准 | 用户「A–D 全做」之 C（intent `2026-10-15-014844-one-coordinator-…`） | PR 模板 |
-| CS-7.2 | PR 模板各栏如实填写：改动的断言 / 测试及理由、新增术语、OpenAPI 与架构文档同步、验收测试 trailer、precheck 输出；Codex 实现的在「Codex 实现（模型、强度）」一栏注明 | `.github/pull_request_template.md`；SESSION_PLAYBOOK TEAM-32–38 | 复审（调度合并前核对） |
+| CS-7.2 | PR 模板各栏如实填写：改动的断言 / 测试及理由、新增术语、OpenAPI 与架构文档同步、验收测试 trailer、precheck 输出；Codex 实现的在「Codex 实现（模型、强度）」一栏注明 | `.github/pull_request_template.md`；SESSION_PLAYBOOK TEAM-32、33、34、52、67、86、95 | 复审（调度合并前核对） |
 | CS-7.3 | **只改卡上文件**，越界先报告；缺陷修复、功能补做、结构性重构分开派工、分开提交；缺陷修复手术式（最小改动 + 回归测试），不顺手重构、改名、统一风格 | SESSION_PLAYBOOK 附 M1 第 1、5、6 条 | 复审；派工卡模板 `templates/WORK_CARD.md` |
-| CS-7.4 | **记录只改片段**：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `build_all.py` 生成；用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段（文件名由脚本按时刻与会话名生成，不手工起名），改完运行 `build_all.py`；INTENT / SESSION_LOG / STATUS、ADR 拷贝与索引、brief 等生成产物都不入仓（只提交片段或源；本地运行 `build_all.py` 或看 generated-docs 分支）；不直接编辑生成产物 | SESSION_PLAYBOOK TEAM-56 | 守护：`build_all.py --check` |
+| CS-7.4 | **记录只改片段**：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `build_all.py` 生成；用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段（文件名由脚本按时刻与会话名生成，不手工起名），改完运行 `build_all.py`；INTENT / SESSION_LOG / STATUS、ADR 拷贝与索引、brief 等生成产物都不入仓（只提交片段或源；本地运行 `build_all.py` 或看 generated-docs 分支）；不直接编辑生成产物 | SESSION_PLAYBOOK TEAM-57 | 守护：`build_all.py --check` |
 | CS-7.5 | **变更治理自查**：已采纳 ADR 只改状态行；新 ADR 带四个必备小节；代码类改动先有 `RULE_REVIEWS.json` 结论；配置变更登记版本与生效日期 | SESSION_PLAYBOOK TEAM-46、附 M3 | 守护：`adr/build_adrs.py`（经 `build_all.py`）；复审 |
 | CS-7.6 | **并行子代理同一基线出发** | [SESSION_PLAYBOOK 附 M5「第二批」第 9 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
-| CS-7.7 | **合并**：main 受分支保护，所有改动经 PR，CI 三项通过且本批 opus 复审结论到达后，由调度会话 one-coordinator 合并；工作会话结束前向 one-coordinator 报告 | CLAUDE.md；SESSION_PLAYBOOK TEAM-45、47、59 | CI；调度核对 |
+| CS-7.7 | **复审、入队与报告**：按 SESSION_PLAYBOOK TEAM-67、45、47、53 执行；代码首轮 opus，一般改后由作者交 Codex 复核，安全与生产改动修后 opus 终审；调度核准清单，one-merge 经 mq.py 人工入队、合入并登记执行会话，调度逐批审计；自动入队永久关闭，评论只留痕与核 head；文档由合集自扫，常规状态只在四节点上报，不单报提交号 | SESSION_PLAYBOOK TEAM-45、47、53、67 | CI；调度核对 |
 | CS-7.8 | 提交说明中文，格式 `type(scope): 摘要`，scope 用子域 slug；验收测试 trailer 见 CS-5.3 | NAMING_STANDARD §7 第 21 项 | 复审 |
 | CS-7.9 | **IntelliJ 构建**：构建进程不读 `backend/.mvn/jvm.config`，Error Prone 会因 `IllegalAccessError` 加载失败；在 Settings → Build, Execution, Deployment → Compiler → Shared build process VM options 里加入与该文件相同的 `--add-exports` / `--add-opens` 参数，或改用 Maven 构建 | ADR-0033 守护 14；`backend/.mvn/jvm.config` | 复审 |
 
@@ -224,7 +224,7 @@
 | C-8 | 测试命名：NAMING_STANDARD §5 写方法名 `RULE_012_clauseTotal…`，§4 计划「以 `RULE_NNN_` 开头的测试」；现有代码统一用 `@DisplayName("RULE-356 …")`；SESSION_PLAYBOOK 附 M4 写「测试名或注解引用」 | 建议：以 `@DisplayName` 开头引用编号为准（现状、可读、支持 D / ADR / 复审编号），G-T4 守护按 `@DisplayName` 前缀实现；§5 示例同步改 |
 | C-9 | `@Nullable` 两套：`org.jspecify.annotations.Nullable`（33 个文件）与 `org.springframework.lang.Nullable`（8 个文件，`platform.approval.web` 与 `OpenApiRequiredProperties`）；`NullableResponseGuardTest` 只认 JSpecify | 建议：统一 JSpecify（Spring 7 本身已转 JSpecify），G-C3 禁 Spring 的注解；8 个文件走结构性重构批 |
 | C-10 | 覆盖率门槛：GUIDING_PRINCIPLES §9「行 ≥ 80%、分支 ≥ 70%」，CI `backend_verify.sh` 为 `-Djacoco.skip=true`（「nothing in CI reads coverage」），门槛无人检查 | 待决：恢复覆盖率门槛进 CI，或在 GUIDING_PRINCIPLES 写明「复审参考，不作门槛」 |
-| C-11 | 分支命名：旧版 SESSION_PLAYBOOK §6 与 NAMING_STANDARD §7 第 21 项写 `feature/issue-{N}-…`，实际会话分支为 `claude/one-*` worktree 分支 | 建议：两处改为「会话 worktree 分支（`claude/<会话名>`）」，或决定沿用哪种 |
+| C-11 | 分支命名：旧版 SESSION_PLAYBOOK §6 与 NAMING_STANDARD §7 第 21 项写 `feature/issue-{N}-…`，实际会话分支为 `claude/one-*` worktree 分支 | 建议：两处改为「会话 worktree 分支（`claude/<会话名>-<主题>`）」（TEAM-86 已定；NAMING_STANDARD 第 21 项已同步） |
 | C-12 | `CLAUDE.md`、`AGENTS.md` 与 SESSION_PLAYBOOK 附 M5「第二批」逐条重复（11 条），措辞略有差异 | 本次已处理：CLAUDE.md 保留最硬的条目并指向本文件，AGENTS.md 指向本文件；第二批原文仍在 SESSION_PLAYBOOK 附 M5「第二批」，本文件引用 |
 | C-13 | CLAUDE.md「数据设计有自己的规则……所有自有表主键 UUIDv7……」与 §14.1 原则段、D16 重复 | 本次已处理：CLAUDE.md 只留一句指向，正文以 §14.1 为准（CS-3.3、CS-3.4） |
 | C-14 | NAMING_STANDARD §2.3「Flyway 描述中文说明写在脚本首行注释」与 CS-1.1「注释能不写就不写」有张力；表与列含义已由 `COMMENT ON` 承载（D3、D10） | 建议：首行注释只写「为什么」（如基线合并来源），含义一律写 `COMMENT ON` |

@@ -240,3 +240,64 @@ terms:
   forbidden: []
   status: proposed
   note: 一个 bc 内中英文名查重已做；随签章 api PR 登记，请 one-glossary 复核
+- id: electronic_seal
+  zh: 电子印章
+  en: ElectronicSeal
+  snake: electronic_seal
+  kind: value_object
+  bc: platform.signing
+  scope: domain
+  definition: 由省级明确的制作管理单位制作并备案、与实物印章同等效力的印章，绑定数字证书；系统不保管私钥，只登记其元数据（ADR-0064 决定 4）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: electronic_seal_usage
+  zh: 电子用印
+  en: ElectronicSealUsage
+  snake: electronic_seal_usage
+  kind: value_object
+  bc: platform.signing
+  scope: domain
+  definition: 以电子印章对签前件完成的用印，由签章服务发起并回收结果，产出签后件与签章记录；先行期不开放，随电子印章批按印章类型切换（ADR-0064 决定 2、4、5）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: practice_seal
+  zh: 执业印章
+  en: PracticeSeal
+  snake: practice_seal
+  kind: entity
+  bc: platform.signing
+  scope: domain
+  definition: 注册执业人员（自然人）持有的印章，台账条目的持有人为自然人；图纸签章登记引用其条目与注册执业证书记录，不在先行期建（ADR-0064 决定 3、6）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden:
+  - 注册执业章
+  status: proposed
+  note: '统一叫执业印章；印章类型取值中的出图专用章已含于印章类型定义，不另立'
+- id: digital_certificate
+  zh: 数字证书
+  en: DigitalCertificate
+  snake: digital_certificate
+  kind: entity
+  bc: platform.signing
+  scope: domain
+  definition: 依法设立的电子认证服务机构签发、电子印章所绑定的证书；系统只登记颁发机构、序列号、主体、用途、有效期、状态、关联印章等元数据，不保管私钥（ADR-0064 决定 5）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '与注册执业证书等其他证书分名（ADR-0064 one-glossary 第 3 项）'
