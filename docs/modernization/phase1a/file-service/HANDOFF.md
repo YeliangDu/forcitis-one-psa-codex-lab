@@ -31,5 +31,5 @@
 
 ## 2026-10-23 6b-3 进展（分支 claude/one-platform-file-6b3，叠在 #642 上）
 
-- 已做：StoredFile 根类 + 「未关联已过期」作业（ExpireUnboundFiles、UnboundFileExpiryJob，ShedLock platform.file.unbound.expire；时效配置 unbound-expiry-age、one-time-link-unbound-expiry-age ≥16 天、unbound-expiry-interval，部署须配）；unbuilt_roots 去 stored_files；PLATFORM_FILE_TOO_LARGE 改 413；setAgreedPreservation 注释。
+- 已做：StoredFile 根类 + 「未关联已过期」作业（ExpireUnboundFiles、UnboundFileExpiryJob，ShedLock platform.file.staging.expire；时效配置 unbound-expiry-age、one-time-link-unbound-expiry-age ≥16 天、unbound-expiry-interval，部署须配）；unbuilt_roots 去 stored_files；PLATFORM_FILE_TOO_LARGE 改 413；setAgreedPreservation 注释。
 - 未做：正式区孤儿只读核对（需给 BusinessFileStore 加列举方法，改 platform.integration 先告知 one-architecture，且应用 RAM 需 ListObjects）；pi/spi/HasMacros 改名（'PI' 代码值是否随改待 one-glossary、one-data）；#642 余下三项（并发限额、201、generate-api 负向）。

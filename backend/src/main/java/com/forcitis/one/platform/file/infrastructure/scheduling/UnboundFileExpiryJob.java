@@ -16,7 +16,7 @@ class UnboundFileExpiryJob {
     }
 
     @Scheduled(fixedDelayString = "${forcitis.platform.file.store.unbound-expiry-interval}")
-    @SchedulerLock(name = "platform.file.unbound.expire", lockAtMostFor = "PT30M")
+    @SchedulerLock(name = "platform.file.staging.expire", lockAtMostFor = "PT30M")
     void expireUnboundFiles() {
         expire.execute();
     }

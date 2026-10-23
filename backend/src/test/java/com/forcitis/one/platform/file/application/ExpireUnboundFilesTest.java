@@ -63,8 +63,8 @@ class ExpireUnboundFilesTest {
         FileId free = new FileId(UUID.randomUUID());
         FileId linked = new FileId(UUID.randomUUID());
         when(files.unboundStoredBefore(eq(FileSubjectKind.USER), any(), eq(ExpireUnboundFiles.BATCH))).thenReturn(List.of(free, linked));
-        when(files.lockForLifecycle(free)).thenReturn(Optional.of(stored(free, false)));
-        when(files.lockForLifecycle(linked)).thenReturn(Optional.of(stored(linked, true)));
+        when(files.lockForExpiry(free)).thenReturn(Optional.of(stored(free, false)));
+        when(files.lockForExpiry(linked)).thenReturn(Optional.of(stored(linked, true)));
 
         assertThat(job.execute()).isEqualTo(1);
 
@@ -78,15 +78,15 @@ class ExpireUnboundFilesTest {
         FileId broken = new FileId(UUID.randomUUID());
         FileId fine = new FileId(UUID.randomUUID());
         when(files.unboundStoredBefore(eq(FileSubjectKind.USER), any(), eq(ExpireUnboundFiles.BATCH))).thenReturn(List.of(broken, fine));
-        when(files.lockForLifecycle(broken)).thenReturn(Optional.of(stored(broken, false)));
-        when(files.lockForLifecycle(fine)).thenReturn(Optional.of(stored(fine, false)));
+        when(files.lockForExpiry(broken)).thenReturn(Optional.of(stored(broken, false)));
+        when(files.lockForExpiry(fine)).thenReturn(Optional.of(stored(fine, false)));
         doThrow(new IllegalStateException("changed")).when(files).saveExpiry(any(StoredFile.class), any());
         assertThat(job.execute()).isZero();
         assertThat(meters.get("forcitis.platform.file.unbound.expiry.failures").counter().count()).isEqualTo(2);
 
         org.mockito.Mockito.reset(files);
         when(files.unboundStoredBefore(eq(FileSubjectKind.USER), any(), eq(ExpireUnboundFiles.BATCH))).thenReturn(List.of(fine));
-        when(files.lockForLifecycle(fine)).thenReturn(Optional.of(stored(fine, false)));
+        when(files.lockForExpiry(fine)).thenReturn(Optional.of(stored(fine, false)));
         assertThat(job.execute()).isEqualTo(1);
     }
 

@@ -135,7 +135,7 @@ class JdbcStoredFileRepository implements StoredFileRepository {
     }
 
     @Override
-    public Optional<StoredFile> lockForLifecycle(FileId file) {
+    public Optional<StoredFile> lockForExpiry(FileId file) {
         return jdbc.sql("""
                         select f.uploader_kind, f.stored_at, f.file_status, f.version,
                                exists (select 1 from platform_file.file_bindings b where b.stored_file_id = f.stored_file_id) as bound

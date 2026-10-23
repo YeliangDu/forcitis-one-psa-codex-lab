@@ -70,9 +70,9 @@ public final class ExpireUnboundFiles {
     private boolean expire(FileId file, Duration age) {
         try {
             Boolean moved = transaction.execute(tx -> {
-                Optional<StoredFile> locked = files.lockForLifecycle(file);
+                Optional<StoredFile> locked = files.lockForExpiry(file);
                 Instant now = clock.instant();
-                if (locked.isEmpty() || !locked.get().isUnboundAndOlderThan(now, age)) {
+                if (locked.isEmpty() || !locked.get().hasExpired(now, age)) {
                     return false;
                 }
                 StoredFile stored = locked.get();

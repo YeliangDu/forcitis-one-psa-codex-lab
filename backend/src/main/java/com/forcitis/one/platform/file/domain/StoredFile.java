@@ -41,7 +41,7 @@ public final class StoredFile extends AggregateRoot {
     }
 
     /** True when the file is available, has no document and was stored at least keptFor ago: the only case in which {@link #expire} applies. */
-    public boolean isUnboundAndOlderThan(Instant now, Duration keptFor) {
+    public boolean hasExpired(Instant now, Duration keptFor) {
         return status == FileStatus.AVAILABLE && !bound && !storedAt.plus(keptFor).isAfter(now);
     }
 

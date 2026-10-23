@@ -116,7 +116,7 @@ class JdbcStoredFileRepositoryIT {
         assertThat(files.unboundStoredBefore(FileSubjectKind.PLATFORM_MODULE, later, 500)).doesNotContain(file.id());
         assertThat(files.unboundStoredBefore(FileSubjectKind.USER, AT, 500)).doesNotContain(file.id());
 
-        StoredFile locked = files.lockForLifecycle(file.id()).orElseThrow();
+        StoredFile locked = files.lockForExpiry(file.id()).orElseThrow();
         locked.expire(later, java.time.Duration.ofDays(2));
         files.saveExpiry(locked, later);
 
@@ -134,7 +134,7 @@ class JdbcStoredFileRepositoryIT {
         NewStoredFile file = file(new FileSubject(FileSubjectKind.USER, USER.toString()), FileStatus.AVAILABLE, new Lineage.FirstVersion(), "2".repeat(64));
         files.insert(file);
         Instant later = AT.plusSeconds(3 * 86400);
-        StoredFile first = files.lockForLifecycle(file.id()).orElseThrow();
+        StoredFile first = files.lockForExpiry(file.id()).orElseThrow();
         jdbc.sql("update platform_file.stored_files set version = 5 where stored_file_id = ?").param(file.id().value()).update();
         first.expire(later, java.time.Duration.ofDays(2));
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> files.saveExpiry(first, later)).isInstanceOf(IllegalStateException.class);

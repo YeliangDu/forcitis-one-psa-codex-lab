@@ -160,7 +160,7 @@ class StoreContentTest {
         }
 
         @Override
-        public Optional<com.forcitis.one.platform.file.domain.StoredFile> lockForLifecycle(FileId file) {
+        public Optional<com.forcitis.one.platform.file.domain.StoredFile> lockForExpiry(FileId file) {
             throw new AssertionError("not used when storing");
         }
 

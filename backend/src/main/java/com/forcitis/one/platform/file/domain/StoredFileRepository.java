@@ -26,7 +26,7 @@ public interface StoredFileRepository {
     List<FileId> unboundStoredBefore(FileSubjectKind uploaderKind, Instant cutoff, int limit);
 
     /** Locks the file for the lifecycle change; empty when there is none. */
-    Optional<StoredFile> lockForLifecycle(FileId file);
+    Optional<StoredFile> lockForExpiry(FileId file);
 
     /** Writes the status change of a locked file and its state transition by the system job that made it; joins the caller's transaction. */
     void saveExpiry(StoredFile file, Instant at);

@@ -35,9 +35,9 @@ class StoredFileTest {
     @Test
     @DisplayName("a file still within its staging time, one that a document has, and one in another status are refused")
     void refused() {
-        assertThat(file(false, FileStatus.AVAILABLE).isUnboundAndOlderThan(STORED.plus(KEPT).minusSeconds(1), KEPT)).isFalse();
-        assertThat(file(true, FileStatus.AVAILABLE).isUnboundAndOlderThan(STORED.plus(KEPT), KEPT)).isFalse();
-        assertThat(file(false, FileStatus.QUARANTINED).isUnboundAndOlderThan(STORED.plus(KEPT), KEPT)).isFalse();
+        assertThat(file(false, FileStatus.AVAILABLE).hasExpired(STORED.plus(KEPT).minusSeconds(1), KEPT)).isFalse();
+        assertThat(file(true, FileStatus.AVAILABLE).hasExpired(STORED.plus(KEPT), KEPT)).isFalse();
+        assertThat(file(false, FileStatus.QUARANTINED).hasExpired(STORED.plus(KEPT), KEPT)).isFalse();
         assertThatThrownBy(() -> file(false, FileStatus.AVAILABLE).expire(STORED.plus(KEPT).minusSeconds(1), KEPT)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> file(true, FileStatus.AVAILABLE).expire(STORED.plus(KEPT), KEPT)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> file(false, FileStatus.QUARANTINED).expire(STORED.plus(KEPT), KEPT)).isInstanceOf(DomainException.class);
