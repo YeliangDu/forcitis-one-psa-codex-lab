@@ -63,7 +63,7 @@ CREATE TABLE organization_attendance.work_calendar_versions (
     CONSTRAINT ck_work_calendar_versions_confirmation_columns CHECK (
         (confirmation_status = 'PENDING_CONFIRMATION' AND confirmed_by IS NULL AND confirmed_at IS NULL AND decision_audit_entry_id IS NULL)
         OR (confirmation_status = 'CONFIRMED' AND confirmed_at IS NOT NULL AND decision_audit_entry_id IS NOT NULL
-            AND (confirmed_by IS NOT NULL) = (source_kind <> 'MIGRATION'))
+            AND confirmed_by IS NOT NULL)
         OR (confirmation_status = 'WITHDRAWN' AND confirmed_by IS NULL AND confirmed_at IS NULL AND decision_audit_entry_id IS NULL)),
     CONSTRAINT ck_work_calendar_versions_withdrawal_columns CHECK (
         (confirmation_status = 'WITHDRAWN') = (withdrawn_by IS NOT NULL)
@@ -90,14 +90,14 @@ COMMENT ON COLUMN organization_attendance.work_calendar_versions.work_calendar_i
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.year_number IS '日历年份';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.version_number IS '版本号：同一日历同一年份从 1 起逐个加 1；迁入版本恒为 1';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.confirmation_status IS '确认状态：PENDING_CONFIRMATION 待确认（不生效，同一日历同一年份至多一个）/ CONFIRMED 已确认（生效，按生效区间取用）/ WITHDRAWN 已撤回（终态，版本号不回收）；只能由待确认改成已确认或已撤回';
-COMMENT ON COLUMN organization_attendance.work_calendar_versions.source_kind IS '来源类别：AUTHORED 界面或运维起草（有作者，确认人不得是作者）/ MIGRATION 迁入（作者与确认人为空，只能由库的属主身份写入，恒为第 1 版）';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.source_kind IS '来源类别：AUTHORED 界面或运维起草（有作者，确认人不得是作者）/ MIGRATION 迁入（作者为空，只能由库的属主角色或迁入角色写入，恒为第 1 版；确认由业务人员在应用内做，与有作者的版本一样）';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.effective_from_date IS '生效日（含）：此日及以后取本版本；首个已确认版本以外的版本不得早于确认日（按库的事务时间取日），且此日之前的例外日必须与上一版本一致（不追溯）；第 1 版不得晚于该年 1 月 1 日';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.effective_to_date IS '生效截止日（不含）；为空表示仍然开放。下一版本确认时由库自动关闭上一版本，其余时候不可改';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.authored_by IS '作者的用户账号 ID；来源为迁入时为空（迁入没有作者）';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.authored_at IS '起草时间；与作者同时有、同时空';
-COMMENT ON COLUMN organization_attendance.work_calendar_versions.confirmed_by IS '确认人的用户账号 ID；确认前为空，来源为迁入时始终为空（签字人由确认的审计记录追溯）；不得等于作者';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.confirmed_by IS '确认人的用户账号 ID；确认前为空，确认后必填（迁入版本也由确认人确认）；不得等于作者';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.confirmed_at IS '确认时间；确认前为空表示尚未确认';
-COMMENT ON COLUMN organization_attendance.work_calendar_versions.decision_audit_entry_id IS '决定审计记录：确认操作的审计记录 ID（迁入版本指核对签字的审计记录）；确认前为空表示尚未确认，跨 schema 只按 ID 引用，不建外键';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.decision_audit_entry_id IS '决定审计记录：确认操作的审计记录 ID；确认前为空表示尚未确认，跨 schema 只按 ID 引用，不建外键';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.official_notice_number IS '官方通知文号；起草时可为空表示尚未挂，确认时必填';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.official_notice_url IS '官方通知链接（https）；起草时可为空表示尚未挂，确认时必填';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.company_leave_register_kind IS '公司加休登记类别：REGISTERED 已登记（见登记键）/ NONE 登记为没有加休；为空表示尚未登记（确认时必填）。有公司加休或取消调休的日期时只能是 REGISTERED';
@@ -158,20 +158,21 @@ CREATE TRIGGER tg_work_calendar_version_days_append_only BEFORE UPDATE OR DELETE
 CREATE TRIGGER tg_work_calendar_version_days_append_only_truncate BEFORE TRUNCATE ON organization_attendance.work_calendar_version_days
     FOR EACH STATEMENT EXECUTE FUNCTION organization_attendance.reject_calendar_row_change();
 
--- 迁入版本只能由库的属主身份（含属主角色的成员，如迁移账号）写入；应用的运行账号不是属主角色的成员，被拒绝。
-CREATE FUNCTION organization_attendance.require_owner_for_migration_version(version_row organization_attendance.work_calendar_versions) RETURNS void LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
-DECLARE
-    owner_name name;
-BEGIN
-    IF version_row.source_kind <> 'MIGRATION' THEN
-        RETURN;
-    END IF;
-    SELECT pg_get_userbyid(relowner) INTO owner_name FROM pg_catalog.pg_class WHERE oid = 'organization_attendance.work_calendar_versions'::regclass;
-    IF NOT pg_has_role(current_user, owner_name, 'USAGE') THEN
-        RAISE EXCEPTION 'a migrated calendar version can only be written by the owner role: % is refused', current_user USING ERRCODE = 'insufficient_privilege';
-    END IF;
-END $$;
-COMMENT ON FUNCTION organization_attendance.require_owner_for_migration_version(organization_attendance.work_calendar_versions) IS '迁入版本的写入身份检查：只放行属主角色及其成员';
+-- 判定函数是 SECURITY INVOKER：current_user 就是执行插入的角色，若改成 SECURITY DEFINER 则恒为属主、等于放行所有人。
+CREATE FUNCTION organization_attendance.is_owner_member(table_oid oid) RETURNS boolean
+    LANGUAGE sql STABLE SET search_path = pg_catalog, pg_temp AS $$
+    SELECT COALESCE(pg_has_role(current_user, (SELECT relowner FROM pg_catalog.pg_class WHERE oid = table_oid), 'MEMBER'), false)
+$$;
+COMMENT ON FUNCTION organization_attendance.is_owner_member(oid) IS '当前角色是否属主角色的成员；表不存在或属主不存在时为假';
+-- 迁入角色的名字由属主角色名推出（ADR-0036：one_<环境>_owner 对 one_<环境>_history_loader），按推出的名字精确比对，不用正则匹配；该角色须由部署脚本先建好。
+CREATE FUNCTION organization_attendance.is_migration_writer(table_oid oid) RETURNS boolean
+    LANGUAGE sql STABLE SET search_path = pg_catalog, pg_temp AS $$
+    SELECT organization_attendance.is_owner_member(table_oid) OR COALESCE(pg_has_role(current_user,
+        (SELECT r.oid FROM pg_catalog.pg_roles r
+          WHERE r.rolname = regexp_replace(pg_get_userbyid((SELECT relowner FROM pg_catalog.pg_class WHERE oid = table_oid)), '_owner$', '_history_loader')
+            AND r.rolname <> pg_get_userbyid((SELECT relowner FROM pg_catalog.pg_class WHERE oid = table_oid))), 'MEMBER'), false)
+$$;
+COMMENT ON FUNCTION organization_attendance.is_migration_writer(oid) IS '当前角色是否可以写迁入行：属主角色成员，或由属主角色名推出的迁入角色的成员；其余（含运行角色）为假';
 
 CREATE FUNCTION organization_attendance.guard_work_calendar_version_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
@@ -183,7 +184,9 @@ BEGIN
     IF NEW.effective_to_date IS NOT NULL THEN
         RAISE EXCEPTION 'a new calendar version is open: effective_to_date is set when the next version is confirmed' USING ERRCODE = 'check_violation';
     END IF;
-    PERFORM organization_attendance.require_owner_for_migration_version(NEW);
+    IF NEW.source_kind = 'MIGRATION' AND NOT organization_attendance.is_migration_writer(TG_RELID) THEN
+        RAISE EXCEPTION 'a migrated calendar version can only be written by the owner role or the migration role: % is refused', current_user USING ERRCODE = 'insufficient_privilege';
+    END IF;
     SELECT max(version_number) INTO latest FROM organization_attendance.work_calendar_versions
         WHERE work_calendar_id = NEW.work_calendar_id AND year_number = NEW.year_number;
     IF NEW.version_number <> coalesce(latest, 0) + 1 THEN
@@ -191,7 +194,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
-COMMENT ON FUNCTION organization_attendance.guard_work_calendar_version_insert() IS '新版本只能以待确认状态进入、版本号逐个加 1、迁入版本只放行属主角色';
+COMMENT ON FUNCTION organization_attendance.guard_work_calendar_version_insert() IS '新版本只能以待确认状态进入、版本号逐个加 1、迁入版本只放行属主角色与迁入角色';
 
 CREATE FUNCTION organization_attendance.guard_work_calendar_version_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
@@ -219,7 +222,6 @@ BEGIN
 
     IF OLD.confirmation_status = 'PENDING_CONFIRMATION' AND NEW.confirmation_status = 'WITHDRAWN'
             AND (to_jsonb(NEW) - withdrawal_columns) = (to_jsonb(OLD) - withdrawal_columns) THEN
-        PERFORM organization_attendance.require_owner_for_migration_version(NEW);
         RETURN NEW;
     END IF;
 
@@ -227,8 +229,6 @@ BEGIN
             AND (to_jsonb(NEW) - confirmation_columns) = (to_jsonb(OLD) - confirmation_columns)) THEN
         RAISE EXCEPTION 'a calendar version can only be confirmed or withdrawn once; nothing else of it changes: %.%', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
     END IF;
-
-    PERFORM organization_attendance.require_owner_for_migration_version(NEW);
 
     IF EXISTS (SELECT 1 FROM organization_attendance.work_calendar_version_days
             WHERE work_calendar_version_id = NEW.id AND (basis_kind = 'COMPANY' OR day_kind = 'MAKE_UP_WORKDAY_CANCELLED'))
@@ -279,8 +279,10 @@ CREATE TRIGGER tg_work_calendar_versions_change BEFORE UPDATE OR DELETE ON organ
 CREATE TRIGGER tg_work_calendar_versions_change_truncate BEFORE TRUNCATE ON organization_attendance.work_calendar_versions
     FOR EACH STATEMENT EXECUTE FUNCTION organization_attendance.guard_work_calendar_version_change();
 
+-- SECURITY DEFINER：迁入角色只有 SELECT、INSERT，加共享锁（FOR SHARE）要对版本表有 UPDATE 类权限，所以由属主身份执行。函数体不看 current_user、session_user，不放行也不拒绝任何人；
+-- 谁能插入日期仍由表的 INSERT 权限决定。search_path 已固定。
 -- 对版本行加共享锁使日期插入与确认互斥，前提是 READ COMMITTED（应用只用它）；REPEATABLE READ 下确认与加日期之间可能漏检（one-data 更正十，记录在案）。
-CREATE FUNCTION organization_attendance.guard_work_calendar_version_day_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+CREATE FUNCTION organization_attendance.guard_work_calendar_version_day_insert() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     parent organization_attendance.work_calendar_versions;
 BEGIN
@@ -294,6 +296,8 @@ BEGIN
     RETURN NEW;
 END $$;
 COMMENT ON FUNCTION organization_attendance.guard_work_calendar_version_day_insert() IS '版本日期只能加进待确认的版本；手工更正的批准人不得是版本作者。对版本行加共享锁，与确认互斥';
+-- 触发器函数在建触发器时才查 EXECUTE，触发时不查；SECURITY DEFINER 函数不留给 PUBLIC（R-SP-1）。
+REVOKE EXECUTE ON FUNCTION organization_attendance.guard_work_calendar_version_day_insert() FROM PUBLIC;
 
 CREATE TRIGGER tg_work_calendar_version_days_insert BEFORE INSERT ON organization_attendance.work_calendar_version_days
     FOR EACH ROW EXECUTE FUNCTION organization_attendance.guard_work_calendar_version_day_insert();
