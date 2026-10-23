@@ -1,7 +1,7 @@
 {
   "version": 1,
   "owner": "one-ops",
-  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 docs/modernization/phase1a/infra/PROD_FINGERPRINT.md（one-ops）。碰到任一 pattern 的命令，除点名只读用法与不连接命令外一律被 prod_write_gate 拒绝；改动由 one-ops 提，PR 过 opus 复审。间接引用（别名、ssh_config、DSN）不覆盖，靠只读账号兜底。",
+  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。碰到任一 pattern 的命令，除点名只读用法与不连接命令外一律被 prod_write_gate 拒绝；改动由 one-ops 提，PR 过 opus 复审。间接引用（别名、ssh_config、DSN）不覆盖，靠只读账号兜底。",
   "targets": [
     {
       "id": "legacy-rds-sqlserver",
