@@ -4,7 +4,7 @@
 # environment is missing says so instead of passing; so does an object that does not exist yet or has no data (nothing to check is never a pass).
 # Env: ACCEPT_ROOT (checkout), ONE_SESSION_TOOLS (tool library), ACCEPT_BUDGET_DIR, ACCEPT_ONLY (items to run),
 # ACCEPT_STRICT=1 (sign-off: a skip because the environment lacks something - library, gates, RULES.md, roles - counts as a failure; "no data" skips stay skips;
-# it only accepts the full item list, ACCEPT_SELFTEST=1 lifts that for acceptance_v2_selftest.sh). Any other ACCEPT_STRICT value than 0 or 1 is an error.
+# it only accepts the full item list; ACCEPT_SELFTEST is not honoured here). Any other ACCEPT_STRICT value than 0 or 1 is an error.
 set -uo pipefail
 ROOT=${ACCEPT_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
 TOOLS=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}
@@ -15,7 +15,7 @@ fails=0; passes=0; skips=0
 OUT=""
 STRICT=${ACCEPT_STRICT-0}
 case "$STRICT" in 0|1) ;; *) echo "ACCEPT_STRICT 只认 0 或 1，收到「$STRICT」"; exit 2 ;; esac
-if [ "$STRICT" = 1 ] && [ "${ACCEPT_SELFTEST:-0}" != 1 ] && [ "$(echo $ONLY)" != "$ALL" ]; then
+if [ "$STRICT" = 1 ] && [ "$(echo $ONLY)" != "$ALL" ]; then
   echo "严格模式必须跑全部批一项（$ALL），不接受 ACCEPT_ONLY 缩小范围"; exit 2
 fi
 
@@ -94,7 +94,7 @@ v02() {
     for f in "$ROOT"/scripts/$d/*selftest* "$ROOT"/scripts/$d/test_*; do
       [ -f "$f" ] || continue
       n=$((n + 1))
-      case "$f" in *.py) run_ok '' python3 -I "$f" ;; *) run_ok '' bash "$f" ;; esac || { report V02 fail "$d/$(basename "$f") 退出非 0 或无输出"; tail_out; st=1; }
+      case "$f" in *.py) if grep -q -- '--self-test' "$f"; then run_ok '' python3 -I "$f" --self-test; else run_ok '' python3 -I "$f"; fi ;; *) run_ok '' bash "$f" ;; esac || { report V02 fail "$d/$(basename "$f") 退出非 0 或无输出"; tail_out; st=1; }
     done
   done
   [ "$st" = 0 ] || return
@@ -165,13 +165,13 @@ v17a() {
     fail) report V17a fail "$BL_MSG"; tail_out; return ;;
   esac
   r=$(python3 -I - "$d/level.json" "$d/verify.md" "$ROOT/policy.json" <<'EOF' 2>&1
-import datetime, json, os, re, sys, time
+import datetime, json, math, os, re, sys, time
 level, verify, policy = sys.argv[1:4]
 def out(kind, msg): print(f"{kind}:{msg}"); sys.exit()
 try:
     b = json.load(open(policy))["budget"]
     every, days, limit = b["level_interval_minutes"], b["reading_validation_days"], b["reading_max_deviation_pts"]
-    num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+    num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
     if not num(every) or every <= 0 or not num(days) or days <= 0:
         out("fail", "policy.json budget.level_interval_minutes、reading_validation_days 须是正数")
     if not os.path.isfile(level):
@@ -193,7 +193,10 @@ try:
             continue
         try:
             when = datetime.datetime.strptime(cells[0], "%Y-%m-%d %H:%M" if " " in cells[0] else "%Y-%m-%d")
-            rows.append((when, float(cells[3])))
+            dev = float(cells[3])
+            if not math.isfinite(dev):
+                raise ValueError
+            rows.append((when, dev))
         except (ValueError, IndexError):
             out("fail", f"verify.md 有格式不对的记录行：{line.strip()[:40]}")
     if not rows:
@@ -201,8 +204,10 @@ try:
     span = (max(r[0] for r in rows) - min(r[0] for r in rows)).total_seconds() / 86400
     if span < days:
         out("skip", f"抽检记录 {len(rows)} 条，只跨 {span:.1f} 天，未满 {days} 天")
-    if not num(limit):
+    if limit is None:
         out("skip", "判不了：policy.json budget.reading_max_deviation_pts 未设")
+    if not num(limit):
+        out("fail", "policy.json budget.reading_max_deviation_pts 须是有限数")
     bad = [r for r in rows if abs(r[1]) > limit]
     out("fail" if bad else "pass", f"{len(bad)} 条偏差超过 {limit} 点" if bad else f"{len(rows)} 条记录跨 {span:.1f} 天，偏差均在 {limit} 点内")
 except SystemExit:

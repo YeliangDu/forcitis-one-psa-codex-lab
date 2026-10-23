@@ -11,20 +11,21 @@ RULES="$tmp/root/docs/modernization/RULES.md" ROLE="$tmp/root/docs/modernization
 expect() {
   local name=$1 want=$2 re=$3 items=$4; shift 4
   local out rc
-  out=$(env ACCEPT_ROOT="$tmp/root" ONE_SESSION_TOOLS="$tmp/tools" ACCEPT_BUDGET_DIR="$tmp/budget" ACCEPT_ONLY="$items" ACCEPT_SELFTEST=1 "$@" bash "$here/acceptance_v2.sh" 2>&1); rc=$?
+  out=$(env ACCEPT_ROOT="$tmp/root" ONE_SESSION_TOOLS="$tmp/tools" ACCEPT_BUDGET_DIR="$tmp/budget" ACCEPT_ONLY="$items" "$@" bash "$here/acceptance_v2.sh" 2>&1); rc=$?
   if { [ "$want" = 0 ] && [ "$rc" = 0 ]; } || { [ "$want" = nz ] && [ "$rc" != 0 ]; }; then :; else echo "失败 $name：退出码 $rc"; bad=1; fi
   printf '%s\n' "$out" | grep -Eq "$re" || { echo "失败 $name：输出不含 /$re/"; printf '%s\n' "$out" | sed 's/^/    /'; bad=1; }
 }
 stub_budget() { printf 'print(%s)\n' "$1" >"$tmp/root/scripts/ci/budget_check.py"; }
 ok_py() { printf 'print("%s")\n' "${2:-ok}" >"$1"; }   # a self-test that passes and prints its pass line
 bad_py() { printf 'import sys\nsys.exit(1)\n' >"$1"; }
+ALL="V01 V02 V03 V05 V07 V08 V12 V17a"
 SUMMARY0="budget_check：违例 0 条，模式 warn"
 
 # V01: info lines and other rules do not count, an H8 violation does, an unreadable result fails closed;
 # RULES.md or roles missing or empty is never a pass (skip, or a failure under ACCEPT_STRICT=1)
 stub_budget "'信息 H7 docs/modernization/RULES.md 尚无\\nH23 docs/x.sh 运维脚本\\nbudget_check：违例 1 条，模式 warn'"
 expect "V01 缺 RULES 与 roles 不得通过" 0 '^V01 跳过\(.*RULES.md' V01
-expect "V01 缺文件严格模式失败" nz '^V01 不通过' V01 ACCEPT_STRICT=1
+expect "V01 缺文件严格模式失败" nz '^V01 不通过' "$ALL" ACCEPT_STRICT=1
 mkdir -p "$tmp/root/docs/modernization/roles"; : >"$RULES"
 expect "V01 RULES.md 0 字节不得通过" 0 '^V01 跳过\(.*RULES.md' V01
 printf '## 规则一\n执行：x\n' >"$RULES"
@@ -60,7 +61,7 @@ expect "V03 H17 检查中断" nz '^V03 不通过.*中断' V03
 stub_budget "'$SUMMARY0'"
 mv "$ROLE" "$ROLE.off"
 expect "V03 无角色文件不得通过" 0 '^V03 跳过' V03
-expect "V03 无角色文件严格模式失败" nz '^V03 不通过' V03 ACCEPT_STRICT=1
+expect "V03 无角色文件严格模式失败" nz '^V03 不通过' "$ALL" ACCEPT_STRICT=1
 mv "$ROLE.off" "$ROLE"
 
 # V02: neither gates nor hooks is a skip; H1 on either directory is a fail; a failing or silent self-test is a fail; p99/version always a skip
@@ -83,7 +84,7 @@ stub_budget "'$SUMMARY0'"
 
 # V05: library missing (or only one file) is a skip, a failing, silent or empty self-test is a fail
 expect "V05 缺库跳过" 0 '^V05 跳过' V05
-expect "V05 缺库严格模式失败" nz '^V05 不通过' V05 ACCEPT_STRICT=1
+expect "V05 缺库严格模式失败" nz '^V05 不通过' "$ALL" ACCEPT_STRICT=1
 ok_py "$tmp/tools/handoff/handoff.py" "handoff self-test: ok"
 expect "V05 只缺一个跳过" 0 '^V05 跳过\(.*stop_check_selftest' V05
 rm "$tmp/tools/handoff/handoff.py"; ok_py "$tmp/tools/stop_check/stop_check_selftest.py" "stop_check self-test: ok"
@@ -174,11 +175,20 @@ expect "V17a 自测失败" nz '^V17a 不通过' V17a
 : >"$tmp/tools/budget_level/budget_level_selftest.py"
 expect "V17a 自测 0 字节" nz '^V17a 不通过' V17a
 ok_py "$tmp/tools/budget_level/budget_level_selftest.py" "绿：0 项失败"
+pol 30 2; rows "$WEEK"; good_level; touch "$tmp/budget/level.json"
+pol 'NaN' 2
+expect "V17a 间隔为 NaN（且已过期）" nz '^V17a 不通过.*正数' V17a
+pol 30 NaN
+expect "V17a 偏差阈值为 NaN" nz '^V17a 不通过.*有限数' V17a
+pol 30 2; rows $'| 2026-10-01 10:00 | 30 | 31 | nan | 5 | 0 | |\n| 2026-10-09 10:00 | 40 | 41 | -1.5 | 5 | 0 | |\n'
+expect "V17a verify.md 偏差列为 nan" nz '^V17a 不通过.*格式不对' V17a
+rows "$WEEK"
 
 # modes: blank item list or strict with a subset never exits 0; ACCEPT_STRICT only takes 0 or 1; summary counts
 expect "ACCEPT_ONLY 空白一项不跑" nz '一项都没有跑' " "
 expect "ACCEPT_ONLY 空串" nz '一项都没有跑' ""
-expect "严格模式缩小范围" nz '严格模式必须跑全部' "V08" ACCEPT_STRICT=1 ACCEPT_SELFTEST=0
+expect "严格模式缩小范围" nz '严格模式必须跑全部' "V08" ACCEPT_STRICT=1
+expect "严格模式不认 ACCEPT_SELFTEST" nz '严格模式必须跑全部' "V08" ACCEPT_STRICT=1 ACCEPT_SELFTEST=1
 expect "ACCEPT_STRICT=true" nz 'ACCEPT_STRICT 只认' "V08" ACCEPT_STRICT=true
 expect "ACCEPT_STRICT=空格1" nz 'ACCEPT_STRICT 只认' "V08" "ACCEPT_STRICT= 1"
 expect "未知项" nz '^V99 不通过' "V99"
