@@ -85,7 +85,7 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     private static TaskHandling readHandling(ResultSet rs) throws SQLException {
         Optional<UserId> onBehalf = Optional.ofNullable(rs.getObject("on_behalf_of_id", UUID.class)).map(UserId::new);
         Optional<UserId> assigneeId = Optional.ofNullable(rs.getObject("assignee_id", UUID.class)).map(UserId::new);
-        return new TaskHandling(new TaskRecordId(rs.getObject("record_id", UUID.class)), ProcessKey.valueOf(rs.getString("process_key")),
+        return new TaskHandling(new TaskRecordId(rs.getObject("record_id", UUID.class)), ProcessKey.of(rs.getString("process_key")),
                 new DocumentReference(DocumentTypeCode.of(rs.getString("document_type")), new DocumentId(rs.getObject("document_id", UUID.class))),
                 rs.getInt("round_number"), new ApprovalTaskId(rs.getObject("task_id", UUID.class)),
                 new ApprovalInstanceId(rs.getObject("instance_id", UUID.class)),
@@ -126,7 +126,7 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
                  WHERE q.process_key = :processKey AND q.document_id = :documentId
                  ORDER BY r.record_number
                 """)
-                .param("processKey", processKey.name()).param("documentId", documentId.value()).query((rs, n) -> readHandling(rs)).list();
+                .param("processKey", processKey.value()).param("documentId", documentId.value()).query((rs, n) -> readHandling(rs)).list();
     }
 
     @Override
@@ -150,7 +150,7 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
         String effect = rs.getString("effect_kind");
         String reason = rs.getString("result_reason");
         return new TaskRecord(new ApprovalTaskId(rs.getObject("task_id", UUID.class)), new ApprovalInstanceId(rs.getObject("instance_id", UUID.class)),
-                ProcessKey.valueOf(rs.getString("process_key")), new DocumentReference(DocumentTypeCode.of(rs.getString("document_type")),
+                ProcessKey.of(rs.getString("process_key")), new DocumentReference(DocumentTypeCode.of(rs.getString("document_type")),
                 new DocumentId(rs.getObject("document_id", UUID.class))), new NodeKey(rs.getString("node_key")), new EmployeeId(rs.getObject("initiator_id", UUID.class)),
                 ApprovalTaskStatus.valueOf(rs.getString("status")), assigneeId, JdbcApprovalRequestRepository.instant(rs, "created_at"),
                 Optional.ofNullable(JdbcApprovalRequestRepository.instant(rs, "due_at")),

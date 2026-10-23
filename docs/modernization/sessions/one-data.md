@@ -54,6 +54,7 @@
 
 - `docs/modernization/data/DATA_CONTEXT.md`（本会话现状速查，开工后建立）
 - `docs/modernization/sessions/one-data.md`（本画像）
+- 交接源: docs/modernization/data/DATA_CONTEXT.md#交接
 
 ## 交接条件
 
@@ -66,7 +67,3 @@
 - 数据设计初稿、对象到表汇总与映射整理可交 Codex；数据设计签发、证据复核与安全分级判断由本会话承担。生产读取仅经授权的 one-ops 取证通道。
 - ADR-0054/0055 下的一次迁入、人事业务生效日与生产不接老系统/A8，替换旧运行时同步设计；只改受派设计卡，不据此自行删迁移或业务代码。
 - 工作守则（SESSION_PLAYBOOK §11 第 10 条，2026-10-16 起）：结论宣告前先验证。子代理给出的「缺失 / 不存在 / 没有」类结论，由本会话自己 grep 原文复核后才发给别的会话（起因：预审曾误报「信息图无请假对象」，实有 OBJ-68）。
-
-## 当前状态
-
-2026-10-22 晚交接；现行状态与待办见 `data/DATA_CONTEXT.md` 文末「2026-10-22 晚交接」。等待：W2 PR-B 实现 PR、#599 的 IT 用例、迁入写入通道的实现 diff、卡 C 表结构 PR、one-platform-file 单元 7、B-31 其余卡 DDL 草案；卡 C 保留期等用户在收件箱答复。

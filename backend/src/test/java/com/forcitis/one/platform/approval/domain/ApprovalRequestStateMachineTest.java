@@ -4,23 +4,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.TransitionTable;
-import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.ReturnSource;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
@@ -34,7 +35,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import com.forcitis.one.fixture.doubles.TestAccounts;
 
 class ApprovalRequestStateMachineTest {
 
@@ -47,12 +47,12 @@ class ApprovalRequestStateMachineTest {
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
     static ApprovalRequest in(ApprovalStatus status) {
-        return ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 2,
+        return ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), TimesheetApprovalProcess.KEY, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 2,
                 com.forcitis.one.TestApprovalIds.instance("i-2"), status, null, SUMMARY, List.of(), 5, 3);
     }
 
     static ApprovalRequest begun() {
-        return ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR,
+        return ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), TimesheetApprovalProcess.KEY, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR,
                 com.forcitis.one.TestApprovalIds.instance("i-1"), SUMMARY, UUID.randomUUID(), NOW);
     }
 
@@ -212,9 +212,9 @@ class ApprovalRequestStateMachineTest {
             }
         }
         assertThatThrownBy(() -> in(ApprovalStatus.RUNNING).withdraw(INITIATOR, false, null, NOW)).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
         assertThatThrownBy(() -> in(ApprovalStatus.RUNNING).cancel(INITIATOR, false, null, NOW)).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
     }
 
     @Test
@@ -224,7 +224,7 @@ class ApprovalRequestStateMachineTest {
                 r -> r.reject(null, NOW), r -> r.returnRound(null, NOW), r -> r.cancel(INITIATOR, false, null, NOW))) {
             ApprovalRequest request = in(ApprovalStatus.RUNNING);
             assertThatThrownBy(() -> ending.accept(request)).isInstanceOfSatisfying(DomainException.class,
-                    e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                    e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
             assertThat(request.status()).isEqualTo(ApprovalStatus.RUNNING);
         }
     }
