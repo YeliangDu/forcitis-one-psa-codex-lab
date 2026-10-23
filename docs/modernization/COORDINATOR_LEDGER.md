@@ -7,6 +7,8 @@
 - **00:4x 现状**：#628 自清推全员已合并生效（只排除 one-coordinator）；#616、#622、#624、#630、#631 已合。今晚各会话已自清并接续：one-arch-people、one-quality（多次）、one-1a-next-5、one-platform-file、one-merge、one-data；one-ops、one-architecture 下次节点自清（钩子已生效）。清空确认用 list_events「idle — 0 of 0」。
 - **在途 PR**：队列中/已批 #589 #627(head 99181cf1e) #629 #633 #634 #587 #599(a4c562253) #637(421886101) #638 #641(2e7574d75)；待复审 #635（MRG-05/06，sonnet 复核后批）、#639/#640（OPS-02 Docker 自动拉起，合入后 one-ops 直接装与演练）、#642（6b-2 上传，opus 首轮改后通过，全文 ~/.modernize/psa/coordinator/reviews/pr642-opus-1.md，one-platform-file 在改）；#632 W2 PR-B 有条件批（opus 结论贴评论＋sonnet、文档移出、CI 绿）；REG-4 待开 PR；PR-B2 在 #624 已合后可开。
 - **下一步**：#627 合入→one-quality 落地新 PB（草稿 ~/.modernize/psa/coordinator/team-audit/pb/，审前备份 .bak-pre-review）→钩子卡 QUA-24/25/17/26；one-merge 做 #635 后 COO-15（批准评论协议等 MRG-01..04）；按「整改收尾清单」全勾后 PushNotification 告诉用户（intent 233247）。用户批：dev 补建 one_dev_history_loader 已执行（intent 233703）。Docker 22:3x 停过已拉起，OPS-02 防再犯。
+- 07:0x 增（app 卡死重启后）：#641、#643 已合；本分支已合 main（开工单生效）。用户定「补卡并派出去，优先把规则先落地」（intent 070452）：15 张守护卡 @22b0acfd9（QUA-11～16、19～23→one-quality，MRG-01～03 及 MRG-04 mq 侧→one-merge）；one-quality 先落地新规则手册。#635 sonnet 改后通过（one-merge 改）；#639/#640 opus 改后通过（one-ops 改）；#599 head 变需重批；#632 冲突（one-1a-par）；APE-01 六点交 one-architecture。
+- 00:5x 增：裁定 RULING-COORD-20261022-07（REG-4 验收引用替换，one-1a-next-5）已登记 @60564d38e，已请 one-merge 加急合集；REG-4 PR 待其进 main 后过守护。
 - 会话间消息 app 限流：连续 10 条后须用户发言；超限写 ~/.modernize/psa/outbox/one-coordinator.md，用户发话后补发并标「已转」。
 - 22:2x 交接（以下为旧条）
 - **22:2x 在途**：

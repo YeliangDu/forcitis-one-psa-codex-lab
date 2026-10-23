@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.forcitis.one.acceptance.P4Names;
-import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import com.forcitis.one.kernel.DocumentReference;
@@ -132,7 +132,7 @@ class ApprovalOrderNotFromIdsIT extends ApprovalP4Support {
     }
 
     private ApprovalRequest restore(DocumentReference document) {
-        return transaction.execute(status -> requests.find(ProcessKey.COST_TIMESHEET_APPROVAL, document).orElseThrow());
+        return transaction.execute(status -> requests.find(TimesheetApprovalProcess.KEY, document).orElseThrow());
     }
 
     @Test

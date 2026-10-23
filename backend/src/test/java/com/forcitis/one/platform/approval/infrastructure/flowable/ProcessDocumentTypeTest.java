@@ -3,9 +3,9 @@ package com.forcitis.one.platform.approval.infrastructure.flowable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.api.ApprovalError;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import org.flowable.bpmn.converter.BpmnXMLConverter;
@@ -31,7 +31,7 @@ class ProcessDocumentTypeTest {
     @Test
     @DisplayName("one forcitis:documentType code is read")
     void oneDeclarationIsRead() {
-        assertThat(ProcessDocumentType.read(ProcessKey.COST_TIMESHEET_APPROVAL,
+        assertThat(ProcessDocumentType.read(TimesheetApprovalProcess.KEY,
                 process("<extensionElements><forcitis:documentType code=\"TIMESHEET\"/></extensionElements>")).value()).isEqualTo("TIMESHEET");
     }
 
@@ -43,7 +43,7 @@ class ProcessDocumentTypeTest {
                 "<extensionElements><forcitis:documentType/></extensionElements>",
                 "<extensionElements><other:documentType code=\"TIMESHEET\"/></extensionElements>",
                 "<extensionElements><forcitis:documentType code=\"timesheet\"/></extensionElements>"}) {
-            assertThatThrownBy(() -> ProcessDocumentType.read(ProcessKey.COST_TIMESHEET_APPROVAL, process(extension)))
+            assertThatThrownBy(() -> ProcessDocumentType.read(TimesheetApprovalProcess.KEY, process(extension)))
                     .as(extension).isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NODE_CONFIG_INVALID))
                     .hasMessageContaining("cost_timesheet_approval");
         }

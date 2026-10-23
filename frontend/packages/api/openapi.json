@@ -533,7 +533,7 @@
             "type" : [ "string", "null" ]
           },
           "processKey" : {
-            "$ref" : "#/components/schemas/ProcessKey"
+            "type" : "string"
           },
           "reason" : {
             "type" : [ "string", "null" ]
@@ -628,7 +628,7 @@
             "type" : "boolean"
           },
           "processKey" : {
-            "$ref" : "#/components/schemas/ProcessKey"
+            "type" : [ "string", "null" ]
           },
           "taskId" : {
             "type" : "string"
@@ -1125,10 +1125,6 @@
         "required" : [ "errorCode", "status" ],
         "type" : "object"
       },
-      "ProcessKey" : {
-        "enum" : [ "COST_TIMESHEET_APPROVAL" ],
-        "type" : [ "string", "null" ]
-      },
       "ReassignTaskRequest" : {
         "properties" : {
           "assigneeId" : {
@@ -1571,7 +1567,7 @@
             "type" : "boolean"
           },
           "processKey" : {
-            "$ref" : "#/components/schemas/ProcessKey"
+            "type" : "string"
           },
           "reason" : {
             "type" : [ "string", "null" ]
@@ -1633,7 +1629,7 @@
             "type" : "boolean"
           },
           "processKey" : {
-            "$ref" : "#/components/schemas/ProcessKey"
+            "type" : "string"
           },
           "status" : {
             "type" : "string"

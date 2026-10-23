@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,7 +15,6 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.ApprovalRequestRepository;
 import com.forcitis.one.platform.approval.domain.Moment;
@@ -43,7 +43,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
         start(key, initiator, manager);
 
         tx.executeWithoutResult(s -> {
-            ApprovalRequest request = requests.findForUpdate(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow();
+            ApprovalRequest request = requests.findForUpdate(TimesheetApprovalProcess.KEY, document(key)).orElseThrow();
             request.returnRound(new Reason("first writer"), NOW);
             requests.save(request);
         });
@@ -51,7 +51,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
                 .as("one save after the start's save").isEqualTo(2L);
 
         assertThatThrownBy(() -> tx.executeWithoutResult(s -> {
-            ApprovalRequest staleCopy = ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY,
+            ApprovalRequest staleCopy = ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), TimesheetApprovalProcess.KEY, document(key), LEGAL_ENTITY,
                     TestAccounts.employee(initiator), 1, com.forcitis.one.TestApprovalIds.instance("irrelevant"), ApprovalStatus.RUNNING, null,
                     new ApprovalSummary("stale"), List.of(), 1, 0);
             staleCopy.approve(NOW);
@@ -73,7 +73,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
         assertThat(jdbc.queryForMap("select version, event_count from platform_approval.approval_requests where document_id = cast(? as uuid)", key))
                 .as("the start recorded the round and one task in one save").containsEntry("version", 1L).containsEntry("event_count", 2L);
         tx.executeWithoutResult(s -> {
-            ApprovalRequest request = requests.findForUpdate(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow();
+            ApprovalRequest request = requests.findForUpdate(TimesheetApprovalProcess.KEY, document(key)).orElseThrow();
             request.claimTask(new ApprovalTaskId(java.util.UUID.fromString(openTask(instance).getId())), TestAccounts.account(manager), NOW);
             requests.save(request);
         });
@@ -94,7 +94,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
                 "select current_instance_id from platform_approval.approval_requests where document_id = cast(? as uuid)", java.util.UUID.class, key));
         jdbc.update("update platform_approval.approval_requests set status = 'CANCELLED', result_reason = 'synthetic: ended' where document_id = cast(? as uuid)", key);
 
-        ApprovalRequest copy = ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, TestAccounts.employee(initiator), 1,
+        ApprovalRequest copy = ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), TimesheetApprovalProcess.KEY, document(key), LEGAL_ENTITY, TestAccounts.employee(initiator), 1,
                 instance, ApprovalStatus.RUNNING, null, new ApprovalSummary("copy"), List.of(), version, 0);
         copy.approve(NOW);
 
@@ -113,9 +113,9 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
         ApprovalTaskId task = openTaskId(instance);
         String key = jdbc.queryForObject("select cast(r.document_id as text) from platform_approval.approval_requests r join platform_approval.approval_tasks t on t.approval_request_id = r.id where t.task_id = ?", String.class, task.value());
 
-        ApprovalRequest stale = tx.execute(s -> requests.find(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow());
+        ApprovalRequest stale = tx.execute(s -> requests.find(TimesheetApprovalProcess.KEY, document(key)).orElseThrow());
         tx.executeWithoutResult(s -> {
-            ApprovalRequest loaded = requests.findForUpdate(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow();
+            ApprovalRequest loaded = requests.findForUpdate(TimesheetApprovalProcess.KEY, document(key)).orElseThrow();
             loaded.claimTask(task, TestAccounts.account(manager), NOW);
             requests.save(loaded);
         });
@@ -131,7 +131,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
     @DisplayName("DDD-5 the database refuses a request without a legal entity")
     void legalEntityIsMandatoryInTheDatabase() {
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_id, initiator_id,"
-                + " current_round, current_instance_id, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', uuidv7(), " + TestOrgIds.sqlEmployee(1) + ", 1, uuidv7(), 'RUNNING', 's')"))
+                + " current_round, current_instance_id, status, summary_text) values (uuidv7(), 'cost_timesheet_approval', 'TIMESHEET', uuidv7(), " + TestOrgIds.sqlEmployee(1) + ", 1, uuidv7(), 'RUNNING', 's')"))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 

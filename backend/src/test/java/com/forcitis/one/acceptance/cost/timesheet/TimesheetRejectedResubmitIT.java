@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.application.CancelTimesheet;
@@ -21,7 +22,6 @@ import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.platform.approval.ApprovalIntegrationSupport;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.application.DecideTasks;
 import com.forcitis.one.platform.approval.application.DecisionOutcome;
@@ -120,7 +120,7 @@ class TimesheetRejectedResubmitIT extends ApprovalIntegrationSupport {
 
     void awaitApprovalRound(TimesheetId id, int round) {
         Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(50))
-                .until(() -> approvalProcesses.progress(ProcessKey.COST_TIMESHEET_APPROVAL, documentOf(id))
+                .until(() -> approvalProcesses.progress(TimesheetApprovalProcess.KEY, documentOf(id))
                         .filter(progress -> progress.round().equals(new RoundNumber(round))).isPresent() && !inboxOf(id).isEmpty());
     }
 

@@ -22,6 +22,12 @@ public interface ApprovalEngine {
     /** The document type the latest deployed definition of the process approves (its forcitis:documentType); a definition without one is a deployment fault. */
     DocumentTypeCode documentTypeOf(ProcessKey processKey);
 
+    /** The name a person reads for the process (its BPMN name); a definition without one is a deployment fault. */
+    String processNameOf(ProcessKey processKey);
+
+    /** True when the branches are chosen by routing flags: a start with none would route nowhere and is refused (forcitis:routingFlagRequired). */
+    boolean routingFlagRequiredOf(ProcessKey processKey);
+
     void startInstance(InstanceStart start);
 
     boolean isRunning(ApprovalInstanceId instanceId);

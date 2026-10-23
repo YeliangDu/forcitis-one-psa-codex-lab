@@ -4,7 +4,7 @@ COMMENT ON SCHEMA platform_approval IS '审批（权限流程与集成平台 BC 
 
 CREATE TABLE platform_approval.approval_requests (
     id                  uuid        PRIMARY KEY,
-    process_key         text        NOT NULL,
+    process_key         text        NOT NULL CONSTRAINT ck_approval_requests_process_key CHECK (process_key ~ '^[a-z]+_[a-z]+_[a-z]+(_[a-z]+)*$'),
     document_id         uuid        NOT NULL,
     initiator_id        uuid        NOT NULL,
     current_round       integer     NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE platform_approval.approval_requests (
 CREATE UNIQUE INDEX uk_approval_requests_current_instance_id ON platform_approval.approval_requests (current_instance_id);
 COMMENT ON TABLE platform_approval.approval_requests IS '审批请求：聚合根；粒度：每个流程类型的每张业务单据一行，记录当前轮次、当前流程实例与状态，本轮的任务属于它';
 COMMENT ON COLUMN platform_approval.approval_requests.id IS '主键（UUIDv7）';
-COMMENT ON COLUMN platform_approval.approval_requests.process_key IS '流程标识（ProcessKey 枚举名）；与单据 ID 一起唯一，保证幂等发起（RULE-264/266）';
+COMMENT ON COLUMN platform_approval.approval_requests.process_key IS '流程标识（ProcessKey 值，{子域}_{bc}_{名称} 小写，等于流程定义的 id）；与单据 ID 一起唯一，保证幂等发起（RULE-264/266）';
 COMMENT ON COLUMN platform_approval.approval_requests.document_id IS '单据 ID：拥有该单据的业务模块的自有 ID，与单据类型一起定位单据';
 COMMENT ON COLUMN platform_approval.approval_requests.initiator_id IS '发起人（员工 ID）：由拥有该单据的业务模块传入的当前用户；只有该人能开新一轮（I-5）';
 COMMENT ON COLUMN platform_approval.approval_requests.current_round IS '当前轮次：从 1 开始，每次重新发起加 1（RULE-278）';

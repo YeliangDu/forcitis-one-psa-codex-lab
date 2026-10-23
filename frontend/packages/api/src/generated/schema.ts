@@ -1158,7 +1158,7 @@ export interface components {
             nodeKey: string;
             nodeName: string;
             onBehalfOfName?: string;
-            processKey: components["schemas"]["ProcessKey"] | (string & {});
+            processKey: string;
             reason?: string;
             /** Format: uuid */
             recordId: string;
@@ -1197,7 +1197,7 @@ export interface components {
             documentId?: string;
             nodeName?: string;
             overdue: boolean;
-            processKey?: components["schemas"]["ProcessKey"] | (string & {});
+            processKey?: string;
             taskId: string;
             title: string;
         };
@@ -1379,8 +1379,6 @@ export interface components {
             title?: string;
             type?: string;
         };
-        /** @enum {string} */
-        ProcessKey: "COST_TIMESHEET_APPROVAL";
         ReassignTaskRequest: {
             /** Format: uuid */
             assigneeId?: string;
@@ -1544,7 +1542,7 @@ export interface components {
             nodeName?: string;
             outcome?: string;
             overdue: boolean;
-            processKey: components["schemas"]["ProcessKey"] | (string & {});
+            processKey: string;
             reason?: string;
             status: string;
             summary?: string;
@@ -1567,7 +1565,7 @@ export interface components {
             dueAt?: string;
             nodeKey: string;
             overdue: boolean;
-            processKey: components["schemas"]["ProcessKey"] | (string & {});
+            processKey: string;
             status: string;
             /** Format: uuid */
             taskId: string;
