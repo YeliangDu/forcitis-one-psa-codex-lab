@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -21,7 +22,6 @@ import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.HookAction;
 import com.forcitis.one.platform.approval.api.HookContext;
 import com.forcitis.one.platform.approval.api.HookDecision;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import java.time.Instant;
 import java.util.Set;
@@ -54,7 +54,7 @@ class HookGateTest {
     }
 
     static TaskView task(String hookKey) {
-        return new TaskView(com.forcitis.one.TestApprovalIds.task("t"), com.forcitis.one.TestApprovalIds.instance("i"), ProcessKey.COST_TIMESHEET_APPROVAL,
+        return new TaskView(com.forcitis.one.TestApprovalIds.task("t"), com.forcitis.one.TestApprovalIds.instance("i"), TimesheetApprovalProcess.KEY,
                 new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("doc")), new LegalEntityId(TestIds.uuid(1)), "node", "Node", TestAccounts.employee(1),
                 Optional.empty(), Set.of(TestAccounts.account(2)), Instant.EPOCH, false, Optional.ofNullable(hookKey), false, new ContentHash("hash"));
     }

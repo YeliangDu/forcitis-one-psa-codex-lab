@@ -6,7 +6,7 @@
 - one-coordinator 派工单（2026-10-15）；
 - `phase1a/NEXT_BATCH_DRAFT.md`、`phase1a/DEFERRED.md`、`phase1a/review/REVIEW_*.md`、`process/1a/contract.md`，均为 #72 分支 `27ac707`；
 - `CROSS_CUTTING_MATRIX.md` 与 `CROSS_CUTTING_DECISIONS.md`（#75 分支）；
-- SESSION_PLAYBOOK §5、§6、§6.1、§12–§14.1；
+- SESSION_PLAYBOOK TEAM-29–39、附 M5、附 M2、附 M1、附 M3、DATA_DESIGN_CHECKLIST §14.1；
 - `proposals/PHASE1A_PLATFORM_CONVENTIONS.md`。
 
 现状数字由只读清点得出，采集于 #72 分支 `27ac707`。#72 整合复审之后若再有改动，开工前重新清点一次。
@@ -208,7 +208,7 @@ ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先
 
 **Q1　迁移基线开放期间的写法**
 
-用户决定（2026-10-15，经 one-coordinator 转达，已在其会话记录中核实）：「开放期内直接改基线 (Recommended)」。记录在 intent `2026-10-14-225735-one-1a-next-经-one-coordinato.md`，并已写入 SESSION_PLAYBOOK §12.2。
+用户决定（2026-10-15，经 one-coordinator 转达，已在其会话记录中核实）：「开放期内直接改基线 (Recommended)」。记录在 intent `2026-10-14-225735-one-1a-next-经-one-coordinato.md`，并已写入 SESSION_PLAYBOOK 附 M3「迁移基线」。
 
 具体做法：
 1. R-3a 先做纯合并，证明表结构 diff 为空。
@@ -269,7 +269,7 @@ ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先
 - **W2（与 K-2 时态基座同期，一次改到位）**：ADR-0034 实现（权限三表、复职重授 F-13 建在其上、DDL-17 角色退役不物理删除，**首次部署前必须**）；主数据版本化 25 张表（§14.1 D17 与守护 G-D11，先以「登记缺口、带负责人」进 CI）；DA-7 `employee_versions`、离职两字段；DA-17 日历版本化（用户「版本化」，新版本由业务管理员四眼确认，dev 走 ADR-0030 单人路径）；法人代码「未发过号前可更正，发号后禁改」（RULE_REVIEWS 先追加修订再改测试）。
 - **K-3**：列表分页契约统一游标、上限 200（A 2-H1 / 2-H2）；测试库排序规则（DDL-11）与拼音排序 G-X2。
 - **W3**：F-15 登录页 ICP 备案号随 F-3 同代理；F-4 转交界面依赖 R-1b（不走 int64）；F-8 掩码按「费率档位来源待定」写（job_grade 用语缺陷，见 one-coordinator 台账）。
-- **用户第 2 批决定（平台约定，随对应卡实现）**：kernel `Reason` 上限 500；同一对象至多一个待确认授权申请；工时单同员工同工作日唯一；迁入单据不发新号；时刻一律 UTC `Z`；不提供 PATCH；范围外单资源 404；用户路径外部调用 3 s / 冷却 60 s；IP 不进应用日志（ALERT 行改引审计条目 ID）；只用 correlationId；SLO 300 / 500 ms 超标 P3。规则条文（NAMING §2.6、GUIDING §7a / §11、PLAYBOOK §14.2 / §14.3、SUPPLY_CHAIN.md、ADR-0035 契约演进、ADR-0036 历史数据迁入）由 one-coordinator 另派起草，出来后核对再排守护。
+- **用户第 2 批决定（平台约定，随对应卡实现）**：kernel `Reason` 上限 500；同一对象至多一个待确认授权申请；工时单同员工同工作日唯一；迁入单据不发新号；时刻一律 UTC `Z`；不提供 PATCH；范围外单资源 404；用户路径外部调用 3 s / 冷却 60 s；IP 不进应用日志（ALERT 行改引审计条目 ID）；只用 correlationId；SLO 300 / 500 ms 超标 P3。规则条文（NAMING §2.6、GUIDING §7a / §11、DATA_DESIGN_CHECKLIST §14.2 / §14.3、SUPPLY_CHAIN.md、ADR-0035 契约演进、ADR-0036 历史数据迁入）由 one-coordinator 另派起草，出来后核对再排守护。
 
 ## 7. 2026-10-15 追加（one-1a-next-2）
 
@@ -303,7 +303,7 @@ ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先
 | P3b | 员工、部门、岗位改 UUID：workforce 的快照、版本、归属期间表及 `sync_run_held_separations` 加 uuid 主键并改引用列；归属表拆 `org_unit_id` / `employee_id`（DA-5）；`sync_diffs.subject_key` 拆为类别 + uuid；DDL-01 / DDL-06；`user_accounts.employee_id` 改 uuid；工时单与审批发起人的引用列；`EmployeeId` / `OrgUnitId` / `PositionId` 改 UUID；删 `Source*Id` 与 `SourceTerms` 的 ID 翻译；`JdbcLegacyInbox`、`ShortNameAdapter` 移入集成层；运维命令改 `--employee-id`；A8 来源 ID 可为负数；保持原约束名 | P1、P2、P3a；D1-1、R-1b-0（同改集成层适配器，先合并） | sonnet / opus（high） |
 | P4 | 审批：`approval_tasks` 任务 ID uuid 主键与 `instance_id`；DDL-04；子表挂 `approval_request_id`；办理记录序号；`process_archive_skips`；DDL-08；`outbound_deliveries` 去重键拆列；Flowable idGenerator 接 UUIDv7；`ApprovalTaskId` / `ApprovalInstanceId` / `DocumentId` 改 UUID | P3b | sonnet / opus（high） |
 | P5 | 收口：`audit_entries.subject_key` 拆为类别 + uuid；信封 `aggregateId` 与 `AggregateReference` 改 UUID；`OTHER_ID_NAMES` 清空；去哨兵守护；`PrimaryKeyTypeGuardTest` 扩到复合主键与 text 主键并加 `primary-key-exemptions.txt`；SQL `ORDER BY` 守护；G-A1 收尾 | P4 | sonnet / opus（high） |
-| P6 | 老系统人员、部门对照的一次性导入（只写数据）。读取老系统明细须先经用户逐阶段批准（SESSION_PLAYBOOK §14.2 迁入读取授权，写明读哪些列、数据去向、删除时点），由调度会话请示；PR 只放计数与差异条数，不写 ID 明细 | P3b、用户授权 | 授权后定；opus 复审 |
+| P6 | 老系统人员、部门对照的一次性导入（只写数据）。读取老系统明细须先经用户逐阶段批准（DATA_DESIGN_CHECKLIST §14.2 迁入读取授权，写明读哪些列、数据去向、删除时点），由调度会话请示；PR 只放计数与差异条数，不写 ID 明细 | P3b、用户授权 | 授权后定；opus 复审 |
 
 子 PR 的独占构件：P1 独占 kernel `EmployeeId`、`CurrentUser`、`pom.xml`、扁平化 Jackson 模块；P2 独占 kernel `UserId`、`ContextualEventEnvelopes`；P3a 独占 `source_references`、权限码 `platform.integration:source-reference:update` / `:approve`、`permission-grant-modes.txt`；P3b 独占 integration 的 `OrgSource` 与适配器；P4 独占 `EngineWiring`、`DocumentId`；P5 独占 `EventEnvelope` 与全部守护文件。
 
@@ -496,7 +496,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | 项 | 原安排 | 现安排 |
 |---|---|---|
 | 工程会话 | 部署前开发全在 one-1a-next-2 一条串行链上 | 加并行工程会话 one-1a-par，承担与 R-1b 在途子 PR 文件不相交的卡（下表）；one-1a-next-2（及其接任者）继续独占结构重构主线（R-1b P2→P3b→P4→P5，其后 R-6、R-2、R-5、R-4）与 #163（ADR37-1） |
-| W4 基线收口 | 首次部署 dev 前删除基线开放标记（C-3 第一步） | 改为**首次生产部署前**删除（PREDEPLOY_CHECKLIST C-15；依据 ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等））；dev 期间基线保持开放，基线文件改动后 dev 库与服务器发布状态一起重置（one-ops 补 dev 库重建剧本 `runbooks/dev-db-rebuild.md`，PREDEPLOY_CHECKLIST C-16）。`deploy_gate.py` 对 prod 拦截（main 与发布包所在提交都查）、对 dev 放行并告警；SESSION_PLAYBOOK §12.2 第 4 条与「已应用」的定义随之修订 |
+| W4 基线收口 | 首次部署 dev 前删除基线开放标记（C-3 第一步） | 改为**首次生产部署前**删除（PREDEPLOY_CHECKLIST C-15；依据 ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等））；dev 期间基线保持开放，基线文件改动后 dev 库与服务器发布状态一起重置（one-ops 补 dev 库重建剧本 `runbooks/dev-db-rebuild.md`，PREDEPLOY_CHECKLIST C-16）。`deploy_gate.py` 对 prod 拦截（main 与发布包所在提交都查）、对 dev 放行并告警；SESSION_PLAYBOOK 附 M3「迁移基线」与「已应用」的定义随之修订 |
 | F-1 数据范围（阻塞 090） | W3，前置 R-1..R-4 与 K-3 | 前置改为 **R-1b P5 合并 + K-3**；验收测试先由测试代理写（one-1a-par 卡 4），实现在 P5 合并后开，执行者届时由 one-coordinator 定 |
 | C-1 契约演进守护 | 「W4 删除基线开放标记之前」 | 改为首次生产部署前、C-15 之前 |
 
@@ -504,7 +504,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 
 | 卡 | 内容 | 前置 |
 |---|---|---|
-| PAR-1 部署守护解耦 | `deploy_gate.py` 基线开放标记只拦 prod（含发布包所在提交），dev 告警；`--self-test`、RELEASE.md §3、PREDEPLOY_CHECKLIST C-15 / C-16、C-3 剧本第 0 步、DEV_DEPLOY_REMAINING 0-3、SESSION_PLAYBOOK §12.2、CS-3.5、本节；守护文件改动，opus 复审。安装器 `remote_install.sh` 对「两版之间迁移文件被改」仍拒绝安装，dev 解耦在安装层靠重建剧本重置发布状态（one-ops 定改法） | ADR-0038 采纳后合并 |
+| PAR-1 部署守护解耦 | `deploy_gate.py` 基线开放标记只拦 prod（含发布包所在提交），dev 告警；`--self-test`、RELEASE.md §3、PREDEPLOY_CHECKLIST C-15 / C-16、C-3 剧本第 0 步、DEV_DEPLOY_REMAINING 0-3、SESSION_PLAYBOOK 附 M3「迁移基线」、CS-3.5、本节；守护文件改动，opus 复审。安装器 `remote_install.sh` 对「两版之间迁移文件被改」仍拒绝安装，dev 解耦在安装层靠重建剧本重置发布状态（one-ops 定改法） | ADR-0038 采纳后合并 |
 | PAR-2 ADR-0037 只读核实命令 | 对指定连接跑与启动校验同一套判定（`ReadOnlyBaseline`），逐项输出 (a)–(g) 标记与错误号，不输出数据或消息原文；进签名发布包；默认只读、不启动 Web、不跑迁移、不起调度；口令只从 ECS env 文件读；退出码区分通过 / 违规 / 判定不了；合并后通知 one-ops、one-coordinator 出 rc.2（C-14 前提） | #163 合并 |
 | PAR-3 FLW-1 | Flowable 引擎时间来源核实（第 3 节，首次部署前须有结论），opus 核实，结论写规则卡与 INFRA_RUNBOOK；需改动按缺陷卡手术式修 | — |
 | PAR-4 F-1 验收测试 | 测试代理（opus）按 ADR-0026「1a 交付范围」与 2.4 F-1 行先写验收测试 | — |
@@ -549,7 +549,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 - 验收未覆盖、实现卡必做并补测试：祖先部门导航（RULE-353）、超期 5 个工作日升级与无收件人告警、HELD 期间不生成、按时刻还原授权历史、注册表与 ArchUnit 守护。
 | PAR-5 K-3 | 列表分页契约统一（游标、上限 200，A 2-H1 / 2-H2）与 DDL-11、G-X2；与 R-1b 在途文件冲突则排后 | 与 R-1b 在途文件不相交 |
 - 用语：第三轮用语确认（用户全部同意建议）已批准 F-1 验收分支的 12 条提议术语（uphold、include_descendants 等），由 one-glossary 写回正式词表；**F-1 实现 PR 合并前 rebase 到写回之后的 main，与 one-glossary 对名单后从 `backend/glossary/proposed/f1-data-scope.yaml` 删去这些条目**。改名卡 ID-22（`glossary/round3/RENAME_CARDS.md`）随 F-1 实现一起改。
-- 开工前术语门禁（SESSION_PLAYBOOK §5，#195）对 F-1 已满足（12 条已确认）；其后新卡在测试代理写验收时列「本卡新词」交 one-glossary，经用户确认后再派实现。
+- 开工前术语门禁（SESSION_PLAYBOOK 附 M6，#195）对 F-1 已满足（12 条已确认）；其后新卡在测试代理写验收时列「本卡新词」交 one-glossary，经用户确认后再派实现。
 
 **依据 ADR**：ADR-0033 迁移方案第 5 条等以「首次部署 dev」为界的时点，由 ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等） 改为生产前（取代范围见 ADR-0038 标题行与第 4、5 项）；本节的 W4 时点与 PAR-1 以其为依据。
 

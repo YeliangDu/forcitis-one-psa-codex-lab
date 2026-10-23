@@ -1,6 +1,6 @@
 # 任务登记片段
 
-依据：`git show origin/main:docs/modernization/SESSION_PLAYBOOK.md` §5「任务命名与登记」，用户原话见 intent `2026-10-17-125047-one-coordinator-后台任务要显示任务名-我们现在派.md`。任务片段属于流程治理记录，不新增领域术语。
+依据：`git show origin/main:docs/modernization/SESSION_PLAYBOOK.md` TEAM-23、26，用户原话见 intent `2026-10-17-125047-one-coordinator-后台任务要显示任务名-我们现在派.md`。任务片段属于流程治理记录，不新增领域术语。
 
 每卡 `tasks/<任务号>.md`，键值头沿用该条款的 13 个必填字段：任务号、任务名、主线、bc、种类、会话、执行者与模型、状态、分支、提交、返工轮次、用时、旧编号。可选字段 `来源: 回填` 表示历史回填，仍列入总表，但不参与日报的 Codex 卡数和返工增量；不填表示正常派工。`来源` 一旦填写只允许 `回填`，空值与 `待核` 均不合法。
 

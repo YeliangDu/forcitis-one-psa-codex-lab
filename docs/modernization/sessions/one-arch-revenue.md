@@ -61,15 +61,11 @@
 
 ### 全员工作守则
 
-- 可由负责会话审出对错的编码、设计初稿、整理与汇总，优先交 Codex：gpt-6.1-sol，model_reasoning_effort=xhigh；机械活按工作卡可用 high。Claude 负责派卡、首轮独立评审、安全判定、验收及会话沟通。生产取证、连生产操作、安全改动、opus 复审与验收测试不交 Codex。
+- 可由负责会话审出对错的编码、设计初稿、整理与汇总，优先交 Codex：gpt-6.1-sol，推理强度按卡定（low/medium/high/xhigh）。Claude 负责派卡、首轮独立评审、安全判定、验收及会话沟通。生产取证、连生产操作、安全改动、opus 复审与验收测试不交 Codex。
 - Codex 在独立 worktree 执行，不联网，只改卡列文件；先读根 AGENTS.md 与所指规范。用本会话 Bash 的 run_in_background，任务在本会话后台列表可见、完成自动唤醒，不轮询，不用 nohup、& 或 setsid 脱离会话。
-- 调用形式（须禁网；本机 Codex 默认全权限沙箱）：codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果文件> '<完整工作卡提示>' < /dev/null；只读任务用 -s read-only。显式传提示词，关闭 stdin。本组经验：workspace-write 沙箱写不了共享 git 目录，卡上写明不提交，由本会话审后提交。
+- 调用形式（须禁网；本机 Codex 默认全权限沙箱）：codex exec -m gpt-6.1-sol -c model_reasoning_effort=<low|medium|high|xhigh，按卡定> -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果文件> '<完整工作卡提示>' < /dev/null；只读任务用 -s read-only。显式传提示词，关闭 stdin。本组经验：workspace-write 沙箱写不了共享 git 目录，卡上写明不提交，由本会话审后提交。
 - 每卡一个任务号与任务名，按 SESSION_PLAYBOOK §5 登记 docs/modernization/tasks/<任务号>.md（本会话码固定 ARE）；后台 description 为「<任务号> <任务名> (<执行者>)」，PR、提交、完成点报告带任务号；登记返工轮次与耗时。
 - 跨会话派工用可唤醒对方的 mcp__ccd_session_mgmt__send_message，首行「派工：<任务号> <任务名>」，附入口、出口、卡与结果路径；普通 SendMessage 不作已唤醒或已执行的证据。
 - 要用户定、补值、转财务或配合的事一律登记待决定收件箱；子组由 one-architecture 合成确认页后登记链接，不在各自会话另问。用户口头决定当场记 intent 并登记已定；出题先查 DECISION_DIGEST。
 - 只报完成、阻塞、验收失败、影响他人排期或需用户定的关键节点；不回纯确认，不广播例行入队/合并状态；同一对象一次说完，消息一到三行，长内容写文件。技术协调直连，不要求常规抄送调度。
 - 子代理显式指定模型（haiku / sonnet / opus 按难度）。
-
-## 当前状态
-
-2026-10-22 18:55+02:00 批次边界，准备 /clear。分支 `claude/one-arch-revenue-closeout`（文档类，提交号报 one-merge 收合集）；已完成并交 one-architecture：C7 归段复核与 VS_REVIEW；N7 改名回写与补遗；状态转换待判清单（transition-review/revenue.yaml）；GL5-01 已签署 / 已生效分状态与订阅裁定；ARC-1022-COO-03 法人归属三份口径（legal-entity/，LEB 七题已落地并核对一致）；LEB-07 AGG-21 基线引用（INV-140、141 已正式登记）；ARC-1022-ARE-01 默认账期（DEFAULT_PAYMENT_TERM.md，AGG-136、PRC-202，目录与权责总表已在本分支补）；本组后续（未派）：状态机真缺口——AGG-20 工作包补进行中 / 已完成 / 返工中，AGG-16 拆「已拒绝」「撤回」并补「已通知」，AGG-02 补延续中 / 已降级；命令卡待定「终止 / 取消项目是否需上级复核」（commands.yaml pending_decision）；等别人：财务组补 AGG-53「登记代发退回」、AGG-89「登记进项发票入账」权责 A（现为 TODO，全量重建权责总表会使全景生成失败，本分支总表为 main 版加 PRC-202 两条）；三组进 main 后 one-architecture 统一核对目录；用户待答（本组相关）：Q-04 / VS04-01、Q09、Q13、Q20（MS-17）、Q21、MS-23；接续读 closeout/revenue/README.md。

@@ -9,6 +9,7 @@
 用法：pre_push_gate.py  |  pre_push_gate.py --self-test
 """
 import datetime
+import io
 import json
 import os
 import re
@@ -19,6 +20,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import precheck_before_pr as pr  # noqa: E402
+from command_words import name_of, plain, unquote_dollar  # noqa: E402
 
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "\n"}
 KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
@@ -34,7 +36,7 @@ TIMEOUT_SECONDS = 1400
 
 def segments(command):
     """The simple commands of a shell line as token lists; None when the line cannot be tokenised."""
-    lexer = shlex.shlex(command.replace("`", " ; "), posix=True, punctuation_chars=True)
+    lexer = shlex.shlex(unquote_dollar(command).replace("`", " ; "), posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     lexer.commenters = "#"
     try:
@@ -59,11 +61,11 @@ def pushes(command, cwd="."):
     found, here = [], cwd
     segs = segments(command)
     if segs is None:
-        return [(cwd, [], {})] if re.search(r"\bgit\b.*\bpush\b", command) else []
+        return [(cwd, [], {})] if re.search(r"\bgit\b.*\bpush\b", plain(command)) else []
     for seg in segs:
         env, i = {}, 0
         while i < len(seg):
-            tok = seg[i]
+            tok = seg[i] if ENV.match(seg[i]) else seg[i].lower()
             if ENV.match(tok):
                 k, v = tok.split("=", 1)
                 env[k] = v
@@ -86,12 +88,12 @@ def pushes(command, cwd="."):
         if rest[0] == "cd" and len(rest) > 1:
             here = os.path.normpath(os.path.join(here, os.path.expanduser(rest[1])))
             continue
-        if os.path.basename(rest[0]) in SHELLS or rest[0] == "eval":
-            flag = next((k for k, t in enumerate(rest[1:], 1) if re.fullmatch(r"-[a-z]*c", t)), None) if rest[0] != "eval" else 0
+        if name_of(rest[0]) in SHELLS or rest[0].lower() == "eval":
+            flag = next((k for k, t in enumerate(rest[1:], 1) if re.fullmatch(r"-[a-z]*c", t)), None) if rest[0].lower() != "eval" else 0
             if flag is not None and flag + 1 < len(rest):
                 found += pushes(rest[flag + 1], here)
             continue
-        if os.path.basename(rest[0]) != "git":
+        if name_of(rest[0]) != "git":
             continue
         j, where = 1, here
         while j < len(rest) and rest[j].startswith("-"):
@@ -181,6 +183,7 @@ def main():
         path = log_bypass(root, branch_of(root), info)
         print(f"推送前钩子已按理由绕过并留痕（{path}）：{info}", file=sys.stderr)
         return 0
+    checked = pr.tree_state(root)
     try:
         run = subprocess.run([os.path.join(root, "scripts", "precheck.sh"), "--pre-push"], cwd=root, capture_output=True, text=True,
                              encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS)
@@ -194,6 +197,8 @@ def main():
     if reason:
         print(reason + "\n（确需绕过：PUSH_BYPASS_REASON=\"<理由>\" git push --no-verify …，会留痕）", file=sys.stderr)
         return 2
+    if checked is not None:
+        pr.record_pass(root, checked=checked)
     return 0
 
 
@@ -236,6 +241,18 @@ def self_test():
         log_bypass(root, "claude/c", "再一次", datetime.datetime(2026, 10, 16, 12, 5, 0))
         assert open(path, encoding="utf-8").read() == "2026-10-16 12:00:00\tclaude/b\t理由\n2026-10-16 12:05:00\tclaude/c\t再一次\n"
     assert pr.verdict("SUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1, "推送", "git push").count("git push") == 1
+    from unittest import mock
+    for output, code, marked in (("SUMMARY: 3 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", 0, 1), ("SUMMARY: 2 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1, 0)):
+        finished = subprocess.CompletedProcess([], code, output, "")
+        states = iter(["before the checks", "after the checks"])
+        with mock.patch.object(subprocess, "run", return_value=finished), mock.patch.object(pr, "record_pass") as record, mock.patch.object(pr, "repository_of", return_value="/r"), \
+                mock.patch.object(pr, "tree_state", side_effect=lambda r: next(states)), \
+                mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}, "cwd": "/r"}))), mock.patch.object(sys, "stderr", io.StringIO()):
+            assert main() == (0 if marked else 2) and record.call_count == marked and (not marked or record.call_args.kwargs.get("checked") == "before the checks"), "only a push the checks let through leaves a pass mark"
+    with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "SUMMARY: 1 PASS, 0 FAIL, 0 SKIP (base origin/main) — ready\n", "")), mock.patch.object(pr, "record_pass") as record, \
+            mock.patch.object(pr, "repository_of", return_value="/r"), mock.patch.object(pr, "tree_state", return_value=None), \
+            mock.patch.object(sys, "stdin", io.StringIO(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push"}, "cwd": "/r"}))), mock.patch.object(sys, "stderr", io.StringIO()):
+        assert main() == 0 and record.call_count == 0, "a tree that was dirty when the checks began is never vouched for"
     print("pre_push_gate self-test: ok")
     return 0
 

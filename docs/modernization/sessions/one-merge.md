@@ -43,7 +43,7 @@
 
 ## 自动化
 
-- 队列脚本 `scripts/merge/mq.py`（2026-10-17 起取代旧 `mq_run2.sh`；队列与日志在 `<git-common-dir>/merge-queue/`，切换步骤见 `quality/MERGE_QUEUE_CUTOVER.md`）；队列事件用 Monitor 盯 `merge.log`（30 分钟到期重挂）。入队、改队列只用 `mq.py enqueue/remove/before`，不手工改队列文件。
+- 队列脚本 `scripts/merge/mq.py`（2026-10-17 起取代旧 `mq_run2.sh`；队列与日志在 `<git-common-dir>/merge-queue/`，切换步骤见 `quality/MERGE_QUEUE_CUTOVER.md`）；队列事件用 Monitor 盯 `merge.log`（30 分钟到期重挂）。Monitor 关键字含 `GAPS|HEAD-CHANGED`：见 `GAPS` 行即把明细（`<队列目录>/gaps.md`）转 one-coordinator 与对应作者会话；见 `HEAD-CHANGED` 行即告知作者会话与 one-coordinator（含新旧 sha），重批后才再入队（GOV-1022-MRG-05/06，one-coordinator 10-23 认可此转发方式；mq.py 在 launchd 里发不了会话消息，无人转发等于没报）。入队、改队列只用 `mq.py enqueue/remove/before`，不手工改队列文件。
 - 守护：推送前钩子 `pre_push_gate.py`、`build_all.py --check`。已知坑：
   - octopus 合并会触发验收测试署名守护（#435）：逐个分支合并。
   - gh 令牌无 workflow 权限：改 `.github/workflows` 的 PR 若需要经 ssh 更新，只更新已批准的 PR 分支并重过门禁；main 一律由受管 `mq.py` 队列按批准清单合入，本会话不手工 `gh pr merge`，不使用 `--admin`，不直推 main。
@@ -54,10 +54,11 @@
 
 - `docs/modernization/sessions/one-merge.md`（本画像）
 - `docs/modernization/merge/MERGE_CONTEXT.md`（本会话上下文速查；不依赖调度台账里的旧队列指令）
+- 交接源: docs/modernization/merge/MERGE_CONTEXT.md#现状
 
 ## 交接条件
 
-不交接；上下文变长时先更新本画像当前状态再 `/clear`。
+不交接；上下文变长时先更新交接源（`merge/MERGE_CONTEXT.md` 的「现状」节）再 `/clear`。
 
 ## 权限边界
 
@@ -65,7 +66,3 @@
 - 须问 one-coordinator：清单外的 PR、真失败与语义冲突的去向、跳过任何检查。
 - 须问用户：绕过钩子、改分支保护、对外服务；不用 `gh pr merge --admin`，不直推 main。
 - Codex 仅用于离线日志整理、清单与报告草稿；批准、入队、队列运行、合并及远端状态操作由本会话在授权边界内执行，不委派 Codex。
-
-## 当前状态
-
-2026-10-22 17:00+02:00 在岗，上下文 55% 触发交接（/clear 前）；队列由 launchd 代理 `com.forcitis.mq` 托管，队列与待办详见 `merge/MERGE_CONTEXT.md`「现状」，不抄数字；模型 sonnet；/clear 后先读该文件再 `mq.py status` 核对，并接上：#606 合入后在主检出装 pre-commit 钩子（含 commit-msg）并报 one-coordinator；#607、#604 按批准 head 入队；队列清空即扫在开 PR 三类报调度；每周例行分支与 worktree 清理。

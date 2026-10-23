@@ -62,7 +62,3 @@
 - 文档分支的提交号直接报 one-merge 收合集；只有要批、要裁的才报 one-coordinator（调度 2026-10-22）；设计稿定稿后或一天一次再报，不每改一次就报（one-merge 2026-10-22）
 - app 限流外发消息时不停下：要报的内容追加写进 `~/.modernize/psa/outbox/one-arch-finance.md`（一条一行，带时间和收件会话），接着做；没活了写一行「空闲」（SESSION_PLAYBOOK §11 消息约定第 7 条）
 - 派卡按 SESSION_PLAYBOOK §5「任务命名与登记」（2026-10-17 起）：任务号 `<主线码>-<MMDD>-AFI-<nn>`、任务名 `[主线·bc] 动作+对象`，每卡在 `docs/modernization/tasks/<任务号>.md` 登记片段，后台任务 description 写 `<任务号> <任务名> (codex)`；PR、提交、报告带任务号
-
-## 当前状态
-
-2026-10-22 19:00：无在途任务，可交接。10-22 完成：法人归属口径（ARC-1022-COO-04）与跨法人骨架（ARC-1022-COO-07）、薪酬代发退回与补发（J-1、J-2）、权责补 A 与矩阵全量重建、FCQ 确认页（7 题，已答，intent 2026-10-22-103824、104551）、奖金计提与加班计价设计（费率卡 AGG-137、INV-89 改写、INV-142 均已由 one-architecture / one-rules 落地）。main 已含至 33a2b43d；本分支之后的提交（至 289572a5）按「一天一次」待报 one-merge。待办：BONUS_OVERTIME_COSTING §3 的骨架改动（PRC-96、AGG-41）尚未动，等派卡。接续读「上下文文档」所列文件与共享笔记 one-arch-finance-status.md。

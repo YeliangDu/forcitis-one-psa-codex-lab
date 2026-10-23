@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
@@ -116,7 +117,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         assertThat(context.nodeKey()).isEqualTo("departmentReview");
         assertThat(context.actor()).isEqualTo(TestAccounts.account(s.head()));
         assertThat(context.instanceId()).isEqualTo(instance);
-        assertThat(context.processKey()).isEqualTo(com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL);
+        assertThat(context.processKey()).isEqualTo(com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess.KEY);
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
     }
 
@@ -210,7 +211,7 @@ class BeforeHookIT extends ApprovalIntegrationSupport {
         ApprovalTaskId task = openTaskId(instance);
         int before = hook.calls.size();
         assertThatThrownBy(() -> decideTasks.execute(TestAccounts.account(s.head()), List.of(new TaskDecision(task, DecisionOutcome.REJECT, null)), java.util.OptionalLong.empty()))
-                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
         assertThat(hook.calls).hasSize(before);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
     }

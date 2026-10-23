@@ -1,12 +1,12 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ public class GetTimesheet {
             throw TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet");
         }
         boolean canWithdraw = timesheet.status() == TimesheetStatus.SUBMITTED && approvals.checkWithdraw(
-                ProcessKey.COST_TIMESHEET_APPROVAL, timesheet.document(), currentUser.userId()) == WithdrawCheck.ALLOWED;
+                TimesheetApprovalProcess.KEY, timesheet.document(), currentUser.userId()) == WithdrawCheck.ALLOWED;
         return new TimesheetView(id, timesheet.number(), timesheet.status(), timesheet.round(), timesheet.workDate(), timesheet.periodOfWork(),
                 canWithdraw, timesheet.version());
     }

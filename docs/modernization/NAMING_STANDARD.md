@@ -167,7 +167,7 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 | 项目 | 细则 | 出处 | 守护 |
 |---|---|---|---|
-| 命令与事件词形 | 命令用原形动词 + 对象；事件用对象 + 已发生事实的过去式 / 过去分词，无 `Event / Request / Command` 后缀，继续禁止 G29 的 `Requested / Query` 结尾。`SubmitTimesheet → TimesheetSubmitted` 只说明英文词形，中文仍取登记指称，不据示例更名 | ADR-0053 决定 3；登记方案 §1；§2.2、§4 G5、G29；SESSION_PLAYBOOK §5 第二批第 5 条 | `ArchitectureRulesTest`、`GlossaryTest`、`term_rules.py`；新槽位渲染等值待补守护 |
+| 命令与事件词形 | 命令用原形动词 + 对象；事件用对象 + 已发生事实的过去式 / 过去分词，无 `Event / Request / Command` 后缀，继续禁止 G29 的 `Requested / Query` 结尾。`SubmitTimesheet → TimesheetSubmitted` 只说明英文词形，中文仍取登记指称，不据示例更名 | ADR-0053 决定 3；登记方案 §1；§2.2、§4 G5、G29；SESSION_PLAYBOOK 附 M5「第二批」第 5 条 | `ArchitectureRulesTest`、`GlossaryTest`、`term_rules.py`；新槽位渲染等值待补守护 |
 | 动词登记 | `glossary/verbs.yaml` 每项：`id`（V 编号，永久不变）、`zh`、`en`（原形）、`en_past_participle`、`snake`、`standard_action`、`merged_from`（并入的近义词）、`status`；词义、词形与权限标准动作的对应逐项核对 | N3 定稿第 5 项；ADR-0053 决定 3、7.1；登记方案 §1；N4 §4 | 待补守护（动词源启用与组合迁移前） |
 | 模板登记 | `glossary/naming-templates.yaml`：槽位 `{object, verb, aspect, complement}`，每种目标（命令、事件、状态）的中文渲染式、英文渲染式与样例；概念引用直接写 `id`。`perfective / pending / progressive` 是体标记，不作业务对象。补语、介词尾与连接片段须在模板允许位置使用 | N3 定稿第 4–5 项；ADR-0053 决定 3；登记方案 §1、§5 | 现有 `GlossaryTest / term_rules.py` 识别部分过去式、介词尾；槽位合法性待补守护 |
 | 词汇化事实与反例 | `BecameOverdue` 按词汇化事实模板登记；`WrittenOff / SubmittedForApproval` 沿现行词形识别。`Locked` 位于对象内、`Changed` 位于事件尾时，不凭词尾将两者都判作主事件动词；未登记例外不得靠尾缀规则放行 | ADR-0053 决定 3；登记方案 §1；现行 `GlossaryTest.pastTense` | 现有词形检查部分覆盖；对象 / 主动词区分及例外引用待补守护（组合迁移前） |
@@ -273,7 +273,7 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 ### 2.4a DDL 设计原则（用户 2026-10-15：问「看看 ddl 设计上还有什么需要强化的原则？比如索引？」后选「全部采纳 (Recommended)」）
 
-适用于全部自有表；框架自建表（Spring Session、ShedLock、Modulith 事件登记）豁免并在守护中登记。标「守护」的由 `DdlNamingTest` / `DataArchitectureTest` 检查，其余靠每波复审（SESSION_PLAYBOOK §14.1）。
+适用于全部自有表；框架自建表（Spring Session、ShedLock、Modulith 事件登记）豁免并在守护中登记。标「守护」的由 `DdlNamingTest` / `DataArchitectureTest` 检查，其余靠每波复审（DATA_DESIGN_CHECKLIST §14.1）。
 
 1. **业务唯一约束**：主键一律 UUIDv7（RFC 9562，用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827）；§14.1 D16；排序用业务时间列，不用 ID）；交易、主数据、参考、配置表另须至少一个业务唯一约束（如单据类型 + 单据编号、法人代码、角色代码、来源系统 + 对象类型 + 来源 ID；带生效区间的用排他约束），并在数据访问注册表登记 `business_key`。纯日志、事件类表可豁免，须写理由。引用一律用 UUID，不以业务键作外键。守护。
 2. **索引**：
@@ -470,8 +470,8 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G-C7 | `reporting` 数据集契约：视图列名、类型与登记一致，破坏性变更按 ADR-0035 处理 | ADR-0035 | R1 | R1 工作单元 |
 | G-P1 | `limit` 上限只来自 kernel 一处常量（`ListLimits`），OpenAPI 所有 `limit` 声明 `minimum: 1`、`maximum: 200`、`default: 50`；禁止其他 `MAX_LIMIT` 类常量 | §2.6 A-3、GUIDING_PRINCIPLES §7a R-P2 | 1b 前 | K-3a 已实现：`ListPagingGuardTest`；缺口同上 |
 | G-P2 | 列表与批量用例的 SQL 语句数不随行数增长（计数的 DataSource 装饰器，默认预算 ≤ 5） | GUIDING_PRINCIPLES §7a R-P3 | 1b 前 | one-1a-next-2 排定（初拟：性能守护） |
-| G-P3 | 登记的查询路径在 `enable_seqscan = off` 下 `EXPLAIN` 走索引 | GUIDING_PRINCIPLES §7a、SESSION_PLAYBOOK §14.1 D19 | 1b 前 | 同上 |
-| G-P4 | 外部只读连接三种超时生效：对挂起端口的集成测试在预算内失败或降级 | SESSION_PLAYBOOK §14.3 I2 | 首次部署前 | 同上（与 G-I1、G-I3 同卡） |
+| G-P3 | 登记的查询路径在 `enable_seqscan = off` 下 `EXPLAIN` 走索引 | GUIDING_PRINCIPLES §7a、DATA_DESIGN_CHECKLIST §14.1 D19 | 1b 前 | 同上 |
+| G-P4 | 外部只读连接三种超时生效：对挂起端口的集成测试在预算内失败或降级 | DATA_DESIGN_CHECKLIST §14.3 I2 | 首次部署前 | 同上（与 G-I1、G-I3 同卡） |
 | G-P5 | 生产配置中连接池、语句超时、直方图桶、慢查询阈值存在且取值符合 R-P4–R-P6 | GUIDING_PRINCIPLES §7a | 首次部署前 | 同上 |
 | G-P6 | k6 压测：R-P1 各类接口达标（阶段出口） | GUIDING_PRINCIPLES §7a R-P1 | Phase 2 入口 | one-1a-next-2 排定（初拟：性能守护；安装 k6 前按 CLAUDE.md 请示） |
 | G-S1 | `scripts/ci/workflows_pinned.py`：工作流 `uses:` 一律固定 40 位 SHA；禁 `pull_request_target` | SUPPLY_CHAIN.md S6 | 首次部署前 | one-1a-next-2 排定（初拟：CI 供应链） |
@@ -486,11 +486,11 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G-O4 | 生产配置暴露 Prometheus 端点、连接串含 `logServerErrorDetail=false`；部署后抓取到的业务指标数为 0 即失败 | GUIDING_PRINCIPLES §11 O-3、O-4 | 首次部署前 | 同上（部署后检查归 one-ops） |
 | G-O5 | 告警规则引用的指标在应用中存在 | GUIDING_PRINCIPLES §11 O-6 | 首次部署前 | 同上 |
 | G-O6 | 关联断开计数：事件发布时缺 correlationId 计数并告警，不静默新建 | GUIDING_PRINCIPLES §11 O-1 | 1b 前 | 同上 |
-| G-I1 | 外部连接只经集成层的连接工厂，工厂强制连接、查询、锁等待三种超时 | SESSION_PLAYBOOK §14.3 I2 | 首次部署前 | one-1a-next-2 排定（初拟：外部集成韧性） |
-| G-I2 | 集成登记册 `backend/architecture/integration-register.yaml` 与代码中的适配器一致 | SESSION_PLAYBOOK §14.3 | 首次部署前 | 同上 |
-| G-I3 | 用 `WAITFOR` 挂住的视图验证超时生效与降级 | SESSION_PLAYBOOK §14.3 I2、I7 | 首次部署前 | 同上 |
-| G-I4 | 用户路径冷却：连续失败 3 次后 60 秒内不再调用 | SESSION_PLAYBOOK §14.3 I6 | 1b 前 | 同上 |
-| G-I5 | 一次故障只记一次带堆栈的 `ERROR` | SESSION_PLAYBOOK §14.3 I10 | 首次部署前 | 同上 |
+| G-I1 | 外部连接只经集成层的连接工厂，工厂强制连接、查询、锁等待三种超时 | DATA_DESIGN_CHECKLIST §14.3 I2 | 首次部署前 | one-1a-next-2 排定（初拟：外部集成韧性） |
+| G-I2 | 集成登记册 `backend/architecture/integration-register.yaml` 与代码中的适配器一致 | DATA_DESIGN_CHECKLIST §14.3 | 首次部署前 | 同上 |
+| G-I3 | 用 `WAITFOR` 挂住的视图验证超时生效与降级 | DATA_DESIGN_CHECKLIST §14.3 I2、I7 | 首次部署前 | 同上 |
+| G-I4 | 用户路径冷却：连续失败 3 次后 60 秒内不再调用 | DATA_DESIGN_CHECKLIST §14.3 I6 | 1b 前 | 同上 |
+| G-I5 | 一次故障只记一次带堆栈的 `ERROR` | DATA_DESIGN_CHECKLIST §14.3 I10 | 首次部署前 | 同上 |
 | G-MG1 | `legacy_numbers` 形状：UUIDv7 主键、来源系统列、`uk(来源系统, 单据类型, 原编号)`、`migration_batch_id uuid NOT NULL`、只追加 | ADR-0036 第 3 条、ADR-0033 | 首次部署前 | R-1b |
 | G-MG2 | 暂存跑两次或中断后续跑，暂存结果与一次跑完相同；提交中断后续提，目标结果与一次提交相同（原 G-MG3 并入） | ADR-0036 第 7 条 | 首个迁入权责事实的阶段前 | 首个迁入阶段 |
 | G-MG3 | 并入 G-MG2 | ADR-0036 第 7 条 | — | — |
@@ -507,7 +507,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G-DDL1 | 交易、主数据、参考、配置表在注册表登记 `business_key` 且有对应唯一约束；外键目标须为主键或仅由 uuid 列组成的唯一约束（复合外键保证同行，不以业务键作外键；one-architecture 2026-10-16 判定，数据修复卡 AP-04、WF-12） | §2.4a 第 1 条；DDL 审计（2026-10-15）守护 G1 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL2 | 外键列有以该列开头的索引 | §2.4a 第 2 条；DDL 审计（2026-10-15）守护 G2 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL3 | 没有重复或冗余索引（前缀相同、与唯一约束重复） | §2.4a 第 2 条；DDL 审计（2026-10-15）守护 G3 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL4 | 查询路径登记且 `EXPLAIN` 走索引（与 G-P3 合并为一个测试；依赖 G-DDL12） | §2.4a 第 2 条、SESSION_PLAYBOOK §14.1 D19；DDL 审计（2026-10-15）守护 G4 | 1b 前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL4 | 查询路径登记且 `EXPLAIN` 走索引（与 G-P3 合并为一个测试；依赖 G-DDL12） | §2.4a 第 2 条、DATA_DESIGN_CHECKLIST §14.1 D19；DDL 审计（2026-10-15）守护 G4 | 1b 前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL5 | 可空列注释写明「为空表示」；文本列有空串 CHECK；默认值只在技术默认白名单内 | §2.4a 第 3 条；DDL 审计（2026-10-15）守护 G5 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL6 | `CASCADE` 登记、禁软删除标志列、物理删除只在白名单内 | §2.4a 第 4 条；DDL 审计（2026-10-15）守护 G6 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL7 | `_code` 列有格式 CHECK；自由文本有长度上限；不区分大小写的唯一建在规范化值上 | §2.4a 第 5 条；DDL 审计（2026-10-15）守护 G7 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
@@ -575,7 +575,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | 包 `dal/mysql`、`dal/dataobject`、`service/impl`、`controller/admin` | 模块内的 `infrastructure.persistence`、`domain`、`application`、`web` |
 | 前端 `views/costopenning`、`socail` | `modules/cost-costing/pages/opening`、`modules/platform-identity/pages/social-login` |
 
-**数据迁移字段映射的生成源、生成器与产物路径：待定**，由 one-data 随各阶段迁入规格提出、one-coordinator 排定承接卡；验收按 SESSION_PLAYBOOK §14.2 与 ADR-0036。本节词源投影只供名称核对，不生成数据字段映射，这份历史名字快照不证明字段映射完整。
+**数据迁移字段映射的生成源、生成器与产物路径：待定**，由 one-data 随各阶段迁入规格提出、one-coordinator 排定承接卡；验收按 DATA_DESIGN_CHECKLIST §14.2 与 ADR-0036。本节词源投影只供名称核对，不生成数据字段映射，这份历史名字快照不证明字段映射完整。
 
 ## 7. 命名面清单：新系统中所有需要统一命名的地方（2026-10-14）
 

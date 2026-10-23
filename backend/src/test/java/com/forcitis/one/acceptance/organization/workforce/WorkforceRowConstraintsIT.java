@@ -254,10 +254,10 @@ class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
                 Arguments.of("ck_employees_employee_code",
                         "insert into employees (id, employee_code, display_name, employment_status) values (uuidv7(), ?, 'Synthetic person', 'EMPLOYED')", false),
                 Arguments.of("ck_employees_display_name",
-                        "insert into employees (id, employee_code, display_name, employment_status) values (uuidv7(), 'WF11', ?, 'EMPLOYED')", false),
+                        "insert into employees (id, employee_code, display_name, employment_status) values (uuidv7(), 'WF11-' || uuidv7()::text, ?, 'EMPLOYED')", false),
                 Arguments.of("ck_employees_email_address", """
                         insert into employees (id, employee_code, display_name, email, employment_status)
-                        values (uuidv7(), 'WF11', 'Synthetic person', ?, 'EMPLOYED')""", true));
+                        values (uuidv7(), 'WF11-' || uuidv7()::text, 'Synthetic person', ?, 'EMPLOYED')""", true));
     }
 
     @ParameterizedTest(name = "DATA-REPAIR-workforce WF-11：{0} 拒绝空串与纯空格，带内容的值通过")

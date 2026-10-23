@@ -63,10 +63,10 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
 
         mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"REJECT\",\"reason\":\"\"}"))
-                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_REASON_REQUIRED"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("KERNEL_REASON_REQUIRED"));
         mvc.perform(post(BASE + "/" + task + ":return").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reason\":\"  \"}"))
-                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_REASON_REQUIRED"));
+                .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errorCode").value("KERNEL_REASON_REQUIRED"));
         mvc.perform(post(BASE + "/" + task + ":return").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reason\":\"incomplete\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RETURNED"));

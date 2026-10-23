@@ -54,7 +54,7 @@ aggregates:
     - 状态
     - version
     - 审计列
-    notes: 每期间一次有效（部分唯一索引）
+    notes: 每期间一次有效（部分唯一索引）；不引用费率表版本（AGG-137 已撤销，S-5；按月计提归 B-15，S-6），one-data F5 不适用
   - name: labor_cost_allocation_lines
     role: child
     key: uuid_v7
@@ -72,7 +72,67 @@ aggregates:
     column_families:
     - 分配对象(项目)
     - 工时与成本引用
+    - 加班计价（日期类型、是否已安排补休、倍数、计价工时）
     - 金额
+    notes: 只含工时人工行；按月奖金计提归 B-15（S-6），奖金调整行另立 AGG-139（PEOPLE_APE01_RULINGS 附第 1 条）。one-data 复核 F2、F6：日期类型 `_kind`、补休 `is_` 布尔、倍数 numeric 大于 0、计价工时 `_hours` 非负，倍数不另存规则；INV-89 跨行守恒用对账查询 + 集成测试守住并登记数据质量规则；F1、F3 随调整行移到 AGG-139；pi 仍待 DM-8（FD-09 定前不进表结构 PR）
+  - name: labor_cost_allocation_variances
+    role: child
+    key: uuid_v7
+    references:
+    - to: labor_cost_allocation_runs
+      by: labor_cost_allocation_run_id
+    versioned: none
+    history_migration: none
+    sensitivity: sensitive
+    pi: pi
+    reason: 人工成本分配差异行（BONUS_OVERTIME_COSTING 2.4）：按员工记计价合计与当月实际薪酬的差额，含个人薪酬金额；结果由权责事实承载，不迁
+    column_families:
+    - 员工引用
+    - 员工所在部门（挂差异的部门）
+    - 计价合计
+    - 当月实际薪酬（含加班费）
+    - 差异金额
+    notes: (labor_cost_allocation_run_id, employee_id) 唯一；差异金额存储并带等式 CHECK（= 计价合计 − 当月实际薪酬）；四个金额列共用一个币种列；员工、部门跨 BC 只存 ID；不带项目引用（差异计期间损益、不进项目）；读者范围登记为受限（薪资、财务）；保留期不得永久，建议随薪酬类记录，期限待用户认可（ADR-0043 R-2，D12）；INV-89 守恒：项目分配额 + 差异 = 实际人工成本（one-data 复核 F4、F6）
+- aggregate: AGG-139
+  bc: B-07
+  tables:
+  - name: bonus_adjustment_runs
+    role: root
+    key: uuid_v7
+    versioned: none
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    reason: 运行单据（技术聚合，PEOPLE_APE01_RULINGS_2026-10-23 附第 1 条）：结果由 B-16 记账事实承载，不迁
+    column_families:
+    - 法人（员工成本法人）
+    - 业务日期
+    - 单据编号
+    - 落账期间（会计年度、期间序号）
+    - 状态
+    - version
+    - 审计列
+    notes: 每法人 × 期间一次有效，冲销后失效（部分唯一索引）
+  - name: bonus_adjustment_lines
+    role: child
+    key: uuid_v7
+    references:
+    - to: bonus_adjustment_runs
+      by: bonus_adjustment_run_id
+    - to: AGG-77
+      by: business_fact_id
+      cross_bc: true
+    versioned: none
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    reason: 按法人 × 项目的调整行，不到人；结果由记账事实承载，不迁
+    column_families:
+    - 项目引用（拆不到项目时为空，转费用，LEB-05）
+    - 读取时的「奖金（计提）」余额快照
+    - 调整金额与币种（正为冲回多提、负为补计）
+    - 待内部结算标记（跨法人，LEB-04）
+    notes: 余额快照为生成时点值、行不可变（沿 one-data F3）；不带员工引用（沿 F1③）；(run, 项目) 唯一，项目为空的每运行至多一行；调整后该「法人 × 项目」余额归零（S-4b 条件 1）由对账查询守住；交 one-data 复核
 - aggregate: AGG-42
   bc: B-07
   tables:

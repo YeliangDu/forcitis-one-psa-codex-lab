@@ -1339,6 +1339,57 @@ machines:
     guard: []
     kind: reverse
     process_outcome: 已驳回
+  - from: 草拟
+    to: 草拟
+    command: 提交过账候选
+    kind: non_state
+  source_part: vs13pay
+- aggregate: AGG-138
+  machine: bonus_accrual_run
+  entity: bonus_accrual_runs
+  added_states:
+  - 计算中
+  - 已计算
+  - 已提交过账
+  - 已中止
+  note: S-6 新增（AGG-138 技术聚合·运行单据，同 AGG-41；one-architecture @3541ced0b 第 6 点；ARC-1022-APE-01）；每法人 × 期间一次运行，已中止后人力补齐规则或方案版本再发起另建运行
+  states:
+  - 计算中
+  - 已计算
+  - name: 已提交过账
+    terminal: true
+  - name: 已中止
+    terminal: true
+  initial: 计算中
+  transitions:
+  - from: null
+    to: 计算中
+    command: 启动奖金计提
+    guard:
+    - 计提规则齐备
+    - 激励方案版本在 AGG-75 有效
+    kind: forward
+  - from: null
+    to: 已中止
+    command: 启动奖金计提
+    guard:
+    - 缺计提规则或版本校验不过：失败并告警
+    kind: forward
+    process_outcome: 已中止
+  - from: 计算中
+    to: 已计算
+    command: 计算奖金计提
+    guard:
+    - 基数事实已过账
+    kind: forward
+  - from: 已计算
+    to: 已提交过账
+    command: 提交过账候选
+    guard:
+    - INV-92
+    - 无计提额时提交零额完成记录（无分录行）
+    kind: forward
+    process_outcome: 已提交过账
   source_part: vs13pay
 - aggregate: AGG-93
   machine: payroll_profile_version

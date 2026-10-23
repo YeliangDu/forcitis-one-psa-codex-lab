@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.forcitis.one.acceptance.P4Names;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
@@ -14,7 +15,6 @@ import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ContentHash;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.jayway.jsonpath.JsonPath;
@@ -111,16 +111,16 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
 
     private void assertReasonRequired(MockHttpServletResponse refused) throws Exception {
         assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(422);
-        assertThat((String) JsonPath.read(refused.getContentAsString(), "$.errorCode")).isEqualTo("PLATFORM_APPROVAL_REASON_REQUIRED");
+        assertThat((String) JsonPath.read(refused.getContentAsString(), "$.errorCode")).isEqualTo("KERNEL_REASON_REQUIRED");
     }
 
     private ApprovalProgress progressOf(DocumentReference document) {
-        return approvals.progress(ProcessKey.COST_TIMESHEET_APPROVAL, document).orElseThrow();
+        return approvals.progress(TimesheetApprovalProcess.KEY, document).orElseThrow();
     }
 
     private void startRound(DocumentReference document, int round) {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "acceptance.timesheet-submission")) {
-            approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, employeeIdOf(initiator), new RoundNumber(round),
+            approvals.start(new ApprovalStartRequest(TimesheetApprovalProcess.KEY, document, legalEntity, employeeIdOf(initiator), new RoundNumber(round),
                     UUID.randomUUID(), Set.of(P4Names.PROJECT_HOURS_FLAG), List.of(projectManagers(projectManager)), new ContentHash("synthetic-content-" + round),
                     new ApprovalSummary("Synthetic timesheet round " + round)));
         }
@@ -152,7 +152,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
     // ---- AP-01 ------------------------------------------------------------------------------------------------
 
     @Test
-    @DisplayName("DATA-REPAIR-approval AP-01：驳回无原因（缺失、空串、空白）被拒 422 PLATFORM_APPROVAL_REASON_REQUIRED，任务与请求不变；有原因通过")
+    @DisplayName("DATA-REPAIR-approval AP-01：驳回无原因（缺失、空串、空白）被拒 422 KERNEL_REASON_REQUIRED，任务与请求不变；有原因通过")
     void rejectionWithoutAReasonIsRefused() throws Exception {
         Started c = pending();
         String version = versionOf(c.task(), projectManagerAccount);
@@ -241,14 +241,14 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
             UserId actor = new UserId(initiatorAccount.userId());
 
             for (String reason : new String[] {null, "", "  "}) {
-                RetractionResult refused = cancel ? approvals.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, document, actor, reason)
-                        : approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document, actor, reason);
+                RetractionResult refused = cancel ? approvals.cancel(TimesheetApprovalProcess.KEY, document, actor, reason)
+                        : approvals.withdraw(TimesheetApprovalProcess.KEY, document, actor, reason);
                 assertThat(refused).as("a missing reason is an answer, not an exception").isEqualTo(RetractionResult.REASON_REQUIRED);
             }
             assertThat(requestStatus(request)).isEqualTo("RUNNING");
 
-            RetractionResult done = cancel ? approvals.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, document, actor, "synthetic: wrong hours")
-                    : approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document, actor, "synthetic: wrong hours");
+            RetractionResult done = cancel ? approvals.cancel(TimesheetApprovalProcess.KEY, document, actor, "synthetic: wrong hours")
+                    : approvals.withdraw(TimesheetApprovalProcess.KEY, document, actor, "synthetic: wrong hours");
             assertThat(done).isEqualTo(RetractionResult.DONE);
             assertThat(requestRow(request)).containsEntry("status", cancel ? "CANCELLED" : "RETURNED").containsEntry("result_reason", "synthetic: wrong hours");
 

@@ -4221,6 +4221,9 @@ processes:
   - type: human
     name: 已过账的人工成本分配运行需更正，财务发起冲销
     entry: 6
+  - type: time
+    name: 月结日程在发起关账前触发：本期人工成本分配、奖金计提（PRC-203）、核定重分类过账后，生成奖金调整（PEOPLE_APE01_RULINGS 附第 2 条）
+    entry: 9
   outcomes:
   - 人工成本分配已过账
   - 未到分配条件
@@ -4233,6 +4236,10 @@ processes:
   - 已撤回
   - 过账被拒收
   - 期间关账中待重试
+  - 奖金调整已过账
+  - 本期无奖金调整
+  - 本期已调整
+  - 奖金调整未到条件
   scenarios:
   - PRC-96-S01
   - PRC-96-S02
@@ -4256,6 +4263,19 @@ processes:
   - PRC-96-S20
   - PRC-96-S21
   - PRC-96-S22
+  - PRC-96-S24
+  - PRC-96-S25
+  - PRC-96-S26
+  - PRC-96-S27
+  - PRC-96-S28
+  - PRC-96-S29
+  - PRC-96-S30
+  - PRC-96-S31
+  - PRC-96-S32
+  - PRC-96-S33
+  - PRC-96-S35
+  - PRC-96-S36
+  - PRC-96-S37
   roles:
   - id: SH-E6
     as: performer
@@ -4266,7 +4286,7 @@ processes:
     reads:
     - AGG-77
     - AGG-81
-    desc: 试算前经 api 读 B-16，核对本期工时与薪酬事实齐备（P-41 预警在试算时给出）；不订阅逐笔 BusinessFactAttributed（PRC-55、161 的触发不受影响，S-31 SQ-20）；只分配已锁定工时
+    desc: 试算前经 api 读 B-16，核对本期工时与薪酬事实齐备（P-41 预警在试算时给出）；按月奖金计提不在本流程：由 B-15 计算并按法人与项目提交奖金计提记账事实（S-6，FINANCE_S4_S5_RULINGS_2026-10-22 附三），B-07 只经 B-16 读；不订阅逐笔 BusinessFactAttributed（PRC-55、161 的触发不受影响，S-31 SQ-20）；只分配已锁定工时
     decision:
     - when: 本期已有有效的人工成本分配运行（每期间一次有效）
       goto: end
@@ -4307,7 +4327,7 @@ processes:
     where: in_system
     command: 试算人工成本分配
     aggregate: AGG-41
-    desc: P-41 有工时无薪酬、有薪酬无工时预警；按工时日期读员工当日的成本法人（当时值，ADR-0073 第 1 条），与项目承担法人比较，不一致的人工记员工成本法人、标「待内部结算」并列入跨法人清单（员工、项目、两边法人、金额、期间），项目看板照常归集并标注（LEB-04；部门换法人后项目不转，见交付执行 LEB-03）
+    desc: P-41 有工时无薪酬、有薪酬无工时预警；按工时日期读员工当日的成本法人（当时值，ADR-0073 第 1 条），与项目承担法人比较，不一致的人工记员工成本法人、标「待内部结算」并列入跨法人清单（员工、项目、两边法人、金额、期间），项目看板照常归集并标注（LEB-04；部门换法人后项目不转，见交付执行 LEB-03）；试算按员工 × 日计价并分到项目，含两项（已核定奖金调整行另立 AGG-139，见第 9、10 步）：①加班计价（日期类型与是否已安排补休取自工时过账事实，过账时定格，S-4 裁定 1）：标准小时费率 = 当日日薪 ÷ 标准日工时（默认 7.5，按法人可配，FD-10）；工作日 min(H,8) 按 1 倍、超 8 小时部分按 1.5 倍，休息日未安排补休全天 2 倍、已安排补休全天 1 倍（补休当日不再计），法定节假日全天 3 倍（《劳动法》第三十六条、第四十四条，用户 FCQ-05，intent 2026-10-22-104551），按当日各项目工时占比分到项目；②人工成本分配差异行：按员工把「计价合计 − 当月实际薪酬（含加班费）」挂员工所在部门、计期间损益、不进项目（BONUS_OVERTIME_COSTING 2.4）
     permission: 成本.人工成本分配试算
     page: 人工成本分配试算页
     legal_entity: 承担法人
@@ -4319,7 +4339,7 @@ processes:
     command: 确认人工成本分配
     aggregate: AGG-41
     decision:
-    - when: 分配合计不等于实际人工成本（零容差）
+    - when: 项目分配额 + 人工成本分配差异 ≠ 实际人工成本（零容差），退回重新试算
       goto: 2
       rule: INV-89
     - when: 含跨法人人工：按员工成本法人记、标「待内部结算」，跨法人清单随确认发给财务，继续过账
@@ -4491,6 +4511,73 @@ processes:
       bc: B-16
       name: 冲销并重过账
     legal_entity: 承担法人
+  - actor: system
+    where: automatic
+    command: 生成奖金调整
+    aggregate: AGG-139
+    branch: 奖金调整
+    added_in: closeout
+    reads:
+    - AGG-77
+    desc: 经 api 读 B-16 各「法人 × 项目」的「奖金（计提）」余额（PRC-203 计提与核定重分类已过账后，余额即「累计计提 − 已核定」），生成调整行把余额冲到零：正为冲回多提、负为补计；拆不到项目的留成本法人转费用（LEB-05）；只在核定期间调整、不重算已过账期间（C-7）；项目已结项的按 PRC-35 清算规则处理；跨法人的标「待内部结算」并列入跨法人清单（LEB-04）；不计入 INV-89（S-4b；PEOPLE_APE01_RULINGS_2026-10-23 附第 1 条）
+    decision:
+    - when: 本法人本期已有有效的奖金调整运行（每法人 × 期间一次有效，冲销后失效）
+      goto: end
+      rule: AGG-139 每法人 × 期间一次有效
+      outcome: 本期已调整
+    - when: 本期奖金计提或核定重分类尚未过账（经 B-16 查不到 PRC-203 计提事实，含零额完成记录），延后重试并告警
+      goto: end
+      rule: 硬规则 6；INV-143
+      outcome: 奖金调整未到条件
+      alert: true
+    - when: 各「法人 × 项目」的「奖金（计提）」余额均为零，不生成运行
+      goto: end
+      outcome: 本期无奖金调整
+    - when: otherwise
+      goto: 10
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 读奖金（计提）余额与计提完成记录
+    legal_entity: 员工成本法人
+    audit: true
+    pending:
+    - 命令名为提议名（PEOPLE_APE01_RULINGS 附第 1 条），交 one-glossary
+  - actor: system
+    where: automatic
+    command: 提交奖金调整过账候选
+    aggregate: AGG-139
+    branch: 奖金调整
+    added_in: closeout
+    calls: PRC-92
+    period_gate: true
+    emits:
+    - 奖金调整已过账
+    desc: 在发起关账前完成；冲销奖金调整运行照第 6–8 步的冲销写法（经 AGG-77 冲销并重过账，INV-95），本稿不另画
+    decision:
+    - when: 所属期间在关账中（已发起关账、未确认），本期过账不接受：返回「期间关账中、可重试」，不进拒收记录，由来源 BC 投递重试
+      goto: end
+      rule: INV-92（S-31 SQ-12）；ADR-0045 决定 1
+      outcome: 期间关账中待重试
+    - when: 过账管道拒收（借贷不平或法人不一致），拒收并告警
+      goto: end
+      rule: INV-93；拒收记录由 PRC-158 处置
+      outcome: 已拒收
+      alert: true
+    - when: otherwise
+      goto: end
+      outcome: 奖金调整已过账
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+    legal_entity: 员工成本法人
+    metric_event: true
+    notify:
+    - to: SH-E6
+      how: 企业微信告警（拒收原因）
   notes: 分配合计等于实际人工成本，零容差（INV-89）；口径待 FD-09。试算后确认无超时或退回分支，按非人工编排（⑥a 评审 M1）。
   segregation:
   - roles:
@@ -5455,6 +5542,7 @@ processes:
     - 损益结转完成（期末结转已过账，AGG-99）
     - 本期受控手工凭证无草稿、待复核、待审批（B-20，AGG-98）
     - 本期人工成本分配与分摊运行已办结或已处理（B-07）
+    - 本期奖金计提已过账：每法人一条，零额为完成记录（经 B-16 读，INV-143）；核定期间另查奖金调整已过账（AGG-139）；查不到退回开放并告警（PEOPLE_APE01_RULINGS_2026-10-23 附第 2 条）
     - 明细账与总账控制科目一致
     - 现金流量标注完整
     - 直接法与间接法经营活动现金流量净额相等
@@ -5761,6 +5849,7 @@ processes:
     - 损益结转完成（期末结转已过账，AGG-99）
     - 本期受控手工凭证无草稿、待复核、待审批（B-20，AGG-98）
     - 本期人工成本分配与分摊运行已办结或已处理（B-07）
+    - 本期奖金计提已过账：每法人一条，零额为完成记录（经 B-16 读，INV-143）；核定期间另查奖金调整已过账（AGG-139）；查不到退回开放并告警（PEOPLE_APE01_RULINGS_2026-10-23 附第 2 条）
     - 明细账与总账控制科目一致
     - 现金流量标注完整
     - 直接法与间接法经营活动现金流量净额相等

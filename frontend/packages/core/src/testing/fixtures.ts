@@ -18,7 +18,7 @@ export function taskDetailBody(overrides: Record<string, unknown> = {}) {
   return {
     taskId: 't-1',
     instanceId: 'i-1',
-    processKey: 'COST_TIMESHEET_APPROVAL',
+    processKey: 'cost_timesheet_approval',
     documentType: 'TIMESHEET',
     documentId: 'TS-FST-202610-0001',
     nodeKey: 'dept-head',
@@ -41,7 +41,7 @@ export function taskRecordBody(overrides: Record<string, unknown> = {}) {
     recordId: 'r-1',
     taskId: 't-0',
     instanceId: 'i-1',
-    processKey: 'COST_TIMESHEET_APPROVAL',
+    processKey: 'cost_timesheet_approval',
     documentType: 'TIMESHEET',
     documentId: 'TS-FST-202610-0001',
     nodeKey: 'project-manager',

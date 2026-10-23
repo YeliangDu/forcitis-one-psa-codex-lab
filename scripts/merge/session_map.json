@@ -1,0 +1,22 @@
+{
+ "_note": "branch prefix -> owning session, used by gapscan.py and the merged-notice; longest prefix wins; add a line when a session starts a new branch family",
+ "prefixes": {
+  "claude/one-1a-admin": "one-1a-admin",
+  "claude/one-1a-next-5": "one-1a-next-5",
+  "claude/one-1a-par": "one-1a-par",
+  "claude/one-arch-finance": "one-arch-finance",
+  "claude/one-arch-people": "one-arch-people",
+  "claude/one-arch-revenue": "one-arch-revenue",
+  "claude/one-architecture": "one-architecture",
+  "claude/one-coordinator": "one-coordinator",
+  "claude/one-data": "one-data",
+  "claude/one-glossary": "one-glossary",
+  "claude/one-merge": "one-merge",
+  "claude/one-ops": "one-ops",
+  "claude/one-platform-file": "one-platform-file",
+  "claude/one-quality": "one-quality",
+  "claude/one-rules": "one-rules",
+  "claude/nx5": "one-1a-next-5",
+  "claude/one-platform-signing": "one-platform-file"
+ }
+}

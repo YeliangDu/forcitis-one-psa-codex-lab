@@ -148,6 +148,11 @@ class StoreContentTest {
         public boolean hasScanException(ContentHash contentHash) {
             return exempted;
         }
+
+        @Override
+        public Optional<FileStatus> unboundStatusStoredBy(FileId file, java.util.UUID uploader) {
+            throw new AssertionError("not used when storing");
+        }
     };
 
     final StoreAudit audit = new StoreAudit() {

@@ -1,6 +1,81 @@
 CREATE SCHEMA IF NOT EXISTS platform_audit;
 COMMENT ON SCHEMA platform_audit IS '审计日志（权限流程与集成平台 BC）';
 
+-- ADR-0069 第 14 条：审计对象类别登记在这里，不再是 CHECK 里的常量串；新增或退休一个类别是一行迁移，不动 DDL 形状。
+-- 外键不检查状态，「退休后不再写入」由应用启动校验（AuditSubjectKindCheck）与行为守护承担。业务单据以类型码记录，审计只校格式。
+CREATE TABLE platform_audit.audit_subject_kinds (
+    audit_subject_kind_id uuid        NOT NULL,
+    code                  text        NOT NULL,
+    owner_bc_code         text        NOT NULL,
+    has_object            boolean     NOT NULL,
+    status                text        NOT NULL,
+    effective_from_date   date        NOT NULL,
+    retired_date          date,
+    created_at            timestamptz NOT NULL,
+    updated_at            timestamptz NOT NULL,
+    CONSTRAINT pk_audit_subject_kinds PRIMARY KEY (audit_subject_kind_id),
+    CONSTRAINT uk_audit_subject_kinds_code UNIQUE (code),
+    CONSTRAINT ck_audit_subject_kinds_code CHECK (code ~ '^[A-Z][A-Z0-9_]{1,39}$'),
+    CONSTRAINT ck_audit_subject_kinds_owner_bc_code CHECK (owner_bc_code ~ '^[a-z]+(\.[a-z]+)?$'),
+    CONSTRAINT ck_audit_subject_kinds_status CHECK (status IN ('ACTIVE', 'RETIRED')),
+    CONSTRAINT ck_audit_subject_kinds_retired_matches_status CHECK ((status = 'RETIRED') = (retired_date IS NOT NULL)),
+    CONSTRAINT ck_audit_subject_kinds_retired_after_effective CHECK (retired_date IS NULL OR retired_date > effective_from_date)
+);
+COMMENT ON TABLE platform_audit.audit_subject_kinds IS '审计对象类别登记：每个可被审计的对象类别一行；平台自有与各业务模块的类别都在此登记，代码常量只作引用。只由迁移增改，运行时只读；已有审计条目只追加、照常可读，被引用的登记行永不删除。新增一个无对象的类别（审计条目不带对象 ID）须同改 audit_entries 的 ck_audit_entries_subject_id，其列出的类别集合须等于这里 has_object 为假的集合（AuditSubjectKindGuardTest 守护）。粒度：每个对象类别一行';
+COMMENT ON COLUMN platform_audit.audit_subject_kinds.audit_subject_kind_id IS '审计对象类别 ID（UUIDv7）';
+COMMENT ON COLUMN platform_audit.audit_subject_kinds.code IS '对象类别码：业务键，大写字母、数字与下划线，2 至 40 位，全局唯一；审计条目的对象类别外键指向它';
+COMMENT ON COLUMN platform_audit.audit_subject_kinds.owner_bc_code IS '登记属主：声明该类别的限界上下文（glossary/bcs.yaml 中 kind 为 bc 的 id），存在性由守护测试核对';
+COMMENT ON COLUMN platform_audit.audit_subject_kinds.has_object IS '是否有对象：为真时审计条目须带对象 ID，为假（请求、操作、登录尝试）时对象 ID 为空';
+COMMENT ON COLUMN platform_audit.audit_subject_kinds.status IS '状态：ACTIVE 可写入 / RETIRED 已退休，不再有写入方，已有条目照常可读';
+COMMENT ON COLUMN platform_audit.audit_subject_kinds.effective_from_date IS '生效日：从这一天起可用该类别写审计条目';
+COMMENT ON COLUMN platform_audit.audit_subject_kinds.retired_date IS '退休日：状态为 RETIRED 时必填，为 ACTIVE 时为空；只能由空变非空一次';
+COMMENT ON COLUMN platform_audit.audit_subject_kinds.created_at IS '创建时间';
+COMMENT ON COLUMN platform_audit.audit_subject_kinds.updated_at IS '更新时间';
+
+CREATE FUNCTION platform_audit.guard_audit_subject_kind_change() RETURNS trigger
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+    IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
+        RAISE EXCEPTION 'platform_audit.audit_subject_kinds is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NEW.audit_subject_kind_id IS DISTINCT FROM OLD.audit_subject_kind_id OR NEW.code IS DISTINCT FROM OLD.code
+       OR NEW.owner_bc_code IS DISTINCT FROM OLD.owner_bc_code OR NEW.has_object IS DISTINCT FROM OLD.has_object
+       OR NEW.effective_from_date IS DISTINCT FROM OLD.effective_from_date OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+        RAISE EXCEPTION 'a registered audit subject kind cannot be rewritten; only its retirement may be recorded, once' USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF OLD.status = 'RETIRED' AND (NEW.status IS DISTINCT FROM OLD.status OR NEW.retired_date IS DISTINCT FROM OLD.retired_date) THEN
+        RAISE EXCEPTION 'the retirement of an audit subject kind is set once and never changed' USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+CREATE TRIGGER tg_audit_subject_kinds_append_only BEFORE UPDATE OR DELETE ON platform_audit.audit_subject_kinds
+    FOR EACH ROW EXECUTE FUNCTION platform_audit.guard_audit_subject_kind_change();
+CREATE TRIGGER tg_audit_subject_kinds_append_only_truncate BEFORE TRUNCATE ON platform_audit.audit_subject_kinds
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_audit.guard_audit_subject_kind_change();
+
+INSERT INTO platform_audit.audit_subject_kinds (audit_subject_kind_id, code, owner_bc_code, has_object, status, effective_from_date, created_at, updated_at) VALUES
+    ('019a0000-0000-7000-8000-000000000601', 'USER_ACCOUNT', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000602', 'EMPLOYEE', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000603', 'ORG_UNIT', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000604', 'EMERGENCY_ADMIN', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000605', 'ROLE', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000606', 'APPROVAL_TASK', 'platform.approval', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000607', 'APPROVAL_REQUEST', 'platform.approval', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000608', 'SYNC_RUN', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000609', 'LEGAL_ENTITY', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000610', 'LEGAL_ENTITY_ATTRIBUTION', 'organization.workforce', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000611', 'TIMESHEET', 'cost.timesheet', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000612', 'WORK_CALENDAR_YEAR', 'organization.attendance', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000613', 'NUMBERING_RULE', 'platform.numbering', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000614', 'SOURCE_REFERENCE', 'platform.integration', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000615', 'SOURCE_REFERENCE_REFUSAL', 'platform.integration', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000616', 'AUTHORIZATION_REQUEST', 'platform.identity', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000617', 'STORED_FILE', 'platform.file', true, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000618', 'REQUEST', 'platform.audit', false, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000619', 'OPERATION', 'platform.audit', false, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00'),
+    ('019a0000-0000-7000-8000-000000000620', 'LOGIN_ATTEMPT', 'platform.identity', false, 'ACTIVE', DATE '2000-01-01', TIMESTAMPTZ '2000-01-01 00:00:00+00', TIMESTAMPTZ '2000-01-01 00:00:00+00');
+
 -- 审计订阅领域事件：事件号与创建时间一起兼作幂等键，重复投递不产生重复条目；关联号把条目与同一操作的事件、日志串起来。
 -- 按创建时间（UTC 月）范围分区（ADR-0048，O-8）：在线 3 年后归档、校验，再由维护角色整块删除分区；不建默认分区，落不进任何分区的行直接报错。
 -- 带登录与会话轨迹的条目（登录、会话、管理员模式、拒绝访问、特权请求、强制下线等）的来源地址、结果、登录方式放在结构化列：员工查自己的登录记录只取这些列，不解析说明文字（意图 155、ADR-0027 第 3 项）。
@@ -9,7 +84,7 @@ CREATE TABLE platform_audit.audit_entries (
     action            text        NOT NULL,
     actor_id          uuid,
     on_behalf_of_id   uuid,
-    subject_kind      text        NOT NULL CONSTRAINT ck_audit_entries_subject_kind CHECK (subject_kind IN ('USER_ACCOUNT', 'EMPLOYEE', 'ORG_UNIT', 'EMERGENCY_ADMIN', 'ROLE', 'APPROVAL_TASK', 'APPROVAL_REQUEST', 'SYNC_RUN', 'LEGAL_ENTITY', 'LEGAL_ENTITY_ATTRIBUTION', 'TIMESHEET', 'WORK_CALENDAR_YEAR', 'NUMBERING_RULE', 'SOURCE_REFERENCE', 'SOURCE_REFERENCE_REFUSAL', 'AUTHORIZATION_REQUEST', 'STORED_FILE', 'REQUEST', 'OPERATION', 'LOGIN_ATTEMPT')),
+    subject_kind      text        NOT NULL,
     subject_id        uuid,
     detail            text,
     created_at        timestamptz NOT NULL,
@@ -24,6 +99,7 @@ CREATE TABLE platform_audit.audit_entries (
     login_method_kind text        CHECK (login_method_kind IN ('WECOM_WORKBENCH', 'WECOM_MINI_PROGRAM', 'WECOM_QR_CODE_LOGIN', 'SSO', 'SIGNED_TICKET', 'EMERGENCY')),
     CONSTRAINT pk_audit_entries PRIMARY KEY (id, created_at),
     CONSTRAINT uk_audit_entries_event_id_created_at UNIQUE (event_id, created_at),
+    CONSTRAINT fk_audit_entries_subject_kind FOREIGN KEY (subject_kind) REFERENCES platform_audit.audit_subject_kinds (code) ON DELETE RESTRICT,
     CONSTRAINT ck_audit_entries_subject_id CHECK ((subject_id IS NULL) = (subject_kind IN ('REQUEST', 'OPERATION', 'LOGIN_ATTEMPT'))),
     CONSTRAINT ck_audit_entries_login_method_outcome CHECK (login_method_kind IS NULL OR outcome_kind IS NOT NULL),
     CONSTRAINT ck_audit_entries_action_length CHECK (char_length(action) BETWEEN 1 AND 2000),
@@ -43,7 +119,7 @@ COMMENT ON COLUMN platform_audit.audit_entries.id IS '审计条目 ID（UUIDv7�
 COMMENT ON COLUMN platform_audit.audit_entries.action IS '动作：{子域}.{限界上下文}.{对象}.{动词}，如 platform.identity.role.created';
 COMMENT ON COLUMN platform_audit.audit_entries.actor_id IS '操作人用户 ID；系统动作（同步作业等）为空';
 COMMENT ON COLUMN platform_audit.audit_entries.on_behalf_of_id IS '被代理人用户 ID；仅显式代理动作填写（RULE-270）';
-COMMENT ON COLUMN platform_audit.audit_entries.subject_kind IS '对象类别：被记录或被投递的业务对象的类别';
+COMMENT ON COLUMN platform_audit.audit_entries.subject_kind IS '对象类别：被记录或被投递的业务对象的类别，取 audit_subject_kinds 登记的类别码（外键）';
 COMMENT ON COLUMN platform_audit.audit_entries.subject_id IS '对象 ID：被记录或被投递的业务对象的自有 ID；为空表示这条记录没有对象';
 COMMENT ON COLUMN platform_audit.audit_entries.detail IS '说明文字，不含密钥和个人敏感信息';
 COMMENT ON COLUMN platform_audit.audit_entries.created_at IS '审计事实发生的时间：事件条目取事件信封的发生时刻，直接审计取注入的时钟；分区键';
@@ -58,7 +134,7 @@ COMMENT ON COLUMN platform_audit.audit_entries.outcome_kind IS '结果：SUCCEED
 COMMENT ON COLUMN platform_audit.audit_entries.login_method_kind IS '登录方式：企业微信（工作台、小程序、扫码）、单点登录、签名票据、应急登录；登录、会话、管理员模式、特权请求类条目才有，强制下线、拒绝访问等为空；有登录方式必有结果';
 
 CREATE FUNCTION platform_audit.reject_audit_entry_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_audit.audit_entries is append-only: % is not allowed', TG_OP
         USING ERRCODE = 'restrict_violation';
@@ -108,7 +184,7 @@ COMMENT ON COLUMN platform_audit.audit_archive_batches.created_at IS '创建时�
 COMMENT ON COLUMN platform_audit.audit_archive_batches.updated_at IS '更新时间';
 
 CREATE FUNCTION platform_audit.reject_archive_batch_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     RAISE EXCEPTION 'platform_audit.audit_archive_batches is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
 END;

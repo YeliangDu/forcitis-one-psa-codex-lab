@@ -977,7 +977,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:87
+  source: docs/modernization/events/approval.yaml:88
 - event_type: platform.approval.TaskAssigned
   title: 任务已分配（每位会签审批人一个任务）
   description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键为对象类别 + 对象 ID + 用途 + 触发事件）。系统自动通过的任务（RULE-302）不发此事件，发 TaskHandled（AUTOMATIC）。分析层 L1 以此为审批等待时长的起点。
@@ -998,7 +998,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:177
+  source: docs/modernization/events/approval.yaml:179
 - event_type: platform.approval.TaskClaimed
   title: 任务已被候选人认领
   description: 任务已被候选人认领；过程事实，不过账。通知监听器据此把其他候选人的卡片改为已处理。
@@ -1019,7 +1019,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:271
+  source: docs/modernization/events/approval.yaml:273
 - event_type: platform.approval.TaskHandled
   title: 任务已办理（通过 / 驳回 / 退回）
   description: 任务已办理（通过、驳回、退回）；过程事实，不过账。被跳过的节点不发此事件；系统自动通过（同一审批人同一节点内容未变，RULE-302）发本事件，effect 为 AUTOMATIC（D-1a-66）。加签人的驳回只发 effect=ADVISORY，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。
@@ -1040,7 +1040,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     noConsumer: 暂无消费方：分析层 L1 的审批办理时效与 1b 业务模块的任务级钩子将订阅；现在就发布，是因为办理时刻只在发生当时可记录，事后补不回
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:324
+  source: docs/modernization/events/approval.yaml:326
 - event_type: platform.approval.TaskTransferred
   title: 当前处理人把任务转交给他人（RULE-285）
   description: 当前处理人把任务转交给他人（RULE-285）；过程事实，不过账。通知监听器据此给新处理人发卡片。
@@ -1062,7 +1062,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     title: 当前处理人把任务转交给他人（RULE-285，D-1a-75）
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:406
+  source: docs/modernization/events/approval.yaml:408
 - event_type: platform.approval.ApprovalTaskBecameOverdue
   title: 任务超过审批时限仍未处理（只提醒，不自动通过）
   description: 任务超过审批时限仍未处理，只提醒，不自动通过；过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给处理人发企业微信提醒。
@@ -1082,7 +1082,7 @@ by_event:
     audit: 'not-audited: 只是提醒，不改变任何人的处理权限；超时升级（ApprovalTaskEscalated）才改变处理人，并被审计'
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:479
+  source: docs/modernization/events/approval.yaml:481
 - event_type: platform.approval.ApprovalTaskEscalated
   title: 超时后仍未处理，已升级给审批人的上级（取不到上级则交流程管理员并告警）
   description: 超时后仍未处理，已升级给审批人的上级；取不到上级则交流程管理员并告警（target=PROCESS_ADMINISTRATOR）。过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给升级对象发卡片。
@@ -1103,7 +1103,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:544
+  source: docs/modernization/events/approval.yaml:546
 - event_type: platform.approval.TaskReleased
   title: 处理人把任务退回候选人
   description: 任务的处理人把任务退回候选组，候选人可以再次认领（M-6）；过程事实，不过账。
@@ -1124,7 +1124,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:611
+  source: docs/modernization/events/approval.yaml:613
 - event_type: platform.approval.TaskReassigned
   title: 流程管理员改派任务
   description: 流程管理员把任务改派给另一个人，填原因并审计（D-1a-61）；过程事实，不过账。通知监听器据此给新处理人发卡片。
@@ -1146,7 +1146,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     title: 当前处理人把任务转交给他人（RULE-285，D-1a-75）
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:671
+  source: docs/modernization/events/approval.yaml:673
 - event_type: platform.approval.TaskClosed
   title: 任务因本轮结束而关闭
   description: 本轮在任务办结前结束（驳回、退回、撤回、撤销），任务关闭，未办理的候选人失去办理权；过程事实，不过账。
@@ -1166,7 +1166,7 @@ by_event:
     audit: 'not-audited: 是已审计的审批结束事件的后果，不改变任何人超出该事件的权限'
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:744
+  source: docs/modernization/events/approval.yaml:746
 - event_type: platform.approval.ApprovalRoundStarted
   title: 审批开新一轮
   description: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起（D-1a-78）；过程里程碑，不过账。aggregateId 是审批请求 ID。
@@ -1187,7 +1187,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalRequestStateMachineTest
     noConsumer: 暂无消费方：审计之外无人订阅；分析层 L1 以此为审批轮次的起点
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:798
+  source: docs/modernization/events/approval.yaml:800
 - event_type: organization.attendance.WorkCalendarYearMaintained
   title: 工作日历的某一年被维护
   description: null

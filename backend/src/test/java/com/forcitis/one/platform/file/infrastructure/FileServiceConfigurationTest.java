@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.file.api.PlatformFileContent;
 import com.forcitis.one.platform.file.application.BindFile;
+import com.forcitis.one.platform.file.application.GetUploadStatus;
 import com.forcitis.one.platform.file.application.IssueDownloadLink;
 import com.forcitis.one.platform.file.application.StoreContent;
 import com.forcitis.one.platform.file.domain.BindingAudit;
@@ -65,7 +66,7 @@ class FileServiceConfigurationTest {
     void onWithBothPortsStores() {
         runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket)
                 .run(context -> assertThat(context).hasNotFailed().hasSingleBean(StoreContent.class).hasSingleBean(BindFile.class)
-                        .hasSingleBean(IssueDownloadLink.class).hasSingleBean(PlatformFileContent.class));
+                        .hasSingleBean(IssueDownloadLink.class).hasSingleBean(PlatformFileContent.class).hasSingleBean(GetUploadStatus.class));
     }
 
     @Test

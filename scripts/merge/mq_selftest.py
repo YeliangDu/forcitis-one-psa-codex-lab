@@ -1,4 +1,5 @@
 """Self-test of mq.py (fake gh, real git for the ssh update, real processes and threads for the queue lock and the lanes). Not run on its own: `mq.py --self-test`."""
+import contextlib
 import importlib.util
 import os
 import re
@@ -138,6 +139,8 @@ def run(mq):
             _ssh_update(mq, d)
             _queue_lock(mq, d)
             _train(mq)
+            _gapscan(mq, d)
+            _head_changed(mq, d)
     finally:
         for k, v in old.items():
             os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
@@ -1587,3 +1590,183 @@ def _ignored_conflicts(mq, d):
     assert mq.update_over_ssh(work, "pr", wt) == "conflict"
     g(work, "fetch", "-q", "origin")
     assert g(work, "rev-parse", "origin/pr") == before
+
+
+def _gapscan(mq, d):
+    import datetime
+    import gapscan
+    now = datetime.datetime(2026, 10, 22, 20, 0, tzinfo=datetime.timezone.utc)
+
+    def at(minutes_ago):
+        return (now - datetime.timedelta(minutes=minutes_ago)).isoformat().replace("+00:00", "Z")
+    prefixes = {"claude/one-a": "one-a", "claude/one-a-b": "one-a-b"}
+
+    def pr(n, branch="claude/one-a-x", head="a" * 40, idle=5, mergeable="MERGEABLE", rollup=(), comments=(), draft=False):
+        return dict(number=n, title=f"pull request {n}", headRefName=branch, headRefOid=head, isDraft=draft, mergeable=mergeable, statusCheckRollup=list(rollup),
+                    commits=[dict(committedDate=at(idle))], comments=list(comments), createdAt=at(idle))
+
+    def check(name, conclusion, started):
+        return dict(name=name, workflowName="ci", conclusion=conclusion, startedAt=at(started))
+    approval = lambda head, minutes=1, author=gapscan.APPROVER: dict(author=author, createdAt=at(minutes), body=f"调度批准入队 head {head}")
+
+    assert gapscan.approved_head([dict(author=gapscan.APPROVER, createdAt=at(1), body="调度批准入队 head ABCDEF123")], "abcdef123" + "0" * 31), "a sha in capitals is the same sha"
+    assert gapscan.author_session("claude/one-a-b-thing", prefixes) == "one-a-b" and gapscan.author_session("claude/one-a-thing", prefixes) == "one-a"
+    assert gapscan.author_session("claude/one-ab", prefixes) == "?(claude/one-ab)", "a prefix must end at a dash"
+    assert gapscan.author_session("claude/nobody", prefixes) == "?(claude/nobody)"
+
+    assert gapscan.red_checks([check("backend verify", "FAILURE", 30), check("backend verify", "SUCCESS", 10)]) == [], "a rerun that passed replaced the red run"
+    assert gapscan.red_checks([check("backend verify", "SUCCESS", 30), check("backend verify", "FAILURE", 10)]) == ["backend verify"]
+    assert gapscan.red_checks([check("backend verify", "FAILURE", 30), check("backend verify", "CANCELLED", 10)]) == ["backend verify"], "a cancelled newer run does not clear a red one"
+    assert gapscan.red_checks([check("backend verify", "FAILURE", 30), dict(check("backend verify", "", 10), status="IN_PROGRESS")]) == [], "a rerun in progress replaces the red run"
+    assert gapscan.red_checks([check("frontend verify", "CANCELLED", 10)]) == [], "a cancelled run says nothing"
+    assert gapscan.red_checks([check("assertion drift (warning only)", "FAILURE", 10), check("backend verify (light)", "FAILURE", 10)]) == [], "only the required checks, and not the light run of the docs lane"
+    assert gapscan.red_checks([check("backend verify (Modulith + ArchUnit)", "FAILURE", 10)]) == ["backend verify (Modulith + ArchUnit)"], "the long job name starts with the required one"
+    assert gapscan.red_checks([dict(context="secret scan", state="ERROR")]) == ["secret scan"], "a commit status has context/state instead of name/conclusion"
+    assert gapscan.red_checks([dict(context="secret scan", state="SUCCESS")]) == []
+
+    head = "b" * 40
+    prs = [pr(1, mergeable="CONFLICTING"), pr(2, rollup=[check("backend verify", "FAILURE", 10)]), pr(3, head=head, comments=[approval(head[:9])]),
+           pr(4, idle=61), pr(5, idle=59), pr(6, idle=600, draft=True), pr(7, idle=600, mergeable="CONFLICTING"), pr(8, head=head, comments=[approval("c" * 9)]),
+           pr(9, head=head, comments=[approval(head[:9], author="somebody")]), pr(10, head=head, comments=[approval("c" * 9, 20), approval(head[:9], 5)]),
+           pr(11, head=head, comments=[approval(head[:9], 20), approval("c" * 9, 5)])]
+    gaps = gapscan.find_gaps(prs, {7}, now, prefixes)
+    got = sorted((g["pr"], g["reason"]) for g in gaps)
+    assert got == [(1, "CONFLICT"), (2, "CI_RED"), (3, "APPROVED_NOT_QUEUED"), (4, "STALE"), (10, "APPROVED_NOT_QUEUED")], got
+    assert all(g["session"] == "one-a" for g in gaps)
+
+    state = {}
+    first = gapscan.select_new(gaps, state, now)
+    assert len(first) == 5
+    assert gapscan.select_new(gaps, state, now + datetime.timedelta(hours=3, minutes=59)) == [], "the same reason is reported once in 4 hours"
+    assert len(gapscan.select_new(gaps, state, now + datetime.timedelta(hours=4))) == 5
+    # a gap that is gone for a round (mergeable=UNKNOWN right after a merge into main, the list cut off, the queue taking the pull request for a while) is not new when it is back inside the window
+    flicker = [g for g in gaps if g["reason"] != "CONFLICT"]
+    gapscan.select_new(flicker, state, now + datetime.timedelta(hours=4, minutes=30))
+    assert "#1:CONFLICT" in state, "the key is kept while its window runs"
+    assert gapscan.select_new(gaps, state, now + datetime.timedelta(hours=5)) == [], "it came back inside the window: reported once per window, not on every flicker"
+    assert len(gapscan.select_new(gaps, state, now + datetime.timedelta(hours=8, minutes=31))) == 5 and set(state) == {f"#{g['pr']}:{g['reason']}" for g in gaps}, "a window that ran out reports again and keeps nothing stale"
+    stale = {"#99:STALE": at(60 * 6)}
+    gapscan.select_new([], stale, now)
+    assert stale == {}, "a key whose window ran out goes"
+    broken = {"#1:CONFLICT": 12345}
+    assert len(gapscan.select_new(gaps, broken, now)) == 5, "a state value that is not a time is no report"
+    assert {g["pr"] for g in gapscan.select_new(gaps, {}, now)} == {1, 2, 3, 4, 10}
+
+    class Listing:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def open_prs(self):
+            return self.rows
+    directory = os.path.join(d, "gapscan")
+    q = mq.Queue(os.path.join(directory, "merge.queue"))
+    q.enqueue(7)
+    log = mq.Log(os.path.join(directory, "merge.log"), echo=False)
+    fresh = gapscan.scan(Listing(prs), q, directory, log, now=now, prefixes=prefixes)
+    assert len(fresh) == 5 and sum(1 for l in log.lines if " GAPS " in l) == 1, log.lines
+    text = open(os.path.join(directory, "gaps.md"), encoding="utf-8").read()
+    assert "* #1 [one-a] CONFLICT" in text and "#7" not in text and "#6" not in text and text.count("* #") == 5, text
+    log_line = [l for l in log.lines if " GAPS " in l][0]
+    assert "5 new of 5" in log_line and "gaps.md" in log_line, log_line
+    assert gapscan.scan(Listing(prs), q, directory, log, now=now, prefixes=prefixes) == []
+    assert sum(1 for l in log.lines if " GAPS " in l) == 1, "nothing new: no second line"
+    before = open(os.path.join(directory, "gaps.state.json"), encoding="utf-8").read()
+    assert gapscan.scan(Listing(None), q, directory, log, now=now, prefixes=prefixes) is None and any(" ERROR " in l and "gap scan" in l for l in log.lines)
+    assert open(os.path.join(directory, "gaps.state.json"), encoding="utf-8").read() == before, "gh failing must not forget what was reported"
+
+    # the thread: scans on its own clock whether or not the queue has anything, and survives a failing scan
+    class Boom(Listing):
+        calls = 0
+
+        def open_prs(self):
+            Boom.calls += 1
+            if Boom.calls == 1:
+                raise RuntimeError("boom")
+            return []
+    slept, stop_after = [], []
+    proc = mq.Processor(Boom([]), q, log, "/repo", sleep=lambda s: slept.append(s))
+    mq.run_scan(proc, directory, every=1800, first=60, stop=lambda: len(slept) > 3)
+    assert slept[:3] == [60, 1800, 1800] and Boom.calls == 3, (slept, Boom.calls)
+    assert any("gap scan: RuntimeError: boom" in l for l in log.lines)
+
+    # the mapping file names real prefixes only and every session profile has one
+    mapped = gapscan.load_prefixes()
+    profiles = {f[:-3] for f in os.listdir(os.path.join(mq.HERE, "..", "..", "docs", "modernization", "sessions")) if f.startswith("one-") and f.endswith(".md")}
+    assert profiles <= set(mapped.values()), profiles - set(mapped.values())
+
+
+def _head_changed(mq, d):
+    """GOV-1022-MRG-06: a head that is not the one approved at enqueue is never merged; the pull request goes out of the queue with a HEAD-CHANGED line (both shas, owner)."""
+    approved = f"{1:040x}"
+
+    # unchanged head: merged as before, nothing recorded stays
+    gh = FakeGh(); gh.add(1)
+    proc, q, log, _ = _proc(mq, d, "h1", gh, [1])
+    q.set_head(1, approved)
+    assert proc.process(1) == "MERGED" and "HEAD-CHANGED" not in events(log), events(log)
+
+    # pushed after the approval, before the queue took it: not merged, no label, no update, out of the queue by the lane
+    gh = FakeGh(); gh.add(2, merge="BEHIND", behind=1)
+    proc, q, log, _ = _proc(mq, d, "h2", gh, [2])
+    q.set_head(2, f"{2:040x}")
+    gh.prs[2]["head"] = "f" * 40
+    assert proc.process(2) == "HEAD-CHANGED", events(log)
+    assert not any(c[0] in ("merge", "update-branch") or (c[0] == "label" and c[3]) for c in gh.calls), gh.calls
+    line = [l for l in log.lines if " HEAD-CHANGED " in l][0]
+    assert f"approved {2:040x}"[:18] in line and "now fffffffff" in line, line
+    assert q.head_of(2) is None, "the approval is spent"
+
+    # the lane takes it out of the queue as for any other outcome
+    gh = FakeGh(); gh.add(3)
+    proc, q, log, _ = _proc(mq, d, "h3", gh, [3])
+    q.set_head(3, f"{3:040x}")
+    gh.prs[3]["head"] = "e" * 40
+    proc.queue.numbers()
+    mq.run_lane(proc, "code", stop=lambda: not q.numbers())
+    assert q.numbers() == [] and "HEAD-CHANGED" in events(log) and "MERGED" not in events(log) and ("merge", 3, True, "e" * 40) not in gh.calls, events(log)
+
+    # pushed while the CI ran: the checks go green, the merge must still not happen
+    gh = FakeGh(); gh.add(4, rounds=[dict(pending=2, checks=green())])
+    pushes = []
+
+    def author_pushes(seconds):
+        if not pushes and gh.prs[4]["state"] == "OPEN":
+            pushes.append(1)
+            gh.prs[4]["head"] = "d" * 40
+    proc, q, log, _ = _proc(mq, d, "h4", gh, [4], on_sleep=author_pushes)
+    q.set_head(4, f"{4:040x}")
+    assert proc.process(4) == "HEAD-CHANGED" and not any(c[0] == "merge" for c in gh.calls), (events(log), gh.calls)
+
+    # the queue's own push (gh update-branch) changes the head too: that is not the author
+    gh = FakeGh(); gh.add(5, merge="BEHIND", behind=3)
+    proc, q, log, _ = _proc(mq, d, "h5", gh, [5])
+    q.set_head(5, f"{5:040x}")
+    assert proc.process(5) == "MERGED" and "UPDATE" in events(log) and "HEAD-CHANGED" not in events(log), events(log)
+    # a runner restarted after the queue's update has no memory of it: the head the queue left is on disk, so the push is still not taken for the author's
+    assert q.head_of(5) == gh.prs[5]["head"] != f"{5:040x}", q.head_of(5)
+    proc2, _, _, _ = _proc(mq, d, "h5", gh, [5])
+    assert proc2.own_head == {} and proc2.head_moved(5, gh.view(5)) is None
+
+    # gh cannot say the head when queueing: the older approval of that number is dropped, not left to be compared
+    gh = FakeGh(); gh.add(7)
+    q = mq.Queue(os.path.join(d, "h7", "merge.queue")); q.enqueue(7); q.set_head(7, f"{7:040x}")
+    real_gh = mq.Gh
+    mq.Gh = lambda: type("Silent", (), {"view": lambda self, n: None})()
+    try:
+        with contextlib.redirect_stderr(open(os.devnull, "w")):
+            mq.record_heads(q, [7])
+    finally:
+        mq.Gh = real_gh
+    assert q.head_of(7) is None, "an old approval must not outlive a failed read"
+
+    # no approval on record (queued before this, gh could not say, `once`): nothing to compare
+    gh = FakeGh(); gh.add(6)
+    proc, q, log, _ = _proc(mq, d, "h6", gh, [6])
+    gh.prs[6]["head"] = "c" * 40
+    assert proc.process(6) == "MERGED"
+
+    # a second `enqueue` is a new approval of the head it has now
+    q.set_head(7, "1" * 40); q.set_head(7, "2" * 40)
+    assert q.head_of(7) == "2" * 40 and q.head_of(8) is None
+    q.drop_head(7)
+    assert q.head_of(7) is None

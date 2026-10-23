@@ -1,6 +1,6 @@
 # one-rules 速查（2026-10-16 傍晚）
 
-一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。
+一行一项，过程放链接（SESSION_PLAYBOOK TEAM-07、08）。
 
 设计原则（用户 2026-10-15，经 one-coordinator 转达）：以 AEC 行业项目制专业服务的通行做法为主（合同范本、收入准则、成熟产品），老系统生产数据只作参考与核对；确需复刻的老行为仍以生产数据为证。业务决策页做法见 `rules/decide/README.md`；页面顶部是分组标签，选择自动存为草稿，每组点「提交本组」才算答复（用户 2026-10-15 首次只提交了各页第一组）。
 
@@ -74,6 +74,19 @@ A1 后续页已答（intent 2026-10-16-162827）：维持按时点；无法定�
 - 2026-10-21 调度派：TEST_RULE_MAPPING 里 193 条「业务测试断言了行为、找不到规则卡」已补登 87 张新卡 RULE-418～504（五个文件：IDENTITY_AUTHORIZATION、IDENTITY_SINGLE_OPERATOR、SOURCE_REFERENCE、TIMESHEET_CALENDAR_ATTRIBUTION、APPROVAL_INTEGRITY 各 `_RULES.md`），测试到卡号对照在 `rules/TEST_RULE_BACKFILL_MAP.tsv`（2 条纯技术契约不成卡）。Review=Yes 共 9 张带 Needs decision，攒着随对齐后的确认页改版问；卡末 New terms 待 one-glossary 处理。
 
 - 2026-10-21 one-1a-admin 来问 B-31 四项：SCH-06（起算点＝离职版本 businessDate，ADR-0068）、冲正形态、用途→印章类型对应表已可定；待用户 Q-B31-1～4（INV-138 只数实际用印还是占用；老系统单号份数上限首次为准；冲正是否腾出份数；一用途多印章类型，可由行政答）已回复 `rules/B31_RULING_REPLY.md`，攒着随确认页改版问；RUL-01～08 逐条回复待做。
+
+## 2026-10-22 进度（上下文 48% 交接）
+
+- 已完成并推送（分支 claude/one-rules-context-2 @71f8b8210，one-merge 排合集）：9 张「需修正」P0 卡改写（RULE-144/145/169/265/304/308/311/337/376；304 已与 D-1a-66 对齐，279 与 169 对齐）；193 条无卡业务测试补登 RULE-418～504（五个 `*_RULES.md`，测试对照 `rules/TEST_RULE_BACKFILL_MAP.tsv`）；INV-89 改为「项目分配额 + 人工成本分配差异 = 实际人工成本」（改来源稿 ENTERPRISE_AGGREGATES_DRAFT.md 并重新生成）；`check_pages.py` R4 遮盖只用词表正式词、已答题不再检查（`answered_pages.txt` 登记 15 页，新页仍查）；M-29 前后值与 FCQ 四注（`r0/M29_BASELINE_RESULT.md`、`r0/m29*_queries.sql` 已取证并登记）。
+- 待用户定（攒着随对齐后的确认页改版一起问，不单发）：RULE-265 无登录的定时任务如何发起审批；RULE-311 钩子与业务处理先后；Q-B31-1～5（INV-138 只数实际用印还是占用、老系统单号份数上限以首次登记为准、冲正是否腾出份数、一用途可否多印章类型、周年「正式员工」雇佣类型清单）；补登卡 Review=Yes 的 8 张：RULE-423、433、440、457、480、484、501、503；M-29 五个未决点（奖金算不算直接人工、居间费算不算扣减项、代垫分不出先只扣委外还是等财务识别办法、2025 成本取进损益还是发生口径、老系统人工是日薪×人天）。
+- 在手未做：one-1a-admin 的卡 C「员工活动申请」规则点 T-R1…R9（分支 claude/one-1a-admin-card-c @890e8cd8b 的 `b31-rules/B31_CARD_C_API.md` 第 11 节：金额为 0、重复办结/取消响应、谁能登记/办结/取消、手工提交周年贺卡类型（已答：一律拒绝）、重登限制、字段上限、草稿与活动发生日、参与人规则、本人/下属范围）；RUL-01～08 逐条回复（`rules/B31_RULING_REPLY.md` 已回 DATA-03/06、RUL-05、SCH-06、周年三问）；RULE-387/394 等原待办见上文。
+- 守则：每个工作单元开始前先合 main；提交与推送分两次调用；FREEZE_FACTS.md 合并冲突取 main 版再 build_all；precheck 约 2 分钟，用后台跑；取证走 one-ops 只读通道、只取聚合并登记；转述的 intent 先核对原文。
+
+## 2026-10-22 晚（接续）
+
+- 待用户清单已写进收件箱（12 项，pending）：RULE-265、311、A10 把关人、补登卡 8 张（423/433/440/457/480/484/501/503）、卡 C 活动发生日；Q-B31-1～5 与 FCQ（含 M-29）用户已答，不再问。
+- 卡 C 的 T-R1…R9 已回 `B31_CARD_C_RULING_REPLY.md`（发生日待用户）；RUL-01～08 与 Q-B31 答复已记入 `B31_RULING_REPLY.md` 第五、六节；§11.2「兜底四条规矩」原文没读到，已请 one-1a-admin 贴来。
+- 仍待办：RULE-387/394 等原待办；新增错误码提议（TYPE_SYSTEM_ONLY、ALREADY_REREGISTERED、PARTICIPANT_NOT_EMPLOYED）交 one-glossary 由 one-1a-admin 汇入。
 
 ## 工作守则要点（画像「权限边界」下有全文）
 

@@ -1,7 +1,9 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
@@ -14,7 +16,6 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.kernel.DomainException;
@@ -175,7 +176,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         assertThat(second).isNotEqualTo(first);
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
         assertThat(openTask(second).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
-        assertThat(requests.rounds(ProcessKey.COST_TIMESHEET_APPROVAL, document(key))).extracting(r -> r.round(), r -> r.instanceId())
+        assertThat(requests.rounds(TimesheetApprovalProcess.KEY, document(key))).extracting(r -> r.round(), r -> r.instanceId())
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(1, first), org.assertj.core.groups.Tuple.tuple(2, second));
         assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(first.value().toString()).count()).isEqualTo(1);
         assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(first.value().toString()).count()).isEqualTo(1);
@@ -191,7 +192,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
 
         assertThatThrownBy(() -> returnToInitiator.execute(review, TestAccounts.account(s.manager()), " ", java.util.OptionalLong.empty()))
                 .isInstanceOfSatisfying(DomainException.class,
-                        e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                        e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
         assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
 
         DecisionResult result = returnToInitiator.execute(review, TestAccounts.account(s.manager()), "missing attachment", java.util.OptionalLong.empty());
@@ -216,7 +217,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
 
         assertThatThrownBy(() -> decide(s.manager(), t1, DecisionOutcome.REJECT, " "))
                 .isInstanceOfSatisfying(DomainException.class,
-                        e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                        e -> assertThat(e.errorCode()).isEqualTo(KernelError.KERNEL_REASON_REQUIRED));
         assertThatThrownBy(() -> decideTasks.execute(TestAccounts.account(s.manager()), List.of(
                 new TaskDecision(t1, DecisionOutcome.APPROVE, "ok"), new TaskDecision(t2, DecisionOutcome.APPROVE, "ok")), java.util.OptionalLong.empty()))
                 .isInstanceOfSatisfying(DomainException.class,
