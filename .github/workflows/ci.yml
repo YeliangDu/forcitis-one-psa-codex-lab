@@ -101,7 +101,7 @@ jobs:
           python3 scripts/ci/failure_summary.py --self-test
           python3 scripts/ci/repeat_new_tests.py --self-test
           python3 scripts/hooks/precheck_before_pr.py --self-test
-          python3 scripts/hooks/commit_msg_gate.py --self-test
+          python3 scripts/gates/commit_msg_gate.py --self-test
           python3 scripts/hooks/bg_task_name_gate.py --self-test
           python3 scripts/ci/heavy_slot.py --self-test
           python3 scripts/hooks/handoff_selftest.py --self-test

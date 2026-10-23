@@ -7,14 +7,18 @@ Task id: XXX-MMDD-XXX-NN (two or three capital letters for the lane); non-card t
 Foreground Bash calls are not checked; Workflow has no description and is not covered. Exit code 2 + stderr = refuse; 0 + no output = allow. Any failure is caught and refuses with exit 2 (an uncaught crash would exit 1, which a hook treats as "do not block").
 Usage: bg_task_name_gate.py  |  bg_task_name_gate.py --self-test
 """
+import importlib.util
 import json
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from task_ids import TASK_ID_PATTERN  # noqa: E402
+# task_ids.py was deleted in O5; this gate itself goes in O6, so it loads the pattern from check_tasks.py directly until then.
+_spec = importlib.util.spec_from_file_location("check_tasks_for_hooks", Path(__file__).resolve().parents[2] / "docs" / "modernization" / "check_tasks.py")
+_check_tasks = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_check_tasks)
+TASK_ID_PATTERN = _check_tasks.TASK_ID.pattern
 
 FOREGROUND_TOO = {"Agent", "Task"}  # the Agent tool has no run_in_background parameter: its sub-agents always run in the background
 TOOLS = {"Bash"} | FOREGROUND_TOO
