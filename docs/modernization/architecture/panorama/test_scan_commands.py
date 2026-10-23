@@ -25,6 +25,7 @@ def write(root, path, value):
 
 @pytest.fixture
 def root(tmp_path):
+    write(tmp_path, s.OUTPUT / 'command-ids.yaml', {'ids': []})
     for group in s.GROUPS:
         write(tmp_path, s.CLOSEOUT / group / 'commands.yaml', {'commands': []})
     write(tmp_path, s.CLOSEOUT / 'finance/commands.yaml', {'commands': [command(), command(name='仅命令表')]})
@@ -41,6 +42,11 @@ def root(tmp_path):
 
 def collect(root):
     return s.merge_commands(root, s.planned_aggregates(root))
+
+
+def assert_no_generated_outputs(root):
+    assert list((root / s.OUTPUT).iterdir()) == [root / s.OUTPUT / 'command-ids.yaml']
+    assert (root / s.OUTPUT / 'command-ids.yaml').read_bytes() == b'ids: []\n'
 
 
 def test_arc09_merge_single_source_actor_objects_and_cross_aggregate_names(root):
@@ -106,7 +112,7 @@ def test_arc09_exact_fill_preserves_all_other_bytes_and_is_idempotent(root):
 def test_arc09_generate_check_and_repeated_generation_are_byte_identical(root):
     with pytest.raises(ValueError, match='生成物不一致'):
         s.generate(root, check=True)
-    assert not (root / s.OUTPUT).exists()
+    assert_no_generated_outputs(root)
     s.generate(root)
     paths = [s.OUTPUT / 'commands.yaml', s.OUTPUT / 'GAPS.md', s.TRANSITIONS]
     first = {path: (root / path).read_bytes() for path in paths}
@@ -123,6 +129,34 @@ def test_arc09_generate_check_and_repeated_generation_are_byte_identical(root):
     assert (root / paths[0]).read_bytes() == b'broken'
 
 
+@pytest.mark.parametrize('name', ['commands.yaml', 'GAPS.md'])
+def test_qua02_missing_product_fails_check_and_regenerates_without_changing_sources(root, name):
+    s.generate(root)
+    paths = [s.OUTPUT / 'commands.yaml', s.OUTPUT / 'GAPS.md',
+             s.OUTPUT / 'command-ids.yaml', s.TRANSITIONS]
+    before = {path: (root / path).read_bytes() for path in paths}
+    missing = root / s.OUTPUT / name
+    missing.unlink()
+    with pytest.raises(ValueError, match='生成物不一致.*build_all.py'):
+        s.generate(root, check=True)
+    assert not missing.exists()
+    assert all((root / path).read_bytes() == content for path, content in before.items()
+               if root / path != missing)
+    s.generate(root)
+    s.generate(root, check=True)
+    assert before == {path: (root / path).read_bytes() for path in paths}
+
+
+@pytest.mark.parametrize('seed', [False, True])
+def test_qua02_missing_registry_and_snapshot_never_recreates_ids(root, seed):
+    (root / s.OUTPUT / 'command-ids.yaml').unlink()
+    before = (root / s.TRANSITIONS).read_bytes()
+    with pytest.raises(ValueError, match='generated-docs' if seed else '从 git 恢复'):
+        s.generate(root, seed=seed)
+    assert list((root / s.OUTPUT).iterdir()) == []
+    assert (root / s.TRANSITIONS).read_bytes() == before
+
+
 @pytest.mark.parametrize('path', [*(s.CLOSEOUT / group / 'commands.yaml' for group in s.GROUPS),
                                 s.CLOSEOUT / 'RESPONSIBILITY_MATRIX.yaml', s.TRANSITIONS,
                                 s.ARCH / 'ssot/i03-aggregates/planned.yaml', s.ARCH / 'ssot/i03-aggregates/built.yaml'])
@@ -130,7 +164,7 @@ def test_arc09_missing_input_fails_before_writing(root, path):
     (root / path).unlink()
     with pytest.raises(OSError):
         s.generate(root)
-    assert not (root / s.OUTPUT).exists()
+    assert_no_generated_outputs(root)
 
 
 @pytest.mark.parametrize('value', ['', '[]', 'commands: null', 'commands: {}', 'commands: [null]',
@@ -205,7 +239,7 @@ def test_arc09_other_bad_shapes_fail_before_writing(root, path, value):
     write(root, path, value)
     with pytest.raises(ValueError):
         s.generate(root)
-    assert not (root / s.OUTPUT).exists()
+    assert_no_generated_outputs(root)
 
 
 def test_arc09_consistent_duplicate_sources_merge_with_full_provenance(root):
