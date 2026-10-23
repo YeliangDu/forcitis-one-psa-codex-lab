@@ -114,6 +114,17 @@ fi
   gitq ls-files --others --exclude-standard
 } | grep . | sort -u >"$work/changed"
 { gitq diff --name-only --no-renames HEAD; gitq ls-files --others --exclude-standard; } | grep . | sort -u >"$work/uncommitted"
+
+# --pre-push judges this push, not the whole branch against main: a file counts only if it differs from what the branch last pushed AND from base
+# (a file that came in by merging main equals base, so a branch that merged main again is not re-checked for everything main did; GOV-1023-QUA-04)
+if $pre_push && ! $base_given; then
+  branch_name=$(git symbolic-ref --short -q HEAD || true)
+  pushed=$(git rev-parse --verify -q '@{upstream}^{commit}' 2>/dev/null || { [ -n "$branch_name" ] && git rev-parse --verify -q "origin/$branch_name^{commit}" 2>/dev/null; } || true)
+  if [ -n "$pushed" ] && [ "$pushed" != "$(git rev-parse HEAD)" ]; then
+    { gitq diff --name-only --no-renames "$pushed" HEAD | sort -u | comm -12 - <(gitq diff --name-only --no-renames "$base...HEAD" | sort -u); cat "$work/uncommitted"; } | grep . | sort -u >"$work/changed"
+    echo "pre-push scope: changes since the last push ($(git rev-parse --short "$pushed")) that also differ from $base"
+  fi
+fi
 changed_count=$(grep -c . "$work/changed")
 uncommitted=$(grep -c . "$work/uncommitted")
 
@@ -138,7 +149,9 @@ if [ "$relevant_status" -ne 0 ] || printf '%s\n' "$relevant_output" | grep -qx '
   legacy_it_relevant=true
 fi
 
-run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
+# --pre-push: tool self-tests only for the tools the change touched, and the slow generators skipped for a tasks/intent/sessions-only change; CI and the merge queue run the whole check (GOV-1023-QUA-04)
+build_all_args=(--check); $pre_push && build_all_args+=(--changed "$work/changed")
+run_step "generated docs (build_all --check)" py docs/modernization/build_all.py "${build_all_args[@]}"
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
 if touches 'rules/decide/(build_decision_page\.py|page-template\.html)$'; then
   run_step "decision page generator (self-test)" py docs/modernization/rules/decide/build_decision_page.py --self-test
@@ -290,34 +303,9 @@ if [ -n "$guard_run" ]; then
 else
   report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
 fi
-if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate|codex_stdin_gate|main_checkout_gate|commit_msg_gate|bg_task_name_gate|prod_write_gate|command_words|task_ids|pre_tool_dispatch)\.py|scripts/hooks/prod_targets\.json|scripts/ci/(heavy_slot|light_unit_classes|heavy_gate|docker_diagnostics|failure_summary|repeat_new_tests)\.py|\.claude/settings\.json)$'; then
-  for guard in migrations_immutable acceptance_guard acceptance_reports db_scripts_aligned relevant_change assertion_drift; do
-    run_step "guards: $guard (self-test)" py "scripts/ci/$guard.py" --self-test
-  done
-  run_step "guards: precheck_before_pr (self-test)" py scripts/hooks/precheck_before_pr.py --self-test
-  run_step "guards: pre_push_gate (self-test)" py scripts/hooks/pre_push_gate.py --self-test
-  run_step "guards: codex_stdin_gate (self-test)" py scripts/hooks/codex_stdin_gate.py --self-test
-  run_step "guards: command_words (self-test)" py scripts/hooks/command_words.py --self-test
-  run_step "guards: prod_write_gate (self-test)" py scripts/hooks/prod_write_gate.py --self-test
-  run_step "guards: main_checkout_gate (self-test)" py scripts/hooks/main_checkout_gate.py --self-test
-  run_step "guards: commit_msg_gate (self-test)" py scripts/hooks/commit_msg_gate.py --self-test
-  run_step "guards: bg_task_name_gate (self-test)" py scripts/hooks/bg_task_name_gate.py --self-test
-  run_step "guards: pre_tool_dispatch (self-test)" py scripts/hooks/pre_tool_dispatch.py --self-test
-  run_step "guards: light_unit_classes (self-test)" py scripts/ci/light_unit_classes.py --self-test
-  run_step "guards: heavy_gate (self-test)" py scripts/ci/heavy_gate.py --self-test
-  run_step "guards: heavy_slot (self-test)" py scripts/ci/heavy_slot.py --self-test
-  run_step "guards: docker_diagnostics (self-test)" py scripts/ci/docker_diagnostics.py --self-test
-  run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
-  run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
-fi
-if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|session_context|start_sheet|context_handoff|stop_status_gate|command_words)\.py)|scripts/coord/mailbox\.py|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$'; then
-  run_step "guards: handoff (self-test)" py scripts/hooks/handoff_selftest.py --self-test
-  run_step "guards: session_context (self-test)" py scripts/hooks/session_context.py --self-test
-  run_step "guards: start_sheet (self-test)" py scripts/hooks/start_sheet.py --self-test
-  run_step "guards: context_handoff (self-test)" py scripts/hooks/context_handoff.py --self-test
-  run_step "guards: stop_status_gate (self-test)" py scripts/hooks/stop_status_gate.py --self-test
-  run_step "guards: mailbox (self-test)" py scripts/coord/mailbox.py --self-test
-fi
+# The hook and CI-script self-tests (precheck_before_pr, pre_push_gate, pre_tool_dispatch, handoff, ... 21 of them, about 85 s together) no longer run before a push: CI's
+# "assertion drift" job runs every one of them (.github/workflows/ci.yml), and a hook you edit is exercised by your own next push. Cost of the gate: a broken hook is found by CI, not locally.
+# Retire this note when the self-tests are cheap enough (<10 s together) to come back. GOV-1023-QUA-04, intent 2026-10-23-154800.
 
 if [ "$builds_relevant" = true ]; then
   release_self_tests() {
@@ -375,8 +363,9 @@ if $builds_relevant; then
     scope="no module code changed (shared inputs, resources, build or architecture lists)"
   fi
   # the default run covers everything --pre-push runs (these unit tests included), so a ready default run can leave the pass mark the push gate accepts (GOV-1023-QUA-04)
-  if ! touches '^(backend/|docs/|frontend/)'; then
-    $pre_push && report SKIP "pre-push: unit tests" "nothing the backend tests read changed; CI runs them"
+  # Java unit tests (compile + run, about 90 s) only when backend/ itself changed; the tests that read docs, scripts or workflow files run in CI and the merge queue (GOV-1023-QUA-04; cost: such a break shows up there, not before the push)
+  if ! touches '^backend/'; then
+    $pre_push && report SKIP "pre-push: unit tests" "no backend/ file changed; CI runs them"
   else
     run_step "pre-push: unit tests that start no container" light_unit_tests
   fi

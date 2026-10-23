@@ -4,6 +4,9 @@
 
 用法：
   python3 docs/modernization/build_all.py          生成全部产物
+  python3 docs/modernization/build_all.py --check --changed 文件  推送前的快速检查（scripts/precheck.sh --pre-push 用，GOV-1023-QUA-04）：文件列出本次改动的仓库相对路径；
+                                                   各工具自测只跑改到的那一个（改了 build_all.py 则全跑），改动全在 docs/modernization 里 architecture/、glossary/、rules/ 之外时，再跳过耗时的四个生成器（产物已在时）；
+                                                   完整检查留给 CI 与合入队列（不带 --changed 即完整）
   python3 docs/modernization/build_all.py --check  要求 docs/modernization 与提议术语清单重新生成前后无差异（CI 使用）：
                                                    terms.yaml 过期或缺失时失败；允许已生成一致的未提交改动；
                                                    ADR 拷贝与索引、brief、提议术语清单 README、frameworks 两个索引、panorama/ 下 FREEZE_*、panorama.yaml、GAPS.md 不入仓（.gitignore，生成产物移出 main 第 1 期），只要求能生成；
@@ -165,17 +168,59 @@ def self_test():
         git("add", "-f", "gen.md")
         git("add", ".gitignore")
         assert "却被跟踪" in outcome(products=("gen.md",), adr_glob="A-*.md"), "被忽略的文件又被跟踪（冲突时保留对方版本）：失败"
+    # 快速检查（--changed）：只跑改到的工具自测；与重生成器输入无关的文档改动跳过四个慢生成器；改 build_all.py 全跑；缺产物时不跳过
+    with tempfile.TemporaryDirectory() as quick_tmp:
+        for name in UNTRACKED_PRODUCTS:
+            Path(quick_tmp, name).parent.mkdir(parents=True, exist_ok=True)
+            Path(quick_tmp, name).write_text("x")
+        all_steps = set(STEPS)
+        steps, tests = quick_plan(["docs/modernization/tasks/X.md"], quick_tmp)
+        assert not (set(HEAVY_STEPS) & set(steps)) and all_steps - set(HEAVY_STEPS) <= set(steps) and not tests, "只改 tasks/：不跑慢生成器、不跑自测"
+        steps, tests = quick_plan(["docs/modernization/architecture/panorama/panorama_build.py"], quick_tmp)
+        assert set(HEAVY_STEPS) & all_steps <= set(steps) and tests == ["architecture/panorama/panorama_build.py"], "改了全景构建：慢生成器照跑，只跑它自己的自测"
+        steps, tests = quick_plan(["docs/modernization/build_all.py"], quick_tmp)
+        assert tests == SELF_TESTED, "改了 build_all.py：自测全跑"
+        steps, tests = quick_plan(["docs/modernization/tasks/X.md", "backend/pom.xml"], quick_tmp)
+        assert set(HEAVY_STEPS) & all_steps <= set(steps), "混有 docs 之外的改动：不跳过"
+        Path(quick_tmp, UNTRACKED_PRODUCTS[0]).unlink()
+        steps, tests = quick_plan(["docs/modernization/tasks/X.md"], quick_tmp)
+        assert set(HEAVY_STEPS) & all_steps <= set(steps), "产物缺失：不跳过"
     print("build_all --self-test：通过（不入仓产物被跟踪或没生成即失败；手改、删除、漏生成失败；一致未提交产物通过；TASKS 缺失或手改可重建、两次不一致或生成失败被拦截）")
+
+
+# 快速检查（--changed）：下面四个耗时生成器（实测各慢 5–11 秒）读 docs/modernization 的 architecture/、glossary/、rules/ 以及 backend、frontend 的文件；
+# 改动全落在 docs/modernization 里这三个目录之外（tasks/、intent/、sessions/、phase1a/ 等）时，它们的输入没变，可以跳过
+HEAVY_INPUT_PREFIXES = ("docs/modernization/architecture/", "docs/modernization/glossary/", "docs/modernization/rules/", "docs/modernization/build_all.py")
+HEAVY_STEPS = ("architecture/panorama/panorama_build.py", "glossary/build_terms.py", "architecture/frameworks/notes_build.py", "architecture/panorama/object_freeze_check.py")
+
+
+def repo_relative(step):
+    return os.path.relpath(os.path.join(BASE, step), os.path.join(BASE, "..", "..")).replace(os.sep, "/")
+
+
+def quick_plan(changed, base=BASE):
+    """(要跑的生成步骤, 要跑的自测)：changed 为本次改动的仓库相对路径"""
+    changed = set(changed)
+    everything = repo_relative("build_all.py") in changed
+    self_tests = [t for t in SELF_TESTED if everything or repo_relative(t) in changed]
+    light_only = bool(changed) and all(name.startswith("docs/modernization/") and not name.startswith(HEAVY_INPUT_PREFIXES) for name in changed)
+    products_present = all(Path(base, name).is_file() for name in UNTRACKED_PRODUCTS)
+    steps = [t for t in STEPS if not (light_only and products_present and t in HEAVY_STEPS)]
+    return steps, self_tests
 
 
 def main():
     if sys.argv[1:] == ["--self-test"]:
         self_test()
         return
-    generate("--check" in sys.argv)
+    steps, self_tests = STEPS, SELF_TESTED
+    if "--changed" in sys.argv:
+        steps, self_tests = quick_plan(Path(sys.argv[sys.argv.index("--changed") + 1]).read_text().split())
+        print(f"quick: 生成步骤 {len(steps)}/{len(STEPS)}，自测 {len(self_tests)}/{len(SELF_TESTED)}（完整检查在 CI）")
+    generate("--check" in sys.argv, steps=steps)
     if "--check" in sys.argv:
         check_untracked_products()
-        for step in SELF_TESTED:
+        for step in self_tests:
             r = subprocess.run([sys.executable, os.path.join(BASE, step), "--self-test"], cwd=BASE, capture_output=True, text=True)
             if r.returncode:
                 sys.exit(f"{step} 自测失败：\n{r.stdout}{r.stderr}")
