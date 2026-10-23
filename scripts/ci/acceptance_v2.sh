@@ -68,11 +68,8 @@ v07() {
   report V07 pass 'mq 自测通过；批成、剔除、Issue 自动关闭待二甲和合入后冒烟'
 }
 
-v08() {
-  local rc="$ROOT/scripts/ci/relevant_change.py" ci="$ROOT/.github/workflows/ci.yml"
-  if [ -f "$rc" ] && [ -f "$ci" ] && grep -q 'tier=docs' "$rc" && grep -q 'relevant_change.py' "$ci"; then
-    report V08 pass '仅静态核对：relevant_change.py 有 docs 档且 ci.yml 引用；≤5 分钟待事件日志核对'
-  else report V08 skip '无事件日志，合入后核对'; fi
+v08() {   # the data source (merge-queue event log) does not exist yet (intent 222945): never a pass from a static look
+  report V08 skip '无数据：合入队列事件日志暂无，待改合入队列时启用'
 }
 
 v17a() {

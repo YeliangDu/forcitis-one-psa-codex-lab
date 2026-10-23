@@ -54,6 +54,8 @@ expect "V07 通过" 0 '^V07 通过' V07
 
 # V08: no counterpart is a skip, never a pass
 expect "V08 无对应物跳过" 0 '^V08 跳过' V08
+mkdir -p "$tmp/root/.github/workflows"; echo 'tier=docs' > "$tmp/root/scripts/ci/relevant_change.py"; echo 'relevant_change.py' > "$tmp/root/.github/workflows/ci.yml"
+expect "V08 静态对应物齐全也只跳过（无数据）" 0 '^V08 跳过.*无数据' V08
 
 # V17a: record count is reported; a missing verify.md fails
 ok_py "$tmp/tools/budget_level/budget_level_selftest.py"
