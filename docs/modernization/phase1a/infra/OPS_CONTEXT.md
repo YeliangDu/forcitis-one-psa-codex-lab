@@ -60,7 +60,7 @@
 - C-14 完成，阻塞项 101 已删（#414，文档 PR）；工具演进：探针账号经 RDS 云接口建删（#394）、第 15/17 项认平台拒绝（#399、#407）、rdscore 里 one_readonly_probe 用户为永久已知残留（msdb 随 DeleteAccount 清除）；第 14 项 (g) 口径待 one-1a-par、生产前须定。
 - dev 手工装 rc.4 成功运行（https://one.forcitis.com ，企业微信扫码登录；WECOM_ENABLED=true；A8 视图与组织同步已开；归档凭据 403 告警待另议）。
 - 发布门禁（#438）：ci_passed.py 沿第一父链证明重步骤（合并 PR 头的完整 pull_request 运行、步骤未跳过、与 M 只差纯文档，schedule 兜底）；残余风险用户 2026-10-16 已接受（写权限者可伪造同头 PR，见 RELEASE.md）。
-- 文档分支（新规：文档不开 PR，推分支报提交号）：origin/claude/one-ops-r56（OPS_CONTEXT/RESOURCES/画像）、origin/claude/one-ops-r60（取证登记片段与取证 SQL，取证 SQL 在 handoff/B-5-dba/evidence/）。
+- 文档分支（新规：文档按 TEAM-53 自扫分支收合集）：origin/claude/one-ops-r56（OPS_CONTEXT/RESOURCES/画像）、origin/claude/one-ops-r60（取证登记片段与取证 SQL，取证 SQL 在 handoff/B-5-dba/evidence/）。
 
 ## 待批 / 待办
 

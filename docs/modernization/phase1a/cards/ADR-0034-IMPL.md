@@ -433,7 +433,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 
 ## 10. 报告去向
 - 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
-- 报告包含：提交号与分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事；PR-3 合并后通知 F-1（「改动前」基线就绪，待核 3 可核）与 one-data（复核表结构 PR、F-1 待核 3）
+- PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事；PR-3 合并后通知 F-1（「改动前」基线就绪，待核 3 可核）与 one-data（复核表结构 PR、F-1 待核 3）
 
 ## 11. 本卡新词（开工前术语门禁；登记到 `backend/glossary/proposed/platform-identity.yaml`，交 one-glossary）
 已查 `docs/modernization/glossary/terms.yaml` 与 `backend/glossary/proposed/*.yaml`：下列各词均无同名条目（`separation` 已批准，定义待改；`migration_batch` 在 `data-migration.yaml` 已提议，直接用）。

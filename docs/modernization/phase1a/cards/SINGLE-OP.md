@@ -250,7 +250,7 @@ revoke-role：
 ## 10. 报告去向
 - 每个 PR 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
 - P1、P2 合并后立即通知 one-coordinator 与 one-ops：可以出 rc（见第 12 节）
-- 报告包含：提交号与分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、`db/migration` diff 证明、未完成项、需要用户决定的事
+- PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、`db/migration` diff 证明、未完成项、需要用户决定的事
 
 ## 11. 本卡新词（开工前术语门禁，SESSION_PLAYBOOK §5）
 已查 `docs/modernization/glossary/terms.yaml` 与 `backend/glossary/proposed/*.yaml`：下列各词在同一 bc 内无同名、同中文名条目（`grep` 中文名「单人运维模式」「单人运维放宽项」「须开启单人运维模式」、英文名与 snake 名均无命中；仓库内与「单人」相关的现有词条为零）。起草本卡时已把前三条登记为提议术语（`status: proposed`），其余是实现者在实现 PR 里登记的候选。
