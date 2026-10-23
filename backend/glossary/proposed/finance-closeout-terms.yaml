@@ -108,3 +108,131 @@ terms:
   formula: 当月按实际成本费率计价的人工成本合计减当月实际薪酬（含加班费）
   grain: 按员工、月
   as_of: 月度人工成本分配运行时点的工时与已核算薪酬
+- id: bonus_adjustment_run
+  zh: 奖金调整运行
+  en: BonusAdjustmentRun
+  snake: bonus_adjustment_run
+  kind: aggregate
+  bc: cost.costing
+  scope: domain
+  definition: 月结前对一个法人在一个期间生成并过账的奖金调整单据：读各「法人×项目」的奖金（计提）余额，生成奖金调整行；每法人每期间一次有效，冲销后失效；与人工成本分配运行分开（AGG-139）
+  standard_ref:
+  - 'closeout/finance NOTES「新用语」奖金调整行（one-arch-finance @0b0a23b6）'
+  - 'proposals/PEOPLE_APE01_RULINGS_2026-10-23.md 附（one-architecture @909d83c54）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: generate_bonus_adjustment
+  zh: 生成奖金调整
+  en: GenerateBonusAdjustment
+  snake: generate_bonus_adjustment
+  kind: command
+  bc: cost.costing
+  scope: domain
+  definition: 读取各「法人×项目」的奖金（计提）余额，按核定额生成奖金调整行；由月结日程在发起关账前触发，核定未到条件时不生成
+  standard_ref:
+  - 'closeout/finance NOTES「新用语」奖金调整行（one-arch-finance @0b0a23b6）'
+  - 'proposals/PEOPLE_APE01_RULINGS_2026-10-23.md 附（one-architecture @909d83c54）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: submit_posting_candidate
+  zh: 提交过账候选
+  en: SubmitPostingCandidate
+  snake: submit_posting_candidate
+  kind: command
+  bc: cost.costing
+  scope: domain
+  definition: 把已生成的单据提交为过账候选，交过账管道；本词在奖金调整运行上的结局是奖金调整已过账；其他聚合同名命令的使用范围另行核对
+  standard_ref:
+  - 'closeout/finance NOTES「新用语」奖金调整行（one-arch-finance @0b0a23b6）'
+  - 'proposals/PEOPLE_APE01_RULINGS_2026-10-23.md 附（one-architecture @909d83c54）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '提议名；成本结转等聚合稿也用同名命令，同义，待 one-glossary 核对是否各聚合共用一词'
+- id: reverse_bonus_adjustment_run
+  zh: 冲销奖金调整运行
+  en: ReverseBonusAdjustmentRun
+  snake: reverse_bonus_adjustment_run
+  kind: command
+  bc: cost.costing
+  scope: domain
+  definition: 对已过账的奖金调整运行做冲销并重过账，原运行失效
+  standard_ref:
+  - 'closeout/finance NOTES「新用语」奖金调整行（one-arch-finance @0b0a23b6）'
+  - 'proposals/PEOPLE_APE01_RULINGS_2026-10-23.md 附（one-architecture @909d83c54）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: bonus_adjustment_run_posted
+  zh: 奖金调整已过账
+  en: BonusAdjustmentRunPosted
+  snake: bonus_adjustment_run_posted
+  kind: domain_event
+  bc: cost.costing
+  scope: domain
+  definition: 奖金调整运行提交的过账候选已过账；发起关账的前置检查据此判断核定期间的奖金调整是否完成
+  standard_ref:
+  - 'closeout/finance NOTES「新用语」奖金调整行（one-arch-finance @0b0a23b6）'
+  - 'proposals/PEOPLE_APE01_RULINGS_2026-10-23.md 附（one-architecture @909d83c54）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: bonus_adjustment_run_status__none_for_period
+  zh: 本期无奖金调整
+  en: NoBonusAdjustmentForPeriod
+  snake: bonus_adjustment_run_status__none_for_period
+  kind: state
+  bc: cost.costing
+  scope: domain
+  definition: 奖金调整运行的结局：本期没有需要调整的奖金，作为完成记录留存
+  standard_ref:
+  - 'closeout/finance NOTES「新用语」奖金调整行（one-arch-finance @0b0a23b6）'
+  - 'proposals/PEOPLE_APE01_RULINGS_2026-10-23.md 附（one-architecture @909d83c54）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '结局词，暂按状态登记，待规范认可'
+- id: bonus_adjustment_run_status__adjusted_for_period
+  zh: 本期已调整
+  en: AdjustedForPeriod
+  snake: bonus_adjustment_run_status__adjusted_for_period
+  kind: state
+  bc: cost.costing
+  scope: domain
+  definition: 奖金调整运行的结局：本期奖金调整已生成并过账，同期间再次生成返回原结果
+  standard_ref:
+  - 'closeout/finance NOTES「新用语」奖金调整行（one-arch-finance @0b0a23b6）'
+  - 'proposals/PEOPLE_APE01_RULINGS_2026-10-23.md 附（one-architecture @909d83c54）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '结局词，暂按状态登记，待规范认可'
+- id: bonus_adjustment_run_status__not_ready
+  zh: 奖金调整未到条件
+  en: BonusAdjustmentNotReady
+  snake: bonus_adjustment_run_status__not_ready
+  kind: state
+  bc: cost.costing
+  scope: domain
+  definition: 奖金调整运行的结局：奖金计提尚未过账或核定未完成，未生成调整，须告警
+  standard_ref:
+  - 'closeout/finance NOTES「新用语」奖金调整行（one-arch-finance @0b0a23b6）'
+  - 'proposals/PEOPLE_APE01_RULINGS_2026-10-23.md 附（one-architecture @909d83c54）'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '结局词，暂按状态登记，待规范认可'
