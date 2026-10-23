@@ -43,7 +43,7 @@
 
 - 开工单与交接快照：TEAM-07、TEAM-14；画像校验：`docs/modernization/build_sessions.py`。
 - 决定登记：`docs/modernization/new_intent.py`；队列由 one-merge 运行。
-- 取信定时（GOV-1023-QUA-01）：会话内 CronCreate 每 5～10 分钟查 `scripts/coord/mailbox.py list --unacked` 与 `stale --minutes=20`、分层总图与工作台申请，处理后 `ack`；清空或重开后第一件事重设，写进台账交接清单。
+- 巡检定时：会话内 CronCreate 每 5 分钟——ReadNotifications、`scripts/coord/mailbox.py list --unacked` 与 `stale --minutes=20`（处理后 ack）、`scripts/merge/mq.py status`、在开非草稿 PR 逐个写卡点、派出复审超 30 分钟查是否在跑；批准前须见该 head 轻量 CI 全绿。清空或重开后第一件事重设，写进台账交接。
 
 ## 上下文文档
 
