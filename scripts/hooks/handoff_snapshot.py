@@ -135,7 +135,7 @@ def end(payload):
 
 def compact(payload):
     path = save_snapshot(payload, payload.get("trigger") or "auto", "", compact=True)
-    print(f"压缩前快照已写入 {safe(path)}；压缩后先读它，并按 SESSION_PLAYBOOK §2.1 判断是否交接。")
+    print(f"压缩前快照已写入 {safe(path)}；压缩后先读它，并按 SESSION_PLAYBOOK TEAM-05 判断是否交接。")
 
 
 def save_snapshot(payload, reason, suffix, compact=False):

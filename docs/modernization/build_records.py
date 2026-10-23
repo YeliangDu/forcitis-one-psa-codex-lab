@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """从片段目录生成 INTENT.md、SESSION_LOG.md、STATUS.md（用户 2026-10-14：「一条记录一个文件」）。
 
-会话只新增或修改片段，不直接编辑这三个生成产物（SESSION_PLAYBOOK §1）。三个产物不入仓（.gitignore）：
+会话只新增或修改片段，不直接编辑这三个生成产物（SESSION_PLAYBOOK TEAM-15）。三个产物不入仓（.gitignore）：
 本地运行 build_all.py 生成查看，或看 generated-docs 分支（main 更新后由 .github/workflows/generated-docs.yml 发布）。
 - intent/：_header.md + 每条用户决定一个文件（## 原话 / ## 落点）
 - session-log/：_header.md + 每条会话日志一个文件（以「## 日期 · 会话 · 单元」开头）

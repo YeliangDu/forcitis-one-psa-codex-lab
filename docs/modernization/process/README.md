@@ -1,6 +1,6 @@
 # 流程梳理
 
-规则见 `../SESSION_PLAYBOOK.md` §13。每个阶段一个目录 `process/<阶段>/`（阶段编号与 brief 一致，如 `1a`、`1b`、`2`）。
+规则见 `../SESSION_PLAYBOOK.md` 附 M4。每个阶段一个目录 `process/<阶段>/`（阶段编号与 brief 一致，如 `1a`、`1b`、`2`）。
 
 ## `<流程>.md` 模板
 

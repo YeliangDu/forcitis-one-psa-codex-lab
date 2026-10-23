@@ -1486,7 +1486,7 @@
    "en": "PolicyParameter",
    "kind": "value",
    "bc": "operations.policy",
-   "definition": "随口径版本生效的参数：税率、日标准工时、账龄分段、分摊费率、色标阈值等；不追溯（SESSION_PLAYBOOK §12.2 配置类）",
+   "definition": "随口径版本生效的参数：税率、日标准工时、账龄分段、分摊费率、色标阈值等；不追溯（SESSION_PLAYBOOK 附 M3「规则调整三类」配置类）",
    "verdict": "正式",
    "refs": "来源：正式词表#policy_parameter；ACL 归类规则见 ADR-0039",
    "why": "新系统自己的经营 / 业务概念，定义里没有外部系统或老系统，作领域用语。不同意就点「改为…」写上领域 / ACL 过渡期 / ACL 长期。",

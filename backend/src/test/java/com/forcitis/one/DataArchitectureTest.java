@@ -934,6 +934,7 @@ class DataArchitectureTest {
                   join pg_namespace n on n.oid = t.relnamespace
                   join pg_attribute a on a.attrelid = t.oid and a.attnum = any (x.indkey)
                  where x.indisunique and a.attname = ? and n.nspname not like 'pg\\_%' and n.nspname <> 'information_schema'
+                   and not exists (select 1 from pg_constraint k where k.conindid = x.indexrelid and k.contype in ('p', 'u', 'x'))
                 """)) {
             select.setString(1, column);
             select.setString(2, column);
@@ -944,6 +945,53 @@ class DataArchitectureTest {
             }
         }
         return keys;
+    }
+
+    static final String EMPLOYEE_CODE_KEY = "organization_workforce.employees uk_employees_employee_code (u)";
+    static final Path EMPLOYEE_CODE_COLUMNS = Path.of("architecture/employee-code-columns.txt");
+
+    /** The definition of the one key over the code: a unique constraint of one column, which has no condition and no expression. */
+    static String employeeCodeKeyDefinition(Connection c) throws SQLException {
+        try (var select = c.prepareStatement("""
+                select pg_get_constraintdef(x.oid) from pg_constraint x
+                 where x.conrelid = 'organization_workforce.employees'::regclass and x.conname = 'uk_employees_employee_code'""");
+             ResultSet rs = select.executeQuery()) {
+            return rs.next() ? rs.getString(1) : null;
+        }
+    }
+
+    /** Tables with a column named employee_code or registered as the employee code in the data classification. */
+    static Set<String> tablesCarryingTheEmployeeCode(Connection c, Map<String, String> classification) throws SQLException {
+        Set<String> tables = new TreeSet<>();
+        try (var select = c.prepareStatement("""
+                select table_schema || '.' || table_name from information_schema.columns
+                 where column_name = ? and table_schema not like 'pg\\_%' and table_schema <> 'information_schema'""")) {
+            select.setString(1, EMPLOYEE_CODE);
+            try (ResultSet rs = select.executeQuery()) {
+                while (rs.next()) {
+                    tables.add(rs.getString(1));
+                }
+            }
+        }
+        for (String column : classification.keySet()) {
+            if (column.endsWith("." + EMPLOYEE_CODE) || column.endsWith(".original_code")) {
+                tables.add(column.substring(0, column.lastIndexOf('.')));
+            }
+        }
+        return tables;
+    }
+
+    static Set<String> employeeCodeTables() throws IOException {
+        Set<String> tables = new TreeSet<>();
+        for (String line : Files.readAllLines(EMPLOYEE_CODE_COLUMNS)) {
+            if (!line.isBlank() && !line.startsWith("#")) {
+                int hash = line.indexOf('#');
+                assertThat(hash).as("a reason after # on: " + line).isPositive();
+                assertThat(line.substring(hash + 1)).as("reason of " + line).isNotBlank();
+                tables.add(line.substring(0, hash).strip());
+            }
+        }
+        return tables;
     }
 
     static List<String> lookupsByEmployeeCode(Map<String, String> sources) {
@@ -958,10 +1006,13 @@ class DataArchitectureTest {
     }
 
     @Test
-    @DisplayName("R-1b P3b ADR-0033 守护 7 EmployeeCodeNotKeyTest：employee_code 不在任何主键、唯一约束、唯一索引、外键、排他约束中，主代码没有按员工编号取单个对象的方法")
-    void theEmployeeCodeIsNoKey() throws Exception {
+    @DisplayName("ADR-0078 守护 1 EmployeeCodeKeyScopeTest：uk_employees_employee_code 存在且是单列无条件的唯一约束，employee_code 不在任何其他键中，工号列只在允许集的表上，主代码没有按员工编号取单个对象的方法")
+    void theEmployeeCodeKeyIsTheOnlyOne() throws Exception {
         try (Connection c = connect()) {
-            assertThat(keysOver(c, EMPLOYEE_CODE)).as("keys over employee_code").isEmpty();
+            assertThat(keysOver(c, EMPLOYEE_CODE)).as("keys over employee_code").containsExactly(EMPLOYEE_CODE_KEY);
+            assertThat(employeeCodeKeyDefinition(c)).as("the key is one column, no condition").isEqualTo("UNIQUE (employee_code)");
+            Set<String> carrying = tablesCarryingTheEmployeeCode(c, DdlNamingTest.readClassification());
+            assertThat(carrying).as("tables carrying the employee code, against architecture/employee-code-columns.txt").isEqualTo(employeeCodeTables());
         }
         Map<String, String> sources = new TreeMap<>();
         for (Path file : javaFiles()) {
@@ -971,16 +1022,23 @@ class DataArchitectureTest {
     }
 
     @Test
-    @DisplayName("R-1b P3b ADR-0033 守护 7（CS-5.9 注入）：员工编号上的唯一索引与 findByEmployeeCode 被拦下；普通索引与读属性 employeeCode() 不算")
+    @DisplayName("ADR-0078 守护 1（CS-5.9 注入）：部分唯一索引、改名的唯一约束、外键、未登记表上的工号列、findByEmployeeCode 被拦下；普通索引与读属性 employeeCode() 不算")
     void injectedEmployeeCodeKeysAreCaught() throws Exception {
         try (Connection c = connect(); var statement = c.createStatement()) {
             statement.execute("create schema guard_sample");
             try {
                 statement.execute("create table guard_sample.people (id uuid primary key, employee_code text not null)");
                 statement.execute("create index ix_people_employee_code on guard_sample.people (employee_code)");
-                assertThat(keysOver(c, EMPLOYEE_CODE)).as("a plain index is no key").isEmpty();
-                statement.execute("create unique index uk_people_employee_code on guard_sample.people (employee_code)");
-                assertThat(keysOver(c, EMPLOYEE_CODE)).containsExactly("guard_sample.people uk_people_employee_code (unique index)");
+                assertThat(keysOver(c, EMPLOYEE_CODE)).as("a plain index is no key").containsExactly(EMPLOYEE_CODE_KEY);
+                assertThat(tablesCarryingTheEmployeeCode(c, Map.of())).as("a table that is not in the allowed set").contains("guard_sample.people")
+                        .isNotEqualTo(employeeCodeTables());
+                statement.execute("create unique index uk_people_employee_code on guard_sample.people (employee_code) where employee_code <> ''");
+                assertThat(keysOver(c, EMPLOYEE_CODE)).as("a partial unique index").contains("guard_sample.people uk_people_employee_code (unique index)");
+                statement.execute("drop index guard_sample.uk_people_employee_code");
+                statement.execute("alter table guard_sample.people add constraint uk_people_other_name unique (employee_code)");
+                assertThat(keysOver(c, EMPLOYEE_CODE)).as("a renamed unique constraint").contains("guard_sample.people uk_people_other_name (u)");
+                statement.execute("create table guard_sample.refs (id uuid primary key, employee_code text references organization_workforce.employees (employee_code))");
+                assertThat(keysOver(c, EMPLOYEE_CODE)).as("a foreign key to the code").contains("guard_sample.refs refs_employee_code_fkey (f)");
             } finally {
                 statement.execute("drop schema guard_sample cascade");
             }

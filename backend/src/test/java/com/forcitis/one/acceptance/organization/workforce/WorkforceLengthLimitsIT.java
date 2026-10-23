@@ -85,10 +85,10 @@ class WorkforceLengthLimitsIT extends AccountsAcceptanceSupport {
                 Arguments.of("ck_employees_employee_code",
                         "insert into employees (id, employee_code, display_name, employment_status) values (uuidv7(), ?, 'Synthetic person', 'EMPLOYED')", 500),
                 Arguments.of("ck_employees_display_name",
-                        "insert into employees (id, employee_code, display_name, employment_status) values (uuidv7(), 'WF11L', ?, 'EMPLOYED')", 500),
+                        "insert into employees (id, employee_code, display_name, employment_status) values (uuidv7(), 'WF11-' || uuidv7()::text, ?, 'EMPLOYED')", 500),
                 Arguments.of("ck_employees_email_address", """
                         insert into employees (id, employee_code, display_name, email, employment_status)
-                        values (uuidv7(), 'WF11L', 'Synthetic person', ?, 'EMPLOYED')""", 100));
+                        values (uuidv7(), 'WF11-' || uuidv7()::text, 'Synthetic person', ?, 'EMPLOYED')""", 100));
     }
 
     @ParameterizedTest(name = "DATA-REPAIR-workforce WF-11：{0} 恰为上限 {2} 个字符通过，上限加 1 被拒")

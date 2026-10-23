@@ -12,7 +12,7 @@
 
 - **D-1 保留期写法：接受 `{policy: PERMANENT}` + 注释**（与 `authorization_requests` 先例同法）。理由：D4 要求 `<n>y` 指名已存在的作业，而该作业 3 年内无到期行；用 `gaps` 会因「不违反任何规则」被守护判失败（注册表第 231 行已有同类说明）。条件：注释里写全四项——0034-Q2 口径（在线 3 年、归档到满 10 年）、清理作业落点（随审计在线删除作业实现）、**负责人**、**期限**（建议「首次生产部署后 30 个月内」）；并写明清理要按依赖顺序（子表 `role_version_custom_org_units` 随其角色版本一起处理，F-1 子表跟随）。该条登记进下一次保留期清理的待办（`RETENTION_PROPOSAL.md` 同类条目），避免永远停在 PERMANENT。
 - **D-2 `_by` 外键：建**。同 schema 的账号 ID 建 `fk_…_recorded_by / closed_by / granted_by / revoked_by`（`ON DELETE RESTRICT`）与部分索引，卡已按此写；F-1 `permission_adjustments` 的 `upheld_by`、`adjusted_by` 我在 F-1 第二轮已要求补外键，现在两卡口径一致，F-1 的「待核 5」取消。
-- **D-3 `MIGRATION` / `MIGRATION_ROLLBACK` / `migration_batch_id`：不判 B7 不通过。** 它们是已采纳 ADR-0034（第 1 项第 2 条、第 2 项第 1、3、4、6 条）明文规定的列与取值；门禁文件头规定与上位规则冲突时以上位规则为准，且 SESSION_PLAYBOOK §11 第 9 条要求字面不一致交 one-architecture 而不是自行删。B7 的判例（报价、记账凭证）是没有 ADR 规定的取值。我留一条 `[建议]`：迁入卡写 E3 时核对这几个取值与批次回退语义，不对就在基线关闭前改。
+- **D-3 `MIGRATION` / `MIGRATION_ROLLBACK` / `migration_batch_id`：不判 B7 不通过。** 它们是已采纳 ADR-0034（第 1 项第 2 条、第 2 项第 1、3、4、6 条）明文规定的列与取值；门禁文件头规定与上位规则冲突时以上位规则为准，且 SESSION_PLAYBOOK TEAM-30 要求字面不一致交 one-architecture 而不是自行删。B7 的判例（报价、记账凭证）是没有 ADR 规定的取值。我留一条 `[建议]`：迁入卡写 E3 时核对这几个取值与批次回退语义，不对就在基线关闭前改。
 - **D-4 PR-1 `writers: []`：接受**。比 `optional + due` 准确（`optional` 表示表只在一侧存在，这里表是存在的）；PR-2 / PR-3 改为 `[platform.identity]`，由 `DataArchitectureTest` 兜底。
 - **D-5 `granted_by` 成对规则「有且只有 MANUAL 有」：接受**。比 ADR 收紧但不冲突（`DEFAULT_ROLE`、`MIGRATION` 是系统写入，没有授予人；运维命令的操作人与见证人本就记在审计）。请在 `ck_account_role_grants_grant` 的列注释里写明，将来加渠道时同步改这条约束。
 - **D-6 `account_role_grants.role_id` 只有部分索引：接受**。`roles` 行永不删除，`RESTRICT` 检查不会发生；卡列出的查询路径里没有按角色查已关闭授予的路径（还原走 `user_id`）。若以后出现「某角色历史上所有持有人」查询，再加全量索引（可无损追加）。

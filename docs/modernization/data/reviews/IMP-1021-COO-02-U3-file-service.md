@@ -1,6 +1,6 @@
 # 文件服务表结构草案 DD 审（IMP-1021-COO-02 单元 3）
 
-- 日期：2026-10-21；审者：one-data；对象：`claude/one-platform-file` @89fe88cb，`docs/modernization/phase1a/file-service/DDL_DRAFT.sql`（schema `platform_file` 十张表）。依据：ADR-0060/0061/0070、ADR-0058、ADR-0066 决定 4、ADR-0033、SESSION_PLAYBOOK §14/§14.1 D1–D19、NAMING_STANDARD、DATA_DESIGN_GATE。
+- 日期：2026-10-21；审者：one-data；对象：`claude/one-platform-file` @89fe88cb，`docs/modernization/phase1a/file-service/DDL_DRAFT.sql`（schema `platform_file` 十张表）。依据：ADR-0060/0061/0070、ADR-0058、ADR-0066 决定 4、ADR-0033、DATA_DESIGN_CHECKLIST §14/§14.1 D1–D19、NAMING_STANDARD、DATA_DESIGN_GATE。
 - 范围：只审草案的数据设计；草案未进 `db/migration`，实际 DDL 出来后我再复核实际表结构 diff。
 
 ## 结论
@@ -74,7 +74,7 @@
 
 N1–N3 逐项核过：`platform_file.state_transitions` 的 DDL 与 `STATE_TRANSITIONS_DESIGN.md` v2 模板逐行比对一致；四个状态列各有流转清单，终态写明；三个系统操作者（一次性链接持有人、平台模块调用、临时区到期作业）给了 UUIDv5，待写入 `system-actors.txt`；版本表加了 `BEFORE INSERT` 只许 `PENDING`，种子也先待确认；注册表根表 `CONFIG_VERSIONED` + `versions_table`、版本表 `AGGREGATE_CHILD`；PG15+ 已注明。
 
-数据设计：通过（one-data，2026-10-21，依据 DATA_DESIGN_GATE 表结构草案项、ADR-0058、STATE_TRANSITIONS_DESIGN v2、SESSION_PLAYBOOK §14.1 D1–D19 逐项核对草案第 3 版）。
+数据设计：通过（one-data，2026-10-21，依据 DATA_DESIGN_GATE 表结构草案项、ADR-0058、STATE_TRANSITIONS_DESIGN v2、DATA_DESIGN_CHECKLIST §14.1 D1–D19 逐项核对草案第 3 版）。
 
 范围与后续（均为表结构 PR 阶段的实际 diff 复核项，不是对本次签发的条件）：
 1. 草案未在数据库上执行，语法与触发器行为以 Testcontainers 结果为准；实际迁移脚本出来后我复核实际表结构 diff。
