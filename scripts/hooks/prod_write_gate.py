@@ -20,7 +20,7 @@
 退出码 2 + 标准错误 = 拒绝；0 = 放行。出错一律拒绝（崩溃的退出码 1 对 PreToolUse 钩子是「不拦截」）。
 用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
-import json
+import inspect, json
 import os
 import re
 import subprocess
@@ -46,9 +46,9 @@ SHELL_HEADS = {"for", "case", "select", "function", "in"}  # `for f in a b` is a
 NO_CONNECT = {"git", "gh", "echo", "printf", "grep", "egrep", "fgrep", "rg", "cat", "sed", "head", "tail", "ls", "jq", "wc", "sort", "uniq", "cut", "tr", "diff", "test", "[", "true", "false", "cd", "pwd", "export",
               "set", "unset", "read", "basename", "dirname", "mkdir", "touch", "cp", "mv", "stat", "file", "date", "tee", ":", "less", "more", "nl", "tac", "fold", "column", "comm", "join", "paste", "expr",
               "declare", "local", "readonly", "typeset"}
-LOCAL_GIT = {"commit", "log", "show", "status", "add", "diff", "grep", "branch", "checkout", "switch", "restore", "rev-parse", "rev-list", "ls-files", "ls-tree", "cat-file", "stash", "merge", "tag", "worktree",
+LOCAL_GIT = {"commit", "log", "show", "status", "add", "diff", "grep", "branch", "checkout", "switch", "restore", "rev-parse", "rev-list", "ls-files", "ls-tree", "cat-file", "stash", "merge", "worktree",
              "blame", "describe", "shortlog", "apply", "reset", "cherry-pick", "rm", "mv", "clean", "rebase", "show-ref", "for-each-ref", "name-rev", "merge-base", "diff-tree", "diff-index", "hash-object", "symbolic-ref",
-             "update-ref", "count-objects", "check-ignore", "version", "help"}
+             "count-objects", "check-ignore", "version", "help"}
 GIT_RUNS_COMMANDS = ("exec", "ext-diff", "open-files-in-pager", "upload-pack", "receive-pack", "textconv")
 NETWORK_GIT = {"push", "pull", "fetch", "clone", "ls-remote", "remote", "submodule", "archive", "daemon", "send-pack", "fetch-pack", "upload-pack", "receive-pack", "request-pack", "svn", "p4", "credential", "bundle", "maintenance", "instaweb", "difftool", "mergetool"}
 DOC_SCRIPTS = {DOCS_ROOT + "/new_intent.py", DOCS_ROOT + "/new_decision.py", DOCS_ROOT + "/new_log.py", DOCS_ROOT + "/glossary/new_term_issue.py"}
@@ -128,7 +128,7 @@ def read_table_file(path):
 def main_table_patterns():
     """Patterns of the table on origin/main (None when it cannot be read)."""
     try:
-        shown = subprocess.run(["git", "-C", HERE, "show", "origin/main:scripts/hooks/prod_targets.json"], capture_output=True, text=True, timeout=10)
+        shown = subprocess.run(["git", "-C", HERE, "show", "refs/remotes/origin/main:scripts/hooks/prod_targets.json"], capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return None
     if shown.returncode:
@@ -172,7 +172,7 @@ def readonly_tool_files():
             return set()
     found = set()
     try:
-        shown = subprocess.run(["git", "-C", HERE, "show", "origin/main:scripts/hooks/prod_targets.json"], capture_output=True, text=True, timeout=10)
+        shown = subprocess.run(["git", "-C", HERE, "show", "refs/remotes/origin/main:scripts/hooks/prod_targets.json"], capture_output=True, text=True, timeout=10)
         found = listed(shown.stdout) if shown.returncode == 0 else set()
     except (OSError, subprocess.SubprocessError):
         pass
@@ -701,7 +701,7 @@ def target_unresolved(command):
 # ---- judging -------------------------------------------------------------------------------------------------------------------------------------------------------
 def main_blob(rel):
     """Object id of `rel` on origin/main, or None."""
-    run = subprocess.run(["git", "-C", REPO_ROOT, "rev-parse", "--verify", "-q", f"origin/main:{rel}"], capture_output=True, text=True, timeout=10)
+    run = subprocess.run(["git", "-C", REPO_ROOT, "rev-parse", "--verify", "-q", f"refs/remotes/origin/main:{rel}"], capture_output=True, text=True, timeout=10)
     return run.stdout.strip() if run.returncode == 0 and run.stdout.strip() else None
 
 
@@ -800,7 +800,7 @@ def no_connect_ok(command, patterns=()):
             break
         if sub not in LOCAL_GIT or sub in NETWORK_GIT:
             return False  # an unlisted sub-command (bisect run, filter-branch, submodule foreach, an alias …) can run any program
-        return not any(long_option(t, GIT_RUNS_COMMANDS) or (sub == "rebase" and (t == "-x" or (t.startswith("-") and not t.startswith("--") and "x" in t[1:]))) or (sub == "grep" and t.startswith("-O")) for t in argv)
+        return not any(long_option(t, GIT_RUNS_COMMANDS) or (sub == "rebase" and (t == "-x" or (t.startswith("-") and not t.startswith("--") and "x" in t[1:]))) or (sub == "grep" and t.startswith("-") and not t.startswith("--") and "O" in t[1:]) for t in argv)
     if tool == "rg":
         return not any(t.startswith(("--pre", "--hostname-bin")) for t in argv)
     if tool == "sed":
@@ -1046,6 +1046,9 @@ def self_test():
     finally:
         globals()["main_blob"] = real_main_blob
         EXTRA_READONLY.discard("scripts/hooks/command_words.py")
+    for command in (f"git tag -f origin/main HEAD && echo {P}", f"git update-ref refs/remotes/origin/main HEAD; echo {P}", f"git grep -nO'sqlcmd -S {P}' foo", f"git grep -inOx {P} foo"):
+        assert refused(command), f"origin/main must not be rewritable, -O in a bundle: {command!r}"
+    assert "refs/remotes/origin/main" in inspect.getsource(main_blob) and "refs/remotes/origin/main" in inspect.getsource(main_table_patterns), "the trust anchor is read by its full ref name, a tag called origin/main cannot shadow it"
     # 10. direct execution of a local file, git programs, ssh options, GNU long-option prefixes (opus round 2, items 3 to 6)
     Path(cwd, "direct.sh").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
     Path(cwd, "tame.sh").write_text("echo hi\n", encoding="utf-8")
