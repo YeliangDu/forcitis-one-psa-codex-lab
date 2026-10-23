@@ -602,14 +602,12 @@ def main():
         if event not in ("PostToolUse", "UserPromptSubmit", "Stop"):
             return 0
         root = root_of(payload)
-        if event == "Stop":
-            blocked = status_gate(payload, root)
-            if blocked:
-                print(json.dumps(blocked, ensure_ascii=False))
-                return 0
+        declared = status_gate(payload, root) if event == "Stop" else None  # both Stop gates run, one block carries both reasons
         if can_skip(dict(payload, hook_event_name=event), root, time.time()):
             return 0
         result = handle(event, payload, root)
+        if declared:
+            result = dict(declared, reason=declared["reason"] + ("\n\n" + result["reason"] if result and result.get("decision") == "block" else ""))
         if result:
             print(json.dumps(result, ensure_ascii=False))
         return 0
@@ -903,6 +901,13 @@ def self_test():
             data = json.dumps(dict(payload, hook_event_name="Stop", session_id=session, cwd=root, **(extra or {})))
             return subprocess.run([sys.executable, "-I", script], input=data, capture_output=True, text=True, env=gate_env)
 
+        # both Stop gates in one block: past the prepare line with stale context documents AND no status declaration
+        os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
+        os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
+        transcript(trans, 800, final_text="好了")
+        both = subprocess.run([sys.executable, "-I", script], input=json.dumps(dict(payload, hook_event_name="Stop", session_id="gate-both2", cwd=root)), capture_output=True, text=True, env=gate_env)
+        reason = json.loads(both.stdout)["reason"]
+        assert "状态：继续" in reason and "上下文已用" in reason, both
         undeclared = gate_run("好了")
         assert undeclared.returncode == 0 and json.loads(undeclared.stdout)["decision"] == "block" and "状态：继续" in json.loads(undeclared.stdout)["reason"], undeclared
         unsent = gate_run("报告\n状态：等调度")

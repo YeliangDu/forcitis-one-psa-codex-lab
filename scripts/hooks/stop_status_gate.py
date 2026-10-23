@@ -21,17 +21,17 @@ import subprocess
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from handoff_snapshot import safe as scrub  # noqa: E402  (the same line-level secret rules the hand-over snapshots use)
+
 STATUSES = ("继续", "待命", "等调度", "等用户", "完成点")
 NEEDS_REPORT = ("等调度", "完成点")
-LINE = re.compile(r"^\s*状态[:：]\s*(" + "|".join(STATUSES) + r")(?:\s*$|\s*[，,、；;:：（(—–\-]\s*\S.*$|\s+\S.*$)")
+LINE = re.compile(r"^\s*状态[:：]\s*(" + "|".join(STATUSES) + r")(?:\s*[。.]?\s*$|\s*[，,、；;:：（(—–\-｜|。.]\s*\S.*$|\s+\S.*$)")
+MARKDOWN_PREFIX = re.compile(r"^[\s>*_#\-]+")
 FORM = "状态：" + "｜".join(STATUSES)
 MESSAGE_TOOLS = ("send_message", "SendMessage")
 TAIL_BYTES = 4 * 1024 * 1024
 MAILBOX_CHARS = 4096
-SECRET = re.compile(
-    r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)"
-    r"|\b(?:sk|pk|ghp|gho|ghs|github_pat|xox[abp]|AKIA|LTAI)[-_A-Za-z0-9]{12,}"
-    r"|(?i:(?:password|passwd|secret|token|api[_-]?key|access[_-]?key)\s*[:=]\s*)\S+")
 
 
 def psa_home():
@@ -63,7 +63,12 @@ def blocks(entry):
 
 
 def is_user_turn_start(entry):
-    return entry.get("type") == "user" and any(b.get("type") != "tool_result" for b in blocks(entry))
+    """A real new turn: a user prompt or a message from another session. Not tool results, not what a tool injected (a Skill's text carries sourceToolUseID),
+    not the Stop hook's own block feedback (same turn continued)."""
+    if entry.get("type") != "user" or entry.get("sourceToolUseID") or not any(b.get("type") != "tool_result" for b in blocks(entry)):
+        return False
+    text = "".join(str(b.get("text", "")) for b in blocks(entry) if b.get("type") == "text")
+    return not (entry.get("isMeta") and text.lstrip().startswith("Stop hook feedback"))
 
 
 def parse_time(text):
@@ -96,13 +101,18 @@ def turn_of(entries):
 def status_of(text):
     """The declared status (one of STATUSES) from the last non-empty line, or None."""
     lines = [line for line in text.splitlines() if line.strip()]
-    match = LINE.match(lines[-1]) if lines else None
+    last = MARKDOWN_PREFIX.sub("", lines[-1].replace("**", "")) if lines else ""
+    match = LINE.match(last)
     return match.group(1) if match else None
+
+
+def target_of(value):
+    return re.sub(r"\s*\[[^\]]*\]\s*$", "", value) if isinstance(value, str) else value  # `one-coordinator [3fa9c1]` is the name plus a disambiguating ref
 
 
 def sent_to_coordinator(tools, targets):
     for name, tool_input in tools:
-        if name.endswith(MESSAGE_TOOLS) and (tool_input.get("session_id") in targets or tool_input.get("to") in targets):
+        if name.endswith(MESSAGE_TOOLS) and (target_of(tool_input.get("session_id")) in targets or target_of(tool_input.get("to")) in targets):
             return True
     return False
 
@@ -124,7 +134,7 @@ def write_mailbox(home, name, session_id, root, status, text, sent, now):
     directory = os.path.join(home, "mailbox")
     os.makedirs(directory, exist_ok=True)
     stamp = datetime.datetime.fromtimestamp(now).strftime("%Y%m%d-%H%M%S")
-    body = SECRET.sub("【已脱敏】", text).strip()
+    body = scrub(text).strip()
     if len(body) > MAILBOX_CHARS:
         body = body[:MAILBOX_CHARS] + "\n…（已截断，全文见会话）"
     key = hashlib.sha1(f"{session_id}{text}".encode("utf-8")).hexdigest()[:6]
@@ -134,9 +144,14 @@ def write_mailbox(home, name, session_id, root, status, text, sent, now):
     head = (f"---\n会话: {name}\n会话id: {session_id}\n分支: {branch_of(root)}\n时刻: "
             f"{datetime.datetime.fromtimestamp(now).isoformat(timespec='seconds')}\n状态: {status}\n已发调度: {'是' if sent else '否（信箱兜底）'}\n---\n")
     handle, temp = tempfile.mkstemp(dir=directory, prefix=".tmp-", suffix=".md")
-    with os.fdopen(handle, "w", encoding="utf-8") as stream:
-        stream.write(head + body + "\n")
-    os.replace(temp, final)
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            stream.write(head + body + "\n")
+        os.replace(temp, final)
+    except BaseException:
+        if os.path.exists(temp):
+            os.unlink(temp)
+        raise
     return final
 
 
@@ -152,9 +167,11 @@ def gate(payload, root, name, targets, now, home=None):
     except (OSError, TypeError) as error:
         return None, [f"stop_status_gate: 读不到本轮记录（{error}），状态声明与发送检查未做"]
     text, tools, started = turn_of(entries)
+    if entries and entries[-1].get("isApiErrorMessage"):
+        return None, [f"stop_status_gate: 本轮以系统合成的错误消息结束，不查状态声明（{name}）"]
     status = status_of(text)
     if status is None:
-        reason = f"本轮最后一条消息的末行须是状态声明：{FORM}（可在状态后加一句说明）。补上后再结束。"
+        reason = f"本轮最后一条消息的末行须是状态声明：{FORM}（可在状态后加一句说明；声明等调度或完成点的话，须先发消息给 one-coordinator）。补上后再结束。"
         if active:
             return None, [f"stop_status_gate: 缺状态声明，但已挡过一次，放行（{name}）"]
         return {"decision": "block", "reason": reason}, warnings
@@ -255,10 +272,26 @@ def self_test():
         before = len(mailbox())
         run([ask, say("兜底报告\n状态：等调度")], active=True, session="s2", now=1200.0)
         assert len(mailbox()) == before, "same session and message, same second: one entry"
-        run([ask, say("key=" + "s" + "k-" + "abcdefghijklmnop1234 pass" + "word: hunter22 " + "长" * 5000 + "\n状态：完成点")], active=True, session="s3", now=1300.0)
+        run([ask, say("key=" + "s" + "k-" + "abcdefghijklmnop1234\n密" + "码和口" + "令：hunter33\npass" + "word: hunter22\ntoken：hunter44\n" + ("长" * 100 + "\n") * 50 + "状态：完成点")], active=True, session="s3", now=1300.0)
         last = open(os.path.join(home, "mailbox", mailbox()[-1]), encoding="utf-8").read()
-        assert "hunter22" not in last and ("s" + "k-" + "abcdefghijklmnop1234") not in last and "已截断" in last and len(last) < MAILBOX_CHARS + 400, "secrets scrubbed, body cut to 4 KB"
+        assert "hunter22" not in last and "hunter33" not in last and "hunter44" not in last and "[敏感内容已隐藏]" in last and ("s" + "k-" + "abcdefghijklmnop1234") not in last and "已截断" in last and len(last) < MAILBOX_CHARS + 400, "secrets scrubbed, body cut to 4 KB"
         assert not [f for f in os.listdir(os.path.join(home, "mailbox")) if f.startswith(".tmp-")], "no temp file left behind"
+
+        # review fixes: markdown / punctuation forms pass, a tool-injected or Stop-feedback user line does not start a new turn, name+ref targets match
+        assert status_of("x\n状态：完成点。") == "完成点" and status_of("**状态：完成点**") == "完成点" and status_of("状态：继续吧") is None
+        for ok in ("**状态：继续**", "- 状态：待命", "> 状态：等用户", "状态：等用户｜要你定 B3"):
+            assert run([ask, say(ok)])[0] is None, f"{ok!r} passes"
+        assert run([ask, say("x\n状态：完成点。")], session="p1", now=1400.0)[0]["decision"] == "block", "完成点 with a full stop still needs the send"
+        injected = dict(line("user", [{"type": "text", "text": "Base directory for this skill: /x"}]), isMeta=True, sourceToolUseID="toolu_1")
+        assert run([ask, send, injected, say("报告\n状态：等调度")], session="p2", now=1500.0)[0] is None, "a Skill's injected user line is not a new turn"
+        feedback = dict(line("user", [{"type": "text", "text": "Stop hook feedback:\n本轮最后一条消息的末行须是状态声明"}]), isMeta=True)
+        n = len(mailbox())
+        assert run([ask, send, say("报告"), feedback, say("报告\n状态：等调度")], session="p3", now=1600.0)[0] is None
+        assert "已发调度: 是" in open(os.path.join(home, "mailbox", mailbox()[-1]), encoding="utf-8").read() and len(mailbox()) == n + 1, "Stop feedback continues the turn, the earlier send counts"
+        other = dict(line("user", [{"type": "text", "text": "Another Claude session sent a message"}]), isMeta=True)
+        assert run([ask, send, say("a"), other, say("报告\n状态：等调度")], session="p4", now=1700.0)[0]["decision"] == "block", "a message from another session starts a new turn"
+        assert run([ask, tool_use("SendMessage", {"to": "one-coordinator [3fa9c1]", "message": "x"}), say("好\n状态：等调度")], session="p5", now=1800.0)[0] is None, "name plus ref matches"
+        assert run([ask, dict(say("api error"), isApiErrorMessage=True)])[0] is None, "a synthetic error ending is not gated"
 
         # exemptions and failures
         assert run([ask, say("没声明")], name="one-coordinator")[0] is None, "the coordinator is exempt (by name)"

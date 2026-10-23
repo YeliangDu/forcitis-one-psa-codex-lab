@@ -267,7 +267,7 @@
   5. 子会话默认不开完成通知（`wake_when_done` 不设），确需等其结果时才开。
   6. 给用户的回复先写结论；转述其他会话的报告只取用户需要知道或决定的部分。
   7. 外发被限流时不停等：app 在用户久未发言时会暂停会话的外发消息。遇到时把要报的内容（一条一行、带时间与收件会话）追加写进 `~/.modernize/psa/outbox/<会话名>.md`，接着做手上的事；没活了写一行「空闲」。不在本会话里等用户回话解锁。one-coordinator 每次巡检读 outbox 代转，转完在该行后标「已转」（用户 2026-10-22 问 arch 三会话为何停着不汇报）。
-  8. 每轮的状态声明（守，GOV-1023-QUA-01）：除 one-coordinator 外，会话每轮最后一条消息的末行写 `状态：继续｜待命｜等调度｜等用户｜完成点`（后可带一句说明）。「等调度」「完成点」须本轮已发消息给 one-coordinator（限流则已写 outbox），否则 Stop 钩子（`scripts/hooks/stop_status_gate.py`，经 `context_handoff.py` 唯一的 Stop 入口）挡停；这两种声明还会把末条消息（截 4 KB、脱敏）写进 `~/.modernize/psa/mailbox/`，调度用 `scripts/coord/mailbox.py list --unacked | ack <文件> | stale --minutes=20` 取信与回执，调度定时（CronCreate，每 10 分钟）跑 `list --unacked` 与 `stale`；调度清空后重设该定时。
+  8. 每轮的状态声明（守，GOV-1023-QUA-01）：除 one-coordinator 外，会话每轮最后一条消息的末行写 `状态：继续｜待命｜等调度｜等用户｜完成点`（后可带一句说明）。「等调度」「完成点」须本轮已发消息给 one-coordinator（限流则已写 outbox），否则 Stop 钩子（`scripts/hooks/stop_status_gate.py`，经 `context_handoff.py` 唯一的 Stop 入口）挡停；这两种声明还会把末条消息（截 4 KB、脱敏）写进 `~/.modernize/psa/mailbox/`，调度用 `scripts/coord/mailbox.py list --unacked | ack <文件> | stale --minutes=20` 取信与回执，调度定时（CronCreate，每 10 分钟）跑 `list --unacked` 与 `stale`；调度清空后重设该定时。调度换新会话时须同步改 `scripts/hooks/context_windows.json` 的 `node_handoff.coordinator_session_ids`，否则按 session_id 发给调度的消息认不出、会被误挡。
 - **唤醒空闲会话**：派工或需对方动手的消息用 `ccd_session_mgmt__send_message`（返回 delivered 即对方开工）；SendMessage 对空闲桌面会话常停在未读。派工一到三行，背景写进卡给路径；技术协调让双方直接对接，调度不转述。
 
 **战队协作**（用户 2026-10-16 对调度复盘的八条建议答「全做」，intent 见本日「战队协作」）
