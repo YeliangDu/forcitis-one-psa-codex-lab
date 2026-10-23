@@ -42,6 +42,7 @@
 ## 自动化
 
 - 钩子：压缩前快照（`precompact_snapshot.sh`）；新开、清空或压缩后注入台账与本画像（`postcompact_context.sh`）。
+- 取信定时（GOV-1023-QUA-01）：每 10 分钟（CronCreate）跑 `python3 scripts/coord/mailbox.py list --unacked` 与 `stale --minutes=20`，处理后 `ack <文件>`；会话内定时随会话清空失效，每次清空或重开后第一件事重设，并写进台账「交接」清单。
 - 后台脚本：无。合并队列由 one-merge 运行（2026-10-17 切换到 `scripts/merge/mq.py`）；调度不亲自改队列、入队、重排或组合集，只发「批准入队 #N（位置）」与冲突/挂起去向。
 - 守护与脚本：`build_all.py --check`（含画像校验）、`check_legacy_name.py`、`new_intent.py`。
 

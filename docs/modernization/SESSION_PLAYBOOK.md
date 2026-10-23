@@ -97,7 +97,7 @@
 | TEAM-58 | 跨会话消息只在对方要做事或决定时发，不回纯确认；一次说完、一到三行、不复述来信，长内容给文件路径；首行写类别（派工、报告、请用户决定、通知）；子会话不开完成通知，确需等结果才开 | 全员 | 无 | |
 | TEAM-59 | 完成点与结束前必须报调度，未报不算完成；含提交号与分支、产出、验证方式、未完成项、需用户决定的事；文档提交号按 TEAM-53 报 one-merge | 全员 | 无 | |
 | TEAM-60 | 派工或要对方动手用 ccd `send_message`（delivered 即开工）；技术协调会话间直连，不经调度转述、不抄送，影响他人排期或要用户定的才报调度 | 全员 | 无 | |
-| TEAM-61 | 外发被限流时写进 `~/.modernize/psa/outbox/<会话名>.md`（一行一条，带时间与收件会话）后继续干活，没活写「空闲」；调度巡检代转并标「已转」 | 全员；调度代转 | 无 | |
+| TEAM-61 | 外发被限流时写进 `~/.modernize/psa/outbox/<会话名>.md`（一行一条，带时间与收件会话）后继续干活，没活写「空闲」；调度巡检代转并标「已转」；每轮状态声明（GOV-1023-QUA-01，Stop 钩子 `scripts/hooks/stop_status_gate.py` 挡）：除 one-coordinator 外，每轮最后一条消息末行写 `状态：继续｜待命｜等调度｜等用户｜完成点`，「等调度」「完成点」须本轮已发消息给 one-coordinator（限流则已写 outbox），这两种还会把末条消息（截 4 KB、脱敏）写进 `~/.modernize/psa/mailbox/`，调度用 `scripts/coord/mailbox.py list --unacked | ack <文件> | stale --minutes=20` 取信与回执，定时每 10 分钟跑；调度换新会话须同步改 `scripts/hooks/context_windows.json` 的 `node_handoff.coordinator_session_ids` | 全员；调度代转 | 无 | |
 | TEAM-62 | 收件箱是用户决定的唯一处理点：要用户定的写进收件箱（来源、选什么、卡住什么、紧急度），先经调度审题；已在 GitHub 发起的在原 PR 回复并在箱里建指向。不在会话里问用户，一轮结尾也不提问 | 全员；调度 | 无 | |
 | TEAM-63 | 出题（确认页、批准页、收件箱事项）前对照 `DECISION_DIGEST.md` 并引用条目；与已定决定相悖的列入「待用户裁定」或写明为何重问 | 出题会话 | 半 | check_pages.py |
 | TEAM-64 | 确认页按统一模板出：Artifact 加 ArtifactData 自动保存、版式简单、只用系统字体栈；出题会话出页、调度只审题；发布后用浏览器核对渲染（细则 `rules/decide/README.md`） | 出题会话；模板 one-rules | 半 | check_pages.py；待建：GOV-1022-QUA-15 |
