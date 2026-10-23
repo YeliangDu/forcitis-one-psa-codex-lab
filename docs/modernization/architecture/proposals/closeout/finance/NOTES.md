@@ -193,7 +193,7 @@ SQ-01–SQ-33 已由 S-31 裁定：采纳或改写 23 条，已覆盖 3 条（SQ
 | S31-结构-10 | AGG-122 引用 AGG-10（商机）、AGG-13（协议）、AGG-19（项目）：B-07 对 B-03、B-05、B-04 以事件边为准，PRC-25 经事件进来 | 沿用既有事件边，不加 api | 待确认 |
 | S31-结构-11 | AGG-126 与勾稽族的关系（案件按勾稽族 × 期间 × 法人一案）未定 | one-data | 待裁定 |
 | S31-结构-12 | PRC-96 作废、冲销（S-31 SQ-17）：冲销经 AR-06 加审，审批人按间接成本池归属财务部门的责任人（SQ-51 解析）；AGG-42、99 同 | 已按 PRC-87 的冲销分支写法落骨架 | 已落骨架 |
-| S-4、S-5（BONUS_OVERTIME_COSTING） | 取数来源；AGG-137 与 AGG-05 重复 | 已定（`proposals/FINANCE_S4_S5_RULINGS_2026-10-22.md`）：随事实携带，撤销 AGG-137；S-4b 核定只在负债内部重分类（附二）；S-6 按月奖金计提归 B-15（附三）；ARC-1022-APE-01 第 3–5 点已会签（BONUS_OVERTIME_COSTING §6），附条件待 one-architecture 答复：调整行拆成 PRC-96 独立入口、零额完成记录、跨法人计提标待内部结算 | 已落骨架 |
+| S-4、S-5（BONUS_OVERTIME_COSTING） | 取数来源；AGG-137 与 AGG-05 重复 | 已定（`proposals/FINANCE_S4_S5_RULINGS_2026-10-22.md`）：随事实携带，撤销 AGG-137；S-4b 核定只在负债内部重分类（附二）；S-6 按月奖金计提归 B-15（附三）；ARC-1022-APE-01 第 3–5 点已会签（BONUS_OVERTIME_COSTING §6），附条件已裁（@909d83c5）：AGG-139 奖金调整运行作 PRC-96 第 9、10 步，发起关账前置检查加计提与调整已过账，零额完成记录 INV-143（§6.1） | 已落骨架 |
 
 ## 新用语
 
@@ -386,6 +386,7 @@ SQ-01–SQ-33 已由 S-31 裁定：采纳或改写 23 条，已覆盖 3 条（SQ
 | 聚合与表 | 售前投入归属登记、成本核算参数版本、资产类别与折旧政策版本、期初余额、勾稽差异案、口径转换规则版本、期末结转模板版本、现金流量项目表版本、费用事前申请、差旅订单月账单、出差申请、出差补贴标准版本；口径版本（词表已批准） | 见聚合稿 | 表名见 data-model；词表已有：勾稽差异案、口径版本、其他应付 |
 | 事件 | 口径版本已生效、成本核算参数版本已生效、资产类别与折旧政策版本已生效、期初余额已生效、勾稽差异案已关闭、期末结转模板版本已生效、现金流量项目表版本已生效、费用事前申请已批准、差旅月账单已核对、出差申请已批准、出差补贴标准版本已生效；集成事件：差旅订单已推送、差旅月账单已推送、超标订单待审批 | 各 BC | 交 one-glossary |
 | 状态值与结局词 | 已撤销、已用尽、已冲抵、部分冲抵、预付款已登记、已解释、已修正、已豁免、未关闭、编制中、期间关账中待重试、等待发票、差额进下期运行 | 各 BC | 交 one-glossary；「口径转换」与「口径版本」同用「口径」，请判是否同名异义 |
+| 奖金调整（ARC-1022-AFI-01，PEOPLE_APE01_RULINGS 附，提议名） | 命令：生成奖金调整、提交奖金调整过账候选；聚合：奖金调整运行（AGG-139）；表：bonus_adjustment_runs、bonus_adjustment_lines；事件与结局：奖金调整已过账、本期无奖金调整、本期已调整、奖金调整未到条件 | B-07 `cost.costing` | 交 one-glossary |
 
 （用语检查清单，逐字：人工成本分配运行冲销审批、关闭费用事前申请、冲回成本结转、冲销人工成本分配运行、冲销应付利润、出差申请审批、出差补贴标准版本发布确认、分摊运行冲销审批、发布出差补贴标准版本、发布成本核算参数版本、发布现金流量项目表版本、发布资产类别与折旧政策版本、处理账单差异、差旅超标订单审批、归属差旅订单、成本核算参数版本发布确认、批准出差申请、批准差旅超标订单、批准费用事前申请、提交出差申请、提交直接付款申请、提交费用事前申请、撤回出差申请、撤回费用事前申请、期初余额签字确认、标记售前投入已转入、标记售前投入已转费用、核对差旅月账单、现金流量项目表发布、登记其他应付、登记出差申请已同步、登记协议已生效、登记售前投入挂接归属、登记差旅订单与月账单、登记超标订单待审批、登记项目已建立、登记预付款、直接付款审批、确认差旅账单应付、签字确认期初余额、读取归属对象与人员、读取往来方与归属对象、费用事前申请审批、资产类别与折旧政策版本发布确认、起草现金流量项目表版本、驳回出差申请、驳回差旅超标订单、驳回费用事前申请）
 
@@ -544,7 +545,7 @@ U-48 缩窄（S-34 ②）：已过账的应付股利经冲销过账更正，已�
 11. 投产日在用对象初始化（SQ-25）走 platform.migration 导入，来源财务清单或 U8C 导出；company_assets 等表 history_migration 现为 none，应标「初始化」而非「不迁」。
 12. 引用列族已补：AGG-84 journal_entries → AGG-127、journal_entry_lines → AGG-129；AGG-99 → AGG-128；AGG-86 report_line_mappings → AGG-129；AGG-91 company_asset_versions → AGG-124；AGG-59 expense_claims → AGG-130、expense_claim_lines → AGG-132。
 13. 表名用语：presales_investment_attribution、cost_accounting_parameter_version、asset_category_policy_version、opening_balance_set、basis_conversion_rule_version、period_end_carryover_template_version、cash_flow_item_table_version、expense_pre_application、travel_provider_monthly_statement、business_trip_application、travel_allowance_standard_version 待词表登记。
-14. AGG-41 奖金与加班（ARC-1022-AFI-01，BONUS_OVERTIME_COSTING）：`labor_cost_allocation_lines` 加行类型与加班计价、奖金调整列族（按项目、不到人；奖金计提列族随 S-6 移出，按月计提归 B-15）；新增 `labor_cost_allocation_variances`（每运行每员工一行，pi、sensitive）；`labor_cost_allocation_runs` 不引用费率表版本（S-5 撤销 AGG-137，计提率随事实携带）。one-data 2026-10-22 设计层通过附 F1–F6（claude/one-data-handoff-1 @00ab9f42 `data/reviews/ARC-1022-AFI-01-AGG41.md`），已写入表注；待办：差异表保留期须用户认可（D12，随下一张确认页交 one-architecture）；F5 随 AGG-137 撤销不适用；DM-8 仍开；DDL 草案出来再送 one-data。
+14. AGG-41 奖金与加班（ARC-1022-AFI-01，BONUS_OVERTIME_COSTING）：`labor_cost_allocation_lines` 加行类型与加班计价、奖金调整列族（按项目、不到人；奖金计提列族随 S-6 移出，按月计提归 B-15）；新增 `labor_cost_allocation_variances`（每运行每员工一行，pi、sensitive）；`labor_cost_allocation_runs` 不引用费率表版本（S-5 撤销 AGG-137，计提率随事实携带）。one-data 2026-10-22 设计层通过附 F1–F6（claude/one-data-handoff-1 @00ab9f42 `data/reviews/ARC-1022-AFI-01-AGG41.md`），已写入表注；待办：差异表保留期须用户认可（D12，随下一张确认页交 one-architecture）；F5 随 AGG-137 撤销不适用；DM-8 仍开；DDL 草案出来再送 one-data。调整行已移到 AGG-139（`bonus_adjustment_runs`、`bonus_adjustment_lines`），F1、F3 随之移过去，请 one-data 复核新表。
 
 ## 验收场景清单
 
