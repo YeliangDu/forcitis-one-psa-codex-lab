@@ -29,6 +29,18 @@ def shipped_firsts():
         return {t["id"]: t["patterns"][0].strip() for t in json.load(f)["targets"]}
 
 
+def shipped_forms():
+    """{"<target id> <form>": pattern}: the first IP-shaped and the first name-shaped pattern of every target of the shipped table (O2 round 1, note ①: each form is run)."""
+    with open(os.path.join(HERE, "prod_targets.json"), encoding="utf-8") as f:
+        targets = json.load(f)["targets"]
+    forms = {}
+    for target in targets:
+        for pattern in target["patterns"]:
+            form = "ip" if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", pattern.strip()) else "name"
+            forms.setdefault(f"{target['id']} {form}", pattern.strip())
+    return forms
+
+
 def real_samples():
     """(P, H, D) for the 17 cases under the real table."""
     firsts = shipped_firsts()
@@ -104,6 +116,7 @@ def words_self_test():
     assert simple_commands("export SQLCMDSERVER=prod; sqlcmd -Q x")[-1].env == {"SQLCMDSERVER": "prod"} and simple_commands("export A=1; unset A; ls")[-1].env == {}
     assert simple_commands("A=1; export A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; declare -x A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; ls")[-1].env == {}
     assert simple_commands("set -a; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -o allexport; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -a; set +a; A=1; ls")[-1].env == {}
+    assert simple_commands("PGHOST=x; ls")[-1].env == {"PGHOST": "x"} and simple_commands("SQLCMDSERVER=x; sqlcmd")[-1].env == {"SQLCMDSERVER": "x"}, "a target variable may be exported already"
     assert simple_commands("A=1; declare -a A; ls")[-1].env == {} and simple_commands("export B; ls")[-1].env == {}, "an array declaration or an unknown name exports nothing"
     assert argvs("export H=prod; sqlcmd -S\"$H\" -Q x")[-1][:2] == ["sqlcmd", "-Sprod"]
     # unreadable input
@@ -207,6 +220,21 @@ def gate_self_test():
                     f"PGHOST={P}; typeset -x PGHOST; psql -c 'delete from t'", f"set -o allexport; SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"set -ea; PGHOST={P}; psql -c 'delete from t'"):
         assert refused(command), f"exported later must be refused: {command!r}"
     assert allowed("PGHOST=localhost; export PGHOST; psql -c 'delete from t'") and allowed("set -a; PGHOST=localhost; psql -c 'delete from t'"), "an exported non-production host passes"
+    # 5c. a bare assignment to a target variable counts as exported: the variable may be exported already by the process environment or an rc file (O2 round 1, M1)
+    assert refused(f"PGHOST={P}; psql -c 'delete from t'", environ={"PGHOST": "localhost"}), "exported in the environment, reassigned bare"
+    assert refused(f"PGHOST={P}; psql -c 'delete from t'") and refused(f"SQLCMDSERVER={H}; sqlcmd -Q 'delete from t'"), "not in the environment the gate sees (an rc file may export it)"
+    assert allowed("PGHOST=localhost; psql -c 'delete from t'", environ={"PGHOST": "localhost"}) and allowed("PGHOST=localhost; psql -c 'delete from t'"), "a bare assignment to a non-production host passes"
+    # 5d. two-letter remote tool names (xh) count as whole words only, not as substrings (O2 round 1, suggestion)
+    assert allowed("cat exhibit 'oops") and allowed("grep xhr 'oops"), "an unreadable line whose words only contain xh is not this gate's business"
+    assert refused("xh 'oops") and refused("cd x && xh 'oops") and refused("/usr/bin/xh 'oops"), "an unreadable line running xh is refused"
+    real_load = g.load_table
+    try:
+        g.load_table = lambda path=None: (None, "生产特征表（测试）缺失", None)
+        for command, noted in (("xh GET localhost:8080/x", True), ("cat exhibit", False)):
+            code, out, _ = g.decide({"tool_name": "Bash", "tool_input": {"command": command}})
+            assert code == 0 and ("写操作类命令会被拒绝" in out) == noted, ("a broken table is noted for a remote tool only, xh as a word", command, code, out)
+    finally:
+        g.load_table = real_load
     # 6. secrets (bottom line 3) and the environment
     for command in ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"):
         assert refused(command), command
@@ -324,6 +352,7 @@ def gate_self_test():
                 assert could_concern(plain(command)), command
             assert g.INTERPRETER.match(word) or name not in g.INTERPRETERS, word
         assert could_concern(plain("cat sshd_conf 'oops")) and not could_concern(plain("ls ./x")) and not could_concern(plain("echo a. b")), "a substring of a remote tool counts; a dot elsewhere does not"
+        assert could_concern(plain("xh POST x")) and could_concern(plain("a&&xh x")) and not could_concern(plain("cat exhibit xhr")), "xh only as a word (O2 round 1, suggestion)"
         # hook process end to end, with the shipped and a missing table
         script = os.path.join(HERE, "prod_write_gate.py")
 
@@ -355,7 +384,8 @@ def gate_self_test():
 
 def seventeen_self_test():
     """17 例全拦：真实特征表（本仓库 prod_targets.json 加 origin/main 并集）与测试表下各跑；读不懂、未拦的例子逐条列出（只列轮次和编号，不打印命令，免得带出生产值）。
-    真实表下：SAMPLE_IDS 三个 target 的第一项作 P、H、D 跑一轮，再用每个 target 的第一项填满 P、H、D 各跑一轮（O2 复审 M3）。"""
+    真实表下：SAMPLE_IDS 三个 target 的第一项作 P、H、D 跑一轮，再用每个 target 的第一项填满 P、H、D 各跑一轮（O2 复审 M3），
+    每个 target 的每种形态（IP、主机名）的第一项若不是该 target 的第一项，也各填满跑一轮（O2 首轮留意 ①）。"""
     cwd = tempfile.mkdtemp()
     real = load_table()[0]
     firsts = shipped_firsts()
@@ -365,6 +395,9 @@ def seventeen_self_test():
     assert sorted(cases) == list(range(1, 18)) and sum(len(v) for v in cases.values()) >= 17
     test_table = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP, "prod_db_0001"]
     runs = [("真实表 P/H/D", cases, real)] + [(f"真实表 {i}", seventeen(v, v, v), real) for i, v in firsts.items()]
+    forms = shipped_forms()
+    assert {k.rsplit(" ", 1)[1] for k in forms} == {"ip", "name"}, "the shipped table has IP-shaped and name-shaped patterns"
+    runs += [(f"真实表 {k}", seventeen(v, v, v), real) for k, v in forms.items() if v not in firsts.values()]
     runs.append(("测试表", seventeen("pgm-prod0001", TEST_IP, "prod_db_0001"), test_table))
     missed = [(label, n, k) for label, run, table in runs for n, cs in run.items() for k, c in enumerate(cs) if judge(c, table, None, cwd, {}) is None]
     assert not missed, f"生产写门 17 例有未拦的（轮次、例号、第几条）：{missed}"

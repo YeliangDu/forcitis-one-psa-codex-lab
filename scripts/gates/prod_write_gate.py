@@ -276,8 +276,7 @@ def simple_commands(command, depth=0, variables=None, exported=None):
         env, rest = strip_prefix(seg, variables)
         if not rest:
             variables.update(env)  # a bare `NAME=value` stays in effect for the following commands
-            if allexport:
-                exported.update(env)  # after `set -a` / `set -o allexport` it is exported as well
+            exported.update({k: v for k, v in env.items() if allexport or k in ENV_TARGET_VARS})  # exported under `set -a`; a target variable may already be exported by the environment or an rc file (O2 round 1 M1)
             continue
         unresolved, argv = False, []
         for token in rest:
@@ -337,6 +336,8 @@ SQL_TOOLS = {"psql", "mysql", "mariadb", "sqlcmd", "osql", "mssql-cli", "mongosh
 WRITE_ONLY_TOOLS = {"sqlpackage", "sftp"}
 HTTP_TOOLS = {"curl", "wget", "http", "https", "xh", "xhs"}
 REMOTE_TOOLS = SQL_TOOLS | WRITE_ONLY_TOOLS | HTTP_TOOLS | {"bcp", "aliyun", "ssh", "scp", "rsync"}
+LONG_REMOTE = {t for t in REMOTE_TOOLS if len(t) > 2}  # matched as substrings of an unreadable line; two-letter names (xh) only as whole words (SHORT_REMOTE, REMOTE_WORD): `xh` is inside exhibit, xhr…
+SHORT_REMOTE = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(sorted(re.escape(t) for t in REMOTE_TOOLS - LONG_REMOTE)) + r")(?![a-z0-9_-])")
 INTERPRETERS = {"python", "node", "perl", "ruby", "php", "lua", "bash", "sh", "zsh", "dash", "ksh", "source", "."}  # "python" stands for python3, python3.12 …
 RUNS_OTHERS = {"xargs", "find", "script", "parallel", "export", "source"}  # commands that run another command or carry its environment
 INTERPRETER = re.compile(r"^(?:python[0-9.]*|" + "|".join(re.escape(n) for n in sorted(INTERPRETERS - {"python"})) + r")$")
@@ -474,7 +475,7 @@ def readonly_tool_files():  # Repo-relative paths of the committed read-only evi
 
 
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow; a remote tool's name as a substring, as judge reads an unreadable line.
-    if REMOTE_WORD.search(text) or any(t in text for t in REMOTE_TOOLS) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text):
+    if REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text):
         return True
     patterns, problem, _ = load_table()
     return bool(problem) or any(p in text for p in patterns)
@@ -1014,7 +1015,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     try:
         commands = simple_commands(command_text)
     except ValueError:
-        if raw_hit or any(t in plain(command_text) for t in REMOTE_TOOLS):
+        if raw_hit or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE):
             return "命令读不懂（引号未闭合、嵌套过深等）且含生产特征或 psql／ssh／aliyun 等远程工具，无法确认不是连生产的写操作，拒绝。"
         return None
     for index, command in enumerate(commands):
@@ -1060,7 +1061,7 @@ def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict
     reason = judge(command, patterns, problem, cwd)
     if reason:
         return 2, "", reason + "\n"
-    notes = [f"告警：{problem}，写操作类命令会被拒绝。"] if problem and any(t in plain(command) for t in REMOTE_TOOLS) else []
+    notes = [f"告警：{problem}，写操作类命令会被拒绝。"] if problem and (SHORT_REMOTE.search(plain(command)) or any(t in plain(command) for t in LONG_REMOTE)) else []
     if warning and (REMOTE_WORD.search(plain(command)) or "$" in command):
         notes.append(f"告警：{warning}")
     out = json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "\n".join(notes)}}, ensure_ascii=False) + "\n" if notes else ""
