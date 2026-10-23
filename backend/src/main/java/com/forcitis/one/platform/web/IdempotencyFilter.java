@@ -12,16 +12,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +33,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.util.ContentCachingResponseWrapper;
@@ -44,7 +42,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * A write that carries Idempotency-Key gets the first answer again when it is sent again with the same key and the same request
  * within 24 hours; the same key with another request is refused (422). Runs after the security filters, so the key is the signed-in
- * user's own. An answer longer than the stored limit is not stored and the key stays "in progress" until it expires: the write has been
+ * user's own. The request body is read once into a CachedBody, a temporary file when it is large (a file upload), and is limited in size. An answer longer than the stored limit is not stored and the key stays "in progress" until it expires: the write has been
  * done, and running it again on a retry would do it twice.
  */
 @Component
@@ -62,9 +60,15 @@ class IdempotencyFilter extends OncePerRequestFilter {
     private final Duration inProgressTimeout;
     private final IdempotencyScope scope;
     private final MeterRegistry meters;
+    private final long maxBody;
 
     IdempotencyFilter(IdempotentResponses responses, Clock clock, JsonMapper json, IdempotencyScope scope, MeterRegistry meters,
-            @Value("${forcitis.platform.web.idempotency.in-progress-timeout}") Duration inProgressTimeout) {
+            @Value("${forcitis.platform.web.idempotency.in-progress-timeout}") Duration inProgressTimeout,
+            @Value("${forcitis.platform.web.idempotency.max-body-size}") DataSize maxBodySize) {
+        if (maxBodySize.toBytes() < 1) {
+            throw new IllegalArgumentException("forcitis.platform.web.idempotency.max-body-size must be positive");
+        }
+        this.maxBody = maxBodySize.toBytes();
         if (inProgressTimeout.isNegative() || inProgressTimeout.isZero()) {
             throw new IllegalArgumentException("forcitis.platform.web.idempotency.in-progress-timeout must be positive");
         }
@@ -101,8 +105,26 @@ class IdempotencyFilter extends OncePerRequestFilter {
             refuse(response, WebError.PLATFORM_WEB_REQUEST_INVALID, ErrorKind.INVALID);
             return;
         }
-        CachedBodyRequest cached = new CachedBodyRequest(request);
-        String requestHash = hash(request, cached.body());
+        if (request.getContentLengthLong() > maxBody) {
+            refuseTooLarge(request, response);
+            return;
+        }
+        CachedBody body;
+        try {
+            body = CachedBody.read(request.getInputStream(), prefix(request), maxBody);
+        } catch (CachedBody.TooLarge tooLarge) {
+            refuseTooLarge(request, response);
+            return;
+        }
+        try (body) {
+            claimAndRun(request, response, chain, userId, key, body);
+        }
+    }
+
+    private void claimAndRun(HttpServletRequest request, HttpServletResponse response, FilterChain chain, UserId userId, String key, CachedBody body)
+            throws ServletException, IOException {
+        CachedBodyRequest cached = new CachedBodyRequest(request, body);
+        String requestHash = body.hash();
         Instant now = clock.instant();
         if (responses.claim(userId, key, requestHash, now, now.plus(LIFETIME), inProgressTimeout)) {
             runAndStore(userId, key, cached, response, chain);
@@ -174,36 +196,35 @@ class IdempotencyFilter extends OncePerRequestFilter {
         response.getWriter().write(json.writeValueAsString(ProblemDetails.of(code, kind, Map.of())));
     }
 
-    private static String hash(HttpServletRequest request, byte[] body) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            digest.update((request.getMethod() + " " + request.getRequestURI() + "?" + request.getQueryString() + "\n").getBytes(StandardCharsets.UTF_8));
-            digest.update(body);
-            return HexFormat.of().formatHex(digest.digest());
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is part of every Java runtime", e);
-        }
+    private void refuseTooLarge(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        LOG.error("ALERT platform.idempotency request body above {} bytes refused: {}", maxBody, request.getRequestURI());
+        meters.counter("forcitis.platform.web.idempotency.request.oversize").increment();
+        refuse(response, WebError.PLATFORM_WEB_REQUEST_TOO_LARGE, ErrorKind.TOO_LARGE);
+    }
+
+    /** What is hashed before the body: the same bytes sent under another file name or media type are another request. */
+    private static String prefix(HttpServletRequest request) {
+        return request.getMethod() + " " + request.getRequestURI() + "?" + request.getQueryString() + "\n"
+                + request.getHeader("Content-Disposition") + "\n" + request.getContentType() + "\n";
     }
 
     private static final class CachedBodyRequest extends HttpServletRequestWrapper {
-        private final byte[] body;
+        private final CachedBody body;
 
-        CachedBodyRequest(HttpServletRequest request) throws IOException {
+        CachedBodyRequest(HttpServletRequest request, CachedBody body) {
             super(request);
-            this.body = request.getInputStream().readAllBytes();
-        }
-
-        byte[] body() {
-            return body;
+            this.body = body;
         }
 
         @Override
-        public ServletInputStream getInputStream() {
-            ByteArrayInputStream in = new ByteArrayInputStream(body);
+        public ServletInputStream getInputStream() throws IOException {
+            InputStream in = body.open();
             return new ServletInputStream() {
+                private boolean finished;
+
                 @Override
                 public boolean isFinished() {
-                    return in.available() == 0;
+                    return finished;
                 }
 
                 @Override
@@ -217,14 +238,28 @@ class IdempotencyFilter extends OncePerRequestFilter {
                 }
 
                 @Override
-                public int read() {
-                    return in.read();
+                public int read() throws IOException {
+                    int next = in.read();
+                    finished = next == -1;
+                    return next;
+                }
+
+                @Override
+                public int read(byte[] target, int offset, int length) throws IOException {
+                    int count = in.read(target, offset, length);
+                    finished = count == -1;
+                    return count;
+                }
+
+                @Override
+                public void close() throws IOException {
+                    in.close();
                 }
             };
         }
 
         @Override
-        public BufferedReader getReader() {
+        public BufferedReader getReader() throws IOException {
             return new BufferedReader(new InputStreamReader(getInputStream(), StandardCharsets.UTF_8));
         }
     }

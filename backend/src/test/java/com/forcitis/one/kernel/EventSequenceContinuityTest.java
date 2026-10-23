@@ -134,6 +134,15 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("StoredFile: no events, the lock version still moves once per save")
+    void storedFile() {
+        checkMany(() -> com.forcitis.one.platform.file.domain.StoredFile.restore(new com.forcitis.one.platform.file.api.FileId(TestIds.uuid(4)),
+                        com.forcitis.one.platform.file.api.FileSubjectKind.USER, NOW.minus(java.time.Duration.ofDays(3)), false,
+                        com.forcitis.one.platform.file.api.FileStatus.AVAILABLE, 0),
+                List.of(f -> f.expire(NOW, java.time.Duration.ofDays(2))));
+    }
+
+    @Test
     @DisplayName("WorkCalendarYear: events are numbered 1..n")
     void workCalendarYear() {
         checkMany(() -> WorkCalendarYear.unmaintained(TestIds.uuid(3), WorkCalendarKey.defaultFor(2026)), List.of(
