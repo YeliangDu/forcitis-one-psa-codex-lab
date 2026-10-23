@@ -93,7 +93,7 @@ jobs:
           python3 scripts/gates/prod_write_gate.py --self-test
           python3 scripts/gates/pre_tool_dispatch.py --self-test
           python3 scripts/hooks/codex_stdin_gate.py --self-test
-          python3 scripts/hooks/main_checkout_gate.py --self-test
+          python3 scripts/gates/main_checkout_gate.py --self-test
           python3 scripts/hooks/context_handoff.py --self-test
           python3 scripts/ci/light_unit_classes.py --self-test
           python3 scripts/ci/heavy_gate.py --self-test
