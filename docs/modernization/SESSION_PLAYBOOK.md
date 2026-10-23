@@ -30,14 +30,14 @@
 | TEAM-07 | 交接按 `templates/HANDOFF.md`（在途分支与 PR、未完事项、待用户的事、下一步）；压缩前与会话结束时钩子写快照到 `~/.modernize/psa/handoff/`，恢复后先核实况；节点自清：除 one-coordinator 外（intent 2026-10-22-214856；one-architecture 也自清），遇节点（卡交出、推送、开 PR、报完成点、一轮结束）且用量 ≥20%，写交接→报调度→`clear_session(self)`，调度确认后发接续；发给清空中会话的消息经调度转；长期会话的现行事实（资源标识、在建步骤、坑与处置）写在专题文件（OPS_CONTEXT、GLOSSARY_CONTEXT 等），一行一项，不记过程与密钥；改 `.claude/settings.json` 的 PR 合入后 one-merge 列出启动早于合入的会话报调度，调度提醒用户重启（运行中会话不重读 settings；钩子脚本及子调用统一从主检出运行待 GOV-1023-QUA-06，未验收前不得宣称全员生效）；用户要重启 app 或电脑：调度先令全员写交接、核对无后台任务、导出在途卡清单，就绪才答复；重启后按清单恢复对账；开工、恢复、清空后先核实况（`gh pr list`、`mq.py status`、后台任务、交接里的分支），不凭摘要或记忆续做；外部状态用 Monitor 按节奏查，不高频轮询 | 全员；重启协调 one-coordinator、one-merge | 半 | H、快照 |
 | TEAM-14 | 开场钩子注入 ≤8 KB 开工单（身份、当前卡目标与完成标准、交接、近 7 天相关决定）；缺项显式告警（无卡→向调度要卡，卡不完整→报调度，无交接→注明）；节点自清范围内用量 ≥20% 时再注入目标与完成标准（调度不收到）；规范不通读，按 CLAUDE.md 索引与 TEAM 号按需读。开工读开工单与 SESSIONS.md（build_all.py 生成） 与本会话任务卡；STATUS.md、SESSION_LOG.md、`status/` 认领、`session-log/` 已停用 | 全员；开工单 one-quality | 半 | H、开工单 |
 | TEAM-17 | 卡的入口条件不满足（前置卡未完、DD 门禁未签、本卡新业务用语未确认）就停下报调度，不硬做；bc 定后开卡顺序：签发卡（DDL、接口契约、用语）→骨架卡→命令卡（按 TEAM-20 的可验收结果划分）→集成、迁入、页面卡；前提缺项先开签发卡 | 全员 | 无 |  |
-| TEAM-20 | 卡用 `templates/WORK_CARD.md`，必有：目标、完成标准（验收测试编号）、前置卡号、负责会话、单 bc、文件范围、依据、不得做、与 CI 及在途工作的衔接、资源与时限、自测与破坏验证；一卡一个可验收结果、一个负责会话、单 bc，通常 1–3 个 PR、约半天到一天；以能独立验收和推进为拆分依据，不机械按命令或时长拆卡 | one-coordinator | 无 | 待建：QUA-14 |
+| TEAM-20 | 卡用 `templates/WORK_CARD.md`，必有：目标、完成标准（验收测试编号）、前置卡号、负责会话、单 bc、文件范围、依据、不得做、与 CI 及在途工作的衔接、资源与时限、自测与破坏验证；一卡一个可验收结果、一个负责会话、单 bc，通常 1–3 个 PR、约半天到一天；以能独立验收和推进为拆分依据，不机械按命令或时长拆卡 | one-coordinator | 无 | 不建守护（QUA-14 已作废） |
 | TEAM-23 | 任务号 `<主线>-<MMDD>-<会话码>-<nn>`，任务名 `[主线·bc] 动作+对象`（码表 `tasks/_README.md`）；派卡即写 `tasks/<任务号>.md`；PR 标题、代码提交、完成点报告带任务号 | 派卡会话 | 半 | C |
-| TEAM-24 | 卡状态现行取值：已派、进行中、阻塞、完成、作废（check_tasks.py、context_handoff.py 的节点检测都按此）；QUA-14、QUA-17 上线后归一为 5 值：已派、进行中、阻塞、已交、关闭（关闭写结局：合入、作废或并入）；暂缓记为阻塞并写出处；状态变即改「最后更新」，12 小时未更新由 check_tasks.py 列出；唯一工作状态是任务卡片段，画像不写状态，台账仅调度自用，其他会话与画像不引用，要共享的暂停项等写本表或卡；交出、合入通知与回填由既定 QUA-17／MRG-02 自动化承接：finish 核 PR 与复审后写交出标记，合入事件通知负责会话和调度并回填卡状态、用时及 contexts.yaml bc 状态；上述工具上线前由负责会话维护现行状态，未知用时保留未知，不提前使用未上线的状态协议 | 负责会话；自动化 one-quality、one-merge | 半 | T、S；交出／回填待建 QUA-17、MRG-02 |
+| TEAM-24 | 卡状态只取 7 值（intent 2026-10-23-160204，取代原 5 值）：待派（未指定会话）、已派（已指定未开工）、进行中、复审中（PR 在复审或返工）、已合并（交付物已进 main，写 PR 号或提交）、挂起（写恢复条件）、作废（写去向与 intent）；check_tasks.py 只认这 7 值，其他值报错；会话字段必填真实会话；状态变即改「最后更新」，12 小时未更新由 check_tasks.py 列出；唯一工作状态是任务卡片段，画像不写状态，台账仅调度自用，其他会话与画像不引用，要共享的暂停项等写本表或卡；合入通知与回填由 MRG-02 自动化承接（交出标记 QUA-17 已作废，不做）：合入事件通知负责会话和调度并回填卡状态、用时及 contexts.yaml bc 状态；上述工具上线前由负责会话维护现行状态，未知用时保留未知，不提前使用未上线的状态协议；sessions/*.md 画像只由会话本人改，状态只写在卡上（intent 2026-10-23-171926） | 负责会话；自动化 one-quality、one-merge | 半 | T、S；回填待建 MRG-02 |
 | TEAM-42 | 中间改动只提交、不开 PR；工作单元完成（验收、实现、opus 首轮齐备）才开；顺手的小修并入同主题的下一个 PR；叠加 PR 按 TEAM-43，可先开 PR 并行复审、签发，但不得越过 TEAM-17 的实现入口 | 作者 | 无 |  |
-| TEAM-43 | 每个会话同时开着的代码 PR 不超过 3 个；改同一批文件的用 `mq.py enqueue --after` 排序，作者自行同步；允许叠加 PR：后一张卡可用前一张分支为基先开 PR，复审与签发同时进行；批准评论注明「after #<前一张>」仅作依赖留痕，人工入队使用 --after；前一张合入后后一张同步 main、核 head 后再入队（intent 113112、115815） | 作者；one-merge | 半 | Q；在制数量门待建 MRG-04 |
+| TEAM-43 | 每个会话同时开着的代码 PR 不超过 3 个；作者平时不自己合 main，入队时由 mq 同步，gapscan 报冲突再合；改同一批文件的可叠加 PR：后一张卡以前一张分支为基先开 PR，复审与签发同时进行，批准评论注明「after #<前一张>」，按 TEAM-45 核对后自动入队并带 after 依赖，前一张合入后由 mq 同步后一张再合（intent 113112、171926） | 作者；one-merge | 半 | Q；在制数量门待建 MRG-04 |
 | TEAM-52 | PR 模板各栏如实填（断言或测试改动及理由、新增术语、OpenAPI 与架构文档同步、执行者、模型与强度、钩子失败及处置）；不为过测试放宽或删断言，合法变更也须单列理由，opus 首轮必查断言栏；Codex、DeepSeek 产出照常过 PR、CI 与 TEAM-67 复审；卡记返工轮次与用时，同类返工两轮以上收回 Claude，两者分工按同卡对拍定 | 作者；首轮复审；对拍 one-quality | 半 | 断言漂移（仅告警） |
-| TEAM-53 | 常规跨会话状态只在四节点各发一条：开 PR、CI 全绿请批、合入、交接；提交号写进 PR 描述或分支，不单独发。文档类（intent、台账、规则文本、用语、画像、提议稿、任务卡）不开 PR，推到本会话分支、提交信息带任务号，由 one-merge 建合集时自扫远端认领（比 main 多出且只改文档的提交），不再报文档提交号；要调度批或裁的才报调度。文档合集通常每天中午、晚上各收一次（逐个提交、只收 docs/，已批 ADR 的 PR 并入），紧急阻塞按需处理，合入后同步 main；派工、阻塞、安全事件、用户决定及需要对方动作的协调仍须送达，同一事件只报一次。派工与动作请求用 ccd send_message，技术协调直连、不抄送，影响排期或用户决定才报调度；消息一到三行、首行类别、一次说完、长内容给路径，不回纯确认，子会话确需等结果才开完成通知；完成证据与未完项归 PR／卡／交接，不另发结束报号。delivered 只是送达，执行以对方报告或文件为准；限流则写 ~/.modernize/psa/outbox/<会话名>.md（时间、收件会话、一行一条）后继续做，没活写空闲，调度代转并标已转；清空中会话按 TEAM-07 转接；每轮状态声明（GOV-1023-QUA-01）：除 one-coordinator 外，每轮最后一条消息末行写 `状态：继续｜待命｜等调度｜等用户｜完成点`，「等调度」「完成点」须本轮已发消息给调度或已写 outbox，Stop 钩子 `scripts/hooks/stop_status_gate.py` 挡，报告同时落 `~/.modernize/psa/mailbox/` | 全员；文档合集 one-merge；代转 one-coordinator | 无 | 自扫与通知待建：MRG-11、MRG-02 |
-| TEAM-57 | 进不进 git：机密与个人信息永不进；可由库内生成的不入库；他人或 CI 作依据的入库；一人高频自用的不进 main（在线页、本会话分支或 scratchpad）；一事一个权威出处；一次性产出进 `.gitignore`；记忆只放用户个人偏好与指针（≤2 KB），规则回仓库；记忆与仓库冲突以仓库为准并报调度；提议稿（架构、研究草稿）留在分支，到里程碑（评审完成且用户确认）再合，中间版本不进 main；只改片段与源、不改生成产物：`intent/`、`tasks/`、`adr/src/`、`phase1a/infra/legacy-read/`、`glossary/issues/`、`backend/glossary/proposed/*.yaml`（仓库根相对）一条一文件，改后跑 `build_all.py`；产物不入仓、发布到 generated-docs 分支；冲突时不入仓产物 `git rm --cached`，入仓的重新生成 | 全员 | 半 | G、L |
+| TEAM-53 | 常规跨会话状态只在四节点各发一条：开 PR、CI 全绿请批、合入、交接；提交号写进 PR 描述或分支，不单独发。文档类（intent、台账、规则文本、用语、画像、提议稿、任务卡）不开 PR，推到本会话分支、提交信息带任务号，由 one-merge 建合集时自扫远端认领（比 main 多出且只改文档的提交），不再报文档提交号；要调度批或裁的才报调度。文档合集每小时收一次（intent 2026-10-23-171926）（逐个提交、只收 docs/，已批 ADR 的 PR 并入），紧急阻塞按需处理，合入后同步 main；派工、阻塞、安全事件、用户决定及需要对方动作的协调仍须送达，同一事件只报一次。派工与动作请求用 ccd send_message，技术协调直连、不抄送，影响排期或用户决定才报调度；消息一到三行、首行类别、一次说完、长内容给路径，不回纯确认，子会话确需等结果才开完成通知；完成证据与未完项归 PR／卡／交接，不另发结束报号。delivered 只是送达，执行以对方报告或文件为准；限流则写 ~/.modernize/psa/outbox/<会话名>.md（时间、收件会话、一行一条）后继续做，没活写空闲，调度代转并标已转；清空中会话按 TEAM-07 转接；末行状态声明不再强制，Stop 拦截撤除（intent 2026-10-23-155830，随 GOV-1023-QUA-06/07 删钩子，不再加）；报告可落 `~/.modernize/psa/mailbox/` | 全员；文档合集 one-merge；代转 one-coordinator | 无 | 自扫待建：MRG-10（MRG-11 已并入）；通知待建：MRG-02 |
+| TEAM-57 | 进不进 git：机密与个人信息永不进；可由库内生成的不入库；他人或 CI 作依据的入库；一人高频自用的不进 main（在线页、本会话分支或 scratchpad）；一事一个权威出处；一次性产出进 `.gitignore`；记忆只放用户个人偏好与指针（≤2 KB），规则回仓库；记忆与仓库冲突以仓库为准并报调度；提议稿（架构、研究草稿）留在分支，到里程碑（评审完成且用户确认）再合，中间版本不进 main；只改片段与源、不改生成产物：`intent/`、`tasks/`、`adr/src/`、`phase1a/infra/legacy-read/`、`glossary/issues/`、`backend/glossary/proposed/*.yaml`（仓库根相对）一条一文件，调度台账 COORDINATOR_LEDGER 与裁定（rulings）也改为目录一条一文件、索引生成不入仓（intent 2026-10-23-171926），改后跑 `build_all.py`；产物不入仓、发布到 generated-docs 分支；冲突时不入仓产物 `git rm --cached`，入仓的重新生成 | 全员 | 半 | G、L |
 
 ## 3. 角色专属（按职责读取，32 条）
 
@@ -68,12 +68,12 @@
 
 | 号 | 规则 | 负责 | 强制 | 守护索引 |
 |---|---|---|---|---|
-| TEAM-45 | PR 按 TEAM-53 报调度；opus 首轮结论到达后调度对照必改清单及复核材料核准，在 PR 留「调度批准入队 head <sha>」；批准评论只留痕与核 head，不作入队依据，自动入队永久关闭；one-merge 按调度明确批准的清单人工入队，每次 mq.py 入队记录执行会话名，调度每批边界对照批准清单审计，不符报用户，不建独立账号（intent 115815）；批准前核对：产出与报告一致、生成文件可重现、无凭据原值、已采纳 ADR 只改头部可变字段、已应用迁移未改（基线开放期按附 M3）、代码改动符合 RULE_REVIEWS.json 结论、登记文件有 one-data 签发行；head 读取失败或不一致即不入队，已有 MRG-01／07 以本条最新边界实施；发帖侧门（GOV-1023-QUA-03）只防作者会话误发批准评论，同机共用账号下不防有意伪造 | 作者；one-coordinator；one-merge | 半 | G、M、R；签发、入队审计等见待建索引 |
-| TEAM-47 | 合并只由 one-merge 经 mq.py 队列执行，任何会话不得 `gh pr merge` 或网页合并；部署与阻塞相关随时插队；已复审、约 5 个文件内的小 PR 由调度定分组、one-merge 执行合批；one-merge 一轮超过 15 分钟未处理调度批准时，调度可自行 mq.py enqueue（只入队），事后告知 one-merge；该例外按 intent 113916 在 MRG-07 上线后退场，仍遵守 TEAM-45 的人工批准与入队审计，禁止恢复自动入队 | one-merge | 半 | Q；直合门待建 QUA-20 |
-| TEAM-48 | 代码 PR 合并前必过 backend verify、frontend verify、secret scan（非 light）；纯文档道按 TEAM-50；冲突与 CI 红由 one-merge 退回作者并报调度；超 48 小时无进展的 PR 调度追问，推进或关闭 | one-merge | 半 | Q、CI |
+| TEAM-45 | PR 按 TEAM-53 报调度；opus 首轮结论到达后调度对照必改清单及复核材料核准，在 PR 留「调度批准入队 head <sha>」；自动入队（intent 2026-10-23-171926，取代 intent 115815）：mq 对同时满足以下四条的 PR 自动入队——①opus 首轮复审结论为通过或改后通过且必改已复核；②PR 上有调度或 one-quality 的「调度批准入队 head <完整 sha>」评论，且该 sha 等于当前 PR 头；③轻量 CI 必需检查全绿；④与 main 无冲突；mq 记入队事件（时间、批准人、head）；批准后作者再推送即自动出队，须对新头重新批准；调度每批边界对照入队事件审计，不符报用户，不建独立账号；批准前核对：产出与报告一致、生成文件可重现、无凭据原值、已采纳 ADR 只改头部可变字段、已应用迁移未改（基线开放期按附 M3）、代码改动符合 RULE_REVIEWS.json 结论、登记文件有 one-data 签发行；head 读取失败或不一致即不入队，MRG-07 以本条最新边界实施；发帖侧门（GOV-1023-QUA-03）只防作者会话误发批准评论，同机共用账号下不防有意伪造；关键 PR（intent 2026-10-23-164349）：PR 定为第一优先后冻结范围，新想法另开 PR，原 PR 只修复审意见；一个 PR 只做一件事；派出复审 20 分钟无结果即查是否在跑，不在就重派，巡检写明每个在开 PR 卡在哪一步；急 PR 由调度打「急」标记，mq 排最前跑 CI、期间不被 CANCEL-RUN 取消 | 作者；one-coordinator；one-merge | 半 | G、M、R；签发、入队审计等见待建索引 |
+| TEAM-47 | 合并只由 one-merge 经 mq.py 队列执行，任何会话不得 `gh pr merge` 或网页合并；部署与阻塞相关随时插队；已复审、约 5 个文件内的小 PR 由调度定分组、one-merge 执行合批；one-merge 一轮超过 15 分钟未处理调度批准时，调度可自行 mq.py enqueue（只入队），事后告知 one-merge；自动入队按 TEAM-45 条件（intent 2026-10-23-171926）上线后此例外退场；合批：已批准的 2–3 个小 code PR 由 mq 拼成一列跑一次完整 CI 一起合，整列红则二分；保留 --merge（不 squash）、--match-head-commit、HEAD-CHANGED 退回、只认完整版必需检查、main 红两道暂停、只差文档复用 CI、失败只重跑一次；代码 PR 尽量 4 小时内合完，作者平时不自己合 main，入队时由 mq 同步，gapscan 报冲突再合 | one-merge | 半 | Q；直合门不建（QUA-20 已作废） |
+| TEAM-48 | 代码 PR 合并前必过 backend verify、frontend verify、secret scan（非 light）；纯文档道按 TEAM-50；冲突与 CI 红由 one-merge 退回作者并报调度；代码 PR 开出后 4 小时内合入，one-merge 盯，超时报调度推进或关闭（intent 2026-10-23-171926、191447） | one-merge | 半 | Q、CI |
 | TEAM-50 | 快慢两道（队列语义）：分支保护 strict 的试行决定不变；code 道须通过完整三项 CI，docs 道同步 main 后通过轻检查；head 包含当前 main，或仅落后构建与测试均不读取的纯文档提交时可复用有效 CI，否则同步并重跑；无法判明则暂停处理；main 推送或每晚运行变红暂停两道，main 因并行合入变红一次，one-merge 报调度后恢复 strict、结束试行；实时保护设置另核，不以条文代替实况 | one-merge | 半 | Q |
 | TEAM-51 | 入队后作者不再往该分支推（后续改动另开 PR），被退回后再推；推送前核对当前分支；force-push 已开的 PR 先告知调度；合入对象必须是已核 head，head 读取失败或变化即停止入队／合入，退回后重新核准 | 作者 | 半 | Q（已有 head 变化检测；缺失闭合见既有 MRG 卡） |
-| TEAM-67 | 会话主模型按既定角色：执行类 sonnet，调度、架构、结构主线 opus；子代理优先 Codex（intent 081732、083031），Claude 的 opus 保留每个代码或守护 PR 首轮一次、安全判定（授权、凭据、生产授权、数据分级）、ADR 起草与首轮评审、结构设计；安全与生产改动 opus 首轮及修后 opus 终审，一般代码首轮 opus、改后由作者会话交 Codex 复核并贴 PR，调度对照必改清单核过即批、不另派复核（intent 090817）；纯文档作者自检，最多两轮后新发现的非 High 单列残余项，不阻塞；不得重复派同一件事。派子代理（Agent、Workflow agent()）写 model、要求中文回复并指定范围与输出上限；机械取数、常规工程与调研按适配和额度选 Codex，允许的 Claude 机械任务用 haiku、常规用 sonnet；安全、验收、语义与守护自写范围仍按 TEAM-33 | 全员 | 无 | 模型参数待建 QUA-19 |
+| TEAM-67 | 会话主模型按既定角色：执行类 sonnet，调度、架构、结构主线 opus；子代理优先 Codex（intent 081732、083031），Claude 的 opus 保留每个代码或守护 PR 首轮一次、安全判定（授权、凭据、生产授权、数据分级）、ADR 起草与首轮评审、结构设计；安全与生产改动 opus 首轮及修后 opus 终审，一般代码首轮 opus、改后由作者会话交 Codex 复核并贴 PR，调度对照必改清单核过即批、不另派复核（intent 090817）；纯文档作者自检，最多两轮后新发现的非 High 单列残余项，不阻塞；不得重复派同一件事。派子代理（Agent、Workflow agent()）写 model、要求中文回复并指定范围与输出上限；机械取数、常规工程与调研按适配和额度选 Codex，允许的 Claude 机械任务用 haiku、常规用 sonnet；安全、验收、语义与守护自写范围仍按 TEAM-33 | 全员 | 无 | 模型参数不建守护（QUA-19 已作废） |
 | TEAM-72 | 新增或改动的测试类在引入它的 PR 上重复跑 3 遍；每晚按错题本报错特征归类 CI 失败，命中「已落实」条目即判该检查失效须修 | one-quality | 半 | 重复测试、夜间复发 |
 
 ### 3.4 决定记录、专项职责与治理
@@ -83,16 +83,17 @@
 | TEAM-62 | 收件箱是用户决定的唯一处理点：要用户定的写进收件箱（来源、选什么、卡住什么、紧急度），先经调度审题；已在 GitHub 发起的在原 PR 回复并在箱里建指向。不在会话里问用户，一轮结尾也不提问；出题（确认页、批准页、收件箱事项）前对照 `DECISION_DIGEST.md` 并引用条目；与已定决定相悖的列入「待用户裁定」或写明为何重问 | 全员；调度 | 半 | D |
 | TEAM-64 | 确认页按统一模板出：Artifact 加 ArtifactData 自动保存、版式简单、只用系统字体栈；出题会话出页、调度只审题；发布后用浏览器核对渲染（细则 `rules/decide/README.md`） | 出题会话；模板 one-glossary | 半 | D |
 | TEAM-73 | 选框架、标准、选型前写本系统适配研究（要求、代价、收益），出页前派 opus 对抗式评审；外部知识先查 `~/Desktop/公开资料`（kq.py）、`~/Desktop/公开资料研究`（library.sqlite）、`~/Desktop/企业资料`（INDEX.md，个人信息不进会话）原文并引书名页码；架构节点按框架原文判定 | 架构类会话 | 无 |  |
-| TEAM-74 | 周期治理合成一份输出：每周一由调度组织、one-quality 采集守护统计（附表 C ①–③、陈旧卡、超期 ADR 提议、在制 PR、Codex 返工率）与无主设计（无卡或无负责会话的设计稿、提议稿、待建守护），开卡或标不做并写理由；同时报业务功能 PR 合入数、产品代码行数、挂起／冲突／等批准累计摩擦时长及上周对比，不用代码量代替业务验收或人员评价；写入当日日报，替代每周胜任力评审与 ADR 周复审台账，抽审按风险派独立代理回测；每天早上与交接用 get_usage 记额度行，早间简报含昨日合入、主线进度、今日待定，复用同份数据；平时只推里程碑、阻塞、待用户决定，结论先行，只转述用户需知或需定的部分 | one-coordinator；采集 one-quality | 无 | 待建：QUA-23 |
+| TEAM-74 | 周期治理合成一份输出：每周一由调度组织、one-quality 采集守护统计（陈旧卡、超期 ADR 提议、在制 PR、Codex 返工率）与无主设计（无卡或无负责会话的设计稿、提议稿、待建守护），开卡或标不做并写理由；同时报业务功能 PR 合入数、产品代码行数、挂起／冲突／等批准累计摩擦时长及上周对比，不用代码量代替业务验收或人员评价；写入当日日报，替代每周胜任力评审与 ADR 周复审台账，抽审按风险派独立代理回测；每天早上与交接用 get_usage 记额度行，早间简报含昨日合入、主线进度、今日待定，复用同份数据；平时只推里程碑、阻塞、待用户决定，结论先行，只转述用户需知或需定的部分 | one-coordinator；采集 one-quality | 无 | 人工出数（QUA-23 已作废） |
 | TEAM-77 | 用户决定用 `new_intent.py --session=<会话名> "<原话>" "<落点>"` 记；背景与理由只进 intent，不进 ADR、不进本表；用户在任何会话口头作的决定，当场 `new_intent.py` 记原话、报调度、登记收件箱「已定」；同一提交改受影响的规则表条、画像、台账 | 全员 | 无 |  |
-| TEAM-78 | 后台任务与持久配置（定时器、launchd、runner、云上临时资源）建立即登记 `phase1a/infra/RESOURCES.md`，用完清理并记录；会话内定时任务迁到 GitHub 工作流，不依赖会话存活；迁完之前，台账登记在跑的会话内定时任务 | 建立方；资源 one-ops；定时迁移 one-quality | 无 | 定时迁移待建 QUA-22 |
-| TEAM-82 | 改规则：记 intent→改本表原条（不追加「增补」）→同一提交改掉所有引用（grep TEAM 号与旧节号）；新规则取下一号，废止的条留号写「废止：<intent 文件名>」；协作规则只写本表，不开 ADR（ADR-0020 协作规则以本表为准），架构、配置及代码类变更按附 M3；守护状态须核文件存在、注册接线、实际触发范围、自测及负向证据后如实标注，仅部分覆盖标半，待建写卡号，不能有文件就标守；上线同批更新规则与守护索引 | 规则负责会话 | 无 | 待建：QUA-11 |
+| TEAM-78 | 后台任务与持久配置（定时器、launchd、runner、云上临时资源）建立即登记 `phase1a/infra/RESOURCES.md`，用完清理并记录；会话内定时任务迁到 GitHub 工作流，不依赖会话存活；迁完之前，台账登记在跑的会话内定时任务 | 建立方；资源 one-ops；定时迁移 one-quality | 无 | 定时迁移未立卡（QUA-22 已作废），在跑定时登台账 |
+| TEAM-82 | 改规则：记 intent→改本表原条（不追加「增补」）→同一提交改掉所有引用（grep TEAM 号与旧节号）；新规则取下一号，废止的条留号写「废止：<intent 文件名>」；协作规则只写本表，不开 ADR（ADR-0020 协作规则以本表为准），架构、配置及代码类变更按附 M3；守护状态须核文件存在、注册接线、实际触发范围、自测及负向证据后如实标注，仅部分覆盖标半，待建写卡号，不能有文件就标守；上线同批更新规则与守护索引 | 规则负责会话 | 无 | 不建守护（QUA-11 已作废） |
 | TEAM-96 | 迁入读取：表与列按「用途 = 迁入 / 对账」登记读取列；只在集成层适配器内用运行时只读账号读；数据只进适配器与目标库；6e 敏感数据不在 dev 演练（ADR-0036、ADR-0037） | 迁入会话 | 无 |  |
 | TEAM-100 | SECURITY_INVARIANTS、SECURITY_FINDINGS 生产前由 one-architecture 代管，one-security 设立后移交；身份、授权、单人模式改动遵守 SECURITY_INVARIANTS 并走 opus | one-architecture | 无 |  |
 | TEAM-101 | 引入或升级依赖、改 CI 工作流与 runner，按 `SUPPLY_CHAIN.md` S1–S7 | 改动方 | 半 | CI（部分版本） |
-| TEAM-102 | 治理冻结：整改总验收完成起两周不新增规则与守护；事故或安全缺口经用户批准例外，在途整改卡照做（用户 2026-10-23，intent 104603）；待建守护 one-quality 按风险只排前 10，其余标复审或不做并写理由；实施遵守 TEAM-32、TEAM-33、TEAM-67，在途整改范围不能作为新增治理的授权 | one-coordinator | 无 |  |
+| TEAM-102 | 治理冻结：整改总验收完成起两周不新增规则与守护；事故或安全缺口经用户批准例外，在途整改卡照做（用户 2026-10-23，intent 104603）；TEAM-109 的上限检查与瘦身只减不增，冻结期照做，不算新增守护（intent 2026-10-23-191447）；待建守护 one-quality 按风险只排前 10，其余标复审或不做并写理由；实施遵守 TEAM-32、TEAM-33、TEAM-67，在途整改范围不能作为新增治理的授权 | one-coordinator | 无 |  |
 | TEAM-103 | 新守护或收紧既有守护合入前，先对全部在开 PR 跑一遍；会撞上的先修或在 PR 里给过渡期，不得让它首次在队首变红（intent 104603） | 改动方 | 无 | 预跑待建：MRG-10 |
 | TEAM-108 | SSOT 每类一份正本、一个归属会话（intent 2026-10-23-153705）：术语与 BC 名称 glossary/terms.yaml、bcs.yaml→one-glossary；架构、流程→one-architecture（正本路径以 GOV-1023-ARC-01 定稿为准）；业务规则 rules/、RULE_REVIEWS.json→one-glossary；数据 data/ 与数据访问登记表→one-data；决策 intent/ 记原话为唯一来源，ADR 只引 intent 号不抄原话→one-coordinator；团队规则只认本表，MEMORY.md、CLAUDE.md 只引 TEAM 号→one-coordinator；任务 tasks/ 格式与状态枚举由调度定、各会话写自己的卡；资源 phase1a/infra/RESOURCES.md→one-ops。proposals/ 不算权威，脚本不读。开发线（one-1a-par、one-1a-admin、one-platform-file）只写提议目录和自己的卡，改正本提给归属会话，正本 PR 由归属会话提交 | 全员 | 无 | 收编：GOV-1023-ARC-01 |
+| TEAM-109 | 门与钩子的成本与防熵增（intent 2026-10-23-154800、155830、162125）：①上限：scripts/hooks/ 运行代码 ≤2500 行、≤150KB、≤12 个文件，超了 CI 红；推送前预检总耗时预算 60 秒，超了报警，谁加的谁瘦回；②一进一出：新检查（推送前、CI、钩子）须在 PR 写明每次调用耗时、防的事故与删除条件，到上限先删一条再加，写不出的放 CI；③共用函数唯一：命令解析、主检出判断、会话名、读会话记录只许从公共模块调用，CI 查重复实现；④默认失败放行：环境判断出错一律告警放行，只有推送、开 PR、写生产三类允许失败即拦；⑤测试与运行代码分离，自测放 scripts/hooks/tests/ 只在 CI 跑，不随每次调用加载；⑥造检查的会话不得自己验收；改动范围按本次推送算；规则表新增一条须标明退掉哪条；画像沿用开工单 8KB 上限；context_handoff.py 冻结只删不加 | 全员；复核 one-quality | 无 | CI 上限检查待建 GOV-1023-QUA-06；首轮瘦身 QUA-04、QUA-06 |
 
 ## 旧编号并入指向
 
@@ -229,29 +230,29 @@
 | 快照 `precompact_snapshot.sh`、`sessionend_snapshot.sh`、`handoff_snapshot.py`（TEAM-07） | PreCompact／SessionEnd | 本地快照与遮蔽；不是交接完整性门 | 失败告警后放行 | one-quality |
 | 开工单 `postcompact_context.sh`、`start_sheet.py`、`session_context.py`（TEAM-14） | 启动、clear、compact；开工单生成 | 身份、卡目标、交接与路径；8 KB 截断；不是开工批准门 | 缺项告警，截断标记 | one-quality |
 | S `build_sessions.py`（TEAM-02、24） | 画像生成、build_all --check | 名称、字段、上下文路径、交接源、开工单大小；不核独占重叠或正文重复 | 不合规生成失败；旧位置交接问题仅告警 | one-quality；画像 one-coordinator |
-| T `check_tasks.py`（TEAM-24） | 任务汇总／build_all | 状态与陈旧卡检查仍有历史兼容；5 值阻断未上线 | 多数问题告警；完整字段及归一门待 QUA-14 | one-quality |
+| T `check_tasks.py`（TEAM-24） | 任务汇总／build_all | 状态与陈旧卡检查仍有历史兼容；5 值阻断未上线 | 多数问题告警；完整字段及归一门不做（QUA-14 已作废）；七值对齐随 COO-01 | one-quality |
 | G `build_all.py --check`（TEAM-45、57） | 预检、CI、手动生成 | 源片段重建、产物可重现／跟踪状态、配套自测；不证语义正确 | 不一致或子检查失败返回非零 | one-quality；各生成器负责会话 |
-| M `migrations_immutable.py`；R `review_revisions.py`（TEAM-45） | 适用改动预检／CI；build_all 修订核对 | 迁移开放期与不可变边界、原评审字段／追加 revisions；数据签发行门待 QUA-16 | 不合规失败；本地缺比较基线依脚本告警，CI 按其门禁失败 | one-quality；语义 one-data／one-glossary |
+| M `migrations_immutable.py`；R `review_revisions.py`（TEAM-45） | 适用改动预检／CI；build_all 修订核对 | 迁移开放期与不可变边界、原评审字段／追加 revisions；数据签发行门不做（QUA-16 已作废） | 不合规失败；本地缺比较基线依脚本告警，CI 按其门禁失败 | one-quality；语义 one-data／one-glossary |
 | A `acceptance_guard.py`、`acceptance_rulings.py`、`acceptance_reports.py`（TEAM-69） | 验收改动及适用 CI | 目录、trailer、裁定登记、测试报告；不代替独立验收责任 | 不合规失败 | one-quality；独立测试与复审 |
 | 断言漂移 `assertion_drift.py`（TEAM-52） | 测试差异扫描 | 语法级断言变化，不证明断言未削弱 | findings 仅告警，脚本错误失败 | one-quality；首轮复审 |
 | 错题本 `defect_bank_check.py`（TEAM-70） | build_all／CI | 登记及引用；不证明修复实际有效 | 登记不合规失败；有效性须回测 | one-quality |
 | 重复 `repeat_new_tests.py`；复发 `ci_recurrence.py`（TEAM-72） | queued code PR 的重步骤；夜间工作流 | 后端选中 Test／IT，排除及最多 40 类，不含前端；夜间按特征归类 | 选中类任遍失败／无报告失败；超额明示；复发按脚本出报告 | one-quality |
-| D `check_pages.py`（TEAM-62、64） | 适用确认页预检 | 题面规则；外部字体、状态、runtime 的扩充待 QUA-15；不证决定语义 | 已覆盖项不合规失败 | one-quality；模板 one-glossary |
+| D `check_pages.py`（TEAM-62、64） | 适用确认页预检 | 题面规则；外部字体、状态、runtime 的扩充不做（QUA-15 已作废）；不证决定语义 | 已覆盖项不合规失败 | one-quality；模板 one-glossary |
 | L gitleaks 8.30.1（TEAM-57、97） | pre-commit、CI 全历史、本地预检 | 提交／历史密钥模式；不覆盖所有运行时输出，不检查每 worktree 安装 | 命中失败；本地缺工具可能 SKIP，不能代替 CI 或声称完整覆盖 | one-quality；安装各会话 |
-| Q `scripts/merge/mq.py`（TEAM-41、43、47、48、50、51） | 人工 enqueue、runner 取队与合入 | 锁、after、三项完整 CI、主干报警、已记录 head 变化、部分生成物再生成；不拦所有直合；读取 head 失败仍可无记录入队的缺口待既有 MRG 卡修复 | HOLD／退回／HEAD-CHANGED；非生成冲突退作者；自动入队永久关闭、审计边界见 TEAM-45，未实施不标已完成 | one-merge |
+| Q `scripts/merge/mq.py`（TEAM-41、43、47、48、50、51） | 人工 enqueue、runner 取队与合入 | 锁、after、三项完整 CI、主干报警、已记录 head 变化、部分生成物再生成；不拦所有直合；读取 head 失败仍可无记录入队的缺口待 MRG-07（#669）修复 | HOLD／退回／HEAD-CHANGED；非生成冲突退作者；条件自动入队与审计边界见 TEAM-45，未实施不标已完成 | one-merge |
 | CI 供应链／重活槽 `heavy_slot.py`（TEAM-88、101） | 工作流依赖核验；precheck 重步骤 | 部分版本校验；全机两槽排队，不是全部资源与供应链授权门 | 版本不符／槽等待或运行失败非零 | one-quality；资源 one-ops |
 
 ## 附表 C 待建守护（详单 PB_GUARDS_TODO.md；冲突以最新 intent 与本表为准）
 
+10-23 关闭挂起卡（intent 2026-10-23-190923）后只列在做的卡；作废卡（QUA-11、13～17、19～23，MRG-01、03）不再待建。
+
 | 卡号 | 内容 | 实现 |
 |---|---|---|
-| GOV-1022-QUA-11 | ①标「守」的条其守护存在且已注册；TEAM 号引用不悬空 | 自写 |
-| GOV-1022-QUA-13 | ③画像独占路径两两无相交 | Codex |
-| GOV-1022-QUA-14 | ⑤卡状态先归一再 5 值阻断；缺目标或完成标准即失败 | Codex |
-| GOV-1022-QUA-15 | ⑥check_pages 查外部字体、状态值、runtime | Codex |
-| GOV-1022-QUA-16 | ⑦登记文件改动的 PR 须有 one-data 签发行 | 自写 |
-| GOV-1022-COO-17 | ⑧钩子命令匹配防绕过的余项（`$'g\x69t'`、通配符、`bash <<EOF`、`env -S`、`git -c alias.`、`gh -R`） | 自写 |
-| GOV-1022-QUA-17～23、MRG-01～04 | finish.py、自清推全员、子代理 model 必填、拒 `gh pr merge`、PR 尺寸参考报告（不硬拦）、定时迁工作流、周一出数；批准留痕核 head／人工入队审计（自动入队永久关闭）、合入通知及自动回填、重启清单、在制上限 | 见详单 |
+| GOV-1023-MRG-07 | 批准留痕核 head；条件自动入队与入队审计（TEAM-45） | one-merge |
+| GOV-1023-MRG-08 | 代码合批（TEAM-47） | one-ops |
+| GOV-1023-MRG-10 | 冲突提前暴露、整轮 CI 预跑（TEAM-103）、文档合集自扫（TEAM-53） | one-merge |
+| GOV-1022-MRG-02 | 合入通知及自动回填（TEAM-24、53） | one-ops |
+| GOV-1022-MRG-04 | 每会话在制代码 PR 上限（TEAM-43） | one-ops |
 
 ## 附表 D 旧节号对照（逐条详单 PB_MAPPING.md）
 

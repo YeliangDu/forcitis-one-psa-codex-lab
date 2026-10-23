@@ -35,7 +35,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class TimesheetApprovalWithdrawnRenameIT extends P5Support {
 
     static final Path EVENTS = Path.of("../docs/modernization/events");
-    static final Path AGGREGATES = Path.of("../docs/modernization/architecture/ddd/aggregates.yaml");
+    static final Path AGGREGATES = Path.of("../docs/modernization/architecture/ssot/i03-aggregates/built.yaml");
     static final Path MUST_AUDIT = Path.of("../docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml");
     static final String NEW_NAME = "TimesheetApprovalWithdrawn";
 

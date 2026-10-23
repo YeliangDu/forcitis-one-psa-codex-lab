@@ -55,9 +55,9 @@
 | 概念 | 中文 | 本项目怎么用 |
 |---|---|---|
 | Ubiquitous Language | 统一语言 | `glossary/terms.yaml`（ADR-0018） |
-| Bounded Context | 限界上下文 | 一个 BC = 一个模块 = 一个 schema（ADR-0003）。**边界由统一语言与模型的一致范围决定**，同名异义处必须切开；不变量与事务一致性决定的是聚合，不是 BC（DDD Reference 2015「Bounded Context」「Aggregates」两节）【已定】（intent `2026-10-16-112800` L-7）（取代 ADR-0041 版「边界由统一语言的一致范围、不变量与事务一致性决定」的读法）。不由能力或老系统模块决定。技术模块（`platform.web`、`idempotency`、`eventing`、`scheduling` 等）在 `ddd/contexts.yaml` 标 `kind: technical`，不称 BC |
+| Bounded Context | 限界上下文 | 一个 BC = 一个模块 = 一个 schema（ADR-0003）。**边界由统一语言与模型的一致范围决定**，同名异义处必须切开；不变量与事务一致性决定的是聚合，不是 BC（DDD Reference 2015「Bounded Context」「Aggregates」两节）【已定】（intent `2026-10-16-112800` L-7）（取代 ADR-0041 版「边界由统一语言的一致范围、不变量与事务一致性决定」的读法）。不由能力或老系统模块决定。技术模块（`platform.web`、`idempotency`、`eventing`、`scheduling` 等）在 `ssot/d-domain/contexts.yaml` 标 `kind: technical`，不称 BC |
 | Aggregate、Entity、Value Object、Domain Event、Service、Repository | 聚合、实体、值对象、领域事件、领域服务、仓储 | 一个事务只改一个聚合（DATA_DESIGN_CHECKLIST §14 第 1 项）；不变量分 A / B / C 三类（METHOD 第 4 稿第 ④ 步）；聚合与表的对应以数据访问注册表 `aggregate` 字段为准 |
-| Context Map：只用有代码后果的四种关系——Anticorruption Layer、Open-host Service + Published Language、Shared Kernel、Conformist | 上下文映射 | `ddd/context-map.yaml` 登记已建与已认可的规划边，分别标明实现状态，记方向、经由（`api` 或 `events` 契约）与上述关系；含 Q-11 的规划边与聚合随整合确认包 D 册经用户确认后写入，已建边才与代码依赖对账（ADR-0054 迁移第 2 步，intent `2026-10-17-112814`）；防腐层 = `platform.integration`（ADR-0039）。只用四种关系【已定】（L-10，intent `2026-10-16-112800`）。Partnership、Customer/Supplier、Separate Ways 是团队间关系，单团队单体中不用。引用的依赖方式（不校验 / api / 事件）与查环见 METHOD 第 4 稿第 ⑤ 步 |
+| Context Map：只用有代码后果的四种关系——Anticorruption Layer、Open-host Service + Published Language、Shared Kernel、Conformist | 上下文映射 | `ssot/d-domain/context-map.yaml` 登记已建与已认可的规划边，分别标明实现状态，记方向、经由（`api` 或 `events` 契约）与上述关系；含 Q-11 的规划边与聚合随整合确认包 D 册经用户确认后写入，已建边才与代码依赖对账（ADR-0054 迁移第 2 步，intent `2026-10-17-112814`）；防腐层 = `platform.integration`（ADR-0039）。只用四种关系【已定】（L-10，intent `2026-10-16-112800`）。Partnership、Customer/Supplier、Separate Ways 是团队间关系，单团队单体中不用。引用的依赖方式（不校验 / api / 事件）与查环见 METHOD 第 4 稿第 ⑤ 步 |
 | Subdomain | 子域 | **只作命名空间分组**：Java 包、schema、URL、权限码的前缀，与 BC 一起定；已建模块以代码为准，改名另开 ADR。不按 DDD 原意作问题空间分区、不先于 BC【已定】（intent `2026-10-15-221201`）；不做核心 / 支撑 / 通用分类【推出】（ADR-0041 决定 1：三分类已改为「深建模 / 薄 CRUD」一个标记，标在 BC 上） |
 | 深建模 / 薄 CRUD | — | 标在 BC 上：规则密集或触账的 BC 深建模（聚合、不变量、事件），其余薄 CRUD。标记由用户定（ADR-0041 决定 1） |
 | 事件清单推导 | — | 取代事件风暴工作坊：以信息图规则、规则卡与生产取证为输入推导领域事件、命令与聚合，用户裁定（METHOD 第 4 稿第 ④ 步） |
@@ -90,7 +90,7 @@
 
 | 概念 | 中文 | 本项目怎么用 |
 |---|---|---|
-| Baseline / Target / Transition Architecture | 基线 / 目标 / 过渡架构 | 老系统现状 / 全企业目标 / 现状至一次投产的建造与验证状态（`togaf/transitions.yaml`）；W0–W5 不承担生产业务，通用审批先行局部上线仅按 ADR-0054 决定 1 的唯一例外；入口、出口与恢复边界按该 ADR，不逐域切换 |
+| Baseline / Target / Transition Architecture | 基线 / 目标 / 过渡架构 | 老系统现状 / 全企业目标 / 现状至一次投产的建造与验证状态（`ssot/t-transitions/transitions.yaml`）；W0–W5 不承担生产业务，通用审批先行局部上线仅按 ADR-0054 决定 1 的唯一例外；入口、出口与恢复边界按该 ADR，不逐域切换 |
 | Architecture Roadmap | 架构路线图 | W0–W5 建造依赖、统一投产与准入；`transitions.yaml` 与 catalog.stage 随 T 册经用户确认后同批切换，旧 ID 在此之前保留（ADR-0054 迁移第 2 步） |
 
 不用：ADM 全套阶段与治理机制（Architecture Board、Contract、Enterprise Continuum 等）；ABB / SBB 与 BC 不作对应。

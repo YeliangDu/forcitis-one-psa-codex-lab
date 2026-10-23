@@ -9,7 +9,7 @@ Seven classes, each listed in full as `schema.table.column`:
     groups that name patterns cannot see, e.g. idempotent_responses.response_*, timesheets.submitted_date with round_number, are not found; a candidate is not yet a defect)
   5 DEFAULT now() (the application injects the clock, NAMING_STANDARD 2.4a-3); marks columns whose own comment says the time comes from the injected clock; INSERTs that call now()
   6 enumeration CHECK written inline instead of `CONSTRAINT ck_... CHECK`
-  7 enumeration CHECK or seed row holding a value that belongs to a module not built yet (VALUE_OWNER below against togaf/transitions.yaml: delivers of stages that are done or in progress count as built)
+  7 enumeration CHECK or seed row holding a value that belongs to a module not built yet (VALUE_OWNER below against ssot/t-transitions/transitions.yaml: delivers of stages that are done or in progress count as built)
 
 Usage: baseline_ddl_scan.py [--json] [--migrations DIR] | baseline_ddl_scan.py --self-test
 Class 8 counts statements the scan does not model (ALTER / DROP forms, LIKE, PARTITION OF, comments on unknown columns): it must stay 0 for the other counts to be complete.
@@ -26,7 +26,7 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 MIGRATIONS = os.path.join(ROOT, "backend", "src", "main", "resources", "db", "migration")
 PAIRS = os.path.join(ROOT, "scripts", "ci", "baseline_ddl_scan_pairs.txt")
 CLASSIFICATION = os.path.join(ROOT, "backend", "architecture", "data-classification.txt")
-TRANSITIONS = os.path.join(ROOT, "docs", "modernization", "architecture", "togaf", "transitions.yaml")
+TRANSITIONS = os.path.join(ROOT, "docs", "modernization", "architecture", "ssot", "t-transitions", "transitions.yaml")
 FRAMEWORK = re.compile(r"^(?:[a-z_]+\.)?(event_publication|sessions|scheduler_locks)")
 # Values that belong to a module which is not built yet: value -> (owner, module id checked against the built set or None for "never", tables the rule is limited to or None for all).
 # Kept by hand next to the transitions they come from; one-data / one-architecture review it. ORG_SOURCE is a legal source system elsewhere (platform_integration.source_references).

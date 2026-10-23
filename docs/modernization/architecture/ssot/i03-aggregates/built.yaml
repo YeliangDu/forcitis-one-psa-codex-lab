@@ -212,7 +212,18 @@ aggregates:
   - TaskDeadline
   - TaskRegistrar
   - TransferTask
-  events: []
+  events:
+  - platform.approval.ApprovalCompleted
+  - platform.approval.ApprovalRoundStarted
+  - platform.approval.ApprovalTaskBecameOverdue
+  - platform.approval.ApprovalTaskEscalated
+  - platform.approval.TaskAssigned
+  - platform.approval.TaskClaimed
+  - platform.approval.TaskClosed
+  - platform.approval.TaskHandled
+  - platform.approval.TaskReassigned
+  - platform.approval.TaskReleased
+  - platform.approval.TaskTransferred
   events_in_module:
   - platform.approval.ApprovalCompleted
   - platform.approval.ApprovalRoundStarted

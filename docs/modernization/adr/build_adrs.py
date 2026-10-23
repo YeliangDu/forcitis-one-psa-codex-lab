@@ -150,8 +150,8 @@ def load_context():
     except ImportError:
         print("警告：缺少 PyYAML，未校验 BC、阶段取值与旁表（build_all.py --check 会因此失败）", file=sys.stderr)
         return ctx
-    ctx["bcs"] = load_ids(os.path.join(ARCH, "ddd", "contexts.yaml"), "contexts")
-    ctx["stages"] = load_ids(os.path.join(ARCH, "togaf", "transitions.yaml"), "transitions")
+    ctx["bcs"] = load_ids(os.path.join(ARCH, "ssot", "d-domain", "contexts.yaml"), "contexts")
+    ctx["stages"] = load_ids(os.path.join(ARCH, "ssot", "t-transitions", "transitions.yaml"), "transitions")
     cat = os.path.join(BASE, "catalog.yaml")
     if os.path.exists(cat):
         with open(cat, encoding="utf-8") as f:
