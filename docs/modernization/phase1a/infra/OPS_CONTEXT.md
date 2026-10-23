@@ -1,5 +1,19 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-23 晚增补（上下文 21% 时第二次交接；以本节覆盖下面同名项）
+
+- **已完成**：#639（docker 自动拉起脚本）、#640（ci.yml 检查，Codex 复核通过）均已合入；launchd 代理 com.forcitis.docker-watch 已装并运行（90 秒一轮）；**Docker 停机演练经用户撤销**（「去掉这个演练，我不关 docker」），不再监视空档，runner 会话能否 kickstart 未验证；RESOURCES 与任务卡 OPS-1022-OPS-02 已登记。nightly-legacy-it.yml 加同类检查：未做，需要时另开 PR。
+- **生产特征表**：`phase1a/infra/PROD_FINGERPRINT.md`（含第五节两台生产 ECS 只读通道，仅 SDK 工具 b5_legacy_run/b5_evidence_scan/c14_run 只读核实放行），已发 one-quality（#653 用）。
+- **#662（code 道，OPS-1023-OPS-01，分支 claude/one-ops-sql @d00c5a9f1）进行中**：opus 首轮「改后通过」，全文 `~/.modernize/psa/coordinator/reviews/pr662-opus-1.md`。必改①已改并推送（42 个取证 SQL 文件头 ADR-0037 改为第 5 项第 4 条）。**必改②未做：改 PR 正文**，补三项并分开写 check.sh 跑在本机容器、verify 跑在 dev：
+  - dev V6c 两行结果（本会话 2026-10-23 在 dev ECS 经云助手用 one-dev-readonly.pgpass 只读查询）：`t`、`t`（TEMP 缺失 与 search_path 首项为 pg_catalog 的整串匹配）；
+  - 本机容器（postgres:18，跑完自动回收）跑 `c3_dev_db_check.sh`：退出码 0，18 条 PASS、0 条 FAIL，含新增的「runtime and readonly roles hold no temp; runtime search_path starts with pg_catalog」；
+  - 用户批准出处：intent `docs/modernization/intent/2026-10-22-155217-one-coordinator-都做.md`（批准本机起 postgres:18 跑 check.sh、dev 执行 ALTER ROLE one_dev_app SET search_path = pg_catalog, platform_approval 并重连、dev 只读查 TEMP）。
+  还要做：①把 opus 全文贴到 #662 评论；②改 PR 正文后，把 PR diff 交 Codex（`codex exec -m gpt-6.1-sol -c model_reasoning_effort=high -s read-only --ephemeral -o <文件> "<提示>" < /dev/null`）复核并贴 #662；③报 one-coordinator head。opus 建议项（小单元格聚合门槛、库名守卫 ELSE THROW、c3 增量脚本留档、c9 环境守卫、V6c 带标签、脚本迁 scripts/ops/db）：不在本 PR，需要时另开任务，可在 C-3-dev-db.md 执行记录补一行 dev 的 ALTER 留档。
+- **dev 重建**：#644 改了已发布基线，含它的发布部署 dev 前必须走 `runbooks/dev-db-rebuild.md` 重建（先问用户）；重建即清空 event_publication，无需另查大写 processKey。
+- **其他仍等**：RDS 12-01 续费提醒；新 rc 与重建 dev 等调度通知；WORKFORCE_SYNC_ENABLED 保持 true（one-coordinator 10-23 确认）；ClamAV 联调。
+- **待命口径**：用户 10-23 定 one-ops 为「随时待命」，15 分钟内响应，任务交 Codex 或后台子代理。
+- **坑**：zsh 下变量里的多行路径不会按空白拆分，用 `xargs`；macOS 没有 `timeout`；pre-push 的 precheck 第一次偶发 FAIL（生成物），重跑即过；`/private/tmp/claude-501/ra.sh` 是云助手脚本模板（RunCommand + base64 + 轮询），会丢。
+
 ## 2026-10-23 增补（上下文 21% 时交接；以本节覆盖下面的同名项）
 
 - **#637（迁入角色 history_loader，OPS-1022-OPS-03）**：opus 首轮与终审均已过并改完，one-coordinator 已批入队；dev 库已补建 `one_dev_history_loader`（用户经收件箱批准，云助手 t-hz070ulib73ylts，已登记 C-3 手册）。V13 待下次含本 PR 的发布后在 dev 跑；prod 无实例。
