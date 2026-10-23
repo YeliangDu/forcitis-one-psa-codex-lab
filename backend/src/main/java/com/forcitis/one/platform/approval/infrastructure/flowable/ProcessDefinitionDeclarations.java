@@ -12,9 +12,9 @@ import org.flowable.bpmn.model.Process;
  * BPMN file: the name a person reads (the process name attribute) and forcitis:routingFlagRequired value="true|false". A definition
  * without either is a deployment fault, never a default (ADR-0066 decision 4).
  */
-final class ProcessDefinitionData {
+final class ProcessDefinitionDeclarations {
 
-    private ProcessDefinitionData() {
+    private ProcessDefinitionDeclarations() {
     }
 
     static String nameOf(ProcessKey key, Process process) {

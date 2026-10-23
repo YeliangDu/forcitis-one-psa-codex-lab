@@ -77,8 +77,8 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
             BpmnModel model = repository.getBpmnModel(definition.getId());
             try {
                 ProcessDocumentType.read(key, model.getMainProcess());
-                ProcessDefinitionData.nameOf(key, model.getMainProcess());
-                ProcessDefinitionData.routingFlagRequired(key, model.getMainProcess());
+                ProcessDefinitionDeclarations.nameOf(key, model.getMainProcess());
+                ProcessDefinitionDeclarations.routingFlagRequired(key, model.getMainProcess());
             } catch (DomainException e) {
                 problems.add(key + ": " + e.getMessage());
             }

@@ -128,12 +128,12 @@ class FlowableApprovalEngine implements ApprovalEngine {
 
     @Override
     public String processNameOf(ProcessKey processKey) {
-        return ProcessDefinitionData.nameOf(processKey, latestModel(processKey).getMainProcess());
+        return ProcessDefinitionDeclarations.nameOf(processKey, latestModel(processKey).getMainProcess());
     }
 
     @Override
     public boolean routingFlagRequiredOf(ProcessKey processKey) {
-        return ProcessDefinitionData.routingFlagRequired(processKey, latestModel(processKey).getMainProcess());
+        return ProcessDefinitionDeclarations.routingFlagRequired(processKey, latestModel(processKey).getMainProcess());
     }
 
     private BpmnModel latestModel(ProcessKey processKey) {
