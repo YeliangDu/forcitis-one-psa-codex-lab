@@ -71,7 +71,7 @@ meta:
     otr: 881
     evt: 59
     shcat: 6
-    steps: 661
+    steps: 663
     perm: 27
     srole: 7
     role: 56
@@ -67856,6 +67856,16 @@ nodes:
     aggregate: AGG-77
     command: 冲销并重过账
     src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-96.steps[8]
+  - prc: PRC-96
+    step: 9
+    aggregate: AGG-139
+    command: 生成奖金调整
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-96.steps[9]
+  - prc: PRC-96
+    step: 10
+    aggregate: AGG-139
+    command: 提交奖金调整过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-96.steps[10]
   - prc: PRC-97
     step: 1
     aggregate: AGG-40
