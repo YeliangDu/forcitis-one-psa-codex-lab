@@ -35,6 +35,10 @@ GRANT one_dev_owner TO CURRENT_USER WITH INHERIT FALSE, SET TRUE;
 -- 迁移脚本含 CREATE SCHEMA IF NOT EXISTS，PG 在判断 IF NOT EXISTS 之前先检查库级 CREATE 权限
 GRANT CREATE ON DATABASE forcitis_one_dev TO one_dev_owner;
 
+-- 迁入写入角色（ADR-0036、MIGRATION_WRITER_ROLE_DESIGN）：名字必须由属主名把 _owner 换成 _history_loader 得出（触发器精确比对）；
+-- 与属主同批建好，免得 PG 16 起持 CREATEROLE 者抢建同名角色。NOLOGIN、不是属主成员、无 CREATEROLE/CREATEDB，表权限到迁入窗口再授（SELECT、INSERT，禁 UPDATE/DELETE）
+CREATE ROLE one_dev_history_loader NOLOGIN;
+
 CREATE ROLE one_dev_migrator LOGIN INHERIT IN ROLE one_dev_owner CONNECTION LIMIT 2;
 ALTER ROLE one_dev_migrator SET search_path = one_migration, pg_catalog;
 ALTER ROLE one_dev_migrator SET role = one_dev_owner;

@@ -1,10 +1,9 @@
 package com.forcitis.one.platform.approval.domain;
 
-import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.kernel.IdGenerator;
-import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.KernelError;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
@@ -20,6 +19,7 @@ import com.forcitis.one.platform.approval.api.ApprovalRequestId;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.EscalationTarget;
 import com.forcitis.one.platform.approval.api.NodeKey;
@@ -28,21 +28,21 @@ import com.forcitis.one.platform.approval.api.ReturnSource;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
+import com.forcitis.one.platform.approval.api.TaskRecordAction;
+import com.forcitis.one.platform.approval.api.TaskRecordId;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalRoundStarted;
-import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
 import com.forcitis.one.platform.approval.events.TaskClosed;
+import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.approval.events.TaskReassigned;
 import com.forcitis.one.platform.approval.events.TaskReleased;
-import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
-import com.forcitis.one.platform.approval.api.TaskRecordAction;
-import com.forcitis.one.platform.approval.api.TaskRecordId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -346,7 +346,7 @@ public final class ApprovalRequest extends AggregateRoot {
 
     private static void requireReason(Reason reason, String what) {
         if (reason == null) {
-            throw ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED.refusal(what + " needs a reason");
+            throw KernelError.KERNEL_REASON_REQUIRED.refusal(what + " needs a reason");
         }
     }
 

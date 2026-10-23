@@ -3,7 +3,7 @@
 # Usage: scripts/precheck.sh [base-ref] [--run-backend] [--pre-push]
 #   base-ref       defaults to origin/main; the script never fetches, so fetch first if the base may be stale
 #   --run-backend  also run the suggested backend tests (Testcontainers starts containers: ask the user first, CLAUDE.md)
-#   --pre-push     what scripts/hooks/pre_push_gate.py runs before `git push`: the checks above, plus every unit test class that starts no container; no gitleaks history scan, no full frontend verify (CI does both)
+#   --pre-push     what scripts/hooks/pre_push_gate.py runs before `git push`: the checks above, plus the unit test classes that start no container and that the change can affect (all of them when backend/ changed outside module sources); no gitleaks history scan, no full frontend verify (CI does both)
 # A check the change requires but this machine cannot run is a FAIL, not a SKIP (SESSION_PLAYBOOK §11): the term tests when the glossary changed, the frontend
 # when frontend/ or the glossary changed. scripts/hooks/precheck_before_pr.py runs this before `gh pr create` and blocks the PR unless it ends "ready".
 # Reviewers do not run this on a branch they do not trust: it executes the branch's own scripts. CI is the gate there.
@@ -73,10 +73,12 @@ backend_classes() {
   done
 }
 
-# Every unit test class that starts no container and no Spring context (scripts/ci/light_unit_classes.py reads the sources, so a new scan or guard test is included without anyone listing it)
+# The unit test classes that start no container and no Spring context and that the change can affect (scripts/ci/light_unit_classes.py reads the sources, so a new scan or guard test is included without anyone listing it;
+# --changed drops the tests of modules the change did not touch, and anything in backend/ that is not module source brings them all back)
 light_unit_tests() {
   local classes
-  classes=$(py scripts/ci/light_unit_classes.py) || return 1
+  echo "scope: $(py scripts/ci/light_unit_classes.py --changed "$work/changed" --explain)"
+  classes=$(py scripts/ci/light_unit_classes.py --changed "$work/changed") || return 1
   [ -n "$classes" ] || { echo "no light unit test classes found"; return 1; }
   backend_classes "$classes"
 }
@@ -304,10 +306,11 @@ if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(pre
   run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
   run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
 fi
-if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context|context_handoff)\.py)|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
+if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context|start_sheet|context_handoff)\.py)|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
   run_step "guards: playbook_digest (self-test)" py scripts/hooks/playbook_digest.py --self-test
   run_step "guards: handoff (self-test)" py scripts/hooks/handoff_selftest.py --self-test
   run_step "guards: session_context (self-test)" py scripts/hooks/session_context.py --self-test
+  run_step "guards: start_sheet (self-test)" py scripts/hooks/start_sheet.py --self-test
   run_step "guards: context_handoff (self-test)" py scripts/hooks/context_handoff.py --self-test
 fi
 
