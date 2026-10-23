@@ -84,7 +84,7 @@
 
 | 号 | 规则 | 负责 | 强制 | 守护 |
 |---|---|---|---|---|
-| TEAM-53 | 文档类（intent、台账、规则文本、用语、画像、提议稿、任务卡）不开 PR：推送到本会话分支后把「分支 + 提交号 + 一句内容」直接发 one-merge；要调度批或裁的才报调度 | 全员 | 无 | |
+| TEAM-53 | 跨会话消息只在四个节点各发一条：开 PR、CI 全绿请批、合入、交接；提交号写进 PR 描述或分支，不单独发。文档类（intent、台账、规则文本、用语、画像、提议稿、任务卡）不开 PR，推到本会话分支、提交信息带任务号即可，由 one-merge 建合集时自扫远端认领，不再报提交号；要调度批或裁的才报调度（用户 2026-10-23，intent 111209） | 全员 | 半 | 待建：GOV-1023-MRG-11 |
 | TEAM-54 | one-merge 每天中午、晚上各收一次文档合集（逐个提交、只收 docs/，已批 ADR 的 PR 并入），合入后各会话同步 main | one-merge | 无 | |
 | TEAM-55 | 提议稿（架构、研究草稿）留在分支，到里程碑（评审完成且用户确认）再合，中间版本不进 main | 起草会话 | 无 | |
 | TEAM-56 | 只改片段与源、不改生成产物：`intent/`、`tasks/`、`adr/src/`、`phase1a/infra/legacy-read/`、`glossary/issues/`、`backend/glossary/proposed/*.yaml`（仓库根相对）一条一文件，改后跑 `build_all.py`；产物不入仓、发布到 generated-docs 分支；冲突时不入仓产物 `git rm --cached`，入仓的重新生成 | 全员 | 守 | build_all.py --check |
