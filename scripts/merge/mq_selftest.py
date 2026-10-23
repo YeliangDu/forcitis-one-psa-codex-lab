@@ -1,4 +1,5 @@
 """Self-test of mq.py (fake gh, real git for the ssh update, real processes and threads for the queue lock and the lanes). Not run on its own: `mq.py --self-test`."""
+import contextlib
 import importlib.util
 import os
 import re
@@ -1741,6 +1742,22 @@ def _head_changed(mq, d):
     proc, q, log, _ = _proc(mq, d, "h5", gh, [5])
     q.set_head(5, f"{5:040x}")
     assert proc.process(5) == "MERGED" and "UPDATE" in events(log) and "HEAD-CHANGED" not in events(log), events(log)
+    # a runner restarted after the queue's update has no memory of it: the head the queue left is on disk, so the push is still not taken for the author's
+    assert q.head_of(5) == gh.prs[5]["head"] != f"{5:040x}", q.head_of(5)
+    proc2, _, _, _ = _proc(mq, d, "h5", gh, [5])
+    assert proc2.own_head == {} and proc2.head_moved(5, gh.view(5)) is None
+
+    # gh cannot say the head when queueing: the older approval of that number is dropped, not left to be compared
+    gh = FakeGh(); gh.add(7)
+    q = mq.Queue(os.path.join(d, "h7", "merge.queue")); q.enqueue(7); q.set_head(7, f"{7:040x}")
+    real_gh = mq.Gh
+    mq.Gh = lambda: type("Silent", (), {"view": lambda self, n: None})()
+    try:
+        with contextlib.redirect_stderr(open(os.devnull, "w")):
+            mq.record_heads(q, [7])
+    finally:
+        mq.Gh = real_gh
+    assert q.head_of(7) is None, "an old approval must not outlive a failed read"
 
     # no approval on record (queued before this, gh could not say, `once`): nothing to compare
     gh = FakeGh(); gh.add(6)

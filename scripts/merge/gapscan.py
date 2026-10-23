@@ -121,19 +121,23 @@ def scan(gh, queue, directory, log, now=None, prefixes=None):
     gaps = find_gaps(prs, set(queue.numbers()), now, prefixes if prefixes is not None else load_prefixes())
     state_path = os.path.join(directory, "gaps.state.json")
     try:
-        state = json.load(open(state_path, encoding="utf-8"))
+        with open(state_path, encoding="utf-8") as f:
+            state = json.load(f)
         if not isinstance(state, dict):
-            state = {}
-    except (FileNotFoundError, ValueError):
+            raise ValueError("not an object")
+    except FileNotFoundError:
+        state = {}
+    except ValueError as error:
+        log.event("ERROR", None, None, None, f"gap scan: {state_path} is damaged ({error}), starting from an empty state: everything is reported once more")
         state = {}
     fresh = select_new(gaps, state, now)
-    write_atomic(state_path, json.dumps(state))
     if fresh:
         new = {(g["pr"], g["reason"]) for g in fresh}
         text = f"# Open pull requests nobody moves ({now.isoformat(timespec='seconds')}), new since the last report marked *\n\n"
         text += "".join(("* " if (g["pr"], g["reason"]) in new else "  ") + line for g, line in zip(gaps, render(gaps).splitlines(True)))
         write_atomic(os.path.join(directory, "gaps.md"), text)
         log.event("GAPS", None, None, None, f"{len(fresh)} new of {len(gaps)}: " + "; ".join(f"#{g['pr']} {g['session']} {g['reason']}" for g in fresh[:6]) + (" ..." if len(fresh) > 6 else "") + f" (all in {os.path.join(directory, 'gaps.md')})")
+    write_atomic(state_path, json.dumps(state))   # last: a failed gaps.md write must leave the gaps unreported, not spent
     return fresh
 
 

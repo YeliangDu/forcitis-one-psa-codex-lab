@@ -43,7 +43,7 @@
 
 ## 自动化
 
-- 队列脚本 `scripts/merge/mq.py`（2026-10-17 起取代旧 `mq_run2.sh`；队列与日志在 `<git-common-dir>/merge-queue/`，切换步骤见 `quality/MERGE_QUEUE_CUTOVER.md`）；队列事件用 Monitor 盯 `merge.log`（30 分钟到期重挂）。入队、改队列只用 `mq.py enqueue/remove/before`，不手工改队列文件。
+- 队列脚本 `scripts/merge/mq.py`（2026-10-17 起取代旧 `mq_run2.sh`；队列与日志在 `<git-common-dir>/merge-queue/`，切换步骤见 `quality/MERGE_QUEUE_CUTOVER.md`）；队列事件用 Monitor 盯 `merge.log`（30 分钟到期重挂）。Monitor 关键字含 `GAPS|HEAD-CHANGED`：见 `GAPS` 行即把明细（`<队列目录>/gaps.md`）转 one-coordinator 与对应作者会话；见 `HEAD-CHANGED` 行即告知作者会话与 one-coordinator（含新旧 sha），重批后才再入队（GOV-1022-MRG-05/06，one-coordinator 10-23 认可此转发方式；mq.py 在 launchd 里发不了会话消息，无人转发等于没报）。入队、改队列只用 `mq.py enqueue/remove/before`，不手工改队列文件。
 - 守护：推送前钩子 `pre_push_gate.py`、`build_all.py --check`。已知坑：
   - octopus 合并会触发验收测试署名守护（#435）：逐个分支合并。
   - gh 令牌无 workflow 权限：改 `.github/workflows` 的 PR 若需要经 ssh 更新，只更新已批准的 PR 分支并重过门禁；main 一律由受管 `mq.py` 队列按批准清单合入，本会话不手工 `gh pr merge`，不使用 `--admin`，不直推 main。

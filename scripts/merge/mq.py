@@ -884,6 +884,7 @@ class Processor:
                 v = self.gh.view(n) or v
             self.checkpoint(n)
             self.own_head[n] = v["head"]
+            self.queue.set_head(n, v["head"])   # kept on disk too: a runner restarted in the middle must not take the queue's own update for the author's push
             if "queued" not in v["labels"]:
                 if self.gh.label(n, "queued", True):
                     self.log.event("LABEL-QUEUED", n, None, since)
@@ -1159,6 +1160,7 @@ def record_heads(q, numbers):
         if v and v["state"] == "OPEN":
             q.set_head(n, v["head"])
         else:
+            q.drop_head(n)   # an older approval of the same number is not this one
             print(f"mq: could not read the head of #{n}: it is queued without the head check", file=sys.stderr)
 
 
