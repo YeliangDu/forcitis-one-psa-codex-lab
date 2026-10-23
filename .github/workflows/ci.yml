@@ -319,6 +319,12 @@ jobs:
           fetch-depth: 0
       - run: python3 scripts/ci/assertion_drift.py --self-test
       - run: python3 scripts/hooks/pre_push_gate.py --self-test
+      - run: python3 scripts/hooks/command_words.py --self-test
+      - run: python3 scripts/hooks/prod_write_gate.py --self-test
+      - run: python3 scripts/hooks/pre_tool_dispatch.py --self-test
+      - run: python3 scripts/hooks/codex_stdin_gate.py --self-test
+      - run: python3 scripts/hooks/main_checkout_gate.py --self-test
+      - run: python3 scripts/hooks/context_handoff.py --self-test
       - run: python3 scripts/ci/light_unit_classes.py --self-test
       - run: python3 scripts/ci/heavy_gate.py --self-test
       - run: python3 scripts/ci/docker_diagnostics.py --self-test

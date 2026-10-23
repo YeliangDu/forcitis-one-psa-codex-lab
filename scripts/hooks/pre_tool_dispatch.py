@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""One PreToolUse entry point for Bash / Agent / Task: runs the five gates in one process instead of five (GOV-1022-COO-08).
+"""One PreToolUse entry point for Bash / Agent / Task: runs the gates in one process instead of one hook each (GOV-1022-COO-08).
 
-Gates, cheapest first (a refusal by a cheap gate means the slow precheck never starts): bg_task_name_gate, main_checkout_gate, codex_stdin_gate,
+Gates, cheapest first (a refusal by a cheap gate means the slow precheck never starts): bg_task_name_gate, main_checkout_gate, codex_stdin_gate, prod_write_gate (GOV-1022-QUA-24),
 pre_push_gate, precheck_before_pr. Each gate keeps its own file, self-test and exit-code contract; the dispatcher imports a gate only when a
 conservative string pre-filter says the command could concern it, then calls the gate's own guarded entry with the original stdin text.
 Pre-filters only ever skip a gate whose own first step would have allowed the command: they are tested against the gates run on their own (--self-test).
@@ -26,6 +26,7 @@ from pathlib import Path
 HERE = str(Path(__file__).resolve().parent)
 sys.path.insert(0, HERE)
 from command_words import plain  # noqa: E402
+from prod_write_gate import could_concern  # noqa: E402
 
 PI_WORD = re.compile(r"(?<![A-Za-z0-9_])pi(?![A-Za-z0-9_])")
 # (module, entry, applies(tool_name, command_text, tool_input)), cheapest first
@@ -33,6 +34,7 @@ GATES = (
     ("bg_task_name_gate", "guarded_main", lambda tool, text, tool_input: tool in ("Agent", "Task") or (tool == "Bash" and tool_input.get("run_in_background") is True)),
     ("main_checkout_gate", "pre_tool_use_guarded", lambda tool, text, tool_input: tool == "Bash" and "git" in text),
     ("codex_stdin_gate", "guarded_main", lambda tool, text, tool_input: tool == "Bash" and ("codex" in text or PI_WORD.search(text) is not None)),
+    ("prod_write_gate", "guarded_main", lambda tool, text, tool_input: tool == "Bash" and could_concern(text)),
     ("pre_push_gate", "guarded_main", lambda tool, text, tool_input: tool == "Bash" and "git" in text),
     ("precheck_before_pr", "guarded_main", lambda tool, text, tool_input: tool == "Bash" and "gh" in text and "pr" in text),
 )
@@ -130,7 +132,7 @@ def self_test():
     import pre_push_gate as pp
     from codex_stdin_gate import hook_cases
     commands = [command for command, _, _ in hook_cases()]
-    commands += ["ls", "git status", "git log --oneline -3", "echo hi", "gi\"t\" push --no-verify", "git pu\\sh --no-verify", "g\"h\" pr create", "c'o'dex exec p", "git commit -m x", "cd /tmp && git push --no-verify",
+    commands += ["ls", "git status", "git log --oneline -3", "echo hi", "gi\"t\" push --no-verify", "git pu\\sh --no-verify", "g\"h\" pr create", "c'o'dex exec p", "git commit -m x", "cd /tmp && git push --no-verify", "psql -h rm-bp1690ep5" "3t9778dp -c \"delete from t\"", "psql -h localhost -c \"select 1\"", "ssh h 'ls'", "p=rm-bp1690ep; q=53t9778dp; psql -h $p$q -c \"drop table t\"",
                  "git push --no-verify", "git push --dry-run", "git push origin --delete old", "pi -p x", "p\"i\" -p x", "PUSH_BYPASS_REASON= git push --no-verify", "python3 -c 'print(1)'", "pip install x",
                  "cat api.py", "git reset --soft HEAD~1", "git checkout -b x", "bash -c 'git push --no-verify'", "echo $(git push --no-verify)", "gh pr view 3", "gh pr checks 3", "", "   ", "git push", "git push origin HEAD", "gh pr create --title x", "cd /tmp && gh pr create"]
     stubbed = 0
@@ -145,7 +147,7 @@ def self_test():
             continue
         expected_refusals = []
         expected_warn = False
-        for script in ("bg_task_name_gate.py", "main_checkout_gate.py", "codex_stdin_gate.py", "pre_push_gate.py", "precheck_before_pr.py"):
+        for script in ("bg_task_name_gate.py", "main_checkout_gate.py", "codex_stdin_gate.py", "prod_write_gate.py", "pre_push_gate.py", "precheck_before_pr.py"):
             code, out, err = alone(script, raw)
             if code != 0:
                 expected_refusals.append(script)
@@ -160,12 +162,21 @@ def self_test():
     assert stubbed >= 3, "the corpus must include commands that start precheck.sh (covered by the gates' own self-tests)"
 
     # 2. pre-filters: commands no gate cares about start no gate at all
-    for command in ("ls", "echo hi", "python3 x.py", "cat api.py", "pip install x", "npm test", "mvn -q test"):
+    for command in ("ls", "echo hi", "cat api.py", "pip install x", "npm test", "mvn -q test"):
         assert selected(json.loads(payload(command))) == [], command
+    assert "prod_write_gate" in [n for n, _ in selected(json.loads(payload("python3 x.py")))], "an interpreter may run a script that names production"
     assert [n for n, _ in selected(json.loads(payload("git status")))] == ["main_checkout_gate", "pre_push_gate"]
     assert "precheck_before_pr" in [n for n, _ in selected(json.loads(payload("gh pr create")))]
     assert "codex_stdin_gate" in [n for n, _ in selected(json.loads(payload("pi -p x")))] and "codex_stdin_gate" not in [n for n, _ in selected(json.loads(payload("pip install x")))]
     assert "pre_push_gate" in [n for n, _ in selected(json.loads(payload("g\"it\" push")))], "quotes do not hide git from the pre-filter"
+
+    # 2b. the production-write gate is reached through the dispatcher, also behind quotes
+    assert dispatch(payload("aliyun rds DeleteAccount --DBInstanceId rm-bp1690ep5" "3t9778dp"))[0] == 2 and dispatch(payload("aliyun rds DescribeDBInstances --DBInstanceId rm-bp1690ep5" "3t9778dp"))[0] == 0
+    for hostile in ("python3 -c \"connect('rm-bp1690ep5" "3t9778dp')\"", "xargs -I{} sqlcmd -S rm-bp1690ep5" "3t9778dp -Q {}", "sqlcmd -S `echo rm-bp1690ep5" "3t9778dp` -Q 'delete from t'", "bash -lc \"psql -h rm-bp1690ep5" "3t9778dp -c 'drop table t'\"",
+                    "$'\\x73qlcmd' -S rm-bp1690ep5" "3t9778dp -Q 'delete from t'", "bash <<'EOF'\nsqlcmd -S rm-bp1690ep5" "3t9778dp -Q 'delete from t'\nEOF", "env -S 'sqlcmd -S rm-bp1690ep5" "3t9778dp -Q x'", "curl -XPOST https://rm-bp1690ep5" "3t9778dp/x"):
+        assert dispatch(payload(hostile))[0] == 2, hostile
+    assert dispatch(payload("git commit -m 'rm-bp1690ep5" "3t9778dp 说明'"))[0] == 0 and dispatch(payload("psql -h rm-bp1690ep5" "3t9778dp -U one_evidence" "_ro -c 'select 1'"))[0] == 0
+    assert dispatch(payload("al\"\"iyun rds DeleteAccount --DBInstanceId rm-bp1690ep5" "3t9778dp"))[0] == 2 and "prod_write_gate" in [n for n, _ in selected(json.loads(payload("PSQL -c x")))]
 
     # 3. background task names (Bash with run_in_background, Agent, Task) reach their gate through the dispatcher
     bad = json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})
