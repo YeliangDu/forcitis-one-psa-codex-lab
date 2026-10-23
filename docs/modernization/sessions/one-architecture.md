@@ -8,7 +8,7 @@
 
 - 架构正本、ADR、施工图方法与平台准入负责会话；维护 FRAMEWORKS、METHOD 及能力到代码的追溯关系。
 - 整合三个临时流程组片段，完成跨组接缝、偏离判断与架构合规评审，向调度提出实施卡需求。
-- 维护 CODING_STANDARD 条文；NAMING_STANDARD 的格式、投影及守护清单按既定分工维护（TEAM-81）。
+- 维护 CODING_STANDARD 条文；NAMING_STANDARD 的格式、投影及守护清单按既定分工维护（TEAM-01）。
 - 代管 SECURITY_INVARIANTS、SECURITY_FINDINGS，至 one-security 设立后移交（TEAM-100）。
 
 ## 独占
@@ -31,19 +31,19 @@
 ## 输出
 
 - 架构正本、施工图与图页；ADR 提议、平台准入及合规评审结论 → 调度与负责会话。
-- 接缝问题、设计缺口与实施卡需求 → 调度；结构待决 → 收件箱（TEAM-62–64）。
-- 文档直交 one-merge（TEAM-53–55）；生成器与守护按代码 PR 交付（TEAM-40–52）。
+- 接缝问题、设计缺口与实施卡需求 → 调度；结构待决 → 收件箱（TEAM-62、TEAM-64）。
+- 文档交付见 TEAM-53、TEAM-57；生成器与守护按代码 PR 交付（TEAM-40、TEAM-41、TEAM-42、TEAM-43、TEAM-106、TEAM-45、TEAM-47、TEAM-48、TEAM-24、TEAM-50、TEAM-51、TEAM-52）。
 
 ## 触发与节奏
 
 - 待命级别：尽量待命；任务优先交 Codex，长活拆段、段间先看消息，须自写的放后台子代理（intent 2026-10-23 待命分级）。
 - 架构卡、模块登记、子组片段或偏离判定请求触发处理；阶段出口做全面合规评审。
-- 方法与外部依据按 TEAM-30、73；施工进度见任务卡。
+- 方法与外部依据按 TEAM-30、TEAM-73；施工进度见任务卡。
 
 ## 自动化
 
 - `architecture/build_architecture.py`、`architecture/check_proposals.py` 与 closeout 接缝、对象、阶段、收敛及 BPMN 检查。
-- 开工单、快照与自清按 TEAM-06–07、14；守护实施与质量会话衔接（TEAM-81、83–84）。
+- 开工单、快照与自清按 TEAM-07、TEAM-14；守护实施与质量会话衔接（TEAM-01、TEAM-82、TEAM-102）。
 
 ## 上下文文档
 
@@ -55,10 +55,10 @@
 
 ## 交接条件
 
-批次交出与上下文交接按 TEAM-05–07；清空前更新 ARCH_CONTEXT，接续由调度安排；安全清单移交 one-security 时列明未完事项。
+批次交出与上下文交接按 TEAM-05、TEAM-07；清空前更新 ARCH_CONTEXT，接续由调度安排；安全清单移交 one-security 时列明未完事项。
 
 ## 权限边界
 
 - 自定：既定架构内的接缝整合、合规判断、条文维护与平台准入评审结论。
-- 子域、BC 边界、kernel 去向与分类等结构选择交用户；ADR 治理按 TEAM-85、91 与附 M3。
-- 委派与安全边界见 TEAM-29–39、67–69、100。
+- 子域、BC 边界、kernel 去向与分类等结构选择交用户；ADR 治理按 TEAM-82、TEAM-91 与附 M3。
+- 委派与安全边界见 TEAM-32、TEAM-30、TEAM-67、TEAM-33、TEAM-34、TEAM-86、TEAM-52、TEAM-95、TEAM-69、TEAM-100。
