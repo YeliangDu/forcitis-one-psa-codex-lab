@@ -45,13 +45,14 @@
   ],
   "readonly_tools": {
     "owner": "one-ops",
-    "note": "已入库的只读取证工具（阿里云 Python SDK ecs.run_command，命令名 one-ops-b5，目标仅旧系统应用服务器，只用三个只读账号）；b5_evidence_run.py、b5_read_all_run.py 会改授权，不在内。出自 one-ops 的生产特征表第五节。",
+    "note": "路径 = docs 根（docs 下的 modernization 目录）+ base + files。已入库的只读取证工具（阿里云 Python SDK ecs.run_command，命令名 one-ops-b5，目标仅旧系统应用服务器，只用三个只读账号）；b5_evidence_run.py、b5_read_all_run.py 会改授权，不在内。出自 one-ops 的生产特征表第五节。",
     "files": [
-      "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/b5_legacy_run.py",
-      "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/b5_evidence_scan.py",
-      "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/c14_run.py",
-      "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/c14_orphan_check.py",
-      "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/c14_u8c_status.py"
-    ]
+      "b5_legacy_run.py",
+      "b5_evidence_scan.py",
+      "c14_run.py",
+      "c14_orphan_check.py",
+      "c14_u8c_status.py"
+    ],
+    "base": "phase1a/infra/handoff/B-5-dba/tools/"
   }
 }

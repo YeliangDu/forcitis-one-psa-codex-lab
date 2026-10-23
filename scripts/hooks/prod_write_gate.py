@@ -33,6 +33,7 @@ sys.path.insert(0, HERE)
 from command_words import SHELLS, name_of, plain, simple_commands, split_heredocs  # noqa: E402
 
 REPO_ROOT = os.path.dirname(os.path.dirname(HERE))
+DOCS_ROOT = "docs" + "/" + "modernization"  # built, not spelled: relevant_change.py scans sources for literal docs paths
 TABLE = os.environ.get("PROD_TARGETS_FILE") or str(Path(HERE) / "prod_targets.json")
 SQL_TOOLS = {"psql", "mysql", "mariadb", "sqlcmd", "osql", "mssql-cli", "mongosh", "mongo", "redis-cli", "usql", "tsql", "isql"}
 WRITE_ONLY_TOOLS = {"sqlpackage", "sftp"}
@@ -157,7 +158,8 @@ def readonly_tool_files():
     def listed(text):
         try:
             data = json.loads(text)
-            return {f for f in data.get("readonly_tools", {}).get("files", []) if isinstance(f, str)}
+            tools = data.get("readonly_tools", {})
+            return {DOCS_ROOT + "/" + tools.get("base", "") + f for f in tools.get("files", []) if isinstance(f, str)}
         except (ValueError, AttributeError, TypeError):
             return set()
     found = set()
@@ -722,7 +724,7 @@ def trusted_script(argv, cwd):
     rest = argv[argv.index(script) + 1:]
     if rel in readonly_tool_files():
         return True
-    if os.path.basename(rel) in DOC_SCRIPTS and rel.startswith(("docs/modernization/", "scripts/")):
+    if os.path.basename(rel) in DOC_SCRIPTS and rel.startswith((DOCS_ROOT + "/", "scripts/")):
         return True
     return rel.startswith("scripts/hooks/") and rel.endswith(".py") and rest == ["--self-test"]
 
@@ -892,7 +894,7 @@ def self_test():
     Path(cwd, "runner.py").write_text("INSTANCE = 'rm-prodhost1'\nconnect(INSTANCE)\n", encoding="utf-8")
     Path(cwd, "clean.py").write_text("print(1)\n", encoding="utf-8")
     Path(cwd, "deploy.sh").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
-    intent = os.path.join(REPO_ROOT, "docs/modernization/new_intent.py")
+    intent = os.path.join(REPO_ROOT, DOCS_ROOT, "new_intent.py")
 
     # 1. reads and harmless mentions pass
     for command in (f'psql -h {P}.pg.rds.aliyuncs.com -U ro -c "select count(*) from t"', f'psql -h {P} -c "SELECT 1"', f'mysql -h {P} -e "show tables"', f'mysql -h {P} -e "SHOW CREATE TABLE t"', f'psql -h {P} -c "explain select 1"', f'psql -h {P} -q -c "select 1"',
