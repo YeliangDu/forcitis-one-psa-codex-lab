@@ -1,6 +1,6 @@
 # 错题本：one-data
 
-前缀：`DATA`。格式按 `README.md`；交出新产出前逐条回测（SESSION_PLAYBOOK §11 第 11 条）。门禁清单附录 C 的 a–m 是回测发现的清单缺口，已落成清单条目。
+前缀：`DATA`。格式按 `README.md`；交出新产出前逐条回测（SESSION_PLAYBOOK TEAM-71、72）。门禁清单附录 C 的 a–m 是回测发现的清单缺口，已落成清单条目。
 
 ### DATA-001　子代理预审说「信息图没有请假对象」并被转给 one-rules（实有 OBJ-68）
 
@@ -10,7 +10,7 @@
 - **根因**：没有自己 grep 原文就转发了子代理的「缺失」结论
 - **拦下于**：调度（one-coordinator 抽查）；one-architecture 纠正
 - **漏过于**：作者自审、子代理自评
-- **新增检查项**：画像「权限边界」工作守则：「缺失 / 不存在 / 没有」类结论由本会话 grep 原文复核后才对外发（SESSION_PLAYBOOK §11 第 10 条）；落点：`docs/modernization/data/DATA_DESIGN_GATE.md` §7a 第 2 条；画像 `docs/modernization/sessions/one-data.md` 工作守则
+- **新增检查项**：画像「权限边界」工作守则：「缺失 / 不存在 / 没有」类结论由本会话 grep 原文复核后才对外发（SESSION_PLAYBOOK TEAM-70）；落点：`docs/modernization/data/DATA_DESIGN_GATE.md` §7a 第 2 条；画像 `docs/modernization/sessions/one-data.md` 工作守则
 - **状态**：已落实（清单条目，签发时逐条判；读信息图、ADR 才能判，机械化不可行，非机械检查）
 
 ### DATA-002　补审工时单漏掉状态 CHECK（无撤回）与事件目录 `TimesheetCancelled` 不一致，子代理还断言「撤回落在现有状态、CHECK 不用改」

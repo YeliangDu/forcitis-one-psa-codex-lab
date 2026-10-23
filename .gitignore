@@ -8,13 +8,12 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
-# 记录类生成产物不入仓：本地运行 docs/modernization/build_all.py 生成，或看 generated-docs 分支（SESSION_PLAYBOOK §1）
+# 记录类生成产物不入仓：本地运行 docs/modernization/build_all.py 生成，或看 generated-docs 分支（SESSION_PLAYBOOK TEAM-15）
 docs/modernization/INTENT.md
 docs/modernization/DECISION_DIGEST.md
 docs/modernization/SESSION_LOG.md
 docs/modernization/STATUS.md
 docs/modernization/SESSIONS.md
-docs/modernization/sessions/_COMMON.md
 docs/modernization/rules/RULE_INDEX.md
 docs/modernization/WORK_BOARD.md
 docs/modernization/glossary/ISSUES.md
@@ -37,3 +36,5 @@ docs/modernization/architecture/frameworks/NOTES_INDEX.md
 docs/modernization/architecture/panorama/FREEZE_FACTS.md
 docs/modernization/architecture/panorama/FREEZE_FACTS.yaml
 docs/modernization/architecture/panorama/FREEZE_IMPACT.md
+docs/modernization/architecture/panorama/panorama.yaml
+docs/modernization/architecture/panorama/GAPS.md

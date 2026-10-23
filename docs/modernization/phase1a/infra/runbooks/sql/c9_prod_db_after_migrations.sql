@@ -9,7 +9,7 @@ DO $$
 DECLARE t text;
 BEGIN
     FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
-                             'organization_workforce.legal_entity_versions',
+                             'organization_workforce.legal_entity_versions', 'organization_workforce.employee_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
                              'platform_identity.role_versions', 'platform_identity.account_role_grants'] LOOP
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_prod_app', t);
@@ -18,6 +18,9 @@ END $$;
 
 -- 单据类型登记（ADR-0066 决定 4）：行只由迁移写，运行角色只读；与 one_db_roles_schemas.sql §4b 同步。
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FROM one_prod_app;
+
+-- 人事命令只追加（ADR-0068 第 1 条 7）：触发器之外，运行角色也不持有 DELETE 与 TRUNCATE；离职满 10 年的清除经属主的 SECURITY DEFINER 函数。
+REVOKE DELETE, TRUNCATE ON organization_workforce.personnel_commands FROM one_prod_app;
 
 -- 文件服务（ADR-0060、0061、0070；one-data 签发 IMP-1021-COO-02 单元 3）：只追加表与状态转换表运行角色只留 SELECT、INSERT；
 -- 其余表运行角色不持有 DELETE 与 TRUNCATE（保存类别根表可改名称，其余由触发器限定只改状态或确认列）；视图只读。
@@ -35,6 +38,9 @@ REVOKE UPDATE, DELETE, TRUNCATE ON organization_administration.employee_activity
 -- 版本表运行角色只留 SELECT、INSERT、UPDATE（UPDATE 用于确认、撤回，关闭上一版本由触发器完成），不持有 DELETE 与 TRUNCATE。
 REVOKE UPDATE, DELETE, TRUNCATE ON organization_attendance.work_calendars, organization_attendance.work_calendar_version_days FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON organization_attendance.work_calendar_versions FROM one_prod_app;
+
+-- 审计对象类别登记（ADR-0069 第 14 条）：行只由迁移写，运行角色只读；与 one_db_roles_schemas.sql §4b 同步。
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_audit.audit_subject_kinds FROM one_prod_app;
 
 -- 审计月分区预建（ADR-0048）：函数是 SECURITY DEFINER、属主 one_prod_owner，基线已对 PUBLIC 撤销 EXECUTE；运行角色经预建作业调用，缺此授权则 AuditPartitionJob 每天被拒、基线 6 个月分区用尽后审计写入失败。
 -- 与 one_db_roles_schemas.sql §4b 同步；函数随基线迁移建出，故在迁移之后执行。

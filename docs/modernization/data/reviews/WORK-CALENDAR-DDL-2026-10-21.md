@@ -1,7 +1,7 @@
 # 工作日历 DDL 审（`organization_attendance` 基线 V20261014141000）
 
 - 日期：2026-10-21；审者：one-data；对象：origin/main 上 `work_calendar_years`、`work_calendar_days`（注册表 `data-access-registry.yaml` 37–50 行：AGGREGATE_ROOT / MUTABLE / PERMANENT 与 AGGREGATE_CHILD / REPLACE_SET / PERMANENT）。
-- 依据：SESSION_PLAYBOOK §14/§14.1 D6、D8、D12、D15、D17、D19；ADR-0033 第 9 项第 3 点（日历版本表 `work_calendar_versions` / `work_calendar_version_days`、`calendar_scope_kind`、部分唯一索引）；用户 2026-10-15「配置类要四眼确认」（intent 2026-10-15-012200）、2026-10-16「calendar_scope_kind」（intent 2026-10-16-085332）；NAMING_STANDARD；DATA_DESIGN_GATE。
+- 依据：DATA_DESIGN_CHECKLIST §14/§14.1 D6、D8、D12、D15、D17、D19；ADR-0033 第 9 项第 3 点（日历版本表 `work_calendar_versions` / `work_calendar_version_days`、`calendar_scope_kind`、部分唯一索引）；用户 2026-10-15「配置类要四眼确认」（intent 2026-10-15-012200）、2026-10-16「calendar_scope_kind」（intent 2026-10-16-085332）；NAMING_STANDARD；DATA_DESIGN_GATE。
 
 ## 结论
 
@@ -128,7 +128,7 @@
 
 ## 签发（设计层）
 
-数据设计：通过（one-data，2026-10-21，依据 DATA_DESIGN_GATE、SESSION_PLAYBOOK §14.1 D6/D15/D17、ADR-0033 第 9 项、ADR-0072 @545c338f 与更正一至七）。
+数据设计：通过（one-data，2026-10-21，依据 DATA_DESIGN_GATE、DATA_DESIGN_CHECKLIST §14.1 D6/D15/D17、ADR-0033 第 9 项、ADR-0072 @545c338f 与更正一至七）。
 
 范围：日历表结构的设计条件（根表、版本表按 K-2 形状、按天依据、确认须挂官方通知与加休登记、取消调休取值、四眼与迁入例外）。实际迁移与表结构 diff 出来后，我再复核实际 diff；那一步没做之前，不签表结构 PR。
 

@@ -2824,7 +2824,7 @@ terms:
   en: StandardCostRateCard
   snake: standard_cost_rate_card
   kind: aggregate
-  bc: cost.costing
+  bc: masterdata.catalog
   definition: 薪酬脱敏后的版本化政策费率（财务维护）；版本上同时挂奖金计提率，规则类型分合同额百分比与历史比率（默认历史比率），预算、预估、实际三个变体用同一版本（FCQ-01）
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
@@ -2849,7 +2849,8 @@ terms:
   status: approved
   change_ref: G-3
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05：对客侧计费费率卡与成本侧同层，卡、表不混用，英文名本就是
-    Card）（用户裁定，rulings.yaml）；用户 2026-10-22 FCQ-01（intent 2026-10-22-103824）；见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.2（@ed99f3b8）（用户裁定，rulings.yaml）
+    Card）（用户裁定，rulings.yaml）；用户 2026-10-22 FCQ-01（intent 2026-10-22-103824）；见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.2（@ed99f3b8）（用户裁定，rulings.yaml）；ADR-0051 决定 3（AGG-05 标准成本费率表版本归 B-02 masterdata.catalog，用户
+    D-2、i211634「费率放主数据」）；one-architecture 2026-10-22 指出，依据 admission-file @bd451f556 FINANCE_S4_S5_RULINGS_2026-10-22.md S-5（用户裁定，rulings.yaml）
   scope: domain
   note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
 - id: rate_card_version
@@ -8895,9 +8896,9 @@ terms:
   zh: 数据保留期限
   en: DataRetentionPeriod
   snake: data_retention_period
-  kind: command
+  kind: value_object
   bc: platform.integration
-  definition: 把数据留在在线库或归档库的期限，到期后删除或转归档；与「质保金」无关
+  definition: 数据留在在线库或归档库的期限值，到期后删除或转归档；与「质保金」无关。
   standard_ref:
   - phase1a/DATA_SCORECARD.md
   confidence: medium
@@ -8912,7 +8913,7 @@ terms:
   - 保留
   status: approved
   note: 用语确认第三轮转正式（原提议 fix-b2-data.yaml#keep，R3-IN-08）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；one-glossary 2026-10-23 自修：名称已由 R3-IN-08 定，原 kind 误标 command，实为期限值（one-coordinator 审题 gl6-gl7-review-1 页级问题第 10 条）（用户裁定，rulings.yaml）
   scope: domain
 - id: event_quarantine
   zh: 事件隔离区
@@ -13192,7 +13193,7 @@ terms:
   kind: aggregate
   bc: organization.administration
   scope: domain
-  definition: 保存拟用印文件、印章类别、事由、批准结论及实际用印情况的申请。
+  definition: 保存拟用印文件、印章类型、事由、批准结论及实际用印情况的申请。
   standard_ref:
   - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=seal_usage_request]
   confidence: low
@@ -13210,7 +13211,7 @@ terms:
   forbidden:
   - 用印申请记录
   status: approved
-  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）
+  confirmed: 2026-10-17（用户，命名第 3 批确认页，提交 NM3-20261017-105653-1u6）；one-glossary 判定 2026-10-22：与已登记的「印章类型」seal_type（platform.signing）统一，「印章类别」不用（交接清单待办②）（用户裁定，rulings.yaml）
 - id: overtime_record
   zh: 加班记录
   en: OvertimeRecord

@@ -12,7 +12,7 @@
 |---|---|---|
 | 本文件 `CODING_STANDARD.md` | **怎么写代码**：通用写法、语言层规范、测试、日志与密钥、交付前自查。编码规则的唯一入口 | 命名与 DDL 的细则、会话流程 |
 | `NAMING_STANDARD.md` | **叫什么、放哪里**：词源、类名后缀、包结构、列名类别词、约束与索引命名、DDL 设计原则（§2.4a）、守护 G1–G48 / F1–F14 / D1–D3 | 写法与流程 |
-| `SESSION_PLAYBOOK.md` | **怎么干活**：会话、派工、并行、修复批、变更治理、流程梳理、DDD 与数据架构检查清单（§14、§14.1） | 具体写法 |
+| `SESSION_PLAYBOOK.md` | **怎么干活**：会话、派工、并行、修复批、变更治理、流程梳理（DDD 与数据架构检查清单拆在 `DATA_DESIGN_CHECKLIST.md` §14、§14.1） | 具体写法 |
 | `CLAUDE.md` / `AGENTS.md` | 最硬的规则摘要与指向，开工必读 | 细则（以本文件与上两份为准） |
 
 **优先级**（高到低）：用户原话（`intent/`） > 已采纳 ADR > 规格、规则卡、`contract.md` > 本文件、`NAMING_STANDARD.md`、`SESSION_PLAYBOOK.md`（各管各的范围） > 现有代码的写法。现有代码只是证据，不是先例：与本文件不一致的代码按缺陷处理（按 §7.3 走缺陷卡或重构批，不顺手改）。
@@ -22,23 +22,23 @@
 **标注**：
 - `守护：<名>`——CI 中自动检查的测试或脚本；
 - `守护（待实现：G-Cn）`——本文件新提的守护，设计见 §8，实现前靠复审；
-- `复审`——每波 opus 复审逐项检查（SESSION_PLAYBOOK §6「小批复审」）。
+- `复审`——每波 opus 复审逐项检查（SESSION_PLAYBOOK 附 M2）。
 - 出处为 SESSION_PLAYBOOK 的条目，规则列只写规则名，原文以出处链接为准，本文件不转述（避免两处措辞漂移）。
 
 ## 1. 通用
 
 | # | 规则 | 出处 | 检查 |
 |---|---|---|---|
-| CS-1.1 | **代码注释能不写就不写** | [SESSION_PLAYBOOK §5「代码注释能不写就不写」](SESSION_PLAYBOOK.md#5-上下文管理) | 复审 |
-| CS-1.2 | **老代码只作证据，不得照搬** | [SESSION_PLAYBOOK §5「老代码只作证据，不得照搬」](SESSION_PLAYBOOK.md#5-上下文管理) | 守护：`LegacyShapeTest`、ArchitectureRulesTest（G40）；复审（每波 opus 专查「老系统形状」） |
-| CS-1.3 | **领域模块不出现外部或老系统名称**；外部系统只在 `platform.integration` 的适配器内 | CLAUDE.md；SESSION_PLAYBOOK §14 第 8 项 | 守护：`LegacyShapeTest`、`ExternalConnectionIsolationTest`、Modulith（G1） |
-| CS-1.4 | **新标识符、界面文字、表列名先查 `glossary/terms.yaml`** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 5 条](SESSION_PLAYBOOK.md#5-上下文管理)；ADR-0018 | 守护：`GlossaryTest`（G37–G42：G40 聚合根、G41 领域事件按 bc 加类名反查词条，G42 类名技术泛词；存量见 `backend/glossary/code-term-baseline.txt`，只减不增）、`ErrorCodeGlossaryTest`、R-5 中文名唯一检查（错误码全局唯一，其余同一 bc 内唯一）、用语登记规则 `glossary/term_rules.py`（B1）、前端 `pnpm check:copy` |
+| CS-1.1 | **代码注释能不写就不写** | [SESSION_PLAYBOOK 附 M5 第 2 项](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
+| CS-1.2 | **老代码只作证据，不得照搬** | [SESSION_PLAYBOOK 附 M5 第 1 项](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 守护：`LegacyShapeTest`、ArchitectureRulesTest（G40）；复审（每波 opus 专查「老系统形状」） |
+| CS-1.3 | **领域模块不出现外部或老系统名称**；外部系统只在 `platform.integration` 的适配器内 | CLAUDE.md；DATA_DESIGN_CHECKLIST §14 第 8 项 | 守护：`LegacyShapeTest`、`ExternalConnectionIsolationTest`、Modulith（G1） |
+| CS-1.4 | **新标识符、界面文字、表列名先查 `glossary/terms.yaml`** | [SESSION_PLAYBOOK 附 M5「第二批」第 5 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处)；ADR-0018 | 守护：`GlossaryTest`（G37–G42：G40 聚合根、G41 领域事件按 bc 加类名反查词条，G42 类名技术泛词；存量见 `backend/glossary/code-term-baseline.txt`，只减不增）、`ErrorCodeGlossaryTest`、R-5 中文名唯一检查（错误码全局唯一，其余同一 bc 内唯一）、用语登记规则 `glossary/term_rules.py`（B1）、前端 `pnpm check:copy` |
 | CS-1.5 | **命名与位置遵守 `NAMING_STANDARD.md`**，守护不通过不得合并 | CLAUDE.md；NAMING_STANDARD §4 | 守护：G1–G48、D1–D3、F1–F14 |
-| CS-1.6 | **复刻老行为以生产为证据，不凭推测** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 1 条](SESSION_PLAYBOOK.md#5-上下文管理) | 复审 |
-| CS-1.7 | **缺失或无效输入失败并告警，不静默跳过** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 3 条](SESSION_PLAYBOOK.md#5-上下文管理)；SESSION_PLAYBOOK §14 第 5 项、G-T2 | 守护：`CurrentUserGuardTest`（法人不得写死或默认）；其余复审 |
-| CS-1.8 | **只实现当前阶段规格所需** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 4 条](SESSION_PLAYBOOK.md#5-上下文管理) | 复审 |
-| CS-1.9 | **能一开始做对的，不留到后续阶段** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 11 条](SESSION_PLAYBOOK.md#5-上下文管理) | 复审 |
-| CS-1.10 | **契约先行** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 8 条](SESSION_PLAYBOOK.md#5-上下文管理) | 守护：CI「OpenAPI contract unchanged」；PR 模板 |
+| CS-1.6 | **复刻老行为以生产为证据，不凭推测** | [SESSION_PLAYBOOK 附 M5「第二批」第 1 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
+| CS-1.7 | **缺失或无效输入失败并告警，不静默跳过** | [SESSION_PLAYBOOK 附 M5「第二批」第 3 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处)；DATA_DESIGN_CHECKLIST §14 第 5 项、G-T2 | 守护：`CurrentUserGuardTest`（法人不得写死或默认）；其余复审 |
+| CS-1.8 | **只实现当前阶段规格所需** | [SESSION_PLAYBOOK 附 M5「第二批」第 4 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
+| CS-1.9 | **能一开始做对的，不留到后续阶段** | [SESSION_PLAYBOOK 附 M5「第二批」第 11 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
+| CS-1.10 | **契约先行** | [SESSION_PLAYBOOK 附 M5「第二批」第 8 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 守护：CI「OpenAPI contract unchanged」；PR 模板 |
 | CS-1.11 | **强类型**：类型化 ID、值对象、状态枚举、sealed 结果类型；契约中禁止 `Object` / `Map<String, Object>`；前端禁 `any` | GUIDING_PRINCIPLES §10 | 守护：G16、G17、G21–G24、G31、G32、F7 |
 | CS-1.12 | **深模块、窄接口**：模块对外只有 `api` 与 `events`；`api` 方法总数 ≤ 12；前端模块经 `index.ts` 导出 ≤ 8 | NAMING_STANDARD §0 | 守护：G1–G4、G30、F1–F4、F12、F13 |
 | CS-1.13 | **生成的代码只放 `generated/`，不手改**；改生成器或源契约后重新生成 | NAMING_STANDARD §5 | 守护：前端 `pnpm check:generated` |
@@ -53,12 +53,12 @@
 |---|---|---|---|
 | CS-2.1 | 包结构 `com.forcitis.one.<子域>.<BC>.{api,events,domain,application,infrastructure.persistence,web}`；类名后缀只用 NAMING_STANDARD §2.2 表中的写法 | NAMING_STANDARD §2.2、§3 | 守护：G6–G15、G26 |
 | CS-2.2 | **用例一类一个**，动宾命名，唯一 public 方法 `execute` | NAMING_STANDARD §2.2、§5 | 守护：G27（唯一 public 方法；入口名 `execute` 靠复审） |
-| CS-2.3 | **事务边界只在 application**；**一个应用服务只写一个聚合**的仓储，例外登记在 `backend/architecture/multi-aggregate-exceptions.txt` 并附理由 | NAMING_STANDARD G11；SESSION_PLAYBOOK §14 第 1 项、G-T1 | 守护：G11、`SingleAggregateGuardTest` |
-| CS-2.4 | **状态机在聚合内**：只能经领域方法改状态，非法转换抛领域异常；application / infrastructure / SQL 不直接写状态 | SESSION_PLAYBOOK §14 第 2 项 | 守护：`StateWriteGuardTest`、`RepositoryWriteGuardTest`、G16 |
-| CS-2.5 | **事件由聚合产生**：不可变 record、过去式、不以 Event / Request / Command 结尾，负载只含 ID 与值对象，登记事件目录；事件上的业务日期来自参数或聚合状态 | SESSION_PLAYBOOK §14 第 3 项；G5、G29 | 守护：G5、G29、`EventBusinessDateGuardTest` |
-| CS-2.6 | **并发**：可变聚合带 `version`（乐观锁）或用带前置状态条件的更新 | SESSION_PLAYBOOK §14 第 4 项 | 守护：`RepositoryWriteGuardTest`（版本表无条件写须登记） |
-| CS-2.7 | **聚合之间按类型化 ID 引用**，不持有对方对象；跨模块标识不用裸 `String` / `long`；业务单据跨模块用 `kernel.DocumentReference` | SESSION_PLAYBOOK §14 第 6 项 | 守护：G31、`DocumentReferenceGuardTest` |
-| CS-2.8 | **读模型与命令分开**：查询投影经 `*Queries` 端口读，不经加载与保存聚合的仓储 | SESSION_PLAYBOOK §14 第 9 项 | 守护：`ReadModelGuardTest` |
+| CS-2.3 | **事务边界只在 application**；**一个应用服务只写一个聚合**的仓储，例外登记在 `backend/architecture/multi-aggregate-exceptions.txt` 并附理由 | NAMING_STANDARD G11；DATA_DESIGN_CHECKLIST §14 第 1 项、G-T1 | 守护：G11、`SingleAggregateGuardTest` |
+| CS-2.4 | **状态机在聚合内**：只能经领域方法改状态，非法转换抛领域异常；application / infrastructure / SQL 不直接写状态 | DATA_DESIGN_CHECKLIST §14 第 2 项 | 守护：`StateWriteGuardTest`、`RepositoryWriteGuardTest`、G16 |
+| CS-2.5 | **事件由聚合产生**：不可变 record、过去式、不以 Event / Request / Command 结尾，负载只含 ID 与值对象，登记事件目录；事件上的业务日期来自参数或聚合状态 | DATA_DESIGN_CHECKLIST §14 第 3 项；G5、G29 | 守护：G5、G29、`EventBusinessDateGuardTest` |
+| CS-2.6 | **并发**：可变聚合带 `version`（乐观锁）或用带前置状态条件的更新 | DATA_DESIGN_CHECKLIST §14 第 4 项 | 守护：`RepositoryWriteGuardTest`（版本表无条件写须登记） |
+| CS-2.7 | **聚合之间按类型化 ID 引用**，不持有对方对象；跨模块标识不用裸 `String` / `long`；业务单据跨模块用 `kernel.DocumentReference` | DATA_DESIGN_CHECKLIST §14 第 6 项 | 守护：G31、`DocumentReferenceGuardTest` |
+| CS-2.8 | **读模型与命令分开**：查询投影经 `*Queries` 端口读，不经加载与保存聚合的仓储 | DATA_DESIGN_CHECKLIST §14 第 9 项 | 守护：`ReadModelGuardTest` |
 | CS-2.9 | **鉴权**：每个接口方法 `@PreAuthorize` 或 `@PublicEndpoint(reason)`；请求 record 不带调用者身份字段；只有 identity 配置 Spring Security | NAMING_STANDARD G28、G33 | 守护：G28、G33 |
 | CS-2.10 | 禁字段注入、`System.out`、JUL、`java.util.Date`、`@PermitAll`；禁 `BigDecimal.equals` 与 `new BigDecimal(double)`；主代码禁 `Fix*` / `Demo*` / `Mock*` / `Test*` / `Sample*` | NAMING_STANDARD G18、G24、G26 | 守护：G18、G24、G26 |
 | CS-2.11 | 流程引擎只在 `platform.approval.infrastructure`；会计科目只在 `accounting.ledger`；过账只经 `operations.facts` | NAMING_STANDARD G19、G34–G36 | 守护：G19、G34–G36 |
@@ -111,24 +111,24 @@
 - 配置用 `@ConfigurationProperties("forcitis.<子域>.<bc>…")` 的 record 注入，不在代码里散读 `Environment`；配置键前缀由 G46 检查。
 - 不用静态可变单例、不在静态初始化里读配置或时间。
 
-**CS-2.29 领域层不引用外部系统类型**（新增）：外部来源类型（`platform.integration.api` 中的 `Source*`，如 `SourceUnitId`、`SourcePersonId`、`SourceOrgSnapshot`）只在 `platform.integration` 与消费方模块的**防腐翻译处**出现；业务模块的聚合、实体、值对象、`api`、`events` 不持有、不暴露它们，翻译后只用自有类型与自有枚举（SESSION_PLAYBOOK §14.1 D16「外部 ID 只作来源对照列……只在同步防腐层使用」；§14 第 8 项）。守护（待实现：G-C5）。现状：`organization/workforce/domain/` 的 `SourceTerms`、`SnapshotReconciler`、`EmployeeChecks` 引用 `Source*`，须由用户或调度决定翻译处的位置（§10 Q-4）。
+**CS-2.29 领域层不引用外部系统类型**（新增）：外部来源类型（`platform.integration.api` 中的 `Source*`，如 `SourceUnitId`、`SourcePersonId`、`SourceOrgSnapshot`）只在 `platform.integration` 与消费方模块的**防腐翻译处**出现；业务模块的聚合、实体、值对象、`api`、`events` 不持有、不暴露它们，翻译后只用自有类型与自有枚举（DATA_DESIGN_CHECKLIST §14.1 D16「外部 ID 只作来源对照列……只在同步防腐层使用」；§14 第 8 项）。守护（待实现：G-C5）。现状：`organization/workforce/domain/` 的 `SourceTerms`、`SnapshotReconciler`、`EmployeeChecks` 引用 `Source*`，须由用户或调度决定翻译处的位置（§10 Q-4）。
 
 ## 3. SQL 与迁移
 
 | # | 规则 | 出处 | 检查 |
 |---|---|---|---|
 | CS-3.1 | schema、表、列、约束、索引、Flyway 文件命名 | NAMING_STANDARD §2.3、§2.4 | 守护：`DdlNamingTest`、`NamingSurfaceTest`（G44）、`GlossaryTest`（G37–G39） |
-| CS-3.2 | DDL 设计十条：业务唯一约束、外键与查询路径索引、空值与默认值（只许技术默认值）、删除语义、代码格式与文本长度、`text + CHECK` 枚举、`jsonb` 边界、大表分区规划、上线后迁移安全、高频更新行 | NAMING_STANDARD §2.4a；SESSION_PLAYBOOK §14.1 D18 | 守护：`DdlNamingTest` / `DataArchitectureTest`（按各条）；其余复审 |
-| CS-3.3 | **数据设计以 SESSION_PLAYBOOK §14.1 全部条目为准** | [SESSION_PLAYBOOK §14.1](SESSION_PLAYBOOK.md#141-数据架构检查清单用户-2026-10-14问这些表符合olapoltpdama的核心思想吗这么检查对吗后选做并把能自动化的变成守护-recommended) 全部条目 | 守护：`DataArchitectureTest`、`DdlNamingTest`、`PrimaryKeyTypeGuardTest`；其余复审 |
-| CS-3.4 | **自有表主键 UUIDv7**，由 `kernel.IdGenerator` 生成；外部 ID 只作来源对照列；外部代码在防腐层映射为自有枚举 | SESSION_PLAYBOOK §14.1 D16 | 守护：`PrimaryKeyTypeGuardTest` |
-| CS-3.5 | **迁移只追加**；首次生产部署前基线开放期内直接改基线，每个改表 PR 附「预期表结构 diff」（两个空库 `pg_dump --schema-only` 对比），opus 核对；删除开放标记单独成 PR | SESSION_PLAYBOOK §12.2「首次部署前的迁移基线」 | 守护：`scripts/ci/migrations_immutable.py`；复审（diff） |
+| CS-3.2 | DDL 设计十条：业务唯一约束、外键与查询路径索引、空值与默认值（只许技术默认值）、删除语义、代码格式与文本长度、`text + CHECK` 枚举、`jsonb` 边界、大表分区规划、上线后迁移安全、高频更新行 | NAMING_STANDARD §2.4a；DATA_DESIGN_CHECKLIST §14.1 D18 | 守护：`DdlNamingTest` / `DataArchitectureTest`（按各条）；其余复审 |
+| CS-3.3 | **数据设计以 DATA_DESIGN_CHECKLIST §14.1 全部条目为准** | [DATA_DESIGN_CHECKLIST §14.1](DATA_DESIGN_CHECKLIST.md#141-数据架构检查清单用户-2026-10-14问这些表符合olapoltpdama的核心思想吗这么检查对吗后选做并把能自动化的变成守护-recommended) 全部条目 | 守护：`DataArchitectureTest`、`DdlNamingTest`、`PrimaryKeyTypeGuardTest`；其余复审 |
+| CS-3.4 | **自有表主键 UUIDv7**，由 `kernel.IdGenerator` 生成；外部 ID 只作来源对照列；外部代码在防腐层映射为自有枚举 | DATA_DESIGN_CHECKLIST §14.1 D16 | 守护：`PrimaryKeyTypeGuardTest` |
+| CS-3.5 | **迁移只追加**；首次生产部署前基线开放期内直接改基线，每个改表 PR 附「预期表结构 diff」（两个空库 `pg_dump --schema-only` 对比），opus 核对；删除开放标记单独成 PR | SESSION_PLAYBOOK 附 M3「迁移基线」 | 守护：`scripts/ci/migrations_immutable.py`；复审（diff） |
 | CS-3.6 | SQL 只在 `infrastructure.persistence` 的 `Jdbc*Repository` 中，用 `JdbcClient` 与类型化手写映射，不用反射 ORM；只访问本模块 schema；持久化类与访问的表登记在 `architecture/data-access-registry.yaml` | NAMING_STANDARD G10、§3；GUIDING_PRINCIPLES §10；SECURITY_INVARIANTS I-10 | 守护：G10、`DataArchitectureTest`（注册表与 SQL 对照）、`WorkforceSchemaGuardTest` |
 | CS-3.7 | **参数一律绑定**（`:name` 参数），不把值拼进 SQL 文本；动态排序列、动态表名只能取自代码内的白名单枚举（新增） | 新增（SEC 类缺陷的预防） | 守护（待实现：G-C6） |
 | CS-3.8 | SQL 不读数据库时钟；DDL 不写时钟默认值 | R-4；NAMING_STANDARD §2.4a 第 3 条 | 守护：`TimeSourceGuardTest`（SQL 字符串；迁移扫描随 R-4） |
-| CS-3.9 | 已过账事实、审计、版本表只追加；更正靠冲销或新版本 | SESSION_PLAYBOOK §12.3；ADR-0016 | 守护：G34、`DataArchitectureTest`（D8） |
+| CS-3.9 | 已过账事实、审计、版本表只追加；更正靠冲销或新版本 | SESSION_PLAYBOOK 附 M3「已过账事实」；ADR-0016 | 守护：G34、`DataArchitectureTest`（D8） |
 | CS-3.10 | 列表查询只用索引覆盖的游标分页（`cursor` + `limit`，默认 50、上限 200），不内存分页、不全表扫描；排序键以 `id` 兜底（CS-2.21） | GUIDING_PRINCIPLES §7；NAMING_STANDARD §2.4a 第 2 条；NEXT_BATCH_PLAN K-3 | 复审（EXPLAIN 抽查） |
 | CS-3.11 | 建库脚本（C-3、C-9）与参考 DDL、迁移目录的 schema 清单一致 | `db_scripts_aligned.py` 说明 | 守护：`scripts/ci/db_scripts_aligned.py` |
-| CS-3.12 | 交易表上不跑分析；汇总、趋势走 `reporting` | SESSION_PLAYBOOK §14.1 D9；ADR-0025 | 复审 |
+| CS-3.12 | 交易表上不跑分析；汇总、趋势走 `reporting` | DATA_DESIGN_CHECKLIST §14.1 D9；ADR-0025 | 复审 |
 | CS-3.13 | **按中文排序的 SQL 显式写 `COLLATE "zh-x-icu"`**：库的默认排序规则是内建 C.UTF-8（中文按码位排序，测试库与 dev 库一致，DDL-11），需要拼音顺序的 `ORDER BY` 自己带上；键集分页的排序键若带该 `COLLATE`，游标比较与索引也用同一个 | CROSS_CUTTING_DECISIONS XD-03；CROSS_CUTTING_MATRIX CC-I01、G-X2 | 复审（不做 SQL 守护，K-3a 裁定第 5 条） |
 
 ## 4. 前端（React + TypeScript；H5 为 Taro）
@@ -139,7 +139,7 @@
 | CS-4.2 | **接口调用只经生成的客户端**：禁 axios、`fetch`、`XMLHttpRequest`、手写 `/api` URL；只有 `modules/<m>/api` 能 import `@forcitis/api`；类型由 OpenAPI 生成，不手写接口类型 | NAMING_STANDARD §2.3、F5、F10 | 守护：F5、F10、`pnpm check:generated` |
 | CS-4.3 | 模块边界：`app → modules(index) → shared` 单向；跨模块只经 `modules/<m>/index.ts`；禁 `export *`；`model/` 与 `shared/lib` 为纯逻辑 | F1–F4、F9、F12、F13 | 守护：ESLint、`pnpm check:structure`（F13） |
 | CS-4.4 | 命名：ASCII 标识符、文件 kebab-case、组件 PascalCase、hook `useXxx` 且在 `hooks/` | F6、F8 | 守护：ESLint、`pnpm check:structure` |
-| CS-4.5 | **界面文字取词表**：业务名词用 `terms.yaml` 的 `zh`，同一概念全站同一叫法；非业务词登记在 `frontend/scripts/copy-allow-list.yaml` | NAMING_STANDARD §7 第 16 项；SESSION_PLAYBOOK §5 第二批第 5 条 | 守护：`pnpm check:copy` |
+| CS-4.5 | **界面文字取词表**：业务名词用 `terms.yaml` 的 `zh`，同一概念全站同一叫法；非业务词登记在 `frontend/scripts/copy-allow-list.yaml` | NAMING_STANDARD §7 第 16 项；SESSION_PLAYBOOK 附 M5「第二批」第 5 条 | 守护：`pnpm check:copy` |
 | CS-4.6 | **错误提示**：只经 `@forcitis/core` 的 `describeFailure`；每个 `ErrorCode` 在 `error-messages.ts` 中决定文案或明确为 `null`（用 HTTP 状态的通用文案）；页面不直接显示服务端 `detail`、异常 message 或英文；不吞错误，失败要让用户看到可操作的提示 | `packages/core/src/failure.ts`、`error-messages.ts`（现有写法）；CS-1.7 | 守护：`pnpm typecheck`（`Record<ErrorCode, …>` 穷尽）；页面直接读 message（待实现：G-C7） |
 | CS-4.7 | 设计系统：业务模块不直接 import antd 或 Taro 原语；禁内联样式与硬编码颜色；令牌只在 `packages/design-system` 读取 | F14；ADR-0013 | 守护：ESLint、stylelint |
 | CS-4.8 | 安全：禁 `dangerouslySetInnerHTML`；外部链接经 `safe-url` | F11；SEC-008 | 守护：F11；`safe-url` 靠复审 |
@@ -153,16 +153,16 @@
 | # | 规则 | 出处 | 检查 |
 |---|---|---|---|
 | CS-5.1 | **以模块级集成测试为主**：走 HTTP → 鉴权 → 用例 → 领域 → 真实 PostgreSQL（Testcontainers，镜像以 CI 为准，现为 `postgres:18`）；不 mock 自己的模块，外部系统用 WireMock 或替身隔离；单元测试只补边界（值对象、计算、决策表） | GUIDING_PRINCIPLES §9 | 复审 |
-| CS-5.2 | **测试名引用依据编号**：`@DisplayName` 以规则 / 差异 / ADR / 复审 / intent 编号开头（现有写法，如 `@DisplayName("RULE-356 …")`、`"ADR-0027 …"`）；`contract.md` 每条与 ADR 本阶段交付条款都对应至少一个测试 | NAMING_STANDARD §5；SESSION_PLAYBOOK §13「规格到测试的对照」、§6.1 第 3、8 条；G-T4 | 复审；对照守护 G-T4 待实现 |
-| CS-5.3 | **验收测试与实现分开**：测试代理先写并提交验收测试，实现代理只让它转绿、不得修改；目录约定与提交 trailer 见出处 | SESSION_PLAYBOOK §6.1 第 8 条 | 守护：`scripts/ci/acceptance_guard.py`、`acceptance_rulings.py`（裁定尾注须对应已登记裁定）、`acceptance_reports.py` |
-| CS-5.4 | **不为通过测试而放宽或删除断言** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 2 条](SESSION_PLAYBOOK.md#5-上下文管理) | 守护：`scripts/ci/assertion_drift.py`（只警告）；PR 模板；复审 |
-| CS-5.5 | **测试只断言本模块的效果** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 7 条](SESSION_PLAYBOOK.md#5-上下文管理)；SESSION_PLAYBOOK §14 G-T3 | 守护：`TestIsolationGuardTest` |
-| CS-5.6 | **确定性等待，不写宽泛的 `never()`**；另：测试不用 `Thread.sleep` 等时间（新增，现有 6 处） | [SESSION_PLAYBOOK §5「写代码规则第二批」第 7 条](SESSION_PLAYBOOK.md#5-上下文管理)；`Thread.sleep` 一句为本文件新增 | 守护（待实现：G-C8） |
-| CS-5.7 | **测试不写密钥字面量** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 6 条](SESSION_PLAYBOOK.md#5-上下文管理) | 守护：gitleaks（pre-commit、CI） |
+| CS-5.2 | **测试名引用依据编号**：`@DisplayName` 以规则 / 差异 / ADR / 复审 / intent 编号开头（现有写法，如 `@DisplayName("RULE-356 …")`、`"ADR-0027 …"`）；`contract.md` 每条与 ADR 本阶段交付条款都对应至少一个测试 | NAMING_STANDARD §5；SESSION_PLAYBOOK 附 M4、附 M1 第 2、4 条、TEAM-69；G-T4 | 复审；对照守护 G-T4 待实现 |
+| CS-5.3 | **验收测试与实现分开**：测试代理先写并提交验收测试，实现代理只让它转绿、不得修改；目录约定与提交 trailer 见出处 | SESSION_PLAYBOOK 附 M1 第 4 条、TEAM-69 | 守护：`scripts/ci/acceptance_guard.py`、`acceptance_rulings.py`（裁定尾注须对应已登记裁定）、`acceptance_reports.py` |
+| CS-5.4 | **不为通过测试而放宽或删除断言** | [SESSION_PLAYBOOK 附 M5「第二批」第 2 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 守护：`scripts/ci/assertion_drift.py`（只警告）；PR 模板；复审 |
+| CS-5.5 | **测试只断言本模块的效果** | [SESSION_PLAYBOOK 附 M5「第二批」第 7 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处)；DATA_DESIGN_CHECKLIST §14 G-T3 | 守护：`TestIsolationGuardTest` |
+| CS-5.6 | **确定性等待，不写宽泛的 `never()`**；另：测试不用 `Thread.sleep` 等时间（新增，现有 6 处） | [SESSION_PLAYBOOK 附 M5「第二批」第 7 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处)；`Thread.sleep` 一句为本文件新增 | 守护（待实现：G-C8） |
+| CS-5.7 | **测试不写密钥字面量** | [SESSION_PLAYBOOK 附 M5「第二批」第 6 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 守护：gitleaks（pre-commit、CI） |
 | CS-5.8 | 测试用固定 `Clock` 与固定 `IdGenerator`，不依赖运行时刻与 ID 顺序（CS-2.21、CS-2.26） | 新增（由 CS-2.21、CS-2.26 推出） | 复审 |
 | CS-5.9 | **新守护带负向样例**：每条守护有「注入错误被拦下」的测试，失败信息写明「放哪里 / 用什么名字」；例外清单每行附理由，新增例外须复审 | NAMING_STANDARD §4「负向验证」、§5；现有守护的 `injection:` 测试 | 复审 |
-| CS-5.10 | **复审产出失败测试**：Blocker / High / Medium 尽量给出可复现的失败测试，测试名引用复审编号；修复以测试转绿为准 | SESSION_PLAYBOOK §6.1 第 3 条 | 复审 |
-| CS-5.11 | 修复循环只跑受影响模块；交付前与并入整合分支时跑全量与全部守护 | SESSION_PLAYBOOK §6.1 第 6 条；§5 第二批第 9 条 | `scripts/precheck.sh` 给出命令；CI 全量 |
+| CS-5.10 | **复审产出失败测试**：Blocker / High / Medium 尽量给出可复现的失败测试，测试名引用复审编号；修复以测试转绿为准 | SESSION_PLAYBOOK 附 M1 第 2 条 | 复审 |
+| CS-5.11 | 修复循环只跑受影响模块；交付前与并入整合分支时跑全量与全部守护 | SESSION_PLAYBOOK 附 M1 第 3 条；附 M5「第二批」第 9 条 | `scripts/precheck.sh` 给出命令；CI 全量 |
 
 ## 6. 日志、安全与密钥
 
@@ -170,25 +170,25 @@
 |---|---|---|---|
 | CS-6.1 | 日志用 SLF4J，输出 ECS 结构化 JSON（`logging.structured.format.console=ecs`），上下文带 `correlationId`、`userId`；结构化日志键 camelCase、业务键取词表；不用 `System.out`、JUL | `backend/src/main/resources/application.properties`；NAMING_STANDARD G18、§7 第 20 项 | 守护：G18；键名复审 |
 | CS-6.2 | `RESTRICTED`（口令、密钥、会话内容）不进日志、不进异常 message、不出库；`SENSITIVE`（个人信息、工资日薪、银行卡）日志中只记 ID 不记明文 | NAMING_STANDARD §2.5 | 复审；守护（待实现：G-C9） |
-| CS-6.3 | **测试不写密钥字面量**（与 CS-5.7 同一条，此处为密钥视角的索引） | [SESSION_PLAYBOOK §5「写代码规则第二批」第 6 条](SESSION_PLAYBOOK.md#5-上下文管理) | 守护：pre-commit、CI gitleaks、`scripts/precheck.sh` |
-| CS-6.4 | **密钥不进会话记录** | [SESSION_PLAYBOOK §2.1 第 10 条](SESSION_PLAYBOOK.md#21-会话管理用户-2026-10-15-对会话管理十二条答两条都采纳) | 复审 |
-| CS-6.5 | 凭据原值只在 `~/.modernize/psa/`（权限 600）或 KMS，不进任何可共享文件 | SESSION_PLAYBOOK §1、§4 第 6 步 | 守护：gitleaks；复审 |
-| CS-6.6 | 身份、授权、单人模式防线遵守 `phase1a/SECURITY_INVARIANTS.md` 的 I-1…I-13；这类改动不交给 Codex | SECURITY_INVARIANTS；SESSION_PLAYBOOK §5「Codex 派工」 | 守护：各不变量对应测试；复审 |
+| CS-6.3 | **测试不写密钥字面量**（与 CS-5.7 同一条，此处为密钥视角的索引） | [SESSION_PLAYBOOK 附 M5「第二批」第 6 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 守护：pre-commit、CI gitleaks、`scripts/precheck.sh` |
+| CS-6.4 | **密钥不进会话记录** | [SESSION_PLAYBOOK TEAM-97](SESSION_PLAYBOOK.md#12-安全生产与须用户决定) | 复审 |
+| CS-6.5 | 凭据原值只在 `~/.modernize/psa/`（权限 600）或 KMS，不进任何可共享文件 | SESSION_PLAYBOOK TEAM-97 | 守护：gitleaks；复审 |
+| CS-6.6 | 身份、授权、单人模式防线遵守 `phase1a/SECURITY_INVARIANTS.md` 的 I-1…I-13；这类改动不交给 Codex | SECURITY_INVARIANTS；SESSION_PLAYBOOK TEAM-32–38 | 守护：各不变量对应测试；复审 |
 | CS-6.7 | 生产配置不含测试值、固定验证码或 mock 取值 | SECURITY_INVARIANTS I-4 | 守护：`ProductionConfigSanityTest`（按 SECURITY_INVARIANTS） |
-| CS-6.8 | **建账号、起容器、对外调用前先问用户**（Testcontainers 本机临时测试容器除外） | [SESSION_PLAYBOOK §5「写代码规则第二批」第 10 条](SESSION_PLAYBOOK.md#5-上下文管理)；§7 | 复审 |
-| CS-6.9 | **生产取证不逐次请示（两条底线）** | [SESSION_PLAYBOOK §5「生产取证不逐次请示」](SESSION_PLAYBOOK.md#5-上下文管理)、ADR-0037 第 7 项 | 复审 |
+| CS-6.8 | **建账号、起容器、对外调用前先问用户**（Testcontainers 本机临时测试容器除外） | [SESSION_PLAYBOOK 附 M5「第二批」第 10 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处)；TEAM-92 | 复审 |
+| CS-6.9 | **生产取证不逐次请示（两条底线）** | [SESSION_PLAYBOOK TEAM-95](SESSION_PLAYBOOK.md#12-安全生产与须用户决定)、ADR-0037 第 7 项 | 复审 |
 
 ## 7. 交付前自查与 PR
 
 | # | 规则 | 出处 | 检查 |
 |---|---|---|---|
 | CS-7.1 | **交付前运行 `scripts/precheck.sh`**（默认基线 `origin/main`，可传参数），全部 PASS 或有理由的 SKIP 才开 PR；输出贴进 PR「precheck.sh 输出」一栏。脚本会执行分支自带的检查脚本，复审方在不可信分支上不运行 precheck，以 CI 为准 | 用户「A–D 全做」之 C（intent `2026-10-15-014844-one-coordinator-…`） | PR 模板 |
-| CS-7.2 | PR 模板各栏如实填写：改动的断言 / 测试及理由、新增术语、OpenAPI 与架构文档同步、验收测试 trailer、precheck 输出；Codex 实现的在「Codex 实现（模型、强度）」一栏注明 | `.github/pull_request_template.md`；SESSION_PLAYBOOK §5「Codex 派工」 | 复审（调度合并前核对） |
-| CS-7.3 | **只改卡上文件**，越界先报告；缺陷修复、功能补做、结构性重构分开派工、分开提交；缺陷修复手术式（最小改动 + 回归测试），不顺手重构、改名、统一风格 | SESSION_PLAYBOOK §6.1 第 2、9、10 条 | 复审；派工卡模板 `templates/WORK_CARD.md` |
-| CS-7.4 | **记录只改片段**：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `build_all.py` 生成；用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段（文件名由脚本按时刻与会话名生成，不手工起名），改完运行 `build_all.py`；INTENT / SESSION_LOG / STATUS、ADR 拷贝与索引、brief 等生成产物都不入仓（只提交片段或源；本地运行 `build_all.py` 或看 generated-docs 分支）；不直接编辑生成产物 | SESSION_PLAYBOOK §4 第 0 步、§8 | 守护：`build_all.py --check` |
-| CS-7.5 | **变更治理自查**：已采纳 ADR 只改状态行；新 ADR 带四个必备小节；代码类改动先有 `RULE_REVIEWS.json` 结论；配置变更登记版本与生效日期 | SESSION_PLAYBOOK §4 第 6 步、§12 | 守护：`adr/build_adrs.py`（经 `build_all.py`）；复审 |
-| CS-7.6 | **并行子代理同一基线出发** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 9 条](SESSION_PLAYBOOK.md#5-上下文管理) | 复审 |
-| CS-7.7 | **合并**：main 受分支保护，所有改动经 PR，CI 三项通过且本批 opus 复审结论到达后，由调度会话 one-coordinator 合并；工作会话结束前向 one-coordinator 报告 | CLAUDE.md；SESSION_PLAYBOOK §6、§11 | CI；调度核对 |
+| CS-7.2 | PR 模板各栏如实填写：改动的断言 / 测试及理由、新增术语、OpenAPI 与架构文档同步、验收测试 trailer、precheck 输出；Codex 实现的在「Codex 实现（模型、强度）」一栏注明 | `.github/pull_request_template.md`；SESSION_PLAYBOOK TEAM-32–38 | 复审（调度合并前核对） |
+| CS-7.3 | **只改卡上文件**，越界先报告；缺陷修复、功能补做、结构性重构分开派工、分开提交；缺陷修复手术式（最小改动 + 回归测试），不顺手重构、改名、统一风格 | SESSION_PLAYBOOK 附 M1 第 1、5、6 条 | 复审；派工卡模板 `templates/WORK_CARD.md` |
+| CS-7.4 | **记录只改片段**：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `build_all.py` 生成；用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段（文件名由脚本按时刻与会话名生成，不手工起名），改完运行 `build_all.py`；INTENT / SESSION_LOG / STATUS、ADR 拷贝与索引、brief 等生成产物都不入仓（只提交片段或源；本地运行 `build_all.py` 或看 generated-docs 分支）；不直接编辑生成产物 | SESSION_PLAYBOOK TEAM-56 | 守护：`build_all.py --check` |
+| CS-7.5 | **变更治理自查**：已采纳 ADR 只改状态行；新 ADR 带四个必备小节；代码类改动先有 `RULE_REVIEWS.json` 结论；配置变更登记版本与生效日期 | SESSION_PLAYBOOK TEAM-46、附 M3 | 守护：`adr/build_adrs.py`（经 `build_all.py`）；复审 |
+| CS-7.6 | **并行子代理同一基线出发** | [SESSION_PLAYBOOK 附 M5「第二批」第 9 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
+| CS-7.7 | **合并**：main 受分支保护，所有改动经 PR，CI 三项通过且本批 opus 复审结论到达后，由调度会话 one-coordinator 合并；工作会话结束前向 one-coordinator 报告 | CLAUDE.md；SESSION_PLAYBOOK TEAM-45、47、59 | CI；调度核对 |
 | CS-7.8 | 提交说明中文，格式 `type(scope): 摘要`，scope 用子域 slug；验收测试 trailer 见 CS-5.3 | NAMING_STANDARD §7 第 21 项 | 复审 |
 | CS-7.9 | **IntelliJ 构建**：构建进程不读 `backend/.mvn/jvm.config`，Error Prone 会因 `IllegalAccessError` 加载失败；在 Settings → Build, Execution, Deployment → Compiler → Shared build process VM options 里加入与该文件相同的 `--add-exports` / `--add-opens` 参数，或改用 Maven 构建 | ADR-0033 守护 14；`backend/.mvn/jvm.config` | 复审 |
 
@@ -214,22 +214,22 @@
 
 | 编号 | 内容 | 建议取舍 |
 |---|---|---|
-| C-1 | `CLAUDE.md` 写「SESSION_PLAYBOOK §14、§14.1 D1–D16」，§14.1 现已到 D17（D18 在途） | 建议：引用写「§14.1 全部条目」，不写区间，免得每加一条就漂移（本次精简 CLAUDE.md 已这样改，未改规则含义） |
+| C-1 | `CLAUDE.md` 写「SESSION_PLAYBOOK §14、§14.1 D1–D16」（旧版），§14.1 现已到 D17（D18 在途） | 建议：引用写「§14.1 全部条目」，不写区间，免得每加一条就漂移（本次精简 CLAUDE.md 已这样改，未改规则含义） |
 | C-2 | 迁移规则三处写法：§12.2 表「Flyway 只追加」、§12.4 表「Flyway 迁移：只新增脚本」、§4 第 6 步「Flyway 只新增文件」与同节「首次部署前的迁移基线」（开放期直接改基线）并存 | 建议：§12.2 / §12.4 / §4 的「只追加」后加「（基线开放期内按『首次部署前的迁移基线』）」，以开放标记为准；`migrations_immutable.py` 已按此实现 |
 | C-3 | NAMING_STANDARD §2.4 `_id` 类型「`bigint`、`uuid`」、`_by` 类型 `bigint`，与 §14.1 D16「所有自有表主键 UUIDv7」及 R-1（ID 改 UUID）不一致 | 建议：R-1 合入时同步改 §2.4：`_id` 为 `uuid`（外部来源对照列 `text`），`_by` 随 `UserId` 类型 |
 | C-4 | Testcontainers 版本：GUIDING_PRINCIPLES §9 与 NAMING_STANDARD 序言写 PG17，CI 与测试实际用 `postgres:18` | 建议：以 CI 为准，两处改为「镜像以 CI 为准」，不写死版本号 |
 | C-5 | GUIDING_PRINCIPLES §9「架构测试：守护 G1–G33 和前端 F1–F13」已过时（现 G1–G48、F1–F14 及多项专用守护） | 建议：改为「NAMING_STANDARD §4 与本文件各节所列守护」 |
 | C-6 | NAMING_STANDARD §2.1「唯一来源是 `docs/domain/00_战略设计/03-通用语言.md` 的代码名列」与 §7、ADR-0018、CLAUDE.md「以 `terms.yaml` 为准」冲突 | 建议：§2.1 改为 `glossary/terms.yaml`（ADR-0018 已定），原文件只作历史来源 |
 | C-7 | NAMING_STANDARD §7 第 16 项「前端界面文案：无守护 ○」已过时，现有 `pnpm check:copy`（`check-copy-glossary.mjs`）与后端 `OutwardTextGuardTest` | 建议：状态改 ✔ 并写守护名 |
-| C-8 | 测试命名：NAMING_STANDARD §5 写方法名 `RULE_012_clauseTotal…`，§4 计划「以 `RULE_NNN_` 开头的测试」；现有代码统一用 `@DisplayName("RULE-356 …")`；SESSION_PLAYBOOK §13 写「测试名或注解引用」 | 建议：以 `@DisplayName` 开头引用编号为准（现状、可读、支持 D / ADR / 复审编号），G-T4 守护按 `@DisplayName` 前缀实现；§5 示例同步改 |
+| C-8 | 测试命名：NAMING_STANDARD §5 写方法名 `RULE_012_clauseTotal…`，§4 计划「以 `RULE_NNN_` 开头的测试」；现有代码统一用 `@DisplayName("RULE-356 …")`；SESSION_PLAYBOOK 附 M4 写「测试名或注解引用」 | 建议：以 `@DisplayName` 开头引用编号为准（现状、可读、支持 D / ADR / 复审编号），G-T4 守护按 `@DisplayName` 前缀实现；§5 示例同步改 |
 | C-9 | `@Nullable` 两套：`org.jspecify.annotations.Nullable`（33 个文件）与 `org.springframework.lang.Nullable`（8 个文件，`platform.approval.web` 与 `OpenApiRequiredProperties`）；`NullableResponseGuardTest` 只认 JSpecify | 建议：统一 JSpecify（Spring 7 本身已转 JSpecify），G-C3 禁 Spring 的注解；8 个文件走结构性重构批 |
 | C-10 | 覆盖率门槛：GUIDING_PRINCIPLES §9「行 ≥ 80%、分支 ≥ 70%」，CI `backend_verify.sh` 为 `-Djacoco.skip=true`（「nothing in CI reads coverage」），门槛无人检查 | 待决：恢复覆盖率门槛进 CI，或在 GUIDING_PRINCIPLES 写明「复审参考，不作门槛」 |
-| C-11 | 分支命名：SESSION_PLAYBOOK §6 与 NAMING_STANDARD §7 第 21 项写 `feature/issue-{N}-…`，实际会话分支为 `claude/one-*` worktree 分支 | 建议：两处改为「会话 worktree 分支（`claude/<会话名>`）」，或决定沿用哪种 |
-| C-12 | `CLAUDE.md`、`AGENTS.md` 与 SESSION_PLAYBOOK §5「写代码规则第二批」逐条重复（11 条），措辞略有差异 | 本次已处理：CLAUDE.md 保留最硬的条目并指向本文件，AGENTS.md 指向本文件；第二批原文仍在 SESSION_PLAYBOOK §5，本文件引用 |
+| C-11 | 分支命名：旧版 SESSION_PLAYBOOK §6 与 NAMING_STANDARD §7 第 21 项写 `feature/issue-{N}-…`，实际会话分支为 `claude/one-*` worktree 分支 | 建议：两处改为「会话 worktree 分支（`claude/<会话名>`）」，或决定沿用哪种 |
+| C-12 | `CLAUDE.md`、`AGENTS.md` 与 SESSION_PLAYBOOK 附 M5「第二批」逐条重复（11 条），措辞略有差异 | 本次已处理：CLAUDE.md 保留最硬的条目并指向本文件，AGENTS.md 指向本文件；第二批原文仍在 SESSION_PLAYBOOK 附 M5「第二批」，本文件引用 |
 | C-13 | CLAUDE.md「数据设计有自己的规则……所有自有表主键 UUIDv7……」与 §14.1 原则段、D16 重复 | 本次已处理：CLAUDE.md 只留一句指向，正文以 §14.1 为准（CS-3.3、CS-3.4） |
 | C-14 | NAMING_STANDARD §2.3「Flyway 描述中文说明写在脚本首行注释」与 CS-1.1「注释能不写就不写」有张力；表与列含义已由 `COMMENT ON` 承载（D3、D10） | 建议：首行注释只写「为什么」（如基线合并来源），含义一律写 `COMMENT ON` |
 | C-15 | GUIDING_PRINCIPLES §10 例子 `TaskPackageId` 已改名为 `WorkPackage` 词族（NAMING_STANDARD §4 负向验证注） | 建议：随下次 GUIDING_PRINCIPLES 修订更正 |
-| C-16 | SESSION_PLAYBOOK §14 第 1 项「一个事务只修改一个聚合」与 G-T1「一个 `@Transactional` 应用服务只写一个聚合的仓储」重复 | 不冲突；本文件合并为 CS-2.3 |
+| C-16 | DATA_DESIGN_CHECKLIST §14 第 1 项「一个事务只修改一个聚合」与 G-T1「一个 `@Transactional` 应用服务只写一个聚合的仓储」重复 | 不冲突；本文件合并为 CS-2.3 |
 | C-17 | F14 路径：NAMING_STANDARD §4 F14 写「原始令牌只在 `shared/design-system` 中读取」，实际与 `eslint.config.js` 是 `packages/design-system`（`tokens.css` 只在该包内读取） | 建议：NAMING_STANDARD F14 改为 `packages/design-system` |
 
 ## 10. 待决问题

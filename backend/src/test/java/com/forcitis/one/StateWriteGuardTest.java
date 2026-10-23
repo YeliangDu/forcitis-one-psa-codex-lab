@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** SESSION_PLAYBOOK section 13, item 2: nothing but the aggregate decides a status. */
+/** DATA_DESIGN_CHECKLIST section 14, item 2: nothing but the aggregate decides a status. */
 class StateWriteGuardTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Path EXCEPTIONS = Path.of("architecture/status-write-exceptions.txt");

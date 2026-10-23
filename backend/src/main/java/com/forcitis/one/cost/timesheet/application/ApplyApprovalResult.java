@@ -1,12 +1,12 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.domain.ConsumedEvents;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.kernel.event.DomainEvents;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Optional;
@@ -44,7 +44,7 @@ class ApplyApprovalResult {
     }
 
     void apply(ApprovalCompleted event) {
-        if (event.processKey() != ProcessKey.COST_TIMESHEET_APPROVAL) {
+        if (!TimesheetApprovalProcess.KEY.equals(event.processKey())) {
             return;
         }
         if (!consumed.firstTime(event.envelope().eventId(), CONSUMER)) {

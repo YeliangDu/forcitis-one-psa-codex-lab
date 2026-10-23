@@ -1,12 +1,12 @@
 # 派工卡模板
 
-用途：负责会话或调度会话派一张编码卡（给子代理、Codex 或工作会话）时，复制下方「模板」填写。规则出处：SESSION_PLAYBOOK §5「Codex 派工」、§6.1、§11「派工单」；CODING_STANDARD §7。一张卡只属于一类工作（§6.1 第 9 条），卡上没写的不做。
+用途：负责会话或调度会话派一张编码卡（给子代理、Codex 或工作会话）时，复制下方「模板」填写。规则出处：SESSION_PLAYBOOK TEAM-32、TEAM-33、TEAM-34、TEAM-86、TEAM-52、附 M1、TEAM-20；CODING_STANDARD §7。一张卡只属于一类工作（SESSION_PLAYBOOK 附 M1 第 5 条），卡上没写的不做。
 
 ## 模板
 
 ```markdown
 ---
-卡号: <任务号，如 NAM-1017-GLO-03（SESSION_PLAYBOOK §5「任务命名与登记」）>
+卡号: <任务号，如 NAM-1017-GLO-03（SESSION_PLAYBOOK TEAM-23、TEAM-26）>
 任务名: <[主线·bc] 动作 + 对象>
 主线: <NAM|CON|ARC|RUL|DAT|IMP|CI|OPS|GOV>
 bc: <bcs.yaml id 或 跨域>
@@ -22,8 +22,8 @@ bc: <bcs.yaml id 或 跨域>
 
 ## 1. 卡号与类别
 - 卡号：<复审编号 / 批次编号，如 INT-H3、R-4、F-7>
-- 类别：缺陷修复 | 功能补做（应交付未做） | 结构性重构（含改名）   ← 只选一个（SESSION_PLAYBOOK §6.1 第 9 条）
-- 批次与整合分支：<批次名；缺陷卡一张或几张一个小 PR，直接合入 main（§6.1 第 10 条）>
+- 类别：缺陷修复 | 功能补做（应交付未做） | 结构性重构（含改名）   ← 只选一个（SESSION_PLAYBOOK 附 M1 第 5 条）
+- 批次与整合分支：<批次名；缺陷卡一张或几张一个小 PR，直接合入 main（SESSION_PLAYBOOK 附 M1 第 6 条）>
 
 ## 2. 依据
 - 规格条款：<contract.md 的 D 编号 / 规格文件:节>
@@ -35,10 +35,10 @@ bc: <bcs.yaml id 或 跨域>
 ## 3. 范围与卡上文件
 - 允许改动的文件 / 目录（越界先停下报告，不先做后报）：
   - <路径>
-- 归属（§6.1 第 2 条）：本卡独占的表、权限码、事件、迁移文件、共享构件：<…>
+- 归属（SESSION_PLAYBOOK 附 M1 第 1 条）：本卡独占的表、权限码、事件、迁移文件、共享构件：<…>
 - 不碰：<验收测试目录、他卡文件、共享构件（需改时停下报告）>
 
-## 4. 验收测试（由测试代理先写，§6.1 第 8 条）
+## 4. 验收测试（由测试代理先写，SESSION_PLAYBOOK 附 M1 第 4 条、TEAM-69）
 - 测试代理：`code-modernization:test-engineer`（模型 <sonnet/opus>），先于实现提交，提交说明带 `Acceptance-Test-Author: test-engineer`
 - 路径：后端 `backend/src/test/java/com/forcitis/one/acceptance/<子域>/<bc>/…`、`backend/src/test/resources/acceptance/…`；前端 `frontend/**/__acceptance__/…`
 - 测试名（`@DisplayName` 以编号开头）：
@@ -51,14 +51,14 @@ bc: <bcs.yaml id 或 跨域>
 - 工作区：独立 worktree，分支 <claude/…>，基线 <main 提交号>
 - 复审：<opus，推理强度 high>
 
-## 6. 禁止事项（必填「不得做」清单：权限边界、不入仓生成物；并写明与 CI、其他分支、在途片段的衔接，资源与时限，自测须覆盖并发、空输入、续行、重复跑并附破坏验证——SESSION_PLAYBOOK §5）
+## 6. 禁止事项（必填「不得做」清单：权限边界、不入仓生成物；并写明与 CI、其他分支、在途片段的衔接，资源与时限，自测须覆盖并发、空输入、续行、重复跑并附破坏验证——SESSION_PLAYBOOK TEAM-20）
 - 不改卡外文件；不顺手重构、改名或统一风格（缺陷卡）
 - 不放宽、不删除断言；不改验收测试目录
 - 不联网、不起容器、不建账号、不调用对外接口（需要时停下问，CLAUDE.md）
 - 不打印、不写入密钥；测试密钥运行时生成
 - <本卡特有：例如不改业务语义、不改事件形状>
 
-## 7. 预期表结构 diff（涉及 DDL 时必填，SESSION_PLAYBOOK §12.2）
+## 7. 预期表结构 diff（涉及 DDL 时必填，SESSION_PLAYBOOK 附 M3「规则调整三类」）
 - 方法：两个空库分别执行改动前、后的基线，`pg_dump --schema-only` 对比
 - 预期差异只能是：
   - <schema.table：列 / 约束 / 默认值 / 索引的变化>
@@ -70,14 +70,14 @@ bc: <bcs.yaml id 或 跨域>
 - 受影响模块测试：<precheck 给出的命令>；交付前全量 `scripts/ci/backend_verify.sh`（起容器前先问）
 - 报告分开写「已验证」与「未运行」
 
-## 9. 复审要求（§6.1 第 4、11 条）
-- Blocker / High：opus 复核，合并前修完
+## 9. 复审要求（SESSION_PLAYBOOK 附 M1 第 2、7 条）
+- Blocker / High：合并前修完，复核模型与责任按 TEAM-67
 - Medium / Low：执行者补测试、CI 通过即关闭，负责会话抽查；不阻塞合并的登记进下一批
-- 复审清单：SESSION_PLAYBOOK §14、§14.1；CODING_STANDARD 相关节：<…>
+- 复审清单：DATA_DESIGN_CHECKLIST §14、§14.1；CODING_STANDARD 相关节：<…>
 
 ## 10. 报告去向
-- 完成、部分完成或阻塞，都向 <负责会话>，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
-- 报告包含：提交号与分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、未完成项、需要用户决定的事；Codex 卡另记返工轮次与耗时
+- 常规状态在 TEAM-53 四节点上报；阻塞、安全事件、用户决定与需动作的请求按该条送达 <负责会话>，需调度处理的报 one-coordinator
+- PR／卡／交接记录：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、未完成项、需用户决定事项；提交号写 PR 描述或分支，不单独发，文档合集按 TEAM-53 自扫认领；Codex 卡另记返工轮次与耗时（TEAM-52）
 ```
 
 ## 示例：R-4 去数据库时钟默认值
@@ -139,8 +139,8 @@ bc: <bcs.yaml id 或 跨域>
 
 ## 9. 复审要求
 - opus 核对：表结构 diff 只含声明的默认值删除；每处 INSERT 都传入时刻（无遗漏写 `null`）；守护对迁移生效且例外清单为空
-- Blocker / High 合并前修完并由 opus 复核；Medium / Low 登记进下一批
+- Blocker / High 合并前修完并按 TEAM-67 复核；Medium / Low 登记进下一批
 
 ## 10. 报告去向
-- 向 one-1a-next 报告，抄 one-coordinator；附返工轮次与耗时，与同类 sonnet 卡对比（SESSION_PLAYBOOK §5「Codex 派工」）
+- 节点报告与需动作的请求按 TEAM-53 送负责会话；返工轮次与耗时写卡及 PR（TEAM-52），不单独报提交号
 ```

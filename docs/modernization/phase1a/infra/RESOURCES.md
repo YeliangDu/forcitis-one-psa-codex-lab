@@ -1,6 +1,6 @@
 # 后台任务与持久配置登记
 
-SESSION_PLAYBOOK §2.1 第 9 条：定时器、本机 runner、云上资源与长期配置建立时在此登记一行，用完清理并删行。调度台账只放链接。
+SESSION_PLAYBOOK TEAM-78：定时器、本机 runner、云上资源与长期配置建立时在此登记一行，用完清理并删行。调度台账只放链接。
 
 | 位置 | 项 | 性质 | 负责 | 清理 |
 |---|---|---|---|---|
@@ -40,3 +40,4 @@ SESSION_PLAYBOOK §2.1 第 9 条：定时器、本机 runner、云上资源与�
 | ECS i-bp122xlpar8w2uylmal2 ClamAV 健康检查（2026-10-21，OPS-1021-OPS-02） | one-clamav-check.timer / .service（root，每 5 分钟）；/usr/local/sbin/one_clamav_check.sh；/var/lib/one-clamav-check/；日志 /data/forcitis-one/logs/ops/clamav-check.json | 长期 | one-ops | runbooks/C-7-alerts.md「ClamAV 健康检查」 |
 | SQL Server rm-bp1690ep53t9778dp 账号 psa_one_legacy_ro | 2026-10-22 已撤（OPS-1022-OPS-01，RDS DeleteAccount）；dev one.env 四个 FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_* 变量已删（备份 one.env.bak-20261022134603）；视图 v_psa_one_legacy_todo 仍在 | 已撤 | one-ops | 卡 OPS-1022-OPS-01 §8 |
 | RDS PG pgm-bp13vak0sew3m003 角色 one_dev_app 的 search_path（2026-10-22，FUNCTION_SEARCH_PATH_PINNING 第④项，用户「都做」+ 在 one-ops 会话回「批」） | 由 platform_approval, pg_catalog 改为 pg_catalog, platform_approval（ALTER ROLE，回读一致）；重启 forcitis-one 使连接池重连，health UP；回退：改回原值并重启。dev 核 TEMP：one_dev_app、readonly、migrator、audit_maintainer 均 false。本机 c3_dev_db_check.sh 全部 PASS，容器已回收 | 已改 | one-ops | c3_dev_db.sql、one_db_roles_schemas.sql、c3/c9 verify V6c |
+| 本机 Mac 常驻检查 com.forcitis.docker-watch（2026-10-22，OPS-1022-OPS-02，用户「开卡，Docker 停了自动拉起」） | LaunchAgent（用户 yeliang）~/Library/LaunchAgents/com.forcitis.docker-watch.plist，每 90 秒跑 ~/.modernize/psa/ops/bin/docker_ensure.sh（仓库 scripts/ops/docker_ensure.sh 的逐字节副本）；`docker info` 不通就 `open -a Docker`（Docker Desktop 进程还在时先等，到一半仍不通再 open）并最长等 120 秒；临时停 Docker 时 `touch ~/.modernize/psa/ops/docker-watch/pause`、用完删；拉起失败、等锁超时或一小时内拉起超过 2 次，告警（同类一小时一条）写 ~/.modernize/psa/ops/docker-watch/alert.log 并追加到 ~/.modernize/psa/outbox/one-coordinator.md；状态在 docker-watch/（launches.log、lock.d）。CI 后端作业在检查测试镜像前以 `--ci` 调同一脚本（不自己 open，改 `launchctl kickstart` 请求本代理立即跑一轮并等 docker info；ci.yml 单列 PR）。安装/卸载：`scripts/ops/docker_watch_install.sh [--dry-run] [--uninstall]`（脚本更新后重跑，会 cmp 核对副本）。撤销：`scripts/ops/docker_watch_install.sh --uninstall`（等价于 `launchctl bootout gui/$(id -u)/com.forcitis.docker-watch` 并删 plist 与脚本副本），可再删状态目录 ~/.modernize/psa/ops/bin/docker_ensure.sh 与 ~/.modernize/psa/ops/docker-watch/ | 长期 | one-ops | 不再用本机 CI 时撤 |（2026-10-23 已装并运行，装的是 #639 合入版；停机演练经用户撤销，以自测为证；撤销方法：`scripts/ops/docker_watch_install.sh --uninstall`）

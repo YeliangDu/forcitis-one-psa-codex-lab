@@ -81,7 +81,7 @@ class SyncedFieldsContractTest {
     private static final Map<String, UnaryOperator<Builder>> STAFF_CHANGES = new LinkedHashMap<>();
 
     static {
-        STAFF_CHANGES.put("employeeCode", b -> { b.employeeCode = "E-changed"; return b; });
+        // employeeCode is fixed once issued (ADR-0078): a source change is kept out of the diff and recorded as an issue, see EmployeeSyncRulesTest
         STAFF_CHANGES.put("displayName", b -> { b.displayName = "Changed name"; return b; });
         STAFF_CHANGES.put("loginName", b -> { b.loginName = "13999999999"; return b; });
         STAFF_CHANGES.put("email", b -> { b.email = "changed@example.test"; return b; });
@@ -97,7 +97,8 @@ class SyncedFieldsContractTest {
     @Test
     @DisplayName("D-1a-23 every synced employee field, changed alone, reaches the diff and the event of that employee and of nobody else")
     void everySyncedStaffFieldReachesTheEvent() {
-        assertThat(STAFF_CHANGES.keySet()).containsExactlyElementsOf(SyncedFields.STAFF.stream().map(SyncedFields.Field::name).toList());
+        assertThat(STAFF_CHANGES.keySet()).containsExactlyElementsOf(SyncedFields.STAFF.stream().map(SyncedFields.Field::name)
+                .filter(name -> !name.equals("employeeCode")).toList());
         SourceOrgSnapshot base = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(), List.of(post(100), post(101)),
                 List.of(employee(2001), employee(2002)));
         OrgSnapshot stored = apply(OrgSnapshot.empty(), first(base));

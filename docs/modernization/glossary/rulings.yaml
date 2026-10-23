@@ -559,3 +559,19 @@ rulings:
     id: standard_cost_rate_card
     definition: 薪酬脱敏后的版本化政策费率（财务维护）；版本上同时挂奖金计提率，规则类型分合同额百分比与历史比率（默认历史比率），预算、预估、实际三个变体用同一版本（FCQ-01）
     source: 用户 2026-10-22 FCQ-01（intent 2026-10-22-103824）；见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.2（@ed99f3b8）
+  - op: redefine
+    late: true
+    id: seal_usage_request
+    definition: 保存拟用印文件、印章类型、事由、批准结论及实际用印情况的申请。
+    source: one-glossary 判定 2026-10-22：与已登记的「印章类型」seal_type（platform.signing）统一，「印章类别」不用（交接清单待办②）
+  - op: move_to_bc
+    late: true
+    ids: [standard_cost_rate_card]
+    to: masterdata.catalog
+    source: ADR-0051 决定 3（AGG-05 标准成本费率表版本归 B-02 masterdata.catalog，用户 D-2、i211634「费率放主数据」）；one-architecture 2026-10-22 指出，依据 admission-file @bd451f556 FINANCE_S4_S5_RULINGS_2026-10-22.md S-5
+  - op: redefine
+    late: true
+    id: data_retention_period
+    kind: value_object
+    definition: 数据留在在线库或归档库的期限值，到期后删除或转归档；与「质保金」无关。
+    source: one-glossary 2026-10-23 自修：名称已由 R3-IN-08 定，原 kind 误标 command，实为期限值（one-coordinator 审题 gl6-gl7-review-1 页级问题第 10 条）

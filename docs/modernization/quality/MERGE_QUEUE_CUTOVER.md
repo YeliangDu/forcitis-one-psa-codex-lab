@@ -74,7 +74,7 @@ tail -f 队列目录/merge.log                     # 旁观
 | `WAIT-CODE-LANE` | 文档道让位代码道的最终 CI | 正常，不用处理 |
 | `ERROR` | 一轮里某步抛异常，会退避重试，第 3 次同一 PR 失败转 HOLD | 看详情；反复出现报调度 |
 
-日常命令：`mq.py list`（队列）、`mq.py status`（暂停与红运行）、`mq.py enqueue 号…`、`mq.py remove 号…`、`mq.py before 号 另一号`（插队）、`mq.py once 号`（只处理一个，不碰队列；须先停 `run`）。**不要**手工 `echo >> merge.queue` 或 `sed -i` 改队列文件，也不要手工 `gh pr merge`（main 只经队列合并，SESSION_PLAYBOOK §11 第 13 条；手工合并绕过合并锁）。
+日常命令：`mq.py list`（队列）、`mq.py status`（暂停与红运行）、`mq.py enqueue 号…`、`mq.py remove 号…`、`mq.py before 号 另一号`（插队）、`mq.py once 号`（只处理一个，不碰队列；须先停 `run`）。**不要**手工 `echo >> merge.queue` 或 `sed -i` 改队列文件，也不要手工 `gh pr merge`（main 只经队列合并，SESSION_PLAYBOOK TEAM-47；手工合并绕过合并锁）。
 
 ## 6 回退（任一时刻可做，不丢任何 PR）
 

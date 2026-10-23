@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -16,7 +17,6 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.application.DecideTasks;
@@ -61,15 +61,15 @@ class RetractionIT extends ApprovalIntegrationSupport {
     }
 
     RetractionResult withdraw(String key, long actor, String reason) {
-        return tx.execute(status -> approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.account(actor), reason));
+        return tx.execute(status -> approvals.withdraw(TimesheetApprovalProcess.KEY, document(key), TestAccounts.account(actor), reason));
     }
 
     RetractionResult cancel(String key, long actor, String reason) {
-        return tx.execute(status -> approvals.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.account(actor), reason));
+        return tx.execute(status -> approvals.cancel(TimesheetApprovalProcess.KEY, document(key), TestAccounts.account(actor), reason));
     }
 
     WithdrawCheck check(String key, long actor) {
-        return tx.execute(status -> approvals.checkWithdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.account(actor)));
+        return tx.execute(status -> approvals.checkWithdraw(TimesheetApprovalProcess.KEY, document(key), TestAccounts.account(actor)));
     }
 
     @Test
@@ -100,7 +100,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
 
         ApprovalInstanceId second = startFor(key, s);
         assertThat(second).isNotEqualTo(first);
-        assertThat(requests.rounds(ProcessKey.COST_TIMESHEET_APPROVAL, document(key))).hasSize(2);
+        assertThat(requests.rounds(TimesheetApprovalProcess.KEY, document(key))).hasSize(2);
     }
 
     @Test

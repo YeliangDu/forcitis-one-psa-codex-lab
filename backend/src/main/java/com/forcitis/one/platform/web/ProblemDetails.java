@@ -34,6 +34,7 @@ final class ProblemDetails {
             case UNAUTHENTICATED -> "Sign in first.";
             case FORBIDDEN -> "You may not do this.";
             case NOT_FOUND -> "There is no such resource.";
+            case TOO_LARGE -> "The request is larger than the limit.";
             case CONFLICT -> "The state of the resource does not allow this.";
             case PRECONDITION_FAILED -> "The resource changed since you read it; read it again.";
             case UNPROCESSABLE -> "The request is understood but cannot be carried out.";

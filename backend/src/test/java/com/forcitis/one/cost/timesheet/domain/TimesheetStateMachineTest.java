@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetError;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
@@ -26,7 +27,6 @@ import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.api.RoutingFlag;
 import com.forcitis.one.platform.approval.events.DocumentSubmittedForApproval;
@@ -157,7 +157,7 @@ class TimesheetStateMachineTest {
             assertThat(requested.envelope().eventType()).isEqualTo("platform.approval.DocumentSubmittedForApproval");
             assertThat(requested.envelope().aggregateType()).isEqualTo("Timesheet");
             assertThat(requested.envelope().aggregateVersion()).isEqualTo(2);
-            assertThat(requested.processKey()).isEqualTo(ProcessKey.COST_TIMESHEET_APPROVAL);
+            assertThat(requested.processKey()).isEqualTo(TimesheetApprovalProcess.KEY);
             assertThat(requested.document()).isEqualTo(timesheet.document());
             assertThat(requested.initiator()).isEqualTo(OWNER);
             assertThat(requested.round()).isEqualTo(new RoundNumber(1));

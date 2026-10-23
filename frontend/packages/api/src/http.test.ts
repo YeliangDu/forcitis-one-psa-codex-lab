@@ -42,6 +42,25 @@ describe('HTTP client', () => {
     expect(calls[0]?.init.credentials).toBe('include');
   });
 
+  it('sends a Blob body as it is with its type and a percent-encoded Content-Disposition name, and still asks for an Idempotency-Key', async () => {
+    const { client, calls } = clientWith({ status: 201, body: {} }, { newKey: () => 'key-1' });
+    const file = new Blob(['%PDF-1.7'], { type: 'application/pdf' });
+    await client.request('post', '/files', { body: file, fileName: "报告 (1)'.pdf" }, {}, undefined, { idempotent: true });
+    const sent = calls[0];
+    expect(sent?.init.body).toBe(file);
+    expect(headersOf(sent).get('Content-Type')).toBe('application/pdf');
+    expect(headersOf(sent).get('Content-Disposition')).toBe("attachment; filename*=UTF-8''%E6%8A%A5%E5%91%8A%20%281%29%27.pdf");
+    expect(headersOf(sent).get('Idempotency-Key')).toBe('key-1');
+  });
+
+  it('sends an untyped Blob as application/octet-stream and refuses an upload without a file name', async () => {
+    const { client, calls } = clientWith({ status: 201, body: {} });
+    await client.request('post', '/files', { body: new Blob(['x']), fileName: 'a.bin' });
+    expect(headersOf(calls[0]).get('Content-Type')).toBe('application/octet-stream');
+    await expect(client.request('post', '/files', { body: new Blob(['x']) })).rejects.toThrow('needs fileName');
+    expect(calls).toHaveLength(1);
+  });
+
   it('writes the XSRF-TOKEN cookie back as the X-XSRF-TOKEN header on every unsafe method', async () => {
     const { client, calls } = clientWith({ status: 200, body: {} }, { cookie: 'token with/special=chars' });
     for (const method of ['post', 'put', 'patch', 'delete'] as const) {
@@ -130,10 +149,10 @@ describe('HTTP client', () => {
   });
 
   it('keeps the whole ProblemDetail of an error answer, with its correlation id', async () => {
-    const { client } = clientWith({ status: 422, body: { ...problem(422, 'PLATFORM_APPROVAL_REASON_REQUIRED'), detail: 'reason is required', extra: null } });
+    const { client } = clientWith({ status: 422, body: { ...problem(422, 'KERNEL_REASON_REQUIRED'), detail: 'reason is required', extra: null } });
     const failure = await client.request('post', '/things', { body: {} }).catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(ApiError);
-    expect((failure as ApiError).problem).toMatchObject({ errorCode: 'PLATFORM_APPROVAL_REASON_REQUIRED', status: 422, correlationId: 'c-1' });
+    expect((failure as ApiError).problem).toMatchObject({ errorCode: 'KERNEL_REASON_REQUIRED', status: 422, correlationId: 'c-1' });
   });
 
   it('an error code this client does not know keeps the whole body (legacyLoginUrl included), has no known code, and is reported once', async () => {

@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.file.api.PlatformFileContent;
 import com.forcitis.one.platform.file.application.BindFile;
+import com.forcitis.one.platform.file.application.GetUploadStatus;
 import com.forcitis.one.platform.file.application.IssueDownloadLink;
 import com.forcitis.one.platform.file.application.StoreContent;
 import com.forcitis.one.platform.file.domain.BindingAudit;
@@ -43,7 +44,8 @@ class FileServiceConfigurationTest {
                         "forcitis.platform.file.store.max-file-size=100MB", "forcitis.platform.file.store.allowed-media-types=application/pdf",
                         "forcitis.platform.file.store.staging-root=" + staging, "forcitis.platform.file.store.upload-deadline=PT10M", "forcitis.platform.file.store.staging-sweep-age=PT1H",
                         "forcitis.platform.file.store.staging-sweep-interval=PT10M", "forcitis.platform.file.store.download-link-validity=PT5M",
-                        "forcitis.platform.file.store.download-link-maximum-validity=PT15M");
+                        "forcitis.platform.file.store.download-link-maximum-validity=PT15M", "forcitis.platform.file.store.unbound-expiry-age=P2D",
+                        "forcitis.platform.file.store.one-time-link-unbound-expiry-age=P16D", "forcitis.platform.file.store.unbound-expiry-interval=PT10M");
     }
 
     private static BusinessFileStore bucket() {
@@ -65,7 +67,7 @@ class FileServiceConfigurationTest {
     void onWithBothPortsStores() {
         runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket)
                 .run(context -> assertThat(context).hasNotFailed().hasSingleBean(StoreContent.class).hasSingleBean(BindFile.class)
-                        .hasSingleBean(IssueDownloadLink.class).hasSingleBean(PlatformFileContent.class));
+                        .hasSingleBean(IssueDownloadLink.class).hasSingleBean(PlatformFileContent.class).hasSingleBean(GetUploadStatus.class));
     }
 
     @Test
