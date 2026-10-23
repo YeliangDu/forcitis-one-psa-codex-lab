@@ -88,14 +88,14 @@ run_step() {
   local name=$1; shift
   local log
   log="$work/$(printf '%s' "$name" | tr -c 'A-Za-z0-9' '_').log"
-  local status
+  local status started=$SECONDS
   if "$@" >"$log" 2>&1; then
     local last
     last=$(grep -v '^警告：' "$log" | grep . | tail -n 1 | cut -c1-90)
-    report PASS "$name" "${last:-ok}"
+    report PASS "$name" "${last:-ok} ($((SECONDS - started)) s)"
   else
     status=$?
-    report FAIL "$name" "exit $status — last lines:"
+    report FAIL "$name" "exit $status after $((SECONDS - started)) s — last lines:"
     show_tail "$log"
   fi
 }
