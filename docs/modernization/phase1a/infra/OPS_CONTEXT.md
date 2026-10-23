@@ -6,6 +6,7 @@
 - **复审结论**：O5 及两修正通过；O6、cf938271d、455de7e15 待结论（读 `~/.modernize/psa/coordinator/reviews/redesign/<完整sha>.md`）。
 - **下一步（按序）**：①**O2～O4 必改**（调度 10-24 消息，详情见各 sha 的 .md/.final.md）：O2 恢复一行一句（上限暂按 1,100 或拆 shell_words.py，调度在问用户，先展开写）、特征表空且读不到 origin/main 要拦、自测按 id 从 prod_targets.json 取值不留拆段生产值、`PGHOST=…; export PGHOST` 与 `set -a` 后的生产写要拦；O3 分发器预筛不得藏掉门的拒绝（lua、dash、ksh、`. x`）；O4 保留 GIT_DIR/GIT_COMMON_DIR/GIT_WORK_TREE 检查，工作区里 `GIT_DIR=<主检出>/.git` 或 `--git-dir/--work-tree` 提交进 main 要拒。这些是 opus 级，派 opus 子代理写，改完各报 sha（调度派独立 opus 终审）。②O7（opus，install.sh 原子切换、删 run_from_main 与 O3 旧名别名；**O3、O4、O7 同批合入**；验收按实际挂载复测分发器 p99≤100ms）→ O8 → O9（只做轻作业）→ O10。
 - **mq 相关搁置（intent 2026-10-23-222945，已报调度）**：O13 整项；O7 中「mq 合入后自动 install.sh」；O9 的必需检查改名；§6 判据「mq 自测」待调度定；不合 one-merge 子分支；旧整合清单 MRG-08/02/04。
+- **调度已确认**：搁置标记照办；§6 判据第 2 条改为「现行 mq 自测仍然全过」（新 mq 自测从 fv2-b1 判据删除）——b1 @455de7e15 上 `python3 scripts/merge/mq.py --self-test` 已过（约 31 秒），之后每个提交照跑；附表 C 行随 C6。主检出 reset/checkout 不再拦并入 O2～O4 opus 复审判定，结论出来前别依赖。
 - **待用户定（调度在问，先不动）**：主检出在其他分支是否一律拒；codex_stdin_gate 是否留到 O21；O2 行数上限。
 - **待调度确认**：SESSION_PLAYBOOK 附表 C 行旧口径随 C6；旧 SESSION_PLAYBOOK 指针（ci.yml、relevant_change、钩子文案）随第二批。
 - **本次学到**：①zsh 里 `$c` 不分词，循环跑命令用 eval；②`git commit -F msg -- <路径>` 只提交该路径、不动已暂存的其他改动；③`tail -1` 会只取到断言消息末尾空行，看变异结果用 grep Assertion 或退出码；④python 字符串替换先确认锚点唯一。
