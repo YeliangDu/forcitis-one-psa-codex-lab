@@ -130,8 +130,6 @@ tables:
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
-    fk_exceptions:
-      last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
     writers: [organization.workforce]
   organization_workforce.assignments:
     role: SNAPSHOT
@@ -139,6 +137,24 @@ tables:
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     writers: [organization.workforce]
+  # W2 PR-B (data design W2_EMPLOYEE_POSITION_VERSIONING_DESIGN section 3.2, signed in reviews/W2-PR-B.md): no writer yet, the personnel commands and the reads land with the next cards.
+  organization_workforce.employee_versions:
+    role: DIMENSION_VERSIONED
+    aggregate: Employee
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}  # 个人任职史版本表：离职满 10 年删除该员工的行（RETENTION_PROPOSAL 第 16 行，W2 第 8 节清理通道另批）
+    lineage: {source: NEW}
+    references: {corrected_from_version_id: organization_workforce.employee_versions}
+    writers: []
+  organization_workforce.personnel_commands:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 状态只按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD 以及 HELD 到 EFFECTIVE、WITHDRAWN 前进，时刻列由空变非空一次，内容列不变（触发器 tg_personnel_commands_append_only，ADR-0068 第 1 条）
+    business_key: [personnel_command_id]
+    retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
+    lineage: {source: NEW}
+    writers: []
   # Columns of org_units left out of the versions on purpose: sort_order (only orders siblings for display, nothing reads it by date), short_name (not a source column:
   # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version),
   # last_sync_run_id (moves to the change set with split a).
