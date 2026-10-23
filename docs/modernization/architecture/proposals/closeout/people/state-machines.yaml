@@ -1387,6 +1387,7 @@ machines:
     command: 提交过账候选
     guard:
     - INV-92
+    - 无计提额时提交零额完成记录（无分录行）
     kind: forward
     process_outcome: 已提交过账
   source_part: vs13pay
