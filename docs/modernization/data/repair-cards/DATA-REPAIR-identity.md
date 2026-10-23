@@ -1,7 +1,7 @@
 ---
 卡号: DATA-REPAIR-identity
 状态: 进行中
-负责会话: one-1a-next-5
+负责会话: one-1a-par
 前置: R-1b-P5
 ---
 # 派工卡 DATA-REPAIR-identity：platform_identity 已建表的数据设计缺陷修复（草稿）

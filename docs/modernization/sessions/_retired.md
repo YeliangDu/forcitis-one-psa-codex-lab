@@ -9,3 +9,5 @@
 - one-arch-revenue：临时流程组结束（ARE-03 完成，@07c564244 在 main），10-23 归档（intent 111722）
 - one-arch-people：临时流程组结束（收尾 @399727388 在 main），10-23 归档（intent 111722）
 - one-rules：并入 one-glossary（交接 RULES_CONTEXT.md「交接」节 @a706eb820），10-23 归档（intent 112228）
+- one-arch-finance：临时流程组结束（收尾 @3810c8497 经 #661 在 main），10-23 归档，在途卡转 one-architecture（intent 112228）
+- one-1a-next-5：数据修复线收尾（交接 @722bfcfec 经 #660 在 main），10-23 并入 one-1a-par 并归档，IMP-1023-NX5-01 等在途卡转 one-1a-par（intent 112228）
