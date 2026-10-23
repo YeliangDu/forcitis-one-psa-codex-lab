@@ -43,6 +43,11 @@ SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.rel
 SELECT roleid::regrole FROM pg_auth_members WHERE member = 'one_prod_audit_maintainer'::regrole;
 SELECT has_database_privilege('one_prod_audit_maintainer', 'forcitis_one_prod', 'TEMP') AS can_temp;
 
+-- V6c 运行账号与只读账号没有 TEMP（临时表不能顶替未限定名），运行账号 search_path 的第一项是 pg_catalog：期望两行均为 t
+SELECT NOT (has_database_privilege('one_prod_app', 'forcitis_one_prod', 'TEMP') OR has_database_privilege('one_prod_readonly', 'forcitis_one_prod', 'TEMP')) AS app_readonly_no_temp;
+SELECT EXISTS (SELECT 1 FROM pg_db_role_setting s JOIN pg_roles r ON r.oid = s.setrole
+                WHERE r.rolname = 'one_prod_app' AND s.setdatabase = 0 AND 'search_path=pg_catalog, platform_approval' = ANY (s.setconfig)) AS app_search_path_pinned;
+
 -- V7 连接预算：本实例全部有上限角色之和，须小于 max_connections 减保留（superuser_reserved_connections 与 RDS 保留）
 SELECT sum(rolconnlimit) AS limited_total FROM pg_roles WHERE rolconnlimit > 0;
 SHOW max_connections;

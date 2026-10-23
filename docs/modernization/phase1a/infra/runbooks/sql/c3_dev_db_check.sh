@@ -63,4 +63,6 @@ ro  "readonly has no write grant"          "BEGIN READ WRITE; INSERT INTO platfo
 verify="$(q postgres "$superpw" forcitis_one_dev -At -f - < "$here/c3_dev_db_verify.sql" 2>&1)" || { echo "FAIL  c3_dev_db_verify.sql ran with an error: $(head -3 <<< "$verify")"; failed=1; }
 # -At prints nothing for an empty result, so the row right after the V6 database ACL row is V6b's can_temp (f)
 if [ "$(awk 'index($0, "forcitis_one_dev|") == 1 {getline; print; exit}' <<< "$verify")" = f ]; then echo "PASS  verify script runs; maintainer holds nothing outside platform_audit and no temp"; else echo "FAIL  verify output for the maintainer role"; failed=1; fi
+# V6c: the runtime and readonly roles hold no TEMP and the runtime role's search_path starts with pg_catalog (two t rows right after the maintainer's can_temp)
+if [ "$(awk 'index($0, "forcitis_one_dev|") == 1 {getline; getline a; getline b; print a b; exit}' <<< "$verify")" = tt ]; then echo "PASS  runtime and readonly roles hold no temp; runtime search_path starts with pg_catalog"; else echo "FAIL  verify output for V6c (runtime temp / search_path)"; failed=1; fi
 exit "$failed"
