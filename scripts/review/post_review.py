@@ -79,8 +79,7 @@ def parse_header(text, fields=None):
     lines = text.split("\n")[:3] if isinstance(text, str) else []
     fields, values = fields or load_policy()[0]["header_fields"], []
     for field, line in zip(fields, lines):
-        line = line.strip()
-        m = None if CTRL.search(line) else re.fullmatch(re.escape(field) + r"[：:](.*)", line)
+        m = None if CTRL.search(line) else re.fullmatch(re.escape(field) + r"[：:](.*)", line.strip())   # other newline characters make it invalid
         if m is None:
             return None
         values.append(m.group(1).strip())
@@ -116,10 +115,10 @@ def current_head(pr, run, scope):
 
 
 def latest_verdicts(pr, commit, run, slug, fields):
-    """读 PR 上全部 review，返回同 commit 每类复审者的最新结论 {类别: 结论}；读不到或结构不对返回 {}。"""
+    """读 PR 上全部 review，返回同 commit 每类复审者的最新结论 {类别: 结论}；读不到或结构不对返回 None（与「读到了但没有」的 {} 区分）。"""
     pages = loads(*run(["api", "--paginate", "--slurp", f"repos/{slug}/pulls/{pr}/reviews"]))
     if not (isinstance(pages, list) and all(isinstance(p, list) for p in pages)):
-        return {}
+        return None
     found = {}
     for item in (x for page in pages for x in page):   # GitHub 按提交时间升序返回，后者覆盖前者
         h = parse_header(item.get("body"), fields) if isinstance(item, dict) else None
@@ -163,7 +162,8 @@ def post(pr, text, run=None, policy=None, guard=False, repo=None):
     if kind == FINAL and not guard:
         return f"{done}；终审通过只记录，不改标签"
     if guard:
-        seen = latest_verdicts(pr, commit, run, slug, fields)
+        if (seen := latest_verdicts(pr, commit, run, slug, fields)) is None:
+            raise Refused(EXIT_LABEL_FAILED, f"{done}，但读不到同 commit 的其他结论，标签未加，请重跑")
         seen[kind] = verdict
         if not (seen.get(FIRST) == PASS and seen.get(FINAL) == PASS):
             return f"{done}；守护类须同 commit 首轮与终审都通过，等另一份结论，标签未加"

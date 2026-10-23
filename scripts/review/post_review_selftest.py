@@ -180,13 +180,14 @@ def case_parse_header():
     ok = {"verdict": PASS, "commit": SHA, "reviewer": R2, "kind": FINAL}
     assert pr_mod.parse_header(header(reviewer=R2), F) == ok
     assert pr_mod.parse_header(header(reviewer=R2, colon=":"), F) == ok
-    assert pr_mod.parse_header(f"  {F[0]}：{PASS} \r\n{F[1]}: {SHA}\t\n{F[2]}：{R2}", F) == ok
+    assert pr_mod.parse_header(f"  {F[0]}：{PASS} \n{F[1]}: {SHA}\u3000\n{F[2]}：{R2}", F) == ok
     assert pr_mod.parse_header(header(reviewer=R2) + f"\n{F[0]}：{FIX}", F) == ok   # 第 4 行起是正文
     bad = [header(reviewer=f"opus-{FIRST}-a\tb"), f"{F[0]}：\t{PASS}\n{F[1]}：{SHA}\n{F[2]}：{R1}", header(verdict=f"{PASS}：x"),
            header(verdict=f"{PASS} {FIX}"), header(commit=SHA.upper()), header(reviewer="opus-复审-a"),
            header(reviewer=f"opus-{FIRST}{FINAL}-a"), header(reviewer=f"opus-{FIRST}-a\x0bb"), header(reviewer="opus-r1"),
            f"{F[1]}：{SHA}\n{F[0]}：{PASS}\n{F[2]}：{R1}", f"{F[0]}：{PASS}\n{F[1]}：{SHA}", header(verdict="approve"),
-           f"{F[0]}：{PASS}\n\n{F[1]}：{SHA}\n{F[2]}：{R1}", None, 7]
+           f"{F[0]}：{PASS}\n\n{F[1]}：{SHA}\n{F[2]}：{R1}", None, 7,
+           *(header().replace("\n", c + "\n", 1) for c in ("\r", "\x85", "\u2028", "\x0b", "\x0c", "\x1c"))]   # a line ending other than \n is invalid, not stripped
     for text in bad:
         assert pr_mod.parse_header(text, F) is None, repr(text)
 
@@ -209,7 +210,7 @@ def case_guard():
     assert go(R2, [{"body": None}, 3, rv(FIRST, PASS).get("x", {})])[2] == []
     for kw in ({"reviews_rc": 1}, {"reviews_out": "坏"}, {"reviews_out": "{}"}, {"reviews_out": "[{}]"}):
         rc, msg, ed = go(R2, [rv(FIRST, PASS)], **kw)
-        assert rc == 0 and ed == [] and "等另一份结论" in msg, kw
+        assert rc == 4 and ed == [] and "请重跑" in msg, kw   # unreadable is not "the other one has not come yet"
 
 
 def case_repo_passthrough():
@@ -242,7 +243,7 @@ def case_policy_and_gh_errors():
 
 def case_body_verbatim():
     """正文文件原样作为 review 正文；结论、commit、复审者只从文件头解析。"""
-    for text in (header(PASS) + "\n第二条\n", f" {F[0]}: {PASS}\r\n{F[1]}:{SHA}\n{F[2]}：{R1}\n"):
+    for text in (header(PASS) + "\n第二条\n", f" {F[0]}: {PASS}\n{F[1]}:{SHA}\n{F[2]}：{R1}\n"):
         s = Stub()
         assert run(s, text=text)[0] == 0
         p = s.review_payload()
