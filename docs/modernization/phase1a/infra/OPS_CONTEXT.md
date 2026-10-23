@@ -1,5 +1,13 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-23 深夜增补（上下文 21% 第五次交接；以本节覆盖下面同名项）
+
+- **已推送（等 one-coordinator 批/复审）**：#679 head 052e8639b（必改已改）；#654 head bfa67700f（解冲突，已批在队）；**#683**（QUA-06 第①步，claude/one-ops-qua06-s1，工作区 ../gov-q6）——#667 合入后与 main 冲突（DIRTY），**one-coordinator 要求先别推**，等 opus 复审结论（按 09ec2326b）到后，改动与合 main 解冲突放在同一次推送，再报新 head；**#684**（QUA-02 第二段，claude/one-1a-par-gen-out-openapi head 5cf5c8bac，工作区 ../gov-q2，已合 main、本地生成成功，等 opus 首轮）；**#685**（TEAM-26 放宽，claude/one-ops-team26-relax head fe419d604，工作区 ../gov-bg，分支 ops-team26）等复核 CI 绿就合。
+- **待做（用户决定 intent 2026-10-23-191447，调度转）**：①gh 命令加超时（单独 PR，从最新 main 切）：scripts/queue/merge_train.py 的 run()（无 timeout，gh pr view/close/create）、scripts/ops/session_daily.py `_json`、scripts/release/ci_passed.py `gh_json`、scripts/release/ship.sh 的 `gh api`（用 `perl -e 'alarm 120; exec @ARGV'` 包，macOS 无 timeout）；mq.py 的 sh() 已有 180 秒、ci_recurrence 已有、handoff_snapshot 已有 10 秒。②**今晚要回 one-coordinator：QUA-06 瘦身计划**（scripts/hooks 当前约 25 个文件、6255 行、448KB，上限 ≤12 文件、≤2500 行、≤150KB；每步内容与预计合入时间；自测与运行代码分开，#683 已做自测；第②③步见下面夜增补，运行代码目标：dispatch 出错分级放行、prod_write_gate 改规则表 ≤300 行、命令解析并入 command_words、codex_stdin_gate/bg_task_name_gate 改规则表、mailbox 旧门注释删、快照 3 合 1、precheck_before_pr 并入 pre_push_gate、context_handoff 瘦到约 150 行；#683 后行数基线 4330 行/220KB/22 个顶层文件）。③预告：规则表第六步完成后，开工单只注入「PLAYBOOK_CORE 路径＋本角色附录路径」，附表 B 守护索引单独成文件归 one-ops 维护。
+- **顺序（调度定）**：第 1、2 项（#685 已开；gh 超时待做）→ #683 收尾 → QUA-02 第二段（#684）→ QUA-06 第②步（可在 #683 分支上叠分支，`mq.py enqueue --after 683`；别碰 #679、#667 已改的钩子文件区段）→ MRG-08（合批，扩展 scripts/queue/merge_train.py，依赖 #669，PR 用 enqueue --after 669；完成标准照卡：自测五种情形、用 merge.log 回放估算、破坏验证）。MRG-04 等 mq.py 相关 PR（#678、#677、#669）合完。QUA-03 批准门放宽（调度或 one-quality 的批准评论都可作入队授权）：#654 合入后另开小 PR。
+- **本次学到**：①zsh 里 `--include=*.py` 不加引号会报 no matches；②BSD sed 的 `s#…#` 带 `;` 易错，改写文件用 python；③Write 工具不能写别的工作区，用 scratchpad 写好再 cp；④钩子自测搬迁用 AST 改写（/private/tmp/claude-501/q6/extract.py 会丢）；run_all.py 在「分支 main 检出」副本里复现过 #681 同类问题；⑤新工作区推送前要 `pnpm install --frozen-lockfile --offline`，QUA-02 后还要 `bash scripts/generate-api.sh -o`（约 30 秒）才能过 build_all --check；⑥推送报 500 时等 20 秒重推。
+- **临时工作区**：../gov-b2（#679）、../gov-654（#654）、../gov-q6（#683）、../gov-q2（#684）、../gov-bg（#685）、../gov-667/668/fix/rfm（旧，可删）。
+
 ## 2026-10-23 夜增补（上下文 20% 第四次交接；以本节覆盖下面同名项）
 
 - **治理实现排序（用户 intent 2026-10-23-165917，加快推送合入为先）**：#668 已合入 → #667 已推 5bdb2d2e2 等轻量 CI 绿 one-coordinator 批 → **QUA-04 第二批 PR #679**（claude/one-ops-qua04-b2 @f4b9fe822，gh pr create 钩子改跑 --pre-push；heavy_slot 复量与 build_all 去重结论：不改）等 one-quality 验收 → **QUA-06 钩子瘦身三步（下一步）** → QUA-02 第二段（分支 claude/one-1a-par-gen-out-openapi @8a8629293，已转本会话）→ MRG-04。
