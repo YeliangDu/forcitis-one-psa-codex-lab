@@ -7,7 +7,7 @@
 源：proposals/value-streams.v2.yaml、ssot/10-objects/objects.yaml、ENTERPRISE_INFO_MAP_DRAFT.md §2、closeout/process-catalog.yaml、
 ssot/c1-rules/rules.yaml、ssot/i03-aggregates/{planned,built}.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §3.2、ddd/subdomains.yaml、ssot/13-dimensions、ssot/15-kpis/kpis.yaml、glossary/terms.yaml、
 data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ssot/i03-aggregates/built.yaml 的已建表）。
-缺口只报告、不使构建失败：反复跑到收敛；--check 由 build_all 保证生成物可复现。
+缺口只报告、不使构建失败：反复跑到收敛；panorama.yaml、GAPS.md 不入仓（只要求能生成）；STAKEHOLDERS.md 仍入仓，由 build_all 的前后快照比对守护。
 """
 import json
 import re

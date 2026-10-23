@@ -44,7 +44,6 @@
 
 ## 上下文文档
 
-- `docs/modernization/COORDINATOR_LEDGER.md`
 - `docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md`
 - `docs/modernization/adr/src/ADR-0054.md`
 - `docs/modernization/adr/src/ADR-0055.md`
@@ -59,7 +58,3 @@
 - 须问用户：建账号、起非登记镜像的容器、对外调用；改断言或删测试须写理由并在 PR 单列。
 - git 命令一律在本会话工作区内执行（先核 pwd），不得在主检出操作。
 - 后台任务命名「<任务号或 #PR号> <任务名> (<执行者>)」（SESSION_PLAYBOOK §5）。
-
-## 当前状态
-
-2026-10-21 新开，待第一张派工卡（7.1 契约冻结 + 7.2 模块与依赖）。
