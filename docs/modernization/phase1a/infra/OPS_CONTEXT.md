@@ -1,5 +1,16 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-23 傍晚增补（上下文 20% 第三次交接；以本节覆盖下面同名项）
+
+- **#662 已合入 main**（V6c 按 Codex 必改改完，带标签两行，含库级 ALTER ROLE 覆盖反例；dev 复跑 V6c 两行 t）。
+- **用户新定（经 one-coordinator）**：one-ops 兼做治理实现。在做上限 3 张，顺序：**GOV-1023-QUA-04 预检提速（第一优先，#668）** > QUA-06 钩子瘦身（#659 已合入，余项：删 stop_status_gate 的 Stop 拦截、画像按开工单 8KB 限体量、context_handoff.py 冻结只删不加）> QUA-07 交接（#667，等 opus 结论；另加调度阈值 50/60）。挂起：QUA-05、QUA-08（分支 origin/claude/one-1a-par-cmdparse，已答：带理由 --no-verify 一律拒、COO-17 余项纳入）、QUA-01；MRG-04 后排。one-quality 的 13 张挂起实现卡与 QUA-03（#654 复审中）已转我名下，均挂起。SSOT 归属 TEAM-108：资源正本 phase1a/infra/RESOURCES.md 归我维护。
+- **#668（QUA-04）**：分支 claude/one-quality-precheck-mark，我已推 head **305700cb0**（在 one-quality 的 53f9bdf7e 上加）：①`build_all.py --check --changed 文件`（自测只跑改到的工具；改动全在 docs/modernization 的 architecture/、glossary/、rules/ 之外时，跳过 panorama_build、build_terms、notes_build、object_freeze_check 四个慢生成器；自测已加）；②precheck.sh --pre-push 的改动范围按「上次推送以来且异于 main」算；③删本地 21 个钩子/守护 self-test（原约 85 秒），缺的补进 ci.yml 的 assertion-drift 作业（precheck_before_pr、commit_msg_gate、bg_task_name_gate、heavy_slot、handoff_selftest、session_context、start_sheet、stop_status_gate、mailbox）；④Java 轻量单测只在改了 backend/ 时跑；⑤run_step 输出每步耗时。**实测**：纯文档推送原 106 秒→7 秒（两次）；典型脚本改动推送原 229 秒（自测 125＋单测 91）→ 去掉守护自测与单测后主要剩 build_all（本分支因改了 build_all.py 全跑自测 133 秒，普通推送不会）。原始逐项耗时：mq.py 自测 40、panorama 自测 23、session_daily 7、merge_train 7、四生成器合计 29、pre_tool_dispatch 自测 22、handoff 13、heavy_slot 7、shellcheck 6–9、acceptance_guard 7。
+  **还欠（17:00 承诺，未做）**：①把「每项检查、耗时、去留（留/移 CI/删）」表附进 #668 描述并报 one-coordinator（上面数据即素材；mq.py/merge_train.py 自测只放 CI 前先问 one-merge 在队列哪步补跑）；②第二批（承诺 18:30）：precheck_before_pr 并入或删（gh pr create 中位 127 秒）、heavy_slot 复量、CI 里 build_all --check 去一遍（目前 ci.yml 只见一处，查队列/他处是否另有）；推送前总预算 60 秒；新门要写成本与下线条件，由 one-quality 验收；等 opus 首轮结论（one-coordinator 转）并入。
+- **#672（claude/one-ops-rfm @8e6bd2de9）**：run_from_main.sh 修复（.DS_Store 排除；缺工作区副本时跑 main 已提交内容快照，不再让全员 Bash 失败关闭），已开 PR，等 CI 与 one-quality 验收；已报 one-coordinator。
+- **#665**：已解冲突，新 head 3f520f1d0，等 one-coordinator 重批。**#659** 已合入。
+- **本会话的临时工作区**：../gov-668（分支 ops-668-tmp，跟踪 #668 远端）、../gov-rfm（claude/one-ops-rfm）；git stash 里有一条 ops-668-wip（我建的，已无用，按 `git stash list --format='%H %gs'` 找 SHA 后删除）。
+- **坑**：①gh pr diff 要在 git 仓库里跑；②codex exec 在非 git 目录要 `--skip-git-repo-check`；③后台命令 description 须写成 `<任务号或#PR> <名> (<执行者>)`；④cross-session 发消息用 `mcp__ccd_session_mgmt__send_message` 的 `session_id`；⑤分支已被别的工作区检出时，另起本地分支再 `git push origin HEAD:<远端分支>`。
+
 ## 2026-10-23 晚增补（上下文 21% 时第二次交接；以本节覆盖下面同名项）
 
 - **已完成**：#639（docker 自动拉起脚本）、#640（ci.yml 检查，Codex 复核通过）均已合入；launchd 代理 com.forcitis.docker-watch 已装并运行（90 秒一轮）；**Docker 停机演练经用户撤销**（「去掉这个演练，我不关 docker」），不再监视空档，runner 会话能否 kickstart 未验证；RESOURCES 与任务卡 OPS-1022-OPS-02 已登记。nightly-legacy-it.yml 加同类检查：未做，需要时另开 PR。
