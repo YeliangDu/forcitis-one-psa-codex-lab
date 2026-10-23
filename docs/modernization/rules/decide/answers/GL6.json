@@ -1,0 +1,68 @@
+{
+ "GL6~GL6-01": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "分开叫，另写交付包的实例",
+  "no": "GL6-01",
+  "note": "交付包是工作包和合同条款的中间层，这个之前有决断，意思不应该一致。",
+  "recommended": false,
+  "submission": "GL6-20261023-121143-xi1",
+  "submitted": "2026-10-23T10:11:43.211Z",
+  "unanswered": false
+ },
+ "GL6~GL6-02": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "按已做完部分的预算价值（即挣值）",
+  "no": "GL6-02",
+  "note": "",
+  "recommended": false,
+  "submission": "GL6-20261023-121143-xi1",
+  "submitted": "2026-10-23T10:11:43.211Z",
+  "unanswered": false
+ },
+ "GL6~GL6-03": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "共用一张单，改叫「费用确认单」",
+  "no": "GL6-03",
+  "note": "",
+  "recommended": false,
+  "submission": "GL6-20261023-121143-xi1",
+  "submitted": "2026-10-23T10:11:43.211Z",
+  "unanswered": false
+ },
+ "GL6~GL6-04": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "A 岗位是组织编制里的具体用人位置",
+  "no": "GL6-04",
+  "note": "",
+  "recommended": true,
+  "submission": "GL6-20261023-121143-xi1",
+  "submitted": "2026-10-23T10:11:43.211Z",
+  "unanswered": false
+ },
+ "GL6~GL6-05": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "共用记录，改叫「社会保险参保与住房公积金缴存记录」",
+  "no": "GL6-05",
+  "note": "",
+  "recommended": true,
+  "submission": "GL6-20261023-121143-xi1",
+  "submitted": "2026-10-23T10:11:43.211Z",
+  "unanswered": false
+ },
+ "GL6~GL6-06": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "没有",
+  "no": "GL6-06",
+  "note": "",
+  "recommended": false,
+  "submission": "GL6-20261023-121143-xi1",
+  "submitted": "2026-10-23T10:11:43.211Z",
+  "unanswered": false
+ }
+}
