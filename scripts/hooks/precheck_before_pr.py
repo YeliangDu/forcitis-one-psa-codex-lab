@@ -46,12 +46,27 @@ def excerpt(output):
         blocks.append((i, list(range(i + 1, end))))
     tail = [i for i in range(len(lines) - OUTPUT_TAIL, len(lines)) if i >= 0 and lines[i].strip() and i not in summary]
     room = EXCERPT_LINES - len(summary)
-    for keep in (BLOCK_TAIL, 2, 0):
-        picked = [j for i, body in blocks for j in [i, *(body[-keep:] if keep else [])]]
-        if len(picked) <= room:
+    # the FAIL lines first (all of them if they fit), then the room is shared round-robin so every failure keeps the END of its block, the real cause, before any gets more
+    shown = blocks[:max(1, room // 2)]  # a FAIL line and the last line of its block is the least that says what failed
+    heads = [i for i, _ in shown]
+    taken = [min(1, len(body)) for _, body in shown]
+    spare = room - len(heads) - sum(taken)
+    tail_room = min(OUTPUT_TAIL, max(0, spare))
+    spare -= tail_room
+    while spare > 0:
+        grew = False
+        for n in range(len(heads)):
+            if spare > 0 and taken[n] < min(BLOCK_TAIL, len(blocks[n][1])):
+                taken[n] += 1
+                spare -= 1
+                grew = True
+        if not grew:
             break
-    picked = picked[:room]
-    picked += [i for i in tail if i not in picked][-(room - len(picked)):] if room > len(picked) else []
+    picked = list(heads)
+    for n, (_, body) in enumerate(blocks[:len(heads)]):
+        picked += body[len(body) - taken[n]:] if taken[n] else []
+    spare_tail = room - len(picked)
+    picked += [i for i in tail if i not in picked][-spare_tail:] if spare_tail > 0 else []
     return "\n".join(lines[i] for i in sorted(set(picked) | set(summary)))
 
 
@@ -168,6 +183,11 @@ def self_test():
     two = block("one", ["a", "b", "c", "d", "e", "cause-one"]) + block("two", ["x", "cause-two"]) + "SUMMARY: 0 PASS, 2 FAIL, 0 SKIP (base origin/main) — not ready\n"
     assert "cause-one" in verdict(two, 1) and "cause-two" in verdict(two, 1), "every failure keeps the end of its block"
     assert "last" in verdict("x\n" * 20 + "last\n", 1), "no FAIL line: the tail of the output"
+    six = "".join(block(f"g{i}", ["n1", "n2", "n3", "n4", f"REAL-{i}"]) for i in range(6)) + "SUMMARY: 0 PASS, 6 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    shown6 = verdict(six, 1)
+    assert all(f"REAL-{i}" in shown6 for i in range(6)) and shown6.count("\n") <= 18, "with many failures every one keeps the end of its block"
+    twenty = "".join(block(f"g{i}", ["noise", f"REAL-{i}"]) for i in range(20)) + "SUMMARY: 0 PASS, 20 FAIL, 0 SKIP (base origin/main) — not ready\n"
+    assert verdict(twenty, 1).count("REAL-") >= 6 and "SUMMARY:" in verdict(twenty, 1), "20 failures: the first ones with their cause, not 14 bare FAIL lines"
     with tempfile.TemporaryDirectory() as root:
         def git(*args):
             subprocess.run(["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@t", *args], check=True, capture_output=True)

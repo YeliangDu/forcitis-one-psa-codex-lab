@@ -85,6 +85,31 @@ def main():
         assert "未提交或未跟踪" in launch(stale, "probe.sh", "a", project=stale).stderr, "an untracked file in scripts/hooks counts"
         os.remove(os.path.join(hooks, "untracked.sh"))
         assert "MAIN" in launch(stale, "probe.sh", "a", project=stale).stdout and not launch(stale, "probe.sh", "a", project=stale).stderr, "clean again: main's version"
+        # the blind spots of `git status`: an ignored file and an assume-unchanged edit in scripts/hooks
+        put(os.path.join(hooks, "ignored.sh"), "#!/bin/bash\n")
+        put(os.path.join(main_repo, ".gitignore"), "ignored.sh\n")
+        git(main_repo, "add", ".gitignore"); git(main_repo, "commit", "-q", "-m", "ignore")
+        assert "未提交或未跟踪" in launch(stale, "probe.sh", "a", project=stale).stderr, "an ignored file in scripts/hooks counts"
+        os.remove(os.path.join(hooks, "ignored.sh"))
+        git(main_repo, "update-index", "--assume-unchanged", "scripts/hooks/probe.sh")
+        put(os.path.join(hooks, "probe.sh"), PROBE.replace("{tag}", "HIDDEN"))
+        r = launch(stale, "probe.sh", "a", project=stale)
+        assert "HIDDEN" not in r.stdout and "STALE" in r.stdout, "an assume-unchanged edit is not run"
+        git(main_repo, "update-index", "--no-assume-unchanged", "scripts/hooks/probe.sh")
+        git(main_repo, "checkout", "--", "scripts/hooks/probe.sh")
+        # 3b. the desktop app points CLAUDE_PROJECT_DIR at the main checkout, so the launcher that runs IS main's copy: when main is unsafe it must not fall back to its own dirty files
+        put(os.path.join(hooks, "probe.sh"), PROBE.replace("{tag}", "DIRTY"))
+        r = launch(main_repo, "probe.sh", "a", cwd=stale, project=main_repo)
+        assert "STALE" in r.stdout and "DIRTY" not in r.stdout and "会话自己的工作区" in r.stderr, "falls back to the session's worktree, not to main's dirty copy"
+        r = launch(main_repo, "probe.sh", "a", cwd=foreign, project=main_repo, flags=("--strict",))
+        assert r.returncode == 2 and "DIRTY" not in r.stdout and "FOREIGN" not in r.stdout and "不执行钩子" in r.stderr, "another repository's working directory is no fallback: fail"
+        assert launch(main_repo, "probe.sh", "a", cwd=foreign, project=main_repo).returncode == 1
+        git(main_repo, "checkout", "--", "scripts/hooks/probe.sh")
+        git(main_repo, "checkout", "-q", "-b", "other2")
+        r = launch(main_repo, "probe.sh", "a", cwd=stale, project=main_repo)
+        assert "STALE" in r.stdout and "不在 main 分支" in r.stderr and "HEAD" in r.stderr
+        git(main_repo, "checkout", "-q", "main")
+        assert "MAIN" in launch(main_repo, "probe.sh", "a", cwd=stale, project=main_repo).stdout
         # 4. missing in main: the workspace copy; missing everywhere: failure
         r = launch(stale, "only_here.sh", "a", project=stale)
         assert "ONLYHERE" in r.stdout and "没有可执行的 scripts/hooks/only_here.sh" in r.stderr

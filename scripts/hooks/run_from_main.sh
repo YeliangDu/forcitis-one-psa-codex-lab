@@ -49,7 +49,9 @@ else
   head_ref="$(git -C "$main" symbolic-ref -q HEAD 2>/dev/null)"
   if [ "$head_ref" != "refs/heads/main" ]; then
     reason="主检出 $main 不在 main 分支（HEAD=${head_ref:-游离}）"
-  elif [ -n "$(git -C "$main" status --porcelain -- scripts/hooks 2>/dev/null)" ]; then
+  elif [ -n "$(git -C "$main" status --porcelain -- scripts/hooks 2>/dev/null)" ] \
+      || [ -n "$(git -C "$main" ls-files -v -- scripts/hooks 2>/dev/null | grep -v '^H ')" ] \
+      || [ -n "$(git -C "$main" ls-files --others --ignored --exclude-standard -- scripts/hooks 2>/dev/null | grep -v '__pycache__')" ]; then
     reason="主检出 $main 的 scripts/hooks 有未提交或未跟踪改动"
   elif [ ! -x "$main/scripts/hooks/$name" ]; then
     reason="主检出 $main（$(git -C "$main" rev-parse --short HEAD 2>/dev/null)）没有可执行的 scripts/hooks/$name"
@@ -57,7 +59,24 @@ else
     target="$main/scripts/hooks/$name"
   fi
 fi
-[ -n "$reason" ] && warn "$reason，退回本工作区的副本（可能落后）"
+if [ -n "$reason" ]; then
+  # the fallback is a workspace copy, never the main checkout's own unsafe copy: when this launcher lives in the main checkout (the desktop app points CLAUDE_PROJECT_DIR there),
+  # the session's own worktree (the hook's working directory, accepted only when it belongs to the same repository) is the fallback, else the hook fails
+  main_hooks="${main:+$main/scripts/hooks}"
+  if [ -n "$main_hooks" ] && [ "$here" = "$main_hooks" ]; then
+    target=""
+    wt="$(git rev-parse --show-toplevel 2>/dev/null)"
+    if [ -n "$wt" ] && [ "$wt" != "$main" ] && [ "$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" = "$own_common" ] && [ -x "$wt/scripts/hooks/$name" ]; then
+      target="$wt/scripts/hooks/$name"
+      warn "$reason，退回会话自己的工作区 $wt 的副本（可能落后；主检出 HEAD $(git -C "$main" rev-parse --short HEAD 2>/dev/null)）"
+    else
+      warn "$reason，主检出的副本不安全且找不到会话自己的工作区副本，不执行钩子，按失败处理（主检出 HEAD $(git -C "$main" rev-parse --short HEAD 2>/dev/null)）"
+      exit "$failcode"
+    fi
+  else
+    warn "$reason，退回本工作区的副本（可能落后；主检出 HEAD $(git -C "${main:-.}" rev-parse --short HEAD 2>/dev/null || echo 无)）"
+  fi
+fi
 
 if [ ! -x "$target" ]; then
   warn "钩子 $name 不存在或不可执行（$target），按失败处理"
