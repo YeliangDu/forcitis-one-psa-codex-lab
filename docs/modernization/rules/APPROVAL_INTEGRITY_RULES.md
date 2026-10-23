@@ -46,7 +46,7 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 **Plain English:** A claimed task released by its holder has no holder again and can be claimed by someone else. The administrator can hand an open task, claimed or not, to a named person with a reason; the task then belongs to that person as claimed.
 **Specification:**
 - Given a claimed task, When its holder releases it, Then it has no assignee; When another person claims it, Then that person is the assignee.
-- Given a pending task, When the administrator reassigns it without a reason, Then it is refused with PLATFORM_APPROVAL_REASON_REQUIRED; with the reason "covering" the task becomes claimed and the named person is its assignee.
+- Given a pending task, When the administrator reassigns it without a reason, Then it is refused with KERNEL_REASON_REQUIRED; with the reason "covering" the task becomes claimed and the named person is its assignee.
 **Confidence:** High
 
 ### RULE-495: A task's outcome and effect are recorded together; an automatic pass is always an approval; a content digest is kept only for a binding approval

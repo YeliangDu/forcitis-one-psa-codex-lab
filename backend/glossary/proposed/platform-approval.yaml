@@ -90,21 +90,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__platform_approval_reason_required
-  zh: 必须填写原因
-  en: PlatformApprovalReasonRequired
-  snake: platform_approval_reason_required
-  kind: error_code
-  bc: platform.approval
-  scope: domain
-  definition: 驳回、退回、转交、改派、撤回、撤销必须填写原因（422）
-  standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_approval_hook_blocked
   zh: 钩子拒绝办理
   en: PlatformApprovalHookBlocked
