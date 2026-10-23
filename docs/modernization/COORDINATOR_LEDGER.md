@@ -3,6 +3,13 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 20:5x（one-coordinator，用户重启 app 前交接；清空后先读本条）
+- **清空后第一件事**：CronCreate 每 5 分钟巡检（ReadNotifications、mailbox list --unacked/stale、mq.py status）。合入队列已空、one-merge 暂停取新，等调度通知。
+- **PR 列表只留业务（intent 204428）**：在开只有 #658（platform.file，冻结）。已关闭、分支保留：#685（TEAM-26 放宽）、#688/#690（规则表第三步、第二四五步，分支 claude/one-coordinator-pb-step3、-pb-step245，worktree ../pb-step1）、#691（ARC-01 第②步，复核已过 b04c8ae53，分支 claude/one-architecture-ssot-step2）、#692（文档合集 77，one-data DATA_DESIGN_GATE）。原 #669/#677/#686/#689/#683/#684/#654 分支已删，内容在远端 claude/one-ops-infra-batch @0059c2df7；#672 备份在 ~/.modernize/psa/branch-cleanup-20261023/pr672-one-ops-rfm.bundle。
+- **等用户答**：①是否「一次性合」：整合分支＋#685＋规则表三步＋#692 内容并一个 PR，复审解冲突部分、一次 CI 合入，之后 #691 解冲突再合；②「开发流程改动一天合一次」是否写进规则表；③开发流程工具进 git：两层都做/只做快车道/不做；④security_remediation.patch/.notes.md 疑似 6 处凭据：现在派 one-ops 只读核查还是一并处理；⑤队列清空后是否给 one-ops 发「开卡」（QUA-06②③、MRG-08、MRG-02、MRG-04、A09）。用户要求：先不开发任何新卡。
+- **待我做**：规则表 PR 要并入 one-ops 交来的条文（~/.modernize/psa/coordinator/handoff-20261023/ops-playbook-for-coordinator.diff：TEAM-14/07 阈值 20%→30%；附表 B 加 A 行 approve_post_gate，去掉「自动入队永久关闭」）、批准评论两种前缀写进 TEAM-45、第六步拆结构。总验收剩余 35 项清单 ~/.modernize/psa/coordinator/team-audit/acceptance-1023-35.md；调度自有 A06/A19/A24/A52 未做。
+- **清理已做（10-23 20:3x）**：远端分支 182→37、本地 403→73、工作区 72→34（15GB）；删除清单与 bundle 备份在 ~/.modernize/psa/branch-cleanup-20261023/。进出 git 分类报告：~/.modernize/psa/coordinator/handoff-20261023/git-classification.md（已发用户）。未动：one-quality 临时目录 6GB、one-glossary codex-n20~22 未推送、one-quality codex-qua02/15/21 未提交改动。
+- **会话**：one-ops 等「队列清空，开卡」；one-merge 等通知后重启运行器（#678 改了 scripts/merge/）；one-architecture 等整合 PR 合入后重开 #691；one-quality 只复核；业务会话全部暂停。
 更新：2026-10-23 19:0x（one-coordinator，50% 交接；清空后先读本条）
 - **清空后第一件事**：CronCreate 每 5 分钟巡检（ReadNotifications、mailbox list --unacked/stale、mq.py status、在开非草稿 PR 逐个写卡点、派出复审超 30 分钟查是否在跑、reviews/ 新结论转实现与复核方）。批准前必须见该 head 轻量 CI 全绿；队列里的 PR CI 会被取消，属已知缺陷。
 - **队列**：[667,680,673,678,679,682]（#673 须在 #680 后）；main 绿（#681 修了 pre_tool_dispatch 自测 cwd 问题）。#654 head bfa67700f 等 CI 全绿后批（改 TEAM-45 守护索引列「A」，与 two-lanes 的 TEAM-45 文本冲突时：文本取 two-lanes、索引取 A）。运行器 scripts/merge/ 有改动合入须空档重启（one-merge 做）。
