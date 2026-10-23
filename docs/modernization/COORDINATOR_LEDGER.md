@@ -4,7 +4,7 @@
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
 更新：2026-10-23 16:5x（one-coordinator）
-- **#668 合入后待办**：①#673（ARC-01 第①步）令 one-architecture 合 main 解冲突、报 head 后派 opus 首轮；②派 test-engineer 改 TimesheetApprovalWithdrawnRenameIT、SourceReferenceRefusedRenameIT 路径常量为 ssot/i03-aggregates/built.yaml（断言不变），合入后通知 one-architecture 删 ddd/aggregates.yaml；③子代理分支 claude/one-coordinator-task-status-7 @8cfdccd32（七值校验）推送开 PR，交 one-quality 复核，须在清账文档合集合入后入队。
+- **#668 合入后待办**：①#673（ARC-01 第①步）令 one-architecture 合 main 解冲突、报 head 后派 opus 首轮；②派 test-engineer 改 TimesheetApprovalWithdrawnRenameIT、SourceReferenceRefusedRenameIT 路径常量为 ssot/i03-aggregates/built.yaml（断言不变），合入后通知 one-architecture 删 ddd/aggregates.yaml；③七值校验：本地分支 claude/one-coordinator-task-status-7 @c95808768（子代理工作区 .claude/worktrees/agent-a7d705e3f87bbfbe0），推送被预检拦（旧卡数据未进 main，预期），不绕过；等含清账提交（@957384cf0）的文档合集合入 main 后 rebase 重推开 PR，交 one-quality 复核。
 - **在途**：#668 改后通过待 one-ops 改 2 项（自测挪必需作业、--reads-docs 只认 READ_BY_BUILDS）；急修（one-merge 借调，run_from_main 第 52/54、63–76 行，LAST_LOG 以 #668 为准）；#667 必改已裁定交 one-ops；#669 暂停让急修；#654 等 #671 合入后放回；#672 草稿。
 更新：2026-10-23 15:3x（one-coordinator，GOV 卡整理，intent 151800）
 - **GOV 卡 53→保留 11**：COO-01（并 COO-03/04/05/06/08、QUA-10、MRG-12）、1023-QUA-06/04/07/01/05/08、1022-MRG-04 → one-ops；1023-MRG-10、1022-MRG-02 → one-merge；1023-QUA-02 收尾（#665 在队）。收尾不扩：1023-QUA-03（#654 在队）、1023-MRG-07（#652，排在做 3 张后）。挂起（阻塞）20 张；其余作废「并入 X」。
