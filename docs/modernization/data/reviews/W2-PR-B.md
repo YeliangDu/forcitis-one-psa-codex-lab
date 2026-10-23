@@ -36,3 +36,16 @@
 - `SourceIdMatchingIT`「同号两人各有一条」改为：第二人被隔离、写 `DUPLICATE_EMPLOYEE_CODE` 例外、第一人不受影响、重跑结果相同；另加「同号并发」用例期望该次同步 `FAILED` 而非静默。
 
 **② 有 A8 数据的环境**：同步默认关闭，ADR-0055 下生产不启用。结论：**PR-B 仍须带上面的隔离路径**（SourceIdMatchingIT 本来就走这条路径，且一次 23505 会让整次同步失败）；同时**任何环境不得在隔离路径合入前把 `WORKFORCE_SYNC_ENABLED` 设为 true**——请 one-1a-par 与 one-ops 核各环境配置没有打开它，结果回 one-coordinator。
+
+## 补：签发 issue_kind `EMPLOYEE_CODE_CHANGE_IGNORED`（2026-10-23，答 RULING-COORD-20261023-08，PR-B2）
+
+**① 类型**：`sync_diffs.issue_kind = EMPLOYEE_CODE_CHANGE_IGNORED`，与 `DUPLICATE_EMPLOYEE_CODE` 并列；`entity_kind = EMPLOYEE`、`change_kind = ISSUE`、`subject_key` 用来源对照键。含义：已发号员工的源端工号与本系统已发工号不同，同步只记例外、**不改工号**（工号一经发出不随源端变动，与上节「不自动改号」同源）。
+- `detail` 只写命中员工的自有 ID 与来源对照键，**不写新旧工号值、姓名等个人信息**（要看值去源端与员工档案各自核对）。
+- 计入 `issue_count`，不计 `isolated_row_count`（行本身没被隔离，该员工其余字段照常同步）。
+- 若 `issue_kind` 有枚举 CHECK 或应用枚举，随本类型一起加值（基线直改，同 `DUPLICATE_EMPLOYEE_CODE` 的做法）；`issue_kind` 是枚举类标记，不是错误码，不进错误码表。
+
+**② 重复同步的口径：每次同步各记一条，不跨次去重。**
+- 理由：`sync_diffs` 是 `sync_runs` 的子记录，语义是「这一次同步看到了什么」；跨次去重要查历史或加状态列，等于新造一套「例外是否已处理」的生命周期，同步已定退役（ADR-0055），不值得。组织管理员看的是最近一次同步的 `issue_count`，源端工号仍不一致则每次都应看到。
+- 约束：同一次同步内同一员工至多一条（按员工自有 ID 唯一，重跑同一 run 不重复插入）；源端工号改回与已发号一致后下次同步不再产生。
+- 噪声界限：条数 ≤ 每次同步中工号不一致的员工数，随 `sync_runs` 保留期清理，同步开关默认 false；若日后同步长期保留再起去重设计，不在本批做。
+- 测试要求：①已发号员工源端改号 → 工号不变、写一条该类型例外、其他字段仍同步；②连续两次同步 → 各一条；③源端改回 → 第三次无例外；④`detail` 不含工号值（守护断言）。

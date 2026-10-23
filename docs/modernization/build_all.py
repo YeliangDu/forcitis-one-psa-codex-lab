@@ -6,7 +6,7 @@
   python3 docs/modernization/build_all.py          生成全部产物
   python3 docs/modernization/build_all.py --check  要求 docs/modernization 与提议术语清单重新生成前后无差异（CI 使用）：
                                                    terms.yaml 过期或缺失时失败；允许已生成一致的未提交改动；
-                                                   ADR 拷贝与索引、brief、提议术语清单 README、frameworks 两个索引、panorama/FREEZE_* 不入仓（.gitignore，生成产物移出 main 第 1 期），只要求能生成；
+                                                   ADR 拷贝与索引、brief、提议术语清单 README、frameworks 两个索引、panorama/ 下 FREEZE_*、panorama.yaml、GAPS.md 不入仓（.gitignore，生成产物移出 main 第 1 期），只要求能生成；
                                                    INTENT / SESSION_LOG / STATUS / DECISION_DIGEST / SESSIONS / glossary/ISSUES / LEGACY_READ_REGISTER / tasks/TASKS / sessions/_COMMON 不入仓（.gitignore），只要求能生成、片段合规
                                                    （会话画像必备字段、会话名 one-* 且唯一；用语问题片段格式）；TASKS 另要求连续两次生成内容一致；
                                                    另校验 RULE_REVIEWS.json 的原结论未被改写（与 origin/main 的合并基点比对；取不到时由 review_revisions.py
@@ -25,6 +25,7 @@ SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_boar
 STEPS.append("rules/build_rule_index.py")   # 规则索引（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("rules/build_rule_index.py")
 SELF_TESTED.append("../../scripts/hooks/playbook_digest.py")
+SELF_TESTED.append("../../scripts/hooks/start_sheet.py")
 SELF_TESTED.append("../../scripts/ci/ci_recurrence.py")   # 每晚复发检测：失败 CI 按错题本报错特征归类
 SELF_TESTED.append("../../scripts/ops/session_daily.py")   # 会话日报取数（调度每天早上用）
 # 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；PyYAML 依赖登记于 SUPPLY_CHAIN.md S1
@@ -40,10 +41,10 @@ else:
     print(f"警告：{sys.executable} 缺少 PyYAML，本次未重新生成 glossary/terms.yaml；--check 会因此失败（依赖见 SUPPLY_CHAIN.md S1）", file=sys.stderr)
 STEPS.append("architecture/check_proposals.py")   # 提议稿状态行检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/check_proposals.py")
+STEPS.append("architecture/panorama/panorama_build.py")   # 全景追溯模型与 TD/BU 缺口（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突；排在 notes_build 之前：笔记检查读它生成的 panorama.yaml）
+SELF_TESTED.append("architecture/panorama/panorama_build.py")
 STEPS.append("architecture/frameworks/notes_build.py")   # 资料笔记格式、锚点断链检查，生成概念索引与总目录（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/frameworks/notes_build.py")
-STEPS.append("architecture/panorama/panorama_build.py")   # 全景追溯模型与 TD/BU 缺口（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
-SELF_TESTED.append("architecture/panorama/panorama_build.py")
 STEPS.append("architecture/panorama/object_freeze_check.py")   # 业务对象冻结：逐对象事实与初判（ADR-0059 判据；每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/panorama/object_freeze_check.py")
 
@@ -62,7 +63,7 @@ def snapshot(base=BASE):
 
 # 不入仓的生成产物（相对 docs/modernization）：--check 要求它们没有被跟踪（.gitignore 对已跟踪文件无效，合并冲突时「保留对方版本」会让它们悄悄回到库里），且生成之后确实存在
 UNTRACKED_PRODUCTS = ("adr/INDEX.md", "adr/README.md", "MODERNIZATION_BRIEF.md", "../../backend/glossary/proposed/README.md", "architecture/frameworks/CONCEPT_INDEX.md",
-                      "architecture/frameworks/NOTES_INDEX.md", "architecture/panorama/FREEZE_FACTS.md", "architecture/panorama/FREEZE_FACTS.yaml", "architecture/panorama/FREEZE_IMPACT.md")
+                      "architecture/frameworks/NOTES_INDEX.md", "architecture/panorama/FREEZE_FACTS.md", "architecture/panorama/FREEZE_FACTS.yaml", "architecture/panorama/FREEZE_IMPACT.md", "architecture/panorama/panorama.yaml", "architecture/panorama/GAPS.md")
 
 
 def check_untracked_products(base=BASE, products=UNTRACKED_PRODUCTS, adr_glob="adr/ADR-*.md"):

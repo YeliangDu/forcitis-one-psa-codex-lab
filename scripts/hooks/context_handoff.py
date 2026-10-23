@@ -194,7 +194,7 @@ def node_of(payload, event, root, config):
     return None
 
 
-def node_instruction(node, percent, name, profile, docs):
+def node_instruction(node, percent, name, profile, docs, goals=""):
     target = "one-merge" if name == "one-coordinator" else "one-coordinator"
     where = "、".join([profile or "sessions/<会话名>.md", *docs])
     extra = "（调度自清：one-merge 收到后用 set_remote_control 重开调度的远程并发『接续』）" if name == "one-coordinator" else ""
@@ -202,7 +202,8 @@ def node_instruction(node, percent, name, profile, docs):
             f"①更新 {where}（上下文文档与交接，写明下一步和未完成的用户请求）；②提交并推送；"
             f"③给 {target} 发消息「清空接续：{name or '<会话名>'} 交接在 <交接文件路径>」{extra}；"
             f"④调用 clear_session（session_id=self）。清空在本轮结束后才执行：此后不要再发消息或起任务，否则排队消息会让清空被丢弃；"
-            f"{target} 收到后须先 get_session 确认本会话已空闲且已清空，再发『接续』。发出「清空接续」后，其他会话找本会话一律经 {target} 转，不直接发给本会话（清空中收到消息会顶掉清空）。")
+            f"{target} 收到后须先 get_session 确认本会话已空闲且已清空，再发『接续』。发出「清空接续」后，其他会话找本会话一律经 {target} 转，不直接发给本会话（清空中收到消息会顶掉清空）。"
+            + (f"\n{goals}" if goals else ""))
 
 
 def throttle_limits(path=None):
@@ -339,6 +340,9 @@ def resolve_session(root):
     profile_path = f"{SESSIONS}/{name}.md"
     profile = sc.from_main(root, profile_path) or sc.from_tree(root, profile_path) or ""
     docs = [doc for doc in sc.context_docs(profile) if doc != profile_path and not sc.unsafe_reason(root, doc)]
+    source = sc.handoff_source(profile)
+    if source and source[0] not in docs and not sc.unsafe_reason(root, source[0]):
+        docs.append(source[0])  # the handover source counts for the node instruction and the stop gate even when it is not a listed context document
     return name, profile_path, docs
 
 
@@ -462,7 +466,13 @@ def handle_locked(event, payload, root, now):
                 if node:
                     entry["node_at"] = now
                     resolved = resolve_session(root)
-                    text = node_instruction(node, percent, resolved[0] or entry["name"] or None, resolved[1], resolved[2])
+                    try:
+                        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+                        import start_sheet
+                        goals = start_sheet.goals_for_node(root, resolved[0] or entry["name"] or "")
+                    except Exception as error:  # the goals are a courtesy; the instruction itself must still go out, saying they are missing
+                        goals = f"（任务卡的目标与完成标准读取失败：{type(error).__name__}，自己读 docs/modernization/tasks/ 里本会话的在途卡）"
+                    text = node_instruction(node, percent, resolved[0] or entry["name"] or None, resolved[1], resolved[2], goals)
                     if event == "Stop":
                         node_out = {"decision": "block", "reason": text}
                     else:
@@ -917,6 +927,7 @@ def self_test():
         assert fire("PostToolUse", 150, 3000.0, session="nd1", extra=bash("gh pr create --title x")) is None, "below min_percent: no node instruction"
         said = text(fire("PostToolUse", 250, 3001.0, session="nd1", extra=bash("cd w && gh pr create --title x")))
         assert said and "【交接节点】" in said and "已开 PR" in said and "clear_session" in said and "one-coordinator" in said and "get_session" in said and "25%" in said, said
+        assert node_instruction("已开 PR", 25, "one-x", "p.md", ["d.md"], "目标：GOALS").endswith("\n目标：GOALS") and "GOALS" not in node_instruction("已开 PR", 25, "one-x", "p.md", ["d.md"]), "task goals ride along only when there are some"
         assert fire("PostToolUse", 250, 3002.0, session="nd1", extra=bash("git push origin b")) is None, "cooldown: said once per 10 minutes"
         again = text(fire("PostToolUse", 250, 3001.0 + NODE_COOLDOWN_SECONDS + 1, session="nd1", extra=bash("git -C /w push -u origin b")))
         assert again and "已推送" in again, again
@@ -941,8 +952,28 @@ def self_test():
         def stop_at(tokens, tool_use, session, now, **extra):
             return handle("Stop", dict(payload, hook_event_name="Stop", session_id=session, transcript_path=turn_file(tokens, tool_use), **extra), root, now)
 
+        card = os.path.join(root, "docs/modernization/tasks/T-1.md")
+        write(card, "---\n任务号: T-1\n会话: one-test\n状态: 进行中\n---\n## 目标\n\n做 A 目标。\n\n## 完成标准\n\n测试过。\n")
         stop_node = stop_at(250, True, "nd6", 4005.0)
         assert stop_node and stop_node["decision"] == "block" and "一轮结束" in stop_node["reason"] and "【交接节点】" in stop_node["reason"], stop_node
+        assert "做 A 目标。" in stop_node["reason"] and "测试过。" in stop_node["reason"], "the open card's goal rides with the node instruction through the hook"
+        os.remove(card)
+        assert "读取失败" not in stop_node["reason"]
+        # the handover source of the profile counts: it is named by the node instruction and the stop gate waits for it
+        write(os.path.join(root, SESSIONS, "one-test.md"), "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n- 交接源: docs/hand.md#交接\n")
+        write(os.path.join(root, "docs/hand.md"), "## 交接\n\nx\n")
+        assert resolve_session(root)[2] == ["docs/ctx.md", "docs/hand.md"], resolve_session(root)
+        os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
+        os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
+        os.utime(os.path.join(root, "docs/hand.md"), (9e9, 9e9))
+        stop_gate = lambda session, now: handle("Stop", dict(payload, hook_event_name="Stop", session_id=session, transcript_path=turn_file(760, False)), root, now)
+        assert stop_gate("src-gate1", 90000.0) is None, "writing the handover source satisfies the stop gate"
+        os.utime(os.path.join(root, "docs/hand.md"), (1, 1))
+        gate = stop_gate("src-gate2", 91000.0)
+        assert gate and gate["decision"] == "block" and "docs/hand.md" in gate["reason"], "a stale handover source is named by the stop gate"
+        write(os.path.join(root, SESSIONS, "one-test.md"), "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n")
+        os.remove(os.path.join(root, "docs/hand.md"))
+        os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
         assert stop_at(250, False, "nd6b", 4005.5) is None, "a turn that only answered a question (no tool ran) is not a node"
         assert stop_at(250, True, "nd7", 4006.0, stop_hook_active=True) is None, "a continued stop is let through"
         assert stop_at(150, True, "nd8", 4007.0) is None, "below min_percent a turn end is not a node"

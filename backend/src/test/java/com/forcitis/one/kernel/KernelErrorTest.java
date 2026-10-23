@@ -24,6 +24,13 @@ class KernelErrorTest {
     }
 
     @Test
+    @DisplayName("IMP-1022-COO-04 必须填写原因是一个 422 码 KERNEL_REASON_REQUIRED")
+    void reasonRequiredIsAKernelUnprocessable() {
+        assertThat(KernelError.KERNEL_REASON_REQUIRED.refusal("x").errorCode().code()).isEqualTo("KERNEL_REASON_REQUIRED");
+        assertThat(KernelError.KERNEL_REASON_REQUIRED.refusal("x").kind()).isEqualTo(ErrorKind.UNPROCESSABLE);
+    }
+
+    @Test
     @DisplayName("IMP-1022-COO-02 StateMachine.require 不给码时默认用 KERNEL_TRANSITION_ILLEGAL，合法转换照常返回目标状态")
     void stateMachineDefaultsToTheKernelCode() {
         assertThat(MACHINE.require(Phase.OPEN, Phase.CLOSED)).isEqualTo(Phase.CLOSED);
