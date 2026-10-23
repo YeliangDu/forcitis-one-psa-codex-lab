@@ -153,6 +153,21 @@ class StoreContentTest {
         public Optional<FileStatus> unboundStatusStoredBy(FileId file, java.util.UUID uploader) {
             throw new AssertionError("not used when storing");
         }
+
+        @Override
+        public java.util.List<FileId> unboundStoredBefore(com.forcitis.one.platform.file.api.FileSubjectKind uploaderKind, java.time.Instant cutoff, int limit) {
+            throw new AssertionError("not used when storing");
+        }
+
+        @Override
+        public Optional<com.forcitis.one.platform.file.domain.StoredFile> lockForExpiry(FileId file) {
+            throw new AssertionError("not used when storing");
+        }
+
+        @Override
+        public void saveExpiry(com.forcitis.one.platform.file.domain.StoredFile file, java.time.Instant at) {
+            throw new AssertionError("not used when storing");
+        }
     };
 
     final StoreAudit audit = new StoreAudit() {
