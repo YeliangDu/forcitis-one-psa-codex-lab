@@ -5,7 +5,10 @@
 - **b1 新提交（均已报调度待审）**：O6 必改 242bb442d → O2 必改 cd0014b51 → O3 必改 f756c32fc → O4 必改＋主检出一律拒 e88824f83 → policy tools_lib.dir 5ae1a8e59。
 - **用户已定（intent 225957）**：O2 上限 1,100、一行一句；主检出一律拒；codex_stdin_gate 按定稿 O21 删（O3 起已不挂），临时人工规则「codex 带 </dev/null 并禁网」由调度 C6 写 RULES；TEAM-90 大输出提醒改人工规则，归调度。
 - **D40 已办**：~/.codex/config.toml sandbox_mode 改 workspace-write（approval never 不变），备份在 ~/.modernize/psa/ops/backup-20261023-flow-v2/。
-- **在途**：O7 已派 opus 子代理在 ops-fv2-b1 上写（含堵生产写门入口缺失退出 127 放行）。清空后收不到汇报：看 `git -C ../ops-fv2-b1 log` 有无 O7 提交，有就读正文报待审，没有就重派。之后 O8 → O9 → O10。
+- **更新**：policy 提交改写为 535d321e2（tools_lib.dir、tools_lib/mq.max_lines_total 1800/2500、gates.max_lines.budget_check 350，替换 5ae1a8e59）；O7 535c03bfe（install.sh 59 行，settings 直调 current，127 两层堵），均已报待审。
+- **待调度定**：回退 v1 不能用 pre-flow-v2（无 scripts/gates），子代理建议 5ae1a8e59。
+- **第二批待办**：build_sessions 角色文件补非空检查（455de7e15 复审建议）。
+- **下一步**：等复审结论；O8 → O9 → O10。
 
 ## 2026-10-24 凌晨四次增补（第九次交接；流程重构第一批，以本节为准，覆盖三次增补同名项）
 
