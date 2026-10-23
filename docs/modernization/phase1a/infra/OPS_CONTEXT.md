@@ -1,5 +1,16 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 凌晨四次增补（第九次交接；流程重构第一批，以本节为准，覆盖三次增补同名项）
+
+- **子分支 `claude/one-ops-flow-v2-b1`（工作区 `.claude/worktrees/ops-fv2-b1`，本机，不推送）现有提交**：O2 d4eedf9c1 → O3 e3fe6dcbd → O4 79a2d005e → O5 610fca580 → O5 补 848c57731（relevant_change 列 roles/）→ O5 必改 05c144e8b（目录名优先）→ O6 9e80a8810（settings 只剩 4 挂载、删 12 个钩子文件、start_sheet 加 --hook、Stop 挂工具库 stop_check 且 `; exit 0`）→ policy 三键 cf938271d（retention_days.evidence=7、shell.foreground_max_seconds=60、ci.new_test_repeat=3，守护类要终审）→ build_sessions 指针画像 455de7e15（调度 C4 画像一行指针；标题可选，正文一行恰一个 roles/*.md 指针）。均已报「待审」。
+- **复审结论**：O5 及两修正通过；O6、cf938271d、455de7e15 待结论（读 `~/.modernize/psa/coordinator/reviews/redesign/<完整sha>.md`）。
+- **下一步（按序）**：①**O2～O4 必改**（调度 10-24 消息，详情见各 sha 的 .md/.final.md）：O2 恢复一行一句（上限暂按 1,100 或拆 shell_words.py，调度在问用户，先展开写）、特征表空且读不到 origin/main 要拦、自测按 id 从 prod_targets.json 取值不留拆段生产值、`PGHOST=…; export PGHOST` 与 `set -a` 后的生产写要拦；O3 分发器预筛不得藏掉门的拒绝（lua、dash、ksh、`. x`）；O4 保留 GIT_DIR/GIT_COMMON_DIR/GIT_WORK_TREE 检查，工作区里 `GIT_DIR=<主检出>/.git` 或 `--git-dir/--work-tree` 提交进 main 要拒。这些是 opus 级，派 opus 子代理写，改完各报 sha（调度派独立 opus 终审）。②O7（opus，install.sh 原子切换、删 run_from_main 与 O3 旧名别名；**O3、O4、O7 同批合入**；验收按实际挂载复测分发器 p99≤100ms）→ O8 → O9（只做轻作业）→ O10。
+- **mq 相关搁置（intent 2026-10-23-222945，已报调度）**：O13 整项；O7 中「mq 合入后自动 install.sh」；O9 的必需检查改名；§6 判据「mq 自测」待调度定；不合 one-merge 子分支；旧整合清单 MRG-08/02/04。
+- **待用户定（调度在问，先不动）**：主检出在其他分支是否一律拒；codex_stdin_gate 是否留到 O21；O2 行数上限。
+- **待调度确认**：SESSION_PLAYBOOK 附表 C 行旧口径随 C6；旧 SESSION_PLAYBOOK 指针（ci.yml、relevant_change、钩子文案）随第二批。
+- **本次学到**：①zsh 里 `$c` 不分词，循环跑命令用 eval；②`git commit -F msg -- <路径>` 只提交该路径、不动已暂存的其他改动；③`tail -1` 会只取到断言消息末尾空行，看变异结果用 grep Assertion 或退出码；④python 字符串替换先确认锚点唯一。
+- **在途卡 OPS-1022-OPS-02、OPS-1023-OPS-01**：本轮未动（用户要求先做流程重构）。
+
 ## 2026-10-24 凌晨三次增补（上下文 21% 第八次交接；流程重构第一批，以本节为准）
 
 - **已完成**：①整合分支备份已推 `claude/one-ops-infra-batch`＝0059c2df7（不开 PR）。②B1 比对脚本 `~/.modernize/psa/ops/b1_compare.py`（不入库）已交调度转用户：查用户输入的凭据是否出现在 security_remediation 两件的任一历史版本里，只输出匹配／不匹配。③本机残留 `.git/hooks/pre-push` 已移到 `~/.modernize/psa/ops/backup-20261023-flow-v2/`。
