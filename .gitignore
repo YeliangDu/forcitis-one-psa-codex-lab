@@ -8,7 +8,7 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
-# 记录类生成产物不入仓：本地运行 docs/modernization/build_all.py 生成，或看 generated-docs 分支（SESSION_PLAYBOOK §1）
+# 记录类生成产物不入仓：本地运行 docs/modernization/build_all.py 生成，或看 generated-docs 分支（SESSION_PLAYBOOK TEAM-15）
 docs/modernization/INTENT.md
 docs/modernization/DECISION_DIGEST.md
 docs/modernization/SESSION_LOG.md
