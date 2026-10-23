@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentTypeCode;
@@ -16,7 +17,6 @@ import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ContentHash;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
@@ -137,7 +137,7 @@ public abstract class ApprovalP4Support extends AccountsAcceptanceSupport {
     }
 
     protected ApprovalStartRequest startRequest(DocumentReference document, Set<String> flags, ApprovalField... fields) {
-        return new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, employeeIdOf(initiator), new RoundNumber(1),
+        return new ApprovalStartRequest(TimesheetApprovalProcess.KEY, document, legalEntity, employeeIdOf(initiator), new RoundNumber(1),
                 UUID.randomUUID(), flags, List.of(fields), new ContentHash("synthetic-content"), new ApprovalSummary("Synthetic timesheet " + document.documentId()));
     }
 

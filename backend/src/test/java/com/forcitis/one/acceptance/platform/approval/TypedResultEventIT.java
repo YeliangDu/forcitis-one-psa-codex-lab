@@ -3,6 +3,7 @@ package com.forcitis.one.acceptance.platform.approval;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.acceptance.P5Support;
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.application.GetTimesheet;
@@ -15,7 +16,6 @@ import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import java.io.IOException;
@@ -126,7 +126,7 @@ class TypedResultEventIT extends P5Support {
         approveAsProjectManager(openTaskOf(timesheet));
         Awaitility.await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(100)).until(() -> statusOf(timesheet) == TimesheetStatus.APPROVED);
         EventEnvelope envelope = (EventEnvelope) envelopeFor("platform.approval.ApprovalCompleted", "ApprovalRequest", UUID.randomUUID());
-        ApprovalCompleted late = new ApprovalCompleted(envelope, documentOf(timesheet), ProcessKey.COST_TIMESHEET_APPROVAL,
+        ApprovalCompleted late = new ApprovalCompleted(envelope, documentOf(timesheet), TimesheetApprovalProcess.KEY,
                 new ApprovalInstanceId(UUID.randomUUID()), new RoundNumber(1), employeeIdOf(initiator), ApprovalOutcome.REJECTED,
                 new Reason("synthetic late rejection"), null);
 

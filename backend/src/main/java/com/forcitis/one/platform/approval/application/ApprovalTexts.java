@@ -3,7 +3,6 @@ package com.forcitis.one.platform.approval.application;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.EscalationTarget;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.util.List;
 
 /**
@@ -15,18 +14,12 @@ public final class ApprovalTexts {
     private ApprovalTexts() {
     }
 
-    public static String processName(ProcessKey key) {
-        return switch (key) {
-            case COST_TIMESHEET_APPROVAL -> "工时审批";
-        };
-    }
-
     public static String documentName(DocumentReference document) {
         return document.documentId().value().toString();
     }
 
-    public static String inboxTitle(ProcessKey key, DocumentReference document) {
-        return processName(key) + " " + document.documentId().value();
+    public static String inboxTitle(String processName, DocumentReference document) {
+        return processName + " " + document.documentId().value();
     }
 
     public static String assignedTitle(String nodeName) {
@@ -74,8 +67,8 @@ public final class ApprovalTexts {
         };
     }
 
-    public static String completedBody(ProcessKey key, DocumentReference document, int round, String reason) {
-        return processName(key) + " " + documentName(document) + " 第 " + round + " 轮" + (reason == null ? "" : "：" + reason);
+    public static String completedBody(String processName, DocumentReference document, int round, String reason) {
+        return processName + " " + documentName(document) + " 第 " + round + " 轮" + (reason == null ? "" : "：" + reason);
     }
 
     public static String startRefused(String errorCode) {

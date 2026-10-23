@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -12,7 +13,6 @@ import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ContentHash;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.api.RoutingFlag;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
@@ -37,7 +37,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
 
     DocumentSubmittedForApproval request(String key, long initiator, long manager, int round, String flag) {
         EventEnvelope envelope = envelope("platform.approval.DocumentSubmittedForApproval", "Timesheet", UUID.fromString(key), round);
-        return new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.employee(initiator), new RoundNumber(round),
+        return new DocumentSubmittedForApproval(envelope, TimesheetApprovalProcess.KEY, document(key), TestAccounts.employee(initiator), new RoundNumber(round),
                 List.of(new RoutingFlag(flag)), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))),
                 new ContentHash("hash"), new ApprovalSummary("summary of " + key));
     }
@@ -95,7 +95,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
         String key = newKey("older");
         start(key, initiator, manager);
-        tx.executeWithoutResult(s -> approvals.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.account(initiator), "again"));
+        tx.executeWithoutResult(s -> approvals.withdraw(TimesheetApprovalProcess.KEY, document(key), TestAccounts.account(initiator), "again"));
         start(key, initiator, manager);
         double before = meters.counter("forcitis.platform.approval.start.ignored").count();
 

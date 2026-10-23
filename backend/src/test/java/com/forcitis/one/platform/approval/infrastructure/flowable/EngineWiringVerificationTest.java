@@ -22,7 +22,7 @@ class EngineWiringVerificationTest {
 
     private static final String HEAD = """
             <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:forcitis="https://forcitis.com/psa/approval/extension" targetNamespace="x">
-              <process id="cost_timesheet_approval" isExecutable="true">""";
+              <process id="cost_timesheet_approval" name="工时审批" isExecutable="true">""";
 
     private static EngineWiring wiringFor(String processBody) {
         RepositoryService repository = mock(RepositoryService.class);
@@ -31,7 +31,8 @@ class EngineWiringVerificationTest {
         BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(
                 new ByteArrayInputStream((HEAD + processBody + "</process></definitions>").getBytes(StandardCharsets.UTF_8))), false, false);
         when(repository.createProcessDefinitionQuery()).thenReturn(query);
-        when(query.singleResult()).thenReturn(definition);
+        when(query.list()).thenReturn(java.util.List.of(definition));
+        when(definition.getKey()).thenReturn("cost_timesheet_approval");
         when(definition.getId()).thenReturn("d1");
         when(repository.getBpmnModel("d1")).thenReturn(model);
         return new EngineWiring(null, repository, null, null, null, null);
@@ -57,7 +58,16 @@ class EngineWiringVerificationTest {
     @Test
     @DisplayName("a declared document type and no faulty node passes")
     void aDeclaredTypeAndNoFaultPasses() {
-        assertThatCode(() -> wiringFor("<extensionElements><forcitis:documentType code=\"TIMESHEET\"/></extensionElements><startEvent id=\"s\"/>").verifyDefinitions())
+        assertThatCode(() -> wiringFor("<extensionElements><forcitis:documentType code=\"TIMESHEET\"/><forcitis:routingFlagRequired value=\"false\"/></extensionElements><startEvent id=\"s\"/>").verifyDefinitions())
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("REG-4: a process that does not say whether it needs routing flags fails the start, never a default")
+    void missingRoutingFlagDeclarationFailsTheStart() {
+        assertThatThrownBy(() -> wiringFor("<extensionElements><forcitis:documentType code=\"TIMESHEET\"/></extensionElements><startEvent id=\"s\"/>").verifyDefinitions())
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("forcitis:routingFlagRequired");
+        assertThatThrownBy(() -> wiringFor("<extensionElements><forcitis:documentType code=\"TIMESHEET\"/><forcitis:routingFlagRequired value=\"maybe\"/></extensionElements><startEvent id=\"s\"/>").verifyDefinitions())
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("forcitis:routingFlagRequired");
     }
 }

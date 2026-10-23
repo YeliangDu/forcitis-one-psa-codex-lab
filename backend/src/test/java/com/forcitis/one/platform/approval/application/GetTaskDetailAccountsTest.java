@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
@@ -16,7 +17,6 @@ import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.platform.approval.api.NodeKey;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalTaskQueries;
 import com.forcitis.one.platform.approval.domain.TaskRecord;
@@ -46,7 +46,7 @@ class GetTaskDetailAccountsTest {
     }
 
     private static TaskRecord record(ApprovalTaskStatus status) {
-        return new TaskRecord(OpenTasks.TASK, OpenTasks.INSTANCE, ProcessKey.COST_TIMESHEET_APPROVAL,
+        return new TaskRecord(OpenTasks.TASK, OpenTasks.INSTANCE, TimesheetApprovalProcess.KEY,
                 new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("7")), new NodeKey("approverReview"), INITIATOR, status, Optional.of(HANDLER),
                 NOW, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), new ApprovalSummary("TS-1"), 3, 1);
     }

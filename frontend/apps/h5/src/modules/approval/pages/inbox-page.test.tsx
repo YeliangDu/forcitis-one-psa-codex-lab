@@ -14,8 +14,8 @@ const INBOX = {
   noticeCount: 0,
   totalCount: 2,
   items: [
-    { category: 'TODO', overdue: false, taskId: 'n-1', processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS202610140001', title: 'COST_TIMESHEET_APPROVAL 1', nodeName: '部门负责人审核', createdAt: '2026-10-14T01:00:00Z', claimed: true },
-    { category: 'TODO', overdue: false, taskId: 'n 2', processKey: 'COST_TIMESHEET_APPROVAL', documentId: 'TS202610140002', title: 'COST_TIMESHEET_APPROVAL 2', nodeName: '部门负责人审核', createdAt: '2026-10-14T02:00:00Z', claimed: false },
+    { category: 'TODO', overdue: false, taskId: 'n-1', processKey: 'cost_timesheet_approval', documentId: 'TS202610140001', title: 'cost_timesheet_approval 1', nodeName: '部门负责人审核', createdAt: '2026-10-14T01:00:00Z', claimed: true },
+    { category: 'TODO', overdue: false, taskId: 'n 2', processKey: 'cost_timesheet_approval', documentId: 'TS202610140002', title: 'cost_timesheet_approval 2', nodeName: '部门负责人审核', createdAt: '2026-10-14T02:00:00Z', claimed: false },
   ],
 };
 
@@ -86,7 +86,7 @@ describe('已办', () => {
     renderWithProviders(<InboxPage />);
 
     await screen.findByText('工时单审批 TS202610140001');
-    expect(screen.queryByText(/COST_TIMESHEET_APPROVAL/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/cost_timesheet_approval/)).not.toBeInTheDocument();
   });
 
   it('服务端给出下一页的游标时显示“显示更多”，点击后接在后面', async () => {

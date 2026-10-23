@@ -154,13 +154,13 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         String key = newKey("unique-request");
         insertRequestWithFirstRound(key, java.util.UUID.randomUUID().toString(), java.util.UUID.randomUUID().toString());
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_id,"
-                + " legal_entity_id, initiator_id, current_round, current_instance_id, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', cast(? as uuid), '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(6) + ", 1,"
+                + " legal_entity_id, initiator_id, current_round, current_instance_id, status, summary_text) values (uuidv7(), 'cost_timesheet_approval', 'TIMESHEET', cast(? as uuid), '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(6) + ", 1,"
                 + " uuidv7(), 'RUNNING', 's')", key)).isInstanceOf(DuplicateKeyException.class);
     }
 
     private void insertRequestWithFirstRound(String key, String instance, String event) {
         jdbc.update("with r as (insert into platform_approval.approval_requests (id, process_key, document_type, document_id, legal_entity_id, initiator_id,"
-                + " current_round, current_instance_id, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', cast(? as uuid), '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(5)
+                + " current_round, current_instance_id, status, summary_text) values (uuidv7(), 'cost_timesheet_approval', 'TIMESHEET', cast(? as uuid), '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(5)
                 + ", 1, cast(? as uuid), 'RUNNING', 's') returning id) insert into platform_approval.start_rounds (id, approval_request_id, round_number, initiator_id, instance_id,"
                 + " trigger_event_id) select uuidv7(), r.id, 1, " + TestOrgIds.sqlEmployee(5) + ", cast(? as uuid), cast(? as uuid) from r", key, instance, instance, event);
     }

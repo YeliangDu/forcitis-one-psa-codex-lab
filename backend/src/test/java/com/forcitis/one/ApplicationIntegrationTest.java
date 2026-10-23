@@ -388,6 +388,9 @@ class ApplicationIntegrationTest {
         if (type == String.class) {
             return "x";
         }
+        if (type == com.forcitis.one.platform.approval.api.ProcessKey.class) {
+            return com.forcitis.one.platform.approval.api.ProcessKey.of("cost_timesheet_approval");
+        }
         if (type == java.util.UUID.class) {
             return java.util.UUID.fromString("0198a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b");
         }
