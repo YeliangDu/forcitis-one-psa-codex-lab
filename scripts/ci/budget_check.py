@@ -12,6 +12,7 @@ from pathlib import Path
 
 CLAUDE, RULES, ROLES = "CLAUDE.md", "docs/modernization/RULES.md", "docs/modernization/roles"
 TEMPLATE, GATES, LABEL_WRITER = ".github/pull_request_template.md", "scripts/gates", "scripts/review/post_review.py"
+PROMPT = "scripts/review/PROMPT.md"   # H8 scans it too; its fenced machine-header sample must spell the header literally, so fenced blocks are exempt
 CHECK_NAMES = {"budget_check", "mq", "post_review", "light", "backend", "frontend", "gitleaks", "assertion-drift",
                "acceptance_v2", "start_sheet", "handoff", "janitor", "board", "budget_level", "build_decisions",
                "check_pages", "build_all", "delegate"}
@@ -127,9 +128,13 @@ def literal_pattern(path, v):
 def check_single_source(root, pol, rep):
     pats = [(path, pat) for path, v in leaves({k: v for k, v in pol.items() if k != "schema_version"})
             if (pat := literal_pattern(path, v))]
-    for p in [t for t in (root / RULES, root / TEMPLATE) if t.is_file()] + role_files(root):
-        rel = p.relative_to(root).as_posix()
+    for p in [t for t in (root / RULES, root / TEMPLATE, root / PROMPT) if t.is_file()] + role_files(root):
+        rel, fenced = p.relative_to(root).as_posix(), False
         for no, line in enumerate(read(p).splitlines(), 1):
+            if rel == PROMPT and line.lstrip().startswith("```"):
+                fenced = not fenced
+            if fenced:
+                continue
             hits = {}
             for path, pat in pats:
                 if m := pat.search(line):

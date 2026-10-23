@@ -99,6 +99,9 @@ def main():
     expect_hit("H8 模板写 1,500 行", {".github/pull_request_template.md": "门不超过 1,500 行\n"}, "H8",
                ".github/pull_request_template.md:1")
     expect_hit("H8 比例写成 5%", {RULES: "## 取消率\n不超过 5%\n执行：light\n"}, "H8", RULES + ":2")
+    PROMPT = "scripts/review/PROMPT.md"
+    expect_hit("H8 复审提示写 45 分钟", {PROMPT: "复审超 45 分钟无果就查\n"}, "H8", PROMPT + ":1")
+    expect_clean("H8 复审提示围栏内的机读头样例豁免", {PROMPT: "```\n复审结论：通过｜必改\n超 45 分钟\n```\n"})
     # H9
     expect_hit("H9 缺执行栏", {RULES: "## 甲\n正文\n"}, "H9", RULES + ":1")
     expect_hit("H9 执行栏为空", {RULES: "## 甲\n执行：\n"}, "H9", RULES + ":1")
