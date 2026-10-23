@@ -8,3 +8,4 @@
 - one-glossary-b2：实现完成（#272 已合），已归档
 - one-arch-revenue：临时流程组结束（ARE-03 完成，@07c564244 在 main），10-23 归档（intent 111722）
 - one-arch-people：临时流程组结束（收尾 @399727388 在 main），10-23 归档（intent 111722）
+- one-rules：并入 one-glossary（交接 RULES_CONTEXT.md「交接」节 @a706eb820），10-23 归档（intent 112228）
