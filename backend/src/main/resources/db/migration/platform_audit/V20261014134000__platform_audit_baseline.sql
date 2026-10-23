@@ -33,7 +33,7 @@ COMMENT ON COLUMN platform_audit.audit_subject_kinds.created_at IS '创建时间
 COMMENT ON COLUMN platform_audit.audit_subject_kinds.updated_at IS '更新时间';
 
 CREATE FUNCTION platform_audit.guard_audit_subject_kind_change() RETURNS trigger
-    LANGUAGE plpgsql AS $$
+    LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_audit.audit_subject_kinds is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
