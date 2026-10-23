@@ -36,3 +36,16 @@
 
 - 允许的生产读取走专用只读账号并登记（ADR-0037、`LEGACY_READ_REGISTER.md`）；`u8c` 的读取属破例，逐次批准。
 - 拦截应以「实例 ID / 实例端点 / 库名 / 账号前缀」匹配，不要依赖实例名称里的 production 字样。
+
+## 五、两台生产 ECS 上的只读通道（one-ops 定，2026-10-23，供 #653 放行判断）
+
+需要：旧系统应用服务器 `i-bp1b34hcl0g1cnkdtrb9` 是 SQL Server 白名单内的唯一出口，只读取证（ADR-0037、`LEGACY_READ_REGISTER.md`）与 C-6 导出只能经它跑 Java 驱动。A8 应用服务器 `i-bp1dqbdqgf4vj53qd1q9` 只做过一次文件核对（NAS 合同取证计划），当前不需要。
+
+通道定义（不等于放开 RunCommand）：
+1. **调用方**：仅 `handoff/B-5-dba/tools/` 下已提交的工具（只读取证类：`b5_legacy_run.py` 的辅助函数、`b5_evidence_scan.py`、`c14_run.py` 的只读核实；`b5_evidence_run.py`、`b5_read_all_run.py` 会以高权限改授权，属一次性授权变更，不在通道内，到时另行请示放行）经阿里云 Python SDK（`ecs.run_command`，命令名 `one-ops-b5`、`keep_command=False`）发出，工具开头 `require_committed` 保证脚本已入库；不走 aliyun CLI 手敲。
+2. **目标**：仅 `i-bp1b34hcl0g1cnkdtrb9`。
+3. **命令内容限定**：只在 `/root/one-ops-b5`（及其下 `c14-stage-*`）暂存与清理；用 `OneSql` 以 `one_evidence_ro`、`one_a8_views_ro`、`one_legacy_names_ro` 连库；SQL 全部是只读（SELECT、元数据查询），不得出现 `u8c` 与任何写、DDL、EXEC；跑完 `rm -rf` 工作目录并回读 `CLEAN`。
+4. **不属于通道**：重启服务、改应用文件、改系统配置、写应用库——一律不做。
+5. **登记**：每次读取先登记一行 `LEGACY_READ_REGISTER`（`new_legacy_read.py`）；`u8c` 破例逐次批准。
+
+建议拦截口径：命令来自上述工具的 SDK 调用时放行；其余指向这两台 ECS 的 RunCommand 仍拒。若 #653 只能识别 aliyun CLI，则本通道（SDK）不受影响，只要求它别误拦工具的 `command_content`。
