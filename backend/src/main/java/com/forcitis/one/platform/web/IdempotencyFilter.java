@@ -106,14 +106,14 @@ class IdempotencyFilter extends OncePerRequestFilter {
             return;
         }
         if (request.getContentLengthLong() > maxBody) {
-            refuse(response, WebError.PLATFORM_WEB_REQUEST_INVALID, ErrorKind.INVALID);
+            refuseTooLarge(request, response);
             return;
         }
         CachedBody body;
         try {
             body = CachedBody.read(request.getInputStream(), prefix(request), maxBody);
         } catch (CachedBody.TooLarge tooLarge) {
-            refuse(response, WebError.PLATFORM_WEB_REQUEST_INVALID, ErrorKind.INVALID);
+            refuseTooLarge(request, response);
             return;
         }
         try (body) {
@@ -196,8 +196,16 @@ class IdempotencyFilter extends OncePerRequestFilter {
         response.getWriter().write(json.writeValueAsString(ProblemDetails.of(code, kind, Map.of())));
     }
 
+    private void refuseTooLarge(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        LOG.error("ALERT platform.idempotency request body above {} bytes refused: {}", maxBody, request.getRequestURI());
+        meters.counter("forcitis.platform.web.idempotency.request.oversize").increment();
+        refuse(response, WebError.PLATFORM_WEB_REQUEST_TOO_LARGE, ErrorKind.TOO_LARGE);
+    }
+
+    /** What is hashed before the body: the same bytes sent under another file name or media type are another request. */
     private static String prefix(HttpServletRequest request) {
-        return request.getMethod() + " " + request.getRequestURI() + "?" + request.getQueryString() + "\n";
+        return request.getMethod() + " " + request.getRequestURI() + "?" + request.getQueryString() + "\n"
+                + request.getHeader("Content-Disposition") + "\n" + request.getContentType() + "\n";
     }
 
     private static final class CachedBodyRequest extends HttpServletRequestWrapper {

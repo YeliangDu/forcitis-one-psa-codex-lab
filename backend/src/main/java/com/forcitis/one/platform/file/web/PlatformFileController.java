@@ -93,8 +93,8 @@ class PlatformFileController {
             throw new InvalidRequestException("Content-Disposition needs the file name (filename*=UTF-8''...)");
         }
         String name = filename.substring(Math.max(filename.lastIndexOf('/'), filename.lastIndexOf('\\')) + 1).strip();
-        if (name.isEmpty() || name.length() > MAX_NAME_LENGTH || name.chars().anyMatch(Character::isISOControl)) {
-            throw new InvalidRequestException("The file name must be 1 to " + MAX_NAME_LENGTH + " characters without control characters");
+        if (name.isEmpty() || name.length() > MAX_NAME_LENGTH || name.chars().anyMatch(c -> Character.isISOControl(c) || Character.getType(c) == Character.FORMAT)) {
+            throw new InvalidRequestException("The file name must be 1 to " + MAX_NAME_LENGTH + " characters without control or direction-changing characters");
         }
         return name;
     }
@@ -106,6 +106,9 @@ class PlatformFileController {
         }
         try {
             MediaType parsed = MediaType.parseMediaType(contentType);
+            if (parsed.getType().equals("multipart") || parsed.isCompatibleWith(MediaType.APPLICATION_FORM_URLENCODED)) {
+                throw new InvalidRequestException("The body is the file itself, not a form; send it with the file's own media type");
+            }
             return parsed.getType() + "/" + parsed.getSubtype();
         } catch (IllegalArgumentException malformed) {
             throw new InvalidRequestException("Content-Type cannot be read");

@@ -166,6 +166,10 @@ class PlatformFileEndpointsIT {
         MvcResult first = mvc.perform(upload("k-once", body)).andReturn();
         MvcResult again = mvc.perform(upload("k-once", body)).andReturn();
         MvcResult other = mvc.perform(upload("k-once", bytes(200 * 1024, 3))).andReturn();
+        MvcResult otherName = mvc.perform(post(FILES).with(member(Permission.Codes.PLATFORM_FILE_FILE_CREATE)).with(csrf()).header("Idempotency-Key", "k-once")
+                .header("Content-Disposition", "attachment; filename=\"other.pdf\"").contentType("application/pdf").content(body)).andReturn();
+        MvcResult otherType = mvc.perform(post(FILES).with(member(Permission.Codes.PLATFORM_FILE_FILE_CREATE)).with(csrf()).header("Idempotency-Key", "k-once")
+                .header("Content-Disposition", NAME).contentType("image/png").content(body)).andReturn();
 
         assertThat(requests).hasSize(1);
         assertThat(again.getResponse().getStatus()).isEqualTo(201);
@@ -173,15 +177,18 @@ class PlatformFileEndpointsIT {
         assertThat(again.getResponse().getHeader("Location")).isEqualTo(first.getResponse().getHeader("Location"));
         assertThat(again.getResponse().getHeader("Idempotent-Replayed")).isEqualTo("true");
         assertThat(other.getResponse().getStatus()).isEqualTo(422);
+        assertThat(otherName.getResponse().getStatus()).isEqualTo(422);
+        assertThat(otherType.getResponse().getStatus()).isEqualTo(422);
     }
 
     @Test
-    @DisplayName("a body above the idempotency limit is refused with 400 before the service sees it; one just within it goes through")
+    @DisplayName("a body above the idempotency limit is refused with 413 before the service sees it; one just within it goes through")
     void aBodyAboveTheLimitIsRefused() throws Exception {
         MvcResult tooLarge = mvc.perform(upload("k-big", bytes(4 * 1024 * 1024 + 1, 4))).andReturn();
         MvcResult atLimit = mvc.perform(upload("k-edge", bytes(4 * 1024 * 1024, 5))).andReturn();
 
-        assertThat(tooLarge.getResponse().getStatus()).isEqualTo(400);
+        assertThat(tooLarge.getResponse().getStatus()).isEqualTo(413);
+        assertThat(tooLarge.getResponse().getContentAsString()).contains("PLATFORM_WEB_REQUEST_TOO_LARGE");
         assertThat(atLimit.getResponse().getStatus()).isEqualTo(201);
         assertThat(requests).hasSize(1);
     }
