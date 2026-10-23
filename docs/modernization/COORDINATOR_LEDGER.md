@@ -3,6 +3,9 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 21:3x（one-coordinator，50% 交接）
+- **开发流程重构（intent 205403、205756、211258）**：五份 opus 盘点与方案在 ~/.modernize/psa/coordinator/redesign-1023/（inventory-1～5、proposal.md 第二稿、decisions.json 45 条）。确认页 https://claude.ai/artifact/JR9PndKfbj3emFuCngYRHp（db：answers/<Dxx> {choice,note,at}；meta/submit 为用户交卷），生成源 ~/.modernize/psa/coordinator/redesign-1023/page-template.html。下一步：用户勾选并交卷后读 answers，按决定改方案定稿，再派实施（方案 4 节：10-24～25 准备，10-26 起写整合分支，10-28 一次合入）。期间不开任何新卡、不合任何非业务 PR。
+- 额度：周用量 80%（10-23 21:0x），额外用量已停；本次盘点加方案约耗数个百分点。
 更新：2026-10-23 20:5x（one-coordinator，用户重启 app 前交接；清空后先读本条）
 - **清空后第一件事**：CronCreate 每 5 分钟巡检（ReadNotifications、mailbox list --unacked/stale、mq.py status）。合入队列已空、one-merge 暂停取新，等调度通知。
 - **PR 列表只留业务（intent 204428）**：在开只有 #658（platform.file，冻结）。已关闭、分支保留：#685（TEAM-26 放宽）、#688/#690（规则表第三步、第二四五步，分支 claude/one-coordinator-pb-step3、-pb-step245，worktree ../pb-step1）、#691（ARC-01 第②步，复核已过 b04c8ae53，分支 claude/one-architecture-ssot-step2）、#692（文档合集 77，one-data DATA_DESIGN_GATE）。原 #669/#677/#686/#689/#683/#684/#654 分支已删，内容在远端 claude/one-ops-infra-batch @0059c2df7；#672 备份在 ~/.modernize/psa/branch-cleanup-20261023/pr672-one-ops-rfm.bundle。
