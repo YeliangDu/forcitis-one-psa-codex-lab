@@ -89,3 +89,18 @@ common_words:
 - module
 - query
 - oversize
+- id: error__platform_web_request_too_large
+  zh: 请求体过大
+  en: PlatformWebRequestTooLarge
+  snake: platform_web_request_too_large
+  kind: error_code
+  bc: platform.web
+  scope: domain
+  definition: "带幂等键的写请求，请求体超过幂等过滤器的体积上限，未读完即拒（413），并写告警日志、计数"
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
