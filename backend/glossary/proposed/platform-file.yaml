@@ -5,7 +5,7 @@ terms:
   zh: 存储文件
   en: StoredFile
   snake: stored_file
-  kind: entity
+  kind: aggregate
   bc: platform.file
   scope: domain
   definition: 文件服务的根：一份不可变内容及其哈希、大小、媒体类型、上传主体、检测状态与版本 / 派生引用

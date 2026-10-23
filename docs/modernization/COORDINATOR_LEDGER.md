@@ -3,6 +3,26 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-23 11:4x（one-coordinator，40% 记录，不清空）
+- **新决定**：111209 只在 PR 节点上报（TEAM-53、MRG-11）；111722/112228 归档 revenue、people、rules（rules 并入 one-glossary，名不改）；113112 复盘优化（QUA-04、QUA-02 加 openapi、MRG-02 回填、TEAM-106/107）；113916 one-merge/quality 代码交 Codex、调度超 15 分钟可自行 enqueue；104603 治理冻结 TEAM-102～105。
+- **在开 PR**：#642(72020a4f8)、#650(870799258 after #642) 已批未入队（one-merge 忙，11:5x 未入队则我 enqueue）；#651 DIRTY 待 one-quality；#652 按 opus 改；#653 opus 不通过返工；#654 QUA-03 opus 首轮在跑。
+- **收件箱**：GL6/第八批 10 题二审「改后发布」，one-glossary 改完直接发布，报链接后转用户。
+- **待开**：bc 准入清单（等 PR 清空、整改验收后）；one-arch-finance 收尾后归档；one-1a-next-5 做完 NX5-01 后并入或归档。
+更新：2026-10-23 11:0x（one-coordinator，30% 记录；调度阈值已放宽为 50%/60%，intent 081732，不清空）
+- **今日用户决定（intent）**：081732 调度阈值 50/60、子代理先交 Codex；083031 代码首轮仍 opus；090202 开 QUA-01 通信守护；090817 合入提速（MRG-07～09，复核由作者交 Codex）；092636 冲突根治（QUA-02、MRG-10）；101623 先清 PR、核团队落实再开新工作。
+- **定时取信**：本会话 CronCreate 每 5 分钟查分层总图 meta/request、工作台 board/request、mailbox、通知（任务 eb7b6047，7 天过期）；**清空/交接后须重设**。页面按钮不会唤醒会话。
+- **在队/待合**：队列 651→642→649→648→640，#650 after #642（已批 80c3cab8a）。#645、#635、#587、#599、#644、#632 已合。
+- **在途卡**：one-quality：安全门 QUA-24→25→20→19→26 自写，Codex 并行 QUA-02/13/14/15/21/23，自写 QUA-11/16。one-merge：MRG-07＋01（含 MRG-06 取不到 head 失败关闭）→MRG-10（含入队前预跑整轮 CI）→MRG-02/03/04→MRG-08。one-ops：Docker 停机演练等 one-merge 暂停队列窗口。one-platform-file：#650 后做 BusinessFileStore.listFormal。one-1a-par：#648 遗留中2/低5 登记后续卡。
+- **团队核查**：~/.modernize/psa/coordinator/team-audit/audit-1023.md（结论：未达规划，不开新业务）。我负责：15 份画像重写（Codex 后台在跑，结果 scratchpad profiles-result.md，审后提交）、WORK_CARD 补目标/完成标准、卡状态对账、strict 复盘、记忆验收、整改总验收卡。
+- **待用户答**：治理冻结两周＋精简会话＋效率周数（10-23 11:0x 提议）；bc 准入清单与一 bc 一确认页（提议开卡）。
+更新：2026-10-23 07:5x（one-coordinator，30% 交接；清空后先读本条）
+- **新职责**：周额度归调度管（intent 071705，记忆 weekly-quota-owner）。10-23 07:5x 周用量 69%；检查点 10-24 09:00≤78%、10-25≤88%、10-26≤98%；每批边界 get_usage，超速先停 opus 再停设计类会话。云端额度可随意用（intent 071931），但用户远程控制时开不了云端会话，只能等用户在桌面端发话时开。
+- **在队/待合**：#632（head 19be09d1a）、#639（b4af543ae）、#644（a4921821f，合入后 dev 须重建→one-ops 进收件箱问用户）已批；#635 one-merge 按 sonnet 必改在改；#642 等 one-platform-file 补黑名单用例，CI 绿直接批（不再复核）；#640 待 #639 合入后 one-ops 跟改；#645 新规则手册 opus 首轮在跑（one-quality）；#599 head 变+CI 红待 one-1a-next-5 修后重批。
+- **裁定**：-08（PR-B2 工号禁改）、-09（卡 C 随改卡 A；E5 拆出不予放行）@5fd2a5aeb，已请 one-merge 加急合集；one-data 签 EMPLOYEE_CODE_CHANGE_IGNORED @c1e78036a 同批。
+- **等清空/接续**：one-1a-par 发了清空接续（交接 @c20cecf7d）但未清空，#632 合入后确认 0 of 0 再发接续（推 PR-B2、PAR-05）；补 IMP-1022-PAR-01 卡（在 #632 内，合入后补）。one-arch-finance 在答 one-data AGG-139 三问（G3/G5/G6），回来转 one-data、one-merge。
+- **待审**：GL6/GL7 用语页 47 题（@51ead6852）等云端审题（opus），审完 one-glossary 才发布进收件箱。
+- **整改**：15 张守护卡 @22b0acfd9 已派（one-quality 先 #645，再守护卡；one-merge MRG-01～04 待 #635 合）。
+- **不得再犯**：会话回合末尾向调度提问不发消息——每批后读 idle 会话最后一条（已入记忆 coordinator-self-checks）。
 更新：2026-10-23 00:4x（one-coordinator，40% 交接；清空后先读本条，再读下面 22:2x 条与「整改收尾清单」）
 - **00:4x 现状**：#628 自清推全员已合并生效（只排除 one-coordinator）；#616、#622、#624、#630、#631 已合。今晚各会话已自清并接续：one-arch-people、one-quality（多次）、one-1a-next-5、one-platform-file、one-merge、one-data；one-ops、one-architecture 下次节点自清（钩子已生效）。清空确认用 list_events「idle — 0 of 0」。
 - **在途 PR**：队列中/已批 #589 #627(head 99181cf1e) #629 #633 #634 #587 #599(a4c562253) #637(421886101) #638 #641(2e7574d75)；待复审 #635（MRG-05/06，sonnet 复核后批）、#639/#640（OPS-02 Docker 自动拉起，合入后 one-ops 直接装与演练）、#642（6b-2 上传，opus 首轮改后通过，全文 ~/.modernize/psa/coordinator/reviews/pr642-opus-1.md，one-platform-file 在改）；#632 W2 PR-B 有条件批（opus 结论贴评论＋sonnet、文档移出、CI 绿）；REG-4 待开 PR；PR-B2 在 #624 已合后可开。
@@ -10,6 +30,7 @@
 - 07:0x 增（app 卡死重启后）：#641、#643 已合；本分支已合 main（开工单生效）。用户定「补卡并派出去，优先把规则先落地」（intent 070452）：15 张守护卡 @22b0acfd9（QUA-11～16、19～23→one-quality，MRG-01～03 及 MRG-04 mq 侧→one-merge）；one-quality 先落地新规则手册。#635 sonnet 改后通过（one-merge 改）；#639/#640 opus 改后通过（one-ops 改）；#599 head 变需重批；#632 冲突（one-1a-par）；APE-01 六点交 one-architecture。
 - 00:5x 增：裁定 RULING-COORD-20261022-07（REG-4 验收引用替换，one-1a-next-5）已登记 @60564d38e，已请 one-merge 加急合集；REG-4 PR 待其进 main 后过守护。
 - 会话间消息 app 限流：连续 10 条后须用户发言；超限写 ~/.modernize/psa/outbox/one-coordinator.md，用户发话后补发并标「已转」。
+- 取信定时（GOV-1023-QUA-01）：每次清空或重开后第一件事重设 CronCreate 每 10 分钟跑 `python3 scripts/coord/mailbox.py list --unacked` 与 `stale --minutes=20`，处理后 `ack`；换新调度会话时同步改 context_windows.json 的 coordinator_session_ids。
 - 22:2x 交接（以下为旧条）
 - **22:2x 在途**：
   - #628 自清推全员（排除只留 one-coordinator，intent 214820/214856）：opus 首轮「改后通过」（~/.modernize/psa/coordinator/reviews/pr628-opus-1.md，两项必改：端到端自测 D–G、调度硬排除）→ one-quality（已清空、已发接续）改→sonnet 复核→我批入队。合入后 one-ops、one-architecture 可自清；之前它们拒自清（钩子文案），one-architecture 已请自清待看结果。
