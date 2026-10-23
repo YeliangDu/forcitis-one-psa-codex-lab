@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -74,9 +75,15 @@ def self_test():
         def decide(payload):
             raise RuntimeError("boom")
 
-    real_stdin = sys.stdin
+    class Hanging(Crashing):
+        @staticmethod
+        def decide(payload):
+            time.sleep(5)
+            return 0, "", ""
+
+    real_stdin, real_deadline, d.DEADLINE = sys.stdin, d.DEADLINE, 1  # a gate with no answer in time is a failure (O7 final, suggestion 1)
     try:
-        for loader in (broken_import, lambda: Crashing):
+        for loader in (broken_import, lambda: Crashing, lambda: Hanging):
             sys.stdin = __import__("io").StringIO(payload(f"psql -h {PROD_P} -c 'select 1'"))
             err = __import__("io").StringIO()
             real_stderr, sys.stderr = sys.stderr, err
@@ -86,7 +93,7 @@ def self_test():
                 sys.stderr = real_stderr
             assert code == 2 and "生产写门出错" in err.getvalue() and "按拒绝处理" in err.getvalue(), (loader, code, err.getvalue())
     finally:
-        sys.stdin = real_stdin
+        sys.stdin, d.DEADLINE = real_stdin, real_deadline
     # 5. end to end as a hook process under the system python, also with -I
     env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", "")}
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):

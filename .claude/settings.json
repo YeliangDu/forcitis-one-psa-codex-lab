@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "H=\"$HOME\"/.modernize/psa/tools/hooks/current/scripts/hooks/git_ceiling_env.sh; [ -x \"$H\" ] && \"$H\" && exit 0; echo \"【钩子告警】git_ceiling_env.sh 缺失或出错（$H），本会话没有 GIT_CEILING_DIRECTORIES 保护，cd 出工作区后别跑 git；请 one-ops 执行 scripts/gates/install.sh\"; exit 0",
+            "command": "V=\"$CLAUDE_PROJECT_DIR\"/scripts/gates/hooks_manifest.sh; if [ -x \"$V\" ]; then \"$V\" --check \"$HOME\"/.modernize/psa/tools/hooks/current; else echo \"【钩子告警】核对不了已装钩子（$V 缺失或不可执行）\"; fi; H=\"$HOME\"/.modernize/psa/tools/hooks/current/scripts/hooks/git_ceiling_env.sh; [ -x \"$H\" ] && \"$H\" && exit 0; echo \"【钩子告警】git_ceiling_env.sh 缺失或出错（$H），本会话没有 GIT_CEILING_DIRECTORIES 保护，cd 出工作区后别跑 git；请 one-ops 执行 scripts/gates/install.sh\"; exit 0",
             "timeout": 10
           }
         ]

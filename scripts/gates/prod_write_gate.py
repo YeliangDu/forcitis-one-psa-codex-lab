@@ -327,8 +327,8 @@ def simple_commands(command, depth=0, variables=None, exported=None):
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(os.path.dirname(HERE))
-if not os.path.exists(os.path.join(REPO_ROOT, ".git")):  # installed copy (scripts/gates/install.sh, D26): git questions go to the session's repository
-    REPO_ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+if not os.path.exists(os.path.join(REPO_ROOT, ".git")):  # installed copy (install.sh, D26): the session's repository is CLAUDE_PROJECT_DIR, never the cwd (O7 final M3); none: os.devnull, git reads fail, no script is trusted
+    REPO_ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.devnull
 DOCS_ROOT = "docs" + "/" + "modernization"  # built, not spelled: relevant_change.py scans sources for literal docs paths
 TABLE = os.environ.get("PROD_TARGETS_FILE") or str(Path(HERE) / "prod_targets.json")  # unioned with origin/main's all the same (load_table)
 MAIN_TABLE_PATHS = ("scripts/gates/prod_targets.json", "scripts/hooks/prod_targets.json")  # the second until origin/main has the first
