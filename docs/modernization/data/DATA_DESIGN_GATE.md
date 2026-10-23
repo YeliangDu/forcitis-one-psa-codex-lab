@@ -74,11 +74,11 @@
 |---|---|---|---|
 | B0 | 阶段覆盖（**阶段入口做一次**，不按卡触发） | 本阶段范围内：生产有数据的老系统表、OA 模板（`OA_PROCESS_INVENTORY.md`）逐一对到信息图 OBJ，或写「不迁」并引用用户决定的出处；对不上的名单发 one-architecture，未清零不进入阶段 | METHOD 第 1、2 步；ADR-0036；SESSION_PLAYBOOK 附 M4 流程梳理 |
 | B1 | 每张表有出处 | 卡上有「表 → 出处」对照，无空格。出处三选一：业务类表 → 信息图 OBJ 编号；单据类表 → 对应对象的单据行（信息图 §3 出口表）；技术类表（注册表 role 为 `QUEUE`、`COUNTER`、`IDEMPOTENCY`、`FRAMEWORK`、`ONE_TIME`、`LINEAGE`、`PLACEHOLDER` 等）→ 写「技术表」并写明服务于哪个聚合或用例。业务类表在信息图里没有对象：**停，交 one-architecture 补对象，不自行建表** | METHOD 第 2、5 步；one-data 画像 |
-| B2 | 聚合与 schema 归属 | 表所属聚合与 `architecture/ssot/i03-aggregates/built.yaml`（或注册表 `aggregate` 字段）一致，同一聚合的表在同一 schema，子行随根写入。信息图的「一级 / 次级」层级只作参考，不用来推 schema（信息图不用 BC 与聚合论证） | §14.1 D3；METHOD 接缝 4 |
+| B2 | 聚合与 schema 归属 | 表所属聚合与 `architecture/ssot/i03-aggregates/built.yaml`（已建；规划中的看同目录 `planned.yaml`；或注册表 `aggregate` 字段）一致，同一聚合的表在同一 schema，子行随根写入。信息图的「一级 / 次级」层级只作参考，不用来推 schema（信息图不用 BC 与聚合论证） | §14.1 D3；METHOD 接缝 4 |
 | B3 | 状态落点 | 信息图「关键状态」列出的每个状态，都在状态列的 `CHECK` 取值里；`CHECK` 多出的取值须在卡上写来由（规则卡或聚合状态机）；「原因必填」的终态有原因列，并有成对 `CHECK`（状态 = 该终态 ⇒ 原因非空） | §14.1 D2、D5 |
 | B3a | 状态—事件—状态机三方一致 | ① 事件目录里每个状态转换事件的目标状态都在状态列 `CHECK` 内；② `CHECK` 每个取值都有进入它的转换（初始状态除外）；③ `CHECK` 取值集合 = Java 状态枚举 = 状态机转换表的状态集（与 G-D12 同一测试）；④ 事件与转换一一对应，事件改名（如 `…Cancelled` → `…Withdrawn`）在目录、类、`CHECK`、列注释同步 | §14 第 2、3 项；NAMING_STANDARD §2.4a-6；G-D12 |
 | B4 | 关系与基数落点 | 信息图「主要关系与基数」每条有落点：`1` → `NOT NULL` 外键；`0..1` → 可空外键，列注释写「为空表示」；`N ↔ N` → 关联表，两列联合唯一；跨 BC → 只存 ID、不建外键（同 schema 内才建外键） | §14.1 D2；NAMING_STANDARD §2.4a-3 |
-| B5 | 不变量落点 | 不变量由 one-data **独立枚举**，不只核对卡作者列出的：来源包括规则卡、`aggregates.yaml`、信息图「关键规则」、用户决定（intent、Q 编号）、`contract.md`、流程差异 D 编号。「拒」类逐条标承担者：数据库约束（优先）/ 聚合方法 / 规则卡编号；卡漏列的不变量记为不通过 | DATA_DESIGN_CHECKLIST §14.1 D2；§14 第 1、2 项；SESSION_PLAYBOOK 附 M4 |
+| B5 | 不变量落点 | 不变量由 one-data **独立枚举**，不只核对卡作者列出的：来源包括规则卡、`ssot/i03-aggregates/` 的聚合登记、信息图「关键规则」、用户决定（intent、Q 编号）、`contract.md`、流程差异 D 编号。「拒」类逐条标承担者：数据库约束（优先）/ 聚合方法 / 规则卡编号；卡漏列的不变量记为不通过 | DATA_DESIGN_CHECKLIST §14.1 D2；§14 第 1、2 项；SESSION_PLAYBOOK 附 M4 |
 | B6 | 「产生的事实」落点 | 信息图「产生的事实」每条有落点：事件（在事件目录登记）或事实行（表） | METHOD 接缝 2、5 |
 | B7 | 未定项与未建模块不落库 | 信息图标「暂不定」的属性、状态、基数（如 Q09、Q11），以及枚举 `CHECK`、种子数据里指向**本阶段还没建的模块或对象**的取值（对照 `architecture/ssot/t-transitions/transitions.yaml` 阶段与 `module-dependencies.txt`，例：审批请求的 `document_type` 含尚未建的报价、记账凭证），都不写进列、约束、`CHECK`、种子。卡需要用到时：能用最小形态避开的，写出最小形态并说明可无损扩展；避不开的，退回 one-architecture，不先建后改。**判定样例**：过——Q09 未定，项目状态列只写已定的状态值，注释写明可无损追加；不过——把「已暂停」「已终止」连同原因列一起落进 `CHECK`。 | CS-1.8、CS-1.9 |
 | B8 | 用语 | 表、列、枚举值、事件名、错误码都能在 `terms.yaml` 查到，同一 bc 内中英文查过重；查不到的已登记提议术语并写明使用范围与 bc | CLAUDE.md 第 2、10 条；`check_legacy_name.py` |
