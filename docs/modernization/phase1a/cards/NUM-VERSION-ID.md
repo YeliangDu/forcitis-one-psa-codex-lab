@@ -60,7 +60,7 @@
 - Blocker / High 合并前修完并复核；Medium / Low 登记进下一批
 
 ## 10. 报告去向
-- 向 one-coordinator 报告，抄 one-data（TS-UNIQ 前置已满足）与 one-1a-next-4（PR-7 以本卡为基线）；报告含提交号、改动文件、已验证与未运行、precheck 输出
+- 向 one-coordinator 报告，抄 one-data（TS-UNIQ 前置已满足）与 one-1a-next-4（PR-7 以本卡为基线）；PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）含改动文件、已验证与未运行、precheck 输出
 
 ## 11. 本卡新词（开工前术语门禁）
 `NumberingRuleVersionId`（编号规则版本 ID，值对象，领域，`platform.numbering`）由已定词条 `numbering_rule_version`（第三轮用语确认 R3-NU-09，`backend/glossary/proposed/round3-pending-renames.yaml`）加 `id` 组成，列名 `numbering_rule_version_id` 已在基线；实现者开工前仍须用 `GlossaryTest` 确认类名通过，查不到则当场登记提议术语。
