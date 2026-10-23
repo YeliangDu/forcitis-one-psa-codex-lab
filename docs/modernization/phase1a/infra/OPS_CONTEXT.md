@@ -1,5 +1,13 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-23 夜增补（上下文 20% 第四次交接；以本节覆盖下面同名项）
+
+- **治理实现排序（用户 intent 2026-10-23-165917，加快推送合入为先）**：#668 已合入 → #667 已推 5bdb2d2e2 等轻量 CI 绿 one-coordinator 批 → **QUA-04 第二批 PR #679**（claude/one-ops-qua04-b2 @f4b9fe822，gh pr create 钩子改跑 --pre-push；heavy_slot 复量与 build_all 去重结论：不改）等 one-quality 验收 → **QUA-06 钩子瘦身三步（下一步）** → QUA-02 第二段（分支 claude/one-1a-par-gen-out-openapi @8a8629293，已转本会话）→ MRG-04。
+- **QUA-06 基线（main @e5d9c2b42）**：scripts/hooks 27 项、6747 行、417KB；目标 ≤12 个文件、≤2500 行、≤150KB。方案三步：①自测整体挪 scripts/hooks/tests/（约 2500 行）+ CI 必需作业「hook and CI-script self-tests」改路径，零行为变化，并随 PR 给 context_handoff 清单（已发 one-coordinator）；②pre_tool_dispatch 出错分级放行（只拦 git push、gh pr create、可能写生产）+ prod_write_gate 按需加载并改规则表 ≤300 行 + 命令解析并入 command_words + codex_stdin_gate/bg_task_name_gate 改规则表 + mailbox.py 旧门注释删 + #674 归还两条（自测补 git 失败用例、复查多保留的 assume-unchanged 检查）；③快照 3 合 1、precheck_before_pr 并入 pre_push_gate、TEAM-109 ①③ CI 检查（上限 ≤12 文件/2500 行/150KB 与共用函数唯一）。context_handoff 裁定：删 pilot_sessions、状态声明残留、Bash 超大提示、会话未识别提示；留节流；两档按角色（调度 50/60 其余 30/40）、提醒文案合一、越线挡停留；节点收窄为「开 PR」「任务完成/合入」两个，目标运行代码约 150 行；PR 描述写删了哪些节点与提醒预期下降；验收归 one-quality；冻结只删不加。
+- **临时工作区**：../gov-668（ops-668-tmp，#668 已合，可删）、../gov-667（ops-667-tmp，跟踪 #667 分支）、../gov-b2（ops-qua04-b2，跟踪 #679）；开 QUA-06 第①步从最新 origin/main 另切。
+- **做法与坑**：推送/开 PR 的 Bash 整条命令会先被 PreToolUse 预检拦住，合并解冲突与提交要和推送分成两条命令；precheck.sh 里提到 docs/modernization 路径会触发 relevant_change 自测「docs read by builds」，新增读文档路径要进 READ_BY_BUILDS；`py` 是脚本运行器不接 -c；main 上曾丢 LAST_LOG（#668 已补）；--reads-docs 只认 READ_BY_BUILDS。
+- **仍在**：OPS-1022-OPS-02、OPS-1023-OPS-01 见下面各节（#662 余项、RDS 12-01 续费提醒、dev 重建、ClamAV 联调等不变）。
+
 ## 2026-10-23 傍晚增补（上下文 20% 第三次交接；以本节覆盖下面同名项）
 
 - **#662 已合入 main**（V6c 按 Codex 必改改完，带标签两行，含库级 ALTER ROLE 覆盖反例；dev 复跑 V6c 两行 t）。
