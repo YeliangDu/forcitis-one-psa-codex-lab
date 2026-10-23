@@ -161,6 +161,13 @@ def load_system():
     return sysmap, all_obj, names
 
 
+def missing_system_error(system):
+    """全景模型不入仓：先由 panorama_build.py 生成（build_all 里它排在笔记检查之前）；缺了不能静默跳过编号校验。"""
+    if system is None:
+        return f"全景模型 {PANORAMA.name} 不存在：先运行 architecture/panorama/panorama_build.py（或 build_all.py），笔记里的 VS/PRC/OBJ 编号无从校验"
+    return None
+
+
 def check_system_refs(name, body, system, errors, warnings):
     sysmap, all_obj, names = system
     for m in SYS_REF_RE.finditer(strip_code(body)):
@@ -246,6 +253,8 @@ def main():
     aliases = load_term_aliases()
     system = load_system()
     errors, warnings, legacy, index = [], [], [], {}
+    if (problem := missing_system_error(system)):
+        errors.append(problem)
     for path in sorted(NOTES.glob("*.md")):
         if path.name.startswith("_"):
             continue

@@ -2824,7 +2824,7 @@ terms:
   en: StandardCostRateCard
   snake: standard_cost_rate_card
   kind: aggregate
-  bc: cost.costing
+  bc: masterdata.catalog
   definition: 薪酬脱敏后的版本化政策费率（财务维护）；版本上同时挂奖金计提率，规则类型分合同额百分比与历史比率（默认历史比率），预算、预估、实际三个变体用同一版本（FCQ-01）
   standard_ref:
   - 企业产品成本核算制度（试行）（财会〔2013〕17 号）
@@ -2849,7 +2849,8 @@ terms:
   status: approved
   change_ref: G-3
   confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）；用户 2026-10-21 用语确认第四批 GL3（提交 GL3-20261021-201752-45m，intent 2026-10-21-201913）（补充意见 05：对客侧计费费率卡与成本侧同层，卡、表不混用，英文名本就是
-    Card）（用户裁定，rulings.yaml）；用户 2026-10-22 FCQ-01（intent 2026-10-22-103824）；见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.2（@ed99f3b8）（用户裁定，rulings.yaml）
+    Card）（用户裁定，rulings.yaml）；用户 2026-10-22 FCQ-01（intent 2026-10-22-103824）；见 one-arch-finance finance/BONUS_OVERTIME_COSTING.md §1.2（@ed99f3b8）（用户裁定，rulings.yaml）；ADR-0051 决定 3（AGG-05 标准成本费率表版本归 B-02 masterdata.catalog，用户
+    D-2、i211634「费率放主数据」）；one-architecture 2026-10-22 指出，依据 admission-file @bd451f556 FINANCE_S4_S5_RULINGS_2026-10-22.md S-5（用户裁定，rulings.yaml）
   scope: domain
   note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
 - id: rate_card_version
