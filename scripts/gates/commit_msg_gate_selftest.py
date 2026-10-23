@@ -84,6 +84,10 @@ def self_test():
         git(repo, "worktree", "add", "-q", "-b", "claude/one-platform-r2", wt2)
         code, err, msg = commit(wt2, "feat: 按分支名认（roles 目录）", name="c.py")
         assert code == 0 and msg.rstrip().endswith("Session: one-platform"), "branch without claude/ prefix, names from roles/: " + msg
+        wt3 = os.path.join(tmp, "one-1a-r9")
+        git(repo, "worktree", "add", "-q", "-b", "claude/one-ops-r9", wt3)
+        code, err, msg = commit(wt3, "feat: 目录名与分支名认出不同会话", name="f.py")
+        assert code == 0 and msg.rstrip().endswith("Session: one-1a"), "the directory wins over the branch, whatever the name lengths: " + msg
 
         git(repo, "checkout", "-q", "-b", "side")
         commit(repo, "side", name="d.py")

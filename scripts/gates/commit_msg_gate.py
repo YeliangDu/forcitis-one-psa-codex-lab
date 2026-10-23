@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """commit-msg hook: append `Session: <name>` when absent; never refuses a commit (D25, definitive 2.1).
-Name: `.claude/session-name` if it is a known session, else the longest known name the worktree directory or branch (without `claude/`)
+Name: `.claude/session-name` if it is a known session, else the longest known name the worktree directory (or, when none, the branch without `claude/`)
 equals or starts with plus `-`; known names are the *.md files in SESSION_DIRS. Unknown name, merge, fixup/squash or any error: warn, exit 0.
 Usage: commit_msg_gate.py <message-file>  |  commit_msg_gate.py --self-test"""
 import os
@@ -23,8 +23,10 @@ def session_name(root, branch):
     marker = (root / MARKER).read_text(encoding="utf-8").strip() if (root / MARKER).is_file() else ""
     if marker:
         return marker if marker in names else None
-    hits = [n for n in names for c in (root.name, branch.removeprefix("claude/")) if c == n or c.startswith(n + "-")]
-    return max(hits, key=len, default=None)
+    for candidate in (root.name, branch.removeprefix("claude/")):   # the directory first: one string has at most one known prefix per length
+        hits = [n for n in names if candidate == n or candidate.startswith(n + "-")]
+        if hits:
+            return max(hits, key=len)
 
 
 def main(argv):
