@@ -33,3 +33,10 @@
 
 - 已做：StoredFile 根类 + 「未关联已过期」作业（ExpireUnboundFiles、UnboundFileExpiryJob，ShedLock platform.file.staging.expire；时效配置 unbound-expiry-age、one-time-link-unbound-expiry-age ≥16 天、unbound-expiry-interval，部署须配）；unbuilt_roots 去 stored_files；PLATFORM_FILE_TOO_LARGE 改 413；setAgreedPreservation 注释。
 - 未做：正式区孤儿只读核对（需给 BusinessFileStore 加列举方法，改 platform.integration 先告知 one-architecture，且应用 RAM 需 ListObjects）；pi/spi/HasMacros 改名（'PI' 代码值是否随改待 one-glossary、one-data）；#642 余下三项（并发限额、201、generate-api 负向）。
+
+## 2026-10-23 交接（清空前）
+
+- 在队/在审：#642（6b-2，已批）、#587（签章 api，已批入队 cd4dc9cc6）、#650（6b-3，本会话刚开，分支 claude/one-platform-file-6b3，叠在 #642 上，待 CI 与 one-coordinator 复审）。#587 的独立工作区 .claude/worktrees/signing-api-587 可删。
+- 下一步顺序：#650 复审意见 → Clamd 时序 → 5a（隔离与误报；含 false_positive_judgments、quarantine_read_requests 根类，unbuilt_roots 到期 2026-11-15，11-01 前未开工先报改期）→ 单元 7（WITHDRAWN 状态与 version 列，ADR-0075 决定 2）。
+- 待问：pi/spi/HasMacros 改名里 'PI' 代码值是否随改（问 one-glossary 与 one-data）；正式区孤儿核对要先告知 one-architecture；#642 余下三项并入 6b-3 后续或单列。
+- 向调度汇报须用 send_message（SendMessage 对方收不到）；push 前 precheck 的 gate 会挡词表、系统操作者登记、聚合事件序号测试，新类先对照。
