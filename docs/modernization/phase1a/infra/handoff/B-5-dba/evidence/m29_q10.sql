@@ -1,5 +1,5 @@
 -- M-29 贡献毛利率分母改净服务收入前后值取证（one-rules 提供，来源 origin/claude/one-rules-context-2@3653a70e8 r0/m29_baseline_readonly_queries.sql）：Q10
--- ops 改动：每条外包 IF DB_NAME()=ruoyi-vue-pro；加 SET LOCK_TIMEOUT 30000；Q01 补一个缺失的右括号。one_evidence_ro（ADR-0037 第 7 项），默认 READ COMMITTED，不用 NOLOCK。
+-- ops 改动：每条外包 IF DB_NAME()=ruoyi-vue-pro；加 SET LOCK_TIMEOUT 30000；Q01 补一个缺失的右括号。one_evidence_ro（ADR-0037 第 5 项第 4 条），默认 READ COMMITTED，不用 NOLOCK。
 SET LOCK_TIMEOUT 30000;
 -- Q10 收入（不含税，权责）：（窗口 × 上级部门 × 交付部门）及合计。新旧分母的共同起点（老分母 = 本条；新分母 = 本条减转付成本）
 -- 依赖：psa_pm_cuvalue（project_id, complete_date, no_tax_amount, type）；psa_pm_project.dept_id；system_dept。

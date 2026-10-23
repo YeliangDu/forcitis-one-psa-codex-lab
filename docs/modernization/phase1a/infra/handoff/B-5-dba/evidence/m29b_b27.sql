@@ -1,4 +1,4 @@
--- M-29 基线补充（第二批）B27（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 7 项），默认 READ COMMITTED，不用 NOLOCK。
+-- M-29 基线补充（第二批）B27（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 5 项第 4 条），默认 READ COMMITTED，不用 NOLOCK。
 SET LOCK_TIMEOUT 30000;
 -- B27 跨年项目三分类（B26 的归并，层级固定先后）
 -- 依赖与口径：同 B26。归并顺序：先按立项年，再按完工代理：

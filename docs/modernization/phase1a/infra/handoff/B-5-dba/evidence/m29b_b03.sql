@@ -1,4 +1,4 @@
--- M-29 基线补充（第二批）B03（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 7 项），默认 READ COMMITTED，不用 NOLOCK。
+-- M-29 基线补充（第二批）B03（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 5 项第 4 条），默认 READ COMMITTED，不用 NOLOCK。
 SET LOCK_TIMEOUT 30000;
 -- B03 奖金行总览：psa_pl_ledger 里 source_type 8、9 的行，按（期间年 × 期间类型 × 来源类型 × 损益类型 × 触发类型）
 -- 依赖：psa_pl_ledger（source_type, pl_type, trigger_type, period_id, business_date, notax_amount, project_id, deleted）；mdm_accounting_period（period_year, period_type）。

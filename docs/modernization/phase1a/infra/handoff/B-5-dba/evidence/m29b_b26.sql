@@ -1,4 +1,4 @@
--- M-29 基线补充（第二批）B26（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 7 项），默认 READ COMMITTED，不用 NOLOCK。
+-- M-29 基线补充（第二批）B26（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 5 项第 4 条），默认 READ COMMITTED，不用 NOLOCK。
 SET LOCK_TIMEOUT 30000;
 -- B26 跨年项目：项目 × 立项年 × 完工代理，2025 年收入与进损益直接人工（网格，只出各格合计）
 -- 依赖：psa_pm_project（id, initiation_date, status）；psa_pm_cuvalue（project_id, complete_date, no_tax_amount, type）；

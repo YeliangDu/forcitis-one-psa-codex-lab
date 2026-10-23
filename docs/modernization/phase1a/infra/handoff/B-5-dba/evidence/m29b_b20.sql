@@ -1,4 +1,4 @@
--- M-29 基线补充（第二批）B20（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 7 项），默认 READ COMMITTED，不用 NOLOCK。
+-- M-29 基线补充（第二批）B20（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 5 项第 4 条），默认 READ COMMITTED，不用 NOLOCK。
 SET LOCK_TIMEOUT 30000;
 -- B20 WIP 流水原始分布：截至 2025 年末（期间年 ≤ 2025），按（期间年 × 来源类型 × 流水类型）（公司合计）
 -- 依赖：psa_wip_movement（movement_type, notax_amount, period_id, create_time, cost_ledger_id, deleted）；psa_cost_ledger（id, source_type, deleted）；mdm_accounting_period（period_year, closed_time）。

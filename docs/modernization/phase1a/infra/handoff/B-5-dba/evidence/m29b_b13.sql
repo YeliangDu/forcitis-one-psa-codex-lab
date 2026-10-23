@@ -1,4 +1,4 @@
--- M-29 基线补充（第二批）B13（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 7 项），默认 READ COMMITTED，不用 NOLOCK。
+-- M-29 基线补充（第二批）B13（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 5 项第 4 条），默认 READ COMMITTED，不用 NOLOCK。
 SET LOCK_TIMEOUT 30000;
 -- B13 条款名关键词命中：条款数、合同数、项目数（含软删与否分列）
 -- 依赖：psa_pm_contract_term（name, contract_id, code, amount, final_amount, deleted）；psa_pm_contract（id, project_id, deleted）。

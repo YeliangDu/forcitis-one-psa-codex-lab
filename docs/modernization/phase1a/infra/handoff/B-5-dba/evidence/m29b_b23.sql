@@ -1,4 +1,4 @@
--- M-29 基线补充（第二批）B23（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 7 项），默认 READ COMMITTED，不用 NOLOCK。
+-- M-29 基线补充（第二批）B23（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 5 项第 4 条），默认 READ COMMITTED，不用 NOLOCK。
 SET LOCK_TIMEOUT 30000;
 -- B23 截至 2025 年末累计结转进损益（损益台账）：按（期间年 × 来源类型 × 损益类型 × 触发类型）及区域/BU
 -- 依赖：psa_pl_ledger（source_type, pl_type, trigger_type, period_id, notax_amount, project_id, deleted）；mdm_accounting_period.period_year；psa_pm_project / system_dept。

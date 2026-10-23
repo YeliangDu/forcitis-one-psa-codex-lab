@@ -1,4 +1,4 @@
--- M-29 基线补充（第二批）B02（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 7 项），默认 READ COMMITTED，不用 NOLOCK。
+-- M-29 基线补充（第二批）B02（one-rules 提供，来源 origin/claude/one-rules-context-2@943876a76 r0/m29b_baseline_supplement_queries.sql）。ops 仅加库名守卫与 SET LOCK_TIMEOUT 30000。one_evidence_ro（ADR-0037 第 5 项第 4 条），默认 READ COMMITTED，不用 NOLOCK。
 SET LOCK_TIMEOUT 30000;
 -- B02 奖金源视图是否在本库可见：annual_bonus_detail、monthly_bonus_accrual（只取对象名与列名）
 -- 依据：两个视图是 OA 侧建的、非 Flyway（AnnualBonusDetailViewDO / MonthlyBonusAccrualViewDO 注释）；是否在 ruoyi-vue-pro 库内可见未核实。
