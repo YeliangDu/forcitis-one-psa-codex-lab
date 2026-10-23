@@ -27,8 +27,13 @@ def unacked(directory):
     """[(mtime, name)] oldest first; temp files of a write in progress and the acked/ folder are not entries."""
     if not os.path.isdir(directory):
         return []
-    items = [(os.path.getmtime(os.path.join(directory, f)), f) for f in os.listdir(directory)
-             if f.endswith(".md") and not f.startswith(".") and os.path.isfile(os.path.join(directory, f))]
+    items = []
+    for f in os.listdir(directory):
+        if f.endswith(".md") and not f.startswith("."):
+            try:
+                items.append((os.path.getmtime(os.path.join(directory, f)), f))
+            except OSError:
+                pass  # acknowledged (moved away) between the listing and now
     return sorted(items)
 
 

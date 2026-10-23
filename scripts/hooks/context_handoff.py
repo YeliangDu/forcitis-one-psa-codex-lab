@@ -605,7 +605,13 @@ def main():
         declared = status_gate(payload, root) if event == "Stop" else None  # both Stop gates run, one block carries both reasons
         if can_skip(dict(payload, hook_event_name=event), root, time.time()):
             return 0
-        result = handle(event, payload, root)
+        try:
+            result = handle(event, payload, root)
+        except Exception as error:
+            if not declared:
+                raise
+            print(f"context_handoff 出错（{error.__class__.__name__}: {error}），本次交接检查不生效，状态声明挡停照常给出", file=sys.stderr)
+            result = None
         if declared:
             result = dict(declared, reason=declared["reason"] + ("\n\n" + result["reason"] if result and result.get("decision") == "block" else ""))
         if result:
@@ -911,10 +917,24 @@ def self_test():
         undeclared = gate_run("好了")
         assert undeclared.returncode == 0 and json.loads(undeclared.stdout)["decision"] == "block" and "状态：继续" in json.loads(undeclared.stdout)["reason"], undeclared
         unsent = gate_run("报告\n状态：等调度")
-        assert json.loads(unsent.stdout)["decision"] == "block" and not os.path.exists(os.path.join(psa, "mailbox")), unsent
+        assert json.loads(unsent.stdout)["decision"] == "block" and len(os.listdir(os.path.join(psa, "mailbox"))) == 1, unsent  # blocked, but the report is already in the mailbox
+        # a failing hand-over check must not swallow the status block
+        globals()["measure"], real_measure = (lambda *a: (_ for _ in ()).throw(RuntimeError("boom2"))), globals()["measure"]
+        try:
+            transcript(trans, 100, final_text="没声明")
+            real_stdin, sys.stdin = sys.stdin, io.StringIO(json.dumps(dict(payload, hook_event_name="Stop", session_id="gate-crash", cwd=root)))
+            out = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(out):
+                    assert main() == 0
+            finally:
+                sys.stdin = real_stdin
+        finally:
+            globals()["measure"] = real_measure
+        assert json.loads(out.getvalue())["decision"] == "block" and "boom2" in quiet.getvalue(), "the status block survives a crash of the context check"
         assert not gate_run("好了\n状态：继续").stdout, "a declared 继续 passes"
         fallback = gate_run("报告\n状态：等调度", session="gate-e2e-2", extra={"stop_hook_active": True})
-        assert not fallback.stdout and "信箱兜底" in fallback.stderr and len(os.listdir(os.path.join(psa, "mailbox"))) == 1, fallback
+        assert not fallback.stdout and "信箱兜底" in fallback.stderr and len(os.listdir(os.path.join(psa, "mailbox"))) == 2, fallback
         garbage = subprocess.run([sys.executable, "-I", script], input="not json", capture_output=True, text=True, env={"LC_ALL": "C"})
         assert garbage.returncode == 0 and "出错" in garbage.stderr + garbage.stdout, garbage
         other_event = subprocess.run([sys.executable, "-I", script], input=json.dumps({"hook_event_name": "SessionStart"}), capture_output=True, text=True, env={"LC_ALL": "C"})

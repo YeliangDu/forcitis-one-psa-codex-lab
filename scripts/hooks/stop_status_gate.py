@@ -31,7 +31,16 @@ MARKDOWN_PREFIX = re.compile(r"^[\s>*_#\-]+")
 FORM = "状态：" + "｜".join(STATUSES)
 MESSAGE_TOOLS = ("send_message", "SendMessage")
 TAIL_BYTES = 4 * 1024 * 1024
-MAILBOX_CHARS = 4096
+truncated = False  # the last read_lines cut the file, so a turn start may be out of view
+MAILBOX_BYTES = 4096
+
+
+CN_KEY = re.compile(r"(密码|密钥|口令|令牌|凭据|秘钥)\s*[=:：]|\"(密码|密钥|口令|令牌|凭据|秘钥)\"\s*:")
+
+
+def scrub_text(text):
+    text = "\n".join("[敏感内容已隐藏]" if CN_KEY.search(line) else line for line in text.splitlines())
+    return scrub(text)
 
 
 def psa_home():
@@ -42,6 +51,8 @@ def read_lines(path):
     with open(path, "rb") as stream:
         size = os.fstat(stream.fileno()).st_size
         stream.seek(max(0, size - TAIL_BYTES))
+        global truncated
+        truncated = size > TAIL_BYTES
         raw = stream.read().split(b"\n")
     entries = []
     for line in raw:
@@ -79,11 +90,11 @@ def parse_time(text):
 
 
 def turn_of(entries):
-    """(final assistant text, [(tool name, tool input)] of the turn, turn start epoch or None)."""
-    start = 0
+    """(final assistant text, [(tool name, tool input)] of the turn, turn start epoch or None, whether the turn start was in view)."""
+    start, found = 0, False
     for index in range(len(entries) - 1, -1, -1):
         if is_user_turn_start(entries[index]):
-            start = index
+            start, found = index, True
             break
     turn = entries[start:]
     started = parse_time(turn[0].get("timestamp")) if turn and turn[0].get("type") == "user" else None
@@ -95,7 +106,7 @@ def turn_of(entries):
         if any(t.strip() for t in texts):
             final = "\n".join(texts)
         tools += [(str(b.get("name") or ""), b.get("input") if isinstance(b.get("input"), dict) else {}) for b in blocks(entry) if b.get("type") == "tool_use"]
-    return final, tools, started
+    return final, tools, started, found
 
 
 def status_of(text):
@@ -103,6 +114,8 @@ def status_of(text):
     lines = [line for line in text.splitlines() if line.strip()]
     last = MARKDOWN_PREFIX.sub("", lines[-1].replace("**", "")) if lines else ""
     match = LINE.match(last)
+    if match and re.match(r"\s*[｜|]\s*(?:" + "|".join(STATUSES) + ")", last[match.end(1):]):
+        return None  # the whole `继续｜待命｜…` form copied, not one of them
     return match.group(1) if match else None
 
 
@@ -120,7 +133,11 @@ def sent_to_coordinator(tools, targets):
 def outbox_written(home, name, since, now):
     path = os.path.join(home, "outbox", f"{name}.md")
     try:
-        return os.path.getmtime(path) >= (since if since is not None else now - 600)
+        if os.path.getmtime(path) < (since if since is not None else now - 600):
+            return False
+        with open(path, encoding="utf-8", errors="replace") as stream:
+            lines = [line for line in stream.read().splitlines() if line.strip()]
+        return bool(lines) and "已转" not in lines[-1]  # the coordinator marking an old line 已转 touches the file too
     except OSError:
         return False
 
@@ -134,9 +151,9 @@ def write_mailbox(home, name, session_id, root, status, text, sent, now):
     directory = os.path.join(home, "mailbox")
     os.makedirs(directory, exist_ok=True)
     stamp = datetime.datetime.fromtimestamp(now).strftime("%Y%m%d-%H%M%S")
-    body = scrub(text).strip()
-    if len(body) > MAILBOX_CHARS:
-        body = body[:MAILBOX_CHARS] + "\n…（已截断，全文见会话）"
+    body = scrub_text(text).strip()
+    if len(body.encode("utf-8")) > MAILBOX_BYTES:
+        body = body.encode("utf-8")[:MAILBOX_BYTES].decode("utf-8", "ignore") + "\n…（已截断，全文见会话）"
     key = hashlib.sha1(f"{session_id}{text}".encode("utf-8")).hexdigest()[:6]
     final = os.path.join(directory, f"{stamp}-{name}-{key}.md")
     if os.path.exists(final):
@@ -166,7 +183,7 @@ def gate(payload, root, name, targets, now, home=None):
         entries = read_lines(payload.get("transcript_path"))
     except (OSError, TypeError) as error:
         return None, [f"stop_status_gate: 读不到本轮记录（{error}），状态声明与发送检查未做"]
-    text, tools, started = turn_of(entries)
+    text, tools, started, found = turn_of(entries)
     if entries and entries[-1].get("isApiErrorMessage"):
         return None, [f"stop_status_gate: 本轮以系统合成的错误消息结束，不查状态声明（{name}）"]
     status = status_of(text)
@@ -176,10 +193,17 @@ def gate(payload, root, name, targets, now, home=None):
             return None, [f"stop_status_gate: 缺状态声明，但已挡过一次，放行（{name}）"]
         return {"decision": "block", "reason": reason}, warnings
     if status in NEEDS_REPORT:
+        unknown = truncated and not found  # a long turn: the send may be out of view, so do not block on it
         sent = sent_to_coordinator(tools, targets) or outbox_written(home, name, started, now)
-        if not sent and not active:
+        if not sent and not active and not unknown:
+            try:
+                write_mailbox(home, name, payload.get("session_id") or "unknown", root, status, text, False, now)
+            except OSError as error:
+                warnings.append(f"stop_status_gate: 信箱写不了（{error}）")
             return {"decision": "block", "reason": f"声明了「{status}」，但本轮没有发给 one-coordinator 的消息，也没有写 outbox。先发消息（限流失败就把要报的内容追加到 ~/.modernize/psa/outbox/{name}.md），再结束；信箱不能替代发消息。"}, warnings
-        if not sent:
+        if unknown and not sent:
+            warnings.append(f"stop_status_gate: 本轮记录过长，看不到轮次起点，发送检查未做；信箱兜底（{name}）")
+        elif not sent:
             warnings.append(f"stop_status_gate: 声明「{status}」但没有发给调度的消息，已挡过一次，放行；信箱兜底（{name}）")
         try:
             write_mailbox(home, name, payload.get("session_id") or "unknown", root, status, text, sent, now)
@@ -237,11 +261,16 @@ def self_test():
         assert mailbox() == [], "继续/待命/等用户 write no mailbox entry"
 
         out, _ = run([ask, say("报告\n状态：等调度")])
-        assert out and "没有发给 one-coordinator" in out["reason"] and mailbox() == [], "等调度 without a send is blocked and writes nothing"
+        assert out and "没有发给 one-coordinator" in out["reason"] and len(mailbox()) == 1, "等调度 without a send is blocked, and the report is already in the mailbox"
+        assert "已发调度: 否" in open(os.path.join(home, "mailbox", mailbox()[0]), encoding="utf-8").read()
+        for entry in mailbox():
+            os.remove(os.path.join(home, "mailbox", entry))
         out, _ = run([ask, say("报告\n状态：完成点")])
         assert out and out["decision"] == "block", "完成点 without a send is blocked"
         out, _ = run([ask, tool_use("mcp__ccd_session_mgmt__send_message", {"session_id": "local_other", "message": "x"}), say("报告\n状态：等调度")])
         assert out and out["decision"] == "block", "a send to someone else is no report"
+        for entry in mailbox():
+            os.remove(os.path.join(home, "mailbox", entry))
         out, _ = run([ask, tool_use("mcp__ccd_session_mgmt__send_message", {"session_id": "local_coord", "message": "x"}), line("user", [{"type": "tool_result", "content": "ok"}]),
                       say("报告\n状态：等调度")])
         assert out is None and len(mailbox()) == 1, "a send to the coordinator lets 等调度 through and lands in the mailbox"
@@ -274,7 +303,7 @@ def self_test():
         assert len(mailbox()) == before, "same session and message, same second: one entry"
         run([ask, say("key=" + "s" + "k-" + "abcdefghijklmnop1234\n密" + "码和口" + "令：hunter33\npass" + "word: hunter22\ntoken：hunter44\n" + ("长" * 100 + "\n") * 50 + "状态：完成点")], active=True, session="s3", now=1300.0)
         last = open(os.path.join(home, "mailbox", mailbox()[-1]), encoding="utf-8").read()
-        assert "hunter22" not in last and "hunter33" not in last and "hunter44" not in last and "[敏感内容已隐藏]" in last and ("s" + "k-" + "abcdefghijklmnop1234") not in last and "已截断" in last and len(last) < MAILBOX_CHARS + 400, "secrets scrubbed, body cut to 4 KB"
+        assert "hunter22" not in last and "hunter33" not in last and "hunter44" not in last and "[敏感内容已隐藏]" in last and ("s" + "k-" + "abcdefghijklmnop1234") not in last and "已截断" in last and len(last.encode("utf-8")) < MAILBOX_BYTES + 400, "secrets scrubbed, body cut to 4 KB (bytes)"
         assert not [f for f in os.listdir(os.path.join(home, "mailbox")) if f.startswith(".tmp-")], "no temp file left behind"
 
         # review fixes: markdown / punctuation forms pass, a tool-injected or Stop-feedback user line does not start a new turn, name+ref targets match
@@ -292,6 +321,27 @@ def self_test():
         assert run([ask, send, say("a"), other, say("报告\n状态：等调度")], session="p4", now=1700.0)[0]["decision"] == "block", "a message from another session starts a new turn"
         assert run([ask, tool_use("SendMessage", {"to": "one-coordinator [3fa9c1]", "message": "x"}), say("好\n状态：等调度")], session="p5", now=1800.0)[0] is None, "name plus ref matches"
         assert run([ask, dict(say("api error"), isApiErrorMessage=True)])[0] is None, "a synthetic error ending is not gated"
+
+        # codex review fixes
+        run([ask, say("密码：hunter55\n{\"密钥\": \"hunter66\"}\n状态：完成点")], active=True, session="c1", now=1900.0)
+        last = open(os.path.join(home, "mailbox", mailbox()[-1]), encoding="utf-8").read()
+        assert "hunter55" not in last and "hunter66" not in last, "standalone Chinese keys are scrubbed"
+        assert status_of("状态：继续｜待命｜等调度｜等用户｜完成点") is None and status_of("状态：等用户｜要你定") == "等用户", "the copied whole form is no declaration"
+        os.makedirs(os.path.dirname(outbox), exist_ok=True)
+        open(outbox, "w").write("10:00 报告 x 已转\n")
+        os.utime(outbox, (2100, 2100))
+        turn2 = line("user", "做吧", "1970-01-01T00:33:20+00:00")  # epoch 2000
+        assert run([turn2, say("报告\n状态：等调度")], session="c2", now=2200.0)[0]["decision"] == "block", "the coordinator marking an old outbox line 已转 is not a new report"
+        open(outbox, "w").write("10:00 报告 x 已转\n10:30 新报告\n")
+        assert run([turn2, say("报告\n状态：等调度")], session="c3", now=2300.0)[0] is None, "a fresh outbox line counts"
+        os.remove(outbox)
+        global TAIL_BYTES
+        saved, TAIL_BYTES = TAIL_BYTES, 300
+        try:
+            out, warn = run([ask, send] + [say("填充" * 100)] * 5 + [say("报告\n状态：等调度")], session="c4", now=2400.0)
+            assert out is None and warn and "过长" in warn[0], "a cut transcript without the turn start does not block on the send check"
+        finally:
+            TAIL_BYTES = saved
 
         # exemptions and failures
         assert run([ask, say("没声明")], name="one-coordinator")[0] is None, "the coordinator is exempt (by name)"
