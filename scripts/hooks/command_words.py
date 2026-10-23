@@ -14,17 +14,17 @@ SIMPLE_ESCAPES = {"a": "\a", "b": "\b", "e": "\x1b", "E": "\x1b", "f": "\f", "n"
 
 
 def decode_ansi_c(body):
-    """The text of a bash `$'...'` word: \\xHH, \\NNN, \\uHHHH, \\UHHHHHHHH, \\cX and the one-letter escapes decoded."""
-    out, i = [], 0
+    """The text of a bash `$'...'` word: \\xHH, \\NNN, \\uHHHH, \\UHHHHHHHH, \\cX and the one-letter escapes decoded. \\x and octal escapes are single bytes (a UTF-8 character is several of them), as in bash."""
+    out, i = bytearray(), 0
     while i < len(body):
         char = body[i]
         if char != "\\" or i + 1 >= len(body):
-            out.append(char)
+            out += char.encode("utf-8", "replace")
             i += 1
             continue
         nxt = body[i + 1]
         if nxt in SIMPLE_ESCAPES:
-            out.append(SIMPLE_ESCAPES[nxt])
+            out += SIMPLE_ESCAPES[nxt].encode()
             i += 2
             continue
         found = None
@@ -38,20 +38,24 @@ def decode_ansi_c(body):
             found = re.match(r"[0-9a-fA-F]{1,%d}" % (4 if nxt == "u" else 8), body[i + 2:])
             skip, base = 2, 16
         if found:
-            try:
-                out.append(chr(int(found.group(), base)))
-            except (ValueError, OverflowError):
-                out.append("\\" + nxt)
-                i += 2
-                continue
+            value = int(found.group(), base)
+            if nxt in "uU":
+                try:
+                    out += chr(value).encode("utf-8")
+                except (ValueError, OverflowError):
+                    out += ("\\" + nxt).encode()
+                    i += 2
+                    continue
+            else:
+                out.append(value & 0xff)
             i += skip + len(found.group())
         elif nxt == "c" and i + 2 < len(body):
-            out.append(chr(ord(body[i + 2]) & 0x1f))
+            out.append(ord(body[i + 2]) & 0x1f)
             i += 3
         else:
-            out.append("\\" + nxt)
+            out += ("\\" + nxt).encode()
             i += 2
-    return "".join(out).split("\x00")[0]
+    return bytes(out).split(b"\x00")[0].decode("utf-8", "replace")
 
 
 def unquote_dollar(command):
@@ -119,41 +123,74 @@ WRAPPERS = {"command": set(), "env": {"-u", "-C", "-S"}, "time": {"-f", "-o"}, "
             "builtin": set(), "timeout": {"-s", "-k"}, "nice": {"-n"}, "stdbuf": {"-i", "-o", "-e"}}
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "eval"}
 ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-HEREDOC = re.compile(r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
+HEREDOC = re.compile(r"<<(-?)[ \t]*(?:'([^']*)'|\"([^\"]*)\"|(\\?)([A-Za-z_][A-Za-z0-9_]*))")
+
+
+def split_heredocs(command):
+    """(command text with the here-document bodies removed, [(body, delimiter, quoted)]). `<<` is an operator only outside quotes and comments (an apostrophe or `<<EOF` inside a string or after `#` is text);
+    a body starts on the line after the operator and ends at the delimiter line. An unquoted delimiter means the body is expanded by the shell (commands in `$(...)` run)."""
+    text = command.replace("\\\n", "")
+    out, bodies, pending, i, single, double, n = [], [], [], 0, False, False, len(text)
+    while i < n:
+        char = text[i]
+        if single:
+            out.append(char)
+            single = char != "'"
+            i += 1
+        elif char == "\\" and i + 1 < n:
+            out.append(text[i:i + 2])
+            i += 2
+        elif double:
+            out.append(char)
+            double = char != '"'
+            i += 1
+        elif char == "'":
+            out.append(char)
+            single = True
+            i += 1
+        elif char == '"':
+            out.append(char)
+            double = True
+            i += 1
+        elif char == "#" and (i == 0 or text[i - 1] in " \t\n;|&("):
+            end = text.find("\n", i)
+            end = n if end < 0 else end
+            out.append(text[i:end])
+            i = end
+        elif char == "<" and text.startswith("<<", i) and not text.startswith("<<<", i) and not (i and text[i - 1] == "<") and HEREDOC.match(text, i):
+            found = HEREDOC.match(text, i)
+            delimiter = found.group(2) or found.group(3) or found.group(5)
+            pending.append((delimiter, bool(found.group(2) or found.group(3) is not None or found.group(4)), found.group(1) == "-"))
+            out.append(found.group(0))
+            i = found.end()
+        elif char == "\n" and pending:
+            out.append("\n")
+            i += 1
+            for delimiter, quoted, strip in pending:
+                lines = []
+                while i < n:
+                    end = text.find("\n", i)
+                    line = text[i:n if end < 0 else end]
+                    i = n if end < 0 else end + 1
+                    if (line.lstrip("\t") if strip else line).rstrip("\r") == delimiter:
+                        break
+                    lines.append(line)
+                bodies.append(("\n".join(lines), delimiter, quoted))
+            pending = []
+        else:
+            out.append(char)
+            i += 1
+    return "".join(out), bodies
 
 
 def without_heredoc_bodies(command):
     """The lines of a command line, with here-document bodies dropped (a body is text, not commands)."""
-    lines, out, end = command.replace("\\\n", "").split("\n"), [], None
-    for line in lines:
-        if end is not None:
-            if line.strip() == end:
-                end = None
-            continue
-        out.append(line)
-        found = HEREDOC.search(line)
-        if found and "<<<" not in line[found.start():found.start() + 3]:
-            end = next(g for g in found.groups() if g)
-    return out
+    return split_heredocs(command)[0].split("\n")
 
 
 def heredoc_bodies(command):
     """The here-document bodies of a command line (a shell fed by one runs them)."""
-    lines, bodies, end, cur = command.replace("\\\n", "").split("\n"), [], None, []
-    for line in lines:
-        if end is not None:
-            if line.strip() == end:
-                bodies.append("\n".join(cur))
-                end, cur = None, []
-            else:
-                cur.append(line)
-            continue
-        found = HEREDOC.search(line)
-        if found and "<<<" not in line[found.start():found.start() + 3]:
-            end = next(g for g in found.groups() if g)
-    if end is not None:
-        bodies.append("\n".join(cur))
-    return bodies
+    return [body for body, _, _ in split_heredocs(command)[1]]
 
 
 def tokens_of(command, structured=False):
@@ -198,16 +235,24 @@ SHORT_C = re.compile(r"-[A-Za-z]*c[A-Za-z]*")
 ECHOES = {"echo", "printf"}
 
 
-def simple_commands(command, depth=0, variables=None):
+def simple_commands(command, depth=0, variables=None, exported=None):
     """The simple commands of a command line, in order, as Command(argv, env, unresolved, redirected, piped): separators, keywords, leading VAR=value words and wrappers (env, nohup, sudo, ...)
     are stripped; `NAME=value` words earlier in the line (and a leading `NAME=value cmd`) are substituted into later words, so `h=a; psql -h ${h}b` reads `psql -h ab`;
     `$(...)` and backticks, `bash -c '...'` / `bash -lc` / `eval ...` bodies, here-documents, here-strings and `echo ... | bash` fed to a shell are returned as commands of their own, and `env -S 'cmd args'` is split.
     `unresolved` is True when a word still holds a `$` expansion or a command substitution (a `$` inside single quotes does not count); `piped` is True when the command reads a pipe.
-    A command line that cannot be tokenised raises ValueError (callers treat that as unreadable and decide for themselves)."""
+    `export NAME=value` is inherited by the later commands (their `env`); `<(...)` and `>(...)` run their inner command; the commands inside an unquoted here-document body (`$(...)`, backticks) are returned as well.
+    A command line that cannot be tokenised, or that nests substitutions, shells and evals deeper than 3 levels, raises ValueError (callers treat that as unreadable and decide for themselves)."""
+    if depth > 3:
+        raise ValueError("nested too deeply")
     variables = {} if variables is None else variables
+    exported = {} if exported is None else exported
     out, segments, cur, piped_next = [], [], [], False
+    for body, _, quoted in split_heredocs(command)[1]:
+        if not quoted:
+            for inner in SUBSTITUTION.findall(re.sub(r"`([^`]*)`", r"$(\1)", body)):
+                out += simple_commands(inner, depth + 1, dict(variables), dict(exported))
     for token in tokens_of(command, structured=True):
-        if token in SEPARATORS or set(token) <= set(";&|()"):
+        if token in SEPARATORS or token in ("<(", ">(") or set(token) <= set(";&|()"):
             if cur:
                 segments.append((cur, piped_next))
             cur, piped_next = [], token in ("|", "|&")
@@ -250,18 +295,26 @@ def simple_commands(command, depth=0, variables=None):
             continue
         unresolved, argv = False, []
         for token in rest:
-            if depth < 3:
-                for inner in SUBSTITUTION.findall(token):
-                    out += simple_commands(restore(inner), depth + 1, dict(variables))
+            for inner in SUBSTITUTION.findall(token):
+                out += simple_commands(restore(inner), depth + 1, dict(variables), dict(exported))
             if "$(" in token:
                 unresolved = True
             expanded, left = expand(token, {**variables, **env})
             unresolved |= left
             argv.append(restore(expanded))
         redirected = any(t in ("<", "<<", "<<<", ">", ">>", ">&", "&>") for t in argv)
-        out.append(Command(argv, env, unresolved, redirected, piped))
         name = name_of(argv[0])
-        if depth < 3 and name in SHELLS:
+        if name in ("export", "declare", "local", "readonly", "typeset"):
+            for arg in argv[1:]:
+                if ENV.match(arg):
+                    key, _, value = arg.partition("=")
+                    variables[key] = exported[key] = value
+        elif name == "unset":
+            for arg in argv[1:]:
+                variables.pop(arg, None)
+                exported.pop(arg, None)
+        out.append(Command(argv, {**exported, **env}, unresolved, redirected, piped))
+        if name in SHELLS:
             bodies = []
             if name == "eval":
                 bodies = [" ".join(argv[1:])] if len(argv) > 1 else []
@@ -277,7 +330,7 @@ def simple_commands(command, depth=0, variables=None):
                     bodies.append(" ".join(previous[1:]))
             for body in bodies:
                 if body.strip():
-                    out += simple_commands(body, depth + 1, dict(variables))
+                    out += simple_commands(body, depth + 1, dict(variables), dict(exported))
         previous = argv
     return out
 
@@ -306,6 +359,19 @@ def self_test():
     assert pick("echo hi | bash").piped and not pick("echo hi; bash").piped
     # variables and wrappers still work
     assert argvs("h=a; psql -h ${h}b") == [["psql", "-h", "ab"]] and argvs("FOO=1 nohup timeout 9 psql x") == [["psql", "x"]]
+    # Codex review of #653: byte-wise ANSI-C, quote-aware here-documents, process substitution, nesting limit, export
+    assert decode_ansi_c(r"\xe8\xb0\x83\xe5\xba\xa6") == "\u8c03\u5ea6" and decode_ansi_c(r"\u8c03") == "\u8c03"
+    assert names("echo ok # <<EOF\nsqlcmd -S p -Q x") == ["echo", "sqlcmd"] and names('echo "<<EOF"; sqlcmd -S p -Q x') == ["echo", "sqlcmd"], "<<EOF in a comment or a string is not a here-document"
+    assert "sqlcmd" in names("cat <<EOF\n$(sqlcmd -S p -Q x)\nEOF") and "sqlcmd" not in names("cat <<'EOF'\n$(sqlcmd -S p -Q x)\nEOF"), "an unquoted here-document body is expanded, a quoted one is text"
+    assert names("psql -h x <<EOF\nselect 1\nEOF\necho after") == ["psql", "echo"] and heredoc_bodies("cat <<'A' <<B\none\nA\ntwo\nB\n") == ["one", "two"]
+    assert names('printf "%s" <(sqlcmd -S p -Q x)') == ["printf", "sqlcmd"] and names("diff <(ls a) >(cat)") == ["diff", "ls", "cat"]
+    try:
+        simple_commands("eval eval eval eval ssh h touch x")
+        raise AssertionError("nesting deeper than 3 must raise")
+    except ValueError:
+        pass
+    assert simple_commands("export SQLCMDSERVER=prod; sqlcmd -Q x")[-1].env == {"SQLCMDSERVER": "prod"} and simple_commands("export A=1; unset A; ls")[-1].env == {}
+    assert argvs("export H=prod; sqlcmd -S\"$H\" -Q x")[-1][:2] == ["sqlcmd", "-Sprod"]
     # unreadable input
     try:
         simple_commands("echo 'unterminated")
