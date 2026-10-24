@@ -20,7 +20,7 @@ expect() {  # expect <路径> <应触发的模式名…>：每个模式逐个核
   for key in $TRIGGER_KEYS; do
     case " $* " in *" $key "*) want=1 ;; *) want=0 ;; esac
     if touches "${!key}"; then got=1; else got=0; fi
-    [ "$want" = "$got" ] || no "$path 对 $key 应为 $want，实为 $got"
+    [ "$want" = "$got" ] || no "$path 对 $key 应为 ${want}，实为 $got"
   done
 }
 base=x
@@ -48,14 +48,20 @@ done
 # 检查表：每个模式名都有定义、每个模式至少一行、命令的第一个词可执行或是函数
 keys_used=""
 while IFS='|' read -r key name cmd; do
-  case " $TRIGGER_KEYS " in *" $key "*) ;; *) no "检查表「$name」的模式名 $key 不在 TRIGGER_KEYS" ;; esac
+  case " $TRIGGER_KEYS " in *" $key "*) ;; *) no "检查表「${name}」的模式名 $key 不在 TRIGGER_KEYS" ;; esac
   [ -n "$name" ] && [ -n "$cmd" ] || no "检查表有空的名字或命令：$key"
-  type "${cmd%% *}" >/dev/null 2>&1 || no "检查表「$name」的命令 ${cmd%% *} 找不到"
+  type "${cmd%% *}" >/dev/null 2>&1 || no "检查表「${name}」的命令 ${cmd%% *} 找不到"
   keys_used="$keys_used $key "
 done <<<"$TRIGGERED_CHECKS"
 for key in $TRIGGER_KEYS; do
   case "$keys_used" in *" $key "*) ;; *) no "模式 $key 在检查表里没有检查" ;; esac
 done
+
+# 仓库里的 shell（*.sh 与工作流 run 段）：$VAR 后不得紧跟非 ASCII 字符。UTF-8 终端下 /bin/bash 3.2 会把全角标点读进变量名，set -u 即崩；写成 ${VAR}
+var_cjk=$'\\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]'
+hits=$(cd "$here/../.." && git ls-files -z '*.sh' .github/workflows | LC_ALL=C xargs -0 grep -nE "$var_cjk")
+[ -z "$hits" ] || no "\$VAR 后紧跟非 ASCII 字符，改成 \${VAR}：
+$hits"
 
 # list_changed：在临时仓库里核对三种来源、特殊字符文件名、git 出错时返回非零
 repo=$tmp/repo
@@ -85,7 +91,7 @@ rm_new_pyc >/dev/null || no "rm_new_pyc 失败"
 [ ! -e 中文/__pycache__ ] && [ ! -e x/__pycache__ ] || no "新增的 __pycache__ 没删干净（含中文路径）"
 bash -c '. "$1"; work=$2; trap "rm_new_pyc >/dev/null 2>&1" EXIT; mkdir -p z/__pycache__; exit 3' _ "$here/light_triggers.sh" "$work"
 rc=$?
-[ $rc = 3 ] && [ ! -e z/__pycache__ ] || no "中途 exit 时应删掉新增字节码且退出码不变（实为 $rc）"
+[ $rc = 3 ] && [ ! -e z/__pycache__ ] || no "中途 exit 时应删掉新增字节码且退出码不变（实为 ${rc}）"
 
 [ $bad = 0 ] && echo "light_selftest: ok"
 exit $bad

@@ -5,7 +5,7 @@
 # 一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
 # CI 里由 .github/workflows/ci.yml 的 backend 作业调用（每个事件都跑）。不在这里的：
 # - 后端与前端测试、SQL Server 集成测试：backend、frontend 作业的重步骤（本机要跑就用 scripts/ci/backend_verify.sh、legacy_it.sh，起容器先问用户）；
-# - gitleaks 全史扫描、发布脚本自测：secret scan 作业；组织接口通知要 PR 正文，判档（relevant_change.py 输出）要写 $GITHUB_OUTPUT：都只在 CI 里；
+# - gitleaks 全史扫描、发布脚本自测：secret scan 作业；组织接口通知要 PR 正文，判档（relevant_change.py 输出）要写 ${GITHUB_OUTPUT}：都只在 CI 里；
 # - budget_check（one-quality 的 scripts/ci/budget_check.py，用法 `budget_check.py [--root DIR]`）：文件在就跑，还没合入时记 SKIP。
 # Bash 3.2（macOS）可用：不用关联数组与 mapfile。
 set -uo pipefail

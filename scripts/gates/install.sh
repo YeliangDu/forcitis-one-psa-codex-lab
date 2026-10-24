@@ -54,7 +54,7 @@ rename "$tmp" "$dir/$sha" 2>/dev/null || ready "$dir/$sha" || { { [ -e "$old" ] 
 drop "$tmp"
 tmp=""
 [ ! -e "$old" ] && [ ! -L "$old" ] || drop "$old"
-[ ! -d "$dir/$link" ] || [ -L "$dir/$link" ] || rename "$dir/$link" "$dir/.$link.dir.$$" || fail "挪不开 $dir/$link（是目录，不是链接）"
+[ ! -d "$dir/$link" ] || [ -L "$dir/$link" ] || rename "$dir/$link" "$dir/.$link.dir.$$" || fail "挪不开 $dir/${link}（是目录，不是链接）"
 ln -s "$sha" "$dir/.$link.$$" && "$py" -c 'import os,sys;os.replace(sys.argv[1],sys.argv[2])' "$dir/.$link.$$" "$dir/$link" || { rm -f "$dir/.$link.$$"; fail "切换 $dir/$link 失败"; }
 [ ! -e "$dir/.$link.dir.$$" ] || drop "$dir/.$link.dir.$$"
 echo "install.sh：$dir/$link → $sha"
