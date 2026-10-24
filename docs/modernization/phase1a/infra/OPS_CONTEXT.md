@@ -1,5 +1,10 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 12:40 B4 已做（以本条为准）
+
+- B4 完成并已报调度：current 12:32 切 5e3b417d3，12:37 回退 adcac8c22 回读一致；结果在 acceptance/b1.md 第 4 节（原始记录 acceptance/b4/）。第 1、2、4 项过；会话①（打开工作区目录）全过；**会话②（应用自建工作区）的会话钩子读主检出的 settings.json**，切换前测不到新版，已建议 5.2a 加切换后复测，待调度定。
+- 待清理：工作区 b4-drill-a、xin-c15a36，分支 claude/one-ops-b4-drill-a、claude/b4-drill-b-5bcd39（均未推送），等用户同意归档两个演练会话后删。下一步：用户验收 → 合入窗口（b1.md 第 5 节）。
+
 ## 2026-10-24 下午九次增补（清空接续，以本节为准，覆盖八次增补「待」项）
 
 - **最终 next＝5e3b417d3**（b6bbeb3e8 上合 ops @aee6f5fe4、coordinator @72f12026b；ops 合并提交 f1c851095 里去重了 relevant_change READ_BY_BUILDS 的 RULES.md、roles/，next 曾退回 b6bbeb3e8 重做两次合并，未推送）。已报调度（check_reviews 83 个提交 81 过、只剩 #691 两例外；acceptance_v2 过 5、跳 1、不过 2＝V02/V17a 已知例外；light.sh 连跑 3 次全过；日志 acceptance/b1run-5e3b417d3/，b1.md 已更新）。ops 追加三提交 0460bfae9、f2a9d37d9、aee6f5fe4 复审均过。
