@@ -13,7 +13,7 @@
 一卡一个可验收结果、一个负责会话、单 bc，二乙起一卡一个 Issue；入口条件不满足即停下报 lead。卡交出时先覆盖写交接文件（上限见 policy.json 的 `start.handoff_max_kb`），再结束会话或 `/clear`；交出前回测错题本，记录与事实不符按事实更正；开工先核实况。上下文到阈值时 stop_check 每会话最多挡一次。新会话一律由 lead 用 start_session 开。会话消息只用于唤醒，内容写卡或 PR 评论；只在被阻塞、须用户决定、事故时给 lead 发消息。
 
 ## ③ 分支与工作区
-执行：main_checkout_gate、janitor
+执行：main_checkout_gate
 
 从最新 main 建工作区与分支，名为 `<会话>-<卡号>`，与卡同生同灭、不复用；改同一文件的卡串行；git 写操作用绝对路径。
 
@@ -38,7 +38,7 @@ PR 能单独合入与回退，按模板填，二乙起写 `Closes #<卡>`；守�
 文档改动开小 PR；relevant_change 判为文档档的免复审，入队仍按⑥。
 
 ## ⑧ 什么进 git
-执行：budget_check、build_all、gitleaks、janitor
+执行：budget_check、build_all、gitleaks
 
 CI 或别的会话要读的进；可由仓库生成的、一次性的不进；本机自用的放工具库；机密与个人信息永不进，报告前扫全历史。一类一份正本，归属见角色文件；只改源不改生成物。记忆只放用户偏好与指针（上限见 policy.json 的 `memory_max_kb`），规则回仓库，冲突以仓库为准。建常驻任务、持久配置或云资源即登记资源表，用完清理。
 
