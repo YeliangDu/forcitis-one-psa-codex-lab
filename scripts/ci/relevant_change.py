@@ -7,7 +7,7 @@ tier docs: nothing the builds read changed. tier guarded: every changed path is 
 readers are found by scanning the sources (literal paths and path segments overlapping the doc, plus its file name), never from a hand-kept map. tier code: anything else, also a doc some
 other reader (a Spring or container test, main code, another script) reads: when in doubt, run everything. A push to main and the nightly run are always tier code.
 Also writes legacy_it=true|false: whether the change touches what the SQL Server integration tests (Maven profile legacy-it) exercise.
---paths-from reads one path per line from a file instead of diffing (scripts/precheck.sh uses it so both gates agree).
+--paths-from reads one path per line from a file instead of diffing.
 On a push the changed files are diffed against $BEFORE; a missing or unknown $BEFORE counts as legacy_it=true.
 Usage: relevant_change.py <base-ref>  |  relevant_change.py --paths-from <file>  |  relevant_change.py --self-test"""
 import importlib.util
@@ -29,7 +29,7 @@ READ_BY_BUILDS = (
     "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml",
     # R-1b P5 acceptance (EventEnvelopeContractTest, the rename ITs) read the field list and the aggregate register
     "docs/modernization/proposals/EVENT_ANALYTICS_FIELDS.md",
-    "docs/modernization/architecture/ddd/aggregates.yaml",
+    "docs/modernization/architecture/ssot/i03-aggregates/built.yaml",
     # ADR37-1 guards: the credential deny list (CredentialColumnGuardTest) and the runbook that must not list a check switch (ReadOnlyCheckSwitchGuardTest)
     "docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/credential_columns.csv",
     "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md",
@@ -38,6 +38,8 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
     "docs/modernization/phase1a/infra/runbooks/files/",
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
+    # DataArchitectureTest runs the V11 part of the c3/c9 verify scripts against a container database (also checked by db_scripts_aligned.py)
+    "docs/modernization/phase1a/infra/runbooks/sql/",
 )
 
 # inside READ_BY_BUILDS directories but read by no build: the one-glossary records
@@ -49,31 +51,33 @@ NOT_READ_BY_BUILDS = (
 
 # files outside the builds that read READ_BY_BUILDS docs and run in a CI job whatever changed
 ALWAYS_RUN_READERS = (
-    "scripts/ci/db_scripts_aligned.py",   # gitleaks job, whatever changed
+    "scripts/ci/db_scripts_aligned.py",   # scripts/ci/light.sh (backend job), whatever changed
     "scripts/ci/baseline_ddl_scan.py",    # assertion-drift job on every pull request; report only
 )
-# developer tools that name docs paths but are no CI step: they are not readers (scripts/precheck.sh lists glossary/terms.yaml in a `touches` pattern; counting it would hide every unread glossary doc)
-LOCAL_ONLY = ("scripts/precheck.sh", "scripts/hooks/")
+# developer tools that name docs paths but are no CI step: they are not readers
+LOCAL_ONLY = ("scripts/hooks/",)
 
-# read only by steps of the gitleaks job or the assertion-drift job that run unconditionally, or by scripts/precheck.sh; docs read by scripts/release must be listed in READ_BY_BUILDS
+# read only by checks that run unconditionally (scripts/ci/light.sh in the backend job on every event, the gitleaks and assertion-drift jobs); docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/architecture/proposals/j_checks.py",
-    "docs/modernization/architecture/togaf/transitions.yaml",
-    "docs/modernization/phase1a/infra/runbooks/sql/",
+    "docs/modernization/architecture/ssot/t-transitions/transitions.yaml",
     "docs/modernization/build_all.py",
+    # rule and role files: read by scripts/ci/budget_check.py (always-run check once wired in, Q5); start_sheet.py 的开工单按需读也点名 RULES.md
+    "docs/modernization/RULES.md",
+    "docs/modernization/roles/",
     # 错题本：build_all.py 的自测步骤（scripts/ci/ci_recurrence.py 读册、quality/defect-bank/defect_bank_check.py 检查册）在 gitleaks 作业里无条件运行
     "docs/modernization/quality/defect-bank/",
     # ruling record: read by scripts/ci/acceptance_rulings.py in the always-run acceptance step
     "docs/modernization/rulings/",
-    # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py
+    # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py; commit_msg_gate.py takes session names from sessions/ and roles/ (roles/ is listed above)
     "docs/modernization/sessions/",
-    # start_sheet.py 的开工单按需读列表里点名它；handoff_selftest.py 的夹具写同名路径
-    "docs/modernization/SESSION_PLAYBOOK.md",
     "docs/modernization/check_legacy_name.py",
+    # rule review revisions are append-only: run by scripts/ci/light.sh
+    "docs/modernization/rules/review_revisions.py",
     # task register: check_tasks.py runs in build_all.py; session_daily.py reads origin/main's tasks/
     "docs/modernization/check_tasks.py",
     "docs/modernization/tasks/",
-    # decision page question rules: run by scripts/precheck.sh when a decision page changes
+    # decision page question rules: no CI step runs them (scripts/precheck.sh did, locally, until GOV-1023-FV2 O9); listed so that naming them stays covered
     "docs/modernization/architecture/decision-page/check_pages.py",
     "docs/modernization/rules/decide/build_decision_page.py",
 )
@@ -454,8 +458,8 @@ def tiers_self_test(root):
         write(tmp, "frontend/src/app.ts", 'const p = "docs/modernization/glossary/app.yaml";')
         write(tmp, "scripts/release/gate.py", 'P = "docs/modernization/status/blockers/"')
         write(tmp, "scripts/other/tool.py", 'P = "docs/modernization/events/tool.yaml"')
-        write(tmp, "scripts/precheck.sh", "cat docs/modernization/events/only-precheck.yaml; cat docs/modernization/glossary/")
-        write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"')
+        write(tmp, "scripts/ci/light.sh", "cat docs/modernization/events/only-light.yaml")
+        write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"; G = "docs/modernization/glossary/"')  # a local tool naming a whole directory hides no reader
         write(tmp, "scripts/ci/db_scripts_aligned.py", 'P = "docs/modernization/events/always.yaml"')
         write(tmp, t + "StarGlobIT.java", 'class StarGlobIT { String g = "glob:**/*.java"; String p = "docs/modernization/events/after-star.yaml"; } /** */')
         write(tmp, "frontend/scripts/generate-api.mjs", 'const p = "docs/modernization/glossary/gen.yaml";')
@@ -482,7 +486,7 @@ def tiers_self_test(root):
         assert tier(ev + "comment.yaml") == ("code", None), "no reader found: everything runs"
         assert tier(ev + "byname.yaml") == ("code", None), "another reader names the file without the full path"
         assert tier(ev + "tool.yaml") == ("code", None), "a script outside the covered ones reads it"
-        assert tier(ev + "only-precheck.yaml") == ("code", None), "precheck.sh is a developer tool, no reader: nothing reads it, so everything runs"
+        assert tier(ev + "only-light.yaml") == ("code", None), "light.sh is a CI script outside the middle tier: a doc only it reads runs everything"
         assert tier(ev + "only-hook.yaml") == ("code", None)
         assert tier(ev + "always.yaml") == ("docs", None), "read only by a script that runs in every job"
         assert tier(ev + "after-star.yaml") == ("code", None), "a /* inside a string literal must not hide what follows"
@@ -575,6 +579,10 @@ def real_tiers_self_test(root):
     assert "copy-glossary" in index.texts["frontend/scripts/check-copy-glossary.mjs"] and "copy-glossary" in index.texts["frontend/scripts/copy-glossary.test.mjs"]
     for entry in READ_BY_BUILDS:
         assert index.readers(entry), f"READ_BY_BUILDS lists {entry}, but no source reads it (stale entry?)"
+    for entry in READ_BY_ALWAYS_RUN_CHECKS:
+        tests = sorted(r for r in index.readers(entry) if r.startswith(("backend/", "frontend/")))
+        assert not tests, f"{entry} is read by {tests}: a build reads it, so it belongs in READ_BY_BUILDS"
+    assert plan_for(["docs/modernization/phase1a/infra/runbooks/sql/c9_prod_db_verify.sql"], index, light) is None, "DataArchitectureTest (a container test) runs it: full run"
     guarded = 0
     for path in docs:
         plan = plan_for([path], index, light)
@@ -648,7 +656,7 @@ def self_test():
     assert not is_relevant("README.md")
     assert not is_relevant("docs/modernization/intent/2026-10-15-120000-one-ops-中文.md")
     assert is_relevant('"docs/q\\"x.md"'), "a path git still quotes must count as relevant"
-    assert not is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql")
+    assert is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql"), "DataArchitectureTest executes the verify scripts here"
     assert is_relevant("notes.txt")
     assert not is_relevant("docs/modernization/build_all.py")
     assert not is_relevant("docs/modernization/check_legacy_name.py")
@@ -704,7 +712,7 @@ def main():
     if sys.argv[1:] == ["--self-test"]:
         self_test()
         return
-    if len(sys.argv) == 3 and sys.argv[1] == "--reads-docs":   # precheck.sh: exit 0 when a listed path is a file the builds read (READ_BY_BUILDS only: the always-run checks are CI's)
+    if len(sys.argv) == 3 and sys.argv[1] == "--reads-docs":   # exit 0 when a listed path is a file the builds read (READ_BY_BUILDS only: the always-run checks are CI's)
         sys.exit(0 if any(not p.startswith(NOT_READ_BY_BUILDS) and p.startswith(READ_BY_BUILDS) for p in Path(sys.argv[2]).read_text(encoding="utf-8").splitlines() if p) else 1)
     if len(sys.argv) == 3 and sys.argv[1] == "--paths-from":
         paths = Path(sys.argv[2]).read_text(encoding="utf-8").splitlines()

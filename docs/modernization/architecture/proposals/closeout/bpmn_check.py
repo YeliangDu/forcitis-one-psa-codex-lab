@@ -10,7 +10,7 @@ import yaml
 BPMN = "http://www.omg.org/spec/BPMN/20100524/MODEL"
 BPMNDI = "http://www.omg.org/spec/BPMN/20100524/DI"
 FLOWABLE_HINT = "flowable.org"
-CATALOG = Path(__file__).resolve().parent / "process-catalog.yaml"
+CATALOG = Path(__file__).resolve().parents[1].parent / "ssot" / "09-processes" / "catalog.yaml"   # 流程目录正本
 
 FORBIDDEN = {
     "task": "通用任务 task（必须标类型）",
@@ -156,7 +156,7 @@ def check_descriptive(root, catalog):
         if not re.fullmatch(r"PRC-\d{2,}", pid):
             errors.append(f"[R10] process id「{pid}」不是 PRC-NN 形式")
         elif pid not in catalog:
-            errors.append(f"[R10] process {pid} 不在 process-catalog.yaml")
+            errors.append(f"[R10] process {pid} 不在流程目录 ssot/09-processes/catalog.yaml")
         elif (p.get("name") or "") != catalog[pid]:
             errors.append(f"[R11] process {pid} 名称「{p.get('name')}」与目录「{catalog[pid]}」不一致")
         starts = children(p, "startEvent")

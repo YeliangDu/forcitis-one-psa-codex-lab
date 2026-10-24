@@ -1,0 +1,290 @@
+#!/usr/bin/env python3
+"""post_review.py 自测：gh 全部打桩，不联网。运行：python3 scripts/review/post_review_selftest.py
+
+标签名从 policy.json 取，结论与类别从 post_review 常量取，本文件不写标签字面值（H21 写入点唯一）。
+"""
+import json
+import os
+import pathlib
+import sys
+import tempfile
+from unittest import mock
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import post_review as pr_mod  # noqa: E402
+
+REVIEW, LABELS = pr_mod.load_policy()
+F = REVIEW["header_fields"]
+PASS, FIX, FIRST, FINAL = pr_mod.PASS, pr_mod.FIX, pr_mod.FIRST, pr_mod.FINAL
+LABEL = LABELS["review_passed"]
+SHA, OTHER, PR = "a" * 40, "b" * 40, 42
+R1, R2 = f"opus-{FIRST}-r1", f"opus-{FINAL}-a1"
+
+
+def header(verdict=PASS, commit=SHA, reviewer=R1, colon="："):
+    return f"{F[0]}{colon}{verdict}\n{F[1]}{colon}{commit}\n{F[2]}{colon}{reviewer}\n\n正文"
+
+
+def rv(kind, verdict, commit=SHA, commit_id=None):
+    return {"body": header(verdict, commit, f"opus-{kind}-x"), "commit_id": commit_id or commit}
+
+
+class Stub:
+    """记录每次 gh 调用；按动词返回预设结果。heads 依次给出每次读到的 head，最后一个重复。"""
+
+    def __init__(self, heads=(SHA,), view_rc=0, review_rc=0, post_out=None, edit_rc=0,
+                 labels=(), labels_rc=0, labels_out=None, reviews=(), reviews_rc=0, reviews_out=None):
+        self.calls, self.heads, self.view_rc, self.review_rc, self.post_out = [], list(heads), view_rc, review_rc, post_out
+        self.edit_rc, self.labels, self.labels_rc, self.labels_out = edit_rc, labels, labels_rc, labels_out
+        self.reviews, self.reviews_rc, self.reviews_out = list(reviews), reviews_rc, reviews_out
+
+    def __call__(self, args, stdin=None):
+        self.calls.append((list(args), stdin))
+        if args[:2] == ["pr", "view"] and "headRefOid" in args:
+            head = self.heads.pop(0) if len(self.heads) > 1 else self.heads[0]
+            return self.view_rc, json.dumps({"headRefOid": head}) if head is not None else "{}"
+        if args[:2] == ["pr", "view"] and "labels" in args:
+            out = json.dumps({"labels": [{"name": n} for n in self.labels]})
+            return self.labels_rc, out if self.labels_out is None else self.labels_out
+        if args[:3] == ["api", "--method", "POST"]:
+            out = json.dumps({"commit_id": json.loads(stdin)["commit_id"]})
+            return self.review_rc, out if self.post_out is None else self.post_out
+        if args[:3] == ["api", "--paginate", "--slurp"]:
+            return self.reviews_rc, json.dumps([self.reviews]) if self.reviews_out is None else self.reviews_out
+        if args[:2] == ["pr", "edit"]:
+            return self.edit_rc, ""
+        raise AssertionError(f"意外的 gh 调用：{args}")
+
+    def writes(self):
+        return [c for c in self.calls if c[0][:3] == ["api", "--method", "POST"] or c[0][:2] == ["pr", "edit"]]
+
+    def review_payload(self):
+        posts = [c for c in self.calls if c[0][:3] == ["api", "--method", "POST"]]
+        assert len(posts) == 1, posts
+        return json.loads(posts[0][1])
+
+    def edits(self):
+        return [c[0] for c in self.calls if c[0][:2] == ["pr", "edit"]]
+
+
+def run(stub, verdict=PASS, reviewer=R1, commit=SHA, text=None, pr=PR, **kw):
+    """text 缺省为由 verdict/commit/reviewer 拼出的正文文件全文。"""
+    text = header(verdict, commit, reviewer) if text is None else text
+    try:
+        return 0, pr_mod.post(pr, text, run=stub, **kw)
+    except pr_mod.Refused as exc:
+        return exc.args[0], exc.args[1]
+
+
+def edit(flag):
+    return [["pr", "edit", str(PR), flag, LABEL]]
+
+
+def case_pass_adds_label():
+    s = Stub()
+    rc, _ = run(s)
+    p = s.review_payload()
+    assert rc == 0 and p["event"] == "COMMENT" and p["commit_id"] == SHA
+    assert s.edits() == edit(pr_mod.ADD_FLAG)
+    assert f"repos/{{owner}}/{{repo}}/pulls/{PR}/reviews" in s.writes()[0][0]
+    assert len([c for c in s.calls if "headRefOid" in c[0]]) == 2   # 提交前与加标签前各读一次 head
+
+
+def case_fix_removes_label():
+    for reviewer in (R1, R2):
+        for guard in (False, True):
+            s = Stub()
+            assert run(s, verdict=FIX, reviewer=reviewer, guard=guard)[0] == 0
+            assert s.review_payload()["commit_id"] == SHA and s.edits() == edit(pr_mod.REMOVE_FLAG)
+
+
+def case_fix_label_absent_ok():
+    assert run(Stub(edit_rc=1, labels=[]), verdict=FIX)[0] == 0
+
+
+def case_fix_label_recheck_fails_closed():
+    bad = [None, "{}", '{"labels": null}', "[]", '{"labels": [1]}', '{"labels": [{"x": 1}]}', "坏 JSON"]
+    for out in bad:
+        s = Stub(edit_rc=1, labels=[LABEL], labels_out=out)
+        rc, msg = run(s, verdict=FIX)
+        assert rc == pr_mod.EXIT_LABEL_FAILED and "review 已提交" in msg, (out, rc, msg)
+    rc, msg = run(Stub(edit_rc=1, labels_rc=1), verdict=FIX)
+    assert rc == pr_mod.EXIT_LABEL_FAILED and "review 已提交" in msg
+
+
+def case_add_label_fails():
+    s = Stub(edit_rc=1)
+    rc, msg = run(s)
+    assert rc == pr_mod.EXIT_LABEL_FAILED and "review 已提交" in msg and len(s.edits()) == 1
+
+
+def case_head_changed_before_post():
+    s = Stub(heads=(OTHER,))
+    rc, msg = run(s)
+    assert rc == pr_mod.EXIT_REFUSED and "head 已变" in msg and s.writes() == []
+    for s in (Stub(view_rc=1), Stub(heads=(None,)), Stub(heads=("zz",))):
+        rc, msg = run(s)
+        assert rc == pr_mod.EXIT_REFUSED and "读不到" in msg and s.writes() == [], (msg, s.calls)
+
+
+def case_head_changed_before_label():
+    for s in (Stub(heads=(SHA, OTHER)), Stub(heads=(SHA, None)), Stub(post_out=json.dumps({"commit_id": OTHER})),
+              Stub(heads=(SHA, OTHER), reviews=[rv(FIRST, PASS)])):
+        guard = bool(s.reviews)
+        rc, msg = run(s, reviewer=R2 if guard else R1, guard=guard)
+        assert rc == pr_mod.EXIT_LABEL_FAILED and "review 已提交" in msg and s.edits() == [], (rc, msg)
+    s = Stub(post_out="非 JSON")   # 返回里没有 commit_id：只靠再读 head
+    assert run(s)[0] == 0 and s.edits() == edit(pr_mod.ADD_FLAG)
+
+
+def case_review_fails_no_label():
+    for verdict in (PASS, FIX):
+        s = Stub(review_rc=1)
+        assert run(s, verdict=verdict)[0] == pr_mod.EXIT_REVIEW_FAILED and s.edits() == []
+
+
+def case_bad_inputs():
+    bad = [{"verdict": "approve"}, {"verdict": f"{PASS}。"}, {"commit": SHA[:39]}, {"commit": SHA.upper()},
+           {"commit": SHA + "a"}, {"commit": "g" * 40}, {"pr": 0}, {"pr": -1}, {"repo": "o"}, {"repo": "o/r;x"}]
+    bad += [{"reviewer": r} for r in (" ", "opus-r1", f"opus-{FINAL}", f"opus-{FIRST}-", f"opus-{FIRST}-a 1",
+            f"opus-{FIRST}-a\n{F[0]}：{PASS}", f"opus-{FIRST}-a\tb", f"opus- {FIRST}-a", f"opus-{FIRST}x-a",
+            f"opus-x-{FIRST}-a", f"-{FIRST}-a", f"op us-{FIRST}-a", f"opus-{FIRST}-a:b", f"opus-{FIRST}-a：b",
+            f"opus-{FIRST}-a\x07", f"opus-{FIRST}-a\u3000b", f"opus-{FIRST}{FINAL}-a")]
+    bad += [{"text": t} for t in ("", "正文", header().replace("\n\n", "\n", 1), header().replace("\n", "\n\n", 1),
+                                 f"{F[0]}：{PASS}\n{F[1]}：{SHA}")]
+    for kw in bad:
+        s = Stub()
+        rc, _ = run(s, **kw)
+        assert rc == pr_mod.EXIT_REFUSED and s.calls == [], kw
+    s = Stub()   # policy 字段名带换行：生成的机读头过不了 parse_header，不提交
+    rc, _ = run(s, policy=({**REVIEW, "header_fields": [F[0] + "\n", F[1], F[2]]}, LABELS))
+    assert rc == pr_mod.EXIT_REFUSED and s.writes() == []
+
+
+def case_reviewer_kind():
+    s = Stub()
+    assert run(s, reviewer=R2)[0] == 0 and s.edits() == []          # 终审通过只记录
+    s = Stub()
+    assert run(s, reviewer=f"opus-{FIRST}-a-b.1")[0] == 0 and s.edits() == edit(pr_mod.ADD_FLAG)
+
+
+def case_verdicts_order_swapped():
+    policy = ({**REVIEW, "verdicts": [FIX, PASS]}, LABELS)
+    s = Stub()
+    assert run(s, verdict=FIX, policy=policy)[0] == 0 and s.edits() == edit(pr_mod.REMOVE_FLAG)
+    s = Stub()
+    assert run(s, verdict=PASS, policy=policy)[0] == 0 and s.edits() == edit(pr_mod.ADD_FLAG)
+
+
+def case_parse_header():
+    ok = {"verdict": PASS, "commit": SHA, "reviewer": R2, "kind": FINAL}
+    assert pr_mod.parse_header(header(reviewer=R2), F) == ok
+    assert pr_mod.parse_header(header(reviewer=R2, colon=":"), F) == ok
+    assert pr_mod.parse_header(f"  {F[0]}：{PASS} \n{F[1]}: {SHA}\u3000\n{F[2]}：{R2}", F) == ok
+    assert pr_mod.parse_header(header(reviewer=R2) + f"\n{F[0]}：{FIX}", F) == ok   # 第 4 行起是正文
+    bad = [header(reviewer=f"opus-{FIRST}-a\tb"), f"{F[0]}：\t{PASS}\n{F[1]}：{SHA}\n{F[2]}：{R1}", header(verdict=f"{PASS}：x"),
+           header(verdict=f"{PASS} {FIX}"), header(commit=SHA.upper()), header(reviewer="opus-复审-a"),
+           header(reviewer=f"opus-{FIRST}{FINAL}-a"), header(reviewer=f"opus-{FIRST}-a\x0bb"), header(reviewer="opus-r1"),
+           f"{F[1]}：{SHA}\n{F[0]}：{PASS}\n{F[2]}：{R1}", f"{F[0]}：{PASS}\n{F[1]}：{SHA}", header(verdict="approve"),
+           f"{F[0]}：{PASS}\n\n{F[1]}：{SHA}\n{F[2]}：{R1}", None, 7,
+           *(header().replace("\n", c + "\n", 1) for c in ("\r", "\x85", "\u2028", "\x0b", "\x0c", "\x1c"))]   # a line ending other than \n is invalid, not stripped
+    for text in bad:
+        assert pr_mod.parse_header(text, F) is None, repr(text)
+
+
+def case_guard():
+    def go(reviewer, reviews, **kw):
+        s = Stub(reviews=reviews, **kw)
+        rc, msg = run(s, reviewer=reviewer, guard=True)
+        return rc, msg, s.edits()
+    rc, msg, ed = go(R1, [rv(FIRST, PASS)])                                   # 只有首轮
+    assert rc == 0 and ed == [] and "等另一份结论" in msg
+    assert go(R2, [rv(FINAL, PASS)])[2] == []                                  # 只有终审
+    assert go(R2, [rv(FIRST, PASS), rv(FINAL, PASS)])[2] == edit(pr_mod.ADD_FLAG)  # 两份都通
+    assert go(R1, [rv(FINAL, PASS)])[2] == edit(pr_mod.ADD_FLAG)
+    assert go(R2, [rv(FIRST, PASS), rv(FIRST, FIX)])[2] == []                 # 首轮最新为必改
+    assert go(R1, [rv(FINAL, PASS), rv(FINAL, FIX)])[2] == []                 # 终审最新为必改
+    assert go(R2, [rv(FIRST, PASS, commit=OTHER, commit_id=OTHER)])[2] == []  # 别的 commit
+    assert go(R2, [rv(FIRST, PASS, commit_id=OTHER)])[2] == []                # review 挂在别的 commit
+    assert go(R2, [rv(FIRST, PASS, commit=OTHER, commit_id=SHA)])[2] == []    # 机读头写的是别的 commit
+    assert go(R2, [{"body": None}, 3, rv(FIRST, PASS).get("x", {})])[2] == []
+    for kw in ({"reviews_rc": 1}, {"reviews_out": "坏"}, {"reviews_out": "{}"}, {"reviews_out": "[{}]"}):
+        rc, msg, ed = go(R2, [rv(FIRST, PASS)], **kw)
+        assert rc == 4 and ed == [] and "请重跑" in msg, kw   # unreadable is not "the other one has not come yet"
+
+
+def case_repo_passthrough():
+    s = Stub()
+    assert run(s, repo="o/r")[0] == 0
+    assert all(c[0][3:5] == ["-R", "o/r"] for c in s.calls if c[0][0] == "pr"), s.calls
+    assert s.writes()[0][0][3] == f"repos/o/r/pulls/{PR}/reviews"
+
+
+def case_policy_and_gh_errors():
+    with tempfile.TemporaryDirectory() as d:
+        p = pathlib.Path(d) / "policy.json"
+        for content in ("坏", "{}", json.dumps({"review": REVIEW}), json.dumps({"review": {**REVIEW, "verdicts": [PASS, "x"]},
+                        "labels": LABELS}), json.dumps({"review": {**REVIEW, "header_fields": F[:2]}, "labels": LABELS})):
+            p.write_text(content, encoding="utf-8")
+            try:
+                pr_mod.load_policy(p)
+                raise AssertionError(content)
+            except pr_mod.Refused as exc:
+                assert exc.args[0] == pr_mod.EXIT_REFUSED
+        p.write_text(header(), encoding="utf-8")
+        with mock.patch.dict(os.environ, {"PATH": d}):
+            assert pr_mod.gh(["--version"])[0] == 127
+            assert pr_mod.main(["--pr", "1", "--body-file", str(p)]) == pr_mod.EXIT_REFUSED
+    with mock.patch.object(pr_mod.subprocess, "run") as sp:
+        sp.return_value = mock.Mock(returncode=0, stdout="", stderr="")
+        pr_mod.gh(["x"])
+        assert sp.call_args.kwargs.get("encoding") == "utf-8"
+
+
+def case_body_verbatim():
+    """正文文件原样作为 review 正文；结论、commit、复审者只从文件头解析。"""
+    for text in (header(PASS) + "\n第二条\n", f" {F[0]}: {PASS}\n{F[1]}:{SHA}\n{F[2]}：{R1}\n"):
+        s = Stub()
+        assert run(s, text=text)[0] == 0
+        p = s.review_payload()
+        assert p["body"] == text and p["commit_id"] == SHA and s.edits() == edit(pr_mod.ADD_FLAG)
+    s = Stub()
+    assert run(s, text=header(FIX, reviewer=R2))[0] == 0 and s.edits() == edit(pr_mod.REMOVE_FLAG)
+
+
+def case_main_cli():
+    s = Stub()
+    with mock.patch.object(pr_mod, "gh", s), tempfile.NamedTemporaryFile("w", suffix=".md", encoding="utf-8-sig") as fh:
+        fh.write(header())
+        fh.flush()
+        base = ["--pr", str(PR), "--body-file"]
+        assert pr_mod.main(base + [fh.name]) == 0
+        assert s.review_payload()["body"] == header()   # 带 BOM 的文件也按原文提交
+        assert pr_mod.main(base + [fh.name + ".none"]) == pr_mod.EXIT_REFUSED
+        for old in (["--verdict", PASS], ["--commit", SHA], ["--reviewer", R1]):   # 不再接受手填结论
+            try:
+                pr_mod.main(base + [fh.name] + old)
+                raise AssertionError(old)
+            except SystemExit as exc:
+                assert exc.code == 2, old
+        s.heads = [OTHER]
+        assert pr_mod.main(base + [fh.name, "--guard", "--repo", "o/r"]) == pr_mod.EXIT_REFUSED
+        assert len(s.writes()) == 2   # 只有第一次的 review 与加标签
+
+
+def main():
+    cases = [v for k, v in globals().items() if k.startswith("case_")]
+    failed = 0
+    for case in cases:
+        try:
+            case()
+            print(f"通过 {case.__name__}")
+        except (Exception, SystemExit) as exc:   # noqa: BLE001  自测里任何异常（含 argparse 退出）都算失败
+            failed += 1
+            print(f"失败 {case.__name__}：{type(exc).__name__} {exc}")
+    print(f"{len(cases) - failed}/{len(cases)} 通过")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

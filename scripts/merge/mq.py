@@ -68,6 +68,7 @@ import gapscan   # noqa: E402
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
 # ci.yml's step that runs the pull request's new or changed test classes again (scripts/ci/repeat_new_tests.py): red there is a flaky new test, and a rerun that passes would let it in
 URGENT_LABEL = "急"   # put on by the coordinator: the pull request is picked before the others of its lane and the queue never cancels its CI runs
+ENV_STEPS = ("docker is running", "test images are present")   # exact names in ci.yml of the steps that go red when the machine's container runtime is down
 REPEAT_STEP = "new or changed test classes, repeated"
 OK = ("pass", "skipping")
 LINE = re.compile(r"^\s*(\d+)(?:\s+after=([\d,]+))?\s*$")   # "<n>" or "<n> after=<m>[,<m>...]": n waits until every m is merged
@@ -365,6 +366,9 @@ class Gh:
         r = sh(["gh", "run", "view", str(run), "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'])
         return r.stdout.splitlines() if r.returncode == 0 else None
 
+    def docker_ok(self):
+        return sh(["docker", "info"], timeout=60).returncode == 0
+
     def update_branch(self, n):
         return sh(["gh", "pr", "update-branch", str(n)]).returncode == 0
 
@@ -377,6 +381,14 @@ class Gh:
             return [x["databaseId"] for x in json.loads(r.stdout) if x["status"] != "completed"]
         except ValueError:
             return []
+
+    def ci_started(self, branch, head):
+        """True when a ci run for exactly this head exists (any state); False when none is listed yet or gh does not answer."""
+        r = sh(["gh", "run", "list", "--branch", branch, "--workflow", "ci", "--limit", "10", "--json", "headSha"])
+        try:
+            return any(x.get("headSha") == head for x in json.loads(r.stdout))
+        except ValueError:
+            return False
 
     def cancel_run(self, run):
         return sh(["gh", "run", "cancel", str(run)]).returncode == 0
@@ -787,6 +799,35 @@ class Processor:
         self.log.event("SSH-UPDATE" if res == "ok" else f"SSH-UPDATE-{res.upper()}", n, None, since, "local merge pushed over ssh")
         return res
 
+    def wait_container_runtime(self, n, minutes=30):
+        """True once `docker info` answers (polled every minute); False when it did not within `minutes`."""
+        for _ in range(minutes):
+            self.checkpoint(n)
+            if self.gh.docker_ok():
+                return True
+            self.sleep(60)
+        return False
+
+    def await_new_head(self, n, v, since):
+        """After an update: the view of the pull request once its head differs from the old one (GitHub takes a while to show the push); the last view when it never did."""
+        for _ in range(8):
+            now = self.gh.view(n) or v
+            if now["head"] != v["head"]:
+                return now
+            self.sleep(15)
+        self.log.event("NEW-HEAD-NOT-SEEN", n, None, since, "the head did not change after the update; going on with the head as it is")
+        return self.gh.view(n) or v
+
+    def await_new_ci(self, n, v, since):
+        """True once a ci run exists for the head of v (polled up to 5 minutes); the checks listed before that belong to an older head."""
+        for _ in range(20):
+            self.checkpoint(n)
+            if self.gh.ci_started(v["branch"], v["head"]):
+                return True
+            self.sleep(15)
+        self.log.event("NEW-CI-NOT-SEEN", n, None, since, "no CI run was seen on the updated head within 5 minutes; going on")
+        return False
+
     def wait_checks(self, n, since):
         """Checks once none is pending; None when they stayed pending past the CI timeout. A failed gh call is no answer: asked again."""
         for _ in range(20):
@@ -863,7 +904,7 @@ class Processor:
 
     def _process(self, n, since):
         self.cancel_others(n, since)
-        attempt, moved, refused = 1, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
+        attempt, moved, refused, unseen, env_failures = 1, 0, 0, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
         while attempt <= 4:
             self.checkpoint(n)
             v = self.gh.view(n)
@@ -894,7 +935,10 @@ class Processor:
                         return "CONFLICT"
                     return self.hold(n, None, since, "the update could not be pushed")
                 self.sleep(30)
-                v = self.gh.view(n) or v
+                v = self.await_new_head(n, v, since)
+                new_ci_seen = self.await_new_ci(n, v, since)
+            else:
+                new_ci_seen = True   # no update this round: the CI that runs is the one of the head as it is
             self.checkpoint(n)
             self.own_head[n] = v["head"]
             self.queue.set_head(n, v["head"])   # kept on disk too: a runner restarted in the middle must not take the queue's own update for the author's push
@@ -919,6 +963,17 @@ class Processor:
                 unknown = [r for r, st in steps.items() if st is None]
                 if unknown:   # gh could not say which step failed: the one rerun still happens (the lenient direction), but it is on record
                     self.log.event("FAILED-STEPS-UNKNOWN", n, unknown[0], since, "could not read the failed steps; a failed repeat step would not be recognised")
+                # an environment failure: every red run failed only in environment steps, and the container runtime really is down (a wrong test-images.txt turns the same step red with docker fine)
+                env_runs = runs if runs and all(steps[r] and all(name in ENV_STEPS for name in steps[r]) for r in runs) and not self.gh.docker_ok() else []
+                if env_runs:   # the machine, not the pull request: wait for the container runtime, run again, and the author's attempt is not used up
+                    env_failures += 1
+                    self.log.event("ENV", n, env_runs[0], since, f"{', '.join(c['name'] for c in red)}: the environment failed, not the pull request (#{env_failures}); waiting for the container runtime")
+                    if env_failures > 3 or not self.wait_container_runtime(n):
+                        return self.hold(n, ",".join(env_runs), since, "the environment did not recover (container runtime still down): not the author's failure")
+                    for r in runs:
+                        self.gh.rerun(r)
+                    self.sleep(30)
+                    continue
                 repeated = [r for r, st in steps.items() if REPEAT_STEP in (st or [])]
                 if repeated:   # a new test that fails when it runs again is flaky: no rerun (it would pass the second time and get in), straight to the author
                     return self.hold(n, ",".join(repeated), since, f"a new or changed test class failed its repeat runs ({REPEAT_STEP}): not rerun, back to the author")
@@ -941,6 +996,13 @@ class Processor:
             if result == "head-changed":
                 now = self.gh.view(n) or v
                 return self.head_changed(n, now, self.head_moved(n, now) or self.own_head.get(n) or "?", since)
+            if result == "moved" and not new_ci_seen:   # nothing ran on the new head: the verdict was read off the old one, that is no main moving
+                unseen += 1
+                self.log.event("MOVED-NOT-COUNTED", n, None, since, "no CI run was seen on the updated head: not counted as main moving")
+                if unseen > 6:
+                    return self.hold(n, None, since, "the CI of the updated head never started")
+                self.sleep(30)
+                continue
             if result == "moved":
                 moved += 1
                 if moved > 6:

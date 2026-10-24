@@ -6,7 +6,7 @@
 
 | 对象 | 写法 | 来源 |
 |---|---|---|
-| 流程 | `PRC-NN` | `processes.v1.yaml`；新增流程先向 one-architecture 要号 |
+| 流程 | `PRC-NN` | `architecture/ssot/09-processes/catalog.yaml`；新增流程先向 one-architecture 要号 |
 | 价值流阶段 | `VS-NN.N` | `value-streams.v2.yaml` |
 | 角色 | `SH-XN`（如 `SH-C1`、`SH-E2`、`SH-M1`） | `value-streams.v2.yaml` 顶部 `stakeholders:`；系统自动步骤写 `system`；平台人工任务写 `platform` |
 | BC | `B-NN` | `ENTERPRISE_AGGREGATES_DRAFT.md` §3.2；不写模块名（模块名由 B-NN 唯一映射）。平台模块编排的流程（如账号开通）`owner_bc` 写平台模块名 `platform.xxx` |
@@ -110,7 +110,7 @@
 - **单聚合维护的审批**：`commands[]`（命令清单，可逐条写 `aggregate` 覆盖单元级）或 `transitions[]`（状态迁移）上需要人工审批的条目（没收、扣减、终止、开户确认等）写 `approval:`，字段与步骤审批相同（`engine`、`approver`、`doc_type`、`why_human`、`escalation_rules`、`on_reject` 写驳回后状态不变的说明）；审批对象×命令 = 条目的 `aggregate`（没写取单元级）× 条目的 `command`；两处写了同一命令只算一次。`closeout_check.py --qc` 与 `raci_build.py` 一并扫描（one-architecture 2026-10-16 裁定，应 one-arch-revenue PRC-10、52、68）。
 - **类型级 A 手登**：platform.approval 的类型级例外在 `RESPONSIBILITY_MATRIX.yaml` 手登 `A: {resolve: type, role: SH-…, basis: <ADR 或 intent>}`，`raci_build.py --write` 重新生成时保留；engine 为 aggregate 的类型级 A 由脚本自动生成，不必手登。
 - **定时触发**（2026-10-20 统一写法，one-architecture 按 one-coordinator 派工；依据 ADR-0002 定时任务行、ADR-0044 决定 3、`platform/scheduling/package-info.java` 与守护 G46）：time 触发由所属 BC 在本模块内声明 `@Scheduled` + `@SchedulerLock(name = "{子域}.{bc}.{名}")` 的作业，到点调本 BC 聚合命令；不向 `platform.scheduling` 登记，也不依赖它（它只提供锁表与总开关）。按记录到期的（提醒、超时、周年）由本 BC 的周期作业扫描聚合上的到期时点列，幂等键 = 聚合 ID + 到期时点，到期判定用应用注入的时钟（ADR-0034 第 1 项第 6 条），执行时复核聚合当前状态。原写法「向 platform.scheduling 登记、边 BC → platform.scheduling」作废（S-31 SQ-18 的该句不再适用）；聚合稿与 ARCH_VS14 中现存的此类边待 SSOT 重建导入时去掉。
-- **超时的系统代办（ARCH-VS14 A8）**：骨架保持只读时，在 `process-catalog.yaml` 对应流程登记 `timeout_actions`，以 `step_command` + `after` 精确匹配原步骤；`command`、`aggregate`、`outcome` 指明代办命令、同一聚合和已登记结局，`guard: {condition: <业务守卫>, goto: <失败回到的步骤序号>}` 明确失败路径。仅适用于 `interrupting: true`、`escalate_to: system`。图画成中断边界 → 守卫网关 → 系统服务任务 → 指定结局，守卫失败转纠正步骤，不再经过人工确认网关。重复、未匹配或无效配置须失败；未登记配置的超时保留原升级语义，非中断提醒仍只结束提醒分支。本配置只修正描述图，不代表定时或领域命令已实现；PRC-142 的期限仍待 B31-2。
+- **超时的系统代办（ARCH-VS14 A8）**：骨架保持只读时，在 `architecture/ssot/09-processes/catalog.yaml` 对应流程登记 `timeout_actions`，以 `step_command` + `after` 精确匹配原步骤；`command`、`aggregate`、`outcome` 指明代办命令、同一聚合和已登记结局，`guard: {condition: <业务守卫>, goto: <失败回到的步骤序号>}` 明确失败路径。仅适用于 `interrupting: true`、`escalate_to: system`。图画成中断边界 → 守卫网关 → 系统服务任务 → 指定结局，守卫失败转纠正步骤，不再经过人工确认网关。重复、未匹配或无效配置须失败；未登记配置的超时保留原升级语义，非中断提醒仍只结束提醒分支。本配置只修正描述图，不代表定时或领域命令已实现；PRC-142 的期限仍待 B31-2。
 - **B-31 超时登记（ARCH-VS14 A7）**：受理提醒、解决后代关登记在 AGG-114，离职后归还提醒登记在 AGG-115，作业按上条在 B-31 内自声明，不依赖 `platform.scheduling`。期限、业务日历、起算点及混合入口范围分别待 B31-2、B31-7，未确认前不把 P2D 当两个工作日、也不把人工归还统一套离职 P7D。执行时复核聚合当前状态，重开、办结时取消旧期限，重试使用上述幂等键；已批准的数值回写原骨架须另卡。
 - **支撑流程**：不在客户价值流上的业务流程（如 B-31 行政事务）写 `stages: []` 与 `support: <理由>`（S-32）。
 - **跨段说明**：流程在同一价值流内所标阶段不连续时，须写 `stages_note: <理由>`（阶段对齐，2026-10-16）；没有理由的跨段按跳段报。

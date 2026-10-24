@@ -19,7 +19,6 @@ REGISTRY = Path('backend/architecture/data-access-registry.yaml')
 DRAFT = ARCH / 'proposals/ENTERPRISE_AGGREGATES_DRAFT.md'
 UNBUILT = ARCH / 'panorama/unbuilt_roots.yaml'
 MAX_DUE_DAYS = 60   # 名单只容过渡期，到期日最远为当天起 60 天
-OLD = ARCH / 'ddd/aggregates.yaml'
 PREFIX = 'com.forcitis.one.'
 HEADERS = ['#', '聚合', '内含', '对应', '不变量', '命令（→ 事件；前置 INV）', '对外事件（订阅方）', '引用与依赖方式']
 
@@ -86,7 +85,7 @@ def published(unit, events):
     found = set()
     tokens, links = unit['tokens'], unit['pairs']
     for i, (value, _) in enumerate(tokens[:-1]):
-        if value not in {'record', 'publish'} or tokens[i + 1][0] != '(':
+        if value not in {'record', 'emit', 'publish'} or tokens[i + 1][0] != '(':
             continue
         args = ' '.join(t[0] for t in tokens[i + 2:links[i + 1]])
         args = re.sub(r'\s*\.\s*', '.', args)
@@ -223,30 +222,15 @@ def parse_planned(text):
             'aggregates': aggregates, 'references': references}
 
 
-def gap_report(built, old, planned):
-    current, previous = ({a['id']: a for a in rows} for rows in (built, old))
+def gap_report(built, planned):
     counts = Counter(tuple(a['source']) for a in built)
     lines = ['# 聚合登记差异', '', '由 panorama/scan_aggregates.py 生成，勿手改。', '',
              '## 统计与判据', '', f'- 已建：{len(built)}；仅 code {counts[("code",)]}；仅 registry {counts[("registry",)]}；两者 {counts[("code", "registry")]}。',
-             f'- 历史：{len(old)}；来源 `{OLD}`。registry 来源只取 role=AGGREGATE_ROOT；tables 取同模块全部同名 aggregate 表。',
+             '- registry 来源只取 role=AGGREGATE_ROOT；tables 取同模块全部同名 aggregate 表。',
              '- commands 取同模块 application 中直接引用根类型的类（含 record、查询视图和辅助类），不追间接调用。',
-             '- events 仅取同模块 DomainEvent 类型在根或上述类的 record/publish 参数内直接构造的证据；不做跨方法数据流推断。',
+             '- events 仅取同模块 DomainEvent 类型在根或上述类的 record/emit/publish 参数内直接构造的证据；不做跨方法数据流推断。',
              '- 有未证实发布关系的同模块事件时，events_in_module 列出该模块全部事件；这不是发布归属结论。跨模块事件不计入 events。',
-             '- 不迁入历史 states / invariants / commands_via 等手写字段；不把历史规则归属推断变成扫描结论。', '',
-             '## 新增', '', *[f'- {i}' for i in sorted(current.keys() - previous.keys())],
-             *(['无。'] if current.keys() <= previous.keys() else []), '', '## 消失', '',
-             *[f'- {i}' for i in sorted(previous.keys() - current.keys())],
-             *(['无。'] if previous.keys() <= current.keys() else []), '', '## 逐条比对（集合差异，忽略排列）', '']
-    for ident in sorted(previous):
-        lines += [f'### {ident}', '']
-        if ident not in current:
-            lines += ['已消失。', '']
-            continue
-        for field in ('tables', 'commands', 'events'):
-            before, after = set(previous[ident].get(field) or []), set(current[ident][field])
-            lines += [f'- {field} 新增：' + ('、'.join(sorted(after - before)) or '无'),
-                      f'- {field} 移出：' + ('、'.join(sorted(before - after)) or '无')]
-        lines += ['']
+             '- 旧手写登记 ddd/aggregates.yaml 已退役（GOV-1023-ARC-01，intent 2026-10-23-154833）；其 invariants 已迁入 mapping.yaml，其余见 git 历史。', '']
     lines += ['## 发布关系待核（同模块事件回退）', '']
     lines += [f'- {a["id"]}：' + '、'.join(a['events_in_module']) for a in built if 'events_in_module' in a]
     meta = planned['meta']
@@ -261,11 +245,6 @@ def documents(root):
     unbuilt = []
     built = collect(root, unbuilt=unbuilt)
     planned = parse_planned((root / DRAFT).read_text(encoding='utf-8'))
-    old = read_yaml(root / OLD).get('aggregates')
-    if not isinstance(old, list) or any(not isinstance(a, dict) or not a.get('id') for a in old):
-        raise ValueError('历史 aggregates 应为条目列表')
-    if len({a['id'] for a in old}) != len(old):
-        raise ValueError('历史聚合编号重复')
     counts = Counter(tuple(a['source']) for a in built)
     built_doc = {'meta': {'count': len(built), 'code_only': counts[('code',)], 'registry_only': counts[('registry',)],
                           'both': counts[('code', 'registry')], 'sources': [JAVA.as_posix(), REGISTRY.as_posix()],
@@ -274,7 +253,7 @@ def documents(root):
     dump = lambda data: '# 由 panorama/scan_aggregates.py 生成，勿手改\n' + yaml.safe_dump(data, allow_unicode=True, sort_keys=False, width=200)
     for row in unbuilt:
         print(f'告警：{row["table"]} 已登记为聚合根、domain 类未建（负责 {row["owner"]}，到期 {row["due"]}）', file=sys.stderr)
-    return {'built.yaml': dump(built_doc), 'planned.yaml': dump(planned), 'GAPS.md': gap_report(built, old, planned)}
+    return {'built.yaml': dump(built_doc), 'planned.yaml': dump(planned), 'GAPS.md': gap_report(built, planned)}
 
 
 def generate(root=ROOT, check=False):

@@ -1,5 +1,5 @@
 # 与 CI 的 gitleaks job 同版本；安装：pip install pre-commit && pre-commit install
-default_install_hook_types: [pre-commit, pre-merge-commit, commit-msg]   # 主检出守护也要拦主检出里的合并提交；commit-msg 追加 Session 并校验任务号；已装过的工作区重跑 pre-commit install
+default_install_hook_types: [pre-commit, pre-merge-commit, commit-msg]   # 主检出守护也要拦主检出里的合并提交；commit-msg 只追加 Session；已装过的工作区重跑 pre-commit install
 repos:
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
@@ -9,14 +9,14 @@ repos:
     hooks:
       - id: main-checkout-gate
         name: 主检出的 main 上不提交（改到自己的工作区）
-        entry: python3 -I scripts/hooks/main_checkout_gate.py --pre-commit
+        entry: python3 -I scripts/gates/main_checkout_gate.py --pre-commit
         language: system
         always_run: true
         pass_filenames: false
         stages: [pre-commit, pre-merge-commit]
       - id: commit-msg-gate
-        name: 提交信息：追加 Session、代码提交须带任务号或 PR 号
-        entry: python3 -I scripts/hooks/commit_msg_gate.py
+        name: 提交信息：追加 Session（不拒绝）
+        entry: python3 -I scripts/gates/commit_msg_gate.py
         language: system
         always_run: true
         pass_filenames: true

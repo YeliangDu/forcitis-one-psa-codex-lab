@@ -4,11 +4,10 @@
 
 | 目录 | 内容 | 状态 |
 |---|---|---|
-| `ddd/` | `subdomains.yaml` 子域、`contexts.yaml` 限界上下文、`context-map.yaml` 上下文映射（只登记已建与本阶段在建的边，ADR-0041） | 初稿（PR-A）；未定项标 `undecided` |
-| `ddd/aggregates.yaml` | 聚合、命令、事件、表（15 个，已建模块） | 初稿（PR-C） |
-| `togaf/` | `transitions.yaml` 过渡架构（阶段 → BC）；`capabilities.yaml` 一级能力（范围查漏）；`vision.yaml`、`value-streams.yaml` 参考草稿 | 过渡架构已登记（PR-B）；能力与价值流不驱动 BC 推导（ADR-0041） |
-| `bpmn/processes.yaml`、`dmn/decisions.yaml` | 流程清单（1 个可执行、6 个仅文档；改为由 `.bpmn20.xml` 生成前暂手写）、决策点清单（15 处，均在代码中；DMN 推迟，FRAMEWORKS §7） | 初稿（PR-C） |
-| （OLAP） | 不另建文件：指标口径以 OAT 与 METRIC_BASELINE 为准，KPI → M-xx 只在 `togaf/vision.yaml` 登记（ADR-0041 决定 4） | — |
+| `ssot/` | **架构唯一来源**（GOV-1023-ARC-01，intent 2026-10-23-154833）：按登记网络 v5 节点分目录（ADR-0059）；`d-domain/` 子域、限界上下文、上下文映射（节点 09、10 的领域映射层）；`t-transitions/transitions.yaml` 过渡架构（阶段 → BC）；`04-goals/vision.yaml` 目标与愿景 KPI（草稿）；`i03-aggregates/` 聚合 | 各文件头标明手写或生成 |
+| 已退役 | `ddd/aggregates.yaml`、`bpmn/processes.yaml`（已删，分别由 `ssot/i03-aggregates/`、`ssot/09-processes/` 取代）、`togaf/value-streams.yaml`（由价值流 v2 取代，待升正本）、`togaf/capabilities.yaml`（由信息图重建时直接进 ssot）；旧路径对照见 `ssot/PATHS.md` | — |
+| `ssot/09-processes/catalog.yaml`、`dmn/decisions.yaml` | 业务流程唯一登记（PRC 编号，含可执行 BPMN 引用 `runtime_bpmn` 与流程梳理文档 `flow_docs`；`CATALOG.md` 由同目录 `build_catalog.py` 生成并校验）、决策点清单（15 处，均在代码中；DMN 推迟，FRAMEWORKS §7） | 目录条目多为 draft；决策点初稿（PR-C） |
+| （OLAP） | 不另建文件：指标口径以 OAT 与 METRIC_BASELINE 为准，KPI → M-xx 在 `ssot/15-kpis/kpis.yaml` 登记（愿景 KPI 原文在 `ssot/04-goals/vision.yaml`）（ADR-0041 决定 4） | — |
 | `generated/` | ①a 上下文全景、①b 已建上下文映射、② 过渡架构、③ 跨 BC 事件链路、④ 战术聚合与契约；mermaid 源、SVG、`index.html`（生成，勿手改）。`build_architecture.py --svg` 本机渲染（mermaid-cli，SUPPLY_CHAIN S1），`--check` 校验 | PR-B |
 
 规则：新 BC、聚合、事件、命令、流程、决策先在这里登记再写代码；老仓库与老代码只作 `evidence`；结构性选择交用户定（架构决策页）。

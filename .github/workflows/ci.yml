@@ -13,6 +13,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONDONTWRITEBYTECODE: "1"  # no __pycache__ in the checkout: the backend job runs light.sh and then the tests in the same workspace, and a test walking a source directory reads the .pyc (#693, LegacyNumberSourceIT); python3 -I ignores it, so light.sh also removes what its run left
+
 concurrency:
   # a label other than `queued` must not cancel a run in progress, and the nightly full run must not cancel (nor be cancelled by) the push to main that the release gate reads: each gets its own group
   group: ci-${{ github.ref }}${{ (github.event.action == 'labeled' && github.event.label.name != 'queued' || github.event.action == 'edited') && '-other-label' || github.event_name == 'schedule' && '-nightly' || '' }}
@@ -36,81 +39,26 @@ jobs:
           echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
           nohup docker events --filter type=container --since "$(date +%s)" --format '{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}' > "$RUNNER_TEMP/docker-events.log" 2>&1 &
           echo "DOCKER_EVENTS_PID=$!" >> "$GITHUB_ENV"
-      - name: "Flyway migrations: baseline-open marker, append-only, monotonic versions (SESSION_PLAYBOOK 附 M3「迁移基线」)"
+      # the light checks, the same entry a session may run before delivery (GOV-1023-FV2 O9, A39; it replaced scripts/precheck.sh): generated docs, registers and acceptance guards against the base, every hook and CI-script self-test
+      - name: light checks (scripts/ci/light.sh)
         env:
           BEFORE: ${{ github.event.before }}
         run: |
-          python3 scripts/ci/migrations_immutable.py --self-test
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
-          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
-            echo "no earlier commit to compare against (new branch); self-test only"
-          else
-            python3 scripts/ci/migrations_immutable.py "$base"
-          fi
-      - name: System actor catalogue is append-only (backend/architecture/system-actors.txt)
-        env:
-          BEFORE: ${{ github.event.before }}
-        run: |
-          python3 scripts/ci/system_actors_append_only.py --self-test
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
-          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
-            echo "no earlier commit to compare against (new branch); self-test only"
-          else
-            python3 scripts/ci/system_actors_append_only.py "$base"
-          fi
+          scripts/ci/light.sh "$base"
       - name: A changed organization-interface signature snapshot needs 已通知平台 owner in the pull request body (ADR-0066)
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           python3 scripts/ci/org_interface_notice.py --self-test
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then python3 scripts/ci/org_interface_notice.py "origin/$GITHUB_BASE_REF"; fi
-      - name: Acceptance tests are changed only by the test engineer or under a ruling (SESSION_PLAYBOOK 附 M1)
-        env:
-          BEFORE: ${{ github.event.before }}
-        run: |
-          python3 scripts/ci/acceptance_guard.py --self-test
-          python3 scripts/ci/acceptance_reports.py --self-test
-          python3 scripts/ci/acceptance_rulings.py --self-test
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
-          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
-            echo "no earlier commit to compare against (new branch); self-test only"
-          else
-            python3 scripts/ci/acceptance_guard.py "$base"
-            python3 scripts/ci/acceptance_rulings.py "$base"
-          fi
       - name: backend or frontend inputs changed?
         id: change
         env:
           BEFORE: ${{ github.event.before }}
           BASE_REF: ${{ github.base_ref }}
         run: |
-          python3 scripts/ci/relevant_change.py --self-test
           python3 scripts/ci/relevant_change.py "$BASE_REF"
-      # the hook and CI-script self-tests left scripts/precheck.sh --pre-push (GOV-1023-QUA-04); they run here because this job is a required check, unlike assertion drift (warning only)
-      - name: hook and CI-script self-tests
-        run: |
-          python3 scripts/hooks/pre_push_gate.py --self-test
-          python3 scripts/hooks/command_words.py --self-test
-          python3 scripts/hooks/prod_write_gate.py --self-test
-          python3 scripts/hooks/pre_tool_dispatch.py --self-test
-          python3 scripts/hooks/codex_stdin_gate.py --self-test
-          python3 scripts/hooks/main_checkout_gate.py --self-test
-          python3 scripts/hooks/context_handoff.py --self-test
-          python3 scripts/ci/light_unit_classes.py --self-test
-          python3 scripts/ci/heavy_gate.py --self-test
-          python3 scripts/ci/docker_diagnostics.py --self-test
-          python3 scripts/ci/failure_summary.py --self-test
-          python3 scripts/ci/repeat_new_tests.py --self-test
-          python3 scripts/hooks/precheck_before_pr.py --self-test
-          python3 scripts/hooks/commit_msg_gate.py --self-test
-          python3 scripts/hooks/bg_task_name_gate.py --self-test
-          python3 scripts/ci/heavy_slot.py --self-test
-          python3 scripts/hooks/handoff_selftest.py --self-test
-          python3 scripts/hooks/session_context.py --self-test
-          python3 scripts/hooks/start_sheet.py --self-test
-          python3 scripts/hooks/stop_status_gate.py --self-test
-          python3 scripts/coord/mailbox.py --self-test
-          python3 scripts/hooks/run_from_main_selftest.py
       - name: heavy steps allowed? (pull request labelled `queued`; never on a push to main)
         id: heavy
         env:
@@ -237,7 +185,7 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
       - if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         run: pnpm verify
-      # middle tier: the glossary copy scripts read terms.yaml and bcs.yaml (scripts/precheck.sh runs the same two)
+      # middle tier: the glossary copy scripts read terms.yaml and bcs.yaml
       - name: guarded docs changed - toolchain is Node 24 and the pinned pnpm
         if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_frontend == 'true'
         run: |
@@ -270,35 +218,6 @@ jobs:
             echo "$PWD" >> "$GITHUB_PATH"
           fi
       - run: gitleaks git --redact --no-banner --exit-code 1 .
-      # 记录与 ADR 由片段生成：terms.yaml 等仍入仓的产物与重新生成的结果不一致即失败；ADR 拷贝与索引、brief、提议术语清单 README、全景 panorama.yaml 与 GAPS.md、ssot/11-commands/{commands.yaml,GAPS.md}、INTENT / SESSION_LOG / STATUS 不入仓，只要求能生成且没被跟踪；命令编号登记与转换仍校验一致
-      - name: python3 has PyYAML 6.0.3 (SUPPLY_CHAIN S1)
-        run: |
-          python3 - <<'PY'
-          import sys
-          try:
-              import yaml
-          except ImportError:
-              sys.exit("python3 lacks PyYAML 6.0.3 (SUPPLY_CHAIN S1, CI_RUNNERS.md)")
-          if yaml.__version__ != "6.0.3":
-              sys.exit(f"PyYAML {yaml.__version__} != 6.0.3 (SUPPLY_CHAIN S1, CI_RUNNERS.md)")
-          PY
-      - name: generated docs match fragments
-        run: python3 docs/modernization/build_all.py --check
-      # 规则评审的原结论不得改写，改决定只能追加 revisions（SESSION_PLAYBOOK 附 M3「修订评审结论」）；基线由本步骤显式给出
-      - name: rule review revisions are append-only
-        env:
-          BEFORE: ${{ github.event.before }}
-        run: |
-          python3 docs/modernization/rules/review_revisions.py --self-test
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
-          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
-            echo "no earlier commit to compare against (new branch); self-test only"
-          else
-            python3 docs/modernization/rules/review_revisions.py --base "$base"
-          fi
-      # 文档不得用「PSA」指代系统（用户 2026-10-14）；例外规则见脚本说明
-      - name: no legacy system name in docs
-        run: python3 docs/modernization/check_legacy_name.py
       # 发布与部署脚本读取 ci.yml、部署前清单、阻塞条目、prod-approvals.txt 与 runbooks/files；只改与它们无关的文档时跳过下面两步
       - name: release scripts or what they read changed?
         id: change
@@ -327,12 +246,6 @@ jobs:
           scripts/release/install_request_test.sh
           scripts/release/ship_test.sh
           bash scripts/ops/docker_ensure_selftest.sh
-      # 建库脚本（C-3 / C-9）与参考 DDL、迁移模块目录的 schema 清单和版本表清单须一致（人工同步易漂移）；前面步骤失败也照跑
-      - name: database scripts aligned
-        if: ${{ !cancelled() }}
-        run: |
-          python3 -I scripts/ci/db_scripts_aligned.py --self-test
-          python3 -I scripts/ci/db_scripts_aligned.py
 
   assertion-drift:
     name: assertion drift (warning only)

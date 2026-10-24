@@ -4,7 +4,7 @@
 
 ## 1. 分组与实数
 
-- 流程数一律以唯一目录 `process-catalog.yaml`（生成页 `CATALOG.md`）为准；2026-10-16 为 146 条，其中业务流程 91 个（⑥a 的 82 个加 PRC-136–144）。下表是开工时按 v1 的分组，仅作历史。
+- 流程数一律以唯一目录 `architecture/ssot/09-processes/catalog.yaml`（生成页同目录 `CATALOG.md`）为准；2026-10-16 为 146 条，其中业务流程 91 个（⑥a 的 82 个加 PRC-136–144）。下表是开工时按 v1 的分组，仅作历史。
 - 按流程的 `owner_bc` 归组，清单见 `assignments.yaml`：
 
 | 组 | 会话 | BC | 流程 | 人工编排 |
