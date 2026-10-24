@@ -343,7 +343,7 @@ def build(root, name=None, today=None, snapshot=None, intents=True):
            "\n## B 当前任务", cards_failed or guarded("B", lambda: part_b(cards)),
            "\n## C 交接", guarded("C", lambda: part_c(root, source, cards, snapshot, name)) if intents else "x" * (handoff_limit(root)[0] + 200),
            f"\n## D 近 {INTENT_DAYS} 天相关决定（intent/）", guarded("D", lambda: part_d(root, name, bcs, today)) if intents else "x" * D_LIMIT,
-           "\n## 按需读（不注入）：" + ("、".join(docs) if docs else "无上下文文档") + "；规则细则 CLAUDE.md、docs/modernization/SESSION_PLAYBOOK.md"]
+           "\n## 按需读（不注入）：" + ("、".join(docs) if docs else "无上下文文档") + "；规则细则 CLAUDE.md、docs/modernization/RULES.md"]
     text = "\n".join(out)
     return fit(text, SHEET_LIMIT) if size(text) > SHEET_LIMIT else text
 

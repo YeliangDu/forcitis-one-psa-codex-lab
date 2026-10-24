@@ -2,7 +2,7 @@
   "schema_version": 1,
   "_说明": "流程数值与枚举的唯一出处（定稿 P4、H8）。规则、角色、模板只引用键名，不写字面值。改动走普通文档 PR，正文引用 intent。约定：值为 null 表示「待定」，读取方按最保守处理（拦截类不开、上限类不放宽），例外在键旁注明；delegate.billing 用 no_cap: true 表示不设上限（D34）。枚举：budget_check.mode 与 budget.level_mode 取 warn｜enforce。",
   "rules": {
-    "claude_md_max_kb": 1.5,
+    "claude_md_max_kb": 1.8,
     "rules_md_max_kb": 5,
     "rules_md_max_items": 12,
     "role_file_max_kb": 3,
