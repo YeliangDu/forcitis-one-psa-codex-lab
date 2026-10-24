@@ -69,7 +69,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/sessions/",
     "docs/modernization/roles/",
     # start_sheet.py 的开工单按需读列表里点名它
-    "docs/modernization/SESSION_PLAYBOOK.md",
+    "docs/modernization/RULES.md",
     "docs/modernization/check_legacy_name.py",
     # rule review revisions are append-only: run by scripts/ci/light.sh
     "docs/modernization/rules/review_revisions.py",
