@@ -16,4 +16,10 @@
 ## 入口
 
 - 数值 `policy.json`；方法义务 `docs/modernization/METHODS.md`
-- 后端代码、DDL、迁移 `backend/CLAUDE.md`；用语与决定页 `docs/modernization/glossary/CLAUDE.md`
+- 用语与决定页 `docs/modernization/glossary/CLAUDE.md`
+
+# Compact instructions
+
+- 保留：卡号、PR 号与 head、未决项、已排除的做法及原因。
+- 不留明细：命令输出、文件全文、已解决问题的过程。
+- 规则不进摘要，压缩后重读 RULES 与角色文件。
