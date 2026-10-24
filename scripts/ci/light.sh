@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # 轻检查的同一入口（GOV-1023-FV2 O9，定稿 A39）：CI 轻作业跑它，本机交付前也可以选跑它；取代 scripts/precheck.sh。
 # 用法：scripts/ci/light.sh [<基线>]   基线默认 origin/main（本脚本不 fetch）；传空串或 40 个 0（新分支的推送）时只跑自测，不比基线。
-# 每次全量跑下面每一项，不按改动挑选；一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
+# 每次全量跑下面每一项，只有「按改动触发」一节按 light_triggers.sh 的路径模式挑（没有基线时全跑；自测 light_selftest.sh）；
+# 一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
 # CI 里由 .github/workflows/ci.yml 的 backend 作业调用（每个事件都跑）。不在这里的：
 # - 后端与前端测试、SQL Server 集成测试：backend、frontend 作业的重步骤（本机要跑就用 scripts/ci/backend_verify.sh、legacy_it.sh，起容器先问用户）；
 # - gitleaks 全史扫描、发布脚本自测：secret scan 作业；组织接口通知要 PR 正文，判档（relevant_change.py 输出）要写 $GITHUB_OUTPUT：都只在 CI 里；
@@ -19,6 +20,13 @@ if [ -n "$base" ] && ! git rev-parse --verify -q "$base^{commit}" >/dev/null; th
 fi
 work=$(mktemp -d "${TMPDIR:-/tmp}/light.XXXXXX") || exit 2
 trap 'rm -rf "$work"' EXIT
+changed=$work/changed
+# shellcheck source=scripts/ci/light_triggers.sh
+. scripts/ci/light_triggers.sh
+if [ -n "$base" ] && ! list_changed "$changed"; then
+  echo "light.sh：列不出相对 $base 的改动（与 HEAD 没有共同祖先？）" >&2
+  exit 2
+fi
 
 passed=0
 failed=0
@@ -86,6 +94,16 @@ for script in scripts/ci/relevant_change.py scripts/hooks/codex_stdin_gate.py sc
   scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py scripts/hooks/session_context.py scripts/hooks/start_sheet.py scripts/coord/mailbox.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
+run "light_selftest (by-change triggers)" bash scripts/ci/light_selftest.sh
+
+# 按改动触发（原 precheck.sh 的同名步骤，检查表在 light_triggers.sh；命令按空格切分）
+while IFS='|' read -r key name cmd; do
+  # shellcheck disable=SC2086
+  if touches "${!key}"; then run "$name" $cmd; else skip "$name" "相关路径没改（按改动触发）"; fi
+done <<<"$TRIGGERED_CHECKS"
+if touches "$t_decision_pages"; then
+  against_base "decision pages: question rules" python3 docs/modernization/architecture/decision-page/check_pages.py --changed
+fi
 
 # 体量与单一出处（one-quality）
 if [ -f scripts/ci/budget_check.py ]; then
