@@ -8,6 +8,7 @@
 - **下一步**：①复现改前红、改后绿，并且改后 light 不 FAIL，就在 ops-fv2-b1 提交（fix(ci)…，GOV-1023-FV2；说明写根因、改法和复现结果），sha 报调度，派首轮＋终审（scripts/ci、.github 都是守护路径）；改后若 light 报「no new __pycache__」FAIL，说明还有 python3 -I 的脚本在写字节码，要找出来改。②复审过后在 .claude/worktrees/flow-v2 用 merge --no-ff 合进 next，本机重跑 check_reviews、acceptance_v2、light×3（照 b1run 的做法，脚本模板见 scratchpad/b1run.sh），b1.md 更新版本号。③推送仍由用户本人做（旧推送门挡）：把命令 `git -C /Users/yeliang/Projects/FORCITIS/forcitis-one-psa/.claude/worktrees/flow-v2 push origin claude/one-ops-flow-v2-next` 报调度转用户。④推上去后 CI 会自动重跑（#693 保留 queued 标签），等调度通知「CI 跑完了」，再汇总每个作业的结论、耗时、失败日志原样段，然后摘掉 queued。
 - 本轮已完成：#693 草稿 PR 已开（用户本人推送 5d1e9fba4）；第一次 CI 结果：assertion drift、frontend 轻和重、gitleaks 通过，backend (light) 被加标签后的新 run 顶掉（取消，属预期），backend 重作业就是上面这 1 个失败。b1.md 第 3 节已记「旧推送门不认新树，整合分支由用户本人推送」。
 - **接续后（同日）**：上一轮复现无效——本机会话环境自带 PYTHONDONTWRITEBYTECODE=1，改前 light 没写出 .pyc（repro.sum 已改名 .invalid-env），且清空时中断。repro.sh 第 2 行已加 `unset PYTHONDONTWRITEBYTECODE PYTHONPYCACHEPREFIX`，后台重跑中，结果仍写原 repro.sum。
+- **再更新**：已提交 **cdf8de735**（ops-fv2-b1，未推），已报调度等首轮＋终审。复现（repro.sum）：改前 IT 1 Error（红），改后 4 个全过（绿），改后 light 32 PASS 0 FAIL、残留 __pycache__ 0。与原方案的差别：门和钩子的 python3 -I 子进程照样写字节码，末项从「有新增就 FAIL」改成「删掉本次新增的」。下一步为本节第②步起。复现脚本须 cd 进临时 worktree 再跑 light（已改）。
 - 坑：Bash 里 `cd` 到别的工作区会让会话主目录漂移；推送门不展开 `$变量`，git -C 要写完整路径。
 
 ## 2026-10-24 傍晚增补（以本节为准）
