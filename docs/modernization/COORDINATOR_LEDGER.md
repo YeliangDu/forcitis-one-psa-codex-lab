@@ -5,6 +5,7 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 21:3x：蒸馏源全量解析启动（用户「开始」）。外部范围定：A8 只迁数据、U8C 收平台凭证做法报、企业微信只做入口（intent 201015、202807）。字节码以本机 YeliangDu/u8c（已 CFR 全量）与 YeliangDu/seeyon（A8 安装树）为准，生产清单脚本作废（intent 212327）。A8 反编译后台跑（seeyon/tools/decompile.py，2803 输入，二开 713 优先，结果 seeyon/decompiled/）；6 个 Codex 只读解析在跑（psa-1～5、u8c），口径与产出 ~/.modernize/psa/coordinator/distill-1024/。A8 解析待反编译完成后派。
 更新：2026-10-24 20:1x：目录确认页 10 题定稿：1A 2C 3A 4B 5A 6A 7A 8B′（折中：现行改、历史不改加映射、守护拒写旧路径）9A 10A（intent 195915 及「采用折中」条），记 coord-fix-report §15；冻结后第一个流程窗口执行。
 更新：2026-10-24 20:0x：目录重新定义盘点（Codex 只读，intent 193856、194026「顶层可以变」）出稿 ~/.modernize/psa/coordinator/redesign-1023/dir-inventory.md（643 行，调度抽查 5327/224/800/3212 一致）；确认页 https://claude.ai/artifact/HzP73cowNXWswVQwFiMTdc（10 题，db 集合 answers/q1～q10）。附带发现：policy.json 与 prod_write_gate 仍登记不存在的 new_decision.py，进二甲。
 更新：2026-10-24 19:5x：#694 已合入（main＝232075dfa，queued 后必需检查全绿）。用户定仓库目录重新定义＋防 agent 跑偏进冻结后第一个流程窗口（intent 193722），清单见 coord-fix-report §15，与 §13 登记表合并设计。本地另有 6 个文档提交待下个文档 PR。
