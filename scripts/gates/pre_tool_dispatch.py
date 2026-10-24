@@ -4,6 +4,7 @@
 只看 Bash；其他工具（Agent、Read…）直接放行。先用门自己的保守预筛 could_concern（只在门必然放行时才跳过），命中再在本进程里调门的 decide。
 安全门失败关闭：钩子输入读不懂（含 Bash 而 command 缺失或不是字符串）、门导入失败或运行出错，一律退出码 2 并给一句中文原因（崩溃的退出码 1 对 PreToolUse 是「不拦」）。
 DEADLINE 秒内没有结论也按出错处理（挂载超时 120 秒在 Claude Code 里算「不拦」；门内 git 卡住时靠这里先拒，O7 终审建议 1）。
+到点抛的 Overdue 是 BaseException 而不是 TimeoutError（OSError 子类）：门里 `except OSError`／`except Exception` 接不住它，不会吞掉时限（O7 修终审 M1）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行（门的告警以 JSON additionalContext 写标准输出）。
 用法：pre_tool_dispatch.py  |  pre_tool_dispatch.py --self-test（自测在 pre_tool_dispatch_selftest.py，O8 合并）
 """
@@ -17,8 +18,12 @@ FAIL = "生产写门出错（{}），无法确认这条命令不碰生产，按�
 DEADLINE = 100
 
 
+class Overdue(BaseException):
+    pass
+
+
 def overdue(*_):
-    raise TimeoutError(f"超过 {DEADLINE} 秒没有结论")
+    raise Overdue(f"超过 {DEADLINE} 秒没有结论")
 
 
 def load_gate():
@@ -52,7 +57,7 @@ def main(gate_loader=load_gate):
     signal.alarm(DEADLINE)
     try:
         code, out, err = dispatch(sys.stdin.read(), gate_loader)
-    except Exception as error:
+    except (Exception, Overdue) as error:
         print(FAIL.format(f"{error.__class__.__name__}: {error}"), file=sys.stderr)
         return 2
     finally:

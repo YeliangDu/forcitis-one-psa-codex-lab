@@ -94,6 +94,17 @@ def self_test():
             assert code == 2 and "生产写门出错" in err.getvalue() and "按拒绝处理" in err.getvalue(), (loader, code, err.getvalue())
     finally:
         sys.stdin, d.DEADLINE = real_stdin, real_deadline
+    # 4b. the deadline holds while the gate waits on git (O7 fix final M1): a git that sleeps is cut at DEADLINE, not swallowed by the gate's `except OSError`
+    with tempfile.TemporaryDirectory() as fake:
+        with open(os.path.join(fake, "git"), "w", encoding="utf-8") as f:
+            f.write("#!/bin/bash\nexec sleep 30\n")
+        os.chmod(os.path.join(fake, "git"), 0o755)
+        run = "import sys;sys.path.insert(0,sys.argv[1]);import pre_tool_dispatch as d;d.DEADLINE=2;sys.exit(d.main())"
+        start = time.monotonic()
+        slow = subprocess.run([sys.executable, "-c", run, HERE], input=payload("psql -h localhost -c 'select 1'", cwd=gate.REPO_ROOT), capture_output=True, text=True,
+                              env={"LC_ALL": "C", "PATH": fake + os.pathsep + os.environ.get("PATH", "")}, timeout=60)
+        took = time.monotonic() - start
+        assert slow.returncode == 2 and "生产写门出错" in slow.stderr and "Overdue" in slow.stderr and took < 8, (slow.returncode, slow.stderr, took)
     # 5. end to end as a hook process under the system python, also with -I
     env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", "")}
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """install.sh 与 .claude/settings.json 挂载的自测（GOV-1023-FV2 O7，D26；接替 run_from_main_selftest 对 settings.json 的断言）。全部在临时目录里做，HOME 指向临时目录，不碰真实安装目录。
 - 结构：四个挂载（SessionStart 两个、PreToolUse 只挂 Bash、Stop 不动），前三个直接调用 <policy gates.install_dir>/<install_current_link>/ 下的文件，目标在索引里是 100755；三个插件关闭。
-- install.sh：首次安装、装第二个版本并切换、切回旧版本；自检不过（分发器失败开放、全拒、放行生产写、只拦第一个 target、入口不可执行）时 current 不变且不留半成品；
+- install.sh：首次安装、装第二个版本并切换、切回旧版本（--switch 只认 40 位小写 sha 的真实目录：修订名、current、.tmp.X、sha 名的链接都拒，被拒时不建目录）；并发装同一提交都成功；自检不过（分发器失败开放、全拒、放行生产写、只拦第一个 target、入口不可执行）时 current 不变且不留半成品；
   装好的目录只读；已装目录被改坏后再跑 install.sh <sha> 或 --switch 都从 git 重新解包修好（O7 终审 M1）；HOOKS_INSTALL_DIR 改目录。
-- SessionStart 核对（hooks_manifest.sh --check，O7 终审 M2）：current 指到安装目录外或非 40 位 sha 目录、文件被改、多了或少了文件、没有清单、核对脚本缺失，都输出【钩子告警】并退出 0。
+- SessionStart 核对（hooks_manifest.sh --check，O7 终审 M2）：current 指到安装目录外或非 40 位 sha 目录、指向的目录不存在或是链接、文件被改、多了或少了文件、没有清单、核对脚本缺失或 CLAUDE_PROJECT_DIR 为空，都输出【钩子告警】并退出 0。
 - 挂载命令按 settings.json 原样用 /bin/sh 与 /bin/bash 执行：生产写门在 current 缺失、链接悬空、入口缺失、解释器缺失、崩溃、被杀时退出 2（门自己的 0 与 2 照传）；SessionStart 两个缺失或出错时退出 0 并输出一行告警。
-- 装好的门向 CLAUDE_PROJECT_DIR 的仓库问 origin/main 的特征表；没有 CLAUDE_PROJECT_DIR 时不认工作目录里伪造的仓库（O7 终审 M3）。
+- 装好的门向 CLAUDE_PROJECT_DIR 的仓库问 origin/main 的特征表；没有 CLAUDE_PROJECT_DIR 时不认工作目录里伪造的仓库（O7 终审 M3）；CLAUDE_PROJECT_DIR 与工作目录不同时只认前者。
 生产样本只用虚构值；真实表只经 install.sh 自检与「只拦第一个 target」的探针按位置取用，本文件不读不写其内容。用法：install_selftest.py"""
 import json
 import os
@@ -155,7 +155,7 @@ def self_test():
 def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     home, repo = os.path.join(tmp, "home"), os.path.join(tmp, "repo")
     os.makedirs(home)
-    a, b, fail_open, refuses_all, passes_writes, first_only, not_exec, _ = make_repo(repo)
+    a, b, fail_open, refuses_all, passes_writes, first_only, not_exec, on_main = make_repo(repo)
     hooks = os.path.join(home, policy()["install_dir"][2:])
     current = os.path.join(hooks, policy()["install_current_link"])
     env = {"PATH": os.environ["PATH"], "HOME": home, "LC_ALL": "C"}
@@ -216,21 +216,41 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
             r = mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {"command": "python3 " + doc_script}, "cwd": forged}), shell,
                       CLAUDE_PROJECT_DIR=project, PROD_TARGETS_FILE=table, cwd=forged)
             assert r.returncode == 2, ("a forged repository in the working directory makes no script trusted", shell, project, r.returncode, r.stderr)
+        # the trust anchor is CLAUDE_PROJECT_DIR, not the working directory: refused with the real repository as project and the forged one as cwd;
+        # the other way round the forged repository is the anchor and the script passes (the control that turns red when REPO_ROOT follows the cwd)
+        for project, where, code in ((repo, forged, 2), (forged, repo, 0)):
+            r = mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {"command": "python3 " + doc_script}, "cwd": where}), shell,
+                      CLAUDE_PROJECT_DIR=project, PROD_TARGETS_FILE=table, cwd=where)
+            assert r.returncode == code, ("REPO_ROOT is CLAUDE_PROJECT_DIR", shell, project, where, r.returncode, r.stderr)
     # 3. a second version: installed beside the first, current switched; again: already installed, only switched
     r = install(b)
     assert r.returncode == 0 and points_to() == b and os.path.isdir(os.path.join(hooks, a)) and not leftovers(), (r.stdout, r.stderr)
     assert install("HEAD").returncode == 0 and points_to() == a and install(b).returncode == 0 and points_to() == b
-    # 4. back to the old version, by directory name and by revision
+    # 4. back to the old version by its directory name; a revision is no installed version
     r = install("--switch", a)
     assert r.returncode == 0 and points_to() == a and "→ " + a in r.stdout, (r.stdout, r.stderr)
     assert install("--switch", b).returncode == 0 and points_to() == b
-    assert install("--switch", "HEAD").returncode == 0 and points_to() == a, "a revision is resolved by git"
-    for bad in (("--switch", "nope"), ("--switch", "../x"), ("--switch", ".tmp"), ("--switch",), ("--switch", a, b), ("not-a-commit",), (a, b)):
+    r = install("--switch", "HEAD")
+    assert r.returncode == 1 and "没有已装的版本" in r.stderr and points_to() == b, ("--switch takes only a 40-hex installed directory, no revision (O7 first review M1)", r.stderr)
+    assert install("--switch", a).returncode == 0 and points_to() == a
+    os.makedirs(os.path.join(hooks, ".tmp.X"))  # a real half-made directory, a real link named like a sha: neither is an installed version
+    os.symlink(a, os.path.join(hooks, on_main))  # on_main passes the self-check: only the link test refuses it
+    for bad in (("--switch", "nope"), ("--switch", "../x"), ("--switch", ".tmp.X"), ("--switch", "current"), ("--switch", on_main), ("--switch", a.upper()), ("--switch",), ("--switch", a, b), ("not-a-commit",), (a, b)):
         r = install(*bad)
         assert r.returncode == 1 and "current 未改动" in r.stderr and points_to() == a, (bad, r.returncode, r.stderr)
+    os.rmdir(os.path.join(hooks, ".tmp.X"))
+    os.remove(os.path.join(hooks, on_main))
+    r = install("--switch", "nope", HOOKS_INSTALL_DIR=os.path.join(tmp, "never"))
+    assert r.returncode == 1 and not os.path.exists(os.path.join(tmp, "never")), "a refused --switch makes no install directory (O7 first review, suggestion 1)"
     for absent in ("nope", fail_open):  # not a revision; a commit that was never installed
         r = install("--switch", absent)
         assert r.returncode == 1 and "没有已装的版本" in r.stderr and points_to() == a, (absent, r.stderr)
+    # 4b. two installs of one commit at once both succeed (the loser finds the directory ready) and leave current right (O7 first review, suggestion 2)
+    for _ in range(3):
+        runs = [subprocess.Popen([os.path.join(repo, "scripts/gates/install.sh"), b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=tmp) for _ in range(4)]
+        outs = [(p.wait(timeout=120), p.stderr.read()) for p in runs]
+        assert all(code == 0 for code, _ in outs) and points_to() == b and not leftovers(), (outs, points_to(), leftovers())
+    assert install("--switch", a).returncode == 0 and points_to() == a
     # 5. a failing self-check leaves current and the install directory as they were
     for broken in (fail_open, refuses_all, passes_writes, not_exec):
         r = install(broken)
@@ -282,8 +302,16 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         assert "不是指向安装目录下 40 位 sha 目录" in warning(), target
     os.remove(current)
     assert "不是指向" in warning(), "no current at all"
-    r = mount(ceiling_cmd, "{}", CLAUDE_PROJECT_DIR=tmp)
-    assert r.returncode == 0 and "核对不了已装钩子" in r.stdout, "the checker missing from the session's repository"
+    os.symlink(fail_open, current)  # a sha name with nothing behind it (O7 final, suggestion 1)
+    assert "current 指向的目录" in warning() and "不存在" in warning(), warning()
+    os.symlink(os.path.join(hooks, a), os.path.join(hooks, fail_open))  # the version itself a link: warned about, the session goes on (O7 first review M1)
+    r = mount(ceiling_cmd, "{}", CLAUDE_ENV_FILE=os.path.join(tmp, "env"))
+    assert r.returncode == 0 and "是符号链接" in r.stdout, (r.returncode, r.stdout)
+    os.remove(os.path.join(hooks, fail_open))
+    os.remove(current)
+    for project in (tmp, ""):
+        r = mount(ceiling_cmd, "{}", CLAUDE_PROJECT_DIR=project)
+        assert r.returncode == 0 and "核对不了已装钩子" in r.stdout, ("the checker missing from the session's repository", project, r.stdout)
     assert install(a).returncode == 0 and warning() == ""
     # 6. HOOKS_INSTALL_DIR moves the install directory; the policy one stays untouched
     other = os.path.join(tmp, "other")
