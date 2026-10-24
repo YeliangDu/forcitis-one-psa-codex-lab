@@ -1,5 +1,14 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 上午六次增补（清空接续，以本节为准，覆盖五次增补同名项）
+
+- **帮手会话**：[ops-b1-o7fix](local_9be6f7e2-9246-4557-ac42-63447a972fd1)，桌面应用以 ops-fv2-b1 为工作目录开的 opus 会话（本会话写不了 b1：Claude Code 不让写别的工作区，用户已加常驻可写目录，新会话可能不再受限）。b1 的活由它做，我复跑核对后报调度。它的回报以跨会话消息/会话通知到达。
+- **b1 提交（接在 adcac8c22 后）**：8f4b2b164 O7 修（终审过，首轮必改→674a5acfc）→ 77f995077 tools_lib.checks（首轮＋终审过）→ 674a5acfc 告警提示 install.sh <sha>（必改→d47a96fe2）→ 88edef207 可信脚本只认 cwd 与 CPD 同一仓库（git-common-dir realpath）、特征表并集（首轮过，终审必改→d47a96fe2）→ **d47a96fe2 再修（待审）** → **099341882 O8 门自测合一 999 行、230 断言、17 例计数（待审）**。O9 帮手在做（light.sh 99 行，删 precheck.sh，ci.yml 轻作业，顺带删 proposal_reads.yaml 74–76 行已知会调度转 one-architecture；actionlint 用 `-ignore 'label "forcitis-one" is unknown'`）。下一步：收 O9 sha→临时 worktree 复跑 light.sh/gates_selftest/actionlint→报调度；再派 O10（start_sheet 读 state/<会话>/handoff.md，T3 工具库 452a2ac 已就绪）。
+- **真实钩子目录** ~/.modernize/psa/tools/hooks 已装 adcac8c22（用户批准；RESOURCES 已登记）；b1 会话靠它跑 Bash。**actionlint 1.7.12** 已 brew 装（用户批准，已登记）。
+- **调度裁定**：cutover.sh／acceptance/b1.md 要写：主检出快进到新 main、回退⑥同样回退主检出；B4 两种会话都测；回退② current 不动（intent 001330）。第二批预告：onFailure:"block" 并删退出码转换（二甲）、O21 改 permissions.deny（二乙）。
+- **复核口径**：每个 b1 提交用 `git -C ops-fv2-b1 worktree add --detach <tmp> <sha>` 复跑相关自测（3.12 与 /usr/bin/python3 3.9），查 diff 有无删断言；别在本会话 `cd` 进别的目录（会改主工作目录）。
+- 在途卡 OPS-1022-OPS-02、OPS-1023-OPS-01 本轮仍未动（用户要求先做流程重构）；无未完成的用户直接请求。
+
 ## 2026-10-24 凌晨五次增补（以本节为准）
 
 - **b1 新提交（均已报调度待审）**：O6 必改 242bb442d → O2 必改 cd0014b51 → O3 必改 f756c32fc → O4 必改＋主检出一律拒 e88824f83 → policy tools_lib.dir 5ae1a8e59。
