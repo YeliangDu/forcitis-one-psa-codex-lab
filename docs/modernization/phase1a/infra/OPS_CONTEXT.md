@@ -1,5 +1,14 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 晚交接（上下文 20%，清空接续；以本节为准）
+
+- **在做：#693 CI 重作业失败的修复**（调度令）。backend 重作业 1029 个 IT 里有 1 个 Error：LegacyNumberSourceIT.theOldBatchTermIsGone 报 MalformedInputException（run 40096266208，runner one-2）。根因：backend 作业先跑 light.sh 再在同一工作区跑 Maven；build_all 写出 backend/glossary/__pycache__/*.pyc，这个 IT 遍历 backend/glossary 时读到 .pyc 崩溃。
+- **改动已做、未提交**（在 ops-fv2-b1 工作区，基 2f16d4aa4；补丁另存 ~/.modernize/psa/ops/pr693-pyc/pyc-fix.patch）：light.sh 开头 export PYTHONDONTWRITEBYTECODE=1；跑前用 `git ls-files -oi --exclude-standard --directory` 记下已有的被忽略 __pycache__/.pyc，最后一项「no new __pycache__ left in the checkout」查新增，有就 FAIL（只看目录级新增：跑前已有的 __pycache__ 目录里新增的 .pyc 查不出；CI 检出是干净的，不受影响）；ci.yml 工作流级 env 同设 PYTHONDONTWRITEBYTECODE。light.sh 120 行（上限 120），shellcheck -x、actionlint 通过。不改测试与断言。
+- **复现在后台跑**（脚本 ~/.modernize/psa/ops/pr693-pyc/repro.sh）：在临时 worktree（scratchpad/repro-wt，@5d1e9fba4）上先跑原版 light.sh 再跑这个 IT（预期红），再打补丁跑一遍（预期绿）。结果汇总写到 /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-ops-a5ff89/0dc6d04c-2106-4264-9b24-bf1dec472a98/scratchpad/repro.sum（末行「完成」表示跑完），各步日志在同目录 repro-{before,after}-{light,it}.log；跑完会自动删临时 worktree。如果 repro.sum 里没有「完成」又没有进程在跑，就直接重跑 repro.sh。
+- **下一步**：①复现改前红、改后绿，并且改后 light 不 FAIL，就在 ops-fv2-b1 提交（fix(ci)…，GOV-1023-FV2；说明写根因、改法和复现结果），sha 报调度，派首轮＋终审（scripts/ci、.github 都是守护路径）；改后若 light 报「no new __pycache__」FAIL，说明还有 python3 -I 的脚本在写字节码，要找出来改。②复审过后在 .claude/worktrees/flow-v2 用 merge --no-ff 合进 next，本机重跑 check_reviews、acceptance_v2、light×3（照 b1run 的做法，脚本模板见 scratchpad/b1run.sh），b1.md 更新版本号。③推送仍由用户本人做（旧推送门挡）：把命令 `git -C /Users/yeliang/Projects/FORCITIS/forcitis-one-psa/.claude/worktrees/flow-v2 push origin claude/one-ops-flow-v2-next` 报调度转用户。④推上去后 CI 会自动重跑（#693 保留 queued 标签），等调度通知「CI 跑完了」，再汇总每个作业的结论、耗时、失败日志原样段，然后摘掉 queued。
+- 本轮已完成：#693 草稿 PR 已开（用户本人推送 5d1e9fba4）；第一次 CI 结果：assertion drift、frontend 轻和重、gitleaks 通过，backend (light) 被加标签后的新 run 顶掉（取消，属预期），backend 重作业就是上面这 1 个失败。b1.md 第 3 节已记「旧推送门不认新树，整合分支由用户本人推送」。
+- 坑：Bash 里 `cd` 到别的工作区会让会话主目录漂移；推送门不展开 `$变量`，git -C 要写完整路径。
+
 ## 2026-10-24 傍晚增补（以本节为准）
 
 - 外部复核四件都已完成：C3 修复链 dae30821d→789dc22da→2f16d4aa4（2f16d4aa4 首轮、终审均通过），已合进 next，**最终 next＝5d1e9fba4**；closes.json 已补，等调度签字。重跑结果在 b1run-5d1e9fba4/：check_reviews 88 个提交 86 个通过（只差 #691 两个基点），acceptance_v2 与上一版相同，light 三次 31 过、0 失败、7 跳过（约 200 秒）；b1.md 已更新。
