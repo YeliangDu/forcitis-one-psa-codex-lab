@@ -6,7 +6,7 @@
 #   版本不动，靠第 ④ 步 git revert 恢复旧 settings.json 与 run_from_main；演练里的「切回」是切回上一个 flow-v2 版本。
 # install_dir 与链接名取本仓库 policy.json 的 gates.install_dir、gates.install_current_link；环境变量 HOOKS_INSTALL_DIR 优先（自测用临时目录）。
 # 先校验参数再建目录；解包进临时目录，写校验和清单（hooks_manifest.sh），自检，chmod -R a-w，旧目录改名后放入新目录再删旧的；并发装同一提交时放入失败
-# 而目录已就绪（与自己的清单、也与刚解包的清单一致）照常切换。current 用「临时链接再 rename 覆盖」原子切换（目标只会是 40 位 sha，不会自环）。失败不动 current、不留半成品，退出 1。
+# 而目录已就绪（与自己的清单、也与刚解包的清单一致）照常切换。current 用「临时链接再 rename 覆盖」原子切换（目标只会是 40 位 sha，不会自环；current 是目录时先挪开）。失败不动 current、不留半成品，退出 1。
 # shellcheck disable=SC2015  # `a && b || fail`: fail on either, on purpose
 set -u -o pipefail
 py=/usr/bin/python3
@@ -49,10 +49,12 @@ git -C "$repo" archive "$sha" $paths | tar -x -C "$tmp" && "$repo/scripts/gates/
 check "$tmp" || fail "版本 $sha 自检不过（入口缺失、分发器不放行 ls、或有 target 的生产写不拦）"
 chmod -R a-w "$tmp" || fail "设不了只读：$tmp"
 old="$tmp.old"
-[ ! -e "$dir/$sha" ] || rename "$dir/$sha" "$old" 2>/dev/null  # 并发装同一提交时可能已被另一次安装挪走：交给下一步判断
-rename "$tmp" "$dir/$sha" 2>/dev/null || ready "$dir/$sha" || { [ -e "$old" ] && rename "$old" "$dir/$sha"; fail "放不进 $dir/$sha"; }
+[ ! -e "$dir/$sha" ] && [ ! -L "$dir/$sha" ] || rename "$dir/$sha" "$old" 2>/dev/null  # 悬空链接也挪开；并发装同一提交时可能已被另一次安装挪走：交给下一步判断
+rename "$tmp" "$dir/$sha" 2>/dev/null || ready "$dir/$sha" || { { [ -e "$old" ] || [ -L "$old" ]; } && rename "$old" "$dir/$sha"; fail "放不进 $dir/$sha"; }
 drop "$tmp"
 tmp=""
-[ ! -e "$old" ] || drop "$old"
+[ ! -e "$old" ] && [ ! -L "$old" ] || drop "$old"
+[ ! -d "$dir/$link" ] || [ -L "$dir/$link" ] || rename "$dir/$link" "$dir/.$link.dir.$$" || fail "挪不开 $dir/$link（是目录，不是链接）"
 ln -s "$sha" "$dir/.$link.$$" && "$py" -c 'import os,sys;os.replace(sys.argv[1],sys.argv[2])' "$dir/.$link.$$" "$dir/$link" || { rm -f "$dir/.$link.$$"; fail "切换 $dir/$link 失败"; }
+[ ! -e "$dir/.$link.dir.$$" ] || drop "$dir/.$link.dir.$$"
 echo "install.sh：$dir/$link → $sha"

@@ -469,6 +469,15 @@ def trust_self_test():
                                         (work, None, 2, "no CLAUDE_PROJECT_DIR"), (work, "", 2, "an empty CLAUDE_PROJECT_DIR"), (loose, main, 2, "cwd in no repository")):
             assert hook(run_doc, cwd, project) == code, (why, cwd, project)
         assert hook(run_doc, None, main, process_cwd=work) == 2, "no cwd in the hook input: not trusted, even when the process runs in the worktree"
+        # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
+        shifted = forged + "\nx"
+        subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", shifted], check=True, capture_output=True)
+        assert hook("python3 " + os.path.join(forged, doc), shifted, main) == 2 and hook("python3 " + os.path.join(forged, doc), forged, forged) == 0, "a newline in a path: no trust (control: F itself)"
+        # a clean filter must not make an edited script hash like main's: hash-object --no-filters (88edef207 final S2)
+        subprocess.run(["git", "-C", main, "config", "filter.strip.clean", "grep -v EVIL"], check=True)
+        Path(work, ".gitattributes").write_text("*.py filter=strip\n", encoding="utf-8")
+        Path(work, doc).write_text(body[doc] + "print('EVIL')\n", encoding="utf-8")
+        assert hook(run_doc, work, main) == 2, "an edited script is not trusted, whatever a clean filter says"
         # the table: cwd's and CLAUDE_PROJECT_DIR's origin/main are unioned in, so only ever more is refused
         write = f"psql -h {only} -c 'delete from t'"
         assert hook(write, other, main) == 2 and hook(write, main, other) == 2 and hook(write, main, main) == 0, "a pattern only on the origin/main of cwd's or the project's repository"

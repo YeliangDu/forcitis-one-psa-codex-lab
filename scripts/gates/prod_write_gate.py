@@ -913,7 +913,7 @@ def same_as_main(path):  # Repo-relative path of `path` when its content is byte
     if rel.startswith(".."):
         return None
     theirs = main_blob(rel)
-    return rel if theirs and (git("hash-object", "--", os.path.realpath(path)) or "").strip() == theirs else None
+    return rel if theirs and (git("hash-object", "--no-filters", "--", os.path.realpath(path)) or "").strip() == theirs else None
 
 
 def script_operand(argv):  # The script an interpreter runs (first non-option word), or None for inline code (-c, -m, -e, -p) or none.
@@ -1050,9 +1050,10 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     return None
 
 
-def trust_root(cwd):  # cwd's work tree when cwd and CLAUDE_PROJECT_DIR are in one repository (same real `--git-common-dir`; a worktree counts), else None: fail closed.
-    found = [(git("rev-parse", "--path-format=absolute", "--git-common-dir", "--show-toplevel", root=d) or "").split("\n") if d else [""] for d in (cwd, os.environ.get("CLAUDE_PROJECT_DIR"))]
-    return found[0][1] if len(found[0]) > 2 and found[1][0] and os.path.realpath(found[0][0]) == os.path.realpath(found[1][0]) else None
+def trust_root(cwd):  # cwd's work tree when cwd and CLAUDE_PROJECT_DIR are in one repository (same real `--git-common-dir`; a worktree counts), else None: fail closed. Each side must print exactly two absolute paths (a newline in a path shifts them) and cwd must lie under the anchor.
+    found = [(git("rev-parse", "--path-format=absolute", "--git-common-dir", "--show-toplevel", root=d) or "").split("\n") if d else [] for d in (cwd, os.environ.get("CLAUDE_PROJECT_DIR"))]
+    sane = all(len(f) == 3 and f[2] == "" and all(os.path.isabs(p) for p in f[:2]) for f in found)
+    return found[0][1] if sane and os.path.realpath(found[0][0]) == os.path.realpath(found[1][0]) and os.path.commonpath([os.path.realpath(cwd), os.path.realpath(found[0][1])]) == os.path.realpath(found[0][1]) else None
 
 
 def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict); the dispatcher calls this in-process.
