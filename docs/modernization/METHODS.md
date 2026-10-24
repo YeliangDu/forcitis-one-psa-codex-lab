@@ -58,3 +58,5 @@
 - 守护（TEAM-109）：共用函数只有一份；默认失败放行，只拦推送、开 PR、写生产三类；自测与运行代码分开；造检查的会话不自己验收。
 - 合入优先（TEAM-45、47）：急 PR 与部署阻塞可请调度插队；关键 PR 冻结范围，不再追加无关改动。
 - 取证运行（TEAM-95）：取证脚本用 ops-venv 跑。
+- 推送门（TEAM-87）：推送前钩子已删，`PUSH_BYPASS_REASON` 随之作废，PR 模板不设「绕过推送前钩子」栏；残留的绕过变量、理由或口子都不算授权（底线 6）。
+- 安全门安装（TEAM-98）：每个新工作区先跑一次 `pre-commit install`（gitleaks、主检出守护、提交信息门都挂在 pre-commit 上，不装就不查；install.sh 建成后由它装）；报告前扫全历史用的 gitleaks 版本以 `.pre-commit-config.yaml` 的 `rev` 为准，与 ci.yml 的 gitleaks 作业同版本，不另装别的版本。
