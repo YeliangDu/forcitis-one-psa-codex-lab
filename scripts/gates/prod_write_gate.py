@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """生产写门（PreToolUse，Bash）：命令碰到生产目标，除非是点名的只读用法，一律拒绝。防底线 4（生产只读）；安全门，出错失败关闭（退出码 2）。
 
-生产目标 = prod_targets.json 的 patterns（与 origin/main 上那份取并集），出现在命令的词里（引号、ANSI-C、续行、花括号、变量与 export／set -a 拼接、反引号与 `$(…)` 展开后）或环境变量里即「碰到」。
+生产目标 = prod_targets.json 的 patterns（与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR 所在仓库的），出现在命令的词里（引号、ANSI-C、续行、花括号、变量与 export／set -a 拼接、反引号与 `$(…)` 展开后）或环境变量里即「碰到」。
 每条简单命令（`bash -c`／`-lc`／`eval`／heredoc／here-string／`echo … | bash`／`env -S`／`<(…)` 递归，超过 3 层按读不懂）：
 - 远程工具（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie）碰到生产且写（或写效果看不出）拒绝；SQL 只认白名单，aliyun 只放 Describe/List/Get…，返回密钥的接口一律拒绝（底线 3）。
 - 不连接的命令（git 本地子命令、gh、echo、grep、rg 无 --pre、sed 无 e/w…）碰到特征放行；其他命令（解释器、xargs、find -exec、git push…）碰到即拒绝，解释器的脚本文件读进来看。
@@ -328,6 +328,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(os.path.dirname(HERE))
 if not os.path.exists(os.path.join(REPO_ROOT, ".git")):  # installed copy (install.sh, D26): the session's repository is CLAUDE_PROJECT_DIR, never the cwd (O7 final M3); none: os.devnull, git reads fail, no script is trusted
     REPO_ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.devnull
+ANCHOR, ROOTS = REPO_ROOT, ()  # whose origin/main says which scripts are trusted, (hook cwd, CLAUDE_PROJECT_DIR, process cwd) whose tables are unioned in; decide() sets both per call
 DOCS_ROOT = "docs" + "/" + "modernization"  # built, not spelled: relevant_change.py scans sources for literal docs paths
 TABLE = os.environ.get("PROD_TARGETS_FILE") or str(Path(HERE) / "prod_targets.json")  # unioned with origin/main's all the same (load_table)
 MAIN_TABLE_PATHS = ("scripts/gates/prod_targets.json", "scripts/hooks/prod_targets.json")  # the second until origin/main has the first
@@ -388,9 +389,9 @@ PATH_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*(?:\w+=\S*\s+)*[^\s;&|()]*/")  # a 
 EXTRA_READONLY = set()  # tests add tracked files here
 
 
-def git(*args):  # stdout of a git command in this repository, or None when it fails.
+def git(*args, root=None):  # stdout of a git command in `root` (default: the trust anchor), or None when it fails.
     try:
-        run = subprocess.run(["git", "-C", REPO_ROOT, *args], capture_output=True, text=True, timeout=10)
+        run = subprocess.run(["git", "-C", root or ANCHOR, *args], capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return None
     return run.stdout if run.returncode == 0 else None
@@ -419,9 +420,9 @@ def read_table_file(path):
         return None, f"生产特征表 {os.path.basename(path)} 缺失或不合格（{error.__class__.__name__}: {error}）"
 
 
-def main_table_text():  # (table text on origin/main or None, git failure or None): read by its full ref name (a tag called origin/main cannot shadow it); a missing ref or path is no failure.
+def main_table_text(root=None):  # (table text on origin/main or None, git failure or None): read by its full ref name (a tag called origin/main cannot shadow it); a missing ref or path is no failure.
     try:
-        run = subprocess.run(["git", "-C", REPO_ROOT, "cat-file", "--batch"], input="".join(f"refs/remotes/origin/main:{rel}\n" for rel in MAIN_TABLE_PATHS).encode(), capture_output=True, timeout=10)
+        run = subprocess.run(["git", "-C", root or REPO_ROOT, "cat-file", "--batch"], input="".join(f"refs/remotes/origin/main:{rel}\n" for rel in MAIN_TABLE_PATHS).encode(), capture_output=True, timeout=10)
     except (OSError, subprocess.SubprocessError) as error:
         return None, f"{error.__class__.__name__}: {error}"
     if run.returncode != 0:
@@ -449,6 +450,7 @@ def load_table(path=None):
     text, failure = main_table_text()
     warnings = [f"读不到 origin/main 上的生产特征表（git 出错：{failure}），门只按本工作区的表判断。"] if failure else []
     main = parse_table(text, "origin/main")[0] if text is not None else None
+    main = (main or []) + [p for r in sorted({os.path.realpath(r) for r in ROOTS if r} - {os.path.realpath(REPO_ROOT)}) for p in parse_table(main_table_text(r)[0] or "{}", "")[0] or []]  # cwd's, CLAUDE_PROJECT_DIR's: only more
     missing = [p for p in main or [] if p not in patterns]
     if missing:
         warnings.append(f"本工作区的 prod_targets.json 缺少 origin/main 上的 {len(missing)} 项特征，门按两者并集判断；请把分支更新到 main。")
@@ -465,12 +467,9 @@ def readonly_tool_files():  # Repo-relative paths of the committed read-only evi
             return {DOCS_ROOT + "/" + tools.get("base", "") + f for f in tools.get("files", []) if isinstance(f, str)}
         except (ValueError, AttributeError, TypeError):
             return set()
-    found = listed(main_table_text()[0] or "")
+    found = listed(main_table_text(ANCHOR)[0] or "")
     if not found:
-        try:
-            found = listed(Path(TABLE).read_text(encoding="utf-8"))
-        except OSError:
-            pass
+        found = listed(read_text(TABLE, None, 1 << 20) or "")
     return found | EXTRA_READONLY
 
 
@@ -910,7 +909,7 @@ def main_blob(rel):  # Object id of `rel` on origin/main, or None.
 
 
 def same_as_main(path):  # Repo-relative path of `path` when its content is byte for byte the file of that path on origin/main (edited, staged or new files are not), else None.
-    rel = os.path.relpath(os.path.realpath(path), os.path.realpath(REPO_ROOT))
+    rel = os.path.relpath(os.path.realpath(path), os.path.realpath(ANCHOR))
     if rel.startswith(".."):
         return None
     theirs = main_blob(rel)
@@ -934,8 +933,10 @@ def trusted_script(argv, cwd):  # A document script at its fixed path, a listed 
     script = script_operand(argv) if INTERPRETER.match(name_of(argv[0])) else None
     if script is None:
         return False
+    global ANCHOR
+    ANCHOR = ANCHOR or trust_root(ROOTS[0]) or os.devnull
     full = script if os.path.isabs(script) else os.path.join(cwd or os.getcwd(), script)
-    full = full if os.path.isfile(full) else os.path.join(REPO_ROOT, script)
+    full = full if os.path.isfile(full) else os.path.join(ANCHOR, script)
     rel = same_as_main(full) if os.path.isfile(full) else None
     if rel is None:
         return False
@@ -1049,6 +1050,11 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     return None
 
 
+def trust_root(cwd):  # cwd's work tree when cwd and CLAUDE_PROJECT_DIR are in one repository (same real `--git-common-dir`; a worktree counts), else None: fail closed.
+    found = [(git("rev-parse", "--path-format=absolute", "--git-common-dir", "--show-toplevel", root=d) or "").split("\n") if d else [""] for d in (cwd, os.environ.get("CLAUDE_PROJECT_DIR"))]
+    return found[0][1] if len(found[0]) > 2 and found[1][0] and os.path.realpath(found[0][0]) == os.path.realpath(found[1][0]) else None
+
+
 def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict); the dispatcher calls this in-process.
     if payload.get("tool_name", "Bash") != "Bash":
         return 0, "", ""
@@ -1057,8 +1063,13 @@ def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict
     if not isinstance(command, str):
         return 2, "", "prod_write_gate.py：Bash 钩子输入里没有字符串形式的 command，无法判断，按拒绝处理。\n"
     cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) and payload.get("cwd") else None
-    patterns, problem, warning = load_table()
-    reason = judge(command, patterns, problem, cwd)
+    global ANCHOR, ROOTS
+    ANCHOR, ROOTS = None, (cwd, os.environ.get("CLAUDE_PROJECT_DIR"), os.getcwd())  # the anchor is resolved by trusted_script, on first use
+    try:
+        patterns, problem, warning = load_table()
+        reason = judge(command, patterns, problem, cwd)
+    finally:
+        ANCHOR, ROOTS = REPO_ROOT, ()
     if reason:
         return 2, "", reason + "\n"
     notes = [f"告警：{problem}，写操作类命令会被拒绝。"] if problem and (SHORT_REMOTE.search(plain(command)) or any(t in plain(command) for t in LONG_REMOTE)) else []
@@ -1068,26 +1079,15 @@ def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict
     return 0, out, ""
 
 
-def main():
+def guarded_main():  # unreadable hook input or any error fails closed
     try:
         payload = json.load(sys.stdin)
-    except ValueError:
-        payload = None
-    if not isinstance(payload, dict):
-        print("prod_write_gate.py 读不懂钩子输入（不是 JSON 对象），按失败处理", file=sys.stderr)
-        return 2
-    code, out, err = decide(payload)
+        code, out, err = decide(payload) if isinstance(payload, dict) else (2, "", "prod_write_gate.py 读不懂钩子输入（不是 JSON 对象），按失败处理\n")
+    except Exception as error:
+        code, out, err = 2, "", f"prod_write_gate.py 出错（{error.__class__.__name__}: {error}），按失败处理\n"
     sys.stdout.write(out)
     sys.stderr.write(err)
     return code
-
-
-def guarded_main():
-    try:
-        return main()
-    except Exception as error:
-        print(f"prod_write_gate.py 出错（{error.__class__.__name__}: {error}），按失败处理", file=sys.stderr)
-        return 2
 
 
 if __name__ == "__main__":

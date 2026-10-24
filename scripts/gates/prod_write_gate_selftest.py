@@ -430,9 +430,56 @@ def layout_self_test():
     print("prod_write_gate layout: ok")
 
 
+def trust_self_test():
+    """可信脚本只认 cwd 与 CLAUDE_PROJECT_DIR 同一仓库（同一个真实 --git-common-dir），特征表并上两者的 origin/main（调度裁定，D25）。全部在临时仓库里做，生产样本只用虚构值。
+    主检出 M 与用 git worktree add 建的工作区 W 共用 .git、路径不同，算同一仓库；伪造仓库 F 内容相同但有独立的 .git，不算。"""
+    fake, only = "fake-prod-db.example.invalid", "only-on-t.example.invalid"  # fictitious hosts
+    script = os.path.join(HERE, "prod_write_gate.py")
+    doc = DOCS_ROOT + "/new_intent.py"  # one of the gate's DOC_SCRIPTS, at its fixed path
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = os.path.realpath(tmp)
+        main, work, forged, other, loose = (os.path.join(tmp, n) for n in ("M", "W", "F", "T", "N"))
+
+        def repo(path, files):
+            for rel, text in files.items():
+                os.makedirs(os.path.dirname(os.path.join(path, rel)), exist_ok=True)
+                Path(path, rel).write_text(text, encoding="utf-8")
+            for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "x"], ["update-ref", "refs/remotes/origin/main", "HEAD"]):
+                subprocess.run(["git", "-C", path, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "core.hooksPath=/dev/null", *args], check=True, capture_output=True)
+
+        body = {doc: f"import os\nos.system(\"psql -h {fake} -c 'delete from t'\")\n"}
+        repo(main, body)
+        repo(forged, body)
+        os.makedirs(os.path.join(loose, DOCS_ROOT))
+        Path(loose, doc).write_text(body[doc], encoding="utf-8")  # the same file in a directory that is no repository
+        repo(other, {"scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "t", "patterns": [only]}]})})
+        subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", work], check=True, capture_output=True)
+        table = os.path.join(tmp, "fake_targets.json")
+        Path(table).write_text(json.dumps({"targets": [{"id": "fake", "patterns": [fake]}]}), encoding="utf-8")
+
+        def hook(command, cwd, project, process_cwd=None):
+            env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "PROD_TARGETS_FILE": table, **({"CLAUDE_PROJECT_DIR": project} if project is not None else {})}
+            payload = {"tool_name": "Bash", "tool_input": {"command": command}, **({"cwd": cwd} if cwd else {})}
+            return subprocess.run([sys.executable, "-I", script], input=json.dumps(payload), capture_output=True, text=True, env=env, cwd=process_cwd or tmp).returncode
+
+        run_doc = "python3 " + doc
+        for cwd, project, code, why in ((work, main, 0, "a worktree of the project's repository: one .git, other path, trusted"), (main, work, 0, "the other way round"),
+                                        (main, main, 0, "the project itself"), (forged, main, 2, "a forged repository with its own .git is not trusted"),
+                                        (work, forged, 2, "the project forged, cwd real"), (forged, forged + "/", 0, "the forged repository as its own project (control)"),
+                                        (work, None, 2, "no CLAUDE_PROJECT_DIR"), (work, "", 2, "an empty CLAUDE_PROJECT_DIR"), (loose, main, 2, "cwd in no repository")):
+            assert hook(run_doc, cwd, project) == code, (why, cwd, project)
+        assert hook(run_doc, None, main, process_cwd=work) == 2, "no cwd in the hook input: not trusted, even when the process runs in the worktree"
+        # the table: cwd's and CLAUDE_PROJECT_DIR's origin/main are unioned in, so only ever more is refused
+        write = f"psql -h {only} -c 'delete from t'"
+        assert hook(write, other, main) == 2 and hook(write, main, other) == 2 and hook(write, main, main) == 0, "a pattern only on the origin/main of cwd's or the project's repository"
+        assert hook(write, None, main, process_cwd=other) == 2, "no cwd in the hook input: the process cwd's repository is unioned in"
+    print("prod_write_gate trust: ok")
+
+
 def self_test():
     words_self_test()
     gate_self_test()
+    trust_self_test()
     seventeen_self_test()
     layout_self_test()
     return 0

@@ -5,7 +5,7 @@
   装好的目录只读；已装目录被改坏后再跑 install.sh <sha> 或 --switch 都从 git 重新解包修好（O7 终审 M1）；HOOKS_INSTALL_DIR 改目录。
 - SessionStart 核对（hooks_manifest.sh --check，O7 终审 M2；告警里给的 install.sh 命令照着执行能修好）：current 指到安装目录外或非 40 位 sha 目录、指向的目录不存在或是链接、文件被改、多了或少了文件、没有清单、核对脚本缺失或 CLAUDE_PROJECT_DIR 为空，都输出【钩子告警】并退出 0。
 - 挂载命令按 settings.json 原样用 /bin/sh 与 /bin/bash 执行：生产写门在 current 缺失、链接悬空、入口缺失、解释器缺失、崩溃、被杀时退出 2（门自己的 0 与 2 照传）；SessionStart 两个缺失或出错时退出 0 并输出一行告警。
-- 装好的门向 CLAUDE_PROJECT_DIR 的仓库问 origin/main 的特征表；没有 CLAUDE_PROJECT_DIR 时不认工作目录里伪造的仓库（O7 终审 M3）；CLAUDE_PROJECT_DIR 与工作目录不同时只认前者。
+- 装好的门向 CLAUDE_PROJECT_DIR 的仓库问 origin/main 的特征表；没有 CLAUDE_PROJECT_DIR 时不认工作目录里伪造的仓库（O7 终审 M3）；可信脚本只认 cwd 与 CLAUDE_PROJECT_DIR 同一仓库。
 生产样本只用虚构值；真实表只经 install.sh 自检与「只拦第一个 target」的探针按位置取用，本文件不读不写其内容。用法：install_selftest.py"""
 import json
 import os
@@ -217,9 +217,9 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
             r = mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {"command": "python3 " + doc_script}, "cwd": forged}), shell,
                       CLAUDE_PROJECT_DIR=project, PROD_TARGETS_FILE=table, cwd=forged)
             assert r.returncode == 2, ("a forged repository in the working directory makes no script trusted", shell, project, r.returncode, r.stderr)
-        # the trust anchor is CLAUDE_PROJECT_DIR, not the working directory: refused with the real repository as project and the forged one as cwd;
-        # the other way round the forged repository is the anchor and the script passes (the control that turns red when REPO_ROOT follows the cwd)
-        for project, where, code in ((repo, forged, 2), (forged, repo, 0)):
+        # a script is trusted only when cwd and CLAUDE_PROJECT_DIR are one repository: refused with the real repository as project and the forged one as cwd;
+        # the forged repository as both passes (the control: trust follows that one repository, not the cwd alone)
+        for project, where, code in ((repo, forged, 2), (forged, forged, 0)):
             r = mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {"command": "python3 " + doc_script}, "cwd": where}), shell,
                       CLAUDE_PROJECT_DIR=project, PROD_TARGETS_FILE=table, cwd=where)
             assert r.returncode == code, ("REPO_ROOT is CLAUDE_PROJECT_DIR", shell, project, where, r.returncode, r.stderr)
