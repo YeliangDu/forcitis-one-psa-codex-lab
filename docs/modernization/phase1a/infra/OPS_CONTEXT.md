@@ -3,7 +3,7 @@
 ## 2026-10-24 傍晚增补（以本节为准）
 
 - 外部复核四件都已完成：C3 修复链 dae30821d→789dc22da→2f16d4aa4（2f16d4aa4 首轮、终审均通过），已合进 next，**最终 next＝5d1e9fba4**；closes.json 已补，等调度签字。重跑结果在 b1run-5d1e9fba4/：check_reviews 88 个提交 86 个通过（只差 #691 两个基点），acceptance_v2 与上一版相同，light 三次 31 过、0 失败、7 跳过（约 200 秒）；b1.md 已更新。
-- **下一步**：已报调度最终 sha；等调度确认后推 claude/one-ops-flow-v2-next，开草稿 PR（标题「批一整合，勿合」、加 hold、不入队、不批准；用户准推送 intent 141307「1，可以」），CI 全部结果（含重作业）报调度。next 在工作区 .claude/worktrees/flow-v2。
+- **已推送并开草稿 PR #693**（用户本人在终端推送：会话里的旧推送门要跑已删的 precheck.sh，拒绝推送；用户原话「同意」）。PR 不加标签、不入队、不批准。**下一步**：CI 全部作业（含重作业）结束后，把每个作业的结论、耗时和失败日志原样段报调度。next 在工作区 .claude/worktrees/flow-v2。
 - 坑：后台 Bash 的 description 要用卡号格式，如「OPS-1023-OPS-01 … (one-ops)」；GOV-1023-FV2 被钩子拒。
 
 ## 2026-10-24 下午增补（以本节覆盖下面「外部复核四件」各项）
