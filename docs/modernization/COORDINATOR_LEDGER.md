@@ -3,6 +3,13 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 11:2x（one-coordinator，清空前交接；以本条为准）
+- **清空后第一件事**：不再用定时巡检（intent 071227）。后台跑 `zsh <scratchpad>/watch.sh`（脚本见下行，scratchpad 清空后路径会变，内容照抄重建）：每 60 秒比对 mailbox unacked、mq status、6 个 claude/*-flow-v2-b1/-next 分支 sha、在开 PR，有变化打印并退出，处理完再起；description 写「GOV-1023-COO-01 变化巡检 (脚本)」。被唤醒时顺带 get_usage，周用量 92% 叫停（现 88%，10-26 17:00 重置）。复审结论只落文件；跨会话消息少发。
+- **watch.sh 内容**：state(){ mailbox list --unacked|head -20; mq.py status|head -4; for b in one-ops-flow-v2-b1 one-quality-flow-v2-b1 one-coordinator-flow-v2-b1 one-data-flow-v2-b1 one-ops-flow-v2-next one-merge-flow-v2-b1; git rev-parse --short refs/heads/claude/$b; gh pr list --state open --json number,headRefOid; }；base=$(state)；循环 sleep 60，不同就 diff 后 exit 0。
+- **重构第一批进度**：quality（Q1～Q4、T1～T4）、data DA1、architecture AR0、调度 C0～C5（含 6cedae71e、30b9beeb1 修）全部通过。ops b1（claude/one-ops-flow-v2-b1，工作区 .claude/worktrees/ops-fv2-b1）通过：基、O1～O9、policy 各键（含 535d321e2、adcac8c22、77f995077、c13a35210）、build_sessions 455de7e15、O7 系列至 d47a96fe2。**在审**：O10 84be6ded7（sonnet 首轮＋opus 终审已派，结论落 ~/.modernize/psa/coordinator/reviews/redesign/<sha>.md/.final.md）。one-ops 在写 cutover.sh 与 acceptance/b1.md（放 ~/.modernize/psa/coordinator/redesign-1023/acceptance/）。b1 的活由帮手会话 local_9be6f7e2（ops-b1-o7fix）做。one-merge 暂停（intent 222945）；glossary 批一无项。
+- **剩下**：O10 复审→one-ops 合各子分支进 -next→我做 **C6**（待办全在 ~/.modernize/psa/coordinator/redesign-1023/coord-fix-report.md §7～§9 及末尾补充）→用户验收后才推送合入（intent 214702）。合入后会话一律由调度 start_session 开（intent 000954）。
+- **今晚/今晨用户决定**（docs/modernization/intent/ 2026-10-23-2259xx 起至 2026-10-24-0907xx）：O2 门上限 1,100、主检出一律拒、codex 门按定稿删；budget_check 上限 450；selftest 上限 1,100；回退② current 不动；CLAUDE.md 上限 1.8KB 加 Compact instructions；官方对照采纳 A～F；子代理默认 sonnet（用户 settings env）；常驻可写目录已加（用户 settings additionalDirectories，备份 ~/.modernize/psa/coordinator/settings-backup-20261024*.json）；复审定义 ~/.claude/agents/reviewer-{opus,sonnet}.md（新会话才可用 subagent_type，本会话让子代理先读该文件）。
+- **复审口径**：必改只限正确性、硬约束、底线；守护类首轮＋独立终审；终审别让子代理批量造规避命令（会被分类器拦）。
 更新：2026-10-23 22:4x（one-coordinator，清空前交接；清空后先读本条）
 - **清空后第一件事**：CronCreate 每 5 分钟巡检（ReadNotifications、mailbox unacked/stale、mq.py status、在开 PR；reviews/redesign/ 新结论转作者；派出复审超 30 分钟查；每 30 分钟 get_usage，周用量到 92% 叫停）。重构期间跨会话消息有频率上限，复审结论只落文件。
 - **重构第一批（只本机提交，用户验收后才推送合入，intent 214702）**：派工书 ~/.modernize/psa/coordinator/redesign-1023/workorders/（README §9 兼容任务号 GOV-1023-COO-01；§10 机读头统一解析；§11 budget_check 口径裁定）。复审结论 ~/.modernize/psa/coordinator/reviews/redesign/<sha>.md（守护类另有 .final.md）。整合分支 claude/one-ops-flow-v2 @6981e351a，暂存 -next（O1 修若干，均通过）。
