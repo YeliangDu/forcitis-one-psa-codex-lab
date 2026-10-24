@@ -71,7 +71,14 @@
       ".github/",
       "policy.json",
       ".gitleaks.toml",
-      ".pre-commit-config.yaml"
+      ".pre-commit-config.yaml",
+      "scripts/release/",
+      "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/",
+      "docs/modernization/new_intent.py",
+      "docs/modernization/new_decision.py",
+      "docs/modernization/new_log.py",
+      "docs/modernization/glossary/new_term_issue.py",
+      "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt"
     ],
     "_final_paths_说明": "仓库根起的完整前缀，改动路径以任一项开头即须 opus 终审。不得写裸目录名或空表（空表等于关闭终审）。"
   },
