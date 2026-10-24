@@ -1,5 +1,7 @@
 # one-quality 速查（2026-10-17 13:15+02:00）
 
+以 RULES.md 为准；二甲删除
+
 一行一项，过程放链接（SESSION_PLAYBOOK TEAM-07、08）。接续会话先读本文件、`sessions/one-quality.md`、`quality/defect-bank/one-quality.md`，再 `gh pr list --author @me` 核对在途 PR（以 gh 为准，下表会过期）。
 
 ## 规则入口（以现行 SESSION_PLAYBOOK 为准）

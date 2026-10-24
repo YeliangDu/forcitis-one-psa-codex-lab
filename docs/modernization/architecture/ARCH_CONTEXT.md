@@ -1,5 +1,7 @@
 # one-architecture 速查（2026-10-15）
 
+以 RULES.md 为准；二甲删除
+
 > **接续必读（2026-10-21）**：先读 `proposals/HANDOFF_2026-10-21.md`，再读本文件「现状」。
 
 

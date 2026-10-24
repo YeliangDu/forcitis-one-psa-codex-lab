@@ -1,5 +1,7 @@
 # one-merge 上下文（MERGE_CONTEXT）
 
+以 RULES.md 为准；二甲删除
+
 只记现行状态，一行一项，过程放链接（SESSION_PLAYBOOK TEAM-07、08）。接续会话先读本文件和 `sessions/one-merge.md`，不读 `COORDINATOR_LEDGER.md` 的旧队列指令。
 
 ## 队列

@@ -21,10 +21,7 @@ docs/modernization/phase1a/infra/LEGACY_READ_REGISTER.md
 docs/modernization/tasks/TASKS.md
 __pycache__/
 .claude/session-name
-.claude/push-bypass.log
-.claude/context-handoff-state.json
 .pi-lens-probe-home/
-.claude/context-handoff-state.json.lock
 # 生成产物不入仓（生成产物移出 main 第 1 期，用户 2026-10-22 git 原则）：本地运行 docs/modernization/build_all.py 生成，或看 generated-docs 分支
 docs/modernization/adr/ADR-*.md
 docs/modernization/adr/INDEX.md

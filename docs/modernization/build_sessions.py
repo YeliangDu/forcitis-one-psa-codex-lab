@@ -8,6 +8,8 @@
 - sessions/<会话名>.md：一个在用会话一份画像，标题「# <会话名>」，其后按 FIELDS 的顺序各一个二级标题，每节非空；
   会话名为 one-*、与文件名一致、全局唯一；「类型」为「长期」或「工作」。画像不写“当前状态”：在途任务看 tasks/ 里的任务卡，交接看上下文文档的交接节
   （GOV-1022-COO-13，开场只注入一页开工单）。
+- 指针画像（GOV-1023-FV2，定稿「画像改一行指针」）：可选标题「# <会话名>」之外只有一行正文，其中反引号括起
+  `docs/modernization/roles/<角色>.md`，须为仓库根相对且存在；只校验这一条，汇总表里职责写「见 roles/<角色>.md」。
 - sessions/_retired.md：已交接、一次性会话，每行「- <会话名>：<状态>」，只进汇总表、不写画像。
 - 「上下文文档」一节只列路径、不注入：反引号括起的 .md 路径（仓库根相对；scripts/hooks/session_context.py，解析与路径判定与钩子共用）须为仓库根相对、
   不含 ..、规范化后仍在仓库根下且存在，不得列调度台账 COORDINATOR_LEDGER.md 与整份批次计划（*BATCH_PLAN*）。
@@ -32,6 +34,7 @@ NOT_CONTEXT = re.compile(r"COORDINATOR_LEDGER\.md$|BATCH_PLAN")   # 开场不再
 HANDOFF_STATES = ("有效", "已接手")
 HANDOFF_DIR = "handoffs"
 OLD_HANDOFFS = ("phase1a", "architecture/proposals")
+POINTER = re.compile(r"`(docs/modernization/roles/[a-z0-9-]+\.md)`")
 NAME = re.compile(r"one-[a-z0-9]+(-[a-z0-9]+)*")
 RETIRED_NAME = re.compile(r"(one|psa)-[a-z0-9]+(-[a-z0-9]+)*(-\d+)?")
 
@@ -46,9 +49,28 @@ def one_line(text, where):
     return text.strip()
 
 
+def parse_pointer(lines, file_name):
+    """指针画像 → {"name", "pointer"}；不是指针写法（非一行正文或没有 roles/ 指针）返回 None，按完整画像校验。"""
+    stem = file_name[:-3]
+    body = [l for l in lines if l.strip()]
+    if body and body[0] == f"# {stem}":
+        body = body[1:]
+    if len(body) != 1 or body[0].startswith("#"):
+        return None
+    found = POINTER.findall(body[0])
+    if len(found) != 1:
+        return None
+    if not NAME.fullmatch(stem):
+        raise ProfileError(f"{file_name}：会话名须为 one-* 小写连字符写法")
+    return {"name": stem, "pointer": found[0]}
+
+
 def parse_profile(text, file_name):
     stem = file_name[:-3]
     lines = text.rstrip("\n").split("\n")
+    pointer = parse_pointer(lines, file_name)
+    if pointer:
+        return pointer
     if not lines or lines[0] != f"# {stem}":
         raise ProfileError(f"{file_name}：首行须为「# {stem}」（与文件名一致）")
     if not NAME.fullmatch(stem):
@@ -100,6 +122,11 @@ def check(profiles, retired, exists, has_heading=None):
     if dup:
         raise ProfileError(f"会话名重复：{'、'.join(dup)}")
     for p in profiles:
+        if "pointer" in p:
+            reason = unsafe_reason(ROOT, p["pointer"])
+            if reason or not exists(p["pointer"]):
+                raise ProfileError(f"sessions/{p['name']}.md：指向的 {p['pointer']} {reason or '不存在'}")
+            continue
         own = f"docs/modernization/sessions/{p['name']}.md"
         docs = context_docs(f"## 上下文文档\n{p['上下文文档']}\n")
         source = handoff_source(f"## 上下文文档\n{p['上下文文档']}\n")
@@ -170,9 +197,12 @@ def render(profiles, retired, now=None):
             "改画像后运行 python3 docs/modernization/build_all.py。 -->\n\n"
             "画像规则见 SESSION_PLAYBOOK TEAM-02、03；画像全文在 `sessions/<会话名>.md`。\n\n"
             "| 会话 | 类型 | 职责 | 上下文文档（仅列路径，不注入） |\n|---|---|---|---|\n")
-    order = sorted(profiles, key=lambda p: (KINDS.index(p["类型"]), p["name"]))
+    order = sorted(profiles, key=lambda p: (KINDS.index(p["类型"]) if "pointer" not in p else len(KINDS), p["name"]))
     rows = []
     for p in order:
+        if "pointer" in p:
+            rows.append(f"| {p['name']} | 指针 | 见 `{p['pointer'].removeprefix('docs/modernization/')}` | — |\n")
+            continue
         docs = "、".join(f"`{path.removeprefix('docs/modernization/')}`" for path in context_docs(f"## 上下文文档\n{p['上下文文档']}\n")) or "—"
         rows.append(f"| {p['name']} | {p['类型']} | {one_line(summary(p['职责']), p['name'] + ' 职责首行')} | {docs} |\n")
     rows += [f"| {n} | 已结束 | {s} | — |\n" for n, s in retired]
@@ -259,6 +289,20 @@ def self_test():
         open(os.path.join(d, HANDOFF_DIR, "HANDOFF_g_2026-10-16.md"), "w", encoding="utf-8").write(ok_head + "\n## 1. 先读\n\n上下文用了 75%\n")   # 正文里提到百分比不算头部违规
         if any("HANDOFF_g" in e for e in handoff_problems(d)[0]):
             failures.append("交接文件检查：只查头部（第一个二级标题之前）的百分比")
+    line = "角色与规则见 `docs/modernization/roles/platform.md`（本会话在该文件「过渡映射」中）。"
+    for text in (line + "\n", "# one-x\n\n" + line + "\n"):
+        q = parse_profile(text, "one-x.md")
+        if q != {"name": "one-x", "pointer": "docs/modernization/roles/platform.md"}:
+            failures.append(f"指针画像解析不对：{q}")
+    check([q], [], lambda path: path == "docs/modernization/roles/platform.md")
+    rejects("指针指向的角色文件不存在", lambda: check([q], [], lambda path: False))
+    rejects("指针是绝对路径以外的越界写法", lambda: check([dict(q, pointer="docs/modernization/roles/../../x.md")], [], lambda path: True))
+    rejects("指针画像名不合法", lambda: parse_profile(line, "psa-x.md"))
+    rejects("指针画像多一行正文", lambda: parse_profile(line + "\n另一行\n", "one-x.md"))
+    rejects("指针不在 roles/ 下", lambda: parse_profile("见 `docs/modernization/x.md`\n", "one-x.md"))
+    rejects("一行里两个指针", lambda: parse_profile("见 `docs/modernization/roles/a.md` 与 `docs/modernization/roles/b.md`\n", "one-x.md"))
+    if "| one-x | 指针 | 见 `roles/platform.md` | — |" not in render([q, p], []):
+        failures.append("指针画像在汇总表里的行不对")
     rejects("退役行格式", lambda: parse_retired("- one-a 已交接\n"))
     if parse_retired("<!-- 注释 -->\n- psa-coordinator-1：已交接\n") != [("psa-coordinator-1", "已交接")]:
         failures.append("退役行解析不对")

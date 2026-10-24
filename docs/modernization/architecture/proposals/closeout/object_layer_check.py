@@ -1,7 +1,7 @@
 """对象层与能力层对齐（只读；BIZBOK §3.4 第二、三层）：流程主对象、阶段承载对象、流程推出的能力与阶段能力清单。
 
 用法: python3 -I object_layer_check.py [--local] [--extra PATH]... [--no-write] [--self-test]
-  输入  process-catalog.yaml（primary_object 为三组确认值，经 sync_catalog_stages 从骨架同步）；
+  输入  ssot/09-processes/catalog.yaml（primary_object 为三组确认值，经 sync_catalog_stages 从骨架同步）；
         process-objects.yaml（object_check.py --objects-yaml 生成，先跑它）；value-streams.v2.yaml（各段 exit、capabilities）；
         capabilities.v2.yaml（对象 → 一级 / 二级能力）；stage_align_check.analyze 的归段命中（hit_refs）。
   输出  object-layer.yaml（生成，供对齐图读）与 OBJECT_LAYER_REPORT.md；--no-write 只打印汇总。

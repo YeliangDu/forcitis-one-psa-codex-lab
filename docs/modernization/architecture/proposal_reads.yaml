@@ -1,0 +1,88 @@
+# 代码读 proposals/ 的例外登记（TEAM-108「proposals/ 不算权威，脚本不读」；GOV-1023-ARC-01 第②步）。维护：one-architecture。
+# proposal_reads.py 检查：仓库里 proposals/ 目录以外的脚本与测试（py、sh、java、kt、ts、mjs）凡在路径里写到 proposals/，须在此登记一行；
+# 登记了却已不再写到的行、kind=data 中已不在文件里的来源，都算过期登记，须删。
+# kind：
+#   data     读提议稿里的数据。每个来源写 due，到期仍在读就失败——到期前把来源升为正本、改读正本，或删掉读取。
+#   tool     运行或治理 proposals/ 里的工具（自测接线、改动分级、状态行检查），或读旧交接位置，不读架构数据。不设期限。
+#   mention  只在生成的文字或链接里提到 proposals/ 路径，不读文件。不设期限。
+# 升正本的次序由用户定：先价值流 v2 与信息图（批次一），后聚合草稿与三组骨架（批次二）。
+reads:
+  - path: docs/modernization/architecture/panorama/panorama_build.py
+    kind: data
+    sources:
+      - {source: value-streams.v2.yaml, due: 2026-11-06}
+      - {source: ENTERPRISE_INFO_MAP_DRAFT.md, due: 2026-11-06}
+      - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-11-20}
+      - {source: closeout, due: 2026-11-20, note: 三组骨架（commands、state-machines、processes）与 sys.path 导入骨架模块}
+    note: 另写入 proposals/STAKEHOLDERS.md（写不算读，去向随第③步定）
+  - path: docs/modernization/architecture/panorama/object_freeze_check.py
+    kind: data
+    sources:
+      - {source: closeout, due: 2026-11-20, note: 三组 commands.yaml、processes*.yaml 与 sys.path 导入骨架模块}
+  - path: docs/modernization/architecture/panorama/scan_aggregates.py
+    kind: data
+    sources:
+      - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-11-20}
+  - path: docs/modernization/architecture/panorama/scan_commands.py
+    kind: data
+    sources:
+      - {source: closeout, due: 2026-11-20, note: 三组 commands.yaml}
+  - path: docs/modernization/architecture/panorama/scan_org_roles.py
+    kind: data
+    sources:
+      - {source: RESPONSIBILITY_MATRIX.yaml, due: 2026-11-20}
+  - path: docs/modernization/architecture/ssot/09-processes/build_catalog.py
+    kind: data
+    sources:
+      - {source: value-streams.v2.yaml, due: 2026-11-06, note: 校验 stages}
+      - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-11-20, note: 校验 owner_bc}
+      - {source: STRUCTURAL_ITEMS.md, due: 2026-11-20}
+  - path: docs/modernization/architecture/ssot/10-objects/convert_objects.py
+    kind: data
+    sources:
+      - {source: ENTERPRISE_INFO_MAP_DRAFT.md, due: 2026-11-06}
+      - {source: state-machines.yaml, due: 2026-11-20}
+  - path: docs/modernization/architecture/ssot/10-objects/test_convert_objects.py
+    kind: data
+    sources:
+      - {source: state-machines.yaml, due: 2026-11-20}
+  - path: docs/modernization/architecture/ssot/c1-rules/convert_inv.py
+    kind: data
+    sources:
+      - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-11-20}
+  - path: docs/modernization/architecture/frameworks/notes_check.py
+    kind: data
+    sources:
+      - {source: ENTERPRISE_INFO_MAP_DRAFT.md, due: 2026-11-06}
+  - path: docs/modernization/architecture/decision-page/build_approval_page.py
+    kind: data
+    sources:
+      - {source: APPROVAL_RULES.yaml, due: 2026-11-20}
+  - path: backend/src/test/java/com/forcitis/one/acceptance/EventEnvelopeContractTest.java
+    kind: data
+    sources:
+      - {source: EVENT_ANALYTICS_FIELDS.md, due: 2026-11-20, note: docs/modernization/proposals/ 下的事件信封字段定义；升正本或改读事件目录，归属待调度定}
+  - path: docs/modernization/architecture/check_proposals.py
+    kind: tool
+    note: proposals/ 状态行检查本身
+  - path: docs/modernization/build_sessions.py
+    kind: tool
+    note: 会话一览兼容读旧交接位置 architecture/proposals/HANDOFF_*，不读架构数据
+  - path: scripts/ci/light_selftest.sh
+    kind: tool
+    note: light_triggers.sh 路径模式的自测夹具（示例路径），不读文件
+  - path: scripts/ci/light_triggers.sh
+    kind: tool
+    note: light.sh 改到 proposals/j_checks 等工具时跑其自测（承接已删的 precheck.sh 那一行）
+  - path: scripts/ci/relevant_change.py
+    kind: tool
+    note: 改动分级登记 proposals/ 里的工具与事件信封文件
+  - path: docs/modernization/architecture/decision-page/build_bpmn_page.py
+    kind: mention
+    note: 确认页文字引用 PROCESS_METHOD_DRAFT.md
+  - path: docs/modernization/rules/build_gl_decisions.py
+    kind: mention
+    note: 生成文字里提到 proposals/ 路径
+  - path: docs/modernization/architecture/proposal_reads.py
+    kind: tool
+    note: 本检查自身（扫描规则与自测夹具）

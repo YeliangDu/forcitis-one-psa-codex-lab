@@ -1,4 +1,4 @@
-"""Report drift of stages / supports / stages_note / primary_object(_note) / secondary_objects between process-catalog.yaml (the SSOT) and the three group skeletons.
+"""Report drift of stages / supports / stages_note / primary_object(_note) / secondary_objects between ssot/09-processes/catalog.yaml (the SSOT) and the three group skeletons.
 
 Usage: python3 -I sync_catalog_stages.py [--local] [--write-catalog]   |   --self-test
   reads processes.<group>.yaml like closeout_check.py (origin/claude/one-arch-<group>-closeout, or closeout/<group>/ with --local);
@@ -16,7 +16,7 @@ HERE = Path(__file__).resolve().parent
 _spec = importlib.util.spec_from_file_location("closeout_check", HERE / "closeout_check.py")
 cc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cc)
-CATALOG = HERE / "process-catalog.yaml"
+CATALOG = Path(__file__).resolve().parents[1].parent / "ssot" / "09-processes" / "catalog.yaml"   # 流程目录正本
 FIELDS = ("support", "supports", "stages_note", "primary_object", "primary_object_note", "secondary_objects")
 
 

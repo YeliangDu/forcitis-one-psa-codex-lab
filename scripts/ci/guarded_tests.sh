@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Middle CI tier (scripts/ci/relevant_change.py, tier=guarded): run only the container-free backend test classes that read the changed docs.
-# A class that produced no report (typo, moved, deleted) fails instead of passing vacuously, as in scripts/precheck.sh.
+# A class that produced no report (typo, moved, deleted) fails instead of passing vacuously.
 # Usage: guarded_tests.sh Class1,Class2
 set -euo pipefail
 classes=${1:?usage: guarded_tests.sh Class1,Class2}
