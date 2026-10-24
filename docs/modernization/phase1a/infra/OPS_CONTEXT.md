@@ -1,5 +1,13 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 上午七次增补（清空接续，以本节为准；六次增补里 cutover／b1／复审口径各条以本节覆盖）
+
+- **产物**（均在 `~/.modernize/psa/coordinator/redesign-1023/acceptance/`，不入库）：`cutover.sh`（切换／`--rollback`／`--rollback-main <sha>`，`--dry-run` 已跑通，shellcheck 过；新 main 无 `scripts/merge/com.forcitis.mq.plist.template` 就打「不换 mq」行并跳过，回退 ① 随之跳过；回退 ③ 多卸 budget_level，调度已同意）；`b1.md` 草稿；`check_reviews.py`（读 closes.json、`_改判必改`，兼容早期格式并标注）；`closes.json`（**调度已签**，84be6ded7 那条待修提交补进再签）；`reviews-check-20261024-1130.txt`。
+- **调度已裁定**：必改以修提交关闭；one-merge 子分支不进 b1（intent 222945），核对时排除；#691 两个基点提交、早期格式结论文件按例外处理；补终审的 4 个（05c144e8b、242bb442d、b6dfe2f31、484de869e）**已通过**。
+- **接续后先做**：①复跑 check_reviews（命令见 b1.md 1.1），更新 b1.md 1.2 表格（这 4 个与被它们关闭的 610fca580、9e80a8810、6e77ce19a 应转为通过）。②b1.md 第 3、5 节按调度 11:4x 令改：新 mq 冒烟三项（机械入队、head 加提交后拒入队、文档快道）标「随 one-merge 批验，搬到 M 批验收」（依据 intent 222945）；加三条验证「旧 mq 不受切换影响」：a. 切换后 `mq.py status` 正常，launchd 里旧 plist 仍为 loaded，与切换前备份逐字节一致（cutover 不换 mq 时也要先存一份备份比对，**要改 cutover.sh**：跳过分支里也备份，回读时比对并把「跳过」行写进日志）；b. 现行 mq 自测在新 main 上全过；c. 新装的 pre-merge-commit 钩子不挡旧 mq 的合入路径：在临时克隆上用假 PR 分支本地合并演练，不碰远端。
+- **O10**：84be6ded7 调度改判必改（O_NOFOLLOW＋fstat 防硬链、handoff_max_kb 按 check_limit、超大文件读上限+1），已转帮手 ops-b1-o7fix（local_9be6f7e2）；它把修 sha 直报调度，调度转我后：补进 closes.json `84be6ded7` 列表→临时 worktree 复跑 start_sheet 自测、gates_selftest、light.sh→报调度。
+- **之后**：b1 收齐→按 README §5 顺序 `merge --no-ff` 进 next（不含 one-merge）→在 next 上跑 b1.md 第 2 节验证（后台跑）→B4 演练（两种会话）→填 b1.md 待填项→报调度。
+
 ## 2026-10-24 上午六次增补（清空接续，以本节为准，覆盖五次增补同名项）
 
 - **10-24 11:25 接续后**：O8 修 c13a35210 首轮＋终审过；O9 390aef980 首轮过；O10 已提交 84be6ded7（待审）。按调度令写好 `~/.modernize/psa/coordinator/redesign-1023/acceptance/` 下 cutover.sh（切换／--rollback／--rollback-main，dry-run 通过）、b1.md 草稿（待填项收齐后在 next 上跑）、check_reviews.py（合暂存前复审核对；初查 reviews-check-20261024-1125.txt）。已报调度请裁定：必改原提交怎样算关闭；one-merge 5 个提交无结论文件；coordinator 8 个结论第 1 行写成「结论：」；4 个守护类提交缺 .final.md。下一步：等裁定与 O10 复审→临时 worktree 复跑→收齐合 next→填 b1.md、做 B4 演练。**11:35 调度已裁定**：必改以修提交关闭（acceptance/closes.json，`_改判必改` 现有 84be6ded7，待调度签）；one-merge 不进 b1（cutover 第 3 步无模板即不换 mq）；早期格式结论文件作例外；4 个缺终审调度已补派。O10 改判必改三条（O_NOFOLLOW＋fstat 防硬链、handoff_max_kb 按 check_limit、超大文件读上限+1）已转帮手，修 sha 帮手直报调度。待调度定：批一冒烟里依赖新 mq 的项怎么验。
