@@ -882,7 +882,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) - ordinary commands pass with a warning; what may concern production, git/gh (config can run programs) and VAR= prefixes are refused
         for shell in shells:
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 2), ("gh pr list", 2), ("git -c core.pager='sh w.sh' log -1", 2), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 2), ("PATH=./bin:/usr/bin ls", 2),
-                                  ("echo x > /dev/tcp/10.0.0.5/6379", 2), (f"psql -h {FAKE} -c 'delete from t'", 2), ("./deploy.sh", 2), ("echo `deploy`", 2), ("rg --pre deploy x", 2), *((c, 2) for c in extra)):
+                                  ("echo x > /dev/tcp/10.0.0.5/6379", 2), ("sort --compress-program=./w.sh x", 2), (f"psql -h {FAKE} -c 'delete from t'", 2), ("./deploy.sh", 2), ("echo `deploy`", 2), ("rg --pre deploy x", 2), *((c, 2) for c in extra)):
                 r = mount(gate_cmd, bash(command), shell)
                 assert r.returncode == code and why in r.stderr and ("放行" in r.stderr) == (code == 0) and os.path.isfile(os.path.join(hooks, "gate_failures.log")) == os.path.isdir(hooks), (shell, why, command, r.returncode, r.stderr)
             for cmd in (ceiling_cmd, sheet_cmd):
