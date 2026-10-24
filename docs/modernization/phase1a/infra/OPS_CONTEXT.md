@@ -1,5 +1,12 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 下午增补（以本节覆盖下面「外部复核四件」各项）
+
+- C3：dae30821d 终审必改 M1（预筛放行 git、gh 和 VAR= 前缀）已修，追加 **789dc22da**（ops-fv2-b1，未推）：放行名单删去 git、gh，首词不再跳过 VAR=，远程特征加 /dev/tcp、/dev/udp；自测全过，3 个变异都红。调度已派首轮和终审。dae30821d 的首轮也是必改（失败预筛不查生产目标），调度认为这次改法已经覆盖；复审若再报，按「失败路径不得比正常路径放得宽」处理。
+- C4：用户原话「A」（intent 2026-10-24-142512），维持 001330，代码不改，已在 b1.md 第 3 节记下。
+- 3、4 已完成：check_reviews.py 改读 policy 的 final_paths，读不到退出 2；b1.md 已按调度清单订正，新增 8.1 第二批待办。
+- **下一步**：789dc22da 复审都过后，把 ops-fv2-b1 合进 next，重跑 check_reviews（基 pre-flow-v2）、acceptance_v2、light×3，结果写 b1run-<短sha>/，并更新 b1.md 状态行和 1.2；报调度最终 sha，等调度确认后推送并开草稿 PR（见下面「之后」）。
+
 ## 2026-10-24 交接（上下文 27%，清空接续；以本节为准，下面 13:00 一节已过时）
 
 - **在做：调度令「外部复核四件」**（结论 ~/.modernize/psa/coordinator/redesign-1023/acceptance/b1-review-repro.md，原文 b1-review-grokbot.md；最终 next 原为 955ddffd6）。四件都作追加提交，sha 报调度派审；齐了重合 next、重跑 check_reviews、acceptance_v2、light×3（运行脚本模板见本会话 b1run 做法：summary.tsv＋各步日志写 acceptance/b1run-<短sha>/）。
