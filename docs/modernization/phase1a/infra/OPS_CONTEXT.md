@@ -9,6 +9,7 @@
 - 本轮已完成：#693 草稿 PR 已开（用户本人推送 5d1e9fba4）；第一次 CI 结果：assertion drift、frontend 轻和重、gitleaks 通过，backend (light) 被加标签后的新 run 顶掉（取消，属预期），backend 重作业就是上面这 1 个失败。b1.md 第 3 节已记「旧推送门不认新树，整合分支由用户本人推送」。
 - **接续后（同日）**：上一轮复现无效——本机会话环境自带 PYTHONDONTWRITEBYTECODE=1，改前 light 没写出 .pyc（repro.sum 已改名 .invalid-env），且清空时中断。repro.sh 第 2 行已加 `unset PYTHONDONTWRITEBYTECODE PYTHONPYCACHEPREFIX`，后台重跑中，结果仍写原 repro.sum。
 - **再更新**：已提交 **cdf8de735**（ops-fv2-b1，未推），已报调度等首轮＋终审。复现（repro.sum）：改前 IT 1 Error（红），改后 4 个全过（绿），改后 light 32 PASS 0 FAIL、残留 __pycache__ 0。与原方案的差别：门和钩子的 python3 -I 子进程照样写字节码，末项从「有新增就 FAIL」改成「删掉本次新增的」。下一步为本节第②步起。复现脚本须 cd 进临时 worktree 再跑 light（已改）。
+- **本轮必改已做（等 light 把关后报调度派审）**：ops-fv2-b1 追加 **07bff4ce3**（清理挂 EXIT trap、-z、空列表不误报、函数挪进 light_triggers.sh、自测＋4）与 **f388c28cc**（runbooks/sql/ 挪进 READ_BY_BUILDS，自测改断言并加防再犯）；policy 在新子分支 **claude/one-ops-flow-v2-b1p**（工作区 .claude/worktrees/ops-fv2-b1p，基 5d1e9fba4，因 final_paths 只在 next 上）提交 **855dd86ca**（final_paths 17 项）；check_reviews 按 17 项重算，除已知 #691 两个外无新增缺终审。cutover.sh 本机改（新 sha1 138ad0e5e…，旧版存 ~/.modernize/psa/ops/pr693-pyc/cutover.sh.bc4f318）：tty_ok 前置、before.txt 不覆盖、回退打印最早快照，沙箱实测过。合 next 时三条都要合（b1、b1p）。
 - **调度令（最新）**：先别合 next。等 6 份结论齐了（cdf8de735 首轮和终审，加上整份复审 4 份：cutover.sh、policy.json、ci.yml＋relevant_change、install.sh＋hooks_manifest＋.pre-commit-config），调度一次转来必改，改完一起合、一起重跑、一次推送。已向调度报自查：①清理不在 EXIT trap 上，中断或 exit 2 会漏，打算挪进 trap 并保留原退出码；②ci.yml 243–245 行的 python3 -I（release 自测）要核对所在作业后面还有没有遍历源码的测试。
 - 坑：Bash 里 `cd` 到别的工作区会让会话主目录漂移；推送门不展开 `$变量`，git -C 要写完整路径。
 
