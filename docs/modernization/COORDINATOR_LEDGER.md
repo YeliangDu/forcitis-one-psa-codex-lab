@@ -3,6 +3,7 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 18:5x：**批一已上线**——cutover.sh 18:39–18:41 用户终端跑完（日志 ~/.modernize/psa/ops/cutover-b1/cutover.log），复测会话通过并已归档；V17a 记已知例外（读数源 plan-usage-history.json 不常更新，第二批改 statusline）。旧记忆两条已删（备份 coordinator/memory-retired-20261024/）。远端分支按用户「按建议处理」删 22 条（bundle 与清单 ~/.modernize/psa/branch-cleanup-20261024/），剩 11 条：业务 6 条、two-lanes（**本台账与 intent 32 个提交待合进 main**）、one-ops-r56（ops 交接待合）、#658 分支、infra-batch（二甲摘）、generated-docs（用途未核）。待用户定：是否恢复业务（D03 退出条件按理已满足，带 V02/V09 例外）。二甲建议 10-27（周一，重置后）开工，硬期限 11-07 proposal_reads。
 更新：2026-10-24 18:3x（one-coordinator，60% 交接；清空后先读本条）
 - **批一已合入**：用户「合入」（intent 183328）。#693 head e9b4ba9fd（GitHub CI run 40108508139 全绿：backend 单元 1762/集成 1029、frontend、gitleaks）→ gh pr merge --merge --match-head-commit → **origin/main = bef535317**（16:34Z）。check_reviews 只剩 #691 两例外；系统审查 sysreview-1/2/3、外部复核均处置，推后项见 b1.md 3 节与 8.1、coord-fix-report §10～§14。
 - **已做**：9 个旧会话归档（glossary、quality、merge、data、architecture、platform-file、1a-admin、1a-par、ops-b1-o7fix）；未推分支打本机备份标签 refs/tags/backup/20261024-archive/*。
