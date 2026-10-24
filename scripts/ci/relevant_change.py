@@ -38,6 +38,8 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
     "docs/modernization/phase1a/infra/runbooks/files/",
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
+    # DataArchitectureTest runs the V11 part of the c3/c9 verify scripts against a container database (also checked by db_scripts_aligned.py)
+    "docs/modernization/phase1a/infra/runbooks/sql/",
 )
 
 # inside READ_BY_BUILDS directories but read by no build: the one-glossary records
@@ -59,7 +61,6 @@ LOCAL_ONLY = ("scripts/hooks/",)
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/architecture/proposals/j_checks.py",
     "docs/modernization/architecture/ssot/t-transitions/transitions.yaml",
-    "docs/modernization/phase1a/infra/runbooks/sql/",
     "docs/modernization/build_all.py",
     # 错题本：build_all.py 的自测步骤（scripts/ci/ci_recurrence.py 读册、quality/defect-bank/defect_bank_check.py 检查册）在 gitleaks 作业里无条件运行
     "docs/modernization/quality/defect-bank/",
@@ -578,6 +579,10 @@ def real_tiers_self_test(root):
     assert "copy-glossary" in index.texts["frontend/scripts/check-copy-glossary.mjs"] and "copy-glossary" in index.texts["frontend/scripts/copy-glossary.test.mjs"]
     for entry in READ_BY_BUILDS:
         assert index.readers(entry), f"READ_BY_BUILDS lists {entry}, but no source reads it (stale entry?)"
+    for entry in READ_BY_ALWAYS_RUN_CHECKS:
+        tests = sorted(r for r in index.readers(entry) if r.startswith(("backend/", "frontend/")))
+        assert not tests, f"{entry} is read by {tests}: a build reads it, so it belongs in READ_BY_BUILDS"
+    assert plan_for(["docs/modernization/phase1a/infra/runbooks/sql/c9_prod_db_verify.sql"], index, light) is None, "DataArchitectureTest (a container test) runs it: full run"
     guarded = 0
     for path in docs:
         plan = plan_for([path], index, light)
@@ -651,7 +656,7 @@ def self_test():
     assert not is_relevant("README.md")
     assert not is_relevant("docs/modernization/intent/2026-10-15-120000-one-ops-中文.md")
     assert is_relevant('"docs/q\\"x.md"'), "a path git still quotes must count as relevant"
-    assert not is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql")
+    assert is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql"), "DataArchitectureTest executes the verify scripts here"
     assert is_relevant("notes.txt")
     assert not is_relevant("docs/modernization/build_all.py")
     assert not is_relevant("docs/modernization/check_legacy_name.py")
