@@ -3,6 +3,12 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 16:3x（one-coordinator，50% 交接；清空后先读本条）
+- **做到哪**：批一外部复核（acceptance/b1-review-grokbot.md，复现 b1-review-repro.md）已处置；用户准推送跑 CI（intent 141307），用户本人推了 next@5d1e9fba4，草稿 PR FORCITIS/forcitis-one-psa#693（已绑本会话 PR 面板，加了 queued 触发重作业；旧 mq 队列空、不会合）。CI：backend 重作业 1 个 IT 失败（LegacyNumberSourceIT 读到 light.sh 生成的 backend/glossary/__pycache__ .pyc），其余过。另做整份复审：settings.json、install 链、cutover.sh 通过；policy.json（final_paths 漏 scripts/release/ 与取证脚本）、ci.yml（runbooks/sql 误判文档档）必改，用户「都进」（intent 161742）。
+- **在途**：one-ops 已交 07bff4ce3（pyc 清理 trap 等）、f388c28cc（runbooks/sql 进 READ_BY_BUILDS）在 claude/one-ops-flow-v2-b1；855dd86ca（final_paths 17 项）在新子分支 claude/one-ops-flow-v2-b1p；cutover.sh 新版 sha1 138ad0e5。已派：三提交首轮一份、终审一份（结论 reviews/redesign/<sha>.md/.final.md），cutover-sh-138ad0e5.final.md。
+- **下一步**：复审全过→令 one-ops 合 b1＋b1p 进 next、重跑 check_reviews/acceptance_v2/light×3→报最终 sha 与推送命令→**用户本人推送**（旧推送门不认新树，intent 145440，会话不得代推）→看 #693 CI（不得自己轮询，用户问时读或 get_status）→全绿报用户定合入→合入后摘 queued、按 b1.md 第 5 节 cutover。
+- **用户本日决定**：92% 不叫停；补漏只定 U06=C/U13/U26，设置类用户自改（intent 131816、131943）；C4 维持 current 不动（142512）；保留模型名（141307）；注释规范第二批（121257）；防熵增五道闸与登记表=角色独占路径（154109、154200，coord-fix-report §13）；生产写门只挂 Bash 列二甲首项（160437）。
+- **会话**：one-ops（local_23c18019）每到交接点要用户 /clear，清后我 get_session/list_events 核 0 条再发「接续」并附全文令。巡检 watch.sh 后台跑。
 更新：2026-10-24 14:2x：用户交外部复核 acceptance/b1-review-grokbot.md，复现 b1-review-repro.md（成立 19、部分 7、不成立 0）。处置：C1 补终审 6 个（390aef980、848c57731、660aee138、52f44c19f、7cc88028e、502054a9e）已派；one-ops 做 C3（H4：门失败只拒生产预筛命中）、C4（rollback 切回 current）、check_reviews 读 policy final_paths、b1.md 订正；C2 须推整合分支跑 GitHub CI 后才合（待用户准推送）；C5～C9、C12、防膨胀②③④⑤进第二批；C10 待用户定。
 更新：2026-10-24 13:3x：**批一最终验收版本 next=955ddffd6**（5e3b417d3＋六项补回 08b54d057/ec5a6344e，首轮终审全过；check_reviews 83/85 只剩 #691 例外；acceptance_v2 同前；light 3 连 31/0/7；B4 不重做）。已报用户验收，等「通过」后按 b1.md 第 5 节合入窗口与 cutover。补漏 29 项已分流（coord-fix-report §12，intent 131816/131943），用户要求先专注批一。
 更新：2026-10-24 12:5x：**批一待用户验收**——验收版本 next=5e3b417d3（check_reviews 81/83 过、只剩 #691 例外；acceptance_v2 V02/V17a 已知例外；light 3 连过；B4 做完，current 已回 adcac8c22，演练产物已清；cutover.sh 加切换后/回退⑥人工复测）。用户扩范围「所有基建重新梳理」（intent 122909）：补漏盘点 gap-1-engineering.md（24 项）、gap-3-local-env.md（23 项）已出，gap-2-docs-governance 在跑；齐后合成清单＋批一验收材料一并给用户。注释规范第二批（intent 121257，coord-fix-report §10）。
