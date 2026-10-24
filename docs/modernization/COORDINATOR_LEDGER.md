@@ -3,6 +3,7 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 12:2x：next @b6bbeb3e8 已合四子分支（check_reviews 只剩 #691 两例外）；C6 五提交 30b9beeb1..5a964a645 首轮复审在跑，过后令 one-ops 合 next；one-ops 范围四项（claude_md_max_kb 1.8、.gitignore、cutover start_session、pre_push/relevant_change 注释）已转；one-quality（budget_check 例外登记、01-code-card C11 改 light.sh）与 design 指针清单留第二批（c6-report §5）。巡检临时用 scratchpad/watch-noself.sh（去掉本分支）。
 更新：2026-10-24 11:2x（接续）：O10 必改（硬链接/check_limit/上限+1）已补发 one-ops 转帮手；复审口径已裁（closes.json 对照表、one-merge 提交排除、coordinator 首行早期格式例外）；4 个缺终审（05c144e8b、242bb442d、b6dfe2f31、484de869e）已派 opus（11:4x 均通过）；closes.json 已签；O10 修 f3741815a 首轮、终审均通过，closes.json 该条已签；one-ops 正清空，接续后转它两份结论，令其复跑核对再合 -next，之后我做 C6；周用量 90%（92% 不叫停）。
 更新：2026-10-24 11:2x（one-coordinator，清空前交接；以本条为准）
 - **清空后第一件事**：不再用定时巡检（intent 071227）。后台跑 `zsh ~/.modernize/psa/coordinator/watch.sh`：每 60 秒比对 mailbox unacked、mq status、6 个 claude/*-flow-v2-b1/-next 分支 sha、在开 PR，有变化打印并退出，处理完再起；description 写「GOV-1023-COO-01 变化巡检 (脚本)」。被唤醒时顺带 get_usage 只作记录，92% 不再叫停（用户 2026-10-24 原话「92% 不用叫停」）。复审结论只落文件；跨会话消息少发。
