@@ -15,9 +15,11 @@ Usage: start_sheet.py <repo-root> [session] [--snapshot=<path>]  |  start_sheet.
 """
 import datetime
 import json
+import math
 import os
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -188,12 +190,48 @@ def find_handoff(text, fragment):
 
 
 def handoff_limit(root):
-    """policy.json start.handoff_max_kb in bytes (the limit handoff.py writes under), HANDOFF_KB when the file or key is missing or not a positive number."""
+    """(bytes, problem): policy.json start.handoff_max_kb in bytes (the limit handoff.py writes under). The value is checked the way budget_check's check_limit checks
+    every limit (a finite positive number; NaN, Infinity, a huge integer, zero, a negative or a non-number fail) and must leave the handoff inside the sheet
+    (at most SHEET_LIMIT bytes); a missing file or key, or a value that fails, gives HANDOFF_KB and says why, so the session start never breaks on it."""
     try:
         value = json.loads(open(os.path.join(root, "policy.json"), encoding="utf-8").read())["start"]["handoff_max_kb"]
     except (OSError, ValueError, KeyError, TypeError):
-        value = HANDOFF_KB
-    return int(value * 1024) if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0 else HANDOFF_KB * 1024
+        return HANDOFF_KB * 1024, ""
+    try:
+        ok = not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value) and 0 < value * 1024 <= SHEET_LIMIT
+    except OverflowError:
+        ok = False
+    if not ok:
+        return HANDOFF_KB * 1024, f"policy.json start.handoff_max_kb {str(value)[:20]!r} 须是有限正数且不超过 {SHEET_LIMIT // 1024} KB，按 {HANDOFF_KB} KB"
+    return int(value * 1024), ""
+
+
+def open_handoff(path, shown, limit):
+    """(at most limit + 1 bytes of the file, its size, refusal or ""): opened without following a link (O_NOFOLLOW), then fstat says it is a regular file
+    with one name (a hard link could bring in a file from outside the state directory, a key for instance: bottom line 3) and owned by this user."""
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0))
+    except FileNotFoundError:
+        return None, 0, f"没有 {shown}"
+    except OSError as error:
+        return None, 0, f"{shown} 打不开或是符号链接（{error.__class__.__name__}），不读"
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            return None, 0, f"{shown} 不是普通文件，不读"
+        if info.st_nlink != 1:
+            return None, 0, f"{shown} 有 {info.st_nlink} 个硬链接（可能指向 state 外的文件），不读"
+        if info.st_uid != os.getuid():
+            return None, 0, f"{shown} 的属主不是本人，不读"
+        data = b""
+        while len(data) <= limit:
+            chunk = os.read(fd, limit + 1 - len(data))
+            if not chunk:
+                break
+            data += chunk
+        return data, info.st_size, ""
+    finally:
+        os.close(fd)
 
 
 def state_handoff(root, name):
@@ -203,17 +241,19 @@ def state_handoff(root, name):
     shown = path.replace(os.path.expanduser("~"), "~", 1)
     if os.path.islink(path) or os.path.islink(os.path.dirname(path)):
         return None, f"{shown} 是符号链接，不读"
-    if not os.path.isfile(path):
-        return None, f"没有 {shown}"
-    with open(path, encoding="utf-8", errors="replace") as stream:
-        text = stream.read()
+    limit, problem = handoff_limit(root)
+    data, total, refused = open_handoff(path, shown, limit)
+    if refused:
+        return None, refused
+    text = data[:limit].decode("utf-8", errors="ignore")   # only limit + 1 bytes were read: a huge file costs no more than a short one
     if not text.strip():
         return None, f"{shown} 是空的"
-    limit = handoff_limit(root)
     head = f"{shown}（handoff.py 写的交接，全文注入）"
-    if size(text) > limit:
-        head = f"{shown}（{size(text)} 字节，超过 {limit} 字节上限，只注入开头；读原文，并用 handoff.py 按上限重写）"
-    return head + "\n" + fit(text.rstrip("\n"), limit), ""
+    if len(data) > limit:
+        head = f"{shown}（{total} 字节，超过 {limit} 字节上限，只注入开头；读原文，并用 handoff.py 按上限重写）"
+    head += f"（{problem}）" if problem else ""
+    body = data[:max(0, limit - size(MARK))].decode("utf-8", errors="ignore") + MARK if len(data) > limit else text.rstrip("\n")
+    return head + "\n" + body, ""
 
 
 def part_c(root, source, cards, snapshot, name=None):
@@ -301,7 +341,7 @@ def build(root, name=None, today=None, snapshot=None, intents=True):
     out = [f"【开工单】会话 {name}｜画像 {profile_path}（长输出宿主只显示开头，本页在 {SHEET_LIMIT // 1024} KB 内）",
            "\n## A 身份", guarded("A", lambda: part_a(profile)),
            "\n## B 当前任务", cards_failed or guarded("B", lambda: part_b(cards)),
-           "\n## C 交接", guarded("C", lambda: part_c(root, source, cards, snapshot, name)) if intents else "x" * (handoff_limit(root) + 200),
+           "\n## C 交接", guarded("C", lambda: part_c(root, source, cards, snapshot, name)) if intents else "x" * (handoff_limit(root)[0] + 200),
            f"\n## D 近 {INTENT_DAYS} 天相关决定（intent/）", guarded("D", lambda: part_d(root, name, bcs, today)) if intents else "x" * D_LIMIT,
            "\n## 按需读（不注入）：" + ("、".join(docs) if docs else "无上下文文档") + "；规则细则 CLAUDE.md、docs/modernization/SESSION_PLAYBOOK.md"]
     text = "\n".join(out)
@@ -432,7 +472,7 @@ def self_test():
         assert "是空的，改读画像的交接源" in build(root, "one-x", today)
         head, tail = "# 交接\n## 做到哪\n- 做到 Q\n## 下一步\n", "\n- 末行 END\n"
         whole = head + "甲" * ((2048 - size(head + tail)) // 3) + "a" * ((2048 - size(head + tail)) % 3) + tail
-        assert size(whole) == 2048 == handoff_limit(root)
+        assert size(whole) == 2048 and handoff_limit(root) == (2048, "")
         open(handoff, "w", encoding="utf-8").write(whole)
         sheet = build(root, "one-x", today)
         part = sheet.split("\n## C 交接\n")[1].split("\n## D ")[0]
@@ -442,12 +482,51 @@ def self_test():
         part = cut.split("\n## C 交接\n")[1].split("\n## D ")[0]
         assert "超过 2048 字节上限，只注入开头" in part and part.rstrip().endswith(MARK) and "TAIL" not in part and "- 做到 Q" in part and size(cut) <= SHEET_LIMIT, part[-300:]
         write("policy.json", json.dumps({"start": {"handoff_max_kb": 1}}))
-        assert handoff_limit(root) == 1024 and "超过 1024 字节上限" in build(root, "one-x", today), "the limit is policy.json start.handoff_max_kb"
+        assert handoff_limit(root) == (1024, "") and "超过 1024 字节上限" in build(root, "one-x", today), "the limit is policy.json start.handoff_max_kb"
         os.remove(os.path.join(root, "policy.json"))
         os.rename(handoff, handoff + ".real")
         os.symlink(handoff + ".real", handoff)
         assert "是符号链接，不读" in build(root, "one-x", today) and "END" not in build(root, "one-x", today)
         os.remove(handoff)
+        # 4c. a hard link brings in a file from outside the state directory (a fictitious key here): refused, as are another owner's file and a non-regular one (84be6ded7 final, 1)
+        secret = os.path.join(tmp, "outside", "fake_key.txt")
+        os.makedirs(os.path.dirname(secret))
+        open(secret, "w", encoding="utf-8").write("FAKE-KEY-0000 not a real secret\n")
+        os.link(secret, handoff)
+        linked = build(root, "one-x", today)
+        assert "有 2 个硬链接" in linked and "FAKE-KEY" not in linked and "改读画像的交接源" in linked, "a hard-linked file is not read"
+        os.remove(handoff)
+        os.symlink(secret, handoff)  # a link that appears between the islink check and the open: O_NOFOLLOW refuses it there too
+        assert open_handoff(handoff, "x", 2048)[0] is None and "符号链接" in open_handoff(handoff, "x", 2048)[2]
+        os.remove(handoff)
+        os.mkfifo(handoff)
+        assert "不是普通文件，不读" in build(root, "one-x", today), "a FIFO is refused, without blocking"
+        os.remove(handoff)
+        open(handoff, "w", encoding="utf-8").write(whole)
+        real_uid = os.getuid
+        os.getuid = lambda: real_uid() + 1
+        try:
+            assert "属主不是本人，不读" in build(root, "one-x", today) and "END" not in build(root, "one-x", today)
+        finally:
+            os.getuid = real_uid
+        # 4d. handoff_max_kb is checked as budget_check's check_limit checks a limit, and must fit in the sheet: a bad value gives 2 KB and says so (84be6ded7 final, 4)
+        for bad in ("Infinity", "NaN", "1e400", "1e9", "0", "-1", '"2"', "true", "10"):
+            write("policy.json", '{"start": {"handoff_max_kb": %s}}' % bad)
+            limit, problem = handoff_limit(root)
+            assert limit == 2048 and "须是有限正数" in problem, (bad, limit, problem)
+            assert "须是有限正数" in build(root, "one-x", today) and check_all(root) == [], bad
+        os.remove(os.path.join(root, "policy.json"))
+        # 4e. a huge file: only limit + 1 bytes are read (84be6ded7 final, 5)
+        open(handoff, "w", encoding="utf-8").write(whole + "乙" * (20 * 1024 * 1024))
+        real_read, taken = os.read, []
+        os.read = lambda fd, n: taken.append(len(real_read(fd, 0)) + n) or real_read(fd, n)
+        try:
+            data, total, refused = open_handoff(handoff, "x", 2048)
+        finally:
+            os.read = real_read
+        assert len(data) == 2049 and sum(taken) <= 2049 and total == size(whole) + 3 * 20 * 1024 * 1024 and not refused, (len(data), sum(taken), total)
+        huge = build(root, "one-x", today)
+        assert f"{total} 字节，超过 2048 字节上限" in huge and huge.split("\n## C 交接\n")[1].split("\n## D ")[0].rstrip().endswith(MARK), huge[-300:]
         open(handoff, "w", encoding="utf-8").write(whole)
         # 5. the hard limit: huge sections and many long cards still fit, with a mark
         for i in range(7):
