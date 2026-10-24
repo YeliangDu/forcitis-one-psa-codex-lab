@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Print the unit test classes that start no container and no Spring context, comma separated, for `surefire:test -Dtest=` (scripts/precheck.sh --pre-push).
+"""Print the unit test classes that start no container and no Spring context, comma separated, for `surefire:test -Dtest=`.
 
 A class is light when its name ends in `Test`, it is not abstract, and neither its own source nor any class it extends (followed through the test sources) mentions a
 marker of a heavy test: @SpringBootTest, Testcontainers, a call that starts a database (TestPostgres.container / shared / database, any TestMssql call), a container class, or an *Support / *IntegrationTest base. `*IT` classes belong to failsafe and are never listed.
 The list is generated from the sources on purpose: a hand-kept list or a path-to-test map would leave out the next scan test (SeeyonSourceScanTest ran in CI only, three times).
 
---changed <file> narrows the list to what the changed paths (one per line) can affect (scripts/precheck.sh --pre-push): the tests outside the module directories always run, a module's own tests only when that module changed, and any
+--changed <file> narrows the list to what the changed paths (one per line) can affect: the tests outside the module directories always run, a module's own tests only when that module changed, and any
 change in backend/ that is not module source (kernel, resources, pom, test fixtures, a module that no longer exists) falls back to the whole list; with --explain it prints the scope instead.
 
 Usage: light_unit_classes.py [test-source-root] | light_unit_classes.py --reading <text> [--heavy] [test-source-root] | light_unit_classes.py --changed <file> [--explain] | light_unit_classes.py --self-test
