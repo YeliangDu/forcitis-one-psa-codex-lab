@@ -13,6 +13,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONDONTWRITEBYTECODE: "1"  # no __pycache__ in the checkout: the backend job runs light.sh and then the tests in the same workspace, and a test walking a source directory reads the .pyc (#693, LegacyNumberSourceIT); python3 -I ignores it, so light.sh also removes what its run left
+
 concurrency:
   # a label other than `queued` must not cancel a run in progress, and the nightly full run must not cancel (nor be cancelled by) the push to main that the release gate reads: each gets its own group
   group: ci-${{ github.ref }}${{ (github.event.action == 'labeled' && github.event.label.name != 'queued' || github.event.action == 'edited') && '-other-label' || github.event_name == 'schedule' && '-nightly' || '' }}

@@ -9,6 +9,7 @@
 # - budget_check（one-quality 的 scripts/ci/budget_check.py，用法 `budget_check.py [--root DIR]`）：文件在就跑，还没合入时记 SKIP。
 # Bash 3.2（macOS）可用：不用关联数组与 mapfile。
 set -uo pipefail
+export PYTHONDONTWRITEBYTECODE=1  # 不在检出里留 __pycache__：CI 的 backend 作业随后在同一工作区跑测试，遍历目录的测试读到 .pyc 会崩（#693）；python3 -I 不认它，末项删掉本次新增的
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "light.sh：不在 git 仓库里" >&2; exit 2; }
 cd "$root" || exit 2
@@ -20,6 +21,7 @@ if [ -n "$base" ] && ! git rev-parse --verify -q "$base^{commit}" >/dev/null; th
 fi
 work=$(mktemp -d "${TMPDIR:-/tmp}/light.XXXXXX") || exit 2
 trap 'rm -rf "$work"' EXIT
+pyc() { git ls-files -oi --exclude-standard --directory | grep -E '(^|/)__pycache__/$|\.pyc$' | sort; }; pyc >"$work/pyc_before"  # 跑前已有的被忽略字节码（目录折叠成一行），末项只查新增
 changed=$work/changed
 # shellcheck source=scripts/ci/light_triggers.sh
 . scripts/ci/light_triggers.sh
@@ -111,6 +113,7 @@ if [ -f scripts/ci/budget_check.py ]; then
 else
   skip "budget_check" "scripts/ci/budget_check.py 还没合入（one-quality 的 claude/one-quality-flow-v2-b1）"
 fi
+rm_new_pyc() { pyc | comm -13 "$work/pyc_before" - | while IFS= read -r p; do echo "removed $p"; rm -rf -- "$p" || return 1; done; }; run "remove __pycache__ left by this run" rm_new_pyc
 
 echo
 echo "light.sh：$passed PASS，$failed FAIL，$skipped SKIP，共 $((SECONDS - started_all)) 秒（基线 ${base:-无}）"
