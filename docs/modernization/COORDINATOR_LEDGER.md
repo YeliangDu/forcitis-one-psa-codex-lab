@@ -3,6 +3,11 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 18:3x（one-coordinator，60% 交接；清空后先读本条）
+- **批一已合入**：用户「合入」（intent 183328）。#693 head e9b4ba9fd（GitHub CI run 40108508139 全绿：backend 单元 1762/集成 1029、frontend、gitleaks）→ gh pr merge --merge --match-head-commit → **origin/main = bef535317**（16:34Z）。check_reviews 只剩 #691 两例外；系统审查 sysreview-1/2/3、外部复核均处置，推后项见 b1.md 3 节与 8.1、coord-fix-report §10～§14。
+- **已做**：9 个旧会话归档（glossary、quality、merge、data、architecture、platform-file、1a-admin、1a-par、ops-b1-o7fix）；未推分支打本机备份标签 refs/tags/backup/20261024-archive/*。
+- **在途：切换（b1.md 第 5 节）**：one-ops 在做工具库 v2-b1 标签与合入窗口逐步命令清单；cutover 前置要远端 flow-v2-b1 标签指向 bef535317；cutover.sh 须**用户在自己终端**跑（无终端会停）；第 2 步停下人工复测：开一个应用自建工作区会话测 Bash、提交、生产写，确认拦截入口是 current/…；之后 budget_level 装载、回读。切换后：删记忆 coordinator-push-batching、coordinator-stalled-pr-check；新会话由调度 start_session 开、分支用会话名；COO-01 在固定 main 提交上逐项核 35 项。
+- **用户本日规则**：效率优先（171229）；注释、防熵增、登记表等进冻结后第一个流程窗口；生产写门只挂 Bash 与取证脚本信任列二甲。
 更新：2026-10-24 17:1x：系统审查（Fable 三区 sysreview-1/2/3）已出；用户「开发前期效率优先」（intent 171229）：底线 4 取证脚本信任只核入口记已知例外推第二批；本轮只修 bash3.2 全角（含 settings.json）、prod-approvals 进 final_paths、./ 前缀、b1.md 切换前置（工具库打 v2-b1、旧会话先归档）；PROMPT.md/CODING_STANDARD/budget_check H9 推第二批。调度已提交 coordinator 95becd373（RULES ⑩ 删 delegate、METHODS 三处）。两条记忆（coordinator-push-batching、coordinator-stalled-pr-check）待切换后删。**本轮之后批一不再加审查**。
 更新：2026-10-24 16:3x（one-coordinator，50% 交接；清空后先读本条）
 - **做到哪**：批一外部复核（acceptance/b1-review-grokbot.md，复现 b1-review-repro.md）已处置；用户准推送跑 CI（intent 141307），用户本人推了 next@5d1e9fba4，草稿 PR FORCITIS/forcitis-one-psa#693（已绑本会话 PR 面板，加了 queued 触发重作业；旧 mq 队列空、不会合）。CI：backend 重作业 1 个 IT 失败（LegacyNumberSourceIT 读到 light.sh 生成的 backend/glossary/__pycache__ .pyc），其余过。另做整份复审：settings.json、install 链、cutover.sh 通过；policy.json（final_paths 漏 scripts/release/ 与取证脚本）、ci.yml（runbooks/sql 误判文档档）必改，用户「都进」（intent 161742）。
