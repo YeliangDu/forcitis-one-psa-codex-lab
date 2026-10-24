@@ -4,7 +4,9 @@
 A identity   the profile's 职责 / 独占 / 不碰 / 输入 / 输出 / 权限边界                       <= 1500 bytes
 B tasks      cards in tasks/ whose 会话 is this session and 状态 starts with 已派 / 进行中 / 阻塞:
              number, status, path, and the card's 目标 and 完成标准 sections                    <= 2500 bytes
-C handoff    the profile's `交接源: <path>#<heading fragment>`: the newest matching section (做到哪 / 下一步 / 别做) + path   <= 1000 bytes
+C handoff    the session's handover file state/<session>/handoff.md, written by the tools library's handoff.py (D17): injected whole up to policy.json
+             start.handoff_max_kb (2 KB when missing), cut beyond it with a note. Missing, empty or a link: said out loud, then the fallback below.
+             Fallback: the profile's `交接源: <path>#<heading fragment>`: the newest matching section (做到哪 / 下一步 / 别做) + path   <= 1000 bytes
 D decisions  intent fragments of the last 7 days that name this session or its bc, one line each, at most 8   <= 1000 bytes
 Missing things are said out loud (no card, incomplete card, no handoff source), never skipped; a part that fails says so and the others stay. Context documents are listed as paths only.
 Usage: start_sheet.py <repo-root> [session] [--snapshot=<path>]  |  start_sheet.py --check <repo-root>  (every profile fits)  |  start_sheet.py --self-test
@@ -34,6 +36,8 @@ TASKS = "docs/modernization/tasks"
 # built from the sessions path: intent fragments are read here at session start only; the build-side check (check_all) never reads them, so no build depends on them
 INTENTS = sc.SESSIONS.rsplit("/", 1)[0] + "/intent"
 MARK = "…（全文见原文）"
+STATE = "~/.modernize/psa/state"  # the tools library's handoff.py writes <STATE>/<session>/handoff.md (HANDOFF_STATE overrides, as there)
+HANDOFF_KB = 2
 
 
 def size(text):
@@ -183,8 +187,42 @@ def find_handoff(text, fragment):
     return hit
 
 
-def part_c(root, source, cards, snapshot):
-    """Text for the handoff source (path, heading fragment) of the profile; a missing source, file or heading is said, never skipped."""
+def handoff_limit(root):
+    """policy.json start.handoff_max_kb in bytes (the limit handoff.py writes under), HANDOFF_KB when the file or key is missing or not a positive number."""
+    try:
+        value = json.loads(open(os.path.join(root, "policy.json"), encoding="utf-8").read())["start"]["handoff_max_kb"]
+    except (OSError, ValueError, KeyError, TypeError):
+        value = HANDOFF_KB
+    return int(value * 1024) if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0 else HANDOFF_KB * 1024
+
+
+def state_handoff(root, name):
+    """(text to inject, or None, and what was found) for <state>/<name>/handoff.md: whole up to the limit, cut beyond it with a note."""
+    folder = os.environ.get("HANDOFF_STATE") or os.path.expanduser(STATE)
+    path = os.path.join(folder, name, "handoff.md")
+    shown = path.replace(os.path.expanduser("~"), "~", 1)
+    if os.path.islink(path) or os.path.islink(os.path.dirname(path)):
+        return None, f"{shown} 是符号链接，不读"
+    if not os.path.isfile(path):
+        return None, f"没有 {shown}"
+    with open(path, encoding="utf-8", errors="replace") as stream:
+        text = stream.read()
+    if not text.strip():
+        return None, f"{shown} 是空的"
+    limit = handoff_limit(root)
+    head = f"{shown}（handoff.py 写的交接，全文注入）"
+    if size(text) > limit:
+        head = f"{shown}（{size(text)} 字节，超过 {limit} 字节上限，只注入开头；读原文，并用 handoff.py 按上限重写）"
+    return head + "\n" + fit(text.rstrip("\n"), limit), ""
+
+
+def part_c(root, source, cards, snapshot, name=None):
+    """The session's state handoff file when there is one; else the handoff source (path, heading fragment) of the profile. Anything missing is said, never skipped."""
+    if name:
+        found, why = state_handoff(root, name)
+        if found:
+            return found
+        return f"交接文件：{why}，改读画像的交接源。\n" + fit(part_c(root, source, cards, snapshot), C_LIMIT)
     shot = f"；最新交接快照（机械记录，未内联）：{snapshot}" if snapshot else "；也没有交接快照"
     if source is None:
         return "画像没有交接源，向调度要交接位置" + shot
@@ -263,7 +301,7 @@ def build(root, name=None, today=None, snapshot=None, intents=True):
     out = [f"【开工单】会话 {name}｜画像 {profile_path}（长输出宿主只显示开头，本页在 {SHEET_LIMIT // 1024} KB 内）",
            "\n## A 身份", guarded("A", lambda: part_a(profile)),
            "\n## B 当前任务", cards_failed or guarded("B", lambda: part_b(cards)),
-           "\n## C 交接", guarded("C", lambda: part_c(root, source, cards, snapshot)),
+           "\n## C 交接", guarded("C", lambda: part_c(root, source, cards, snapshot, name)) if intents else "x" * (handoff_limit(root) + 200),
            f"\n## D 近 {INTENT_DAYS} 天相关决定（intent/）", guarded("D", lambda: part_d(root, name, bcs, today)) if intents else "x" * D_LIMIT,
            "\n## 按需读（不注入）：" + ("、".join(docs) if docs else "无上下文文档") + "；规则细则 CLAUDE.md、docs/modernization/SESSION_PLAYBOOK.md"]
     text = "\n".join(out)
@@ -295,7 +333,9 @@ def self_test():
     assert sections("## 目标\nx\n## 完成标准\ny\n") == {"目标": "x", "完成标准": "y"}
     assert sections("### 目标\nx\n### 下一步\ny\n## 别的\nz", "###") == {"目标": "x", "下一步": "y"}
     assert front_matter("---\n任务号: T-1\n会话: one-x\n---\n# 标题") == {"任务号": "T-1", "会话": "one-x"}
+    real_state = os.environ.get("HANDOFF_STATE")
     with tempfile.TemporaryDirectory() as tmp:
+        os.environ["HANDOFF_STATE"] = state = os.path.join(tmp, "state")  # never the real ~/.modernize/psa/state
         root = os.path.join(tmp, "one-x-r1")
         os.makedirs(os.path.join(root, sc.SESSIONS))
         os.makedirs(os.path.join(root, TASKS))
@@ -383,6 +423,32 @@ def self_test():
         finally:
             globals()["part_c"] = real_part_c
         assert "## C 交接\n（本段生成失败：OSError" in broken and "## A 身份" in broken and "## D" in broken, broken
+        # 4b. the state handoff file (GOV-1023-FV2 O10, D17): a 2 KB file goes in whole; missing, empty or a link falls back to the profile's source; too long is cut, with a note
+        handoff = os.path.join(state, "one-x", "handoff.md")
+        missing = build(root, "one-x", today)
+        assert "交接文件：没有 " + handoff in missing and "改读画像的交接源。\n画像没有交接源" in missing, "a missing file is said, then the old source is read as before"
+        os.makedirs(os.path.dirname(handoff))
+        open(handoff, "w", encoding="utf-8").write(" \n")
+        assert "是空的，改读画像的交接源" in build(root, "one-x", today)
+        head, tail = "# 交接\n## 做到哪\n- 做到 Q\n## 下一步\n", "\n- 末行 END\n"
+        whole = head + "甲" * ((2048 - size(head + tail)) // 3) + "a" * ((2048 - size(head + tail)) % 3) + tail
+        assert size(whole) == 2048 == handoff_limit(root)
+        open(handoff, "w", encoding="utf-8").write(whole)
+        sheet = build(root, "one-x", today)
+        part = sheet.split("\n## C 交接\n")[1].split("\n## D ")[0]
+        assert whole.rstrip("\n") in part and "全文注入" in part and MARK not in part and "改读画像的交接源" not in part and size(sheet) <= SHEET_LIMIT, part[-300:]
+        open(handoff, "w", encoding="utf-8").write(whole + "超出的一行 TAIL\n")
+        cut = build(root, "one-x", today)
+        part = cut.split("\n## C 交接\n")[1].split("\n## D ")[0]
+        assert "超过 2048 字节上限，只注入开头" in part and part.rstrip().endswith(MARK) and "TAIL" not in part and "- 做到 Q" in part and size(cut) <= SHEET_LIMIT, part[-300:]
+        write("policy.json", json.dumps({"start": {"handoff_max_kb": 1}}))
+        assert handoff_limit(root) == 1024 and "超过 1024 字节上限" in build(root, "one-x", today), "the limit is policy.json start.handoff_max_kb"
+        os.remove(os.path.join(root, "policy.json"))
+        os.rename(handoff, handoff + ".real")
+        os.symlink(handoff + ".real", handoff)
+        assert "是符号链接，不读" in build(root, "one-x", today) and "END" not in build(root, "one-x", today)
+        os.remove(handoff)
+        open(handoff, "w", encoding="utf-8").write(whole)
         # 5. the hard limit: huge sections and many long cards still fit, with a mark
         for i in range(7):
             write(f"{TASKS}/B-{i}.md", f"---\n任务号: B-{i}\n会话: one-x\n状态: 进行中\n---\n## 目标\n\n{'目标' * 900}\n\n## 完成标准\n\n{'标准' * 900}\n")
@@ -397,9 +463,14 @@ def self_test():
         hook = lambda stdin: subprocess.run([sys.executable, "-I", os.path.abspath(__file__), "--hook"], input=stdin, capture_output=True, text=True, timeout=60)
         r = hook(json.dumps({"cwd": os.path.join(root, "docs")}))
         assert r.returncode == 0 and r.stdout.startswith("【开工单】") and "告警" not in r.stdout.splitlines()[0], ("--hook builds the sheet of the payload cwd's repo", r.stdout[:200], r.stderr)
+        assert whole.rstrip("\n") in r.stdout and "- 末行 END" in r.stdout, "--hook injects the 2 KB handoff file whole, next to seven long cards"
         for bad in ("{bad", json.dumps({"cwd": tmp})):
             r = hook(bad)
             assert r.returncode == 0 and r.stdout.startswith("【开工单】告警"), ("--hook never fails the session start", bad, r.stdout, r.stderr)
+    if real_state is None:
+        os.environ.pop("HANDOFF_STATE", None)
+    else:
+        os.environ["HANDOFF_STATE"] = real_state
     print("start_sheet self-test: ok")
 
 
