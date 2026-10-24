@@ -6,6 +6,8 @@
 - **调度已裁定**：必改以修提交关闭；one-merge 子分支不进 b1（intent 222945），核对时排除；#691 两个基点提交、早期格式结论文件按例外处理；补终审的 4 个（05c144e8b、242bb442d、b6dfe2f31、484de869e）**已通过**。
 - **接续后先做**：①复跑 check_reviews（命令见 b1.md 1.1），更新 b1.md 1.2 表格（这 4 个与被它们关闭的 610fca580、9e80a8810、6e77ce19a 应转为通过）。②b1.md 第 3、5 节按调度 11:4x 令改：新 mq 冒烟三项（机械入队、head 加提交后拒入队、文档快道）标「随 one-merge 批验，搬到 M 批验收」（依据 intent 222945）；加三条验证「旧 mq 不受切换影响」：a. 切换后 `mq.py status` 正常，launchd 里旧 plist 仍为 loaded，与切换前备份逐字节一致（cutover 不换 mq 时也要先存一份备份比对，**要改 cutover.sh**：跳过分支里也备份，回读时比对并把「跳过」行写进日志）；b. 现行 mq 自测在新 main 上全过；c. 新装的 pre-merge-commit 钩子不挡旧 mq 的合入路径：在临时克隆上用假 PR 分支本地合并演练，不碰远端。
 - **O10**：84be6ded7 调度改判必改（O_NOFOLLOW＋fstat 防硬链、handoff_max_kb 按 check_limit、超大文件读上限+1），已转帮手 ops-b1-o7fix（local_9be6f7e2）；它把修 sha 直报调度，调度转我后：补进 closes.json `84be6ded7` 列表→临时 worktree 复跑 start_sheet 自测、gates_selftest、light.sh→报调度。
+- **O10 修已提交 f3741815a**（帮手，接 84be6ded7 后），已补进 closes.json（`84be6ded7`→f3741815a，待调度签这一条）；调度派首轮＋终审，结论来后复跑 check_reviews 即可，临时 worktree 复跑 start_sheet 自测、gates_selftest、light.sh。
+- **第二批甲待办（调度裁定）**：画像「交接源」退回来源批一保留；C9 删画像目录时一起取消，build_sessions 必填检查与 session_context.handoff_source 同步去掉。
 - **之后**：b1 收齐→按 README §5 顺序 `merge --no-ff` 进 next（不含 one-merge）→在 next 上跑 b1.md 第 2 节验证（后台跑）→B4 演练（两种会话）→填 b1.md 待填项→报调度。
 
 ## 2026-10-24 上午六次增补（清空接续，以本节为准，覆盖五次增补同名项）
