@@ -49,7 +49,7 @@
 
 - `docs/modernization/sessions/one-coordinator.md`
 - 交接源: docs/modernization/COORDINATOR_LEDGER.md#交接
-- 现状（2026-10-24 18:4x）：批一已合入 main＝bef535317（#693）；切换在途（acceptance/b1-cutover-steps.md，用户终端跑 cutover.sh、调度开复测会话）；细节见台账交接段首条。
+- 现状（2026-10-24 19:1x）：批一已上线（main＝bef535317）；清空前交接见台账交接段首条。
 
 ## 交接条件
 

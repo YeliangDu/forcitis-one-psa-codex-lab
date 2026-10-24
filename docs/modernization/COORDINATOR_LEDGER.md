@@ -3,6 +3,13 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 19:1x（one-coordinator，清空前交接；**清空后先读本条，以本条为准**）
+- **现状**：批一已合入并上线。origin/main＝bef535317（#693 合入）；主检出、hooks current 均 bef535317；工具库 one-session 在 v2-b1（452a2ac）；旧 mq running 未换；budget_level 已装（V17a 已知例外：读数源 plan-usage-history.json 不常更新，第二批改 statusline）。切换日志 ~/.modernize/psa/ops/cutover-b1/cutover.log；验收稿 ~/.modernize/psa/coordinator/redesign-1023/acceptance/b1.md（含已知例外与 8.1 第二批待办）。
+- **会话**：本仓库只剩 one-ops（local_23c18019，每到交接点要用户 /clear；清后 list_events 核 0 条再发「接续」附全文令）与本会话；其余全部归档。新会话一律由调度 start_session 开，分支用会话名（开工单靠 .claude/session-name 或目录/分支名认身份）。
+- **用户决定（10-24）**：业务暂停延续到**基建全部结束**（intent 185805）；开发前期效率优先（171229）；补漏只定 U06=C 不开新批、二甲只修删除会弄断的，其余冻结后每周处理（131816），设置类用户自改（131943）；注释规范、防熵增五道闸、登记表=角色独占路径进冻结后第一个流程窗口（121257、154109、154200）；生产写门只挂 Bash 与取证脚本信任列二甲首项（160437、171229）；保留模型名（141307）；C4 回退 current 不动（142512）；92% 不叫停。
+- **待办（按序）**：①等 one-ops 报 budget_level 30 分钟复查，补进 b1.md 即批一收尾；②开 PR 把 claude/one-coordinator-two-lanes（本台账＋intent 32 个提交）与 claude/one-ops-r56（OPS_CONTEXT 交接）合进 main（文档档）；③10-27（周一，额度 10-26 17:00 重置后）开二甲：删 mailbox、session_daily、heavy_slot 等，D 类零读者归档 archive/2026-10，**硬期限 11-07 proposal_reads 到期**（U08 页选 A），阻断项：closeout 两个检查器先移、删 status/ 与改 deploy_gate 同提交；二甲首项生产写门补 Monitor 等不过门工具与取证脚本信任；清单见 coord-fix-report §7～§14 与 gap-summary.md、sysreview-1/2/3。④COO-01 全部批次完成后在固定 main 提交逐项核 35 项。
+- **流程教训**（用户认可方向，未定稿）：每批第一天开草稿 PR 跑 CI；验证在真实环境（去会话 env、UTF-8、/bin/bash 3.2）；合暂存前守护文件整份复审；删除附去处表；关键批次加不同模型复核（Fable 已用于系统审查）。
+- **清理记录**：远端删 22 条分支（bundle ~/.modernize/psa/branch-cleanup-20261024/）；旧会话分支本机备份标签 backup/20261024-archive/*；旧记忆两条已删（备份 coordinator/memory-retired-20261024/）。巡检 watch.sh 清空后按需重起。确认页 https://claude.ai/artifact/BTXfj4kga8KrwKSRKkepCY（补漏 29 项，3 项口头覆盖）。
 更新：2026-10-24 18:5x：**批一已上线**——cutover.sh 18:39–18:41 用户终端跑完（日志 ~/.modernize/psa/ops/cutover-b1/cutover.log），复测会话通过并已归档；V17a 记已知例外（读数源 plan-usage-history.json 不常更新，第二批改 statusline）。旧记忆两条已删（备份 coordinator/memory-retired-20261024/）。远端分支按用户「按建议处理」删 22 条（bundle 与清单 ~/.modernize/psa/branch-cleanup-20261024/），剩 11 条：业务 6 条、two-lanes（**本台账与 intent 32 个提交待合进 main**）、one-ops-r56（ops 交接待合）、#658 分支、infra-batch（二甲摘）、generated-docs（用途未核）。待用户定：是否恢复业务（D03 退出条件按理已满足，带 V02/V09 例外）。二甲建议 10-27（周一，重置后）开工，硬期限 11-07 proposal_reads。
 更新：2026-10-24 18:3x（one-coordinator，60% 交接；清空后先读本条）
 - **批一已合入**：用户「合入」（intent 183328）。#693 head e9b4ba9fd（GitHub CI run 40108508139 全绿：backend 单元 1762/集成 1029、frontend、gitleaks）→ gh pr merge --merge --match-head-commit → **origin/main = bef535317**（16:34Z）。check_reviews 只剩 #691 两例外；系统审查 sysreview-1/2/3、外部复核均处置，推后项见 b1.md 3 节与 8.1、coord-fix-report §10～§14。
