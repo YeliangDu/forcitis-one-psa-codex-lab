@@ -61,6 +61,9 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/architecture/ssot/t-transitions/transitions.yaml",
     "docs/modernization/phase1a/infra/runbooks/sql/",
     "docs/modernization/build_all.py",
+    # rule and role files: read by scripts/ci/budget_check.py (always-run check once wired in, Q5)
+    "docs/modernization/RULES.md",
+    "docs/modernization/roles/",
     # 错题本：build_all.py 的自测步骤（scripts/ci/ci_recurrence.py 读册、quality/defect-bank/defect_bank_check.py 检查册）在 gitleaks 作业里无条件运行
     "docs/modernization/quality/defect-bank/",
     # ruling record: read by scripts/ci/acceptance_rulings.py in the always-run acceptance step
