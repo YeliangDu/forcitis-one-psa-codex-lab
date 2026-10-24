@@ -3,6 +3,7 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 14:2x：用户交外部复核 acceptance/b1-review-grokbot.md，复现 b1-review-repro.md（成立 19、部分 7、不成立 0）。处置：C1 补终审 6 个（390aef980、848c57731、660aee138、52f44c19f、7cc88028e、502054a9e）已派；one-ops 做 C3（H4：门失败只拒生产预筛命中）、C4（rollback 切回 current）、check_reviews 读 policy final_paths、b1.md 订正；C2 须推整合分支跑 GitHub CI 后才合（待用户准推送）；C5～C9、C12、防膨胀②③④⑤进第二批；C10 待用户定。
 更新：2026-10-24 13:3x：**批一最终验收版本 next=955ddffd6**（5e3b417d3＋六项补回 08b54d057/ec5a6344e，首轮终审全过；check_reviews 83/85 只剩 #691 例外；acceptance_v2 同前；light 3 连 31/0/7；B4 不重做）。已报用户验收，等「通过」后按 b1.md 第 5 节合入窗口与 cutover。补漏 29 项已分流（coord-fix-report §12，intent 131816/131943），用户要求先专注批一。
 更新：2026-10-24 12:5x：**批一待用户验收**——验收版本 next=5e3b417d3（check_reviews 81/83 过、只剩 #691 例外；acceptance_v2 V02/V17a 已知例外；light 3 连过；B4 做完，current 已回 adcac8c22，演练产物已清；cutover.sh 加切换后/回退⑥人工复测）。用户扩范围「所有基建重新梳理」（intent 122909）：补漏盘点 gap-1-engineering.md（24 项）、gap-3-local-env.md（23 项）已出，gap-2-docs-governance 在跑；齐后合成清单＋批一验收材料一并给用户。注释规范第二批（intent 121257，coord-fix-report §10）。
 更新：2026-10-24 12:2x：next @b6bbeb3e8 已合四子分支（check_reviews 只剩 #691 两例外）；C6 五提交 30b9beeb1..5a964a645 首轮复审在跑，过后令 one-ops 合 next；one-ops 范围四项（claude_md_max_kb 1.8、.gitignore、cutover start_session、pre_push/relevant_change 注释）已转；one-quality（budget_check 例外登记、01-code-card C11 改 light.sh）与 design 指针清单留第二批（c6-report §5）。巡检临时用 scratchpad/watch-noself.sh（去掉本分支）。
