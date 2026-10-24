@@ -2,6 +2,8 @@
 
 ## 2026-10-24 13:00 交接（上下文 21%，清空接续；以本节为准）
 
+- **再更新**：08b54d057 首轮必改（light.sh 超 120 行）由 ec5a6344e 关闭（拆 light_triggers.sh、light_selftest.sh，-z 与 git 退出码），两者首轮终审均过；closes.json 已补；已合进 next，**最终 next＝955ddffd6**（本地未推）；全套验收已重跑（b1run-955ddffd6/），b1.md 已更新，已报调度。下一步等调度与用户验收、切换时机；建议项留第二批。
+
 - **更新（接续后）**：两种基线重跑发现 72228d656 带出两处失败（proposal_reads 未登记 light.sh；自测示例让 relevant_change 把 light.sh 判成读全部文档），已修并 amend 为 **08b54d057**（ops-fv2-b1，未推）；重跑 origin/main 30 PASS 0 FAIL，main~30 仅 check_pages --changed 报 GL6/GL7 方言（新页照查的设计，非回归）。已报调度派首轮＋终审，等结论后做原第③步（next 合入时用 08b54d057）。调度嘱：切换时旧 mq 锁文件不清（已核 cutover.sh 不碰 .git/merge-queue/）。
 
 - **在做：调度令 gap-2（批一验收前必改）**：旧 precheck.sh 里按改动触发、旧 ci.yml 从未跑的五项（build_decision_page、check_pages 自测与 --changed、j_checks、shared_mock_verify_scan、weak_registration_scan）接进 light.sh。**已提交 b1 子分支 72228d656（本地，未推送，子分支照例不推）**：沿用 precheck 原路径模式按改动触发，无基线全跑；盘点另发现 shell 语法（改到的 .sh 逐个 bash -n）也无去处，一并补（须向调度说明这是第六项）；`light.sh --self-test` 已过，bash 3.2 过，shellcheck 过，两次变异（j_checks 模式、t_shell 模式）自测均失败＝有效。b1.md 已加「附录 A」26 项去处表。
