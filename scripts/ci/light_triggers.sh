@@ -1,5 +1,5 @@
 # shellcheck shell=bash disable=SC2034,SC2154  # 被 source 的库：变量在读入方用，base 与 changed 由读入方设
-# 按改动触发的检查（GOV-1023-FV2 gap-2）：由 light.sh 与 light_selftest.sh 用 source 读入，不单独运行。
+# light.sh 的辅助：按改动触发的检查（GOV-1023-FV2 gap-2）与字节码清理（#693）；由 light.sh 与 light_selftest.sh 用 source 读入，不单独运行。
 # 路径模式照搬原 precheck.sh 的 touches 模式（ERE，对仓库相对路径）；改动＝相对基线的提交、未提交与未跟踪文件；没有基线（$base 为空）时全算改到。
 # 读入方须先设 base（基线，可为空）与 changed（改动列表文件，一行一个路径）。Bash 3.2 可用。
 
@@ -40,4 +40,17 @@ shell_syntax() {  # 改到的 .sh 逐个 bash -n（没有基线时全部已跟�
   while IFS= read -r file; do
     [ ! -f "$file" ] || bash -n "$file" || return 1
   done < <(if [ -n "$base" ]; then grep -E "$t_shell" "$changed"; else git ls-files '*.sh'; fi)
+}
+
+pyc() {  # 被忽略的未跟踪字节码，未跟踪目录折叠成一行；-z 防非 ASCII 路径被加引号；一个没有也返回 0
+  git ls-files -z -oi --exclude-standard --directory | tr '\0' '\n' | { grep -E '(^|/)__pycache__/$|\.pyc$' || true; } | sort
+}
+
+rm_new_pyc() {  # 删掉 $work/pyc_before 之后新增的；跑前已有的 __pycache__ 目录整个不动（本机局限，CI 检出是干净的）
+  local p
+  [ -f "$work/pyc_before" ] || return 0
+  pyc | comm -13 "$work/pyc_before" - | while IFS= read -r p; do
+    echo "removed $p"
+    rm -rf -- "./${p%/}" || return 1  # ./ 前缀：文件名含换行被 tr 拆开时，残片也只落在仓库内；去掉结尾斜杠：目录被换成符号链接时只删链接本身
+  done
 }

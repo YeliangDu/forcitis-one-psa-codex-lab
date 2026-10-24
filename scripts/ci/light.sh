@@ -5,10 +5,11 @@
 # 一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
 # CI 里由 .github/workflows/ci.yml 的 backend 作业调用（每个事件都跑）。不在这里的：
 # - 后端与前端测试、SQL Server 集成测试：backend、frontend 作业的重步骤（本机要跑就用 scripts/ci/backend_verify.sh、legacy_it.sh，起容器先问用户）；
-# - gitleaks 全史扫描、发布脚本自测：secret scan 作业；组织接口通知要 PR 正文，判档（relevant_change.py 输出）要写 $GITHUB_OUTPUT：都只在 CI 里；
+# - gitleaks 全史扫描、发布脚本自测：secret scan 作业；组织接口通知要 PR 正文，判档（relevant_change.py 输出）要写 ${GITHUB_OUTPUT}：都只在 CI 里；
 # - budget_check（one-quality 的 scripts/ci/budget_check.py，用法 `budget_check.py [--root DIR]`）：文件在就跑，还没合入时记 SKIP。
 # Bash 3.2（macOS）可用：不用关联数组与 mapfile。
 set -uo pipefail
+export PYTHONDONTWRITEBYTECODE=1  # 不留 __pycache__：backend 作业随后在同一工作区跑测试，遍历目录的测试读到 .pyc 会崩（#693）；python3 -I 不认它，另由 rm_new_pyc 删
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "light.sh：不在 git 仓库里" >&2; exit 2; }
 cd "$root" || exit 2
@@ -19,10 +20,11 @@ if [ -n "$base" ] && ! git rev-parse --verify -q "$base^{commit}" >/dev/null; th
   exit 2
 fi
 work=$(mktemp -d "${TMPDIR:-/tmp}/light.XXXXXX") || exit 2
-trap 'rm -rf "$work"' EXIT
+trap 'rm_new_pyc >/dev/null 2>&1; rm -rf "$work"' EXIT  # 中途退出也删本次新增的字节码；trap 不调 exit，退出码不变
 changed=$work/changed
 # shellcheck source=scripts/ci/light_triggers.sh
 . scripts/ci/light_triggers.sh
+pyc >"$work/pyc_before" || exit 2  # 跑前已有的被忽略字节码，只删这之后新增的
 if [ -n "$base" ] && ! list_changed "$changed"; then
   echo "light.sh：列不出相对 $base 的改动（与 HEAD 没有共同祖先？）" >&2
   exit 2
@@ -111,6 +113,7 @@ if [ -f scripts/ci/budget_check.py ]; then
 else
   skip "budget_check" "scripts/ci/budget_check.py 还没合入（one-quality 的 claude/one-quality-flow-v2-b1）"
 fi
+run "remove __pycache__ left by this run" rm_new_pyc
 
 echo
 echo "light.sh：$passed PASS，$failed FAIL，$skipped SKIP，共 $((SECONDS - started_all)) 秒（基线 ${base:-无}）"

@@ -17,7 +17,7 @@ target=$(readlink "$link" 2>/dev/null)
 version="$(dirname "$link")/$target"
 why=""
 if ! [[ "$target" =~ ^[0-9a-f]{40}$ ]]; then
-  why="current（$link）不是指向安装目录下 40 位 sha 目录的相对链接（指向：${target:-无}）"
+  why="current（${link}）不是指向安装目录下 40 位 sha 目录的相对链接（指向：${target:-无}）"
   target=""
 elif [ -L "$version" ]; then
   why="已装版本 $target 是符号链接（指向：$(readlink "$version")），不是安装根下的真实目录"
@@ -28,5 +28,5 @@ elif [ ! -f "$version/.manifest" ]; then
 elif ! list "$version" | cmp -s - "$version/.manifest"; then
   why="已装版本 $target 的文件与安装时的清单不一致（被改过、多了或少了文件）"
 fi
-[ -z "$why" ] || echo "【钩子告警】$why，生产写门可能不是合入的那一版；请 one-ops 执行 scripts/gates/install.sh${target:+ $target}（从 git 重新解包修复${target:-；不带参数装本工作区的 HEAD，或填 main 上的 sha}）"
+[ -z "$why" ] || echo "【钩子告警】${why}，生产写门可能不是合入的那一版；请 one-ops 执行 scripts/gates/install.sh${target:+ $target}（从 git 重新解包修复${target:-；不带参数装本工作区的 HEAD，或填 main 上的 sha}）"
 exit 0
