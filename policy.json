@@ -114,6 +114,6 @@
     "resident_max": 4,
     "config": {}
   },
-  "tools_lib": {"dir": "~/.modernize/psa/tools/one-session", "max_lines_total": 1800},
+  "tools_lib": {"dir": "~/.modernize/psa/tools/one-session", "max_lines_total": 1800, "checks": ["budget_level", "handoff", "stop_check"]},
   "measures": []
 }
