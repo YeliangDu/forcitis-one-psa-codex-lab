@@ -5,6 +5,7 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 19:2x（接续）：待办①完成——budget_level 30 分钟复查调度核过（17:11:18Z 再跑、仍无读数，与已知例外一致），已填 b1.md，批一收尾。待办②：two-lanes 合 origin/main（画像冲突取 main 的 roles 指针版）＋ one-ops-r56，light 31/0/8，开 FORCITIS/forcitis-one-psa#694（文档档），等 CI 全绿后合入。下一项：10-27 开二甲。
 更新：2026-10-24 19:1x（one-coordinator，清空前交接；**清空后先读本条，以本条为准**）
 - **现状**：批一已合入并上线。origin/main＝bef535317（#693 合入）；主检出、hooks current 均 bef535317；工具库 one-session 在 v2-b1（452a2ac）；旧 mq running 未换；budget_level 已装（V17a 已知例外：读数源 plan-usage-history.json 不常更新，第二批改 statusline）。切换日志 ~/.modernize/psa/ops/cutover-b1/cutover.log；验收稿 ~/.modernize/psa/coordinator/redesign-1023/acceptance/b1.md（含已知例外与 8.1 第二批待办）。
 - **会话**：本仓库只剩 one-ops（local_23c18019，每到交接点要用户 /clear；清后 list_events 核 0 条再发「接续」附全文令）与本会话；其余全部归档。新会话一律由调度 start_session 开，分支用会话名（开工单靠 .claude/session-name 或目录/分支名认身份）。
