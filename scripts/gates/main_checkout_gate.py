@@ -8,7 +8,7 @@
 放行：linked worktree（含签出了 main 的 worktree）。GIT_DIR / GIT_COMMON_DIR / GIT_WORK_TREE 照 git 给的用：从工作区 `GIT_DIR=<主检出>/.git`
 或 `--git-dir=<主检出>/.git --work-tree=…` 提交时，git 交给钩子的就是主检出的 git-dir，照样拒（O4 复审必改 1）。
 出错一律拒绝：git 跑不起来、返回非零、输出读不懂，都按拒绝处理（退出码 1，pre-commit 视为失败）。
-用法：main_checkout_gate.py --pre-commit  |  main_checkout_gate.py --self-test（自测在 main_checkout_gate_selftest.py）
+用法：main_checkout_gate.py --pre-commit  |  main_checkout_gate.py --self-test（自测在 gates_selftest.py 的 main_checkout_gate 段）
 """
 import os
 import subprocess
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         sys.exit(pre_commit(os.getcwd()))
     if sys.argv[1:] == ["--self-test"]:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from main_checkout_gate_selftest import self_test
+        from gates_selftest import main_checkout_gate_test as self_test
         sys.exit(self_test())
     print("用法：main_checkout_gate.py --pre-commit | --self-test", file=sys.stderr)
     sys.exit(1)

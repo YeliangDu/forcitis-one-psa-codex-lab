@@ -6,7 +6,7 @@
 DEADLINE 秒内没有结论也按出错处理（挂载超时 120 秒在 Claude Code 里算「不拦」；门内 git 卡住时靠这里先拒，O7 终审建议 1）。
 到点抛的 Overdue 是 BaseException 而不是 TimeoutError（OSError 子类）：门里 `except OSError`／`except Exception` 接不住它，不会吞掉时限（O7 修终审 M1）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行（门的告警以 JSON additionalContext 写标准输出）。
-用法：pre_tool_dispatch.py  |  pre_tool_dispatch.py --self-test（自测在 pre_tool_dispatch_selftest.py，O8 合并）
+用法：pre_tool_dispatch.py  |  pre_tool_dispatch.py --self-test（自测在 gates_selftest.py 的 pre_tool_dispatch 段，O8 合一）
 """
 import json
 import os
@@ -70,6 +70,6 @@ def main(gate_loader=load_gate):
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         sys.path.insert(0, HERE)
-        from pre_tool_dispatch_selftest import self_test
+        from gates_selftest import pre_tool_dispatch_test as self_test
         sys.exit(self_test())
     sys.exit(main())

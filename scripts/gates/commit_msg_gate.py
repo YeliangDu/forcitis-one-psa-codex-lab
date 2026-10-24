@@ -51,7 +51,7 @@ def main(argv):
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from commit_msg_gate_selftest import self_test
+        from gates_selftest import commit_msg_gate_test as self_test
         sys.exit(self_test())
     try:
         sys.exit(main(sys.argv[1:]))

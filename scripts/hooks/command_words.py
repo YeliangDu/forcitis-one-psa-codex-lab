@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """兼容层（GOV-1023-FV2 O2）：命令解析已并入 scripts/gates/prod_write_gate.py，这里只转出旧名字给还没迁走的 codex_stdin_gate（第二批乙随它删除；pre_push_gate、precheck_before_pr 已在 O6 删除，main_checkout_gate 已在 O4 搬到 scripts/gates 且不再依赖本层）。
-这些钩子在 O4、O6、O7 与第二批乙重写或删除后，本文件随之删除。自测在 scripts/gates/prod_write_gate_selftest.py。"""
+这些钩子在 O4、O6、O7 与第二批乙重写或删除后，本文件随之删除。自测在 scripts/gates/gates_selftest.py。"""
 import os
 import sys
 

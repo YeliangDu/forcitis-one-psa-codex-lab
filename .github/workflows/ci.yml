@@ -89,21 +89,17 @@ jobs:
       # the hook and CI-script self-tests left scripts/precheck.sh --pre-push (GOV-1023-QUA-04); they run here because this job is a required check, unlike assertion drift (warning only)
       - name: hook and CI-script self-tests
         run: |
-          python3 scripts/gates/prod_write_gate.py --self-test
-          python3 scripts/gates/pre_tool_dispatch.py --self-test
+          python3 scripts/gates/gates_selftest.py
           python3 scripts/hooks/codex_stdin_gate.py --self-test
-          python3 scripts/gates/main_checkout_gate.py --self-test
           python3 scripts/ci/light_unit_classes.py --self-test
           python3 scripts/ci/heavy_gate.py --self-test
           python3 scripts/ci/docker_diagnostics.py --self-test
           python3 scripts/ci/failure_summary.py --self-test
           python3 scripts/ci/repeat_new_tests.py --self-test
-          python3 scripts/gates/commit_msg_gate.py --self-test
           python3 scripts/ci/heavy_slot.py --self-test
           python3 scripts/hooks/session_context.py --self-test
           python3 scripts/hooks/start_sheet.py --self-test
           python3 scripts/coord/mailbox.py --self-test
-          python3 scripts/gates/install_selftest.py
       - name: heavy steps allowed? (pull request labelled `queued`; never on a push to main)
         id: heavy
         env:

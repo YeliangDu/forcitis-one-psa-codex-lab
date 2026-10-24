@@ -6,7 +6,7 @@
 - 远程工具（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie）碰到生产且写（或写效果看不出）拒绝；SQL 只认白名单，aliyun 只放 Describe/List/Get…，返回密钥的接口一律拒绝（底线 3）。
 - 不连接的命令（git 本地子命令、gh、echo、grep、rg 无 --pre、sed 无 e/w…）碰到特征放行；其他命令（解释器、xargs、find -exec、git push…）碰到即拒绝，解释器的脚本文件读进来看。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：写类远程命令与解释器拒绝，只读放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名或特征拒绝；写操作的目标含读不出的变量拒绝。
-命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 prod_write_gate_selftest.py。
+命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
 import collections
@@ -1094,6 +1094,6 @@ def guarded_main():  # unreadable hook input or any error fails closed
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         sys.path.insert(0, HERE)
-        from prod_write_gate_selftest import self_test
+        from gates_selftest import prod_write_gate_test as self_test
         sys.exit(self_test())
     sys.exit(guarded_main())
