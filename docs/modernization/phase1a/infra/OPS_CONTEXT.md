@@ -1,5 +1,17 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 交接（上下文 27%，清空接续；以本节为准，下面 13:00 一节已过时）
+
+- **在做：调度令「外部复核四件」**（结论 ~/.modernize/psa/coordinator/redesign-1023/acceptance/b1-review-repro.md，原文 b1-review-grokbot.md；最终 next 原为 955ddffd6）。四件都作追加提交，sha 报调度派审；齐了重合 next、重跑 check_reviews、acceptance_v2、light×3（运行脚本模板见本会话 b1run 做法：summary.tsv＋各步日志写 acceptance/b1run-<短sha>/）。
+  1. **C3 已做**：ops-fv2-b1 提交 **dae30821d**（未推）——settings.json PreToolUse 入口内嵌保守预筛，门出错时只拒涉及生产的命令，其余放行告警并记 ~/.modernize/psa/tools/hooks/gate_failures.log；分发器门出错改退出 3；gates_selftest 1100 行（上限 1100，已满）、分发器 76 行。gates_selftest 全过，变异 7 个均红。**已向调度报 sha（在 C4 冲突那条消息里），等派首轮＋终审**。
+  2. **C4 暂停**：调度要 --rollback 把 current 切回 before.txt 的版本，但与用户 intent 2026-10-24-001330（current 保持批一版本不动，在 claude/one-coordinator-two-lanes）冲突，已报调度请转用户（选 A 维持并在 b1.md 第 3 节记已知、B 按 C4 改需用户新原话）。等答复；B 的做法：读 $STATE/before.txt 的 current（须 40 位 sha 且 $HOOKS/<sha> 是目录，否则停），"$MAIN/scripts/gates/install.sh" --switch <sha>，回读 readlink；dry-run 两种都跑；cutover.sh 第 5、77 行及头注释同改。
+  3. **未做**：acceptance/check_reviews.py 须终审前缀改读被核对分支上 policy.json 的 review.final_paths（不再内置 5 个），读不到键报错退出；调度已派 6 个补终审（390aef980、848c57731、660aee138、52f44c19f、7cc88028e、502054a9e），结论到后重跑。
+  4. **未做**：b1.md 文字订正，逐条按调度消息（第 39 行删除构成 hooks 19＋precheck 1＋architecture 2＋PB_*.md 2；第 81 行算式 start_sheet 583、7 个文件 1,401 行；说明 1 的 164/196 秒与 build_all 98→122 秒；第 16 行 #691 如实写；1.1 改按 policy 11 个前缀；第 2 节注明后端、前端、门自测只在 b6bbeb3e8 本机跑过、最终以整合 PR 的 GitHub CI 为准；第 3 节加四行已知例外：每 PR<7 提交、角色阈值、send_message、复审标签空窗 C11；新增「第二批待办」C5～C9、C12 与防膨胀②～⑤）。调度原消息全文要从调度处再要（本节只是摘要）。
+- **之后（用户已批，intent 141307，推前须核原话）**：四件与 6 个补终审都过、重合 next 并本机重跑后，报调度最终 sha，调度确认后推 claude/one-ops-flow-v2-next 并开**草稿 PR**（标题注明「批一整合，勿合」，加 hold，不入队不批准），CI 结果（含重作业）报调度。C10 用户定：trailer、复审头、模型名都不动。
+- 已完成：gap-2（08b54d057＋ec5a6344e）已合 next 955ddffd6；closes.json 已签；b1.md 第 7 节 B1 行已改「已取消（intent 221336）」。
+- 在途卡 OPS-1022-OPS-02、OPS-1023-OPS-01 未动（用户要求先做流程重构）。无其他未完成的用户直接请求。
+- 坑：Bash `cd` 到别的工作区会让会话主目录漂移；改本工作区文件前先 cd 回 one-ops-a5ff89。gates_selftest.py 已到 1100 行上限，再加测试须先挪行或请调度定上限。
+
 ## 2026-10-24 13:00 交接（上下文 21%，清空接续；以本节为准）
 
 - **再更新**：08b54d057 首轮必改（light.sh 超 120 行）由 ec5a6344e 关闭（拆 light_triggers.sh、light_selftest.sh，-z 与 git 退出码），两者首轮终审均过；closes.json 已补；已合进 next，**最终 next＝955ddffd6**（本地未推）；全套验收已重跑（b1run-955ddffd6/），b1.md 已更新，已报调度。下一步等调度与用户验收、切换时机；建议项留第二批。
