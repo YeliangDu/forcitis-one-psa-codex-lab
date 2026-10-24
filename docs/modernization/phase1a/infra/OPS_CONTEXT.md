@@ -1,5 +1,18 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 夜交接（上下文 22%，清空接续；以本节为准，下面「晚交接」各条已被覆盖）
+
+- **在做：#693 批一整合本轮必改**（调度令）。都没推、没合 next。
+  - ops-fv2-b1（工作区 .claude/worktrees/ops-fv2-b1）追加：cdf8de735（pyc 修复，首轮、终审已过）→ **07bff4ce3**（清理挂 EXIT trap、-z、空列表不误报、函数挪进 light_triggers.sh）→ **f388c28cc**（runbooks/sql/ 挪进 READ_BY_BUILDS）→ **c21037088**（全仓 $VAR 紧跟全角字符改 ${VAR}，light_selftest 加机械检查）。
+  - 新子分支 claude/one-ops-flow-v2-b1p（工作区 .claude/worktrees/ops-fv2-b1p，基 5d1e9fba4）：**855dd86ca**（policy final_paths 11→17 项）；check_reviews 按 17 项重算无新增缺终审。
+  - 本机 cutover.sh：新 sha1 **62c6ca8ff9f7f662597918c4e928b76f9653aa9a**（tty_ok 前置、before.txt 不覆盖、回退打印最早快照、${VAR}）。旧版另存 ~/.modernize/psa/ops/pr693-pyc/cutover.sh.{bc4f318,138ad0e5}；沙箱脚本 ~/.modernize/psa/ops/pr693-pyc/cut_sbx.sh <cutover.sh>（中文 UTF-8 下 /bin/bash 3.2 跑 dry-run 两种、真切换、--rollback），新版全过，旧版复现崩溃。
+  - b1.md 第 6 节已加两种人工回退手段，第 5 节第 7 步已加分支用会话名（调度令，已回报）。
+- **已报调度并派审**：07bff4ce3、f388c28cc、855dd86ca、cutover 138ad0e5（后者终审必改＝${VAR} 问题，已修成 62c6ca8f）。
+- **未报调度**：c21037088 与 cutover 62c6ca8f。报之前先看中文环境整跑结果（清空时还在后台跑）：scratchpad 下 /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-ops-a5ff89/3fa31959-863e-4868-bae0-6d56437131f8/scratchpad/light-zh.log（末行 light rc=）与 acc-zh.log（末行 acc rc=；acceptance_v2_selftest 在 flow-v2＝next 上跑）。都 0 就报调度：c21037088 sha、cutover 新 sha1、验证（zh_CN.UTF-8、/bin/bash 3.2：light_selftest 过，变异红；hooks_manifest 旧版 --check 遇坏链接崩 rc=1、新版正常；cutover 沙箱四种全过、旧版复现崩）。没有末行就在 ops-fv2-b1 用 `LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 env -u PYTHONDONTWRITEBYTECODE /bin/bash scripts/ci/light.sh 38c98b4ffcbed870f9571e13d6ea4cd957594a55` 重跑，flow-v2 跑 acceptance_v2_selftest.sh。
+- **之后**：所有复审过后，在 .claude/worktrees/flow-v2 依次 merge --no-ff claude/one-ops-flow-v2-b1 与 claude/one-ops-flow-v2-b1p 进 next，重跑 check_reviews（基 pre-flow-v2）、acceptance_v2、light×3（结果写 acceptance/b1run-<短sha>/，模板见旧 scratchpad b1run.sh），更新 b1.md 状态行与 1.2，报最终 sha 与推送命令 `git -C /Users/yeliang/Projects/FORCITIS/forcitis-one-psa/.claude/worktrees/flow-v2 push origin claude/one-ops-flow-v2-next`（用户本人推送）。推上后等调度通知 CI 跑完，汇总每个作业结论、耗时、失败日志原样段；#693 queued 标签保留。
+- 在途卡 OPS-1022-OPS-02（Docker 自动拉起）、OPS-1023-OPS-01（卡不完整，已报调度）未动：用户要求先做流程重构。无其他未完成的用户直接请求。
+- 坑：本机会话环境自带 PYTHONDONTWRITEBYTECODE=1，复现字节码问题须 env -u；后台复现脚本须先 cd 进被测树；Bash `cd` 会让主目录漂移；zsh 里 `$(...)` 列表与 bash 不同，扫描用 /bin/bash 脚本；推送门会拦命令里的 git push（沙箱里用 clone --bare 代替）。
+
 ## 2026-10-24 晚交接（上下文 20%，清空接续；以本节为准）
 
 - **在做：#693 CI 重作业失败的修复**（调度令）。backend 重作业 1029 个 IT 里有 1 个 Error：LegacyNumberSourceIT.theOldBatchTermIsGone 报 MalformedInputException（run 40096266208，runner one-2）。根因：backend 作业先跑 light.sh 再在同一工作区跑 Maven；build_all 写出 backend/glossary/__pycache__/*.pyc，这个 IT 遍历 backend/glossary 时读到 .pyc 崩溃。
