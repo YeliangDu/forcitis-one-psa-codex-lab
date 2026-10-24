@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """install.sh 与 .claude/settings.json 挂载的自测（GOV-1023-FV2 O7，D26；接替 run_from_main_selftest 对 settings.json 的断言）。全部在临时目录里做，HOME 指向临时目录，不碰真实安装目录。
 - 结构：四个挂载（SessionStart 两个、PreToolUse 只挂 Bash、Stop 不动），前三个直接调用 <policy gates.install_dir>/<install_current_link>/ 下的文件，目标在索引里是 100755；三个插件关闭。
-- install.sh：首次安装、装第二个版本并切换、切回旧版本（--switch 只认 40 位小写 sha 的真实目录：修订名、current、.tmp.X、sha 名的链接都拒，被拒时不建目录）；并发装同一提交都成功；自检不过（分发器失败开放、全拒、放行生产写、只拦第一个 target、入口不可执行）时 current 不变且不留半成品；
+- install.sh：首次安装、装第二个版本并切换、切回旧版本（--switch 只认 40 位小写 sha 的真实目录：修订名、current、.tmp.X、sha 名的链接都拒，被拒时不建目录）；并发装同一提交都成功（目标目录与刚解包的一致才算就绪）；自检不过（分发器失败开放、全拒、放行生产写、只拦第一个 target、入口不可执行）时 current 不变且不留半成品；
   装好的目录只读；已装目录被改坏后再跑 install.sh <sha> 或 --switch 都从 git 重新解包修好（O7 终审 M1）；HOOKS_INSTALL_DIR 改目录。
-- SessionStart 核对（hooks_manifest.sh --check，O7 终审 M2）：current 指到安装目录外或非 40 位 sha 目录、指向的目录不存在或是链接、文件被改、多了或少了文件、没有清单、核对脚本缺失或 CLAUDE_PROJECT_DIR 为空，都输出【钩子告警】并退出 0。
+- SessionStart 核对（hooks_manifest.sh --check，O7 终审 M2；告警里给的 install.sh 命令照着执行能修好）：current 指到安装目录外或非 40 位 sha 目录、指向的目录不存在或是链接、文件被改、多了或少了文件、没有清单、核对脚本缺失或 CLAUDE_PROJECT_DIR 为空，都输出【钩子告警】并退出 0。
 - 挂载命令按 settings.json 原样用 /bin/sh 与 /bin/bash 执行：生产写门在 current 缺失、链接悬空、入口缺失、解释器缺失、崩溃、被杀时退出 2（门自己的 0 与 2 照传）；SessionStart 两个缺失或出错时退出 0 并输出一行告警。
 - 装好的门向 CLAUDE_PROJECT_DIR 的仓库问 origin/main 的特征表；没有 CLAUDE_PROJECT_DIR 时不认工作目录里伪造的仓库（O7 终审 M3）；CLAUDE_PROJECT_DIR 与工作目录不同时只认前者。
 生产样本只用虚构值；真实表只经 install.sh 自检与「只拦第一个 target」的探针按位置取用，本文件不读不写其内容。用法：install_selftest.py"""
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -250,7 +251,24 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         runs = [subprocess.Popen([os.path.join(repo, "scripts/gates/install.sh"), b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=tmp) for _ in range(4)]
         outs = [(p.wait(timeout=120), p.stderr.read()) for p in runs]
         assert all(code == 0 for code, _ in outs) and points_to() == b and not leftovers(), (outs, points_to(), leftovers())
-    assert install("--switch", a).returncode == 0 and points_to() == a
+    # 4c. that fallback, deterministically: the target directory is locked (chflags uchg), so neither rename works. A target matching the fresh unpack counts as
+    #     ready; one matching only its own manifest (another commit's files) does not, and current stays (O7 fix first review, suggestion 2). chflags is macOS/BSD.
+    target = os.path.join(hooks, b)
+    for files, code in ((None, 0), (a, 1)):
+        if files:
+            writable(target)
+            shutil.rmtree(target)
+            shutil.copytree(os.path.join(hooks, files), target, symlinks=True)
+        if not shutil.which("chflags"):
+            print("install self-test: 没有 chflags，跳过 4c")
+            break
+        subprocess.run(["chflags", "uchg", target], check=True)
+        try:
+            r = install(b)
+        finally:
+            subprocess.run(["chflags", "nouchg", target], check=True)
+        assert r.returncode == code and points_to() == b and not leftovers() and (code == 0 or "放不进" in r.stderr), (files, r.returncode, r.stderr)
+    assert install(b).returncode == 0 and install("--switch", a).returncode == 0 and points_to() == a
     # 5. a failing self-check leaves current and the install directory as they were
     for broken in (fail_open, refuses_all, passes_writes, not_exec):
         r = install(broken)
@@ -275,13 +293,20 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         assert r.returncode == 0, r
         return "\n".join(line for line in r.stdout.splitlines() if line.startswith("【钩子告警】"))
 
+    def follow(text, sha):
+        """Runs the install.sh command the warning tells one-ops to run: it must repair (O7 fix first review M1: --switch refuses a link or a missing directory)."""
+        command = re.search(r"执行 (scripts/gates/install\.sh(?: [^ （]+)*)（", text)
+        assert command, text
+        r = install(*command.group(1).split()[1:])
+        assert r.returncode == 0 and points_to() == sha and os.path.isdir(current) and not os.path.islink(os.path.join(hooks, sha)) and warning() == "" and not leftovers(), (command.group(1), r.stderr)
+
     fake_write = bash(f"psql -h {FAKE} -c 'delete from t'")
     assert warning() == "" and mount(gate_cmd, fake_write).returncode == 2
     tamper(a)
     assert mount(gate_cmd, fake_write).returncode == 0, "the tampering took effect"
-    assert "与安装时的清单不一致" in warning() and f"install.sh --switch {a}" in warning(), warning()
-    r = install(a)
-    assert r.returncode == 0 and points_to() == a and mount(gate_cmd, fake_write).returncode == 2 and warning() == "" and not leftovers(), ("install.sh <sha> repairs", r.stderr)
+    assert "与安装时的清单不一致" in warning() and f"install.sh {a}（" in warning(), warning()
+    follow(warning(), a)
+    assert mount(gate_cmd, fake_write).returncode == 2, "install.sh <sha> repairs"
     tamper(b)
     r = install("--switch", b)
     assert r.returncode == 0 and points_to() == b and mount(gate_cmd, fake_write).returncode == 2 and warning() == "", ("--switch repairs", r.stderr)
@@ -302,12 +327,15 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         assert "不是指向安装目录下 40 位 sha 目录" in warning(), target
     os.remove(current)
     assert "不是指向" in warning(), "no current at all"
-    os.symlink(fail_open, current)  # a sha name with nothing behind it (O7 final, suggestion 1)
+    os.symlink(on_main, current)  # a sha name with nothing behind it (O7 final, suggestion 1); the warning's command repairs it
     assert "current 指向的目录" in warning() and "不存在" in warning(), warning()
-    os.symlink(os.path.join(hooks, a), os.path.join(hooks, fail_open))  # the version itself a link: warned about, the session goes on (O7 first review M1)
+    follow(warning(), on_main)
+    writable(os.path.join(hooks, on_main))
+    shutil.rmtree(os.path.join(hooks, on_main))
+    os.symlink(os.path.join(hooks, a), os.path.join(hooks, on_main))  # the version itself a link: warned about, the session goes on (O7 first review M1), the warning's command repairs it
     r = mount(ceiling_cmd, "{}", CLAUDE_ENV_FILE=os.path.join(tmp, "env"))
     assert r.returncode == 0 and "是符号链接" in r.stdout, (r.returncode, r.stdout)
-    os.remove(os.path.join(hooks, fail_open))
+    follow(r.stdout, on_main)
     os.remove(current)
     for project in (tmp, ""):
         r = mount(ceiling_cmd, "{}", CLAUDE_PROJECT_DIR=project)

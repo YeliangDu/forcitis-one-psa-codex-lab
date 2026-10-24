@@ -6,7 +6,7 @@
 #   版本不动，靠第 ④ 步 git revert 恢复旧 settings.json 与 run_from_main；演练里的「切回」是切回上一个 flow-v2 版本。
 # install_dir 与链接名取本仓库 policy.json 的 gates.install_dir、gates.install_current_link；环境变量 HOOKS_INSTALL_DIR 优先（自测用临时目录）。
 # 先校验参数再建目录；解包进临时目录，写校验和清单（hooks_manifest.sh），自检，chmod -R a-w，旧目录改名后放入新目录再删旧的；并发装同一提交时放入失败
-# 而目录已就绪（清单核对通过）照常切换。current 用「临时链接再 rename 覆盖」原子切换（目标只会是 40 位 sha，不会自环）。失败不动 current、不留半成品，退出 1。
+# 而目录已就绪（与自己的清单、也与刚解包的清单一致）照常切换。current 用「临时链接再 rename 覆盖」原子切换（目标只会是 40 位 sha，不会自环）。失败不动 current、不留半成品，退出 1。
 # shellcheck disable=SC2015  # `a && b || fail`: fail on either, on purpose
 set -u -o pipefail
 py=/usr/bin/python3
@@ -32,7 +32,7 @@ check() {  # 装好的目录能按 settings.json 的挂载方式用：三个入�
     [ $? = 2 ] || exit 1
   done
 }
-ready() { "$repo/scripts/gates/hooks_manifest.sh" "$1" | cmp -s - "$1/.manifest"; }  # 已装目录与它的清单一致
+ready() { "$repo/scripts/gates/hooks_manifest.sh" "$1" | cmp -s - "$1/.manifest" && cmp -s "$1/.manifest" "$tmp/.manifest"; }  # 已装目录与它的清单一致，清单又与刚解包的一致
 if [ "${1:-}" = --switch ]; then
   [ $# = 2 ] || fail "用法：install.sh --switch <已装版本的 40 位 sha>"
   [[ "$2" =~ ^[0-9a-f]{40}$ ]] && [ -d "$dir/$2" ] && [ ! -L "$dir/$2" ] || fail "没有已装的版本 '$2'（--switch 只认 $dir 下 40 位小写 sha 的真实目录）"
