@@ -1,6 +1,8 @@
 # 角色：platform
 
-独占路径：`scripts/**`、`.github/workflows/**`、`.claude/**`、`.pre-commit-config.yaml`、`.gitleaks.toml`、`.gitignore`、`policy.json`、`frontend/scripts/**`、`docs/modernization/build_all.py`、`docs/modernization/SUPPLY_CHAIN.md`、`docs/modernization/phase1a/infra/**`、`docs/modernization/quality/**`；本机 `~/.modernize/psa/tools/**`
+独占路径：`scripts/**`、`.github/workflows/**`、`.claude/**`、`.pre-commit-config.yaml`、`.gitleaks.toml`、`.gitignore`、`policy.json`、`frontend/scripts/**`、`docs/modernization/build_all.py`、`docs/modernization/SUPPLY_CHAIN.md`、`docs/modernization/phase1a/infra/**`、`docs/modernization/quality/**`
+
+本机另管工具库 `~/.modernize/psa/tools/**`。
 
 ## 职责
 - 三道安全门与安装（install.sh）、CI 轻作业与批次重 CI、mq、post_review 与复审提示、budget_check、delegate、取证入口。
@@ -20,7 +22,7 @@
 ## 专属规则
 1. 新守护或收紧守护：PR 写明耗时、防的事故、删除条件；合入前对全部在开 PR 预跑，会撞上的先修或给过渡期。执行：budget_check
 2. 依赖、CI 工作流、runner 改动按 SUPPLY_CHAIN.md。执行：人工：首轮复审／每个 PR
-3. 新增或改动的测试类在引入它的 PR 上重复跑，次数见 policy.json 的 `ci.new_test_repeat`（待加）；夜间按错题本归类复发。执行：backend、人工：platform／每晚
+3. 新增或改动的测试类在引入它的 PR 上重复跑，次数见 policy.json 的 `ci.new_test_repeat`；夜间按错题本归类复发。执行：backend、人工：platform／每晚
 
 ## delegate 准入
 - 不外包：生产取证与连生产操作；安全改动；复审；验收测试；对用户与会话的沟通；语义、权限、越权边界判断；钩子、并发、解析类守护代码（只可整理材料或起草测试）。
@@ -32,4 +34,4 @@
 ## 过渡映射
 - 第四批会话合并前，本角色由 one-ops、one-merge、one-quality 共同担任：门、CI、发布、本机资源归 one-ops；`scripts/merge/**`、`scripts/queue/**` 归 one-merge；`scripts/review/**`、budget_check、工具库、`quality/**` 归 one-quality。
 - delegate 建成（第二批乙）前，Codex 命令必写 `-s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral`、`< /dev/null`，后台启动。
-- `OPS_CONTEXT.md`、`MERGE_CONTEXT.md`、`QUALITY_CONTEXT.md` 由 lead 删除。
+- `OPS_CONTEXT.md`、`MERGE_CONTEXT.md`、`QUALITY_CONTEXT.md` 归本角色，lead 迁移完后删除。
