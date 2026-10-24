@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# light.sh「按改动触发」一节的自测（GOV-1023-FV2 gap-2）：逐路径核对 light_triggers.sh 的六个模式与检查表，并在临时仓库里核对 list_changed。
+# light.sh「按改动触发」一节的自测（GOV-1023-FV2 gap-2）：逐路径核对 light_triggers.sh 的六个模式与检查表，并在临时仓库里核对 list_changed 与字节码清理（#693）。
 # 用法：scripts/ci/light_selftest.sh   light.sh 每次都跑它；通过时末行 light_selftest: ok，否则逐条说哪里不对并退出 1。
 # 示例路径用 x/ 代替文档根目录前缀：写全了会被 relevant_change 当成读文档（模式本身不锚定前缀）。
 set -uo pipefail
@@ -73,6 +73,19 @@ base=nosuchref
 ! list_changed "$changed" 2>/dev/null || no "基线认不出时 list_changed 应返回非零"
 base=$(g commit-tree "$(git hash-object -w -t tree /dev/null)" -m orphan) && [ -n "$base" ] || no "建不出无共同祖先的提交"
 ! list_changed "$changed" 2>/dev/null || no "基线与 HEAD 没有共同祖先时 list_changed 应返回非零"
+
+# 字节码清理：一个没有时不报错；跑前已有的不动；新增的（含中文路径）删掉；中途 exit 也删，退出码不变
+printf '__pycache__/\n' >.gitignore && work=$tmp/w && mkdir -p "$work"
+pyc >"$work/pyc_before" || no "pyc 在没有字节码时失败"
+rm_new_pyc >/dev/null || no "一个字节码都没有时 rm_new_pyc 应返回 0"
+mkdir -p old/__pycache__ && : >old/__pycache__/a.pyc && pyc >"$work/pyc_before"
+mkdir -p 中文/__pycache__ x/__pycache__ && : >中文/__pycache__/b.pyc && : >x/__pycache__/c.pyc
+rm_new_pyc >/dev/null || no "rm_new_pyc 失败"
+[ -f old/__pycache__/a.pyc ] || no "跑前已有的 __pycache__ 被删了"
+[ ! -e 中文/__pycache__ ] && [ ! -e x/__pycache__ ] || no "新增的 __pycache__ 没删干净（含中文路径）"
+bash -c '. "$1"; work=$2; trap "rm_new_pyc >/dev/null 2>&1" EXIT; mkdir -p z/__pycache__; exit 3' _ "$here/light_triggers.sh" "$work"
+rc=$?
+[ $rc = 3 ] && [ ! -e z/__pycache__ ] || no "中途 exit 时应删掉新增字节码且退出码不变（实为 $rc）"
 
 [ $bad = 0 ] && echo "light_selftest: ok"
 exit $bad
