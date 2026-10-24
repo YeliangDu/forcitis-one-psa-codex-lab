@@ -51,6 +51,6 @@ rm_new_pyc() {  # 删掉 $work/pyc_before 之后新增的；跑前已有的 __py
   [ -f "$work/pyc_before" ] || return 0
   pyc | comm -13 "$work/pyc_before" - | while IFS= read -r p; do
     echo "removed $p"
-    rm -rf -- "${p%/}" || return 1  # 去掉结尾斜杠：目录被换成符号链接时只删链接本身
+    rm -rf -- "./${p%/}" || return 1  # ./ 前缀：文件名含换行被 tr 拆开时，残片也只落在仓库内；去掉结尾斜杠：目录被换成符号链接时只删链接本身
   done
 }

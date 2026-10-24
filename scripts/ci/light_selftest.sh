@@ -57,9 +57,9 @@ for key in $TRIGGER_KEYS; do
   case "$keys_used" in *" $key "*) ;; *) no "模式 $key 在检查表里没有检查" ;; esac
 done
 
-# 仓库里的 shell（*.sh 与工作流 run 段）：$VAR 后不得紧跟非 ASCII 字符。UTF-8 终端下 /bin/bash 3.2 会把全角标点读进变量名，set -u 即崩；写成 ${VAR}
+# 仓库里的 shell（*.sh、工作流 run 段、.claude/settings.json 的挂载命令，后者由 /bin/sh 跑）：$VAR 后不得紧跟非 ASCII 字符。UTF-8 终端下 /bin/bash 3.2 会把全角标点读进变量名，set -u 即崩；写成 ${VAR}
 var_cjk=$'\\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]'
-hits=$(cd "$here/../.." && git ls-files -z '*.sh' .github/workflows | LC_ALL=C xargs -0 grep -nE "$var_cjk")
+hits=$(cd "$here/../.." && git ls-files -z '*.sh' .github/workflows .claude/settings.json | LC_ALL=C xargs -0 grep -nE "$var_cjk")
 [ -z "$hits" ] || no "\$VAR 后紧跟非 ASCII 字符，改成 \${VAR}：
 $hits"
 
