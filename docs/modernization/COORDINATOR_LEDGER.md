@@ -3,6 +3,7 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 17:1x：系统审查（Fable 三区 sysreview-1/2/3）已出；用户「开发前期效率优先」（intent 171229）：底线 4 取证脚本信任只核入口记已知例外推第二批；本轮只修 bash3.2 全角（含 settings.json）、prod-approvals 进 final_paths、./ 前缀、b1.md 切换前置（工具库打 v2-b1、旧会话先归档）；PROMPT.md/CODING_STANDARD/budget_check H9 推第二批。调度已提交 coordinator 95becd373（RULES ⑩ 删 delegate、METHODS 三处）。两条记忆（coordinator-push-batching、coordinator-stalled-pr-check）待切换后删。**本轮之后批一不再加审查**。
 更新：2026-10-24 16:3x（one-coordinator，50% 交接；清空后先读本条）
 - **做到哪**：批一外部复核（acceptance/b1-review-grokbot.md，复现 b1-review-repro.md）已处置；用户准推送跑 CI（intent 141307），用户本人推了 next@5d1e9fba4，草稿 PR FORCITIS/forcitis-one-psa#693（已绑本会话 PR 面板，加了 queued 触发重作业；旧 mq 队列空、不会合）。CI：backend 重作业 1 个 IT 失败（LegacyNumberSourceIT 读到 light.sh 生成的 backend/glossary/__pycache__ .pyc），其余过。另做整份复审：settings.json、install 链、cutover.sh 通过；policy.json（final_paths 漏 scripts/release/ 与取证脚本）、ci.yml（runbooks/sql 误判文档档）必改，用户「都进」（intent 161742）。
 - **在途**：one-ops 已交 07bff4ce3（pyc 清理 trap 等）、f388c28cc（runbooks/sql 进 READ_BY_BUILDS）在 claude/one-ops-flow-v2-b1；855dd86ca（final_paths 17 项）在新子分支 claude/one-ops-flow-v2-b1p；cutover.sh 新版 sha1 138ad0e5。已派：三提交首轮一份、终审一份（结论 reviews/redesign/<sha>.md/.final.md），cutover-sh-138ad0e5.final.md。
