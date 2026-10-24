@@ -1,5 +1,11 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 中午八次增补（以本节为准，覆盖七次增补同名项）
+
+- **已做**：cutover.sh 不换 mq 也备份旧 plist（标记 mq.kept），回读逐字节比对；第 1 步快进后删主检出 .claude 下 push-bypass.log、context-handoff-state.json(.lock) 残留；末尾提示第 7 步「新会话由 one-coordinator start_session 开、旧会话归档」（intent 000954）。check_reviews 复跑只剩 #691 两例外（reviews-check-20261024-1205.txt）。四子分支已合 next＝**b6bbeb3e8**（policy.json 冲突按键合并，budget_check 取 450）；b1.md 第 2 节全部填好（日志 acceptance/b1run-b6bbeb3e8/），5.2b、5.2c 通过（mqdrill.sh/.log）。mq 自测入口是 `mq.py --self-test`。
+- **ops 子分支追加（待审）**：0460bfae9 policy claude_md_max_kb 1.8（首轮＋终审）；f2a9d37d9 .gitignore 删三项（O18）。relevant_change.py:71 注释仍成立（start_sheet.py:346 还指 SESSION_PLAYBOOK），已问调度是否改指 RULES.md 后一并删。
+- **待**：C6 到 72f12026b（修 V01/V03）复审过后调度通知→合 next（coordinator 与 ops 新提交）→重跑 check_reviews、acceptance_v2→B4 演练（调度定时机，intent 120304：最终 next 重跑通过后、用户验收前；调度先确认无他会话在跑；完后 current 回 adcac8c22 回读）→填 b1.md 第 4 节、5.2a（切换时）。
+
 ## 2026-10-24 上午七次增补（清空接续，以本节为准；六次增补里 cutover／b1／复审口径各条以本节覆盖）
 
 - **产物**（均在 `~/.modernize/psa/coordinator/redesign-1023/acceptance/`，不入库）：`cutover.sh`（切换／`--rollback`／`--rollback-main <sha>`，`--dry-run` 已跑通，shellcheck 过；新 main 无 `scripts/merge/com.forcitis.mq.plist.template` 就打「不换 mq」行并跳过，回退 ① 随之跳过；回退 ③ 多卸 budget_level，调度已同意）；`b1.md` 草稿；`check_reviews.py`（读 closes.json、`_改判必改`，兼容早期格式并标注）；`closes.json`（**调度已签**，84be6ded7 那条待修提交补进再签）；`reviews-check-20261024-1130.txt`。
