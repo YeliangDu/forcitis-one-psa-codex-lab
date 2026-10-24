@@ -3,7 +3,7 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-24 17:3x（接续）：O10 必改（硬链接/check_limit/上限+1）已补发 one-ops 转帮手；复审口径已裁（closes.json 对照表、one-merge 提交排除、coordinator 首行早期格式例外）；4 个缺终审（05c144e8b、242bb442d、b6dfe2f31、484de869e）已派 opus；周用量 90%。
+更新：2026-10-24 11:2x（接续）：O10 必改（硬链接/check_limit/上限+1）已补发 one-ops 转帮手；复审口径已裁（closes.json 对照表、one-merge 提交排除、coordinator 首行早期格式例外）；4 个缺终审（05c144e8b、242bb442d、b6dfe2f31、484de869e）已派 opus；周用量 90%。
 更新：2026-10-24 11:2x（one-coordinator，清空前交接；以本条为准）
 - **清空后第一件事**：不再用定时巡检（intent 071227）。后台跑 `zsh ~/.modernize/psa/coordinator/watch.sh`：每 60 秒比对 mailbox unacked、mq status、6 个 claude/*-flow-v2-b1/-next 分支 sha、在开 PR，有变化打印并退出，处理完再起；description 写「GOV-1023-COO-01 变化巡检 (脚本)」。被唤醒时顺带 get_usage，周用量 92% 叫停（现 88%，10-26 17:00 重置）。复审结论只落文件；跨会话消息少发。
 - **watch.sh 内容**：state(){ mailbox list --unacked|head -20; mq.py status|head -4; for b in one-ops-flow-v2-b1 one-quality-flow-v2-b1 one-coordinator-flow-v2-b1 one-data-flow-v2-b1 one-ops-flow-v2-next one-merge-flow-v2-b1; git rev-parse --short refs/heads/claude/$b; gh pr list --state open --json number,headRefOid; }；base=$(state)；循环 sleep 60，不同就 diff 后 exit 0。
