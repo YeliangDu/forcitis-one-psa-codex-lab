@@ -29,4 +29,4 @@
 ## 过渡映射
 - 第四批会话合并前，本角色由 one-glossary 担任。
 - `architecture/decision-page/**` 在第二批乙并入 `rules/decide/` 后从独占路径删去。
-- `GLOSSARY_CONTEXT.md`、`glossary/HANDOFF_*.md`、`rules/RULES_CONTEXT.md` 由 lead 删除；`glossary/CLAUDE.md` 的规则指针行由 lead 改。
+- `GLOSSARY_CONTEXT.md`、`glossary/HANDOFF_*.md`、`rules/RULES_CONTEXT.md` 归本角色，lead 迁移完后删除；`glossary/CLAUDE.md` 的规则指针行由 lead 改。

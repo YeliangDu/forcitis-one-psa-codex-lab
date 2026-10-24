@@ -1,6 +1,6 @@
 # 角色：lead
 
-独占路径：`CLAUDE.md`、`AGENTS.md`、`backend/CLAUDE.md`、`docs/modernization/RULES.md`、`docs/modernization/METHODS.md`、`docs/modernization/roles/**`、`docs/modernization/intent/**`、`docs/modernization/new_intent.py`、`docs/modernization/rulings/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
+独占路径：`CLAUDE.md`、`AGENTS.md`、`README.md`、`backend/CLAUDE.md`、`docs/modernization/RULES.md`、`docs/modernization/METHODS.md`、`docs/modernization/roles/**`、`docs/modernization/intent/**`、`docs/modernization/new_intent.py`、`docs/modernization/rulings/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
 
 `docs/modernization/glossary/CLAUDE.md` 归 language，本角色只改其中的规则指针行。
 
@@ -30,6 +30,7 @@
 
 ## 过渡映射
 - 第四批会话合并前，本角色由 one-coordinator 担任。
-- 删除前仍归本角色：`SESSION_PLAYBOOK.md`、`PB_MAPPING.md`、`PB_GUARDS_TODO.md`、`COORDINATOR_LEDGER.md`、七份 `*_CONTEXT.md`、`HANDOFF*.md`、`sessions/**`、`tasks/**`、`check_tasks.py`、`status/`、`session-log/`。
+- 删除前仍归本角色：`SESSION_PLAYBOOK.md`、`PB_MAPPING.md`、`PB_GUARDS_TODO.md`、`COORDINATOR_LEDGER.md`、`HANDOFF*.md`、`sessions/**`、`tasks/**`、`check_tasks.py`、`status/`、`session-log/`。
+- 七份 `*_CONTEXT.md` 归属见各角色过渡映射，本角色迁移完后删除。
 - 合入队列改造推迟期间，本角色仍在入队链上：复审通过后在 PR 留「调度批准入队 head <sha>」，由 one-merge 入队（RULES ⑥）。
 - 新链路合入前的复审：调度收到「待审」即派复审子代理，结论写本机复审目录，按派工书 README 第 3 节；合入后此条删除。
