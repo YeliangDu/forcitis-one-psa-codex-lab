@@ -532,7 +532,7 @@ def pre_tool_dispatch_test():
     for raw in (json.dumps({"tool_name": "Bash", "tool_input": {}}), json.dumps({"tool_name": "Bash", "tool_input": {"command": 1}}), json.dumps({"tool_name": "Bash"}), json.dumps({"tool_input": {"command": None}})):
         code, out, err = d.dispatch(raw)
         assert code == 2 and "按拒绝处理" in err and g.decide(json.loads(raw))[0] == 2, raw
-    # 4. fail closed: unreadable input, a gate that cannot be imported, a gate that crashes
+    # 4. unreadable input is refused; a gate that cannot be imported, crashes or hangs exits 3 (settings.json's entry then runs its own pre-filter, C3)
     for raw in ("not json", "[1]", "{"):
         code, out, err = d.dispatch(raw)
         assert code == 2 and "拒绝" in err, raw
@@ -557,7 +557,7 @@ def pre_tool_dispatch_test():
             sys.stdin = io.StringIO(payload(f"psql -h {PROD_P} -c 'select 1'"))
             with contextlib.redirect_stderr(io.StringIO()) as err:
                 code = d.main(loader)
-            assert code == 2 and "生产写门出错" in err.getvalue() and "按拒绝处理" in err.getvalue(), (loader, code, err.getvalue())
+            assert code == 3 and "生产写门出错" in err.getvalue() and "保守预筛" in err.getvalue(), (loader, code, err.getvalue())
     finally:
         sys.stdin, d.DEADLINE = real_stdin, real_deadline
     # 4b. the deadline holds while the gate waits on git (O7 fix final M1): a git that sleeps is cut at DEADLINE, not swallowed by the gate's `except OSError`
@@ -566,7 +566,7 @@ def pre_tool_dispatch_test():
         run = "import sys;sys.path.insert(0,sys.argv[1]);import pre_tool_dispatch as d;d.DEADLINE=2;sys.exit(d.main())"
         start = time.monotonic()
         slow = subprocess.run([sys.executable, "-c", run, HERE], input=payload("psql -h localhost -c 'select 1'", cwd=g.REPO_ROOT), capture_output=True, text=True, env={"LC_ALL": "C", "PATH": fake + os.pathsep + os.environ.get("PATH", "")}, timeout=60)
-        assert slow.returncode == 2 and "生产写门出错" in slow.stderr and "Overdue" in slow.stderr and time.monotonic() - start < 8, (slow.returncode, slow.stderr, time.monotonic() - start)
+        assert slow.returncode == 3 and "生产写门出错" in slow.stderr and "Overdue" in slow.stderr and time.monotonic() - start < 8, (slow.returncode, slow.stderr, time.monotonic() - start)
     # 5. end to end as a hook process under the system python, also with -I
     env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", "")}
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):
@@ -795,7 +795,8 @@ def settings_self_test():
             commands[found[-1]] = (event, hook["command"], hook["timeout"])
         assert found == ENTRIES[event], (event, found)
     gate = commands["scripts/gates/pre_tool_dispatch.py"]
-    assert gate[2] == 120 and "exit 2; }" in gate[1] and gate[1].endswith("exit 2") and "exit 0" not in gate[1], "the gate mount fails closed and never exits 0 on its own"
+    assert gate[2] == 120 and gate[1].endswith("exit 2") and "/usr/bin/python3 -I -c" in gate[1], "the gate mount: when the gate fails its own pre-filter decides, refusing by default (H4, C3)"
+    assert set(re.search(r'ok=set\("([^"]*)"', gate[1]).group(1).split()) <= g.NO_CONNECT and set(re.search(r'far="([^"]*)"', gate[1]).group(1).split()) >= g.LONG_REMOTE - {"https", "mongosh"}, "pre-filter lists"
     for name in ("scripts/hooks/git_ceiling_env.sh", "scripts/hooks/start_sheet.py"):
         assert commands[name][1].endswith("; exit 0") and "【钩子告警】" in commands[name][1] and "exit 2" not in commands[name][1], name
     assert commands["scripts/hooks/git_ceiling_env.sh"][2] == 10 and commands["scripts/hooks/start_sheet.py"][2] == 15
@@ -879,15 +880,17 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         return os.readlink(current) if os.path.islink(current) else None
     def leftovers():
         return [n for n in os.listdir(hooks) if n.startswith(".")] if os.path.isdir(hooks) else []
-    def closed(why, shells=SHELLS):
+    def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) - ordinary commands pass with a warning, what may concern production is refused
         for shell in shells:
-            r = mount(gate_cmd, bash("ls"), shell)
-            assert r.returncode == 2 and why in r.stderr, (shell, why, r.returncode, r.stdout, r.stderr)
+            for command, code in (("ls", 0), ("git status && ls -la | wc -l", 0), (f"psql -h {FAKE} -c 'delete from t'", 2), ("./deploy.sh", 2), ("echo `deploy`", 2), ("rg --pre deploy x", 2), *((c, 2) for c in extra)):
+                r = mount(gate_cmd, bash(command), shell)
+                assert r.returncode == code and why in r.stderr and ("放行" in r.stderr) == (code == 0) and os.path.isfile(os.path.join(hooks, "gate_failures.log")) == os.path.isdir(hooks), (shell, why, command, r.returncode, r.stderr)
             for cmd in (ceiling_cmd, sheet_cmd):
                 r = mount(cmd, json.dumps({"cwd": repo}), shell)
                 assert r.returncode == 0 and r.stdout.splitlines()[-1].startswith("【钩子告警】"), (shell, why, r.returncode, r.stdout, r.stderr)
-    # 1. nothing installed: the production-write gate refuses, SessionStart warns and passes
+    # 1. nothing installed: the pre-filter decides (an input it cannot read is refused), SessionStart warns and passes
     closed("入口缺失")
+    assert mount(gate_cmd, "not json").returncode == 2 and mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {}})).returncode == 2
     # 2. first install: <install_dir>/<full sha>/, current a relative link to it, nothing half-made left
     r = install()
     assert r.returncode == 0 and points_to() == a and os.path.isdir(os.path.join(hooks, a)) and not leftovers(), (r.stdout, r.stderr, points_to())
@@ -1073,6 +1076,8 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     closed("异常退出（退出码 1")
     shutil.rmtree(os.path.join(hooks, "syntax"))
     closed("入口缺失")  # a dangling current link
+    version("gate-error", "#!/bin/bash\ncat >/dev/null\nexit 3\n")  # the real dispatcher's answer when the gate cannot be imported, crashes or hangs (section 4)
+    closed("异常退出（退出码 3", extra=[c for cs in seventeen(PROD_P, PROD_H, PROD_D).values() for c in cs])
     version("answers", "#!/bin/bash\ncat >/dev/null\necho no >&2\nexit 2\n", "#!/bin/bash\necho ok\n", "#!/bin/bash\necho 【开工单】x\n")
     for shell in SHELLS:
         r = mount(gate_cmd, bash("ls"), shell)
