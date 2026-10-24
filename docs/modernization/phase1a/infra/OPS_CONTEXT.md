@@ -1,5 +1,18 @@
 # one-ops 速查（2026-10-22 增补版（含下面「2026-10-22 增补」）；原 2026-10-21 13:30+02:00 交接版：dev 在 rc.6，等 A 线 #489 与 F 合入后调度通知出新 rc 并重建 dev；用户新口径：不影响当前开发的运维/采购议题只记台账、到触发条件再报）
 
+## 2026-10-24 夜交接二（上下文 24%，清空接续；以本节为准，下面「夜交接」已被覆盖）
+
+- **在做：#693 批一整合最后一轮**（调度令：本轮之后批一不再加审查，用户 intent 171229「开发前期效率优先」）。都没推、没合 next。**已全部报调度派审，等结论**：
+  - ops-fv2-b1：cdf8de735、07bff4ce3、f388c28cc（三者终审已过）→ **c21037088**（*.sh 的 ${VAR}＋机械检查）→ **4bb536a48**（settings.json 6 处 ${VAR}、检查范围加 settings.json、rm 路径加 ./）。
+  - claude/one-ops-flow-v2-b1p（工作区 .claude/worktrees/ops-fv2-b1p）：855dd86ca（终审必改）→ **9cc8622c3**（final_paths 补 prod-approvals.txt，共 18 项）；closes.json 已加 855dd86ca→9cc8622c3，等调度签字。
+  - 本机 cutover.sh sha1 **62c6ca8ff9f7f662597918c4e928b76f9653aa9a**（待终审）；沙箱 ~/.modernize/psa/ops/pr693-pyc/cut_sbx.sh。
+  - 中文环境验证已过：light.sh（b1@c21037088）31 PASS 0 FAIL，acceptance_v2_selftest 通过；gates_selftest 过。
+  - b1.md（本机，不审）：第 5 节加切换前置两步，第 3 节加两行已知例外（门只核入口脚本、本机缺 PyYAML）。已完成。
+- **下一步**：等调度转复审结论；有必改就在对应分支作追加提交再报。都过后在 .claude/worktrees/flow-v2 依次 `merge --no-ff` claude/one-ops-flow-v2-b1、claude/one-ops-flow-v2-b1p、coordinator@95becd373 进 next（claude/one-ops-flow-v2-next）；重跑 check_reviews（基 pre-flow-v2）、acceptance_v2、light×3，结果写 acceptance/b1run-<短sha>/；更新 b1.md 状态行与 1.2；报最终 sha 与推送命令 `git -C /Users/yeliang/Projects/FORCITIS/forcitis-one-psa/.claude/worktrees/flow-v2 push origin claude/one-ops-flow-v2-next`（用户本人推）。推上后等调度通知 CI 跑完，汇总各作业结论、耗时、失败日志原样段；#693 queued 标签保留。
+- 不做（推第二批，调度令）：PROMPT.md 子代理自行 post_review、CS-7.1 指针、budget_check H9、mq 快道 OneSql.java、门不核导入模块。
+- 在途卡 OPS-1022-OPS-02、OPS-1023-OPS-01 未动（用户要求先做流程重构）。无其他未完成的用户直接请求。
+- 坑：同上节（PYTHONDONTWRITEBYTECODE 须 env -u；后台脚本先 cd 进被测树；Bash cd 漂移；zsh 与 bash 差异；推送门拦 git push）。另：真切换沙箱用 expect 驱动 /dev/tty 输入（script 管道只送得进第一行）。
+
 ## 2026-10-24 夜交接（上下文 22%，清空接续；以本节为准，下面「晚交接」各条已被覆盖）
 
 - **在做：#693 批一整合本轮必改**（调度令）。都没推、没合 next。
