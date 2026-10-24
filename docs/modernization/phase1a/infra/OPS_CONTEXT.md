@@ -3,7 +3,8 @@
 ## 2026-10-24 下午九次增补（清空接续，以本节为准，覆盖八次增补「待」项）
 
 - **最终 next＝5e3b417d3**（b6bbeb3e8 上合 ops @aee6f5fe4、coordinator @72f12026b；ops 合并提交 f1c851095 里去重了 relevant_change READ_BY_BUILDS 的 RULES.md、roles/，next 曾退回 b6bbeb3e8 重做两次合并，未推送）。已报调度（check_reviews 83 个提交 81 过、只剩 #691 两例外；acceptance_v2 过 5、跳 1、不过 2＝V02/V17a 已知例外；light.sh 连跑 3 次全过；日志 acceptance/b1run-5e3b417d3/，b1.md 已更新）。ops 追加三提交 0460bfae9、f2a9d37d9、aee6f5fe4 复审均过。
-- **下一步**：等调度安排 B4 演练（intent 120304：调度先确认除 one-ops、调度外无会话在跑；按 b1.md 第 4 节做，完后 current 回 adcac8c22 并回读，结果填第 4 节）→ 用户验收 → 合入窗口按 b1.md 第 5 节（cutover.sh 先 --dry-run；5.2a 切换时填）。若再有子分支新提交：复审过后合 next，重跑 final_checks（check_reviews、acceptance_v2、light×3）。
+- **调度已批准 B4（清空前收到）**：next 5e3b417d3 定为验收版本，f1c851095 去重调度已看过；调度已核除 one-ops 与调度外无会话在跑。接续后**先做 B4**：按 b1.md 第 4 节切 current 到 5e3b417d3，另开两种会话实测，完后 current 回退 adcac8c22 并回读，结果填第 4 节报调度；中途任何一步异常立即回退再报。开做前再向调度确认一次无他会话在跑（清空期间可能有变）。
+- **下一步（原）**：等调度安排 B4 演练（intent 120304：调度先确认除 one-ops、调度外无会话在跑；按 b1.md 第 4 节做，完后 current 回 adcac8c22 并回读，结果填第 4 节）→ 用户验收 → 合入窗口按 b1.md 第 5 节（cutover.sh 先 --dry-run；5.2a 切换时填）。若再有子分支新提交：复审过后合 next，重跑 final_checks（check_reviews、acceptance_v2、light×3）。
 - **在途卡未动**：OPS-1022-OPS-02、OPS-1023-OPS-01（用户要求先做流程重构）；无未完成的用户直接请求。
 
 ## 2026-10-24 中午八次增补（以本节为准，覆盖七次增补同名项）
