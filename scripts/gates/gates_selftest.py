@@ -30,23 +30,29 @@ PYTHON = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.execu
 def env(**extra):  # a git environment without the caller's config and GIT_* variables
     base = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     return {**base, "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1", "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t", **extra}
+
 def git(cwd, *args, ok=True, **extra):
     r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8", env=env(**extra))
     assert not ok or r.returncode == 0, f"git {args}: {r.stderr}"
     return r
+
 def put(path, text, mode=0o755):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
     os.chmod(path, mode)
+
 def size(key, path):  # (lines of `path`, its limit policy.json gates.max_lines.<key>)
     return Path(path).read_text(encoding="utf-8").count("\n"), policy()["max_lines"][key]
+
 HOOKS = os.path.join(REPO_ROOT, "scripts", "hooks")  # ── prod_write_gate ──
 TEST_IP = "192.0.2.15"  # RFC 5737 documentation address, not a production host
 SAMPLE_IDS = ("legacy-rds-sqlserver", "legacy-ecs", "new-prod-names")  # the 17 cases' P, H, D: the first pattern of each of these targets
+
 def shipped_firsts():
     """{target id: its first pattern} of the shipped prod_targets.json, read at run time (the guard sources hold no production sample)."""
     return {t["id"]: t["patterns"][0].strip() for t in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["targets"]}
+
 def shipped_forms():
     """{"<target id> <form>": pattern}: the first IP-shaped and the first name-shaped pattern of every target of the shipped table (O2 round 1, note ①: each form is run)."""
     forms = {}
@@ -55,14 +61,17 @@ def shipped_forms():
             form = "ip" if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", pattern.strip()) else "name"
             forms.setdefault(f"{target['id']} {form}", pattern.strip())
     return forms
+
 def real_samples():
     """(P, H, D) for the 17 cases under the real table."""
     firsts = shipped_firsts()
     return tuple(firsts[i] for i in SAMPLE_IDS)
+
 def braced(word):
     """`word` with one character written as a brace expansion `{c,c}`: bash (and curl) turn it back into `word`, the word itself is not on the line."""
     k = len(word) // 2
     return word[:k] + "{" + word[k] + "," + word[k] + "}" + word[k + 1:]
+
 def seventeen(P, H, D):
     """生产写门 17 例：编号 = Codex 复核 #653（2026-10-22）的 P1 缺口序号，命令取自其复现样本（P 为 RDS 实例、H 为应用服务器、D 为生产库名；第 12 例的花括号按 braced 生成）。"""
     return {
@@ -86,6 +95,7 @@ def seventeen(P, H, D):
         16: [f"bcp \"DELETE FROM dbo.t; SELECT 1\" queryout ./out.txt -S {P}", f"redis-cli -h {H} slowlog reset", f"redis-cli -h {H} client kill type normal"],  # 只看方向或一级子命令
         17: [f"ssh {H} 'date -us 2020-01-01'"],  # ssh 只读工具的组合短选项
     }
+
 def words_self_test():
     names = lambda text: [name_of(c.argv[0]) for c in simple_commands(text)]  # noqa: E731
     argvs = lambda text: [c.argv for c in simple_commands(text)]  # noqa: E731
@@ -102,7 +112,8 @@ def words_self_test():
     assert simple_commands('echo "$X"')[0].unresolved and not simple_commands("echo '$X'")[0].unresolved
     assert "git" in names("echo `git push`") and any(t == ";" for t in tokens_of("echo `git push`")), "the other gates keep reading a backtick as a new command"
     # shells: bundled -c options, multi-word eval, heredoc / here-string / echo-pipe bodies
-    for text in ("bash -lc 'psql -h h'", "sh -ec 'psql -h h'", "bash -xc \"psql -h h\"", "eval psql -h h", "eval 'psql' '-h' h", "bash <<'EOF'\npsql -h h\nEOF", "bash <<< 'psql -h h'", "echo 'psql -h h' | bash", "zsh -c \"bash -c 'psql -h h'\"", "env -S 'psql -h h'", "env -S'psql -h h'", "env --split-string='psql -h h'", "env A=1 -S 'psql -h h'"):
+    for text in ("bash -lc 'psql -h h'", "sh -ec 'psql -h h'", "bash -xc \"psql -h h\"", "eval psql -h h", "eval 'psql' '-h' h", "bash <<'EOF'\npsql -h h\nEOF", "bash <<< 'psql -h h'", "echo 'psql -h h' | bash", "zsh -c \"bash -c 'psql -h h'\"",
+                 "env -S 'psql -h h'", "env -S'psql -h h'", "env --split-string='psql -h h'", "env A=1 -S 'psql -h h'"):
         assert "psql" in names(text), text
     assert ["psql", "-h", "h"] in argvs("eval psql -h h") and ["psql", "-h", "h"] in argvs("env -S 'psql -h h'")
     pick = lambda text: next(c for c in simple_commands(text) if c.argv[0] == "bash")  # noqa: E731
@@ -133,6 +144,7 @@ def words_self_test():
     except ValueError:
         pass
     print("command_words self-test: ok")
+
 def gate_self_test():
     patterns = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP]
     cwd = tempfile.mkdtemp()
@@ -146,26 +158,72 @@ def gate_self_test():
     Path(cwd, "deploy.sh").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
     intent = os.path.join(REPO_ROOT, DOCS_ROOT, "new_intent.py")
     # 1. reads and harmless mentions pass
-    for command in (f'psql -h {P}.pg.rds.aliyuncs.com -U ro -c "select count(*) from t"', f'psql -h {P} -c "SELECT 1"', f'mysql -h {P} -e "show tables"', f'mysql -h {P} -e "SHOW CREATE TABLE t"', f'psql -h {P} -c "explain select 1"', f'psql -h {P} -q -c "select 1"', f'sqlcmd -S {P} -U ro -Q "set nocount on; select * from t"', f'sqlcmd -S {P} -Q "set nocount on\nselect 1"', f'sqlcmd -S {P} --query "select 1"', f'sqlcmd -S {P} -i ro.sql', f"sqlcmd -S {P} -iro.sql", f'sqlcmd -S {P} < ro.sql', f'sqlcmd -S {P} -Q "select [desc], [update] from [t]"', f'psql -h {P} -c "select \'drop table t\'"', f'psql -h {P} -c "select * from t -- delete me"', f'psql -h {P} -c "\\dt"', f'psql -h {P} -c "\\dt+"', f"psql -h {P} <<'EOF'\nselect 1;\nEOF", f"psql -h {P} <<< 'select 1'", f"echo 'select 1' | psql -h {P}", f"sqlcmd -S {P} -?", f"psql -h {P} --version", f'redis-cli -h {P} -p 6379 get a', f'redis-cli -h {P} slowlog get 5', f'bcp "select 1" queryout o.csv -S {P}', "aliyun rds DescribeDBInstances --InstanceId pgm-prod0001", "aliyun --profile x ecs DescribeInstances --InstanceIds rm-prodhost1", f"aliyun cs GET /clusters/{P}", f'ssh ops@{P} "tail -n 50 /var/log/app.log"', f"ssh {P} 'df -h && uptime'", f"ssh -i key -p 22 {P} 'systemctl status app'", f"ssh {P} docker ps", f"ssh {P} 'date -u +%s'", f"ssh {P} 'date -Iseconds'", f"scp ops@{P}:/var/log/a.log ./a.log", f"rsync -a ops@{P}:/data/ ./data/", f"rsync -a -e 'ssh -p 22' ops@{P}:/data/ ./data/",
-                    f"curl https://{P}/health", f"curl -X GET https://db.prod.example.com/x", f"curl -XGET https://db.prod.example.com/x", f"curl -sS -o out.json https://db.prod.example.com/x", f"wget https://db.prod.example.com/x", "git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md", "cat <<'EOF' > n.md\npgm-prod0001\nEOF", f"python3 -I {intent} 'x pgm-prod0001'", "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs", "python3 clean.py", "bash -c 'echo hi'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"", "curl -X POST http://localhost:$PORT/api", 'curl -s -d "$BODY" http://localhost:8080/api', "psql -h localhost -c 'DO $$ begin null; end $$'", "psql -h localhost -c 'select 1' && curl http://localhost:$PORT", "ls $HOME", "cat <<EOF\nplain text pgm-prod0001\nEOF", "echo 'cost $5 for pgm-prod0001'"):
+    for command in (f'psql -h {P}.pg.rds.aliyuncs.com -U ro -c "select count(*) from t"', f'psql -h {P} -c "SELECT 1"', f'mysql -h {P} -e "show tables"', f'mysql -h {P} -e "SHOW CREATE TABLE t"', f'psql -h {P} -c "explain select 1"', f'psql -h {P} -q -c "select 1"',
+                    f'sqlcmd -S {P} -U ro -Q "set nocount on; select * from t"', f'sqlcmd -S {P} -Q "set nocount on\nselect 1"', f'sqlcmd -S {P} --query "select 1"', f'sqlcmd -S {P} -i ro.sql', f"sqlcmd -S {P} -iro.sql", f'sqlcmd -S {P} < ro.sql',
+                    f'sqlcmd -S {P} -Q "select [desc], [update] from [t]"', f'psql -h {P} -c "select \'drop table t\'"', f'psql -h {P} -c "select * from t -- delete me"', f'psql -h {P} -c "\\dt"', f'psql -h {P} -c "\\dt+"',
+                    f"psql -h {P} <<'EOF'\nselect 1;\nEOF", f"psql -h {P} <<< 'select 1'", f"echo 'select 1' | psql -h {P}", f"sqlcmd -S {P} -?", f"psql -h {P} --version", f'redis-cli -h {P} -p 6379 get a', f'redis-cli -h {P} slowlog get 5',
+                    f'bcp "select 1" queryout o.csv -S {P}', "aliyun rds DescribeDBInstances --InstanceId pgm-prod0001", "aliyun --profile x ecs DescribeInstances --InstanceIds rm-prodhost1", f"aliyun cs GET /clusters/{P}",
+                    f'ssh ops@{P} "tail -n 50 /var/log/app.log"', f"ssh {P} 'df -h && uptime'", f"ssh -i key -p 22 {P} 'systemctl status app'", f"ssh {P} docker ps", f"ssh {P} 'date -u +%s'", f"ssh {P} 'date -Iseconds'",
+                    f"scp ops@{P}:/var/log/a.log ./a.log", f"rsync -a ops@{P}:/data/ ./data/", f"rsync -a -e 'ssh -p 22' ops@{P}:/data/ ./data/",
+                    f"curl https://{P}/health", f"curl -X GET https://db.prod.example.com/x", f"curl -XGET https://db.prod.example.com/x", f"curl -sS -o out.json https://db.prod.example.com/x", f"wget https://db.prod.example.com/x",
+                    "git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md", "cat <<'EOF' > n.md\npgm-prod0001\nEOF",
+                    f"python3 -I {intent} 'x pgm-prod0001'", "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs", "python3 clean.py", "bash -c 'echo hi'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"",
+                    "curl -X POST http://localhost:$PORT/api", 'curl -s -d "$BODY" http://localhost:8080/api', "psql -h localhost -c 'DO $$ begin null; end $$'", "psql -h localhost -c 'select 1' && curl http://localhost:$PORT", "ls $HOME",
+                    "cat <<EOF\nplain text pgm-prod0001\nEOF", "echo 'cost $5 for pgm-prod0001'"):
         assert allowed(command), f"must pass: {command!r}"
     # 2. writes to production are refused, every class
-    for command in (f'psql -h {P} -c "insert into t values (1)"', f'psql -h {P} -c "UPDATE t SET a=1"', f'psql -h {P} -c "delete from t"', f'psql -h {P} -c "drop table t"', f'psql -h {P} -c "ALTER TABLE t ADD c int"', f'psql -h {P} -c "select 1; delete from t"', f'psql -h {P} -c "select * from t for update"', f'psql -h {P} -c "truncate t"', f"psql -h {P} -f fix.sql", f"psql -h {P} < fix.sql", f"psql -h {P} -f missing.sql", f"psql -h {P}", f'mysql -h {P} -e "grant all on *.* to x"', f"mysql -h {P} < x.sql", f'redis-cli -h {P} flushall', f'redis-cli -h {P} set a 1', f'redis-cli -h {H} slowlog reset', f'redis-cli -h {H} client kill type normal', f'sqlcmd -S {P} -Q "select 1; dbcc shrinkdatabase(x)"', f'sqlcmd -S {P} -Q "select 1; kill 55"', f'sqlcmd -S {P} -Q "backup database x to disk=\'y\'"', f'sqlcmd -S {P} -Q "select 1; deny select on t to u"', f'sqlcmd -S {P} -Q "select 1; checkpoint; reconfigure"', f'sqlcmd -S {P} -Q "exec sp_configure"', f'sqlcmd -S {P} -Q "select * into t2 from t"', f'sqlcmd -S {P} -Q "use master; select 1"', f'psql -h {P} -c "select pg_terminate_backend(1)"', f"psql -h {P} -c \"select 'drop table t' \\gexec\"", f'psql -h {P} -c "select set_config(\'a\',\'b\',false)"', f'psql -h {P} -c "select nextval(\'s\')"', f'psql -h {P} -c \'SELECT pg_catalog."nextval"($$seq$$)\'', f'psql -h {P} -c "SELECT pg_logical_emit_message(false, \'x\', \'x\')"', f'psql -h {P} -c "select 1; comment on table t is \'x\'"',
-                    f'psql -h {P} -c "\\copy t from f"', f'psql -h {P} -c "\\i fix.sql"', f'psql -h {P} -c "do $$ begin delete from t; end $$"', f'sqlcmd -S {P} -Q "SELECT \'--\'; DELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "SELECT \'/*\'; DELETE FROM dbo.t; SELECT \'*/\'"', f'sqlcmd -S {P} -Q "SET NOCOUNT ON\nDELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "select \'unterminated"', f'sqlcmd -S {P} -z "$NEW" -Q "select 1"', f'sqlcmd -S {P} -v op="; DELETE FROM dbo.t" -Q \'SELECT 1 $(op)\'', f'sqlcmd -S {P} -Q "select 1 $(op)"', f'mysql -h {H} --init-command="DELETE FROM t" -e "select 1"', f"psql -h localhost -c 'select 1' -o '|ssh {H} touch /tmp/x'", f'psql -h {P} <<EOF\nselect 1;\ndelete from t;\nEOF', f'psql -h {P} <<< "delete from t"', f'echo "delete from t" | psql -h {P}', f'printf "delete from t" | psql -h {P}', f'cat fix.sql | psql -h {P}', f'sqlcmd -S {P} -ifix.sql', f'bcp db.dbo.t in x.dat -S {P}', f'bcp db.dbo.t out x.dat -S {P} -b in', f'bcp "DELETE FROM dbo.t; SELECT 1" queryout ./out.txt -S {P}', f'tsql -H {P}', f'isql {P}', f'sqlpackage /Action:Publish /TargetServerName:{P}', f'mongosh --host {P} --eval "db.t.deleteMany({{}})"', "aliyun rds DeleteAccount --DBInstanceId pgm-prod0001", "aliyun rds ModifyDBInstanceSpec --DBInstanceId pgm-prod0001", "aliyun ecs StopInstance --InstanceId rm-prodhost1", "aliyun --profile pgm-prod0001 ecs RunCommand",
-                    "aliyun rds --RegionId DescribeX DeleteAccount --DBInstanceId pgm-prod0001", "aliyun ecs InvokeCommand --InstanceId rm-prodhost1", f"aliyun cs DELETE /clusters/{P}", f'ssh {P} "rm -rf /data/x"', f"ssh {P} 'echo x > /etc/app.conf'", f"ssh {P} 'sed -i s/a/b/ /etc/app.conf'", f"ssh {P} 'systemctl restart app'", f"ssh {P}", f"ssh {P} 'tee /etc/x'", f"ssh {P} 'find / -delete'", f"ssh {P} 'find / -fprint0 /tmp/x'", f"ssh {P} 'cat /etc/x | sh'", f"ssh {P} 'psql -c \"delete from t\"'", f"ssh {P} 'awk \"BEGIN{{print 1 | \\\"sh\\\"}}\"'", f"ssh {P} 'sort -o /etc/passwd /tmp/x'", f"ssh {P} 'uniq in /etc/passwd'", f"ssh {P} 'journalctl --vacuum-size=1M'", f"ssh {P} 'date -s 2020-01-01'", f"ssh {H} 'date -us 2020-01-01'", f"ssh {P} 'ss -K'", f"ssh {P} 'hostname evil'", f"ssh -L 5432:db:5432 {P}", f"ssh -L 5432:db:5432 {P} ls", f"ssh -D 1080 {P} uptime", f"ssh -R 8080:localhost:80 {P} df", f"ssh -o ProxyCommand='nc x 22' {P} ls", f"ssh -N -R 8080:localhost:80 {P}", f"scp ./fix.sql ops@{P}:/tmp/", f"rsync -a ./dist/ ops@{P}:/srv/", f"rsync -a ./dist/ ops@{P}:/srv/ --exclude .git", f"rsync -a ./dist/ ops@{P}:/srv/ -e ssh", f"rsync --remove-source-files ops@{P}:/data/ ./x/", f"rsync --rsync-path='sh -c x' ops@{P}:/data/ ./x/", f"sftp {P}", f"scp -P 22 ./a ops@{P}:/x", f"scp ops@{P}:/a ops@{P}:/b", f"scp -o 'ProxyCommand=ssh {H} touch /tmp/x' {H}:/var/log/a ./a",
-                    f"rsync -e 'ssh -oProxyCommand=\"ssh {H} touch /tmp/x\"' {H}:/var/log/ ./logs/", f"scp -O '{H}:$(touch /tmp/x)/a' ./a", f"scp -S ./evil {H}:/a ./a", f"curl -X POST https://{P}/api", f"curl -XPOST https://{P}/api", f"curl -sd x=1 https://{P}/api", f"curl --data=x https://{P}/api", f"curl -K cfg https://{P}/api", f"curl -d x=1 https://db.prod.example.com/api", f"curl -X DELETE https://db.prod.example.com/x", f"curl -T f.bin https://db.prod.example.com/up", f"curl --json '{{}}' https://{P}/x", f"curl https://{P}/a --next https://{P}/b -d x", f"curl --quote 'rm /tmp/x' sftp://{H}/", f"curl 'gopher://{H}:6379/_SET%20x%201'", f"printf 'url = \"http://{H}/api\"' | curl -K -", "curl -XDELETE http://192.0.{2,2}.15/api/item/1", "curl -XDELETE 'http://192.0.{2,2}.15/api/item/1'", f"wget --method=DELETE https://{P}/x", f"wget --post-data=x https://{P}/x", f"http POST https://{P}/x", f"http https://{P}/x name=a", f"xh PUT https://{P}/x"):
+    for command in (f'psql -h {P} -c "insert into t values (1)"', f'psql -h {P} -c "UPDATE t SET a=1"', f'psql -h {P} -c "delete from t"', f'psql -h {P} -c "drop table t"', f'psql -h {P} -c "ALTER TABLE t ADD c int"',
+                    f'psql -h {P} -c "select 1; delete from t"', f'psql -h {P} -c "select * from t for update"', f'psql -h {P} -c "truncate t"', f"psql -h {P} -f fix.sql", f"psql -h {P} < fix.sql", f"psql -h {P} -f missing.sql",
+                    f"psql -h {P}", f'mysql -h {P} -e "grant all on *.* to x"', f"mysql -h {P} < x.sql", f'redis-cli -h {P} flushall', f'redis-cli -h {P} set a 1', f'redis-cli -h {H} slowlog reset', f'redis-cli -h {H} client kill type normal',
+                    f'sqlcmd -S {P} -Q "select 1; dbcc shrinkdatabase(x)"', f'sqlcmd -S {P} -Q "select 1; kill 55"', f'sqlcmd -S {P} -Q "backup database x to disk=\'y\'"', f'sqlcmd -S {P} -Q "select 1; deny select on t to u"',
+                    f'sqlcmd -S {P} -Q "select 1; checkpoint; reconfigure"', f'sqlcmd -S {P} -Q "exec sp_configure"', f'sqlcmd -S {P} -Q "select * into t2 from t"', f'sqlcmd -S {P} -Q "use master; select 1"',
+                    f'psql -h {P} -c "select pg_terminate_backend(1)"', f"psql -h {P} -c \"select 'drop table t' \\gexec\"", f'psql -h {P} -c "select set_config(\'a\',\'b\',false)"', f'psql -h {P} -c "select nextval(\'s\')"',
+                    f'psql -h {P} -c \'SELECT pg_catalog."nextval"($$seq$$)\'', f'psql -h {P} -c "SELECT pg_logical_emit_message(false, \'x\', \'x\')"', f'psql -h {P} -c "select 1; comment on table t is \'x\'"',
+                    f'psql -h {P} -c "\\copy t from f"', f'psql -h {P} -c "\\i fix.sql"', f'psql -h {P} -c "do $$ begin delete from t; end $$"',
+                    f'sqlcmd -S {P} -Q "SELECT \'--\'; DELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "SELECT \'/*\'; DELETE FROM dbo.t; SELECT \'*/\'"', f'sqlcmd -S {P} -Q "SET NOCOUNT ON\nDELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "select \'unterminated"',
+                    f'sqlcmd -S {P} -z "$NEW" -Q "select 1"', f'sqlcmd -S {P} -v op="; DELETE FROM dbo.t" -Q \'SELECT 1 $(op)\'', f'sqlcmd -S {P} -Q "select 1 $(op)"', f'mysql -h {H} --init-command="DELETE FROM t" -e "select 1"',
+                    f"psql -h localhost -c 'select 1' -o '|ssh {H} touch /tmp/x'", f'psql -h {P} <<EOF\nselect 1;\ndelete from t;\nEOF', f'psql -h {P} <<< "delete from t"', f'echo "delete from t" | psql -h {P}', f'printf "delete from t" | psql -h {P}',
+                    f'cat fix.sql | psql -h {P}', f'sqlcmd -S {P} -ifix.sql', f'bcp db.dbo.t in x.dat -S {P}', f'bcp db.dbo.t out x.dat -S {P} -b in', f'bcp "DELETE FROM dbo.t; SELECT 1" queryout ./out.txt -S {P}', f'tsql -H {P}', f'isql {P}',
+                    f'sqlpackage /Action:Publish /TargetServerName:{P}', f'mongosh --host {P} --eval "db.t.deleteMany({{}})"', "aliyun rds DeleteAccount --DBInstanceId pgm-prod0001", "aliyun rds ModifyDBInstanceSpec --DBInstanceId pgm-prod0001",
+                    "aliyun ecs StopInstance --InstanceId rm-prodhost1", "aliyun --profile pgm-prod0001 ecs RunCommand", "aliyun rds --RegionId DescribeX DeleteAccount --DBInstanceId pgm-prod0001",
+                    "aliyun ecs InvokeCommand --InstanceId rm-prodhost1", f"aliyun cs DELETE /clusters/{P}",
+                    f'ssh {P} "rm -rf /data/x"', f"ssh {P} 'echo x > /etc/app.conf'", f"ssh {P} 'sed -i s/a/b/ /etc/app.conf'", f"ssh {P} 'systemctl restart app'", f"ssh {P}", f"ssh {P} 'tee /etc/x'",
+                    f"ssh {P} 'find / -delete'", f"ssh {P} 'find / -fprint0 /tmp/x'", f"ssh {P} 'cat /etc/x | sh'", f"ssh {P} 'psql -c \"delete from t\"'",
+                    f"ssh {P} 'awk \"BEGIN{{print 1 | \\\"sh\\\"}}\"'", f"ssh {P} 'sort -o /etc/passwd /tmp/x'", f"ssh {P} 'uniq in /etc/passwd'", f"ssh {P} 'journalctl --vacuum-size=1M'", f"ssh {P} 'date -s 2020-01-01'", f"ssh {H} 'date -us 2020-01-01'",
+                    f"ssh {P} 'ss -K'", f"ssh {P} 'hostname evil'", f"ssh -L 5432:db:5432 {P}", f"ssh -L 5432:db:5432 {P} ls", f"ssh -D 1080 {P} uptime", f"ssh -R 8080:localhost:80 {P} df", f"ssh -o ProxyCommand='nc x 22' {P} ls", f"ssh -N -R 8080:localhost:80 {P}",
+                    f"scp ./fix.sql ops@{P}:/tmp/", f"rsync -a ./dist/ ops@{P}:/srv/", f"rsync -a ./dist/ ops@{P}:/srv/ --exclude .git", f"rsync -a ./dist/ ops@{P}:/srv/ -e ssh", f"rsync --remove-source-files ops@{P}:/data/ ./x/",
+                    f"rsync --rsync-path='sh -c x' ops@{P}:/data/ ./x/", f"sftp {P}", f"scp -P 22 ./a ops@{P}:/x", f"scp ops@{P}:/a ops@{P}:/b", f"scp -o 'ProxyCommand=ssh {H} touch /tmp/x' {H}:/var/log/a ./a",
+                    f"rsync -e 'ssh -oProxyCommand=\"ssh {H} touch /tmp/x\"' {H}:/var/log/ ./logs/", f"scp -O '{H}:$(touch /tmp/x)/a' ./a", f"scp -S ./evil {H}:/a ./a",
+                    f"curl -X POST https://{P}/api", f"curl -XPOST https://{P}/api", f"curl -sd x=1 https://{P}/api", f"curl --data=x https://{P}/api", f"curl -K cfg https://{P}/api", f"curl -d x=1 https://db.prod.example.com/api",
+                    f"curl -X DELETE https://db.prod.example.com/x", f"curl -T f.bin https://db.prod.example.com/up", f"curl --json '{{}}' https://{P}/x", f"curl https://{P}/a --next https://{P}/b -d x",
+                    f"curl --quote 'rm /tmp/x' sftp://{H}/", f"curl 'gopher://{H}:6379/_SET%20x%201'", f"printf 'url = \"http://{H}/api\"' | curl -K -", "curl -XDELETE http://192.0.{2,2}.15/api/item/1", "curl -XDELETE 'http://192.0.{2,2}.15/api/item/1'",
+                    f"wget --method=DELETE https://{P}/x", f"wget --post-data=x https://{P}/x", f"http POST https://{P}/x", f"http https://{P}/x name=a", f"xh PUT https://{P}/x"):
         assert refused(command), f"write must be refused: {command!r}"
     # 3. writes elsewhere pass
-    for command in ('psql -h localhost -c "insert into t values (1)"', "psql -h pgm-dev00001 -f x.sql", "aliyun rds DeleteAccount --DBInstanceId pgm-dev00001", "ssh dev 'rm -rf /tmp/x'", "scp a dev:/tmp/", "curl -X POST https://dev/x", "python3 clean.py", "xargs -n1 echo", "find . -name '*.py'", "caffeinate -i ls", "psql -h localhost -c 'select 1' -o out.txt"):
+    for command in ('psql -h localhost -c "insert into t values (1)"', "psql -h pgm-dev00001 -f x.sql", "aliyun rds DeleteAccount --DBInstanceId pgm-dev00001", "ssh dev 'rm -rf /tmp/x'", "scp a dev:/tmp/", "curl -X POST https://dev/x", "python3 clean.py",
+                    "xargs -n1 echo", "find . -name '*.py'", "caffeinate -i ls", "psql -h localhost -c 'select 1' -o out.txt"):
         assert allowed(command), f"non-production write must pass: {command!r}"
     # 4. unknown tools that touch production, every one refused
-    for command in (f"python3 -c \"import pymssql; pymssql.connect('{P}').execute('delete from t')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}", f"xargs -I{{}} sqlcmd -S {P} -Q {{}}", f"find . -exec sqlcmd -S {P} -Q 'delete from t' \\;", f"script -q /dev/null sqlcmd -S {P} -Q 'delete from t'", f"arch -arm64 sqlcmd -S {P} -Q 'delete from t'", f"caffeinate -i sqlcmd -S {P} -Q 'delete from t'", f"alias q='sqlcmd -S {P}'\nq -Q 'delete from t'", f"parallel sqlcmd -S {P} ::: x", "python3 runner.py", f"python3 deploy_x.py --db {P}", f"node -e \"x('{P}')\"", f"mvn flyway:migrate -Dflyway.url={P}", "bash deploy.sh", "source deploy.sh", ". deploy.sh", f"python3 - <<EOF\nconnect('{P}')\nEOF", f"echo \"x\" > /dev/null; python3 <<EOF\nconnect('{P}')\nEOF", f"cat x.sql | python3 -c 'import sys' # {P}", f"bash <<'EOF'\nsqlcmd -S {P} -Q 'delete from t'\nEOF", f'bash <<< "sqlcmd -S {P} -Q \'delete from t\'"', f'echo "sqlcmd -S {P} -Q \'delete from t\'" | bash', f"cat run.sh | bash # {P}", f"python3 -X new_intent.py -c \"import os; os.system('ssh {H} touch /tmp/x')\"", f"node --title new_intent.py -e \"require('child_process').execSync('ssh {H} touch x')\"", f"python3 {cwd}/new_intent.py '{P}'", f"cat > /tmp/gate_probe_x.sh <<'EOF'\nssh {H} touch /tmp/x\nEOF\nbash /tmp/gate_probe_x.sh", f"rg --pre 'ssh {H} touch /tmp/x' x README.md", f"git push ssh://{H}/srv/repo HEAD:main", f"git -c core.sshCommand='ssh {H}' fetch",
-                    f"sed -n 'e ssh {H} touch /tmp/x' README.md", f"sed 's/x/ssh {H} touch x/e' README.md", f"sort --compress-program='ssh {H}' f", "bash -c 'bash -c \"bash -c \\\"bash -c \\\\\\\"ssh 192.0.2.15 touch x\\\\\\\"\\\"\\\"\"'", f"eval eval eval eval ssh {H} touch /tmp/x", f"echo ok # <<EOF\nsqlcmd -S {P} -Q 'delete from t'", f'echo "<<EOF"; sqlcmd -S {P} -Q "delete from t"', f"cat <<EOF\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF", f'printf "%s" <(sqlcmd -S {P} -Q "delete from t")', f"export SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"export H={P}; sqlcmd -S\"$H\" -Q 'delete from t'", "curl -XDELETE http://192.0.{2,3}.15/x"):
+    for command in (f"python3 -c \"import pymssql; pymssql.connect('{P}').execute('delete from t')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}", f"xargs -I{{}} sqlcmd -S {P} -Q {{}}",
+                    f"find . -exec sqlcmd -S {P} -Q 'delete from t' \\;", f"script -q /dev/null sqlcmd -S {P} -Q 'delete from t'", f"arch -arm64 sqlcmd -S {P} -Q 'delete from t'", f"caffeinate -i sqlcmd -S {P} -Q 'delete from t'",
+                    f"alias q='sqlcmd -S {P}'\nq -Q 'delete from t'", f"parallel sqlcmd -S {P} ::: x", "python3 runner.py", f"python3 deploy_x.py --db {P}", f"node -e \"x('{P}')\"", f"mvn flyway:migrate -Dflyway.url={P}", "bash deploy.sh", "source deploy.sh",
+                    ". deploy.sh", f"python3 - <<EOF\nconnect('{P}')\nEOF", f"echo \"x\" > /dev/null; python3 <<EOF\nconnect('{P}')\nEOF", f"cat x.sql | python3 -c 'import sys' # {P}",
+                    f"bash <<'EOF'\nsqlcmd -S {P} -Q 'delete from t'\nEOF", f'bash <<< "sqlcmd -S {P} -Q \'delete from t\'"', f'echo "sqlcmd -S {P} -Q \'delete from t\'" | bash', f"cat run.sh | bash # {P}",
+                    f"python3 -X new_intent.py -c \"import os; os.system('ssh {H} touch /tmp/x')\"", f"node --title new_intent.py -e \"require('child_process').execSync('ssh {H} touch x')\"", f"python3 {cwd}/new_intent.py '{P}'",
+                    f"cat > /tmp/gate_probe_x.sh <<'EOF'\nssh {H} touch /tmp/x\nEOF\nbash /tmp/gate_probe_x.sh", f"rg --pre 'ssh {H} touch /tmp/x' x README.md", f"git push ssh://{H}/srv/repo HEAD:main", f"git -c core.sshCommand='ssh {H}' fetch",
+                    f"sed -n 'e ssh {H} touch /tmp/x' README.md", f"sed 's/x/ssh {H} touch x/e' README.md", f"sort --compress-program='ssh {H}' f", "bash -c 'bash -c \"bash -c \\\"bash -c \\\\\\\"ssh 192.0.2.15 touch x\\\\\\\"\\\"\\\"\"'",
+                    f"eval eval eval eval ssh {H} touch /tmp/x", f"echo ok # <<EOF\nsqlcmd -S {P} -Q 'delete from t'", f'echo "<<EOF"; sqlcmd -S {P} -Q "delete from t"', f"cat <<EOF\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF",
+                    f'printf "%s" <(sqlcmd -S {P} -Q "delete from t")', f"export SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"export H={P}; sqlcmd -S\"$H\" -Q 'delete from t'", "curl -XDELETE http://192.0.{2,3}.15/x"):
         assert refused(command), f"unknown tool touching production must be refused: {command!r}"
     assert refused(f'sqlcmd -S {P} -Q "select next value for dbo.s"') and refused(f"psql -h {P} -c \"select query_to_xml('delete from t', true, false, '')\""), "sequence advance and SQL run from a string"
     assert allowed(f"cat <<'EOF'\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF"), "a quoted here-document body is text"
     # 5. the opus review's parsing gaps
-    for command in (f"sqlcmd -S `echo {P}` -Q \"delete from t\"", "sqlcmd -S `cat h.txt` -Q \"delete from t\"", f"sqlcmd -S $'\\x70gm-prod0001' -Q 'delete from t'", f"$'\\x73qlcmd' -S {P} -Q 'delete from t'", f"sqlcmd -S $'\\160gm-prod0001' -Q 'delete from t'", f"sqlc\\\nmd -S {P} -Q \"delete from t\"", f"sqlcmd -S pgm-\\\nprod0001 -Q 'delete from t'", f"bash -lc \"sqlcmd -S {P} -Q 'delete from t'\"", f"sh -ec \"psql -h {P} -c 'delete from t'\"", f"bash -xc \"psql -h {P} -c 'drop table t'\"", f"eval sqlcmd -S {P} -Q \"'delete from t'\"", f"env -S 'sqlcmd -S {P} -Q \"delete from t\"'", f"env -Ssqlcmd -S {P} -Q x", f"p=pgm-prod; q=0001; psql -h $p$q -c 'delete from t'", f"HOST={P} psql -h $HOST -c 'delete from t'", f"export H={P}; psql -h \"${{H}}\" -c 'drop table t'", f"psql -h 'pgm-'prod0001 -c 'delete from t'", f"env PGHOST={P} psql -c 'delete from t'", f"nohup timeout 9 psql -h {P} -c 'delete from t'", f"echo $(psql -h {P} -c 'delete from t')", f"PSQL=psql; $PSQL -h {P} -c 'delete from t'", f"/usr/bin/PSQL -h {P} -c 'delete from t'", f"cd /tmp && true; ssh {P} 'rm x'", f"(ssh {P} 'rm x')", f"bash -c \"bash -c \\\"psql -h {P} -c 'delete from t'\\\"\""):
+    for command in (f"sqlcmd -S `echo {P}` -Q \"delete from t\"", "sqlcmd -S `cat h.txt` -Q \"delete from t\"", f"sqlcmd -S $'\\x70gm-prod0001' -Q 'delete from t'", f"$'\\x73qlcmd' -S {P} -Q 'delete from t'", f"sqlcmd -S $'\\160gm-prod0001' -Q 'delete from t'",
+                    f"sqlc\\\nmd -S {P} -Q \"delete from t\"", f"sqlcmd -S pgm-\\\nprod0001 -Q 'delete from t'", f"bash -lc \"sqlcmd -S {P} -Q 'delete from t'\"", f"sh -ec \"psql -h {P} -c 'delete from t'\"", f"bash -xc \"psql -h {P} -c 'drop table t'\"",
+                    f"eval sqlcmd -S {P} -Q \"'delete from t'\"", f"env -S 'sqlcmd -S {P} -Q \"delete from t\"'", f"env -Ssqlcmd -S {P} -Q x", f"p=pgm-prod; q=0001; psql -h $p$q -c 'delete from t'", f"HOST={P} psql -h $HOST -c 'delete from t'",
+                    f"export H={P}; psql -h \"${{H}}\" -c 'drop table t'", f"psql -h 'pgm-'prod0001 -c 'delete from t'", f"env PGHOST={P} psql -c 'delete from t'", f"nohup timeout 9 psql -h {P} -c 'delete from t'",
+                    f"echo $(psql -h {P} -c 'delete from t')", f"PSQL=psql; $PSQL -h {P} -c 'delete from t'", f"/usr/bin/PSQL -h {P} -c 'delete from t'", f"cd /tmp && true; ssh {P} 'rm x'", f"(ssh {P} 'rm x')",
+                    f"bash -c \"bash -c \\\"psql -h {P} -c 'delete from t'\\\"\""):
         assert refused(command), f"bypass must be refused: {command!r}"
     assert refused('psql -h "$PGHOST" -c "delete from t"'), "unresolved target + write is refused"
     assert refused("psql -h $(cat host.txt) -c 'delete from t'") and refused("aliyun rds DeleteAccount --DBInstanceId $ID") and refused('psql "$DATABASE_URL" -c "insert into t values (1)"') and refused('psql -h"$H" -c "delete from t"')
@@ -174,7 +232,8 @@ def gate_self_test():
     assert refused("psql -h 'pgm-prod0001 -c 'delete'"), "unreadable command with a remote tool is refused"
     assert allowed("echo 'unterminated"), "unreadable command with no remote tool is not this gate's business"
     # 5b. a bare assignment exported afterwards: `export NAME`, `declare -x`, `typeset -x`, or under `set -a` / `set -o allexport` (O2 review, M4)
-    for command in (f"PGHOST={P}; export PGHOST; psql -c 'delete from t'", f"set -a; PGHOST={P}; psql -c 'delete from t'", f"PGHOST={P}; declare -x PGHOST; psql -c 'delete from t'", f"PGHOST={P}; typeset -x PGHOST; psql -c 'delete from t'", f"set -o allexport; SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"set -ea; PGHOST={P}; psql -c 'delete from t'"):
+    for command in (f"PGHOST={P}; export PGHOST; psql -c 'delete from t'", f"set -a; PGHOST={P}; psql -c 'delete from t'", f"PGHOST={P}; declare -x PGHOST; psql -c 'delete from t'",
+                    f"PGHOST={P}; typeset -x PGHOST; psql -c 'delete from t'", f"set -o allexport; SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"set -ea; PGHOST={P}; psql -c 'delete from t'"):
         assert refused(command), f"exported later must be refused: {command!r}"
     assert allowed("PGHOST=localhost; export PGHOST; psql -c 'delete from t'") and allowed("set -a; PGHOST=localhost; psql -c 'delete from t'"), "an exported non-production host passes"
     # 5c. a bare assignment to a target variable counts as exported: the variable may be exported already by the process environment or an rc file (O2 round 1, M1)
@@ -271,10 +330,18 @@ def gate_self_test():
     # 10. direct execution of a local file, git programs, ssh options, GNU long-option prefixes (opus round 2, items 3 to 6)
     Path(cwd, "direct.sh").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
     Path(cwd, "tame.sh").write_text("echo hi\n", encoding="utf-8")
-    for command in (f"echo \"sqlcmd -S {P} -Q 'delete from t'\" > x && chmod +x x && ./x", "./direct.sh", f"{cwd}/direct.sh", "ls && ./direct.sh", f"chmod +x x; ./x {P}", f"cd /tmp && ./run.sh {P}", f"git rebase -x \"sqlcmd -S {P} -Q 'delete from t'\" HEAD~1", f"git rebase --exec \"sqlcmd -S {P}\" HEAD~1", f"git rebase --ex \"sqlcmd -S {P}\" HEAD~1", f"git bisect run sqlcmd -S {P} -Q x", f"git filter-branch --tree-filter \"sqlcmd -S {P} -Q 'delete from t'\"", f"GIT_EXTERNAL_DIFF=\"sqlcmd -S {P} -Q 'delete from t'\" git diff", f"GIT_PAGER=\"sqlcmd -S {P}\" git log", f"EDITOR=\"sqlcmd -S {P}\" git commit", f"git diff --ext-diff && echo {P}", f"git grep -O'sqlcmd -S {P}' x", f"git submodule foreach 'sqlcmd -S {P}'", f"git config alias.q '!sqlcmd -S {P}' && git q", f"git q {P}", f"ssh -o KnownHostsCommand=\"/bin/sh -c 'touch /tmp/x'\" ops@{H} ls", f"ssh -oKnownHostsCommand=x ops@{H} ls", f"ssh -o PKCS11Provider=/tmp/evil.so ops@{H} ls", f"ssh -F evil.cfg ops@{H} ls", f"ssh -I /tmp/evil.so ops@{H} ls", f"ssh -o 'Include evil.cfg' ops@{H} ls", f"ssh -o 'Match exec x' ops@{H} ls", f"ssh -o ProxyJump=x ops@{H} ls", f"ssh ops@{H} sort --outp=/etc/passwd x", f"ssh ops@{H} date --se=@0", f"ssh ops@{H} journalctl --rot", f"ssh ops@{H} journalctl --vac=1G", f"ssh ops@{H} ss --ki", f"ssh ops@{H} file --comp x", f"ssh ops@{H} pg_dump --fi=/tmp/x db",
+    for command in (f"echo \"sqlcmd -S {P} -Q 'delete from t'\" > x && chmod +x x && ./x", "./direct.sh", f"{cwd}/direct.sh", "ls && ./direct.sh", f"chmod +x x; ./x {P}", f"cd /tmp && ./run.sh {P}",
+                    f"git rebase -x \"sqlcmd -S {P} -Q 'delete from t'\" HEAD~1", f"git rebase --exec \"sqlcmd -S {P}\" HEAD~1", f"git rebase --ex \"sqlcmd -S {P}\" HEAD~1", f"git bisect run sqlcmd -S {P} -Q x",
+                    f"git filter-branch --tree-filter \"sqlcmd -S {P} -Q 'delete from t'\"", f"GIT_EXTERNAL_DIFF=\"sqlcmd -S {P} -Q 'delete from t'\" git diff", f"GIT_PAGER=\"sqlcmd -S {P}\" git log", f"EDITOR=\"sqlcmd -S {P}\" git commit",
+                    f"git diff --ext-diff && echo {P}", f"git grep -O'sqlcmd -S {P}' x", f"git submodule foreach 'sqlcmd -S {P}'", f"git config alias.q '!sqlcmd -S {P}' && git q", f"git q {P}",
+                    f"ssh -o KnownHostsCommand=\"/bin/sh -c 'touch /tmp/x'\" ops@{H} ls", f"ssh -oKnownHostsCommand=x ops@{H} ls", f"ssh -o PKCS11Provider=/tmp/evil.so ops@{H} ls", f"ssh -F evil.cfg ops@{H} ls", f"ssh -I /tmp/evil.so ops@{H} ls",
+                    f"ssh -o 'Include evil.cfg' ops@{H} ls", f"ssh -o 'Match exec x' ops@{H} ls", f"ssh -o ProxyJump=x ops@{H} ls",
+                    f"ssh ops@{H} sort --outp=/etc/passwd x", f"ssh ops@{H} date --se=@0", f"ssh ops@{H} journalctl --rot", f"ssh ops@{H} journalctl --vac=1G", f"ssh ops@{H} ss --ki", f"ssh ops@{H} file --comp x", f"ssh ops@{H} pg_dump --fi=/tmp/x db",
                     f"wget --post-d=x https://{P}/x", f"wget --meth=DELETE https://{P}/x", f"wget --body-d=x https://{P}/x", f"sort --compress-prog='ssh {H}' f", f"sort --compress='ssh {H}' f"):
         assert refused(command), f"must be refused: {command!r}"
-    for command in ("./tame.sh", f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'", f"ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no -i key -p 22 ops@{H} uptime", f"ssh -oPort=22 ops@{H} 'tail -n 5 x'", f"ssh -o 'User ops' ops@{H} uptime", f"ssh ops@{H} 'sort -r x'", f"ssh ops@{H} 'journalctl --since today --no-pager'", f"ssh ops@{H} 'date --iso-8601=seconds'", f"ssh ops@{H} 'journalctl --reverse -n 5'", f"for f in a b; do sqlcmd -S {P} -Q 'select 1'; done"):
+    for command in ("./tame.sh", f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'",
+                    f"ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no -i key -p 22 ops@{H} uptime", f"ssh -oPort=22 ops@{H} 'tail -n 5 x'", f"ssh -o 'User ops' ops@{H} uptime",
+                    f"ssh ops@{H} 'sort -r x'", f"ssh ops@{H} 'journalctl --since today --no-pager'", f"ssh ops@{H} 'date --iso-8601=seconds'", f"ssh ops@{H} 'journalctl --reverse -n 5'", f"for f in a b; do sqlcmd -S {P} -Q 'select 1'; done"):
         assert allowed(command), f"must pass: {command!r}"
     # the SQL lexer and brace expansion
     assert mask_sql("select 'a--b'; select 1 -- c").count("select") == 2 and mask_sql("select 1 /* x */ + 2") is not None and mask_sql("select 'abc") is None and mask_sql("select /* x") is None
@@ -326,6 +393,7 @@ def gate_self_test():
             bad = subprocess.run([sys.executable, "-I", script], input=raw, capture_output=True, text=True, env={"LC_ALL": "C"})
             assert bad.returncode == 2, raw
     print("prod_write_gate self-test: ok")
+
 def seventeen_self_test():
     """17 例全拦：真实特征表（本仓库 prod_targets.json 加 origin/main 并集）与测试表下各跑；读不懂、未拦的例子逐条列出（只列轮次和编号，不打印命令，免得带出生产值）。
     真实表下：SAMPLE_IDS 三个 target 的第一项作 P、H、D 跑一轮，再用每个 target 的第一项填满 P、H、D 各跑一轮（O2 复审 M3），
@@ -348,6 +416,7 @@ def seventeen_self_test():
     total = sum(len(cs) for _, run, _ in runs for cs in run.values())  # V02 is checked by these counts, not by the exit code alone (review of 2f6742ea8)
     assert len(cases) >= 17 and total >= 17 * len(runs) and total - len(missed) == total, f"生产写门 17 例：{len(cases)} 例，拦下 {total - len(missed)}/{total}"
     print(f"prod_write_gate 17 例: ok（{len(cases)} 例 {sum(len(v) for v in cases.values())} 条复现命令 × {len(runs)} 轮，拦下 {total - len(missed)}/{total}：真实表 {len(runs) - 1} 轮、测试表 1 轮）")
+
 def layout_self_test():
     """门本体的版式与出处：行数不超 policy.json 的上限；一行一条语句、块体另起一行（O2 复审 M1）；守护源码里没有生产样本，拆段拼接也算（O2 复审 M3）。"""
     gate_path = os.path.join(HERE, "prod_write_gate.py")
@@ -369,6 +438,7 @@ def layout_self_test():
         found = sum(1 for v in folded if v in text)
         assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
     print("prod_write_gate layout: ok")
+
 def trust_self_test():
     """可信脚本只认 cwd 与 CLAUDE_PROJECT_DIR 同一仓库（同一个真实 --git-common-dir），特征表并上两者的 origin/main（调度裁定，D25）。全部在临时仓库里做，生产样本只用虚构值；主检出 M 与用 git worktree add 建的工作区 W 共用 .git、路径不同，算同一仓库；伪造仓库 F 内容相同但有独立的 .git，不算。"""
     fake, only = "fake-prod-db.example.invalid", "only-on-t.example.invalid"  # fictitious hosts
@@ -395,8 +465,10 @@ def trust_self_test():
             payload = {"tool_name": "Bash", "tool_input": {"command": command}, **({"cwd": cwd} if cwd else {})}
             return subprocess.run([sys.executable, "-I", script], input=json.dumps(payload), capture_output=True, text=True, env=env, cwd=process_cwd or tmp).returncode
         run_doc = "python3 " + doc
-        for cwd, project, code, why in ((work, main, 0, "a worktree of the project's repository: one .git, other path, trusted"), (main, work, 0, "the other way round"), (main, main, 0, "the project itself"), (forged, main, 2, "a forged repository with its own .git is not trusted"),
-                                        (work, forged, 2, "the project forged, cwd real"), (forged, forged + "/", 0, "the forged repository as its own project (control)"), (work, None, 2, "no CLAUDE_PROJECT_DIR"), (work, "", 2, "an empty CLAUDE_PROJECT_DIR"), (loose, main, 2, "cwd in no repository")):
+        for cwd, project, code, why in ((work, main, 0, "a worktree of the project's repository: one .git, other path, trusted"), (main, work, 0, "the other way round"),
+                                        (main, main, 0, "the project itself"), (forged, main, 2, "a forged repository with its own .git is not trusted"),
+                                        (work, forged, 2, "the project forged, cwd real"), (forged, forged + "/", 0, "the forged repository as its own project (control)"),
+                                        (work, None, 2, "no CLAUDE_PROJECT_DIR"), (work, "", 2, "an empty CLAUDE_PROJECT_DIR"), (loose, main, 2, "cwd in no repository")):
             assert hook(run_doc, cwd, project) == code, (why, cwd, project)
         assert hook(run_doc, None, main, process_cwd=work) == 2, "no cwd in the hook input: not trusted, even when the process runs in the worktree"
         # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
@@ -413,20 +485,27 @@ def trust_self_test():
         assert hook(write, other, main) == 2 and hook(write, main, other) == 2 and hook(write, main, main) == 0, "a pattern only on the origin/main of cwd's or the project's repository"
         assert hook(write, None, main, process_cwd=other) == 2, "no cwd in the hook input: the process cwd's repository is unioned in"
     print("prod_write_gate trust: ok")
+
 def prod_write_gate_test():
     words_self_test()
     gate_self_test()
     trust_self_test()
     seventeen_self_test()
     layout_self_test()
+
 DISPATCH = os.path.join(HERE, "pre_tool_dispatch.py")  # ── pre_tool_dispatch ──
 PROD_P, PROD_H, PROD_D = real_samples()
+
 def payload(command, **extra):
     return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": extra.pop("cwd", HERE), **extra})
+
 def pre_tool_dispatch_test():
     # 1. the pre-filter never hides a refusal: for every command the dispatcher decides exactly what the gate decides on its own
     corpus = [c for cs in seventeen(PROD_P, PROD_H, PROD_D).values() for c in cs]
-    corpus += ["ls", "git status", "echo hi", "cat api.py", "npm test", "", "   ", "python3 x.py", f"git commit -m '{PROD_P} 说明'", f"psql -h {PROD_P} -c 'select 1'", f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}", f"aliyun rds DescribeDBInstances --DBInstanceId {PROD_P}", f"python3 -c \"connect('{PROD_P}')\"", f"xargs -I{{}} sqlcmd -S {PROD_P} -Q {{}}", f"sqlcmd -S `echo {PROD_P}` -Q 'delete from t'", f"bash -lc \"psql -h {PROD_P} -c 'drop table t'\"", f"$'\\x73qlcmd' -S {PROD_P} -Q 'delete from t'", f"bash <<'EOF'\nsqlcmd -S {PROD_P} -Q 'delete from t'\nEOF", f"env -S 'sqlcmd -S {PROD_P} -Q x'", f"curl -XPOST https://{PROD_P}/x", f"al\"\"iyun rds DeleteAccount --DBInstanceId {PROD_P}", "PSQL -c x", "codex exec p", "git push --no-verify", "gh pr create --title x"]
+    corpus += ["ls", "git status", "echo hi", "cat api.py", "npm test", "", "   ", "python3 x.py", f"git commit -m '{PROD_P} 说明'", f"psql -h {PROD_P} -c 'select 1'", f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}",
+               f"aliyun rds DescribeDBInstances --DBInstanceId {PROD_P}", f"python3 -c \"connect('{PROD_P}')\"", f"xargs -I{{}} sqlcmd -S {PROD_P} -Q {{}}", f"sqlcmd -S `echo {PROD_P}` -Q 'delete from t'",
+               f"bash -lc \"psql -h {PROD_P} -c 'drop table t'\"", f"$'\\x73qlcmd' -S {PROD_P} -Q 'delete from t'", f"bash <<'EOF'\nsqlcmd -S {PROD_P} -Q 'delete from t'\nEOF", f"env -S 'sqlcmd -S {PROD_P} -Q x'",
+               f"curl -XPOST https://{PROD_P}/x", f"al\"\"iyun rds DeleteAccount --DBInstanceId {PROD_P}", "PSQL -c x", "codex exec p", "git push --no-verify", "gh pr create --title x"]
     with tempfile.TemporaryDirectory() as elsewhere:
         for command in corpus:
             raw = payload(command, cwd=elsewhere)
@@ -446,7 +525,8 @@ def pre_tool_dispatch_test():
     # 3. ordinary commands and other tools start nothing; checks that used to hang off the dispatcher are no longer here
     for command in ("ls", "echo hi", "git status", "npm test", "codex exec p", "git push --no-verify", "gh pr create --title x"):
         assert d.dispatch(payload(command)) == (0, "", ""), command
-    for raw in (json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}), json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}}), json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})):
+    for raw in (json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}), json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}}),
+                json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})):
         assert d.dispatch(raw) == (0, "", ""), raw
     # a Bash call without a string command fails closed (O3 review, suggestion 2; it used to pass)
     for raw in (json.dumps({"tool_name": "Bash", "tool_input": {}}), json.dumps({"tool_name": "Bash", "tool_input": {"command": 1}}), json.dumps({"tool_name": "Bash"}), json.dumps({"tool_input": {"command": None}})):
@@ -500,14 +580,18 @@ def pre_tool_dispatch_test():
     lines, limit = size("pre_tool_dispatch", DISPATCH)
     assert lines <= limit, f"pre_tool_dispatch.py 超过 {limit} 行"
     print("pre_tool_dispatch self-test: ok")
+
 MAIN_GATE = os.path.join(HERE, "main_checkout_gate.py")  # ── main_checkout_gate ──
 REFUSED = "拒绝：这是在主检出"
 FAILED = "主检出提交保护出错"
+
 def run(*args, cwd, **extra):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True, env=env(**extra))
+
 def checkout_gate(cwd, **extra):
     r = run("/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable, "-I", MAIN_GATE, "--pre-commit", cwd=cwd, **extra)
     return r.returncode, r.stderr
+
 def main_checkout_gate_test():
     with tempfile.TemporaryDirectory() as raw:
         d = os.path.realpath(raw)
@@ -584,7 +668,9 @@ def main_checkout_gate_test():
     assert block and "entry: python3 -I scripts/gates/main_checkout_gate.py --pre-commit" in block.group(0) and "stages: [pre-commit, pre-merge-commit]" in block.group(0), "pre-commit wiring"
     assert not os.path.exists(os.path.join(ROOT, "scripts", "hooks", "main_checkout_gate.py")), "the old gate is gone"
     print("main_checkout_gate self-test: ok")
+
 MSG_GATE = os.path.join(HERE, "commit_msg_gate.py")  # ── commit_msg_gate ──
+
 def commit(cwd, message, name="a.py", **extra):
     """Commit one changed file with the hook installed; returns (exit code, stderr, final message)."""
     with open(os.path.join(cwd, name), "a", encoding="utf-8") as f:
@@ -592,6 +678,7 @@ def commit(cwd, message, name="a.py", **extra):
     git(cwd, "add", name)
     r = git(cwd, "commit", "-q", "-m", message, ok=False, **extra)
     return r.returncode, r.stderr, git(cwd, "log", "-1", "--format=%B").stdout
+
 def commit_msg_gate_test():
     with tempfile.TemporaryDirectory() as raw:
         tmp = os.path.realpath(raw)
@@ -655,6 +742,7 @@ def commit_msg_gate_test():
     for gone in ("scripts/hooks/commit_msg_gate.py", "scripts/hooks/task_ids.py"):
         assert not os.path.exists(os.path.join(ROOT, gone)), gone + " is deleted"
     print("commit_msg_gate self-test: ok")
+
 FAKE = "fake-prod-db.example.invalid"  # ── install ── fictitious production host, put on the temporary repository's origin/main table only
 ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh", "scripts/hooks/start_sheet.py"]}
 SHELLS = ("/bin/sh", "/bin/bash")
@@ -663,6 +751,7 @@ read -r line
 first=$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["targets"][0]["patterns"][0])' "$(dirname "$0")/prod_targets.json")
 case "$line" in *"$first"*) exit 2 ;; "{"*) exit 0 ;; *) exit 2 ;; esac
 """  # refuses writes to the first target only
+
 def writable(root):
     """Gives the owner write access again under `root` (installed versions are read-only), so they can be edited or removed."""
     for base, dirs, files in os.walk(root):
@@ -671,10 +760,13 @@ def writable(root):
             path = os.path.join(base, name)
             if not os.path.islink(path):
                 os.chmod(path, os.stat(path).st_mode | 0o200)
+
 def gitc(repo, *args):
     return subprocess.run(["git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "core.hooksPath=/dev/null", *args], check=True, capture_output=True, text=True).stdout.strip()
+
 def policy():
     return json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["gates"]
+
 def settings_self_test():
     settings = json.loads(Path(ROOT, ".claude/settings.json").read_text(encoding="utf-8"))
     gates = policy()
@@ -715,7 +807,9 @@ def settings_self_test():
         assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
     assert size("install", os.path.join(HERE, "install.sh"))[0] <= gates["max_lines"]["install"], "install.sh 超过 policy gates.max_lines.install"
     assert size("selftest", os.path.abspath(__file__))[0] <= gates["max_lines"]["selftest"], "gates_selftest.py 超过 policy gates.max_lines.selftest（O8：门自测 1 个文件）"
+    assert max(map(len, Path(__file__).read_text(encoding="utf-8").splitlines())) <= 266, "gates_selftest.py 有超过 266 字符的行：不靠长行压行数（O8 首轮必改）"
     return {name: cmd for name, (_, cmd, _) in commands.items()}
+
 def make_repo(repo):
     """A repository holding this working tree's scripts/gates, scripts/hooks and policy.json; returns (A, B, fail_open, refuses_all, passes_writes, first_only, not_executable, main) commits."""
     names = subprocess.run(["git", "-C", ROOT, "ls-files", "--cached", "--others", "--exclude-standard", "--", "scripts/gates", "scripts/hooks", "policy.json"], check=True, capture_output=True, text=True).stdout.split()
@@ -755,6 +849,7 @@ def make_repo(repo):
     gitc(repo, "update-ref", "refs/remotes/origin/main", commits[-1])
     gitc(repo, "checkout", "-q", commits[0])
     return commits
+
 def install_test():
     commands = settings_self_test()
     gate_cmd, ceiling_cmd, sheet_cmd = commands["scripts/gates/pre_tool_dispatch.py"], commands["scripts/hooks/git_ceiling_env.sh"], commands["scripts/hooks/start_sheet.py"]
@@ -764,6 +859,7 @@ def install_test():
         finally:
             writable(top)
     print("install self-test: ok")
+
 def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     home, repo = os.path.join(tmp, "home"), os.path.join(tmp, "repo")
     os.makedirs(home)

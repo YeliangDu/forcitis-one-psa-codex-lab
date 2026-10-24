@@ -31,7 +31,7 @@
       "main_checkout_gate": 120,
       "commit_msg_gate": 60,
       "install": 60,
-      "selftest": 1000,
+      "selftest": 1100,
       "stop_check": 120,
       "agent_tier_gate": 40,
       "budget_check": 450
