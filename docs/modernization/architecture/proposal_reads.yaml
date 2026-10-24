@@ -68,9 +68,12 @@ reads:
   - path: docs/modernization/build_sessions.py
     kind: tool
     note: 会话一览兼容读旧交接位置 architecture/proposals/HANDOFF_*，不读架构数据
-  - path: scripts/ci/light.sh
+  - path: scripts/ci/light_selftest.sh
     kind: tool
-    note: 改到 proposals/j_checks 等工具时跑其自测（承接已删的 precheck.sh 那一行）
+    note: light_triggers.sh 路径模式的自测夹具（示例路径），不读文件
+  - path: scripts/ci/light_triggers.sh
+    kind: tool
+    note: light.sh 改到 proposals/j_checks 等工具时跑其自测（承接已删的 precheck.sh 那一行）
   - path: scripts/ci/relevant_change.py
     kind: tool
     note: 改动分级登记 proposals/ 里的工具与事件信封文件
