@@ -2,6 +2,8 @@
 
 ## 2026-10-24 13:00 交接（上下文 21%，清空接续；以本节为准）
 
+- **更新（接续后）**：两种基线重跑发现 72228d656 带出两处失败（proposal_reads 未登记 light.sh；自测示例让 relevant_change 把 light.sh 判成读全部文档），已修并 amend 为 **08b54d057**（ops-fv2-b1，未推）；重跑 origin/main 30 PASS 0 FAIL，main~30 仅 check_pages --changed 报 GL6/GL7 方言（新页照查的设计，非回归）。已报调度派首轮＋终审，等结论后做原第③步（next 合入时用 08b54d057）。调度嘱：切换时旧 mq 锁文件不清（已核 cutover.sh 不碰 .git/merge-queue/）。
+
 - **在做：调度令 gap-2（批一验收前必改）**：旧 precheck.sh 里按改动触发、旧 ci.yml 从未跑的五项（build_decision_page、check_pages 自测与 --changed、j_checks、shared_mock_verify_scan、weak_registration_scan）接进 light.sh。**已提交 b1 子分支 72228d656（本地，未推送，子分支照例不推）**：沿用 precheck 原路径模式按改动触发，无基线全跑；盘点另发现 shell 语法（改到的 .sh 逐个 bash -n）也无去处，一并补（须向调度说明这是第六项）；`light.sh --self-test` 已过，bash 3.2 过，shellcheck 过，两次变异（j_checks 模式、t_shell 模式）自测均失败＝有效。b1.md 已加「附录 A」26 项去处表。
 - **接续后按序**：①在 ops-fv2-b1 工作区后台重跑 `scripts/ci/light.sh origin/main` 与 `scripts/ci/light.sh $(git rev-parse origin/main~30)`（后者应触发确认页规则、两个扫描、shell 语法；之前那次后台运行是在改文件途中开跑的，结果作废；后台任务 description 须用 `OPS-1023-OPS-01 … (one-ops)` 格式），看新增行 PASS；②把 72228d656 报调度派首轮＋终审（scripts/ci 属守护），说明第六项与结果；③复审过后重合 next（next 现 5e3b417d3，合 ops 新提交），重跑全套验收（check_reviews、acceptance_v2、light×3），更新 b1.md 第 1、2 节与附录 A 的 next sha；B4 不用重做（钩子文件未变）。
 - B4 已完成并报调度（见下条）；cutover.sh 已按调度裁定加人工复测（切换第 2 步末、回退⑥），b1.md 第 3 节、5.2 d、第 6 节已写；演练会话已归档、临时工作区与分支已删。
