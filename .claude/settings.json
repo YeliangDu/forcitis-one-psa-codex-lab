@@ -1,33 +1,12 @@
 {
   "hooks": {
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/run_from_main.sh sessionend_snapshot.sh",
-            "timeout": 20
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/run_from_main.sh precompact_snapshot.sh"
-          }
-        ]
-      }
-    ],
     "SessionStart": [
       {
         "matcher": "startup|clear|compact|resume",
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/run_from_main.sh --stdout-warn git_ceiling_env.sh",
+            "command": "V=\"$CLAUDE_PROJECT_DIR\"/scripts/gates/hooks_manifest.sh; if [ -x \"$V\" ]; then \"$V\" --check \"$HOME\"/.modernize/psa/tools/hooks/current; else echo \"【钩子告警】核对不了已装钩子（$V 缺失或不可执行）\"; fi; H=\"$HOME\"/.modernize/psa/tools/hooks/current/scripts/hooks/git_ceiling_env.sh; [ -x \"$H\" ] && \"$H\" && exit 0; echo \"【钩子告警】git_ceiling_env.sh 缺失或出错（$H），本会话没有 GIT_CEILING_DIRECTORIES 保护，cd 出工作区后别跑 git；请 one-ops 执行 scripts/gates/install.sh\"; exit 0",
             "timeout": 10
           }
         ]
@@ -37,41 +16,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/run_from_main.sh --stdout-warn postcompact_context.sh"
+            "command": "H=\"$HOME\"/.modernize/psa/tools/hooks/current/scripts/hooks/start_sheet.py; [ -x \"$H\" ] && \"$H\" --hook && exit 0; echo \"【钩子告警】start_sheet.py 缺失或出错（$H），没有开工单；手动读 docs/modernization/sessions/<会话名>.md 并向调度要卡；请 one-ops 执行 scripts/gates/install.sh\"; exit 0",
+            "timeout": 15
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Agent|Task",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/run_from_main.sh --strict pre_tool_dispatch.py",
-            "timeout": 3100
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/run_from_main.sh context_handoff.py",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/run_from_main.sh context_handoff.py",
-            "timeout": 15
+            "command": "H=\"$HOME\"/.modernize/psa/tools/hooks/current/scripts/gates/pre_tool_dispatch.py; [ -x \"$H\" ] || { echo \"生产写门入口缺失或不可执行（$H），按拒绝处理；请 one-ops 执行 scripts/gates/install.sh\" >&2; exit 2; }; \"$H\"; c=$?; [ \"$c\" = 0 ] || [ \"$c\" = 2 ] && exit \"$c\"; echo \"生产写门异常退出（退出码 $c：崩溃、解释器缺失或被终止），按拒绝处理；请把报错转 one-ops\" >&2; exit 2",
+            "timeout": 120
           }
         ]
       }
@@ -81,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/run_from_main.sh context_handoff.py",
+            "command": "test -f \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py && python3 -I \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py; exit 0",
             "timeout": 15
           }
         ]

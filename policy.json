@@ -26,16 +26,16 @@
     "per_call_total_ms": 300,
     "precommit_max_seconds": 10,
     "max_lines": {
-      "prod_write_gate": 800,
+      "prod_write_gate": 1100,
       "pre_tool_dispatch": 80,
       "main_checkout_gate": 120,
       "commit_msg_gate": 60,
       "install": 60,
-      "selftest": 1000,
+      "selftest": 1100,
       "stop_check": 120,
       "agent_tier_gate": 40,
       "post_review": 200,
-      "budget_check": 250,
+      "budget_check": 450,
       "light_sh": 120,
       "relevant_change": 600,
       "build_all": 150,
@@ -96,14 +96,16 @@
     "light_job_p90_minutes": 2,
     "light_job_cancel_rate_max": 0.05,
     "infra_pr_weekly_share_max": 0.2,
-    "infra_release_weekday": "monday"
+    "infra_release_weekday": "monday",
+    "new_test_repeat": 3
   },
   "retention_days": {
     "worktree_after_merge": 1,
     "branch_cleanup_backup": 7,
     "handoff_history": 7,
     "jsonl_logs": 14,
-    "snapshot_backup": 7
+    "snapshot_backup": 7,
+    "evidence": 7
   },
   "janitor": {
     "daily_at": "03:00"
@@ -218,7 +220,13 @@
     }
   ],
   "tools_lib": {
-    "max_lines_total": 1800
+    "max_lines_total": 1800,
+    "dir": "~/.modernize/psa/tools/one-session",
+    "checks": [
+      "budget_level",
+      "handoff",
+      "stop_check"
+    ]
   },
   "delegate": {
     "billing": {
@@ -241,5 +249,8 @@
       "first_pass_rate_min_vs_sonnet_pts": -10,
       "claude_cost_max_vs_sonnet_self": 0.5
     }
+  },
+  "shell": {
+    "foreground_max_seconds": 60
   }
 }

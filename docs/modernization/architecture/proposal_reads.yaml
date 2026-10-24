@@ -71,9 +71,6 @@ reads:
   - path: scripts/ci/relevant_change.py
     kind: tool
     note: 改动分级登记 proposals/ 里的工具与事件信封文件
-  - path: scripts/precheck.sh
-    kind: tool
-    note: 改到 proposals/j_checks 等工具时跑其自测
   - path: docs/modernization/architecture/decision-page/build_bpmn_page.py
     kind: mention
     note: 确认页文字引用 PROCESS_METHOD_DRAFT.md

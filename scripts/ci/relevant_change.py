@@ -7,7 +7,7 @@ tier docs: nothing the builds read changed. tier guarded: every changed path is 
 readers are found by scanning the sources (literal paths and path segments overlapping the doc, plus its file name), never from a hand-kept map. tier code: anything else, also a doc some
 other reader (a Spring or container test, main code, another script) reads: when in doubt, run everything. A push to main and the nightly run are always tier code.
 Also writes legacy_it=true|false: whether the change touches what the SQL Server integration tests (Maven profile legacy-it) exercise.
---paths-from reads one path per line from a file instead of diffing (scripts/precheck.sh uses it so both gates agree).
+--paths-from reads one path per line from a file instead of diffing.
 On a push the changed files are diffed against $BEFORE; a missing or unknown $BEFORE counts as legacy_it=true.
 Usage: relevant_change.py <base-ref>  |  relevant_change.py --paths-from <file>  |  relevant_change.py --self-test"""
 import importlib.util
@@ -49,13 +49,13 @@ NOT_READ_BY_BUILDS = (
 
 # files outside the builds that read READ_BY_BUILDS docs and run in a CI job whatever changed
 ALWAYS_RUN_READERS = (
-    "scripts/ci/db_scripts_aligned.py",   # gitleaks job, whatever changed
+    "scripts/ci/db_scripts_aligned.py",   # scripts/ci/light.sh (backend job), whatever changed
     "scripts/ci/baseline_ddl_scan.py",    # assertion-drift job on every pull request; report only
 )
-# developer tools that name docs paths but are no CI step: they are not readers (scripts/precheck.sh lists glossary/terms.yaml in a `touches` pattern; counting it would hide every unread glossary doc)
-LOCAL_ONLY = ("scripts/precheck.sh", "scripts/hooks/")
+# developer tools that name docs paths but are no CI step: they are not readers
+LOCAL_ONLY = ("scripts/hooks/",)
 
-# read only by steps of the gitleaks job or the assertion-drift job that run unconditionally, or by scripts/precheck.sh; docs read by scripts/release must be listed in READ_BY_BUILDS
+# read only by checks that run unconditionally (scripts/ci/light.sh in the backend job on every event, the gitleaks and assertion-drift jobs); docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/architecture/proposals/j_checks.py",
     "docs/modernization/architecture/ssot/t-transitions/transitions.yaml",
@@ -65,15 +65,18 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/quality/defect-bank/",
     # ruling record: read by scripts/ci/acceptance_rulings.py in the always-run acceptance step
     "docs/modernization/rulings/",
-    # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py
+    # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py; commit_msg_gate.py takes session names from both folders
     "docs/modernization/sessions/",
-    # start_sheet.py 的开工单按需读列表里点名它；handoff_selftest.py 的夹具写同名路径
+    "docs/modernization/roles/",
+    # start_sheet.py 的开工单按需读列表里点名它
     "docs/modernization/SESSION_PLAYBOOK.md",
     "docs/modernization/check_legacy_name.py",
+    # rule review revisions are append-only: run by scripts/ci/light.sh
+    "docs/modernization/rules/review_revisions.py",
     # task register: check_tasks.py runs in build_all.py; session_daily.py reads origin/main's tasks/
     "docs/modernization/check_tasks.py",
     "docs/modernization/tasks/",
-    # decision page question rules: run by scripts/precheck.sh when a decision page changes
+    # decision page question rules: no CI step runs them (scripts/precheck.sh did, locally, until GOV-1023-FV2 O9); listed so that naming them stays covered
     "docs/modernization/architecture/decision-page/check_pages.py",
     "docs/modernization/rules/decide/build_decision_page.py",
 )
@@ -454,8 +457,8 @@ def tiers_self_test(root):
         write(tmp, "frontend/src/app.ts", 'const p = "docs/modernization/glossary/app.yaml";')
         write(tmp, "scripts/release/gate.py", 'P = "docs/modernization/status/blockers/"')
         write(tmp, "scripts/other/tool.py", 'P = "docs/modernization/events/tool.yaml"')
-        write(tmp, "scripts/precheck.sh", "cat docs/modernization/events/only-precheck.yaml; cat docs/modernization/glossary/")
-        write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"')
+        write(tmp, "scripts/ci/light.sh", "cat docs/modernization/events/only-light.yaml")
+        write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"; G = "docs/modernization/glossary/"')  # a local tool naming a whole directory hides no reader
         write(tmp, "scripts/ci/db_scripts_aligned.py", 'P = "docs/modernization/events/always.yaml"')
         write(tmp, t + "StarGlobIT.java", 'class StarGlobIT { String g = "glob:**/*.java"; String p = "docs/modernization/events/after-star.yaml"; } /** */')
         write(tmp, "frontend/scripts/generate-api.mjs", 'const p = "docs/modernization/glossary/gen.yaml";')
@@ -482,7 +485,7 @@ def tiers_self_test(root):
         assert tier(ev + "comment.yaml") == ("code", None), "no reader found: everything runs"
         assert tier(ev + "byname.yaml") == ("code", None), "another reader names the file without the full path"
         assert tier(ev + "tool.yaml") == ("code", None), "a script outside the covered ones reads it"
-        assert tier(ev + "only-precheck.yaml") == ("code", None), "precheck.sh is a developer tool, no reader: nothing reads it, so everything runs"
+        assert tier(ev + "only-light.yaml") == ("code", None), "light.sh is a CI script outside the middle tier: a doc only it reads runs everything"
         assert tier(ev + "only-hook.yaml") == ("code", None)
         assert tier(ev + "always.yaml") == ("docs", None), "read only by a script that runs in every job"
         assert tier(ev + "after-star.yaml") == ("code", None), "a /* inside a string literal must not hide what follows"
@@ -704,7 +707,7 @@ def main():
     if sys.argv[1:] == ["--self-test"]:
         self_test()
         return
-    if len(sys.argv) == 3 and sys.argv[1] == "--reads-docs":   # precheck.sh: exit 0 when a listed path is a file the builds read (READ_BY_BUILDS only: the always-run checks are CI's)
+    if len(sys.argv) == 3 and sys.argv[1] == "--reads-docs":   # exit 0 when a listed path is a file the builds read (READ_BY_BUILDS only: the always-run checks are CI's)
         sys.exit(0 if any(not p.startswith(NOT_READ_BY_BUILDS) and p.startswith(READ_BY_BUILDS) for p in Path(sys.argv[2]).read_text(encoding="utf-8").splitlines() if p) else 1)
     if len(sys.argv) == 3 and sys.argv[1] == "--paths-from":
         paths = Path(sys.argv[2]).read_text(encoding="utf-8").splitlines()
