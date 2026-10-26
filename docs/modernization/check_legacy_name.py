@@ -5,15 +5,16 @@
 「老系统称「老系统」，字面标识保留」；「文档标题改，仓库名和会话名暂不改」。
 写法：新系统 → FORCITIS one；老系统 → 老系统（英文 the legacy system）。
 
-用法：python3 docs/modernization/check_legacy_name.py   有违规时列出并以 1 退出（CI 使用）
+用法：python3 docs/modernization/check_legacy_name.py   先跑自测，再扫描；有违规时列出并以 1 退出（CI 使用）
+      python3 docs/modernization/check_legacy_name.py --self-test   只跑自测
 
 扫描范围：仓库内被 git 跟踪的 .md / .yaml / .yml / .py 文本（docs/、根目录、backend/、frontend/）。
 只查大写词元 PSA（前后不是字母、数字、_、-）；psa_*、psa-backend、forcitis-one-psa、psa-* 会话名等标识符不受影响。
 
 例外（不报）：
-1. 冻结或只追加的记录：已采纳 ADR 正文 adr/src/ADR-*.md 及生成的 adr/ADR-*.md、adr/README.md、adr/INDEX.md（SESSION_PLAYBOOK 附 M3「ADR」）；
-   session-log/ 片段与 SESSION_LOG.md（只追加）。
-2. 生成产物（检查其片段 / 模板即可）：INTENT.md、STATUS.md、MODERNIZATION_BRIEF.md。
+1. 冻结的记录：已采纳 ADR 正文 adr/src/ADR-*.md 及生成的 adr/ADR-*.md、adr/README.md、adr/INDEX.md（SESSION_PLAYBOOK 附 M3「ADR」）。
+   （session-log/ 与 SESSION_LOG.md 已于 32cd91169 删除、不再生成，豁免随之去掉，AR2。）
+2. 生成产物（检查其片段 / 模板即可）：INTENT.md、STATUS.md、MODERNIZATION_BRIEF.md（均不入仓，.gitignore；生成器仍在）。
 3. 证据与机器产物目录：rules/raw/、map/、runtime/、u8c/。
 4. 行内字面：反引号内、代码块内、URL 中；「」或“”引号内（用户原话、引用的字面值）；intent 片段「## 原话」一节。
 5. 软件类别：PSA 指 Professional Services Automation 这一类软件时保留。判定：同一行含
@@ -26,8 +27,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 MOD = "docs/modernization/"
 TOKEN = re.compile(r"(?<![A-Za-z0-9_\-/.])PSA(?![A-Za-z0-9_\-])")
 INDUSTRY = re.compile(r"Kantata|Certinia|Deltek|行业通行|通行指标|PSA\s*行业|Professional Services Automation|refs\s*=|\[\s*\"PSA\"")
-SKIP_FILES = {MOD + f for f in ("INTENT.md", "STATUS.md", "MODERNIZATION_BRIEF.md", "SESSION_LOG.md", "adr/README.md", "adr/INDEX.md")}
-SKIP_DIRS = tuple(MOD + d for d in ("session-log/", "rules/raw/", "map/", "runtime/", "u8c/"))
+SKIP_FILES = {MOD + f for f in ("INTENT.md", "STATUS.md", "MODERNIZATION_BRIEF.md", "adr/README.md", "adr/INDEX.md")}
+SKIP_DIRS = tuple(MOD + d for d in ("rules/raw/", "map/", "runtime/", "u8c/"))
 ADR_BODY = re.compile(r"^docs/modernization/adr/(src/)?ADR-\d{4}\.md$")
 EXTS = (".md", ".yaml", ".yml", ".py")
 SELF = MOD + "check_legacy_name.py"
@@ -74,8 +75,21 @@ def violations(f, text, allowed):
     return out
 
 
+def self_test():
+    assert not in_scope(MOD + "rules/raw/x.md") and not in_scope(MOD + "adr/src/ADR-0001.md") and not in_scope(MOD + "INTENT.md") and not in_scope(SELF)
+    assert in_scope(MOD + "session-log/x.md") and in_scope(MOD + "SESSION_LOG.md"), "已删路径的豁免应已去掉（AR2）"
+    assert in_scope(MOD + "rules/decide/check_pages.py") and not in_scope("scripts/x.py") and not in_scope(MOD + "x.txt")
+    hit = lambda line, f=MOD + "x.md", allowed=(): violations(f, line, allowed)
+    assert hit("新 PSA 上线") and hit("PSA系统") and not hit("`PSA` 字面") and not hit("用户说「PSA」") and not hit("psa_x、forcitis-one-psa")
+    assert not hit("PSA 行业通行指标") and not hit("```\nPSA\n```") and not hit("见 https://x/PSA") and not hit("PSA", allowed=((MOD + "x.md", "PSA"),))
+    assert not hit("## 原话\nPSA", f=MOD + "intent/a.md") and hit("## 落点\nPSA", f=MOD + "intent/a.md")
+    for p, _ in allowlist():
+        assert os.path.isfile(os.path.join(ROOT, p)), f"glossary/legacy-name-allowlist.txt 指向不存在的文件：{p}"
+
+
 def main():
-    files = subprocess.run(["git", "-C", ROOT, "-c", "core.quotepath=off", "ls-files", "-z"],
+    self_test()
+    files =subprocess.run(["git", "-C", ROOT, "-c", "core.quotepath=off", "ls-files", "-z"],
                            capture_output=True, text=True, check=True).stdout.split("\0")
     allowed, found = allowlist(), []
     for f in filter(in_scope, filter(None, files)):
@@ -93,4 +107,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:] == ["--self-test"]:
+        self_test()
+        print("check_legacy_name self-test: ok")
+    else:
+        main()
