@@ -160,7 +160,7 @@ def expand(token, variables):  # (token with known variables substituted, True w
 
 
 def strip_prefix(seg, variables):  # (env of leading `NAME=value` words and wrapper options, rest of the segment): keywords and wrappers (env, nohup, sudo, timeout …) dropped, `env -S` split.
-    env, i = {}, 0
+    env, i, moved = {}, 0, []
     while i < len(seg):
         tok = seg[i]
         if ENV.match(tok):
@@ -170,7 +170,8 @@ def strip_prefix(seg, variables):  # (env of leading `NAME=value` words and wrap
         elif tok in KEYWORDS:
             i += 1
         elif REDIRECTION.fullmatch(tok) or (tok.isdigit() and i + 1 < len(seg) and REDIRECTION.fullmatch(seg[i + 1])):
-            i += 1 if tok.isdigit() else 2  # a redirection before the program (`>o ./deploy`): its fd, then the operator and its target (c211b73bd final M2)
+            step = 1 if tok.isdigit() else 2  # a redirection before the program (`>o ./deploy`): moved behind it, as bash reads it anywhere; its target still parsed (82f149d10 final M1)
+            moved, i = moved + seg[i:i + step], i + step
         elif tok.lower() in WRAPPERS:
             valued, wrapper = WRAPPERS[tok.lower()], tok.lower()
             i += 1
@@ -189,7 +190,7 @@ def strip_prefix(seg, variables):  # (env of leading `NAME=value` words and wrap
                 i += 2 if seg[i] in valued else 1
         else:
             break
-    return env, seg[i:]
+    return env, seg[i:] + moved
 
 
 def simple_commands(command, depth=0, variables=None, exported=None):
@@ -213,7 +214,6 @@ def simple_commands(command, depth=0, variables=None, exported=None):
     previous, allexport = None, False
     for seg, piped in segments:
         env, rest = strip_prefix(seg, variables)
-        lead = any(REDIRECTION.fullmatch(t) for t in seg[:len(seg) - len(rest)])
         if not rest:
             variables.update(env)  # a bare `NAME=value` stays in effect for the following commands
             exported.update({k: v for k, v in env.items() if allexport or k in ENV_TARGET_VARS})  # exported under `set -a`; a target variable may already be exported by the environment or an rc file (O2 round 1 M1)
@@ -242,7 +242,7 @@ def simple_commands(command, depth=0, variables=None, exported=None):
             for arg in argv[1:]:
                 variables.pop(arg, None)
                 exported.pop(arg, None)
-        out.append(Command(argv, {**exported, **env}, unresolved, lead or any(t in ("<", "<<", "<<<", ">", ">>", ">&", "&>") for t in argv), piped))
+        out.append(Command(argv, {**exported, **env}, unresolved, any(REDIRECTION.fullmatch(t) for t in argv), piped))
         if name in SHELLS:
             bodies = []
             if name == "eval":
@@ -1064,7 +1064,9 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
     odd = bool(COMMENT_OR_HEREDOC.search(command_text)) or "\\\n" in command_text  # a comment, a here-document or a continuation anywhere: not read as the shell does
-    if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text)) or may_run_or_expand(command_text.lower()) or RAW_PATH.search(command_text)):  # anywhere in the text, not where a command starts (intent 2026-10-26-140639)
+    if COMMENT_OR_HEREDOC.search(command_text) and CONTINUATION.search(command_text):  # a continuation the shell ends at a comment's newline, the gate would join (82f149d10 final M2)
+        return "拒绝：命令里同时有注释或 here-document 与续行，门读不准下一行从哪里开始，宁可误拦（intent 2026-10-26-140639）。去掉注释或续行再执行。"
+    if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text)) or may_run_or_expand(command_text.lower()) or RAW_PATH.search(command_text) or RAW_PATH.search(plain(command_text))):  # anywhere in the text, not where a command starts (intent 2026-10-26-140639)
         return "拒绝：命令里有注释、here-document 或续行，门不模仿 shell 去读它们；这一行任意位置又有生产特征、远程工具、解释器、变量展开、命令替换、路径或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行；提交说明、PR 正文先写进文件（放会话 scratchpad 或 state 目录，不进仓库），再用 git commit -F <文件>、gh pr create --body-file <文件>（intent 2026-10-26-145156）。"
     try:
         commands = simple_commands(command_text)
