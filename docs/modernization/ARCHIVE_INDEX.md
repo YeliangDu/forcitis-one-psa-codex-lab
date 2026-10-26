@@ -5,7 +5,7 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 
 取回某个文件：`git show archive/2026-10:<路径>`；整目录：`git checkout archive/2026-10 -- <目录>`。
 
-合计 485 个文件，23.9 MB。
+合计 459 个文件，22.4 MB（closeout_check `--local` 仍读的 26 个文件已留在 main，见 O16 清单表四）。
 
 | 原目录（归档分支上同一路径） | 文件数 | 大小 KB | 文件 |
 |---|---:|---:|---|
@@ -89,18 +89,17 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 | `docs/modernization/architecture-guardrails/frontend/src/shared/ui/` | 4 | 1.9 | button.tsx、page-title.tsx、status-badge.css、status-badge.tsx |
 | `docs/modernization/architecture/proposals/` | 1 | 328.4 | DMN_FIT_RESEARCH.md |
 | `docs/modernization/architecture/proposals/closeout/` | 34 | 551.0 | ANCHORING_PROPOSALS.md、ANCHORING_REPORT.md、ANCHORING_ROUND2.md、B31P_DESIGNER_DEFAULTS.md、B31P_EVIDENCE_SPEC.md、BURDEN_ANALYSIS_PLAN.md、… |
-| `docs/modernization/architecture/proposals/closeout/finance/` | 21 | 629.3 | ANSWERS.md、BONUS_OVERTIME_COSTING.md、EXPENSE_COVERAGE.md、LEGAL_ENTITY_COSTING.md、NOTES.md、OBJECTS.md、… |
+| `docs/modernization/architecture/proposals/closeout/finance/` | 16 | 270.1 | ANSWERS.md、BONUS_OVERTIME_COSTING.md、EXPENSE_COVERAGE.md、LEGAL_ENTITY_COSTING.md、OBJECTS.md、PAYROLL_REISSUE_SEAM.md、… |
 | `docs/modernization/architecture/proposals/closeout/finance/bpmn/` | 29 | 777.8 | PRC-100.bpmn、PRC-101.bpmn、PRC-102.bpmn、PRC-104.bpmn、PRC-105.bpmn、PRC-112.bpmn、… |
 | `docs/modernization/architecture/proposals/closeout/finance/bpmn/sample/` | 1 | 25.7 | PRC-87.hand.bpmn |
-| `docs/modernization/architecture/proposals/closeout/finance/notes/` | 3 | 59.7 | frag_P1_notes.md、frag_P2_notes.md、frag_P3_notes.md |
-| `docs/modernization/architecture/proposals/closeout/people/` | 21 | 959.3 | DATA_MODEL.md、NOTES.keep.md、NOTES.md、OBJECT_LAYER.md、PAGE_IMPACT.md、PAYROLL_LINE_PAYMENT.md、… |
+| `docs/modernization/architecture/proposals/closeout/people/` | 16 | 499.8 | DATA_MODEL.md、OBJECT_LAYER.md、PAGE_IMPACT.md、PAYROLL_LINE_PAYMENT.md、QC-B-31.md、QC-OBJECTS.md、… |
 | `docs/modernization/architecture/proposals/closeout/people/b31-rules/` | 6 | 173.0 | B31_ADM02_BLUEPRINT.md、B31_CONTRACT.md、B31_PLATFORM_CONSTANTS.md、B31_RULES.yaml、B31_TERM_GAPS.md、DDL_DRAFT_CARD_A.sql |
 | `docs/modernization/architecture/proposals/closeout/people/bpmn/` | 3 | 43.4 | PRC-137.bpmn、PRC-83.bpmn、PRC-84.bpmn |
 | `docs/modernization/architecture/proposals/closeout/people/bpmn/tools/` | 2 | 20.6 | bpmngen.py、make_people_sample.py |
-| `docs/modernization/architecture/proposals/closeout/people/parts/` | 40 | 789.5 | b13data.notes.md、b15data.DATA_MODEL.md、b15data.data-model.yaml、b15data.notes.md、b31.DATA_MODEL.md、b31.commands.yaml、… |
+| `docs/modernization/architecture/proposals/closeout/people/parts/` | 31 | 546.1 | b15data.DATA_MODEL.md、b15data.data-model.yaml、b31.DATA_MODEL.md、b31.commands.yaml、b31.data-model.yaml、b31.events.yaml、… |
 | `docs/modernization/architecture/proposals/closeout/pilot/` | 1 | 1.9 | ACCEPTANCE.md |
 | `docs/modernization/architecture/proposals/closeout/rename/` | 9 | 4278.8 | RENAME_A.md、RENAME_A.yaml、RENAME_B.md、RENAME_B.yaml、RENAME_C.md、RENAME_C.yaml、… |
-| `docs/modernization/architecture/proposals/closeout/revenue/` | 22 | 730.5 | CODEX_A01.md、CODEX_C7.md、C_DEFAULTS.md、DEFAULT_PAYMENT_TERM.md、NOTES.md、OBJECT_LAYER.md、… |
+| `docs/modernization/architecture/proposals/closeout/revenue/` | 18 | 304.8 | CODEX_A01.md、CODEX_C7.md、C_DEFAULTS.md、DEFAULT_PAYMENT_TERM.md、OBJECT_LAYER.md、Q04_STORAGE.md、… |
 | `docs/modernization/architecture/proposals/closeout/revenue/bpmn/` | 56 | 1111.4 | PRC-03.bpmn、PRC-07.bpmn、PRC-08.bpmn、PRC-13.bpmn、PRC-140.bpmn、PRC-141.bpmn、… |
 | `docs/modernization/architecture/proposals/closeout/revenue/legal-entity/` | 3 | 10.1 | LE_CONTRACT_AGREEMENT.md、LE_DELIVERY_EXECUTION.md、LE_RECEIVABLES_WIP.md |
 | `docs/modernization/architecture/proposals/closeout/revenue/tools/` | 1 | 1.1 | bpmn_gen.suggested.patch |
@@ -314,7 +313,6 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 - `docs/modernization/architecture/proposals/closeout/finance/BONUS_OVERTIME_COSTING.md`
 - `docs/modernization/architecture/proposals/closeout/finance/EXPENSE_COVERAGE.md`
 - `docs/modernization/architecture/proposals/closeout/finance/LEGAL_ENTITY_COSTING.md`
-- `docs/modernization/architecture/proposals/closeout/finance/NOTES.md`
 - `docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md`
 - `docs/modernization/architecture/proposals/closeout/finance/PAYROLL_REISSUE_SEAM.md`
 - `docs/modernization/architecture/proposals/closeout/finance/QC-LIFECYCLE.md`
@@ -324,7 +322,6 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 - `docs/modernization/architecture/proposals/closeout/finance/QC-VS-10.md`
 - `docs/modernization/architecture/proposals/closeout/finance/QC-VS-12.md`
 - `docs/modernization/architecture/proposals/closeout/finance/REVIEW.md`
-- `docs/modernization/architecture/proposals/closeout/finance/SAMPLE.md`
 - `docs/modernization/architecture/proposals/closeout/finance/STAGES.md`
 - `docs/modernization/architecture/proposals/closeout/finance/bpmn/PRC-100.bpmn`
 - `docs/modernization/architecture/proposals/closeout/finance/bpmn/PRC-101.bpmn`
@@ -356,20 +353,12 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 - `docs/modernization/architecture/proposals/closeout/finance/bpmn/PRC-98.bpmn`
 - `docs/modernization/architecture/proposals/closeout/finance/bpmn/PRC-99.bpmn`
 - `docs/modernization/architecture/proposals/closeout/finance/bpmn/sample/PRC-87.hand.bpmn`
-- `docs/modernization/architecture/proposals/closeout/finance/data-model.finance.yaml`
 - `docs/modernization/architecture/proposals/closeout/finance/events.finance.yaml`
-- `docs/modernization/architecture/proposals/closeout/finance/notes/frag_P1_notes.md`
-- `docs/modernization/architecture/proposals/closeout/finance/notes/frag_P2_notes.md`
-- `docs/modernization/architecture/proposals/closeout/finance/notes/frag_P3_notes.md`
-- `docs/modernization/architecture/proposals/closeout/finance/responsibility.finance.notes.md`
 - `docs/modernization/architecture/proposals/closeout/finance/responsibility.finance.yaml`
-- `docs/modernization/architecture/proposals/closeout/finance/scenarios.finance.yaml`
 - `docs/modernization/architecture/proposals/closeout/name_id_check.py`
 - `docs/modernization/architecture/proposals/closeout/object_truth_trial.py`
 - `docs/modernization/architecture/proposals/closeout/org_needs_build.py`
 - `docs/modernization/architecture/proposals/closeout/people/DATA_MODEL.md`
-- `docs/modernization/architecture/proposals/closeout/people/NOTES.keep.md`
-- `docs/modernization/architecture/proposals/closeout/people/NOTES.md`
 - `docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md`
 - `docs/modernization/architecture/proposals/closeout/people/PAGE_IMPACT.md`
 - `docs/modernization/architecture/proposals/closeout/people/PAYROLL_LINE_PAYMENT.md`
@@ -382,7 +371,6 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 - `docs/modernization/architecture/proposals/closeout/people/README.md`
 - `docs/modernization/architecture/proposals/closeout/people/REVIEW_PACK.md`
 - `docs/modernization/architecture/proposals/closeout/people/REVIEW_VS14.md`
-- `docs/modernization/architecture/proposals/closeout/people/SAMPLE.md`
 - `docs/modernization/architecture/proposals/closeout/people/STAGE_ALIGN.md`
 - `docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_ADM02_BLUEPRINT.md`
 - `docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONTRACT.md`
@@ -395,50 +383,39 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 - `docs/modernization/architecture/proposals/closeout/people/bpmn/PRC-84.bpmn`
 - `docs/modernization/architecture/proposals/closeout/people/bpmn/tools/bpmngen.py`
 - `docs/modernization/architecture/proposals/closeout/people/bpmn/tools/make_people_sample.py`
-- `docs/modernization/architecture/proposals/closeout/people/data-model.people.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/events.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/parts/b13data.notes.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/b15data.DATA_MODEL.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/b15data.data-model.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/parts/b15data.notes.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/b31.DATA_MODEL.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/b31.commands.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/b31.data-model.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/b31.events.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/parts/b31.notes.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/b31.raci.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/b31.scenarios.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/b31.state-machines.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/rebuild.py`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs07.commands.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs07.events.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/parts/vs07.notes.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs07.raci.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs07.scenarios.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs07.state-machines.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/parts/vs07conv.notes.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs0911.DATA_MODEL.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs0911.commands.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs0911.data-model.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs0911.events.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/parts/vs0911.notes.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs0911.raci.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs0911.scenarios.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs0911.state-machines.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/parts/vs13.notes.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs13.scenarios.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs13att.commands.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs13att.events.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/parts/vs13att.notes.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs13att.raci.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs13att.state-machines.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs13pay.commands.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs13pay.events.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/parts/vs13pay.notes.md`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs13pay.raci.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/parts/vs13pay.state-machines.yaml`
 - `docs/modernization/architecture/proposals/closeout/people/raci.yaml`
-- `docs/modernization/architecture/proposals/closeout/people/scenarios.people.yaml`
 - `docs/modernization/architecture/proposals/closeout/pilot/ACCEPTANCE.md`
 - `docs/modernization/architecture/proposals/closeout/raci_build.py`
 - `docs/modernization/architecture/proposals/closeout/rename/RENAME_A.md`
@@ -454,7 +431,6 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 - `docs/modernization/architecture/proposals/closeout/revenue/CODEX_C7.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/C_DEFAULTS.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/DEFAULT_PAYMENT_TERM.md`
-- `docs/modernization/architecture/proposals/closeout/revenue/NOTES.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/OBJECT_LAYER.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/Q04_STORAGE.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/QC-LIFECYCLE.md`
@@ -465,7 +441,6 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 - `docs/modernization/architecture/proposals/closeout/revenue/README.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/RECHECK.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/REVIEW.md`
-- `docs/modernization/architecture/proposals/closeout/revenue/SAMPLE.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/STAGE_ALIGN.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/VS_REVIEW.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/bpmn/PRC-03.bpmn`
@@ -525,12 +500,10 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 - `docs/modernization/architecture/proposals/closeout/revenue/bpmn/PRC-86.bpmn`
 - `docs/modernization/architecture/proposals/closeout/revenue/bpmn/PRC-91.bpmn`
 - `docs/modernization/architecture/proposals/closeout/revenue/converge_check.txt`
-- `docs/modernization/architecture/proposals/closeout/revenue/data-model.revenue.yaml`
 - `docs/modernization/architecture/proposals/closeout/revenue/legal-entity/LE_CONTRACT_AGREEMENT.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/legal-entity/LE_DELIVERY_EXECUTION.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/legal-entity/LE_RECEIVABLES_WIP.md`
 - `docs/modernization/architecture/proposals/closeout/revenue/raci.yaml`
-- `docs/modernization/architecture/proposals/closeout/revenue/scenarios.revenue.yaml`
 - `docs/modernization/architecture/proposals/closeout/revenue/tools/bpmn_gen.suggested.patch`
 - `docs/modernization/architecture/proposals/closeout/rulings/S-31_FINANCE_SQ01-33.md`
 - `docs/modernization/architecture/proposals/closeout/rulings/S-43_OBJECT_CLASSIFICATION.md`

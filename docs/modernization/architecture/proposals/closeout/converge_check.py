@@ -39,7 +39,7 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parent
-_spec = importlib.util.spec_from_file_location("closeout_check", HERE / "closeout_check.py")
+_spec = importlib.util.spec_from_file_location("closeout_check", Path(__file__).resolve().parents[2] / "panorama" / "closeout_check.py")  # moved to panorama/ (G04)
 cc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cc)
 
