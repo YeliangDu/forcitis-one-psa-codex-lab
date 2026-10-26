@@ -73,6 +73,12 @@ command -v python3 >/dev/null || { echo "FAIL  找不到 python3" >&2; exit 1; }
 # 供应链与生成文档（原 secret scan 作业里的步骤）
 run "python3 has PyYAML 6.0.3" pyyaml
 run "generated docs match fragments" python3 docs/modernization/build_all.py --check
+# 生成器与文档工具的自测（O14 起不由 build_all 跑；生成器名单取 build_all.py 的清单）
+listed=$(python3 docs/modernization/build_all.py --self-test-list) || listed="build_all-self-test-list-failed"  # 列不出：记一项 FAIL
+for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py docs/modernization/task_backfill.py \
+  scripts/queue/merge_train.py scripts/merge/mq.py scripts/ci/ci_recurrence.py scripts/ops/session_daily.py; do
+  run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
+done
 run "no legacy system name in docs" python3 docs/modernization/check_legacy_name.py
 run "rule review revisions (self-test)" python3 docs/modernization/rules/review_revisions.py --self-test
 against_base "rule review revisions are append-only" python3 docs/modernization/rules/review_revisions.py --base

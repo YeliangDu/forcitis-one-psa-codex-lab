@@ -82,7 +82,6 @@
       "docs/modernization/new_intent.py",
       "docs/modernization/phase1a/infra/new_legacy_read.py",
       "docs/modernization/phase1a/infra/build_legacy_read_register.py",
-      "docs/modernization/new_log.py",
       "docs/modernization/glossary/new_term_issue.py",
       "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
       "backend/glossary/build_proposed_index.py",
