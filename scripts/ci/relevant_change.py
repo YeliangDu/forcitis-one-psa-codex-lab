@@ -62,6 +62,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/architecture/proposals/j_checks.py",
     "docs/modernization/architecture/ssot/t-transitions/transitions.yaml",
     "docs/modernization/build_all.py",
+    "docs/modernization/build_all_generators.json",   # generator list read by build_all.py
     # rule and role files: read by scripts/ci/budget_check.py (always-run check once wired in, Q5); start_sheet.py 的开工单按需读也点名 RULES.md
     "docs/modernization/RULES.md",
     "docs/modernization/roles/",
