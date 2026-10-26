@@ -10,7 +10,6 @@
 # Bash 3.2（macOS）可用：不用关联数组与 mapfile。
 set -uo pipefail
 export PYTHONDONTWRITEBYTECODE=1  # 不留 __pycache__：backend 作业随后在同一工作区跑测试，遍历目录的测试读到 .pyc 会崩（#693）；python3 -I 不认它，另由 rm_new_pyc 删
-
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "light.sh：不在 git 仓库里" >&2; exit 2; }
 cd "$root" || exit 2
 base=${1-origin/main}
@@ -78,8 +77,7 @@ run "rule review revisions (self-test)" python3 docs/modernization/rules/review_
 against_base "rule review revisions are append-only" python3 docs/modernization/rules/review_revisions.py --base
 run "database scripts aligned (self-test)" python3 -I scripts/ci/db_scripts_aligned.py --self-test
 run "database scripts aligned" python3 -I scripts/ci/db_scripts_aligned.py
-# 部署作业的 checkout 不得写全局 git 配置：它会落进 GIT_CONFIG_GLOBAL 即 $HOME/.gitconfig，toolchain.sh 按 R-0 拒绝（run 40387799615，569ed501f）
-run "deploy.yml: checkout writes no global git config" python3 -I -c 'import sys,yaml; s=[x for x in yaml.safe_load(open(".github/workflows/deploy.yml"))["jobs"]["deploy"]["steps"] if str(x.get("uses","")).startswith("actions/checkout@")]; sys.exit(0 if s and all((x.get("with") or {}).get("set-safe-directory") is False and not (x.get("with") or {}).get("submodules") for x in s) else "deploy 作业的 checkout 须写 set-safe-directory: false、不开 submodules")'
+run "deploy.yml: checkout no global git config" python3 -I -c 'import sys,yaml; s=[x for x in yaml.safe_load(open(".github/workflows/deploy.yml"))["jobs"]["deploy"]["steps"] if str(x.get("uses","")).lower().startswith("actions/checkout@")]; w=[{str(k).lower(): v for k, v in (x.get("with") or {}).items()} for x in s]; sys.exit("deploy 作业找不到 actions/checkout 步" if not s else 0 if all(x.get("set-safe-directory") is False and not x.get("submodules") for x in w) else "deploy 作业的 checkout 须写 set-safe-directory: false、不开 submodules：否则全局 git 配置落进 $HOME/.gitconfig，toolchain.sh 按 R-0 拒绝（run 40387799615，569ed501f）")'
 
 # 只增不改的登记与验收守护（原 backend 作业里的步骤）
 for script in migrations_immutable system_actors_append_only acceptance_guard acceptance_reports acceptance_rulings; do
