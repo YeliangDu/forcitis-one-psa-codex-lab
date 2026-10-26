@@ -24,6 +24,6 @@
 
 ## 2. 代码读 proposals/ 的限期例外
 
-TEAM-108 定「proposals/ 不算权威，脚本不读」。例外登记在 `architecture/proposal_reads.yaml`（来源、到期日、kind），由 `architecture/proposal_reads.py` 在 `build_all.py` 里检查：未登记、到期仍读、登记过期都失败。升正本的次序由用户定：先价值流 v2 与信息图（已于 2026-10-26 升正本，U08=A，11-06 的登记已删），后聚合草稿与三组骨架（2026-11-20）。
+TEAM-108 定「proposals/ 不算权威，脚本不读」。例外登记在 `architecture/proposal_reads.yaml`（来源、到期日、kind），由 `architecture/proposal_reads.py` 在 `build_all.py` 里检查：未登记、到期仍读、登记过期都失败。升正本的次序由用户定：先价值流 v2 与信息图（已于 2026-10-26 升正本，U08=A，11-06 的登记已删），后聚合草稿与三组骨架（原 2026-11-20，按用户「B 到期日顺延到冻结后」顺延到 2026-12-01，intent 2026-10-26-122240）。
 
 `proposals/STAKEHOLDERS.md` 由 panorama_build 写入、不读，不在例外内；它的去向随第③步定。
