@@ -11,7 +11,7 @@ RULES="$tmp/root/docs/modernization/RULES.md" ROLE="$tmp/root/docs/modernization
 expect() {
   local name=$1 want=$2 re=$3 items=$4; shift 4
   local out rc
-  out=$(env ACCEPT_ROOT="$tmp/root" ONE_SESSION_TOOLS="$tmp/tools" ACCEPT_BUDGET_DIR="$tmp/budget" ACCEPT_BOARD="$tmp/board/board.md" ACCEPT_JANITOR_DIR="$tmp/janitor" ACCEPT_MEMORY_DIR="$tmp/memory" ACCEPT_ONLY="$items" "$@" bash "$here/acceptance_v2.sh" 2>&1); rc=$?
+  out=$(env ACCEPT_ROOT="$tmp/root" ONE_SESSION_TOOLS="$tmp/tools" ACCEPT_BUDGET_DIR="$tmp/budget" ACCEPT_BOARD="$tmp/board/board.md" ACCEPT_PSA_DIR="$tmp/psa" ACCEPT_JANITOR_DIR="$tmp/janitor" ACCEPT_MEMORY_DIR="$tmp/memory" ACCEPT_ONLY="$items" "$@" bash "$here/acceptance_v2.sh" 2>&1); rc=$?
   if { [ "$want" = 0 ] && [ "$rc" = 0 ]; } || { [ "$want" = nz ] && [ "$rc" != 0 ]; }; then :; else echo "失败 ${name}：退出码 $rc"; bad=1; fi
   printf '%s\n' "$out" | grep -Eq "$re" || { echo "失败 ${name}：输出不含 /$re/"; printf '%s\n' "$out" | sed 's/^/    /'; bad=1; }
 }
@@ -216,6 +216,14 @@ git -C "$R" rm -q --cached scripts/coord/mailbox.py
 echo x >"$R/scripts/ops/session_daily.py"; git -C "$R" add -f scripts/ops/session_daily.py
 expect "V11 session_daily.py 仍被跟踪" nz '^V11 不通过：应已删除.*session_daily.py' V11
 git -C "$R" rm -q --cached scripts/ops/session_daily.py
+expect "V11 本机 psa 目录不存在跳过" 0 '^V11 跳过\(本机目录 .* 不存在' V11
+expect "V11 本机 psa 目录不存在严格模式失败" nz '^V11 不通过' "$ALL" ACCEPT_STRICT=1
+mkdir -p "$tmp/psa/mailbox"
+expect "V11 本机 mailbox 目录仍在不通过" nz '^V11 不通过：本机 .* 下应已删除的目录仍在：mailbox' V11
+rmdir "$tmp/psa/mailbox"; mkdir "$tmp/psa/outbox"
+expect "V11 本机 outbox 目录仍在不通过" nz '^V11 不通过：本机 .* 下应已删除的目录仍在：outbox' V11
+[ -d "$tmp/psa/outbox" ] || { echo "失败 V11 不得删除本机目录"; bad=1; }
+rmdir "$tmp/psa/outbox"
 expect "V11 无看板文件跳过" 0 '^V11 跳过\(看板 .* 不存在' V11
 expect "V11 无看板严格模式失败" nz '^V11 不通过' "$ALL" ACCEPT_STRICT=1
 printf '生成时间：%s\n\n# 看板\n' "$(stamp -5M '5 minutes ago')" >"$tmp/board/board.md"
@@ -238,8 +246,11 @@ expect "V13 回收器目录无报告不通过" nz '^V13 不通过：回收器目
 : >"$tmp/janitor/report-2026-10-26.md"
 expect "V13 报告 0 字节不通过" nz '^V13 不通过' V13
 echo x >"$tmp/janitor/report-2026-10-26.md"
+touch -t 202501010000 "$tmp/janitor/report-2026-10-26.md"
+expect "V13 只有陈旧报告不通过" nz '^V13 不通过：回收器报告都已陈旧' V13
+touch "$tmp/janitor/report-2026-10-26.md"
 printf 'a%.0s' $(seq 1 1500) >"$tmp/memory/a.md"
-expect "V13 记忆 1500 字节通过" 0 '^V13 通过.*回收器报告 1 份；记忆合计 1500 字节' V13
+expect "V13 记忆 1500 字节通过" 0 '^V13 通过.*回收器报告 1 份，2 天内有新报告；记忆合计 1500 字节' V13
 printf 'b%.0s' $(seq 1 600) >"$tmp/memory/b.md"
 expect "V13 记忆合计 2100 字节不通过" nz '^V13 不通过：记忆合计 2100 字节，上限 2 KB' V13
 rm "$tmp/memory/b.md"; mkdir "$tmp/memory/sub"; printf 'c%.0s' $(seq 1 600) >"$tmp/memory/sub/c.md"
@@ -253,17 +264,34 @@ expect "V13 只缺记忆目录跳过" 0 '^V13 跳过\(记忆目录' V13
 mkdir "$tmp/memory"; rm "$tmp/janitor/report-2026-10-26.md"
 expect "V13 记忆在而回收器目录空仍不通过" nz '^V13 不通过' V13
 
-# V14: ARCHIVE_INDEX.md must be tracked and non-empty (fail); an unknown archive branch is a skip, a known one passes
+# V14: ARCHIVE_INDEX.md must be tracked and non-empty, parse to at least one registered path, and none of those paths may still be tracked (fail);
+# an unknown archive branch is a skip, a known one passes
 IDX=docs/modernization/ARCHIVE_INDEX.md
+ID=$(dirname "$IDX")
+index_rows() { printf '# 归档索引\n\n| 原目录 | 文件数 | 大小 KB | 文件 |\n|---|---:|---:|---|\n%s\n' "$1" >"$R/$IDX"; }
+ROW=$(printf '| `%s/` | 2 | 1.0 | A.html、B.json |' "$ID")
 expect "V14 无索引不通过" nz '^V14 不通过' V14
-mkdir -p "$(dirname "$R/$IDX")"; : >"$R/$IDX"; git -C "$R" add "$IDX"
+mkdir -p "$R/$ID"; : >"$R/$IDX"; git -C "$R" add "$IDX"
 expect "V14 索引 0 字节不通过" nz '^V14 不通过' V14
-echo '# 归档索引' >"$R/$IDX"
+echo '# 归档索引，没有表' >"$R/$IDX"
+expect "V14 索引解析不出路径不通过" nz '^V14 不通过：索引里解析不出任何登记的文件路径' V14
+index_rows '| `x/` | 1 | 1.0 | … |'
+expect "V14 只有省略号行也解析不出路径" nz '^V14 不通过：索引里解析不出' V14
+index_rows "$ROW"
 expect "V14 有索引无归档分支跳过" 0 '^V14 跳过\(本检出查不到归档分支' V14
 expect "V14 无分支严格模式失败" nz '^V14 不通过' "$ALL" ACCEPT_STRICT=1
 git -C "$R" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q -m x
 git -C "$R" branch archive/2026-10
-expect "V14 索引与归档分支齐全通过" 0 '^V14 通过' V14
+expect "V14 索引与归档分支齐全通过" 0 '^V14 通过.*登记的 2 个文件都已不在 main' V14
+index_rows "$ROW
+$(printf '| `%s/` | 9 | 1.0 | C.md、D.md、… |' "$ID")"
+expect "V14 省略号行只核所列并注明" 0 '^V14 通过.*登记的 4 个文件.*1 行文件列表被省略号截断' V14
+echo x >"$R/$ID/A.html"; git -C "$R" add "$ID/A.html"
+expect "V14 索引登记的文件仍被跟踪不通过" nz '^V14 不通过：索引登记的 1 个文件仍被跟踪.*A.html' V14
+git -C "$R" rm -q --cached "$ID/A.html"
+echo x >"$R/$ID/D.md"; git -C "$R" add "$ID/D.md"
+expect "V14 省略号行所列文件仍被跟踪不通过" nz '^V14 不通过：索引登记的 1 个文件仍被跟踪.*D.md' V14
+git -C "$R" rm -q --cached "$ID/D.md"
 git -C "$R" branch -q -m archive/2026-10 other
 expect "V14 分支名不符跳过" 0 '^V14 跳过' V14
 git -C "$R" rm -q --cached "$IDX"

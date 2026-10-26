@@ -3,7 +3,7 @@
 # Prints "Vxx 通过|不通过|跳过(原因)" per item; exit 0 only when no item failed. A skip never counts as a failure, and an item whose
 # environment is missing says so instead of passing; so does an object that does not exist yet or has no data (nothing to check is never a pass).
 # Env: ACCEPT_ROOT (checkout), ONE_SESSION_TOOLS (tool library), ACCEPT_BUDGET_DIR, ACCEPT_BOARD (board.md), ACCEPT_JANITOR_DIR, ACCEPT_MEMORY_DIR,
-# ACCEPT_ARCHIVE_BRANCH (default archive/2026-10), ACCEPT_ONLY (items to run),
+# ACCEPT_PSA_DIR (local psa root, default ~/.modernize/psa), ACCEPT_ARCHIVE_BRANCH (default archive/2026-10), ACCEPT_ONLY (items to run),
 # ACCEPT_STRICT=1 (sign-off: a skip because the environment lacks something - library, gates, RULES.md, roles - counts as a failure; "no data" skips stay skips;
 # it only accepts the full item list; ACCEPT_SELFTEST is not honoured here). Any other ACCEPT_STRICT value than 0 or 1 is an error.
 set -uo pipefail
@@ -11,7 +11,11 @@ ROOT=${ACCEPT_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
 TOOLS=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}
 BUDGET_DIR=${ACCEPT_BUDGET_DIR:-$HOME/.modernize/psa/budget}
 BOARD=${ACCEPT_BOARD:-$HOME/.modernize/psa/board/board.md}
+PSA_DIR=${ACCEPT_PSA_DIR:-$HOME/.modernize/psa}
 JANITOR_DIR=${ACCEPT_JANITOR_DIR:-$HOME/.modernize/psa/janitor}
+# V13: the newest janitor report may be at most this many days old. policy.json has no key for the recycle period yet (janitor only has daily_at),
+# so 2 days stands in (daily run plus a day of slack); to be replaced by a policy key once it exists (待 policy 加键).
+JANITOR_MAX_DAYS=2
 MEMORY_DIR=${ACCEPT_MEMORY_DIR:-$HOME/.claude/projects/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa/memory}
 ARCHIVE_BRANCH=${ACCEPT_ARCHIVE_BRANCH:-archive/2026-10}
 ALL="V01 V02 V03 V05 V07 V08 V10 V11 V12 V13 V14 V17a"
@@ -140,13 +144,18 @@ v10() {
   else report V10 pass 'openapi.json 与 src/generated 都不在 git ls-files 里'; fi
 }
 
-# V11 as built in batch two-A: the tools O15 deleted are gone from the tracked tree, and the board stamp (first line "生成时间：<UTC ISO>") is under 20 minutes old.
+# V11 as built in batch two-A: the tools O15 deleted are gone from the tracked tree, the local mailbox and outbox directories are gone too (final 1.12, directory deletion;
+# only reported here, never deleted from here), and the board stamp (first line "生成时间：<UTC ISO>") is under 20 minutes old.
 # gapscan.py and session_map.json are still imported by the merge queue, whose rework is postponed (intent 2026-10-23-222945), so they are not checked here.
 v11() {
   local t age
   is_git || { report V11 env '检出不是 git 仓库，查不了 git ls-files'; return; }
   t=$(tracked scripts/coord/mailbox.py scripts/ops/session_daily.py) || { report V11 fail 'git ls-files 出错'; return; }
   [ -z "$t" ] || { report V11 fail "应已删除的工具仍被跟踪：$(printf '%s' "$t" | tr '\n' ' ')"; return; }
+  [ -d "$PSA_DIR" ] || { report V11 env "本机目录 $PSA_DIR 不存在（CI 上没有），mailbox、outbox 目录与看板未核"; return; }
+  local d left=""
+  for d in mailbox outbox; do [ -e "$PSA_DIR/$d" ] && left="${left:+$left、}$d"; done
+  [ -z "$left" ] || { report V11 fail "本机 $PSA_DIR 下应已删除的目录仍在：${left}（只报告，未删）"; return; }
   [ -f "$BOARD" ] || { report V11 env "看板 $BOARD 不存在（本机文件），时间戳未核"; return; }
   age=$(python3 -I - "$BOARD" <<'EOF' 2>&1
 import datetime, re, sys
@@ -168,18 +177,22 @@ EOF
     ok:*) age=${age#ok:}
       if [ "$age" -lt -1 ]; then report V11 fail '看板时间在未来'
       elif [ "$age" -gt 20 ]; then report V11 fail "看板时间戳已过 ${age} 分钟（上限 20）"
-      else report V11 pass "mailbox.py、session_daily.py 已删；看板 ${age} 分钟前刷新"; fi ;;
+      else report V11 pass "mailbox.py、session_daily.py 已删，本机 mailbox、outbox 目录已无；看板 ${age} 分钟前刷新"; fi ;;
     *) report V11 fail "$(printf '%s' "${age#bad:}" | head -n 1)" ;;
   esac
 }
 
-# V13: the janitor has written at least one report (alerts only in batch two-A, nothing deleted); the memory directory totals <= policy.json memory_max_kb.
+# V13: the janitor has written a report within JANITOR_MAX_DAYS (alerts only in batch two-A, nothing deleted); the memory directory totals <= policy.json memory_max_kb.
 # Both live on this machine: a missing directory is a skip (a failure under ACCEPT_STRICT=1); an oversized memory is a failure - never trim it from here.
 v13() {
-  local bad="" miss="" f n=0 r mem_note=""
+  local bad="" miss="" f n=0 fresh r mem_note=""
   if [ -d "$JANITOR_DIR" ]; then
-    for f in "$JANITOR_DIR"/report-*.md; do [ -s "$f" ] && n=$((n + 1)); done
-    [ "$n" -gt 0 ] || bad="回收器目录 $JANITOR_DIR 里没有非空的 report-*.md"
+    for f in "$JANITOR_DIR"/report-*.md; do [ -f "$f" ] && [ -s "$f" ] && n=$((n + 1)); done
+    if [ "$n" -eq 0 ]; then bad="回收器目录 $JANITOR_DIR 里没有非空的 report-*.md"
+    else
+      fresh=$(find "$JANITOR_DIR" -maxdepth 1 -type f -name 'report-*.md' -size +0c -mtime "-$JANITOR_MAX_DAYS" 2>/dev/null | wc -l | tr -d ' ')
+      [ "${fresh:-0}" -gt 0 ] || bad="回收器报告都已陈旧（最新一份也超过 ${JANITOR_MAX_DAYS} 天，回收器可能停摆）"
+    fi
   else miss="回收器目录 $JANITOR_DIR 不存在"; fi
   if [ -d "$MEMORY_DIR" ]; then
     r=$(python3 -I - "$MEMORY_DIR" "$ROOT/policy.json" <<'EOF' 2>&1
@@ -201,18 +214,52 @@ EOF
   else miss="${miss:+${miss}、}记忆目录 $MEMORY_DIR 不存在"; fi
   if [ -n "$bad" ]; then report V13 fail "$bad"
   elif [ -n "$miss" ]; then report V13 env "${miss}（本机目录），未核"
-  else report V13 pass "回收器报告 ${n} 份；${mem_note}"; fi
+  else report V13 pass "回收器报告 ${n} 份，${JANITOR_MAX_DAYS} 天内有新报告；${mem_note}"; fi
 }
 
-# V14: D-class files are out of main with a trail: ARCHIVE_INDEX.md is tracked and non-empty, and the archive branch can be looked up (E class is batch two-B).
-# A checkout without that branch (a shallow CI clone) cannot say: skip, never pass.
+# V14: D-class files are out of main with a trail: ARCHIVE_INDEX.md is tracked and non-empty, every file path it registers (table row: directory + file names) is no longer
+# tracked by this checkout, and the archive branch can be looked up (E class is batch two-B). Rows whose file list is cut with "…" only name part of their files: those are
+# checked as listed and the result says it was a partial check. An index that yields no path at all fails. A checkout without that branch (a shallow CI clone) cannot say: skip.
 v14() {
-  local idx=docs/modernization/ARCHIVE_INDEX.md t
+  local idx=docs/modernization/ARCHIVE_INDEX.md t r
   is_git || { report V14 env '检出不是 git 仓库，查不了 git ls-files'; return; }
   t=$(tracked "$idx") || { report V14 fail 'git ls-files 出错'; return; }
   { [ -n "$t" ] && [ -s "$ROOT/$idx" ]; } || { report V14 fail "$idx 不存在、未跟踪或为空"; return; }
+  r=$(python3 -I - "$ROOT" "$idx" <<'EOF' 2>&1
+import re, subprocess, sys
+root, idx = sys.argv[1:3]
+try:
+    paths, cut = [], 0
+    for line in open(f"{root}/{idx}", encoding="utf-8"):
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) != 4 or not re.fullmatch(r"`[^`]+/`", cells[0]):
+            continue
+        d = cells[0].strip("`")
+        for name in cells[3].split("、"):
+            name = name.strip()
+            if name == "…":
+                cut += 1
+            elif name:
+                paths.append(d + name)
+    if not paths:
+        print("bad:索引里解析不出任何登记的文件路径")
+        sys.exit()
+    ls = subprocess.run(["git", "-C", root, "ls-files", "-z"], capture_output=True, check=True).stdout.decode("utf-8").split("\0")
+    tracked = set(ls)
+    still = [p for p in paths if p in tracked]
+    if still:
+        print("bad:索引登记的 %d 个文件仍被跟踪，如 %s" % (len(still), "、".join(still[:3])))
+    else:
+        print("ok:索引登记的 %d 个文件都已不在 main 里%s" % (len(paths), "；%d 行文件列表被省略号截断，只核了所列部分" % cut if cut else ""))
+except SystemExit:
+    raise
+except Exception as e:
+    print("bad:读索引或 git ls-files 出错 " + type(e).__name__)
+EOF
+)
+  case "$r" in ok:*) ;; *) report V14 fail "$(printf '%s' "${r#bad:}" | head -n 1)"; return ;; esac
   if git -C "$ROOT" rev-parse --verify -q "refs/heads/$ARCHIVE_BRANCH^{commit}" >/dev/null || git -C "$ROOT" rev-parse --verify -q "refs/remotes/origin/$ARCHIVE_BRANCH^{commit}" >/dev/null; then
-    report V14 pass "$idx 在，归档分支 $ARCHIVE_BRANCH 可查；E 类待二乙"
+    report V14 pass "$idx 在，${r#ok:}，归档分支 $ARCHIVE_BRANCH 可查；E 类待二乙"
   else report V14 env "本检出查不到归档分支 ${ARCHIVE_BRANCH}（浅克隆或未取回）"; fi
 }
 
