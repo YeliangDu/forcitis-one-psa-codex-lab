@@ -9,6 +9,7 @@
 做三件事：
 1. 对账：调用 export_answers 的逻辑，有提交后又改过的题则报错退出；
 2. 每个提交编号生成一条 intent 片段（用户原话 = 题号 + 所选项文字 + 说明，落点指向答复文件 rules/decide/answers/<单子>.json），文件名打印出来；
+   new_intent 的四个必填项这里固定写 类别=其他、负责会话=one-coordinator、影响路径=无、取代=无，会话按答复内容有取代或影响路径的，再用 new_intent 补记一条；
 3. 打印 inbox 事项改为已定所需的 ArtifactData update 内容（status、answer、decidedAt、intent 文件名），由会话用 ArtifactData 执行：
    页面是各自独立的发布件，确认页不能直接写收件箱，所以回写由会话完成，并在报告里附这条命令的输出。
 不自动改规则卡、ADR；转写仍由会话执行并复核。
@@ -95,7 +96,7 @@ for number, rows in sorted(by_sub.items()):
         intents.append((number, os.path.basename(existing)))
     elif not opts.get("no-intent"):
         esc = lambda t: t.replace("|", "\\|")
-        r = subprocess.run([sys.executable, os.path.join(HERE, "..", "..", "new_intent.py"), f"--session={session}", esc(quote), esc(note)], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, os.path.join(HERE, "..", "..", "new_intent.py"), f"--session={session}", "--category=其他", "--owner=one-coordinator", "--paths=无", "--supersedes=无", esc(quote), esc(note)], capture_output=True, text=True)
         path = next((l for l in r.stdout.splitlines() if l.startswith("intent/")), "")
         if r.returncode != 0 or not path:
             sys.exit(f"生成 intent 失败（返回码 {r.returncode}）：{(r.stderr or r.stdout)[-300:]}；请检查 docs/modernization/intent/ 下有无半成品片段后再处理，不要手改用户原话")

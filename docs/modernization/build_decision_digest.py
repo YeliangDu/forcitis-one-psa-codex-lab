@@ -20,7 +20,7 @@ QUOTE_CAP = 220
 SECOND_RATIO, SECOND_MIN = 0.7, 3
 REVERSAL = ("改选", "看错了", "先等等", "不作为最终", "推翻", "已被", "作废")
 REF = re.compile(r"[A-Za-z]+-[\dA-Za-z-]*\d[\w-]*|PR\s*#\d+|§[\d.]+|[\w./-]+\.(?:md|py|yaml|json|html|txt|yml)")
-SECTION = re.compile(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)(?:\n\n## 取代\n\n(.*?))?\n(?:\n## (?:规则|影响的 ADR|单子|题号)\n\n[^\n]+\n)*", re.S)
+SECTION = re.compile(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)(?:\n\n## 取代\n\n(.*?))?\n(?:\n## (?:规则|影响的 ADR|单子|题号|类别|负责会话|影响路径)\n\n[^\n]+\n)*", re.S)
 
 
 def read(path):
