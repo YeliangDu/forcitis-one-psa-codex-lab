@@ -254,6 +254,7 @@ def gate_self_test():
             assert code == 0 and ("写操作类命令会被拒绝" in out) == noted, ("a broken table is noted for a remote tool only, xh as a word", command, code, out)
     finally:
         g.load_table = real_load
+    assert refused(f"curl https://{P}/a#b -X DELETE") and refused(f"curl https://{P}/a#b --data x=1"), "a `#` inside a word is no comment (bash): the rest of the command still counts (796bf2c85 final M1)"
     # 6. secrets (bottom line 3) and the environment
     for command in ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"):
         assert refused(command), command
@@ -507,7 +508,9 @@ def trust_self_test():
                  (lambda: None, f"python3 -X pycache_prefix=/tmp {doc}", 2, "-X pycache_prefix"), (lambda: None, f"cd {main} && {run_doc}", 2, "a relative script after cd"),
                  (lambda: None, f"{{ cd {main}; {run_doc}; }}", 2, "cd in a group (905ad6209 review)"), (lambda: None, f"command {run_doc}", 2, "a wrapper before the interpreter"),
                  (lambda: None, f"env -C {main} {run_doc}", 2, "env -C"), (lambda: None, f"PATH={tmp}/bin:/usr/bin {run_doc}", 2, "PATH on the line"),
-                 (lambda: put(os.path.join(tmp, "bin/python3"), "#!/bin/sh\necho FAKE\n"), f"{tmp}/bin/python3 {doc}", 2, "an interpreter that is not /usr/bin/python3"))
+                 (lambda: put(os.path.join(tmp, "bin/python3"), "#!/bin/sh\necho FAKE\n"), f"{tmp}/bin/python3 {doc}", 2, "an interpreter that is not /usr/bin/python3"),
+                 (lambda: put(os.path.join(work, doc + "#x"), body[doc]), f"python3 {doc}#x", 2, "a `#` inside the word: bash runs new_intent.py#x (796bf2c85 final M1)"),
+                 (lambda: put(os.path.join(work, doc + "\r"), body[doc]), f"python3 {doc}\r", 2, "a carriage return: bash runs new_intent.py\\r"))
         for setup, run, code, why in loads:
             setup()
             assert hook(run, work, main) == code, why
@@ -515,6 +518,12 @@ def trust_self_test():
             gitc(work, "clean", "-fdqx")
         redirected = f"python3 {doc} > out"
         assert not g.trusted_line("", [], {}) and not g.trusted_line(redirected, simple_commands(redirected), {"PATH": "/usr/bin"}), "one plain command only (an empty line does not crash)"
+        home = os.path.join(tmp, "home")  # what site runs before the script, from the user site of /usr/bin/python3 (796bf2c85 final M2); never the real ~/Library/Python
+        user = subprocess.run([sys.executable, "-c", "import site; print(site.getusersitepackages())"], env={"HOME": home}, capture_output=True, text=True).stdout.strip()
+        for name, code in (("pkg/__init__.py", 0), ("usercustomize.py", 2), (".x.pth", 2), ("sitecustomize.pyc", 2)):
+            put(os.path.join(user, name), "", 0o644)
+            assert hook(run_doc, work, main, HOME=home) == code, ("the user site holds", name)
+            os.remove(os.path.join(user, name))
         assert hook(run_doc, work, main, PYTHONEXECUTABLE="/tmp/x") == 2 and hook(run_doc, work, main, PYTHONDONTWRITEBYTECODE="1") == 0, "PYTHON* in the environment, but for the harmless ones"
         assert hook(run_doc, loose, main, tool=COMMAND_TOOLS[2], where=work) == 0 and hook(run_doc, loose, main, tool=COMMAND_TOOLS[2]) == 2, "the terminal panel: its own cwd"
         # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
@@ -574,14 +583,22 @@ def pre_tool_dispatch_test():
     # preview_start runs the named .claude/launch.json configuration: judged as that command; a url starts nothing; an unreadable configuration is refused
     with tempfile.TemporaryDirectory() as launch, tempfile.TemporaryDirectory() as other:
         configs = [{"name": "w", "runtimeExecutable": "psql", "runtimeArgs": ["-h", PROD_H, "-c", "delete from t"]}, {"name": "ok", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"]},
-                   {"name": "args", "runtimeExecutable": "psql", "args": ["-h", PROD_H, "-c", "delete from t"]}, {"name": "prog", "runtimeExecutable": "sh", "runtimeArgs": ["-c"], "program": f"psql -h {PROD_H} -c 'delete from t'"}]
+                   {"name": "args", "runtimeExecutable": "psql", "args": ["-h", PROD_H, "-c", "delete from t"]}, {"name": "prog", "runtimeExecutable": "sh", "runtimeArgs": ["-c"], "program": f"psql -h {PROD_H} -c 'delete from t'"},
+                   {"name": "envw", "env": {"PGHOST": PROD_H}, "runtimeExecutable": "psql", "runtimeArgs": ["-c", "delete from t"]},
+                   {"name": "twice", "runtimeExecutable": "npm"}, {"name": "TWICE", "runtimeExecutable": "npm"},
+                   {"name": "cwdpy", "runtimeExecutable": "/usr/bin/python3", "runtimeArgs": [os.path.join(ROOT, DOCS_ROOT, "new_intent.py"), PROD_H], "cwd": "sub"}, {"name": "var", "runtimeExecutable": "npm", "runtimeArgs": ["${env:X}"]}]
         put(os.path.join(launch, ".claude", "launch.json"), json.dumps({"configurations": configs}), 0o644)
         put(os.path.join(other, ".claude", "launch.json"), json.dumps({"configurations": [{"name": "w", "runtimeExecutable": "npm"}]}), 0o644)
         saved, os.environ["CLAUDE_PROJECT_DIR"] = os.environ.get("CLAUDE_PROJECT_DIR"), launch  # the app reads the session's working directory
+        real_blobs = g.main_blobs  # this repository read as origin/main's, so that only the configuration's cwd keeps new_intent from being trusted ("cwdpy")
+        g.main_blobs = lambda rels: {r: subprocess.run(["git", "-C", ROOT, "hash-object", os.path.join(ROOT, r)], capture_output=True, text=True).stdout.strip() for r in rels}
         for tool_input, where, code in (({"name": "w"}, launch, 2), ({"name": "ok"}, launch, 0), ({"url": "http://localhost:3000"}, launch, 0), ({"name": "missing"}, launch, 2),
-                                        ({"name": "args"}, launch, 2), ({"name": "prog"}, launch, 2), ({"name": "w"}, other, 2), ({"name": "ok"}, other, 2)):  # other: a second launch.json disagrees, or lacks the name
+                                        ({"name": "args"}, launch, 2), ({"name": "prog"}, launch, 2), ({"name": "w"}, other, 2), ({"name": "ok"}, other, 2), ({"name": "W"}, launch, 2),
+                                        ({"name": "envw"}, launch, 2), ({"name": "twice"}, launch, 2), ({"name": "cwdpy"}, launch, 2), ({"name": "var"}, launch, 2)):  # other: a second launch.json disagrees or lacks the name; W: case ignored as the app does
             assert d.dispatch(json.dumps({"tool_name": LAUNCH_TOOL, "tool_input": tool_input, "cwd": where}))[0] == code, (tool_input, where)
+        assert g.launch_command({"name": "cwdpy"}, launch)[0].startswith("cd sub && "), "the configuration's cwd runs first: a relative script there is another file"
         os.environ.pop("CLAUDE_PROJECT_DIR") if saved is None else os.environ.update(CLAUDE_PROJECT_DIR=saved)
+        g.main_blobs = real_blobs
     monitor_ws = json.dumps({"tool_name": "Monitor", "tool_input": {"ws": {"url": "wss://x.example.invalid"}, "description": "d", "timeout_ms": 1000}})  # runs no command
     for raw in (monitor_ws, json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}), json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}}),
                 json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})):

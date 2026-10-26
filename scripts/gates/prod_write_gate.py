@@ -11,7 +11,6 @@
 """
 import ast
 import collections
-import glob
 import importlib.util
 import json
 import os
@@ -203,7 +202,7 @@ def tokens_of(command, structured=False):
     for line in lines:
         pending = pending + "\n" + line if pending else line
         lexer = shlex.shlex(pending if structured else pending.replace("`", " ; "), posix=True, punctuation_chars=True)
-        lexer.whitespace_split, lexer.commenters = True, "#"
+        lexer.whitespace_split, lexer.commenters = True, "" if structured else "#"  # bash takes `#` inside a word literally (a/b#x, URL fragments); neutralize() already dropped real comments
         try:
             found = list(lexer)
         except ValueError:
@@ -1118,14 +1117,15 @@ def stdin_texts_for(index, command, commands, text):  # Statement texts a comman
 
 
 def trusted_line(text, commands, environ):  # The only line a trusted script runs on: one plain command (no separator, wrapper, keyword, assignment, expansion, redirection) whose interpreter is /usr/bin/python3 (system-protected), no other PYTHON* in the environment, no .pth in the user site.
-    if len(commands) != 1 or SHELL_META.search(text) or any(k.startswith("PYTHON") and k not in HARMLESS_PYTHON_ENV for k in environ):
+    if len(commands) != 1 or SHELL_META.search(text) or re.search(r"[#\r]", text) or any(k.startswith("PYTHON") and k not in HARMLESS_PYTHON_ENV for k in environ):
         return False
     argv, first = commands[0].argv, (text.split(None, 1) or [""])[0]  # the line's own first word, unquoted: a wrapper, keyword or quoting before the interpreter differs
     exe = argv[0] if "/" in argv[0] else shutil.which(argv[0], path=environ.get("PATH", os.defpath))
     options = argv[1:next((i for i, t in enumerate(argv) if i and not t.startswith("-")), len(argv))]  # before the script: only those that load nothing else (-X pycache_prefix, -W … do)
     if commands[0].env or commands[0].unresolved or first != argv[0] or not exe or not os.path.realpath(exe).startswith("/usr/bin/python3") or not set(options) <= {"-I", "-E", "-s", "-B", "-u"}:
         return False
-    return not glob.glob(os.path.join(glob.escape(site.getusersitepackages()), "*.pth"))
+    user = site.getusersitepackages()  # what site runs before any script: .pth files (dotted ones too), usercustomize, sitecustomize
+    return not any(n.endswith(".pth") or n.split(".")[0] in ("usercustomize", "sitecustomize") for n in (os.listdir(user) if os.path.isdir(user) else []))
 
 
 def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refusal text or None.
@@ -1192,7 +1192,9 @@ def launch_command(tool_input, cwd):  # (the command preview_start runs for its 
     if not name:
         return None, None if isinstance(tool_input, dict) else "生产写门：preview_start 的钩子输入不是对象，无法判断，按拒绝处理。\n"
     def line(root):  # runtimeExecutable runtimeArgs program args, else node program args; env before, its cwd as a `cd` first (a script is then not trusted)
-        entry = next(c for c in json.loads(Path(root, ".claude", "launch.json").read_text(encoding="utf-8"))["configurations"] if c.get("name") == name)
+        text = Path(root, ".claude", "launch.json").read_text(encoding="utf-8").replace("${workspaceFolder}", json.dumps(str(root))[1:-1])  # the app's substitution
+        matching = [c for c in json.loads(text)["configurations"] if isinstance(c, dict) and str(c.get("name", "")).lower() == str(name).lower()]  # the app matches names ignoring case
+        entry = matching[0] if len(matching) == 1 and "${" not in json.dumps(matching[0]) else {}  # two candidates, or a variable left: which one runs cannot be seen
         run = [str(entry["runtimeExecutable"]), *map(str, entry.get("runtimeArgs") or [])] + ([str(entry["program"])] if entry.get("program") else []) if entry.get("runtimeExecutable") else ["node", str(entry["program"])]
         run += [str(a) for a in entry.get("args") or []]
         command = shlex.join([f"{k}={v}" for k, v in (entry.get("env") or {}).items()] + run)
