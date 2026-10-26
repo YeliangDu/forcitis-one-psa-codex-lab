@@ -112,6 +112,7 @@ def build(entries, order, topics, sup, conflicts, per):
 def listing(folder, topics_path, relations_path, topic):
     entries, order = load_entries(folder)
     topics, ids, sup = load_topics(topics_path), short_ids(order), load_relations(relations_path, entries, order)[0]
+    if topic not in [t for t, _ in topics] + ["未分类"]: raise ValueError(f"没有主题「{topic}」；已有主题：{'、'.join([t for t, _ in topics] + ['未分类'])}")
     return [f"{ids[n]} {cell(entries[n][1], 120)}" for n in order if n not in sup and topic in topics_of(topics, entries[n][1], entries[n][0])]
 
 def run(folder, topics_path, relations_path, out_path, limit=None, policy=None):
@@ -164,6 +165,8 @@ def self_test():
         text = run(intent, topics, rel, None, limit=10240)[3]
         assert len(text.encode()) <= 10240 and "--topic=审批" in text, "条目多时按体量减少列出条数，整页不超限，并给出查全写法"
         assert any("审批第0号" in l for l in listing(intent, topics, rel, "审批")) and "审批第0号" not in text and not any("审批第" in l for l in listing(intent, topics, rel, "财务")), "--topic 只列该主题、含页面省掉的现行条目"
+        assert not any("报销审批三级" in l for l in listing(intent, topics, rel, "审批")), "--topic 不列被取代的条目"
+        assert all(raises(lambda t=t: listing(intent, topics, rel, t)) for t in ("无此主题", "")), "--topic 未知或空主题名应报错"
         assert raises(lambda: run(intent, topics, rel, None, limit=300)), "连一条都列不下的上限应失败"
         [os.remove(os.path.join(intent, f)) for f in os.listdir(intent) if "量" in f]
         bad = [(rel, f"取代\tno.md\t{old}\tx\n"), (rel, f"矛盾\t{old}\t{old}\tx\n"), (rel, "乱写\n"), (rel, f"取代\t{old}\t{new}\tx\n"), (rel, f"取代\t{new}\t{old}\tx\n取代\t{old}\t{new}\tx\n"),
@@ -186,7 +189,9 @@ def self_test():
 if __name__ == "__main__":
     src = (os.path.join(BASE, "intent"), os.path.join(BASE, "decision-digest/topics.txt"), os.path.join(BASE, "decision-digest/relations.txt"))
     if "--self-test" in sys.argv: self_test()
-    elif sys.argv[1:2] and sys.argv[1].startswith("--topic="): print("\n".join(listing(*src, sys.argv[1][8:])))
+    elif sys.argv[1:2] and sys.argv[1].startswith("--topic="):
+        try: print("\n".join(listing(*src, sys.argv[1][8:])))
+        except ValueError as e: sys.exit(str(e))
     else:
         n, unclassified, suspects, text = run(*src, None if "--check" in sys.argv else os.path.join(BASE, OUT))
         print(f"{OUT}: {n} 条，{len(text.encode())} 字节（上限 {limit_of()}），未分类 {unclassified}，疑似取代未登记 {len(suspects)}")
