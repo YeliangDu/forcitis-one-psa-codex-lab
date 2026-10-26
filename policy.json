@@ -250,8 +250,8 @@
   "machine": {
     "ci_runners": 4,
     "heavy_parallel_max": null,
-    "delegate_nice": null,
-    "_说明": "heavy_parallel_max、delegate_nice 定稿 1.15 点名未给数，由 one-ops 与 one-platform 定。"
+    "delegate_nice": 10,
+    "_说明": "heavy_parallel_max、delegate_nice 定稿 1.15 点名未给数，由 one-ops 与 one-platform 定；delegate_nice 调度 10-26 晚签值（b2b-plan 第 3 节第 4 条），heavy_parallel_max 推后（b2b-plan 0.1）。"
   },
   "sessions": {
     "resident_max": 4,
@@ -290,6 +290,58 @@
     ]
   },
   "delegate": {
+    "_说明": "scripts/delegate.py 的准入与运行参数（O20；b2b-plan #1、#2）。forbidden_paths 为仓库相对路径的 fnmatch 通配（* 跨目录），命中的文件不进外包 worktree、不许出现在范围与改动里；forbidden_categories 为不外包类别（roles/platform.md「delegate 准入」），与类别名互相包含即拒；env_allow 是 env -i 后唯一透传的变量名，凭据由本机配置提供（TEAM-34 现行做法），不在这里加密钥变量；缺键或 null 时 delegate 失败关闭。forbidden_paths、forbidden_categories、env_allow、engines、timeout_minutes 为 ops 起草的最小可用值，待调度定稿。",
+    "forbidden_paths": [
+      "scripts/hooks/*",
+      "scripts/gates/*",
+      "scripts/evidence/*",
+      "scripts/release/*",
+      "scripts/ops/*",
+      "scripts/coord/*",
+      "scripts/delegate*",
+      ".claude/*",
+      ".github/workflows/*",
+      "policy.json",
+      ".gitleaks.toml",
+      ".pre-commit-config.yaml",
+      "*/acceptance/*",
+      "docs/modernization/phase1a/infra/*",
+      "*SECRETS*",
+      "*.env",
+      "*.env.*",
+      "*合同*"
+    ],
+    "forbidden_categories": [
+      "生产取证",
+      "连生产操作",
+      "安全改动",
+      "复审",
+      "验收测试",
+      "对用户与会话的沟通",
+      "语义、权限、越权边界判断",
+      "钩子、并发、解析类守护代码"
+    ],
+    "env_allow": [
+      "HOME",
+      "PATH",
+      "LANG",
+      "LC_ALL",
+      "TMPDIR",
+      "USER",
+      "LOGNAME"
+    ],
+    "engines": {
+      "codex": {
+        "model": "gpt-6.1-sol"
+      },
+      "deepseek": {
+        "model": "deepseek/deepseek-flash",
+        "tools": "read,edit,write"
+      }
+    },
+    "timeout_minutes": 60,
+    "ledger": "~/.modernize/psa/state/delegate/ledger.jsonl",
+    "runs_dir": "~/.modernize/psa/state/delegate/runs",
     "billing": {
       "codex": {
         "mode": "subscription",
