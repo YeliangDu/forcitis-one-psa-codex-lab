@@ -11,6 +11,7 @@
 """
 import ast
 import collections
+import importlib.util
 import json
 import os
 import re
@@ -354,8 +355,11 @@ NETWORK_GIT = {"push", "pull", "fetch", "clone", "ls-remote", "remote", "submodu
 DOC_SCRIPTS = {DOCS_ROOT + "/new_intent.py", DOCS_ROOT + "/phase1a/infra/new_legacy_read.py", DOCS_ROOT + "/new_log.py", DOCS_ROOT + "/glossary/new_term_issue.py"}
 ENV_TARGET_VARS = ("PGHOST", "PGSERVICE", "PGDATABASE", "PGUSER", "PGHOSTADDR", "SQLCMDSERVER", "SQLCMDDBNAME", "SQLCMDUSER", "MYSQL_HOST", "DATABASE_URL", "MONGODB_URI", "REDIS_URL", "ALIBABA_CLOUD_PROFILE")
 MAX_SQL_FILE, MAX_SCRIPT_FILE = 65536, 262144
-COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name the same
-LOADABLE, MAX_CLOSURE = (".py", ".pyc", ".so"), 400  # what Python imports from a directory; files a trusted script may load before it counts as unreadable
+COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name these and LAUNCH_TOOL
+LAUNCH_TOOL = "mcp__Claude_Browser__preview_start"  # starts runtimeExecutable + runtimeArgs of the named .claude/launch.json configuration (cfcbcf473 final M4)
+LOADABLE, MAX_CLOSURE = (".py", ".pyc", ".so", ".pyd"), 400  # what Python imports from a directory (any interpreter: mod.cpython-312-darwin.so); files a trusted script may load before it counts as unreadable
+PYTHON_ENV = ("PYTHONPATH", "PYTHONHOME", "PYTHONUSERBASE", "PYTHONPYCACHEPREFIX", "PYTHONSTARTUP", "PYTHONINSPECT", "PYTHONSAFEPATH", "PYTHONPLATLIBDIR")  # replace what a script imports or runs first
+NO_TRUST = False  # judge(): the line sets one of PYTHON_ENV or -X pycache_prefix, or changes directory first (a relative script is then another file), or the environment sets one: no script is trusted
 STATEMENT_OPTIONS = {"psql": {"-c", "--command"}, "mysql": {"-e", "--execute"}, "mariadb": {"-e", "--execute"}, "sqlcmd": {"-Q", "-q", "--query"}, "osql": {"-Q", "-q"}, "mssql-cli": {"-Q", "--query"}, "mongosh": {"--eval"}, "mongo": {"--eval"}, "usql": {"-c", "--command"}}
 FILE_OPTIONS = {"psql": {"-f", "--file"}, "sqlcmd": {"-i"}, "osql": {"-i"}, "usql": {"-f", "--file"}, "mysql": set(), "mariadb": set()}
 DANGEROUS_SQL_OPTIONS = {"sqlcmd": {"-z", "-Z", "-v"}, "osql": {"-z", "-Z"}, "mysql": {"--init-command", "--init_command"}, "mariadb": {"--init-command", "--init_command"}}
@@ -935,39 +939,78 @@ def all_as_on_main(paths):  # True when every path is a regular file byte for by
     return mine is not None and all(theirs.get(r) == m for r, m in zip(rels, mine))
 
 
-def imported(path):  # Repository files the imports of a Python file can load (every candidate on its directory and each one above it up to the anchor: any may be first on sys.path), or None when it cannot be parsed.
+def path_tails(nodes):  # Relative paths a file spells in literals: the trailing literal arguments of os.path.join (BASE, "adr", "x.py"), the trailing literals of a `/` chain, a literal ending in .py; every suffix of each.
+    def parts(node):
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            return parts(node.left) + parts(node.right)
+        return [node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None]
+    joins = [n for n in nodes if isinstance(n, ast.Call) and getattr(n.func, "attr", getattr(n.func, "id", "")) == "join"]
+    runs = [sum((parts(a) for a in n.args), []) for n in joins] + [parts(n) for n in nodes if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Div)]
+    runs += [[n.value] for n in nodes if isinstance(n, ast.Constant) and isinstance(n.value, str) and n.value.endswith(".py")]
+    starts = [(run, next(i for i in range(len(run), -1, -1) if i == 0 or run[i - 1] is None)) for run in runs]
+    tails = {os.path.join(*run[i:]) for run, start in starts for i in range(start, len(run))}  # every suffix: a leading literal may name a directory the script stands in
+    return {t for t in tails if t != "." and len(t) < 256 and not set(t) & {"\0", "\n"}}
+
+
+def imported(path, listing):  # Repository files a Python file can load: what its imports name (on its directory, each one above it up to the anchor, and any directory it spells: any may be first on sys.path), the .py files it spells by path (it may run them); None when it cannot be parsed.
     try:
-        tree = ast.parse(Path(path).read_bytes())
-    except (OSError, SyntaxError, ValueError):
+        nodes = list(ast.walk(ast.parse(Path(path).read_bytes())))
+    except (OSError, SyntaxError, ValueError, RecursionError):
         return None
     top, here, roots = os.path.realpath(ANCHOR), os.path.realpath(os.path.dirname(path)), []
     while os.path.commonpath([here, top]) == top and here not in roots:
         roots.append(here)
         here = os.path.dirname(here)
-    names = [(a.name.split("."), roots) for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]
-    for n in (n for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)):  # `from a import b`: b may be a module; a relative import starts `level` directories up
-        where = [os.path.realpath(os.path.join(os.path.dirname(path), *[".."] * (n.level - 1)))] if n.level else roots
+    inside = lambda c: os.path.commonpath([os.path.realpath(c), top]) == top  # noqa: E731
+    spelled = {os.path.normpath(os.path.join(root, t)) for t in path_tails(nodes) for root in roots}
+    found = [c for c in spelled if c.endswith(".py") and os.path.isfile(c) and inside(c)]
+    extra = [c for c in spelled if os.path.isdir(c) and inside(c)]  # sys.path.insert(0, str(HERE.parents[3] / "runbooks" / "scripts"))
+    names = [(a.name.split("."), roots + extra) for n in nodes if isinstance(n, ast.Import) for a in n.names]
+    for n in (n for n in nodes if isinstance(n, ast.ImportFrom)):  # `from a import b`: b may be a module; a relative import starts `level` directories up
+        where = [os.path.realpath(os.path.join(os.path.dirname(path), *[".."] * (n.level - 1)))] if n.level else roots + extra
         names += [((n.module or "").split(".") * bool(n.module) + a.name.split("."), where) for a in n.names]
     stems = {os.path.join(root, *parts[:i]) for parts, where in names for root in where for i in range(1, len(parts) + 1)}
-    return [c for stem in stems for c in [stem + s for s in LOADABLE] + [os.path.join(stem, "__init__.py")] if os.path.lexists(c)]
+    for stem in stems:  # a module or package: any loader suffix, __init__ included
+        for where, name in ((os.path.dirname(stem), os.path.basename(stem)), (stem, "__init__")):
+            if where not in listing:
+                listing[where] = os.listdir(where) if os.path.isdir(where) else []
+            found += [os.path.join(where, f) for f in listing[where] if f.split(".", 1)[0] == name and "." in f and f.endswith(LOADABLE)]
+    return found
 
 
-def closure(script):  # Files running `script` may load: everything importable beside it (it may run them, as new_intent runs its builders) and, recursively, the repository modules the imports name; None when one cannot be read.
-    here = os.path.dirname(os.path.abspath(script))
-    try:
-        todo, seen = [script] + [os.path.join(here, n) for n in sorted(os.listdir(here)) if n.endswith(LOADABLE)], set()
-    except OSError:
-        return None
+def closure(script):  # Files running `script` may load: what its imports name and the .py files it spells by path, recursively (new_intent runs its builders, build_records runs adr/build_adrs.py), and, compared but not followed, everything importable beside each of them (sys.path[0]: the standard library's own imports may pick it up); None when one cannot be read.
+    listing, todo, followed, found = {}, [os.path.abspath(script)], set(), set()
     while todo:
-        path = os.path.abspath(todo.pop())
-        if path in seen:
+        path = todo.pop()
+        if path in followed:
             continue
-        seen.add(path)
-        found = imported(path) if path.endswith(".py") and os.path.isfile(path) else []  # anything else fails the comparison with origin/main
-        if found is None or len(seen) > MAX_CLOSURE:
+        followed.add(path)
+        loads = imported(path, listing) if os.path.isfile(path) else []  # a missing one fails the comparison with origin/main
+        if loads is None or len(followed) > MAX_CLOSURE:
             return None
-        todo += found
-    return seen
+        found.update(loads)
+        todo += [f for f in loads if f.endswith(".py")]  # .pyc and extension modules are compared, not read
+    for here in {os.path.dirname(p) for p in followed}:
+        if here not in listing:
+            listing[here] = os.listdir(here) if os.path.isdir(here) else []
+        found.update(os.path.join(here, n) for n in listing[here] if n.endswith(LOADABLE))
+    return followed | found if bytecode_checked(followed | found) else None
+
+
+def bytecode_checked(sources):  # False when Python could run a byte-code cache of a source without checking it: a hash-based .pyc that skips the source check (flags 0b01), beside it or under sys.pycache_prefix. A timestamp .pyc forged to the source's mtime and size is not caught (known gap).
+    for src in sources:
+        cache, stem = os.path.join(os.path.dirname(src), "__pycache__"), os.path.splitext(os.path.basename(src))[0]
+        pycs = [os.path.join(cache, n) for n in (os.listdir(cache) if os.path.isdir(cache) else []) if n.startswith(stem + ".") and n.endswith(".pyc")]
+        pycs += [importlib.util.cache_from_source(src)] if sys.pycache_prefix and src.endswith(".py") else []
+        for pyc in (p for p in pycs if os.path.isfile(p)):
+            try:
+                with open(pyc, "rb") as f:
+                    flags = int.from_bytes(f.read(8)[4:8], "little")
+            except OSError:
+                return False
+            if flags & 1 and not flags & 2:
+                return False
+    return True
 
 
 def tree_files(rel_dir):  # Every file under a directory of the anchor (__pycache__ skipped), or None when it holds a symlink.
@@ -995,7 +1038,7 @@ def script_operand(argv):  # The script an interpreter runs (first non-option wo
 
 def trusted_script(argv, cwd):  # A document script at its fixed path, a listed read-only tool, or the `--self-test` of a guard script, only while the file is exactly the one on origin/main.
     script = script_operand(argv) if INTERPRETER.match(name_of(argv[0])) else None
-    if script is None:
+    if script is None or NO_TRUST:
         return False
     global ANCHOR
     ANCHOR = ANCHOR or trust_root(ROOTS[0]) or os.devnull
@@ -1076,7 +1119,9 @@ def stdin_texts_for(index, command, commands, text):  # Statement texts a comman
 
 
 def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refusal text or None.
-    environ = os.environ if environ is None else environ
+    global NO_TRUST
+    environ, line = os.environ if environ is None else environ, plain(command_text)
+    NO_TRUST = any(environ.get(v) for v in PYTHON_ENV) or any(v.lower() in line for v in PYTHON_ENV + ("pycache_prefix",)) or bool(re.search(r"(?:^|[;&|(\n])\s*(?:cd|pushd|popd)\b", line))
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
     try:
@@ -1125,9 +1170,24 @@ def trust_root(cwd):  # cwd's work tree when cwd and CLAUDE_PROJECT_DIR are in o
 def command_of(payload):  # (shell command of a hook payload or None, refusal or None): Bash, Monitor and the terminal panel run tool_input.command; Monitor's ws source runs none.
     tool, tool_input = payload.get("tool_name", "Bash"), payload.get("tool_input")
     command = tool_input.get("command") if isinstance(tool_input, dict) else None
+    if tool == LAUNCH_TOOL:
+        return launch_command(tool_input, payload.get("cwd"))
     if tool not in COMMAND_TOOLS or (tool == "Monitor" and command is None and isinstance(tool_input, dict)):
         return None, None
     return (command, None) if isinstance(command, str) else (None, f"生产写门：{tool} 钩子输入里没有字符串形式的 command，无法判断，按拒绝处理。\n")
+
+
+def launch_command(tool_input, cwd):  # (the command preview_start runs for its `name`, refusal or None); a `url` alone starts nothing.
+    name = tool_input.get("name") if isinstance(tool_input, dict) else None
+    if not name:
+        return None, None if isinstance(tool_input, dict) else "生产写门：preview_start 的钩子输入不是对象，无法判断，按拒绝处理。\n"
+    try:
+        configs = json.loads(Path(cwd if isinstance(cwd, str) and cwd else os.getcwd(), ".claude", "launch.json").read_text(encoding="utf-8"))["configurations"]
+        entry = next(c for c in configs if c.get("name") == name)
+        env = [f"{k}={v}" for k, v in (entry.get("env") or {}).items()]
+        return shlex.join(env + [str(entry["runtimeExecutable"]), *map(str, entry.get("runtimeArgs") or [])]), None
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, StopIteration):
+        return None, f"生产写门：读不出 .claude/launch.json 里 {name} 的启动命令，无法判断，按拒绝处理。\n"
 
 
 def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict); the dispatcher calls this in-process.

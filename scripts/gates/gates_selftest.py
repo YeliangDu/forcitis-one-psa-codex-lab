@@ -23,7 +23,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import pre_tool_dispatch as d  # noqa: E402
 import prod_write_gate as g  # noqa: E402
-from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, EXTRA_READONLY, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, heredoc_bodies, judge, load_table, mask_sql, name_of, plain, simple_commands, tokens_of)  # noqa: E402
+from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, LAUNCH_TOOL, EXTRA_READONLY, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, heredoc_bodies, judge, load_table, mask_sql, name_of, plain, simple_commands, tokens_of)  # noqa: E402
 
 PYTHON = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
 
@@ -455,8 +455,9 @@ def trust_self_test():
         tmp = os.path.realpath(tmp)
         main, work, forged, other, loose = (os.path.join(tmp, n) for n in ("M", "W", "F", "T", "N"))
         tools = {"base": "t/tools/", "files": ["scan.py"], "trust_dirs": ["t/sql/"]}
-        body = {doc: f"import os\nos.system(\"psql -h {fake} -c 'delete from t'\")\n", legacy: "print('register')\n", register: "print('built')\n",
-                tool: "from lib import helper\n", helper: "x = 1\n", sql: "select 1\n",
+        built = DOCS_ROOT + "/adr/b.py"  # a script the document script spells by path (as build_records runs adr/build_adrs.py)
+        body = {doc: f"import os, json\nB = os.path.join('x', 'adr', 'b.py')\nos.system(\"psql -h {fake} -c 'delete from t'\")\n", legacy: "print('register')\n",
+                register: "print('built')\n", built: "x = 1\n", tool: "from lib import helper\n", helper: "x = 1\n", sql: "select 1\n",
                 "scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "fake", "patterns": [fake]}], "readonly_tools": tools})}
         mkrepo(main, body)
         mkrepo(forged, body)
@@ -465,9 +466,9 @@ def trust_self_test():
         subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", work], check=True, capture_output=True)
         table = os.path.join(tmp, "fake_targets.json")
         Path(table).write_text(json.dumps({"targets": [{"id": "fake", "patterns": [fake]}]}), encoding="utf-8")
-        def hook(command, cwd, project, process_cwd=None):
+        def hook(command, cwd, project, process_cwd=None, tool="Bash", where=None):
             env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "PROD_TARGETS_FILE": table, **({"CLAUDE_PROJECT_DIR": project} if project is not None else {})}
-            payload = {"tool_name": "Bash", "tool_input": {"command": command}, **({"cwd": cwd} if cwd else {})}
+            payload = {"tool_name": tool, "tool_input": {"command": command, **({"cwd": where} if where else {})}, **({"cwd": cwd} if cwd else {})}
             return subprocess.run([sys.executable, "-I", script], input=json.dumps(payload), capture_output=True, text=True, env=env, cwd=process_cwd or tmp).returncode
         run_doc = "python3 " + doc
         for cwd, project, code, why in ((work, main, 0, "a worktree of the project's repository: one .git, other path, trusted"), (main, work, 0, "the other way round"),
@@ -487,6 +488,25 @@ def trust_self_test():
             assert hook(run, work, main) == (2 if rel else 0), why
             gitc(work, "checkout", "-q", "--", ".")
             gitc(work, "clean", "-fdq")
+        # what Python also loads, or how a line swaps it (cfcbcf473 first round M1-M2, final M1-M3): each case on a clean worktree, refused; the controls pass
+        def pyc(rel, flags):  # a byte-code cache header: magic, flags (1 = hash-based without the source check, 3 = with it), hash
+            put(os.path.join(work, rel), "", 0o644)
+            Path(work, rel).write_bytes(b"\0" * 4 + flags.to_bytes(4, "little") + b"\0" * 8)
+        link = lambda rel: (os.remove(os.path.join(work, rel)) if os.path.exists(os.path.join(work, rel)) else None, os.symlink(os.path.join(main, helper), os.path.join(work, rel)))  # noqa: E731
+        loads = ((lambda: put(os.path.join(work, built), "x = 2\n", 0o644), run_doc, 2, "a script it spells by path, edited"),
+                 (lambda: pyc(DOCS_ROOT + "/json/__init__.pyc", 0), run_doc, 2, "a package __init__ with a loader suffix other than .py"),
+                 (lambda: put(os.path.join(work, DOCS_ROOT, "lib/helper.cpython-39-darwin.so"), "", 0o644), scan, 2, "an extension module beside the imported one"),
+                 (lambda: pyc(DOCS_ROOT + "/lib/__pycache__/helper.cpython-39.pyc", 1), scan, 2, "an unchecked hash-based .pyc"),
+                 (lambda: pyc(DOCS_ROOT + "/lib/__pycache__/helper.cpython-39.pyc", 3), scan, 0, "a checked hash-based .pyc (control)"),
+                 (lambda: link(helper), scan, 2, "an imported module that is a symlink (to main's own file)"), (lambda: link(DOCS_ROOT + "/t/sql/l.sql"), scan, 2, "a symlink where it reads"),
+                 (lambda: None, f"PYTHONPATH=/tmp {run_doc}", 2, "PYTHONPATH on the line"), (lambda: None, f"export PYTHONPATH=/tmp; {run_doc}", 2, "PYTHONPATH exported earlier"),
+                 (lambda: None, f"python3 -X pycache_prefix=/tmp {doc}", 2, "-X pycache_prefix"), (lambda: None, f"cd {main} && {run_doc}", 2, "a relative script after cd"))
+        for setup, run, code, why in loads:
+            setup()
+            assert hook(run, work, main) == code, why
+            gitc(work, "checkout", "-q", "--", ".")
+            gitc(work, "clean", "-fdqx")
+        assert hook(run_doc, loose, main, tool=COMMAND_TOOLS[2], where=work) == 0 and hook(run_doc, loose, main, tool=COMMAND_TOOLS[2]) == 2, "the terminal panel: its own cwd"
         # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
         shifted = forged + "\nx"
         subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", shifted], check=True, capture_output=True)
@@ -541,6 +561,12 @@ def pre_tool_dispatch_test():
     # 3. ordinary commands and other tools start nothing; checks that used to hang off the dispatcher are no longer here
     for command in ("ls", "echo hi", "git status", "npm test", "codex exec p", "git push --no-verify", "gh pr create --title x"):
         assert d.dispatch(payload(command)) == (0, "", ""), command
+    # preview_start runs the named .claude/launch.json configuration: judged as that command; a url starts nothing; an unreadable configuration is refused
+    with tempfile.TemporaryDirectory() as launch:
+        put(os.path.join(launch, ".claude", "launch.json"), json.dumps({"configurations": [{"name": "w", "runtimeExecutable": "psql", "runtimeArgs": ["-h", PROD_H, "-c", "delete from t"]},
+                                                                                       {"name": "ok", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"]}]}), 0o644)
+        for tool_input, code in (({"name": "w"}, 2), ({"name": "ok"}, 0), ({"url": "http://localhost:3000"}, 0), ({"name": "missing"}, 2)):
+            assert d.dispatch(json.dumps({"tool_name": LAUNCH_TOOL, "tool_input": tool_input, "cwd": launch}))[0] == code, tool_input
     monitor_ws = json.dumps({"tool_name": "Monitor", "tool_input": {"ws": {"url": "wss://x.example.invalid"}, "description": "d", "timeout_ms": 1000}})  # runs no command
     for raw in (monitor_ws, json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}), json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}}),
                 json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})):
@@ -802,8 +828,8 @@ def settings_self_test():
     stop = [h["command"] for g in hooks.pop("Stop") for h in g["hooks"]]
     assert len(stop) == 1 and "/.modernize/psa/tools/one-session/stop_check/stop_check.py" in stop[0] and stop[0].rstrip().endswith("; exit 0"), stop
     assert sorted(hooks) == ["PreToolUse", "SessionStart"], sorted(hooks)
-    assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS)], "PreToolUse hangs only the production-write gate, on the tools that run shell commands"
-    assert json.dumps(list(COMMAND_TOOLS)) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
+    assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,))], "PreToolUse hangs only the production-write gate, on the tools that run commands"
+    assert json.dumps([*COMMAND_TOOLS, LAUNCH_TOOL]) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
     assert [g["matcher"] for g in hooks["SessionStart"]] == ["startup|clear|compact|resume", "startup|clear|compact"]
     commands = {}
     for event, groups in hooks.items():
