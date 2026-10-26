@@ -51,16 +51,16 @@ def decide_drill(tree, sync_args):
     (frag,) = set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before
     text = open(frag, encoding="utf-8").read()
     assert "## 类别\n\n流程\n\n## 负责会话\n\none-glossary\n\n## 影响路径\n\nscripts/ci、docs/modernization\n" in text, f"片段四项须齐全且负责会话取自登记：{text}"
+    os.remove(os.path.join(dec, "answers", "ZZ.json"))
+    real = open(os.path.join(BASE, "rules", "decide", "ONLINE_PAGES.md"), encoding="utf-8").read()
+    dup = "|ZZ|演练|one-ops|x|待定|x|\n"
     for sheet, pages, why in (("ZZ", PAGES.replace("负责会话", "负责人"), "表头"), ("ZY", PAGES, "没有在 ONLINE_PAGES.md 登记"), ("ZU", PAGES, "roles/ 未列"), ("ZZ", PAGES + ROW.format("ZZ", "one-ops"), "重复登记"),
-                              ("ZU", HEAD + "| ZU | 演练 | one-glossary | x | 待定 |\n", "列数不对"), ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射")):
-        if sheet == "ZY":
-            shutil.copytree(os.path.join(tree, "outZZ"), os.path.join(tree, "outZY"))
+                              ("ZZ", PAGES + dup, "重复登记"), ("ZZ", PAGES + "  " + ROW.format("ZZ", "one-ops"), "重复登记"), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定\n", "格式不规范"),
+                              ("ZU", HEAD + "| ZU | 演练 | one-glossary | x | 待定 |\n", "格式不规范"), ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"),
+                              ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射"), ("N1", real, "单子 N1 在 ONLINE_PAGES.md 的负责会话是「roles/ 未列」")):
         code, out = sync(sheet, pages)
         assert code != 0 and why in out, f"{why} 应拒：{out[:200]}"
-    shutil.copy(os.path.join(BASE, "rules", "decide", "ONLINE_PAGES.md"), os.path.join(dec, "real_pages.md"))
-    code, out = sync("N1", open(os.path.join(dec, "real_pages.md"), encoding="utf-8").read())
-    assert code != 0 and "单子 N1" in out and "roles/ 未列" in out, f"真实登记表里 N1 应被拒：{out[:200]}"
-    assert not [f for f in os.listdir(os.path.join(dec, "answers")) if f != "ZZ.json"], "登记表这一关拒绝时不写答复文件"
+        assert not os.listdir(os.path.join(dec, "answers")), f"{why}：登记表这一关拒绝时不写答复文件"
     assert len(set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before) == 1, "拒绝时不应再生成片段"
 
 

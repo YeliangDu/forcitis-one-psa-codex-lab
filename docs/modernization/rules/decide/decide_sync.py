@@ -26,13 +26,24 @@ PAGES_HEADER = ["单子或页面", "用途", "负责会话", "起用日期", "�
 
 def registered_owner(sheet):
     """单子的负责会话，取自 ONLINE_PAGES.md 登记表。列约定：表头固定为 PAGES_HEADER 六列，行以「 | 」分列，单子行第一列是单子编号；
-    表头变了、单子未登记或重复、列数不对、负责会话为「roles/ 未列」，一律拒绝，不回退默认会话。"""
-    rows = [[c.strip() for c in line.strip().strip("|").split(" | ")] for line in open(os.path.join(HERE, "ONLINE_PAGES.md"), encoding="utf-8") if line.startswith("| ")]
+    表头变了、单子未登记或重复、列数不对、负责会话为空或「roles/ 未列」，一律拒绝，不回退默认会话。
+    凡含管道符且不是「- 」开头说明行的行都算表格行：去首尾空白、按 | 切分、各格 strip 后统一解析（缩进或管道符两侧无空格不能躲过重复计数）；
+    表格行不以 | 开头结尾、或列数不是六列，判表格损坏而拒（失败关闭）；分隔行（各格全是 -）跳过。"""
+    rows = []
+    for line in open(os.path.join(HERE, "ONLINE_PAGES.md"), encoding="utf-8"):
+        s = line.strip()
+        if "|" not in s or s.startswith("- "):
+            continue
+        cells = [c.strip() for c in s[1:-1].split("|")]
+        if not (s.startswith("|") and s.endswith("|")) or len(cells) != len(PAGES_HEADER):
+            sys.exit(f"ONLINE_PAGES.md 登记表有格式不规范的表格行（要求以 | 开头结尾、{len(PAGES_HEADER)} 列）：{s[:40]}…；表格损坏，不敢解析负责会话，先修登记表")
+        if not all(set(c) <= set("-") and c for c in cells):
+            rows.append(cells)
     if not rows or rows[0] != PAGES_HEADER:
         sys.exit(f"ONLINE_PAGES.md 登记表表头不是约定的六列（{' | '.join(PAGES_HEADER)}），不敢解析负责会话；先修登记表或本脚本")
     found = [r for r in rows if r[0] == sheet]
-    if len(found) != 1 or len(found[0]) != len(PAGES_HEADER):
-        sys.exit(f"单子 {sheet} 没有在 ONLINE_PAGES.md 登记（或重复登记、列数不对），无法确定负责会话；请先登记再生成 intent")
+    if len(found) != 1:
+        sys.exit(f"单子 {sheet} 没有在 ONLINE_PAGES.md 登记（或重复登记），无法确定负责会话；请先登记再生成 intent")
     if found[0][2] in ("", "roles/ 未列"):
         sys.exit(f"单子 {sheet} 在 ONLINE_PAGES.md 的负责会话是「{found[0][2]}」，无法确定负责会话；请先补登记")
     sys.path.insert(0, os.path.join(HERE, "..", ".."))
