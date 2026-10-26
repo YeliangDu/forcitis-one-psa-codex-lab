@@ -23,7 +23,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import pre_tool_dispatch as d  # noqa: E402
 import prod_write_gate as g  # noqa: E402
-from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, LAUNCH_TOOL, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, heredoc_bodies, judge, load_table, mask_sql, name_of, plain, simple_commands, tokens_of)  # noqa: E402
+from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, LAUNCH_TOOL, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, judge, load_table, mask_sql, name_of, plain, simple_commands, tokens_of)  # noqa: E402
 
 PYTHON = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
 
@@ -122,9 +122,8 @@ def words_self_test():
     assert argvs("h=a; psql -h ${h}b") == [["psql", "-h", "ab"]] and argvs("FOO=1 nohup timeout 9 psql x") == [["psql", "x"]]
     # Codex review of #653: byte-wise ANSI-C, quote-aware here-documents, process substitution, nesting limit, export
     assert decode_ansi_c(r"\xe8\xb0\x83\xe5\xba\xa6") == "\u8c03\u5ea6" and decode_ansi_c(r"\u8c03") == "\u8c03"
-    assert names("echo ok # <<EOF\nsqlcmd -S p -Q x") == ["echo", "sqlcmd"] and names('echo "<<EOF"; sqlcmd -S p -Q x') == ["echo", "sqlcmd"], "<<EOF in a comment or a string is not a here-document"
-    assert "sqlcmd" in names("cat <<EOF\n$(sqlcmd -S p -Q x)\nEOF") and "sqlcmd" not in names("cat <<'EOF'\n$(sqlcmd -S p -Q x)\nEOF"), "an unquoted here-document body is expanded, a quoted one is text"
-    assert names("psql -h x <<EOF\nselect 1\nEOF\necho after") == ["psql", "echo"] and heredoc_bodies("cat <<'A' <<B\none\nA\ntwo\nB\n") == ["one", "two"]
+    # comments and here-documents are not mimicked (intent 2026-10-26-140639): their text is read as words, so what they mention is seen; judge refuses such lines
+    assert "sqlcmd" in names("echo ok # x\nsqlcmd -S p -Q x") and "sqlcmd" in names("cat <<'EOF'\n$(sqlcmd -S p -Q x)\nEOF") and "psql" in names("cat <<EOF\npsql -h x\nEOF")
     assert names('printf "%s" <(sqlcmd -S p -Q x)') == ["printf", "sqlcmd"] and names("diff <(ls a) >(cat)") == ["diff", "ls", "cat"]
     try:
         simple_commands("eval eval eval eval ssh h touch x")
@@ -164,16 +163,21 @@ def gate_self_test():
     for command in (f'psql -h {P}.pg.rds.aliyuncs.com -U ro -c "select count(*) from t"', f'psql -h {P} -c "SELECT 1"', f'mysql -h {P} -e "show tables"', f'mysql -h {P} -e "SHOW CREATE TABLE t"', f'psql -h {P} -c "explain select 1"', f'psql -h {P} -q -c "select 1"',
                     f'sqlcmd -S {P} -U ro -Q "set nocount on; select * from t"', f'sqlcmd -S {P} -Q "set nocount on\nselect 1"', f'sqlcmd -S {P} --query "select 1"', f'sqlcmd -S {P} -i ro.sql', f"sqlcmd -S {P} -iro.sql", f'sqlcmd -S {P} < ro.sql',
                     f'sqlcmd -S {P} -Q "select [desc], [update] from [t]"', f'psql -h {P} -c "select \'drop table t\'"', f'psql -h {P} -c "select * from t -- delete me"', f'psql -h {P} -c "\\dt"', f'psql -h {P} -c "\\dt+"',
-                    f"psql -h {P} <<'EOF'\nselect 1;\nEOF", f"psql -h {P} <<< 'select 1'", f"echo 'select 1' | psql -h {P}", f"sqlcmd -S {P} -?", f"psql -h {P} --version", f'redis-cli -h {P} -p 6379 get a', f'redis-cli -h {P} slowlog get 5',
+                    f"psql -h {P} <<< 'select 1'", f"echo 'select 1' | psql -h {P}", f"sqlcmd -S {P} -?", f"psql -h {P} --version", f'redis-cli -h {P} -p 6379 get a', f'redis-cli -h {P} slowlog get 5',
                     f'bcp "select 1" queryout o.csv -S {P}', "aliyun rds DescribeDBInstances --InstanceId pgm-prod0001", "aliyun --profile x ecs DescribeInstances --InstanceIds rm-prodhost1", f"aliyun cs GET /clusters/{P}",
                     f'ssh ops@{P} "tail -n 50 /var/log/app.log"', f"ssh {P} 'df -h && uptime'", f"ssh -i key -p 22 {P} 'systemctl status app'", f"ssh {P} docker ps", f"ssh {P} 'date -u +%s'", f"ssh {P} 'date -Iseconds'",
                     f"scp ops@{P}:/var/log/a.log ./a.log", f"rsync -a ops@{P}:/data/ ./data/", f"rsync -a -e 'ssh -p 22' ops@{P}:/data/ ./data/",
                     f"curl https://{P}/health", f"curl -X GET https://db.prod.example.com/x", f"curl -XGET https://db.prod.example.com/x", f"curl -sS -o out.json https://db.prod.example.com/x", f"wget https://db.prod.example.com/x",
-                    "git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md", "cat <<'EOF' > n.md\npgm-prod0001\nEOF",
+                    "git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md",
                     "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs", "python3 clean.py", "bash -c 'echo hi'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"",
                     "curl -X POST http://localhost:$PORT/api", 'curl -s -d "$BODY" http://localhost:8080/api', "psql -h localhost -c 'DO $$ begin null; end $$'", "psql -h localhost -c 'select 1' && curl http://localhost:$PORT", "ls $HOME",
-                    "cat <<EOF\nplain text pgm-prod0001\nEOF", "echo 'cost $5 for pgm-prod0001'"):
+                    "echo 'cost $5 for pgm-prod0001'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF"):
         assert allowed(command), f"must pass: {command!r}"
+    # 1b. a comment or a here-document is not stripped as the shell would (intent 2026-10-26-140639): with a production sample, a remote tool or a target variable on the line, refused
+    for command in (f"psql -h {P} <<'EOF'\nselect 1;\nEOF", "cat <<'EOF' > n.md\npgm-prod0001\nEOF", "cat <<EOF\nplain text pgm-prod0001\nEOF", f"ls # {P}", "cat <<EOF\npsql -h localhost\nEOF",
+                    f"ssh {P} uptime # can't", f"cat <<'EOF'\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF"):
+        assert refused(command), ("refused rather than read wrongly", command)
+    assert refused("ls # x", environ={"PGHOST": P}) and allowed("ls # x", environ={"PGHOST": "localhost"}), "a target variable pointing at production counts too"
     # 2. writes to production are refused, every class
     for command in (f'psql -h {P} -c "insert into t values (1)"', f'psql -h {P} -c "UPDATE t SET a=1"', f'psql -h {P} -c "delete from t"', f'psql -h {P} -c "drop table t"', f'psql -h {P} -c "ALTER TABLE t ADD c int"',
                     f'psql -h {P} -c "select 1; delete from t"', f'psql -h {P} -c "select * from t for update"', f'psql -h {P} -c "truncate t"', f"psql -h {P} -f fix.sql", f"psql -h {P} < fix.sql", f"psql -h {P} -f missing.sql",
@@ -219,7 +223,6 @@ def gate_self_test():
                     f'printf "%s" <(sqlcmd -S {P} -Q "delete from t")', f"export SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"export H={P}; sqlcmd -S\"$H\" -Q 'delete from t'", "curl -XDELETE http://192.0.{2,3}.15/x"):
         assert refused(command), f"unknown tool touching production must be refused: {command!r}"
     assert refused(f'sqlcmd -S {P} -Q "select next value for dbo.s"') and refused(f"psql -h {P} -c \"select query_to_xml('delete from t', true, false, '')\""), "sequence advance and SQL run from a string"
-    assert allowed(f"cat <<'EOF'\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF"), "a quoted here-document body is text"
     # 5. the opus review's parsing gaps
     for command in (f"sqlcmd -S `echo {P}` -Q \"delete from t\"", "sqlcmd -S `cat h.txt` -Q \"delete from t\"", f"sqlcmd -S $'\\x70gm-prod0001' -Q 'delete from t'", f"$'\\x73qlcmd' -S {P} -Q 'delete from t'", f"sqlcmd -S $'\\160gm-prod0001' -Q 'delete from t'",
                     f"sqlc\\\nmd -S {P} -Q \"delete from t\"", f"sqlcmd -S pgm-\\\nprod0001 -Q 'delete from t'", f"bash -lc \"sqlcmd -S {P} -Q 'delete from t'\"", f"sh -ec \"psql -h {P} -c 'delete from t'\"", f"bash -xc \"psql -h {P} -c 'drop table t'\"",
@@ -255,12 +258,6 @@ def gate_self_test():
     finally:
         g.load_table = real_load
     assert refused(f"curl https://{P}/a#b -X DELETE") and refused(f"curl https://{P}/a#b --data x=1"), "a `#` inside a word is no comment (bash): the rest of the command still counts (796bf2c85 final M1)"
-    for command in (f"ls # it's\npsql -h {P} -c 'delete from t' # it's", f"ls # it's\npsql -h {P} -c 'delete from t'", f"echo x # \"\ncurl -X DELETE https://{P}/a", f"(ls)#it's\npsql -h {P} -c 'delete from t'", f"(ls)# <<EOF\npsql -h {P} -c 'delete from t'"):
-        assert refused(command), ("a comment (after a blank or `( ) < >`) is dropped: its quotes or `<<` do not swallow the next line (69af6c8da final M1-M2)", command)
-    assert allowed(f"ssh {P} uptime # can't"), "a quote inside a comment is no quote"
-    for command in (f"echo ${{x:- #}}; psql -h {P} -c 'insert into t values (1)'", f"echo ${{x:-\"}}\" #}}; psql -h {P} -c 'insert into t values (1)'", f"echo ${{x:-{{a}} #}}; psql -h {P} -c 'insert into t values (1)'"):
-        assert refused(command), ("a `#` inside ${...} (a quoted or nested brace aside) starts no comment (50a6af8c3, 285242ecb final M1)", command)
-    assert refused("(ls)#it's\npsql -c 'delete from t' #it's", environ={"PGHOST": P}), "a comment right after `)`: the target from the environment, the write on the next line"
     # 6. secrets (bottom line 3) and the environment
     for command in ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"):
         assert refused(command), command

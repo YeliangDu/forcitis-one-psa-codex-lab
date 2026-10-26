@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from command_words import ENV, HEREDOC, KEYWORDS, SEPARATORS, SHELLS, WRAPPERS, name_of, plain, tokens_of, unquote_dollar, without_heredoc_bodies  # noqa: E402,F401
+from command_words import ENV, KEYWORDS, SEPARATORS, SHELLS, WRAPPERS, name_of, plain, tokens_of, unquote_dollar  # noqa: E402,F401
 
 CODEX_VALUE_OPTIONS = {"-c", "--config", "-m", "--model", "-p", "--profile", "-C", "--cd", "-s", "--sandbox", "-a", "--ask-for-approval", "--enable", "--disable", "-i", "--image"}
 REDIRECTS = {"<", "<<", "<<-", "<<<", "<&"}

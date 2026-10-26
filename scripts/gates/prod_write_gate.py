@@ -2,7 +2,7 @@
 """生产写门（PreToolUse：Bash、Monitor、终端面板，跑 tool_input.command 的工具）：命令碰到生产目标，除非是点名的只读用法，一律拒绝。防底线 4（生产只读）；安全门，出错失败关闭（退出码 2）。
 
 生产目标 = prod_targets.json 的 patterns（与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR 所在仓库的），出现在命令的词里（引号、ANSI-C、续行、花括号、变量与 export／set -a 拼接、反引号与 `$(…)` 展开后）或环境变量里即「碰到」。
-每条简单命令（`bash -c`／`-lc`／`eval`／heredoc／here-string／`echo … | bash`／`env -S`／`<(…)` 递归，超过 3 层按读不懂）：
+行里有可能起注释的 `#` 或 here-document，且含生产特征、远程工具或目标环境变量：整行拒绝，不模仿 shell 剥离（宁可误拦，intent 2026-10-26-140639）。每条简单命令（`bash -c`／`-lc`／`eval`／here-string／`echo … | bash`／`env -S`／`<(…)` 递归，超过 3 层按读不懂）：
 - 远程工具（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie）碰到生产且写（或写效果看不出）拒绝；SQL 只认白名单，aliyun 只放 Describe/List/Get…，返回密钥的接口一律拒绝（底线 3）。
 - 不连接的命令（git 本地子命令、gh、echo、grep、rg 无 --pre、sed 无 e/w…）碰到特征放行；其他命令（解释器、xargs、find -exec、git push…）碰到即拒绝，解释器的脚本文件读进来看；可信只认 origin/main 特征表 trusted_entries 登记的固定入口：整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：写类远程命令与解释器拒绝，只读放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名或特征拒绝；写操作的目标含读不出的变量拒绝。
@@ -31,7 +31,7 @@ KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}",
 WRAPPERS = {"command": set(), "env": {"-u", "-C", "-S"}, "time": {"-f", "-o"}, "exec": {"-a"}, "nohup": set(), "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U"}, "builtin": set(), "timeout": {"-s", "-k"}, "nice": {"-n"}, "stdbuf": {"-i", "-o", "-e"}}  # wrapper -> options that take a value
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "eval"}
 ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-HEREDOC = re.compile(r"<<(-?)[ \t]*(?:'([^']*)'|\"([^\"]*)\"|(\\?)([A-Za-z_][A-Za-z0-9_]*))")
+COMMENT_OR_HEREDOC = re.compile(r"(?:^|[^A-Za-z0-9_./:=@%+-])#|(?<!<)<<(?!<)")  # a `#` that may start a comment, a here-document: not mimicked, the whole line counts (intent 2026-10-26-140639)
 VARIABLE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
 SUBSTITUTION = re.compile(r"\$\(([^()]*)\)")
 SHORT_C = re.compile(r"-[A-Za-z]*c[A-Za-z]*")
@@ -88,11 +88,10 @@ def plain(command):  # Pre-filter text: ANSI-C decoded, line continuations, quot
     return QUOTES.sub("", unquote_dollar(command.replace("\\\n", ""))).lower() if isinstance(command, str) else ""
 
 
-def neutralize(text, backticks=True):  # `$`/backtick inside single quotes -> private characters; a backtick substitution outside them -> `$(...)` (when `backticks`). Comments are skipped (`# don't`).
-    out, i, single, double, braces = [], 0, False, False, 0
+def neutralize(text, backticks=True):  # `$`/backtick inside single quotes -> private characters; a backtick substitution outside them -> `$(...)` (when `backticks`). Comments are not mimicked (judge).
+    out, i, single, double = [], 0, False, False
     while i < len(text):
         char = text[i]
-        braces += 0 if single else 1 if text.startswith("${", i) or (braces and not double and char == "{") else -1 if braces and not double and char == "}" else 0  # `#` inside ${...} (nested, quotes aside) is part of it
         if single:
             out.append(PUA_DOLLAR if char == "$" else PUA_TICK if char == "`" else char)
             single = char != "'"
@@ -114,9 +113,6 @@ def neutralize(text, backticks=True):  # `$`/backtick inside single quotes -> pr
                 i = end
             else:
                 out.append(char)
-        elif char == "#" and not double and not braces and (i == 0 or text[i - 1] in " \t\n;|&()<>"):  # a comment starts a word (bash: after a blank or a metacharacter); dropped, so quotes in it pair with nothing
-            end = text.find("\n", i)
-            i = (len(text) if end < 0 else end) - 1
         else:
             out.append(char)
         i += 1
@@ -131,76 +127,17 @@ def name_of(token):  # Command name as the shell finds it: directory dropped, lo
     return os.path.basename(token).lower()
 
 
-def split_heredocs(command):  # (text without here-document bodies, [(body, delimiter, quoted)]). `<<` counts only outside quotes and comments; an unquoted delimiter means the body is expanded.
-    text = command.replace("\\\n", "")
-    out, bodies, pending, i, single, double, n, braces = [], [], [], 0, False, False, len(text), 0
-    while i < n:
-        char = text[i]
-        braces += 0 if single else 1 if text.startswith("${", i) or (braces and not double and char == "{") else -1 if braces and not double and char == "}" else 0
-        if single:
-            out.append(char)
-            single = char != "'"
-            i += 1
-        elif char == "\\" and i + 1 < n:
-            out.append(text[i:i + 2])
-            i += 2
-        elif double:
-            out.append(char)
-            double = char != '"'
-            i += 1
-        elif char in "'\"":
-            out.append(char)
-            single, double = char == "'", char == '"'
-            i += 1
-        elif char == "#" and not braces and (i == 0 or text[i - 1] in " \t\n;|&()<>"):
-            end = text.find("\n", i)
-            end = n if end < 0 else end
-            out.append(text[i:end])
-            i = end
-        elif char == "<" and text.startswith("<<", i) and not text.startswith("<<<", i) and not (i and text[i - 1] == "<") and HEREDOC.match(text, i):
-            found = HEREDOC.match(text, i)
-            pending.append((found.group(2) or found.group(3) or found.group(5), bool(found.group(2) or found.group(3) is not None or found.group(4)), found.group(1) == "-"))
-            out.append(found.group(0))
-            i = found.end()
-        elif char == "\n" and pending:
-            out.append("\n")
-            i += 1
-            for delimiter, quoted, strip in pending:
-                lines = []
-                while i < n:
-                    end = text.find("\n", i)
-                    line = text[i:n if end < 0 else end]
-                    i = n if end < 0 else end + 1
-                    if (line.lstrip("\t") if strip else line).rstrip("\r") == delimiter:
-                        break
-                    lines.append(line)
-                bodies.append(("\n".join(lines), delimiter, quoted))
-            pending = []
-        else:
-            out.append(char)
-            i += 1
-    return "".join(out), bodies
-
-
-def without_heredoc_bodies(command):
-    return split_heredocs(command)[0].split("\n")
-
-
-def heredoc_bodies(command):
-    return [body for body, _, _ in split_heredocs(command)[1]]
-
-
 def tokens_of(command, structured=False):
-    """Shell tokens, line by line (a # comment ends with its line, an open quote continues). `structured`: backticks are `$(...)`, `$` in single quotes neutralised;
+    """Shell tokens, line by line (an open quote continues; `#` and here-documents are not read as the shell does: judge refuses such lines that may concern production). `structured`: backticks are `$(...)`, `$` in single quotes neutralised;
     otherwise the older reading of the other hooks (a backtick starts a new command)."""
     tokens, pending = [], ""
-    lines = without_heredoc_bodies(unquote_dollar(command))
+    lines = unquote_dollar(command).replace("\\\n", "").split("\n")  # a backslash-newline is deleted, also inside a word
     if structured:
         lines = neutralize("\n".join(lines)).split("\n")
     for line in lines:
         pending = pending + "\n" + line if pending else line
         lexer = shlex.shlex(pending if structured else pending.replace("`", " ; "), posix=True, punctuation_chars=True)
-        lexer.whitespace_split, lexer.commenters = True, "" if structured else "#"  # bash takes `#` inside a word literally (a/b#x, URL fragments); neutralize() already dropped real comments
+        lexer.whitespace_split, lexer.commenters = True, ""
         try:
             found = list(lexer)
         except ValueError:
@@ -254,17 +191,13 @@ def strip_prefix(seg, variables):  # (env of leading `NAME=value` words and wrap
 
 def simple_commands(command, depth=0, variables=None, exported=None):
     """Simple commands of a command line as Command(argv, env, unresolved, redirected, piped), in order. `NAME=value` earlier in the line (and `export`) is substituted into later
-    words; `$(...)`, backticks, `<(...)`, `bash -c`/`-lc`/`eval` bodies, here-documents, here-strings and `echo … | bash` fed to a shell are commands of their own; unquoted
-    here-document bodies are searched for substitutions. `unresolved`: a word keeps a `$` expansion or substitution. Untokenisable input, or nesting deeper than 3, raises ValueError."""
+    words; `$(...)`, backticks, `<(...)`, `bash -c`/`-lc`/`eval` bodies, here-strings and `echo … | bash` fed to a shell are commands of their own
+    (here-documents are not read: judge refuses such a line that may concern production). `unresolved`: a word keeps a `$` expansion or substitution. Untokenisable input, or nesting deeper than 3, raises ValueError."""
     if depth > 3:
         raise ValueError("nested too deeply")
     variables = {} if variables is None else variables
     exported = {} if exported is None else exported
     out, segments, cur, piped_next = [], [], [], False
-    for body, _, quoted in split_heredocs(command)[1]:
-        if not quoted:
-            for inner in SUBSTITUTION.findall(re.sub(r"`([^`]*)`", r"$(\1)", body)):
-                out += simple_commands(inner, depth + 1, dict(variables), dict(exported))
     for token in tokens_of(command, structured=True):
         if token in SEPARATORS or token in ("<(", ">(") or set(token) <= set(";&|()"):
             if cur:
@@ -314,8 +247,6 @@ def simple_commands(command, depth=0, variables=None, exported=None):
                 body_at = next((n for n, t in enumerate(argv[1:], 1) if SHORT_C.fullmatch(t)), None)
                 if body_at is not None and body_at + 1 < len(argv):
                     bodies = [argv[body_at + 1]]
-                if any(t.startswith("<<") and t != "<<<" for t in argv):
-                    bodies += heredoc_bodies(command)
                 if "<<<" in argv and argv.index("<<<") + 1 < len(argv):
                     bodies.append(argv[argv.index("<<<") + 1])
                 if piped and previous is not None and name_of(previous[0]) in ECHOES:
@@ -1056,9 +987,9 @@ def trusted_script(argv, cwd):  # The command is the line judge() found to be a 
     return TRUSTED_LINE is not None and argv == TRUSTED_LINE
 
 
-def body_is_judged_separately(command):  # A shell whose program is a `-c` string, an eval argument, a heredoc or a here-string: that body is a command of its own in the list.
+def body_is_judged_separately(command):  # A shell whose program is a `-c` string, an eval argument or a here-string: that body is a command of its own in the list.
     tool, argv = name_of(command.argv[0]), command.argv
-    return tool in SHELLS and (tool == "eval" or any(SHORT_C.fullmatch(t) for t in argv[1:]) or any(t.startswith("<<") for t in argv))
+    return tool in SHELLS and (tool == "eval" or any(SHORT_C.fullmatch(t) for t in argv[1:]) or "<<<" in argv)
 
 
 def indirect_hit(command, raw_hit, patterns, cwd):  # An interpreter or shell reading its program from a file, heredoc or pipe that mentions production (an unreadable script counts when the line mentions it).
@@ -1103,13 +1034,10 @@ def allowed_without_connecting(command, cwd=None, patterns=()):
     return no_connect_ok(command, patterns) or trusted_script(command.argv, cwd)
 
 
-def stdin_texts_for(index, command, commands, text):  # Statement texts a command reads from a here-document, here-string or an echo pipe; None when its standard input cannot be seen.
+def stdin_texts_for(index, command, commands, text):  # Statement texts a command reads from a here-string or an echo pipe; None when its standard input cannot be seen (a here-document included).
     argv, texts = command.argv, []
     if any(t.startswith("<<") and t != "<<<" for t in argv):
-        for body, _, quoted in split_heredocs(text)[1]:
-            if not quoted and ("$(" in body or "`" in body):
-                return None
-            texts.append(body)
+        return None  # a here-document is not read (judge refuses such a line that may concern production)
     if "<<<" in argv and argv.index("<<<") + 1 < len(argv):
         texts.append(argv[argv.index("<<<") + 1])
     if command.piped:
@@ -1125,6 +1053,8 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     environ, TRUSTED_LINE = os.environ if environ is None else environ, None
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
+    if COMMENT_OR_HEREDOC.search(command_text) and (raw_hit or env_hit or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE)):
+        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行。"
     try:
         commands = simple_commands(command_text)
         TRUSTED_LINE = trusted_entry(command_text, cwd) if len(commands) == 1 and INTERPRETER.match(name_of(commands[0].argv[0])) and could_concern(plain(command_text)) else None
