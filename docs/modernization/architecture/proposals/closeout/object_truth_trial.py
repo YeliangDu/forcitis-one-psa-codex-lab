@@ -11,7 +11,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 MOD = HERE.parents[2]
 REPO = MOD.parents[1]
-INFO_MAP = MOD / "architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md"
+INFO_MAP = MOD / "architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md"
 AGG = MOD / "architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md"
 TERMS = MOD / "glossary/terms.yaml"
 TABLE_LISTS = [

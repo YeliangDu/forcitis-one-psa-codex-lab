@@ -1,6 +1,6 @@
 # 由 convert_objects.py 生成，勿手改
 meta:
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md
   count: 126
   group_count: 14
   valid_count: 104

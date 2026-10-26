@@ -2,7 +2,7 @@
 
 Usage: python3 -I object_check.py [--local] [--write] [--exemptions PATH] [--matrix PATH] [--states PATH]... [--commands PATH]...   |   --self-test
   skeletons: processes.<group>.yaml from origin/claude/one-arch-<group>-closeout (or closeout/<group>/ with --local)
-  objects:   OBJ-NN in the aggregate name cell of ENTERPRISE_AGGREGATES_DRAFT.md section 2.2; catalogue = table rows of ENTERPRISE_INFO_MAP_DRAFT.md
+  objects:   OBJ-NN in the aggregate name cell of ENTERPRISE_AGGREGATES_DRAFT.md section 2.2; catalogue = table rows of ENTERPRISE_INFO_MAP.md
              (rows whose definition says 非对象 / 行号保留 are not objects); an aggregate without OBJ-NN is its own row
   states:    state-machines.yaml of each group (converge_check.py format; --state PATH repeatable, default: each group's file, or closeout/state-machines.yaml)
   commands:  commands.yaml of each group (--commands PATH repeatable); entries whose unused_ok says they are fired by an on_reject / withdraw / 驳回 / 撤回
@@ -45,8 +45,8 @@ HERE = Path(__file__).resolve().parent
 _spec = importlib.util.spec_from_file_location("closeout_check", HERE / "closeout_check.py")
 cc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cc)
-INFO_MAP = cc.PROPOSALS / "ENTERPRISE_INFO_MAP_DRAFT.md"
-VS_FILE = cc.PROPOSALS / "value-streams.v2.yaml"
+INFO_MAP = cc.PROPOSALS.parent / "ssot" / "10-objects" / "ENTERPRISE_INFO_MAP.md"
+VS_FILE = cc.PROPOSALS.parent / "ssot" / "05-value-streams" / "value-streams.yaml"
 
 REVERSE = ("冲销", "红冲", "撤销", "撤回", "作废", "回退", "更正", "释放", "取消", "驳回", "退回", "废止")
 REVERSE_ONLY = ("启用", "恢复", "重新生成")

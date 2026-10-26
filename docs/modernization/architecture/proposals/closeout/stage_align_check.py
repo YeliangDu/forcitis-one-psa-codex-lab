@@ -21,9 +21,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 PROPOSALS = HERE.parent
 REPO = PROPOSALS.parents[3]
-VS_FILE = PROPOSALS / "value-streams.v2.yaml"
+VS_FILE = PROPOSALS.parent / "ssot" / "05-value-streams" / "value-streams.yaml"
 CATALOG = Path(__file__).resolve().parents[1].parent / "ssot" / "09-processes" / "catalog.yaml"   # 流程目录正本
-INFO_MAP = PROPOSALS / "ENTERPRISE_INFO_MAP_DRAFT.md"
+INFO_MAP = PROPOSALS.parent / "ssot" / "10-objects" / "ENTERPRISE_INFO_MAP.md"
 GLOSSARY = REPO / "docs/modernization/glossary/terms.yaml"
 REPORT = HERE / "STAGE_ALIGN_REPORT.md"
 GROUPS = ["revenue", "finance", "people"]

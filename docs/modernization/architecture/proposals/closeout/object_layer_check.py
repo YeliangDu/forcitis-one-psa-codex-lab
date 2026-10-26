@@ -2,7 +2,7 @@
 
 用法: python3 -I object_layer_check.py [--local] [--extra PATH]... [--no-write] [--self-test]
   输入  ssot/09-processes/catalog.yaml（primary_object 为三组确认值，经 sync_catalog_stages 从骨架同步）；
-        process-objects.yaml（object_check.py --objects-yaml 生成，先跑它）；value-streams.v2.yaml（各段 exit、capabilities）；
+        process-objects.yaml（object_check.py --objects-yaml 生成，先跑它）；value-streams.yaml（各段 exit、capabilities）；
         capabilities.v2.yaml（对象 → 一级 / 二级能力）；stage_align_check.analyze 的归段命中（hit_refs）。
   输出  object-layer.yaml（生成，供对齐图读）与 OBJECT_LAYER_REPORT.md；--no-write 只打印汇总。
   --extra PATH 按 ID 覆盖或追加流程（可重复，后给的优先）；附加流程的对象读写关系在内存中重算。
@@ -215,7 +215,7 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None, 
 
 
 def load_categories():
-    """用途类别：用户认可后以 value-streams.v2.yaml / capabilities.v2.yaml 的 category 为准，否则读提议稿。"""
+    """用途类别：用户认可后以 value-streams.yaml / capabilities.v2.yaml 的 category 为准，否则读提议稿。"""
     out = {}
     if CATS.exists():
         d = yaml.safe_load(CATS.read_text(encoding="utf-8")) or {}
@@ -294,7 +294,7 @@ def render_md(A, onames):
     out += ["", f"## 无用途类别（{len(nocat)}）：归段跨不同类别价值流且主对象无能力，或支撑流程主对象缺 / 是技术聚合", ""]
     out += [f"- {r['id']} {r['name']}（{r['status']}，主对象 {r['primary_object'] or '—'}）" for r in nocat] or ["无"]
     out += ["", "## E 需用户判断（候选，经组与本会话筛过再交）", "",
-            "- ④ 中属阶段能力清单漏映射的，改 value-streams.v2.yaml 的 capabilities 需用户确认（第 ③ 步对账为用户已审口径）；",
+            "- ④ 中属阶段能力清单漏映射的，改 value-streams.yaml 的 capabilities 需用户确认（第 ③ 步对账为用户已审口径）；",
             "- 主对象是无 OBJ 的聚合（AGG-xx）的：该聚合要不要在信息图有对象、归哪个能力，属信息层，随信息层对齐交用户；\n"
             "- ③ 中判为重复的流程合并、② 中缺流程的承载对象补流程，涉及流程增删的交用户；其余由组与本会话定。", ""]
     return "\n".join(out) + "\n"

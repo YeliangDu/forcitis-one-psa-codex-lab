@@ -18,7 +18,7 @@ Rules: one entry per (aggregate, command) of steps with aggregate and command (a
 Merge: skeleton is the base (R, I, approval-derived A, boundary). A priority: hand-registered type A (a_source hand) > group fragment A
   (a_source group:<g>; fragment sensitive/boundary/note etc. are carried, boundary keys of the fragment win) > skeleton A (skeleton) > TODO (none).
   Conflicts are reported, never resolved: fragment A vs skeleton approver; two groups' fragments disagree; platform.approval type-level A without
-  basis/why_human source; role names not SH-* (mapped to SH-* via value-streams.v2.yaml stakeholders only when unique, original kept as role_raw);
+  basis/why_human source; role names not SH-* (mapped to SH-* via value-streams.yaml stakeholders only when unique, original kept as role_raw);
   fragment entries absent from skeleton and command catalogs.
 Report only; exit code 0 (1 for --self-test failure).
 """
@@ -145,8 +145,8 @@ def load_fragments(local):
 
 
 def load_stakeholders(path=None):
-    """Role name -> set of SH-* ids; names are sub, category and each member phrase of value-streams.v2.yaml stakeholders."""
-    path = path or HERE.parent / "value-streams.v2.yaml"
+    """Role name -> set of SH-* ids; names are sub, category and each member phrase of value-streams.yaml stakeholders."""
+    path = path or HERE.parents[1] / "ssot" / "05-value-streams" / "value-streams.yaml"
     smap = collections.defaultdict(set)
     if not Path(path).exists():
         return smap

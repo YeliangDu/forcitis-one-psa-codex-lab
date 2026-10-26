@@ -10,8 +10,6 @@ reads:
   - path: docs/modernization/architecture/panorama/panorama_build.py
     kind: data
     sources:
-      - {source: value-streams.v2.yaml, due: 2026-11-06}
-      - {source: ENTERPRISE_INFO_MAP_DRAFT.md, due: 2026-11-06}
       - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-11-20}
       - {source: closeout, due: 2026-11-20, note: 三组骨架（commands、state-machines、processes）与 sys.path 导入骨架模块}
     note: 另写入 proposals/STAKEHOLDERS.md（写不算读，去向随第③步定）
@@ -34,13 +32,11 @@ reads:
   - path: docs/modernization/architecture/ssot/09-processes/build_catalog.py
     kind: data
     sources:
-      - {source: value-streams.v2.yaml, due: 2026-11-06, note: 校验 stages}
       - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-11-20, note: 校验 owner_bc}
       - {source: STRUCTURAL_ITEMS.md, due: 2026-11-20}
   - path: docs/modernization/architecture/ssot/10-objects/convert_objects.py
     kind: data
     sources:
-      - {source: ENTERPRISE_INFO_MAP_DRAFT.md, due: 2026-11-06}
       - {source: state-machines.yaml, due: 2026-11-20}
   - path: docs/modernization/architecture/ssot/10-objects/test_convert_objects.py
     kind: data
@@ -50,10 +46,6 @@ reads:
     kind: data
     sources:
       - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-11-20}
-  - path: docs/modernization/architecture/frameworks/notes_check.py
-    kind: data
-    sources:
-      - {source: ENTERPRISE_INFO_MAP_DRAFT.md, due: 2026-11-06}
   - path: docs/modernization/architecture/decision-page/build_approval_page.py
     kind: data
     sources:

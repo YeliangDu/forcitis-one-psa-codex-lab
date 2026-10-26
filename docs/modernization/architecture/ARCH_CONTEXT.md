@@ -31,7 +31,7 @@
 | 规矩（2026-10-22） | 守护与工具脚本单独开 PR；文档合集按 TEAM-53 由 one-merge 自扫分支；已答确认页题面是历史记录不改；不用 --no-verify |
 | 已定（2026-10-16 晚） | 结构裁定 S-29–S-44；VS-02.7 改名收尾；新增 VS-04.6 履约、VS-08.0 事前申请；归段判据写进 stage_align_check；权责表 586 条冲突 0；跨组接缝清零 |
 | 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
-| 草稿位置 | proposals/：ENTERPRISE_INFO_MAP_DRAFT（一级 21）、ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS + value-streams.v2.yaml、STEP2_CAPABILITIES + capabilities.v2.yaml |
+| 草稿位置 | 信息图（一级 21）与价值流已升正本：`ssot/10-objects/ENTERPRISE_INFO_MAP.md`、`ssot/05-value-streams/value-streams.yaml`（旧名见 `ssot/PATHS.md`）。proposals/：ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS、STEP2_CAPABILITIES + capabilities.v2.yaml |
 | 规矩（白天） | 要用户定的：确认页：框架、标准、选型类不预选（ADR-0041 决定 6），业务口径页推荐项预选（用户 #362 裁定 B；rules/decide/README.md）＋待决定收件箱 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15 （集合 inbox）；确认页用 contract 0.2.80；纯文档作者自检，结构判定仍 opus；直连 one-glossary、one-data（数据落点与第 11 步）；取证登记 #298 合入后用 phase1a/infra/new_legacy_read.py 片段，在途分支合 main 时丢老表改动重登 |
 | 规矩 | 确认页先交 one-coordinator 独立审题再进收件箱（status pending）；结构性选择只推荐；目录阶段以骨架为准经 sync_catalog_stages 同步；依赖列括注不用全角分号（查环脚本） |
 | 待办 | 见「当前步」⑤；任务登记 `docs/modernization/tasks/*-ARC-*.md` |

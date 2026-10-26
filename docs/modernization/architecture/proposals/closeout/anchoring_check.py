@@ -1,8 +1,8 @@
 """流程归集闭环检查（PROCESS_METHOD_DRAFT §12；intent 2026-10-17-174814、2026-10-16-212218）。
 
 用法: python3 -I anchoring_check.py [--local] [--extra PATH]... [--report] | --self-test
-  输入  ssot/09-processes/catalog.yaml、value-streams.v2.yaml、process-objects.yaml（object_check.py --objects-yaml 生成）、
-        ENTERPRISE_INFO_MAP_DRAFT.md 的对象行；「支撑本段」与集成按供给挂接取 object_layer_check.analyse 的结果，
+  输入  ssot/09-processes/catalog.yaml、ssot/05-value-streams/value-streams.yaml、process-objects.yaml（object_check.py --objects-yaml 生成）、
+        ssot/10-objects/ENTERPRISE_INFO_MAP.md 的对象行；「支撑本段」与集成按供给挂接取 object_layer_check.analyse 的结果，
         object-layer.yaml 只用于核对它是否落后于目录（落后只告警，本脚本在内存重算）。
   --extra PATH 按 ID 覆盖或追加流程（同 closeout_check），附加流程的对象读写关系在内存中重算。
   --report 写 ANCHORING_REPORT.md。
