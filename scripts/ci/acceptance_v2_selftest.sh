@@ -11,14 +11,14 @@ RULES="$tmp/root/docs/modernization/RULES.md" ROLE="$tmp/root/docs/modernization
 expect() {
   local name=$1 want=$2 re=$3 items=$4; shift 4
   local out rc
-  out=$(env ACCEPT_ROOT="$tmp/root" ONE_SESSION_TOOLS="$tmp/tools" ACCEPT_BUDGET_DIR="$tmp/budget" ACCEPT_ONLY="$items" "$@" bash "$here/acceptance_v2.sh" 2>&1); rc=$?
+  out=$(env ACCEPT_ROOT="$tmp/root" ONE_SESSION_TOOLS="$tmp/tools" ACCEPT_BUDGET_DIR="$tmp/budget" ACCEPT_BOARD="$tmp/board/board.md" ACCEPT_JANITOR_DIR="$tmp/janitor" ACCEPT_MEMORY_DIR="$tmp/memory" ACCEPT_ONLY="$items" "$@" bash "$here/acceptance_v2.sh" 2>&1); rc=$?
   if { [ "$want" = 0 ] && [ "$rc" = 0 ]; } || { [ "$want" = nz ] && [ "$rc" != 0 ]; }; then :; else echo "失败 ${name}：退出码 $rc"; bad=1; fi
   printf '%s\n' "$out" | grep -Eq "$re" || { echo "失败 ${name}：输出不含 /$re/"; printf '%s\n' "$out" | sed 's/^/    /'; bad=1; }
 }
 stub_budget() { printf 'print(%s)\n' "$1" >"$tmp/root/scripts/ci/budget_check.py"; }
 ok_py() { printf 'print("%s")\n' "${2:-ok}" >"$1"; }   # a self-test that passes and prints its pass line
 bad_py() { printf 'import sys\nsys.exit(1)\n' >"$1"; }
-ALL="V01 V02 V03 V05 V07 V08 V12 V17a"
+ALL="V01 V02 V03 V05 V07 V08 V10 V11 V12 V13 V14 V17a"
 SUMMARY0="budget_check：违例 0 条，模式 warn"
 
 # V01: info lines and other rules do not count, an H8 violation does, an unreadable result fails closed;
@@ -191,6 +191,83 @@ expect "V17a 偏差阈值为 NaN" nz '^V17a 不通过.*有限数' V17a
 pol 30 2; rows $'| 2026-10-01 10:00 | 30 | 31 | nan | 5 | 0 | |\n| 2026-10-09 10:00 | 40 | 41 | -1.5 | 5 | 0 | |\n'
 expect "V17a verify.md 偏差列为 nan" nz '^V17a 不通过.*格式不对' V17a
 rows "$WEEK"
+
+# V10, V11, V14 read git: not a repository is a skip; V10 fails while a generated file is tracked, passes once none is
+R="$tmp/root"
+expect "V10 非 git 仓库跳过" 0 '^V10 跳过\(检出不是 git' V10
+expect "V10 非 git 严格模式失败" nz '^V10 不通过' "$ALL" ACCEPT_STRICT=1
+git -C "$R" init -q
+mkdir -p "$R/frontend/packages/api/src/generated"
+echo '{}' >"$R/frontend/packages/api/openapi.json"; echo 'x' >"$R/frontend/packages/api/src/generated/schema.ts"
+git -C "$R" add -f frontend/packages/api
+expect "V10 生成物被跟踪" nz '^V10 不通过：生成物仍被跟踪 2 个' V10
+git -C "$R" rm -q --cached -r frontend/packages/api
+expect "V10 不再跟踪" 0 '^V10 通过' V10
+git -C "$R" add -f frontend/packages/api/src/generated/schema.ts
+expect "V10 只剩 generated 被跟踪也不通过" nz '^V10 不通过：生成物仍被跟踪 1 个' V10
+git -C "$R" rm -q --cached -r frontend/packages/api
+
+# V11: a tracked mailbox.py or session_daily.py fails; no board file is a skip; the first-line stamp must be under 20 minutes old and parse
+stamp() { date -u -v"$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d "$2" +%Y-%m-%dT%H:%M:%SZ; }
+mkdir -p "$R/scripts/coord" "$R/scripts/ops" "$tmp/board"
+echo x >"$R/scripts/coord/mailbox.py"; git -C "$R" add -f scripts/coord/mailbox.py
+expect "V11 mailbox.py 仍被跟踪" nz '^V11 不通过：应已删除.*mailbox.py' V11
+git -C "$R" rm -q --cached scripts/coord/mailbox.py
+echo x >"$R/scripts/ops/session_daily.py"; git -C "$R" add -f scripts/ops/session_daily.py
+expect "V11 session_daily.py 仍被跟踪" nz '^V11 不通过：应已删除.*session_daily.py' V11
+git -C "$R" rm -q --cached scripts/ops/session_daily.py
+expect "V11 无看板文件跳过" 0 '^V11 跳过\(看板 .* 不存在' V11
+expect "V11 无看板严格模式失败" nz '^V11 不通过' "$ALL" ACCEPT_STRICT=1
+printf '生成时间：%s\n\n# 看板\n' "$(stamp -5M '5 minutes ago')" >"$tmp/board/board.md"
+expect "V11 看板 5 分钟前通过" 0 '^V11 通过' V11
+printf '生成时间：%s\n' "$(stamp -30M '30 minutes ago')" >"$tmp/board/board.md"
+expect "V11 看板 30 分钟前不通过" nz '^V11 不通过：看板时间戳已过' V11
+printf '生成时间：%s\n' "$(stamp +2H '2 hours')" >"$tmp/board/board.md"
+expect "V11 看板时间在未来不通过" nz '^V11 不通过：看板时间在未来' V11
+printf '# 看板\n生成时间：2026-10-26T00:00:00Z\n' >"$tmp/board/board.md"
+expect "V11 第一行不是时间戳不通过" nz '^V11 不通过：看板第一行' V11
+: >"$tmp/board/board.md"
+expect "V11 看板空文件不通过" nz '^V11 不通过' V11
+
+# V13: no janitor or memory directory is a skip; an empty janitor directory or an oversized memory fails; both fine passes. Memory limit is policy.json memory_max_kb
+echo '{"memory_max_kb": 2}' >"$POLICY"
+expect "V13 两个目录都没有跳过" 0 '^V13 跳过\(.*回收器目录.*记忆目录' V13
+expect "V13 缺目录严格模式失败" nz '^V13 不通过' "$ALL" ACCEPT_STRICT=1
+mkdir -p "$tmp/janitor" "$tmp/memory"
+expect "V13 回收器目录无报告不通过" nz '^V13 不通过：回收器目录 .*没有非空的 report' V13
+: >"$tmp/janitor/report-2026-10-26.md"
+expect "V13 报告 0 字节不通过" nz '^V13 不通过' V13
+echo x >"$tmp/janitor/report-2026-10-26.md"
+printf 'a%.0s' $(seq 1 1500) >"$tmp/memory/a.md"
+expect "V13 记忆 1500 字节通过" 0 '^V13 通过.*回收器报告 1 份；记忆合计 1500 字节' V13
+printf 'b%.0s' $(seq 1 600) >"$tmp/memory/b.md"
+expect "V13 记忆合计 2100 字节不通过" nz '^V13 不通过：记忆合计 2100 字节，上限 2 KB' V13
+rm "$tmp/memory/b.md"; mkdir "$tmp/memory/sub"; printf 'c%.0s' $(seq 1 600) >"$tmp/memory/sub/c.md"
+expect "V13 子目录也计入" nz '^V13 不通过：记忆合计 2100 字节' V13
+rm -r "$tmp/memory/sub"
+echo '{"x": 1}' >"$POLICY"
+expect "V13 policy 缺 memory_max_kb 不通过" nz '^V13 不通过：读记忆目录或 policy.json 出错' V13
+echo '{"memory_max_kb": 2}' >"$POLICY"
+rm -r "$tmp/memory"
+expect "V13 只缺记忆目录跳过" 0 '^V13 跳过\(记忆目录' V13
+mkdir "$tmp/memory"; rm "$tmp/janitor/report-2026-10-26.md"
+expect "V13 记忆在而回收器目录空仍不通过" nz '^V13 不通过' V13
+
+# V14: ARCHIVE_INDEX.md must be tracked and non-empty (fail); an unknown archive branch is a skip, a known one passes
+IDX=docs/modernization/ARCHIVE_INDEX.md
+expect "V14 无索引不通过" nz '^V14 不通过' V14
+mkdir -p "$R/docs/modernization"; : >"$R/$IDX"; git -C "$R" add "$IDX"
+expect "V14 索引 0 字节不通过" nz '^V14 不通过' V14
+echo '# 归档索引' >"$R/$IDX"
+expect "V14 有索引无归档分支跳过" 0 '^V14 跳过\(本检出查不到归档分支' V14
+expect "V14 无分支严格模式失败" nz '^V14 不通过' "$ALL" ACCEPT_STRICT=1
+git -C "$R" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q -m x
+git -C "$R" branch archive/2026-10
+expect "V14 索引与归档分支齐全通过" 0 '^V14 通过' V14
+git -C "$R" branch -q -m archive/2026-10 other
+expect "V14 分支名不符跳过" 0 '^V14 跳过' V14
+git -C "$R" rm -q --cached "$IDX"
+expect "V14 索引未跟踪不通过" nz '^V14 不通过' V14
 
 # modes: blank item list or strict with a subset never exits 0; ACCEPT_STRICT only takes 0 or 1; summary counts
 expect "ACCEPT_ONLY 空白一项不跑" nz '一项都没有跑' " "

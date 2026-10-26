@@ -2,14 +2,19 @@
 # Batch-one items of acceptance list V01-V18 that can be scripted (redesign-1023 proposal section 5).
 # Prints "Vxx 通过|不通过|跳过(原因)" per item; exit 0 only when no item failed. A skip never counts as a failure, and an item whose
 # environment is missing says so instead of passing; so does an object that does not exist yet or has no data (nothing to check is never a pass).
-# Env: ACCEPT_ROOT (checkout), ONE_SESSION_TOOLS (tool library), ACCEPT_BUDGET_DIR, ACCEPT_ONLY (items to run),
+# Env: ACCEPT_ROOT (checkout), ONE_SESSION_TOOLS (tool library), ACCEPT_BUDGET_DIR, ACCEPT_BOARD (board.md), ACCEPT_JANITOR_DIR, ACCEPT_MEMORY_DIR,
+# ACCEPT_ARCHIVE_BRANCH (default archive/2026-10), ACCEPT_ONLY (items to run),
 # ACCEPT_STRICT=1 (sign-off: a skip because the environment lacks something - library, gates, RULES.md, roles - counts as a failure; "no data" skips stay skips;
 # it only accepts the full item list; ACCEPT_SELFTEST is not honoured here). Any other ACCEPT_STRICT value than 0 or 1 is an error.
 set -uo pipefail
 ROOT=${ACCEPT_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
 TOOLS=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}
 BUDGET_DIR=${ACCEPT_BUDGET_DIR:-$HOME/.modernize/psa/budget}
-ALL="V01 V02 V03 V05 V07 V08 V12 V17a"
+BOARD=${ACCEPT_BOARD:-$HOME/.modernize/psa/board/board.md}
+JANITOR_DIR=${ACCEPT_JANITOR_DIR:-$HOME/.modernize/psa/janitor}
+MEMORY_DIR=${ACCEPT_MEMORY_DIR:-$HOME/.claude/projects/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa/memory}
+ARCHIVE_BRANCH=${ACCEPT_ARCHIVE_BRANCH:-archive/2026-10}
+ALL="V01 V02 V03 V05 V07 V08 V10 V11 V12 V13 V14 V17a"
 ONLY=${ACCEPT_ONLY-$ALL}
 fails=0; passes=0; skips=0
 OUT=""
@@ -122,6 +127,95 @@ v08() {   # the data source (merge-queue event log) does not exist yet (intent 2
   report V08 skip '无数据：合入队列事件日志暂无，待改合入队列时启用'
 }
 
+# tracked files of the checkout matching the given pathspecs: prints them; returns non-0 when git cannot say (never read "nothing printed" as "nothing tracked" then)
+tracked() { git -C "$ROOT" ls-files -- "$@" 2>/dev/null; }
+is_git() { git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; }
+
+# V10: OpenAPI and the frontend generated files are built, not tracked (O11)
+v10() {
+  local t
+  is_git || { report V10 env '检出不是 git 仓库，查不了 git ls-files'; return; }
+  t=$(tracked frontend/packages/api/openapi.json frontend/packages/api/src/generated) || { report V10 fail 'git ls-files 出错'; return; }
+  if [ -n "$t" ]; then report V10 fail "生成物仍被跟踪 $(printf '%s\n' "$t" | wc -l | tr -d ' ') 个"; printf '%s\n' "$t" | head -n 5 | sed 's/^/    /'
+  else report V10 pass 'openapi.json 与 src/generated 都不在 git ls-files 里'; fi
+}
+
+# V11 as built in batch two-A: the tools O15 deleted are gone from the tracked tree, and the board stamp (first line "生成时间：<UTC ISO>") is under 20 minutes old.
+# gapscan.py and session_map.json are still imported by the merge queue, whose rework is postponed (intent 2026-10-23-222945), so they are not checked here.
+v11() {
+  local t age
+  is_git || { report V11 env '检出不是 git 仓库，查不了 git ls-files'; return; }
+  t=$(tracked scripts/coord/mailbox.py scripts/ops/session_daily.py) || { report V11 fail 'git ls-files 出错'; return; }
+  [ -z "$t" ] || { report V11 fail "应已删除的工具仍被跟踪：$(printf '%s' "$t" | tr '\n' ' ')"; return; }
+  [ -f "$BOARD" ] || { report V11 env "看板 $BOARD 不存在（本机文件），时间戳未核"; return; }
+  age=$(python3 -I - "$BOARD" <<'EOF' 2>&1
+import datetime, re, sys
+try:
+    first = open(sys.argv[1], encoding="utf-8").readline()
+    m = re.match(r"生成时间：(20\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ)\s*$", first)
+    if not m:
+        print("bad:看板第一行不是「生成时间：<UTC 时间>」")
+        sys.exit()
+    t = datetime.datetime.strptime(m.group(1), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    print("ok:%d" % round((datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() / 60))
+except SystemExit:
+    raise
+except Exception as e:
+    print("bad:读看板出错 " + type(e).__name__)
+EOF
+)
+  case "$age" in
+    ok:*) age=${age#ok:}
+      if [ "$age" -lt -1 ]; then report V11 fail '看板时间在未来'
+      elif [ "$age" -gt 20 ]; then report V11 fail "看板时间戳已过 ${age} 分钟（上限 20）"
+      else report V11 pass "mailbox.py、session_daily.py 已删；看板 ${age} 分钟前刷新"; fi ;;
+    *) report V11 fail "$(printf '%s' "${age#bad:}" | head -n 1)" ;;
+  esac
+}
+
+# V13: the janitor has written at least one report (alerts only in batch two-A, nothing deleted); the memory directory totals <= policy.json memory_max_kb.
+# Both live on this machine: a missing directory is a skip (a failure under ACCEPT_STRICT=1); an oversized memory is a failure - never trim it from here.
+v13() {
+  local bad="" miss="" f n=0 r mem_note=""
+  if [ -d "$JANITOR_DIR" ]; then
+    for f in "$JANITOR_DIR"/report-*.md; do [ -s "$f" ] && n=$((n + 1)); done
+    [ "$n" -gt 0 ] || bad="回收器目录 $JANITOR_DIR 里没有非空的 report-*.md"
+  else miss="回收器目录 $JANITOR_DIR 不存在"; fi
+  if [ -d "$MEMORY_DIR" ]; then
+    r=$(python3 -I - "$MEMORY_DIR" "$ROOT/policy.json" <<'EOF' 2>&1
+import json, math, os, sys
+try:
+    cap = json.load(open(sys.argv[2]))["memory_max_kb"]
+    if isinstance(cap, bool) or not isinstance(cap, (int, float)) or not math.isfinite(cap) or cap <= 0:
+        print("bad:policy.json memory_max_kb 须是正数")
+        sys.exit()
+    total = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(sys.argv[1]) for f in fs)
+    print(("bad:" if total > cap * 1024 else "ok:") + "记忆合计 %d 字节，上限 %g KB" % (total, cap))
+except SystemExit:
+    raise
+except Exception as e:
+    print("bad:读记忆目录或 policy.json 出错 " + type(e).__name__)
+EOF
+)
+    case "$r" in ok:*) mem_note=${r#ok:} ;; *) bad="${bad:+${bad}；}$(printf '%s' "${r#bad:}" | head -n 1)" ;; esac
+  else miss="${miss:+${miss}、}记忆目录 $MEMORY_DIR 不存在"; fi
+  if [ -n "$bad" ]; then report V13 fail "$bad"
+  elif [ -n "$miss" ]; then report V13 env "${miss}（本机目录），未核"
+  else report V13 pass "回收器报告 ${n} 份；${mem_note}"; fi
+}
+
+# V14: D-class files are out of main with a trail: ARCHIVE_INDEX.md is tracked and non-empty, and the archive branch can be looked up (E class is batch two-B).
+# A checkout without that branch (a shallow CI clone) cannot say: skip, never pass.
+v14() {
+  local idx=docs/modernization/ARCHIVE_INDEX.md t
+  is_git || { report V14 env '检出不是 git 仓库，查不了 git ls-files'; return; }
+  t=$(tracked "$idx") || { report V14 fail 'git ls-files 出错'; return; }
+  { [ -n "$t" ] && [ -s "$ROOT/$idx" ]; } || { report V14 fail "$idx 不存在、未跟踪或为空"; return; }
+  if git -C "$ROOT" rev-parse --verify -q "refs/heads/$ARCHIVE_BRANCH^{commit}" >/dev/null || git -C "$ROOT" rev-parse --verify -q "refs/remotes/origin/$ARCHIVE_BRANCH^{commit}" >/dev/null; then
+    report V14 pass "$idx 在，归档分支 $ARCHIVE_BRANCH 可查；E 类待二乙"
+  else report V14 env "本检出查不到归档分支 ${ARCHIVE_BRANCH}（浅克隆或未取回）"; fi
+}
+
 # budget_level self-test shared by V12 and V17a: sets BL_VERDICT (ok|env|fail) and BL_MSG
 budget_level_selftest() {
   local f="$TOOLS/budget_level/budget_level_selftest.py"
@@ -225,7 +319,7 @@ EOF
 
 for item in $ONLY; do
   case "$item" in
-    V01) v01 ;; V02) v02 ;; V03) v03 ;; V05) v05 ;; V07) v07 ;; V08) v08 ;; V12) v12 ;; V17a) v17a ;;
+    V01) v01 ;; V02) v02 ;; V03) v03 ;; V05) v05 ;; V07) v07 ;; V08) v08 ;; V10) v10 ;; V11) v11 ;; V12) v12 ;; V13) v13 ;; V14) v14 ;; V17a) v17a ;;
     *) report "$item" fail '未知项' ;;
   esac
 done
