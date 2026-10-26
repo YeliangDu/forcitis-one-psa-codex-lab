@@ -176,7 +176,7 @@ def strip_prefix(seg, variables, chdir=None):  # (env of leading `NAME=value` wo
         elif REDIRECTION.fullmatch(tok) or (tok.isdigit() and i + 1 < len(seg) and REDIRECTION.fullmatch(seg[i + 1])):
             step = 1 if tok.isdigit() else 2  # a redirection before the program (`>o ./deploy`): moved behind it, as bash reads it anywhere; its target still parsed (82f149d10 final M1)
             moved, i = moved + seg[i:i + step], i + step
-        elif tok.lower() in WRAPPERS:  # a bare name only: `./nohup` or `/tmp/x/env` is a program of its own, its file checked (9c5c9bbf4 round 1 M1)
+        elif tok.lower() in WRAPPERS:  # a bare name only: a wrapper spelled by a path (`/usr/bin/env`, `./nohup`) is refused by judge, not read
             valued, wrapper = WRAPPERS[tok.lower()], tok.lower()
             i += 1
             while i < len(seg) and (seg[i].startswith("-") or ENV.match(seg[i]) or (wrapper == "timeout" and re.fullmatch(r"[0-9.]+[smhd]?", seg[i]))):
@@ -288,7 +288,7 @@ REMOTE_TOOLS = SQL_TOOLS | WRITE_ONLY_TOOLS | HTTP_TOOLS | {"bcp", "aliyun", "ss
 LONG_REMOTE = {t for t in REMOTE_TOOLS if len(t) > 2}  # matched as substrings of an unreadable line; two-letter names (xh) only as whole words (SHORT_REMOTE, REMOTE_WORD): `xh` is inside exhibit, xhr…
 SHORT_REMOTE = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(sorted(re.escape(t) for t in REMOTE_TOOLS - LONG_REMOTE)) + r")(?![a-z0-9_-])")
 INTERPRETERS = {"python", "node", "perl", "ruby", "php", "lua", "bash", "sh", "zsh", "dash", "ksh", "csh", "tcsh", "fish", "source", ".", "awk", "gawk", "nawk", "make", "gmake", "deno", "bun", "tclsh", "wish", "expect",
-                "osascript", "swift", "rscript", "r", "julia", "m4", "at", "batch", "sqlite3", "irb", "erb", "gnumake", "bmake", "bsdmake", "groovy", "pwsh", "elixir", "escript", "raku", "guile", "jshell", "kotlin", "scala", "ts-node", "tsx"}  # "python" stands for python3, python3.12 …
+                "osascript", "swift", "rscript", "r", "julia", "m4", "gm4", "at", "batch", "sqlite3", "irb", "erb", "gnumake", "bmake", "bsdmake", "groovy", "pwsh", "elixir", "escript", "raku", "guile", "jshell", "kotlin", "scala", "ts-node", "tsx"}  # "python" stands for python3, python3.12 …
 RUNS_OTHERS = {"xargs", "find", "script", "parallel", "export", "source", "watch", "uv", "uvx", "npx", "pipx", "poetry", "bundle", "go", "npm", "pnpm", "yarn", "cargo", "dotnet", "java"}  # commands that run another command or carry its environment
 INTERPRETER = re.compile(r"^(?:python|pypy|" + "|".join(re.escape(n) for n in sorted(INTERPRETERS - {"python"})) + r")(?:-?[0-9][0-9.]*)?$")  # versioned names too: python3.12, perl5.34, tclsh8.6
 REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:(?:python|pypy)[0-9.]*|" + "|".join(re.escape(n) for n in sorted((REMOTE_TOOLS | SHELLS | INTERPRETERS | RUNS_OTHERS) - {"python", "."}))
@@ -691,6 +691,8 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     if any(c.chdir for c in commands) or (moves and any(map(runner, commands))):  # a wrapper's directory option always runs a program there  # where a file runs from cannot be told: no working out of directories (intent 2026-10-26-164931, 165321)
         return ("拒绝：同一行里既换目录（cd、pushd、popd，env -C、sudo -D 或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序；"
                 "门不推算目录，宁可误拦（intent 2026-10-26-164931）。去掉换目录，用绝对路径或仓库相对路径直接运行。")
+    if any("/" in c.argv[0] and name_of(c.argv[0]) in WRAPPERS for c in commands):  # what it runs, from where, cannot be told: not read (76b7f7e81 round 1 M1, final M1)
+        return "拒绝：包装命令（env、sudo、nohup、timeout 等）写成路径，门不解析它会运行什么、在哪个目录，宁可误拦（intent 2026-10-26-164931）。改用裸命令名。"
     for command in commands:
         tool = name_of(command.argv[0])
         if any(NET_REDIRECT.search(w) for w in command.argv):  # a bash network redirection spelled by variables (a14c80797 final M1)
