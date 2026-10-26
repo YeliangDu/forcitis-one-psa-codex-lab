@@ -154,7 +154,7 @@ v11() {
   [ -z "$t" ] || { report V11 fail "应已删除的工具仍被跟踪：$(printf '%s' "$t" | tr '\n' ' ')"; return; }
   [ -d "$PSA_DIR" ] || { report V11 env "本机目录 $PSA_DIR 不存在（CI 上没有），mailbox、outbox 目录与看板未核"; return; }
   local d left=""
-  for d in mailbox outbox; do [ -e "$PSA_DIR/$d" ] && left="${left:+$left、}$d"; done
+  for d in mailbox outbox; do [ -e "$PSA_DIR/$d" ] && left="${left:+${left}、}$d"; done
   [ -z "$left" ] || { report V11 fail "本机 $PSA_DIR 下应已删除的目录仍在：${left}（只报告，未删）"; return; }
   [ -f "$BOARD" ] || { report V11 env "看板 $BOARD 不存在（本机文件），时间戳未核"; return; }
   age=$(python3 -I - "$BOARD" <<'EOF' 2>&1
@@ -217,20 +217,30 @@ EOF
   else report V13 pass "回收器报告 ${n} 份，${JANITOR_MAX_DAYS} 天内有新报告；${mem_note}"; fi
 }
 
-# V14: D-class files are out of main with a trail: ARCHIVE_INDEX.md is tracked and non-empty, every file path it registers (table row: directory + file names) is no longer
-# tracked by this checkout, and the archive branch can be looked up (E class is batch two-B). Rows whose file list is cut with "…" only name part of their files: those are
-# checked as listed and the result says it was a partial check. An index that yields no path at all fails. A checkout without that branch (a shallow CI clone) cannot say: skip.
+# V14: D-class files are out of main with a trail: ARCHIVE_INDEX.md is tracked and non-empty, every file path it registers (table rows: directory + file names; and the full
+# list under the per-file section "## 逐文件") is no longer tracked by this checkout and does exist on the archive branch (git ls-tree -r). Table rows whose file list is cut
+# with "…" only name part of their files: those are checked as listed (the per-file section covers the rest) and the result says so. An index that yields no path at all fails.
+# A checkout without the archive branch (a shallow CI clone) cannot say: skip (strict mode fails).
 v14() {
-  local idx=docs/modernization/ARCHIVE_INDEX.md t r
+  local idx=docs/modernization/ARCHIVE_INDEX.md t r ref=""
   is_git || { report V14 env '检出不是 git 仓库，查不了 git ls-files'; return; }
   t=$(tracked "$idx") || { report V14 fail 'git ls-files 出错'; return; }
   { [ -n "$t" ] && [ -s "$ROOT/$idx" ]; } || { report V14 fail "$idx 不存在、未跟踪或为空"; return; }
-  r=$(python3 -I - "$ROOT" "$idx" <<'EOF' 2>&1
+  if git -C "$ROOT" rev-parse --verify -q "refs/heads/${ARCHIVE_BRANCH}^{commit}" >/dev/null; then ref="refs/heads/${ARCHIVE_BRANCH}"
+  elif git -C "$ROOT" rev-parse --verify -q "refs/remotes/origin/${ARCHIVE_BRANCH}^{commit}" >/dev/null; then ref="refs/remotes/origin/${ARCHIVE_BRANCH}"; fi
+  r=$(python3 -I - "$ROOT" "$idx" "$ref" <<'EOF' 2>&1
 import re, subprocess, sys
-root, idx = sys.argv[1:3]
+root, idx, ref = sys.argv[1:4]
 try:
-    paths, cut = [], 0
+    paths, cut, sect = [], 0, False
     for line in open(f"{root}/{idx}", encoding="utf-8"):
+        if line.startswith("## "):
+            sect = line.strip() == "## 逐文件"
+            continue
+        m = re.fullmatch(r"- \x60([^\x60]+)\x60", line.strip())
+        if sect and m:
+            paths.append(m.group(1))
+            continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) != 4 or not re.fullmatch(r"`[^`]+/`", cells[0]):
             continue
@@ -241,6 +251,7 @@ try:
                 cut += 1
             elif name:
                 paths.append(d + name)
+    paths = sorted(set(paths))
     if not paths:
         print("bad:索引里解析不出任何登记的文件路径")
         sys.exit()
@@ -249,17 +260,23 @@ try:
     still = [p for p in paths if p in tracked]
     if still:
         print("bad:索引登记的 %d 个文件仍被跟踪，如 %s" % (len(still), "、".join(still[:3])))
-    else:
-        print("ok:索引登记的 %d 个文件都已不在 main 里%s" % (len(paths), "；%d 行文件列表被省略号截断，只核了所列部分" % cut if cut else ""))
+        sys.exit()
+    if ref:
+        out = subprocess.run(["git", "-C", root, "ls-tree", "-r", "--name-only", "-z", ref], capture_output=True, check=True).stdout.decode("utf-8").split("\0")
+        onbr = set(out)
+        gone = [p for p in paths if p not in onbr]
+        if gone:
+            print("bad:索引登记的 %d 个文件在归档分支上不存在，如 %s" % (len(gone), "、".join(gone[:3])))
+            sys.exit()
+    print("ok:索引登记的 %d 个文件都已不在 main 里%s" % (len(paths), "；%d 行表格文件列表被省略号截断，以逐文件清单补全" % cut if cut else ""))
 except SystemExit:
     raise
 except Exception as e:
-    print("bad:读索引或 git ls-files 出错 " + type(e).__name__)
+    print("bad:读索引或 git 出错 " + type(e).__name__)
 EOF
 )
   case "$r" in ok:*) ;; *) report V14 fail "$(printf '%s' "${r#bad:}" | head -n 1)"; return ;; esac
-  if git -C "$ROOT" rev-parse --verify -q "refs/heads/$ARCHIVE_BRANCH^{commit}" >/dev/null || git -C "$ROOT" rev-parse --verify -q "refs/remotes/origin/$ARCHIVE_BRANCH^{commit}" >/dev/null; then
-    report V14 pass "$idx 在，${r#ok:}，归档分支 $ARCHIVE_BRANCH 可查；E 类待二乙"
+  if [ -n "$ref" ]; then report V14 pass "$idx 在，${r#ok:}，且都在归档分支 $ARCHIVE_BRANCH 上；E 类待二乙"
   else report V14 env "本检出查不到归档分支 ${ARCHIVE_BRANCH}（浅克隆或未取回）"; fi
 }
 
