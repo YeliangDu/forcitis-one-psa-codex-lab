@@ -1,4 +1,4 @@
-# credential-assignment-literal（O17）上线前 main 历史里已有的 8 处：TOTP 的 RFC 测试向量、测试里的假口令、文档里的常量名与 URL 示例，按形态核过不是凭据。只放行这几处（提交:文件:规则:行），新出现的照拦。
+# credential-assignment-literal（O17）上线前 main 历史里已有的 11 处：TOTP 的 RFC 测试向量、测试里的假口令、文档里的常量名与 URL 示例，按形态核过不是凭据。只放行这几处（提交:文件:规则:行），新出现的照拦。
 228512a57fed32a39cd312062fa3388aaa8cd98f:backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorModeListenerTest.java:credential-assignment-literal:201
 6a3cdb818ce584ac458e89b0eda7baacf754874e:frontend/apps/web/src/modules/session/pages/login-pages.test.tsx:credential-assignment-literal:50
 0fc1eebd02cd72c3d447771a678210293e37704d:backend/src/test/java/com/forcitis/one/platform/identity/domain/TotpTest.java:credential-assignment-literal:13
@@ -7,3 +7,6 @@ e7d36f21e16d5817276fa2c18b1a2a44125541c3:docs/modernization/phase1a/INTERFACES.m
 c4935a7db92ae18934560fe35b93b6ee5fe6eecf:docs/modernization/map/packets/fst_infrastructure_cost.txt:credential-assignment-literal:25
 c4935a7db92ae18934560fe35b93b6ee5fe6eecf:docs/modernization/map/packets/fst_infrastructure_cost.txt:credential-assignment-literal:28
 c4935a7db92ae18934560fe35b93b6ee5fe6eecf:docs/modernization/map/packets/fst_infrastructure_cost.txt:credential-assignment-literal:30
+0fc1eebd02cd72c3d447771a678210293e37704d:backend/src/test/java/com/forcitis/one/platform/identity/EmergencyLoginIntegrationTest.java:credential-assignment-literal:26
+58da419f95e622238165d62206b02dcaef15effc:backend/src/test/java/com/forcitis/one/platform/identity/EmergencyLoginIntegrationTest.java:credential-assignment-literal:26
+e7d36f21e16d5817276fa2c18b1a2a44125541c3:docs/modernization/rules/IDENTITY_ORG_RULES.md:credential-assignment-literal:124
