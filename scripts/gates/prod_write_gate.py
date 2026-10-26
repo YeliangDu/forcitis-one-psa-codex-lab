@@ -408,8 +408,12 @@ def form_matches(words, form, slots):  # True when each word is the form's liter
     return len(words) == len(form) and all(one(w, p) for w, p in zip(words, form))
 
 
+def may_run_or_expand(text):  # (text already `plain`) a program that runs others, a remote tool's name as a substring, an expansion or a path command: the line may reach production unseen
+    return bool(REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text))
+
+
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow; a remote tool's name as a substring, as judge reads an unreadable line.
-    if REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text):
+    if may_run_or_expand(text):
         return True
     patterns, problem, _ = load_table()
     return bool(problem) or any(p in text for p in patterns)
@@ -1053,9 +1057,9 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     environ, TRUSTED_LINE = os.environ if environ is None else environ, None
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
-    odd = bool(COMMENT_OR_HEREDOC.search(command_text))  # their text is read as words, so quotes in it may pair with the real commands: what runs a program counts too
-    if odd and (raw_hit or env_hit or REMOTE_WORD.search(plain(command_text)) or PATH_COMMAND.search(command_text) or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE)):
-        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具、解释器、按路径执行的程序或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行。"
+    odd = bool(COMMENT_OR_HEREDOC.search(command_text.replace("\\\n", "")))  # as bash, continuations go first; their text is read as words, so quotes in it may pair with the real commands
+    if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text)) or PATH_COMMAND.search(command_text)):  # variables may spell the tool and the target (2b59000cb first review M1)
+        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具、解释器、变量展开、按路径执行的程序或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行。"
     try:
         commands = simple_commands(command_text)
         TRUSTED_LINE = trusted_entry(command_text, cwd) if len(commands) == 1 and INTERPRETER.match(name_of(commands[0].argv[0])) and could_concern(plain(command_text)) else None
