@@ -38,6 +38,7 @@
       "budget_check": 450,
       "light_sh": 120,
       "relevant_change": 600,
+      "relevant_change_selftest": 330,
       "build_all": 150,
       "build_decisions": 200,
       "new_intent": 90,
