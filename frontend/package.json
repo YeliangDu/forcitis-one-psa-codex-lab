@@ -5,14 +5,14 @@
   "scripts": {
     "generate:api": "node scripts/generate-api.mjs",
     "check:generated": "node scripts/generate-api.mjs --check",
-    "typecheck": "pnpm -r --workspace-concurrency=1 run typecheck",
+    "typecheck": "node scripts/api-artifacts.mjs --check && pnpm -r --workspace-concurrency=1 run typecheck",
     "lint": "eslint . --max-warnings 0 && stylelint \"{apps,packages}/*/src/**/*.css\"",
     "check:structure": "node scripts/check-structure.mjs",
     "check:copy": "node scripts/check-copy-glossary.mjs",
-    "test:scripts": "node --test \"scripts/*.test.mjs\"",
+    "test:scripts": "node scripts/api-artifacts.mjs --check && node --test \"scripts/*.test.mjs\"",
     "check:lint-config": "node scripts/check-lint-config.mjs",
-    "test": "pnpm -r --workspace-concurrency=1 run test",
-    "build": "pnpm -r --workspace-concurrency=1 run build",
+    "test": "node scripts/api-artifacts.mjs --check && pnpm -r --workspace-concurrency=1 run test",
+    "build": "pnpm generate:api && pnpm -r --workspace-concurrency=1 run build",
     "verify": "node scripts/verify.mjs"
   },
   "devDependencies": {

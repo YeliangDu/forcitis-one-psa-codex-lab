@@ -5,6 +5,7 @@
 set -euo pipefail
 classes=${1:?usage: guarded_tests.sh Class1,Class2}
 cd "$(dirname "$0")/../../backend"
+bash ../scripts/generate-api.sh --check
 for class in ${classes//,/ }; do
   rm -f target/surefire-reports/*"$class".* "target/surefire-reports/TEST-"*".$class.xml"
 done

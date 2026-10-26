@@ -24,6 +24,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      # OpenAPI is an input to panorama, not part of the published documentation snapshot.
+      - run: bash scripts/ops/docker_ensure.sh --ci
+      - working-directory: frontend
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - run: bash scripts/generate-api.sh
       - run: python3 docs/modernization/build_all.py
       - name: push snapshot to generated-docs
         env:

@@ -869,7 +869,13 @@ def controller_routes(java):
     return routes
 
 
+def require_api():
+    if not SRC["api"].is_file():
+        raise ValueError(f"{rel(SRC['api'])} 缺失；请在仓库根运行 bash scripts/generate-api.sh（需 Docker 和前端依赖），再运行 build_all.py")
+
+
 def load_interfaces(m, link, mod_to_bc):
+    require_api()
     registered = {}
     for no, line in enumerate(SRC["modules"].read_text(encoding="utf-8").splitlines(), 1):
         line = line.split("#", 1)[0].strip()
@@ -1448,6 +1454,7 @@ def main():
         self_test()
         run_unit_tests()
         return 0
+    require_api()
     scan_aggregates.generate(ROOT, check="--check" in sys.argv)
     for script in EXTRACTS:
         subprocess.run([sys.executable, str(script), *(["--check"] if "--check" in sys.argv else [])], check=True)

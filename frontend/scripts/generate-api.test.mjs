@@ -6,9 +6,10 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { requireOpenApi } from './api-artifacts.mjs';
 
 const frontend = join(dirname(fileURLToPath(import.meta.url)), '..');
-const real = JSON.parse(readFileSync(join(frontend, 'packages', 'api', 'openapi.json'), 'utf8'));
+const real = requireOpenApi();
 
 function generate(change) {
   const spec = structuredClone(real);
@@ -21,7 +22,7 @@ function generate(change) {
 
 const decide = (spec) => spec.paths['/api/v1/platform/approval-tasks/{taskId}:decide'].post;
 
-test('the committed document passes and carries the traits', () => {
+test('the exported document passes and carries the traits', () => {
   const run = generate(() => undefined);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.operations, /'\/api\/v1\/platform\/approval-tasks\/\{taskId\}:decide', args, options, responseSchemas\.postPlatformApprovalTasksByTaskIdDecide, \{ versioned: true, idempotent: true \}/);

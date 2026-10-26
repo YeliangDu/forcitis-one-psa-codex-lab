@@ -27,7 +27,7 @@
 | 本机渲染 | `generated/{1b-context-map.svg,3-event-chain.svg,index.html,svg-sources.sha256}` | — | 继续入库（CI 无 mermaid-cli，重渲染结果随版本变）；或装进 CI 后再移 |
 | 误称生成的手写源 | `bpmn/processes.yaml`、`dmn/decisions.yaml`、`ddd/aggregates.yaml`、`closeout/{process-catalog,bc-map,assignments}.yaml`、`categories.proposal.yaml` 头里写「generated」 | — | 保留；改头注释防误判 |
 | 不在 build_all 里的「生成物」 | `ssot/**` 下各 `extract_*`、`scan_*`、`convert_*` 的产物，`closeout/` 下 `CATALOG.md`、`CRUD_MATRIX.md`、`SEAM_REPORT.md` 等 | — | **本期不动**：它们没有 CI 守护、入库版已落后（`execution-points.yaml`、`tests.yaml` 差几百行），`scan_aggregates` 在 HEAD 上直接失败（`platform_file.stored_files: AGGREGATE_ROOT 未唯一对应 domain 类：StoredFile`）。panorama 的上游含这些，所以第二期等价迁移不成立（第九节问题 3） |
-| 前端生成物 | `openapi.json`、`schema.ts`、`validators.ts` | — | 不是 build_all 的产物，由后端导出测试写；**不在本期范围** |
+| 前端生成物 | `openapi.json`、`schema.ts`、`validators.ts`、`operations.ts` | — | 不是 build_all 的产物，由后端导出测试写；原定不在本期范围，后由 GOV-1023-QUA-02 第二段出仓（O11，GOV-1023-FV2）：`.gitignore`，`scripts/generate-api.sh` 生成，CI 的 api-contract 作业提供，见 `frontend/packages/api/README.md` |
 
 ## 三、读者与改法（报告 B）
 

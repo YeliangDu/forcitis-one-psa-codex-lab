@@ -4,6 +4,7 @@
 # nightly (nightly-legacy-it.yml via backend_verify.sh -Plegacy-it).
 set -euo pipefail
 cd "$(dirname "$0")/../../backend"
+bash ../scripts/generate-api.sh --check
 
 tests=$(python3 ../scripts/ci/acceptance_reports.py --legacy-it-tests)
 watchdog_dir=$(mktemp -d)

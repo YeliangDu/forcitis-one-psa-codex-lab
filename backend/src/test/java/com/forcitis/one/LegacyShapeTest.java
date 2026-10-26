@@ -1,6 +1,7 @@
 package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -187,9 +188,10 @@ class LegacyShapeTest {
             }
         }
         Path contract = frontend.resolve("packages/api/openapi.json");
-        if (Files.isRegularFile(contract)) {
-            files.add(contract);
+        if (!Files.isRegularFile(contract)) {
+            throw new IllegalStateException("缺少 " + contract + "；请在仓库根运行 bash scripts/generate-api.sh（需 Docker 和前端依赖）");
         }
+        files.add(contract);
         return files;
     }
 
@@ -500,7 +502,18 @@ class LegacyShapeTest {
     }
 
     static Path backendIn(Path root) throws IOException {
-        return Files.createDirectories(root.resolve("backend"));
+        Path project = Files.createDirectories(root.resolve("backend"));
+        write(project, "../frontend/packages/api/openapi.json", "{\"openapi\":\"3.1.0\",\"paths\":{\"/api/v1/cost/timesheets\":{\"get\":{}}}}\n");
+        return project;
+    }
+
+    @Test
+    @DisplayName("GOV-1023-QUA-02：契约缺失不得静默漏扫，失败提示如何生成")
+    void missingContractFailsWithGenerationCommand(@TempDir Path root) throws IOException {
+        Path project = backendIn(root);
+        Files.delete(root.resolve("frontend/packages/api/openapi.json"));
+        assertThatThrownBy(() -> scan(project)).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("bash scripts/generate-api.sh");
     }
 
     @Test

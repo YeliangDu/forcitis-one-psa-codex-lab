@@ -7,6 +7,8 @@
 # - 后端与前端测试、SQL Server 集成测试：backend、frontend 作业的重步骤（本机要跑就用 scripts/ci/backend_verify.sh、legacy_it.sh，起容器先问用户）；
 # - gitleaks 全史扫描、发布脚本自测：secret scan 作业；组织接口通知要 PR 正文，判档（relevant_change.py 输出）要写 ${GITHUB_OUTPUT}：都只在 CI 里；
 # - budget_check（one-quality 的 scripts/ci/budget_check.py，用法 `budget_check.py [--root DIR]`）：文件在就跑，还没合入时记 SKIP。
+# OpenAPI 与前端 generated 不入仓（frontend/packages/api/README.md）：build_all.py --check（全景）与 generate-api.sh --check 要它们已生成。CI 由 api-contract 作业提供；
+# 本机没有时先 bash scripts/generate-api.sh（起容器导出，先问用户），或只看 python3 docs/modernization/build_all.py --check --without-api。
 # Bash 3.2（macOS）可用：不用关联数组与 mapfile。
 set -uo pipefail
 export PYTHONDONTWRITEBYTECODE=1  # 不留 __pycache__：backend 作业随后在同一工作区跑测试，遍历目录的测试读到 .pyc 会崩（#693）；python3 -I 不认它，另由 rm_new_pyc 删
@@ -73,6 +75,7 @@ command -v python3 >/dev/null || { echo "FAIL  找不到 python3" >&2; exit 1; }
 # 供应链与生成文档（原 secret scan 作业里的步骤）
 run "python3 has PyYAML 6.0.3" pyyaml
 run "generated docs match fragments" python3 docs/modernization/build_all.py --check
+run "OpenAPI build inputs present" bash scripts/generate-api.sh --check
 run "no legacy system name in docs" python3 docs/modernization/check_legacy_name.py
 run "rule review revisions (self-test)" python3 docs/modernization/rules/review_revisions.py --self-test
 against_base "rule review revisions are append-only" python3 docs/modernization/rules/review_revisions.py --base
