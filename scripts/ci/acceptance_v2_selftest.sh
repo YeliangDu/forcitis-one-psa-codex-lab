@@ -268,7 +268,7 @@ expect "V13 记忆在而回收器目录空仍不通过" nz '^V13 不通过' V13
 # the per-file section of the index counts too; every path must exist on the archive branch (missing: fail); an unknown archive branch is a skip, a known one passes
 IDX=docs/modernization/ARCHIVE_INDEX.md
 ID=$(dirname "$IDX")
-index_rows() { printf '# 归档索引\n\n| 原目录 | 文件数 | 大小 KB | 文件 |\n|---|---:|---:|---|\n%s\n' "$1" >"$R/$IDX"; }
+index_rows() { printf '# 归档索引\n\n合计 %s 个文件。\n\n| 原目录 | 文件数 | 大小 KB | 文件 |\n|---|---:|---:|---|\n%s\n' "${2:-?}" "$1" >"$R/$IDX"; }
 ROW=$(printf '| `%s/` | 2 | 1.0 | A.html、B.json |' "$ID")
 expect "V14 无索引不通过" nz '^V14 不通过' V14
 mkdir -p "$R/$ID"; : >"$R/$IDX"; git -C "$R" add "$IDX"
@@ -277,7 +277,7 @@ echo '# 归档索引，没有表' >"$R/$IDX"
 expect "V14 索引解析不出路径不通过" nz '^V14 不通过：索引里解析不出任何登记的文件路径' V14
 index_rows '| `x/` | 1 | 1.0 | … |'
 expect "V14 只有省略号行也解析不出路径" nz '^V14 不通过：索引里解析不出' V14
-index_rows "$ROW"
+index_rows "$ROW" 2
 expect "V14 有索引无归档分支跳过" 0 '^V14 跳过\(本检出查不到归档分支' V14
 expect "V14 无分支严格模式失败" nz '^V14 不通过' "$ALL" ACCEPT_STRICT=1
 for f in A.html B.json C.md D.md E.md F.md; do echo x >"$R/$ID/$f"; done
@@ -286,21 +286,28 @@ git -C "$R" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q -
 git -C "$R" branch archive/2026-10
 for f in A.html B.json C.md D.md E.md F.md; do git -C "$R" rm -q --cached "$ID/$f"; done
 expect "V14 索引与归档分支齐全通过" 0 '^V14 通过.*登记的 2 个文件都已不在 main.*且都在归档分支' V14
+index_rows "$ROW" 3
+expect "V14 合计与解析条数对不上不通过" nz '^V14 不通过：索引写明的合计与解析出的 2 个文件对不上' V14
+CUT=$(printf '| `%s/` | 9 | 1.0 | C.md、D.md、… |' "$ID")
 index_rows "$ROW
-$(printf '| `%s/` | 9 | 1.0 | C.md、D.md、… |' "$ID")"
-expect "V14 省略号行只核所列并注明" 0 '^V14 通过.*登记的 4 个文件.*1 行表格文件列表被省略号截断' V14
+$CUT" 4
+expect "V14 有截断行却没有逐文件清单不通过" nz '^V14 不通过：索引写明的合计.*逐文件清单 0 条，截断行 1' V14
+index_rows "$ROW
+$CUT" 6
 printf '\n## 逐文件\n\n- `%s/E.md`\n- `%s/F.md`\n' "$ID" "$ID" >>"$R/$IDX"
-expect "V14 逐文件清单也核并通过" 0 '^V14 通过.*登记的 6 个文件' V14
+expect "V14 逐文件清单补全截断行并通过" 0 '^V14 通过.*登记的 6 个文件.*1 行表格文件列表被省略号截断' V14
 git -C "$R" add "$ID/F.md"
 expect "V14 逐文件清单里的文件仍被跟踪不通过" nz '^V14 不通过：索引登记的 1 个文件仍被跟踪.*F.md' V14
 git -C "$R" rm -q --cached "$ID/F.md"
-printf -- '- `%s/G.md`\n' "$ID" >>"$R/$IDX"
+index_rows "$ROW
+$CUT" 7
+printf '\n## 逐文件\n\n- `%s/E.md`\n- `%s/F.md`\n- `%s/G.md`\n' "$ID" "$ID" "$ID" >>"$R/$IDX"
 expect "V14 归档分支上缺一个文件不通过" nz '^V14 不通过：索引登记的 1 个文件在归档分支上不存在.*G.md' V14
-index_rows "$ROW"
+index_rows "$ROW" 2
 echo x >"$R/$ID/A.html"; git -C "$R" add "$ID/A.html"
 expect "V14 索引登记的文件仍被跟踪不通过" nz '^V14 不通过：索引登记的 1 个文件仍被跟踪.*A.html' V14
 git -C "$R" rm -q --cached "$ID/A.html"
-index_rows "$(printf '| `%s/` | 9 | 1.0 | C.md、D.md、… |' "$ID")"
+index_rows "$CUT" 3; printf '\n## 逐文件\n\n- `%s/E.md`\n' "$ID" >>"$R/$IDX"
 echo x >"$R/$ID/D.md"; git -C "$R" add "$ID/D.md"
 expect "V14 省略号行所列文件仍被跟踪不通过" nz '^V14 不通过：索引登记的 1 个文件仍被跟踪.*D.md' V14
 git -C "$R" rm -q --cached "$ID/D.md"

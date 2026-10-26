@@ -232,14 +232,16 @@ v14() {
 import re, subprocess, sys
 root, idx, ref = sys.argv[1:4]
 try:
-    paths, cut, sect = [], 0, False
-    for line in open(f"{root}/{idx}", encoding="utf-8"):
+    paths, cut, sect, listed = [], 0, False, 0
+    text = open(f"{root}/{idx}", encoding="utf-8").read()
+    for line in text.splitlines(True):
         if line.startswith("## "):
             sect = line.strip() == "## 逐文件"
             continue
         m = re.fullmatch(r"- \x60([^\x60]+)\x60", line.strip())
         if sect and m:
             paths.append(m.group(1))
+            listed += 1
             continue
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) != 4 or not re.fullmatch(r"`[^`]+/`", cells[0]):
@@ -254,6 +256,10 @@ try:
     paths = sorted(set(paths))
     if not paths:
         print("bad:索引里解析不出任何登记的文件路径")
+        sys.exit()
+    total = re.search(r"合计 (\d+) 个文件", text)
+    if not total or int(total.group(1)) != len(paths) or (cut and not listed):
+        print("bad:索引写明的合计与解析出的 %d 个文件对不上（合计行%s，逐文件清单 %d 条，截断行 %d）" % (len(paths), total.group(1) if total else "缺失", listed, cut))
         sys.exit()
     ls = subprocess.run(["git", "-C", root, "ls-files", "-z"], capture_output=True, check=True).stdout.decode("utf-8").split("\0")
     tracked = set(ls)
