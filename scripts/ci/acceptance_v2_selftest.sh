@@ -256,7 +256,7 @@ expect "V13 记忆在而回收器目录空仍不通过" nz '^V13 不通过' V13
 # V14: ARCHIVE_INDEX.md must be tracked and non-empty (fail); an unknown archive branch is a skip, a known one passes
 IDX=docs/modernization/ARCHIVE_INDEX.md
 expect "V14 无索引不通过" nz '^V14 不通过' V14
-mkdir -p "$R/docs/modernization"; : >"$R/$IDX"; git -C "$R" add "$IDX"
+mkdir -p "$(dirname "$R/$IDX")"; : >"$R/$IDX"; git -C "$R" add "$IDX"
 expect "V14 索引 0 字节不通过" nz '^V14 不通过' V14
 echo '# 归档索引' >"$R/$IDX"
 expect "V14 有索引无归档分支跳过" 0 '^V14 跳过\(本检出查不到归档分支' V14

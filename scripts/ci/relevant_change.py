@@ -69,6 +69,8 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/quality/defect-bank/",
     # ruling record: read by scripts/ci/acceptance_rulings.py in the always-run acceptance step
     "docs/modernization/rulings/",
+    # archive index (V14): read only by scripts/ci/acceptance_v2.sh, the batch sign-off run by hand (no CI step), so no build or test tier needs it
+    "docs/modernization/ARCHIVE_INDEX.md",
     # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py; commit_msg_gate.py takes session names from sessions/ and roles/ (roles/ is listed above)
     "docs/modernization/sessions/",
     "docs/modernization/check_legacy_name.py",
