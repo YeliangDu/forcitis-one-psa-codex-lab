@@ -56,10 +56,10 @@ if __name__ == "__main__":
     absent = [f"--{k}" for k in ("session", "category", "owner", "paths", "supersedes") if not opts.get(k)]
     if absent: sys.exit(f"缺必填项：{'、'.join(absent)}（没有被取代的或没有影响路径就写「无」）\n{__doc__}")
     paths = [] if opts["paths"] == "无" else opts["paths"].split(",")
-    wrong = [m for ok, m in ((opts["category"] in CATEGORIES, f"--category 须为 {'、'.join(CATEGORIES)} 之一"),
-                             (re.fullmatch(r"[a-z0-9-]+", opts["owner"]) and opts["owner"] in known_owners(), "--owner 须是 [a-z0-9-]+，且在 roles/ 过渡映射或 policy.json 的 sessions.config 里出现"),
-                             (all(re.fullmatch(r"[^\s/、][^\s、]*", x) and ".." not in x.split("/") for x in paths) and len(paths) == len(set(paths)), "--paths 须是不重复的仓库相对路径前缀（无空白、不以 / 开头、不含 ..）或「无」")) if not ok]
-    if wrong: sys.exit("；".join(wrong) + f"：{opts['category']} {opts['owner']} {opts['paths']}")
+    wrong = [m for ok, m in ((opts["category"] in CATEGORIES, f"--category 须为 {'、'.join(CATEGORIES)} 之一：{opts['category']}"),
+                             (re.fullmatch(r"[a-z0-9-]+", opts["owner"]) and opts["owner"] in known_owners(), f"--owner 须是 [a-z0-9-]+，且在 roles/ 过渡映射或 policy.json 的 sessions.config 里出现：{opts['owner']}"),
+                             (all(re.fullmatch(r"(?!\./|~|/|无$)[^\s、|\\]+", x) and ".." not in x.split("/") for x in paths) and len(paths) == len(set(paths)), f"--paths 须是不重复的仓库相对路径前缀（无空白、| 与反斜杠，不以 / ~ ./ 开头，不含 ..），或单独一个「无」：{opts['paths']}")) if not ok]
+    if wrong: sys.exit("\n".join(wrong))
     olds = [x for x in opts["supersedes"].split(",") if x != "无"]
     for old in olds:
         if not os.path.isfile(os.path.join(BASE, "intent", old)):

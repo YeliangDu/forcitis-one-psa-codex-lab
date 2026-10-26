@@ -36,10 +36,21 @@ def main():
             assert code != 0 and f"--{key}" in out.split("用法")[0], f"缺 --{key} 应拒并点名：{code} {out[:200]}"
         code, out = run(tree, swap(swap(swap(GOOD, "category"), "owner"), "paths"))
         assert code != 0 and all(f"--{k}" in out.split("用法")[0] for k in ("category", "owner", "paths")), "缺多项应一次列全"
-        for key, value in (("category", "杂项"), ("category", ""), ("owner", "nobody"), ("owner", "One_Ops"), ("owner", "one-dev"), ("paths", "/etc"), ("paths", "a/../b"), ("paths", "a b"), ("paths", "a,a"), ("paths", "a,,b"), ("supersedes", "no-such.md")):
+        for key, value in (("category", "杂项"), ("category", ""), ("owner", "nobody"), ("owner", "One_Ops"), ("owner", "one-dev"), ("paths", "/etc"), ("paths", "a/../b"), ("paths", "a b"), ("paths", "a,a"), ("paths", "a,,b"), ("paths", "a,无"), ("paths", "~/x"), ("paths", "./a"), ("paths", "a|b"), ("paths", "a\\b"),("supersedes", "no-such.md")):
             code, out = run(tree, swap(GOOD, key, value))
             assert code != 0, f"--{key}={value!r} 应拒"
+        code, out = run(tree, swap(GOOD, "category", "杂项"))
+        assert "--category" in out and "--owner" not in out and "--paths" not in out,f"只打印出错的项：{out[:200]}"
         assert not glob.glob(os.path.join(mod, "intent", "*.md")), "拒绝时不应生成片段"
+        sync = [sys.executable, os.path.join(BASE, "rules", "decide", "decide_sync.py"), "X1", tree]
+        for key in ("category", "owner", "paths", "supersedes"):
+            r = subprocess.run(sync + swap(GOOD, key)[1:], capture_output=True, text=True)
+            msg = r.stdout + r.stderr
+            assert r.returncode != 0 and f"缺必填项：--{key}（" in msg, f"decide_sync 不带 --{key} 应拒并只列它：{msg[:200]}"
+        r = subprocess.run(sync + GOOD[1:], capture_output=True, text=True)
+        assert "缺必填项" not in r.stdout + r.stderr, "四项齐全应越过必填检查（之后因无答复数据另行失败）"
+        r = subprocess.run(sync + ["--no-intent"], capture_output=True, text=True)
+        assert "缺必填项" not in r.stdout + r.stderr, "--no-intent 不要求四项"
         code, out = run(tree, GOOD + ["--date=2026-01-01"])
         assert code == 0, out
         first = glob.glob(os.path.join(mod, "intent", "*.md"))
