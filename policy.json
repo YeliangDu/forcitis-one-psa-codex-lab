@@ -75,6 +75,7 @@
       "scripts/release/",
       "docs/modernization/phase1a/infra/handoff/B-5-dba/",
       "docs/modernization/phase1a/infra/runbooks/files/",
+      "docs/modernization/phase1a/infra/runbooks/scripts/",
       "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
       "docs/modernization/status/blockers/",
       "docs/modernization/new_intent.py",
