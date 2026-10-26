@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """业务决策在线页（one-rules）：把待用户定的业务口径做成手机能开的在线页，推荐项预选、按组提交，选择存在在线页数据库（README.md）。
-单子：FD = 财务口径决策单（数据源 r0/FINANCE_DECISIONS.md，解析沿用 r0/build_finance_decisions.py）；其余单子为 sheets/<单子>.json（格式见 README.md）。
+单子：FD = 财务口径决策单（数据源 r0/FINANCE_DECISIONS.md，解析沿用 r0/build_finance_decisions.py）；其余单子为 sheets/<单子>.json（格式见 README.md）；sheets/ 里没有的，再找旧确认页题源 architecture/decision-page/ 与其 archive/（同一格式，只读）。
+决定页生成器只此一套（G2）：出题检查 check_pages.py 在本目录，题型 KINDS 从它导入。
 校验不通过即失败：题号唯一、每题至少两个选项且恰好一个推荐、单组不超过 40 题（一屏只画一组，组太大手机上会停在加载中）、页面不加载任何外部资源。
 用法：python3 docs/modernization/rules/decide/build_decision_page.py <单子>[,<单子>...] <输出路径>"""
 import json, pathlib, re, sys
@@ -8,6 +9,7 @@ import json, pathlib, re, sys
 HERE = pathlib.Path(__file__).parent
 R0 = HERE.parent.parent / "r0"
 sys.path.insert(0, str(R0))
+sys.path.insert(0, str(HERE))
 import build_finance_decisions as fd  # noqa: E402
 
 FD_GROUPS = {
@@ -17,7 +19,8 @@ FD_GROUPS = {
     "G1 前": ("fd-g1", "G1（新系统接管管理账）前要定：月结、与 U8C 的分工、经营分析指标口径。"),
     "G2 前": ("fd-g2", "G2（法定账切换）前要定。"),
 }
-KINDS = ("choice", "approve", "selection", "fact", "param")   # 题型，同 architecture/decision-page/check_pages.py
+from check_pages import KINDS  # noqa: E402  题型只在出题检查里定义一处（G2 决定页合一：生成器与 check_pages 同在本目录）
+OLD_PAGES = (HERE.parent.parent / "architecture" / "decision-page", HERE.parent.parent / "architecture" / "decision-page" / "archive")   # 旧确认页题源（只读），按单子名找得到
 NO_DEFAULT_KINDS = ("fact", "selection")                      # 事实题、选型题没有默认项：页面显示「未答」，挡住整组提交，不能一键认可
 FACT_OPTS = [{"label": "请财务核实", "effect": "由 one-rules 汇总发财务，答复后写回规则卡", "rec": True},
              {"label": "我直接答", "effect": "把答案写在说明里，不再问财务", "rec": False}]
@@ -51,10 +54,16 @@ def sheet_fd():
 def load(name):
     if name == "FD":
         return sheet_fd()
-    path = HERE / "sheets" / f"{name}.json"
-    if not path.exists():
-        sys.exit(f"找不到单子 {name}（FD 或 sheets/{name}.json）")
-    return json.loads(path.read_text(encoding="utf-8"))
+    found = [d / f"{name}.json" for d in (HERE / "sheets",) + OLD_PAGES if (d / f"{name}.json").is_file()]
+    if not found:
+        sys.exit(f"找不到单子 {name}（FD、sheets/{name}.json，或旧确认页 architecture/decision-page/[archive/]{name}.json）")
+    sheet = json.loads(found[0].read_text(encoding="utf-8"))
+    if not isinstance(sheet, dict) or not isinstance(sheet.get("items"), list) or not isinstance(sheet.get("groups"), list):
+        sys.exit(f"{found[0].name} 不是单子格式（须是含 sheet、groups、items 的对象）")
+    sheet.setdefault("sheet", name)   # 旧页有的没写 title、lede：标题退回单子名，导语退回通用说明
+    sheet.setdefault("title", sheet["sheet"])
+    sheet.setdefault("lede", "按组作答，全部选完后到页面最后一个标签「检查答案」，核对后一次提交。")
+    return sheet
 
 
 def validate(sheets):
@@ -119,6 +128,26 @@ def self_test():
     template = (HERE / "page-template.html").read_text(encoding="utf-8")
     for needle in ('"none"', '"answered"', "未答", "recOf(i) < 0 && pick(i).choice === null", "blocked === 0"):
         assert needle in template, f"page-template.html 缺少无默认项题的处理：{needle}"
+    global OLD_PAGES   # 旧确认页题源：按单子名读得到，缺 title、lede 补默认；列表形式等非单子格式明确拒绝
+    import tempfile
+    saved = OLD_PAGES
+    with tempfile.TemporaryDirectory() as tmp:
+        old = pathlib.Path(tmp)
+        (old / "OLDX.json").write_text(json.dumps(sheet("approve", (True, False))[0] | {"sheet": "OLDX"}), encoding="utf-8")
+        (old / "OLDL.json").write_text("[]", encoding="utf-8")
+        OLD_PAGES = (old,)
+        try:
+            got = load("OLDX")
+            assert (got["sheet"], got["title"]) == ("OLDX", "OLDX") and got["lede"], got
+            validate([got])
+            for name, fragment in (("OLDL", "不是单子格式"), ("NO-SUCH-SHEET", "找不到单子")):
+                try:
+                    load(name)
+                    raise AssertionError(f"{name} 应失败：{fragment}")
+                except SystemExit as e:
+                    assert fragment in str(e), (fragment, str(e))
+        finally:
+            OLD_PAGES = saved
     print("build_decision_page self-test: ok")
 
 

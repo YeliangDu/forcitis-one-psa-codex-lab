@@ -13,7 +13,7 @@
   R5 事实题不得有预选（任何选项 rec 为真）；选型题同（intent 2026-10-15 ADR-0041 决定 6：选型不预选）
   R6 参数行（kind: param，或选项全是「数字+单位」）须在 ctx / basis / practice / effect 任一处标「经验值，配置可调」，或有出处（src 非空，或 basis 里有 intent / ADR / 标准 / 法规）
   R7 推荐理由（basis 与推荐项的 effect）不得以「老系统 / 老流程 / 与 A8 一致」为主要理由：出现这些词而没有任何权威依据（intent、ADR、规则号、标准、法规、行业做法）即不过
-范围：已答的题不再检查（已答页是历史记录，题面不改、不补 terms_ok；用户 2026-10-22 经 one-coordinator）。已答＝rules/decide/answers/<页>.json 里有 <页>~<题号>，或页名登记在 answered_pages.txt（收件箱已决但没有导出的页）。输出末行写明跳过的已答题数与整页数；本次改动涉及的页里，新增或未答的题照常检查。
+范围：已答的题不再检查（已答页是历史记录，题面不改、不补 terms_ok；用户 2026-10-22 经 one-coordinator）。已答＝本目录 answers/<页>.json 里有 <页>~<题号>，或页名登记在本目录 answered_pages.txt（收件箱已决但没有导出的页）。输出末行写明跳过的已答题数与整页数；本次改动涉及的页里，新增或未答的题照常检查。
 用法：
   check_pages.py                      检查全部确认页（报告全部问题；有问题退出 1）
   check_pages.py <文件.json>…         只检查给定文件
@@ -31,9 +31,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 MOD = os.path.normpath(os.path.join(HERE, "..", ".."))
 ROOT = os.path.normpath(os.path.join(MOD, "..", ".."))
-ANSWERS_DIR = os.path.join(MOD, "rules", "decide", "answers")
+ANSWERS_DIR = os.path.join(HERE, "answers")
 ANSWERED_REGISTRY = os.path.join(HERE, "answered_pages.txt")   # 收件箱已决但没有 answers 导出的页：一行一个页名，# 后写出处
-PAGE_GLOBS = ("docs/modernization/architecture/decision-page/*.json", "docs/modernization/rules/decide/sheets/*.json")
+PAGE_GLOBS = ("docs/modernization/architecture/decision-page/*.json", "docs/modernization/rules/decide/sheets/*.json")   # 旧确认页题源仍留原处（只读的历史页），照查
 KINDS = ("choice", "approve", "selection", "fact", "param")
 UNDECIDED = re.compile(r"暂不定|待定|先不选|不预设")
 SELF_CITE = re.compile(r"来源建议|原稿|草稿|提议稿|按来源|同上|见上|无$")
@@ -547,6 +547,8 @@ def self_test():
         assert check_file(p, names, vocab)[0].startswith("P.json: 不是合法 JSON")
     # 词表切词：单字连接词不能开头或结尾
     assert unregistered("合同的收入", vocab, set()) == [] and unregistered("的收入", vocab, set()) != [] and unregistered("收入的", vocab, set()) != []
+    # 已答依据随 check_pages 同在 rules/decide（G2）：路径错了，已答页会被当成未答整批报错
+    assert os.path.isdir(ANSWERS_DIR) and os.path.isfile(ANSWERED_REGISTRY), (ANSWERS_DIR, ANSWERED_REGISTRY)
     real = load_vocab()
     if real:
         assert "承担部门" not in real["words"] and real["longest"] >= 2

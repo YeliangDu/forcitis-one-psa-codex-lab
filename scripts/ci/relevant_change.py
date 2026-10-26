@@ -82,7 +82,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/check_tasks.py",
     "docs/modernization/tasks/",
     # decision page question rules: no CI step runs them (scripts/precheck.sh did, locally, until GOV-1023-FV2 O9); listed so that naming them stays covered
-    "docs/modernization/architecture/decision-page/check_pages.py",
+    "docs/modernization/rules/decide/check_pages.py",
     "docs/modernization/rules/decide/build_decision_page.py",
 )
 

@@ -104,7 +104,7 @@ while IFS='|' read -r key name cmd; do
   if touches "${!key}"; then run "$name" $cmd; else skip "$name" "相关路径没改（按改动触发）"; fi
 done <<<"$TRIGGERED_CHECKS"
 if touches "$t_decision_pages"; then
-  against_base "decision pages: question rules" python3 docs/modernization/architecture/decision-page/check_pages.py --changed
+  against_base "decision pages: question rules" python3 docs/modernization/rules/decide/check_pages.py --changed
 fi
 
 # 体量与单一出处（one-quality）
