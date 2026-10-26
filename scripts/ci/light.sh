@@ -78,6 +78,8 @@ run "rule review revisions (self-test)" python3 docs/modernization/rules/review_
 against_base "rule review revisions are append-only" python3 docs/modernization/rules/review_revisions.py --base
 run "database scripts aligned (self-test)" python3 -I scripts/ci/db_scripts_aligned.py --self-test
 run "database scripts aligned" python3 -I scripts/ci/db_scripts_aligned.py
+# 部署作业的 checkout 不得写全局 git 配置：它会落进 GIT_CONFIG_GLOBAL 即 $HOME/.gitconfig，toolchain.sh 按 R-0 拒绝（run 40387799615，569ed501f）
+run "deploy.yml: checkout writes no global git config" python3 -I -c 'import sys,yaml; s=[x for x in yaml.safe_load(open(".github/workflows/deploy.yml"))["jobs"]["deploy"]["steps"] if str(x.get("uses","")).startswith("actions/checkout@")]; sys.exit(0 if s and all((x.get("with") or {}).get("set-safe-directory") is False and not (x.get("with") or {}).get("submodules") for x in s) else "deploy 作业的 checkout 须写 set-safe-directory: false、不开 submodules")'
 
 # 只增不改的登记与验收守护（原 backend 作业里的步骤）
 for script in migrations_immutable system_actors_append_only acceptance_guard acceptance_reports acceptance_rulings; do
