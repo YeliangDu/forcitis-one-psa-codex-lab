@@ -4,7 +4,7 @@
 生产目标 = prod_targets.json 的 patterns（与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR 所在仓库的），出现在命令的词里（引号、ANSI-C、续行、花括号、变量与 export／set -a 拼接、反引号与 `$(…)` 展开后）或环境变量里即「碰到」。
 每条简单命令（`bash -c`／`-lc`／`eval`／heredoc／here-string／`echo … | bash`／`env -S`／`<(…)` 递归，超过 3 层按读不懂）：
 - 远程工具（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie）碰到生产且写（或写效果看不出）拒绝；SQL 只认白名单，aliyun 只放 Describe/List/Get…，返回密钥的接口一律拒绝（底线 3）。
-- 不连接的命令（git 本地子命令、gh、echo、grep、rg 无 --pre、sed 无 e/w…）碰到特征放行；其他命令（解释器、xargs、find -exec、git push…）碰到即拒绝，解释器的脚本文件读进来看；可信脚本（与 origin/main 逐字节一致的点名脚本）连同它同目录可导入的文件、导入链上的仓库模块、取证工具的 trust_dirs 都须与 origin/main 一致。
+- 不连接的命令（git 本地子命令、gh、echo、grep、rg 无 --pre、sed 无 e/w…）碰到特征放行；其他命令（解释器、xargs、find -exec、git push…）碰到即拒绝，解释器的脚本文件读进来看；可信只认 origin/main 特征表 trusted_entries 登记的固定入口：整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：写类远程命令与解释器拒绝，只读放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名或特征拒绝；写操作的目标含读不出的变量拒绝。
 命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
@@ -16,8 +16,6 @@ import json
 import os
 import re
 import shlex
-import shutil
-import site
 import subprocess
 import sys
 from pathlib import Path
@@ -115,11 +113,9 @@ def neutralize(text, backticks=True):  # `$`/backtick inside single quotes -> pr
                 i = end
             else:
                 out.append(char)
-        elif char == "#" and not double and (i == 0 or text[i - 1] in " \t\n;|&("):
+        elif char == "#" and not double and (i == 0 or text[i - 1] in " \t\n;|&()<>"):  # a comment starts a word (bash: after a blank or a metacharacter); dropped, so quotes in it pair with nothing
             end = text.find("\n", i)
-            end = len(text) if end < 0 else end
-            out.append(text[i:end])
-            i = end - 1
+            i = (len(text) if end < 0 else end) - 1
         else:
             out.append(char)
         i += 1
@@ -154,7 +150,7 @@ def split_heredocs(command):  # (text without here-document bodies, [(body, deli
             out.append(char)
             single, double = char == "'", char == '"'
             i += 1
-        elif char == "#" and (i == 0 or text[i - 1] in " \t\n;|&("):
+        elif char == "#" and (i == 0 or text[i - 1] in " \t\n;|&()<>"):
             end = text.find("\n", i)
             end = n if end < 0 else end
             out.append(text[i:end])
@@ -337,7 +333,6 @@ ANCHOR, ROOTS = REPO_ROOT, ()  # whose origin/main says which scripts are truste
 DOCS_ROOT = "docs" + "/" + "modernization"  # built, not spelled: relevant_change.py scans sources for literal docs paths
 TABLE = os.environ.get("PROD_TARGETS_FILE") or str(Path(HERE) / "prod_targets.json")  # unioned with origin/main's all the same (load_table)
 MAIN_TABLE_PATH = "scripts/gates/prod_targets.json"  # on origin/main since #693 (the old scripts/hooks/ copy is gone: b1 8.1 C7)
-GUARD_DIRS = ("scripts/gates/", "scripts/hooks/")
 SQL_TOOLS = {"psql", "mysql", "mariadb", "sqlcmd", "osql", "mssql-cli", "mongosh", "mongo", "redis-cli", "usql", "tsql", "isql"}
 WRITE_ONLY_TOOLS = {"sqlpackage", "sftp"}
 HTTP_TOOLS = {"curl", "wget", "http", "https", "xh", "xhs"}
@@ -354,14 +349,13 @@ NO_CONNECT = {"git", "gh", "echo", "printf", "grep", "egrep", "fgrep", "rg", "ca
 LOCAL_GIT = {"commit", "log", "show", "status", "add", "diff", "grep", "branch", "checkout", "switch", "restore", "rev-parse", "rev-list", "ls-files", "ls-tree", "cat-file", "stash", "merge", "worktree", "blame", "describe", "shortlog", "apply", "reset", "cherry-pick", "rm", "mv", "clean", "rebase", "show-ref", "for-each-ref", "name-rev", "merge-base", "diff-tree", "diff-index", "hash-object", "symbolic-ref", "count-objects", "check-ignore", "version", "help"}
 GIT_RUNS_COMMANDS = ("exec", "ext-diff", "open-files-in-pager", "upload-pack", "receive-pack", "textconv")
 NETWORK_GIT = {"push", "pull", "fetch", "clone", "ls-remote", "remote", "submodule", "archive", "daemon", "send-pack", "fetch-pack", "upload-pack", "receive-pack", "request-pack", "svn", "p4", "credential", "bundle", "maintenance", "instaweb", "difftool", "mergetool"}
-DOC_SCRIPTS = {DOCS_ROOT + "/new_intent.py", DOCS_ROOT + "/phase1a/infra/new_legacy_read.py", DOCS_ROOT + "/new_log.py", DOCS_ROOT + "/glossary/new_term_issue.py"}
+
 ENV_TARGET_VARS = ("PGHOST", "PGSERVICE", "PGDATABASE", "PGUSER", "PGHOSTADDR", "SQLCMDSERVER", "SQLCMDDBNAME", "SQLCMDUSER", "MYSQL_HOST", "DATABASE_URL", "MONGODB_URI", "REDIS_URL", "ALIBABA_CLOUD_PROFILE")
 MAX_SQL_FILE, MAX_SCRIPT_FILE = 65536, 262144
 COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name these and LAUNCH_TOOL
 LAUNCH_TOOL = "mcp__Claude_Browser__preview_start"  # starts runtimeExecutable + runtimeArgs of the named .claude/launch.json configuration (cfcbcf473 final M4)
 LOADABLE, MAX_CLOSURE = (".py", ".pyc", ".so", ".pyd"), 400  # what Python imports from a directory (any interpreter: mod.cpython-312-darwin.so); files a trusted script may load before it counts as unreadable
-HARMLESS_PYTHON_ENV = {"PYTHONDONTWRITEBYTECODE", "PYTHONUNBUFFERED", "PYTHONIOENCODING", "PYTHONUTF8", "PYTHONHASHSEED"}  # any other PYTHON* may change what runs
-NO_TRUST = False  # judge(): the line is more than one plain command run by /usr/bin/python3 (trusted_line), so no script is trusted
+TRUSTED_LINE = None  # judge(): the argv of the line when it is exactly a registered entry (trusted_entry), else None
 STATEMENT_OPTIONS = {"psql": {"-c", "--command"}, "mysql": {"-e", "--execute"}, "mariadb": {"-e", "--execute"}, "sqlcmd": {"-Q", "-q", "--query"}, "osql": {"-Q", "-q"}, "mssql-cli": {"-Q", "--query"}, "mongosh": {"--eval"}, "mongo": {"--eval"}, "usql": {"-c", "--command"}}
 FILE_OPTIONS = {"psql": {"-f", "--file"}, "sqlcmd": {"-i"}, "osql": {"-i"}, "usql": {"-f", "--file"}, "mysql": set(), "mariadb": set()}
 DANGEROUS_SQL_OPTIONS = {"sqlcmd": {"-z", "-Z", "-v"}, "osql": {"-z", "-Z"}, "mysql": {"--init-command", "--init_command"}, "mariadb": {"--init-command", "--init_command"}}
@@ -396,7 +390,6 @@ PLAIN_RSH = re.compile(r"^ssh(?:\s+-[pi]\s*\S+|\s+-[46Cq])*$")
 SED_EXEC = re.compile(r"(?:^|[;{}\n])\s*[ew]\b|s(.).*?\1.*?\1[a-zA-Z]*e[a-zA-Z]*\s*(?:[;}]|$)")
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
 PATH_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*(?:\w+=\S*\s+)*[^\s;&|()]*/")  # a command word with a slash: a script run by its path
-EXTRA_READONLY = set()  # tests add tracked files here
 
 
 def git(*args, root=None):  # stdout of a git command in `root` (default: the trust anchor), or None when it fails.
@@ -466,16 +459,20 @@ def load_table(path=None):
     return patterns, None, " ".join(warnings) or None
 
 
-def readonly_tools():  # (repo-relative paths of the committed read-only evidence tools, directories they read): table section readonly_tools, the tools from origin/main's table when it lists any, else the local one; the directories of both (they only add checks).
-    def listed(text):
-        try:
-            tools = json.loads(text).get("readonly_tools", {})
-            return ({DOCS_ROOT + "/" + tools.get("base", "") + f for f in tools.get("files", []) if isinstance(f, str)},
-                    [DOCS_ROOT + "/" + d for d in tools.get("trust_dirs", []) if isinstance(d, str) and d and ".." not in d])
-        except (ValueError, AttributeError, TypeError):
-            return set(), []
-    main, local = listed(main_table_text(ANCHOR)[0] or ""), listed(read_text(TABLE, None, 1 << 20) or "")
-    return (main[0] or local[0]) | EXTRA_READONLY, main[1] + local[1]
+def trusted_entries():  # Entries of origin/main's table section trusted_entries (the local table never counts: a branch cannot register one), with their slot patterns.
+    try:
+        found = json.loads(main_table_text(ANCHOR)[0] or "{}").get("trusted_entries", {})
+        slots = {k: re.compile(v) for k, v in found.get("slots", {}).items()}
+        return [e for e in found.get("entries", []) if isinstance(e, dict) and isinstance(e.get("script"), str) and ".." not in e["script"]], slots
+    except (ValueError, AttributeError, TypeError, re.error):
+        return [], {}
+
+
+def form_matches(words, form, slots):  # True when each word is the form's literal, or its `{slot}` / `--opt={slot}` with a value the slot's pattern fully matches.
+    def one(word, part):
+        head, _, slot = part.partition("{")
+        return word == part if not slot else slot.endswith("}") and slot[:-1] in slots and word.startswith(head) and bool(slots[slot[:-1]].fullmatch(word[len(head):]))
+    return len(words) == len(form) and all(one(w, p) for w, p in zip(words, form))
 
 
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow; a remote tool's name as a substring, as judge reads an unreadable line.
@@ -1034,22 +1031,27 @@ def script_operand(argv):  # The script an interpreter runs (first non-option wo
     return None
 
 
-def trusted_script(argv, cwd):  # A document script at its fixed path, a listed read-only tool, or the `--self-test` of a guard script, only while the file is exactly the one on origin/main.
-    script = script_operand(argv) if INTERPRETER.match(name_of(argv[0])) else None
-    if script is None or NO_TRUST:
-        return False
+def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered entry (interpreter, script, one of its forms) whose script, closure and read directories are origin/main's, else None.
+    try:
+        argv = None if SHELL_META.search(text) or re.search(r"[#\r\\]", text) else shlex.split(text)
+    except ValueError:
+        return None
     global ANCHOR
-    ANCHOR = ANCHOR or trust_root(ROOTS[0]) or os.devnull
-    full = script if os.path.isabs(script) else os.path.join(cwd or os.getcwd(), script)
-    full = full if os.path.isfile(full) else os.path.join(ANCHOR, script)
-    rel = rel_of(full) if all_as_on_main([full]) else None  # the script itself first: one git call pair
-    if rel is None:
-        return False
-    tools, dirs = readonly_tools()
-    if not (rel in tools or rel in DOC_SCRIPTS or (rel.startswith(GUARD_DIRS) and rel.endswith(".py") and argv[argv.index(script) + 1:] == ["--self-test"])):
-        return False
-    loaded, read = closure(full), [tree_files(d) for d in dirs] if rel in tools else []  # what it imports or runs, and for an evidence tool the directories it reads (SQL, Java), must be main's too
-    return loaded is not None and None not in read and all_as_on_main(sorted(loaded) + [f for files in read for f in files])
+    ANCHOR, words = ANCHOR or trust_root(ROOTS[0]) or os.devnull, [os.path.expanduser(w) for w in argv or []]  # `~/` as the shell expands it
+    entries, slots = trusted_entries()
+    for entry in entries:
+        script, n = os.path.join(ANCHOR, DOCS_ROOT, entry["script"]), len(entry.get("interpreter", []))
+        if not n or len(words) <= n or words[:n] != [os.path.expanduser(w) for w in entry["interpreter"]] or os.path.realpath(os.path.join(cwd or os.getcwd(), words[n])) != os.path.realpath(script):
+            continue
+        read = [tree_files(DOCS_ROOT + "/" + d) for d in entry.get("trust_dirs", []) if isinstance(d, str) and ".." not in d]
+        loaded = closure(script) if any(form_matches(words[n + 1:], f, slots) for f in entry.get("forms", [])) and None not in read else None
+        if loaded is not None and all_as_on_main([script] + sorted(loaded) + [f for files in read for f in files]):
+            return argv
+    return None
+
+
+def trusted_script(argv, cwd):  # The command is the line judge() found to be a registered entry.
+    return TRUSTED_LINE is not None and argv == TRUSTED_LINE
 
 
 def body_is_judged_separately(command):  # A shell whose program is a `-c` string, an eval argument, a heredoc or a here-string: that body is a command of its own in the list.
@@ -1116,26 +1118,14 @@ def stdin_texts_for(index, command, commands, text):  # Statement texts a comman
     return texts
 
 
-def trusted_line(text, commands, environ):  # The only line a trusted script runs on: one plain command (no separator, wrapper, keyword, assignment, expansion, redirection) whose interpreter is /usr/bin/python3 (system-protected), no other PYTHON* in the environment, no .pth in the user site.
-    if len(commands) != 1 or SHELL_META.search(text) or re.search(r"[#\r]", text) or any(k.startswith("PYTHON") and k not in HARMLESS_PYTHON_ENV for k in environ):
-        return False
-    argv, first = commands[0].argv, (text.split(None, 1) or [""])[0]  # the line's own first word, unquoted: a wrapper, keyword or quoting before the interpreter differs
-    exe = argv[0] if "/" in argv[0] else shutil.which(argv[0], path=environ.get("PATH", os.defpath))
-    options = argv[1:next((i for i, t in enumerate(argv) if i and not t.startswith("-")), len(argv))]  # before the script: only those that load nothing else (-X pycache_prefix, -W … do)
-    if commands[0].env or commands[0].unresolved or first != argv[0] or not exe or not os.path.realpath(exe).startswith("/usr/bin/python3") or not set(options) <= {"-I", "-E", "-s", "-B", "-u"}:
-        return False
-    user = site.getusersitepackages()  # what site runs before any script: .pth files (dotted ones too), usercustomize, sitecustomize
-    return not any(n.endswith(".pth") or n.split(".")[0] in ("usercustomize", "sitecustomize") for n in (os.listdir(user) if os.path.isdir(user) else []))
-
-
 def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refusal text or None.
-    global NO_TRUST
-    environ, NO_TRUST = os.environ if environ is None else environ, True
+    global TRUSTED_LINE
+    environ, TRUSTED_LINE = os.environ if environ is None else environ, None
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
     try:
         commands = simple_commands(command_text)
-        NO_TRUST = not trusted_line(command_text, commands, environ)
+        TRUSTED_LINE = trusted_entry(command_text, cwd) if len(commands) == 1 and INTERPRETER.match(name_of(commands[0].argv[0])) and could_concern(plain(command_text)) else None
     except ValueError:
         if raw_hit or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE):
             return "命令读不懂（引号未闭合、嵌套过深等）且含生产特征或 psql／ssh／aliyun 等远程工具，无法确认不是连生产的写操作，拒绝。"
@@ -1193,7 +1183,8 @@ def launch_command(tool_input, cwd):  # (the command preview_start runs for its 
         return None, None if isinstance(tool_input, dict) else "生产写门：preview_start 的钩子输入不是对象，无法判断，按拒绝处理。\n"
     def line(root):  # runtimeExecutable runtimeArgs program args, else node program args; env before, its cwd as a `cd` first (a script is then not trusted)
         text = Path(root, ".claude", "launch.json").read_text(encoding="utf-8").replace("${workspaceFolder}", json.dumps(str(root))[1:-1])  # the app's substitution
-        matching = [c for c in json.loads(text)["configurations"] if isinstance(c, dict) and str(c.get("name", "")).lower() == str(name).lower()]  # the app matches names ignoring case
+        configs = json.loads(text)["configurations"]
+        matching = [c for c in configs if str(c.get("name") or "").lower() == str(name).lower()] if all(isinstance(c, dict) and isinstance(c.get("name"), str) and c["name"] for c in configs) else []  # the app matches names ignoring case and derives one for an unnamed entry: then which runs cannot be seen
         entry = matching[0] if len(matching) == 1 and "${" not in json.dumps(matching[0]) else {}  # two candidates, or a variable left: which one runs cannot be seen
         run = [str(entry["runtimeExecutable"]), *map(str, entry.get("runtimeArgs") or [])] + ([str(entry["program"])] if entry.get("program") else []) if entry.get("runtimeExecutable") else ["node", str(entry["program"])]
         run += [str(a) for a in entry.get("args") or []]

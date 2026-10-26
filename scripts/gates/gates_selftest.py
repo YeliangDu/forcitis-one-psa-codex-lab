@@ -23,7 +23,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import pre_tool_dispatch as d  # noqa: E402
 import prod_write_gate as g  # noqa: E402
-from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, LAUNCH_TOOL, EXTRA_READONLY, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, heredoc_bodies, judge, load_table, mask_sql, name_of, plain, simple_commands, tokens_of)  # noqa: E402
+from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, LAUNCH_TOOL, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, heredoc_bodies, judge, load_table, mask_sql, name_of, plain, simple_commands, tokens_of)  # noqa: E402
 
 PYTHON = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
 
@@ -170,7 +170,7 @@ def gate_self_test():
                     f"scp ops@{P}:/var/log/a.log ./a.log", f"rsync -a ops@{P}:/data/ ./data/", f"rsync -a -e 'ssh -p 22' ops@{P}:/data/ ./data/",
                     f"curl https://{P}/health", f"curl -X GET https://db.prod.example.com/x", f"curl -XGET https://db.prod.example.com/x", f"curl -sS -o out.json https://db.prod.example.com/x", f"wget https://db.prod.example.com/x",
                     "git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md", "cat <<'EOF' > n.md\npgm-prod0001\nEOF",
-                    f"python3 -I {intent} 'x pgm-prod0001'", "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs", "python3 clean.py", "bash -c 'echo hi'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"",
+                    "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs", "python3 clean.py", "bash -c 'echo hi'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"",
                     "curl -X POST http://localhost:$PORT/api", 'curl -s -d "$BODY" http://localhost:8080/api', "psql -h localhost -c 'DO $$ begin null; end $$'", "psql -h localhost -c 'select 1' && curl http://localhost:$PORT", "ls $HOME",
                     "cat <<EOF\nplain text pgm-prod0001\nEOF", "echo 'cost $5 for pgm-prod0001'"):
         assert allowed(command), f"must pass: {command!r}"
@@ -255,6 +255,10 @@ def gate_self_test():
     finally:
         g.load_table = real_load
     assert refused(f"curl https://{P}/a#b -X DELETE") and refused(f"curl https://{P}/a#b --data x=1"), "a `#` inside a word is no comment (bash): the rest of the command still counts (796bf2c85 final M1)"
+    for command in (f"ls # it's\npsql -h {P} -c 'delete from t' # it's", f"ls # it's\npsql -h {P} -c 'delete from t'", f"echo x # \"\ncurl -X DELETE https://{P}/a", f"(ls)#it's\npsql -h {P} -c 'delete from t'", f"(ls)# <<EOF\npsql -h {P} -c 'delete from t'"):
+        assert refused(command), ("a comment (after a blank or `( ) < >`) is dropped: its quotes or `<<` do not swallow the next line (69af6c8da final M1-M2)", command)
+    assert allowed(f"ssh {P} uptime # can't"), "a quote inside a comment is no quote"
+    assert refused("(ls)#it's\npsql -c 'delete from t' #it's", environ={"PGHOST": P}), "a comment right after `)`: the target from the environment, the write on the next line"
     # 6. secrets (bottom line 3) and the environment
     for command in ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"):
         assert refused(command), command
@@ -264,7 +268,7 @@ def gate_self_test():
     # 7. table missing or broken: writes are refused, reads pass, interpreters are refused, nothing is silently opened
     assert refused('psql -h localhost -c "insert into t values (1)"', None, "生产特征表缺失") and allowed('psql -h x -c "select 1"', None, "生产特征表缺失")
     assert refused("aliyun rds DeleteAccount --DBInstanceId x", None, "生产特征表缺失") and allowed("ls -la", None, "生产特征表缺失") and refused("python3 clean.py", None, "生产特征表缺失")
-    assert refused("python3 -c 'print(1)'", None, "生产特征表缺失") and allowed("mvn -q test", None, "生产特征表缺失") and allowed(f"python3 -I {intent} x", None, "生产特征表缺失")
+    assert refused("python3 -c 'print(1)'", None, "生产特征表缺失") and allowed("mvn -q test", None, "生产特征表缺失") and refused(f"python3 -I {intent} x", None, "生产特征表缺失")
     assert allowed("psql -h pgm-prod0001 -c 'delete from t'", []), "judge itself: an empty list refuses nothing (load_table turns an empty union into a problem, below)"
     # 7b. the local table empty and origin/main unreadable (git fails) or without a table: a problem, so writes and interpreters are refused, reads pass (O2 review, M2)
     with tempfile.TemporaryDirectory() as tmp:
@@ -300,33 +304,26 @@ def gate_self_test():
     for path in (os.path.join(HERE, "prod_write_gate.py"), os.path.join(HERE, "gates_selftest.py"), os.path.join(HOOKS, "command_words.py"), os.path.join(HERE, "pre_tool_dispatch.py"), os.path.join(HERE, "main_checkout_gate.py")):
         assert allowed(f"python3 -I {path} --self-test", real), path
     assert refused(f"python3 -I {os.path.join(HERE, 'prod_write_gate.py')} -c 'x' {P}")
-    # 9. a script is trusted only while it is exactly the file on origin/main (opus round 2, item 2); the sources below mention the pattern "simple_commands"
-    real_main_blob, mine = g.main_blobs, ["simple_commands"]
+    assert refused(f"python3 -I {intent} 'x pgm-prod0001'"), "new_intent.py is no registered entry (intent 2026-10-26-132048): a production sample in its text is refused"
+    # 9. trusted only as a registered entry (origin/main's trusted_entries), written exactly in one of its forms, while the script is the file on origin/main; new_intent mentions "import"
+    real_main_blob, real_entries, mine = g.main_blobs, g.trusted_entries, ["import"]
     try:
-        tool_script = os.path.join(HERE, "prod_write_gate.py")
-        selftest = f"python3 -I {tool_script} --self-test"
+        entry = {"script": "new_intent.py", "interpreter": ["python3", "-I"], "forms": [["{name}"]]}
+        g.trusted_entries = lambda: ([entry], {"name": re.compile(r"[a-z]{1,9}")})
         g.main_blobs = lambda rels: {}
-        assert refused(selftest, mine), "not on origin/main: not trusted, and its text mentions the pattern"
+        assert refused(f"python3 -I {intent} x", mine), "not on origin/main: not trusted, and its text mentions the pattern"
         g.main_blobs = as_main
-        assert allowed(selftest, mine), "the same content as origin/main: the guard's own --self-test"
-        assert refused(f"python3 -I {tool_script} --instance x", mine), "only --self-test, no other arguments"
+        assert allowed(f"python3 -I {intent} x", mine), "registered, written in its form, unchanged"
+        assert refused(f"python3 -I {intent} x y", mine) and refused(f"python3 -I {intent} X", mine) and refused(f"python3 {intent} x", mine), "only a registered form: argument count, slot pattern, interpreter options"
         g.main_blobs = lambda rels: {rel: "0" * 40 for rel in rels}
-        assert refused(selftest, mine), "an edited file (content differs from origin/main) is not trusted"
-        # read-only evidence tools and the document scripts: a fixed path, and again only the main content
-        EXTRA_READONLY.add("scripts/gates/prod_write_gate.py")
-        assert refused(f"python3 -I {tool_script} --instance x", mine), "listed, but edited"
+        assert refused(f"python3 -I {intent} x", mine), "an edited file (content differs from origin/main) is not trusted"
         g.main_blobs = as_main
-        assert allowed(f"python3 -I {tool_script} --instance x", mine), "listed and unchanged"
-        EXTRA_READONLY.discard("scripts/gates/prod_write_gate.py")
-        assert refused(f"python3 -I {tool_script} --instance x", mine), "not listed"
         Path(cwd, "new_intent.py").write_text("import os\n", encoding="utf-8")
-        assert allowed(f"python3 -I {intent} x", ["import"]) and refused(f"python3 -I {cwd}/new_intent.py x", ["import"]) and refused("python3 new_intent.py x", ["import"]), "new_intent.py is trusted at its own path only, not the same name elsewhere"
-        # a new, staged guard script is not on origin/main
-        g.main_blobs = lambda rels: {}
-        assert refused(f"python3 -I {intent} x", ["import"]), "new_intent.py not on origin/main"
+        assert refused(f"python3 -I {cwd}/new_intent.py x", mine) and refused("python3 -I new_intent.py x", mine), "the registered path only, not the same name elsewhere"
+        g.trusted_entries = lambda: ([], {})
+        assert refused(f"python3 -I {intent} x", mine), "not registered"
     finally:
-        g.main_blobs = real_main_blob
-        EXTRA_READONLY.discard("scripts/gates/prod_write_gate.py")
+        g.main_blobs, g.trusted_entries = real_main_blob, real_entries
     for command in (f"git tag -f origin/main HEAD && echo {P}", f"git update-ref refs/remotes/origin/main HEAD; echo {P}", f"git grep -nO'sqlcmd -S {P}' foo", f"git grep -inOx {P} foo"):
         assert refused(command), f"origin/main must not be rewritable, -O in a bundle: {command!r}"
     assert "refs/remotes/origin/main" in inspect.getsource(real_blobs) and "refs/remotes/origin/main" in inspect.getsource(g.main_table_text), "the trust anchor is read by its full ref name, a tag called origin/main cannot shadow it"
@@ -442,9 +439,12 @@ def layout_self_test():
         found = sum(1 for v in folded if v in text)
         assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
     # what a trusted script loads or is compared with decides whether the gate lets it pass: every such file needs the opus final review (K18 follow-up, a3be80fcd final suggestion 1)
-    final, (tools, _) = json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["review"]["final_paths"], g.readonly_tools()
-    loaded = {os.path.relpath(f, ROOT) for script in sorted(g.DOC_SCRIPTS | tools) for f in g.closure(os.path.join(ROOT, script)) or [os.path.join(ROOT, script)] if os.path.exists(f)}
-    assert all(rel.startswith(tuple(final)) for rel in loaded), ("files a trusted script loads, missing from policy.json review.final_paths", sorted(r for r in loaded if not r.startswith(tuple(final))))
+    final, entries = json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["review"]["final_paths"], json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["entries"]
+    scripts = [os.path.join(ROOT, DOCS_ROOT, e["script"]) for e in entries]
+    assert all(g.closure(s) is not None for s in scripts), "every registered entry's closure can be read"
+    loaded = {os.path.relpath(f, ROOT) for s in scripts for f in g.closure(s) | {s} if os.path.exists(f)} | {f"{DOCS_ROOT}/{d}" for e in entries for d in e["trust_dirs"]}
+    assert all(rel.startswith(tuple(final)) for rel in loaded), ("files a trusted entry loads or reads, missing from policy.json review.final_paths", sorted(r for r in loaded if not r.startswith(tuple(final))))
+    assert all("-I" in e["interpreter"] and os.path.isabs(os.path.expanduser(e["interpreter"][0])) for e in entries), "an entry pins its interpreter by path and runs it isolated (-I: no PYTHON* variables, no user site)"
     print("prod_write_gate layout: ok")
 
 def trust_self_test():
@@ -459,11 +459,15 @@ def trust_self_test():
     with tempfile.TemporaryDirectory() as tmp:
         tmp = os.path.realpath(tmp)
         main, work, forged, other, loose = (os.path.join(tmp, n) for n in ("M", "W", "F", "T", "N"))
-        tools = {"base": "t/tools/", "files": ["scan.py"], "trust_dirs": ["t/sql/"]}
+        # the registered entries of the temporary repositories' origin/main table: the document script, the register script, a read-only tool reading t/sql/
+        entries = [{"script": "new_intent.py", "interpreter": ["python3"], "forms": [[]]},
+                   {"script": "phase1a/infra/new_legacy_read.py", "interpreter": ["python3"], "forms": [["--session={name}"] + ["{text}"] * 6, ["{text}"]]},
+                   {"script": "t/tools/scan.py", "interpreter": ["python3"], "forms": [["{text}"]], "trust_dirs": ["t/sql/"]}]
+        tools = {"slots": {"name": "[a-z]{1,9}", "text": "[^$;|&#'\"]{1,60}"}, "entries": entries}
         built = DOCS_ROOT + "/adr/b.py"  # a script the document script spells by path (as build_records runs adr/build_adrs.py)
         body = {doc: f"import os, json\nB = os.path.join('x', 'adr', 'b.py')\nos.system(\"psql -h {fake} -c 'delete from t'\")\n", legacy: "print('register')\n",
                 register: "print('built')\n", built: "x = 1\n", tool: "from lib import helper\n", helper: "x = 1\n", sql: "select 1\n",
-                "scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "fake", "patterns": [fake]}], "readonly_tools": tools})}
+                "scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "fake", "patterns": [fake]}], "trusted_entries": tools})}
         mkrepo(main, body)
         mkrepo(forged, body)
         put(os.path.join(loose, doc), body[doc], 0o644)  # the same file in a directory that is no repository
@@ -508,7 +512,7 @@ def trust_self_test():
                  (lambda: None, f"python3 -X pycache_prefix=/tmp {doc}", 2, "-X pycache_prefix"), (lambda: None, f"cd {main} && {run_doc}", 2, "a relative script after cd"),
                  (lambda: None, f"{{ cd {main}; {run_doc}; }}", 2, "cd in a group (905ad6209 review)"), (lambda: None, f"command {run_doc}", 2, "a wrapper before the interpreter"),
                  (lambda: None, f"env -C {main} {run_doc}", 2, "env -C"), (lambda: None, f"PATH={tmp}/bin:/usr/bin {run_doc}", 2, "PATH on the line"),
-                 (lambda: put(os.path.join(tmp, "bin/python3"), "#!/bin/sh\necho FAKE\n"), f"{tmp}/bin/python3 {doc}", 2, "an interpreter that is not /usr/bin/python3"),
+                 (lambda: put(os.path.join(tmp, "bin/python3"), "#!/bin/sh\necho FAKE\n"), f"{tmp}/bin/python3 {doc}", 2, "another interpreter than the registered one"),
                  (lambda: put(os.path.join(work, doc + "#x"), body[doc]), f"python3 {doc}#x", 2, "a `#` inside the word: bash runs new_intent.py#x (796bf2c85 final M1)"),
                  (lambda: put(os.path.join(work, doc + "\r"), body[doc]), f"python3 {doc}\r", 2, "a carriage return: bash runs new_intent.py\\r"))
         for setup, run, code, why in loads:
@@ -516,15 +520,8 @@ def trust_self_test():
             assert hook(run, work, main) == code, why
             gitc(work, "checkout", "-q", "--", ".")
             gitc(work, "clean", "-fdqx")
-        redirected = f"python3 {doc} > out"
-        assert not g.trusted_line("", [], {}) and not g.trusted_line(redirected, simple_commands(redirected), {"PATH": "/usr/bin"}), "one plain command only (an empty line does not crash)"
-        home = os.path.join(tmp, "home")  # what site runs before the script, from the user site of /usr/bin/python3 (796bf2c85 final M2); never the real ~/Library/Python
-        user = subprocess.run([sys.executable, "-c", "import site; print(site.getusersitepackages())"], env={"HOME": home}, capture_output=True, text=True).stdout.strip()
-        for name, code in (("pkg/__init__.py", 0), ("usercustomize.py", 2), (".x.pth", 2), ("sitecustomize.pyc", 2)):
-            put(os.path.join(user, name), "", 0o644)
-            assert hook(run_doc, work, main, HOME=home) == code, ("the user site holds", name)
-            os.remove(os.path.join(user, name))
-        assert hook(run_doc, work, main, PYTHONEXECUTABLE="/tmp/x") == 2 and hook(run_doc, work, main, PYTHONDONTWRITEBYTECODE="1") == 0, "PYTHON* in the environment, but for the harmless ones"
+        # PYTHON* variables, the user site, PATH: no longer judged by the gate; an entry runs its pinned interpreter with -I (-S when it needs no site), checked on the shipped table (layout)
+        assert g.trusted_entry("", tmp) is None and g.trusted_entry(f"python3 {doc} > out", tmp) is None, "an empty line, a redirection: no entry (an empty line does not crash)"
         assert hook(run_doc, loose, main, tool=COMMAND_TOOLS[2], where=work) == 0 and hook(run_doc, loose, main, tool=COMMAND_TOOLS[2]) == 2, "the terminal panel: its own cwd"
         # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
         shifted = forged + "\nx"
@@ -589,16 +586,15 @@ def pre_tool_dispatch_test():
                    {"name": "cwdpy", "runtimeExecutable": "/usr/bin/python3", "runtimeArgs": [os.path.join(ROOT, DOCS_ROOT, "new_intent.py"), PROD_H], "cwd": "sub"}, {"name": "var", "runtimeExecutable": "npm", "runtimeArgs": ["${env:X}"]}]
         put(os.path.join(launch, ".claude", "launch.json"), json.dumps({"configurations": configs}), 0o644)
         put(os.path.join(other, ".claude", "launch.json"), json.dumps({"configurations": [{"name": "w", "runtimeExecutable": "npm"}]}), 0o644)
+        put(os.path.join(other, "unnamed", ".claude", "launch.json"), json.dumps({"configurations": [{"runtimeExecutable": "psql", "runtimeArgs": ["-h", PROD_H]}, {"name": "ok", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"]}]}), 0o644)
         saved, os.environ["CLAUDE_PROJECT_DIR"] = os.environ.get("CLAUDE_PROJECT_DIR"), launch  # the app reads the session's working directory
-        real_blobs = g.main_blobs  # this repository read as origin/main's, so that only the configuration's cwd keeps new_intent from being trusted ("cwdpy")
-        g.main_blobs = lambda rels: {r: subprocess.run(["git", "-C", ROOT, "hash-object", os.path.join(ROOT, r)], capture_output=True, text=True).stdout.strip() for r in rels}
         for tool_input, where, code in (({"name": "w"}, launch, 2), ({"name": "ok"}, launch, 0), ({"url": "http://localhost:3000"}, launch, 0), ({"name": "missing"}, launch, 2),
                                         ({"name": "args"}, launch, 2), ({"name": "prog"}, launch, 2), ({"name": "w"}, other, 2), ({"name": "ok"}, other, 2), ({"name": "W"}, launch, 2),
                                         ({"name": "envw"}, launch, 2), ({"name": "twice"}, launch, 2), ({"name": "cwdpy"}, launch, 2), ({"name": "var"}, launch, 2)):  # other: a second launch.json disagrees or lacks the name; W: case ignored as the app does
             assert d.dispatch(json.dumps({"tool_name": LAUNCH_TOOL, "tool_input": tool_input, "cwd": where}))[0] == code, (tool_input, where)
+        assert g.launch_command({"name": "ok"}, os.path.join(other, "unnamed"))[0] is None, "an unnamed entry: the app derives its name, so which one runs cannot be seen (69af6c8da review M2)"
         assert g.launch_command({"name": "cwdpy"}, launch)[0].startswith("cd sub && "), "the configuration's cwd runs first: a relative script there is another file"
         os.environ.pop("CLAUDE_PROJECT_DIR") if saved is None else os.environ.update(CLAUDE_PROJECT_DIR=saved)
-        g.main_blobs = real_blobs
     monitor_ws = json.dumps({"tool_name": "Monitor", "tool_input": {"ws": {"url": "wss://x.example.invalid"}, "description": "d", "timeout_ms": 1000}})  # runs no command
     for raw in (monitor_ws, json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}), json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}}),
                 json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})):
@@ -992,9 +988,10 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     # 2b. no CLAUDE_PROJECT_DIR: the working directory is no repository root for the installed gate, so a forged repository whose origin/main holds a
     #     script cannot make it trusted (O7 final M3); the forged script names a fictitious host that is on a fictitious local table
     forged, table = os.path.join(tmp, "forged"), os.path.join(tmp, "fake_targets.json")
-    doc_script = "docs" + "/" + "modernization/new_intent.py"  # one of the gate's DOC_SCRIPTS; built, not spelled (relevant_change.py scans sources for literal docs paths)
+    doc_script = "docs" + "/" + "modernization/new_intent.py"  # registered as an entry on the forged repository's origin/main; built, not spelled (relevant_change.py scans sources for literal docs paths)
     put(table, json.dumps({"targets": [{"id": "fake", "patterns": [FAKE]}]}), 0o644)
-    mkrepo(forged, {doc_script: f"import os\nos.system(\"psql -h {FAKE} -c 'delete from t'\")\n"})
+    registered = {"targets": [{"id": "fake", "patterns": [FAKE]}], "trusted_entries": {"entries": [{"script": "new_intent.py", "interpreter": ["python3"], "forms": [[]]}]}}  # on its origin/main
+    mkrepo(forged, {doc_script: f"import os\nos.system(\"psql -h {FAKE} -c 'delete from t'\")\n", "scripts/gates/prod_targets.json": json.dumps(registered)})
     for shell in SHELLS:
         for project in (None, ""):
             r = mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {"command": "python3 " + doc_script}, "cwd": forged}), shell, CLAUDE_PROJECT_DIR=project, PROD_TARGETS_FILE=table, cwd=forged)

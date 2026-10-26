@@ -43,15 +43,98 @@
       "note": "新系统生产命名（库、角色前缀、OOS 参数）；实例建成后 one-ops 补实例 ID 与端点"
     }
   ],
-  "readonly_tools": {
+  "trusted_entries": {
     "owner": "one-ops",
-    "note": "路径 = docs 根（docs 下的 modernization 目录）+ base + files。只登记整支都只读的入口（阿里云 Python SDK ecs.run_command，命令名 one-ops-b5，目标仅旧系统应用服务器，只用三个只读账号）；b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。脚本内容须与 origin/main 上逐字节一致才算可信。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。出自 one-ops 的生产特征表第五节。trust_dirs 是这些工具读取的目录（SQL、Java 等），其下文件连同工具导入的模块都须与 origin/main 一致才算可信（二甲首批①）。",
-    "files": [
-      "b5_evidence_scan.py",
-      "c14_orphan_check.py",
-      "c14_u8c_status.py"
-    ],
-    "base": "phase1a/infra/handoff/B-5-dba/tools/",
-    "trust_dirs": ["phase1a/infra/handoff/B-5-dba/"]
+    "note": "可信入口（intent 2026-10-26-132048「收窄可信机制」）：门只读 origin/main 上这一节；整行须等于 interpreter + script + forms 之一，{类} 的值按 slots 全匹配；script、它的导入链与同目录可导入文件、trust_dirs 下全部文件须与 origin/main 逐字节一致。路径 = docs 根（docs 下的 modernization 目录）+ script / trust_dirs。interpreter 写死：只用标准库的入口用 /usr/bin/python3 -I -S；要阿里云 SDK 的取证工具用 ops-venv 的 python -I。只登记整支都只读的取证入口与登记脚本：b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。",
+    "slots": {
+      "name": "[A-Za-z0-9._-]{1,64}",
+      "date": "[0-9]{4}-[0-9]{2}-[0-9]{2}",
+      "file": "(?!.*\\.\\.)[A-Za-z0-9._/-]{1,200}",
+      "text": "[^\\x00-\\x1f\\x7f$`\\\\'\"#;&|<>(){}]{1,400}"
+    },
+    "entries": [
+      {
+        "id": "legacy-read",
+        "script": "phase1a/infra/new_legacy_read.py",
+        "interpreter": [
+          "/usr/bin/python3",
+          "-I",
+          "-S"
+        ],
+        "forms": [
+          [
+            "--session={name}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}"
+          ],
+          [
+            "--session={name}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "--date={date}"
+          ]
+        ],
+        "trust_dirs": []
+      },
+      {
+        "id": "b5-evidence-scan",
+        "script": "phase1a/infra/handoff/B-5-dba/tools/b5_evidence_scan.py",
+        "interpreter": [
+          "~/.modernize/psa/ops-venv/bin/python",
+          "-I"
+        ],
+        "forms": [
+          [
+            "{file}"
+          ],
+          [
+            "{file}",
+            "{file}"
+          ]
+        ],
+        "trust_dirs": [
+          "phase1a/infra/handoff/B-5-dba/",
+          "phase1a/infra/runbooks/scripts/"
+        ]
+      },
+      {
+        "id": "c14-orphan-check",
+        "script": "phase1a/infra/handoff/B-5-dba/tools/c14_orphan_check.py",
+        "interpreter": [
+          "~/.modernize/psa/ops-venv/bin/python",
+          "-I"
+        ],
+        "forms": [
+          []
+        ],
+        "trust_dirs": [
+          "phase1a/infra/handoff/B-5-dba/",
+          "phase1a/infra/runbooks/scripts/"
+        ]
+      },
+      {
+        "id": "c14-u8c-status",
+        "script": "phase1a/infra/handoff/B-5-dba/tools/c14_u8c_status.py",
+        "interpreter": [
+          "~/.modernize/psa/ops-venv/bin/python",
+          "-I"
+        ],
+        "forms": [
+          []
+        ],
+        "trust_dirs": [
+          "phase1a/infra/handoff/B-5-dba/",
+          "phase1a/infra/runbooks/scripts/"
+        ]
+      }
+    ]
   }
 }
