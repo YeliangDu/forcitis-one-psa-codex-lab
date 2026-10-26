@@ -57,7 +57,7 @@
   ],
   "trusted_entries": {
     "owner": "one-ops",
-    "note": "可信入口（intent 2026-10-26-132048「收窄可信机制」）：门只读 origin/main 上这一节；整行须等于 interpreter + script + forms 之一，{类} 的值按 slots 全匹配；script、它的导入链与同目录可导入文件、trust_dirs 下全部文件须与 origin/main 逐字节一致。路径 = docs 根（docs 下的 modernization 目录）+ script / trust_dirs。interpreter 写死：只用标准库的入口用 /usr/bin/python3 -I -S；要阿里云 SDK 的取证工具用 ops-venv 的 python -I。表里的 ~/ 由门按自己的 HOME 展开，命令里须写出绝对路径（门不展开命令里的 ~，带引号或改过 HOME 的 ~ 都不算）。只登记整支都只读的取证入口与登记脚本：b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。",
+    "note": "可信入口（intent 2026-10-26-132048「收窄可信机制」）：门只读 origin/main 上这一节；整行须等于 interpreter + script + forms 之一，{类} 的值按 slots 全匹配；script、它的导入链与同目录可导入文件、trust_dirs 下全部文件须与 origin/main 逐字节一致。路径 = docs 根（docs 下的 modernization 目录）+ script / trust_dirs。interpreter 写死：只用标准库的入口用 /usr/bin/python3 -I -S；要阿里云 SDK 的取证工具用 ops-venv 的 python -I -S（-S 不处理 site-packages 里的 .pth，入口先校验 ops-venv 哈希锁，通过后才加载其 site-packages）。表里的 ~/ 由门按自己的 HOME 展开，命令里须写出绝对路径（门不展开命令里的 ~，带引号或改过 HOME 的 ~ 都不算）。只登记整支都只读的取证入口与登记脚本：b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。",
     "slots": {
       "name": "[A-Za-z0-9._-]{1,64}",
       "date": "[0-9]{4}-[0-9]{2}-[0-9]{2}",
@@ -102,7 +102,8 @@
         "script": "phase1a/infra/handoff/B-5-dba/tools/b5_evidence_scan.py",
         "interpreter": [
           "~/.modernize/psa/ops-venv/bin/python",
-          "-I"
+          "-I",
+          "-S"
         ],
         "forms": [
           [
@@ -123,7 +124,8 @@
         "script": "phase1a/infra/handoff/B-5-dba/tools/c14_orphan_check.py",
         "interpreter": [
           "~/.modernize/psa/ops-venv/bin/python",
-          "-I"
+          "-I",
+          "-S"
         ],
         "forms": [
           []
@@ -138,7 +140,8 @@
         "script": "phase1a/infra/handoff/B-5-dba/tools/c14_u8c_status.py",
         "interpreter": [
           "~/.modernize/psa/ops-venv/bin/python",
-          "-I"
+          "-I",
+          "-S"
         ],
         "forms": [
           []
