@@ -6,6 +6,7 @@
 - 远程工具（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie）名字出现即拒，只认 origin/main 特征表 remote_entries 登记的整行写法，登记写法碰到生产特征照样拒（intent 2026-10-26-160810）。
 - 行里任意位置有生产特征，或指向生产的目标环境变量（命令里设的、会话环境里的），整行拒绝，不再按「这个命令不连接」放行；变量拼接、花括号展开后才命中的同样拒绝（intent 2026-10-26-165321 A）。
 - 解释器、shell 跑文件（含 `./x` 这样按路径运行）：文件内容（≤256 KB 去引号读，更大的按字节读）不含生产特征才放行，读不了、超过 512 MB 或是目录按含特征算（同上 B）。
+- 行里有换目录（cd、pushd、popd，包装命令或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序：整行拒，不推算目录（intent 2026-10-26-164931）。
 - 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：远程工具与解释器拒绝，其余放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名、特征或目标环境变量拒绝。
 已知未覆盖（intent 2026-10-26-165321，复审不判必改）：脚本运行时做什么（运行时拼出或下载生产目标、从管道或标准输入读程序、解释器内联代码自己去连），门只看命令行与被运行的文件；兜底是生产只读账号（底线 4）。
@@ -40,7 +41,7 @@ VARIABLE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*
 SUBSTITUTION = re.compile(r"\$\(([^()]*)\)")
 SHORT_C = re.compile(r"-[A-Za-z]*c[A-Za-z]*")
 ECHOES = {"echo", "printf"}
-Command = collections.namedtuple("Command", "argv env unresolved redirected piped chdir", defaults=(False, ()))  # chdir: directories a wrapper option (`env -C`, `sudo -D`) runs it in
+Command = collections.namedtuple("Command", "argv env unresolved redirected piped chdir", defaults=(False, False))  # chdir: a wrapper option (`env -C`, `sudo -D`) changes its directory
 
 
 def decode_ansi_c(body):  # Text of a bash `$'...'` word, decoded byte-wise as bash does (\xHH, \NNN, \uHHHH, \UHHHHHHHH, \cX, one-letter escapes); a NUL ends it.
@@ -162,7 +163,7 @@ def expand(token, variables):  # (token with known variables substituted, True w
     return token, "$" in token
 
 
-def strip_prefix(seg, variables, chdir=None):  # (env of leading `NAME=value` words and wrapper options, rest of the segment): keywords and wrappers (env, nohup, sudo, timeout …) dropped, `env -S` split; their directory options added to `chdir`.
+def strip_prefix(seg, variables, chdir=None):  # (env of leading `NAME=value` words and wrapper options, rest of the segment): keywords and wrappers (env, nohup, sudo, timeout …; by path too) dropped, `env -S` split; a directory option of theirs noted in `chdir`.
     env, i, moved, chdir = {}, 0, [], [] if chdir is None else chdir
     while i < len(seg):
         tok = seg[i]
@@ -175,8 +176,8 @@ def strip_prefix(seg, variables, chdir=None):  # (env of leading `NAME=value` wo
         elif REDIRECTION.fullmatch(tok) or (tok.isdigit() and i + 1 < len(seg) and REDIRECTION.fullmatch(seg[i + 1])):
             step = 1 if tok.isdigit() else 2  # a redirection before the program (`>o ./deploy`): moved behind it, as bash reads it anywhere; its target still parsed (82f149d10 final M1)
             moved, i = moved + seg[i:i + step], i + step
-        elif tok.lower() in WRAPPERS:
-            valued, wrapper = WRAPPERS[tok.lower()], tok.lower()
+        elif name_of(tok) in WRAPPERS:
+            valued, wrapper = WRAPPERS[name_of(tok)], name_of(tok)
             i += 1
             while i < len(seg) and (seg[i].startswith("-") or ENV.match(seg[i]) or (wrapper == "timeout" and re.fullmatch(r"[0-9.]+[smhd]?", seg[i]))):
                 if wrapper == "env" and (seg[i] in ("-S", "--split-string") or (seg[i].startswith("-S") and len(seg[i]) > 2) or seg[i].startswith("--split-string=")):
@@ -190,8 +191,8 @@ def strip_prefix(seg, variables, chdir=None):  # (env of leading `NAME=value` wo
                 if ENV.match(seg[i]):
                     name, _, value = seg[i].partition("=")
                     env[name] = expand(restore(value), variables)[0]
-                if (wrapper, seg[i].split("=")[0]) in (("env", "-C"), ("env", "--chdir"), ("sudo", "-D"), ("sudo", "--chdir")) or (wrapper in ("env", "sudo") and re.match(r"-[CD].", seg[i])):
-                    chdir.append(expand(restore(seg[i + 1] if seg[i] in valued and i + 1 < len(seg) else seg[i].partition("=")[2] or seg[i][2:]), variables)[0])
+                if wrapper in ("env", "sudo") and (seg[i].startswith("--chdir") or (not seg[i].startswith("--") and ("C" if wrapper == "env" else "D") in seg[i][1:].split("=")[0])):
+                    chdir.append(True)  # `-C dir`, `-iC dir`, `--chdir=dir` (sudo: -D); where it leads is not worked out (intent 2026-10-26-164931)
                 i += 2 if seg[i] in valued else 1
         else:
             break
@@ -252,7 +253,7 @@ def simple_commands(command, depth=0, variables=None, exported=None, assigned=No
             for arg in argv[1:]:
                 variables.pop(arg, None)
                 exported.pop(arg, None)
-        out.append(Command(argv, {**exported, **env}, unresolved, any(REDIRECTION.fullmatch(t) for t in argv), piped, tuple(chdir)))
+        out.append(Command(argv, {**exported, **env}, unresolved, any(REDIRECTION.fullmatch(t) for t in argv), piped, bool(chdir)))
         if name in SHELLS:
             bodies = []
             if name == "eval":
@@ -289,14 +290,14 @@ SHORT_REMOTE = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(sorted(re.escape(t) fo
 INTERPRETERS = {"python", "node", "perl", "ruby", "php", "lua", "bash", "sh", "zsh", "dash", "ksh", "csh", "tcsh", "fish", "source", ".", "awk", "gawk", "nawk", "make", "gmake", "deno", "bun", "tclsh", "wish", "expect",
                 "osascript", "swift", "rscript", "r", "julia", "groovy", "pwsh", "elixir", "escript", "raku", "guile", "jshell", "kotlin", "scala", "ts-node", "tsx"}  # "python" stands for python3, python3.12 …
 RUNS_OTHERS = {"xargs", "find", "script", "parallel", "export", "source", "watch", "uv", "uvx", "npx", "pipx", "poetry", "bundle", "go", "npm", "pnpm", "yarn", "cargo", "dotnet", "java"}  # commands that run another command or carry its environment
-INTERPRETER = re.compile(r"^(?:(?:python|pypy)[0-9.]*|" + "|".join(re.escape(n) for n in sorted(INTERPRETERS - {"python"})) + r")$")
+INTERPRETER = re.compile(r"^(?:python|pypy|" + "|".join(re.escape(n) for n in sorted(INTERPRETERS - {"python"})) + r")(?:-?[0-9][0-9.]*)?$")  # versioned names too: python3.12, perl5.34, tclsh8.6
 REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:(?:python|pypy)[0-9.]*|" + "|".join(re.escape(n) for n in sorted((REMOTE_TOOLS | SHELLS | INTERPRETERS | RUNS_OTHERS) - {"python", "."}))
-                         + r")(?![A-Za-z0-9_-])|(?:^|[\s;&|(])\.\s")  # the pre-filter's names come from these sets only, plus `. file`
+                         + r")(?:-?[0-9][0-9.]*)?(?![A-Za-z0-9_-])|(?:^|[\s;&|(])\.\s")  # the pre-filter's names come from these sets only, plus `. file`
 SHELL_HEADS = {"for", "case", "select", "function", "in"}  # `for f in a b` is a loop head; substitutions inside it are commands of their own
 
 ENV_TARGET_VARS = ("PGHOST", "PGSERVICE", "PGDATABASE", "PGUSER", "PGHOSTADDR", "SQLCMDSERVER", "SQLCMDDBNAME", "SQLCMDUSER", "MYSQL_HOST", "DATABASE_URL", "MONGODB_URI", "REDIS_URL", "ALIBABA_CLOUD_PROFILE")
 MAX_SCRIPT_FILE, MAX_RUN_FILE, CHUNK = 262144, 1 << 29, 1 << 23  # a file run is read quote-free up to the first, by bytes (in chunks) up to the second
-SCRIPT_NAME = re.compile(r"/|\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|lua|awk|mk|tcl|scpt)$|^(?:GNUmakefile|[Mm]akefile)$")  # a word that names a file to run, when where it lies cannot be known
+DIR_OPTION = re.compile(r"--(?:chdir|directory|dir|cwd|prefix|working-directory|manifest-path|project)(?:=|$)|-[A-Za-z]*C[A-Za-z]*$")  # a runner\'s own option to work in another directory (make -C, pnpm -C, npm --prefix, uv --directory …)
 MAKEFILES = ("GNUmakefile", "makefile", "Makefile")
 CHDIR = {"cd", "pushd", "popd"}
 COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name these and LAUNCH_TOOL
@@ -643,13 +644,11 @@ def shebang(full):  # A file that names its own interpreter (`#!`): any command 
         return True
 
 
-def runs_file(command, patterns, dirs, known):  # The command runs a file (or package) that mentions production: an interpreter's or a runner's every file word, any command's executable file words; each looked up in every directory the line may be in (`dirs`), unreadable counting; with `known` false a script-like word found nowhere counts too.
+def runs_file(command, patterns, cwd):  # The command runs a file (or package) that mentions production: an interpreter's or a runner's every file word, any command's executable or `#!` file words, in the hook's directory; unreadable counts.
     argv, tool = command.argv, name_of(command.argv[0])
     runner = bool(INTERPRETER.match(tool)) or any(INTERPRETER.match(name_of(w)) or name_of(w) in RUNS_OTHERS for w in argv)
     for word in map(os.path.expanduser, candidates(argv)):  # `~/x` as the shell expands it unquoted (a quoted one is checked too: fail closed)
-        found = [f for f in ([word] if os.path.isabs(word) else [os.path.join(d, word) for d in dirs]) if os.path.lexists(f)]
-        if not found and not known and not os.path.isabs(word) and SCRIPT_NAME.search(word) and (runner or word == argv[0]):
-            return True
+        found = [f for f in [os.path.join(cwd or os.getcwd(), word)] if os.path.lexists(f)]  # no directory change on the line (judge refuses those): the hook's directory
         for full in found:
             if os.path.isdir(full):
                 if INTERPRETER.match(tool):  # python runs a package's __main__, make -C a directory's makefile
@@ -687,17 +686,13 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     if (raw_hit or env_hit or (patterns and text_hits(assigned, patterns))) and TRUSTED_LINE is None:
         return ("拒绝：命令里有生产特征，或指向生产的目标环境变量（命令里设的或会话环境里的），整行拒绝，不论哪个命令（intent 2026-10-26-165321）。CLAUDE.md 底线 4：不做生产写操作；"
                 "生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口（单独一条命令、按登记的写法运行）。会话环境里的目标变量请清掉后重开会话。")
-    dirs, known = [cwd or os.getcwd()], True  # every directory the line may be in: the hook's, then each `cd` target (a subshell's may end); one that cannot be read makes `known` false
+    runner = lambda c: bool(INTERPRETER.match(name_of(c.argv[0])) or "/" in c.argv[0] or any(INTERPRETER.match(name_of(w)) or name_of(w) in RUNS_OTHERS for w in c.argv))  # noqa: E731
+    moves = any(name_of(c.argv[0]) in CHDIR or c.chdir or (runner(c) and any(DIR_OPTION.match(w) for w in c.argv[1:])) for c in commands)
+    if moves and any(map(runner, commands)):  # where a file runs from cannot be told: no working out of directories (intent 2026-10-26-164931, 165321)
+        return ("拒绝：同一行里既换目录（cd、pushd、popd，env -C、sudo -D 或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序；"
+                "门不推算目录，宁可误拦（intent 2026-10-26-164931）。去掉换目录，用绝对路径或仓库相对路径直接运行。")
     for command in commands:
         tool = name_of(command.argv[0])
-        dirs += [os.path.join(d, os.path.expanduser(c)) for d in list(dirs) for c in command.chdir]  # `env -C dir`, `sudo -D dir`: the command itself runs there
-        known = known and not any("$" in c for c in command.chdir)
-        if tool in CHDIR:
-            target = next((w for w in command.argv[1:] if not w.startswith("-")), "~" if tool == "cd" else None)
-            if target is None or command.unresolved or target == "-":
-                known = False
-            else:
-                dirs += [os.path.join(d, os.path.expanduser(target)) for d in dirs]
         if any(NET_REDIRECT.search(w) for w in command.argv):  # a bash network redirection spelled by variables (a14c80797 final M1)
             return "拒绝：变量展开后出现 /dev/tcp 或 /dev/udp 网络重定向，按远程工具处理，不是登记写法（intent 2026-10-26-160810）。"
         if tool in tools:  # spelled by variables or substitutions, or nested in a shell body: not the registered line
@@ -714,7 +709,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
             continue
         if trusted_script(command.argv, cwd):
             continue
-        if touches(command, patterns) or runs_file(command, patterns, dirs, known):  # spelled by variables or braces, or the file it runs names production
+        if touches(command, patterns) or runs_file(command, patterns, cwd):  # spelled by variables or braces, or the file it runs names production
             return (f"拒绝：{tool} 命令拼接后碰到生产特征，或它运行的文件含生产特征（intent 2026-10-26-165321）。CLAUDE.md 底线 4：不做生产写操作；生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口。"
                     "可信脚本须单独一条命令、按登记的解释器运行。")
     return None

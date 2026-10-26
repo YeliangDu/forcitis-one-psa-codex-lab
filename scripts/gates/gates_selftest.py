@@ -328,26 +328,26 @@ def gate_self_test():
         assert refused(command), f"origin/main must not be rewritable, -O in a bundle: {command!r}"
     assert "refs/remotes/origin/main" in inspect.getsource(real_blobs) and "refs/remotes/origin/main" in inspect.getsource(g.main_table_text), "the trust anchor is read by its full ref name, a tag called origin/main cannot shadow it"
     # 10. direct execution of a local file, git programs, ssh options, GNU long-option prefixes (opus round 2, items 3 to 6)
-    Path(cwd, "direct.sh").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
-    Path(cwd, "tame.sh").write_text("echo hi\n", encoding="utf-8")
+    [Path(cwd, n).write_text(t, encoding="utf-8") for n, t in (("direct.sh", f"sqlcmd -S {P} -Q 'delete from t'\n"), ("tame.sh", "echo hi\n"))]
     for command in (f"echo \"sqlcmd -S {P} -Q 'delete from t'\" > x && chmod +x x && ./x", "./direct.sh", f"{cwd}/direct.sh", "ls && ./direct.sh", f"chmod +x x; ./x {P}", f"cd /tmp && ./run.sh {P}",
                     f"git rebase -x \"sqlcmd -S {P}\" HEAD~1", f"GIT_PAGER=\"sqlcmd -S {P}\" git log", f"git config alias.q '!sqlcmd -S {P}' && git q", f"ssh -o ProxyJump=x ops@{H} ls", f"sort --compress-prog='ssh {H}' f"):
         assert refused(command), f"must be refused: {command!r}"
     for command in (f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'"):
         assert refused(command), f"no command is excused for not connecting (intent 2026-10-26-165321 A): {command!r}"
     # 10b. a file an interpreter, a runner or its path may run (every file word, in each directory a `cd` may lead to) names no sample, else refused (intent 2026-10-26-165321 B; 6e50b5571 first round, final)
-    os.mkdir(os.path.join(cwd, "pkg"))
     for name, text in (("git", f"sqlcmd -S {P}"), ("big.sh", "#" * (g.MAX_SCRIPT_FILE + 10) + f"\nsqlcmd -S {P.upper()}"), ("quoted.sh", "sqlcmd -S 'pgm-pr'od0001"), ("span.sh", "x" * 9 + P), ("locked.sh", "echo hi"),
                        *((n, f"connect('{P}')") for n in ("dirty.py", "prog.awk", "exe.sh", "GNUmakefile", "pkg/run.sh", "plain")), ("bang", f"#!/bin/sh\nssh {P}")):
-        Path(cwd, name).write_text(text + "\n", encoding="utf-8")
+        Path(cwd, name).parent.mkdir(exist_ok=True) or Path(cwd, name).write_text(text + "\n", encoding="utf-8")
     [os.chmod(os.path.join(cwd, n), m) for n, m in (("locked.sh", 0), ("exe.sh", 0o755))]
     for command in ("./git status", "bash big.sh", "sh quoted.sh", "source ./direct.sh", "python3 runner.py", "./locked.sh", "python3 pkg", "nohup ./direct.sh &", "bash -e direct.sh", "bash -o errexit direct.sh", "sh -p direct.sh", "node -r ./dirty.py clean.py",
                     "node --require=dirty.py clean.py", "python3 -m dirty", "python3 -Wignore dirty.py", "awk -f prog.awk x", "xargs bash direct.sh", "find . -exec bash direct.sh ;", "caffeinate -i ./exe.sh", "arch -arm64 exe.sh", "cd pkg && ./run.sh",
                     "cd pkg; bash run.sh", "(cd pkg) && sh run.sh", "cd $D && bash gone.sh", "make -C pkg", "make all", "H=pgm-pr; X=${H}od0001; ./tame.sh", "D=/dev/t; echo x >${D}cp/198.51.100.7/80", "D=/dev/t; exec 3<>${D}cp/198.51.100.7/80",
                     "D=/dev/t; >${D}cp/198.51.100.7/80", "D=/dev/t; { :; } >${D}cp/198.51.100.7/80", "csh plain", "tcsh plain", "fish plain", "pypy3 plain", "Rscript plain", "uv run plain", "caffeinate bang", "env -C pkg sh run.sh", "env --chdir=pkg ./run.sh",
-                    "sudo -D pkg sh run.sh", "env -Cpkg sh run.sh", f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'"):
+                    "sudo -D pkg sh run.sh", "env -Cpkg sh run.sh", "env -iC pkg sh run.sh", "sudo -iD pkg sh run.sh", "/usr/bin/sudo -D pkg sh run.sh", "env -C pkg env -C . sh run.sh", "env --chdir pkg sh run.sh", "uv --directory pkg run x",
+                    "cd pkg && git log && bash x", "perl5.34 plain", "tclsh8.6 plain", "pypy3 -m dirty", "csh -c 'H=pgm-pr; echo ${H}od0001'", "tcsh -c 'H=pgm-pr; echo ${H}od0001'", "fish -c 'H=pgm-pr; echo ${H}od0001'",
+                    f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'"):
         assert refused(command), f"the file it may run: {command!r}"
-    for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "python3 -m json.tool"):
+    for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "cd pkg && git status", "python3 -m json.tool"):
         assert allowed(command), f"no sample in the file, or no file (a pipe, inline code: known gap): {command!r}"
     with __import__("unittest.mock").mock.patch.multiple(g, MAX_SCRIPT_FILE=8, CHUNK=8): assert refused("bash span.sh") and allowed("bash tame.sh"), "a sample across a chunk boundary"
     with __import__("unittest.mock").mock.patch.object(g, "MAX_RUN_FILE", 4): assert refused("bash tame.sh"), "a file larger than MAX_RUN_FILE counts"
@@ -376,7 +376,7 @@ def gate_self_test():
         assert could_concern(plain("cat sshd_conf 'oops")) and not could_concern(plain("ls ./x")) and not could_concern(plain("echo a. b")), "a substring of a remote tool counts; a dot elsewhere does not"
         assert could_concern(plain("xh POST x")) and could_concern(plain("a&&xh x")) and not could_concern(plain("cat exhibit xhr")), "xh only as a word (O2 round 1, suggestion)"
         with __import__("unittest.mock").mock.patch.dict(os.environ, PGHOST="x"): assert could_concern("echo hello"), "a target variable in the session: judge decides (intent 2026-10-26-165321)"
-        assert could_concern(plain("echo x >/dev/tcp/192.0.2.15/80")) and could_concern(plain("cat </dev/udp/h/53")) and could_concern(plain(">o ./deploy")), "a network redirection, a path after a redirection go to judge"
+        assert could_concern(plain("echo x >/dev/tcp/192.0.2.15/80")) and could_concern(plain("cat </dev/udp/h/53")) and could_concern(plain(">o ./deploy")) and could_concern("perl5.34 x"), "network redirection, path after a redirection, versioned name"
         # hook process end to end, with the shipped and a missing table
         script = os.path.join(HERE, "prod_write_gate.py")
         def hook(command, table_path=None, tool="Bash"):
