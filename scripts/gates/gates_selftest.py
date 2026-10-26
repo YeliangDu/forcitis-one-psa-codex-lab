@@ -336,16 +336,16 @@ def gate_self_test():
         assert refused(command), f"no command is excused for not connecting (intent 2026-10-26-165321 A): {command!r}"
     # 10b. a file an interpreter, a runner or its path may run (every file word, in each directory a `cd` may lead to) names no sample, else refused (intent 2026-10-26-165321 B; 6e50b5571 first round, final)
     for name, text in (("git", f"sqlcmd -S {P}"), ("big.sh", "#" * (g.MAX_SCRIPT_FILE + 10) + f"\nsqlcmd -S {P.upper()}"), ("quoted.sh", "sqlcmd -S 'pgm-pr'od0001"), ("span.sh", "x" * 9 + P), ("locked.sh", "echo hi"),
-                       *((n, f"connect('{P}')") for n in ("dirty.py", "prog.awk", "exe.sh", "GNUmakefile", "pkg/run.sh", "plain")), ("bang", f"#!/bin/sh\nssh {P}")):
+                       *((n, f"connect('{P}')") for n in ("dirty.py", "prog.awk", "exe.sh", "nohup", "GNUmakefile", "pkg/run.sh", "plain")), ("bang", f"#!/bin/sh\nssh {P}")):
         Path(cwd, name).parent.mkdir(exist_ok=True) or Path(cwd, name).write_text(text + "\n", encoding="utf-8")
-    [os.chmod(os.path.join(cwd, n), m) for n, m in (("locked.sh", 0), ("exe.sh", 0o755))]
+    [os.chmod(os.path.join(cwd, n), m) for n, m in (("locked.sh", 0), ("exe.sh", 0o755), ("nohup", 0o755))]
     for command in ("./git status", "bash big.sh", "sh quoted.sh", "source ./direct.sh", "python3 runner.py", "./locked.sh", "python3 pkg", "nohup ./direct.sh &", "bash -e direct.sh", "bash -o errexit direct.sh", "sh -p direct.sh", "node -r ./dirty.py clean.py",
                     "node --require=dirty.py clean.py", "python3 -m dirty", "python3 -Wignore dirty.py", "awk -f prog.awk x", "xargs bash direct.sh", "find . -exec bash direct.sh ;", "caffeinate -i ./exe.sh", "arch -arm64 exe.sh", "cd pkg && ./run.sh",
                     "cd pkg; bash run.sh", "(cd pkg) && sh run.sh", "cd $D && bash gone.sh", "make -C pkg", "make all", "H=pgm-pr; X=${H}od0001; ./tame.sh", "D=/dev/t; echo x >${D}cp/198.51.100.7/80", "D=/dev/t; exec 3<>${D}cp/198.51.100.7/80",
                     "D=/dev/t; >${D}cp/198.51.100.7/80", "D=/dev/t; { :; } >${D}cp/198.51.100.7/80", "csh plain", "tcsh plain", "fish plain", "pypy3 plain", "Rscript plain", "uv run plain", "caffeinate bang", "env -C pkg sh run.sh", "env --chdir=pkg ./run.sh",
-                    "sudo -D pkg sh run.sh", "env -Cpkg sh run.sh", "env -iC pkg sh run.sh", "sudo -iD pkg sh run.sh", "/usr/bin/sudo -D pkg sh run.sh", "env -C pkg env -C . sh run.sh", "env --chdir pkg sh run.sh", "uv --directory pkg run x",
-                    "cd pkg && git log && bash x", "perl5.34 plain", "tclsh8.6 plain", "pypy3 -m dirty", "csh -c 'H=pgm-pr; echo ${H}od0001'", "tcsh -c 'H=pgm-pr; echo ${H}od0001'", "fish -c 'H=pgm-pr; echo ${H}od0001'",
-                    f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'"):
+                    "sudo -D pkg sh run.sh", "env -Cpkg sh run.sh", "env -iC pkg ./run.sh", "sudo -iD pkg sh run.sh", "/usr/bin/sudo -D pkg sh run.sh", "env -C pkg env -C . sh run.sh", "env --chdir pkg sh run.sh", "uv --directory pkg run x",
+                    "cd pkg && git log && bash x", "perl5.34 plain", "tclsh8.6 plain", "pypy3 -m dirty", "./nohup ls", "m4 plain", "irb plain", "gnumake all", "csh -c 'H=pgm-pr; echo ${H}od0001'", "tcsh -c 'H=pgm-pr; echo ${H}od0001'",
+                    "fish -c 'H=pgm-pr; echo ${H}od0001'", f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'"):
         assert refused(command), f"the file it may run: {command!r}"
     for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "cd pkg && git status", "python3 -m json.tool"):
         assert allowed(command), f"no sample in the file, or no file (a pipe, inline code: known gap): {command!r}"

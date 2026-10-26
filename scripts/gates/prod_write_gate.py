@@ -163,7 +163,7 @@ def expand(token, variables):  # (token with known variables substituted, True w
     return token, "$" in token
 
 
-def strip_prefix(seg, variables, chdir=None):  # (env of leading `NAME=value` words and wrapper options, rest of the segment): keywords and wrappers (env, nohup, sudo, timeout …; by path too) dropped, `env -S` split; a directory option of theirs noted in `chdir`.
+def strip_prefix(seg, variables, chdir=None):  # (env of leading `NAME=value` words and wrapper options, rest of the segment): keywords and wrappers (env, nohup, sudo, timeout …) dropped, `env -S` split; a directory option of theirs noted in `chdir`.
     env, i, moved, chdir = {}, 0, [], [] if chdir is None else chdir
     while i < len(seg):
         tok = seg[i]
@@ -176,8 +176,8 @@ def strip_prefix(seg, variables, chdir=None):  # (env of leading `NAME=value` wo
         elif REDIRECTION.fullmatch(tok) or (tok.isdigit() and i + 1 < len(seg) and REDIRECTION.fullmatch(seg[i + 1])):
             step = 1 if tok.isdigit() else 2  # a redirection before the program (`>o ./deploy`): moved behind it, as bash reads it anywhere; its target still parsed (82f149d10 final M1)
             moved, i = moved + seg[i:i + step], i + step
-        elif name_of(tok) in WRAPPERS:
-            valued, wrapper = WRAPPERS[name_of(tok)], name_of(tok)
+        elif tok.lower() in WRAPPERS:  # a bare name only: `./nohup` or `/tmp/x/env` is a program of its own, its file checked (9c5c9bbf4 round 1 M1)
+            valued, wrapper = WRAPPERS[tok.lower()], tok.lower()
             i += 1
             while i < len(seg) and (seg[i].startswith("-") or ENV.match(seg[i]) or (wrapper == "timeout" and re.fullmatch(r"[0-9.]+[smhd]?", seg[i]))):
                 if wrapper == "env" and (seg[i] in ("-S", "--split-string") or (seg[i].startswith("-S") and len(seg[i]) > 2) or seg[i].startswith("--split-string=")):
@@ -288,7 +288,7 @@ REMOTE_TOOLS = SQL_TOOLS | WRITE_ONLY_TOOLS | HTTP_TOOLS | {"bcp", "aliyun", "ss
 LONG_REMOTE = {t for t in REMOTE_TOOLS if len(t) > 2}  # matched as substrings of an unreadable line; two-letter names (xh) only as whole words (SHORT_REMOTE, REMOTE_WORD): `xh` is inside exhibit, xhr…
 SHORT_REMOTE = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(sorted(re.escape(t) for t in REMOTE_TOOLS - LONG_REMOTE)) + r")(?![a-z0-9_-])")
 INTERPRETERS = {"python", "node", "perl", "ruby", "php", "lua", "bash", "sh", "zsh", "dash", "ksh", "csh", "tcsh", "fish", "source", ".", "awk", "gawk", "nawk", "make", "gmake", "deno", "bun", "tclsh", "wish", "expect",
-                "osascript", "swift", "rscript", "r", "julia", "groovy", "pwsh", "elixir", "escript", "raku", "guile", "jshell", "kotlin", "scala", "ts-node", "tsx"}  # "python" stands for python3, python3.12 …
+                "osascript", "swift", "rscript", "r", "julia", "m4", "at", "batch", "sqlite3", "irb", "erb", "gnumake", "bmake", "bsdmake", "groovy", "pwsh", "elixir", "escript", "raku", "guile", "jshell", "kotlin", "scala", "ts-node", "tsx"}  # "python" stands for python3, python3.12 …
 RUNS_OTHERS = {"xargs", "find", "script", "parallel", "export", "source", "watch", "uv", "uvx", "npx", "pipx", "poetry", "bundle", "go", "npm", "pnpm", "yarn", "cargo", "dotnet", "java"}  # commands that run another command or carry its environment
 INTERPRETER = re.compile(r"^(?:python|pypy|" + "|".join(re.escape(n) for n in sorted(INTERPRETERS - {"python"})) + r")(?:-?[0-9][0-9.]*)?$")  # versioned names too: python3.12, perl5.34, tclsh8.6
 REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:(?:python|pypy)[0-9.]*|" + "|".join(re.escape(n) for n in sorted((REMOTE_TOOLS | SHELLS | INTERPRETERS | RUNS_OTHERS) - {"python", "."}))
@@ -687,8 +687,8 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
         return ("拒绝：命令里有生产特征，或指向生产的目标环境变量（命令里设的或会话环境里的），整行拒绝，不论哪个命令（intent 2026-10-26-165321）。CLAUDE.md 底线 4：不做生产写操作；"
                 "生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口（单独一条命令、按登记的写法运行）。会话环境里的目标变量请清掉后重开会话。")
     runner = lambda c: bool(INTERPRETER.match(name_of(c.argv[0])) or "/" in c.argv[0] or any(INTERPRETER.match(name_of(w)) or name_of(w) in RUNS_OTHERS for w in c.argv))  # noqa: E731
-    moves = any(name_of(c.argv[0]) in CHDIR or c.chdir or (runner(c) and any(DIR_OPTION.match(w) for w in c.argv[1:])) for c in commands)
-    if moves and any(map(runner, commands)):  # where a file runs from cannot be told: no working out of directories (intent 2026-10-26-164931, 165321)
+    moves = any(name_of(c.argv[0]) in CHDIR or (runner(c) and any(DIR_OPTION.match(w) for w in c.argv[1:])) for c in commands)
+    if any(c.chdir for c in commands) or (moves and any(map(runner, commands))):  # a wrapper's directory option always runs a program there  # where a file runs from cannot be told: no working out of directories (intent 2026-10-26-164931, 165321)
         return ("拒绝：同一行里既换目录（cd、pushd、popd，env -C、sudo -D 或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序；"
                 "门不推算目录，宁可误拦（intent 2026-10-26-164931）。去掉换目录，用绝对路径或仓库相对路径直接运行。")
     for command in commands:
