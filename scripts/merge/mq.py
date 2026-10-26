@@ -449,7 +449,7 @@ def finish_merge(wt, script, folder, label):
         return None
     if sh(["git", "-C", wt, "commit", "-q", "-m", "Merge origin/main (merge queue: " + label + ")"]).returncode:
         return None
-    if sh([sys.executable, script, "--check"], cwd=folder, timeout=900).returncode:
+    if sh([sys.executable, script, "--check", "--without-api"], cwd=folder, timeout=900).returncode:
         return None
     return True
 
@@ -477,7 +477,7 @@ def regenerate_conflicts(wt, conflicted):
             os.makedirs(os.path.dirname(os.path.join(wt, name)), exist_ok=True)
             with open(os.path.join(wt, name), "w", encoding="utf-8") as f:
                 f.write(junk)
-        run = sh([sys.executable, script], cwd=folder, timeout=600)
+        run = sh([sys.executable, script, "--without-api"], cwd=folder, timeout=600)  # a fresh checkout has no OpenAPI products (O11, intent 2026-10-26-183225)
         if run.returncode:
             return None
         results.append({name: open(os.path.join(wt, name), "rb").read() if os.path.exists(os.path.join(wt, name)) else None for name in conflicted})

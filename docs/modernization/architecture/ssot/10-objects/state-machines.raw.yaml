@@ -1,393 +1,393 @@
 # 由 convert_objects.py 生成，勿手改
 meta:
   by_object_count: 126
-  by_aggregate_count: 131
+  by_aggregate_count: 132
   group_counts:
     finance: 44
-    people: 34
+    people: 35
     revenue: 53
 by_object:
 - object: OBJ-01
   key_states_text: 待核实 → 有效（档案已核实）→ 已合并 / 已停用；档案按 D17 版本化；「正式往来单位」= 状态为「有效」（intent 120544 P-3）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:59
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:59
 - object: OBJ-02
   key_states_text: 已申请 → 合格 → 已暂停 → 已停用（原因必填；适用需准入的角色：供应商、合伙人、渠道伙伴、联合体伙伴、海外持牌伙伴）；客户角色无准入状态，往来单位档案已核实即可用（intent 120544 P-3）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:60
 - object: OBJ-03
   key_states_text: 有效 / 已停用
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:61
 - object: OBJ-04
   key_states_text: 有效 / 已停用
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:62
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:62
 - object: OBJ-05
   key_states_text: 草案 → 审批中 → 已签署 → 已生效（无附生效条件的回签即生效；附生效条件的经确认生效条件满足后生效，GL5-01；基线 1；劳动合同仍为「已签署生效」，供方协议为「已生效」）→ 履行中 → 已完成 → 已结算（结算书经双方确认）/ 已终止（原因必填）；生效后只经协议变更产生新基线；违法分包认定时标「无效」；审批中的「合同评审」是协议审批的单据，不另立对象（完整性检查（intent
     072440），M-20）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:63
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:63
 - object: OBJ-06
   key_states_text: 有效 → 被取代（只经协议变更）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:64
 - object: OBJ-07
   key_states_text: 待生效 → 已生效 → 可结算 → 被取代 / 已作废
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:65
 - object: OBJ-08
   key_states_text: 未履行 → 已部分履行 → 已履行
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:66
 - object: OBJ-09
   key_states_text: 已提出 → 影响评估 → 审批 → 已生效（新基线）/ 驳回
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:67
 - object: OBJ-10
   key_states_text: 已通知（时限内）→ 已提交 → 已认定 / 已拒绝 / 撤回
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:68
 - object: OBJ-11
   key_states_text: 已生效 → 已失效（带生效期）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:69
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:69
 - object: OBJ-12
   key_states_text: 已申请 → 已批准 → 已转正（并入协议）/ 叫停
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:70
 - object: OBJ-13
   key_states_text: 现金：待缴 → 已缴 → 已退 / 被没收（可部分扣减）；保函：已开立 → 已到期 / 被索赔
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:71
 - object: OBJ-14
   key_states_text: 已扣留 → 到期可收（可付）→ 已收（已付）/ 被扣减
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:72
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:72
 - object: OBJ-15
   key_states_text: 编制 → 双方已确认 → 已结清；结算折让留痕
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:73
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:73
 - object: OBJ-16
   key_states_text: 已计划 → 进行中 → 已结束
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:75
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:75
 - object: OBJ-17
   key_states_text: 新建 → 跟进中 ⇄ 挂起 → 已确认（转商机）/ 已关闭（无价值，原因必填）；公海池
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:76
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:76
 - object: OBJ-18
   key_states_text: 跟进中（内部阶段）→ 已决定参投（参投决策，用户 VS01-10）→ 已赢单 / 丢单（原因、竞争对手、中标单位、中标价）/ 已放弃（跟进中或已决定参投均可放弃）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:77
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:77
 - object: OBJ-19
   key_states_text: 外部：已公告 → 已截止 → 已开标 → 公示 → 已定标；已终止 / 已重新招标
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:78
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:78
 - object: OBJ-20
   key_states_text: 准备中 →（资格预审：通过 / 未通过）→ 已递交 → 已开标 → 公示中 → 已中标 / 未中标 / 已废标；截止前撤回、截止后撤销、已放弃
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:79
 - object: OBJ-21
   key_states_text: 草拟 → 审批中 → 已通过 / 驳回 → 生效（成为该（商机，标段）的当前版本）；被取代；已作废（「已通过」= 评审通过并冻结，「生效」= 当前版本，回溯检查 RD-06）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:80
 - object: OBJ-22
   key_states_text: 随报价版本冻结
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:81
 - object: OBJ-23
   key_states_text: 待查 → 无冲突 / 有冲突已获书面同意 / 有冲突不得承接
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:82
 - object: OBJ-24
   key_states_text: 已启用 → 已停用；版本化
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:84
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:84
 - object: OBJ-25
   key_states_text: 已启用 → 已停用；版本化
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:85
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:85
 - object: OBJ-26
   key_states_text: 草拟 → 已批准 → 已生效（生效期不重叠）→ 被取代
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:86
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:86
 - object: OBJ-27
   key_states_text: 草拟 → 已批准 → 已生效 → 被取代
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:87
 - object: OBJ-28
   key_states_text: 年度：未维护 → 已维护；过去日期锁定
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:88
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:88
 - object: OBJ-29
   key_states_text: 已立项 → 执行中 ⇄ 已暂停（原因）→ 收尾中 → 已结项 → 已归档（成果与证据已封存后）；已终止（解除或放弃，原因必填）；已取消（无任何投入时）（Q09：暂停期间拒绝记工时已答，intent 134134 Q-05；其余取值仍待定）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:90
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:90
 - object: OBJ-30
   key_states_text: 阶段：未开始 → 进行中 → 已完成（只记工作进程；成果的提交与认可是交付物 OBJ-35 的事实，SC-01，聚合稿 §4.4.1）；工作包：进行中 → 已完成 → 已锁定 → 返工中；均可作废（保留历史）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:91
 - object: OBJ-31
   key_states_text: 草拟 → 已批准（对客）/ 内部锁定 → 被修订版取代
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:92
 - object: OBJ-32
   key_states_text: 编制中 → 审批中 → 已锁定（成本基线）→ 修订中 → 已锁定（新版本）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:93
 - object: OBJ-33
   key_states_text: 已提出 → 已批准 / 已驳回
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:94
 - object: OBJ-34
   key_states_text: 已拟派 → 在岗 → 已撤出
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:95
 - object: OBJ-35
   key_states_text: '编制中 → 内审中 → 已签发（报告类）→ 已交付（签收）→ 审查中 → 已认可 / 退回修改（轮次 +1）/ 已声明（项目经理登记的无异议声明：期满前未收到发包人书面异议，附往来函件检索记录，声明人与复核人按 ADR-0047 U-2；交付侧登记事实，与「已交付（签收）/ 审查中」并列；送达、退回也记在交付侧；期满判定在 receivables.wip；「视为同意」不是交付物状态，由
     reporting 读模型派生显示，delivery.acceptance 不读、不订阅 receivables.wip；客户书面同意属认可，即「已认可」（ADR-0047 第 1 类），不是「已声明」；D-8，用户 2026-10-16，intent 061232；按 D-8 字面订正，ADR-0049 评审；状态名与事件「无异议已声明」一致，PR #320）；被取代 / 撤回（原因必填）/
     已作废；结项归档时已发布成果「已封存」'
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:96
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:96
 - object: OBJ-36
   key_states_text: 编制 → 已发布 → 被取代
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:97
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:97
 - object: OBJ-37
   key_states_text: 待评审 → 通过 / 已不通过（整改后复审）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:98
 - object: OBJ-38
   key_states_text: 已识别 → 已确认 → 处置（返工 / 让步接受）→ 已关闭（我方成果类）；已识别 → 已复核 → 已发布 → 整改中 → 整改已申报 → 已闭合（复查通过）/ 回整改中 / 客户书面接受风险（推断，须有依据）/ 已停止跟踪（原因必填）（客户资产类）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:99
 - object: OBJ-39
   key_states_text: 草拟 → 已认定；可撤销（冲销）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:100
 - object: OBJ-40
   key_states_text: 已提出 → 原因认定与影响评估 → 编制 → 内审 → 已发出 → 已关闭
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:101
 - object: OBJ-41
   key_states_text: 已通知（5 天内）→ 已提交详细说明（10 天内）→ 已批准 / 已拒绝 / 视为批准
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:102
 - object: OBJ-42
   key_states_text: 待提供 → 已提供 → 已确认 / 有缺陷（退回）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:103
 - object: OBJ-43
   key_states_text: 已开放 → 已封存（签发、结项）→ 已移交客户（如约定）→ 已归档 → 到期处置
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:104
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:104
 - object: OBJ-44
   key_states_text: 草拟 → 已提出 → 已部分满足 / 已满足 / 已取消
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:105
 - object: OBJ-45
   key_states_text: 已计划（项目经理自排）→ 已确认（部门负责人审批）→ 已释放
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:106
 - object: OBJ-46
   key_states_text: 外部：规划 → 在建 → 已竣工（在用）→ 已超设计使用年限 → 改造中 → 已拆除
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:108
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:108
 - object: OBJ-47
   key_states_text: 在用 → 已超年限 → 改造中 → 已拆除；不再受托
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:109
 - object: OBJ-48
   key_states_text: 已生效 → 已执行 / 已逾期 / 不再受托（删「到期提醒」状态：到期只作提醒，派生 / 策略，人工转线索或商机，另签协议；按周期或按次结算用协议付款条件项，用户 intent 090004）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:110
 - object: OBJ-49
   key_states_text: 已计划 → 已安排 → 现场进行中 → 记录已提交 → 已审核 → 已锁定；已取消（原因必填）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:111
 - object: OBJ-50
   key_states_text: 草拟 → 已生效 → 已停用（只增版本）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:112
 - object: OBJ-51
   key_states_text: 见 OBJ-38
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:113
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:113
 - object: OBJ-52
   key_states_text: 已建议 → 业主已委托 → 报告已收到 → 已采信 / 未采信（原因）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:114
 - object: OBJ-53
   key_states_text: 已采集 → 已上传（摘要）→ 已关联 → 已封存；已作废（原因必填，保留原件）；「已关联」= 技术聚合「证据关联」（AGG-110，B-28）中存在该证据的挂接记录，证据聚合 AGG-38 不存该状态，只作段内状态、不入阶段门（intent 114200 F-1）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:115
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:115
 - object: OBJ-54
   key_states_text: 筹建 → 存续 → 已注销
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:117
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:117
 - object: OBJ-55
   key_states_text: 已启用 → 已停用 / 已撤销；树按生效区间版本化（组织调整产生新版本）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:118
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:118
 - object: OBJ-56
   key_states_text: 已登记（候选）→ 面试中 → 待入职 → 试用期 → 正式 → 待离职 → 已离职；未录用（候选阶段终态）；已停薪留职（可恢复）；权限用的在职 / 离职二值另存
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:119
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:119
 - object: OBJ-57
   key_states_text: 生效区间版本（只追加）；主任职区间不重叠，兼职任职可多个并行、不设上限（用户 intent 072440 INV-62）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:120
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:120
 - object: OBJ-58
   key_states_text: 已启用 → 已停用
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:121
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:121
 - object: OBJ-59
   key_states_text: 已登记 → 面试中 → 已录用（转员工）/ 未录用
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:122
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:122
 - object: OBJ-60
   key_states_text: 草稿 → 已提交 → 已批准 / 已驳回 → 招聘中 → 已关闭（录满 / 取消）（与 AGG-65 统一，SC-03）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:123
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:123
 - object: OBJ-61
   key_states_text: 版本（调薪产生新版本）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:124
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:124
 - object: OBJ-62
   key_states_text: 增员 → 在缴 → 减员（转移 / 封存）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:125
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:125
 - object: OBJ-63
   key_states_text: 年度有效
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:126
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:126
 - object: OBJ-64
   key_states_text: 有效 → 已到期 / 已注销
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:127
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:127
 - object: OBJ-65
   key_states_text: 有效 → 核查中（年检 / 动态核查）→ 有效 / 已降级 / 已撤销；有效 → 延续中 → 有效（新有效期）/ 已到期（未延续）（用户答复 Q-D 第 1 项纳入资质维护，intent 082311）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:128
 - object: OBJ-66
   key_states_text: 草稿 → 已提交（含审批中）→ 已通过 / 已退回 / 已驳回（驳回、退回后改原单再提交，不设取消终态）；撤回是转换（已提交 → 草稿，事件 TimesheetApprovalWithdrawn），不是状态；已过账属 Phase 2；关期后只能冲销或修正（one-data TS-UNIQ 审查，intent 052923）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:129
 - object: OBJ-67
   key_states_text: 草拟 → 已认定（封期锁定）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:130
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:130
 - object: OBJ-68
   key_states_text: 草稿 → 审批中 → 已批准 / 已驳回 → 已销假 / 已撤销
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:131
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:131
 - object: OBJ-69
   key_states_text: 已核定 → 使用中 → 已清零 / 已结转
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:132
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:132
 - object: OBJ-70
   key_states_text: 只追加
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:133
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:133
 - object: OBJ-71
   key_states_text: 已生成 → 员工确认 → 已锁定
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:134
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:134
 - object: OBJ-72
   key_states_text: 已申请 → 已批准 → 已补偿（付薪 / 调休）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:135
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:135
 - object: OBJ-73
   key_states_text: 草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账；更正走冲销；员工薪酬行支付状态：待支付 → 已实付 / 支付失败（待补发）；部分成功时成功行保留实付，失败行待补发，整期仍为「已批准」，应付薪酬行全部实付后才转整期「已发放」
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:136
 - object: OBJ-74
   key_states_text: 编制 → 审批 → 已生效 → 已结束
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:137
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:137
 - object: OBJ-75
   key_states_text: 只追加；更正只能冲销（反向事实 + 新序号）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:139
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:139
 - object: OBJ-76
   key_states_text: 已试算 → 已确认 → 已过账；整批冲销重做
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:140
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:140
 - object: OBJ-77
   key_states_text: 每期间：归集中 → 已分摊 / 已结转下期
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:141
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:141
 - object: OBJ-78
   key_states_text: 草稿 → 已批准 → 已生效 → 被取代
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:142
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:142
 - object: OBJ-79
   key_states_text: 已试算 → 已生效；冲销按原比例
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:143
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:143
 - object: OBJ-80
   key_states_text: 草稿 → 已确认 → 已过账；已冲销
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:144
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:144
 - object: OBJ-81
   key_states_text: 若作对象：草稿 → 审批中 → 已确认（锁定）/ 驳回；更正走冲销
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:146
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:146
 - object: OBJ-82
   key_states_text: 草稿 → 审批中 → 准入通过 → 已开票 / 驳回 / 撤回 / 已作废（开具前）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:147
 - object: OBJ-83
   key_states_text: 已开具 → 部分红冲 → 全额红冲（销项蓝字）；已开具（红字，引用蓝字）；已取得（查验）→ 已用途确认（抵扣 / 不抵扣）→ 已入账（进项）；进项转出；红冲确认中（蓝字已用途确认或入账者红冲前；红字信息确认单由税务平台登记，72 小时未确认自动作废则回到原状态；原 OBJ-84）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:148
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:148
 - object: OBJ-84
   key_states_text: 已发起 → 已确认 / 72 小时未确认自动作废
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:149
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:149
 - object: OBJ-85
   key_states_text: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 r0/structure/pptx.md 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:150
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:150
 - object: OBJ-86
   key_states_text: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:151
 - object: OBJ-87
   key_states_text: 已提交 → 审核 → 已确认；已冲销
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:152
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:152
 - object: OBJ-88
   key_states_text: 草稿 → 已提交 → 审批中 → 已核定（所属期间确定）→ 已过账 → 已付；驳回、已冲销
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:153
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:153
 - object: OBJ-89
   key_states_text: 已开立 → 在用 → 已冻结 → 已销户
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:154
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:154
 - object: OBJ-90
   key_states_text: 已导入 → 已匹配 / 未匹配
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:155
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:155
 - object: OBJ-91
   key_states_text: 已认缴 → 已实缴（到账）→ 已部分退回 / 已退回
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:156
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:156
 - object: OBJ-92
   key_states_text: 待申报 → 已申报 → 已缴款；更正申报
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:157
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:157
 - object: OBJ-93
   key_states_text: 在用 → 已闲置 → 处置
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:158
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:158
 - object: OBJ-94
   key_states_text: 已预提 → 已冲回 / 已结算
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:159
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:159
 - object: OBJ-95
   key_states_text: 已启用 → 已停用（被引用不可删）；科目表版本化
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:161
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:161
 - object: OBJ-96
   key_states_text: 已开立 → 在用 → 只读
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:162
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:162
 - object: OBJ-97
   key_states_text: 未开 → 已开放 → 关账中 → 已关账；重开须审批
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:163
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:163
 - object: OBJ-98
   key_states_text: 草稿 → 已审核 → 已记账（不可逆）；更正只能冲销
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:164
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:164
 - object: OBJ-99
   key_states_text: 草拟 → 财务评审 → 已生效 → 被取代
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:165
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:165
 - object: OBJ-100
   key_states_text: 编制中 → 审批 → 基线（不可变）→ 新版本
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:166
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:166
 - object: OBJ-101
   key_states_text: 编制 → 审批 → 生效基线 → 已调整（新版本）；账户可冻结
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:167
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:167
 - object: OBJ-102
   key_states_text: 草拟 → 审批 → 已生效（不追溯）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:168
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:168
 - object: OBJ-103
   key_states_text: —
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:170
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:170
 - object: OBJ-104
   key_states_text: 草拟 → 已核定 → 已发放（经月度薪酬结算）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:171
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:171
 - object: OBJ-105
   key_states_text: 已计划 → 已变更 → 已完成（结果反馈）/ 已取消（原因必填）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:173
 - object: OBJ-106
   key_states_text: 已发出 → 已回收 → 已评分 → 已跟进
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:174
 - object: OBJ-107
   key_states_text: 草拟 → 已评审 → 已发布
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:175
 - object: OBJ-108
   key_states_text: 已登记 → 应对中 → 已关闭 / 已接受（须记接受人与依据）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:176
 - object: OBJ-109
   key_states_text: 草拟 → 已提交 → 已确认（推断，待第 6 步）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:177
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:177
 - object: OBJ-110
   key_states_text: 起草 → 评审 → 已发布 → 已修订（新版本）→ 已废止
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:178
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:178
 - object: OBJ-111
   key_states_text: 已生成 → 已确认（本人）→ 已锁定；锁定后不重开
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:180
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:180
 - object: OBJ-112
   key_states_text: 草拟 → 已决议 → 已部分支付 → 已支付；已决议后变更须新决议并引用被取代决议
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:181
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:181
 - object: OBJ-113
   key_states_text: 草稿 → 审批中 → 已批准 / 已驳回 → 已用印 → 已关闭
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:183
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:183
 - object: OBJ-114
   key_states_text: 已提交 → 审批中（需审批的类别）→ 处理中 → 已解决 → 已关闭 / 已退回
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:184
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:184
 - object: OBJ-115
   key_states_text: 领用申请：草稿 → 已通过（规则直通，无人审）→ 已领用；规则缺失或不满足时拒绝并告警；调拨申请：草稿 → 已申请 → 已调拨 / 已转领用 / 已撤销；使用期间：在用 → 已结束；归还记录：已归还（期间已结束）；维修：草稿 → 已报修 → 已维修登记；原领用审批中、已驳回、已撤回及审批轮次只作迁入历史保留（PRC-143，B31-5）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:185
 - object: OBJ-116
   key_states_text: 草稿 → 已批准（规则直通，无人工批准）→ 已完成；登记取消路径：已批准 / 已完成 → 已取消（提议状态名，待 one-glossary 定名），取消不构成 VS-14.4 正常退出；原审批中、已驳回及审批轮次只作迁入历史保留（PRC-144，B31-8）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:186
 - object: OBJ-117
   key_states_text: 未关闭 → 已解释 / 已修正 / 已豁免（均为关闭结局）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:189
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:189
 - object: OBJ-118
   key_states_text: 已提交 → 已批准 / 已驳回 / 已撤回 → 已用尽 / 已关闭
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:190
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:190
 - object: OBJ-119
   key_states_text: 已提交 → 已批准 / 已驳回 / 已撤回 → 已同步 / 已关闭
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:191
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:191
 - object: OBJ-120
   key_states_text: 超标审批：待审批 → 已批准 / 已驳回；归属、退改与核对依据分别记录
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:192
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:192
 - object: OBJ-121
   key_states_text: 已登记 → 已核对 → 已确认应付
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:193
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:193
 - object: OBJ-122
   key_states_text: 年度账户：已开账 → 已结转；占用行：已占用 → 已转用 / 已释放；补休额度行：有效 → 已转计薪 / 已休完
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:194
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:194
 - object: OBJ-123
   key_states_text: 版本：生效（按生效区间）→ 已结束；根记录无单独生命周期
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:195
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:195
 - object: OBJ-124
   key_states_text: 版本草稿 → 已生效 → 已停用（被新版本取代）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:196
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:196
 - object: OBJ-125
   key_states_text: 对账中 → 已签字
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:197
 - object: OBJ-126
   key_states_text: 已登记 → 持股中 → 已退出（提议，随 OBJFIN-14）
-  source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:198
+  source: docs/modernization/architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md:198
 by_aggregate:
 - aggregate: AGG-40
   initial: 草稿
@@ -4029,9 +4029,62 @@ by_aggregate:
     guard: []
     kind: reverse
     process_outcome: 已驳回
+  - from: 草拟
+    to: 草拟
+    command: 提交过账候选
+    kind: non_state
   source_part: vs13pay
   group: people
   source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[21]
+- aggregate: AGG-138
+  machine: bonus_accrual_run
+  entity: bonus_accrual_runs
+  added_states:
+  - 计算中
+  - 已计算
+  - 已提交过账
+  - 已中止
+  note: S-6 新增（AGG-138 技术聚合·运行单据，同 AGG-41；one-architecture @3541ced0b 第 6 点；ARC-1022-APE-01）；每法人 × 期间一次运行，已中止后人力补齐规则或方案版本再发起另建运行
+  states:
+  - 计算中
+  - 已计算
+  - name: 已提交过账
+    terminal: true
+  - name: 已中止
+    terminal: true
+  initial: 计算中
+  transitions:
+  - from: null
+    to: 计算中
+    command: 启动奖金计提
+    guard:
+    - 计提规则齐备
+    - 激励方案版本在 AGG-75 有效
+    kind: forward
+  - from: null
+    to: 已中止
+    command: 启动奖金计提
+    guard:
+    - 缺计提规则或版本校验不过：失败并告警
+    kind: forward
+    process_outcome: 已中止
+  - from: 计算中
+    to: 已计算
+    command: 计算奖金计提
+    guard:
+    - 基数事实已过账
+    kind: forward
+  - from: 已计算
+    to: 已提交过账
+    command: 提交过账候选
+    guard:
+    - INV-92
+    - 无计提额时提交零额完成记录（无分录行）
+    kind: forward
+    process_outcome: 已提交过账
+  source_part: vs13pay
+  group: people
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[22]
 - aggregate: AGG-93
   machine: payroll_profile_version
   entity: payroll_profile_versions
@@ -4081,7 +4134,7 @@ by_aggregate:
     kind: non_state
   source_part: vs13pay
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[22]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[23]
 - aggregate: AGG-120
   machine: special_deduction_declaration
   entity: payroll_special_deduction_declarations
@@ -4110,7 +4163,7 @@ by_aggregate:
     kind: forward
   source_part: vs13pay
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[23]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[24]
 - aggregate: AGG-95
   machine: tax_social_filing
   entity: tax_social_filings
@@ -4192,7 +4245,7 @@ by_aggregate:
     kind: non_state
   source_part: vs13pay
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[24]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[25]
 - aggregate: AGG-119
   machine: payroll_rule_version
   entity: payroll_rule_versions
@@ -4226,7 +4279,7 @@ by_aggregate:
     kind: forward
   source_part: vs13pay
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[25]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[26]
 - aggregate: AGG-79
   sub_machines:
   - null
@@ -4415,7 +4468,7 @@ by_aggregate:
   source_part: vs0911
   note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[26]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[27]
 - aggregate: AGG-80
   sub_machines:
   - null
@@ -4489,7 +4542,7 @@ by_aggregate:
   source_part: vs0911
   note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[27]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[28]
 - aggregate: AGG-107
   entity: 知识条目版本（knowledge_entry_versions.状态）
   reverse_paths:
@@ -4583,7 +4636,7 @@ by_aggregate:
     reverse: 废止
   source_part: vs0911
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[28]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[29]
 - aggregate: AGG-113
   machine: seal_application
   entity: seal_applications
@@ -4701,7 +4754,7 @@ by_aggregate:
     kind: forward
   source_part: b31
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[29]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[30]
 - aggregate: AGG-114
   machine: it_request
   entity: it_requests
@@ -4816,7 +4869,7 @@ by_aggregate:
     kind: forward
   source_part: b31
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[30]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[31]
 - aggregate: AGG-115
   sub_machines:
   - use_request
@@ -4918,7 +4971,7 @@ by_aggregate:
   source_part: b31
   note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[31]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[32]
 - aggregate: AGG-121
   machine: repair_order
   entity: it_asset_repair_orders
@@ -4943,7 +4996,7 @@ by_aggregate:
     kind: forward
   source_part: b31
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[32]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[33]
 - aggregate: AGG-116
   machine: employee_activity
   entity: employee_activity_requests
@@ -4988,7 +5041,7 @@ by_aggregate:
     kind: reverse
   source_part: b31
   group: people
-  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[33]
+  source: docs/modernization/architecture/proposals/closeout/people/state-machines.yaml#machines[34]
 - aggregate: AGG-34
   name: 检查计划
   initial: 已登记
@@ -5704,26 +5757,46 @@ by_aggregate:
   source: docs/modernization/architecture/proposals/closeout/revenue/state-machines.yaml#machines[9]
 - aggregate: AGG-16
   name: 索赔
-  initial: 已提出
+  note: 双向（我方主张 / 对方主张）。先通知后提交详细报告（GF-2017-0201 通用条款第 19.1 款、FIDIC 2017 第 20.2 款）；「已拒绝」是被索赔方拒绝，「已撤回」是索赔方撤回，行为人不同分两状态
+  initial: 已通知
   states:
-  - 已提出
+  - 已通知
+  - 已提交
   - name: 已认定
     terminal: true
-  - name: 已拒绝或撤回
+  - name: 已拒绝
+    terminal: true
+  - name: 已撤回
     terminal: true
   transitions:
   - from: null
-    to: 已提出
+    to: 已通知
     command: 提出索赔
     guard:
     - INV-17
-  - from: 已提出
+  - from: 已通知
+    to: 已提交
+    command: 提交索赔详细报告
+    guard:
+    - INV-17
+    note: 拟命令；详细报告时限取协议上登记的约定，超时限须注明理由（INV-17 已扩至详细报告时限，one-architecture 5849fa0f5）
+  - from: 已提交
     to: 已认定
     command: 认定索赔
-  - from: 已提出
-    to: 已拒绝或撤回
-    command: 拒绝或撤回索赔
+  - from: 已提交
+    to: 已拒绝
+    command: 拒绝索赔
+    note: 拟命令；被索赔方书面拒绝，理由必填
+  - from: 已通知
+    to: 已撤回
+    command: 撤回索赔
     reverse_of: 提出索赔
+    note: 拟命令；索赔方撤回，理由必填
+  - from: 已提交
+    to: 已撤回
+    command: 撤回索赔
+    reverse_of: 提出索赔
+    note: 拟命令；索赔方撤回，理由必填
   group: revenue
   source: docs/modernization/architecture/proposals/closeout/revenue/state-machines.yaml#machines[10]
 - aggregate: AGG-17
@@ -6505,14 +6578,17 @@ by_aggregate:
   source: docs/modernization/architecture/proposals/closeout/revenue/state-machines.yaml#machines[20]
 - aggregate: AGG-02
   name: 资质证书
-  note: 版本化：延续或降级后登记的是新有效期或新等级版本，旧版本被取代；已撤销、已到期不再恢复
+  note: 版本化：延续或降级后登记的是新有效期或新等级版本；延续时旧版本被取代，降级时旧版本到已降级；已撤销、已到期不再恢复。核查中、延续中期间证书仍有效（引用方按有效判断）
   initial: 有效
   states:
   - 有效
   - 核查中
+  - 延续中
   - name: 已到期
     terminal: true
   - name: 已撤销
+    terminal: true
+  - name: 已降级
     terminal: true
   - name: 被取代
     terminal: true
@@ -6529,7 +6605,7 @@ by_aggregate:
     guard:
     - 结果=有效
   - from: 核查中
-    to: 被取代
+    to: 已降级
     command: 登记核查结果
     guard:
     - 结果=降级（新等级版本同事务生效）
@@ -6544,11 +6620,15 @@ by_aggregate:
     command: 登记核查结果
     guard:
     - 结果=撤销
+  - from: 有效
+    to: 延续中
+    command: 登记资质延续申请
+    note: 拟命令；附发证机关受理回执
   - from: null
     to: 有效
     command: 延续资质
     note: 新有效期版本实例
-  - from: 有效
+  - from: 延续中
     to: 被取代
     command: 延续资质
     note: 同事务：旧版本被取代
@@ -6562,6 +6642,11 @@ by_aggregate:
     command: 标记资质已到期
     guard:
     - 到期日届满且未延续
+  - from: 延续中
+    to: 已到期
+    command: 标记资质已到期
+    guard:
+    - 到期日届满且未获延续
   group: revenue
   source: docs/modernization/architecture/proposals/closeout/revenue/state-machines.yaml#machines[21]
 - aggregate: AGG-03
@@ -7113,7 +7198,7 @@ by_aggregate:
   source: docs/modernization/architecture/proposals/closeout/revenue/state-machines.yaml#machines[34]
 - aggregate: AGG-20
   name: 项目 WBS
-  note: 一台机承载两类节点：阶段节点（阶段·前缀）与工作包（工作包·前缀）；已锁定的工作包可作废（见 NOTES）
+  note: 一台机承载两类节点：阶段节点（阶段·前缀）与工作包（工作包·前缀）。工作包「发布」即进入进行中，INV-42 的「已发布」指进行中及其后各状态；「锁定」是完成后停止记工时，返工经「转入返工」重开（返工工时另由 INV-53 在工时侧读返工认定，WBS 不引用返工认定）；未发布的可删或作废，已发布的只作废、原因必填（INV-42、S-33）
   initial: 阶段未开始
   states:
   - 阶段未开始
@@ -7121,7 +7206,10 @@ by_aggregate:
   - name: 阶段已完成
     terminal: true
   - 工作包未发布
+  - 工作包进行中
+  - 工作包已完成
   - 工作包已锁定
+  - 工作包返工中
   - name: 工作包已作废
     terminal: true
   transitions:
@@ -7146,25 +7234,67 @@ by_aggregate:
     guard:
     - INV-41
   - from: 工作包未发布
+    to: 工作包进行中
+    command: 发布工作包
+    guard:
+    - INV-41
+    note: 拟命令；发布后可记工时，不再可删（INV-42）
+  - from: 工作包进行中
+    to: 工作包已完成
+    command: 完成工作包
+    note: 拟命令；完成后仍可补记工时，至锁定为止
+  - from: 工作包已完成
     to: 工作包已锁定
     command: 锁定工作包
     guard:
     - INV-42
+    note: 锁定即停止记工时
+  - from: 工作包已完成
+    to: 工作包返工中
+    command: 转入返工
+    note: 拟命令；返工原因必填
+  - from: 工作包已锁定
+    to: 工作包返工中
+    command: 转入返工
+    note: 拟命令；返工原因必填，重开记工时（返工工时仍须有返工认定，INV-53）
+  - from: 工作包返工中
+    to: 工作包已完成
+    command: 完成工作包
+    note: 拟命令
   - from: 工作包未发布
     to: 工作包已作废
     command: 作废工作包
     guard:
     - INV-42
+  - from: 工作包进行中
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填
+  - from: 工作包已完成
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填
   - from: 工作包已锁定
     to: 工作包已作废
     command: 作废工作包
     guard:
     - INV-42
+    note: 已发布只作废，原因必填（S-33）
+  - from: 工作包返工中
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填
   group: revenue
   source: docs/modernization/architecture/proposals/closeout/revenue/state-machines.yaml#machines[35]
 - aggregate: AGG-21
   name: 交付计划版本
-  note: 版本化：对客基线与内部基线各只有一个生效版本，新版本批准后旧版本被取代；对客基线须注明依据的内部基线版本（INV-140 暂号，缺即拒），内部基线须含全部合同里程碑、日期晚于对客只提示（INV-141 暂号）；考核按内部基线，延期、结算与索赔按对客基线（用户 LEB-07）
+  note: 版本化：对客基线与内部基线各只有一个生效版本，新版本批准后旧版本被取代；对客基线须注明依据的内部基线版本（INV-140，缺即拒），内部基线须含全部合同里程碑、日期晚于对客只提示（INV-141）；考核按内部基线，延期、结算与索赔按对客基线（用户 LEB-07）
   initial: 草拟
   states:
   - 草拟

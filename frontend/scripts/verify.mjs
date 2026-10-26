@@ -26,6 +26,9 @@ const run = (name) =>
     });
   });
 
+// Consumers run in parallel only after the current backend export has produced all three files.
+const generated = await run('generate:api');
+if (generated.code !== 0) process.exit(1);
 const results = await Promise.all(steps.map(run));
 const failed = results.filter((result) => result.code !== 0).map((result) => result.name);
 if (failed.length > 0) {

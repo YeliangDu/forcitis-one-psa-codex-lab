@@ -1,4 +1,4 @@
-"""Check processes.v1.yaml (METHOD v4 step 6a) against value-streams.v2.yaml and ENTERPRISE_AGGREGATES_DRAFT.md.
+"""Check processes.v1.yaml (METHOD v4 step 6a) against value-streams.yaml and ENTERPRISE_AGGREGATES_DRAFT.md.
 
 Read-only. Usage: python3 -I processes_check.py
 Exit code 0 only when there is no violation. Open gaps (the `gaps` list), subscription-coverage gaps and hints are findings, not violations.
@@ -43,7 +43,7 @@ import yaml
 
 HERE = Path(__file__).resolve().parent
 PROC = HERE / "processes.v1.yaml"
-STAGES = HERE / "value-streams.v2.yaml"
+STAGES = HERE.parent / "ssot" / "05-value-streams" / "value-streams.yaml"
 DRAFT = HERE / "ENTERPRISE_AGGREGATES_DRAFT.md"
 DEPCHECK = HERE / "aggregates_dep_check.py"
 

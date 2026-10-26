@@ -30,7 +30,7 @@ CONCEPT_RE = re.compile(rf"^{CONCEPT}$")
 REF_RE = re.compile(rf"(?<![A-Za-z0-9])({ID})#({CONCEPT})")
 ANCHOR_CELL_RE = re.compile(rf"^({ID})#(.+)$")
 PANORAMA = HERE.parent / "panorama" / "panorama.yaml"
-INFO_MAP = HERE.parent / "proposals" / "ENTERPRISE_INFO_MAP_DRAFT.md"
+INFO_MAP = HERE.parent / "ssot" / "10-objects" / "ENTERPRISE_INFO_MAP.md"
 SYS_REF_RE = re.compile(r"(?<![A-Za-z0-9-])(VS-\d{2}(?:\.\d+)?|PRC-\d{2,3}|OBJ-\d{2,3})(?![\d.])(?:\s*[「“（(]?\s*)([\u4e00-\u9fff]{2,12})?")
 FENCE_RE = re.compile(r"^(```|~~~).*?^\1[^\n]*$", re.M | re.S)
 NOISE_RE = re.compile(r"`[^`\n]*`|https?://\S+")
@@ -176,7 +176,7 @@ def check_system_refs(name, body, system, errors, warnings):
             if ref.startswith("OBJ-") and ref in all_obj:
                 warnings.append(f"{name}: {ref} 在信息图上已非对象")
             else:
-                errors.append(f"{name}: 引用的 {ref} 不存在（价值流与阶段以 proposals/value-streams.v2.yaml 为准）")
+                errors.append(f"{name}: 引用的 {ref} 不存在（价值流与阶段以 ssot/05-value-streams/value-streams.yaml 为准）")
             continue
         kind, real, typ = sysmap[ref]
         if typ in ("retired", "merged"):

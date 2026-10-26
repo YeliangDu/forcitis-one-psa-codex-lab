@@ -1,6 +1,6 @@
-"""Generate derived tables of STEP1_VALUE_STREAMS.md from value-streams.v2.yaml.
+"""Generate derived tables of STEP1_VALUE_STREAMS.md from value-streams.yaml.
 
-Reads value-streams.v2.yaml and capabilities.v2.yaml (same folder), validates the value-stream
+Reads ssot/05-value-streams/value-streams.yaml and capabilities.v2.yaml (same folder), validates the value-stream
 data, then rewrites three marked blocks in STEP1_VALUE_STREAMS.md:
   vs-stats   counts, vs-matrix   stakeholder coverage matrix,
   vs-links   shared-object dependency table (object state -> stages that reference it).
@@ -17,7 +17,7 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parent
-VS_FILE = HERE / "value-streams.v2.yaml"
+VS_FILE = HERE.parent / "ssot" / "05-value-streams" / "value-streams.yaml"
 CAP_FILE = HERE / "capabilities.v2.yaml"
 MD_FILE = HERE / "STEP1_VALUE_STREAMS.md"
 

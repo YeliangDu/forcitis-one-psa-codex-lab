@@ -34,4 +34,3 @@
 ## 过渡映射
 - 第四批会话合并前，本角色由 one-ops、one-merge、one-quality 共同担任：门、CI、发布、本机资源归 one-ops；`scripts/merge/**`、`scripts/queue/**` 归 one-merge；`scripts/review/**`、budget_check、工具库、`quality/**` 归 one-quality。
 - delegate 建成（第二批乙）前，Codex 命令必写 `-s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral`、`< /dev/null`，后台启动。
-- `OPS_CONTEXT.md`、`MERGE_CONTEXT.md`、`QUALITY_CONTEXT.md` 归本角色，lead 迁移完后删除。

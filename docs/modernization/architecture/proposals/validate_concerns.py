@@ -10,7 +10,7 @@
     C-1 每条关注点二选一：accepted_as 非空 或 rejected 非空（不得皆空/皆非空）
     C-2 承接的关注点必须有 answered_by（≥1）
     C-3 弃权的必须写 reason / decider / review_if
-    C-4 by 必须是 value-streams.v2.yaml 里出现的 SH-ID；accepted_as 必须是已出现的阶段号或 VS 号
+    C-4 by 必须是 value-streams.yaml 里出现的 SH-ID；accepted_as 必须是已出现的阶段号或 VS 号
     C-5 每条必须有 evidence
   P-1 流程→执行的 Command 约束（v5 新增）
       07 业务流程的每一步只要改变对象状态，必须声明 command；
@@ -40,7 +40,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--concerns', default=str(HERE / 'concerns.proposal.yaml'))
     ap.add_argument('--transitions', default=str(HERE / 'state-transitions.proposal.yaml'))
-    ap.add_argument('--vs', default=str(HERE / 'value-streams.v2.yaml'))
+    ap.add_argument('--vs', default=str(HERE.parent / 'ssot' / '05-value-streams' / 'value-streams.yaml'))
     ap.add_argument('--json', action='store_true')
     a = ap.parse_args()
 

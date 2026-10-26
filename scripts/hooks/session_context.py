@@ -8,7 +8,7 @@ Profiles are read from origin/main first (the worktree may be stale), then from 
 backticked paths in the profile's 上下文文档 section, read from the worktree first, then origin/main. A context path must be
 relative, free of "..", and stay under the repository root after resolving links.
 A line `交接源: <path>#<heading fragment>` in that section names where the session's handover lives (handoff_source()); start_sheet.py, the handover-node
-instruction and the stop gate read it, build_sessions.py checks the file and the heading exist. build_sessions.py imports context_docs() and unsafe_reason() so the hook and the build check judge paths the same way.
+instruction and the stop gate read it (build_sessions.py, which checked it, was deleted in O15).
 Usage: session_context.py --self-test
 """
 import os, re, subprocess, sys, tempfile

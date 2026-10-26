@@ -59,4 +59,4 @@
 - 合入优先（TEAM-45、47）：急 PR 与部署阻塞可请调度插队；关键 PR 冻结范围，不再追加无关改动。
 - 取证运行（TEAM-95）：取证脚本用 ops-venv 跑。
 - 推送门（TEAM-87）：推送前钩子已删，`PUSH_BYPASS_REASON` 随之作废，PR 模板不设「绕过推送前钩子」栏；残留的绕过变量、理由或口子都不算授权（底线 6）。
-- 安全门安装（TEAM-98）：`pre-commit install` 在主检出跑一次即对所有工作区生效（git 钩子各工作区共用；切换时由 cutover.sh 第 2 步装，install.sh 不装；gitleaks、主检出守护、提交信息门都挂在 pre-commit 上，不装就不查）；报告前扫全历史用的 gitleaks 版本以 `.pre-commit-config.yaml` 的 `rev` 为准，与 ci.yml 的 gitleaks 作业同版本，不另装别的版本。
+- 安全门安装（TEAM-98）：`pre-commit install` 在主检出跑一次即对所有工作区生效（git 钩子各工作区共用；切换时由 cutover.sh 第 2 步装，install.sh 不装；gitleaks、主检出守护、提交信息门都挂在 pre-commit 上，不装就不查）；普通克隆里提交会被主检出守护拒绝（git-dir 等于 common-dir 即视为主检出），出路是在该克隆里 `git worktree add <目录> -b <分支>` 建工作区，到那里提交；报告前扫全历史用的 gitleaks 版本以 `.pre-commit-config.yaml` 的 `rev` 为准，与 ci.yml 的 gitleaks 作业同版本，不另装别的版本。

@@ -29,4 +29,3 @@
 
 ## 过渡映射
 - 第四批合并前由 one-architecture 与 one-data 共任：`data/**`、`runtime/**`、两份数据清单与 DD 签发归 one-data，其余归 one-architecture。
-- `ARCH_CONTEXT.md`、`DATA_CONTEXT.md` 归本角色，lead 迁移完后删除。

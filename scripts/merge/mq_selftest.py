@@ -1253,6 +1253,8 @@ def _docs_tiers(mq, d):
 MOD = "docs" + "/" + "modernization"
 BUILD_ALL_SOURCE = """import os, sys
 here = os.path.dirname(os.path.abspath(__file__))
+if "--without-api" not in sys.argv:
+    sys.exit("a fresh checkout has no OpenAPI products: the queue must pass --without-api")
 if "--check" in sys.argv:
     if os.path.exists(os.path.join(here, "CHECKFAIL")):
         sys.exit("check fails")

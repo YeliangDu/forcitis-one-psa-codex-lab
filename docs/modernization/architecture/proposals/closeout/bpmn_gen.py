@@ -17,7 +17,7 @@ import yaml
 
 HERE = Path(__file__).resolve().parent
 CATALOG = Path(__file__).resolve().parents[1].parent / "ssot" / "09-processes" / "catalog.yaml"   # 流程目录正本
-STAKEHOLDERS = HERE.parent / "value-streams.v2.yaml"
+STAKEHOLDERS = HERE.parents[1] / "ssot" / "05-value-streams" / "value-streams.yaml"
 CHECKER = HERE / "bpmn_check.py"
 
 LANE_H, HDR, BLACK_H = 130, 30, 80

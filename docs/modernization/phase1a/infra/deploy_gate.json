@@ -1,0 +1,20 @@
+{
+  "_说明": "部署门（scripts/release/deploy_gate.py）唯一的 docs 输入（K02/G02，GOV-1023-FV2）。PREDEPLOY_CHECKLIST.md 里 D 节与 C-9、C-15 的状态格由 `python3 scripts/release/deploy_gate.py --render` 从本文件写入，不要手改表格；状态只有恰好是 ✅ 才算完成。blockers 每项一条：在列即阻止 dev 与 prod 部署，阻塞工作合入后由调度删掉该项。",
+  "blockers": [],
+  "exit_conditions": {
+    "D-1": "⬜",
+    "D-2": "⬜",
+    "D-3": "⬜",
+    "D-4": "⬜",
+    "D-5": "⬜",
+    "D-6": "⬜",
+    "D-7": "⬜",
+    "D-8": "⬜",
+    "D-9": "⬜",
+    "D-10": "⬜"
+  },
+  "prod_prerequisites": {
+    "C-9": "🟨",
+    "C-15": "⬜"
+  }
+}

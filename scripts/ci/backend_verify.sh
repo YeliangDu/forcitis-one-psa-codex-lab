@@ -4,13 +4,32 @@
 set -uo pipefail
 cd "$(dirname "$0")/../../backend" || exit 1
 
+# Both plugins read JSON and generated TS. CI downloads this run's api-contract artifact; local/nightly runs bootstrap first.
+bash ../scripts/generate-api.sh --check || exit 1
+
 ./mvnw -B package -DskipTests -Djacoco.skip=true "$@" || exit 1
 
 # Self-hosted checkouts can retain reports; only this invocation may vouch for its selected tier.
 rm -rf target/surefire-reports target/failsafe-reports
+contract=$(mktemp)
+export_log=$(mktemp)
+cp ../frontend/packages/api/openapi.json "$contract"
+if ! ./mvnw -B surefire:test@export-openapi "$@" >"$export_log" 2>&1; then
+  cat "$export_log"
+  rm -f "$contract" "$export_log"
+  exit 1
+fi
+cat "$export_log"
+if ! cmp -s "$contract" ../frontend/packages/api/openapi.json; then
+  echo "OpenAPI 与本次前端生成输入不一致；请在仓库根重新运行 bash scripts/generate-api.sh 后重试。" >&2
+  rm -f "$contract" "$export_log"
+  exit 1
+fi
+rm -f "$contract" "$export_log"
+# Export must finish before failsafe too: its acceptance classes read the same contract.
 unit_log=$(mktemp)
 integration_log=$(mktemp)
-./mvnw -B surefire:test@export-openapi surefire:test "$@" >"$unit_log" 2>&1 &
+./mvnw -B surefire:test "$@" >"$unit_log" 2>&1 &
 unit_pid=$!
 ./mvnw -B failsafe:integration-test failsafe:verify "$@" >"$integration_log" 2>&1 &
 integration_pid=$!

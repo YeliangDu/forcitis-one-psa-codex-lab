@@ -6,8 +6,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run",
+    "typecheck": "node ../../scripts/api-artifacts.mjs --check && tsc --noEmit -p tsconfig.json",
+    "test": "node ../../scripts/api-artifacts.mjs --check && vitest run",
     "build": "echo \"api is built by apps/web\""
   },
   "dependencies": {

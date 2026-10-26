@@ -4,7 +4,7 @@
 节点：01 干系人 · 02 关注点 · 03 价值主张 · 04 取舍决定 · 05 业务能力 · 06 价值流与阶段 · 07 业务流程 · 08 约束与认定规则 ·
 09 业务对象 · 10 受控业务执行 · 11 业务事实 · 12 维度 · 13 指标与评价 · 14 计算绑定 · 15 决策与行动。
 聚合、BC、子域、表作为 09、10 的领域与实现层映射（检查编号 N09-Mn、N10-Mn）。每条链接带出处（源文件与定位）。
-源：proposals/value-streams.v2.yaml、ssot/10-objects/objects.yaml、ENTERPRISE_INFO_MAP_DRAFT.md §2、ssot/09-processes/catalog.yaml、
+源：ssot/05-value-streams/value-streams.yaml、ssot/10-objects/objects.yaml、ssot/10-objects/ENTERPRISE_INFO_MAP.md §2、ssot/09-processes/catalog.yaml、
 ssot/c1-rules/rules.yaml、ssot/i03-aggregates/{planned,built}.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §3.2、ssot/d-domain/subdomains.yaml、ssot/13-dimensions、ssot/15-kpis/kpis.yaml、glossary/terms.yaml、
 data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ssot/i03-aggregates/built.yaml 的已建表）。
 缺口只报告、不使构建失败：反复跑到收敛；panorama.yaml、GAPS.md 不入仓（只要求能生成）；STAKEHOLDERS.md 仍入仓，由 build_all 的前后快照比对守护。
@@ -23,16 +23,15 @@ import scan_org_roles
 
 HERE = Path(__file__).resolve().parent
 ARCH = HERE.parent
-sys.path.insert(0, str(ARCH / "proposals" / "closeout"))
 import anchoring_check as anc  # noqa: E402  流程归集与对象承载的判定与 anchoring_check C1、C2 共用一份代码
 import object_layer_check as olc  # noqa: E402
 DOCS = ARCH.parent
 ROOT = DOCS.parent.parent
 JAVA = ROOT / "backend/src/main/java/com/forcitis/one"
 SRC = {
-    "vs": ARCH / "proposals" / "value-streams.v2.yaml",
+    "vs": ARCH / "ssot/05-value-streams/value-streams.yaml",
     "obj": ARCH / "ssot/10-objects/objects.yaml",
-    "obj_details": ARCH / "proposals/ENTERPRISE_INFO_MAP_DRAFT.md",
+    "obj_details": ARCH / "ssot/10-objects/ENTERPRISE_INFO_MAP.md",
     "prc": ARCH / "ssot" / "09-processes" / "catalog.yaml",
     "agg": ARCH / "proposals" / "ENTERPRISE_AGGREGATES_DRAFT.md",
     "planned": ARCH / "ssot/i03-aggregates/planned.yaml",
@@ -870,7 +869,13 @@ def controller_routes(java):
     return routes
 
 
+def require_api():
+    if not SRC["api"].is_file():
+        raise ValueError(f"{rel(SRC['api'])} 缺失；请在仓库根运行 bash scripts/generate-api.sh（需 Docker 和前端依赖），再运行 build_all.py")
+
+
 def load_interfaces(m, link, mod_to_bc):
+    require_api()
     registered = {}
     for no, line in enumerate(SRC["modules"].read_text(encoding="utf-8").splitlines(), 1):
         line = line.split("#", 1)[0].strip()
@@ -1449,6 +1454,7 @@ def main():
         self_test()
         run_unit_tests()
         return 0
+    require_api()
     scan_aggregates.generate(ROOT, check="--check" in sys.argv)
     for script in EXTRACTS:
         subprocess.run([sys.executable, str(script), *(["--check"] if "--check" in sys.argv else [])], check=True)

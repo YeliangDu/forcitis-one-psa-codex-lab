@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # 轻检查的同一入口（GOV-1023-FV2 O9，定稿 A39）：CI 轻作业跑它，本机交付前也可以选跑它；取代 scripts/precheck.sh。
 # 用法：scripts/ci/light.sh [<基线>]   基线默认 origin/main（本脚本不 fetch）；传空串或 40 个 0（新分支的推送）时只跑自测，不比基线。
-# 每次全量跑下面每一项，只有「按改动触发」一节按 light_triggers.sh 的路径模式挑（没有基线时全跑；自测 light_selftest.sh）；
-# 一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
+# 每次全量跑下面每一项，只有「按改动触发」一节按 light_triggers.sh 的路径模式挑（没有基线时全跑；自测 light_selftest.sh）；一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
 # CI 里由 .github/workflows/ci.yml 的 backend 作业调用（每个事件都跑）。不在这里的：
 # - 后端与前端测试、SQL Server 集成测试：backend、frontend 作业的重步骤（本机要跑就用 scripts/ci/backend_verify.sh、legacy_it.sh，起容器先问用户）；
 # - gitleaks 全史扫描、发布脚本自测：secret scan 作业；组织接口通知要 PR 正文，判档（relevant_change.py 输出）要写 ${GITHUB_OUTPUT}：都只在 CI 里；
 # - budget_check（one-quality 的 scripts/ci/budget_check.py，用法 `budget_check.py [--root DIR]`）：文件在就跑，还没合入时记 SKIP。
+# OpenAPI 与前端 generated 不入仓（frontend/packages/api/README.md）：build_all.py --check（全景）要它们已生成。CI 由 api-contract 作业提供；本机没有时先 bash scripts/generate-api.sh（起容器导出，先问用户），或只看 build_all.py --check --without-api。
 # Bash 3.2（macOS）可用：不用关联数组与 mapfile。
 set -uo pipefail
 export PYTHONDONTWRITEBYTECODE=1  # 不留 __pycache__：backend 作业随后在同一工作区跑测试，遍历目录的测试读到 .pyc 会崩（#693）；python3 -I 不认它，另由 rm_new_pyc 删
@@ -80,20 +80,20 @@ run "database scripts aligned (self-test)" python3 -I scripts/ci/db_scripts_alig
 run "database scripts aligned" python3 -I scripts/ci/db_scripts_aligned.py
 
 # 只增不改的登记与验收守护（原 backend 作业里的步骤）
-run "migrations immutable (self-test)" python3 scripts/ci/migrations_immutable.py --self-test
-against_base "migrations immutable" python3 scripts/ci/migrations_immutable.py
-run "system actors append-only (self-test)" python3 scripts/ci/system_actors_append_only.py --self-test
-against_base "system actors append-only" python3 scripts/ci/system_actors_append_only.py
-for script in acceptance_guard acceptance_reports acceptance_rulings; do
+for script in migrations_immutable system_actors_append_only acceptance_guard acceptance_reports acceptance_rulings; do
   run "$script (self-test)" python3 "scripts/ci/$script.py" --self-test
 done
+against_base "migrations immutable" python3 scripts/ci/migrations_immutable.py
+against_base "system actors append-only" python3 scripts/ci/system_actors_append_only.py
 against_base "acceptance guard" python3 scripts/ci/acceptance_guard.py
 against_base "acceptance rulings" python3 scripts/ci/acceptance_rulings.py
 
-# 门、钩子与 CI 脚本的自测
+# 门、钩子、CI 脚本与文档工具的自测（生成器名单取 build_all.py 的清单，O14 起不由 build_all 跑；列不出记一项 FAIL）
 run "gates (gates_selftest.py)" python3 scripts/gates/gates_selftest.py
-for script in scripts/ci/relevant_change.py scripts/hooks/codex_stdin_gate.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \
-  scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py scripts/hooks/session_context.py scripts/hooks/start_sheet.py scripts/coord/mailbox.py; do
+listed=$(python3 docs/modernization/build_all.py --self-test-list) || listed="build_all-self-test-list-failed"
+for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py scripts/queue/merge_train.py scripts/merge/mq.py \
+  scripts/ci/ci_recurrence.py scripts/ci/relevant_change.py scripts/hooks/codex_stdin_gate.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \
+  scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py scripts/hooks/session_context.py scripts/hooks/start_sheet.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
 run "light_selftest (by-change triggers)" bash scripts/ci/light_selftest.sh

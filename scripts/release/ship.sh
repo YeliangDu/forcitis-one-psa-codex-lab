@@ -20,6 +20,11 @@ exec 3>&1
 env="${1:?usage: ship.sh <dev|prod> <version>}"
 version="${2:?usage: ship.sh <dev|prod> <version>}"
 fail() { echo "ship.sh: $*" >&2; exit 1; }
+export SHIP_GH_TIMEOUT="${SHIP_GH_TIMEOUT:-120}"
+# Runs a command for at most $SHIP_GH_TIMEOUT seconds: TERM at the deadline, KILL two seconds later (alarm alone would not stop a gh that ignores SIGALRM); exits 124 on a timeout
+bounded() {
+  perl -e 'my $pid = fork(); if (!$pid) { exec @ARGV or die "exec: $!" } $SIG{ALRM} = sub { kill "TERM", $pid; sleep 2; kill "KILL", $pid; waitpid($pid, 0); exit 124 }; alarm($ENV{SHIP_GH_TIMEOUT}); waitpid($pid, 0); exit($? >> 8)' "$@"
+}
 need() {
   local name missing=()
   for name in "$@"; do [ -n "${!name:-}" ] || missing+=("$name"); done
@@ -53,7 +58,7 @@ installed_cli="$(aliyun version 2>/dev/null || true)"
 # Tokens, credentials and signed links stay in pipes and shell variables: never in a file, and tokens never on a command line. The
 # signed links do appear on the aliyun command line when written to OOS (RELEASE.md §10).
 top="forcitis-one-$version"
-asset_ids="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$version" | python3 -I -c '
+asset_ids="$(bounded gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$version" | python3 -I -c '
 import json, sys
 release, top = json.load(sys.stdin), sys.argv[1]
 if release.get("draft") is not False:
