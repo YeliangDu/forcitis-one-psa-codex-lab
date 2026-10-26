@@ -24,6 +24,7 @@ from pathlib import Path
 ANSI_QUOTE = re.compile(r"\$'((?:[^'\\]|\\.)*)'", re.S)
 DOLLAR_DOUBLE = re.compile(r'\$(?=")')
 QUOTES = re.compile(r"[\\'\"]")
+CONTINUATION = re.compile(r"(?<!\\)((?:\\\\)*)\\\n")  # an unescaped backslash-newline: after `\\` the newline still ends the command (3eac19088 final M1)
 PUA_DOLLAR, PUA_TICK = "\ue000", "\ue001"  # `$` and a backtick inside single quotes: plain characters, not expansions
 SIMPLE_ESCAPES = {"a": "\a", "b": "\b", "e": "\x1b", "E": "\x1b", "f": "\f", "n": "\n", "r": "\r", "t": "\t", "v": "\v", "\\": "\\", "'": "'", '"': '"', "?": "?"}
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
@@ -85,7 +86,7 @@ def unquote_dollar(command):  # `$'\x67it'` and `$"git"` run git; shlex would re
 
 
 def plain(command):  # Pre-filter text: ANSI-C decoded, line continuations, quotes and backslashes removed, lower-cased. Only decides whether to look closer.
-    return QUOTES.sub("", unquote_dollar(command.replace("\\\n", ""))).lower() if isinstance(command, str) else ""
+    return QUOTES.sub("", unquote_dollar(CONTINUATION.sub(r"\1", command))).lower() if isinstance(command, str) else ""
 
 
 def neutralize(text, backticks=True):  # `$`/backtick inside single quotes -> private characters; a backtick substitution outside them -> `$(...)` (when `backticks`). Comments are not mimicked (judge).
@@ -131,7 +132,7 @@ def tokens_of(command, structured=False):
     """Shell tokens, line by line (an open quote continues; `#` and here-documents are not read as the shell does: judge refuses such lines that may concern production). `structured`: backticks are `$(...)`, `$` in single quotes neutralised;
     otherwise the older reading of the other hooks (a backtick starts a new command)."""
     tokens, pending = [], ""
-    lines = unquote_dollar(command).replace("\\\n", "").split("\n")  # a backslash-newline is deleted, also inside a word
+    lines = CONTINUATION.sub(r"\1", unquote_dollar(command)).split("\n")  # a backslash-newline is deleted, also inside a word
     if structured:
         lines = neutralize("\n".join(lines)).split("\n")
     for line in lines:
@@ -1057,15 +1058,15 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     environ, TRUSTED_LINE = os.environ if environ is None else environ, None
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
-    odd = bool(COMMENT_OR_HEREDOC.search(command_text.replace("\\\n", "")))  # as bash, continuations go first; their text is read as words, so quotes in it may pair with the real commands
-    if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text)) or PATH_COMMAND.search(command_text)):  # variables may spell the tool and the target (2b59000cb first review M1)
-        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具、解释器、变量展开、按路径执行的程序或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行。"
+    odd = bool(COMMENT_OR_HEREDOC.search(CONTINUATION.sub(r"\1", command_text)))  # as bash, continuations go first; their text is read as words, so quotes in it may pair with the real commands
+    if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text))):  # variables may spell the tool and the target (2b59000cb first review M1)
+        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具、解释器、变量展开、按路径执行的程序或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行；提交说明与 PR 正文用 git commit -F <文件>、gh pr create --body-file <文件>。"
     try:
         commands = simple_commands(command_text)
         TRUSTED_LINE = trusted_entry(command_text, cwd) if len(commands) == 1 and INTERPRETER.match(name_of(commands[0].argv[0])) and could_concern(plain(command_text)) else None
     except ValueError:
         if odd or raw_hit or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE):
-            return "命令读不懂（引号未闭合、嵌套过深等）且含生产特征或 psql／ssh／aliyun 等远程工具，无法确认不是连生产的写操作，拒绝。"
+            return "命令读不懂（引号未闭合、嵌套过深等），且含生产特征、psql／ssh／aliyun 等远程工具或注释／here-document，无法确认不是连生产的写操作，拒绝。"
         return None
     for index, command in enumerate(commands):
         tool = name_of(command.argv[0])
