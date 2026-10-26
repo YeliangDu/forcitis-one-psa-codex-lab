@@ -103,7 +103,11 @@ def check_view(root):  # Refuses (SystemExit) when the checklist's cells differ 
         raise SystemExit(f"deploy_gate.py: {CHECKLIST} differs from {GATE_FILE}: run deploy_gate.py --render (the table is a view of the gate file)")
 
 
-def consistent(checklist_text, data):  # The checklist's cells, as table_rows reads them, equal the gate file's status for every id.
+def consistent(checklist_text, data):  # The checklist's cells, as table_rows reads them, equal the gate file's status for every id, each id on exactly one row.
+    try:
+        render(checklist_text, data)
+    except SystemExit:
+        return False
     rows = table_rows(checklist_text, "D")
     executions = table_rows(checklist_text, "C")
     return rows == dict(data["exit_conditions"]) and all(executions.get(k) == v for k, v in data["prod_prerequisites"].items())
@@ -276,7 +280,8 @@ def self_test():
             raise AssertionError("a checklist differing from the gate file must fail the view check")
         except SystemExit:
             pass
-        for broken in (rendered.replace("| D-3 | x | y | ⬜ |\n", ""), rendered.replace("| C-9 | 生产库 | ⬜ |\n", ""), rendered.replace("| D-3 | x | y | ⬜ |\n", "| D-3 | x | y | ⬜ |\n| D-11 | x | y | ⬜ |\n")):
+        for broken in (rendered.replace("| D-3 | x | y | ⬜ |\n", ""), rendered.replace("| C-9 | 生产库 | ⬜ |\n", ""), rendered.replace("| D-3 | x | y | ⬜ |\n", "| D-3 | x | y | ⬜ |\n| D-11 | x | y | ⬜ |\n"),
+                       rendered.replace("| D-3 | x | y | ⬜ |\n", "| D-3 | x | y | ⬜ |\n| D-3 | x | y | ✅ |\n"), rendered.replace("| C-9 | 生产库 | ⬜ |\n", "| C-9 | 生产库 | ⬜ |\n| C-9 | 生产库 | ⬜ |\n")):
             assert not consistent(broken, gate_file(root)), "a row missing from the table, or one the gate file lacks, is inconsistent"
             try:
                 render(broken, gate_file(root))
