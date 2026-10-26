@@ -35,6 +35,10 @@ def registered_owner(sheet):
         sys.exit(f"单子 {sheet} 没有在 ONLINE_PAGES.md 登记（或重复登记、列数不对），无法确定负责会话；请先登记再生成 intent")
     if found[0][2] in ("", "roles/ 未列"):
         sys.exit(f"单子 {sheet} 在 ONLINE_PAGES.md 的负责会话是「{found[0][2]}」，无法确定负责会话；请先补登记")
+    sys.path.insert(0, os.path.join(HERE, "..", ".."))
+    import new_intent
+    if found[0][2] not in new_intent.known_owners():
+        sys.exit(f"单子 {sheet} 登记的负责会话 {found[0][2]} 不在 roles/ 过渡映射或 policy.json 的 sessions.config 里，无法确定负责会话；请先补登记")
     return found[0][2]
 
 if "--check" in sys.argv:

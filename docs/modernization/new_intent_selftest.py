@@ -51,11 +51,16 @@ def decide_drill(tree, sync_args):
     (frag,) = set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before
     text = open(frag, encoding="utf-8").read()
     assert "## 类别\n\n流程\n\n## 负责会话\n\none-glossary\n\n## 影响路径\n\nscripts/ci、docs/modernization\n" in text, f"片段四项须齐全且负责会话取自登记：{text}"
-    for sheet, pages, why in (("ZZ", PAGES.replace("负责会话", "负责人"), "表头"), ("ZY", PAGES, "没有在 ONLINE_PAGES.md 登记"), ("ZU", PAGES, "roles/ 未列"), ("ZZ", PAGES + ROW.format("ZZ", "one-ops"), "重复登记")):
+    for sheet, pages, why in (("ZZ", PAGES.replace("负责会话", "负责人"), "表头"), ("ZY", PAGES, "没有在 ONLINE_PAGES.md 登记"), ("ZU", PAGES, "roles/ 未列"), ("ZZ", PAGES + ROW.format("ZZ", "one-ops"), "重复登记"),
+                              ("ZU", HEAD + "| ZU | 演练 | one-glossary | x | 待定 |\n", "列数不对"), ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射")):
         if sheet == "ZY":
             shutil.copytree(os.path.join(tree, "outZZ"), os.path.join(tree, "outZY"))
         code, out = sync(sheet, pages)
         assert code != 0 and why in out, f"{why} 应拒：{out[:200]}"
+    shutil.copy(os.path.join(BASE, "rules", "decide", "ONLINE_PAGES.md"), os.path.join(dec, "real_pages.md"))
+    code, out = sync("N1", open(os.path.join(dec, "real_pages.md"), encoding="utf-8").read())
+    assert code != 0 and "单子 N1" in out and "roles/ 未列" in out, f"真实登记表里 N1 应被拒：{out[:200]}"
+    assert not [f for f in os.listdir(os.path.join(dec, "answers")) if f != "ZZ.json"], "登记表这一关拒绝时不写答复文件"
     assert len(set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before) == 1, "拒绝时不应再生成片段"
 
 
@@ -82,7 +87,7 @@ def main():
         assert "--category" in out and "--owner" not in out and "--paths" not in out,f"只打印出错的项：{out[:200]}"
         assert not glob.glob(os.path.join(mod, "intent", "*.md")), "拒绝时不应生成片段"
         script = os.path.join(BASE, "rules", "decide", "decide_sync.py")
-        sync = [sys.executable, script, "D5", tree]
+        sync = [sys.executable, script, "GL6", tree]
         sync_args = [a for a in GOOD[1:] if not a.startswith("--owner=")]
         for key in ("category", "paths", "supersedes"):
             r = subprocess.run(sync + swap(sync_args, key), capture_output=True, text=True)

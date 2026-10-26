@@ -7,7 +7,7 @@
 - **退役日期**：写 `YYYY-MM-DD` 或 `待定`。现在全是 `待定`：没有任何文件或用户答复定过退役日期，这里不编；日期由用户在第四批批准旧页只读化或退役时定，定一页补一行。
 - **新页必须先加一行**再发布；单子页的行与 README 页面表的单子一一对应（核对：下表前 36 行单子编号＝README 页面表 36 行）。
 - 账号下的在线页总数（盘点称 161 个）仓库里没有清单，本表只登记仓库里有记载的页（README 页面表 36 张、收件箱、固定确认页两个）；其余页由用户在账号侧列出后补登。
-- `sheets/` 里的 GL、GL2、N1、NM1～NM6 共 9 个单子数据在 README 页面表没有页面链接（答复在 `answers/` 里），仓库没有记载它们的在线页；为让 `decide_sync.py` 能按单子查负责会话，已在表中登记（G3 要求每个有答复的单子都有登记），起用日期写「无记载」、用途取自单子标题、出处写单子文件；出题会话确认在线页后补链接与日期。用语类（GL、GL2、NM1～NM6）负责会话写 one-glossary，对应 `roles/language.md` 第 30 行；N1 由 one-rules 出题（提交说明 docs(rules)），`roles/` 未列 one-rules，沿用登记名。
+- `sheets/` 里的 GL、GL2、N1、NM1～NM6 共 9 个单子数据在 README 页面表没有页面链接（答复在 `answers/` 里），仓库没有记载它们的在线页；为让 `decide_sync.py` 能按单子查负责会话，已在表中登记（G3 要求每个有答复的单子都有登记），起用日期写「无记载」、用途取自单子标题、出处写单子文件；出题会话确认在线页后补链接与日期。用语类（GL、GL2、NM1～NM6）负责会话写 one-glossary，对应 `roles/language.md` 第 30 行；N1 由 one-rules 出题（提交说明 docs(rules)），`roles/` 未列 one-rules，负责会话写「roles/ 未列」（调度 10-26 深夜定）：decide_sync 对 N1 生成 intent 会拒，须先在 `roles/` 补出负责会话再改登记。登记的会话名还须在 `roles/` 过渡映射或 policy.json 的 `sessions.config` 里，否则 decide_sync 同样拒。
 - **表格列约定（`decide_sync.py` 解析）**：表头固定为「单子或页面 \| 用途 \| 负责会话 \| 起用日期 \| 退役日期 \| 出处」六列，单子行第一列是单子编号（`[A-Za-z0-9_]+`）；负责会话写会话名，`roles/` 里查不到写「roles/ 未列」（decide_sync 遇到即拒）。改列顺序或列名，decide_sync 与其自测会失败关闭。登记表中没有单子 json 的行：FD（数据源是 `r0/FINANCE_DECISIONS.md`，不是 sheets/）；其余单子行均有 `sheets/<单子>.json`（2026-10-26 逐一核对）。
 
 | 单子或页面 | 用途 | 负责会话 | 起用日期 | 退役日期 | 出处 |
@@ -50,7 +50,7 @@
 | FCQ | 贡献毛利基线、直接人工费率与工资补发的财务口径（7 题，不预选） | one-arch-finance | 2026-10-22 | 待定 | rules/decide/README.md 页面表 |
 | GL | 词表待确认事项（76 题） | one-glossary | 无记载 | 待定 | rules/decide/sheets/GL.json（仓库无在线页记载；会话名见上方说明） |
 | GL2 | 聚合与 BC 用语确认（11 题） | one-glossary | 无记载 | 待定 | rules/decide/sheets/GL2.json（仓库无在线页记载；会话名见上方说明） |
-| N1 | 规则与数据设计待确认项（10 题） | one-rules | 无记载 | 待定 | rules/decide/sheets/N1.json（仓库无在线页记载；会话名见上方说明） |
+| N1 | 规则与数据设计待确认项（10 题） | roles/ 未列 | 无记载 | 待定 | rules/decide/sheets/N1.json（仓库无在线页记载；会话名见上方说明） |
 | NM1 | 命名：动词与状态（22 题） | one-glossary | 无记载 | 待定 | rules/decide/sheets/NM1.json（仓库无在线页记载；会话名见上方说明） |
 | NM2 | 名词·财务与收付（22 题） | one-glossary | 无记载 | 待定 | rules/decide/sheets/NM2.json（仓库无在线页记载；会话名见上方说明） |
 | NM3 | 名词·项目、售前与合同（15 题） | one-glossary | 无记载 | 待定 | rules/decide/sheets/NM3.json（仓库无在线页记载；会话名见上方说明） |
