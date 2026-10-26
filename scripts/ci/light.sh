@@ -73,12 +73,6 @@ command -v python3 >/dev/null || { echo "FAIL  找不到 python3" >&2; exit 1; }
 # 供应链与生成文档（原 secret scan 作业里的步骤）
 run "python3 has PyYAML 6.0.3" pyyaml
 run "generated docs match fragments" python3 docs/modernization/build_all.py --check
-# 生成器与文档工具的自测（O14 起不由 build_all 跑；生成器名单取 build_all.py 的清单）
-listed=$(python3 docs/modernization/build_all.py --self-test-list) || listed="build_all-self-test-list-failed"  # 列不出：记一项 FAIL
-for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py \
-  scripts/queue/merge_train.py scripts/merge/mq.py scripts/ci/ci_recurrence.py; do
-  run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
-done
 run "no legacy system name in docs" python3 docs/modernization/check_legacy_name.py
 run "rule review revisions (self-test)" python3 docs/modernization/rules/review_revisions.py --self-test
 against_base "rule review revisions are append-only" python3 docs/modernization/rules/review_revisions.py --base
@@ -86,19 +80,19 @@ run "database scripts aligned (self-test)" python3 -I scripts/ci/db_scripts_alig
 run "database scripts aligned" python3 -I scripts/ci/db_scripts_aligned.py
 
 # 只增不改的登记与验收守护（原 backend 作业里的步骤）
-run "migrations immutable (self-test)" python3 scripts/ci/migrations_immutable.py --self-test
-against_base "migrations immutable" python3 scripts/ci/migrations_immutable.py
-run "system actors append-only (self-test)" python3 scripts/ci/system_actors_append_only.py --self-test
-against_base "system actors append-only" python3 scripts/ci/system_actors_append_only.py
-for script in acceptance_guard acceptance_reports acceptance_rulings; do
+for script in migrations_immutable system_actors_append_only acceptance_guard acceptance_reports acceptance_rulings; do
   run "$script (self-test)" python3 "scripts/ci/$script.py" --self-test
 done
+against_base "migrations immutable" python3 scripts/ci/migrations_immutable.py
+against_base "system actors append-only" python3 scripts/ci/system_actors_append_only.py
 against_base "acceptance guard" python3 scripts/ci/acceptance_guard.py
 against_base "acceptance rulings" python3 scripts/ci/acceptance_rulings.py
 
-# 门、钩子与 CI 脚本的自测
+# 门、钩子、CI 脚本与文档工具的自测（生成器名单取 build_all.py 的清单，O14 起不由 build_all 跑；列不出记一项 FAIL）
 run "gates (gates_selftest.py)" python3 scripts/gates/gates_selftest.py
-for script in scripts/ci/relevant_change.py scripts/hooks/codex_stdin_gate.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \
+listed=$(python3 docs/modernization/build_all.py --self-test-list) || listed="build_all-self-test-list-failed"
+for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py scripts/queue/merge_train.py scripts/merge/mq.py \
+  scripts/ci/ci_recurrence.py scripts/ci/relevant_change.py scripts/hooks/codex_stdin_gate.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \
   scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py scripts/hooks/session_context.py scripts/hooks/start_sheet.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
