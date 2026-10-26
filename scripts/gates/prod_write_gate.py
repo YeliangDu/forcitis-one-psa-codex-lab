@@ -1060,7 +1060,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
     odd = bool(COMMENT_OR_HEREDOC.search(CONTINUATION.sub(r"\1", command_text)))  # as bash, continuations go first; their text is read as words, so quotes in it may pair with the real commands
     if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text))):  # variables may spell the tool and the target (2b59000cb first review M1)
-        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具、解释器、变量展开、按路径执行的程序或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行；提交说明与 PR 正文用 git commit -F <文件>、gh pr create --body-file <文件>。"
+        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具、解释器、变量展开、按路径执行的程序或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行；提交说明、PR 正文先写进文件（放会话 scratchpad 或 state 目录，不进仓库），再用 git commit -F <文件>、gh pr create --body-file <文件>（intent 2026-10-26-145156）。"
     try:
         commands = simple_commands(command_text)
         TRUSTED_LINE = trusted_entry(command_text, cwd) if len(commands) == 1 and INTERPRETER.match(name_of(commands[0].argv[0])) and could_concern(plain(command_text)) else None
