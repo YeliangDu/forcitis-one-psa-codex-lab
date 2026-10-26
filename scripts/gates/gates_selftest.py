@@ -23,7 +23,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import pre_tool_dispatch as d  # noqa: E402
 import prod_write_gate as g  # noqa: E402
-from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, LAUNCH_TOOL, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, judge, load_table, mask_sql, name_of, plain, simple_commands, tokens_of)  # noqa: E402
+from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, LAUNCH_TOOL, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, judge, load_table, name_of, plain, simple_commands, tokens_of)  # noqa: E402
 
 PYTHON = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
 
@@ -159,20 +159,14 @@ def gate_self_test():
     def as_main(rels):  # this repository's files read as origin/main's: a branch may edit new_intent's neighbours (trust against origin/main itself: trust_self_test)
         return {rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip() for rel in rels}
     real_blobs, g.main_blobs = g.main_blobs, as_main
-    # 1. reads and harmless mentions pass
-    for command in (f'psql -h {P}.pg.rds.aliyuncs.com -U ro -c "select count(*) from t"', f'psql -h {P} -c "SELECT 1"', f'mysql -h {P} -e "show tables"', f'mysql -h {P} -e "SHOW CREATE TABLE t"', f'psql -h {P} -c "explain select 1"', f'psql -h {P} -q -c "select 1"',
-                    f'sqlcmd -S {P} -U ro -Q "set nocount on; select * from t"', f'sqlcmd -S {P} -Q "set nocount on\nselect 1"', f'sqlcmd -S {P} --query "select 1"', f'sqlcmd -S {P} -i ro.sql', f"sqlcmd -S {P} -iro.sql", f'sqlcmd -S {P} < ro.sql',
-                    f'sqlcmd -S {P} -Q "select [desc], [update] from [t]"', f'psql -h {P} -c "select \'drop table t\'"', f'psql -h {P} -c "select * from t -- delete me"', f'psql -h {P} -c "\\dt"', f'psql -h {P} -c "\\dt+"',
-                    f"psql -h {P} <<< 'select 1'", f"echo 'select 1' | psql -h {P}", f"sqlcmd -S {P} -?", f"psql -h {P} --version", f'redis-cli -h {P} -p 6379 get a', f'redis-cli -h {P} slowlog get 5',
-                    f'bcp "select 1" queryout o.csv -S {P}', "aliyun rds DescribeDBInstances --InstanceId pgm-prod0001", "aliyun --profile x ecs DescribeInstances --InstanceIds rm-prodhost1", f"aliyun cs GET /clusters/{P}",
-                    f'ssh ops@{P} "tail -n 50 /var/log/app.log"', f"ssh {P} 'df -h && uptime'", f"ssh -i key -p 22 {P} 'systemctl status app'", f"ssh {P} docker ps", f"ssh {P} 'date -u +%s'", f"ssh {P} 'date -Iseconds'",
-                    f"scp ops@{P}:/var/log/a.log ./a.log", f"rsync -a ops@{P}:/data/ ./data/", f"rsync -a -e 'ssh -p 22' ops@{P}:/data/ ./data/",
-                    f"curl https://{P}/health", f"curl -X GET https://db.prod.example.com/x", f"curl -XGET https://db.prod.example.com/x", f"curl -sS -o out.json https://db.prod.example.com/x", f"wget https://db.prod.example.com/x",
-                    "git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md",
-                    "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs", "python3 clean.py", "bash -c 'echo hi'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"",
-                    "curl -X POST http://localhost:$PORT/api", 'curl -s -d "$BODY" http://localhost:8080/api', "psql -h localhost -c 'DO $$ begin null; end $$'", "psql -h localhost -c 'select 1' && curl http://localhost:$PORT", "ls $HOME",
-                    "echo 'cost $5 for pgm-prod0001'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF", "ls \\\n-la"):
+    # 1. harmless mentions pass; a remote tool's name anywhere is refused unless the whole line is a registered form, reads to production and localhost included (intent 2026-10-26-160810)
+    for command in ("git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md", "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs",
+                    "python3 clean.py", "bash -c 'echo hi'", "ls $HOME", "echo 'cost $5 for pgm-prod0001'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF", "ls \\\n-la"):
         assert allowed(command), f"must pass: {command!r}"
+    for command in (f'psql -h {P} -c "SELECT 1"', f"sqlcmd -S {P} -i ro.sql", f"echo 'select 1' | psql -h {P}", f'redis-cli -h {P} slowlog get 5', "aliyun rds DescribeDBInstances --InstanceId pgm-prod0001", f"ssh {P} 'df -h && uptime'",
+                    f"scp ops@{P}:/var/log/a.log ./a.log", f"rsync -a ops@{P}:/data/ ./data/", f"curl https://{P}/health", "wget https://db.prod.example.com/x", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"",
+                    "curl -X POST http://localhost:$PORT/api", "psql -h localhost -c 'select 1' && curl http://localhost:$PORT"):
+        assert refused(command), f"a remote tool, not a registered line: refused, the gate no longer reads its arguments: {command!r}"
     # 1b. a comment or a here-document is not stripped as the shell would (intent 2026-10-26-140639): with a production sample, a remote tool or a target variable on the line, refused
     for command in (f"psql -h {P} <<'EOF'\nselect 1;\nEOF", "cat <<'EOF' > n.md\npgm-prod0001\nEOF", "cat <<EOF\nplain text pgm-prod0001\nEOF", f"ls # {P}", "cat <<EOF\npsql -h localhost\nEOF", "echo a # '\ntime \\./deploy\n: \\'",
                     f"ssh {P} uptime # can't", f"cat <<'EOF'\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF", "echo a # x \\\nenv \\./deploy", "ls # x \\\nif scripts/deploy; then :; fi", f">\"$(psql -h {P} -c 'delete from t')\" ls"):
@@ -185,37 +179,22 @@ def gate_self_test():
                     "ls # '\n`echo ps`ql -h `echo pgm-pr`od0001 -c \"delete from t\"\n: \\'", f"echo a\\\\\npsql -h {P} -c 'delete from t'", "echo a # '\n./deploy\n: \\'"):  # backticks, a path command; `\\` then a newline ends the command (3eac19088 final)
         assert refused(command), ("a comment or here-document with a program, or unreadable: refused", command)
     # 2. writes to production are refused, every class
-    for command in (f'psql -h {P} -c "insert into t values (1)"', f'psql -h {P} -c "UPDATE t SET a=1"', f'psql -h {P} -c "delete from t"', f'psql -h {P} -c "drop table t"', f'psql -h {P} -c "ALTER TABLE t ADD c int"',
-                    f'psql -h {P} -c "select 1; delete from t"', f'psql -h {P} -c "select * from t for update"', f'psql -h {P} -c "truncate t"', f"psql -h {P} -f fix.sql", f"psql -h {P} < fix.sql", f"psql -h {P} -f missing.sql",
-                    f"psql -h {P}", f'mysql -h {P} -e "grant all on *.* to x"', f"mysql -h {P} < x.sql", f'redis-cli -h {P} flushall', f'redis-cli -h {P} set a 1', f'redis-cli -h {H} slowlog reset', f'redis-cli -h {H} client kill type normal',
-                    f'sqlcmd -S {P} -Q "select 1; dbcc shrinkdatabase(x)"', f'sqlcmd -S {P} -Q "select 1; kill 55"', f'sqlcmd -S {P} -Q "backup database x to disk=\'y\'"', f'sqlcmd -S {P} -Q "select 1; deny select on t to u"',
-                    f'sqlcmd -S {P} -Q "select 1; checkpoint; reconfigure"', f'sqlcmd -S {P} -Q "exec sp_configure"', f'sqlcmd -S {P} -Q "select * into t2 from t"', f'sqlcmd -S {P} -Q "use master; select 1"',
-                    f'psql -h {P} -c "select pg_terminate_backend(1)"', f"psql -h {P} -c \"select 'drop table t' \\gexec\"", f'psql -h {P} -c "select set_config(\'a\',\'b\',false)"', f'psql -h {P} -c "select nextval(\'s\')"',
-                    f'psql -h {P} -c \'SELECT pg_catalog."nextval"($$seq$$)\'', f'psql -h {P} -c "SELECT pg_logical_emit_message(false, \'x\', \'x\')"', f'psql -h {P} -c "select 1; comment on table t is \'x\'"',
-                    f'psql -h {P} -c "\\copy t from f"', f'psql -h {P} -c "\\i fix.sql"', f'psql -h {P} -c "do $$ begin delete from t; end $$"', f">o scp f {P}:/x", "T=ps H=pgm-pr >o; ${T}ql -h ${H}od0001 -c 'delete from t'",
-                    f'sqlcmd -S {P} -Q "SELECT \'--\'; DELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "SELECT \'/*\'; DELETE FROM dbo.t; SELECT \'*/\'"', f'sqlcmd -S {P} -Q "SET NOCOUNT ON\nDELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "select \'unterminated"',
-                    f'sqlcmd -S {P} -z "$NEW" -Q "select 1"', f'sqlcmd -S {P} -v op="; DELETE FROM dbo.t" -Q \'SELECT 1 $(op)\'', f'sqlcmd -S {P} -Q "select 1 $(op)"', f'mysql -h {H} --init-command="DELETE FROM t" -e "select 1"',
-                    f"psql -h localhost -c 'select 1' -o '|ssh {H} touch /tmp/x'", f'psql -h {P} <<EOF\nselect 1;\ndelete from t;\nEOF', f'psql -h {P} <<< "delete from t"', f'echo "delete from t" | psql -h {P}', f'printf "delete from t" | psql -h {P}',
-                    f'cat fix.sql | psql -h {P}', f'sqlcmd -S {P} -ifix.sql', f'bcp db.dbo.t in x.dat -S {P}', f'bcp db.dbo.t out x.dat -S {P} -b in', f'bcp "DELETE FROM dbo.t; SELECT 1" queryout ./out.txt -S {P}', f'tsql -H {P}', f'isql {P}',
-                    f'sqlpackage /Action:Publish /TargetServerName:{P}', f'mongosh --host {P} --eval "db.t.deleteMany({{}})"', "aliyun rds DeleteAccount --DBInstanceId pgm-prod0001", "aliyun rds ModifyDBInstanceSpec --DBInstanceId pgm-prod0001",
-                    "aliyun ecs StopInstance --InstanceId rm-prodhost1", "aliyun --profile pgm-prod0001 ecs RunCommand", "aliyun rds --RegionId DescribeX DeleteAccount --DBInstanceId pgm-prod0001",
-                    "aliyun ecs InvokeCommand --InstanceId rm-prodhost1", f"aliyun cs DELETE /clusters/{P}",
-                    f'ssh {P} "rm -rf /data/x"', f"ssh {P} 'echo x > /etc/app.conf'", f"ssh {P} 'sed -i s/a/b/ /etc/app.conf'", f"ssh {P} 'systemctl restart app'", f"ssh {P}", f"ssh {P} 'tee /etc/x'",
-                    f"ssh {P} 'find / -delete'", f"ssh {P} 'find / -fprint0 /tmp/x'", f"ssh {P} 'cat /etc/x | sh'", f"ssh {P} 'psql -c \"delete from t\"'",
-                    f"ssh {P} 'awk \"BEGIN{{print 1 | \\\"sh\\\"}}\"'", f"ssh {P} 'sort -o /etc/passwd /tmp/x'", f"ssh {P} 'uniq in /etc/passwd'", f"ssh {P} 'journalctl --vacuum-size=1M'", f"ssh {P} 'date -s 2020-01-01'", f"ssh {H} 'date -us 2020-01-01'",
-                    f"ssh {P} 'ss -K'", f"ssh {P} 'hostname evil'", f"ssh -L 5432:db:5432 {P}", f"ssh -L 5432:db:5432 {P} ls", f"ssh -D 1080 {P} uptime", f"ssh -R 8080:localhost:80 {P} df", f"ssh -o ProxyCommand='nc x 22' {P} ls", f"ssh -N -R 8080:localhost:80 {P}",
-                    f"scp ./fix.sql ops@{P}:/tmp/", f"rsync -a ./dist/ ops@{P}:/srv/", f"rsync -a ./dist/ ops@{P}:/srv/ --exclude .git", f"rsync -a ./dist/ ops@{P}:/srv/ -e ssh", f"rsync --remove-source-files ops@{P}:/data/ ./x/",
-                    f"rsync --rsync-path='sh -c x' ops@{P}:/data/ ./x/", f"sftp {P}", f"scp -P 22 ./a ops@{P}:/x", f"scp ops@{P}:/a ops@{P}:/b", f"scp -o 'ProxyCommand=ssh {H} touch /tmp/x' {H}:/var/log/a ./a",
-                    f"rsync -e 'ssh -oProxyCommand=\"ssh {H} touch /tmp/x\"' {H}:/var/log/ ./logs/", f"scp -O '{H}:$(touch /tmp/x)/a' ./a", f"scp -S ./evil {H}:/a ./a",
-                    f"curl -X POST https://{P}/api", f"curl -XPOST https://{P}/api", f"curl -sd x=1 https://{P}/api", f"curl --data=x https://{P}/api", f"curl -K cfg https://{P}/api", f"curl -d x=1 https://db.prod.example.com/api",
-                    f"curl -X DELETE https://db.prod.example.com/x", f"curl -T f.bin https://db.prod.example.com/up", f"curl --json '{{}}' https://{P}/x", f"curl https://{P}/a --next https://{P}/b -d x",
-                    f"curl --quote 'rm /tmp/x' sftp://{H}/", f"curl 'gopher://{H}:6379/_SET%20x%201'", f"printf 'url = \"http://{H}/api\"' | curl -K -", "curl -XDELETE http://192.0.{2,2}.15/api/item/1", "curl -XDELETE 'http://192.0.{2,2}.15/api/item/1'",
-                    f"wget --method=DELETE https://{P}/x", f"wget --post-data=x https://{P}/x", f"http POST https://{P}/x", f"http https://{P}/x name=a", f"xh PUT https://{P}/x"):
+    for command in (f'psql -h {P} -c "insert into t values (1)"', f'psql -h {P} -c "select 1; delete from t"', f"psql -h {P} -f fix.sql", f"psql -h {P} < fix.sql", f"psql -h {P}", f"mysql -h {P} < x.sql", f'redis-cli -h {P} flushall',
+                    f'redis-cli -h {H} slowlog reset', f'sqlcmd -S {P} -Q "select 1; dbcc shrinkdatabase(x)"', f'sqlcmd -S {P} -Q "SELECT \'--\'; DELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "select \'unterminated"',
+                    f'sqlcmd -S {P} -v op="; DELETE FROM dbo.t" -Q \'SELECT 1 $(op)\'', f'psql -h {P} -c \'SELECT pg_catalog."nextval"($$seq$$)\'', f'psql -h {P} -c "\\copy t from f"', f">o scp f {P}:/x",
+                    "T=ps H=pgm-pr >o; ${T}ql -h ${H}od0001 -c 'delete from t'", f'mysql -h {H} --init-command="DELETE FROM t" -e "select 1"', f"psql -h localhost -c 'select 1' -o '|ssh {H} touch /tmp/x'", f'psql -h {P} <<EOF\nselect 1;\ndelete from t;\nEOF',
+                    f'echo "delete from t" | psql -h {P}', f'cat fix.sql | psql -h {P}', f'bcp db.dbo.t in x.dat -S {P}', f'tsql -H {P}', f'sqlpackage /Action:Publish /TargetServerName:{P}', f'mongosh --host {P} --eval "db.t.deleteMany({{}})"',
+                    "aliyun rds DeleteAccount --DBInstanceId pgm-prod0001", "aliyun ecs InvokeCommand --InstanceId rm-prodhost1", f'ssh {P} "rm -rf /data/x"', f'isql {P}', f"ssh {P} 'systemctl restart app'", f"ssh {P}", f"ssh {P} 'cat /etc/x | sh'",
+                    f"ssh {H} 'date -us 2020-01-01'", f"ssh -L 5432:db:5432 {P} ls", f"ssh -o ProxyCommand='nc x 22' {P} ls", f"scp ./fix.sql ops@{P}:/tmp/", f"rsync -a ./dist/ ops@{P}:/srv/", f"rsync --rsync-path='sh -c x' ops@{P}:/data/ ./x/", f"sftp {P}",
+                    f"scp -o 'ProxyCommand=ssh {H} touch /tmp/x' {H}:/var/log/a ./a", f"scp -O '{H}:$(touch /tmp/x)/a' ./a", f"curl -X POST https://{P}/api", f"curl -sd x=1 https://{P}/api", f"aliyun cs DELETE /clusters/{P}", f"curl -K cfg https://{P}/api",
+                    f"curl -T f.bin https://db.prod.example.com/up", f"curl https://{P}/a --next https://{P}/b -d x", f"curl --quote 'rm /tmp/x' sftp://{H}/", f"printf 'url = \"http://{H}/api\"' | curl -K -", "curl -XDELETE http://192.0.{2,2}.15/api/item/1",
+                    f"wget --method=DELETE https://{P}/x", f"http POST https://{P}/x", f"xh PUT https://{P}/x"):
         assert refused(command), f"write must be refused: {command!r}"
-    # 3. writes elsewhere pass
-    for command in ('psql -h localhost -c "insert into t values (1)"', "psql -h pgm-dev00001 -f x.sql", "aliyun rds DeleteAccount --DBInstanceId pgm-dev00001", "ssh dev 'rm -rf /tmp/x'", "scp a dev:/tmp/", "curl -X POST https://dev/x", "python3 clean.py",
-                    "xargs -n1 echo", "find . -name '*.py'", "caffeinate -i ls", "psql -h localhost -c 'select 1' -o out.txt"):
+    # 3. writes elsewhere pass, except through a remote tool not written as a registered line (intent 2026-10-26-160810)
+    for command in ("python3 clean.py", "xargs -n1 echo", "find . -name '*.py'", "caffeinate -i ls"):
         assert allowed(command), f"non-production write must pass: {command!r}"
+    for command in ('psql -h localhost -c "insert into t values (1)"', "aliyun rds DeleteAccount --DBInstanceId pgm-dev00001", "ssh dev 'rm -rf /tmp/x'", "scp a dev:/tmp/", "curl -X POST https://dev/x"):
+        assert refused(command), f"a remote tool to a non-production host, not registered: refused: {command!r}"
     # 4. unknown tools that touch production, every one refused
     for command in (f"python3 -c \"import pymssql; pymssql.connect('{P}').execute('delete from t')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}", f"xargs -I{{}} sqlcmd -S {P} -Q {{}}",
                     f"find . -exec sqlcmd -S {P} -Q 'delete from t' \\;", f"script -q /dev/null sqlcmd -S {P} -Q 'delete from t'", f"arch -arm64 sqlcmd -S {P} -Q 'delete from t'", f"caffeinate -i sqlcmd -S {P} -Q 'delete from t'",
@@ -239,42 +218,43 @@ def gate_self_test():
         assert refused(command), f"bypass must be refused: {command!r}"
     assert refused('psql -h "$PGHOST" -c "delete from t"'), "unresolved target + write is refused"
     assert refused("psql -h $(cat host.txt) -c 'delete from t'") and refused("aliyun rds DeleteAccount --DBInstanceId $ID") and refused('psql "$DATABASE_URL" -c "insert into t values (1)"') and refused('psql -h"$H" -c "delete from t"')
-    assert allowed('psql -h "$PGHOST" -c "select 1"') and allowed("aliyun rds DescribeDBInstances --InstanceId $ID"), "unresolved target + read passes"
-    assert allowed("psql -h localhost -c \"insert into t values ($X)\"") and allowed("curl -X POST http://localhost:8080/api -d $BODY"), "`$` in a statement or data is not a target"
+    assert refused('psql -h "$PGHOST" -c "select 1"') and refused("aliyun rds DescribeDBInstances --InstanceId $ID"), "unresolved target + read: a remote tool, refused (intent 2026-10-26-160810)"
+    assert refused("psql -h localhost -c \"insert into t values ($X)\"") and refused("curl -X POST http://localhost:8080/api -d $BODY"), "a remote tool, whatever `$` stands for"
     assert refused("psql -h 'pgm-prod0001 -c 'delete'"), "unreadable command with a remote tool is refused"
     assert allowed("echo 'unterminated"), "unreadable command with no remote tool is not this gate's business"
     # 5b. a bare assignment exported afterwards: `export NAME`, `declare -x`, `typeset -x`, or under `set -a` / `set -o allexport` (O2 review, M4)
     for command in (f"PGHOST={P}; export PGHOST; psql -c 'delete from t'", f"set -a; PGHOST={P}; psql -c 'delete from t'", f"PGHOST={P}; declare -x PGHOST; psql -c 'delete from t'",
                     f"PGHOST={P}; typeset -x PGHOST; psql -c 'delete from t'", f"set -o allexport; SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"set -ea; PGHOST={P}; psql -c 'delete from t'"):
         assert refused(command), f"exported later must be refused: {command!r}"
-    assert allowed("PGHOST=localhost; export PGHOST; psql -c 'delete from t'") and allowed("set -a; PGHOST=localhost; psql -c 'delete from t'"), "an exported non-production host passes"
+    assert refused("PGHOST=localhost; export PGHOST; psql -c 'delete from t'") and refused("set -a; PGHOST=localhost; psql -c 'delete from t'"), "an exported non-production host: psql is still a remote tool (intent 2026-10-26-160810)"
     # 5c. a bare assignment to a target variable counts as exported: the variable may be exported already by the process environment or an rc file (O2 round 1, M1)
     assert refused(f"PGHOST={P}; psql -c 'delete from t'", environ={"PGHOST": "localhost"}), "exported in the environment, reassigned bare"
     assert refused(f"PGHOST={P}; psql -c 'delete from t'") and refused(f"SQLCMDSERVER={H}; sqlcmd -Q 'delete from t'"), "not in the environment the gate sees (an rc file may export it)"
-    assert allowed("PGHOST=localhost; psql -c 'delete from t'", environ={"PGHOST": "localhost"}) and allowed("PGHOST=localhost; psql -c 'delete from t'"), "a bare assignment to a non-production host passes"
+    assert refused("PGHOST=localhost; psql -c 'delete from t'", environ={"PGHOST": "localhost"}) and refused("PGHOST=localhost; psql -c 'delete from t'"), "a non-production host: still a remote tool, refused"
     # 5d. two-letter remote tool names (xh) count as whole words only, not as substrings (O2 round 1, suggestion)
     assert allowed("cat exhibit 'oops") and allowed("grep xhr 'oops"), "an unreadable line whose words only contain xh is not this gate's business"
     assert refused("xh 'oops") and refused("cd x && xh 'oops") and refused("/usr/bin/xh 'oops"), "an unreadable line running xh is refused"
     real_load = g.load_table
     try:
         g.load_table = lambda path=None: (None, "生产特征表（测试）缺失", None)
-        for command, noted in (("xh GET localhost:8080/x", True), ("cat exhibit", False)):
+        assert g.decide({"tool_name": "Bash", "tool_input": {"command": "xh GET localhost:8080/x"}})[0] == 2, "xh as a word: a remote tool, refused (intent 2026-10-26-160810)"
+        for command, noted in (("cat sshd_config", True), ("cat exhibit", False)):
             code, out, _ = g.decide({"tool_name": "Bash", "tool_input": {"command": command}})
-            assert code == 0 and ("写操作类命令会被拒绝" in out) == noted, ("a broken table is noted for a remote tool only, xh as a word", command, code, out)
+            assert code == 0 and ("写操作类命令会被拒绝" in out) == noted, ("a broken table is noted for a remote tool's name inside a word, xh only as a word", command, code, out)
     finally:
         g.load_table = real_load
     assert refused(f"curl https://{P}/a#b -X DELETE") and refused(f"curl https://{P}/a#b --data x=1"), "a `#` inside a word is no comment (bash): the rest of the command still counts (796bf2c85 final M1)"
     # 6. secrets (bottom line 3) and the environment
     for command in ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"):
         assert refused(command), command
-    assert refused('psql -c "delete from t"', environ={"PGHOST": P}) and allowed('psql -c "select 1"', environ={"PGHOST": P}) and allowed('psql -c "delete from t"', environ={"PGHOST": "localhost"})
-    assert allowed('psql -h localhost -c "delete from t"', environ={"PGHOST": P}), "an explicit host overrides the environment"
+    assert refused('psql -c "delete from t"', environ={"PGHOST": P}) and refused('psql -c "select 1"', environ={"PGHOST": P}) and refused('psql -c "delete from t"', environ={"PGHOST": "localhost"})
+    assert refused('psql -h localhost -c "delete from t"', environ={"PGHOST": P}), "psql is a remote tool whatever the environment (intent 2026-10-26-160810)"
     assert refused('sqlcmd -Q "delete from t"', environ={"SQLCMDSERVER": "rm-prodhost1.sqlserver.rds.aliyuncs.com"})
-    # 7. table missing or broken: writes are refused, reads pass, interpreters are refused, nothing is silently opened
-    assert refused('psql -h localhost -c "insert into t values (1)"', None, "生产特征表缺失") and allowed('psql -h x -c "select 1"', None, "生产特征表缺失")
+    # 7. table missing or broken: remote tools and interpreters are refused, other commands pass, nothing is silently opened
+    assert refused('psql -h localhost -c "insert into t values (1)"', None, "生产特征表缺失") and refused('psql -h x -c "select 1"', None, "生产特征表缺失")
     assert refused("aliyun rds DeleteAccount --DBInstanceId x", None, "生产特征表缺失") and allowed("ls -la", None, "生产特征表缺失") and refused("python3 clean.py", None, "生产特征表缺失")
     assert refused("python3 -c 'print(1)'", None, "生产特征表缺失") and allowed("mvn -q test", None, "生产特征表缺失") and refused(f"python3 -I {intent} x", None, "生产特征表缺失")
-    assert allowed("psql -h pgm-prod0001 -c 'delete from t'", []), "judge itself: an empty list refuses nothing (load_table turns an empty union into a problem, below)"
+    assert allowed("./run pgm-prod0001", []) and refused("psql -h pgm-prod0001 -c 'delete from t'", []), "judge itself: an empty list refuses no production sample, a remote tool still is (load_table turns an empty union into a problem, below)"
     # 7b. the local table empty and origin/main unreadable (git fails) or without a table: a problem, so writes and interpreters are refused, reads pass (O2 review, M2)
     with tempfile.TemporaryDirectory() as tmp:
         empty = os.path.join(tmp, "empty.json")
@@ -287,7 +267,7 @@ def gate_self_test():
                 table, problem, warning = load_table()
                 assert table is None and problem and "为空" in problem, main_result
                 assert (warning is not None) == (main_result[1] is not None), ("a git failure warns, a missing table does not", main_result)
-                assert refused('psql -h localhost -c "delete from t"', table, problem) and refused("python3 clean.py", table, problem) and allowed('psql -h x -c "select 1"', table, problem), main_result
+                assert refused('psql -h localhost -c "delete from t"', table, problem) and refused("python3 clean.py", table, problem) and refused('psql -h x -c "select 1"', table, problem) and allowed("ls", table, problem), main_result
             g.TABLE = os.path.join(HERE, "prod_targets.json")
             g.main_table_text = lambda: (None, "fatal: x")
             table, problem, warning = load_table()
@@ -336,6 +316,21 @@ def gate_self_test():
         g.main_table_text = real_text
     finally:
         g.main_blobs, g.trusted_entries = real_main_blob, real_entries
+    # 9b. a remote tool passes only as a whole line exactly in a form of origin/main's remote_entries, and the production samples still count (intent 2026-10-26-160810)
+    real_remote, url = g.remote_table, re.compile(r"(?:http://)?(?:localhost|127\.0\.0\.1):[0-9]{2,5}(?:/[A-Za-z0-9._~/?=&%+-]*)?")
+    entries, slots = [{"id": "t", "tool": "curl", "forms": [["-s", "-m", "{seconds}", "{local_url}"]]}], {"seconds": re.compile(r"[0-9]{1,3}"), "local_url": url}
+    try:
+        g.remote_table = lambda: (g.REMOTE_TOOLS, entries, slots)
+        assert allowed("curl -s -m 5 http://localhost:8080/health") and allowed("git clone https://example.test/x") and allowed("echo http://localhost:8080"), "the registered line; a URL is not httpie"
+        for command in ("curl -s -m 5 -k http://localhost:8080/health", "curl -s -m http://localhost:8080/health", "curl -s -m 5 http://example.test:8080/", "/usr/bin/curl -s -m 5 http://localhost:8080/", "curl -s -m 5 http://localhost:8080/; ls",
+                        "curl -s -m 5 http://localhost:8080/ && ls", "bash -c 'curl -s -m 5 http://localhost:8080/'", "T=cu; ${T}rl -s -m 5 http://localhost:8080/", "curl -s -m 5 http://localhost:8080/ # ok",
+                        "ssh host uptime", "psql -h localhost -c 'select 1'", "echo psql", "ssh-keygen -l -f x"):
+            assert refused(command), f"not exactly a registered line, or no entry for the tool: refused: {command!r}"
+        entries.append({"id": "w", "tool": "curl", "forms": [["{any}"]]})
+        slots["any"] = re.compile(".+")
+        assert allowed("curl localhost") and refused("curl pgm-prod0001"), "a registered form still answers to the production samples (both rules)"
+    finally:
+        g.remote_table = real_remote
     for command in (f"git tag -f origin/main HEAD && echo {P}", f"git update-ref refs/remotes/origin/main HEAD; echo {P}", f"git grep -nO'sqlcmd -S {P}' foo", f"git grep -inOx {P} foo"):
         assert refused(command), f"origin/main must not be rewritable, -O in a bundle: {command!r}"
     assert "refs/remotes/origin/main" in inspect.getsource(real_blobs) and "refs/remotes/origin/main" in inspect.getsource(g.main_table_text), "the trust anchor is read by its full ref name, a tag called origin/main cannot shadow it"
@@ -351,13 +346,11 @@ def gate_self_test():
                     f"ssh ops@{H} sort --outp=/etc/passwd x", f"ssh ops@{H} date --se=@0", f"ssh ops@{H} journalctl --rot", f"ssh ops@{H} journalctl --vac=1G", f"ssh ops@{H} ss --ki", f"ssh ops@{H} file --comp x", f"ssh ops@{H} pg_dump --fi=/tmp/x db",
                     f"wget --post-d=x https://{P}/x", f"wget --meth=DELETE https://{P}/x", f"wget --body-d=x https://{P}/x", f"sort --compress-prog='ssh {H}' f", f"sort --compress='ssh {H}' f"):
         assert refused(command), f"must be refused: {command!r}"
-    for command in ("./tame.sh", f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'",
-                    f"ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no -i key -p 22 ops@{H} uptime", f"ssh -oPort=22 ops@{H} 'tail -n 5 x'", f"ssh -o 'User ops' ops@{H} uptime",
-                    f"ssh ops@{H} 'sort -r x'", f"ssh ops@{H} 'journalctl --since today --no-pager'", f"ssh ops@{H} 'date --iso-8601=seconds'", f"ssh ops@{H} 'journalctl --reverse -n 5'", f"for f in a b; do sqlcmd -S {P} -Q 'select 1'; done"):
+    for command in ("./tame.sh", f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'"):
         assert allowed(command), f"must pass: {command!r}"
-    # the SQL lexer and brace expansion
-    assert mask_sql("select 'a--b'; select 1 -- c").count("select") == 2 and mask_sql("select 1 /* x */ + 2") is not None and mask_sql("select 'abc") is None and mask_sql("select /* x") is None
-    assert mask_sql('select pg_catalog."nextval"(1)') == 'select pg_catalog. nextval (1)' and mask_sql("select $$a;b$$") == "select ''" and mask_sql("select $x$a$x$ , $1") == "select '' , $1"
+    for command in (f"ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no -i key -p 22 ops@{H} uptime", f"ssh ops@{H} 'sort -r x'", f"for f in a b; do sqlcmd -S {P} -Q 'select 1'; done"):
+        assert refused(command), f"read-only remote commands are no longer told apart: refused (intent 2026-10-26-160810): {command!r}"
+    # brace expansion
     assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("192.0.{2..4}.15") == [TEST_IP, "192.0.3.15", "192.0.4.15"] and brace_variants("plain") == ["plain"]
     with tempfile.TemporaryDirectory() as tmp:
         good = os.path.join(tmp, "t.json")
@@ -388,19 +381,22 @@ def gate_self_test():
                 env["PROD_TARGETS_FILE"] = table_path
             return subprocess.run([sys.executable, "-I", script], input=json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=env)
         result = hook("aliyun rds DeleteAccount --DBInstanceId " + firsts["legacy-rds-sqlserver"])
-        assert result.returncode == 2 and "底线 4" in result.stderr, result
-        assert hook("aliyun rds DescribeDBInstances --DBInstanceId " + firsts["legacy-rds-sqlserver"]).returncode == 0
-        assert hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"").returncode == 2
+        assert result.returncode == 2 and "远程工具名" in result.stderr, result
+        assert hook("aliyun rds DescribeDBInstances --DBInstanceId " + firsts["legacy-rds-sqlserver"]).returncode == 2, "a read through a remote tool, not registered (intent 2026-10-26-160810)"
+        connect = hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"")
+        assert connect.returncode == 2 and "底线 4" in connect.stderr, connect.stderr
         assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0
-        gone = hook("psql -c 'delete from t'", os.path.join(tmp, "missing.json"))
-        assert gone.returncode == 2 and "缺失或不合格" in gone.stderr, gone
-        warned = hook("psql -c 'select 1'", os.path.join(tmp, "missing.json"))
+        gone, remote = hook("python3 clean.py", os.path.join(tmp, "missing.json")), hook("psql -c 'select 1'", os.path.join(tmp, "missing.json"))
+        assert gone.returncode == 2 and "缺失或不合格" in gone.stderr and remote.returncode == 2 and "远程工具名" in remote.stderr, (gone, remote)
+        warned = hook("cat sshd_config", os.path.join(tmp, "missing.json"))
         assert warned.returncode == 0 and "告警" in warned.stdout, warned
         Path(tmp, "empty.json").write_text('{"targets": []}', encoding="utf-8")
         no_git = {"LC_ALL": "C", "PATH": tmp, "PROD_TARGETS_FILE": os.path.join(tmp, "empty.json")}
-        for command, code in (("psql -h db.example.org -c 'delete from t'", 2), ("python3 clean.py", 2), ("psql -h db.example.org -c 'select 1'", 0)):
+        for command, code in (("python3 clean.py", 2), ("echo $X > sshd.txt", 0)):
             run = subprocess.run([sys.executable, "-I", script], input=json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=no_git)
             assert run.returncode == code and ("为空" in run.stderr if code else "为空" in run.stdout and "git 出错" in run.stdout), (command, run)
+        run = subprocess.run([sys.executable, "-I", script], input=json.dumps({"tool_name": "Bash", "tool_input": {"command": "psql -h db.example.org -c 'delete from t'"}, "cwd": cwd}), capture_output=True, text=True, env=no_git)
+        assert run.returncode == 2 and "远程工具名" in run.stderr, run
         for raw in ("not json", "[1]"):
             bad = subprocess.run([sys.executable, "-I", script], input=raw, capture_output=True, text=True, env={"LC_ALL": "C"})
             assert bad.returncode == 2, raw
@@ -556,7 +552,7 @@ def trust_self_test():
         Path(work, doc).write_text(body[doc] + "print('EVIL')\n", encoding="utf-8")
         assert hook(run_doc, work, main) == 2, "an edited script is not trusted, whatever a clean filter says"
         # the table: cwd's and CLAUDE_PROJECT_DIR's origin/main are unioned in, so only ever more is refused
-        write = f"psql -h {only} -c 'delete from t'"
+        write = f"./run --host {only}"  # no remote tool: a remote tool is refused whatever the table (intent 2026-10-26-160810)
         assert hook(write, other, main) == 2 and hook(write, main, other) == 2 and hook(write, main, main) == 0, "a pattern only on the origin/main of cwd's or the project's repository"
         assert hook(write, None, main, process_cwd=other) == 2, "no cwd in the hook input: the process cwd's repository is unioned in"
     print("prod_write_gate trust: ok")
@@ -665,7 +661,7 @@ def pre_tool_dispatch_test():
     env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", "")}
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):
         refused = subprocess.run([*runner, DISPATCH], input=payload(f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}"), capture_output=True, text=True, env=env)
-        assert refused.returncode == 2 and "底线 4" in refused.stderr, refused
+        assert refused.returncode == 2 and "远程工具名" in refused.stderr, refused
         passed = subprocess.run([*runner, DISPATCH], input=payload("ls"), capture_output=True, text=True, env=env)
         assert passed.returncode == 0 and not passed.stdout and not passed.stderr, passed
         bad = subprocess.run([*runner, DISPATCH], input="not json", capture_output=True, text=True, env=env)
