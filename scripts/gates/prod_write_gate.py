@@ -5,7 +5,8 @@
 行里有可能起注释的 `#` 或 here-document，且含生产特征、远程工具或目标环境变量：整行拒绝，不模仿 shell 剥离（宁可误拦，intent 2026-10-26-140639）。每条简单命令（`bash -c`／`-lc`／`eval`／here-string／`echo … | bash`／`env -S`／`<(…)` 递归，超过 3 层按读不懂）：
 - 远程工具（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie）名字出现即拒，只认 origin/main 特征表 remote_entries 登记的整行写法，登记写法碰到生产特征照样拒（intent 2026-10-26-160810）。
 - 行里任意位置有生产特征，或指向生产的目标环境变量（命令里设的、会话环境里的），整行拒绝，不再按「这个命令不连接」放行；变量拼接、花括号展开后才命中的同样拒绝（intent 2026-10-26-165321 A）。
-- 解释器、shell 跑文件（含 `./x` 这样按路径运行）：文件内容（≤256 KB 去引号读，更大的按字节读）不含生产特征才放行，读不了、超过 512 MB 或是目录按含特征算（同上 B）。
+- 命令参数里凡是存在的普通文件（含 `./x` 这样按路径运行的程序本身）都读：内容（≤256 KB 去引号读，更大的按字节读）不含生产特征才放行，读不了或超过 512 MB 按含特征算，解释器指向目录也按含特征算（同上 B）。
+  只有 origin/main 特征表 no_exec_tools 登记的、已知不执行参数文件的程序免读位置参数（选项值、选项里嵌的词、环境变量照读）；解释器名单只作说明（intent 2026-10-26-164931 A′）。
 - 行里有换目录（cd、pushd、popd，包装命令或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序：整行拒，不推算目录（intent 2026-10-26-164931）。
 - 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：远程工具与解释器拒绝，其余放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名、特征或目标环境变量拒绝。
@@ -406,6 +407,16 @@ def remote_table():  # (remote tool names, entries, slot patterns) of origin/mai
         return set(REMOTE_TOOLS), [], {}
 
 
+def no_exec_tools():  # Programs known not to run a file named on their command line, from origin/main's table section no_exec_tools (the local table never counts: a branch cannot widen it); none when absent.
+    global ANCHOR
+    ANCHOR = ANCHOR or trust_root(ROOTS[0]) or os.devnull
+    try:
+        found = json.loads(main_table_text(ANCHOR)[0] or "{}").get("no_exec_tools", {}).get("tools", [])
+        return {t for t in found if isinstance(t, str) and re.fullmatch(r"[a-z0-9_.+-]+", t)}
+    except (ValueError, AttributeError, TypeError):
+        return set()
+
+
 def remote_named(text, tools):  # A remote tool's name as a word anywhere in the raw or the quote-free line; `http://` and the like are URLs, not httpie.
     names = sorted(map(re.escape, tools - {"http", "https"}), key=len, reverse=True)
     pattern = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(names) + r")(?![a-z0-9_])|(?<![a-z0-9_])https?(?![a-z0-9_]|:/)|" + NET_REDIRECT.pattern)  # only the URL schemes are excused; bash network redirections count
@@ -424,11 +435,8 @@ def may_run_or_expand(text):  # (text already `plain`) a program that runs other
     return bool(REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text) or NET_REDIRECT.search(text))
 
 
-def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow; a remote tool's name as a substring, as judge reads an unreadable line.
-    if may_run_or_expand(text):
-        return True
-    patterns, problem, _ = load_table()
-    return bool(problem) or any(p in text for p in patterns) or any(os.environ.get(v) for v in ENV_TARGET_VARS)  # a target variable in the session: judge decides
+def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow. Any word may name a file a program runs (A′, intent 2026-10-26-164931): only an empty line is skipped.
+    return bool(text.strip())
 
 
 def brace_variants(word, limit=256):  # Words bash (and curl, on a quoted URL) makes from `a{1,2}b` / `{1..3}`; the word itself without braces; capped.
@@ -636,25 +644,19 @@ def candidates(argv):  # Words of a command that may name a file it runs: each w
     return out + list(MAKEFILES) * tool.endswith("make")
 
 
-def shebang(full):  # A file that names its own interpreter (`#!`): any command may run it
-    try:
-        with open(full, "rb") as f:
-            return f.read(2) == b"#!"
-    except OSError:
-        return True
-
-
-def runs_file(command, patterns, cwd):  # The command runs a file (or package) that mentions production: an interpreter's or a runner's every file word, any command's executable or `#!` file words, in the hook's directory; unreadable counts.
-    argv, tool = command.argv, name_of(command.argv[0])
-    runner = bool(INTERPRETER.match(tool)) or any(INTERPRETER.match(name_of(w)) or name_of(w) in RUNS_OTHERS for w in argv)
-    for word in map(os.path.expanduser, candidates(argv)):  # `~/x` as the shell expands it unquoted (a quoted one is checked too: fail closed)
-        found = [f for f in [os.path.join(cwd or os.getcwd(), word)] if os.path.lexists(f)]  # no directory change on the line (judge refuses those): the hook's directory
-        for full in found:
-            if os.path.isdir(full):
-                if INTERPRETER.match(tool):  # python runs a package's __main__, make -C a directory's makefile
-                    return True
-            elif (runner or word == argv[0] or os.access(full, os.X_OK) or shebang(full)) and file_hits(full, patterns):
+def runs_file(command, patterns, cwd, safe=frozenset()):  # The command may run a file that mentions production: every existing regular file among its words (intent 2026-10-26-164931, A′), in the hook's directory; unreadable counts.
+    argv, tool = command.argv, name_of(command.argv[0])  # a tool of `safe` (no_exec_tools) skips its positional words only: an option's value, a word inside one (`-c core.pager=…`), an environment value are still read
+    words = candidates(argv)
+    if tool in safe and "/" not in argv[0]:
+        words = [w for i, w in enumerate(argv[1:], 1) if argv[i - 1].startswith("-") and argv[i - 1] != "--"]
+        words += [t for w in argv[1:] + list(command.env.values()) for t in re.split(r"[\s=!'\"]+", w) if t and t != w]
+    for word in map(os.path.expanduser, words):  # `~/x` as the shell expands it unquoted (a quoted one is checked too: fail closed)
+        full = os.path.join(cwd or os.getcwd(), word)  # no directory change on the line (judge refuses those): the hook's directory
+        if os.path.isdir(full):
+            if INTERPRETER.match(tool):  # python runs a package's __main__, make -C a directory's makefile
                 return True
+        elif os.path.lexists(full) and file_hits(full, patterns):
+            return True
     return False
 
 
@@ -693,6 +695,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
                 "门不推算目录，宁可误拦（intent 2026-10-26-164931）。去掉换目录，用绝对路径或仓库相对路径直接运行。")
     if any("/" in c.argv[0] and name_of(c.argv[0]) in WRAPPERS for c in commands):  # what it runs, from where, cannot be told: not read (76b7f7e81 round 1 M1, final M1)
         return "拒绝：包装命令（env、sudo、nohup、timeout 等）写成路径，门不解析它会运行什么、在哪个目录，宁可误拦（intent 2026-10-26-164931）。改用裸命令名。"
+    safe = no_exec_tools()
     for command in commands:
         tool = name_of(command.argv[0])
         if any(NET_REDIRECT.search(w) for w in command.argv):  # a bash network redirection spelled by variables (a14c80797 final M1)
@@ -711,7 +714,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
             continue
         if trusted_script(command.argv, cwd):
             continue
-        if touches(command, patterns) or runs_file(command, patterns, cwd):  # spelled by variables or braces, or the file it runs names production
+        if touches(command, patterns) or runs_file(command, patterns, cwd, safe):  # spelled by variables or braces, or the file it runs names production
             return (f"拒绝：{tool} 命令拼接后碰到生产特征，或它运行的文件含生产特征（intent 2026-10-26-165321）。CLAUDE.md 底线 4：不做生产写操作；生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口。"
                     "可信脚本须单独一条命令、按登记的解释器运行。")
     return None

@@ -153,7 +153,10 @@ def gate_self_test():
     intent = os.path.join(REPO_ROOT, DOCS_ROOT, "new_intent.py")
     def as_main(rels):  # this repository's files read as origin/main's: a branch may edit new_intent's neighbours (trust against origin/main itself: trust_self_test)
         return {rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip() for rel in rels}
-    real_blobs, g.main_blobs = g.main_blobs, as_main
+    real_blobs, g.main_blobs, real_safe, g.no_exec_tools = g.main_blobs, as_main, g.no_exec_tools, lambda: set(json.load(open(os.path.join(g.HERE, "prod_targets.json"), encoding="utf-8"))["no_exec_tools"]["tools"])
+    shipped = json.load(open(os.path.join(g.HERE, "prod_targets.json"), encoding="utf-8"))["no_exec_tools"]
+    assert real_safe() == set(json.loads(g.main_table_text(REPO_ROOT)[0] or "{}").get("no_exec_tools", {}).get("tools", [])), "no_exec_tools: origin/main's table only"
+    assert set(shipped["tools"]) == set(shipped["basis"]) == {"git", "cat", "head", "tail", "wc", "ls", "grep", "rg", "diff", "cmp", "stat", "shasum", "jq"}, "the list the coordinator fixed, each with a basis (A′)"
     # 1. harmless mentions pass; a remote tool's name anywhere is refused unless the whole line is a registered form, reads to production and localhost included (intent 2026-10-26-160810)
     for command in ("python3 clean.py", "bash -c 'echo hi'", "ls $HOME", "echo 'cost $5'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF", "ls \\\n-la", "git status", "./clean.py", "bash missing.sh"):
         assert allowed(command), f"must pass: {command!r}"
@@ -344,10 +347,12 @@ def gate_self_test():
                     "cd pkg; bash run.sh", "(cd pkg) && sh run.sh", "cd $D && bash gone.sh", "make -C pkg", "make all", "H=pgm-pr; X=${H}od0001; ./tame.sh", "D=/dev/t; echo x >${D}cp/198.51.100.7/80", "D=/dev/t; exec 3<>${D}cp/198.51.100.7/80",
                     "D=/dev/t; >${D}cp/198.51.100.7/80", "D=/dev/t; { :; } >${D}cp/198.51.100.7/80", "csh plain", "tcsh plain", "fish plain", "pypy3 plain", "Rscript plain", "uv run plain", "caffeinate bang", "env -C pkg sh run.sh", "env --chdir=pkg ./run.sh",
                     "sudo -D pkg sh run.sh", "env -Cpkg sh run.sh", "env -iC pkg ./run.sh", "sudo -iD pkg sh run.sh", "/usr/bin/sudo -D pkg sh run.sh", "env -C pkg env -C . sh run.sh", "env --chdir pkg sh run.sh", "uv --directory pkg run x",
-                    "cd pkg && git log && bash x", "perl5.34 plain", "tclsh8.6 plain", "pypy3 -m dirty", "./nohup ls", "m4 plain", "gm4 plain", "bm4 plain", "/usr/bin/env -S 'sh plain'", "irb plain", "gnumake all", "csh -c 'H=pgm-pr; echo ${H}od0001'",
-                    "tcsh -c 'H=pgm-pr; echo ${H}od0001'", "fish -c 'H=pgm-pr; echo ${H}od0001'", f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'"):
+                    "cd pkg && git log && bash x", "perl5.34 plain", "tclsh8.6 plain", "pypy3 -m dirty", "./nohup ls", "m4 plain", "gm4 plain", "bm4 plain", "prove plain", "vim plain", "git -c core.pager='sh plain' log", "rg --pre ./exe.sh x .",
+                    "GIT_EXTERNAL_DIFF='sh plain' git diff", "/usr/bin/env -S 'sh plain'", "irb plain", "gnumake all", "csh -c 'H=pgm-pr; echo ${H}od0001'", "tcsh -c 'H=pgm-pr; echo ${H}od0001'", "fish -c 'H=pgm-pr; echo ${H}od0001'",
+                    f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'"):
         assert refused(command), f"the file it may run: {command!r}"
-    for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "cd pkg && git status", "python3 -m json.tool"):
+    for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "cd pkg && git status", "cat direct.sh", "grep -n x direct.sh", "git diff -- direct.sh",
+                    "python3 -m json.tool"):
         assert allowed(command), f"no sample in the file, or no file (a pipe, inline code: known gap): {command!r}"
     with __import__("unittest.mock").mock.patch.multiple(g, MAX_SCRIPT_FILE=8, CHUNK=8): assert refused("bash span.sh") and allowed("bash tame.sh"), "a sample across a chunk boundary"
     with __import__("unittest.mock").mock.patch.object(g, "MAX_RUN_FILE", 4): assert refused("bash tame.sh"), "a file larger than MAX_RUN_FILE counts"
@@ -366,17 +371,9 @@ def gate_self_test():
         table, problem, _ = load_table()
         firsts = shipped_firsts()
         assert problem is None and table and firsts and all(v.lower() in table for v in firsts.values()), "the shipped table loads and every target's first pattern is in it"
-        assert could_concern("sqlcmd -s x") and all(could_concern(v.lower()) for v in firsts.values()) and could_concern("echo $x") and could_concern("curl a{1,2}") and not could_concern("echo hello") and not could_concern("git status")
-        # the pre-filter names every interpreter, shell and remote tool the gate acts on, and `. file` (O3 review, M1)
-        for name in sorted(g.INTERPRETERS | g.SHELLS | g.REMOTE_TOOLS | g.RUNS_OTHERS):
-            word = "python3" if name == "python" else name
-            for command in (f"{word} deploy", f"nohup {word} deploy", f"cd x && {word} deploy", f"({word} deploy)"):
-                assert could_concern(plain(command)), command
-            assert g.INTERPRETER.match(word) or name not in g.INTERPRETERS, word
-        assert could_concern(plain("cat sshd_conf 'oops")) and not could_concern(plain("ls ./x")) and not could_concern(plain("echo a. b")), "a substring of a remote tool counts; a dot elsewhere does not"
-        assert could_concern(plain("xh POST x")) and could_concern(plain("a&&xh x")) and not could_concern(plain("cat exhibit xhr")), "xh only as a word (O2 round 1, suggestion)"
-        with __import__("unittest.mock").mock.patch.dict(os.environ, PGHOST="x"): assert could_concern("echo hello"), "a target variable in the session: judge decides (intent 2026-10-26-165321)"
-        assert could_concern(plain("echo x >/dev/tcp/192.0.2.15/80")) and could_concern(plain("cat </dev/udp/h/53")) and could_concern(plain(">o ./deploy")) and could_concern("perl5.34 x"), "network redirection, path after a redirection, versioned name"
+        # the pre-filter skips only an empty line: any word may name a file a program runs (A′, intent 2026-10-26-164931; it had read names and paths only)
+        assert all(could_concern(plain(c)) for c in ("echo hello", "git status", "ls ./x", "prove plain", "cat exhibit xhr", "sqlcmd -s x", ">o ./deploy", "perl5.34 x")) and not could_concern("") and not could_concern(" \n")
+        assert all(g.INTERPRETER.match("python3" if name == "python" else name) for name in g.INTERPRETERS), "every interpreter name is matched"
         # hook process end to end, with the shipped and a missing table
         script = os.path.join(HERE, "prod_write_gate.py")
         def hook(command, table_path=None, tool="Bash"):
@@ -404,7 +401,7 @@ def gate_self_test():
         for raw in ("not json", "[1]"):
             bad = subprocess.run([sys.executable, "-I", script], input=raw, capture_output=True, text=True, env={"LC_ALL": "C"})
             assert bad.returncode == 2, raw
-    g.main_blobs = real_blobs
+    g.main_blobs, g.no_exec_tools = real_blobs, real_safe
     print("prod_write_gate self-test: ok")
 
 def seventeen_self_test():
