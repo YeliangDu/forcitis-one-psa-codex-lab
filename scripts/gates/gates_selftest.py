@@ -153,10 +153,10 @@ def gate_self_test():
     intent = os.path.join(REPO_ROOT, DOCS_ROOT, "new_intent.py")
     def as_main(rels):  # this repository's files read as origin/main's: a branch may edit new_intent's neighbours (trust against origin/main itself: trust_self_test)
         return {rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip() for rel in rels}
-    real_blobs, g.main_blobs, real_safe, g.no_exec_tools = g.main_blobs, as_main, g.no_exec_tools, lambda: tuple(set(json.load(open(os.path.join(g.HERE, "prod_targets.json"), encoding="utf-8"))["no_exec_tools"][k]) for k in ("tools", "git_subcommands"))
-    shipped = json.load(open(os.path.join(g.HERE, "prod_targets.json"), encoding="utf-8"))["no_exec_tools"]
-    assert real_safe() == tuple(set(json.loads(g.main_table_text(REPO_ROOT)[0] or "{}").get("no_exec_tools", {}).get(k, [])) for k in ("tools", "git_subcommands")), "origin/main's table only"
-    assert set(shipped["tools"]) == set(shipped["basis"]) == {"git", "cat", "head", "tail", "wc", "ls", "grep", "rg", "diff", "cmp", "stat", "shasum", "jq"}, "the list the coordinator fixed, each with a basis (A′)"
+    shipped, on_main = json.load(open(os.path.join(g.HERE, "prod_targets.json"), encoding="utf-8"))["no_exec_tools"], json.loads(g.main_table_text(REPO_ROOT)[0] or "{}").get("no_exec_tools", {})
+    real_blobs, g.main_blobs, real_safe, g.no_exec_tools = g.main_blobs, as_main, g.no_exec_tools, lambda: (set(shipped["tools"]), set(shipped["git_subcommands"]), shipped["short_valued"])
+    assert real_safe() == (set(on_main.get("tools", [])), set(on_main.get("git_subcommands", [])), on_main.get("short_valued", {})), "origin/main's table only"
+    assert set(shipped["tools"]) == set(shipped["basis"]) == {"git", "cat", "head", "tail", "wc", "ls", "grep", "rg", "diff", "cmp", "stat", "shasum", "jq", "rm", "mv", "cp"} and shipped["short_valued"] == {"rm": "", "mv": "St", "cp": "St"}, "a basis each"
     # 1. harmless mentions pass; a remote tool's name anywhere is refused unless the whole line is a registered form, reads to production and localhost included (intent 2026-10-26-160810)
     for command in ("python3 clean.py", "bash -c 'echo hi'", "ls $HOME", "echo 'cost $5'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF", "ls \\\n-la", "git status", "./clean.py", "bash missing.sh"):
         assert allowed(command), f"must pass: {command!r}"
@@ -350,10 +350,12 @@ def gate_self_test():
                     "cd pkg && git log && bash x", "perl5.34 plain", "tclsh8.6 plain", "pypy3 -m dirty", "./nohup ls", "m4 plain", "gm4 plain", "bm4 plain", "prove plain", "vim plain", "git -c core.pager='sh plain' log", "rg --pre ./exe.sh x .",
                     "GIT_EXTERNAL_DIFF='sh plain' git diff", "GIT_PAGER=exe.sh git log", "git bisect run exe.sh", "git --attr-source log bisect run exe.sh", "git submodule foreach exe.sh", "git -c a.b=c log", "GIT_EXEC_PATH=pkg git status",
                     "RIPGREP_CONFIG_PATH=x rg y", "git log -Oexe.sh", "FOO=exe.sh cat x", "/usr/bin/env -S 'sh plain'", "irb plain", "gnumake all", "csh -c 'H=pgm-pr; echo ${H}od0001'", "tcsh -c 'H=pgm-pr; echo ${H}od0001'", "fish -c 'H=pgm-pr; echo ${H}od0001'",
-                    f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'"):
+                    f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'", "cat direct.sh | bash","cp plain y && bash y", "mv plain y; ./y", "rm plain; python3 clean.py", "xargs rm plain",  # a runner: none exempt
+                    "sudo rm plain", "command rm plain", "nohup mv plain x", "time cp plain x", "/bin/rm plain", "EDITOR=bash sudo -e rm plain", "sudo -e cat plain", "rm() { bash \"$@\"; }; rm plain", "function cp { bash \"$1\"; }; cp plain",
+                    "alias mv=bash; mv plain", "hash -p /bin/bash rm; rm plain", "PATH=. rm plain", "cp -t plain x", "cp -vS plain x y", "mv --suffix plain x y", "cp --backup=plain x y", "EDITOR=exe.sh rm x", "enable -f plain rm; rm x"):
         assert refused(command), f"the file it may run: {command!r}"
-    for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "cd pkg && git status", "cat direct.sh", "grep -n x direct.sh", "git diff -- direct.sh",
-                    "cat /dev/urandom >/dev/null", "git log -n 3", "git --no-pager -P log", "python3 -m json.tool"):
+    for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "cd pkg && git status", "cat direct.sh", "grep -n x direct.sh", "git diff -- direct.sh", "rm plain", "rm -f exe.sh plain",
+                    "cat /dev/urandom >/dev/null", "git log -n 3", "git --no-pager -P log", "python3 -m json.tool", "rm -rf pkg -- plain", "mv -f plain x", "cp -pR plain pkg", "cp -S .bak plain x", "rm plain && ls", "git status; mv plain x"):
         assert allowed(command), f"no sample in the file, or no file (a pipe, inline code: known gap): {command!r}"
     with __import__("unittest.mock").mock.patch.multiple(g, MAX_SCRIPT_FILE=8, CHUNK=8): assert refused("bash span.sh") and allowed("bash tame.sh"), "a sample across a chunk boundary"
     with __import__("unittest.mock").mock.patch.object(g, "MAX_RUN_FILE", 4): assert refused("bash tame.sh"), "a file larger than MAX_RUN_FILE counts"
