@@ -41,8 +41,8 @@ from pathlib import Path
 
 import yaml
 
-HERE = Path(__file__).resolve().parent
-_spec = importlib.util.spec_from_file_location("closeout_check", HERE / "closeout_check.py")
+HERE = Path(__file__).resolve().parents[1] / "proposals" / "closeout"  # its data stays in proposals/closeout; the module moved to panorama/ (O16, G04)
+_spec = importlib.util.spec_from_file_location("closeout_check", Path(__file__).resolve().parent / "closeout_check.py")
 cc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cc)
 INFO_MAP = cc.PROPOSALS.parent / "ssot" / "10-objects" / "ENTERPRISE_INFO_MAP.md"

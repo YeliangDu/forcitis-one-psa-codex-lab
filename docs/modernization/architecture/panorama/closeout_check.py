@@ -27,7 +27,7 @@ from pathlib import Path
 
 import yaml
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parents[1] / "proposals" / "closeout"  # its data stays in proposals/closeout; the module moved to panorama/ (O16, G04)
 PROPOSALS = HERE.parent
 REPO = PROPOSALS.parents[3]
 DRAFT = PROPOSALS / "ENTERPRISE_AGGREGATES_DRAFT.md"

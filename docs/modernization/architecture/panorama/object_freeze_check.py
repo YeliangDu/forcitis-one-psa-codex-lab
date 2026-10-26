@@ -16,7 +16,6 @@ import yaml
 
 HERE = Path(__file__).resolve().parent
 ARCH = HERE.parent
-sys.path.insert(0, str(ARCH / "proposals" / "closeout"))
 import anchoring_check as anc  # noqa: E402
 
 PANORAMA = HERE / "panorama.yaml"

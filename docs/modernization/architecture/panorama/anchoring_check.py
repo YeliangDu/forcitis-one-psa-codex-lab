@@ -17,8 +17,8 @@ from pathlib import Path
 
 import yaml
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+HERE = Path(__file__).resolve().parents[1] / "proposals" / "closeout"  # its data stays in proposals/closeout; the module moved to panorama/ (O16, G04)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import object_layer_check as olc  # noqa: E402
 import stage_align_check as sac  # noqa: E402
 

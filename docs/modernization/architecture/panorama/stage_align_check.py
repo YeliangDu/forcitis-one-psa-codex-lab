@@ -17,12 +17,12 @@ from pathlib import Path
 
 import yaml
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+HERE = Path(__file__).resolve().parents[1] / "proposals" / "closeout"  # its data stays in proposals/closeout; the module moved to panorama/ (O16, G04)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 PROPOSALS = HERE.parent
 REPO = PROPOSALS.parents[3]
 VS_FILE = PROPOSALS.parent / "ssot" / "05-value-streams" / "value-streams.yaml"
-CATALOG = Path(__file__).resolve().parents[1].parent / "ssot" / "09-processes" / "catalog.yaml"   # 流程目录正本
+CATALOG = Path(__file__).resolve().parents[1] / "ssot" / "09-processes" / "catalog.yaml"   # 流程目录正本
 INFO_MAP = PROPOSALS.parent / "ssot" / "10-objects" / "ENTERPRISE_INFO_MAP.md"
 GLOSSARY = REPO / "docs/modernization/glossary/terms.yaml"
 REPORT = HERE / "STAGE_ALIGN_REPORT.md"

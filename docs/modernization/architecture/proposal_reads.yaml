@@ -13,12 +13,32 @@ reads:
     kind: data
     sources:
       - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-12-01}
-      - {source: closeout, due: 2026-12-01, note: 三组骨架（commands、state-machines、processes）与 sys.path 导入骨架模块}
+      - {source: closeout, due: 2026-12-01, note: 三组骨架（commands、state-machines、processes）}
     note: 另写入 proposals/STAKEHOLDERS.md（写不算读，去向随第③步定）
   - path: docs/modernization/architecture/panorama/object_freeze_check.py
     kind: data
     sources:
-      - {source: closeout, due: 2026-12-01, note: 三组 commands.yaml、processes*.yaml 与 sys.path 导入骨架模块}
+      - {source: closeout, due: 2026-12-01, note: 三组 commands.yaml、processes*.yaml}
+  - path: docs/modernization/architecture/panorama/anchoring_check.py
+    kind: data
+    sources:
+      - {source: closeout, due: 2026-12-01, note: 骨架数据；模块随 O16（G04）从 proposals/closeout 搬入，数据仍在原处}
+  - path: docs/modernization/architecture/panorama/closeout_check.py
+    kind: data
+    sources:
+      - {source: closeout, due: 2026-12-01, note: 骨架数据；模块随 O16（G04）从 proposals/closeout 搬入，数据仍在原处}
+  - path: docs/modernization/architecture/panorama/object_check.py
+    kind: data
+    sources:
+      - {source: closeout, due: 2026-12-01, note: 骨架数据；模块随 O16（G04）从 proposals/closeout 搬入，数据仍在原处}
+  - path: docs/modernization/architecture/panorama/object_layer_check.py
+    kind: data
+    sources:
+      - {source: closeout, due: 2026-12-01, note: 骨架数据；模块随 O16（G04）从 proposals/closeout 搬入，数据仍在原处}
+  - path: docs/modernization/architecture/panorama/stage_align_check.py
+    kind: data
+    sources:
+      - {source: closeout, due: 2026-12-01, note: 骨架数据；模块随 O16（G04）从 proposals/closeout 搬入，数据仍在原处}
   - path: docs/modernization/architecture/panorama/scan_aggregates.py
     kind: data
     sources:
