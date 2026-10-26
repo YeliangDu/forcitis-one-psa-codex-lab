@@ -7,6 +7,7 @@
 - 行里任意位置有生产特征，或指向生产的目标环境变量（命令里设的、会话环境里的），整行拒绝，不再按「这个命令不连接」放行；变量拼接、花括号展开后才命中的同样拒绝（intent 2026-10-26-165321 A）。
 - 命令参数里凡是存在的普通文件（含 `./x` 这样按路径运行的程序本身）都读：内容（≤256 KB 去引号读，更大的按字节读）不含生产特征才放行，读不了或超过 512 MB 按含特征算，解释器指向目录也按含特征算（同上 B）。
   只有 origin/main 特征表 no_exec_tools 登记的、已知不执行参数文件的程序免读位置参数（选项值、选项里嵌的词、环境变量照读）；解释器名单只作说明（intent 2026-10-26-164931 A′）。
+  免读只给整行就是一条纯命令：没有 ; & | 换行、替换、括号花括号，没有赋值（NAME=、NAME+=、数组），没有 eval、alias、function、hash 等字样，第一个词就是登记程序；否则整行不免（调度 10-26 深夜定）。
 - 行里有换目录（cd、pushd、popd，包装命令或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序：整行拒，不推算目录（intent 2026-10-26-164931）。
 - 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：远程工具与解释器拒绝，其余放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名、特征或目标环境变量拒绝。
@@ -43,6 +44,7 @@ SUBSTITUTION = re.compile(r"\$\(([^()]*)\)")
 SHORT_C = re.compile(r"-[A-Za-z]*c[A-Za-z]*")
 ECHOES = {"echo", "printf"}
 Command = collections.namedtuple("Command", "argv env unresolved redirected piped chdir", defaults=(False, False))  # chdir: a wrapper option (`env -C`, `sudo -D`) changes its directory
+NOT_PURE = re.compile(r"[;&|\n\r`$(){}]|(?:^|\s)[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\])?\+?=|(?<![\w.-])(?:eval|alias|function|functions|hash|enable|aliases|commands)(?![\w.-])")  # a separator, a substitution, a group or function, an assignment, a word that renames: no tool is exempt
 
 
 def decode_ansi_c(body):  # Text of a bash `$'...'` word, decoded byte-wise as bash does (\xHH, \NNN, \uHHHH, \UHHHHHHHH, \cX, one-letter escapes); a NUL ends it.
@@ -408,14 +410,21 @@ def remote_table():  # (remote tool names, entries, slot patterns) of origin/mai
         return set(REMOTE_TOOLS), [], {}
 
 
-def no_exec_tools():  # (programs known not to run a file named on their command line, git sub-commands that run none) from origin/main's table section no_exec_tools (the local table never counts: a branch cannot widen it); empty when absent.
+def no_exec_tools():  # (programs known not to run a file named on their command line, git sub-commands that run none, {program: its short options that take the next word}) from origin/main's table section no_exec_tools (the local table never counts: a branch cannot widen it); empty when absent.
     global ANCHOR
     ANCHOR = ANCHOR or trust_root(ROOTS[0]) or os.devnull
     try:
         found = json.loads(main_table_text(ANCHOR)[0] or "{}").get("no_exec_tools", {})
-        return tuple({t for t in found.get(k, []) if isinstance(t, str) and re.fullmatch(r"[a-z0-9_.+-]+", t)} for k in ("tools", "git_subcommands"))
+        valued = {t: v for t, v in found.get("short_valued", {}).items() if isinstance(t, str) and isinstance(v, str) and re.fullmatch(r"[A-Za-z]*", v)}
+        return (*({t for t in found.get(k, []) if isinstance(t, str) and re.fullmatch(r"[a-z0-9_.+-]+", t)} for k in ("tools", "git_subcommands")), valued)
     except (ValueError, AttributeError, TypeError):
-        return set(), set()
+        return set(), set(), {}
+
+
+def option_value(tool, prev, valued):  # True when the word after `prev` may be its value: any option, unless the table names the tool's short options that take one (a long option without `=` still may)
+    if not prev.startswith("-") or prev == "--":
+        return False
+    return tool not in valued or (prev.startswith("--") and "=" not in prev) or bool(re.fullmatch(r"-[A-Za-z]+", prev) and prev[-1] in valued[tool])
 
 
 def git_sub(argv):  # git's sub-command when only known global options come before it (`-C dir`, `-P`, `--no-pager`); None after any other, whose value it may take (--attr-source …): not exempt
@@ -652,11 +661,11 @@ def candidates(argv):  # Words of a command that may name a file it runs: each w
     return out + list(MAKEFILES) * tool.endswith("make")
 
 
-def runs_file(command, patterns, cwd, safe=(frozenset(), frozenset())):  # The command may run a file that mentions production: every existing regular file among its words (intent 2026-10-26-164931, A′), in the hook's directory; unreadable counts.
+def runs_file(command, patterns, cwd, safe=(frozenset(), frozenset(), {})):  # The command may run a file that mentions production: every existing regular file among its words (intent 2026-10-26-164931, A′), in the hook's directory; unreadable counts.
     argv, tool = command.argv, name_of(command.argv[0])  # a tool of `safe` (no_exec_tools) skips its positional words only: an option's value, a word inside one (`-c core.pager=…`), an environment value are still read
     words = candidates(argv) + list(command.env.values())  # an environment value may name a program the command runs (GIT_EXTERNAL_DIFF=…)
     if tool in safe[0] and "/" not in argv[0] and (tool != "git" or git_sub(argv) in safe[1]):  # git: only its sub-commands that run none (bisect run, submodule foreach do)
-        words = [w for i, w in enumerate(argv[1:], 1) if argv[i - 1].startswith("-") and argv[i - 1] != "--"] + list(command.env.values())
+        words = [w for i, w in enumerate(argv[1:], 1) if option_value(tool, argv[i - 1], safe[2])] + list(command.env.values())
         words += [w[2:] for w in argv[1:] if re.match(r"-[A-Za-z].", w)]  # an attached short option value: -Ocmd
         words += [t for w in argv[1:] + list(command.env.values()) for t in re.split(r"[\s=!'\"]+", w) if t and t != w]
     for word in map(os.path.expanduser, words):  # `~/x` as the shell expands it unquoted (a quoted one is checked too: fail closed)
@@ -705,6 +714,8 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     if any("/" in c.argv[0] and name_of(c.argv[0]) in WRAPPERS for c in commands):  # what it runs, from where, cannot be told: not read (76b7f7e81 round 1 M1, final M1)
         return "拒绝：包装命令（env、sudo、nohup、timeout 等）写成路径，门不解析它会运行什么、在哪个目录，宁可误拦（intent 2026-10-26-164931）。改用裸命令名。"
     safe = no_exec_tools()
+    if len(commands) != 1 or NOT_PURE.search(command_text) or tokens_of(command_text, structured=True)[0] != commands[0].argv[0]:  # exempt only a line that is one plain command, its first word the program: no wrapper, prefix, separator, assignment or renaming (intent 2026-10-26-164931)
+        safe = (set(), set(), {})
     for command in commands:
         tool = name_of(command.argv[0])
         if any(NET_REDIRECT.search(w) for w in command.argv):  # a bash network redirection spelled by variables (a14c80797 final M1)
