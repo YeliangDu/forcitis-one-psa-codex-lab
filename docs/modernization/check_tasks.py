@@ -135,7 +135,7 @@ def task_warnings(tasks):
     legacy = sorted({t['状态'] for _, t in tasks if t['状态'] in LEGACY_STATUS})
     if legacy:
         count = sum(t['状态'] in LEGACY_STATUS for _, t in tasks)
-        warnings.append(f'{count} 张片段仍用存量状态值（{"、".join(f"{v}→{LEGACY_STATUS[v]}" for v in legacy)}）；状态现行取值 {"/".join(FRAGMENT_STATUSES)}，task_backfill.py 列出建议，由负责会话确认后改')
+        warnings.append(f'{count} 张片段仍用存量状态值（{"、".join(f"{v}→{LEGACY_STATUS[v]}" for v in legacy)}）；状态现行取值 {"/".join(FRAGMENT_STATUSES)}，由负责会话改为现行取值')
     return warnings
 
 
@@ -424,7 +424,7 @@ def self_test():
     assert len(stale_report([(path, dict(working, 状态='已派', 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 1
     assert len(stale_report([(path, dict(working, 状态='已提交', 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 0, '存量的已提交算完成'
     assert len(task_warnings([(path, dict(task, 状态='已合并')), (path, dict(task, 状态='待派'))])) == 1, '存量状态合成一条提示'
-    assert 'task_backfill' in task_warnings([(path, dict(task, 状态='已合并'))])[0]
+    assert '存量状态值' in task_warnings([(path, dict(task, 状态='已合并'))])[0]
     print('check_tasks --self-test：通过（格式、兼容字段、白名单、待核汇总、负向样例、生成与 Git 状态无关）')
 
 

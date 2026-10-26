@@ -59,9 +59,6 @@ reads:
   - path: docs/modernization/architecture/check_proposals.py
     kind: tool
     note: proposals/ 状态行检查本身
-  - path: docs/modernization/build_sessions.py
-    kind: tool
-    note: 会话一览兼容读旧交接位置 architecture/proposals/HANDOFF_*，不读架构数据
   - path: scripts/ci/light_selftest.sh
     kind: tool
     note: light_triggers.sh 路径模式的自测夹具（示例路径），不读文件

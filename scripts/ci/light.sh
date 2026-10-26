@@ -75,8 +75,8 @@ run "python3 has PyYAML 6.0.3" pyyaml
 run "generated docs match fragments" python3 docs/modernization/build_all.py --check
 # 生成器与文档工具的自测（O14 起不由 build_all 跑；生成器名单取 build_all.py 的清单）
 listed=$(python3 docs/modernization/build_all.py --self-test-list) || listed="build_all-self-test-list-failed"  # 列不出：记一项 FAIL
-for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py docs/modernization/task_backfill.py \
-  scripts/queue/merge_train.py scripts/merge/mq.py scripts/ci/ci_recurrence.py scripts/ops/session_daily.py; do
+for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py \
+  scripts/queue/merge_train.py scripts/merge/mq.py scripts/ci/ci_recurrence.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
 run "no legacy system name in docs" python3 docs/modernization/check_legacy_name.py
@@ -99,7 +99,7 @@ against_base "acceptance rulings" python3 scripts/ci/acceptance_rulings.py
 # 门、钩子与 CI 脚本的自测
 run "gates (gates_selftest.py)" python3 scripts/gates/gates_selftest.py
 for script in scripts/ci/relevant_change.py scripts/hooks/codex_stdin_gate.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \
-  scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py scripts/hooks/session_context.py scripts/hooks/start_sheet.py scripts/coord/mailbox.py; do
+  scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py scripts/hooks/session_context.py scripts/hooks/start_sheet.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
 run "light_selftest (by-change triggers)" bash scripts/ci/light_selftest.sh

@@ -75,8 +75,8 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/check_legacy_name.py",
     # rule review revisions are append-only: run by scripts/ci/light.sh
     "docs/modernization/rules/review_revisions.py",
-    "docs/modernization/adr/new_adr.py", "docs/modernization/task_backfill.py",  # tool self-tests run by scripts/ci/light.sh (O14: no longer by build_all.py)
-    # task register: check_tasks.py runs in build_all.py; session_daily.py reads origin/main's tasks/
+    "docs/modernization/adr/new_adr.py",  # tool self-tests run by scripts/ci/light.sh (O14: no longer by build_all.py)
+    # task register: check_tasks.py runs in build_all.py
     "docs/modernization/check_tasks.py",
     "docs/modernization/tasks/",
     # decision page question rules: no CI step runs them (scripts/precheck.sh did, locally, until GOV-1023-FV2 O9); listed so that naming them stays covered
