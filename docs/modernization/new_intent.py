@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""新增一条用户决定片段 intent/<日期>-<HHMMSS>-<会话名>-<短名>.md，然后运行 build_decision_digest.py 校验并重新生成已定决策速查表（INTENT.md 已停止生成，定稿 1.11）。
+"""新增一条用户决定片段 intent/<日期>-<HHMMSS>-<会话名>-<短名>.md，然后运行 build_decisions.py 校验并重新生成现行决定页（INTENT.md、速查表已停止生成，定稿 1.11）。
 
 用法：python3 docs/modernization/new_intent.py --session=<会话名> "<用户原话>" "<落点>" [--date=YYYY-MM-DD] [--supersedes=<被取代的 intent 文件名>[,<文件名>...]] [--rules=RULE-272,RULE-273] [--adrs=ADR-0044] [--sheet=D5] [--items=D5-01,D5-02]
-本决定推翻或取代了此前哪些决定，就在 --supersedes 里写出（已定决策速查表据此标「被取代」，build_decision_digest.py）；文件名须是 intent/ 下已有的片段。
+本决定推翻或取代了此前哪些决定，就在 --supersedes 里写出（现行决定页据此不再列它，build_decisions.py）；文件名须是 intent/ 下已有的片段。
 可选的 --rules / --adrs / --sheet / --items 把决定影响的规则号、ADR、确认页单子与题号记入片段（规则号须在规则索引中存在），规则索引与 ADR 治理据此反查「被哪些决定改过」。
 原话与落点各为一行。
 文件名由日期、当前时刻与会话名组成，并行会话互不撞名，无需协调序号。
@@ -25,7 +25,7 @@ def parse_args(doc, n):
     return opts, args
 
 
-def create(folder, date, session, slug, text, builder="build_decision_digest.py"):
+def create(folder, date, session, slug, text, builder="build_decisions.py"):
     now = datetime.datetime.now()
     while True:
         name = f"{date}-{now:%H%M%S}-{short_name(session, 40)}" + (f"-{slug}" if slug else "") + ".md"
