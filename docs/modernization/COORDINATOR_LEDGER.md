@@ -5,6 +5,20 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-24 23:xx（one-coordinator，清空前交接；**清空后先读本条，以本条为准**）
+- **清空后第一件事**：读 ~/.modernize/psa/coordinator/identity-sim-1024/README.md，向用户复述「身份与权限模拟」进到第 2 步（用户定功能地图范围并答三问：小程序、字段级权限、代理授权，及补漏），等用户回复后做第 3 步（验收场景＋接口契约＝开工包）。合作界面草稿也在该文件，用户未确认，确认后再写进 SESSION_PLAYBOOK。
+- **今日已定**：#694 合入（main＝232075dfa）；本地无损清理（B）；目录重新定义 10 题定稿（coord-fix-report §15，第 8 题折中）；外部范围 A8 只迁数据、U8C 收平台凭证做法报（intent 201015）；蒸馏源字节码以本机 YeliangDu/u8c、YeliangDu/seeyon 为准（212327）。
+- **在等用户**：能力确认页 https://claude.ai/artifact/5uV89rPsDQd9eN43aoHZtM 第 1、4、5 组（外部集成范围〔调度口径误收窄，与 ADR-0055 冲突，推荐维持 ADR-0055〕、平台模块、A8 表单元数据只读取证）；第 2、3 组以功能地图为准不必答。
+- **产物**：A8 反编译 seeyon/decompiled（README 在内）；解析报告 ~/.modernize/psa/coordinator/distill-1024/（psa-1～5、u8c、a8-1、a8-2，口径 SPEC.md）；目录盘点 redesign-1023/dir-inventory.md。
+- **二甲新增项**：check_tasks.py STATUSES 不含「完成/作废」；policy.json 与 prod_write_gate 登记不存在的 new_decision.py；生产写门把参数含生产实例号的登记命令（new_legacy_read.py）误判为碰生产。
+- **本地未推提交**：本分支 origin/main 之后约 12 个文档提交（intent、台账、两张 OPS 卡），下个文档 PR 推。生产清单脚本 bytecode-20261024/run.sh 作废未跑。
+更新：2026-10-24 22:xx：A8 反编译完（seeyon/decompiled，2798/2803，二开 713 全成）；8 份解析报告齐（distill-1024/psa-1～5、u8c、a8-1、a8-2）。调度口径误把外部集成收窄为企微登录＋U8C，与 ADR-0055（企微、U8C、分贝通、税务、银行保留）冲突，已在确认页第 1 组请用户定。能力确认页 https://claude.ai/artifact/5uV89rPsDQd9eN43aoHZtM（46 题，db answers）。A8 表单字段 0/80 缺口待批只读元数据查询。
+更新：2026-10-24 21:3x：蒸馏源全量解析启动（用户「开始」）。外部范围定：A8 只迁数据、U8C 收平台凭证做法报、企业微信只做入口（intent 201015、202807）。字节码以本机 YeliangDu/u8c（已 CFR 全量）与 YeliangDu/seeyon（A8 安装树）为准，生产清单脚本作废（intent 212327）。A8 反编译后台跑（seeyon/tools/decompile.py，2803 输入，二开 713 优先，结果 seeyon/decompiled/）；6 个 Codex 只读解析在跑（psa-1～5、u8c），口径与产出 ~/.modernize/psa/coordinator/distill-1024/。A8 解析待反编译完成后派。
+更新：2026-10-24 20:1x：目录确认页 10 题定稿：1A 2C 3A 4B 5A 6A 7A 8B′（折中：现行改、历史不改加映射、守护拒写旧路径）9A 10A（intent 195915 及「采用折中」条），记 coord-fix-report §15；冻结后第一个流程窗口执行。
+更新：2026-10-24 20:0x：目录重新定义盘点（Codex 只读，intent 193856、194026「顶层可以变」）出稿 ~/.modernize/psa/coordinator/redesign-1023/dir-inventory.md（643 行，调度抽查 5327/224/800/3212 一致）；确认页 https://claude.ai/artifact/HzP73cowNXWswVQwFiMTdc（10 题，db 集合 answers/q1～q10）。附带发现：policy.json 与 prod_write_gate 仍登记不存在的 new_decision.py，进二甲。
+更新：2026-10-24 19:5x：#694 已合入（main＝232075dfa，queued 后必需检查全绿）。用户定仓库目录重新定义＋防 agent 跑偏进冻结后第一个流程窗口（intent 193722），清单见 coord-fix-report §15，与 §13 登记表合并设计。本地另有 6 个文档提交待下个文档 PR。
+更新：2026-10-24 19:4x：本地清理按用户「B」只做无损部分：拆 21 个干净工作区（35→14，11G→5.8G），删 10 条已并入 main 的本地分支（83→73；8 条被脏工作区占用未删）；拆出的游离 HEAD 与其余孤立提交 791 个末端挂 refs/backup/unreachable-20261024/*（只增不删）。留二甲：远端已删未并入 37、本机独有 17、脏工作区 12。
+更新：2026-10-24 19:3x：用户「合」（intent 191933）：#694 绿后调度合入。OPS-1022-OPS-02、OPS-1023-OPS-01 卡面已补（one-ops 核：活已合入，无后续卡），本地提交，#694 合后随下个文档 PR 推。**二甲加一项**：check_tasks.py 的 STATUSES 不含提示里要求的「完成/作废」，写「完成」反被警告，须统一。
 更新：2026-10-24 19:2x（接续）：待办①完成——budget_level 30 分钟复查调度核过（17:11:18Z 再跑、仍无读数，与已知例外一致），已填 b1.md，批一收尾。待办②：two-lanes 合 origin/main（画像冲突取 main 的 roles 指针版）＋ one-ops-r56，light 31/0/8，开 FORCITIS/forcitis-one-psa#694（文档档），等 CI 全绿后合入。下一项：10-27 开二甲。
 更新：2026-10-24 19:1x（one-coordinator，清空前交接；**清空后先读本条，以本条为准**）
 - **现状**：批一已合入并上线。origin/main＝bef535317（#693 合入）；主检出、hooks current 均 bef535317；工具库 one-session 在 v2-b1（452a2ac）；旧 mq running 未换；budget_level 已装（V17a 已知例外：读数源 plan-usage-history.json 不常更新，第二批改 statusline）。切换日志 ~/.modernize/psa/ops/cutover-b1/cutover.log；验收稿 ~/.modernize/psa/coordinator/redesign-1023/acceptance/b1.md（含已知例外与 8.1 第二批待办）。
