@@ -119,7 +119,11 @@
       "docs/modernization/rules/merge_rules.py",
       "docs/modernization/rules/pull_result.py",
       "docs/modernization/rules/review_revisions.py",
-      "docs/modernization/rules/decide/",
+      "docs/modernization/rules/decide/build_decision_page.py",
+      "docs/modernization/rules/decide/check_pages.py",
+      "docs/modernization/rules/decide/decide_sync.py",
+      "docs/modernization/rules/decide/export_answers.py",
+      "docs/modernization/rules/decide/page-template.html",
       "scripts/delegate.py",
       "scripts/evidence/"
     ],
