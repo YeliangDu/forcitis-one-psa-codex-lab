@@ -51,14 +51,15 @@ def table_cell(text, where):
     return text
 
 
-INTENT_TAGS = {"规则": r"(?:[A-Z]+-)?RULE-\d+(?:、(?:[A-Z]+-)?RULE-\d+)*", "影响的 ADR": r"ADR-\d{4}(?:、ADR-\d{4})*", "单子": r"[A-Za-z0-9_-]+", "题号": r"[A-Za-z0-9_-]+(?:、[A-Za-z0-9_-]+)*"}
+INTENT_TAGS = {"规则": r"(?:[A-Z]+-)?RULE-\d+(?:、(?:[A-Z]+-)?RULE-\d+)*", "影响的 ADR": r"ADR-\d{4}(?:、ADR-\d{4})*", "单子": r"[A-Za-z0-9_-]+", "题号": r"[A-Za-z0-9_-]+(?:、[A-Za-z0-9_-]+)*",
+               "类别": r"口径|范围|流程|授权|技术|其他", "负责会话": r"[a-z0-9-]+", "影响路径": r"无|[^\s、]+(?:、[^\s、]+)*"}
 
 
 def parse_intent(path, text):
-    """(原话, 落点, {可选标注: 值})；可选小节「取代」（多行名单）居先，再是「规则」「影响的 ADR」「单子」「题号」按此顺序附在「落点」之后，供规则索引与 ADR 治理反查。"""
+    """(原话, 落点, {可选标注: 值})；可选小节「取代」（多行名单）居先，再是「规则」「影响的 ADR」「单子」「题号」「类别」「负责会话」「影响路径」按此顺序附在「落点」之后，供规则索引与 ADR 治理反查。"""
     m = re.fullmatch(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)\n(?:\n## 取代\n\n((?:- [^\n]+\n)+))?((?:\n## [^\n]+\n\n[^\n]+\n)*)", text, re.S)
     if not m:
-        raise ValueError(f"{path}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点，之后可选「## 取代」（被取代的 intent 文件名，一行一个）及「## 规则」「## 影响的 ADR」「## 单子」「## 题号」各一行")
+        raise ValueError(f"{path}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点，之后可选「## 取代」（被取代的 intent 文件名，一行一个）及「## 规则」「## 影响的 ADR」「## 单子」「## 题号」「## 类别」「## 负责会话」「## 影响路径」各一行")
     tags = {}
     for name, value in re.findall(r"\n## ([^\n]+)\n\n([^\n]+)\n", m.group(4)):
         if name not in INTENT_TAGS or name in tags or not re.fullmatch(INTENT_TAGS[name], value):

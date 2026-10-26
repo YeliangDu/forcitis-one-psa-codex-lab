@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """决定链路一条龙：读用户在确认页的提交 → 对账 → 生成 intent 片段 → 打印收件箱回写所需的 ArtifactData 批量写入。
 用法：
-  python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> [--session=one-rules] [--inbox-id=<收件箱事项 id>] [--no-intent]
+  python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> --category=<类别> --owner=<负责会话> --paths=<路径前缀|无> --supersedes=<被取代片段|无> [--session=one-rules] [--inbox-id=<收件箱事项 id>] [--no-intent]
   python3 docs/modernization/rules/decide/decide_sync.py --check <收件箱 out_dir> <单子>=<确认页 out_dir> [<单子>=<确认页 out_dir> ...]
     对账检查（调度报「待答」前先跑）：读收件箱导出与各确认页导出，报出「收件箱仍是 pending，但确认页已提交」的事项，以及确认页提交后又改过、须重新提交的。
     事项对应哪张单子：事项里写 sheet 字段，或事项的 link 等于 README 页面表里该单子的链接；对不上的待定事项不报。有不一致时返回码 1。
@@ -9,6 +9,7 @@
 做三件事：
 1. 对账：调用 export_answers 的逻辑，有提交后又改过的题则报错退出；
 2. 每个提交编号生成一条 intent 片段（用户原话 = 题号 + 所选项文字 + 说明，落点指向答复文件 rules/decide/answers/<单子>.json），文件名打印出来；
+   new_intent 的四个必填项由调用方给：--category、--owner、--paths、--supersedes，缺任一即拒并列缺项，原样转给 new_intent（取值见其脚本头；G3 落地后由页面元数据填这三个参数）；只导出不生成 intent 时用 --no-intent；
 3. 打印 inbox 事项改为已定所需的 ArtifactData update 内容（status、answer、decidedAt、intent 文件名），由会话用 ArtifactData 执行：
    页面是各自独立的发布件，确认页不能直接写收件箱，所以回写由会话完成，并在报告里附这条命令的输出。
 不自动改规则卡、ADR；转写仍由会话执行并复核。
@@ -61,6 +62,9 @@ opts = dict(a[2:].split("=", 1) if "=" in a else (a[2:], True) for a in sys.argv
 if len(args) != 2:
     sys.exit(__doc__)
 sheet, base = args
+passed = [f"--{k}={opts[k]}" for k in ("category", "owner", "paths", "supersedes") if isinstance(opts.get(k), str) and opts[k]]
+if not opts.get("no-intent") and len(passed) < 4:
+    sys.exit(f"缺必填项：{'、'.join(f'--{k}' for k in ('category', 'owner', 'paths', 'supersedes') if not any(p.startswith(f'--{k}=') for p in passed))}（原样转给 new_intent，取值与写法见其脚本头；不生成 intent 时用 --no-intent）")
 out, stale = export_answers.export(sheet, base)
 if stale:
     sys.exit(f"对账失败：这些题提交后又改过，请用户重新提交：{'、'.join(stale)}")
@@ -95,7 +99,7 @@ for number, rows in sorted(by_sub.items()):
         intents.append((number, os.path.basename(existing)))
     elif not opts.get("no-intent"):
         esc = lambda t: t.replace("|", "\\|")
-        r = subprocess.run([sys.executable, os.path.join(HERE, "..", "..", "new_intent.py"), f"--session={session}", esc(quote), esc(note)], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, os.path.join(HERE, "..", "..", "new_intent.py"), f"--session={session}", *passed, esc(quote), esc(note)], capture_output=True, text=True)
         path = next((l for l in r.stdout.splitlines() if l.startswith("intent/")), "")
         if r.returncode != 0 or not path:
             sys.exit(f"生成 intent 失败（返回码 {r.returncode}）：{(r.stderr or r.stdout)[-300:]}；请检查 docs/modernization/intent/ 下有无半成品片段后再处理，不要手改用户原话")
