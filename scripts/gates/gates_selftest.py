@@ -470,8 +470,8 @@ def trust_self_test():
         subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", work], check=True, capture_output=True)
         table = os.path.join(tmp, "fake_targets.json")
         Path(table).write_text(json.dumps({"targets": [{"id": "fake", "patterns": [fake]}]}), encoding="utf-8")
-        def hook(command, cwd, project, process_cwd=None, tool="Bash", where=None):
-            env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "PROD_TARGETS_FILE": table, **({"CLAUDE_PROJECT_DIR": project} if project is not None else {})}
+        def hook(command, cwd, project, process_cwd=None, tool="Bash", where=None, **extra):  # python3 resolves to /usr/bin/python3, the only interpreter a trusted script runs on
+            env = {"LC_ALL": "C", "PATH": "/usr/bin:/bin:" + os.environ.get("PATH", ""), "PROD_TARGETS_FILE": table, **({"CLAUDE_PROJECT_DIR": project} if project is not None else {}), **extra}
             payload = {"tool_name": tool, "tool_input": {"command": command, **({"cwd": where} if where else {})}, **({"cwd": cwd} if cwd else {})}
             return subprocess.run([sys.executable, "-I", script], input=json.dumps(payload), capture_output=True, text=True, env=env, cwd=process_cwd or tmp).returncode
         run_doc = "python3 " + doc
@@ -504,12 +504,18 @@ def trust_self_test():
                  (lambda: pyc(DOCS_ROOT + "/lib/__pycache__/helper.cpython-39.pyc", 3), scan, 0, "a checked hash-based .pyc (control)"),
                  (lambda: link(helper), scan, 2, "an imported module that is a symlink (to main's own file)"), (lambda: link(DOCS_ROOT + "/t/sql/l.sql"), scan, 2, "a symlink where it reads"),
                  (lambda: None, f"PYTHONPATH=/tmp {run_doc}", 2, "PYTHONPATH on the line"), (lambda: None, f"export PYTHONPATH=/tmp; {run_doc}", 2, "PYTHONPATH exported earlier"),
-                 (lambda: None, f"python3 -X pycache_prefix=/tmp {doc}", 2, "-X pycache_prefix"), (lambda: None, f"cd {main} && {run_doc}", 2, "a relative script after cd"))
+                 (lambda: None, f"python3 -X pycache_prefix=/tmp {doc}", 2, "-X pycache_prefix"), (lambda: None, f"cd {main} && {run_doc}", 2, "a relative script after cd"),
+                 (lambda: None, f"{{ cd {main}; {run_doc}; }}", 2, "cd in a group (905ad6209 review)"), (lambda: None, f"command {run_doc}", 2, "a wrapper before the interpreter"),
+                 (lambda: None, f"env -C {main} {run_doc}", 2, "env -C"), (lambda: None, f"PATH={tmp}/bin:/usr/bin {run_doc}", 2, "PATH on the line"),
+                 (lambda: put(os.path.join(tmp, "bin/python3"), "#!/bin/sh\necho FAKE\n"), f"{tmp}/bin/python3 {doc}", 2, "an interpreter that is not /usr/bin/python3"))
         for setup, run, code, why in loads:
             setup()
             assert hook(run, work, main) == code, why
             gitc(work, "checkout", "-q", "--", ".")
             gitc(work, "clean", "-fdqx")
+        redirected = f"python3 {doc} > out"
+        assert not g.trusted_line("", [], {}) and not g.trusted_line(redirected, simple_commands(redirected), {"PATH": "/usr/bin"}), "one plain command only (an empty line does not crash)"
+        assert hook(run_doc, work, main, PYTHONEXECUTABLE="/tmp/x") == 2 and hook(run_doc, work, main, PYTHONDONTWRITEBYTECODE="1") == 0, "PYTHON* in the environment, but for the harmless ones"
         assert hook(run_doc, loose, main, tool=COMMAND_TOOLS[2], where=work) == 0 and hook(run_doc, loose, main, tool=COMMAND_TOOLS[2]) == 2, "the terminal panel: its own cwd"
         # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
         shifted = forged + "\nx"
@@ -566,11 +572,16 @@ def pre_tool_dispatch_test():
     for command in ("ls", "echo hi", "git status", "npm test", "codex exec p", "git push --no-verify", "gh pr create --title x"):
         assert d.dispatch(payload(command)) == (0, "", ""), command
     # preview_start runs the named .claude/launch.json configuration: judged as that command; a url starts nothing; an unreadable configuration is refused
-    with tempfile.TemporaryDirectory() as launch:
-        put(os.path.join(launch, ".claude", "launch.json"), json.dumps({"configurations": [{"name": "w", "runtimeExecutable": "psql", "runtimeArgs": ["-h", PROD_H, "-c", "delete from t"]},
-                                                                                       {"name": "ok", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"]}]}), 0o644)
-        for tool_input, code in (({"name": "w"}, 2), ({"name": "ok"}, 0), ({"url": "http://localhost:3000"}, 0), ({"name": "missing"}, 2)):
-            assert d.dispatch(json.dumps({"tool_name": LAUNCH_TOOL, "tool_input": tool_input, "cwd": launch}))[0] == code, tool_input
+    with tempfile.TemporaryDirectory() as launch, tempfile.TemporaryDirectory() as other:
+        configs = [{"name": "w", "runtimeExecutable": "psql", "runtimeArgs": ["-h", PROD_H, "-c", "delete from t"]}, {"name": "ok", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"]},
+                   {"name": "args", "runtimeExecutable": "psql", "args": ["-h", PROD_H, "-c", "delete from t"]}, {"name": "prog", "runtimeExecutable": "sh", "runtimeArgs": ["-c"], "program": f"psql -h {PROD_H} -c 'delete from t'"}]
+        put(os.path.join(launch, ".claude", "launch.json"), json.dumps({"configurations": configs}), 0o644)
+        put(os.path.join(other, ".claude", "launch.json"), json.dumps({"configurations": [{"name": "w", "runtimeExecutable": "npm"}]}), 0o644)
+        saved, os.environ["CLAUDE_PROJECT_DIR"] = os.environ.get("CLAUDE_PROJECT_DIR"), launch  # the app reads the session's working directory
+        for tool_input, where, code in (({"name": "w"}, launch, 2), ({"name": "ok"}, launch, 0), ({"url": "http://localhost:3000"}, launch, 0), ({"name": "missing"}, launch, 2),
+                                        ({"name": "args"}, launch, 2), ({"name": "prog"}, launch, 2), ({"name": "w"}, other, 2), ({"name": "ok"}, other, 2)):  # other: a second launch.json disagrees, or lacks the name
+            assert d.dispatch(json.dumps({"tool_name": LAUNCH_TOOL, "tool_input": tool_input, "cwd": where}))[0] == code, (tool_input, where)
+        os.environ.pop("CLAUDE_PROJECT_DIR") if saved is None else os.environ.update(CLAUDE_PROJECT_DIR=saved)
     monitor_ws = json.dumps({"tool_name": "Monitor", "tool_input": {"ws": {"url": "wss://x.example.invalid"}, "description": "d", "timeout_ms": 1000}})  # runs no command
     for raw in (monitor_ws, json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}), json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}}),
                 json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})):

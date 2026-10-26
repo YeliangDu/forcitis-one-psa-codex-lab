@@ -11,11 +11,14 @@
 """
 import ast
 import collections
+import glob
 import importlib.util
 import json
 import os
 import re
 import shlex
+import shutil
+import site
 import subprocess
 import sys
 from pathlib import Path
@@ -334,7 +337,7 @@ if not os.path.exists(os.path.join(REPO_ROOT, ".git")):  # installed copy (insta
 ANCHOR, ROOTS = REPO_ROOT, ()  # whose origin/main says which scripts are trusted, (hook cwd, CLAUDE_PROJECT_DIR, process cwd) whose tables are unioned in; decide() sets both per call
 DOCS_ROOT = "docs" + "/" + "modernization"  # built, not spelled: relevant_change.py scans sources for literal docs paths
 TABLE = os.environ.get("PROD_TARGETS_FILE") or str(Path(HERE) / "prod_targets.json")  # unioned with origin/main's all the same (load_table)
-MAIN_TABLE_PATHS = ("scripts/gates/prod_targets.json", "scripts/hooks/prod_targets.json")  # the second until origin/main has the first
+MAIN_TABLE_PATH = "scripts/gates/prod_targets.json"  # on origin/main since #693 (the old scripts/hooks/ copy is gone: b1 8.1 C7)
 GUARD_DIRS = ("scripts/gates/", "scripts/hooks/")
 SQL_TOOLS = {"psql", "mysql", "mariadb", "sqlcmd", "osql", "mssql-cli", "mongosh", "mongo", "redis-cli", "usql", "tsql", "isql"}
 WRITE_ONLY_TOOLS = {"sqlpackage", "sftp"}
@@ -358,8 +361,8 @@ MAX_SQL_FILE, MAX_SCRIPT_FILE = 65536, 262144
 COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name these and LAUNCH_TOOL
 LAUNCH_TOOL = "mcp__Claude_Browser__preview_start"  # starts runtimeExecutable + runtimeArgs of the named .claude/launch.json configuration (cfcbcf473 final M4)
 LOADABLE, MAX_CLOSURE = (".py", ".pyc", ".so", ".pyd"), 400  # what Python imports from a directory (any interpreter: mod.cpython-312-darwin.so); files a trusted script may load before it counts as unreadable
-PYTHON_ENV = ("PYTHONPATH", "PYTHONHOME", "PYTHONUSERBASE", "PYTHONPYCACHEPREFIX", "PYTHONSTARTUP", "PYTHONINSPECT", "PYTHONSAFEPATH", "PYTHONPLATLIBDIR")  # replace what a script imports or runs first
-NO_TRUST = False  # judge(): the line sets one of PYTHON_ENV or -X pycache_prefix, or changes directory first (a relative script is then another file), or the environment sets one: no script is trusted
+HARMLESS_PYTHON_ENV = {"PYTHONDONTWRITEBYTECODE", "PYTHONUNBUFFERED", "PYTHONIOENCODING", "PYTHONUTF8", "PYTHONHASHSEED"}  # any other PYTHON* may change what runs
+NO_TRUST = False  # judge(): the line is more than one plain command run by /usr/bin/python3 (trusted_line), so no script is trusted
 STATEMENT_OPTIONS = {"psql": {"-c", "--command"}, "mysql": {"-e", "--execute"}, "mariadb": {"-e", "--execute"}, "sqlcmd": {"-Q", "-q", "--query"}, "osql": {"-Q", "-q"}, "mssql-cli": {"-Q", "--query"}, "mongosh": {"--eval"}, "mongo": {"--eval"}, "usql": {"-c", "--command"}}
 FILE_OPTIONS = {"psql": {"-f", "--file"}, "sqlcmd": {"-i"}, "osql": {"-i"}, "usql": {"-f", "--file"}, "mysql": set(), "mariadb": set()}
 DANGEROUS_SQL_OPTIONS = {"sqlcmd": {"-z", "-Z", "-v"}, "osql": {"-z", "-Z"}, "mysql": {"--init-command", "--init_command"}, "mariadb": {"--init-command", "--init_command"}}
@@ -430,21 +433,17 @@ def read_table_file(path):
 
 def main_table_text(root=None):  # (table text on origin/main or None, git failure or None): read by its full ref name (a tag called origin/main cannot shadow it); a missing ref or path is no failure.
     try:
-        run = subprocess.run(["git", "-C", root or REPO_ROOT, "cat-file", "--batch"], input="".join(f"refs/remotes/origin/main:{rel}\n" for rel in MAIN_TABLE_PATHS).encode(), capture_output=True, timeout=10)
+        run = subprocess.run(["git", "-C", root or REPO_ROOT, "cat-file", "--batch"], input=f"refs/remotes/origin/main:{MAIN_TABLE_PATH}\n".encode(), capture_output=True, timeout=10)
     except (OSError, subprocess.SubprocessError) as error:
         return None, f"{error.__class__.__name__}: {error}"
     if run.returncode != 0:
         return None, run.stderr.decode("utf-8", "replace").strip()[:200] or f"git 退出码 {run.returncode}"
-    data, at = run.stdout, 0  # one process for every path (a hook's p99 budget): "<id> blob <size>\n<content>\n" or "<name> missing\n" per path, in order
-    for _ in MAIN_TABLE_PATHS:
-        end = data.find(b"\n", at)
-        if end < 0:
-            return None, "git cat-file 输出不完整"
-        head = data[at:end].split()
-        if len(head) == 3 and head[1] == b"blob":
-            return data[end + 1:end + 1 + int(head[2])].decode("utf-8", "replace"), None
-        at = end + 1 + (int(head[2]) + 1 if len(head) == 3 and head[2].isdigit() else 0)
-    return None, None
+    data = run.stdout  # "<id> blob <size>\n<content>\n", or "<name> missing\n" (no failure)
+    end = data.find(b"\n")
+    if end < 0:
+        return None, "git cat-file 输出不完整"
+    head = data[:end].split()
+    return (data[end + 1:end + 1 + int(head[2])].decode("utf-8", "replace"), None) if len(head) == 3 and head[1] == b"blob" and head[2].isdigit() else (None, None)
 
 
 def load_table(path=None):
@@ -1118,14 +1117,25 @@ def stdin_texts_for(index, command, commands, text):  # Statement texts a comman
     return texts
 
 
+def trusted_line(text, commands, environ):  # The only line a trusted script runs on: one plain command (no separator, wrapper, keyword, assignment, expansion, redirection) whose interpreter is /usr/bin/python3 (system-protected), no other PYTHON* in the environment, no .pth in the user site.
+    if len(commands) != 1 or SHELL_META.search(text) or any(k.startswith("PYTHON") and k not in HARMLESS_PYTHON_ENV for k in environ):
+        return False
+    argv, first = commands[0].argv, (text.split(None, 1) or [""])[0]  # the line's own first word, unquoted: a wrapper, keyword or quoting before the interpreter differs
+    exe = argv[0] if "/" in argv[0] else shutil.which(argv[0], path=environ.get("PATH", os.defpath))
+    options = argv[1:next((i for i, t in enumerate(argv) if i and not t.startswith("-")), len(argv))]  # before the script: only those that load nothing else (-X pycache_prefix, -W … do)
+    if commands[0].env or commands[0].unresolved or first != argv[0] or not exe or not os.path.realpath(exe).startswith("/usr/bin/python3") or not set(options) <= {"-I", "-E", "-s", "-B", "-u"}:
+        return False
+    return not glob.glob(os.path.join(glob.escape(site.getusersitepackages()), "*.pth"))
+
+
 def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refusal text or None.
     global NO_TRUST
-    environ, line = os.environ if environ is None else environ, plain(command_text)
-    NO_TRUST = any(environ.get(v) for v in PYTHON_ENV) or any(v.lower() in line for v in PYTHON_ENV + ("pycache_prefix",)) or bool(re.search(r"(?:^|[;&|(\n])\s*(?:cd|pushd|popd)\b", line))
+    environ, NO_TRUST = os.environ if environ is None else environ, True
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
     try:
         commands = simple_commands(command_text)
+        NO_TRUST = not trusted_line(command_text, commands, environ)
     except ValueError:
         if raw_hit or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE):
             return "命令读不懂（引号未闭合、嵌套过深等）且含生产特征或 psql／ssh／aliyun 等远程工具，无法确认不是连生产的写操作，拒绝。"
@@ -1146,7 +1156,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
             # a production target anywhere on the line makes every other command of the line answer for itself (`echo '…' > x && chmod +x x && ./x`)
             if (raw_hit or touches(command, patterns) or indirect_hit(command, raw_hit, patterns, cwd)) and not allowed_without_connecting(command, cwd, patterns):
                 return (f"拒绝：{tool} 命令碰到生产目标，而它不是点名的只读工具（psql／sqlcmd／aliyun Describe／ssh 只读白名单等）。CLAUDE.md 底线 4：不做生产写操作；"
-                        "生产只读取证走 ADR-0037 专用只读账号和已登记的只读入口（直接用 psql／sqlcmd／ssh 的只读用法）。")
+                        "生产只读取证走 ADR-0037 专用只读账号和已登记的只读入口（直接用 psql／sqlcmd／ssh 的只读用法）。可信脚本须单独一条命令、用 /usr/bin/python3 运行。")
             continue
         writes = is_write(command, patterns, cwd, stdin_texts_for(index, command, commands, command_text) if tool in SQL_TOOLS else None)
         if patterns is None:
@@ -1177,17 +1187,22 @@ def command_of(payload):  # (shell command of a hook payload or None, refusal or
     return (command, None) if isinstance(command, str) else (None, f"生产写门：{tool} 钩子输入里没有字符串形式的 command，无法判断，按拒绝处理。\n")
 
 
-def launch_command(tool_input, cwd):  # (the command preview_start runs for its `name`, refusal or None); a `url` alone starts nothing.
+def launch_command(tool_input, cwd):  # (the command preview_start runs for its `name`, refusal or None); a `url` alone starts nothing. Built as the app builds it, from the session's launch.json.
     name = tool_input.get("name") if isinstance(tool_input, dict) else None
     if not name:
         return None, None if isinstance(tool_input, dict) else "生产写门：preview_start 的钩子输入不是对象，无法判断，按拒绝处理。\n"
+    def line(root):  # runtimeExecutable runtimeArgs program args, else node program args; env before, its cwd as a `cd` first (a script is then not trusted)
+        entry = next(c for c in json.loads(Path(root, ".claude", "launch.json").read_text(encoding="utf-8"))["configurations"] if c.get("name") == name)
+        run = [str(entry["runtimeExecutable"]), *map(str, entry.get("runtimeArgs") or [])] + ([str(entry["program"])] if entry.get("program") else []) if entry.get("runtimeExecutable") else ["node", str(entry["program"])]
+        run += [str(a) for a in entry.get("args") or []]
+        command = shlex.join([f"{k}={v}" for k, v in (entry.get("env") or {}).items()] + run)
+        return f"cd {shlex.quote(str(entry['cwd']))} && {command}" if entry.get("cwd") else command
+    roots = {os.environ.get("CLAUDE_PROJECT_DIR") or cwd or os.getcwd()} | ({cwd} if isinstance(cwd, str) and os.path.isfile(os.path.join(cwd, ".claude", "launch.json")) else set())
     try:
-        configs = json.loads(Path(cwd if isinstance(cwd, str) and cwd else os.getcwd(), ".claude", "launch.json").read_text(encoding="utf-8"))["configurations"]
-        entry = next(c for c in configs if c.get("name") == name)
-        env = [f"{k}={v}" for k, v in (entry.get("env") or {}).items()]
-        return shlex.join(env + [str(entry["runtimeExecutable"]), *map(str, entry.get("runtimeArgs") or [])]), None
+        lines = {line(root) for root in roots}  # the app reads the session's working directory; a second launch.json at the hook's cwd must agree
     except (OSError, ValueError, KeyError, TypeError, AttributeError, StopIteration):
         return None, f"生产写门：读不出 .claude/launch.json 里 {name} 的启动命令，无法判断，按拒绝处理。\n"
+    return (lines.pop(), None) if len(lines) == 1 else (None, f"生产写门：会话目录与当前目录的 .claude/launch.json 里 {name} 的启动命令不一致，按拒绝处理。\n")
 
 
 def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict); the dispatcher calls this in-process.
