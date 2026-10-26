@@ -15,13 +15,14 @@
 不自动改规则卡、ADR；转写仍由会话执行并复核。
 幂等：同一提交编号已有 intent 片段（片段正文含「提交 <编号>」）时不重复生成。原话里的「|」按 new_intent 的要求转义为「\\|」，不改动其他字符；生成失败（返回码非 0 或没有产出片段）即退出，不打印成功。
 覆盖检查：存在 sheets/<单子>.json 时，核对提交是否覆盖全部题、所选序号对应的选项文字是否仍与单子一致，不一致报错退出（发布后改过选项会造成序号错位）。"""
-import datetime, glob, json, os, subprocess, sys
+import datetime, glob, json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import export_answers  # noqa: E402
 
 PAGES_HEADER = ["单子或页面", "用途", "负责会话", "起用日期", "退役日期", "出处"]
+NON_SHEET_PAGES = {"收件箱（待你决定）", "用语确认固定页", "旧固定确认页（已停用）"}   # 登记表里不是单子的三行，首格是页面名而非单子编号
 
 
 def registered_owner(sheet):
@@ -41,7 +42,10 @@ def registered_owner(sheet):
             rows.append(cells)
     if not rows or rows[0] != PAGES_HEADER:
         sys.exit(f"ONLINE_PAGES.md 登记表表头不是约定的六列（{' | '.join(PAGES_HEADER)}），不敢解析负责会话；先修登记表或本脚本")
-    found = [r for r in rows if r[0] == sheet]
+    bad = [r[0] for r in rows[1:] if not re.fullmatch(r"[A-Za-z0-9_]+", r[0]) and r[0] not in NON_SHEET_PAGES]
+    if bad:
+        sys.exit(f"ONLINE_PAGES.md 登记表有首格不合约定的数据行（须整格匹配 [A-Za-z0-9_]+，或是 NON_SHEET_PAGES 里的非单子页名；加粗、代码样式、零宽字符都算不合）：{bad[0]!r}；表格损坏，先修登记表")
+    found = [r for r in rows if r[0].lower() == sheet.lower()]
     if len(found) != 1:
         sys.exit(f"单子 {sheet} 没有在 ONLINE_PAGES.md 登记（或重复登记），无法确定负责会话；请先登记再生成 intent")
     if found[0][2] in ("", "roles/ 未列"):

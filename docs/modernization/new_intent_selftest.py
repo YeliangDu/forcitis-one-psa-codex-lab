@@ -29,9 +29,6 @@ def decide_drill(tree, sync_args):
     """G3 演练（临时副本）：一题作答 → decide_sync 生成片段，负责会话取自登记表；表头变、未登记、未列、重复登记即拒。"""
     mod = os.path.join(tree, "docs", "modernization")
     dec = os.path.join(mod, "rules", "decide")
-    os.makedirs(os.path.join(dec, "sheets"))
-    for f in ("decide_sync.py", "export_answers.py"):
-        shutil.copy(os.path.join(BASE, "rules", "decide", f), dec)
     for s in ("ZZ", "ZU"):
         json.dump({"items": [{"no": f"{s}-01", "opts": [{"label": "甲"}]}]}, open(os.path.join(dec, "sheets", f"{s}.json"), "w", encoding="utf-8"), ensure_ascii=False)
         out = os.path.join(tree, "out" + s)
@@ -56,6 +53,9 @@ def decide_drill(tree, sync_args):
     dup = "|ZZ|演练|one-ops|x|待定|x|\n"
     for sheet, pages, why in (("ZZ", PAGES.replace("负责会话", "负责人"), "表头"), ("ZY", PAGES, "没有在 ONLINE_PAGES.md 登记"), ("ZU", PAGES, "roles/ 未列"), ("ZZ", PAGES + ROW.format("ZZ", "one-ops"), "重复登记"),
                               ("ZZ", PAGES + dup, "重复登记"), ("ZZ", PAGES + "  " + ROW.format("ZZ", "one-ops"), "重复登记"), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定\n", "格式不规范"),
+                              ("ZZ", PAGES + "ZZ | 演练 | one-ops | x | 待定 | x |\n", "格式不规范"), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定 | x\n", "格式不规范"),
+                              ("ZZ", PAGES + ROW.format("**ZZ**", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("`ZZ`", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("ZZ​", "one-ops"), "首格不合约定"),
+                              ("ZZ", PAGES + ROW.format("zz", "one-ops"), "重复登记"),
                               ("ZU", HEAD + "| ZU | 演练 | one-glossary | x | 待定 |\n", "格式不规范"), ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"),
                               ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射"), ("N1", real, "单子 N1 在 ONLINE_PAGES.md 的负责会话是「roles/ 未列」")):
         code, out = sync(sheet, pages)
@@ -86,7 +86,11 @@ def main():
         code, out = run(tree, swap(GOOD, "category", "杂项"))
         assert "--category" in out and "--owner" not in out and "--paths" not in out,f"只打印出错的项：{out[:200]}"
         assert not glob.glob(os.path.join(mod, "intent", "*.md")), "拒绝时不应生成片段"
-        script = os.path.join(BASE, "rules", "decide", "decide_sync.py")
+        dec = os.path.join(mod, "rules", "decide")
+        os.makedirs(os.path.join(dec, "sheets"))
+        for f in ("decide_sync.py", "export_answers.py", "ONLINE_PAGES.md"):
+            shutil.copy(os.path.join(BASE, "rules", "decide", f), dec)
+        script = os.path.join(dec, "decide_sync.py")
         sync = [sys.executable, script, "GL6", tree]
         sync_args = [a for a in GOOD[1:] if not a.startswith("--owner=")]
         for key in ("category", "paths", "supersedes"):
