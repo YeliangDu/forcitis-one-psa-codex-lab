@@ -32,15 +32,15 @@ PUA_DOLLAR, PUA_TICK = "\ue000", "\ue001"  # `$` and a backtick inside single qu
 SIMPLE_ESCAPES = {"a": "\a", "b": "\b", "e": "\x1b", "E": "\x1b", "f": "\f", "n": "\n", "r": "\r", "t": "\t", "v": "\v", "\\": "\\", "'": "'", '"': '"', "?": "?"}
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
-WRAPPERS = {"command": set(), "env": {"-u", "-C", "-S"}, "time": {"-f", "-o"}, "exec": {"-a"}, "nohup": set(), "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U"}, "builtin": set(), "timeout": {"-s", "-k"}, "nice": {"-n"}, "stdbuf": {"-i", "-o", "-e"}}  # wrapper -> options that take a value
-SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "eval"}
+WRAPPERS = {"command": set(), "env": {"-u", "-C", "-S", "--chdir"}, "time": {"-f", "-o"}, "exec": {"-a"}, "nohup": set(), "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U", "--chdir"}, "builtin": set(), "timeout": {"-s", "-k"}, "nice": {"-n"}, "stdbuf": {"-i", "-o", "-e"}}  # wrapper -> options that take a value
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "csh", "tcsh", "fish", "eval"}
 ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 COMMENT_OR_HEREDOC = re.compile(r"(?:^|[^A-Za-z0-9_./:=@%+-])#|(?<!<)<<(?!<)")  # a `#` that may start a comment, a here-document: not mimicked, the whole line counts (intent 2026-10-26-140639)
 VARIABLE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
 SUBSTITUTION = re.compile(r"\$\(([^()]*)\)")
 SHORT_C = re.compile(r"-[A-Za-z]*c[A-Za-z]*")
 ECHOES = {"echo", "printf"}
-Command = collections.namedtuple("Command", "argv env unresolved redirected piped", defaults=(False,))
+Command = collections.namedtuple("Command", "argv env unresolved redirected piped chdir", defaults=(False, ()))  # chdir: directories a wrapper option (`env -C`, `sudo -D`) runs it in
 
 
 def decode_ansi_c(body):  # Text of a bash `$'...'` word, decoded byte-wise as bash does (\xHH, \NNN, \uHHHH, \UHHHHHHHH, \cX, one-letter escapes); a NUL ends it.
@@ -162,8 +162,8 @@ def expand(token, variables):  # (token with known variables substituted, True w
     return token, "$" in token
 
 
-def strip_prefix(seg, variables):  # (env of leading `NAME=value` words and wrapper options, rest of the segment): keywords and wrappers (env, nohup, sudo, timeout …) dropped, `env -S` split.
-    env, i, moved = {}, 0, []
+def strip_prefix(seg, variables, chdir=None):  # (env of leading `NAME=value` words and wrapper options, rest of the segment): keywords and wrappers (env, nohup, sudo, timeout …) dropped, `env -S` split; their directory options added to `chdir`.
+    env, i, moved, chdir = {}, 0, [], [] if chdir is None else chdir
     while i < len(seg):
         tok = seg[i]
         if ENV.match(tok):
@@ -190,6 +190,8 @@ def strip_prefix(seg, variables):  # (env of leading `NAME=value` words and wrap
                 if ENV.match(seg[i]):
                     name, _, value = seg[i].partition("=")
                     env[name] = expand(restore(value), variables)[0]
+                if (wrapper, seg[i].split("=")[0]) in (("env", "-C"), ("env", "--chdir"), ("sudo", "-D"), ("sudo", "--chdir")) or (wrapper in ("env", "sudo") and re.match(r"-[CD].", seg[i])):
+                    chdir.append(expand(restore(seg[i + 1] if seg[i] in valued and i + 1 < len(seg) else seg[i].partition("=")[2] or seg[i][2:]), variables)[0])
                 i += 2 if seg[i] in valued else 1
         else:
             break
@@ -217,10 +219,10 @@ def simple_commands(command, depth=0, variables=None, exported=None, assigned=No
         segments.append((cur, piped_next))
     previous, allexport = None, False
     for seg, piped in segments:
-        env, rest, moved = strip_prefix(seg, variables)
+        env, rest, moved = strip_prefix(seg, variables, chdir := [])
         if not rest:
             variables.update(env)
-            assigned += env.values()  # a bare `NAME=value` stays in effect for the following commands, a redirection beside it too (58d4d5d4d final M2)
+            assigned += [*env.values(), *(expand(restore(t), variables)[0] for t in moved)]  # a bare `NAME=value` stays in effect for the following commands, a redirection beside it too (58d4d5d4d final M2)
             exported.update({k: v for k, v in env.items() if allexport or k in ENV_TARGET_VARS})  # exported under `set -a`; a target variable may already be exported by the environment or an rc file (O2 round 1 M1)
             for inner in (i for t in moved for i in SUBSTITUTION.findall(t)):
                 out += simple_commands(restore(inner), depth + 1, dict(variables), dict(exported), assigned)
@@ -250,7 +252,7 @@ def simple_commands(command, depth=0, variables=None, exported=None, assigned=No
             for arg in argv[1:]:
                 variables.pop(arg, None)
                 exported.pop(arg, None)
-        out.append(Command(argv, {**exported, **env}, unresolved, any(REDIRECTION.fullmatch(t) for t in argv), piped))
+        out.append(Command(argv, {**exported, **env}, unresolved, any(REDIRECTION.fullmatch(t) for t in argv), piped, tuple(chdir)))
         if name in SHELLS:
             bodies = []
             if name == "eval":
@@ -284,10 +286,11 @@ HTTP_TOOLS = {"curl", "wget", "http", "https", "xh", "xhs"}
 REMOTE_TOOLS = SQL_TOOLS | WRITE_ONLY_TOOLS | HTTP_TOOLS | {"bcp", "aliyun", "ssh", "scp", "rsync", "pg_dump", "pg_dumpall", "pg_restore", "mysqldump"}  # built in; remote_entries.tools on origin/main adds to it
 LONG_REMOTE = {t for t in REMOTE_TOOLS if len(t) > 2}  # matched as substrings of an unreadable line; two-letter names (xh) only as whole words (SHORT_REMOTE, REMOTE_WORD): `xh` is inside exhibit, xhr…
 SHORT_REMOTE = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(sorted(re.escape(t) for t in REMOTE_TOOLS - LONG_REMOTE)) + r")(?![a-z0-9_-])")
-INTERPRETERS = {"python", "node", "perl", "ruby", "php", "lua", "bash", "sh", "zsh", "dash", "ksh", "source", ".", "awk", "gawk", "nawk", "make", "gmake", "deno", "bun", "tclsh", "osascript"}  # "python" stands for python3, python3.12 …
-RUNS_OTHERS = {"xargs", "find", "script", "parallel", "export", "source", "watch"}  # commands that run another command or carry its environment
-INTERPRETER = re.compile(r"^(?:python[0-9.]*|" + "|".join(re.escape(n) for n in sorted(INTERPRETERS - {"python"})) + r")$")
-REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:python[0-9.]*|" + "|".join(re.escape(n) for n in sorted((REMOTE_TOOLS | SHELLS | INTERPRETERS | RUNS_OTHERS) - {"python", "."}))
+INTERPRETERS = {"python", "node", "perl", "ruby", "php", "lua", "bash", "sh", "zsh", "dash", "ksh", "csh", "tcsh", "fish", "source", ".", "awk", "gawk", "nawk", "make", "gmake", "deno", "bun", "tclsh", "wish", "expect",
+                "osascript", "swift", "rscript", "r", "julia", "groovy", "pwsh", "elixir", "escript", "raku", "guile", "jshell", "kotlin", "scala", "ts-node", "tsx"}  # "python" stands for python3, python3.12 …
+RUNS_OTHERS = {"xargs", "find", "script", "parallel", "export", "source", "watch", "uv", "uvx", "npx", "pipx", "poetry", "bundle", "go", "npm", "pnpm", "yarn", "cargo", "dotnet", "java"}  # commands that run another command or carry its environment
+INTERPRETER = re.compile(r"^(?:(?:python|pypy)[0-9.]*|" + "|".join(re.escape(n) for n in sorted(INTERPRETERS - {"python"})) + r")$")
+REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:(?:python|pypy)[0-9.]*|" + "|".join(re.escape(n) for n in sorted((REMOTE_TOOLS | SHELLS | INTERPRETERS | RUNS_OTHERS) - {"python", "."}))
                          + r")(?![A-Za-z0-9_-])|(?:^|[\s;&|(])\.\s")  # the pre-filter's names come from these sets only, plus `. file`
 SHELL_HEADS = {"for", "case", "select", "function", "in"}  # `for f in a b` is a loop head; substitutions inside it are commands of their own
 
@@ -627,15 +630,23 @@ def candidates(argv):  # Words of a command that may name a file it runs: each w
     tool, out = name_of(argv[0]), [argv[0]] if "/" in argv[0] else []
     for word in argv[1:]:
         out += [word] + ([word.split("=", 1)[1]] if word.startswith("-") and "=" in word else [word[2:]] if re.match(r"-[A-Za-z]", word) and len(word) > 2 else [])
-    if tool.startswith("python"):
+    if tool.startswith(("python", "pypy")):
         out += [w.replace(".", "/") + ".py" for w in list(out) if re.fullmatch(r"[A-Za-z_][\w.]*", w)] + [w.replace(".", "/") for w in list(out) if re.fullmatch(r"[A-Za-z_][\w.]*", w)]
     return out + list(MAKEFILES) * tool.endswith("make")
+
+
+def shebang(full):  # A file that names its own interpreter (`#!`): any command may run it
+    try:
+        with open(full, "rb") as f:
+            return f.read(2) == b"#!"
+    except OSError:
+        return True
 
 
 def runs_file(command, patterns, dirs, known):  # The command runs a file (or package) that mentions production: an interpreter's or a runner's every file word, any command's executable file words; each looked up in every directory the line may be in (`dirs`), unreadable counting; with `known` false a script-like word found nowhere counts too.
     argv, tool = command.argv, name_of(command.argv[0])
     runner = bool(INTERPRETER.match(tool)) or any(INTERPRETER.match(name_of(w)) or name_of(w) in RUNS_OTHERS for w in argv)
-    for word in candidates(argv):
+    for word in map(os.path.expanduser, candidates(argv)):  # `~/x` as the shell expands it unquoted (a quoted one is checked too: fail closed)
         found = [f for f in ([word] if os.path.isabs(word) else [os.path.join(d, word) for d in dirs]) if os.path.lexists(f)]
         if not found and not known and not os.path.isabs(word) and SCRIPT_NAME.search(word) and (runner or word == argv[0]):
             return True
@@ -643,7 +654,7 @@ def runs_file(command, patterns, dirs, known):  # The command runs a file (or pa
             if os.path.isdir(full):
                 if INTERPRETER.match(tool):  # python runs a package's __main__, make -C a directory's makefile
                     return True
-            elif (runner or word == argv[0] or os.access(full, os.X_OK)) and file_hits(full, patterns):
+            elif (runner or word == argv[0] or os.access(full, os.X_OK) or shebang(full)) and file_hits(full, patterns):
                 return True
     return False
 
@@ -671,12 +682,16 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
         if odd or raw_hit or env_hit or remote_named(command_text, tools) or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in tools if len(t) > 2):  # unreadable: a name as a substring too (sshd_conf)
             return "命令读不懂（引号未闭合、嵌套过深等），且含生产特征、远程工具或注释／here-document，无法确认不是连生产的写操作，拒绝。"
         return None
+    if any(NET_REDIRECT.search(w) for w in assigned):  # a redirection alone, `exec >…`, `{ …; } >…`: no command word (af2b97c22 round 1 M1, final M1)
+        return "拒绝：变量展开后出现 /dev/tcp 或 /dev/udp 网络重定向，按远程工具处理，不是登记写法（intent 2026-10-26-160810）。"
     if (raw_hit or env_hit or (patterns and text_hits(assigned, patterns))) and TRUSTED_LINE is None:
         return ("拒绝：命令里有生产特征，或指向生产的目标环境变量（命令里设的或会话环境里的），整行拒绝，不论哪个命令（intent 2026-10-26-165321）。CLAUDE.md 底线 4：不做生产写操作；"
                 "生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口（单独一条命令、按登记的写法运行）。会话环境里的目标变量请清掉后重开会话。")
     dirs, known = [cwd or os.getcwd()], True  # every directory the line may be in: the hook's, then each `cd` target (a subshell's may end); one that cannot be read makes `known` false
     for command in commands:
         tool = name_of(command.argv[0])
+        dirs += [os.path.join(d, os.path.expanduser(c)) for d in list(dirs) for c in command.chdir]  # `env -C dir`, `sudo -D dir`: the command itself runs there
+        known = known and not any("$" in c for c in command.chdir)
         if tool in CHDIR:
             target = next((w for w in command.argv[1:] if not w.startswith("-")), "~" if tool == "cd" else None)
             if target is None or command.unresolved or target == "-":

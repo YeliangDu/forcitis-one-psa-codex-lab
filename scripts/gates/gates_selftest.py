@@ -338,13 +338,14 @@ def gate_self_test():
     # 10b. a file an interpreter, a runner or its path may run (every file word, in each directory a `cd` may lead to) names no sample, else refused (intent 2026-10-26-165321 B; 6e50b5571 first round, final)
     os.mkdir(os.path.join(cwd, "pkg"))
     for name, text in (("git", f"sqlcmd -S {P}"), ("big.sh", "#" * (g.MAX_SCRIPT_FILE + 10) + f"\nsqlcmd -S {P.upper()}"), ("quoted.sh", "sqlcmd -S 'pgm-pr'od0001"), ("span.sh", "x" * 9 + P), ("locked.sh", "echo hi"),
-                       *((n, f"connect('{P}')") for n in ("dirty.py", "prog.awk", "exe.sh", "GNUmakefile", "pkg/run.sh"))):
+                       *((n, f"connect('{P}')") for n in ("dirty.py", "prog.awk", "exe.sh", "GNUmakefile", "pkg/run.sh", "plain")), ("bang", f"#!/bin/sh\nssh {P}")):
         Path(cwd, name).write_text(text + "\n", encoding="utf-8")
     [os.chmod(os.path.join(cwd, n), m) for n, m in (("locked.sh", 0), ("exe.sh", 0o755))]
-    for command in ("./git status", "bash big.sh", "sh quoted.sh", "source ./direct.sh", "python3 runner.py", "./locked.sh", "python3 pkg", "nohup ./direct.sh &", "bash -e direct.sh", "bash -o errexit direct.sh", "sh -p direct.sh",
-                    "node -r ./dirty.py clean.py", "node --require=dirty.py clean.py", "python3 -m dirty", "python3 -Wignore dirty.py", "awk -f prog.awk x", "xargs bash direct.sh", "find . -exec bash direct.sh ;", "caffeinate -i ./exe.sh",
-                    "arch -arm64 exe.sh", "cd pkg && ./run.sh", "cd pkg; bash run.sh", "(cd pkg) && sh run.sh", "cd $D && bash gone.sh", "make -C pkg", "make all", "H=pgm-pr; X=${H}od0001; ./tame.sh",
-                    "D=/dev/t; echo x >${D}cp/198.51.100.7/80"):
+    for command in ("./git status", "bash big.sh", "sh quoted.sh", "source ./direct.sh", "python3 runner.py", "./locked.sh", "python3 pkg", "nohup ./direct.sh &", "bash -e direct.sh", "bash -o errexit direct.sh", "sh -p direct.sh", "node -r ./dirty.py clean.py",
+                    "node --require=dirty.py clean.py", "python3 -m dirty", "python3 -Wignore dirty.py", "awk -f prog.awk x", "xargs bash direct.sh", "find . -exec bash direct.sh ;", "caffeinate -i ./exe.sh", "arch -arm64 exe.sh", "cd pkg && ./run.sh",
+                    "cd pkg; bash run.sh", "(cd pkg) && sh run.sh", "cd $D && bash gone.sh", "make -C pkg", "make all", "H=pgm-pr; X=${H}od0001; ./tame.sh", "D=/dev/t; echo x >${D}cp/198.51.100.7/80", "D=/dev/t; exec 3<>${D}cp/198.51.100.7/80",
+                    "D=/dev/t; >${D}cp/198.51.100.7/80", "D=/dev/t; { :; } >${D}cp/198.51.100.7/80", "csh plain", "tcsh plain", "fish plain", "pypy3 plain", "Rscript plain", "uv run plain", "caffeinate bang", "env -C pkg sh run.sh", "env --chdir=pkg ./run.sh",
+                    "sudo -D pkg sh run.sh", "env -Cpkg sh run.sh", f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'"):
         assert refused(command), f"the file it may run: {command!r}"
     for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "python3 -m json.tool"):
         assert allowed(command), f"no sample in the file, or no file (a pipe, inline code: known gap): {command!r}"
@@ -375,7 +376,7 @@ def gate_self_test():
         assert could_concern(plain("cat sshd_conf 'oops")) and not could_concern(plain("ls ./x")) and not could_concern(plain("echo a. b")), "a substring of a remote tool counts; a dot elsewhere does not"
         assert could_concern(plain("xh POST x")) and could_concern(plain("a&&xh x")) and not could_concern(plain("cat exhibit xhr")), "xh only as a word (O2 round 1, suggestion)"
         with __import__("unittest.mock").mock.patch.dict(os.environ, PGHOST="x"): assert could_concern("echo hello"), "a target variable in the session: judge decides (intent 2026-10-26-165321)"
-        assert could_concern(plain("echo x >/dev/tcp/192.0.2.15/80")) and could_concern(plain("cat </dev/udp/h/53")), "a bash network redirection goes to judge (a14c80797 first round M1)"
+        assert could_concern(plain("echo x >/dev/tcp/192.0.2.15/80")) and could_concern(plain("cat </dev/udp/h/53")) and could_concern(plain(">o ./deploy")), "a network redirection, a path after a redirection go to judge"
         # hook process end to end, with the shipped and a missing table
         script = os.path.join(HERE, "prod_write_gate.py")
         def hook(command, table_path=None, tool="Bash"):
