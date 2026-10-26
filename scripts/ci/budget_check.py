@@ -187,10 +187,10 @@ def check_mq_total(root, pol, rep):
     rep.cap("H23", "scripts/merge+queue", n, pol["mq"]["max_lines_total"], f"{n} 行超过 mq.max_lines_total")
 
 def check_tools_lib_total(root, pol, rep):
-    """H23 后半：tools_lib.max_lines_total 管的工具库在仓库外，由工具库自测或 janitor 查，这里只出一行信息。"""
+    """H23 后半：tools_lib.max_lines_total 管的工具库在仓库外，由 janitor 查，这里只出一行信息。"""
     total = pol["tools_lib"]["max_lines_total"]
     check_limit(total)
-    rep.info("H23", "tools_lib", f"工具库在仓库外，tools_lib.max_lines_total（{total}）由工具库自测或 janitor 查")
+    rep.info("H23", "tools_lib", f"工具库在仓库外，tools_lib.max_lines_total（{total}）由 janitor 查")
 
 def leaves(node, path=""):
     if isinstance(node, (dict, list)):
