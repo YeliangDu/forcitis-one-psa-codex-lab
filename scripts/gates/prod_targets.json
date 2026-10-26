@@ -1,7 +1,7 @@
 {
   "version": 1,
   "owner": "one-ops",
-  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。碰到任一 pattern 的命令，除点名只读用法与不连接命令外一律被 prod_write_gate 拒绝；改动由 one-ops 提，PR 过 opus 复审。间接引用（别名、ssh_config、DSN）不覆盖，靠只读账号兜底。",
+  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。命令行任意位置碰到任一 pattern，或运行的文件内容含 pattern，除 trusted_entries 登记入口外一律被 prod_write_gate 拒绝（intent 2026-10-26-165321）；改动由 one-ops 提，PR 过 opus 复审。间接引用（别名、ssh_config、DSN）与脚本运行时行为不覆盖，靠只读账号兜底。",
   "targets": [
     {
       "id": "legacy-rds-sqlserver",
@@ -41,6 +41,18 @@
         "forcitis-one-deploy-request-prod"
       ],
       "note": "新系统生产命名（库、角色前缀、OOS 参数）；实例建成后 one-ops 补实例 ID 与端点"
+    },
+    {
+      "id": "bi-prod",
+      "kind": "ecs",
+      "patterns": [
+        "i-uf61vaoqwmccmxi8mcc5",
+        "bi.forcitis.com",
+        "bi-release.sh",
+        "forcitis/aliyun",
+        "cloud-assistant-run"
+      ],
+      "note": "BI 生产（U13，intent 131816）：BI 发布脚本写死的生产 ECS 实例、站点域名、发布脚本名；aliyun 云脚本仓库路径与远程执行脚本名（gap-5 D16）。不在 BI 仓库装门"
     }
   ],
   "trusted_entries": {
