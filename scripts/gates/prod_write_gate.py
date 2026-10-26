@@ -92,7 +92,7 @@ def neutralize(text, backticks=True):  # `$`/backtick inside single quotes -> pr
     out, i, single, double, braces = [], 0, False, False, 0
     while i < len(text):
         char = text[i]
-        braces += (not single and text.startswith("${", i)) - (braces > 0 and not single and char == "}")  # `#` inside ${...} is part of the expansion
+        braces += 0 if single else 1 if text.startswith("${", i) or (braces and not double and char == "{") else -1 if braces and not double and char == "}" else 0  # `#` inside ${...} (nested, quotes aside) is part of it
         if single:
             out.append(PUA_DOLLAR if char == "$" else PUA_TICK if char == "`" else char)
             single = char != "'"
@@ -136,7 +136,7 @@ def split_heredocs(command):  # (text without here-document bodies, [(body, deli
     out, bodies, pending, i, single, double, n, braces = [], [], [], 0, False, False, len(text), 0
     while i < n:
         char = text[i]
-        braces += (not single and text.startswith("${", i)) - (braces > 0 and not single and char == "}")
+        braces += 0 if single else 1 if text.startswith("${", i) or (braces and not double and char == "{") else -1 if braces and not double and char == "}" else 0
         if single:
             out.append(char)
             single = char != "'"
@@ -925,7 +925,7 @@ def main_blobs(rels):  # {path: object id on origin/main} for repo-relative path
 
 
 def rel_of(path):  # Path relative to the anchor: its directory resolved, the file itself not (a symlink is no file of the repository).
-    return os.path.relpath(os.path.join(os.path.realpath(os.path.dirname(os.path.abspath(path))), os.path.basename(path)), os.path.realpath(ANCHOR))
+    return os.path.relpath(os.path.join(os.path.realpath(os.path.dirname(os.path.join(os.getcwd(), path))), os.path.basename(path)), os.path.realpath(ANCHOR))  # realpath resolves a link before its `..`, as the kernel does
 
 
 def all_as_on_main(paths):  # True when every path is a regular file byte for byte origin/main's file at that path (edited, staged, new, symlinked or outside the anchor are not).

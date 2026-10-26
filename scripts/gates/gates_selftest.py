@@ -258,7 +258,8 @@ def gate_self_test():
     for command in (f"ls # it's\npsql -h {P} -c 'delete from t' # it's", f"ls # it's\npsql -h {P} -c 'delete from t'", f"echo x # \"\ncurl -X DELETE https://{P}/a", f"(ls)#it's\npsql -h {P} -c 'delete from t'", f"(ls)# <<EOF\npsql -h {P} -c 'delete from t'"):
         assert refused(command), ("a comment (after a blank or `( ) < >`) is dropped: its quotes or `<<` do not swallow the next line (69af6c8da final M1-M2)", command)
     assert allowed(f"ssh {P} uptime # can't"), "a quote inside a comment is no quote"
-    assert refused(f"echo ${{x:- #}}; psql -h {P} -c 'insert into t values (1)'"), "a `#` inside ${...} starts no comment (50a6af8c3 final M1)"
+    for command in (f"echo ${{x:- #}}; psql -h {P} -c 'insert into t values (1)'", f"echo ${{x:-\"}}\" #}}; psql -h {P} -c 'insert into t values (1)'", f"echo ${{x:-{{a}} #}}; psql -h {P} -c 'insert into t values (1)'"):
+        assert refused(command), ("a `#` inside ${...} (a quoted or nested brace aside) starts no comment (50a6af8c3, 285242ecb final M1)", command)
     assert refused("(ls)#it's\npsql -c 'delete from t' #it's", environ={"PGHOST": P}), "a comment right after `)`: the target from the environment, the write on the next line"
     # 6. secrets (bottom line 3) and the environment
     for command in ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"):
@@ -535,6 +536,12 @@ def trust_self_test():
         os.symlink(os.path.join(work, legacy), os.path.join(work, DOCS_ROOT, "lr.py"))  # runs beside the link, with its neighbours
         assert hook(f"python3 {DOCS_ROOT}/lr.py '{fake}'", work, main) == 2, "a symlink to a registered script is no entry (50a6af8c3 final M2)"
         os.remove(os.path.join(work, DOCS_ROOT, "lr.py"))
+        put(os.path.join(work, DOCS_ROOT, "sub/inner/keep"), "", 0o644)
+        put(os.path.join(work, DOCS_ROOT, "sub/new_intent.py"), body[doc], 0o644)
+        os.symlink(os.path.join(work, DOCS_ROOT, "sub/inner"), os.path.join(work, DOCS_ROOT, "ln"))  # the kernel resolves ln before its `..`: sub/new_intent.py runs
+        assert hook(f"python3 {DOCS_ROOT}/ln/../new_intent.py", work, main) == 2, "a `..` after a symlinked directory is resolved as the kernel does (285242ecb final M2)"
+        os.remove(os.path.join(work, DOCS_ROOT, "ln"))
+        shutil.rmtree(os.path.join(work, DOCS_ROOT, "sub"))
         assert hook(run_doc, loose, main, tool=COMMAND_TOOLS[2], where=work) == 0 and hook(run_doc, loose, main, tool=COMMAND_TOOLS[2]) == 2, "the terminal panel: its own cwd"
         # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
         shifted = forged + "\nx"
