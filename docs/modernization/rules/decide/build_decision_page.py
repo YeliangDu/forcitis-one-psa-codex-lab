@@ -4,7 +4,7 @@
 决定页生成器只此一套（G2）：出题检查 check_pages.py 在本目录，题型 KINDS 从它导入。
 校验不通过即失败：题号唯一、每题至少两个选项且恰好一个推荐、单组不超过 40 题（一屏只画一组，组太大手机上会停在加载中）、页面不加载任何外部资源。
 用法：python3 docs/modernization/rules/decide/build_decision_page.py <单子>[,<单子>...] <输出路径>"""
-import json, pathlib, re, sys
+import json, os, pathlib, re, sys
 
 HERE = pathlib.Path(__file__).parent
 R0 = HERE.parent.parent / "r0"
@@ -64,8 +64,13 @@ def load(name):
     found = [d / f"{name}.json" for d in dirs if (d / f"{name}.json").is_file()]
     if not found:
         sys.exit(f"找不到单子 {name}（FD、sheets/{name}.json，或已答旧页 architecture/decision-page/{name}.json；archive/ 不读）")
-    if found[0].parent not in dirs:   # 第二道：解析出的文件必须正好在 sheets/ 或某个旧题源目录里
-        sys.exit(f"单子 {name} 解析到允许目录以外：{found[0]}")
+    # 第二道：不跟随符号链接（文件或所在目录是链接即拒；已答判断只看链接名，链接可指向未过 check_pages 的坏副本，c33b8fa2c 终审必改 1），
+    # 且真实路径须正好是「真实的允许目录 / <名>.json」
+    p, d = found[0], found[0].parent
+    if p.is_symlink() or d.is_symlink():
+        sys.exit(f"单子 {name} 是符号链接（或所在目录是）：不跟随链接出页，题源须是允许目录下的普通文件：{p}")
+    if d not in dirs or os.path.realpath(p) != os.path.join(os.path.realpath(d), f"{name}.json"):
+        sys.exit(f"单子 {name} 解析到允许目录以外：{p}")
     old = found[0].parent != SHEETS
     if old:   # 旧题源只重出已答历史页，不许借它绕过出题检查发新页
         done, whole = cp.answered_nos(str(found[0]))
@@ -170,7 +175,13 @@ def self_test():
         (SHEETS / "NOTITLE.json").write_text(json.dumps(good | {"lede": "说明"}), encoding="utf-8")   # sheets/ 缺 title：不补默认，须失败
         (SHEETS / "sub" / "OLDX.json").write_text(json.dumps(two_recs), encoding="utf-8")   # 子目录里借已登记页名
         (answers / "OLDA.json").write_text(json.dumps({"OLDA~1": {"choice": 0}}), encoding="utf-8")
-        (pathlib.Path(tmp) / "answered.txt").write_text("OLDX  # 出处\nOLDL\nOLDREC\nOLDARC\n", encoding="utf-8")
+        (pathlib.Path(tmp) / "outside.json").write_text(json.dumps(good | {"title": "外", "lede": "外"}), encoding="utf-8")
+        (old / "LNK.json").symlink_to("archive/OLDARC.json")          # 旧题源里已登记页名做成链接，指向子目录文件
+        (SHEETS / "SLNK.json").symlink_to(old / "OLDBAD.json")         # sheets/ 里的链接
+        (SHEETS / "OUT.json").symlink_to(pathlib.Path(tmp) / "outside.json")   # 链接到允许目录以外
+        (SHEETS / "NEWLNK.json").symlink_to("NEW.json")   # sheets/ 里链接指向写全、合规的单子：仍拒（链接目标日后可改而 --changed 不列）
+        (pathlib.Path(tmp) / "sheetslink").symlink_to(SHEETS, target_is_directory=True)   # 目录本身是链接
+        (pathlib.Path(tmp) / "answered.txt").write_text("OLDX  # 出处\nOLDL\nOLDREC\nOLDARC\nLNK\n", encoding="utf-8")
         # 按真实 OLD_PAGES 的结构映射到临时目录：常量里若加回 archive/，这里同样会读到 OLDARC，下面的反例变红
         OLD_PAGES = tuple(old / d.relative_to(real) for d in saved[0])
         cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY = str(answers), str(pathlib.Path(tmp) / "answered.txt")
@@ -184,7 +195,8 @@ def self_test():
             cases = [("OLDL", "不是单子格式"), ("NO-SUCH-SHEET", "找不到单子"), ("OLDBAD", "不算已答"), ("OLDARC", "找不到单子"),
                      ("NOTITLE", "缺 title"), ("archive/OLDARC", single), ("sub/OLDX", single), (str(old / "OLDA"), single),
                      (str(old / "archive" / "OLDARC"), single), ("../old/OLDA", single), ("OLDA/..", single), ("..", single),
-                     ("a\\OLDA", single), ("", single), (None, single)]
+                     ("a\\OLDA", single), ("", single), (None, single),
+                     ("LNK", "符号链接"), ("SLNK", "符号链接"), ("OUT", "符号链接"), ("NEWLNK", "符号链接")]   # 文件是符号链接：一律拒（c33b8fa2c 终审必改 1）
             for name, fragment in cases:
                 try:
                     load(name)
@@ -199,6 +211,13 @@ def self_test():
                 except SystemExit as e:
                     assert "允许目录以外" in str(e), (name, str(e))
             SHEET_NAME = saved[4]
+            real_sheets, SHEETS = SHEETS, pathlib.Path(tmp) / "sheetslink"   # sheets/ 目录本身换成链接：同一个合规单子也拒
+            try:
+                load("NEW")
+                raise AssertionError("所在目录是符号链接时应拒")
+            except SystemExit as e:
+                assert "符号链接" in str(e), str(e)
+            SHEETS = real_sheets
             try:
                 validate([load("OLDREC")])
                 raise AssertionError("已答但两个推荐的旧页应被 validate 拒绝")

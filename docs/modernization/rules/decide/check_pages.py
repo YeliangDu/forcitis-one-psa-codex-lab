@@ -335,13 +335,13 @@ def check_file(path, names, vocab, skipped=None, answers_dir=None, registry=None
 
 
 def changed_pages(base, root=ROOT):
-    """相对基线改动、新增、重命名或尚未跟踪的确认页；基线取不到即失败（不静默放过）。"""
+    """相对基线改动、新增、重命名、类型改变（如普通文件换成符号链接，git 记 T）或尚未跟踪的确认页；基线取不到即失败（不静默放过）。"""
     def git(*args):
         return subprocess.run(["git", "-c", "core.quotepath=off", *args], cwd=root, capture_output=True, text=True)
-    r = git("diff", "--name-only", "--diff-filter=AMR", f"{base}...HEAD")
+    r = git("diff", "--name-only", "--diff-filter=AMRT", f"{base}...HEAD")
     if r.returncode:
         sys.exit(f"check_pages: 取不到基线 {base}：{r.stderr.strip()[:200]}")
-    paths = set(r.stdout.split()) | set(git("diff", "--name-only", "--diff-filter=AMR", "HEAD").stdout.split()) | set(git("ls-files", "--others", "--exclude-standard").stdout.split())
+    paths = set(r.stdout.split()) | set(git("diff", "--name-only", "--diff-filter=AMRT", "HEAD").stdout.split()) | set(git("ls-files", "--others", "--exclude-standard").stdout.split())
     return sorted(os.path.join(root, p) for p in paths if any(re.fullmatch(g.replace("*", "[^/]+"), p) for g in PAGE_GLOBS))
 
 
@@ -512,16 +512,22 @@ def self_test():
         sh = lambda *a: subprocess.run(a, cwd=d, capture_output=True, text=True, env=env, check=True)
         sh("git", "init", "-q", "-b", "main"); os.makedirs(os.path.join(d, "docs/modernization/architecture/decision-page")); os.makedirs(os.path.join(d, "docs/modernization/rules/decide/sheets"))
         pages = "docs/modernization/architecture/decision-page"
-        for n in ("A.json", "B.json"):
+        for n in ("A.json", "B.json", "E.json", "F.json"):
             open(os.path.join(d, pages, n), "w").write("{}")
+        os.makedirs(os.path.join(d, pages, "archive"))
+        open(os.path.join(d, pages, "archive", "BAD.json"), "w").write('{"items": []}')
         open(os.path.join(d, "other.txt"), "w").write("x")
         sh("git", "add", "."); sh("git", "commit", "-q", "-m", "base"); sh("git", "checkout", "-q", "-b", "work")
+        # 普通文件换成指向 archive/ 的符号链接：git 记类型改变 T，已提交（E）与未提交（F）都要列出（c33b8fa2c 终审必改 1）
+        for n in ("E.json", "F.json"):
+            os.remove(os.path.join(d, pages, n)); os.symlink("archive/BAD.json", os.path.join(d, pages, n))
+        sh("git", "add", pages + "/E.json"); sh("git", "commit", "-q", "-m", "link")
         open(os.path.join(d, pages, "B.json"), "w").write('{"items": []}')          # 已跟踪、改动（工作区）
         open(os.path.join(d, pages, "C.json"), "w").write("{}")                     # 未跟踪的新页
         open(os.path.join(d, "docs/modernization/rules/decide/sheets", "S.json"), "w").write("{}")
         open(os.path.join(d, pages, "D.txt"), "w").write("x")
         found = [os.path.relpath(x, d) for x in changed_pages("main", d)]
-        assert found == [pages + "/B.json", pages + "/C.json", "docs/modernization/rules/decide/sheets/S.json"], found
+        assert found == [pages + "/B.json", pages + "/C.json", pages + "/E.json", pages + "/F.json", "docs/modernization/rules/decide/sheets/S.json"], found
         try:
             changed_pages("no-such-ref", d)
             raise AssertionError("无效基线应失败")
