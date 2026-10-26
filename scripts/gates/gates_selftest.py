@@ -125,23 +125,18 @@ def words_self_test():
     # comments and here-documents are not mimicked (intent 2026-10-26-140639): their text is read as words, so what they mention is seen; judge refuses such lines
     assert "sqlcmd" in names("echo ok # x\nsqlcmd -S p -Q x") and "sqlcmd" in names("cat <<'EOF'\n$(sqlcmd -S p -Q x)\nEOF") and "psql" in names("cat <<EOF\npsql -h x\nEOF")
     assert names('printf "%s" <(sqlcmd -S p -Q x)') == ["printf", "sqlcmd"] and names("diff <(ls a) >(cat)") == ["diff", "ls", "cat"]
-    try:
-        simple_commands("eval eval eval eval ssh h touch x")
-        raise AssertionError("nesting deeper than 3 must raise")
-    except ValueError:
-        pass
     assert simple_commands("export SQLCMDSERVER=prod; sqlcmd -Q x")[-1].env == {"SQLCMDSERVER": "prod"} and simple_commands("export A=1; unset A; ls")[-1].env == {}
     assert simple_commands("A=1; export A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; declare -x A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; ls")[-1].env == {}
     assert simple_commands("set -a; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -o allexport; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -a; set +a; A=1; ls")[-1].env == {}
     assert simple_commands("PGHOST=x; ls")[-1].env == {"PGHOST": "x"} and simple_commands("SQLCMDSERVER=x; sqlcmd")[-1].env == {"SQLCMDSERVER": "x"}, "a target variable may be exported already"
     assert simple_commands("A=1; declare -a A; ls")[-1].env == {} and simple_commands("export B; ls")[-1].env == {}, "an array declaration or an unknown name exports nothing"
     assert argvs("export H=prod; sqlcmd -S\"$H\" -Q x")[-1][:2] == ["sqlcmd", "-Sprod"]
-    # unreadable input
-    try:
-        simple_commands("echo 'unterminated")
-        raise AssertionError("must raise")
-    except ValueError:
-        pass
+    for bad in ("eval eval eval eval ssh h touch x", "echo 'unterminated"):  # nesting deeper than 3, unreadable input
+        try:
+            simple_commands(bad)
+            raise AssertionError(f"must raise: {bad!r}")
+        except ValueError:
+            pass
     print("command_words self-test: ok")
 
 def gate_self_test():
@@ -216,9 +211,8 @@ def gate_self_test():
     for command in (f"sqlcmd -S `echo {P}` -Q \"delete from t\"", "sqlcmd -S `cat h.txt` -Q \"delete from t\"", f"sqlcmd -S $'\\x70gm-prod0001' -Q 'delete from t'", f"$'\\x73qlcmd' -S {P} -Q 'delete from t'", f"sqlcmd -S $'\\160gm-prod0001' -Q 'delete from t'",
                     f"sqlc\\\nmd -S {P} -Q \"delete from t\"", f"sqlcmd -S pgm-\\\nprod0001 -Q 'delete from t'", f"bash -lc \"sqlcmd -S {P} -Q 'delete from t'\"", f"sh -ec \"psql -h {P} -c 'delete from t'\"", f"bash -xc \"psql -h {P} -c 'drop table t'\"",
                     f"eval sqlcmd -S {P} -Q \"'delete from t'\"", f"env -S 'sqlcmd -S {P} -Q \"delete from t\"'", f"env -Ssqlcmd -S {P} -Q x", f"p=pgm-prod; q=0001; psql -h $p$q -c 'delete from t'", f"HOST={P} psql -h $HOST -c 'delete from t'",
-                    f"export H={P}; psql -h \"${{H}}\" -c 'drop table t'", f"psql -h 'pgm-'prod0001 -c 'delete from t'", f"env PGHOST={P} psql -c 'delete from t'", f"nohup timeout 9 psql -h {P} -c 'delete from t'",
-                    f"echo $(psql -h {P} -c 'delete from t')", f"PSQL=psql; $PSQL -h {P} -c 'delete from t'", f"/usr/bin/PSQL -h {P} -c 'delete from t'", f"cd /tmp && true; ssh {P} 'rm x'", f"(ssh {P} 'rm x')",
-                    f"bash -c \"bash -c \\\"psql -h {P} -c 'delete from t'\\\"\""):
+                    f"export H={P}; psql -h \"${{H}}\" -c 'drop table t'", f"psql -h 'pgm-'prod0001 -c 'delete from t'", f"env PGHOST={P} psql -c 'delete from t'", f"nohup timeout 9 psql -h {P} -c 'delete from t'", f"echo $(psql -h {P} -c 'delete from t')",
+                    f"PSQL=psql; $PSQL -h {P} -c 'delete from t'", f"/usr/bin/PSQL -h {P} -c 'delete from t'", f"cd /tmp && true; ssh {P} 'rm x'", f"(ssh {P} 'rm x')", f"bash -c \"bash -c \\\"psql -h {P} -c 'delete from t'\\\"\""):
         assert refused(command), f"bypass must be refused: {command!r}"
     assert refused('psql -h "$PGHOST" -c "delete from t"'), "unresolved target + write is refused"
     assert refused("psql -h $(cat host.txt) -c 'delete from t'") and refused("aliyun rds DeleteAccount --DBInstanceId $ID") and refused('psql "$DATABASE_URL" -c "insert into t values (1)"') and refused('psql -h"$H" -c "delete from t"')
@@ -341,18 +335,21 @@ def gate_self_test():
         assert refused(command), f"must be refused: {command!r}"
     for command in (f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'"):
         assert refused(command), f"no command is excused for not connecting (intent 2026-10-26-165321 A): {command!r}"
-    # 10b. a file run by an interpreter, a shell or its path passes only when it names no production sample; unreadable, too large or a directory counts (intent 2026-10-26-165321 B)
-    Path(cwd, "git").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
-    Path(cwd, "big.sh").write_text("#" * (g.MAX_SCRIPT_FILE + 10) + f"\nsqlcmd -S {P.upper()}\n", encoding="utf-8")
-    Path(cwd, "quoted.sh").write_text("sqlcmd -S 'pgm-pr'od0001\n", encoding="utf-8")
-    Path(cwd, "locked.sh").touch(mode=0)
+    # 10b. a file an interpreter, a runner or its path may run (every file word, in each directory a `cd` may lead to) names no sample, else refused (intent 2026-10-26-165321 B; 6e50b5571 first round, final)
     os.mkdir(os.path.join(cwd, "pkg"))
-    for command in ("./git status", "bash big.sh", "sh quoted.sh", "source ./direct.sh", "python3 runner.py", "./locked.sh", "python3 pkg", "nohup ./direct.sh &"):
-        assert refused(command), f"the file it runs: {command!r}"
-    for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'"):
+    for name, text in (("git", f"sqlcmd -S {P}"), ("big.sh", "#" * (g.MAX_SCRIPT_FILE + 10) + f"\nsqlcmd -S {P.upper()}"), ("quoted.sh", "sqlcmd -S 'pgm-pr'od0001"), ("span.sh", "x" * 9 + P), ("locked.sh", "echo hi"),
+                       *((n, f"connect('{P}')") for n in ("dirty.py", "prog.awk", "exe.sh", "GNUmakefile", "pkg/run.sh"))):
+        Path(cwd, name).write_text(text + "\n", encoding="utf-8")
+    [os.chmod(os.path.join(cwd, n), m) for n, m in (("locked.sh", 0), ("exe.sh", 0o755))]
+    for command in ("./git status", "bash big.sh", "sh quoted.sh", "source ./direct.sh", "python3 runner.py", "./locked.sh", "python3 pkg", "nohup ./direct.sh &", "bash -e direct.sh", "bash -o errexit direct.sh", "sh -p direct.sh",
+                    "node -r ./dirty.py clean.py", "node --require=dirty.py clean.py", "python3 -m dirty", "python3 -Wignore dirty.py", "awk -f prog.awk x", "xargs bash direct.sh", "find . -exec bash direct.sh ;", "caffeinate -i ./exe.sh",
+                    "arch -arm64 exe.sh", "cd pkg && ./run.sh", "cd pkg; bash run.sh", "(cd pkg) && sh run.sh", "cd $D && bash gone.sh", "make -C pkg", "make all", "H=pgm-pr; X=${H}od0001; ./tame.sh"):
+        assert refused(command), f"the file it may run: {command!r}"
+    for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "python3 -m json.tool"):
         assert allowed(command), f"no sample in the file, or no file (a pipe, inline code: known gap): {command!r}"
-    for command in (f"ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no -i key -p 22 ops@{H} uptime", f"ssh ops@{H} 'sort -r x'", f"for f in a b; do sqlcmd -S {P} -Q 'select 1'; done"):
-        assert refused(command), f"read-only remote commands are no longer told apart: refused (intent 2026-10-26-160810): {command!r}"
+    with __import__("unittest.mock").mock.patch.multiple(g, MAX_SCRIPT_FILE=8, CHUNK=8): assert refused("bash span.sh") and allowed("bash tame.sh"), "a sample across a chunk boundary"
+    with __import__("unittest.mock").mock.patch.object(g, "MAX_RUN_FILE", 4): assert refused("bash tame.sh"), "a file larger than MAX_RUN_FILE counts"
+    assert refused("echo 'unterminated", environ={"PGHOST": P}), "unreadable, with a target variable pointing at production"
     # brace expansion
     assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("192.0.{2..4}.15") == [TEST_IP, "192.0.3.15", "192.0.4.15"] and brace_variants("plain") == ["plain"]
     with tempfile.TemporaryDirectory() as tmp:
@@ -377,6 +374,7 @@ def gate_self_test():
         assert could_concern(plain("cat sshd_conf 'oops")) and not could_concern(plain("ls ./x")) and not could_concern(plain("echo a. b")), "a substring of a remote tool counts; a dot elsewhere does not"
         assert could_concern(plain("xh POST x")) and could_concern(plain("a&&xh x")) and not could_concern(plain("cat exhibit xhr")), "xh only as a word (O2 round 1, suggestion)"
         with __import__("unittest.mock").mock.patch.dict(os.environ, PGHOST="x"): assert could_concern("echo hello"), "a target variable in the session: judge decides (intent 2026-10-26-165321)"
+        assert could_concern(plain("echo x >/dev/tcp/192.0.2.15/80")) and could_concern(plain("cat </dev/udp/h/53")), "a bash network redirection goes to judge (a14c80797 first round M1)"
         # hook process end to end, with the shipped and a missing table
         script = os.path.join(HERE, "prod_write_gate.py")
         def hook(command, table_path=None, tool="Bash"):

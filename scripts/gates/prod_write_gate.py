@@ -196,14 +196,15 @@ def strip_prefix(seg, variables):  # (env of leading `NAME=value` words and wrap
     return env, seg[i:], moved
 
 
-def simple_commands(command, depth=0, variables=None, exported=None):
+def simple_commands(command, depth=0, variables=None, exported=None, assigned=None):
     """Simple commands of a command line as Command(argv, env, unresolved, redirected, piped), in order. `NAME=value` earlier in the line (and `export`) is substituted into later
     words; `$(...)`, backticks, `<(...)`, `bash -c`/`-lc`/`eval` bodies, here-strings and `echo … | bash` fed to a shell are commands of their own
-    (here-documents are not read: judge refuses such a line that may concern production). `unresolved`: a word keeps a `$` expansion or substitution. Untokenisable input, or nesting deeper than 3, raises ValueError."""
+    (here-documents are not read: judge refuses such a line that may concern production). `unresolved`: a word keeps a `$` expansion or substitution. `assigned` collects the expanded values of bare assignments. Untokenisable input, or nesting deeper than 3, raises ValueError."""
     if depth > 3:
         raise ValueError("nested too deeply")
     variables = {} if variables is None else variables
     exported = {} if exported is None else exported
+    assigned = [] if assigned is None else assigned
     out, segments, cur, piped_next = [], [], [], False
     for token in tokens_of(command, structured=True):
         if token in SEPARATORS or token in ("<(", ">(") or set(token) <= set(";&|()"):
@@ -218,16 +219,17 @@ def simple_commands(command, depth=0, variables=None, exported=None):
     for seg, piped in segments:
         env, rest, moved = strip_prefix(seg, variables)
         if not rest:
-            variables.update(env)  # a bare `NAME=value` stays in effect for the following commands, a redirection beside it too (58d4d5d4d final M2)
+            variables.update(env)
+            assigned += env.values()  # a bare `NAME=value` stays in effect for the following commands, a redirection beside it too (58d4d5d4d final M2)
             exported.update({k: v for k, v in env.items() if allexport or k in ENV_TARGET_VARS})  # exported under `set -a`; a target variable may already be exported by the environment or an rc file (O2 round 1 M1)
             for inner in (i for t in moved for i in SUBSTITUTION.findall(t)):
-                out += simple_commands(restore(inner), depth + 1, dict(variables), dict(exported))
+                out += simple_commands(restore(inner), depth + 1, dict(variables), dict(exported), assigned)
             continue
         rest = rest + moved
         unresolved, argv = False, []
         for token in rest:
             for inner in SUBSTITUTION.findall(token):
-                out += simple_commands(restore(inner), depth + 1, dict(variables), dict(exported))
+                out += simple_commands(restore(inner), depth + 1, dict(variables), dict(exported), assigned)
             expanded, left = expand(token, {**variables, **env})
             unresolved |= left or "$(" in token
             argv.append(restore(expanded))
@@ -263,7 +265,7 @@ def simple_commands(command, depth=0, variables=None, exported=None):
                     bodies.append(" ".join(previous[1:]))
             for body in bodies:
                 if body.strip():
-                    out += simple_commands(body, depth + 1, dict(variables), dict(exported))
+                    out += simple_commands(body, depth + 1, dict(variables), dict(exported), assigned)
         previous = argv
     return out
 
@@ -282,8 +284,8 @@ HTTP_TOOLS = {"curl", "wget", "http", "https", "xh", "xhs"}
 REMOTE_TOOLS = SQL_TOOLS | WRITE_ONLY_TOOLS | HTTP_TOOLS | {"bcp", "aliyun", "ssh", "scp", "rsync", "pg_dump", "pg_dumpall", "pg_restore", "mysqldump"}  # built in; remote_entries.tools on origin/main adds to it
 LONG_REMOTE = {t for t in REMOTE_TOOLS if len(t) > 2}  # matched as substrings of an unreadable line; two-letter names (xh) only as whole words (SHORT_REMOTE, REMOTE_WORD): `xh` is inside exhibit, xhr…
 SHORT_REMOTE = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(sorted(re.escape(t) for t in REMOTE_TOOLS - LONG_REMOTE)) + r")(?![a-z0-9_-])")
-INTERPRETERS = {"python", "node", "perl", "ruby", "php", "lua", "bash", "sh", "zsh", "dash", "ksh", "source", "."}  # "python" stands for python3, python3.12 …
-RUNS_OTHERS = {"xargs", "find", "script", "parallel", "export", "source"}  # commands that run another command or carry its environment
+INTERPRETERS = {"python", "node", "perl", "ruby", "php", "lua", "bash", "sh", "zsh", "dash", "ksh", "source", ".", "awk", "gawk", "nawk", "make", "gmake", "deno", "bun", "tclsh", "osascript"}  # "python" stands for python3, python3.12 …
+RUNS_OTHERS = {"xargs", "find", "script", "parallel", "export", "source", "watch"}  # commands that run another command or carry its environment
 INTERPRETER = re.compile(r"^(?:python[0-9.]*|" + "|".join(re.escape(n) for n in sorted(INTERPRETERS - {"python"})) + r")$")
 REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:python[0-9.]*|" + "|".join(re.escape(n) for n in sorted((REMOTE_TOOLS | SHELLS | INTERPRETERS | RUNS_OTHERS) - {"python", "."}))
                          + r")(?![A-Za-z0-9_-])|(?:^|[\s;&|(])\.\s")  # the pre-filter's names come from these sets only, plus `. file`
@@ -291,6 +293,9 @@ SHELL_HEADS = {"for", "case", "select", "function", "in"}  # `for f in a b` is a
 
 ENV_TARGET_VARS = ("PGHOST", "PGSERVICE", "PGDATABASE", "PGUSER", "PGHOSTADDR", "SQLCMDSERVER", "SQLCMDDBNAME", "SQLCMDUSER", "MYSQL_HOST", "DATABASE_URL", "MONGODB_URI", "REDIS_URL", "ALIBABA_CLOUD_PROFILE")
 MAX_SCRIPT_FILE, MAX_RUN_FILE, CHUNK = 262144, 1 << 29, 1 << 23  # a file run is read quote-free up to the first, by bytes (in chunks) up to the second
+SCRIPT_NAME = re.compile(r"/|\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|lua|awk|mk|tcl|scpt)$|^(?:GNUmakefile|[Mm]akefile)$")  # a word that names a file to run, when where it lies cannot be known
+MAKEFILES = ("GNUmakefile", "makefile", "Makefile")
+CHDIR = {"cd", "pushd", "popd"}
 COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name these and LAUNCH_TOOL
 LAUNCH_TOOL = "mcp__Claude_Browser__preview_start"  # starts runtimeExecutable + runtimeArgs of the named .claude/launch.json configuration (cfcbcf473 final M4)
 LOADABLE, MAX_CLOSURE = (".py", ".pyc", ".so", ".pyd"), 400  # what Python imports from a directory (any interpreter: mod.cpython-312-darwin.so); files a trusted script may load before it counts as unreadable
@@ -411,7 +416,7 @@ def remote_entry(text, entries, slots):  # True when the whole line is exactly o
 
 
 def may_run_or_expand(text):  # (text already `plain`) a program that runs others, a remote tool's name as a substring, an expansion or a path command: the line may reach production unseen
-    return bool(REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text))
+    return bool(REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text) or re.search(r"/dev/(?:tcp|udp)/", text))
 
 
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow; a remote tool's name as a substring, as judge reads an unreadable line.
@@ -457,13 +462,10 @@ def touches(command, patterns):  # A pattern in the words or environment of one 
     return text_hits(command.argv + list(command.env.values()), patterns)
 
 
-def file_hits(path, cwd, patterns):  # True when a file a command runs mentions production: quote-free text up to MAX_SCRIPT_FILE, bytes up to MAX_RUN_FILE; unreadable, larger or a directory counts, a missing one runs nothing.
-    full = path if os.path.isabs(path) else os.path.join(cwd or os.getcwd(), path)
-    if not os.path.lexists(full):
-        return False
+def file_hits(full, patterns):  # True when a file mentions production: quote-free text up to MAX_SCRIPT_FILE, bytes (in chunks) up to MAX_RUN_FILE; unreadable or larger counts.
     wanted, keep = [p.encode() for p in patterns], max(map(len, patterns), default=1)
     try:
-        if not os.path.isfile(full) or os.path.getsize(full) > MAX_RUN_FILE:
+        if os.path.getsize(full) > MAX_RUN_FILE:
             return True
         with open(full, "rb") as f:
             head, tail = f.read(MAX_SCRIPT_FILE + 1), b""
@@ -592,19 +594,6 @@ def tree_files(rel_dir):  # Every file under a directory of the anchor (__pycach
     return files
 
 
-def script_operand(argv):  # The script an interpreter runs (first non-option word), or None for inline code (-c, -m, -e, -p) or none.
-    inline, i = name_of(argv[0]).startswith(("python", "node", "perl", "ruby", "php")), 1
-    while i < len(argv):
-        token = argv[i]
-        if token in ("-c", "-m", "-e", "-p", "-E", "--eval", "--print") or (inline and token.startswith("-") and not token.startswith("--") and any(c in token[1:] for c in "cmep")):
-            return None
-        if token.startswith("-") and token != "-":
-            i += 2 if token in ("-X", "-W", "-Q", "-r", "--require") else 1
-            continue
-        return token
-    return None
-
-
 def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered entry (interpreter, script, one of its forms) whose script, closure and read directories are origin/main's, else None.
     try:
         argv = None if SHELL_META.search(text) or re.search(r"[#\r\\]", text) else shlex.split(text)
@@ -633,12 +622,29 @@ def body_is_judged_separately(command):  # A shell whose program is a `-c` strin
     return tool in SHELLS and (tool == "eval" or any(SHORT_C.fullmatch(t) for t in argv[1:]) or "<<<" in argv)
 
 
-def runs_file(command, patterns, cwd):  # An interpreter or shell running a file, or a file run by its path, whose content mentions production (file_hits); a trusted entry excepted.
-    tool = name_of(command.argv[0])
-    if not (INTERPRETER.match(tool) or "/" in command.argv[0]) or trusted_script(command.argv, cwd):
-        return False
-    script = script_operand(command.argv) if INTERPRETER.match(tool) else command.argv[0]
-    return script is not None and file_hits(script, cwd, patterns)
+def candidates(argv):  # Words of a command that may name a file it runs: each word, an option's attached value (`--require=x`, `-rx`), a Python module as a path, make's default makefiles.
+    tool, out = name_of(argv[0]), [argv[0]] if "/" in argv[0] else []
+    for word in argv[1:]:
+        out += [word] + ([word.split("=", 1)[1]] if word.startswith("-") and "=" in word else [word[2:]] if re.match(r"-[A-Za-z]", word) and len(word) > 2 else [])
+    if tool.startswith("python"):
+        out += [w.replace(".", "/") + ".py" for w in list(out) if re.fullmatch(r"[A-Za-z_][\w.]*", w)] + [w.replace(".", "/") for w in list(out) if re.fullmatch(r"[A-Za-z_][\w.]*", w)]
+    return out + list(MAKEFILES) * tool.endswith("make")
+
+
+def runs_file(command, patterns, dirs, known):  # The command runs a file (or package) that mentions production: an interpreter's or a runner's every file word, any command's executable file words; each looked up in every directory the line may be in (`dirs`), unreadable counting; with `known` false a script-like word found nowhere counts too.
+    argv, tool = command.argv, name_of(command.argv[0])
+    runner = bool(INTERPRETER.match(tool)) or any(INTERPRETER.match(name_of(w)) or name_of(w) in RUNS_OTHERS for w in argv)
+    for word in candidates(argv):
+        found = [f for f in ([word] if os.path.isabs(word) else [os.path.join(d, word) for d in dirs]) if os.path.lexists(f)]
+        if not found and not known and not os.path.isabs(word) and SCRIPT_NAME.search(word) and (runner or word == argv[0]):
+            return True
+        for full in found:
+            if os.path.isdir(full):
+                if INTERPRETER.match(tool):  # python runs a package's __main__, make -C a directory's makefile
+                    return True
+            elif (runner or word == argv[0] or os.access(full, os.X_OK)) and file_hits(full, patterns):
+                return True
+    return False
 
 
 def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refusal text or None.
@@ -656,18 +662,26 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     if remote_named(command_text, tools) and not remote_ok:
         return ("拒绝：命令里出现远程工具名（ssh、scp、rsync、psql、mysql、curl、aliyun 等），只认 origin/main 特征表 remote_entries 里登记的写法、整行逐字匹配；"
                 "门不再解析远程工具的参数判断目标（intent 2026-10-26-160810）。连 dev 或测试机的写法请发卡登记；生产只读取证走已登记的取证入口（ADR-0037）。")
+    assigned = []
     try:
-        commands = simple_commands(command_text)
+        commands = simple_commands(command_text, assigned=assigned)
         TRUSTED_LINE = trusted_entry(command_text, cwd) if len(commands) == 1 and INTERPRETER.match(name_of(commands[0].argv[0])) and could_concern(plain(command_text)) else None
     except ValueError:
         if odd or raw_hit or env_hit or remote_named(command_text, tools) or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in tools if len(t) > 2):  # unreadable: a name as a substring too (sshd_conf)
             return "命令读不懂（引号未闭合、嵌套过深等），且含生产特征、远程工具或注释／here-document，无法确认不是连生产的写操作，拒绝。"
         return None
-    if (raw_hit or env_hit) and TRUSTED_LINE is None:
+    if (raw_hit or env_hit or (patterns and text_hits(assigned, patterns))) and TRUSTED_LINE is None:
         return ("拒绝：命令里有生产特征，或指向生产的目标环境变量（命令里设的或会话环境里的），整行拒绝，不论哪个命令（intent 2026-10-26-165321）。CLAUDE.md 底线 4：不做生产写操作；"
                 "生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口（单独一条命令、按登记的写法运行）。会话环境里的目标变量请清掉后重开会话。")
+    dirs, known = [cwd or os.getcwd()], True  # every directory the line may be in: the hook's, then each `cd` target (a subshell's may end); one that cannot be read makes `known` false
     for command in commands:
         tool = name_of(command.argv[0])
+        if tool in CHDIR:
+            target = next((w for w in command.argv[1:] if not w.startswith("-")), "~" if tool == "cd" else None)
+            if target is None or command.unresolved or target == "-":
+                known = False
+            else:
+                dirs += [os.path.join(d, os.path.expanduser(target)) for d in dirs]
         if tool in tools:  # spelled by variables or substitutions, or nested in a shell body: not the registered line
             if not remote_ok or patterns is None:
                 return f"拒绝：{tool} 由变量、命令替换或嵌套拼出，或特征表读不了（{problem or '—'}），不是整行登记写法，一律拒（intent 2026-10-26-160810）。"
@@ -682,7 +696,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
             continue
         if trusted_script(command.argv, cwd):
             continue
-        if touches(command, patterns) or runs_file(command, patterns, cwd):  # spelled by variables or braces, or the file it runs names production
+        if touches(command, patterns) or runs_file(command, patterns, dirs, known):  # spelled by variables or braces, or the file it runs names production
             return (f"拒绝：{tool} 命令拼接后碰到生产特征，或它运行的文件含生产特征（intent 2026-10-26-165321）。CLAUDE.md 底线 4：不做生产写操作；生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口。"
                     "可信脚本须单独一条命令、按登记的解释器运行。")
     return None
