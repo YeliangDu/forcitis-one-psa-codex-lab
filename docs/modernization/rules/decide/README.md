@@ -75,7 +75,7 @@
 - **整页「检查答案」后一次提交**：分组标签带各组状态，最后一个标签「检查答案」列出全部题的选择（可逐题「改这题」），确认后写一份提交记录，文档 id 即**提交编号**（形如 `FD2-20261016-135758-38z`），页面显示编号。提交后又改任何一题，该题与「检查答案」标签变为待重新提交，再提交得新编号；同一题以最晚一次提交为准。
 - 旧版页面（按组提交，提交记录文档 id 为组 id）已发布的不迁移，导出脚本两种格式都认。
 - 新单子一律用 `sheets/<单子>.json` 与本生成器；`glossary/gate/` 与 `architecture/decision-page/` 的旧页冻结不迁（工件治理研究第 3 章）。
-- 决定页生成器只此一套（G2，2026-10-26）：`architecture/decision-page/` 的四个页面生成器与 `glossary/gate/` 的页面生成器已删；出题检查 `check_pages.py` 与已答登记 `answered_pages.txt` 在本目录。旧页题源留原处只读，`build_decision_page.py <旧页名> <输出>` 按单子名也找得到（先找 `sheets/`，再找 `architecture/decision-page/` 与其 `archive/`），不合现行校验的旧页照样拒绝出页。出页前跑 `python3 docs/modernization/rules/decide/check_pages.py <单子 json>`。
+- 决定页生成器只此一套（G2，2026-10-26）：`architecture/decision-page/` 的四个页面生成器与 `glossary/gate/` 的页面生成器已删；出题检查 `check_pages.py` 与已答登记 `answered_pages.txt` 在本目录。旧页题源留原处只读，`build_decision_page.py <旧页名> <输出>` 按单子名也找得到（先找 `sheets/`，再找 `architecture/decision-page/` 与其 `archive/`），但只重出已答旧页（本目录 `answers/<页>.json` 有导出或 `answered_pages.txt` 已登记），未答的拒绝；不合现行校验的旧页照样拒绝出页。新页不得放进旧题源目录绕检查（one-coordinator 2026-10-16，见 `architecture/decision-page/README.md`）。出页前跑 `python3 docs/modernization/rules/decide/check_pages.py <单子 json>`。
 - 发布固定 `contract: "0.2.80"`；发布后核对真实渲染（见画像工作守则）。
 
 ## 预选与「未作答」
