@@ -32,7 +32,7 @@
     "资料类别三：SPI 2026专业服务基准调查，及Silverston、Maister、Barr、Kaplan/Norton、Corr、Adamson和APQC等资料。调查平均值、管理自评、概念解释与本地计算公式分开；SPI基准值不能当目标，源内口径不一致处不强行合并。",
     "资料类别四：本系统的对象、流程、阶段、词表及BI范围稿件，用于说明当前设计写了什么。now均指本次可读的设计资料或词表，不代表已查到生产、实际执行或验收结果；反方主要是关键词复核，未逐条回原文。",
     "依据中的缩写与锚点：外部笔记位于docs/modernization/architecture/frameworks/notes/；SPI26=spi-psmb-2026.md，SIL2=silverston-dmrb2.md，UAE=unanet-ae.md，VP26=vantagepoint-2026.md，GFD=gf-design-contracts.md，GFQ=gf-consulting-contracts.md，FIDW=fidic-white-book-2017.md，LAB=labor-contract.md，LEAV=leave-wage.md，BARR=barr-prove-it.md，BSC=kaplan-norton-bsc.md，MAI=maister-mpsf.md，CORR=corr-adwd.md，ADAM=adamson-star-schema.md，PCF8=apqc-pcf-80.md。#后文字是笔记表格中的概念锚点，页码及条款随题列出。",
-    "〔词〕为docs/modernization/glossary/terms.yaml的词条；〔BI〕为docs/modernization/BI_SCOPE.md §3；〔对象〕、〔流程〕及〔VS〕分别见architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md、closeout/process-catalog.yaml及value-streams.v2.yaml。新增度量叫法及公式均为本页提议，不在本卡登记正式术语或改写已定口径；落定后由负责会话交one-glossary处理。",
+    "〔词〕为docs/modernization/glossary/terms.yaml的词条；〔BI〕为docs/modernization/BI_SCOPE.md §3；〔对象〕、〔流程〕及〔VS〕分别见architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md、architecture/ssot/09-processes/catalog.yaml及value-streams.v2.yaml。新增度量叫法及公式均为本页提议，不在本卡登记正式术语或改写已定口径；落定后由负责会话交one-glossary处理。",
     "度量共同约定提议：同一比较须同主体、范围、币种及期间，金额说明含税与否、总额或净额及分摊范围；比率展示原分子分母，总计先加组成量再重算，分母为零报不适用。示例数字只解释算法，不是经营目标。缺资料列未知或待核，不默认为零。"
    ]
   }
@@ -47,7 +47,7 @@
    "now": "现有稿件有线索、商机和报价，但未明确保留客户需求版本及客户待批、取消、由他方满足等变化；尚未核实运行中的记录情况。",
    "basis": [
     "R1-A-01 资料证据：SIL2#需求、SIL2#所需交付物（architecture/frameworks/notes/silverston-dmrb2.md）：第7章 §Professional Services Requirements，图7.4；EPUB 14_chapter_7.html，含 REQUIREMENT STATUS、required by date、estimated budget 的正文。",
-    "本系统稿件锚点：R1-A-01：OBJ-17、OBJ-18、OBJ-22；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-A-01：OBJ-17、OBJ-18、OBJ-22；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Silverston《The Data Model Resource Book》卷2，第7章图7.4（SIL2#需求、SIL2#所需交付物）将客户需要、期望成果、日期、预算与需求状态分开表达；这是一份设计参考，不能据此要求公司另设一套独立办理。"
@@ -79,7 +79,7 @@
    "now": "稿件已有协议、合同范围、付款条件和售前成本换算，执行期间按范围约定的计价方式、有效费率及上限尚未明确；售前报价换算不等于执行费率。",
    "basis": [
     "R1-B-02 资料证据：UAE#计费金额与上限、UAE#费率版本及覆盖（architecture/frameworks/notes/unanet-ae.md）：BI pp11、14–17；VP26#对客结算计价约定（architecture/frameworks/notes/vantagepoint-2026.md）：M02、E23，billing_terms_application.js L1538–1542（人工、费用、顾问、计量及固定费用方法并列）。",
-    "本系统稿件锚点：R1-B-02：OBJ-05、OBJ-06、OBJ-07、OBJ-26、OBJ-27；PRC-47、PRC-57；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-B-02：OBJ-05、OBJ-06、OBJ-07、OBJ-26、OBJ-27；PRC-47、PRC-57；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Unanet AE 的计费手册区分固定金额、计时计料及上限，并保留费率适用期（UAE#计费金额与上限、UAE#费率版本及覆盖）；Vantagepoint 客户端分别列人工、费用、顾问、按量和固定费用方法（VP26#对客结算计价约定，M02/E23），后者仅为静态产品证据。"
@@ -111,7 +111,7 @@
    "now": "协议变更稿件只列提出、影响评估、审批、生效或驳回；执行授权与价格确认尚未分别呈现。本题定记录方式，是否先行执行由 ADV1-09 另定。",
    "basis": [
     "R1-B-05 资料证据：GFQ#全咨变更影响（architecture/frameworks/notes/gf-consulting-contracts.md）：GF-2024-2612 通用 7.2.1–7.2.3、7.3.3–7.3.4，印刷 pp23–24 / PDF pp31–32。",
-    "本系统稿件锚点：R1-B-05：OBJ-09；PRC-48；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-B-05：OBJ-09；PRC-48；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "《建设项目全过程工程咨询合同》示范文本通用7.2、7.3允许特定条件下先发执行指令，再确认价格和影响（GFQ#全咨变更影响）；范本条款须核本项目实际合同后适用。"
@@ -143,7 +143,7 @@
    "now": "费用报销稿件将可计费和公司直付并排作为类型，同时仍按员工垫付、应付员工描述，两个判断尚未分开；已有直付差旅安排仍保留。",
    "basis": [
     "R1-B-20 资料证据：SIL2#费用记录、SIL2#服务记录（architecture/frameworks/notes/silverston-dmrb2.md）：第 7 章 Professional Services Entries，图 7.9，段落“All of these types…” 的计费标记；UAE#计费状态与明细关联、UAE#供方账单及采购分录（architecture/frameworks/notes/unanet-ae.md）：BI p30，AP p12。",
-    "本系统稿件锚点：R1-B-20：OBJ-88、OBJ-118、OBJ-121；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-B-20：OBJ-88、OBJ-118、OBJ-121；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Silverston 第7章图7.9把费用能否计费单独标记（SIL2#费用记录）；Unanet AE 将员工费用和供方费用分别处理后再选入客户计费（UAE#计费状态与明细关联，BI p30；UAE#供方账单及采购分录，AP p12）。"
@@ -175,7 +175,7 @@
    "now": "稿件已有离职办理和待计发调整，但尚未明确离职事由、给付类别、工资历史、计算年限与支付条件的对应；不能据此认定所有离职都有补偿。",
    "basis": [
     "R1-B-29 资料证据：LAB#经济补偿、LAB#代通知金基数、LAB#补偿月工资口径、LAB#离职证明与保管（architecture/frameworks/notes/labor-contract.md）：劳动合同法第四十六、四十七、五十条，PDF pp11–12；实施条例第二十、二十七条，PDF/印刷 pp7、9。",
-    "本系统稿件锚点：R1-B-29：OBJ-56、OBJ-73、OBJ-123；PRC-128、PRC-124；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-B-29：OBJ-56、OBJ-73、OBJ-123；PRC-128、PRC-124；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "本机《劳动合同法》第46、47、50条及实施条例第20、27条将适用事由、补偿计量和相关支付条件分别规定（LAB#经济补偿、LAB#代通知金基数、LAB#补偿月工资口径）。适用性与金额仍须由人事、财务按个案核定；本页不新增可少付或免付的选项。"
@@ -207,7 +207,7 @@
    "now": "稿件已登记资源需求的岗位、技能与期间，也有具名人员计划工时，但未定义按同一观察日核对未来期间和技能等级的缺口。",
    "basis": [
     "R1-E-08 资料证据：〔对象〕§1 OBJ-44、OBJ-45；〔BI〕§3.2 无技能供需事实行；SPI26#技能产能与管道匹配有效性：附录E题98，印刷244 / PDF251；MAI#资源分配输入：第16章 ops/xhtml/ch16.html，Who Should Handle Assignments?。",
-    "本系统稿件锚点：R1-E-08：OBJ-44、OBJ-45、OBJ-56、OBJ-60；PRC-20、PRC-81、PRC-89；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-08：OBJ-44、OBJ-45、OBJ-56、OBJ-60；PRC-20、PRC-81、PRC-89；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Maister 第16章要求人员安排同时考虑工作和人员条件（MAI#资源分配输入）；SPI 2026 题98询问技能产能与商机匹配的有效性，是管理自评（SPI26#技能产能与管道匹配有效性），并未规定缺口小时公式。以下计算方法为本地提议。"
@@ -239,7 +239,7 @@
    "now": "设计变更稿件已有归因、影响、内部审批及发出，但尚未明示客户书面要求、授权代表及送达情况的引用。",
    "basis": [
     "R1-A-15 资料证据：GFD#设计变更及索赔（architecture/frameworks/notes/gf-design-contracts.md）：房建本通用11.1，印刷／PDF23；GFQ#全咨变更程序（architecture/frameworks/notes/gf-consulting-contracts.md）：全咨本7.2.1–7.2.3，印刷p23–24／PDF31–32。",
-    "本系统稿件锚点：R1-A-15：OBJ-40；PRC-31；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-A-15：OBJ-40；PRC-31；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "设计合同房建本通用11.1（GFD#设计变更及索赔）及全过程工程咨询合同7.2.1–7.2.3（GFQ#全咨变更程序）要求按约定的要求或指示办理变更；应逐合同核对形式及授权，不能把内部批准代替客户指令。"
@@ -272,7 +272,7 @@
    "basis": [
     "R1-C-08 资料证据：barr-prove-it.md（architecture/frameworks/notes/barr-prove-it.md） BARR#结果与项目（OPS/c05.xhtml#Page_38）、BARR#业务实验（OPS/c10.xhtml，印刷158–160，本次补核160）；kaplan-norton-bsc.md（architecture/frameworks/notes/kaplan-norton-bsc.md） BSC#双循环学习、BSC#战略学习机制，第11章印刷204／PDF226，已目读。",
     "R1-D-21 资料证据：BARR#结果先于行动、BARR#结果与项目、BARR#业务实验（architecture/frameworks/notes/barr-prove-it.md）：第 5 章印刷 37–38、第 10 章 Experiments, not assumptions，印刷 158–159，EPUB OPS/c10.xhtml（本轮回读）；并见当前 PRC-181 的已定结局。",
-    "本系统稿件锚点：R1-C-08：OBJ-100；PRC-88、PRC-181；R1-D-21：OBJ-100；PRC-181、PRC-88；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-C-08：OBJ-100；PRC-88、PRC-181；R1-D-21：OBJ-100；PRC-181、PRC-88；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Barr《Prove It!》第5章区分动作进度与结果改善，第10章要求通过实验检验假设（BARR#结果与项目、BARR#业务实验）；《平衡计分卡》第11章要求检验战略假设（BSC#双循环学习、BSC#战略学习机制）。这不要求改变已定的复盘退出条件。"
@@ -304,7 +304,7 @@
    "now": "合同履行阶段稿件只列新约定生效或驳回；未明确有执行指令但仍待定价时的办理结果和后续定价处理。",
    "basis": [
     "R1-D-09 资料证据：FIDW#变更价款与先行指令（architecture/frameworks/notes/fidic-white-book-2017.md）：5.2.3–5.2.4，印刷 15／PDF 38；GFQ#全咨变更影响（architecture/frameworks/notes/gf-consulting-contracts.md）：7.3.3–7.3.4，印刷 24／PDF 32；本轮回读两处。",
-    "本系统稿件锚点：R1-D-09：OBJ-09、OBJ-12、OBJ-66、OBJ-53；PRC-16、PRC-48、PRC-49；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-D-09：OBJ-09、OBJ-12、OBJ-66、OBJ-53；PRC-16、PRC-48、PRC-49；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "FIDIC White Book 2017第5.2.3–5.2.4及全过程工程咨询合同7.3.3–7.3.4存在先行指令、后定补偿的路径（FIDW#变更价款与先行指令、GFQ#全咨变更影响）；是否适用以实际合同及授权为准。"
@@ -336,7 +336,7 @@
    "now": "最终价款确认阶段的进入条件只接受协议已完成，但终止协议（名称待 NM8 认可）的办理也挂在该阶段，提前终止后的结算路径尚未一致。",
    "basis": [
     "R1-D-10 资料证据：GFQ#造价终止结清（architecture/frameworks/notes/gf-consulting-contracts.md）：GF-2015-0212 6.2.4–6.2.5、6.3，PDF 13；FIDW#终止结算（architecture/frameworks/notes/fidic-white-book-2017.md）：6.5.1–6.5.4，印刷 17–18／PDF 40–41。",
-    "本系统稿件锚点：R1-D-10：OBJ-05、OBJ-07、OBJ-10；PRC-66、PRC-68；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-D-10：OBJ-05、OBJ-07、OBJ-10；PRC-66、PRC-68；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "造价咨询合同6.2.4–6.2.5、6.3规定解除后的已完服务支付及结算、争议条款继续有效（GFQ#造价终止结清）；FIDIC 第6.5条另列终止结算（FIDW#终止结算）。"
@@ -368,7 +368,7 @@
    "now": "稿件已有款项争议和后续办理，但没有明确部分争议金额、无争议余款到期及回收如何并行。",
    "basis": [
     "R1-D-11 资料证据：GFQ#全咨争议款项（architecture/frameworks/notes/gf-consulting-contracts.md）：通用 6.3，印刷 22／PDF 30；FIDW#争议账单（architecture/frameworks/notes/fidic-white-book-2017.md）：7.5.1，印刷 19／PDF 42。",
-    "本系统稿件锚点：R1-D-11：OBJ-07、OBJ-82、OBJ-85；PRC-57、PRC-60、PRC-61；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-D-11：OBJ-07、OBJ-82、OBJ-85；PRC-57、PRC-60、PRC-61；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "全过程工程咨询合同通用6.3与FIDIC 第7.5.1要求无争议余款按期支付（GFQ#全咨争议款项、FIDW#争议账单）；实际到期日应按本合同，不统一套用范本天数。"
@@ -400,7 +400,7 @@
    "now": "稿件已将采购增减量、部分取消补入原供方变更办理；部分交付怎样与剩余承诺、预算释放及最终结算在阶段中衔接，仍待本题确认。",
    "basis": [
     "R1-D-14 资料证据：VP26 M07／E28（architecture/frameworks/notes/vantagepoint-2026.md）：purchase_order_application.js 50–65、1144–1153、1370–1395：取消变更及已收数量金额（静态）；PCF8（architecture/frameworks/notes/apqc-pcf-80.md）：4.2.3、4.2.4，PDF 12–13（选择供方／管理合同、采购订购；不据其扩展物流业务）；VP 静态结构不证明本系统存在这种采购量。",
-    "本系统稿件锚点：R1-D-14：OBJ-05、OBJ-09、OBJ-87、OBJ-85、OBJ-100；PRC-70、PRC-71、PRC-72、PRC-74、PRC-76；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-D-14：OBJ-05、OBJ-09、OBJ-87、OBJ-85、OBJ-100；PRC-70、PRC-71、PRC-72、PRC-74、PRC-76；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Vantagepoint 客户端区分已收数量金额、采购取消及变更（VP26 M07/E28，purchase_order_application.js 50–65、1144–1153、1370–1395）；APQC 8.0区分采购合同管理和订购（PCF8 4.2.3、4.2.4）。静态产品证据不证明公司已有这种采购规模。"
@@ -432,7 +432,7 @@
    "now": "离职阶段出口列已离职、参保减员和劳动合同终止；待计发调整不能证明实际支付已完成，离职结算与支付结清尚未分别呈现。",
    "basis": [
     "R1-D-27 资料证据：LEAV#离职工资结清（architecture/frameworks/notes/leave-wage.md）：工资支付暂行规定第九条；LEAV#离职年假折算（architecture/frameworks/notes/leave-wage.md）：实施办法第十二条，汇编 PDF 198；LAB#经济补偿、LAB#离职证明与保管（architecture/frameworks/notes/labor-contract.md）：第四十六、四十七、五十条，PDF 11–12。",
-    "本系统稿件锚点：R1-D-27：OBJ-56、OBJ-05、OBJ-62、OBJ-73、OBJ-122、OBJ-123；PRC-128、PRC-178、PRC-124、PRC-127；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-D-27：OBJ-56、OBJ-05、OBJ-62、OBJ-73、OBJ-122、OBJ-123；PRC-128、PRC-178、PRC-124、PRC-127；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "本机《工资支付暂行规定》第9条、年休假实施办法第12条及《劳动合同法》第46、47、50条分别要求处理离职工资、年假和适用补偿（LEAV#离职工资结清、LEAV#离职年假折算、LAB#经济补偿、LAB#离职证明与保管）；时点与条件须按适用规定及个案核定。"
@@ -464,7 +464,7 @@
    "now": "已有查看知识使用情况的流程，可读取发布版本及引用；缺的是适用项目范围、有效复用的判据和效果证据，不需要另建相同查看流程。",
    "basis": [
     "R1-E-26 资料证据：〔流程〕PRC-182 stages_note；SPI26#知识管理有效性：附录E题130，印刷244 / PDF251（自评）；MAI#经验复用与成长：第1章 ops/xhtml/ch01.html，Summary: The Key Role of Leverage；BARR#业务实验：第10章印刷158–159，OPS/c10.xhtml。",
-    "本系统稿件锚点：R1-E-26：OBJ-110、OBJ-107；PRC-107、PRC-182、PRC-38；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-26：OBJ-110、OBJ-107；PRC-107、PRC-182、PRC-38；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI题130是知识管理有效性自评，未给出本地复用成功率公式（SPI26#知识管理有效性）；Maister 第1章讨论经验复用（MAI#经验复用与成长），Barr 第10章要求通过结果检验假设（BARR#业务实验）。"
@@ -496,7 +496,7 @@
    "now": "已有线索转化率、赢单率和新签合同额；稿件尚未登记合格线索至签署的两端时间、一商机多合同的取样方法。",
    "basis": [
     "R1-E-05 资料证据：〔词〕lead_conversion_rate、win_rate、new_contract_value；〔BI〕§3.2 商机行；SPI26#销售周期天数：附录E题83，印刷244 / PDF251；CORR#时间线：表1-3，印刷25 / PDF43。",
-    "本系统稿件锚点：R1-E-05：OBJ-17、OBJ-18、OBJ-05；PRC-03、PRC-47；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-05：OBJ-17、OBJ-18、OBJ-05；PRC-03、PRC-47；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI 2026题83以合格线索至合同签署的经过天数询问销售周期（SPI26#销售周期天数）；Corr 表1-3要求明确过程时间点（CORR#时间线）。以下首份或多份合同的选择为本地口径提议。"
@@ -528,7 +528,7 @@
    "now": "已有客户、服务产品和满意度调查；未明确客户获得与保持、扣除客户专属服务费用后的获利，以及新老客户与新旧服务的收入结构。",
    "basis": [
     "R1-E-06 资料证据：〔BI〕§3.2 客户、服务产品列；BSC#客户核心指标：第4章图4-1，印刷55 / PDF77；SPI26#老客户既有服务收入占比 至 SPI26#新客户新服务收入占比：附录E题60–63，印刷243 / PDF250。",
-    "本系统稿件锚点：R1-E-06：OBJ-01、OBJ-24、OBJ-100、OBJ-106；PRC-90、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-06：OBJ-01、OBJ-24、OBJ-100、OBJ-106；PRC-90、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "《平衡计分卡》第4章图4-1分列客户获得、保持、满意和获利（BSC#客户核心指标）；SPI题60–63分别问新老客户与新旧服务的四类收入（SPI26 对应四项锚点），不能用赢单率替代。"
@@ -560,7 +560,7 @@
    "now": "本地利用率为可计费工时除以可用工时，可计费工时仅限有效且符合计时计料合同及费率要求的部分。固定价交付工时的外部对照归类、可用工时扣减规则尚未明确；非计费不等于无效。",
    "basis": [
     "R1-E-07 资料证据：〔词〕billable_hours、utilization_rate、capacity_realization；SPI26#利用率、SPI26#含批准非计费工时的综合利用率：第10章印刷146 / PDF153；附录D表275印刷238 / PDF245。",
-    "本系统稿件锚点：R1-E-07：OBJ-28、OBJ-66、OBJ-111；PRC-119；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-07：OBJ-28、OBJ-66、OBJ-111；PRC-119；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI正文用2000小时，附录另用2080小时减休假及节假日，且另报含批准非计费工时的综合利用率（SPI26#利用率、SPI26#含批准非计费工时的综合利用率）。源内分母不同，不存在可直接照搬的唯一标准。"
@@ -598,7 +598,7 @@
    "now": "稿件已有计划修订及签发、交付、认可记录，尚未定义准时率的计算单位、承诺版本、完成终点及逾期未交样本。",
    "basis": [
     "R1-E-09 资料证据：〔对象〕§1 OBJ-31、OBJ-35；〔词〕delivery_variance 只有泛称；SPI26#交付准时率：第11章印刷176 / PDF183、题119；BSC#诊断指标制衡：第7章印刷130 / PDF152。",
-    "本系统稿件锚点：R1-E-09：OBJ-31、OBJ-35、OBJ-41；PRC-18、PRC-28、PRC-32；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-09：OBJ-31、OBJ-35、OBJ-41；PRC-18、PRC-28、PRC-32；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI题119询问交付准时率，但未替公司选定承诺版本及本地终点（SPI26#交付准时率）；《平衡计分卡》第7章要求用诊断指标制衡单项得分（BSC#诊断指标制衡）。"
@@ -635,7 +635,7 @@
    "now": "调查已有发出、回收、评分和跟进，稿件尚未声明受邀总体、有效回应、量表版本、权重与汇总口径。",
    "basis": [
     "R1-E-11 资料证据：〔对象〕§1 OBJ-106；BARR#直接证据、BARR#属性数据、BARR#范围数据：印刷66、69，OPS/c06.xhtml；BSC#客户定制评价：第4章石水公司案例，印刷63 / PDF85。",
-    "本系统稿件锚点：R1-E-11：OBJ-106；PRC-37、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-11：OBJ-106；PRC-37、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Barr 第6章强调直接证据及属性、范围数据的区别（BARR#直接证据、BARR#属性数据、BARR#范围数据）；《平衡计分卡》第4章允许按客户定制评价（BSC#客户定制评价）。以下汇总方式为本地提议，满意度不能替代推荐意愿。"
@@ -667,7 +667,7 @@
    "now": "稿件提到缺陷率、闭合率和整改天数，但没有完整分母与起止日期；整改阶段允许复查通过、接受风险和停止跟踪三种退出。",
    "basis": [
     "R1-E-13 资料证据：〔对象〕§1 OBJ-38；〔VS〕VS-03.4 三种退出；〔词〕defect_rate 仅泛称；BARR#属性数据、BARR#范围数据：印刷69，OPS/c06.xhtml；ADAM#累积快照：印刷278–279 / PDF305–306。",
-    "本系统稿件锚点：R1-E-13：OBJ-38、OBJ-35；PRC-44、PRC-45、PRC-28；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-13：OBJ-38、OBJ-35；PRC-44、PRC-45、PRC-28；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Barr 第6章要求比率总体和测量对象清楚（BARR#属性数据、BARR#范围数据）；Adamson 第11章将过程里程碑日期与不同结局分开保存（ADAM#累积快照）。本地三个退出不能合成整改通过。"
@@ -699,7 +699,7 @@
    "now": "已有新签合同额、商机管道和剩余履约义务，但尚未定义管道覆盖倍数、季度初已有合同预计本季履约收入的覆盖率；SPI自身对积压订单也有不同解释。",
    "basis": [
     "R1-E-14 资料证据：〔词〕new_contract_value、remaining_performance_obligation、pipeline_value；SPI26#商机管道覆盖倍数：第9章表110–111，印刷111 / PDF118；SPI26#期初积压订单收入覆盖率：附录D表275印刷238 / PDF245，正文113–114 / PDF120–121。",
-    "本系统稿件锚点：R1-E-14：OBJ-05、OBJ-08、OBJ-100；PRC-47、PRC-48、PRC-89；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-14：OBJ-05、OBJ-08、OBJ-100；PRC-47、PRC-48、PRC-89；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI第9章以商机管道金额对季度签单预测额作覆盖倍数，附录D另列期初积压订单对当季收入覆盖（SPI26#商机管道覆盖倍数、SPI26#期初积压订单收入覆盖率）；是否概率加权和订单范围仍需本地定，不等同全量剩余履约义务。"
@@ -731,7 +731,7 @@
    "now": "已有经营偏差、开票转化及回款相关口径，尚未单列收入漏损率和发票重做率；未开票余额、坏账及红冲不能互相代替。",
    "basis": [
     "R1-E-16 资料证据：〔词〕business_variance、billing_conversion_rate、collection_rate；SPI26#收入漏损率：第12章印刷201 / PDF208、题145；SPI26#发票重做率：附录E题146，印刷244 / PDF251；SPI26#实现率核查 明示未检得独立实现率公式。",
-    "本系统稿件锚点：R1-E-16：OBJ-81、OBJ-82、OBJ-83、OBJ-85；PRC-53、PRC-57、PRC-58、PRC-61；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-16：OBJ-81、OBJ-82、OBJ-83、OBJ-85；PRC-53、PRC-57、PRC-58、PRC-61；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI题145描述计费错误、范围或报价错误等造成的收入损失，但未明示漏损率分母；题146询问因错误或客户拒绝而重做的发票（SPI26#收入漏损率、SPI26#发票重做率）。未检得独立实现率公式（SPI26#实现率核查），不能写成一减漏损率。"
@@ -763,7 +763,7 @@
    "now": "已有需求批准、录用、入职及转正记录，但尚未定义完整招聘周期与达到可生产状态周期；资料未替公司确定所有起止点和日历。",
    "basis": [
     "R1-E-20 资料证据：〔对象〕§1 OBJ-56、OBJ-60、OBJ-109，§3 候选人并入人员；SPI26#标准岗位招聘周期、SPI26#新员工达产周期：附录E题91–92，印刷244 / PDF251。",
-    "本系统稿件锚点：R1-E-20：OBJ-60、OBJ-56、OBJ-109；PRC-81、PRC-82、PRC-83、PRC-85；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-20：OBJ-60、OBJ-56、OBJ-109；PRC-81、PRC-82、PRC-83、PRC-85；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI题91、92分别问标准岗位招聘周期及新员工达产周期（SPI26#标准岗位招聘周期、SPI26#新员工达产周期），没有明示需求起点、达产证据及日历日或工作日规则；以下均为本地提议。"
@@ -795,7 +795,7 @@
    "now": "已有直接费用、间接成本、转付成本及费用支付口径，但尚未给出按员工、季度和可转收性核对的非计费费用定义。",
    "basis": [
     "R1-E-21 资料证据：〔词〕direct_expense、indirect_cost、pass_through_cost、expense_payment；SPI26#员工季度非计费费用：附录E题148，印刷245 / PDF252；SPI26#可计费差旅费用占比、SPI26#非计费差旅费用占比：附录E题159–160，印刷245 / PDF252。",
-    "本系统稿件锚点：R1-E-21：OBJ-118、OBJ-119、OBJ-88、OBJ-85；PRC-170、PRC-172、PRC-87、PRC-86；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-21：OBJ-118、OBJ-119、OBJ-88、OBJ-85；PRC-170、PRC-172、PRC-87、PRC-86；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI题148询问员工季度非计费费用，题159–160另分可计费与非计费差旅（SPI26 对应三项锚点）；其季度人数口径未明示。本地成本用途与是否转收须分别核对，借款不是费用。"
@@ -827,7 +827,7 @@
    "now": "已有计划目标、版本和目标偏差，尚未声明预测发出时点、提前期与实际配对方法；SPI对应题是自评分，并非本地误差公式。",
    "basis": [
     "R1-E-23 资料证据：〔词〕plan_target_value、target_variance；〔BI〕§3.2 目标×版本粒度；SPI26#收入及技能预测准确性：附录E题141，印刷244 / PDF251（原题是自评）；ADAM#平均分母与版本：第11章印刷269 / PDF296。",
-    "本系统稿件锚点：R1-E-23：OBJ-100、OBJ-33；PRC-88、PRC-89、PRC-30、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-23：OBJ-100、OBJ-33；PRC-88、PRC-89、PRC-30、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI题141对收入及技能预测准确性作管理自评（SPI26#收入及技能预测准确性）；Adamson 第11章要求平均分母及版本对应清楚（ADAM#平均分母与版本）。以下绝对误差及偏向为本地可复算提议，不替代SPI自评。"
@@ -859,7 +859,7 @@
    "now": "已有人工成本产出倍数、利用率和平均在册人数，尚未明确人员生产率的收入范围、全员及可计费顾问范围，不能用平均在册人数替代顾问人数。",
    "basis": [
     "R1-E-24 资料证据：〔词〕labor_cost_multiplier、utilization_rate、average_headcount；MAI#合伙人利润驱动、MAI#利用率与小时收费：第3章，EPUB ops/xhtml/ch03.html#ch03fig03，图片 ops/images/f0035-01.jpg，本轮已视觉核实；SPI26#可计费顾问人均年收入、SPI26#全员人均年收入：附录E题139–140，印刷244 / PDF251。",
-    "本系统稿件锚点：R1-E-24：OBJ-66、OBJ-57、OBJ-100；PRC-90、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-24：OBJ-66、OBJ-57、OBJ-100；PRC-90、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Maister 第3章将Fees/Staff拆为Fees/Hours乘Hours/Staff（MAI#合伙人利润驱动、MAI#利用率与小时收费）；SPI题139–140分别问顾问与全员人均收入，人数平均方式尚未明示，须声明本地算法。"
@@ -891,7 +891,7 @@
    "now": "已有出资、利润分配决议与支付，尚未定义同期间合伙人利润、合伙人数及人员范围；本企业是否需要该视图仍未核实。",
    "basis": [
     "R1-E-27 资料证据：〔对象〕OBJ-91、OBJ-112；〔BI〕§3.3“人均”第6项；MAI#合伙人利润驱动：第3章 ops/xhtml/ch03.html#ch03fig01，图片 ops/images/f0032-01.jpg，已视觉核实。",
-    "本系统稿件锚点：R1-E-27：OBJ-91、OBJ-112、OBJ-54；PRC-111、PRC-112、PRC-114；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-27：OBJ-91、OBJ-112、OBJ-54；PRC-111、PRC-112、PRC-114；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "Maister 第3章将Profits/Partner拆为Profits/Fees、Fees/Staff和Staff/Partners相乘（MAI#合伙人利润驱动，图3.1）。其利润、Staff是否包含合伙人及人数平均方法在本地尚未定，不能用分配现金替代。"
@@ -923,7 +923,7 @@
    "now": "已有薪酬、考勤、个人绩效和证书继续教育学时；尚未定义员工满意、推荐意愿、职业发展反馈及一般培训小时，已定不新增培训对象。",
    "basis": [
     "R1-E-29 资料证据：〔对象〕§2.17 已定继续教育为证书属性、不新增培训对象；BSC#员工核心指标：第6章图6-1印刷101 / PDF123；SPI26#员工推荐雇主意愿、SPI26#职业路径清晰度：题99–100，印刷244 / PDF251；SPI26#教育培训工时：表180印刷156 / PDF163、题104。",
-    "本系统稿件锚点：R1-E-29：OBJ-56、OBJ-64、OBJ-109、OBJ-111、OBJ-123；PRC-79、PRC-85、PRC-118、PRC-120；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-29：OBJ-56、OBJ-64、OBJ-109、OBJ-111、OBJ-123；PRC-79、PRC-85、PRC-118、PRC-120；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "《平衡计分卡》第6章图6-1列员工核心评价（BSC#员工核心指标）；SPI题99–100分别询问雇主推荐意愿与职业路径，题104及表180统计教育培训小时（SPI26 对应三项锚点）。不能以法定继续教育替代全员培训。"
@@ -955,7 +955,7 @@
    "now": "已有经营利润率，以贡献毛利扣除间接成本及分摊后的经营利润为分子；尚无与息税折旧摊销前利润逐项核对的同口径指标。",
    "basis": [
     "R1-E-37 资料证据：〔词〕management_operating_profit、management_operating_profit_margin；〔BI〕§3.4报表结果来源；SPI26#息税折旧摊销前利润率：附录D表275印刷239 / PDF246（非准则指标、纳入项可变），第12章印刷206–208 / PDF213–215。",
-    "本系统稿件锚点：R1-E-37：OBJ-98、OBJ-99、OBJ-100；PRC-95、PRC-99、PRC-106、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/proposals/closeout/process-catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
+    "本系统稿件锚点：R1-E-37：OBJ-98、OBJ-99、OBJ-100；PRC-95、PRC-99、PRC-106、PRC-181；对象见 architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1，流程见 architecture/ssot/09-processes/catalog.yaml，阶段见 architecture/proposals/value-streams.v2.yaml。"
    ],
    "practice": [
     "SPI财务支柱列息税折旧摊销前利润率，附录同时说明它是非准则指标，纳入项可变（SPI26#息税折旧摊销前利润率）；现有经营利润率不能直接当作这一外部基准。"

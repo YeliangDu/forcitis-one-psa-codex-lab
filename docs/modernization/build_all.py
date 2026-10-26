@@ -4,7 +4,7 @@
 
 用法：
   python3 docs/modernization/build_all.py          生成全部产物
-  python3 docs/modernization/build_all.py --check --changed 文件  推送前的快速检查（scripts/precheck.sh --pre-push 用，GOV-1023-QUA-04）：文件列出本次改动的仓库相对路径；
+  python3 docs/modernization/build_all.py --check --changed 文件  推送前的快速检查（scripts/ci/light.sh 用，GOV-1023-QUA-04）：文件列出本次改动的仓库相对路径；
                                                    各工具自测只跑改到的那一个（改了 build_all.py 则全跑），改动全在 docs/modernization 里 architecture/、glossary/、rules/ 之外时，再跳过耗时的四个生成器（产物已在时）；
                                                    完整检查留给 CI 与合入队列（不带 --changed 即完整）
   python3 docs/modernization/build_all.py --check  要求 docs/modernization 与提议术语清单重新生成前后无差异（CI 使用）：
