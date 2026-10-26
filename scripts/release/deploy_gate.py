@@ -72,14 +72,41 @@ def baseline_open_at(root, commit):
 
 
 def render(checklist_text, data):
-    """The checklist with the last cell of each section D row and of C-9, C-15 replaced by the gate file's status; a row the file names
-    but the table lacks, or the reverse for section D, raises."""
-    wanted = {**data["exit_conditions"], **data["prod_prerequisites"]}
-    if set(table_rows(checklist_text, "D")) != set(data["exit_conditions"]) or not set(data["prod_prerequisites"]) <= set(table_rows(checklist_text, "C")):
-        raise SystemExit(f"deploy_gate.py: {CHECKLIST} rows differ from {GATE_FILE}; add or remove the row in both")
-    def cell(match):
-        return match.group(1) + wanted[match.group(2)] + " |" if match.group(2) in wanted else match.group(0)
-    return re.sub(r"^(\|\s*((?:C|D)-\d+)\s*\|.*\|\s*)[^|\n]*?\s*\|[ \t]*$", cell, checklist_text, flags=re.MULTILINE)
+    """The checklist with the last cell of each section D row and of C-9, C-15 (in section C) replaced by the gate file's status. Every id
+    the file names must be written exactly once, and section D must hold no other row; anything else raises instead of returning the text."""
+    wanted = {"D": dict(data["exit_conditions"]), "C": dict(data["prod_prerequisites"])}
+    if set(table_rows(checklist_text, "D")) != set(wanted["D"]):
+        raise SystemExit(f"deploy_gate.py: {CHECKLIST} section D rows differ from {GATE_FILE}; add or remove the row in both")
+    hits, section, out = {}, None, []
+    for line in checklist_text.splitlines(keepends=True):
+        heading = re.match(r"^## ([A-Z])\.", line)
+        section = heading.group(1) if heading else section if not line.startswith("## ") else None
+        row = re.match(r"^\|\s*((?:C|D)-\d+)\s*\|", line)
+        if row and section in wanted and row.group(1).startswith(section) and row.group(1) in wanted[section]:
+            ending = line[len(line.rstrip("\r\n")):]
+            body = line.rstrip("\r\n").rstrip(" \t")
+            closed = body.endswith("|")
+            body = body[:-1] if closed else body
+            line = body[:body.rindex("|") + 1] + f" {wanted[section][row.group(1)]} " + ("|" if closed else "") + ending
+            hits[row.group(1)] = hits.get(row.group(1), 0) + 1
+        out.append(line)
+    missing = [k for part in wanted.values() for k in part if hits.get(k) != 1]
+    if missing:
+        raise SystemExit(f"deploy_gate.py: {CHECKLIST} has no single row to write for {', '.join(missing)}; fix the table")
+    return "".join(out)
+
+
+def check_view(root):  # Refuses (SystemExit) when the checklist's cells differ from the gate file: the table is a view written by --render.
+    with open(os.path.join(root, CHECKLIST), encoding="utf-8") as handle:
+        text = handle.read()
+    if not consistent(text, gate_file(root)):
+        raise SystemExit(f"deploy_gate.py: {CHECKLIST} differs from {GATE_FILE}: run deploy_gate.py --render (the table is a view of the gate file)")
+
+
+def consistent(checklist_text, data):  # The checklist's cells, as table_rows reads them, equal the gate file's status for every id.
+    rows = table_rows(checklist_text, "D")
+    executions = table_rows(checklist_text, "C")
+    return rows == dict(data["exit_conditions"]) and all(executions.get(k) == v for k, v in data["prod_prerequisites"].items())
 
 
 def table_rows(checklist_text, section_letter):
@@ -237,6 +264,25 @@ def self_test():
             rendered = render(handle.read(), gate_file(root))
         assert set(table_rows(rendered, "D").values()) == {"⬜"} and table_rows(rendered, "C") == {"C-9": "⬜", "C-15": "⬜"} \
             and "| D-99 | not in D | | ⬜ |" in rendered, "--render writes the gate file's status into section D, C-9 and C-15 only"
+        assert consistent(rendered, gate_file(root)) and not consistent(rendered.replace("| D-3 | x | y | ⬜ |", "| D-3 | x | y | ✅ |"), gate_file(root)), \
+            "a cell differing from the gate file is inconsistent"
+        for variant in (rendered.replace("| D-3 | x | y | ⬜ |", "| D-3 | x | y | ✅"), rendered.replace("\n", "\r\n").replace("| C-9 | 生产库 | ⬜ |", "| C-9 | 生产库 | ✅ |")):
+            assert not consistent(variant, gate_file(root)), "no closing pipe or CRLF line endings do not hide a difference"
+            assert consistent(render(variant, gate_file(root)), gate_file(root)), "--render still writes such a row"
+        with open(os.path.join(root, CHECKLIST), "w", encoding="utf-8") as handle:
+            handle.write(rendered.replace("| D-3 | x | y | ⬜ |", "| D-3 | x | y | ✅ |"))
+        try:
+            check_view(root)
+            raise AssertionError("a checklist differing from the gate file must fail the view check")
+        except SystemExit:
+            pass
+        for broken in (rendered.replace("| D-3 | x | y | ⬜ |\n", ""), rendered.replace("| C-9 | 生产库 | ⬜ |\n", ""), rendered.replace("| D-3 | x | y | ⬜ |\n", "| D-3 | x | y | ⬜ |\n| D-11 | x | y | ⬜ |\n")):
+            assert not consistent(broken, gate_file(root)), "a row missing from the table, or one the gate file lacks, is inconsistent"
+            try:
+                render(broken, gate_file(root))
+                raise AssertionError("--render must refuse a table lacking a row, not return it")
+            except SystemExit:
+                pass
         checklist([DONE] * EXPECTED_EXIT_CONDITIONS)
         blockers.append({"id": "080-fix", "reason": "no deployment until the fix batch is merged"})
         checklist([DONE] * EXPECTED_EXIT_CONDITIONS)
@@ -259,9 +305,7 @@ def self_test():
     data = gate_file(".")
     assert len(data["exit_conditions"]) >= EXPECTED_EXIT_CONDITIONS and "D-10" in data["exit_conditions"], f"{GATE_FILE} lacks D-10 (blocker 090 before prod)"
     assert all(row in data["prod_prerequisites"] for row in PROD_PREREQUISITES), f"{GATE_FILE} lacks {PROD_PREREQUISITES}"
-    with open(CHECKLIST, encoding="utf-8") as handle:
-        text = handle.read()
-    assert render(text, data) == text, f"{CHECKLIST} differs from {GATE_FILE}: run deploy_gate.py --render (the table is a view of the gate file)"
+    check_view(".")
     approvals(".")
     print("deploy_gate.py self-test passed")
 
