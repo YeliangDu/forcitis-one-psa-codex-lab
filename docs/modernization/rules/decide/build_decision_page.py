@@ -21,9 +21,10 @@ FD_GROUPS = {
 }
 import check_pages as cp  # noqa: E402  G2 决定页合一：生成器与 check_pages 同在本目录
 KINDS = cp.KINDS   # 题型只在出题检查里定义一处；旧页是否已答也用 check_pages 的同一判据（answered_nos）
-SHEETS = HERE / "sheets"
+REPO = pathlib.Path(os.path.abspath(__file__)).parents[4]   # 仓库根（不解析链接；根以上的链接如 /tmp→/private/tmp 允许）
+SHEETS_REL = "docs/modernization/rules/decide/sheets"
 SHEET_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
-OLD_PAGES = (HERE.parent.parent / "architecture" / "decision-page",)   # 旧确认页题源（只读，只此一层），按单子名找得到；archive/ 不读：它不在 check_pages 与 light 的范围内
+OLD_RELS = ("docs/modernization/architecture/decision-page",)   # 旧确认页题源（只读，只此一层），按单子名找得到；archive/ 不读：它不在 check_pages 与 light 的范围内
 NO_DEFAULT_KINDS = ("fact", "selection")                      # 事实题、选型题没有默认项：页面显示「未答」，挡住整组提交，不能一键认可
 FACT_OPTS = [{"label": "请财务核实", "effect": "由 one-rules 汇总发财务，答复后写回规则卡", "rec": True},
              {"label": "我直接答", "effect": "把答案写在说明里，不再问财务", "rec": False}]
@@ -54,31 +55,42 @@ def sheet_fd():
                      {"title": f"同行与监管来源（{len(doc['sources'])} 个）", "lines": [f"{s['name']}：{s['note']}" for s in doc["sources"]]}]}
 
 
+def symlink_on_path(root, *rel):
+    """从 root（不含）往下逐级，返回第一个是符号链接的路径；没有返回 None。"""
+    cur = root
+    for part in pathlib.PurePosixPath(*rel).parts:
+        cur = cur / part
+        if cur.is_symlink():
+            return cur
+    return None
+
+
 def load(name):
     if name == "FD":
         return sheet_fd()
     # 单子名只许单段文件名：带 /、\、..、绝对路径或空名会落到子目录（如 archive/）或仓库外，再借已答页名绕过检查（058873e46 终审必改 1）
     if not isinstance(name, str) or not SHEET_NAME.fullmatch(name):
         sys.exit(f"单子名须是单段文件名（字母、数字、_、-，不带目录与扩展名）：{name!r}")
-    dirs = (SHEETS,) + OLD_PAGES
-    found = [d / f"{name}.json" for d in dirs if (d / f"{name}.json").is_file()]
+    found = [(rel, REPO / rel / f"{name}.json") for rel in (SHEETS_REL,) + OLD_RELS if (REPO / rel / f"{name}.json").is_file()]
     if not found:
         sys.exit(f"找不到单子 {name}（FD、sheets/{name}.json，或已答旧页 architecture/decision-page/{name}.json；archive/ 不读）")
-    # 第二道：不跟随符号链接（文件或所在目录是链接即拒；已答判断只看链接名，链接可指向未过 check_pages 的坏副本，c33b8fa2c 终审必改 1），
-    # 且真实路径须正好是「真实的允许目录 / <名>.json」
-    p, d = found[0], found[0].parent
-    if p.is_symlink() or d.is_symlink():
-        sys.exit(f"单子 {name} 是符号链接（或所在目录是）：不跟随链接出页，题源须是允许目录下的普通文件：{p}")
-    if d not in dirs or os.path.realpath(p) != os.path.join(os.path.realpath(d), f"{name}.json"):
+    rel, p = found[0]
+    # 不跟随符号链接：已答判断只看文件名，链接可指向未过 check_pages 的坏副本（c33b8fa2c 终审必改 1、74f973acd 首轮必改 1）。
+    # 第一道：从仓库根到文件的每一级（含允许目录的上级、允许目录本身、文件）都不许是链接
+    link = symlink_on_path(REPO, rel, f"{name}.json")
+    if link:
+        sys.exit(f"单子 {name} 的路径上有符号链接（{link}）：不跟随链接出页，题源须是仓库里的普通文件")
+    # 第二道（独立有效）：路径须正好是 仓库根/固定相对路径/<名>.json，且真实路径等于 realpath(仓库根)/固定相对路径/<名>.json
+    if p.parent != REPO / rel or os.path.realpath(p) != os.path.join(os.path.realpath(REPO), rel, f"{name}.json"):
         sys.exit(f"单子 {name} 解析到允许目录以外：{p}")
-    old = found[0].parent != SHEETS
+    old = rel != SHEETS_REL
     if old:   # 旧题源只重出已答历史页，不许借它绕过出题检查发新页
-        done, whole = cp.answered_nos(str(found[0]))
+        done, whole = cp.answered_nos(str(p))
         if not (whole or done):
-            sys.exit(f"{found[0].name} 是旧题源但不算已答（answers/{name}.json 无导出、answered_pages.txt 未登记）：旧题源只重出已答历史页；新题写进 sheets/{name}.json 并过 check_pages.py")
-    sheet = json.loads(found[0].read_text(encoding="utf-8"))
+            sys.exit(f"{p.name} 是旧题源但不算已答（answers/{name}.json 无导出、answered_pages.txt 未登记）：旧题源只重出已答历史页；新题写进 sheets/{name}.json 并过 check_pages.py")
+    sheet = json.loads(p.read_text(encoding="utf-8"))
     if not isinstance(sheet, dict) or not isinstance(sheet.get("items"), list) or not isinstance(sheet.get("groups"), list):
-        sys.exit(f"{found[0].name} 不是单子格式（须是含 groups、items 两个列表的对象）")
+        sys.exit(f"{p.name} 不是单子格式（须是含 groups、items 两个列表的对象）")
     for key, default in (("sheet", name), ("title", None), ("lede", "按组作答，全部选完后到页面最后一个标签「检查答案」，核对后一次提交。")):
         if not isinstance(sheet.get(key), str) or not sheet[key]:
             if not old:   # sheets/ 的新单子不补默认：缺 sheet、title、lede 即失败
@@ -149,19 +161,20 @@ def self_test():
     template = (HERE / "page-template.html").read_text(encoding="utf-8")
     for needle in ('"none"', '"answered"', "未答", "recOf(i) < 0 && pick(i).choice === null", "blocked === 0"):
         assert needle in template, f"page-template.html 缺少无默认项题的处理：{needle}"
-    global OLD_PAGES, SHEETS, SHEET_NAME
-    # 真实旧题源目录：只有 architecture/decision-page 一层，不含 archive/；路径改错或加回 archive/ 即红（终审建议 1）
-    real = HERE.parent.parent / "architecture" / "decision-page"
-    assert OLD_PAGES == (real,) and real.is_dir(), OLD_PAGES
+    global REPO, SHEET_NAME, symlink_on_path
+    # 真实常量：仓库根下固定相对路径；旧题源只有 architecture/decision-page 一层，不含 archive/；路径改错或加回 archive/ 即红（终审建议 1）
+    assert OLD_RELS == ("docs/modernization/architecture/decision-page",) and (REPO / OLD_RELS[0]).is_dir(), OLD_RELS
+    assert SHEETS_REL == "docs/modernization/rules/decide/sheets" and (REPO / SHEETS_REL).is_dir() and REPO / SHEETS_REL == HERE / "sheets", SHEETS_REL
     # 旧题源只重出已答页（2e48b3e6e 首轮必改 1）：未答的拒绝；已答但不合现行校验的，读得进、validate 照样拒绝；
     # archive/ 不再读：即便登记已答也找不到（c04fabda0 之后调度令）
     import tempfile
-    assert SHEETS == HERE / "sheets" and SHEETS.is_dir(), SHEETS
-    saved = OLD_PAGES, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEETS, SHEET_NAME
+    saved = REPO, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEET_NAME, symlink_on_path
     with tempfile.TemporaryDirectory() as tmp:
-        old, answers, SHEETS = pathlib.Path(tmp) / "old", pathlib.Path(tmp) / "answers", pathlib.Path(tmp) / "sheets"
+        base = pathlib.Path(tmp)
+        R, answers = base / "repo", base / "answers"   # 临时仓库根，按真实的固定相对路径建目录
+        old, sheets = R / OLD_RELS[0], R / SHEETS_REL
         (old / "archive").mkdir(parents=True)
-        (SHEETS / "sub").mkdir(parents=True)
+        (sheets / "sub").mkdir(parents=True)
         answers.mkdir()
         good = sheet("approve", (True, False))[0]
         two_recs = sheet("choice", (True, True))[0]
@@ -171,20 +184,32 @@ def self_test():
         (old / "OLDBAD.json").write_text(json.dumps(two_recs), encoding="utf-8")    # 未答、不合规
         (old / "OLDREC.json").write_text(json.dumps(two_recs), encoding="utf-8")    # 已登记已答、不合规
         (old / "archive" / "OLDARC.json").write_text(json.dumps(good), encoding="utf-8")    # 已登记已答、合规，但在 archive/
-        (SHEETS / "NEW.json").write_text(json.dumps(good | {"title": "新单", "lede": "说明"}), encoding="utf-8")
-        (SHEETS / "NOTITLE.json").write_text(json.dumps(good | {"lede": "说明"}), encoding="utf-8")   # sheets/ 缺 title：不补默认，须失败
-        (SHEETS / "sub" / "OLDX.json").write_text(json.dumps(two_recs), encoding="utf-8")   # 子目录里借已登记页名
+        (sheets / "NEW.json").write_text(json.dumps(good | {"title": "新单", "lede": "说明"}), encoding="utf-8")
+        (sheets / "NOTITLE.json").write_text(json.dumps(good | {"lede": "说明"}), encoding="utf-8")   # sheets/ 缺 title：不补默认，须失败
+        (sheets / "sub" / "OLDX.json").write_text(json.dumps(two_recs), encoding="utf-8")   # 子目录里借已登记页名
         (answers / "OLDA.json").write_text(json.dumps({"OLDA~1": {"choice": 0}}), encoding="utf-8")
-        (pathlib.Path(tmp) / "outside.json").write_text(json.dumps(good | {"title": "外", "lede": "外"}), encoding="utf-8")
+        (base / "outside.json").write_text(json.dumps(good | {"title": "外", "lede": "外"}), encoding="utf-8")
         (old / "LNK.json").symlink_to("archive/OLDARC.json")          # 旧题源里已登记页名做成链接，指向子目录文件
-        (SHEETS / "SLNK.json").symlink_to(old / "OLDBAD.json")         # sheets/ 里的链接
-        (SHEETS / "OUT.json").symlink_to(pathlib.Path(tmp) / "outside.json")   # 链接到允许目录以外
-        (SHEETS / "NEWLNK.json").symlink_to("NEW.json")   # sheets/ 里链接指向写全、合规的单子：仍拒（链接目标日后可改而 --changed 不列）
-        (pathlib.Path(tmp) / "sheetslink").symlink_to(SHEETS, target_is_directory=True)   # 目录本身是链接
-        (pathlib.Path(tmp) / "answered.txt").write_text("OLDX  # 出处\nOLDL\nOLDREC\nOLDARC\nLNK\n", encoding="utf-8")
-        # 按真实 OLD_PAGES 的结构映射到临时目录：常量里若加回 archive/，这里同样会读到 OLDARC，下面的反例变红
-        OLD_PAGES = tuple(old / d.relative_to(real) for d in saved[0])
-        cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY = str(answers), str(pathlib.Path(tmp) / "answered.txt")
+        (sheets / "SLNK.json").symlink_to(old / "OLDBAD.json")         # sheets/ 里的链接
+        (sheets / "OUT.json").symlink_to(base / "outside.json")         # 链接到允许目录以外
+        (sheets / "NEWLNK.json").symlink_to("NEW.json")   # sheets/ 里链接指向写全、合规的单子：仍拒（链接目标日后可改而 --changed 不列）
+        # 链接在上级：L1 的 architecture/ 与 rules/ 是链接（74f973acd 首轮必改 1）；L2 的允许目录本身是链接
+        for root, links in ((base / "L1", ("docs/modernization/architecture", "docs/modernization/rules")),
+                            (base / "L2", (OLD_RELS[0], SHEETS_REL))):
+            for rel in links:
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).symlink_to(R / rel, target_is_directory=True)
+        (base / "answered.txt").write_text("OLDX  # 出处\nOLDL\nOLDREC\nOLDARC\nLNK\nOLDA\n", encoding="utf-8")
+        REPO = R
+        cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY = str(answers), str(base / "answered.txt")
+
+        def rejected(names, fragment):
+            for name in names:
+                try:
+                    load(name)
+                    raise AssertionError(f"{name!r} 应失败：{fragment}（REPO={REPO}）")
+                except SystemExit as e:
+                    assert fragment in str(e), (name, fragment, str(e))
         try:
             got = load("OLDX")
             assert (got["sheet"], got["title"]) == ("T", "T") and got["lede"], got   # title 为空补默认
@@ -192,39 +217,32 @@ def self_test():
             validate([load("OLDA")])   # answers/ 有导出也算已答
             assert load("NEW")["title"] == "新单"
             single = "单段文件名"   # 名字带目录、绝对路径、..、空名：第一道（名字校验）就拒（058873e46 终审必改 1）
-            cases = [("OLDL", "不是单子格式"), ("NO-SUCH-SHEET", "找不到单子"), ("OLDBAD", "不算已答"), ("OLDARC", "找不到单子"),
-                     ("NOTITLE", "缺 title"), ("archive/OLDARC", single), ("sub/OLDX", single), (str(old / "OLDA"), single),
-                     (str(old / "archive" / "OLDARC"), single), ("../old/OLDA", single), ("OLDA/..", single), ("..", single),
-                     ("a\\OLDA", single), ("", single), (None, single),
-                     ("LNK", "符号链接"), ("SLNK", "符号链接"), ("OUT", "符号链接"), ("NEWLNK", "符号链接")]   # 文件是符号链接：一律拒（c33b8fa2c 终审必改 1）
-            for name, fragment in cases:
-                try:
-                    load(name)
-                    raise AssertionError(f"{name!r} 应失败：{fragment}")
-                except SystemExit as e:
-                    assert fragment in str(e), (name, fragment, str(e))
-            SHEET_NAME = re.compile(r".+")   # 第二道（解析后父目录须正好是允许目录）单独核：名字校验放开时也要拒
-            for name in ("archive/OLDARC", "sub/OLDX", str(old / "archive" / "OLDARC"), "../old/OLDA"):
-                try:
-                    load(name)
-                    raise AssertionError(f"{name!r} 应被第二道拒绝")
-                except SystemExit as e:
-                    assert "允许目录以外" in str(e), (name, str(e))
-            SHEET_NAME = saved[4]
-            real_sheets, SHEETS = SHEETS, pathlib.Path(tmp) / "sheetslink"   # sheets/ 目录本身换成链接：同一个合规单子也拒
-            try:
-                load("NEW")
-                raise AssertionError("所在目录是符号链接时应拒")
-            except SystemExit as e:
-                assert "符号链接" in str(e), str(e)
-            SHEETS = real_sheets
+            for name, fragment in [("OLDL", "不是单子格式"), ("NO-SUCH-SHEET", "找不到单子"), ("OLDBAD", "不算已答"), ("OLDARC", "找不到单子"),
+                                   ("NOTITLE", "缺 title"), ("archive/OLDARC", single), ("sub/OLDX", single), (str(old / "OLDA"), single),
+                                   (str(old / "archive" / "OLDARC"), single), ("../old/OLDA", single), ("OLDA/..", single), ("..", single),
+                                   ("a\\OLDA", single), ("", single), (None, single)]:
+                rejected([name], fragment)
+            link = "符号链接"   # 路径上任一级是链接：逐级判定拒（c33b8fa2c 终审必改 1、74f973acd 首轮必改 1）
+            rejected(["LNK", "SLNK", "OUT", "NEWLNK"], link)
+            for root in (base / "L1", base / "L2"):   # 旧题源与 sheets/ 的上级或本身是链接，内容是同一批合规已答页
+                REPO = root
+                rejected(["NEW", "OLDA", "OLDX"], link)
+            # 第二道单独核：名字校验与逐级判定都放开，仍须由「路径与真实路径都锚定仓库根」拒绝
+            SHEET_NAME, symlink_on_path = re.compile(r".+"), (lambda *a: None)
+            REPO = R
+            rejected(["archive/OLDARC", "sub/OLDX", str(old / "archive" / "OLDARC"), "../../../architecture/decision-page/OLDA",
+                      "LNK", "SLNK", "OUT", "NEWLNK"], "允许目录以外")
+            for root in (base / "L1", base / "L2"):
+                REPO = root
+                rejected(["NEW", "OLDA", "OLDX"], "允许目录以外")
+            REPO, SHEET_NAME, symlink_on_path = R, saved[3], saved[4]
             try:
                 validate([load("OLDREC")])
                 raise AssertionError("已答但两个推荐的旧页应被 validate 拒绝")
             except SystemExit as e:
                 assert "恰好一个推荐" in str(e), str(e)
         finally:
-            OLD_PAGES, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEETS, SHEET_NAME = saved
+            REPO, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEET_NAME, symlink_on_path = saved
     print("build_decision_page self-test: ok")
 
 
