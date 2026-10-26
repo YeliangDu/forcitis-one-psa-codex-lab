@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ops_venv_guard  # noqa: E402,F401  须排在所有第三方与同目录导入之前
 import c14_run  # noqa: E402
 
 QUERY = f"SELECT ISNULL(USER_ID(N'{c14_run.LOGIN}'), 0) AS user_id, ISNULL(SUSER_ID(N'{c14_run.LOGIN}'), 0) AS login_id;"
