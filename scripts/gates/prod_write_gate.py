@@ -418,11 +418,11 @@ def no_exec_tools():  # (programs known not to run a file named on their command
         return set(), set()
 
 
-def git_sub(argv):  # git's sub-command: the first word after its global options (-C, --git-dir, … take a value)
+def git_sub(argv):  # git's sub-command when only known global options come before it (`-C dir`, `-P`, `--no-pager`); None after any other, whose value it may take (--attr-source …): not exempt
     i = 1
-    while i < len(argv) and argv[i].startswith("-"):
-        i += 2 if argv[i] in ("-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--exec-path") else 1
-    return argv[i] if i < len(argv) else None
+    while i < len(argv) and argv[i] in ("-C", "-P", "--no-pager"):
+        i += 2 if argv[i] == "-C" else 1
+    return argv[i] if i < len(argv) else None  # an unknown option is returned as it is: no sub-command of the list
 
 
 def remote_named(text, tools):  # A remote tool's name as a word anywhere in the raw or the quote-free line; `http://` and the like are URLs, not httpie.

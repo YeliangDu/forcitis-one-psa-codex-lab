@@ -348,12 +348,12 @@ def gate_self_test():
                     "D=/dev/t; >${D}cp/198.51.100.7/80", "D=/dev/t; { :; } >${D}cp/198.51.100.7/80", "csh plain", "tcsh plain", "fish plain", "pypy3 plain", "Rscript plain", "uv run plain", "caffeinate bang", "env -C pkg sh run.sh", "env --chdir=pkg ./run.sh",
                     "sudo -D pkg sh run.sh", "env -Cpkg sh run.sh", "env -iC pkg ./run.sh", "sudo -iD pkg sh run.sh", "/usr/bin/sudo -D pkg sh run.sh", "env -C pkg env -C . sh run.sh", "env --chdir pkg sh run.sh", "uv --directory pkg run x",
                     "cd pkg && git log && bash x", "perl5.34 plain", "tclsh8.6 plain", "pypy3 -m dirty", "./nohup ls", "m4 plain", "gm4 plain", "bm4 plain", "prove plain", "vim plain", "git -c core.pager='sh plain' log", "rg --pre ./exe.sh x .",
-                    "GIT_EXTERNAL_DIFF='sh plain' git diff", "GIT_PAGER=exe.sh git log", "git bisect run exe.sh", "git submodule foreach exe.sh", "git -c a.b=c log", "GIT_EXEC_PATH=pkg git status", "RIPGREP_CONFIG_PATH=x rg y", "git log -Oexe.sh",
-                    "FOO=exe.sh cat x", "/usr/bin/env -S 'sh plain'", "irb plain", "gnumake all", "csh -c 'H=pgm-pr; echo ${H}od0001'", "tcsh -c 'H=pgm-pr; echo ${H}od0001'", "fish -c 'H=pgm-pr; echo ${H}od0001'",
+                    "GIT_EXTERNAL_DIFF='sh plain' git diff", "GIT_PAGER=exe.sh git log", "git bisect run exe.sh", "git --attr-source log bisect run exe.sh", "git submodule foreach exe.sh", "git -c a.b=c log", "GIT_EXEC_PATH=pkg git status",
+                    "RIPGREP_CONFIG_PATH=x rg y", "git log -Oexe.sh", "FOO=exe.sh cat x", "/usr/bin/env -S 'sh plain'", "irb plain", "gnumake all", "csh -c 'H=pgm-pr; echo ${H}od0001'", "tcsh -c 'H=pgm-pr; echo ${H}od0001'", "fish -c 'H=pgm-pr; echo ${H}od0001'",
                     f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'"):
         assert refused(command), f"the file it may run: {command!r}"
     for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "cd pkg && git status", "cat direct.sh", "grep -n x direct.sh", "git diff -- direct.sh",
-                    "cat /dev/urandom >/dev/null", "git log -n 3", "python3 -m json.tool"):
+                    "cat /dev/urandom >/dev/null", "git log -n 3", "git --no-pager -P log", "python3 -m json.tool"):
         assert allowed(command), f"no sample in the file, or no file (a pipe, inline code: known gap): {command!r}"
     with __import__("unittest.mock").mock.patch.multiple(g, MAX_SCRIPT_FILE=8, CHUNK=8): assert refused("bash span.sh") and allowed("bash tame.sh"), "a sample across a chunk boundary"
     with __import__("unittest.mock").mock.patch.object(g, "MAX_RUN_FILE", 4): assert refused("bash tame.sh"), "a file larger than MAX_RUN_FILE counts"
