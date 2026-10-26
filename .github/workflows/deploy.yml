@@ -9,8 +9,8 @@ run-name: deploy ${{ inputs.version }} to ${{ inputs.environment }}
 # anything. The ECS reads the request back with its instance role, checks it, downloads the assets,
 # verifies the signed statement against its own signer key and installs (scripts/release/ship.sh, scripts/release/remote_install.sh).
 # This job never holds the release signing key or a long-lived secret.
-# FROZEN (U21/K15, gap G72; dispatched by intent 2026-10-24-131816): the RAM role's OIDC trust names this file's path (.github/workflows/deploy.yml, via job_workflow_ref),
-# its name and the runner labels below. Renaming or moving it, or changing those labels, breaks every deploy: the user changes the RAM trust policy first.
+# FROZEN (U21/K15, gaps G72, G88; dispatched by intent 2026-10-24-131816): the RAM role's OIDC trust names this file's path (.github/workflows/deploy.yml,
+# via job_workflow_ref): renaming or moving it breaks every deploy, so the user changes the RAM trust policy first. The runner labels below pick the deploy machines: keep them too.
 # Blocked while docs/modernization/phase1a/infra/deploy_gate.json lists a blocker; prod also needs the Phase 1a exit conditions, C-9 and a
 # closed migration baseline (no baseline-open marker on main or in the release's commit); dev only warns about an open baseline.
 # Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
