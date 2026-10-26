@@ -78,7 +78,7 @@
       "docs/modernization/phase1a/infra/runbooks/files/",
       "docs/modernization/phase1a/infra/runbooks/scripts/",
       "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
-      "docs/modernization/status/blockers/",
+      "docs/modernization/phase1a/infra/deploy_gate.json",
       "docs/modernization/new_intent.py",
       "docs/modernization/phase1a/infra/new_legacy_read.py",
       "docs/modernization/phase1a/infra/build_legacy_read_register.py",

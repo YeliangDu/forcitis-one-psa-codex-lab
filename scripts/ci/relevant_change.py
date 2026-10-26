@@ -34,7 +34,7 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/credential_columns.csv",
     "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md",
     # read by scripts/release (deploy gate, release bundle); their self-tests run in ci
-    "docs/modernization/status/blockers/",
+    "docs/modernization/phase1a/infra/deploy_gate.json",
     "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
     "docs/modernization/phase1a/infra/runbooks/files/",
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
@@ -46,7 +46,6 @@ READ_BY_BUILDS = (
 NOT_READ_BY_BUILDS = (
     "docs/modernization/glossary/issues/",
     "docs/modernization/glossary/decision-sheets/",
-    "docs/modernization/glossary/GLOSSARY_CONTEXT.md",
 )
 
 # files outside the builds that read READ_BY_BUILDS docs and run in a CI job whatever changed

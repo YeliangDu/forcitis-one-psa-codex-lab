@@ -9,7 +9,7 @@ run-name: deploy ${{ inputs.version }} to ${{ inputs.environment }}
 # anything. The ECS reads the request back with its instance role, checks it, downloads the assets,
 # verifies the signed statement against its own signer key and installs (scripts/release/ship.sh, scripts/release/remote_install.sh).
 # This job never holds the release signing key or a long-lived secret.
-# Blocked while a docs/modernization/status/blockers/ entry carries `blocks: deploy`; prod also needs the Phase 1a exit conditions, C-9 and a
+# Blocked while docs/modernization/phase1a/infra/deploy_gate.json lists a blocker; prod also needs the Phase 1a exit conditions, C-9 and a
 # closed migration baseline (no baseline-open marker on main or in the release's commit); dev only warns about an open baseline.
 # Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
 on:

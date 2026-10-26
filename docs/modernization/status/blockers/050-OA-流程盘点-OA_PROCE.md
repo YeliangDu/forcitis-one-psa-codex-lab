@@ -1,1 +1,0 @@
-- OA 流程盘点（OA_PROCESS_INVENTORY.md §9 待办）：ADR-0016 修订提议与 brief Phase 4 两条 `Proposed revision:` 待批准；用语确认表 A 组 20 项；U8C 手工 / 出纳 / 固定资产凭证由财务逐类判定。

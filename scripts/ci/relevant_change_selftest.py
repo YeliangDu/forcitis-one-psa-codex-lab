@@ -57,7 +57,7 @@ def tiers_self_test(root):
         write(tmp, t + "ByNameTest.java", 'class ByNameTest { String f = "docs/modernization/events/byname.yaml"; }')
         write(tmp, "frontend/scripts/copy-glossary.mjs", 'const p = "docs/modernization/glossary/front.yaml";')
         write(tmp, "frontend/src/app.ts", 'const p = "docs/modernization/glossary/app.yaml";')
-        write(tmp, "scripts/release/gate.py", 'P = "docs/modernization/status/blockers/"')
+        write(tmp, "scripts/release/gate.py", 'P = "docs/modernization/phase1a/infra/runbooks/files/"')
         write(tmp, "scripts/other/tool.py", 'P = "docs/modernization/events/tool.yaml"')
         write(tmp, "scripts/ci/light.sh", "cat docs/modernization/events/only-light.yaml")
         write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"; G = "docs/modernization/glossary/"')  # a local tool naming a whole directory hides no reader
@@ -99,8 +99,8 @@ def tiers_self_test(root):
         assert tier(ev + "light.yaml") == ("code", None), "a reader that walks docs: any doc may be read"
         Path(tmp, t + "WalkIT.java").unlink()
         with tempfile.TemporaryDirectory() as tmp2:
-            write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "modernization", "status", "blockers"); }')
-            assert rc.tier_of(["docs/modernization/status/blockers/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
+            write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "modernization", "phase1a", "infra", "runbooks", "files"); }')
+            assert rc.tier_of(["docs/modernization/phase1a/infra/runbooks/files/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
         write(tmp, t + "EventsApplicationIntegrationTest.java", "x")
         write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/modernization/glossary/terms.yaml"; String q = "docs/modernization/events/other.yaml"; }')
         rc.EXEMPT_HEAVY_READERS[(gl, "ApplicationIntegrationTest")] = "test only"
@@ -111,7 +111,7 @@ def tiers_self_test(root):
         kind, plan = tier(gl + "front.yaml")
         assert kind == "guarded" and plan["frontend"] and not plan["classes"]
         assert tier(gl + "app.yaml") == ("code", None), "a frontend source outside frontend/scripts reads it"
-        kind, plan = tier("docs/modernization/status/blockers/x.md")
+        kind, plan = tier("docs/modernization/phase1a/infra/runbooks/files/x.md")
         assert kind == "guarded" and plan["release"]
         assert tier(gl + "terms.yaml") == ("code", None), "a heavy test reads it and no exemption is approved"
         rc.EXEMPT_HEAVY_READERS[(gl, "ApplicationIntegrationTest")] = "test only"
@@ -206,7 +206,7 @@ def real_tiers_self_test(root):
     assert rc.plan_for(["docs/modernization/events/asyncapi.yaml"], index, light) is None, "ITs read the event catalogue: full run"
     for path in ("docs/modernization/glossary/terms.yaml", "docs/modernization/glossary/bcs.yaml"):
         assert rc.plan_for([path], index, light) is None, f"{path}: a heavy test (ApplicationIntegrationTest) reads it and no exemption is approved: full run"
-    assert rc.plan_for(["docs/modernization/status/blockers/080-1a-no-deploy-until-fix.md"], index, light)["release"]
+    assert rc.plan_for(["docs/modernization/phase1a/infra/deploy_gate.json"], index, light)["release"]
 
 
 def self_test(module):
@@ -248,13 +248,12 @@ def self_test(module):
     assert rc.is_relevant("docs/modernization/events/asyncapi.yaml")
     assert not rc.is_relevant("docs/modernization/glossary/issues/2026-10-15-120000-one-ops-x.md")
     assert not rc.is_relevant("docs/modernization/glossary/decision-sheets/2026-10-20.md")
-    assert not rc.is_relevant("docs/modernization/glossary/GLOSSARY_CONTEXT.md")
     assert rc.is_covered("docs/modernization/glossary/terms.yaml")
     assert not rc.is_covered("docs/modernization/glossary/issues/x.md"), "a build reading NOT_READ_BY_BUILDS must fail the scan"
     assert not rc.is_covered("docs/modernization/glossary/issues")
     assert rc.is_covered("docs/modernization/sessions/one-ops.md")
     assert rc.is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
-    assert rc.is_relevant("docs/modernization/status/blockers/080-1a-no-deploy-until-fix.md")
+    assert rc.is_relevant("docs/modernization/phase1a/infra/deploy_gate.json")
     assert not rc.is_relevant("docs/modernization/adr/src/ADR-0001.md")
     assert not rc.is_relevant("docs/modernization/phase1a/INTERFACES.md")
     assert not rc.is_relevant("README.md")
