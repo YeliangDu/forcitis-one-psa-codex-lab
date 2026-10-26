@@ -301,6 +301,7 @@ MAX_SCRIPT_FILE, MAX_RUN_FILE, CHUNK = 262144, 1 << 29, 1 << 23  # a file run is
 DIR_OPTION = re.compile(r"--(?:chdir|directory|dir|cwd|prefix|working-directory|manifest-path|project)(?:=|$)|-[A-Za-z]*C[A-Za-z]*$")  # a runner\'s own option to work in another directory (make -C, pnpm -C, npm --prefix, uv --directory …)
 MAKEFILES = ("GNUmakefile", "makefile", "Makefile")
 CHDIR = {"cd", "pushd", "popd"}
+CONFIG_VARS = {"GIT_EXEC_PATH", "GIT_EXTERNAL_DIFF", "GIT_PAGER", "PAGER", "GIT_EDITOR", "EDITOR", "VISUAL", "GIT_SSH", "GIT_SSH_COMMAND", "GIT_ASKPASS", "GIT_SEQUENCE_EDITOR", "RIPGREP_CONFIG_PATH"}  # where git and rg take a program from
 COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name these and LAUNCH_TOOL
 LAUNCH_TOOL = "mcp__Claude_Browser__preview_start"  # starts runtimeExecutable + runtimeArgs of the named .claude/launch.json configuration (cfcbcf473 final M4)
 LOADABLE, MAX_CLOSURE = (".py", ".pyc", ".so", ".pyd"), 400  # what Python imports from a directory (any interpreter: mod.cpython-312-darwin.so); files a trusted script may load before it counts as unreadable
@@ -407,14 +408,21 @@ def remote_table():  # (remote tool names, entries, slot patterns) of origin/mai
         return set(REMOTE_TOOLS), [], {}
 
 
-def no_exec_tools():  # Programs known not to run a file named on their command line, from origin/main's table section no_exec_tools (the local table never counts: a branch cannot widen it); none when absent.
+def no_exec_tools():  # (programs known not to run a file named on their command line, git sub-commands that run none) from origin/main's table section no_exec_tools (the local table never counts: a branch cannot widen it); empty when absent.
     global ANCHOR
     ANCHOR = ANCHOR or trust_root(ROOTS[0]) or os.devnull
     try:
-        found = json.loads(main_table_text(ANCHOR)[0] or "{}").get("no_exec_tools", {}).get("tools", [])
-        return {t for t in found if isinstance(t, str) and re.fullmatch(r"[a-z0-9_.+-]+", t)}
+        found = json.loads(main_table_text(ANCHOR)[0] or "{}").get("no_exec_tools", {})
+        return tuple({t for t in found.get(k, []) if isinstance(t, str) and re.fullmatch(r"[a-z0-9_.+-]+", t)} for k in ("tools", "git_subcommands"))
     except (ValueError, AttributeError, TypeError):
-        return set()
+        return set(), set()
+
+
+def git_sub(argv):  # git's sub-command: the first word after its global options (-C, --git-dir, … take a value)
+    i = 1
+    while i < len(argv) and argv[i].startswith("-"):
+        i += 2 if argv[i] in ("-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env", "--exec-path") else 1
+    return argv[i] if i < len(argv) else None
 
 
 def remote_named(text, tools):  # A remote tool's name as a word anywhere in the raw or the quote-free line; `http://` and the like are URLs, not httpie.
@@ -644,18 +652,19 @@ def candidates(argv):  # Words of a command that may name a file it runs: each w
     return out + list(MAKEFILES) * tool.endswith("make")
 
 
-def runs_file(command, patterns, cwd, safe=frozenset()):  # The command may run a file that mentions production: every existing regular file among its words (intent 2026-10-26-164931, A′), in the hook's directory; unreadable counts.
+def runs_file(command, patterns, cwd, safe=(frozenset(), frozenset())):  # The command may run a file that mentions production: every existing regular file among its words (intent 2026-10-26-164931, A′), in the hook's directory; unreadable counts.
     argv, tool = command.argv, name_of(command.argv[0])  # a tool of `safe` (no_exec_tools) skips its positional words only: an option's value, a word inside one (`-c core.pager=…`), an environment value are still read
-    words = candidates(argv)
-    if tool in safe and "/" not in argv[0]:
-        words = [w for i, w in enumerate(argv[1:], 1) if argv[i - 1].startswith("-") and argv[i - 1] != "--"]
+    words = candidates(argv) + list(command.env.values())  # an environment value may name a program the command runs (GIT_EXTERNAL_DIFF=…)
+    if tool in safe[0] and "/" not in argv[0] and (tool != "git" or git_sub(argv) in safe[1]):  # git: only its sub-commands that run none (bisect run, submodule foreach do)
+        words = [w for i, w in enumerate(argv[1:], 1) if argv[i - 1].startswith("-") and argv[i - 1] != "--"] + list(command.env.values())
+        words += [w[2:] for w in argv[1:] if re.match(r"-[A-Za-z].", w)]  # an attached short option value: -Ocmd
         words += [t for w in argv[1:] + list(command.env.values()) for t in re.split(r"[\s=!'\"]+", w) if t and t != w]
     for word in map(os.path.expanduser, words):  # `~/x` as the shell expands it unquoted (a quoted one is checked too: fail closed)
         full = os.path.join(cwd or os.getcwd(), word)  # no directory change on the line (judge refuses those): the hook's directory
         if os.path.isdir(full):
             if INTERPRETER.match(tool):  # python runs a package's __main__, make -C a directory's makefile
                 return True
-        elif os.path.lexists(full) and file_hits(full, patterns):
+        elif os.path.isfile(full) and file_hits(full, patterns):  # a regular file only: a device or a pipe (/dev/null, /dev/urandom) holds no program to read
             return True
     return False
 
@@ -700,6 +709,8 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
         tool = name_of(command.argv[0])
         if any(NET_REDIRECT.search(w) for w in command.argv):  # a bash network redirection spelled by variables (a14c80797 final M1)
             return "拒绝：变量展开后出现 /dev/tcp 或 /dev/udp 网络重定向，按远程工具处理，不是登记写法（intent 2026-10-26-160810）。"
+        if tool in ("git", "rg") and (any(w in ("-c", "--config-env") or w.startswith(("--exec-path", "--config-env=")) for w in command.argv[1:]) or any(k in CONFIG_VARS or k.startswith("GIT_CONFIG") for k in command.env)):
+            return f"拒绝：{tool} 带了配置来源或执行路径（-c、--config-env、--exec-path，或 {', '.join(sorted(CONFIG_VARS))} 等环境变量），它会运行哪个程序门读不到，宁可误拦（intent 2026-10-26-164931）。"
         if tool in tools:  # spelled by variables or substitutions, or nested in a shell body: not the registered line
             if not remote_ok or patterns is None:
                 return f"拒绝：{tool} 由变量、命令替换或嵌套拼出，或特征表读不了（{problem or '—'}），不是整行登记写法，一律拒（intent 2026-10-26-160810）。"

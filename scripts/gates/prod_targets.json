@@ -204,7 +204,7 @@
   },
   "no_exec_tools": {
     "owner": "one-ops",
-    "note": "已知不执行参数里文件的程序（intent 2026-10-26-164931「不确定就拒」，调度定 A′）：门对它们免读位置参数，选项值、选项里嵌的词（如 git -c core.pager=…、rg --pre …）与环境变量照读。门只认 origin/main 上这一节。每加一个程序须在 basis 写依据（它不会执行参数文件），由 one-ops 提、opus 终审。",
+    "note": "已知不执行参数里文件的程序（intent 2026-10-26-164931「不确定就拒」，调度定 A′）：门对它们免读位置参数，选项值、选项里嵌的词（如 git -c core.pager=…、rg --pre …）与环境变量照读；git 另限子命令（git_subcommands），git、rg 带配置来源或执行路径时整行拒。门只认 origin/main 上这一节。每加一个程序须在 basis 写依据（它不会执行参数文件），由 one-ops 提、opus 终审。",
     "tools": [
       "git",
       "cat",
@@ -221,19 +221,49 @@
       "jq"
     ],
     "basis": {
-      "git": "位置参数是路径或修订号；会执行程序的写法都走选项值（-c、--exec-path、--upload-pack 等）或配置，选项值照读",
+      "git": "只在 git_subcommands 列的子命令上免读位置参数：这些子命令的位置参数是路径、修订号或分支名；bisect run、submodule foreach、rebase --exec 等会执行参数的不在内。带 -c、--config-env、--exec-path 或 GIT_PAGER、GIT_EXTERNAL_DIFF 等配置来源环境变量时整行拒；commit 会跑 .git/hooks（脚本运行时行为，按已知未覆盖）",
       "cat": "只读出文件内容",
       "head": "只读出文件开头",
       "tail": "只读出文件结尾",
       "wc": "只计数",
       "ls": "只列目录项",
       "grep": "只按模式读文件；-f 的模式文件是选项值，照读",
-      "rg": "只按模式读文件；--pre、--hostname-bin 会执行程序，属选项值，照读",
+      "rg": "只按模式读文件；--pre、--hostname-bin 的值照读；带 RIPGREP_CONFIG_PATH 时整行拒",
       "diff": "只比较文件",
       "cmp": "只逐字节比较",
       "stat": "只读元数据",
       "shasum": "只算摘要",
       "jq": "只读 JSON；-f 的程序文件是 jq 过滤式不是 shell，属选项值照读"
-    }
+    },
+    "git_subcommands": [
+      "status",
+      "log",
+      "diff",
+      "show",
+      "add",
+      "commit",
+      "rm",
+      "mv",
+      "restore",
+      "checkout",
+      "switch",
+      "branch",
+      "ls-files",
+      "ls-tree",
+      "blame",
+      "rev-parse",
+      "rev-list",
+      "cat-file",
+      "describe",
+      "shortlog",
+      "merge-base",
+      "show-ref",
+      "for-each-ref",
+      "check-ignore",
+      "diff-tree",
+      "diff-index",
+      "hash-object",
+      "version"
+    ]
   }
 }
