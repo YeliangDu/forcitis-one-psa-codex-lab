@@ -190,7 +190,7 @@ def strip_prefix(seg, variables):  # (env of leading `NAME=value` words and wrap
                 i += 2 if seg[i] in valued else 1
         else:
             break
-    return env, seg[i:] + moved
+    return env, seg[i:], moved
 
 
 def simple_commands(command, depth=0, variables=None, exported=None):
@@ -213,11 +213,14 @@ def simple_commands(command, depth=0, variables=None, exported=None):
         segments.append((cur, piped_next))
     previous, allexport = None, False
     for seg, piped in segments:
-        env, rest = strip_prefix(seg, variables)
+        env, rest, moved = strip_prefix(seg, variables)
         if not rest:
-            variables.update(env)  # a bare `NAME=value` stays in effect for the following commands
+            variables.update(env)  # a bare `NAME=value` stays in effect for the following commands, a redirection beside it too (58d4d5d4d final M2)
             exported.update({k: v for k, v in env.items() if allexport or k in ENV_TARGET_VARS})  # exported under `set -a`; a target variable may already be exported by the environment or an rc file (O2 round 1 M1)
+            for inner in (i for t in moved for i in SUBSTITUTION.findall(t)):
+                out += simple_commands(restore(inner), depth + 1, dict(variables), dict(exported))
             continue
+        rest = rest + moved
         unresolved, argv = False, []
         for token in rest:
             for inner in SUBSTITUTION.findall(token):
@@ -327,7 +330,7 @@ PLAIN_RSH = re.compile(r"^ssh(?:\s+-[pi]\s*\S+|\s+-[46Cq])*$")
 SED_EXEC = re.compile(r"(?:^|[;{}\n])\s*[ew]\b|s(.).*?\1.*?\1[a-zA-Z]*e[a-zA-Z]*\s*(?:[;}]|$)")
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
 REDIRECTION = re.compile(r"&?[<>]+[&|]?")
-RAW_PATH = re.compile(r"(?:^|[\s;&|()<>`'\"=])(?:\.{1,2}|~)?/[^\s;&|()<>]")  # a word that is a path: ./run, ../x, ~/x, /usr/bin/x, anywhere in the line
+RAW_PATH = re.compile(r"(?:^|[\s;&|()<>`'\"=])[^\s;&|()<>`'\"=]*/[^\s;&|()<>]")  # any word with a slash: ./run, scripts/deploy, ~/x, /usr/bin/x, anywhere in the line (only for a line with a comment or here-document)
 PATH_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*(?:(?:\w+=\S*|\d*&?[<>]+[&|]?\s*[^\s;&|()]+)\s+)*[^\s;&|()]*/")  # a command word with a slash: a script run by its path
 
 
@@ -743,6 +746,8 @@ def option_value_list(argv, short, long_names):  # Values of the given short (`-
 
 
 def copy_writes(argv, tool, patterns):
+    argv = [t for i, t in enumerate(argv) if not (REDIRECTION.fullmatch(t) or (i and REDIRECTION.fullmatch(argv[i - 1]))
+                                                   or (t.isdigit() and i + 1 < len(argv) and REDIRECTION.fullmatch(argv[i + 1])))]  # a redirection is no operand (58d4d5d4d final M1)
     if tool == "scp":
         operands = operands_of(argv, SCP_VALUE_SHORT, set())
         if any(re.search(r"(?i)proxycommand|localcommand|permitlocalcommand", v) for v in option_value_list(argv, "o", set())) or option_value_list(argv, "S", set()):

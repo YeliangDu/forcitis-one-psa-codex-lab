@@ -181,7 +181,7 @@ def gate_self_test():
     for command in ("python3 runner.py # it's", 'python3 runner.py # "', "python3 runner.py <<EOF\nit's\nEOF", "bash runner.py # it's", "echo a # '\npython3 runner.py\n: \\'", "H=pgm-pr; <<<\"psql -h ${H}od0001 -c 'delete from t'\" bash",
                     "cat <<EOF\n'\nEOF\npython3 runner.py\n: \\'", "./deploy.sh # x", "echo a # it's", "echo a # x \\\n./deploy", ">o python3 runner.py", "echo a\\\\\n./deploy # x",  # the script the program reads (2b59000cb, c211b73bd final)
                     "T=ps; H=pgm-pr; ls # it's\n${T}ql -h ${H}od0001 -c 'delete from t'", "T=ps; H=pgm-pr; ${T}ql -h ${H}od0001 -c 'delete from t' # it's", "T=ps; H=pgm-pr; cat <\\\n<X\nit's\nX\n${T}ql -h ${H}od0001 -c 'delete from t'",
-                    "T=ps; H=pgm-pr; ls # '\n${T}ql -h ${H}od0001 -c 'delete from t'\n: \\'", ">x python3 a.py # c", "ls # x \\\n./run",  # anywhere in the text; variables spell tool and target (2b59000cb first review M1, M2)
+                    "T=ps; H=pgm-pr; ls # '\n${T}ql -h ${H}od0001 -c 'delete from t'\n: \\'", ">x python3 a.py # c", "ls # x \\\n./run", "echo a # '\nenv scripts/deploy\n: \\'",  # anywhere; variables spell tool and target
                     "ls # '\n`echo ps`ql -h `echo pgm-pr`od0001 -c \"delete from t\"\n: \\'", f"echo a\\\\\npsql -h {P} -c 'delete from t'", "echo a # '\n./deploy\n: \\'"):  # backticks, a path command; `\\` then a newline ends the command (3eac19088 final)
         assert refused(command), ("a comment or here-document with a program, or unreadable: refused", command)
     # 2. writes to production are refused, every class
@@ -192,7 +192,7 @@ def gate_self_test():
                     f'sqlcmd -S {P} -Q "select 1; checkpoint; reconfigure"', f'sqlcmd -S {P} -Q "exec sp_configure"', f'sqlcmd -S {P} -Q "select * into t2 from t"', f'sqlcmd -S {P} -Q "use master; select 1"',
                     f'psql -h {P} -c "select pg_terminate_backend(1)"', f"psql -h {P} -c \"select 'drop table t' \\gexec\"", f'psql -h {P} -c "select set_config(\'a\',\'b\',false)"', f'psql -h {P} -c "select nextval(\'s\')"',
                     f'psql -h {P} -c \'SELECT pg_catalog."nextval"($$seq$$)\'', f'psql -h {P} -c "SELECT pg_logical_emit_message(false, \'x\', \'x\')"', f'psql -h {P} -c "select 1; comment on table t is \'x\'"',
-                    f'psql -h {P} -c "\\copy t from f"', f'psql -h {P} -c "\\i fix.sql"', f'psql -h {P} -c "do $$ begin delete from t; end $$"',
+                    f'psql -h {P} -c "\\copy t from f"', f'psql -h {P} -c "\\i fix.sql"', f'psql -h {P} -c "do $$ begin delete from t; end $$"', f">o scp f {P}:/x", "T=ps H=pgm-pr >o; ${T}ql -h ${H}od0001 -c 'delete from t'",
                     f'sqlcmd -S {P} -Q "SELECT \'--\'; DELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "SELECT \'/*\'; DELETE FROM dbo.t; SELECT \'*/\'"', f'sqlcmd -S {P} -Q "SET NOCOUNT ON\nDELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "select \'unterminated"',
                     f'sqlcmd -S {P} -z "$NEW" -Q "select 1"', f'sqlcmd -S {P} -v op="; DELETE FROM dbo.t" -Q \'SELECT 1 $(op)\'', f'sqlcmd -S {P} -Q "select 1 $(op)"', f'mysql -h {H} --init-command="DELETE FROM t" -e "select 1"',
                     f"psql -h localhost -c 'select 1' -o '|ssh {H} touch /tmp/x'", f'psql -h {P} <<EOF\nselect 1;\ndelete from t;\nEOF', f'psql -h {P} <<< "delete from t"', f'echo "delete from t" | psql -h {P}', f'printf "delete from t" | psql -h {P}',
