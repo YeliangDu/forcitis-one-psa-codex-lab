@@ -1053,13 +1053,14 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     environ, TRUSTED_LINE = os.environ if environ is None else environ, None
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
-    if COMMENT_OR_HEREDOC.search(command_text) and (raw_hit or env_hit or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE)):
-        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行。"
+    odd = bool(COMMENT_OR_HEREDOC.search(command_text))  # their text is read as words, so quotes in it may pair with the real commands: what runs a program counts too
+    if odd and (raw_hit or env_hit or REMOTE_WORD.search(plain(command_text)) or PATH_COMMAND.search(command_text) or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE)):
+        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具、解释器、按路径执行的程序或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行。"
     try:
         commands = simple_commands(command_text)
         TRUSTED_LINE = trusted_entry(command_text, cwd) if len(commands) == 1 and INTERPRETER.match(name_of(commands[0].argv[0])) and could_concern(plain(command_text)) else None
     except ValueError:
-        if raw_hit or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE):
+        if odd or raw_hit or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in LONG_REMOTE):
             return "命令读不懂（引号未闭合、嵌套过深等）且含生产特征或 psql／ssh／aliyun 等远程工具，无法确认不是连生产的写操作，拒绝。"
         return None
     for index, command in enumerate(commands):

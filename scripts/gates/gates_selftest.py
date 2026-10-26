@@ -178,6 +178,9 @@ def gate_self_test():
                     f"ssh {P} uptime # can't", f"cat <<'EOF'\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF"):
         assert refused(command), ("refused rather than read wrongly", command)
     assert refused("ls # x", environ={"PGHOST": P}) and allowed("ls # x", environ={"PGHOST": "localhost"}), "a target variable pointing at production counts too"
+    for command in ("python3 runner.py # it's", 'python3 runner.py # "', "python3 runner.py <<EOF\nit's\nEOF", "bash runner.py # it's", "echo a # '\npython3 runner.py\n: \\'",
+                    "cat <<EOF\n'\nEOF\npython3 runner.py\n: \\'", "./deploy.sh # x", "echo a # it's"):  # the target in the script the program reads (2b59000cb final M1)
+        assert refused(command), ("a comment or here-document with a program, or unreadable: refused", command)
     # 2. writes to production are refused, every class
     for command in (f'psql -h {P} -c "insert into t values (1)"', f'psql -h {P} -c "UPDATE t SET a=1"', f'psql -h {P} -c "delete from t"', f'psql -h {P} -c "drop table t"', f'psql -h {P} -c "ALTER TABLE t ADD c int"',
                     f'psql -h {P} -c "select 1; delete from t"', f'psql -h {P} -c "select * from t for update"', f'psql -h {P} -c "truncate t"', f"psql -h {P} -f fix.sql", f"psql -h {P} < fix.sql", f"psql -h {P} -f missing.sql",
