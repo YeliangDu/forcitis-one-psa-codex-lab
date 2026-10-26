@@ -119,6 +119,9 @@
       "docs/modernization/rules/merge_rules.py",
       "docs/modernization/rules/pull_result.py",
       "docs/modernization/rules/review_revisions.py",
+      "docs/modernization/architecture/decision-page/answered_pages.txt",
+      "docs/modernization/r0/build_finance_decisions.py",
+      "docs/modernization/rules/decide/answered_pages.txt",
       "docs/modernization/rules/decide/build_decision_page.py",
       "docs/modernization/rules/decide/check_pages.py",
       "docs/modernization/rules/decide/decide_sync.py",
@@ -277,8 +280,12 @@
     "max_lines_total": 1800,
     "dir": "~/.modernize/psa/tools/one-session",
     "checks": [
+      "board",
       "budget_level",
       "handoff",
+      "janitor",
+      "node_ready",
+      "ops_venv_lock",
       "stop_check"
     ]
   },
