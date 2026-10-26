@@ -89,9 +89,10 @@ def plain(command):  # Pre-filter text: ANSI-C decoded, line continuations, quot
 
 
 def neutralize(text, backticks=True):  # `$`/backtick inside single quotes -> private characters; a backtick substitution outside them -> `$(...)` (when `backticks`). Comments are skipped (`# don't`).
-    out, i, single, double = [], 0, False, False
+    out, i, single, double, braces = [], 0, False, False, 0
     while i < len(text):
         char = text[i]
+        braces += (not single and text.startswith("${", i)) - (braces > 0 and not single and char == "}")  # `#` inside ${...} is part of the expansion
         if single:
             out.append(PUA_DOLLAR if char == "$" else PUA_TICK if char == "`" else char)
             single = char != "'"
@@ -113,7 +114,7 @@ def neutralize(text, backticks=True):  # `$`/backtick inside single quotes -> pr
                 i = end
             else:
                 out.append(char)
-        elif char == "#" and not double and (i == 0 or text[i - 1] in " \t\n;|&()<>"):  # a comment starts a word (bash: after a blank or a metacharacter); dropped, so quotes in it pair with nothing
+        elif char == "#" and not double and not braces and (i == 0 or text[i - 1] in " \t\n;|&()<>"):  # a comment starts a word (bash: after a blank or a metacharacter); dropped, so quotes in it pair with nothing
             end = text.find("\n", i)
             i = (len(text) if end < 0 else end) - 1
         else:
@@ -132,9 +133,10 @@ def name_of(token):  # Command name as the shell finds it: directory dropped, lo
 
 def split_heredocs(command):  # (text without here-document bodies, [(body, delimiter, quoted)]). `<<` counts only outside quotes and comments; an unquoted delimiter means the body is expanded.
     text = command.replace("\\\n", "")
-    out, bodies, pending, i, single, double, n = [], [], [], 0, False, False, len(text)
+    out, bodies, pending, i, single, double, n, braces = [], [], [], 0, False, False, len(text), 0
     while i < n:
         char = text[i]
+        braces += (not single and text.startswith("${", i)) - (braces > 0 and not single and char == "}")
         if single:
             out.append(char)
             single = char != "'"
@@ -150,7 +152,7 @@ def split_heredocs(command):  # (text without here-document bodies, [(body, deli
             out.append(char)
             single, double = char == "'", char == '"'
             i += 1
-        elif char == "#" and (i == 0 or text[i - 1] in " \t\n;|&()<>"):
+        elif char == "#" and not braces and (i == 0 or text[i - 1] in " \t\n;|&()<>"):
             end = text.find("\n", i)
             end = n if end < 0 else end
             out.append(text[i:end])
@@ -1037,11 +1039,11 @@ def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered
     except ValueError:
         return None
     global ANCHOR
-    ANCHOR, words = ANCHOR or trust_root(ROOTS[0]) or os.devnull, [os.path.expanduser(w) for w in argv or []]  # `~/` as the shell expands it
+    ANCHOR, words = ANCHOR or trust_root(ROOTS[0]) or os.devnull, argv or []  # never expanded: a quoted `~` is a directory named ~, an exported HOME another home
     entries, slots = trusted_entries()
     for entry in entries:
-        script, n = os.path.join(ANCHOR, DOCS_ROOT, entry["script"]), len(entry.get("interpreter", []))
-        if not n or len(words) <= n or words[:n] != [os.path.expanduser(w) for w in entry["interpreter"]] or os.path.realpath(os.path.join(cwd or os.getcwd(), words[n])) != os.path.realpath(script):
+        script, n = os.path.join(ANCHOR, DOCS_ROOT, entry["script"]), len(entry.get("interpreter", []))  # the table's `~/` is this process's home; the line spells the absolute path
+        if not n or len(words) <= n or words[:n] != [os.path.expanduser(w) for w in entry["interpreter"]] or os.path.islink(os.path.join(cwd or os.getcwd(), words[n])) or rel_of(os.path.join(cwd or os.getcwd(), words[n])) != rel_of(script):  # a link to the script runs beside the link
             continue
         read = [tree_files(DOCS_ROOT + "/" + d) for d in entry.get("trust_dirs", []) if isinstance(d, str) and ".." not in d]
         loaded = closure(script) if any(form_matches(words[n + 1:], f, slots) for f in entry.get("forms", [])) and None not in read else None

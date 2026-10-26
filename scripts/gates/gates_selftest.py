@@ -258,6 +258,7 @@ def gate_self_test():
     for command in (f"ls # it's\npsql -h {P} -c 'delete from t' # it's", f"ls # it's\npsql -h {P} -c 'delete from t'", f"echo x # \"\ncurl -X DELETE https://{P}/a", f"(ls)#it's\npsql -h {P} -c 'delete from t'", f"(ls)# <<EOF\npsql -h {P} -c 'delete from t'"):
         assert refused(command), ("a comment (after a blank or `( ) < >`) is dropped: its quotes or `<<` do not swallow the next line (69af6c8da final M1-M2)", command)
     assert allowed(f"ssh {P} uptime # can't"), "a quote inside a comment is no quote"
+    assert refused(f"echo ${{x:- #}}; psql -h {P} -c 'insert into t values (1)'"), "a `#` inside ${...} starts no comment (50a6af8c3 final M1)"
     assert refused("(ls)#it's\npsql -c 'delete from t' #it's", environ={"PGHOST": P}), "a comment right after `)`: the target from the environment, the write on the next line"
     # 6. secrets (bottom line 3) and the environment
     for command in ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"):
@@ -322,6 +323,13 @@ def gate_self_test():
         assert refused(f"python3 -I {cwd}/new_intent.py x", mine) and refused("python3 -I new_intent.py x", mine), "the registered path only, not the same name elsewhere"
         g.trusted_entries = lambda: ([], {})
         assert refused(f"python3 -I {intent} x", mine), "not registered"
+        g.trusted_entries = lambda: ([dict(entry, forms=[["{any}"]])], {"any": re.compile(".+")})
+        assert refused(f"python3 -I {intent} 'a;b'", mine) and allowed(f"python3 -I {intent} ab", mine), "a shell metacharacter anywhere on the line: no entry, whatever the slot allows"
+        assert g.trusted_entry(f"python3 -I '~/{os.path.relpath(intent, os.path.expanduser('~'))}' ab", cwd) is None, "a quoted `~` is not the home: no expansion on the line (50a6af8c3 review M1)"
+        g.trusted_entries, real_text = real_entries, g.main_table_text
+        g.main_table_text = lambda root=None: (None, None)
+        assert g.trusted_entries() == ([], {}), "origin/main's table only: the local one, which a branch may edit, registers nothing"
+        g.main_table_text = real_text
     finally:
         g.main_blobs, g.trusted_entries = real_main_blob, real_entries
     for command in (f"git tag -f origin/main HEAD && echo {P}", f"git update-ref refs/remotes/origin/main HEAD; echo {P}", f"git grep -nO'sqlcmd -S {P}' foo", f"git grep -inOx {P} foo"):
@@ -444,6 +452,8 @@ def layout_self_test():
     assert all(g.closure(s) is not None for s in scripts), "every registered entry's closure can be read"
     loaded = {os.path.relpath(f, ROOT) for s in scripts for f in g.closure(s) | {s} if os.path.exists(f)} | {f"{DOCS_ROOT}/{d}" for e in entries for d in e["trust_dirs"]}
     assert all(rel.startswith(tuple(final)) for rel in loaded), ("files a trusted entry loads or reads, missing from policy.json review.final_paths", sorted(r for r in loaded if not r.startswith(tuple(final))))
+    slots = {k: re.compile(v) for k, v in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["slots"].items()}
+    assert slots["sql"].fullmatch("credential_columns_scan.sql") and not any(slots["sql"].fullmatch(v) for v in ("/tmp/x.sql", "../x.sql", "a/b.sql")), "the evidence tool's SQL is a bare name under evidence/ (50a6af8c3 final M4)"
     assert all("-I" in e["interpreter"] and os.path.isabs(os.path.expanduser(e["interpreter"][0])) for e in entries), "an entry pins its interpreter by path and runs it isolated (-I: no PYTHON* variables, no user site)"
     print("prod_write_gate layout: ok")
 
@@ -522,6 +532,9 @@ def trust_self_test():
             gitc(work, "clean", "-fdqx")
         # PYTHON* variables, the user site, PATH: no longer judged by the gate; an entry runs its pinned interpreter with -I (-S when it needs no site), checked on the shipped table (layout)
         assert g.trusted_entry("", tmp) is None and g.trusted_entry(f"python3 {doc} > out", tmp) is None, "an empty line, a redirection: no entry (an empty line does not crash)"
+        os.symlink(os.path.join(work, legacy), os.path.join(work, DOCS_ROOT, "lr.py"))  # runs beside the link, with its neighbours
+        assert hook(f"python3 {DOCS_ROOT}/lr.py '{fake}'", work, main) == 2, "a symlink to a registered script is no entry (50a6af8c3 final M2)"
+        os.remove(os.path.join(work, DOCS_ROOT, "lr.py"))
         assert hook(run_doc, loose, main, tool=COMMAND_TOOLS[2], where=work) == 0 and hook(run_doc, loose, main, tool=COMMAND_TOOLS[2]) == 2, "the terminal panel: its own cwd"
         # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
         shifted = forged + "\nx"
