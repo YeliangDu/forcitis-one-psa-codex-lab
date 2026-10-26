@@ -21,6 +21,8 @@ FD_GROUPS = {
 }
 import check_pages as cp  # noqa: E402  G2 决定页合一：生成器与 check_pages 同在本目录
 KINDS = cp.KINDS   # 题型只在出题检查里定义一处；旧页是否已答也用 check_pages 的同一判据（answered_nos）
+SHEETS = HERE / "sheets"
+SHEET_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 OLD_PAGES = (HERE.parent.parent / "architecture" / "decision-page",)   # 旧确认页题源（只读，只此一层），按单子名找得到；archive/ 不读：它不在 check_pages 与 light 的范围内
 NO_DEFAULT_KINDS = ("fact", "selection")                      # 事实题、选型题没有默认项：页面显示「未答」，挡住整组提交，不能一键认可
 FACT_OPTS = [{"label": "请财务核实", "effect": "由 one-rules 汇总发财务，答复后写回规则卡", "rec": True},
@@ -55,10 +57,16 @@ def sheet_fd():
 def load(name):
     if name == "FD":
         return sheet_fd()
-    found = [d / f"{name}.json" for d in (HERE / "sheets",) + OLD_PAGES if (d / f"{name}.json").is_file()]
+    # 单子名只许单段文件名：带 /、\、..、绝对路径或空名会落到子目录（如 archive/）或仓库外，再借已答页名绕过检查（058873e46 终审必改 1）
+    if not isinstance(name, str) or not SHEET_NAME.fullmatch(name):
+        sys.exit(f"单子名须是单段文件名（字母、数字、_、-，不带目录与扩展名）：{name!r}")
+    dirs = (SHEETS,) + OLD_PAGES
+    found = [d / f"{name}.json" for d in dirs if (d / f"{name}.json").is_file()]
     if not found:
         sys.exit(f"找不到单子 {name}（FD、sheets/{name}.json，或已答旧页 architecture/decision-page/{name}.json；archive/ 不读）")
-    old = found[0].parent != HERE / "sheets"
+    if found[0].parent not in dirs:   # 第二道：解析出的文件必须正好在 sheets/ 或某个旧题源目录里
+        sys.exit(f"单子 {name} 解析到允许目录以外：{found[0]}")
+    old = found[0].parent != SHEETS
     if old:   # 旧题源只重出已答历史页，不许借它绕过出题检查发新页
         done, whole = cp.answered_nos(str(found[0]))
         if not (whole or done):
@@ -66,10 +74,11 @@ def load(name):
     sheet = json.loads(found[0].read_text(encoding="utf-8"))
     if not isinstance(sheet, dict) or not isinstance(sheet.get("items"), list) or not isinstance(sheet.get("groups"), list):
         sys.exit(f"{found[0].name} 不是单子格式（须是含 groups、items 两个列表的对象）")
-    if old:   # 旧页有的没写 sheet、title、lede（或为空）：单子名、标题退回文件名，导语退回通用说明；sheets/ 的新单子不补，缺了照旧失败
-        for key, default in (("sheet", name), ("title", None), ("lede", "按组作答，全部选完后到页面最后一个标签「检查答案」，核对后一次提交。")):
-            if not isinstance(sheet.get(key), str) or not sheet[key]:
-                sheet[key] = default or sheet["sheet"]
+    for key, default in (("sheet", name), ("title", None), ("lede", "按组作答，全部选完后到页面最后一个标签「检查答案」，核对后一次提交。")):
+        if not isinstance(sheet.get(key), str) or not sheet[key]:
+            if not old:   # sheets/ 的新单子不补默认：缺 sheet、title、lede 即失败
+                sys.exit(f"sheets/{name}.json 缺 {key}（或为空）：新单子须写全 sheet、title、lede")
+            sheet[key] = default or sheet["sheet"]   # 旧页有的没写：单子名、标题退回文件名，导语退回通用说明
     return sheet
 
 
@@ -135,17 +144,19 @@ def self_test():
     template = (HERE / "page-template.html").read_text(encoding="utf-8")
     for needle in ('"none"', '"answered"', "未答", "recOf(i) < 0 && pick(i).choice === null", "blocked === 0"):
         assert needle in template, f"page-template.html 缺少无默认项题的处理：{needle}"
-    global OLD_PAGES
+    global OLD_PAGES, SHEETS, SHEET_NAME
     # 真实旧题源目录：只有 architecture/decision-page 一层，不含 archive/；路径改错或加回 archive/ 即红（终审建议 1）
     real = HERE.parent.parent / "architecture" / "decision-page"
     assert OLD_PAGES == (real,) and real.is_dir(), OLD_PAGES
     # 旧题源只重出已答页（2e48b3e6e 首轮必改 1）：未答的拒绝；已答但不合现行校验的，读得进、validate 照样拒绝；
     # archive/ 不再读：即便登记已答也找不到（c04fabda0 之后调度令）
     import tempfile
-    saved = OLD_PAGES, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY
+    assert SHEETS == HERE / "sheets" and SHEETS.is_dir(), SHEETS
+    saved = OLD_PAGES, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEETS, SHEET_NAME
     with tempfile.TemporaryDirectory() as tmp:
-        old, answers = pathlib.Path(tmp) / "old", pathlib.Path(tmp) / "answers"
+        old, answers, SHEETS = pathlib.Path(tmp) / "old", pathlib.Path(tmp) / "answers", pathlib.Path(tmp) / "sheets"
         (old / "archive").mkdir(parents=True)
+        (SHEETS / "sub").mkdir(parents=True)
         answers.mkdir()
         good = sheet("approve", (True, False))[0]
         two_recs = sheet("choice", (True, True))[0]
@@ -155,6 +166,9 @@ def self_test():
         (old / "OLDBAD.json").write_text(json.dumps(two_recs), encoding="utf-8")    # 未答、不合规
         (old / "OLDREC.json").write_text(json.dumps(two_recs), encoding="utf-8")    # 已登记已答、不合规
         (old / "archive" / "OLDARC.json").write_text(json.dumps(good), encoding="utf-8")    # 已登记已答、合规，但在 archive/
+        (SHEETS / "NEW.json").write_text(json.dumps(good | {"title": "新单", "lede": "说明"}), encoding="utf-8")
+        (SHEETS / "NOTITLE.json").write_text(json.dumps(good | {"lede": "说明"}), encoding="utf-8")   # sheets/ 缺 title：不补默认，须失败
+        (SHEETS / "sub" / "OLDX.json").write_text(json.dumps(two_recs), encoding="utf-8")   # 子目录里借已登记页名
         (answers / "OLDA.json").write_text(json.dumps({"OLDA~1": {"choice": 0}}), encoding="utf-8")
         (pathlib.Path(tmp) / "answered.txt").write_text("OLDX  # 出处\nOLDL\nOLDREC\nOLDARC\n", encoding="utf-8")
         # 按真实 OLD_PAGES 的结构映射到临时目录：常量里若加回 archive/，这里同样会读到 OLDARC，下面的反例变红
@@ -165,19 +179,33 @@ def self_test():
             assert (got["sheet"], got["title"]) == ("T", "T") and got["lede"], got   # title 为空补默认
             validate([got])
             validate([load("OLDA")])   # answers/ 有导出也算已答
-            for name, fragment in (("OLDL", "不是单子格式"), ("NO-SUCH-SHEET", "找不到单子"), ("OLDBAD", "不算已答"), ("OLDARC", "找不到单子")):
+            assert load("NEW")["title"] == "新单"
+            single = "单段文件名"   # 名字带目录、绝对路径、..、空名：第一道（名字校验）就拒（058873e46 终审必改 1）
+            cases = [("OLDL", "不是单子格式"), ("NO-SUCH-SHEET", "找不到单子"), ("OLDBAD", "不算已答"), ("OLDARC", "找不到单子"),
+                     ("NOTITLE", "缺 title"), ("archive/OLDARC", single), ("sub/OLDX", single), (str(old / "OLDA"), single),
+                     (str(old / "archive" / "OLDARC"), single), ("../old/OLDA", single), ("OLDA/..", single), ("..", single),
+                     ("a\\OLDA", single), ("", single), (None, single)]
+            for name, fragment in cases:
                 try:
                     load(name)
-                    raise AssertionError(f"{name} 应失败：{fragment}")
+                    raise AssertionError(f"{name!r} 应失败：{fragment}")
                 except SystemExit as e:
-                    assert fragment in str(e), (fragment, str(e))
+                    assert fragment in str(e), (name, fragment, str(e))
+            SHEET_NAME = re.compile(r".+")   # 第二道（解析后父目录须正好是允许目录）单独核：名字校验放开时也要拒
+            for name in ("archive/OLDARC", "sub/OLDX", str(old / "archive" / "OLDARC"), "../old/OLDA"):
+                try:
+                    load(name)
+                    raise AssertionError(f"{name!r} 应被第二道拒绝")
+                except SystemExit as e:
+                    assert "允许目录以外" in str(e), (name, str(e))
+            SHEET_NAME = saved[4]
             try:
                 validate([load("OLDREC")])
                 raise AssertionError("已答但两个推荐的旧页应被 validate 拒绝")
             except SystemExit as e:
                 assert "恰好一个推荐" in str(e), str(e)
         finally:
-            OLD_PAGES, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY = saved
+            OLD_PAGES, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEETS, SHEET_NAME = saved
     print("build_decision_page self-test: ok")
 
 
