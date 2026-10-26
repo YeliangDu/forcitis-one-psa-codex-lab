@@ -7,7 +7,7 @@
 - 行里任意位置有生产特征，或指向生产的目标环境变量（命令里设的、会话环境里的），整行拒绝，不再按「这个命令不连接」放行；变量拼接、花括号展开后才命中的同样拒绝（intent 2026-10-26-165321 A）。
 - 命令参数里凡是存在的普通文件（含 `./x` 这样按路径运行的程序本身）都读：内容（≤256 KB 去引号读，更大的按字节读）不含生产特征才放行，读不了或超过 512 MB 按含特征算，解释器指向目录也按含特征算（同上 B）。
   只有 origin/main 特征表 no_exec_tools 登记的、已知不执行参数文件的程序免读位置参数（选项值、选项里嵌的词、环境变量照读）；解释器名单只作说明（intent 2026-10-26-164931 A′）。
-  经包装命令（sudo、command、nohup 等）运行的不免；行里有 alias、函数定义、hash、enable、PATH= 或运行解释器、按路径的程序、会运行别的命令的程序时整行都不免（rm、mv、cp 登记，调度 10-26 晚定）。
+  免读只给整行就是一条纯命令：没有 ; & | 换行、替换、括号花括号，没有赋值（NAME=、NAME+=、数组），没有 eval、alias、function、hash 等字样，第一个词就是登记程序；否则整行不免（调度 10-26 深夜定）。
 - 行里有换目录（cd、pushd、popd，包装命令或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序：整行拒，不推算目录（intent 2026-10-26-164931）。
 - 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：远程工具与解释器拒绝，其余放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名、特征或目标环境变量拒绝。
@@ -43,8 +43,8 @@ VARIABLE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*
 SUBSTITUTION = re.compile(r"\$\(([^()]*)\)")
 SHORT_C = re.compile(r"-[A-Za-z]*c[A-Za-z]*")
 ECHOES = {"echo", "printf"}
-Command = collections.namedtuple("Command", "argv env unresolved redirected piped chdir wrapped", defaults=(False, False, False))  # chdir: a wrapper option (`env -C`, `sudo -D`) changes its directory; wrapped: reached through a wrapper (sudo, command, nohup …)
-REDEFINES = re.compile(r"(?<![\w.-])(?:alias|function|hash|enable)(?![\w.-])|\(\s*\)|(?<![\w.-])PATH=")  # a line that may change what a name runs (alias, shell function, `hash -p`, a loadable builtin, PATH): no tool is exempt
+Command = collections.namedtuple("Command", "argv env unresolved redirected piped chdir", defaults=(False, False))  # chdir: a wrapper option (`env -C`, `sudo -D`) changes its directory
+NOT_PURE = re.compile(r"[;&|\n\r`$(){}]|(?:^|\s)[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\])?\+?=|(?<![\w.-])(?:eval|alias|function|functions|hash|enable|aliases|commands)(?![\w.-])")  # a separator, a substitution, a group or function, an assignment, a word that renames: no tool is exempt
 
 
 def decode_ansi_c(body):  # Text of a bash `$'...'` word, decoded byte-wise as bash does (\xHH, \NNN, \uHHHH, \UHHHHHHHH, \cX, one-letter escapes); a NUL ends it.
@@ -256,7 +256,7 @@ def simple_commands(command, depth=0, variables=None, exported=None, assigned=No
             for arg in argv[1:]:
                 variables.pop(arg, None)
                 exported.pop(arg, None)
-        out.append(Command(argv, {**exported, **env}, unresolved, any(REDIRECTION.fullmatch(t) for t in argv), piped, bool(chdir), any(t.lower() in WRAPPERS for t in seg[:len(seg) - len(rest) + len(moved)])))
+        out.append(Command(argv, {**exported, **env}, unresolved, any(REDIRECTION.fullmatch(t) for t in argv), piped, bool(chdir)))
         if name in SHELLS:
             bodies = []
             if name == "eval":
@@ -664,7 +664,7 @@ def candidates(argv):  # Words of a command that may name a file it runs: each w
 def runs_file(command, patterns, cwd, safe=(frozenset(), frozenset(), {})):  # The command may run a file that mentions production: every existing regular file among its words (intent 2026-10-26-164931, A′), in the hook's directory; unreadable counts.
     argv, tool = command.argv, name_of(command.argv[0])  # a tool of `safe` (no_exec_tools) skips its positional words only: an option's value, a word inside one (`-c core.pager=…`), an environment value are still read
     words = candidates(argv) + list(command.env.values())  # an environment value may name a program the command runs (GIT_EXTERNAL_DIFF=…)
-    if tool in safe[0] and "/" not in argv[0] and not command.wrapped and (tool != "git" or git_sub(argv) in safe[1]):  # git: only its sub-commands that run none (bisect run, submodule foreach do); a wrapper (`sudo -e` runs an editor on the words) exempts none
+    if tool in safe[0] and "/" not in argv[0] and (tool != "git" or git_sub(argv) in safe[1]):  # git: only its sub-commands that run none (bisect run, submodule foreach do)
         words = [w for i, w in enumerate(argv[1:], 1) if option_value(tool, argv[i - 1], safe[2])] + list(command.env.values())
         words += [w[2:] for w in argv[1:] if re.match(r"-[A-Za-z].", w)]  # an attached short option value: -Ocmd
         words += [t for w in argv[1:] + list(command.env.values()) for t in re.split(r"[\s=!'\"]+", w) if t and t != w]
@@ -714,7 +714,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     if any("/" in c.argv[0] and name_of(c.argv[0]) in WRAPPERS for c in commands):  # what it runs, from where, cannot be told: not read (76b7f7e81 round 1 M1, final M1)
         return "拒绝：包装命令（env、sudo、nohup、timeout 等）写成路径，门不解析它会运行什么、在哪个目录，宁可误拦（intent 2026-10-26-164931）。改用裸命令名。"
     safe = no_exec_tools()
-    if REDEFINES.search(command_text) or any(INTERPRETER.match(name_of(c.argv[0])) or "/" in c.argv[0] or name_of(c.argv[0]) in RUNS_OTHERS for c in commands):  # a name may run something else, or a program on the line may run what cp, mv or cat leave behind: no exemption
+    if len(commands) != 1 or NOT_PURE.search(command_text) or tokens_of(command_text, structured=True)[0] != commands[0].argv[0]:  # exempt only a line that is one plain command, its first word the program: no wrapper, prefix, separator, assignment or renaming (intent 2026-10-26-164931)
         safe = (set(), set(), {})
     for command in commands:
         tool = name_of(command.argv[0])
