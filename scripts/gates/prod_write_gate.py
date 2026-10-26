@@ -3,9 +3,12 @@
 
 生产目标 = prod_targets.json 的 patterns（与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR 所在仓库的），出现在命令的词里（引号、ANSI-C、续行、花括号、变量与 export／set -a 拼接、反引号与 `$(…)` 展开后）或环境变量里即「碰到」。
 行里有可能起注释的 `#` 或 here-document，且含生产特征、远程工具或目标环境变量：整行拒绝，不模仿 shell 剥离（宁可误拦，intent 2026-10-26-140639）。每条简单命令（`bash -c`／`-lc`／`eval`／here-string／`echo … | bash`／`env -S`／`<(…)` 递归，超过 3 层按读不懂）：
-- 远程工具（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie）碰到生产且写（或写效果看不出）拒绝；SQL 只认白名单，aliyun 只放 Describe/List/Get…，返回密钥的接口一律拒绝（底线 3）。
-- 不连接的命令（git 本地子命令、gh、echo、grep、rg 无 --pre、sed 无 e/w…）碰到特征放行；其他命令（解释器、xargs、find -exec、git push…）碰到即拒绝，解释器的脚本文件读进来看；可信只认 origin/main 特征表 trusted_entries 登记的固定入口：整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。
-- 特征表缺失、不合格，或与 origin/main 的并集为空：写类远程命令与解释器拒绝，只读放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名或特征拒绝；写操作的目标含读不出的变量拒绝。
+- 远程工具（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie）名字出现即拒，只认 origin/main 特征表 remote_entries 登记的整行写法，登记写法碰到生产特征照样拒（intent 2026-10-26-160810）。
+- 行里任意位置有生产特征，或指向生产的目标环境变量（命令里设的、会话环境里的），整行拒绝，不再按「这个命令不连接」放行；变量拼接、花括号展开后才命中的同样拒绝（intent 2026-10-26-165321 A）。
+- 解释器、shell 跑文件（含 `./x` 这样按路径运行）：文件内容（≤256 KB 去引号读，更大的按字节读）不含生产特征才放行，读不了、超过 512 MB 或是目录按含特征算（同上 B）。
+- 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。
+- 特征表缺失、不合格，或与 origin/main 的并集为空：远程工具与解释器拒绝，其余放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名、特征或目标环境变量拒绝。
+已知未覆盖（intent 2026-10-26-165321，复审不判必改）：脚本运行时做什么（运行时拼出或下载生产目标、从管道或标准输入读程序、解释器内联代码自己去连），门只看命令行与被运行的文件；兜底是生产只读账号（底线 4）。
 命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
@@ -285,20 +288,14 @@ INTERPRETER = re.compile(r"^(?:python[0-9.]*|" + "|".join(re.escape(n) for n in 
 REMOTE_WORD = re.compile(r"(?<![A-Za-z0-9_])(?:python[0-9.]*|" + "|".join(re.escape(n) for n in sorted((REMOTE_TOOLS | SHELLS | INTERPRETERS | RUNS_OTHERS) - {"python", "."}))
                          + r")(?![A-Za-z0-9_-])|(?:^|[\s;&|(])\.\s")  # the pre-filter's names come from these sets only, plus `. file`
 SHELL_HEADS = {"for", "case", "select", "function", "in"}  # `for f in a b` is a loop head; substitutions inside it are commands of their own
-NO_CONNECT = {"git", "gh", "echo", "printf", "grep", "egrep", "fgrep", "rg", "cat", "sed", "head", "tail", "ls", "jq", "wc", "sort", "uniq", "cut", "tr", "diff", "test", "[", "true", "false", "cd", "pwd", "export", "set", "unset", "read", "basename", "dirname", "mkdir", "touch", "cp", "mv", "stat", "file", "date", "tee", ":", "less", "more", "nl", "tac", "fold", "column", "comm", "join", "paste", "expr", "declare", "local", "readonly", "typeset"}
-LOCAL_GIT = {"commit", "log", "show", "status", "add", "diff", "grep", "branch", "checkout", "switch", "restore", "rev-parse", "rev-list", "ls-files", "ls-tree", "cat-file", "stash", "merge", "worktree", "blame", "describe", "shortlog", "apply", "reset", "cherry-pick", "rm", "mv", "clean", "rebase", "show-ref", "for-each-ref", "name-rev", "merge-base", "diff-tree", "diff-index", "hash-object", "symbolic-ref", "count-objects", "check-ignore", "version", "help"}
-GIT_RUNS_COMMANDS = ("exec", "ext-diff", "open-files-in-pager", "upload-pack", "receive-pack", "textconv")
-NETWORK_GIT = {"push", "pull", "fetch", "clone", "ls-remote", "remote", "submodule", "archive", "daemon", "send-pack", "fetch-pack", "upload-pack", "receive-pack", "request-pack", "svn", "p4", "credential", "bundle", "maintenance", "instaweb", "difftool", "mergetool"}
 
 ENV_TARGET_VARS = ("PGHOST", "PGSERVICE", "PGDATABASE", "PGUSER", "PGHOSTADDR", "SQLCMDSERVER", "SQLCMDDBNAME", "SQLCMDUSER", "MYSQL_HOST", "DATABASE_URL", "MONGODB_URI", "REDIS_URL", "ALIBABA_CLOUD_PROFILE")
-MAX_SQL_FILE, MAX_SCRIPT_FILE = 65536, 262144
+MAX_SCRIPT_FILE, MAX_RUN_FILE, CHUNK = 262144, 1 << 29, 1 << 23  # a file run is read quote-free up to the first, by bytes (in chunks) up to the second
 COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name these and LAUNCH_TOOL
 LAUNCH_TOOL = "mcp__Claude_Browser__preview_start"  # starts runtimeExecutable + runtimeArgs of the named .claude/launch.json configuration (cfcbcf473 final M4)
 LOADABLE, MAX_CLOSURE = (".py", ".pyc", ".so", ".pyd"), 400  # what Python imports from a directory (any interpreter: mod.cpython-312-darwin.so); files a trusted script may load before it counts as unreadable
 TRUSTED_LINE = None  # judge(): the argv of the line when it is exactly a registered entry (trusted_entry), else None
-HOST_OPTIONS = {"-h", "--host", "-S", "--server", "--url"}
 SHELL_META = re.compile(r"[$`;|&\n(){}<>]")
-SED_EXEC = re.compile(r"(?:^|[;{}\n])\s*[ew]\b|s(.).*?\1.*?\1[a-zA-Z]*e[a-zA-Z]*\s*(?:[;}]|$)")
 REDIRECTION = re.compile(r"&?[<>]+[&|]?")
 RAW_PATH = re.compile(r"(?:^|[\s;&|()<>`'\"=])[^\s;&|()<>`'\"=]*/[^\s;&|()<>]")  # any word with a slash: ./run, scripts/deploy, ~/x, /usr/bin/x, anywhere in the line (only for a line with a comment or here-document)
 PATH_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*(?:(?:\w+=\S*|\d*&?[<>]+[&|]?\s*[^\s;&|()]+)\s+)*[^\s;&|()]*/")  # a command word with a slash: a script run by its path
@@ -421,7 +418,7 @@ def could_concern(text):  # Pre-filter (text already `plain`): False only when t
     if may_run_or_expand(text):
         return True
     patterns, problem, _ = load_table()
-    return bool(problem) or any(p in text for p in patterns)
+    return bool(problem) or any(p in text for p in patterns) or any(os.environ.get(v) for v in ENV_TARGET_VARS)  # a target variable in the session: judge decides
 
 
 def brace_variants(word, limit=256):  # Words bash (and curl, on a quoted URL) makes from `a{1,2}b` / `{1..3}`; the word itself without braces; capped.
@@ -456,31 +453,31 @@ def text_hits(texts, patterns):  # True when a pattern occurs in the texts or in
     return False
 
 
-def has_explicit_target(argv):
-    return any(t in HOST_OPTIONS or (t.startswith(("-h", "-S")) and len(t) > 2 and not t.startswith("--")) or t.startswith(("--host=", "--server=", "--url=")) or "://" in t for t in argv[1:])
+def touches(command, patterns):  # A pattern in the words or environment of one command after variables and braces are expanded.
+    return text_hits(command.argv + list(command.env.values()), patterns)
 
 
-def touches(command, patterns, env_hit=False):
-    if text_hits(command.argv + list(command.env.values()), patterns):
-        return True
-    return env_hit and name_of(command.argv[0]) in SQL_TOOLS | {"aliyun"} and not has_explicit_target(command.argv)
-
-
-def long_option(token, names):  # `--x` / `--x=v` is one of `names` or a prefix of one (GNU getopt_long takes a unique prefix: `sort --outp=f` is `--output=f`).
-    if not token.startswith("--") or token == "--":
-        return False
-    given = token[2:].split("=", 1)[0]
-    return bool(given) and any(name.startswith(given) for name in names)
-
-
-def read_text(path, cwd, limit):
+def file_hits(path, cwd, patterns):  # True when a file a command runs mentions production: quote-free text up to MAX_SCRIPT_FILE, bytes up to MAX_RUN_FILE; unreadable, larger or a directory counts, a missing one runs nothing.
     full = path if os.path.isabs(path) else os.path.join(cwd or os.getcwd(), path)
+    if not os.path.lexists(full):
+        return False
+    wanted, keep = [p.encode() for p in patterns], max(map(len, patterns), default=1)
     try:
-        if os.path.isfile(full) and os.path.getsize(full) <= limit:
-            return Path(full).read_text(encoding="utf-8", errors="replace")
+        if not os.path.isfile(full) or os.path.getsize(full) > MAX_RUN_FILE:
+            return True
+        with open(full, "rb") as f:
+            head, tail = f.read(MAX_SCRIPT_FILE + 1), b""
+            if len(head) <= MAX_SCRIPT_FILE and any(p in plain(head.decode("utf-8", "replace")) for p in patterns):
+                return True
+            chunk = head
+            while chunk:
+                window = (tail + chunk).lower()
+                if any(w in window for w in wanted):
+                    return True
+                tail, chunk = window[-keep:], f.read(CHUNK)
     except OSError:
-        pass
-    return None
+        return True
+    return False
 
 
 def batch(args, lines):  # Output lines of one git process fed `lines` on standard input (one per line), or None when it fails or a line holds a newline.
@@ -636,46 +633,12 @@ def body_is_judged_separately(command):  # A shell whose program is a `-c` strin
     return tool in SHELLS and (tool == "eval" or any(SHORT_C.fullmatch(t) for t in argv[1:]) or "<<<" in argv)
 
 
-def indirect_hit(command, raw_hit, patterns, cwd):  # An interpreter or shell reading its program from a file, heredoc or pipe that mentions production (an unreadable script counts when the line mentions it).
+def runs_file(command, patterns, cwd):  # An interpreter or shell running a file, or a file run by its path, whose content mentions production (file_hits); a trusted entry excepted.
     tool = name_of(command.argv[0])
-    direct = "/" in command.argv[0] and tool not in NO_CONNECT and not INTERPRETER.match(tool)  # ./x, /tmp/x: the file itself is the program
-    if not (INTERPRETER.match(tool) or direct) or trusted_script(command.argv, cwd):
+    if not (INTERPRETER.match(tool) or "/" in command.argv[0]) or trusted_script(command.argv, cwd):
         return False
-    script = command.argv[0] if direct else script_operand(command.argv)
-    if script is not None:
-        content = read_text(script, cwd, MAX_SCRIPT_FILE)
-        if (content is None and raw_hit) or (content is not None and any(p in plain(content) for p in patterns)):
-            return True
-    return raw_hit and (command.piped or any(t.startswith("<") for t in command.argv))
-
-
-def no_connect_ok(command, patterns=()):  # Tools that cannot connect on their own, used the way that cannot: local git subcommands, rg without --pre, sed without e/w, sort without --compress-program.
-    argv, tool = command.argv, name_of(command.argv[0])
-    if tool not in NO_CONNECT or (patterns and text_hits(list(command.env.values()), patterns)):  # GIT_EXTERNAL_DIFF, GIT_PAGER, PAGER, EDITOR, LESSOPEN … are programs handed to the tool
-        return False
-    if tool == "git":
-        sub, i = None, 1
-        while i < len(argv):
-            token = argv[i]
-            if token == "-c" or token.startswith(("--exec-path", "--upload-pack", "--receive-pack")) or (token.startswith("-c") and token != "-C" and not token.startswith("--")):
-                return False
-            if token.startswith("-"):
-                i += 2 if token in ("-C", "--git-dir", "--work-tree", "--namespace") else 1
-                continue
-            sub = token
-            break
-        if sub not in LOCAL_GIT or sub in NETWORK_GIT:  # an unlisted sub-command (bisect run, filter-branch, submodule foreach, an alias …) can run any program
-            return False
-        return not any(long_option(t, GIT_RUNS_COMMANDS) or (sub == "rebase" and (t == "-x" or (t.startswith("-") and not t.startswith("--") and "x" in t[1:]))) or (sub == "grep" and t.startswith("-") and not t.startswith("--") and "O" in t[1:]) for t in argv)
-    if tool == "rg":
-        return not any(t.startswith(("--pre", "--hostname-bin")) for t in argv)
-    if tool == "sed":
-        return not any(SED_EXEC.search(t) for t in argv[1:] if not t.startswith("-") or t.startswith(("-e", "--expression")))
-    return tool != "sort" or not any(long_option(t, ("compress-program",)) for t in argv)
-
-
-def allowed_without_connecting(command, cwd=None, patterns=()):
-    return no_connect_ok(command, patterns) or trusted_script(command.argv, cwd)
+    script = script_operand(command.argv) if INTERPRETER.match(tool) else command.argv[0]
+    return script is not None and file_hits(script, cwd, patterns)
 
 
 def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refusal text or None.
@@ -697,16 +660,19 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
         commands = simple_commands(command_text)
         TRUSTED_LINE = trusted_entry(command_text, cwd) if len(commands) == 1 and INTERPRETER.match(name_of(commands[0].argv[0])) and could_concern(plain(command_text)) else None
     except ValueError:
-        if odd or raw_hit or remote_named(command_text, tools) or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in tools if len(t) > 2):  # unreadable: a name as a substring too (sshd_conf)
+        if odd or raw_hit or env_hit or remote_named(command_text, tools) or SHORT_REMOTE.search(plain(command_text)) or any(t in plain(command_text) for t in tools if len(t) > 2):  # unreadable: a name as a substring too (sshd_conf)
             return "命令读不懂（引号未闭合、嵌套过深等），且含生产特征、远程工具或注释／here-document，无法确认不是连生产的写操作，拒绝。"
         return None
+    if (raw_hit or env_hit) and TRUSTED_LINE is None:
+        return ("拒绝：命令里有生产特征，或指向生产的目标环境变量（命令里设的或会话环境里的），整行拒绝，不论哪个命令（intent 2026-10-26-165321）。CLAUDE.md 底线 4：不做生产写操作；"
+                "生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口（单独一条命令、按登记的写法运行）。会话环境里的目标变量请清掉后重开会话。")
     for command in commands:
         tool = name_of(command.argv[0])
         if tool in tools:  # spelled by variables or substitutions, or nested in a shell body: not the registered line
             if not remote_ok or patterns is None:
                 return f"拒绝：{tool} 由变量、命令替换或嵌套拼出，或特征表读不了（{problem or '—'}），不是整行登记写法，一律拒（intent 2026-10-26-160810）。"
-            if raw_hit or touches(command, patterns, env_hit):
-                return f"拒绝：登记的 {tool} 写法这一行碰到生产特征或指向生产的环境变量（两条规则叠加，intent 2026-10-26-160810）。"
+            if touches(command, patterns):
+                return f"拒绝：登记的 {tool} 写法拼接后碰到生产特征（两条规则叠加，intent 2026-10-26-160810）。"
             continue
         if body_is_judged_separately(command) or tool in SHELL_HEADS:
             continue
@@ -714,9 +680,10 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
             if INTERPRETER.match(tool) and not trusted_script(command.argv, cwd):
                 return f"{problem}：解释器命令（{tool}）无法判断是否碰到生产，一律拒绝；修好 scripts/gates/prod_targets.json 后再做。"
             continue
-        # a production target anywhere on the line makes every other command of the line answer for itself (`echo '…' > x && chmod +x x && ./x`)
-        if (raw_hit or touches(command, patterns) or indirect_hit(command, raw_hit, patterns, cwd)) and not allowed_without_connecting(command, cwd, patterns):
-            return (f"拒绝：{tool} 命令碰到生产目标。CLAUDE.md 底线 4：不做生产写操作；生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口。"
+        if trusted_script(command.argv, cwd):
+            continue
+        if touches(command, patterns) or runs_file(command, patterns, cwd):  # spelled by variables or braces, or the file it runs names production
+            return (f"拒绝：{tool} 命令拼接后碰到生产特征，或它运行的文件含生产特征（intent 2026-10-26-165321）。CLAUDE.md 底线 4：不做生产写操作；生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口。"
                     "可信脚本须单独一条命令、按登记的解释器运行。")
     return None
 

@@ -160,9 +160,13 @@ def gate_self_test():
         return {rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip() for rel in rels}
     real_blobs, g.main_blobs = g.main_blobs, as_main
     # 1. harmless mentions pass; a remote tool's name anywhere is refused unless the whole line is a registered form, reads to production and localhost included (intent 2026-10-26-160810)
-    for command in ("git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md", "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs",
-                    "python3 clean.py", "bash -c 'echo hi'", "ls $HOME", "echo 'cost $5 for pgm-prod0001'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF", "ls \\\n-la"):
+    for command in ("python3 clean.py", "bash -c 'echo hi'", "ls $HOME", "echo 'cost $5'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF", "ls \\\n-la", "git status", "./clean.py", "bash missing.sh"):
         assert allowed(command), f"must pass: {command!r}"
+    # 1a. a production sample anywhere, or a target variable pointing at production, refuses the whole line whatever the command (intent 2026-10-26-165321 A)
+    for command in ("git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md", "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs",
+                    "echo 'cost $5 for pgm-prod0001'", "H=pgm-pr; echo ${H}od0001", "echo pgm-prod{0001,0002}", "PGHOST=pgm-prod0001 ls"):
+        assert refused(command), f"a production sample on the line: refused: {command!r}"
+    assert refused("ls", environ={"PGHOST": P}) and refused("git status", environ={"DATABASE_URL": f"sqlserver://{P}"}) and allowed("ls", environ={"PGHOST": "localhost"}), "a target variable in the session pointing at production"
     for command in (f'psql -h {P} -c "SELECT 1"', f"sqlcmd -S {P} -i ro.sql", f"echo 'select 1' | psql -h {P}", f'redis-cli -h {P} slowlog get 5', "aliyun rds DescribeDBInstances --InstanceId pgm-prod0001", f"ssh {P} 'df -h && uptime'",
                     f"scp ops@{P}:/var/log/a.log ./a.log", f"rsync -a ops@{P}:/data/ ./data/", f"curl https://{P}/health", "wget https://db.prod.example.com/x", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"",
                     "curl -X POST http://localhost:$PORT/api", "psql -h localhost -c 'select 1' && curl http://localhost:$PORT"):
@@ -222,15 +226,9 @@ def gate_self_test():
     assert refused("psql -h localhost -c \"insert into t values ($X)\"") and refused("curl -X POST http://localhost:8080/api -d $BODY"), "a remote tool, whatever `$` stands for"
     assert refused("psql -h 'pgm-prod0001 -c 'delete'"), "unreadable command with a remote tool is refused"
     assert allowed("echo 'unterminated"), "unreadable command with no remote tool is not this gate's business"
-    # 5b. a bare assignment exported afterwards: `export NAME`, `declare -x`, `typeset -x`, or under `set -a` / `set -o allexport` (O2 review, M4)
-    for command in (f"PGHOST={P}; export PGHOST; psql -c 'delete from t'", f"set -a; PGHOST={P}; psql -c 'delete from t'", f"PGHOST={P}; declare -x PGHOST; psql -c 'delete from t'",
-                    f"PGHOST={P}; typeset -x PGHOST; psql -c 'delete from t'", f"set -o allexport; SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"set -ea; PGHOST={P}; psql -c 'delete from t'"):
-        assert refused(command), f"exported later must be refused: {command!r}"
-    assert refused("PGHOST=localhost; export PGHOST; psql -c 'delete from t'") and refused("set -a; PGHOST=localhost; psql -c 'delete from t'"), "an exported non-production host: psql is still a remote tool (intent 2026-10-26-160810)"
-    # 5c. a bare assignment to a target variable counts as exported: the variable may be exported already by the process environment or an rc file (O2 round 1, M1)
-    assert refused(f"PGHOST={P}; psql -c 'delete from t'", environ={"PGHOST": "localhost"}), "exported in the environment, reassigned bare"
-    assert refused(f"PGHOST={P}; psql -c 'delete from t'") and refused(f"SQLCMDSERVER={H}; sqlcmd -Q 'delete from t'"), "not in the environment the gate sees (an rc file may export it)"
-    assert refused("PGHOST=localhost; psql -c 'delete from t'", environ={"PGHOST": "localhost"}) and refused("PGHOST=localhost; psql -c 'delete from t'"), "a non-production host: still a remote tool, refused"
+    # 5b. a sample spelled by variables counts once expanded, in a word or an exported variable, whatever the command (intent 2026-10-26-165321 A); a remote tool is refused whatever its target
+    for command in ("H=pgm-pr; export PGHOST=${H}od0001; ls", "H=pgm-pr; set -a; X=${H}od0001; ./tame.sh", "H=pgm-pr; ./tame.sh ${H}od0001", f"PGHOST={P}; export PGHOST; psql -c 'delete from t'", "PGHOST=localhost; psql -c 'delete from t'"):
+        assert refused(command), f"spelled by variables: {command!r}"
     # 5d. two-letter remote tool names (xh) count as whole words only, not as substrings (O2 round 1, suggestion)
     assert allowed("cat exhibit 'oops") and allowed("grep xhr 'oops"), "an unreadable line whose words only contain xh is not this gate's business"
     assert refused("xh 'oops") and refused("cd x && xh 'oops") and refused("/usr/bin/xh 'oops"), "an unreadable line running xh is refused"
@@ -247,9 +245,7 @@ def gate_self_test():
     # 6. secrets (bottom line 3) and the environment
     for command in ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"):
         assert refused(command), command
-    assert refused('psql -c "delete from t"', environ={"PGHOST": P}) and refused('psql -c "select 1"', environ={"PGHOST": P}) and refused('psql -c "delete from t"', environ={"PGHOST": "localhost"})
-    assert refused('psql -h localhost -c "delete from t"', environ={"PGHOST": P}), "psql is a remote tool whatever the environment (intent 2026-10-26-160810)"
-    assert refused('sqlcmd -Q "delete from t"', environ={"SQLCMDSERVER": "rm-prodhost1.sqlserver.rds.aliyuncs.com"})
+    assert refused('psql -c "select 1"', environ={"PGHOST": "localhost"}) and refused("./tame.sh", environ={"SQLCMDSERVER": "rm-prodhost1.sqlserver.rds.aliyuncs.com"})
     # 7. table missing or broken: remote tools and interpreters are refused, other commands pass, nothing is silently opened
     assert refused('psql -h localhost -c "insert into t values (1)"', None, "生产特征表缺失") and refused('psql -h x -c "select 1"', None, "生产特征表缺失")
     assert refused("aliyun rds DeleteAccount --DBInstanceId x", None, "生产特征表缺失") and allowed("ls -la", None, "生产特征表缺失") and refused("python3 clean.py", None, "生产特征表缺失")
@@ -341,16 +337,20 @@ def gate_self_test():
     Path(cwd, "direct.sh").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
     Path(cwd, "tame.sh").write_text("echo hi\n", encoding="utf-8")
     for command in (f"echo \"sqlcmd -S {P} -Q 'delete from t'\" > x && chmod +x x && ./x", "./direct.sh", f"{cwd}/direct.sh", "ls && ./direct.sh", f"chmod +x x; ./x {P}", f"cd /tmp && ./run.sh {P}",
-                    f"git rebase -x \"sqlcmd -S {P} -Q 'delete from t'\" HEAD~1", f"git rebase --exec \"sqlcmd -S {P}\" HEAD~1", f"git rebase --ex \"sqlcmd -S {P}\" HEAD~1", f"git bisect run sqlcmd -S {P} -Q x",
-                    f"git filter-branch --tree-filter \"sqlcmd -S {P} -Q 'delete from t'\"", f"GIT_EXTERNAL_DIFF=\"sqlcmd -S {P} -Q 'delete from t'\" git diff", f"GIT_PAGER=\"sqlcmd -S {P}\" git log", f"EDITOR=\"sqlcmd -S {P}\" git commit",
-                    f"git diff --ext-diff && echo {P}", f"git grep -O'sqlcmd -S {P}' x", f"git submodule foreach 'sqlcmd -S {P}'", f"git config alias.q '!sqlcmd -S {P}' && git q", f"git q {P}",
-                    f"ssh -o KnownHostsCommand=\"/bin/sh -c 'touch /tmp/x'\" ops@{H} ls", f"ssh -oKnownHostsCommand=x ops@{H} ls", f"ssh -o PKCS11Provider=/tmp/evil.so ops@{H} ls", f"ssh -F evil.cfg ops@{H} ls", f"ssh -I /tmp/evil.so ops@{H} ls",
-                    f"ssh -o 'Include evil.cfg' ops@{H} ls", f"ssh -o 'Match exec x' ops@{H} ls", f"ssh -o ProxyJump=x ops@{H} ls",
-                    f"ssh ops@{H} sort --outp=/etc/passwd x", f"ssh ops@{H} date --se=@0", f"ssh ops@{H} journalctl --rot", f"ssh ops@{H} journalctl --vac=1G", f"ssh ops@{H} ss --ki", f"ssh ops@{H} file --comp x", f"ssh ops@{H} pg_dump --fi=/tmp/x db",
-                    f"wget --post-d=x https://{P}/x", f"wget --meth=DELETE https://{P}/x", f"wget --body-d=x https://{P}/x", f"sort --compress-prog='ssh {H}' f", f"sort --compress='ssh {H}' f"):
+                    f"git rebase -x \"sqlcmd -S {P}\" HEAD~1", f"GIT_PAGER=\"sqlcmd -S {P}\" git log", f"git config alias.q '!sqlcmd -S {P}' && git q", f"ssh -o ProxyJump=x ops@{H} ls", f"sort --compress-prog='ssh {H}' f"):
         assert refused(command), f"must be refused: {command!r}"
-    for command in ("./tame.sh", f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'"):
-        assert allowed(command), f"must pass: {command!r}"
+    for command in (f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'"):
+        assert refused(command), f"no command is excused for not connecting (intent 2026-10-26-165321 A): {command!r}"
+    # 10b. a file run by an interpreter, a shell or its path passes only when it names no production sample; unreadable, too large or a directory counts (intent 2026-10-26-165321 B)
+    Path(cwd, "git").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
+    Path(cwd, "big.sh").write_text("#" * (g.MAX_SCRIPT_FILE + 10) + f"\nsqlcmd -S {P.upper()}\n", encoding="utf-8")
+    Path(cwd, "quoted.sh").write_text("sqlcmd -S 'pgm-pr'od0001\n", encoding="utf-8")
+    Path(cwd, "locked.sh").touch(mode=0)
+    os.mkdir(os.path.join(cwd, "pkg"))
+    for command in ("./git status", "bash big.sh", "sh quoted.sh", "source ./direct.sh", "python3 runner.py", "./locked.sh", "python3 pkg", "nohup ./direct.sh &"):
+        assert refused(command), f"the file it runs: {command!r}"
+    for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'"):
+        assert allowed(command), f"no sample in the file, or no file (a pipe, inline code: known gap): {command!r}"
     for command in (f"ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no -i key -p 22 ops@{H} uptime", f"ssh ops@{H} 'sort -r x'", f"for f in a b; do sqlcmd -S {P} -Q 'select 1'; done"):
         assert refused(command), f"read-only remote commands are no longer told apart: refused (intent 2026-10-26-160810): {command!r}"
     # brace expansion
@@ -376,6 +376,7 @@ def gate_self_test():
             assert g.INTERPRETER.match(word) or name not in g.INTERPRETERS, word
         assert could_concern(plain("cat sshd_conf 'oops")) and not could_concern(plain("ls ./x")) and not could_concern(plain("echo a. b")), "a substring of a remote tool counts; a dot elsewhere does not"
         assert could_concern(plain("xh POST x")) and could_concern(plain("a&&xh x")) and not could_concern(plain("cat exhibit xhr")), "xh only as a word (O2 round 1, suggestion)"
+        with __import__("unittest.mock").mock.patch.dict(os.environ, PGHOST="x"): assert could_concern("echo hello"), "a target variable in the session: judge decides (intent 2026-10-26-165321)"
         # hook process end to end, with the shipped and a missing table
         script = os.path.join(HERE, "prod_write_gate.py")
         def hook(command, table_path=None, tool="Bash"):
@@ -896,7 +897,7 @@ def settings_self_test():
         assert found == ENTRIES[event], (event, found)
     gate = commands["scripts/gates/pre_tool_dispatch.py"]
     assert gate[2] == 120 and gate[1].endswith("exit 2") and "/usr/bin/python3 -I -c" in gate[1], "the gate mount: when the gate fails its own pre-filter decides, refusing by default (H4, C3)"
-    assert set(re.search(r'ok=set\("([^"]*)"', gate[1]).group(1).split()) <= g.NO_CONNECT and set(re.search(r'far="([^"]*)"', gate[1]).group(1).split()) >= g.LONG_REMOTE - {"https", "mongosh"}, "pre-filter lists"
+    assert set(re.search(r'ok=set\("([^"]*)"', gate[1]).group(1).split()).isdisjoint(g.INTERPRETERS | g.REMOTE_TOOLS | g.RUNS_OTHERS) and set(re.search(r'far="([^"]*)"', gate[1]).group(1).split()) >= g.LONG_REMOTE - {"https", "mongosh"}, "pre-filter lists"
     for name in ("scripts/hooks/git_ceiling_env.sh", "scripts/hooks/start_sheet.py"):
         assert commands[name][1].endswith("; exit 0") and "【钩子告警】" in commands[name][1] and "exit 2" not in commands[name][1], name
     assert commands["scripts/hooks/git_ceiling_env.sh"][2] == 10 and commands["scripts/hooks/start_sheet.py"][2] == 15
