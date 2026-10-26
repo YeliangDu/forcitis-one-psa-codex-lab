@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """决定链路一条龙：读用户在确认页的提交 → 对账 → 生成 intent 片段 → 打印收件箱回写所需的 ArtifactData 批量写入。
 用法：
-  python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> --category=<类别> --owner=<负责会话> --paths=<路径前缀|无> --supersedes=<被取代片段|无> [--session=one-rules] [--inbox-id=<收件箱事项 id>] [--no-intent]
+  python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> --category=<类别> --paths=<路径前缀|无> --supersedes=<被取代片段|无> [--owner=<负责会话，缺省取登记>] [--session=one-rules] [--inbox-id=<收件箱事项 id>] [--no-intent]
   python3 docs/modernization/rules/decide/decide_sync.py --check <收件箱 out_dir> <单子>=<确认页 out_dir> [<单子>=<确认页 out_dir> ...]
     对账检查（调度报「待答」前先跑）：读收件箱导出与各确认页导出，报出「收件箱仍是 pending，但确认页已提交」的事项，以及确认页提交后又改过、须重新提交的。
     事项对应哪张单子：事项里写 sheet 字段，或事项的 link 等于 README 页面表里该单子的链接；对不上的待定事项不报。有不一致时返回码 1。
@@ -9,7 +9,7 @@
 做三件事：
 1. 对账：调用 export_answers 的逻辑，有提交后又改过的题则报错退出；
 2. 每个提交编号生成一条 intent 片段（用户原话 = 题号 + 所选项文字 + 说明，落点指向答复文件 rules/decide/answers/<单子>.json），文件名打印出来；
-   new_intent 的四个必填项由调用方给：--category、--owner、--paths、--supersedes，缺任一即拒并列缺项，原样转给 new_intent（取值见其脚本头；G3 落地后由页面元数据填这三个参数）；只导出不生成 intent 时用 --no-intent；
+   new_intent 的四个必填项：--owner 取自 ONLINE_PAGES.md 里该单子登记的负责会话（G3；单子未登记、负责会话为「roles/ 未列」或登记表表头变了即拒，不回退默认会话；显式给 --owner 须与登记一致，否则拒），--category、--paths、--supersedes 由调用方手填（页面元数据里没有页类型与影响路径，不编），缺任一即拒并列缺项，原样转给 new_intent（取值见其脚本头）；口头决定不经单子，直接用 new_intent.py，同样必填这四项；只导出不生成 intent 时用 --no-intent；
 3. 打印 inbox 事项改为已定所需的 ArtifactData update 内容（status、answer、decidedAt、intent 文件名），由会话用 ArtifactData 执行：
    页面是各自独立的发布件，确认页不能直接写收件箱，所以回写由会话完成，并在报告里附这条命令的输出。
 不自动改规则卡、ADR；转写仍由会话执行并复核。
@@ -20,6 +20,22 @@ import datetime, glob, json, os, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import export_answers  # noqa: E402
+
+PAGES_HEADER = ["单子或页面", "用途", "负责会话", "起用日期", "退役日期", "出处"]
+
+
+def registered_owner(sheet):
+    """单子的负责会话，取自 ONLINE_PAGES.md 登记表。列约定：表头固定为 PAGES_HEADER 六列，行以「 | 」分列，单子行第一列是单子编号；
+    表头变了、单子未登记或重复、列数不对、负责会话为「roles/ 未列」，一律拒绝，不回退默认会话。"""
+    rows = [[c.strip() for c in line.strip().strip("|").split(" | ")] for line in open(os.path.join(HERE, "ONLINE_PAGES.md"), encoding="utf-8") if line.startswith("| ")]
+    if not rows or rows[0] != PAGES_HEADER:
+        sys.exit(f"ONLINE_PAGES.md 登记表表头不是约定的六列（{' | '.join(PAGES_HEADER)}），不敢解析负责会话；先修登记表或本脚本")
+    found = [r for r in rows if r[0] == sheet]
+    if len(found) != 1 or len(found[0]) != len(PAGES_HEADER):
+        sys.exit(f"单子 {sheet} 没有在 ONLINE_PAGES.md 登记（或重复登记、列数不对），无法确定负责会话；请先登记再生成 intent")
+    if found[0][2] in ("", "roles/ 未列"):
+        sys.exit(f"单子 {sheet} 在 ONLINE_PAGES.md 的负责会话是「{found[0][2]}」，无法确定负责会话；请先补登记")
+    return found[0][2]
 
 if "--check" in sys.argv:
     import glob as _g, re as _re
@@ -62,9 +78,15 @@ opts = dict(a[2:].split("=", 1) if "=" in a else (a[2:], True) for a in sys.argv
 if len(args) != 2:
     sys.exit(__doc__)
 sheet, base = args
+if not opts.get("no-intent"):
+    absent = [f"--{k}" for k in ("category", "paths", "supersedes") if not (isinstance(opts.get(k), str) and opts[k])]
+    if absent:
+        sys.exit(f"缺必填项：{'、'.join(absent)}（原样转给 new_intent，取值与写法见其脚本头；--owner 取自 ONLINE_PAGES.md；不生成 intent 时用 --no-intent）")
+    owner = registered_owner(sheet)
+    if "owner" in opts and opts["owner"] != owner:
+        sys.exit(f"--owner={opts['owner']!r} 与 ONLINE_PAGES.md 里单子 {sheet} 登记的负责会话 {owner} 不一致；不给 --owner 即取登记值")
+    opts["owner"] = owner
 passed = [f"--{k}={opts[k]}" for k in ("category", "owner", "paths", "supersedes") if isinstance(opts.get(k), str) and opts[k]]
-if not opts.get("no-intent") and len(passed) < 4:
-    sys.exit(f"缺必填项：{'、'.join(f'--{k}' for k in ('category', 'owner', 'paths', 'supersedes') if not any(p.startswith(f'--{k}=') for p in passed))}（原样转给 new_intent，取值与写法见其脚本头；不生成 intent 时用 --no-intent）")
 out, stale = export_answers.export(sheet, base)
 if stale:
     sys.exit(f"对账失败：这些题提交后又改过，请用户重新提交：{'、'.join(stale)}")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """new_intent.py 的自测（二乙 #25 C7）：在临时副本里跑，不写仓库的 intent/。用法：python3 docs/modernization/new_intent_selftest.py（附带的 --self-test 参数忽略）。"""
-import glob, os, shutil, subprocess, sys, tempfile
+import glob, json, os, shutil, subprocess, sys, tempfile
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
@@ -18,6 +18,45 @@ def run(tree, args):
 def swap(args, key, value=None):
     out = [a for a in args if not a.startswith(f"--{key}=")]
     return out if value is None else out + [f"--{key}={value}"]
+
+
+HEAD = "| 单子或页面 | 用途 | 负责会话 | 起用日期 | 退役日期 | 出处 |\n|---|---|---|---|---|---|\n"
+ROW = "| {} | 演练 | {} | x | 待定 | x |\n"
+PAGES = HEAD + ROW.format("ZZ", "one-glossary") + ROW.format("ZU", "roles/ 未列")
+
+
+def decide_drill(tree, sync_args):
+    """G3 演练（临时副本）：一题作答 → decide_sync 生成片段，负责会话取自登记表；表头变、未登记、未列、重复登记即拒。"""
+    mod = os.path.join(tree, "docs", "modernization")
+    dec = os.path.join(mod, "rules", "decide")
+    os.makedirs(os.path.join(dec, "sheets"))
+    for f in ("decide_sync.py", "export_answers.py"):
+        shutil.copy(os.path.join(BASE, "rules", "decide", f), dec)
+    for s in ("ZZ", "ZU"):
+        json.dump({"items": [{"no": f"{s}-01", "opts": [{"label": "甲"}]}]}, open(os.path.join(dec, "sheets", f"{s}.json"), "w", encoding="utf-8"), ensure_ascii=False)
+        out = os.path.join(tree, "out" + s)
+        os.makedirs(os.path.join(out, "answers"))
+        os.makedirs(os.path.join(out, "answers-submit"))
+        json.dump({"choice": 0, "note": ""}, open(os.path.join(out, "answers", f"{s}@{s}-01.json"), "w"))
+        pick = {"choice": 0, "label": "甲", "recommended": True, "defaulted": False}
+        json.dump({"number": "N1", "at": "2026-01-01T00:00:00", "picks": {f"{s}~{s}-01": pick}}, open(os.path.join(out, "answers-submit", "N1.json"), "w", encoding="utf-8"), ensure_ascii=False)
+
+    def sync(sheet, pages):
+        open(os.path.join(dec, "ONLINE_PAGES.md"), "w", encoding="utf-8").write(pages)
+        r = subprocess.run([sys.executable, os.path.join(dec, "decide_sync.py"), sheet, os.path.join(tree, "out" + sheet), *sync_args], capture_output=True, text=True)
+        return r.returncode, r.stdout + r.stderr
+    before = set(glob.glob(os.path.join(mod, "intent", "*.md")))
+    code, out = sync("ZZ", PAGES)
+    assert code == 0, out
+    (frag,) = set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before
+    text = open(frag, encoding="utf-8").read()
+    assert "## 类别\n\n流程\n\n## 负责会话\n\none-glossary\n\n## 影响路径\n\nscripts/ci、docs/modernization\n" in text, f"片段四项须齐全且负责会话取自登记：{text}"
+    for sheet, pages, why in (("ZZ", PAGES.replace("负责会话", "负责人"), "表头"), ("ZY", PAGES, "没有在 ONLINE_PAGES.md 登记"), ("ZU", PAGES, "roles/ 未列"), ("ZZ", PAGES + ROW.format("ZZ", "one-ops"), "重复登记")):
+        if sheet == "ZY":
+            shutil.copytree(os.path.join(tree, "outZZ"), os.path.join(tree, "outZY"))
+        code, out = sync(sheet, pages)
+        assert code != 0 and why in out, f"{why} 应拒：{out[:200]}"
+    assert len(set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before) == 1, "拒绝时不应再生成片段"
 
 
 def main():
@@ -42,13 +81,19 @@ def main():
         code, out = run(tree, swap(GOOD, "category", "杂项"))
         assert "--category" in out and "--owner" not in out and "--paths" not in out,f"只打印出错的项：{out[:200]}"
         assert not glob.glob(os.path.join(mod, "intent", "*.md")), "拒绝时不应生成片段"
-        sync = [sys.executable, os.path.join(BASE, "rules", "decide", "decide_sync.py"), "X1", tree]
-        for key in ("category", "owner", "paths", "supersedes"):
-            r = subprocess.run(sync + swap(GOOD, key)[1:], capture_output=True, text=True)
+        script = os.path.join(BASE, "rules", "decide", "decide_sync.py")
+        sync = [sys.executable, script, "D5", tree]
+        sync_args = [a for a in GOOD[1:] if not a.startswith("--owner=")]
+        for key in ("category", "paths", "supersedes"):
+            r = subprocess.run(sync + swap(sync_args, key), capture_output=True, text=True)
             msg = r.stdout + r.stderr
             assert r.returncode != 0 and f"缺必填项：--{key}（" in msg, f"decide_sync 不带 --{key} 应拒并只列它：{msg[:200]}"
-        r = subprocess.run(sync + GOOD[1:], capture_output=True, text=True)
-        assert "缺必填项" not in r.stdout + r.stderr, "四项齐全应越过必填检查（之后因无答复数据另行失败）"
+        r = subprocess.run(sync + sync_args, capture_output=True, text=True)
+        assert "缺必填项" not in r.stdout + r.stderr and "登记" not in r.stdout + r.stderr, "登记单子不给 --owner 应取登记值越过检查（之后因无答复数据另行失败）"
+        r = subprocess.run(sync + sync_args + ["--owner=one-ops"], capture_output=True, text=True)
+        assert r.returncode != 0 and "不一致" in r.stdout + r.stderr, "显式 --owner 与登记不一致应拒"
+        r = subprocess.run([sys.executable, script, "X1", tree, *sync_args], capture_output=True, text=True)
+        assert r.returncode != 0 and "单子 X1 没有在 ONLINE_PAGES.md 登记" in r.stdout + r.stderr, "未登记单子应拒并报单子名"
         r = subprocess.run(sync + ["--no-intent"], capture_output=True, text=True)
         assert "缺必填项" not in r.stdout + r.stderr, "--no-intent 不要求四项"
         code, out = run(tree, GOOD + ["--date=2026-01-01"])
@@ -68,6 +113,7 @@ def main():
         for owner in ("one-coordinator", "one-1a-par", "one-merge", "one-glossary"):
             code, out = run(tree, swap(GOOD, "owner", owner))
             assert code == 0, f"{owner} 应认：{out}"
+        decide_drill(tree, [a for a in GOOD[1:] if not a.startswith("--owner=")])
     print("ok")
 
 
