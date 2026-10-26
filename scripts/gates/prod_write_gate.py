@@ -327,6 +327,7 @@ PLAIN_RSH = re.compile(r"^ssh(?:\s+-[pi]\s*\S+|\s+-[46Cq])*$")
 SED_EXEC = re.compile(r"(?:^|[;{}\n])\s*[ew]\b|s(.).*?\1.*?\1[a-zA-Z]*e[a-zA-Z]*\s*(?:[;}]|$)")
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
 REDIRECTION = re.compile(r"&?[<>]+[&|]?")
+RAW_PATH = re.compile(r"(?:^|[\s;&|()<>`'\"=])(?:\.{1,2}|~)?/[^\s;&|()<>]")  # a word that is a path: ./run, ../x, ~/x, /usr/bin/x, anywhere in the line
 PATH_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*(?:(?:\w+=\S*|\d*&?[<>]+[&|]?\s*[^\s;&|()]+)\s+)*[^\s;&|()]*/")  # a command word with a slash: a script run by its path
 
 
@@ -1062,9 +1063,9 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     environ, TRUSTED_LINE = os.environ if environ is None else environ, None
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
-    odd = bool(COMMENT_OR_HEREDOC.search(CONTINUATION.sub(r"\1", command_text)))  # as bash, continuations go first; their text is read as words, so quotes in it may pair with the real commands
-    if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text)) or PATH_COMMAND.search(command_text)):  # the raw text too: a `\⏎` in a comment does not join the next line (c211b73bd final M1); variables may spell the tool and the target (2b59000cb first review M1)
-        return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具、解释器、变量展开、按路径执行的程序或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行；提交说明、PR 正文先写进文件（放会话 scratchpad 或 state 目录，不进仓库），再用 git commit -F <文件>、gh pr create --body-file <文件>（intent 2026-10-26-145156）。"
+    odd = bool(COMMENT_OR_HEREDOC.search(command_text)) or "\\\n" in command_text  # a comment, a here-document or a continuation anywhere: not read as the shell does
+    if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text)) or may_run_or_expand(command_text.lower()) or RAW_PATH.search(command_text)):  # anywhere in the text, not where a command starts (intent 2026-10-26-140639)
+        return "拒绝：命令里有注释、here-document 或续行，门不模仿 shell 去读它们；这一行任意位置又有生产特征、远程工具、解释器、变量展开、命令替换、路径或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行；提交说明、PR 正文先写进文件（放会话 scratchpad 或 state 目录，不进仓库），再用 git commit -F <文件>、gh pr create --body-file <文件>（intent 2026-10-26-145156）。"
     try:
         commands = simple_commands(command_text)
         TRUSTED_LINE = trusted_entry(command_text, cwd) if len(commands) == 1 and INTERPRETER.match(name_of(commands[0].argv[0])) and could_concern(plain(command_text)) else None

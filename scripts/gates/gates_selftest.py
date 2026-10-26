@@ -171,7 +171,7 @@ def gate_self_test():
                     "git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md",
                     "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs", "python3 clean.py", "bash -c 'echo hi'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"",
                     "curl -X POST http://localhost:$PORT/api", 'curl -s -d "$BODY" http://localhost:8080/api', "psql -h localhost -c 'DO $$ begin null; end $$'", "psql -h localhost -c 'select 1' && curl http://localhost:$PORT", "ls $HOME",
-                    "echo 'cost $5 for pgm-prod0001'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF"):
+                    "echo 'cost $5 for pgm-prod0001'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF", "ls \\\n-la"):
         assert allowed(command), f"must pass: {command!r}"
     # 1b. a comment or a here-document is not stripped as the shell would (intent 2026-10-26-140639): with a production sample, a remote tool or a target variable on the line, refused
     for command in (f"psql -h {P} <<'EOF'\nselect 1;\nEOF", "cat <<'EOF' > n.md\npgm-prod0001\nEOF", "cat <<EOF\nplain text pgm-prod0001\nEOF", f"ls # {P}", "cat <<EOF\npsql -h localhost\nEOF",
@@ -181,7 +181,7 @@ def gate_self_test():
     for command in ("python3 runner.py # it's", 'python3 runner.py # "', "python3 runner.py <<EOF\nit's\nEOF", "bash runner.py # it's", "echo a # '\npython3 runner.py\n: \\'",
                     "cat <<EOF\n'\nEOF\npython3 runner.py\n: \\'", "./deploy.sh # x", "echo a # it's", "echo a # x \\\n./deploy", ">o python3 runner.py", "echo a\\\\\n./deploy # x",  # the script the program reads (2b59000cb, c211b73bd final)
                     "T=ps; H=pgm-pr; ls # it's\n${T}ql -h ${H}od0001 -c 'delete from t'", "T=ps; H=pgm-pr; ${T}ql -h ${H}od0001 -c 'delete from t' # it's", "T=ps; H=pgm-pr; cat <\\\n<X\nit's\nX\n${T}ql -h ${H}od0001 -c 'delete from t'",
-                    "T=ps; H=pgm-pr; ls # '\n${T}ql -h ${H}od0001 -c 'delete from t'\n: \\'",  # variables spell tool and target, quotes pair across lines (first review M1; M2: `<<` split by a continuation)
+                    "T=ps; H=pgm-pr; ls # '\n${T}ql -h ${H}od0001 -c 'delete from t'\n: \\'", ">x python3 a.py # c", "ls # x \\\n./run",  # anywhere in the text; variables spell tool and target (2b59000cb first review M1, M2)
                     "ls # '\n`echo ps`ql -h `echo pgm-pr`od0001 -c \"delete from t\"\n: \\'", f"echo a\\\\\npsql -h {P} -c 'delete from t'", "echo a # '\n./deploy\n: \\'"):  # backticks, a path command; `\\` then a newline ends the command (3eac19088 final)
         assert refused(command), ("a comment or here-document with a program, or unreadable: refused", command)
     # 2. writes to production are refused, every class
