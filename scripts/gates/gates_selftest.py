@@ -444,19 +444,15 @@ def trust_self_test():
     fake, only = "fake-prod-db.example.invalid", "only-on-t.example.invalid"  # fictitious hosts
     script = os.path.join(HERE, "prod_write_gate.py")
     doc = DOCS_ROOT + "/new_intent.py"  # one of the gate's DOC_SCRIPTS, at its fixed path
+    legacy = DOCS_ROOT + "/phase1a/infra/new_legacy_read.py"  # another DOC_SCRIPT: its arguments name production instances by design
     with tempfile.TemporaryDirectory() as tmp:
         tmp = os.path.realpath(tmp)
         main, work, forged, other, loose = (os.path.join(tmp, n) for n in ("M", "W", "F", "T", "N"))
-        def repo(path, files):
-            for rel, text in files.items():
-                put(os.path.join(path, rel), text, 0o644)
-            for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "x"], ["update-ref", "refs/remotes/origin/main", "HEAD"]):
-                gitc(path, *args)
-        body = {doc: f"import os\nos.system(\"psql -h {fake} -c 'delete from t'\")\n"}
-        repo(main, body)
-        repo(forged, body)
+        body = {doc: f"import os\nos.system(\"psql -h {fake} -c 'delete from t'\")\n", legacy: "print('register')\n"}
+        mkrepo(main, body)
+        mkrepo(forged, body)
         put(os.path.join(loose, doc), body[doc], 0o644)  # the same file in a directory that is no repository
-        repo(other, {"scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "t", "patterns": [only]}]})})
+        mkrepo(other, {"scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "t", "patterns": [only]}]})})
         subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", work], check=True, capture_output=True)
         table = os.path.join(tmp, "fake_targets.json")
         Path(table).write_text(json.dumps({"targets": [{"id": "fake", "patterns": [fake]}]}), encoding="utf-8")
@@ -471,6 +467,7 @@ def trust_self_test():
                                         (work, None, 2, "no CLAUDE_PROJECT_DIR"), (work, "", 2, "an empty CLAUDE_PROJECT_DIR"), (loose, main, 2, "cwd in no repository")):
             assert hook(run_doc, cwd, project) == code, (why, cwd, project)
         assert hook(run_doc, None, main, process_cwd=work) == 2, "no cwd in the hook input: not trusted, even when the process runs in the worktree"
+        assert hook(f"python3 {legacy} --session=t ro '{fake} 库' a b c d", work, main) == 0, "the legacy-read register script may name a production instance"
         # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
         shifted = forged + "\nx"
         subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", shifted], check=True, capture_output=True)
@@ -764,6 +761,12 @@ def writable(root):
 def gitc(repo, *args):
     return subprocess.run(["git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "core.hooksPath=/dev/null", *args], check=True, capture_output=True, text=True).stdout.strip()
 
+def mkrepo(path, files):  # a repository holding `files`, committed once, with origin/main at that commit
+    for rel, text in files.items():
+        put(os.path.join(path, rel), text, 0o644)
+    for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "x"], ["update-ref", "refs/remotes/origin/main", "HEAD"]):
+        gitc(path, *args)
+
 def policy():
     return json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["gates"]
 
@@ -910,11 +913,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     forged, table = os.path.join(tmp, "forged"), os.path.join(tmp, "fake_targets.json")
     doc_script = "docs" + "/" + "modernization/new_intent.py"  # one of the gate's DOC_SCRIPTS; built, not spelled (relevant_change.py scans sources for literal docs paths)
     put(table, json.dumps({"targets": [{"id": "fake", "patterns": [FAKE]}]}), 0o644)
-    put(os.path.join(forged, doc_script), f"import os\nos.system(\"psql -h {FAKE} -c 'delete from t'\")\n", 0o644)
-    gitc(forged, "init", "-q", "-b", "main")
-    gitc(forged, "add", "-A")
-    gitc(forged, "commit", "-q", "-m", "forged")
-    gitc(forged, "update-ref", "refs/remotes/origin/main", "HEAD")
+    mkrepo(forged, {doc_script: f"import os\nos.system(\"psql -h {FAKE} -c 'delete from t'\")\n"})
     for shell in SHELLS:
         for project in (None, ""):
             r = mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {"command": "python3 " + doc_script}, "cwd": forged}), shell, CLAUDE_PROJECT_DIR=project, PROD_TARGETS_FILE=table, cwd=forged)

@@ -75,7 +75,8 @@
       "scripts/release/",
       "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/",
       "docs/modernization/new_intent.py",
-      "docs/modernization/new_decision.py",
+      "docs/modernization/phase1a/infra/new_legacy_read.py",
+      "docs/modernization/phase1a/infra/build_legacy_read_register.py",
       "docs/modernization/new_log.py",
       "docs/modernization/glossary/new_term_issue.py",
       "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt"
