@@ -45,7 +45,7 @@ seed_launches() { local n="$2"; while [ "$n" -gt 0 ]; do echo "$3" >> "$tmp/$1/s
 run() {
   local d="$tmp/$1"; shift
   SCRIPT="$here/docker_ensure.sh" FAKE="$d" DOCKER_BIN="${DOCKER_BIN_TEST:-$tmp/docker}" OPEN_BIN="$tmp/open" PGREP_BIN="$tmp/pgrep" LAUNCHCTL_BIN="$tmp/launchctl" \
-    DOCKER_ENSURE_STATE="$d/state" DOCKER_ENSURE_OUTBOX="$d/outbox.md" \
+    DOCKER_ENSURE_STATE="$d/state" DOCKER_ENSURE_ALERTS="$d/alerts.log" \
     DOCKER_ENSURE_WAIT_SECONDS="${WAIT:-4}" DOCKER_ENSURE_POLL_SECONDS=1 DOCKER_ENSURE_PROBE_SECONDS=2 DOCKER_ENSURE_LOCK_EXTRA_SECONDS="${EXTRA:-30}" \
     "$here/docker_ensure.sh" "$@" >"$d/out" 2>"$d/err"
   echo $? > "$d/rc"
@@ -53,7 +53,7 @@ run() {
 rc() { cat "$tmp/$1/rc"; }
 calls() { [ -e "$tmp/$1/$2-calls" ] && wc -l < "$tmp/$1/$2-calls" | tr -d ' ' || echo 0; }
 has() { grep -q "$2" "$tmp/$1/$3" 2>/dev/null && echo yes || echo no; }
-lines() { [ -e "$tmp/$1/outbox.md" ] && wc -l < "$tmp/$1/outbox.md" | tr -d ' ' || echo 0; }
+lines() { [ -e "$tmp/$1/alerts.log" ] && wc -l < "$tmp/$1/alerts.log" | tr -d ' ' || echo 0; }
 now="$(date +%s)"; old=$((now - 7200))
 
 newcase up up start; run up
@@ -68,14 +68,14 @@ check "一次拉起不告警" "$(lines down)" 0
 newcase timeout down never; run timeout
 check "拉起超时退出码 1" "$(rc timeout)" 1
 check "拉起超时报「Docker 未运行」" "$(has timeout 'Docker 未运行' err)" yes
-check "拉起超时写 outbox 告警" "$(has timeout '拉起失败' outbox.md)" yes
+check "拉起超时写告警文件" "$(has timeout '拉起失败' alerts.log)" yes
 check "拉起超时同时写 alert.log" "$(has timeout '拉起失败' state/alert.log)" yes
 run timeout
 check "同类告警一小时内只写一次" "$(lines timeout)" 1
 
 newcase frequent down start; seed_launches frequent 2 "$now"; run frequent
 check "频繁拉起仍成功" "$(rc frequent)" 0
-check "一小时内第 3 次拉起告警" "$(has frequent '已拉起 3 次' outbox.md)" yes
+check "一小时内第 3 次拉起告警" "$(has frequent '已拉起 3 次' alerts.log)" yes
 
 newcase second down start; seed_launches second 1 "$now"; run second
 check "一小时内第 2 次拉起不告警" "$(lines second)" 0
@@ -97,7 +97,7 @@ check "没有 pid 的过期锁被清掉，仍能拉起" "$(rc stale)" 0
 newcase live down start; mkdir "$tmp/live/state/lock.d"; echo $$ > "$tmp/live/state/lock.d/pid"; EXTRA=3 WAIT=1 run live
 check "活锁不被抢，等不到就失败退出 1" "$(rc live)" 1
 check "等锁超时报「Docker 未运行」" "$(has live 'Docker 未运行' err)" yes
-check "等锁超时写告警" "$(has live '拿不到锁' outbox.md)" yes
+check "等锁超时写告警" "$(has live '拿不到锁' alerts.log)" yes
 check "活锁时没有调 open" "$(calls live open)" 0
 
 newcase ci down start; run ci --ci
@@ -126,13 +126,13 @@ check "--ci 失败文案含「Docker 未运行」" "$(has ciagent 'Docker 未运
 newcase nocli down start; DOCKER_BIN_TEST=/nonexistent/docker run nocli
 check "找不到 docker 命令时退出 1" "$(rc nocli)" 1
 check "找不到 docker 命令时不 open" "$(calls nocli open)" 0
-check "找不到 docker 命令时告警 nocli" "$(has nocli '找不到 docker 命令' outbox.md)" yes
+check "找不到 docker 命令时告警 nocli" "$(has nocli '找不到 docker 命令' alerts.log)" yes
 
 newcase stalepause down start; touch "$tmp/stalepause/state/pause"; touch -t 200001010000 "$tmp/stalepause/state/pause"; run stalepause
 check "暂停文件过期仍退出 0" "$(rc stalepause)" 0
-check "暂停文件超过 12 小时告警" "$(has stalepause '已超过 12 小时' outbox.md)" yes
+check "暂停文件超过 12 小时告警" "$(has stalepause '已超过 12 小时' alerts.log)" yes
 
-mkdir -p "$tmp/nodir"; : > "$tmp/nodir/file"; DOCKER_ENSURE_STATE="$tmp/nodir/file/x" DOCKER_ENSURE_OUTBOX="$tmp/nodir/o.md" DOCKER_BIN="$tmp/docker" "$here/docker_ensure.sh" >/dev/null 2>"$tmp/nodir/err"; code=$?
+mkdir -p "$tmp/nodir"; : > "$tmp/nodir/file"; DOCKER_ENSURE_STATE="$tmp/nodir/file/x" DOCKER_ENSURE_ALERTS="$tmp/nodir/o.md" DOCKER_BIN="$tmp/docker" "$here/docker_ensure.sh" >/dev/null 2>"$tmp/nodir/err"; code=$?
 check "状态目录建不了时退出 2 并写 stderr" "$code" 2
 
 # 引擎挂住：探测有上限，不会卡死

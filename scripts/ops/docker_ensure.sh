@@ -6,9 +6,9 @@
 #         请求 launchd 里的 com.forcitis.docker-watch 立即跑一轮，然后有界地只等 docker info；代理未安装或已暂停时失败文案里写明。
 #   找不到 docker 命令（PATH 出错）：告警 nocli、退出 1，不 open（免得每轮都误拉起）。pause 文件超过 12 小时仍在：告警 paused（仍退出 0）。
 # 退出码：0 = docker 已应答（含刚拉起成功）；1 = 拉起失败，stderr 写「Docker 未运行」。
-# 拉起失败、等锁超时，或一小时内拉起超过 2 次：写 alert.log 并追加到 one-coordinator 的 outbox（由调度代转）；同一类告警一小时只写一次。
+# 拉起失败、等锁超时，或一小时内拉起超过 2 次：写 alert.log 并追加到 ~/.modernize/psa/state/alerts/docker.log（T5 看板读它，24 小时内有告警标红）；同一类告警一小时只写一次。
 # 不改 ~/.docker/config.json，不起容器。
-# 环境变量（自测与演练用）：DOCKER_BIN、OPEN_BIN、PGREP_BIN、LAUNCHCTL_BIN、DOCKER_ENSURE_STATE、DOCKER_ENSURE_OUTBOX、
+# 环境变量（自测与演练用）：DOCKER_BIN、OPEN_BIN、PGREP_BIN、LAUNCHCTL_BIN、DOCKER_ENSURE_STATE、DOCKER_ENSURE_ALERTS、
 #   DOCKER_ENSURE_WAIT_SECONDS（拉起后最长等待，默认 120）、DOCKER_ENSURE_POLL_SECONDS（默认 3）、DOCKER_ENSURE_PROBE_SECONDS（单次 docker info 上限，默认 10）、
 #   DOCKER_ENSURE_LOCK_STALE_SECONDS（锁超过此时长即视为过期，默认 600）、DOCKER_ENSURE_LOCK_EXTRA_SECONDS（默认 30）
 set -u
@@ -21,7 +21,7 @@ open_bin="${OPEN_BIN:-open}"
 pgrep_bin="${PGREP_BIN:-pgrep}"
 launchctl_bin="${LAUNCHCTL_BIN:-launchctl}"
 state="${DOCKER_ENSURE_STATE:-$HOME/.modernize/psa/ops/docker-watch}"
-outbox="${DOCKER_ENSURE_OUTBOX:-$HOME/.modernize/psa/outbox/one-coordinator.md}"
+alerts="${DOCKER_ENSURE_ALERTS:-$HOME/.modernize/psa/state/alerts/docker.log}"   # outbox 已停用（10-26 移入 backup-20261026）
 wait_seconds="${DOCKER_ENSURE_WAIT_SECONDS:-120}"
 poll_seconds="${DOCKER_ENSURE_POLL_SECONDS:-3}"
 probe_seconds="${DOCKER_ENSURE_PROBE_SECONDS:-10}"
@@ -29,8 +29,8 @@ lock_stale_seconds="${DOCKER_ENSURE_LOCK_STALE_SECONDS:-600}"
 lock_extra_seconds="${DOCKER_ENSURE_LOCK_EXTRA_SECONDS:-30}"   # 等别的实例拉起，比自己的等待上限多给这么久
 max_launches_per_hour=2
 
-if ! mkdir -p "$state" "$(dirname "$outbox")"; then
-  echo "docker_ensure: 无法创建状态目录 $state 或 $(dirname "$outbox")，告警也写不了" >&2
+if ! mkdir -p "$state" "$(dirname "$alerts")"; then
+  echo "docker_ensure: 无法创建状态目录 $state 或 $(dirname "$alerts")，告警也写不了" >&2
   exit 2
 fi
 launches="$state/launches.log"
@@ -55,9 +55,9 @@ alert() {
   last="$(cat "$mark" 2>/dev/null || echo 0)"
   [ $((now - last)) -lt 3600 ] && return 0
   echo "$now" > "$mark"
-  line="$(date '+%F %H:%M') → one-coordinator：本机 Docker 告警：${text}（来自 docker_ensure.sh，日志 ${alert_log}）"
+  line="$(date '+%F %H:%M') 本机 Docker 告警：${text}（来自 docker_ensure.sh，日志 ${alert_log}）"
   printf '%s\n' "$line" >> "$alert_log"
-  printf '%s\n' "- $line" >> "$outbox"
+  printf '%s\n' "$line" >> "$alerts"
   printf '%s\n' "$line" >&2
 }
 

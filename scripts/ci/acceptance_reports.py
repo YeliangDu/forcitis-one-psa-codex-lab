@@ -157,6 +157,7 @@ def legacy_script_self_test(root):
         scripts.mkdir(parents=True)
         script = scripts / "legacy_it.sh"
         script.write_text(Path(root, "scripts/ci/legacy_it.sh").read_text())
+        (base / "scripts/generate-api.sh").write_text(Path(root, "scripts/generate-api.sh").read_text())
         (scripts / "acceptance_reports.py").write_text(
             'import sys\nprint("SelectedIT" if "--legacy-it-tests" in sys.argv else "reports checked")\n')
         backend = base / "backend"
@@ -184,6 +185,13 @@ sys.exit(int(os.environ.get("FAILSAFE_STATUS", "0")))
         mvnw.chmod(0o755)
         env = {**os.environ, "BACKEND_WATCHDOG_SECONDS": "1500"}
         args = ["bash", str(script), "-Dtest.forks=2", "-Dtest.fork.timeout=1800"]
+        missing = subprocess.run(args, env=env, capture_output=True, text=True, timeout=10)
+        assert missing.returncode == 1 and "bash scripts/generate-api.sh" in missing.stderr, missing.stdout + missing.stderr
+        assert not (backend / "calls.jsonl").exists(), "缺生成物必须先失败，不能启动 Maven 或容器"
+        for name in ("openapi.json", "src/generated/schema.ts", "src/generated/validators.ts", "src/generated/operations.ts"):
+            product = base / "frontend/packages/api" / name
+            product.parent.mkdir(parents=True, exist_ok=True)
+            product.write_text("generated test fixture\n")
         passed = subprocess.run(args, env=env, capture_output=True, text=True, timeout=10)
         assert passed.returncode == 0 and "reports checked" in passed.stdout, passed.stdout + passed.stderr
         calls = [json.loads(line) for line in (backend / "calls.jsonl").read_text().splitlines()]

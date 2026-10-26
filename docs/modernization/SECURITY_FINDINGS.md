@@ -87,7 +87,7 @@ pnpm audit 汇总：PC 端 critical 4 / high 45 / moderate 42；H5 端 critical 
 
 ## Remediation Log
 
-补丁：`security_remediation.patch`（可共享，30 个文件）、`~/.modernize/psa/security_remediation.local.patch`（凭据部分，仅本机，权限 600）。说明见 `security_remediation.notes.md`。**两份补丁都没有应用到 psa 仓库**（本轮约定只分析）。
+补丁：`security_remediation.patch`（30 个文件）、`security_remediation.local.patch`（凭据部分）与说明 `security_remediation.notes.md`，2026-10-26 起只在本机 `~/.modernize/psa/security_remediation/`（目录 700、文件 600），不在仓库（定稿 6.1 第 4 条，O17）。**两份补丁都没有应用到 psa 仓库**（本轮约定只分析）。
 
 | ID | 修复摘要 | 所在补丁 |
 |---|---|---|

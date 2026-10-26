@@ -1,9 +1,0 @@
-# Approved module dependency graph (DDD context map in code form). Reviewed by the IT Admin via CODEOWNERS.
-# Format: <module> -> <module>, <module>   (module = <subdomain>.<bc>; "kernel" is always allowed and omitted)
-# A module may only use the api / events of the modules listed here; anything else fails ModuleDependencyTest.
-cost.timesheet -> delivery.execution, platform.approval, platform.identity
-delivery.execution ->
-platform.approval ->
-platform.identity ->
-platform.numbering -> platform.identity
-platform.scheduling ->

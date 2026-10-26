@@ -2,6 +2,7 @@
 """新增一条老系统 / A8 生产数据读取登记片段 legacy-read/<日期>-<HHMMSS>-<会话名>.md，然后重新生成 LEGACY_READ_REGISTER.md。
 
 用法：python3 docs/modernization/phase1a/infra/new_legacy_read.py --session=<会话名> "<执行账号>" "<库与表>" "<用途>" "<输出形式与去向>" "<落盘目录与删除时点>" "<依据>" [--date=YYYY-MM-DD]
+参数里有生产实例号时，生产写门只认登记的写法：/usr/bin/python3 -I -S docs/modernization/phase1a/infra/new_legacy_read.py …（scripts/gates/prod_targets.json 的 trusted_entries）。
 六个值各为一行，不能含「|」。文件名由日期、当前时刻与会话名组成，并行会话互不撞名。
 """
 import datetime, importlib.util, os, re, subprocess, sys
@@ -36,7 +37,7 @@ def main(argv):
         os.remove(path)
         sys.exit(f"失败（未留下片段）：{error}")
     print(os.path.relpath(path, BASE))
-    subprocess.run([sys.executable, os.path.join(BASE, "build_legacy_read_register.py")], check=True)
+    subprocess.run([sys.executable, *(["-I", "-S"] if sys.flags.isolated else []), os.path.join(BASE, "build_legacy_read_register.py")], check=True)  # the child as isolated as this run
 
 
 if __name__ == "__main__":

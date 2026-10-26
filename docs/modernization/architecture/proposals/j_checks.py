@@ -1,6 +1,6 @@
 """Conformance checks J1-J7 of the seams (METHOD_V4_DRAFT.md section 3) on the architecture proposals; rules are J_CHECKS.md (one-architecture).
 
-Inputs (same folder): value-streams.v2.yaml (VS), capabilities.v2.yaml (CAP), ENTERPRISE_INFO_MAP_DRAFT.md (IM), ENTERPRISE_AGGREGATES_DRAFT.md (AG), STAGE_TYPES_DRAFT.md (stage names, J3.2),
+Inputs: ssot/05-value-streams/value-streams.yaml (VS) and ssot/10-objects/ENTERPRISE_INFO_MAP.md (IM) (a fixture folder may hold value-streams.yaml / ENTERPRISE_INFO_MAP.md instead), same folder: capabilities.v2.yaml (CAP), ENTERPRISE_AGGREGATES_DRAFT.md (AG), STAGE_TYPES_DRAFT.md (stage names, J3.2),
 aggregates_dep_check.py (DEP, J7.1-J7.3) and vs_links_gen.py (state splitting and condition leaves). Read-only.
 
 30 checks: the 28 rules J1.1-J7.5, J2.4r (the derived-value list outside the gates) and J5.2r (combined A classes), of which J3.2, J2.4r and J5.2r only report. Every check prints PASS / FAIL / REPORT with its findings; the exit code is 1 when any check fails. REPORT checks (J3.2) never fail. The counts and the capability x stage table close the output.
@@ -20,6 +20,8 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parent
+SSOT_VS = HERE.parent / "ssot" / "05-value-streams" / "value-streams.yaml"
+SSOT_IM = HERE.parent / "ssot" / "10-objects" / "ENTERPRISE_INFO_MAP.md"
 BANNED_CAP_KEYS = {"bc", "module", "subdomain", "current_bc", "strategic_hint"}
 BLOCK_KEYS = {"block", "blocking", "gate_mode"}
 MODES = {"api", "事件", "不校验"}
@@ -126,13 +128,16 @@ class Data:
         self.folder = Path(folder)
         local = self.folder / "module-dependencies.txt"
         self.built = local if local.exists() else HERE.parents[3] / "backend" / "architecture" / "module-dependencies.txt"
-        missing = [n for n in ("value-streams.v2.yaml", "capabilities.v2.yaml", "ENTERPRISE_INFO_MAP_DRAFT.md", "ENTERPRISE_AGGREGATES_DRAFT.md", "STAGE_TYPES_DRAFT.md", "vs_links_gen.py", "aggregates_dep_check.py") if not (self.folder / n).exists()]
+        self.vs_path = self.folder / "value-streams.yaml" if (self.folder / "value-streams.yaml").exists() else SSOT_VS
+        self.im_path = self.folder / "ENTERPRISE_INFO_MAP.md" if (self.folder / "ENTERPRISE_INFO_MAP.md").exists() else SSOT_IM
+        missing = [n for n in ("capabilities.v2.yaml", "ENTERPRISE_AGGREGATES_DRAFT.md", "STAGE_TYPES_DRAFT.md", "vs_links_gen.py", "aggregates_dep_check.py") if not (self.folder / n).exists()]
+        missing += [str(q) for q in (self.vs_path, self.im_path) if not q.exists()]
         if missing:
             raise SystemExit(f"missing input in {self.folder}: {', '.join(missing)}")
         read = lambda name: (self.folder / name).read_text(encoding="utf-8")
-        self.vs = yaml.safe_load(read("value-streams.v2.yaml"))
+        self.vs = yaml.safe_load(self.vs_path.read_text(encoding="utf-8"))
         self.cap = yaml.safe_load(read("capabilities.v2.yaml"))
-        self.im_lines = read("ENTERPRISE_INFO_MAP_DRAFT.md").splitlines()
+        self.im_lines = self.im_path.read_text(encoding="utf-8").splitlines()
         self.ag_text = read("ENTERPRISE_AGGREGATES_DRAFT.md")
         self.ag_lines = self.ag_text.splitlines()
         self.stage_types_text = read("STAGE_TYPES_DRAFT.md")
@@ -709,9 +714,9 @@ STAGE_TYPES = "阶段类型目录：启动、概念、方案、初设、深化�
 
 
 def write_fixture(folder, vs=None, cap=None, im=BASE_IM, ag=BASE_AG):
-    Path(folder, "value-streams.v2.yaml").write_text(yaml.safe_dump(vs or BASE_VS, allow_unicode=True), encoding="utf-8")
+    Path(folder, "value-streams.yaml").write_text(yaml.safe_dump(vs or BASE_VS, allow_unicode=True), encoding="utf-8")
     Path(folder, "capabilities.v2.yaml").write_text(yaml.safe_dump(cap or BASE_CAP, allow_unicode=True), encoding="utf-8")
-    Path(folder, "ENTERPRISE_INFO_MAP_DRAFT.md").write_text(im, encoding="utf-8")
+    Path(folder, "ENTERPRISE_INFO_MAP.md").write_text(im, encoding="utf-8")
     Path(folder, "ENTERPRISE_AGGREGATES_DRAFT.md").write_text(ag, encoding="utf-8")
     Path(folder, "STAGE_TYPES_DRAFT.md").write_text(STAGE_TYPES, encoding="utf-8")
     Path(folder, "module-dependencies.txt").write_text("", encoding="utf-8")

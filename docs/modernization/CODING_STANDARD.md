@@ -38,7 +38,7 @@
 | CS-1.7 | **缺失或无效输入失败并告警，不静默跳过** | [SESSION_PLAYBOOK 附 M5「第二批」第 3 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处)；DATA_DESIGN_CHECKLIST §14 第 5 项、G-T2 | 守护：`CurrentUserGuardTest`（法人不得写死或默认）；其余复审 |
 | CS-1.8 | **只实现当前阶段规格所需** | [SESSION_PLAYBOOK 附 M5「第二批」第 4 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
 | CS-1.9 | **能一开始做对的，不留到后续阶段** | [SESSION_PLAYBOOK 附 M5「第二批」第 11 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
-| CS-1.10 | **契约先行** | [SESSION_PLAYBOOK 附 M5「第二批」第 8 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 守护：CI「OpenAPI contract unchanged」；PR 模板 |
+| CS-1.10 | **契约先行** | [SESSION_PLAYBOOK 附 M5「第二批」第 8 条](SESSION_PLAYBOOK.md#m5-写代码规则coding_standard-引此为出处) | 守护：CI `api-contract` 导出断言 + frontend verify；PR 模板。快照移出后不再逐字节比较入库契约，跨版本兼容性比对仍待 G-C1（见 frontend/packages/api/README.md） |
 | CS-1.11 | **强类型**：类型化 ID、值对象、状态枚举、sealed 结果类型；契约中禁止 `Object` / `Map<String, Object>`；前端禁 `any` | GUIDING_PRINCIPLES §10 | 守护：G16、G17、G21–G24、G31、G32、F7 |
 | CS-1.12 | **深模块、窄接口**：模块对外只有 `api` 与 `events`；`api` 方法总数 ≤ 12；前端模块经 `index.ts` 导出 ≤ 8 | NAMING_STANDARD §0 | 守护：G1–G4、G30、F1–F4、F12、F13 |
 | CS-1.13 | **生成的代码只放 `generated/`，不手改**；改生成器或源契约后重新生成 | NAMING_STANDARD §5 | 守护：前端 `pnpm check:generated` |

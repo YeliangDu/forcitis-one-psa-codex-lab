@@ -20,7 +20,7 @@ BASE = Path(__file__).resolve().parent
 FIELDS = ('任务号', '任务名', '主线', 'bc', '种类', '会话', '执行者与模型', '状态', '分支', '提交', '返工轮次', '用时', '旧编号')
 LANES = dict(NAM='命名', CON='施工图', ARC='架构整合', RUL='规则', DAT='数据', IMP='代码实现', CI='合并与 CI', OPS='运维', GOV='流程治理')
 SESSION_CODES = ('GLO', 'AFI', 'ARE', 'APE', 'ARC', 'PAR', 'NX5', 'QUA', 'RUL', 'DAT', 'OPS', 'MRG', 'COO', 'ADM')
-STATUSES = ('待派', '已派', '进行中', '复审中', '返工中', '待验收', '已完成', '已提交', '已合并', '阻塞', '已取消', '待核')
+STATUSES = ('待派', '已派', '进行中', '复审中', '返工中', '待验收', '已完成', '已提交', '已合并', '阻塞', '已取消', '待核', '完成', '作废')
 # 现行取值（用户 2026-10-21，intent 2026-10-21-213907）：STATUSES 里其余的是存量写法，先报告、不失败；LEGACY_STATUS 给出对应的现行取值
 FRAGMENT_STATUSES = ('已派', '进行中', '阻塞', '完成', '作废')
 LEGACY_STATUS = {'待派': '已派', '复审中': '进行中', '返工中': '进行中', '待验收': '进行中', '已完成': '完成', '已提交': '完成', '已合并': '完成', '已取消': '作废'}
@@ -135,7 +135,7 @@ def task_warnings(tasks):
     legacy = sorted({t['状态'] for _, t in tasks if t['状态'] in LEGACY_STATUS})
     if legacy:
         count = sum(t['状态'] in LEGACY_STATUS for _, t in tasks)
-        warnings.append(f'{count} 张片段仍用存量状态值（{"、".join(f"{v}→{LEGACY_STATUS[v]}" for v in legacy)}）；状态现行取值 {"/".join(FRAGMENT_STATUSES)}，task_backfill.py 列出建议，由负责会话确认后改')
+        warnings.append(f'{count} 张片段仍用存量状态值（{"、".join(f"{v}→{LEGACY_STATUS[v]}" for v in legacy)}）；状态现行取值 {"/".join(FRAGMENT_STATUSES)}，由负责会话改为现行取值')
     return warnings
 
 
@@ -424,7 +424,7 @@ def self_test():
     assert len(stale_report([(path, dict(working, 状态='已派', 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 1
     assert len(stale_report([(path, dict(working, 状态='已提交', 最后更新='2026-10-22T09:00:00+02:00'))], now, {'claude/x'})) == 0, '存量的已提交算完成'
     assert len(task_warnings([(path, dict(task, 状态='已合并')), (path, dict(task, 状态='待派'))])) == 1, '存量状态合成一条提示'
-    assert 'task_backfill' in task_warnings([(path, dict(task, 状态='已合并'))])[0]
+    assert '存量状态值' in task_warnings([(path, dict(task, 状态='已合并'))])[0]
     print('check_tasks --self-test：通过（格式、兼容字段、白名单、待核汇总、负向样例、生成与 Git 状态无关）')
 
 

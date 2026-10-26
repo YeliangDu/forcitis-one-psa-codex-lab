@@ -1,7 +1,7 @@
 {
   "version": 1,
   "owner": "one-ops",
-  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。碰到任一 pattern 的命令，除点名只读用法与不连接命令外一律被 prod_write_gate 拒绝；改动由 one-ops 提，PR 过 opus 复审。间接引用（别名、ssh_config、DSN）不覆盖，靠只读账号兜底。",
+  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。命令行任意位置碰到任一 pattern，或运行的文件内容含 pattern，除 trusted_entries 登记入口外一律被 prod_write_gate 拒绝（intent 2026-10-26-165321）；改动由 one-ops 提，PR 过 opus 复审。间接引用（别名、ssh_config、DSN）与脚本运行时行为不覆盖，靠只读账号兜底。",
   "targets": [
     {
       "id": "legacy-rds-sqlserver",
@@ -41,16 +41,229 @@
         "forcitis-one-deploy-request-prod"
       ],
       "note": "新系统生产命名（库、角色前缀、OOS 参数）；实例建成后 one-ops 补实例 ID 与端点"
+    },
+    {
+      "id": "bi-prod",
+      "kind": "ecs",
+      "patterns": [
+        "i-uf61vaoqwmccmxi8mcc5",
+        "bi.forcitis.com",
+        "bi-release.sh",
+        "forcitis/aliyun",
+        "cloud-assistant-run"
+      ],
+      "note": "BI 生产（U13，intent 131816）：BI 发布脚本写死的生产 ECS 实例、站点域名、发布脚本名；aliyun 云脚本仓库路径与远程执行脚本名（gap-5 D16）。不在 BI 仓库装门"
     }
   ],
-  "readonly_tools": {
+  "trusted_entries": {
     "owner": "one-ops",
-    "note": "路径 = docs 根（docs 下的 modernization 目录）+ base + files。只登记整支都只读的入口（阿里云 Python SDK ecs.run_command，命令名 one-ops-b5，目标仅旧系统应用服务器，只用三个只读账号）；b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。脚本内容须与 origin/main 上逐字节一致才算可信。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。出自 one-ops 的生产特征表第五节。",
-    "files": [
-      "b5_evidence_scan.py",
-      "c14_orphan_check.py",
-      "c14_u8c_status.py"
+    "note": "可信入口（intent 2026-10-26-132048「收窄可信机制」）：门只读 origin/main 上这一节；整行须等于 interpreter + script + forms 之一，{类} 的值按 slots 全匹配；script、它的导入链与同目录可导入文件、trust_dirs 下全部文件须与 origin/main 逐字节一致。路径 = docs 根（docs 下的 modernization 目录）+ script / trust_dirs。interpreter 写死：只用标准库的入口用 /usr/bin/python3 -I -S；要阿里云 SDK 的取证工具用 ops-venv 的 python -I。表里的 ~/ 由门按自己的 HOME 展开，命令里须写出绝对路径（门不展开命令里的 ~，带引号或改过 HOME 的 ~ 都不算）。只登记整支都只读的取证入口与登记脚本：b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。",
+    "slots": {
+      "name": "[A-Za-z0-9._-]{1,64}",
+      "date": "[0-9]{4}-[0-9]{2}-[0-9]{2}",
+      "file": "(?!.*\\.\\.)[A-Za-z0-9._/-]{1,200}",
+      "sql": "[A-Za-z0-9_-]{1,80}\\.sql",
+      "text": "[^\\x00-\\x1f\\x7f$`\\\\'\"#;&|<>(){}]{1,400}"
+    },
+    "entries": [
+      {
+        "id": "legacy-read",
+        "script": "phase1a/infra/new_legacy_read.py",
+        "interpreter": [
+          "/usr/bin/python3",
+          "-I",
+          "-S"
+        ],
+        "forms": [
+          [
+            "--session={name}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}"
+          ],
+          [
+            "--session={name}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "{text}",
+            "--date={date}"
+          ]
+        ],
+        "trust_dirs": []
+      },
+      {
+        "id": "b5-evidence-scan",
+        "script": "phase1a/infra/handoff/B-5-dba/tools/b5_evidence_scan.py",
+        "interpreter": [
+          "~/.modernize/psa/ops-venv/bin/python",
+          "-I"
+        ],
+        "forms": [
+          [
+            "{file}"
+          ],
+          [
+            "{file}",
+            "{sql}"
+          ]
+        ],
+        "trust_dirs": [
+          "phase1a/infra/handoff/B-5-dba/",
+          "phase1a/infra/runbooks/scripts/"
+        ]
+      },
+      {
+        "id": "c14-orphan-check",
+        "script": "phase1a/infra/handoff/B-5-dba/tools/c14_orphan_check.py",
+        "interpreter": [
+          "~/.modernize/psa/ops-venv/bin/python",
+          "-I"
+        ],
+        "forms": [
+          []
+        ],
+        "trust_dirs": [
+          "phase1a/infra/handoff/B-5-dba/",
+          "phase1a/infra/runbooks/scripts/"
+        ]
+      },
+      {
+        "id": "c14-u8c-status",
+        "script": "phase1a/infra/handoff/B-5-dba/tools/c14_u8c_status.py",
+        "interpreter": [
+          "~/.modernize/psa/ops-venv/bin/python",
+          "-I"
+        ],
+        "forms": [
+          []
+        ],
+        "trust_dirs": [
+          "phase1a/infra/handoff/B-5-dba/",
+          "phase1a/infra/runbooks/scripts/"
+        ]
+      }
+    ]
+  },
+  "remote_entries": {
+    "owner": "one-ops",
+    "note": "远程工具只认登记写法（intent 2026-10-26-160810）：命令原文任意位置出现 tools 里的名字，只有整行与某个 form 逐字匹配（工具名打头、不带路径，槽位按 slots 正则全匹配，行内不得有 shell 元字符、# 与反斜杠）才放行，否则一律拒；只读 origin/main 上这一节。已登记的写法仍受「生产特征全文命中即拒」约束。新写法发卡登记，误拦了再补。",
+    "tools": [
+      "ssh",
+      "scp",
+      "rsync",
+      "sftp",
+      "psql",
+      "pg_dump",
+      "pg_dumpall",
+      "pg_restore",
+      "mysql",
+      "mysqldump",
+      "mariadb",
+      "sqlcmd",
+      "osql",
+      "bcp",
+      "sqlpackage",
+      "mssql-cli",
+      "usql",
+      "mongosh",
+      "mongo",
+      "redis-cli",
+      "aliyun",
+      "curl",
+      "wget",
+      "http",
+      "https",
+      "xh",
+      "xhs"
     ],
-    "base": "phase1a/infra/handoff/B-5-dba/tools/"
+    "slots": {
+      "seconds": "[0-9]{1,3}",
+      "local_url": "(?:http://)?(?:localhost|127\\.0\\.0\\.1):[0-9]{2,5}(?:/[A-Za-z0-9._~/?=&%+-]*)?"
+    },
+    "entries": [
+      {
+        "id": "curl-local",
+        "tool": "curl",
+        "note": "本机 dev 服务探活（remote-usage.md 建议 1、4）",
+        "forms": [
+          [
+            "-s",
+            "-m",
+            "{seconds}",
+            "{local_url}"
+          ]
+        ]
+      }
+    ]
+  },
+  "no_exec_tools": {
+    "owner": "one-ops",
+    "note": "已知不执行参数里文件的程序（intent 2026-10-26-164931「不确定就拒」，调度定 A′）：门对它们免读位置参数，选项值、选项里嵌的词（如 git -c core.pager=…、rg --pre …）与环境变量照读；git 另限子命令（git_subcommands），git、rg 带配置来源或执行路径时整行拒。门只认 origin/main 上这一节。每加一个程序须在 basis 写依据（它不会执行参数文件），由 one-ops 提、opus 终审。",
+    "tools": [
+      "git",
+      "cat",
+      "head",
+      "tail",
+      "wc",
+      "ls",
+      "grep",
+      "rg",
+      "diff",
+      "cmp",
+      "stat",
+      "shasum",
+      "jq"
+    ],
+    "basis": {
+      "git": "只在 git_subcommands 列的子命令上免读位置参数：这些子命令的位置参数是路径、修订号或分支名；bisect run、submodule foreach、rebase --exec 等会执行参数的不在内。带 -c、--config-env、--exec-path 或 GIT_PAGER、GIT_EXTERNAL_DIFF 等配置来源环境变量时整行拒；commit 会跑 .git/hooks（脚本运行时行为，按已知未覆盖）",
+      "cat": "只读出文件内容",
+      "head": "只读出文件开头",
+      "tail": "只读出文件结尾",
+      "wc": "只计数",
+      "ls": "只列目录项",
+      "grep": "只按模式读文件；-f 的模式文件是选项值，照读",
+      "rg": "只按模式读文件；--pre、--hostname-bin 的值照读；带 RIPGREP_CONFIG_PATH 时整行拒",
+      "diff": "只比较文件",
+      "cmp": "只逐字节比较",
+      "stat": "只读元数据",
+      "shasum": "只算摘要",
+      "jq": "只读 JSON；-f 的程序文件是 jq 过滤式不是 shell，属选项值照读"
+    },
+    "git_subcommands": [
+      "status",
+      "log",
+      "diff",
+      "show",
+      "add",
+      "commit",
+      "rm",
+      "mv",
+      "restore",
+      "checkout",
+      "switch",
+      "branch",
+      "ls-files",
+      "ls-tree",
+      "blame",
+      "rev-parse",
+      "rev-list",
+      "cat-file",
+      "describe",
+      "shortlog",
+      "merge-base",
+      "show-ref",
+      "for-each-ref",
+      "check-ignore",
+      "diff-tree",
+      "diff-index",
+      "hash-object",
+      "version"
+    ]
   }
 }

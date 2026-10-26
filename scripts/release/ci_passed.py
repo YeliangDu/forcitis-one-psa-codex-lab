@@ -19,6 +19,7 @@ import base64
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -170,8 +171,14 @@ def prove_code(sha, api):
     return [f"no proven commit within {MAX_WALK} first parents back from {sha[:12]}"]
 
 
+GH_TIMEOUT = 120   # seconds
+
+
 def gh_json(path):
-    out = subprocess.run(["gh", "api", "--paginate", "--slurp", path], check=True, capture_output=True, text=True).stdout
+    try:
+        out = subprocess.run(["gh", "api", "--paginate", "--slurp", path], check=True, capture_output=True, text=True, timeout=GH_TIMEOUT).stdout
+    except subprocess.TimeoutExpired:
+        raise SystemExit(f"ci_passed.py: gh api {path} timed out after {GH_TIMEOUT}s")
     return json.loads(out)
 
 
@@ -268,7 +275,34 @@ def main(sha):
     return 0
 
 
+def fake_hung_gh():
+    """A directory whose `gh` sleeps, to put first on PATH so the timeout path can be exercised."""
+    tmp = tempfile.mkdtemp()
+    path = os.path.join(tmp, "gh")
+    with open(path, "w") as handle:
+        handle.write("#!/bin/sh\nexec sleep 5\n")
+    os.chmod(path, 0o755)
+    return tmp
+
+
+def gh_timeout_self_test(call, error):
+    global GH_TIMEOUT
+    saved_timeout, saved_path = GH_TIMEOUT, os.environ["PATH"]
+    GH_TIMEOUT, fake_dir = 1, fake_hung_gh()
+    os.environ["PATH"] = fake_dir + os.pathsep + saved_path
+    try:
+        call()
+    except error as exc:
+        assert "timed out" in str(exc), exc
+    else:
+        raise AssertionError("a hung gh call did not time out")
+    finally:
+        GH_TIMEOUT, os.environ["PATH"] = saved_timeout, saved_path
+        shutil.rmtree(fake_dir, ignore_errors=True)
+
+
 def self_test():
+    gh_timeout_self_test(lambda: gh_json('repos/x/y'), SystemExit)
     sha = "a" * 40
     run = {"id": 1, "head_sha": sha, "event": "push", "head_branch": "main", "path": CI_WORKFLOW, "status": "completed",
            "conclusion": "success", "run_number": 5, "run_attempt": 1}

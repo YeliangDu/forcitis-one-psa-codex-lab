@@ -95,7 +95,7 @@
   6. **能力图由信息图生成**：每个一级对象一个一级能力，次级对象各一个二级能力，约 90 项，不手写三级（`decision-page/frameworks-fit.html` 纳入页所列代价，intent `2026-10-15-222319`）【推出】；命名「对象 + 管理」，按对象拆分、不越出父对象、不按类型拆（BIZBOK §2.2、G211 §2.1.1 命名规则）【已定】（intent `2026-10-15-221201`「重建按对象命名的能力图」；`2026-10-15-222319`）。用途只有三项：一页「业务做什么」的视图；③ 的能力—阶段对账；对照 BIZBOK §8.6 通用参考模型一级能力的**名称**查漏对象（不抄定义）。**不用于检验信息图**（能力由对象生成，再拿来检验对象是循环论证——第 3 稿评审 B2）【推出】。能力图只作视图：不写「一个能力只改一个对象」，以免滑回能力驱动 BC。
   7. **能力不驱动 BC**：`business/capabilities.yaml` 不得出现 `bc`、`module`、`subdomain` 及同义字段，CI 拦截；明文不用 BIZBOK §6.5（业务架构与面向服务架构对齐）及 G211 中从组织结构推导能力、多级拆分的做法【推出】（intent `2026-10-15-222319` 纳入时所列代价；ADR-0041 决定 2）。字段黑名单的具体写法与 CI 落点【推出】（同上；写入 `build_architecture.py` 校验，列入第 8 节 SSOT 新校验条）。
   8. **范围标注与词表核对**：每个对象标「本系统 / 外部系统（哪个）/ 不建」及所属阶段，新名称先查 `terms.yaml`、未登记的交 one-glossary（信息图已有「范围与阶段」「词表」两列，`ENTERPRISE_INFO_MAP_DRAFT.md` 第 45 行）【推出】（第 3 稿评审 H4、M6；CS-1.8；CLAUDE.md 第 2 条）。
-- **交付物**：信息图（现为 `ENTERPRISE_INFO_MAP_DRAFT.md`，转写为 `business/information-map.yaml`【已定】（L-4，intent `2026-10-16-112800`；脚本并入 `build_all.py --check`））；检验表（`PRIMARY_OBJECT_TEST.md`）；`business/capabilities.yaml`（重建，替换现有 12 项一级 + 二级参考的旧稿）。
+- **交付物**：信息图（现为 `ssot/10-objects/ENTERPRISE_INFO_MAP.md`，原 `proposals/ENTERPRISE_INFO_MAP_DRAFT.md`，转写为 `business/information-map.yaml`【已定】（L-4，intent `2026-10-16-112800`；脚本并入 `build_all.py --check`））；检验表（`PRIMARY_OBJECT_TEST.md`）；`business/capabilities.yaml`（重建，替换现有 12 项一级 + 二级参考的旧稿）。
 - **谁定 / 校验**：对象与检验结果由用户确认，检验经 opus 评审；每个对象注明来源；检验无未处理的不通过项；参考模型查漏的漏项逐项写「补对象 / 不做 + 理由」。
 - **本轮示例**：信息图与一级对象检验见 `ENTERPRISE_INFO_MAP_DRAFT.md`、`PRIMARY_OBJECT_TEST.md`；增值税发票按检验降为「财务」的次级对象，但按法律事实例外仍是对象；证据（Q29）、分摊规则归类待定。用户答复 Q01–Q39 与复核 R1–R5（intent `2026-10-15-233152`、`2026-10-15-234418`）。**未完成**：能力图尚未按本步重建；§8.6 查漏未做。
 

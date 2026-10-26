@@ -1,6 +1,7 @@
 // A GET whose answer is later sent back with If-Match must be read with useVersionedQuery (no structural sharing, no select):
 // otherwise TanStack Query keeps the old object, and with it the old ETag, when a new answer has the same content. Run by `pnpm test:scripts`.
 import assert from 'node:assert/strict';
+import { requireGeneratedApi, requireOpenApi } from './api-artifacts.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
@@ -102,7 +103,8 @@ test('a plain query over such a GET is a violation, whichever file it is in; use
 });
 
 test('in this repository every versioned GET is read with useVersionedQuery', () => {
-  const spec = JSON.parse(readFileSync(join(frontend, 'packages', 'api', 'openapi.json'), 'utf8'));
+  requireGeneratedApi();
+  const spec = requireOpenApi();
   const generated = readFileSync(join(frontend, 'packages', 'api', 'src', 'generated', 'operations.ts'), 'utf8');
   const files = { ...sourceFiles(join(frontend, 'apps', 'web', 'src')), ...sourceFiles(join(frontend, 'apps', 'h5', 'src')), ...sourceFiles(join(frontend, 'packages', 'core', 'src')) };
   const result = violations(files, spec, generated);

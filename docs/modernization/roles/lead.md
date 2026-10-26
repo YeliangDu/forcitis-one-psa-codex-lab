@@ -30,8 +30,7 @@
 
 ## 过渡映射
 - 第四批会话合并前，本角色由 one-coordinator 担任。
-- 删除前仍归本角色：`SESSION_PLAYBOOK.md`、`PB_MAPPING.md`、`PB_GUARDS_TODO.md`、`COORDINATOR_LEDGER.md`、`HANDOFF*.md`、`sessions/**`、`tasks/**`、`check_tasks.py`、`status/`、`session-log/`。
-- 七份 `*_CONTEXT.md` 归属见各角色过渡映射，本角色迁移完后删除。
+- 删除前仍归本角色：`SESSION_PLAYBOOK.md`、`PB_MAPPING.md`、`PB_GUARDS_TODO.md`、`sessions/**`、`tasks/**`、`check_tasks.py`。
 - 第一批合入后按新角色重开会话时统一改用 start_session，旧会话归档。
 - 合入队列改造推迟期间，本角色仍在入队链上：复审通过后在 PR 留「调度批准入队 head <sha>」，由 one-merge 入队（RULES ⑥）。
 - 新链路合入前的复审：调度收到「待审」即派复审子代理，结论写本机复审目录，按派工书 README 第 3 节；合入后此条删除。

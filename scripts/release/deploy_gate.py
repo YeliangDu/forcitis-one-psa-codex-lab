@@ -4,50 +4,58 @@
   deploy_gate.py <dev|prod> <version>                        run from the repository root on the main checkout
   deploy_gate.py approval <version> <commit> <bundle sha256>  prod, after the signed statement verified: the approval names exactly this build,
                                                              and that build's commit no longer carries the baseline-open marker
+  deploy_gate.py --render                                    write the status cells of PREDEPLOY_CHECKLIST.md section D, C-9 and C-15 from the gate file
   deploy_gate.py --self-test
 
-- Any environment: a blocker entry under docs/modernization/status/blockers/ whose line carries the marker `blocks: deploy` stops the
-  deployment. Blocker fragments are single lines (build_records.py), so the marker sits in the line instead of front matter. The
-  coordinating session deletes the entry, or the marker, when the blocking work is merged.
+The repository's say is one machine-readable file, docs/modernization/phase1a/infra/deploy_gate.json (K02, GOV-1023-FV2): blockers, the
+section D exit conditions, C-9 and C-15. The checklist's cells for them are a view written by --render; the self-test fails when they differ.
+A missing or malformed gate file refuses every deployment.
+- Any environment: every entry in the gate file's blockers stops the deployment. The coordinating session deletes the entry when the
+  blocking work is merged.
 - prod: the migration baseline-open marker (backend/architecture/migration-baseline-open) stops the deployment, both on main and in the
   commit the bundle was built from (a release tagged while the baseline was open stays undeployable to prod); it is removed before the
   first production deployment, in a pull request of its own (SESSION_PLAYBOOK 附 M3「迁移基线」).
 - dev: an open baseline is allowed and only warned about. While it is open the baseline files may change after a dev deployment; when they
   did, the dev database and the server's release state are reset first (C-16 of PREDEPLOY_CHECKLIST.md), the installer refuses
   changed migrations otherwise.
-- prod: no pre-release version (-rc.N); every Phase 1a exit condition in section D of PREDEPLOY_CHECKLIST.md is done (verified on dev);
-  C-9 (the production database) and C-15 (the migration baseline closed and rehearsed, ADR-0038) are done. "Done" means the status cell
-  is exactly the done mark, nothing else. The version is listed in prod-approvals.txt as
+- prod: no pre-release version (-rc.N); every Phase 1a exit condition (section D, verified on dev) is done; C-9 (the production database)
+  and C-15 (the migration baseline closed and rehearsed, ADR-0038) are done. "Done" means the status in the gate file is exactly the done
+  mark, nothing else. The version is listed in prod-approvals.txt as
   "<version> <commit> <bundle sha256> <YYYY-MM-DD> <approver>": on the GitHub Team plan a private repository has no required reviewers, so a reviewed approval line merged into main is the human approval, and it pins the exact build approved.
 """
 import io
+import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
 
-BLOCKERS = "docs/modernization/status/blockers"
+GATE_FILE = "docs/modernization/phase1a/infra/deploy_gate.json"
 CHECKLIST = "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md"
 PROD_APPROVALS = "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt"
-DEPLOY_MARKER = "`blocks: deploy`"
 BASELINE_MARKER = "backend/architecture/migration-baseline-open"
 DONE = "✅"
 EXPECTED_EXIT_CONDITIONS = 10
 PROD_PREREQUISITES = ("C-9", "C-15")
 
 
-def deploy_blockers(root):
-    directory = os.path.join(root, BLOCKERS)
-    if not os.path.isdir(directory):
-        raise SystemExit(f"deploy_gate.py: {BLOCKERS} is missing; refusing to guess whether deployment is allowed")
-    found = []
-    for name in sorted(os.listdir(directory)):
-        if name.endswith(".md"):
-            with open(os.path.join(directory, name), encoding="utf-8") as handle:
-                if DEPLOY_MARKER in handle.read():
-                    found.append(name)
-    return found
+def gate_file(root):
+    """The gate file, checked: blockers a list of {id, reason}; exit_conditions {D-n: status}, at least EXPECTED_EXIT_CONDITIONS of them;
+    prod_prerequisites {C-n: status} naming PROD_PREREQUISITES. Anything else refuses every deployment."""
+    try:
+        with open(os.path.join(root, GATE_FILE), encoding="utf-8") as handle:
+            data = json.load(handle)
+        blockers, exits, prerequisites = data["blockers"], data["exit_conditions"], data["prod_prerequisites"]
+        ok = (isinstance(blockers, list) and all(isinstance(b, dict) and isinstance(b.get("id"), str) and b["id"] and isinstance(b.get("reason"), str) for b in blockers)
+              and isinstance(exits, dict) and isinstance(prerequisites, dict)
+              and all(re.fullmatch(r"D-\d+", k) and isinstance(v, str) for k, v in exits.items())
+              and all(re.fullmatch(r"C-\d+", k) and isinstance(v, str) for k, v in prerequisites.items()))
+    except (OSError, ValueError, KeyError, TypeError):
+        ok = False
+    if not ok:
+        raise SystemExit(f"deploy_gate.py: {GATE_FILE} is missing or malformed; refusing to guess whether deployment is allowed")
+    return data
 
 
 def baseline_open(root):
@@ -61,6 +69,48 @@ def baseline_open_at(root, commit):
     if listing.returncode != 0:
         raise SystemExit(f"deploy_gate.py: cannot read {commit}; refusing to guess whether its baseline was open")
     return any(os.path.basename(entry).lower() == name.lower() for entry in listing.stdout.splitlines())
+
+
+def render(checklist_text, data):
+    """The checklist with the last cell of each section D row and of C-9, C-15 (in section C) replaced by the gate file's status. Every id
+    the file names must be written exactly once, and section D must hold no other row; anything else raises instead of returning the text."""
+    wanted = {"D": dict(data["exit_conditions"]), "C": dict(data["prod_prerequisites"])}
+    if set(table_rows(checklist_text, "D")) != set(wanted["D"]):
+        raise SystemExit(f"deploy_gate.py: {CHECKLIST} section D rows differ from {GATE_FILE}; add or remove the row in both")
+    hits, section, out = {}, None, []
+    for line in checklist_text.splitlines(keepends=True):
+        heading = re.match(r"^## ([A-Z])\.", line)
+        section = heading.group(1) if heading else section if not line.startswith("## ") else None
+        row = re.match(r"^\|\s*((?:C|D)-\d+)\s*\|", line)
+        if row and section in wanted and row.group(1).startswith(section) and row.group(1) in wanted[section]:
+            ending = line[len(line.rstrip("\r\n")):]
+            body = line.rstrip("\r\n").rstrip(" \t")
+            closed = body.endswith("|")
+            body = body[:-1] if closed else body
+            line = body[:body.rindex("|") + 1] + f" {wanted[section][row.group(1)]} " + ("|" if closed else "") + ending
+            hits[row.group(1)] = hits.get(row.group(1), 0) + 1
+        out.append(line)
+    missing = [k for part in wanted.values() for k in part if hits.get(k) != 1]
+    if missing:
+        raise SystemExit(f"deploy_gate.py: {CHECKLIST} has no single row to write for {', '.join(missing)}; fix the table")
+    return "".join(out)
+
+
+def check_view(root):  # Refuses (SystemExit) when the checklist's cells differ from the gate file: the table is a view written by --render.
+    with open(os.path.join(root, CHECKLIST), encoding="utf-8") as handle:
+        text = handle.read()
+    if not consistent(text, gate_file(root)):
+        raise SystemExit(f"deploy_gate.py: {CHECKLIST} differs from {GATE_FILE}: run deploy_gate.py --render (the table is a view of the gate file)")
+
+
+def consistent(checklist_text, data):  # The checklist's cells, as table_rows reads them, equal the gate file's status for every id, each id on exactly one row.
+    try:
+        render(checklist_text, data)
+    except SystemExit:
+        return False
+    rows = table_rows(checklist_text, "D")
+    executions = table_rows(checklist_text, "C")
+    return rows == dict(data["exit_conditions"]) and all(executions.get(k) == v for k, v in data["prod_prerequisites"].items())
 
 
 def table_rows(checklist_text, section_letter):
@@ -111,34 +161,31 @@ def dev_warnings(root, environment):
 
 
 def check(root, environment, version):
-    problems = [f"deployment blocked by {BLOCKERS}/{name}" for name in deploy_blockers(root)]
+    data = gate_file(root)
+    problems = [f"deployment blocked by {GATE_FILE} blocker {b['id']}: {b['reason']}" for b in data["blockers"]]
     if environment == "prod":
         if baseline_open(root):
             problems.append(f"{BASELINE_MARKER} exists: the migration baseline is still open; prod needs it closed, remove the marker first "
                             "(SESSION_PLAYBOOK 附 M3「迁移基线」)")
         if "-" in version:
             problems.append(f"prod takes released versions only, not the pre-release {version}")
-        with open(os.path.join(root, CHECKLIST), encoding="utf-8") as handle:
-            text = handle.read()
-        exits = table_rows(text, "D")
+        exits = data["exit_conditions"]
         if len(exits) < EXPECTED_EXIT_CONDITIONS:
-            problems.append(f"{CHECKLIST} section D lists {len(exits)} exit conditions, expected at least {EXPECTED_EXIT_CONDITIONS}; "
-                            "the table changed shape, fix the gate with it")
+            problems.append(f"{GATE_FILE} lists {len(exits)} exit conditions, expected at least {EXPECTED_EXIT_CONDITIONS}; "
+                            "the list changed shape, fix the gate with it")
         open_exits = [row for row, status in exits.items() if status != DONE]
         if open_exits:
-            problems.append(f"Phase 1a exit conditions (verified on dev) not done in {CHECKLIST}: {', '.join(open_exits)}")
+            problems.append(f"Phase 1a exit conditions (verified on dev) not done in {GATE_FILE}: {', '.join(open_exits)}")
         if version not in approvals(root):
             problems.append(f"{version} is not approved for prod in {PROD_APPROVALS}")
-        executions = table_rows(text, "C")
         for row in PROD_PREREQUISITES:
-            if executions.get(row) != DONE:
-                problems.append(f"{row} in {CHECKLIST} is not done ({executions.get(row, 'row missing')})")
+            if data["prod_prerequisites"].get(row) != DONE:
+                problems.append(f"{row} in {GATE_FILE} is not done ({data['prod_prerequisites'].get(row, 'row missing')})")
     return problems
 
 
 def self_test():
     with tempfile.TemporaryDirectory() as root:
-        os.makedirs(os.path.join(root, BLOCKERS))
         os.makedirs(os.path.dirname(os.path.join(root, PROD_APPROVALS)))
         def git(*args):
             return subprocess.run(["git", "-C", root, "-c", "user.name=self-test", "-c", "user.email=self-test@invalid",
@@ -159,16 +206,17 @@ def self_test():
             handle.write(f"# header\n0.1.0 {closed_commit} {'d' * 64} 2026-10-14 平台负责人\n"
                          f"0.0.9 {open_commit} {'d' * 64} 2026-10-14 平台负责人\n")
 
-        def checklist(statuses, c9=DONE, c15=DONE):
-            rows = "".join(f"| D-{i} | x | y | {s} |\n" for i, s in enumerate(statuses, 1))
+        blockers = []
+
+        def checklist(statuses, c9=DONE, c15=DONE, table=DONE):  # the gate file says `statuses`; the checklist's cells say `table` (a view only)
+            rows = "".join(f"| D-{i} | x | y | {table} |\n" for i in range(1, len(statuses) + 1))
             with open(os.path.join(root, CHECKLIST), "w", encoding="utf-8") as handle:
-                handle.write(f"## C. 执行\n\n| # | 事项 | 状态 |\n|---|---|---|\n| C-9 | 生产库 | {c9} |\n| C-15 | 基线关闭 | {c15} |\n\n"
+                handle.write(f"## C. 执行\n\n| # | 事项 | 状态 |\n|---|---|---|\n| C-9 | 生产库 | {table} |\n| C-15 | 基线关闭 | {table} |\n\n"
                              f"## D. 部署后验证\n\n| # | 出口条件 | 依赖 | 状态 |\n|---|---|---|---|\n{rows}\n"
                              "## 不阻塞\n| D-99 | not in D | | ⬜ |\n")
-
-        def blocker(name, text):
-            with open(os.path.join(root, BLOCKERS, name), "w", encoding="utf-8") as handle:
-                handle.write(text)
+            with open(os.path.join(root, GATE_FILE), "w", encoding="utf-8") as handle:
+                json.dump({"blockers": blockers, "exit_conditions": {f"D-{i}": s for i, s in enumerate(statuses, 1)},
+                           "prod_prerequisites": {"C-9": c9, "C-15": c15}}, handle, ensure_ascii=False)
 
         checklist([DONE] * EXPECTED_EXIT_CONDITIONS)
         assert check(root, "dev", "0.1.0-rc.1") == [] and check(root, "prod", "0.1.0") == []
@@ -214,16 +262,55 @@ def self_test():
         assert check(root, "dev", "0.1.0-rc.1") == [], "C-15 does not hold back dev"
         checklist([DONE] * 3)
         assert any("expected at least" in p for p in check(root, "prod", "0.1.0"))
+        checklist(["⬜"] * EXPECTED_EXIT_CONDITIONS, c9="⬜", c15="⬜", table=DONE)
+        assert len(check(root, "prod", "0.1.0")) == 3, "the checklist's cells are a view: all ✅ there, open in the gate file, prod refused"
+        with open(os.path.join(root, CHECKLIST), encoding="utf-8") as handle:
+            rendered = render(handle.read(), gate_file(root))
+        assert set(table_rows(rendered, "D").values()) == {"⬜"} and table_rows(rendered, "C") == {"C-9": "⬜", "C-15": "⬜"} \
+            and "| D-99 | not in D | | ⬜ |" in rendered, "--render writes the gate file's status into section D, C-9 and C-15 only"
+        assert consistent(rendered, gate_file(root)) and not consistent(rendered.replace("| D-3 | x | y | ⬜ |", "| D-3 | x | y | ✅ |"), gate_file(root)), \
+            "a cell differing from the gate file is inconsistent"
+        for variant in (rendered.replace("| D-3 | x | y | ⬜ |", "| D-3 | x | y | ✅"), rendered.replace("\n", "\r\n").replace("| C-9 | 生产库 | ⬜ |", "| C-9 | 生产库 | ✅ |")):
+            assert not consistent(variant, gate_file(root)), "no closing pipe or CRLF line endings do not hide a difference"
+            assert consistent(render(variant, gate_file(root)), gate_file(root)), "--render still writes such a row"
+        with open(os.path.join(root, CHECKLIST), "w", encoding="utf-8") as handle:
+            handle.write(rendered.replace("| D-3 | x | y | ⬜ |", "| D-3 | x | y | ✅ |"))
+        try:
+            check_view(root)
+            raise AssertionError("a checklist differing from the gate file must fail the view check")
+        except SystemExit:
+            pass
+        for broken in (rendered.replace("| D-3 | x | y | ⬜ |\n", ""), rendered.replace("| C-9 | 生产库 | ⬜ |\n", ""), rendered.replace("| D-3 | x | y | ⬜ |\n", "| D-3 | x | y | ⬜ |\n| D-11 | x | y | ⬜ |\n"),
+                       rendered.replace("| D-3 | x | y | ⬜ |\n", "| D-3 | x | y | ⬜ |\n| D-3 | x | y | ✅ |\n"), rendered.replace("| C-9 | 生产库 | ⬜ |\n", "| C-9 | 生产库 | ⬜ |\n| C-9 | 生产库 | ⬜ |\n")):
+            assert not consistent(broken, gate_file(root)), "a row missing from the table, or one the gate file lacks, is inconsistent"
+            try:
+                render(broken, gate_file(root))
+                raise AssertionError("--render must refuse a table lacking a row, not return it")
+            except SystemExit:
+                pass
         checklist([DONE] * EXPECTED_EXIT_CONDITIONS)
-        blocker("070-other.md", "- unrelated work\n")
-        assert check(root, "dev", "0.1.0") == [], "a blocker without the marker does not stop deployment"
-        blocker("080-fix.md", f"- no deployment until the fix batch is merged ({DEPLOY_MARKER})\n")
-        assert check(root, "dev", "0.1.0") and check(root, "prod", "0.1.0")
-    with open(CHECKLIST, encoding="utf-8") as handle:
-        text = handle.read()
-    assert len(table_rows(text, "D")) >= EXPECTED_EXIT_CONDITIONS, f"{CHECKLIST} section D no longer parses"
-    assert "D-10" in table_rows(text, "D"), f"{CHECKLIST} section D lacks D-10 (blocker 090 before prod)"
-    assert all(row in table_rows(text, "C") for row in PROD_PREREQUISITES), f"{CHECKLIST} section C lacks {PROD_PREREQUISITES}"
+        blockers.append({"id": "080-fix", "reason": "no deployment until the fix batch is merged"})
+        checklist([DONE] * EXPECTED_EXIT_CONDITIONS)
+        assert check(root, "dev", "0.1.0") and check(root, "prod", "0.1.0"), "a blocker stops dev and prod"
+        for broken in ("", "{", '{"blockers": [], "exit_conditions": {}}', '{"blockers": [{"id": ""}], "exit_conditions": {}, "prod_prerequisites": {}}',
+                       '{"blockers": "x", "exit_conditions": {}, "prod_prerequisites": {}}'):
+            with open(os.path.join(root, GATE_FILE), "w", encoding="utf-8") as handle:
+                handle.write(broken)
+            try:
+                check(root, "dev", "0.1.0")
+                raise AssertionError(f"a malformed gate file must refuse, not pass: {broken!r}")
+            except SystemExit:
+                pass
+        os.remove(os.path.join(root, GATE_FILE))
+        try:
+            check(root, "dev", "0.1.0")
+            raise AssertionError("a missing gate file must refuse, not pass")
+        except SystemExit:
+            pass
+    data = gate_file(".")
+    assert len(data["exit_conditions"]) >= EXPECTED_EXIT_CONDITIONS and "D-10" in data["exit_conditions"], f"{GATE_FILE} lacks D-10 (blocker 090 before prod)"
+    assert all(row in data["prod_prerequisites"] for row in PROD_PREREQUISITES), f"{GATE_FILE} lacks {PROD_PREREQUISITES}"
+    check_view(".")
     approvals(".")
     print("deploy_gate.py self-test passed")
 
@@ -231,6 +318,13 @@ def self_test():
 def main(argv, root="."):
     if argv == ["--self-test"]:
         self_test()
+        return 0
+    if argv == ["--render"]:
+        with open(os.path.join(root, CHECKLIST), encoding="utf-8") as handle:
+            text = render(handle.read(), gate_file(root))
+        with open(os.path.join(root, CHECKLIST), "w", encoding="utf-8") as handle:
+            handle.write(text)
+        print(f"deploy_gate.py: {CHECKLIST} status cells written from {GATE_FILE}")
         return 0
     if len(argv) == 4 and argv[0] == "approval":
         problems = approval_problems(root, *argv[1:])

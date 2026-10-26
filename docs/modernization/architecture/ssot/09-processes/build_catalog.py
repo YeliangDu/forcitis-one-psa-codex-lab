@@ -31,7 +31,7 @@ def load():
 
 
 def valid_stages():
-    vs = yaml.safe_load((PROPOSALS / "value-streams.v2.yaml").read_text(encoding="utf-8"))["value_streams"]
+    vs = yaml.safe_load((HERE.parent / "05-value-streams" / "value-streams.yaml").read_text(encoding="utf-8"))["value_streams"]
     return {s["id"] for v in vs for s in v["stages"]}
 
 
@@ -110,7 +110,7 @@ def check(rows, repo=REPO):
                 errors.append(f"{i}: owner_bc {o!r} 未登记")
         for s in r.get("stages") or []:
             if s not in stages:
-                errors.append(f"{i}: stage {s} 不在 value-streams.v2.yaml")
+                errors.append(f"{i}: stage {s} 不在 value-streams.yaml")
         if t == "business":
             if r.get("support") and r.get("stages"):
                 errors.append(f"{i}: 标了 support 却填了 stages")

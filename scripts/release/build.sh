@@ -113,6 +113,9 @@ release_check_jar_version "$bundle/forcitis-one.jar" "$version" || exit 1
 echo "== frontend"
 # Dependency install scripts never run: the build has been checked to work without them (RELEASE.md §10)
 (cd frontend && pnpm install --frozen-lockfile --ignore-scripts "${pnpm_cache[@]}" --reporter=silent)
+# The release checkout has no API snapshots; export from this exact source before either app build.
+(cd backend && ./mvnw -B test-compile surefire:test@export-openapi "-Drevision=${version}" ${maven_cache[@]+"${maven_cache[@]}"})
+(cd frontend && pnpm run generate:api)
 for env in "${envs[@]}"; do
   upper="$(printf '%s' "$env" | tr '[:lower:]' '[:upper:]')"
   build_env=(NODE_ENV=production)

@@ -5,13 +5,14 @@
 // The document must keep the platform conventions (PHASE1A_PLATFORM_CONVENTIONS): ProblemDetail + ErrorCode components, an error answer on every
 // operation, cursor paging ({items, nextCursor} with cursor/limit, never page/offset), If-Match / Idempotency-Key as the only header parameters.
 //   node scripts/generate-api.mjs           regenerate
-//   node scripts/generate-api.mjs --check   fail when the committed files differ from what openapi.json produces (runs in `pnpm verify`)
+//   node scripts/generate-api.mjs --check   fail when local generated files differ from the current export
 //   --spec <file> --out <dir>                read another document / write another directory (scripts/generate-api.test.mjs)
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import openapiTS, { astToString } from 'openapi-typescript';
 import ts from 'typescript';
+import { requireOpenApi } from './api-artifacts.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'api');
 const valueOf = (flag) => process.argv.find((argument, index, all) => all[index - 1] === flag);
@@ -19,7 +20,7 @@ const specPath = valueOf('--spec') ?? join(root, 'openapi.json');
 const outDir = valueOf('--out') ?? join(root, 'src', 'generated');
 const check = process.argv.includes('--check');
 
-const spec = JSON.parse(readFileSync(specPath, 'utf8'));
+const spec = valueOf('--spec') === undefined ? requireOpenApi() : JSON.parse(readFileSync(specPath, 'utf8'));
 const METHODS = ['get', 'post', 'put', 'patch', 'delete'];
 
 function pascal(word) {
@@ -270,7 +271,7 @@ for (const [file, content] of Object.entries(files)) {
     }
   } else {
     mkdirSync(outDir, { recursive: true });
-    writeFileSync(target, content);
+    if (!existsSync(target) || readFileSync(target, 'utf8') !== content) writeFileSync(target, content);
   }
 }
 if (check && !stale) console.log(`generated API code matches openapi.json (${operations.length} operations)`);

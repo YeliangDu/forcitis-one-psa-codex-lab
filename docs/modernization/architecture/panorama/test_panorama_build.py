@@ -683,6 +683,9 @@ class ExampleController {
             with patch.object(p, "JAVA", java), patch.dict(p.SRC, modules=dependency, api=api):
                 p.load_interfaces(model, lambda kind, a, b, src, **extra: edges.append(
                     {"kind": kind, "from": a, "to": b, "src": src, **extra}), {"cost.timesheet": "B-06"})
+                api.unlink()
+                with self.assertRaisesRegex(ValueError, "bash scripts/generate-api.sh"):
+                    p.load_interfaces(model, lambda *args, **kwargs: None, {"cost.timesheet": "B-06"})
             self.assertEqual("B-06", model["api"]["GET /api/v1/cost/timesheets/{id}"]["bc"])
             self.assertIsNone(model["api"]["PUT /api/v1/cost/timesheets/{id}"]["bc"])
             self.assertIsNone(model["api"]["GET /api/v1/platform/timesheets"]["bc"])

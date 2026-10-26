@@ -10,7 +10,7 @@ import yaml
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[4]
 ARCH = HERE.parent.parent
-SRC = ARCH / "proposals/ENTERPRISE_INFO_MAP_DRAFT.md"
+SRC = ARCH / "ssot/10-objects/ENTERPRISE_INFO_MAP.md"
 FINAL = ARCH / "panorama/FREEZE_FINAL.yaml"
 GROUPS = ("finance", "people", "revenue")
 HEADER = ["编号", "对象", "定义", "一级 / 次级", "类型", "关键状态", "主要关系与基数", "规则", "产生的事实", "来源", "词表", "范围与阶段", "父对象"]

@@ -13,6 +13,10 @@ mkdir -p "$scratch/bin"
 
 cat > "$scratch/bin/gh" <<'EOF'
 #!/usr/bin/env bash
+# FAKE_GH_HANG: a gh that ignores SIGALRM and SIGTERM and never answers (only SIGKILL stops it)
+[ -z "${FAKE_GH_HANG:-}" ] || exec python3 -I -c 'import signal, time
+for s in (signal.SIGALRM, signal.SIGTERM): signal.signal(s, signal.SIG_IGN)
+time.sleep(60)'
 python3 -I -c '
 import json
 top = "forcitis-one-0.1.0"
@@ -238,6 +242,23 @@ run transient "fail fail started succeeded"
 expect transient "two failed reads of the result are retried" transient_retried
 run unreadable "fail fail fail fail fail fail succeeded"
 expect unreadable "six failed reads in a row fail with a clear message" unreadable_fails
+
+hung_gh_stopped() {
+  rc_failed "$1" && says "$1" "does not have the four assets" && [ "$(cat "$1/seconds")" -lt 15 ]
+}
+start=$SECONDS
+run hung-gh "succeeded" SHIP_GH_TIMEOUT=2 FAKE_GH_HANG=1
+echo $((SECONDS - start)) > "$scratch/hung-gh/seconds"
+expect hung-gh "a gh that ignores SIGALRM and SIGTERM is killed at the deadline and the job fails" hung_gh_stopped
+
+# the default must be 120 seconds when the variable is unset or empty (alarm(0) would mean no timeout at all)
+for unset_form in "unset SHIP_GH_TIMEOUT" "SHIP_GH_TIMEOUT="; do
+  if [ "$(bash -c "$unset_form; $(grep '^export SHIP_GH_TIMEOUT=' "$here/ship.sh"); printf %s \"\$SHIP_GH_TIMEOUT\"")" = 120 ]; then
+    passed=$((passed + 1)); echo "PASS  default-timeout: 120 seconds when SHIP_GH_TIMEOUT is ($unset_form)"
+  else
+    failed=$((failed + 1)); echo "FAIL  default-timeout: not 120 when SHIP_GH_TIMEOUT is ($unset_form)"
+  fi
+done
 
 echo "$passed passed, $failed failed"
 [ "$failed" -eq 0 ]

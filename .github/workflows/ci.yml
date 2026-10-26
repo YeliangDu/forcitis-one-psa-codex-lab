@@ -23,16 +23,61 @@ concurrency:
 
 # Self-hosted runners (docs/modernization/CI_RUNNERS.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
 # Three tiers (scripts/ci/relevant_change.py): docs (nothing the builds read changed: light checks only), guarded (only docs that container-free tests, the glossary copy scripts or the release scripts read: just those run, on every pull request event), code (everything). A push to main and the nightly run are always tier code.
-# Heavy steps (backend tests, OpenAPI check, SQL Server tests, frontend verify) run only for a pull request labelled `queued` and never on a push to main (scripts/ci/heavy_gate.py), where the nightly schedule runs everything; the light steps run on every event. Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs the light steps (release approval depends on it); assertion drift runs on pull requests only.
+# Heavy steps (backend tests, SQL Server tests, frontend verify) run only for a pull request labelled `queued` and never on a push to main (scripts/ci/heavy_gate.py), where the nightly schedule runs everything; the light steps run on every event. Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs the light steps (release approval depends on it); assertion drift runs on pull requests only.
+# OpenAPI and the frontend generated code are not tracked (frontend/packages/api/README.md): the api-contract job exports and generates them on every event, because light.sh (build_all.py --check, panorama) and the contract tests read them, and the backend and frontend jobs download this run's products; it never publishes a main snapshot.
 jobs:
+  api-contract:
+    name: export OpenAPI and generate frontend API
+    runs-on: [self-hosted, forcitis-one]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # Panorama and the light contract readers also need a fresh export, even on docs-only and push events.
+      - run: bash scripts/ops/docker_ensure.sh --ci
+      - name: Java 25, Node 24 and pinned pnpm
+        run: |
+          java -version 2>&1 | head -1 | grep -q '"25'
+          node --version | grep -q '^v24\.'
+          cd frontend
+          test "$(pnpm --version)" = "$(node -p "require('./package.json').packageManager.split('@')[1].split('+')[0]")"
+      - name: install the pinned frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: export, assert the backend contract, then generate TypeScript
+        run: bash scripts/generate-api.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: api-contract
+          path: |
+            frontend/packages/api/openapi.json
+            frontend/packages/api/src/generated/schema.ts
+            frontend/packages/api/src/generated/validators.ts
+            frontend/packages/api/src/generated/operations.ts
+          if-no-files-found: error
+
   backend:
+    needs: api-contract
+    if: ${{ always() }}
     # the check name gains ' (light)' when this pull request run will not run the heavy steps: the required check then stays 'expected' until the queue labels the pull request
     name: backend verify (Modulith + ArchUnit guardrails + integration tests)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || github.event.action == 'edited' || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
     runs-on: [self-hosted, forcitis-one]
     steps:
+      # A failed prerequisite must fail the existing required check, not leave it skipped.
+      - name: API contract generation succeeded
+        working-directory: .
+        env:
+          API_CONTRACT_RESULT: ${{ needs.api-contract.result }}
+        run: test "$API_CONTRACT_RESULT" = success
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: api-contract
+          path: frontend/packages/api
+      - name: generated API inputs are present
+        working-directory: .
+        run: bash scripts/generate-api.sh --check
       # the engine answers `docker events --since` only from its last 256 events, far too few on an engine the four runners share: record the container events from here on and keep them for a failure
       - name: remember when the job started and record docker container events (evidence if it fails)
         run: |
@@ -122,9 +167,6 @@ jobs:
         if: github.event_name == 'pull_request' && steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         timeout-minutes: 20
         run: python3 scripts/ci/repeat_new_tests.py "origin/$GITHUB_BASE_REF" --times 3
-      - name: OpenAPI contract unchanged (OpenApiExportTest rewrites frontend/packages/api/openapi.json)
-        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
-        run: git diff --exit-code -- frontend/packages/api/openapi.json
       - name: SQL Server integration tests (profile legacy-it)
         if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
         timeout-minutes: 30
@@ -153,15 +195,30 @@ jobs:
             backend/hs_err_pid*.log
 
   frontend:
+    needs: api-contract
+    if: ${{ always() }}
     name: frontend verify (typecheck + lint guardrails F1-F14 + structure + build)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || github.event.action == 'edited' || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
     runs-on: [self-hosted, forcitis-one]
     defaults:
       run:
         working-directory: frontend
     steps:
+      # A failed prerequisite must fail the existing required check, not leave it skipped.
+      - name: API contract generation succeeded
+        working-directory: .
+        env:
+          API_CONTRACT_RESULT: ${{ needs.api-contract.result }}
+        run: test "$API_CONTRACT_RESULT" = success
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: api-contract
+          path: frontend/packages/api
+      - name: generated API inputs are present
+        working-directory: .
+        run: bash scripts/generate-api.sh --check
       - name: backend or frontend inputs changed?
         id: change
         working-directory: .
@@ -218,7 +275,7 @@ jobs:
             echo "$PWD" >> "$GITHUB_PATH"
           fi
       - run: gitleaks git --redact --no-banner --exit-code 1 .
-      # 发布与部署脚本读取 ci.yml、部署前清单、阻塞条目、prod-approvals.txt 与 runbooks/files；只改与它们无关的文档时跳过下面两步
+      # 发布与部署脚本读取 ci.yml、部署前清单、部署门输入 deploy_gate.json、prod-approvals.txt 与 runbooks/files；只改与它们无关的文档时跳过下面两步
       - name: release scripts or what they read changed?
         id: change
         env:

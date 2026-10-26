@@ -17,7 +17,7 @@
 用法：
   check_pages.py                      检查全部确认页（报告全部问题；有问题退出 1）
   check_pages.py <文件.json>…         只检查给定文件
-  check_pages.py --changed <基线>     只检查相对基线改动或新增的确认页（precheck 用；改了哪张页就要求哪张页过）
+  check_pages.py --changed <基线>     只检查相对基线改动或新增的确认页（scripts/ci/light.sh 用；改了哪张页就要求哪张页过）
   check_pages.py --self-test
 R4 的「业务用语不在词表」只检查题面与选项标签（标题、选项文字），不查正文说明；检查方式同界面文字检查：按词表最长匹配切词，剩余的中文片段即未登记用语。
 """
