@@ -400,7 +400,8 @@ def remote_table():  # (remote tool names, entries, slot patterns) of origin/mai
 
 
 def remote_named(text, tools):  # A remote tool's name as a word anywhere in the raw or the quote-free line; `http://` and the like are URLs, not httpie.
-    pattern = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(sorted(map(re.escape, tools), key=len, reverse=True)) + r")(?![a-z0-9_]|:/)")
+    names = sorted(map(re.escape, tools - {"http", "https"}), key=len, reverse=True)
+    pattern = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(names) + r")(?![a-z0-9_])|(?<![a-z0-9_])https?(?![a-z0-9_]|:/)|/dev/(?:tcp|udp)/")  # only the URL schemes are excused; bash network redirections count
     return bool(pattern.search(text.lower()) or pattern.search(plain(text)))
 
 

