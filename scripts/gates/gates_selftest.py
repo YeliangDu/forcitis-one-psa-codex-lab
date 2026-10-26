@@ -440,6 +440,10 @@ def layout_self_test():
         text = re.sub(r"[^0-9a-z]", "", Path(path).read_text(encoding="utf-8").lower())
         found = sum(1 for v in folded if v in text)
         assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
+    # what a trusted script loads or is compared with decides whether the gate lets it pass: every such file needs the opus final review (K18 follow-up, a3be80fcd final suggestion 1)
+    final, (tools, _) = json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["review"]["final_paths"], g.readonly_tools()
+    loaded = {os.path.relpath(f, ROOT) for script in sorted(g.DOC_SCRIPTS | tools) for f in g.closure(os.path.join(ROOT, script)) or [os.path.join(ROOT, script)] if os.path.exists(f)}
+    assert all(rel.startswith(tuple(final)) for rel in loaded), ("files a trusted script loads, missing from policy.json review.final_paths", sorted(r for r in loaded if not r.startswith(tuple(final))))
     print("prod_write_gate layout: ok")
 
 def trust_self_test():
