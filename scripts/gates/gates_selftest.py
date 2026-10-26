@@ -23,7 +23,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import pre_tool_dispatch as d  # noqa: E402
 import prod_write_gate as g  # noqa: E402
-from prod_write_gate import (DOCS_ROOT, EXTRA_READONLY, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, heredoc_bodies, judge, load_table, mask_sql, name_of, plain, simple_commands, tokens_of)  # noqa: E402
+from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, EXTRA_READONLY, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, heredoc_bodies, judge, load_table, mask_sql, name_of, plain, simple_commands, tokens_of)  # noqa: E402
 
 PYTHON = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
 
@@ -157,6 +157,9 @@ def gate_self_test():
     Path(cwd, "clean.py").write_text("print(1)\n", encoding="utf-8")
     Path(cwd, "deploy.sh").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
     intent = os.path.join(REPO_ROOT, DOCS_ROOT, "new_intent.py")
+    def as_main(rels):  # this repository's files read as origin/main's: a branch may edit new_intent's neighbours (trust against origin/main itself: trust_self_test)
+        return {rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip() for rel in rels}
+    real_blobs, g.main_blobs = g.main_blobs, as_main
     # 1. reads and harmless mentions pass
     for command in (f'psql -h {P}.pg.rds.aliyuncs.com -U ro -c "select count(*) from t"', f'psql -h {P} -c "SELECT 1"', f'mysql -h {P} -e "show tables"', f'mysql -h {P} -e "SHOW CREATE TABLE t"', f'psql -h {P} -c "explain select 1"', f'psql -h {P} -q -c "select 1"',
                     f'sqlcmd -S {P} -U ro -Q "set nocount on; select * from t"', f'sqlcmd -S {P} -Q "set nocount on\nselect 1"', f'sqlcmd -S {P} --query "select 1"', f'sqlcmd -S {P} -i ro.sql', f"sqlcmd -S {P} -iro.sql", f'sqlcmd -S {P} < ro.sql',
@@ -297,36 +300,35 @@ def gate_self_test():
         assert allowed(f"python3 -I {path} --self-test", real), path
     assert refused(f"python3 -I {os.path.join(HERE, 'prod_write_gate.py')} -c 'x' {P}")
     # 9. a script is trusted only while it is exactly the file on origin/main (opus round 2, item 2); the sources below mention the pattern "simple_commands"
-    real_main_blob, mine = g.main_blob, ["simple_commands"]
+    real_main_blob, mine = g.main_blobs, ["simple_commands"]
     try:
         tool_script = os.path.join(HERE, "prod_write_gate.py")
         selftest = f"python3 -I {tool_script} --self-test"
-        g.main_blob = lambda rel: None
+        g.main_blobs = lambda rels: {}
         assert refused(selftest, mine), "not on origin/main: not trusted, and its text mentions the pattern"
-        g.main_blob = lambda rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip()
+        g.main_blobs = as_main
         assert allowed(selftest, mine), "the same content as origin/main: the guard's own --self-test"
         assert refused(f"python3 -I {tool_script} --instance x", mine), "only --self-test, no other arguments"
-        g.main_blob = lambda rel: "0" * 40
+        g.main_blobs = lambda rels: {rel: "0" * 40 for rel in rels}
         assert refused(selftest, mine), "an edited file (content differs from origin/main) is not trusted"
         # read-only evidence tools and the document scripts: a fixed path, and again only the main content
         EXTRA_READONLY.add("scripts/gates/prod_write_gate.py")
         assert refused(f"python3 -I {tool_script} --instance x", mine), "listed, but edited"
-        g.main_blob = lambda rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip()
+        g.main_blobs = as_main
         assert allowed(f"python3 -I {tool_script} --instance x", mine), "listed and unchanged"
         EXTRA_READONLY.discard("scripts/gates/prod_write_gate.py")
         assert refused(f"python3 -I {tool_script} --instance x", mine), "not listed"
         Path(cwd, "new_intent.py").write_text("import os\n", encoding="utf-8")
-        assert allowed(f"python3 -I {intent} x", ["import"]) and refused(f"python3 -I {cwd}/new_intent.py x", ["import"]), "new_intent.py is trusted at its own path only"
-        assert refused(f"python3 -I {cwd}/new_intent.py x", ["import"]) and refused("python3 new_intent.py x", ["import"]), "same name elsewhere"
+        assert allowed(f"python3 -I {intent} x", ["import"]) and refused(f"python3 -I {cwd}/new_intent.py x", ["import"]) and refused("python3 new_intent.py x", ["import"]), "new_intent.py is trusted at its own path only, not the same name elsewhere"
         # a new, staged guard script is not on origin/main
-        g.main_blob = lambda rel: None
+        g.main_blobs = lambda rels: {}
         assert refused(f"python3 -I {intent} x", ["import"]), "new_intent.py not on origin/main"
     finally:
-        g.main_blob = real_main_blob
+        g.main_blobs = real_main_blob
         EXTRA_READONLY.discard("scripts/gates/prod_write_gate.py")
     for command in (f"git tag -f origin/main HEAD && echo {P}", f"git update-ref refs/remotes/origin/main HEAD; echo {P}", f"git grep -nO'sqlcmd -S {P}' foo", f"git grep -inOx {P} foo"):
         assert refused(command), f"origin/main must not be rewritable, -O in a bundle: {command!r}"
-    assert "refs/remotes/origin/main" in inspect.getsource(g.main_blob) and "refs/remotes/origin/main" in inspect.getsource(g.main_table_text), "the trust anchor is read by its full ref name, a tag called origin/main cannot shadow it"
+    assert "refs/remotes/origin/main" in inspect.getsource(real_blobs) and "refs/remotes/origin/main" in inspect.getsource(g.main_table_text), "the trust anchor is read by its full ref name, a tag called origin/main cannot shadow it"
     # 10. direct execution of a local file, git programs, ssh options, GNU long-option prefixes (opus round 2, items 3 to 6)
     Path(cwd, "direct.sh").write_text(f"sqlcmd -S {P} -Q 'delete from t'\n", encoding="utf-8")
     Path(cwd, "tame.sh").write_text("echo hi\n", encoding="utf-8")
@@ -392,6 +394,7 @@ def gate_self_test():
         for raw in ("not json", "[1]"):
             bad = subprocess.run([sys.executable, "-I", script], input=raw, capture_output=True, text=True, env={"LC_ALL": "C"})
             assert bad.returncode == 2, raw
+    g.main_blobs = real_blobs
     print("prod_write_gate self-test: ok")
 
 def seventeen_self_test():
@@ -445,10 +448,16 @@ def trust_self_test():
     script = os.path.join(HERE, "prod_write_gate.py")
     doc = DOCS_ROOT + "/new_intent.py"  # one of the gate's DOC_SCRIPTS, at its fixed path
     legacy = DOCS_ROOT + "/phase1a/infra/new_legacy_read.py"  # another DOC_SCRIPT: its arguments name production instances by design
+    register = DOCS_ROOT + "/phase1a/infra/build_legacy_read_register.py"  # a script it runs
+    tool, helper = DOCS_ROOT + "/t/tools/scan.py", DOCS_ROOT + "/lib/helper.py"  # a read-only evidence tool, a module it imports from a directory above
+    sql, added = DOCS_ROOT + "/t/sql/q.sql", DOCS_ROOT + "/t/sql/new.sql"  # in the directory the tool reads (table trust_dirs)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = os.path.realpath(tmp)
         main, work, forged, other, loose = (os.path.join(tmp, n) for n in ("M", "W", "F", "T", "N"))
-        body = {doc: f"import os\nos.system(\"psql -h {fake} -c 'delete from t'\")\n", legacy: "print('register')\n"}
+        tools = {"base": "t/tools/", "files": ["scan.py"], "trust_dirs": ["t/sql/"]}
+        body = {doc: f"import os\nos.system(\"psql -h {fake} -c 'delete from t'\")\n", legacy: "print('register')\n", register: "print('built')\n",
+                tool: "from lib import helper\n", helper: "x = 1\n", sql: "select 1\n",
+                "scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "fake", "patterns": [fake]}], "readonly_tools": tools})}
         mkrepo(main, body)
         mkrepo(forged, body)
         put(os.path.join(loose, doc), body[doc], 0o644)  # the same file in a directory that is no repository
@@ -468,6 +477,16 @@ def trust_self_test():
             assert hook(run_doc, cwd, project) == code, (why, cwd, project)
         assert hook(run_doc, None, main, process_cwd=work) == 2, "no cwd in the hook input: not trusted, even when the process runs in the worktree"
         assert hook(f"python3 {legacy} --session=t ro '{fake} 库' a b c d", work, main) == 0, "the legacy-read register script may name a production instance"
+        scan, register_run = f"python3 {tool} {fake}", f"python3 {legacy} '{fake}'"
+        cases = ((None, "", scan, "tool, imports and read directory as on main"), (helper, "x = 2\n", scan, "an imported module edited"),
+                 (sql, "delete from t\n", scan, "a file it reads edited"), (DOCS_ROOT + "/json.py", "", run_doc, "a module planted beside a document script"),
+                 (register, "import os\n", register_run, "a script it runs, edited (323f466a2 review, suggestion)"), (added, "", scan, "a file added where it reads"))
+        for rel, text, run, why in cases:
+            if rel:
+                put(os.path.join(work, rel), text, 0o644)
+            assert hook(run, work, main) == (2 if rel else 0), why
+            gitc(work, "checkout", "-q", "--", ".")
+            gitc(work, "clean", "-fdq")
         # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
         shifted = forged + "\nx"
         subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", shifted], check=True, capture_output=True)
@@ -516,13 +535,14 @@ def pre_tool_dispatch_test():
             assert g.decide(json.loads(raw))[0] == 2 and d.dispatch(raw) == g.decide(json.loads(raw)), command
     # 2. every one of the 17 cases is refused through the dispatcher, with the gate's own reason
     for number, commands in seventeen(PROD_P, PROD_H, PROD_D).items():
-        for command in commands:
-            code, out, err = d.dispatch(payload(command))
-            assert code == 2 and err.strip(), (number, command)
+        for command, tool in ((c, t) for c in commands for t in COMMAND_TOOLS):  # Monitor and the terminal panel run shell commands as Bash does (intent 160437)
+            code, out, err = d.dispatch(payload(command, tool_name=tool))
+            assert code == 2 and err.strip(), (number, command, tool)
     # 3. ordinary commands and other tools start nothing; checks that used to hang off the dispatcher are no longer here
     for command in ("ls", "echo hi", "git status", "npm test", "codex exec p", "git push --no-verify", "gh pr create --title x"):
         assert d.dispatch(payload(command)) == (0, "", ""), command
-    for raw in (json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}), json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}}),
+    monitor_ws = json.dumps({"tool_name": "Monitor", "tool_input": {"ws": {"url": "wss://x.example.invalid"}, "description": "d", "timeout_ms": 1000}})  # runs no command
+    for raw in (monitor_ws, json.dumps({"tool_name": "Agent", "tool_input": {"description": "复审", "prompt": "p"}}), json.dumps({"tool_name": "Read", "tool_input": {"file_path": "x"}}),
                 json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls", "description": "跑测试", "run_in_background": True}})):
         assert d.dispatch(raw) == (0, "", ""), raw
     # a Bash call without a string command fails closed (O3 review, suggestion 2; it used to pass)
@@ -782,7 +802,8 @@ def settings_self_test():
     stop = [h["command"] for g in hooks.pop("Stop") for h in g["hooks"]]
     assert len(stop) == 1 and "/.modernize/psa/tools/one-session/stop_check/stop_check.py" in stop[0] and stop[0].rstrip().endswith("; exit 0"), stop
     assert sorted(hooks) == ["PreToolUse", "SessionStart"], sorted(hooks)
-    assert [g["matcher"] for g in hooks["PreToolUse"]] == ["Bash"], "PreToolUse hangs only the production-write gate, on Bash"
+    assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS)], "PreToolUse hangs only the production-write gate, on the tools that run shell commands"
+    assert json.dumps(list(COMMAND_TOOLS)) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
     assert [g["matcher"] for g in hooks["SessionStart"]] == ["startup|clear|compact|resume", "startup|clear|compact"]
     commands = {}
     for event, groups in hooks.items():
@@ -894,6 +915,8 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     # 1. nothing installed: the pre-filter decides (an input it cannot read is refused), SessionStart warns and passes
     closed("入口缺失")
     assert mount(gate_cmd, "not json").returncode == 2 and mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {}})).returncode == 2
+    for tool, command, code in ((t, c, r) for t in COMMAND_TOOLS[1:] for c, r in ((f"psql -h {FAKE} -c 'delete from t'", 2), ("ls", 0))):  # Monitor, the terminal panel
+        assert mount(gate_cmd, bash(command).replace('"Bash"', f'"{tool}"')).returncode == code, (tool, command)
     # 2. first install: <install_dir>/<full sha>/, current a relative link to it, nothing half-made left
     r = install()
     assert r.returncode == 0 and points_to() == a and os.path.isdir(os.path.join(hooks, a)) and not leftovers(), (r.stdout, r.stderr, points_to())

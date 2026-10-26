@@ -1,7 +1,7 @@
 #!/usr/bin/python3
-"""PreToolUse 分发（Bash）：只挂生产写门 prod_write_gate（底线 4，生产只读）。
+"""PreToolUse 分发（Bash、Monitor、终端面板）：只挂生产写门 prod_write_gate（底线 4，生产只读）。
 
-只看 Bash；其他工具（Agent、Read…）直接放行。先用门自己的保守预筛 could_concern（只在门必然放行时才跳过），命中再在本进程里调门的 decide。
+只看跑 shell 命令的工具（门的 COMMAND_TOOLS）；其他工具（Agent、Read…）直接放行。先用门自己的保守预筛 could_concern（只在门必然放行时才跳过），命中再在本进程里调门的 decide。
 钩子输入读不懂（含 Bash 而 command 缺失或不是字符串）退出码 2（拒绝）。门导入失败、运行出错、DEADLINE 秒内没有结论，退出码 3 并给一句中文原因：
 由 settings.json 的挂载入口接手，跑不依赖门的保守预筛，命中才拒、未命中放行并告警（定稿 H4 安全门失败关闭、其余放行；外部复核 C3）。
 入口直接运行时 3 对 PreToolUse 是「不拦」，所以只经挂载入口用。挂载超时 120 秒在 Claude Code 里也算「不拦」，门内 git 卡住时靠时限先交给预筛（O7 终审建议 1）。
@@ -41,13 +41,10 @@ def dispatch(raw, gate_loader=load_gate):
         payload = None
     if not isinstance(payload, dict):
         return 2, "", "pre_tool_dispatch：钩子输入不是 JSON 对象，生产写门无法判断，按拒绝处理。\n"
-    if payload.get("tool_name", "Bash") != "Bash":
-        return 0, "", ""
-    tool_input = payload.get("tool_input")
-    command = tool_input.get("command") if isinstance(tool_input, dict) else None
-    if not isinstance(command, str):
-        return 2, "", "pre_tool_dispatch：Bash 钩子输入里没有字符串形式的 command，生产写门无法判断，按拒绝处理。\n"
     gate = gate_loader()
+    command, refusal = gate.command_of(payload)
+    if command is None:
+        return (2, "", refusal) if refusal else (0, "", "")
     if not gate.could_concern(gate.plain(command)):
         return 0, "", ""
     return gate.decide(payload)

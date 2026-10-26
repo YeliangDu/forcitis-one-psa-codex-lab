@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""生产写门（PreToolUse，Bash）：命令碰到生产目标，除非是点名的只读用法，一律拒绝。防底线 4（生产只读）；安全门，出错失败关闭（退出码 2）。
+"""生产写门（PreToolUse：Bash、Monitor、终端面板，跑 tool_input.command 的工具）：命令碰到生产目标，除非是点名的只读用法，一律拒绝。防底线 4（生产只读）；安全门，出错失败关闭（退出码 2）。
 
 生产目标 = prod_targets.json 的 patterns（与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR 所在仓库的），出现在命令的词里（引号、ANSI-C、续行、花括号、变量与 export／set -a 拼接、反引号与 `$(…)` 展开后）或环境变量里即「碰到」。
 每条简单命令（`bash -c`／`-lc`／`eval`／heredoc／here-string／`echo … | bash`／`env -S`／`<(…)` 递归，超过 3 层按读不懂）：
 - 远程工具（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie）碰到生产且写（或写效果看不出）拒绝；SQL 只认白名单，aliyun 只放 Describe/List/Get…，返回密钥的接口一律拒绝（底线 3）。
-- 不连接的命令（git 本地子命令、gh、echo、grep、rg 无 --pre、sed 无 e/w…）碰到特征放行；其他命令（解释器、xargs、find -exec、git push…）碰到即拒绝，解释器的脚本文件读进来看。
+- 不连接的命令（git 本地子命令、gh、echo、grep、rg 无 --pre、sed 无 e/w…）碰到特征放行；其他命令（解释器、xargs、find -exec、git push…）碰到即拒绝，解释器的脚本文件读进来看；可信脚本（与 origin/main 逐字节一致的点名脚本）连同它同目录可导入的文件、导入链上的仓库模块、取证工具的 trust_dirs 都须与 origin/main 一致。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：写类远程命令与解释器拒绝，只读放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名或特征拒绝；写操作的目标含读不出的变量拒绝。
 命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
+import ast
 import collections
 import json
 import os
@@ -17,6 +18,7 @@ import shlex
 import subprocess
 import sys
 from pathlib import Path
+
 
 ANSI_QUOTE = re.compile(r"\$'((?:[^'\\]|\\.)*)'", re.S)
 DOLLAR_DOUBLE = re.compile(r'\$(?=")')
@@ -352,6 +354,8 @@ NETWORK_GIT = {"push", "pull", "fetch", "clone", "ls-remote", "remote", "submodu
 DOC_SCRIPTS = {DOCS_ROOT + "/new_intent.py", DOCS_ROOT + "/phase1a/infra/new_legacy_read.py", DOCS_ROOT + "/new_log.py", DOCS_ROOT + "/glossary/new_term_issue.py"}
 ENV_TARGET_VARS = ("PGHOST", "PGSERVICE", "PGDATABASE", "PGUSER", "PGHOSTADDR", "SQLCMDSERVER", "SQLCMDDBNAME", "SQLCMDUSER", "MYSQL_HOST", "DATABASE_URL", "MONGODB_URI", "REDIS_URL", "ALIBABA_CLOUD_PROFILE")
 MAX_SQL_FILE, MAX_SCRIPT_FILE = 65536, 262144
+COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name the same
+LOADABLE, MAX_CLOSURE = (".py", ".pyc", ".so"), 400  # what Python imports from a directory; files a trusted script may load before it counts as unreadable
 STATEMENT_OPTIONS = {"psql": {"-c", "--command"}, "mysql": {"-e", "--execute"}, "mariadb": {"-e", "--execute"}, "sqlcmd": {"-Q", "-q", "--query"}, "osql": {"-Q", "-q"}, "mssql-cli": {"-Q", "--query"}, "mongosh": {"--eval"}, "mongo": {"--eval"}, "usql": {"-c", "--command"}}
 FILE_OPTIONS = {"psql": {"-f", "--file"}, "sqlcmd": {"-i"}, "osql": {"-i"}, "usql": {"-f", "--file"}, "mysql": set(), "mariadb": set()}
 DANGEROUS_SQL_OPTIONS = {"sqlcmd": {"-z", "-Z", "-v"}, "osql": {"-z", "-Z"}, "mysql": {"--init-command", "--init_command"}, "mariadb": {"--init-command", "--init_command"}}
@@ -460,17 +464,16 @@ def load_table(path=None):
     return patterns, None, " ".join(warnings) or None
 
 
-def readonly_tool_files():  # Repo-relative paths of the committed read-only evidence tools (table section readonly_tools): origin/main's table when it lists any, else the local one.
+def readonly_tools():  # (repo-relative paths of the committed read-only evidence tools, directories they read): table section readonly_tools, the tools from origin/main's table when it lists any, else the local one; the directories of both (they only add checks).
     def listed(text):
         try:
             tools = json.loads(text).get("readonly_tools", {})
-            return {DOCS_ROOT + "/" + tools.get("base", "") + f for f in tools.get("files", []) if isinstance(f, str)}
+            return ({DOCS_ROOT + "/" + tools.get("base", "") + f for f in tools.get("files", []) if isinstance(f, str)},
+                    [DOCS_ROOT + "/" + d for d in tools.get("trust_dirs", []) if isinstance(d, str) and d and ".." not in d])
         except (ValueError, AttributeError, TypeError):
-            return set()
-    found = listed(main_table_text(ANCHOR)[0] or "")
-    if not found:
-        found = listed(read_text(TABLE, None, 1 << 20) or "")
-    return found | EXTRA_READONLY
+            return set(), []
+    main, local = listed(main_table_text(ANCHOR)[0] or ""), listed(read_text(TABLE, None, 1 << 20) or "")
+    return (main[0] or local[0]) | EXTRA_READONLY, main[1] + local[1]
 
 
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow; a remote tool's name as a substring, as judge reads an unreadable line.
@@ -904,16 +907,77 @@ def target_unresolved(command):  # A word naming the target (host option value, 
     return False
 
 
-def main_blob(rel):  # Object id of `rel` on origin/main, or None.
-    return (git("rev-parse", "--verify", "-q", f"refs/remotes/origin/main:{rel}") or "").strip() or None
-
-
-def same_as_main(path):  # Repo-relative path of `path` when its content is byte for byte the file of that path on origin/main (edited, staged or new files are not), else None.
-    rel = os.path.relpath(os.path.realpath(path), os.path.realpath(ANCHOR))
-    if rel.startswith(".."):
+def batch(args, lines):  # Output lines of one git process fed `lines` on standard input (one per line), or None when it fails or a line holds a newline.
+    if any("\n" in line for line in lines):
         return None
-    theirs = main_blob(rel)
-    return rel if theirs and (git("hash-object", "--no-filters", "--", os.path.realpath(path)) or "").strip() == theirs else None
+    try:
+        run = subprocess.run(["git", "-C", ANCHOR, *args], input="".join(line + "\n" for line in lines), capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    out = run.stdout.split("\n")[:len(lines)] if run.returncode == 0 else []
+    return out if len(out) == len(lines) else None
+
+
+def main_blobs(rels):  # {path: object id on origin/main} for repo-relative paths, missing ones left out; read by the full ref name.
+    out = batch(["cat-file", "--batch-check"], [f"refs/remotes/origin/main:{rel}" for rel in rels]) or []
+    return {rel: line.split()[0] for rel, line in zip(rels, out) if len(line.split()) == 3 and line.split()[1] == "blob"}
+
+
+def rel_of(path):  # Path relative to the anchor: its directory resolved, the file itself not (a symlink is no file of the repository).
+    return os.path.relpath(os.path.join(os.path.realpath(os.path.dirname(os.path.abspath(path))), os.path.basename(path)), os.path.realpath(ANCHOR))
+
+
+def all_as_on_main(paths):  # True when every path is a regular file byte for byte origin/main's file at that path (edited, staged, new, symlinked or outside the anchor are not).
+    rels = [rel_of(p) for p in paths]
+    if any(r.startswith("..") or os.path.islink(p) or not os.path.isfile(p) for r, p in zip(rels, paths)):
+        return False
+    theirs, mine = main_blobs(rels), batch(["hash-object", "--no-filters", "--stdin-paths"], [os.path.realpath(p) for p in paths])
+    return mine is not None and all(theirs.get(r) == m for r, m in zip(rels, mine))
+
+
+def imported(path):  # Repository files the imports of a Python file can load (every candidate on its directory and each one above it up to the anchor: any may be first on sys.path), or None when it cannot be parsed.
+    try:
+        tree = ast.parse(Path(path).read_bytes())
+    except (OSError, SyntaxError, ValueError):
+        return None
+    top, here, roots = os.path.realpath(ANCHOR), os.path.realpath(os.path.dirname(path)), []
+    while os.path.commonpath([here, top]) == top and here not in roots:
+        roots.append(here)
+        here = os.path.dirname(here)
+    names = [(a.name.split("."), roots) for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]
+    for n in (n for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)):  # `from a import b`: b may be a module; a relative import starts `level` directories up
+        where = [os.path.realpath(os.path.join(os.path.dirname(path), *[".."] * (n.level - 1)))] if n.level else roots
+        names += [((n.module or "").split(".") * bool(n.module) + a.name.split("."), where) for a in n.names]
+    stems = {os.path.join(root, *parts[:i]) for parts, where in names for root in where for i in range(1, len(parts) + 1)}
+    return [c for stem in stems for c in [stem + s for s in LOADABLE] + [os.path.join(stem, "__init__.py")] if os.path.lexists(c)]
+
+
+def closure(script):  # Files running `script` may load: everything importable beside it (it may run them, as new_intent runs its builders) and, recursively, the repository modules the imports name; None when one cannot be read.
+    here = os.path.dirname(os.path.abspath(script))
+    try:
+        todo, seen = [script] + [os.path.join(here, n) for n in sorted(os.listdir(here)) if n.endswith(LOADABLE)], set()
+    except OSError:
+        return None
+    while todo:
+        path = os.path.abspath(todo.pop())
+        if path in seen:
+            continue
+        seen.add(path)
+        found = imported(path) if path.endswith(".py") and os.path.isfile(path) else []  # anything else fails the comparison with origin/main
+        if found is None or len(seen) > MAX_CLOSURE:
+            return None
+        todo += found
+    return seen
+
+
+def tree_files(rel_dir):  # Every file under a directory of the anchor (__pycache__ skipped), or None when it holds a symlink.
+    files = []
+    for top, dirs, names in os.walk(os.path.join(ANCHOR, rel_dir)):
+        if any(os.path.islink(os.path.join(top, n)) for n in dirs + names):
+            return None
+        dirs[:] = [d for d in dirs if d != "__pycache__"]
+        files += [os.path.join(top, n) for n in names]
+    return files
 
 
 def script_operand(argv):  # The script an interpreter runs (first non-option word), or None for inline code (-c, -m, -e, -p) or none.
@@ -937,12 +1001,14 @@ def trusted_script(argv, cwd):  # A document script at its fixed path, a listed 
     ANCHOR = ANCHOR or trust_root(ROOTS[0]) or os.devnull
     full = script if os.path.isabs(script) else os.path.join(cwd or os.getcwd(), script)
     full = full if os.path.isfile(full) else os.path.join(ANCHOR, script)
-    rel = same_as_main(full) if os.path.isfile(full) else None
+    rel = rel_of(full) if all_as_on_main([full]) else None  # the script itself first: one git call pair
     if rel is None:
         return False
-    if rel in readonly_tool_files() or rel in DOC_SCRIPTS:
-        return True
-    return rel.startswith(GUARD_DIRS) and rel.endswith(".py") and argv[argv.index(script) + 1:] == ["--self-test"]
+    tools, dirs = readonly_tools()
+    if not (rel in tools or rel in DOC_SCRIPTS or (rel.startswith(GUARD_DIRS) and rel.endswith(".py") and argv[argv.index(script) + 1:] == ["--self-test"])):
+        return False
+    loaded, read = closure(full), [tree_files(d) for d in dirs] if rel in tools else []  # what it imports or runs, and for an evidence tool the directories it reads (SQL, Java), must be main's too
+    return loaded is not None and None not in read and all_as_on_main(sorted(loaded) + [f for files in read for f in files])
 
 
 def body_is_judged_separately(command):  # A shell whose program is a `-c` string, an eval argument, a heredoc or a here-string: that body is a command of its own in the list.
@@ -1056,14 +1122,22 @@ def trust_root(cwd):  # cwd's work tree when cwd and CLAUDE_PROJECT_DIR are in o
     return found[0][1] if sane and os.path.realpath(found[0][0]) == os.path.realpath(found[1][0]) and os.path.commonpath([os.path.realpath(cwd), os.path.realpath(found[0][1])]) == os.path.realpath(found[0][1]) else None
 
 
-def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict); the dispatcher calls this in-process.
-    if payload.get("tool_name", "Bash") != "Bash":
-        return 0, "", ""
-    tool_input = payload.get("tool_input")
+def command_of(payload):  # (shell command of a hook payload or None, refusal or None): Bash, Monitor and the terminal panel run tool_input.command; Monitor's ws source runs none.
+    tool, tool_input = payload.get("tool_name", "Bash"), payload.get("tool_input")
     command = tool_input.get("command") if isinstance(tool_input, dict) else None
-    if not isinstance(command, str):
-        return 2, "", "prod_write_gate.py：Bash 钩子输入里没有字符串形式的 command，无法判断，按拒绝处理。\n"
+    if tool not in COMMAND_TOOLS or (tool == "Monitor" and command is None and isinstance(tool_input, dict)):
+        return None, None
+    return (command, None) if isinstance(command, str) else (None, f"生产写门：{tool} 钩子输入里没有字符串形式的 command，无法判断，按拒绝处理。\n")
+
+
+def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict); the dispatcher calls this in-process.
+    command, refusal = command_of(payload)
+    if command is None:
+        return (2, "", refusal) if refusal else (0, "", "")
     cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) and payload.get("cwd") else None
+    where = payload["tool_input"].get("cwd") if payload.get("tool_name") == COMMAND_TOOLS[2] else None  # the terminal panel's own start directory
+    if isinstance(where, str) and where:
+        cwd = os.path.join(cwd or os.getcwd(), os.path.expanduser(where))
     global ANCHOR, ROOTS
     ANCHOR, ROOTS = None, (cwd, os.environ.get("CLAUDE_PROJECT_DIR"), os.getcwd())  # the anchor is resolved by trusted_script, on first use
     try:
