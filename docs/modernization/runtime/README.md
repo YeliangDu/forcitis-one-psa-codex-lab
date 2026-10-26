@@ -1,8 +1,10 @@
 # 生产运行时证据（只读采集，2026-10-14）
 
+> 历史证据（GOV-1023-FV2 DA3）：2026-10-14 的一次性采集，不再更新；生产主机标识已去掉，需要时查本机取证登记。
+
 ## 采集方式
 
-- 通过 aliyun CLI 云助手，在生产 PSA 应用服务器 `i-bp1b34hcl0g1cnkdtrb9` 上执行。
+- 通过 aliyun CLI 云助手，在生产 PSA 应用服务器 （主机标识不入仓，见取证登记） 上执行。
 - 运行一个单文件 Java 程序：驱动取自 fst jar，数据源从本机 Nacos `prod` 命名空间的 `psa-datasource.yaml` 读取，以只读连接加 READ UNCOMMITTED 隔离级别访问 RDS `ruoyi-vue-pro`，只执行 SELECT。
 - 凭据只在服务器进程内使用，没有打印、没有回传。临时目录 `/tmp/psa-ro-probe` 每次执行后都已删除。
 - 程序源码见本会话 scratchpad `ro/Q.java`，查询语句的等价版见 `../runtime_usage_queries.sql`。
@@ -53,7 +55,7 @@
   | 21 | 1 | 部门负责人 |
 
 ### 安全
-- 安全组对 0.0.0.0/0 开放网关端口 48088。
+- 安全组对 全网（任意来源） 开放网关端口 48088。
 - 免密登录相关端点在 180 天内被调用约 2 万次，见 `SECURITY_FINDINGS.md` 中的 SEC-001。
 
 ### 目标环境
