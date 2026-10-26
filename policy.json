@@ -89,7 +89,7 @@
       "docs/modernization/adr/new_adr.py",
       "docs/modernization/adr/selftest_build_adrs.py",
       "docs/modernization/build_all.py",
-      "docs/modernization/build_decision_digest.py",
+      "docs/modernization/build_decisions.py",
       "docs/modernization/build_oa_inventory.py",
       "docs/modernization/build_records.py",
       "docs/modernization/check_legacy_name.py",

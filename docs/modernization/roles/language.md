@@ -1,6 +1,6 @@
 # 角色：language
 
-独占路径：`docs/modernization/glossary/**`、`backend/glossary/**`、`docs/modernization/rules/**`、`docs/modernization/RULE_REVIEWS.*`、`docs/modernization/process/**`、`docs/modernization/decision-digest/**`、`docs/modernization/build_decision_digest.py`、`docs/modernization/build_decisions.py`、`docs/modernization/architecture/decision-page/**`
+独占路径：`docs/modernization/glossary/**`、`backend/glossary/**`、`docs/modernization/rules/**`、`docs/modernization/RULE_REVIEWS.*`、`docs/modernization/process/**`、`docs/modernization/decision-digest/**`、`docs/modernization/build_decisions.py`、`docs/modernization/architecture/decision-page/**`
 
 `backend/glossary/proposed/` 下的提议片段任何会话可新增，裁定归本角色。
 

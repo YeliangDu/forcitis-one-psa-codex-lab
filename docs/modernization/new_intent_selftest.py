@@ -29,7 +29,7 @@ def main():
         os.makedirs(os.path.join(mod, "decision-digest"))
         shutil.copy(os.path.join(BASE, "decision-digest", "topics.txt"), os.path.join(mod, "decision-digest"))
         open(os.path.join(mod, "decision-digest", "relations.txt"), "w").close()
-        for f in ("new_intent.py", "build_decision_digest.py", "build_records.py"):
+        for f in ("new_intent.py", "build_decisions.py", "build_records.py"):
             shutil.copy(os.path.join(BASE, f), mod)
         for key in ("session", "category", "owner", "paths", "supersedes"):
             code, out = run(tree, swap(GOOD, key))
