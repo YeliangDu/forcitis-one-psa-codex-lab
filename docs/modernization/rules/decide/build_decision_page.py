@@ -65,13 +65,41 @@ def symlink_on_path(root, *rel):
     return None
 
 
+def case_mismatch_on_path(root, *rel):
+    """从 root 往下逐级，每一级名字（含文件名）须大小写精确出现在上一级目录的列表里；返回第一个不符的路径，没有返回 None。
+    macOS 等大小写不敏感的文件系统上，Architecture/、Sheets/ 也能打开，而 check_pages 的路径匹配区分大小写（c5a63d259 终审必改 1）。"""
+    cur = root
+    for part in pathlib.PurePosixPath(*rel).parts:
+        try:
+            if part not in os.listdir(cur):
+                return cur / part
+        except OSError:
+            return cur / part
+        cur = cur / part
+    return None
+
+
+CHECK_CTX = None   # 出页前自检用的 intent 文件名与词表，首次用时读一次
+
+
+def precheck(path):
+    """出页前对所读文件跑 check_pages 的同一单页检查（check_file，与 CI 同一函数）。已答豁免只认与 HEAD 里规范路径同一内容的题：
+    改过的、或规范路径在 HEAD 里没有的，照常检查。这样任何让 CI 看不见的路径，生成器自己也不放行。"""
+    global CHECK_CTX
+    if CHECK_CTX is None:
+        CHECK_CTX = (cp.intent_files(), cp.load_vocab())
+    names, vocab = CHECK_CTX
+    return cp.check_file(str(path), names, vocab, base=cp.base_items(str(path), "HEAD", root=str(REPO)))
+
+
 def load(name):
     if name == "FD":
         return sheet_fd()
     # 单子名只许单段文件名：带 /、\、..、绝对路径或空名会落到子目录（如 archive/）或仓库外，再借已答页名绕过检查（058873e46 终审必改 1）
     if not isinstance(name, str) or not SHEET_NAME.fullmatch(name):
         sys.exit(f"单子名须是单段文件名（字母、数字、_、-，不带目录与扩展名）：{name!r}")
-    found = [(rel, REPO / rel / f"{name}.json") for rel in (SHEETS_REL,) + OLD_RELS if (REPO / rel / f"{name}.json").is_file()]
+    # 按 sheets/、旧题源的顺序取第一个「有这个名字的条目」（lexists，不跟随链接）：sheets/ 里同名的悬空链接、目录等不落到旧题源，下面直接报错
+    found = [(rel, REPO / rel / f"{name}.json") for rel in (SHEETS_REL,) + OLD_RELS if os.path.lexists(REPO / rel / f"{name}.json")]
     if not found:
         sys.exit(f"找不到单子 {name}（FD、sheets/{name}.json，或已答旧页 architecture/decision-page/{name}.json；archive/ 不读）")
     rel, p = found[0]
@@ -80,9 +108,14 @@ def load(name):
     link = symlink_on_path(REPO, rel, f"{name}.json")
     if link:
         sys.exit(f"单子 {name} 的路径上有符号链接（{link}）：不跟随链接出页，题源须是仓库里的普通文件")
+    odd = case_mismatch_on_path(REPO, rel, f"{name}.json")
+    if odd:
+        sys.exit(f"单子 {name} 的路径大小写与目录里的实际名字不符（{odd}）：check_pages 按精确大小写匹配，大小写不符的路径不出页")
     # 第二道（独立有效）：路径须正好是 仓库根/固定相对路径/<名>.json，且真实路径等于 realpath(仓库根)/固定相对路径/<名>.json
     if p.parent != REPO / rel or os.path.realpath(p) != os.path.join(os.path.realpath(REPO), rel, f"{name}.json"):
         sys.exit(f"单子 {name} 解析到允许目录以外：{p}")
+    if not p.is_file():
+        sys.exit(f"单子 {name} 不是普通文件：{p}")
     old = rel != SHEETS_REL
     if old:   # 旧题源只重出已答历史页，不许借它绕过出题检查发新页
         done, whole = cp.answered_nos(str(p))
@@ -91,6 +124,9 @@ def load(name):
     sheet = json.loads(p.read_text(encoding="utf-8"))
     if not isinstance(sheet, dict) or not isinstance(sheet.get("items"), list) or not isinstance(sheet.get("groups"), list):
         sys.exit(f"{p.name} 不是单子格式（须是含 groups、items 两个列表的对象）")
+    problems = precheck(p)
+    if problems:
+        sys.exit(f"单子 {name} 出页前出题检查（check_pages，与 CI 同一函数）不过，{len(problems)} 处：\n" + "\n".join(problems[:20]))
     for key, default in (("sheet", name), ("title", None), ("lede", "按组作答，全部选完后到页面最后一个标签「检查答案」，核对后一次提交。")):
         if not isinstance(sheet.get(key), str) or not sheet[key]:
             if not old:   # sheets/ 的新单子不补默认：缺 sheet、title、lede 即失败
@@ -161,14 +197,15 @@ def self_test():
     template = (HERE / "page-template.html").read_text(encoding="utf-8")
     for needle in ('"none"', '"answered"', "未答", "recOf(i) < 0 && pick(i).choice === null", "blocked === 0"):
         assert needle in template, f"page-template.html 缺少无默认项题的处理：{needle}"
-    global REPO, SHEET_NAME, symlink_on_path
+    global REPO, SHEET_NAME, symlink_on_path, case_mismatch_on_path
     # 真实常量：仓库根下固定相对路径；旧题源只有 architecture/decision-page 一层，不含 archive/；路径改错或加回 archive/ 即红（终审建议 1）
     assert OLD_RELS == ("docs/modernization/architecture/decision-page",) and (REPO / OLD_RELS[0]).is_dir(), OLD_RELS
+    assert REPO == pathlib.Path(cp.ROOT), (REPO, cp.ROOT)   # 生成器与 check_pages 的仓库根一致
     assert SHEETS_REL == "docs/modernization/rules/decide/sheets" and (REPO / SHEETS_REL).is_dir() and REPO / SHEETS_REL == HERE / "sheets", SHEETS_REL
     # 旧题源只重出已答页（2e48b3e6e 首轮必改 1）：未答的拒绝；已答但不合现行校验的，读得进、validate 照样拒绝；
     # archive/ 不再读：即便登记已答也找不到（c04fabda0 之后调度令）
     import tempfile
-    saved = REPO, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEET_NAME, symlink_on_path
+    saved = REPO, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEET_NAME, symlink_on_path, case_mismatch_on_path
     with tempfile.TemporaryDirectory() as tmp:
         base = pathlib.Path(tmp)
         R, answers = base / "repo", base / "answers"   # 临时仓库根，按真实的固定相对路径建目录
@@ -182,7 +219,18 @@ def self_test():
         (old / "OLDA.json").write_text(json.dumps(good), encoding="utf-8")
         (old / "OLDL.json").write_text("[]", encoding="utf-8")
         (old / "OLDBAD.json").write_text(json.dumps(two_recs), encoding="utf-8")    # 未答、不合规
-        (old / "OLDREC.json").write_text(json.dumps(two_recs), encoding="utf-8")    # 已登记已答、不合规
+        two_recs_based = dict(two_recs, items=[dict(two_recs["items"][0], basis=["企业会计准则 14 号"])])   # 过得了 check_pages，过不了 validate
+        (old / "OLDREC.json").write_text(json.dumps(two_recs_based), encoding="utf-8")    # 已登记已答、不合现行校验
+        no_basis = dict(good | {"title": "坏", "lede": "坏"}, items=[dict(good["items"][0], kind="choice")])   # 一般选择题依据为空：validate 过、check_pages R2 不过
+        (sheets / "BADCI.json").write_text(json.dumps(no_basis), encoding="utf-8")
+        # 大小写改名：L3 的 architecture、sheets 换成大写目录（大小写不敏感的文件系统上按小写名也能打开）；BADREG 已登记已答但内容不合 check_pages
+        cased_old, cased_sheets = base / "L3/docs/modernization/Architecture/decision-page", base / "L3/docs/modernization/rules/decide/Sheets"
+        cased_old.mkdir(parents=True)
+        cased_sheets.mkdir(parents=True)
+        (cased_old / "OLDX.json").write_text(json.dumps(good), encoding="utf-8")
+        (cased_old / "BADREG.json").write_text(json.dumps(no_basis), encoding="utf-8")
+        (cased_sheets / "NEW.json").write_text(json.dumps(good | {"title": "新单", "lede": "说明"}), encoding="utf-8")
+        case_blind = (base / "L3/docs/modernization/architecture").exists()
         (old / "archive" / "OLDARC.json").write_text(json.dumps(good), encoding="utf-8")    # 已登记已答、合规，但在 archive/
         (sheets / "NEW.json").write_text(json.dumps(good | {"title": "新单", "lede": "说明"}), encoding="utf-8")
         (sheets / "NOTITLE.json").write_text(json.dumps(good | {"lede": "说明"}), encoding="utf-8")   # sheets/ 缺 title：不补默认，须失败
@@ -199,7 +247,13 @@ def self_test():
             for rel in links:
                 (root / rel).parent.mkdir(parents=True, exist_ok=True)
                 (root / rel).symlink_to(R / rel, target_is_directory=True)
-        (base / "answered.txt").write_text("OLDX  # 出处\nOLDL\nOLDREC\nOLDARC\nLNK\nOLDA\n", encoding="utf-8")
+        # sheets/ 里同名但不是普通文件（悬空链接、目录），旧题源里有登记已答的合规同名页：不得落到旧题源
+        for n in ("DANG", "DIRX"):
+            (old / f"{n}.json").write_text(json.dumps(good), encoding="utf-8")
+        (sheets / "DANG.json").symlink_to("no-such.json")
+        (sheets / "DIRX.json").mkdir()
+        # 登记表不含 OLDA：OLDA 只靠 answers/ 导出算已答（c5a63d259 首轮必改 1）
+        (base / "answered.txt").write_text("OLDX  # 出处\nOLDL\nOLDREC\nOLDARC\nLNK\nDANG\nDIRX\nBADREG\n", encoding="utf-8")
         REPO = R
         cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY = str(answers), str(base / "answered.txt")
 
@@ -214,7 +268,7 @@ def self_test():
             got = load("OLDX")
             assert (got["sheet"], got["title"]) == ("T", "T") and got["lede"], got   # title 为空补默认
             validate([got])
-            validate([load("OLDA")])   # answers/ 有导出也算已答
+            validate([load("OLDA")])   # 未登记、只靠 answers/ 导出算已答（去掉 load 里的 or done 即红）
             assert load("NEW")["title"] == "新单"
             single = "单段文件名"   # 名字带目录、绝对路径、..、空名：第一道（名字校验）就拒（058873e46 终审必改 1）
             for name, fragment in [("OLDL", "不是单子格式"), ("NO-SUCH-SHEET", "找不到单子"), ("OLDBAD", "不算已答"), ("OLDARC", "找不到单子"),
@@ -223,26 +277,36 @@ def self_test():
                                    ("a\\OLDA", single), ("", single), (None, single)]:
                 rejected([name], fragment)
             link = "符号链接"   # 路径上任一级是链接：逐级判定拒（c33b8fa2c 终审必改 1、74f973acd 首轮必改 1）
-            rejected(["LNK", "SLNK", "OUT", "NEWLNK"], link)
+            rejected(["LNK", "SLNK", "OUT", "NEWLNK", "DANG"], link)
+            rejected(["DIRX"], "不是普通文件")
+            rejected(["BADCI"], "出题检查")   # 出页前自检：check_pages 不过即拒（c5a63d259 终审必改 1）
+            REPO = base / "L3"   # 大小写改名：逐级大小写核对拒；大小写敏感的文件系统上本来就找不到
+            rejected(["OLDX", "NEW"], "大小写" if case_blind else "找不到单子")
+            if case_blind:   # CI 看不见的路径（大小写改名）上即便逐级核对失效，坏单子也被出页前自检拒；合规的照常读
+                case_mismatch_on_path = lambda *a: None
+                rejected(["BADREG"], "出题检查")
+                assert load("NEW")["title"] == "新单"
+                case_mismatch_on_path = saved[5]
+            REPO = R
             for root in (base / "L1", base / "L2"):   # 旧题源与 sheets/ 的上级或本身是链接，内容是同一批合规已答页
                 REPO = root
                 rejected(["NEW", "OLDA", "OLDX"], link)
             # 第二道单独核：名字校验与逐级判定都放开，仍须由「路径与真实路径都锚定仓库根」拒绝
-            SHEET_NAME, symlink_on_path = re.compile(r".+"), (lambda *a: None)
+            SHEET_NAME, symlink_on_path, case_mismatch_on_path = re.compile(r".+"), (lambda *a: None), (lambda *a: None)
             REPO = R
             rejected(["archive/OLDARC", "sub/OLDX", str(old / "archive" / "OLDARC"), "../../../architecture/decision-page/OLDA",
                       "LNK", "SLNK", "OUT", "NEWLNK"], "允许目录以外")
             for root in (base / "L1", base / "L2"):
                 REPO = root
                 rejected(["NEW", "OLDA", "OLDX"], "允许目录以外")
-            REPO, SHEET_NAME, symlink_on_path = R, saved[3], saved[4]
+            REPO, SHEET_NAME, symlink_on_path, case_mismatch_on_path = R, saved[3], saved[4], saved[5]
             try:
                 validate([load("OLDREC")])
                 raise AssertionError("已答但两个推荐的旧页应被 validate 拒绝")
             except SystemExit as e:
                 assert "恰好一个推荐" in str(e), str(e)
         finally:
-            REPO, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEET_NAME, symlink_on_path = saved
+            REPO, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEET_NAME, symlink_on_path, case_mismatch_on_path = saved
     print("build_decision_page self-test: ok")
 
 

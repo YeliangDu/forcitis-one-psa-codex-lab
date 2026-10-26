@@ -342,7 +342,12 @@ def changed_pages(base, root=ROOT):
     if r.returncode:
         sys.exit(f"check_pages: 取不到基线 {base}：{r.stderr.strip()[:200]}")
     paths = set(r.stdout.split()) | set(git("diff", "--name-only", "--diff-filter=AMRT", "HEAD").stdout.split()) | set(git("ls-files", "--others", "--exclude-standard").stdout.split())
-    return sorted(os.path.join(root, p) for p in paths if any(re.fullmatch(g.replace("*", "[^/]+"), p) for g in PAGE_GLOBS))
+    return sorted(os.path.join(root, p) for p in paths if is_page_path(p))
+
+
+def is_page_path(p):
+    """仓库相对路径是否落在 PAGE_GLOBS 里。大小写不敏感：macOS 上把 architecture/、sheets/ 改成大写仍能打开，这类改名也要列出来查（c5a63d259 终审必改 1）。"""
+    return any(re.fullmatch(g.replace("*", "[^/]+"), p, re.IGNORECASE) for g in PAGE_GLOBS)
 
 
 def main(argv):
@@ -528,6 +533,8 @@ def self_test():
         open(os.path.join(d, pages, "D.txt"), "w").write("x")
         found = [os.path.relpath(x, d) for x in changed_pages("main", d)]
         assert found == [pages + "/B.json", pages + "/C.json", pages + "/E.json", pages + "/F.json", "docs/modernization/rules/decide/sheets/S.json"], found
+        assert is_page_path("docs/modernization/Architecture/decision-page/X.json") and is_page_path("docs/modernization/rules/decide/Sheets/X.JSON")
+        assert not is_page_path("docs/modernization/architecture/decision-page/archive/X.json") and not is_page_path("docs/modernization/rules/decide/sheets/x.txt")
         try:
             changed_pages("no-such-ref", d)
             raise AssertionError("无效基线应失败")

@@ -31,6 +31,8 @@ expect x/rules/decide/sheets/q.json t_decision_pages
 expect x/rules/decide/check_pages.py t_decision_gen t_decision_pages
 expect x/rules/decide/answered_pages.txt t_decision_pages
 expect x/architecture/decision-page/check_pages.py
+expect x/Architecture/decision-page/D-01.json t_decision_pages
+expect x/rules/decide/Sheets/q.JSON t_decision_pages
 expect x/architecture/decision-page/old/D-01.json
 expect x/architecture/proposals/j_checks.py t_j_checks
 expect x/architecture/proposals/vs_links_gen.py t_j_checks

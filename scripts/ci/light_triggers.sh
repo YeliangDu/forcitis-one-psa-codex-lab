@@ -21,8 +21,8 @@ t_weak_registration|weak-registration scan (self-test)|python3 scripts/ci/weak_r
 t_weak_registration|weak-registration scan (report only)|python3 scripts/ci/weak_registration_scan.py
 t_shell|shell syntax (bash -n)|shell_syntax'
 
-touches() {  # touches <模式>：没有基线时一律算改到；否则看 $changed 里有没有匹配的路径
-  [ -z "$base" ] || grep -Eq "$1" "$changed"
+touches() {  # touches <模式>：没有基线时一律算改到；否则看 $changed 里有没有匹配的路径（大小写不敏感：macOS 上大小写改名的路径也触发，同 check_pages.is_page_path）
+  [ -z "$base" ] || grep -Eqi "$1" "$changed"
 }
 
 list_changed() {  # list_changed <输出文件>：写出相对 $base 的改动路径；任一条 git 命令失败即返回非零（不当成「没有改动」）
