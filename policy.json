@@ -118,7 +118,10 @@
       "docs/modernization/rules/data_objects.py",
       "docs/modernization/rules/merge_rules.py",
       "docs/modernization/rules/pull_result.py",
-      "docs/modernization/rules/review_revisions.py"
+      "docs/modernization/rules/review_revisions.py",
+      "docs/modernization/rules/decide/",
+      "scripts/delegate.py",
+      "scripts/evidence/"
     ],
     "_final_paths_说明": "仓库根起的完整前缀，改动路径以任一项开头即须 opus 终审。不得写裸目录名或空表（空表等于关闭终审）。生产写门的可信脚本（DOC_SCRIPTS、只读取证工具）运行时会加载或会被比对的文件也在表内，由 gates_selftest 的 layout 段对照门的 closure 核对（K18 续）。"
   },
