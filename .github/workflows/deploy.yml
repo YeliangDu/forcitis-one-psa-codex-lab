@@ -83,7 +83,8 @@ jobs:
       CONFIRM: ${{ inputs.confirm }}
     steps:
       # The runner's own HOME is an empty root-owned directory; every job gets a fresh one, git included (RELEASE.md §7 R-0).
-      # No .gitconfig is created in it: toolchain.sh refuses a home that holds one; git reads a missing GIT_CONFIG_GLOBAL file as empty
+      # No .gitconfig is created in it: toolchain.sh refuses a home that holds one; git reads a missing GIT_CONFIG_GLOBAL file as empty.
+      # Nothing later writes it either: checkout's only global write (safe.directory) is turned off below
       - name: fresh home for this job
         run: |
           mkdir -p "$RUNNER_TEMP/home"
@@ -94,6 +95,8 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
+          # Its global write would land in GIT_CONFIG_GLOBAL; the job user owns _work, so git needs no safe.directory
+          set-safe-directory: false
 
       - name: toolchain (system tools vetted; pinned and verified downloads)
         run: scripts/release/toolchain.sh deploy "$RUNNER_TEMP/toolchain"
