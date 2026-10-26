@@ -1,7 +1,6 @@
 # 用「PSA」字样的数据值白名单（check_legacy_name.py 例外 6）：路径<Tab>子串
 docs/modernization/OA_PROCESS_INVENTORY.md	PSA部门账套对照表
 docs/modernization/SECURITY_FINDINGS.md	PSA direct gateway compatibility
-docs/modernization/security_remediation.notes.md	PSA dev/prod
 docs/modernization/STACK_DECISION.md	《PSA 边界蓝图 v2.3》
 docs/modernization/intent/2026-10-14-017-前端要参考-claude-des.md	《PSA 边界蓝图 v2.3》
 docs/modernization/PREFLIGHT.md	forcitis-one 就是 PSA 的接班系统

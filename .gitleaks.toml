@@ -12,3 +12,21 @@ condition = "AND"
 paths = ['''^docs/modernization/glossary/confirm-page/(index|template)\.html$''']
 regexTarget = "match"
 regexes = ['''key":"(R2-)?[ABCNP]-[a-z0-9_\-]+"''']
+
+# 凭据名赋值右侧是 14～32 位字面量（引号可有可无）：默认规则不覆盖这类写法（定稿 6.1 第 6 条，O17）。
+[[rules]]
+id = "credential-assignment-literal"
+description = "凭据名赋值右侧是 14～32 位字面量"
+regex = '''(?i)(?:^|[^a-z0-9])(?:[a-z0-9]+[_.-]|[a-z0-9]*?)(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|credential)s?["']?[ \t]*(?:=|:|=>)[ \t]*["']?([^"'\s$<>{}()#,;]{14,32})(?:["']|[ \t]*$)'''
+secretGroup = 1
+entropy = 3.0
+keywords = ["password", "passwd", "pwd", "secret", "token", "key", "credential"]
+
+# 只对上面一条：命名预览数据里 "token" 是用语词元的键，值是词元，不是凭据。
+[[allowlists]]
+description = "命名预览的词元键，非凭据"
+targetRules = ["credential-assignment-literal"]
+condition = "AND"
+paths = ['''^docs/modernization/glossary/arch-naming/naming-preview\.json$''']
+regexTarget = "match"
+regexes = ['''^"token"''']
