@@ -340,6 +340,8 @@
       }
     },
     "timeout_minutes": 60,
+    "real_run_enabled": false,
+    "_real_run_说明": "调度 10-26 深夜定方案 A：false 时 delegate 只许自测桩，真引擎一律拒（失败关闭、台账记拒绝）；pi 系统沙箱与 codex 限读（终审 79afae290 必改 2、3 后半）在 V16 前实测处理，处理完并经批准才改 true。review.final_paths 全部并入禁区。",
     "ledger": "~/.modernize/psa/state/delegate/ledger.jsonl",
     "runs_dir": "~/.modernize/psa/state/delegate/runs",
     "billing": {
