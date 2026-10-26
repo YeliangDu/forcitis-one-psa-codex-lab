@@ -169,6 +169,8 @@ def strip_prefix(seg, variables):  # (env of leading `NAME=value` words and wrap
             i += 1
         elif tok in KEYWORDS:
             i += 1
+        elif REDIRECTION.fullmatch(tok) or (tok.isdigit() and i + 1 < len(seg) and REDIRECTION.fullmatch(seg[i + 1])):
+            i += 1 if tok.isdigit() else 2  # a redirection before the program (`>o ./deploy`): its fd, then the operator and its target (c211b73bd final M2)
         elif tok.lower() in WRAPPERS:
             valued, wrapper = WRAPPERS[tok.lower()], tok.lower()
             i += 1
@@ -211,6 +213,7 @@ def simple_commands(command, depth=0, variables=None, exported=None):
     previous, allexport = None, False
     for seg, piped in segments:
         env, rest = strip_prefix(seg, variables)
+        lead = any(REDIRECTION.fullmatch(t) for t in seg[:len(seg) - len(rest)])
         if not rest:
             variables.update(env)  # a bare `NAME=value` stays in effect for the following commands
             exported.update({k: v for k, v in env.items() if allexport or k in ENV_TARGET_VARS})  # exported under `set -a`; a target variable may already be exported by the environment or an rc file (O2 round 1 M1)
@@ -239,7 +242,7 @@ def simple_commands(command, depth=0, variables=None, exported=None):
             for arg in argv[1:]:
                 variables.pop(arg, None)
                 exported.pop(arg, None)
-        out.append(Command(argv, {**exported, **env}, unresolved, any(t in ("<", "<<", "<<<", ">", ">>", ">&", "&>") for t in argv), piped))
+        out.append(Command(argv, {**exported, **env}, unresolved, lead or any(t in ("<", "<<", "<<<", ">", ">>", ">&", "&>") for t in argv), piped))
         if name in SHELLS:
             bodies = []
             if name == "eval":
@@ -323,7 +326,8 @@ SHELL_META = re.compile(r"[$`;|&\n(){}<>]")
 PLAIN_RSH = re.compile(r"^ssh(?:\s+-[pi]\s*\S+|\s+-[46Cq])*$")
 SED_EXEC = re.compile(r"(?:^|[;{}\n])\s*[ew]\b|s(.).*?\1.*?\1[a-zA-Z]*e[a-zA-Z]*\s*(?:[;}]|$)")
 URL_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
-PATH_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*(?:\w+=\S*\s+)*[^\s;&|()]*/")  # a command word with a slash: a script run by its path
+REDIRECTION = re.compile(r"&?[<>]+[&|]?")
+PATH_COMMAND = re.compile(r"(?:^|[;&|(\n])\s*(?:(?:\w+=\S*|\d*&?[<>]+[&|]?\s*[^\s;&|()]+)\s+)*[^\s;&|()]*/")  # a command word with a slash: a script run by its path
 
 
 def git(*args, root=None):  # stdout of a git command in `root` (default: the trust anchor), or None when it fails.
@@ -1059,7 +1063,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
     odd = bool(COMMENT_OR_HEREDOC.search(CONTINUATION.sub(r"\1", command_text)))  # as bash, continuations go first; their text is read as words, so quotes in it may pair with the real commands
-    if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text))):  # variables may spell the tool and the target (2b59000cb first review M1)
+    if odd and (raw_hit or env_hit or may_run_or_expand(plain(command_text)) or PATH_COMMAND.search(command_text)):  # the raw text too: a `\⏎` in a comment does not join the next line (c211b73bd final M1); variables may spell the tool and the target (2b59000cb first review M1)
         return "拒绝：命令里有注释或 here-document，门不模仿 shell 去剥它们；这一行又含生产特征、远程工具、解释器、变量展开、按路径执行的程序或指向生产的环境变量，宁可误拦（intent 2026-10-26-140639）。去掉注释与 here-document 再执行；提交说明、PR 正文先写进文件（放会话 scratchpad 或 state 目录，不进仓库），再用 git commit -F <文件>、gh pr create --body-file <文件>（intent 2026-10-26-145156）。"
     try:
         commands = simple_commands(command_text)
