@@ -22,6 +22,14 @@ SHA, OTHER, PR = "a" * 40, "b" * 40, 42
 R1, R2 = f"opus-{FIRST}-r1", f"opus-{FINAL}-a1"
 ISSUE, SESSION_LABEL = 7, "会话:one-ops"
 BODY = f"Closes #{ISSUE}\n\n## 改动说明\n"
+HOME = "Owner/Repo"   # 桩里本 PR 所在仓库；大小写混写，核对不分大小写
+
+
+def closing(number, slug):
+    """gh pr view --json closingIssuesReferences 的一项，形状取自 one-ops 10-27 在公开仓库的只读实测（无 state、无 nameWithOwner）。"""
+    owner, name = slug.split("/")
+    return {"id": "I_x", "number": number, "repository": {"id": "R_x", "name": name, "owner": {"id": "O_x", "login": owner}},
+            "url": f"https://github.com/{slug}/issues/{number}"}
 
 
 def header(verdict=PASS, commit=SHA, reviewer=R1, colon="："):
@@ -37,8 +45,10 @@ class Stub:
 
     def __init__(self, heads=(SHA,), view_rc=0, review_rc=0, post_out=None, edit_rc=0,
                  labels=(), labels_rc=0, labels_out=None, reviews=(), reviews_rc=0, reviews_out=None,
-                 body=BODY, body_rc=0, body_out=None, issue_state="OPEN", issue_labels=(SESSION_LABEL,), issue_rc=0, issue_out=None):
-        self.body, self.body_rc, self.body_out = body, body_rc, body_out   # 关联 Issue 检查（#24）：PR 正文与 Issue 的桩；缺省为已排期
+                 body=BODY, body_rc=0, body_out=None, issue_state="OPEN", issue_labels=(SESSION_LABEL,), issue_rc=0, issue_out=None,
+                 refs=None, refs_rc=0, refs_out=None, home_out=None):
+        self.body, self.body_rc, self.body_out = body, body_rc, body_out   # 关联 Issue 检查（#24）：PR 正文、GitHub 算的关闭集合与 Issue 的桩；缺省为已排期
+        self.refs, self.refs_rc, self.refs_out, self.home_out = refs, refs_rc, refs_out, home_out
         self.issue_state, self.issue_labels, self.issue_rc, self.issue_out = issue_state, issue_labels, issue_rc, issue_out
         self.calls, self.heads, self.view_rc, self.review_rc, self.post_out = [], list(heads), view_rc, review_rc, post_out
         self.edit_rc, self.labels, self.labels_rc, self.labels_out = edit_rc, labels, labels_rc, labels_out
@@ -49,6 +59,12 @@ class Stub:
         if args[:2] == ["pr", "view"] and "headRefOid" in args:
             head = self.heads.pop(0) if len(self.heads) > 1 else self.heads[0]
             return self.view_rc, json.dumps({"headRefOid": head}) if head is not None else "{}"
+        slug = args[args.index("-R") + 1] if "-R" in args else HOME
+        if args[:2] == ["repo", "view"]:
+            return 0, json.dumps({"nameWithOwner": HOME}) if self.home_out is None else self.home_out
+        if args[:2] == ["pr", "view"] and "closingIssuesReferences" in args:
+            refs = [closing(ISSUE, slug)] if self.refs is None else self.refs
+            return self.refs_rc, json.dumps({"closingIssuesReferences": refs}) if self.refs_out is None else self.refs_out
         if args[:2] == ["pr", "view"] and "body" in args:
             return self.body_rc, json.dumps({"body": self.body}) if self.body_out is None else self.body_out
         if args[:2] == ["issue", "view"]:
@@ -317,8 +333,9 @@ def case_issue_unreadable_fails_closed():
     for kw in bad_body + bad_issue:
         msg = refused(Stub(**kw))
         assert "失败关闭" in msg or "不是 open" in msg or "格式" in msg, (kw, msg)
-    for out in ((127, ""), (1, "{}"), (124, '{"state": "OPEN", "labels": [{"name": "会话:x"}]}')):   # gh 不存在、出错、超时
-        assert issue_gate.unscheduled(PR, lambda args, out=out: out if args[0] == "issue" else (0, json.dumps({"body": BODY})), []) is not None
+    for out in ((127, ""), (1, "{}"), (124, '{"state": "OPEN", "labels": [{"name": "会话:x"}]}')):   # gh 不存在、非零退出码（即使输出看似合格）
+        assert issue_gate.unscheduled(PR, Stub(issue_rc=out[0], issue_out=out[1]), ["-R", "o/r"]) is not None
+    assert issue_gate.unscheduled(PR, Stub(), ["-R", "o/r"]) is None   # 对照：同一桩正常时放行
     assert issue_gate.unscheduled(PR, lambda args: (127, ""), []) is not None
 
 
@@ -330,8 +347,7 @@ def case_issue_link_forms():
         assert run(s)[0] == 0 and [c[0][2] for c in s.calls if c[0][0] == "issue"] == [str(ISSUE)], repr(body)
     bad = ["", "无关联", "\n" + BODY, " " + BODY, "closes #7", "CLOSES #7", "Closes  #7", "Closes #07", "Closes #0", "Closes #", "Closes #<卡>",
            "Fixes #7", "Closes #7 Closes #8", "Closes #7, #8", "Closes #7 #8", "Closes #7.", "Closes #1234567890", "Closes #-1",
-           "Closes #7\nCloses #8", "Closes #7\ncloses #8", "Closes #7\nFixes: #8", "Closes #7\r\nResolves #8", "Closes #7\n正文 closed #8",
-           "Closes #7\n<!-- x -->\nFixes #8", "Closes #7\n```\nCloses #8\n```", "<!-- c -->\nCloses #7"]
+           "<!-- c -->\nCloses #7"]
     for body in bad:
         s = Stub(body=body)
         msg = refused(s)
@@ -339,20 +355,42 @@ def case_issue_link_forms():
 
 
 def case_issue_multi_link_forms():
-    """关闭关键字后的引用不论 #N、owner/repo#N 还是网址，合计多于一个即拒；首行跨仓库一律拒；关键字前紧挨任何字符都认。"""
+    """首行跨仓库写法一律拒（不查 Issue）；正文其余部分不再自己解析，关闭集合以 GitHub 的 closingIssuesReferences 为准。"""
     url = "https://github.com/o/r/issues/8"
-    bad = [f"Closes #{ISSUE}\nCloses #8", f"Closes #{ISSUE}\nFixes o/r#8", f"Closes #{ISSUE}\nResolves {url}",
-           f"Closes #{ISSUE}\nfixed: o/r#8", f"Closes #{ISSUE}\nclose {url}", f"Closes #{ISSUE}\nRESOLVED #8", f"Closes #{ISSUE}\nCLOSE  o.x/r-y_z#8",
-           f"Closes #{ISSUE}\n见Closes #8", f"Closes #{ISSUE}\n另Fixes o/r#8", f"Closes #{ISSUE}\n关闭Resolved {url}", f"Closes #{ISSUE}\nx;closes #8",
-           f"Closes #{ISSUE}\n正文Closes #8\n", f"Closes #{ISSUE}\n<!-- 注释 -->\n见fixes {url}",
-           f"Closes o/r#{ISSUE}", f"Closes https://github.com/o/r/issues/{ISSUE}", f"Closes o/r#{ISSUE}\n正文", f"Closes {url}"]
-    for body in bad:
+    for body in (f"Closes o/r#{ISSUE}", f"Closes https://github.com/o/r/issues/{ISSUE}", f"Closes o/r#{ISSUE}\n正文", f"Closes {url}"):
         s = Stub(body=body)
         msg = refused(s)
         assert [c for c in s.calls if c[0][0] == "issue"] == [] and "拒绝提交" in msg, (body, msg)
-    s = Stub(body=f"Closes #{ISSUE}\n只有首行一个关联；相关讨论见 #9、o/r#10 与 {url}\n")   # 没有关闭关键字的引用不算关联
-    assert run(s)[0] == 0 and [c[0][2] for c in s.calls if c[0][0] == "issue"] == [str(ISSUE)]
-    assert run(Stub(body=f"Closes #{ISSUE}"))[0] == 0
+
+
+def case_issue_closing_set():
+    """关闭集合须恰为首行那一张同仓库的卡；多、少、不一致、跨仓库、结构不对、读不到都拒，且不去查 Issue（#24 方案 C）。"""
+    ok, other = closing(ISSUE, HOME), closing(8, HOME)
+    s = Stub(refs=[ok])   # 恰为首行卡，放行；仓库名大小写不同也认
+    assert run(s)[0] == 0 and [c[0][:3] for c in s.calls if c[0][0] == "issue"] == [["issue", "view", str(ISSUE)]]
+    assert run(Stub(refs=[closing(ISSUE, HOME.lower())]))[0] == 0 and run(Stub(refs=[closing(ISSUE, HOME.upper())]))[0] == 0
+    assert any("closingIssuesReferences" in c[0] and c[0][:2] == ["pr", "view"] for c in s.calls)   # 只读 GitHub 算的集合
+    bad = {"多一张": [ok, other], "多一张（同号重复）": [ok, ok], "为空": [], "号不一致": [other], "跨仓库": [closing(ISSUE, "o/r")],
+           "跨 owner": [closing(ISSUE, "x/Repo")], "跨 name": [closing(ISSUE, "Owner/x")],
+           "缺 number": [{"repository": ok["repository"]}], "number 非整数": [{**ok, "number": str(ISSUE)}], "number 是布尔": [{**ok, "number": True}],
+           "缺 repository": [{"number": ISSUE}], "repository 非字典": [{"number": ISSUE, "repository": "o/r"}],
+           "缺 name": [{"number": ISSUE, "repository": {"owner": {"login": "Owner"}}}], "缺 owner": [{"number": ISSUE, "repository": {"name": "Repo"}}],
+           "owner 非字典": [{"number": ISSUE, "repository": {"name": "Repo", "owner": "Owner"}}],
+           "缺 login": [{"number": ISSUE, "repository": {"name": "Repo", "owner": {}}}],
+           "login 非字符串": [{"number": ISSUE, "repository": {"name": "Repo", "owner": {"login": 1}}}], "项不是字典": ["x"], "项为空": [{}]}
+    for why, refs in bad.items():
+        s = Stub(refs=refs)
+        msg = refused(s)
+        assert [c for c in s.calls if c[0][0] == "issue"] == [] and "拒绝提交" in msg, (why, msg)
+    for why, kw in {"值不是列表": {"refs": None, "refs_out": '{"closingIssuesReferences": {"number": 7}}'}, "字段缺失": {"refs_out": "{}"},
+                    "值为 null": {"refs_out": '{"closingIssuesReferences": null}'}, "JSON 畸形": {"refs_out": "坏 JSON"},
+                    "不是对象": {"refs_out": "[]"}, "gh 失败": {"refs_rc": 1}, "gh 失败但输出合格": {"refs_rc": 1, "refs": [ok]},
+                    "取不到本仓库": {"home_out": "坏 JSON"}, "本仓库名不合格": {"home_out": '{"nameWithOwner": "x"}'}}.items():
+        s = Stub(**kw)
+        msg = refused(s)
+        assert "失败关闭" in msg and [c for c in s.calls if c[0][0] == "issue"] == [], (why, msg)
+    s = Stub(refs=[closing(ISSUE, "o/r")], body=f"Closes #{ISSUE}\n正文")   # -R 指定仓库时不再问 gh 本仓库，直接以它为准
+    assert run(s, repo="o/r")[0] == 0 and [c for c in s.calls if c[0][:2] == ["repo", "view"]] == []
 
 
 def case_main_cli():
