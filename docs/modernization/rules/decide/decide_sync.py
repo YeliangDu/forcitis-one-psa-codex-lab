@@ -45,12 +45,11 @@ def registered_owner(sheet):
         if state == "after":
             sys.exit(f"ONLINE_PAGES.md 登记表块之后又有表格行（表格行须从表头起连续成一块；注释、代码块、表外孤立行不算登记）：{s[:40]}…；表格损坏，先修登记表")
         state = "in"
-        lead = line[:len(line) - len(line.lstrip(" \t"))]
-        if "\t" in lead or len(lead) >= 4:   # Markdown 里是缩进代码块，不是表格（bfc4056e5 首轮必改 1）
-            sys.exit(f"ONLINE_PAGES.md 登记表有以制表符或 4 个以上空格缩进的表格行（Markdown 显示为代码块，不算登记）：{s[:40]}…；表格损坏，先修登记表")
         cells = [c.strip() for c in s[1:-1].split("|")]
         if "\\|" in s or not (s.startswith("|") and s.endswith("|")) or len(cells) != len(PAGES_HEADER):
             sys.exit(f"ONLINE_PAGES.md 登记表有格式不规范的表格行（要求以 | 开头结尾、{len(PAGES_HEADER)} 列、单元格不含管道符或转义管道符）：{s[:40]}…；表格损坏，不敢解析负责会话，先修登记表")
+        if not re.fullmatch(r" {0,3}\|.*\|[ \t]*", line.rstrip("\r\n")):   # 4 格以上或制表符缩进是代码块，行首行尾其他空白（\f、NBSP、全角空格）让页面整行错位（bfc4056e5 首轮、56a28fb35 终审必改 1）
+            sys.exit(f"ONLINE_PAGES.md 登记表有缩进不合约定的表格行（行首只许 0～3 个空格、紧接 |，末尾 | 后只许空格或制表符；否则页面显示与脚本解析不一致）：{s[:40]}…；表格损坏，先修登记表")
         rows.append(cells)
     if not rows or rows[0] != PAGES_HEADER:
         sys.exit(f"ONLINE_PAGES.md 登记表表头不是约定的六列（{' | '.join(PAGES_HEADER)}），不敢解析负责会话；先修登记表或本脚本")
