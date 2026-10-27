@@ -576,3 +576,49 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 - `docs/modernization/quality/CI_TIMING_REVIEW.md`
 - `docs/modernization/quality/GOVERNANCE_RESEARCH.md`
 - `docs/modernization/quality/TEST_IMPACT_RESEARCH.md`
+
+## 二乙批（E 类，GOV-1023-FV2）
+
+二乙从 main 移出的有读者文件，原文件留在只读归档分支 `archive/2026-10-b2b`（由 one-ops 在二乙合入前、自移出提交的父提交建出，之后不再改动；建出前以该父提交上的同一路径取回）。与上面「逐文件」一节分开登记，不并入其合计。
+
+取回某个文件：`git show archive/2026-10-b2b:<路径>`。
+
+E1 只因 policy.json 登记而有读者的一次性脚本及其读入物（#34，11 个；登记已同提交删除）：
+
+- `docs/modernization/describe_nodes.py`
+- `docs/modernization/extract_topology.py`
+- `docs/modernization/glossary/migrate_to_concepts.py`
+- `docs/modernization/glossary/test_checkers_on_concepts.py`
+- `docs/modernization/glossary/test_migrate_to_concepts.py`
+- `docs/modernization/live_code.py`
+- `docs/modernization/map/descriptions.json`
+- `docs/modernization/rules/data_objects.py`
+- `docs/modernization/rules/merge_rules.py`
+- `docs/modernization/rules/pull_result.py`
+- `docs/modernization/topology.json`
+
+E2 文字出处与同批引用（#35，23 个；ADR 正文不改，其中的出处文字按下列路径在归档分支上取回；`.gitleaksignore` 的指纹行保留，指纹对应历史提交）：
+
+- `docs/modernization/architecture-guardrails/backend/coverage.csv`
+- `docs/modernization/architecture-guardrails/backend/negative-test.log`
+- `docs/modernization/architecture-guardrails/backend/src/test/java/com/forcitis/one/SecurityInvariantsTest.java`
+- `docs/modernization/architecture-guardrails/frontend/negative-lint.log`
+- `docs/modernization/architecture/proposals/closeout/ARCH_VS14.md`
+- `docs/modernization/architecture/proposals/closeout/BPMN_STYLE.md`
+- `docs/modernization/architecture/proposals/closeout/CONVENTIONS.md`
+- `docs/modernization/architecture/proposals/closeout/PROCESS_METHOD_RESEARCH.md`
+- `docs/modernization/architecture/proposals/closeout/PROCESS_METHOD_REVIEW.md`
+- `docs/modernization/architecture/proposals/closeout/PROCESS_QUALITY_CHECKLIST.md`
+- `docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX_SPEC.md`
+- `docs/modernization/architecture/proposals/closeout/bpmn_check.py`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen.py`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/activity_cancel.yaml`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/entry.yaml`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/exits.yaml`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/mini.yaml`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/timeout.yaml`
+- `docs/modernization/architecture/proposals/closeout/converge_check.py`
+- `docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_ALIGNMENT_AUDIT.md`
+- `docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md`
+- `docs/modernization/build_oa_inventory.py`
+- `docs/modernization/map/packets/fst_infrastructure_cost.txt`

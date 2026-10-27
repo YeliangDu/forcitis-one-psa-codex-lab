@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """new_intent.py 的自测（二乙 #25 C7）：在临时副本里跑，不写仓库的 intent/。用法：python3 docs/modernization/new_intent_selftest.py（附带的 --self-test 参数忽略）。"""
-import glob, json, os, shutil, subprocess, sys, tempfile
+import glob, importlib.util, json, os, shutil, subprocess, sys, tempfile
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
-import build_records  # noqa: E402
+_spec = importlib.util.spec_from_file_location("build_rule_index", os.path.join(BASE, "rules", "build_rule_index.py"))
+build_rule_index = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(build_rule_index)
 
 GOOD = ["--session=one-ops", "--category=流程", "--owner=one-ops", "--paths=scripts/ci,docs/modernization", "--supersedes=无"]
 TEXT = ["用户原话", "落点说明"]
@@ -92,7 +94,7 @@ def main():
         os.makedirs(os.path.join(mod, "decision-digest"))
         shutil.copy(os.path.join(BASE, "decision-digest", "topics.txt"), os.path.join(mod, "decision-digest"))
         open(os.path.join(mod, "decision-digest", "relations.txt"), "w").close()
-        for f in ("new_intent.py", "build_decisions.py", "build_records.py"):
+        for f in ("new_intent.py", "build_decisions.py"):
             shutil.copy(os.path.join(BASE, f), mod)
         for key in ("session", "category", "owner", "paths", "supersedes"):
             code, out = run(tree, swap(GOOD, key))
@@ -134,7 +136,7 @@ def main():
         assert all(f"## {s}\n" in text for s in ("原话", "落点", "类别", "负责会话", "影响路径")), text
         assert "## 类别\n\n流程\n\n## 负责会话\n\none-ops\n\n## 影响路径\n\nscripts/ci、docs/modernization\n" in text, text
         assert "## 取代" not in text, "「无」不写取代节"
-        assert build_records.parse_intent("p", text)[2] == {"类别": "流程", "负责会话": "one-ops", "影响路径": "scripts/ci、docs/modernization"}
+        assert build_rule_index.parse_intent("p", text)[2] == {"类别": "流程", "负责会话": "one-ops", "影响路径": "scripts/ci、docs/modernization"}
         code, out = run(tree, swap(swap(swap(swap(GOOD, "category", "授权"), "paths", "无"), "supersedes", os.path.basename(first[0])), "owner", "one-coordinator") + ["--date=2026-01-02"])
         assert code == 0, out
         second = [f for f in glob.glob(os.path.join(mod, "intent", "*.md")) if f != first[0]][0]
