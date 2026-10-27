@@ -40,6 +40,8 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
     # DataArchitectureTest runs the V11 part of the c3/c9 verify scripts against a container database (also checked by db_scripts_aligned.py)
     "docs/modernization/phase1a/infra/runbooks/sql/",
+    # light.sh runs the new_intent self-test (C7, #25)
+    "docs/modernization/new_intent_selftest.py",
 )
 
 # inside READ_BY_BUILDS directories but read by no build: the one-glossary records
