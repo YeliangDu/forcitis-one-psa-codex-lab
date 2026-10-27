@@ -1,31 +1,24 @@
 #!/usr/bin/env python3
 """delegate：外部模型（Codex、DeepSeek 经 pi）的唯一入口（定稿 1.13 第 5 条，D33、D34、D37、D38、D40；O20）。
 
-流程：准入 → 独立快照（系统临时目录下 0700 目录，只导出非禁区文件、不带 .git 与历史；基点仓库的 git 目录放在 runs_dir，
-快照之外）→ 单一提示模板 → nice＋`env -i` 起子进程（stdin 指 /dev/null，沙箱与禁网参数写死）→ 产出落盘（输出、diff）
-→ 机械验证 → 台账。台账只记元数据，不记提示与输出全文；token、费用取不到记「未知」。
-数值与枚举只读 policy.json 的 delegate 段、machine.delegate_nice、review.final_paths（全部并入禁区）；缺键或值不对即失败关闭。
-delegate.real_run_enabled 为 false 时只许带自测桩标记的程序，真引擎一律拒（调度 10-26 方案 A）。
+流程：准入 → 独立快照（系统临时目录下 0700 目录，只导出非禁区文件、不带 .git 与历史；基点仓库的 git 目录放在 runs_dir，快照之外）
+→ 单一提示模板 → nice＋`env -i` 起子进程（stdin 指 /dev/null，沙箱与禁网参数写死）→ 产出落盘（输出、diff）→ 机械验证 → 台账。台账只记元数据（卡只记卡号），不记提示与输出全文；token、费用取不到记「未知」。
+数值与枚举只读 policy.json 的 delegate 段、machine.delegate_nice、review.final_paths（全部并入禁区）；缺键或值不对即失败关闭。delegate.real_run_enabled 为 false 时只许带自测桩标记的程序，真引擎一律拒（调度 10-26 方案 A）。
 未修（与 real_run_enabled 绑定，V16 前处理，见终审 79afae290 必改 2、3）：pi 一路没有系统沙箱，读写不限于快照；codex 的 workspace-write 只限写不限读，能按绝对路径读本机文件；两者都要实测 sandbox-exec 等外层限制，本次不调真程序做不了。
-不收目录参数（b2b-plan 0.4）：在仓库根目录运行，读当前目录的 policy.json 与 docs/modernization/tasks/<卡号>.md。
-调用方按 RULES 后台启动本程序；外部模型的凭据由本机配置提供（TEAM-34 现行做法），本程序不读不传。
-退出码：0 通过；1 运行或机械验证不过；2 准入拒绝或 policy 缺键；3 用法错。
+不收目录参数（b2b-plan 0.4）：在仓库根目录运行，读当前目录的 policy.json；卡从 GitHub Issue 只读获取（#49，调度 10-27），环境变量 DELEGATE_GH 指定 gh 只供自测。
+调用方按 RULES 后台启动本程序；外部模型的凭据由本机配置提供（TEAM-34 现行做法），本程序不读不传。退出码：0 通过；1 运行或机械验证不过；2 准入拒绝或 policy 缺键；3 用法错。
 用法：
-  delegate.py run --engine codex|deepseek --category <试点类别> --card <卡号> --scope <路径或通配>[,...] [--effort low|medium|high|xhigh]
+  delegate.py run --engine codex|deepseek --category <试点类别> --card <Issue 号> --session <会话名> --scope <路径或通配>[,...] [--effort low|medium|high|xhigh]
   delegate.py adopt <运行号> --adopted yes|no [--rework N]
   delegate.py summary
 """
-import argparse, datetime, fnmatch, json, os, posixpath, re, shutil, signal, subprocess, sys, tarfile, tempfile, time, uuid
+import argparse, contextlib, datetime, fnmatch, json, os, posixpath, re, shutil, signal, subprocess, sys, tarfile, tempfile, time, uuid
 from pathlib import Path
 
-TASKS_DIR = "docs/modernization/tasks"
-CARD_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$")
-EFFORTS = ("low", "medium", "high", "xhigh")
-STUB_MARK = b"DELEGATE-SELFTEST-STUB"
-UNKNOWN = "未知"
+CARD_ID, SESSION = re.compile(r"^[1-9][0-9]{0,8}$"), re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")   # 卡号即 Issue 号；会话名同 sessions/ 画像名
+CARD_SECTIONS, GH_TIMEOUT, EFFORTS, STUB_MARK, UNKNOWN = ("目标", "完成标准"), 30, ("low", "medium", "high", "xhigh"), b"DELEGATE-SELFTEST-STUB", "未知"
 # 写死的隔离参数（D40、TEAM-34 现行命令）；改动须终审，自测逐项核对。
-CODEX_SAFETY = ("-s", "workspace-write", "-c", "sandbox_workspace_write.network_access=false",
-                "-c", 'approval_policy="never"', "--ephemeral")
+CODEX_SAFETY = ("-s", "workspace-write", "-c", "sandbox_workspace_write.network_access=false", "-c", 'approval_policy="never"', "--ephemeral")
 PI_SAFETY = ("--no-session", "--no-extensions", "--no-mcp", "--offline")
 SECRET_PATTERNS = [re.compile(p) for p in (
     r"sk-[A-Za-z0-9_-]{20,}", r"gh[pousr]_[A-Za-z0-9]{30,}", r"github_pat_[A-Za-z0-9_]{30,}", r"AKIA[0-9A-Z]{16}",
@@ -63,10 +56,9 @@ def load_policy(engine=None):
     except (OSError, ValueError) as e:
         raise Refuse(f"读不了当前目录的 policy.json：{e.__class__.__name__}")
     cfg = {k: need(pol, p) for k, p in (
-        ("forbidden_paths", "delegate.forbidden_paths"), ("final_paths", "review.final_paths"),
-        ("forbidden_categories", "delegate.forbidden_categories"), ("categories", "delegate.pilot.categories"),
-        ("env_allow", "delegate.env_allow"), ("timeout", "delegate.timeout_minutes"), ("ledger", "delegate.ledger"),
-        ("runs", "delegate.runs_dir"), ("real_run", "delegate.real_run_enabled"), ("nice", "machine.delegate_nice"))}
+        ("forbidden_paths", "delegate.forbidden_paths"), ("final_paths", "review.final_paths"), ("forbidden_categories", "delegate.forbidden_categories"),
+        ("categories", "delegate.pilot.categories"), ("env_allow", "delegate.env_allow"), ("timeout", "delegate.timeout_minutes"),
+        ("ledger", "delegate.ledger"), ("runs", "delegate.runs_dir"), ("real_run", "delegate.real_run_enabled"), ("nice", "machine.delegate_nice"))}
     if engine:
         cfg["model"] = need(pol, f"delegate.engines.{engine}.model")
         cfg["tools"] = need(pol, "delegate.engines.deepseek.tools") if engine == "deepseek" else "-"
@@ -104,9 +96,8 @@ def leaks(text):
 def genv(gitdir=None, work=None):
     """git 子进程环境：去掉继承的 GIT_*，不读系统与全局配置，关 fsmonitor 与钩子；基点仓库显式指定 git 目录与工作树。"""
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_COUNT="2",
-               GIT_CONFIG_KEY_0="core.fsmonitor", GIT_CONFIG_VALUE_0="false",
-               GIT_CONFIG_KEY_1="core.hooksPath", GIT_CONFIG_VALUE_1=os.devnull)
+    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_COUNT="2", GIT_CONFIG_KEY_0="core.fsmonitor",
+               GIT_CONFIG_VALUE_0="false", GIT_CONFIG_KEY_1="core.hooksPath", GIT_CONFIG_VALUE_1=os.devnull)
     if gitdir:
         env.update(GIT_DIR=str(gitdir), GIT_WORK_TREE=str(work))
     return env
@@ -117,21 +108,38 @@ def git(*args, cwd=".", env=None, check=True):
         raise RuntimeError(f"git {args[0]} 失败（退出 {r.returncode}）")
     return r.stdout
 
+def fetch_card(card, session):
+    """从 Issue 只读取卡（#49，调度 10-27）：gh issue view 只取状态、标签与正文「目标」「完成标准」两节。
+    取不到、gh 不可用、不是 open、无「会话:<本会话>」标签、缺节或节为空一律拒（失败关闭）；拒绝原因不带正文。"""
+    try:
+        r = subprocess.run([os.environ.get("DELEGATE_GH") or "gh", "issue", "view", card, "--json", "state,labels,body"],
+                           capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=GH_TIMEOUT)
+        issue = json.loads(r.stdout) if r.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired) as e:
+        raise Refuse(f"gh 不可用，取不到 Issue #{card}（{e.__class__.__name__}，失败关闭）")
+    except ValueError:
+        raise Refuse(f"取不到 Issue #{card}（gh 输出不是 JSON，失败关闭）")
+    if not isinstance(issue, dict):
+        raise Refuse(f"取不到 Issue #{card}（gh 退出 {r.returncode} 或输出不是 JSON 对象，失败关闭）")
+    if issue.get("state") != "OPEN":
+        raise Refuse(f"Issue #{card} 不是 open，拒绝")
+    if f"会话:{session}" not in {x.get("name") for x in (issue.get("labels") if isinstance(issue.get("labels"), list) else []) if isinstance(x, dict)}:
+        raise Refuse(f"Issue #{card} 没有本会话标签「会话:{session}」，拒绝")
+    body = re.sub(r"<!--.*?-->", "", issue.get("body") if isinstance(issue.get("body"), str) else "", flags=re.S)
+    parts = {m.group(1): m.group(2).strip() for m in re.finditer(r"^##[ \t]+([^\n]*?)[ \t]*(?:\n|\Z)(.*?)(?=^##[ \t]|\Z)", body, re.M | re.S)}
+    if [s for s in CARD_SECTIONS if not parts.get(s)]:
+        raise Refuse(f"Issue #{card} 正文缺「{'」「'.join(s for s in CARD_SECTIONS if not parts.get(s))}」节或节为空，拒绝")
+    return "\n".join(f"## {s}\n{parts[s]}" for s in CARD_SECTIONS)
+
 def admit(args, cfg):
     """准入：类别、卡、范围、禁区、真跑开关；返回 (卡正文, 归一后的范围, 引擎程序)。"""
     if args.category not in cfg["categories"]:
         raise Refuse(f"类别不在 delegate.pilot.categories：{args.category}")
     if any(f in args.category or args.category in f for f in cfg["forbidden_categories"]):
         raise Refuse(f"类别属不外包（delegate.forbidden_categories）：{args.category}")
-    if not CARD_ID.match(args.card):
-        raise Refuse("卡号只能是字母、数字、点、下划线、连字符")
-    card_path = f"{TASKS_DIR}/{args.card}.md"
-    if forbidden(card_path, cfg):
-        raise Refuse("卡文件在禁区")
-    try:
-        card = Path(card_path).read_text(encoding="utf-8")
-    except OSError:
-        raise Refuse(f"找不到卡 {card_path}（须在仓库根目录运行）")
+    if not CARD_ID.match(args.card) or not SESSION.match(args.session):
+        raise Refuse("卡号须是 Issue 号（正整数），会话名只能是小写字母、数字、连字符")
+    card = fetch_card(args.card, args.session)
     if leaks(card + args.scope):
         raise Refuse(f"卡或范围里有密钥模式或非公开材料标记：{'、'.join(leaks(card + args.scope))}")
     scope = [norm_scope(s) for s in args.scope.split(",") if s.strip()]
@@ -141,8 +149,7 @@ def admit(args, cfg):
     for s in scope:
         if forbidden(s, cfg) or forbidden(s.rstrip("/") + "/x", cfg):
             raise Refuse(f"范围落在禁区（delegate.forbidden_paths 或 review.final_paths）：{s}")
-        n = sum(1 for p in tracked if p and in_scope(p, [s]) and forbidden(p, cfg))
-        if n:
+        if n := sum(1 for p in tracked if p and in_scope(p, [s]) and forbidden(p, cfg)):
             raise Refuse(f"范围 {s} 覆盖禁区文件 {n} 个")
     exe = shutil.which("codex" if args.engine == "codex" else "pi")
     if not exe:
@@ -192,10 +199,8 @@ def run_engine(cmd, work, stdout_file, log_file, timeout_s):
             rc, timed_out = p.wait(timeout=timeout_s), False
         except subprocess.TimeoutExpired:
             rc, timed_out = None, True
-        try:
+        with contextlib.suppress(ProcessLookupError, PermissionError):
             os.killpg(p.pid, signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
-            pass
         p.wait()
         return rc, timed_out
 
@@ -235,8 +240,7 @@ def tokens_in(log_text):
 def cmd_run(args):
     run_id = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:6]
     safe = lambda v: "<已屏蔽：含密钥模式或非公开标记>" if leaks(v) else v
-    base_rec = {"ts": now(), "event": "run", "run_id": run_id, "engine": args.engine, "category": safe(args.category),
-                "card": safe(args.card), "scope": safe(args.scope)}
+    base_rec = {"ts": now(), "event": "run", "run_id": run_id, "engine": args.engine, "category": safe(args.category), "card": safe(args.card), "scope": safe(args.scope)}
     cfg = load_policy(args.engine)
     try:
         if git("rev-parse", "--show-toplevel").strip() != str(Path.cwd().resolve()):
@@ -268,8 +272,7 @@ def cmd_run(args):
         fails += [f"log:{h}" for h in leaks(log_text) if h.startswith("secret")]
         (run_dir / "diff.patch").write_text(diff, encoding="utf-8")
         fails[:0] = ["timeout"] if timed_out else [f"engine_exit:{rc}"] if rc else []
-        rec.update(rc=rc, changed_files=len(changed), diff_lines=diff.count("\n"), out_chars=len(out_text),
-                   verify=fails, status="ok" if not fails else "verify_failed")
+        rec.update(rc=rc, changed_files=len(changed), diff_lines=diff.count("\n"), out_chars=len(out_text), verify=fails, status="ok" if not fails else "verify_failed")
     except (RuntimeError, OSError, tarfile.TarError) as e:
         rec.update(status="error", reason=e.__class__.__name__ if isinstance(e, OSError) else str(e))
     finally:
@@ -290,8 +293,7 @@ def cmd_adopt(args):
     if not any(r.get("run_id") == args.run_id and r.get("event") == "run" for r in read_ledger(cfg)):
         print(f"delegate：台账里没有运行号 {args.run_id}", file=sys.stderr)
         return 3
-    append_ledger(cfg, {"ts": now(), "event": "adopt", "run_id": args.run_id, "adopted": args.adopted == "yes",
-                        "rework": args.rework})
+    append_ledger(cfg, {"ts": now(), "event": "adopt", "run_id": args.run_id, "adopted": args.adopted == "yes", "rework": args.rework})
     print(f"delegate：已记 {args.run_id} 采纳={args.adopted} 返工轮次={args.rework}")
     return 0
 
@@ -304,10 +306,8 @@ def cmd_summary(_args):
             continue
         s = rows.setdefault((r["ts"][:7], r["engine"]), {"runs": 0, "ok": 0, "rejected": 0, "seconds": 0.0, "tokens": 0,
                                                            "tokens?": 0, "cost": 0.0, "cost?": 0, "adopted": 0, "rework": 0})
-        s["runs"] += 1
-        s["ok"] += r.get("status") == "ok"
-        s["rejected"] += r.get("status") == "rejected"
-        s["seconds"] += r.get("seconds") or 0
+        for k, v in (("runs", 1), ("ok", r.get("status") == "ok"), ("rejected", r.get("status") == "rejected"), ("seconds", r.get("seconds") or 0)):
+            s[k] += v
         for k in ("tokens", "cost") if r.get("status") != "rejected" else ():
             v = r.get(k)
             if isinstance(v, (int, float)) and not isinstance(v, bool):
@@ -328,7 +328,7 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
     r.add_argument("--engine", required=True, choices=("codex", "deepseek"))
-    for name in ("--category", "--card", "--scope"):
+    for name in ("--category", "--card", "--scope", "--session"):
         r.add_argument(name, required=True)
     r.add_argument("--effort", default="medium", choices=EFFORTS)
     a = sub.add_parser("adopt")
