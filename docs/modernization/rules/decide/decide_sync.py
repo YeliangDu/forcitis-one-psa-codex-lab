@@ -29,22 +29,34 @@ def registered_owner(sheet):
     """单子的负责会话，取自 ONLINE_PAGES.md 登记表。列约定：表头固定为 PAGES_HEADER 六列，行以「 | 」分列，单子行第一列是单子编号；
     表头变了、单子未登记或重复、列数不对、负责会话为空或「roles/ 未列」，一律拒绝，不回退默认会话。
     凡含管道符且不是「- 」开头说明行的行都算表格行：去首尾空白、按 | 切分、各格 strip 后统一解析（缩进或管道符两侧无空格不能躲过重复计数）；
-    表格行不以 | 开头结尾、或列数不是六列，判表格损坏而拒（失败关闭）；分隔行（各格全是 -）跳过。"""
-    rows = []
+    表格行不以 | 开头结尾、列数不是六列、或含转义管道符 \\|（单元格不得含管道符），判表格损坏而拒（失败关闭）；
+    表格行须从表头起连续成一块（表头、分隔行、数据行间不夹空行或非表格行），块后须是空行或文件尾，块后再有表格行即拒：注释、代码块、表外孤立行都不算登记。
+    表头下一行须是分隔行（各格为 -，可带对齐冒号）。"""
+    rows, state = [], "before"
     for line in open(os.path.join(HERE, "ONLINE_PAGES.md"), encoding="utf-8"):
         s = line.strip()
-        if "|" not in s or s.startswith("- "):
+        is_row = "|" in s and not s.startswith("- ")
+        if state == "in" and not is_row:
+            if s:
+                sys.exit(f"ONLINE_PAGES.md 登记表紧接着一行非表格行（表格块须以空行结束）：{s[:40]}…；表格损坏，先修登记表")
+            state = "after"
+        if not is_row:
             continue
+        if state == "after":
+            sys.exit(f"ONLINE_PAGES.md 登记表块之后又有表格行（表格行须从表头起连续成一块；注释、代码块、表外孤立行不算登记）：{s[:40]}…；表格损坏，先修登记表")
+        state = "in"
         cells = [c.strip() for c in s[1:-1].split("|")]
-        if not (s.startswith("|") and s.endswith("|")) or len(cells) != len(PAGES_HEADER):
-            sys.exit(f"ONLINE_PAGES.md 登记表有格式不规范的表格行（要求以 | 开头结尾、{len(PAGES_HEADER)} 列）：{s[:40]}…；表格损坏，不敢解析负责会话，先修登记表")
-        if not all(set(c) <= set("-") and c for c in cells):
-            rows.append(cells)
+        if "\\|" in s or not (s.startswith("|") and s.endswith("|")) or len(cells) != len(PAGES_HEADER):
+            sys.exit(f"ONLINE_PAGES.md 登记表有格式不规范的表格行（要求以 | 开头结尾、{len(PAGES_HEADER)} 列、单元格不含管道符或转义管道符）：{s[:40]}…；表格损坏，不敢解析负责会话，先修登记表")
+        rows.append(cells)
     if not rows or rows[0] != PAGES_HEADER:
         sys.exit(f"ONLINE_PAGES.md 登记表表头不是约定的六列（{' | '.join(PAGES_HEADER)}），不敢解析负责会话；先修登记表或本脚本")
-    bad = [r[0] for r in rows[1:] if not re.fullmatch(r"[A-Za-z0-9_]+", r[0]) and r[0] not in NON_SHEET_PAGES]
+    if len(rows) < 2 or not all(re.fullmatch(r":?-+:?", c) for c in rows[1]):
+        sys.exit("ONLINE_PAGES.md 登记表表头下一行不是分隔行（各格为 -，可带对齐冒号）；表格损坏，先修登记表")
+    rows = [rows[0]] + rows[2:]
+    bad = [r[0] for r in rows[1:] if not re.fullmatch(r"[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*", r[0]) and r[0] not in NON_SHEET_PAGES]
     if bad:
-        sys.exit(f"ONLINE_PAGES.md 登记表有首格不合约定的数据行（须整格匹配 [A-Za-z0-9_]+，或是 NON_SHEET_PAGES 里的非单子页名；加粗、代码样式、零宽字符都算不合）：{bad[0]!r}；表格损坏，先修登记表")
+        sys.exit(f"ONLINE_PAGES.md 登记表有首格不合约定的数据行（须整格匹配 [A-Za-z0-9]+(?:_[A-Za-z0-9]+)*，下划线只能夹在中间，或是 NON_SHEET_PAGES 里的非单子页名；加粗、斜体、代码样式、零宽字符都算不合）：{bad[0]!r}；表格损坏，先修登记表")
     found = [r for r in rows if r[0].lower() == sheet.lower()]
     if len(found) != 1:
         sys.exit(f"单子 {sheet} 没有在 ONLINE_PAGES.md 登记（或重复登记），无法确定负责会话；请先登记再生成 intent")

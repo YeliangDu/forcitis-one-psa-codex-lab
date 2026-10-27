@@ -23,6 +23,7 @@ def swap(args, key, value=None):
 HEAD = "| 单子或页面 | 用途 | 负责会话 | 起用日期 | 退役日期 | 出处 |\n|---|---|---|---|---|---|\n"
 ROW = "| {} | 演练 | {} | x | 待定 | x |\n"
 PAGES = HEAD + ROW.format("ZZ", "one-glossary") + ROW.format("ZU", "roles/ 未列")
+ZU_ONLY = HEAD + ROW.format("ZU", "roles/ 未列")
 
 
 def decide_drill(tree, sync_args):
@@ -56,12 +57,19 @@ def decide_drill(tree, sync_args):
                               ("ZZ", PAGES + "ZZ | 演练 | one-ops | x | 待定 | x |\n", "格式不规范"), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定 | x\n", "格式不规范"),
                               ("ZZ", PAGES + ROW.format("**ZZ**", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("`ZZ`", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("ZZ​", "one-ops"), "首格不合约定"),
                               ("ZZ", PAGES + ROW.format("zz", "one-ops"), "重复登记"),
+                              ("ZZ", PAGES + ROW.format("_ZZ_", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("__ZZ__", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("某页面", "one-ops"), "首格不合约定"),
+                              ("ZZ", HEAD + "| ZZ | 演练 \\| one-ops | one-glossary | x | 待定 |\n", "格式不规范"), ("ZZ", ZU_ONLY + "\n" + ROW.format("ZZ", "one-ops"), "块之后"),
+                              ("ZZ", ZU_ONLY + "\n说明\n" + ROW.format("ZZ", "one-ops"), "块之后"), ("ZZ", ZU_ONLY + "说明\n" + ROW.format("ZZ", "one-ops"), "紧接着一行非表格行"),
+                              ("ZZ", ZU_ONLY + "\n<!--\n" + ROW.format("ZZ", "one-ops") + "-->\n", "块之后"), ("ZZ", ZU_ONLY + "\n```\n" + ROW.format("ZZ", "one-ops") + "```\n", "块之后"),
+                              ("ZZ", HEAD.split("\n")[0] + "\n" + ROW.format("ZZ", "one-glossary"), "不是分隔行"),
                               ("ZU", HEAD + "| ZU | 演练 | one-glossary | x | 待定 |\n", "格式不规范"), ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"),
                               ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射"), ("N1", real, "单子 N1 在 ONLINE_PAGES.md 的负责会话是「roles/ 未列」")):
         code, out = sync(sheet, pages)
         assert code != 0 and why in out, f"{why} 应拒：{out[:200]}"
         assert not os.listdir(os.path.join(dec, "answers")), f"{why}：登记表这一关拒绝时不写答复文件"
     assert len(set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before) == 1, "拒绝时不应再生成片段"
+    code, out = sync("ZZ", PAGES.replace("|---|---|", "|:---|---:|", 1))
+    assert code == 0 and "对账通过" in out, f"分隔行带对齐冒号应通过：{out[:200]}"
 
 
 def main():
@@ -101,6 +109,8 @@ def main():
         assert "缺必填项" not in r.stdout + r.stderr and "登记" not in r.stdout + r.stderr, "登记单子不给 --owner 应取登记值越过检查（之后因无答复数据另行失败）"
         r = subprocess.run(sync + sync_args + ["--owner=one-ops"], capture_output=True, text=True)
         assert r.returncode != 0 and "不一致" in r.stdout + r.stderr, "显式 --owner 与登记不一致应拒"
+        r = subprocess.run(sync + sync_args + ["--owner=one-glossary"], capture_output=True, text=True)
+        assert "不一致" not in r.stdout + r.stderr and "登记" not in r.stdout + r.stderr, "真实登记表 GL6 应取 one-glossary"
         r = subprocess.run([sys.executable, script, "X1", tree, *sync_args], capture_output=True, text=True)
         assert r.returncode != 0 and "单子 X1 没有在 ONLINE_PAGES.md 登记" in r.stdout + r.stderr, "未登记单子应拒并报单子名"
         r = subprocess.run(sync + ["--no-intent"], capture_output=True, text=True)
