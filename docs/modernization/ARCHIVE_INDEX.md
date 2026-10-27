@@ -596,3 +596,29 @@ E1 只因 policy.json 登记而有读者的一次性脚本及其读入物（#34�
 - `docs/modernization/rules/merge_rules.py`
 - `docs/modernization/rules/pull_result.py`
 - `docs/modernization/topology.json`
+
+E2 文字出处与同批引用（#35，23 个；ADR 正文不改，其中的出处文字按下列路径在归档分支上取回；`.gitleaksignore` 的指纹行保留，指纹对应历史提交）：
+
+- `docs/modernization/architecture-guardrails/backend/coverage.csv`
+- `docs/modernization/architecture-guardrails/backend/negative-test.log`
+- `docs/modernization/architecture-guardrails/backend/src/test/java/com/forcitis/one/SecurityInvariantsTest.java`
+- `docs/modernization/architecture-guardrails/frontend/negative-lint.log`
+- `docs/modernization/architecture/proposals/closeout/ARCH_VS14.md`
+- `docs/modernization/architecture/proposals/closeout/BPMN_STYLE.md`
+- `docs/modernization/architecture/proposals/closeout/CONVENTIONS.md`
+- `docs/modernization/architecture/proposals/closeout/PROCESS_METHOD_RESEARCH.md`
+- `docs/modernization/architecture/proposals/closeout/PROCESS_METHOD_REVIEW.md`
+- `docs/modernization/architecture/proposals/closeout/PROCESS_QUALITY_CHECKLIST.md`
+- `docs/modernization/architecture/proposals/closeout/RESPONSIBILITY_MATRIX_SPEC.md`
+- `docs/modernization/architecture/proposals/closeout/bpmn_check.py`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen.py`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/activity_cancel.yaml`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/entry.yaml`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/exits.yaml`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/mini.yaml`
+- `docs/modernization/architecture/proposals/closeout/bpmn_gen_fixtures/timeout.yaml`
+- `docs/modernization/architecture/proposals/closeout/converge_check.py`
+- `docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_ALIGNMENT_AUDIT.md`
+- `docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md`
+- `docs/modernization/build_oa_inventory.py`
+- `docs/modernization/map/packets/fst_infrastructure_cost.txt`
