@@ -92,7 +92,6 @@
       "docs/modernization/build_all.py",
       "docs/modernization/build_decisions.py",
       "docs/modernization/check_legacy_name.py",
-      "docs/modernization/check_tasks.py",
       "docs/modernization/glossary/apply_nm.py",
       "docs/modernization/glossary/apply_recon.py",
       "docs/modernization/glossary/apply_recon_selftest.py",
