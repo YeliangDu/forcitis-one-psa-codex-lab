@@ -930,7 +930,7 @@ def settings_self_test():
         mode = gitc(ROOT, "ls-files", "-s", "--", name).split()[:1]
         assert mode == ["100755"], (name, mode)
     deny = settings.get("permissions", {}).get("deny", [])  # O21a: external model CLIs only through scripts/delegate.py (a subprocess, not the Bash tool)
-    assert {"Bash(codex *)", "Bash(pi *)"} <= set(deny), ("permissions.deny 须含 codex、pi 直接调用（O21a）", deny)
+    assert deny == ["Bash(codex *)", "Bash(pi *)", "mcp__terminal__run_in_terminal"], ("permissions.deny 恰为 codex、pi 直接调用（O21a）与整个终端面板工具（#723）", deny)
     for plugin in ("kotlin-lsp", "claude-code-setup", "code-modernization"):
         assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
     assert size("install", os.path.join(HERE, "install.sh"))[0] <= gates["max_lines"]["install"], "install.sh 超过 policy gates.max_lines.install"
