@@ -285,6 +285,7 @@
       "janitor",
       "node_ready",
       "ops_venv_lock",
+      "start_sheet",
       "stop_check"
     ]
   },

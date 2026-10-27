@@ -867,7 +867,7 @@ def commit_msg_gate_test():
     print("commit_msg_gate self-test: ok")
 
 FAKE = "fake-prod-db.example.invalid"  # ── install ── fictitious production host, put on the temporary repository's origin/main table only
-ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh", "scripts/hooks/start_sheet.py"]}
+ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh"]}  # the start sheet hangs on the tool library (O23a)
 SHELLS = ("/bin/sh", "/bin/bash")
 FIRST_ONLY = """#!/bin/bash
 read -r line
@@ -893,12 +893,15 @@ def mkrepo(path, files):  # a repository holding `files`, committed once, with o
     for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "x"], ["update-ref", "refs/remotes/origin/main", "HEAD"]):
         gitc(path, *args)
 
-def policy():
-    return json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["gates"]
+def policy(section="gates"):
+    return json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))[section]
+
+def sheet_path():  # the tool library's start sheet as the SessionStart mount spells it (O23a: the repository's start_sheet.py and session_context.py are gone)
+    return '"$HOME"/' + policy("tools_lib")["dir"][2:] + "/start_sheet/start_sheet.py"
 
 def settings_self_test():
-    settings = json.loads(Path(ROOT, ".claude/settings.json").read_text(encoding="utf-8"))
-    gates = policy()
+    raw = Path(ROOT, ".claude/settings.json").read_text(encoding="utf-8")
+    settings, gates = json.loads(raw), policy()
     assert gates["install_dir"].startswith("~/"), gates["install_dir"]
     link = '"$HOME"/' + gates["install_dir"][2:] + "/" + gates["install_current_link"]
     prefix = "H=" + link + "/"
@@ -911,6 +914,13 @@ def settings_self_test():
     assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,))], "PreToolUse hangs only the production-write gate, on the tools that run commands"
     assert json.dumps([*COMMAND_TOOLS, LAUNCH_TOOL]) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
     assert [g["matcher"] for g in hooks["SessionStart"]] == ["startup|clear|compact|resume", "startup|clear|compact"]
+    sheet = hooks["SessionStart"].pop(1)["hooks"]
+    assert len(sheet) == 1 and sheet[0]["type"] == "command" and sheet[0]["timeout"] == 15, sheet
+    sheet = sheet[0]["command"]
+    assert sheet.startswith(f'H={sheet_path()}; [ -f "$H" ] && python3 -I "$H" --hook && exit 0; echo "【钩子告警】') and sheet.endswith('"; exit 0'), sheet
+    assert "exit 2" not in sheet and "/tools/hooks/" not in sheet and "~/" + policy("tools_lib")["dir"][2:] + "/start_sheet" in sheet, "warns, pointing at the tool library"
+    for gone in ("scripts/hooks/start_sheet.py", "scripts/hooks/session_context.py"):
+        assert not os.path.exists(os.path.join(ROOT, gone)) and gone not in raw, gone + " is deleted and mounted nowhere (O23a)"
     commands = {}
     for event, groups in hooks.items():
         assert all(len(g["hooks"]) == 1 for g in groups), event
@@ -927,10 +937,9 @@ def settings_self_test():
     gate = commands["scripts/gates/pre_tool_dispatch.py"]
     assert gate[2] == 120 and gate[1].endswith("exit 2") and "/usr/bin/python3 -I -c" in gate[1], "the gate mount: when the gate fails its own pre-filter decides, refusing by default (H4, C3)"
     assert set(re.search(r'ok=set\("([^"]*)"', gate[1]).group(1).split()).isdisjoint(g.INTERPRETERS | g.REMOTE_TOOLS | g.RUNS_OTHERS) and set(re.search(r'far="([^"]*)"', gate[1]).group(1).split()) >= g.LONG_REMOTE - {"https", "mongosh"}, "pre-filter lists"
-    for name in ("scripts/hooks/git_ceiling_env.sh", "scripts/hooks/start_sheet.py"):
-        assert commands[name][1].endswith("; exit 0") and "【钩子告警】" in commands[name][1] and "exit 2" not in commands[name][1], name
-    assert commands["scripts/hooks/git_ceiling_env.sh"][2] == 10 and commands["scripts/hooks/start_sheet.py"][2] == 15
-    # a target without its exec bit never runs once installed (O6 review item 1: start_sheet.py had none)
+    ceiling = commands["scripts/hooks/git_ceiling_env.sh"]
+    assert ceiling[1].endswith("; exit 0") and "【钩子告警】" in ceiling[1] and "exit 2" not in ceiling[1] and ceiling[2] == 10, ceiling
+    # an installed target without its exec bit never runs (O6 review item 1); the tool library's start sheet runs through python3, so it needs none
     for name in [*commands, "scripts/gates/hooks_manifest.sh"]:
         mode = gitc(ROOT, "ls-files", "-s", "--", name).split()[:1]
         assert mode == ["100755"], (name, mode)
@@ -941,7 +950,7 @@ def settings_self_test():
     assert size("install", os.path.join(HERE, "install.sh"))[0] <= gates["max_lines"]["install"], "install.sh 超过 policy gates.max_lines.install"
     assert size("selftest", os.path.abspath(__file__))[0] <= gates["max_lines"]["selftest"], "gates_selftest.py 超过 policy gates.max_lines.selftest（O8：门自测 1 个文件）"
     assert max(map(len, Path(__file__).read_text(encoding="utf-8").splitlines())) <= 266, "gates_selftest.py 有超过 266 字符的行：不靠长行压行数（O8 首轮必改）"
-    return {name: cmd for name, (_, cmd, _) in commands.items()}
+    return {**{name: cmd for name, (_, cmd, _) in commands.items()}, "start_sheet": sheet}
 
 def make_repo(repo):
     """A repository holding this working tree's scripts/gates, scripts/hooks and policy.json; returns (A, B, fail_open, refuses_all, passes_writes, first_only, not_executable, main) commits."""
@@ -985,13 +994,26 @@ def make_repo(repo):
 
 def install_test():
     commands = settings_self_test()
-    gate_cmd, ceiling_cmd, sheet_cmd = commands["scripts/gates/pre_tool_dispatch.py"], commands["scripts/hooks/git_ceiling_env.sh"], commands["scripts/hooks/start_sheet.py"]
+    gate_cmd, ceiling_cmd, sheet_cmd = commands["scripts/gates/pre_tool_dispatch.py"], commands["scripts/hooks/git_ceiling_env.sh"], commands["start_sheet"]
     with tempfile.TemporaryDirectory() as top:
         try:
             body(gate_cmd, ceiling_cmd, sheet_cmd, os.path.realpath(os.path.join(top, "dir with space")))
         finally:
             writable(top)
     print("install self-test: ok")
+
+def sheet_test(sheet_cmd, mount, tool, repo):
+    """The start-sheet mount: python3 -I <tool library>/start_sheet.py --hook gets the payload (no exec bit, no planted json.py); missing, failing, killed, unparsable: warn, exit 0."""
+    os.makedirs(os.path.dirname(tool))
+    put(os.path.join(os.path.dirname(tool), "json.py"), "raise SystemExit(7)\n", 0o644)
+    for text, ok in ((None, False), ("import json,sys\nprint('【开工单】', sys.argv[1:], json.load(sys.stdin)['cwd'])\n", True), ("import sys\nsys.exit(1)\n", False),
+                     ("import os,signal\nos.kill(os.getpid(), signal.SIGKILL)\n", False), ("def (:\n", False)):
+        if text is not None:
+            put(tool, text, 0o644)
+        for shell in SHELLS:
+            r = mount(sheet_cmd, json.dumps({"cwd": repo}), shell)
+            last = r.stdout.splitlines()[-1] if r.stdout.strip() else ""
+            assert r.returncode == 0 and (last == f"【开工单】 ['--hook'] {repo}" if ok else last.startswith("【钩子告警】") and tool in last), (shell, text, r.stdout, r.stderr)
 
 def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     home, repo = os.path.join(tmp, "home"), os.path.join(tmp, "repo")
@@ -1017,9 +1039,8 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 2), ("sort --compress-program=./w.sh x", 2), (f"psql -h {FAKE} -c 'delete from t'", 2), ("./deploy.sh", 2), ("echo `deploy`", 2), ("rg --pre deploy x", 2), *((c, 2) for c in extra)):
                 r = mount(gate_cmd, bash(command), shell)
                 assert r.returncode == code and why in r.stderr and ("放行" in r.stderr) == (code == 0) and os.path.isfile(os.path.join(hooks, "gate_failures.log")) == os.path.isdir(hooks), (shell, why, command, r.returncode, r.stderr)
-            for cmd in (ceiling_cmd, sheet_cmd):
-                r = mount(cmd, json.dumps({"cwd": repo}), shell)
-                assert r.returncode == 0 and r.stdout.splitlines()[-1].startswith("【钩子告警】"), (shell, why, r.returncode, r.stdout, r.stderr)
+            r = mount(ceiling_cmd, json.dumps({"cwd": repo}), shell)
+            assert r.returncode == 0 and r.stdout.splitlines()[-1].startswith("【钩子告警】"), (shell, why, r.returncode, r.stdout, r.stderr)
     # 1. nothing installed: the pre-filter decides (an input it cannot read is refused), SessionStart warns and passes
     closed("入口缺失")
     assert mount(gate_cmd, "not json").returncode == 2 and mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {}})).returncode == 2
@@ -1037,8 +1058,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         assert r.returncode == 2 and "不是 JSON" in r.stderr and "异常退出" not in r.stderr, "the gate's own refusal passes through"
         r = mount(ceiling_cmd, "{}", shell, CLAUDE_ENV_FILE=os.path.join(tmp, "env"))
         assert r.returncode == 0 and "【钩子告警】" not in r.stdout, (r.stdout, r.stderr)
-    r = mount(sheet_cmd, json.dumps({"cwd": ROOT}))
-    assert r.returncode == 0 and r.stdout.startswith("【开工单】") and "【钩子告警】" not in r.stdout, r.stdout[:300]
+    sheet_test(sheet_cmd, mount, os.path.join(home, sheet_path()[len('"$HOME"/'):]), repo)
     # 2b. no CLAUDE_PROJECT_DIR: the working directory is no repository root for the installed gate, so a forged repository whose origin/main holds a
     #     script cannot make it trusted (O7 final M3); the forged script names a fictitious host that is on a fictitious local table
     forged, table = os.path.join(tmp, "forged"), os.path.join(tmp, "fake_targets.json")
@@ -1185,12 +1205,11 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     r = install(b, HOOKS_INSTALL_DIR=other)
     assert r.returncode == 0 and os.readlink(os.path.join(other, "current")) == b and points_to() == a, (r.stdout, r.stderr)
     # 7. the mount commands as written: fail closed for the gate, pass with a warning for SessionStart
-    def version(name, gate, ceiling="#!/bin/bash\nexit 1\n", sheet="#!/bin/bash\nexit 1\n", gate_mode=0o755):
+    def version(name, gate, ceiling="#!/bin/bash\nexit 1\n", gate_mode=0o755):
         root = os.path.join(hooks, name)
         if gate is not None:
             put(os.path.join(root, "scripts/gates/pre_tool_dispatch.py"), gate, gate_mode)
         put(os.path.join(root, "scripts/hooks/git_ceiling_env.sh"), ceiling)
-        put(os.path.join(root, "scripts/hooks/start_sheet.py"), sheet)
         os.remove(current)
         os.symlink(name, current)
     version("missing", None)
@@ -1209,11 +1228,11 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     closed("入口缺失")  # a dangling current link
     version("gate-error", "#!/bin/bash\ncat >/dev/null\nexit 3\n")  # the real dispatcher's answer when the gate cannot be imported, crashes or hangs (section 4)
     closed("异常退出（退出码 3", extra=[c for cs in seventeen(PROD_P, PROD_H, PROD_D).values() for c in cs])
-    version("answers", "#!/bin/bash\ncat >/dev/null\necho no >&2\nexit 2\n", "#!/bin/bash\necho ok\n", "#!/bin/bash\necho 【开工单】x\n")
+    version("answers", "#!/bin/bash\ncat >/dev/null\necho no >&2\nexit 2\n", "#!/bin/bash\necho ok\n")
     for shell in SHELLS:
         r = mount(gate_cmd, bash("ls"), shell)
         assert r.returncode == 2 and r.stderr.strip() == "no", "the gate's own 2 passes through unchanged"
-        assert mount(ceiling_cmd, "{}", shell).stdout.splitlines()[-1] == "ok" and mount(sheet_cmd, "{}", shell).stdout.strip() == "【开工单】x"
+        assert mount(ceiling_cmd, "{}", shell).stdout.splitlines()[-1] == "ok"
     version("passes", "#!/bin/bash\ncat >/dev/null\necho '{\"x\":1}'\nexit 0\n")
     r = mount(gate_cmd, bash("ls"))
     assert r.returncode == 0 and r.stdout.strip() == '{"x":1}' and not r.stderr, "the gate's own 0 and its stdout pass through"

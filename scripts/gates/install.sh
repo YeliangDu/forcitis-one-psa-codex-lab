@@ -18,9 +18,9 @@ conf=$("$py" -c 'import json,os,sys;g=json.load(open(sys.argv[1]))["gates"];prin
   || fail "policy.json 读不出 gates.install_dir、gates.install_current_link"
 dir=${HOOKS_INSTALL_DIR:-$(printf '%s\n' "$conf" | sed -n 1p)}
 link=$(printf '%s\n' "$conf" | sed -n 2p)
-check() {  # 装好的目录能按 settings.json 的挂载方式用：三个入口可执行；分发器放行 ls，拒绝读不懂的输入，拒绝对特征表每个 target 第一项的写
+check() {  # 装好的目录能按 settings.json 的挂载方式用：两个入口可执行（开工单挂在工具库，不在这里）；分发器放行 ls，拒绝读不懂的输入，拒绝对特征表每个 target 第一项的写
   local d="$1/scripts/gates/pre_tool_dispatch.py" f line
-  for f in "$d" "$1/scripts/hooks/git_ceiling_env.sh" "$1/scripts/hooks/start_sheet.py"; do
+  for f in "$d" "$1/scripts/hooks/git_ceiling_env.sh"; do
     [ -x "$f" ] || return 1
   done
   printf '%s' '{"tool_name":"Bash","tool_input":{"command":"ls"}}' | (cd "$repo" && CLAUDE_PROJECT_DIR="$repo" "$d") >/dev/null 2>&1 || return 1
