@@ -20,6 +20,7 @@
     "context_remind_pct": 70
   },
   "gates": {
+    "_说明": "max_lines.start_sheet 管工具库 ~/.modernize/psa/tools/one-session/start_sheet/start_sheet.py（O23a 起仓库内已无此文件）；它只用标准库，SessionStart 挂载与门一致用 /usr/bin/python3 -I，不吃 PATH（调度 10-27）。",
     "runtime_max_lines": 1500,
     "runtime_max_files": 8,
     "hook_p99_ms": 100,

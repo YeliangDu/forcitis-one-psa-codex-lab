@@ -846,7 +846,7 @@ def settings_self_test():
     sheet = hooks["SessionStart"].pop(1)["hooks"]
     assert len(sheet) == 1 and sheet[0]["type"] == "command" and sheet[0]["timeout"] == 15, sheet
     sheet = sheet[0]["command"]
-    assert sheet.startswith(f'H={sheet_path()}; [ -f "$H" ] && python3 -I "$H" --hook && exit 0; echo "【钩子告警】') and sheet.endswith('"; exit 0'), sheet
+    assert sheet.startswith(f'H={sheet_path()}; [ -f "$H" ] && /usr/bin/python3 -I "$H" --hook && exit 0; echo "【钩子告警】') and sheet.endswith('"; exit 0'), sheet
     assert "exit 2" not in sheet and "/tools/hooks/" not in sheet and "~/" + policy("tools_lib")["dir"][2:] + "/start_sheet" in sheet, "warns, pointing at the tool library"
     for gone in ("scripts/hooks/start_sheet.py", "scripts/hooks/session_context.py"):
         assert not os.path.exists(os.path.join(ROOT, gone)) and gone not in raw, gone + " is deleted and mounted nowhere (O23a)"
@@ -928,7 +928,7 @@ def install_test():
     print("install self-test: ok")
 
 def sheet_test(sheet_cmd, mount, tool, repo):
-    """The start-sheet mount: python3 -I <tool library>/start_sheet.py --hook gets the payload (no exec bit, no planted json.py); missing, failing, killed, unparsable: warn, exit 0."""
+    """The start-sheet mount: /usr/bin/python3 -I <tool library>/start_sheet.py --hook gets the payload (no exec bit, no planted json.py); missing, failing, killed, unparsable: warn, exit 0."""
     os.makedirs(os.path.dirname(tool))
     put(os.path.join(os.path.dirname(tool), "json.py"), "raise SystemExit(7)\n", 0o644)
     for text, ok in ((None, False), ("import json,sys\nprint('【开工单】', sys.argv[1:], json.load(sys.stdin)['cwd'])\n", True), ("import sys\nsys.exit(1)\n", False),
