@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """new_intent.py 的自测（二乙 #25 C7）：在临时副本里跑，不写仓库的 intent/。用法：python3 docs/modernization/new_intent_selftest.py（附带的 --self-test 参数忽略）。"""
-import glob, importlib.util, json, os, shutil, subprocess, sys, tempfile
+import contextlib, glob, importlib.util, json, os, shutil, subprocess, sys, tempfile
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
@@ -32,14 +32,14 @@ def decide_drill(tree, sync_args):
     """G3 演练（临时副本）：一题作答 → decide_sync 生成片段，负责会话取自登记表；表头变、未登记、未列、重复登记即拒。"""
     mod = os.path.join(tree, "docs", "modernization")
     dec = os.path.join(mod, "rules", "decide")
-    for s in ("ZZ", "ZU"):
+    for s, n in (("ZZ", "N1"), ("ZU", "N1"), ("ZR", "N2"), ("ZF", "N3")):
         json.dump({"items": [{"no": f"{s}-01", "opts": [{"label": "甲"}]}]}, open(os.path.join(dec, "sheets", f"{s}.json"), "w", encoding="utf-8"), ensure_ascii=False)
         out = os.path.join(tree, "out" + s)
         os.makedirs(os.path.join(out, "answers"))
         os.makedirs(os.path.join(out, "answers-submit"))
         json.dump({"choice": 0, "note": ""}, open(os.path.join(out, "answers", f"{s}@{s}-01.json"), "w"))
         pick = {"choice": 0, "label": "甲", "recommended": True, "defaulted": False}
-        json.dump({"number": "N1", "at": "2026-01-01T00:00:00", "picks": {f"{s}~{s}-01": pick}}, open(os.path.join(out, "answers-submit", "N1.json"), "w", encoding="utf-8"), ensure_ascii=False)
+        json.dump({"number": n, "at": "2026-01-01T00:00:00", "picks": {f"{s}~{s}-01": pick}}, open(os.path.join(out, "answers-submit", f"{n}.json"), "w", encoding="utf-8"), ensure_ascii=False)
 
     def sync(sheet, pages):
         open(os.path.join(dec, "ONLINE_PAGES.md"), "wb").write(pages if isinstance(pages, bytes) else pages.encode("utf-8"))
@@ -72,7 +72,7 @@ def decide_drill(tree, sync_args):
                               ("ZZ", "# 标题 <!--\n\n" + PAGES, "第 1 " + wl), ("ZZ", PAGES + "\f" + other, wl), ("ZZ", PAGES + "　" + other, wl), ("ZZ", PAGES + ROW.format("__ZZ__", "one-ops"), "首格不合约定"),
                               ("ZZ", PAGES + ROW.format("_ZZ_", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("某页面", "one-ops"), "首格不合约定"),
                               ("ZZ", HEAD.split("\n")[0] + "\n" + ROW.format("ZZ", "one-glossary"), "不是分隔行"),
-                              ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"), ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射"),
+                              ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"), ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "换名后不在 sessions.config 里"),
                               ("N1", real, "单子 N1 在 ONLINE_PAGES.md 的负责会话是「roles/ 未列」")):
         code, out = sync(sheet, pages)
         assert code != 0 and why in out, f"{why} 应拒：{out[:200]}"
@@ -83,6 +83,36 @@ def decide_drill(tree, sync_args):
         code, out = sync("ZZ", pages)
         assert code == 0 and "对账通过" in out, f"{why}应通过：{out[:200]}"
         os.remove(os.path.join(dec, "answers", "ZZ.json"))
+    for sheet, old, new in (("ZR", "one-rules", "one-coordinator"), ("ZF", "one-arch-finance", "one-architecture")):   # O23b：登记为旧名的单子经别名表放行，片段写现名
+        assert fragment_owner(mod, lambda: sync(sheet, HEAD + ROW.format(sheet, old))) == new, f"登记为旧名 {old} 的单子应经别名写成 {new}"
+        os.remove(os.path.join(dec, "answers", f"{sheet}.json"))
+    with alias_to_nobody(tree):
+        code, out = sync("ZR", HEAD + ROW.format("ZR", "one-rules"))
+        assert code != 0 and "换名后不在 sessions.config 里" in out, f"别名指向不存在的会话，decide_sync 应拒：{out[:200]}"
+        assert not os.listdir(os.path.join(dec, "answers")), "别名这一关拒绝时不写答复文件"
+
+
+def fragment_owner(mod, act):
+    """执行 act（返回码、输出），断言恰好新生成一个片段，返回其「负责会话」节的值。"""
+    before = set(glob.glob(os.path.join(mod, "intent", "*.md")))
+    code, out = act()
+    assert code == 0, out
+    (frag,) = set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before
+    return open(frag, encoding="utf-8").read().split("## 负责会话\n\n", 1)[1].split("\n", 1)[0]
+
+
+@contextlib.contextmanager
+def alias_to_nobody(tree):
+    """临时把副本 policy.json 的别名 one-rules 指向不存在的会话 one-nobody，用完复原。"""
+    path = os.path.join(tree, "policy.json")
+    orig = open(path, encoding="utf-8").read()
+    policy = json.loads(orig)
+    policy["sessions"]["aliases"]["one-rules"] = "one-nobody"
+    open(path, "w", encoding="utf-8").write(json.dumps(policy, ensure_ascii=False))
+    try:
+        yield
+    finally:
+        open(path, "w", encoding="utf-8").write(orig)
 
 
 def main():
@@ -145,6 +175,16 @@ def main():
         for owner in ("one-coordinator", "one-1a-par", "one-merge", "one-glossary"):
             code, out = run(tree, swap(GOOD, "owner", owner))
             assert code == 0, f"{owner} 应认：{out}"
+        for old, new in (("one-rules", "one-coordinator"), ("one-arch-finance", "one-architecture")):   # O23b：旧名经别名放行，片段写现名
+            assert fragment_owner(mod, lambda: run(tree, swap(GOOD, "owner", old))) == new, f"--owner={old} 应经别名写成 {new}"
+        dev = os.path.join(mod, "roles", "dev.md")
+        open(dev, "w", encoding="utf-8").write(open(dev, encoding="utf-8").read().replace("## 过渡映射\n", "## 过渡映射\n- one-ghost 担任\n", 1))
+        for name in ("one-ghost", "one-dev-par", "one-lead"):   # 只在 roles/ 过渡映射里的名字、第四批新名都不在 sessions.config，应拒
+            code, out = run(tree, swap(GOOD, "owner", name))
+            assert code != 0 and "--owner" in out, f"未登记名 {name} 应拒：{out[:200]}"
+        with alias_to_nobody(tree):
+            code, out = run(tree, swap(GOOD, "owner", "one-rules"))
+            assert code != 0 and "--owner" in out, f"别名指向不存在的会话应拒：{out[:200]}"
         decide_drill(tree, [a for a in GOOD[1:] if not a.startswith("--owner=")])
     print("ok")
 

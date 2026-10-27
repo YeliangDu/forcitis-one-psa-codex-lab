@@ -9,7 +9,7 @@
 做三件事：
 1. 对账：调用 export_answers 的逻辑，有提交后又改过的题则报错退出；
 2. 每个提交编号生成一条 intent 片段（用户原话 = 题号 + 所选项文字 + 说明，落点指向答复文件 rules/decide/answers/<单子>.json），文件名打印出来；
-   new_intent 的四个必填项：--owner 取自 ONLINE_PAGES.md 里该单子登记的负责会话（G3；单子未登记、负责会话为「roles/ 未列」或登记表表头变了即拒，不回退默认会话；显式给 --owner 须与登记一致，否则拒），--category、--paths、--supersedes 由调用方手填（页面元数据里没有页类型与影响路径，不编），缺任一即拒并列缺项，原样转给 new_intent（取值见其脚本头）；口头决定不经单子，直接用 new_intent.py，同样必填这四项；只导出不生成 intent 时用 --no-intent；
+   new_intent 的四个必填项：--owner 取自 ONLINE_PAGES.md 里该单子登记的负责会话（G3；单子未登记、负责会话为「roles/ 未列」或登记表表头变了即拒，不回退默认会话；登记的旧名先经 policy.json 的 sessions.aliases 换成现名，再须在 sessions.config 里，否则拒（O23b）；显式给 --owner 同样换名后须与登记一致，否则拒），--category、--paths、--supersedes 由调用方手填（页面元数据里没有页类型与影响路径，不编），缺任一即拒并列缺项，原样转给 new_intent（取值见其脚本头）；口头决定不经单子，直接用 new_intent.py，同样必填这四项；只导出不生成 intent 时用 --no-intent；
 3. 打印 inbox 事项改为已定所需的 ArtifactData update 内容（status、answer、decidedAt、intent 文件名），由会话用 ArtifactData 执行：
    页面是各自独立的发布件，确认页不能直接写收件箱，所以回写由会话完成，并在报告里附这条命令的输出。
 不自动改规则卡、ADR；转写仍由会话执行并复核。
@@ -26,7 +26,7 @@ NON_SHEET_PAGES = {"收件箱（待你决定）", "用语确认固定页", "旧�
 
 
 def registered_owner(sheet):
-    """单子的负责会话，取自 ONLINE_PAGES.md 登记表；表头变了、单子未登记或重复、负责会话为空或「roles/ 未列」一律拒绝，不回退默认会话。
+    """单子的负责会话（经别名换名后的现名），取自 ONLINE_PAGES.md 登记表；表头变了、单子未登记或重复、负责会话为空或「roles/ 未列」、换名后不在 sessions.config 一律拒绝，不回退默认会话。
     整份白名单（调度 10-27 晚定）：按 \\n 切行，每行只能是三种之一，其他任何行整份判损坏并报行号——
     空行（只有空格或制表符）；# 标题行（行首 1～6 个 #、紧跟空格，无 <）；登记表行（行首 | 起、行尾 | 止、不缩进、不带尾随空白，恰好 6 格，格内无 |、\\、\\r、<）。
     < 一律不许：行内 HTML（如 tr、td 标签）能在页面上把一行登记拆成别的行或格（3363b792c 终审必改 1）。
@@ -61,9 +61,10 @@ def registered_owner(sheet):
         sys.exit(f"单子 {sheet} 在 ONLINE_PAGES.md 的负责会话是「{found[0][2]}」，无法确定负责会话；请先补登记")
     sys.path.insert(0, os.path.join(HERE, "..", ".."))
     import new_intent
-    if found[0][2] not in new_intent.known_owners():
-        sys.exit(f"单子 {sheet} 登记的负责会话 {found[0][2]} 不在 roles/ 过渡映射或 policy.json 的 sessions.config 里，无法确定负责会话；请先补登记")
-    return found[0][2]
+    owner = new_intent.resolve_owner(found[0][2])   # O23b：旧名先经 policy.json 的 sessions.aliases 换成现名，再只核对 sessions.config
+    if not owner:
+        sys.exit(f"单子 {sheet} 登记的负责会话 {found[0][2]} 经 policy.json 的 sessions.aliases 换名后不在 sessions.config 里，无法确定负责会话；请先补登记或补别名")
+    return owner
 
 if "--check" in sys.argv:
     import glob as _g, re as _re
@@ -111,8 +112,8 @@ if not opts.get("no-intent"):
     if absent:
         sys.exit(f"缺必填项：{'、'.join(absent)}（原样转给 new_intent，取值与写法见其脚本头；--owner 取自 ONLINE_PAGES.md；不生成 intent 时用 --no-intent）")
     owner = registered_owner(sheet)
-    if "owner" in opts and opts["owner"] != owner:
-        sys.exit(f"--owner={opts['owner']!r} 与 ONLINE_PAGES.md 里单子 {sheet} 登记的负责会话 {owner} 不一致；不给 --owner 即取登记值")
+    if "owner" in opts and (not isinstance(opts["owner"], str) or sys.modules["new_intent"].resolve_owner(opts["owner"]) != owner):
+        sys.exit(f"--owner={opts['owner']!r} 经别名换名后与 ONLINE_PAGES.md 里单子 {sheet} 登记的负责会话（换名后为 {owner}）不一致；不给 --owner 即取登记值")
     opts["owner"] = owner
 passed = [f"--{k}={opts[k]}" for k in ("category", "owner", "paths", "supersedes") if isinstance(opts.get(k), str) and opts[k]]
 out, stale = export_answers.export(sheet, base)
