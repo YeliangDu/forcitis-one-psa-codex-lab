@@ -18,7 +18,7 @@ expect() {
 stub_budget() { printf 'print(%s)\n' "$1" >"$tmp/root/scripts/ci/budget_check.py"; }
 ok_py() { printf 'print("%s")\n' "${2:-ok}" >"$1"; }   # a self-test that passes and prints its pass line
 bad_py() { printf 'import sys\nsys.exit(1)\n' >"$1"; }
-ALL="V01 V02 V03 V05 V07 V08 V10 V11 V12 V13 V14 V17a"
+ALL="V01 V02 V03 V04 V05 V06 V07 V08 V10 V11 V12 V13 V14 V14b V15 V16 V17a"
 SUMMARY0="budget_check：违例 0 条，模式 warn"
 
 # V01: info lines and other rules do not count, an H8 violation does, an unreadable result fails closed;
@@ -77,6 +77,8 @@ printf 'import sys\nif sys.argv[1:] != ["--self-test"]:\n    sys.exit("usage: b_
 expect "V02 自测要求 --self-test 参数：带参数跑才通过" 0 '^V02 通过' V02
 printf 'import sys\nprint("ok")\nsys.exit(0 if sys.argv[1:] == [] else 1)\n' >"$tmp/root/scripts/hooks/b_selftest.py"
 expect "V02 自测不收参数：不带参数跑" 0 '^V02 通过' V02
+printf '"""doc mentions --self-test only in prose"""\nimport sys\nif sys.argv[1:]:\n    sys.exit("usage: only segments")\nprint("ok")\n' >"$tmp/root/scripts/hooks/b_selftest.py"
+expect "V02 --self-test 只出现在文档字符串里：不带参数跑（gates_selftest 的写法）" 0 '^V02 通过' V02
 rm "$tmp/root/scripts/hooks/b_selftest.py"
 expect "V02 p99 与版本单列跳过" 0 'V02\(p99、版本、17 条用例\) 跳过\(无看板数据' V02
 : >"$tmp/root/scripts/hooks/a_selftest.py"
@@ -119,16 +121,48 @@ mkdir -p "$tmp/root/.github/workflows"
 echo 'out("tier=docs")' >"$tmp/root/scripts/ci/relevant_change.py"; echo 'run: python3 scripts/ci/relevant_change.py' >"$tmp/root/.github/workflows/ci.yml"
 expect "V08 静态对应物齐全也只跳过" 0 '^V08 跳过\(无数据' V08
 
-# V12: needs the budget keys (fail), non-empty ladder levels and the budget_level self-test
-echo '{"budget": {"line": {"from_pct": 0}, "ladder": {"L0": {"a": 1}, "L1": {"a": 1}, "L2": {"a": 1}, "L3": {"a": 1}}}}' >"$POLICY"
+# V12: needs the budget keys (fail), non-empty ladder levels, the budget_level self-test, the session config list sessions.config (one entry per session profile) and the start_sheet self-test.
+# (Rewritten for #39: the old fixture had no sessions.config and the old pass line did not need the start_sheet tool; the old cases for the ladder keys below are unchanged.)
+LADDER='"budget": {"line": {"from_pct": 0}, "ladder": {"L0": {"a": 1}, "L1": {"a": 1}, "L2": {"a": 1}, "L3": {"a": 1}}}'
+echo "{$LADDER, \"sessions\": {\"config\": {\"s1\": {\"role\": \"dev\"}}}}" >"$POLICY"
 expect "V12 缺工具库跳过" 0 '^V12 跳过' V12
 ok_py "$tmp/tools/budget_level/budget_level_selftest.py" "绿：0 项失败"
-expect "V12 通过" 0 '^V12 通过' V12
+expect "V12 缺开工单工具跳过" 0 '^V12 跳过\(工具库缺 .*start_sheet.py' V12
+mkdir -p "$tmp/tools/start_sheet"
+cat >"$tmp/tools/start_sheet/start_sheet.py" <<'PYEOF'
+import os, sys
+a, mode = sys.argv[1:], os.environ.get("SS_MODE", "ok")
+if mode == "fail":
+    print("开工单超限：x")
+    sys.exit(1)
+if mode == "silent":
+    sys.exit(0)
+if a == ["--self-test"]:
+    print("start_sheet self-test: ok")
+elif a == ["--check", "--all"] and os.path.basename(os.getcwd()) == "root":
+    print("start_sheet: %s 份画像的开工单都在上限内（p99 0.01 秒）" % ("0" if mode == "zero" else "10"))
+else:
+    sys.exit(2)
+PYEOF
+expect "V12 通过" 0 '^V12 通过.*会话配置清单（1 个会话）' V12
+expect "V12 开工单自测失败" nz '^V12 不通过：start_sheet --self-test' V12 SS_MODE=fail
+expect "V12 开工单自测无通过行" nz '^V12 不通过：start_sheet --self-test' V12 SS_MODE=silent
 : >"$tmp/tools/budget_level/budget_level_selftest.py"
 expect "V12 自测 0 字节不得通过" nz '^V12 不通过' V12
 bad_py "$tmp/tools/budget_level/budget_level_selftest.py"
 expect "V12 自测失败" nz '^V12 不通过' V12
 ok_py "$tmp/tools/budget_level/budget_level_selftest.py" "绿：0 项失败"
+mkdir -p "$tmp/root/docs/modernization/sessions"; : >"$tmp/root/docs/modernization/sessions/a.md"; : >"$tmp/root/docs/modernization/sessions/_retired.md"
+expect "V12 会话画像 a 没有配置条目" nz '^V12 不通过：sessions.config 缺会话画像对应的条目：a$' V12
+echo "{$LADDER, \"sessions\": {\"config\": {\"a\": {\"role\": \"dev\"}}}}" >"$POLICY"
+expect "V12 每个画像都有条目通过（_ 开头的不算会话）" 0 '^V12 通过' V12
+rm -r "$tmp/root/docs/modernization/sessions"
+for cfg in '{}' 'null' '"x"' '{"s1": {}}' '{"s1": "dev"}'; do
+  echo "{$LADDER, \"sessions\": {\"config\": $cfg}}" >"$POLICY"
+  expect "V12 sessions.config 为 $cfg 不通过" nz '^V12 不通过：sessions.config' V12
+done
+echo "{$LADDER}" >"$POLICY"
+expect "V12 没有 sessions 段不通过" nz '^V12 不通过：sessions.config 为空' V12
 echo '{"budget": {"line": {"from_pct": 0}, "ladder": {"L0": {"a": 1}, "L1": {"a": 1}}}}' >"$POLICY"
 expect "V12 缺梯子档" nz '^V12 不通过：policy.json 缺 budget.ladder.L2' V12
 echo '{"budget": {"line": {"from_pct": 0}, "ladder": {"L0": null, "L1": {}, "L2": {"a": 1}, "L3": {"a": 1}}}}' >"$POLICY"
@@ -315,6 +349,197 @@ git -C "$R" branch -q -m archive/2026-10 other
 expect "V14 分支名不符跳过" 0 '^V14 跳过' V14
 git -C "$R" rm -q --cached "$IDX"
 expect "V14 索引未跟踪不通过" nz '^V14 不通过' V14
+
+# V04: the tool library's start_sheet --check --all must run from the checkout root, exit 0 and report at least one profile; missing tool or not a repository is a skip
+mkdir -p "$tmp/nogit"
+expect "V04 非 git 仓库跳过" 0 '^V04 跳过\(检出不是 git' V04 ACCEPT_ROOT="$tmp/nogit"
+expect "V04 通过" 0 '^V04 通过.*10 份画像的开工单都在上限内' V04
+expect "V04 开工单超限" nz '^V04 不通过' V04 SS_MODE=fail
+expect "V04 0 份画像不得通过" nz '^V04 不通过' V04 SS_MODE=zero
+expect "V04 无输出不得通过" nz '^V04 不通过' V04 SS_MODE=silent
+expect "V04 缺工具库跳过" 0 '^V04 跳过\(工具库缺' V04 ONE_SESSION_TOOLS="$tmp/notools"
+expect "V04 缺工具库严格模式失败" nz '^V04 不通过' "$ALL" ACCEPT_STRICT=1 ONE_SESSION_TOOLS="$tmp/notools"
+
+# V06: no card files (tasks/, check_tasks.py, WORK_CARD template), an Issue template exists, the labels on cards (fake gh issue list) are only 会话:<name>, 挂起, hold,
+# the named exception queued (exact name only), or a value of policy.json "labels" (read from the file, not written into the check)
+R3="$tmp/root3"; mkdir -p "$R3"; git -C "$R3" init -q
+cat >"$tmp/gh" <<'GHEOF'
+#!/usr/bin/env bash
+[ "$1 $2" = "issue list" ] && [[ " $* " == *" --json labels "* ]] && [[ " $* " == *" --state all "* ]] || exit 9
+[ -z "${GH_FAIL:-}" ] || exit 1
+cat "$GH_DATA"
+GHEOF
+chmod +x "$tmp/gh"
+labels() { printf '[{"number":1,"labels":[%s]}]' "$1" >"$tmp/cards.json"; }   # one card carrying the given labels
+pol06() { printf '{"labels": {%s}}\n' "$1" >"$R3/policy.json"; }
+G=(ACCEPT_ROOT="$R3" ACCEPT_GH="$tmp/gh" GH_DATA="$tmp/cards.json")
+pol06 '"review_passed": "复审通过", "hold": "hold", "integration": "整合"'
+mkdir -p "$R3/docs/modernization/tasks"; echo x >"$R3/docs/modernization/tasks/A.md"; git -C "$R3" add docs
+labels '{"name":"会话:a"},{"name":"挂起"},{"name":"hold"}'
+expect "V06 tasks/ 仍在仓库里不通过" nz '^V06 不通过：卡的文件还在仓库里 1 个.*tasks/A.md' V06 "${G[@]}"
+git -C "$R3" rm -q -r --cached docs
+expect "V06 没有 Issue 模板不通过" nz '^V06 不通过：没有 Issue 模板' V06 "${G[@]}"
+mkdir -p "$R3/.github/ISSUE_TEMPLATE"; echo x >"$R3/.github/ISSUE_TEMPLATE/card.md"; git -C "$R3" add .github
+expect "V06 文件齐、标签只有三类通过" 0 '^V06 通过.*1 张卡用到的 3 个标签都属三类' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"复审通过"},{"name":"整合"}'
+expect "V06 卡上有 policy labels 的复审通过、整合仍通过" 0 '^V06 通过.*1 张卡用到的 3 个标签' V06 "${G[@]}"
+printf '[{"number":1,"labels":[{"name":"会话:a"}]},{"number":2,"labels":[{"name":"会话:b"},{"name":"整合"}]},{"number":3,"labels":[]}]' >"$tmp/cards.json"
+expect "V06 多张卡、无标签的卡也照判通过" 0 '^V06 通过.*3 张卡用到的 3 个标签' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"queued"}'
+expect "V06 卡上有 queued 具名例外通过" 0 '^V06 通过.*1 张卡用到的 2 个标签都属三类、queued' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"Queued"},{"name":"queued-x"},{"name":"queued "}'
+expect "V06 queued 只认原名，近似名不通过" nz '^V06 不通过：卡上的标签有三类、queued 与 policy.json labels 之外的 3 个：Queued、queued 、queued-x' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"复审通过"}'
+pol06 '"review_passed": "已复审", "hold": "hold", "integration": "整合"'
+expect "V06 允许集合读 policy：改名后旧名不通过" nz '^V06 不通过：卡上的标签有三类、queued 与 policy.json labels 之外的 1 个：复审通过' V06 "${G[@]}"
+pol06 ''
+expect "V06 policy 没有 labels 值不得通过" nz '^V06 不通过：policy.json 读不到或没有 labels 段' V06 "${G[@]}"
+rm "$R3/policy.json"
+expect "V06 policy 缺失不得通过" nz '^V06 不通过：policy.json 读不到或没有 labels 段' V06 "${G[@]}"
+pol06 '"review_passed": "复审通过", "hold": "hold", "integration": "整合"'
+python3 -I -c 'import json; print(json.dumps([{"number": i, "labels": [{"name": "会话:a"}]} for i in range(1000)]))' >"$tmp/cards.json"
+expect "V06 卡的结果达到查询上限不得通过" nz '^V06 不通过：卡的查询结果有 1000 条，达到上限' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"bug"},{"name":"hold"},{"name":"急"}'
+expect "V06 有三类之外的标签不通过" nz '^V06 不通过：卡上的标签有三类、queued 与 policy.json labels 之外的 2 个：bug、急' V06 "${G[@]}"
+labels '{"name":"挂起"},{"name":"hold"}'
+expect "V06 没有会话标签不得通过" nz '^V06 不通过：卡上查不到任何「会话:' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"Hold"}'
+expect "V06 标签大小写不符不通过" nz '^V06 不通过：卡上的标签有三类、queued 与 policy.json labels 之外的 1 个：Hold' V06 "${G[@]}"
+labels '{"name":"会话:"}'
+expect "V06 会话: 后面没有名字不通过" nz '^V06 不通过' V06 "${G[@]}"
+echo 'not json' >"$tmp/cards.json"
+expect "V06 查询结果不是 JSON 不通过" nz '^V06 不通过：标签查询结果解析失败' V06 "${G[@]}"
+labels '{"name":"会话:a"}'
+expect "V06 gh 失败且文件都对跳过" 0 '^V06 跳过\(gh 查询标签失败' V06 "${G[@]}" GH_FAIL=1
+expect "V06 gh 不存在跳过" 0 '^V06 跳过\(gh 查询标签失败' V06 "${G[@]}" ACCEPT_GH="$tmp/nogh"
+expect "V06 gh 失败严格模式失败" nz '^V06 不通过' "$ALL" ACCEPT_STRICT=1 "${G[@]}" GH_FAIL=1
+mkdir -p "$R3/docs/modernization"; echo x >"$R3/docs/modernization/check_tasks.py"; git -C "$R3" add docs
+expect "V06 gh 失败而文件不对仍不通过" nz '^V06 不通过：卡的文件还在仓库里.*标签未核' V06 "${G[@]}" GH_FAIL=1
+git -C "$R3" rm -q -r --cached docs
+expect "V06 非 git 仓库跳过" 0 '^V06 跳过\(检出不是 git' V06 ACCEPT_ROOT="$tmp/nogit"
+
+# V14b: E-class files out of main (not tracked), the index names the archive branch and registers each, each exists on the branch; the branch missing is a skip (strict: failure)
+R2="$tmp/root2"; mkdir -p "$R2"; git -C "$R2" init -q
+Dm=docs/modernization; Cl=$Dm/architecture/proposals/closeout
+EP=($Dm/{describe_nodes.py,extract_topology.py,live_code.py,topology.json,map/descriptions.json,rules/data_objects.py,rules/merge_rules.py,rules/pull_result.py}
+    $Dm/glossary/{migrate_to_concepts.py,test_checkers_on_concepts.py,test_migrate_to_concepts.py,arch-naming/reconcile-decided.json}
+    $Dm/architecture-guardrails/backend/{coverage.csv,negative-test.log,src/test/java/com/forcitis/one/SecurityInvariantsTest.java}
+    $Dm/architecture-guardrails/frontend/negative-lint.log $Dm/map/packets/fst_infrastructure_cost.txt $Dm/build_oa_inventory.py
+    $Cl/{ARCH_VS14.md,BPMN_STYLE.md,CONVENTIONS.md,PROCESS_METHOD_RESEARCH.md,PROCESS_METHOD_REVIEW.md,PROCESS_QUALITY_CHECKLIST.md,RESPONSIBILITY_MATRIX_SPEC.md,bpmn_check.py,bpmn_gen.py,converge_check.py}
+    $Cl/people/b31-rules/{B31_ALIGNMENT_AUDIT.md,B31_CONSTRUCTION_DESIGN.md}
+    $Cl/bpmn_gen_fixtures/{activity_cancel,entry,exits,mini,timeout}.yaml)
+[ "${#EP[@]}" = 35 ] || { echo "失败 V14b 自测的 E 类清单不是 35 个：${#EP[@]}"; bad=1; }
+EP+=($Dm/build_records.py)   # deleted by b2b-plan 40, registered in the same index section, checked too: 36 in all
+for p in "${EP[@]}"; do mkdir -p "$R2/$(dirname "$p")"; echo x >"$R2/$p"; done
+git -C "$R2" add -f docs
+git -C "$R2" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q -m x
+OB=$(git -C "$R2" symbolic-ref --short HEAD)
+B2=archive/2026-10-b2b
+e_index() {  # a D-class section, then the batch two-B section: the branch line and every path except those matching $1 (a grep -v pattern)
+  { echo '# 归档索引'; echo '## 逐文件'; echo '- `docs/modernization/old_d.md`'; echo '## 二乙批（E 类，GOV-1023-FV2）'; echo "二乙批归档分支 $B2"
+    printf -- '- `%s`\n' "${EP[@]}" | grep -v -- "${1:-NOTHING-MATCHES}"; } >"$R2/$Dm/ARCHIVE_INDEX.md"
+}
+E=(ACCEPT_ROOT="$R2")
+e_index
+expect "V14b 二乙批文件仍被跟踪不通过" nz '^V14b 不通过：二乙批 36 个文件仍被跟踪' V14b "${E[@]}"
+git -C "$R2" checkout -q -b "$B2"
+git -C "$R2" rm -q --cached "$Dm/describe_nodes.py"
+git -C "$R2" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q -m y
+git -C "$R2" checkout -q -f "$OB"
+git -C "$R2" rm -q -r --cached docs
+rm "$R2/$Dm/ARCHIVE_INDEX.md"
+expect "V14b 没有索引不通过" nz '^V14b 不通过：.*读不到' V14b "${E[@]}"
+e_index; sed -i.bak "s#$B2#别处#" "$R2/$Dm/ARCHIVE_INDEX.md"; rm "$R2/$Dm/ARCHIVE_INDEX.md.bak"
+expect "V14b 索引没写归档分支不通过" nz '^V14b 不通过：.*没有写到归档分支' V14b "${E[@]}"
+{ echo '# 归档索引'; echo "文首提到 $B2"; echo '## 二乙批（E 类，GOV-1023-FV2）'; printf -- '- `%s`\n' "${EP[@]}"; } >"$R2/$Dm/ARCHIVE_INDEX.md"
+expect "V14b 归档分支只写在二乙批一节之外不算" nz '^V14b 不通过：.*二乙批一节没有写到归档分支' V14b "${E[@]}"
+e_index 'bpmn_gen.py'
+expect "V14b 索引漏登记一个不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*bpmn_gen.py）；索引多登记 0 个' V14b "${E[@]}"
+e_index 'B31_ALIGNMENT_AUDIT'
+expect "V14b 索引漏登记 b31 一份不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*B31_ALIGNMENT_AUDIT.md）' V14b "${E[@]}"
+e_index 'build_records'
+expect "V14b 索引漏登记 build_records.py 不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*build_records.py）' V14b "${E[@]}"
+e_index; echo '- `docs/modernization/extra.md`' >>"$R2/$Dm/ARCHIVE_INDEX.md"
+expect "V14b 索引多登记一个不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 0 个；索引多登记 1 个（docs/modernization/extra.md）' V14b "${E[@]}"
+e_index 'converge_check'; sed -i.bak "s#^- .docs/modernization/old_d.md.#- \`$Cl/converge_check.py\`#" "$R2/$Dm/ARCHIVE_INDEX.md"; rm "$R2/$Dm/ARCHIVE_INDEX.md.bak"
+expect "V14b 只登记在二乙批一节之外不算" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*converge_check.py）' V14b "${E[@]}"
+printf '# 归档索引\n## 逐文件\n- `x`\n' >"$R2/$Dm/ARCHIVE_INDEX.md"
+expect "V14b 索引没有二乙批一节不通过" nz '^V14b 不通过：.*没有「## 二乙批」一节' V14b "${E[@]}"
+e_index
+expect "V14b 归档分支上缺一个文件不通过" nz '^V14b 不通过：二乙批 1 个文件在归档分支上不存在.*describe_nodes.py' V14b "${E[@]}"
+git -C "$R2" branch -q -D "$B2"; git -C "$R2" branch -q "$B2" "$OB"
+expect "V14b 索引与归档分支齐全通过" 0 '^V14b 通过（二乙批 36 个文件（E 类 35、#40 删除 1）与索引逐项相等，都已不在 main，且都在归档分支' V14b "${E[@]}"
+e_index 'bpmn_gen_fixtures/e'
+printf '| `%s/bpmn_gen_fixtures/` | 2 | 1.0 | entry.yaml、exits.yaml |\n' "$Cl" >>"$R2/$Dm/ARCHIVE_INDEX.md"
+expect "V14b 索引用表格行登记也认" 0 '^V14b 通过' V14b "${E[@]}"
+git -C "$R2" add -f "$Cl/people/b31-rules/B31_CONSTRUCTION_DESIGN.md"
+expect "V14b b31 一份仍在 main 不通过" nz '^V14b 不通过：二乙批 1 个文件仍被跟踪.*B31_CONSTRUCTION_DESIGN.md' V14b "${E[@]}"
+git -C "$R2" rm -q --cached "$Cl/people/b31-rules/B31_CONSTRUCTION_DESIGN.md"
+git -C "$R2" add -f "$Dm/build_records.py"
+expect "V14b build_records.py 仍在 main 不通过" nz '^V14b 不通过：二乙批 1 个文件仍被跟踪.*build_records.py' V14b "${E[@]}"
+git -C "$R2" rm -q --cached "$Dm/build_records.py"
+git -C "$R2" branch -q -m "$B2" elsewhere
+expect "V14b 没有归档分支跳过，不当通过" 0 '^V14b 跳过\(本检出查不到归档分支 archive/2026-10-b2b.*在分支上的部分未核' V14b "${E[@]}"
+expect "V14b 没有归档分支严格模式失败" nz '^V14b 不通过' "$ALL" ACCEPT_STRICT=1 "${E[@]}"
+e_index 'timeout'
+expect "V14b 没有归档分支时索引漏登记仍不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等' V14b "${E[@]}"
+e_index
+git -C "$R2" add -f "$Dm/describe_nodes.py"
+expect "V14b 没有归档分支时仍在 main 的文件也不通过" nz '^V14b 不通过：二乙批 1 个文件仍被跟踪' V14b "${E[@]}"
+expect "V14b 非 git 仓库跳过" 0 '^V14b 跳过\(检出不是 git' V14b ACCEPT_ROOT="$tmp/nogit"
+
+# V15: the drill (decide_drill in new_intent_selftest.py, calling decide_sync.py) must exist and pass with an ok line; the PR-opened and merged-without-dispatcher parts are always a separate skip
+D15=$tmp/root/docs/modernization
+expect "V15 缺自测不通过" nz '^V15 不通过' V15
+mkdir -p "$D15/rules/decide"; echo x >"$D15/rules/decide/decide_sync.py"
+printf 'print("ok")\n' >"$D15/new_intent_selftest.py"
+expect "V15 自测里没有 decide 演练不通过" nz '^V15 不通过：.*没有 decide_sync 的演练' V15
+printf '# decide_sync.py\n# def decide_drill(tree):\n# decide_drill(tree)\nprint("ok")\n' >"$D15/new_intent_selftest.py"
+expect "V15 演练通过" 0 '^V15 通过（决定页一题作答' V15
+expect "V15 不经调度合入与 PR 开出单列跳过" 0 'V15\(PR 开出、不经调度合入 main\) 跳过\(未验' V15
+printf '# decide_sync.py\n# def decide_drill(tree):\n# decide_drill(tree)\nprint("ok")\nimport sys\nsys.exit(1)\n' >"$D15/new_intent_selftest.py"
+expect "V15 自测失败不通过" nz '^V15 不通过' V15
+printf '# decide_sync.py\n# def decide_drill(tree):\n# decide_drill(tree)\n' >"$D15/new_intent_selftest.py"
+expect "V15 自测没有 ok 行不通过" nz '^V15 不通过' V15
+printf '# decide_sync.py\n# decide_drill(tree)\nprint("ok")\n' >"$D15/new_intent_selftest.py"
+expect "V15 演练只剩一处引用（定义被删）不通过" nz '^V15 不通过：.*没有 decide_sync 的演练' V15
+rm "$D15/rules/decide/decide_sync.py"
+printf '# decide_sync.py\n# def decide_drill(tree):\n# decide_drill(tree)\nprint("ok")\n' >"$D15/new_intent_selftest.py"
+expect "V15 缺 decide_sync.py 不通过" nz '^V15 不通过：.*decide_sync.py 不存在' V15
+
+# V16: .claude/settings.json permissions.deny holds Bash(codex *) and Bash(pi *); the delegate self-test passes and carries the lines for fake card on both engines, forbidden path refused, ledger
+mkdir -p "$tmp/root/.claude"
+S16="$tmp/root/.claude/settings.json"
+cat >"$tmp/root/scripts/delegate_selftest.py" <<'PYEOF'
+import os, sys
+drop, mode = os.environ.get("DS_DROP", ""), os.environ.get("DS_MODE", "ok")
+for line in ("PASS codex 两路之一跑通（退出 0）", "PASS deepseek 两路之一跑通（退出 0）", "PASS 范围是禁区文件：拒绝且不起子进程（退出 2）", "PASS codex 台账有记录且通过"):
+    if not (drop and line.startswith(drop)):
+        print(line)
+if mode == "fail":
+    sys.exit(1)
+if mode != "nosummary":
+    print("delegate 自测：全过")
+PYEOF
+expect "V16 缺 settings.json 不通过" nz '^V16 不通过：读 .claude/settings.json' V16
+echo '{"permissions": {"deny": ["Bash(codex *)", "Bash(pi *)"]}}' >"$S16"
+expect "V16 缺 delegate 自测不通过" nz '^V16 不通过：.*delegate_selftest.py 或 scripts/delegate.py 不存在' V16
+echo x >"$tmp/root/scripts/delegate.py"
+expect "V16 deny 与自测都齐通过" 0 '^V16 通过' V16
+echo '{"permissions": {"deny": ["Bash(codex *)"]}}' >"$S16"
+expect "V16 deny 缺 pi 不通过" nz '^V16 不通过：permissions.deny 缺 Bash\(pi \*\)' V16
+echo '{"permissions": {"deny": ["Bash(pi *)"]}}' >"$S16"
+expect "V16 deny 缺 codex 不通过" nz '^V16 不通过：permissions.deny 缺 Bash\(codex \*\)' V16
+echo '{"permissions": {"deny": "Bash(codex *) Bash(pi *)"}}' >"$S16"
+expect "V16 deny 不是列表不通过" nz '^V16 不通过：permissions.deny 缺' V16
+echo '{"permissions": {}}' >"$S16"
+expect "V16 没有 deny 不通过" nz '^V16 不通过：读 .claude/settings.json' V16
+echo '{"permissions": {"deny": ["Bash(codex *)", "Bash(pi *)"]}}' >"$S16"
+expect "V16 delegate 自测失败不通过" nz '^V16 不通过：delegate 自测退出非 0' V16 DS_MODE=fail
+expect "V16 delegate 自测没有全过行不通过" nz '^V16 不通过：delegate 自测退出非 0 或没有' V16 DS_MODE=nosummary
+for d in 'PASS codex 两路' 'PASS deepseek 两路' 'PASS 范围是禁区' 'PASS codex 台账'; do
+  expect "V16 自测输出缺「$d」不通过" nz "^V16 不通过：delegate 自测输出缺「$d" V16 DS_DROP="$d"
+done
 
 # modes: blank item list or strict with a subset never exits 0; ACCEPT_STRICT only takes 0 or 1; summary counts
 expect "ACCEPT_ONLY 空白一项不跑" nz '一项都没有跑' " "

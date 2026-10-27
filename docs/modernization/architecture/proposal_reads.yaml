@@ -75,6 +75,12 @@ reads:
   - path: docs/modernization/architecture/check_proposals.py
     kind: tool
     note: proposals/ 状态行检查本身
+  - path: scripts/ci/acceptance_v2.sh
+    kind: tool
+    note: V14b 核二乙归档的 closeout 下文件已移出 main、在归档分支上（只查路径存在，不读内容）
+  - path: scripts/ci/acceptance_v2_selftest.sh
+    kind: tool
+    note: V14b 自测夹具（示例路径），不读文件
   - path: scripts/ci/light_selftest.sh
     kind: tool
     note: light_triggers.sh 路径模式的自测夹具（示例路径），不读文件
