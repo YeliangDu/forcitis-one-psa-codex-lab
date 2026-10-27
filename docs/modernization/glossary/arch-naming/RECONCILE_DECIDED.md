@@ -1,6 +1,6 @@
 # NAM-1017-GLO-05：已裁定用语对账与 proposed 分类
 
-日期：2026-10-17；本地基线 `47ecece9`；正式词表 729 条。只新增本报告、[机器明细](reconcile-decided.json)和[只读脚本](../coverage/reconcile_decided.py)。未修改正式词表、proposed、守护或验收测试，未提交、推送、联网或启动容器。
+日期：2026-10-17；本地基线 `47ecece9`；正式词表 729 条。只新增本报告、机器明细（二乙 E4 起移出 main，在 archive/2026-10-b2b 上的 `docs/modernization/glossary/arch-naming/reconcile-decided.json`，取回：`git show archive/2026-10-b2b:docs/modernization/glossary/arch-naming/reconcile-decided.json`；构建改读同目录 `reconcile-decided-slim.json`）和[只读脚本](../coverage/reconcile_decided.py)。未修改正式词表、proposed、守护或验收测试，未提交、推送、联网或启动容器。
 
 **门禁状态：本卡以开工 HEAD 为基线验证为 4 PASS、0 FAIL、12 SKIP；默认 origin/main 基线仍有 2 FAIL，未达到整分支交付门禁，不能按默认门禁报完成。** 两次结果分列在第 6 节。
 

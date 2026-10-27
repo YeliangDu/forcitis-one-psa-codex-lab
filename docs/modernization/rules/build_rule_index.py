@@ -25,6 +25,24 @@ UNREVIEWED = (STATE_WORDS["old_unreviewed"], STATE_WORDS["new_unreviewed"])
 RULE = re.compile(r"(?<![\w-])(?:[A-Z]+-)?RULE-\d+")
 RANGE = re.compile(r"(?<![\w-])((?:[A-Z]+-)?RULE-)(\d+)\s*(?:\.\.|–|—|~|至|-)\s*(?:(?:[A-Z]+-)?RULE-)?(\d+)")
 SLASH = re.compile(r"(?<![\w-])((?:[A-Z]+-)?RULE-)(\d+)((?:/\d+)+)")
+INTENT_TAGS = {"规则": r"(?:[A-Z]+-)?RULE-\d+(?:、(?:[A-Z]+-)?RULE-\d+)*", "影响的 ADR": r"ADR-\d{4}(?:、ADR-\d{4})*", "单子": r"[A-Za-z0-9_-]+", "题号": r"[A-Za-z0-9_-]+(?:、[A-Za-z0-9_-]+)*",
+               "类别": r"口径|范围|流程|授权|技术|其他", "负责会话": r"[a-z0-9-]+", "影响路径": r"无|[^\s、]+(?:、[^\s、]+)*"}
+
+
+def parse_intent(path, text):
+    """(原话, 落点, {可选标注: 值})；可选小节「取代」（多行名单）居先，再是「规则」「影响的 ADR」「单子」「题号」「类别」「负责会话」「影响路径」按此顺序附在「落点」之后，供规则索引与 ADR 治理反查。"""
+    m = re.fullmatch(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)\n(?:\n## 取代\n\n((?:- [^\n]+\n)+))?((?:\n## [^\n]+\n\n[^\n]+\n)*)", text, re.S)
+    if not m:
+        raise ValueError(f"{path}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点，之后可选「## 取代」（被取代的 intent 文件名，一行一个）及「## 规则」「## 影响的 ADR」「## 单子」「## 题号」「## 类别」「## 负责会话」「## 影响路径」各一行")
+    tags = {}
+    for name, value in re.findall(r"\n## ([^\n]+)\n\n([^\n]+)\n", m.group(4)):
+        if name not in INTENT_TAGS or name in tags or not re.fullmatch(INTENT_TAGS[name], value):
+            raise ValueError(f"{path}：可选小节「{name}」不合规（取自 {'、'.join(INTENT_TAGS)}，不重复，值形如 {INTENT_TAGS.get(name, '—')}）：{value[:30]}")
+        tags[name] = value
+    if list(tags) != [k for k in INTENT_TAGS if k in tags]:
+        raise ValueError(f"{path}：可选小节须按 {'、'.join(INTENT_TAGS)} 的顺序")
+    landing = m.group(2) + (f"（取代：{'、'.join(x.strip('- `') for x in m.group(3).splitlines() if x.strip())}）" if m.group(3) else "")
+    return m.group(1), landing, tags
 
 
 def key(r):
@@ -116,8 +134,6 @@ def merge_new(cards, new):
 def load(mod=MOD, root=ROOT):
     spec = importlib.util.spec_from_file_location("review_revisions", os.path.join(mod, "rules", "review_revisions.py"))
     rr = importlib.util.module_from_spec(spec); spec.loader.exec_module(rr)
-    spec = importlib.util.spec_from_file_location("build_records", os.path.join(mod, "build_records.py"))
-    br = importlib.util.module_from_spec(spec); spec.loader.exec_module(br)
     cards = {}
     merge_new(cards, old_cards(open(os.path.join(mod, "BUSINESS_RULES.md"), encoding="utf-8").read()))
     for f in sorted(glob.glob(os.path.join(mod, "rules", "*.md"))):
@@ -125,7 +141,7 @@ def load(mod=MOD, root=ROOT):
             merge_new(cards, {k: v})
     reviews = rr.load_reviews(mod)
     verdicts = {norm(k): rr.current(v)["verdict"] for k, v in reviews.items()}
-    tagged, mentioned = intent_refs(os.path.join(mod, "intent"), br.parse_intent)
+    tagged, mentioned = intent_refs(os.path.join(mod, "intent"), parse_intent)
     tests = file_refs(os.path.join(root, "backend", "src", "test"), (".java", ".sql", ".json", ".yaml")) if os.path.isdir(os.path.join(root, "backend", "src", "test")) else None
     main = file_refs(os.path.join(root, "backend", "src", "main"), (".java", ".sql", ".yaml")) if os.path.isdir(os.path.join(root, "backend", "src", "main")) else None
     process = file_refs(os.path.join(mod, "process"), (".md",)) if os.path.isdir(os.path.join(mod, "process")) else {}
@@ -235,16 +251,14 @@ def self_test():
         assert sorted(b.split("：")[0] for b in dispatch(card, data)) == ["RULE-1", "RULE-11"] or sorted(b.split("：")[0] for b in dispatch(card, data))[:1] == ["RULE-1"], dispatch(card, data)
         folder = os.path.join(d, "intent"); os.makedirs(folder)
         open(os.path.join(folder, "2026-10-16-100000-x-a.md"), "w", encoding="utf-8").write("## 原话\n\n提到 RULE-5\n\n## 落点\n\n落\n\n## 规则\n\nRULE-6\n")
-        spec = importlib.util.spec_from_file_location("br", os.path.join(MOD, "build_records.py"))
-        br = importlib.util.module_from_spec(spec); spec.loader.exec_module(br)
         for bad_text in ("## 原话\n\na\n\n## 落点\n\nb\n\n## 规则\n\n272\n", "## 原话\n\na\n\n## 落点\n\nb\n\n## 单子\n\nD5\n\n## 规则\n\nRULE-1\n", "## 原话\n\na\n\n## 落点\n\nb\n\n## 别的\n\nx\n"):
             try:
-                br.parse_intent("p", bad_text); raise AssertionError(bad_text)
+                parse_intent("p", bad_text); raise AssertionError(bad_text)
             except ValueError:
                 pass
-        assert br.parse_intent("p", "## 原话\n\na\n\n## 落点\n\nb\n\n## 规则\n\nRULE-1、RULE-2\n\n## 单子\n\nD5\n")[2] == {"规则": "RULE-1、RULE-2", "单子": "D5"}
-        assert br.parse_intent("p", "## 原话\n\na\n\n## 落点\n\nb\n\n## 取代\n\n- x.md\n\n## 规则\n\nRULE-1\n") == ("a", "b（取代：x.md）", {"规则": "RULE-1"})
-        tagged, mentioned = intent_refs(folder, br.parse_intent)
+        assert parse_intent("p", "## 原话\n\na\n\n## 落点\n\nb\n\n## 规则\n\nRULE-1、RULE-2\n\n## 单子\n\nD5\n")[2] == {"规则": "RULE-1、RULE-2", "单子": "D5"}
+        assert parse_intent("p", "## 原话\n\na\n\n## 落点\n\nb\n\n## 取代\n\n- x.md\n\n## 规则\n\nRULE-1\n") == ("a", "b（取代：x.md）", {"规则": "RULE-1"})
+        tagged, mentioned = intent_refs(folder, parse_intent)
         assert tagged == {"RULE-6": ["2026-10-16-100000-x-a.md"]} and set(mentioned) == {"RULE-5", "RULE-6"}, (tagged, mentioned)
     assert ref_set("RULE-27 RULE-27 DATA-RULE-03 RULE-388..392 RULE-400–RULE-402 RULE-282/296 RULE-9-4") == {"RULE-27", "DATA-RULE-3", "RULE-388", "RULE-389", "RULE-390", "RULE-391", "RULE-392", "RULE-400", "RULE-401", "RULE-402", "RULE-282", "RULE-296", "RULE-9"}, ref_set("RULE-27 RULE-27 DATA-RULE-03 RULE-388..392 RULE-400–RULE-402 RULE-282/296 RULE-9-4")
     assert norm("RULE-27") == "RULE-27" and norm("DATA-RULE-3") == "DATA-RULE-3"
