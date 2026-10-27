@@ -13,6 +13,8 @@
     "branch_rule_change_alert_hours": 24
   },
   "start": {
+    "_说明": "cards_gh_timeout_seconds：工具库开工单 start_sheet 用 gh issue list 取在途卡的超时秒数（#23 删 tasks/ 后 Issues 是唯一来源；调度 10-27 裁定，建议值 3，二乙 #50）。读不到或不是正数时用 3，封顶 5 秒以免撞 10 秒钩子总闹钟；超时只在在途卡一节告警一行，不阻塞开工单。",
+    "cards_gh_timeout_seconds": 3,
     "inject_max_kb": 8,
     "required_read_max_kb": 15,
     "start_sheet_p99_seconds": 2,
