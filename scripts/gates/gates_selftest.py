@@ -901,7 +901,9 @@ def settings_self_test():
     node = hooks["PreToolUse"].pop(1)["hooks"]  # #14: the clear_session gate is the tool library's node_ready --gate; anything but 0 is a refusal
     assert len(node) == 1 and node[0]["type"] == "command" and node[0]["timeout"] == 10, node
     node = node[0]["command"]
-    assert node.startswith(f'H={node_path()}; if [ -f "$H" ]; then env -u HANDOFF_STATE /usr/bin/python3 -I "$H" --gate; c=$?; else c=127; fi; [ "$c" = 0 ] && exit 0; ') and node.endswith("; exit 2"), node
+    want = (f'H={node_path()}; if [ -f "$H" ]; then env -u HANDOFF_STATE /usr/bin/python3 -I "$H" --gate; c=$?; else c=127; fi; [ "$c" = 0 ] && exit 0; [ "$c" = 2 ] || echo "clear_session 门异常退出'
+            f'（退出码 ${{c}}：工具库 node_ready.py 缺失、出错或超时，${{H}}），按拒绝处理；请 one-ops 修工具库 ~/{policy("tools_lib")["dir"][2:]}/node_ready（node_ready.py --self-test）" >&2; exit 2')
+    assert node == want, ("the clear_session mount, word for word (#14 final review: a fragment inserted mid-way must fail)", node, want)
     assert node.count("exit 0") == 1 and "-I -c" not in node and "/tools/hooks/" not in node, "no pre-filter, no installed copy: the gate fails closed (#14)"
     for gone in ("scripts/hooks/start_sheet.py", "scripts/hooks/session_context.py"):
         assert not os.path.exists(os.path.join(ROOT, gone)) and gone not in raw, gone + " is deleted and mounted nowhere (O23a)"
