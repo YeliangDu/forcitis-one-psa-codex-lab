@@ -363,6 +363,14 @@ def case_issue_multi_link_forms():
         assert [c for c in s.calls if c[0][0] == "issue"] == [] and "拒绝提交" in msg, (body, msg)
 
 
+def case_issue_closing_number_bool():
+    """True == 1：首行 Closes #1、gh 返回 number 为 true（布尔）时，若只比数值会放行，必须拒（上一条 ISSUE=7 的布尔用例拒不出区别）。"""
+    s = Stub(body="Closes #1", refs=[closing(True, HOME)])
+    msg = refused(s)
+    assert "失败关闭" in msg and [c for c in s.calls if c[0][0] == "issue"] == [], msg
+    assert run(Stub(body="Closes #1", refs=[closing(1, HOME)]))[0] == 0   # 对照：整数 1 放行
+
+
 def case_issue_closing_set():
     """关闭集合须恰为首行那一张同仓库的卡；多、少、不一致、跨仓库、结构不对、读不到都拒，且不去查 Issue（#24 方案 C）。"""
     ok, other = closing(ISSUE, HOME), closing(8, HOME)

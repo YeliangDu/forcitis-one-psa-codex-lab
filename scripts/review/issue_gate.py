@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """post_review 的前置检查：PR 关联的 Issue 须已排期（定稿 1.8 第 5 点；二乙 #24）。只读：gh pr view 取正文首行与 GitHub 算出的关闭集合，gh issue view 只取状态与标签。
-
 PR 正文首行须恰为「Closes #<卡号>」（与 .github/pull_request_template.md 一致）；本脚本不解析正文其余部分，改问 GitHub 这个 PR 实际会关闭哪些 Issue
 （gh pr view --json closingIssuesReferences）：集合须恰为首行那一张卡且与本 PR 同仓库（owner、name 比较不分大小写），多一张、少一张、号不一致、跨仓库都拒。
 已核（one-ops 10-27 只读）：GraphQL 自省 PullRequest 有 closingIssuesReferences；gh 2.88.1 对公开仓库 gh pr view 14815 -R cli/cli 实测每项形如
 {id, number, repository:{id, name, owner:{id, login}}, url}，无 state、nameWithOwner。故同仓库只比 owner.login 与 name；number 须整数、二者须字符串，缺或类型不对就拒；url 不作依据。
 已排期口径为调度对定稿 1.8 第 5 点的解释（调度 10-27），非用户原话，待用户确认。
-已排期 = Issue 是 open，且恰有一个非空的「会话:<名>」标签，且没有「挂起」「hold」标签（精确名，口径同 scripts/delegate.py 的 fetch_card）。
-没有会话标签即待做，多个会话标签归属不明；只认明确已排期，其余一律拒。读不到、gh 出错、输出不是 JSON、字段缺失或类型不对一律拒（失败关闭）。
+已排期 = Issue 是 open，且恰有一个非空的「会话:<名>」标签，且没有「挂起」「hold」标签（精确名，口径同 scripts/delegate.py 的 fetch_card）。没有会话标签即待做，多个会话标签归属不明；只认明确已排期，其余一律拒。读不到、gh 出错、输出不是 JSON、字段缺失或类型不对一律拒（失败关闭）。
+已知缺口（Q7 收尾，调度 10-27）：①复审结论提交后再改 PR 正文加关联，本检查管不到，合入时的复核属合入队列改造，推后；
+②PR 指向非默认分支时 GitHub 的关闭集合可能为空，结果是多拒，不是门坏了。
 """
 import json
 import re

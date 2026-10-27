@@ -3,7 +3,7 @@
 
 用法（复审子代理自己执行）：post_review.py --pr N --body-file F [--guard] [--repo OWNER/REPO]
 F 头三行即机读头（结论、commit、复审者），其后空一行接正文；结论只从文件解析，不接受命令行手填，作者无从改判。
-解析不过即拒绝；再核 PR head 等于头里的 commit、通过结论另核关联 Issue 已排期（issue_gate.py，二乙 #24；必改不拦），然后把 F 原样作为普通 review（COMMENT，commit_id=该 commit）提交。
+解析不过即拒绝；再核 PR head 等于头里的 commit、通过结论另核关联 Issue 已排期（issue_gate.py，二乙 #24；必改不拦。已知缺口：结论提交后再改 PR 正文加关联管不到，合入时复核属队列改造、推后；PR 指向非默认分支时关闭集合可能为空，多拒而非门坏），然后把 F 原样作为普通 review（COMMENT，commit_id=该 commit）提交。
 review 成功后才动标签：必改 → 去；首轮通过 → 加；终审通过 → 不动。--guard（钩子/安全类，派工人声明）
 须同 commit 首轮与终审最新结论都为通过才加，缺一份就等。加标签前再核 head 与返回的 commit_id。mq 对守护路径仍自查。
 本脚本是仓库里唯一写「复审通过」标签的地方（H21）。退出码：0 成功（含等另一份结论）；2 参数、policy、gh、head 或关联 Issue 不过
