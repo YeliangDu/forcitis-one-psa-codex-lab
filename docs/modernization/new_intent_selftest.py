@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """new_intent.py 的自测（二乙 #25 C7）：在临时副本里跑，不写仓库的 intent/。用法：python3 docs/modernization/new_intent_selftest.py（附带的 --self-test 参数忽略）。"""
-import glob, os, shutil, subprocess, sys, tempfile
+import glob, json, os, shutil, subprocess, sys, tempfile
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE)
@@ -18,6 +18,69 @@ def run(tree, args):
 def swap(args, key, value=None):
     out = [a for a in args if not a.startswith(f"--{key}=")]
     return out if value is None else out + [f"--{key}={value}"]
+
+
+HEAD = "| 单子或页面 | 用途 | 负责会话 | 起用日期 | 退役日期 | 出处 |\n|---|---|---|---|---|---|\n"
+ROW = "| {} | 演练 | {} | x | 待定 | x |\n"
+PAGES = HEAD + ROW.format("ZZ", "one-glossary") + ROW.format("ZU", "roles/ 未列")
+ZU_ONLY = HEAD + ROW.format("ZU", "roles/ 未列")
+
+
+def decide_drill(tree, sync_args):
+    """G3 演练（临时副本）：一题作答 → decide_sync 生成片段，负责会话取自登记表；表头变、未登记、未列、重复登记即拒。"""
+    mod = os.path.join(tree, "docs", "modernization")
+    dec = os.path.join(mod, "rules", "decide")
+    for s in ("ZZ", "ZU"):
+        json.dump({"items": [{"no": f"{s}-01", "opts": [{"label": "甲"}]}]}, open(os.path.join(dec, "sheets", f"{s}.json"), "w", encoding="utf-8"), ensure_ascii=False)
+        out = os.path.join(tree, "out" + s)
+        os.makedirs(os.path.join(out, "answers"))
+        os.makedirs(os.path.join(out, "answers-submit"))
+        json.dump({"choice": 0, "note": ""}, open(os.path.join(out, "answers", f"{s}@{s}-01.json"), "w"))
+        pick = {"choice": 0, "label": "甲", "recommended": True, "defaulted": False}
+        json.dump({"number": "N1", "at": "2026-01-01T00:00:00", "picks": {f"{s}~{s}-01": pick}}, open(os.path.join(out, "answers-submit", "N1.json"), "w", encoding="utf-8"), ensure_ascii=False)
+
+    def sync(sheet, pages):
+        open(os.path.join(dec, "ONLINE_PAGES.md"), "wb").write(pages if isinstance(pages, bytes) else pages.encode("utf-8"))
+        r = subprocess.run([sys.executable, os.path.join(dec, "decide_sync.py"), sheet, os.path.join(tree, "out" + sheet), *sync_args], capture_output=True, text=True)
+        return r.returncode, r.stdout + r.stderr
+    before = set(glob.glob(os.path.join(mod, "intent", "*.md")))
+    code, out = sync("ZZ", PAGES)
+    assert code == 0, out
+    (frag,) = set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before
+    text = open(frag, encoding="utf-8").read()
+    assert "## 类别\n\n流程\n\n## 负责会话\n\none-glossary\n\n## 影响路径\n\nscripts/ci、docs/modernization\n" in text, f"片段四项须齐全且负责会话取自登记：{text}"
+    os.remove(os.path.join(dec, "answers", "ZZ.json"))
+    real = open(os.path.join(BASE, "rules", "decide", "ONLINE_PAGES.md"), encoding="utf-8").read()
+    other = ROW.format("ZZ", "one-ops")
+    wl = "行不在白名单内"
+    for sheet, pages, why in (("ZZ", PAGES.replace("负责会话", "负责人"), "表头"), ("ZY", PAGES, "没有在 ONLINE_PAGES.md 登记"), ("ZU", PAGES, "roles/ 未列"),
+                              ("ZZ", PAGES + other, "重复登记"), ("ZZ", PAGES + ROW.format("zz", "one-ops"), "重复登记"), ("ZZ", PAGES + "|ZZ|演练|one-ops|x|待定|x|\n", "重复登记"),
+                              ("ZZ", PAGES + "说明\n", "第 5 " + wl), ("ZZ", "说明\n\n" + PAGES, "第 1 " + wl), ("ZZ", PAGES + "# 表后标题须先空行\n", "第 5 " + wl),
+                              ("ZZ", PAGES + "\n" + other, "登记表之外又有表格行"), ("ZZ", PAGES + "\n# 标题\n\n" + other, "登记表之外又有表格行"),
+                              ("ZZ", PAGES + "  " + other, wl), ("ZZ", PAGES + "    " + other, wl), ("ZZ", PAGES + "\t" + other, wl), ("ZZ", PAGES + "\xa0" + other, wl),
+                              ("ZZ", PAGES + other.rstrip("\n") + " \n", wl), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定 |\n", wl), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定 | x | y |\n", wl),
+                              ("ZZ", PAGES + "ZZ | 演练 | one-ops | x | 待定 | x |\n", wl), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定 | x\n", wl),
+                              ("ZZ", HEAD + "| ZZ | 演练 \\| one-ops | one-glossary | x | 待定 |\n", wl), ("ZZ", HEAD + "| ZZ | 演练 | one-glossary | x | 待定 | x\\ |\n", wl),
+                              ("ZZ", PAGES.replace("\n", "\r\n"), wl), ("ZZ", PAGES + "| ZZ | 演练\r| one-ops | x | 待定 | x |\n", wl),
+                              ("ZZ", "<!--\n" + HEAD + other + "-->\n\n" + PAGES, "第 1 " + wl), ("ZZ", "```\n" + HEAD + other + "```\n", "第 1 " + wl), ("ZZ", "~~~\n" + HEAD + other, "第 1 " + wl),
+                              ("ZZ", "- x\n" + PAGES, "第 1 " + wl), ("ZZ", "> " + PAGES, "第 1 " + wl), ("ZZ", "   # 缩进标题\n\n" + PAGES, "第 1 " + wl), ("ZZ", "#标题无空格\n\n" + PAGES, "第 1 " + wl),
+                              ("ZZ", "[x]: http://x\n\n" + PAGES, "第 1 " + wl), ("ZZ", "﻿# 带 BOM\n\n" + PAGES, "第 1 " + wl), ("ZZ", PAGES.encode("utf-8") + b"\xff\n", "不是合法 UTF-8"),
+                              ("ZZ", PAGES + ROW.format("**ZZ**", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("`ZZ`", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("ZZ​", "one-ops"), "首格不合约定"),
+                              ("ZZ", HEAD + ROW.format("ZZ", "one-glossary").replace("演练", "<tr><td>ZY</td><td>x</td><td>one-ops</td>"), wl),
+                              ("ZZ", "# 标题 <!--\n\n" + PAGES, "第 1 " + wl), ("ZZ", PAGES + "\f" + other, wl), ("ZZ", PAGES + "　" + other, wl), ("ZZ", PAGES + ROW.format("__ZZ__", "one-ops"), "首格不合约定"),
+                              ("ZZ", PAGES + ROW.format("_ZZ_", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("某页面", "one-ops"), "首格不合约定"),
+                              ("ZZ", HEAD.split("\n")[0] + "\n" + ROW.format("ZZ", "one-glossary"), "不是分隔行"),
+                              ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"), ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射"),
+                              ("N1", real, "单子 N1 在 ONLINE_PAGES.md 的负责会话是「roles/ 未列」")):
+        code, out = sync(sheet, pages)
+        assert code != 0 and why in out, f"{why} 应拒：{out[:200]}"
+        assert not os.listdir(os.path.join(dec, "answers")), f"{why}：登记表这一关拒绝时不写答复文件"
+    assert len(set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before) == 1, "拒绝时不应再生成片段"
+    for pages, why in ((PAGES.replace("|---|---|", "|:---|---:|", 1), "分隔行带对齐冒号"), ("# 在线页登记表\n \t\n## 小标题\n" + PAGES + "\n### 表后标题\n\n", "空行、标题行在表前表后"),
+                       (PAGES.rstrip("\n"), "表在文件尾不带换行")):
+        code, out = sync("ZZ", pages)
+        assert code == 0 and "对账通过" in out, f"{why}应通过：{out[:200]}"
+        os.remove(os.path.join(dec, "answers", "ZZ.json"))
 
 
 def main():
@@ -42,13 +105,25 @@ def main():
         code, out = run(tree, swap(GOOD, "category", "杂项"))
         assert "--category" in out and "--owner" not in out and "--paths" not in out,f"只打印出错的项：{out[:200]}"
         assert not glob.glob(os.path.join(mod, "intent", "*.md")), "拒绝时不应生成片段"
-        sync = [sys.executable, os.path.join(BASE, "rules", "decide", "decide_sync.py"), "X1", tree]
-        for key in ("category", "owner", "paths", "supersedes"):
-            r = subprocess.run(sync + swap(GOOD, key)[1:], capture_output=True, text=True)
+        dec = os.path.join(mod, "rules", "decide")
+        os.makedirs(os.path.join(dec, "sheets"))
+        for f in ("decide_sync.py", "export_answers.py", "ONLINE_PAGES.md"):
+            shutil.copy(os.path.join(BASE, "rules", "decide", f), dec)
+        script = os.path.join(dec, "decide_sync.py")
+        sync = [sys.executable, script, "GL6", tree]
+        sync_args = [a for a in GOOD[1:] if not a.startswith("--owner=")]
+        for key in ("category", "paths", "supersedes"):
+            r = subprocess.run(sync + swap(sync_args, key), capture_output=True, text=True)
             msg = r.stdout + r.stderr
             assert r.returncode != 0 and f"缺必填项：--{key}（" in msg, f"decide_sync 不带 --{key} 应拒并只列它：{msg[:200]}"
-        r = subprocess.run(sync + GOOD[1:], capture_output=True, text=True)
-        assert "缺必填项" not in r.stdout + r.stderr, "四项齐全应越过必填检查（之后因无答复数据另行失败）"
+        r = subprocess.run(sync + sync_args, capture_output=True, text=True)
+        assert "缺必填项" not in r.stdout + r.stderr and "登记" not in r.stdout + r.stderr, "登记单子不给 --owner 应取登记值越过检查（之后因无答复数据另行失败）"
+        r = subprocess.run(sync + sync_args + ["--owner=one-ops"], capture_output=True, text=True)
+        assert r.returncode != 0 and "不一致" in r.stdout + r.stderr, "显式 --owner 与登记不一致应拒"
+        r = subprocess.run(sync + sync_args + ["--owner=one-glossary"], capture_output=True, text=True)
+        assert "不一致" not in r.stdout + r.stderr and "登记" not in r.stdout + r.stderr, "真实登记表 GL6 应取 one-glossary"
+        r = subprocess.run([sys.executable, script, "X1", tree, *sync_args], capture_output=True, text=True)
+        assert r.returncode != 0 and "单子 X1 没有在 ONLINE_PAGES.md 登记" in r.stdout + r.stderr, "未登记单子应拒并报单子名"
         r = subprocess.run(sync + ["--no-intent"], capture_output=True, text=True)
         assert "缺必填项" not in r.stdout + r.stderr, "--no-intent 不要求四项"
         code, out = run(tree, GOOD + ["--date=2026-01-01"])
@@ -68,6 +143,7 @@ def main():
         for owner in ("one-coordinator", "one-1a-par", "one-merge", "one-glossary"):
             code, out = run(tree, swap(GOOD, "owner", owner))
             assert code == 0, f"{owner} 应认：{out}"
+        decide_drill(tree, [a for a in GOOD[1:] if not a.startswith("--owner=")])
     print("ok")
 
 
