@@ -430,8 +430,9 @@ v04() {
 
 # V06 (b2b-plan 4 and 23): cards live only in Issues, a card's labels are only the three kinds. Files: docs/modernization/tasks/, check_tasks.py and the WORK_CARD template are gone
 # from the tracked tree and the Issue template exists; labels: every label on an Issue (gh issue list --state all, read-only; PRs are not listed) is "会话:<name>", "挂起" or "hold",
+# or the one named exception "queued" (user decision, intent 2026-10-27-113802: ci.yml and scripts/ci/heavy_gate.py start the heavy steps on it, the current merge queue uses it),
 # or one of the values of policy.json "labels" (read from the key, e.g. the review-passed and integration labels the new chain sets); at least one "会话:" label among them.
-# Repository label definitions are not judged (the final text's "three kinds" is about cards; PR labels such as the merge queue's are not on cards). A card carrying any other label fails.
+# Repository label definitions are not judged (the final text's "three kinds" is about cards). No wildcard: a card carrying any other label fails.
 # A result as long as the query limit may be cut off and fails. Both halves are judged and both are reported. gh missing, not signed in or offline: the label half cannot be judged -
 # a skip if the file half is fine (a failure under ACCEPT_STRICT=1).
 v06() {
@@ -453,7 +454,7 @@ try:
         allowed = set()
     issues = json.load(sys.stdin)
     names = sorted({x["name"] for i in issues for x in i["labels"]})
-    extra = [n for n in names if n not in ("挂起", "hold") and n not in allowed and not re.fullmatch("会话:.+", n)]
+    extra = [n for n in names if n not in ("挂起", "hold", "queued") and n not in allowed and not re.fullmatch("会话:.+", n)]
     if not allowed:
         print("bad:policy.json 读不到或没有 labels 段，允许的标签不全，不能判")
     elif len(issues) >= LIMIT:
@@ -461,9 +462,9 @@ try:
     elif not any(n.startswith("会话:") for n in names):
         print("bad:卡上查不到任何「会话:<名>」标签，查询结果不可信")
     elif extra:
-        print("bad:卡上的标签有三类与 policy.json labels 之外的 %d 个：%s" % (len(extra), "、".join(extra[:6])))
+        print("bad:卡上的标签有三类、queued 与 policy.json labels 之外的 %d 个：%s" % (len(extra), "、".join(extra[:6])))
     else:
-        print("ok:%d 张卡用到的 %d 个标签都属三类或 policy.json labels" % (len(issues), len(names)))
+        print("ok:%d 张卡用到的 %d 个标签都属三类、queued 或 policy.json labels" % (len(issues), len(names)))
 except Exception as e:
     print("bad:标签查询结果解析失败 " + type(e).__name__)
 ' "$ROOT" 2>&1)

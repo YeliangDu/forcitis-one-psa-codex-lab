@@ -360,8 +360,8 @@ expect "V04 无输出不得通过" nz '^V04 不通过' V04 SS_MODE=silent
 expect "V04 缺工具库跳过" 0 '^V04 跳过\(工具库缺' V04 ONE_SESSION_TOOLS="$tmp/notools"
 expect "V04 缺工具库严格模式失败" nz '^V04 不通过' "$ALL" ACCEPT_STRICT=1 ONE_SESSION_TOOLS="$tmp/notools"
 
-# V06: no card files (tasks/, check_tasks.py, WORK_CARD template), an Issue template exists, the labels on cards (fake gh issue list) are only 会话:<name>, 挂起, hold
-# or a value of policy.json "labels" (read from the file, not written into the check)
+# V06: no card files (tasks/, check_tasks.py, WORK_CARD template), an Issue template exists, the labels on cards (fake gh issue list) are only 会话:<name>, 挂起, hold,
+# the named exception queued (exact name only), or a value of policy.json "labels" (read from the file, not written into the check)
 R3="$tmp/root3"; mkdir -p "$R3"; git -C "$R3" init -q
 cat >"$tmp/gh" <<'GHEOF'
 #!/usr/bin/env bash
@@ -386,10 +386,12 @@ expect "V06 卡上有 policy labels 的复审通过、整合仍通过" 0 '^V06 �
 printf '[{"number":1,"labels":[{"name":"会话:a"}]},{"number":2,"labels":[{"name":"会话:b"},{"name":"整合"}]},{"number":3,"labels":[]}]' >"$tmp/cards.json"
 expect "V06 多张卡、无标签的卡也照判通过" 0 '^V06 通过.*3 张卡用到的 3 个标签' V06 "${G[@]}"
 labels '{"name":"会话:a"},{"name":"queued"}'
-expect "V06 卡上有 queued 不通过" nz '^V06 不通过：卡上的标签有三类与 policy.json labels 之外的 1 个：queued' V06 "${G[@]}"
+expect "V06 卡上有 queued 具名例外通过" 0 '^V06 通过.*1 张卡用到的 2 个标签都属三类、queued' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"Queued"},{"name":"queued-x"},{"name":"queued "}'
+expect "V06 queued 只认原名，近似名不通过" nz '^V06 不通过：卡上的标签有三类、queued 与 policy.json labels 之外的 3 个：Queued、queued 、queued-x' V06 "${G[@]}"
 labels '{"name":"会话:a"},{"name":"复审通过"}'
 pol06 '"review_passed": "已复审", "hold": "hold", "integration": "整合"'
-expect "V06 允许集合读 policy：改名后旧名不通过" nz '^V06 不通过：卡上的标签有三类与 policy.json labels 之外的 1 个：复审通过' V06 "${G[@]}"
+expect "V06 允许集合读 policy：改名后旧名不通过" nz '^V06 不通过：卡上的标签有三类、queued 与 policy.json labels 之外的 1 个：复审通过' V06 "${G[@]}"
 pol06 ''
 expect "V06 policy 没有 labels 值不得通过" nz '^V06 不通过：policy.json 读不到或没有 labels 段' V06 "${G[@]}"
 rm "$R3/policy.json"
@@ -398,11 +400,11 @@ pol06 '"review_passed": "复审通过", "hold": "hold", "integration": "整合"'
 python3 -I -c 'import json; print(json.dumps([{"number": i, "labels": [{"name": "会话:a"}]} for i in range(1000)]))' >"$tmp/cards.json"
 expect "V06 卡的结果达到查询上限不得通过" nz '^V06 不通过：卡的查询结果有 1000 条，达到上限' V06 "${G[@]}"
 labels '{"name":"会话:a"},{"name":"bug"},{"name":"hold"},{"name":"急"}'
-expect "V06 有三类之外的标签不通过" nz '^V06 不通过：卡上的标签有三类与 policy.json labels 之外的 2 个：bug、急' V06 "${G[@]}"
+expect "V06 有三类之外的标签不通过" nz '^V06 不通过：卡上的标签有三类、queued 与 policy.json labels 之外的 2 个：bug、急' V06 "${G[@]}"
 labels '{"name":"挂起"},{"name":"hold"}'
 expect "V06 没有会话标签不得通过" nz '^V06 不通过：卡上查不到任何「会话:' V06 "${G[@]}"
 labels '{"name":"会话:a"},{"name":"Hold"}'
-expect "V06 标签大小写不符不通过" nz '^V06 不通过：卡上的标签有三类与 policy.json labels 之外的 1 个：Hold' V06 "${G[@]}"
+expect "V06 标签大小写不符不通过" nz '^V06 不通过：卡上的标签有三类、queued 与 policy.json labels 之外的 1 个：Hold' V06 "${G[@]}"
 labels '{"name":"会话:"}'
 expect "V06 会话: 后面没有名字不通过" nz '^V06 不通过' V06 "${G[@]}"
 echo 'not json' >"$tmp/cards.json"
