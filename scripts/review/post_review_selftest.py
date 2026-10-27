@@ -338,6 +338,23 @@ def case_issue_link_forms():
         assert [c for c in s.calls if c[0][0] == "issue"] == [] and "拒绝提交" in msg, (body, msg)   # 关联不明就不去查 Issue
 
 
+def case_issue_multi_link_forms():
+    """关闭关键字后的引用不论 #N、owner/repo#N 还是网址，合计多于一个即拒；首行跨仓库一律拒；关键字前紧挨任何字符都认。"""
+    url = "https://github.com/o/r/issues/8"
+    bad = [f"Closes #{ISSUE}\nCloses #8", f"Closes #{ISSUE}\nFixes o/r#8", f"Closes #{ISSUE}\nResolves {url}",
+           f"Closes #{ISSUE}\nfixed: o/r#8", f"Closes #{ISSUE}\nclose {url}", f"Closes #{ISSUE}\nRESOLVED #8", f"Closes #{ISSUE}\nCLOSE  o.x/r-y_z#8",
+           f"Closes #{ISSUE}\n见Closes #8", f"Closes #{ISSUE}\n另Fixes o/r#8", f"Closes #{ISSUE}\n关闭Resolved {url}", f"Closes #{ISSUE}\nx;closes #8",
+           f"Closes #{ISSUE}\n正文Closes #8\n", f"Closes #{ISSUE}\n<!-- 注释 -->\n见fixes {url}",
+           f"Closes o/r#{ISSUE}", f"Closes https://github.com/o/r/issues/{ISSUE}", f"Closes o/r#{ISSUE}\n正文", f"Closes {url}"]
+    for body in bad:
+        s = Stub(body=body)
+        msg = refused(s)
+        assert [c for c in s.calls if c[0][0] == "issue"] == [] and "拒绝提交" in msg, (body, msg)
+    s = Stub(body=f"Closes #{ISSUE}\n只有首行一个关联；相关讨论见 #9、o/r#10 与 {url}\n")   # 没有关闭关键字的引用不算关联
+    assert run(s)[0] == 0 and [c[0][2] for c in s.calls if c[0][0] == "issue"] == [str(ISSUE)]
+    assert run(Stub(body=f"Closes #{ISSUE}"))[0] == 0
+
+
 def case_main_cli():
     s = Stub()
     with mock.patch.object(pr_mod, "gh", s), tempfile.NamedTemporaryFile("w", suffix=".md", encoding="utf-8-sig") as fh:
