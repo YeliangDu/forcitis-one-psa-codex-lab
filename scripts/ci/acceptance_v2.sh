@@ -488,7 +488,8 @@ v14b() {
   r=$(python3 -I - "$ROOT" "$idx" "$ref" "$ARCHIVE_BRANCH_B2B" <<'EOF' 2>&1
 import re, subprocess, sys
 root, idx, ref, branch = sys.argv[1:5]
-D, C = "docs/modernization/", "docs/modernization/architecture/proposals/closeout/"
+D = idx.rsplit("/", 1)[0] + "/"
+C = D + "architecture/proposals/closeout/"
 paths = [D + p for p in ("describe_nodes.py", "extract_topology.py", "live_code.py", "topology.json", "map/descriptions.json", "rules/data_objects.py", "rules/merge_rules.py",
         "rules/pull_result.py", "glossary/migrate_to_concepts.py", "glossary/test_checkers_on_concepts.py", "glossary/test_migrate_to_concepts.py",
         "architecture-guardrails/backend/coverage.csv", "architecture-guardrails/backend/negative-test.log",

@@ -74,6 +74,9 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/rulings/",
     # archive index (V14): read only by scripts/ci/acceptance_v2.sh, the batch sign-off run by hand (no CI step), so no build or test tier needs it
     "docs/modernization/ARCHIVE_INDEX.md",
+    # also named only by acceptance_v2.sh (hand-run, no CI step): V06 checks the card template is gone, V15 that decide_sync.py exists
+    "docs/modernization/templates/WORK_CARD.md",
+    "docs/modernization/rules/decide/decide_sync.py",
     # session profiles: checked by build_all.py --check, read by the tool library's start_sheet (outside the repository, O23a); commit_msg_gate.py takes session names from sessions/ and roles/ (roles/ is listed above)
     "docs/modernization/sessions/",
     "docs/modernization/check_legacy_name.py",
