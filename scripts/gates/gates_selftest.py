@@ -345,13 +345,14 @@ def gate_self_test():
             assert refused(run_lab, mine) and not os.rename(os.path.join(lab, here, "Sheet_ok.PY"), os.path.join(lab, here, "sheet_ok.py")), "a case-only rename"
             assert allowed(run_lab, mine), "back as on main"
         reach, sheet = g.module_attrs(row["allowed_imports"]), os.path.join(lab, here, "sheet_t.py")  # a sheet by whitelists only (调度 10-27): every case below on its own
-        written = lambda body: put(sheet, body, 0o644) or g.sheet_ok(sheet, set(row["allowed_imports"]) | {"sheet_ok"}, set(row["allowed_builtins"]), reach)  # noqa: E731
+        written = lambda body: put(sheet, body, 0o644) or g.sheet_ok(sheet, set(row["allowed_imports"]), set(row["allowed_builtins"]), reach)  # noqa: E731
         for body in ("import subprocess\n", "import os\n", "import sys\n", "import site\n", "import io\n", "import importlib\n", "import pdb\n", "import prod_write_gate\n", "import json.tool\n", "import sys as s\n", "from os import sys\n", "from json import *\n",
                      "exec('x = 1')\n", "open('/etc/hosts')\n", "getattr(len, 'x')\n", "__import__('os')\n", "breakpoint()\n", "x = ().__class__.__subclasses__()\n", "x = __builtins__\n", "x = (y for y in []).gi_frame.f_globals\n",
-                     "import json\nx = json.decoder\n", "from json import decoder\n", "x = len._x\n", "from .sheet_ok import collect\n", "import sys\nsys.path.insert(0, 'lib')\n", "def (\n"):
+                     "import json\nx = json.decoder\n", "from json import decoder\n", "x = len._x\n", "from .sheet_ok import collect\n", "import sys\nsys.path.insert(0, 'lib')\n", "def (\n",
+                     "import sheet_ok\n", "match len:\n    case _:\n        pass\n", "def __f():\n    pass\n", "class __C:\n    pass\n", "def f(__a):\n    pass\n", "import json as __j\n"):  # a sheet beside it, match, `__` in a def, class, parameter, alias
             assert not written(body), ("outside the whitelists: an import, an alias, a builtin, `__`, `_`, a frame, a module reached, relative, unparsable", body)
-        body = "import json, datetime, re\nimport sheet_ok\nfrom collections import OrderedDict\ndef collect(session, output):\n    return [json.dumps(len(session)), str(datetime.date(2026, 1, 1))]\n"
-        assert written(body + "if __name__ == \"__main__\":\n    print(collect('a', 'b'))\n"), "within the whitelists, a sheet beside it, the main guard"
+        body = "import json, datetime, re\nfrom collections import OrderedDict\ndef collect(session, output):\n    return [json.dumps(len(session)), str(datetime.date(2026, 1, 1))]\n"
+        assert written(body + "if __name__ == \"__main__\":\n    print(collect('a', 'b'))\n"), "within the whitelists, the main guard"
         assert reach is not None and g.module_attrs(["no_such_module_x"]) is None and not put(os.path.join(lab, "lib/helper.py"), "x = 1\n", 0o644), "an allowed module that cannot be imported: not trusted"
         put(os.path.join(lab, here, "sheet_t.py"), "import os, sys\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))\nimport helper\n", 0o644)
         with as_lab():  # on main as it is, a sheet loading a module outside the tree through sys.path (b39e3785 M1): refused by its writing alone

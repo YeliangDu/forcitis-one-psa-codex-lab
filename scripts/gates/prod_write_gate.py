@@ -689,12 +689,12 @@ def evidence_tree(root, entry):  # Files of scripts/evidence/ when its whole tre
     lists = [entry.get(k) for k in ("allowed_imports", "allowed_builtins")]
     if not all(isinstance(v, list) and all(isinstance(s, str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", s) for s in v) for v in lists):
         return None
-    beside = {os.path.basename(f)[:-3] for f in files if os.path.dirname(f) == os.path.normpath(top) and os.path.basename(f).startswith("sheet_") and f.endswith(".py")}  # the other sheets: checked as well
-    reach = module_attrs(lists[0])
-    return files if reach is not None and all(sheet_ok(f, beside | set(lists[0]), set(lists[1]), reach) for f in files if os.path.basename(f).lower().startswith("sheet_")) else None
+    reach = module_attrs(lists[0])  # imports: allowed_imports only, no sheet beside it (run with -I the directory is not on sys.path anyway; b5ae8ec8 final suggestion 1)
+    return files if reach is not None and all(sheet_ok(f, set(lists[0]), set(lists[1]), reach) for f in files if os.path.basename(f).lower().startswith("sheet_")) else None
 
 
 def module_attrs(names):  # Attribute names that reach a module object from the allowed modules, transitively (datetime.sys, dataclasses.inspect.os): a sheet uses none of them; None when one cannot be imported.
+    # Worked out on the interpreter running the gate, which must be the entry's (both /usr/bin/python3): module contents differ between versions; check again whenever a module is added (b5ae8ec8 first round 4, final 2, 3).
     try:
         todo, seen, attrs = [importlib.import_module(n) for n in names], set(), set()
     except Exception:  # noqa: BLE001 — whatever stops an import: not trusted
@@ -708,7 +708,7 @@ def module_attrs(names):  # Attribute names that reach a module object from the 
     return attrs
 
 
-def sheet_ok(path, imports, builtin_ok, reach):  # A sheet as written, by whitelists only (调度 10-27): it parses; every import is absolute and names a module of `imports` (the table's allowed_imports, or a sheet beside it), each from-import name too may not reach a module; a builtin is used only if in `builtin_ok`; no name or attribute starting `__` except in `if __name__ == "__main__"`; no attribute starting `_`, none of a frame, code or traceback (gi_frame, f_globals …), none that reaches a module. Unsure is no.
+def sheet_ok(path, imports, builtin_ok, reach):  # A sheet as written, by whitelists only (调度 10-27): it parses, has no match statement; every import is absolute and names a module of `imports` (the table's allowed_imports), each from-import name too may not reach a module; a builtin is used only if in `builtin_ok`; no name, def, class, parameter or import alias starting `__` except `__name__` in `if __name__ == "__main__"`; no attribute starting `_`, none of a frame, code or traceback (gi_frame, f_globals …), none that reaches a module. Unsure is no.
     try:
         nodes = list(ast.walk(ast.parse(Path(path).read_bytes())))
     except (OSError, SyntaxError, ValueError, RecursionError):
@@ -717,7 +717,8 @@ def sheet_ok(path, imports, builtin_ok, reach):  # A sheet as written, by whitel
     froms, names = [n for n in nodes if isinstance(n, ast.ImportFrom)], [n for n in nodes if isinstance(n, ast.Name)]
     modules = [a.name for n in nodes if isinstance(n, ast.Import) for a in n.names] + [n.module for n in froms]
     attrs = [n.attr for n in nodes if isinstance(n, ast.Attribute)] + [a.name for n in froms for a in n.names]
-    return (not any(n.level for n in froms) and all(m in imports for m in modules) and all(n.id in builtin_ok or n.id not in BUILTINS or id(n) in guard for n in names)
+    declared = [n.name for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))] + [n.arg for n in nodes if isinstance(n, ast.arg)] + [a.asname or "" for n in nodes if isinstance(n, (ast.Import, ast.ImportFrom)) for a in n.names]
+    return (not any(isinstance(n, getattr(ast, "Match", ())) for n in nodes) and not any(d.startswith("__") for d in declared) and not any(n.level for n in froms) and all(m in imports for m in modules) and all(n.id in builtin_ok or n.id not in BUILTINS or id(n) in guard for n in names)
             and not any(n.id.startswith("__") and id(n) not in guard for n in names) and not any(a.startswith("_") or a == "*" or a in reach or re.match(r"(?:gi|cr|ag|tb|f|co)_", a) for a in attrs))
 
 
