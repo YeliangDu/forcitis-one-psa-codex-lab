@@ -206,7 +206,7 @@ def gate_self_test():
                     "ls a\r(e:x:)", "ls a\x0b(e:x:)", "ls a\x0c(e:x:)", "ls a\x1c(e:x:)", "ls a\x85(e:x:)", "ls a\xa0(e:x:)", "ls a\u2003(e:x:)",
                     # a shell or eval runs its quoted body: quotes not followed (40df9f9a5 final M3); a variable's value globbed (final suggestion 1)
                     "zsh -fc 'ls a*(e:\"x\":)'", "eval 'ls a*(e:x:)'", "bash -c 'f(x)'", "zsh <<< 'ls *(e:x:)'", "echo 'ls *(e:x:)' | zsh", "$SHELL -c 'ls *(e:x:)'", "/bin/zsh -c 'ls a1(e:x:)'", "z\"s\"h -c 'ls a1(e:x:)'",
-                    "x='a*(e:x:)'; ls $~x", "ls ${~x}", "setopt globsubst; ls $x", "setopt GLOB_SUBST", "set -x -o x", "set -e +o x",
+                    "x='a*(e:x:)'; ls $~x", "ls ${~x}", "setopt globsubst; ls $x", "setopt GLOB_SUBST", "set -x -o x", "set -e +o x", "zpty z 'ls a1(e:x:)'", "sched +1 'ls a1(e:x:)'",
                     # `$$`, an escaped `(` handed to eval, a string run again (fbd9bbb63); mechanisms refused as they stand, not decoded: escapes, $'…', print/echo/printf escapes, options, modules (调度 10-27 晚)
                     "ls $$(e:x:)", "eval ls a\\(e:x:\\)", "eval 'ls a'\\(e:x:\\)", "eval $'ls a\\x28e:x:)'", "zsh -c $'ls a\\050e:x:)'", "eval $'ls a\\u0028e:x:)'",
                     "trap 'ls a*(e:x:)' EXIT", "source /dev/stdin <<< 'ls a*(e:x:)'", ". /dev/stdin <<< 'ls a*(e:x:)'", "functions[f]='ls a*(e:x:)'", "zstyle -e x y 'ls a*(e:x:)'",
@@ -215,7 +215,7 @@ def gate_self_test():
                     "eval \"$(printf x)\"", "zsh -c \"$(cat f)\"", "bash -c `cat f`", "print 'a\\''0050'", "${:-setopt} x", "print -f x", "echo a\\1", "ls x\\c", "ls x\\U1", "echo $'a'", "echo -e x", "echo -n -e x", "print -b x",
                     "print -v c 'ls a\\0050e:x:)'; eval $c", "print 'ls a\\0050e:x:)' | zsh", "set''opt glob_subst", "s\\etopt x", "e'mulate' ksh", "eval 'ls $'''~y", "glob's'ubst=1",
                     ". f 'a1(e:x:)'", "set -o extendedglob", "options[extendedglob]=on", "printf 'a\\n'", "printf %b x", "zmodload zsh/system", "autoload -U x", "a'u'toload x", "s\\et +o x", "set +o x", "z\"mod\"load x",
-                    "print -P x", "set -eo x", "set +ko x", "$0 -c \"$(cat f)\"", "/bin/z?h -c `cat f`", "print \"\\\\\"$e\"050\"", "x\\ y; echo z", "echo ${(g::)x}",
+                    "print -P x", "set -eo x", "set +ko x", "$0 -c \"$(cat f)\"", "/bin/z?h -c `cat f`", "print \"\\\\\"$e\"050\"", "x\\ y; echo z", "echo ${(g::)x}", "pr\\int a\\ b", "x\\ y; e\"ch\"o z", "pr$e'int' a\\ b",
                     "echo 'it''s *(e:x:)'", "echo $'a\\'*(e:x:)'", "ls \\*\\(e:x:\\)"):  # quoted, but a wildcard on the line has it read again: refused rather than read right (uncertain → refuse)
         assert refused(command) and "zsh" in judge(command, patterns, None, cwd, {}), ("a zsh glob qualifier: refused", command)
     for command in ("ls * (e:x:)", "grep -E 'a(b|c)' x", "grep -E \"a(b|c)\" x", "echo $(ls)", "diff <(ls) <(ls)", "ls; (ls)", "ls && (ls)", "ls | (cat)", "printf %s x", "echo -n hi", "print hi", "grep -e x f",
