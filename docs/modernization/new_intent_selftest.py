@@ -49,6 +49,7 @@ def decide_drill(tree, sync_args):
     code, out = sync("ZZ", PAGES)
     assert code == 0, out
     (frag,) = set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before
+    assert os.path.basename(frag).split("-", 4)[4].startswith("one-ops"), f"片段文件名须带调用方给的 --session：{frag}"
     text = open(frag, encoding="utf-8").read()
     assert "## 类别\n\n流程\n\n## 负责会话\n\none-glossary\n\n## 影响路径\n\nscripts/ci、docs/modernization\n" in text, f"片段四项须齐全且负责会话取自登记：{text}"
     os.remove(os.path.join(dec, "answers", "ZZ.json"))
@@ -143,8 +144,8 @@ def main():
             shutil.copy(os.path.join(BASE, "rules", "decide", f), dec)
         script = os.path.join(dec, "decide_sync.py")
         sync = [sys.executable, script, "GL6", tree]
-        sync_args = [a for a in GOOD[1:] if not a.startswith("--owner=")]
-        for key in ("category", "paths", "supersedes"):
+        sync_args = [a for a in GOOD if not a.startswith("--owner=")]
+        for key in ("session", "category", "paths", "supersedes"):   # --session 必填、不设默认（裁定 8）：漏写即拒，不落到退役名
             r = subprocess.run(sync + swap(sync_args, key), capture_output=True, text=True)
             msg = r.stdout + r.stderr
             assert r.returncode != 0 and f"缺必填项：--{key}（" in msg, f"decide_sync 不带 --{key} 应拒并只列它：{msg[:200]}"
@@ -185,7 +186,7 @@ def main():
         with alias_to_nobody(tree):
             code, out = run(tree, swap(GOOD, "owner", "one-rules"))
             assert code != 0 and "--owner" in out, f"别名指向不存在的会话应拒：{out[:200]}"
-        decide_drill(tree, [a for a in GOOD[1:] if not a.startswith("--owner=")])
+        decide_drill(tree, [a for a in GOOD if not a.startswith("--owner=")])
     print("ok")
 
 

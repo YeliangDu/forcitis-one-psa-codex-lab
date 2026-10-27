@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """决定链路一条龙：读用户在确认页的提交 → 对账 → 生成 intent 片段 → 打印收件箱回写所需的 ArtifactData 批量写入。
 用法：
-  python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> --category=<类别> --paths=<路径前缀|无> --supersedes=<被取代片段|无> [--owner=<负责会话，缺省取登记>] [--session=one-rules] [--inbox-id=<收件箱事项 id>] [--no-intent]
+  python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> --category=<类别> --paths=<路径前缀|无> --supersedes=<被取代片段|无> --session=<本会话名> [--owner=<负责会话，缺省取登记>] [--inbox-id=<收件箱事项 id>] [--no-intent]
   python3 docs/modernization/rules/decide/decide_sync.py --check <收件箱 out_dir> <单子>=<确认页 out_dir> [<单子>=<确认页 out_dir> ...]
     对账检查（调度报「待答」前先跑）：读收件箱导出与各确认页导出，报出「收件箱仍是 pending，但确认页已提交」的事项，以及确认页提交后又改过、须重新提交的。
     事项对应哪张单子：事项里写 sheet 字段，或事项的 link 等于 README 页面表里该单子的链接；对不上的待定事项不报。有不一致时返回码 1。
@@ -9,7 +9,7 @@
 做三件事：
 1. 对账：调用 export_answers 的逻辑，有提交后又改过的题则报错退出；
 2. 每个提交编号生成一条 intent 片段（用户原话 = 题号 + 所选项文字 + 说明，落点指向答复文件 rules/decide/answers/<单子>.json），文件名打印出来；
-   new_intent 的四个必填项：--owner 取自 ONLINE_PAGES.md 里该单子登记的负责会话（G3；单子未登记、负责会话为「roles/ 未列」或登记表表头变了即拒，不回退默认会话；登记的旧名先经 policy.json 的 sessions.aliases 换成现名，再须在 sessions.config 里，否则拒（O23b）；显式给 --owner 同样换名后须与登记一致，否则拒），--category、--paths、--supersedes 由调用方手填（页面元数据里没有页类型与影响路径，不编），缺任一即拒并列缺项，原样转给 new_intent（取值见其脚本头）；口头决定不经单子，直接用 new_intent.py，同样必填这四项；只导出不生成 intent 时用 --no-intent；
+   new_intent 的四个必填项：--owner 取自 ONLINE_PAGES.md 里该单子登记的负责会话（G3；单子未登记、负责会话为「roles/ 未列」或登记表表头变了即拒，不回退默认会话；登记的旧名先经 policy.json 的 sessions.aliases 换成现名，再须在 sessions.config 里，否则拒（O23b）；显式给 --owner 同样换名后须与登记一致，否则拒），--category、--paths、--supersedes 由调用方手填（页面元数据里没有页类型与影响路径，不编），缺任一即拒并列缺项，原样转给 new_intent（取值见其脚本头）；--session 写跑本脚本的会话名，同样必填、不设默认（跑的会话不止调度，默认值会把片段记到别的会话名下）；口头决定不经单子，直接用 new_intent.py，同样必填这四项；只导出不生成 intent 时用 --no-intent；
 3. 打印 inbox 事项改为已定所需的 ArtifactData update 内容（status、answer、decidedAt、intent 文件名），由会话用 ArtifactData 执行：
    页面是各自独立的发布件，确认页不能直接写收件箱，所以回写由会话完成，并在报告里附这条命令的输出。
 不自动改规则卡、ADR；转写仍由会话执行并复核。
@@ -108,9 +108,9 @@ if len(args) != 2:
     sys.exit(__doc__)
 sheet, base = args
 if not opts.get("no-intent"):
-    absent = [f"--{k}" for k in ("category", "paths", "supersedes") if not (isinstance(opts.get(k), str) and opts[k])]
+    absent = [f"--{k}" for k in ("session", "category", "paths", "supersedes") if not (isinstance(opts.get(k), str) and opts[k])]
     if absent:
-        sys.exit(f"缺必填项：{'、'.join(absent)}（原样转给 new_intent，取值与写法见其脚本头；--owner 取自 ONLINE_PAGES.md；不生成 intent 时用 --no-intent）")
+        sys.exit(f"缺必填项：{'、'.join(absent)}（原样转给 new_intent，取值与写法见其脚本头；--session 写本会话名，不设默认；--owner 取自 ONLINE_PAGES.md；不生成 intent 时用 --no-intent）")
     owner = registered_owner(sheet)
     if "owner" in opts and (not isinstance(opts["owner"], str) or sys.modules["new_intent"].resolve_owner(opts["owner"]) != owner):
         sys.exit(f"--owner={opts['owner']!r} 经别名换名后与 ONLINE_PAGES.md 里单子 {sheet} 登记的负责会话（换名后为 {owner}）不一致；不给 --owner 即取登记值")
@@ -138,7 +138,7 @@ json.dump(out, open(os.path.join(HERE, "answers", f"{sheet}.json"), "w", encodin
 by_sub = {}
 for k, v in sorted(out.items()):
     by_sub.setdefault(v["submission"], []).append((k.split("~", 1)[1], v))
-session = opts.get("session", "one-rules")
+session = opts.get("session")   # 生成 intent 时上面已核必填；--no-intent 时不用
 intents = []
 for number, rows in sorted(by_sub.items()):
     lines = "；".join(f"{no}「{v['label']}」" + ("（未作答）" if v.get("unanswered") else "（按推荐预选，未改动）" if v.get("defaulted") else "") + (f"（说明：{v['note']}）" if v.get("note") else "") for no, v in rows)
