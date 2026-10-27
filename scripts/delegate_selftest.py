@@ -3,7 +3,8 @@
 
 在仓库根目录运行（不收目录参数，b2b-plan 0.4）：读当前目录的 scripts/delegate.py 与 policy.json，
 在临时目录建一个小仓库与临时 HOME，桩程序经 PATH 注入；卡从 Issue 读（#49），gh 也是桩，经环境变量 DELEGATE_GH 注入，Issue 内容在临时目录的 issues.json。
-核对：本会话自动识别（规则同 start_sheet：.claude/session-name 标记优先，否则目录名或分支名去 claude/ 对上画像名、取最长），识别不出拒，
+核对：本会话按登记表识别（#723，规则同 start_sheet：仓库根与各行 cwd 的 realpath 相等的行取 ts 最晚一行，名须在 sessions.config；目录名、分支名、.claude/session-name 不起作用），
+未登记、登记表缺失或畸形拒，
 --session 只作核对、与识别不一致拒（调度 10-27）；卡只取「目标」「完成标准」两节；Issue 取不到、不存在、已关闭、缺本会话标签、带挂起或 hold、标签名不是字符串、
 gh 超时、缺节、卡号不是 Issue 号一律拒且拒绝不带正文、台账只记卡号与原因；真跑开关开着时设了 DELEGATE_GH 即拒；gh 只被以 issue view 只读调用；
 两路跑通；real_run_enabled 为 false 时无桩标记的程序被拒；
@@ -118,14 +119,22 @@ def setup(tmp, policy):
            "DELEGATE_GH": str(ghd / "gh"), "DELEGATE_SELFTEST_GH_DIR": str(ghd)}
     files = {"policy.json": json.dumps(policy, ensure_ascii=False, indent=2), "src/a.txt": "original\n", "docs/other.md": "other\n",
              "scripts/hooks/x.py": f"x = 1  # {FORBID}\n", "docs/SECRETS-sample.md": f"{FORBID}\n", "scripts/merge/m.py": f"# {FORBID}\n"}
-    # 会话画像（本会话自动识别，规则同 start_sheet）：one 与 one-test 都能前缀匹配分支 claude/one-test-main，须取最长；_ 开头的不算画像
-    files.update({f"docs/modernization/sessions/{n}.md": f"# {n}\n" for n in ("one", SESSION, "one-other", "_retired")})
+    files.update({f"docs/modernization/sessions/{n}.md": f"# {n}\n" for n in ("one", SESSION, "one-other", "one-ops")})   # 有画像不等于登记（#723）
+    register(home, [(repo, SESSION, "2026-10-27T01:00:00Z"), (tmp / "wt", SESSION, "2026-10-27T01:00:00.123Z")])
     for rel, text in files.items():
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         (repo / rel).write_text(text, encoding="utf-8")
     for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "init"], ["checkout", "-q", "-b", f"claude/{SESSION}-main"]):
         subprocess.run(["git", *args], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
     return repo, home, stubs, plain, env
+
+
+def register(home, rows, raw=None):
+    """写临时 HOME 下的登记表（格式同 ~/.modernize/psa/state/one-coordinator/session-ids.json）；raw 给定时原样写入（畸形样本）。"""
+    p = home / ".modernize/psa/state/one-coordinator/session-ids.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(raw if raw is not None else json.dumps({"sessions": [{"id": f"id-{i}", "session": s, "cwd": str(c), "ts": ts} for i, (c, s, ts) in enumerate(rows)]}), encoding="utf-8")
+    return p
 
 
 def run(repo, env, *args):
@@ -209,6 +218,7 @@ def main():
         print("须在仓库根目录运行（找不到 scripts/delegate.py）", file=sys.stderr)
         return 1
     policy = json.loads((ROOT / "policy.json").read_text(encoding="utf-8"))
+    policy["sessions"]["config"].update({SESSION: {"role": "dev"}, "one-other": {"role": "dev"}})   # 登记表识别只认 sessions.config 里的名（#723）
     t = T()
     tmp = Path(tempfile.mkdtemp(prefix="delegate-selftest-")).resolve()
     try:
@@ -220,27 +230,47 @@ def main():
         base = ["run", "--engine", "codex", "--category", "机械改写", "--session", SESSION, "--card"]
         auto = ["run", "--engine", "codex", "--category", "机械改写", "--card", "1", "--scope", "src/a.txt"]   # 不给 --session
         gitr = lambda *a: subprocess.run(["git", *a], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL, capture_output=True)
-        marker = repo / ".claude" / "session-name"
         rc, out = run(repo, env, *auto)
-        t.check(rc == 0 and ledger(home)[-1].get("status") == "ok", f"本会话自动识别（分支 claude/{SESSION}-main，取最长画像名）、不给 --session：放行（退出 {rc}）")
+        t.check(rc == 0 and ledger(home)[-1].get("status") == "ok", f"已登记工作区按登记表识别、不给 --session：放行（退出 {rc}）")
         rc, out = run(repo, env, *base, "1", "--scope", "src/a.txt")
         t.check(rc == 0 and ledger(home)[-1].get("status") == "ok", f"--session 与自动识别一致：放行（退出 {rc}）")
         out = refused(t, repo, home, stubs, env, "--session 与自动识别不一致", *auto, "--session", "one-other")
         t.check("不一致" in out and "one-other" not in out, "--session 不一致：报「不一致」，不回显 --session 原值")
-        gitr("checkout", "-q", "-b", "feature-x")   # 目录名 repo、分支 feature-x 都对不上画像，也没有标记
-        for what, extra in (("识别不出本会话（不给 --session）", []), ("识别不出本会话（给了 --session 也不认自报）", ["--session", SESSION])):
-            out = refused(t, repo, home, stubs, env, what, *auto, *extra)
-            t.check("识别不出本会话" in out, f"{what}：报「识别不出本会话」")
-        marker.parent.mkdir()
-        marker.write_text(f"{SESSION}\n", encoding="utf-8")
+        gitr("checkout", "-q", "-b", "feature-x")   # 原「目录名、分支名都对不上画像即拒」改写（#723）：已登记就认，分支名不起作用
         rc, _ = run(repo, env, *auto)
-        t.check(rc == 0, f".claude/session-name 标记优先（分支对不上也认）：放行（退出 {rc}）")
-        gitr("checkout", "-q", f"claude/{SESSION}-main")   # 分支能认出，但标记优先：标记无效即拒，不退回分支名
-        for what, text in (("标记写的不是画像名", "nobody"), ("标记写的是 _ 开头的非画像", "_retired")):
-            marker.write_text(text, encoding="utf-8")
-            refused(t, repo, home, stubs, env, f"{what}（分支能认出也不退回）", *auto)
-        marker.unlink()
-        marker.parent.rmdir()
+        t.check(rc == 0, f"已登记工作区换到分支 feature-x：照常识别（退出 {rc}）")
+        gitr("checkout", "-q", f"claude/{SESSION}-main")
+        # 原「分支前缀取最长」「.claude/session-name 标记优先」两条按名推断删去（#723 删功能）；反例：目录 one-ops-a5ff89、分支 claude/one-ops-yyy、标记写 one-ops 的未登记工作区现在拒
+        intruder = tmp / "one-ops-a5ff89"
+        gitr("worktree", "add", "-q", "-b", "claude/one-ops-yyy", str(intruder))
+        (intruder / ".claude").mkdir()
+        (intruder / ".claude" / "session-name").write_text("one-ops\n", encoding="utf-8")
+        for what, extra in (("未登记工作区（不给 --session）", []), ("未登记工作区（给了 --session one-ops 也不认自报）", ["--session", "one-ops"])):
+            out = refused(t, intruder, home, stubs, env, f"{what}：目录名、分支名、标记带 one-ops", *auto, *extra)
+            t.check("未登记会话" in out and "不一致" not in out, f"{what}：报「未登记会话」，不被认成 one-ops")
+        subprocess.run(["git", "worktree", "remove", "--force", str(intruder)], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
+        (repolnk := tmp / "repolnk").symlink_to(repo, target_is_directory=True)
+        rows = [(repo, SESSION, "2026-10-27T01:00:00Z"), (tmp / "wt", SESSION, "2026-10-27T01:00:00Z")]
+        for what, extra, ok in (("同 cwd 多行：较早一行是别的会话，取最晚", [(repo, "one-other", "2026-10-26T23:59:59.999Z")], True),
+                                ("同 cwd 多行：最晚一行是 one-other（偏移时区写法），取最晚", [(repo, "one-other", "2026-10-27T09:00:01+08:00")], False),
+                                ("登记的是符号链接路径，与真实路径视为同一 cwd", [(repolnk, "one-other", "2026-10-27T02:00:00.000Z")], False)):
+            register(home, rows + extra)
+            if ok:
+                t.check(run(repo, env, *base, "1", "--scope", "src/a.txt")[0] == 0, f"{what}：识别为 {SESSION}，放行")
+            else:
+                t.check("本会话 one-other 不一致" in refused(t, repo, home, stubs, env, what, *base, "1", "--scope", "src/a.txt"), f"{what}：识别为 one-other")
+        for what, raw, extra in (("登记表缺失", None, None), ("登记表不是 JSON", "{", None), ("登记表 sessions 不是列表", '{"sessions": {}}', None),
+                                 ("登记表某行缺 ts", '{"sessions": [{"id": "x", "session": "one-test", "cwd": "%s"}]}' % repo, None),
+                                 ("登记表某行 cwd 是相对路径", None, [(Path("repo"), SESSION, "2026-10-27T03:00:00Z")]),
+                                 ("登记表某行 ts 不带时区", None, [(tmp / "x", SESSION, "2026-10-27T03:00:00")]),
+                                 ("本工作区同 ts 两行（畸形）", None, [(repo, "one-other", "2026-10-27T01:00:00Z")]),
+                                 ("最晚一行的会话名不在 sessions.config", None, [(repo, "nobody", "2026-10-27T03:00:00Z")])):
+            p = register(home, rows + (extra or []), raw)
+            if what == "登记表缺失":
+                p.unlink()
+            out = refused(t, repo, home, stubs, env, f"{what}：失败关闭", *auto)
+            t.check("未登记会话" in out, f"{what}：报「未登记会话」")
+        register(home, rows)
         for what, num, extra, want in (("Issue 不存在", "404", {}, "取不到 Issue #404"), ("Issue 已关闭", "5", {}, "不是 open"),
                                        ("Issue 缺本会话标签（只有别的会话与挂起）", "6", {}, f"没有本会话标签「{LABEL}」"),
                                        ("Issue 正文缺「完成标准」节内容", "7", {}, "完成标准"), ("卡号不是 Issue 号", "T-1", {}, "Issue 号"),

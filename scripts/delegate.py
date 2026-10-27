@@ -5,7 +5,7 @@
 数值与枚举只读 policy.json 的 delegate 段、machine.delegate_nice、review.final_paths（全部并入禁区）；缺键或值不对即失败关闭。delegate.real_run_enabled 为 false 时只许带自测桩标记的程序，真引擎一律拒（调度 10-26 方案 A）。
 未修（与 real_run_enabled 绑定，V16 前处理，见终审 79afae290 必改 2、3）：pi 一路没有系统沙箱，读写不限于快照；codex 的 workspace-write 只限写不限读，能按绝对路径读本机文件；两者都要实测 sandbox-exec 等外层限制，本次不调真程序做不了。
 不收目录参数（b2b-plan 0.4）：在仓库根目录运行，读当前目录的 policy.json；卡从 GitHub Issue 只读获取（#49，调度 10-27），环境变量 DELEGATE_GH 指定 gh 只供自测。
-本会话自动识别（规则同工具库 start_sheet，见 identify），识别不出即拒；--session 只作核对，给了且与识别结果不一致也拒（调度 10-27）。
+本会话按登记表自动识别（规则同工具库 start_sheet，见 identify；#723），未登记或识别不出即拒；--session 只作核对，给了且与识别结果不一致也拒（调度 10-27）。
 调用方按 RULES 后台启动本程序；外部模型的凭据由本机配置提供（TEAM-34 现行做法），本程序不读不传。退出码：0 通过；1 运行或机械验证不过；2 准入拒绝或 policy 缺键；3 用法错。
 用法：delegate.py run --engine codex|deepseek --category <试点类别> --card <Issue 号> [--session <会话名>] --scope <路径或通配>[,...] [--effort low|medium|high|xhigh]
   delegate.py adopt <运行号> --adopted yes|no [--rework N]
@@ -14,7 +14,8 @@
 import argparse, contextlib, datetime, fnmatch, json, os, posixpath, re, shutil, signal, subprocess, sys, tarfile, tempfile, time, uuid
 from pathlib import Path
 
-CARD_ID, SESSION, SESSIONS_DIR = re.compile(r"^[1-9][0-9]{0,8}$"), re.compile(r"[a-z0-9][a-z0-9_-]{0,63}"), "docs/modernization/sessions"   # 卡号即 Issue 号；会话名规则同 start_sheet 的 NAME
+CARD_ID, SESSION = re.compile(r"^[1-9][0-9]{0,8}$"), re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")   # 卡号即 Issue 号；会话名规则同 start_sheet 的 NAME
+REGISTRY, UTC_TS = "~/.modernize/psa/state/one-coordinator/session-ids.json", re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{3}|\.\d{6})?(Z|[+-]\d\d:\d\d)")   # 登记表（只追加）与其 ts 格式，同 node_ready
 CARD_SECTIONS, GH_TIMEOUT, EFFORTS, STUB_MARK, UNKNOWN = ("目标", "完成标准"), 30, ("low", "medium", "high", "xhigh"), b"DELEGATE-SELFTEST-STUB", "未知"
 # 写死的隔离参数（D40、TEAM-34 现行命令）；改动须终审，自测逐项核对。
 CODEX_SAFETY = ("-s", "workspace-write", "-c", "sandbox_workspace_write.network_access=false", "-c", 'approval_policy="never"', "--ephemeral")
@@ -106,18 +107,17 @@ def git(*args, cwd=".", env=None, check=True):
     return r.stdout
 
 def identify(cfg):
-    """本会话（调度 10-27）：照工具库 start_sheet.identify 的规则实现（工具库在仓库外，不能 import）。.claude/session-name 标记优先；否则工作区目录名或分支名（去掉 claude/）与画像名相等或以「名-」开头，取最长。画像名 = sessions/ 下工作区与 origin/main 里不以 _ 开头的 .md ∪ policy sessions.config 的键；结果不在其中或不合名字规则即 None。"""
-    names = {n[:-3] for n in git("ls-tree", "--name-only", f"origin/main:{SESSIONS_DIR}", check=False).split() + (os.listdir(SESSIONS_DIR) if os.path.isdir(SESSIONS_DIR) else [])
-             if n.endswith(".md") and not n.startswith("_")} | set(cfg["sessions"])
+    """(会话名, None) 或 (None, 原因)：按登记表识别（#723，intent 2026-10-27-192556；规则同工具库 start_sheet、node_ready，它们在仓库外不能 import）。仓库根与登记表各行 cwd 的 realpath 相等的行里取 ts 最晚一行，会话名须合名字规则且在 sessions.config，否则未登记；目录名、分支名不起作用。登记表缺失、读不到、非 JSON、结构不对、cwd 非绝对、ts 不合格、同 cwd 同 ts 多行：失败关闭。"""
     try:
-        marker = Path(".claude/session-name").read_text(encoding="utf-8").strip()
-    except OSError:
-        marker = ""
-    except ValueError:   # 标记不是 UTF-8：start_sheet 此时出错、不认会话，这里同样识别不出
-        return None
-    branch = git("rev-parse", "--abbrev-ref", "HEAD", check=False).strip().removeprefix("claude/")
-    best = marker or max((n for n in names for c in (os.path.basename(os.getcwd()), branch) if c == n or c.startswith(n + "-")), key=len, default=None)
-    return best if best in names and SESSION.fullmatch(best) else None
+        here, rows = os.path.realpath(git("rev-parse", "--show-toplevel").strip()), json.loads(Path(os.path.expanduser(REGISTRY)).read_text(encoding="utf-8"))["sessions"]
+        if not isinstance(rows, list) or not all(isinstance(r, dict) and all(isinstance(r.get(k), str) for k in ("id", "session", "cwd", "ts")) and os.path.isabs(r["cwd"]) and UTC_TS.fullmatch(r["ts"]) for r in rows):
+            raise ValueError
+        mine = sorted((datetime.datetime.fromisoformat(r["ts"].replace("Z", "+00:00")), r["session"]) for r in rows if os.path.realpath(r["cwd"]) == here)
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError) as e:
+        return None, f"登记表缺失、读不到或畸形（{e.__class__.__name__}），失败关闭"
+    if len(mine) > 1 and mine[-1][0] == mine[-2][0]:
+        return None, "登记表畸形：本工作区同一时刻登记了多行，失败关闭"
+    return (mine[-1][1], None) if mine and SESSION.fullmatch(mine[-1][1]) and mine[-1][1] in cfg["sessions"] else (None, "登记表里没有本工作区，或最晚一行的会话名不在 sessions.config")
 
 def fetch_card(card, session, real_run):
     """从 Issue 只读取卡（#49，调度 10-27）：gh issue view 只取状态、标签与正文「目标」「完成标准」两节。取不到、gh 不可用或超时、不是 open、
@@ -155,9 +155,9 @@ def admit(args, cfg):
         raise Refuse(f"类别属不外包（delegate.forbidden_categories）：{args.category}")
     if not CARD_ID.match(args.card):
         raise Refuse("卡号须是 Issue 号（正整数）")
-    if not (session := identify(cfg)) or args.session not in (None, session):   # 报错不回显 --session 原值
-        raise Refuse(f"--session 与自动识别的本会话 {session} 不一致，拒绝" if session else "识别不出本会话（规则同 start_sheet：.claude/session-name，或目录名、分支名对上画像名），拒绝")
-    card = fetch_card(args.card, session, cfg["real_run"])
+    if not (session := identify(cfg))[0] or args.session not in (None, session[0]):   # 报错不回显 --session 原值
+        raise Refuse(f"--session 与自动识别的本会话 {session[0]} 不一致，拒绝" if session[0] else f"未登记会话（按登记表识别，规则同 start_sheet：{session[1]}），调度先登记，拒绝")
+    card = fetch_card(args.card, session[0], cfg["real_run"])
     if leaks(card + args.scope):
         raise Refuse(f"卡或范围里有密钥模式或非公开材料标记：{'、'.join(leaks(card + args.scope))}")
     if not (scope := [norm_scope(s) for s in args.scope.split(",") if s.strip()]):
