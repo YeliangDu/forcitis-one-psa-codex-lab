@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Batch-one items of acceptance list V01-V18 that can be scripted (redesign-1023 proposal section 5).
+# Batch-one and batch two-B items of acceptance list V01-V18 that can be scripted (redesign-1023 proposal section 5; V07, V09, V17b are not written here).
+# An item whose dependency is not merged yet is written as the check the final table asks for and reports red or unmet (never loosened to go green).
 # Prints "Vxx 通过|不通过|跳过(原因)" per item; exit 0 only when no item failed. A skip never counts as a failure, and an item whose
 # environment is missing says so instead of passing; so does an object that does not exist yet or has no data (nothing to check is never a pass).
 # Env: ACCEPT_ROOT (checkout), ONE_SESSION_TOOLS (tool library), ACCEPT_BUDGET_DIR, ACCEPT_BOARD (board.md), ACCEPT_JANITOR_DIR, ACCEPT_MEMORY_DIR,
@@ -18,7 +19,9 @@ JANITOR_DIR=${ACCEPT_JANITOR_DIR:-$HOME/.modernize/psa/janitor}
 JANITOR_MAX_DAYS=2
 MEMORY_DIR=${ACCEPT_MEMORY_DIR:-$HOME/.claude/projects/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa/memory}
 ARCHIVE_BRANCH=${ACCEPT_ARCHIVE_BRANCH:-archive/2026-10}
-ALL="V01 V02 V03 V05 V07 V08 V10 V11 V12 V13 V14 V17a"
+GH=${ACCEPT_GH:-gh}   # V06 label query; ACCEPT_ARCHIVE_BRANCH_B2B (default archive/2026-10-b2b) is the V14b branch
+ARCHIVE_BRANCH_B2B=${ACCEPT_ARCHIVE_BRANCH_B2B:-archive/2026-10-b2b}
+ALL="V01 V02 V03 V04 V05 V06 V07 V08 V10 V11 V12 V13 V14 V14b V15 V16 V17a"
 ONLY=${ACCEPT_ONLY-$ALL}
 fails=0; passes=0; skips=0
 OUT=""
@@ -47,6 +50,9 @@ run_ok() {  # marker cmd...
   run "$@" || return 1
   if [ -n "$marker" ]; then printf '%s\n' "$OUT" | grep -q -- "$marker"; else [ -n "$OUT" ]; fi
 }
+
+# run a command from the checkout root (the tools take no directory argument); a subshell, so the caller's directory is untouched
+in_root() { ( cd "$ROOT" && "$@" ); }
 
 budget_out=""
 budget() {
@@ -103,7 +109,7 @@ v02() {
     for f in "$ROOT"/scripts/$d/*selftest* "$ROOT"/scripts/$d/test_*; do
       [ -f "$f" ] || continue
       n=$((n + 1))
-      case "$f" in *.py) if grep -q -- '--self-test' "$f"; then run_ok '' python3 -I "$f" --self-test; else run_ok '' python3 -I "$f"; fi ;; *) run_ok '' bash "$f" ;; esac || { report V02 fail "$d/$(basename "$f") 退出非 0 或无输出"; tail_out; st=1; }
+      case "$f" in *.py) if grep -qE "[\"']--self-test[\"']" "$f"; then run_ok '' python3 -I "$f" --self-test; else run_ok '' python3 -I "$f"; fi ;; *) run_ok '' bash "$f" ;; esac || { report V02 fail "$d/$(basename "$f") 退出非 0 或无输出"; tail_out; st=1; }
     done
   done
   [ "$st" = 0 ] || return
@@ -282,7 +288,7 @@ except Exception as e:
 EOF
 )
   case "$r" in ok:*) ;; *) report V14 fail "$(printf '%s' "${r#bad:}" | head -n 1)"; return ;; esac
-  if [ -n "$ref" ]; then report V14 pass "$idx 在，${r#ok:}，且都在归档分支 $ARCHIVE_BRANCH 上；E 类待二乙"
+  if [ -n "$ref" ]; then report V14 pass "$idx 在，${r#ok:}，且都在归档分支 $ARCHIVE_BRANCH 上；E 类见 V14b"
   else report V14 env "本检出查不到归档分支 ${ARCHIVE_BRANCH}（浅克隆或未取回）"; fi
 }
 
@@ -293,9 +299,12 @@ budget_level_selftest() {
   if run_ok '绿：0 项失败' python3 -I "$f"; then BL_VERDICT=ok; else BL_VERDICT=fail; BL_MSG='budget_level 自测退出非 0 或无通过行'; fi
 }
 
-# V12 ladder part only (the session config list is batch two-B): policy.json has the budget line and ladder; the ladder logic is the budget_level self-test
+# V12: policy.json has the budget line and ladder (the ladder logic is the budget_level self-test), and the session config list sessions.config (b2b-plan 10):
+# a non-empty object, every value a non-empty object, and one entry for each session profile docs/modernization/sessions/*.md (names starting "_" are not sessions);
+# the start sheet that shows level and config difference is the start_sheet self-test of the tool library (missing library: skip, a failure under ACCEPT_STRICT=1)
 v12() {
-  local missing
+  local missing cfg ss="$TOOLS/start_sheet/start_sheet.py" py=/usr/bin/python3
+  [ -x "$py" ] || py=python3
   missing=$(python3 -I - "$ROOT/policy.json" <<'EOF' 2>&1
 import json, sys
 try:
@@ -311,12 +320,33 @@ except Exception as e:
 EOF
 )
   [ -z "$missing" ] || { report V12 fail "policy.json 缺 $missing"; return; }
+  cfg=$(python3 -I - "$ROOT/policy.json" "$ROOT/docs/modernization/sessions" <<'EOF' 2>&1
+import json, os, sys
+try:
+    s = json.load(open(sys.argv[1])).get("sessions")
+    c = s.get("config") if isinstance(s, dict) else None
+    if not isinstance(c, dict) or not c:
+        print("bad:sessions.config 为空或不是对象（清单 10 的会话配置清单还没填）")
+        sys.exit()
+    empty = [k for k, v in c.items() if not isinstance(v, dict) or not v]
+    names = sorted(f[:-3] for f in os.listdir(sys.argv[2]) if f.endswith(".md") and not f.startswith("_")) if os.path.isdir(sys.argv[2]) else []
+    miss = [n for n in names if n not in c]
+    if empty or miss:
+        print("bad:sessions.config" + (" 里条目不是非空对象：" + "、".join(empty[:5]) if empty else "") + (" 缺会话画像对应的条目：" + "、".join(miss[:5]) if miss else ""))
+        sys.exit()
+    print("ok:%d 个会话" % len(c))
+except SystemExit:
+    raise
+except Exception as e:
+    print("bad:读 policy.json 或会话画像目录出错 " + type(e).__name__)
+EOF
+)
+  case "$cfg" in ok:*) ;; *) report V12 fail "$(printf '%s' "${cfg#bad:}" | head -n 1)"; return ;; esac
   budget_level_selftest
-  case "$BL_VERDICT" in
-    ok) report V12 pass 'policy.json 有预算线与梯子，budget_level 自测通过；会话配置清单待二乙' ;;
-    env) report V12 env "$BL_MSG" ;;
-    *) report V12 fail "$BL_MSG"; tail_out ;;
-  esac
+  case "$BL_VERDICT" in env) report V12 env "$BL_MSG"; return ;; fail) report V12 fail "$BL_MSG"; tail_out; return ;; esac
+  [ -f "$ss" ] || { report V12 env "工具库缺 $ss，开工单的档位与配置差异未核"; return; }
+  run_ok "start_sheet self-test: ok" "$py" -I "$ss" --self-test || { report V12 fail 'start_sheet --self-test 退出非 0 或无通过行'; tail_out; return; }
+  report V12 pass "policy.json 有预算线与梯子、会话配置清单（${cfg#ok:}），budget_level 与 start_sheet 自测通过"
 }
 
 # V17a: budget_level self-test, a fresh level.json that carries a reading, and the one-week spot check judged against policy budget.reading_max_deviation_pts.
@@ -387,9 +417,159 @@ EOF
   esac
 }
 
+# V04: the start sheet (injection <= 8 KB, required reading <= 15 KB) stays within its limits for every session profile, worst case: the tool's own `--check --all`,
+# run from the checkout root with a fixed system python as the SessionStart hook does. It must say it checked at least one profile (an empty run is not a pass).
+v04() {
+  local ss="$TOOLS/start_sheet/start_sheet.py" py=/usr/bin/python3
+  [ -x "$py" ] || py=python3
+  [ -f "$ss" ] || { report V04 env "工具库缺 $ss"; return; }
+  is_git || { report V04 env '检出不是 git 仓库，start_sheet --check 要在仓库里跑'; return; }
+  run_ok 'start_sheet: [1-9][0-9]* 份画像的开工单都在上限内' in_root "$py" -I "$ss" --check --all || { report V04 fail 'start_sheet --check --all 退出非 0 或没有「N 份画像都在上限内」的结果行'; tail_out; return; }
+  report V04 pass "$(printf '%s\n' "$OUT" | tail -n 1)"
+}
+
+# V06 (b2b-plan 4 and 23): cards live only in Issues, labels are only the three kinds. Files: docs/modernization/tasks/, check_tasks.py and the WORK_CARD template are gone from the
+# tracked tree and the Issue template exists; labels: every label of the repository (gh label list, read-only) is "会话:<name>", "挂起" or "hold", at least one "会话:" label among them.
+# Both halves are judged and both are reported. gh missing, not signed in or offline: the label half cannot be judged - a skip if the file half is fine (a failure under ACCEPT_STRICT=1).
+v06() {
+  local t bad="" labels r
+  is_git || { report V06 env '检出不是 git 仓库，查不了 git ls-files'; return; }
+  t=$(tracked docs/modernization/tasks docs/modernization/check_tasks.py docs/modernization/templates/WORK_CARD.md) || { report V06 fail 'git ls-files 出错'; return; }
+  [ -z "$t" ] || bad="卡的文件还在仓库里 $(printf '%s\n' "$t" | wc -l | tr -d ' ') 个（tasks/、check_tasks.py、WORK_CARD 模板应已删，清单 23），如 $(printf '%s\n' "$t" | head -n 1)"
+  t=$(tracked .github/ISSUE_TEMPLATE) || { report V06 fail 'git ls-files 出错'; return; }
+  [ -n "$t" ] || bad="${bad:+${bad}；}没有 Issue 模板（.github/ISSUE_TEMPLATE/ 下无跟踪文件）"
+  if labels=$(cd "$ROOT" && "$GH" label list --limit 1000 --json name 2>/dev/null); then
+    r=$(printf '%s' "$labels" | python3 -I -c '
+import json, re, sys
+try:
+    names = [x["name"] for x in json.load(sys.stdin)]
+    extra = [n for n in names if n not in ("挂起", "hold") and not re.fullmatch("会话:.+", n)]
+    if not any(n.startswith("会话:") for n in names):
+        print("bad:查不到任何「会话:<名>」标签，查询结果不可信")
+    elif extra:
+        print("bad:标签有三类之外的 %d 个：%s" % (len(extra), "、".join(extra[:6])))
+    else:
+        print("ok:%d 个标签都属三类" % len(names))
+except Exception as e:
+    print("bad:标签查询结果解析失败 " + type(e).__name__)
+' 2>&1)
+    case "$r" in ok:*) ;; *) bad="${bad:+${bad}；}$(printf '%s' "${r#bad:}" | head -n 1)" ;; esac
+  elif [ -z "$bad" ]; then report V06 env 'gh 查询标签失败（gh 缺失、未登录或无网络），三类标签未核'; return
+  else r="bad:"; bad="${bad}；gh 查询标签失败，标签未核"; fi
+  if [ -n "$bad" ]; then report V06 fail "$bad"; else report V06 pass "卡的文件已删、有 Issue 模板；${r#ok:}"; fi
+}
+
+# V14b (second half of V14, E class, b2b-plan 34, 35, 37): the E-class files moved out of main by batch two-B are no longer tracked here, ARCHIVE_INDEX.md names the archive branch
+# and registers every one of them (table row: directory + file name, or a "- `path`" line), and they exist on the archive branch (git ls-tree). The list below is the files the plan names
+# (E1 11, E2 guardrails 4 + closeout 10 + fixtures 5 + packets 1 + build_oa_inventory 1, E4 reconcile-decided.json 1); the two b31 files of E2 are not in it (the plan gives the name only, 4 files match).
+# Red while they are still tracked (waits for the archive of b2b-plan 34, 35, 37). The branch is local only: a checkout without it (CI) can judge the first two halves and then skips
+# (a failure under ACCEPT_STRICT=1), it never passes on the branch half unseen.
+v14b() {
+  local idx=docs/modernization/ARCHIVE_INDEX.md ref="" r
+  is_git || { report V14b env '检出不是 git 仓库，查不了 git ls-files'; return; }
+  if git -C "$ROOT" rev-parse --verify -q "refs/heads/${ARCHIVE_BRANCH_B2B}^{commit}" >/dev/null; then ref="refs/heads/${ARCHIVE_BRANCH_B2B}"
+  elif git -C "$ROOT" rev-parse --verify -q "refs/remotes/origin/${ARCHIVE_BRANCH_B2B}^{commit}" >/dev/null; then ref="refs/remotes/origin/${ARCHIVE_BRANCH_B2B}"; fi
+  r=$(python3 -I - "$ROOT" "$idx" "$ref" "$ARCHIVE_BRANCH_B2B" <<'EOF' 2>&1
+import re, subprocess, sys
+root, idx, ref, branch = sys.argv[1:5]
+D, C = "docs/modernization/", "docs/modernization/architecture/proposals/closeout/"
+paths = [D + p for p in ("describe_nodes.py", "extract_topology.py", "live_code.py", "topology.json", "map/descriptions.json", "rules/data_objects.py", "rules/merge_rules.py",
+        "rules/pull_result.py", "glossary/migrate_to_concepts.py", "glossary/test_checkers_on_concepts.py", "glossary/test_migrate_to_concepts.py",
+        "architecture-guardrails/backend/coverage.csv", "architecture-guardrails/backend/negative-test.log",
+        "architecture-guardrails/backend/src/test/java/com/forcitis/one/SecurityInvariantsTest.java", "architecture-guardrails/frontend/negative-lint.log",
+        "map/packets/fst_infrastructure_cost.txt", "build_oa_inventory.py", "glossary/arch-naming/reconcile-decided.json")]
+paths += [C + p for p in ("ARCH_VS14.md", "BPMN_STYLE.md", "CONVENTIONS.md", "PROCESS_METHOD_RESEARCH.md", "PROCESS_METHOD_REVIEW.md", "PROCESS_QUALITY_CHECKLIST.md",
+        "RESPONSIBILITY_MATRIX_SPEC.md", "bpmn_check.py", "bpmn_gen.py", "converge_check.py")]
+paths += [C + "bpmn_gen_fixtures/%s.yaml" % n for n in ("activity_cancel", "entry", "exits", "mini", "timeout")]
+def git(*a):
+    return subprocess.run(["git", "-C", root, *a], capture_output=True, check=True).stdout.decode("utf-8").split("\0")
+try:
+    tracked = set(git("ls-files", "-z"))
+    still = [p for p in paths if p in tracked]
+    if still:
+        print("bad:E 类 %d 个文件仍被跟踪（归档未做），如 %s" % (len(still), still[0]))
+        sys.exit()
+    try:
+        text = open(f"{root}/{idx}", encoding="utf-8").read()
+    except OSError:
+        print("bad:%s 读不到" % idx)
+        sys.exit()
+    reg = set()
+    for line in text.splitlines():
+        m = re.fullmatch(r"- \x60([^\x60]+)\x60", line.strip())
+        if m:
+            reg.add(m.group(1))
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) == 4 and re.fullmatch(r"`[^`]+/`", cells[0]):
+            reg |= {cells[0].strip("`") + n.strip() for n in cells[3].split("、") if n.strip() and n.strip() != "…"}
+    if branch not in text:
+        print("bad:%s 没有写到归档分支 %s" % (idx, branch))
+        sys.exit()
+    unreg = [p for p in paths if p not in reg]
+    if unreg:
+        print("bad:索引没有登记 E 类的 %d 个文件，如 %s" % (len(unreg), unreg[0]))
+        sys.exit()
+    if not ref:
+        print("env:本检出查不到归档分支 %s（本机分支，浅克隆或 CI 没有）；E 类 %d 个文件已不在 main、索引已登记，在分支上的部分未核" % (branch, len(paths)))
+        sys.exit()
+    onbr = set(git("ls-tree", "-r", "--name-only", "-z", ref))
+    gone = [p for p in paths if p not in onbr]
+    if gone:
+        print("bad:E 类 %d 个文件在归档分支上不存在，如 %s" % (len(gone), gone[0]))
+        sys.exit()
+    print("ok:E 类 %d 个文件都已不在 main，索引已登记，且都在归档分支 %s 上" % (len(paths), branch))
+except SystemExit:
+    raise
+except Exception as e:
+    print("bad:读索引或 git 出错 " + type(e).__name__)
+EOF
+)
+  case "$r" in
+    ok:*) report V14b pass "${r#ok:}" ;;
+    env:*) report V14b env "${r#env:}" ;;
+    *) report V14b fail "$(printf '%s' "${r#bad:}" | head -n 1)" ;;
+  esac
+}
+
+# V15 (cut down by b2b-plan 0.1): a decision page, one question answered -> an intent file is generated; its drill is the G3 part of new_intent_selftest.py (decide_sync.py -> new_intent,
+# owner from the page register, bad registers refused). The drill must still be in the self-test (a file without it never passes). Two parts are not scripted and are reported as a skip:
+# the PR being opened (writes to GitHub) and "merged into main without the dispatcher" (waits for the merge-queue rework).
+v15() {
+  local f=docs/modernization/new_intent_selftest.py
+  [ -f "$ROOT/$f" ] && [ -f "$ROOT/docs/modernization/rules/decide/decide_sync.py" ] || { report V15 fail "$f 或 rules/decide/decide_sync.py 不存在"; return; }
+  [ "$(grep -c 'decide_drill(' "$ROOT/$f")" -ge 2 ] && grep -q 'decide_sync.py' "$ROOT/$f" || { report V15 fail "$f 里没有 decide_sync 的演练（decide_drill 的定义与调用）"; return; }
+  run_ok '^ok$' in_root python3 -I "$f" || { report V15 fail "$f 退出非 0 或没有 ok 行"; tail_out; return; }
+  report V15 pass '决定页一题作答到生成 intent 文件的演练通过（new_intent 与 decide_sync 自测）'
+  report "V15(PR 开出、不经调度合入 main)" skip '未验：开 PR 要写 GitHub 不在脚本里做；不经调度合入待合入队列改造（b2b-plan 0.1）'
+}
+
+# V16: delegate runs a fake card through codex and deepseek, forbidden paths are refused, the ledger has records (all in the delegate self-test, stubs, no external model);
+# a direct call of codex or pi is refused: .claude/settings.json permissions.deny holds Bash(codex *) and Bash(pi *) (b2b-plan 4: deny, not a gate; delete a rule and this item fails).
+# The self-test must say it passed and carry the four lines that stand for the clauses.
+v16() {
+  local f=scripts/delegate_selftest.py s="$ROOT/.claude/settings.json" r l
+  r=$(python3 -I - "$s" <<'EOF' 2>&1
+import json, sys
+try:
+    deny = json.load(open(sys.argv[1]))["permissions"]["deny"]
+    miss = [r for r in ("Bash(codex *)", "Bash(pi *)") if not isinstance(deny, list) or r not in deny]
+    print("bad:permissions.deny 缺 " + "、".join(miss) if miss else "ok")
+except Exception as e:
+    print("bad:读 .claude/settings.json 的 permissions.deny 出错 " + type(e).__name__)
+EOF
+)
+  [ "$r" = ok ] || { report V16 fail "${r#bad:}"; return; }
+  [ -f "$ROOT/$f" ] && [ -f "$ROOT/scripts/delegate.py" ] || { report V16 fail "$f 或 scripts/delegate.py 不存在"; return; }
+  run_ok '^delegate 自测：全过$' in_root python3 -I "$f" || { report V16 fail 'delegate 自测退出非 0 或没有「全过」行'; tail_out; return; }
+  for l in 'PASS codex 两路之一跑通' 'PASS deepseek 两路之一跑通' 'PASS 范围是禁区文件：拒绝' 'PASS codex 台账有记录'; do
+    printf '%s\n' "$OUT" | grep -q "^$l" || { report V16 fail "delegate 自测输出缺「$l」"; return; }
+  done
+  report V16 pass 'delegate 自测全过（两路跑通、禁区被拒、台账有记录），permissions.deny 挡住直接调用 codex 与 pi'
+}
+
 for item in $ONLY; do
   case "$item" in
-    V01) v01 ;; V02) v02 ;; V03) v03 ;; V05) v05 ;; V07) v07 ;; V08) v08 ;; V10) v10 ;; V11) v11 ;; V12) v12 ;; V13) v13 ;; V14) v14 ;; V17a) v17a ;;
+    V01) v01 ;; V02) v02 ;; V03) v03 ;; V04) v04 ;; V05) v05 ;; V06) v06 ;; V07) v07 ;; V08) v08 ;; V10) v10 ;; V11) v11 ;; V12) v12 ;; V13) v13 ;; V14) v14 ;; V14b) v14b ;; V15) v15 ;; V16) v16 ;; V17a) v17a ;;
     *) report "$item" fail '未知项' ;;
   esac
 done
