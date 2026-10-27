@@ -61,6 +61,7 @@ def decide_drill(tree, sync_args):
                               ("ZZ", HEAD + "| ZZ | 演练 \\| one-ops | one-glossary | x | 待定 |\n", "格式不规范"), ("ZZ", ZU_ONLY + "\n" + ROW.format("ZZ", "one-ops"), "块之后"),
                               ("ZZ", ZU_ONLY + "\n说明\n" + ROW.format("ZZ", "one-ops"), "块之后"), ("ZZ", ZU_ONLY + "说明\n" + ROW.format("ZZ", "one-ops"), "紧接着一行非表格行"),
                               ("ZZ", ZU_ONLY + "\n<!--\n" + ROW.format("ZZ", "one-ops") + "-->\n", "块之后"), ("ZZ", ZU_ONLY + "\n```\n" + ROW.format("ZZ", "one-ops") + "```\n", "块之后"),
+                              ("ZZ", ZU_ONLY + "    " + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "\t" + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "  \t" + ROW.format("ZZ", "one-ops"), "缩进"),
                               ("ZZ", HEAD.split("\n")[0] + "\n" + ROW.format("ZZ", "one-glossary"), "不是分隔行"),
                               ("ZU", HEAD + "| ZU | 演练 | one-glossary | x | 待定 |\n", "格式不规范"), ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"),
                               ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射"), ("N1", real, "单子 N1 在 ONLINE_PAGES.md 的负责会话是「roles/ 未列」")):
