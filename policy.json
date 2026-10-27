@@ -249,7 +249,6 @@
         "role": "lead",
         "model": "opus",
         "effort": "high",
-        "effort_source": "TEAM-13「调度、整合、复审 high」之调度（调度 10-27 裁定 7）",
         "permission_mode": "bypassPermissions",
         "remote_control": true,
         "model_schedule": "budget.coordinator_model"
@@ -257,32 +256,24 @@
       "one-architecture": {
         "role": "design",
         "model": "opus",
-        "effort": null,
-        "effort_source": "待定稿：TEAM-13 未覆盖本会话，定稿 1.3 第 2 条只把推理强度列入清单、未给值（裁定 7「其余照定稿」）",
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
       "one-data": {
         "role": "design",
         "model": "sonnet",
-        "effort": null,
-        "effort_source": "待定稿：TEAM-13 未覆盖本会话，定稿 1.3 第 2 条只把推理强度列入清单、未给值（裁定 7「其余照定稿」）",
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
       "one-glossary": {
         "role": "language",
         "model": "sonnet",
-        "effort": null,
-        "effort_source": "待定稿：TEAM-13 未覆盖本会话，定稿 1.3 第 2 条只把推理强度列入清单、未给值（裁定 7「其余照定稿」）",
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
       "one-ops": {
         "role": "platform",
         "model": "sonnet",
-        "effort": null,
-        "effort_source": "待定稿：TEAM-13 未覆盖本会话，定稿 1.3 第 2 条只把推理强度列入清单、未给值（裁定 7「其余照定稿」）",
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
@@ -290,7 +281,6 @@
         "role": "platform",
         "model": "sonnet",
         "effort": "high",
-        "effort_source": "TEAM-13「调度、整合、复审 high」之整合：本会话管合入队列与文档合集（调度 10-27 裁定 7）",
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
@@ -298,40 +288,65 @@
         "role": "platform",
         "model": "sonnet",
         "effort": "high",
-        "effort_source": "TEAM-13「调度、整合、复审 high」之复审：本会话管守护设计与复核（调度 10-27 裁定 7）",
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
       "one-1a-admin": {
         "role": "dev",
         "model": "sonnet",
-        "effort": null,
-        "effort_source": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）",
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
       "one-1a-par": {
         "role": "dev",
         "model": "sonnet",
-        "effort": null,
-        "effort_source": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）",
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
       "one-platform-file": {
         "role": "dev",
         "model": "sonnet",
-        "effort": null,
-        "effort_source": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）",
         "permission_mode": "bypassPermissions",
         "remote_control": true
+      }
+    },
+    "config_sources": {
+      "one-coordinator": {
+        "effort": "TEAM-13「调度、整合、复审 high」之调度（调度 10-27 裁定 7）"
+      },
+      "one-architecture": {
+        "effort": "待定稿：TEAM-13 未覆盖本会话，定稿 1.3 第 2 条只把推理强度列入清单、未给值（裁定 7「其余照定稿」）"
+      },
+      "one-data": {
+        "effort": "待定稿：TEAM-13 未覆盖本会话，定稿 1.3 第 2 条只把推理强度列入清单、未给值（裁定 7「其余照定稿」）"
+      },
+      "one-glossary": {
+        "effort": "待定稿：TEAM-13 未覆盖本会话，定稿 1.3 第 2 条只把推理强度列入清单、未给值（裁定 7「其余照定稿」）"
+      },
+      "one-ops": {
+        "effort": "待定稿：TEAM-13 未覆盖本会话，定稿 1.3 第 2 条只把推理强度列入清单、未给值（裁定 7「其余照定稿」）"
+      },
+      "one-merge": {
+        "effort": "推断，依据会话画像：TEAM-13「调度、整合、复审 high」之整合：本会话管合入队列与文档合集（调度 10-27 裁定 7）；待用户确认"
+      },
+      "one-quality": {
+        "effort": "推断，依据会话画像：TEAM-13「调度、整合、复审 high」之复审：本会话管守护设计与复核（调度 10-27 裁定 7）；待用户确认"
+      },
+      "one-1a-admin": {
+        "effort": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）"
+      },
+      "one-1a-par": {
+        "effort": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）"
+      },
+      "one-platform-file": {
+        "effort": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）"
       }
     },
     "aliases": {
       "one-rules": "one-coordinator",
       "one-arch-finance": "one-architecture"
     },
-    "_说明": "config 是会话配置清单（O23b，定稿 1.13 第 4 条、1.3 第 2 条（D09））：会话名取自 roles/ 各角色文件「过渡映射」列出的现有会话，不写第四批新名；role 为所属角色文件；model 取自盘点四 1.4 节（10-23 会话管理接口实况；定稿 1.13、1.15 无逐会话模型分配，1.13 第 4 条调度模型见 model_schedule）；effort 是目标值不是实况，出处见各会话 effort_source，null 表示定稿未给值、待定稿（调度 10-27 裁定 7）；permission_mode、remote_control 取自盘点 gap-3 L02、L14（用户级设置，对全部会话生效）；外接工具未定，不写；one-coordinator 的 model_schedule 指向 budget.coordinator_model（D39）。二乙只写入与由开工单显示差异，第四批起生效。aliases 是旧会话名别名表（旧名→现名，调度 10-26 深夜定）：new_intent 的 --owner 与 decide_sync 先按它把旧名换成现名，再只核对 config 的键；目标不在 config 即拒。"
+    "_说明": "config 是会话配置清单（O23b，定稿 1.13 第 4 条、1.3 第 2 条（D09））：会话名取自 roles/ 各角色文件「过渡映射」列出的现有会话，不写第四批新名；role 为所属角色文件；model 取自盘点四 1.4 节（10-23 会话管理接口实况；定稿 1.13、1.15 无逐会话模型分配，1.13 第 4 条调度模型见 model_schedule）；effort 是目标值不是实况，出处见 config_sources（不放进 config，免得开工单当配置项显示，10b 终审必改 1），未写 effort 键表示定稿未给值、待定稿（调度 10-27 裁定 7）；one-merge、one-quality 对应「整合」「复审」是依据会话画像的推断，待用户确认；permission_mode、remote_control 取自盘点 gap-3 L02、L14（用户级设置，对全部会话生效）；外接工具未定，不写；one-coordinator 的 model_schedule 指向 budget.coordinator_model（D39）。二乙只写入与由开工单显示差异，第四批起生效。aliases 是旧会话名别名表（旧名→现名，调度 10-26 深夜定）：new_intent 的 --owner 与 decide_sync 先按它把旧名换成现名，再只核对 config 的键；目标不在 config 即拒。"
   },
   "measures": [
     {
