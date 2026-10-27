@@ -875,6 +875,9 @@ def policy(section="gates"):
 def sheet_path():  # the tool library's start sheet as the SessionStart mount spells it (O23a: the repository's start_sheet.py and session_context.py are gone)
     return '"$HOME"/' + policy("tools_lib")["dir"][2:] + "/start_sheet/start_sheet.py"
 
+def node_path():  # the tool library's node_ready as the clear_session mount spells it (#14, user intent 2026-10-27-171036)
+    return '"$HOME"/' + policy("tools_lib")["dir"][2:] + "/node_ready/node_ready.py"
+
 def settings_self_test():
     raw = Path(ROOT, ".claude/settings.json").read_text(encoding="utf-8")
     settings, gates = json.loads(raw), policy()
@@ -887,7 +890,7 @@ def settings_self_test():
     stop = [h["command"] for g in hooks.pop("Stop") for h in g["hooks"]]
     assert stop == ['test -f {0} && /usr/bin/python3 -I {0}; exit 0'.format('"$HOME"/.modernize/psa/tools/one-session/stop_check/stop_check.py')], stop  # #47: the system python, as the start sheet
     assert sorted(hooks) == ["PreToolUse", "SessionStart"], sorted(hooks)
-    assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,))], "PreToolUse hangs only the production-write gate, on the tools that run commands"
+    assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,)), "mcp__ccd_session_mgmt__clear_session"], "PreToolUse: the production-write gate on the tools that run commands; the clear_session gate apart (#14)"
     assert json.dumps([*COMMAND_TOOLS, LAUNCH_TOOL]) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
     assert [g["matcher"] for g in hooks["SessionStart"]] == ["startup|clear|compact|resume", "startup|clear|compact"]
     sheet = hooks["SessionStart"].pop(1)["hooks"]
@@ -895,6 +898,11 @@ def settings_self_test():
     sheet = sheet[0]["command"]
     assert sheet.startswith(f'H={sheet_path()}; [ -f "$H" ] && /usr/bin/python3 -I "$H" --hook && exit 0; echo "【钩子告警】') and sheet.endswith('"; exit 0'), sheet
     assert "exit 2" not in sheet and "/tools/hooks/" not in sheet and "~/" + policy("tools_lib")["dir"][2:] + "/start_sheet" in sheet, "warns, pointing at the tool library"
+    node = hooks["PreToolUse"].pop(1)["hooks"]  # #14: the clear_session gate is the tool library's node_ready --gate; anything but 0 is a refusal
+    assert len(node) == 1 and node[0]["type"] == "command" and node[0]["timeout"] == 10, node
+    node = node[0]["command"]
+    assert node.startswith(f'H={node_path()}; if [ -f "$H" ]; then env -u HANDOFF_STATE /usr/bin/python3 -I "$H" --gate; c=$?; else c=127; fi; [ "$c" = 0 ] && exit 0; ') and node.endswith("; exit 2"), node
+    assert node.count("exit 0") == 1 and "-I -c" not in node and "/tools/hooks/" not in node, "no pre-filter, no installed copy: the gate fails closed (#14)"
     for gone in ("scripts/hooks/start_sheet.py", "scripts/hooks/session_context.py"):
         assert not os.path.exists(os.path.join(ROOT, gone)) and gone not in raw, gone + " is deleted and mounted nowhere (O23a)"
     commands = {}
@@ -926,7 +934,7 @@ def settings_self_test():
     assert size("install", os.path.join(HERE, "install.sh"))[0] <= gates["max_lines"]["install"], "install.sh 超过 policy gates.max_lines.install"
     assert size("selftest", os.path.abspath(__file__))[0] <= gates["max_lines"]["selftest"], "gates_selftest.py 超过 policy gates.max_lines.selftest（O8：门自测 1 个文件）"
     assert max(map(len, Path(__file__).read_text(encoding="utf-8").splitlines())) <= 266, "gates_selftest.py 有超过 266 字符的行：不靠长行压行数（O8 首轮必改）"
-    return {**{name: cmd for name, (_, cmd, _) in commands.items()}, "start_sheet": sheet}
+    return {**{name: cmd for name, (_, cmd, _) in commands.items()}, "start_sheet": sheet, "node_ready": node}
 
 def make_repo(repo):
     """A repository holding this working tree's scripts/gates, scripts/hooks and policy.json; returns (A, B, fail_open, refuses_all, passes_writes, first_only, not_executable, main) commits."""
@@ -966,10 +974,10 @@ def make_repo(repo):
 
 def install_test():
     commands = settings_self_test()
-    gate_cmd, ceiling_cmd, sheet_cmd = commands["scripts/gates/pre_tool_dispatch.py"], commands["scripts/hooks/git_ceiling_env.sh"], commands["start_sheet"]
+    gate_cmd, ceiling_cmd, sheet_cmd, node_cmd = (commands[k] for k in ("scripts/gates/pre_tool_dispatch.py", "scripts/hooks/git_ceiling_env.sh", "start_sheet", "node_ready"))
     with tempfile.TemporaryDirectory() as top:
         try:
-            body(gate_cmd, ceiling_cmd, sheet_cmd, os.path.realpath(os.path.join(top, "dir with space")))
+            body(gate_cmd, ceiling_cmd, (sheet_cmd, node_cmd), os.path.realpath(os.path.join(top, "dir with space")))
         finally:
             writable(top)
     print("install self-test: ok")
@@ -987,7 +995,20 @@ def sheet_test(sheet_cmd, mount, tool, repo):
             last = r.stdout.splitlines()[-1] if r.stdout.strip() else ""
             assert r.returncode == 0 and (last == f"【开工单】 ['--hook'] {repo}" if ok else last.startswith("【钩子告警】") and tool in last), (shell, text, r.stdout, r.stderr)
 
-def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
+def node_test(node_cmd, mount, tool):
+    """The clear_session mount (#14): HANDOFF_STATE cleared, /usr/bin/python3 -I <tool library>/node_ready.py --gate gets the payload; 0 passes, any other ending is 2."""
+    os.makedirs(os.path.dirname(tool), exist_ok=True)
+    put(os.path.join(os.path.dirname(tool), "json.py"), "raise SystemExit(0)\n", 0o644)
+    ok = "import json,os,sys\nsys.exit(0 if sys.argv[1:] == ['--gate'] and 'HANDOFF_STATE' not in os.environ and json.load(sys.stdin)['tool_input'] else 9)\n"
+    for text, code in ((None, 2), (ok, 0), ("import sys\nsys.exit(1)\n", 2), ("import sys\nsys.stderr.write('x')\nsys.exit(2)\n", 2), ("import os,signal\nos.kill(os.getpid(), signal.SIGKILL)\n", 2), ("def (:\n", 2)):
+        if text is not None:
+            put(tool, text, 0o644)
+        for shell in SHELLS:
+            r = mount(node_cmd, json.dumps({"tool_name": "mcp__ccd_session_mgmt__clear_session", "tool_input": {"session_id": "self"}}), shell, HANDOFF_STATE="/x")
+            assert r.returncode == code and (code == 0 or r.stderr.strip()), (shell, text, r.returncode, r.stderr)
+
+def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
+    sheet_cmd, node_cmd = sheet_cmds
     home, repo = os.path.join(tmp, "home"), os.path.join(tmp, "repo")
     os.makedirs(home)
     a, b, fail_open, refuses_all, passes_writes, first_only, not_exec, on_main = make_repo(repo)
@@ -1029,6 +1050,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         r = mount(ceiling_cmd, "{}", shell, CLAUDE_ENV_FILE=os.path.join(tmp, "env"))
         assert r.returncode == 0 and "【钩子告警】" not in r.stdout, (r.stdout, r.stderr)
     sheet_test(sheet_cmd, mount, os.path.join(home, sheet_path()[len('"$HOME"/'):]), repo)
+    node_test(node_cmd, mount, os.path.join(home, node_path()[len('"$HOME"/'):]))
     # 2b. no CLAUDE_PROJECT_DIR: the working directory is no repository root for the installed gate, so a forged repository whose origin/main holds a
     #     script cannot make it trusted (O7 final M3); the forged script names a fictitious host that is on a fictitious local table
     forged, table = os.path.join(tmp, "forged"), os.path.join(tmp, "fake_targets.json")
