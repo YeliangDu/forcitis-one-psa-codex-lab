@@ -197,6 +197,13 @@ def gate_self_test():
         assert allowed(command), f"non-production write must pass: {command!r}"
     for command in ('psql -h localhost -c "insert into t values (1)"', "aliyun rds DeleteAccount --DBInstanceId pgm-dev00001", "ssh dev 'rm -rf /tmp/x'", "scp a dev:/tmp/", "curl -X POST https://dev/x"):
         assert refused(command), f"a remote tool to a non-production host, not registered: refused: {command!r}"
+    # 3a. a zsh glob qualifier runs code while expanding (`a1(e:…:)` even without a wildcard): an unquoted `(` right after a word, or `(#`, refuses the whole line; quotes followed only while certain (调度 10-27, uncertain → refuse)
+    for command in ("ls *(e:'touch x':)", "ls a1(e:'touch x':)", "ls **/*(.)", "ls \"a\"*(e:x:)", "ls 'a'*(e:x:)", "ls (a|b)(e:x:)", "ls a*(#qe:x:)", "ls (#qe:x:)", "ls *(+f)", "ls @(a|b)", "f() { ls; }", "ls x;ls *(e:x:)",
+                    "echo \"$(ls *(e:x:))\"", "echo \"$x\" *(e:x:)", "echo \"`ls`\" a(e:x:)", "echo $'\\'' *(e:x:) $'\\''", "echo \"it's\" a(e:x:)", "echo 'unclosed *(e:x:)", "echo \"a\\\"b\" *(e:x:)", "echo $(ls *(e:x:))"):
+        assert refused(command) and "zsh" in judge(command, patterns, None, cwd, {}), ("a zsh glob qualifier: refused", command)
+    for command in ("ls * (e:x:)", "grep -E 'a(b|c)' x", "grep -E \"a(b|c)\" x", "echo 'it''s *(e:x:)'", "echo $'a\\'*(e:x:)'", "ls \\*\\(e:x:\\)", "echo $(ls)", "diff <(ls) <(ls)", "ls; (ls)", "ls && (ls)", "ls | (cat)",
+                    "echo $((1+2))", "git log --format='%h (%s)'", "echo \"a (b)\""):
+        assert allowed(command), ("no qualifier: the gate goes on as before", command)
     # 4. unknown tools that touch production, every one refused
     for command in (f"python3 -c \"import pymssql; pymssql.connect('{P}').execute('delete from t')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}", f"xargs -I{{}} sqlcmd -S {P} -Q {{}}",
                     f"find . -exec sqlcmd -S {P} -Q 'delete from t' \\;", f"script -q /dev/null sqlcmd -S {P} -Q 'delete from t'", f"arch -arm64 sqlcmd -S {P} -Q 'delete from t'", f"caffeinate -i sqlcmd -S {P} -Q 'delete from t'",

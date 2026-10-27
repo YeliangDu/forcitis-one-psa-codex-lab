@@ -452,6 +452,27 @@ def may_run_or_expand(text):  # (text already `plain`) a program that runs other
     return bool(REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text) or NET_REDIRECT.search(text))
 
 
+def glob_qualifier(text):  # True when a `(` the shell leaves unquoted directly follows a word, or opens `(#`: a zsh glob qualifier (`*(e:…:)`, `*(+f)`) runs code while expanding; bash's extglob and a function definition look the same and count too. Quotes are followed only while certain: a double-quoted part holding `$` or a backtick ends that, the rest is read raw.
+    i, n, follow = 0, len(text), True
+    while i < n:
+        c = text[i]
+        if c == "\\":
+            i += 2
+            continue
+        if follow and (c in "'\"" or text.startswith("$'", i)):  # `'…'` literal; `$'…'` and `"…"` end at an unescaped quote
+            quote, j = text[i + (c == "$")], i + 1 + (c == "$")
+            while j < n and text[j] != quote:
+                j += 2 if text[j] == "\\" and c != "'" else 1
+            if j < n and (c != '"' or not re.search(r"[$`]", text[i + 1:j])):
+                i = j + 1
+                continue
+            follow = False
+        elif c == "(" and (text.startswith("(#", i) or i and not text[i - 1].isspace() and text[i - 1] not in "$<>=(|&;`"):
+            return True
+        i += 1
+    return False
+
+
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow. Any word may name a file a program runs (A′, intent 2026-10-26-164931): only an empty line is skipped.
     return bool(text.strip())
 
@@ -683,6 +704,9 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     environ, TRUSTED_LINE = os.environ if environ is None else environ, None
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
+    if glob_qualifier(command_text):  # the shell is zsh: what a qualifier runs is not read, the whole line counts (调度 10-27)
+        return ("拒绝：命令里有紧跟在词后面、没加引号的左括号，或「(#」——zsh 通配限定符（如 *(e:…:)、*(+函数)）在展开文件名时就运行代码，bash 的 extglob、函数定义写法相同；"
+                "门不模仿 zsh 去读，整行拒，不确定就拒（调度 10-27）。把括号放进单引号，或在括号前留空格；挑文件改用 find 或先列出再逐个写。")
     odd = bool(COMMENT_OR_HEREDOC.search(command_text)) or "\\\n" in command_text  # a comment, a here-document or a continuation anywhere: not read as the shell does
     if COMMENT_OR_HEREDOC.search(command_text) and CONTINUATION.search(command_text):  # a continuation the shell ends at a comment's newline, the gate would join (82f149d10 final M2)
         return "拒绝：命令里同时有注释或 here-document 与续行，门读不准下一行从哪里开始，宁可误拦（intent 2026-10-26-140639）。去掉注释或续行再执行。"
