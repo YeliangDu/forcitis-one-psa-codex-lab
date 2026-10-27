@@ -583,7 +583,7 @@ D 类零读者批（定稿 1.11，O16，GOV-1023-FV2）已从 main 移出，原�
 
 取回某个文件：`git show archive/2026-10-b2b:<路径>`。
 
-E1 只因 policy.json 登记而有读者的一次性脚本及其读入物（#34，11 个；登记已同提交删除）：
+E1 只因 policy.json 登记而有读者的一次性脚本及其读入物（#34，11 个；登记已同提交删除；归档位置 `archive/2026-10-b2b`，同一路径）：
 
 - `docs/modernization/describe_nodes.py`
 - `docs/modernization/extract_topology.py`
@@ -597,7 +597,7 @@ E1 只因 policy.json 登记而有读者的一次性脚本及其读入物（#34�
 - `docs/modernization/rules/pull_result.py`
 - `docs/modernization/topology.json`
 
-E2 文字出处与同批引用（#35，23 个；ADR 正文不改，其中的出处文字按下列路径在归档分支上取回；`.gitleaksignore` 的指纹行保留，指纹对应历史提交）：
+E2 文字出处与同批引用（#35，23 个；归档位置 `archive/2026-10-b2b`，同一路径；ADR 正文不改，其中的出处文字按下列路径在归档分支上取回；`.gitleaksignore` 的指纹行保留，指纹对应历史提交）：
 
 - `docs/modernization/architecture-guardrails/backend/coverage.csv`
 - `docs/modernization/architecture-guardrails/backend/negative-test.log`
@@ -622,3 +622,11 @@ E2 文字出处与同批引用（#35，23 个；ADR 正文不改，其中的出�
 - `docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md`
 - `docs/modernization/build_oa_inventory.py`
 - `docs/modernization/map/packets/fst_infrastructure_cost.txt`
+
+E4 glossary 重放链里移出的一份（#37，1 个；归档位置 `archive/2026-10-b2b`，同一路径；重放链其余 36 个留 main）：构建只读其 `proposed`、`missing_terms` 两段，已逐字抽成 `docs/modernization/glossary/arch-naming/reconcile-decided-slim.json` 留在 main，`apply_recon.py` 改读瘦身文件；RECONCILE_DECIDED.md 等文字出处不改，按下列路径在归档分支上取回：
+
+- `docs/modernization/glossary/arch-naming/reconcile-decided.json`
+
+#40 删除的脚本（1 个；不属 E 类，复审建议补登；`parse_intent` 已迁入 `rules/build_rule_index.py`，policy 登记同提交删除；归档位置 `archive/2026-10-b2b`，同一路径）：
+
+- `docs/modernization/build_records.py`
