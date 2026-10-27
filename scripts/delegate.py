@@ -150,6 +150,9 @@ def admit(args, cfg):
         raise Refuse(f"找不到 {args.engine} 的命令行程序")
     if not cfg["real_run"] and STUB_MARK not in Path(exe).read_bytes()[:4096]:
         raise Refuse("delegate.real_run_enabled 为 false：只许自测桩，真引擎须另批（V16）")
+    tmp = os.path.realpath(tempfile.gettempdir())   # 快照落在这里：不得在本仓库（含主检出，worktree 在其下）或 ~/.modernize 之内（调度 10-27，#44）
+    if any(os.path.commonpath([tmp, r]) == r for r in map(os.path.realpath, (git("rev-parse", "--show-toplevel").strip(), os.path.dirname(os.path.abspath(git("rev-parse", "--git-common-dir").strip())), os.path.expanduser("~/.modernize")))):
+        raise Refuse("快照临时目录（TMPDIR）在仓库或 ~/.modernize 之内，改到别处再跑")
     return card, scope, exe
 
 def engine_argv(engine, exe, cfg, args, prompt, out_file, work):
@@ -245,12 +248,10 @@ def cmd_run(args):
         print(f"delegate：拒绝——{e}", file=sys.stderr)
         return 2
     cfg["runs"].mkdir(parents=True, exist_ok=True, mode=0o700)
-    run_dir = cfg["runs"] / run_id
-    run_dir.mkdir(mode=0o700)
+    (run_dir := cfg["runs"] / run_id).mkdir(mode=0o700)
     out_file, log_file, gitdir = run_dir / "out.txt", run_dir / "engine.log", run_dir / "base.git"
     tmp = Path(tempfile.mkdtemp(prefix="delegate-")).resolve()
-    work = tmp / "work"
-    work.mkdir(mode=0o700)
+    (work := tmp / "work").mkdir(mode=0o700)
     prompt = PROMPT_TEMPLATE.format(scope="、".join(scope), category=args.category, card_id=args.card, card=card)
     rec = {**base_rec, "scope": "、".join(scope), "model": cfg["model"], "effort": args.effort if args.engine == "codex" else None,
            "base": head, "nice": cfg["nice"], "prompt_chars": len(prompt), "tokens": UNKNOWN, "cost": UNKNOWN, "rework": 0, "adopted": None}
