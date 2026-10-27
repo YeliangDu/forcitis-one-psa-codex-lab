@@ -93,7 +93,7 @@ if [ -f "$sheet" ]; then run "start_sheet under /usr/bin/python3" /usr/bin/pytho
 listed=$(python3 docs/modernization/build_all.py --self-test-list) || listed="build_all-self-test-list-failed"
 for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py scripts/queue/merge_train.py scripts/merge/mq.py \
   scripts/ci/ci_recurrence.py scripts/ci/relevant_change.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \
-  scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py docs/modernization/new_intent_selftest.py; do
+  scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py docs/modernization/new_intent_selftest.py scripts/evidence/evidence_selftest.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
 run "light_selftest (by-change triggers)" bash scripts/ci/light_selftest.sh

@@ -307,8 +307,21 @@ def gate_self_test():
         g.main_blobs = as_main
         Path(cwd, "new_intent.py").write_text("import os\n", encoding="utf-8")
         assert refused(f"python3 -I {cwd}/new_intent.py x", mine) and refused("python3 -I new_intent.py x", mine), "the registered path only, not the same name elsewhere"
+        ev = os.path.join(REPO_ROOT, "scripts", "evidence", "evidence.py")  # the one other trusted prefix (二乙 #6): the literal scripts/evidence/, the script directly in it; the cases after the loop start from the registered one
+        for script, ok in (("./scripts/evidence/evidence.py", False), ("scripts/evidencex/evidence.py", False), ("scripts/evidence/../evidence/evidence.py", False), ("evidence.py", False), ("scripts/evidence/evidence.py", True)):  # registered last
+            g.trusted_entries = lambda script=script: ([dict(entry, script=script)], {"name": re.compile(r"[a-z]{1,9}")})
+            assert (allowed if ok else refused)(f"python3 -I {ev} x", mine) and refused(f"python3 -I {ev} x y", mine), ("registered under scripts/evidence/: its form only; no variant of the prefix, no `..`", script)
+        for blobs, why in ((lambda rels: {}, "not on origin/main"), (lambda rels: {r: "0" * 40 if r.endswith("_selftest.py") else as_main([r])[r] for r in rels}, "a file beside it differs from origin/main")):
+            with mock.patch.object(g, "main_blobs", blobs):
+                assert refused(f"python3 -I {ev} x", mine), why
+        for link, target in (("scripts/evidence", "out"), ("scripts/evidence/e.py", "out/e.py")):  # a symlink out of scripts/evidence/: the directory, or the script itself
+            top = os.path.realpath(tempfile.mkdtemp(dir=cwd))
+            put(os.path.join(top, "out", "e.py"), "x = 1\n", 0o644)
+            os.makedirs(os.path.join(top, os.path.dirname(link)), exist_ok=True)
+            os.symlink(os.path.join(top, target), os.path.join(top, link))
+            assert g.entry_script("scripts/evidence/e.py", top) is None and g.entry_script("scripts/evidence/e.py", cwd) == os.path.join(cwd, "scripts/evidence/e.py"), ("a link leaving scripts/evidence/", link)
         g.trusted_entries = lambda: ([], {})
-        assert refused(f"python3 -I {intent} x", mine), "not registered"
+        assert refused(f"python3 -I {intent} x", mine) and refused(f"python3 -I {ev} x", mine), "not registered"
         g.trusted_entries = lambda: ([dict(entry, forms=[["{any}"]])], {"any": re.compile(".+")})
         assert refused(f"python3 -I {intent} 'a;b'", mine) and allowed(f"python3 -I {intent} ab", mine), "a shell metacharacter anywhere on the line: no entry, whatever the slot allows"
         assert g.trusted_entry(f"python3 -I '~/{os.path.relpath(intent, os.path.expanduser('~'))}' ab", cwd) is None, "a quoted `~` is not the home: no expansion on the line (50a6af8c3 review M1)"
@@ -385,11 +398,9 @@ def gate_self_test():
         def hook(command, table_path=None, tool="Bash", env=None, raw=None):  # `env` replaces the hook's environment, `raw` its input
             env = env or {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), **({"PROD_TARGETS_FILE": table_path} if table_path else {})}
             return subprocess.run([sys.executable, "-I", script], input=raw or json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=env)
-        result = hook("aliyun rds DeleteAccount --DBInstanceId " + firsts["legacy-rds-sqlserver"])
-        assert result.returncode == 2 and "远程工具名" in result.stderr, result
+        result, connect = hook("aliyun rds DeleteAccount --DBInstanceId " + firsts["legacy-rds-sqlserver"]), hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"")
+        assert result.returncode == 2 and "远程工具名" in result.stderr and connect.returncode == 2 and "底线 4" in connect.stderr, (result, connect.stderr)
         assert hook("aliyun rds DescribeDBInstances --DBInstanceId " + firsts["legacy-rds-sqlserver"]).returncode == 2, "a read through a remote tool, not registered (intent 2026-10-26-160810)"
-        connect = hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"")
-        assert connect.returncode == 2 and "底线 4" in connect.stderr, connect.stderr
         assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0
         gone, remote = hook("python3 clean.py", os.path.join(tmp, "missing.json")), hook("psql -c 'select 1'", os.path.join(tmp, "missing.json"))
         assert gone.returncode == 2 and "缺失或不合格" in gone.stderr and remote.returncode == 2 and "远程工具名" in remote.stderr, (gone, remote)
@@ -402,9 +413,7 @@ def gate_self_test():
             assert run.returncode == code and ("为空" in run.stderr if code else "为空" in run.stdout and "git 出错" in run.stdout), (command, run)
         run = hook("psql -h db.example.org -c 'delete from t'", env=no_git)
         assert run.returncode == 2 and "远程工具名" in run.stderr, run
-        for raw in ("not json", "[1]"):
-            bad = hook(None, env={"LC_ALL": "C"}, raw=raw)
-            assert bad.returncode == 2, raw
+        assert [hook(None, env={"LC_ALL": "C"}, raw=raw).returncode for raw in ("not json", "[1]")] == [2, 2], "input that is no JSON object"
     g.main_blobs, g.no_exec_tools = real_blobs, real_safe
     print("prod_write_gate self-test: ok")
 
@@ -447,7 +456,7 @@ def layout_self_test():
         assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
     # what a trusted script loads or is compared with decides whether the gate lets it pass: every such file needs the opus final review (K18 follow-up, a3be80fcd final suggestion 1)
     final, entries = json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["review"]["final_paths"], json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["entries"]
-    scripts = [os.path.join(ROOT, DOCS_ROOT, e["script"]) for e in entries]
+    scripts = [g.entry_script(e["script"], ROOT) for e in entries]
     assert all(g.closure(s) is not None for s in scripts), "every registered entry's closure can be read"
     loaded = {os.path.relpath(f, ROOT) for s in scripts for f in g.closure(s) | {s} if os.path.exists(f)} | {f"{DOCS_ROOT}/{d}" for e in entries for d in e["trust_dirs"]}
     assert all(rel.startswith(tuple(final)) for rel in loaded), ("files a trusted entry loads or reads, missing from policy.json review.final_paths", sorted(r for r in loaded if not r.startswith(tuple(final))))
@@ -640,9 +649,7 @@ def pre_tool_dispatch_test():
     env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", "")}
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):
         refused, passed, bad = (subprocess.run([*runner, DISPATCH], input=text, capture_output=True, text=True, env=env) for text in (payload(f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}"), payload("ls"), "not json"))
-        assert refused.returncode == 2 and "远程工具名" in refused.stderr, refused
-        assert passed.returncode == 0 and not passed.stdout and not passed.stderr, passed
-        assert bad.returncode == 2 and "拒绝" in bad.stderr, bad
+        assert refused.returncode == 2 and "远程工具名" in refused.stderr and passed.returncode == 0 and not passed.stdout and not passed.stderr and bad.returncode == 2 and "拒绝" in bad.stderr, (refused, passed, bad)
     # 6. size limit from policy.json (gates.max_lines.pre_tool_dispatch)
     lines, limit = size("pre_tool_dispatch", DISPATCH)
     assert lines <= limit, f"pre_tool_dispatch.py 超过 {limit} 行"
