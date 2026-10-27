@@ -413,14 +413,14 @@ labels '{"name":"会话:a"}'
 expect "V06 gh 失败且文件都对跳过" 0 '^V06 跳过\(gh 查询标签失败' V06 "${G[@]}" GH_FAIL=1
 expect "V06 gh 不存在跳过" 0 '^V06 跳过\(gh 查询标签失败' V06 "${G[@]}" ACCEPT_GH="$tmp/nogh"
 expect "V06 gh 失败严格模式失败" nz '^V06 不通过' "$ALL" ACCEPT_STRICT=1 "${G[@]}" GH_FAIL=1
-mkdir -p "$R3/docs/modernization"; echo x >"$R3/docs/modernization/check_tasks.py"; git -C "$R3" add docs
+mkdir -p "$(dirname "$R3/$IDX")"; echo x >"$R3/docs/modernization/check_tasks.py"; git -C "$R3" add docs
 expect "V06 gh 失败而文件不对仍不通过" nz '^V06 不通过：卡的文件还在仓库里.*标签未核' V06 "${G[@]}" GH_FAIL=1
 git -C "$R3" rm -q -r --cached docs
 expect "V06 非 git 仓库跳过" 0 '^V06 跳过\(检出不是 git' V06 ACCEPT_ROOT="$tmp/nogit"
 
 # V14b: E-class files out of main (not tracked), the index names the archive branch and registers each, each exists on the branch; the branch missing is a skip (strict: failure)
 R2="$tmp/root2"; mkdir -p "$R2"; git -C "$R2" init -q
-Dm=docs/modernization; Cl=$Dm/architecture/proposals/closeout
+Dm=$(dirname "$IDX"); Cl=$Dm/architecture/proposals/closeout
 EP=($Dm/{describe_nodes.py,extract_topology.py,live_code.py,topology.json,map/descriptions.json,rules/data_objects.py,rules/merge_rules.py,rules/pull_result.py}
     $Dm/glossary/{migrate_to_concepts.py,test_checkers_on_concepts.py,test_migrate_to_concepts.py,arch-naming/reconcile-decided.json}
     $Dm/architecture-guardrails/backend/{coverage.csv,negative-test.log,src/test/java/com/forcitis/one/SecurityInvariantsTest.java}
@@ -436,7 +436,7 @@ git -C "$R2" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q 
 OB=$(git -C "$R2" symbolic-ref --short HEAD)
 B2=archive/2026-10-b2b
 e_index() {  # a D-class section, then the batch two-B section: the branch line and every path except those matching $1 (a grep -v pattern)
-  { echo '# 归档索引'; echo '## 逐文件'; echo '- `docs/modernization/old_d.md`'; echo '## 二乙批（E 类，GOV-1023-FV2）'; echo "二乙批归档分支 $B2"
+  { echo '# 归档索引'; echo '## 逐文件'; echo "- \`$Dm/old_d.md\`"; echo '## 二乙批（E 类，GOV-1023-FV2）'; echo "二乙批归档分支 $B2"
     printf -- '- `%s`\n' "${EP[@]}" | grep -v -- "${1:-NOTHING-MATCHES}"; } >"$R2/$Dm/ARCHIVE_INDEX.md"
 }
 E=(ACCEPT_ROOT="$R2")
@@ -459,9 +459,9 @@ e_index 'B31_ALIGNMENT_AUDIT'
 expect "V14b 索引漏登记 b31 一份不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*B31_ALIGNMENT_AUDIT.md）' V14b "${E[@]}"
 e_index 'build_records'
 expect "V14b 索引漏登记 build_records.py 不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*build_records.py）' V14b "${E[@]}"
-e_index; echo '- `docs/modernization/extra.md`' >>"$R2/$Dm/ARCHIVE_INDEX.md"
-expect "V14b 索引多登记一个不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 0 个；索引多登记 1 个（docs/modernization/extra.md）' V14b "${E[@]}"
-e_index 'converge_check'; sed -i.bak "s#^- .docs/modernization/old_d.md.#- \`$Cl/converge_check.py\`#" "$R2/$Dm/ARCHIVE_INDEX.md"; rm "$R2/$Dm/ARCHIVE_INDEX.md.bak"
+e_index; echo "- \`$Dm/extra.md\`" >>"$R2/$Dm/ARCHIVE_INDEX.md"
+expect "V14b 索引多登记一个不通过" nz "^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 0 个；索引多登记 1 个（$Dm/extra.md）" V14b "${E[@]}"
+e_index 'converge_check'; sed -i.bak "s#^- .$Dm/old_d.md.#- \`$Cl/converge_check.py\`#" "$R2/$Dm/ARCHIVE_INDEX.md"; rm "$R2/$Dm/ARCHIVE_INDEX.md.bak"
 expect "V14b 只登记在二乙批一节之外不算" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*converge_check.py）' V14b "${E[@]}"
 printf '# 归档索引\n## 逐文件\n- `x`\n' >"$R2/$Dm/ARCHIVE_INDEX.md"
 expect "V14b 索引没有二乙批一节不通过" nz '^V14b 不通过：.*没有「## 二乙批」一节' V14b "${E[@]}"
@@ -489,7 +489,7 @@ expect "V14b 没有归档分支时仍在 main 的文件也不通过" nz '^V14b �
 expect "V14b 非 git 仓库跳过" 0 '^V14b 跳过\(检出不是 git' V14b ACCEPT_ROOT="$tmp/nogit"
 
 # V15: the drill (decide_drill in new_intent_selftest.py, calling decide_sync.py) must exist and pass with an ok line; the PR-opened and merged-without-dispatcher parts are always a separate skip
-D15=$tmp/root/docs/modernization
+D15=$(dirname "$tmp/root/$IDX")
 expect "V15 缺自测不通过" nz '^V15 不通过' V15
 mkdir -p "$D15/rules/decide"; echo x >"$D15/rules/decide/decide_sync.py"
 printf 'print("ok")\n' >"$D15/new_intent_selftest.py"
