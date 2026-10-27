@@ -4,7 +4,7 @@
 决定页生成器只此一套（G2）：出题检查 check_pages.py 在本目录，题型 KINDS 从它导入。
 校验不通过即失败：题号唯一、每题至少两个选项且恰好一个推荐、单组不超过 40 题（一屏只画一组，组太大手机上会停在加载中）、页面不加载任何外部资源。
 用法：python3 docs/modernization/rules/decide/build_decision_page.py <单子>[,<单子>...] <输出路径>"""
-import json, os, pathlib, re, sys
+import json, os, pathlib, re, subprocess, sys
 
 HERE = pathlib.Path(__file__).parent
 R0 = HERE.parent.parent / "r0"
@@ -80,16 +80,25 @@ def case_mismatch_on_path(root, *rel):
 
 
 CHECK_CTX = None   # 出页前自检用的 intent 文件名与词表，首次用时读一次
+BASE_REF = "origin/main"   # 已答豁免的基线：与 CI 一致（light.sh 默认基线、check_pages --changed 经 base_items 取的同一版本）
 
 
 def precheck(path):
-    """出页前对所读文件跑 check_pages 的同一单页检查（check_file，与 CI 同一函数）。已答豁免只认与 HEAD 里规范路径同一内容的题：
-    改过的、或规范路径在 HEAD 里没有的，照常检查。这样任何让 CI 看不见的路径，生成器自己也不放行。"""
+    """出页前对所读文件跑 check_pages 的同一单页检查（check_file，与 CI 同一函数）。已答豁免只认与 origin/main 里规范路径同一内容的题：
+    改过的、或规范路径在 origin/main 里没有的，照常检查。基线不用 HEAD：改坏已答页或伪登记新页一经本地提交，HEAD 就等于工作区，
+    豁免全数生效而 CI 照查（de450c657 终审必改 1）。origin/main 取不到时按空基线 {} 整页照查，不退回 HEAD 或 None：
+    与 base_items 读不出基线时的取法一致，不另开放行口子；已登记旧页这时也照查，查不过就不出页，fetch 后再出。"""
     global CHECK_CTX
     if CHECK_CTX is None:
-        CHECK_CTX = (cp.intent_files(), cp.load_vocab())
+        vocab = cp.load_vocab()
+        if vocab is None:   # 与 check_pages main 同一口径：缺 PyYAML 时 R4 不查，须打出来（de450c657 终审建议 2）
+            print("警告：缺少 PyYAML，出页前自检的 R4（用语）未检查", file=sys.stderr)
+        CHECK_CTX = (cp.intent_files(), vocab)
     names, vocab = CHECK_CTX
-    return cp.check_file(str(path), names, vocab, base=cp.base_items(str(path), "HEAD", root=str(REPO)))
+    known = subprocess.run(["git", "rev-parse", "--verify", "-q", BASE_REF + "^{commit}"], cwd=str(REPO), capture_output=True).returncode == 0
+    if not known:
+        print(f"警告：取不到 {BASE_REF}，出页前自检按空基线整页照查（已答豁免不生效）", file=sys.stderr)
+    return cp.check_file(str(path), names, vocab, base=cp.base_items(str(path), BASE_REF, root=str(REPO)) if known else {})
 
 
 def load(name):
@@ -305,6 +314,35 @@ def self_test():
                 raise AssertionError("已答但两个推荐的旧页应被 validate 拒绝")
             except SystemExit as e:
                 assert "恰好一个推荐" in str(e), str(e)
+            # 已答豁免的基线是 origin/main，不是 HEAD（de450c657 终审必改 1、建议 1）：临时 git 仓库里用 refs/remotes/origin/main 指向基线提交，
+            # 不依赖文件系统大小写，Linux CI 上同样成立；基线改回 HEAD 或 None，EDIT、NEWREG 即红；取不到时退回 HEAD 或 None，KEEP 那条即红
+            G = base / "G"
+            (G / OLD_RELS[0]).mkdir(parents=True)
+            (G / SHEETS_REL).mkdir(parents=True)
+            env = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1", GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+
+            def git(*a):
+                subprocess.run(["git", *a], cwd=G, env=env, check=True, capture_output=True)
+
+            def put(rel, data):
+                (G / rel).write_text(data if isinstance(data, str) else json.dumps(data), encoding="utf-8")
+            put(f"{OLD_RELS[0]}/KEEP.json", no_basis)   # 基线里已登记、不合 check_pages、之后没改：照常出页
+            put(f"{OLD_RELS[0]}/EDIT.json", good | {"title": "合规", "lede": "说明"})   # 基线里已登记、合规，之后提交改坏
+            put("answered.txt", "KEEP\nEDIT\n")
+            git("init", "-q")
+            git("add", "-A")
+            git("commit", "-q", "-m", "基线")
+            git("update-ref", "refs/remotes/origin/main", "HEAD")
+            put(f"{OLD_RELS[0]}/EDIT.json", no_basis)
+            put(f"{SHEETS_REL}/NEWREG.json", no_basis)   # 新页连同登记一起提交
+            put("answered.txt", "KEEP\nEDIT\nNEWREG\n")
+            git("add", "-A")
+            git("commit", "-q", "-m", "改坏已登记页、伪登记新页")
+            REPO, cp.ANSWERED_REGISTRY = G, str(G / "answered.txt")
+            rejected(["EDIT", "NEWREG"], "出题检查")
+            assert load("KEEP")["title"] == "坏"
+            git("update-ref", "-d", "refs/remotes/origin/main")
+            rejected(["KEEP"], "出题检查")   # 取不到 origin/main：按 {} 整页照查
         finally:
             REPO, cp.ANSWERS_DIR, cp.ANSWERED_REGISTRY, SHEET_NAME, symlink_on_path, case_mismatch_on_path = saved
     print("build_decision_page self-test: ok")
