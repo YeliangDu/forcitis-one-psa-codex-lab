@@ -1,4 +1,10 @@
 {
+  "permissions": {
+    "deny": [
+      "Bash(codex *)",
+      "Bash(pi *)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
