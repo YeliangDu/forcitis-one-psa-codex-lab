@@ -360,33 +360,52 @@ expect "V04 无输出不得通过" nz '^V04 不通过' V04 SS_MODE=silent
 expect "V04 缺工具库跳过" 0 '^V04 跳过\(工具库缺' V04 ONE_SESSION_TOOLS="$tmp/notools"
 expect "V04 缺工具库严格模式失败" nz '^V04 不通过' "$ALL" ACCEPT_STRICT=1 ONE_SESSION_TOOLS="$tmp/notools"
 
-# V06: no card files (tasks/, check_tasks.py, WORK_CARD template), an Issue template exists, labels (fake gh) are only 会话:<name>, 挂起, hold
+# V06: no card files (tasks/, check_tasks.py, WORK_CARD template), an Issue template exists, the labels on cards (fake gh issue list) are only 会话:<name>, 挂起, hold
+# or a value of policy.json "labels" (read from the file, not written into the check)
 R3="$tmp/root3"; mkdir -p "$R3"; git -C "$R3" init -q
 cat >"$tmp/gh" <<'GHEOF'
 #!/usr/bin/env bash
-[ "$1 $2" = "label list" ] && [[ " $* " == *" --json name "* ]] || exit 9
+[ "$1 $2" = "issue list" ] && [[ " $* " == *" --json labels "* ]] && [[ " $* " == *" --state all "* ]] || exit 9
 [ -z "${GH_FAIL:-}" ] || exit 1
 cat "$GH_DATA"
 GHEOF
 chmod +x "$tmp/gh"
-labels() { printf '[%s]' "$1" >"$tmp/labels.json"; }
-G=(ACCEPT_ROOT="$R3" ACCEPT_GH="$tmp/gh" GH_DATA="$tmp/labels.json")
+labels() { printf '[{"number":1,"labels":[%s]}]' "$1" >"$tmp/cards.json"; }   # one card carrying the given labels
+pol06() { printf '{"labels": {%s}}\n' "$1" >"$R3/policy.json"; }
+G=(ACCEPT_ROOT="$R3" ACCEPT_GH="$tmp/gh" GH_DATA="$tmp/cards.json")
+pol06 '"review_passed": "复审通过", "hold": "hold", "integration": "整合"'
 mkdir -p "$R3/docs/modernization/tasks"; echo x >"$R3/docs/modernization/tasks/A.md"; git -C "$R3" add docs
 labels '{"name":"会话:a"},{"name":"挂起"},{"name":"hold"}'
 expect "V06 tasks/ 仍在仓库里不通过" nz '^V06 不通过：卡的文件还在仓库里 1 个.*tasks/A.md' V06 "${G[@]}"
 git -C "$R3" rm -q -r --cached docs
 expect "V06 没有 Issue 模板不通过" nz '^V06 不通过：没有 Issue 模板' V06 "${G[@]}"
 mkdir -p "$R3/.github/ISSUE_TEMPLATE"; echo x >"$R3/.github/ISSUE_TEMPLATE/card.md"; git -C "$R3" add .github
-expect "V06 文件齐、标签只有三类通过" 0 '^V06 通过.*3 个标签都属三类' V06 "${G[@]}"
+expect "V06 文件齐、标签只有三类通过" 0 '^V06 通过.*1 张卡用到的 3 个标签都属三类' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"复审通过"},{"name":"整合"}'
+expect "V06 卡上有 policy labels 的复审通过、整合仍通过" 0 '^V06 通过.*1 张卡用到的 3 个标签' V06 "${G[@]}"
+printf '[{"number":1,"labels":[{"name":"会话:a"}]},{"number":2,"labels":[{"name":"会话:b"},{"name":"整合"}]},{"number":3,"labels":[]}]' >"$tmp/cards.json"
+expect "V06 多张卡、无标签的卡也照判通过" 0 '^V06 通过.*3 张卡用到的 3 个标签' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"queued"}'
+expect "V06 卡上有 queued 不通过" nz '^V06 不通过：卡上的标签有三类与 policy.json labels 之外的 1 个：queued' V06 "${G[@]}"
+labels '{"name":"会话:a"},{"name":"复审通过"}'
+pol06 '"review_passed": "已复审", "hold": "hold", "integration": "整合"'
+expect "V06 允许集合读 policy：改名后旧名不通过" nz '^V06 不通过：卡上的标签有三类与 policy.json labels 之外的 1 个：复审通过' V06 "${G[@]}"
+pol06 ''
+expect "V06 policy 没有 labels 值不得通过" nz '^V06 不通过：policy.json 读不到或没有 labels 段' V06 "${G[@]}"
+rm "$R3/policy.json"
+expect "V06 policy 缺失不得通过" nz '^V06 不通过：policy.json 读不到或没有 labels 段' V06 "${G[@]}"
+pol06 '"review_passed": "复审通过", "hold": "hold", "integration": "整合"'
+python3 -I -c 'import json; print(json.dumps([{"number": i, "labels": [{"name": "会话:a"}]} for i in range(1000)]))' >"$tmp/cards.json"
+expect "V06 卡的结果达到查询上限不得通过" nz '^V06 不通过：卡的查询结果有 1000 条，达到上限' V06 "${G[@]}"
 labels '{"name":"会话:a"},{"name":"bug"},{"name":"hold"},{"name":"急"}'
-expect "V06 有三类之外的标签不通过" nz '^V06 不通过：标签有三类之外的 2 个：bug、急' V06 "${G[@]}"
+expect "V06 有三类之外的标签不通过" nz '^V06 不通过：卡上的标签有三类与 policy.json labels 之外的 2 个：bug、急' V06 "${G[@]}"
 labels '{"name":"挂起"},{"name":"hold"}'
-expect "V06 没有会话标签不得通过" nz '^V06 不通过：查不到任何「会话:' V06 "${G[@]}"
+expect "V06 没有会话标签不得通过" nz '^V06 不通过：卡上查不到任何「会话:' V06 "${G[@]}"
 labels '{"name":"会话:a"},{"name":"Hold"}'
-expect "V06 标签大小写不符不通过" nz '^V06 不通过：标签有三类之外的 1 个：Hold' V06 "${G[@]}"
+expect "V06 标签大小写不符不通过" nz '^V06 不通过：卡上的标签有三类与 policy.json labels 之外的 1 个：Hold' V06 "${G[@]}"
 labels '{"name":"会话:"}'
 expect "V06 会话: 后面没有名字不通过" nz '^V06 不通过' V06 "${G[@]}"
-echo 'not json' >"$tmp/labels.json"
+echo 'not json' >"$tmp/cards.json"
 expect "V06 查询结果不是 JSON 不通过" nz '^V06 不通过：标签查询结果解析失败' V06 "${G[@]}"
 labels '{"name":"会话:a"}'
 expect "V06 gh 失败且文件都对跳过" 0 '^V06 跳过\(gh 查询标签失败' V06 "${G[@]}" GH_FAIL=1
@@ -405,19 +424,22 @@ EP=($Dm/{describe_nodes.py,extract_topology.py,live_code.py,topology.json,map/de
     $Dm/architecture-guardrails/backend/{coverage.csv,negative-test.log,src/test/java/com/forcitis/one/SecurityInvariantsTest.java}
     $Dm/architecture-guardrails/frontend/negative-lint.log $Dm/map/packets/fst_infrastructure_cost.txt $Dm/build_oa_inventory.py
     $Cl/{ARCH_VS14.md,BPMN_STYLE.md,CONVENTIONS.md,PROCESS_METHOD_RESEARCH.md,PROCESS_METHOD_REVIEW.md,PROCESS_QUALITY_CHECKLIST.md,RESPONSIBILITY_MATRIX_SPEC.md,bpmn_check.py,bpmn_gen.py,converge_check.py}
+    $Cl/people/b31-rules/{B31_ALIGNMENT_AUDIT.md,B31_CONSTRUCTION_DESIGN.md}
     $Cl/bpmn_gen_fixtures/{activity_cancel,entry,exits,mini,timeout}.yaml)
-[ "${#EP[@]}" = 33 ] || { echo "失败 V14b 自测的 E 类清单不是 33 个：${#EP[@]}"; bad=1; }
+[ "${#EP[@]}" = 35 ] || { echo "失败 V14b 自测的 E 类清单不是 35 个：${#EP[@]}"; bad=1; }
+EP+=($Dm/build_records.py)   # deleted by b2b-plan 40, registered in the same index section, checked too: 36 in all
 for p in "${EP[@]}"; do mkdir -p "$R2/$(dirname "$p")"; echo x >"$R2/$p"; done
 git -C "$R2" add -f docs
 git -C "$R2" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q -m x
 OB=$(git -C "$R2" symbolic-ref --short HEAD)
 B2=archive/2026-10-b2b
-e_index() {  # lines for every E path except those matching $1 (a grep -v pattern), then the branch line
-  { echo '# 归档索引'; echo "二乙批归档分支 $B2"; printf -- '- `%s`\n' "${EP[@]}" | grep -v -- "${1:-NOTHING-MATCHES}"; } >"$R2/$Dm/ARCHIVE_INDEX.md"
+e_index() {  # a D-class section, then the batch two-B section: the branch line and every path except those matching $1 (a grep -v pattern)
+  { echo '# 归档索引'; echo '## 逐文件'; echo '- `docs/modernization/old_d.md`'; echo '## 二乙批（E 类，GOV-1023-FV2）'; echo "二乙批归档分支 $B2"
+    printf -- '- `%s`\n' "${EP[@]}" | grep -v -- "${1:-NOTHING-MATCHES}"; } >"$R2/$Dm/ARCHIVE_INDEX.md"
 }
 E=(ACCEPT_ROOT="$R2")
 e_index
-expect "V14b E 类文件仍被跟踪不通过" nz '^V14b 不通过：E 类 33 个文件仍被跟踪' V14b "${E[@]}"
+expect "V14b 二乙批文件仍被跟踪不通过" nz '^V14b 不通过：二乙批 36 个文件仍被跟踪' V14b "${E[@]}"
 git -C "$R2" checkout -q -b "$B2"
 git -C "$R2" rm -q --cached "$Dm/describe_nodes.py"
 git -C "$R2" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -q -m y
@@ -427,20 +449,41 @@ rm "$R2/$Dm/ARCHIVE_INDEX.md"
 expect "V14b 没有索引不通过" nz '^V14b 不通过：.*读不到' V14b "${E[@]}"
 e_index; sed -i.bak "s#$B2#别处#" "$R2/$Dm/ARCHIVE_INDEX.md"; rm "$R2/$Dm/ARCHIVE_INDEX.md.bak"
 expect "V14b 索引没写归档分支不通过" nz '^V14b 不通过：.*没有写到归档分支' V14b "${E[@]}"
+{ echo '# 归档索引'; echo "文首提到 $B2"; echo '## 二乙批（E 类，GOV-1023-FV2）'; printf -- '- `%s`\n' "${EP[@]}"; } >"$R2/$Dm/ARCHIVE_INDEX.md"
+expect "V14b 归档分支只写在二乙批一节之外不算" nz '^V14b 不通过：.*二乙批一节没有写到归档分支' V14b "${E[@]}"
 e_index 'bpmn_gen.py'
-expect "V14b 索引漏登记一个不通过" nz '^V14b 不通过：索引没有登记 E 类的 1 个文件.*bpmn_gen.py' V14b "${E[@]}"
+expect "V14b 索引漏登记一个不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*bpmn_gen.py）；索引多登记 0 个' V14b "${E[@]}"
+e_index 'B31_ALIGNMENT_AUDIT'
+expect "V14b 索引漏登记 b31 一份不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*B31_ALIGNMENT_AUDIT.md）' V14b "${E[@]}"
+e_index 'build_records'
+expect "V14b 索引漏登记 build_records.py 不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*build_records.py）' V14b "${E[@]}"
+e_index; echo '- `docs/modernization/extra.md`' >>"$R2/$Dm/ARCHIVE_INDEX.md"
+expect "V14b 索引多登记一个不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 0 个；索引多登记 1 个（docs/modernization/extra.md）' V14b "${E[@]}"
+e_index 'converge_check'; sed -i.bak "s#^- .docs/modernization/old_d.md.#- \`$Cl/converge_check.py\`#" "$R2/$Dm/ARCHIVE_INDEX.md"; rm "$R2/$Dm/ARCHIVE_INDEX.md.bak"
+expect "V14b 只登记在二乙批一节之外不算" nz '^V14b 不通过：清单与索引二乙批不逐项相等：索引漏登记 1 个（.*converge_check.py）' V14b "${E[@]}"
+printf '# 归档索引\n## 逐文件\n- `x`\n' >"$R2/$Dm/ARCHIVE_INDEX.md"
+expect "V14b 索引没有二乙批一节不通过" nz '^V14b 不通过：.*没有「## 二乙批」一节' V14b "${E[@]}"
 e_index
-expect "V14b 归档分支上缺一个文件不通过" nz '^V14b 不通过：E 类 1 个文件在归档分支上不存在.*describe_nodes.py' V14b "${E[@]}"
+expect "V14b 归档分支上缺一个文件不通过" nz '^V14b 不通过：二乙批 1 个文件在归档分支上不存在.*describe_nodes.py' V14b "${E[@]}"
 git -C "$R2" branch -q -D "$B2"; git -C "$R2" branch -q "$B2" "$OB"
-expect "V14b 索引与归档分支齐全通过" 0 '^V14b 通过（E 类 33 个文件都已不在 main，索引已登记，且都在归档分支' V14b "${E[@]}"
+expect "V14b 索引与归档分支齐全通过" 0 '^V14b 通过（二乙批 36 个文件（E 类 35、#40 删除 1）与索引逐项相等，都已不在 main，且都在归档分支' V14b "${E[@]}"
 e_index 'bpmn_gen_fixtures/e'
 printf '| `%s/bpmn_gen_fixtures/` | 2 | 1.0 | entry.yaml、exits.yaml |\n' "$Cl" >>"$R2/$Dm/ARCHIVE_INDEX.md"
 expect "V14b 索引用表格行登记也认" 0 '^V14b 通过' V14b "${E[@]}"
+git -C "$R2" add -f "$Cl/people/b31-rules/B31_CONSTRUCTION_DESIGN.md"
+expect "V14b b31 一份仍在 main 不通过" nz '^V14b 不通过：二乙批 1 个文件仍被跟踪.*B31_CONSTRUCTION_DESIGN.md' V14b "${E[@]}"
+git -C "$R2" rm -q --cached "$Cl/people/b31-rules/B31_CONSTRUCTION_DESIGN.md"
+git -C "$R2" add -f "$Dm/build_records.py"
+expect "V14b build_records.py 仍在 main 不通过" nz '^V14b 不通过：二乙批 1 个文件仍被跟踪.*build_records.py' V14b "${E[@]}"
+git -C "$R2" rm -q --cached "$Dm/build_records.py"
 git -C "$R2" branch -q -m "$B2" elsewhere
 expect "V14b 没有归档分支跳过，不当通过" 0 '^V14b 跳过\(本检出查不到归档分支 archive/2026-10-b2b.*在分支上的部分未核' V14b "${E[@]}"
 expect "V14b 没有归档分支严格模式失败" nz '^V14b 不通过' "$ALL" ACCEPT_STRICT=1 "${E[@]}"
+e_index 'timeout'
+expect "V14b 没有归档分支时索引漏登记仍不通过" nz '^V14b 不通过：清单与索引二乙批不逐项相等' V14b "${E[@]}"
+e_index
 git -C "$R2" add -f "$Dm/describe_nodes.py"
-expect "V14b 没有归档分支时仍在 main 的文件也不通过" nz '^V14b 不通过：E 类 1 个文件仍被跟踪' V14b "${E[@]}"
+expect "V14b 没有归档分支时仍在 main 的文件也不通过" nz '^V14b 不通过：二乙批 1 个文件仍被跟踪' V14b "${E[@]}"
 expect "V14b 非 git 仓库跳过" 0 '^V14b 跳过\(检出不是 git' V14b ACCEPT_ROOT="$tmp/nogit"
 
 # V15: the drill (decide_drill in new_intent_selftest.py, calling decide_sync.py) must exist and pass with an ok line; the PR-opened and merged-without-dispatcher parts are always a separate skip

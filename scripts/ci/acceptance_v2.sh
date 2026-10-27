@@ -428,9 +428,12 @@ v04() {
   report V04 pass "$(printf '%s\n' "$OUT" | tail -n 1)"
 }
 
-# V06 (b2b-plan 4 and 23): cards live only in Issues, labels are only the three kinds. Files: docs/modernization/tasks/, check_tasks.py and the WORK_CARD template are gone from the
-# tracked tree and the Issue template exists; labels: every label of the repository (gh label list, read-only) is "会话:<name>", "挂起" or "hold", at least one "会话:" label among them.
-# Both halves are judged and both are reported. gh missing, not signed in or offline: the label half cannot be judged - a skip if the file half is fine (a failure under ACCEPT_STRICT=1).
+# V06 (b2b-plan 4 and 23): cards live only in Issues, a card's labels are only the three kinds. Files: docs/modernization/tasks/, check_tasks.py and the WORK_CARD template are gone
+# from the tracked tree and the Issue template exists; labels: every label on an Issue (gh issue list --state all, read-only; PRs are not listed) is "会话:<name>", "挂起" or "hold",
+# or one of the values of policy.json "labels" (read from the key, e.g. the review-passed and integration labels the new chain sets); at least one "会话:" label among them.
+# Repository label definitions are not judged (the final text's "three kinds" is about cards; PR labels such as the merge queue's are not on cards). A card carrying any other label fails.
+# A result as long as the query limit may be cut off and fails. Both halves are judged and both are reported. gh missing, not signed in or offline: the label half cannot be judged -
+# a skip if the file half is fine (a failure under ACCEPT_STRICT=1).
 v06() {
   local t bad="" labels r
   is_git || { report V06 env '检出不是 git 仓库，查不了 git ls-files'; return; }
@@ -438,32 +441,44 @@ v06() {
   [ -z "$t" ] || bad="卡的文件还在仓库里 $(printf '%s\n' "$t" | wc -l | tr -d ' ') 个（tasks/、check_tasks.py、WORK_CARD 模板应已删，清单 23），如 $(printf '%s\n' "$t" | head -n 1)"
   t=$(tracked .github/ISSUE_TEMPLATE) || { report V06 fail 'git ls-files 出错'; return; }
   [ -n "$t" ] || bad="${bad:+${bad}；}没有 Issue 模板（.github/ISSUE_TEMPLATE/ 下无跟踪文件）"
-  if labels=$(cd "$ROOT" && "$GH" label list --limit 1000 --json name 2>/dev/null); then
+  if labels=$(cd "$ROOT" && "$GH" issue list --state all --limit 1000 --json labels 2>/dev/null); then
     r=$(printf '%s' "$labels" | python3 -I -c '
 import json, re, sys
+LIMIT = 1000
 try:
-    names = [x["name"] for x in json.load(sys.stdin)]
-    extra = [n for n in names if n not in ("挂起", "hold") and not re.fullmatch("会话:.+", n)]
-    if not any(n.startswith("会话:") for n in names):
-        print("bad:查不到任何「会话:<名>」标签，查询结果不可信")
+    try:
+        pl = json.load(open(sys.argv[1] + "/policy.json", encoding="utf-8")).get("labels")
+        allowed = {v for v in pl.values() if isinstance(v, str) and v} if isinstance(pl, dict) else set()
+    except (OSError, ValueError):
+        allowed = set()
+    issues = json.load(sys.stdin)
+    names = sorted({x["name"] for i in issues for x in i["labels"]})
+    extra = [n for n in names if n not in ("挂起", "hold") and n not in allowed and not re.fullmatch("会话:.+", n)]
+    if not allowed:
+        print("bad:policy.json 读不到或没有 labels 段，允许的标签不全，不能判")
+    elif len(issues) >= LIMIT:
+        print("bad:卡的查询结果有 %d 条，达到上限，可能被截断" % len(issues))
+    elif not any(n.startswith("会话:") for n in names):
+        print("bad:卡上查不到任何「会话:<名>」标签，查询结果不可信")
     elif extra:
-        print("bad:标签有三类之外的 %d 个：%s" % (len(extra), "、".join(extra[:6])))
+        print("bad:卡上的标签有三类与 policy.json labels 之外的 %d 个：%s" % (len(extra), "、".join(extra[:6])))
     else:
-        print("ok:%d 个标签都属三类" % len(names))
+        print("ok:%d 张卡用到的 %d 个标签都属三类或 policy.json labels" % (len(issues), len(names)))
 except Exception as e:
     print("bad:标签查询结果解析失败 " + type(e).__name__)
-' 2>&1)
+' "$ROOT" 2>&1)
     case "$r" in ok:*) ;; *) bad="${bad:+${bad}；}$(printf '%s' "${r#bad:}" | head -n 1)" ;; esac
   elif [ -z "$bad" ]; then report V06 env 'gh 查询标签失败（gh 缺失、未登录或无网络），三类标签未核'; return
   else r="bad:"; bad="${bad}；gh 查询标签失败，标签未核"; fi
   if [ -n "$bad" ]; then report V06 fail "$bad"; else report V06 pass "卡的文件已删、有 Issue 模板；${r#ok:}"; fi
 }
 
-# V14b (second half of V14, E class, b2b-plan 34, 35, 37): the E-class files moved out of main by batch two-B are no longer tracked here, ARCHIVE_INDEX.md names the archive branch
-# and registers every one of them (table row: directory + file name, or a "- `path`" line), and they exist on the archive branch (git ls-tree). The list below is the files the plan names
-# (E1 11, E2 guardrails 4 + closeout 10 + fixtures 5 + packets 1 + build_oa_inventory 1, E4 reconcile-decided.json 1); the two b31 files of E2 are not in it (the plan gives the name only, 4 files match).
-# Red while they are still tracked (waits for the archive of b2b-plan 34, 35, 37). The branch is local only: a checkout without it (CI) can judge the first two halves and then skips
-# (a failure under ACCEPT_STRICT=1), it never passes on the branch half unseen.
+# V14b (second half of V14, E class, b2b-plan 34, 35, 37): the list below is fixed here (an independent source; reading only the index would let the index check itself) and must equal,
+# item by item, what ARCHIVE_INDEX.md registers in its batch two-B section ("## 二乙批…" up to the next "## "; table row: directory + file name, or a "- `path`" line) - both differences
+# are reported; that section names the archive branch; none of them is tracked here; every one exists on the archive branch (git ls-tree). The list: E1 11, E2 23 (guardrails 4,
+# closeout 10, fixtures 5, the two b31-rules files, packets 1, build_oa_inventory 1), E4 reconcile-decided.json 1 = 35 E-class files (b2b-plan 1.5, table 4 of the archive list), plus
+# build_records.py deleted by b2b-plan 40, not E class, checked too because the index registers it in the same section: 36 in all. The branch may be missing (CI): the first halves are
+# judged and then it skips (a failure under ACCEPT_STRICT=1), it never passes on the branch half unseen.
 v14b() {
   local idx=docs/modernization/ARCHIVE_INDEX.md ref="" r
   is_git || { report V14b env '检出不是 git 仓库，查不了 git ls-files'; return; }
@@ -479,45 +494,62 @@ paths = [D + p for p in ("describe_nodes.py", "extract_topology.py", "live_code.
         "architecture-guardrails/backend/src/test/java/com/forcitis/one/SecurityInvariantsTest.java", "architecture-guardrails/frontend/negative-lint.log",
         "map/packets/fst_infrastructure_cost.txt", "build_oa_inventory.py", "glossary/arch-naming/reconcile-decided.json")]
 paths += [C + p for p in ("ARCH_VS14.md", "BPMN_STYLE.md", "CONVENTIONS.md", "PROCESS_METHOD_RESEARCH.md", "PROCESS_METHOD_REVIEW.md", "PROCESS_QUALITY_CHECKLIST.md",
-        "RESPONSIBILITY_MATRIX_SPEC.md", "bpmn_check.py", "bpmn_gen.py", "converge_check.py")]
+        "RESPONSIBILITY_MATRIX_SPEC.md", "bpmn_check.py", "bpmn_gen.py", "converge_check.py",
+        "people/b31-rules/B31_ALIGNMENT_AUDIT.md", "people/b31-rules/B31_CONSTRUCTION_DESIGN.md")]
 paths += [C + "bpmn_gen_fixtures/%s.yaml" % n for n in ("activity_cancel", "entry", "exits", "mini", "timeout")]
+E_COUNT = len(paths)
+paths += [D + "build_records.py"]
 def git(*a):
     return subprocess.run(["git", "-C", root, *a], capture_output=True, check=True).stdout.decode("utf-8").split("\0")
 try:
+    if E_COUNT != 35 or len(set(paths)) != 36:
+        print("bad:脚本内的二乙批清单不是 E 类 35 个＋#40 1 个（E 类 %d，去重后共 %d）" % (E_COUNT, len(set(paths))))
+        sys.exit()
     tracked = set(git("ls-files", "-z"))
     still = [p for p in paths if p in tracked]
     if still:
-        print("bad:E 类 %d 个文件仍被跟踪（归档未做），如 %s" % (len(still), still[0]))
+        print("bad:二乙批 %d 个文件仍被跟踪（归档未做），如 %s" % (len(still), still[0]))
         sys.exit()
     try:
         text = open(f"{root}/{idx}", encoding="utf-8").read()
     except OSError:
         print("bad:%s 读不到" % idx)
         sys.exit()
-    reg = set()
+    reg, sect, body = set(), False, []
     for line in text.splitlines():
+        if line.startswith("## "):
+            sect = line.startswith("## 二乙批")
+            continue
+        if not sect:
+            continue
+        body.append(line)
         m = re.fullmatch(r"- \x60([^\x60]+)\x60", line.strip())
         if m:
             reg.add(m.group(1))
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) == 4 and re.fullmatch(r"`[^`]+/`", cells[0]):
             reg |= {cells[0].strip("`") + n.strip() for n in cells[3].split("、") if n.strip() and n.strip() != "…"}
-    if branch not in text:
-        print("bad:%s 没有写到归档分支 %s" % (idx, branch))
+    if not body:
+        print("bad:%s 没有「## 二乙批」一节或该节为空" % idx)
         sys.exit()
-    unreg = [p for p in paths if p not in reg]
-    if unreg:
-        print("bad:索引没有登记 E 类的 %d 个文件，如 %s" % (len(unreg), unreg[0]))
+    if branch not in "\n".join(body):
+        print("bad:%s 的二乙批一节没有写到归档分支 %s" % (idx, branch))
+        sys.exit()
+    unreg = sorted(set(paths) - reg)
+    more = sorted(reg - set(paths))
+    if unreg or more:
+        print("bad:清单与索引二乙批不逐项相等：索引漏登记 %d 个%s；索引多登记 %d 个%s" % (len(unreg), "（%s）" % "、".join(unreg[:3]) if unreg else "",
+              len(more), "（%s）" % "、".join(more[:3]) if more else ""))
         sys.exit()
     if not ref:
-        print("env:本检出查不到归档分支 %s（本机分支，浅克隆或 CI 没有）；E 类 %d 个文件已不在 main、索引已登记，在分支上的部分未核" % (branch, len(paths)))
+        print("env:本检出查不到归档分支 %s（本机分支，浅克隆或 CI 没有）；二乙批 %d 个文件已不在 main、与索引逐项相等，在分支上的部分未核" % (branch, len(paths)))
         sys.exit()
     onbr = set(git("ls-tree", "-r", "--name-only", "-z", ref))
     gone = [p for p in paths if p not in onbr]
     if gone:
-        print("bad:E 类 %d 个文件在归档分支上不存在，如 %s" % (len(gone), gone[0]))
+        print("bad:二乙批 %d 个文件在归档分支上不存在，如 %s" % (len(gone), gone[0]))
         sys.exit()
-    print("ok:E 类 %d 个文件都已不在 main，索引已登记，且都在归档分支 %s 上" % (len(paths), branch))
+    print("ok:二乙批 %d 个文件（E 类 %d、#40 删除 1）与索引逐项相等，都已不在 main，且都在归档分支 %s 上" % (len(paths), E_COUNT, branch))
 except SystemExit:
     raise
 except Exception as e:
