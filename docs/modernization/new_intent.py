@@ -2,12 +2,12 @@
 """新增一条用户决定片段 intent/<日期>-<HHMMSS>-<会话名>-<短名>.md，然后运行 build_decisions.py 校验并重新生成现行决定页（INTENT.md、速查表已停止生成，定稿 1.11）。
 
 用法：python3 docs/modernization/new_intent.py --session=<会话名> --category=<类别> --owner=<负责会话> --paths=<路径前缀[,...]|无> --supersedes=<被取代的 intent 文件名[,...]|无> "<用户原话>" "<落点>" [--date=YYYY-MM-DD] [--rules=RULE-272,RULE-273] [--adrs=ADR-0044] [--sheet=D5] [--items=D5-01,D5-02]
-必填四项，缺任一即拒并列缺项：--category 取 口径、范围、流程、授权、技术、其他；--owner 负责落地的会话名（须在 roles/ 过渡映射或 policy.json 的 sessions.config 里出现）；--paths 受影响的仓库相对路径前缀，没有写「无」。依次写进片段的「类别」「负责会话」「影响路径」节，旧片段不回填。
+必填四项，缺任一即拒并列缺项：--category 取 口径、范围、流程、授权、技术、其他；--owner 负责落地的会话名（旧名先按 policy.json 的 sessions.aliases 换成现名，再须在 sessions.config 里；片段写现名）；--paths 受影响的仓库相对路径前缀，没有写「无」。依次写进片段的「类别」「负责会话」「影响路径」节，旧片段不回填。
 本决定推翻或取代了此前哪些决定，就在 --supersedes 里写出（现行决定页据此不再列它，build_decisions.py）；文件名须是 intent/ 下已有的片段，没有写「无」。
 可选的 --rules / --adrs / --sheet / --items 把决定影响的规则号、ADR、确认页单子与题号记入片段（规则号须在规则索引中存在），规则索引与 ADR 治理据此反查「被哪些决定改过」。
 原话与落点各为一行。文件名由日期、当前时刻与会话名组成，并行会话互不撞名，无需协调序号。
 """
-import datetime, glob, json, os, re, subprocess, sys
+import datetime, json, os, re, subprocess, sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 CATEGORIES = ("口径", "范围", "流程", "授权", "技术", "其他")
@@ -18,11 +18,11 @@ def short_name(text, n=16):
     return re.sub(r"-+", "-", t).strip("-")[:n].strip("-") or "x"
 
 
-def known_owners():
-    names = set(json.load(open(os.path.join(BASE, "..", "..", "policy.json"), encoding="utf-8")).get("sessions", {}).get("config", {}))
-    for f in glob.glob(os.path.join(BASE, "roles", "*.md")):
-        names |= set(re.findall(r"(?<![\w-])one-[a-z0-9]+(?:-[a-z0-9]+)*(?![\w<-])", open(f, encoding="utf-8").read().partition("\n## 过渡映射")[2].split("\n## ")[0]))
-    return names
+def resolve_owner(name):
+    """--owner 与 decide_sync 共用（O23b）：先按 policy.json 的 sessions.aliases 把旧名换成现名，再只核对 sessions.config 的键；查不到返回 None。不读 roles/ 过渡映射。"""
+    sessions = json.load(open(os.path.join(BASE, "..", "..", "policy.json"), encoding="utf-8")).get("sessions", {})
+    name = sessions.get("aliases", {}).get(name, name)
+    return name if name in sessions.get("config", {}) else None
 
 
 def parse_args(doc, n):
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     if absent: sys.exit(f"缺必填项：{'、'.join(absent)}（没有被取代的或没有影响路径就写「无」）\n{__doc__}")
     paths = [] if opts["paths"] == "无" else opts["paths"].split(",")
     wrong = [m for ok, m in ((opts["category"] in CATEGORIES, f"--category 须为 {'、'.join(CATEGORIES)} 之一：{opts['category']}"),
-                             (re.fullmatch(r"[a-z0-9-]+", opts["owner"]) and opts["owner"] in known_owners(), f"--owner 须是 [a-z0-9-]+，且在 roles/ 过渡映射或 policy.json 的 sessions.config 里出现：{opts['owner']}"),
+                             (re.fullmatch(r"[a-z0-9-]+", opts["owner"]) and resolve_owner(opts["owner"]), f"--owner 须是 [a-z0-9-]+，且先经 policy.json 的 sessions.aliases 换名后在 sessions.config 里：{opts['owner']}"),
                              (all(re.fullmatch(r"(?!\./|~|/|无$)[^\s、|\\]+", x) and ".." not in x.split("/") for x in paths) and len(paths) == len(set(paths)), f"--paths 须是不重复的仓库相对路径前缀（无空白、| 与反斜杠，不以 / ~ ./ 开头，不含 ..），或单独一个「无」：{opts['paths']}")) if not ok]
     if wrong: sys.exit("\n".join(wrong))
     olds = [x for x in opts["supersedes"].split(",") if x != "无"]
@@ -85,6 +85,6 @@ if __name__ == "__main__":
             if len(parts) != len(set(parts)):
                 sys.exit(f"--{opt} 有重复项：{opts[opt]}")
             tags += f"\n## {name}\n\n{value}\n"
-    tags += f"\n## 类别\n\n{opts['category']}\n\n## 负责会话\n\n{opts['owner']}\n\n## 影响路径\n\n{'、'.join(paths) or '无'}\n"
+    tags += f"\n## 类别\n\n{opts['category']}\n\n## 负责会话\n\n{resolve_owner(opts['owner'])}\n\n## 影响路径\n\n{'、'.join(paths) or '无'}\n"
     create("intent", opts.get("date", datetime.date.today().isoformat()), opts["session"], short_name(quote),
            f"## 原话\n\n{quote}\n\n## 落点\n\n{landing}\n{tags}")

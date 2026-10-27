@@ -46,7 +46,7 @@
 | 1. 写数据 | FD 改 `r0/FINANCE_DECISIONS.md`；其他单子写 `sheets/<单子>.json`，格式见下 |
 | 2. 生成 | `python3 docs/modernization/rules/decide/build_decision_page.py <单子>[,<单子>...] <scratchpad>/<文件>.html` |
 | 3. 发布 | 同一单子覆盖到上表链接（Artifact 带 `url`）；能力 `db`（集合 `answers`、`answers-submit` 只许 owner 写）+ `user`；**固定 `contract: "0.2.80"`**（0.2.81、0.2.82 在手机上白屏过，新版验证可用后再升）；发布后用内置浏览器核对真实渲染，没登录就报告「未实看」并请人先在手机上打开确认 |
-| 4. 读答复与回写 | 用户说已提交后，ArtifactData `list` 集合 `answers` 与 `answers-submit`（同一个 `out_dir`），再 `python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> --inbox-id=<收件箱事项 id>`：对账（有提交后又改过的题就失败，请用户重新提交）、写 `answers/<单子>.json`、按提交编号生成 intent 片段，并打印收件箱事项改为已定所需的 ArtifactData `update`，由会话对收件箱页执行（各页是独立发布件，确认页不能直接写收件箱）。只想导出答复不生成 intent 时用 `export_answers.py <单子> <out_dir>` |
+| 4. 读答复与回写 | 用户说已提交后，ArtifactData `list` 集合 `answers` 与 `answers-submit`（同一个 `out_dir`），再 `python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> --session=<本会话名> --inbox-id=<收件箱事项 id>`（其余必填项见脚本头）：对账（有提交后又改过的题就失败，请用户重新提交）、写 `answers/<单子>.json`、按提交编号生成 intent 片段，并打印收件箱事项改为已定所需的 ArtifactData `update`，由会话对收件箱页执行（各页是独立发布件，确认页不能直接写收件箱）。只想导出答复不生成 intent 时用 `export_answers.py <单子> <out_dir>` |
 | 5. 写回 | 答复写回规则卡（如 `rules/GL_FINANCE_DECISIONS.*`、`r0/FINANCE_QUESTIONS.md` 去向），用户原话记 intent；会计类经财务（ADR-0018） |
 
 提交前页面只是草稿；「检查答案」先列出全部题的选择与按推荐（其中没动过的）、改选、暂不定、写了说明各几题，用户确认后写一份提交记录（含全部题的选择，没动过的题标 `defaulted`）。
@@ -76,11 +76,11 @@
 
 - **整份白名单（`decide_sync.py` 解析）**：`ONLINE_PAGES.md` 每行只能是空行、`#` 标题行（行首 1～6 个 `#` 紧跟空格），或登记表行；其他任何行（说明文字、列表、引用、HTML、代码块、缩进行）decide_sync 都整份判损坏并报行号。登记表行行首 `|` 起、行尾 `|` 止，不缩进、不带尾随空白，恰好六格，格内不得有 `|`、`\`、`<`、回车符（不用 CRLF）；标题行也不得有 `<`（行内 HTML 能在页面上把一行登记拆成别的行或格）；全文只许一张连续的表，表后紧跟空行或文件尾。表头固定为「单子或页面、用途、负责会话、起用日期、退役日期、出处」六列，下一行是分隔行（各格为 -，可带对齐冒号）；单子行第一格是单子编号（整格匹配 `[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*`，下划线只能夹在中间）。改列顺序或列名，decide_sync 与其自测会失败关闭。
 - **链接不在登记表重复**：单子页的链接在上面的页面表里（`decide_sync.py` 读它），其余在「出处」列的文件里（出处路径都相对 `docs/modernization/`）；登记表以单子编号或页面名对应。
-- **负责会话**：登记时出题会话的过渡期名字，`roles/` 里查不到写「roles/ 未列」（decide_sync 遇到即拒）；登记的会话名还须在 `roles/` 过渡映射或 policy.json 的 `sessions.config` 里，否则 decide_sync 同样拒。第四批会话合并后的对应，只写 `roles/` 原文里有的：one-glossary 对应 language（`roles/language.md` 第 30 行），one-architecture 对应 design（`roles/design.md` 第 31 行），one-coordinator 对应 lead（`roles/lead.md` 第 32 行）。one-rules 与 one-arch-finance 在 `roles/` 里未列，合并时定。
+- **负责会话**：登记时出题会话的名字，定不出写「roles/ 未列」（decide_sync 遇到即拒）；负责会话只核 policy.json 的 `sessions.config`，旧名先经 `sessions.aliases` 换成现名，换名后不在 `sessions.config` 即拒，不看 `roles/` 过渡映射。题与答复只经唯一决定页（本目录生成器）入决定库，与 RULES ⑨ 一致。第四批会话合并后的对应，只写 `roles/` 原文里有的：one-glossary 对应 language（`roles/language.md` 第 30 行），one-architecture 对应 design（`roles/design.md` 第 31 行），one-coordinator 对应 lead（`roles/lead.md` 第 32 行）。one-rules 与 one-arch-finance 是旧名，经 `sessions.aliases` 分别换成 one-coordinator、one-architecture。
 - **退役日期**：写 `YYYY-MM-DD` 或 `待定`。现在全是 `待定`：没有任何文件或用户答复定过退役日期，这里不编；日期由用户在第四批批准旧页只读化或退役时定，定一页补一行。
 - **新页必须先加一行**再发布；单子页的行与上面页面表的单子一一对应（核对：登记表前 36 行单子编号＝页面表 36 行）。登记表中没有单子 json 的行：FD（数据源是 `r0/FINANCE_DECISIONS.md`，不是 sheets/）；其余单子行均有 `sheets/<单子>.json`（2026-10-26 逐一核对）。
 - 账号下的在线页总数（盘点称 161 个）仓库里没有清单，登记表只登记仓库里有记载的页（页面表 36 张、收件箱、固定确认页两个）；其余页由用户在账号侧列出后补登。
-- `sheets/` 里的 GL、GL2、N1、NM1～NM6 共 9 个单子数据在页面表没有页面链接（答复在 `answers/` 里），仓库没有记载它们的在线页；为让 `decide_sync.py` 能按单子查负责会话，已在登记表登记（G3 要求每个有答复的单子都有登记），起用日期写「无记载」、用途取自单子标题、出处写单子文件；出题会话确认在线页后补链接与日期。用语类（GL、GL2、NM1～NM6）负责会话写 one-glossary，对应 `roles/language.md` 第 30 行；N1 由 one-rules 出题（提交说明 docs(rules)），`roles/` 未列 one-rules，负责会话写「roles/ 未列」（调度 10-26 深夜定）：decide_sync 对 N1 生成 intent 会拒，须先在 `roles/` 补出负责会话再改登记。
+- `sheets/` 里的 GL、GL2、N1、NM1～NM6 共 9 个单子数据在页面表没有页面链接（答复在 `answers/` 里），仓库没有记载它们的在线页；为让 `decide_sync.py` 能按单子查负责会话，已在登记表登记（G3 要求每个有答复的单子都有登记），起用日期写「无记载」、用途取自单子标题、出处写单子文件；出题会话确认在线页后补链接与日期。用语类（GL、GL2、NM1～NM6）负责会话写 one-glossary，对应 `roles/language.md` 第 30 行；N1 由 one-rules 出题（提交说明 docs(rules)），负责会话写「roles/ 未列」（调度 10-26 深夜定）：decide_sync 对 N1 生成 intent 会拒，须先把这一格改成 `sessions.config` 里的会话名（旧名经 `sessions.aliases` 换名）。
 
 ## sheets/<单子>.json 格式
 
