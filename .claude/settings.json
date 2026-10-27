@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "H=\"$HOME\"/.modernize/psa/tools/one-session/start_sheet/start_sheet.py; [ -f \"$H\" ] && python3 -I \"$H\" --hook && exit 0; echo \"【钩子告警】工具库开工单 start_sheet.py 缺失或出错（${H}），没有开工单；手动读 docs/modernization/sessions/<会话名>.md 并向调度要卡；请 one-ops 修工具库 ~/.modernize/psa/tools/one-session/start_sheet（start_sheet.py --self-test）\"; exit 0",
+            "command": "H=\"$HOME\"/.modernize/psa/tools/one-session/start_sheet/start_sheet.py; [ -f \"$H\" ] && /usr/bin/python3 -I \"$H\" --hook && exit 0; echo \"【钩子告警】工具库开工单 start_sheet.py 缺失或出错（${H}），没有开工单；手动读 docs/modernization/sessions/<会话名>.md 并向调度要卡；请 one-ops 修工具库 ~/.modernize/psa/tools/one-session/start_sheet（start_sheet.py --self-test）\"; exit 0",
             "timeout": 15
           }
         ]
