@@ -66,6 +66,8 @@ def decide_drill(tree, sync_args):
                               ("ZZ", "- x\n" + PAGES, "第 1 " + wl), ("ZZ", "> " + PAGES, "第 1 " + wl), ("ZZ", "   # 缩进标题\n\n" + PAGES, "第 1 " + wl), ("ZZ", "#标题无空格\n\n" + PAGES, "第 1 " + wl),
                               ("ZZ", "[x]: http://x\n\n" + PAGES, "第 1 " + wl), ("ZZ", "﻿# 带 BOM\n\n" + PAGES, "第 1 " + wl), ("ZZ", PAGES.encode("utf-8") + b"\xff\n", "不是合法 UTF-8"),
                               ("ZZ", PAGES + ROW.format("**ZZ**", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("`ZZ`", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("ZZ​", "one-ops"), "首格不合约定"),
+                              ("ZZ", HEAD + ROW.format("ZZ", "one-glossary").replace("演练", "<tr><td>ZY</td><td>x</td><td>one-ops</td>"), wl),
+                              ("ZZ", "# 标题 <!--\n\n" + PAGES, "第 1 " + wl), ("ZZ", PAGES + "\f" + other, wl), ("ZZ", PAGES + "　" + other, wl), ("ZZ", PAGES + ROW.format("__ZZ__", "one-ops"), "首格不合约定"),
                               ("ZZ", PAGES + ROW.format("_ZZ_", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("某页面", "one-ops"), "首格不合约定"),
                               ("ZZ", HEAD.split("\n")[0] + "\n" + ROW.format("ZZ", "one-glossary"), "不是分隔行"),
                               ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"), ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射"),

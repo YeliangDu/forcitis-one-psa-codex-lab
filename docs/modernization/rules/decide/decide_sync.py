@@ -28,7 +28,8 @@ NON_SHEET_PAGES = {"收件箱（待你决定）", "用语确认固定页", "旧�
 def registered_owner(sheet):
     """单子的负责会话，取自 ONLINE_PAGES.md 登记表；表头变了、单子未登记或重复、负责会话为空或「roles/ 未列」一律拒绝，不回退默认会话。
     整份白名单（调度 10-27 晚定）：按 \\n 切行，每行只能是三种之一，其他任何行整份判损坏并报行号——
-    空行（只有空格或制表符）；# 标题行（行首 1～6 个 #、紧跟空格）；登记表行（行首 | 起、行尾 | 止、不缩进、不带尾随空白，恰好 6 格，格内无 |、\\、\\r）。
+    空行（只有空格或制表符）；# 标题行（行首 1～6 个 #、紧跟空格，无 <）；登记表行（行首 | 起、行尾 | 止、不缩进、不带尾随空白，恰好 6 格，格内无 |、\\、\\r、<）。
+    < 一律不许：行内 HTML（如 tr、td 标签）能在页面上把一行登记拆成别的行或格（3363b792c 终审必改 1）。
     登记表行须连成唯一一块，块后紧跟空行或文件尾；块内第一行是表头，第二行是分隔行（各格为 -，可带对齐冒号）。格只去两端空格。"""
     rows, state = [], "before"
     try:
@@ -36,12 +37,12 @@ def registered_owner(sheet):
     except UnicodeDecodeError:
         sys.exit("ONLINE_PAGES.md 不是合法 UTF-8；表格损坏，先修登记表")
     for no, line in enumerate(text.split("\n"), 1):
-        if re.fullmatch(r"\|(?:[^|\\\r]*\|){%d}" % len(PAGES_HEADER), line):
+        if re.fullmatch(r"\|(?:[^|\\\r<]*\|){%d}" % len(PAGES_HEADER), line):
             if state == "after":
                 sys.exit(f"ONLINE_PAGES.md 第 {no} 行：登记表之外又有表格行（只许一张连续登记表）；表格损坏，先修登记表")
             state = "in"
             rows.append([c.strip(" ") for c in line[1:-1].split("|")])
-        elif re.fullmatch(r"[ \t]*", line) or (state != "in" and re.fullmatch(r"#{1,6} [^\r]*", line)):
+        elif re.fullmatch(r"[ \t]*", line) or (state != "in" and re.fullmatch(r"#{1,6} [^\r<]*", line)):
             state = "after" if state == "in" else state
         else:
             sys.exit(f"ONLINE_PAGES.md 第 {no} 行不在白名单内（只许空行、# 标题行、一张不缩进的六列登记表，表后须空行；说明写 rules/decide/README）：{line[:40]!r}；表格损坏，先修登记表")
