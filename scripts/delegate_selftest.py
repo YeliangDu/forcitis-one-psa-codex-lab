@@ -185,6 +185,29 @@ def main():
         with_policy(repo, policy, lambda p: p["delegate"].update(real_run_enabled=True))
         rc, _ = run(repo, penv, *base, "T-1", "--scope", "src/a.txt")
         t.check(rc == 0 and (plain / "rec-codex.json").exists(), "real_run_enabled 为 true 时同一程序放行（开关是唯一差别）")
+        (repo / "policy.json").write_text(json.dumps(policy, ensure_ascii=False), encoding="utf-8")
+        wt = tmp / "wt"   # 快照临时目录不得在仓库（含主检出）或 ~/.modernize 之内（调度 10-27，#44）；开关关着就核，真跑前必经
+        subprocess.run(["git", "worktree", "add", "-q", str(wt)], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
+        (tmp / "lnk").symlink_to(repo / "tmpin", target_is_directory=True)
+        (tmp / "homelnk").symlink_to(home, target_is_directory=True)
+        for d in (repo / "tmpin", home / ".modernize/tmpin"):
+            d.mkdir(parents=True)
+        for what, where, cwd, h in (("TMPDIR 在仓库内", repo / "tmpin", repo, home), ("TMPDIR 在 ~/.modernize 内", home / ".modernize/tmpin", repo, home),
+                                    ("TMPDIR 经符号链接指进仓库", tmp / "lnk", repo, home), ("从 worktree 运行、TMPDIR 在主检出内", repo / "tmpin", wt, home),
+                                    ("HOME 经符号链接、TMPDIR 在 ~/.modernize 内", home / ".modernize/tmpin", repo, tmp / "homelnk"),
+                                    ("TMPDIR 写成仓库路径的大写变体", Path(str(repo / "tmpin").upper()), repo, home),
+                                    ("TMPDIR 写成 ~/.modernize 路径的大写变体", Path(str(home / ".modernize/tmpin").upper()), repo, home),
+                                    ("TMPDIR 加 /System/Volumes/Data 前缀指进仓库", Path("/System/Volumes/Data" + str(repo / "tmpin")), repo, home)):
+            if not where.is_dir():   # 大写变体只在不分大小写的文件系统上、数据卷前缀只在 macOS 上指向同一目录；不成立的平台上这条不适用
+                print(f"SKIP {what}（本机路径不指向同一目录）")
+                continue
+            where.mkdir(parents=True, exist_ok=True)
+            out = refused(t, cwd, home, stubs, {**env, "TMPDIR": str(where), "HOME": str(h)}, what, *base, "T-1", "--scope", "src/a.txt")
+            t.check("TMPDIR" in out and not any(where.iterdir()), f"{what}：报 TMPDIR，快照未落盘")
+        (outside := tmp / "outside").mkdir()
+        rc, _ = run(repo, {**env, "TMPDIR": str(outside)}, *base, "T-1", "--scope", "src/a.txt")
+        t.check(rc == 0, f"TMPDIR 在仓库与 ~/.modernize 之外：放行（退出 {rc}）")
+        subprocess.run(["git", "worktree", "remove", "--force", str(wt)], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
         with_policy(repo, policy, lambda p: p["delegate"]["pilot"]["categories"].append("复审"))
         refused(t, repo, home, stubs, env, "不外包类别（复审）", "run", "--engine", "deepseek", "--category", "复审", "--card", "T-1", "--scope", "src/a.txt")
         breaks = [(f"policy 缺 delegate.{k}", lambda p, k=k: p["delegate"].pop(k))

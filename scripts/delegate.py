@@ -6,8 +6,7 @@
 → 机械验证 → 台账。台账只记元数据，不记提示与输出全文；token、费用取不到记「未知」。
 数值与枚举只读 policy.json 的 delegate 段、machine.delegate_nice、review.final_paths（全部并入禁区）；缺键或值不对即失败关闭。
 delegate.real_run_enabled 为 false 时只许带自测桩标记的程序，真引擎一律拒（调度 10-26 方案 A）。
-未修（与 real_run_enabled 绑定，V16 前处理，见终审 79afae290 必改 2、3）：pi 一路没有系统沙箱，读写不限于快照；
-codex 的 workspace-write 只限写不限读，能按绝对路径读本机文件。两者都要实测 sandbox-exec 等外层限制，本次不调真程序做不了。
+未修（与 real_run_enabled 绑定，V16 前处理，见终审 79afae290 必改 2、3）：pi 一路没有系统沙箱，读写不限于快照；codex 的 workspace-write 只限写不限读，能按绝对路径读本机文件；两者都要实测 sandbox-exec 等外层限制，本次不调真程序做不了。
 不收目录参数（b2b-plan 0.4）：在仓库根目录运行，读当前目录的 policy.json 与 docs/modernization/tasks/<卡号>.md。
 调用方按 RULES 后台启动本程序；外部模型的凭据由本机配置提供（TEAM-34 现行做法），本程序不读不传。
 退出码：0 通过；1 运行或机械验证不过；2 准入拒绝或 policy 缺键；3 用法错。
@@ -150,6 +149,10 @@ def admit(args, cfg):
         raise Refuse(f"找不到 {args.engine} 的命令行程序")
     if not cfg["real_run"] and STUB_MARK not in Path(exe).read_bytes()[:4096]:
         raise Refuse("delegate.real_run_enabled 为 false：只许自测桩，真引擎须另批（V16）")
+    roots = (git("rev-parse", "--show-toplevel").strip(), os.path.dirname(os.path.abspath(git("rev-parse", "--git-common-dir").strip())), os.path.expanduser("~/.modernize"))   # 本仓库、主检出（worktree 在其下）、~/.modernize
+    ids = {(s.st_dev, s.st_ino) for s in map(os.stat, filter(os.path.exists, roots))}   # 快照所在临时目录及其各级上级都不得是它们（调度 10-27，#44）；比设备号与 inode，大小写变体、/System/Volumes/Data 前缀、符号链接都认得出（95b58f6c9 首轮、终审必改 1）
+    if ids & {(s.st_dev, s.st_ino) for t in [Path(tempfile.gettempdir()).resolve()] for s in map(os.stat, [t, *t.parents])}:
+        raise Refuse("快照临时目录（TMPDIR）在仓库或 ~/.modernize 之内，改到别处再跑")
     return card, scope, exe
 
 def engine_argv(engine, exe, cfg, args, prompt, out_file, work):
@@ -245,12 +248,10 @@ def cmd_run(args):
         print(f"delegate：拒绝——{e}", file=sys.stderr)
         return 2
     cfg["runs"].mkdir(parents=True, exist_ok=True, mode=0o700)
-    run_dir = cfg["runs"] / run_id
-    run_dir.mkdir(mode=0o700)
+    (run_dir := cfg["runs"] / run_id).mkdir(mode=0o700)
     out_file, log_file, gitdir = run_dir / "out.txt", run_dir / "engine.log", run_dir / "base.git"
     tmp = Path(tempfile.mkdtemp(prefix="delegate-")).resolve()
-    work = tmp / "work"
-    work.mkdir(mode=0o700)
+    (work := tmp / "work").mkdir(mode=0o700)
     prompt = PROMPT_TEMPLATE.format(scope="、".join(scope), category=args.category, card_id=args.card, card=card)
     rec = {**base_rec, "scope": "、".join(scope), "model": cfg["model"], "effort": args.effort if args.engine == "codex" else None,
            "base": head, "nice": cfg["nice"], "prompt_chars": len(prompt), "tokens": UNKNOWN, "cost": UNKNOWN, "rework": 0, "adopted": None}
