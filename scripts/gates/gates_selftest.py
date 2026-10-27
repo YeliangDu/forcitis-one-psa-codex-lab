@@ -207,18 +207,17 @@ def gate_self_test():
                     # a shell or eval runs its quoted body: quotes not followed (40df9f9a5 final M3); a variable's value globbed (final suggestion 1)
                     "zsh -fc 'ls a*(e:\"x\":)'", "eval 'ls a*(e:x:)'", "bash -c 'f(x)'", "zsh <<< 'ls *(e:x:)'", "echo 'ls *(e:x:)' | zsh", "$SHELL -c 'ls *(e:x:)'", "/bin/zsh -c 'ls a1(e:x:)'", "z\"s\"h -c 'ls a1(e:x:)'",
                     "x='a*(e:x:)'; ls $~x", "ls ${~x}", "setopt globsubst; ls $x", "setopt GLOB_SUBST",
-                    # `$$`, an escaped or encoded `(` handed to eval, other ways a string runs again, option names with underscores, combined flags (fbd9bbb63 round 1 M1–M3, final M1–M4)
+                    # `$$`, an escaped `(` handed to eval, a string run again (fbd9bbb63); mechanisms refused as they stand, not decoded: escapes, $'…', print/echo/printf escapes, options, modules (调度 10-27 晚)
                     "ls $$(e:x:)", "eval ls a\\(e:x:\\)", "eval 'ls a'\\(e:x:\\)", "eval $'ls a\\x28e:x:)'", "zsh -c $'ls a\\050e:x:)'", "eval $'ls a\\u0028e:x:)'",
                     "trap 'ls a*(e:x:)' EXIT", "source /dev/stdin <<< 'ls a*(e:x:)'", ". /dev/stdin <<< 'ls a*(e:x:)'", "functions[f]='ls a*(e:x:)'", "zstyle -e x y 'ls a*(e:x:)'",
                     "$ZSH_NAME -c 'ls a1(e:x:)'", "$0 -c 'ls a1(e:x:)'", "/bin/z?h -c 'ls a1(e:x:)'", "${X}sh -c 'ls a1(e:x:)'", "vim -c '!ls a1(e:x:)'",
                     "ls $=~x", "ls $^~x", "ls ${^~x}", "setopt g_lobsubst", "setopt glob__subst", "setopt -m '*subst'", "zsh -o glob__subst -fc 'ls a'", "echo $'\\'' a1(e:x:) $'\\''","set -o globsubst", "emulate ksh", "options[globsubst]=on",
-                    "eval \"$(printf x)\"", "zsh -c \"$(cat f)\"", "bash -c `cat f`",
-                    # `\0NNN` (print, echo), options split by quotes or backslashes, `$''~y`; `.` and set -o / options[ alone (b412b9536 round 1 M1, M2, suggestions)
+                    "eval \"$(printf x)\"", "zsh -c \"$(cat f)\"", "bash -c `cat f`", "echo a\\1", "ls x\\c", "ls x\\U1", "echo $'a'", "echo -e x", "echo -n -e x", "print -b x",
                     "print -v c 'ls a\\0050e:x:)'; eval $c", "print 'ls a\\0050e:x:)' | zsh", "set''opt glob_subst", "s\\etopt x", "e'mulate' ksh", "eval 'ls $'''~y", "glob's'ubst=1",
-                    ". f 'a1(e:x:)'", "set -o extendedglob", "options[extendedglob]=on",
+                    ". f 'a1(e:x:)'", "set -o extendedglob", "options[extendedglob]=on", "printf 'a\\n'", "printf %b x", "zmodload zsh/system", "autoload -U x", "a'u'toload x", "s\\et +o x", "set +o x", "z\"mod\"load x",
                     "echo 'it''s *(e:x:)'", "echo $'a\\'*(e:x:)'", "ls \\*\\(e:x:\\)"):  # quoted, but a wildcard on the line has it read again: refused rather than read right (uncertain → refuse)
         assert refused(command) and "zsh" in judge(command, patterns, None, cwd, {}), ("a zsh glob qualifier: refused", command)
-    for command in ("ls * (e:x:)", "grep -E 'a(b|c)' x", "grep -E \"a(b|c)\" x", "echo $(ls)", "diff <(ls) <(ls)", "ls; (ls)", "ls && (ls)", "ls | (cat)",
+    for command in ("ls * (e:x:)", "grep -E 'a(b|c)' x", "grep -E \"a(b|c)\" x", "echo $(ls)", "diff <(ls) <(ls)", "ls; (ls)", "ls && (ls)", "ls | (cat)", "printf %s x", "echo -n hi", "print hi", "grep -e x f",
                     "echo $((1+2))", "git log --format='%h (%s)'", "echo \"a (b)\"", "cat <(ls)", "ls;(ls)", "ls|(cat)", "ls&&(ls)", "git commit -m \"fix(gate): x\"", "python3 -c \"print(1)\"", "find . \\( -name a \\)",
                     "zsh -c 'ls (x)'", "bash -c 'echo hi (x)'", "grep -E 'push(x)' f", "ls notes.sh 'f(x)'", "<(ls) cat", "git log $(git rev-parse HEAD)", "echo $$ (x)", "ls a.txt 'set(x)'"):
         assert allowed(command), ("no qualifier: the gate goes on as before", command)
