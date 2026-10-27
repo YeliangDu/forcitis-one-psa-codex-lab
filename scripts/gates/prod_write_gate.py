@@ -457,7 +457,7 @@ def may_run_or_expand(text):  # (text already `plain`) a program that runs other
 
 
 def glob_qualifier(text, raw=False):  # True when an unquoted `(` may end a word, or opens `(#`: a zsh glob qualifier (`*(e:…:)`, `a1(e:…:)`) runs code while expanding; bash's extglob, a function definition and an array look the same and count too. Allowed only after an unescaped space, tab or newline (zsh splits on no other), a `$` that is not `$$`, `(`, `|`, `&`, `;`, or a `<`/`>` that itself starts a word (process substitution): anything else, escaped included, counts (40df9f9a5 round 1, final M1, M2; fbd9bbb63 round 1, final M1). Quotes are followed only while certain: a double-quoted part holding `$` or a backtick ends that, the rest is read raw. `raw` (the text may be evaluated again): no quotes followed, a backslash before `(` dropped, a `(` spelled as an escape (`\x28`, `\050`, `\u0028`) counts (fbd9bbb63 final M2).
-    if GLOB_OPTIONS.search(text) or raw and re.search(r"\\(?:x\{?0*28|0?50(?![0-7])|u0*28|U0*28)", text, re.I):
+    if any(map(GLOB_OPTIONS.search, (text, plain(text), re.sub(r"['\"\\]", "", text)))) or raw and re.search(r"\\(?:x\{?0*28|0*50(?![0-7])|u0*28|U0*28)", text, re.I):  # options also split by quotes or backslashes; `\0050` too (b412b9536 round 1 M1, M2)
         return True
     text = re.sub(r"\\+\(", "(", text) if raw else text
     i, n, follow, esc = 0, len(text), not raw, -9

@@ -213,6 +213,9 @@ def gate_self_test():
                     "$ZSH_NAME -c 'ls a1(e:x:)'", "$0 -c 'ls a1(e:x:)'", "/bin/z?h -c 'ls a1(e:x:)'", "${X}sh -c 'ls a1(e:x:)'", "vim -c '!ls a1(e:x:)'",
                     "ls $=~x", "ls $^~x", "ls ${^~x}", "setopt g_lobsubst", "setopt glob__subst", "setopt -m '*subst'", "zsh -o glob__subst -fc 'ls a'", "echo $'\\'' a1(e:x:) $'\\''","set -o globsubst", "emulate ksh", "options[globsubst]=on",
                     "eval \"$(printf x)\"", "zsh -c \"$(cat f)\"", "bash -c `cat f`",
+                    # `\0NNN` (print, echo), options split by quotes or backslashes, `$''~y`; `.` and set -o / options[ alone (b412b9536 round 1 M1, M2, suggestions)
+                    "print -v c 'ls a\\0050e:x:)'; eval $c", "print 'ls a\\0050e:x:)' | zsh", "set''opt glob_subst", "s\\etopt x", "e'mulate' ksh", "eval 'ls $'''~y", "glob's'ubst=1",
+                    ". f 'a1(e:x:)'", "set -o extendedglob", "options[extendedglob]=on",
                     "echo 'it''s *(e:x:)'", "echo $'a\\'*(e:x:)'", "ls \\*\\(e:x:\\)"):  # quoted, but a wildcard on the line has it read again: refused rather than read right (uncertain → refuse)
         assert refused(command) and "zsh" in judge(command, patterns, None, cwd, {}), ("a zsh glob qualifier: refused", command)
     for command in ("ls * (e:x:)", "grep -E 'a(b|c)' x", "grep -E \"a(b|c)\" x", "echo $(ls)", "diff <(ls) <(ls)", "ls; (ls)", "ls && (ls)", "ls | (cat)",
