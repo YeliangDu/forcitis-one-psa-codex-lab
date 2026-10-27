@@ -9,7 +9,7 @@
   只有 origin/main 特征表 no_exec_tools 登记的、已知不执行参数文件的程序免读位置参数（选项值、选项里嵌的词、环境变量照读）；解释器名单只作说明（intent 2026-10-26-164931 A′）。
   免读只给整行就是一条纯命令：没有 ; & | 换行、替换、括号花括号，没有赋值（NAME=、NAME+=、数组），没有 eval、alias、function、hash 等字样，第一个词就是登记程序；否则整行不免（调度 10-26 深夜定）。
 - 行里有换目录（cd、pushd、popd，包装命令或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序：整行拒，不推算目录（intent 2026-10-26-164931）。
-- 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。脚本在 docs 根下；唯一另一个可信前缀是字面的 scripts/evidence/（取证单入口，二乙 #6），按仓库根解析，真实路径须在其内，同目录按名字运行的 sheet_*.py 连同导入链一并跟进比对。
+- 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。脚本在 docs 根下；唯一另一个可信前缀是字面的 scripts/evidence/（取证单入口，二乙 #6），按仓库根解析，真实路径须在其内，整棵 scripts/evidence/ 树（全部条目）须与 origin/main 一致，取证单另过静态写法检查（调度 10-27 结构口径）。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：远程工具与解释器拒绝，其余放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名、特征或目标环境变量拒绝。
 已知未覆盖（intent 2026-10-26-165321，复审不判必改）：脚本运行时做什么（运行时拼出或下载生产目标、从管道或标准输入读程序、解释器内联代码自己去连），门只看命令行与被运行的文件；兜底是生产只读账号（底线 4）。
 命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
@@ -24,6 +24,7 @@ import re
 import shlex
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 
 
@@ -287,6 +288,7 @@ if not os.path.exists(os.path.join(REPO_ROOT, ".git")):  # installed copy (insta
 ANCHOR, ROOTS = REPO_ROOT, ()  # whose origin/main says which scripts are trusted, (hook cwd, CLAUDE_PROJECT_DIR, process cwd) whose tables are unioned in; decide() sets both per call
 DOCS_ROOT = "docs" + "/" + "modernization"  # built, not spelled: relevant_change.py scans sources for literal docs paths
 EVIDENCE_ROOT = "scripts/evidence/"  # the one other prefix a trusted entry may live under (二乙 #6 O22a), resolved against the repository root
+EVIDENCE_BANNED = {"importlib", "__import__", "exec", "eval", "compile", "runpy", "open", "ctypes", "*"}  # names a sheet may not use; `*`: a star import (调度 10-27)
 TABLE = os.environ.get("PROD_TARGETS_FILE") or str(Path(HERE) / "prod_targets.json")  # unioned with origin/main's all the same (load_table)
 MAIN_TABLE_PATH = "scripts/gates/prod_targets.json"  # on origin/main since #693 (the old scripts/hooks/ copy is gone: b1 8.1 C7)
 SQL_TOOLS = {"psql", "mysql", "mariadb", "sqlcmd", "osql", "mssql-cli", "mongosh", "mongo", "redis-cli", "usql", "tsql", "isql"}
@@ -607,8 +609,8 @@ def imported(path, listing):  # Repository files a Python file can load: what it
     return found
 
 
-def closure(script, runs=()):  # Files running `script` may load: what its imports name and the .py files it spells by path, recursively (new_intent runs its builders, build_records runs adr/build_adrs.py), and, compared but not followed, everything importable beside each of them (sys.path[0]: the standard library's own imports may pick it up); `runs`: files it runs by a name built at run time, followed as it is; None when one cannot be read.
-    listing, todo, followed, found = {}, [os.path.abspath(p) for p in (script, *runs)], set(), set()
+def closure(script):  # Files running `script` may load: what its imports name and the .py files it spells by path, recursively (new_intent runs its builders, build_records runs adr/build_adrs.py), and, compared but not followed, everything importable beside each of them (sys.path[0]: the standard library's own imports may pick it up); None when one cannot be read.
+    listing, todo, followed, found = {}, [os.path.abspath(script)], set(), set()
     while todo:
         path = todo.pop()
         if path in followed:
@@ -659,9 +661,53 @@ def entry_script(rel, root):  # A registered script's path: under the docs root,
     return path if ".." not in rel and os.path.dirname(os.path.realpath(path)) == inside else None  # directly in it: no `..`, no subdirectory, no link out
 
 
-def entry_closure(rel, script):  # closure() of a registered script; one under scripts/evidence/ runs the sheet_*.py beside it by name, so those and what they load are followed too (b39e3785 first round, final M1)
-    here = os.path.dirname(script)
-    return closure(script, sorted(os.path.join(here, n) for n in os.listdir(here) if n.startswith("sheet_") and n.endswith(".py")) if rel.startswith(EVIDENCE_ROOT) and os.path.isdir(here) else ())
+def main_tree(root):  # [(mode, path)] of every entry under scripts/evidence/ on origin/main (`-t` also lists scripts and scripts/evidence themselves: left out); None when git fails
+    try:
+        run = subprocess.run(["git", "-C", root, "ls-tree", "-r", "-t", "-z", "refs/remotes/origin/main", "--", EVIDENCE_ROOT], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    rows = [r.split("\t", 1) for r in run.stdout.split("\0") if r]
+    return None if run.returncode or any(len(r) != 2 or len(r[0].split()) != 3 for r in rows) else [(r[0].split()[0], r[1]) for r in rows if r[1].startswith(EVIDENCE_ROOT)]
+
+
+def evidence_tree(root):  # Files of scripts/evidence/ when its whole tree, every entry of any name, case or kind, is the very set origin/main lists, holds no symlink or submodule, and each sheet passes sheet_ok(); else None. The caller compares the bytes (调度 10-27 结构口径).
+    def fail(error):
+        raise error
+    top, found, rows = os.path.join(root, EVIDENCE_ROOT), {}, main_tree(root)
+    try:
+        for here, dirs, names in os.walk(top, onerror=fail):
+            for name in dirs + names:
+                if os.path.islink(os.path.join(here, name)):
+                    return None
+                found[os.path.relpath(os.path.join(here, name), root)] = name in names
+    except OSError:
+        return None
+    if rows is None or any(mode not in ("040000", "100644", "100755") for mode, _ in rows) or {rel for _, rel in rows} != set(found):
+        return None
+    files = [os.path.join(root, rel) for rel, is_file in sorted(found.items()) if is_file]
+    beside = {os.path.basename(f)[:-3] for f in files if os.path.dirname(f) == os.path.normpath(top) and f.endswith(".py")}
+    return files if all(sheet_ok(f, beside) for f in files if os.path.basename(f).lower().startswith("sheet_")) else None
+
+
+def sheet_ok(path, beside):  # A sheet as written: it parses, has no relative import, imports only the standard library or a module beside it, and uses none of EVIDENCE_BANNED, sys.path, os.system, os.exec*, os.spawn* (as a name, an attribute or an imported name); unsure is no.
+    try:
+        nodes = list(ast.walk(ast.parse(Path(path).read_bytes())))
+    except (OSError, SyntaxError, ValueError, RecursionError):
+        return False
+    froms = [n for n in nodes if isinstance(n, ast.ImportFrom)]
+    tops = [a.name.split(".")[0] for n in nodes if isinstance(n, ast.Import) for a in n.names] + [(n.module or "").split(".")[0] for n in froms]
+    used = {n.id for n in nodes if isinstance(n, ast.Name)} | {n.attr for n in nodes if isinstance(n, ast.Attribute)} | {a.name for n in froms for a in n.names} | set(tops)
+    dotted = {f"{n.value.id}.{n.attr}" for n in nodes if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)} | {f"{n.module}.{a.name}" for n in froms for a in n.names}
+    return not any(n.level for n in froms) and all(t in beside or stdlib_module(t) for t in tops) and not used & EVIDENCE_BANNED and "sys.path" not in dotted and not any(re.fullmatch(r"system|(?:exec|spawn)[lv]p?e?", u) for u in used)
+
+
+def stdlib_module(name):  # True when the standard library of the interpreter running the gate (/usr/bin/python3, as the entry) holds `name`: built in, frozen, or under sysconfig's stdlib directory outside site-packages (3.9 has no sys.stdlib_module_names); unsure is no
+    try:
+        origin = getattr(importlib.util.find_spec(name), "origin", None) or ""
+    except (ImportError, ValueError, AttributeError):
+        return False
+    lib = os.path.realpath(sysconfig.get_paths()["stdlib"])
+    return origin in ("built-in", "frozen") or bool(origin) and os.path.realpath(origin).startswith(lib + os.sep) and "site-packages" not in origin
 
 
 def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered entry (interpreter, script, one of its forms) whose script, closure and read directories are origin/main's, else None.
@@ -676,8 +722,8 @@ def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered
         script, n = entry_script(entry["script"], ANCHOR), len(entry.get("interpreter", []))  # the table's `~/` is this process's home; the line spells the absolute path
         if not script or not n or len(words) <= n or words[:n] != [os.path.expanduser(w) for w in entry["interpreter"]] or os.path.islink(os.path.join(cwd or os.getcwd(), words[n])) or rel_of(os.path.join(cwd or os.getcwd(), words[n])) != rel_of(script):  # a link to the script runs beside the link
             continue
-        read = [tree_files(DOCS_ROOT + "/" + d) for d in entry.get("trust_dirs", []) if isinstance(d, str) and ".." not in d]
-        loaded = entry_closure(entry["script"], script) if any(form_matches(words[n + 1:], f, slots) for f in entry.get("forms", [])) and None not in read else None
+        read = [tree_files(DOCS_ROOT + "/" + d) for d in entry.get("trust_dirs", []) if isinstance(d, str) and ".." not in d] + ([evidence_tree(ANCHOR)] if entry["script"].startswith(EVIDENCE_ROOT) else [])  # an evidence entry: its whole tree; no other entry calls it
+        loaded = closure(script) if any(form_matches(words[n + 1:], f, slots) for f in entry.get("forms", [])) and None not in read else None
         if loaded is not None and all_as_on_main([script] + sorted(loaded) + [f for files in read for f in files]):
             return argv
     return None

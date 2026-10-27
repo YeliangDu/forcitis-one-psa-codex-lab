@@ -44,6 +44,13 @@ def put(path, text, mode=0o755):
         f.write(text)
     os.chmod(path, mode)
 
+def tree_as_main(root):  # scripts/evidence/ under root as it stands, listed as prod_write_gate.main_tree() lists origin/main's
+    return [("040000" if n in ds else "100644", os.path.relpath(os.path.join(h, n), root)) for h, ds, ns in os.walk(os.path.join(root, "scripts", "evidence")) for n in ds + ns]
+
+def as_main_of(root):  # {path: object id} of every file under root, read as origin/main's blobs
+    files = [os.path.relpath(os.path.join(h, n), root) for h, _, ns in os.walk(root) for n in ns]
+    return dict(zip(files, g.batch(["hash-object", "--no-filters", "--stdin-paths"], [os.path.join(root, f) for f in files])))
+
 def size(key, path):  # (lines of `path`, its limit policy.json gates.max_lines.<key>)
     return Path(path).read_text(encoding="utf-8").count("\n"), policy()["max_lines"][key]
 
@@ -294,7 +301,7 @@ def gate_self_test():
     assert refused(f"python3 -I {intent} 'x pgm-prod0001'"), "new_intent.py is no registered entry (intent 2026-10-26-132048): a production sample in its text is refused"
     # 9. trusted only as a registered entry (origin/main's trusted_entries), written exactly in one of its forms, while the script is the file on origin/main; new_intent mentions "import"
     real_entries, mine = g.trusted_entries, ["import"]
-    with mock.patch.multiple(g, main_blobs=g.main_blobs, trusted_entries=real_entries):
+    with mock.patch.multiple(g, main_blobs=g.main_blobs, trusted_entries=real_entries, main_tree=tree_as_main):
         entry = {"script": "new_intent.py", "interpreter": ["python3", "-I"], "forms": [["{name}"]]}
         g.trusted_entries = lambda: ([entry], {"name": re.compile(r"[a-z]{1,9}")})
         g.main_blobs = lambda rels: {}
@@ -320,13 +327,31 @@ def gate_self_test():
             os.makedirs(os.path.join(top, os.path.dirname(link)), exist_ok=True)
             os.symlink(os.path.join(top, target), os.path.join(top, link))
             assert g.entry_script("scripts/evidence/e.py", top) is None and g.entry_script("scripts/evidence/e.py", cwd) == os.path.join(cwd, "scripts/evidence/e.py"), ("a link leaving scripts/evidence/", link)
-        lab, rels = os.path.realpath(tempfile.mkdtemp(dir=cwd)), ["scripts/evidence/evidence.py", "scripts/evidence/sheet_t.py", "lib/helper.py"]  # a sheet loads a module outside scripts/evidence/ through sys.path (b39e3785 M1)
-        for rel, text in zip(rels, (Path(ev).read_text(encoding="utf-8"), "import os, sys\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))\nimport helper\n", "x = 1\n")):
-            put(os.path.join(lab, rel), text, 0o644)
-        on_main = dict(zip(rels, g.batch(["hash-object", "--no-filters", "--stdin-paths"], [os.path.join(lab, r) for r in rels])))
-        with mock.patch.multiple(g, ANCHOR=lab, main_blobs=lambda paths: {r: on_main[r] for r in paths if r in on_main}):
-            assert allowed(f"python3 -I {lab}/scripts/evidence/evidence.py x", mine) and not put(os.path.join(lab, rels[2]), "x = 2\n", 0o644), "the control: the sheet and the module it loads as on main"
-            assert refused(f"python3 -I {lab}/scripts/evidence/evidence.py x", mine), "the module a sheet loads, edited: not trusted"
+        lab, here = os.path.realpath(tempfile.mkdtemp(dir=cwd)), "scripts/evidence"  # an evidence entry trusts only the whole tree as on main, its sheets within the limits (调度 10-27 结构口径)
+        put(os.path.join(lab, here, "evidence.py"), Path(ev).read_text(encoding="utf-8"), 0o644)
+        put(os.path.join(lab, here, "sheet_ok.py"), "import os, json\ndef collect(session):\n    return [os.path.join('a', session), json.dumps(1)]\n", 0o644)
+        def as_lab():  # the lab as it stands, frozen as origin/main's tree and blobs
+            rows, blobs = tree_as_main(lab), as_main_of(lab)
+            return mock.patch.multiple(g, ANCHOR=lab, main_tree=lambda root: rows, main_blobs=lambda paths: {r: blobs[r] for r in paths if r in blobs})
+        run_lab = f"python3 -I {lab}/{here}/evidence.py x"
+        with as_lab():
+            assert allowed(run_lab, mine), "the control: the tree as on main, its sheet within the limits"
+            for name in ("Sheet_new.PY", "selectors/__init__.py", "nspkg", "notes.txt", "link"):  # a case variant of a sheet, a package, an empty directory (a namespace package), a file that is no sheet, a symlink: each an entry origin/main does not list
+                os.symlink(os.path.join(lab, here, "sheet_ok.py"), os.path.join(lab, here, name)) if name == "link" else os.makedirs(os.path.join(lab, here, name)) if name == "nspkg" else put(os.path.join(lab, here, name), "x = 1\n", 0o644)
+                assert refused(run_lab, mine), ("an entry origin/main does not list", name)
+                (shutil.rmtree if "/" in name or name == "nspkg" else os.remove)(os.path.join(lab, here, name.split("/")[0]))
+            os.rename(os.path.join(lab, here, "sheet_ok.py"), os.path.join(lab, here, "Sheet_ok.PY"))  # the same sheet renamed only in case
+            assert refused(run_lab, mine) and not os.rename(os.path.join(lab, here, "Sheet_ok.PY"), os.path.join(lab, here, "sheet_ok.py")), "a case-only rename"
+            assert allowed(run_lab, mine), "back as on main"
+        for body, why in (("import sys\nsys.path.insert(0, 'lib')\n", "sys.path"), ("from sys import path\n", "sys.path imported"), ("import importlib\n", "importlib"), ("__import__('os')\n", "__import__"), ("exec('x = 1')\n", "exec"),
+                          ("open('/etc/hosts').read()\n", "open"), ("from .sheet_ok import collect\n", "a relative import"), ("import prod_write_gate\n", "no standard library module"), ("import os\nos.system('ls')\n", "os.system"), ("def (\n", "unparsable")):
+            put(os.path.join(lab, here, "sheet_t.py"), body, 0o644)
+            assert not g.sheet_ok(os.path.join(lab, here, "sheet_t.py"), {"evidence", "sheet_ok"}), why
+        assert g.sheet_ok(os.path.join(lab, here, "sheet_ok.py"), set()) and not put(os.path.join(lab, "lib/helper.py"), "x = 1\n", 0o644), "the standard library only"
+        put(os.path.join(lab, here, "sheet_t.py"), "import os, sys\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))\nimport helper\n", 0o644)
+        with as_lab():  # on main as it is, a sheet loading a module outside the tree through sys.path (b39e3785 M1): refused by its writing alone
+            assert refused(run_lab, mine), "a sheet on main that puts a directory on sys.path"
+        assert g.stdlib_module("sys") and g.stdlib_module("json") and not g.stdlib_module("prod_write_gate") and not g.stdlib_module(""), "built in, a package of the standard library; a module of this repository, no name"
         g.trusted_entries = lambda: ([], {})
         assert refused(f"python3 -I {intent} x", mine) and refused(f"python3 -I {ev} x", mine), "not registered"
         g.trusted_entries = lambda: ([dict(entry, forms=[["{any}"]])], {"any": re.compile(".+")})
@@ -463,8 +488,9 @@ def layout_self_test():
         assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
     # what a trusted script loads or is compared with decides whether the gate lets it pass: every such file needs the opus final review (K18 follow-up, a3be80fcd final suggestion 1)
     final, entries = json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["review"]["final_paths"], json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["entries"]
-    scripts = {g.entry_script(e["script"], ROOT): g.entry_closure(e["script"], g.entry_script(e["script"], ROOT)) for e in entries}  # an evidence entry's closure follows its sheets
+    scripts = {g.entry_script(e["script"], ROOT): g.closure(g.entry_script(e["script"], ROOT)) for e in entries}  # an evidence entry's tree is scripts/evidence/, in final_paths as a whole
     assert None not in scripts.values(), "every registered entry's closure can be read"
+    assert g.main_tree(tempfile.gettempdir()) is None, "no repository (or no origin/main): no evidence tree, never trusted"
     loaded = {os.path.relpath(f, ROOT) for s, c in scripts.items() for f in c | {s} if os.path.exists(f)} | {f"{DOCS_ROOT}/{d}" for e in entries for d in e["trust_dirs"]}
     assert all(rel.startswith(tuple(final)) for rel in loaded), ("files a trusted entry loads or reads, missing from policy.json review.final_paths", sorted(r for r in loaded if not r.startswith(tuple(final))))
     slots = {k: re.compile(v) for k, v in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["slots"].items()}
@@ -495,6 +521,8 @@ def trust_self_test():
                 "scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "fake", "patterns": [fake]}], "trusted_entries": tools})}
         mkrepo(main, body)
         mkrepo(forged, body)
+        mkrepo(os.path.join(tmp, "E"), {"scripts/evidence/sheet_a.py": "x = 1\n", "scripts/evidence/sub/b.txt": "\n"})  # main_tree() as git lists origin/main: every entry under scripts/evidence/, trees too, nothing above it
+        assert sorted(g.main_tree(os.path.join(tmp, "E"))) == [("040000", "scripts/evidence/sub"), ("100644", "scripts/evidence/sheet_a.py"), ("100644", "scripts/evidence/sub/b.txt")], g.main_tree(os.path.join(tmp, "E"))
         put(os.path.join(loose, doc), body[doc], 0o644)  # the same file in a directory that is no repository
         mkrepo(other, {"scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "t", "patterns": [only]}]})})
         subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", work], check=True, capture_output=True)

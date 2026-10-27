@@ -7,7 +7,7 @@
       只在标准输出打印这个路径，不打印内容（明细不进会话）。过期天数读仓库 policy.json 的 retention_days.evidence，缺项或不是正整数即停；到期由 janitor 按名里的 expires- 删。
   /usr/bin/python3 -I -S scripts/evidence/evidence.py --entry
       打印本入口在 scripts/gates/prod_targets.json trusted_entries.entries 里的登记行（JSON）；登记行只由它生成，自测核对表里那一条与它逐字段相等。
-命令行不收目录；家目录取自账号库（pwd），不读 HOME。门的可信条件（脚本、同目录全部可导入文件与 origin/main 逐字节一致）见 prod_write_gate.py。
+命令行不收目录；家目录取自账号库（pwd），不读 HOME。门的可信条件（整棵 scripts/evidence/ 树与 origin/main 逐字节一致、取证单写法限制）见 prod_write_gate.py 与 README.md；只运行目录里名字逐字等于 sheet_<名>.py 的文件，不写 __pycache__。
 无口令：取证单运行前标准输入接到 /dev/null，getpass 被换成直接失败；凭据只能来自专用只读账号的本机配置（底线 4），不经命令行、不经交互。已知未覆盖：取证单或它起的子进程自己打开 /dev/tty 要口令，入口拦不住，靠首轮＋终审（README）。
 退出码：0 完成；2 启动方式不对、参数不对、取证单缺失或出错、policy 缺项、输出目录不安全。
 """
@@ -56,12 +56,12 @@ def no_password(*_args, **_kwargs):  # stop() exits (SystemExit): the sheet's `e
 
 def collect(sheet, session):  # the sheet's lines; stdin is /dev/null and getpass fails while it runs
     path = os.path.join(HERE, f"sheet_{sheet}.py")
-    if os.path.islink(path) or not os.path.isfile(path):
+    if f"sheet_{sheet}.py" not in os.listdir(HERE) or os.path.islink(path) or not os.path.isfile(path):  # the name exactly as listed: a case-insensitive disk would open Sheet_x.PY too
         stop(f"没有取证单 sheet_{sheet}.py")
     null = os.open(os.devnull, os.O_RDONLY)
     os.dup2(null, 0)
     os.close(null)
-    getpass.getpass = no_password
+    getpass.getpass, sys.dont_write_bytecode = no_password, True  # no __pycache__: the gate trusts the tree only as on origin/main
     try:
         spec = importlib.util.spec_from_file_location(f"sheet_{sheet}", path)
         module = importlib.util.module_from_spec(spec)

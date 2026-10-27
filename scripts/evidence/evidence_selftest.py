@@ -35,6 +35,7 @@ def main():
         for name, body in sheets.items():
             open(os.path.join(here, f"sheet_{name}.py"), "w", encoding="utf-8").write(body)
         os.symlink(os.path.join(here, "sheet_stub.py"), os.path.join(here, "sheet_link.py"))
+        shutil.copyfile(os.path.join(here, "sheet_stub.py"), os.path.join(here, "Sheet_case.PY"))  # a case variant: a case-insensitive disk opens it as sheet_case.py
 
         def policy(value):
             open(os.path.join(repo, "policy.json"), "w", encoding="utf-8").write(json.dumps({"retention_days": {"evidence": value}} if value is not None else {}))
@@ -56,10 +57,12 @@ def main():
         lines = open(path, encoding="utf-8").read().splitlines()
         assert lines[0].startswith(f"过期：{expires:%Y-%m-%d}") and lines[-2:] == ["a one-ops", "b"], lines
         assert os.stat(path).st_mode & 0o777 == 0o600 and os.stat(os.path.dirname(path)).st_mode & 0o777 == 0o700, "0600 file in a 0700 directory"
+        assert not os.path.exists(os.path.join(here, "__pycache__")), "running a sheet leaves no __pycache__ in the tree the gate compares"
         for args, flags, why in ((("--session=one-ops", "stub"), ("-I",), "须由 /usr/bin/python3 -I -S"), (("--session=one-ops", "stub"), (), "须由 /usr/bin/python3 -I -S"), (("--session=one-ops", "ask"), ("-I", "-S"), "不得要口令"),
                                  (("--session=one-ops", "boom"), ("-I", "-S"), "取证单 boom 出错"), (("--session=one-ops", "none"), ("-I", "-S"), "没有取证单"),
                                  (("--session=One", "stub"), ("-I", "-S"), "会话名只许"), (("--session=one-ops", "../stub"), ("-I", "-S"), "会话名只许"),
-                                 (("--session=one-ops",), ("-I", "-S"), "用法"), (("stub", "--session=one-ops"), ("-I", "-S"), "用法"), (("--session=one-ops", "link"), ("-I", "-S"), "没有取证单")):
+                                 (("--session=one-ops",), ("-I", "-S"), "用法"), (("stub", "--session=one-ops"), ("-I", "-S"), "用法"), (("--session=one-ops", "link"), ("-I", "-S"), "没有取证单"),
+                                 (("--session=one-ops", "case"), ("-I", "-S"), "没有取证单")):
             r = entry(*args, flags=flags)
             assert r.returncode == 2 and why in r.stderr and len(written()) == 1, ("refused for its own reason, nothing written", why, r.returncode, r.stderr)
         assert "detail-from-the-sheet" not in entry("--session=one-ops", "boom").stderr, "a failing sheet: its exception type only, not its text"
@@ -89,6 +92,12 @@ def main():
         os.symlink(os.path.join(home, ".modernize", "psa-real"), os.path.join(home, ".modernize", "psa"))
         r = entry("--session=one-ops", "stub")
         assert r.returncode == 2 and "符号链接" in r.stderr and not os.path.exists(os.path.join(home, ".modernize", "psa-real", "ops")), "~/.modernize/psa itself a symlink: refused"
+        os.remove(os.path.join(home, ".modernize", "psa"))
+        os.rename(os.path.join(home, ".modernize", "psa-real"), os.path.join(home, ".modernize", "psa"))
+        os.rename(os.path.join(home, ".modernize"), os.path.join(home, "modernize-real"))
+        os.symlink(os.path.join(home, "modernize-real"), os.path.join(home, ".modernize"))
+        r = entry("--session=one-ops", "stub")
+        assert r.returncode == 2 and "符号链接" in r.stderr and not os.path.exists(os.path.join(home, "modernize-real", "psa", "ops")), "~/.modernize itself a symlink: refused"
     print("evidence entry: ok")
 
 
