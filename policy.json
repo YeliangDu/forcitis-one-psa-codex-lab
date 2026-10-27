@@ -91,7 +91,6 @@
       "docs/modernization/adr/selftest_build_adrs.py",
       "docs/modernization/build_all.py",
       "docs/modernization/build_decisions.py",
-      "docs/modernization/build_records.py",
       "docs/modernization/check_legacy_name.py",
       "docs/modernization/check_tasks.py",
       "docs/modernization/glossary/apply_nm.py",
