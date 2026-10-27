@@ -2,7 +2,11 @@
 """delegate.py 的自测（O20，V16 的自测部分）：桩程序代替 codex 与 pi，不调用任何外部模型、不联网。
 
 在仓库根目录运行（不收目录参数，b2b-plan 0.4）：读当前目录的 scripts/delegate.py 与 policy.json，
-在临时目录建一个小仓库与临时 HOME，桩程序经 PATH 注入。核对：两路跑通；real_run_enabled 为 false 时无桩标记的程序被拒；
+在临时目录建一个小仓库与临时 HOME，桩程序经 PATH 注入；卡从 Issue 读（#49），gh 也是桩，经环境变量 DELEGATE_GH 注入，Issue 内容在临时目录的 issues.json。
+核对：本会话自动识别（规则同 start_sheet：.claude/session-name 标记优先，否则目录名或分支名去 claude/ 对上画像名、取最长），识别不出拒，
+--session 只作核对、与识别不一致拒（调度 10-27）；卡只取「目标」「完成标准」两节；Issue 取不到、不存在、已关闭、缺本会话标签、带挂起或 hold、标签名不是字符串、
+gh 超时、缺节、卡号不是 Issue 号一律拒且拒绝不带正文、台账只记卡号与原因；真跑开关开着时设了 DELEGATE_GH 即拒；gh 只被以 issue view 只读调用；
+两路跑通；real_run_enabled 为 false 时无桩标记的程序被拒；
 禁区路径（含 review.final_paths、./ 前缀、大小写变体）、不外包类别、卡里密钥被拒；policy 缺键或类型不对失败关闭；
 越界、改名绕范围的改动机械验证不过；子进程只见白名单环境变量（env -i）、stdin 是 /dev/null（自测给的是管道）、
 优先级已降、沙箱与禁网参数在命令行里；快照在系统临时目录、不含禁区文件与内容、经 git 拿不到仓库；
@@ -20,6 +24,43 @@ PLATFORM_ADDED = {"__CF_USER_TEXT_ENCODING"}  # macOS 在 env -i 之后由系统
 CARD_MARKER = "CARD-BODY-MARKER-7d1c"
 FORBID = "FORBIDDEN-CONTENT-5e2a"
 MARK_LINE = "# DELEGATE-SELFTEST-STUB\n"
+OTHER = "OTHER-SECTION-MARKER-3b9f"   # 两节之外的正文与模板注释，不得进提示
+BODY = "REFUSED-BODY-MARKER-9c4e"     # 被拒 Issue 的正文，不得出现在报错与台账
+SESSION = "one-test"
+LABEL = f"会话:{SESSION}"
+
+
+def card(goal, done="src/a.txt 内容为 changed。", extra=""):
+    return f"<!-- {OTHER} -->\n## 目标\n{goal}\n\n## 完成标准\n{done}\n{extra}"
+
+
+# 原 docs/modernization/tasks/T-1..T-4.md 四份卡样本改为 Issue #1..#4（意图不变）；#5..#9 是新加的准入拒绝样本。
+ISSUES = {"1": {"state": "OPEN", "labels": [{"name": LABEL}], "body": card(f"把 src/a.txt 改成 changed。\n{CARD_MARKER}", extra=f"\n## 备注\n{OTHER}\n")},
+          "2": {"state": "OPEN", "labels": [{"name": LABEL}], "body": card("OUT_OF_SCOPE：顺手改 scripts/hooks/x.py。")},
+          "3": {"state": "OPEN", "labels": [{"name": LABEL}], "body": card("凭据 " + "sk-" + "Q" * 32)},
+          "4": {"state": "OPEN", "labels": [{"name": LABEL}], "body": card("RENAME_IN：把 docs/other.md 搬进 src。")},
+          "5": {"state": "CLOSED", "labels": [{"name": LABEL}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
+          "6": {"state": "OPEN", "labels": [{"name": "会话:one-other"}, {"name": "挂起"}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
+          "7": {"state": "OPEN", "labels": [{"name": LABEL}], "body": f"## 目标\n把 src/a.txt 改成 changed。{BODY}\n\n## 完成标准\n<!-- 未填 -->\n"},
+          "8": f"not json {BODY}", "9": [{"state": "OPEN"}],
+          # 调度 10-27 追加：带挂起、带 hold（同 Q7）；标签名不是字符串；gh 挂住超过超时（桩见 HANG）
+          "10": {"state": "OPEN", "labels": [{"name": LABEL}, {"name": "挂起"}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
+          "11": {"state": "OPEN", "labels": [{"name": LABEL}, {"name": "hold"}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
+          "12": {"state": "OPEN", "labels": [{"name": LABEL}, {"name": [BODY]}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
+          "13": "HANG"}
+GH_STUB = r'''#!@PY@
+import json, os, sys, time
+d, a = os.environ["DELEGATE_SELFTEST_GH_DIR"], sys.argv[1:]
+with open(os.path.join(d, "calls.jsonl"), "a") as f:
+    f.write(json.dumps(a) + "\n")
+issues = json.load(open(os.path.join(d, "issues.json"), encoding="utf-8"))
+if a[:2] != ["issue", "view"] or len(a) < 3 or a[2] not in issues:
+    sys.exit(print("GraphQL: Could not resolve to an issue or pull request", file=sys.stderr) or 1)
+v = issues[a[2]]
+if v == "HANG":
+    time.sleep(3600)
+print(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
+'''
 STUB = r'''#!@PY@
 # DELEGATE-SELFTEST-STUB
 import json, os, subprocess, sys
@@ -60,26 +101,29 @@ class T:
 
 
 def setup(tmp, policy):
-    repo, home, stubs, plain = tmp / "repo", tmp / "home", tmp / "stubs", tmp / "plain"
-    for d in (repo, home, stubs, plain):
+    repo, home, stubs, plain, ghd = tmp / "repo", tmp / "home", tmp / "stubs", tmp / "plain", tmp / "gh"
+    for d in (repo, home, stubs, plain, ghd):
         d.mkdir()
+    for d in (ghd, plain):   # plain 里的 gh 供真跑开关开着、不设 DELEGATE_GH 时经 PATH 找到
+        (d / "gh").write_text(GH_STUB.replace("@PY@", sys.executable), encoding="utf-8")
+        (d / "gh").chmod(0o755)
+    (ghd / "issues.json").write_text(json.dumps(ISSUES, ensure_ascii=False), encoding="utf-8")
     for name in ("codex", "pi"):
         for d, text in ((stubs, STUB), (plain, STUB.replace(MARK_LINE, ""))):
             (d / name).write_text(text.replace("@PY@", sys.executable), encoding="utf-8")
             (d / name).chmod(0o755)
     env = {"HOME": str(home), "PATH": f"{stubs}:/usr/bin:/bin", "LANG": "C.UTF-8", "GIT_CONFIG_NOSYSTEM": "1",
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid", "GIT_COMMITTER_NAME": "t",
-           "GIT_COMMITTER_EMAIL": "t@example.invalid", "DELEGATE_SELFTEST_CANARY": "1"}
+           "GIT_COMMITTER_EMAIL": "t@example.invalid", "DELEGATE_SELFTEST_CANARY": "1",
+           "DELEGATE_GH": str(ghd / "gh"), "DELEGATE_SELFTEST_GH_DIR": str(ghd)}
     files = {"policy.json": json.dumps(policy, ensure_ascii=False, indent=2), "src/a.txt": "original\n", "docs/other.md": "other\n",
-             "scripts/hooks/x.py": f"x = 1  # {FORBID}\n", "docs/SECRETS-sample.md": f"{FORBID}\n", "scripts/merge/m.py": f"# {FORBID}\n",
-             "docs/modernization/tasks/T-1.md": f"# T-1\n把 src/a.txt 改成 changed。\n{CARD_MARKER}\n",
-             "docs/modernization/tasks/T-2.md": "# T-2\nOUT_OF_SCOPE：顺手改 scripts/hooks/x.py。\n",
-             "docs/modernization/tasks/T-3.md": "# T-3\n凭据 " + "sk-" + "Q" * 32 + "\n",
-             "docs/modernization/tasks/T-4.md": "# T-4\nRENAME_IN：把 docs/other.md 搬进 src。\n"}
+             "scripts/hooks/x.py": f"x = 1  # {FORBID}\n", "docs/SECRETS-sample.md": f"{FORBID}\n", "scripts/merge/m.py": f"# {FORBID}\n"}
+    # 会话画像（本会话自动识别，规则同 start_sheet）：one 与 one-test 都能前缀匹配分支 claude/one-test-main，须取最长；_ 开头的不算画像
+    files.update({f"docs/modernization/sessions/{n}.md": f"# {n}\n" for n in ("one", SESSION, "one-other", "_retired")})
     for rel, text in files.items():
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         (repo / rel).write_text(text, encoding="utf-8")
-    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "init"]):
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "init"], ["checkout", "-q", "-b", f"claude/{SESSION}-main"]):
         subprocess.run(["git", *args], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
     return repo, home, stubs, plain, env
 
@@ -104,12 +148,15 @@ def leak_free(text, t, what):
 def happy(t, engine, stub, must, repo, home, stubs, env, policy):
     rec_file = stubs / f"rec-{stub}.json"
     rec_file.unlink(missing_ok=True)
-    rc, out = run(repo, env, "run", "--engine", engine, "--category", "机械改写", "--card", "T-1", "--scope", "src/a.txt")
+    rc, out = run(repo, env, "run", "--engine", engine, "--category", "机械改写", "--session", SESSION, "--card", "1", "--scope", "src/a.txt")
     t.check(rc == 0, f"{engine} 两路之一跑通（退出 {rc}）" + ("" if rc == 0 else f"：{out.strip()[-300:]}"))
     if not rec_file.exists():
         t.check(False, f"{engine} 桩程序被调用")
         return
     rec = json.loads(rec_file.read_text())
+    prompt = rec["argv"][-1]
+    t.check(CARD_MARKER in prompt and "src/a.txt 内容为 changed" in prompt and OTHER not in prompt,
+            f"{engine} 提示里的卡取自 Issue 的「目标」「完成标准」两节，别的节与模板注释不进")
     extra = set(rec["env"]) - set(policy["delegate"]["env_allow"]) - PLATFORM_ADDED
     t.check(not extra and "DELEGATE_SELFTEST_CANARY" not in rec["env"],
             f"{engine} 子进程只见白名单环境变量（env -i）" + (f"；多出 {sorted(extra)}" if extra else ""))
@@ -170,24 +217,63 @@ def main():
         ds = happy(t, "deepseek", "pi", PI_MUST, repo, home, stubs, env, policy)
         t.check(bool(cx and ds) and cx.get("tokens") == 1234 and ds.get("tokens") == "未知" and ds.get("cost") == "未知",
                 "token 取到记数、取不到与费用记「未知」")
-        base = ["run", "--engine", "codex", "--category", "机械改写", "--card"]
+        base = ["run", "--engine", "codex", "--category", "机械改写", "--session", SESSION, "--card"]
+        auto = ["run", "--engine", "codex", "--category", "机械改写", "--card", "1", "--scope", "src/a.txt"]   # 不给 --session
+        gitr = lambda *a: subprocess.run(["git", *a], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL, capture_output=True)
+        marker = repo / ".claude" / "session-name"
+        rc, out = run(repo, env, *auto)
+        t.check(rc == 0 and ledger(home)[-1].get("status") == "ok", f"本会话自动识别（分支 claude/{SESSION}-main，取最长画像名）、不给 --session：放行（退出 {rc}）")
+        rc, out = run(repo, env, *base, "1", "--scope", "src/a.txt")
+        t.check(rc == 0 and ledger(home)[-1].get("status") == "ok", f"--session 与自动识别一致：放行（退出 {rc}）")
+        out = refused(t, repo, home, stubs, env, "--session 与自动识别不一致", *auto, "--session", "one-other")
+        t.check("不一致" in out and "one-other" not in out, "--session 不一致：报「不一致」，不回显 --session 原值")
+        gitr("checkout", "-q", "-b", "feature-x")   # 目录名 repo、分支 feature-x 都对不上画像，也没有标记
+        for what, extra in (("识别不出本会话（不给 --session）", []), ("识别不出本会话（给了 --session 也不认自报）", ["--session", SESSION])):
+            out = refused(t, repo, home, stubs, env, what, *auto, *extra)
+            t.check("识别不出本会话" in out, f"{what}：报「识别不出本会话」")
+        marker.parent.mkdir()
+        marker.write_text(f"{SESSION}\n", encoding="utf-8")
+        rc, _ = run(repo, env, *auto)
+        t.check(rc == 0, f".claude/session-name 标记优先（分支对不上也认）：放行（退出 {rc}）")
+        gitr("checkout", "-q", f"claude/{SESSION}-main")   # 分支能认出，但标记优先：标记无效即拒，不退回分支名
+        for what, text in (("标记写的不是画像名", "nobody"), ("标记写的是 _ 开头的非画像", "_retired")):
+            marker.write_text(text, encoding="utf-8")
+            refused(t, repo, home, stubs, env, f"{what}（分支能认出也不退回）", *auto)
+        marker.unlink()
+        marker.parent.rmdir()
+        for what, num, extra, want in (("Issue 不存在", "404", {}, "取不到 Issue #404"), ("Issue 已关闭", "5", {}, "不是 open"),
+                                       ("Issue 缺本会话标签（只有别的会话与挂起）", "6", {}, f"没有本会话标签「{LABEL}」"),
+                                       ("Issue 正文缺「完成标准」节内容", "7", {}, "完成标准"), ("卡号不是 Issue 号", "T-1", {}, "Issue 号"),
+                                       ("gh 输出不是 JSON", "8", {}, "取不到 Issue #8"), ("gh 输出不是 JSON 对象", "9", {}, "取不到 Issue #9"),
+                                       ("gh 不可用（程序不存在）", "1", {"DELEGATE_GH": str(tmp / "no-such" / "gh")}, "gh 不可用"),
+                                       ("gh 不可用（不可执行）", "1", {"DELEGATE_GH": str(tmp / "gh" / "issues.json")}, "gh 不可用"),
+                                       ("Issue 带「挂起」标签", "10", {}, "带「挂起」或「hold」标签"), ("Issue 带「hold」标签", "11", {}, "带「挂起」或「hold」标签"),
+                                       ("Issue 标签名不是字符串", "12", {}, "标签名不是字符串"), ("gh 挂住超过超时", "13", {}, "TimeoutExpired")):
+            out = refused(t, repo, home, stubs, {**env, **extra}, what, *base, num, "--scope", "src/a.txt")
+            t.check(want in out and BODY not in out + json.dumps(ledger(home), ensure_ascii=False), f"{what}：报原因「{want}」，报错与台账不含 Issue 正文")
+            last = ledger(home)[-1]
+            t.check(last.get("card") == num and want in last.get("reason", "") and not {"labels", "body", "issue"} & set(last), f"{what}：台账只记卡号与拒绝原因")
         for what, scope in (("范围是禁区文件", "scripts/hooks/x.py"), ("范围覆盖禁区文件", "scripts"),
                             ("范围是禁区通配（密钥文件）", "docs/SECRETS-sample.md"), ("范围出仓库", "../x"),
                             ("范围 ./ 前缀指向禁区", "./scripts/hooks/x.py"), ("范围大小写变体指向禁区", "SCRIPTS/Hooks/x.py"), ("范围大小写变体指向禁区内新文件", "Scripts/Hooks/new.py"),
                             ("范围含 . 段与连续斜杠指向禁区", "scripts/./hooks//x.py"), ("范围 .. 段绕回禁区", "src/../scripts/hooks/x.py"),
                             ("范围落在 review.final_paths（scripts/merge/）", "scripts/merge/m.py")):
-            refused(t, repo, home, stubs, env, what, *base, "T-1", "--scope", scope)
-        out = refused(t, repo, home, stubs, env, "卡里有密钥模式", *base, "T-3", "--scope", "src/a.txt")
+            refused(t, repo, home, stubs, env, what, *base, "1", "--scope", scope)
+        out = refused(t, repo, home, stubs, env, "卡里有密钥模式", *base, "3", "--scope", "src/a.txt")
         leak_free(out + json.dumps(ledger(home), ensure_ascii=False), t, "密钥卡被拒后的台账与报错")
-        refused(t, repo, home, stubs, env, "类别不在试点", "run", "--engine", "deepseek", "--category", "设计", "--card", "T-1", "--scope", "src/a.txt")
+        refused(t, repo, home, stubs, env, "类别不在试点", "run", "--engine", "deepseek", "--category", "设计", "--session", SESSION, "--card", "1", "--scope", "src/a.txt")
         penv = {**env, "PATH": f"{plain}:/usr/bin:/bin"}
-        refused(t, repo, home, plain, penv, "real_run_enabled 为 false 时无桩标记的程序被拒", *base, "T-1", "--scope", "src/a.txt")
+        refused(t, repo, home, plain, penv, "real_run_enabled 为 false 时无桩标记的程序被拒", *base, "1", "--scope", "src/a.txt")
         with_policy(repo, policy, lambda p: p["delegate"].update(real_run_enabled=True))
-        rc, _ = run(repo, penv, *base, "T-1", "--scope", "src/a.txt")
+        out = refused(t, repo, home, plain, penv, "real_run_enabled 为 true 且设了 DELEGATE_GH", *base, "1", "--scope", "src/a.txt")
+        t.check("DELEGATE_GH" in out, "real_run_enabled 为 true 且设了 DELEGATE_GH：报 DELEGATE_GH，不静默忽略")
+        rc, _ = run(repo, {k: v for k, v in penv.items() if k != "DELEGATE_GH"}, *base, "1", "--scope", "src/a.txt")   # 开着开关不许设 DELEGATE_GH，gh 改经 PATH 取 plain/gh 桩
         t.check(rc == 0 and (plain / "rec-codex.json").exists(), "real_run_enabled 为 true 时同一程序放行（开关是唯一差别）")
         (repo / "policy.json").write_text(json.dumps(policy, ensure_ascii=False), encoding="utf-8")
+        rc, _ = run(repo, env, *base, "1", "--scope", "src/a.txt")
+        t.check(rc == 0 and ledger(home)[-1].get("status") == "ok", f"real_run_enabled 为 false 时 DELEGATE_GH 打桩照常放行（退出 {rc}）")
         wt = tmp / "wt"   # 快照临时目录不得在仓库（含主检出）或 ~/.modernize 之内（调度 10-27，#44）；开关关着就核，真跑前必经
-        subprocess.run(["git", "worktree", "add", "-q", str(wt)], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
+        subprocess.run(["git", "worktree", "add", "-q", "-b", f"claude/{SESSION}-wt", str(wt)], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
         (tmp / "lnk").symlink_to(repo / "tmpin", target_is_directory=True)
         (tmp / "homelnk").symlink_to(home, target_is_directory=True)
         for d in (repo / "tmpin", home / ".modernize/tmpin"):
@@ -202,14 +288,14 @@ def main():
                 print(f"SKIP {what}（本机路径不指向同一目录）")
                 continue
             where.mkdir(parents=True, exist_ok=True)
-            out = refused(t, cwd, home, stubs, {**env, "TMPDIR": str(where), "HOME": str(h)}, what, *base, "T-1", "--scope", "src/a.txt")
+            out = refused(t, cwd, home, stubs, {**env, "TMPDIR": str(where), "HOME": str(h)}, what, *base, "1", "--scope", "src/a.txt")
             t.check("TMPDIR" in out and not any(where.iterdir()), f"{what}：报 TMPDIR，快照未落盘")
         (outside := tmp / "outside").mkdir()
-        rc, _ = run(repo, {**env, "TMPDIR": str(outside)}, *base, "T-1", "--scope", "src/a.txt")
+        rc, _ = run(repo, {**env, "TMPDIR": str(outside)}, *base, "1", "--scope", "src/a.txt")
         t.check(rc == 0, f"TMPDIR 在仓库与 ~/.modernize 之外：放行（退出 {rc}）")
         subprocess.run(["git", "worktree", "remove", "--force", str(wt)], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
         with_policy(repo, policy, lambda p: p["delegate"]["pilot"]["categories"].append("复审"))
-        refused(t, repo, home, stubs, env, "不外包类别（复审）", "run", "--engine", "deepseek", "--category", "复审", "--card", "T-1", "--scope", "src/a.txt")
+        refused(t, repo, home, stubs, env, "不外包类别（复审）", "run", "--engine", "deepseek", "--category", "复审", "--session", SESSION, "--card", "1", "--scope", "src/a.txt")
         breaks = [(f"policy 缺 delegate.{k}", lambda p, k=k: p["delegate"].pop(k))
                   for k in ("forbidden_paths", "forbidden_categories", "env_allow", "ledger", "real_run_enabled")]
         breaks += [("policy 缺 review.final_paths", lambda p: p["review"].pop("final_paths")),
@@ -219,14 +305,14 @@ def main():
         for what, edit in breaks:
             with_policy(repo, policy, edit)
             eng = "deepseek" if "deepseek" in what else "codex"
-            refused(t, repo, home, stubs, env, f"{what} 失败关闭", "run", "--engine", eng, "--category", "机械改写", "--card", "T-1",
+            refused(t, repo, home, stubs, env, f"{what} 失败关闭", "run", "--engine", eng, "--category", "机械改写", "--session", SESSION, "--card", "1",
                     "--scope", "src/a.txt", expect_ledger=False)
         (repo / "policy.json").write_text(json.dumps(policy, ensure_ascii=False), encoding="utf-8")
-        rc, _ = run(repo, env, *base, "T-2", "--scope", "src/a.txt")
+        rc, _ = run(repo, env, *base, "2", "--scope", "src/a.txt")
         last = ledger(home)[-1]
         t.check(rc == 1 and last.get("status") == "verify_failed" and "touch_forbidden" in last.get("verify", [])
                 and "out_of_scope" in last.get("verify", []), "越界改禁区：机械验证不过、台账记 verify_failed")
-        rc, _ = run(repo, env, *base, "T-4", "--scope", "src")
+        rc, _ = run(repo, env, *base, "4", "--scope", "src")
         last = ledger(home)[-1]
         t.check(rc == 1 and "out_of_scope" in last.get("verify", []), "范围外文件改名进范围：机械验证不过（改名两侧都核）")
         rc, _ = run(repo, env, "adopt", (cx or {}).get("run_id", "x"), "--adopted", "yes", "--rework", "1")
@@ -234,6 +320,9 @@ def main():
         rc, out = run(repo, env, "summary")
         dline = next((l for l in out.splitlines() if " deepseek " in l), "")
         t.check(rc == 0 and " codex " in out and dline.count("（未知1）") == 2, "summary 按月按引擎汇总，未知不按 0 计")
+        calls = [json.loads(l) for l in (tmp / "gh" / "calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        t.check(bool(calls) and all(c[:2] == ["issue", "view"] and c[3:] == ["--json", "state,labels,body"] for c in calls),
+                f"gh 只以 issue view <号> --json state,labels,body 只读调用（共 {len(calls)} 次）")
         wts = subprocess.run(["git", "worktree", "list"], cwd=repo, env=env, capture_output=True, text=True).stdout
         t.check(len(wts.strip().splitlines()) == 1, "调用方仓库没有多出 worktree")
     finally:
