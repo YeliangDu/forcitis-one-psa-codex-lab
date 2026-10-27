@@ -3,7 +3,7 @@
 
 用法（只用标准库；固定由 /usr/bin/python3 -I -S 运行，须保持 3.9 兼容）：
   /usr/bin/python3 -I -S scripts/evidence/evidence.py --session=<会话> <取证单>
-      跑本目录的 sheet_<取证单>.py 的 collect()（返回若干行文本），写 ~/.modernize/psa/ops/evidence/<取证单>-<会话>-<UTC 时刻>-expires-<YYYYMMDD>.txt，
+      跑本目录的 sheet_<取证单>.py 的 collect(session, output)（会话名与输出文件路径由入口传入，取证单不读环境；返回若干行文本），在 / 下运行，写 ~/.modernize/psa/ops/evidence/<取证单>-<会话>-<UTC 时刻>-expires-<YYYYMMDD>.txt，
       只在标准输出打印这个路径，不打印内容（明细不进会话）。过期天数读仓库 policy.json 的 retention_days.evidence，缺项或不是正整数即停；到期由 janitor 按名里的 expires- 删。
   /usr/bin/python3 -I -S scripts/evidence/evidence.py --entry
       打印本入口在 scripts/gates/prod_targets.json trusted_entries.entries 里的登记行（JSON）；登记行只由它生成，自测核对表里那一条与它逐字段相等。
@@ -54,7 +54,7 @@ def no_password(*_args, **_kwargs):  # stop() exits (SystemExit): the sheet's `e
     stop("取证单不得要口令：凭据只来自专用只读账号的本机配置")
 
 
-def collect(sheet, session):  # the sheet's lines; stdin is /dev/null and getpass fails while it runs
+def collect(sheet, session, output):  # the sheet's lines from its collect(session, output); it runs in /, stdin /dev/null, getpass failing
     path = os.path.join(HERE, f"sheet_{sheet}.py")
     if f"sheet_{sheet}.py" not in os.listdir(HERE) or os.path.islink(path) or not os.path.isfile(path):  # the name exactly as listed: a case-insensitive disk would open Sheet_x.PY too
         stop(f"没有取证单 sheet_{sheet}.py")
@@ -62,11 +62,12 @@ def collect(sheet, session):  # the sheet's lines; stdin is /dev/null and getpas
     os.dup2(null, 0)
     os.close(null)
     getpass.getpass, sys.dont_write_bytecode = no_password, True  # no __pycache__: the gate trusts the tree only as on origin/main
+    os.chdir("/")  # no repository, not writable: nothing read from the working directory (.pdbrc and the like) takes part
     try:
         spec = importlib.util.spec_from_file_location(f"sheet_{sheet}", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        lines = [str(line) for line in module.collect(session)]
+        lines = [str(line) for line in module.collect(session, output)]
     except Exception as e:  # noqa: BLE001 — any failure of the sheet stops the run, nothing is written
         stop(f"取证单 {sheet} 出错：{type(e).__name__}（异常文本可能带取证内容，不打印）")
     if any("\n" in line or "\r" in line for line in lines):
@@ -88,9 +89,9 @@ def out_dir():  # ~/.modernize/psa/ops/evidence, 0700; none of ~/.modernize, psa
 def run(session, sheet):
     days, now = retention_days(), datetime.datetime.now(datetime.timezone.utc)
     expires = (now + datetime.timedelta(days=days)).date()
-    lines = collect(sheet, session)
     name = f"{sheet}-{session}-{now:%Y%m%dT%H%M%SZ}-expires-{expires:%Y%m%d}.txt"
     path = os.path.join(out_dir(), name)
+    lines = collect(sheet, session, path)
     head = [f"过期：{expires:%Y-%m-%d}（retention_days.evidence = {days} 天，到期由 janitor 删除）", f"取证单：{sheet}　会话：{session}　生成：{now:%Y-%m-%dT%H:%M:%SZ}", ""]
     try:
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)

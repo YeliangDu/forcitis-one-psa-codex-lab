@@ -315,8 +315,9 @@ def gate_self_test():
         Path(cwd, "new_intent.py").write_text("import os\n", encoding="utf-8")
         assert refused(f"python3 -I {cwd}/new_intent.py x", mine) and refused("python3 -I new_intent.py x", mine), "the registered path only, not the same name elsewhere"
         ev = os.path.join(REPO_ROOT, "scripts", "evidence", "evidence.py")  # the one other trusted prefix (二乙 #6): the literal scripts/evidence/, the script directly in it; the cases after the loop start from the registered one
+        row = next(e for e in json.load(open(os.path.join(g.HERE, "prod_targets.json"), encoding="utf-8"))["trusted_entries"]["entries"] if e["id"] == "evidence")  # its whitelists
         for script, ok in (("./scripts/evidence/evidence.py", False), ("scripts/evidencex/evidence.py", False), ("scripts/evidence/../evidence/evidence.py", False), ("evidence.py", False), ("scripts/evidence/evidence.py", True)):  # registered last
-            g.trusted_entries = lambda script=script: ([dict(entry, script=script)], {"name": re.compile(r"[a-z]{1,9}")})
+            g.trusted_entries = lambda script=script: ([dict(row, interpreter=entry["interpreter"], forms=entry["forms"], script=script)], {"name": re.compile(r"[a-z]{1,9}")})
             assert (allowed if ok else refused)(f"python3 -I {ev} x", mine) and refused(f"python3 -I {ev} x y", mine), ("registered under scripts/evidence/: its form only; no variant of the prefix, no `..`", script)
         for blobs, why in ((lambda rels: {}, "not on origin/main"), (lambda rels: {r: "0" * 40 if r.endswith("_selftest.py") else as_main([r])[r] for r in rels}, "a file beside it differs from origin/main")):
             with mock.patch.object(g, "main_blobs", blobs):
@@ -329,7 +330,7 @@ def gate_self_test():
             assert g.entry_script("scripts/evidence/e.py", top) is None and g.entry_script("scripts/evidence/e.py", cwd) == os.path.join(cwd, "scripts/evidence/e.py"), ("a link leaving scripts/evidence/", link)
         lab, here = os.path.realpath(tempfile.mkdtemp(dir=cwd)), "scripts/evidence"  # an evidence entry trusts only the whole tree as on main, its sheets within the limits (调度 10-27 结构口径)
         put(os.path.join(lab, here, "evidence.py"), Path(ev).read_text(encoding="utf-8"), 0o644)
-        put(os.path.join(lab, here, "sheet_ok.py"), "import os, json\ndef collect(session):\n    return [os.path.join('a', session), json.dumps(1)]\n", 0o644)
+        put(os.path.join(lab, here, "sheet_ok.py"), "import json\ndef collect(session, output):\n    return [json.dumps(session), str(len(output))]\n", 0o644)
         def as_lab():  # the lab as it stands, frozen as origin/main's tree and blobs
             rows, blobs = tree_as_main(lab), as_main_of(lab)
             return mock.patch.multiple(g, ANCHOR=lab, main_tree=lambda root: rows, main_blobs=lambda paths: {r: blobs[r] for r in paths if r in blobs})
@@ -343,15 +344,18 @@ def gate_self_test():
             os.rename(os.path.join(lab, here, "sheet_ok.py"), os.path.join(lab, here, "Sheet_ok.PY"))  # the same sheet renamed only in case
             assert refused(run_lab, mine) and not os.rename(os.path.join(lab, here, "Sheet_ok.PY"), os.path.join(lab, here, "sheet_ok.py")), "a case-only rename"
             assert allowed(run_lab, mine), "back as on main"
-        for body, why in (("import sys\nsys.path.insert(0, 'lib')\n", "sys.path"), ("from sys import path\n", "sys.path imported"), ("import importlib\n", "importlib"), ("__import__('os')\n", "__import__"), ("exec('x = 1')\n", "exec"),
-                          ("open('/etc/hosts').read()\n", "open"), ("from .sheet_ok import collect\n", "a relative import"), ("import prod_write_gate\n", "no standard library module"), ("import os\nos.system('ls')\n", "os.system"), ("def (\n", "unparsable")):
-            put(os.path.join(lab, here, "sheet_t.py"), body, 0o644)
-            assert not g.sheet_ok(os.path.join(lab, here, "sheet_t.py"), {"evidence", "sheet_ok"}), why
-        assert g.sheet_ok(os.path.join(lab, here, "sheet_ok.py"), set()) and not put(os.path.join(lab, "lib/helper.py"), "x = 1\n", 0o644), "the standard library only"
+        reach, sheet = g.module_attrs(row["allowed_imports"]), os.path.join(lab, here, "sheet_t.py")  # a sheet by whitelists only (调度 10-27): every case below on its own
+        written = lambda body: put(sheet, body, 0o644) or g.sheet_ok(sheet, set(row["allowed_imports"]) | {"sheet_ok"}, set(row["allowed_builtins"]), reach)  # noqa: E731
+        for body in ("import subprocess\n", "import os\n", "import sys\n", "import site\n", "import io\n", "import importlib\n", "import pdb\n", "import prod_write_gate\n", "import json.tool\n", "import sys as s\n", "from os import sys\n", "from json import *\n",
+                     "exec('x = 1')\n", "open('/etc/hosts')\n", "getattr(len, 'x')\n", "__import__('os')\n", "breakpoint()\n", "x = ().__class__.__subclasses__()\n", "x = __builtins__\n", "x = (y for y in []).gi_frame.f_globals\n",
+                     "import json\nx = json.decoder\n", "from json import decoder\n", "x = len._x\n", "from .sheet_ok import collect\n", "import sys\nsys.path.insert(0, 'lib')\n", "def (\n"):
+            assert not written(body), ("outside the whitelists: an import, an alias, a builtin, `__`, `_`, a frame, a module reached, relative, unparsable", body)
+        body = "import json, datetime, re\nimport sheet_ok\nfrom collections import OrderedDict\ndef collect(session, output):\n    return [json.dumps(len(session)), str(datetime.date(2026, 1, 1))]\n"
+        assert written(body + "if __name__ == \"__main__\":\n    print(collect('a', 'b'))\n"), "within the whitelists, a sheet beside it, the main guard"
+        assert reach is not None and g.module_attrs(["no_such_module_x"]) is None and not put(os.path.join(lab, "lib/helper.py"), "x = 1\n", 0o644), "an allowed module that cannot be imported: not trusted"
         put(os.path.join(lab, here, "sheet_t.py"), "import os, sys\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))\nimport helper\n", 0o644)
         with as_lab():  # on main as it is, a sheet loading a module outside the tree through sys.path (b39e3785 M1): refused by its writing alone
             assert refused(run_lab, mine), "a sheet on main that puts a directory on sys.path"
-        assert g.stdlib_module("sys") and g.stdlib_module("json") and not g.stdlib_module("prod_write_gate") and not g.stdlib_module(""), "built in, a package of the standard library; a module of this repository, no name"
         g.trusted_entries = lambda: ([], {})
         assert refused(f"python3 -I {intent} x", mine) and refused(f"python3 -I {ev} x", mine), "not registered"
         g.trusted_entries = lambda: ([dict(entry, forms=[["{any}"]])], {"any": re.compile(".+")})

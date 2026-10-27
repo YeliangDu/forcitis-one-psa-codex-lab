@@ -20,7 +20,8 @@ HOME_LINE = "return pwd.getpwuid(os.getuid()).pw_dir"
 def main():
     out = subprocess.run([PYTHON, "-I", "-S", os.path.join(HERE, "evidence.py"), "--entry"], capture_output=True, text=True, env={})
     table = json.loads(open(os.path.join(ROOT, "scripts", "gates", "prod_targets.json"), encoding="utf-8").read())["trusted_entries"]["entries"]
-    assert out.returncode == 0 and [e for e in table if e.get("id") == "evidence"] == [json.loads(out.stdout)], ("the table's row is the one the entry generates", out.stdout, out.stderr)
+    row, mine = json.loads(out.stdout or "{}"), [e for e in table if e.get("id") == "evidence"]
+    assert out.returncode == 0 and len(mine) == 1 and {k: mine[0].get(k) for k in row} == row and set(mine[0]) - set(row) == {"allowed_imports", "allowed_builtins"}, ("the table's row is the one the entry generates, plus the gate's lists", out.stderr)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = os.path.realpath(tmp)
         repo, home = os.path.join(tmp, "repo"), os.path.join(tmp, "home")
@@ -30,8 +31,9 @@ def main():
         source = open(os.path.join(HERE, "evidence.py"), encoding="utf-8").read()
         assert source.count(HOME_LINE) == 1, "the copy swaps exactly the one place the home is read"
         open(os.path.join(here, "evidence.py"), "w", encoding="utf-8").write(source.replace(HOME_LINE, f"return {home!r}"))
-        sheets = {"stub": "def collect(session):\n    return ['a ' + session, 'b']\n", "ask": "import getpass\ndef collect(session):\n    return [getpass.getpass('口令：')]\n",
-                  "boom": "def collect(session):\n    raise ValueError('detail-from-the-sheet')\n", "feed": "import sys\ndef collect(session):\n    return ['in:' + sys.stdin.read()]\n"}
+        sheets = {"stub": "def collect(session, output):\n    return ['a ' + session, 'b']\n", "ask": "import getpass\ndef collect(session, output):\n    return [getpass.getpass('口令：')]\n",
+                  "boom": "def collect(session, output):\n    raise ValueError('detail-from-the-sheet')\n", "feed": "import sys\ndef collect(session, output):\n    return ['in:' + sys.stdin.read()]\n",
+                  "where": "import os\ndef collect(session, output):\n    return ['cwd:' + os.getcwd(), 'out:' + output]\n"}  # these copies run without the gate: os, sys, getpass only to probe the entry
         for name, body in sheets.items():
             open(os.path.join(here, f"sheet_{name}.py"), "w", encoding="utf-8").write(body)
         os.symlink(os.path.join(here, "sheet_stub.py"), os.path.join(here, "sheet_link.py"))
@@ -80,6 +82,8 @@ def main():
                 os.path.lexists(planted) or plant(planted)
             r = entry("--session=one-ops", "stub")
             assert r.returncode == 2 and "写不了输出文件" in r.stderr and all(open(p, encoding="utf-8").read() == "kept\n" for p in names + [victim] if not os.path.islink(p) and p != path), (r.returncode, r.stderr)
+        r = entry("--session=one-ops", "where")
+        assert r.returncode == 0 and open(r.stdout.strip(), encoding="utf-8").read().splitlines()[-2:] == ["cwd:/", "out:" + r.stdout.strip()], "a sheet runs in /, and is handed the output path"
         r = entry("--session=one-ops", "feed", feed="secret-typed-in\n")
         assert r.returncode == 0 and open(r.stdout.strip(), encoding="utf-8").read().splitlines()[-1] == "in:", "a sheet reads /dev/null, not what was piped to the entry"
         shutil.rmtree(os.path.join(home, ".modernize", "psa", "ops"))

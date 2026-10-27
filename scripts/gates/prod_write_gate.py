@@ -16,6 +16,7 @@
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
 import ast
+import builtins
 import collections
 import importlib.util
 import json
@@ -24,7 +25,7 @@ import re
 import shlex
 import subprocess
 import sys
-import sysconfig
+import types
 from pathlib import Path
 
 
@@ -288,7 +289,7 @@ if not os.path.exists(os.path.join(REPO_ROOT, ".git")):  # installed copy (insta
 ANCHOR, ROOTS = REPO_ROOT, ()  # whose origin/main says which scripts are trusted, (hook cwd, CLAUDE_PROJECT_DIR, process cwd) whose tables are unioned in; decide() sets both per call
 DOCS_ROOT = "docs" + "/" + "modernization"  # built, not spelled: relevant_change.py scans sources for literal docs paths
 EVIDENCE_ROOT = "scripts/evidence/"  # the one other prefix a trusted entry may live under (二乙 #6 O22a), resolved against the repository root
-EVIDENCE_BANNED = {"importlib", "__import__", "exec", "eval", "compile", "runpy", "open", "ctypes", "*"}  # names a sheet may not use; `*`: a star import (调度 10-27)
+BUILTINS = frozenset(dir(builtins))  # a sheet's name that is one of these must be on the evidence row's allowed_builtins (调度 10-27)
 TABLE = os.environ.get("PROD_TARGETS_FILE") or str(Path(HERE) / "prod_targets.json")  # unioned with origin/main's all the same (load_table)
 MAIN_TABLE_PATH = "scripts/gates/prod_targets.json"  # on origin/main since #693 (the old scripts/hooks/ copy is gone: b1 8.1 C7)
 SQL_TOOLS = {"psql", "mysql", "mariadb", "sqlcmd", "osql", "mssql-cli", "mongosh", "mongo", "redis-cli", "usql", "tsql", "isql"}
@@ -670,7 +671,7 @@ def main_tree(root):  # [(mode, path)] of every entry under scripts/evidence/ on
     return None if run.returncode or any(len(r) != 2 or len(r[0].split()) != 3 for r in rows) else [(r[0].split()[0], r[1]) for r in rows if r[1].startswith(EVIDENCE_ROOT)]
 
 
-def evidence_tree(root):  # Files of scripts/evidence/ when its whole tree, every entry of any name, case or kind, is the very set origin/main lists, holds no symlink or submodule, and each sheet passes sheet_ok(); else None. The caller compares the bytes (调度 10-27 结构口径).
+def evidence_tree(root, entry):  # Files of scripts/evidence/ when its whole tree, every entry of any name, case or kind, is the very set origin/main lists, holds no symlink or submodule, and each sheet passes sheet_ok() under the entry's whitelists (origin/main's row); else None. The caller compares the bytes (调度 10-27 结构口径).
     def fail(error):
         raise error
     top, found, rows = os.path.join(root, EVIDENCE_ROOT), {}, main_tree(root)
@@ -685,29 +686,39 @@ def evidence_tree(root):  # Files of scripts/evidence/ when its whole tree, ever
     if rows is None or any(mode not in ("040000", "100644", "100755") for mode, _ in rows) or {rel for _, rel in rows} != set(found):
         return None
     files = [os.path.join(root, rel) for rel, is_file in sorted(found.items()) if is_file]
-    beside = {os.path.basename(f)[:-3] for f in files if os.path.dirname(f) == os.path.normpath(top) and f.endswith(".py")}
-    return files if all(sheet_ok(f, beside) for f in files if os.path.basename(f).lower().startswith("sheet_")) else None
+    lists = [entry.get(k) for k in ("allowed_imports", "allowed_builtins")]
+    if not all(isinstance(v, list) and all(isinstance(s, str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", s) for s in v) for v in lists):
+        return None
+    beside = {os.path.basename(f)[:-3] for f in files if os.path.dirname(f) == os.path.normpath(top) and os.path.basename(f).startswith("sheet_") and f.endswith(".py")}  # the other sheets: checked as well
+    reach = module_attrs(lists[0])
+    return files if reach is not None and all(sheet_ok(f, beside | set(lists[0]), set(lists[1]), reach) for f in files if os.path.basename(f).lower().startswith("sheet_")) else None
 
 
-def sheet_ok(path, beside):  # A sheet as written: it parses, has no relative import, imports only the standard library or a module beside it, and uses none of EVIDENCE_BANNED, sys.path, os.system, os.exec*, os.spawn* (as a name, an attribute or an imported name); unsure is no.
+def module_attrs(names):  # Attribute names that reach a module object from the allowed modules, transitively (datetime.sys, dataclasses.inspect.os): a sheet uses none of them; None when one cannot be imported.
+    try:
+        todo, seen, attrs = [importlib.import_module(n) for n in names], set(), set()
+    except Exception:  # noqa: BLE001 — whatever stops an import: not trusted
+        return None
+    while todo:
+        module = todo.pop()
+        if id(module) not in seen:
+            seen.add(id(module))
+            found = {k: v for k, v in list(vars(module).items()) if isinstance(v, types.ModuleType)}
+            attrs, todo = attrs | set(found), todo + list(found.values())
+    return attrs
+
+
+def sheet_ok(path, imports, builtin_ok, reach):  # A sheet as written, by whitelists only (调度 10-27): it parses; every import is absolute and names a module of `imports` (the table's allowed_imports, or a sheet beside it), each from-import name too may not reach a module; a builtin is used only if in `builtin_ok`; no name or attribute starting `__` except in `if __name__ == "__main__"`; no attribute starting `_`, none of a frame, code or traceback (gi_frame, f_globals …), none that reaches a module. Unsure is no.
     try:
         nodes = list(ast.walk(ast.parse(Path(path).read_bytes())))
     except (OSError, SyntaxError, ValueError, RecursionError):
         return False
-    froms = [n for n in nodes if isinstance(n, ast.ImportFrom)]
-    tops = [a.name.split(".")[0] for n in nodes if isinstance(n, ast.Import) for a in n.names] + [(n.module or "").split(".")[0] for n in froms]
-    used = {n.id for n in nodes if isinstance(n, ast.Name)} | {n.attr for n in nodes if isinstance(n, ast.Attribute)} | {a.name for n in froms for a in n.names} | set(tops)
-    dotted = {f"{n.value.id}.{n.attr}" for n in nodes if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)} | {f"{n.module}.{a.name}" for n in froms for a in n.names}
-    return not any(n.level for n in froms) and all(t in beside or stdlib_module(t) for t in tops) and not used & EVIDENCE_BANNED and "sys.path" not in dotted and not any(re.fullmatch(r"system|(?:exec|spawn)[lv]p?e?", u) for u in used)
-
-
-def stdlib_module(name):  # True when the standard library of the interpreter running the gate (/usr/bin/python3, as the entry) holds `name`: built in, frozen, or under sysconfig's stdlib directory outside site-packages (3.9 has no sys.stdlib_module_names); unsure is no
-    try:
-        origin = getattr(importlib.util.find_spec(name), "origin", None) or ""
-    except (ImportError, ValueError, AttributeError):
-        return False
-    lib = os.path.realpath(sysconfig.get_paths()["stdlib"])
-    return origin in ("built-in", "frozen") or bool(origin) and os.path.realpath(origin).startswith(lib + os.sep) and "site-packages" not in origin
+    guard = {id(n.test.left) for n in nodes if isinstance(n, ast.If) and isinstance(n.test, ast.Compare) and isinstance(n.test.left, ast.Name) and n.test.left.id == "__name__" and [type(o) for o in n.test.ops] == [ast.Eq] and [getattr(c, "value", None) for c in n.test.comparators] == ["__main__"]}
+    froms, names = [n for n in nodes if isinstance(n, ast.ImportFrom)], [n for n in nodes if isinstance(n, ast.Name)]
+    modules = [a.name for n in nodes if isinstance(n, ast.Import) for a in n.names] + [n.module for n in froms]
+    attrs = [n.attr for n in nodes if isinstance(n, ast.Attribute)] + [a.name for n in froms for a in n.names]
+    return (not any(n.level for n in froms) and all(m in imports for m in modules) and all(n.id in builtin_ok or n.id not in BUILTINS or id(n) in guard for n in names)
+            and not any(n.id.startswith("__") and id(n) not in guard for n in names) and not any(a.startswith("_") or a == "*" or a in reach or re.match(r"(?:gi|cr|ag|tb|f|co)_", a) for a in attrs))
 
 
 def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered entry (interpreter, script, one of its forms) whose script, closure and read directories are origin/main's, else None.
@@ -722,7 +733,7 @@ def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered
         script, n = entry_script(entry["script"], ANCHOR), len(entry.get("interpreter", []))  # the table's `~/` is this process's home; the line spells the absolute path
         if not script or not n or len(words) <= n or words[:n] != [os.path.expanduser(w) for w in entry["interpreter"]] or os.path.islink(os.path.join(cwd or os.getcwd(), words[n])) or rel_of(os.path.join(cwd or os.getcwd(), words[n])) != rel_of(script):  # a link to the script runs beside the link
             continue
-        read = [tree_files(DOCS_ROOT + "/" + d) for d in entry.get("trust_dirs", []) if isinstance(d, str) and ".." not in d] + ([evidence_tree(ANCHOR)] if entry["script"].startswith(EVIDENCE_ROOT) else [])  # an evidence entry: its whole tree; no other entry calls it
+        read = [tree_files(DOCS_ROOT + "/" + d) for d in entry.get("trust_dirs", []) if isinstance(d, str) and ".." not in d] + ([evidence_tree(ANCHOR, entry)] if entry["script"].startswith(EVIDENCE_ROOT) else [])  # an evidence entry: its whole tree; no other entry calls it
         loaded = closure(script) if any(form_matches(words[n + 1:], f, slots) for f in entry.get("forms", [])) and None not in read else None
         if loaded is not None and all_as_on_main([script] + sorted(loaded) + [f for files in read for f in files]):
             return argv
