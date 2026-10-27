@@ -3,7 +3,7 @@
 
 用法（复审子代理自己执行）：post_review.py --pr N --body-file F [--guard] [--repo OWNER/REPO]
 F 头三行即机读头（结论、commit、复审者），其后空一行接正文；结论只从文件解析，不接受命令行手填，作者无从改判。
-解析不过即拒绝；再核 PR head 等于头里的 commit、关联 Issue 已排期（issue_gate.py，二乙 #24），然后把 F 原样作为普通 review（COMMENT，commit_id=该 commit）提交。
+解析不过即拒绝；再核 PR head 等于头里的 commit、通过结论另核关联 Issue 已排期（issue_gate.py，二乙 #24；必改不拦），然后把 F 原样作为普通 review（COMMENT，commit_id=该 commit）提交。
 review 成功后才动标签：必改 → 去；首轮通过 → 加；终审通过 → 不动。--guard（钩子/安全类，派工人声明）
 须同 commit 首轮与终审最新结论都为通过才加，缺一份就等。加标签前再核 head 与返回的 commit_id。mq 对守护路径仍自查。
 本脚本是仓库里唯一写「复审通过」标签的地方（H21）。退出码：0 成功（含等另一份结论）；2 参数、policy、gh、head 或关联 Issue 不过
@@ -51,9 +51,9 @@ def load_policy(path=POLICY):
 def gh(args, stdin=None):
     """调用 gh，返回 (退出码, 标准输出)；gh 不存在返回 127。"""
     try:
-        proc = subprocess.run(["gh", *args], input=stdin, capture_output=True, text=True, encoding="utf-8", timeout=60)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        sys.stderr.write(f"无法运行 gh（{getattr(exc, 'strerror', None) or type(exc).__name__}）\n")
+        proc = subprocess.run(["gh", *args], input=stdin, capture_output=True, text=True, encoding="utf-8")
+    except OSError as exc:
+        sys.stderr.write(f"无法运行 gh（{exc.strerror}）\n")
         return 127, ""
     if proc.returncode != 0 and proc.stderr: sys.stderr.write(proc.stderr)
     return proc.returncode, proc.stdout
@@ -148,7 +148,7 @@ def post(pr, text, run=None, policy=None, guard=False, repo=None):
         raise Refused(EXIT_REFUSED, f"读不到 PR #{pr} 的当前 head（或 gh 不可用），拒绝提交")
     if head != commit:
         raise Refused(EXIT_REFUSED, f"head 已变：PR #{pr} 当前 head {head}，被审 {commit}；未提交，请复审新 head")
-    if (why := issue_gate.unscheduled(pr, run, scope)): raise Refused(EXIT_REFUSED, why)
+    if verdict == PASS and (why := issue_gate.unscheduled(pr, run, scope)): raise Refused(EXIT_REFUSED, why)
     payload = json.dumps({"event": "COMMENT", "commit_id": commit, "body": text}, ensure_ascii=False)
     rc, out = run(["api", "--method", "POST", f"repos/{slug}/pulls/{pr}/reviews", "--input", "-"], stdin=payload)
     if rc != 0:

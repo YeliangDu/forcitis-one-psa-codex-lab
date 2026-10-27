@@ -3,6 +3,7 @@
 
 关联 Issue 只从 PR 正文首行取，首行须恰为「Closes #<卡号>」（与 .github/pull_request_template.md 一致）；
 首行不合格、正文其余部分（HTML 注释除外）另有 Closes／Fixes／Resolves #<号> 的关联（多个），一律拒。
+已排期口径为调度对定稿 1.8 第 5 点的解释（调度 10-27），非用户原话，待用户确认。
 已排期 = Issue 是 open，且恰有一个非空的「会话:<名>」标签，且没有「挂起」「hold」标签（精确名，口径同 scripts/delegate.py 的 fetch_card）。
 没有会话标签即待做，多个会话标签归属不明；只认明确已排期，其余一律拒。读不到、gh 出错或超时、输出不是 JSON、标签名不是字符串都拒（失败关闭）。
 """

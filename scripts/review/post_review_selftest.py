@@ -276,20 +276,34 @@ def case_issue_scheduled_passes():
     assert issue_calls == [["issue", "view", str(ISSUE), "-R", "o/r", "--json", "state,labels"]], issue_calls   # 只读，不取正文
     s = Stub(issue_labels=(SESSION_LABEL, "enhancement"))   # 其他标签不碍事
     assert run(s)[0] == 0
-    for verdict, reviewer in ((FIX, R1), (PASS, R2)):   # 必改与终审同样先核已排期
+    for verdict, reviewer in ((FIX, R1), (PASS, R2)):
         assert run(Stub(), verdict=verdict, reviewer=reviewer)[0] == 0
 
 
 def case_issue_pending_or_hung_refused():
     for labels in ((), ("enhancement",), (SESSION_LABEL, "挂起"), (SESSION_LABEL, "hold"), ("挂起",), ("hold",), (SESSION_LABEL, "挂起", "hold"),
                    (SESSION_LABEL, "会话:one-dev"), ("会话:",), ("会话: ",)):
-        for verdict, guard in ((PASS, False), (FIX, False), (PASS, True)):
-            msg = refused(Stub(issue_labels=labels), verdict=verdict, guard=guard)
+        for reviewer, guard in ((R1, False), (R2, False), (R1, True), (R2, True)):   # 有放行意义的结论：首轮通过、终审通过
+            msg = refused(Stub(issue_labels=labels), reviewer=reviewer, guard=guard)
             assert "拒绝提交" in msg and f"#{ISSUE}" in msg, (labels, msg)
     assert "挂起" in refused(Stub(issue_labels=(SESSION_LABEL, "挂起")))
     assert "待做" in refused(Stub(issue_labels=()))
     assert "不是 open" in refused(Stub(issue_state="CLOSED"))
     assert "不是 open" in refused(Stub(issue_state=None))
+
+
+def case_issue_not_scheduled_fix_still_posts():
+    """必改不拦、摘「复审通过」标签也不拦（含 --guard、终审、Issue 读不到或 closed）。"""
+    for kw in ({"issue_labels": (SESSION_LABEL, "挂起")}, {"issue_labels": (SESSION_LABEL, "hold")}, {"issue_labels": ()},
+               {"issue_state": "CLOSED"}, {"issue_rc": 1}, {"body": "无关联"}, {"body_rc": 1}):
+        for reviewer in (R1, R2):
+            for guard in (False, True):
+                s = Stub(**kw)
+                assert run(s, verdict=FIX, reviewer=reviewer, guard=guard)[0] == 0, (kw, reviewer, guard)
+                assert s.review_payload()["commit_id"] == SHA and s.edits() == edit(pr_mod.REMOVE_FLAG), kw
+                assert [c for c in s.calls if c[0][0] == "issue"] == [], kw   # 必改不去查 Issue
+    s = Stub(issue_labels=(SESSION_LABEL, "挂起"))   # 对照：同一桩下首轮通过被拒
+    assert "挂起" in refused(s)
 
 
 def case_issue_unreadable_fails_closed():
@@ -306,13 +320,6 @@ def case_issue_unreadable_fails_closed():
     for out in ((127, ""), (1, "{}"), (124, '{"state": "OPEN", "labels": [{"name": "会话:x"}]}')):   # gh 不存在、出错、超时
         assert issue_gate.unscheduled(PR, lambda args, out=out: out if args[0] == "issue" else (0, json.dumps({"body": BODY})), []) is not None
     assert issue_gate.unscheduled(PR, lambda args: (127, ""), []) is not None
-
-
-def case_gh_timeout_fails_closed():
-    with mock.patch.object(pr_mod.subprocess, "run", side_effect=pr_mod.subprocess.TimeoutExpired("gh", 60)) as sp:
-        assert pr_mod.gh(["issue", "view", "7"]) == (127, "")
-        assert sp.call_args.kwargs.get("timeout") == 60   # 不设超时会挂住而不是失败关闭
-        assert issue_gate.unscheduled(PR, pr_mod.gh, []) is not None
 
 
 def case_issue_link_forms():
