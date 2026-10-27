@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""统一生成入口：按 GENERATORS 清单依次运行生成器与检查（GOV-1023-FV2 O14，定稿 1.11、2.5）。INTENT / SESSION_LOG / STATUS / SESSIONS / WORK_BOARD 已停止生成。
+"""统一生成入口：按 GENERATORS 清单依次运行生成器与检查（GOV-1023-FV2 O14，定稿 1.11、2.5）。INTENT / SESSION_LOG / STATUS / SESSIONS / WORK_BOARD / TASKS 已停止生成（卡改用 GitHub Issues，#23）。
   build_all.py                  生成全部产物
   build_all.py --check          CI（scripts/ci/light.sh）：重新生成前后无差异；不入仓产物（清单第四列、adr/ADR-*.md）已生成，这些与 OpenAPI 产物目录都没被跟踪；
-                                tasks/TASKS.md 两次生成一致；RULE_REVIEWS.json 原结论未被改写（rules/review_revisions.py，比对 origin/main 的合并基点）
+                                RULE_REVIEWS.json 原结论未被改写（rules/review_revisions.py，比对 origin/main 的合并基点）
   build_all.py --self-test-list 带自测的生成器；light.sh 逐个跑 --self-test，本入口不再跑工具自测
   build_all.py --without-api    跳过读 OpenAPI 的生成器（清单第六列）及其不入仓产物；OpenAPI 与前端 generated 不入仓（GOV-1023-QUA-02 第二段），新检出没有它们，要起容器导出才有
 """
@@ -31,7 +31,7 @@ def snapshot(base=BASE):
     files = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", ".", GLOSSARY_INDEX],
                            cwd=base, capture_output=True, text=True, check=True).stdout.split("\0")
     return {name: hashlib.sha256(Path(base, name).read_bytes()).hexdigest() if Path(base, name).is_file() else None
-            for name in files if name and name != "tasks/TASKS.md"}
+            for name in files if name}
 
 
 # 不入仓产物：--check 要求它们没被跟踪（.gitignore 对已跟踪文件无效，冲突时「保留对方版本」会让它们悄悄回到库里），且生成之后确实存在
@@ -66,26 +66,22 @@ def generate(check, names, base=BASE):
     run_steps(names, base)
     if not check:
         return
-    first = Path(base, "tasks/TASKS.md").read_bytes()
-    run_steps(["check_tasks.py"], base)
-    if Path(base, "tasks/TASKS.md").read_bytes() != first: sys.exit("tasks/TASKS.md 连续两次生成内容不一致")
     after = snapshot(base)
     dirty = "\n".join(sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name)))
     if dirty: sys.exit("生成产物与片段不一致（请运行 build_all.py 后重新检查，不要直接编辑生成产物）：\n" + dirty)
-    print("check: 入仓产物重新生成前后无差异；TASKS.md 连续两次生成一致")
+    print("check: 入仓产物重新生成前后无差异")
 
 
 def self_test():
     with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
         root, base = Path(tmp), Path(tmp, "docs/modernization")
-        [(base / folder).mkdir(parents=True) for folder in ("inputs", "tasks")]
-        (root / ".gitignore").write_text("docs/modernization/tasks/TASKS.md\ndocs/modernization/gen.md\ndocs/modernization/A-*.md\nfrontend/packages/api/openapi.json\n", encoding="utf-8")
+        (base / "inputs").mkdir(parents=True)
+        (root / ".gitignore").write_text("docs/modernization/gen.md\ndocs/modernization/A-*.md\nfrontend/packages/api/openapi.json\n", encoding="utf-8")
         (base / "build_index.py").write_text("from pathlib import Path\np = Path('.')\n(p / 'README.md').write_text(''.join(f.read_text() for f in sorted((p / 'inputs').glob('*.txt'))))\n", encoding="utf-8")
-        (base / "check_tasks.py").write_text("from pathlib import Path\nPath('tasks/TASKS.md').write_text('t')\n", encoding="utf-8")
         (base / "inputs/a.txt").write_text("one", encoding="utf-8")
         git = lambda *args: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(root), *args], check=True, capture_output=True)
         git("init", "-q")
-        names = ["build_index.py", "check_tasks.py"]
+        names = ["build_index.py"]
         generate(False, names, str(base))
         git("add", ".")
         def fails(message, run=lambda: generate(True, names, str(base))):
@@ -99,10 +95,7 @@ def self_test():
             change()
             fails("生成产物与片段不一致")
         generate(True, names, str(base))   # 已生成一致的未提交改动：通过
-        (base / "tasks/TASKS.md").unlink(), generate(True, names, str(base))   # TASKS 缺失可重建
-        (base / "check_tasks.py").write_text("import time\nfrom pathlib import Path\nPath('tasks/TASKS.md').write_text(str(time.time_ns()))\n", encoding="utf-8")
-        fails("连续两次生成内容不一致")
-        (base / "check_tasks.py").write_text("raise SystemExit('generation failed')\n", encoding="utf-8"), fails("generation failed")
+        (base / "build_fail.py").write_text("raise SystemExit('generation failed')\n", encoding="utf-8"), fails("generation failed", lambda: generate(True, [*names, "build_fail.py"], str(base)))
         (base / "gen.md").write_text("g"), (base / "A-1.md").write_text("a")
         check_untracked_products(str(base), ("gen.md",), "A-*.md")   # 已生成且未被跟踪：通过
         fails("生成之后不存在", lambda: check_untracked_products(str(base), ("gen.md", "missing.md"), "A-*.md"))
@@ -115,11 +108,11 @@ def self_test():
     api_steps = [g[0] for g in GENERATORS if g[5]]
     assert api_steps == ["architecture/panorama/panorama_build.py", "architecture/frameworks/notes_build.py", "architecture/panorama/object_freeze_check.py"], "读 OpenAPI 的生成器：全景、笔记、对象冻结"
     steps, products = plan(True, True)
-    assert not set(api_steps) & set(steps) and "architecture/panorama/scan_commands.py" in steps and "check_tasks.py" in steps, "--without-api 只去掉读 OpenAPI 的生成器"
+    assert not set(api_steps) & set(steps) and "architecture/panorama/scan_commands.py" in steps and "build_decisions.py" in steps,"--without-api 只去掉读 OpenAPI 的生成器"
     assert not {p for g in GENERATORS if g[5] for p in g[3]} & set(products) and set(products) < set(UNTRACKED_PRODUCTS) and "adr/INDEX.md" in products, "--without-api 去掉它们的产物，其余产物照查"
     assert plan(True, False) == ([g[0] for g in GENERATORS], UNTRACKED_PRODUCTS) and "glossary/build_terms.py" not in plan(False, False)[0], "不带 --without-api 全跑；无 PyYAML 只去掉要它的"
     assert all(Path(BASE, g[0]).is_file() and g[1] in {"design", "dev", "language", "lead", "platform"} for g in GENERATORS) and len({g[0] for g in GENERATORS}) == len(GENERATORS), "清单脚本都在、不重复，角色取自 roles/"
-    print("build_all --self-test：通过（手改、删除、漏生成、生成失败、TASKS 两次不一致、不入仓产物被跟踪或没生成即失败；一致的未提交产物与重建通过；清单脚本齐全；OpenAPI 目录下已忽略文件被跟踪即失败；--without-api 只去掉读 OpenAPI 的生成器与其产物）")
+    print("build_all --self-test：通过（手改、删除、漏生成、生成失败、不入仓产物被跟踪或没生成即失败；一致的未提交产物与重建通过；清单脚本齐全；OpenAPI 目录下已忽略文件被跟踪即失败；--without-api 只去掉读 OpenAPI 的生成器与其产物）")
 
 
 def main():

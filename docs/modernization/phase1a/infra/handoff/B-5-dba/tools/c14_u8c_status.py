@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ops_venv_guard  # noqa: E402,F401  须排在所有第三方与同目录导入之前
 import c14_run  # noqa: E402
 
 SERVER = ("SELECT IS_SRVROLEMEMBER(N'sysadmin') AS sysadmin, IS_SRVROLEMEMBER(N'securityadmin') AS securityadmin, IS_SRVROLEMEMBER(N'dbcreator') AS dbcreator,\n"

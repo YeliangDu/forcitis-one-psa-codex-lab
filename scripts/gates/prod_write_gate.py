@@ -7,14 +7,16 @@
 - 行里任意位置有生产特征，或指向生产的目标环境变量（命令里设的、会话环境里的），整行拒绝，不再按「这个命令不连接」放行；变量拼接、花括号展开后才命中的同样拒绝（intent 2026-10-26-165321 A）。
 - 命令参数里凡是存在的普通文件（含 `./x` 这样按路径运行的程序本身）都读：内容（≤256 KB 去引号读，更大的按字节读）不含生产特征才放行，读不了或超过 512 MB 按含特征算，解释器指向目录也按含特征算（同上 B）。
   只有 origin/main 特征表 no_exec_tools 登记的、已知不执行参数文件的程序免读位置参数（选项值、选项里嵌的词、环境变量照读）；解释器名单只作说明（intent 2026-10-26-164931 A′）。
+  免读只给整行就是一条纯命令：没有 ; & | 换行、替换、括号花括号，没有赋值（NAME=、NAME+=、数组），没有 eval、alias、function、hash 等字样，第一个词就是登记程序；否则整行不免（调度 10-26 深夜定）。
 - 行里有换目录（cd、pushd、popd，包装命令或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序：整行拒，不推算目录（intent 2026-10-26-164931）。
-- 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。
+- 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。脚本在 docs 根下；唯一另一个可信前缀是字面的 scripts/evidence/（取证单入口，二乙 #6），按仓库根解析，真实路径须在其内，整棵 scripts/evidence/ 树（全部条目）须与 origin/main 一致，取证单另过静态写法检查（调度 10-27 结构口径）。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：远程工具与解释器拒绝，其余放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名、特征或目标环境变量拒绝。
 已知未覆盖（intent 2026-10-26-165321，复审不判必改）：脚本运行时做什么（运行时拼出或下载生产目标、从管道或标准输入读程序、解释器内联代码自己去连），门只看命令行与被运行的文件；兜底是生产只读账号（底线 4）。
 命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
 import ast
+import builtins
 import collections
 import importlib.util
 import json
@@ -23,6 +25,7 @@ import re
 import shlex
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 
@@ -36,6 +39,10 @@ SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
 WRAPPERS = {"command": set(), "env": {"-u", "-C", "-S", "--chdir"}, "time": {"-f", "-o"}, "exec": {"-a"}, "nohup": set(), "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U", "--chdir"}, "builtin": set(), "timeout": {"-s", "-k"}, "nice": {"-n"}, "stdbuf": {"-i", "-o", "-e"}}  # wrapper -> options that take a value
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "csh", "tcsh", "fish", "eval"}
+REEVAL_WORDS = SHELLS | {"shell", "source", "trap", "zstyle", "functions", "zsh_name", "zsh_argzero", "script", "tmux", "screen", "vi", "vim", "nvim", "zpty", "sched"}  # run a string, or a program that may be zsh, again (zpty, sched: fffa95968 final M2)
+REEVAL_WORD = re.compile(r"(?<![\w.-])(?:" + "|".join(sorted(REEVAL_WORDS)) + r")(?:-?[0-9][0-9.]*)?(?![\w.-])|(?:^|[\s;&|(])\.(?=\s)")  # (text already `plain`) a shell, eval, source or `.`, trap … anywhere
+REEVAL = re.compile(REEVAL_WORD.pattern + r"|\$[{(]?[A-Za-z0-9_]|[*?\[]")  # … or a variable, a substitution or a wildcard that may spell a program: the line is read again without quotes (fbd9bbb63 round 1 M2, final M3)
+ZSH_MECHANISM = re.compile(r"\\[0-9xuUc]|\$'|(?<!\w)(?:print|echo)(?:\s+-\w+)*\s+-\w*[ebfp]|(?<!\w)printf(?!\w).*%b|(?<!\w)(?:setopt|unsetopt|emulate|zmodload|autoload)(?!\w)|(?<!\w)set(?:\s+[-+]\w*)*\s+[-+]\w*o|options\[|g_*l_*o_*b_*s_*u_*b_*s_*t|\$\{?[=^~#+]*~", re.S | re.I)  # (searched as written, with quotes removed, and with quotes and backslashes removed; a `-` before a word does not hide it: `${:-setopt}`, ae6567064 round 1 M1, M2); print/echo/printf decode escapes by default, so judge refuses any backslash as written when the word, a `$`, a backtick, a wildcard or a brace (which may spell the word) shows up with quotes and backslashes removed (6789c4a00 round 1 M1, fffa95968 round 1 M1, final M1); `o` in any of set's option clusters (6789c4a00 round 1 M1, M2) a character spelled as an escape, $'…', print/echo/printf reading escapes, zsh options or modules changed, a value globbed ($~x, ${^~x}): not decoded, the whole line counts (调度 10-27 晚)
 ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 COMMENT_OR_HEREDOC = re.compile(r"(?:^|[^A-Za-z0-9_./:=@%+-])#|(?<!<)<<(?!<)")  # a `#` that may start a comment, a here-document: not mimicked, the whole line counts (intent 2026-10-26-140639)
 VARIABLE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
@@ -43,6 +50,7 @@ SUBSTITUTION = re.compile(r"\$\(([^()]*)\)")
 SHORT_C = re.compile(r"-[A-Za-z]*c[A-Za-z]*")
 ECHOES = {"echo", "printf"}
 Command = collections.namedtuple("Command", "argv env unresolved redirected piped chdir", defaults=(False, False))  # chdir: a wrapper option (`env -C`, `sudo -D`) changes its directory
+NOT_PURE = re.compile(r"[;&|\n\r`$(){}]|(?:^|\s)[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\])?\+?=|(?<![\w.-])(?:eval|alias|function|functions|hash|enable|aliases|commands)(?![\w.-])")  # a separator, a substitution, a group or function, an assignment, a word that renames: no tool is exempt
 
 
 def decode_ansi_c(body):  # Text of a bash `$'...'` word, decoded byte-wise as bash does (\xHH, \NNN, \uHHHH, \UHHHHHHHH, \cX, one-letter escapes); a NUL ends it.
@@ -280,6 +288,8 @@ if not os.path.exists(os.path.join(REPO_ROOT, ".git")):  # installed copy (insta
     REPO_ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.devnull
 ANCHOR, ROOTS = REPO_ROOT, ()  # whose origin/main says which scripts are trusted, (hook cwd, CLAUDE_PROJECT_DIR, process cwd) whose tables are unioned in; decide() sets both per call
 DOCS_ROOT = "docs" + "/" + "modernization"  # built, not spelled: relevant_change.py scans sources for literal docs paths
+EVIDENCE_ROOT = "scripts/evidence/"  # the one other prefix a trusted entry may live under (二乙 #6 O22a), resolved against the repository root
+BUILTINS = frozenset(dir(builtins))  # a sheet's name that is one of these must be on the evidence row's allowed_builtins (调度 10-27)
 TABLE = os.environ.get("PROD_TARGETS_FILE") or str(Path(HERE) / "prod_targets.json")  # unioned with origin/main's all the same (load_table)
 MAIN_TABLE_PATH = "scripts/gates/prod_targets.json"  # on origin/main since #693 (the old scripts/hooks/ copy is gone: b1 8.1 C7)
 SQL_TOOLS = {"psql", "mysql", "mariadb", "sqlcmd", "osql", "mssql-cli", "mongosh", "mongo", "redis-cli", "usql", "tsql", "isql"}
@@ -408,14 +418,21 @@ def remote_table():  # (remote tool names, entries, slot patterns) of origin/mai
         return set(REMOTE_TOOLS), [], {}
 
 
-def no_exec_tools():  # (programs known not to run a file named on their command line, git sub-commands that run none) from origin/main's table section no_exec_tools (the local table never counts: a branch cannot widen it); empty when absent.
+def no_exec_tools():  # (programs known not to run a file named on their command line, git sub-commands that run none, {program: its short options that take the next word}) from origin/main's table section no_exec_tools (the local table never counts: a branch cannot widen it); empty when absent.
     global ANCHOR
     ANCHOR = ANCHOR or trust_root(ROOTS[0]) or os.devnull
     try:
         found = json.loads(main_table_text(ANCHOR)[0] or "{}").get("no_exec_tools", {})
-        return tuple({t for t in found.get(k, []) if isinstance(t, str) and re.fullmatch(r"[a-z0-9_.+-]+", t)} for k in ("tools", "git_subcommands"))
+        valued = {t: v for t, v in found.get("short_valued", {}).items() if isinstance(t, str) and isinstance(v, str) and re.fullmatch(r"[A-Za-z]*", v)}
+        return (*({t for t in found.get(k, []) if isinstance(t, str) and re.fullmatch(r"[a-z0-9_.+-]+", t)} for k in ("tools", "git_subcommands")), valued)
     except (ValueError, AttributeError, TypeError):
-        return set(), set()
+        return set(), set(), {}
+
+
+def option_value(tool, prev, valued):  # True when the word after `prev` may be its value: any option, unless the table names the tool's short options that take one (a long option without `=` still may)
+    if not prev.startswith("-") or prev == "--":
+        return False
+    return tool not in valued or (prev.startswith("--") and "=" not in prev) or bool(re.fullmatch(r"-[A-Za-z]+", prev) and prev[-1] in valued[tool])
 
 
 def git_sub(argv):  # git's sub-command when only known global options come before it (`-C dir`, `-P`, `--no-pager`); None after any other, whose value it may take (--attr-source …): not exempt
@@ -441,6 +458,29 @@ def remote_entry(text, entries, slots):  # True when the whole line is exactly o
 
 def may_run_or_expand(text):  # (text already `plain`) a program that runs others, a remote tool's name as a substring, an expansion or a path command: the line may reach production unseen
     return bool(REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text) or NET_REDIRECT.search(text))
+
+
+def glob_qualifier(text, raw=False):  # True when an unquoted `(` may end a word, or opens `(#`: a zsh glob qualifier (`*(e:…:)`, `a1(e:…:)`) runs code while expanding; bash's extglob, a function definition and an array look the same and count too. Allowed only after an unescaped space, tab or newline (zsh splits on no other), a `$` that is not `$$`, `(`, `|`, `&`, `;`, or a `<`/`>` that itself starts a word (process substitution): anything else, escaped included, counts (40df9f9a5 round 1, final M1, M2; fbd9bbb63 round 1, final M1). Quotes are followed only while certain: a double-quoted part holding `$` or a backtick ends that, the rest is read raw. `raw` (the text may be evaluated again): no quotes followed, a backslash before `(` dropped. Nothing is decoded: judge refuses a ZSH_MECHANISM line as it stands (调度 10-27 晚).
+    text = re.sub(r"\\+\(", "(", text) if raw else text
+    i, n, follow, esc = 0, len(text), not raw, -9
+    while i < n:
+        c = text[i]
+        if c == "\\":
+            i, esc = i + 2, i + 1
+            continue
+        if follow and c in "'\"":  # `'…'` literal; `"…"` ends at an unescaped quote
+            j = i + 1
+            while j < n and text[j] != c:
+                j += 2 if text[j] == "\\" and c != "'" else 1
+            if j < n and (c != '"' or not re.search(r"[$`]", text[i + 1:j])):
+                i = j + 1
+                continue
+            follow = False
+        elif c == "(" and (text.startswith("(#", i) or i and (esc == i - 1 or text[i - 1] not in " \t\n$(|&;<>" or text[i - 2:i] == "$$" and esc != i - 2
+                                                              or text[i - 1] in "<>" and (i > 1 and text[i - 2] not in " \t\n(|&;" or esc == i - 2))):
+            return True
+        i += 1
+    return False
 
 
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow. Any word may name a file a program runs (A′, intent 2026-10-26-164931): only an empty line is skipped.
@@ -615,6 +655,73 @@ def tree_files(rel_dir):  # Every file under a directory of the anchor (__pycach
     return files
 
 
+def entry_script(rel, root):  # A registered script's path: under the docs root, or, spelled with the literal prefix scripts/evidence/, under the repository root while its real path stays inside that directory (二乙 #6); None when it leaves it.
+    if not rel.startswith(EVIDENCE_ROOT):
+        return os.path.join(root, DOCS_ROOT, rel)
+    path, inside = os.path.join(root, rel), os.path.join(os.path.realpath(root), EVIDENCE_ROOT.rstrip("/"))  # the directory itself, not where a link named so points
+    return path if ".." not in rel and os.path.dirname(os.path.realpath(path)) == inside else None  # directly in it: no `..`, no subdirectory, no link out
+
+
+def main_tree(root):  # [(mode, path)] of every entry under scripts/evidence/ on origin/main (`-t` also lists scripts and scripts/evidence themselves: left out); None when git fails
+    try:
+        run = subprocess.run(["git", "-C", root, "ls-tree", "-r", "-t", "-z", "refs/remotes/origin/main", "--", EVIDENCE_ROOT], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    rows = [r.split("\t", 1) for r in run.stdout.split("\0") if r]
+    return None if run.returncode or any(len(r) != 2 or len(r[0].split()) != 3 for r in rows) else [(r[0].split()[0], r[1]) for r in rows if r[1].startswith(EVIDENCE_ROOT)]
+
+
+def evidence_tree(root, entry):  # Files of scripts/evidence/ when its whole tree, every entry of any name, case or kind, is the very set origin/main lists, holds no symlink or submodule, and each sheet passes sheet_ok() under the entry's whitelists (origin/main's row); else None. The caller compares the bytes (调度 10-27 结构口径).
+    def fail(error):
+        raise error
+    top, found, rows = os.path.join(root, EVIDENCE_ROOT), {}, main_tree(root)
+    try:
+        for here, dirs, names in os.walk(top, onerror=fail):
+            for name in dirs + names:
+                if os.path.islink(os.path.join(here, name)):
+                    return None
+                found[os.path.relpath(os.path.join(here, name), root)] = name in names
+    except OSError:
+        return None
+    if rows is None or any(mode not in ("040000", "100644", "100755") for mode, _ in rows) or {rel for _, rel in rows} != set(found):
+        return None
+    files = [os.path.join(root, rel) for rel, is_file in sorted(found.items()) if is_file]
+    lists = [entry.get(k) for k in ("allowed_imports", "allowed_builtins")]
+    if not all(isinstance(v, list) and all(isinstance(s, str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", s) for s in v) for v in lists):
+        return None
+    reach = module_attrs(lists[0])  # imports: allowed_imports only, no sheet beside it (run with -I the directory is not on sys.path anyway; b5ae8ec8 final suggestion 1)
+    return files if reach is not None and all(sheet_ok(f, set(lists[0]), set(lists[1]), reach) for f in files if os.path.basename(f).lower().startswith("sheet_")) else None
+
+
+def module_attrs(names):  # Attribute names that reach a module object from the allowed modules, transitively (datetime.sys, dataclasses.inspect.os): a sheet uses none of them; None when one cannot be imported.
+    # Worked out on the interpreter running the gate, which must be the entry's (both /usr/bin/python3): module contents differ between versions; check again whenever a module is added (b5ae8ec8 first round 4, final 2, 3).
+    try:
+        todo, seen, attrs = [importlib.import_module(n) for n in names], set(), set()
+    except Exception:  # noqa: BLE001 — whatever stops an import: not trusted
+        return None
+    while todo:
+        module = todo.pop()
+        if id(module) not in seen:
+            seen.add(id(module))
+            found = {k: v for k, v in list(vars(module).items()) if isinstance(v, types.ModuleType)}
+            attrs, todo = attrs | set(found), todo + list(found.values())
+    return attrs
+
+
+def sheet_ok(path, imports, builtin_ok, reach):  # A sheet as written, by whitelists only (调度 10-27): it parses, has no match statement; every import is absolute and names a module of `imports` (the table's allowed_imports), each from-import name too may not reach a module; a builtin is used only if in `builtin_ok`; no name, def, class, parameter or import alias starting `__` except `__name__` in `if __name__ == "__main__"`; no attribute starting `_`, none of a frame, code or traceback (gi_frame, f_globals …), none that reaches a module. Unsure is no.
+    try:
+        nodes = list(ast.walk(ast.parse(Path(path).read_bytes())))
+    except (OSError, SyntaxError, ValueError, RecursionError):
+        return False
+    guard = {id(n.test.left) for n in nodes if isinstance(n, ast.If) and isinstance(n.test, ast.Compare) and isinstance(n.test.left, ast.Name) and n.test.left.id == "__name__" and [type(o) for o in n.test.ops] == [ast.Eq] and [getattr(c, "value", None) for c in n.test.comparators] == ["__main__"]}
+    froms, names = [n for n in nodes if isinstance(n, ast.ImportFrom)], [n for n in nodes if isinstance(n, ast.Name)]
+    modules = [a.name for n in nodes if isinstance(n, ast.Import) for a in n.names] + [n.module for n in froms]
+    attrs = [n.attr for n in nodes if isinstance(n, ast.Attribute)] + [a.name for n in froms for a in n.names]
+    declared = [n.name for n in nodes if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))] + [n.arg for n in nodes if isinstance(n, ast.arg)] + [a.asname or "" for n in nodes if isinstance(n, (ast.Import, ast.ImportFrom)) for a in n.names]
+    return (not any(isinstance(n, getattr(ast, "Match", ())) for n in nodes) and not any(d.startswith("__") for d in declared) and not any(n.level for n in froms) and all(m in imports for m in modules) and all(n.id in builtin_ok or n.id not in BUILTINS or id(n) in guard for n in names)
+            and not any(n.id.startswith("__") and id(n) not in guard for n in names) and not any(a.startswith("_") or a == "*" or a in reach or re.match(r"(?:gi|cr|ag|tb|f|co)_", a) for a in attrs))
+
+
 def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered entry (interpreter, script, one of its forms) whose script, closure and read directories are origin/main's, else None.
     try:
         argv = None if SHELL_META.search(text) or re.search(r"[#\r\\]", text) else shlex.split(text)
@@ -624,10 +731,10 @@ def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered
     ANCHOR, words = ANCHOR or trust_root(ROOTS[0]) or os.devnull, argv or []  # never expanded: a quoted `~` is a directory named ~, an exported HOME another home
     entries, slots = trusted_entries()
     for entry in entries:
-        script, n = os.path.join(ANCHOR, DOCS_ROOT, entry["script"]), len(entry.get("interpreter", []))  # the table's `~/` is this process's home; the line spells the absolute path
-        if not n or len(words) <= n or words[:n] != [os.path.expanduser(w) for w in entry["interpreter"]] or os.path.islink(os.path.join(cwd or os.getcwd(), words[n])) or rel_of(os.path.join(cwd or os.getcwd(), words[n])) != rel_of(script):  # a link to the script runs beside the link
+        script, n = entry_script(entry["script"], ANCHOR), len(entry.get("interpreter", []))  # the table's `~/` is this process's home; the line spells the absolute path
+        if not script or not n or len(words) <= n or words[:n] != [os.path.expanduser(w) for w in entry["interpreter"]] or os.path.islink(os.path.join(cwd or os.getcwd(), words[n])) or rel_of(os.path.join(cwd or os.getcwd(), words[n])) != rel_of(script):  # a link to the script runs beside the link
             continue
-        read = [tree_files(DOCS_ROOT + "/" + d) for d in entry.get("trust_dirs", []) if isinstance(d, str) and ".." not in d]
+        read = [tree_files(DOCS_ROOT + "/" + d) for d in entry.get("trust_dirs", []) if isinstance(d, str) and ".." not in d] + ([evidence_tree(ANCHOR, entry)] if entry["script"].startswith(EVIDENCE_ROOT) else [])  # an evidence entry: its whole tree; no other entry calls it
         loaded = closure(script) if any(form_matches(words[n + 1:], f, slots) for f in entry.get("forms", [])) and None not in read else None
         if loaded is not None and all_as_on_main([script] + sorted(loaded) + [f for files in read for f in files]):
             return argv
@@ -652,11 +759,11 @@ def candidates(argv):  # Words of a command that may name a file it runs: each w
     return out + list(MAKEFILES) * tool.endswith("make")
 
 
-def runs_file(command, patterns, cwd, safe=(frozenset(), frozenset())):  # The command may run a file that mentions production: every existing regular file among its words (intent 2026-10-26-164931, A′), in the hook's directory; unreadable counts.
+def runs_file(command, patterns, cwd, safe=(frozenset(), frozenset(), {})):  # The command may run a file that mentions production: every existing regular file among its words (intent 2026-10-26-164931, A′), in the hook's directory; unreadable counts.
     argv, tool = command.argv, name_of(command.argv[0])  # a tool of `safe` (no_exec_tools) skips its positional words only: an option's value, a word inside one (`-c core.pager=…`), an environment value are still read
     words = candidates(argv) + list(command.env.values())  # an environment value may name a program the command runs (GIT_EXTERNAL_DIFF=…)
     if tool in safe[0] and "/" not in argv[0] and (tool != "git" or git_sub(argv) in safe[1]):  # git: only its sub-commands that run none (bisect run, submodule foreach do)
-        words = [w for i, w in enumerate(argv[1:], 1) if argv[i - 1].startswith("-") and argv[i - 1] != "--"] + list(command.env.values())
+        words = [w for i, w in enumerate(argv[1:], 1) if option_value(tool, argv[i - 1], safe[2])] + list(command.env.values())
         words += [w[2:] for w in argv[1:] if re.match(r"-[A-Za-z].", w)]  # an attached short option value: -Ocmd
         words += [t for w in argv[1:] + list(command.env.values()) for t in re.split(r"[\s=!'\"]+", w) if t and t != w]
     for word in map(os.path.expanduser, words):  # `~/x` as the shell expands it unquoted (a quoted one is checked too: fail closed)
@@ -674,6 +781,10 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     environ, TRUSTED_LINE = os.environ if environ is None else environ, None
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
+    flat = plain(command_text)  # the shell is zsh: what a qualifier runs is not read, the whole line counts (调度 10-27)
+    if any(ZSH_MECHANISM.search(re.sub(drop, "", command_text)) for drop in ("(?!)", "['\"]", r"['\"\\]")) or "\\" in command_text and re.search(r"(?<!\w)(?:print|echo|printf)(?!\w)|[$`*?\[{]", re.sub(r"['\"\\]", "", command_text), re.I) or glob_qualifier(command_text) or (REEVAL.search(flat) and glob_qualifier(command_text, raw=True)) or ((REEVAL_WORD.search(flat) or re.search(r"\$(?!\()|[*?\[]", command_text)) and re.search(r"\$\(|`", command_text)):  # a line that may be read again: quotes not followed (40df9f9a5 final M3); a substitution with a shell, eval … or with a variable or wildcard that may spell one (`$0`, `/bin/z?h`) is not read at all (fbd9bbb63 final M2, ae6567064 final M2)
+        return ("拒绝：命令里有紧跟在词后面、没加引号的左括号，或「(#」、$~；或有字符转义（反斜杠加数字或 x、u、U、c）、$'…'、print/echo 带 -e/-b、printf 带转义；或去掉引号与反斜杠后有改 zsh 选项或模块的写法（setopt、unsetopt、emulate、set -o、set +o、zmodload、autoload、globsubst）。"
+                "zsh 通配限定符（如 *(e:…:)、a1(e:…:)）在展开文件名时就运行代码，bash 的 extglob、函数定义、数组写法相同；行里有 shell、eval、source、trap、变量或通配符时引号里的也算，有 shell、eval 等又有命令替换整行拒。门不解码、不模仿 zsh 去读，见机制即拒（调度 10-27）。把括号放进单引号并去掉变量与通配，或在括号前留一个未转义的普通空格；挑文件改用 find 或先列出再逐个写。")
     odd = bool(COMMENT_OR_HEREDOC.search(command_text)) or "\\\n" in command_text  # a comment, a here-document or a continuation anywhere: not read as the shell does
     if COMMENT_OR_HEREDOC.search(command_text) and CONTINUATION.search(command_text):  # a continuation the shell ends at a comment's newline, the gate would join (82f149d10 final M2)
         return "拒绝：命令里同时有注释或 here-document 与续行，门读不准下一行从哪里开始，宁可误拦（intent 2026-10-26-140639）。去掉注释或续行再执行。"
@@ -705,6 +816,8 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     if any("/" in c.argv[0] and name_of(c.argv[0]) in WRAPPERS for c in commands):  # what it runs, from where, cannot be told: not read (76b7f7e81 round 1 M1, final M1)
         return "拒绝：包装命令（env、sudo、nohup、timeout 等）写成路径，门不解析它会运行什么、在哪个目录，宁可误拦（intent 2026-10-26-164931）。改用裸命令名。"
     safe = no_exec_tools()
+    if len(commands) != 1 or NOT_PURE.search(command_text) or tokens_of(command_text, structured=True)[0] != commands[0].argv[0]:  # exempt only a line that is one plain command, its first word the program: no wrapper, prefix, separator, assignment or renaming (intent 2026-10-26-164931)
+        safe = (set(), set(), {})
     for command in commands:
         tool = name_of(command.argv[0])
         if any(NET_REDIRECT.search(w) for w in command.argv):  # a bash network redirection spelled by variables (a14c80797 final M1)

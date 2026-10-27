@@ -10,7 +10,6 @@
 # Bash 3.2（macOS）可用：不用关联数组与 mapfile。
 set -uo pipefail
 export PYTHONDONTWRITEBYTECODE=1  # 不留 __pycache__：backend 作业随后在同一工作区跑测试，遍历目录的测试读到 .pyc 会崩（#693）；python3 -I 不认它，另由 rm_new_pyc 删
-
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "light.sh：不在 git 仓库里" >&2; exit 2; }
 cd "$root" || exit 2
 base=${1-origin/main}
@@ -30,9 +29,7 @@ if [ -n "$base" ] && ! list_changed "$changed"; then
   exit 2
 fi
 
-passed=0
-failed=0
-skipped=0
+passed=0 failed=0 skipped=0
 started_all=$SECONDS
 
 run() {  # run <名字> <命令…>：PASS 或 FAIL 加用时；输出只在失败时显示最后 30 行
@@ -78,6 +75,7 @@ run "rule review revisions (self-test)" python3 docs/modernization/rules/review_
 against_base "rule review revisions are append-only" python3 docs/modernization/rules/review_revisions.py --base
 run "database scripts aligned (self-test)" python3 -I scripts/ci/db_scripts_aligned.py --self-test
 run "database scripts aligned" python3 -I scripts/ci/db_scripts_aligned.py
+run "deploy.yml: checkout no global git config" python3 -I -c 'import sys,yaml; s=[x for x in yaml.safe_load(open(".github/workflows/deploy.yml"))["jobs"]["deploy"]["steps"] if str(x.get("uses","")).lower().startswith("actions/checkout@")]; w=[{str(k).lower(): v for k, v in (x.get("with") or {}).items()} for x in s]; sys.exit("deploy 作业找不到 actions/checkout 步" if not s else 0 if all(x.get("set-safe-directory") is False and not x.get("submodules") for x in w) else "deploy 作业的 checkout 须写 set-safe-directory: false、不开 submodules：否则全局 git 配置落进 $HOME/.gitconfig，toolchain.sh 按 R-0 拒绝（run 40387799615，569ed501f）")'
 
 # 只增不改的登记与验收守护（原 backend 作业里的步骤）
 for script in migrations_immutable system_actors_append_only acceptance_guard acceptance_reports acceptance_rulings; do
@@ -90,10 +88,12 @@ against_base "acceptance rulings" python3 scripts/ci/acceptance_rulings.py
 
 # 门、钩子、CI 脚本与文档工具的自测（生成器名单取 build_all.py 的清单，O14 起不由 build_all 跑；列不出记一项 FAIL）
 run "gates (gates_selftest.py)" python3 scripts/gates/gates_selftest.py
+sheet=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}/start_sheet/start_sheet_selftest.py  # 开工单固定由 /usr/bin/python3 跑（#47），3.10 以上语法在这里就红；工具库不在本机（CI）时同 acceptance_v2 V05 不判红
+if [ -f "$sheet" ]; then run "start_sheet under /usr/bin/python3" /usr/bin/python3 -I "$sheet"; else skip "start_sheet under /usr/bin/python3" "本机没有工具库的 $sheet"; fi
 listed=$(python3 docs/modernization/build_all.py --self-test-list) || listed="build_all-self-test-list-failed"
 for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py scripts/queue/merge_train.py scripts/merge/mq.py \
-  scripts/ci/ci_recurrence.py scripts/ci/relevant_change.py scripts/hooks/codex_stdin_gate.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \
-  scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py scripts/hooks/session_context.py scripts/hooks/start_sheet.py; do
+  scripts/ci/ci_recurrence.py scripts/ci/relevant_change.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \
+  scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py docs/modernization/new_intent_selftest.py scripts/evidence/evidence_selftest.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
 run "light_selftest (by-change triggers)" bash scripts/ci/light_selftest.sh
@@ -104,7 +104,7 @@ while IFS='|' read -r key name cmd; do
   if touches "${!key}"; then run "$name" $cmd; else skip "$name" "相关路径没改（按改动触发）"; fi
 done <<<"$TRIGGERED_CHECKS"
 if touches "$t_decision_pages"; then
-  against_base "decision pages: question rules" python3 docs/modernization/architecture/decision-page/check_pages.py --changed
+  against_base "decision pages: question rules" python3 docs/modernization/rules/decide/check_pages.py --changed
 fi
 
 # 体量与单一出处（one-quality）
