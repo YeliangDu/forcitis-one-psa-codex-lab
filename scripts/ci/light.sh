@@ -29,9 +29,7 @@ if [ -n "$base" ] && ! list_changed "$changed"; then
   exit 2
 fi
 
-passed=0
-failed=0
-skipped=0
+passed=0 failed=0 skipped=0
 started_all=$SECONDS
 
 run() {  # run <名字> <命令…>：PASS 或 FAIL 加用时；输出只在失败时显示最后 30 行
@@ -90,6 +88,8 @@ against_base "acceptance rulings" python3 scripts/ci/acceptance_rulings.py
 
 # 门、钩子、CI 脚本与文档工具的自测（生成器名单取 build_all.py 的清单，O14 起不由 build_all 跑；列不出记一项 FAIL）
 run "gates (gates_selftest.py)" python3 scripts/gates/gates_selftest.py
+sheet=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}/start_sheet/start_sheet_selftest.py  # 开工单固定由 /usr/bin/python3 跑（#47），3.10 以上语法在这里就红；工具库不在本机（CI）时同 acceptance_v2 V05 不判红
+if [ -f "$sheet" ]; then run "start_sheet under /usr/bin/python3" /usr/bin/python3 -I "$sheet"; else skip "start_sheet under /usr/bin/python3" "本机没有工具库的 $sheet"; fi
 listed=$(python3 docs/modernization/build_all.py --self-test-list) || listed="build_all-self-test-list-failed"
 for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py scripts/queue/merge_train.py scripts/merge/mq.py \
   scripts/ci/ci_recurrence.py scripts/ci/relevant_change.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \

@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "test -f \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py && python3 -I \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py; exit 0",
+            "command": "test -f \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py && /usr/bin/python3 -I \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py; exit 0",
             "timeout": 15
           }
         ]
