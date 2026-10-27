@@ -44,6 +44,13 @@ def put(path, text, mode=0o755):
         f.write(text)
     os.chmod(path, mode)
 
+def tree_as_main(root):  # scripts/evidence/ under root as it stands, listed as prod_write_gate.main_tree() lists origin/main's
+    return [("040000" if n in ds else "100644", os.path.relpath(os.path.join(h, n), root)) for h, ds, ns in os.walk(os.path.join(root, "scripts", "evidence")) for n in ds + ns]
+
+def as_main_of(root):  # {path: object id} of every file under root, read as origin/main's blobs
+    files = [os.path.relpath(os.path.join(h, n), root) for h, _, ns in os.walk(root) for n in ns]
+    return dict(zip(files, g.batch(["hash-object", "--no-filters", "--stdin-paths"], [os.path.join(root, f) for f in files])))
+
 def size(key, path):  # (lines of `path`, its limit policy.json gates.max_lines.<key>)
     return Path(path).read_text(encoding="utf-8").count("\n"), policy()["max_lines"][key]
 
@@ -294,7 +301,7 @@ def gate_self_test():
     assert refused(f"python3 -I {intent} 'x pgm-prod0001'"), "new_intent.py is no registered entry (intent 2026-10-26-132048): a production sample in its text is refused"
     # 9. trusted only as a registered entry (origin/main's trusted_entries), written exactly in one of its forms, while the script is the file on origin/main; new_intent mentions "import"
     real_entries, mine = g.trusted_entries, ["import"]
-    with mock.patch.multiple(g, main_blobs=g.main_blobs, trusted_entries=real_entries):
+    with mock.patch.multiple(g, main_blobs=g.main_blobs, trusted_entries=real_entries, main_tree=tree_as_main):
         entry = {"script": "new_intent.py", "interpreter": ["python3", "-I"], "forms": [["{name}"]]}
         g.trusted_entries = lambda: ([entry], {"name": re.compile(r"[a-z]{1,9}")})
         g.main_blobs = lambda rels: {}
@@ -307,8 +314,51 @@ def gate_self_test():
         g.main_blobs = as_main
         Path(cwd, "new_intent.py").write_text("import os\n", encoding="utf-8")
         assert refused(f"python3 -I {cwd}/new_intent.py x", mine) and refused("python3 -I new_intent.py x", mine), "the registered path only, not the same name elsewhere"
+        ev = os.path.join(REPO_ROOT, "scripts", "evidence", "evidence.py")  # the one other trusted prefix (二乙 #6): the literal scripts/evidence/, the script directly in it; the cases after the loop start from the registered one
+        row = next(e for e in json.load(open(os.path.join(g.HERE, "prod_targets.json"), encoding="utf-8"))["trusted_entries"]["entries"] if e["id"] == "evidence")  # its whitelists
+        for script, ok in (("./scripts/evidence/evidence.py", False), ("scripts/evidencex/evidence.py", False), ("scripts/evidence/../evidence/evidence.py", False), ("evidence.py", False), ("scripts/evidence/evidence.py", True)):  # registered last
+            g.trusted_entries = lambda script=script: ([dict(row, interpreter=entry["interpreter"], forms=entry["forms"], script=script)], {"name": re.compile(r"[a-z]{1,9}")})
+            assert (allowed if ok else refused)(f"python3 -I {ev} x", mine) and refused(f"python3 -I {ev} x y", mine), ("registered under scripts/evidence/: its form only; no variant of the prefix, no `..`", script)
+        for blobs, why in ((lambda rels: {}, "not on origin/main"), (lambda rels: {r: "0" * 40 if r.endswith("_selftest.py") else as_main([r])[r] for r in rels}, "a file beside it differs from origin/main")):
+            with mock.patch.object(g, "main_blobs", blobs):
+                assert refused(f"python3 -I {ev} x", mine), why
+        for link, target in (("scripts/evidence", "out"), ("scripts/evidence/e.py", "out/e.py")):  # a symlink out of scripts/evidence/: the directory, or the script itself
+            top = os.path.realpath(tempfile.mkdtemp(dir=cwd))
+            put(os.path.join(top, "out", "e.py"), "x = 1\n", 0o644)
+            os.makedirs(os.path.join(top, os.path.dirname(link)), exist_ok=True)
+            os.symlink(os.path.join(top, target), os.path.join(top, link))
+            assert g.entry_script("scripts/evidence/e.py", top) is None and g.entry_script("scripts/evidence/e.py", cwd) == os.path.join(cwd, "scripts/evidence/e.py"), ("a link leaving scripts/evidence/", link)
+        lab, here = os.path.realpath(tempfile.mkdtemp(dir=cwd)), "scripts/evidence"  # an evidence entry trusts only the whole tree as on main, its sheets within the limits (调度 10-27 结构口径)
+        put(os.path.join(lab, here, "evidence.py"), Path(ev).read_text(encoding="utf-8"), 0o644)
+        put(os.path.join(lab, here, "sheet_ok.py"), "import json\ndef collect(session, output):\n    return [json.dumps(session), str(len(output))]\n", 0o644)
+        def as_lab():  # the lab as it stands, frozen as origin/main's tree and blobs
+            rows, blobs = tree_as_main(lab), as_main_of(lab)
+            return mock.patch.multiple(g, ANCHOR=lab, main_tree=lambda root: rows, main_blobs=lambda paths: {r: blobs[r] for r in paths if r in blobs})
+        run_lab = f"python3 -I {lab}/{here}/evidence.py x"
+        with as_lab():
+            assert allowed(run_lab, mine), "the control: the tree as on main, its sheet within the limits"
+            for name in ("Sheet_new.PY", "selectors/__init__.py", "nspkg", "notes.txt", "link"):  # a case variant of a sheet, a package, an empty directory (a namespace package), a file that is no sheet, a symlink: each an entry origin/main does not list
+                os.symlink(os.path.join(lab, here, "sheet_ok.py"), os.path.join(lab, here, name)) if name == "link" else os.makedirs(os.path.join(lab, here, name)) if name == "nspkg" else put(os.path.join(lab, here, name), "x = 1\n", 0o644)
+                assert refused(run_lab, mine), ("an entry origin/main does not list", name)
+                (shutil.rmtree if "/" in name or name == "nspkg" else os.remove)(os.path.join(lab, here, name.split("/")[0]))
+            os.rename(os.path.join(lab, here, "sheet_ok.py"), os.path.join(lab, here, "Sheet_ok.PY"))  # the same sheet renamed only in case
+            assert refused(run_lab, mine) and not os.rename(os.path.join(lab, here, "Sheet_ok.PY"), os.path.join(lab, here, "sheet_ok.py")), "a case-only rename"
+            assert allowed(run_lab, mine), "back as on main"
+        reach, sheet = g.module_attrs(row["allowed_imports"]), os.path.join(lab, here, "sheet_t.py")  # a sheet by whitelists only (调度 10-27): every case below on its own
+        written = lambda body: put(sheet, body, 0o644) or g.sheet_ok(sheet, set(row["allowed_imports"]), set(row["allowed_builtins"]), reach)  # noqa: E731
+        for body in ("import subprocess\n", "import os\n", "import sys\n", "import site\n", "import io\n", "import importlib\n", "import pdb\n", "import prod_write_gate\n", "import json.tool\n", "import sys as s\n", "from os import sys\n", "from json import *\n",
+                     "exec('x = 1')\n", "open('/etc/hosts')\n", "getattr(len, 'x')\n", "__import__('os')\n", "breakpoint()\n", "x = ().__class__.__subclasses__()\n", "x = __builtins__\n", "x = (y for y in []).gi_frame.f_globals\n",
+                     "import json\nx = json.decoder\n", "from json import decoder\n", "x = len._x\n", "from .sheet_ok import collect\n", "import sys\nsys.path.insert(0, 'lib')\n", "def (\n",
+                     "import sheet_ok\n", "match len:\n    case _:\n        pass\n", "def __f():\n    pass\n", "class __C:\n    pass\n", "def f(__a):\n    pass\n", "import json as __j\n"):  # a sheet beside it, match, `__` in a def, class, parameter, alias
+            assert not written(body), ("outside the whitelists: an import, an alias, a builtin, `__`, `_`, a frame, a module reached, relative, unparsable", body)
+        body = "import json, datetime, re\nfrom collections import OrderedDict\ndef collect(session, output):\n    return [json.dumps(len(session)), str(datetime.date(2026, 1, 1))]\n"
+        assert written(body + "if __name__ == \"__main__\":\n    print(collect('a', 'b'))\n"), "within the whitelists, the main guard"
+        assert reach is not None and g.module_attrs(["no_such_module_x"]) is None and not put(os.path.join(lab, "lib/helper.py"), "x = 1\n", 0o644), "an allowed module that cannot be imported: not trusted"
+        put(os.path.join(lab, here, "sheet_t.py"), "import os, sys\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))\nimport helper\n", 0o644)
+        with as_lab():  # on main as it is, a sheet loading a module outside the tree through sys.path (b39e3785 M1): refused by its writing alone
+            assert refused(run_lab, mine), "a sheet on main that puts a directory on sys.path"
         g.trusted_entries = lambda: ([], {})
-        assert refused(f"python3 -I {intent} x", mine), "not registered"
+        assert refused(f"python3 -I {intent} x", mine) and refused(f"python3 -I {ev} x", mine), "not registered"
         g.trusted_entries = lambda: ([dict(entry, forms=[["{any}"]])], {"any": re.compile(".+")})
         assert refused(f"python3 -I {intent} 'a;b'", mine) and allowed(f"python3 -I {intent} ab", mine), "a shell metacharacter anywhere on the line: no entry, whatever the slot allows"
         assert g.trusted_entry(f"python3 -I '~/{os.path.relpath(intent, os.path.expanduser('~'))}' ab", cwd) is None, "a quoted `~` is not the home: no expansion on the line (50a6af8c3 review M1)"
@@ -385,11 +435,9 @@ def gate_self_test():
         def hook(command, table_path=None, tool="Bash", env=None, raw=None):  # `env` replaces the hook's environment, `raw` its input
             env = env or {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), **({"PROD_TARGETS_FILE": table_path} if table_path else {})}
             return subprocess.run([sys.executable, "-I", script], input=raw or json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=env)
-        result = hook("aliyun rds DeleteAccount --DBInstanceId " + firsts["legacy-rds-sqlserver"])
-        assert result.returncode == 2 and "远程工具名" in result.stderr, result
+        result, connect = hook("aliyun rds DeleteAccount --DBInstanceId " + firsts["legacy-rds-sqlserver"]), hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"")
+        assert result.returncode == 2 and "远程工具名" in result.stderr and connect.returncode == 2 and "底线 4" in connect.stderr, (result, connect.stderr)
         assert hook("aliyun rds DescribeDBInstances --DBInstanceId " + firsts["legacy-rds-sqlserver"]).returncode == 2, "a read through a remote tool, not registered (intent 2026-10-26-160810)"
-        connect = hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"")
-        assert connect.returncode == 2 and "底线 4" in connect.stderr, connect.stderr
         assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0
         gone, remote = hook("python3 clean.py", os.path.join(tmp, "missing.json")), hook("psql -c 'select 1'", os.path.join(tmp, "missing.json"))
         assert gone.returncode == 2 and "缺失或不合格" in gone.stderr and remote.returncode == 2 and "远程工具名" in remote.stderr, (gone, remote)
@@ -402,9 +450,7 @@ def gate_self_test():
             assert run.returncode == code and ("为空" in run.stderr if code else "为空" in run.stdout and "git 出错" in run.stdout), (command, run)
         run = hook("psql -h db.example.org -c 'delete from t'", env=no_git)
         assert run.returncode == 2 and "远程工具名" in run.stderr, run
-        for raw in ("not json", "[1]"):
-            bad = hook(None, env={"LC_ALL": "C"}, raw=raw)
-            assert bad.returncode == 2, raw
+        assert [hook(None, env={"LC_ALL": "C"}, raw=raw).returncode for raw in ("not json", "[1]")] == [2, 2], "input that is no JSON object"
     g.main_blobs, g.no_exec_tools = real_blobs, real_safe
     print("prod_write_gate self-test: ok")
 
@@ -447,9 +493,10 @@ def layout_self_test():
         assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
     # what a trusted script loads or is compared with decides whether the gate lets it pass: every such file needs the opus final review (K18 follow-up, a3be80fcd final suggestion 1)
     final, entries = json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["review"]["final_paths"], json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["entries"]
-    scripts = [os.path.join(ROOT, DOCS_ROOT, e["script"]) for e in entries]
-    assert all(g.closure(s) is not None for s in scripts), "every registered entry's closure can be read"
-    loaded = {os.path.relpath(f, ROOT) for s in scripts for f in g.closure(s) | {s} if os.path.exists(f)} | {f"{DOCS_ROOT}/{d}" for e in entries for d in e["trust_dirs"]}
+    scripts = {g.entry_script(e["script"], ROOT): g.closure(g.entry_script(e["script"], ROOT)) for e in entries}  # an evidence entry's tree is scripts/evidence/, in final_paths as a whole
+    assert None not in scripts.values(), "every registered entry's closure can be read"
+    assert g.main_tree(tempfile.gettempdir()) is None, "no repository (or no origin/main): no evidence tree, never trusted"
+    loaded = {os.path.relpath(f, ROOT) for s, c in scripts.items() for f in c | {s} if os.path.exists(f)} | {f"{DOCS_ROOT}/{d}" for e in entries for d in e["trust_dirs"]}
     assert all(rel.startswith(tuple(final)) for rel in loaded), ("files a trusted entry loads or reads, missing from policy.json review.final_paths", sorted(r for r in loaded if not r.startswith(tuple(final))))
     slots = {k: re.compile(v) for k, v in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["slots"].items()}
     assert slots["sql"].fullmatch("credential_columns_scan.sql") and not any(slots["sql"].fullmatch(v) for v in ("/tmp/x.sql", "../x.sql", "a/b.sql")), "the evidence tool's SQL is a bare name under evidence/ (50a6af8c3 final M4)"
@@ -479,6 +526,8 @@ def trust_self_test():
                 "scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "fake", "patterns": [fake]}], "trusted_entries": tools})}
         mkrepo(main, body)
         mkrepo(forged, body)
+        mkrepo(os.path.join(tmp, "E"), {"scripts/evidence/sheet_a.py": "x = 1\n", "scripts/evidence/sub/b.txt": "\n"})  # main_tree() as git lists origin/main: every entry under scripts/evidence/, trees too, nothing above it
+        assert sorted(g.main_tree(os.path.join(tmp, "E"))) == [("040000", "scripts/evidence/sub"), ("100644", "scripts/evidence/sheet_a.py"), ("100644", "scripts/evidence/sub/b.txt")], g.main_tree(os.path.join(tmp, "E"))
         put(os.path.join(loose, doc), body[doc], 0o644)  # the same file in a directory that is no repository
         mkrepo(other, {"scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "t", "patterns": [only]}]})})
         subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", work], check=True, capture_output=True)
@@ -640,9 +689,7 @@ def pre_tool_dispatch_test():
     env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", "")}
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):
         refused, passed, bad = (subprocess.run([*runner, DISPATCH], input=text, capture_output=True, text=True, env=env) for text in (payload(f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}"), payload("ls"), "not json"))
-        assert refused.returncode == 2 and "远程工具名" in refused.stderr, refused
-        assert passed.returncode == 0 and not passed.stdout and not passed.stderr, passed
-        assert bad.returncode == 2 and "拒绝" in bad.stderr, bad
+        assert refused.returncode == 2 and "远程工具名" in refused.stderr and passed.returncode == 0 and not passed.stdout and not passed.stderr and bad.returncode == 2 and "拒绝" in bad.stderr, (refused, passed, bad)
     # 6. size limit from policy.json (gates.max_lines.pre_tool_dispatch)
     lines, limit = size("pre_tool_dispatch", DISPATCH)
     assert lines <= limit, f"pre_tool_dispatch.py 超过 {limit} 行"
