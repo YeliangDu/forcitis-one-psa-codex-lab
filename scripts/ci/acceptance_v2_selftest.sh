@@ -538,7 +538,7 @@ echo '{"permissions": {"deny": ["Bash(codex *)", "Bash(pi *)"]}}' >"$S16"
 expect "V16 delegate 自测失败不通过" nz '^V16 不通过：delegate 自测退出非 0' V16 DS_MODE=fail
 expect "V16 delegate 自测没有全过行不通过" nz '^V16 不通过：delegate 自测退出非 0 或没有' V16 DS_MODE=nosummary
 for d in 'PASS codex 两路' 'PASS deepseek 两路' 'PASS 范围是禁区' 'PASS codex 台账'; do
-  expect "V16 自测输出缺「$d」不通过" nz "^V16 不通过：delegate 自测输出缺「$d" V16 DS_DROP="$d"
+  expect "V16 自测输出缺「${d}」不通过" nz "^V16 不通过：delegate 自测输出缺「${d}" V16 DS_DROP="$d"
 done
 
 # modes: blank item list or strict with a subset never exits 0; ACCEPT_STRICT only takes 0 or 1; summary counts
