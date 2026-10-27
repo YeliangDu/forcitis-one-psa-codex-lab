@@ -38,6 +38,7 @@
       "stop_check": 120,
       "agent_tier_gate": 40,
       "post_review": 200,
+      "issue_gate": 80,
       "budget_check": 450,
       "light_sh": 120,
       "relevant_change": 600,

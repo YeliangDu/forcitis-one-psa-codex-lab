@@ -11,6 +11,7 @@ import tempfile
 from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import issue_gate  # noqa: E402
 import post_review as pr_mod  # noqa: E402
 
 REVIEW, LABELS = pr_mod.load_policy()
@@ -19,6 +20,8 @@ PASS, FIX, FIRST, FINAL = pr_mod.PASS, pr_mod.FIX, pr_mod.FIRST, pr_mod.FINAL
 LABEL = LABELS["review_passed"]
 SHA, OTHER, PR = "a" * 40, "b" * 40, 42
 R1, R2 = f"opus-{FIRST}-r1", f"opus-{FINAL}-a1"
+ISSUE, SESSION_LABEL = 7, "会话:one-ops"
+BODY = f"Closes #{ISSUE}\n\n## 改动说明\n"
 
 
 def header(verdict=PASS, commit=SHA, reviewer=R1, colon="："):
@@ -33,7 +36,10 @@ class Stub:
     """记录每次 gh 调用；按动词返回预设结果。heads 依次给出每次读到的 head，最后一个重复。"""
 
     def __init__(self, heads=(SHA,), view_rc=0, review_rc=0, post_out=None, edit_rc=0,
-                 labels=(), labels_rc=0, labels_out=None, reviews=(), reviews_rc=0, reviews_out=None):
+                 labels=(), labels_rc=0, labels_out=None, reviews=(), reviews_rc=0, reviews_out=None,
+                 body=BODY, body_rc=0, body_out=None, issue_state="OPEN", issue_labels=(SESSION_LABEL,), issue_rc=0, issue_out=None):
+        self.body, self.body_rc, self.body_out = body, body_rc, body_out   # 关联 Issue 检查（#24）：PR 正文与 Issue 的桩；缺省为已排期
+        self.issue_state, self.issue_labels, self.issue_rc, self.issue_out = issue_state, issue_labels, issue_rc, issue_out
         self.calls, self.heads, self.view_rc, self.review_rc, self.post_out = [], list(heads), view_rc, review_rc, post_out
         self.edit_rc, self.labels, self.labels_rc, self.labels_out = edit_rc, labels, labels_rc, labels_out
         self.reviews, self.reviews_rc, self.reviews_out = list(reviews), reviews_rc, reviews_out
@@ -43,6 +49,11 @@ class Stub:
         if args[:2] == ["pr", "view"] and "headRefOid" in args:
             head = self.heads.pop(0) if len(self.heads) > 1 else self.heads[0]
             return self.view_rc, json.dumps({"headRefOid": head}) if head is not None else "{}"
+        if args[:2] == ["pr", "view"] and "body" in args:
+            return self.body_rc, json.dumps({"body": self.body}) if self.body_out is None else self.body_out
+        if args[:2] == ["issue", "view"]:
+            out = json.dumps({"state": self.issue_state, "labels": [{"name": n} for n in self.issue_labels]})
+            return self.issue_rc, out if self.issue_out is None else self.issue_out
         if args[:2] == ["pr", "view"] and "labels" in args:
             out = json.dumps({"labels": [{"name": n} for n in self.labels]})
             return self.labels_rc, out if self.labels_out is None else self.labels_out
@@ -250,6 +261,74 @@ def case_body_verbatim():
         assert p["body"] == text and p["commit_id"] == SHA and s.edits() == edit(pr_mod.ADD_FLAG)
     s = Stub()
     assert run(s, text=header(FIX, reviewer=R2))[0] == 0 and s.edits() == edit(pr_mod.REMOVE_FLAG)
+
+
+def refused(s, **kw):
+    rc, msg = run(s, **kw)
+    assert rc == pr_mod.EXIT_REFUSED and s.writes() == [], (rc, msg, s.calls)
+    return msg
+
+
+def case_issue_scheduled_passes():
+    s = Stub()
+    assert run(s, repo="o/r")[0] == 0 and s.edits()[0][-2:] == [pr_mod.ADD_FLAG, LABEL]
+    issue_calls = [c[0] for c in s.calls if c[0][0] == "issue"]
+    assert issue_calls == [["issue", "view", str(ISSUE), "-R", "o/r", "--json", "state,labels"]], issue_calls   # 只读，不取正文
+    s = Stub(issue_labels=(SESSION_LABEL, "enhancement"))   # 其他标签不碍事
+    assert run(s)[0] == 0
+    for verdict, reviewer in ((FIX, R1), (PASS, R2)):   # 必改与终审同样先核已排期
+        assert run(Stub(), verdict=verdict, reviewer=reviewer)[0] == 0
+
+
+def case_issue_pending_or_hung_refused():
+    for labels in ((), ("enhancement",), (SESSION_LABEL, "挂起"), (SESSION_LABEL, "hold"), ("挂起",), ("hold",), (SESSION_LABEL, "挂起", "hold"),
+                   (SESSION_LABEL, "会话:one-dev"), ("会话:",), ("会话: ",)):
+        for verdict, guard in ((PASS, False), (FIX, False), (PASS, True)):
+            msg = refused(Stub(issue_labels=labels), verdict=verdict, guard=guard)
+            assert "拒绝提交" in msg and f"#{ISSUE}" in msg, (labels, msg)
+    assert "挂起" in refused(Stub(issue_labels=(SESSION_LABEL, "挂起")))
+    assert "待做" in refused(Stub(issue_labels=()))
+    assert "不是 open" in refused(Stub(issue_state="CLOSED"))
+    assert "不是 open" in refused(Stub(issue_state=None))
+
+
+def case_issue_unreadable_fails_closed():
+    bad_body = [{"body_rc": 1}, {"body_out": "坏 JSON"}, {"body_out": "[]"}, {"body_out": "{}"}, {"body_out": '{"body": null}'},
+                {"body_out": '{"body": 7}'}, {"body": None}]
+    bad_issue = [{"issue_rc": 1}, {"issue_out": "坏 JSON"}, {"issue_out": "[]"}, {"issue_out": "{}"}, {"issue_out": '{"state": "OPEN"}'},
+                 {"issue_out": '{"state": "OPEN", "labels": null}'}, {"issue_out": '{"state": "OPEN", "labels": {"name": "x"}}'},
+                 {"issue_out": '{"state": "OPEN", "labels": [1]}'}, {"issue_out": '{"state": "OPEN", "labels": [{"x": 1}]}'},
+                 {"issue_out": json.dumps({"state": "OPEN", "labels": [{"name": SESSION_LABEL}, {"name": 5}]})},
+                 {"issue_out": json.dumps({"labels": [{"name": SESSION_LABEL}]})}]
+    for kw in bad_body + bad_issue:
+        msg = refused(Stub(**kw))
+        assert "失败关闭" in msg or "不是 open" in msg or "格式" in msg, (kw, msg)
+    for out in ((127, ""), (1, "{}"), (124, '{"state": "OPEN", "labels": [{"name": "会话:x"}]}')):   # gh 不存在、出错、超时
+        assert issue_gate.unscheduled(PR, lambda args, out=out: out if args[0] == "issue" else (0, json.dumps({"body": BODY})), []) is not None
+    assert issue_gate.unscheduled(PR, lambda args: (127, ""), []) is not None
+
+
+def case_gh_timeout_fails_closed():
+    with mock.patch.object(pr_mod.subprocess, "run", side_effect=pr_mod.subprocess.TimeoutExpired("gh", 60)) as sp:
+        assert pr_mod.gh(["issue", "view", "7"]) == (127, "")
+        assert sp.call_args.kwargs.get("timeout") == 60   # 不设超时会挂住而不是失败关闭
+        assert issue_gate.unscheduled(PR, pr_mod.gh, []) is not None
+
+
+def case_issue_link_forms():
+    ok = [BODY, f"Closes #{ISSUE}", f"Closes #{ISSUE}\r\n\r\n正文\r\n", f"﻿Closes #{ISSUE}\n", f"Closes #{ISSUE}  \n正文",
+          f"Closes #{ISSUE}\n<!-- 写 Closes #9 -->\n正文", f"Closes #{ISSUE}\n<!--\nFixes #9\n-->", f"Closes #{ISSUE}\n见 #9、PR #10\n"]
+    for body in ok:
+        s = Stub(body=body)
+        assert run(s)[0] == 0 and [c[0][2] for c in s.calls if c[0][0] == "issue"] == [str(ISSUE)], repr(body)
+    bad = ["", "无关联", "\n" + BODY, " " + BODY, "closes #7", "CLOSES #7", "Closes  #7", "Closes #07", "Closes #0", "Closes #", "Closes #<卡>",
+           "Fixes #7", "Closes #7 Closes #8", "Closes #7, #8", "Closes #7 #8", "Closes #7.", "Closes #1234567890", "Closes #-1",
+           "Closes #7\nCloses #8", "Closes #7\ncloses #8", "Closes #7\nFixes: #8", "Closes #7\r\nResolves #8", "Closes #7\n正文 closed #8",
+           "Closes #7\n<!-- x -->\nFixes #8", "Closes #7\n```\nCloses #8\n```", "<!-- c -->\nCloses #7"]
+    for body in bad:
+        s = Stub(body=body)
+        msg = refused(s)
+        assert [c for c in s.calls if c[0][0] == "issue"] == [] and "拒绝提交" in msg, (body, msg)   # 关联不明就不去查 Issue
 
 
 def case_main_cli():
