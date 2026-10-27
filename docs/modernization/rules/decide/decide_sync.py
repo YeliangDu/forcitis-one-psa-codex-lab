@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """决定链路一条龙：读用户在确认页的提交 → 对账 → 生成 intent 片段 → 打印收件箱回写所需的 ArtifactData 批量写入。
 用法：
-  python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> [--session=one-rules] [--inbox-id=<收件箱事项 id>] [--no-intent]
+  python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> --category=<类别> --paths=<路径前缀|无> --supersedes=<被取代片段|无> --session=<本会话名> [--owner=<负责会话，缺省取登记>] [--inbox-id=<收件箱事项 id>] [--no-intent]
   python3 docs/modernization/rules/decide/decide_sync.py --check <收件箱 out_dir> <单子>=<确认页 out_dir> [<单子>=<确认页 out_dir> ...]
     对账检查（调度报「待答」前先跑）：读收件箱导出与各确认页导出，报出「收件箱仍是 pending，但确认页已提交」的事项，以及确认页提交后又改过、须重新提交的。
     事项对应哪张单子：事项里写 sheet 字段，或事项的 link 等于 README 页面表里该单子的链接；对不上的待定事项不报。有不一致时返回码 1。
@@ -9,16 +9,62 @@
 做三件事：
 1. 对账：调用 export_answers 的逻辑，有提交后又改过的题则报错退出；
 2. 每个提交编号生成一条 intent 片段（用户原话 = 题号 + 所选项文字 + 说明，落点指向答复文件 rules/decide/answers/<单子>.json），文件名打印出来；
+   new_intent 的四个必填项：--owner 取自 ONLINE_PAGES.md 里该单子登记的负责会话（G3；单子未登记、负责会话为「roles/ 未列」或登记表表头变了即拒，不回退默认会话；登记的旧名先经 policy.json 的 sessions.aliases 换成现名，再须在 sessions.config 里，否则拒（O23b）；显式给 --owner 同样换名后须与登记一致，否则拒），--category、--paths、--supersedes 由调用方手填（页面元数据里没有页类型与影响路径，不编），缺任一即拒并列缺项，原样转给 new_intent（取值见其脚本头）；--session 写跑本脚本的会话名，同样必填、不设默认（跑的会话不止调度，默认值会把片段记到别的会话名下）；口头决定不经单子，直接用 new_intent.py，同样必填这四项；只导出不生成 intent 时用 --no-intent；
 3. 打印 inbox 事项改为已定所需的 ArtifactData update 内容（status、answer、decidedAt、intent 文件名），由会话用 ArtifactData 执行：
    页面是各自独立的发布件，确认页不能直接写收件箱，所以回写由会话完成，并在报告里附这条命令的输出。
 不自动改规则卡、ADR；转写仍由会话执行并复核。
 幂等：同一提交编号已有 intent 片段（片段正文含「提交 <编号>」）时不重复生成。原话里的「|」按 new_intent 的要求转义为「\\|」，不改动其他字符；生成失败（返回码非 0 或没有产出片段）即退出，不打印成功。
 覆盖检查：存在 sheets/<单子>.json 时，核对提交是否覆盖全部题、所选序号对应的选项文字是否仍与单子一致，不一致报错退出（发布后改过选项会造成序号错位）。"""
-import datetime, glob, json, os, subprocess, sys
+import datetime, glob, json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import export_answers  # noqa: E402
+
+PAGES_HEADER = ["单子或页面", "用途", "负责会话", "起用日期", "退役日期", "出处"]
+NON_SHEET_PAGES = {"收件箱（待你决定）", "用语确认固定页", "旧固定确认页（已停用）"}   # 登记表里不是单子的三行，首格是页面名而非单子编号
+
+
+def registered_owner(sheet):
+    """单子的负责会话（经别名换名后的现名），取自 ONLINE_PAGES.md 登记表；表头变了、单子未登记或重复、负责会话为空或「roles/ 未列」、换名后不在 sessions.config 一律拒绝，不回退默认会话。
+    整份白名单（调度 10-27 晚定）：按 \\n 切行，每行只能是三种之一，其他任何行整份判损坏并报行号——
+    空行（只有空格或制表符）；# 标题行（行首 1～6 个 #、紧跟空格，无 <）；登记表行（行首 | 起、行尾 | 止、不缩进、不带尾随空白，恰好 6 格，格内无 |、\\、\\r、<）。
+    < 一律不许：行内 HTML（如 tr、td 标签）能在页面上把一行登记拆成别的行或格（3363b792c 终审必改 1）。
+    登记表行须连成唯一一块，块后紧跟空行或文件尾；块内第一行是表头，第二行是分隔行（各格为 -，可带对齐冒号）。格只去两端空格。"""
+    rows, state = [], "before"
+    try:
+        text = open(os.path.join(HERE, "ONLINE_PAGES.md"), "rb").read().decode("utf-8")
+    except UnicodeDecodeError:
+        sys.exit("ONLINE_PAGES.md 不是合法 UTF-8；表格损坏，先修登记表")
+    for no, line in enumerate(text.split("\n"), 1):
+        if re.fullmatch(r"\|(?:[^|\\\r<]*\|){%d}" % len(PAGES_HEADER), line):
+            if state == "after":
+                sys.exit(f"ONLINE_PAGES.md 第 {no} 行：登记表之外又有表格行（只许一张连续登记表）；表格损坏，先修登记表")
+            state = "in"
+            rows.append([c.strip(" ") for c in line[1:-1].split("|")])
+        elif re.fullmatch(r"[ \t]*", line) or (state != "in" and re.fullmatch(r"#{1,6} [^\r<]*", line)):
+            state = "after" if state == "in" else state
+        else:
+            sys.exit(f"ONLINE_PAGES.md 第 {no} 行不在白名单内（只许空行、# 标题行、一张不缩进的六列登记表，表后须空行；说明写 rules/decide/README）：{line[:40]!r}；表格损坏，先修登记表")
+    if not rows or rows[0] != PAGES_HEADER:
+        sys.exit(f"ONLINE_PAGES.md 登记表表头不是约定的六列（{' | '.join(PAGES_HEADER)}），不敢解析负责会话；先修登记表或本脚本")
+    if len(rows) < 2 or not all(re.fullmatch(r":?-+:?", c) for c in rows[1]):
+        sys.exit("ONLINE_PAGES.md 登记表表头下一行不是分隔行（各格为 -，可带对齐冒号）；表格损坏，先修登记表")
+    rows = [rows[0]] + rows[2:]
+    bad = [r[0] for r in rows[1:] if not re.fullmatch(r"[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*", r[0]) and r[0] not in NON_SHEET_PAGES]
+    if bad:
+        sys.exit(f"ONLINE_PAGES.md 登记表有首格不合约定的数据行（须整格匹配 [A-Za-z0-9]+(?:_[A-Za-z0-9]+)*，下划线只能夹在中间，或是 NON_SHEET_PAGES 里的非单子页名；加粗、斜体、代码样式、零宽字符都算不合）：{bad[0]!r}；表格损坏，先修登记表")
+    found = [r for r in rows if r[0].lower() == sheet.lower()]
+    if len(found) != 1:
+        sys.exit(f"单子 {sheet} 没有在 ONLINE_PAGES.md 登记（或重复登记），无法确定负责会话；请先登记再生成 intent")
+    if found[0][2] in ("", "roles/ 未列"):
+        sys.exit(f"单子 {sheet} 在 ONLINE_PAGES.md 的负责会话是「{found[0][2]}」，无法确定负责会话；请先补登记")
+    sys.path.insert(0, os.path.join(HERE, "..", ".."))
+    import new_intent
+    owner = new_intent.resolve_owner(found[0][2])   # O23b：旧名先经 policy.json 的 sessions.aliases 换成现名，再只核对 sessions.config
+    if not owner:
+        sys.exit(f"单子 {sheet} 登记的负责会话 {found[0][2]} 经 policy.json 的 sessions.aliases 换名后不在 sessions.config 里，无法确定负责会话；请先补登记或补别名")
+    return owner
 
 if "--check" in sys.argv:
     import glob as _g, re as _re
@@ -61,6 +107,15 @@ opts = dict(a[2:].split("=", 1) if "=" in a else (a[2:], True) for a in sys.argv
 if len(args) != 2:
     sys.exit(__doc__)
 sheet, base = args
+if not opts.get("no-intent"):
+    absent = [f"--{k}" for k in ("session", "category", "paths", "supersedes") if not (isinstance(opts.get(k), str) and opts[k])]
+    if absent:
+        sys.exit(f"缺必填项：{'、'.join(absent)}（原样转给 new_intent，取值与写法见其脚本头；--session 写本会话名，不设默认；--owner 取自 ONLINE_PAGES.md；不生成 intent 时用 --no-intent）")
+    owner = registered_owner(sheet)
+    if "owner" in opts and (not isinstance(opts["owner"], str) or sys.modules["new_intent"].resolve_owner(opts["owner"]) != owner):
+        sys.exit(f"--owner={opts['owner']!r} 经别名换名后与 ONLINE_PAGES.md 里单子 {sheet} 登记的负责会话（换名后为 {owner}）不一致；不给 --owner 即取登记值")
+    opts["owner"] = owner
+passed = [f"--{k}={opts[k]}" for k in ("category", "owner", "paths", "supersedes") if isinstance(opts.get(k), str) and opts[k]]
 out, stale = export_answers.export(sheet, base)
 if stale:
     sys.exit(f"对账失败：这些题提交后又改过，请用户重新提交：{'、'.join(stale)}")
@@ -83,7 +138,7 @@ json.dump(out, open(os.path.join(HERE, "answers", f"{sheet}.json"), "w", encodin
 by_sub = {}
 for k, v in sorted(out.items()):
     by_sub.setdefault(v["submission"], []).append((k.split("~", 1)[1], v))
-session = opts.get("session", "one-rules")
+session = opts.get("session")   # 生成 intent 时上面已核必填；--no-intent 时不用
 intents = []
 for number, rows in sorted(by_sub.items()):
     lines = "；".join(f"{no}「{v['label']}」" + ("（未作答）" if v.get("unanswered") else "（按推荐预选，未改动）" if v.get("defaulted") else "") + (f"（说明：{v['note']}）" if v.get("note") else "") for no, v in rows)
@@ -95,7 +150,7 @@ for number, rows in sorted(by_sub.items()):
         intents.append((number, os.path.basename(existing)))
     elif not opts.get("no-intent"):
         esc = lambda t: t.replace("|", "\\|")
-        r = subprocess.run([sys.executable, os.path.join(HERE, "..", "..", "new_intent.py"), f"--session={session}", esc(quote), esc(note)], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, os.path.join(HERE, "..", "..", "new_intent.py"), f"--session={session}", *passed, esc(quote), esc(note)], capture_output=True, text=True)
         path = next((l for l in r.stdout.splitlines() if l.startswith("intent/")), "")
         if r.returncode != 0 or not path:
             sys.exit(f"生成 intent 失败（返回码 {r.returncode}）：{(r.stderr or r.stdout)[-300:]}；请检查 docs/modernization/intent/ 下有无半成品片段后再处理，不要手改用户原话")

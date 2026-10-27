@@ -57,7 +57,7 @@
   ],
   "trusted_entries": {
     "owner": "one-ops",
-    "note": "可信入口（intent 2026-10-26-132048「收窄可信机制」）：门只读 origin/main 上这一节；整行须等于 interpreter + script + forms 之一，{类} 的值按 slots 全匹配；script、它的导入链与同目录可导入文件、trust_dirs 下全部文件须与 origin/main 逐字节一致。路径 = docs 根（docs 下的 modernization 目录）+ script / trust_dirs。interpreter 写死：只用标准库的入口用 /usr/bin/python3 -I -S；要阿里云 SDK 的取证工具用 ops-venv 的 python -I。表里的 ~/ 由门按自己的 HOME 展开，命令里须写出绝对路径（门不展开命令里的 ~，带引号或改过 HOME 的 ~ 都不算）。只登记整支都只读的取证入口与登记脚本：b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。",
+    "note": "可信入口（intent 2026-10-26-132048「收窄可信机制」）：门只读 origin/main 上这一节；整行须等于 interpreter + script + forms 之一，{类} 的值按 slots 全匹配；script、它的导入链与同目录可导入文件、trust_dirs 下全部文件须与 origin/main 逐字节一致。路径 = docs 根（docs 下的 modernization 目录）+ script / trust_dirs；唯一例外是字面前缀 scripts/evidence/ 的 script 按仓库根解析，真实路径须直接在该目录内（二乙 #6 O22a）。evidence 一条的登记字段由 scripts/evidence/evidence.py 的登记模式生成，不手写；allowed_imports、allowed_builtins 两份名单手写，由 one-ops 定、调度认可口径（只放纯数据类标准库、只走白名单）；它整支只读：入口只读 policy.json、写本机 0700 取证目录，跑的取证单是同目录 sheet_*.py（整棵 scripts/evidence/ 树的条目集合与每个文件都与 origin/main 一致、取证单过静态写法检查才可信（只许本条 allowed_imports 列的模块、allowed_builtins 列的内置名，白名单由门从 origin/main 这一条读，加一项即改本表、须终审）；新增取证单须证明只读，见 scripts/evidence/README.md）。interpreter 写死：只用标准库的入口用 /usr/bin/python3 -I -S；要阿里云 SDK 的取证工具用 ops-venv 的 python -I -S（-S 不处理 site-packages 里的 .pth，入口先校验 ops-venv 哈希锁，通过后才加载其 site-packages）。表里的 ~/ 由门按自己的 HOME 展开，命令里须写出绝对路径（门不展开命令里的 ~，带引号或改过 HOME 的 ~ 都不算）。只登记整支都只读的取证入口与登记脚本：b5_legacy_run.py、c14_run.py 会授权、建删账号、杀会话、跑写脚本，b5_evidence_run.py、b5_read_all_run.py 会改授权，都不在内（opus 二轮必改 1）。增改本节须在 PR 描述写明「整支只读」的依据，由 one-ops 提。",
     "slots": {
       "name": "[A-Za-z0-9._-]{1,64}",
       "date": "[0-9]{4}-[0-9]{2}-[0-9]{2}",
@@ -102,7 +102,8 @@
         "script": "phase1a/infra/handoff/B-5-dba/tools/b5_evidence_scan.py",
         "interpreter": [
           "~/.modernize/psa/ops-venv/bin/python",
-          "-I"
+          "-I",
+          "-S"
         ],
         "forms": [
           [
@@ -123,7 +124,8 @@
         "script": "phase1a/infra/handoff/B-5-dba/tools/c14_orphan_check.py",
         "interpreter": [
           "~/.modernize/psa/ops-venv/bin/python",
-          "-I"
+          "-I",
+          "-S"
         ],
         "forms": [
           []
@@ -138,7 +140,8 @@
         "script": "phase1a/infra/handoff/B-5-dba/tools/c14_u8c_status.py",
         "interpreter": [
           "~/.modernize/psa/ops-venv/bin/python",
-          "-I"
+          "-I",
+          "-S"
         ],
         "forms": [
           []
@@ -146,6 +149,74 @@
         "trust_dirs": [
           "phase1a/infra/handoff/B-5-dba/",
           "phase1a/infra/runbooks/scripts/"
+        ]
+      },
+      {
+        "id": "evidence",
+        "script": "scripts/evidence/evidence.py",
+        "interpreter": [
+          "/usr/bin/python3",
+          "-I",
+          "-S"
+        ],
+        "forms": [
+          [
+            "--session={name}",
+            "{name}"
+          ]
+        ],
+        "trust_dirs": [],
+        "allowed_imports": [
+          "json",
+          "datetime",
+          "time",
+          "re",
+          "decimal",
+          "collections",
+          "itertools",
+          "math",
+          "textwrap",
+          "dataclasses",
+          "enum",
+          "hashlib",
+          "base64",
+          "csv"
+        ],
+        "allowed_builtins": [
+          "len",
+          "range",
+          "str",
+          "int",
+          "float",
+          "bool",
+          "dict",
+          "list",
+          "tuple",
+          "set",
+          "frozenset",
+          "sorted",
+          "min",
+          "max",
+          "sum",
+          "abs",
+          "round",
+          "enumerate",
+          "zip",
+          "map",
+          "filter",
+          "any",
+          "all",
+          "isinstance",
+          "ValueError",
+          "TypeError",
+          "KeyError",
+          "Exception",
+          "print",
+          "repr",
+          "hash",
+          "iter",
+          "next",
+          "reversed"
         ]
       }
     ]
@@ -204,7 +275,7 @@
   },
   "no_exec_tools": {
     "owner": "one-ops",
-    "note": "已知不执行参数里文件的程序（intent 2026-10-26-164931「不确定就拒」，调度定 A′）：门对它们免读位置参数，选项值、选项里嵌的词（如 git -c core.pager=…、rg --pre …）与环境变量照读；git 另限子命令（git_subcommands），git、rg 带配置来源或执行路径时整行拒。门只认 origin/main 上这一节。每加一个程序须在 basis 写依据（它不会执行参数文件），由 one-ops 提、opus 终审。",
+    "note": "已知不执行参数里文件的程序（intent 2026-10-26-164931「不确定就拒」，调度定 A′）：门对它们免读位置参数，选项值、选项里嵌的词（如 git -c core.pager=…、rg --pre …）与环境变量照读；git 另限子命令（git_subcommands），git、rg 带配置来源或执行路径时整行拒；免读只给整行就是一条纯命令（无 ; & | 换行、替换、括号花括号、赋值，无 eval、alias、function、hash 等字样，第一个词就是登记程序，调度 10-26 深夜定），否则整行照读。门只认 origin/main 上这一节。每加一个程序须在 basis 写依据（它不会执行参数文件），由 one-ops 提、opus 终审。",
     "tools": [
       "git",
       "cat",
@@ -218,7 +289,10 @@
       "cmp",
       "stat",
       "shasum",
-      "jq"
+      "jq",
+      "rm",
+      "mv",
+      "cp"
     ],
     "basis": {
       "git": "只在 git_subcommands 列的子命令上免读位置参数：这些子命令的位置参数是路径、修订号或分支名；bisect run、submodule foreach、rebase --exec 等会执行参数的不在内。带 -c、--config-env、--exec-path 或 GIT_PAGER、GIT_EXTERNAL_DIFF 等配置来源环境变量时整行拒；commit 会跑 .git/hooks（脚本运行时行为，按已知未覆盖）",
@@ -233,7 +307,16 @@
       "cmp": "只逐字节比较",
       "stat": "只读元数据",
       "shasum": "只算摘要",
-      "jq": "只读 JSON；-f 的程序文件是 jq 过滤式不是 shell，属选项值照读"
+      "jq": "只读 JSON；-f 的程序文件是 jq 过滤式不是 shell，属选项值照读",
+      "rm": "只删目录项（unlink、rmdir），不读也不运行文件内容。macOS（BSD）rm 选项 -d -f -i -I -P -R -r -v -W -x，man 页无 ENVIRONMENT 节，二进制不导入 exec、spawn、system、popen、getenv；GNU rm 选项 -f -i -I --interactive --one-file-system --(no-)preserve-root -r -d -v，手册不读环境变量。无会运行程序的选项或环境变量（10-26 核）",
+      "mv": "只改名或搬动，不运行文件内容。macOS mv 选项 -f -h -i -n -v，跨文件系统时 fork 后 execl 固定路径 /bin/cp、/bin/rm（man 页与二进制字符串可证，程序不取自参数或环境，二者也在本表）；GNU mv 跨文件系统用内建复制，选项 --backup -b --exchange -f -i -n --no-copy -S -t -T -u -v -Z --context，环境变量只有 SIMPLE_BACKUP_SUFFIX、VERSION_CONTROL（字符串）。无会运行程序的选项或环境变量（10-26 核）",
+      "cp": "只复制内容与属性，不运行文件内容。macOS cp 选项 -R -H -L -P -a -c -f -i -l -N -n -p -S -s -v -X -x（clonefile、copyfile），man 页无 ENVIRONMENT 节，二进制不导入 exec、fork、spawn、system、popen、getenv；GNU cp 选项见 coreutils 手册，--context 设安全上下文、--copy-contents 读特殊文件，均不运行程序，环境变量只有 SIMPLE_BACKUP_SUFFIX、VERSION_CONTROL。无会运行程序的选项或环境变量（10-26 核）。同一行再运行 cp、mv 留下的文件不会免读（只有单条纯命令免读）；跨命令、跨会话再运行（PATH 目录、.git/hooks、.git/config、shell 启动文件）门看不到，属已知未覆盖，同 cat 重定向写文件"
+    },
+    "short_valued_note": "列出的程序只有这些短选项吃下一个词作值（macOS rm、mv、cp 无；GNU mv、cp 为 -S 后缀、-t 目标目录；GNU rm 无），长选项不带 = 时仍按可能吃下一个词照读；未列出的程序凡选项后的词都按选项值照读",
+    "short_valued": {
+      "rm": "",
+      "mv": "St",
+      "cp": "St"
     },
     "git_subcommands": [
       "status",

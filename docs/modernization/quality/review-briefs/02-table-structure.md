@@ -4,13 +4,13 @@
 
 ## 出题人填（只填这一栏）
 
-- 产出：表结构 PR 号 / 分支，提交范围，对应派工卡路径，one-data 的审查记录路径（`docs/modernization/data/reviews/<卡号>.md`）。
+- 产出：表结构 PR 号 / 分支，提交范围，对应卡的 Issue 号，one-data 的审查记录路径（`docs/modernization/data/reviews/<卡号>.md`）。
 - 不填：「预期 diff 与实际一致」之类结论。
 
 ## 必读材料（自己读）
 
 1. `DATA_DESIGN_GATE.md`：§1.2 顺序、§1.3 签发行与有效性判法、§1.4 表结构 PR 复核的五件事、§3 全部检查条目、附录 A（卡「数据设计」一节的材料）、附录 B（审查记录格式）。
-2. 派工卡的「数据设计」节和「预期表结构 diff」（WORK_CARD §7）。one-data 的审查记录含结论，**先独立判完 T1–T8 再读**，不一致的单列。
+2. 派工卡的「数据设计」节和「预期表结构 diff」（卡上写了的；旧 WORK_CARD §7 模板已删）。one-data 的审查记录含结论，**先独立判完 T1–T8 再读**，不一致的单列。
 3. 实际 diff：`backend/src/main/resources/db/migration/**`、`backend/architecture/data-access-registry.yaml`、`data-classification.txt`、其他 `backend/architecture/*.txt` 清单的变化。
 4. DATA_DESIGN_CHECKLIST §14、§14.1（D1–D19）、SESSION_PLAYBOOK 附 M3「迁移基线」（迁移不可变）；`NAMING_STANDARD.md` 的 DDL 部分。
 5. `phase1a/DATA_SCORECARD.md`（逐表打分是否落表）。

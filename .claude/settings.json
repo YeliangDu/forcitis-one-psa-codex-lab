@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "deny": [
+      "Bash(codex *)",
+      "Bash(pi *)",
+      "mcp__terminal__run_in_terminal"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -16,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "H=\"$HOME\"/.modernize/psa/tools/hooks/current/scripts/hooks/start_sheet.py; [ -x \"$H\" ] && \"$H\" --hook && exit 0; echo \"【钩子告警】start_sheet.py 缺失或出错（${H}），没有开工单；手动读 docs/modernization/sessions/<会话名>.md 并向调度要卡；请 one-ops 执行 scripts/gates/install.sh\"; exit 0",
+            "command": "H=\"$HOME\"/.modernize/psa/tools/one-session/start_sheet/start_sheet.py; [ -f \"$H\" ] && /usr/bin/python3 -I \"$H\" --hook && exit 0; echo \"【钩子告警】工具库开工单 start_sheet.py 缺失或出错（${H}），没有开工单；手动读 docs/modernization/sessions/<会话名>.md 并向调度要卡；请 one-ops 修工具库 ~/.modernize/psa/tools/one-session/start_sheet（start_sheet.py --self-test）\"; exit 0",
             "timeout": 15
           }
         ]
@@ -32,6 +39,16 @@
             "timeout": 120
           }
         ]
+      },
+      {
+        "matcher": "mcp__ccd_session_mgmt__clear_session",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "H=\"$HOME\"/.modernize/psa/tools/one-session/node_ready/node_ready.py; if [ -f \"$H\" ]; then env -u HANDOFF_STATE /usr/bin/python3 -I \"$H\" --gate; c=$?; else c=127; fi; [ \"$c\" = 0 ] && exit 0; [ \"$c\" = 2 ] || echo \"clear_session 门异常退出（退出码 ${c}：工具库 node_ready.py 缺失、出错或超时，${H}），按拒绝处理；请 one-ops 修工具库 ~/.modernize/psa/tools/one-session/node_ready（node_ready.py --self-test）\" >&2; exit 2",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [
@@ -39,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "test -f \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py && python3 -I \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py; exit 0",
+            "command": "test -f \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py && /usr/bin/python3 -I \"$HOME\"/.modernize/psa/tools/one-session/stop_check/stop_check.py; exit 0",
             "timeout": 15
           }
         ]

@@ -40,6 +40,8 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
     # DataArchitectureTest runs the V11 part of the c3/c9 verify scripts against a container database (also checked by db_scripts_aligned.py)
     "docs/modernization/phase1a/infra/runbooks/sql/",
+    # light.sh runs the new_intent self-test (C7, #25)
+    "docs/modernization/new_intent_selftest.py",
 )
 
 # inside READ_BY_BUILDS directories but read by no build: the one-glossary records
@@ -63,7 +65,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/architecture/ssot/t-transitions/transitions.yaml",
     "docs/modernization/build_all.py",
     "docs/modernization/build_all_generators.json",   # generator list read by build_all.py
-    # rule and role files: read by scripts/ci/budget_check.py (always-run check once wired in, Q5); start_sheet.py 的开工单按需读也点名 RULES.md
+    # rule and role files: read by scripts/ci/budget_check.py (always-run check once wired in, Q5); 工具库 start_sheet 的开工单（仓库外，O23a）也点名 RULES.md
     "docs/modernization/RULES.md",
     "docs/modernization/roles/",
     # 错题本：build_all.py 的自测步骤（scripts/ci/ci_recurrence.py 读册、quality/defect-bank/defect_bank_check.py 检查册）在 gitleaks 作业里无条件运行
@@ -72,17 +74,20 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/rulings/",
     # archive index (V14): read only by scripts/ci/acceptance_v2.sh, the batch sign-off run by hand (no CI step), so no build or test tier needs it
     "docs/modernization/ARCHIVE_INDEX.md",
-    # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py; commit_msg_gate.py takes session names from sessions/ and roles/ (roles/ is listed above)
+    # also named only by acceptance_v2.sh (hand-run, no CI step): V06 checks the card template is gone, V15 that decide_sync.py exists
+    "docs/modernization/templates/WORK_CARD.md",
+    "docs/modernization/rules/decide/decide_sync.py",
+    # session profiles: checked by build_all.py --check, read by the tool library's start_sheet (outside the repository, O23a); commit_msg_gate.py takes session names from sessions/ and roles/ (roles/ is listed above)
     "docs/modernization/sessions/",
     "docs/modernization/check_legacy_name.py",
     # rule review revisions are append-only: run by scripts/ci/light.sh
     "docs/modernization/rules/review_revisions.py",
     "docs/modernization/adr/new_adr.py",  # tool self-tests run by scripts/ci/light.sh (O14: no longer by build_all.py)
-    # task register: check_tasks.py runs in build_all.py
+    # deleted by #23 C10c; still named only by acceptance_v2.sh (hand-run, no CI step): V06 checks the task register and its checker are gone
     "docs/modernization/check_tasks.py",
     "docs/modernization/tasks/",
     # decision page question rules: no CI step runs them (scripts/precheck.sh did, locally, until GOV-1023-FV2 O9); listed so that naming them stays covered
-    "docs/modernization/architecture/decision-page/check_pages.py",
+    "docs/modernization/rules/decide/check_pages.py",
     "docs/modernization/rules/decide/build_decision_page.py",
 )
 

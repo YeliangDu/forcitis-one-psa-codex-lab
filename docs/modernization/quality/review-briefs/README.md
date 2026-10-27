@@ -6,7 +6,7 @@
 
 | 产出 | 模板 | 对齐的现有规范 |
 |---|---|---|
-| 派工卡落地的代码 | [01-code-card.md](01-code-card.md) | `templates/WORK_CARD.md`、CODING_STANDARD、SESSION_PLAYBOOK 附 M1 |
+| 派工卡落地的代码 | [01-code-card.md](01-code-card.md) | `.github/ISSUE_TEMPLATE/card.md`、CODING_STANDARD、SESSION_PLAYBOOK 附 M1 |
 | 表结构（DDL、迁移、注册表） | [02-table-structure.md](02-table-structure.md) | `../../data/DATA_DESIGN_GATE.md`（引用，不重复） |
 | ADR | [03-adr.md](03-adr.md) | `adr/README.md` 生命周期、SESSION_PLAYBOOK 附 M3 |
 | 生产变更（部署、云上资源、运维命令） | [04-production-change.md](04-production-change.md) | INFRA_RUNBOOK、`runbooks/`、PREDEPLOY_CHECKLIST、RESOURCES |

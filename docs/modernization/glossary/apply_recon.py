@@ -187,7 +187,7 @@ def verify_missing(doc, audit):
             elif row["result"] != "not_registered" or not row.get("reason"):
                 fail(f"漏登 {row['no']} 未登记须有原因")
 def verify_coverage(doc):
-    audit = json.loads((HERE / "arch-naming/reconcile-decided.json").read_text(encoding="utf-8"))
+    audit = json.loads((HERE / "arch-naming/reconcile-decided-slim.json").read_text(encoding="utf-8"))
     verify_missing(doc, audit)
     counts = doc["meta"].get("promotion_counts", {})
     if not counts or set(counts) - {"A", "B"} or any(type(n) is not int or n < 1 for n in counts.values()): fail("分类声明只能为 A 或 B 的正整数，C 类不得下结论")

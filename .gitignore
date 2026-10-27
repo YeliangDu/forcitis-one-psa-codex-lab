@@ -11,6 +11,7 @@ ds-bundle/
 # 记录类生成产物不入仓：本地运行 docs/modernization/build_all.py 生成，或看 generated-docs 分支（SESSION_PLAYBOOK TEAM-15）
 docs/modernization/INTENT.md
 docs/modernization/DECISION_DIGEST.md
+docs/modernization/CURRENT_DECISIONS.md
 docs/modernization/SESSION_LOG.md
 docs/modernization/STATUS.md
 docs/modernization/SESSIONS.md
@@ -18,7 +19,6 @@ docs/modernization/rules/RULE_INDEX.md
 docs/modernization/WORK_BOARD.md
 docs/modernization/glossary/ISSUES.md
 docs/modernization/phase1a/infra/LEGACY_READ_REGISTER.md
-docs/modernization/tasks/TASKS.md
 __pycache__/
 .claude/session-name
 .pi-lens-probe-home/

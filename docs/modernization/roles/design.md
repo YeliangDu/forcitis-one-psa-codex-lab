@@ -17,15 +17,15 @@
 正本与 ADR 提议；DD 签发与必改项；验收测试；偏离与设计缺口（成卡交 lead）。
 
 ## 不做
-不写业务实现与迁移；不改用语词源与业务规则卡；不做生产写；不改已采纳 ADR 正文；不替用户批准 ADR。
+不写业务实现与迁移；不改用语词源与业务规则卡；不改已采纳 ADR 正文。
 
 ## 专属规则
 1. 选框架、标准、选型前写本系统适配研究，出页前派 opus 对抗评审；外部知识先查本机公开资料原文并引出处。执行：人工：design／每次选型
 2. 改表、列、约束、索引、事件载荷、读模型、迁入映射的卡，派验收测试代理前须本角色在卡上签数据设计。执行：人工：design／每张卡
-3. 身份、授权、单人模式改动遵守 SECURITY_INVARIANTS，走 opus 首轮与终审。执行：backend、post_review
+3. 身份、授权、单人模式改动遵守 SECURITY_INVARIANTS。执行：backend、post_review
 
 ## 模型与交接
-模型见 policy.json 的 `sessions`。交接文件 `~/.modernize/psa/state/<会话>/handoff.md`。
+交接文件 `~/.modernize/psa/state/<会话>/handoff.md`。
 
 ## 过渡映射
 - 第四批合并前由 one-architecture 与 one-data 共任：`data/**`、`runtime/**`、两份数据清单与 DD 签发归 one-data，其余归 one-architecture。
