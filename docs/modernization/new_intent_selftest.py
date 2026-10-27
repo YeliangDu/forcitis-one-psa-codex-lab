@@ -63,6 +63,8 @@ def decide_drill(tree, sync_args):
                               ("ZZ", ZU_ONLY + "\n<!--\n" + ROW.format("ZZ", "one-ops") + "-->\n", "HTML、注释或代码块"), ("ZZ", ZU_ONLY + "\n```\n" + ROW.format("ZZ", "one-ops") + "```\n", "HTML、注释或代码块"),
                               ("ZZ", "<!--\n" + HEAD + ROW.format("ZZ", "one-ops") + "\n-->\n<table><tr><td>ZZ</td><td>one-glossary</td></tr></table>\n", "HTML、注释或代码块"),
                               ("ZZ", "~~~\n" + HEAD + ROW.format("ZZ", "one-ops") + "\n~~~\n", "HTML、注释或代码块"), ("ZZ", "   <!--\n" + HEAD + ROW.format("ZZ", "one-ops") + "\n-->\n", "HTML、注释或代码块"),
+                              ("ZZ", "- <!--\n  " + HEAD.replace("\n|", "\n  |") + "  " + ROW.format("ZZ", "one-ops") + "\n  -->\n- <table><tr><td>ZZ</td><td>one-glossary</td></tr></table>\n", "HTML、注释或代码块"),
+                              ("ZZ", "- ```\n  " + HEAD.replace("\n|", "\n  |") + "  " + ROW.format("ZZ", "one-ops"), "HTML、注释或代码块"), ("ZZ", "> 1. ~~~\n" + HEAD + ROW.format("ZZ", "one-ops") + "\n", "HTML、注释或代码块"),
                               ("ZZ", ZU_ONLY + "    " + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "\t" + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "  \t" + ROW.format("ZZ", "one-ops"), "缩进"),
                               ("ZZ", ZU_ONLY + "\f" + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "\xa0" + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "　" + ROW.format("ZZ", "one-ops"), "缩进"),
                               ("ZZ", ZU_ONLY + ROW.format("ZZ", "one-ops").rstrip("\n") + "\xa0\n", "缩进"),
