@@ -215,7 +215,7 @@ def gate_self_test():
                     "eval \"$(printf x)\"", "zsh -c \"$(cat f)\"", "bash -c `cat f`", "print 'a\\''0050'", "${:-setopt} x", "print -f x", "echo a\\1", "ls x\\c", "ls x\\U1", "echo $'a'", "echo -e x", "echo -n -e x", "print -b x",
                     "print -v c 'ls a\\0050e:x:)'; eval $c", "print 'ls a\\0050e:x:)' | zsh", "set''opt glob_subst", "s\\etopt x", "e'mulate' ksh", "eval 'ls $'''~y", "glob's'ubst=1",
                     ". f 'a1(e:x:)'", "set -o extendedglob", "options[extendedglob]=on", "printf 'a\\n'", "printf %b x", "zmodload zsh/system", "autoload -U x", "a'u'toload x", "s\\et +o x", "set +o x", "z\"mod\"load x",
-                    "print -P x", "set -eo x", "set +ko x", "$0 -c \"$(cat f)\"", "/bin/z?h -c `cat f`", "print \"\\\\\"$e\"050\"", "x\\ y; echo z", "echo ${(g::)x}", "pr\\int a\\ b", "x\\ y; e\"ch\"o z", "pr$e'int' a\\ b", "/usr/bin/pr?ntf a\\ b",
+                    "print -P x", "set -eo x", "set +ko x", "$0 -c \"$(cat f)\"", "/bin/z?h -c `cat f`", "print \"\\\\\"$e\"050\"", "x\\ y; echo z", "echo ${(g::)x}", "pr\\int a\\ b", "x\\ y; e\"ch\"o z", "pr$e'int' a\\ b", "/usr/bin/pr?ntf a\\ b", "pr{i,}nt a\\ b",
                     "echo 'it''s *(e:x:)'", "echo $'a\\'*(e:x:)'", "ls \\*\\(e:x:\\)"):  # quoted, but a wildcard on the line has it read again: refused rather than read right (uncertain → refuse)
         assert refused(command) and "zsh" in judge(command, patterns, None, cwd, {}), ("a zsh glob qualifier: refused", command)
     for command in ("ls * (e:x:)", "grep -E 'a(b|c)' x", "grep -E \"a(b|c)\" x", "echo $(ls)", "diff <(ls) <(ls)", "ls; (ls)", "ls && (ls)", "ls | (cat)", "printf %s x", "echo -n hi", "print hi", "grep -e x f",
