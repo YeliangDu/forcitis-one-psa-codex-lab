@@ -621,14 +621,14 @@ def pre_tool_dispatch_test():
         raise ImportError("no prod_write_gate")
     def boom(payload):
         raise RuntimeError("boom")
-    Crashing = types.SimpleNamespace(plain=g.plain, could_concern=lambda text: True, decide=boom)
-    Hanging = types.SimpleNamespace(plain=g.plain, could_concern=lambda text: True, decide=lambda payload: time.sleep(5) or (0, "", ""))
+    Crashing, Hanging = (types.SimpleNamespace(plain=g.plain, command_of=g.command_of, could_concern=lambda text: True, decide=decide)  # the gate's own parsing: decide is reached
+                         for decide in (boom, lambda payload: time.sleep(5) or (0, "", "")))  # #47: without command_of main stopped at an AttributeError, the hang went untested
     with mock.patch.object(sys, "stdin"), mock.patch.object(d, "DEADLINE", 1):  # a gate with no answer in time is a failure (O7 final, suggestion 1)
-        for loader in (broken_import, lambda: Crashing, lambda: Hanging):
+        for loader, why in ((broken_import, "ImportError: no prod_write_gate"), (lambda: Crashing, "RuntimeError: boom"), (lambda: Hanging, "Overdue: 超过 1 秒没有结论")):
             sys.stdin = io.StringIO(payload(f"psql -h {PROD_P} -c 'select 1'"))
             with contextlib.redirect_stderr(io.StringIO()) as err:
                 code = d.main(loader)
-            assert code == 3 and "生产写门出错" in err.getvalue() and "保守预筛" in err.getvalue(), (loader, code, err.getvalue())
+            assert code == 3 and why in err.getvalue() and "生产写门出错" in err.getvalue() and "保守预筛" in err.getvalue(), (why, code, err.getvalue())
     # 4b. the deadline holds while the gate waits on git (O7 fix final M1): a git that sleeps is cut at DEADLINE, not swallowed by the gate's `except OSError`
     with tempfile.TemporaryDirectory() as fake:
         put(os.path.join(fake, "git"), "#!/bin/bash\nexec sleep 30\n")
@@ -838,7 +838,7 @@ def settings_self_test():
               'else echo "【钩子告警】核对不了已装钩子（$V 缺失或不可执行）"; fi; ')  # runs from the session's repository, not from current (O7 final M2)
     hooks = settings["hooks"]
     stop = [h["command"] for g in hooks.pop("Stop") for h in g["hooks"]]
-    assert len(stop) == 1 and "/.modernize/psa/tools/one-session/stop_check/stop_check.py" in stop[0] and stop[0].rstrip().endswith("; exit 0"), stop
+    assert stop == ['test -f {0} && /usr/bin/python3 -I {0}; exit 0'.format('"$HOME"/.modernize/psa/tools/one-session/stop_check/stop_check.py')], stop  # #47: the system python, as the start sheet
     assert sorted(hooks) == ["PreToolUse", "SessionStart"], sorted(hooks)
     assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,))], "PreToolUse hangs only the production-write gate, on the tools that run commands"
     assert json.dumps([*COMMAND_TOOLS, LAUNCH_TOOL]) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
