@@ -3,7 +3,9 @@
 
 在仓库根目录运行（不收目录参数，b2b-plan 0.4）：读当前目录的 scripts/delegate.py 与 policy.json，
 在临时目录建一个小仓库与临时 HOME，桩程序经 PATH 注入；卡从 Issue 读（#49），gh 也是桩，经环境变量 DELEGATE_GH 注入，Issue 内容在临时目录的 issues.json。
-核对：卡只取「目标」「完成标准」两节；Issue 取不到、不存在、已关闭、缺本会话标签、缺节、卡号不是 Issue 号一律拒且拒绝不带正文；gh 只被以 issue view 只读调用；
+核对：本会话自动识别（规则同 start_sheet：.claude/session-name 标记优先，否则目录名或分支名去 claude/ 对上画像名、取最长），识别不出拒，
+--session 只作核对、与识别不一致拒（调度 10-27）；卡只取「目标」「完成标准」两节；Issue 取不到、不存在、已关闭、缺本会话标签、带挂起或 hold、标签名不是字符串、
+gh 超时、缺节、卡号不是 Issue 号一律拒且拒绝不带正文、台账只记卡号与原因；真跑开关开着时设了 DELEGATE_GH 即拒；gh 只被以 issue view 只读调用；
 两路跑通；real_run_enabled 为 false 时无桩标记的程序被拒；
 禁区路径（含 review.final_paths、./ 前缀、大小写变体）、不外包类别、卡里密钥被拒；policy 缺键或类型不对失败关闭；
 越界、改名绕范围的改动机械验证不过；子进程只见白名单环境变量（env -i）、stdin 是 /dev/null（自测给的是管道）、
@@ -40,9 +42,14 @@ ISSUES = {"1": {"state": "OPEN", "labels": [{"name": LABEL}], "body": card(f"把
           "5": {"state": "CLOSED", "labels": [{"name": LABEL}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
           "6": {"state": "OPEN", "labels": [{"name": "会话:one-other"}, {"name": "挂起"}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
           "7": {"state": "OPEN", "labels": [{"name": LABEL}], "body": f"## 目标\n把 src/a.txt 改成 changed。{BODY}\n\n## 完成标准\n<!-- 未填 -->\n"},
-          "8": f"not json {BODY}", "9": [{"state": "OPEN"}]}
+          "8": f"not json {BODY}", "9": [{"state": "OPEN"}],
+          # 调度 10-27 追加：带挂起、带 hold（同 Q7）；标签名不是字符串；gh 挂住超过超时（桩见 HANG）
+          "10": {"state": "OPEN", "labels": [{"name": LABEL}, {"name": "挂起"}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
+          "11": {"state": "OPEN", "labels": [{"name": LABEL}, {"name": "hold"}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
+          "12": {"state": "OPEN", "labels": [{"name": LABEL}, {"name": [BODY]}], "body": card(f"把 src/a.txt 改成 changed。{BODY}")},
+          "13": "HANG"}
 GH_STUB = r'''#!@PY@
-import json, os, sys
+import json, os, sys, time
 d, a = os.environ["DELEGATE_SELFTEST_GH_DIR"], sys.argv[1:]
 with open(os.path.join(d, "calls.jsonl"), "a") as f:
     f.write(json.dumps(a) + "\n")
@@ -50,6 +57,8 @@ issues = json.load(open(os.path.join(d, "issues.json"), encoding="utf-8"))
 if a[:2] != ["issue", "view"] or len(a) < 3 or a[2] not in issues:
     sys.exit(print("GraphQL: Could not resolve to an issue or pull request", file=sys.stderr) or 1)
 v = issues[a[2]]
+if v == "HANG":
+    time.sleep(3600)
 print(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
 '''
 STUB = r'''#!@PY@
@@ -95,8 +104,9 @@ def setup(tmp, policy):
     repo, home, stubs, plain, ghd = tmp / "repo", tmp / "home", tmp / "stubs", tmp / "plain", tmp / "gh"
     for d in (repo, home, stubs, plain, ghd):
         d.mkdir()
-    (ghd / "gh").write_text(GH_STUB.replace("@PY@", sys.executable), encoding="utf-8")
-    (ghd / "gh").chmod(0o755)
+    for d in (ghd, plain):   # plain 里的 gh 供真跑开关开着、不设 DELEGATE_GH 时经 PATH 找到
+        (d / "gh").write_text(GH_STUB.replace("@PY@", sys.executable), encoding="utf-8")
+        (d / "gh").chmod(0o755)
     (ghd / "issues.json").write_text(json.dumps(ISSUES, ensure_ascii=False), encoding="utf-8")
     for name in ("codex", "pi"):
         for d, text in ((stubs, STUB), (plain, STUB.replace(MARK_LINE, ""))):
@@ -108,10 +118,12 @@ def setup(tmp, policy):
            "DELEGATE_GH": str(ghd / "gh"), "DELEGATE_SELFTEST_GH_DIR": str(ghd)}
     files = {"policy.json": json.dumps(policy, ensure_ascii=False, indent=2), "src/a.txt": "original\n", "docs/other.md": "other\n",
              "scripts/hooks/x.py": f"x = 1  # {FORBID}\n", "docs/SECRETS-sample.md": f"{FORBID}\n", "scripts/merge/m.py": f"# {FORBID}\n"}
+    # 会话画像（本会话自动识别，规则同 start_sheet）：one 与 one-test 都能前缀匹配分支 claude/one-test-main，须取最长；_ 开头的不算画像
+    files.update({f"docs/modernization/sessions/{n}.md": f"# {n}\n" for n in ("one", SESSION, "one-other", "_retired")})
     for rel, text in files.items():
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         (repo / rel).write_text(text, encoding="utf-8")
-    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "init"]):
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "init"], ["checkout", "-q", "-b", f"claude/{SESSION}-main"]):
         subprocess.run(["git", *args], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
     return repo, home, stubs, plain, env
 
@@ -206,14 +218,41 @@ def main():
         t.check(bool(cx and ds) and cx.get("tokens") == 1234 and ds.get("tokens") == "未知" and ds.get("cost") == "未知",
                 "token 取到记数、取不到与费用记「未知」")
         base = ["run", "--engine", "codex", "--category", "机械改写", "--session", SESSION, "--card"]
+        auto = ["run", "--engine", "codex", "--category", "机械改写", "--card", "1", "--scope", "src/a.txt"]   # 不给 --session
+        gitr = lambda *a: subprocess.run(["git", *a], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL, capture_output=True)
+        marker = repo / ".claude" / "session-name"
+        rc, out = run(repo, env, *auto)
+        t.check(rc == 0 and ledger(home)[-1].get("status") == "ok", f"本会话自动识别（分支 claude/{SESSION}-main，取最长画像名）、不给 --session：放行（退出 {rc}）")
+        rc, out = run(repo, env, *base, "1", "--scope", "src/a.txt")
+        t.check(rc == 0 and ledger(home)[-1].get("status") == "ok", f"--session 与自动识别一致：放行（退出 {rc}）")
+        out = refused(t, repo, home, stubs, env, "--session 与自动识别不一致", *auto, "--session", "one-other")
+        t.check("不一致" in out and "one-other" not in out, "--session 不一致：报「不一致」，不回显 --session 原值")
+        gitr("checkout", "-q", "-b", "feature-x")   # 目录名 repo、分支 feature-x 都对不上画像，也没有标记
+        for what, extra in (("识别不出本会话（不给 --session）", []), ("识别不出本会话（给了 --session 也不认自报）", ["--session", SESSION])):
+            out = refused(t, repo, home, stubs, env, what, *auto, *extra)
+            t.check("识别不出本会话" in out, f"{what}：报「识别不出本会话」")
+        marker.parent.mkdir()
+        marker.write_text(f"{SESSION}\n", encoding="utf-8")
+        rc, _ = run(repo, env, *auto)
+        t.check(rc == 0, f".claude/session-name 标记优先（分支对不上也认）：放行（退出 {rc}）")
+        gitr("checkout", "-q", f"claude/{SESSION}-main")   # 分支能认出，但标记优先：标记无效即拒，不退回分支名
+        for what, text in (("标记写的不是画像名", "nobody"), ("标记写的是 _ 开头的非画像", "_retired")):
+            marker.write_text(text, encoding="utf-8")
+            refused(t, repo, home, stubs, env, f"{what}（分支能认出也不退回）", *auto)
+        marker.unlink()
+        marker.parent.rmdir()
         for what, num, extra, want in (("Issue 不存在", "404", {}, "取不到 Issue #404"), ("Issue 已关闭", "5", {}, "不是 open"),
                                        ("Issue 缺本会话标签（只有别的会话与挂起）", "6", {}, f"没有本会话标签「{LABEL}」"),
                                        ("Issue 正文缺「完成标准」节内容", "7", {}, "完成标准"), ("卡号不是 Issue 号", "T-1", {}, "Issue 号"),
                                        ("gh 输出不是 JSON", "8", {}, "取不到 Issue #8"), ("gh 输出不是 JSON 对象", "9", {}, "取不到 Issue #9"),
                                        ("gh 不可用（程序不存在）", "1", {"DELEGATE_GH": str(tmp / "no-such" / "gh")}, "gh 不可用"),
-                                       ("gh 不可用（不可执行）", "1", {"DELEGATE_GH": str(tmp / "gh" / "issues.json")}, "gh 不可用")):
+                                       ("gh 不可用（不可执行）", "1", {"DELEGATE_GH": str(tmp / "gh" / "issues.json")}, "gh 不可用"),
+                                       ("Issue 带「挂起」标签", "10", {}, "带「挂起」或「hold」标签"), ("Issue 带「hold」标签", "11", {}, "带「挂起」或「hold」标签"),
+                                       ("Issue 标签名不是字符串", "12", {}, "标签名不是字符串"), ("gh 挂住超过超时", "13", {}, "TimeoutExpired")):
             out = refused(t, repo, home, stubs, {**env, **extra}, what, *base, num, "--scope", "src/a.txt")
             t.check(want in out and BODY not in out + json.dumps(ledger(home), ensure_ascii=False), f"{what}：报原因「{want}」，报错与台账不含 Issue 正文")
+            last = ledger(home)[-1]
+            t.check(last.get("card") == num and want in last.get("reason", "") and not {"labels", "body", "issue"} & set(last), f"{what}：台账只记卡号与拒绝原因")
         for what, scope in (("范围是禁区文件", "scripts/hooks/x.py"), ("范围覆盖禁区文件", "scripts"),
                             ("范围是禁区通配（密钥文件）", "docs/SECRETS-sample.md"), ("范围出仓库", "../x"),
                             ("范围 ./ 前缀指向禁区", "./scripts/hooks/x.py"), ("范围大小写变体指向禁区", "SCRIPTS/Hooks/x.py"), ("范围大小写变体指向禁区内新文件", "Scripts/Hooks/new.py"),
@@ -226,11 +265,15 @@ def main():
         penv = {**env, "PATH": f"{plain}:/usr/bin:/bin"}
         refused(t, repo, home, plain, penv, "real_run_enabled 为 false 时无桩标记的程序被拒", *base, "1", "--scope", "src/a.txt")
         with_policy(repo, policy, lambda p: p["delegate"].update(real_run_enabled=True))
-        rc, _ = run(repo, penv, *base, "1", "--scope", "src/a.txt")
+        out = refused(t, repo, home, plain, penv, "real_run_enabled 为 true 且设了 DELEGATE_GH", *base, "1", "--scope", "src/a.txt")
+        t.check("DELEGATE_GH" in out, "real_run_enabled 为 true 且设了 DELEGATE_GH：报 DELEGATE_GH，不静默忽略")
+        rc, _ = run(repo, {k: v for k, v in penv.items() if k != "DELEGATE_GH"}, *base, "1", "--scope", "src/a.txt")   # 开着开关不许设 DELEGATE_GH，gh 改经 PATH 取 plain/gh 桩
         t.check(rc == 0 and (plain / "rec-codex.json").exists(), "real_run_enabled 为 true 时同一程序放行（开关是唯一差别）")
         (repo / "policy.json").write_text(json.dumps(policy, ensure_ascii=False), encoding="utf-8")
+        rc, _ = run(repo, env, *base, "1", "--scope", "src/a.txt")
+        t.check(rc == 0 and ledger(home)[-1].get("status") == "ok", f"real_run_enabled 为 false 时 DELEGATE_GH 打桩照常放行（退出 {rc}）")
         wt = tmp / "wt"   # 快照临时目录不得在仓库（含主检出）或 ~/.modernize 之内（调度 10-27，#44）；开关关着就核，真跑前必经
-        subprocess.run(["git", "worktree", "add", "-q", str(wt)], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
+        subprocess.run(["git", "worktree", "add", "-q", "-b", f"claude/{SESSION}-wt", str(wt)], cwd=repo, env=env, check=True, stdin=subprocess.DEVNULL)
         (tmp / "lnk").symlink_to(repo / "tmpin", target_is_directory=True)
         (tmp / "homelnk").symlink_to(home, target_is_directory=True)
         for d in (repo / "tmpin", home / ".modernize/tmpin"):
