@@ -35,6 +35,8 @@ def registered_owner(sheet):
     rows, state = [], "before"
     for line in open(os.path.join(HERE, "ONLINE_PAGES.md"), encoding="utf-8"):
         s = line.strip()
+        if re.match(r" {0,3}(?:<|```|~~~)", line):   # HTML（含注释）或围栏代码块可把整张表藏起、另放一张幌子表，全文不许出现（d6864c362 终审必改 1）
+            sys.exit(f"ONLINE_PAGES.md 有以 <、``` 或 ~~~ 开头的行（HTML、注释或代码块可藏起登记表，不算登记）：{s[:40]}…；表格损坏，先修登记表")
         is_row = "|" in s and not s.startswith("- ")
         if state == "in" and not is_row:
             if s:
