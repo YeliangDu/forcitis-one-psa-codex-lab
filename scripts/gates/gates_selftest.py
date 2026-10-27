@@ -199,10 +199,18 @@ def gate_self_test():
         assert refused(command), f"a remote tool to a non-production host, not registered: refused: {command!r}"
     # 3a. a zsh glob qualifier runs code while expanding (`a1(e:…:)` even without a wildcard): an unquoted `(` right after a word, or `(#`, refuses the whole line; quotes followed only while certain (调度 10-27, uncertain → refuse)
     for command in ("ls *(e:'touch x':)", "ls a1(e:'touch x':)", "ls **/*(.)", "ls \"a\"*(e:x:)", "ls 'a'*(e:x:)", "ls (a|b)(e:x:)", "ls a*(#qe:x:)", "ls (#qe:x:)", "ls *(+f)", "ls @(a|b)", "f() { ls; }", "ls x;ls *(e:x:)",
-                    "echo \"$(ls *(e:x:))\"", "echo \"$x\" *(e:x:)", "echo \"`ls`\" a(e:x:)", "echo $'\\'' *(e:x:) $'\\''", "echo \"it's\" a(e:x:)", "echo 'unclosed *(e:x:)", "echo \"a\\\"b\" *(e:x:)", "echo $(ls *(e:x:))"):
+                    "echo \"$(ls *(e:x:))\"", "echo \"$x\" *(e:x:)", "echo \"`ls`\" a(e:x:)", "echo $'\\'' *(e:x:) $'\\''", "echo \"it's\" a(e:x:)", "echo 'unclosed *(e:x:)", "echo \"a\\\"b\" *(e:x:)", "echo $(ls *(e:x:))",
+                    # an escaped character, a range, a backtick, `=` or a blank zsh does not split on before `(` (40df9f9a5 round 1, final M1, M2)
+                    "ls a\\ (e:x:)", "ls \\((e:x:)", "ls a\\$(e:x:)", "ls a\\<(e:x:)", "ls a\\>(e:x:)", "ls a\\|(e:x:)", "ls a\\;(e:x:)", "ls a\\&(e:x:)", "ls a\\=(e:x:)", "ls a\\`(e:x:)", "ls a\\\n(e:x:)", "ls a\\\t(e:x:)", "ls \\<(e:x:)",
+                    "ls a<->(e:x:)", "ls a<1-9>(e:x:)", "ls 2>(e:x:)", "ls `echo a`(e:x:)", "ls a=(e:x:)", "ls *=(e:x:)", "x=(1 2)", "cat =(ls)",
+                    "ls a\r(e:x:)", "ls a\x0b(e:x:)", "ls a\x0c(e:x:)", "ls a\x1c(e:x:)", "ls a\x85(e:x:)", "ls a\xa0(e:x:)", "ls a\u2003(e:x:)",
+                    # a shell or eval runs its quoted body: quotes not followed (40df9f9a5 final M3); a variable's value globbed (final suggestion 1)
+                    "zsh -fc 'ls a*(e:\"x\":)'", "eval 'ls a*(e:x:)'", "bash -c 'f(x)'", "zsh <<< 'ls *(e:x:)'", "echo 'ls *(e:x:)' | zsh", "$SHELL -c 'ls *(e:x:)'", "/bin/zsh -c 'ls a1(e:x:)'", "z\"s\"h -c 'ls a1(e:x:)'",
+                    "x='a*(e:x:)'; ls $~x", "ls ${~x}", "setopt globsubst; ls $x", "setopt GLOB_SUBST"):
         assert refused(command) and "zsh" in judge(command, patterns, None, cwd, {}), ("a zsh glob qualifier: refused", command)
     for command in ("ls * (e:x:)", "grep -E 'a(b|c)' x", "grep -E \"a(b|c)\" x", "echo 'it''s *(e:x:)'", "echo $'a\\'*(e:x:)'", "ls \\*\\(e:x:\\)", "echo $(ls)", "diff <(ls) <(ls)", "ls; (ls)", "ls && (ls)", "ls | (cat)",
-                    "echo $((1+2))", "git log --format='%h (%s)'", "echo \"a (b)\""):
+                    "echo $((1+2))", "git log --format='%h (%s)'", "echo \"a (b)\"", "cat <(ls)", "ls;(ls)", "ls|(cat)", "ls&&(ls)", "git commit -m \"fix(gate): x\"", "python3 -c \"print(1)\"", "find . \\( -name a \\)",
+                    "zsh -c 'ls (x)'", "bash -c 'echo hi (x)'", "grep -E 'push(x)' f", "ls notes.sh 'f(x)'"):
         assert allowed(command), ("no qualifier: the gate goes on as before", command)
     # 4. unknown tools that touch production, every one refused
     for command in (f"python3 -c \"import pymssql; pymssql.connect('{P}').execute('delete from t')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}", f"xargs -I{{}} sqlcmd -S {P} -Q {{}}",
