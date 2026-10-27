@@ -39,7 +39,7 @@ jobs:
           src=docs/modernization
           cp "$src/CURRENT_DECISIONS.md" "$src/MODERNIZATION_BRIEF.md" "$out/"
           cp "$src/glossary/ISSUES.md" "$out/GLOSSARY_ISSUES.md"
-          cp "$src/phase1a/infra/LEGACY_READ_REGISTER.md" "$src/tasks/TASKS.md" "$out/"
+          cp "$src/phase1a/infra/LEGACY_READ_REGISTER.md" "$out/"
           mkdir -p "$out/adr"
           cp "$src"/adr/ADR-*.md "$src/adr/README.md" "$src/adr/INDEX.md" "$out/adr/"
           mkdir -p "$out/architecture/frameworks" "$out/architecture/panorama" "$out/glossary-proposed"
@@ -48,7 +48,7 @@ jobs:
           mkdir -p "$out/architecture/ssot/11-commands"
           cp "$src/architecture/ssot/11-commands/commands.yaml" "$src/architecture/ssot/11-commands/GAPS.md" "$out/architecture/ssot/11-commands/"
           cp backend/glossary/proposed/README.md "$out/glossary-proposed/"
-          printf '# 生成文档快照\n\n由 main@%s 的片段生成（docs/modernization/build_all.py），每小时整体覆盖。不要在此分支上修改；改片段后合入 main。\n\n- [TASKS.md](TASKS.md)\n- [CURRENT_DECISIONS.md](CURRENT_DECISIONS.md)\n- [GLOSSARY_ISSUES.md](GLOSSARY_ISSUES.md)\n- [MODERNIZATION_BRIEF.md](MODERNIZATION_BRIEF.md)\n- [adr/README.md](adr/README.md)\n- [adr/INDEX.md](adr/INDEX.md)\n- [architecture/frameworks/CONCEPT_INDEX.md](architecture/frameworks/CONCEPT_INDEX.md)\n- [architecture/frameworks/NOTES_INDEX.md](architecture/frameworks/NOTES_INDEX.md)\n- [architecture/panorama/FREEZE_FACTS.md](architecture/panorama/FREEZE_FACTS.md)\n- [architecture/panorama/FREEZE_IMPACT.md](architecture/panorama/FREEZE_IMPACT.md)\n- [architecture/panorama/panorama.yaml](architecture/panorama/panorama.yaml)\n- [architecture/panorama/GAPS.md](architecture/panorama/GAPS.md)\n- [architecture/ssot/11-commands/commands.yaml](architecture/ssot/11-commands/commands.yaml)\n- [architecture/ssot/11-commands/GAPS.md](architecture/ssot/11-commands/GAPS.md)\n- [glossary-proposed/README.md](glossary-proposed/README.md)\n' "$GITHUB_SHA" > "$out/README.md"
+          printf '# 生成文档快照\n\n由 main@%s 的片段生成（docs/modernization/build_all.py），每小时整体覆盖。不要在此分支上修改；改片段后合入 main。\n\n- [CURRENT_DECISIONS.md](CURRENT_DECISIONS.md)\n- [GLOSSARY_ISSUES.md](GLOSSARY_ISSUES.md)\n- [MODERNIZATION_BRIEF.md](MODERNIZATION_BRIEF.md)\n- [adr/README.md](adr/README.md)\n- [adr/INDEX.md](adr/INDEX.md)\n- [architecture/frameworks/CONCEPT_INDEX.md](architecture/frameworks/CONCEPT_INDEX.md)\n- [architecture/frameworks/NOTES_INDEX.md](architecture/frameworks/NOTES_INDEX.md)\n- [architecture/panorama/FREEZE_FACTS.md](architecture/panorama/FREEZE_FACTS.md)\n- [architecture/panorama/FREEZE_IMPACT.md](architecture/panorama/FREEZE_IMPACT.md)\n- [architecture/panorama/panorama.yaml](architecture/panorama/panorama.yaml)\n- [architecture/panorama/GAPS.md](architecture/panorama/GAPS.md)\n- [architecture/ssot/11-commands/commands.yaml](architecture/ssot/11-commands/commands.yaml)\n- [architecture/ssot/11-commands/GAPS.md](architecture/ssot/11-commands/GAPS.md)\n- [glossary-proposed/README.md](glossary-proposed/README.md)\n' "$GITHUB_SHA" > "$out/README.md"
           cd "$out"
           git init -q -b generated-docs
           git add -A

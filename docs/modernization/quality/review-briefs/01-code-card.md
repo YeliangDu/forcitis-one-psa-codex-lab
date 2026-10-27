@@ -4,12 +4,12 @@
 
 ## 出题人填（只填这一栏）
 
-- 产出：PR 号 / 分支，提交范围 `<基线提交>..<HEAD>`，派工卡路径。
+- 产出：PR 号 / 分支，提交范围 `<基线提交>..<HEAD>`，卡的 Issue 号。
 - 不填：自测结论、重点提示、提问。
 
 ## 必读材料（评审员自己读，不读作者摘要）
 
-1. 派工卡原文（格式见 `docs/modernization/templates/WORK_CARD.md`：依据、卡上文件、验收测试、禁止事项、预期 diff、复审要求）。
+1. 卡原文（Issue 正文，模板 `.github/ISSUE_TEMPLATE/card.md`；旧卡全文见正文里固定提交的卡链接。依据、卡上文件、验收测试、禁止事项、预期 diff、复审要求，卡上写了的照核）。
 2. 卡「依据」一栏列出的规则卡、ADR、intent、`terms.yaml` 词条——**原文**。
 3. 完整 diff：`git diff <基线>..<HEAD>`，以及 `--name-only` 的文件清单。
 4. 规范原文：`CODING_STANDARD.md`（逐条编号，下表引用到的）、`NAMING_STANDARD.md`、SESSION_PLAYBOOK 附 M1（修复批流程）与 DATA_DESIGN_CHECKLIST §14 / §14.1（涉数据时）。
