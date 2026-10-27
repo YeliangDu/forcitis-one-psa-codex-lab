@@ -8,7 +8,7 @@
   /usr/bin/python3 -I -S scripts/evidence/evidence.py --entry
       打印本入口在 scripts/gates/prod_targets.json trusted_entries.entries 里的登记行（JSON）；登记行只由它生成，自测核对表里那一条与它逐字段相等。
 命令行不收目录；家目录取自账号库（pwd），不读 HOME。门的可信条件（脚本、同目录全部可导入文件与 origin/main 逐字节一致）见 prod_write_gate.py。
-无口令：取证单运行前标准输入接到 /dev/null，getpass 被换成直接失败；凭据只能来自专用只读账号的本机配置（底线 4），不经命令行、不经交互。
+无口令：取证单运行前标准输入接到 /dev/null，getpass 被换成直接失败；凭据只能来自专用只读账号的本机配置（底线 4），不经命令行、不经交互。已知未覆盖：取证单或它起的子进程自己打开 /dev/tty 要口令，入口拦不住，靠首轮＋终审（README）。
 退出码：0 完成；2 启动方式不对、参数不对、取证单缺失或出错、policy 缺项、输出目录不安全。
 """
 import datetime
@@ -50,8 +50,8 @@ def retention_days():
     return days
 
 
-def no_password(*_args, **_kwargs):
-    raise RuntimeError("取证单不得要口令：凭据只来自专用只读账号的本机配置")
+def no_password(*_args, **_kwargs):  # stop() exits (SystemExit): the sheet's `except Exception` cannot swallow it
+    stop("取证单不得要口令：凭据只来自专用只读账号的本机配置")
 
 
 def collect(sheet, session):  # the sheet's lines; stdin is /dev/null and getpass fails while it runs
@@ -68,16 +68,16 @@ def collect(sheet, session):  # the sheet's lines; stdin is /dev/null and getpas
         spec.loader.exec_module(module)
         lines = [str(line) for line in module.collect(session)]
     except Exception as e:  # noqa: BLE001 — any failure of the sheet stops the run, nothing is written
-        stop(f"取证单 {sheet} 出错：{type(e).__name__}: {e}")
+        stop(f"取证单 {sheet} 出错：{type(e).__name__}（异常文本可能带取证内容，不打印）")
     if any("\n" in line or "\r" in line for line in lines):
         stop(f"取证单 {sheet} 返回的行含换行")
     return lines
 
 
-def out_dir():  # ~/.modernize/psa/ops/evidence, 0700, no symlink on the way
+def out_dir():  # ~/.modernize/psa/ops/evidence, 0700; none of ~/.modernize, psa, ops, evidence a symlink
     base = os.path.join(home(), ".modernize", "psa")
     path = os.path.join(base, "ops", "evidence")
-    for part in (os.path.join(base, "ops"), path):
+    for part in (os.path.dirname(base), base, os.path.join(base, "ops"), path):
         if os.path.islink(part):
             stop(f"输出目录 {part} 是符号链接，停下")
     os.makedirs(path, mode=0o700, exist_ok=True)

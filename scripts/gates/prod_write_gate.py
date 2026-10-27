@@ -9,7 +9,7 @@
   只有 origin/main 特征表 no_exec_tools 登记的、已知不执行参数文件的程序免读位置参数（选项值、选项里嵌的词、环境变量照读）；解释器名单只作说明（intent 2026-10-26-164931 A′）。
   免读只给整行就是一条纯命令：没有 ; & | 换行、替换、括号花括号，没有赋值（NAME=、NAME+=、数组），没有 eval、alias、function、hash 等字样，第一个词就是登记程序；否则整行不免（调度 10-26 深夜定）。
 - 行里有换目录（cd、pushd、popd，包装命令或程序自己的目录选项），又运行解释器、shell、启动器、按路径的程序或会运行别的命令的程序：整行拒，不推算目录（intent 2026-10-26-164931）。
-- 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。脚本在 docs 根下；唯一另一个可信前缀是字面的 scripts/evidence/（取证单入口，二乙 #6），按仓库根解析，真实路径须在其内。
+- 唯一例外是可信入口：只认 origin/main 特征表 trusted_entries 登记的固定入口，整行须与登记的解释器、脚本、参数形式逐字匹配，脚本连同导入链、同目录可导入文件、trust_dirs 都须与 origin/main 一致（intent 2026-10-26-132048）。脚本在 docs 根下；唯一另一个可信前缀是字面的 scripts/evidence/（取证单入口，二乙 #6），按仓库根解析，真实路径须在其内，同目录按名字运行的 sheet_*.py 连同导入链一并跟进比对。
 - 特征表缺失、不合格，或与 origin/main 的并集为空：远程工具与解释器拒绝，其余放行并告警；origin/main 读取时 git 出错只告警。读不懂且含远程工具名、特征或目标环境变量拒绝。
 已知未覆盖（intent 2026-10-26-165321，复审不判必改）：脚本运行时做什么（运行时拼出或下载生产目标、从管道或标准输入读程序、解释器内联代码自己去连），门只看命令行与被运行的文件；兜底是生产只读账号（底线 4）。
 命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
@@ -607,8 +607,8 @@ def imported(path, listing):  # Repository files a Python file can load: what it
     return found
 
 
-def closure(script):  # Files running `script` may load: what its imports name and the .py files it spells by path, recursively (new_intent runs its builders, build_records runs adr/build_adrs.py), and, compared but not followed, everything importable beside each of them (sys.path[0]: the standard library's own imports may pick it up); None when one cannot be read.
-    listing, todo, followed, found = {}, [os.path.abspath(script)], set(), set()
+def closure(script, runs=()):  # Files running `script` may load: what its imports name and the .py files it spells by path, recursively (new_intent runs its builders, build_records runs adr/build_adrs.py), and, compared but not followed, everything importable beside each of them (sys.path[0]: the standard library's own imports may pick it up); `runs`: files it runs by a name built at run time, followed as it is; None when one cannot be read.
+    listing, todo, followed, found = {}, [os.path.abspath(p) for p in (script, *runs)], set(), set()
     while todo:
         path = todo.pop()
         if path in followed:
@@ -659,6 +659,11 @@ def entry_script(rel, root):  # A registered script's path: under the docs root,
     return path if ".." not in rel and os.path.dirname(os.path.realpath(path)) == inside else None  # directly in it: no `..`, no subdirectory, no link out
 
 
+def entry_closure(rel, script):  # closure() of a registered script; one under scripts/evidence/ runs the sheet_*.py beside it by name, so those and what they load are followed too (b39e3785 first round, final M1)
+    here = os.path.dirname(script)
+    return closure(script, sorted(os.path.join(here, n) for n in os.listdir(here) if n.startswith("sheet_") and n.endswith(".py")) if rel.startswith(EVIDENCE_ROOT) and os.path.isdir(here) else ())
+
+
 def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered entry (interpreter, script, one of its forms) whose script, closure and read directories are origin/main's, else None.
     try:
         argv = None if SHELL_META.search(text) or re.search(r"[#\r\\]", text) else shlex.split(text)
@@ -672,7 +677,7 @@ def trusted_entry(text, cwd):  # The argv of a line that is exactly a registered
         if not script or not n or len(words) <= n or words[:n] != [os.path.expanduser(w) for w in entry["interpreter"]] or os.path.islink(os.path.join(cwd or os.getcwd(), words[n])) or rel_of(os.path.join(cwd or os.getcwd(), words[n])) != rel_of(script):  # a link to the script runs beside the link
             continue
         read = [tree_files(DOCS_ROOT + "/" + d) for d in entry.get("trust_dirs", []) if isinstance(d, str) and ".." not in d]
-        loaded = closure(script) if any(form_matches(words[n + 1:], f, slots) for f in entry.get("forms", [])) and None not in read else None
+        loaded = entry_closure(entry["script"], script) if any(form_matches(words[n + 1:], f, slots) for f in entry.get("forms", [])) and None not in read else None
         if loaded is not None and all_as_on_main([script] + sorted(loaded) + [f for files in read for f in files]):
             return argv
     return None

@@ -31,15 +31,16 @@ def main():
         assert source.count(HOME_LINE) == 1, "the copy swaps exactly the one place the home is read"
         open(os.path.join(here, "evidence.py"), "w", encoding="utf-8").write(source.replace(HOME_LINE, f"return {home!r}"))
         sheets = {"stub": "def collect(session):\n    return ['a ' + session, 'b']\n", "ask": "import getpass\ndef collect(session):\n    return [getpass.getpass('口令：')]\n",
-                  "boom": "def collect(session):\n    raise ValueError('x')\n"}
+                  "boom": "def collect(session):\n    raise ValueError('detail-from-the-sheet')\n", "feed": "import sys\ndef collect(session):\n    return ['in:' + sys.stdin.read()]\n"}
         for name, body in sheets.items():
             open(os.path.join(here, f"sheet_{name}.py"), "w", encoding="utf-8").write(body)
+        os.symlink(os.path.join(here, "sheet_stub.py"), os.path.join(here, "sheet_link.py"))
 
         def policy(value):
             open(os.path.join(repo, "policy.json"), "w", encoding="utf-8").write(json.dumps({"retention_days": {"evidence": value}} if value is not None else {}))
 
-        def entry(*args, flags=("-I", "-S")):
-            return subprocess.run([PYTHON, *flags, os.path.join(here, "evidence.py"), *args], capture_output=True, text=True, env={}, stdin=subprocess.DEVNULL)
+        def entry(*args, flags=("-I", "-S"), feed=None):  # an empty environment; standard input /dev/null, or a pipe fed `feed`
+            return subprocess.run([PYTHON, *flags, os.path.join(here, "evidence.py"), *args], capture_output=True, text=True, env={}, **({"input": feed} if feed else {"stdin": subprocess.DEVNULL}))
 
         def written():
             where = os.path.join(home, ".modernize", "psa", "ops", "evidence")
@@ -58,19 +59,36 @@ def main():
         for args, flags, why in ((("--session=one-ops", "stub"), ("-I",), "须由 /usr/bin/python3 -I -S"), (("--session=one-ops", "stub"), (), "须由 /usr/bin/python3 -I -S"), (("--session=one-ops", "ask"), ("-I", "-S"), "不得要口令"),
                                  (("--session=one-ops", "boom"), ("-I", "-S"), "取证单 boom 出错"), (("--session=one-ops", "none"), ("-I", "-S"), "没有取证单"),
                                  (("--session=One", "stub"), ("-I", "-S"), "会话名只许"), (("--session=one-ops", "../stub"), ("-I", "-S"), "会话名只许"),
-                                 (("--session=one-ops",), ("-I", "-S"), "用法"), (("stub", "--session=one-ops"), ("-I", "-S"), "用法")):
+                                 (("--session=one-ops",), ("-I", "-S"), "用法"), (("stub", "--session=one-ops"), ("-I", "-S"), "用法"), (("--session=one-ops", "link"), ("-I", "-S"), "没有取证单")):
             r = entry(*args, flags=flags)
             assert r.returncode == 2 and why in r.stderr and len(written()) == 1, ("refused for its own reason, nothing written", why, r.returncode, r.stderr)
+        assert "detail-from-the-sheet" not in entry("--session=one-ops", "boom").stderr, "a failing sheet: its exception type only, not its text"
         for value, why in ((None, "missing key"), ("7", "a string"), (0, "zero"), (True, "a boolean")):
             policy(value)
             r = entry("--session=one-ops", "stub")
             assert r.returncode == 2 and "retention_days.evidence" in r.stderr and len(written()) == 1, (why, r.stderr)
         policy(7)
+        victim, start = os.path.join(tmp, "victim"), datetime.datetime.now(datetime.timezone.utc)
+        open(victim, "w", encoding="utf-8").write("kept\n")
+        names = [os.path.join(os.path.dirname(path), f"stub-one-ops-{t:%Y%m%dT%H%M%SZ}-expires-{(t + datetime.timedelta(days=7)).date():%Y%m%d}.txt") for t in (start + datetime.timedelta(seconds=s) for s in range(8))]
+        for plant in (lambda p: os.symlink(victim, p), lambda p: shutil.copyfile(victim, p)):  # at the output name of each of the next seconds a link, then a file: never followed, never overwritten (O_NOFOLLOW, O_EXCL)
+            for planted in names:
+                os.path.lexists(planted) and os.path.islink(planted) and os.remove(planted)
+                os.path.lexists(planted) or plant(planted)
+            r = entry("--session=one-ops", "stub")
+            assert r.returncode == 2 and "写不了输出文件" in r.stderr and all(open(p, encoding="utf-8").read() == "kept\n" for p in names + [victim] if not os.path.islink(p) and p != path), (r.returncode, r.stderr)
+        r = entry("--session=one-ops", "feed", feed="secret-typed-in\n")
+        assert r.returncode == 0 and open(r.stdout.strip(), encoding="utf-8").read().splitlines()[-1] == "in:", "a sheet reads /dev/null, not what was piped to the entry"
         shutil.rmtree(os.path.join(home, ".modernize", "psa", "ops"))
         os.makedirs(os.path.join(tmp, "elsewhere"))
         os.symlink(os.path.join(tmp, "elsewhere"), os.path.join(home, ".modernize", "psa", "ops"))
         r = entry("--session=one-ops", "stub")
         assert r.returncode == 2 and "符号链接" in r.stderr and os.listdir(os.path.join(tmp, "elsewhere")) == [], "an output directory reached through a symlink is refused"
+        os.remove(os.path.join(home, ".modernize", "psa", "ops"))
+        os.rename(os.path.join(home, ".modernize", "psa"), os.path.join(home, ".modernize", "psa-real"))
+        os.symlink(os.path.join(home, ".modernize", "psa-real"), os.path.join(home, ".modernize", "psa"))
+        r = entry("--session=one-ops", "stub")
+        assert r.returncode == 2 and "符号链接" in r.stderr and not os.path.exists(os.path.join(home, ".modernize", "psa-real", "ops")), "~/.modernize/psa itself a symlink: refused"
     print("evidence entry: ok")
 
 

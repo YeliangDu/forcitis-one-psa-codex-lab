@@ -320,6 +320,13 @@ def gate_self_test():
             os.makedirs(os.path.join(top, os.path.dirname(link)), exist_ok=True)
             os.symlink(os.path.join(top, target), os.path.join(top, link))
             assert g.entry_script("scripts/evidence/e.py", top) is None and g.entry_script("scripts/evidence/e.py", cwd) == os.path.join(cwd, "scripts/evidence/e.py"), ("a link leaving scripts/evidence/", link)
+        lab, rels = os.path.realpath(tempfile.mkdtemp(dir=cwd)), ["scripts/evidence/evidence.py", "scripts/evidence/sheet_t.py", "lib/helper.py"]  # a sheet loads a module outside scripts/evidence/ through sys.path (b39e3785 M1)
+        for rel, text in zip(rels, (Path(ev).read_text(encoding="utf-8"), "import os, sys\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))\nimport helper\n", "x = 1\n")):
+            put(os.path.join(lab, rel), text, 0o644)
+        on_main = dict(zip(rels, g.batch(["hash-object", "--no-filters", "--stdin-paths"], [os.path.join(lab, r) for r in rels])))
+        with mock.patch.multiple(g, ANCHOR=lab, main_blobs=lambda paths: {r: on_main[r] for r in paths if r in on_main}):
+            assert allowed(f"python3 -I {lab}/scripts/evidence/evidence.py x", mine) and not put(os.path.join(lab, rels[2]), "x = 2\n", 0o644), "the control: the sheet and the module it loads as on main"
+            assert refused(f"python3 -I {lab}/scripts/evidence/evidence.py x", mine), "the module a sheet loads, edited: not trusted"
         g.trusted_entries = lambda: ([], {})
         assert refused(f"python3 -I {intent} x", mine) and refused(f"python3 -I {ev} x", mine), "not registered"
         g.trusted_entries = lambda: ([dict(entry, forms=[["{any}"]])], {"any": re.compile(".+")})
@@ -456,9 +463,9 @@ def layout_self_test():
         assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
     # what a trusted script loads or is compared with decides whether the gate lets it pass: every such file needs the opus final review (K18 follow-up, a3be80fcd final suggestion 1)
     final, entries = json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["review"]["final_paths"], json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["entries"]
-    scripts = [g.entry_script(e["script"], ROOT) for e in entries]
-    assert all(g.closure(s) is not None for s in scripts), "every registered entry's closure can be read"
-    loaded = {os.path.relpath(f, ROOT) for s in scripts for f in g.closure(s) | {s} if os.path.exists(f)} | {f"{DOCS_ROOT}/{d}" for e in entries for d in e["trust_dirs"]}
+    scripts = {g.entry_script(e["script"], ROOT): g.entry_closure(e["script"], g.entry_script(e["script"], ROOT)) for e in entries}  # an evidence entry's closure follows its sheets
+    assert None not in scripts.values(), "every registered entry's closure can be read"
+    loaded = {os.path.relpath(f, ROOT) for s, c in scripts.items() for f in c | {s} if os.path.exists(f)} | {f"{DOCS_ROOT}/{d}" for e in entries for d in e["trust_dirs"]}
     assert all(rel.startswith(tuple(final)) for rel in loaded), ("files a trusted entry loads or reads, missing from policy.json review.final_paths", sorted(r for r in loaded if not r.startswith(tuple(final))))
     slots = {k: re.compile(v) for k, v in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["slots"].items()}
     assert slots["sql"].fullmatch("credential_columns_scan.sql") and not any(slots["sql"].fullmatch(v) for v in ("/tmp/x.sql", "../x.sql", "a/b.sql")), "the evidence tool's SQL is a bare name under evidence/ (50a6af8c3 final M4)"
