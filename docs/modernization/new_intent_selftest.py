@@ -40,7 +40,7 @@ def decide_drill(tree, sync_args):
         json.dump({"number": "N1", "at": "2026-01-01T00:00:00", "picks": {f"{s}~{s}-01": pick}}, open(os.path.join(out, "answers-submit", "N1.json"), "w", encoding="utf-8"), ensure_ascii=False)
 
     def sync(sheet, pages):
-        open(os.path.join(dec, "ONLINE_PAGES.md"), "w", encoding="utf-8").write(pages)
+        open(os.path.join(dec, "ONLINE_PAGES.md"), "wb").write(pages if isinstance(pages, bytes) else pages.encode("utf-8"))
         r = subprocess.run([sys.executable, os.path.join(dec, "decide_sync.py"), sheet, os.path.join(tree, "out" + sheet), *sync_args], capture_output=True, text=True)
         return r.returncode, r.stdout + r.stderr
     before = set(glob.glob(os.path.join(mod, "intent", "*.md")))
@@ -51,32 +51,34 @@ def decide_drill(tree, sync_args):
     assert "## 类别\n\n流程\n\n## 负责会话\n\none-glossary\n\n## 影响路径\n\nscripts/ci、docs/modernization\n" in text, f"片段四项须齐全且负责会话取自登记：{text}"
     os.remove(os.path.join(dec, "answers", "ZZ.json"))
     real = open(os.path.join(BASE, "rules", "decide", "ONLINE_PAGES.md"), encoding="utf-8").read()
-    dup = "|ZZ|演练|one-ops|x|待定|x|\n"
-    for sheet, pages, why in (("ZZ", PAGES.replace("负责会话", "负责人"), "表头"), ("ZY", PAGES, "没有在 ONLINE_PAGES.md 登记"), ("ZU", PAGES, "roles/ 未列"), ("ZZ", PAGES + ROW.format("ZZ", "one-ops"), "重复登记"),
-                              ("ZZ", PAGES + dup, "重复登记"), ("ZZ", PAGES + "  " + ROW.format("ZZ", "one-ops"), "重复登记"), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定\n", "格式不规范"),
-                              ("ZZ", PAGES + "ZZ | 演练 | one-ops | x | 待定 | x |\n", "格式不规范"), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定 | x\n", "格式不规范"),
+    other = ROW.format("ZZ", "one-ops")
+    wl = "行不在白名单内"
+    for sheet, pages, why in (("ZZ", PAGES.replace("负责会话", "负责人"), "表头"), ("ZY", PAGES, "没有在 ONLINE_PAGES.md 登记"), ("ZU", PAGES, "roles/ 未列"),
+                              ("ZZ", PAGES + other, "重复登记"), ("ZZ", PAGES + ROW.format("zz", "one-ops"), "重复登记"), ("ZZ", PAGES + "|ZZ|演练|one-ops|x|待定|x|\n", "重复登记"),
+                              ("ZZ", PAGES + "说明\n", "第 5 " + wl), ("ZZ", "说明\n\n" + PAGES, "第 1 " + wl), ("ZZ", PAGES + "# 表后标题须先空行\n", "第 5 " + wl),
+                              ("ZZ", PAGES + "\n" + other, "登记表之外又有表格行"), ("ZZ", PAGES + "\n# 标题\n\n" + other, "登记表之外又有表格行"),
+                              ("ZZ", PAGES + "  " + other, wl), ("ZZ", PAGES + "    " + other, wl), ("ZZ", PAGES + "\t" + other, wl), ("ZZ", PAGES + "\xa0" + other, wl),
+                              ("ZZ", PAGES + other.rstrip("\n") + " \n", wl), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定 |\n", wl), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定 | x | y |\n", wl),
+                              ("ZZ", PAGES + "ZZ | 演练 | one-ops | x | 待定 | x |\n", wl), ("ZZ", PAGES + "| ZZ | 演练 | one-ops | x | 待定 | x\n", wl),
+                              ("ZZ", HEAD + "| ZZ | 演练 \\| one-ops | one-glossary | x | 待定 |\n", wl), ("ZZ", HEAD + "| ZZ | 演练 | one-glossary | x | 待定 | x\\ |\n", wl),
+                              ("ZZ", PAGES.replace("\n", "\r\n"), wl), ("ZZ", PAGES + "| ZZ | 演练\r| one-ops | x | 待定 | x |\n", wl),
+                              ("ZZ", "<!--\n" + HEAD + other + "-->\n\n" + PAGES, "第 1 " + wl), ("ZZ", "```\n" + HEAD + other + "```\n", "第 1 " + wl), ("ZZ", "~~~\n" + HEAD + other, "第 1 " + wl),
+                              ("ZZ", "- x\n" + PAGES, "第 1 " + wl), ("ZZ", "> " + PAGES, "第 1 " + wl), ("ZZ", "   # 缩进标题\n\n" + PAGES, "第 1 " + wl), ("ZZ", "#标题无空格\n\n" + PAGES, "第 1 " + wl),
+                              ("ZZ", "[x]: http://x\n\n" + PAGES, "第 1 " + wl), ("ZZ", "﻿# 带 BOM\n\n" + PAGES, "第 1 " + wl), ("ZZ", PAGES.encode("utf-8") + b"\xff\n", "不是合法 UTF-8"),
                               ("ZZ", PAGES + ROW.format("**ZZ**", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("`ZZ`", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("ZZ​", "one-ops"), "首格不合约定"),
-                              ("ZZ", PAGES + ROW.format("zz", "one-ops"), "重复登记"),
-                              ("ZZ", PAGES + ROW.format("_ZZ_", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("__ZZ__", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("某页面", "one-ops"), "首格不合约定"),
-                              ("ZZ", HEAD + "| ZZ | 演练 \\| one-ops | one-glossary | x | 待定 |\n", "格式不规范"), ("ZZ", ZU_ONLY + "\n" + ROW.format("ZZ", "one-ops"), "块之后"),
-                              ("ZZ", ZU_ONLY + "\n说明\n" + ROW.format("ZZ", "one-ops"), "块之后"), ("ZZ", ZU_ONLY + "说明\n" + ROW.format("ZZ", "one-ops"), "紧接着一行非表格行"),
-                              ("ZZ", ZU_ONLY + "\n<!--\n" + ROW.format("ZZ", "one-ops") + "-->\n", "HTML、注释或代码块"), ("ZZ", ZU_ONLY + "\n```\n" + ROW.format("ZZ", "one-ops") + "```\n", "HTML、注释或代码块"),
-                              ("ZZ", "<!--\n" + HEAD + ROW.format("ZZ", "one-ops") + "\n-->\n<table><tr><td>ZZ</td><td>one-glossary</td></tr></table>\n", "HTML、注释或代码块"),
-                              ("ZZ", "~~~\n" + HEAD + ROW.format("ZZ", "one-ops") + "\n~~~\n", "HTML、注释或代码块"), ("ZZ", "   <!--\n" + HEAD + ROW.format("ZZ", "one-ops") + "\n-->\n", "HTML、注释或代码块"),
-                              ("ZZ", "- <!--\n  " + HEAD.replace("\n|", "\n  |") + "  " + ROW.format("ZZ", "one-ops") + "\n  -->\n- <table><tr><td>ZZ</td><td>one-glossary</td></tr></table>\n", "HTML、注释或代码块"),
-                              ("ZZ", "- ```\n  " + HEAD.replace("\n|", "\n  |") + "  " + ROW.format("ZZ", "one-ops"), "HTML、注释或代码块"), ("ZZ", "> 1. ~~~\n" + HEAD + ROW.format("ZZ", "one-ops") + "\n", "HTML、注释或代码块"),
-                              ("ZZ", ZU_ONLY + "    " + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "\t" + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "  \t" + ROW.format("ZZ", "one-ops"), "缩进"),
-                              ("ZZ", ZU_ONLY + "\f" + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "\xa0" + ROW.format("ZZ", "one-ops"), "缩进"), ("ZZ", ZU_ONLY + "　" + ROW.format("ZZ", "one-ops"), "缩进"),
-                              ("ZZ", ZU_ONLY + ROW.format("ZZ", "one-ops").rstrip("\n") + "\xa0\n", "缩进"),
+                              ("ZZ", PAGES + ROW.format("_ZZ_", "one-ops"), "首格不合约定"), ("ZZ", PAGES + ROW.format("某页面", "one-ops"), "首格不合约定"),
                               ("ZZ", HEAD.split("\n")[0] + "\n" + ROW.format("ZZ", "one-glossary"), "不是分隔行"),
-                              ("ZU", HEAD + "| ZU | 演练 | one-glossary | x | 待定 |\n", "格式不规范"), ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"),
-                              ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射"), ("N1", real, "单子 N1 在 ONLINE_PAGES.md 的负责会话是「roles/ 未列」")):
+                              ("ZU", HEAD + ROW.format("ZU", ""), "负责会话是「」"), ("ZU", HEAD + ROW.format("ZU", "one-nobody"), "不在 roles/ 过渡映射"),
+                              ("N1", real, "单子 N1 在 ONLINE_PAGES.md 的负责会话是「roles/ 未列」")):
         code, out = sync(sheet, pages)
         assert code != 0 and why in out, f"{why} 应拒：{out[:200]}"
         assert not os.listdir(os.path.join(dec, "answers")), f"{why}：登记表这一关拒绝时不写答复文件"
     assert len(set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before) == 1, "拒绝时不应再生成片段"
-    code, out = sync("ZZ", PAGES.replace("|---|---|", "|:---|---:|", 1))
-    assert code == 0 and "对账通过" in out, f"分隔行带对齐冒号应通过：{out[:200]}"
+    for pages, why in ((PAGES.replace("|---|---|", "|:---|---:|", 1), "分隔行带对齐冒号"), ("# 在线页登记表\n \t\n## 小标题\n" + PAGES + "\n### 表后标题\n\n", "空行、标题行在表前表后"),
+                       (PAGES.rstrip("\n"), "表在文件尾不带换行")):
+        code, out = sync("ZZ", pages)
+        assert code == 0 and "对账通过" in out, f"{why}应通过：{out[:200]}"
+        os.remove(os.path.join(dec, "answers", "ZZ.json"))
 
 
 def main():

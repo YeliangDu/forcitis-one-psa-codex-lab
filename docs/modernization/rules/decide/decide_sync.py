@@ -26,33 +26,25 @@ NON_SHEET_PAGES = {"收件箱（待你决定）", "用语确认固定页", "旧�
 
 
 def registered_owner(sheet):
-    """单子的负责会话，取自 ONLINE_PAGES.md 登记表。列约定：表头固定为 PAGES_HEADER 六列，行以「 | 」分列，单子行第一列是单子编号；
-    表头变了、单子未登记或重复、列数不对、负责会话为空或「roles/ 未列」，一律拒绝，不回退默认会话。
-    凡含管道符且不是「- 」开头说明行的行都算表格行：去首尾空白、按 | 切分、各格 strip 后统一解析（缩进或管道符两侧无空格不能躲过重复计数）；
-    表格行不以 | 开头结尾、列数不是六列、或含转义管道符 \\|（单元格不得含管道符），判表格损坏而拒（失败关闭）；
-    表格行须从表头起连续成一块（表头、分隔行、数据行间不夹空行或非表格行），块后须是空行或文件尾，块后再有表格行即拒：注释、代码块、表外孤立行都不算登记。
-    表头下一行须是分隔行（各格为 -，可带对齐冒号）。"""
+    """单子的负责会话，取自 ONLINE_PAGES.md 登记表；表头变了、单子未登记或重复、负责会话为空或「roles/ 未列」一律拒绝，不回退默认会话。
+    整份白名单（调度 10-27 晚定）：按 \\n 切行，每行只能是三种之一，其他任何行整份判损坏并报行号——
+    空行（只有空格或制表符）；# 标题行（行首 1～6 个 #、紧跟空格）；登记表行（行首 | 起、行尾 | 止、不缩进、不带尾随空白，恰好 6 格，格内无 |、\\、\\r）。
+    登记表行须连成唯一一块，块后紧跟空行或文件尾；块内第一行是表头，第二行是分隔行（各格为 -，可带对齐冒号）。格只去两端空格。"""
     rows, state = [], "before"
-    for line in open(os.path.join(HERE, "ONLINE_PAGES.md"), encoding="utf-8"):
-        s = line.strip()
-        if re.match(r"\s*(?:(?:[-*+>]|\d+[.)])\s*)*(?:<|```|~~~)", line):   # HTML（含注释）或围栏代码块可把整张表藏起、另放一张幌子表，全文不许出现；列表、引用标记里的也算（d6864c362 终审必改 1，dd2f262f6 首轮必改 1）
-            sys.exit(f"ONLINE_PAGES.md 有以 <、``` 或 ~~~ 开头的行（HTML、注释或代码块可藏起登记表，不算登记）：{s[:40]}…；表格损坏，先修登记表")
-        is_row = "|" in s and not s.startswith("- ")
-        if state == "in" and not is_row:
-            if s:
-                sys.exit(f"ONLINE_PAGES.md 登记表紧接着一行非表格行（表格块须以空行结束）：{s[:40]}…；表格损坏，先修登记表")
-            state = "after"
-        if not is_row:
-            continue
-        if state == "after":
-            sys.exit(f"ONLINE_PAGES.md 登记表块之后又有表格行（表格行须从表头起连续成一块；注释、代码块、表外孤立行不算登记）：{s[:40]}…；表格损坏，先修登记表")
-        state = "in"
-        cells = [c.strip() for c in s[1:-1].split("|")]
-        if "\\|" in s or not (s.startswith("|") and s.endswith("|")) or len(cells) != len(PAGES_HEADER):
-            sys.exit(f"ONLINE_PAGES.md 登记表有格式不规范的表格行（要求以 | 开头结尾、{len(PAGES_HEADER)} 列、单元格不含管道符或转义管道符）：{s[:40]}…；表格损坏，不敢解析负责会话，先修登记表")
-        if not re.fullmatch(r" {0,3}\|.*\|[ \t]*", line.rstrip("\r\n")):   # 4 格以上或制表符缩进是代码块，行首行尾其他空白（\f、NBSP、全角空格）让页面整行错位（bfc4056e5 首轮、56a28fb35 终审必改 1）
-            sys.exit(f"ONLINE_PAGES.md 登记表有缩进不合约定的表格行（行首只许 0～3 个空格、紧接 |，末尾 | 后只许空格或制表符；否则页面显示与脚本解析不一致）：{s[:40]}…；表格损坏，先修登记表")
-        rows.append(cells)
+    try:
+        text = open(os.path.join(HERE, "ONLINE_PAGES.md"), "rb").read().decode("utf-8")
+    except UnicodeDecodeError:
+        sys.exit("ONLINE_PAGES.md 不是合法 UTF-8；表格损坏，先修登记表")
+    for no, line in enumerate(text.split("\n"), 1):
+        if re.fullmatch(r"\|(?:[^|\\\r]*\|){%d}" % len(PAGES_HEADER), line):
+            if state == "after":
+                sys.exit(f"ONLINE_PAGES.md 第 {no} 行：登记表之外又有表格行（只许一张连续登记表）；表格损坏，先修登记表")
+            state = "in"
+            rows.append([c.strip(" ") for c in line[1:-1].split("|")])
+        elif re.fullmatch(r"[ \t]*", line) or (state != "in" and re.fullmatch(r"#{1,6} [^\r]*", line)):
+            state = "after" if state == "in" else state
+        else:
+            sys.exit(f"ONLINE_PAGES.md 第 {no} 行不在白名单内（只许空行、# 标题行、一张不缩进的六列登记表，表后须空行；说明写 rules/decide/README）：{line[:40]!r}；表格损坏，先修登记表")
     if not rows or rows[0] != PAGES_HEADER:
         sys.exit(f"ONLINE_PAGES.md 登记表表头不是约定的六列（{' | '.join(PAGES_HEADER)}），不敢解析负责会话；先修登记表或本脚本")
     if len(rows) < 2 or not all(re.fullmatch(r":?-+:?", c) for c in rows[1]):
