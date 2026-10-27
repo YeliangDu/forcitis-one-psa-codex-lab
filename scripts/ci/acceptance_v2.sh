@@ -344,7 +344,7 @@ EOF
   case "$cfg" in ok:*) ;; *) report V12 fail "$(printf '%s' "${cfg#bad:}" | head -n 1)"; return ;; esac
   budget_level_selftest
   case "$BL_VERDICT" in env) report V12 env "$BL_MSG"; return ;; fail) report V12 fail "$BL_MSG"; tail_out; return ;; esac
-  [ -f "$ss" ] || { report V12 env "工具库缺 $ss，开工单的档位与配置差异未核"; return; }
+  [ -f "$ss" ] || { report V12 env "工具库缺 ${ss}，开工单的档位与配置差异未核"; return; }
   run_ok "start_sheet self-test: ok" "$py" -I "$ss" --self-test || { report V12 fail 'start_sheet --self-test 退出非 0 或无通过行'; tail_out; return; }
   report V12 pass "policy.json 有预算线与梯子、会话配置清单（${cfg#ok:}），budget_level 与 start_sheet 自测通过"
 }
@@ -596,7 +596,7 @@ EOF
   [ -f "$ROOT/$f" ] && [ -f "$ROOT/scripts/delegate.py" ] || { report V16 fail "$f 或 scripts/delegate.py 不存在"; return; }
   run_ok '^delegate 自测：全过$' in_root python3 -I "$f" || { report V16 fail 'delegate 自测退出非 0 或没有「全过」行'; tail_out; return; }
   for l in 'PASS codex 两路之一跑通' 'PASS deepseek 两路之一跑通' 'PASS 范围是禁区文件：拒绝' 'PASS codex 台账有记录'; do
-    printf '%s\n' "$OUT" | grep -q "^$l" || { report V16 fail "delegate 自测输出缺「$l」"; return; }
+    printf '%s\n' "$OUT" | grep -q "^$l" || { report V16 fail "delegate 自测输出缺「${l}」"; return; }
   done
   report V16 pass 'delegate 自测全过（两路跑通、禁区被拒、台账有记录），permissions.deny 挡住直接调用 codex 与 pi'
 }

@@ -83,7 +83,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     # rule review revisions are append-only: run by scripts/ci/light.sh
     "docs/modernization/rules/review_revisions.py",
     "docs/modernization/adr/new_adr.py",  # tool self-tests run by scripts/ci/light.sh (O14: no longer by build_all.py)
-    # task register: check_tasks.py runs in build_all.py
+    # deleted by #23 C10c; still named only by acceptance_v2.sh (hand-run, no CI step): V06 checks the task register and its checker are gone
     "docs/modernization/check_tasks.py",
     "docs/modernization/tasks/",
     # decision page question rules: no CI step runs them (scripts/precheck.sh did, locally, until GOV-1023-FV2 O9); listed so that naming them stays covered
