@@ -197,6 +197,31 @@ def gate_self_test():
         assert allowed(command), f"non-production write must pass: {command!r}"
     for command in ('psql -h localhost -c "insert into t values (1)"', "aliyun rds DeleteAccount --DBInstanceId pgm-dev00001", "ssh dev 'rm -rf /tmp/x'", "scp a dev:/tmp/", "curl -X POST https://dev/x"):
         assert refused(command), f"a remote tool to a non-production host, not registered: refused: {command!r}"
+    # 3a. a zsh glob qualifier runs code while expanding (`a1(e:…:)` even without a wildcard): an unquoted `(` right after a word, or `(#`, refuses the whole line; quotes followed only while certain (调度 10-27, uncertain → refuse)
+    for command in ("ls *(e:'touch x':)", "ls a1(e:'touch x':)", "ls **/*(.)", "ls \"a\"*(e:x:)", "ls 'a'*(e:x:)", "ls (a|b)(e:x:)", "ls a*(#qe:x:)", "ls (#qe:x:)", "ls *(+f)", "ls @(a|b)", "f() { ls; }", "ls x;ls *(e:x:)",
+                    "echo \"$(ls *(e:x:))\"", "echo \"$x\" *(e:x:)", "echo \"`ls`\" a(e:x:)", "echo $'\\'' *(e:x:) $'\\''", "echo \"it's\" a(e:x:)", "echo 'unclosed *(e:x:)", "echo \"a\\\"b\" *(e:x:)", "echo $(ls *(e:x:))",
+                    # an escaped character, a range, a backtick, `=` or a blank zsh does not split on before `(` (40df9f9a5 round 1, final M1, M2)
+                    "ls a\\ (e:x:)", "ls \\((e:x:)", "ls a\\$(e:x:)", "ls a\\<(e:x:)", "ls a\\>(e:x:)", "ls a\\|(e:x:)", "ls a\\;(e:x:)", "ls a\\&(e:x:)", "ls a\\=(e:x:)", "ls a\\`(e:x:)", "ls a\\\n(e:x:)", "ls a\\\t(e:x:)", "ls \\<(e:x:)",
+                    "ls a<->(e:x:)", "ls a<1-9>(e:x:)", "ls 2>(e:x:)", "ls `echo a`(e:x:)", "ls a=(e:x:)", "ls *=(e:x:)", "x=(1 2)", "cat =(ls)",
+                    "ls a\r(e:x:)", "ls a\x0b(e:x:)", "ls a\x0c(e:x:)", "ls a\x1c(e:x:)", "ls a\x85(e:x:)", "ls a\xa0(e:x:)", "ls a\u2003(e:x:)",
+                    # a shell or eval runs its quoted body: quotes not followed (40df9f9a5 final M3); a variable's value globbed (final suggestion 1)
+                    "zsh -fc 'ls a*(e:\"x\":)'", "eval 'ls a*(e:x:)'", "bash -c 'f(x)'", "zsh <<< 'ls *(e:x:)'", "echo 'ls *(e:x:)' | zsh", "$SHELL -c 'ls *(e:x:)'", "/bin/zsh -c 'ls a1(e:x:)'", "z\"s\"h -c 'ls a1(e:x:)'",
+                    "x='a*(e:x:)'; ls $~x", "ls ${~x}", "setopt globsubst; ls $x", "setopt GLOB_SUBST", "set -x -o x", "set -e +o x", "zpty z 'ls a1(e:x:)'", "sched +1 'ls a1(e:x:)'",
+                    # `$$`, an escaped `(` handed to eval, a string run again (fbd9bbb63); mechanisms refused as they stand, not decoded: escapes, $'…', print/echo/printf escapes, options, modules (调度 10-27 晚)
+                    "ls $$(e:x:)", "eval ls a\\(e:x:\\)", "eval 'ls a'\\(e:x:\\)", "eval $'ls a\\x28e:x:)'", "zsh -c $'ls a\\050e:x:)'", "eval $'ls a\\u0028e:x:)'",
+                    "trap 'ls a*(e:x:)' EXIT", "source /dev/stdin <<< 'ls a*(e:x:)'", ". /dev/stdin <<< 'ls a*(e:x:)'", "functions[f]='ls a*(e:x:)'", "zstyle -e x y 'ls a*(e:x:)'",
+                    "$ZSH_NAME -c 'ls a1(e:x:)'", "$0 -c 'ls a1(e:x:)'", "/bin/z?h -c 'ls a1(e:x:)'", "${X}sh -c 'ls a1(e:x:)'", "vim -c '!ls a1(e:x:)'",
+                    "ls $=~x", "ls $^~x", "ls ${^~x}", "setopt g_lobsubst", "setopt glob__subst", "setopt -m '*subst'", "zsh -o glob__subst -fc 'ls a'", "echo $'\\'' a1(e:x:) $'\\''","set -o globsubst", "emulate ksh", "options[globsubst]=on",
+                    "eval \"$(printf x)\"", "zsh -c \"$(cat f)\"", "bash -c `cat f`", "print 'a\\''0050'", "${:-setopt} x", "print -f x", "echo a\\1", "ls x\\c", "ls x\\U1", "echo $'a'", "echo -e x", "echo -n -e x", "print -b x",
+                    "print -v c 'ls a\\0050e:x:)'; eval $c", "print 'ls a\\0050e:x:)' | zsh", "set''opt glob_subst", "s\\etopt x", "e'mulate' ksh", "eval 'ls $'''~y", "glob's'ubst=1",
+                    ". f 'a1(e:x:)'", "set -o extendedglob", "options[extendedglob]=on", "printf 'a\\n'", "printf %b x", "zmodload zsh/system", "autoload -U x", "a'u'toload x", "s\\et +o x", "set +o x", "z\"mod\"load x",
+                    "print -P x", "set -eo x", "set +ko x", "$0 -c \"$(cat f)\"", "/bin/z?h -c `cat f`", "print \"\\\\\"$e\"050\"", "x\\ y; echo z", "echo ${(g::)x}", "pr\\int a\\ b", "x\\ y; e\"ch\"o z", "pr$e'int' a\\ b", "/usr/bin/pr?ntf a\\ b", "pr{i,}nt a\\ b",
+                    "echo 'it''s *(e:x:)'", "echo $'a\\'*(e:x:)'", "ls \\*\\(e:x:\\)"):  # quoted, but a wildcard on the line has it read again: refused rather than read right (uncertain → refuse)
+        assert refused(command) and "zsh" in judge(command, patterns, None, cwd, {}), ("a zsh glob qualifier: refused", command)
+    for command in ("ls * (e:x:)", "grep -E 'a(b|c)' x", "grep -E \"a(b|c)\" x", "echo $(ls)", "diff <(ls) <(ls)", "ls; (ls)", "ls && (ls)", "ls | (cat)", "printf %s x", "echo -n hi", "print hi", "grep -e x f",
+                    "echo $((1+2))", "git log --format='%h (%s)'", "echo \"a (b)\"", "cat <(ls)", "ls;(ls)", "ls|(cat)", "ls&&(ls)", "git commit -m \"fix(gate): x\"", "python3 -c \"print(1)\"", "find . \\( -name a \\)",
+                    "zsh -c 'ls (x)'", "bash -c 'echo hi (x)'", "grep -E 'push(x)' f", "ls notes.sh 'f(x)'", "<(ls) cat", "git log $(git rev-parse HEAD)", "echo $$ (x)", "ls a.txt 'set(x)'"):
+        assert allowed(command), ("no qualifier: the gate goes on as before", command)
     # 4. unknown tools that touch production, every one refused
     for command in (f"python3 -c \"import pymssql; pymssql.connect('{P}').execute('delete from t')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}", f"xargs -I{{}} sqlcmd -S {P} -Q {{}}",
                     f"find . -exec sqlcmd -S {P} -Q 'delete from t' \\;", f"script -q /dev/null sqlcmd -S {P} -Q 'delete from t'", f"arch -arm64 sqlcmd -S {P} -Q 'delete from t'", f"caffeinate -i sqlcmd -S {P} -Q 'delete from t'",

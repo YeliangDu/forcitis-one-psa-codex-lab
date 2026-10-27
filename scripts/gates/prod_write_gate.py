@@ -37,6 +37,10 @@ SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
 WRAPPERS = {"command": set(), "env": {"-u", "-C", "-S", "--chdir"}, "time": {"-f", "-o"}, "exec": {"-a"}, "nohup": set(), "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U", "--chdir"}, "builtin": set(), "timeout": {"-s", "-k"}, "nice": {"-n"}, "stdbuf": {"-i", "-o", "-e"}}  # wrapper -> options that take a value
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "csh", "tcsh", "fish", "eval"}
+REEVAL_WORDS = SHELLS | {"shell", "source", "trap", "zstyle", "functions", "zsh_name", "zsh_argzero", "script", "tmux", "screen", "vi", "vim", "nvim", "zpty", "sched"}  # run a string, or a program that may be zsh, again (zpty, sched: fffa95968 final M2)
+REEVAL_WORD = re.compile(r"(?<![\w.-])(?:" + "|".join(sorted(REEVAL_WORDS)) + r")(?:-?[0-9][0-9.]*)?(?![\w.-])|(?:^|[\s;&|(])\.(?=\s)")  # (text already `plain`) a shell, eval, source or `.`, trap … anywhere
+REEVAL = re.compile(REEVAL_WORD.pattern + r"|\$[{(]?[A-Za-z0-9_]|[*?\[]")  # … or a variable, a substitution or a wildcard that may spell a program: the line is read again without quotes (fbd9bbb63 round 1 M2, final M3)
+ZSH_MECHANISM = re.compile(r"\\[0-9xuUc]|\$'|(?<!\w)(?:print|echo)(?:\s+-\w+)*\s+-\w*[ebfp]|(?<!\w)printf(?!\w).*%b|(?<!\w)(?:setopt|unsetopt|emulate|zmodload|autoload)(?!\w)|(?<!\w)set(?:\s+[-+]\w*)*\s+[-+]\w*o|options\[|g_*l_*o_*b_*s_*u_*b_*s_*t|\$\{?[=^~#+]*~", re.S | re.I)  # (searched as written, with quotes removed, and with quotes and backslashes removed; a `-` before a word does not hide it: `${:-setopt}`, ae6567064 round 1 M1, M2); print/echo/printf decode escapes by default, so judge refuses any backslash as written when the word, a `$`, a backtick, a wildcard or a brace (which may spell the word) shows up with quotes and backslashes removed (6789c4a00 round 1 M1, fffa95968 round 1 M1, final M1); `o` in any of set's option clusters (6789c4a00 round 1 M1, M2) a character spelled as an escape, $'…', print/echo/printf reading escapes, zsh options or modules changed, a value globbed ($~x, ${^~x}): not decoded, the whole line counts (调度 10-27 晚)
 ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 COMMENT_OR_HEREDOC = re.compile(r"(?:^|[^A-Za-z0-9_./:=@%+-])#|(?<!<)<<(?!<)")  # a `#` that may start a comment, a here-document: not mimicked, the whole line counts (intent 2026-10-26-140639)
 VARIABLE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
@@ -452,6 +456,29 @@ def may_run_or_expand(text):  # (text already `plain`) a program that runs other
     return bool(REMOTE_WORD.search(text) or any(t in text for t in LONG_REMOTE) or "$" in text or "`" in text or "{" in text or PATH_COMMAND.search(text) or NET_REDIRECT.search(text))
 
 
+def glob_qualifier(text, raw=False):  # True when an unquoted `(` may end a word, or opens `(#`: a zsh glob qualifier (`*(e:…:)`, `a1(e:…:)`) runs code while expanding; bash's extglob, a function definition and an array look the same and count too. Allowed only after an unescaped space, tab or newline (zsh splits on no other), a `$` that is not `$$`, `(`, `|`, `&`, `;`, or a `<`/`>` that itself starts a word (process substitution): anything else, escaped included, counts (40df9f9a5 round 1, final M1, M2; fbd9bbb63 round 1, final M1). Quotes are followed only while certain: a double-quoted part holding `$` or a backtick ends that, the rest is read raw. `raw` (the text may be evaluated again): no quotes followed, a backslash before `(` dropped. Nothing is decoded: judge refuses a ZSH_MECHANISM line as it stands (调度 10-27 晚).
+    text = re.sub(r"\\+\(", "(", text) if raw else text
+    i, n, follow, esc = 0, len(text), not raw, -9
+    while i < n:
+        c = text[i]
+        if c == "\\":
+            i, esc = i + 2, i + 1
+            continue
+        if follow and c in "'\"":  # `'…'` literal; `"…"` ends at an unescaped quote
+            j = i + 1
+            while j < n and text[j] != c:
+                j += 2 if text[j] == "\\" and c != "'" else 1
+            if j < n and (c != '"' or not re.search(r"[$`]", text[i + 1:j])):
+                i = j + 1
+                continue
+            follow = False
+        elif c == "(" and (text.startswith("(#", i) or i and (esc == i - 1 or text[i - 1] not in " \t\n$(|&;<>" or text[i - 2:i] == "$$" and esc != i - 2
+                                                              or text[i - 1] in "<>" and (i > 1 and text[i - 2] not in " \t\n(|&;" or esc == i - 2))):
+            return True
+        i += 1
+    return False
+
+
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow. Any word may name a file a program runs (A′, intent 2026-10-26-164931): only an empty line is skipped.
     return bool(text.strip())
 
@@ -683,6 +710,10 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):  # Refu
     environ, TRUSTED_LINE = os.environ if environ is None else environ, None
     env_hit = bool(patterns) and any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS)
     raw_hit = bool(patterns) and text_hits([plain(command_text)], patterns)
+    flat = plain(command_text)  # the shell is zsh: what a qualifier runs is not read, the whole line counts (调度 10-27)
+    if any(ZSH_MECHANISM.search(re.sub(drop, "", command_text)) for drop in ("(?!)", "['\"]", r"['\"\\]")) or "\\" in command_text and re.search(r"(?<!\w)(?:print|echo|printf)(?!\w)|[$`*?\[{]", re.sub(r"['\"\\]", "", command_text), re.I) or glob_qualifier(command_text) or (REEVAL.search(flat) and glob_qualifier(command_text, raw=True)) or ((REEVAL_WORD.search(flat) or re.search(r"\$(?!\()|[*?\[]", command_text)) and re.search(r"\$\(|`", command_text)):  # a line that may be read again: quotes not followed (40df9f9a5 final M3); a substitution with a shell, eval … or with a variable or wildcard that may spell one (`$0`, `/bin/z?h`) is not read at all (fbd9bbb63 final M2, ae6567064 final M2)
+        return ("拒绝：命令里有紧跟在词后面、没加引号的左括号，或「(#」、$~；或有字符转义（反斜杠加数字或 x、u、U、c）、$'…'、print/echo 带 -e/-b、printf 带转义；或去掉引号与反斜杠后有改 zsh 选项或模块的写法（setopt、unsetopt、emulate、set -o、set +o、zmodload、autoload、globsubst）。"
+                "zsh 通配限定符（如 *(e:…:)、a1(e:…:)）在展开文件名时就运行代码，bash 的 extglob、函数定义、数组写法相同；行里有 shell、eval、source、trap、变量或通配符时引号里的也算，有 shell、eval 等又有命令替换整行拒。门不解码、不模仿 zsh 去读，见机制即拒（调度 10-27）。把括号放进单引号并去掉变量与通配，或在括号前留一个未转义的普通空格；挑文件改用 find 或先列出再逐个写。")
     odd = bool(COMMENT_OR_HEREDOC.search(command_text)) or "\\\n" in command_text  # a comment, a here-document or a continuation anywhere: not read as the shell does
     if COMMENT_OR_HEREDOC.search(command_text) and CONTINUATION.search(command_text):  # a continuation the shell ends at a comment's newline, the gate would join (82f149d10 final M2)
         return "拒绝：命令里同时有注释或 here-document 与续行，门读不准下一行从哪里开始，宁可误拦（intent 2026-10-26-140639）。去掉注释或续行再执行。"
