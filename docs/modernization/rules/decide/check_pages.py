@@ -13,7 +13,7 @@
   R5 事实题不得有预选（任何选项 rec 为真）；选型题同（intent 2026-10-15 ADR-0041 决定 6：选型不预选）
   R6 参数行（kind: param，或选项全是「数字+单位」）须在 ctx / basis / practice / effect 任一处标「经验值，配置可调」，或有出处（src 非空，或 basis 里有 intent / ADR / 标准 / 法规）
   R7 推荐理由（basis 与推荐项的 effect）不得以「老系统 / 老流程 / 与 A8 一致」为主要理由：出现这些词而没有任何权威依据（intent、ADR、规则号、标准、法规、行业做法）即不过
-范围：已答的题不再检查（已答页是历史记录，题面不改、不补 terms_ok；用户 2026-10-22 经 one-coordinator）。已答＝rules/decide/answers/<页>.json 里有 <页>~<题号>，或页名登记在 answered_pages.txt（收件箱已决但没有导出的页）。输出末行写明跳过的已答题数与整页数；本次改动涉及的页里，新增或未答的题照常检查。
+范围：已答的题不再检查（已答页是历史记录，题面不改、不补 terms_ok；用户 2026-10-22 经 one-coordinator）。已答＝本目录 answers/<页>.json 里有 <页>~<题号>，或页名登记在本目录 answered_pages.txt（收件箱已决但没有导出的页）。输出末行写明跳过的已答题数与整页数；本次改动涉及的页里，新增或未答的题照常检查。
 用法：
   check_pages.py                      检查全部确认页（报告全部问题；有问题退出 1）
   check_pages.py <文件.json>…         只检查给定文件
@@ -31,9 +31,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 MOD = os.path.normpath(os.path.join(HERE, "..", ".."))
 ROOT = os.path.normpath(os.path.join(MOD, "..", ".."))
-ANSWERS_DIR = os.path.join(MOD, "rules", "decide", "answers")
+ANSWERS_DIR = os.path.join(HERE, "answers")
 ANSWERED_REGISTRY = os.path.join(HERE, "answered_pages.txt")   # 收件箱已决但没有 answers 导出的页：一行一个页名，# 后写出处
-PAGE_GLOBS = ("docs/modernization/architecture/decision-page/*.json", "docs/modernization/rules/decide/sheets/*.json")
+PAGE_GLOBS = ("docs/modernization/architecture/decision-page/*.json", "docs/modernization/rules/decide/sheets/*.json")   # 旧确认页题源仍留原处（只读的历史页），照查
 KINDS = ("choice", "approve", "selection", "fact", "param")
 UNDECIDED = re.compile(r"暂不定|待定|先不选|不预设")
 SELF_CITE = re.compile(r"来源建议|原稿|草稿|提议稿|按来源|同上|见上|无$")
@@ -335,14 +335,19 @@ def check_file(path, names, vocab, skipped=None, answers_dir=None, registry=None
 
 
 def changed_pages(base, root=ROOT):
-    """相对基线改动、新增、重命名或尚未跟踪的确认页；基线取不到即失败（不静默放过）。"""
+    """相对基线改动、新增、重命名、类型改变（如普通文件换成符号链接，git 记 T）或尚未跟踪的确认页；基线取不到即失败（不静默放过）。"""
     def git(*args):
         return subprocess.run(["git", "-c", "core.quotepath=off", *args], cwd=root, capture_output=True, text=True)
-    r = git("diff", "--name-only", "--diff-filter=AMR", f"{base}...HEAD")
+    r = git("diff", "--name-only", "--diff-filter=AMRT", f"{base}...HEAD")
     if r.returncode:
         sys.exit(f"check_pages: 取不到基线 {base}：{r.stderr.strip()[:200]}")
-    paths = set(r.stdout.split()) | set(git("diff", "--name-only", "--diff-filter=AMR", "HEAD").stdout.split()) | set(git("ls-files", "--others", "--exclude-standard").stdout.split())
-    return sorted(os.path.join(root, p) for p in paths if any(re.fullmatch(g.replace("*", "[^/]+"), p) for g in PAGE_GLOBS))
+    paths = set(r.stdout.split()) | set(git("diff", "--name-only", "--diff-filter=AMRT", "HEAD").stdout.split()) | set(git("ls-files", "--others", "--exclude-standard").stdout.split())
+    return sorted(os.path.join(root, p) for p in paths if is_page_path(p))
+
+
+def is_page_path(p):
+    """仓库相对路径是否落在 PAGE_GLOBS 里。大小写不敏感：macOS 上把 architecture/、sheets/ 改成大写仍能打开，这类改名也要列出来查（c5a63d259 终审必改 1）。"""
+    return any(re.fullmatch(g.replace("*", "[^/]+"), p, re.IGNORECASE) for g in PAGE_GLOBS)
 
 
 def main(argv):
@@ -512,16 +517,24 @@ def self_test():
         sh = lambda *a: subprocess.run(a, cwd=d, capture_output=True, text=True, env=env, check=True)
         sh("git", "init", "-q", "-b", "main"); os.makedirs(os.path.join(d, "docs/modernization/architecture/decision-page")); os.makedirs(os.path.join(d, "docs/modernization/rules/decide/sheets"))
         pages = "docs/modernization/architecture/decision-page"
-        for n in ("A.json", "B.json"):
+        for n in ("A.json", "B.json", "E.json", "F.json"):
             open(os.path.join(d, pages, n), "w").write("{}")
+        os.makedirs(os.path.join(d, pages, "archive"))
+        open(os.path.join(d, pages, "archive", "BAD.json"), "w").write('{"items": []}')
         open(os.path.join(d, "other.txt"), "w").write("x")
         sh("git", "add", "."); sh("git", "commit", "-q", "-m", "base"); sh("git", "checkout", "-q", "-b", "work")
+        # 普通文件换成指向 archive/ 的符号链接：git 记类型改变 T，已提交（E）与未提交（F）都要列出（c33b8fa2c 终审必改 1）
+        for n in ("E.json", "F.json"):
+            os.remove(os.path.join(d, pages, n)); os.symlink("archive/BAD.json", os.path.join(d, pages, n))
+        sh("git", "add", pages + "/E.json"); sh("git", "commit", "-q", "-m", "link")
         open(os.path.join(d, pages, "B.json"), "w").write('{"items": []}')          # 已跟踪、改动（工作区）
         open(os.path.join(d, pages, "C.json"), "w").write("{}")                     # 未跟踪的新页
         open(os.path.join(d, "docs/modernization/rules/decide/sheets", "S.json"), "w").write("{}")
         open(os.path.join(d, pages, "D.txt"), "w").write("x")
         found = [os.path.relpath(x, d) for x in changed_pages("main", d)]
-        assert found == [pages + "/B.json", pages + "/C.json", "docs/modernization/rules/decide/sheets/S.json"], found
+        assert found == [pages + "/B.json", pages + "/C.json", pages + "/E.json", pages + "/F.json", "docs/modernization/rules/decide/sheets/S.json"], found
+        assert is_page_path("docs/modernization/Architecture/decision-page/X.json") and is_page_path("docs/modernization/rules/decide/Sheets/X.JSON")
+        assert not is_page_path("docs/modernization/architecture/decision-page/archive/X.json") and not is_page_path("docs/modernization/rules/decide/sheets/x.txt")
         try:
             changed_pages("no-such-ref", d)
             raise AssertionError("无效基线应失败")
@@ -547,6 +560,8 @@ def self_test():
         assert check_file(p, names, vocab)[0].startswith("P.json: 不是合法 JSON")
     # 词表切词：单字连接词不能开头或结尾
     assert unregistered("合同的收入", vocab, set()) == [] and unregistered("的收入", vocab, set()) != [] and unregistered("收入的", vocab, set()) != []
+    # 已答依据随 check_pages 同在 rules/decide（G2）：路径错了，已答页会被当成未答整批报错
+    assert os.path.isdir(ANSWERS_DIR) and os.path.isfile(ANSWERED_REGISTRY), (ANSWERS_DIR, ANSWERED_REGISTRY)
     real = load_vocab()
     if real:
         assert "承担部门" not in real["words"] and real["longest"] >= 2

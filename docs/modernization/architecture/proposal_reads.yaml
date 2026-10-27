@@ -68,10 +68,6 @@ reads:
     kind: data
     sources:
       - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-12-01}
-  - path: docs/modernization/architecture/decision-page/build_approval_page.py
-    kind: data
-    sources:
-      - {source: APPROVAL_RULES.yaml, due: 2026-12-01}
   - path: backend/src/test/java/com/forcitis/one/acceptance/EventEnvelopeContractTest.java
     kind: data
     sources:
@@ -88,9 +84,6 @@ reads:
   - path: scripts/ci/relevant_change.py
     kind: tool
     note: 改动分级登记 proposals/ 里的工具与事件信封文件
-  - path: docs/modernization/architecture/decision-page/build_bpmn_page.py
-    kind: mention
-    note: 确认页文字引用 PROCESS_METHOD_DRAFT.md
   - path: docs/modernization/rules/build_gl_decisions.py
     kind: mention
     note: 生成文字里提到 proposals/ 路径
