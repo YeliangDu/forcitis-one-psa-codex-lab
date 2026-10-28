@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """门的自测，合一（O8，D25；定稿 1.10「自测 1 个文件」）。`gates_selftest.py [段…]` 跑指定的段，不带参数跑全部；各门的 `--self-test` 只跑自己那一段。
-- prod_write_gate：命令解析、生产写门（卡 #736：原先误拦的样例放行，远程工具加生产特征照拒）、「生产写门 17 例」（Codex 复核 #653 的 17 条 P1 缺口，测试表与真实特征表下都须拒绝，按计数断言）、版式。
+- prod_write_gate：命令原文与特征表字面匹配（用户 intent 2026-10-28-202019：命中即拒、不分大小写、无关命令不误拦、拆开或编码的按设计放行、无表失败关闭）、版式。
 - pre_tool_dispatch：预筛不藏拒绝、失败关闭、时限。main_checkout_gate（含 git_ceiling_env.sh）与 commit_msg_gate：在临时仓库与 worktree 里端到端提交。
 - install：install.sh 与 .claude/settings.json 挂载，全部在临时目录里做，HOME 指向临时目录，不碰真实安装目录（安装、切换、并发、自检不过、只读、篡改核对与修复、挂载失败关闭）。
 不写任何真实生产样本的字面值，拆段拼接也不行（O2 复审 M3）：真实特征运行时按 target id 从 prod_targets.json 取（install 段只经 install.sh 自检与探针按位置取用）；其余用虚构样本（192.0.2.x 是文档专用地址）。"""
@@ -25,7 +25,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import pre_tool_dispatch as d  # noqa: E402
 import prod_write_gate as g  # noqa: E402
-from prod_write_gate import (COMMAND_TOOLS, LAUNCH_TOOL, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, judge, load_table, name_of, plain, simple_commands, tokens_of)  # noqa: E402
+from prod_write_gate import (COMMAND_TOOLS, LAUNCH_TOOL, could_concern, judge, load_table)  # noqa: E402
 
 PYTHON = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
 
@@ -44,194 +44,41 @@ def put(path, text, mode=0o755):
         f.write(text)
     os.chmod(path, mode)
 
-HOOKS = os.path.join(REPO_ROOT, "scripts", "hooks")  # ── prod_write_gate ──
-TEST_IP = "192.0.2.15"  # RFC 5737 documentation address, not a production host
-SAMPLE_IDS = ("legacy-rds-sqlserver", "legacy-ecs", "new-prod-names")  # the 17 cases' P, H, D: the first pattern of each of these targets
+TEST_IP = "192.0.2.15"  # ── prod_write_gate ── RFC 5737 documentation address, not a production host
+SAMPLE_IDS = ("legacy-rds-sqlserver", "legacy-ecs", "new-prod-names")  # P, H, D of the dispatcher and install sections: the first pattern of each of these targets
 
 def shipped_firsts():
     """{target id: its first pattern} of the shipped prod_targets.json, read at run time (the guard sources hold no production sample)."""
     return {t["id"]: t["patterns"][0].strip() for t in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["targets"]}
 
-def shipped_forms():
-    """{"<target id> <form>": pattern}: the first IP-shaped and the first name-shaped pattern of every target of the shipped table (O2 round 1, note ①: each form is run)."""
-    forms = {}
-    for target in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["targets"]:
-        for pattern in target["patterns"]:
-            form = "ip" if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", pattern.strip()) else "name"
-            forms.setdefault(f"{target['id']} {form}", pattern.strip())
-    return forms
-
 def real_samples():
-    """(P, H, D) for the 17 cases under the real table."""
+    """(P, H, D) under the real table."""
     firsts = shipped_firsts()
     return tuple(firsts[i] for i in SAMPLE_IDS)
 
-def braced(word):
-    """`word` with one character written as a brace expansion `{c,c}`: bash (and curl) turn it back into `word`, the word itself is not on the line."""
-    k = len(word) // 2
-    return word[:k] + "{" + word[k] + "," + word[k] + "}" + word[k + 1:]
-
-def seventeen(P, H, D):
-    """生产写门 17 例：编号 = Codex 复核 #653（2026-10-22）的 P1 缺口序号，命令取自其复现样本（P 为 RDS 实例、H 为应用服务器、D 为生产库名；第 12 例的花括号按 braced 生成）。"""
-    return {
-        1: [f"sqlcmd -S {P} -Q \"SELECT '--'; DELETE FROM dbo.t\"", f"sqlcmd -S {P} -Q \"SELECT '/*'; DELETE FROM dbo.t; SELECT '*/'\""],  # SQL 注释藏写语句
-        2: [f"sqlcmd -S {P} -Q \"SET NOCOUNT ON\nDELETE FROM dbo.t\""],  # SET 开头夹带写
-        3: [f"sqlcmd -S {P} -z \"$NEW_PASSWORD\" -Q \"SELECT 1\"", f"sqlcmd -S {P} -v op=\"; DELETE FROM dbo.t\" -Q 'SELECT 1 $(op)'",
-            f"mysql -h {H} --init-command=\"DELETE FROM t\" -e \"SELECT 1\"", f"psql -h localhost -c 'SELECT 1' -o '|ssh {H} touch /tmp/review'"],  # SQL 工具的其他执行入口
-        4: [f"psql -d {D} -c 'SELECT pg_catalog.\"nextval\"($$seq$$)'", f"psql -d {D} -c \"SELECT pg_logical_emit_message(false, 'x', 'x')\""],  # 带引号函数名、有副作用函数
-        5: [f"echo ok # <<EOF\nsqlcmd -S {P} -Q \"DELETE FROM dbo.t\"", f'echo "<<EOF"; sqlcmd -S {P} -Q "DELETE FROM dbo.t"', f"cat <<EOF\n$(sqlcmd -S {P} -Q \"DELETE FROM dbo.t\")\nEOF"],  # heredoc 误识别
-        6: [f"printf \"%s\" <(sqlcmd -S {P} -Q \"DELETE FROM t\")"],  # 进程替换
-        7: [f"eval eval eval eval ssh {H} touch /tmp/review"],  # 嵌套超深仍豁免外层
-        8: [f"export SQLCMDSERVER={P}; sqlcmd -Q \"DELETE FROM dbo.t\"", f"export H={P}; sqlcmd -S\"$H\" -Q \"DELETE FROM dbo.t\""],  # export 不传播、粘连主机选项
-        9: [f"python3 -X new_intent.py -c \"import os; os.system('ssh {H} touch /tmp/review')\"", f"node --title new_intent.py -e \"require('child_process').execSync('ssh {H} touch /tmp/review')\""],  # 冒充文档脚本
-        10: [f"cat > /tmp/prod_gate_review_f13574.sh <<'EOF'\nssh {H} touch /tmp/review\nEOF\nbash /tmp/prod_gate_review_f13574.sh"],  # 先生成脚本再执行
-        11: [f"rg --pre \"ssh {H} touch /tmp/review\" x README.md", f"git push ssh://{H}/srv/repo HEAD:main"],  # 不连接工具的执行入口
-        12: [f"curl -XDELETE http://{braced(H)}/api/item/1", f"curl -XDELETE 'http://{braced(H)}/api/item/1'"],  # 花括号展开藏目标
-        13: [f"curl --quote \"rm /tmp/x\" sftp://{H}/", f"curl 'gopher://{H}:6379/_SET%20x%201%0D%0A'"],  # curl 非 HTTP 协议
-        14: [f"printf 'url = \"http://{H}/api\"\\ndata = \"x=1\"\\n' | curl -K -"],  # curl 从管道读配置
-        15: [f"scp -o 'ProxyCommand=ssh {H} touch /tmp/review' {H}:/var/log/app.log ./app.log", f"rsync -e 'ssh -oProxyCommand=\"ssh {H} touch /tmp/review\"' {H}:/var/log/ ./logs/",
-             f"scp -O '{H}:$(touch /tmp/review)/app.log' ./app.log"],  # scp/rsync 传输程序与远端 shell
-        16: [f"bcp \"DELETE FROM dbo.t; SELECT 1\" queryout ./out.txt -S {P}", f"redis-cli -h {H} slowlog reset", f"redis-cli -h {H} client kill type normal"],  # 只看方向或一级子命令
-        17: [f"ssh {H} 'date -us 2020-01-01'"],  # ssh 只读工具的组合短选项
-    }
-
-def words_self_test():
-    names = lambda text: [name_of(c.argv[0]) for c in simple_commands(text)]  # noqa: E731
-    argvs = lambda text: [c.argv for c in simple_commands(text)]  # noqa: E731
-    # ANSI-C words are decoded the way bash does
-    assert decode_ansi_c(r"\x67it \147it git \U00000067it\n") == "git git git git\n" and decode_ansi_c(r"a\x00b") == "a"
-    assert plain("$'\\x67it' push") == "git push" and plain("$'\\147it' push") == "git push" and plain("$'git' push") == "git push" and plain('$"git" push') == "git push"
-    assert argvs("$'\\x73qlcmd' -S $'\\x68ost' -Q x") == [["sqlcmd", "-S", "host", "-Q", "x"]]
-    # a backslash-newline is deleted, also in the middle of a word
-    assert plain("gi\\\nt push") == "git push" and argvs("sqlc\\\nmd -S h") == [["sqlcmd", "-S", "h"]] and argvs("a \\\n  b") == [["a", "b"]]
-    # backticks are substitutions: the inner command is a command of its own and the outer word is unresolved; in single quotes they are text
-    found = simple_commands("sqlcmd -S `echo rm-x` -Q q")
-    assert "echo" in names("sqlcmd -S `echo rm-x` -Q q") and found[0].unresolved
-    assert names("git commit -m 'use `foo` and $x'") == ["git"] and not simple_commands("git commit -m 'use `foo` and $x'")[0].unresolved
-    assert simple_commands('echo "$X"')[0].unresolved and not simple_commands("echo '$X'")[0].unresolved
-    assert "git" in names("echo `git push`") and any(t == ";" for t in tokens_of("echo `git push`")), "the other gates keep reading a backtick as a new command"
-    # shells: bundled -c options, multi-word eval, heredoc / here-string / echo-pipe bodies
-    for text in ("bash -lc 'psql -h h'", "sh -ec 'psql -h h'", "bash -xc \"psql -h h\"", "eval psql -h h", "eval 'psql' '-h' h", "bash <<'EOF'\npsql -h h\nEOF", "bash <<< 'psql -h h'", "echo 'psql -h h' | bash", "zsh -c \"bash -c 'psql -h h'\"",
-                 "env -S 'psql -h h'", "env -S'psql -h h'", "env --split-string='psql -h h'", "env A=1 -S 'psql -h h'"):
-        assert "psql" in names(text), text
-    assert ["psql", "-h", "h"] in argvs("eval psql -h h") and ["psql", "-h", "h"] in argvs("env -S 'psql -h h'")
-    pick = lambda text: next(c for c in simple_commands(text) if c.argv[0] == "bash")  # noqa: E731
-    assert pick("echo hi | bash").piped and not pick("echo hi; bash").piped
-    # variables and wrappers still work
-    assert argvs("h=a; psql -h ${h}b") == [["psql", "-h", "ab"]] and argvs("FOO=1 nohup timeout 9 psql x") == [["psql", "x"]]
-    # Codex review of #653: byte-wise ANSI-C, quote-aware here-documents, process substitution, nesting limit, export
-    assert decode_ansi_c(r"\xe8\xb0\x83\xe5\xba\xa6") == "\u8c03\u5ea6" and decode_ansi_c(r"\u8c03") == "\u8c03"
-    # comments and here-documents are not mimicked (intent 2026-10-26-140639): their text is read as words, so what they mention is seen; judge refuses such lines
-    assert "sqlcmd" in names("echo ok # x\nsqlcmd -S p -Q x") and "sqlcmd" in names("cat <<'EOF'\n$(sqlcmd -S p -Q x)\nEOF") and "psql" in names("cat <<EOF\npsql -h x\nEOF")
-    assert names('printf "%s" <(sqlcmd -S p -Q x)') == ["printf", "sqlcmd"] and names("diff <(ls a) >(cat)") == ["diff", "ls", "cat"]
-    assert simple_commands("export SQLCMDSERVER=prod; sqlcmd -Q x")[-1].env == {"SQLCMDSERVER": "prod"} and simple_commands("export A=1; unset A; ls")[-1].env == {}
-    assert simple_commands("A=1; export A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; declare -x A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; ls")[-1].env == {}
-    assert simple_commands("set -a; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -o allexport; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -a; set +a; A=1; ls")[-1].env == {}
-    assert simple_commands("PGHOST=x; ls")[-1].env == {"PGHOST": "x"} and simple_commands("SQLCMDSERVER=x; sqlcmd")[-1].env == {"SQLCMDSERVER": "x"}, "a target variable may be exported already"
-    assert simple_commands("A=1; declare -a A; ls")[-1].env == {} and simple_commands("export B; ls")[-1].env == {}, "an array declaration or an unknown name exports nothing"
-    assert argvs("export H=prod; sqlcmd -S\"$H\" -Q x")[-1][:2] == ["sqlcmd", "-Sprod"]
-    for bad in ("eval eval eval eval ssh h touch x", "echo 'unterminated"):  # nesting deeper than 3, unreadable input
-        with contextlib.suppress(ValueError):
-            simple_commands(bad)
-            raise AssertionError(f"must raise: {bad!r}")
-    print("command_words self-test: ok")
-
-MISBLOCKED = (  # no production sample on the line: refused before 卡 #736, allowed now; the first four were refused in one-ops' own session on 10-28
+MISBLOCKED = (  # no production sample on the line: allowed (卡 #736; the first four were refused in one-ops' own session on 10-28)
     "grep -rnE 'Closes #' .github scripts 2>/dev/null | grep -v selftest | head -20", "grep -rnlE 'mq\\.py|入队' docs/*.md | head",
     "/usr/bin/python3 -I -c 'import json;d=json.load(open(\"s.json\"));print(d[\"hooks\"])'", "grep -n x deploy.sh",
     "cd scripts/gates && python3 gates_selftest.py", "python3 - <<'EOF'\nprint(1)\nEOF", "setopt nullglob; ls *.md", "ls *(.)", "npm --prefix frontend run build", "make -C backend test", "env -C /tmp ls",
     "echo -e 'a\\tb'", "printf 'a\\n'", "f() { ls; }; f", "x=(1 2); echo $x", "eval \"$(printf x)\"", "git -c core.pager=cat log -1", "PAGER=cat git log -1", "cd pkg && make && ./dist/app",
-    "cat <<EOF > n.md\nnotes # x\nEOF", "psql -h localhost -c 'select 1'", "curl -s https://api.github.com/repos/x/y", "ssh dev-box uptime", "scp a dev:/tmp/", "curl -X POST http://localhost:8080/api")
-BY_DESIGN = ("./deploy.sh", "bash deploy.sh", "python3 runner.py", "cat <<EOF > n.md\nnotes # x\nEOF\nbash deploy.sh")  # the file run names production, the line does not: allowed, the read-only account holds (用户 10-28)
-ADV_HOST, ADV_IP = "prod-db.fictional-corp.example", "203.0.113.45"  # the final review's 56 adversarial samples (7cb55cdc final), fictitious host and TEST-NET address
-
-
-def adversarial():
-    """(refused, allowed by design) of the final review's 56 samples: every one with the host or address literally on the line (after quotes, backslashes, variables and braces) is refused;
-    hidden by encoding, command substitution, a non-target session variable, or inside a file run: allowed (用户 10-28「见生产特征即拒，其余靠只读账号」)."""
-    H, IP, b64 = ADV_HOST, ADV_IP, "cHJvZC1kYi5maWN0aW9uYWwtY29ycC5leGFtcGxl"
-    refused = [f"psql -h {H} -c 'delete from t'", f"alias q=psql; q -h {H} -c x", f"f() {{ psql \"$@\"; }}; f -h {H} -c x", f"eval \"ps\"\"ql -h {H} -c x\"", f"a=ps; b=ql; eval \"$a$b -h {H} -c x\"",
-               f"t=ql; ps$t -h {H} -c x", f"$(echo ps)ql -h {H} -c x", f"$(printf %s ps)$(printf %s ql) -h {H} -c x", f"/opt/homebrew/bin/ps?l -h {H} -c x", f"/opt/homebrew/bin/psql -h {H} -c x",
-               f"./bin/psql -h {H} -c x", f"PSQL -h {H.upper()} -c x", f"$'\\x70sql' -h {H} -c x", f"X={H}; psql -h $X -c x", f"a=prod-db; b=.fictional-corp.example; psql -h $a$b",
-               f"export PGHOST={H}; psql -c x", "psql -h prod-db.{fictional-corp,zz}.example", "psql -h prod-db\".fictional-corp\".example", f"bash <<< \"psql -h {H} -c x\"", f"env psql -h {H} -c x",
-               f"/usr/bin/env psql -h {H} -c x", f"env PGHOST={H} psql -c x", f"env -S 'psql -h {H} -c x'", f"echo {H} | xargs -I{{}} psql -h {{}} -c x", f"echo psql -h {H} -c x | xargs -0 sh -c",
-               f"python3 -c \"import subprocess;subprocess.run(['psql','-h','{H}','-c','x'])\"", f"python3 -c \"import socket;socket.create_connection(('{IP}',5432)).send(b'x')\"",
-               f"python3 -c \"import urllib.request as u;u.urlopen('https://{H}/api',data=b'x')\"", f"node -e \"require('net').connect(5432,'{H}').write('x')\"", f"node -e \"fetch('https://{H}/api',{{method:'POST'}})\"",
-               f"printf 'psql -h {H} -c x' > fx/a.sh && bash fx/a.sh", f"nc {IP} 5432 < dump.sql", f"socat - TCP:{H}:5432", f"telnet {H} 5432", f"mongorestore --host {H} dump/",
-               f"kubectl --server=https://{H}:6443 delete pod x", f"sshpass -p x ssh root@{IP} rm -rf /data", f"git push ssh://git@{H}/srv/repo main", f"echo x > /dev/tcp/{IP}/5432",
-               f"git push https://{H}/srv/repo main", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{H}:1433", f"mvn flyway:migrate -Dflyway.url=jdbc:postgresql://{H}/app",
-               f"DATABASE_URL=postgres://{H}/app npx prisma migrate deploy", f"DOCKER_HOST=tcp://{H}:2376 docker rm -f app", f"ansible all -i {IP}, -m shell -a 'rm -rf /data'",
-               f"mongoimport --host {H} -c t x.json", f"pg_basebackup -h {H} -D out", f"lftp -e 'rm x' {H}", f"grep -r {H} docs/", f"git commit -m '{H} 续费说明'", f"s''sh {H} uptime 'x", f"c\\url https://{H}/"]
-    allowed = ["psql -h $MYTARGET", f"psql -h $(echo {b64} | base64 -d)", "psql -h $(printf '\\x70rod-db.fictional-corp.example')", f"bash <<< \"$(echo {b64} | base64 -d)\"",
-               f"echo {b64} | base64 -d | sh", "bash run.sh", "python3 run.py", "psql -h dev-db.fictional-corp.example -c x", "cd fx && python3 -c 'print(1)'"]
-    return refused, allowed
-
-
-def cloud_self_test(verdict):
-    """阿里云命令行（卡 #736，用户「先不动，门补一条」）：本机默认 profile 是生产，只认段首裸写 aliyun 且显式给一个不在特征表的 --profile；生产 profile 按真实表取（源码里不写）。"""
-    prod = shipped_firsts()["aliyun-prod-profile"]
-    real = load_table()[0]
-    allowed = ("aliyun --profile dev-ro ecs DescribeInstances", "aliyun ecs DescribeRegions --profile=dev-ro", "aliyun -p dev-ro ecs DescribeRegions", "aliyun --profile dev-ro ecs DescribeRegions --RegionId cn-hangzhou",
-               "aliyun --profile dev-ro ecs DescribeRegions && echo ok", "echo ok; aliyun --profile dev-ro sts GetCallerIdentity", "aliyun --profile dev.ro_1 oss ls oss://bucket/a/", "cat <<EOF\naliyun --profile dev-ro ecs X\nEOF")
-    for command in allowed:
-        assert verdict(command) is None and judge(command, real, None, None, {}) is None, ("a non-production profile given explicitly: allowed", command)
-    others = ("ls *.md", "git status", "python3 x.py", "$EDITOR notes.md", "eval \"$(printf x)\"", "echo a* | xargs ls", "find . -name '*.py' -exec wc -l {} +", "$(which python3)", "rm -f /tmp/a?c", "X=$(date) make test", "cd \"$(git rev-parse --show-toplevel)\" && ls", "echo \"$(date)\" done")
-    for command in others:
-        assert verdict(command, environ={"EDITOR": "vim"}) is None, ("no cloud CLI, written or hidden: allowed", command)
-    # #736 首轮 M2 (a)：门读到的参数与 aliyun 实际收到的可能不同（注释、重定向、引号、反斜杠续行、变量、通配、花括号、~、here-string）
-    unreadable = ("aliyun ecs DescribeRegions # --profile dev-ro", "aliyun ecs DescribeRegions #--profile dev-ro", "aliyun ecs X 2>--profile dev-ro", "aliyun ecs X >/dev/null --profile dev-ro",
-                  "aliyun --profile 'dev-ro' ecs X", "aliyun 'ecs' DescribeRegions --profile \"dev-ro\"", "aliyun --profile dev-ro ecs X \\\n--profile other", "aliyun --profile dev-ro \\\necs X",
-                  "aliyun --profile dev-ro ecs $X", "aliyun --profile dev-ro ecs *", "aliyun --profile dev-ro oss cp a ~/b", "aliyun --profile dev-ro ecs {a,b}", "aliyun --profile dev-ro ecs X <<< y",
-                  "aliyun --profile dev-ro ecs X <(true)", "=aliyun --profile dev-ro ecs X", "aliyun --profile dev-ro ecs X!", "aliyun --profile dev-ro ecs X^", "ALIBABA_CLOUD_PROFILE=dev-ro; aliyun --profile dev-ro ecs X",
-                  "export ALIBABA_CLOUD_ACCESS_KEY_ID=x; aliyun --profile dev-ro ecs X")
-    # (b)：程序名不是字面写出（通配、花括号、命令替换、会话环境变量、行内变量），也包括 xargs、find -exec 之后的程序
-    hidden = ("a*n ecs DescribeRegions", "/opt/homebrew/bin/aliy?n ecs X", "ali[y]un ecs X", "ali{y,y}un ecs X", "$(printf ali)yun ecs X", "`printf ali`yun ecs X", "$(printf aliy; printf un) ecs X",
-              "a=ali; ${a}yun --profile dev-ro ecs X", "aliyun --profile dev-ro sts X; a=ali; ${a}yun ecs X", "echo x | xargs a*n ecs", "echo x | xargs -0 $(printf ali)yun ecs", "find . -exec ali?un ecs {} +",
-              "eval \"$(printf ali)yun ecs X\"", "bash -c '$(printf ali)yun ecs X'", "X=1 $(printf ali)yun ecs X", "sudo -u me $(printf ali)yun ecs X", "timeout 9 $(printf ali)yun ecs X", "true && \"$(printf ali)yun\" ecs X")
-    for command in unreadable + hidden:
-        assert verdict(command) == g.CLOUD_REFUSED, ("the gate cannot tell what the CLI receives, or that it is the CLI: refused", command, verdict(command))
-    for name, value in (("CLOUD", "aliyun"), ("CLOUD", "/usr/local/bin/aliyun"), ("CLI", "ALIYUN")):
-        assert verdict(f"${name} ecs DescribeRegions", environ={name: value}) == g.CLOUD_REFUSED and verdict(f"echo x | xargs ${{{name}}} ecs", environ={name: value}) == g.CLOUD_REFUSED, ("a session variable", name, value)
-        assert verdict(f"${name} ecs DescribeRegions", environ={name: "vim"}) is None
-    refused = ("aliyun ecs DescribeRegions", "aliyun", "echo ok && aliyun ecs DescribeRegions", "aliyun --profile", "aliyun --profile a1 --profile b2 ecs X", "aliyun --profile a1 -p b2 ecs X",
-               "aliyun --profile $P ecs X", "aliyun --profile \"$(echo dev)\" ecs X", "aliyun -pdev-ro ecs X", "aliyun --profile-x dev-ro ecs X", "ALIYUN --profile dev-ro ecs X",
-               "/usr/local/bin/aliyun --profile dev-ro ecs X", "./aliyun --profile dev-ro ecs X", "~/bin/aliyun --profile dev-ro ecs X",
-               "alias a=aliyun; a --profile dev-ro ecs X", "a=aliyun; $a --profile dev-ro ecs X", "a=ali; ${a}yun --profile dev-ro ecs X", "f() { aliyun \"$@\"; }; f --profile dev-ro ecs X",
-               "env aliyun --profile dev-ro ecs X", "sudo aliyun --profile dev-ro ecs X", "command aliyun --profile dev-ro ecs X", "timeout 9 aliyun --profile dev-ro ecs X",
-               "ALIBABA_CLOUD_PROFILE=dev-ro aliyun ecs X", "echo x | xargs aliyun --profile dev-ro ecs", "bash -c 'aliyun --profile dev-ro ecs X'", "eval aliyun --profile dev-ro ecs X",
-               "which aliyun", "echo 'unterminated aliyun", "al\"\"iyun ecs DescribeRegions", "ali\\yun ecs DescribeRegions")
-    for command in refused:
-        assert verdict(command) == g.CLOUD_REFUSED, ("no explicit non-production profile, or not a bare call: refused", command, verdict(command))
-    for command in (f"aliyun --profile {prod} ecs DescribeRegions", f"aliyun --profile={prod.upper()} ecs X", f"aliyun -p {prod} ecs X", f"aliyun --profile {prod}-ro ecs X"):
-        assert judge(command, real, None, None, {}) is not None, ("the production profile, by the real table: refused", command)
-    print(f"prod_write_gate 阿里云: ok（放行 {len(allowed)} 例、不涉及的 {len(others)} 例；拒 {len(refused)} 例、参数读不准 {len(unreadable)} 例、程序名藏起来 {len(hidden)} 例、会话变量 6 例、生产 profile 4 例）")
+    "cat <<EOF > n.md\nnotes # x\nEOF", "psql -h localhost -c 'select 1'", "curl -s https://api.github.com/repos/x/y", "ssh dev-box uptime", "scp a dev:/tmp/", "curl -X POST http://localhost:8080/api",
+    "aliyun --profile dev-ro ecs DescribeRegions", "./deploy.sh", "bash deploy.sh")
 
 def gate_self_test():
-    """卡 #736，用户 10-28「见生产特征即拒，其余靠只读账号」：命令文本里有生产特征就拒，不分程序；原先误拦的样例（没有生产特征）放行；终审 56 例里主机字面可见的全拒。"""
-    patterns, P, H = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP, ADV_HOST, ADV_IP], "pgm-prod0001", TEST_IP
-    cwd = tempfile.mkdtemp()
-    for name, text in (("deploy.sh", f"ssh {H} rm -rf /srv/x\n"), ("runner.py", f"connect('{P}')\n"), ("run.sh", f"psql -h {ADV_HOST} -c 'delete from t'\n"), ("run.py", f"connect('{ADV_IP}')\n")):
-        Path(cwd, name).write_text(text, encoding="utf-8")  # files that name production: not read (by design)
-    verdict = lambda command, table=patterns, problem=None, environ=None: judge(command, table, problem, cwd, environ or {"MYTARGET": ADV_HOST})  # noqa: E731
-    for command in MISBLOCKED + BY_DESIGN:
-        assert verdict(command) is None, ("no production sample on the line: allowed", command)
-    still = (f"psql -h {P} -c 'select 1'", f"ssh {H} uptime", f"curl https://{P}/health", "wget https://db.prod.example.com/x", "aliyun rds DescribeDBInstances --DBInstanceId pgm-prod0001",
-             "git commit -m 'pgm-prod0001 续费说明'", "echo pgm-prod0001 >> notes.md", "grep -rn pgm-prod0001 docs", f"python3 -c \"connect('{P}')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}",
-             "H=pgm-pr; echo ${H}od0001", "T=ps; H=pgm-pr; ${T}ql -h ${H}od0001", "export SQLCMDSERVER=pgm-prod0001; ls", "curl -XDELETE http://192.0.{2,2}.15/api/item/1", "echo pgm-prod{0001,0002}",
-             f"s\"\"sh {H} uptime", "PGM-PROD0001", "pgm-pr\\od0001", "echo 'unterminated pgm-prod0001", f"echo ok # x\nls {P}",
-             "echo \"a pgm-pr\"\"od0001 'x")  # the last: quotes split the sample and the line cannot be parsed: only the quote-free line shows it (first round M4)
-    for command in still:
-        assert verdict(command) is not None and "生产特征" in verdict(command), ("a production sample on the line: refused", command)
-    refused, allowed = adversarial()
-    assert len(refused) + len(allowed) - 2 >= 56, "the final review's 56 samples (plus the two quote / backslash ones of the first round's M4)"
-    missed = [c for c in refused if verdict(c) is None]
-    assert not missed, ("adversarial samples with the host on the line must be refused", missed)
-    assert all(verdict(c) is None for c in allowed), [c for c in allowed if verdict(c)]
-    assert verdict("ls", environ={"PGHOST": P}) and verdict("git status", environ={"DATABASE_URL": f"sqlserver://{P}"}) and verdict("ls", environ={"PGHOST": "localhost"}) is None, "a session target variable"
+    """用户 intent 2026-10-28-202019「不用，你直接简化」：整条命令原文与特征表字面匹配，不分大小写，命中即拒、没命中放行；不解析写法。"""
+    patterns, P, H = ["pgm-prod0001", "db.prod.example.com", TEST_IP], "pgm-prod0001", TEST_IP
+    verdict = lambda command, table=patterns, problem=None: judge(command, table, problem)  # noqa: E731
+    hit = (f"psql -h {P} -c 'select 1'", f"ssh {H} uptime", f"curl https://{P}/health", "wget https://db.prod.example.com/x", f"git commit -m '{P} 续费说明'", f"grep -rn {P} docs",
+           "PGM-PROD0001", "Db.Prod.Example.Com", f"echo ok # x\nls {P}", f"bash -c \"psql -h {P}\"", f"x{P}y", f"echo 'unterminated {P}", f"python3 -c \"connect('{P}')\"")
+    for command in hit:
+        assert verdict(command) == g.REFUSED, ("a pattern in the command's text, any case: refused", command)
+    for command in MISBLOCKED + ("ls", "git status", "", "psql -h dev-db.example.invalid -c x", "echo 192.0.2.150"):
+        expected = g.REFUSED if TEST_IP in command else None
+        assert verdict(command) == expected, ("no pattern in the text: allowed", command, verdict(command))
+    hidden = ("pgm-pr\"\"od0001", "pgm-pr\\od0001", "H=pgm-pr; echo ${H}od0001", "echo pgm-prod{0001,0002}", "curl http://192.0.{2,2}.15/", f"echo {P[::-1]} | rev | sh")
+    for command in hidden:  # the text is not parsed: a pattern split, built or encoded is not seen (by design, 202019; the user clears production credentials, 202108)
+        assert verdict(command) is None, ("not on the text as written: allowed by design", command)
     assert verdict("ls", None, "表坏了") and verdict("ls -la", None, "表坏了"), "no table: refused (fail closed)"
-    cloud_self_test(verdict)
-    # brace expansion and the table's format
-    assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("192.0.{2..4}.15") == [TEST_IP, "192.0.3.15", "192.0.4.15"] and brace_variants("plain") == ["plain"]
     with tempfile.TemporaryDirectory() as tmp:
         good = os.path.join(tmp, "t.json")
         for text, ok in ((json.dumps({"targets": [{"id": "a", "patterns": ["abcdef123"]}]}), True), ('{"targets": []}', True), ("not json", False), ("{}", False), ('{"targets": [{"id": "a"}]}', False),
@@ -242,78 +89,53 @@ def gate_self_test():
         table, problem, _ = load_table()
         firsts = shipped_firsts()
         assert problem is None and table and firsts and all(v.lower() in table for v in firsts.values()), "the shipped table loads and every target's first pattern is in it"
-        assert not could_concern("") and could_concern("ls")
+        assert not could_concern("") and not could_concern("  ") and could_concern("ls")
         # hook process end to end, with the shipped, a missing and an empty table
         script = os.path.join(HERE, "prod_write_gate.py")
         def hook(command, table_path=None, tool="Bash", env=None, raw=None):  # `env` replaces the hook's environment, `raw` its input
             env = env or {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), **({"PROD_TARGETS_FILE": table_path} if table_path else {})}
-            return subprocess.run([sys.executable, "-I", script], input=raw or json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=env)
-        for name, value in firsts.items():  # every target of the real table, whatever the program: refused
-            run = hook(f"grep -rn {value} docs")
-            assert run.returncode == 2 and "底线 4" in run.stderr, name
-        assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0 and hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"").returncode == 2
+            return subprocess.run([sys.executable, "-I", script], input=raw or json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": tmp}), capture_output=True, text=True, env=env)
+        for name, value in firsts.items():  # every target of the real table (hosts, the production profile, databases, accounts), in either case: refused
+            for written in (f"grep -rn {value} docs", f"echo {value.upper()}"):
+                run = hook(written)
+                assert run.returncode == 2 and "底线 4" in run.stderr, name
+        assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0
         gone, remote = hook("python3 clean.py", os.path.join(tmp, "missing.json")), hook("psql -c 'select 1'", os.path.join(tmp, "missing.json"))
         assert gone.returncode == 2 and remote.returncode == 2 and "缺失或不合格" in gone.stderr, (gone, remote)  # no table: everything refused
         Path(tmp, "empty.json").write_text('{"targets": []}', encoding="utf-8")
         no_git = {"LC_ALL": "C", "PATH": tmp, "PROD_TARGETS_FILE": os.path.join(tmp, "empty.json")}
         assert hook("python3 clean.py", env=no_git).returncode == 2 and "为空" in hook("ls", env=no_git).stderr, "an empty table, no git: refused"
         assert [hook(None, env={"LC_ALL": "C"}, raw=raw).returncode for raw in ("not json", "[1]")] == [2, 2], "input that is no JSON object"
-    print(f"prod_write_gate self-test: ok（原先误拦 {len(MISBLOCKED)} 例与按设计不管的 {len(BY_DESIGN)} 例放行，含生产特征 {len(still)} 例照拒；终审对抗样例 {len(refused)} 例拒、按设计不管 {len(allowed)} 例放行）")
-
-def seventeen_self_test():
-    """17 例全拦：真实特征表（本仓库 prod_targets.json 加 origin/main 并集）与测试表下各跑；读不懂、未拦的例子逐条列出（只列轮次和编号，不打印命令，免得带出生产值）。
-    真实表下：SAMPLE_IDS 三个 target 的第一项作 P、H、D 跑一轮，再用每个 target 的第一项填满 P、H、D 各跑一轮（O2 复审 M3），
-    每个 target 的每种形态（IP、主机名）的第一项若不是该 target 的第一项，也各填满跑一轮（O2 首轮留意 ①）。"""
-    cwd = tempfile.mkdtemp()
-    real = load_table()[0]
-    firsts = shipped_firsts()
-    assert real and firsts and all(v.lower() in real for v in firsts.values()), "真实特征表每个 target 至少一项，且都在门用的特征里"
-    assert set(SAMPLE_IDS) <= set(firsts), f"真实特征表须有这几个 target：{SAMPLE_IDS}"
-    cases = seventeen(*real_samples())
-    assert sorted(cases) == list(range(1, 18)) and sum(len(v) for v in cases.values()) >= 17
-    test_table = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP, "prod_db_0001"]
-    runs = [("真实表 P/H/D", cases, real)] + [(f"真实表 {i}", seventeen(v, v, v), real) for i, v in firsts.items()]
-    forms = shipped_forms()
-    assert {k.rsplit(" ", 1)[1] for k in forms} == {"ip", "name"}, "the shipped table has IP-shaped and name-shaped patterns"
-    runs += [(f"真实表 {k}", seventeen(v, v, v), real) for k, v in forms.items() if v not in firsts.values()]
-    runs.append(("测试表", seventeen("pgm-prod0001", TEST_IP, "prod_db_0001"), test_table))
-    missed = [(label, n, k) for label, run, table in runs for n, cs in run.items() for k, c in enumerate(cs) if judge(c, table, None, cwd, {}) is None]
-    assert not missed, f"生产写门 17 例有未拦的（轮次、例号、第几条）：{missed}"
-    total = sum(len(cs) for _, run, _ in runs for cs in run.values())  # V02 is checked by these counts, not by the exit code alone (review of 2f6742ea8)
-    assert len(cases) >= 17 and total >= 17 * len(runs) and total - len(missed) == total, f"生产写门 17 例：{len(cases)} 例，拦下 {total - len(missed)}/{total}"
-    print(f"prod_write_gate 17 例: ok（{len(cases)} 例 {sum(len(v) for v in cases.values())} 条复现命令 × {len(runs)} 轮，拦下 {total - len(missed)}/{total}：真实表 {len(runs) - 1} 轮、测试表 1 轮）")
+    print(f"prod_write_gate self-test: ok（命中即拒 {len(hit)} 例、真实表 {len(firsts)} 个 target 各 2 例；无关命令 {len(MISBLOCKED) + 5} 例放行；拆开或编码的 {len(hidden)} 例按设计放行；无表、空表、坏输入拒）")
 
 def layout_self_test():
-    """门本体的版式与出处：一行一条语句、块体另起一行（O2 复审 M1）；守护源码里没有生产样本，拆段拼接也算（O2 复审 M3）。行数上限按卡 #736 不再查。"""
+    """门本体的版式与出处：一行一条语句、块体另起一行（O2 复审 M1）；守护源码里没有生产样本，拆段拼接也算（O2 复审 M3）。"""
     source = Path(HERE, "prod_write_gate.py").read_text(encoding="utf-8")
     lines = source.split("\n")
     raw = [line.encode("utf-8") for line in lines]  # col_offset counts bytes
     crowded = [node.lineno for node in ast.walk(ast.parse(source)) if isinstance(node, ast.stmt) and node.col_offset != len(raw[node.lineno - 1]) - len(raw[node.lineno - 1].lstrip(b" "))]
     assert not crowded, f"prod_write_gate.py 有一行多条语句或块体与条件同行：{sorted(set(crowded))[:20]}"
     folded = [re.sub(r"[^0-9a-z]", "", v.lower()) for v in load_table()[0]]
-    sources = [os.path.join(HERE, name) for name in sorted(os.listdir(HERE)) if name.endswith(".py")] + [os.path.join(HOOKS, "command_words.py")]
-    for path in sources:
+    for path in [os.path.join(HERE, name) for name in sorted(os.listdir(HERE)) if name.endswith(".py")]:
         text = re.sub(r"[^0-9a-z]", "", Path(path).read_text(encoding="utf-8").lower())
         found = sum(1 for v in folded if v in text)
         assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
     print("prod_write_gate layout: ok")
 
 def prod_write_gate_test():
-    words_self_test()
     gate_self_test()
-    seventeen_self_test()
     layout_self_test()
 
 DISPATCH = os.path.join(HERE, "pre_tool_dispatch.py")  # ── pre_tool_dispatch ──
 PROD_P, PROD_H, PROD_D = real_samples()
+SAMPLES = [f"sqlcmd -S {PROD_P} -Q 'delete from t'", f"ssh {PROD_H} uptime", f"psql -d {PROD_D} -c x", f"echo {PROD_H.upper()}"]  # one per kind, and the case does not matter
 
 def payload(command, **extra):
     return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": extra.pop("cwd", HERE), **extra})
 
 def pre_tool_dispatch_test():
     # 1. the pre-filter never hides a refusal: for every command the dispatcher decides exactly what the gate decides on its own
-    corpus = [c for cs in seventeen(PROD_P, PROD_H, PROD_D).values() for c in cs]
-    corpus += ["ls", "git status", "echo hi", "cat api.py", "npm test", "", "   ", "python3 x.py", f"git commit -m '{PROD_P} 说明'", f"psql -h {PROD_P} -c 'select 1'", f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}",
+    corpus = SAMPLES + ["ls", "git status", "echo hi", "cat api.py", "npm test", "", "   ", "python3 x.py", f"git commit -m '{PROD_P} 说明'", f"psql -h {PROD_P} -c 'select 1'", f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}",
                f"aliyun rds DescribeDBInstances --DBInstanceId {PROD_P}", f"python3 -c \"connect('{PROD_P}')\"", f"xargs -I{{}} sqlcmd -S {PROD_P} -Q {{}}", f"sqlcmd -S `echo {PROD_P}` -Q 'delete from t'",
                f"bash -lc \"psql -h {PROD_P} -c 'drop table t'\"", f"$'\\x73qlcmd' -S {PROD_P} -Q 'delete from t'", f"bash <<'EOF'\nsqlcmd -S {PROD_P} -Q 'delete from t'\nEOF", f"env -S 'sqlcmd -S {PROD_P} -Q x'",
                f"curl -XPOST https://{PROD_P}/x", f"al\"\"iyun rds DeleteAccount --DBInstanceId {PROD_P}", "PSQL -c x", "codex exec p", "git push --no-verify", "gh pr create --title x"]
@@ -327,11 +149,10 @@ def pre_tool_dispatch_test():
         for command in ("lua deploy.lua", "dash deploy", "ksh deploy", ". deploy", "nohup dash deploy", "lua deploy.lua && echo ok", "cat sshd_conf 'oops", "sudo -u x ksh deploy", "(. deploy)"):
             raw = payload(command, cwd=elsewhere)
             assert g.decide(json.loads(raw))[0] == 0 and d.dispatch(raw) == g.decide(json.loads(raw)), command
-    # 2. every one of the 17 cases is refused through the dispatcher, with the gate's own reason
-    for number, commands in seventeen(PROD_P, PROD_H, PROD_D).items():
-        for command, tool in ((c, t) for c in commands for t in COMMAND_TOOLS):  # Monitor and the terminal panel run shell commands as Bash does (intent 160437)
-            code, out, err = d.dispatch(payload(command, tool_name=tool))
-            assert code == 2 and err.strip(), (number, command, tool)
+    # 2. every production sample is refused through the dispatcher, with the gate's own reason
+    for command, tool in ((c, t) for c in SAMPLES for t in COMMAND_TOOLS):  # Monitor and the terminal panel run shell commands as Bash does (intent 160437)
+        code, out, err = d.dispatch(payload(command, tool_name=tool))
+        assert code == 2 and "底线 4" in err, (command, tool)
     # 3. ordinary commands and other tools start nothing; checks that used to hang off the dispatcher are no longer here
     for command in ("ls", "echo hi", "git status", "npm test", "codex exec p", "git push --no-verify", "gh pr create --title x"):
         assert d.dispatch(payload(command)) == (0, "", ""), command
@@ -367,7 +188,7 @@ def pre_tool_dispatch_test():
         raise ImportError("no prod_write_gate")
     def boom(payload):
         raise RuntimeError("boom")
-    Crashing, Hanging = (types.SimpleNamespace(plain=g.plain, command_of=g.command_of, could_concern=lambda text: True, decide=decide)  # the gate's own parsing: decide is reached
+    Crashing, Hanging = (types.SimpleNamespace(command_of=g.command_of, could_concern=lambda text: True, decide=decide)  # the gate's own parsing: decide is reached
                          for decide in (boom, lambda payload: time.sleep(5) or (0, "", "")))  # #47: without command_of main stopped at an AttributeError, the hang went untested
     with mock.patch.object(sys, "stdin"), mock.patch.object(d, "DEADLINE", 1):  # a gate with no answer in time is a failure (O7 final, suggestion 1)
         for loader, why in ((broken_import, "ImportError: no prod_write_gate"), (lambda: Crashing, "RuntimeError: boom"), (lambda: Hanging, "Overdue: 超过 1 秒没有结论")):
@@ -736,14 +557,12 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
     def bash(command): return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": repo})
     def points_to(): return os.readlink(current) if os.path.islink(current) else None
     def leftovers(): return [n for n in os.listdir(hooks) if n.startswith(".")] if os.path.isdir(hooks) else []
-    def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) with the same feature table (#736): a production sample, quotes and backslashes removed, refuses; no table refuses all
+    def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) with the same feature table and the same literal match (用户 intent 2026-10-28-202019); no table refuses all
         for shell in shells:
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
-                                  ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 2),
-                                  (f"echo {PROD_D.upper()}", 2), ("aliyun --profile dev-ro ecs DescribeRegions", 2), ("ALI\"\"YUN ecs DescribeRegions", 2),  # 阿里云：门出错时一律拒（#736）
-                                  (f"curl http://{PROD_H[:3]}{{x,{PROD_H[3]}}}{PROD_H[4:]}/", 2), ("t=ql; ps$t -h x", 2), ("a=ali; ${a}yun ecs X", 2), ("a=ps; b=ql; $a$b -h x", 2), ("echo $'\\x41'", 2),  # 首轮 S2：花括号每个选项、变量拼接、$'
-                                  ("echo $HOME", 0), ("ls ${HOME} ~", 0),
+                                  ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"echo {PROD_D.upper()}", 2),
+                                  (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 0),  # split by a backslash: not on the text as written, allowed by design (202019)
                                   *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
                 r = mount(gate_cmd, bash(command), shell)
                 assert r.returncode == code and why in r.stderr and ("放行" in r.stderr) == (code == 0) and os.path.isfile(os.path.join(hooks, "gate_failures.log")) == os.path.isdir(hooks), (shell, why, command, r.returncode, r.stderr)
@@ -857,7 +676,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
     put(os.path.join(hooks, a, "scripts/hooks/extra.sh"), "#!/bin/bash\n")
     assert "不一致" in warning(), "an added file"
     os.remove(os.path.join(hooks, a, "scripts/hooks/extra.sh"))
-    os.remove(os.path.join(hooks, a, "scripts/hooks/command_words.py"))
+    os.remove(os.path.join(hooks, a, "scripts/gates/main_checkout_gate.py"))
     assert "不一致" in warning(), "a removed file"
     os.rename(os.path.join(hooks, a, ".manifest"), os.path.join(tmp, "manifest"))
     assert "没有校验和清单" in warning()
@@ -913,7 +732,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
     shutil.rmtree(os.path.join(hooks, "syntax"))
     closed("入口缺失")  # a dangling current link
     version("gate-error", "#!/bin/bash\ncat >/dev/null\nexit 3\n")  # the real dispatcher's answer when the gate cannot be imported, crashes or hangs (section 4)
-    closed("异常退出（退出码 3", extra=[c for cs in seventeen(PROD_P, PROD_H, PROD_D).values() for c in cs])
+    closed("异常退出（退出码 3", extra=SAMPLES)
     version("answers", "#!/bin/bash\ncat >/dev/null\necho no >&2\nexit 2\n", "#!/bin/bash\necho ok\n")
     for shell in SHELLS:
         r = mount(gate_cmd, bash("ls"), shell)

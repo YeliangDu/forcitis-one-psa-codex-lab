@@ -60,7 +60,7 @@
       "patterns": [
         "forcitis-production"
       ],
-      "note": "本机阿里云命令行的默认 profile（生产）；aliyun 命令须显式 --profile 且名不命中本表才放行（卡 #736，用户「先不动，门补一条」）"
+      "note": "阿里云命令行的生产 profile 名：命令里出现即拒，同其他特征（卡 #736；用户 intent 2026-10-28-202019 门只做字面匹配）"
     }
   ],
   "trusted_entries": {
