@@ -5,7 +5,7 @@
 生产特征 = prod_targets.json 的 patterns（生产主机名或 IP、生产 profile 名、生产库名、生产凭据名）；本工作区的表与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR
 所在仓库 origin/main 的。特征表缺失、不合格或并集为空：一律拒（失败关闭）。
 命令文本上看不到特征的（脚本文件里写的、编码或拼接藏起来的）门放行，由用户自行清理本机生产凭据兜底（intent 2026-10-28-202108）。
-门出错时 .claude/settings.json 的挂载入口用同一张特征表做同样的字面匹配（读不到表一律拒）。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
+门出错时 .claude/settings.json 的挂载入口做同样的字面匹配，读的是安装副本与 CLAUDE_PROJECT_DIR 工作区的两份表（不并 origin/main；两份都读不到一律拒）。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
 import json

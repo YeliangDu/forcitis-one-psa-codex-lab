@@ -95,10 +95,11 @@ def gate_self_test():
         def hook(command, table_path=None, tool="Bash", env=None, raw=None):  # `env` replaces the hook's environment, `raw` its input
             env = env or {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), **({"PROD_TARGETS_FILE": table_path} if table_path else {})}
             return subprocess.run([sys.executable, "-I", script], input=raw or json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": tmp}), capture_output=True, text=True, env=env)
-        for name, value in firsts.items():  # every target of the real table (hosts, the production profile, databases, accounts), in either case: refused
+        shipped = [(t["id"], p.strip()) for t in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["targets"] for p in t["patterns"]]
+        for at, (name, value) in enumerate(shipped):  # every pattern of the real table (hosts, the production profile, databases, accounts), in either case: refused; failures name the target and position, never the value
             for written in (f"grep -rn {value} docs", f"echo {value.upper()}"):
                 run = hook(written)
-                assert run.returncode == 2 and "底线 4" in run.stderr, name
+                assert run.returncode == 2 and "底线 4" in run.stderr, (name, at)
         assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0
         gone, remote = hook("python3 clean.py", os.path.join(tmp, "missing.json")), hook("psql -c 'select 1'", os.path.join(tmp, "missing.json"))
         assert gone.returncode == 2 and remote.returncode == 2 and "缺失或不合格" in gone.stderr, (gone, remote)  # no table: everything refused
@@ -106,7 +107,7 @@ def gate_self_test():
         no_git = {"LC_ALL": "C", "PATH": tmp, "PROD_TARGETS_FILE": os.path.join(tmp, "empty.json")}
         assert hook("python3 clean.py", env=no_git).returncode == 2 and "为空" in hook("ls", env=no_git).stderr, "an empty table, no git: refused"
         assert [hook(None, env={"LC_ALL": "C"}, raw=raw).returncode for raw in ("not json", "[1]")] == [2, 2], "input that is no JSON object"
-    print(f"prod_write_gate self-test: ok（命中即拒 {len(hit)} 例、真实表 {len(firsts)} 个 target 各 2 例；无关命令 {len(MISBLOCKED) + 5} 例放行；拆开或编码的 {len(hidden)} 例按设计放行；无表、空表、坏输入拒）")
+    print(f"prod_write_gate self-test: ok（命中即拒 {len(hit)} 例、真实表 {len(firsts)} 个 target 全部 {len(shipped)} 项各 2 例；无关命令 {len(MISBLOCKED) + 5} 例放行；拆开或编码的 {len(hidden)} 例按设计放行；无表、空表、坏输入拒）")
 
 def layout_self_test():
     """门本体的版式与出处：一行一条语句、块体另起一行（O2 复审 M1）；守护源码里没有生产样本，拆段拼接也算（O2 复审 M3）。"""

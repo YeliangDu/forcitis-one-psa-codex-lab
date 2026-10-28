@@ -1,7 +1,7 @@
 {
   "version": 1,
   "owner": "one-ops",
-  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。命令行任意位置碰到任一 pattern，或运行的文件内容含 pattern，除 trusted_entries 登记入口外一律被 prod_write_gate 拒绝（intent 2026-10-26-165321）；改动由 one-ops 提，PR 过 opus 复审。间接引用（别名、ssh_config、DSN）与脚本运行时行为不覆盖，靠只读账号兜底。",
+  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。prod_write_gate 只拿整条命令原文转小写后与 patterns 字面匹配，命中即拒（用户 intent 2026-10-28-202019）；不读被运行的文件，不认可信入口。拆开、编码、拼接与间接引用（别名、ssh_config、DSN）不覆盖，由用户清理本机生产凭据兜底（intent 2026-10-28-202108）。trusted_entries 只供 scripts/evidence/evidence.py 生成取证登记；remote_entries、no_exec_tools 两节已无门读取，随 #742 删。改动由 one-ops 提，PR 过 opus 复审。",
   "targets": [
     {
       "id": "legacy-rds-sqlserver",
