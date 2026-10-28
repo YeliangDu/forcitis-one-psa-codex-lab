@@ -23,7 +23,7 @@ checks while cancelling the others' runs, rerun failed checks once, then merge w
 required checks (backend verify, frontend verify, secret scan, none of them with the " (light)" suffix) and every one of them is `pass`; "no failure so far" is never enough (a head still running is not green).
 Conflicts with main: the queue merges main in (over ssh when gh cannot); a text conflict goes back to the author (CONFLICT).
 Release. Before it spends CI on a pull request, and again under the merge lock right before the merge, the queue reads the reviews and comments: the newest statement that speaks for the head must be a 通过 (release_verdict).
-A first-round review speaks for the head when it was posted on it, or when the `patch-id：` line that opens its body equals the head's patch-id (a rebase, or the queue's own merge of main, that leaves the change as it was);
+A first-round review speaks for the head when it was posted on it or on a commit whose patch-id (git patch-id --verbatim, computed by the queue) equals the head's (a rebase, or the queue's own merge of main, that leaves the change as it was);
 a dispatcher comment `调度批准入队 head <sha>` (the coordinator letting a 必改 fix through) speaks for the head it names or one with the same patch-id. Docs-lane pull requests need no review unless they touch a guarded path (policy.json review.final_paths). Not released: HOLD.
 Read-back. After the merge call GitHub must show the pull request MERGED with the pinned head as the second parent of the merge commit; otherwise ALERT READBACK and both lanes pause until `mq.py resume`.
 Outcomes: MERGED, CONFLICT (text conflict with main in a file a person wrote: back to the author), HOLD (red after the rerun, CI timeout, closed, not released, an update that could not be pushed, attempts exhausted: reported to the coordinator).
@@ -49,13 +49,9 @@ with a growing pause; the third failure in a row puts the pull request on HOLD a
 """
 import argparse
 import contextlib
-import datetime
 import fcntl
-import json
 import os
 import re
-import shutil
-import subprocess
 import sys
 import tempfile
 import threading
@@ -66,436 +62,18 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "review"))
 import gapscan   # noqa: E402
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
+from mq_github import Gh, SignalError, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
+from mq_queue import LINE, Log, Queue   # noqa: E402,F401  (the queue file and the log)
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
 URGENT_LABEL = "急"   # put on by the coordinator: the pull request is picked before the others of its lane and the queue never cancels its CI runs
 ENV_STEPS = ("docker is running", "test images are present")   # exact names in ci.yml of the steps that go red when the machine's container runtime is down
 OK = ("pass", "skipping")
-LINE = re.compile(r"^\s*(\d+)(?:\s+after=([\d,]+))?\s*$")   # "<n>" or "<n> after=<m>[,<m>...]": n waits until every m is merged
 LANES = ("code", "docs")
 FAILING = ("failure", "timed_out", "startup_failure")
 
 
-def sh(args, cwd=None, check=False, timeout=180):
-    """A call that hangs (gh without network, a stuck ssh push) must not block a lane or the pause check: after `timeout` seconds it is a failed call (exit 124)."""
-    try:
-        r = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        r = subprocess.CompletedProcess(args, 124, "", f"timed out after {timeout} s")
-    if check and r.returncode:
-        raise SystemExit(f"{' '.join(args[:3])} failed ({r.returncode}): {(r.stderr or r.stdout).strip()[:300]}")
-    return r
-
-
-class Log:
-    def __init__(self, path=None, echo=True, now=None):
-        self.path, self.echo = path, echo
-        self.now = now or (lambda: datetime.datetime.now().astimezone())
-        self.lines = []
-        self.lock = threading.Lock()
-        self.lanes = {}   # pull request -> lane, set when a worker takes it; its events then say which lane they belong to
-
-    def event(self, ev, pr=None, run=None, since=None, detail=""):
-        started = since if since is not None else time.monotonic()
-        line = f"{self.now().isoformat(timespec='seconds')} {ev} pr=#{pr if pr is not None else '-'} run={run if run else '-'} elapsed={max(0, int(time.monotonic() - started))}s"
-        if pr in self.lanes:
-            line += f" lane={self.lanes[pr]}"
-        line += f" {' '.join(str(detail).split())[:400]}" if detail else ""
-        with self.lock:
-            self.lines.append(line)
-            if self.path:
-                with open(self.path, "a", encoding="utf-8") as f:
-                    f.write(line + "\n")
-            if self.echo:
-                print(line, flush=True)
-
-
-class Queue:
-    def __init__(self, path):
-        self.path = path
-        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-
-    @contextlib.contextmanager
-    def locked(self, suffix=".lock"):
-        with open(self.path + suffix, "a") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(lock, fcntl.LOCK_UN)
-
-    def merge_lock(self):
-        """Held while a merge is decided and done: one merge at a time, whatever lane and process."""
-        return self.locked(".merge-lock")
-
-    def _read(self):
-        try:
-            return open(self.path, encoding="utf-8").read().splitlines()
-        except FileNotFoundError:
-            return []
-
-    def _write(self, lines):
-        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(self.path)), prefix=".queue-")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write("".join(l + "\n" for l in lines))
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp, self.path)
-        except BaseException:
-            with contextlib.suppress(OSError):
-                os.unlink(tmp)
-            raise
-
-    def numbers(self):
-        with self.locked():
-            return [int(m.group(1)) for l in self._read() if (m := LINE.match(l))]
-
-    def deps(self, n):
-        """The pull requests that must be merged before n is started."""
-        with self.locked():
-            for l in self._read():
-                if (m := LINE.match(l)) and int(m.group(1)) == n:
-                    return {int(x) for x in (m.group(2) or "").split(",") if x}
-        return set()
-
-    @staticmethod
-    def _entry(n, after):
-        return f"{n} after={','.join(str(x) for x in sorted(after))}" if after else str(n)
-
-    def enqueue(self, *prs, after=()):
-        """Queue prs (once each); `after`: pull requests each of them waits for. Already queued with a new dependency: the dependencies are added. A self-dependency or a cycle is refused (ValueError)."""
-        after = set(after)
-        added = []
-        with self.locked():
-            lines = self._read()
-            graph = {int(m.group(1)): {int(x) for x in (m.group(2) or "").split(",") if x} for l in lines if (m := LINE.match(l))}
-            for n in prs:
-                if n in after:
-                    raise ValueError(f"#{n} cannot wait for itself")
-                merged = graph.get(n, set()) | after
-                if any(self._reaches(graph, m, n) for m in merged):
-                    raise ValueError(f"#{n} after {sorted(after)} would make a dependency cycle")
-                graph[n] = merged
-            for n in prs:
-                at = next((i for i, l in enumerate(lines) if (m := LINE.match(l)) and int(m.group(1)) == n), None)
-                if at is None:
-                    lines.append(self._entry(n, after))
-                    added.append(n)
-                elif after:
-                    lines[at] = self._entry(n, graph[n])
-            self._write(lines)
-        return added
-
-    @staticmethod
-    def _reaches(graph, start, target):
-        seen, todo = set(), [start]
-        while todo:
-            cur = todo.pop()
-            if cur == target:
-                return True
-            if cur not in seen:
-                seen.add(cur)
-                todo.extend(graph.get(cur, ()))
-        return False
-
-    # Pull requests a runner is working on right now ("<n> <runner pid>" lines; a dead pid is a stale line) and cancel requests for them: `remove` of a pull request in the middle of its processing must not leave the worker running on silently.
-    def _lines(self, suffix):
-        try:
-            return open(self.path + suffix, encoding="utf-8").read().split("\n")
-        except FileNotFoundError:
-            return []
-
-    def _store(self, suffix, lines):
-        with open(self.path + suffix, "w", encoding="utf-8") as f:
-            f.write("".join(l + "\n" for l in lines if l))
-
-    # The head each queued pull request had when it was queued (= approved: the coordinator approves a head and the pull request is queued on that head): "<n> <sha>" lines in <queue>.heads.
-    # Without an entry (queued before this existed, gh could not say, `once`) nothing is compared.
-    def set_head(self, n, head):
-        with self.locked(".heads-lock"):
-            self._store(".heads", [l for l in self._lines(".heads") if not l.startswith(f"{n} ")] + [f"{n} {head}"])
-
-    def head_of(self, n):
-        with self.locked(".heads-lock"):
-            for l in self._lines(".heads"):
-                if l.startswith(f"{n} "):
-                    return l.split()[1]
-        return None
-
-    def drop_head(self, n):
-        with self.locked(".heads-lock"):
-            self._store(".heads", [l for l in self._lines(".heads") if not l.startswith(f"{n} ")])
-
-    def _mark(self, n):
-        self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")] + [f"{n} {os.getpid()}"])
-        self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)])   # a request from an earlier round is not for this one
-
-    def mark_working(self, n):
-        with self.locked(".work-lock"):
-            self._mark(n)
-
-    def claim(self, n):
-        """A worker takes pull request n: marked as being processed only if it is still queued, in one step with `remove_checked` (lock order: queue lock, then work lock)."""
-        with self.locked(), self.locked(".work-lock"):
-            if not any((m := LINE.match(l)) and int(m.group(1)) == n for l in self._read()):
-                return False
-            self._mark(n)
-            return True
-
-    def remove_checked(self, prs, cancel):
-        """Take prs out of the queue. A pull request a worker is processing is refused (returned, and nothing at all is removed), or, with `cancel`, a cancel request is written for it; the check and the removal are one step."""
-        with self.locked(), self.locked(".work-lock"):
-            busy = {}
-            for line in self._lines(".working"):
-                number, _, pid = line.partition(" ")
-                if number.isdigit() and int(number) in prs and pid.isdigit() and self._alive(int(pid)):
-                    busy[int(number)] = int(pid)
-            if busy and not cancel:
-                return busy
-            for n in busy:
-                self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)] + [str(n)])
-            self._write([l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) in prs)])
-            return busy
-
-    def reset_working(self):
-        """At the start of the runner (there is only one): whatever was marked belongs to a runner that is gone."""
-        with self.locked(".work-lock"):
-            self._store(".working", [])
-            self._store(".cancel", [])
-
-    @staticmethod
-    def _alive(pid):
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            return False
-        except PermissionError:
-            return True
-        return True
-
-    def unmark_working(self, n):
-        with self.locked(".work-lock"):
-            self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")])
-            self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)])
-
-    def working(self):
-        """{pull request: pid of the runner working on it}; a line whose process is gone (the runner was killed) does not count."""
-        out = {}
-        with self.locked(".work-lock"):
-            for line in self._lines(".working"):
-                number, _, pid = line.partition(" ")
-                if number.isdigit() and pid.isdigit() and self._alive(int(pid)):
-                    out[int(number)] = int(pid)
-        return out
-
-    def request_cancel(self, n):
-        """Only for a pull request that is marked: a request for one nobody is processing would cancel its next round."""
-        with self.locked(".work-lock"):
-            if any(l.startswith(f"{n} ") for l in self._lines(".working")):
-                self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)] + [str(n)])
-
-    def cancel_requested(self, n):
-        with self.locked(".work-lock"):
-            return str(n) in self._lines(".cancel")
-
-    def remove(self, *prs):
-        with self.locked():
-            self._write([l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) in prs)])
-
-    def before(self, pr, other):
-        with self.locked():
-            own = next((l.strip() for l in self._read() if (m := LINE.match(l)) and int(m.group(1)) == pr), str(pr))
-            lines = [l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) == pr)]
-            at = next((i for i, l in enumerate(lines) if (m := LINE.match(l)) and int(m.group(1)) == other), len(lines))
-            lines.insert(at, own)
-            self._write(lines)
-
-
-class Gh:
-    """The GitHub side; the self-test replaces it. A call that fails returns None (or False), never a value that looks like a result."""
-    RETRY_PAUSE = 2
-
-    def view(self, n):
-        r = sh(["gh", "pr", "view", str(n), "--json", "state,mergeStateStatus,labels,headRefName,headRefOid"])
-        try:
-            d = json.loads(r.stdout)
-            return {"state": d["state"], "merge": d["mergeStateStatus"], "labels": [l["name"] for l in d["labels"]], "branch": d["headRefName"], "head": d["headRefOid"]}
-        except (ValueError, KeyError):
-            return None
-
-    def open_prs(self):
-        """Every open pull request with what the gap scan (gapscan.py) needs, or None when gh cannot say."""
-        r = sh(["gh", "pr", "list", "--state", "open", "--limit", str(gapscan.OPEN_LIMIT), "--json", "number,title,headRefName,headRefOid,isDraft,mergeable,statusCheckRollup,commits,comments,createdAt"], timeout=120)
-        try:
-            prs = json.loads(r.stdout)
-        except ValueError:
-            return None
-        if r.returncode:
-            return None
-        for pr in prs:
-            pr["comments"] = [dict(c, author=(c.get("author") or {}).get("login")) for c in pr.get("comments", [])]
-        return prs
-
-    def behind_by(self, n, head):
-        r = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/main...{head}", "--jq", ".behind_by"])
-        return int(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip().isdigit() else None
-
-    def behind_files(self, head):
-        """Paths main changed since the branch point of `head` (what the head lacks), or None when gh cannot say or the list is cut off (the compare API lists at most 300 files)."""
-        r = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/{head}...main", "--jq", "[.files[] | .filename, .previous_filename] | map(select(. != null)) | .[]"])
-        if r.returncode:
-            return None
-        files = [x for x in r.stdout.splitlines() if x]
-        n = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/{head}...main", "--jq", ".files | length"])
-        return files if n.returncode == 0 and n.stdout.strip().isdigit() and int(n.stdout.strip()) < 300 else None
-
-    def files(self, n):
-        r = sh(["gh", "api", "--paginate", f"repos/{{owner}}/{{repo}}/pulls/{n}/files", "--jq", ".[] | .filename, .previous_filename"])
-        return [x for x in r.stdout.splitlines() if x and x != "null"] if r.returncode == 0 else None
-
-    def checks(self, n):
-        r = sh(["gh", "pr", "checks", str(n), "--json", "name,bucket,link"])
-        try:
-            return json.loads(r.stdout)
-        except ValueError:
-            # a pull request whose CI has not registered anything yet: empty stdout, exit 0, "no checks reported on the '<branch>' branch" on stderr
-            return [] if "no checks reported" in r.stderr else None
-
-    def failed_steps(self, run):
-        """Names of the steps that failed in a ci run, or None when gh cannot say."""
-        r = sh(["gh", "run", "view", str(run), "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'])
-        return r.stdout.splitlines() if r.returncode == 0 else None
-
-    def docker_ok(self):
-        return sh(["docker", "info"], timeout=60).returncode == 0
-
-    def update_branch(self, n):
-        return sh(["gh", "pr", "update-branch", str(n)]).returncode == 0
-
-    def label(self, n, name, add):
-        return sh(["gh", "pr", "edit", str(n), "--add-label" if add else "--remove-label", name]).returncode == 0
-
-    def active_runs(self, branch):
-        r = sh(["gh", "run", "list", "--branch", branch, "--workflow", "ci", "--json", "databaseId,status"])
-        try:
-            return [x["databaseId"] for x in json.loads(r.stdout) if x["status"] != "completed"]
-        except ValueError:
-            return []
-
-    def ci_started(self, branch, head):
-        """True when a ci run for exactly this head exists (any state); False when none is listed yet or gh does not answer."""
-        r = sh(["gh", "run", "list", "--branch", branch, "--workflow", "ci", "--limit", "10", "--json", "headSha"])
-        try:
-            return any(x.get("headSha") == head for x in json.loads(r.stdout))
-        except ValueError:
-            return False
-
-    def cancel_run(self, run):
-        return sh(["gh", "run", "cancel", str(run)]).returncode == 0
-
-    def rerun(self, run):
-        return sh(["gh", "run", "rerun", str(run), "--failed"]).returncode == 0 or sh(["gh", "run", "rerun", str(run)]).returncode == 0
-
-    def main_run(self, event):
-        """The verdict run of main for `event` (push | schedule): the newest run that has ended and was not cancelled or skipped ({'id', 'conclusion', 'sha'}), or None when there is none.
-        A push run is cancelled by the next push (concurrency), so the newest run alone says nothing. Raises SignalError when gh cannot answer."""
-        args = ["gh", "run", "list", "--workflow", "ci", "--event", event, "--limit", "20", "--json", "databaseId,status,conclusion,headSha,headBranch"]
-        if event == "push":
-            args += ["--branch", "main"]
-        r = sh(args)
-        try:
-            rows = json.loads(r.stdout)
-        except ValueError:
-            raise SignalError(f"gh run list ({event}) gave no JSON: {(r.stderr or r.stdout).strip()[:120]}")
-        for row in rows:
-            if row.get("headBranch", "main") == "main" and row["status"] == "completed" and row["conclusion"] not in ("cancelled", "skipped", None, ""):
-                return {"id": row["databaseId"], "status": "completed", "conclusion": row["conclusion"], "sha": row["headSha"]}
-        return None
-
-    def merge(self, n, head):
-        r = sh(["gh", "pr", "merge", str(n), "--merge", "--match-head-commit", head])
-        return r.returncode == 0, (r.stderr or r.stdout).strip()
-
-    def reviews(self, n):
-        """[{body, commit, at}] of every review of the pull request, or None when gh cannot say."""
-        r = sh(["gh", "api", "--paginate", "--slurp", f"repos/{{owner}}/{{repo}}/pulls/{n}/reviews"])
-        try:
-            pages = json.loads(r.stdout)
-        except ValueError:
-            return None
-        if r.returncode or not isinstance(pages, list) or not all(isinstance(p, list) for p in pages):
-            return None
-        return [{"body": x.get("body") or "", "commit": x.get("commit_id"), "at": x.get("submitted_at") or ""} for page in pages for x in page if isinstance(x, dict)]
-
-    def comments(self, n):
-        """[{author, body, at}] of the pull request's comments, or None when gh cannot say."""
-        r = sh(["gh", "pr", "view", str(n), "--json", "comments"])
-        try:
-            rows = json.loads(r.stdout)["comments"]
-            return [{"author": (c.get("author") or {}).get("login"), "body": c.get("body") or "", "at": c.get("createdAt") or ""} for c in rows]
-        except (ValueError, KeyError, TypeError, AttributeError):
-            return None
-
-    def patch_id(self, repo, n, commit):
-        """`git patch-id --stable` of the change `commit` makes against main, taken as the reviewer takes it (`git diff origin/main...<commit>`), or None when git cannot say."""
-        for attempt in range(3):   # the other lane's fetch in the same repository may hold a ref lock for a moment
-            if sh(["git", "-C", repo, "fetch", "-q", "--no-write-fetch-head", "origin", "+refs/heads/main:refs/remotes/origin/main", f"refs/pull/{n}/head"]).returncode == 0:
-                break
-            time.sleep(self.RETRY_PAUSE)
-        else:
-            return None
-        diff = sh(["git", "-C", repo, "diff", "--no-color", "--no-ext-diff", f"origin/main...{commit}"])
-        if diff.returncode or not diff.stdout:
-            return None
-        out = subprocess.run(["git", "patch-id", "--stable"], input=diff.stdout, capture_output=True, text=True, timeout=60)
-        first = out.stdout.split()
-        return first[0] if out.returncode == 0 and first else None
-
-    def readback(self, n):
-        """(state, parents of the merge commit) as GitHub shows them after the merge, or None when gh cannot say."""
-        r = sh(["gh", "pr", "view", str(n), "--json", "state,mergeCommit"])
-        try:
-            d = json.loads(r.stdout)
-            state, oid = d["state"], (d.get("mergeCommit") or {}).get("oid")
-        except (ValueError, KeyError, AttributeError):
-            return None
-        if not oid:
-            return state, []
-        c = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/commits/{oid}", "--jq", '[.parents[].sha] | join(" ")'])
-        return (state, c.stdout.split()) if c.returncode == 0 else None
-
-
-def update_over_ssh(repo, branch, wt):
-    """Local merge of origin/main into the pull request branch, pushed over ssh (git, not the gh token): 'ok' | 'conflict' | 'error'."""
-    if sh(["git", "-C", repo, "fetch", "-q", "origin"]).returncode:
-        return "error"
-    sh(["git", "-C", repo, "worktree", "remove", "-f", wt])
-    sh(["git", "-C", repo, "worktree", "prune"])
-    if os.path.exists(wt):   # a plain directory an earlier, killed run left behind; only our own scratch directory is ever removed
-        if not os.path.basename(wt).startswith("mq-wt"):
-            return "error"
-        shutil.rmtree(wt, ignore_errors=True)
-    if sh(["git", "-C", repo, "worktree", "add", "-q", "--detach", wt, f"origin/{branch}"]).returncode:
-        return "error"
-    try:
-        if sh(["git", "-C", wt, "merge", "-q", "--no-edit", "origin/main"]).returncode:
-            conflicted = [name for name in sh(["git", "-C", wt, "diff", "--name-only", "-z", "--diff-filter=U"]).stdout.split("\0") if name]
-            if not conflicted:
-                sh(["git", "-C", wt, "merge", "--abort"])
-                return "error"
-            sh(["git", "-C", wt, "merge", "--abort"])
-            return "conflict"
-        return "ok" if sh(["git", "-C", wt, "push", "-q", "origin", f"HEAD:{branch}"]).returncode == 0 else "error"
-    finally:
-        sh(["git", "-C", repo, "worktree", "remove", "-f", wt])
-
-
 class Cancelled(Exception):
     """`mq.py remove --cancel` asked the worker to stop; raised at a checkpoint before the merge is made."""
-
-
-class SignalError(Exception):
-    """gh could not say how main's runs ended."""
 
 
 def run_id(link):
@@ -509,30 +87,32 @@ def red_checks(checks):
     return [c for c in checks if c["bucket"] not in OK and not (c["name"].endswith("(light)") and c["name"][:-len("(light)")].rstrip() in full)]
 
 
-PATCH_ID_LINE = re.compile(r"patch-id[:：]\s*([0-9a-f]{40})")
-
-
 def release_verdict(reviews, comments, head, patch_id_of):
     """(True, why) when the change at `head` may be merged, else (False, why). The newest statement that speaks for `head` decides: a first-round review (通过 or 必改), a 必改 of a final review,
     or a dispatcher approval comment `调度批准入队 head <sha>` (gapscan.APPROVAL; how the coordinator lets a 必改 fix through, RULES ⑤), which counts as 通过.
-    A review speaks for `head` when GitHub holds it on the commit its header names and that commit is `head` or the `patch-id：` line that opens its body equals the patch-id of `head`
-    (a rebase, or the queue's own merge of main, that leaves the change as it was). An approval speaks for it when it names `head` or a commit with the same patch-id. `patch_id_of(commit)` is git's answer or None."""
+    Every session posts through the same GitHub account: an approval (like a review) is a record of what was decided, not a check of who decided it.
+    A review speaks for `head` when GitHub holds it on the commit its header names and that commit is `head` or has the same patch-id as `head`; an approval when it names `head` or a commit with the same patch-id
+    (a rebase, or the queue's own merge of main, that leaves the change as it was). The patch-ids are git's (`patch_id_of(commit)`, None when git cannot say), never the one a review body states."""
     fields = post_review.load_policy()[0]["header_fields"]
+    head_id = None
     said = []
+
+    def same(commit):
+        nonlocal head_id
+        if head.startswith(commit):
+            return True
+        head_id = head_id or patch_id_of(head)
+        return head_id is not None and patch_id_of(commit) == head_id
     for r in reviews:
         h = post_review.parse_header(r["body"], fields)
-        if not h or r["commit"] != h["commit"] or (h["kind"] == post_review.FINAL and h["verdict"] == post_review.PASS):
-            continue
-        lines = r["body"].split("\n")
-        m = PATCH_ID_LINE.fullmatch(lines[4].strip()) if len(lines) > 4 and not lines[3].strip() else None
-        if h["commit"] == head or (m and m.group(1) == patch_id_of(head)):
+        if h and r["commit"] == h["commit"] and not (h["kind"] == post_review.FINAL and h["verdict"] == post_review.PASS) and same(h["commit"]):
             said.append((r["at"], h["verdict"], f"{h['reviewer']} on {h['commit'][:10]}"))
     for c in comments:
         m = gapscan.APPROVAL.search(c["body"]) if c["author"] == gapscan.APPROVER else None
-        if m and (head.startswith(m.group(1).lower()) or (patch_id_of(m.group(1).lower()) or "-") == patch_id_of(head)):
+        if m and same(m.group(1).lower()):
             said.append((c["at"], post_review.PASS, f"approval of {m.group(1)[:10]}"))
     if not said:
-        return False, f"no first-round review or approval speaks for head {head[:10]} (none on it, none with its patch-id {patch_id_of(head) or 'unknown'})"
+        return False, f"no first-round review or approval speaks for head {head[:10]} (none on it, none on a commit with its patch-id {head_id or patch_id_of(head) or 'unknown'})"
     at, verdict, who = max(said)
     return verdict == post_review.PASS, f"newest: {verdict} ({who}, {at})"
 
@@ -655,9 +235,18 @@ def docs_only(repo):
 
 
 def default_lane(repo):
-    """'docs' when every path of the pull request is docs (docs_only), else 'code'; a lookup that fails is 'code' (the stricter lane)."""
+    """'docs' when every path of the pull request is docs (docs_only) and none is guarded (policy.json review.final_paths), else 'code'; a lookup that fails is 'code' (the stricter lane).
+    The docs lane is the fast lane: its own worker, serial within the lane, CI without the heavy steps (tier=docs), still checked against the current main under the merge lock."""
     check = docs_only(repo)
-    return lambda gh, n: "docs" if check(gh.files(n)) else "code"
+
+    def lane(gh, n):
+        files = gh.files(n)
+        return "docs" if check(files) and not any(f.startswith(guarded_paths()) for f in files) else "code"
+    return lane
+
+
+def guarded_paths():
+    return tuple(post_review.load_policy()[0]["final_paths"])
 
 
 class Processor:
@@ -1071,8 +660,8 @@ class Processor:
         """release_verdict for `head`, from the pull request's reviews and comments as gh lists them now. A docs-lane pull request (tier=docs) needs no review unless it touches a guarded path
         (policy.json review.final_paths); a file list gh cannot give is no exemption."""
         if self.log.lanes.get(n) == "docs":
-            files, guarded = self.gh.files(n), tuple(post_review.load_policy()[0]["final_paths"])
-            if files and not any(f.startswith(guarded) for f in files):
+            files = self.gh.files(n)
+            if files and not any(f.startswith(guarded_paths()) for f in files):
                 return True, "docs lane, no guarded path: no review needed"
         reviews, comments = self.gh.reviews(n), self.gh.comments(n)
         if reviews is None or comments is None:

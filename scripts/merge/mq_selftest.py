@@ -31,8 +31,8 @@ def red(run=100, bucket="fail"):
     return [{"name": HEAVY[0], "bucket": bucket, "link": link(run)}, {"name": HEAVY[1], "bucket": "pass", "link": link(run)}, {"name": SECRET, "bucket": "pass", "link": link(run)}]
 
 
-def review(commit, verdict="通过", kind="首轮", pid=PID, at="2026-10-29T01:00:00Z", on=None, gap=""):
-    return {"body": f"复审结论：{verdict}\ncommit：{commit}\n复审者：opus-{kind}-t\n{gap}\npatch-id：{pid}\n影响面：x", "commit": on or commit, "at": at}
+def review(commit, verdict="通过", kind="首轮", at="2026-10-29T01:00:00Z", on=None, stated=PID):
+    return {"body": f"复审结论：{verdict}\ncommit：{commit}\n复审者：opus-{kind}-t\n\npatch-id：{stated}\n影响面：x", "commit": on or commit, "at": at}
 
 
 def approval(sha, at="2026-10-29T02:00:00Z", author="YeliangDu"):
@@ -223,19 +223,19 @@ def _units(mq, d):
 
     # release_verdict: the newest statement that speaks for the head decides
     h, other = "a" * 40, "b" * 40
-    pid = {h: PID, other: PID, "c" * 9: PID, "d" * 9: "6" * 40}
+    pid = {h: PID, other: PID, "c" * 9: PID, "d" * 9: "6" * 40, "e" * 40: "6" * 40}
     rv = lambda reviews, comments=(), head=h, pids=pid: mq.release_verdict(reviews, list(comments), head, lambda c: pids.get(c))
     assert rv([review(h)])[0] and rv([review(other)])[0], "on the head itself, or on another commit with the same patch-id"
     for name, reviews, comments in (("none", [], []), ("必改 is newest", [review(h), review(h, "必改", at="2026-10-29T03:00:00Z")], []),
-                                    ("posted on another commit than its header names", [review(h, on=other)], []), ("patch-id differs", [review(other, pid="6" * 40)], []),
+                                    ("posted on another commit than its header names", [review(h, on=other)], []), ("patch-id differs", [review("e" * 40)], []),
                                     ("final 通过 alone is no release", [review(h, kind="终审")], []), ("final 必改 blocks", [review(h), review(h, "必改", "终审", at="2026-10-29T03:00:00Z")], []),
-                                    ("patch-id line not where the prompt puts it", [review(other, gap="x")], []), ("not a header", [dict(review(h), body="LGTM")], []),
+                                    ("the patch-id the body states is not taken", [review("e" * 40, stated=PID)], []), ("not a header", [dict(review(h), body="LGTM")], []),
                                     ("approval by somebody else", [], [approval(h, author="other")]), ("approval of a different change", [], [approval("d" * 9)]),
                                     ("approval older than a 必改 on the head", [review(h, "必改", at="2026-10-29T03:00:00Z")], [approval(h)])):
         assert not rv(reviews, comments)[0], name
     assert not rv([review(other)], pids={h: None, other: None})[0], "git cannot say: no patch-id match"
     assert not rv([], [approval("e" * 9)], pids={h: None})[0], "an approval whose patch-id git cannot compute does not match a head git cannot compute either"
-    assert rv([review(h, "必改")], [approval(h[:9])])[0] and rv([review(other, "必改", pid="6" * 40)], [approval("c" * 9)])[0], "the coordinator's approval of the fix, by name or by patch-id"
+    assert rv([review(h, "必改")], [approval(h[:9])])[0] and rv([review("e" * 40, "必改")], [approval("c" * 9)])[0], "the coordinator's approval of the fix, by name or by patch-id"
     assert PID[:6] in rv([])[1], "the refusal says the head's patch-id"
 
 
@@ -454,14 +454,14 @@ def _release(mq, d):
     result, ev, log, _ = once(mq, d, "r-pid2", gh, 63)
     assert result == "HOLD" and "LABEL-QUEUED" in ev and not merged(gh) and "666666" in log.lines[-1]
     # the coordinator's approval of a fix after a 必改; the docs lane needs no review
-    gh = FakeGh(); p = gh.add(64); p["reviews"] = [review("c" * 40, "必改", pid="7" * 40)]; p["comments"] = [approval(p["head"][:9])]
+    gh = FakeGh(); p = gh.add(64); p["reviews"], p["pids"]["c" * 40] = [review("c" * 40, "必改")], "7" * 40; p["comments"] = [approval(p["head"][:9])]
     assert once(mq, d, "r-appr", gh, 64)[0] == "MERGED"
     for name, files, outcome in (("plain", ["docs/a.md"], "MERGED"), ("guarded", ["docs/a.md", "scripts/merge/x.md"], "HOLD"), ("unknown", None, "HOLD")):
         gh = FakeGh(); p = gh.add(65); p["reviews"], p["files"] = [], files
         assert once(mq, d, "r-docs-" + name, gh, 65, lane=lambda g, n: "docs")[0] == outcome, "the docs lane needs no review, unless it touches a guarded path or gh cannot list its files"
 
     # read-back: MERGED with the pinned head as second parent -> the main checkout is fast-forwarded; anything else -> ALERT, both lanes paused, no fast-forward
-    for name, seen, good in (("ok", None, True), ("parent", ("MERGED", ["m" * 40, "f" * 40]), False), ("state", ("OPEN", []), False), ("gh", None, False)):
+    for name, seen, good in (("ok", None, True), ("parent", ("MERGED", ["m" * 40, "f" * 40]), False), ("state", ("CLOSED", ["m" * 40, f"{66:040x}"]), False), ("gh", None, False)):
         gh = FakeGh(); p = gh.add(66)
         if name != "ok":
             p["readback"] = seen
@@ -546,6 +546,11 @@ def _runner(mq, d):
     proc, q, log, _ = _proc(mq, d, "x4", gh, [85, 86], lane=lambda g, n: {85: "code", 86: "docs"}[n])
     mq.run_loop(proc, idle=0, stop=lambda: not q.numbers() or len(log.lines) > 400)
     assert sorted(c[1] for c in merged(gh)) == [85, 86] and gh.merged_behind == [0, 0] and all(LOG_LINE.match(l) for l in log.lines)
+    # the fast lane: a docs pull request queued behind a code one whose heavy run is still going merges first, without waiting for it
+    gh = FakeGh(); gh.add(91, rounds=[dict(pending=40, checks=green())]); gh.add(92)
+    proc, q, log, _ = _proc(mq, d, "x6", gh, [91, 92], lane=lambda g, n: {91: "code", 92: "docs"}[n], on_sleep=lambda s: time.sleep(0.005))
+    mq.run_loop(proc, idle=0, stop=lambda: not q.numbers() or len(log.lines) > 400)
+    assert [c[1] for c in merged(gh)] == [92, 91], merged(gh)
     # across lanes with dependencies: 88 (code) queued first waits for 87 (docs)
     gh = FakeGh(); gh.add(87); gh.add(88)
     proc, q, log, _ = _proc(mq, d, "x5", gh, [], lane=lambda g, n: {87: "docs", 88: "code"}[n])
@@ -829,10 +834,15 @@ def _git(mq, d):
     g(work, "checkout", "-q", "main"); commit(work, "m.txt", "m\n", "main moves"); g(work, "push", "-q", "origin", "main")
     g(work, "checkout", "-q", "pr"); g(work, "merge", "-q", "--no-edit", "main"); c2 = g(work, "rev-parse", "HEAD"); g(work, "push", "-q", "origin", "HEAD:refs/pull/1/head")
     c3 = commit(work, "x.txt", "y\n", "another change")
-    reviewer = subprocess.run(["git", "patch-id", "--stable"], input=g(work, "diff", f"main...{c1}") + "\n", capture_output=True, text=True).stdout.split()[0]
+    g(work, "checkout", "-q", "-b", "ws", "main"); c4 = commit(work, "x.txt", "  x\n", "the change, indented")
+    other = os.path.join(d, "w2"); g(d, "clone", "-q", origin, other)   # a reviewed head the author rebased away: on GitHub, in no ref, not in this clone
+    g(other, "checkout", "-q", "-b", "gone", "origin/main"); c5 = commit(other, "x.txt", "x\n", "the change, rebased away")
+    g(other, "push", "-q", "origin", "HEAD:refs/tmp/gone"); g(other, "push", "-q", "origin", ":refs/tmp/gone"); g(origin, "config", "uploadpack.allowAnySHA1InWant", "true")
     mq.Gh.RETRY_PAUSE = 0
     gh = mq.Gh()
-    assert gh.patch_id(work, 1, c1) == reviewer == gh.patch_id(work, 1, c2) != gh.patch_id(work, 1, c3) and gh.patch_id(work, 1, "f" * 40) is None
+    assert gh.patch_id(work, 1, c1) == gh.patch_id(work, 1, c2) == gh.patch_id(work, 1, c5) != gh.patch_id(work, 1, c3), "the queue's merge of main and a rebase keep it; another change does not"
+    assert gh.patch_id(work, 1, c4) not in (None, gh.patch_id(work, 1, c1)), "a change that differs only in whitespace is another change"
+    assert gh.patch_id(work, 1, "f" * 40) is None
     assert gh.patch_id(os.path.join(d, "nowhere"), 1, c1) is None
     g(work, "checkout", "-q", "main")
 
@@ -909,6 +919,7 @@ def _docs_tiers(mq, d):
     open(script, "w").write("import sys\nprint('tier=' + ('docs' if all(p.startswith('docs/') for p in open(sys.argv[2]).read().split()) else 'code'))\n")
     lane = mq.default_lane(repo)
     assert lane(files(["docs/a.md"]), 1) == "docs" and lane(files(["docs/a.md", "backend/pom.xml"]), 1) == "code" and lane(files(None), 1) == "code" and lane(files([]), 1) == "code"
+    assert lane(files(["docs/a.md", "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md"]), 1) == "code", "a guarded path is never the docs lane, whatever its tier"
     open(script, "w").write("print('tier=docs')\nraise SystemExit(3)\n")
     assert mq.default_lane(repo)(files(["docs/a.md"]), 1) == "code", "a non-zero exit is never docs"
 
