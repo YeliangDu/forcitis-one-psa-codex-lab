@@ -6,9 +6,9 @@
 t_shell='\.sh$'
 # 自测只在被测脚本或它读的仓库文件改了才跑（#742）：自测的结果只随这些文件变；推到 main（LIGHT_ALL=1）与没有基线时全跑，兜住环境变化
 t_guards='^scripts/guards/'
-t_guards_config='^scripts/guards/|^backend/pom\.xml$|^backend/src/test/java/com/forcitis/one/acceptance/|^scripts/ci/(legacy_it|backend_verify)\.sh$|^scripts/codegen/generate-api\.sh$|^docs/modernization/rulings/'
+t_guards_config='^scripts/guards/|^backend/pom\.xml$|^backend/src/test/java/com/forcitis/one/acceptance/|^scripts/ci/(legacy_it|backend_verify)\.sh$|^scripts/codegen/generate-api\.sh$|^docs/modernization/rulings/|^\.github/workflows/(ci|nightly-legacy-it)\.yml$'
 t_evidence_imports='^scripts/ci/evidence_imports\.py$'
-t_gates='^scripts/(gates|hooks)/|^policy\.json$|^\.claude/'
+t_gates='^scripts/(gates|hooks)/|^policy\.json$|^\.claude/|^\.pre-commit-config\.yaml$|^docs/modernization/sessions/|^scripts/merge/session_map\.json$'
 t_session='^scripts/session/|^policy\.json$|^docs/modernization/(roles|decision-digest)/'
 t_new_adr='^tools/docs/|^docs/modernization/adr/'
 t_mq='^scripts/merge/|^scripts/ci/relevant_change|^policy\.json$'
@@ -76,10 +76,17 @@ shell_syntax() {  # 改到的 .sh 逐个 bash -n（没有基线时全部已跟�
 surefire_guards() {  # 全部免容器单测（light_unit_classes.py 列出，含守护类）；每个类都要出报告，没出报告即没跑，算失败
   local classes class
   classes=$(python3 scripts/ci/light_unit_classes.py) && [ -n "$classes" ] || return 1
+  for class in ${classes//,/ }; do rm -f backend/target/surefire-reports/TEST-*."$class".xml; done  # 本机 target 里的旧报告不算数
   (cd backend && ./mvnw -q test-compile surefire:test -Dtest="$classes") || return 1
   for class in ${classes//,/ }; do
     ls backend/target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class 没出报告：没跑" >&2; return 1; }
   done
+}
+
+var_before_non_ascii() {  # 仓库里的 shell（*.sh、工作流 run 段、.claude/settings.json 的挂载命令）：$VAR 后不得紧跟非 ASCII 字符。UTF-8 下 bash 3.2 会把全角标点读进变量名，set -u 即崩；写成 ${VAR}
+  local hits
+  hits=$(git ls-files -z '*.sh' .github/workflows .claude/settings.json | LC_ALL=C xargs -0 grep -nE $'\\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]')
+  [ -z "$hits" ] || { printf '$VAR 后紧跟非 ASCII 字符，改成 ${VAR}：\n%s\n' "$hits" >&2; return 1; }
 }
 
 pyc() {  # 被忽略的未跟踪字节码，未跟踪目录折叠成一行；-z 防非 ASCII 路径被加引号；一个没有也返回 0

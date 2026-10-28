@@ -90,6 +90,7 @@ sheet=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}/start_sheet/s
 if [ ! -f "$sheet" ]; then skip "start_sheet under /usr/bin/python3" "本机没有工具库的 $sheet"
 elif touches "$t_start_sheet"; then run "start_sheet under /usr/bin/python3" /usr/bin/python3 -I "$sheet"
 else skip "start_sheet under /usr/bin/python3" "相关路径没改（按改动触发）"; fi
+run "shell: no \$VAR right before non-ASCII" var_before_non_ascii
 # 验收测试改了就跑全部免容器单测（CLAUDE.md 交付第 2 步）；export-openapi 绑在 process-test-classes 上要起容器，所以用 test-compile surefire:test
 if ! touches "$t_acceptance"; then skip "surefire guard classes (acceptance changed)" "相关路径没改（按改动触发）"
 elif [ "${LIGHT_ALL:-}" = 1 ]; then skip "surefire guard classes (acceptance changed)" "推到 main：ci.yml 的 container-free unit tests 一步跑同一批"
