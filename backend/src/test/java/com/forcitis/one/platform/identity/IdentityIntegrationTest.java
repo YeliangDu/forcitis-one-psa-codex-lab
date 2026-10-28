@@ -216,8 +216,8 @@ public abstract class IdentityIntegrationTest {
         jdbc.sql("delete from platform_identity.ticket_issuers").update();
         jdbc.sql("delete from platform_identity.emergency_admins").update();
         jdbc.sql("delete from platform_identity.account_roles").update();
+        TestRoles.deleteCustomRoles(jdbc);
         jdbc.sql("delete from platform_identity.user_accounts").update();
-        jdbc.sql("delete from platform_identity.roles where kind = 'CUSTOM'").update();
     }
 
     protected static EmployeeProfile profile(long id, EmploymentStatus status) {

@@ -12,6 +12,11 @@ components:
             format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
+          roleVersionId:
+            type: string
+            format: uuid
+            x-type: RoleVersionId
+            description: 角色版本 ID：新建时开启的版本 1（ADR-0034 第 1 项第 2 条）
       x-event:
         eventType: platform.identity.RoleCreated
         version: 1
@@ -19,12 +24,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
     RoleRevised:
@@ -38,6 +42,11 @@ components:
             format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
+          roleVersionId:
+            type: string
+            format: uuid
+            x-type: RoleVersionId
+            description: 角色版本 ID：修改后的当前版本（内容不变时为原版本）
       x-event:
         eventType: platform.identity.RoleRevised
         version: 1
@@ -45,12 +54,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
     RoleEnabled:
@@ -64,6 +72,11 @@ components:
             format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
+          roleVersionId:
+            type: string
+            format: uuid
+            x-type: RoleVersionId
+            description: 角色版本 ID：启用后的当前版本
       x-event:
         eventType: platform.identity.RoleEnabled
         version: 1
@@ -71,12 +84,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
     RoleDisabled:
@@ -90,6 +102,11 @@ components:
             format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
+          roleVersionId:
+            type: string
+            format: uuid
+            x-type: RoleVersionId
+            description: 角色版本 ID：停用后的当前版本
       x-event:
         eventType: platform.identity.RoleDisabled
         version: 1
@@ -97,12 +114,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
     RoleDeleted:
@@ -116,6 +132,11 @@ components:
             format: uuid
             x-type: RoleId
             description: 稳定 ID 的字符串形式
+          roleVersionId:
+            type: string
+            format: uuid
+            x-type: RoleVersionId
+            description: 角色版本 ID：删除时关闭的最后一个版本；角色行与编码保留（ADR-0034 第 1 项第 5 条）
       x-event:
         eventType: platform.identity.RoleDeleted
         version: 1
@@ -123,12 +144,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
     AccountEnabled:

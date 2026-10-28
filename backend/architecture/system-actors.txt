@@ -27,6 +27,7 @@ platform.identity.emergency.admin.check | 99dc9df0-233b-5089-99e2-5e286ac8f761 |
 platform.identity.operations | 26758f3f-e27f-55a8-9789-834245457756 | platform.identity | 运维命令（identity-operations 档案）
 platform.identity.separation | 1da01607-dce4-5fbc-9490-f0ae7628d6d1 | platform.identity | 离职处理：HandleOrgSnapshotChange、DisableEmergencyAdminOnSeparation、RevokeBrowserIdentifiersOnSeparation
 platform.identity.session.purge | 7f82e786-478f-594a-a1ff-ad168fbc4775 | platform.identity | 作业：清理过期会话
+platform.identity.system-role-declaration | 964051ef-678b-59d2-ab64-f99acf3f520f | platform.identity | 启动对账 SystemRoleReconciliation：按系统角色声明写入或修订系统角色的 SEED 版本（ADR-0034 第 1 项第 7 条）
 platform.integration.event.cleanup | d13191e2-64c8-5e5f-b615-64bb2a3dbae8 | platform.integration | 作业：清理事件发布登记
 platform.integration.event.republish | 7505e300-03be-5211-8e76-a4b76be8b361 | platform.integration | 作业：重投未完成的事件发布
 platform.integration.outbound.purge | 3285c99d-cb76-5fc7-b30d-4e9e41642e40 | platform.integration | 作业：清理外发投递记录

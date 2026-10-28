@@ -3,7 +3,10 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
+import com.forcitis.one.platform.identity.domain.RoleChange;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
@@ -29,6 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class UpdateRole {
+
+    /** The fixed reason of a new version (ADR-0034-IMPL ruling A-5: the application writes it, the request body has none). */
+    static final String REASON = "role management: role revised";
 
     private final RoleRepository roles;
     private final PrivilegeCeiling ceiling;
@@ -82,14 +88,15 @@ public class UpdateRole {
             if (!ceiling.mayGrant(role.permissionCodes(), role.administrative())) {
                 return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
             }
-            return store(role);
+            return store(role, RoleChange.manual(caller, REASON, null));
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }
     }
 
+    /** The request's author made the change; the version names the request a second person confirmed. */
     @Transactional
-    AdminOutcome<RoleView> applyConfirmed(RoleId roleId, SaveRoleCommand command) {
+    AdminOutcome<RoleView> applyConfirmed(RoleId roleId, SaveRoleCommand command, UserId requestedBy, AuthorizationRequestId requestId) {
         Optional<Role> existing = roles.findById(roleId);
         if (existing.isEmpty()) {
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
@@ -99,14 +106,14 @@ public class UpdateRole {
             AccessScopeKind scope = command.accessScope() != null ? command.accessScope() : role.accessScope();
             role.revise(command.name(), scope, command.permissionCodes());
             role.declareEnabled(command.enabled());
-            return store(role);
+            return store(role, RoleChange.manual(requestedBy, REASON, requestId));
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }
     }
 
-    private AdminOutcome<RoleView> store(Role role) {
-        roles.update(role);
+    private AdminOutcome<RoleView> store(Role role, RoleChange change) {
+        roles.update(role, change);
         events.publish(role);
         cache.evictAll();
         return new AdminOutcome.Done<>(RoleView.of(role));

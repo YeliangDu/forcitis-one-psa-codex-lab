@@ -9,6 +9,7 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
@@ -17,6 +18,13 @@ import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.events.LegalEntityRegistered;
 import com.forcitis.one.organization.workforce.events.SyncRunSucceeded;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
+import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.api.RoleVersionId;
+import com.forcitis.one.platform.identity.events.RoleCreated;
+import com.forcitis.one.platform.identity.events.RoleDeleted;
+import com.forcitis.one.platform.identity.events.RoleDisabled;
+import com.forcitis.one.platform.identity.events.RoleEnabled;
+import com.forcitis.one.platform.identity.events.RoleRevised;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.time.Duration;
 import java.time.Instant;
@@ -125,6 +133,33 @@ class AuditDomainEventsIT {
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf(TestIds.uuid(603))).hasSize(1));
         assertThat(entriesOf(TestIds.uuid(601))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("ADR-0034-IMPL A-6 the five Role events write no entry of their own: role-version.opened/closed are written in the same transaction, so one change is audited once")
+    void roleEventsAreNotAuditedTwice() {
+        UUID actor = TestAccounts.account(9001).value();
+        RoleId role = new RoleId(TestIds.uuid(801));
+        RoleVersionId version = new RoleVersionId(TestIds.uuid(802));
+        List<DomainEvent> roleEvents = List.of(
+                new RoleCreated(envelope("platform.identity.RoleCreated", role.value(), ActorType.USER, actor, UUID.randomUUID()), role, version),
+                new RoleRevised(envelope("platform.identity.RoleRevised", role.value(), ActorType.USER, actor, UUID.randomUUID()), role, version),
+                new RoleEnabled(envelope("platform.identity.RoleEnabled", role.value(), ActorType.USER, actor, UUID.randomUUID()), role, version),
+                new RoleDisabled(envelope("platform.identity.RoleDisabled", role.value(), ActorType.USER, actor, UUID.randomUUID()), role, version),
+                new RoleDeleted(envelope("platform.identity.RoleDeleted", role.value(), ActorType.USER, actor, UUID.randomUUID()), role, version));
+        LegalEntityRegistered neighbour = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", TestIds.uuid(803), ActorType.USER, actor, UUID.randomUUID()),
+                new LegalEntityId(TestIds.uuid(803)), new LegalEntityCode("RLE"));
+
+        tx.executeWithoutResult(status -> {
+            roleEvents.forEach(publisher::publishEvent);
+            publisher.publishEvent(neighbour);
+        });
+
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf(TestIds.uuid(803))).hasSize(1));
+        for (DomainEvent event : roleEvents) {
+            assertThat(jdbc.sql("select count(*) from platform_audit.audit_entries where event_id = :id").param("id", event.envelope().eventId())
+                    .query(Long.class).single()).as("%s writes no audit entry of its own", event.getClass().getSimpleName()).isZero();
+        }
     }
 
     @Test

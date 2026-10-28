@@ -15,6 +15,7 @@ import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.api.RoleVersionId;
 import com.forcitis.one.platform.identity.events.AccountDisabled;
 import com.forcitis.one.platform.identity.events.AccountEnabled;
 import com.forcitis.one.platform.identity.events.AccountOpened;
@@ -36,7 +37,8 @@ class IdentityStateMachineTest {
     }
 
     static Role role(RoleStatus status) {
-        return Role.restore(new RoleId(TestIds.uuid(7)), new RoleCode("analyst"), "Analyst", "CUSTOM", status.name(), AccessScopeKind.SELF, false, Set.of(), 2, 2);
+        return Role.restore(new RoleId(TestIds.uuid(7)), new RoleCode("analyst"), "CUSTOM", false, new RoleVersionId(TestIds.uuid(70)), "Analyst", status.name(),
+                AccessScopeKind.SELF, Set.of(), 2, 2);
     }
 
     @Test
@@ -61,7 +63,8 @@ class IdentityStateMachineTest {
     @DisplayName("a system role is frozen: neither a transition nor a revision nor a deletion is possible, in any status")
     void systemRoleIsFrozen() {
         for (RoleStatus status : RoleStatus.values()) {
-            Role system = Role.restore(new RoleId(TestIds.uuid(1)), new RoleCode("employee"), "Employee", "SYSTEM", status.name(), AccessScopeKind.SELF, false, Set.of(), 0, 0);
+            Role system = Role.restore(new RoleId(TestIds.uuid(1)), new RoleCode("employee"), "SYSTEM", false, new RoleVersionId(TestIds.uuid(10)), "Employee",
+                    status.name(), AccessScopeKind.SELF, Set.of(), 0, 0);
             for (Runnable change : List.<Runnable>of(system::enable, system::disable, system::delete, () -> system.declareEnabled(true),
                     () -> system.revise("x", AccessScopeKind.SELF, Set.of()))) {
                 assertThatThrownBy(change::run).isInstanceOfSatisfying(RoleRuleException.class,
@@ -116,8 +119,11 @@ class IdentityStateMachineTest {
                         RoleDeleted.class.getSimpleName());
 
         Role created = Role.newCustom(new RoleId(TestIds.uuid(11)), new RoleCode("analyst"), "Analyst", Set.of());
-        assertThat(created.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(RoleCreated.class,
-                e -> assertThat(e.roleId()).isEqualTo(new RoleId(TestIds.uuid(11))));
+        created.versionWritten(new RoleVersionId(TestIds.uuid(12)));
+        assertThat(created.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(RoleCreated.class, e -> {
+            assertThat(e.roleId()).isEqualTo(new RoleId(TestIds.uuid(11)));
+            assertThat(e.roleVersionId()).as("ADR-0034-IMPL E1: the event names the version the repository wrote").isEqualTo(new RoleVersionId(TestIds.uuid(12)));
+        });
     }
 
     @Test
