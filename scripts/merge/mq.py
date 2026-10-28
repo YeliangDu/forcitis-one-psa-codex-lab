@@ -21,11 +21,12 @@ Per pull request: cancel the CI runs of the other queued pull requests (not thos
 touches .github/workflows is updated by a local merge pushed over ssh, because the gh token lacks the workflow scope), label it `queued` (heavy CI steps run only with the label, scripts/ci/heavy_gate.py), wait for the
 checks while cancelling the others' runs, rerun failed checks once, then merge with a merge commit, pinned to the head that was checked (`--match-head-commit`). Merge only when `gh pr checks` lists the three
 required checks (backend verify, frontend verify, secret scan, none of them with the " (light)" suffix) and every one of them is `pass`; "no failure so far" is never enough (a head still running is not green).
-Conflicts with main in generated files. When main moved so fast that a pull request conflicts only in products of docs/modernization/build_all.py, the queue does not send it back: it merges main in over ssh, runs build_all.py and
-commits the regenerated products (AUTO-RESOLVE in the log), checks the result with `build_all.py --check` and pushes. Which files are products is not listed anywhere: build_all.py is run twice with different junk in every conflicted file and a file
-is a product when both runs rewrite it to the same text; a conflict in a file a person wrote, a failing build_all.py or a failing check leaves the pull request as it was and it goes back to the author. `enqueue` only says that a pull request conflicts; the runner settles it when it takes it. The queue runs the pull request's own build_all.py and its steps on this machine, as its CI runs it on the runners.
-A file that has moved out of the repository meanwhile (a generated product, now untracked and in .gitignore) which one side deleted and the other still changed is no conflict either: it is taken out of the index and kept on disk (the PR's merge commit says so).
-Outcomes: MERGED, CONFLICT (text conflict with main in a file a person wrote: back to the author), HOLD (red after the rerun, CI timeout, closed, an update that could not be pushed, attempts exhausted: reported to the coordinator).
+Conflicts with main: the queue merges main in (over ssh when gh cannot); a text conflict goes back to the author (CONFLICT).
+Release. Before it spends CI on a pull request, and again under the merge lock right before the merge, the queue reads the reviews and comments: the newest statement that speaks for the head must be a 通过 (release_verdict).
+A first-round review speaks for the head when it was posted on it or on a commit whose patch-id (git patch-id --verbatim, computed by the queue) equals the head's (a rebase, or the queue's own merge of main, that leaves the change as it was);
+a dispatcher comment `调度批准入队 head <sha>` (the coordinator letting a 必改 fix through) speaks for the head it names or one with the same patch-id. Docs-lane pull requests need no review unless they touch a guarded path (policy.json review.final_paths). Not released: HOLD.
+Read-back. After the merge call GitHub must show the pull request MERGED with the pinned head as the second parent of the merge commit; otherwise ALERT READBACK and both lanes pause until `mq.py resume`.
+Outcomes: MERGED, CONFLICT (text conflict with main in a file a person wrote: back to the author), HOLD (red after the rerun, CI timeout, closed, not released, an update that could not be pushed, attempts exhausted: reported to the coordinator).
 
 Pause. Before taking a pull request, and again right before a merge, the queue looks at main's push runs and nightly (schedule) runs of the ci workflow: the verdict run is the newest one that has ended and was not
 cancelled (a push run is cancelled by the next push, so the newest run alone says nothing). A red verdict pauses both lanes (PAUSED in the log, file <queue dir>/mq.paused) until `mq.py resume <run id>...`; the resume
@@ -40,7 +41,7 @@ Gap scan. Every 30 minutes the runner looks at all open pull requests, whether o
 It cannot message a session: a GAPS line in the log and <queue dir>/gaps.md say who owns what (branch prefix -> session, scripts/merge/session_map.json), the session watching the log forwards it. The same pull request and reason is reported once in 4 hours.
 
 Queue file: one pull request number per line, optionally "<n> after=<m>[,<m>...]" (`mq.py enqueue <n> --after <m>`: n is not started until every m is MERGED, whatever lane either is in; WAIT-DEP in the log
-while it waits and again every hour, HOLD when a dependency was closed unmerged (also when a merge train closed it: the content is in main, the message is only about the state; the dependent then goes back with `enqueue` without --after);
+while it waits and again every hour, HOLD when a dependency was closed unmerged;
 `once <n>` does not look at dependencies; after deploying this version restart the running runner first: an older runner does not understand "after=" lines and never starts them, and its enqueue would drop the dependency; a dependency cycle is refused at enqueue), anything else is kept as it is. Every change goes through flock on <queue>.lock and an atomic replace (temporary file, then rename), so an enqueue can no longer be
 lost to the runner removing a finished entry (a raw `echo n >> merge.queue` or `sed -i` outside this script is not safe). Log: one line per event,
 "<ISO time> <EVENT> pr=#<n> run=<ci run id or -> elapsed=<seconds since the pull request was taken>s [lane=code|docs] <detail>" (lane= once the lane of the pull request is known), appended to <queue dir>/merge.log and echoed. A failing runner step is logged as ERROR and retried
@@ -48,14 +49,9 @@ with a growing pause; the third failure in a row puts the pull request on HOLD a
 """
 import argparse
 import contextlib
-import datetime
 import fcntl
-import importlib.util
-import json
 import os
 import re
-import shutil
-import subprocess
 import sys
 import tempfile
 import threading
@@ -63,463 +59,21 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(HERE, "..", "review"))
 import gapscan   # noqa: E402
+import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
+from mq_github import Gh, SignalError, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
+from mq_queue import LINE, Log, Queue   # noqa: E402,F401  (the queue file and the log)
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
 URGENT_LABEL = "急"   # put on by the coordinator: the pull request is picked before the others of its lane and the queue never cancels its CI runs
 ENV_STEPS = ("docker is running", "test images are present")   # exact names in ci.yml of the steps that go red when the machine's container runtime is down
 OK = ("pass", "skipping")
-LINE = re.compile(r"^\s*(\d+)(?:\s+after=([\d,]+))?\s*$")   # "<n>" or "<n> after=<m>[,<m>...]": n waits until every m is merged
 LANES = ("code", "docs")
 FAILING = ("failure", "timed_out", "startup_failure")
 
 
-def sh(args, cwd=None, check=False, timeout=180):
-    """A call that hangs (gh without network, a stuck ssh push) must not block a lane or the pause check: after `timeout` seconds it is a failed call (exit 124)."""
-    try:
-        r = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        r = subprocess.CompletedProcess(args, 124, "", f"timed out after {timeout} s")
-    if check and r.returncode:
-        raise SystemExit(f"{' '.join(args[:3])} failed ({r.returncode}): {(r.stderr or r.stdout).strip()[:300]}")
-    return r
-
-
-class Log:
-    def __init__(self, path=None, echo=True, now=None):
-        self.path, self.echo = path, echo
-        self.now = now or (lambda: datetime.datetime.now().astimezone())
-        self.lines = []
-        self.lock = threading.Lock()
-        self.lanes = {}   # pull request -> lane, set when a worker takes it; its events then say which lane they belong to
-
-    def event(self, ev, pr=None, run=None, since=None, detail=""):
-        started = since if since is not None else time.monotonic()
-        line = f"{self.now().isoformat(timespec='seconds')} {ev} pr=#{pr if pr is not None else '-'} run={run if run else '-'} elapsed={max(0, int(time.monotonic() - started))}s"
-        if pr in self.lanes:
-            line += f" lane={self.lanes[pr]}"
-        line += f" {' '.join(str(detail).split())[:400]}" if detail else ""
-        with self.lock:
-            self.lines.append(line)
-            if self.path:
-                with open(self.path, "a", encoding="utf-8") as f:
-                    f.write(line + "\n")
-            if self.echo:
-                print(line, flush=True)
-
-
-class Queue:
-    def __init__(self, path):
-        self.path = path
-        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-
-    @contextlib.contextmanager
-    def locked(self, suffix=".lock"):
-        with open(self.path + suffix, "a") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(lock, fcntl.LOCK_UN)
-
-    def merge_lock(self):
-        """Held while a merge is decided and done: one merge at a time, whatever lane and process."""
-        return self.locked(".merge-lock")
-
-    def _read(self):
-        try:
-            return open(self.path, encoding="utf-8").read().splitlines()
-        except FileNotFoundError:
-            return []
-
-    def _write(self, lines):
-        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(self.path)), prefix=".queue-")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write("".join(l + "\n" for l in lines))
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp, self.path)
-        except BaseException:
-            with contextlib.suppress(OSError):
-                os.unlink(tmp)
-            raise
-
-    def numbers(self):
-        with self.locked():
-            return [int(m.group(1)) for l in self._read() if (m := LINE.match(l))]
-
-    def deps(self, n):
-        """The pull requests that must be merged before n is started."""
-        with self.locked():
-            for l in self._read():
-                if (m := LINE.match(l)) and int(m.group(1)) == n:
-                    return {int(x) for x in (m.group(2) or "").split(",") if x}
-        return set()
-
-    @staticmethod
-    def _entry(n, after):
-        return f"{n} after={','.join(str(x) for x in sorted(after))}" if after else str(n)
-
-    def enqueue(self, *prs, after=()):
-        """Queue prs (once each); `after`: pull requests each of them waits for. Already queued with a new dependency: the dependencies are added. A self-dependency or a cycle is refused (ValueError)."""
-        after = set(after)
-        added = []
-        with self.locked():
-            lines = self._read()
-            graph = {int(m.group(1)): {int(x) for x in (m.group(2) or "").split(",") if x} for l in lines if (m := LINE.match(l))}
-            for n in prs:
-                if n in after:
-                    raise ValueError(f"#{n} cannot wait for itself")
-                merged = graph.get(n, set()) | after
-                if any(self._reaches(graph, m, n) for m in merged):
-                    raise ValueError(f"#{n} after {sorted(after)} would make a dependency cycle")
-                graph[n] = merged
-            for n in prs:
-                at = next((i for i, l in enumerate(lines) if (m := LINE.match(l)) and int(m.group(1)) == n), None)
-                if at is None:
-                    lines.append(self._entry(n, after))
-                    added.append(n)
-                elif after:
-                    lines[at] = self._entry(n, graph[n])
-            self._write(lines)
-        return added
-
-    @staticmethod
-    def _reaches(graph, start, target):
-        seen, todo = set(), [start]
-        while todo:
-            cur = todo.pop()
-            if cur == target:
-                return True
-            if cur not in seen:
-                seen.add(cur)
-                todo.extend(graph.get(cur, ()))
-        return False
-
-    # Pull requests a runner is working on right now ("<n> <runner pid>" lines; a dead pid is a stale line) and cancel requests for them: `remove` of a pull request in the middle of its processing must not leave the worker running on silently.
-    def _lines(self, suffix):
-        try:
-            return open(self.path + suffix, encoding="utf-8").read().split("\n")
-        except FileNotFoundError:
-            return []
-
-    def _store(self, suffix, lines):
-        with open(self.path + suffix, "w", encoding="utf-8") as f:
-            f.write("".join(l + "\n" for l in lines if l))
-
-    # The head each queued pull request had when it was queued (= approved: the coordinator approves a head and the pull request is queued on that head): "<n> <sha>" lines in <queue>.heads.
-    # Without an entry (queued before this existed, gh could not say, `once`) nothing is compared.
-    def set_head(self, n, head):
-        with self.locked(".heads-lock"):
-            self._store(".heads", [l for l in self._lines(".heads") if not l.startswith(f"{n} ")] + [f"{n} {head}"])
-
-    def head_of(self, n):
-        with self.locked(".heads-lock"):
-            for l in self._lines(".heads"):
-                if l.startswith(f"{n} "):
-                    return l.split()[1]
-        return None
-
-    def drop_head(self, n):
-        with self.locked(".heads-lock"):
-            self._store(".heads", [l for l in self._lines(".heads") if not l.startswith(f"{n} ")])
-
-    def _mark(self, n):
-        self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")] + [f"{n} {os.getpid()}"])
-        self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)])   # a request from an earlier round is not for this one
-
-    def mark_working(self, n):
-        with self.locked(".work-lock"):
-            self._mark(n)
-
-    def claim(self, n):
-        """A worker takes pull request n: marked as being processed only if it is still queued, in one step with `remove_checked` (lock order: queue lock, then work lock)."""
-        with self.locked(), self.locked(".work-lock"):
-            if not any((m := LINE.match(l)) and int(m.group(1)) == n for l in self._read()):
-                return False
-            self._mark(n)
-            return True
-
-    def remove_checked(self, prs, cancel):
-        """Take prs out of the queue. A pull request a worker is processing is refused (returned, and nothing at all is removed), or, with `cancel`, a cancel request is written for it; the check and the removal are one step."""
-        with self.locked(), self.locked(".work-lock"):
-            busy = {}
-            for line in self._lines(".working"):
-                number, _, pid = line.partition(" ")
-                if number.isdigit() and int(number) in prs and pid.isdigit() and self._alive(int(pid)):
-                    busy[int(number)] = int(pid)
-            if busy and not cancel:
-                return busy
-            for n in busy:
-                self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)] + [str(n)])
-            self._write([l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) in prs)])
-            return busy
-
-    def reset_working(self):
-        """At the start of the runner (there is only one): whatever was marked belongs to a runner that is gone."""
-        with self.locked(".work-lock"):
-            self._store(".working", [])
-            self._store(".cancel", [])
-
-    @staticmethod
-    def _alive(pid):
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            return False
-        except PermissionError:
-            return True
-        return True
-
-    def unmark_working(self, n):
-        with self.locked(".work-lock"):
-            self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")])
-            self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)])
-
-    def working(self):
-        """{pull request: pid of the runner working on it}; a line whose process is gone (the runner was killed) does not count."""
-        out = {}
-        with self.locked(".work-lock"):
-            for line in self._lines(".working"):
-                number, _, pid = line.partition(" ")
-                if number.isdigit() and pid.isdigit() and self._alive(int(pid)):
-                    out[int(number)] = int(pid)
-        return out
-
-    def request_cancel(self, n):
-        """Only for a pull request that is marked: a request for one nobody is processing would cancel its next round."""
-        with self.locked(".work-lock"):
-            if any(l.startswith(f"{n} ") for l in self._lines(".working")):
-                self._store(".cancel", [l for l in self._lines(".cancel") if l != str(n)] + [str(n)])
-
-    def cancel_requested(self, n):
-        with self.locked(".work-lock"):
-            return str(n) in self._lines(".cancel")
-
-    def remove(self, *prs):
-        with self.locked():
-            self._write([l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) in prs)])
-
-    def before(self, pr, other):
-        with self.locked():
-            own = next((l.strip() for l in self._read() if (m := LINE.match(l)) and int(m.group(1)) == pr), str(pr))
-            lines = [l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) == pr)]
-            at = next((i for i, l in enumerate(lines) if (m := LINE.match(l)) and int(m.group(1)) == other), len(lines))
-            lines.insert(at, own)
-            self._write(lines)
-
-
-class Gh:
-    """The GitHub side; the self-test replaces it. A call that fails returns None (or False), never a value that looks like a result."""
-
-    def view(self, n):
-        r = sh(["gh", "pr", "view", str(n), "--json", "state,mergeStateStatus,labels,headRefName,headRefOid"])
-        try:
-            d = json.loads(r.stdout)
-            return {"state": d["state"], "merge": d["mergeStateStatus"], "labels": [l["name"] for l in d["labels"]], "branch": d["headRefName"], "head": d["headRefOid"]}
-        except (ValueError, KeyError):
-            return None
-
-    def open_prs(self):
-        """Every open pull request with what the gap scan (gapscan.py) needs, or None when gh cannot say."""
-        r = sh(["gh", "pr", "list", "--state", "open", "--limit", str(gapscan.OPEN_LIMIT), "--json", "number,title,headRefName,headRefOid,isDraft,mergeable,statusCheckRollup,commits,comments,createdAt"], timeout=120)
-        try:
-            prs = json.loads(r.stdout)
-        except ValueError:
-            return None
-        if r.returncode:
-            return None
-        for pr in prs:
-            pr["comments"] = [dict(c, author=(c.get("author") or {}).get("login")) for c in pr.get("comments", [])]
-        return prs
-
-    def behind_by(self, n, head):
-        r = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/main...{head}", "--jq", ".behind_by"])
-        return int(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip().isdigit() else None
-
-    def behind_files(self, head):
-        """Paths main changed since the branch point of `head` (what the head lacks), or None when gh cannot say or the list is cut off (the compare API lists at most 300 files)."""
-        r = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/{head}...main", "--jq", "[.files[] | .filename, .previous_filename] | map(select(. != null)) | .[]"])
-        if r.returncode:
-            return None
-        files = [x for x in r.stdout.splitlines() if x]
-        n = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/{head}...main", "--jq", ".files | length"])
-        return files if n.returncode == 0 and n.stdout.strip().isdigit() and int(n.stdout.strip()) < 300 else None
-
-    def files(self, n):
-        r = sh(["gh", "api", "--paginate", f"repos/{{owner}}/{{repo}}/pulls/{n}/files", "--jq", ".[] | .filename, .previous_filename"])
-        return [x for x in r.stdout.splitlines() if x and x != "null"] if r.returncode == 0 else None
-
-    def checks(self, n):
-        r = sh(["gh", "pr", "checks", str(n), "--json", "name,bucket,link"])
-        try:
-            return json.loads(r.stdout)
-        except ValueError:
-            # a pull request whose CI has not registered anything yet: empty stdout, exit 0, "no checks reported on the '<branch>' branch" on stderr
-            return [] if "no checks reported" in r.stderr else None
-
-    def failed_steps(self, run):
-        """Names of the steps that failed in a ci run, or None when gh cannot say."""
-        r = sh(["gh", "run", "view", str(run), "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'])
-        return r.stdout.splitlines() if r.returncode == 0 else None
-
-    def docker_ok(self):
-        return sh(["docker", "info"], timeout=60).returncode == 0
-
-    def update_branch(self, n):
-        return sh(["gh", "pr", "update-branch", str(n)]).returncode == 0
-
-    def label(self, n, name, add):
-        return sh(["gh", "pr", "edit", str(n), "--add-label" if add else "--remove-label", name]).returncode == 0
-
-    def active_runs(self, branch):
-        r = sh(["gh", "run", "list", "--branch", branch, "--workflow", "ci", "--json", "databaseId,status"])
-        try:
-            return [x["databaseId"] for x in json.loads(r.stdout) if x["status"] != "completed"]
-        except ValueError:
-            return []
-
-    def ci_started(self, branch, head):
-        """True when a ci run for exactly this head exists (any state); False when none is listed yet or gh does not answer."""
-        r = sh(["gh", "run", "list", "--branch", branch, "--workflow", "ci", "--limit", "10", "--json", "headSha"])
-        try:
-            return any(x.get("headSha") == head for x in json.loads(r.stdout))
-        except ValueError:
-            return False
-
-    def cancel_run(self, run):
-        return sh(["gh", "run", "cancel", str(run)]).returncode == 0
-
-    def rerun(self, run):
-        return sh(["gh", "run", "rerun", str(run), "--failed"]).returncode == 0 or sh(["gh", "run", "rerun", str(run)]).returncode == 0
-
-    def main_run(self, event):
-        """The verdict run of main for `event` (push | schedule): the newest run that has ended and was not cancelled or skipped ({'id', 'conclusion', 'sha'}), or None when there is none.
-        A push run is cancelled by the next push (concurrency), so the newest run alone says nothing. Raises SignalError when gh cannot answer."""
-        args = ["gh", "run", "list", "--workflow", "ci", "--event", event, "--limit", "20", "--json", "databaseId,status,conclusion,headSha,headBranch"]
-        if event == "push":
-            args += ["--branch", "main"]
-        r = sh(args)
-        try:
-            rows = json.loads(r.stdout)
-        except ValueError:
-            raise SignalError(f"gh run list ({event}) gave no JSON: {(r.stderr or r.stdout).strip()[:120]}")
-        for row in rows:
-            if row.get("headBranch", "main") == "main" and row["status"] == "completed" and row["conclusion"] not in ("cancelled", "skipped", None, ""):
-                return {"id": row["databaseId"], "status": "completed", "conclusion": row["conclusion"], "sha": row["headSha"]}
-        return None
-
-    def merge(self, n, head):
-        r = sh(["gh", "pr", "merge", str(n), "--merge", "--match-head-commit", head])
-        return r.returncode == 0, (r.stderr or r.stdout).strip()
-
-
-BUILD_ALL = os.path.join("docs", "modernization", "build_all.py")
-
-
-def moved_out_conflicts(wt, conflicted):
-    """The conflicted paths that look like a file which has left the repository: deleted by one side and changed by the other (index stages 1+2 or 1+3), present at the merge base under that very path (not the made-up stage 1 of a rename),
-    and ignored by a .gitignore of the merged tree (not by this machine's own exclude files). Only a candidate: it is settled as a generated product only when build_all.py is seen to rewrite it (regenerate_conflicts)."""
-    stages = {}
-    for entry in sh(["git", "-C", wt, "ls-files", "-u", "-z"]).stdout.split("\0"):
-        info, _, name = entry.partition("\t")
-        if name:
-            stages.setdefault(name, set()).add(info.split()[2])
-    base = sh(["git", "-C", wt, "merge-base", "HEAD", "MERGE_HEAD"]).stdout.strip()
-    out = []
-    for name in conflicted:
-        if stages.get(name) not in ({"1", "2"}, {"1", "3"}):
-            continue
-        if not base or sh(["git", "-C", wt, "cat-file", "-e", f"{base}:{name}"]).returncode:
-            continue
-        verdict = sh(["git", "-C", wt, "check-ignore", "-v", "--no-index", "--", name]).stdout
-        if verdict and os.path.basename(verdict.split(":", 1)[0]) == ".gitignore":
-            out.append(name)
-    return out
-
-
-def finish_merge(wt, script, folder, label):
-    """Commit the merge in progress once build_all.py has regenerated what it generates, and check the result; True only when `build_all.py --check` passes on it."""
-    if any(line.startswith("??") for line in sh(["git", "-C", wt, "status", "--porcelain"]).stdout.splitlines()):
-        return None   # build_all.py wrote a file nobody ignores: not committed blindly
-    if sh(["git", "-C", wt, "add", "-A"]).returncode:
-        return None
-    if sh(["git", "-C", wt, "commit", "-q", "-m", "Merge origin/main (merge queue: " + label + ")"]).returncode:
-        return None
-    if sh([sys.executable, script, "--check", "--without-api"], cwd=folder, timeout=900).returncode:
-        return None
-    return True
-
-
-def regenerate_conflicts(wt, conflicted):
-    """Inside a merge in progress at `wt`: True when every conflicted path is a product of build_all.py (and the merge is now committed with the products regenerated), else None/False with the merge left as it is.
-    The list of products is not written down anywhere: build_all.py is run twice with different junk in every conflicted file, and a file is a product when both runs rewrite it to the same text.
-    A file a person writes keeps the junk (the two runs differ), so a conflict in it is never settled here. Anything unclear (no build_all.py, a run fails, the check afterwards fails) is no resolution."""
-    script = os.path.join(wt, BUILD_ALL)
-    if not conflicted or not os.path.exists(script):
-        return None
-    folder = os.path.dirname(script)
-    if ".gitignore" in conflicted:   # what is ignored is not known until a person has settled it
-        return False
-    root = os.path.realpath(wt)
-    for name in conflicted:   # junk is written to these paths: never through a symbolic link, never outside the work tree
-        path = os.path.join(wt, name)
-        if os.path.islink(path) or not os.path.realpath(os.path.dirname(path)).startswith(root + os.sep):
-            return False
-    moved_out = moved_out_conflicts(wt, conflicted)
-    results = []
-    for number in (1, 2):
-        junk = f"MQ-PROBE-{number}\n"
-        for name in conflicted:
-            os.makedirs(os.path.dirname(os.path.join(wt, name)), exist_ok=True)
-            with open(os.path.join(wt, name), "w", encoding="utf-8") as f:
-                f.write(junk)
-        run = sh([sys.executable, script, "--without-api"], cwd=folder, timeout=600)  # a fresh checkout has no OpenAPI products (O11, intent 2026-10-26-183225)
-        if run.returncode:
-            return None
-        results.append({name: open(os.path.join(wt, name), "rb").read() if os.path.exists(os.path.join(wt, name)) else None for name in conflicted})
-    if any(results[0][name] is None or results[0][name] != results[1][name] or b"MQ-PROBE" in results[0][name] for name in conflicted):
-        return False
-    for name in moved_out:   # a generated product that is no longer in the repository: out of the index, regenerated copy stays on disk (add -A would put it back)
-        if sh(["git", "-C", wt, "rm", "-q", "--cached", "--", name]).returncode:
-            return None
-    return finish_merge(wt, script, folder, "regenerated by build_all.py: " + ", ".join(sorted(conflicted)) + ("; out of the index, ignored since: " + ", ".join(sorted(moved_out)) if moved_out else ""))
-
-
-def update_over_ssh(repo, branch, wt):
-    """Local merge of origin/main into the pull request branch, pushed over ssh (git, not the gh token): 'ok' | 'regenerated' | 'conflict' | 'error'.
-    A merge that conflicts only in products of build_all.py is finished by regenerating them ('regenerated'); a conflict in anything a person wrote stays 'conflict'."""
-    if sh(["git", "-C", repo, "fetch", "-q", "origin"]).returncode:
-        return "error"
-    sh(["git", "-C", repo, "worktree", "remove", "-f", wt])
-    sh(["git", "-C", repo, "worktree", "prune"])
-    if os.path.exists(wt):   # a plain directory an earlier, killed run left behind; only our own scratch directory is ever removed
-        if not os.path.basename(wt).startswith("mq-wt"):
-            return "error"
-        shutil.rmtree(wt, ignore_errors=True)
-    if sh(["git", "-C", repo, "worktree", "add", "-q", "--detach", wt, f"origin/{branch}"]).returncode:
-        return "error"
-    try:
-        if sh(["git", "-C", wt, "merge", "-q", "--no-edit", "origin/main"]).returncode:
-            conflicted = [name for name in sh(["git", "-C", wt, "diff", "--name-only", "-z", "--diff-filter=U"]).stdout.split("\0") if name]
-            if not conflicted:
-                sh(["git", "-C", wt, "merge", "--abort"])
-                return "error"
-            if regenerate_conflicts(wt, conflicted):
-                return "regenerated" if sh(["git", "-C", wt, "push", "-q", "origin", f"HEAD:{branch}"]).returncode == 0 else "error"
-            sh(["git", "-C", wt, "merge", "--abort"])
-            return "conflict"
-        return "ok" if sh(["git", "-C", wt, "push", "-q", "origin", f"HEAD:{branch}"]).returncode == 0 else "error"
-    finally:
-        sh(["git", "-C", repo, "worktree", "remove", "-f", wt])
-
-
 class Cancelled(Exception):
     """`mq.py remove --cancel` asked the worker to stop; raised at a checkpoint before the merge is made."""
-
-
-class SignalError(Exception):
-    """gh could not say how main's runs ended."""
 
 
 def run_id(link):
@@ -531,6 +85,36 @@ def red_checks(checks):
     """Checks that are not pass or skipping, except a light check whose full-named twin is listed: the light run that the label's own run cancelled is no verdict."""
     full = {c["name"] for c in checks if not c["name"].endswith("(light)")}
     return [c for c in checks if c["bucket"] not in OK and not (c["name"].endswith("(light)") and c["name"][:-len("(light)")].rstrip() in full)]
+
+
+def release_verdict(reviews, comments, head, patch_id_of):
+    """(True, why) when the change at `head` may be merged, else (False, why). The newest statement that speaks for `head` decides: a first-round review (通过 or 必改), a 必改 of a final review,
+    or a dispatcher approval comment `调度批准入队 head <sha>` (gapscan.APPROVAL; how the coordinator lets a 必改 fix through, RULES ⑤), which counts as 通过.
+    Every session posts through the same GitHub account: an approval (like a review) is a record of what was decided, not a check of who decided it.
+    A review speaks for `head` when GitHub holds it on the commit its header names and that commit is `head` or has the same patch-id as `head`; an approval when it names `head` or a commit with the same patch-id
+    (a rebase, or the queue's own merge of main, that leaves the change as it was). The patch-ids are git's (`patch_id_of(commit)`, None when git cannot say), never the one a review body states."""
+    fields = post_review.load_policy()[0]["header_fields"]
+    head_id = None
+    said = []
+
+    def same(commit):
+        nonlocal head_id
+        if head.startswith(commit):
+            return True
+        head_id = head_id or patch_id_of(head)
+        return head_id is not None and patch_id_of(commit) == head_id
+    for r in reviews:
+        h = post_review.parse_header(r["body"], fields)
+        if h and r["commit"] == h["commit"] and not (h["kind"] == post_review.FINAL and h["verdict"] == post_review.PASS) and same(h["commit"]):
+            said.append((r["at"], h["verdict"], f"{h['reviewer']} on {h['commit'][:10]}"))
+    for c in comments:
+        m = gapscan.APPROVAL.search(c["body"]) if c["author"] == gapscan.APPROVER else None
+        if m and same(m.group(1).lower()):
+            said.append((c["at"], post_review.PASS, f"approval of {m.group(1)[:10]}"))
+    if not said:
+        return False, f"no first-round review or approval speaks for head {head[:10]} (none on it, none on a commit with its patch-id {head_id or patch_id_of(head) or 'unknown'})"
+    at, verdict, who = max(said)
+    return verdict == post_review.PASS, f"newest: {verdict} ({who}, {at})"
 
 
 def required_state(checks):
@@ -651,9 +235,18 @@ def docs_only(repo):
 
 
 def default_lane(repo):
-    """'docs' when every path of the pull request is docs (docs_only), else 'code'; a lookup that fails is 'code' (the stricter lane)."""
+    """'docs' when every path of the pull request is docs (docs_only) and none is guarded (policy.json review.final_paths), else 'code'; a lookup that fails is 'code' (the stricter lane).
+    The docs lane is the fast lane: its own worker, serial within the lane, CI without the heavy steps (tier=docs), still checked against the current main under the merge lock."""
     check = docs_only(repo)
-    return lambda gh, n: "docs" if check(gh.files(n)) else "code"
+
+    def lane(gh, n):
+        files = gh.files(n)
+        return "docs" if check(files) and not any(f.startswith(guarded_paths()) for f in files) else "code"
+    return lane
+
+
+def guarded_paths():
+    return tuple(post_review.load_policy()[0]["final_paths"])
 
 
 class Processor:
@@ -743,7 +336,7 @@ class Processor:
         if not behind:
             return behind
         files = self.gh.behind_files(head)
-        # a Python file under docs/ is check logic (build_all.py, check_*.py run in every pull request's secret scan job): it is no plain documentation for this purpose, the pull request is tested again against it
+        # a Python file under docs/ is check logic (check_*.py run in every pull request's secret scan job): it is no plain documentation for this purpose, the pull request is tested again against it
         if files is not None and self.docs_only(files) and not any(f.endswith(".py") for f in files):
             return 0
         return behind
@@ -764,7 +357,7 @@ class Processor:
                     self.log.event("CANCEL-RUN", other, run, since, f"waiting behind #{head}")
 
     def settle_dirty(self, n, v, since):
-        """A pull request GitHub reports as conflicting: the update merges main into it and, when the conflict is only in products of build_all.py, regenerates them (AUTO-RESOLVE).
+        """A pull request GitHub reports as conflicting: the update merges main into it.
         (new view, None) when it is settled; (None, 'conflict') when a person has to settle it (a file a person wrote conflicts, or GitHub still sees a conflict a few minutes after the push); (None, 'error') when the update itself failed."""
         res = self.update(n, v["branch"], since, via_gh=False)
         if res == "conflict":
@@ -790,9 +383,6 @@ class Processor:
             return "ok"
         with self.queue.locked(".ssh-lock"):   # one scratch worktree, one fetch and push at a time, whatever lane asks
             res = self.updater(self.repo, branch, self.wt)
-        if res == "regenerated":
-            self.log.event("AUTO-RESOLVE", n, None, since, "main conflicted only in products of build_all.py: merged, regenerated, pushed over ssh")
-            return "ok"
         self.log.event("SSH-UPDATE" if res == "ok" else f"SSH-UPDATE-{res.upper()}", n, None, since, "local merge pushed over ssh")
         return res
 
@@ -901,7 +491,7 @@ class Processor:
 
     def _process(self, n, since):
         self.cancel_others(n, since)
-        attempt, moved, refused, unseen, env_failures = 1, 0, 0, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
+        attempt, moved, refused, unseen, env_failures, looked = 1, 0, 0, 0, 0, False   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
         while attempt <= 4:
             self.checkpoint(n)
             v = self.gh.view(n)
@@ -915,6 +505,11 @@ class Processor:
             moved_head = self.head_moved(n, v)
             if moved_head:
                 return self.head_changed(n, v, moved_head, since)
+            if not looked:   # once, before any CI is spent: the same check as under the merge lock
+                looked = True
+                ok, why = self.released(n, v["head"])
+                if not ok:
+                    return self.hold(n, None, since, f"not released for merge: {why}")
             if v["merge"] == "DIRTY":
                 v, why = self.settle_dirty(n, v, since)
                 if why == "error":
@@ -1061,6 +656,37 @@ class Processor:
         self.log.event("ALERT", n, None, since, f"FF-MAIN: {why}; main checkout left as it is, both lanes pause for `mq.py resume`")
         self.pause.hold(f"FF-MAIN: {why}")
 
+    def released(self, n, head):
+        """release_verdict for `head`, from the pull request's reviews and comments as gh lists them now. A docs-lane pull request (tier=docs) needs no review unless it touches a guarded path
+        (policy.json review.final_paths); a file list gh cannot give is no exemption."""
+        if self.log.lanes.get(n) == "docs":
+            files = self.gh.files(n)
+            if files and not any(f.startswith(guarded_paths()) for f in files):
+                return True, "docs lane, no guarded path: no review needed"
+        reviews, comments = self.gh.reviews(n), self.gh.comments(n)
+        if reviews is None or comments is None:
+            return False, "gh could not list the reviews and comments"
+        known = {}
+
+        def patch_id_of(commit):
+            if commit not in known:
+                known[commit] = self.gh.patch_id(self.repo, n, commit)
+            return known[commit]
+        return release_verdict(reviews, comments, head, patch_id_of)
+
+    def read_back(self, n, head, since):
+        """After the merge call: GitHub must show the pull request MERGED, with the pinned head as the second parent of the merge commit. Anything else is an ALERT and both lanes pause (`mq.py resume`); the main checkout is not fast-forwarded then."""
+        for attempt in range(3):   # the state may lag a moment behind the merge call
+            if attempt:
+                self.sleep(5)
+            seen = self.gh.readback(n)
+            if seen and seen[0] == "MERGED" and len(seen[1]) == 2 and seen[1][1] == head:
+                return True
+        why = "gh could not read the pull request back" if seen is None else f"state {seen[0]}, merge commit parents {[p[:10] for p in seen[1]] or 'none'}, expected MERGED with second parent {head[:10]}"
+        self.log.event("ALERT", n, None, since, f"READBACK: {why}; both lanes pause for `mq.py resume`")
+        self.pause.hold(f"READBACK #{n}: {why}")
+        return False
+
     def merge_when_fresh(self, n, since, checks):
         """Under the merge lock: no red main run pauses the queue, the head is the one that was checked, it contains the current main, the checks are all green on it; then the merge, pinned to that head.
         Returns 'MERGED', 'head-changed' (the author pushed: MRG-06), 'moved' (behind main: update and test again), 'changed' (checks not green any more), 'refused' (gh refused the merge: logged with its message), or 'HOLD'."""
@@ -1089,12 +715,16 @@ class Processor:
             if not fresh or not required_state(fresh)[0] or red_checks(fresh):
                 self.log.event("CHECKS-CHANGED", n, None, since, "the checks are no longer all green on this head: run again")
                 return "changed"
+            ok, why = self.released(n, head)
+            if not ok:
+                return self.hold(n, None, since, f"not released for merge: {why}")
             self.checkpoint(n)   # the last one: under the merge lock, right before gh is asked
             ok, message = self.gh.merge(n, head)
             if ok:
                 self.log.event("MERGED", n, run_id(checks[0].get("link")), since, head[:10])
         if ok:
-            self.ff_main(n, since)
+            if self.read_back(n, head, since):
+                self.ff_main(n, since)
             return "MERGED"
         v = self.gh.view(n) or {}
         names = [f"{c['name']}={c['bucket']}" for c in red_checks(self.gh.checks(n) or [])]
@@ -1203,13 +833,13 @@ def positive(text):
 
 
 def note_conflicts_at_enqueue(numbers):
-    """Only a note before the pull request waits: the settling itself (build_all.py runs for minutes under the ssh lock) is left to the runner, which does it when it takes the pull request."""
+    """Only a note before the pull request waits."""
     try:
         gh = Gh()
         for n in numbers:
             v = gh.view(n)
             if v and v["state"] == "OPEN" and v["merge"] == "DIRTY":
-                print(f"#{n} conflicts with main: the queue tries to settle it when it takes it (only conflicts in products of build_all.py are settled; in a file a person wrote the author has to merge main)", file=sys.stderr)
+                print(f"#{n} conflicts with main: the author has to merge main", file=sys.stderr)
     except (Exception, SystemExit) as error:
         print(f"mq: could not look at conflicts before queueing: {error}", file=sys.stderr)
 
