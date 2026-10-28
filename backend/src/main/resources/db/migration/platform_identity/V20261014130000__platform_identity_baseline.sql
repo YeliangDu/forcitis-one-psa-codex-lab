@@ -509,6 +509,80 @@ COMMENT ON COLUMN platform_identity.account_role_grants.revocation_audit_entry_i
 COMMENT ON COLUMN platform_identity.account_role_grants.created_at IS '创建时间（应用注入时钟）';
 COMMENT ON COLUMN platform_identity.account_role_grants.updated_at IS '更新时间（应用注入时钟）：关闭时写入关闭时刻（见待裁定 A-4）';
 
+-- 自定义部门明细：挂在角色版本下（ADR-0034 第 5 项）；改明细即新增角色版本，行写入后不可改（F-1 卡 7.1）。
+CREATE TABLE platform_identity.role_version_custom_org_units (
+    role_version_custom_org_unit_id uuid        NOT NULL,
+    role_version_id                 uuid        NOT NULL,
+    org_unit_id                     uuid        NOT NULL,
+    is_descendants_included         boolean     NOT NULL,
+    created_at                      timestamptz NOT NULL,
+    updated_at                      timestamptz NOT NULL,
+    CONSTRAINT pk_role_version_custom_org_units PRIMARY KEY (role_version_custom_org_unit_id),
+    CONSTRAINT fk_role_version_custom_org_units_role_version_id FOREIGN KEY (role_version_id)
+        REFERENCES platform_identity.role_versions (role_version_id) ON DELETE RESTRICT,
+    CONSTRAINT uk_role_version_custom_org_units_role_version_id_org_unit_id UNIQUE (role_version_id, org_unit_id)
+);
+CREATE INDEX ix_role_version_custom_org_units_org_unit_id ON platform_identity.role_version_custom_org_units (org_unit_id);
+COMMENT ON TABLE platform_identity.role_version_custom_org_units IS '角色版本的自定义部门：范围类型为 CUSTOM_ORG_UNITS 的角色版本所列部门，每个部门选含下级或仅本部门；随新版本一次写入，不可改不可删，改明细即新增角色版本（ADR-0034 第 5 项）；部门引用组织人事的组织单元，不建外键，部门停用或撤销由范围复核兜底（RULE-387）。粒度：每个角色版本的每个部门一行';
+COMMENT ON COLUMN platform_identity.role_version_custom_org_units.role_version_custom_org_unit_id IS '角色版本自定义部门 ID（UUIDv7）';
+COMMENT ON COLUMN platform_identity.role_version_custom_org_units.role_version_id IS '角色版本 ID：只能是范围类型为 CUSTOM_ORG_UNITS 且仍开放的版本（触发器检查）';
+COMMENT ON COLUMN platform_identity.role_version_custom_org_units.org_unit_id IS '组织单元 ID：跨 schema 引用组织人事的组织单元，不建外键；范围按读取时的组织快照展开，不存展开结果';
+COMMENT ON COLUMN platform_identity.role_version_custom_org_units.is_descendants_included IS '是否含下级：真为该部门连同全部下级（组织同步新增的下级自动纳入），假为仅本部门；双人逐人级角色只能为假（ADR-0044 第 1 项，应用校验）';
+COMMENT ON COLUMN platform_identity.role_version_custom_org_units.created_at IS '创建时间（应用注入时钟）';
+COMMENT ON COLUMN platform_identity.role_version_custom_org_units.updated_at IS '更新时间（行不可改，等于创建时间）';
+
+-- 授权申请中申请的自定义部门：只为双人逐人级角色开申请，这类角色只许仅本部门（ADR-0044 第 1 项），故不设含下级列。
+CREATE TABLE platform_identity.authorization_request_custom_org_units (
+    authorization_request_custom_org_unit_id uuid        NOT NULL,
+    request_id                               uuid        NOT NULL,
+    org_unit_id                              uuid        NOT NULL,
+    created_at                               timestamptz NOT NULL,
+    updated_at                               timestamptz NOT NULL,
+    CONSTRAINT pk_authorization_request_custom_org_units PRIMARY KEY (authorization_request_custom_org_unit_id),
+    CONSTRAINT fk_authorization_request_custom_org_units_request_id FOREIGN KEY (request_id)
+        REFERENCES platform_identity.authorization_requests (request_id) ON DELETE RESTRICT,
+    CONSTRAINT uk_authorization_request_custom_org_units_request_org_unit UNIQUE (request_id, org_unit_id)
+);
+COMMENT ON TABLE platform_identity.authorization_request_custom_org_units IS '授权申请的自定义部门：新建或修改角色的申请中、范围类型为 CUSTOM_ORG_UNITS 时申请的部门，均为仅本部门；随申请提交一次写入，不可改不可删；确认时重新校验。粒度：每个申请的每个部门一行';
+COMMENT ON COLUMN platform_identity.authorization_request_custom_org_units.authorization_request_custom_org_unit_id IS '授权申请自定义部门 ID（UUIDv7）';
+COMMENT ON COLUMN platform_identity.authorization_request_custom_org_units.request_id IS '申请 ID：只能是待确认的 CREATE_ROLE 或 UPDATE_ROLE 申请（触发器检查）';
+COMMENT ON COLUMN platform_identity.authorization_request_custom_org_units.org_unit_id IS '组织单元 ID：跨 schema 引用，不建外键；仅本部门';
+COMMENT ON COLUMN platform_identity.authorization_request_custom_org_units.created_at IS '创建时间（应用注入时钟）';
+COMMENT ON COLUMN platform_identity.authorization_request_custom_org_units.updated_at IS '更新时间（行不可改，等于创建时间）';
+
+-- 两张子表只追加；明细只能写在开放的 CUSTOM_ORG_UNITS 版本上，申请子行只能写在待确认的角色申请上。
+CREATE FUNCTION platform_identity.guard_custom_org_unit_rows() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+    IF TG_OP <> 'INSERT' THEN
+        RAISE EXCEPTION 'custom org unit rows are written once: % on %.% is refused', lower(TG_OP), TG_TABLE_SCHEMA, TG_TABLE_NAME
+            USING ERRCODE = 'restrict_violation';
+    END IF;
+    -- 分表嵌套判断：NEW 的字段在两张表上不同，不能放进同一个条件表达式。
+    IF TG_TABLE_NAME = 'role_version_custom_org_units' THEN
+        IF NOT EXISTS (SELECT 1 FROM platform_identity.role_versions v
+                        WHERE v.role_version_id = NEW.role_version_id AND v.effective_to_at IS NULL
+                          AND v.access_scope_kind = 'CUSTOM_ORG_UNITS') THEN
+            RAISE EXCEPTION 'custom org units need an open CUSTOM_ORG_UNITS role version' USING ERRCODE = 'restrict_violation';
+        END IF;
+    ELSE
+        IF NOT EXISTS (SELECT 1 FROM platform_identity.authorization_requests r
+                        WHERE r.request_id = NEW.request_id AND r.request_status = 'PENDING'
+                          AND r.request_kind IN ('CREATE_ROLE', 'UPDATE_ROLE') AND r.access_scope_kind = 'CUSTOM_ORG_UNITS') THEN
+            RAISE EXCEPTION 'custom org units need a pending CUSTOM_ORG_UNITS role request' USING ERRCODE = 'restrict_violation';
+        END IF;
+    END IF;
+    RETURN NEW;
+END $$;
+COMMENT ON FUNCTION platform_identity.guard_custom_org_unit_rows() IS '自定义部门子表的写入守卫：只许插入，插入时父行须开放（角色版本）或待确认（授权申请），范围类型须为 CUSTOM_ORG_UNITS';
+CREATE TRIGGER tg_role_version_custom_org_units_guard BEFORE INSERT OR UPDATE OR DELETE ON platform_identity.role_version_custom_org_units
+    FOR EACH ROW EXECUTE FUNCTION platform_identity.guard_custom_org_unit_rows();
+CREATE TRIGGER tg_role_version_custom_org_units_guard_truncate BEFORE TRUNCATE ON platform_identity.role_version_custom_org_units
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_identity.guard_custom_org_unit_rows();
+CREATE TRIGGER tg_authorization_request_custom_org_units_guard BEFORE INSERT OR UPDATE OR DELETE ON platform_identity.authorization_request_custom_org_units
+    FOR EACH ROW EXECUTE FUNCTION platform_identity.guard_custom_org_unit_rows();
+CREATE TRIGGER tg_authorization_request_custom_org_units_guard_truncate BEFORE TRUNCATE ON platform_identity.authorization_request_custom_org_units
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_identity.guard_custom_org_unit_rows();
+
 -- 系统角色（super_admin、employee 等六个）不在迁移中写入：由代码中的系统角色声明在启动时对账写入（ADR-0034 第 1 项第 7 条）。
 INSERT INTO platform_identity.navigation_items (item_id, parent_item_id, name, route_path, permission_code, sort_order) VALUES
     ('019a0000-0000-7000-8000-000000000201', NULL, '待办', '/inbox', 'platform.approval:task:read', 10),
