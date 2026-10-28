@@ -2,7 +2,7 @@
 
 - 日期：2026-10-22；作者：one-1a-par（A 线）；派工：one-coordinator；状态：草案，待 one-data 签发，签后开 PR。
 - 依据：`W2_EMPLOYEE_POSITION_VERSIONING_DESIGN.md` 第 4 版 §2、§3.1、§3.2、§4；`EMPLOYMENT_START_DATE_OPINION.md` §1、§5；ADR-0068 附件「DDL 草案」（`personnel_commands`）。
-- 做法：迁移基线开放，直接改 `V20261014131000__organization_workforce_baseline.sql`（SESSION_PLAYBOOK 附 M3「迁移基线」）；PR 附预期表结构 diff，opus 核对。
+- 做法：迁移基线开放，直接改 `V20261014131000__organization_workforce_baseline.sql`（METHODS M3「迁移基线」）；PR 附预期表结构 diff，opus 核对。
 
 ## 0. 本批范围与边界
 

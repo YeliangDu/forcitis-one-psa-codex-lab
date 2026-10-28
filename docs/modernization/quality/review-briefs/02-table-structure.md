@@ -12,7 +12,7 @@
 1. `DATA_DESIGN_GATE.md`：§1.2 顺序、§1.3 签发行与有效性判法、§1.4 表结构 PR 复核的五件事、§3 全部检查条目、附录 A（卡「数据设计」一节的材料）、附录 B（审查记录格式）。
 2. 派工卡的「数据设计」节和「预期表结构 diff」（卡上写了的；旧 WORK_CARD §7 模板已删）。one-data 的审查记录含结论，**先独立判完 T1–T8 再读**，不一致的单列。
 3. 实际 diff：`backend/src/main/resources/db/migration/**`、`backend/architecture/data-access-registry.yaml`、`data-classification.txt`、其他 `backend/architecture/*.txt` 清单的变化。
-4. DATA_DESIGN_CHECKLIST §14、§14.1（D1–D19）、SESSION_PLAYBOOK 附 M3「迁移基线」（迁移不可变）；`NAMING_STANDARD.md` 的 DDL 部分。
+4. DATA_DESIGN_CHECKLIST §14、§14.1（D1–D19）、METHODS M3「迁移基线」（迁移不可变）；`NAMING_STANDARD.md` 的 DDL 部分。
 5. `phase1a/DATA_SCORECARD.md`（逐表打分是否落表）。
 
 ## 必查项（引用门禁，评审员逐项判过 / 不过）
@@ -25,7 +25,7 @@
 | T4 | 逐表打分结论已写入 `DATA_SCORECARD.md` 新增行 | 门禁 §1.4 第 4 条 |
 | T5 | 签发行有效：`git diff <签发所依据提交号>..HEAD -- <卡文件>` 中「数据设计」一节无改动，其引用的规则卡与 ADR 无改动 | 门禁 §1.3 有效性判法 |
 | T6 | 门禁 §3.1–§3.6 的每一条目，评审员**独立**判通过 / 不通过（不照抄 one-data 的审查记录，再与它对照；两者不一致的单列） | 门禁 §3、附录 B |
-| T7 | 迁移不可变与版本单调，按 SESSION_PLAYBOOK 附 M3「迁移基线」与 `migrations_immutable.py`：基线开放标记（`backend/architecture/migration-baseline-open`）存在期间允许改基线文件，但须有卡依据；标记不存在时已合入迁移不得改、改名、删；新迁移版本号大于现有最大 | SESSION_PLAYBOOK 附 M3「迁移基线」；`scripts/ci/migrations_immutable.py` |
+| T7 | 迁移不可变与版本单调，按 METHODS M3「迁移基线」与 `migrations_immutable.py`：基线开放标记（`backend/architecture/migration-baseline-open`）存在期间允许改基线文件，但须有卡依据；标记不存在时已合入迁移不得改、改名、删；新迁移版本号大于现有最大 | METHODS M3「迁移基线」；`scripts/ci/migrations_immutable.py` |
 | T8 | 主键 UUIDv7、命名、列类型、时间列使用注入时钟而非数据库时钟 | CLAUDE.md 第 3 条；NAMING_STANDARD；DATA_DESIGN_CHECKLIST §14.1 |
 
 安全与结构的深度复审按门禁 §1.4 第 5 条由 opus 做，即本评审；one-data 不重复，评审员也不替 one-data 签发。

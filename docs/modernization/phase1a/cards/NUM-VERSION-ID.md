@@ -39,7 +39,7 @@
 
 ## 5. 执行者与模型
 - 执行者：one-1a-par 派 sonnet 子代理实现；工作区：分支 `claude/one-1a-par-numbering-version`，基线 main 71195efe
-- 复审：opus 首轮（high），sonnet 复核，最多两轮（SESSION_PLAYBOOK §11）
+- 复审：opus 首轮（high），sonnet 复核，最多两轮（）
 
 ## 6. 禁止事项
 - 不改卡外文件；不顺手重构、改名；不放宽、不删除断言；不改验收测试目录

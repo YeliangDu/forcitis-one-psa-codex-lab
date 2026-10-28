@@ -96,7 +96,7 @@
 ### 5. 策略项载体与适配层
 
 1. **策略项载体**：公共服务层的策略项都要登记载体，三选一，不得写死：
-   - 版本化配置表（SESSION_PLAYBOOK §14.1 D15、§12.2）；
+   - 版本化配置表（DATA_DESIGN_CHECKLIST §14.1 D15、§12.2）；
    - 另开 ADR 选定的 DMN（ADR-0041 决定 1）；
    - integration 端口。
 2. **厂商协议只在 integration**：按 ADR-0039 决定 1。另加一条：厂商 SDK 包只能出现在 `platform.integration..`，包清单取自集成登记册（G-I2）。

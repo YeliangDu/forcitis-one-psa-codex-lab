@@ -1,6 +1,6 @@
 # Phase 1a 下一批派工草案
 
-起草：psa-1a-platform-bridge-reimagine，2026-10-14。依据 SESSION_PLAYBOOK 附 M1 第 5–7 条（用户「采纳」）：缺陷修复、功能补做、结构性重构分开派；缺陷按卡手术式修、小 PR 直合 main，不再攒大整合分支。修复批整合复审中的 Medium / Low 与新发现的「应交付未做」逐条追加到本草案，带复审编号。
+起草：psa-1a-platform-bridge-reimagine，2026-10-14。依据 METHODS M1 第 5–7 条（用户「采纳」）：缺陷修复、功能补做、结构性重构分开派；缺陷按卡手术式修、小 PR 直合 main，不再攒大整合分支。修复批整合复审中的 Medium / Low 与新发现的「应交付未做」逐条追加到本草案，带复审编号。
 
 每份派工单须写明：平台限制、授权外动作、须转用户的决定；「用户已决定的事照做，有异议停下报告，不得自行推迟或改变」；改动只在自己的分支提交。
 
@@ -26,7 +26,7 @@
 |---|---|---|---|
 | R-1 | UUIDv7 主键：全部聚合 ID 类型、迁移、事件载荷、OpenAPI；`IdGenerator` 与「单列主键必须是 uuid」守护已在修复批落地 | 用户「UUIDv7 (Recommended)」；B3 擅自推迟已如实登记 | 在迁移基线之前完成；可与 R-2 同批 |
 | R-2 | 79 项命名改名（ddl-naming-baseline 实有条目；原写 84，one-1a-next 2026-10-15 清点更正）与「web/api 出参不得暴露 SENSITIVE / RESTRICTED 列」守护（若修复批 B2b 未完成） | #44 | |
-| R-4 | 数据库时钟默认值（102 处、31 个文件，其中 `DEFAULT` 写法 99 处，另 3 处 DML `now()` 即 INT-L23；原写约 91 处、28 个）改为不依赖数据库时钟：在开放基线中去掉默认值（SESSION_PLAYBOOK 附 M3「迁移基线」），各 INSERT 显式传入注入 Clock 的时刻；并入时间守护 | 修复批时区项范围外发现（`TimeSourceGuardTest` 已禁止 SQL 字符串读数据库时钟） | 宜并入 R-3 迁移基线一并处理 |
+| R-4 | 数据库时钟默认值（102 处、31 个文件，其中 `DEFAULT` 写法 99 处，另 3 处 DML `now()` 即 INT-L23；原写约 91 处、28 个）改为不依赖数据库时钟：在开放基线中去掉默认值（METHODS M3「迁移基线」），各 INSERT 显式传入注入 Clock 的时刻；并入时间守护 | 修复批时区项范围外发现（`TimeSourceGuardTest` 已禁止 SQL 字符串读数据库时钟） | 宜并入 R-3 迁移基线一并处理 |
 | R-3 | 迁移基线 PR：已合入迁移合并为一份基线，opus 用两个空库对比 `pg_dump --schema-only`，diff 为空的证据写进 PR 正文；同 PR 实现「迁移只增不删不改名」守护（基线开放标记移除后生效，破坏性变更走 expand / contract 并登记例外） | §12.2；one-coordinator 2026-10-14 | 顺序与写法以 `NEXT_BATCH_PLAN.md` 为准：先 R-3a 纯合并基线（diff 为空），再 R-1、R-2、R-4 直接改基线（用户「开放期内直接改基线」）；B2 011000 / 011100 已为无条件，剩建库脚本 §4b 的 `to_regclass`；`application.properties` 中退役的 `delivery_execution`（INT-L24）一并移除 |
 
 ## 三、缺陷修复（按卡手术式，小 PR 直合 main）

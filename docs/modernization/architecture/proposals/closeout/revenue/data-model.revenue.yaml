@@ -417,7 +417,7 @@
     - 决定出处
     - 审批引用
     - 审计列
-    reason: 配置型，生效期不重叠(排他约束)，取 effective_dated；费率可反推薪酬，属敏感(SESSION_PLAYBOOK §13 横切第7条)，可见角色待用户定，建议 SENSITIVE
+    reason: 配置型，生效期不重叠(排他约束)，取 effective_dated；费率可反推薪酬，属敏感( 横切第7条)，可见角色待用户定，建议 SENSITIVE
   - name: standard_cost_rate_card_entries
     role: child
     key: uuid_v7

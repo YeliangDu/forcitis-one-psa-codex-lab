@@ -135,7 +135,7 @@ details.basis ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
 <script>
 const DATA = /*__DATA__*/null;
 // 答复存在集合 answers（文档 id 为「单子~题号」）。整页「检查答案」后一次提交：提交记录存在集合 answers-submit，文档 id 即提交编号，
-// 内含全部题的选择。打开时只订阅 answers 一次、提交记录只读一次（glossary/gate/README.md：按组或按单订阅会让手机一直停在加载中）。
+// 内含全部题的选择。打开时只订阅 answers 一次、提交记录只读一次（在线页性能约束：按组或按单订阅会让手机一直停在加载中）。
 const ANSWERS = "answers", SUBMITS = "answers-submit", CHECK = "__check";
 const ITEMS = DATA.items, GROUPS = DATA.groups;
 // 两类单子（用户 2026-10-16 答「B」，经 one-coordinator）：业务口径单预选推荐项；框架、标准、选型类单子不预选，没作答的题记为「未作答」（ADR-0041 决定 6：决策页写明代价，不预选推荐项）。

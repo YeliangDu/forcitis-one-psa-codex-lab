@@ -14,7 +14,7 @@
 
 ## 1. 卡号与类别
 - 卡号：DATA-REPAIR-approval
-- 类别：缺陷修复（SESSION_PLAYBOOK §6.1 第 9 条）
+- 类别：缺陷修复（ 第 9 条）
 - 批次：已建表数据设计审查修复批（门禁 v2 §1.2 第 6 条）；一个小 PR 直接合入 main
 - 建议负责会话：one-1a-next-4
 - 内部顺序：AP-01 第 1 步（删 `hookDecidesReason` 分支）必须先于 AP-01 / AP-02 的 CHECK；AP-03 与 AP-04 同改审批表，同一提交；AP-14 须在 one-architecture 对 ADR-0010 第 5 项判定后再动种子
@@ -22,7 +22,7 @@
 
 ## 2. 依据
 - 门禁 v2：B3、B5、O4、O7、O8、O10、C3、C5
-- SESSION_PLAYBOOK §14.1 D2、D12、D15、D17 细则 2；§12.2；ADR-0038；ADR-0033；ADR-0027 第 2 项第 4 条；NAMING_STANDARD §2.4a-1（外键目标为主键）、§2.4a-5
+- DATA_DESIGN_CHECKLIST §14.1 D2、D12、D15、D17 细则 2；§12.2；ADR-0038；ADR-0033；ADR-0027 第 2 项第 4 条；NAMING_STANDARD §2.4a-1（外键目标为主键）、§2.4a-5
 - 用户决定（本卡「已定」，见第 5 节）：「驳回、撤销后可原单再发起；加签人驳回也须填原因；删掉免填放行」（收件箱 2026-10-16-one-data-approval-resubmit；intent `2026-10-16-085331-one-data-审批被驳回-被撤销后能不能再发起.md`）
 - 规则卡：RULE-280 修订段「驳回与退回仍须原因」（`BUSINESS_RULES.md`，2026-10-14）；GUIDING_PRINCIPLES §11 O-3（日志不含数据库服务端错误详情）
 - 复核编号：SS §1（`summary_text`）、§2、§3、§4（第 5、6、7、12、13 组）、§7（B7 第 1、2、4 条）、补审 B7-1 与 O15 第 2 条；OV「AR-1 确认，改法需修正」「高风险项判断 PA 第 1、2、4 条」「PA OD-1 确认」「PA NV-2 确认，升为高」「PA AR-2 降为低」；建议新增规则 2、3、5
@@ -193,7 +193,7 @@
       CONSTRAINT fk_approval_task_records_instance_id FOREIGN KEY (instance_id) REFERENCES platform_approval.start_rounds (instance_id),
       ```
       注释：`current_round` 去掉「0 表示刚建立、尚未发起」；`current_instance_id` 加「不为空」。
-    - 测试：`acceptance/platform/approval/ApprovalRowRulesIT`：直插指向不存在实例的任务、办理记录被拒（23503）；`current_round = 0` 被拒；`current_instance_id` 空被拒（23502）；请求与首轮同事务提交通过，请求无首轮在提交时被拒；对账 IT：每个请求的 `current_round`、`current_instance_id` 等于其 `start_rounds` 最大轮次那一行（SESSION_PLAYBOOK §14.1 D1「投影可重算并有对账」）。发起、重新发起（`IdempotentStartIT`、`RetractionIT`）、转交（`TaskTransferIT`）、系统退回（`RefuseApprovalStart`）全路径回归。
+    - 测试：`acceptance/platform/approval/ApprovalRowRulesIT`：直插指向不存在实例的任务、办理记录被拒（23503）；`current_round = 0` 被拒；`current_instance_id` 空被拒（23502）；请求与首轮同事务提交通过，请求无首轮在提交时被拒；对账 IT：每个请求的 `current_round`、`current_instance_id` 等于其 `start_rounds` 最大轮次那一行（DATA_DESIGN_CHECKLIST §14.1 D1「投影可重算并有对账」）。发起、重新发起（`IdempotentStartIT`、`RetractionIT`）、转交（`TaskTransferIT`）、系统退回（`RefuseApprovalStart`）全路径回归。
     - 夹具（直插请求者，必须改，否则被 NOT NULL 与延迟外键拒；断言均不动）：
       - `platform/approval/IdempotentStartIT.java:139-142`（`roundsAreUniqueInTheDatabase`）：请求没有 `current_instance_id`，且分两条自动提交语句，第一条提交时延迟外键即失败。改成**单条语句**：`WITH r AS (INSERT INTO approval_requests (…, current_instance_id) VALUES (…, :instance) RETURNING id) INSERT INTO start_rounds (…, instance_id, …) SELECT …, :instance, … FROM r`，首轮 `instance_id` 取同一值；其后两条期望 `DuplicateKeyException` 的插入（:144-148）不改。
       - `IdempotentStartIT.java:156-159`（`requestsAreUniqueInTheDatabase`）：第一条同上改单条语句带首轮；第二条期望 `DuplicateKeyException` 的插入补一个 `current_instance_id`（任意新 uuid；否则先撞 NOT NULL，异常类型变成 `DataIntegrityViolationException`）。
@@ -261,7 +261,7 @@
 - 依据：门禁 B3、B5；OV 建议新增规则 1；SS §4 第 13 组（`status:104`、`confirmed_by:105`、`confirmed_at:106`；`:118` 已有两列成对）。
 
 ### AP-10　NV-1　中　配置型版本表缺 `decision_ref`
-- 证据：PA `:94-120`；SESSION_PLAYBOOK:286、:409（配置类版本表须含批准人、决定出处）。
+- 证据：PA `:94-120`；METHODS.md:286、:409（配置类版本表须含批准人、决定出处）。
 - 改法：加 `decision_ref text`（含义：用户决定的 intent 或 ADR 编号）与长度、非空串 CHECK；种子行写 ADR-0010 第 5 项。是否「CONFIRMED ⇒ `decision_ref` 非空」与填什么由用户决定（待决 2），默认只落格式 CHECK，可空。
 - 预期表结构 diff：`numbering_rule_versions`：新增列 `decision_ref` 与 `ck_numbering_rule_versions_decision_ref`。
 - 验收要点：种子行带出处；空串被拒。
@@ -303,7 +303,7 @@
 
 ### AP-15　C4（SS §1、DATA-017）　中　`approval_requests.summary_text` 无长度上限、无分级登记
 - 问题：`summary_text`（NOT NULL）由拥有单据的业务模块在发起时给出、卡片直接显示，库内无任何 CHECK，`data-classification.txt` 无该列（默认 INTERNAL + NONE），内容是否含个人信息取决于写入点。
-- 证据：SS §1：`summary_text:20`（全库 `char_length` 出现次数为 0）、「已知必须出现项已找到」；`quality/defect-bank/one-data.md` DATA-017（C4 漏判来源）；注释写「业务摘要：发起时由拥有单据的业务模块给出」（P5 分支 :40）。写入点（哪个类拼摘要、拼了哪些字段）：待核。
+- 证据：SS §1：`summary_text:20`（全库 `char_length` 出现次数为 0）、「已知必须出现项已找到」；错题本 DATA-017（C4 漏判来源）；注释写「业务摘要：发起时由拥有单据的业务模块给出」（P5 分支 :40）。写入点（哪个类拼摘要、拼了哪些字段）：待核。
 - 改法：
   1. `ck_approval_requests_summary_text`：`char_length(summary_text) BETWEEN 1 AND N`，N 待核（取现有 `TIMESHEET` 摘要最大长度加余量，须有测试证据）；超限失败并告警，不静默截断。
   2. `data-classification.txt` 登记 `approval_requests.summary_text`：先登记 `INTERNAL`，是否加 PI 标记由写入点内容定（待核，待用户确认）；文件仍是三段格式，第二维写在本卡表内，四段化随 ADR-0043 实施 PR。

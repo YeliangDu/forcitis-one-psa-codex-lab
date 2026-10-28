@@ -21,7 +21,7 @@
 ## S2 升级节奏
 
 - Dependabot 每周一次，按生态分组（Maven、pnpm、GitHub Actions）开 PR，照常过 CI 与复审。
-- 框架（Spring Boot、Spring Modulith、Flowable、React、antd、Taro）的次版本每月评估一次；主版本升级走 ADR（SESSION_PLAYBOOK 附 M3「规则调整三类」 ADR 类）。
+- 框架（Spring Boot、Spring Modulith、Flowable、React、antd、Taro）的次版本每月评估一次；主版本升级走 ADR（METHODS M3「规则调整三类」 ADR 类）。
 - 可被利用的漏洞：Critical 72 小时内修复或缓解，High 7 天内。
 
 ## S3 漏洞扫描

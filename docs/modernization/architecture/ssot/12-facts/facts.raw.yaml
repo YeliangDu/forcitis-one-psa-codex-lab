@@ -19,7 +19,7 @@ meta:
     object_in_system:
       'true': 104
       'false': 22
-    by_event: 59
+    by_event: 67
     event_publishers:
       platform.approval: 12
       organization.attendance: 2
@@ -27,7 +27,7 @@ meta:
       platform.integration: 5
       platform.numbering: 3
       cost.timesheet: 5
-      organization.workforce: 15
+      organization.workforce: 23
     event_missing_description: 42
     by_bi_bus_matrix: 16
 by_object:
@@ -2213,6 +2213,180 @@ by_event:
   missing_fields:
   - description
   source: docs/modernization/events/workforce.yaml:443
+- event_type: organization.workforce.EmployeeHired
+  title: 员工入职已生效
+  description: 入职命令生效时发布，录入与撤回只写审计。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
+  publisher: organization.workforce
+  x-event:
+    eventType: organization.workforce.EmployeeHired
+    version: 1
+    class: com.forcitis.one.organization.workforce.events.EmployeeHired
+    aggregate: Employee
+    idempotencyKey: eventId
+    publisher: organization.workforce
+    consumers:
+    - platform.audit
+    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+    formsFact: false
+    businessDate: 人事业务生效日（effectiveDate）：入职命令的生效日
+    audit: audited
+    publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+    noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+  missing_fields: []
+  source: docs/modernization/events/workforce.yaml:496
+- event_type: organization.workforce.EmployeeRegularized
+  title: 员工转正已生效
+  description: 转正命令生效时发布：雇佣阶段由试用转为正式，在职状态不变（ADR-0068 第 1 条第 3 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead
+    2026-10-28 定，#737 Q6）。
+  publisher: organization.workforce
+  x-event:
+    eventType: organization.workforce.EmployeeRegularized
+    version: 1
+    class: com.forcitis.one.organization.workforce.events.EmployeeRegularized
+    aggregate: Employee
+    idempotencyKey: eventId
+    publisher: organization.workforce
+    consumers:
+    - platform.audit
+    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+    formsFact: false
+    businessDate: 人事业务生效日（effectiveDate）：转正命令的生效日
+    audit: audited
+    publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+    noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+  missing_fields: []
+  source: docs/modernization/events/workforce.yaml:532
+- event_type: organization.workforce.EmployeeTransferred
+  title: 员工调岗已生效
+  description: 调岗命令生效时发布；负载另带触发字段与生效日前后的部门，供待调整权限按（人，人事命令 ID，触发字段）去重（ADR-0032 第 4 项、ADR-0055 决定 4）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封
+    legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
+  publisher: organization.workforce
+  x-event:
+    eventType: organization.workforce.EmployeeTransferred
+    version: 1
+    class: com.forcitis.one.organization.workforce.events.EmployeeTransferred
+    aggregate: Employee
+    idempotencyKey: eventId
+    publisher: organization.workforce
+    consumers:
+    - platform.audit
+    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+    formsFact: false
+    businessDate: 人事业务生效日（effectiveDate）：调岗命令的生效日
+    audit: audited
+    publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+    noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项），F-1 订阅（ADR-0068 第 5 条）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+  missing_fields: []
+  source: docs/modernization/events/workforce.yaml:568
+- event_type: organization.workforce.EmployeeSeparated
+  title: 员工离职已生效
+  description: 离职命令生效时发布；待放行的离职在放行后才发布（ADR-0068 第 2 条第 2 项）。生效日为人事所填最后工作日的次日。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId
+    为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
+  publisher: organization.workforce
+  x-event:
+    eventType: organization.workforce.EmployeeSeparated
+    version: 1
+    class: com.forcitis.one.organization.workforce.events.EmployeeSeparated
+    aggregate: Employee
+    idempotencyKey: eventId
+    publisher: organization.workforce
+    consumers:
+    - platform.audit
+    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+    formsFact: false
+    businessDate: 人事业务生效日（effectiveDate）：离职命令的生效日，即最后工作日的次日
+    audit: audited
+    publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+    noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项），F-1 订阅（ADR-0068 第 5 条）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+  missing_fields: []
+  source: docs/modernization/events/workforce.yaml:635
+- event_type: organization.workforce.EmployeeReinstated
+  title: 员工复职已生效
+  description: 复职命令生效时发布，对应的离职须已生效、复职生效日更晚（ADR-0068 第 1 条第 5、10 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead
+    2026-10-28 定，#737 Q6）。
+  publisher: organization.workforce
+  x-event:
+    eventType: organization.workforce.EmployeeReinstated
+    version: 1
+    class: com.forcitis.one.organization.workforce.events.EmployeeReinstated
+    aggregate: Employee
+    idempotencyKey: eventId
+    publisher: organization.workforce
+    consumers:
+    - platform.audit
+    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+    formsFact: false
+    businessDate: 人事业务生效日（effectiveDate）：复职命令的生效日
+    audit: audited
+    publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+    noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+  missing_fields: []
+  source: docs/modernization/events/workforce.yaml:671
+- event_type: organization.workforce.EmployeeCorrected
+  title: 员工人事已更正
+  description: 更正命令改变了截至今天的部门、岗位、在职状态或直属领导时发布；只改历史时只写审计、不发布。负载为人事命令 ID、员工 ID 与受影响区间，信封 businessDate 为更正命令的生效日（ADR-0068 第 1 条第 9 项）。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
+  publisher: organization.workforce
+  x-event:
+    eventType: organization.workforce.EmployeeCorrected
+    version: 1
+    class: com.forcitis.one.organization.workforce.events.EmployeeCorrected
+    aggregate: Employee
+    idempotencyKey: eventId
+    publisher: organization.workforce
+    consumers:
+    - platform.audit
+    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+    formsFact: false
+    businessDate: 人事业务生效日：更正命令的生效日（负载不带，信封带）
+    audit: audited
+    publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+    noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项），F-1 订阅（ADR-0068 第 5 条）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+  missing_fields: []
+  source: docs/modernization/events/workforce.yaml:707
+- event_type: organization.workforce.SeparationHeld
+  title: 离职已转待放行
+  description: 离职需暂停时发布：命令转待放行，员工保持在职，不发布员工离职已生效（ADR-0068 第 2 条第 2 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28
+    定，#737 Q6）。
+  publisher: organization.workforce
+  x-event:
+    eventType: organization.workforce.SeparationHeld
+    version: 1
+    class: com.forcitis.one.organization.workforce.events.SeparationHeld
+    aggregate: Employee
+    idempotencyKey: eventId
+    publisher: organization.workforce
+    consumers:
+    - platform.audit
+    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+    formsFact: false
+    businessDate: 人事业务生效日（effectiveDate）：被暂停的离职命令的生效日
+    audit: audited
+    publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+    noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+  missing_fields: []
+  source: docs/modernization/events/workforce.yaml:748
+- event_type: organization.workforce.SeparationHoldReleased
+  title: 待放行离职已放行
+  description: 待放行的离职被放行时发布，随后按原生效日执行离职（ADR-0068 第 2 条第 3 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737
+    Q6）。
+  publisher: organization.workforce
+  x-event:
+    eventType: organization.workforce.SeparationHoldReleased
+    version: 1
+    class: com.forcitis.one.organization.workforce.events.SeparationHoldReleased
+    aggregate: Employee
+    idempotencyKey: eventId
+    publisher: organization.workforce
+    consumers:
+    - platform.audit
+    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+    formsFact: false
+    businessDate: 人事业务生效日（effectiveDate）：被放行的离职命令原定的生效日
+    audit: audited
+    publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+    noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+  missing_fields: []
+  source: docs/modernization/events/workforce.yaml:789
 by_bi_bus_matrix:
   header:
   - 业务过程事实

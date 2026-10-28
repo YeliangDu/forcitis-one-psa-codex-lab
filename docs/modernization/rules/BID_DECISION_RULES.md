@@ -17,7 +17,7 @@ Scope: the independent flow 「作出参投决策」 on an opportunity (OBJ-18),
 - Given a missing reason or a missing score, Then the decision is refused and names what is missing.
 - Given 「放弃」, Then the opportunity ends as 「丢单 / 放弃」 and the reason is kept.
 - Given a recorded decision, When the owner changes their mind, Then a new decision is recorded that refers to the earlier one; the earlier one is not edited.
-**Open (configuration, not decided):** the checklist items, the scale of each score (for example 1 to 5) and any weighting or minimum total. They are versioned configuration (SESSION_PLAYBOOK 附 M3「规则调整三类」) and the user sets them on a later page.
+**Open (configuration, not decided):** the checklist items, the scale of each score (for example 1 to 5) and any weighting or minimum total. They are versioned configuration (METHODS M3「规则调整三类」) and the user sets them on a later page.
 **Tests:** to be written with the sales card.
 **Confidence:** High for the shape; the checklist and scales are open.
 

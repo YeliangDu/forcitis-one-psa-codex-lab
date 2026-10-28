@@ -1,6 +1,6 @@
 # 流程梳理
 
-规则见 `../SESSION_PLAYBOOK.md` 附 M4。每个阶段一个目录 `process/<阶段>/`（阶段编号与 brief 一致，如 `1a`、`1b`、`2`）。
+规则见 `../METHODS.md` 附 M4。每个阶段一个目录 `process/<阶段>/`（阶段编号与 brief 一致，如 `1a`、`1b`、`2`）。
 
 业务流程的唯一登记是 `../architecture/ssot/09-processes/catalog.yaml`（PRC 编号、类型、阶段、可执行 BPMN；GOV-1023-ARC-01）。这里的文档是某阶段端到端流程的梳理细节（现状、目标、差异与契约），由目录条目的 `flow_docs` 指向，不另成流程清单；平台机制（审批引擎、编号、审计、登录）不进目录，梳理只在这里。
 

@@ -378,6 +378,6 @@
   - 聚合稿 `architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md`：（2026-10-16 逐条核对）:37（Q20）、:63（额度占用）、:102-103（INV-22、23）、:141（INV-40）、:199-200（INV-86、88）、:206、:420（AGG-43）、:426（AGG-44）、:427（AGG-45）、:429（AGG-47）、:457（AGG-57）、:516（AGG-77）、:585（REF-02）、:829（收入阶段门）、:1053（N-12）；施工方案 `CONSTRUCTION_PLAN_DRAFT.md`:178、:229、:406、:440。
   - 信息图 `ENTERPRISE_INFO_MAP_DRAFT.md`：:14、:62（OBJ-08）、:142（OBJ-81）、:148（OBJ-87）、:296-301（§2.7）、:491（C-05）、:503（C-17）、:530（C-44）。
   - 规则：`BUSINESS_RULES.md` RULE-072、080、184、185、205、213、222、236；`rules/GL_FINANCE_DECISIONS.md` D17-0、D17-5、D17-8、GL-024、GL-026、GL-123。
-  - 决定页 `architecture/decision-page/PENDING.json` Q-04；`SESSION_PLAYBOOK.md` §12.2、§12.3。
+  - 决定页 `architecture/decision-page/PENDING.json` Q-04；`METHODS.md` §12.2、§12.3。
   - intent：`2026-10-16-134134`（Q-04 暂不定，「这个研究下再决议」）；`2026-10-15-233152`（Q22、Q20 暂不定）；`2026-10-15-234418`（R4）；`2026-10-16-061232`（D-8）；`2026-10-14-100-ADR-0025-待决`（权责事实一律进交易库）；`2026-10-14-100-能从一开始就做对的`。
 - 外部：第 4 节各条 URL，访问日期 2026-10-16。

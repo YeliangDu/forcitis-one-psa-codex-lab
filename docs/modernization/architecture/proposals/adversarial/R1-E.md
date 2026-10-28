@@ -108,7 +108,7 @@ Maister检查为 **PARTIAL**：已有收入、成本、利用率和人员来源�
 
 ### 已验证
 
-- 已读根AGENTS.md、CLAUDE.md、CODING_STANDARD.md、NAMING_STANDARD.md、SESSION_PLAYBOOK.md §5与§6.1；执行用户“只新增本文件、不提交、不推送”的更具体范围。
+- 已读根CLAUDE.md、CODING_STANDARD.md、NAMING_STANDARD.md、；执行用户“只新增本文件、不提交、不推送”的更具体范围。
 - 逐段核对61阶段，覆盖分组如下。各组均先按R1-E-01检查进入、退出、未完及轮次；括号内为细化论断，不表示对应业务已经实现。
   - VS-01：VS-01.1、VS-01.2（R1-E-03至06）。
   - VS-02：VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7（R1-E-07至11、24）。

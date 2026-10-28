@@ -48,5 +48,5 @@
 | NM5 | 命名：三处还需说明的业务含义（3 题，题面初稿） | one-glossary | 无记载 | 待定 | rules/decide/sheets/NM5.json（仓库无在线页记载；会话名见 README 在线页登记表一节） |
 | NM6 | 阶段名与价值流名（19 题；单子记为本地待审稿） | one-glossary | 无记载 | 待定 | rules/decide/sheets/NM6.json（仓库无在线页记载；会话名见 README 在线页登记表一节） |
 | 收件箱（待你决定） | 所有会话要用户定的事的唯一处理点（集合 inbox） | one-coordinator | 2026-10-16 | 待定 | rules/decide/inbox/README.md（起用日期取自该文件首次入库的提交；页面由 one-rules 维护，日常内容由 one-coordinator 维护） |
-| 用语确认固定页 | 用语确认的固定确认页，几张单子挂在同一页（集合 answers） | one-glossary | 2026-10-15 | 待定 | glossary/gate/README.md |
+| 用语确认固定页 | 用语确认的固定确认页，几张单子挂在同一页（集合 answers） | one-glossary | 2026-10-15 | 待定 | 无 |
 | 旧固定确认页（已停用） | 被上一行取代，README 记「停用不删」 | one-glossary | 2026-10-15 | 待定 | glossary/decision-sheets/2026-10-15.md |

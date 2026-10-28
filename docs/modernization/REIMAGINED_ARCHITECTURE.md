@@ -94,7 +94,7 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 
 无环要点：integration 不认识 FORCITIS one 用户；企业微信 userid 由 workforce 快照持有，identity 在登录时按 userid 查 workforce 的 api（取消 `external_identities` 表，评审 #8）；通知时 approval 从 workforce 取收件人的 userid，再调 integration 发送；审计由各模块调用 audit 的 api。各模块 api 方法数 ≤ 12（`ArchitectureRulesTest`）。
 
-### 2.2 上下文映射图（SESSION_PLAYBOOK 附 M4）
+### 2.2 上下文映射图（METHODS M4）
 
 箭头从下游指向上游（下游依赖上游的 `api` 或 `events`）；边与 `architecture/module-dependencies.txt` 一致，`ModuleDependencyTest` 守护。
 

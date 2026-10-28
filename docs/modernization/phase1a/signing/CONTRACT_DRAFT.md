@@ -1,7 +1,7 @@
 # 签章服务第一段契约（CS-1.10）
 
 - 作者：one-platform-file，2026-10-22；回应 one-architecture 准入裁定 `ADMISSION_PLATFORM_SIGNING_2026-10-22.md`（claude/one-architecture-admission-file @a62cb635）第 4、5、7、9 条。
-- 依据：ADR-0064 决定 1、2、3、9 与迁移方案第 2 条（先行上线批）；ADR-0066 决定 3–6；SESSION_PLAYBOOK §14.1 D15、D17。
+- 依据：ADR-0064 决定 1、2、3、9 与迁移方案第 2 条（先行上线批）；ADR-0066 决定 3–6；DATA_DESIGN_CHECKLIST §14.1 D15、D17。
 - 模块：签章服务 `platform.signing`，schema `platform_signing`，权限码前缀 `platform.signing`（冒号后资源与动作按 ADR-0067 冻结，不在词表）；模块标识与台账类术语已由 one-glossary 登记（#564，proposed）。
 
 ## 1. 第一段范围（准入第 9 条）

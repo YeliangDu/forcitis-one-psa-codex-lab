@@ -9,7 +9,7 @@ import com.forcitis.one.organization.workforce.domain.Employee;
 import com.forcitis.one.organization.workforce.domain.Gender;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
-import com.forcitis.one.organization.workforce.domain.PositionId;
+import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.domain.RegionCategory;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import java.sql.ResultSet;

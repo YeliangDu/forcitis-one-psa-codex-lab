@@ -3,7 +3,6 @@ docs/modernization/OA_PROCESS_INVENTORY.md	PSA部门账套对照表
 docs/modernization/SECURITY_FINDINGS.md	PSA direct gateway compatibility
 docs/modernization/STACK_DECISION.md	《PSA 边界蓝图 v2.3》
 docs/modernization/intent/2026-10-14-017-前端要参考-claude-des.md	《PSA 边界蓝图 v2.3》
-docs/modernization/PREFLIGHT.md	forcitis-one 就是 PSA 的接班系统
 docs/modernization/NAMING_STANDARD.md	PSA / 专业服务
 docs/modernization/intent/2026-10-14-103-当前仓库的所有文档里要避免使用.md	文档去除旧名称 PSA
 docs/modernization/rules/GL_RULES.md	PSA系统

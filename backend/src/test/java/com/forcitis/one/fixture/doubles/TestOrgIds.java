@@ -1,7 +1,7 @@
 package com.forcitis.one.fixture.doubles;
 
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
-import com.forcitis.one.organization.workforce.domain.PositionId;
+import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.platform.integration.api.OwnObjectId;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;

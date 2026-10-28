@@ -11,7 +11,7 @@
 
 ## 1. 卡号与类别
 - 卡号：SINGLE-OP（ADR-0030 的实现卡，对应 ADR 影响面所说「Phase 1a 下一批 F-12」中的单人模式部分）
-- 类别：功能补做（应交付未做：ADR-0030 已采纳，代码尚无任何对应实现）。一张卡，4 个顺序 PR（SESSION_PLAYBOOK §6.1 第 9、10 条：一个工作单元一个 PR，各自直接合入 main）
+- 类别：功能补做（应交付未做：ADR-0030 已采纳，代码尚无任何对应实现）。一张卡，4 个顺序 PR（ 第 9、10 条：一个工作单元一个 PR，各自直接合入 main）
 - 批次：Phase 1a，dev 首次部署前的阻塞项；调度 one-coordinator，负责 one-1a-par
 
 ### PR 拆分、顺序与依赖
@@ -40,7 +40,7 @@
 ### 2.2 规则、ADR、规范
 - ADR-0030 全文（本卡 P1 = 第 1 节；P2、P3 = 第 2、3 节；P4 = 第 6 节与「需同步修改的守护规则」第 3、11 条）；ADR-0026 第 5 项第 5 条；ADR-0027 第 1 项第 1、7、8 条、第 2 项第 4 条、第 3 项第 1 条；ADR-0028 第 1、4 条。
 - ADR-0043 第 4 项（审计 detail 不写直接标识）与 U-7b（运维命令的操作人 / 见证人以员工 ID 记入审计）；ADR-0038（开放期直接改基线，本卡不改基线）。
-- SESSION_PLAYBOOK §14、§14.1（D13 敏感分级、D19 之外的审计相关条）；§12；§6.1。
+- DATA_DESIGN_CHECKLIST §14、§14.1（D13 敏感分级、D19 之外的审计相关条）；§12；§6.1。
 - CODING_STANDARD：CS-1.8 只实现当前阶段、CS-1.9 当期做对、CS-2.x 配置键（G46：`forcitis.{子域}.{BC}.` 前缀）、CS-2.24（通用错误码只在 kernel）、CS-5.5 / 5.6（测试只断言本模块与确定性等待）。NAMING_STANDARD：配置键与审计动作名。
 - SECURITY_INVARIANTS：I-4（无认证旁路）、I-11 至 I-13；本卡 P4 新增 I-14（文本见 ADR-0030 守护第 11 条）。
 
@@ -203,8 +203,8 @@ revoke-role：
 ## 5. 执行者与模型
 - 测试代理：`code-modernization:test-engineer`，**sonnet**，每个 PR 先写验收（红）并先提交
 - 实现：子代理，**sonnet**，每个 PR 一个独立 worktree，分支建议 `claude/one-1a-par-single-op-p1`、`-p2`、`-p3`、`-p4`（名字以负责会话为准），基线为各自开工时的 main
-- 首轮复审：**opus**，推理强度 high，P1、P2、P3 必须；P4 用 sonnet 复审即可（文档与脚本，不含新的判定逻辑，但安装器正则与 `DropInPaths` 检查由 opus 过一遍）。修后复核 **sonnet**；最多两轮，之后新发现的非 High 列为残余项在 PR 单列（SESSION_PLAYBOOK §11 第 6 条）
-- 用 opus 终审安全相关的 P1、P2、P3 的理由：本卡全部是安全控制的放宽，评审者要判断的不是代码风格，而是（a）白名单是否真的覆盖所有进程入口（常驻服务、运维命令、迁移、只读核实命令），（b）检查时点是否真的早于 `ApplicationRunner`、Web 服务器与其他会写库的单例（含 Flowable 引擎建表），（c）「没给」与「给了但无效」是否被严格区分（第 2.3 节第 13 条），（d）放宽是否真的封闭、标注是否与放宽一一对应且同事务。这几项需要对 Spring 启动顺序和安全不变量做对抗性判断，属 SESSION_PLAYBOOK 与模型分级策略中「安全判定、结构设计」用 opus 的范围。
+- 首轮复审：**opus**，推理强度 high，P1、P2、P3 必须；P4 用 sonnet 复审即可（文档与脚本，不含新的判定逻辑，但安装器正则与 `DropInPaths` 检查由 opus 过一遍）。修后复核 **sonnet**；最多两轮，之后新发现的非 High 列为残余项在 PR 单列（ 第 6 条）
+- 用 opus 终审安全相关的 P1、P2、P3 的理由：本卡全部是安全控制的放宽，评审者要判断的不是代码风格，而是（a）白名单是否真的覆盖所有进程入口（常驻服务、运维命令、迁移、只读核实命令），（b）检查时点是否真的早于 `ApplicationRunner`、Web 服务器与其他会写库的单例（含 Flowable 引擎建表），（c）「没给」与「给了但无效」是否被严格区分（第 2.3 节第 13 条），（d）放宽是否真的封闭、标注是否与放宽一一对应且同事务。这几项需要对 Spring 启动顺序和安全不变量做对抗性判断，属 METHODS.md 与模型分级策略中「安全判定、结构设计」用 opus 的范围。
 - 数据设计：不涉 DDL（见数据设计一节），仍请 one-data 审查审计允许内容表与登记文件的变化后再开工
 - 不交 Codex：全是安全代码
 
@@ -235,7 +235,7 @@ revoke-role：
 
 ## 9. 复审要求（§6.1 第 4、11 条）
 - Blocker / High：opus 复核，合并前修完；Medium / Low：执行者补测试、CI 通过即关闭，负责会话抽查
-- 复审清单：SESSION_PLAYBOOK §14、§14.1；CODING_STANDARD CS-1.8、CS-1.9、CS-2.24、CS-5.5、CS-5.6；SECURITY_INVARIANTS I-4、I-11 至 I-13
+- 复审清单：DATA_DESIGN_CHECKLIST §14、§14.1；CODING_STANDARD CS-1.8、CS-1.9、CS-2.24、CS-5.5、CS-5.6；SECURITY_INVARIANTS I-4、I-11 至 I-13
 - 专查（安全 PR 的对抗性问题）：
   1. 白名单是否对**每一个**能连库的进程入口生效：常驻服务、`identity-operations`、`migrate`、`integration-operations`、`read-only-verification`（后两者与模式无关，但值为 true 时是否也被检查，由待核第 8 条定）
   2. 取值读取是否绕过 Boolean 宽松绑定（空串、`TRUE`、` true` 都失败）
@@ -248,11 +248,11 @@ revoke-role：
   9. 没有顺手放宽 ADR 第 4 节「不放宽的规则」所列任何一条
 
 ## 10. 报告去向
-- 每个 PR 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
+- 每个 PR 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（ 第 7 步）
 - P1、P2 合并后立即通知 one-coordinator 与 one-ops：可以出 rc（见第 12 节）
 - PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、`db/migration` diff 证明、未完成项、需要用户决定的事
 
-## 11. 本卡新词（开工前术语门禁，SESSION_PLAYBOOK §5）
+## 11. 本卡新词（开工前术语门禁）
 已查 `docs/modernization/glossary/terms.yaml` 与 `backend/glossary/proposed/*.yaml`：下列各词在同一 bc 内无同名、同中文名条目（`grep` 中文名「单人运维模式」「单人运维放宽项」「须开启单人运维模式」、英文名与 snake 名均无命中；仓库内与「单人」相关的现有词条为零）。起草本卡时已把前三条登记为提议术语（`status: proposed`），其余是实现者在实现 PR 里登记的候选。
 
 | 标识符 | 中文名 | 种类 | 使用范围 | bc | 说明 |

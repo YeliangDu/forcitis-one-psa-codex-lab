@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.organization.workforce.api.PositionId;
 import java.util.Objects;
 
 public record Position(PositionId positionId, String code, String name, Integer sortOrder, PositionStatus status) {

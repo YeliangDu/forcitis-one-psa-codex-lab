@@ -189,6 +189,30 @@ organization.workforce::api organization.workforce.api.OrgUnitProfile public jav
 organization.workforce::api organization.workforce.api.OrgUnitProfile public organization.workforce.api.OrgUnitId organization.workforce.api.OrgUnitProfile.orgUnitId()
 organization.workforce::api organization.workforce.api.OrgUnitProfile public organization.workforce.api.OrgUnitId organization.workforce.api.OrgUnitProfile.parentOrgUnitId()
 organization.workforce::api organization.workforce.api.OrgUnitProfile public organization.workforce.api.OrgUnitProfile(organization.workforce.api.OrgUnitId,java.lang.String,organization.workforce.api.OrgUnitId,boolean)
+organization.workforce::api organization.workforce.api.PersonnelCommandId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.PersonnelCommandId extends java.lang.Record
+organization.workforce::api organization.workforce.api.PersonnelCommandId public final boolean organization.workforce.api.PersonnelCommandId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.PersonnelCommandId public final int organization.workforce.api.PersonnelCommandId.hashCode()
+organization.workforce::api organization.workforce.api.PersonnelCommandId public final record organization.workforce.api.PersonnelCommandId
+organization.workforce::api organization.workforce.api.PersonnelCommandId public java.lang.String organization.workforce.api.PersonnelCommandId.toString()
+organization.workforce::api organization.workforce.api.PersonnelCommandId public java.util.UUID organization.workforce.api.PersonnelCommandId.value()
+organization.workforce::api organization.workforce.api.PersonnelCommandId public organization.workforce.api.PersonnelCommandId(java.util.UUID)
+organization.workforce::api organization.workforce.api.PositionId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.PositionId extends java.lang.Record
+organization.workforce::api organization.workforce.api.PositionId public final boolean organization.workforce.api.PositionId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.PositionId public final int organization.workforce.api.PositionId.hashCode()
+organization.workforce::api organization.workforce.api.PositionId public final record organization.workforce.api.PositionId
+organization.workforce::api organization.workforce.api.PositionId public java.lang.String organization.workforce.api.PositionId.toString()
+organization.workforce::api organization.workforce.api.PositionId public java.util.UUID organization.workforce.api.PositionId.value()
+organization.workforce::api organization.workforce.api.PositionId public organization.workforce.api.PositionId(java.util.UUID)
+organization.workforce::api organization.workforce.api.SeparationHoldId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.SeparationHoldId extends java.lang.Record
+organization.workforce::api organization.workforce.api.SeparationHoldId public final boolean organization.workforce.api.SeparationHoldId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.SeparationHoldId public final int organization.workforce.api.SeparationHoldId.hashCode()
+organization.workforce::api organization.workforce.api.SeparationHoldId public final record organization.workforce.api.SeparationHoldId
+organization.workforce::api organization.workforce.api.SeparationHoldId public java.lang.String organization.workforce.api.SeparationHoldId.toString()
+organization.workforce::api organization.workforce.api.SeparationHoldId public java.util.UUID organization.workforce.api.SeparationHoldId.value()
+organization.workforce::api organization.workforce.api.SeparationHoldId public organization.workforce.api.SeparationHoldId(java.util.UUID)
 organization.workforce::api organization.workforce.api.SyncRunId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.SyncRunId extends java.lang.Record
 organization.workforce::api organization.workforce.api.SyncRunId public final boolean organization.workforce.api.SyncRunId.equals(java.lang.Object)
@@ -197,6 +221,12 @@ organization.workforce::api organization.workforce.api.SyncRunId public final re
 organization.workforce::api organization.workforce.api.SyncRunId public java.lang.String organization.workforce.api.SyncRunId.toString()
 organization.workforce::api organization.workforce.api.SyncRunId public java.util.UUID organization.workforce.api.SyncRunId.value()
 organization.workforce::api organization.workforce.api.SyncRunId public organization.workforce.api.SyncRunId(java.util.UUID)
+organization.workforce::api organization.workforce.api.TriggerFieldKind extends java.lang.Enum<organization.workforce.api.TriggerFieldKind>
+organization.workforce::api organization.workforce.api.TriggerFieldKind public final enum organization.workforce.api.TriggerFieldKind
+organization.workforce::api organization.workforce.api.TriggerFieldKind public static final organization.workforce.api.TriggerFieldKind organization.workforce.api.TriggerFieldKind.ORG_UNIT
+organization.workforce::api organization.workforce.api.TriggerFieldKind public static final organization.workforce.api.TriggerFieldKind organization.workforce.api.TriggerFieldKind.POSITION
+organization.workforce::api organization.workforce.api.TriggerFieldKind public static organization.workforce.api.TriggerFieldKind organization.workforce.api.TriggerFieldKind.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.TriggerFieldKind public static organization.workforce.api.TriggerFieldKind[] organization.workforce.api.TriggerFieldKind.values()
 organization.workforce::api organization.workforce.api.WorkforceError extends java.lang.Enum<organization.workforce.api.WorkforceError>
 organization.workforce::api organization.workforce.api.WorkforceError implements kernel.ErrorCode
 organization.workforce::api organization.workforce.api.WorkforceError public final enum organization.workforce.api.WorkforceError
@@ -228,6 +258,38 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError[] organization.workforce.api.WorkforceError.values()
+organization.workforce::events organization.workforce.events.EmployeeCorrected component affectedFrom: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeCorrected component affectedTo: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeCorrected component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeCorrected component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeCorrected component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeCorrected extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeCorrected implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeCorrected public final boolean organization.workforce.events.EmployeeCorrected.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeCorrected public final int organization.workforce.events.EmployeeCorrected.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public final java.lang.String organization.workforce.events.EmployeeCorrected.toString()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public final record organization.workforce.events.EmployeeCorrected
+organization.workforce::events organization.workforce.events.EmployeeCorrected public java.time.LocalDate organization.workforce.events.EmployeeCorrected.affectedFrom()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public java.time.LocalDate organization.workforce.events.EmployeeCorrected.affectedTo()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public kernel.EmployeeId organization.workforce.events.EmployeeCorrected.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public kernel.event.EventEnvelope organization.workforce.events.EmployeeCorrected.envelope()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeCorrected.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.events.EmployeeCorrected(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeHired component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeHired component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeHired component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeHired component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeHired extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeHired implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeHired public final boolean organization.workforce.events.EmployeeHired.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeHired public final int organization.workforce.events.EmployeeHired.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeHired public final java.lang.String organization.workforce.events.EmployeeHired.toString()
+organization.workforce::events organization.workforce.events.EmployeeHired public final record organization.workforce.events.EmployeeHired
+organization.workforce::events organization.workforce.events.EmployeeHired public java.time.LocalDate organization.workforce.events.EmployeeHired.effectiveDate()
+organization.workforce::events organization.workforce.events.EmployeeHired public kernel.EmployeeId organization.workforce.events.EmployeeHired.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeHired public kernel.event.EventEnvelope organization.workforce.events.EmployeeHired.envelope()
+organization.workforce::events organization.workforce.events.EmployeeHired public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeHired.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeHired public organization.workforce.events.EmployeeHired(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
 organization.workforce::events organization.workforce.events.EmployeeRegistered component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeRegistered component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeRegistered extends java.lang.Record
@@ -239,6 +301,76 @@ organization.workforce::events organization.workforce.events.EmployeeRegistered 
 organization.workforce::events organization.workforce.events.EmployeeRegistered public kernel.EmployeeId organization.workforce.events.EmployeeRegistered.employeeId()
 organization.workforce::events organization.workforce.events.EmployeeRegistered public kernel.event.EventEnvelope organization.workforce.events.EmployeeRegistered.envelope()
 organization.workforce::events organization.workforce.events.EmployeeRegistered public organization.workforce.events.EmployeeRegistered(kernel.event.EventEnvelope,kernel.EmployeeId)
+organization.workforce::events organization.workforce.events.EmployeeRegularized component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeRegularized component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeRegularized component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeRegularized component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeRegularized extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeRegularized implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeRegularized public final boolean organization.workforce.events.EmployeeRegularized.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeRegularized public final int organization.workforce.events.EmployeeRegularized.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeRegularized public final java.lang.String organization.workforce.events.EmployeeRegularized.toString()
+organization.workforce::events organization.workforce.events.EmployeeRegularized public final record organization.workforce.events.EmployeeRegularized
+organization.workforce::events organization.workforce.events.EmployeeRegularized public java.time.LocalDate organization.workforce.events.EmployeeRegularized.effectiveDate()
+organization.workforce::events organization.workforce.events.EmployeeRegularized public kernel.EmployeeId organization.workforce.events.EmployeeRegularized.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeRegularized public kernel.event.EventEnvelope organization.workforce.events.EmployeeRegularized.envelope()
+organization.workforce::events organization.workforce.events.EmployeeRegularized public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeRegularized.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeRegularized public organization.workforce.events.EmployeeRegularized(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeReinstated component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeReinstated component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeReinstated component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeReinstated component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeReinstated extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeReinstated implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeReinstated public final boolean organization.workforce.events.EmployeeReinstated.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeReinstated public final int organization.workforce.events.EmployeeReinstated.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeReinstated public final java.lang.String organization.workforce.events.EmployeeReinstated.toString()
+organization.workforce::events organization.workforce.events.EmployeeReinstated public final record organization.workforce.events.EmployeeReinstated
+organization.workforce::events organization.workforce.events.EmployeeReinstated public java.time.LocalDate organization.workforce.events.EmployeeReinstated.effectiveDate()
+organization.workforce::events organization.workforce.events.EmployeeReinstated public kernel.EmployeeId organization.workforce.events.EmployeeReinstated.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeReinstated public kernel.event.EventEnvelope organization.workforce.events.EmployeeReinstated.envelope()
+organization.workforce::events organization.workforce.events.EmployeeReinstated public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeReinstated.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeReinstated public organization.workforce.events.EmployeeReinstated(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeSeparated component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeSeparated component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeSeparated component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeSeparated component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeSeparated extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeSeparated implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeSeparated public final boolean organization.workforce.events.EmployeeSeparated.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeSeparated public final int organization.workforce.events.EmployeeSeparated.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeSeparated public final java.lang.String organization.workforce.events.EmployeeSeparated.toString()
+organization.workforce::events organization.workforce.events.EmployeeSeparated public final record organization.workforce.events.EmployeeSeparated
+organization.workforce::events organization.workforce.events.EmployeeSeparated public java.time.LocalDate organization.workforce.events.EmployeeSeparated.effectiveDate()
+organization.workforce::events organization.workforce.events.EmployeeSeparated public kernel.EmployeeId organization.workforce.events.EmployeeSeparated.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeSeparated public kernel.event.EventEnvelope organization.workforce.events.EmployeeSeparated.envelope()
+organization.workforce::events organization.workforce.events.EmployeeSeparated public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeSeparated.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeSeparated public organization.workforce.events.EmployeeSeparated(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeTransferred component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeTransferred component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeTransferred component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeTransferred component newOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::events organization.workforce.events.EmployeeTransferred component newPositionId: organization.workforce.api.PositionId
+organization.workforce::events organization.workforce.events.EmployeeTransferred component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeTransferred component previousOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::events organization.workforce.events.EmployeeTransferred component previousPositionId: organization.workforce.api.PositionId
+organization.workforce::events organization.workforce.events.EmployeeTransferred component triggerFieldKinds: java.util.List<organization.workforce.api.TriggerFieldKind>
+organization.workforce::events organization.workforce.events.EmployeeTransferred extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeTransferred implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeTransferred public final boolean organization.workforce.events.EmployeeTransferred.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeTransferred public final int organization.workforce.events.EmployeeTransferred.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public final java.lang.String organization.workforce.events.EmployeeTransferred.toString()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public final record organization.workforce.events.EmployeeTransferred
+organization.workforce::events organization.workforce.events.EmployeeTransferred public java.time.LocalDate organization.workforce.events.EmployeeTransferred.effectiveDate()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public java.util.List<organization.workforce.api.TriggerFieldKind> organization.workforce.events.EmployeeTransferred.triggerFieldKinds()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public kernel.EmployeeId organization.workforce.events.EmployeeTransferred.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public kernel.event.EventEnvelope organization.workforce.events.EmployeeTransferred.envelope()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeTransferred.newOrgUnitId()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeTransferred.previousOrgUnitId()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeTransferred.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PositionId organization.workforce.events.EmployeeTransferred.newPositionId()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PositionId organization.workforce.events.EmployeeTransferred.previousPositionId()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.events.EmployeeTransferred(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.util.List<organization.workforce.api.TriggerFieldKind>,organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,organization.workforce.api.PositionId)
 organization.workforce::events organization.workforce.events.LegalEntityActivated component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.LegalEntityActivated component legalEntityId: kernel.LegalEntityId
 organization.workforce::events organization.workforce.events.LegalEntityActivated extends java.lang.Record
@@ -375,6 +507,42 @@ organization.workforce::events organization.workforce.events.OrgSnapshotChanged 
 organization.workforce::events organization.workforce.events.OrgSnapshotChanged public java.util.List<organization.workforce.api.OrgUnitId> organization.workforce.events.OrgSnapshotChanged.changedOrgUnits()
 organization.workforce::events organization.workforce.events.OrgSnapshotChanged public kernel.event.EventEnvelope organization.workforce.events.OrgSnapshotChanged.envelope()
 organization.workforce::events organization.workforce.events.OrgSnapshotChanged public organization.workforce.events.OrgSnapshotChanged(kernel.event.EventEnvelope,java.util.List<kernel.EmployeeId>,java.util.List<kernel.EmployeeId>,java.util.List<organization.workforce.api.OrgUnitId>,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.SeparationHeld component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.SeparationHeld component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.SeparationHeld component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.SeparationHeld component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.SeparationHeld component separationHoldId: organization.workforce.api.SeparationHoldId
+organization.workforce::events organization.workforce.events.SeparationHeld extends java.lang.Record
+organization.workforce::events organization.workforce.events.SeparationHeld implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.SeparationHeld public final boolean organization.workforce.events.SeparationHeld.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.SeparationHeld public final int organization.workforce.events.SeparationHeld.hashCode()
+organization.workforce::events organization.workforce.events.SeparationHeld public final java.lang.String organization.workforce.events.SeparationHeld.toString()
+organization.workforce::events organization.workforce.events.SeparationHeld public final record organization.workforce.events.SeparationHeld
+organization.workforce::events organization.workforce.events.SeparationHeld public java.time.LocalDate organization.workforce.events.SeparationHeld.effectiveDate()
+organization.workforce::events organization.workforce.events.SeparationHeld public kernel.EmployeeId organization.workforce.events.SeparationHeld.employeeId()
+organization.workforce::events organization.workforce.events.SeparationHeld public kernel.event.EventEnvelope organization.workforce.events.SeparationHeld.envelope()
+organization.workforce::events organization.workforce.events.SeparationHeld public organization.workforce.api.PersonnelCommandId organization.workforce.events.SeparationHeld.personnelCommandId()
+organization.workforce::events organization.workforce.events.SeparationHeld public organization.workforce.api.SeparationHoldId organization.workforce.events.SeparationHeld.separationHoldId()
+organization.workforce::events organization.workforce.events.SeparationHeld public organization.workforce.events.SeparationHeld(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.SeparationHoldId)
+organization.workforce::events organization.workforce.events.SeparationHoldReleased component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.SeparationHoldReleased component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.SeparationHoldReleased component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.SeparationHoldReleased component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.SeparationHoldReleased component releasedBy: kernel.UserId
+organization.workforce::events organization.workforce.events.SeparationHoldReleased component separationHoldId: organization.workforce.api.SeparationHoldId
+organization.workforce::events organization.workforce.events.SeparationHoldReleased extends java.lang.Record
+organization.workforce::events organization.workforce.events.SeparationHoldReleased implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public final boolean organization.workforce.events.SeparationHoldReleased.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public final int organization.workforce.events.SeparationHoldReleased.hashCode()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public final java.lang.String organization.workforce.events.SeparationHoldReleased.toString()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public final record organization.workforce.events.SeparationHoldReleased
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public java.time.LocalDate organization.workforce.events.SeparationHoldReleased.effectiveDate()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public kernel.EmployeeId organization.workforce.events.SeparationHoldReleased.employeeId()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public kernel.UserId organization.workforce.events.SeparationHoldReleased.releasedBy()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public kernel.event.EventEnvelope organization.workforce.events.SeparationHoldReleased.envelope()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public organization.workforce.api.PersonnelCommandId organization.workforce.events.SeparationHoldReleased.personnelCommandId()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public organization.workforce.api.SeparationHoldId organization.workforce.events.SeparationHoldReleased.separationHoldId()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public organization.workforce.events.SeparationHoldReleased(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.SeparationHoldId,kernel.UserId)
 organization.workforce::events organization.workforce.events.SyncRunFailed component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.SyncRunFailed component syncRunId: organization.workforce.api.SyncRunId
 organization.workforce::events organization.workforce.events.SyncRunFailed extends java.lang.Record
