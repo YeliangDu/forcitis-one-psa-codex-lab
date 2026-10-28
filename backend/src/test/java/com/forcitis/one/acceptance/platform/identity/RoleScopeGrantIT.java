@@ -155,6 +155,7 @@ class RoleScopeGrantIT extends DataScopeSupport {
     }
 
     @Test
+    @Disabled("归 #729：范围变化走授权申请（ADR-0032 第 1 项第 3 条）；调度裁定挪出 #728，断言不动")
     @DisplayName("F-1 F1-01：含双人逐人级权限的角色修改时把自定义部门改成「含下级」也 422（不走授权申请），角色不变；要覆盖新部门须逐个列出「仅本部门」并经第二人确认")
     void aTwoPersonRoleIsNotRevisedToIncludeDescendants() throws Exception {
         MockHttpServletResponse asked = createRole(administrator("admin1"),

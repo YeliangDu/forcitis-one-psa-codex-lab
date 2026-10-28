@@ -21,7 +21,7 @@ backend/mvnw -B -f backend/pom.xml verify -Dit.test='RoleScopeGrantIT,CustomOrgU
 | `CustomOrgUnitRulesIT` 更新语义三条 | 调度裁定：null 沿用、空数组 400 |
 | `CustomOrgUnitRulesIT` 引用两条 | 调度裁定：保存不校验部门是否存在 |
 | `SystemRoleDeclarationScopeIT`（3 条） | 不变量 5：系统角色声明对账（启动失败）及两条对照 |
-| `RoleScopeGrantIT`（迁自旧验收，6 条在跑、1 条停用） | 不变量 5、6 的应用校验与 F1-01；`changingTheCustomOrgUnitsMovesTheHoldersScope` 停用，归 #729 |
+| `RoleScopeGrantIT`（迁自旧验收，5 条在跑、2 条停用） | 不变量 5、6 的应用校验与 F1-01；`changingTheCustomOrgUnitsMovesTheHoldersScope`、`aTwoPersonRoleIsNotRevisedToIncludeDescendants` 停用，均归 #729 |
 
 ## 调度裁定（照任务卡原话落成断言）
 
@@ -36,5 +36,5 @@ backend/mvnw -B -f backend/pom.xml verify -Dit.test='RoleScopeGrantIT,CustomOrgU
 - 触发器拒绝：`restrict_violation`（23001），由 `platform_identity.guard_custom_org_unit_rows()` 抛出（卡 7.1 原文）；唯一约束 23505，约束名同卡。
 - 明细表读回用卡 7.1 的列名；`role_versions.access_scope_kind`、`effective_to_at` 取 ADR-0034-IMPL PR-2 建成的。
 - 系统角色声明：`SystemRoleDeclaration` bean 是启动对账的缝（`SystemRoleReconciliation` 类注释）。`RoleDefinition` 须增加一个成员，装「部门 ID（UUID 或只包一个 UUID 的记录）与布尔『含下级』」构成的记录的集合；测试按形状找这个成员，不限定名字。找不到时测试失败并说明，不跳过。启动失败的具体异常类型与文字不断言。
-- 待裁定（迁入的旧断言与主线现状冲突）：`RoleScopeGrantIT.aTwoPersonRoleIsNotRevisedToIncludeDescendants` 断言「对已含敏感权限的角色再多列一个『仅本部门』部门」返回 202。主线 `UpdateRole` 对没有新增敏感权限码的修改走 `PrivilegeCeiling.mayGrant`，对含敏感权限码的角色一律 403 `PLATFORM_IDENTITY_ROLE_NOT_ALLOWED`。实现要么把这类修改（范围或部门变化）改走授权申请，要么由复审裁定改断言；断言未动。
+- 调度裁定：`RoleScopeGrantIT.aTwoPersonRoleIsNotRevisedToIncludeDescendants` 已 @Disabled，归 #729：范围变化走授权申请（ADR-0032 第 1 项第 3 条，有持有人 409、无持有人放宽范围走申请）。该条断言「对已含敏感权限的角色再多列一个仅本部门返回 202」，主线 UpdateRole 现对此返回 403；断言原样不动，随 #729 转绿。
 - 授权申请确认时的重新校验（卡「提交与确认两处」）没有黑盒触发方式，本块不写用例，留给实现卡的集成测试。
