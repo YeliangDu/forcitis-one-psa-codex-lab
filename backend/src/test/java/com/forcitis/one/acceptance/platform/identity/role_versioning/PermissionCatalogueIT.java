@@ -84,19 +84,26 @@ class PermissionCatalogueIT extends RoleVersioningSupport {
                 UUID.randomUUID(), role, moment, name, "{" + KNOWN + "," + UNKNOWN + "}", administrator.userId(), UUID.randomUUID(), moment, moment);
         clock.set(at.plus(Duration.ofMinutes(1)));
         int mark = logMark();
-        UUID unit = newOrgUnitId();
-        orgUnit(unit, null, null);
-        UUID holderEmployee = newEmployeeId();
-        employee(holderEmployee, unit, null);
-        grantByOperations(holderEmployee, code);
+        try {
+            UUID unit = newOrgUnitId();
+            orgUnit(unit, null, null);
+            UUID holderEmployee = newEmployeeId();
+            employee(holderEmployee, unit, null);
+            grantByOperations(holderEmployee, code);
 
-        SignedIn holder = signIn(holderEmployee);
-        MockHttpServletResponse current = mvc.perform(get(CURRENT_USER).with(session(holder))).andReturn().getResponse();
+            SignedIn holder = signIn(holderEmployee);
+            MockHttpServletResponse current = mvc.perform(get(CURRENT_USER).with(session(holder))).andReturn().getResponse();
 
-        assertThat(current.getStatus()).as(current.getContentAsString()).isEqualTo(200);
-        List<String> permissions = JsonPath.read(current.getContentAsString(), "$.permissionCodes");
-        assertThat(permissions).as("the other code of the same role version still counts").contains(KNOWN);
-        assertThat(permissions).as("the unknown code is ignored (fail-closed)").doesNotContain(UNKNOWN);
-        assertThat(alertsSince(mark)).as("an ALERT names the unknown code").anySatisfy(alert -> assertThat(alert).contains(UNKNOWN));
+            assertThat(current.getStatus()).as(current.getContentAsString()).isEqualTo(200);
+            List<String> permissions = JsonPath.read(current.getContentAsString(), "$.permissionCodes");
+            assertThat(permissions).as("the other code of the same role version still counts").contains(KNOWN);
+            assertThat(permissions).as("the unknown code is ignored (fail-closed)").doesNotContain(UNKNOWN);
+            assertThat(alertsSince(mark)).as("an ALERT names the unknown code").anySatisfy(alert -> assertThat(alert).contains(UNKNOWN));
+        } finally {
+            // Isolation: role_versions is append-only, so the case cannot delete its rows; it closes the version that holds the unknown code, so
+            // that no other case of this class (the whole-database scan in currentVersionsHoldOnlyLiveCatalogueCodes) sees it as a current version.
+            OffsetDateTime closedAt = OffsetDateTime.ofInstant(clock.instant().plus(Duration.ofMinutes(1)), ZoneOffset.UTC);
+            execute("update role_versions set effective_to_at = ?, updated_at = ? where role_id = ? and effective_to_at is null", closedAt, closedAt, role);
+        }
     }
 }

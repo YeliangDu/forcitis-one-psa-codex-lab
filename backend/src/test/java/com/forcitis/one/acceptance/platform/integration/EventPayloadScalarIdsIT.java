@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import javax.sql.DataSource;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,6 +104,20 @@ class EventPayloadScalarIdsIT {
             statement.execute("set search_path to " + schema);
         }
         return connection;
+    }
+
+    /**
+     * The role administrator is the recorded_by of the MANUAL role version (ck_role_versions_manual, fk_role_versions_recorded_by to
+     * user_accounts), so its account must exist before a role is created (card ADR-0034-IMPL sections 3.3 and 7.2).
+     */
+    @BeforeEach
+    void theRoleAdministratorHasAnAccount() throws Exception {
+        try (Connection identity = schemaConnection("platform_identity"); PreparedStatement account = identity.prepareStatement(
+                "insert into user_accounts (user_id, employee_id) values (?, ?) on conflict do nothing")) {
+            account.setObject(1, UUID.fromString(String.format("01900000-0000-7000-8000-%012d", 3)));
+            account.setObject(2, UUID.randomUUID());
+            account.executeUpdate();
+        }
     }
 
     /** Every registry row (open or already archived) of the event type whose envelope names the aggregate, parsed. */
