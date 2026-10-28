@@ -23,8 +23,8 @@ concurrency:
 
 # Self-hosted runners (docs/modernization/CI_RUNNERS.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
 # Three tiers (scripts/ci/relevant_change.py): docs (nothing the builds read changed: light checks only), guarded (only docs that container-free tests, the glossary copy scripts or the release scripts read: just those run, on every pull request event), code (everything). A push to main and the nightly run are always tier code.
-# Heavy steps (backend tests, SQL Server tests, frontend verify) run only for a pull request labelled `queued` and never on a push to main (scripts/ci/heavy_gate.py), where the nightly schedule runs everything; the light steps run on every event. Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs the light steps (release approval depends on it); assertion drift runs on pull requests only.
-# OpenAPI and the frontend generated code are not tracked (frontend/packages/api/README.md): the api-contract job exports and generates them on every event, because light.sh (build_all.py --check, panorama) and the contract tests read them, and the backend and frontend jobs download this run's products; it never publishes a main snapshot.
+# Heavy steps (backend tests, SQL Server tests, frontend verify) run only for a pull request labelled `queued` and never on a push to main (scripts/ci/heavy_gate.py), where the nightly schedule runs everything; the light steps run on every event. Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs the light steps (release approval depends on it).
+# OpenAPI and the frontend generated code are not tracked (frontend/packages/api/README.md): the api-contract job exports and generates them on every event, because the contract tests read them, and the backend and frontend jobs download this run's products; it never publishes a main snapshot.
 jobs:
   api-contract:
     name: export OpenAPI and generate frontend API
@@ -91,12 +91,6 @@ jobs:
         run: |
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
           scripts/ci/light.sh "$base"
-      - name: A changed organization-interface signature snapshot needs 已通知平台 owner in the pull request body (ADR-0066)
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          python3 scripts/ci/org_interface_notice.py --self-test
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then python3 scripts/ci/org_interface_notice.py "origin/$GITHUB_BASE_REF"; fi
       - name: backend or frontend inputs changed?
         id: change
         env:
@@ -143,15 +137,28 @@ jobs:
             docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image"
           done
       # middle tier (scripts/ci/relevant_change.py tier=guarded): only docs the builds read changed, and every file that reads them is a container-free test; runs on every pull request event, no queue label needed
+      # both steps below run only the named container-free test classes; a class that produced no report (typo, moved, deleted) fails instead of passing vacuously.
+      # surefire:test after test-compile, not the test phase: the export-openapi execution is bound to process-test-classes and starts a PostgreSQL container
       - name: guarded docs changed - the container-free tests that read them
         if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_classes != ''
+        working-directory: backend
         env:
-          GUARD_CLASSES: ${{ steps.change.outputs.guard_classes }}
-        run: scripts/ci/guarded_tests.sh "$GUARD_CLASSES"
+          CLASSES: ${{ steps.change.outputs.guard_classes }}
+        run: |
+          bash ../scripts/generate-api.sh --check
+          for class in ${CLASSES//,/ }; do rm -f target/surefire-reports/*"$class".* "target/surefire-reports/TEST-"*".$class.xml"; done
+          ./mvnw -q test-compile surefire:test -Dtest="$CLASSES"
+          for class in ${CLASSES//,/ }; do ls target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run" >&2; exit 1; }; done
       # a push to main runs the light steps only (scripts/ci/heavy_gate.py); this is the post-merge alarm for a merge that no heavy run tested on this exact tree: every container-free unit test, about 25 seconds
       - name: container-free unit tests on a push to main
         if: github.event_name == 'push'
-        run: scripts/ci/guarded_tests.sh "$(python3 scripts/ci/light_unit_classes.py)"
+        working-directory: backend
+        run: |
+          CLASSES=$(python3 ../scripts/ci/light_unit_classes.py)
+          test -n "$CLASSES"
+          bash ../scripts/generate-api.sh --check
+          ./mvnw -q test-compile surefire:test -Dtest="$CLASSES"
+          for class in ${CLASSES//,/ }; do ls target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run" >&2; exit 1; }; done
       - name: surefire and failsafe, side by side
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         # Two forks per plugin (four test JVMs per runner instead of eight): the runners share one Docker Desktop (CI_RUNNERS.md)
@@ -162,22 +169,12 @@ jobs:
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         # Check the default invocation before explicit -Dit.test reruns can add SQL Server reports.
         run: python3 scripts/ci/acceptance_reports.py --tier default
-      # a flaky test usually shows itself the first time it runs: the test classes this pull request adds or changes run again, three times, each in a new JVM (scripts/ci/repeat_new_tests.py); one failure fails the pull request
-      - name: new or changed test classes, repeated
-        if: github.event_name == 'pull_request' && steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
-        timeout-minutes: 20
-        run: python3 scripts/ci/repeat_new_tests.py "origin/$GITHUB_BASE_REF" --times 3
       - name: SQL Server integration tests (profile legacy-it)
         if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
         timeout-minutes: 30
         env:
           BACKEND_WATCHDOG_SECONDS: '1500'
         run: scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800
-      # a test container that did not come up or lost its connection leaves no trace once its attempt is removed: the engine's events since the job started, the logs of the test containers created since, and the engine summary (scripts/ci/docker_diagnostics.py)
-      - name: docker evidence for the failed job
-        if: failure()
-        timeout-minutes: 5
-        run: python3 scripts/ci/docker_diagnostics.py backend/target/docker-diagnostics "${JOB_START_EPOCH:-$(( $(date +%s) - 1800 ))}" "$RUNNER_TEMP/docker-events.log"
       # only a recorded pid: an empty one used to become `kill 0`, which signals the whole process group of the step - runsvc.sh and the runner listener included - and took the runner offline (卡 #736 第 9 项)
       - name: stop the docker events recorder
         if: always()
@@ -304,23 +301,3 @@ jobs:
           scripts/release/install_request_test.sh
           scripts/release/ship_test.sh
           bash scripts/ops/docker_ensure_selftest.sh
-
-  assertion-drift:
-    name: assertion drift (warning only)
-    if: github.event_name == 'pull_request'
-    runs-on: [self-hosted, forcitis-one]
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: 0
-      - run: python3 scripts/ci/assertion_drift.py --self-test
-      - run: python3 scripts/ci/assertion_drift.py origin/${{ github.base_ref }}
-      # report only (SCAN_SUPPLEMENT, one-data): findings never fail the job; the self-test does, and so does a crash of the scan (bash -e with pipefail); statements the scan cannot model raise a warning
-      - name: baseline DDL scan (report only)
-        shell: bash
-        run: |
-          python3 scripts/ci/baseline_ddl_scan.py --self-test
-          scan=$(python3 scripts/ci/baseline_ddl_scan.py)
-          printf '%s\n' "$scan" | grep '^=='
-          unmodelled=$(printf '%s\n' "$scan" | sed -n 's/^== 8 .*: \([0-9][0-9]*\)$/\1/p')
-          if [ "$unmodelled" != "0" ]; then echo "::warning title=Baseline DDL scan::${unmodelled:-?} statements are not modelled by the scan: extend scripts/ci/baseline_ddl_scan.py"; fi

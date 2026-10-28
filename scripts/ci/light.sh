@@ -4,9 +4,8 @@
 # 每次全量跑下面每一项，只有「按改动触发」一节按 light_triggers.sh 的路径模式挑（没有基线时全跑；自测 light_selftest.sh）；一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
 # CI 里由 .github/workflows/ci.yml 的 backend 作业调用（每个事件都跑）。不在这里的：
 # - 后端与前端测试、SQL Server 集成测试：backend、frontend 作业的重步骤（本机要跑就用 scripts/ci/backend_verify.sh、legacy_it.sh，起容器先问用户）；
-# - gitleaks 全史扫描、发布脚本自测：secret scan 作业；组织接口通知要 PR 正文，判档（relevant_change.py 输出）要写 ${GITHUB_OUTPUT}：都只在 CI 里；
-# - budget_check（one-quality 的 scripts/ci/budget_check.py，用法 `budget_check.py [--root DIR]`）：文件在就跑，还没合入时记 SKIP。
-# OpenAPI 与前端 generated 不入仓（frontend/packages/api/README.md）：build_all.py --check（全景）要它们已生成。CI 由 api-contract 作业提供；本机没有时先 bash scripts/generate-api.sh（起容器导出，先问用户），或只看 build_all.py --check --without-api。
+# - gitleaks 全史扫描、发布脚本自测：secret scan 作业；判档（relevant_change.py 输出）要写 ${GITHUB_OUTPUT}：只在 CI 里；
+# OpenAPI 与前端 generated 不入仓（frontend/packages/api/README.md）；本入口不读它们。
 # Bash 3.2（macOS）可用：不用关联数组与 mapfile。
 set -uo pipefail
 export PYTHONDONTWRITEBYTECODE=1  # 不留 __pycache__：backend 作业随后在同一工作区跑测试，遍历目录的测试读到 .pyc 会崩（#693）；python3 -I 不认它，另由 rm_new_pyc 删
@@ -67,12 +66,17 @@ pyyaml() {  # SUPPLY_CHAIN S1：生成文档与若干守护读 YAML，版本钉�
 echo "light.sh：基线 ${base:-无}，HEAD $(git rev-parse --short HEAD)"
 command -v python3 >/dev/null || { echo "FAIL  找不到 python3" >&2; exit 1; }
 
-# 供应链与生成文档（原 secret scan 作业里的步骤）
+# 供应链、正本校验与被代码读的生成物（#742：build_all 与派生文档已删，留下的检查直接在这里跑）
 run "python3 has PyYAML 6.0.3" pyyaml
-run "generated docs match fragments" python3 docs/modernization/build_all.py --check
-run "no legacy system name in docs" python3 docs/modernization/check_legacy_name.py
-run "rule review revisions (self-test)" python3 docs/modernization/rules/review_revisions.py --self-test
-against_base "rule review revisions are append-only" python3 docs/modernization/rules/review_revisions.py --base
+run "glossary term rules (terms.yaml, proposed terms)" python3 -I docs/modernization/glossary/term_rules.py --check
+run "every runtime BPMN process is catalogued" python3 -I docs/modernization/architecture/ssot/09-processes/build_catalog.py --check
+run "code reads no proposals/ (registered exceptions only)" python3 -I docs/modernization/architecture/proposal_reads.py
+run "built.yaml is up to date" python3 docs/modernization/architecture/panorama/scan_aggregates.py --check
+run "asyncapi.yaml is up to date" python3 -I docs/modernization/events/build_asyncapi.py --check
+run "decision fragments are valid" python3 -I docs/modernization/build_decisions.py --check
+run "legacy-read fragments are valid" python3 -I docs/modernization/phase1a/infra/new_legacy_read.py --check
+run "evidence tools: imports resolve (self-test)" python3 -I scripts/ci/evidence_imports.py --self-test
+run "evidence tools: imports resolve" python3 -I scripts/ci/evidence_imports.py
 run "database scripts aligned (self-test)" python3 -I scripts/ci/db_scripts_aligned.py --self-test
 run "database scripts aligned" python3 -I scripts/ci/db_scripts_aligned.py
 run "deploy.yml: checkout no global git config" python3 -I -c 'import sys,yaml; s=[x for x in yaml.safe_load(open(".github/workflows/deploy.yml"))["jobs"]["deploy"]["steps"] if str(x.get("uses","")).lower().startswith("actions/checkout@")]; w=[{str(k).lower(): v for k, v in (x.get("with") or {}).items()} for x in s]; sys.exit("deploy 作业找不到 actions/checkout 步" if not s else 0 if all(x.get("set-safe-directory") is False and not x.get("submodules") for x in w) else "deploy 作业的 checkout 须写 set-safe-directory: false、不开 submodules：否则全局 git 配置落进 $HOME/.gitconfig，toolchain.sh 按 R-0 拒绝（run 40387799615，569ed501f）")'
@@ -86,16 +90,17 @@ against_base "system actors append-only" python3 scripts/ci/system_actors_append
 against_base "acceptance guard" python3 scripts/ci/acceptance_guard.py
 against_base "acceptance rulings" python3 scripts/ci/acceptance_rulings.py
 
-# 门、钩子、CI 脚本与文档工具的自测（生成器名单取 build_all.py 的清单，O14 起不由 build_all 跑；列不出记一项 FAIL）
+# 门、钩子、CI 脚本与留下的文档工具的自测
 run "gates (gates_selftest.py)" python3 scripts/gates/gates_selftest.py
 sheet=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}/start_sheet/start_sheet_selftest.py  # 开工单固定由 /usr/bin/python3 跑（#47），3.10 以上语法在这里就红；工具库不在本机（CI）时同 acceptance_v2 V05 不判红
 if [ -f "$sheet" ]; then run "start_sheet under /usr/bin/python3" /usr/bin/python3 -I "$sheet"; else skip "start_sheet under /usr/bin/python3" "本机没有工具库的 $sheet"; fi
-listed=$(python3 docs/modernization/build_all.py --self-test-list) || listed="build_all-self-test-list-failed"
-for script in docs/modernization/build_all.py $listed docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py scripts/queue/merge_train.py scripts/merge/mq.py \
-  scripts/ci/ci_recurrence.py scripts/ci/relevant_change.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py scripts/ci/docker_diagnostics.py \
-  scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py docs/modernization/new_intent_selftest.py scripts/evidence/evidence_selftest.py; do
+for script in docs/modernization/build_decisions.py docs/modernization/architecture/proposal_reads.py docs/modernization/architecture/ssot/09-processes/build_catalog.py \
+  docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py scripts/merge/mq.py scripts/ci/relevant_change.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py \
+  docs/modernization/new_intent_selftest.py scripts/evidence/evidence_selftest.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
+run "scan_aggregates tests" python3 docs/modernization/architecture/panorama/test_scan_aggregates.py
+run "post_review_selftest" python3 scripts/review/post_review_selftest.py
 run "ci_steps_selftest (ci.yml cleanup spares the runner)" python3 scripts/ci/ci_steps_selftest.py  # 卡 #736 第 9 项：无参数
 run "runner_watch_selftest (runner keep-alive and watch)" python3 scripts/ops/runner_watch_selftest.py
 run "light_selftest (by-change triggers)" bash scripts/ci/light_selftest.sh
@@ -105,16 +110,6 @@ while IFS='|' read -r key name cmd; do
   # shellcheck disable=SC2086
   if touches "${!key}"; then run "$name" $cmd; else skip "$name" "相关路径没改（按改动触发）"; fi
 done <<<"$TRIGGERED_CHECKS"
-if touches "$t_decision_pages"; then
-  against_base "decision pages: question rules" python3 docs/modernization/rules/decide/check_pages.py --changed
-fi
-
-# 体量与单一出处（one-quality）
-if [ -f scripts/ci/budget_check.py ]; then
-  run "budget_check" python3 scripts/ci/budget_check.py
-else
-  skip "budget_check" "scripts/ci/budget_check.py 还没合入（one-quality 的 claude/one-quality-flow-v2-b1）"
-fi
 run "remove __pycache__ left by this run" rm_new_pyc
 
 echo

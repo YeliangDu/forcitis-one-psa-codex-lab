@@ -1,4 +1,4 @@
-note: object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ declared_none 组声明无业务对象 / proposed 脚本提议 / candidates 多候选 / none 无候选 / read_model 读模型不提议 / support、support_proposed、support_none
+note: 正本，直接编辑（原生成脚本已随卡 742 删除）；status：confirmed 三组确认（目录 primary_object）/ declared_none 组声明无业务对象 / proposed 脚本提议 / candidates 多候选 / none 无候选 / read_model 读模型不提议 / support、support_proposed、support_none
   支撑流程（主对象已填 / 唯一写入对象推出 / 无），integration_* 集成流程同理（主对象取 feeds 的首个对象或所供流程的主对象）；stages 为归属（实线），supports 为支撑本段（虚线，自动：所触对象出现在该段条件里 = 条件，或被该段流程使用 = 使用）；category：business 核心 / management 战略 / support 支撑（categories.proposal.yaml，待用户认可）
 value_streams:
 - id: VS-01

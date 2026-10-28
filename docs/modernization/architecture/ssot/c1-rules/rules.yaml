@@ -1,4 +1,4 @@
-# 由 architecture/ssot/c1-rules/convert_inv.py 生成，勿手改；rule_cards 见 rule_cards.yaml
+# 正本，直接编辑（原生成脚本已随 #742 删除）；rule_cards 见 rule_cards.yaml
 meta:
   status: proposal
   source: docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md

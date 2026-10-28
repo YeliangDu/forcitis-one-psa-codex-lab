@@ -8,7 +8,7 @@
 # 先安装前端依赖；离线缓存缺包时失败，不联网补装。
 (cd frontend && pnpm --offline --config.verify-deps-before-run=false install --frozen-lockfile)
 bash scripts/generate-api.sh -o
-python3 docs/modernization/build_all.py --check
+bash scripts/ci/light.sh
 (cd frontend && pnpm --offline --config.verify-deps-before-run=false verify)
 ```
 

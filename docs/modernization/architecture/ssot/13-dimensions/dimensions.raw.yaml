@@ -1,4 +1,4 @@
-# 由 extract_dimensions.py 生成，勿手改
+# 正本，直接编辑（原生成脚本已随 #742 删除）
 meta:
   sources:
   - docs/modernization/BI_SCOPE.md

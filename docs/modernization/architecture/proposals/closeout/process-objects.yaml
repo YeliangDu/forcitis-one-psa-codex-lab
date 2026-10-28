@@ -1,4 +1,4 @@
-note: object_check.py --objects-yaml 生成，勿手改；ops：C 创建、U 修改、D 结束或归档（含冲销撤回）、R 只读、? 判不出；proposed_only 为只来自提议命令（〔缺〕）的字母
+note: 正本，直接编辑（原生成脚本已随卡 742 删除）；ops：C 创建、U 修改、D 结束或归档（含冲销撤回）、R 只读、? 判不出；proposed_only 为只来自提议命令（〔缺〕）的字母
 processes:
 - id: PRC-01
   name: 举办市场活动
