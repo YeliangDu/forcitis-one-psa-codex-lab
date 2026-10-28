@@ -568,25 +568,11 @@ operations:
     summary: platform.identity 发布
     messages:
     - $ref: '#/channels/roleCreated/messages/RoleCreated'
-  handleRoleCreatedInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/roleCreated'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/roleCreated/messages/RoleCreated'
   publishRoleRevised:
     action: send
     channel:
       $ref: '#/channels/roleRevised'
     summary: platform.identity 发布
-    messages:
-    - $ref: '#/channels/roleRevised/messages/RoleRevised'
-  handleRoleRevisedInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/roleRevised'
-    summary: platform.audit 消费
     messages:
     - $ref: '#/channels/roleRevised/messages/RoleRevised'
   publishRoleEnabled:
@@ -596,13 +582,6 @@ operations:
     summary: platform.identity 发布
     messages:
     - $ref: '#/channels/roleEnabled/messages/RoleEnabled'
-  handleRoleEnabledInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/roleEnabled'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/roleEnabled/messages/RoleEnabled'
   publishRoleDisabled:
     action: send
     channel:
@@ -610,25 +589,11 @@ operations:
     summary: platform.identity 发布
     messages:
     - $ref: '#/channels/roleDisabled/messages/RoleDisabled'
-  handleRoleDisabledInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/roleDisabled'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/roleDisabled/messages/RoleDisabled'
   publishRoleDeleted:
     action: send
     channel:
       $ref: '#/channels/roleDeleted'
     summary: platform.identity 发布
-    messages:
-    - $ref: '#/channels/roleDeleted/messages/RoleDeleted'
-  handleRoleDeletedInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/roleDeleted'
-    summary: platform.audit 消费
     messages:
     - $ref: '#/channels/roleDeleted/messages/RoleDeleted'
   publishAccountEnabled:
@@ -2364,12 +2329,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
       payload:
@@ -2401,12 +2365,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
       payload:
@@ -2438,12 +2401,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
       payload:
@@ -2475,12 +2437,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
       payload:
@@ -2512,12 +2473,11 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
       payload:
