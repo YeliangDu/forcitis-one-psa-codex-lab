@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """门的自测，合一（O8，D25；定稿 1.10「自测 1 个文件」）。`gates_selftest.py [段…]` 跑指定的段，不带参数跑全部；各门的 `--self-test` 只跑自己那一段。
-- prod_write_gate：命令解析、生产写门、可信脚本（cwd 与 CLAUDE_PROJECT_DIR 同一仓库）、「生产写门 17 例」（Codex 复核 #653 的 17 条 P1 缺口，测试表与真实特征表下都须拒绝，按计数断言）、版式。
+- prod_write_gate：命令原文与特征表字面匹配（用户 intent 2026-10-28-202019：命中即拒、不分大小写、无关命令不误拦、拆开或编码的按设计放行、无表失败关闭）、版式。
 - pre_tool_dispatch：预筛不藏拒绝、失败关闭、时限。main_checkout_gate（含 git_ceiling_env.sh）与 commit_msg_gate：在临时仓库与 worktree 里端到端提交。
-- install：install.sh 与 .claude/settings.json 挂载，全部在临时目录里做，HOME 指向临时目录，不碰真实安装目录（安装、切换、并发、自检不过、只读、篡改核对与修复、挂载失败关闭、可信锚）。
+- install：install.sh 与 .claude/settings.json 挂载，全部在临时目录里做，HOME 指向临时目录，不碰真实安装目录（安装、切换、并发、自检不过、只读、篡改核对与修复、挂载失败关闭）。
 不写任何真实生产样本的字面值，拆段拼接也不行（O2 复审 M3）：真实特征运行时按 target id 从 prod_targets.json 取（install 段只经 install.sh 自检与探针按位置取用）；其余用虚构样本（192.0.2.x 是文档专用地址）。"""
 import ast
 import contextlib
@@ -25,7 +25,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 import pre_tool_dispatch as d  # noqa: E402
 import prod_write_gate as g  # noqa: E402
-from prod_write_gate import (COMMAND_TOOLS, DOCS_ROOT, LAUNCH_TOOL, REPO_ROOT, brace_variants, could_concern, decode_ansi_c, judge, load_table, name_of, plain, simple_commands, tokens_of)  # noqa: E402
+from prod_write_gate import (COMMAND_TOOLS, LAUNCH_TOOL, could_concern, judge, load_table)  # noqa: E402
 
 PYTHON = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
 
@@ -44,377 +44,41 @@ def put(path, text, mode=0o755):
         f.write(text)
     os.chmod(path, mode)
 
-def tree_as_main(root):  # scripts/evidence/ under root as it stands, listed as prod_write_gate.main_tree() lists origin/main's
-    return [("040000" if n in ds else "100644", os.path.relpath(os.path.join(h, n), root)) for h, ds, ns in os.walk(os.path.join(root, "scripts", "evidence")) for n in ds + ns]
-
-def as_main_of(root):  # {path: object id} of every file under root, read as origin/main's blobs
-    files = [os.path.relpath(os.path.join(h, n), root) for h, _, ns in os.walk(root) for n in ns]
-    return dict(zip(files, g.batch(["hash-object", "--no-filters", "--stdin-paths"], [os.path.join(root, f) for f in files])))
-
-def size(key, path):  # (lines of `path`, its limit policy.json gates.max_lines.<key>)
-    return Path(path).read_text(encoding="utf-8").count("\n"), policy()["max_lines"][key]
-
-HOOKS = os.path.join(REPO_ROOT, "scripts", "hooks")  # ── prod_write_gate ──
-TEST_IP = "192.0.2.15"  # RFC 5737 documentation address, not a production host
-SAMPLE_IDS = ("legacy-rds-sqlserver", "legacy-ecs", "new-prod-names")  # the 17 cases' P, H, D: the first pattern of each of these targets
+TEST_IP = "192.0.2.15"  # ── prod_write_gate ── RFC 5737 documentation address, not a production host
+SAMPLE_IDS = ("legacy-rds-sqlserver", "legacy-ecs", "new-prod-names")  # P, H, D of the dispatcher and install sections: the first pattern of each of these targets
 
 def shipped_firsts():
     """{target id: its first pattern} of the shipped prod_targets.json, read at run time (the guard sources hold no production sample)."""
     return {t["id"]: t["patterns"][0].strip() for t in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["targets"]}
 
-def shipped_forms():
-    """{"<target id> <form>": pattern}: the first IP-shaped and the first name-shaped pattern of every target of the shipped table (O2 round 1, note ①: each form is run)."""
-    forms = {}
-    for target in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["targets"]:
-        for pattern in target["patterns"]:
-            form = "ip" if re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", pattern.strip()) else "name"
-            forms.setdefault(f"{target['id']} {form}", pattern.strip())
-    return forms
-
 def real_samples():
-    """(P, H, D) for the 17 cases under the real table."""
+    """(P, H, D) under the real table."""
     firsts = shipped_firsts()
     return tuple(firsts[i] for i in SAMPLE_IDS)
 
-def braced(word):
-    """`word` with one character written as a brace expansion `{c,c}`: bash (and curl) turn it back into `word`, the word itself is not on the line."""
-    k = len(word) // 2
-    return word[:k] + "{" + word[k] + "," + word[k] + "}" + word[k + 1:]
-
-def seventeen(P, H, D):
-    """生产写门 17 例：编号 = Codex 复核 #653（2026-10-22）的 P1 缺口序号，命令取自其复现样本（P 为 RDS 实例、H 为应用服务器、D 为生产库名；第 12 例的花括号按 braced 生成）。"""
-    return {
-        1: [f"sqlcmd -S {P} -Q \"SELECT '--'; DELETE FROM dbo.t\"", f"sqlcmd -S {P} -Q \"SELECT '/*'; DELETE FROM dbo.t; SELECT '*/'\""],  # SQL 注释藏写语句
-        2: [f"sqlcmd -S {P} -Q \"SET NOCOUNT ON\nDELETE FROM dbo.t\""],  # SET 开头夹带写
-        3: [f"sqlcmd -S {P} -z \"$NEW_PASSWORD\" -Q \"SELECT 1\"", f"sqlcmd -S {P} -v op=\"; DELETE FROM dbo.t\" -Q 'SELECT 1 $(op)'",
-            f"mysql -h {H} --init-command=\"DELETE FROM t\" -e \"SELECT 1\"", f"psql -h localhost -c 'SELECT 1' -o '|ssh {H} touch /tmp/review'"],  # SQL 工具的其他执行入口
-        4: [f"psql -d {D} -c 'SELECT pg_catalog.\"nextval\"($$seq$$)'", f"psql -d {D} -c \"SELECT pg_logical_emit_message(false, 'x', 'x')\""],  # 带引号函数名、有副作用函数
-        5: [f"echo ok # <<EOF\nsqlcmd -S {P} -Q \"DELETE FROM dbo.t\"", f'echo "<<EOF"; sqlcmd -S {P} -Q "DELETE FROM dbo.t"', f"cat <<EOF\n$(sqlcmd -S {P} -Q \"DELETE FROM dbo.t\")\nEOF"],  # heredoc 误识别
-        6: [f"printf \"%s\" <(sqlcmd -S {P} -Q \"DELETE FROM t\")"],  # 进程替换
-        7: [f"eval eval eval eval ssh {H} touch /tmp/review"],  # 嵌套超深仍豁免外层
-        8: [f"export SQLCMDSERVER={P}; sqlcmd -Q \"DELETE FROM dbo.t\"", f"export H={P}; sqlcmd -S\"$H\" -Q \"DELETE FROM dbo.t\""],  # export 不传播、粘连主机选项
-        9: [f"python3 -X new_intent.py -c \"import os; os.system('ssh {H} touch /tmp/review')\"", f"node --title new_intent.py -e \"require('child_process').execSync('ssh {H} touch /tmp/review')\""],  # 冒充文档脚本
-        10: [f"cat > /tmp/prod_gate_review_f13574.sh <<'EOF'\nssh {H} touch /tmp/review\nEOF\nbash /tmp/prod_gate_review_f13574.sh"],  # 先生成脚本再执行
-        11: [f"rg --pre \"ssh {H} touch /tmp/review\" x README.md", f"git push ssh://{H}/srv/repo HEAD:main"],  # 不连接工具的执行入口
-        12: [f"curl -XDELETE http://{braced(H)}/api/item/1", f"curl -XDELETE 'http://{braced(H)}/api/item/1'"],  # 花括号展开藏目标
-        13: [f"curl --quote \"rm /tmp/x\" sftp://{H}/", f"curl 'gopher://{H}:6379/_SET%20x%201%0D%0A'"],  # curl 非 HTTP 协议
-        14: [f"printf 'url = \"http://{H}/api\"\\ndata = \"x=1\"\\n' | curl -K -"],  # curl 从管道读配置
-        15: [f"scp -o 'ProxyCommand=ssh {H} touch /tmp/review' {H}:/var/log/app.log ./app.log", f"rsync -e 'ssh -oProxyCommand=\"ssh {H} touch /tmp/review\"' {H}:/var/log/ ./logs/",
-             f"scp -O '{H}:$(touch /tmp/review)/app.log' ./app.log"],  # scp/rsync 传输程序与远端 shell
-        16: [f"bcp \"DELETE FROM dbo.t; SELECT 1\" queryout ./out.txt -S {P}", f"redis-cli -h {H} slowlog reset", f"redis-cli -h {H} client kill type normal"],  # 只看方向或一级子命令
-        17: [f"ssh {H} 'date -us 2020-01-01'"],  # ssh 只读工具的组合短选项
-    }
-
-def words_self_test():
-    names = lambda text: [name_of(c.argv[0]) for c in simple_commands(text)]  # noqa: E731
-    argvs = lambda text: [c.argv for c in simple_commands(text)]  # noqa: E731
-    # ANSI-C words are decoded the way bash does
-    assert decode_ansi_c(r"\x67it \147it git \U00000067it\n") == "git git git git\n" and decode_ansi_c(r"a\x00b") == "a"
-    assert plain("$'\\x67it' push") == "git push" and plain("$'\\147it' push") == "git push" and plain("$'git' push") == "git push" and plain('$"git" push') == "git push"
-    assert argvs("$'\\x73qlcmd' -S $'\\x68ost' -Q x") == [["sqlcmd", "-S", "host", "-Q", "x"]]
-    # a backslash-newline is deleted, also in the middle of a word
-    assert plain("gi\\\nt push") == "git push" and argvs("sqlc\\\nmd -S h") == [["sqlcmd", "-S", "h"]] and argvs("a \\\n  b") == [["a", "b"]]
-    # backticks are substitutions: the inner command is a command of its own and the outer word is unresolved; in single quotes they are text
-    found = simple_commands("sqlcmd -S `echo rm-x` -Q q")
-    assert "echo" in names("sqlcmd -S `echo rm-x` -Q q") and found[0].unresolved
-    assert names("git commit -m 'use `foo` and $x'") == ["git"] and not simple_commands("git commit -m 'use `foo` and $x'")[0].unresolved
-    assert simple_commands('echo "$X"')[0].unresolved and not simple_commands("echo '$X'")[0].unresolved
-    assert "git" in names("echo `git push`") and any(t == ";" for t in tokens_of("echo `git push`")), "the other gates keep reading a backtick as a new command"
-    # shells: bundled -c options, multi-word eval, heredoc / here-string / echo-pipe bodies
-    for text in ("bash -lc 'psql -h h'", "sh -ec 'psql -h h'", "bash -xc \"psql -h h\"", "eval psql -h h", "eval 'psql' '-h' h", "bash <<'EOF'\npsql -h h\nEOF", "bash <<< 'psql -h h'", "echo 'psql -h h' | bash", "zsh -c \"bash -c 'psql -h h'\"",
-                 "env -S 'psql -h h'", "env -S'psql -h h'", "env --split-string='psql -h h'", "env A=1 -S 'psql -h h'"):
-        assert "psql" in names(text), text
-    assert ["psql", "-h", "h"] in argvs("eval psql -h h") and ["psql", "-h", "h"] in argvs("env -S 'psql -h h'")
-    pick = lambda text: next(c for c in simple_commands(text) if c.argv[0] == "bash")  # noqa: E731
-    assert pick("echo hi | bash").piped and not pick("echo hi; bash").piped
-    # variables and wrappers still work
-    assert argvs("h=a; psql -h ${h}b") == [["psql", "-h", "ab"]] and argvs("FOO=1 nohup timeout 9 psql x") == [["psql", "x"]]
-    # Codex review of #653: byte-wise ANSI-C, quote-aware here-documents, process substitution, nesting limit, export
-    assert decode_ansi_c(r"\xe8\xb0\x83\xe5\xba\xa6") == "\u8c03\u5ea6" and decode_ansi_c(r"\u8c03") == "\u8c03"
-    # comments and here-documents are not mimicked (intent 2026-10-26-140639): their text is read as words, so what they mention is seen; judge refuses such lines
-    assert "sqlcmd" in names("echo ok # x\nsqlcmd -S p -Q x") and "sqlcmd" in names("cat <<'EOF'\n$(sqlcmd -S p -Q x)\nEOF") and "psql" in names("cat <<EOF\npsql -h x\nEOF")
-    assert names('printf "%s" <(sqlcmd -S p -Q x)') == ["printf", "sqlcmd"] and names("diff <(ls a) >(cat)") == ["diff", "ls", "cat"]
-    assert simple_commands("export SQLCMDSERVER=prod; sqlcmd -Q x")[-1].env == {"SQLCMDSERVER": "prod"} and simple_commands("export A=1; unset A; ls")[-1].env == {}
-    assert simple_commands("A=1; export A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; declare -x A; ls")[-1].env == {"A": "1"} and simple_commands("A=1; ls")[-1].env == {}
-    assert simple_commands("set -a; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -o allexport; A=1; ls")[-1].env == {"A": "1"} and simple_commands("set -a; set +a; A=1; ls")[-1].env == {}
-    assert simple_commands("PGHOST=x; ls")[-1].env == {"PGHOST": "x"} and simple_commands("SQLCMDSERVER=x; sqlcmd")[-1].env == {"SQLCMDSERVER": "x"}, "a target variable may be exported already"
-    assert simple_commands("A=1; declare -a A; ls")[-1].env == {} and simple_commands("export B; ls")[-1].env == {}, "an array declaration or an unknown name exports nothing"
-    assert argvs("export H=prod; sqlcmd -S\"$H\" -Q x")[-1][:2] == ["sqlcmd", "-Sprod"]
-    for bad in ("eval eval eval eval ssh h touch x", "echo 'unterminated"):  # nesting deeper than 3, unreadable input
-        with contextlib.suppress(ValueError):
-            simple_commands(bad)
-            raise AssertionError(f"must raise: {bad!r}")
-    print("command_words self-test: ok")
+MISBLOCKED = (  # no production sample on the line: allowed (卡 #736; the first four were refused in one-ops' own session on 10-28)
+    "grep -rnE 'Closes #' .github scripts 2>/dev/null | grep -v selftest | head -20", "grep -rnlE 'mq\\.py|入队' docs/*.md | head",
+    "/usr/bin/python3 -I -c 'import json;d=json.load(open(\"s.json\"));print(d[\"hooks\"])'", "grep -n x deploy.sh",
+    "cd scripts/gates && python3 gates_selftest.py", "python3 - <<'EOF'\nprint(1)\nEOF", "setopt nullglob; ls *.md", "ls *(.)", "npm --prefix frontend run build", "make -C backend test", "env -C /tmp ls",
+    "echo -e 'a\\tb'", "printf 'a\\n'", "f() { ls; }; f", "x=(1 2); echo $x", "eval \"$(printf x)\"", "git -c core.pager=cat log -1", "PAGER=cat git log -1", "cd pkg && make && ./dist/app",
+    "cat <<EOF > n.md\nnotes # x\nEOF", "psql -h localhost -c 'select 1'", "curl -s https://api.github.com/repos/x/y", "ssh dev-box uptime", "scp a dev:/tmp/", "curl -X POST http://localhost:8080/api",
+    "aliyun --profile dev-ro ecs DescribeRegions", "./deploy.sh", "bash deploy.sh")
 
 def gate_self_test():
-    patterns = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP]
-    cwd = tempfile.mkdtemp()
-    refused = lambda command, table=patterns, problem=None, environ=None: judge(command, table, problem, cwd, environ or {}) is not None  # noqa: E731
-    allowed = lambda command, table=patterns, problem=None, environ=None: judge(command, table, problem, cwd, environ or {}) is None  # noqa: E731
-    def check(expect, commands, why, **judged):  # table-driven: each command refused (expect True) or allowed (False); the message names the reason and the command
-        for command in commands:
-            assert (refused if expect else allowed)(command, **judged), (why, command)
-    P, H = "pgm-prod0001", TEST_IP
-    for name, text in (("ro.sql", "select count(*) from t;\nselect 2\n"), ("fix.sql", "select 1;\ndelete from t where id = 1;\n"), ("runner.py", "INSTANCE = 'rm-prodhost1'\nconnect(INSTANCE)\n"), ("clean.py", "print(1)\n"),
-                       ("deploy.sh", f"sqlcmd -S {P} -Q 'delete from t'\n")):
-        Path(cwd, name).write_text(text, encoding="utf-8")
-    intent = os.path.join(REPO_ROOT, DOCS_ROOT, "new_intent.py")
-    def as_main(rels):  # this repository's files read as origin/main's: a branch may edit new_intent's neighbours (trust against origin/main itself: trust_self_test)
-        return {rel: subprocess.run(["git", "-C", REPO_ROOT, "hash-object", os.path.join(REPO_ROOT, rel)], capture_output=True, text=True).stdout.strip() for rel in rels}
-    shipped, on_main = json.load(open(os.path.join(g.HERE, "prod_targets.json"), encoding="utf-8"))["no_exec_tools"], json.loads(g.main_table_text(REPO_ROOT)[0] or "{}").get("no_exec_tools", {})
-    real_blobs, g.main_blobs, real_safe, g.no_exec_tools = g.main_blobs, as_main, g.no_exec_tools, lambda: (set(shipped["tools"]), set(shipped["git_subcommands"]), shipped["short_valued"])
-    assert real_safe() == (set(on_main.get("tools", [])), set(on_main.get("git_subcommands", [])), on_main.get("short_valued", {})), "origin/main's table only"
-    assert set(shipped["tools"]) == set(shipped["basis"]) == {"git", "cat", "head", "tail", "wc", "ls", "grep", "rg", "diff", "cmp", "stat", "shasum", "jq", "rm", "mv", "cp"} and shipped["short_valued"] == {"rm": "", "mv": "St", "cp": "St"}, "a basis each"
-    # 1. harmless mentions pass; a remote tool's name anywhere is refused unless the whole line is a registered form, reads to production and localhost included (intent 2026-10-26-160810)
-    check(False, ("python3 clean.py", "bash -c 'echo hi'", "ls $HOME", "echo 'cost $5'", "ls -la # list files", "git commit -m 'fix #12'", "cat <<EOF > n.md\nplain text\nEOF", "ls \\\n-la", "git status", "./clean.py", "bash missing.sh"), "must pass")
-    # 1a. a production sample anywhere, or a target variable pointing at production, refuses the whole line whatever the command (intent 2026-10-26-165321 A)
-    check(True, ("git commit -m 'pgm-prod0001 续费说明'", "git log --grep pgm-prod0001", "echo pgm-prod0001 >> notes.md", "grep pgm-prod0001 docs/x.md", "sed -i s/pgm-prod0001/X/ docs/a.md", "ls docs/pgm-prod0001", "rg pgm-prod0001 docs",
-                 "echo 'cost $5 for pgm-prod0001'", "H=pgm-pr; echo ${H}od0001", "echo pgm-prod{0001,0002}", "PGHOST=pgm-prod0001 ls"), "a production sample on the line: refused")
-    assert refused("ls", environ={"PGHOST": P}) and refused("git status", environ={"DATABASE_URL": f"sqlserver://{P}"}) and allowed("ls", environ={"PGHOST": "localhost"}), "a target variable in the session pointing at production"
-    check(True, (f'psql -h {P} -c "SELECT 1"', f"sqlcmd -S {P} -i ro.sql", f"echo 'select 1' | psql -h {P}", f'redis-cli -h {P} slowlog get 5', "aliyun rds DescribeDBInstances --InstanceId pgm-prod0001", f"ssh {P} 'df -h && uptime'",
-                 f"scp ops@{P}:/var/log/a.log ./a.log", f"rsync -a ops@{P}:/data/ ./data/", f"curl https://{P}/health", "wget https://db.prod.example.com/x", "gh pr comment 3 --body 'psql -h pgm-prod0001 update x'", f"bash -c \"sqlcmd -S {P} -Q 'select 1'\"",
-                 "curl -X POST http://localhost:$PORT/api", "psql -h localhost -c 'select 1' && curl http://localhost:$PORT"), "a remote tool, not a registered line: refused, the gate no longer reads its arguments")
-    # 1b. a comment or a here-document is not stripped as the shell would (intent 2026-10-26-140639): with a production sample, a remote tool or a target variable on the line, refused
-    check(True, (f"psql -h {P} <<'EOF'\nselect 1;\nEOF", "cat <<'EOF' > n.md\npgm-prod0001\nEOF", "cat <<EOF\nplain text pgm-prod0001\nEOF", f"ls # {P}", "cat <<EOF\npsql -h localhost\nEOF", "echo a # '\ntime \\./deploy\n: \\'",
-                 f"ssh {P} uptime # can't", f"cat <<'EOF'\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF", "echo a # x \\\nenv \\./deploy", "ls # x \\\nif scripts/deploy; then :; fi", f">\"$(psql -h {P} -c 'delete from t')\" ls"), "refused rather than read wrongly")
-    assert refused("ls # x", environ={"PGHOST": P}) and allowed("ls # x", environ={"PGHOST": "localhost"}), "a target variable pointing at production counts too"
-    check(True, ("python3 runner.py # it's", 'python3 runner.py # "', "python3 runner.py <<EOF\nit's\nEOF", "bash runner.py # it's", "echo a # '\npython3 runner.py\n: \\'", "H=pgm-pr; <<<\"psql -h ${H}od0001 -c 'delete from t'\" bash",
-                 "cat <<EOF\n'\nEOF\npython3 runner.py\n: \\'", "./deploy.sh # x", "echo a # it's", "echo a # x \\\n./deploy", ">o python3 runner.py", "echo a\\\\\n./deploy # x",  # the script the program reads (2b59000cb, c211b73bd final)
-                 "T=ps; H=pgm-pr; ls # it's\n${T}ql -h ${H}od0001 -c 'delete from t'", "T=ps; H=pgm-pr; ${T}ql -h ${H}od0001 -c 'delete from t' # it's", "T=ps; H=pgm-pr; cat <\\\n<X\nit's\nX\n${T}ql -h ${H}od0001 -c 'delete from t'",
-                 "T=ps; H=pgm-pr; ls # '\n${T}ql -h ${H}od0001 -c 'delete from t'\n: \\'", ">x python3 a.py # c", "ls # x \\\n./run", "echo a # '\nenv scripts/deploy\n: \\'",  # anywhere; variables spell tool and target
-                 "ls # '\n`echo ps`ql -h `echo pgm-pr`od0001 -c \"delete from t\"\n: \\'", f"echo a\\\\\npsql -h {P} -c 'delete from t'", "echo a # '\n./deploy\n: \\'"),  # backticks, a path command; `\\` then a newline ends the command (3eac19088 final)
-          "a comment or here-document with a program, or unreadable: refused")
-    # 2. writes to production are refused, every class
-    check(True, (f'psql -h {P} -c "insert into t values (1)"', f'psql -h {P} -c "select 1; delete from t"', f"psql -h {P} -f fix.sql", f"psql -h {P} < fix.sql", f"psql -h {P}", f"mysql -h {P} < x.sql", f'redis-cli -h {P} flushall',
-                 f'redis-cli -h {H} slowlog reset', f'sqlcmd -S {P} -Q "select 1; dbcc shrinkdatabase(x)"', f'sqlcmd -S {P} -Q "SELECT \'--\'; DELETE FROM dbo.t"', f'sqlcmd -S {P} -Q "select \'unterminated"',
-                 f'sqlcmd -S {P} -v op="; DELETE FROM dbo.t" -Q \'SELECT 1 $(op)\'', f'psql -h {P} -c \'SELECT pg_catalog."nextval"($$seq$$)\'', f'psql -h {P} -c "\\copy t from f"', f">o scp f {P}:/x",
-                 "T=ps H=pgm-pr >o; ${T}ql -h ${H}od0001 -c 'delete from t'", f'mysql -h {H} --init-command="DELETE FROM t" -e "select 1"', f"psql -h localhost -c 'select 1' -o '|ssh {H} touch /tmp/x'", f'psql -h {P} <<EOF\nselect 1;\ndelete from t;\nEOF',
-                 f'echo "delete from t" | psql -h {P}', f'cat fix.sql | psql -h {P}', f'bcp db.dbo.t in x.dat -S {P}', f'tsql -H {P}', f'sqlpackage /Action:Publish /TargetServerName:{P}', f'mongosh --host {P} --eval "db.t.deleteMany({{}})"',
-                 "aliyun rds DeleteAccount --DBInstanceId pgm-prod0001", "aliyun ecs InvokeCommand --InstanceId rm-prodhost1", f'ssh {P} "rm -rf /data/x"', f'isql {P}', f"ssh {P} 'systemctl restart app'", f"ssh {P}", f"ssh {P} 'cat /etc/x | sh'",
-                 f"ssh {H} 'date -us 2020-01-01'", f"ssh -L 5432:db:5432 {P} ls", f"ssh -o ProxyCommand='nc x 22' {P} ls", f"scp ./fix.sql ops@{P}:/tmp/", f"rsync -a ./dist/ ops@{P}:/srv/", f"rsync --rsync-path='sh -c x' ops@{P}:/data/ ./x/", f"sftp {P}",
-                 f"scp -o 'ProxyCommand=ssh {H} touch /tmp/x' {H}:/var/log/a ./a", f"scp -O '{H}:$(touch /tmp/x)/a' ./a", f"curl -X POST https://{P}/api", f"curl -sd x=1 https://{P}/api", f"aliyun cs DELETE /clusters/{P}", f"curl -K cfg https://{P}/api",
-                 f"curl -T f.bin https://db.prod.example.com/up", f"curl https://{P}/a --next https://{P}/b -d x", f"curl --quote 'rm /tmp/x' sftp://{H}/", f"printf 'url = \"http://{H}/api\"' | curl -K -", "curl -XDELETE http://192.0.{2,2}.15/api/item/1",
-                 f"wget --method=DELETE https://{P}/x", f"http POST https://{P}/x", f"xh PUT https://{P}/x"), "write must be refused")
-    # 3. writes elsewhere pass, except through a remote tool not written as a registered line (intent 2026-10-26-160810)
-    check(False, ("python3 clean.py", "xargs -n1 echo", "find . -name '*.py'", "caffeinate -i ls"), "non-production write must pass")
-    check(True, ('psql -h localhost -c "insert into t values (1)"', "aliyun rds DeleteAccount --DBInstanceId pgm-dev00001", "ssh dev 'rm -rf /tmp/x'", "scp a dev:/tmp/", "curl -X POST https://dev/x"),
-          "a remote tool to a non-production host, not registered: refused")
-    # 3a. a zsh glob qualifier runs code while expanding (`a1(e:…:)` even without a wildcard): an unquoted `(` right after a word, or `(#`, refuses the whole line; quotes followed only while certain (调度 10-27, uncertain → refuse)
-    for command in ("ls *(e:'touch x':)", "ls a1(e:'touch x':)", "ls **/*(.)", "ls \"a\"*(e:x:)", "ls 'a'*(e:x:)", "ls (a|b)(e:x:)", "ls a*(#qe:x:)", "ls (#qe:x:)", "ls *(+f)", "ls @(a|b)", "f() { ls; }", "ls x;ls *(e:x:)",
-                    "echo \"$(ls *(e:x:))\"", "echo \"$x\" *(e:x:)", "echo \"`ls`\" a(e:x:)", "echo $'\\'' *(e:x:) $'\\''", "echo \"it's\" a(e:x:)", "echo 'unclosed *(e:x:)", "echo \"a\\\"b\" *(e:x:)", "echo $(ls *(e:x:))",
-                    # an escaped character, a range, a backtick, `=` or a blank zsh does not split on before `(` (40df9f9a5 round 1, final M1, M2)
-                    "ls a\\ (e:x:)", "ls \\((e:x:)", "ls a\\$(e:x:)", "ls a\\<(e:x:)", "ls a\\>(e:x:)", "ls a\\|(e:x:)", "ls a\\;(e:x:)", "ls a\\&(e:x:)", "ls a\\=(e:x:)", "ls a\\`(e:x:)", "ls a\\\n(e:x:)", "ls a\\\t(e:x:)", "ls \\<(e:x:)",
-                    "ls a<->(e:x:)", "ls a<1-9>(e:x:)", "ls 2>(e:x:)", "ls `echo a`(e:x:)", "ls a=(e:x:)", "ls *=(e:x:)", "x=(1 2)", "cat =(ls)",
-                    "ls a\r(e:x:)", "ls a\x0b(e:x:)", "ls a\x0c(e:x:)", "ls a\x1c(e:x:)", "ls a\x85(e:x:)", "ls a\xa0(e:x:)", "ls a\u2003(e:x:)",
-                    # a shell or eval runs its quoted body: quotes not followed (40df9f9a5 final M3); a variable's value globbed (final suggestion 1)
-                    "zsh -fc 'ls a*(e:\"x\":)'", "eval 'ls a*(e:x:)'", "bash -c 'f(x)'", "zsh <<< 'ls *(e:x:)'", "echo 'ls *(e:x:)' | zsh", "$SHELL -c 'ls *(e:x:)'", "/bin/zsh -c 'ls a1(e:x:)'", "z\"s\"h -c 'ls a1(e:x:)'",
-                    "x='a*(e:x:)'; ls $~x", "ls ${~x}", "setopt globsubst; ls $x", "setopt GLOB_SUBST", "set -x -o x", "set -e +o x", "zpty z 'ls a1(e:x:)'", "sched +1 'ls a1(e:x:)'",
-                    # `$$`, an escaped `(` handed to eval, a string run again (fbd9bbb63); mechanisms refused as they stand, not decoded: escapes, $'…', print/echo/printf escapes, options, modules (调度 10-27 晚)
-                    "ls $$(e:x:)", "eval ls a\\(e:x:\\)", "eval 'ls a'\\(e:x:\\)", "eval $'ls a\\x28e:x:)'", "zsh -c $'ls a\\050e:x:)'", "eval $'ls a\\u0028e:x:)'",
-                    "trap 'ls a*(e:x:)' EXIT", "source /dev/stdin <<< 'ls a*(e:x:)'", ". /dev/stdin <<< 'ls a*(e:x:)'", "functions[f]='ls a*(e:x:)'", "zstyle -e x y 'ls a*(e:x:)'",
-                    "$ZSH_NAME -c 'ls a1(e:x:)'", "$0 -c 'ls a1(e:x:)'", "/bin/z?h -c 'ls a1(e:x:)'", "${X}sh -c 'ls a1(e:x:)'", "vim -c '!ls a1(e:x:)'",
-                    "ls $=~x", "ls $^~x", "ls ${^~x}", "setopt g_lobsubst", "setopt glob__subst", "setopt -m '*subst'", "zsh -o glob__subst -fc 'ls a'", "echo $'\\'' a1(e:x:) $'\\''","set -o globsubst", "emulate ksh", "options[globsubst]=on",
-                    "eval \"$(printf x)\"", "zsh -c \"$(cat f)\"", "bash -c `cat f`", "print 'a\\''0050'", "${:-setopt} x", "print -f x", "echo a\\1", "ls x\\c", "ls x\\U1", "echo $'a'", "echo -e x", "echo -n -e x", "print -b x",
-                    "print -v c 'ls a\\0050e:x:)'; eval $c", "print 'ls a\\0050e:x:)' | zsh", "set''opt glob_subst", "s\\etopt x", "e'mulate' ksh", "eval 'ls $'''~y", "glob's'ubst=1",
-                    ". f 'a1(e:x:)'", "set -o extendedglob", "options[extendedglob]=on", "printf 'a\\n'", "printf %b x", "zmodload zsh/system", "autoload -U x", "a'u'toload x", "s\\et +o x", "set +o x", "z\"mod\"load x",
-                    "print -P x", "set -eo x", "set +ko x", "$0 -c \"$(cat f)\"", "/bin/z?h -c `cat f`", "print \"\\\\\"$e\"050\"", "x\\ y; echo z", "echo ${(g::)x}", "pr\\int a\\ b", "x\\ y; e\"ch\"o z", "pr$e'int' a\\ b", "/usr/bin/pr?ntf a\\ b", "pr{i,}nt a\\ b",
-                    "echo 'it''s *(e:x:)'", "echo $'a\\'*(e:x:)'", "ls \\*\\(e:x:\\)"):  # quoted, but a wildcard on the line has it read again: refused rather than read right (uncertain → refuse)
-        assert refused(command) and "zsh" in judge(command, patterns, None, cwd, {}), ("a zsh glob qualifier: refused", command)
-    check(False, ("ls * (e:x:)", "grep -E 'a(b|c)' x", "grep -E \"a(b|c)\" x", "echo $(ls)", "diff <(ls) <(ls)", "ls; (ls)", "ls && (ls)", "ls | (cat)", "printf %s x", "echo -n hi", "print hi", "grep -e x f",
-                  "echo $((1+2))", "git log --format='%h (%s)'", "echo \"a (b)\"", "cat <(ls)", "ls;(ls)", "ls|(cat)", "ls&&(ls)", "git commit -m \"fix(gate): x\"", "python3 -c \"print(1)\"", "find . \\( -name a \\)",
-                  "zsh -c 'ls (x)'", "bash -c 'echo hi (x)'", "grep -E 'push(x)' f", "ls notes.sh 'f(x)'", "<(ls) cat", "git log $(git rev-parse HEAD)", "echo $$ (x)", "ls a.txt 'set(x)'"), "no qualifier: the gate goes on as before")
-    # 4. unknown tools that touch production, every one refused
-    check(True, (f"python3 -c \"import pymssql; pymssql.connect('{P}').execute('delete from t')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}", f"xargs -I{{}} sqlcmd -S {P} -Q {{}}",
-                 f"find . -exec sqlcmd -S {P} -Q 'delete from t' \\;", f"script -q /dev/null sqlcmd -S {P} -Q 'delete from t'", f"arch -arm64 sqlcmd -S {P} -Q 'delete from t'", f"caffeinate -i sqlcmd -S {P} -Q 'delete from t'",
-                 f"alias q='sqlcmd -S {P}'\nq -Q 'delete from t'", f"parallel sqlcmd -S {P} ::: x", "python3 runner.py", f"python3 deploy_x.py --db {P}", f"node -e \"x('{P}')\"", f"mvn flyway:migrate -Dflyway.url={P}", "bash deploy.sh", "source deploy.sh",
-                 ". deploy.sh", f"python3 - <<EOF\nconnect('{P}')\nEOF", f"echo \"x\" > /dev/null; python3 <<EOF\nconnect('{P}')\nEOF", f"cat x.sql | python3 -c 'import sys' # {P}",
-                 f"bash <<'EOF'\nsqlcmd -S {P} -Q 'delete from t'\nEOF", f'bash <<< "sqlcmd -S {P} -Q \'delete from t\'"', f'echo "sqlcmd -S {P} -Q \'delete from t\'" | bash', f"cat run.sh | bash # {P}",
-                 f"python3 -X new_intent.py -c \"import os; os.system('ssh {H} touch /tmp/x')\"", f"node --title new_intent.py -e \"require('child_process').execSync('ssh {H} touch x')\"", f"python3 {cwd}/new_intent.py '{P}'",
-                 f"cat > /tmp/gate_probe_x.sh <<'EOF'\nssh {H} touch /tmp/x\nEOF\nbash /tmp/gate_probe_x.sh", f"rg --pre 'ssh {H} touch /tmp/x' x README.md", f"git push ssh://{H}/srv/repo HEAD:main", f"git -c core.sshCommand='ssh {H}' fetch",
-                 f"sed -n 'e ssh {H} touch /tmp/x' README.md", f"sed 's/x/ssh {H} touch x/e' README.md", f"sort --compress-program='ssh {H}' f", "bash -c 'bash -c \"bash -c \\\"bash -c \\\\\\\"ssh 192.0.2.15 touch x\\\\\\\"\\\"\\\"\"'",
-                 f"eval eval eval eval ssh {H} touch /tmp/x", f"echo ok # <<EOF\nsqlcmd -S {P} -Q 'delete from t'", f'echo "<<EOF"; sqlcmd -S {P} -Q "delete from t"', f"cat <<EOF\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF",
-                 f'printf "%s" <(sqlcmd -S {P} -Q "delete from t")', f"export SQLCMDSERVER={P}; sqlcmd -Q 'delete from t'", f"export H={P}; sqlcmd -S\"$H\" -Q 'delete from t'", "curl -XDELETE http://192.0.{2,3}.15/x"),
-          "unknown tool touching production must be refused")
-    assert refused(f'sqlcmd -S {P} -Q "select next value for dbo.s"') and refused(f"psql -h {P} -c \"select query_to_xml('delete from t', true, false, '')\""), "sequence advance and SQL run from a string"
-    # 5. the opus review's parsing gaps
-    check(True, (f"sqlcmd -S `echo {P}` -Q \"delete from t\"", "sqlcmd -S `cat h.txt` -Q \"delete from t\"", f"sqlcmd -S $'\\x70gm-prod0001' -Q 'delete from t'", f"$'\\x73qlcmd' -S {P} -Q 'delete from t'", f"sqlcmd -S $'\\160gm-prod0001' -Q 'delete from t'",
-                 f"sqlc\\\nmd -S {P} -Q \"delete from t\"", f"sqlcmd -S pgm-\\\nprod0001 -Q 'delete from t'", f"bash -lc \"sqlcmd -S {P} -Q 'delete from t'\"", f"sh -ec \"psql -h {P} -c 'delete from t'\"", f"bash -xc \"psql -h {P} -c 'drop table t'\"",
-                 f"eval sqlcmd -S {P} -Q \"'delete from t'\"", f"env -S 'sqlcmd -S {P} -Q \"delete from t\"'", f"env -Ssqlcmd -S {P} -Q x", f"p=pgm-prod; q=0001; psql -h $p$q -c 'delete from t'", f"HOST={P} psql -h $HOST -c 'delete from t'",
-                 f"export H={P}; psql -h \"${{H}}\" -c 'drop table t'", f"psql -h 'pgm-'prod0001 -c 'delete from t'", f"env PGHOST={P} psql -c 'delete from t'", f"nohup timeout 9 psql -h {P} -c 'delete from t'", f"echo $(psql -h {P} -c 'delete from t')",
-                 f"PSQL=psql; $PSQL -h {P} -c 'delete from t'", f"/usr/bin/PSQL -h {P} -c 'delete from t'", f"cd /tmp && true; ssh {P} 'rm x'", f"(ssh {P} 'rm x')", f"bash -c \"bash -c \\\"psql -h {P} -c 'delete from t'\\\"\""), "bypass must be refused")
-    assert refused('psql -h "$PGHOST" -c "delete from t"'), "unresolved target + write is refused"
-    assert refused("psql -h $(cat host.txt) -c 'delete from t'") and refused("aliyun rds DeleteAccount --DBInstanceId $ID") and refused('psql "$DATABASE_URL" -c "insert into t values (1)"') and refused('psql -h"$H" -c "delete from t"')
-    assert refused('psql -h "$PGHOST" -c "select 1"') and refused("aliyun rds DescribeDBInstances --InstanceId $ID"), "unresolved target + read: a remote tool, refused (intent 2026-10-26-160810)"
-    assert refused("psql -h localhost -c \"insert into t values ($X)\"") and refused("curl -X POST http://localhost:8080/api -d $BODY"), "a remote tool, whatever `$` stands for"
-    assert refused("psql -h 'pgm-prod0001 -c 'delete'"), "unreadable command with a remote tool is refused"
-    assert allowed("echo 'unterminated"), "unreadable command with no remote tool is not this gate's business"
-    # 5b. a sample spelled by variables counts once expanded, in a word or an exported variable, whatever the command (intent 2026-10-26-165321 A); a remote tool is refused whatever its target
-    check(True, ("H=pgm-pr; export PGHOST=${H}od0001; ls", "H=pgm-pr; set -a; X=${H}od0001; ./tame.sh", "H=pgm-pr; ./tame.sh ${H}od0001", f"PGHOST={P}; export PGHOST; psql -c 'delete from t'", "PGHOST=localhost; psql -c 'delete from t'"), "spelled by variables")
-    # 5d. two-letter remote tool names (xh) count as whole words only, not as substrings (O2 round 1, suggestion)
-    assert allowed("cat exhibit 'oops") and allowed("grep xhr 'oops"), "an unreadable line whose words only contain xh is not this gate's business"
-    assert refused("xh 'oops") and refused("cd x && xh 'oops") and refused("/usr/bin/xh 'oops"), "an unreadable line running xh is refused"
-    with mock.patch.object(g, "load_table", lambda path=None: (None, "生产特征表（测试）缺失", None)):
-        assert g.decide({"tool_name": "Bash", "tool_input": {"command": "xh GET localhost:8080/x"}})[0] == 2, "xh as a word: a remote tool, refused (intent 2026-10-26-160810)"
-        for command, noted in (("cat sshd_config", True), ("cat exhibit", False)):
-            code, out, _ = g.decide({"tool_name": "Bash", "tool_input": {"command": command}})
-            assert code == 0 and ("写操作类命令会被拒绝" in out) == noted, ("a broken table is noted for a remote tool's name inside a word, xh only as a word", command, code, out)
-    assert refused(f"curl https://{P}/a#b -X DELETE") and refused(f"curl https://{P}/a#b --data x=1"), "a `#` inside a word is no comment (bash): the rest of the command still counts (796bf2c85 final M1)"
-    # 6. secrets (bottom line 3) and the environment
-    check(True, ("aliyun rds DescribeDBInstanceSSL --DBInstanceId pgm-dev00001", "aliyun kms GetSecretValue --SecretName x"), "secrets")
-    assert refused('psql -c "select 1"', environ={"PGHOST": "localhost"}) and refused("./tame.sh", environ={"SQLCMDSERVER": "rm-prodhost1.sqlserver.rds.aliyuncs.com"})
-    # 7. table missing or broken: remote tools and interpreters are refused, other commands pass, nothing is silently opened
-    assert refused('psql -h localhost -c "insert into t values (1)"', None, "生产特征表缺失") and refused('psql -h x -c "select 1"', None, "生产特征表缺失")
-    assert refused("aliyun rds DeleteAccount --DBInstanceId x", None, "生产特征表缺失") and allowed("ls -la", None, "生产特征表缺失") and refused("python3 clean.py", None, "生产特征表缺失")
-    assert refused("python3 -c 'print(1)'", None, "生产特征表缺失") and allowed("mvn -q test", None, "生产特征表缺失") and refused(f"python3 -I {intent} x", None, "生产特征表缺失")
-    assert allowed("./run pgm-prod0001", []) and refused("psql -h pgm-prod0001 -c 'delete from t'", []), "judge itself: an empty list refuses no production sample, a remote tool still is (load_table turns an empty union into a problem, below)"
-    # 7b. the local table empty and origin/main unreadable (git fails) or without a table: a problem, so writes and interpreters are refused, reads pass (O2 review, M2)
-    with tempfile.TemporaryDirectory() as tmp:
-        empty = os.path.join(tmp, "empty.json")
-        Path(empty).write_text('{"targets": []}', encoding="utf-8")
-        real_main = g.main_table_text
-        with mock.patch.multiple(g, TABLE=empty, main_table_text=real_main, REPO_ROOT=g.REPO_ROOT):
-            for main_result in ((None, "fatal: not a git repository"), (None, None), ('{"targets": []}', None)):
-                g.main_table_text = lambda result=main_result: result
-                table, problem, warning = load_table()
-                assert table is None and problem and "为空" in problem, main_result
-                assert (warning is not None) == (main_result[1] is not None), ("a git failure warns, a missing table does not", main_result)
-                assert refused('psql -h localhost -c "delete from t"', table, problem) and refused("python3 clean.py", table, problem) and refused('psql -h x -c "select 1"', table, problem) and allowed("ls", table, problem), main_result
-            g.TABLE = os.path.join(HERE, "prod_targets.json")
-            g.main_table_text = lambda: (None, "fatal: x")
-            table, problem, warning = load_table()
-            assert table and problem is None and warning and "git 出错" in warning, "a git failure with a usable local table warns and keeps the local table"
-            g.TABLE = empty
-            g.main_table_text = lambda: (json.dumps({"targets": [{"id": "a", "patterns": ["pgm-prod0001"]}]}), None)
-            table, problem, warning = load_table()
-            assert table == ["pgm-prod0001"] and problem is None and warning, "an empty local table still takes origin/main's patterns"
-            g.main_table_text, g.REPO_ROOT = real_main, tmp
-            text, failure = g.main_table_text()
-            assert text is None and failure and "输出不完整" not in failure, ("not a repository: git's own error is the failure", failure)
-            subprocess.run(["git", "init", "-q", tmp], check=True)
-            assert g.main_table_text() == (None, None), "a repository without origin/main: missing, no failure"
-        assert load_table.__code__.co_names.count("environ") == 0, "PROD_TARGETS_FILE does not switch the origin/main union off (O2 review, suggestion 1)"
-    # 8. the guard's own self-tests: the guard sources hold no real production sample, so they pass under the shipped table; trust (content equal to origin/main) is a second way
-    real = load_table()[0]
-    for path in (os.path.join(HERE, "prod_write_gate.py"), os.path.join(HERE, "gates_selftest.py"), os.path.join(HOOKS, "command_words.py"), os.path.join(HERE, "pre_tool_dispatch.py"), os.path.join(HERE, "main_checkout_gate.py")):
-        assert allowed(f"python3 -I {path} --self-test", real), path
-    assert refused(f"python3 -I {os.path.join(HERE, 'prod_write_gate.py')} -c 'x' {P}")
-    assert refused(f"python3 -I {intent} 'x pgm-prod0001'"), "new_intent.py is no registered entry (intent 2026-10-26-132048): a production sample in its text is refused"
-    # 9. trusted only as a registered entry (origin/main's trusted_entries), written exactly in one of its forms, while the script is the file on origin/main; new_intent mentions "import"
-    real_entries, mine = g.trusted_entries, ["import"]
-    with mock.patch.multiple(g, main_blobs=g.main_blobs, trusted_entries=real_entries, main_tree=tree_as_main):
-        entry = {"script": "new_intent.py", "interpreter": ["python3", "-I"], "forms": [["{name}"]]}
-        g.trusted_entries = lambda: ([entry], {"name": re.compile(r"[a-z]{1,9}")})
-        g.main_blobs = lambda rels: {}
-        assert refused(f"python3 -I {intent} x", mine), "not on origin/main: not trusted, and its text mentions the pattern"
-        g.main_blobs = as_main
-        assert allowed(f"python3 -I {intent} x", mine), "registered, written in its form, unchanged"
-        assert refused(f"python3 -I {intent} x y", mine) and refused(f"python3 -I {intent} X", mine) and refused(f"python3 {intent} x", mine), "only a registered form: argument count, slot pattern, interpreter options"
-        g.main_blobs = lambda rels: {rel: "0" * 40 for rel in rels}
-        assert refused(f"python3 -I {intent} x", mine), "an edited file (content differs from origin/main) is not trusted"
-        g.main_blobs = as_main
-        Path(cwd, "new_intent.py").write_text("import os\n", encoding="utf-8")
-        assert refused(f"python3 -I {cwd}/new_intent.py x", mine) and refused("python3 -I new_intent.py x", mine), "the registered path only, not the same name elsewhere"
-        ev = os.path.join(REPO_ROOT, "scripts", "evidence", "evidence.py")  # the one other trusted prefix (二乙 #6): the literal scripts/evidence/, the script directly in it; the cases after the loop start from the registered one
-        row = next(e for e in json.load(open(os.path.join(g.HERE, "prod_targets.json"), encoding="utf-8"))["trusted_entries"]["entries"] if e["id"] == "evidence")  # its whitelists
-        for script, ok in (("./scripts/evidence/evidence.py", False), ("scripts/evidencex/evidence.py", False), ("scripts/evidence/../evidence/evidence.py", False), ("evidence.py", False), ("scripts/evidence/evidence.py", True)):  # registered last
-            g.trusted_entries = lambda script=script: ([dict(row, interpreter=entry["interpreter"], forms=entry["forms"], script=script)], {"name": re.compile(r"[a-z]{1,9}")})
-            assert (allowed if ok else refused)(f"python3 -I {ev} x", mine) and refused(f"python3 -I {ev} x y", mine), ("registered under scripts/evidence/: its form only; no variant of the prefix, no `..`", script)
-        for blobs, why in ((lambda rels: {}, "not on origin/main"), (lambda rels: {r: "0" * 40 if r.endswith("_selftest.py") else as_main([r])[r] for r in rels}, "a file beside it differs from origin/main")):
-            with mock.patch.object(g, "main_blobs", blobs):
-                assert refused(f"python3 -I {ev} x", mine), why
-        for link, target in (("scripts/evidence", "out"), ("scripts/evidence/e.py", "out/e.py")):  # a symlink out of scripts/evidence/: the directory, or the script itself
-            top = os.path.realpath(tempfile.mkdtemp(dir=cwd))
-            put(os.path.join(top, "out", "e.py"), "x = 1\n", 0o644)
-            os.makedirs(os.path.join(top, os.path.dirname(link)), exist_ok=True)
-            os.symlink(os.path.join(top, target), os.path.join(top, link))
-            assert g.entry_script("scripts/evidence/e.py", top) is None and g.entry_script("scripts/evidence/e.py", cwd) == os.path.join(cwd, "scripts/evidence/e.py"), ("a link leaving scripts/evidence/", link)
-        lab, here = os.path.realpath(tempfile.mkdtemp(dir=cwd)), "scripts/evidence"  # an evidence entry trusts only the whole tree as on main, its sheets within the limits (调度 10-27 结构口径)
-        put(os.path.join(lab, here, "evidence.py"), Path(ev).read_text(encoding="utf-8"), 0o644)
-        put(os.path.join(lab, here, "sheet_ok.py"), "import json\ndef collect(session, output):\n    return [json.dumps(session), str(len(output))]\n", 0o644)
-        def as_lab():  # the lab as it stands, frozen as origin/main's tree and blobs
-            rows, blobs = tree_as_main(lab), as_main_of(lab)
-            return mock.patch.multiple(g, ANCHOR=lab, main_tree=lambda root: rows, main_blobs=lambda paths: {r: blobs[r] for r in paths if r in blobs})
-        run_lab = f"python3 -I {lab}/{here}/evidence.py x"
-        with as_lab():
-            assert allowed(run_lab, mine), "the control: the tree as on main, its sheet within the limits"
-            for name in ("Sheet_new.PY", "selectors/__init__.py", "nspkg", "notes.txt", "link"):  # a case variant of a sheet, a package, an empty directory (a namespace package), a file that is no sheet, a symlink: each an entry origin/main does not list
-                os.symlink(os.path.join(lab, here, "sheet_ok.py"), os.path.join(lab, here, name)) if name == "link" else os.makedirs(os.path.join(lab, here, name)) if name == "nspkg" else put(os.path.join(lab, here, name), "x = 1\n", 0o644)
-                assert refused(run_lab, mine), ("an entry origin/main does not list", name)
-                (shutil.rmtree if "/" in name or name == "nspkg" else os.remove)(os.path.join(lab, here, name.split("/")[0]))
-            os.rename(os.path.join(lab, here, "sheet_ok.py"), os.path.join(lab, here, "Sheet_ok.PY"))  # the same sheet renamed only in case
-            assert refused(run_lab, mine) and not os.rename(os.path.join(lab, here, "Sheet_ok.PY"), os.path.join(lab, here, "sheet_ok.py")), "a case-only rename"
-            assert allowed(run_lab, mine), "back as on main"
-        reach, sheet = g.module_attrs(row["allowed_imports"]), os.path.join(lab, here, "sheet_t.py")  # a sheet by whitelists only (调度 10-27): every case below on its own
-        written = lambda body: put(sheet, body, 0o644) or g.sheet_ok(sheet, set(row["allowed_imports"]), set(row["allowed_builtins"]), reach)  # noqa: E731
-        for body in ("import subprocess\n", "import os\n", "import sys\n", "import site\n", "import io\n", "import importlib\n", "import pdb\n", "import prod_write_gate\n", "import json.tool\n", "import sys as s\n", "from os import sys\n", "from json import *\n",
-                     "exec('x = 1')\n", "open('/etc/hosts')\n", "getattr(len, 'x')\n", "__import__('os')\n", "breakpoint()\n", "x = ().__class__.__subclasses__()\n", "x = __builtins__\n", "x = (y for y in []).gi_frame.f_globals\n",
-                     "import json\nx = json.decoder\n", "from json import decoder\n", "x = len._x\n", "from .sheet_ok import collect\n", "import sys\nsys.path.insert(0, 'lib')\n", "def (\n",
-                     "import sheet_ok\n", "match len:\n    case _:\n        pass\n", "def __f():\n    pass\n", "class __C:\n    pass\n", "def f(__a):\n    pass\n", "import json as __j\n"):  # a sheet beside it, match, `__` in a def, class, parameter, alias
-            assert not written(body), ("outside the whitelists: an import, an alias, a builtin, `__`, `_`, a frame, a module reached, relative, unparsable", body)
-        body = "import json, datetime, re\nfrom collections import OrderedDict\ndef collect(session, output):\n    return [json.dumps(len(session)), str(datetime.date(2026, 1, 1))]\n"
-        assert written(body + "if __name__ == \"__main__\":\n    print(collect('a', 'b'))\n"), "within the whitelists, the main guard"
-        assert reach is not None and g.module_attrs(["no_such_module_x"]) is None and not put(os.path.join(lab, "lib/helper.py"), "x = 1\n", 0o644), "an allowed module that cannot be imported: not trusted"
-        put(os.path.join(lab, here, "sheet_t.py"), "import os, sys\nsys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'lib'))\nimport helper\n", 0o644)
-        with as_lab():  # on main as it is, a sheet loading a module outside the tree through sys.path (b39e3785 M1): refused by its writing alone
-            assert refused(run_lab, mine), "a sheet on main that puts a directory on sys.path"
-        g.trusted_entries = lambda: ([], {})
-        assert refused(f"python3 -I {intent} x", mine) and refused(f"python3 -I {ev} x", mine), "not registered"
-        g.trusted_entries = lambda: ([dict(entry, forms=[["{any}"]])], {"any": re.compile(".+")})
-        assert refused(f"python3 -I {intent} 'a;b'", mine) and allowed(f"python3 -I {intent} ab", mine), "a shell metacharacter anywhere on the line: no entry, whatever the slot allows"
-        assert g.trusted_entry(f"python3 -I '~/{os.path.relpath(intent, os.path.expanduser('~'))}' ab", cwd) is None, "a quoted `~` is not the home: no expansion on the line (50a6af8c3 review M1)"
-        g.trusted_entries, real_text = real_entries, g.main_table_text
-        g.main_table_text = lambda root=None: (None, None)
-        assert g.trusted_entries() == ([], {}), "origin/main's table only: the local one, which a branch may edit, registers nothing"
-        g.main_table_text = real_text
-    # 9b. a remote tool passes only as a whole line exactly in a form of origin/main's remote_entries, and the production samples still count (intent 2026-10-26-160810)
-    real_remote, url = g.remote_table, re.compile(r"(?:http://)?(?:localhost|127\.0\.0\.1):[0-9]{2,5}(?:/[A-Za-z0-9._~/?=&%+-]*)?")
-    entries, slots = [{"id": "t", "tool": "curl", "forms": [["-s", "-m", "{seconds}", "{local_url}"]]}], {"seconds": re.compile(r"[0-9]{1,3}"), "local_url": url}
-    with mock.patch.object(g, "remote_table", lambda: (g.REMOTE_TOOLS, entries, slots)):
-        assert allowed("curl -s -m 5 http://localhost:8080/health") and allowed("git clone https://example.test/x") and allowed("echo http://localhost:8080"), "the registered line; a URL is not httpie"
-        check(True, ("curl -s -m 5 -k http://localhost:8080/health", "curl -s -m http://localhost:8080/health", "curl -s -m 5 http://example.test:8080/", "/usr/bin/curl -s -m 5 http://localhost:8080/", "curl -s -m 5 http://localhost:8080/; ls",
-                     "curl -s -m 5 http://localhost:8080/ && ls", "bash -c 'curl -s -m 5 http://localhost:8080/'", "T=cu; ${T}rl -s -m 5 http://localhost:8080/", "curl -s -m 5 http://localhost:8080/ # ok",
-                     "ssh host uptime", "psql -h localhost -c 'select 1'", "echo psql", "ssh-keygen -l -f x", "echo x > /dev/tcp/example.test/80", "ssh:/x"), "not exactly a registered line, or no entry for the tool: refused")
-        entries.append({"id": "w", "tool": "curl", "forms": [["{any}"]]})
-        slots["any"] = re.compile(".+")
-        assert allowed("curl localhost") and refused("curl pgm-prod0001"), "a registered form still answers to the production samples (both rules)"
-        entries.append({"id": "p", "tool": "psql", "forms": [["-c", "{any}"]]})
-        assert refused("curl 'localhost|sh'") and refused("curl 'a#b'") and allowed("psql -c 'select 1'") and refused("psql -c 'select 1'", environ={"PGHOST": P}), "no shell syntax; target variables count"
-        assert "remote_entries" in judge("p'sq'l -h localhost", patterns, None, cwd, {}) and "main_table_text" in inspect.getsource(real_remote), "a name split by quotes is seen; entries only from origin/main"
-    check(True, (f"git tag -f origin/main HEAD && echo {P}", f"git update-ref refs/remotes/origin/main HEAD; echo {P}", f"git grep -nO'sqlcmd -S {P}' foo", f"git grep -inOx {P} foo"), "origin/main must not be rewritable, -O in a bundle")
-    assert "refs/remotes/origin/main" in inspect.getsource(real_blobs) and "refs/remotes/origin/main" in inspect.getsource(g.main_table_text), "the trust anchor is read by its full ref name, a tag called origin/main cannot shadow it"
-    # 10. direct execution of a local file, git programs, ssh options, GNU long-option prefixes (opus round 2, items 3 to 6)
-    [Path(cwd, n).write_text(t, encoding="utf-8") for n, t in (("direct.sh", f"sqlcmd -S {P} -Q 'delete from t'\n"), ("tame.sh", "echo hi\n"))]
-    check(True, (f"echo \"sqlcmd -S {P} -Q 'delete from t'\" > x && chmod +x x && ./x", "./direct.sh", f"{cwd}/direct.sh", "ls && ./direct.sh", f"chmod +x x; ./x {P}", f"cd /tmp && ./run.sh {P}",
-                 f"git rebase -x \"sqlcmd -S {P}\" HEAD~1", f"GIT_PAGER=\"sqlcmd -S {P}\" git log", f"git config alias.q '!sqlcmd -S {P}' && git q", f"ssh -o ProxyJump=x ops@{H} ls", f"sort --compress-prog='ssh {H}' f"), "must be refused")
-    check(True, (f"git log --oneline && echo {P}", f"git diff --stat HEAD~1 -- {P}", f"git rebase main && echo {P}", f"git commit -m 'rebase -x {P}'"), "no command is excused for not connecting (intent 2026-10-26-165321 A)")
-    # 10b. a file an interpreter, a runner or its path may run (every file word, in each directory a `cd` may lead to) names no sample, else refused (intent 2026-10-26-165321 B; 6e50b5571 first round, final)
-    for name, text in (("git", f"sqlcmd -S {P}"), ("big.sh", "#" * (g.MAX_SCRIPT_FILE + 10) + f"\nsqlcmd -S {P.upper()}"), ("quoted.sh", "sqlcmd -S 'pgm-pr'od0001"), ("span.sh", "x" * 9 + P), ("locked.sh", "echo hi"),
-                       *((n, f"connect('{P}')") for n in ("dirty.py", "prog.awk", "exe.sh", "nohup", "GNUmakefile", "pkg/run.sh", "plain")), ("bang", f"#!/bin/sh\nssh {P}")):
-        Path(cwd, name).parent.mkdir(exist_ok=True) or Path(cwd, name).write_text(text + "\n", encoding="utf-8")
-    [os.chmod(os.path.join(cwd, n), m) for n, m in (("locked.sh", 0), ("exe.sh", 0o755), ("nohup", 0o755))]
-    check(True, ("./git status", "bash big.sh", "sh quoted.sh", "source ./direct.sh", "python3 runner.py", "./locked.sh", "python3 pkg", "nohup ./direct.sh &", "bash -e direct.sh", "bash -o errexit direct.sh", "sh -p direct.sh", "node -r ./dirty.py clean.py",
-                 "node --require=dirty.py clean.py", "python3 -m dirty", "python3 -Wignore dirty.py", "awk -f prog.awk x", "xargs bash direct.sh", "find . -exec bash direct.sh ;", "caffeinate -i ./exe.sh", "arch -arm64 exe.sh", "cd pkg && ./run.sh",
-                 "cd pkg; bash run.sh", "(cd pkg) && sh run.sh", "cd $D && bash gone.sh", "make -C pkg", "make all", "H=pgm-pr; X=${H}od0001; ./tame.sh", "D=/dev/t; echo x >${D}cp/198.51.100.7/80", "D=/dev/t; exec 3<>${D}cp/198.51.100.7/80",
-                 "D=/dev/t; >${D}cp/198.51.100.7/80", "D=/dev/t; { :; } >${D}cp/198.51.100.7/80", "csh plain", "tcsh plain", "fish plain", "pypy3 plain", "Rscript plain", "uv run plain", "caffeinate bang", "env -C pkg sh run.sh", "env --chdir=pkg ./run.sh",
-                 "sudo -D pkg sh run.sh", "env -Cpkg sh run.sh", "env -iC pkg ./run.sh", "sudo -iD pkg sh run.sh", "/usr/bin/sudo -D pkg sh run.sh", "env -C pkg env -C . sh run.sh", "env --chdir pkg sh run.sh", "uv --directory pkg run x",
-                 "cd pkg && git log && bash x", "perl5.34 plain", "tclsh8.6 plain", "pypy3 -m dirty", "./nohup ls", "m4 plain", "gm4 plain", "bm4 plain", "prove plain", "vim plain", "git -c core.pager='sh plain' log", "rg --pre ./exe.sh x .",
-                 "GIT_EXTERNAL_DIFF='sh plain' git diff", "GIT_PAGER=exe.sh git log", "git bisect run exe.sh", "git --attr-source log bisect run exe.sh", "git submodule foreach exe.sh", "git -c a.b=c log", "GIT_EXEC_PATH=pkg git status",
-                 "RIPGREP_CONFIG_PATH=x rg y", "git log -Oexe.sh", "FOO=exe.sh cat x", "/usr/bin/env -S 'sh plain'", "irb plain", "gnumake all", "csh -c 'H=pgm-pr; echo ${H}od0001'", "tcsh -c 'H=pgm-pr; echo ${H}od0001'", "fish -c 'H=pgm-pr; echo ${H}od0001'",
-                 f"bash ~/{os.path.relpath(cwd, os.path.expanduser('~'))}/plain", "echo a # '\n{ ./deploy; }\n: \\'", "cat direct.sh | bash", "cp plain y && bash y", "mv plain y; ./y", "rm plain; python3 clean.py", "xargs rm plain",
-                 "sudo rm plain", "command rm plain", "nohup mv plain x", "time cp plain x", "/bin/rm plain", "EDITOR=bash sudo -e rm plain", "sudo -e cat plain", "rm() { bash \"$@\"; }; rm plain", "function cp { bash \"$1\"; }; cp plain",
-                 "alias mv=bash; mv plain", "hash -p /bin/bash rm; rm plain", "PATH=. rm plain", "cp -t plain x", "cp -vS plain x y", "mv --suffix plain x y", "cp --backup=plain x y", "EDITOR=exe.sh rm x", "enable -f plain rm; rm x",
-                 "rm plain && ls", "git status; mv plain x", "X=1 rm plain", "eval rm plain",  # one plain command only (10-26 night): a compound line, an assignment, eval; the two former passes now read rm's and mv's words
-                 "A='('; B=')'; eval rm $A$B '{ exec \"$@\"; }'; rm ./exe.sh", "A='('; B=')'; builtin eval cat $A$B '{ exec \"$@\"; }'; cat ./exe.sh", "rm() { exec \"$@\"; }; rm ./exe.sh", "enable -f lib.so rm; rm plain",
-                 "functions[rm]='exec \"$@\"'; rm ./exe.sh", "commands[rm]=x; rm plain", "aliases[mv]=x; mv plain", "commands+=(cp x); cp plain y", "PATH+=:.; rm plain", "path+=(x); rm plain", "BASH_CMDS[rm]=x; rm plain",
-                 "cp plain x; caffeinate bash x", "cp plain x; caffeinate -i ./x", "cp plain x; arch -arm64 ./x", "cp plain y; watch y", "rm plain ';'", "rm plain x=1", "rm plain alias", "rm plain '$x'"), "the file it may run")
-    check(False, ("./tame.sh", "bash tame.sh", "python3 clean.py", "python3 -c 'print(1)'", "find . -name '*.py'", "cd pkg && ls", "cd pkg && git status", "cat direct.sh", "grep -n x direct.sh", "git diff -- direct.sh", "rm plain", "rm -f exe.sh plain",
-                  "cat /dev/urandom >/dev/null", "git log -n 3", "git --no-pager -P log", "python3 -m json.tool", "rm -rf pkg -- plain", "mv -f plain x", "cp -pR plain pkg", "cp -S .bak plain x", "rm -f -- exe.sh ./plain"),
-          "no sample in the file, or no file (a pipe, inline code: known gap)")
-    with mock.patch.multiple(g, MAX_SCRIPT_FILE=8, CHUNK=8): assert refused("bash span.sh") and allowed("bash tame.sh"), "a sample across a chunk boundary"
-    with mock.patch.object(g, "MAX_RUN_FILE", 4): assert refused("bash tame.sh"), "a file larger than MAX_RUN_FILE counts"
-    assert refused("echo 'unterminated", environ={"PGHOST": P}), "unreadable, with a target variable pointing at production"
-    # brace expansion
-    assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("192.0.{2..4}.15") == [TEST_IP, "192.0.3.15", "192.0.4.15"] and brace_variants("plain") == ["plain"]
+    """用户 intent 2026-10-28-202019「不用，你直接简化」：整条命令原文与特征表字面匹配，不分大小写，命中即拒、没命中放行；不解析写法。"""
+    patterns, P, H = ["pgm-prod0001", "db.prod.example.com", TEST_IP], "pgm-prod0001", TEST_IP
+    verdict = lambda command, table=patterns, problem=None: judge(command, table, problem)  # noqa: E731
+    hit = (f"psql -h {P} -c 'select 1'", f"ssh {H} uptime", f"curl https://{P}/health", "wget https://db.prod.example.com/x", f"git commit -m '{P} 续费说明'", f"grep -rn {P} docs",
+           "PGM-PROD0001", "Db.Prod.Example.Com", f"echo ok # x\nls {P}", f"bash -c \"psql -h {P}\"", f"x{P}y", f"echo 'unterminated {P}", f"python3 -c \"connect('{P}')\"")
+    for command in hit:
+        assert verdict(command) == g.REFUSED, ("a pattern in the command's text, any case: refused", command)
+    for command in MISBLOCKED + ("ls", "git status", "", "psql -h dev-db.example.invalid -c x", "echo 192.0.2.150"):
+        expected = g.REFUSED if TEST_IP in command else None
+        assert verdict(command) == expected, ("no pattern in the text: allowed", command, verdict(command))
+    hidden = ("pgm-pr\"\"od0001", "pgm-pr\\od0001", "H=pgm-pr; echo ${H}od0001", "echo pgm-prod{0001,0002}", "curl http://192.0.{2,2}.15/", f"echo {P[::-1]} | rev | sh")
+    for command in hidden:  # the text is not parsed: a pattern split, built or encoded is not seen (by design, 202019; the user clears production credentials, 202108)
+        assert verdict(command) is None, ("not on the text as written: allowed by design", command)
+    assert verdict("ls", None, "表坏了") and verdict("ls -la", None, "表坏了"), "no table: refused (fail closed)"
     with tempfile.TemporaryDirectory() as tmp:
         good = os.path.join(tmp, "t.json")
         for text, ok in ((json.dumps({"targets": [{"id": "a", "patterns": ["abcdef123"]}]}), True), ('{"targets": []}', True), ("not json", False), ("{}", False), ('{"targets": [{"id": "a"}]}', False),
@@ -422,201 +86,57 @@ def gate_self_test():
             open(good, "w").write(text)
             assert (load_table(good)[1] is None) == ok, text
         assert load_table(os.path.join(tmp, "missing.json"))[1] is not None
-        open(good, "w").write('{"targets": []}')
-        assert load_table(good)[2] is not None, "an empty table warns"
         table, problem, _ = load_table()
         firsts = shipped_firsts()
         assert problem is None and table and firsts and all(v.lower() in table for v in firsts.values()), "the shipped table loads and every target's first pattern is in it"
-        # the pre-filter skips only an empty line: any word may name a file a program runs (A′, intent 2026-10-26-164931; it had read names and paths only)
-        assert all(could_concern(plain(c)) for c in ("echo hello", "git status", "ls ./x", "prove plain", "cat exhibit xhr", "sqlcmd -s x", ">o ./deploy", "perl5.34 x")) and not could_concern("") and not could_concern(" \n")
-        assert all(g.INTERPRETER.match("python3" if name == "python" else name) for name in g.INTERPRETERS), "every interpreter name is matched"
-        # hook process end to end, with the shipped and a missing table
+        assert not could_concern("") and not could_concern("  ") and could_concern("ls")
+        # hook process end to end, with the shipped, a missing and an empty table
         script = os.path.join(HERE, "prod_write_gate.py")
         def hook(command, table_path=None, tool="Bash", env=None, raw=None):  # `env` replaces the hook's environment, `raw` its input
             env = env or {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), **({"PROD_TARGETS_FILE": table_path} if table_path else {})}
-            return subprocess.run([sys.executable, "-I", script], input=raw or json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=env)
-        result, connect = hook("aliyun rds DeleteAccount --DBInstanceId " + firsts["legacy-rds-sqlserver"]), hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"")
-        assert result.returncode == 2 and "远程工具名" in result.stderr and connect.returncode == 2 and "底线 4" in connect.stderr, (result, connect.stderr)
-        assert hook("aliyun rds DescribeDBInstances --DBInstanceId " + firsts["legacy-rds-sqlserver"]).returncode == 2, "a read through a remote tool, not registered (intent 2026-10-26-160810)"
+            return subprocess.run([sys.executable, "-I", script], input=raw or json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": tmp}), capture_output=True, text=True, env=env)
+        shipped = [(t["id"], p.strip()) for t in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["targets"] for p in t["patterns"]]
+        for at, (name, value) in enumerate(shipped):  # every pattern of the real table (hosts, the production profile, databases, accounts), in either case: refused; failures name the target and position, never the value
+            for written in (f"grep -rn {value} docs", f"echo {value.upper()}"):
+                run = hook(written)
+                assert run.returncode == 2 and "底线 4" in run.stderr, (name, at)
         assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0
         gone, remote = hook("python3 clean.py", os.path.join(tmp, "missing.json")), hook("psql -c 'select 1'", os.path.join(tmp, "missing.json"))
-        assert gone.returncode == 2 and "缺失或不合格" in gone.stderr and remote.returncode == 2 and "远程工具名" in remote.stderr, (gone, remote)
-        warned = hook("cat sshd_config", os.path.join(tmp, "missing.json"))
-        assert warned.returncode == 0 and "告警" in warned.stdout, warned
+        assert gone.returncode == 2 and remote.returncode == 2 and "缺失或不合格" in gone.stderr, (gone, remote)  # no table: everything refused
         Path(tmp, "empty.json").write_text('{"targets": []}', encoding="utf-8")
         no_git = {"LC_ALL": "C", "PATH": tmp, "PROD_TARGETS_FILE": os.path.join(tmp, "empty.json")}
-        for command, code in (("python3 clean.py", 2), ("echo $X > sshd.txt", 0)):
-            run = hook(command, env=no_git)
-            assert run.returncode == code and ("为空" in run.stderr if code else "为空" in run.stdout and "git 出错" in run.stdout), (command, run)
-        run = hook("psql -h db.example.org -c 'delete from t'", env=no_git)
-        assert run.returncode == 2 and "远程工具名" in run.stderr, run
+        assert hook("python3 clean.py", env=no_git).returncode == 2 and "为空" in hook("ls", env=no_git).stderr, "an empty table, no git: refused"
         assert [hook(None, env={"LC_ALL": "C"}, raw=raw).returncode for raw in ("not json", "[1]")] == [2, 2], "input that is no JSON object"
-    g.main_blobs, g.no_exec_tools = real_blobs, real_safe
-    print("prod_write_gate self-test: ok")
-
-def seventeen_self_test():
-    """17 例全拦：真实特征表（本仓库 prod_targets.json 加 origin/main 并集）与测试表下各跑；读不懂、未拦的例子逐条列出（只列轮次和编号，不打印命令，免得带出生产值）。
-    真实表下：SAMPLE_IDS 三个 target 的第一项作 P、H、D 跑一轮，再用每个 target 的第一项填满 P、H、D 各跑一轮（O2 复审 M3），
-    每个 target 的每种形态（IP、主机名）的第一项若不是该 target 的第一项，也各填满跑一轮（O2 首轮留意 ①）。"""
-    cwd = tempfile.mkdtemp()
-    real = load_table()[0]
-    firsts = shipped_firsts()
-    assert real and firsts and all(v.lower() in real for v in firsts.values()), "真实特征表每个 target 至少一项，且都在门用的特征里"
-    assert set(SAMPLE_IDS) <= set(firsts), f"真实特征表须有这几个 target：{SAMPLE_IDS}"
-    cases = seventeen(*real_samples())
-    assert sorted(cases) == list(range(1, 18)) and sum(len(v) for v in cases.values()) >= 17
-    test_table = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP, "prod_db_0001"]
-    runs = [("真实表 P/H/D", cases, real)] + [(f"真实表 {i}", seventeen(v, v, v), real) for i, v in firsts.items()]
-    forms = shipped_forms()
-    assert {k.rsplit(" ", 1)[1] for k in forms} == {"ip", "name"}, "the shipped table has IP-shaped and name-shaped patterns"
-    runs += [(f"真实表 {k}", seventeen(v, v, v), real) for k, v in forms.items() if v not in firsts.values()]
-    runs.append(("测试表", seventeen("pgm-prod0001", TEST_IP, "prod_db_0001"), test_table))
-    missed = [(label, n, k) for label, run, table in runs for n, cs in run.items() for k, c in enumerate(cs) if judge(c, table, None, cwd, {}) is None]
-    assert not missed, f"生产写门 17 例有未拦的（轮次、例号、第几条）：{missed}"
-    total = sum(len(cs) for _, run, _ in runs for cs in run.values())  # V02 is checked by these counts, not by the exit code alone (review of 2f6742ea8)
-    assert len(cases) >= 17 and total >= 17 * len(runs) and total - len(missed) == total, f"生产写门 17 例：{len(cases)} 例，拦下 {total - len(missed)}/{total}"
-    print(f"prod_write_gate 17 例: ok（{len(cases)} 例 {sum(len(v) for v in cases.values())} 条复现命令 × {len(runs)} 轮，拦下 {total - len(missed)}/{total}：真实表 {len(runs) - 1} 轮、测试表 1 轮）")
+    print(f"prod_write_gate self-test: ok（命中即拒 {len(hit)} 例、真实表 {len(firsts)} 个 target 全部 {len(shipped)} 项各 2 例；无关命令 {len(MISBLOCKED) + 5} 例放行；拆开或编码的 {len(hidden)} 例按设计放行；无表、空表、坏输入拒）")
 
 def layout_self_test():
-    """门本体的版式与出处：行数不超 policy.json 的上限；一行一条语句、块体另起一行（O2 复审 M1）；守护源码里没有生产样本，拆段拼接也算（O2 复审 M3）。"""
-    source, (count, limit) = Path(HERE, "prod_write_gate.py").read_text(encoding="utf-8"), size("prod_write_gate", os.path.join(HERE, "prod_write_gate.py"))
-    assert count <= limit, f"prod_write_gate.py 超过 {limit} 行"
+    """门本体的版式与出处：一行一条语句、块体另起一行（O2 复审 M1）；守护源码里没有生产样本，拆段拼接也算（O2 复审 M3）。"""
+    source = Path(HERE, "prod_write_gate.py").read_text(encoding="utf-8")
     lines = source.split("\n")
     raw = [line.encode("utf-8") for line in lines]  # col_offset counts bytes
     crowded = [node.lineno for node in ast.walk(ast.parse(source)) if isinstance(node, ast.stmt) and node.col_offset != len(raw[node.lineno - 1]) - len(raw[node.lineno - 1].lstrip(b" "))]
     assert not crowded, f"prod_write_gate.py 有一行多条语句或块体与条件同行：{sorted(set(crowded))[:20]}"
     folded = [re.sub(r"[^0-9a-z]", "", v.lower()) for v in load_table()[0]]
-    sources = [os.path.join(HERE, name) for name in sorted(os.listdir(HERE)) if name.endswith(".py")] + [os.path.join(HOOKS, "command_words.py")]
-    for path in sources:
+    for path in [os.path.join(HERE, name) for name in sorted(os.listdir(HERE)) if name.endswith(".py")]:
         text = re.sub(r"[^0-9a-z]", "", Path(path).read_text(encoding="utf-8").lower())
         found = sum(1 for v in folded if v in text)
         assert not found, f"{os.path.basename(path)} 含 {found} 项生产特征（拆段拼接也算），改为运行时从 prod_targets.json 按 id 取"
-    # what a trusted script loads or is compared with decides whether the gate lets it pass: every such file needs the opus final review (K18 follow-up, a3be80fcd final suggestion 1)
-    final, entries = json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))["review"]["final_paths"], json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["entries"]
-    scripts = {g.entry_script(e["script"], ROOT): g.closure(g.entry_script(e["script"], ROOT)) for e in entries}  # an evidence entry's tree is scripts/evidence/, in final_paths as a whole
-    assert None not in scripts.values(), "every registered entry's closure can be read"
-    assert g.main_tree(tempfile.gettempdir()) is None, "no repository (or no origin/main): no evidence tree, never trusted"
-    loaded = {os.path.relpath(f, ROOT) for s, c in scripts.items() for f in c | {s} if os.path.exists(f)} | {f"{DOCS_ROOT}/{d}" for e in entries for d in e["trust_dirs"]}
-    assert all(rel.startswith(tuple(final)) for rel in loaded), ("files a trusted entry loads or reads, missing from policy.json review.final_paths", sorted(r for r in loaded if not r.startswith(tuple(final))))
-    slots = {k: re.compile(v) for k, v in json.loads(Path(HERE, "prod_targets.json").read_text(encoding="utf-8"))["trusted_entries"]["slots"].items()}
-    assert slots["sql"].fullmatch("credential_columns_scan.sql") and not any(slots["sql"].fullmatch(v) for v in ("/tmp/x.sql", "../x.sql", "a/b.sql")), "the evidence tool's SQL is a bare name under evidence/ (50a6af8c3 final M4)"
-    assert all("-I" in e["interpreter"] and os.path.isabs(os.path.expanduser(e["interpreter"][0])) for e in entries), "an entry pins its interpreter by path and runs it isolated (-I: no PYTHON* variables, no user site)"
     print("prod_write_gate layout: ok")
 
-def trust_self_test():
-    """可信脚本只认 cwd 与 CLAUDE_PROJECT_DIR 同一仓库（同一个真实 --git-common-dir），特征表并上两者的 origin/main（调度裁定，D25）。全部在临时仓库里做，生产样本只用虚构值；主检出 M 与用 git worktree add 建的工作区 W 共用 .git、路径不同，算同一仓库；伪造仓库 F 内容相同但有独立的 .git，不算。"""
-    fake, only = "fake-prod-db.example.invalid", "only-on-t.example.invalid"  # fictitious hosts
-    script = os.path.join(HERE, "prod_write_gate.py")
-    doc = DOCS_ROOT + "/new_intent.py"  # one of the gate's DOC_SCRIPTS, at its fixed path
-    legacy = DOCS_ROOT + "/phase1a/infra/new_legacy_read.py"  # another DOC_SCRIPT: its arguments name production instances by design
-    register = DOCS_ROOT + "/phase1a/infra/build_legacy_read_register.py"  # a script it runs
-    tool, helper = DOCS_ROOT + "/t/tools/scan.py", DOCS_ROOT + "/lib/helper.py"  # a read-only evidence tool, a module it imports from a directory above
-    sql, added = DOCS_ROOT + "/t/sql/q.sql", DOCS_ROOT + "/t/sql/new.sql"  # in the directory the tool reads (table trust_dirs)
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp = os.path.realpath(tmp)
-        main, work, forged, other, loose = (os.path.join(tmp, n) for n in ("M", "W", "F", "T", "N"))
-        # the registered entries of the temporary repositories' origin/main table: the document script, the register script, a read-only tool reading t/sql/
-        entries = [{"script": "new_intent.py", "interpreter": ["python3"], "forms": [[]]},
-                   {"script": "phase1a/infra/new_legacy_read.py", "interpreter": ["python3"], "forms": [["--session={name}"] + ["{text}"] * 6, ["{text}"]]},
-                   {"script": "t/tools/scan.py", "interpreter": ["python3"], "forms": [["{text}"]], "trust_dirs": ["t/sql/"]}]
-        tools = {"slots": {"name": "[a-z]{1,9}", "text": "[^$;|&#'\"]{1,60}"}, "entries": entries}
-        built = DOCS_ROOT + "/adr/b.py"  # a script the document script spells by path (as build_records runs adr/build_adrs.py)
-        body = {doc: f"import os, json\nB = os.path.join('x', 'adr', 'b.py')\nos.system(\"psql -h {fake} -c 'delete from t'\")\n", legacy: "print('register')\n",
-                register: "print('built')\n", built: "x = 1\n", tool: "from lib import helper\n", helper: "x = 1\n", sql: "select 1\n",
-                "scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "fake", "patterns": [fake]}], "trusted_entries": tools})}
-        mkrepo(main, body)
-        mkrepo(forged, body)
-        mkrepo(os.path.join(tmp, "E"), {"scripts/evidence/sheet_a.py": "x = 1\n", "scripts/evidence/sub/b.txt": "\n"})  # main_tree() as git lists origin/main: every entry under scripts/evidence/, trees too, nothing above it
-        assert sorted(g.main_tree(os.path.join(tmp, "E"))) == [("040000", "scripts/evidence/sub"), ("100644", "scripts/evidence/sheet_a.py"), ("100644", "scripts/evidence/sub/b.txt")], g.main_tree(os.path.join(tmp, "E"))
-        put(os.path.join(loose, doc), body[doc], 0o644)  # the same file in a directory that is no repository
-        mkrepo(other, {"scripts/gates/prod_targets.json": json.dumps({"targets": [{"id": "t", "patterns": [only]}]})})
-        subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", work], check=True, capture_output=True)
-        table = os.path.join(tmp, "fake_targets.json")
-        Path(table).write_text(json.dumps({"targets": [{"id": "fake", "patterns": [fake]}]}), encoding="utf-8")
-        def hook(command, cwd, project, process_cwd=None, tool="Bash", where=None, **extra):  # python3 resolves to /usr/bin/python3, the only interpreter a trusted script runs on
-            env = {"LC_ALL": "C", "PATH": "/usr/bin:/bin:" + os.environ.get("PATH", ""), "PROD_TARGETS_FILE": table, **({"CLAUDE_PROJECT_DIR": project} if project is not None else {}), **extra}
-            payload = {"tool_name": tool, "tool_input": {"command": command, **({"cwd": where} if where else {})}, **({"cwd": cwd} if cwd else {})}
-            return subprocess.run([sys.executable, "-I", script], input=json.dumps(payload), capture_output=True, text=True, env=env, cwd=process_cwd or tmp).returncode
-        run_doc = "python3 " + doc
-        for cwd, project, code, why in ((work, main, 0, "a worktree of the project's repository: one .git, other path, trusted"), (main, work, 0, "the other way round"),
-                                        (main, main, 0, "the project itself"), (forged, main, 2, "a forged repository with its own .git is not trusted"),
-                                        (work, forged, 2, "the project forged, cwd real"), (forged, forged + "/", 0, "the forged repository as its own project (control)"),
-                                        (work, None, 2, "no CLAUDE_PROJECT_DIR"), (work, "", 2, "an empty CLAUDE_PROJECT_DIR"), (loose, main, 2, "cwd in no repository")):
-            assert hook(run_doc, cwd, project) == code, (why, cwd, project)
-        assert hook(run_doc, None, main, process_cwd=work) == 2, "no cwd in the hook input: not trusted, even when the process runs in the worktree"
-        assert hook(f"python3 {legacy} --session=t ro '{fake} 库' a b c d", work, main) == 0, "the legacy-read register script may name a production instance"
-        scan, register_run = f"python3 {tool} {fake}", f"python3 {legacy} '{fake}'"
-        cases = ((None, "", scan, "tool, imports and read directory as on main"), (helper, "x = 2\n", scan, "an imported module edited"),
-                 (sql, "delete from t\n", scan, "a file it reads edited"), (DOCS_ROOT + "/json.py", "", run_doc, "a module planted beside a document script"),
-                 (register, "import os\n", register_run, "a script it runs, edited (323f466a2 review, suggestion)"), (added, "", scan, "a file added where it reads"))
-        edits = tuple((lambda rel=rel, text=text: rel and put(os.path.join(work, rel), text, 0o644), run, 2 if rel else 0, why) for rel, text, run, why in cases)  # one file edited, refused; none: the control
-        # what Python also loads, or how a line swaps it (cfcbcf473 first round M1-M2, final M1-M3): each case on a clean worktree, refused; the controls pass
-        def pyc(rel, flags):  # a byte-code cache header: magic, flags (1 = hash-based without the source check, 3 = with it), hash
-            put(os.path.join(work, rel), "", 0o644)
-            Path(work, rel).write_bytes(b"\0" * 4 + flags.to_bytes(4, "little") + b"\0" * 8)
-        link = lambda rel: (os.remove(os.path.join(work, rel)) if os.path.exists(os.path.join(work, rel)) else None, os.symlink(os.path.join(main, helper), os.path.join(work, rel)))  # noqa: E731
-        loads = edits + ((lambda: put(os.path.join(work, built), "x = 2\n", 0o644), run_doc, 2, "a script it spells by path, edited"),
-                 (lambda: pyc(DOCS_ROOT + "/json/__init__.pyc", 0), run_doc, 2, "a package __init__ with a loader suffix other than .py"),
-                 (lambda: put(os.path.join(work, DOCS_ROOT, "lib/helper.cpython-39-darwin.so"), "", 0o644), scan, 2, "an extension module beside the imported one"),
-                 (lambda: pyc(DOCS_ROOT + "/lib/__pycache__/helper.cpython-39.pyc", 1), scan, 2, "an unchecked hash-based .pyc"),
-                 (lambda: pyc(DOCS_ROOT + "/lib/__pycache__/helper.cpython-39.pyc", 3), scan, 0, "a checked hash-based .pyc (control)"),
-                 (lambda: link(helper), scan, 2, "an imported module that is a symlink (to main's own file)"), (lambda: link(DOCS_ROOT + "/t/sql/l.sql"), scan, 2, "a symlink where it reads"),
-                 (lambda: None, f"PYTHONPATH=/tmp {run_doc}", 2, "PYTHONPATH on the line"), (lambda: None, f"export PYTHONPATH=/tmp; {run_doc}", 2, "PYTHONPATH exported earlier"),
-                 (lambda: None, f"python3 -X pycache_prefix=/tmp {doc}", 2, "-X pycache_prefix"), (lambda: None, f"cd {main} && {run_doc}", 2, "a relative script after cd"),
-                 (lambda: None, f"{{ cd {main}; {run_doc}; }}", 2, "cd in a group (905ad6209 review)"), (lambda: None, f"command {run_doc}", 2, "a wrapper before the interpreter"),
-                 (lambda: None, f"env -C {main} {run_doc}", 2, "env -C"), (lambda: None, f"PATH={tmp}/bin:/usr/bin {run_doc}", 2, "PATH on the line"),
-                 (lambda: put(os.path.join(tmp, "bin/python3"), "#!/bin/sh\necho FAKE\n"), f"{tmp}/bin/python3 {doc}", 2, "another interpreter than the registered one"),
-                 (lambda: put(os.path.join(work, doc + "#x"), body[doc]), f"python3 {doc}#x", 2, "a `#` inside the word: bash runs new_intent.py#x (796bf2c85 final M1)"),
-                 (lambda: put(os.path.join(work, doc + "\r"), body[doc]), f"python3 {doc}\r", 2, "a carriage return: bash runs new_intent.py\\r"))
-        for setup, run, code, why in loads:  # each on a clean worktree
-            setup()
-            assert hook(run, work, main) == code, why
-            gitc(work, "checkout", "-q", "--", ".")
-            gitc(work, "clean", "-fdqx")
-        # PYTHON* variables, the user site, PATH: no longer judged by the gate; an entry runs its pinned interpreter with -I (-S when it needs no site), checked on the shipped table (layout)
-        assert g.trusted_entry("", tmp) is None and g.trusted_entry(f"python3 {doc} > out", tmp) is None, "an empty line, a redirection: no entry (an empty line does not crash)"
-        os.symlink(os.path.join(work, legacy), os.path.join(work, DOCS_ROOT, "lr.py"))  # runs beside the link, with its neighbours
-        assert hook(f"python3 {DOCS_ROOT}/lr.py '{fake}'", work, main) == 2, "a symlink to a registered script is no entry (50a6af8c3 final M2)"
-        os.remove(os.path.join(work, DOCS_ROOT, "lr.py"))
-        put(os.path.join(work, DOCS_ROOT, "sub/inner/keep"), "", 0o644)
-        put(os.path.join(work, DOCS_ROOT, "sub/new_intent.py"), body[doc], 0o644)
-        os.symlink(os.path.join(work, DOCS_ROOT, "sub/inner"), os.path.join(work, DOCS_ROOT, "ln"))  # the kernel resolves ln before its `..`: sub/new_intent.py runs
-        assert hook(f"python3 {DOCS_ROOT}/ln/../new_intent.py", work, main) == 2, "a `..` after a symlinked directory is resolved as the kernel does (285242ecb final M2)"
-        os.remove(os.path.join(work, DOCS_ROOT, "ln"))
-        shutil.rmtree(os.path.join(work, DOCS_ROOT, "sub"))
-        assert hook(run_doc, loose, main, tool=COMMAND_TOOLS[2], where=work) == 0 and hook(run_doc, loose, main, tool=COMMAND_TOOLS[2]) == 2, "the terminal panel: its own cwd"
-        # a worktree of M whose path is F's path, a newline and more: rev-parse prints the top level on two lines, so a reader taking the second line would anchor on F (88edef207 final M1)
-        shifted = forged + "\nx"
-        subprocess.run(["git", "-C", main, "worktree", "add", "-q", "--detach", shifted], check=True, capture_output=True)
-        assert hook("python3 " + os.path.join(forged, doc), shifted, main) == 2 and hook("python3 " + os.path.join(forged, doc), forged, forged) == 0, "a newline in a path: no trust (control: F itself)"
-        # a clean filter must not make an edited script hash like main's: hash-object --no-filters (88edef207 final S2)
-        gitc(main, "config", "filter.strip.clean", "grep -v EVIL")
-        put(os.path.join(work, ".gitattributes"), "*.py filter=strip\n", 0o644)
-        Path(work, doc).write_text(body[doc] + "print('EVIL')\n", encoding="utf-8")
-        assert hook(run_doc, work, main) == 2, "an edited script is not trusted, whatever a clean filter says"
-        # the table: cwd's and CLAUDE_PROJECT_DIR's origin/main are unioned in, so only ever more is refused
-        write = f"./run --host {only}"  # no remote tool: a remote tool is refused whatever the table (intent 2026-10-26-160810)
-        assert hook(write, other, main) == 2 and hook(write, main, other) == 2 and hook(write, main, main) == 0, "a pattern only on the origin/main of cwd's or the project's repository"
-        assert hook(write, None, main, process_cwd=other) == 2, "no cwd in the hook input: the process cwd's repository is unioned in"
-    print("prod_write_gate trust: ok")
-
 def prod_write_gate_test():
-    words_self_test()
     gate_self_test()
-    trust_self_test()
-    seventeen_self_test()
     layout_self_test()
 
 DISPATCH = os.path.join(HERE, "pre_tool_dispatch.py")  # ── pre_tool_dispatch ──
 PROD_P, PROD_H, PROD_D = real_samples()
+SAMPLES = [f"sqlcmd -S {PROD_P} -Q 'delete from t'", f"ssh {PROD_H} uptime", f"psql -d {PROD_D} -c x", f"echo {PROD_H.upper()}"]  # one per kind, and the case does not matter
 
 def payload(command, **extra):
     return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": extra.pop("cwd", HERE), **extra})
 
 def pre_tool_dispatch_test():
     # 1. the pre-filter never hides a refusal: for every command the dispatcher decides exactly what the gate decides on its own
-    corpus = [c for cs in seventeen(PROD_P, PROD_H, PROD_D).values() for c in cs]
-    corpus += ["ls", "git status", "echo hi", "cat api.py", "npm test", "", "   ", "python3 x.py", f"git commit -m '{PROD_P} 说明'", f"psql -h {PROD_P} -c 'select 1'", f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}",
+    corpus = SAMPLES + ["ls", "git status", "echo hi", "cat api.py", "npm test", "", "   ", "python3 x.py", f"git commit -m '{PROD_P} 说明'", f"psql -h {PROD_P} -c 'select 1'", f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}",
                f"aliyun rds DescribeDBInstances --DBInstanceId {PROD_P}", f"python3 -c \"connect('{PROD_P}')\"", f"xargs -I{{}} sqlcmd -S {PROD_P} -Q {{}}", f"sqlcmd -S `echo {PROD_P}` -Q 'delete from t'",
                f"bash -lc \"psql -h {PROD_P} -c 'drop table t'\"", f"$'\\x73qlcmd' -S {PROD_P} -Q 'delete from t'", f"bash <<'EOF'\nsqlcmd -S {PROD_P} -Q 'delete from t'\nEOF", f"env -S 'sqlcmd -S {PROD_P} -Q x'",
                f"curl -XPOST https://{PROD_P}/x", f"al\"\"iyun rds DeleteAccount --DBInstanceId {PROD_P}", "PSQL -c x", "codex exec p", "git push --no-verify", "gh pr create --title x"]
@@ -624,17 +144,16 @@ def pre_tool_dispatch_test():
         for command in corpus:
             raw = payload(command, cwd=elsewhere)
             assert d.dispatch(raw) == g.decide(json.loads(raw)), command
-        # 1b. what the old pre-filter hid (O3 review, M1): interpreters outside its own list, `. file`, a command shlex cannot read; each script names production
+        # 1b. a script that names production, run by an interpreter: the gate no longer reads files it runs (卡 #736; known gap, the read-only account holds), dispatcher and gate agree
         for name in ("deploy", "deploy.lua"):
             put(os.path.join(elsewhere, name), f"ssh {PROD_H} rm -rf /srv/x\n", 0o644)
-        for command in ("lua deploy.lua", "dash deploy", "ksh deploy", ". deploy", "nohup dash deploy", "lua deploy.lua && echo ok", "cat sshd_conf 'oops", "sudo -u x ksh deploy", "(. deploy)"):  # hidden before
+        for command in ("lua deploy.lua", "dash deploy", "ksh deploy", ". deploy", "nohup dash deploy", "lua deploy.lua && echo ok", "cat sshd_conf 'oops", "sudo -u x ksh deploy", "(. deploy)"):
             raw = payload(command, cwd=elsewhere)
-            assert g.decide(json.loads(raw))[0] == 2 and d.dispatch(raw) == g.decide(json.loads(raw)), command
-    # 2. every one of the 17 cases is refused through the dispatcher, with the gate's own reason
-    for number, commands in seventeen(PROD_P, PROD_H, PROD_D).items():
-        for command, tool in ((c, t) for c in commands for t in COMMAND_TOOLS):  # Monitor and the terminal panel run shell commands as Bash does (intent 160437)
-            code, out, err = d.dispatch(payload(command, tool_name=tool))
-            assert code == 2 and err.strip(), (number, command, tool)
+            assert g.decide(json.loads(raw))[0] == 0 and d.dispatch(raw) == g.decide(json.loads(raw)), command
+    # 2. every production sample is refused through the dispatcher, with the gate's own reason
+    for command, tool in ((c, t) for c in SAMPLES for t in COMMAND_TOOLS):  # Monitor and the terminal panel run shell commands as Bash does (intent 160437)
+        code, out, err = d.dispatch(payload(command, tool_name=tool))
+        assert code == 2 and "底线 4" in err, (command, tool)
     # 3. ordinary commands and other tools start nothing; checks that used to hang off the dispatcher are no longer here
     for command in ("ls", "echo hi", "git status", "npm test", "codex exec p", "git push --no-verify", "gh pr create --title x"):
         assert d.dispatch(payload(command)) == (0, "", ""), command
@@ -644,13 +163,13 @@ def pre_tool_dispatch_test():
                    {"name": "args", "runtimeExecutable": "psql", "args": ["-h", PROD_H, "-c", "delete from t"]}, {"name": "prog", "runtimeExecutable": "sh", "runtimeArgs": ["-c"], "program": f"psql -h {PROD_H} -c 'delete from t'"},
                    {"name": "envw", "env": {"PGHOST": PROD_H}, "runtimeExecutable": "psql", "runtimeArgs": ["-c", "delete from t"]},
                    {"name": "twice", "runtimeExecutable": "npm"}, {"name": "TWICE", "runtimeExecutable": "npm"},
-                   {"name": "cwdpy", "runtimeExecutable": "/usr/bin/python3", "runtimeArgs": [os.path.join(ROOT, DOCS_ROOT, "new_intent.py"), PROD_H], "cwd": "sub"}, {"name": "var", "runtimeExecutable": "npm", "runtimeArgs": ["${env:X}"]}]
+                   {"name": "cwdpy", "runtimeExecutable": "/usr/bin/python3", "runtimeArgs": ["run.py", PROD_H], "cwd": "sub"}, {"name": "var", "runtimeExecutable": "npm", "runtimeArgs": ["${env:X}"]}]
         put(os.path.join(launch, ".claude", "launch.json"), json.dumps({"configurations": configs}), 0o644)
         put(os.path.join(other, ".claude", "launch.json"), json.dumps({"configurations": [{"name": "w", "runtimeExecutable": "npm"}]}), 0o644)
         put(os.path.join(other, "unnamed", ".claude", "launch.json"), json.dumps({"configurations": [{"runtimeExecutable": "psql", "runtimeArgs": ["-h", PROD_H]}, {"name": "ok", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"]}]}), 0o644)
         for tool_input, where, code in (({"name": "w"}, launch, 2), ({"name": "ok"}, launch, 0), ({"url": "http://localhost:3000"}, launch, 0), ({"name": "missing"}, launch, 2),
                                         ({"name": "args"}, launch, 2), ({"name": "prog"}, launch, 2), ({"name": "w"}, other, 2), ({"name": "ok"}, other, 2), ({"name": "W"}, launch, 2),
-                                        ({"name": "envw"}, launch, 2), ({"name": "twice"}, launch, 2), ({"name": "cwdpy"}, launch, 2), ({"name": "var"}, launch, 2)):  # other: a second launch.json disagrees or lacks the name; W: case ignored as the app does
+                                        ({"name": "envw"}, launch, 2), ({"name": "twice"}, launch, 2), ({"name": "cwdpy"}, launch, 2), ({"name": "var"}, launch, 2)):  # other: a second launch.json disagrees or lacks the name; W: case ignored
             assert d.dispatch(json.dumps({"tool_name": LAUNCH_TOOL, "tool_input": tool_input, "cwd": where}))[0] == code, (tool_input, where)
         assert g.launch_command({"name": "ok"}, os.path.join(other, "unnamed"))[0] is None, "an unnamed entry: the app derives its name, so which one runs cannot be seen (69af6c8da review M2)"
         assert g.launch_command({"name": "cwdpy"}, launch)[0].startswith("cd sub && "), "the configuration's cwd runs first: a relative script there is another file"
@@ -670,7 +189,7 @@ def pre_tool_dispatch_test():
         raise ImportError("no prod_write_gate")
     def boom(payload):
         raise RuntimeError("boom")
-    Crashing, Hanging = (types.SimpleNamespace(plain=g.plain, command_of=g.command_of, could_concern=lambda text: True, decide=decide)  # the gate's own parsing: decide is reached
+    Crashing, Hanging = (types.SimpleNamespace(command_of=g.command_of, could_concern=lambda text: True, decide=decide)  # the gate's own parsing: decide is reached
                          for decide in (boom, lambda payload: time.sleep(5) or (0, "", "")))  # #47: without command_of main stopped at an AttributeError, the hang went untested
     with mock.patch.object(sys, "stdin"), mock.patch.object(d, "DEADLINE", 1):  # a gate with no answer in time is a failure (O7 final, suggestion 1)
         for loader, why in ((broken_import, "ImportError: no prod_write_gate"), (lambda: Crashing, "RuntimeError: boom"), (lambda: Hanging, "Overdue: 超过 1 秒没有结论")):
@@ -689,10 +208,7 @@ def pre_tool_dispatch_test():
     env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", "")}
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):
         refused, passed, bad = (subprocess.run([*runner, DISPATCH], input=text, capture_output=True, text=True, env=env) for text in (payload(f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}"), payload("ls"), "not json"))
-        assert refused.returncode == 2 and "远程工具名" in refused.stderr and passed.returncode == 0 and not passed.stdout and not passed.stderr and bad.returncode == 2 and "拒绝" in bad.stderr, (refused, passed, bad)
-    # 6. size limit from policy.json (gates.max_lines.pre_tool_dispatch)
-    lines, limit = size("pre_tool_dispatch", DISPATCH)
-    assert lines <= limit, f"pre_tool_dispatch.py 超过 {limit} 行"
+        assert refused.returncode == 2 and "底线 4" in refused.stderr and passed.returncode == 0 and not passed.stdout and not passed.stderr and bad.returncode == 2 and "拒绝" in bad.stderr, (refused, passed, bad)
     print("pre_tool_dispatch self-test: ok")
 
 MAIN_GATE = os.path.join(HERE, "main_checkout_gate.py")  # ── main_checkout_gate ──
@@ -772,9 +288,7 @@ def main_checkout_gate_test():
         assert subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=between, capture_output=True, env=ceiling).returncode != 0, "with the ceiling, git finds nothing from .claude/worktrees/"
         assert subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=work, capture_output=True, env=ceiling).returncode == 0, "the worktree itself is found"
         assert subprocess.run(["bash", script], cwd=work, capture_output=True, env=env()).returncode == 0, "without CLAUDE_ENV_FILE it does nothing"
-    # 5. size limit and wiring
-    lines, limit = size("main_checkout_gate", MAIN_GATE)
-    assert lines <= limit, f"main_checkout_gate.py has {lines} lines, policy.json allows {limit}"
+    # 5. wiring
     config = Path(ROOT, ".pre-commit-config.yaml").read_text(encoding="utf-8")
     block = re.search(r"- id: main-checkout-gate\n(?:\s{8,}.*\n)+", config)
     assert block and "entry: python3 -I scripts/gates/main_checkout_gate.py --pre-commit" in block.group(0) and "stages: [pre-commit, pre-merge-commit]" in block.group(0), "pre-commit wiring"
@@ -790,6 +304,25 @@ def commit(cwd, message, name="a.py", **extra):
     git(cwd, "add", name)
     r = git(cwd, "commit", "-q", "-m", message, ok=False, **extra)
     return r.returncode, r.stderr, git(cwd, "log", "-1", "--format=%B").stdout
+
+def renamed_test():
+    """卡 #736 第 8 项（用户 intent 2026-10-28-171648）：one-coordinator→one-leader、one-1a-par→one-dev-par。新名在 sessions.config、有会话文件、提交说明门认得；
+    旧名只留在 aliases（指向新名），不再是会话；合入队列的分支表把新旧分支前缀都归到新名。"""
+    sys.path.insert(0, HERE)
+    import commit_msg_gate as cm
+    sessions, root = policy("sessions"), Path(ROOT)
+    for new, old, role in (("one-leader", "one-coordinator", "lead"), ("one-dev-par", "one-1a-par", "dev")):
+        assert sessions["config"][new]["role"] == role and new in sessions["config_sources"] and sessions["aliases"][old] == new, new
+        assert old not in sessions["config"] and old not in sessions["config_sources"] and not (root / f"docs/modernization/sessions/{old}.md").exists(), old
+        assert (root / f"docs/modernization/sessions/{new}.md").is_file() and new in {f[:-3] for f in os.listdir(root / "docs/modernization/sessions")}, new
+        with tempfile.TemporaryDirectory() as tmp:  # the commit-msg gate reads names from the sessions directory and the marker
+            for rel in (f"docs/modernization/sessions/{new}.md", ".claude/session-name"):
+                put(os.path.join(tmp, rel), new + "\n", 0o644)
+            assert cm.session_name(Path(tmp), "claude/x") == new and cm.session_name(Path(tmp), f"claude/{new}-x") == new, new
+    assert all(v in sessions["config"] for v in sessions["aliases"].values()), "every alias points at a session"
+    prefixes = json.loads(Path(ROOT, "scripts/merge/session_map.json").read_text(encoding="utf-8"))["prefixes"]
+    assert set(prefixes.values()) <= set(sessions["config"]), ("gapscan owners are sessions", set(prefixes.values()) - set(sessions["config"]))
+    assert prefixes["claude/one-coordinator"] == prefixes["claude/one-leader"] == "one-leader" and prefixes["claude/one-1a-par"] == prefixes["claude/one-dev-par"] == "one-dev-par"
 
 def commit_msg_gate_test():
     with tempfile.TemporaryDirectory() as raw:
@@ -809,6 +342,13 @@ def commit_msg_gate_test():
                                  ("fixup! feat: x", lambda msg: "Session:" not in msg, "fixup titles are left alone: "), ("#593 修复钩子", lambda msg: "Session: one-ops" in msg, "a title starting with #<number> is not a comment: ")):
             code, err, msg = commit(repo, title)
             assert code == 0 and kept(msg), why + err + msg
+        guard = [p.rstrip("/") + ("/x.py" if p.endswith("/") else "") for p in policy("review")["final_paths"][:3]]  # 卡 #736：守护文件不须单独提交
+        for rel in guard + ["README.md"]:
+            put(os.path.join(repo, rel), "x\n", 0o644)
+        git(repo, "add", "-A")
+        r = git(repo, "commit", "-q", "-m", "feat: 守护路径与普通文件同一提交", ok=False)
+        files = git(repo, "show", "--name-only", "--format=", "HEAD").stdout.split()
+        assert r.returncode == 0 and set(guard + ["README.md"]) <= set(files) and "Session: one-ops" in git(repo, "log", "-1", "--format=%B").stdout, ("a guard file and an ordinary one in one commit", r.stderr, files)
         put(os.path.join(repo, ".claude/session-name"), "one-nope\n")
         code, err, msg = commit(repo, "feat: 标记不是已知会话")
         assert code == 0 and "Session:" not in msg and "未识别" in err, "an unknown marker warns, never guesses: " + err + msg
@@ -834,10 +374,10 @@ def commit_msg_gate_test():
         for args, word, why in (([os.path.join(broken, "MSG")], "出错", "an error warns and lets the commit through: "), ([], "用法", "")):
             r = subprocess.run([PYTHON, "-I", MSG_GATE, *args], cwd=broken, capture_output=True, text=True, env=env())
             assert r.returncode == 0 and word in r.stderr, why + r.stderr
-    lines, limit = size("commit_msg_gate", MSG_GATE)
-    assert lines <= limit, f"commit_msg_gate.py {lines} 行，超过 policy.json 的 {limit}"
     config = Path(ROOT, ".pre-commit-config.yaml").read_text(encoding="utf-8")
     assert "entry: python3 -I scripts/gates/commit_msg_gate.py" in config, ".pre-commit-config.yaml points at the new path"
+    assert re.findall(r"- id: ([\w-]+)", config) == ["gitleaks", "main-checkout-gate", "commit-msg-gate"], "卡 #736：提交时没有按路径把守护文件拆开的检查"
+    renamed_test()
     for gone in ("scripts/hooks/commit_msg_gate.py", "scripts/hooks/task_ids.py"):
         assert not os.path.exists(os.path.join(ROOT, gone)), gone + " is deleted"
     print("commit_msg_gate self-test: ok")
@@ -862,12 +402,6 @@ def writable(root):
 
 def gitc(repo, *args):
     return subprocess.run(["git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "core.hooksPath=/dev/null", *args], check=True, capture_output=True, text=True).stdout.strip()
-
-def mkrepo(path, files):  # a repository holding `files`, committed once, with origin/main at that commit
-    for rel, text in files.items():
-        put(os.path.join(path, rel), text, 0o644)
-    for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "x"], ["update-ref", "refs/remotes/origin/main", "HEAD"]):
-        gitc(path, *args)
 
 def policy(section="gates"):
     return json.loads(Path(ROOT, "policy.json").read_text(encoding="utf-8"))[section]
@@ -922,7 +456,8 @@ def settings_self_test():
         assert found == ENTRIES[event], (event, found)
     gate = commands["scripts/gates/pre_tool_dispatch.py"]
     assert gate[2] == 120 and gate[1].endswith("exit 2") and "/usr/bin/python3 -I -c" in gate[1], "the gate mount: when the gate fails its own pre-filter decides, refusing by default (H4, C3)"
-    assert set(re.search(r'ok=set\("([^"]*)"', gate[1]).group(1).split()).isdisjoint(g.INTERPRETERS | g.REMOTE_TOOLS | g.RUNS_OTHERS) and set(re.search(r'far="([^"]*)"', gate[1]).group(1).split()) >= g.LONG_REMOTE - {"https", "mongosh"}, "pre-filter lists"
+    tables = ['os.path.expanduser("~/' + gates["install_dir"][2:] + "/" + gates["install_current_link"] + '/scripts/gates/prod_targets.json")', '"scripts/gates/prod_targets.json"']  # #736: the same feature table, installed and the project's
+    assert all(t in gate[1] for t in tables) and "far=" not in gate[1] and "ok=set" not in gate[1] and "not t or" in gate[1], "pre-filter reads the feature table, fails closed without one"
     ceiling = commands["scripts/hooks/git_ceiling_env.sh"]
     assert ceiling[1].endswith("; exit 0") and "【钩子告警】" in ceiling[1] and "exit 2" not in ceiling[1] and ceiling[2] == 10, ceiling
     # an installed target without its exec bit never runs (O6 review item 1); the tool library's start sheet runs through python3, so it needs none
@@ -933,9 +468,6 @@ def settings_self_test():
     assert deny == ["Bash(codex *)", "Bash(pi *)", "mcp__terminal__run_in_terminal"], ("permissions.deny 恰为 codex、pi 直接调用（O21a）与整个终端面板工具（#723）", deny)
     for plugin in ("kotlin-lsp", "claude-code-setup", "code-modernization"):
         assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
-    assert size("install", os.path.join(HERE, "install.sh"))[0] <= gates["max_lines"]["install"], "install.sh 超过 policy gates.max_lines.install"
-    assert size("selftest", os.path.abspath(__file__))[0] <= gates["max_lines"]["selftest"], "gates_selftest.py 超过 policy gates.max_lines.selftest（O8：门自测 1 个文件）"
-    assert max(map(len, Path(__file__).read_text(encoding="utf-8").splitlines())) <= 266, "gates_selftest.py 有超过 266 字符的行：不靠长行压行数（O8 首轮必改）"
     return {**{name: cmd for name, (_, cmd, _) in commands.items()}, "start_sheet": sheet, "node_ready": node}
 
 def make_repo(repo):
@@ -1026,18 +558,23 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
     def bash(command): return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": repo})
     def points_to(): return os.readlink(current) if os.path.islink(current) else None
     def leftovers(): return [n for n in os.listdir(hooks) if n.startswith(".")] if os.path.isdir(hooks) else []
-    def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) - ordinary commands pass with a warning; what may concern production, git/gh (config can run programs) and VAR= prefixes are refused
+    def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) with the same feature table and the same literal match (用户 intent 2026-10-28-202019); no table refuses all
         for shell in shells:
-            for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 2), ("gh pr list", 2), ("git -c core.pager='sh w.sh' log -1", 2), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 2), ("PATH=./bin:/usr/bin ls", 2),
-                                  ("echo x > /dev/tcp/10.0.0.5/6379", 2), ("sort --compress-program=./w.sh x", 2), (f"psql -h {FAKE} -c 'delete from t'", 2), ("./deploy.sh", 2), ("echo `deploy`", 2), ("rg --pre deploy x", 2), *((c, 2) for c in extra)):
+            for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
+                                  ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
+                                  ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"echo {PROD_D.upper()}", 2),
+                                  (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 0),  # split by a backslash: not on the text as written, allowed by design (202019)
+                                  *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
                 r = mount(gate_cmd, bash(command), shell)
                 assert r.returncode == code and why in r.stderr and ("放行" in r.stderr) == (code == 0) and os.path.isfile(os.path.join(hooks, "gate_failures.log")) == os.path.isdir(hooks), (shell, why, command, r.returncode, r.stderr)
+            r = mount(gate_cmd, bash("ls"), shell, CLAUDE_PROJECT_DIR=tmp)  # no table anywhere (nothing installed, none in the project): every command refused
+            assert r.returncode == 2 or os.path.isfile(os.path.join(current, "scripts/gates/prod_targets.json")), ("no feature table: fail closed", shell, r.returncode, r.stderr)
             r = mount(ceiling_cmd, json.dumps({"cwd": repo}), shell)
             assert r.returncode == 0 and r.stdout.splitlines()[-1].startswith("【钩子告警】"), (shell, why, r.returncode, r.stdout, r.stderr)
     # 1. nothing installed: the pre-filter decides (an input it cannot read is refused), SessionStart warns and passes
     closed("入口缺失")
     assert mount(gate_cmd, "not json").returncode == 2 and mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {}})).returncode == 2
-    for tool, command, code in ((t, c, r) for t in COMMAND_TOOLS[1:] for c, r in ((f"psql -h {FAKE} -c 'delete from t'", 2), ("ls", 0))):  # Monitor, the terminal panel
+    for tool, command, code in ((t, c, r) for t in COMMAND_TOOLS[1:] for c, r in ((f"psql -h {PROD_P} -c 'delete from t'", 2), ("ls", 0))):  # Monitor, the terminal panel
         assert mount(gate_cmd, bash(command).replace('"Bash"', f'"{tool}"')).returncode == code, (tool, command)
     # 2. first install: <install_dir>/<full sha>/, current a relative link to it, nothing half-made left
     r = install()
@@ -1053,20 +590,6 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
         assert r.returncode == 0 and "【钩子告警】" not in r.stdout, (r.stdout, r.stderr)
     sheet_test(sheet_cmd, mount, os.path.join(home, sheet_path()[len('"$HOME"/'):]), repo)
     node_test(node_cmd, mount, os.path.join(home, node_path()[len('"$HOME"/'):]))
-    # 2b. no CLAUDE_PROJECT_DIR: the working directory is no repository root for the installed gate, so a forged repository whose origin/main holds a
-    #     script cannot make it trusted (O7 final M3); the forged script names a fictitious host that is on a fictitious local table
-    forged, table = os.path.join(tmp, "forged"), os.path.join(tmp, "fake_targets.json")
-    doc_script = "docs" + "/" + "modernization/new_intent.py"  # registered as an entry on the forged repository's origin/main; built, not spelled (relevant_change.py scans sources for literal docs paths)
-    put(table, json.dumps({"targets": [{"id": "fake", "patterns": [FAKE]}]}), 0o644)
-    registered = {"targets": [{"id": "fake", "patterns": [FAKE]}], "trusted_entries": {"entries": [{"script": "new_intent.py", "interpreter": ["python3"], "forms": [[]]}]}}  # on its origin/main
-    mkrepo(forged, {doc_script: f"import os\nos.system(\"psql -h {FAKE} -c 'delete from t'\")\n", "scripts/gates/prod_targets.json": json.dumps(registered)})
-    for shell in SHELLS:
-        # no CLAUDE_PROJECT_DIR (None, empty): no script trusted; a script is trusted only when cwd and CLAUDE_PROJECT_DIR are one repository: refused with the real repository as project
-        # and the forged one as cwd; the forged repository as both passes (the control: trust follows that one repository, not the cwd alone)
-        no_root, root = "a forged repository in the working directory makes no script trusted", "REPO_ROOT is CLAUDE_PROJECT_DIR"
-        for project, where, code, why in ((None, forged, 2, no_root), ("", forged, 2, no_root), (repo, forged, 2, root), (forged, forged, 0, root)):
-            r = mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {"command": "python3 " + doc_script}, "cwd": where}), shell, CLAUDE_PROJECT_DIR=project, PROD_TARGETS_FILE=table, cwd=where)
-            assert r.returncode == code, (why, shell, project, where, r.returncode, r.stderr)
     # 3. a second version: installed beside the first, current switched; again: already installed, only switched
     r = install(b)
     assert r.returncode == 0 and points_to() == b and os.path.isdir(os.path.join(hooks, a)) and not leftovers(), (r.stdout, r.stderr)
@@ -1154,7 +677,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
     put(os.path.join(hooks, a, "scripts/hooks/extra.sh"), "#!/bin/bash\n")
     assert "不一致" in warning(), "an added file"
     os.remove(os.path.join(hooks, a, "scripts/hooks/extra.sh"))
-    os.remove(os.path.join(hooks, a, "scripts/hooks/command_words.py"))
+    os.remove(os.path.join(hooks, a, "scripts/gates/main_checkout_gate.py"))
     assert "不一致" in warning(), "a removed file"
     os.rename(os.path.join(hooks, a, ".manifest"), os.path.join(tmp, "manifest"))
     assert "没有校验和清单" in warning()
@@ -1210,7 +733,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
     shutil.rmtree(os.path.join(hooks, "syntax"))
     closed("入口缺失")  # a dangling current link
     version("gate-error", "#!/bin/bash\ncat >/dev/null\nexit 3\n")  # the real dispatcher's answer when the gate cannot be imported, crashes or hangs (section 4)
-    closed("异常退出（退出码 3", extra=[c for cs in seventeen(PROD_P, PROD_H, PROD_D).values() for c in cs])
+    closed("异常退出（退出码 3", extra=SAMPLES)
     version("answers", "#!/bin/bash\ncat >/dev/null\necho no >&2\nexit 2\n", "#!/bin/bash\necho ok\n")
     for shell in SHELLS:
         r = mount(gate_cmd, bash("ls"), shell)

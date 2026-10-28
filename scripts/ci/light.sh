@@ -96,6 +96,8 @@ for script in docs/modernization/build_all.py $listed docs/modernization/adr/new
   scripts/ci/failure_summary.py scripts/ci/repeat_new_tests.py scripts/ci/heavy_slot.py docs/modernization/new_intent_selftest.py scripts/evidence/evidence_selftest.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
+run "ci_steps_selftest (ci.yml cleanup spares the runner)" python3 scripts/ci/ci_steps_selftest.py  # 卡 #736 第 9 项：无参数
+run "runner_watch_selftest (runner keep-alive and watch)" python3 scripts/ops/runner_watch_selftest.py
 run "light_selftest (by-change triggers)" bash scripts/ci/light_selftest.sh
 
 # 按改动触发（原 precheck.sh 的同名步骤，检查表在 light_triggers.sh；命令按空格切分）

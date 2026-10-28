@@ -22,37 +22,12 @@
     "context_remind_pct": 70
   },
   "gates": {
-    "_说明": "max_lines.start_sheet 管工具库 ~/.modernize/psa/tools/one-session/start_sheet/start_sheet.py（O23a 起仓库内已无此文件）；它只用标准库，SessionStart 挂载与门一致用 /usr/bin/python3 -I，不吃 PATH（调度 10-27）。max_lines.evidence 管取证单入口 scripts/evidence/evidence.py（二乙 #6 O22a，值由 one-ops 定）。node_record_max_age_seconds 管 clear_session 门（工具库 node_ready.py --gate，用户 intent 2026-10-27-171036）：它只读 node_ready --record 的结果，判定时间超过这个秒数即拒（二乙 #14，调度 10-27「先判后清」）。",
-    "runtime_max_lines": 1500,
+    "_说明": "行数上限（max_lines、runtime_max_lines、mq 与 tools_lib 的 max_lines_total、自测不多于运行代码）按卡 #736 删去（用户 intent 2026-10-28-171123）。node_record_max_age_seconds 管 clear_session 门（工具库 node_ready.py --gate，用户 intent 2026-10-27-171036）：它只读 node_ready --record 的结果，判定时间超过这个秒数即拒（二乙 #14，调度 10-27「先判后清」）。",
     "runtime_max_files": 8,
     "hook_p99_ms": 100,
     "per_call_total_ms": 300,
     "node_record_max_age_seconds": 600,
     "precommit_max_seconds": 10,
-    "max_lines": {
-      "prod_write_gate": 1250,
-      "pre_tool_dispatch": 80,
-      "main_checkout_gate": 120,
-      "commit_msg_gate": 60,
-      "install": 60,
-      "selftest": 1250,
-      "stop_check": 120,
-      "agent_tier_gate": 40,
-      "post_review": 200,
-      "issue_gate": 80,
-      "budget_check": 450,
-      "light_sh": 120,
-      "relevant_change": 600,
-      "relevant_change_selftest": 330,
-      "build_all": 150,
-      "build_decisions": 200,
-      "new_intent": 90,
-      "start_sheet": 300,
-      "delegate": 350,
-      "evidence": 120,
-      "mq": 1200,
-      "mq_selftest": 1200
-    },
     "install_dir": "~/.modernize/psa/tools/hooks",
     "install_current_link": "current"
   },
@@ -123,7 +98,7 @@
       "scripts/delegate.py",
       "scripts/evidence/"
     ],
-    "_final_paths_说明": "仓库根起的完整前缀，改动路径以任一项开头即须 opus 终审。不得写裸目录名或空表（空表等于关闭终审）。生产写门的可信脚本（DOC_SCRIPTS、只读取证工具）运行时会加载或会被比对的文件也在表内，由 gates_selftest 的 layout 段对照门的 closure 核对（K18 续）。"
+    "_final_paths_说明": "仓库根起的完整前缀，改动路径以任一项开头即须 opus 终审。不得写裸目录名或空表（空表等于关闭终审）。表里原为生产写门可信脚本（DOC_SCRIPTS、只读取证工具）列的前缀，卡 #736 起门不再认可信脚本，暂留作守护路径。"
   },
   "labels": {
     "review_passed": "复审通过",
@@ -139,8 +114,7 @@
     "merge_method": {
       "default": "squash",
       "integration": "merge"
-    },
-    "max_lines_total": 2500
+    }
   },
   "ci": {
     "light_job_p90_minutes": 2,
@@ -249,7 +223,7 @@
   "sessions": {
     "resident_max": 4,
     "config": {
-      "one-coordinator": {
+      "one-leader": {
         "role": "lead",
         "model": "opus",
         "effort": "high",
@@ -301,7 +275,7 @@
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
-      "one-1a-par": {
+      "one-dev-par": {
         "role": "dev",
         "model": "sonnet",
         "permission_mode": "bypassPermissions",
@@ -315,7 +289,7 @@
       }
     },
     "config_sources": {
-      "one-coordinator": {
+      "one-leader": {
         "effort": "TEAM-13「调度、整合、复审 high」之调度（调度 10-27 裁定 7）"
       },
       "one-architecture": {
@@ -339,7 +313,7 @@
       "one-1a-admin": {
         "effort": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）"
       },
-      "one-1a-par": {
+      "one-dev-par": {
         "effort": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）"
       },
       "one-platform-file": {
@@ -347,10 +321,12 @@
       }
     },
     "aliases": {
-      "one-rules": "one-coordinator",
-      "one-arch-finance": "one-architecture"
+      "one-rules": "one-leader",
+      "one-arch-finance": "one-architecture",
+      "one-coordinator": "one-leader",
+      "one-1a-par": "one-dev-par"
     },
-    "_说明": "config 是会话配置清单（O23b，定稿 1.13 第 4 条、1.3 第 2 条（D09））：会话名取自 roles/ 各角色文件「过渡映射」列出的现有会话，不写第四批新名；role 为所属角色文件；model 取自盘点四 1.4 节（10-23 会话管理接口实况；定稿 1.13、1.15 无逐会话模型分配，1.13 第 4 条调度模型见 model_schedule）；effort 是目标值不是实况，出处见 config_sources（不放进 config，免得开工单当配置项显示，10b 终审必改 1），未写 effort 键表示定稿未给值、待定稿（调度 10-27 裁定 7）；one-merge、one-quality 对应「整合」「复审」是依据会话画像的推断，待用户确认；permission_mode、remote_control 取自盘点 gap-3 L02、L14（用户级设置，对全部会话生效）；外接工具未定，不写；one-coordinator 的 model_schedule 指向 budget.coordinator_model（D39）。二乙只写入与由开工单显示差异，第四批起生效。aliases 是旧会话名别名表（旧名→现名，调度 10-26 深夜定）：new_intent 的 --owner 与 decide_sync 先按它把旧名换成现名，再只核对 config 的键；目标不在 config 即拒。"
+    "_说明": "config 是会话配置清单（O23b，定稿 1.13 第 4 条、1.3 第 2 条（D09））：会话名取自 roles/ 各角色文件「过渡映射」列出的现有会话，不写第四批新名；role 为所属角色文件；model 取自盘点四 1.4 节（10-23 会话管理接口实况；定稿 1.13、1.15 无逐会话模型分配，1.13 第 4 条调度模型见 model_schedule）；effort 是目标值不是实况，出处见 config_sources（不放进 config，免得开工单当配置项显示，10b 终审必改 1），未写 effort 键表示定稿未给值、待定稿（调度 10-27 裁定 7）；one-merge、one-quality 对应「整合」「复审」是依据会话画像的推断，待用户确认；permission_mode、remote_control 取自盘点 gap-3 L02、L14（用户级设置，对全部会话生效）；外接工具未定，不写；one-coordinator 的 model_schedule 指向 budget.coordinator_model（D39）。二乙只写入与由开工单显示差异，第四批起生效。aliases 是旧会话名别名表（旧名→现名，调度 10-26 深夜定）；10-28 卡 #736 用户改显示名：one-coordinator→one-leader（lead）、one-1a-par→one-dev-par（dev），旧名进别名表：new_intent 的 --owner 与 decide_sync 先按它把旧名换成现名，再只核对 config 的键；目标不在 config 即拒。"
   },
   "measures": [
     {
@@ -372,7 +348,6 @@
     }
   ],
   "tools_lib": {
-    "max_lines_total": 1800,
     "dir": "~/.modernize/psa/tools/one-session",
     "checks": [
       "board",

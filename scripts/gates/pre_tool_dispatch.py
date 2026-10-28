@@ -45,7 +45,7 @@ def dispatch(raw, gate_loader=load_gate):
     command, refusal = gate.command_of(payload)
     if command is None:
         return (2, "", refusal) if refusal else (0, "", "")
-    if not gate.could_concern(gate.plain(command)):
+    if not gate.could_concern(command):
         return 0, "", ""
     return gate.decide(payload)
 
