@@ -74,6 +74,7 @@ run "code reads no proposals/ (registered exceptions only)" python3 -I docs/mode
 run "built.yaml is up to date" python3 docs/modernization/architecture/panorama/scan_aggregates.py --check
 run "asyncapi.yaml is up to date" python3 -I docs/modernization/events/build_asyncapi.py --check
 run "decision fragments are valid" python3 -I docs/modernization/build_decisions.py --check
+run "legacy-read fragments are valid" python3 -I docs/modernization/phase1a/infra/new_legacy_read.py --check
 run "database scripts aligned (self-test)" python3 -I scripts/ci/db_scripts_aligned.py --self-test
 run "database scripts aligned" python3 -I scripts/ci/db_scripts_aligned.py
 run "deploy.yml: checkout no global git config" python3 -I -c 'import sys,yaml; s=[x for x in yaml.safe_load(open(".github/workflows/deploy.yml"))["jobs"]["deploy"]["steps"] if str(x.get("uses","")).lower().startswith("actions/checkout@")]; w=[{str(k).lower(): v for k, v in (x.get("with") or {}).items()} for x in s]; sys.exit("deploy 作业找不到 actions/checkout 步" if not s else 0 if all(x.get("set-safe-directory") is False and not x.get("submodules") for x in w) else "deploy 作业的 checkout 须写 set-safe-directory: false、不开 submodules：否则全局 git 配置落进 $HOME/.gitconfig，toolchain.sh 按 R-0 拒绝（run 40387799615，569ed501f）")'
