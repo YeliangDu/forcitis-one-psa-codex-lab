@@ -22,37 +22,12 @@
     "context_remind_pct": 70
   },
   "gates": {
-    "_说明": "max_lines.start_sheet 管工具库 ~/.modernize/psa/tools/one-session/start_sheet/start_sheet.py（O23a 起仓库内已无此文件）；它只用标准库，SessionStart 挂载与门一致用 /usr/bin/python3 -I，不吃 PATH（调度 10-27）。max_lines.evidence 管取证单入口 scripts/evidence/evidence.py（二乙 #6 O22a，值由 one-ops 定）。node_record_max_age_seconds 管 clear_session 门（工具库 node_ready.py --gate，用户 intent 2026-10-27-171036）：它只读 node_ready --record 的结果，判定时间超过这个秒数即拒（二乙 #14，调度 10-27「先判后清」）。",
-    "runtime_max_lines": 1500,
+    "_说明": "行数上限（max_lines、runtime_max_lines、mq 与 tools_lib 的 max_lines_total、自测不多于运行代码）按卡 #736 删去（用户 intent 2026-10-28-171123）。node_record_max_age_seconds 管 clear_session 门（工具库 node_ready.py --gate，用户 intent 2026-10-27-171036）：它只读 node_ready --record 的结果，判定时间超过这个秒数即拒（二乙 #14，调度 10-27「先判后清」）。",
     "runtime_max_files": 8,
     "hook_p99_ms": 100,
     "per_call_total_ms": 300,
     "node_record_max_age_seconds": 600,
     "precommit_max_seconds": 10,
-    "max_lines": {
-      "prod_write_gate": 1250,
-      "pre_tool_dispatch": 80,
-      "main_checkout_gate": 120,
-      "commit_msg_gate": 60,
-      "install": 60,
-      "selftest": 1250,
-      "stop_check": 120,
-      "agent_tier_gate": 40,
-      "post_review": 200,
-      "issue_gate": 80,
-      "budget_check": 450,
-      "light_sh": 120,
-      "relevant_change": 600,
-      "relevant_change_selftest": 330,
-      "build_all": 150,
-      "build_decisions": 200,
-      "new_intent": 90,
-      "start_sheet": 300,
-      "delegate": 350,
-      "evidence": 120,
-      "mq": 1200,
-      "mq_selftest": 1200
-    },
     "install_dir": "~/.modernize/psa/tools/hooks",
     "install_current_link": "current"
   },
@@ -139,8 +114,7 @@
     "merge_method": {
       "default": "squash",
       "integration": "merge"
-    },
-    "max_lines_total": 2500
+    }
   },
   "ci": {
     "light_job_p90_minutes": 2,
@@ -372,7 +346,6 @@
     }
   ],
   "tools_lib": {
-    "max_lines_total": 1800,
     "dir": "~/.modernize/psa/tools/one-session",
     "checks": [
       "board",

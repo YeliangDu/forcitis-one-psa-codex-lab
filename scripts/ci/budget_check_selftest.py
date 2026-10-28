@@ -9,12 +9,11 @@ SCRIPT = os.environ.get("BUDGET_CHECK") or str(Path(__file__).with_name("budget_
 POLICY = {
     "rules": {"claude_md_max_kb": 1.5, "rules_md_max_kb": 5, "rules_md_max_items": 12, "role_file_max_kb": 3,
               "role_files_max": 8, "role_rules_max": 3, "total_max_kb": 20, "total_max_items": 25},
-    "gates": {"runtime_max_lines": 1500, "runtime_max_files": 8,
-              "max_lines": {"prod_write_gate": 800, "selftest": 1000, "commit_msg_gate": 60, "stop_check": 120,
-                            "post_review": 200, "budget_check": 450, "light_sh": 120, "build_x": 90}},
+    "gates": {"runtime_max_files": 8},
+    "sample": {"limit_lines": 1500},   # H8 夹具：≥1000 的整数、带「行」单位（卡 #736 删了原来的 runtime_max_lines）
     "labels": {"review_passed": "复审通过"},
-    "mq": {"enqueue_alert_minutes": 45, "max_lines_total": 2500},
-    "tools_lib": {"max_lines_total": 1800},
+    "mq": {"enqueue_alert_minutes": 45},
+    "tools_lib": {},
     "ci": {"light_job_cancel_rate_max": 0.05},
     "budget": {"review_days_after_enable": [7, 14]},
     "budget_check": {"mode": "warn"},
@@ -32,6 +31,7 @@ GOOD = {
     "scripts/gates/gates_selftest.py": "y = 1\n" * 10,
     "scripts/hooks/stop_check.py": "z = 1\n" * 5,
     "scripts/ci/acceptance_guard.py": "a = 1\n",
+    "scripts/ci/budget_check.py": "b = 1\n",   # 执行栏引用 budget_check：检查名来自仓库里的脚本（#736 起不再来自 gates.max_lines 的键）
     "backend/src/test/java/x/LegacyShapeTest.java": "class LegacyShapeTest {}\n",
     "scripts/review/post_review.py": 'LABEL = "复审通过"\nsh(["gh", "pr", "edit", "1", "--add-label", LABEL])\n',
     "scripts/merge/mq.py": 'def label(n, name, add):\n    sh(["gh", "pr", "edit", n, "--add-label" if add else "--remove-label", name])\n',
@@ -113,33 +113,19 @@ def main():
     expect_hit("H7 合计超 KB", {}, "H7", "(合计)", with_policy(["rules", "total_max_kb"], 0.3))
     expect_clean("H7 CLAUDE.md 底线摘要不计条数（第 11 节）", {"CLAUDE.md": "# 底线\n" + "".join(f"{i}. 条\n" for i in range(1, 7))},
                  with_policy(["rules", "total_max_items"], 4))
-    # H1：scripts/gates 与 scripts/hooks 合计（运行代码 gates 20 + hooks 5 = 25 行，2 个文件）
-    expect_hit("H1 单文件超 max_lines", {"scripts/gates/commit_msg_gate.py": "z = 1\n" * 61}, "H1",
-               "scripts/gates/commit_msg_gate.py")
-    expect_hit("H1 hooks 下单文件超 max_lines", {"scripts/hooks/stop_check.py": "z = 1\n" * 121}, "H1",
-               "scripts/hooks/stop_check.py")
-    expect_hit("H1 自测多于运行代码", {"scripts/gates/gates_selftest.py": "y = 1\n" * 26}, "H1", "scripts/gates+hooks")
+    # H1：只剩 scripts/gates 与 scripts/hooks 的运行代码文件数（gates 1 + hooks 1 = 2 个文件）
     expect_hit("H1 文件数含 hooks", {}, "H1", "scripts/gates+hooks", with_policy(["gates", "runtime_max_files"], 1))
-    expect_hit("H1 行数含 hooks", {}, "H1", "scripts/gates+hooks", with_policy(["gates", "runtime_max_lines"], 24))
-    expect_hit("H1 行数含 .sh", {"scripts/gates/x.sh": "echo\n" * 10}, "H1", "scripts/gates+hooks",
-               with_policy(["gates", "runtime_max_lines"], 30))
-    files = {k: v for k, v in GOOD.items() if not k.startswith("scripts/gates/")}
-    rc, out, viol = run({**files, "scripts/hooks/stop_check.py": "z = 1\n" * 30}, with_policy(["gates", "runtime_max_lines"], 24))
-    check("H1 只有 hooks 也照样超限报违例（不降成信息）", any(v.startswith("H1 scripts/gates+hooks") for v in viol), out)
-    # H23 后半：外围工具单文件与总行数
-    expect_hit("H23 门外工具超 max_lines", {"scripts/review/post_review.py": "p = 1\n" * 201}, "H23", "scripts/review/post_review.py")
-    expect_hit("H23 docs 下 .py 超 max_lines", {f"{DM}/build_x.py": "b = 1\n" * 91}, "H23", f"{DM}/build_x.py")
-    expect_hit("H23 名_后缀 键（light_sh）", {"scripts/ci/light.sh": "echo\n" * 121}, "H23", "scripts/ci/light.sh")
-    expect_hit("H23 mq 总行数（merge+queue）", {"scripts/queue/merge_train.py": "q = 1\n" * 30}, "H23", "scripts/merge+queue",
-               with_policy(["mq", "max_lines_total"], 30))
-    own = Path(SCRIPT).read_text("utf-8")
-    expect_clean("H23 budget_check 自身在 gates.max_lines.budget_check 内", {"scripts/ci/budget_check.py": own})
-    expect_hit("H23 budget_check 自身计入行数上限", {"scripts/ci/budget_check.py": own}, "H23", "scripts/ci/budget_check.py",
-               with_policy(["gates", "max_lines", "budget_check"], 100))
+    # 卡 #736：行数上限全部去掉——单文件、门与钩子合计、自测多于运行代码、merge+queue 合计、工具库合计，再多行也零违例；旧 policy 留着这些键也不报
+    big = {"scripts/gates/commit_msg_gate.py": "z = 1\n" * 5000, "scripts/hooks/stop_check.py": "z = 1\n" * 5000, "scripts/gates/gates_selftest.py": "y = 1\n" * 20000,
+           "scripts/review/post_review.py": "p = 1\n" * 5000, f"{DM}/build_x.py": "b = 1\n" * 5000, "scripts/ci/light.sh": "echo\n" * 5000,
+           "scripts/queue/merge_train.py": "q = 1\n" * 50000, "scripts/ci/budget_check.py": Path(SCRIPT).read_text("utf-8") * 20}
+    expect_clean("H1／H23 行数再多也不查（#736）", big)
+    old = copy.deepcopy(POLICY)
+    old["gates"].update(runtime_max_lines=10, max_lines={"selftest": 1, "commit_msg_gate": 1, "post_review": 1})
+    old["mq"]["max_lines_total"], old["tools_lib"]["max_lines_total"] = 1, 1
+    expect_clean("旧 policy 的行数键留着也不查（#736）", big, old)
     rc, out, viol = run(GOOD)
-    check("H23 tools_lib 在仓库外：输出一行信息", "信息 H23 tools_lib" in out and "tools_lib.max_lines_total" in out, out)
-    rc, out, viol = run(GOOD, with_policy(["mq"], {"enqueue_alert_minutes": 45}))
-    check("H23 缺 mq.max_lines_total 失败关闭（报违例）", any(v.startswith("H23 policy.json") for v in viol), out)
+    check("不再出 tools_lib 行数信息行（#736）", "max_lines" not in out and "信息 H23 tools_lib" not in out, out)
     # H8
     expect_hit("H8 RULES 写 1.5 KB", {RULES: "## 体量\nCLAUDE.md 不超过 1.5 KB。\n执行：budget_check\n"}, "H8", RULES + ":2")
     expect_hit("H8 角色写 45 分钟", {ROLE + "lead.md": "独占路径：x/\n入队超 45 分钟告警\n"}, "H8", ROLE + "lead.md:2")
@@ -165,7 +151,7 @@ def main():
     expect_hit("H9 workflow 的 on 段不算检查名", {RULES: "## 甲\n执行：push\n"}, "H9", RULES + ":1")
     expect_hit("H9 人工未写角色", {RULES: "## 甲\n执行：人工\n"}, "H9", RULES + ":1")
     expect_clean("H9 实存检查名从仓库生成", {RULES: "## 甲\n执行：acceptance_guard.py、LegacyShapeTest、light、ci、prod_write_gate --check\n"})
-    expect_clean("H9 gates.max_lines 的键可作检查名", {RULES: "## 甲\n执行：commit_msg_gate\n"})
+    expect_clean("H9 门脚本名照样可作检查名（不再靠 gates.max_lines 的键）", {"scripts/gates/commit_msg_gate.py": "x = 1\n", RULES: "## 甲\n执行：commit_msg_gate\n"})
     with tempfile.TemporaryDirectory() as home:   # 工具库：只认含入口文件的一级子目录；dir 须在 ~/.modernize/ 下
         lib = Path(home) / ".modernize" / "lib"
         for d, entry in (("janitor", "janitor.py"), ("budget_level", "__main__.py"), ("stop_sh", "stop_sh.sh"),
@@ -286,20 +272,9 @@ def main():
     check("读文件出错转违例行，不出 traceback，其他检查照跑", rc == 0 and "Traceback" not in out
           and any("检查无法完成" in v and "读不了文件" in v and "IsADirectoryError" in v for v in viol)
           and any(v.startswith("H23 docs/ops/probe.sh") for v in viol), out)
-    pol = with_policy(["mq"], {"enqueue_alert_minutes": 45})
-    rc, out, viol = run({**GOOD, "scripts/review/post_review.py": "p = 1\n" * 201}, pol)
-    check("缺 mq.max_lines_total：报违例，单文件上限与 tools_lib 信息照出", rc == 0 and "Traceback" not in out
-          and any(v.startswith("H23 policy.json 检查无法完成") and "max_lines_total" in v for v in viol)
-          and any(v.startswith("H23 scripts/review/post_review.py") for v in viol) and "信息 H23 tools_lib" in out, out)
-    rc, out, viol = run({**GOOD, "scripts/queue/merge_train.py": "q = 1\n" * 30}, with_policy(["mq", "max_lines_total"], 30)
-                        | {"tools_lib": {}})
-    check("缺 tools_lib.max_lines_total：报违例，mq 总行数照查", rc == 0 and "Traceback" not in out
-          and any(v.startswith("H23 policy.json 检查无法完成") and "max_lines_total" in v for v in viol)
-          and any(v.startswith("H23 scripts/merge+queue") for v in viol), out)
     # policy 上限值是 NaN、Infinity、非正数或非数字：检查无法完成，不静默通过
     for label, v in (("NaN", float("nan")), ("Infinity", float("inf")), ("0", 0), ("负数", -5), ("字符串", "99"), ("布尔", True), ("超大整数", 10 ** 400)):
-        for path, hit in ((["mq", "max_lines_total"], "H23 policy.json 检查无法完成"), (["rules", "rules_md_max_kb"], "H7 policy.json 检查无法完成"),
-                          (["gates", "runtime_max_lines"], "H1 policy.json 检查无法完成"), (["tools_lib", "max_lines_total"], "H23 policy.json 检查无法完成")):
+        for path, hit in ((["rules", "rules_md_max_kb"], "H7 policy.json 检查无法完成"), (["gates", "runtime_max_files"], "H1 policy.json 检查无法完成")):
             rc, out, viol = run(GOOD, with_policy(path, v))
             check(f"policy {'.'.join(path)}={label}：检查无法完成", any(x.startswith(hit) for x in viol) and "Traceback" not in out, out)
     # 模式：policy 的枚举 warn｜enforce

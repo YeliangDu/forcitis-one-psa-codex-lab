@@ -44,9 +44,6 @@ def put(path, text, mode=0o755):
         f.write(text)
     os.chmod(path, mode)
 
-def size(key, path):  # (lines of `path`, its limit policy.json gates.max_lines.<key>)
-    return Path(path).read_text(encoding="utf-8").count("\n"), policy()["max_lines"][key]
-
 HOOKS = os.path.join(REPO_ROOT, "scripts", "hooks")  # ── prod_write_gate ──
 TEST_IP = "192.0.2.15"  # RFC 5737 documentation address, not a production host
 SAMPLE_IDS = ("legacy-rds-sqlserver", "legacy-ecs", "new-prod-names")  # the 17 cases' P, H, D: the first pattern of each of these targets
@@ -224,9 +221,8 @@ def seventeen_self_test():
     print(f"prod_write_gate 17 例: ok（{len(cases)} 例 {sum(len(v) for v in cases.values())} 条复现命令 × {len(runs)} 轮，拦下 {total - len(missed)}/{total}：真实表 {len(runs) - 1} 轮、测试表 1 轮）")
 
 def layout_self_test():
-    """门本体的版式与出处：行数不超 policy.json 的上限；一行一条语句、块体另起一行（O2 复审 M1）；守护源码里没有生产样本，拆段拼接也算（O2 复审 M3）。"""
-    source, (count, limit) = Path(HERE, "prod_write_gate.py").read_text(encoding="utf-8"), size("prod_write_gate", os.path.join(HERE, "prod_write_gate.py"))
-    assert count <= limit, f"prod_write_gate.py 超过 {limit} 行"
+    """门本体的版式与出处：一行一条语句、块体另起一行（O2 复审 M1）；守护源码里没有生产样本，拆段拼接也算（O2 复审 M3）。行数上限按卡 #736 不再查。"""
+    source = Path(HERE, "prod_write_gate.py").read_text(encoding="utf-8")
     lines = source.split("\n")
     raw = [line.encode("utf-8") for line in lines]  # col_offset counts bytes
     crowded = [node.lineno for node in ast.walk(ast.parse(source)) if isinstance(node, ast.stmt) and node.col_offset != len(raw[node.lineno - 1]) - len(raw[node.lineno - 1].lstrip(b" "))]
@@ -328,9 +324,6 @@ def pre_tool_dispatch_test():
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):
         refused, passed, bad = (subprocess.run([*runner, DISPATCH], input=text, capture_output=True, text=True, env=env) for text in (payload(f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}"), payload("ls"), "not json"))
         assert refused.returncode == 2 and "底线 4" in refused.stderr and passed.returncode == 0 and not passed.stdout and not passed.stderr and bad.returncode == 2 and "拒绝" in bad.stderr, (refused, passed, bad)
-    # 6. size limit from policy.json (gates.max_lines.pre_tool_dispatch)
-    lines, limit = size("pre_tool_dispatch", DISPATCH)
-    assert lines <= limit, f"pre_tool_dispatch.py 超过 {limit} 行"
     print("pre_tool_dispatch self-test: ok")
 
 MAIN_GATE = os.path.join(HERE, "main_checkout_gate.py")  # ── main_checkout_gate ──
@@ -410,9 +403,7 @@ def main_checkout_gate_test():
         assert subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=between, capture_output=True, env=ceiling).returncode != 0, "with the ceiling, git finds nothing from .claude/worktrees/"
         assert subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=work, capture_output=True, env=ceiling).returncode == 0, "the worktree itself is found"
         assert subprocess.run(["bash", script], cwd=work, capture_output=True, env=env()).returncode == 0, "without CLAUDE_ENV_FILE it does nothing"
-    # 5. size limit and wiring
-    lines, limit = size("main_checkout_gate", MAIN_GATE)
-    assert lines <= limit, f"main_checkout_gate.py has {lines} lines, policy.json allows {limit}"
+    # 5. wiring
     config = Path(ROOT, ".pre-commit-config.yaml").read_text(encoding="utf-8")
     block = re.search(r"- id: main-checkout-gate\n(?:\s{8,}.*\n)+", config)
     assert block and "entry: python3 -I scripts/gates/main_checkout_gate.py --pre-commit" in block.group(0) and "stages: [pre-commit, pre-merge-commit]" in block.group(0), "pre-commit wiring"
@@ -472,8 +463,6 @@ def commit_msg_gate_test():
         for args, word, why in (([os.path.join(broken, "MSG")], "出错", "an error warns and lets the commit through: "), ([], "用法", "")):
             r = subprocess.run([PYTHON, "-I", MSG_GATE, *args], cwd=broken, capture_output=True, text=True, env=env())
             assert r.returncode == 0 and word in r.stderr, why + r.stderr
-    lines, limit = size("commit_msg_gate", MSG_GATE)
-    assert lines <= limit, f"commit_msg_gate.py {lines} 行，超过 policy.json 的 {limit}"
     config = Path(ROOT, ".pre-commit-config.yaml").read_text(encoding="utf-8")
     assert "entry: python3 -I scripts/gates/commit_msg_gate.py" in config, ".pre-commit-config.yaml points at the new path"
     for gone in ("scripts/hooks/commit_msg_gate.py", "scripts/hooks/task_ids.py"):
@@ -566,9 +555,6 @@ def settings_self_test():
     assert deny == ["Bash(codex *)", "Bash(pi *)", "mcp__terminal__run_in_terminal"], ("permissions.deny 恰为 codex、pi 直接调用（O21a）与整个终端面板工具（#723）", deny)
     for plugin in ("kotlin-lsp", "claude-code-setup", "code-modernization"):
         assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
-    assert size("install", os.path.join(HERE, "install.sh"))[0] <= gates["max_lines"]["install"], "install.sh 超过 policy gates.max_lines.install"
-    assert size("selftest", os.path.abspath(__file__))[0] <= gates["max_lines"]["selftest"], "gates_selftest.py 超过 policy gates.max_lines.selftest（O8：门自测 1 个文件）"
-    assert max(map(len, Path(__file__).read_text(encoding="utf-8").splitlines())) <= 266, "gates_selftest.py 有超过 266 字符的行：不靠长行压行数（O8 首轮必改）"
     return {**{name: cmd for name, (_, cmd, _) in commands.items()}, "start_sheet": sheet, "node_ready": node}
 
 def make_repo(repo):
