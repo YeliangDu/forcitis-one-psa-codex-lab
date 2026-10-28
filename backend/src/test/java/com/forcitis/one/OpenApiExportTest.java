@@ -117,6 +117,7 @@ class OpenApiExportTest {
             "parameter legalEntityId", "parameter ownId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers",
             "OrgUnitResponse.orgUnitId", "OrgUnitResponse.headEmployeeId", "OrgUnitResponse.parentOrgUnitId", "OrgUnitResponse.regionalReceivablesManagerId",
             "OrgUnitDetailResponse.ancestorOrgUnitIds", "OrgUnitDetailResponse.orgUnitAndBelowIds", "CurrentUserResponse.orgUnitId",
+            "CustomOrgUnitRequest.orgUnitId", "CustomOrgUnitResponse.orgUnitId",
             "LegalEntityAttributionResponse.subjectId", "ReassignTaskRequest.assigneeId", "TransferTaskRequest.assigneeId",
             "DecisionResponse.instanceId", "HandledTaskResponse.taskId", "HandledTaskResponse.instanceId", "HandledTaskResponse.documentId", "HistoryEntry.taskId",
             "TaskDetailResponse.taskId", "TaskDetailResponse.instanceId", "TaskDetailResponse.documentId", "TaskOverviewResponse.taskId", "TaskOverviewResponse.documentId",

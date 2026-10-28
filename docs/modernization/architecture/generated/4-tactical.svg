@@ -119,7 +119,7 @@
 <text x="942.0" y="856" font-size="12" fill="#c2410c">◆ EmergencyAdminDisabled</text>
 <text x="942.0" y="876" font-size="12" fill="#c2410c">◆ EmergencyAdminEnabled</text>
 <text x="942.0" y="896" font-size="12" fill="#c2410c">◆ EmergencyAdminRegistered</text>
-<rect x="16" y="892" width="600" height="244" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+<rect x="16" y="892" width="600" height="264" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="28" y="914" font-size="15" fill="#0f172a" font-weight="600">Role</text>
 <text x="604" y="914" font-size="11" fill="#475569" text-anchor="end">身份与权限 · platform.identity</text>
 <text x="28" y="940" font-size="12" fill="#1d4ed8">▸ AdministratorSeparationReview</text>
@@ -129,8 +129,9 @@
 <text x="28" y="1020" font-size="12" fill="#1d4ed8">▸ GrantRoleByOperations</text>
 <text x="28" y="1040" font-size="12" fill="#1d4ed8">▸ ReplaceAccountRoles</text>
 <text x="28" y="1060" font-size="12" fill="#1d4ed8">▸ RevokeRoleByOperations</text>
-<text x="28" y="1080" font-size="12" fill="#1d4ed8">▸ RoleView</text>
-<text x="28" y="1100" font-size="12" fill="#1d4ed8">▸ UpdateRole</text>
+<text x="28" y="1080" font-size="12" fill="#1d4ed8">▸ RoleScopeRefusal</text>
+<text x="28" y="1100" font-size="12" fill="#1d4ed8">▸ RoleView</text>
+<text x="28" y="1120" font-size="12" fill="#1d4ed8">▸ UpdateRole</text>
 <text x="322.0" y="940" font-size="12" fill="#c2410c">◆ RoleCreated</text>
 <text x="322.0" y="960" font-size="12" fill="#c2410c">◆ RoleDeleted</text>
 <text x="322.0" y="980" font-size="12" fill="#c2410c">◆ RoleDisabled</text>
@@ -157,26 +158,26 @@
 <text x="942.0" y="1140" font-size="12" fill="#c2410c">◆ AccountOpened</text>
 <text x="942.0" y="1160" font-size="12" fill="#c2410c">◆ AccountRolesReplaced</text>
 <text x="942.0" y="1180" font-size="12" fill="#c2410c">◆ AccountSeparated</text>
-<rect x="16" y="1156" width="600" height="124" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-<text x="28" y="1178" font-size="15" fill="#0f172a" font-weight="600">OutboundDelivery</text>
-<text x="604" y="1178" font-size="11" fill="#475569" text-anchor="end">外部集成（防腐层） · platform.integration</text>
-<text x="28" y="1204" font-size="12" fill="#1d4ed8">▸ DeliverWecomCards</text>
-<text x="28" y="1224" font-size="12" fill="#1d4ed8">▸ MarkWecomCardHandled</text>
-<text x="28" y="1244" font-size="12" fill="#1d4ed8">▸ QueueWecomCard</text>
-<text x="322.0" y="1204" font-size="12" fill="#94a3b8">（无事件）</text>
-<rect x="16" y="1300" width="600" height="184" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
-<text x="28" y="1322" font-size="15" fill="#0f172a" font-weight="600">SourceReference</text>
-<text x="604" y="1322" font-size="11" fill="#475569" text-anchor="end">外部集成（防腐层） · platform.integration</text>
-<text x="28" y="1348" font-size="12" fill="#1d4ed8">▸ AllocateOwnId</text>
-<text x="28" y="1368" font-size="12" fill="#1d4ed8">▸ ConfirmSourceReference</text>
-<text x="28" y="1388" font-size="12" fill="#1d4ed8">▸ ListSourceReferences</text>
-<text x="28" y="1408" font-size="12" fill="#1d4ed8">▸ RegisterSourceReference</text>
-<text x="28" y="1428" font-size="12" fill="#1d4ed8">▸ RejectSourceReference</text>
-<text x="28" y="1448" font-size="12" fill="#1d4ed8">▸ SourceReferenceView</text>
-<text x="322.0" y="1348" font-size="12" fill="#c2410c">◆ SourceReferenceConfirmed</text>
-<text x="322.0" y="1368" font-size="12" fill="#c2410c">◆ SourceReferenceRegistered</text>
-<text x="322.0" y="1388" font-size="12" fill="#c2410c">◆ SourceReferenceRejected</text>
-<text x="322.0" y="1408" font-size="12" fill="#c2410c">◆ SourceReferenceSuperseded</text>
+<rect x="16" y="1176" width="600" height="124" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="28" y="1198" font-size="15" fill="#0f172a" font-weight="600">OutboundDelivery</text>
+<text x="604" y="1198" font-size="11" fill="#475569" text-anchor="end">外部集成（防腐层） · platform.integration</text>
+<text x="28" y="1224" font-size="12" fill="#1d4ed8">▸ DeliverWecomCards</text>
+<text x="28" y="1244" font-size="12" fill="#1d4ed8">▸ MarkWecomCardHandled</text>
+<text x="28" y="1264" font-size="12" fill="#1d4ed8">▸ QueueWecomCard</text>
+<text x="322.0" y="1224" font-size="12" fill="#94a3b8">（无事件）</text>
+<rect x="16" y="1320" width="600" height="184" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="28" y="1342" font-size="15" fill="#0f172a" font-weight="600">SourceReference</text>
+<text x="604" y="1342" font-size="11" fill="#475569" text-anchor="end">外部集成（防腐层） · platform.integration</text>
+<text x="28" y="1368" font-size="12" fill="#1d4ed8">▸ AllocateOwnId</text>
+<text x="28" y="1388" font-size="12" fill="#1d4ed8">▸ ConfirmSourceReference</text>
+<text x="28" y="1408" font-size="12" fill="#1d4ed8">▸ ListSourceReferences</text>
+<text x="28" y="1428" font-size="12" fill="#1d4ed8">▸ RegisterSourceReference</text>
+<text x="28" y="1448" font-size="12" fill="#1d4ed8">▸ RejectSourceReference</text>
+<text x="28" y="1468" font-size="12" fill="#1d4ed8">▸ SourceReferenceView</text>
+<text x="322.0" y="1368" font-size="12" fill="#c2410c">◆ SourceReferenceConfirmed</text>
+<text x="322.0" y="1388" font-size="12" fill="#c2410c">◆ SourceReferenceRegistered</text>
+<text x="322.0" y="1408" font-size="12" fill="#c2410c">◆ SourceReferenceRejected</text>
+<text x="322.0" y="1428" font-size="12" fill="#c2410c">◆ SourceReferenceSuperseded</text>
 <rect x="636" y="1396" width="600" height="84" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="648" y="1418" font-size="15" fill="#0f172a" font-weight="600">SourceReferenceRefusal</text>
 <text x="1224" y="1418" font-size="11" fill="#475569" text-anchor="end">外部集成（防腐层） · platform.integration</text>

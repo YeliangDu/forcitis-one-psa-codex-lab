@@ -18,12 +18,12 @@ class RoleTest {
 
     static Role custom(String code, Set<String> permissions) {
         return Role.restore(new RoleId(TestIds.uuid(7)), new RoleCode(code), "CUSTOM", false, new RoleVersionId(TestIds.uuid(70)), code, "ENABLED", AccessScopeKind.SELF,
-                permissions, 2, 2);
+                permissions, Set.of(), 2, 2);
     }
 
     static Role system(String code, Set<String> permissions) {
         return Role.restore(new RoleId(TestIds.uuid(1)), new RoleCode(code), "SYSTEM", true, new RoleVersionId(TestIds.uuid(10)), code, "ENABLED", AccessScopeKind.ALL,
-                permissions, 0, 0);
+                permissions, Set.of(), 0, 0);
     }
 
     @Test
@@ -75,7 +75,7 @@ class RoleTest {
     void effectivePermissions() {
         Role enabled = custom("a", Set.of(Permission.Codes.TIMESHEET_SUBMIT));
         Role disabled = Role.restore(new RoleId(TestIds.uuid(8)), new RoleCode("b"), "CUSTOM", false, new RoleVersionId(TestIds.uuid(80)), "b", "DISABLED",
-                AccessScopeKind.SELF, Set.of(Permission.Codes.TIMESHEET_APPROVE), 0, 0);
+                AccessScopeKind.SELF, Set.of(Permission.Codes.TIMESHEET_APPROVE), Set.of(), 0, 0);
 
         AccessProfile profile = AccessProfile.of(List.of(enabled, disabled));
 
@@ -97,7 +97,7 @@ class RoleTest {
                 Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
 
         Role disabledAdmin = Role.restore(new RoleId(TestIds.uuid(1)), new RoleCode("super_admin"), "SYSTEM", true, new RoleVersionId(TestIds.uuid(10)), "x", "DISABLED",
-                AccessScopeKind.ALL, Set.of(), 0, 0);
+                AccessScopeKind.ALL, Set.of(), Set.of(), 0, 0);
         assertThat(AccessProfile.of(List.of(disabledAdmin)).isAdministrator()).isFalse();
         assertThat(AccessProfile.of(List.of(disabledAdmin)).administratorModePermissionCodes()).isEmpty();
     }

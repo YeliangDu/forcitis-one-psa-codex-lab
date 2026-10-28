@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.infrastructure.persistence;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
@@ -17,13 +18,17 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -37,22 +42,24 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
 
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    JdbcAuthorizationRequestRepository(JdbcClient jdbc, Clock clock) {
+    JdbcAuthorizationRequestRepository(JdbcClient jdbc, Clock clock, IdGenerator ids) {
         this.clock = clock;
         this.jdbc = jdbc;
+        this.ids = ids;
     }
 
     @Override
     public Optional<AuthorizationRequest> find(AuthorizationRequestId id) {
-        return jdbc.sql("select " + COLUMNS + " from platform_identity.authorization_requests where request_id = :id")
-                .param("id", id.value()).query((rs, n) -> row(rs)).optional();
+        return withUnits(jdbc.sql("select " + COLUMNS + " from platform_identity.authorization_requests where request_id = :id")
+                .param("id", id.value()).query((rs, n) -> row(rs)).list()).stream().findFirst();
     }
 
     @Override
     public List<AuthorizationRequest> findPending() {
-        return jdbc.sql("select " + COLUMNS + " from platform_identity.authorization_requests where request_status = 'PENDING' order by requested_at")
-                .query((rs, n) -> row(rs)).list();
+        return withUnits(jdbc.sql("select " + COLUMNS + " from platform_identity.authorization_requests where request_status = 'PENDING' order by requested_at")
+                .query((rs, n) -> row(rs)).list());
     }
 
     @Override
@@ -77,6 +84,38 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
                 .param("permissions", draft == null ? new String[0] : draft.permissionCodes().toArray(String[]::new))
                 .param("status", opened.status().name()).param("version", opened.versionAfterSave())
                 .param("eventSequence", opened.eventSequenceAfterSave()).update();
+        if (draft == null) {
+            return;
+        }
+        for (UUID orgUnit : draft.customOrgUnitIds()) {
+            jdbc.sql("""
+                            insert into platform_identity.authorization_request_custom_org_units (authorization_request_custom_org_unit_id, request_id,
+                                   org_unit_id, created_at, updated_at)
+                            values (:id, :request, :orgUnit, :at, :at)
+                            """)
+                    .param("id", ids.next()).param("request", opened.requestId().value()).param("orgUnit", orgUnit)
+                    .param("at", OffsetDateTime.ofInstant(opened.requestedAt(), ZoneOffset.UTC))
+                    .update();
+        }
+    }
+
+    /** The units each request names, read once for all of them; the rows are written with the request and never change. */
+    private Map<UUID, Set<UUID>> customOrgUnits(List<UUID> requests) {
+        Map<UUID, Set<UUID>> units = new HashMap<>();
+        if (requests.isEmpty()) {
+            return units;
+        }
+        jdbc.sql("select request_id, org_unit_id from platform_identity.authorization_request_custom_org_units where request_id in (:requests)")
+                .param("requests", requests)
+                .query((ResultSet rs) -> {
+                    units.computeIfAbsent(rs.getObject("request_id", UUID.class), id -> new HashSet<>()).add(rs.getObject("org_unit_id", UUID.class));
+                });
+        return units;
+    }
+
+    private List<AuthorizationRequest> withUnits(List<Row> rows) {
+        Map<UUID, Set<UUID>> units = customOrgUnits(rows.stream().filter(row -> row.draft() != null).map(Row::requestId).toList());
+        return rows.stream().map(row -> row.restore(units.getOrDefault(row.requestId(), Set.of()))).toList();
     }
 
     @Override
@@ -96,20 +135,37 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
         }
     }
 
-    private static AuthorizationRequest row(ResultSet rs) throws SQLException {
+    /** The role definition of a request row, before its custom org units are attached. */
+    private record DraftColumns(String code, String name, boolean enabled, @Nullable AccessScopeKind scope, Set<String> permissionCodes) {
+    }
+
+    /** One authorization request row; the draft's custom org units come from the child table. */
+    private record Row(UUID requestId, AuthorizationRequestKind kind, UserId requestedBy, Instant requestedAt, @Nullable UserId subject,
+                       @Nullable RoleId role, Set<String> roleCodes, @Nullable DraftColumns draft, String status, @Nullable UserId decidedBy,
+                       @Nullable Instant decidedAt, long version, long eventCount) {
+
+        AuthorizationRequest restore(Set<UUID> customOrgUnitIds) {
+            RoleDraft roleDraft = draft == null ? null
+                    : new RoleDraft(draft.code(), draft.name(), draft.enabled(), draft.scope(), draft.permissionCodes(), customOrgUnitIds);
+            return AuthorizationRequest.restore(new AuthorizationRequestId(requestId), kind, requestedBy, requestedAt, subject, role, roleCodes, roleDraft,
+                    status, decidedBy, decidedAt, version, eventCount);
+        }
+    }
+
+    private static Row row(ResultSet rs) throws SQLException {
         String newCode = rs.getString("new_role_code");
-        RoleDraft draft = newCode == null && rs.getString("role_name") == null ? null
-                : new RoleDraft(newCode, rs.getString("role_name"), rs.getBoolean("is_enabled"),
+        DraftColumns draft = newCode == null && rs.getString("role_name") == null ? null
+                : new DraftColumns(newCode, rs.getString("role_name"), rs.getBoolean("is_enabled"),
                         rs.getString("access_scope_kind") == null ? null : AccessScopeKind.valueOf(rs.getString("access_scope_kind")), strings(rs, "permission_codes"));
         UUID subject = rs.getObject("subject_user_id", UUID.class);
         UUID role = rs.getObject("role_id", UUID.class);
         UUID decided = rs.getObject("decided_by", UUID.class);
         OffsetDateTime decidedAt = rs.getObject("decided_at", OffsetDateTime.class);
-        return AuthorizationRequest.restore(new AuthorizationRequestId(rs.getObject("request_id", UUID.class)),
-                AuthorizationRequestKind.valueOf(rs.getString("request_kind")), new UserId(rs.getObject("requested_by", UUID.class)),
-                rs.getObject("requested_at", OffsetDateTime.class).toInstant(), subject == null ? null : new UserId(subject), role == null ? null : new RoleId(role),
-                strings(rs, "role_codes"), draft, rs.getString("request_status"), decided == null ? null : new UserId(decided),
-                decidedAt == null ? null : decidedAt.toInstant(), rs.getLong("version"), rs.getLong("event_count"));
+        return new Row(rs.getObject("request_id", UUID.class), AuthorizationRequestKind.valueOf(rs.getString("request_kind")),
+                new UserId(rs.getObject("requested_by", UUID.class)), rs.getObject("requested_at", OffsetDateTime.class).toInstant(),
+                subject == null ? null : new UserId(subject), role == null ? null : new RoleId(role), strings(rs, "role_codes"), draft,
+                rs.getString("request_status"), decided == null ? null : new UserId(decided), decidedAt == null ? null : decidedAt.toInstant(),
+                rs.getLong("version"), rs.getLong("event_count"));
     }
 
     private static Set<String> strings(ResultSet rs, String column) throws SQLException {
