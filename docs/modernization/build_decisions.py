@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """从 intent/ 片段生成按主题的现行决定页 CURRENT_DECISIONS.md，上限取自 policy.json 的 decisions.current_page_max_kb（GOV-1023-FV2 G4，定稿 1.5、H14）。
-取代 build_decision_digest.py（速查表）与 INTENT.md；产物不入仓（.gitignore），由 build_all.py 生成。引用条目写文件名前缀，摘句不作依据，引用前打开原文。
+取代 build_decision_digest.py（速查表）与 INTENT.md；产物不入仓（.gitignore），由本脚本在本机生成（new_intent.py 记决定后自动跑）。引用条目写文件名前缀，摘句不作依据，引用前打开原文。
 只列现行条目，按主题（decision-digest/topics.txt）分组、新的在前；每主题列几条由体量决定（从 8 条往下减到整页不超限），其余记条数；--topic=<主题> 把该主题全部现行条目打到终端。
 取代：片段「## 取代」段与 decision-digest/relations.txt；含推翻字样却没登记的只告警。沿用原脚本的校验：文件名须为 <日期>-<HHMMSS>-<会话名>-<短名>.md 或旧式 <日期>-<三位序号>-<短名>.md；
 格式「## 原话」「## 落点」[「## 取代」][规则、影响的 ADR、单子、题号、类别、负责会话、影响路径]，原话落点非空；topics.txt 无重复主题与空白关键词；取代引用不存在的文件、循环取代、新条目早于旧条目都失败。

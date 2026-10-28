@@ -141,7 +141,6 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             _required(mq)
-            _ci_step_name(mq)
             _scenarios(mq, d)
             _merge_guards(mq, d)
             _pause(mq, d)
@@ -157,7 +156,6 @@ def run(mq):
             _runner(mq, d)
             _ssh_update(mq, d)
             _queue_lock(mq, d)
-            _train(mq)
             _gapscan(mq, d)
             _head_changed(mq, d)
             _dev_enqueue(mq, d)
@@ -198,10 +196,6 @@ def _required(mq):
     assert mq.required_state(green(light=True) + green())[0], "light and full next to each other: the full ones count"
 
 
-def _ci_step_name(mq):
-    """The step name the queue looks for is the one ci.yml has (a renamed step would silently turn the no-rerun rule off)."""
-    ci = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".github", "workflows", "ci.yml")
-    assert f"- name: {mq.REPEAT_STEP}" in open(ci, encoding="utf-8").read(), f"ci.yml has no step named {mq.REPEAT_STEP!r}"
 
 
 def _scenarios(mq, d):
@@ -292,11 +286,6 @@ def _scenarios(mq, d):
     assert proc.process(9) == "MERGED" and ("rerun", "777") in gh.calls and events(log).count("RERUN-FAILED") == 1, events(log)
     assert any("RERUN-FAILED pr=#9 run=777" in l and "fail" in l for l in log.lines) and log.lines[-1].split()[3] == "run=778"
 
-    # the repeat step of ci.yml is red: a new test is flaky, so no rerun, HOLD at once; another red step is re-run as before
-    gh = FakeGh(); gh.add(110, rounds=[dict(pending=0, checks=red(31)), dict(pending=0, checks=green(32))])
-    gh.step_failures = {"31": ["new or changed test classes, repeated"]}
-    proc, q, log, _ = _proc(mq, d, "rp1", gh, [110])
-    assert proc.process(110) == "HOLD" and not any(c[0] == "rerun" for c in gh.calls) and "repeat runs" in log.lines[-1] and "run=31" in log.lines[-1] and not any(c[0] == "merge" for c in gh.calls)
     # the environment failed (container runtime down), not the pull request: wait for it, run again, no attempt used up; it never recovers: HOLD naming the environment
     gh = FakeGh(); gh.add(113, rounds=[dict(pending=0, checks=red(61)), dict(pending=0, checks=red(62)), dict(pending=0, checks=green(63))]); gh.docker_down = 3
     gh.step_failures = {"61": ["test images are present"]}
@@ -795,11 +784,6 @@ def _queue_lock(mq, d):
     open(qpath, "a").write("# note\n")
     q.remove(99); q.enqueue(98)
     assert "# note" in open(qpath).read() and q.numbers()[-1] == 98
-
-
-def _train(mq):
-    r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "mq.py"), "train", "--self-test"], capture_output=True, text=True)
-    assert r.returncode == 0 and "merge_train self-test: ok" in r.stdout, (r.stdout, r.stderr[-300:])
 
 
 def _signals(mq, d):

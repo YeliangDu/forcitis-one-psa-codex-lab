@@ -224,7 +224,6 @@ def self_test(module):
         "backend/src/main/resources/db/migration/organization_workforce/V20261014000000__organization_workforce_baseline.sql",
         "backend/src/main/java/com/forcitis/one/organization/workforce/application/ApplySourceSnapshot.java",
         "scripts/ci/ci_git.py",
-        "scripts/ci/repeat_new_tests.py",
     ):
         assert rc.is_legacy_it(path), f"QUAL-CARD-H-R2-3: direct SQL Server input must trigger legacy-it: {path}"
     scheduled = subprocess.run([sys.executable, str(Path(rc.__file__).resolve()), "main"],
@@ -261,8 +260,7 @@ def self_test(module):
     assert rc.is_relevant('"docs/q\\"x.md"'), "a path git still quotes must count as relevant"
     assert rc.is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql"), "DataArchitectureTest executes the verify scripts here"
     assert rc.is_relevant("notes.txt")
-    assert not rc.is_relevant("docs/modernization/build_all.py")
-    assert not rc.is_relevant("docs/modernization/check_legacy_name.py")
+    assert not rc.is_relevant("docs/modernization/adr/new_adr.py"), "a docs tool run only by light.sh's self-tests"
     assert rc.is_relevant("docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml")
     assert rc.is_relevant("docs/modernization/phase1a/infra/one_db_roles_schemas.sql")
     assert rc.any_relevant(["docs/modernization/CODING_STANDARD.md", "docs/modernization/glossary/terms.yaml"])

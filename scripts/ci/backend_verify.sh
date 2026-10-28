@@ -69,8 +69,6 @@ fi
 echo "::group::surefire (exit $unit_status)"; cat "$unit_log"; echo "::endgroup::"
 echo "::group::failsafe (exit $integration_status)"; cat "$integration_log"; echo "::endgroup::"
 grep -hE '^\[(INFO|WARNING|ERROR)\] Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+$' "$unit_log" "$integration_log"
-# a failed step with all unit tests green and no failure line in the log happened (four runs on 2026-10-16): say which step, its failure lines and the end of its log in one place
-python3 -I ../scripts/ci/failure_summary.py "surefire=$unit_status=$unit_log" "failsafe=$integration_status=$integration_log"
 
 rm -f "$unit_log" "$integration_log"
 [ "$unit_status" -eq 0 ] && [ "$integration_status" -eq 0 ]

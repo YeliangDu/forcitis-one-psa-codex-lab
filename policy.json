@@ -62,40 +62,12 @@
       "docs/modernization/phase1a/infra/deploy_gate.json",
       "docs/modernization/new_intent.py",
       "docs/modernization/phase1a/infra/new_legacy_read.py",
-      "docs/modernization/phase1a/infra/build_legacy_read_register.py",
-      "docs/modernization/glossary/new_term_issue.py",
       "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
-      "backend/glossary/build_proposed_index.py",
-      "docs/modernization/adr/build_adrs.py",
       "docs/modernization/adr/new_adr.py",
-      "docs/modernization/adr/selftest_build_adrs.py",
-      "docs/modernization/build_all.py",
       "docs/modernization/build_decisions.py",
-      "docs/modernization/check_legacy_name.py",
-      "docs/modernization/glossary/apply_nm.py",
-      "docs/modernization/glossary/apply_recon.py",
-      "docs/modernization/glossary/apply_recon_selftest.py",
-      "docs/modernization/glossary/apply_rulings.py",
-      "docs/modernization/glossary/build_confirm_page.py",
-      "docs/modernization/glossary/build_confirmation.py",
-      "docs/modernization/glossary/build_glossary.py",
-      "docs/modernization/glossary/build_issues.py",
-      "docs/modernization/glossary/build_terms.py",
-      "docs/modernization/glossary/export_decisions_round2.py",
-      "docs/modernization/glossary/resolve_term_issue.py",
       "docs/modernization/glossary/term_rules.py",
-      "docs/modernization/rules/build_brief.py",
-      "docs/modernization/rules/build_gl_decisions.py",
-      "docs/modernization/rules/build_rule_index.py",
-      "docs/modernization/rules/review_revisions.py",
-      "docs/modernization/r0/build_finance_decisions.py",
       "docs/modernization/rules/decide/answered_pages.txt",
-      "docs/modernization/rules/decide/build_decision_page.py",
-      "docs/modernization/rules/decide/check_pages.py",
-      "docs/modernization/rules/decide/decide_sync.py",
-      "docs/modernization/rules/decide/export_answers.py",
       "docs/modernization/rules/decide/page-template.html",
-      "scripts/delegate.py",
       "scripts/evidence/"
     ],
     "_final_paths_说明": "仓库根起的完整前缀，改动路径以任一项开头即须 opus 终审。不得写裸目录名或空表（空表等于关闭终审）。表里原为生产写门可信脚本（DOC_SCRIPTS、只读取证工具）列的前缀，卡 #736 起门不再认可信脚本，暂留作守护路径。"
@@ -210,9 +182,6 @@
     "week_reset_anchor": "2026-10-26T09:00Z",
     "reading_max_age_min": 360,
     "_reading_说明": "week_reset_anchor 取自用量页周重置时间（北京时间周一 17:00），按 7 天推算；reading_max_age_min：读数源每天只采样 3～4 次，超过即视为无读数；reading_max_deviation_pts=5 为验证期暂定（本地 80%、用量页 82% 一次对照），验证满一周后复核再定。"
-  },
-  "budget_check": {
-    "mode": "warn"
   },
   "machine": {
     "ci_runners": 4,
@@ -359,82 +328,6 @@
       "start_sheet",
       "stop_check"
     ]
-  },
-  "delegate": {
-    "_说明": "scripts/delegate.py 的准入与运行参数（O20；b2b-plan #1、#2）。forbidden_paths 为仓库相对路径的 fnmatch 通配（* 跨目录），命中的文件不进外包 worktree、不许出现在范围与改动里；forbidden_categories 为不外包类别（roles/platform.md「delegate 准入」），与类别名互相包含即拒；env_allow 是 env -i 后唯一透传的变量名，凭据由本机配置提供（TEAM-34 现行做法），不在这里加密钥变量；缺键或 null 时 delegate 失败关闭。forbidden_paths、forbidden_categories、env_allow、engines、timeout_minutes 为 ops 起草的最小可用值，待调度定稿。",
-    "forbidden_paths": [
-      "scripts/hooks/*",
-      "scripts/gates/*",
-      "scripts/evidence/*",
-      "scripts/release/*",
-      "scripts/ops/*",
-      "scripts/coord/*",
-      "scripts/delegate*",
-      ".claude/*",
-      ".github/workflows/*",
-      "policy.json",
-      ".gitleaks.toml",
-      ".pre-commit-config.yaml",
-      "*/acceptance/*",
-      "docs/modernization/phase1a/infra/*",
-      "*SECRETS*",
-      "*.env",
-      "*.env.*",
-      "*合同*"
-    ],
-    "forbidden_categories": [
-      "生产取证",
-      "连生产操作",
-      "安全改动",
-      "复审",
-      "验收测试",
-      "对用户与会话的沟通",
-      "语义、权限、越权边界判断",
-      "钩子、并发、解析类守护代码"
-    ],
-    "env_allow": [
-      "HOME",
-      "PATH",
-      "LANG",
-      "LC_ALL",
-      "TMPDIR",
-      "USER",
-      "LOGNAME"
-    ],
-    "engines": {
-      "codex": {
-        "model": "gpt-6.1-sol"
-      },
-      "deepseek": {
-        "model": "deepseek/deepseek-flash",
-        "tools": "read,edit,write"
-      }
-    },
-    "timeout_minutes": 60,
-    "real_run_enabled": false,
-    "_real_run_说明": "调度 10-26 深夜定方案 A：false 时 delegate 只许自测桩，真引擎一律拒（失败关闭、台账记拒绝）；pi 系统沙箱与 codex 限读（终审 79afae290 必改 2、3 后半）在 V16 前实测处理，处理完并经批准才改 true。review.final_paths 全部并入禁区。",
-    "ledger": "~/.modernize/psa/state/delegate/ledger.jsonl",
-    "runs_dir": "~/.modernize/psa/state/delegate/runs",
-    "billing": {
-      "codex": {
-        "mode": "subscription",
-        "no_cap": true
-      },
-      "deepseek": {
-        "mode": "record_only",
-        "no_cap": true
-      }
-    },
-    "pilot": {
-      "categories": [
-        "写测试",
-        "机械改写",
-        "长文阅读"
-      ],
-      "cards_per_category": 5,
-      "first_pass_rate_min_vs_sonnet_pts": -10,
-      "claude_cost_max_vs_sonnet_self": 0.5
-    }
   },
   "shell": {
     "foreground_max_seconds": 60

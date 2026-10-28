@@ -9,7 +9,6 @@
   mq.py list                      the queue, one number per line
   mq.py status                    queue, lanes, pause state
   mq.py resume <run id>...        acknowledge exactly the red main runs `status` shows (coordinator only) and let both lanes go on; a different set is refused
-  mq.py train <merge_train.py args>   scripts/queue/merge_train.py: `train docs --branch B <session branch>@<sha>...` collects documentation commits (one by one, docs/ only, never an octopus merge)
   mq.py --self-test
 
 Lanes. docs: every changed path is pure documentation (scripts/ci/relevant_change.py tier=docs: nothing a build or test reads). code: everything else, also the middle tier (docs a container-free test reads).
@@ -66,10 +65,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import gapscan   # noqa: E402
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
-# ci.yml's step that runs the pull request's new or changed test classes again (scripts/ci/repeat_new_tests.py): red there is a flaky new test, and a rerun that passes would let it in
 URGENT_LABEL = "急"   # put on by the coordinator: the pull request is picked before the others of its lane and the queue never cancels its CI runs
 ENV_STEPS = ("docker is running", "test images are present")   # exact names in ci.yml of the steps that go red when the machine's container runtime is down
-REPEAT_STEP = "new or changed test classes, repeated"
 OK = ("pass", "skipping")
 LINE = re.compile(r"^\s*(\d+)(?:\s+after=([\d,]+))?\s*$")   # "<n>" or "<n> after=<m>[,<m>...]": n waits until every m is merged
 LANES = ("code", "docs")
@@ -974,9 +971,6 @@ class Processor:
                         self.gh.rerun(r)
                     self.sleep(30)
                     continue
-                repeated = [r for r, st in steps.items() if REPEAT_STEP in (st or [])]
-                if repeated:   # a new test that fails when it runs again is flaky: no rerun (it would pass the second time and get in), straight to the author
-                    return self.hold(n, ",".join(repeated), since, f"a new or changed test class failed its repeat runs ({REPEAT_STEP}): not rerun, back to the author")
                 if attempt == 1:
                     for r in runs:
                         self.gh.rerun(r)
@@ -1179,13 +1173,6 @@ def run_loop(proc, idle=60, stop=lambda: False, directory=None):
         t.join()
 
 
-def train_module():
-    spec = importlib.util.spec_from_file_location("merge_train", os.path.join(HERE, "..", "queue", "merge_train.py"))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
 def main_checkout():
     """The main checkout: the first entry of `git worktree list` (a bare repository has none: None)."""
     r = sh(["git", "worktree", "list", "--porcelain"])
@@ -1248,9 +1235,6 @@ def main(argv=None):
             mq_selftest.run(sys.modules[__name__])
         print("mq self-test: ok")
         return
-    if argv[:1] == ["train"]:
-        sys.argv = ["merge_train.py"] + argv[1:]
-        return train_module().main()
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--queue")
     p.add_argument("--log")

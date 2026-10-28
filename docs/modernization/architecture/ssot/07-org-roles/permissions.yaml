@@ -1,4 +1,4 @@
-# 由 panorama/scan_org_roles.py 生成，勿手改
+# 正本，直接编辑（原生成脚本已随 #742 删除）
 meta:
   permissions: 29
   system_roles: 7

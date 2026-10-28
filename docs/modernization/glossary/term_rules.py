@@ -1,4 +1,4 @@
-"""用语登记规则（B1，intent 2026-10-15-171649、171959-one-coordinator）：glossary/build_terms.py 对正式词条与提议术语逐条校验，缺项即失败。
+"""用语登记规则（B1，intent 2026-10-15-171649、171959-one-coordinator）：对正式词条（正本 glossary/terms.yaml）与提议术语逐条校验，缺项即失败。用法：term_rules.py --check | --self-test（light.sh 跑）。
 规则：
 - status 只取 proposed / approved / deprecated；弃用条目写 replaced_by（取代它的、未弃用的词条 id）、until（改完的期限）、owner（负责改名的会话）；
 - scope 必填，只取 domain（领域，某 bc）/ kernel（共享内核）/ acl（防腐层）；bc 必填，取 glossary/bcs.yaml 中 kind 为 bc 或 kernel 的 id（子域不算）；
@@ -273,9 +273,27 @@ def self_test():
     print("self-test: ok")
 
 
+def check_repo():
+    """正本 terms.yaml 与 backend/glossary/proposed/*.yaml 逐条校验（#742：terms.yaml 固化为正本，build_terms.py 已删，校验由 light.sh 直接调）。"""
+    import glob, yaml
+    here = os.path.dirname(os.path.abspath(__file__))
+    bcs = {b["id"]: b["kind"] for b in yaml.safe_load(open(os.path.join(here, "bcs.yaml"), encoding="utf-8"))["bcs"]}
+    entries = [("terms.yaml", t) for t in yaml.safe_load(open(os.path.join(here, "terms.yaml"), encoding="utf-8"))["terms"]]
+    proposed = sorted(glob.glob(os.path.join(here, "..", "..", "..", "backend", "glossary", "proposed", "*.yaml")))
+    if not proposed:
+        raise SystemExit("找不到 backend/glossary/proposed/*.yaml")
+    for f in proposed:
+        for e in (yaml.safe_load(open(f, encoding="utf-8")) or {}).get("terms") or []:
+            entries.append((f"proposed/{os.path.basename(f)}", e))
+    left, by_rule = enforce(entries, bcs)
+    print(f"term_rules: {len(entries)} 条，存量问题 {left} 条（只减不增）", dict(sorted(by_rule.items())))
+
+
 if __name__ == "__main__":
     import sys
-    if "--self-test" in sys.argv[1:]:
+    if sys.argv[1:] == ["--self-test"]:
         self_test()
+    elif sys.argv[1:] == ["--check"]:
+        check_repo()
     else:
-        sys.exit("用法：python3 docs/modernization/glossary/term_rules.py --self-test（校验由 glossary/build_terms.py 调用）")
+        sys.exit("用法：python3 docs/modernization/glossary/term_rules.py --check | --self-test")

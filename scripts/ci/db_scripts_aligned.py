@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """The executable database scripts (C-3 dev, C-9 prod) must list the same schemas and version tables as the reference DDL
 one_db_roles_schemas.sql, and every migration module directory must have its schema created, owned by the owner role and granted. These lists are kept
-in step by hand and drift; the guard compares lists, the created roles, every statement that grants or revokes on functions, and the few grants that make a schema append-only, not full semantics
-(c3_dev_db_check.sh exercises the grants in a container).
+in step by hand and drift; the guard compares lists, the created roles, every statement that grants or revokes on functions, and the few grants that make a schema append-only, not full semantics.
 Usage: db_scripts_aligned.py  |  db_scripts_aligned.py --self-test"""
 import re
 import subprocess

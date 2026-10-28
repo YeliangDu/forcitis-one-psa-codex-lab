@@ -53,42 +53,30 @@ NOT_READ_BY_BUILDS = (
 # files outside the builds that read READ_BY_BUILDS docs and run in a CI job whatever changed
 ALWAYS_RUN_READERS = (
     "scripts/ci/db_scripts_aligned.py",   # scripts/ci/light.sh (backend job), whatever changed
-    "scripts/ci/baseline_ddl_scan.py",    # assertion-drift job on every pull request; report only
 )
 # developer tools that name docs paths but are no CI step: they are not readers. scripts/gates/ holds the local hooks (the gates and their installer);
 # its gates_selftest.py does run in CI, but through scripts/ci/light.sh on every event, so a doc only it names needs no further tier
 LOCAL_ONLY = ("scripts/hooks/", "scripts/gates/")
 
-# read only by checks that run unconditionally (scripts/ci/light.sh in the backend job on every event, the gitleaks and assertion-drift jobs); docs read by scripts/release must be listed in READ_BY_BUILDS
+# read only by checks that run unconditionally (scripts/ci/light.sh in the backend job on every event, the gitleaks job); docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
-    "docs/modernization/architecture/proposals/j_checks.py",
     "docs/modernization/architecture/ssot/t-transitions/transitions.yaml",
-    "docs/modernization/build_all.py",
-    "docs/modernization/build_all_generators.json",   # generator list read by build_all.py
-    # rule and role files: read by scripts/ci/budget_check.py (always-run check once wired in, Q5); 工具库 start_sheet 的开工单（仓库外，O23a）也点名 RULES.md
+    # rule and role files: 工具库 start_sheet 的开工单（仓库外，O23a）点名 RULES.md 与角色文件
     "docs/modernization/RULES.md",
     "docs/modernization/roles/",
-    # 错题本：build_all.py 的自测步骤（scripts/ci/ci_recurrence.py 读册、quality/defect-bank/defect_bank_check.py 检查册）在 gitleaks 作业里无条件运行
-    "docs/modernization/quality/defect-bank/",
     # ruling record: read by scripts/ci/acceptance_rulings.py in the always-run acceptance step
     "docs/modernization/rulings/",
-    # archive index (V14): read only by scripts/ci/acceptance_v2.sh, the batch sign-off run by hand (no CI step), so no build or test tier needs it
-    "docs/modernization/ARCHIVE_INDEX.md",
-    # also named only by acceptance_v2.sh (hand-run, no CI step): V06 checks the card template is gone, V15 that decide_sync.py exists
-    "docs/modernization/templates/WORK_CARD.md",
-    "docs/modernization/rules/decide/decide_sync.py",
-    # session profiles: checked by build_all.py --check, read by the tool library's start_sheet (outside the repository, O23a); commit_msg_gate.py takes session names from sessions/ and roles/ (roles/ is listed above)
+    # session profiles: read by the tool library's start_sheet (outside the repository, O23a)
     "docs/modernization/sessions/",
-    "docs/modernization/check_legacy_name.py",
-    # rule review revisions are append-only: run by scripts/ci/light.sh
-    "docs/modernization/rules/review_revisions.py",
-    "docs/modernization/adr/new_adr.py",  # tool self-tests run by scripts/ci/light.sh (O14: no longer by build_all.py)
-    # deleted by #23 C10c; still named only by acceptance_v2.sh (hand-run, no CI step): V06 checks the task register and its checker are gone
-    "docs/modernization/check_tasks.py",
-    "docs/modernization/tasks/",
-    # decision page question rules: no CI step runs them (scripts/precheck.sh did, locally, until GOV-1023-FV2 O9); listed so that naming them stays covered
-    "docs/modernization/rules/decide/check_pages.py",
-    "docs/modernization/rules/decide/build_decision_page.py",
+    "docs/modernization/adr/new_adr.py",  # tool self-tests run by scripts/ci/light.sh
+    # #742: checks light.sh runs directly since build_all.py is gone (term rules, BPMN catalogue, proposals/ reads, built.yaml, decision fragments)
+    "docs/modernization/architecture/panorama/scan_aggregates.py",
+    "docs/modernization/architecture/panorama/test_scan_aggregates.py",
+    "docs/modernization/architecture/proposal_reads.py",
+    "docs/modernization/architecture/ssot/09-processes/build_catalog.py",
+    "docs/modernization/build_decisions.py",
+    # deleted by #742; scripts/merge/mq.py still names it: its conflict auto-resolve finds no build_all.py and settles nothing (that code goes in #742's cleanup PR)
+    "docs/modernization/build_all.py",
 )
 
 
@@ -137,7 +125,6 @@ LEGACY_IT_PATHS = (
     "scripts/ci/backend_verify.sh",
     "scripts/ci/acceptance_reports.py",
     "scripts/ci/ci_git.py",
-    "scripts/ci/repeat_new_tests.py",
     "scripts/ci/relevant_change.py",
     ".github/workflows/nightly-legacy-it.yml",
     ".github/workflows/ci.yml",
@@ -230,9 +217,8 @@ WIDE_NOT_READERS = {
     "scripts/ci/heavy_gate.py": "the test strings use \"docs\" as a label name",
     "scripts/ci/light_unit_classes.py": "docs/ is only a changed-path prefix and a fixture path in its self-test (a literal \"../docs/...\" in a temporary test source); it reads no document of this repository",
     "scripts/release/ci_passed.py": "its self-test builds a temporary git repository with a docs directory; it reads no document of this repository",
-    "scripts/merge/mq.py": "\"docs\" is the name of a merge lane (and of the train subcommand); the only path it builds is relevant_change.py's, to ask it about a pull request's file list",
+    "scripts/merge/mq.py": "\"docs\" is the name of a merge lane; the only path it builds is relevant_change.py's, to ask it about a pull request's file list",
     "scripts/merge/mq_selftest.py": "lane names, and a stub relevant_change.py in a temporary directory; it reads no document of this repository",
-    "scripts/queue/merge_train.py": "the `docs` subcommand collects documentation commits from session branches (git diff against paths under docs/); its self-test builds temporary repositories with a docs directory; it reads no document of the working tree",
 }
 # frontend scripts that `pnpm run check:copy` and `pnpm run test:scripts` run (checked against package.json by the self-test); any other frontend reader needs the full verify
 GUARDED_FRONTEND = ("frontend/scripts/check-copy-glossary.mjs", "frontend/scripts/copy-glossary.mjs", "frontend/scripts/copy-glossary.test.mjs")
