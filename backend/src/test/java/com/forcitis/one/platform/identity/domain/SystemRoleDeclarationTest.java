@@ -49,7 +49,7 @@ class SystemRoleDeclarationTest {
     @DisplayName("ADR-0034 1.4 a role knows whether its definition changed since it was loaded: only then does saving it add a version")
     void definitionChanged() {
         Role role = Role.restore(new RoleId(TestIds.uuid(7)), new RoleCode("analyst"), "CUSTOM", false, new RoleVersionId(TestIds.uuid(70)), "Analyst", "ENABLED",
-                AccessScopeKind.SELF, Set.of(Permission.Codes.PLATFORM_FILE_FILE_READ), 1, 1);
+                AccessScopeKind.SELF, Set.of(Permission.Codes.PLATFORM_FILE_FILE_READ), Set.of(), 1, 1);
         role.revise("Analyst", AccessScopeKind.SELF, Set.of(Permission.Codes.PLATFORM_FILE_FILE_READ));
         role.declareEnabled(true);
         assertThat(role.definitionChanged()).as("the same name, scope, codes and status").isFalse();

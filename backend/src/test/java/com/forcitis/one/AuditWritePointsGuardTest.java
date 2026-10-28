@@ -115,7 +115,7 @@ class AuditWritePointsGuardTest {
             changeTexts(source.getValue()).forEach(wrong -> problems.add(source.getKey() + " writes a before or after text: " + wrong));
         }
         assertThat(problems).isEmpty();
-        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions)").hasSize(41);
+        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions), F-1 #728 adds CreateRole (grant.refused for a two-person role's scope: reason code, scope kind and org unit ids)").hasSize(42);
     }
 
     @Test

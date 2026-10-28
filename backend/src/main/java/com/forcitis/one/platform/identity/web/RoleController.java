@@ -154,6 +154,7 @@ class RoleController {
     }
 
     private static SaveRoleCommand command(RoleRequest request) {
-        return new SaveRoleCommand(request.code(), request.name(), request.enabled() == null || request.enabled(), request.accessScope(), request.permissionCodes());
+        return new SaveRoleCommand(request.code(), request.name(), request.enabled() == null || request.enabled(), request.accessScope(), request.permissionCodes(),
+                request.customOrgUnits() == null ? null : request.customOrgUnits().stream().map(CustomOrgUnitRequest::toUnit).toList());
     }
 }

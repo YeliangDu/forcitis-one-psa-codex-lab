@@ -38,7 +38,7 @@ class IdentityStateMachineTest {
 
     static Role role(RoleStatus status) {
         return Role.restore(new RoleId(TestIds.uuid(7)), new RoleCode("analyst"), "CUSTOM", false, new RoleVersionId(TestIds.uuid(70)), "Analyst", status.name(),
-                AccessScopeKind.SELF, Set.of(), 2, 2);
+                AccessScopeKind.SELF, Set.of(), Set.of(), 2, 2);
     }
 
     @Test
@@ -64,7 +64,7 @@ class IdentityStateMachineTest {
     void systemRoleIsFrozen() {
         for (RoleStatus status : RoleStatus.values()) {
             Role system = Role.restore(new RoleId(TestIds.uuid(1)), new RoleCode("employee"), "SYSTEM", false, new RoleVersionId(TestIds.uuid(10)), "Employee",
-                    status.name(), AccessScopeKind.SELF, Set.of(), 0, 0);
+                    status.name(), AccessScopeKind.SELF, Set.of(), Set.of(), 0, 0);
             for (Runnable change : List.<Runnable>of(system::enable, system::disable, system::delete, () -> system.declareEnabled(true),
                     () -> system.revise("x", AccessScopeKind.SELF, Set.of()))) {
                 assertThatThrownBy(change::run).isInstanceOfSatisfying(RoleRuleException.class,

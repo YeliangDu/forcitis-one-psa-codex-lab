@@ -133,6 +133,11 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FRO
 -- 人事命令只追加（ADR-0068 第 1 条 7）：触发器之外，运行角色也不持有 DELETE 与 TRUNCATE；离职满 10 年的清除经属主的 SECURITY DEFINER 函数。
 REVOKE DELETE, TRUNCATE ON organization_workforce.personnel_commands FROM one_dev_app;
 
+-- 角色版本与授权申请的自定义部门（F-1 #728；数据访问注册表 AGGREGATE_CHILD / APPEND_ONLY）：明细随父行同事务插入，触发器拒改删；
+-- 运行角色也不持有 DELETE 与 TRUNCATE。不是版本表，不进上面的版本表清单（DataArchitectureTest 核对该清单只含 DIMENSION_VERSIONED）。
+REVOKE DELETE, TRUNCATE ON platform_identity.role_version_custom_org_units FROM one_dev_app;
+REVOKE DELETE, TRUNCATE ON platform_identity.authorization_request_custom_org_units FROM one_dev_app;
+
 -- 文件服务（ADR-0060、0061、0070；one-data 签发 IMP-1021-COO-02 单元 3）：只追加表与状态转换表运行角色只留 SELECT、INSERT；
 -- 其余表运行角色不持有 DELETE 与 TRUNCATE（保存类别根表可改名称，其余由触发器限定只改状态或确认列）；视图只读。
 REVOKE UPDATE, DELETE, TRUNCATE ON platform_file.file_bindings, platform_file.file_holds, platform_file.file_preservations,

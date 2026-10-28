@@ -352,6 +352,18 @@ tables:
     lineage: {source: NEW}
     references: {recorded_by: platform_identity.user_accounts, closed_by: platform_identity.user_accounts}
     writers: [platform.identity]
+  platform_identity.role_version_custom_org_units:
+    # F-1 (#728): the custom org units of a role version, written once with the new version (tg_role_version_custom_org_units_guard). Retention follows
+    # role_versions (0034-Q2 (b): 3 years online, archived until 10 years) and is purged with its role version; org_unit_id is a cross-schema id without a foreign key.
+    role: AGGREGATE_CHILD
+    aggregate: Role
+    mutability: APPEND_ONLY
+    business_key: [role_version_id, org_unit_id]
+    fk_exceptions:
+      org_unit_id: an org unit of organization_workforce.org_units (another schema, F-1 card section on references); a disabled or revoked unit is caught by the scope review (RULE-387)
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.identity]
   platform_identity.account_role_grants:
     # Retention as role_versions above (0034-Q2; owner one-1a-par; due within 30 months after the first production deployment; purge job built with the audit online deletion; account_role_grants is purged before role_versions).
     # D17 rule 2: effective basis DECLARED; the current value is the row that is not closed.
@@ -409,6 +421,18 @@ tables:
     mutability: MUTABLE
     fk_exceptions:
       role_id: a request outlives the role it asked to change; the role may be deleted while the request is decided or kept as history
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.identity]
+  platform_identity.authorization_request_custom_org_units:
+    # F-1 (#728): the units a CREATE_ROLE / UPDATE_ROLE request names, all without descendants; written once when the request is opened
+    # (tg_authorization_request_custom_org_units_guard). Retention follows authorization_requests; org_unit_id is a cross-schema id without a foreign key.
+    role: AGGREGATE_CHILD
+    aggregate: AuthorizationRequest
+    mutability: APPEND_ONLY
+    business_key: [request_id, org_unit_id]
+    fk_exceptions:
+      org_unit_id: an org unit of organization_workforce.org_units (another schema, F-1 card section on references); not checked when the request is opened
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.identity]

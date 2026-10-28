@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
+import com.forcitis.one.platform.identity.api.CustomOrgUnit;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
@@ -29,6 +30,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -96,7 +98,7 @@ class JdbcRoleRepository implements RoleRepository {
         if (id.isEmpty()) {
             throw new RoleRuleException(RoleViolation.DUPLICATE_CODE);
         }
-        role.versionWritten(insertVersion(role.roleId(), 1, now, now, role.definition(), change));
+        role.versionWritten(insertVersion(role.roleId(), 1, now, now, role.definition(), change, Set.of()));
         return role;
     }
 
@@ -110,7 +112,7 @@ class JdbcRoleRepository implements RoleRepository {
                 throw new RoleRuleException(RoleViolation.DUPLICATE_NAME);
             }
             updateToReplace(current.id(), from);
-            role.versionWritten(insertVersion(role.roleId(), current.number() + 1, from, now, role.definition(), change));
+            role.versionWritten(insertVersion(role.roleId(), current.number() + 1, from, now, role.definition(), change, current.definition().customOrgUnits()));
         }
         int updated = jdbc.sql("""
                         update platform_identity.roles set updated_at = :now, version = :next, event_count = :eventSequence
@@ -194,7 +196,8 @@ class JdbcRoleRepository implements RoleRepository {
         current.ifPresent(version -> updateToReplace(version.id(), from));
         int number = jdbc.sql("select coalesce(max(version_number), 0) + 1 from platform_identity.role_versions where role_id = :id")
                 .param("id", declared.roleId().value()).query(Integer.class).single();
-        insertVersion(declared.roleId(), number, from, now, declared.definition(), RoleChange.seed(declared.revisionNumber()));
+        insertVersion(declared.roleId(), number, from, now, declared.definition(), RoleChange.seed(declared.revisionNumber()),
+                current.map(version -> version.definition().customOrgUnits()).orElse(Set.of()));
         int updated = jdbc.sql("""
                         update platform_identity.roles set updated_at = :now, version = :next
                          where role_id = :id and version = :version
@@ -246,18 +249,24 @@ class JdbcRoleRepository implements RoleRepository {
         return currentVersion(role.roleId()).orElseThrow(() -> staleRole(role));
     }
 
+    /** The current version with its whole definition, the custom org units included. */
     private Optional<CurrentVersion> currentVersion(RoleId roleId) {
+        record Stored(RoleVersionId id, int number, String name, RoleStatus status, AccessScopeKind scope, Set<String> codes, ChangeChannel channel,
+                      @Nullable Integer revision) {
+        }
         return jdbc.sql("""
                         select role_version_id, version_number, role_name, role_status, access_scope_kind, permission_codes, change_channel_kind,
                                declaration_revision_number
                           from platform_identity.role_versions where role_id = :id and effective_to_at is null
                         """)
                 .param("id", roleId.value())
-                .query((rs, n) -> new CurrentVersion(new RoleVersionId(rs.getObject("role_version_id", UUID.class)), rs.getInt("version_number"),
-                        new RoleDefinition(rs.getString("role_name"), RoleStatus.valueOf(rs.getString("role_status")),
-                                AccessScopeKind.valueOf(rs.getString("access_scope_kind")), RoleRows.codes(rs, "permission_codes")),
-                        ChangeChannel.valueOf(rs.getString("change_channel_kind")), (Integer) rs.getObject("declaration_revision_number")))
-                .optional();
+                .query((rs, n) -> new Stored(new RoleVersionId(rs.getObject("role_version_id", UUID.class)), rs.getInt("version_number"),
+                        rs.getString("role_name"), RoleStatus.valueOf(rs.getString("role_status")), AccessScopeKind.valueOf(rs.getString("access_scope_kind")),
+                        RoleRows.codes(rs, "permission_codes"), ChangeChannel.valueOf(rs.getString("change_channel_kind")),
+                        (Integer) rs.getObject("declaration_revision_number")))
+                .optional()
+                .map(stored -> new CurrentVersion(stored.id(), stored.number(), new RoleDefinition(stored.name(), stored.status(), stored.scope(), stored.codes(),
+                        RoleRows.customOrgUnits(jdbc, List.of(stored.id())).getOrDefault(stored.id(), Set.of())), stored.channel(), stored.revision()));
     }
 
     /** ADR-0034 decision 1 item 6: never before the current version's start, nor before the latest end of the role's versions. */
@@ -282,9 +291,14 @@ class JdbcRoleRepository implements RoleRepository {
         }
     }
 
-    private RoleVersionId insertVersion(RoleId roleId, int number, Instant from, Instant now, RoleDefinition definition, RoleChange change) {
+    /**
+     * Writes the version and, in the same transaction, its whole custom org unit detail (F-1 card constraint 4: details only with the new
+     * version, never added to an existing one). previousUnits are the units of the version this one replaces, for the audit entry.
+     */
+    private RoleVersionId insertVersion(RoleId roleId, int number, Instant from, Instant now, RoleDefinition definition, RoleChange change,
+                                        Set<CustomOrgUnit> previousUnits) {
         RoleVersionId versionId = new RoleVersionId(ids.next());
-        AuditEntryId entry = audit.opened(roleId, versionId, number, change.channel(), change.declarationRevisionNumber(), change.recordedBy(), from, now);
+        AuditEntryId entry = audit.opened(roleId, versionId, number, change, from, now, previousUnits, definition.customOrgUnits());
         jdbc.sql("""
                         insert into platform_identity.role_versions (role_version_id, role_id, version_number, effective_from_at, effective_to_at, role_name,
                                role_status, access_scope_kind, permission_codes, change_channel_kind, recorded_by, change_reason, authorization_request_id,
@@ -299,6 +313,16 @@ class JdbcRoleRepository implements RoleRepository {
                 .param("request", change.authorizationRequestId() == null ? null : change.authorizationRequestId().value())
                 .param("revision", change.declarationRevisionNumber()).param("entry", entry.value()).param("now", at(now))
                 .update();
+        for (CustomOrgUnit unit : definition.customOrgUnits()) {
+            jdbc.sql("""
+                            insert into platform_identity.role_version_custom_org_units (role_version_custom_org_unit_id, role_version_id, org_unit_id,
+                                   is_descendants_included, created_at, updated_at)
+                            values (:id, :versionId, :orgUnitId, :descendants, :now, :now)
+                            """)
+                    .param("id", ids.next()).param("versionId", versionId.value()).param("orgUnitId", unit.orgUnitId().value())
+                    .param("descendants", unit.includeDescendants()).param("now", at(now))
+                    .update();
+        }
         return versionId;
     }
 
