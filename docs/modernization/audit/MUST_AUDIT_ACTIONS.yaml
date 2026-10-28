@@ -40,11 +40,21 @@ categories:
 - name: 放行
   actions:
   - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
   - organization.workforce.SyncRunFailed
   - organization.workforce.SyncRunHeld
   - organization.workforce.SyncRunHoldReleased
   - organization.workforce.SyncRunReleased
   - organization.workforce.sync-run.released
+- name: 人事命令
+  actions:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
 - name: 法人
   actions:
   - organization.workforce.EmployeeRegistered

@@ -307,6 +307,148 @@ terms:
   forbidden: []
   status: proposed
   note: W2 PR-B，IMP-1022-PAR-01
+- id: employee_hired
+  zh: 员工入职已生效
+  en: EmployeeHired
+  snake: employee_hired
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 入职命令已生效：员工自生效日（入职日）起在职；负载为人事命令 ID、员工 ID 与生效日
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1028-PAR-PCA（#737）；聚合 Employee
+- id: employee_regularized
+  zh: 员工转正已生效
+  en: EmployeeRegularized
+  snake: employee_regularized
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 转正命令已生效：员工自生效日起由试用阶段转为正式阶段，在职状态不变
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 1 条第 3 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1028-PAR-PCA（#737）；与 contract.agreement 的 regularized「转正」（授权复核关闭）同名异义：中英文名都不同，不能列 homonyms，在此互注，交 one-glossary
+- id: employee_transferred
+  zh: 员工调岗已生效
+  en: EmployeeTransferred
+  snake: employee_transferred
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 调岗命令已生效：员工自生效日起任职改变；负载另带触发字段与生效日前后的部门
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0032 第 4 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1028-PAR-PCA（#737）；F-1 订阅
+- id: employee_separated
+  zh: 员工离职已生效
+  en: EmployeeSeparated
+  snake: employee_separated
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 离职命令已生效：员工自生效日（人事所填最后工作日的次日）起离职；待放行的离职放行后才发布
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 1 条第 5 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1028-PAR-PCA（#737）；中文名避开 platform.identity 错误码「员工已离职」
+- id: employee_reinstated
+  zh: 员工复职已生效
+  en: EmployeeReinstated
+  snake: employee_reinstated
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 复职命令已生效：已离职的员工自生效日起重新在职
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 1 条第 10 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1028-PAR-PCA（#737）；取代撤销的 WF-REINSTATE
+- id: employee_corrected
+  zh: 员工人事已更正
+  en: EmployeeCorrected
+  snake: employee_corrected
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 更正命令改变了员工截至今天的部门、岗位、在职状态或直属领导；只改历史时只写审计、不发布；负载为人事命令 ID、员工 ID 与受影响区间
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1028-PAR-PCA（#737）
+- id: separation_held
+  zh: 离职已转待放行
+  en: SeparationHeld
+  snake: separation_held
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 离职命令因管理员离职保护转为待放行：员工保持在职，不发布员工离职已生效
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 2 条第 2 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1028-PAR-PCA（#737）；载体为待放行离职 separation_hold
+- id: separation_hold_released
+  zh: 待放行离职已放行
+  en: SeparationHoldReleased
+  snake: separation_hold_released
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 待放行的离职经有权的人放行，按原生效日执行
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 2 条第 3 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1028-PAR-PCA（#737）
+- id: trigger_field_kind
+  zh: 触发字段
+  en: TriggerFieldKind
+  snake: trigger_field_kind
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 调岗改变的任职字段：ORG_UNIT 部门 / POSITION 岗位；员工调岗已生效的负载带它，供待调整权限去重（人，人事命令 ID，触发字段）
+  standard_ref:
+  - ADR-0032 第 4 项第 3 条
+  - ADR-0055 决定 4
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1028-PAR-PCA（#737）；F-1 在 platform.identity 的 trigger_field_kind 列取同样的值
 common_words:
 - listed
 - lookup
@@ -396,3 +538,4 @@ common_words:
 - usage
 - applied
 - superseding
+- affected
