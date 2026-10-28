@@ -24,7 +24,7 @@ required checks (backend verify, frontend verify, secret scan, none of them with
 Conflicts with main: the queue merges main in (over ssh when gh cannot); a text conflict goes back to the author (CONFLICT).
 Release. Before it spends CI on a pull request, and again under the merge lock right before the merge, the queue reads the reviews and comments: the newest statement that speaks for the head must be a 通过 (release_verdict).
 A first-round review speaks for the head when it was posted on it, or when the `patch-id：` line that opens its body equals the head's patch-id (a rebase, or the queue's own merge of main, that leaves the change as it was);
-a dispatcher comment `调度批准入队 head <sha>` (the coordinator letting a 必改 fix through) speaks for the head it names or one with the same patch-id. Docs-lane pull requests need no review. Not released: HOLD.
+a dispatcher comment `调度批准入队 head <sha>` (the coordinator letting a 必改 fix through) speaks for the head it names or one with the same patch-id. Docs-lane pull requests need no review unless they touch a guarded path (policy.json review.final_paths). Not released: HOLD.
 Read-back. After the merge call GitHub must show the pull request MERGED with the pinned head as the second parent of the merge commit; otherwise ALERT READBACK and both lanes pause until `mq.py resume`.
 Outcomes: MERGED, CONFLICT (text conflict with main in a file a person wrote: back to the author), HOLD (red after the rerun, CI timeout, closed, not released, an update that could not be pushed, attempts exhausted: reported to the coordinator).
 
@@ -1068,9 +1068,12 @@ class Processor:
         self.pause.hold(f"FF-MAIN: {why}")
 
     def released(self, n, head):
-        """release_verdict for `head`, from the pull request's reviews and comments as gh lists them now; a docs-lane pull request (tier=docs) needs no review (RULES ⑤)."""
+        """release_verdict for `head`, from the pull request's reviews and comments as gh lists them now. A docs-lane pull request (tier=docs) needs no review unless it touches a guarded path
+        (policy.json review.final_paths); a file list gh cannot give is no exemption."""
         if self.log.lanes.get(n) == "docs":
-            return True, "docs lane: no review needed"
+            files, guarded = self.gh.files(n), tuple(post_review.load_policy()[0]["final_paths"])
+            if files and not any(f.startswith(guarded) for f in files):
+                return True, "docs lane, no guarded path: no review needed"
         reviews, comments = self.gh.reviews(n), self.gh.comments(n)
         if reviews is None or comments is None:
             return False, "gh could not list the reviews and comments"

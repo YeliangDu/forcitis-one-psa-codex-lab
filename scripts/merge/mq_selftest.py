@@ -456,8 +456,9 @@ def _release(mq, d):
     # the coordinator's approval of a fix after a 必改; the docs lane needs no review
     gh = FakeGh(); p = gh.add(64); p["reviews"] = [review("c" * 40, "必改", pid="7" * 40)]; p["comments"] = [approval(p["head"][:9])]
     assert once(mq, d, "r-appr", gh, 64)[0] == "MERGED"
-    gh = FakeGh(); gh.add(65)["reviews"] = []
-    assert once(mq, d, "r-docs", gh, 65, lane=lambda g, n: "docs")[0] == "MERGED"
+    for name, files, outcome in (("plain", ["docs/a.md"], "MERGED"), ("guarded", ["docs/a.md", "scripts/merge/x.md"], "HOLD"), ("unknown", None, "HOLD")):
+        gh = FakeGh(); p = gh.add(65); p["reviews"], p["files"] = [], files
+        assert once(mq, d, "r-docs-" + name, gh, 65, lane=lambda g, n: "docs")[0] == outcome, "the docs lane needs no review, unless it touches a guarded path or gh cannot list its files"
 
     # read-back: MERGED with the pinned head as second parent -> the main checkout is fast-forwarded; anything else -> ALERT, both lanes paused, no fast-forward
     for name, seen, good in (("ok", None, True), ("parent", ("MERGED", ["m" * 40, "f" * 40]), False), ("state", ("OPEN", []), False), ("gh", None, False)):
