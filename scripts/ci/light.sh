@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 轻检查的同一入口（GOV-1023-FV2 O9，定稿 A39）：CI 轻作业跑它，本机交付前也可以选跑它；取代 scripts/precheck.sh。
 # 用法：scripts/ci/light.sh [<基线>]   基线默认 origin/main（本脚本不 fetch）；传空串或 40 个 0（新分支的推送）时只跑自测，不比基线。
-# 每次全量跑下面每一项，只有「按改动触发」一节按 light_triggers.sh 的路径模式挑（没有基线时全跑；自测 light_selftest.sh）；一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
+# 真实检查每次全跑；shell 语法与各脚本的自测在「按改动触发」一节，按 light_triggers.sh 的路径模式挑（没有基线时全跑；自测 light_selftest.sh）；一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
 # CI 里由 .github/workflows/ci.yml 的 backend 作业调用（每个事件都跑）。不在这里的：
 # - 后端与前端测试、SQL Server 集成测试：backend、frontend 作业的重步骤（本机要跑就用 scripts/ci/backend_verify.sh、legacy_it.sh，起容器先问用户）；
 # - gitleaks 全史扫描、发布脚本自测：secret scan 作业；判档（relevant_change.py 输出）要写 ${GITHUB_OUTPUT}：只在 CI 里；
@@ -75,35 +75,28 @@ run "built.yaml is up to date" python3 scripts/codegen/scan_aggregates.py --chec
 run "asyncapi.yaml is up to date" python3 -I docs/modernization/events/build_asyncapi.py --check
 run "decision fragments are valid" python3 -I scripts/session/build_decisions.py --check
 run "legacy-read fragments are valid" python3 -I tools/evidence/new_legacy_read.py --check
-run "evidence tools: imports resolve (self-test)" python3 -I scripts/ci/evidence_imports.py --self-test
 run "evidence tools: imports resolve" python3 -I scripts/ci/evidence_imports.py
-run "database scripts aligned (self-test)" python3 -I scripts/guards/db_scripts_aligned.py --self-test
 run "database scripts aligned" python3 -I scripts/guards/db_scripts_aligned.py
 run "deploy.yml: checkout no global git config" python3 -I -c 'import sys,yaml; s=[x for x in yaml.safe_load(open(".github/workflows/deploy.yml"))["jobs"]["deploy"]["steps"] if str(x.get("uses","")).lower().startswith("actions/checkout@")]; w=[{str(k).lower(): v for k, v in (x.get("with") or {}).items()} for x in s]; sys.exit("deploy 作业找不到 actions/checkout 步" if not s else 0 if all(x.get("set-safe-directory") is False and not x.get("submodules") for x in w) else "deploy 作业的 checkout 须写 set-safe-directory: false、不开 submodules：否则全局 git 配置落进 $HOME/.gitconfig，toolchain.sh 按 R-0 拒绝（run 40387799615，569ed501f）")'
 
-# 只增不改的登记与验收守护（原 backend 作业里的步骤）
-for script in migrations_immutable system_actors_append_only acceptance_guard acceptance_reports acceptance_rulings; do
-  run "$script (self-test)" python3 "scripts/guards/$script.py" --self-test
-done
+# 只增不改的登记与验收守护（原 backend 作业里的步骤；它们的自测在「按改动触发」一节）
 against_base "migrations immutable" python3 scripts/guards/migrations_immutable.py
 against_base "system actors append-only" python3 scripts/guards/system_actors_append_only.py
 against_base "acceptance guard" python3 scripts/guards/acceptance_guard.py
 against_base "acceptance rulings" python3 scripts/guards/acceptance_rulings.py
 
-# 门、钩子、CI 脚本与留下的文档工具的自测
-run "gates (gates_selftest.py)" python3 scripts/gates/gates_selftest.py
+# 工具库开工单（仓库外）读的规则与角色文件；脚本自身的自测都在「按改动触发」一节
 sheet=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}/start_sheet/start_sheet_selftest.py  # 开工单固定由 /usr/bin/python3 跑（#47），3.10 以上语法在这里就红；工具库不在本机（CI）时同 acceptance_v2 V05 不判红
-if [ -f "$sheet" ]; then run "start_sheet under /usr/bin/python3" /usr/bin/python3 -I "$sheet"; else skip "start_sheet under /usr/bin/python3" "本机没有工具库的 $sheet"; fi
-for script in scripts/session/build_decisions.py scripts/guards/proposal_reads.py scripts/guards/build_catalog.py \
-  tools/docs/new_adr.py scripts/guards/term_rules.py scripts/merge/mq.py scripts/ci/relevant_change.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py \
-  scripts/session/new_intent_selftest.py tools/evidence/evidence_selftest.py; do
-  run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
-done
-run "scan_aggregates tests" python3 scripts/codegen/scan_aggregates_selftest.py
-run "post_review_selftest" python3 scripts/merge/post_review_selftest.py
-run "ci_steps_selftest (ci.yml cleanup spares the runner)" python3 scripts/ci/ci_steps_selftest.py  # 卡 #736 第 9 项：无参数
-run "runner_watch_selftest (runner keep-alive and watch)" python3 scripts/release/runner_watch_selftest.py
-run "light_selftest (by-change triggers)" bash scripts/ci/light_selftest.sh
+if [ ! -f "$sheet" ]; then skip "start_sheet under /usr/bin/python3" "本机没有工具库的 $sheet"
+elif touches "$t_start_sheet"; then run "start_sheet under /usr/bin/python3" /usr/bin/python3 -I "$sheet"
+else skip "start_sheet under /usr/bin/python3" "相关路径没改（按改动触发）"; fi
+# 验收测试改了就跑全部免容器单测（CLAUDE.md 交付第 2 步）；export-openapi 绑在 process-test-classes 上要起容器，所以用 test-compile surefire:test
+if ! touches "$t_acceptance"; then skip "surefire guard classes (acceptance changed)" "相关路径没改（按改动触发）"
+elif [ "${LIGHT_ALL:-}" = 1 ]; then skip "surefire guard classes (acceptance changed)" "推到 main：ci.yml 的 container-free unit tests 一步跑同一批"
+elif ! bash scripts/codegen/generate-api.sh --check >/dev/null 2>&1; then skip "surefire guard classes (acceptance changed)" "本机没有 OpenAPI 生成产物，先跑 bash scripts/codegen/generate-api.sh"
+else run "surefire guard classes (acceptance changed)" surefire_guards; fi
+# relevant_change 的自测连带核对整个仓库的读者分档（读者随任何源文件变），每次都跑
+run "relevant_change (self-test)" python3 scripts/ci/relevant_change.py --self-test
 
 # 按改动触发（原 precheck.sh 的同名步骤，检查表在 light_triggers.sh；命令按空格切分）
 while IFS='|' read -r key name cmd; do
