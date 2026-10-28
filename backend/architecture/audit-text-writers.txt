@@ -20,6 +20,7 @@ src/main/java/com/forcitis/one/platform/audit/application/ExportAuditEntries.jav
 src/main/java/com/forcitis/one/platform/audit/application/SearchAuditEntries.java | 1 | 8 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/BrowserIdentity.java | 2 | 11 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/ConfirmIdentity.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/CreateRole.java | 1 | 1,4 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/DeleteRole.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/DisableEmergencyAdmin.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/EnableEmergencyAdmin.java | 1 | 15 | SURROGATE
@@ -38,8 +39,8 @@ src/main/java/com/forcitis/one/platform/identity/application/ResetEmergencyAdmin
 src/main/java/com/forcitis/one/platform/identity/application/RevokeRoleByOperations.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/SessionRevocation.java | 1 | 5 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/SingleOperatorMarks.java | 1 | 21 | NONE
-src/main/java/com/forcitis/one/platform/identity/application/UpdateRole.java | 1 | 1 | NONE
-src/main/java/com/forcitis/one/platform/identity/infrastructure/persistence/RoleVersionAudit.java | 2 | 4,6 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/UpdateRole.java | 2 | 1,4 | NONE
+src/main/java/com/forcitis/one/platform/identity/infrastructure/persistence/RoleVersionAudit.java | 3 | 4,6,19 | NONE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/AccessDeniedAudit.java | 1 | 7 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/PrivilegedRequestAudit.java | 1 | 7 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/SessionGuardFilter.java | 1 | 4 | NONE
