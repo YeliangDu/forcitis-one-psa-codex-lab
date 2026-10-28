@@ -30,7 +30,6 @@
 交接文件 `~/.modernize/psa/state/<会话>/handoff.md`。
 
 ## 过渡映射
-- 第四批会话合并前，本角色由 one-coordinator 担任。
+- 本角色现由 one-leader 担任（原 one-coordinator）。
 - 删除前仍归本角色：`SESSION_PLAYBOOK.md`、`PB_MAPPING.md`、`PB_GUARDS_TODO.md`、`sessions/**`。
-- 合入队列改造推迟期间，本角色仍在入队链上（RULES ⑥）。
-- 新链路合入前的复审：调度收到「待审」即派复审子代理，结论写本机复审目录，按派工书 README 第 3 节；合入后此条删除。
+- 本角色裁定开发中的问题、派权限类卡的独立测试代理、看必改修复差异放行；不在常规入队链上（RULES ⑥）。
