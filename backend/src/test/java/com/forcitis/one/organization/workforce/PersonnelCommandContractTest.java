@@ -45,9 +45,9 @@ import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * The personnel command contract (SPLIT_PLAN A, #737; docs/modernization/phase1a/a8-split/PERSONNEL_COMMAND_CONTRACT.md): the command id, the
- * events ADR-0068 names and their catalogue entries. Nothing publishes these events yet, so the catalogue names this class as their
- * publisher test until the personnel command card (#738) brings the publisher and its own test.
+ * The personnel command contract (SPLIT_PLAN A, #737): the command id, the events ADR-0068 names and their catalogue entries. Nothing
+ * publishes these events yet, so the catalogue names this class as their publisher test until the personnel command card (#738) brings
+ * the publisher and its own test.
  */
 class PersonnelCommandContractTest {
     static final Path FRAGMENT = Path.of("../docs/modernization/events/workforce.yaml");
