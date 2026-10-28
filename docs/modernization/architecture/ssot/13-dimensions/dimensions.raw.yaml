@@ -1195,18 +1195,19 @@ by_versioned_master_tables:
     policy: PERMANENT
   lineage:
     source: NEW
-  writers: []
+  writers:
+  - platform.identity
   readers: null
   missing_fields:
   - readers
   effective_columns:
   - name: effective_from_at
     type: timestamptz
-    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:359
+    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:348
   - name: effective_to_at
     type: timestamptz
-    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:360
-  source: backend/architecture/data-access-registry.yaml:355
+    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:349
+  source: backend/architecture/data-access-registry.yaml:348
 - table: platform_identity.account_role_grants
   role: DIMENSION_VERSIONED
   mutability: APPEND_ONLY
@@ -1221,8 +1222,8 @@ by_versioned_master_tables:
   effective_columns:
   - name: effective_from_at
     type: timestamptz
-    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:437
+    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:426
   - name: effective_to_at
     type: timestamptz
-    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:438
-  source: backend/architecture/data-access-registry.yaml:365
+    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:427
+  source: backend/architecture/data-access-registry.yaml:358

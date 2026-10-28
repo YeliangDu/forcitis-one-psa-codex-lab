@@ -8,19 +8,23 @@ import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.api.RoleVersionId;
 import com.forcitis.one.platform.identity.events.RoleCreated;
 import com.forcitis.one.platform.identity.events.RoleDeleted;
 import com.forcitis.one.platform.identity.events.RoleDisabled;
 import com.forcitis.one.platform.identity.events.RoleEnabled;
 import com.forcitis.one.platform.identity.events.RoleRevised;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 
-/** Reserved code super_admin; new roles start at the least-privilege scope SELF. A system role is frozen: no change of any kind. */
+/**
+ * Reserved code super_admin; new roles start at the least-privilege scope SELF. A system role is frozen: no change of any kind. The
+ * identity (code, kind, administrative marker) never changes; the definition (name, status, scope, permission set) is the role's current
+ * version, and a change of the definition becomes a new version when the repository saves it (ADR-0034 decision 1).
+ */
 public final class Role extends AggregateRoot {
 
     public static final RoleCode SUPER_ADMIN = new RoleCode("super_admin");
@@ -30,31 +34,31 @@ public final class Role extends AggregateRoot {
             .allow(RoleStatus.DISABLED, RoleStatus.ENABLED)
             .build();
     private static final Pattern CODE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,63}");
-    private static final Set<String> KNOWN_PERMISSIONS = Arrays.stream(Permission.values())
-            .map(Permission::code).collect(Collectors.toUnmodifiableSet());
 
     private final RoleId roleId;
     private final RoleCode code;
     private final RoleKind kind;
     private final boolean administrative;
-    private final RoleStatus loadedStatus;
+    private final @Nullable RoleDefinition loadedDefinition;
+    private @Nullable RoleVersionId roleVersionId;
     private String name;
     private RoleStatus status;
     private AccessScopeKind accessScope;
     private Set<String> permissionCodes;
 
-    private Role(RoleId roleId, RoleCode code, String name, RoleKind kind, RoleStatus status, AccessScopeKind accessScope,
-                 boolean administrative, Set<String> permissionCodes, long version, long eventSequence) {
+    private Role(RoleId roleId, RoleCode code, RoleKind kind, boolean administrative, @Nullable RoleVersionId roleVersionId, String name, RoleStatus status,
+                 AccessScopeKind accessScope, Set<String> permissionCodes, boolean stored, long version, long eventSequence) {
         super(version, eventSequence);
         this.roleId = roleId;
         this.code = Objects.requireNonNull(code, "code");
         this.name = Objects.requireNonNull(name, "name");
         this.kind = Objects.requireNonNull(kind, "kind");
         this.status = Objects.requireNonNull(status, "status");
-        this.loadedStatus = status;
         this.accessScope = Objects.requireNonNull(accessScope, "accessScope");
         this.administrative = administrative;
         this.permissionCodes = Set.copyOf(permissionCodes);
+        this.roleVersionId = roleVersionId;
+        this.loadedDefinition = stored ? definition() : null;
     }
 
     public static boolean isReserved(RoleCode code) {
@@ -71,15 +75,17 @@ public final class Role extends AggregateRoot {
         }
         requireName(name);
         requireKnown(permissionCodes);
-        Role role = new Role(Objects.requireNonNull(roleId, "roleId"), code, name.strip(), RoleKind.CUSTOM, RoleStatus.ENABLED, AccessScopeKind.SELF, false, permissionCodes, 0, 0);
-        role.record((envelopes, version) -> new RoleCreated(envelopes.wrap(role.draft("RoleCreated", version)), role.roleId));
+        Role role = new Role(Objects.requireNonNull(roleId, "roleId"), code, RoleKind.CUSTOM, false, null, name.strip(), RoleStatus.ENABLED, AccessScopeKind.SELF,
+                permissionCodes, false, 0, 0);
+        role.record((envelopes, version) -> new RoleCreated(envelopes.wrap(role.draft("RoleCreated", version)), role.roleId, role.requireVersionId()));
         return role;
     }
 
-    public static Role restore(RoleId roleId, RoleCode code, String name, String kind, String status, AccessScopeKind accessScope,
-                               boolean administrative, Set<String> permissionCodes, long version, long eventSequence) {
-        return new Role(Objects.requireNonNull(roleId, "roleId"), code, name, RoleKind.valueOf(kind), RoleStatus.valueOf(status),
-                accessScope, administrative, permissionCodes, version, eventSequence);
+    /** A stored role with its current version; permissionCodes are the codes of that version the catalogue still grants. */
+    public static Role restore(RoleId roleId, RoleCode code, String kind, boolean administrative, RoleVersionId roleVersionId, String name, String status,
+                               AccessScopeKind accessScope, Set<String> permissionCodes, long version, long eventSequence) {
+        return new Role(Objects.requireNonNull(roleId, "roleId"), code, RoleKind.valueOf(kind), administrative, Objects.requireNonNull(roleVersionId, "roleVersionId"),
+                name, RoleStatus.valueOf(status), accessScope, permissionCodes, true, version, eventSequence);
     }
 
     public RoleId roleId() {
@@ -102,10 +108,6 @@ public final class Role extends AggregateRoot {
         return status;
     }
 
-    public RoleStatus loadedStatus() {
-        return loadedStatus;
-    }
-
     public AccessScopeKind accessScope() {
         return accessScope;
     }
@@ -122,6 +124,26 @@ public final class Role extends AggregateRoot {
         return status == RoleStatus.ENABLED;
     }
 
+    /** The current version: the one the role was loaded with, or the one the repository wrote when it saved the role. */
+    public @Nullable RoleVersionId roleVersionId() {
+        return roleVersionId;
+    }
+
+    /** The definition the role holds now, changes included. */
+    public RoleDefinition definition() {
+        return new RoleDefinition(name, status, accessScope, permissionCodes);
+    }
+
+    /** Whether the definition differs from the stored version: only then does saving the role add a version (ADR-0034 decision 1 item 4). */
+    public boolean definitionChanged() {
+        return !definition().equals(loadedDefinition);
+    }
+
+    /** Called by the repository once it wrote the version the role's definition now lives in; the role's events name it. */
+    public void versionWritten(RoleVersionId written) {
+        this.roleVersionId = Objects.requireNonNull(written, "written");
+    }
+
     public void revise(String newName, AccessScopeKind newScope, Set<String> newPermissionCodes) {
         requireModifiable();
         requireName(newName);
@@ -129,19 +151,19 @@ public final class Role extends AggregateRoot {
         this.name = newName.strip();
         this.accessScope = Objects.requireNonNull(newScope, "newScope");
         this.permissionCodes = Set.copyOf(newPermissionCodes);
-        record((envelopes, version) -> new RoleRevised(envelopes.wrap(draft("RoleRevised", version)), roleId));
+        record((envelopes, version) -> new RoleRevised(envelopes.wrap(draft("RoleRevised", version)), roleId, requireVersionId()));
     }
 
     public void enable() {
         requireModifiable();
         this.status = MACHINE.require(status, RoleStatus.ENABLED, IdentityError.PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL);
-        record((envelopes, version) -> new RoleEnabled(envelopes.wrap(draft("RoleEnabled", version)), roleId));
+        record((envelopes, version) -> new RoleEnabled(envelopes.wrap(draft("RoleEnabled", version)), roleId, requireVersionId()));
     }
 
     public void disable() {
         requireModifiable();
         this.status = MACHINE.require(status, RoleStatus.DISABLED, IdentityError.PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL);
-        record((envelopes, version) -> new RoleDisabled(envelopes.wrap(draft("RoleDisabled", version)), roleId));
+        record((envelopes, version) -> new RoleDisabled(envelopes.wrap(draft("RoleDisabled", version)), roleId, requireVersionId()));
     }
 
     /** Sets the wanted state: asking for the state it already has changes nothing. */
@@ -157,10 +179,10 @@ public final class Role extends AggregateRoot {
         }
     }
 
-    /** Records the deletion; the repository removes the row. */
+    /** Records the deletion; the repository closes the last version and keeps the row, so the code is never used again (0034-Q3). */
     public void delete() {
         requireModifiable();
-        record((envelopes, version) -> new RoleDeleted(envelopes.wrap(draft("RoleDeleted", version)), roleId));
+        record((envelopes, version) -> new RoleDeleted(envelopes.wrap(draft("RoleDeleted", version)), roleId, requireVersionId()));
     }
 
     public void requireModifiable() {
@@ -169,14 +191,22 @@ public final class Role extends AggregateRoot {
         }
     }
 
+    private RoleVersionId requireVersionId() {
+        if (roleVersionId == null) {
+            throw new IllegalStateException("role " + roleId.value() + " announces an event before its version was written");
+        }
+        return roleVersionId;
+    }
+
     private static void requireName(String name) {
         if (name == null || name.isBlank() || name.strip().length() > 100) {
             throw new RoleRuleException(RoleViolation.BLANK_NAME);
         }
     }
 
+    /** Written codes must be in the catalogue and not deprecated (ADR-0034 decision 1 item 3). */
     private static void requireKnown(Set<String> permissionCodes) {
-        if (!KNOWN_PERMISSIONS.containsAll(permissionCodes)) {
+        if (!permissionCodes.stream().allMatch(Permission::isLive)) {
             throw new RoleRuleException(RoleViolation.UNKNOWN_PERMISSION);
         }
         if (permissionCodes.stream().anyMatch(AdministratorMode.PLATFORM_ONLY::contains)) {

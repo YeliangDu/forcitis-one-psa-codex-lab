@@ -150,9 +150,8 @@ class JdbcAccountRepository implements AccountRepository {
     @Override
     public List<Role> findEnabledRoles(UserId userId) {
         return RoleRows.select(jdbc, """
-                from platform_identity.roles r
                 join platform_identity.account_roles ar on ar.role_id = r.role_id
-               where ar.user_id = :id and r.status = 'ENABLED'
+               where ar.user_id = :id and v.role_status = 'ENABLED'
                 """, Map.of("id", userId.value()));
     }
 
@@ -173,7 +172,9 @@ class JdbcAccountRepository implements AccountRepository {
                           from platform_identity.account_roles ar
                           join platform_identity.roles r on r.role_id = ar.role_id
                           join platform_identity.user_accounts a on a.user_id = ar.user_id
-                         where lower(r.code) = lower(:code) and r.status = 'ENABLED' and a.status = 'ENABLED'
+                         where lower(r.code) = lower(:code) and a.status = 'ENABLED'
+                           and exists (select 1 from platform_identity.role_versions v
+                                        where v.role_id = r.role_id and v.effective_to_at is null and v.role_status = 'ENABLED')
                         """)
                 .param("code", roleCode.value()).query(UUID.class).list().stream().map(UserId::new).collect(Collectors.toSet());
     }

@@ -1243,12 +1243,11 @@ by_event:
     aggregate: Role
     idempotencyKey: eventId
     publisher: platform.identity
-    consumers:
-    - platform.audit
+    consumers: []
     delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
     formsFact: false
     businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: audited
+    audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
     publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
@@ -1265,17 +1264,16 @@ by_event:
     aggregate: Role
     idempotencyKey: eventId
     publisher: platform.identity
-    consumers:
-    - platform.audit
+    consumers: []
     delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
     formsFact: false
     businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: audited
+    audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
     publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:31
+  source: docs/modernization/events/identity.yaml:35
 - event_type: platform.identity.RoleEnabled
   title: 角色启用
   description: null
@@ -1287,17 +1285,16 @@ by_event:
     aggregate: Role
     idempotencyKey: eventId
     publisher: platform.identity
-    consumers:
-    - platform.audit
+    consumers: []
     delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
     formsFact: false
     businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: audited
+    audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
     publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:57
+  source: docs/modernization/events/identity.yaml:65
 - event_type: platform.identity.RoleDisabled
   title: 角色停用
   description: null
@@ -1309,17 +1306,16 @@ by_event:
     aggregate: Role
     idempotencyKey: eventId
     publisher: platform.identity
-    consumers:
-    - platform.audit
+    consumers: []
     delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
     formsFact: false
     businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: audited
+    audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
     publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:83
+  source: docs/modernization/events/identity.yaml:95
 - event_type: platform.identity.RoleDeleted
   title: 角色删除
   description: null
@@ -1331,17 +1327,16 @@ by_event:
     aggregate: Role
     idempotencyKey: eventId
     publisher: platform.identity
-    consumers:
-    - platform.audit
+    consumers: []
     delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
     formsFact: false
     businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: audited
+    audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
     publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:109
+  source: docs/modernization/events/identity.yaml:125
 - event_type: platform.identity.AccountEnabled
   title: 账号启用
   description: null
@@ -1363,7 +1358,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:135
+  source: docs/modernization/events/identity.yaml:155
 - event_type: platform.identity.AccountDisabled
   title: 账号停用
   description: null
@@ -1385,7 +1380,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:161
+  source: docs/modernization/events/identity.yaml:181
 - event_type: platform.identity.AccountRolesReplaced
   title: 账号的角色被整体替换
   description: null
@@ -1407,7 +1402,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:187
+  source: docs/modernization/events/identity.yaml:207
 - event_type: platform.identity.AccountSeparated
   title: 账号因本人离职而收回全部角色
   description: null
@@ -1430,7 +1425,7 @@ by_event:
     noConsumer: 暂无消费方：交接离职人员在办事项的流程（B3）将订阅；现在就发布，是因为角色一收回，事实只在这一刻可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:219
+  source: docs/modernization/events/identity.yaml:239
 - event_type: platform.identity.AccountOpened
   title: 账号开立（含开立时授予的角色）
   description: null
@@ -1452,7 +1447,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:246
+  source: docs/modernization/events/identity.yaml:266
 - event_type: platform.identity.EmergencyAdminRegistered
   title: 应急账号登记
   description: null
@@ -1474,7 +1469,7 @@ by_event:
     noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:278
+  source: docs/modernization/events/identity.yaml:298
 - event_type: platform.identity.EmergencyAdminEnabled
   title: 应急账号启用
   description: null
@@ -1496,7 +1491,7 @@ by_event:
     noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:304
+  source: docs/modernization/events/identity.yaml:324
 - event_type: platform.identity.EmergencyAdminCredentialsReset
   title: 应急账号凭据重置
   description: null
@@ -1518,7 +1513,7 @@ by_event:
     noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:330
+  source: docs/modernization/events/identity.yaml:350
 - event_type: platform.identity.EmergencyAdminDisabled
   title: 应急账号停用（离职或运维命令）
   description: null
@@ -1540,7 +1535,7 @@ by_event:
     noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:356
+  source: docs/modernization/events/identity.yaml:376
 - event_type: platform.identity.AuthorizationOpened
   title: 敏感授权申请开立
   description: null
@@ -1562,7 +1557,7 @@ by_event:
     noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:388
+  source: docs/modernization/events/identity.yaml:408
 - event_type: platform.identity.AuthorizationConfirmed
   title: 敏感授权申请被另一人确认
   description: null
@@ -1584,7 +1579,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:418
+  source: docs/modernization/events/identity.yaml:438
 - event_type: platform.identity.AuthorizationRejected
   title: 敏感授权申请被拒绝或撤回
   description: null
@@ -1606,7 +1601,7 @@ by_event:
     noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:448
+  source: docs/modernization/events/identity.yaml:468
 - event_type: platform.integration.SourceReferenceRegistered
   title: 有人登记了一条来源对照（核算组织编码），等待他人确认
   description: null

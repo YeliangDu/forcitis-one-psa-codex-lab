@@ -11,7 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 class IdentityBaselineConstraintsIntegrationTest extends IdentityIntegrationTest {
 
     private void insertRole(String code, String kind) {
-        jdbc.sql("insert into platform_identity.roles (role_id, code, name, kind) values (uuidv7(), :code, :code, :kind)")
+        jdbc.sql("insert into platform_identity.roles (role_id, code, kind) values (uuidv7(), :code, :kind)")
                 .param("code", code).param("kind", kind).update();
     }
 
@@ -25,7 +25,7 @@ class IdentityBaselineConstraintsIntegrationTest extends IdentityIntegrationTest
         refused(() -> insertRole("Super_Admin", "CUSTOM"), "ck_roles_reserved_code");
         refused(() -> insertRole("super_admin", "CUSTOM"), "ck_roles_reserved_code");
         assertThat(jdbc.sql("select count(*) from platform_identity.roles where kind = 'SYSTEM' and code in ('super_admin', 'employee', 'process_administrator', 'org_data_admin', 'business_admin', 'security_auditor')")
-                .query(Long.class).single()).as("the seeded system roles pass").isEqualTo(6);
+                .query(Long.class).single()).as("the declared system roles, written by the start-up reconciliation, pass").isEqualTo(6);
         insertRole("Role.editor-1_a", "CUSTOM");
     }
 
