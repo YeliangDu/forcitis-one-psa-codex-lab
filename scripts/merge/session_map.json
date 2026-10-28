@@ -1,14 +1,16 @@
 {
- "_note": "branch prefix -> owning session, used by gapscan.py and the merged-notice; longest prefix wins; add a line when a session starts a new branch family; archived sessions map to their successor (10-23: arch-* -> one-architecture, one-rules -> one-glossary, next-5/nx5 -> one-1a-par)",
+ "_note": "branch prefix -> owning session, used by gapscan.py and the merged-notice; longest prefix wins; add a line when a session starts a new branch family; archived sessions map to their successor (10-23: arch-* -> one-architecture, one-rules -> one-glossary, next-5/nx5 -> one-1a-par; 10-28 卡 #736: one-coordinator -> one-leader, one-1a-par -> one-dev-par, old branch prefixes kept)",
  "prefixes": {
   "claude/one-1a-admin": "one-1a-admin",
-  "claude/one-1a-next-5": "one-1a-par",
-  "claude/one-1a-par": "one-1a-par",
+  "claude/one-1a-next-5": "one-dev-par",
+  "claude/one-1a-par": "one-dev-par",
+  "claude/one-dev-par": "one-dev-par",
   "claude/one-arch-finance": "one-architecture",
   "claude/one-arch-people": "one-architecture",
   "claude/one-arch-revenue": "one-architecture",
   "claude/one-architecture": "one-architecture",
-  "claude/one-coordinator": "one-coordinator",
+  "claude/one-coordinator": "one-leader",
+  "claude/one-leader": "one-leader",
   "claude/one-data": "one-data",
   "claude/one-glossary": "one-glossary",
   "claude/one-merge": "one-merge",
@@ -16,7 +18,7 @@
   "claude/one-platform-file": "one-platform-file",
   "claude/one-quality": "one-quality",
   "claude/one-rules": "one-glossary",
-  "claude/nx5": "one-1a-par",
+  "claude/nx5": "one-dev-par",
   "claude/one-platform-signing": "one-platform-file"
  }
 }

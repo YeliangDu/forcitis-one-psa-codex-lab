@@ -420,6 +420,25 @@ def commit(cwd, message, name="a.py", **extra):
     r = git(cwd, "commit", "-q", "-m", message, ok=False, **extra)
     return r.returncode, r.stderr, git(cwd, "log", "-1", "--format=%B").stdout
 
+def renamed_test():
+    """卡 #736 第 8 项（用户 intent 2026-10-28-171648）：one-coordinator→one-leader、one-1a-par→one-dev-par。新名在 sessions.config、有会话文件、提交说明门认得；
+    旧名只留在 aliases（指向新名），不再是会话；合入队列的分支表把新旧分支前缀都归到新名。"""
+    sys.path.insert(0, HERE)
+    import commit_msg_gate as cm
+    sessions, root = policy("sessions"), Path(ROOT)
+    for new, old, role in (("one-leader", "one-coordinator", "lead"), ("one-dev-par", "one-1a-par", "dev")):
+        assert sessions["config"][new]["role"] == role and new in sessions["config_sources"] and sessions["aliases"][old] == new, new
+        assert old not in sessions["config"] and old not in sessions["config_sources"] and not (root / f"docs/modernization/sessions/{old}.md").exists(), old
+        assert (root / f"docs/modernization/sessions/{new}.md").is_file() and new in {f[:-3] for f in os.listdir(root / "docs/modernization/sessions")}, new
+        with tempfile.TemporaryDirectory() as tmp:  # the commit-msg gate reads names from the sessions directory and the marker
+            for rel in (f"docs/modernization/sessions/{new}.md", ".claude/session-name"):
+                put(os.path.join(tmp, rel), new + "\n", 0o644)
+            assert cm.session_name(Path(tmp), "claude/x") == new and cm.session_name(Path(tmp), f"claude/{new}-x") == new, new
+    assert all(v in sessions["config"] for v in sessions["aliases"].values()), "every alias points at a session"
+    prefixes = json.loads(Path(ROOT, "scripts/merge/session_map.json").read_text(encoding="utf-8"))["prefixes"]
+    assert set(prefixes.values()) <= set(sessions["config"]), ("gapscan owners are sessions", set(prefixes.values()) - set(sessions["config"]))
+    assert prefixes["claude/one-coordinator"] == prefixes["claude/one-leader"] == "one-leader" and prefixes["claude/one-1a-par"] == prefixes["claude/one-dev-par"] == "one-dev-par"
+
 def commit_msg_gate_test():
     with tempfile.TemporaryDirectory() as raw:
         tmp = os.path.realpath(raw)
@@ -473,6 +492,7 @@ def commit_msg_gate_test():
     config = Path(ROOT, ".pre-commit-config.yaml").read_text(encoding="utf-8")
     assert "entry: python3 -I scripts/gates/commit_msg_gate.py" in config, ".pre-commit-config.yaml points at the new path"
     assert re.findall(r"- id: ([\w-]+)", config) == ["gitleaks", "main-checkout-gate", "commit-msg-gate"], "卡 #736：提交时没有按路径把守护文件拆开的检查"
+    renamed_test()
     for gone in ("scripts/hooks/commit_msg_gate.py", "scripts/hooks/task_ids.py"):
         assert not os.path.exists(os.path.join(ROOT, gone)), gone + " is deleted"
     print("commit_msg_gate self-test: ok")
