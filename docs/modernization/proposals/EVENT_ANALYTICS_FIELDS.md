@@ -49,7 +49,7 @@ L1 的事实表以过账事件为准；业务 BC 的事件只用于累积快照�
 | `factType` | 否 | 过账类型（工时成本、费用、收入确认、开票、回款、付款……），对应 L1 事实表 |
 | 金额 | 否 | 一律 `{amount, currency}`；收入、开票、费用类同时带 `amountExTax`、`taxAmount`、`taxRate`（按单据实际税率，K2） |
 | 维度引用 | 按事实类型必填 | `projectId`、`contractId`、`clauseId`、`orgUnitId`、`personId`、`customerId`、`supplierId` 等**只放稳定 ID，不放名称**。L1 按 `businessDate` 解析当时有效的维度版本（Q10 按生效期保留历史） |
-| `ruleVersion` | 是（用到可配置规则时必填） | 产生该事实时使用的规则或配置版本（科目映射 DMN、费率、分摊）；口径版本变更后，L1 能区分旧规则产生的事实（配置类变更不追溯，SESSION_PLAYBOOK §12.2） |
+| `ruleVersion` | 是（用到可配置规则时必填） | 产生该事实时使用的规则或配置版本（科目映射 DMN、费率、分摊）；口径版本变更后，L1 能区分旧规则产生的事实（配置类变更不追溯） |
 | `documentNumber` | 是 | 业务单据编号（ADR-0010），用于从分析下钻到单据 |
 
 ## 4. 约束（写进事件目录的规则）

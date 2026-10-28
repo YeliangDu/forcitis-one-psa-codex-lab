@@ -1508,7 +1508,7 @@
     }
    ],
    "basis": [
-    "依据：一个事务只改一个聚合（SESSION_PLAYBOOK §14）"
+    "依据：一个事务只改一个聚合（DATA_DESIGN_CHECKLIST §14）"
    ],
    "practice": [],
    "now": "",

@@ -14,7 +14,7 @@
 
 ## 1. 卡号与类别
 - 卡号：DATA-REPAIR-timesheet-audit
-- 类别：缺陷修复（SESSION_PLAYBOOK §6.1 第 9 条）
+- 类别：缺陷修复（ 第 9 条）
 - 批次：已建表数据设计审查修复批（门禁 v2 §1.2 第 6 条）；两部分各开一个小 PR，直接合入 main
 - 建议负责会话：**A 部分（工时与日历）one-1a-par；B 部分（审计与幂等）one-1a-next-4**
 - 顺序：A 部分的 TA-01 依赖 TS-UNIQ 定稿的状态集合，须在 TS-UNIQ 合并后开工；B 部分不依赖 A 部分；B 部分的 TB-07（分区）**依 ADR-0048（已采纳）实施，须在基线关闭前做，属生产前闸门**，其余条目不受影响
@@ -22,7 +22,7 @@
 
 ## 2. 依据
 - 门禁 v2：O3、O4、O8、O10、O7、C3、C4、E1、B3、B5
-- SESSION_PLAYBOOK §14.1 D2、D4、D8、D12、D13、D19；§12.2；ADR-0038；ADR-0026 第 7 项第 3 条；ADR-0033 第 1 项第 10 条、第 7 项；ADR-0043 第 3、4 项、U-7(b)、U-7(c)、R-2、U-13
+- DATA_DESIGN_CHECKLIST §14.1 D2、D4、D8、D12、D13、D19；§12.2；ADR-0038；ADR-0026 第 7 项第 3 条；ADR-0033 第 1 项第 10 条、第 7 项；ADR-0043 第 3、4 项、U-7(b)、U-7(c)、R-2、U-13
 - GUIDING_PRINCIPLES §11 O-8（审计按月分区）；NAMING_STANDARD §2.4a-5
 - 用户决定（第 5 节「已定」）：审计分区，intent `2026-10-15-020820-one-coordinator-审计表按月分区主键须含分区键-与.md` 与 `2026-10-16-085331-one-data-审计表按月分区-知道了-ADR.md`（收件箱 2026-10-16-one-data-audit-partition）；日历范围列追认，intent `2026-10-16-085332-one-data-日历-calendar_scop.md`（收件箱 2026-10-16-one-data-wy1-calendar-scope）
 - 复核编号：SS §1、§3、§4（第 8、9、14 组）、§5；OV「AE-3 确认」「IR-1 确认」「AE-5 确认」「高风险项判断 TS 第 1、2、5 条」「T-1 / T-2：用户已定」；建议新增规则 3、5
@@ -238,7 +238,7 @@ POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 无正文
   5. 索引按分区重建；TB-04 点名的索引改造（`(actor_id, created_at DESC, id DESC)` 等、`starts_with` 的 `text_pattern_ops`）与本条同批做；`AuditArchiveJob` 按 `(created_at, id)` 推进，与按月分区兼容（OV AE-2）；`audit_archive_batches` 与对账（TS AB-3）随之调整，范围待核。
 - 开工条件：无（ADR-0048 已采纳，用户 2026-10-16 批准成文）；须在基线关闭前（首次部署生产前）完成，属生产前闸门（用户「同意，不挡 dev」，one-ops 登记 PREDEPLOY C-15 一组）；本卡其余条目照常做，TB-05 的文本 CHECK、TB-09 与本条改同一张表，合并顺序由 one-1a-next-4 协调。
 - 预期表结构 diff：`audit_entries`：改为按月范围分区表；主键 `(id, created_at)`；`uk_audit_entries_event_id` 换为 `uk_audit_entries_event_id_created_at`；索引随分区重建；初始分区与分区创建作业按 ADR-0048。
-- 验收要点：同一事件重复投递只落一行；分区边界写入通过；维护角色可摘除分区、其他角色 DELETE 被拒；UPDATE、DELETE、TRUNCATE 触发器对各分区生效；归档作业与对账通过。 守护（ADR-0048「需同步修改的守护规则」1–5）：① `PrimaryKeyTypeGuardTest` 读 `primary-key-exemptions.txt`，除 5 张框架表外只接受 `platform_audit.audit_entries` 一行并校验形状（主键恰为 `id uuid` + `created_at timestamptz`，`created_at` 是范围分区键）；② 分区表守护：出现 `PARTITION BY` 的表必须登记且注明批准它的 ADR 号；③ 引用只用 `id`：任何 `FOREIGN KEY … REFERENCES platform_audit.audit_entries`（含复合外键）失败，`uk_audit_entries_event_id_created_at` 恰为 `(event_id, created_at)`；④ `AuditDomainEventsIT`：同一事件重投两次只产生一条，事件条目 `created_at` 等于信封发生时刻；⑤ `primary-key-exemptions.txt` 文件头注明「非框架表只允许 ADR-0048 的 audit_entries；新增须另立 ADR」。另按 ADR-0048 影响面：SESSION_PLAYBOOK §14.1 D16 注明本例外；NAMING_STANDARD §2.4a 第 8 条的分区登记本表分区键。
+- 验收要点：同一事件重复投递只落一行；分区边界写入通过；维护角色可摘除分区、其他角色 DELETE 被拒；UPDATE、DELETE、TRUNCATE 触发器对各分区生效；归档作业与对账通过。 守护（ADR-0048「需同步修改的守护规则」1–5）：① `PrimaryKeyTypeGuardTest` 读 `primary-key-exemptions.txt`，除 5 张框架表外只接受 `platform_audit.audit_entries` 一行并校验形状（主键恰为 `id uuid` + `created_at timestamptz`，`created_at` 是范围分区键）；② 分区表守护：出现 `PARTITION BY` 的表必须登记且注明批准它的 ADR 号；③ 引用只用 `id`：任何 `FOREIGN KEY … REFERENCES platform_audit.audit_entries`（含复合外键）失败，`uk_audit_entries_event_id_created_at` 恰为 `(event_id, created_at)`；④ `AuditDomainEventsIT`：同一事件重投两次只产生一条，事件条目 `created_at` 等于信封发生时刻；⑤ `primary-key-exemptions.txt` 文件头注明「非框架表只允许 ADR-0048 的 audit_entries；新增须另立 ADR」。另按 ADR-0048 影响面：DATA_DESIGN_CHECKLIST §14.1 D16 注明本例外；NAMING_STANDARD §2.4a 第 8 条的分区登记本表分区键。
 - 依据：门禁 O11、O7、C3；GUIDING_PRINCIPLES §11 O-8；NAMING_STANDARD §2.4a-8；ADR-0043 R-2；用户决定（第 5 节「已定」）。
 
 - **数据设计（PR-1：TB-07 + TB-09 + TB-05，one-1a-next-5 补，待 one-data 签）**（基线 `origin/main` @4d0b7c34；依据 ADR-0048 决定 1–7 与「需同步修改的守护规则」1–5；one-architecture 判定 TB-09 删 DEFAULT 与 `created_at` 注释口径）

@@ -518,7 +518,7 @@ OBJ-117 已核对：`reconciliation_deviation_case / ReconciliationDeviationCase
 1. **OBJ-122 假期余额账户 / LeaveBalanceAccount / organization.leave**：同一概念已在 `backend/glossary/proposed/enterprise-aggregates.yaml#leave_balance`，对象键为人员 × 假期类型 × 年度。应保留概念 id `leave_balance`，将首选名改为本次已定名称，核定、使用、结转、折算与手工调整进入定义，同时更正旧提议中否定“账户”叫法的说明。本卡不另造 `leave_balance_account` 副本。
 2. **OBJ-123 人员薪酬档案 / EmployeeCompensationProfile / organization.payroll**：同一概念已在上述提议源的 `employee_compensation`，原首选名为“员工薪酬 / EmployeeCompensation”，并把“人员薪酬档案”列作 dialect。应保留 id `employee_compensation` 合并转正，按本次决定只追加生效日期的薪资历史，关联人员、任职、薪酬结算及独立扣除记录；旧指称保留可追溯来源，不能再全局禁用本次已确认名称，也不能继续把专项附加扣除并成薪酬档案属性。
 
-两项阻碍均已从源码核实：`build_terms.py` 在 `apply_nm.apply(terms)` 之后，仍原样读取 `backend/glossary/proposed/*.yaml` 并交给 `term_rules.enforce`。以原 id 直接加入正式词表会重复概念身份，换新 id 只为避过检查会制造同义副本。完成合并至少须另卡允许同步迁出该提议源记录，再由本决策源转正；提议源文件不在本卡允许范围内，遵照 AGENTS.md 的卡外停手规则未改。合并目标、首选英文及定义已保存在本卡 `decisions-nm.yaml` 的追加 `not_registered` 中，便于负责会话一次复核与续接。未把“尚未转正”写成“用户尚未答”。
+两项阻碍均已从源码核实：`build_terms.py` 在 `apply_nm.apply(terms)` 之后，仍原样读取 `backend/glossary/proposed/*.yaml` 并交给 `term_rules.enforce`。以原 id 直接加入正式词表会重复概念身份，换新 id 只为避过检查会制造同义副本。完成合并至少须另卡允许同步迁出该提议源记录，再由本决策源转正；提议源文件不在本卡允许范围内，遵照卡外停手规则未改。合并目标、首选英文及定义已保存在本卡 `decisions-nm.yaml` 的追加 `not_registered` 中，便于负责会话一次复核与续接。未把“尚未转正”写成“用户尚未答”。
 
 能力名依“对象＋管理”、价值流与阶段名依动宾槽位组合；不单独登记 CAPINFO 的能力、价值流或阶段标签。专业目录值、具体分摊规则数值和缴费标准未提供，保持由业务维护，不虚构词条。
 

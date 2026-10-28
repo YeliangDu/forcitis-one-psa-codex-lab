@@ -18,7 +18,7 @@
 
 - 平台模块会从 10 个增至 13–15 个：6 份已批草案（intent `2026-10-20-221808`）新增文件服务、签章服务、一次性链接三个模块，另有 AI 闸、提醒两个候选。
 - W0 要建成平台（ADR-0054 决定 1），通用审批先行上线（TRN-03）就是首次生产。
-- 「冻结」现在只是口头要求，散在三处：SESSION_PLAYBOOK §6「公共基础先行」、§13 第 4 条「地基行冻结」、ADR-0051「10 个平台模块」的写死。冻结的对象、时点、解冻通道都没写。
+- 「冻结」现在只是口头要求，散在三处：「公共基础先行」、§13 第 4 条「地基行冻结」、ADR-0051「10 个平台模块」的写死。冻结的对象、时点、解冻通道都没写。
 - 判断「是不是平台」的口径只存在于研究稿。
 
 与已采纳 ADR 的关系：
@@ -68,7 +68,7 @@
 
 骨架层的策略项都要登记载体，三选一：
 
-- 版本化配置表（SESSION_PLAYBOOK §14.1 D15、§12.2 配置类）；
+- 版本化配置表（DATA_DESIGN_CHECKLIST §14.1 D15、§12.2 配置类）；
 - 经另开 ADR 选定的 DMN（ADR-0041 决定 1 的推迟条款）；
 - 集成端口。
 
@@ -160,7 +160,7 @@
 - **生成器**：`build_architecture.py` 增加档位方向校验与准入字段校验。
 - **代码守护**：`ModuleDependencyTest` 加禁止边与传递闭包断言；ArchUnit 规则「厂商 SDK 只在集成层」；冻结快照测试。
 - **文档**：
-  - SESSION_PLAYBOOK §6、§13 第 4 条改为引用本 ADR（协作规则改本手册，§12.5）；
+  -、§13 第 4 条改为引用本 ADR（协作规则改本手册，§12.5）；
   - 复审清单加策略项一项；
   - 分层总图加档位标签。
 - **已批草案**：签章服务、外部访问两稿中「`platform.idempotency`」的措辞要订正（盘点 D-5），与本稿无冲突，随 X1 一并处理。
@@ -185,7 +185,7 @@
 2. `ModuleDependencyTest`：基础层、骨架层不得到达组织地基以外的业务 BC（含传递闭包），与 ADR-0051 守护第 1、2 条共用实现。负责：one-architecture；时点：采纳后首张守护卡。
 3. ArchUnit：厂商 SDK 包只在 `platform.integration..`，包清单取自集成登记册（G-I2）。负责：one-architecture；时点同上。
 4. 冻结快照：已冻结模块的 api 与 events 签名、平台 schema 表结构有变化即失败，须带 trailer（暂名 `Platform-Contract:`）写明类别与批准出处；首次生产后 OpenAPI 与事件部分交 G-C1、G-C2。负责：one-architecture；时点：第一个模块冻结前。
-5. 复审清单（`quality/review-briefs/03-adr.md` 或 SESSION_PLAYBOOK §14）：加一项「新增阈值、期限、路由是否登记为策略项」。「不认识业务对象」的语义检查只作复审项，不做自动拦截（误伤高，见复核 §2.5）。
+5. 复审清单（`quality/review-briefs/03-adr.md` 或 DATA_DESIGN_CHECKLIST §14）：加一项「新增阈值、期限、路由是否登记为策略项」。「不认识业务对象」的语义检查只作复审项，不做自动拦截（误伤高，见复核 §2.5）。
 
 ## 后果
 
@@ -244,7 +244,7 @@
   - `REIMAGINED_ARCHITECTURE.md`「第二个使用者时抽出 `platform.notification`」；
   - 已批 AI 底座稿决定 2 第 3 条；
   - ADR-0057 决定 3；
-  - SESSION_PLAYBOOK §6、§13 第 4 条；
+  -、§13 第 4 条；
   - `architecture/ssot/01-stakeholders/SSOT.yaml` 的冻结写法；
   - ADR-0054 决定 3 第 9 条；
   - intent `2026-10-20-223058`（AI 首批 3 个场景）。

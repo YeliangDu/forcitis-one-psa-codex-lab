@@ -52,9 +52,9 @@
 
 ## 我们的取舍
 
-经 one-architecture 2026-10-18 审定（ARC-1017-ARC-21）；现行约束以 FRAMEWORKS §5、ADR-0023、ADR-0025 和 SESSION_PLAYBOOK §14.1 为准。
+经 one-architecture 2026-10-18 审定（ARC-1017-ARC-21）；现行约束以 FRAMEWORKS §5、ADR-0023、ADR-0025 和 DATA_DESIGN_CHECKLIST §14.1 为准。
 
-以下经 one-architecture 2026-10-18 审定（ARC-1017-ARC-21）；现行约束仍以 [FRAMEWORKS](../../FRAMEWORKS.md) §5、ADR-0023、ADR-0025 和 SESSION_PLAYBOOK §14.1 为准。
+以下经 one-architecture 2026-10-18 审定（ARC-1017-ARC-21）；现行约束仍以 [FRAMEWORKS](../../FRAMEWORKS.md) §5、ADR-0023、ADR-0025 和 DATA_DESIGN_CHECKLIST §14.1 为准。
 
 - **采纳：用粒度说明约束分析数据集。** 每个数据集先说明度量事件或期间、对象范围与一行含义，再确定维度和汇总口径。理由：能在设计时发现跨层级重复计量，并可与现有总线矩阵对账。
 - **采纳：一致性维度、历史版本与可加性分别登记。** 理由：共用一个名称不能保证取值和时间解释一致；项目、组织等历史归属以及比率汇总都需要明确口径。MDM 归属和主数据版本化继续遵守 D11、D17，不能从分析维度反推写入权。

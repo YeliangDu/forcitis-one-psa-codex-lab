@@ -10,7 +10,7 @@
 
 ## 1. 卡号与类别
 - 卡号：TS-UNIQ（对应 `data/review-parts/` 的 T-1、T-2、X-6，及 T-6 中 `ix_timesheets_employee_id` 一项；对应 `data/repair-cards/DATA-REPAIR-timesheet-audit.md` 第 6 节的三行归属）
-- 类别：缺陷修复（SESSION_PLAYBOOK §6.1 第 9 条）。一张卡，一个小 PR 序列：先表结构 PR（见第 12 节），后实现 PR；各自直接合入 main（§6.1 第 10 条）
+- 类别：缺陷修复（ 第 9 条）。一张卡，一个小 PR 序列：先表结构 PR（见第 12 节），后实现 PR；各自直接合入 main（§6.1 第 10 条）
 - 批次：已建表数据设计审查修复批；顺序上排在 `DATA-REPAIR-timesheet-audit` A 部分（TA-01、TA-02）之前
 - 不含（已有归属，本卡不做）：
   - 工时填报义务（哪天须填、最低时数、请假是否入单、非工作日加班是否关联审批或调休）：交 one-rules 取证后出决策页，定之前不实现任何最低时数拦截（用户 2026-10-16，intent `2026-10-16-052923-one-coordinator-工时单唯一与填报义务-我的想法是.md`）
@@ -29,7 +29,7 @@
 
 ### 2.2 规则、ADR、规范
 - ADR-0038（开放期直接改基线、不追加迁移）；ADR-0033 第 1 项第 5 条（使用方引用版本行的 UUIDv7，列名 `numbering_rule_version_id`）；ADR-0043 第 4 项第 2 条（`employee_id` 是系统代理键）；ADR-0037 第 7 项（生产取证）；ADR-0036（历史数据迁入）。
-- SESSION_PLAYBOOK §14.1 D2、D7、D17 细则 6、D18；§12.2；§14「已登记的例外」第 1 项（`SubmitTimesheet` 同事务取号，`backend/architecture/multi-aggregate-exceptions.txt`）。
+- DATA_DESIGN_CHECKLIST §14.1 D2、D7、D17 细则 6、D18；§12.2；§14「已登记的例外」第 1 项（`SubmitTimesheet` 同事务取号，`backend/architecture/multi-aggregate-exceptions.txt`）。
 - NAMING_STANDARD §2.4（约束命名 `uk_<表>_<列>`）、§2.4a 第 1、2、3 条、G48（错误码 `{SUBDOMAIN}_{BC}_{REASON}`，中文名唯一）。
 - DATA_DESIGN_GATE：O3、B3a、B5、O4、O10、C4、T1–T4、E3 及附录 C 缺陷 a、b。
 - 复审意见：`data/review-parts/timesheet_attendance_audit_idem_sched.md` T-1、T-2、T-6；`data/review-parts/OPUS_VERIFY.md` 的「TS T-1」行与「建议新增规则」之外的 T-1 / T-2、X-6 两条；`data/review-parts/platform_approval_integration_numbering.md` X-6。
@@ -125,7 +125,7 @@
 ## 5. 执行者与模型
 - 测试代理：`code-modernization:test-engineer`，**sonnet**
 - 实现：子代理，**sonnet**
-- 首轮复审：**opus 一次**，推理强度 high（涉数据完整性与错误映射；§14、§14.1 全部条目 + 本卡专查项）；修后复核 **sonnet**；最多两轮，之后新发现的非 High 列为残余项在 PR 单列（SESSION_PLAYBOOK §11 第 6 条）
+- 首轮复审：**opus 一次**，推理强度 high（涉数据完整性与错误映射；§14、§14.1 全部条目 + 本卡专查项）；修后复核 **sonnet**；最多两轮，之后新发现的非 High 列为残余项在 PR 单列（ 第 6 条）
 - 数据设计门禁（`DATA_DESIGN_GATE.md` §1.2）：本卡发 one-data 审查 → **签发（已于 2026-10-16 完成）** → 表结构 PR（预期 diff，one-data 复核，合并）→ 验收测试 → 实现。验收与实现开工前核对签发有效（§1.3）
 - 工作区：独立 worktree，分支 `claude/one-1a-par-ts-uniq`（表结构 PR）、`claude/one-1a-par-ts-uniq-impl`（实现 PR，名字以负责会话为准），基线为当时的 main
 - 不交 Codex：含数据完整性判断与跨模块 API 扩展
@@ -141,7 +141,7 @@
 - Testcontainers 临时容器（镜像限 `backend/architecture/test-images.txt`）可直接跑；其他容器、常驻容器、对外调用、生产取证先问；不建账号
 - 用语遵守 `terms.yaml`；不用「PSA」指代系统；老系统事实（类型 0 / 1 / 2 等）只作证据，不进目标表设计
 
-## 7. 预期表结构 diff（SESSION_PLAYBOOK §12.2）
+## 7. 预期表结构 diff（）
 - 方法：两个空库分别执行改动前（main）、后的基线，`pg_dump --schema-only` 对比，种子另做 `--data-only` 对比
 - 预期差异**只能是**（全部在 `cost_timesheet.timesheets`）：
   - 新增列 `numbering_rule_version_id uuid`（可空；位置在 `timesheet_number` 之后；无默认值），及其列注释
@@ -160,14 +160,14 @@
 
 ## 9. 复审要求（§6.1 第 4、11 条）
 - Blocker / High：opus 复核，合并前修完；Medium / Low：执行者补测试、CI 通过即关闭，负责会话抽查；不阻塞合并的登记进下一批
-- 复审清单：SESSION_PLAYBOOK §14、§14.1（D2、D4、D7、D16、D17 细则 6、D18）；CODING_STANDARD CS-1.8、CS-1.9、CS-2.24（通用错误码只在 kernel，新码是模块专属）、CS-5.5、CS-5.6
+- 复审清单：DATA_DESIGN_CHECKLIST §14、§14.1（D2、D4、D7、D16、D17 细则 6、D18）；CODING_STANDARD CS-1.8、CS-1.9、CS-2.24（通用错误码只在 kernel，新码是模块专属）、CS-5.5、CS-5.6
 - 专查：表结构 diff 只含第 7 节声明项；约束名映射不留「其他一律当并发修改」的兜底；预检在取号之前、冲突时不消耗编号；并发下两个同日新建只一个成功；`REJECTED` 重提后审批侧确为新一轮；版本 ID 取自发号时实际选中的版本而非事后按日期推断；被改的现有断言只有第 3.2 节第 9 条所列
 
 ## 10. 报告去向
-- 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
+- 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（ 第 7 步）
 - PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事；合并后通知 `DATA-REPAIR-timesheet-audit` A 部分执行者（TA-01 可开工）与 one-data
 
-## 11. 本卡新词（开工前术语门禁，SESSION_PLAYBOOK §5）
+## 11. 本卡新词（开工前术语门禁）
 已查 `docs/modernization/glossary/terms.yaml` 与 `backend/glossary/proposed/*.yaml`：下列各词均无同名、同中文名条目。起草本卡时已把第一条登记为提议术语（`backend/glossary/proposed/cost-timesheet.yaml`，`status: proposed`），其余是已有词条的组合，无需新增。
 
 | 标识符 | 中文名 | 种类 | 使用范围 | bc | 说明 |
@@ -252,7 +252,7 @@ schema 归属：`cost_timesheet`，BC `cost.timesheet`，子行无。
 ### 用例 → 聚合 → 表（O1）
 | 用例 | 聚合 | 表 |
 |---|---|---|
-| `SubmitTimesheet`（首次提交创建并提交；再次提交修改并提交） | `Timesheet` | `cost_timesheet.timesheets`；首次提交同事务向编号服务取号（已登记例外：SESSION_PLAYBOOK §14「已登记的例外」第 1 项，`multi-aggregate-exceptions.txt`），不新增例外 |
+| `SubmitTimesheet`（首次提交创建并提交；再次提交修改并提交） | `Timesheet` | `cost_timesheet.timesheets`；首次提交同事务向编号服务取号（已登记例外：DATA_DESIGN_CHECKLIST §14「已登记的例外」第 1 项，`multi-aggregate-exceptions.txt`），不新增例外 |
 | `WithdrawTimesheet`、`CancelTimesheet` | 经 `platform.approval` | 只写审批侧，工时单由结果事件回写 |
 | `ApplyApprovalResult`（`ApprovalCompleted` 的监听） | `Timesheet` | `timesheets`、`consumed_events` |
 | `GetTimesheet` | — | 只读 `timesheets`（按 ID） |

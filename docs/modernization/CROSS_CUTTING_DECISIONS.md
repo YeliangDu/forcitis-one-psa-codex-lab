@@ -75,9 +75,9 @@
 
 影响：选 B 时，1b 的功能代理要么等待，要么各自手写除法和倒挤，老系统三种倒挤法就是这样来的。
 
-**XD-10 是否把「横切关注点矩阵」步骤写进 SESSION_PLAYBOOK 附 M4，并在 brief 各阶段入口加一条？**（矩阵 §4.1）
+**XD-10 是否把「横切关注点矩阵」步骤写进 METHODS M4，并在 brief 各阶段入口加一条？**（矩阵 §4.1）
 
-> **已答**（2026-10-15）：A，「采纳 (Recommended)」（`intent/2026-10-15-214100-one-coordinator-横切决定单-XD-10-横切关注.md`）；已写入 SESSION_PLAYBOOK 附 M4，brief 各阶段入口加了 `Proposed revision:` 行。
+> **已答**（2026-10-15）：A，「采纳 (Recommended)」（`intent/2026-10-15-214100-one-coordinator-横切决定单-XD-10-横切关注.md`）；已写入 METHODS M4，brief 各阶段入口加了 `Proposed revision:` 行。
 - A. 采纳：每阶段开工前更新矩阵，本阶段的待决题有答复、地基行已冻结，才勾选入口（**建议**）。
 - B. 只在本次普查用一次。
 

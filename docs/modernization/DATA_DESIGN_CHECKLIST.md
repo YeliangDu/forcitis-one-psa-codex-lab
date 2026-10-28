@@ -1,6 +1,6 @@
 # 数据设计检查清单 — FORCITIS one（DATA_DESIGN_CHECKLIST）
 
-负责：one-data（TEAM-81）。以下 §14、§14.1、§14.2、§14.3 自 SESSION_PLAYBOOK 原文原样拆出（GOV-1022-COO-15），节号不变，正文中「本手册」「§x」等旧引用待按 PB_MAPPING.md 同步。
+以下 §14、§14.1、§14.2、§14.3 节号不变；正文中「本手册」指本文件。
 
 ## 14. DDD 检查清单（用户 2026-10-14：「全部在 1a 做，并建 DDD 检查清单 (Recommended)」）
 

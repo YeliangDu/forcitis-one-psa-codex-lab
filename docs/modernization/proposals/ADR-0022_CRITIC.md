@@ -1,6 +1,6 @@
 # ADR-0022 对抗性评审意见与处理
 
-日期：2026-10-14 · 评审：`code-modernization:architecture-critic`（opus），评审对象为提交 941723a 的 ADR-0022（提议）· 依据：SESSION_PLAYBOOK §12 第 3 条（psa-coordinator 决定按规则执行）· 处理会话：psa-gl-finance-review
+日期：2026-10-14 · 评审：`code-modernization:architecture-critic`（opus），评审对象为提交 941723a 的 ADR-0022（提议）· 依据： 第 3 条（psa-coordinator 决定按规则执行）· 处理会话：psa-gl-finance-review
 
 评审结论：**修改后可交审批**（阻塞 3、重要 10、建议 2；不需重做）。用户与财务已作答的口径（`rules/GL_FINANCE_DECISIONS.md`）没有被推翻，评审只指出它们的架构后果与内部矛盾。下表中「用户」一列为用户在弹窗中的原选项；所有修改都已写进 `adr/build_adrs.py` 中的 ADR-0022 并重新生成。
 

@@ -13,7 +13,7 @@
 
 ## 1. 卡号与类别
 - 卡号：DATA-REPAIR-workforce
-- 类别：缺陷修复（SESSION_PLAYBOOK §6.1 第 9 条）
+- 类别：缺陷修复（ 第 9 条）
 - 批次：已建表数据设计审查修复批（门禁 v2 §1.2 第 6 条）；一个小 PR 直接合入 main
 - 建议负责会话：one-1a-next-4
 - 排期：本卡排在 dev 部署之后（用户「同意，不挡 dev」，`BASELINE_TABLE_REVIEW.md` §3 末段）；本卡不是闸门，W2 版本化才是生产前闸门（one-ops 登记到 PREDEPLOY，C-15 一组，见 README）
@@ -22,7 +22,7 @@
 
 ## 2. 依据
 - 门禁 v2：B3、O3、O4、O8、O10、C3、C4
-- SESSION_PLAYBOOK §14.1 D2、D12、D17；§12.2；ADR-0038；ADR-0033 第 1 项第 2 条（`sync_run_held_separations` 点名）、第 2 项；ADR-0043 R-2
+- DATA_DESIGN_CHECKLIST §14.1 D2、D12、D17；§12.2；ADR-0038；ADR-0033 第 1 项第 2 条（`sync_run_held_separations` 点名）、第 2 项；ADR-0043 R-2
 - 规则卡：`WORKFORCE_HISTORY_RULES.md`（候选）、RULE-372（直属领导不能是自己）
 - 用户决定（第 6 节引用）：「都做维度型版本表（以同步观察日为生效依据）」（收件箱 2026-10-16-one-data-employee-position-versioning；intent `2026-10-16-085331-one-data-员工与岗位怎样版本化-都做维度型.md`）
 - 复核编号：SS §1（wf 22 列）、§2、§3、§4（第 1 至 4 组）、补审 B7-2 与 O15 缺项 1、3、4、5；OV「SR-1 降级为中，四条 CHECK 逐条核对可直接落」；「高风险项判断 OW 第 1、3、4、5 条」；「HS-2 仍开放」；「LV-1(a) 应加」；误报与修正第 5 条（`finished_at >= started_at` 不加）

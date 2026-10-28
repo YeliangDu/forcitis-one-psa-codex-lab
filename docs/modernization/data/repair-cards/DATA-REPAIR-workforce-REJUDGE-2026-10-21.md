@@ -50,7 +50,7 @@
 
 **错误码词表**：`backend/glossary/proposed/fix-b.yaml:125`（`OrganizationWorkforceSyncRunApplyFailed`）、`organization_workforce.yaml:37`（`…SyncRunTransitionIllegal`）、`:52`（`…SyncRunNotFound`）——错误码中文名全局唯一，退役经 one-glossary，不自行删。
 
-**文档与词表**：`docs/modernization/architecture/ddd/aggregates.yaml:93-129`（SyncRun 聚合及五个事件）；`glossary/terms.yaml` 中 SyncRun 及 `SyncRun*` 事件条目——**经 `new_term_issue.py` 交 one-glossary 退役，不自行删除**；`data/RETENTION_PROPOSAL.md:23`；SESSION_PLAYBOOK §14「已登记的例外」中 `BeginSyncRun`、`ApplySourceSnapshot` 两条；前端 `frontend/apps/web/src/modules/workforce/hooks/use-workforce.ts`（同步接口调用方，D2 已写前端，清单点名）。
+**文档与词表**：`docs/modernization/architecture/ddd/aggregates.yaml:93-129`（SyncRun 聚合及五个事件）；`glossary/terms.yaml` 中 SyncRun 及 `SyncRun*` 事件条目——**经 `new_term_issue.py` 交 one-glossary 退役，不自行删除**；`data/RETENTION_PROPOSAL.md:23`；DATA_DESIGN_CHECKLIST §14「已登记的例外」中 `BeginSyncRun`、`ApplySourceSnapshot` 两条；前端 `frontend/apps/web/src/modules/workforce/hooks/use-workforce.ts`（同步接口调用方，D2 已写前端，清单点名）。
 
 **审计主体类型 `SYNC_RUN`**：#491 用户硬要求第 4 条，先完成审计类别登记表（ADR-0068 第 14 条，我的审查见 `reviews/ADR-0068.md`），再把 `SYNC_RUN` 标为 `RETIRED`；既有审计条目只追加不改写（D8）；新写入不再使用。D2 先合并时只删写入方（ADR-0068 第 14 条 2）。
 

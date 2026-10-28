@@ -2,7 +2,7 @@
 
 - 复审对象：同目录 `ADR-草案-签章服务.md`（18,992 B）、`ADR-草案-外部访问.md`（26,981 B）、`ADR-草案-文件服务.md`（37,122 B）、`ADR-草案-AI底座.md`（15,735 B）
 - 基线：`2e1a13cb`（worktree one-coordinator-888aff，只读）
-- 依据：评审模板 `quality/review-briefs/03-adr.md`（A1–A13）、`adr/src/_readme_lifecycle.md`、CS-1.8/1.9/1.10、NAMING_STANDARD §2.3–2.6、SESSION_PLAYBOOK §14.1（D12、D15–D17）；用户决定以 intent `2026-10-20-201656`、`204731`–`204737`、`211104` 与确认页 `确认页-平台服务6问.html` 题面为准
+- 依据：评审模板 `quality/review-briefs/03-adr.md`（A1–A13）、`adr/src/_readme_lifecycle.md`、CS-1.8/1.9/1.10、NAMING_STANDARD §2.3–2.6、DATA_DESIGN_CHECKLIST §14.1（D12、D15–D17）；用户决定以 intent `2026-10-20-201656`、`204731`–`204737`、`211104` 与确认页 `确认页-平台服务6问.html` 题面为准
 - 复审人不是任何一份草案的作者；只读，未改草案
 
 ## 一屏结论

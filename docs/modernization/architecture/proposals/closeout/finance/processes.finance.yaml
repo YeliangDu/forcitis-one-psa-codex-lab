@@ -3339,7 +3339,7 @@ processes:
   stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账 / 已更正」经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。
   owner_bc: B-16
   human_orchestration: false
-  migration: 在途：同步调用，当场成功或拒收，无在途实例。历史：全部历史事实经迁入过账通道直接写入事实表，不经本流程的期间闸门与事件发布（ADR-0036 第 6 条、SESSION_PLAYBOOK §14.2 M8）；投产前以最近两个已结期间重算比对（U-10）。
+  migration: 在途：同步调用，当场成功或拒收，无在途实例。历史：全部历史事实经迁入过账通道直接写入事实表，不经本流程的期间闸门与事件发布（ADR-0036 第 6 条、DATA_DESIGN_CHECKLIST §14.2 M8）；投产前以最近两个已结期间重算比对（U-10）。
   scope: 按事实所属法人；拒收告警由财务按法人范围接收
   triggers:
   - type: call
@@ -5230,7 +5230,7 @@ processes:
     as:
     - performer
     - approver
-    rule: 起草人与批准人不得为同一人（ADR-0022 决定 2，SESSION_PLAYBOOK §12）
+    rule: 起草人与批准人不得为同一人（ADR-0022 决定 2）
   triggers:
   - type: human
     name: 财务发布科目表新版本

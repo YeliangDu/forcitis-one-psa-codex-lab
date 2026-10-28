@@ -23,7 +23,7 @@
 ### 2.1 用户决定
 - ADR-0034 已采纳：用户 2026-10-15「两份都批准 (Recommended)」；0034-Q2「授予与角色版本保留期与审计同周期（在线 3 年 + 归档到满 10 年）；在线删除只走受控特权路径，运行角色始终没有 DELETE」；0034-Q3「删除角色关闭最后一个版本、编码不得复用」。
 - 复职 D-1a-17（`process/1a/contract.md`:56）：「只授基础角色 (Recommended)」，复职重授 `employee`，其余由管理员重新分配，审计记录（intent `2026-10-14-115-1a流程-复职角色.md`）。
-- §14.1 D17（SESSION_PLAYBOOK:419-429）：主数据默认版本化；授权关系按时刻、`timestamptz` 区间；授权取未关闭的行；早于最早版本的查询失败告警。
+- §14.1 D17（METHODS.md:419-429）：主数据默认版本化；授权关系按时刻、`timestamptz` 区间；授权取未关闭的行；早于最早版本的查询失败告警。
 - 迁移基线开放期直接改基线（ADR-0038；`backend/architecture/migration-baseline-open` 存在，已核）。
 
 ### 2.2 规则、ADR、规范
@@ -31,7 +31,7 @@
 - RULE-345 修订已写入 `RULE_REVIEWS.json`（第 438 行起 `revisions`，2026-10-15，出处 ADR-0034 / 0034-Q3，已核）；RULE-344、RULE-363 不变。
 - DDL 审计 DDL-17（`~/.modernize/psa/audit/DDL_AUDIT_2026-10-15.md`:31，未入仓）：「roles 被物理删除（JdbcRoleRepository.java:100）→ RETIRED 状态 + 关闭版本，代码不复用；ApplySourceSnapshot 删合并的同步运行属技术去重，登记 delete_reason」。前半由本卡承担（形态按 ADR-0034，见待裁定 A-1）；后半属 `organization.workforce`，见待定 C-4。
 - DATA-REPAIR-identity 并入 W2 的条目（`HANDOFF_one-1a-next-4.md`:34「ID-01/02/10/13 → W2」；`data/repair-cards/DATA-REPAIR-identity.md` §6：AQ-2「`VOIDED`、基准列、事件 `AuthorizationVoided`」、AQ-6「`role_codes` 改 `role_ids uuid[]`」归 W2 卡）。是否由本卡承担见待定 C-3。
-- NAMING_STANDARD §2.4（类别词、约束与索引命名）、§2.4a（UUIDv7、外键索引、空值与默认值、删除语义、文本长度、枚举 CHECK 具名）；SESSION_PLAYBOOK §6.1、§14、§14.1；`DATA_DESIGN_GATE.md` 附录 A。
+- NAMING_STANDARD §2.4（类别词、约束与索引命名）、§2.4a（UUIDv7、外键索引、空值与默认值、删除语义、文本长度、枚举 CHECK 具名）、§14、§14.1；`DATA_DESIGN_GATE.md` 附录 A。
 
 ### 2.3 核对结果（基线 `cfb04dd4`，凡「有 / 没有」均已 grep 或读文件）
 - `platform_identity` 只有一个基线文件 `V20261014130000__platform_identity_baseline.sql`（380 行）：`roles`（:29-57，含 `name`、`status`、`access_scope`，`uq_roles_code`、`uq_roles_name`）、`role_permissions`（:59-73）、`account_roles`（:76-92，表注释「离职时全部删除（ADR-0027）」）、`authorization_requests`（:275-317，状态只有 `PENDING / CONFIRMED / REJECTED`）、角色与权限种子（:319-380）。全仓没有 `role_versions`、`account_role_grants`。
@@ -127,7 +127,7 @@
 ## 5. 执行者与模型
 - 测试代理：`code-modernization:test-engineer`，opus（安全不变量、并发交错、性质测试）
 - 实现：子代理，sonnet；PR-1 表结构可 sonnet
-- 首轮复审：**opus 一次**，推理强度 high（安全项：授权历史、离职收回、锁协议、启动对账；§14、§14.1 全部条目）；修后复核 sonnet；最多两轮，之后新发现的非 High 在 PR 单列（SESSION_PLAYBOOK §11 第 6 条）
+- 首轮复审：**opus 一次**，推理强度 high（安全项：授权历史、离职收回、锁协议、启动对账；§14、§14.1 全部条目）；修后复核 sonnet；最多两轮，之后新发现的非 High 在 PR 单列（ 第 6 条）
 - 表结构 diff 证据由 opus 核对（ADR 迁移方案第 2 条）
 - 不交 Codex：安全判定与并发协议
 - 工作区：每个 PR 一个独立 worktree，分支 `claude/one-1a-par-adr0034-schema`、`claude/one-1a-par-adr0034-roles`、`claude/one-1a-par-adr0034-grants`（名字以负责会话为准），基线为当时的 main；并行子代理用同一基线（CS-7.6）
@@ -144,7 +144,7 @@
 - Testcontainers 临时容器（白名单镜像）可直接跑；其他容器、常驻容器、对外调用先问；不建账号；不打印、不写入密钥
 - 用语遵守 `terms.yaml`；授予的结束一律称「收回」，不用「撤销」；领域模块不出现老系统名称
 
-## 7. 预期表结构 diff（SESSION_PLAYBOOK §12.2；ADR-0034 迁移方案第 2 条）
+## 7. 预期表结构 diff（；ADR-0034 迁移方案第 2 条）
 - 方法：两个空库分别执行改动前（该 PR 的基线 main）与改动后的基线，`pg_dump --schema-only` 对比；种子另做 `--data-only` 对比；注释差异一并列出。只能出现下列差异，多出或少了都退回（门禁 §1.4 第 1 条）。
 - 三个 PR 各自一节；三节合起来即「`cfb04dd4` → 本卡完成」的总 diff，也是 F-1 的「改动前」。
 - 新表时间列 `created_at`、`updated_at`、`effective_*_at` 全部由应用以注入时钟写入，DDL 无时钟默认值；`roles` 既有列的 `DEFAULT now()` 与业务默认值不在本卡改（归 R-4、R-2b），但本卡新写的 SQL 显式传入这些列。
@@ -428,11 +428,11 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 ## 9. 复审要求（§6.1 第 4、11 条）
 - Blocker / High：opus 复核，合并前修完；Medium / Low：执行者补测试、CI 通过即关闭，负责会话抽查；不阻塞合并的登记进下一批
 - 首轮 opus（安全相关）：每个 PR 一次；PR-3 必查锁协议（`FOR UPDATE` / `FOR SHARE` 顺序与范围）、当前有效谓词常量的唯一性、离职关闭与会话吊销同事务语义、`VOIDED` 判定在持锁事务内、`greatest(:now, …)` 下界、审计条目 ID 回写
-- 复审清单：SESSION_PLAYBOOK §14、§14.1（D2、D4、D6、D8、D12、D15、D16、D17 细则 2–5、D18、D19）；CODING_STANDARD CS-1.8、CS-1.9、CS-1.10（事件与 api 契约先行）、CS-2.24、CS-5.5、CS-5.6
+- 复审清单：DATA_DESIGN_CHECKLIST §14、§14.1（D2、D4、D6、D8、D12、D15、D16、D17 细则 2–5、D18、D19）；CODING_STANDARD CS-1.8、CS-1.9、CS-1.10（事件与 api 契约先行）、CS-2.24、CS-5.5、CS-5.6
 - 专查：表结构 diff 只含第 7 节声明项；迁移不写角色数据；任何代码路径不删授权历史；未知权限码 fail-closed 不抛异常；对账时点先于 `ApplicationRunner` 与监听重投
 
 ## 10. 报告去向
-- 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
+- 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（ 第 7 步）
 - PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事；PR-3 合并后通知 F-1（「改动前」基线就绪，待核 3 可核）与 one-data（复核表结构 PR、F-1 待核 3）
 
 ## 11. 本卡新词（开工前术语门禁；登记到 `backend/glossary/proposed/platform-identity.yaml`，交 one-glossary）

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RULE_REVIEWS.json 的修订记录：当前结论的取法与校验（SESSION_PLAYBOOK 附 M3「修订评审结论」：改决定不覆盖）。
+"""RULE_REVIEWS.json 的修订记录：当前结论的取法与校验（METHODS M3「修订评审结论」：改决定不覆盖）。
 
 条目的原字段 verdict / at / title / note 一经写入不再改动；决定变化时在可选数组 `revisions` 末尾追加
 {verdict, at, note, quote, source}：at 是带时区的完整时刻，quote 是用户原话，source 是 ADR 编号（须存在 adr/src/ADR-NNNN.md）

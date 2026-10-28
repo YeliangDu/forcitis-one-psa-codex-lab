@@ -43,7 +43,7 @@
 
 ## 其他核对到的相关情况（不在 27 行之内）
 
-- 审计分区：ADR-0048（`docs/modernization/adr/src/ADR-0048.md`，用户 2026-10-16 批准）与 SESSION_PLAYBOOK §14.1 D16 已成文；main 迁移里没有任何 `PARTITION`（`platform_audit/V20261014134000__platform_audit_baseline.sql` 未分区），所以审计分区**只有决定，没有落库**。
+- 审计分区：ADR-0048（`docs/modernization/adr/src/ADR-0048.md`，用户 2026-10-16 批准）与 DATA_DESIGN_CHECKLIST §14.1 D16 已成文；main 迁移里没有任何 `PARTITION`（`platform_audit/V20261014134000__platform_audit_baseline.sql` 未分区），所以审计分区**只有决定，没有落库**。
 - 数据访问登记簿：`backend/architecture/data-access-registry.yaml`、`external-read-registry.yaml`、`cross-schema-version-references.txt` 已存在并有守护，矩阵没有对应行。
 - 字段级敏感分级：`A/data-classification.txt` 已含审计表 `detail`、`before_text`、`after_text`、幂等表 `response_text` 的 PI 标记（TB-01、TB-02，提交 `0122d21c`、`97a1a7c6`、`c12a1694`）。
 

@@ -10,7 +10,7 @@ ADR-0053 决定 3 要求以槽位为源、由受控词渲染；名称反解只�
 
 | 来源 | 本次读取范围 | 用途与限制 |
 | --- | --- | --- |
-| `AGENTS.md`、`CLAUDE.md`、`CODING_STANDARD.md`、`NAMING_STANDARD.md`，`SESSION_PLAYBOOK.md` §5、§6.1 | 本地现文件 | 工作边界；已采纳 ADR 与本次用户指令优先 |
+| `CLAUDE.md`、`CODING_STANDARD.md`、`NAMING_STANDARD.md`，`METHODS.md` §5、§6.1 | 本地现文件 | 工作边界；已采纳 ADR 与本次用户指令优先 |
 | `.codex-inputs/ADR-0053.md`；`.codex-inputs/PREREQ.md` 第一节 N1–N8 | 已采纳 ADR 与前提清单 | 概念不变、指称分离、槽位来源、N2 财务确认与 N4 用户批准的边界 |
 | `NAMING_ATOMS_PREP.md`、`NAMING_ATOMS_DRAFT.md`、`ARCH_NAME_AUDIT.md` | 本目录三份全文 | 候选来源；其中关于存量的说法重新核对，不直接当裁定 |
 | `.codex-inputs/revenue-commands.yaml` | `commands` 全部 256 行，250 个不同名称；`emits` 129 次、128 个不同字面名 | 收入链提议目录，不是已经实现的接口或已批准的事实目录 |

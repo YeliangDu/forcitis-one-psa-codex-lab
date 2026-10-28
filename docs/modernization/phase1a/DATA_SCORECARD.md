@@ -8,7 +8,7 @@
 - 方法：
   - 表结构与代码用法：haiku 子代理用脚本按迁移顺序推算最终表结构，并扫描 Java 中的 SQL 字面量；
   - 逐项判断：本会话（opus）；
-  - 依据：GUIDING_PRINCIPLES §6–§8（含用户已认可的 1a 表保留期）、NAMING_STANDARD §2.4–§2.5、ADR-0016、0025（提议）、0026、0027、`proposals/EVENT_ANALYTICS_FIELDS.md` §6、SESSION_PLAYBOOK 附 M3、DATA_DESIGN_CHECKLIST §14。
+  - 依据：GUIDING_PRINCIPLES §6–§8（含用户已认可的 1a 表保留期）、NAMING_STANDARD §2.4–§2.5、ADR-0016、0025（提议）、0026、0027、`proposals/EVENT_ANALYTICS_FIELDS.md` §6、METHODS M3、DATA_DESIGN_CHECKLIST §14。
 - 判定：✓ 符合；✗ 不符合（问题编号见 §3）；△ 部分符合或有瑕疵；— 不适用。
 
 ## 0. 结论
@@ -112,7 +112,7 @@
 | K8 | 10 列无注释：`work_calendar_years` 的 `id`、`version`、`created_at`、`updated_at`；`work_calendar_days` 的 `id`、`created_at`、`updated_at`；`sync_runs.version`、`legal_entities.version`、`outbound_deliveries.version` | `V20261014141000…work_calendar.sql:5,21`；`V20261014131100:3`；`V20261014131500:2`；`V20261014144000:2` | 补 `COMMENT ON COLUMN`；守护 D3 |
 | K9 | 多数表注释没写粒度（「每 … 一行」）。DAMA 的数据定义要求含义、粒度、归属三项 | 例如 `timesheets`「工时单：状态机在聚合内……」，没有写「每张工时单一行」 | 每张表注释按「<含义>；粒度：每 … 一行；<要点>」改写（归属 BC 由 schema 注释给出）；守护 D3 |
 | K10 | 敏感分级漏登：`employees.display_name`（姓名）、`login_name`、`wecom_user_id`、`employee_code`；`outbound_deliveries.recipients`、`skipped_recipients`（企业微信用户 ID）；`emergency_admins.account_name`；`sessions.principal_name` | `backend/architecture/data-classification.txt`（main，15 行） | 按 NAMING_STANDARD §2.5 登记（个人信息为 SENSITIVE）；扩展守护的关键词（守护 D5） |
-| K11 | 编号规则改了模板就覆盖原行，没有版本历史与生效日。SESSION_PLAYBOOK 附 M3「规则调整三类」规定配置类「新增一个版本，不覆盖旧版本」，并在模块版本表中记录版本号、生效日期、批准人与决定出处 | `V20261014100100…numbering.sql:4`；`V20261014135200:9`（迁移内 UPDATE 覆盖模板） | 建 `numbering_rule_versions`（只追加：模板、重置周期、起始值、生效日、确认人、确认时间）；`numbering_rules` 指向当前版本；已发的编号可追溯到版本（事件负载的 `ruleVersion`） |
+| K11 | 编号规则改了模板就覆盖原行，没有版本历史与生效日。METHODS M3「规则调整三类」规定配置类「新增一个版本，不覆盖旧版本」，并在模块版本表中记录版本号、生效日期、批准人与决定出处 | `V20261014100100…numbering.sql:4`；`V20261014135200:9`（迁移内 UPDATE 覆盖模板） | 建 `numbering_rule_versions`（只追加：模板、重置周期、起始值、生效日、确认人、确认时间）；`numbering_rules` 指向当前版本；已发的编号可追溯到版本（事件负载的 `ruleVersion`） |
 | K12 | `emergency_admins` 有多处 UPDATE（失败计数、锁定、计步），没有 `version`；DATA_DESIGN_CHECKLIST §14 第 4 项要求可变聚合带 `version` 或用带前置条件的更新 | `JdbcEmergencyAdminRepository.java:59,72,78` | 先核对这 3 处是否都是带前置条件的原子更新（例如 `last_totp_step < ?`）。是则登记为「条件更新」例外，否则加 `version` |
 | K13 | 工时单没有任何索引，但有按员工、状态、日期列表与审批的查询路径（GUIDING_PRINCIPLES §7「列表只用索引覆盖的分页」） | `V20261014140000…timesheets.sql`（索引：无） | 按查询路径加 `ix_timesheets_employee_id_work_date`、`ix_timesheets_status`（部分索引），以及 K1 后的部门索引 |
 | K14 | 两处把多个值拼成一个字符串（违反第一范式）：`sync_diffs.changed_fields`（逗号）、`outbound_deliveries.recipients` / `skipped_recipients`（竖线） | `V20261014131100…:56`；`V20261014133100…:1` | 改为 `text[]`，列名 `changed_field_codes`、`recipient_codes`、`skipped_recipient_codes`。命名基线中把它们改成 `_text` 的建议应改为本修法 |
@@ -123,7 +123,7 @@
 | # | 问题 | 选项 | 建议 |
 |---|---|---|---|
 | T1 | 组织维度没有历史：组织单元、任职（部门、岗位）、汇报线都是覆盖式快照。ADR-0025 让 L1 从事件构建 SCD2，但 L1 要到 R1 才建，事件归档只留 30 天，**1a 上线到 R1 之间的组织变化历史会丢失**；同步差异只是文本，且只保留 1 年 | (a) 交易库现在就保留历史：`org_unit_versions`、`assignment_versions`，只追加、带生效区间，与快照在同一事务写入；(b) 只靠 L1，接受 R1 之前的历史缺失；(c) 延长同步差异保留期，并结构化差异内容，事后补建 | **(a)**：与 K3、K4 一起做，口径一致；「按事实发生时的组织」授权（ADR-0025 第 4 条用户决定）也依赖它 |
-| T2 | 工作日历保存时删除当年日期再重建，改动过去的日期会改变已算出的审批时效（审批时限按工作日历计算） | (a) 禁止修改今天之前的日期，例外经组织数据管理员操作并审计；(b) 日历按版本保存，审批时效记下所用的日历版本；(c) 不限制 | **(a)**：简单，符合 SESSION_PLAYBOOK 附 M3「规则调整三类」（配置不追溯）；已算出的截止时刻本来就存在 `approval_tasks.due_at` 上 |
+| T2 | 工作日历保存时删除当年日期再重建，改动过去的日期会改变已算出的审批时效（审批时限按工作日历计算） | (a) 禁止修改今天之前的日期，例外经组织数据管理员操作并审计；(b) 日历按版本保存，审批时效记下所用的日历版本；(c) 不限制 | **(a)**：简单，符合 METHODS M3「规则调整三类」（配置不追溯）；已算出的截止时刻本来就存在 `approval_tasks.due_at` 上 |
 | T3 | `cost_timesheet.consumed_events`（幂等记录）不在用户已认可的保留期清单里，会无限增长 | 保留 30 天 / 90 天 / 永久 | **90 天**：大于事件重投递的窗口与事件归档的 30 天 |
 | T4 | `work_packages.actual_hours` 是已审批工时之和，属于派生值（冗余） | (a) 删除，查询时汇总；(b) 保留为投影，由工时审批事件维护，并可从工时单重算，加对账 | Phase 2 定：若工作包列表需要显示实际工时且量大，选 **(b)** 并登记为投影（DATA_DESIGN_CHECKLIST §14 第 9 项）；否则 (a) |
 | T5 | `employees.separated_at` 是「首次同步到离职的时间」，不是真实离职日；它是员工维度的生效日之一 | (a) 若 A8 有离职日字段，增加 `separation_date`（`date`），分析与汇报线历史以它为准；(b) 维持现状，注明误差（同步周期 5 分钟，但 A8 补录会滞后） | **(a)**，前提是 A8 能提供该字段（需 1a 核对 A8 基表，读取时登记进外部读取登记 `backend/architecture/external-read-registry.yaml`） |
