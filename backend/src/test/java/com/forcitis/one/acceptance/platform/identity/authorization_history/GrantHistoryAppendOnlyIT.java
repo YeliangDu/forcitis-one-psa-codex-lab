@@ -50,7 +50,9 @@ class GrantHistoryAppendOnlyIT {
         db.refusedByTrigger(REWRITE, "delete from platform_identity.role_versions where role_version_id = ?", currentVersion);
         db.refusedByTrigger(REWRITE, "delete from platform_identity.role_versions where role_version_id = ?", oldVersion);
         db.refusedByTrigger(REWRITE, "delete from platform_identity.role_versions");
-        db.refusedByTrigger(REWRITE, "truncate table platform_identity.role_versions");
+        assertThat(db.refused("truncate table platform_identity.role_versions").getSQLState())
+                .as("TRUNCATE role_versions is refused: by the child tables' foreign keys first (0A000) or by the trigger (23001)")
+                .isIn("0A000", "23001");
         db.refusedByTrigger(REWRITE, "delete from platform_identity.account_role_grants where account_role_grant_id = ?", open);
         db.refusedByTrigger(REWRITE, "delete from platform_identity.account_role_grants where account_role_grant_id = ?", revoked);
         db.refusedByTrigger(REWRITE, "delete from platform_identity.account_role_grants");

@@ -28,7 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Permissions are resolved on every request, so a change is live once the cache is evicted. Nobody changes the definition of a role
- * they hold (I-12); giving a role a sensitive permission waits for a second person.
+ * they hold (I-12); giving a role a sensitive permission waits for a second person; a two-person role keeps a scope that does not follow
+ * the holder's job and names its custom org units without descendants (ADR-0032 section 3, ADR-0044 section 1).
  */
 @Service
 public class UpdateRole {
@@ -73,17 +74,18 @@ public class UpdateRole {
         try {
             Role role = existing.get();
             Set<String> before = new HashSet<>(role.permissionCodes());
-            AccessScopeKind scope = command.accessScope() != null ? command.accessScope() : role.accessScope();
-            role.revise(command.name(), scope, command.permissionCodes());
-            role.declareEnabled(command.enabled());
+            revise(role, command);
+            Optional<IdentityError> scopeRefused = refuseScope(caller, role);
+            if (scopeRefused.isPresent()) {
+                return new AdminOutcome.Refused<>(scopeRefused.get());
+            }
             Set<String> added = new HashSet<>(SensitivePermissions.within(role.permissionCodes()));
             added.removeAll(before);
             if (!added.isEmpty()) {
                 if (!ceiling.mayRequest(role.permissionCodes(), role.administrative())) {
                     return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
                 }
-                return new AdminOutcome.Awaiting<>(gate.openUpdateRole(caller, role.roleId(),
-                        new RoleDraft(role.code().value(), command.name(), command.enabled(), command.accessScope(), command.permissionCodes())).value().toString());
+                return new AdminOutcome.Awaiting<>(gate.openUpdateRole(caller, role.roleId(), draft(role, command)).value().toString());
             }
             if (!ceiling.mayGrant(role.permissionCodes(), role.administrative())) {
                 return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
@@ -94,7 +96,7 @@ public class UpdateRole {
         }
     }
 
-    /** The request's author made the change; the version names the request a second person confirmed. */
+    /** The request's author made the change; the version names the request a second person confirmed. The scope is checked again here. */
     @Transactional
     AdminOutcome<RoleView> applyConfirmed(RoleId roleId, SaveRoleCommand command, UserId requestedBy, AuthorizationRequestId requestId) {
         Optional<Role> existing = roles.findById(roleId);
@@ -103,13 +105,40 @@ public class UpdateRole {
         }
         try {
             Role role = existing.get();
-            AccessScopeKind scope = command.accessScope() != null ? command.accessScope() : role.accessScope();
-            role.revise(command.name(), scope, command.permissionCodes());
-            role.declareEnabled(command.enabled());
+            revise(role, command);
+            Optional<IdentityError> scopeRefused = refuseScope(requestedBy, role);
+            if (scopeRefused.isPresent()) {
+                return new AdminOutcome.Refused<>(scopeRefused.get());
+            }
             return store(role, RoleChange.manual(requestedBy, REASON, requestId));
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }
+    }
+
+    /** accessScope null keeps the role's scope kind, customOrgUnits null keeps its units (one-coordinator ruling for #728). */
+    private static void revise(Role role, SaveRoleCommand command) {
+        AccessScopeKind scope = command.accessScope() != null ? command.accessScope() : role.accessScope();
+        role.revise(command.name(), scope, command.permissionCodes(), command.customOrgUnits());
+        role.declareEnabled(command.enabled());
+    }
+
+    /** Refuses a scope a two-person role may not have, with an audit entry naming the reason (F1-01; F-1 card C4). */
+    private Optional<IdentityError> refuseScope(UserId by, Role role) {
+        Optional<String> reason = SensitivePermissions.scopeRefusal(role.definition());
+        reason.ifPresent(why -> audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", by, null,
+                AuditSubject.of(AuditSubjectKind.ROLE, role.roleId().value()), RoleScopeRefusal.detail(why, role))));
+        return reason.map(why -> IdentityError.PLATFORM_IDENTITY_ROLE_SCOPE_NOT_ALLOWED);
+    }
+
+    /**
+     * The definition the second person confirms. A CUSTOM_ORG_UNITS role names its units in the draft even when the request kept the scope
+     * kind, so the request row can carry them (the request's units hang only on a CUSTOM_ORG_UNITS request, F-1 card constraint 8).
+     */
+    private static RoleDraft draft(Role role, SaveRoleCommand command) {
+        AccessScopeKind scope = command.accessScope() != null || role.accessScope() != AccessScopeKind.CUSTOM_ORG_UNITS ? command.accessScope()
+                : AccessScopeKind.CUSTOM_ORG_UNITS;
+        return new RoleDraft(role.code().value(), command.name(), command.enabled(), scope, command.permissionCodes(), RoleDraft.unitIdsOf(role.customOrgUnits()));
     }
 
     private AdminOutcome<RoleView> store(Role role, RoleChange change) {
