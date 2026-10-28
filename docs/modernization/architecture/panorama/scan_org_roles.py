@@ -3,6 +3,7 @@
 import argparse
 import re
 import sys
+import uuid
 from collections import Counter
 from pathlib import Path
 
@@ -14,11 +15,13 @@ ARCH = Path('docs/modernization/architecture')
 OUTPUT = ARCH / 'ssot/07-org-roles'
 PERMISSION = Path('backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java')
 ADMINISTRATOR_MODE = Path('backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java')
+SYSTEM_ROLE_DECLARATION = Path('backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java')
 MIGRATIONS = Path('backend/src/main/resources/db/migration')
 STAKEHOLDERS = ARCH / 'ssot/01-stakeholders/SSOT.yaml'
 TERMS = Path('docs/modernization/glossary/terms.yaml')
 MATRIX = ARCH / 'proposals/closeout/RESPONSIBILITY_MATRIX.yaml'
 LITERAL = r"'(?:''|[^'])*'"
+STRING = r'"(?:\\.|[^"\\])*"'
 CODE = r'[a-z_]+\.[a-z_]+:[a-z0-9-]+:[a-z]+'
 
 
@@ -149,82 +152,110 @@ def value_rows(body):
                 raise ValueError('VALUES 尾部逗号')
 
 
-def permission_grants(body, columns, ids):
-    if re.match(r'VALUES\b', body, re.I):
-        for _, values in value_rows(re.sub(r'^VALUES\s*', '', body, flags=re.I)):
-            if len(values) != len(columns):
-                raise ValueError('role_permissions 列数不符')
-            row = dict(zip(columns, values))
-            if row.get('role_id') not in ids:
-                raise ValueError('role_permissions 引用了未登记角色')
-            yield ids[row['role_id']], row.get('permission_code')
-        return
-    prefix = r'SELECT\s+uuidv7\(\),\s*roles\.role_id,\s*grants\.permission_code\s+FROM\s+platform_identity\.roles\s+roles\s+'
-    patterns = (
-        prefix + r'CROSS\s+JOIN\s*\(VALUES\s+(.*?)\)\s+AS\s+grants\s*\(permission_code\)\s+WHERE\s+roles\.code\s*=\s*(' + LITERAL + ')',
-        prefix + r'JOIN\s*\(VALUES\s+(.*?)\)\s+AS\s+grants\s*\(role_code,\s*permission_code\)\s+ON\s+grants\.role_code\s*=\s*roles\.code',
-        r'SELECT\s+uuidv7\(\),\s*role_id,\s*(' + LITERAL + r')\s+FROM\s+platform_identity\.roles\s+WHERE\s+code\s*=\s*(' + LITERAL + ')',
-    )
-    for index, pattern in enumerate(patterns):
-        match = re.fullmatch(pattern, body, re.I | re.S)
-        if not match:
-            continue
-        if index == 2:
-            yield literal(match[2]), literal(match[1])
-        else:
-            for _, values in value_rows(match[1]):
-                if len(values) != index + 1:
-                    raise ValueError('grants VALUES 列数不符')
-                yield (literal(match[2]), values[0]) if index == 0 else tuple(values)
-        return
-    raise ValueError('不支持的 role_permissions 种子结构')
-
-
-def system_roles(files):
-    roles, ids, pending = {}, {}, []
-    fields = ('code', 'name', 'kind', 'status', 'access_scope', 'is_administrative')
-    for path, text in files:
-        for offset, statement in sql_statements(text):
-            if not re.match(r'INSERT\s+INTO\s+platform_identity\.(?:roles|role_permissions)\b', statement, re.I):
-                continue
-            match = re.fullmatch(r'INSERT\s+INTO\s+platform_identity\.(roles|role_permissions)\s*\(([^)]+)\)\s*(.*)', statement, re.I | re.S)
+def arguments(text, start):
+    """start 在左括号之后；按顶层逗号切参数，跳过字符串字面量，返回 [(偏移, 原文)] 与右括号之后的位置。"""
+    depth, result, begin, index = 0, [], start, start
+    while index < len(text):
+        char = text[index]
+        if char == '"':
+            match = re.compile(STRING).match(text, index)
             if not match:
-                raise ValueError(f'{source(path, text, offset)} 种子结构不符')
-            columns = [col.strip().lower() for col in match[2].split(',')]
-            if len(columns) != len(set(columns)):
-                raise ValueError('INSERT 列重复')
-            if match[1].lower() == 'role_permissions':
-                if set(columns) != {'role_permission_id', 'role_id', 'permission_code'}:
-                    raise ValueError('role_permissions 列结构不符')
-                pending.append((match[3], columns, source(path, text, offset)))
-                continue
-            if set(columns) != {'role_id', *fields} or not re.match(r'VALUES\b', match[3], re.I):
-                raise ValueError('roles 必须是显式列的 VALUES 字面值')
-            body = re.sub(r'^VALUES\s*', '', match[3], flags=re.I)
-            body_offset = offset + match.start(3) + len(match[3]) - len(body)
-            for row_offset, values in value_rows(body):
-                if len(values) != len(columns):
-                    raise ValueError('roles 列数不符')
-                row = dict(zip(columns, values))
-                for field in ('role_id', *fields[:-1]):
-                    sc.string(row[field], field)
-                if type(row['is_administrative']) is not bool:
-                    raise ValueError('is_administrative 应为布尔值')
-                if row['code'] in roles or row['role_id'] in ids:
-                    raise ValueError('系统角色重复')
-                ids[row['role_id']] = row['code']
-                roles[row['code']] = {**{field: row[field] for field in fields}, 'permission_codes': [],
-                                      'source': 'migration',
-                                      'source_location': source(path, text, body_offset + row_offset), 'permission_sources': {}}
-    if not roles or not pending:
-        raise ValueError('缺 roles 或 role_permissions 种子')
-    for body, columns, src in pending:
-        for role, code in permission_grants(body, columns, ids):
-            if role not in roles or not isinstance(code, str) or not re.fullmatch(CODE, code):
-                raise ValueError(f'{src} 角色未登记或权限码结构不符')
-            node = roles[role]
-            node['permission_sources'].setdefault(code, []).append(src)
-            node['permission_codes'] = sorted(node['permission_sources'])
+                raise ValueError('字符串字面量未闭合')
+            index = match.end()
+            continue
+        if char in '([{':
+            depth += 1
+        elif char in ')]}':
+            if depth == 0:
+                result.append((begin, text[begin:index]))
+                return result, index + 1
+            depth -= 1
+        elif char == ',' and depth == 0:
+            result.append((begin, text[begin:index]))
+            begin = index + 1
+        index += 1
+    raise ValueError('括号未闭合')
+
+
+def string_literal(raw, field):
+    match = re.fullmatch(r'\s*"([^"\\]*)"\s*', raw)
+    if not match:
+        raise ValueError(f'{field} 必须是不含转义的字符串字面量')
+    sc.string(match[1], field)
+    return match[1]
+
+
+def declaration_helper(clean):
+    """declared(...) 须原样把参数交给 DeclaredRole / RoleDefinition；返回它写入的 RoleStatus 常量名。"""
+    helpers = list(re.finditer(
+        r'\bstatic\s+DeclaredRole\s+declared\s*\(\s*String\s+(\w+)\s*,\s*String\s+(\w+)\s*,\s*String\s+(\w+)\s*,'
+        r'\s*AccessScopeKind\s+(\w+)\s*,\s*boolean\s+(\w+)\s*,\s*String\s*\.\.\.\s*(\w+)\s*\)\s*\{([^{}]*)\}', clean))
+    if len(helpers) != 1 or len(re.findall(r'\bDeclaredRole\s+declared\s*\(', clean)) != 1:
+        raise ValueError('SystemRoleDeclaration.declared 结构不符')
+    role_id, code, name, scope, administrative, grants, body = helpers[0].groups()
+    expected = (rf'\s*return\s+new\s+DeclaredRole\s*\(\s*new\s+RoleId\s*\(\s*UUID\.fromString\s*\(\s*{role_id}\s*\)\s*\)\s*,'
+                rf'\s*new\s+RoleCode\s*\(\s*{code}\s*\)\s*,\s*{administrative}\s*,\s*FIRST_REVISION\s*,'
+                rf'\s*new\s+RoleDefinition\s*\(\s*{name}\s*,\s*RoleStatus\.(\w+)\s*,\s*{scope}\s*,'
+                rf'\s*Set\.of\s*\(\s*{grants}\s*\)\s*\)\s*\)\s*;\s*')
+    match = re.fullmatch(expected, body)
+    if not match:
+        raise ValueError('SystemRoleDeclaration.declared 未按参数构造 DeclaredRole')
+    return match[1]
+
+
+def system_roles(text, perms, path=SYSTEM_ROLE_DECLARATION):
+    """从 SystemRoleDeclaration.CURRENT 抽系统角色；kind 由声明类本身决定（启动对账一律写 RoleKind.SYSTEM）。"""
+    clean = uncomment(text)
+    codes = {row['name']: row['code'] for row in perms}
+    status = declaration_helper(clean)
+    current = list(re.finditer(r'\bstatic\s+final\s+SystemRoleDeclaration\s+CURRENT\s*=\s*'
+                               r'new\s+SystemRoleDeclaration\s*\(\s*List\.of\s*\(', clean))
+    if len(current) != 1 or len(re.findall(r'\bCURRENT\s*=', clean)) != 1:
+        raise ValueError('SystemRoleDeclaration.CURRENT 结构不符')
+    items, end = arguments(clean, current[0].end())
+    if not re.match(r'\s*\)\s*;', clean[end:]):
+        raise ValueError('SystemRoleDeclaration.CURRENT 结构不符')
+    roles, ids = {}, set()
+    for offset, item in items:
+        call = re.match(r'\s*declared\s*\(', item)
+        if not call:
+            raise ValueError('CURRENT 只能列 declared(...) 调用')
+        args, stop = arguments(clean, offset + call.end())
+        if clean[stop:offset + len(item)].strip() or len(args) < 5:
+            raise ValueError('declared(...) 参数结构不符')
+        role_id = string_literal(args[0][1], 'role_id')
+        try:
+            uuid.UUID(role_id)
+        except ValueError:
+            raise ValueError('role_id 应为 UUID') from None
+        code, name = string_literal(args[1][1], 'code'), string_literal(args[2][1], 'name')
+        scope = re.fullmatch(r'\s*AccessScopeKind\.(\w+)\s*', args[3][1])
+        administrative = re.fullmatch(r'\s*(true|false)\s*', args[4][1])
+        if not scope or not administrative:
+            raise ValueError('declared(...) 范围或管理员标记须为字面常量')
+        if role_id.lower() in ids or code.lower() in {key.lower() for key in roles}:
+            raise ValueError('系统角色重复')
+        ids.add(role_id.lower())
+        sources = {}
+        for arg_offset, raw in args[5:]:
+            constant = re.fullmatch(r'\s*(?:Permission\.)?Codes\.(\w+)\s*', raw)
+            if constant:
+                if constant[1] not in codes:
+                    raise ValueError(f'权限常量缺失：Codes.{constant[1]}')
+                grant = codes[constant[1]]
+            else:
+                grant = string_literal(raw, 'permission_code')
+                if not re.fullmatch(CODE, grant):
+                    raise ValueError('权限码结构不符')
+            if grant in sources:
+                raise ValueError(f'{code} 权限码重复（Set.of 不容重复）：{grant}')
+            sources[grant] = [source(path, text, arg_offset + len(raw) - len(raw.lstrip()))]
+        roles[code] = {'code': code, 'name': name, 'kind': 'SYSTEM', 'status': status, 'access_scope': scope[1],
+                       'is_administrative': administrative[1] == 'true', 'permission_codes': sorted(sources),
+                       'source': 'code', 'source_location': source(path, text, offset + len(item) - len(item.lstrip())),
+                       'permission_sources': sources}
+    if not roles:
+        raise ValueError('缺系统角色声明')
     return list(roles.values())
 
 
@@ -306,15 +337,17 @@ def dump(data):
 
 def generate(root=ROOT, check=False):
     perms = permissions((root / PERMISSION).read_text(encoding='utf-8'))
-    roles = system_roles(migration_files(root, 'platform_identity'))
+    roles = system_roles((root / SYSTEM_ROLE_DECLARATION).read_text(encoding='utf-8'), perms)
     roles.append(administrator_mode((root / ADMINISTRATOR_MODE).read_text(encoding='utf-8'), perms))
     raw = raw_roles(root)
     units = org_units(migration_files(root, 'organization_workforce'))
     unknown, unheld = discrepancies(perms, roles)
     gaps = ['# 组织与角色抽取缺口', '', '由 panorama/scan_org_roles.py 生成，勿手改。', '',
-            f'## 种子有、枚举无（{len(unknown)}）', '', *[f'- {code}' for code in unknown], '',
+            f'## 声明有、枚举无（{len(unknown)}）', '', *[f'- {code}' for code in unknown], '',
             f'## 枚举有、无系统角色持有（{len(unheld)}）', '', *[f'- {code}' for code in unheld], '',
-            '按迁移种子与 AdministratorMode 代码定义统计，运行时由管理员配置的自定义角色不在此列。',
+            '按 SystemRoleDeclaration 与 AdministratorMode 代码定义统计，运行时由管理员配置的自定义角色不在此列。',
+            '系统角色的 kind 不在声明参数里：声明类即系统角色，启动对账一律写 RoleKind.SYSTEM，抽取据此填 SYSTEM；'
+            'status 取 declared(...) 写入的 RoleStatus 常量。',
             '三处角色原样并列，不合并、不裁定；命令引用按每条 entries 去重，A / R 分列，any 为两者并集。',
             '组织类别含相关表的状态枚举；未具名 CHECK 的 constraint 为 null，不推断数据库自动命名。', '']
     outputs = {'permissions.yaml': dump({'meta': {'permissions': len(perms), 'system_roles': len(roles)},
@@ -329,7 +362,7 @@ def generate(root=ROOT, check=False):
         (root / OUTPUT).mkdir(parents=True, exist_ok=True)
         for name in different:
             (root / OUTPUT / name).write_bytes(outputs[name].encode('utf-8'))
-    print(f'权限码 {len(perms)}；系统角色 {len(roles)}；三处角色 {raw["meta"]["counts"]}；组织类别 {len(units)}；种子多出 {len(unknown)}；无角色持有 {len(unheld)}')
+    print(f'权限码 {len(perms)}；系统角色 {len(roles)}；三处角色 {raw["meta"]["counts"]}；组织类别 {len(units)}；声明多出 {len(unknown)}；无角色持有 {len(unheld)}')
 
 
 def main(argv=None):
