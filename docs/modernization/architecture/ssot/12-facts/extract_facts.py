@@ -113,8 +113,8 @@ def by_event(root):
                            'description': message.get('description'), 'publisher': publisher,
                            'x-event': extension, 'missing_fields': [key for key in ('description',) if key not in message],
                            'source': location(path, origins[name])})
-    if len(result) != 59:
-        raise ValueError(f'事件条数应为 59，实际 {len(result)}')
+    if len(result) != 67:
+        raise ValueError(f'事件条数应为 67，实际 {len(result)}')
     return result
 
 
