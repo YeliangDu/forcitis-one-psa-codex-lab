@@ -69,12 +69,13 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     # session profiles: read by the tool library's start_sheet (outside the repository, O23a)
     "docs/modernization/sessions/",
     "docs/modernization/adr/new_adr.py",  # tool self-tests run by scripts/ci/light.sh
-    # #742: checks light.sh runs directly since build_all.py is gone (term rules, BPMN catalogue, proposals/ reads, built.yaml, decision fragments)
+    # #742: checks light.sh runs directly since build_all.py is gone (term rules, BPMN catalogue, proposals/ reads, built.yaml, decision and legacy-read fragments)
     "docs/modernization/architecture/panorama/scan_aggregates.py",
     "docs/modernization/architecture/panorama/test_scan_aggregates.py",
     "docs/modernization/architecture/proposal_reads.py",
     "docs/modernization/architecture/ssot/09-processes/build_catalog.py",
     "docs/modernization/build_decisions.py",
+    "docs/modernization/phase1a/infra/new_legacy_read.py",
     # deleted by #742; scripts/merge/mq.py still names it: its conflict auto-resolve finds no build_all.py and settles nothing (that code goes in #742's cleanup PR)
     "docs/modernization/build_all.py",
 )
