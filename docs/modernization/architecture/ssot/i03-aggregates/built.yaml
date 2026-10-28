@@ -259,6 +259,7 @@ aggregates:
   - code
   - registry
   tables:
+  - platform_identity.authorization_request_custom_org_units
   - platform_identity.authorization_requests
   commands:
   - ApplyConfirmedAuthorization
@@ -336,6 +337,7 @@ aggregates:
   - code
   - registry
   tables:
+  - platform_identity.role_version_custom_org_units
   - platform_identity.role_versions
   - platform_identity.roles
   commands:
@@ -346,6 +348,7 @@ aggregates:
   - GrantRoleByOperations
   - ReplaceAccountRoles
   - RevokeRoleByOperations
+  - RoleScopeRefusal
   - RoleView
   - UpdateRole
   events:
