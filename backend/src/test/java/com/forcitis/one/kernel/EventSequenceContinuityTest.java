@@ -23,6 +23,7 @@ import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.api.RoleVersionId;
 import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
@@ -96,7 +97,11 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("Role: events are numbered 1..n")
     void role() {
-        checkMany(() -> Role.newCustom(new RoleId(TestIds.uuid(7)), new RoleCode("analyst"), "Analyst", Set.of()), List.of(
+        checkMany(() -> {
+            Role role = Role.newCustom(new RoleId(TestIds.uuid(7)), new RoleCode("analyst"), "Analyst", Set.of());
+            role.versionWritten(new RoleVersionId(TestIds.uuid(70)));
+            return role;
+        }, List.of(
                 Role::enable, Role::disable, r -> r.declareEnabled(true), r -> r.revise("Renamed", AccessScopeKind.SELF, Set.of())));
     }
 

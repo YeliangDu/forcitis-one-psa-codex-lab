@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import java.util.UUID;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.platform.identity.TestRoles;
 import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import jakarta.servlet.http.Cookie;
@@ -58,10 +59,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
     }
 
     private void customRole(String code, String scope) {
-        jdbc.sql("insert into platform_identity.roles (role_id, code, name, kind, status, access_scope, is_administrative) values (uuidv7(), :code, :code, 'CUSTOM', 'ENABLED', :scope, false)")
-                .param("code", code).param("scope", scope).update();
-        jdbc.sql("insert into platform_identity.role_permissions (role_permission_id, role_id, permission_code) select uuidv7(), role_id, 'organization.workforce:org-unit:read' from platform_identity.roles where code = :code")
-                .param("code", code).update();
+        TestRoles.insertCustom(jdbc, code, code, "ENABLED", scope, "organization.workforce:org-unit:read");
     }
 
     private String sessionWithRole(long user, String role) throws Exception {

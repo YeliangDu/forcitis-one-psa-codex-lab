@@ -36,8 +36,8 @@ class ApplyConfirmedAuthorization {
                 "platform.identity.authorization")) {
             AdminOutcome<?> outcome = switch (request.kind()) {
                 case REPLACE_ROLES -> replaceRoles.applyConfirmed(request.subjectUser(), request.roleCodes());
-                case CREATE_ROLE -> createRole.applyConfirmed(toCommand(request));
-                case UPDATE_ROLE -> updateRole.applyConfirmed(request.roleId(), toCommand(request));
+                case CREATE_ROLE -> createRole.applyConfirmed(toCommand(request), request.requestedBy(), request.requestId());
+                case UPDATE_ROLE -> updateRole.applyConfirmed(request.roleId(), toCommand(request), request.requestedBy(), request.requestId());
             };
             if (outcome instanceof AdminOutcome.Refused<?> refused) {
                 log.error("ALERT platform.identity the confirmed authorization request {} could not be applied: {}", request.requestId().value(),

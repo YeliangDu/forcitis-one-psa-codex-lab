@@ -18,8 +18,15 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Deleting a role closes its last version and keeps the row, so the code is never used again (ADR-0034 decision 1 item 5, 0034-Q3); the
+ * role is then neither listed nor found. A role an account still holds is not deleted.
+ */
 @Service
 public class DeleteRole {
+
+    /** The fixed closure reason (ADR-0034-IMPL ruling A-5, card C4: a fixed phrase, the deleting account is in closed_by). */
+    static final String REASON = "role management: role deleted";
 
     private final RoleRepository roles;
     private final AccessCache cache;
@@ -55,7 +62,7 @@ public class DeleteRole {
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }
-        roles.delete(existing.get());
+        roles.delete(existing.get(), caller, REASON);
         events.publish(existing.get());
         cache.evictAll();
         return new AdminOutcome.Done<>(null);

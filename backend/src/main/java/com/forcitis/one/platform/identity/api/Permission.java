@@ -33,13 +33,35 @@ public enum Permission {
     ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE(Codes.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE);
 
     private final String code;
+    private final boolean deprecated;
 
     Permission(String code) {
+        this(code, false);
+    }
+
+    /** A code is never removed from the catalogue (ADR-0034 decision 1 item 3): one that is no longer granted is kept and marked deprecated. */
+    Permission(String code, boolean deprecated) {
         this.code = code;
+        this.deprecated = deprecated;
     }
 
     public String code() {
         return code;
+    }
+
+    /** Kept so that old role versions can still be read, but no longer granted: writing it is refused, reading it ignores it with an alert. */
+    public boolean deprecated() {
+        return deprecated;
+    }
+
+    /** True when the code is in the catalogue and not deprecated: the only codes a role version may be written with or may grant. */
+    public static boolean isLive(String code) {
+        for (Permission permission : values()) {
+            if (permission.code.equals(code)) {
+                return !permission.deprecated;
+            }
+        }
+        return false;
     }
 
     public interface Codes {

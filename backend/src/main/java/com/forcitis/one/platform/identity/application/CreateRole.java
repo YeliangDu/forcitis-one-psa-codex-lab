@@ -1,12 +1,15 @@
 package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.domain.Role;
+import com.forcitis.one.platform.identity.domain.RoleChange;
 import com.forcitis.one.platform.identity.domain.RoleDraft;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.RoleRuleException;
@@ -18,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 /** A role that carries a sensitive permission is created only after a second person confirmed it. */
 @Service
 public class CreateRole {
+
+    /** The fixed reason of the first version (ADR-0034-IMPL ruling A-5: the application writes it, the request body has none). */
+    static final String REASON = "role management: role created";
 
     private final RoleRepository roles;
     private final PrivilegeCeiling ceiling;
@@ -51,16 +57,17 @@ public class CreateRole {
             if (!ceiling.mayGrant(role.permissionCodes(), false)) {
                 return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
             }
-            return store(role);
+            return store(role, RoleChange.manual(currentUser.userId(), REASON, null));
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }
     }
 
+    /** The request's author made the change; the version names the request a second person confirmed. */
     @Transactional
-    AdminOutcome<RoleView> applyConfirmed(SaveRoleCommand command) {
+    AdminOutcome<RoleView> applyConfirmed(SaveRoleCommand command, UserId requestedBy, AuthorizationRequestId requestId) {
         try {
-            return store(build(command));
+            return store(build(command), RoleChange.manual(requestedBy, REASON, requestId));
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }
@@ -78,8 +85,8 @@ public class CreateRole {
         return role;
     }
 
-    private AdminOutcome<RoleView> store(Role role) {
-        Role stored = roles.insert(role);
+    private AdminOutcome<RoleView> store(Role role, RoleChange change) {
+        Role stored = roles.insert(role, change);
         events.publish(stored);
         cache.evictAll();
         return new AdminOutcome.Done<>(RoleView.of(stored));
