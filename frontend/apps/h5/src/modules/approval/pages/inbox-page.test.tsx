@@ -14,8 +14,8 @@ const INBOX = {
   noticeCount: 0,
   totalCount: 2,
   items: [
-    { category: 'TODO', overdue: false, taskId: 'n-1', processKey: 'cost_timesheet_approval', documentId: 'TS202610140001', title: 'cost_timesheet_approval 1', nodeName: '部门负责人审核', createdAt: '2026-10-14T01:00:00Z', claimed: true },
-    { category: 'TODO', overdue: false, taskId: 'n 2', processKey: 'cost_timesheet_approval', documentId: 'TS202610140002', title: 'cost_timesheet_approval 2', nodeName: '部门负责人审核', createdAt: '2026-10-14T02:00:00Z', claimed: false },
+    { category: 'TODO', overdue: false, taskId: 'n-1', processKey: 'cost_timesheet_approval', processName: '工时单审批', documentId: 'TS202610140001', title: 'cost_timesheet_approval 1', nodeName: '部门负责人审核', createdAt: '2026-10-14T01:00:00Z', claimed: true },
+    { category: 'TODO', overdue: false, taskId: 'n 2', processKey: 'cost_timesheet_approval', processName: '工时单审批', documentId: 'TS202610140002', title: 'cost_timesheet_approval 2', nodeName: '部门负责人审核', createdAt: '2026-10-14T02:00:00Z', claimed: false },
   ],
 };
 

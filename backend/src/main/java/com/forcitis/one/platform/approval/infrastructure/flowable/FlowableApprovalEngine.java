@@ -11,6 +11,7 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.ProcessName;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.AssignmentRule;
 import com.forcitis.one.platform.approval.domain.InstanceStart;
@@ -118,16 +119,11 @@ class FlowableApprovalEngine implements ApprovalEngine {
 
     @Override
     public DocumentTypeCode documentTypeOf(ProcessKey processKey) {
-        ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(processKey.key())
-                .latestVersion().singleResult();
-        if (definition == null) {
-            throw new IllegalStateException("No deployed process definition " + processKey.key());
-        }
-        return ProcessDocumentType.read(processKey, repository.getBpmnModel(definition.getId()).getMainProcess());
+        return ProcessDocumentType.read(processKey, latestModel(processKey).getMainProcess());
     }
 
     @Override
-    public String processNameOf(ProcessKey processKey) {
+    public ProcessName processNameOf(ProcessKey processKey) {
         return ProcessDefinitionDeclarations.nameOf(processKey, latestModel(processKey).getMainProcess());
     }
 
@@ -136,11 +132,12 @@ class FlowableApprovalEngine implements ApprovalEngine {
         return ProcessDefinitionDeclarations.routingFlagRequired(processKey, latestModel(processKey).getMainProcess());
     }
 
+    /** Every read of a process by its key goes through here: the highest deployed version wins, and a key nobody deployed is refused with a code. */
     private BpmnModel latestModel(ProcessKey processKey) {
         ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(processKey.key())
                 .latestVersion().singleResult();
         if (definition == null) {
-            throw new IllegalStateException("No deployed process definition " + processKey.key());
+            throw ApprovalError.PLATFORM_APPROVAL_PROCESS_NOT_DEPLOYED.refusal("No deployed process definition " + processKey.key());
         }
         return repository.getBpmnModel(definition.getId());
     }
@@ -163,12 +160,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
     }
 
     private List<UserTask> latestNodes(ProcessKey processKey) {
-        ProcessDefinition definition = repository.createProcessDefinitionQuery().processDefinitionKey(processKey.key())
-                .latestVersion().singleResult();
-        if (definition == null) {
-            throw new IllegalStateException("No deployed process definition " + processKey.key());
-        }
-        return repository.getBpmnModel(definition.getId()).getMainProcess().findFlowElementsOfType(UserTask.class);
+        return latestModel(processKey).getMainProcess().findFlowElementsOfType(UserTask.class);
     }
 
     private Map<String, Object> routes(InstanceStart start) {

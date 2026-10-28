@@ -1,22 +1,24 @@
 import type { Schema } from '@forcitis/api';
 
-export type ProcessKey = string;
 export type DocumentType = string;
 export type TaskRecordAction = Schema<'TaskRecordAction'>;
 
+const UNKNOWN_TEXT = '—';
+
 /** A value the table does not know (a newer server) shows as a dash; the client reports it once (G-1). */
 export function labelOf(labels: Readonly<Record<string, string>>, value: string): string {
-  return labels[value] ?? '—';
+  return labels[value] ?? UNKNOWN_TEXT;
+}
+
+/** The name of a process comes with the response (it is data of the process definition, REG-4); a response without one shows as a dash. */
+export function processNameText(processName: string | undefined): string {
+  return processName ?? UNKNOWN_TEXT;
 }
 
 /** The tone of a value the table does not know is neutral. */
 export function toneOf<Tone extends string>(tones: Readonly<Record<string, Tone>>, value: string): Tone | 'neutral' {
   return tones[value] ?? 'neutral';
 }
-
-export const PROCESS_LABELS: Readonly<Record<ProcessKey, string>> = {
-  cost_timesheet_approval: '工时单审批',
-};
 
 export const DOCUMENT_TYPE_LABELS: Readonly<Record<string, string>> = {
   JOURNAL_VOUCHER: '会计凭证',

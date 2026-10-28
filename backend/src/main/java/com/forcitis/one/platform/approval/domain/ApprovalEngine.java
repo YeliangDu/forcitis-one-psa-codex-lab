@@ -5,6 +5,7 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.ProcessName;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -22,8 +23,12 @@ public interface ApprovalEngine {
     /** The document type the latest deployed definition of the process approves (its forcitis:documentType); a definition without one is a deployment fault. */
     DocumentTypeCode documentTypeOf(ProcessKey processKey);
 
-    /** The name a person reads for the process (its BPMN name); a definition without one is a deployment fault. */
-    String processNameOf(ProcessKey processKey);
+    /**
+     * The name a person reads for the process: the BPMN name of its latest deployed definition, so a renamed redeployment wins over the
+     * earlier ones. A definition without a name is a deployment fault; a key with no deployed definition is refused with
+     * PLATFORM_APPROVAL_PROCESS_NOT_DEPLOYED, as every other read of a definition here is.
+     */
+    ProcessName processNameOf(ProcessKey processKey);
 
     /** True when the branches are chosen by routing flags: a start with none would route nowhere and is refused (forcitis:routingFlagRequired). */
     boolean routingFlagRequiredOf(ProcessKey processKey);

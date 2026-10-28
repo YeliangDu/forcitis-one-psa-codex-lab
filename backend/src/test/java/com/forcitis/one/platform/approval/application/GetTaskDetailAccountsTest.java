@@ -17,6 +17,7 @@ import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
 import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.api.ProcessName;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalTaskQueries;
 import com.forcitis.one.platform.approval.domain.TaskRecord;
@@ -43,6 +44,7 @@ class GetTaskDetailAccountsTest {
 
     GetTaskDetailAccountsTest() {
         when(time.now()).thenReturn(NOW);
+        when(engine.processNameOf(TimesheetApprovalProcess.KEY)).thenReturn(new ProcessName("工时审批"));
     }
 
     private static TaskRecord record(ApprovalTaskStatus status) {

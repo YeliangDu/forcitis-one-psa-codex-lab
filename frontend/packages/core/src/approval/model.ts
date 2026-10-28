@@ -1,5 +1,5 @@
 import type { Schema } from '@forcitis/api';
-import { DOCUMENT_TYPE_LABELS, PROCESS_LABELS, labelOf } from './labels';
+import { DOCUMENT_TYPE_LABELS, labelOf, processNameText } from './labels';
 
 export type InboxItem = Schema<'InboxItemResponse'>;
 export type InboxResponse = Schema<'InboxResponse'>;
@@ -53,13 +53,14 @@ export function inboxRowId(item: InboxItem): string {
 
 export const UNRECOGNISED_TASK_TITLE = '（无法显示的审批）';
 
+/** The process is named by the server (processName), never looked up here by its key. */
 export function inboxTitle(item: InboxItem): string {
   if (item.processKey === undefined || item.documentId === undefined) return UNRECOGNISED_TASK_TITLE;
-  return `${labelOf(PROCESS_LABELS, item.processKey ?? '')} ${item.documentId}`;
+  return `${processNameText(item.processName)} ${item.documentId}`;
 }
 
-export function recordTitle(record: Pick<TaskRecord, 'processKey' | 'documentId'>): string {
-  return `${labelOf(PROCESS_LABELS, record.processKey ?? '')} ${record.documentId}`;
+export function recordTitle(record: Pick<TaskRecord, 'processName' | 'documentId'>): string {
+  return `${processNameText(record.processName)} ${record.documentId}`;
 }
 
 /** What marks an open task besides its title; overdue wins over claimed. */

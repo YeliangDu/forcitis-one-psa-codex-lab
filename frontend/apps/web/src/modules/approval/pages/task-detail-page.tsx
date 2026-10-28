@@ -1,5 +1,4 @@
 import {
-  PROCESS_LABELS,
   TASK_RECORD_ACTION_LABELS,
   TASK_RECORD_ACTION_TONES,
   type TaskHistoryEntry,
@@ -10,6 +9,7 @@ import {
   handlerText,
   labelOf,
   opinionText,
+  processNameText,
   toneOf,
   useTask,
   useTaskActions,
@@ -46,7 +46,7 @@ export function TaskDetailPage() {
       {failed === undefined ? null : <Notice tone="error" title="操作失败">{describeFailure(failed.error)}</Notice>}
       <DescriptionList
         items={[
-          { label: '审批流程', value: labelOf(PROCESS_LABELS, detail.processKey) },
+          { label: '审批流程', value: processNameText(detail.processName) },
           { label: '单据', value: documentText(detail) },
           { label: '当前节点', value: detail.nodeName ?? '—' },
           { label: '发起人', value: detail.initiatorName },
