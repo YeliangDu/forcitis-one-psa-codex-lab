@@ -330,6 +330,21 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_approval_process_not_deployed
+  zh: 审批流程未部署
+  en: PlatformApprovalProcessNotDeployed
+  snake: platform_approval_process_not_deployed
+  kind: error_code
+  bc: platform.approval
+  scope: domain
+  definition: 按流程键读取流程定义时，该键没有任何已部署的定义（部署缺陷，503）；与「该单据类型没有审批流程」（NO_PROCESS，422）不同
+  standard_ref:
+  - ADR-0066 决定 4
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1023-NX5-01（卡 713）调度裁定新增专用码，不复用 NO_PROCESS
 - id: error__platform_approval_escalation_target_missing
   zh: 升级对象缺失
   en: PlatformApprovalEscalationTargetMissing
