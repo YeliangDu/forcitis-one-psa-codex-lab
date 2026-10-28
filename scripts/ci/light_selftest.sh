@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# light.sh「按改动触发」一节的自测（GOV-1023-FV2 gap-2）：逐路径核对 light_triggers.sh 的六个模式与检查表，并在临时仓库里核对 list_changed 与字节码清理（#693）。
+# light.sh「按改动触发」一节的自测（GOV-1023-FV2 gap-2）：逐路径核对 light_triggers.sh 的模式（#742 起只剩 shell 语法一项）与检查表，并在临时仓库里核对 list_changed 与字节码清理（#693）。
 # 用法：scripts/ci/light_selftest.sh   light.sh 每次都跑它；通过时末行 light_selftest: ok，否则逐条说哪里不对并退出 1。
 # 示例路径用 x/ 代替文档根目录前缀：写全了会被 relevant_change 当成读文档（模式本身不锚定前缀）。
 set -uo pipefail
@@ -24,26 +24,13 @@ expect() {  # expect <路径> <应触发的模式名…>：每个模式逐个核
   done
 }
 base=x
-expect x/rules/decide/build_decision_page.py t_decision_gen
-expect x/rules/decide/page-template.html t_decision_gen
-expect x/architecture/decision-page/D-01.json t_decision_pages
-expect x/rules/decide/sheets/q.json t_decision_pages
-expect x/rules/decide/check_pages.py t_decision_gen t_decision_pages
-expect x/rules/decide/answered_pages.txt t_decision_pages
-expect x/architecture/decision-page/check_pages.py
-expect x/Architecture/decision-page/D-01.json t_decision_pages
-expect x/rules/decide/Sheets/q.JSON t_decision_pages
-expect x/architecture/decision-page/old/D-01.json
-expect x/architecture/proposals/j_checks.py t_j_checks
-expect x/architecture/proposals/vs_links_gen.py t_j_checks
-expect backend/src/test/java/com/forcitis/one/a/FooTest.java t_shared_mock t_weak_registration
-expect backend/src/main/java/com/forcitis/one/a/Foo.java t_weak_registration
-expect scripts/ci/shared_mock_verify_scan.py t_shared_mock
-expect scripts/ci/weak_registration_scan.py t_weak_registration
 expect scripts/gates/install.sh t_shell
+expect scripts/ops/Runner_Watch.SH t_shell
+expect backend/src/test/java/com/forcitis/one/a/FooTest.java
 expect x/notes.txt
+expect x/install.sh.bak
 : >"$changed"
-! touches "$t_weak_registration" || no "有基线而没有改动时不该触发"
+! touches "$t_shell" || no "有基线而没有改动时不该触发"
 base=""
 for key in $TRIGGER_KEYS; do
   touches "${!key}" || no "没有基线时 $key 应触发"

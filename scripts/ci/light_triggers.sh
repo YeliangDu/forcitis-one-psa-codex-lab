@@ -3,23 +3,11 @@
 # 路径模式照搬原 precheck.sh 的 touches 模式（ERE，对仓库相对路径）；改动＝相对基线的提交、未提交与未跟踪文件；没有基线（$base 为空）时全算改到。
 # 读入方须先设 base（基线，可为空）与 changed（改动列表文件，一行一个路径）。Bash 3.2 可用。
 
-t_decision_gen='rules/decide/(build_decision_page\.py|page-template\.html|check_pages\.py)$'
-t_decision_pages='architecture/decision-page/[^/]+\.json$|rules/decide/sheets/[^/]+\.json$|rules/decide/(check_pages\.py|answered_pages\.txt)$'
-t_j_checks='architecture/proposals/(j_checks|aggregates_dep_check|vs_links_gen)\.py$'
-t_shared_mock='src/test/.*\.java$|scripts/ci/shared_mock_verify_scan\.py$'
-t_weak_registration='src/(test|main)/.*\.java$|scripts/ci/weak_registration_scan\.py$'
 t_shell='\.sh$'
-TRIGGER_KEYS='t_decision_gen t_decision_pages t_j_checks t_shared_mock t_weak_registration t_shell'
+TRIGGER_KEYS='t_shell'
 
-# 检查表：模式名|名字|命令（命令按空格切分，路径里不能有空格）。check_pages --changed 要接基线，在 light.sh 里单列。
-TRIGGERED_CHECKS='t_decision_gen|decision page generator (self-test)|python3 docs/modernization/rules/decide/build_decision_page.py --self-test
-t_decision_pages|decision pages: question rules (self-test)|python3 docs/modernization/rules/decide/check_pages.py --self-test
-t_j_checks|j_checks (self-test)|python3 docs/modernization/architecture/proposals/j_checks.py --self-test
-t_shared_mock|shared-mock verify scan (self-test)|python3 scripts/ci/shared_mock_verify_scan.py --self-test
-t_shared_mock|shared-mock verify scan (report only)|python3 scripts/ci/shared_mock_verify_scan.py
-t_weak_registration|weak-registration scan (self-test)|python3 scripts/ci/weak_registration_scan.py --self-test
-t_weak_registration|weak-registration scan (report only)|python3 scripts/ci/weak_registration_scan.py
-t_shell|shell syntax (bash -n)|shell_syntax'
+# 检查表：模式名|名字|命令（命令按空格切分，路径里不能有空格）。#742 删了确认页、j_checks 与两个只报不拦的扫描，只剩 shell 语法一项。
+TRIGGERED_CHECKS='t_shell|shell syntax (bash -n)|shell_syntax'
 
 touches() {  # touches <模式>：没有基线时一律算改到；否则看 $changed 里有没有匹配的路径（大小写不敏感：macOS 上大小写改名的路径也触发，同 check_pages.is_page_path）
   [ -z "$base" ] || grep -Eqi "$1" "$changed"

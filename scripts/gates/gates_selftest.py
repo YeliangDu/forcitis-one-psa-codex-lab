@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """门的自测，合一（O8，D25；定稿 1.10「自测 1 个文件」）。`gates_selftest.py [段…]` 跑指定的段，不带参数跑全部；各门的 `--self-test` 只跑自己那一段。
 - prod_write_gate：命令原文与特征表字面匹配（用户 intent 2026-10-28-202019：命中即拒、不分大小写、无关命令不误拦、拆开或编码的按设计放行、无表失败关闭）、版式。
-- pre_tool_dispatch：预筛不藏拒绝、失败关闭、时限。main_checkout_gate（含 git_ceiling_env.sh）与 commit_msg_gate：在临时仓库与 worktree 里端到端提交。
+- pre_tool_dispatch：预筛不藏拒绝、失败关闭、时限。main_checkout_gate（含 git_ceiling_env.sh）：在临时仓库与 worktree 里端到端提交。pre_commit：.pre-commit-config.yaml 只挂两项、会话改名。
 - install：install.sh 与 .claude/settings.json 挂载，全部在临时目录里做，HOME 指向临时目录，不碰真实安装目录（安装、切换、并发、自检不过、只读、篡改核对与修复、挂载失败关闭）。
 不写任何真实生产样本的字面值，拆段拼接也不行（O2 复审 M3）：真实特征运行时按 target id 从 prod_targets.json 取（install 段只经 install.sh 自检与探针按位置取用）；其余用虚构样本（192.0.2.x 是文档专用地址）。"""
 import ast
@@ -295,92 +295,29 @@ def main_checkout_gate_test():
     assert not os.path.exists(os.path.join(ROOT, "scripts", "hooks", "main_checkout_gate.py")), "the old gate is gone"
     print("main_checkout_gate self-test: ok")
 
-MSG_GATE = os.path.join(HERE, "commit_msg_gate.py")  # ── commit_msg_gate ──
-
-def commit(cwd, message, name="a.py", **extra):
-    """Commit one changed file with the hook installed; returns (exit code, stderr, final message)."""
-    with open(os.path.join(cwd, name), "a", encoding="utf-8") as f:
-        f.write("x\n")
-    git(cwd, "add", name)
-    r = git(cwd, "commit", "-q", "-m", message, ok=False, **extra)
-    return r.returncode, r.stderr, git(cwd, "log", "-1", "--format=%B").stdout
-
-def renamed_test():
-    """卡 #736 第 8 项（用户 intent 2026-10-28-171648）：one-coordinator→one-leader、one-1a-par→one-dev-par。新名在 sessions.config、有会话文件、提交说明门认得；
+def renamed_test():  # ── pre_commit ──
+    """卡 #736 第 8 项（用户 intent 2026-10-28-171648）：one-coordinator→one-leader、one-1a-par→one-dev-par。新名在 sessions.config、有会话文件；
     旧名只留在 aliases（指向新名），不再是会话；合入队列的分支表把新旧分支前缀都归到新名。"""
-    sys.path.insert(0, HERE)
-    import commit_msg_gate as cm
     sessions, root = policy("sessions"), Path(ROOT)
     for new, old, role in (("one-leader", "one-coordinator", "lead"), ("one-dev-par", "one-1a-par", "dev")):
         assert sessions["config"][new]["role"] == role and new in sessions["config_sources"] and sessions["aliases"][old] == new, new
         assert old not in sessions["config"] and old not in sessions["config_sources"] and not (root / f"docs/modernization/sessions/{old}.md").exists(), old
-        assert (root / f"docs/modernization/sessions/{new}.md").is_file() and new in {f[:-3] for f in os.listdir(root / "docs/modernization/sessions")}, new
-        with tempfile.TemporaryDirectory() as tmp:  # the commit-msg gate reads names from the sessions directory and the marker
-            for rel in (f"docs/modernization/sessions/{new}.md", ".claude/session-name"):
-                put(os.path.join(tmp, rel), new + "\n", 0o644)
-            assert cm.session_name(Path(tmp), "claude/x") == new and cm.session_name(Path(tmp), f"claude/{new}-x") == new, new
+        assert (root / f"docs/modernization/sessions/{new}.md").is_file(), new
     assert all(v in sessions["config"] for v in sessions["aliases"].values()), "every alias points at a session"
     prefixes = json.loads(Path(ROOT, "scripts/merge/session_map.json").read_text(encoding="utf-8"))["prefixes"]
     assert set(prefixes.values()) <= set(sessions["config"]), ("gapscan owners are sessions", set(prefixes.values()) - set(sessions["config"]))
     assert prefixes["claude/one-coordinator"] == prefixes["claude/one-leader"] == "one-leader" and prefixes["claude/one-1a-par"] == prefixes["claude/one-dev-par"] == "one-dev-par"
 
-def commit_msg_gate_test():
-    with tempfile.TemporaryDirectory() as raw:
-        tmp = os.path.realpath(raw)
-        repo = os.path.join(tmp, "repo")
-        hooks = os.path.join(tmp, "hooks")
-        put(os.path.join(hooks, "commit-msg"), f'#!/bin/sh\nexec {PYTHON} -I {MSG_GATE} "$1"\n')
-        git(tmp, "init", "-q", "-b", "main", repo)
-        git(repo, "config", "core.hooksPath", hooks)
-        for rel, text in (*((f"docs/modernization/sessions/{name}.md", "x\n") for name in ("one-ops", "one-1a", "one-1a-next-3", "_retired")), ("docs/modernization/roles/one-platform.md", "x\n"), (".claude/session-name", "one-ops\n")):
-            put(os.path.join(repo, rel), text)
-        git(repo, "add", "-A")
-        git(repo, "commit", "-q", "-m", "init", "--no-verify")
-        for title, kept, why in (("feat: 改脚本，正文没有任务号也没有 PR 号", lambda msg: msg.rstrip().endswith("Session: one-ops"), "no task id or PR is accepted and gets the trailer: "),
-                                 ("feat: x\n\n为什么：y\n\nCo-Authored-By: A <a@b>", lambda msg: "Co-Authored-By: A <a@b>\nSession: one-ops" in msg and msg.count("Session:") == 1, ""),
-                                 ("feat: x\n\nSession: one-1a", lambda msg: msg.count("Session:") == 1 and "Session: one-1a" in msg, "an existing Session is kept: "),
-                                 ("fixup! feat: x", lambda msg: "Session:" not in msg, "fixup titles are left alone: "), ("#593 修复钩子", lambda msg: "Session: one-ops" in msg, "a title starting with #<number> is not a comment: ")):
-            code, err, msg = commit(repo, title)
-            assert code == 0 and kept(msg), why + err + msg
-        guard = [p.rstrip("/") + ("/x.py" if p.endswith("/") else "") for p in policy("review")["final_paths"][:3]]  # 卡 #736：守护文件不须单独提交
-        for rel in guard + ["README.md"]:
-            put(os.path.join(repo, rel), "x\n", 0o644)
-        git(repo, "add", "-A")
-        r = git(repo, "commit", "-q", "-m", "feat: 守护路径与普通文件同一提交", ok=False)
-        files = git(repo, "show", "--name-only", "--format=", "HEAD").stdout.split()
-        assert r.returncode == 0 and set(guard + ["README.md"]) <= set(files) and "Session: one-ops" in git(repo, "log", "-1", "--format=%B").stdout, ("a guard file and an ordinary one in one commit", r.stderr, files)
-        put(os.path.join(repo, ".claude/session-name"), "one-nope\n")
-        code, err, msg = commit(repo, "feat: 标记不是已知会话")
-        assert code == 0 and "Session:" not in msg and "未识别" in err, "an unknown marker warns, never guesses: " + err + msg
-        os.remove(os.path.join(repo, ".claude/session-name"))
-        git(repo, "add", "-A")
-        code, err, msg = commit(repo, "feat: 目录名 repo 认不出")
-        assert code == 0 and "Session:" not in msg and "未识别" in err, err + msg
-        for folder, branch, title, name, session, why in (("one-1a-next-3-abc", "claude/zzz", "feat: 按工作区目录名认", "b.py", "one-1a-next-3", "longest known prefix of the worktree directory: "),
-                                                          ("plain", "claude/one-platform-r2", "feat: 按分支名认（roles 目录）", "c.py", "one-platform", "branch without claude/ prefix, names from roles/: "),
-                                                          ("one-1a-r9", "claude/one-ops-r9", "feat: 目录名与分支名认出不同会话", "f.py", "one-1a", "the directory wins over the branch, whatever the name lengths: ")):
-            git(repo, "worktree", "add", "-q", "-b", branch, os.path.join(tmp, folder))
-            code, err, msg = commit(os.path.join(tmp, folder), title, name=name)
-            assert code == 0 and msg.rstrip().endswith("Session: " + session), why + msg
-        git(repo, "checkout", "-q", "-b", "side")
-        commit(repo, "side", name="d.py")
-        git(repo, "checkout", "-q", "main")
-        commit(repo, "main", name="e.py")
-        put(os.path.join(repo, ".claude/session-name"), "one-ops\n")
-        git(repo, "merge", "-q", "--no-ff", "side", "-m", "合并 side（标题不以 Merge 开头）")
-        assert "Session:" not in git(repo, "log", "-1", "--format=%B").stdout, "a merge in progress is left alone"
-        broken = os.path.join(tmp, "notgit")
-        put(os.path.join(broken, "MSG"), "feat: x\n")
-        for args, word, why in (([os.path.join(broken, "MSG")], "出错", "an error warns and lets the commit through: "), ([], "用法", "")):
-            r = subprocess.run([PYTHON, "-I", MSG_GATE, *args], cwd=broken, capture_output=True, text=True, env=env())
-            assert r.returncode == 0 and word in r.stderr, why + r.stderr
+def pre_commit_test():
+    """.pre-commit-config.yaml 只挂 gitleaks 与主检出守护（卡 #736：提交时不按路径拆守护文件；#742：commit_msg_gate 的 Session 追加已删）。"""
     config = Path(ROOT, ".pre-commit-config.yaml").read_text(encoding="utf-8")
-    assert "entry: python3 -I scripts/gates/commit_msg_gate.py" in config, ".pre-commit-config.yaml points at the new path"
-    assert re.findall(r"- id: ([\w-]+)", config) == ["gitleaks", "main-checkout-gate", "commit-msg-gate"], "卡 #736：提交时没有按路径把守护文件拆开的检查"
+    assert re.findall(r"- id: ([\w-]+)", config) == ["gitleaks", "main-checkout-gate"], re.findall(r"- id: ([\w-]+)", config)
+    types = re.search(r"^default_install_hook_types: \[([^\]]*)\]", config, re.M)
+    assert types and [t.strip() for t in types.group(1).split(",")] == ["pre-commit", "pre-merge-commit"], "no commit-msg hook type is installed any more"
     renamed_test()
-    for gone in ("scripts/hooks/commit_msg_gate.py", "scripts/hooks/task_ids.py"):
+    for gone in ("scripts/gates/commit_msg_gate.py", "scripts/hooks/commit_msg_gate.py", "scripts/hooks/task_ids.py", "scripts/hooks/command_words.py"):
         assert not os.path.exists(os.path.join(ROOT, gone)), gone + " is deleted"
-    print("commit_msg_gate self-test: ok")
+    print("pre_commit self-test: ok")
 
 FAKE = "fake-prod-db.example.invalid"  # ── install ── fictitious production host, put on the temporary repository's origin/main table only
 ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh"]}  # the start sheet hangs on the tool library (O23a)
@@ -464,7 +401,7 @@ def settings_self_test():
     for name in [*commands, "scripts/gates/hooks_manifest.sh"]:
         mode = gitc(ROOT, "ls-files", "-s", "--", name).split()[:1]
         assert mode == ["100755"], (name, mode)
-    deny = settings.get("permissions", {}).get("deny", [])  # O21a: external model CLIs only through scripts/delegate.py (a subprocess, not the Bash tool)
+    deny = settings.get("permissions", {}).get("deny", [])  # O21a: external model CLIs are not run directly (no outsourcing entry any more, intent 2026-10-28-201509)
     assert deny == ["Bash(codex *)", "Bash(pi *)", "mcp__terminal__run_in_terminal"], ("permissions.deny 恰为 codex、pi 直接调用（O21a）与整个终端面板工具（#723）", deny)
     for plugin in ("kotlin-lsp", "claude-code-setup", "code-modernization"):
         assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
@@ -746,7 +683,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
     r = install("--switch", a)
     assert r.returncode == 0 and points_to() == a and mount(gate_cmd, bash("ls")).returncode == 0
 
-SECTIONS = {"prod_write_gate": prod_write_gate_test, "pre_tool_dispatch": pre_tool_dispatch_test, "main_checkout_gate": main_checkout_gate_test, "commit_msg_gate": commit_msg_gate_test, "install": install_test}
+SECTIONS = {"prod_write_gate": prod_write_gate_test, "pre_tool_dispatch": pre_tool_dispatch_test, "main_checkout_gate": main_checkout_gate_test, "pre_commit": pre_commit_test, "install": install_test}
 
 if __name__ == "__main__":
     unknown = [name for name in sys.argv[1:] if name not in SECTIONS]

@@ -1,5 +1,5 @@
 # terms.yaml — FORCITIS one 现代化统一语言（单一来源初版，机器可读）
-# 生成：python3 glossary/build_terms.py ；人工修改请改生成器，避免与 03-通用语言.md 漂移
+# 正本（#742 起不再由生成器写，直接改本文件）；改后跑 python3 docs/modernization/glossary/term_rules.py --check
 meta:
   version: 0.1.0-draft
   date: '2026-10-14'

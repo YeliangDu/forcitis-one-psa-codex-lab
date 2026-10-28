@@ -1,4 +1,4 @@
-# 第三轮用语确认的待改名登记（one-glossary 生成，round3/writeback.py）：用户已定新名，旧名仍在代码或界面中使用。
+# 第三轮用语确认的待改名登记（one-glossary 维护）：用户已定新名，旧名仍在代码或界面中使用。
 # 负责会话按 glossary/round3/RENAME_CARDS.md 改名并合入后，one-glossary 删除对应条目，方言禁用随之生效。
 terms:
 - id: round3_pending__act
