@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """占号并生成新格式 ADR 空壳 adr/src/ADR-NNNN.md（README「ADR 生命周期与变更规则」第 8 节）。
 
-用法：python3 docs/modernization/adr/new_adr.py --session=<起草会话> [--tier=正式|轻量] [--date=YYYY-MM-DD] [--no-fetch] [--no-pr-check] "<标题>" "<背景：两到五句，含触发出处>"
+用法：python3 tools/docs/new_adr.py --session=<起草会话> [--tier=正式|轻量] [--date=YYYY-MM-DD] [--no-fetch] [--no-pr-check] "<标题>" "<背景：两到五句，含触发出处>"
 号 = max(origin/main 的 adr/src 最大号, 本工作区 adr/src 最大号, 在途 PR 新增的 ADR 最大号) + 1：已撤回、已拒绝的 ADR 文件保留在 src，号不会复用；
 空壳单独开 PR，合入 main 即占号。取 main 与在途 PR 要联网（git fetch、gh pr list）；取不到时失败，确认不会撞号后可加 --no-fetch / --no-pr-check。
 空壳状态「提议」，类别、BC、阶段写「待定」。标题须是一行、不空、不含「#」；背景不空（#742 起 build_adrs.py 已删，校验在本脚本）。
 """
 import datetime, json, os, re, subprocess, sys
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "docs", "modernization", "adr")
 SRC_PATH = "docs/modernization/adr/src"
 NAME = re.compile(rf"{SRC_PATH}/ADR-(\d{{4}})\.md")
 

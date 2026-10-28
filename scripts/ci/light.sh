@@ -68,41 +68,41 @@ command -v python3 >/dev/null || { echo "FAIL  找不到 python3" >&2; exit 1; }
 
 # 供应链、正本校验与被代码读的生成物（#742：build_all 与派生文档已删，留下的检查直接在这里跑）
 run "python3 has PyYAML 6.0.3" pyyaml
-run "glossary term rules (terms.yaml, proposed terms)" python3 -I docs/modernization/glossary/term_rules.py --check
-run "every runtime BPMN process is catalogued" python3 -I docs/modernization/architecture/ssot/09-processes/build_catalog.py --check
-run "code reads no proposals/ (registered exceptions only)" python3 -I docs/modernization/architecture/proposal_reads.py
-run "built.yaml is up to date" python3 docs/modernization/architecture/panorama/scan_aggregates.py --check
-run "asyncapi.yaml is up to date" python3 -I docs/modernization/events/build_asyncapi.py --check
-run "decision fragments are valid" python3 -I docs/modernization/build_decisions.py --check
-run "legacy-read fragments are valid" python3 -I docs/modernization/phase1a/infra/new_legacy_read.py --check
+run "glossary term rules (terms.yaml, proposed terms)" python3 -I scripts/guards/term_rules.py --check
+run "every runtime BPMN process is catalogued" python3 -I scripts/guards/build_catalog.py --check
+run "code reads no proposals/ (registered exceptions only)" python3 -I scripts/guards/proposal_reads.py
+run "built.yaml is up to date" python3 scripts/codegen/scan_aggregates.py --check
+run "asyncapi.yaml is up to date" python3 -I scripts/codegen/build_asyncapi.py --check
+run "decision fragments are valid" python3 -I scripts/session/build_decisions.py --check
+run "legacy-read fragments are valid" python3 -I tools/evidence/new_legacy_read.py --check
 run "evidence tools: imports resolve (self-test)" python3 -I scripts/ci/evidence_imports.py --self-test
 run "evidence tools: imports resolve" python3 -I scripts/ci/evidence_imports.py
-run "database scripts aligned (self-test)" python3 -I scripts/ci/db_scripts_aligned.py --self-test
-run "database scripts aligned" python3 -I scripts/ci/db_scripts_aligned.py
+run "database scripts aligned (self-test)" python3 -I scripts/guards/db_scripts_aligned.py --self-test
+run "database scripts aligned" python3 -I scripts/guards/db_scripts_aligned.py
 run "deploy.yml: checkout no global git config" python3 -I -c 'import sys,yaml; s=[x for x in yaml.safe_load(open(".github/workflows/deploy.yml"))["jobs"]["deploy"]["steps"] if str(x.get("uses","")).lower().startswith("actions/checkout@")]; w=[{str(k).lower(): v for k, v in (x.get("with") or {}).items()} for x in s]; sys.exit("deploy 作业找不到 actions/checkout 步" if not s else 0 if all(x.get("set-safe-directory") is False and not x.get("submodules") for x in w) else "deploy 作业的 checkout 须写 set-safe-directory: false、不开 submodules：否则全局 git 配置落进 $HOME/.gitconfig，toolchain.sh 按 R-0 拒绝（run 40387799615，569ed501f）")'
 
 # 只增不改的登记与验收守护（原 backend 作业里的步骤）
 for script in migrations_immutable system_actors_append_only acceptance_guard acceptance_reports acceptance_rulings; do
-  run "$script (self-test)" python3 "scripts/ci/$script.py" --self-test
+  run "$script (self-test)" python3 "scripts/guards/$script.py" --self-test
 done
-against_base "migrations immutable" python3 scripts/ci/migrations_immutable.py
-against_base "system actors append-only" python3 scripts/ci/system_actors_append_only.py
-against_base "acceptance guard" python3 scripts/ci/acceptance_guard.py
-against_base "acceptance rulings" python3 scripts/ci/acceptance_rulings.py
+against_base "migrations immutable" python3 scripts/guards/migrations_immutable.py
+against_base "system actors append-only" python3 scripts/guards/system_actors_append_only.py
+against_base "acceptance guard" python3 scripts/guards/acceptance_guard.py
+against_base "acceptance rulings" python3 scripts/guards/acceptance_rulings.py
 
 # 门、钩子、CI 脚本与留下的文档工具的自测
 run "gates (gates_selftest.py)" python3 scripts/gates/gates_selftest.py
 sheet=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}/start_sheet/start_sheet_selftest.py  # 开工单固定由 /usr/bin/python3 跑（#47），3.10 以上语法在这里就红；工具库不在本机（CI）时同 acceptance_v2 V05 不判红
 if [ -f "$sheet" ]; then run "start_sheet under /usr/bin/python3" /usr/bin/python3 -I "$sheet"; else skip "start_sheet under /usr/bin/python3" "本机没有工具库的 $sheet"; fi
-for script in docs/modernization/build_decisions.py docs/modernization/architecture/proposal_reads.py docs/modernization/architecture/ssot/09-processes/build_catalog.py \
-  docs/modernization/adr/new_adr.py docs/modernization/glossary/term_rules.py scripts/merge/mq.py scripts/ci/relevant_change.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py \
-  docs/modernization/new_intent_selftest.py scripts/evidence/evidence_selftest.py; do
+for script in scripts/session/build_decisions.py scripts/guards/proposal_reads.py scripts/guards/build_catalog.py \
+  tools/docs/new_adr.py scripts/guards/term_rules.py scripts/merge/mq.py scripts/ci/relevant_change.py scripts/ci/light_unit_classes.py scripts/ci/heavy_gate.py \
+  scripts/session/new_intent_selftest.py tools/evidence/evidence_selftest.py; do
   run "$(basename "$script" .py) (self-test)" python3 "$script" --self-test
 done
-run "scan_aggregates tests" python3 docs/modernization/architecture/panorama/test_scan_aggregates.py
-run "post_review_selftest" python3 scripts/review/post_review_selftest.py
+run "scan_aggregates tests" python3 scripts/codegen/scan_aggregates_selftest.py
+run "post_review_selftest" python3 scripts/merge/post_review_selftest.py
 run "ci_steps_selftest (ci.yml cleanup spares the runner)" python3 scripts/ci/ci_steps_selftest.py  # 卡 #736 第 9 项：无参数
-run "runner_watch_selftest (runner keep-alive and watch)" python3 scripts/ops/runner_watch_selftest.py
+run "runner_watch_selftest (runner keep-alive and watch)" python3 scripts/release/runner_watch_selftest.py
 run "light_selftest (by-change triggers)" bash scripts/ci/light_selftest.sh
 
 # 按改动触发（原 precheck.sh 的同名步骤，检查表在 light_triggers.sh；命令按空格切分）

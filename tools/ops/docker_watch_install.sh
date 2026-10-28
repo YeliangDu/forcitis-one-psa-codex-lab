@@ -6,6 +6,7 @@ set -eu
 dry=0; uninstall=0
 for a in "$@"; do case "$a" in --dry-run) dry=1 ;; --uninstall) uninstall=1 ;; *) echo "未知参数 $a" >&2; exit 2 ;; esac; done
 here="$(cd "$(dirname "$0")" && pwd)"
+src="$(cd "$here/../../scripts/release" && pwd)"
 label=com.forcitis.docker-watch
 bin_dir="$HOME/.modernize/psa/ops/bin"
 state_dir="$HOME/.modernize/psa/ops/docker-watch"
@@ -24,7 +25,7 @@ if [ "$uninstall" -eq 1 ]; then
 fi
 
 run mkdir -p "$bin_dir" "$state_dir" "$HOME/Library/LaunchAgents"
-run cp "$here/docker_ensure.sh" "$bin_dir/docker_ensure.sh"
+run cp "$src/docker_ensure.sh" "$bin_dir/docker_ensure.sh"
 run chmod 755 "$bin_dir/docker_ensure.sh"
 tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
 sed "s|__HOME__|$HOME|g" "$here/$label.plist" > "$tmp"
@@ -34,7 +35,7 @@ run chmod 644 "$plist"
 run launchctl bootout "$domain/$label" 2>/dev/null || true
 run launchctl bootstrap "$domain" "$plist"
 if [ "$dry" -eq 0 ]; then
-  cmp "$here/docker_ensure.sh" "$bin_dir/docker_ensure.sh"
+  cmp "$src/docker_ensure.sh" "$bin_dir/docker_ensure.sh"
   launchctl print "$domain/$label" >/dev/null
   echo "已安装并加载 $label"
 fi

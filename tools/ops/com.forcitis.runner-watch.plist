@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- CI 运行器巡检（卡 #736 第 9 项）。安装与卸载用 scripts/ops/runner_watch_install.sh [--dry-run] [--uninstall]（同时给 mac-one-1～4 的 plist 加 KeepAlive、ThrottleInterval）；脚本更新后重跑一次。临时停巡检：touch __HOME__/.modernize/psa/ops/runner-watch/pause，用完删。撤销见 RESOURCES.md -->
+<!-- CI 运行器巡检（卡 #736 第 9 项）。安装与卸载用 tools/ops/runner_watch_install.sh [--dry-run] [--uninstall]（同时给 mac-one-1～4 的 plist 加 KeepAlive、ThrottleInterval）；脚本更新后重跑一次。临时停巡检：touch __HOME__/.modernize/psa/ops/runner-watch/pause，用完删。撤销见 RESOURCES.md -->
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.forcitis.runner-watch</string>

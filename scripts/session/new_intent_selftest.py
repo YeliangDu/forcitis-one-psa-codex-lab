@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""new_intent.py 的自测（二乙 #25 C7）：在临时副本里跑，不写仓库的 intent/。用法：python3 docs/modernization/new_intent_selftest.py（附带的 --self-test 参数忽略）。"""
+"""new_intent.py 的自测（二乙 #25 C7）：在临时副本里跑，不写仓库的 intent/。用法：python3 scripts/session/new_intent_selftest.py（附带的 --self-test 参数忽略）。"""
 import contextlib, glob, json, os, shutil, subprocess, sys, tempfile
 
-BASE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, BASE)
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+BASE = os.path.join(HERE, "..", "..", "docs", "modernization")
 GOOD = ["--session=one-ops", "--category=流程", "--owner=one-ops", "--paths=scripts/ci,docs/modernization", "--supersedes=无"]
 TEXT = ["用户原话", "落点说明"]
 
 
 def run(tree, args):
-    r = subprocess.run([sys.executable, os.path.join(tree, "docs", "modernization", "new_intent.py"), *args, *TEXT], capture_output=True, text=True, cwd=tree)
+    r = subprocess.run([sys.executable, os.path.join(tree, "scripts", "session", "new_intent.py"), *args, *TEXT], capture_output=True, text=True, cwd=tree)
     return r.returncode, r.stdout + r.stderr
 
 
@@ -50,8 +51,10 @@ def main():
         os.makedirs(os.path.join(mod, "decision-digest"))
         shutil.copy(os.path.join(BASE, "decision-digest", "topics.txt"), os.path.join(mod, "decision-digest"))
         open(os.path.join(mod, "decision-digest", "relations.txt"), "w").close()
+        open(os.path.join(mod, "decision-digest", "archived.txt"), "w").close()
+        os.makedirs(os.path.join(tree, "scripts", "session"))
         for f in ("new_intent.py", "build_decisions.py"):
-            shutil.copy(os.path.join(BASE, f), mod)
+            shutil.copy(os.path.join(HERE, f), os.path.join(tree, "scripts", "session"))
         for key in ("session", "category", "owner", "paths", "supersedes"):
             code, out = run(tree, swap(GOOD, key))
             assert code != 0 and f"--{key}" in out.split("用法")[0], f"缺 --{key} 应拒并点名：{code} {out[:200]}"

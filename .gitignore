@@ -8,7 +8,7 @@ ds-bundle/
 .design-sync/.cache/
 .design-sync/learnings/
 .design-sync/node_modules
-# 记录类生成产物不入仓。CURRENT_DECISIONS.md 由 docs/modernization/build_decisions.py 在本机生成；其余的生成器已随 #742 删除，规则留着防本地残留误入仓
+# 记录类生成产物不入仓。CURRENT_DECISIONS.md 由 scripts/session/build_decisions.py 在本机生成；其余的生成器已随 #742 删除，规则留着防本地残留误入仓
 docs/modernization/INTENT.md
 docs/modernization/DECISION_DIGEST.md
 docs/modernization/CURRENT_DECISIONS.md
@@ -38,7 +38,7 @@ docs/modernization/architecture/panorama/GAPS.md
 # 命令目录旧生成产物（生成器已随 #742 删除）：规则留着防本地残留误入仓
 docs/modernization/architecture/ssot/11-commands/commands.yaml
 docs/modernization/architecture/ssot/11-commands/GAPS.md
-# OpenAPI 构建产物：本地先装前端依赖，再运行 bash scripts/generate-api.sh（需 Docker；离线加 -o）。
+# OpenAPI 构建产物：本地先装前端依赖，再运行 bash scripts/codegen/generate-api.sh（需 Docker；离线加 -o）。
 # CI 的 api-contract 作业先导出并生成，其他作业下载本次运行的产物。
 frontend/packages/api/openapi.json
 frontend/packages/api/src/generated/schema.ts

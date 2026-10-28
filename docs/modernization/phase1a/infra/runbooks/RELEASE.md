@@ -183,7 +183,7 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 ### R-0 专用部署 runner 重建（必需；只有 deploy 作业依赖它，release 在 GitHub 托管机上）
 
-**已完成（2026-10-15，one-ops 引导、用户输入口令）**：脚本 `scripts/release/runner_rebuild.sh`（参数：发行包、GitHub 公布的 SHA256、注册令牌文件）。runner 2.338.0（osx-arm64，SHA256 与发布页一致），`mac-one-deploy` 在线，标签 `self-hosted, macOS, ARM64, forcitis-one-deploy`，进程以 `forcitis-deploy` 运行。
+**已完成（2026-10-15，one-ops 引导、用户输入口令）**：脚本 `tools/ops/runner_rebuild.sh`（参数：发行包、GitHub 公布的 SHA256、注册令牌文件）。runner 2.338.0（osx-arm64，SHA256 与发布页一致），`mac-one-deploy` 在线，标签 `self-hosted, macOS, ARM64, forcitis-one-deploy`，进程以 `forcitis-deploy` 运行。
 
 **第 8 步演练结果（2026-10-15，临时分支 `drill/r0-runner-refusal`，演练后分支与运行记录已删除）**：
 | 情形 | 结果 |

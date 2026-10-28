@@ -4,12 +4,13 @@
 只列现行条目，按主题（decision-digest/topics.txt）分组、新的在前；每主题列几条由体量决定（从 8 条往下减到整页不超限），其余记条数；--topic=<主题> 把该主题全部现行条目打到终端。
 取代：片段「## 取代」段与 decision-digest/relations.txt；含推翻字样却没登记的只告警。归档：decision-digest/archived.txt 每行「完整文件名<TAB>原因码」，归档的不上页、不占主题名额、不进疑似告警，--archived 列出。沿用原脚本的校验：文件名须为 <日期>-<HHMMSS>-<会话名>-<短名>.md 或旧式 <日期>-<三位序号>-<短名>.md；
 格式「## 原话」「## 落点」[「## 取代」][规则、影响的 ADR、单子、题号、类别、负责会话、影响路径]，原话落点非空；topics.txt 无重复主题与空白关键词；取代引用不存在的文件、循环取代、新条目早于旧条目都失败。
-用法：python3 docs/modernization/build_decisions.py [--check | --self-test | --topic=<主题> | --archived]（--check 只校验与量体，不写文件；不收目录参数）
+用法：python3 scripts/session/build_decisions.py [--check | --self-test | --topic=<主题> | --archived]（--check 只校验与量体，不写文件；不收目录参数）
 """
 import json, os, re, sys, tempfile
 
-BASE = os.path.dirname(os.path.abspath(__file__))
-OUT, PER_MAX, CUT, POLICY = "CURRENT_DECISIONS.md", 8, 48, os.path.join(BASE, "..", "..", "policy.json")
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+BASE = os.path.join(ROOT, "docs", "modernization")
+OUT, PER_MAX, CUT, POLICY = "CURRENT_DECISIONS.md", 8, 48, os.path.join(ROOT, "policy.json")
 REVERSAL = ("改选", "看错了", "先等等", "不作为最终", "推翻", "已被", "作废")
 REF = re.compile(r"[A-Za-z]+-[\dA-Za-z-]*\d[\w-]*|PR\s*#\d+|§[\d.]+|[\w./-]+\.(?:md|py|yaml|json|html|txt|yml)")
 SECTION = re.compile(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)(?:\n\n## 取代\n\n(.*?))?\n(?:\n## (?:规则|影响的 ADR|单子|题号|类别|负责会话|影响路径)\n\n[^\n]+\n)*", re.S)

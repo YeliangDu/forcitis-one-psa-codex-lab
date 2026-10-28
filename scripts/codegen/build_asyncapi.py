@@ -16,7 +16,7 @@ domain event, whose x-event block carries what the guards (EventCatalogueTest) c
   businessDate   which date goes into the envelope's businessDate, or "无：<reason>"
   audit          "audited" or "not-audited: <reason>" (the record then carries @NotAudited)
   publisherTest  a test class that exercises the publisher of the event
-Run from the repository root:  python3 docs/modernization/events/build_asyncapi.py [--check]
+Run from the repository root:  python3 scripts/codegen/build_asyncapi.py [--check]
 --check compares instead of writing and exits 1 when asyncapi.yaml is out of date.
 """
 import pathlib
@@ -24,9 +24,10 @@ import sys
 
 import yaml
 
-HERE = pathlib.Path(__file__).resolve().parent
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+HERE = ROOT / 'docs' / 'modernization' / 'events'
 TARGET = HERE / 'asyncapi.yaml'
-SYSTEM_ACTORS = HERE.parents[2] / 'backend' / 'architecture' / 'system-actors.txt'
+SYSTEM_ACTORS = ROOT / 'backend' / 'architecture' / 'system-actors.txt'
 
 
 def system_actors():
@@ -113,7 +114,7 @@ def main():
         compose(), sort_keys=False, allow_unicode=True, width=1000)
     if '--check' in sys.argv:
         if not TARGET.exists() or TARGET.read_text() != text:
-            print('asyncapi.yaml is out of date: run python3 docs/modernization/events/build_asyncapi.py')
+            print('asyncapi.yaml is out of date: run python3 scripts/codegen/build_asyncapi.py')
             return 1
         return 0
     TARGET.write_text(text)

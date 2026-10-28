@@ -1,6 +1,6 @@
 #!/bin/bash
 # FORCITIS one · RELEASE.md §7 R-0：重建专用部署 runner（mac-one-deploy）。以 sudo 运行，口令由操作者在终端输入。
-# 用法：sudo scripts/release/runner_rebuild.sh <runner 发行包 .tar.gz> <GitHub 公布的 SHA256> <注册令牌文件>
+# 用法：sudo tools/ops/runner_rebuild.sh <runner 发行包 .tar.gz> <GitHub 公布的 SHA256> <注册令牌文件>
 #   注册令牌文件由操作者（非 root）用 gh api -X POST repos/FORCITIS/forcitis-one-psa/actions/runners/registration-token --jq .token 写出（0600），本脚本读后即删。
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "请用 sudo 运行"; exit 1; }

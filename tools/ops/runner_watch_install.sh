@@ -9,6 +9,7 @@ set -eu
 dry=0; uninstall=0
 for a in "$@"; do case "$a" in --dry-run) dry=1 ;; --uninstall) uninstall=1 ;; *) echo "未知参数 $a" >&2; exit 2 ;; esac; done
 here="$(cd "$(dirname "$0")" && pwd)"
+src="$(cd "$here/../../scripts/release" && pwd)"
 label=com.forcitis.runner-watch
 bin_dir="$HOME/.modernize/psa/ops/bin"
 state_dir="$HOME/.modernize/psa/ops/runner-watch"
@@ -60,7 +61,7 @@ for n in $names; do
 done
 
 run mkdir -p "$bin_dir" "$state_dir" "$agents"
-run cp "$here/runner_watch.sh" "$bin_dir/runner_watch.sh"
+run cp "$src/runner_watch.sh" "$bin_dir/runner_watch.sh"
 run chmod 755 "$bin_dir/runner_watch.sh"
 tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
 sed "s|__HOME__|$HOME|g" "$here/$label.plist" > "$tmp"
@@ -68,7 +69,7 @@ plutil -lint "$tmp" >/dev/null
 run cp "$tmp" "$plist"
 run chmod 644 "$plist"
 reload "$label" "$plist" || { echo "$label 加载失败：手动 launchctl bootstrap $domain $plist" >&2; exit 1; }
-[ "$dry" -eq 1 ] || { cmp "$here/runner_watch.sh" "$bin_dir/runner_watch.sh"; launchctl print "$domain/$label" >/dev/null; echo "已安装并加载 $label"; }
+[ "$dry" -eq 1 ] || { cmp "$src/runner_watch.sh" "$bin_dir/runner_watch.sh"; launchctl print "$domain/$label" >/dev/null; echo "已安装并加载 $label"; }
 if [ -n "$busy" ]; then
   echo "正在跑作业、这次没动：${busy}；作业结束后重跑本脚本" >&2
   exit 3

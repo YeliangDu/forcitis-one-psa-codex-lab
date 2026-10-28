@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check that the Acceptance-Ruling a commit names is a real ruling (SESSION_PLAYBOOK 附 M1 第 4 条、TEAM-69; scripts/ci/acceptance_guard.py only checks that a trailer of the right shape is there).
+"""Check that the Acceptance-Ruling a commit names is a real ruling (SESSION_PLAYBOOK 附 M1 第 4 条、TEAM-69; scripts/guards/acceptance_guard.py only checks that a trailer of the right shape is there).
 
 Acceptance tests may be changed by the test engineer, or by a commit that carries `Acceptance-Ruling: RULING-<id>`: a review (not the implementing session) decided the test was wrong. The ruling must exist in the
 repository record docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml, **as of the pull request's base** (a record added in the same pull request is the implementing session ruling for itself). An entry is
