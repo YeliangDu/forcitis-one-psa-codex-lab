@@ -40,7 +40,7 @@ src/main/java/com/forcitis/one/platform/identity/application/RevokeRoleByOperati
 src/main/java/com/forcitis/one/platform/identity/application/SessionRevocation.java | 1 | 5 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/SingleOperatorMarks.java | 1 | 21 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/UpdateRole.java | 2 | 1,4 | NONE
-src/main/java/com/forcitis/one/platform/identity/infrastructure/persistence/RoleVersionAudit.java | 3 | 4,6,19 | NONE
+src/main/java/com/forcitis/one/platform/identity/infrastructure/persistence/RoleVersionAudit.java | 2 | 4,6 | NONE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/AccessDeniedAudit.java | 1 | 7 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/PrivilegedRequestAudit.java | 1 | 7 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/SessionGuardFilter.java | 1 | 4 | NONE
