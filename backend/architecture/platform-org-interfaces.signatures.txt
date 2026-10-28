@@ -197,6 +197,22 @@ organization.workforce::api organization.workforce.api.PersonnelCommandId public
 organization.workforce::api organization.workforce.api.PersonnelCommandId public java.lang.String organization.workforce.api.PersonnelCommandId.toString()
 organization.workforce::api organization.workforce.api.PersonnelCommandId public java.util.UUID organization.workforce.api.PersonnelCommandId.value()
 organization.workforce::api organization.workforce.api.PersonnelCommandId public organization.workforce.api.PersonnelCommandId(java.util.UUID)
+organization.workforce::api organization.workforce.api.PositionId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.PositionId extends java.lang.Record
+organization.workforce::api organization.workforce.api.PositionId public final boolean organization.workforce.api.PositionId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.PositionId public final int organization.workforce.api.PositionId.hashCode()
+organization.workforce::api organization.workforce.api.PositionId public final record organization.workforce.api.PositionId
+organization.workforce::api organization.workforce.api.PositionId public java.lang.String organization.workforce.api.PositionId.toString()
+organization.workforce::api organization.workforce.api.PositionId public java.util.UUID organization.workforce.api.PositionId.value()
+organization.workforce::api organization.workforce.api.PositionId public organization.workforce.api.PositionId(java.util.UUID)
+organization.workforce::api organization.workforce.api.SeparationHoldId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.SeparationHoldId extends java.lang.Record
+organization.workforce::api organization.workforce.api.SeparationHoldId public final boolean organization.workforce.api.SeparationHoldId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.SeparationHoldId public final int organization.workforce.api.SeparationHoldId.hashCode()
+organization.workforce::api organization.workforce.api.SeparationHoldId public final record organization.workforce.api.SeparationHoldId
+organization.workforce::api organization.workforce.api.SeparationHoldId public java.lang.String organization.workforce.api.SeparationHoldId.toString()
+organization.workforce::api organization.workforce.api.SeparationHoldId public java.util.UUID organization.workforce.api.SeparationHoldId.value()
+organization.workforce::api organization.workforce.api.SeparationHoldId public organization.workforce.api.SeparationHoldId(java.util.UUID)
 organization.workforce::api organization.workforce.api.SyncRunId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.SyncRunId extends java.lang.Record
 organization.workforce::api organization.workforce.api.SyncRunId public final boolean organization.workforce.api.SyncRunId.equals(java.lang.Object)
@@ -334,8 +350,10 @@ organization.workforce::events organization.workforce.events.EmployeeTransferred
 organization.workforce::events organization.workforce.events.EmployeeTransferred component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeTransferred component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeTransferred component newOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::events organization.workforce.events.EmployeeTransferred component newPositionId: organization.workforce.api.PositionId
 organization.workforce::events organization.workforce.events.EmployeeTransferred component personnelCommandId: organization.workforce.api.PersonnelCommandId
 organization.workforce::events organization.workforce.events.EmployeeTransferred component previousOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::events organization.workforce.events.EmployeeTransferred component previousPositionId: organization.workforce.api.PositionId
 organization.workforce::events organization.workforce.events.EmployeeTransferred component triggerFieldKinds: java.util.List<organization.workforce.api.TriggerFieldKind>
 organization.workforce::events organization.workforce.events.EmployeeTransferred extends java.lang.Record
 organization.workforce::events organization.workforce.events.EmployeeTransferred implements kernel.event.DomainEvent
@@ -350,7 +368,9 @@ organization.workforce::events organization.workforce.events.EmployeeTransferred
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeTransferred.newOrgUnitId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeTransferred.previousOrgUnitId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeTransferred.personnelCommandId()
-organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.events.EmployeeTransferred(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.util.List<organization.workforce.api.TriggerFieldKind>,organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId)
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PositionId organization.workforce.events.EmployeeTransferred.newPositionId()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PositionId organization.workforce.events.EmployeeTransferred.previousPositionId()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.events.EmployeeTransferred(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.util.List<organization.workforce.api.TriggerFieldKind>,organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,organization.workforce.api.PositionId)
 organization.workforce::events organization.workforce.events.LegalEntityActivated component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.LegalEntityActivated component legalEntityId: kernel.LegalEntityId
 organization.workforce::events organization.workforce.events.LegalEntityActivated extends java.lang.Record
@@ -491,6 +511,7 @@ organization.workforce::events organization.workforce.events.SeparationHeld comp
 organization.workforce::events organization.workforce.events.SeparationHeld component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.SeparationHeld component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.SeparationHeld component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.SeparationHeld component separationHoldId: organization.workforce.api.SeparationHoldId
 organization.workforce::events organization.workforce.events.SeparationHeld extends java.lang.Record
 organization.workforce::events organization.workforce.events.SeparationHeld implements kernel.event.DomainEvent
 organization.workforce::events organization.workforce.events.SeparationHeld public final boolean organization.workforce.events.SeparationHeld.equals(java.lang.Object)
@@ -501,11 +522,14 @@ organization.workforce::events organization.workforce.events.SeparationHeld publ
 organization.workforce::events organization.workforce.events.SeparationHeld public kernel.EmployeeId organization.workforce.events.SeparationHeld.employeeId()
 organization.workforce::events organization.workforce.events.SeparationHeld public kernel.event.EventEnvelope organization.workforce.events.SeparationHeld.envelope()
 organization.workforce::events organization.workforce.events.SeparationHeld public organization.workforce.api.PersonnelCommandId organization.workforce.events.SeparationHeld.personnelCommandId()
-organization.workforce::events organization.workforce.events.SeparationHeld public organization.workforce.events.SeparationHeld(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.SeparationHeld public organization.workforce.api.SeparationHoldId organization.workforce.events.SeparationHeld.separationHoldId()
+organization.workforce::events organization.workforce.events.SeparationHeld public organization.workforce.events.SeparationHeld(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.SeparationHoldId)
 organization.workforce::events organization.workforce.events.SeparationHoldReleased component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.SeparationHoldReleased component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.SeparationHoldReleased component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.SeparationHoldReleased component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.SeparationHoldReleased component releasedBy: kernel.UserId
+organization.workforce::events organization.workforce.events.SeparationHoldReleased component separationHoldId: organization.workforce.api.SeparationHoldId
 organization.workforce::events organization.workforce.events.SeparationHoldReleased extends java.lang.Record
 organization.workforce::events organization.workforce.events.SeparationHoldReleased implements kernel.event.DomainEvent
 organization.workforce::events organization.workforce.events.SeparationHoldReleased public final boolean organization.workforce.events.SeparationHoldReleased.equals(java.lang.Object)
@@ -514,9 +538,11 @@ organization.workforce::events organization.workforce.events.SeparationHoldRelea
 organization.workforce::events organization.workforce.events.SeparationHoldReleased public final record organization.workforce.events.SeparationHoldReleased
 organization.workforce::events organization.workforce.events.SeparationHoldReleased public java.time.LocalDate organization.workforce.events.SeparationHoldReleased.effectiveDate()
 organization.workforce::events organization.workforce.events.SeparationHoldReleased public kernel.EmployeeId organization.workforce.events.SeparationHoldReleased.employeeId()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public kernel.UserId organization.workforce.events.SeparationHoldReleased.releasedBy()
 organization.workforce::events organization.workforce.events.SeparationHoldReleased public kernel.event.EventEnvelope organization.workforce.events.SeparationHoldReleased.envelope()
 organization.workforce::events organization.workforce.events.SeparationHoldReleased public organization.workforce.api.PersonnelCommandId organization.workforce.events.SeparationHoldReleased.personnelCommandId()
-organization.workforce::events organization.workforce.events.SeparationHoldReleased public organization.workforce.events.SeparationHoldReleased(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public organization.workforce.api.SeparationHoldId organization.workforce.events.SeparationHoldReleased.separationHoldId()
+organization.workforce::events organization.workforce.events.SeparationHoldReleased public organization.workforce.events.SeparationHoldReleased(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.SeparationHoldId,kernel.UserId)
 organization.workforce::events organization.workforce.events.SyncRunFailed component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.SyncRunFailed component syncRunId: organization.workforce.api.SyncRunId
 organization.workforce::events organization.workforce.events.SyncRunFailed extends java.lang.Record
