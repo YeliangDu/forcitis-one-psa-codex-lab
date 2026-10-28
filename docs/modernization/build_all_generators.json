@@ -10,6 +10,7 @@
     ["../../backend/glossary/build_proposed_index.py", "language", true, ["../../backend/glossary/proposed/README.md"], false, false],
     ["rules/build_rule_index.py", "language", true, [], false, false],
     ["architecture/build_architecture.py", "design", true, [], true, false],
+    ["quality/defect-bank/defect_bank_check.py", "platform", true, [], false, false],
     ["architecture/check_proposals.py", "design", true, [], false, false],
     ["architecture/proposal_reads.py", "design", true, [], false, false],
     ["architecture/ssot/09-processes/build_catalog.py", "design", true, [], false, false],

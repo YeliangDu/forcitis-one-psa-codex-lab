@@ -60,7 +60,7 @@
    "basis": [
     "intent 2026-10-16-061232 D-2：往来单位单独作主数据，含外部工程登记",
     "term_rules：同一 bc 内一个概念一个中文名",
-    "DATA_DESIGN_CHECKLIST §14：一个主体一份主数据"
+    "SESSION_PLAYBOOK §14：一个主体一份主数据"
    ],
    "practice": [
     "ERP / CRM 通行做法：Party（往来单位）为主体，客户、供应商是它的角色"

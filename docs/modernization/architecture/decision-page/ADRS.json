@@ -280,7 +280,7 @@
    "grp": "adr43",
    "title": "分析层（D13）按哪个维度判定？",
    "src": "ADR-0043 U-8",
-   "ctx": "依据：DATA_DESIGN_CHECKLIST §14.1 D13；NAMING_STANDARD §2.5；ADR-0025。1a 没有分析层（CS-1.8），草案不预设。(a) 相对 D13 字面是放宽，选它须你明确同意。决定前按 D13 字面。",
+   "ctx": "依据：SESSION_PLAYBOOK §14.1 D13；NAMING_STANDARD §2.5；ADR-0025。1a 没有分析层（CS-1.8），草案不预设。(a) 相对 D13 字面是放宽，选它须你明确同意。决定前按 D13 字面。",
    "opts": [
     {
      "label": "暂不定（我先不选）",
