@@ -33,7 +33,7 @@ for label in $down; do
   echo "$(now) 告警：$label kickstart 后 ${wait_s} 秒仍未运行；看 ~/Library/Logs/$label/stdout.log，修好后 launchctl kickstart $domain/$label" >> "$state/alert.log"
 done
 if [ -n "$failed" ]; then
-  "$osascript_bin" -e "display notification \"拉不起来：$failed（详见 $state/alert.log）\" with title \"CI 运行器离线\"" >/dev/null 2>&1 || true
+  "$osascript_bin" -e "display notification \"拉不起来：${failed}（详见 ${state}/alert.log）\" with title \"CI 运行器离线\"" >/dev/null 2>&1 || true
   exit 1
 fi
 exit 0

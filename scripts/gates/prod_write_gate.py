@@ -4,7 +4,8 @@
 生产特征 = prod_targets.json 的 patterns（生产主机名或 IP、生产库名、生产凭据名；与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR 所在仓库的），
 出现在原文、去引号与反斜杠后的整行，或变量、export、花括号展开后的词与环境值里即拒，不分是什么程序（远程工具、解释器、构建工具、git、grep 都一样）；会话环境里的目标变量（PGHOST 等）指向生产也拒。
 不按 shell 写法拒绝（换目录加运行、注释、here-document、括号、反斜杠、变量、通配、zsh 选项等一概不看），不维护远程工具名单。特征表缺失、不合格或并集为空：一律拒（失败关闭）。
-唯一例外是阿里云命令行（卡 #736，用户「先不动，门补一条」）：本机默认 profile 是生产，命令里出现 aliyun 就拒，除非段首裸写 aliyun 且显式给一个不在特征表的 --profile（cloud_cli_refusal）。
+唯一例外是阿里云命令行（卡 #736，用户「先不动，门补一条」）：本机默认 profile 是生产，命令里出现 aliyun 就拒，除非段首裸写 aliyun、参数里没有任何 shell 元字符、且显式给一个不在特征表的 --profile；
+程序名不是字面写出（通配、花括号、会话环境变量、带参数的命令替换）而可能是 aliyun 的也拒（cloud_cli_refusal，#736 首轮 M2）。
 已知不管、复审不据此判必改（用户 10-28 定，由「本机只有生产只读账号」兜底）：被运行的脚本文件里写着生产主机、解释器内联代码在运行时拼出目标、
 用会话环境里的非目标变量、命令替换、base64、printf 转义等编码藏起来的主机名——命令文本上看不到生产特征的，门放行。
 门出错时 .claude/settings.json 的挂载入口用同一张特征表做保守预筛（去引号与反斜杠后命中即拒，见 aliyun 即拒，读不到表一律拒）。
@@ -12,6 +13,7 @@
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
 import collections
+import fnmatch
 import json
 import os
 import re
@@ -282,8 +284,10 @@ LAUNCH_TOOL = "mcp__Claude_Browser__preview_start"  # starts runtimeExecutable +
 REFUSED = ("拒绝：命令里有生产特征（生产主机名或 IP、生产库名、生产凭据名，见 prod_targets.json；去引号、去反斜杠、变量与花括号展开后也算），"
            "或会话环境里的目标变量指向生产。CLAUDE.md 底线 4：不做生产写操作；生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口。")
 CLOUD_CLI = "aliyun"  # Alibaba Cloud CLI: its default profile on this machine is production (aliyun-prod-profile in prod_targets.json)
-CLOUD_REFUSED = ("拒绝：阿里云命令行的默认 profile 是生产。aliyun 只认段首裸写、显式给一个 --profile <名>（或 --profile=<名>、-p <名>）且名不在 prod_targets.json 的写法；"
-                 "没给 profile、名是生产 profile、用别名、路径、包装程序（env、sudo、xargs、bash -c 等）或变量调用都拒（卡 #736）。CLAUDE.md 底线 4。")
+CLOUD_PIECE = re.compile(r"aliyun(?:[ \t]+[A-Za-z0-9_./:=,@+-]+)*")  # a bare call whose words the shell passes on unchanged
+CLOUD_REFUSED = ("拒绝：阿里云命令行的默认 profile 是生产。aliyun 只认段首裸写、参数只用字母数字与 _./:=,@+-（不用引号、反斜杠、注释、重定向、$、通配、花括号、~）、"
+                 "显式给一个 --profile <名>（或 --profile=<名>、-p <名>）且名不在 prod_targets.json 的写法；没给 profile、名是生产 profile、用别名、路径、包装程序（env、sudo、xargs、bash -c 等）、"
+                 "变量、通配或命令替换调用都拒（卡 #736）。CLAUDE.md 底线 4。")
 
 
 def parse_table(text, name):  # (lower-cased patterns, problem or None) of one table's text.
@@ -390,38 +394,99 @@ def texts_of(command_text):  # The raw and quote-free line, plus every word and 
     return texts
 
 
-def cloud_cli_refusal(command_text, patterns):
-    """Refusal text or None for the Alibaba Cloud CLI (卡 #736，用户「先不动，门补一条」): its default profile is production, so a segment naming it is allowed only as a bare
-    `aliyun` at the segment's start with exactly one `--profile <name>` (`--profile=<name>`, `-p <name>`) whose name is plain and matches no pattern. Anywhere else (an alias,
-    a path, a wrapper, an argument, an assignment, a shell body) or seen only after variables are expanded: refused. Unreadable input that names it: refused."""
-    try:
-        tokens = [restore(t) for t in tokens_of(command_text, structured=True)]
-    except ValueError:
-        return CLOUD_REFUSED if CLOUD_CLI in plain(command_text) else None
-    segments, cur, seen = [], [], 0
-    for token in tokens + [";"]:
-        if token in SEPARATORS or token in ("<(", ">(") or set(token) <= set(";&|()"):
-            segments.append(cur)
-            cur = []
-        else:
-            cur.append(token)
-    for seg in segments:
-        hits = sum(CLOUD_CLI in t.lower() for t in seg)
-        seen += hits
-        if not hits:
-            continue
-        if seg[0] != CLOUD_CLI:
+def cloud_cli_refusal(command_text, patterns, environ=None):
+    """Refusal text or None for the Alibaba Cloud CLI (卡 #736，用户「先不动，门补一条」): its default profile is production and no read-only account stands behind it,
+    so only what the gate can read exactly is allowed. Named on the line (also once quotes and backslashes are dropped): each line piece between `;`, `&`, `|` and newlines
+    that names it must be a bare `aliyun` followed by plain words only (letters, digits, `_./:=,@+-`: no quote, backslash, comment, redirection, `$`, glob, brace or tilde,
+    which could change what it receives), with exactly one `--profile <name>` (`--profile=<name>`, `-p <name>`) matching no pattern, and no ALIBABA_CLOUD_ variable on the line.
+    Not named: a program word (also after xargs or find -exec) that a glob, a brace, the session's environment or a command substitution with arguments may turn into it: refused."""
+    environ = os.environ if environ is None else environ
+    bare = 0  # line pieces that are a bare call the gate reads exactly
+    if CLOUD_CLI in plain(command_text) or CLOUD_CLI in command_text.lower():
+        if "alibaba_cloud" in plain(command_text):
             return CLOUD_REFUSED
-        names = [seg[at + 1] if at + 1 < len(seg) else "" for at, t in enumerate(seg) if t in ("--profile", "-p")] + [t.partition("=")[2] for t in seg if t.startswith("--profile=")]
-        odd = [t for t in seg if (t.startswith("--profile") or t.startswith("-p")) and t not in ("--profile", "-p") and not t.startswith("--profile=")]
-        if len(names) != 1 or odd or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", names[0]) or text_hits(names, patterns):
-            return CLOUD_REFUSED
-    assigned = []
+        for piece in re.split(r"[;&|\n]", command_text):
+            if CLOUD_CLI not in piece.lower() and CLOUD_CLI not in plain(piece):
+                continue
+            words = piece.split()
+            if not CLOUD_PIECE.fullmatch(piece.strip()) or words[0] != CLOUD_CLI:
+                return CLOUD_REFUSED
+            names = [words[at + 1] if at + 1 < len(words) else "" for at, w in enumerate(words) if w in ("--profile", "-p")] + [w.partition("=")[2] for w in words if w.startswith("--profile=")]
+            odd = [w for w in words if (w.startswith("--profile") or w.startswith("-p")) and w not in ("--profile", "-p") and not w.startswith("--profile=")]
+            if len(names) != 1 or odd or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", names[0]) or text_hits(names, patterns):
+                return CLOUD_REFUSED
+            bare += 1
     try:
-        expanded = [w for c in simple_commands(command_text, assigned=assigned) for w in c.argv + list(c.env.values())] + assigned
+        commands = simple_commands(command_text)
     except ValueError:
-        expanded = []
-    return CLOUD_REFUSED if sum(CLOUD_CLI in w.lower() for w in expanded) > seen else None
+        return None
+    bodies = [command_text]
+    for c in commands:  # eval's words, a shell's -c body: read again, as simple_commands does
+        if name_of(c.argv[0]) == "eval":
+            bodies.append(" ".join(c.argv[1:]))
+        elif name_of(c.argv[0]) in SHELLS:
+            bodies += [c.argv[at + 1] for at, a in enumerate(c.argv[:-1]) if SHORT_C.fullmatch(a)]
+    if any(substituted_program(body) for body in bodies):
+        return CLOUD_REFUSED
+    named = 0  # program words that are the CLI's name as written (each must be one of the bare pieces)
+    for command in commands:
+        for word, has_args in program_words(command.argv):
+            if word == CLOUD_CLI:
+                named += 1
+            elif may_be_cloud_cli(word, has_args, environ):
+                return CLOUD_REFUSED
+    return CLOUD_REFUSED if named > bare else None
+
+
+def substituted_program(text):
+    """True when a command substitution (or backticks) makes up part of a program word that is given arguments: `$(printf ali)yun ecs X`. Read on the raw text, since the
+    tokenizer splits an unquoted `$(` apart. Program position: only assignments and keywords, or a wrapper or xargs (whatever follows it), or find's -exec before it
+    since the last `;`, `&`, `|`, `(` or newline. With no argument it is left alone, because 用户 10-28 listed `eval "$(printf x)"` as a misblock to allow; that leaves a known gap
+    (eval, or an unquoted substitution, can make its output a whole command line), put to the user (#736 首轮 M2)."""
+    text = neutralize(text)
+    for start in [m.start() for m in re.finditer(r"\$\(", text)]:
+        depth, end = 0, start + 1
+        while end < len(text):
+            depth += {"(": 1, ")": -1}.get(text[end], 0)
+            if depth == 0:
+                break
+            end += 1
+        left = start
+        while left > 0 and not text[left - 1].isspace() and text[left - 1] not in ";&|()\n":
+            left -= 1
+        right = end + 1
+        while right < len(text) and not text[right].isspace() and text[right] not in ";&|)\n":
+            right += 1
+        if ENV.match(text[left:right]):
+            continue  # `X=$(date) make`: an assignment, not a program
+        before = re.split(r"[;&|(\n]", text[:left])[-1].split()
+        after = re.split(r"[;&|)\n]", text[right:])[0].strip()
+        rest = [w for w in before if not (ENV.match(w) or w in KEYWORDS)]  # after a wrapper or xargs its options and their values are not told apart: still program position
+        prefix_ok = not rest or name_of(rest[0]) in WRAPPERS or name_of(rest[0]) == "xargs"
+        if (prefix_ok or (before and before[-1] in ("-exec", "-execdir", "-ok", "-okdir"))) and after:
+            return True
+    return False
+
+
+def program_words(argv):  # (word, has arguments) for each word of a simple command that names a program: the first, the first non-option word after xargs, the word after find's -exec.
+    out = [(argv[0], len(argv) > 1)] if argv else []
+    if argv and name_of(argv[0]) == "xargs":
+        rest = [a for a in argv[1:] if not a.startswith("-")]
+        out += [(rest[0], len(rest) > 1)] if rest else []
+    if argv and name_of(argv[0]) == "find":
+        out += [(argv[at + 1], at + 2 < len(argv)) for at, a in enumerate(argv[:-1]) if a in ("-exec", "-execdir", "-ok", "-okdir")]
+    return out
+
+
+def may_be_cloud_cli(word, has_args, environ):  # True when the program a word names may be the cloud CLI although the line does not spell it.
+    if "$(" in word or "`" in word:
+        return has_args  # unknown program; one with no argument stays allowed because 用户 10-28 listed `eval "$(printf x)"` as a misblock — a known gap: eval or an unquoted substitution can turn its output into a whole command
+    word = VARIABLE.sub(lambda m: str(environ.get(m.group(1) or m.group(2), "")), word)  # the session's environment: what is left after the line's own variables
+    for variant in brace_variants(word.lstrip("=")):
+        name = os.path.basename(variant).lower()
+        if CLOUD_CLI in name or (re.search(r"[*?\[]", name) and fnmatch.fnmatchcase(CLOUD_CLI, name)):
+            return True
+    return False
 
 
 def judge(command_text, patterns, problem=None, cwd=None, environ=None):
@@ -433,7 +498,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):
     environ = os.environ if environ is None else environ
     if text_hits(texts_of(command_text), patterns) or any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS):
         return REFUSED
-    return cloud_cli_refusal(command_text, patterns)
+    return cloud_cli_refusal(command_text, patterns, environ)
 
 
 def command_of(payload):  # (shell command of a hook payload or None, refusal or None): Bash, Monitor and the terminal panel run tool_input.command; Monitor's ws source runs none.

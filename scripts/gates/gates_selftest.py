@@ -171,10 +171,28 @@ def cloud_self_test(verdict):
     """阿里云命令行（卡 #736，用户「先不动，门补一条」）：本机默认 profile 是生产，只认段首裸写 aliyun 且显式给一个不在特征表的 --profile；生产 profile 按真实表取（源码里不写）。"""
     prod = shipped_firsts()["aliyun-prod-profile"]
     real = load_table()[0]
-    allowed = ("aliyun --profile dev-ro ecs DescribeInstances", "aliyun ecs DescribeRegions --profile=dev-ro", "aliyun -p dev-ro ecs DescribeRegions", "aliyun 'ecs' DescribeRegions --profile \"dev-ro\"",
-               "aliyun --profile dev-ro ecs DescribeRegions && echo ok", "echo ok; aliyun --profile dev-ro sts GetCallerIdentity", "aliyun --profile dev.ro_1 oss ls")
+    allowed = ("aliyun --profile dev-ro ecs DescribeInstances", "aliyun ecs DescribeRegions --profile=dev-ro", "aliyun -p dev-ro ecs DescribeRegions", "aliyun --profile dev-ro ecs DescribeRegions --RegionId cn-hangzhou",
+               "aliyun --profile dev-ro ecs DescribeRegions && echo ok", "echo ok; aliyun --profile dev-ro sts GetCallerIdentity", "aliyun --profile dev.ro_1 oss ls oss://bucket/a/", "cat <<EOF\naliyun --profile dev-ro ecs X\nEOF")
     for command in allowed:
         assert verdict(command) is None and judge(command, real, None, None, {}) is None, ("a non-production profile given explicitly: allowed", command)
+    others = ("ls *.md", "git status", "python3 x.py", "$EDITOR notes.md", "eval \"$(printf x)\"", "echo a* | xargs ls", "find . -name '*.py' -exec wc -l {} +", "$(which python3)", "rm -f /tmp/a?c", "X=$(date) make test", "cd \"$(git rev-parse --show-toplevel)\" && ls", "echo \"$(date)\" done")
+    for command in others:
+        assert verdict(command, environ={"EDITOR": "vim"}) is None, ("no cloud CLI, written or hidden: allowed", command)
+    # #736 首轮 M2 (a)：门读到的参数与 aliyun 实际收到的可能不同（注释、重定向、引号、反斜杠续行、变量、通配、花括号、~、here-string）
+    unreadable = ("aliyun ecs DescribeRegions # --profile dev-ro", "aliyun ecs DescribeRegions #--profile dev-ro", "aliyun ecs X 2>--profile dev-ro", "aliyun ecs X >/dev/null --profile dev-ro",
+                  "aliyun --profile 'dev-ro' ecs X", "aliyun 'ecs' DescribeRegions --profile \"dev-ro\"", "aliyun --profile dev-ro ecs X \\\n--profile other", "aliyun --profile dev-ro \\\necs X",
+                  "aliyun --profile dev-ro ecs $X", "aliyun --profile dev-ro ecs *", "aliyun --profile dev-ro oss cp a ~/b", "aliyun --profile dev-ro ecs {a,b}", "aliyun --profile dev-ro ecs X <<< y",
+                  "aliyun --profile dev-ro ecs X <(true)", "=aliyun --profile dev-ro ecs X", "aliyun --profile dev-ro ecs X!", "aliyun --profile dev-ro ecs X^", "ALIBABA_CLOUD_PROFILE=dev-ro; aliyun --profile dev-ro ecs X",
+                  "export ALIBABA_CLOUD_ACCESS_KEY_ID=x; aliyun --profile dev-ro ecs X")
+    # (b)：程序名不是字面写出（通配、花括号、命令替换、会话环境变量、行内变量），也包括 xargs、find -exec 之后的程序
+    hidden = ("a*n ecs DescribeRegions", "/opt/homebrew/bin/aliy?n ecs X", "ali[y]un ecs X", "ali{y,y}un ecs X", "$(printf ali)yun ecs X", "`printf ali`yun ecs X", "$(printf aliy; printf un) ecs X",
+              "a=ali; ${a}yun --profile dev-ro ecs X", "aliyun --profile dev-ro sts X; a=ali; ${a}yun ecs X", "echo x | xargs a*n ecs", "echo x | xargs -0 $(printf ali)yun ecs", "find . -exec ali?un ecs {} +",
+              "eval \"$(printf ali)yun ecs X\"", "bash -c '$(printf ali)yun ecs X'", "X=1 $(printf ali)yun ecs X", "sudo -u me $(printf ali)yun ecs X", "timeout 9 $(printf ali)yun ecs X", "true && \"$(printf ali)yun\" ecs X")
+    for command in unreadable + hidden:
+        assert verdict(command) == g.CLOUD_REFUSED, ("the gate cannot tell what the CLI receives, or that it is the CLI: refused", command, verdict(command))
+    for name, value in (("CLOUD", "aliyun"), ("CLOUD", "/usr/local/bin/aliyun"), ("CLI", "ALIYUN")):
+        assert verdict(f"${name} ecs DescribeRegions", environ={name: value}) == g.CLOUD_REFUSED and verdict(f"echo x | xargs ${{{name}}} ecs", environ={name: value}) == g.CLOUD_REFUSED, ("a session variable", name, value)
+        assert verdict(f"${name} ecs DescribeRegions", environ={name: "vim"}) is None
     refused = ("aliyun ecs DescribeRegions", "aliyun", "echo ok && aliyun ecs DescribeRegions", "aliyun --profile", "aliyun --profile a1 --profile b2 ecs X", "aliyun --profile a1 -p b2 ecs X",
                "aliyun --profile $P ecs X", "aliyun --profile \"$(echo dev)\" ecs X", "aliyun -pdev-ro ecs X", "aliyun --profile-x dev-ro ecs X", "ALIYUN --profile dev-ro ecs X",
                "/usr/local/bin/aliyun --profile dev-ro ecs X", "./aliyun --profile dev-ro ecs X", "~/bin/aliyun --profile dev-ro ecs X",
@@ -186,7 +204,7 @@ def cloud_self_test(verdict):
         assert verdict(command) == g.CLOUD_REFUSED, ("no explicit non-production profile, or not a bare call: refused", command, verdict(command))
     for command in (f"aliyun --profile {prod} ecs DescribeRegions", f"aliyun --profile={prod.upper()} ecs X", f"aliyun -p {prod} ecs X", f"aliyun --profile {prod}-ro ecs X"):
         assert judge(command, real, None, None, {}) is not None, ("the production profile, by the real table: refused", command)
-    print(f"prod_write_gate 阿里云: ok（放行 {len(allowed)} 例、拒 {len(refused)} 例、生产 profile 4 例）")
+    print(f"prod_write_gate 阿里云: ok（放行 {len(allowed)} 例、不涉及的 {len(others)} 例；拒 {len(refused)} 例、参数读不准 {len(unreadable)} 例、程序名藏起来 {len(hidden)} 例、会话变量 6 例、生产 profile 4 例）")
 
 def gate_self_test():
     """卡 #736，用户 10-28「见生产特征即拒，其余靠只读账号」：命令文本里有生产特征就拒，不分程序；原先误拦的样例（没有生产特征）放行；终审 56 例里主机字面可见的全拒。"""
@@ -724,6 +742,8 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
                                   ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 2),
                                   (f"echo {PROD_D.upper()}", 2), ("aliyun --profile dev-ro ecs DescribeRegions", 2), ("ALI\"\"YUN ecs DescribeRegions", 2),  # 阿里云：门出错时一律拒（#736）
+                                  (f"curl http://{PROD_H[:3]}{{x,{PROD_H[3]}}}{PROD_H[4:]}/", 2), ("t=ql; ps$t -h x", 2), ("a=ali; ${a}yun ecs X", 2), ("a=ps; b=ql; $a$b -h x", 2), ("echo $'\\x41'", 2),  # 首轮 S2：花括号每个选项、变量拼接、$'
+                                  ("echo $HOME", 0), ("ls ${HOME} ~", 0),
                                   *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
                 r = mount(gate_cmd, bash(command), shell)
                 assert r.returncode == code and why in r.stderr and ("放行" in r.stderr) == (code == 0) and os.path.isfile(os.path.join(hooks, "gate_failures.log")) == os.path.isdir(hooks), (shell, why, command, r.returncode, r.stderr)

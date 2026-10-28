@@ -38,7 +38,7 @@ busy=""
 for n in $names; do
   rl="actions.runner.FORCITIS-forcitis-one-psa.mac-one-$n"
   rp="$agents/$rl.plist"
-  [ -f "$rp" ] || { echo "缺 $rp，跳过 mac-one-$n" >&2; continue; }
+  [ -f "$rp" ] || { echo "缺 ${rp}，跳过 mac-one-${n}" >&2; continue; }
   if [ "$("$pb" -c 'Print :KeepAlive' "$rp" 2>/dev/null)" = true ] && [ "$("$pb" -c 'Print :ThrottleInterval' "$rp" 2>/dev/null)" = 30 ]; then
     echo "mac-one-$n 已有 KeepAlive、ThrottleInterval，不动"
     continue
@@ -70,6 +70,6 @@ run chmod 644 "$plist"
 reload "$label" "$plist" || { echo "$label 加载失败：手动 launchctl bootstrap $domain $plist" >&2; exit 1; }
 [ "$dry" -eq 1 ] || { cmp "$here/runner_watch.sh" "$bin_dir/runner_watch.sh"; launchctl print "$domain/$label" >/dev/null; echo "已安装并加载 $label"; }
 if [ -n "$busy" ]; then
-  echo "正在跑作业、这次没动：$busy；作业结束后重跑本脚本" >&2
+  echo "正在跑作业、这次没动：${busy}；作业结束后重跑本脚本" >&2
   exit 3
 fi
