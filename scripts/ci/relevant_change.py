@@ -151,7 +151,7 @@ def is_relevant(path):
         return False
     if path.startswith(READ_BY_BUILDS):
         return True
-    if path.startswith(("docs/", "tools/")):  # tools/ is run by hand; light.sh runs its self-tests on every event
+    if path.startswith(("docs/", "tools/docs/")):  # tools/docs/ was under docs/ before #742; tools/ops and tools/evidence stay relevant (release-job shellcheck, evidence self-test)
         return False
     return not ("/" not in path and path.endswith(".md"))
 

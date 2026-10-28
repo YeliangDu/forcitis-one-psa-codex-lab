@@ -172,6 +172,7 @@ def self_test():
         n, unclassified, suspects, text, m = run(intent, topics, rel, arc, None, limit=10240)
         assert m == 2 and suspects == [] and "预算超额只预警" not in text and "现行 6 条，被取代 1 条、归档 2 条" in text, "归档的不上页、不进疑似告警；已被取代的也可归档，现行按并集算"
         assert listing(intent, topics, rel, arc, None) == ["2026-10-01-000001 〔已入正本〕 报销审批三级／带竖线，详见 ADR-0007", "2026-10-04-000003 〔已完成〕 预算超额只预警"], "--archived 列出归档条目"
+        assert not any("预算超额只预警" in line for t in [t for t, _ in load_topics(topics)] + ["未分类"] for line in listing(intent, topics, rel, arc, t)), "按主题列时不列归档条目"
         for body in ("2026-10-31-000001-a-无.md\t已完成\n", "2026-10-04-000003-a-疑.md\t不想要了\n", "2026-10-04-000003-a-疑.md\t已完成\n2026-10-04-000003-a-疑.md\t已取消\n", "2026-10-04-000003-a-疑\t已完成\n"):
             put(arc, body)
             assert raises(lambda: run(intent, topics, rel, arc, None, limit=10240)), f"归档清单应拒绝（文件名不存在、原因码非法、重复、非完整文件名）：{body!r}"
