@@ -12,7 +12,7 @@
 | ADR-0068 1.2 `personnel_command_id uuid`，UUIDv7，应用层经 `IdGenerator` 生成，客户端不能提供 | `PersonnelCommandId(UUID value)`，在 workforce api，拒绝空值与全零 UUID；生成方与幂等归 #738 | `M/api/PersonnelCommandId.java:12-15`；WF:574 |
 | ADR-0068 1.2 所有种类共用一个 ID 空间，其他表只按 ID 引用 | 八个事件都用同一个 `PersonnelCommandId` | `M/events/*.java`；`T/PersonnelCommandContractTest.java:187` |
 | ADR-0068 1.3 种类（含停薪留职开始、结束）；1.4 状态 | 只在表的 CHECK 中；Java 枚举随实现（#738） | WF:600-603 |
-| ADR-0068 1.5 生效日是人事业务生效日、新状态的第一天；离职为最后工作日次日 | 负载 `effectiveDate` 为 `LocalDate`（按日）；离职口径写在事件说明与目录描述，换算（命令入参）归 #738 | `M/events/EmployeeSeparated.java:9-13`；EV:619；WF:577、607 |
+| ADR-0068 1.5 生效日是人事业务生效日、新状态的第一天；离职为最后工作日次日 | 负载 `effectiveDate` 为 `LocalDate`（按日）；离职口径写在事件说明与目录描述，换算（命令入参）归 #738 | `M/events/EmployeeSeparated.java:9-13`；EV:622；WF:577、607 |
 | ADR-0068 1.5 命令行不存姓名、邮箱、性别 | 事件负载只有 ID、枚举与日期，测试逐个检查 | `T/PersonnelCommandContractTest.java:193` |
 | ADR-0068 1.9 命令生效时才发布；录入与撤回有意不发，在注册表登记 | 尚无发布方（#738）；「有意不发」在目录分片中以注释登记（见待决 Q7） | EV:493-494 |
 | ADR-0068 1.9 信封以员工为聚合，`businessDate` 为生效日，`occurredAt` 为 `applied_at` | 目录 `aggregate: Employee`、`businessDate` 声明为人事业务生效日，测试封装信封时核对；`occurredAt` 由发布方填（#738） | EV:495 起；`T/PersonnelCommandContractTest.java:211、220` |
@@ -26,7 +26,7 @@
 | ADR-0068 2.2 需暂停时转待放行，不发 `EmployeeSeparated` | `SeparationHeld` 已建；不发离职事件由发布方保证（#738） | `M/events/SeparationHeld.java` |
 | ADR-0068 2.3 放行后按原生效日执行 | `SeparationHoldReleased.effectiveDate` 为原生效日 | `M/events/SeparationHoldReleased.java` |
 | ADR-0068 2.5 B 不接线入口、identity 在 C 订阅 | 目录 `consumers` 只有审计，`noConsumer` 写明 | EV:495 起 |
-| ADR-0068 第 5 条 F-1 订阅调岗、离职、更正 | 三个事件已建，订阅归 F-1 | EV:565、619、689 |
+| ADR-0068 第 5 条 F-1 订阅调岗、离职、更正 | 三个事件已建，订阅归 F-1 | EV:567、622、694 |
 | ADR-0068 第 6 条 精度按日，依据人事业务生效日（DECLARED） | 生效日一律 `LocalDate`，测试拒绝时刻类型 | `T/PersonnelCommandContractTest.java:201` |
 | ADR-0068 后果：待登记用语 | 八个事件与触发字段登记为提议术语；其余用语见 Q11 | GL:310-451 |
 | ADR-0055 决定 3.3 管理员离职暂停载体改为离职命令 | `SeparationHeld`、`SeparationHoldReleased` 按人事命令 ID 引用 | 同上 |
