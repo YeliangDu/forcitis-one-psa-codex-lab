@@ -130,7 +130,7 @@ jobs:
             exit 1
           fi
           # the recorder above started before the engine was confirmed up and exits at once if it was down: restart it now
-          if ! kill -0 "${DOCKER_EVENTS_PID:-0}" 2>/dev/null; then
+          if [ -z "${DOCKER_EVENTS_PID:-}" ] || ! kill -0 "$DOCKER_EVENTS_PID" 2>/dev/null; then
             nohup docker events --filter type=container --since "$(date +%s)" --format '{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}' > "$RUNNER_TEMP/docker-events.log" 2>&1 &
             echo "DOCKER_EVENTS_PID=$!" >> "$GITHUB_ENV"
           fi
@@ -178,9 +178,10 @@ jobs:
         if: failure()
         timeout-minutes: 5
         run: python3 scripts/ci/docker_diagnostics.py backend/target/docker-diagnostics "${JOB_START_EPOCH:-$(( $(date +%s) - 1800 ))}" "$RUNNER_TEMP/docker-events.log"
+      # only a recorded pid: an empty one used to become `kill 0`, which signals the whole process group of the step - runsvc.sh and the runner listener included - and took the runner offline (卡 #736 第 9 项)
       - name: stop the docker events recorder
         if: always()
-        run: kill "${DOCKER_EVENTS_PID:-0}" 2>/dev/null || true
+        run: case "${DOCKER_EVENTS_PID:-}" in ''|*[!0-9]*|0|1) ;; *) kill "$DOCKER_EVENTS_PID" 2>/dev/null || true ;; esac
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
