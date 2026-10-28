@@ -10,6 +10,8 @@
 
 ## 交付
 
+按卡的「类型」读 `docs/modernization/playbooks/<类型>.md`，照它的步骤做、按它的「回报必含」回报。
+
 1. 只在自己的工作区与分支改，主检出不留改动。
 2. 跑受影响的测试，加 `scripts/ci/light.sh`；改了验收目录再跑全部 surefire 守护类。
 3. 按 `scripts/review/PROMPT.md` 自派复审子代理，必改修好再走。
