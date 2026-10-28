@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""生产写门（PreToolUse：Bash、Monitor、终端面板，跑 tool_input.command 的工具）：只拦「远程工具 ＋ 生产主机或生产凭据特征」（卡 #736，用户 10-28「一次性裁剪」）。防底线 4（生产只读）；安全门，出错失败关闭（退出码 2）。
+"""生产写门（PreToolUse：Bash、Monitor、终端面板，跑 tool_input.command 的工具）：命令文本里见生产特征即拒（卡 #736，用户 10-28「见生产特征即拒，其余靠只读账号（推荐）」）。防底线 4（生产只读）；安全门，出错失败关闭（退出码 2）。
 
-远程工具 = 内置名单（SQL 客户端、bcp、aliyun、ssh、scp、rsync、sftp、curl、wget、httpie 等）并上 origin/main 特征表 remote_entries.tools，名字作为词出现在整行任意位置（原文、去引号后，或变量与命令替换展开后的词里），或有 /dev/tcp、/dev/udp 网络重定向。
-生产特征 = prod_targets.json 的 patterns（与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR 所在仓库的），出现在原文、去引号后的整行，或变量、export、花括号展开后的词与环境值里；会话环境里的目标变量（PGHOST 等）指向生产也算。
-两者同在一行才拒绝；只有其一放行。不再按 shell 写法拒绝（换目录加运行、注释、here-document、括号、反斜杠、变量、通配、zsh 选项等一概不看），也不读被运行的文件。
-特征表缺失、不合格或并集为空：有远程工具的行拒绝，其余放行。
-已知未覆盖：脚本运行时做什么（运行时拼出或下载生产目标、文件里写着生产主机、解释器内联代码自己去连），门只看命令行；兜底是生产只读账号（RULES ④、底线 4）。
+生产特征 = prod_targets.json 的 patterns（生产主机名或 IP、生产库名、生产凭据名；与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR 所在仓库的），
+出现在原文、去引号与反斜杠后的整行，或变量、export、花括号展开后的词与环境值里即拒，不分是什么程序（远程工具、解释器、构建工具、git、grep 都一样）；会话环境里的目标变量（PGHOST 等）指向生产也拒。
+不按 shell 写法拒绝（换目录加运行、注释、here-document、括号、反斜杠、变量、通配、zsh 选项等一概不看），不维护远程工具名单。特征表缺失、不合格或并集为空：一律拒（失败关闭）。
+已知不管、复审不据此判必改（用户 10-28 定，由「本机只有生产只读账号」兜底）：被运行的脚本文件里写着生产主机、解释器内联代码在运行时拼出目标、
+用会话环境里的非目标变量、命令替换、base64、printf 转义等编码藏起来的主机名——命令文本上看不到生产特征的，门放行。
+门出错时 .claude/settings.json 的挂载入口用同一张特征表做保守预筛（去引号与反斜杠后命中即拒，读不到表一律拒）。
 命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
@@ -273,16 +274,12 @@ if not os.path.exists(os.path.join(REPO_ROOT, ".git")):  # installed copy (insta
 ROOTS = ()  # (hook cwd, CLAUDE_PROJECT_DIR, process cwd) whose origin/main tables are unioned in; decide() sets them per call
 TABLE = os.environ.get("PROD_TARGETS_FILE") or str(Path(HERE) / "prod_targets.json")  # unioned with origin/main's all the same (load_table)
 MAIN_TABLE_PATH = "scripts/gates/prod_targets.json"
-SQL_TOOLS = {"psql", "mysql", "mariadb", "sqlcmd", "osql", "mssql-cli", "mongosh", "mongo", "redis-cli", "usql", "tsql", "isql"}
-HTTP_TOOLS = {"curl", "wget", "http", "https", "xh", "xhs"}
-REMOTE_TOOLS = SQL_TOOLS | HTTP_TOOLS | {"sqlpackage", "sftp", "bcp", "aliyun", "ssh", "scp", "rsync", "pg_dump", "pg_dumpall", "pg_restore", "mysqldump"}  # built in; remote_entries.tools on origin/main adds to it
-NET_REDIRECT = re.compile(r"/dev/(?:tcp|udp)/")  # bash's network redirection counts as a remote tool
 REDIRECTION = re.compile(r"&?[<>]+[&|]?")
 ENV_TARGET_VARS = ("PGHOST", "PGSERVICE", "PGDATABASE", "PGUSER", "PGHOSTADDR", "SQLCMDSERVER", "SQLCMDDBNAME", "SQLCMDUSER", "MYSQL_HOST", "DATABASE_URL", "MONGODB_URI", "REDIS_URL", "ALIBABA_CLOUD_PROFILE")
 COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools whose tool_input.command runs in a shell (intent 2026-10-24-160437); settings.json's matcher and pre-filter name these and LAUNCH_TOOL
 LAUNCH_TOOL = "mcp__Claude_Browser__preview_start"  # starts runtimeExecutable + runtimeArgs of the named .claude/launch.json configuration (cfcbcf473 final M4)
-REFUSED = ("拒绝：命令里有远程工具（ssh、scp、rsync、psql、mysql、sqlcmd、curl、aliyun 等），这一行又有生产主机或生产凭据特征（prod_targets.json），"
-           "或会话环境里的目标变量指向生产。CLAUDE.md 底线 4：不做生产写操作；生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口（卡 #736 剪裁后门只拦这一种）。")
+REFUSED = ("拒绝：命令里有生产特征（生产主机名或 IP、生产库名、生产凭据名，见 prod_targets.json；去引号、去反斜杠、变量与花括号展开后也算），"
+           "或会话环境里的目标变量指向生产。CLAUDE.md 底线 4：不做生产写操作；生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口。")
 
 
 def parse_table(text, name):  # (lower-cased patterns, problem or None) of one table's text.
@@ -344,20 +341,6 @@ def load_table(path=None):
     return patterns, None, " ".join(warnings) or None
 
 
-def remote_tools():  # Built-in remote tools plus origin/main's remote_entries.tools (the local table never counts: a branch cannot shrink or widen it).
-    try:
-        found = json.loads(main_table_text()[0] or "{}").get("remote_entries", {}).get("tools", [])
-        return REMOTE_TOOLS | {t.lower() for t in found if isinstance(t, str) and re.fullmatch(r"[a-z0-9_.+-]+", t.lower())}
-    except (ValueError, AttributeError, TypeError):
-        return set(REMOTE_TOOLS)
-
-
-def remote_named(text, tools):  # A remote tool's name as a word anywhere in the raw or the quote-free line; `http://` and the like are URLs, not httpie; bash network redirections count.
-    names = sorted(map(re.escape, tools - {"http", "https"}), key=len, reverse=True)
-    pattern = re.compile(r"(?<![a-z0-9_])(?:" + "|".join(names) + r")(?![a-z0-9_])|(?<![a-z0-9_])https?(?![a-z0-9_]|:/)|" + NET_REDIRECT.pattern)
-    return bool(pattern.search(text.lower()) or pattern.search(plain(text)))
-
-
 def could_concern(text):  # Pre-filter (text already `plain`): False only when the gate would certainly allow: an empty line.
     return bool(text.strip())
 
@@ -403,16 +386,14 @@ def texts_of(command_text):  # The raw and quote-free line, plus every word and 
     return texts
 
 
-def judge(command_text, patterns, problem=None, cwd=None, environ=None, tools=None):
-    """Refusal text or None. Refused only when the line names a remote tool (also spelled by variables) and production shows: a pattern in the raw or quote-free line, in a word
-    or environment value after variables and braces are expanded, or a target variable of the session environment pointing at production (卡 #736). Shell syntax alone refuses nothing."""
-    tools, texts = remote_tools() if tools is None else tools, texts_of(command_text)
-    if not any(remote_named(t, tools) for t in texts):
-        return None
+def judge(command_text, patterns, problem=None, cwd=None, environ=None):
+    """Refusal text or None. Refused when production shows, whatever the program (卡 #736，用户「见生产特征即拒，其余靠只读账号」): a pattern in the raw line, the line with quotes and
+    backslashes removed, a word or environment value after variables, export and braces are expanded, or a target variable of the session environment pointing at production.
+    No table: refused (fail closed). Shell syntax alone refuses nothing; what a script or inline code does at run time is the read-only account's to stop."""
     if patterns is None:
-        return f"{problem}：命令里有远程工具，判断不了目标是不是生产，拒绝；修好 scripts/gates/prod_targets.json 后再做。"
+        return f"{problem}：判断不了命令有没有生产特征，拒绝；修好 scripts/gates/prod_targets.json 后再做。"
     environ = os.environ if environ is None else environ
-    if text_hits(texts, patterns) or any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS):
+    if text_hits(texts_of(command_text), patterns) or any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS):
         return REFUSED
     return None
 
@@ -452,15 +433,12 @@ def decide(payload):  # (exit code, stdout, stderr) for one hook payload (a dict
     command, refusal = command_of(payload)
     if command is None:
         return (2, "", refusal) if refusal else (0, "", "")
-    tools = remote_tools()
-    if not any(remote_named(t, tools) for t in texts_of(command)):  # no remote tool: nothing to judge, the table is not read
-        return 0, "", ""
     cwd = payload.get("cwd") if isinstance(payload.get("cwd"), str) and payload.get("cwd") else None
     global ROOTS
     ROOTS = (cwd, os.environ.get("CLAUDE_PROJECT_DIR"), os.getcwd())
     try:
         patterns, problem, warning = load_table()
-        reason = judge(command, patterns, problem, cwd, tools=tools)
+        reason = judge(command, patterns, problem, cwd)
     finally:
         ROOTS = ()
     if reason:

@@ -136,37 +136,60 @@ def words_self_test():
             raise AssertionError(f"must raise: {bad!r}")
     print("command_words self-test: ok")
 
-MISBLOCKED = (  # no production sample on the line (files it names may hold one): refused before 卡 #736, allowed now; the first four were refused in one-ops' own session on 10-28
+MISBLOCKED = (  # no production sample on the line: refused before 卡 #736, allowed now; the first four were refused in one-ops' own session on 10-28
     "grep -rnE 'Closes #' .github scripts 2>/dev/null | grep -v selftest | head -20", "grep -rnlE 'mq\\.py|入队' docs/*.md | head",
     "/usr/bin/python3 -I -c 'import json;d=json.load(open(\"s.json\"));print(d[\"hooks\"])'", "grep -n x deploy.sh",
     "cd scripts/gates && python3 gates_selftest.py", "python3 - <<'EOF'\nprint(1)\nEOF", "setopt nullglob; ls *.md", "ls *(.)", "npm --prefix frontend run build", "make -C backend test", "env -C /tmp ls",
     "echo -e 'a\\tb'", "printf 'a\\n'", "f() { ls; }; f", "x=(1 2); echo $x", "eval \"$(printf x)\"", "git -c core.pager=cat log -1", "PAGER=cat git log -1", "cd pkg && make && ./dist/app",
-    "./deploy.sh", "bash deploy.sh", "python3 runner.py", "cat <<EOF > n.md\nnotes # x\nEOF\nbash deploy.sh",
-    "psql -h localhost -c 'select 1'", "curl -s https://api.github.com/repos/x/y", "ssh dev-box uptime", "scp a dev:/tmp/", "curl -X POST http://localhost:8080/api")
+    "cat <<EOF > n.md\nnotes # x\nEOF", "psql -h localhost -c 'select 1'", "curl -s https://api.github.com/repos/x/y", "ssh dev-box uptime", "scp a dev:/tmp/", "curl -X POST http://localhost:8080/api")
+BY_DESIGN = ("./deploy.sh", "bash deploy.sh", "python3 runner.py", "cat <<EOF > n.md\nnotes # x\nEOF\nbash deploy.sh")  # the file run names production, the line does not: allowed, the read-only account holds (用户 10-28)
+ADV_HOST, ADV_IP = "prod-db.fictional-corp.example", "203.0.113.45"  # the final review's 56 adversarial samples (7cb55cdc final), fictitious host and TEST-NET address
+
+
+def adversarial():
+    """(refused, allowed by design) of the final review's 56 samples: every one with the host or address literally on the line (after quotes, backslashes, variables and braces) is refused;
+    hidden by encoding, command substitution, a non-target session variable, or inside a file run: allowed (用户 10-28「见生产特征即拒，其余靠只读账号」)."""
+    H, IP, b64 = ADV_HOST, ADV_IP, "cHJvZC1kYi5maWN0aW9uYWwtY29ycC5leGFtcGxl"
+    refused = [f"psql -h {H} -c 'delete from t'", f"alias q=psql; q -h {H} -c x", f"f() {{ psql \"$@\"; }}; f -h {H} -c x", f"eval \"ps\"\"ql -h {H} -c x\"", f"a=ps; b=ql; eval \"$a$b -h {H} -c x\"",
+               f"t=ql; ps$t -h {H} -c x", f"$(echo ps)ql -h {H} -c x", f"$(printf %s ps)$(printf %s ql) -h {H} -c x", f"/opt/homebrew/bin/ps?l -h {H} -c x", f"/opt/homebrew/bin/psql -h {H} -c x",
+               f"./bin/psql -h {H} -c x", f"PSQL -h {H.upper()} -c x", f"$'\\x70sql' -h {H} -c x", f"X={H}; psql -h $X -c x", f"a=prod-db; b=.fictional-corp.example; psql -h $a$b",
+               f"export PGHOST={H}; psql -c x", "psql -h prod-db.{fictional-corp,zz}.example", "psql -h prod-db\".fictional-corp\".example", f"bash <<< \"psql -h {H} -c x\"", f"env psql -h {H} -c x",
+               f"/usr/bin/env psql -h {H} -c x", f"env PGHOST={H} psql -c x", f"env -S 'psql -h {H} -c x'", f"echo {H} | xargs -I{{}} psql -h {{}} -c x", f"echo psql -h {H} -c x | xargs -0 sh -c",
+               f"python3 -c \"import subprocess;subprocess.run(['psql','-h','{H}','-c','x'])\"", f"python3 -c \"import socket;socket.create_connection(('{IP}',5432)).send(b'x')\"",
+               f"python3 -c \"import urllib.request as u;u.urlopen('https://{H}/api',data=b'x')\"", f"node -e \"require('net').connect(5432,'{H}').write('x')\"", f"node -e \"fetch('https://{H}/api',{{method:'POST'}})\"",
+               f"printf 'psql -h {H} -c x' > fx/a.sh && bash fx/a.sh", f"nc {IP} 5432 < dump.sql", f"socat - TCP:{H}:5432", f"telnet {H} 5432", f"mongorestore --host {H} dump/",
+               f"kubectl --server=https://{H}:6443 delete pod x", f"sshpass -p x ssh root@{IP} rm -rf /data", f"git push ssh://git@{H}/srv/repo main", f"echo x > /dev/tcp/{IP}/5432",
+               f"git push https://{H}/srv/repo main", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{H}:1433", f"mvn flyway:migrate -Dflyway.url=jdbc:postgresql://{H}/app",
+               f"DATABASE_URL=postgres://{H}/app npx prisma migrate deploy", f"DOCKER_HOST=tcp://{H}:2376 docker rm -f app", f"ansible all -i {IP}, -m shell -a 'rm -rf /data'",
+               f"mongoimport --host {H} -c t x.json", f"pg_basebackup -h {H} -D out", f"lftp -e 'rm x' {H}", f"grep -r {H} docs/", f"git commit -m '{H} 续费说明'", f"s''sh {H} uptime 'x", f"c\\url https://{H}/"]
+    allowed = ["psql -h $MYTARGET", f"psql -h $(echo {b64} | base64 -d)", "psql -h $(printf '\\x70rod-db.fictional-corp.example')", f"bash <<< \"$(echo {b64} | base64 -d)\"",
+               f"echo {b64} | base64 -d | sh", "bash run.sh", "python3 run.py", "psql -h dev-db.fictional-corp.example -c x", "cd fx && python3 -c 'print(1)'"]
+    return refused, allowed
+
 
 def gate_self_test():
-    """卡 #736：只拦「远程工具 ＋ 生产特征」。原先误拦的样例（shell 写法、运行文件、连非生产的远程工具）放行；远程工具加生产特征（原文、变量、花括号、导出、环境变量）照样拒。"""
-    patterns, P, H = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP], "pgm-prod0001", TEST_IP
+    """卡 #736，用户 10-28「见生产特征即拒，其余靠只读账号」：命令文本里有生产特征就拒，不分程序；原先误拦的样例（没有生产特征）放行；终审 56 例里主机字面可见的全拒。"""
+    patterns, P, H = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP, ADV_HOST, ADV_IP], "pgm-prod0001", TEST_IP
     cwd = tempfile.mkdtemp()
-    Path(cwd, "deploy.sh").write_text(f"ssh {H} rm -rf /srv/x\n", encoding="utf-8")  # a file that names production: not read any more (known gap, read-only account)
-    Path(cwd, "runner.py").write_text(f"connect('{P}')\n", encoding="utf-8")
-    verdict = lambda command, table=patterns, problem=None, environ=None: judge(command, table, problem, cwd, environ or {}, tools=set(g.REMOTE_TOOLS))  # noqa: E731
-    for command in MISBLOCKED:
-        assert verdict(command) is None, ("misblocked before #736, must pass now", command)
-    for command in ("git commit -m 'pgm-prod0001 续费说明'", "echo pgm-prod0001 >> notes.md", "grep -rn pgm-prod0001 docs", f"python3 -c \"connect('{P}')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}",
-                    "cat sshd_config", "grep ssh notes.md", "git log --grep=curl", "echo exhibit xhr"):  # a production sample without a remote tool, a remote tool's name inside another word: allowed
-        assert verdict(command) is None, ("no remote tool: allowed", command)
+    for name, text in (("deploy.sh", f"ssh {H} rm -rf /srv/x\n"), ("runner.py", f"connect('{P}')\n"), ("run.sh", f"psql -h {ADV_HOST} -c 'delete from t'\n"), ("run.py", f"connect('{ADV_IP}')\n")):
+        Path(cwd, name).write_text(text, encoding="utf-8")  # files that name production: not read (by design)
+    verdict = lambda command, table=patterns, problem=None, environ=None: judge(command, table, problem, cwd, environ or {"MYTARGET": ADV_HOST})  # noqa: E731
+    for command in MISBLOCKED + BY_DESIGN:
+        assert verdict(command) is None, ("no production sample on the line: allowed", command)
     still = (f"psql -h {P} -c 'select 1'", f"ssh {H} uptime", f"curl https://{P}/health", "wget https://db.prod.example.com/x", "aliyun rds DescribeDBInstances --DBInstanceId pgm-prod0001",
-             f"python3 -c \"import os; os.system('ssh {H} touch x')\"", f"echo ok # x\nsqlcmd -S {P} -Q 'delete from t'", f"cat <<'EOF'\n$(sqlcmd -S {P} -Q 'delete from t')\nEOF", f"git push ssh://{H}/srv/repo HEAD:main",
-             "H=pgm-pr; psql -h ${H}od0001 -c 'delete from t'", "T=ps; H=pgm-pr; ${T}ql -h ${H}od0001", "export SQLCMDSERVER=pgm-prod0001; sqlcmd -Q x", "curl -XDELETE http://192.0.{2,2}.15/api/item/1",
-             f"$'\\x73qlcmd' -S {P} -Q x", f"s\"\"sh {H} uptime", "cd /tmp && psql -h pgm-prod0001", f"bash -c \"mysql -h {P} -e 'select 1'\"", f"exec 3<>/dev/tcp/{H}/80", f"echo 'cost $5' | ssh {H} cat",
-             "echo 'unterminated ssh pgm-prod0001")
+             "git commit -m 'pgm-prod0001 续费说明'", "echo pgm-prod0001 >> notes.md", "grep -rn pgm-prod0001 docs", f"python3 -c \"connect('{P}')\"", f"./gradlew flywayMigrate -Pflyway.url=jdbc:sqlserver://{P}",
+             "H=pgm-pr; echo ${H}od0001", "T=ps; H=pgm-pr; ${T}ql -h ${H}od0001", "export SQLCMDSERVER=pgm-prod0001; ls", "curl -XDELETE http://192.0.{2,2}.15/api/item/1", "echo pgm-prod{0001,0002}",
+             f"s\"\"sh {H} uptime", "PGM-PROD0001", "pgm-pr\\od0001", "echo 'unterminated pgm-prod0001", f"echo ok # x\nls {P}",
+             "echo \"a pgm-pr\"\"od0001 'x")  # the last: quotes split the sample and the line cannot be parsed: only the quote-free line shows it (first round M4)
     for command in still:
-        assert verdict(command) is not None and "生产" in verdict(command), ("remote tool and production: refused", command)
-    assert verdict("psql -c 'select 1'", environ={"PGHOST": P}) and verdict("ssh dev", environ={"DATABASE_URL": f"sqlserver://{P}"}), "a target variable pointing at production"
-    assert verdict("ls", environ={"PGHOST": P}) is None and verdict("psql -c x", environ={"PGHOST": "localhost"}) is None, "… counts for a remote tool only"
-    assert verdict("psql -h localhost", None, "表坏了") and verdict("ls", None, "表坏了") is None, "a broken table: a remote tool is refused, the rest passes"
-    assert "xh" in g.REMOTE_TOOLS and verdict(f"xh PUT https://{P}/x") and verdict("exhibit pgm-prod0001") is None, "a two-letter tool only as a word"
+        assert verdict(command) is not None and "生产特征" in verdict(command), ("a production sample on the line: refused", command)
+    refused, allowed = adversarial()
+    assert len(refused) + len(allowed) - 2 >= 56, "the final review's 56 samples (plus the two quote / backslash ones of the first round's M4)"
+    missed = [c for c in refused if verdict(c) is None]
+    assert not missed, ("adversarial samples with the host on the line must be refused", missed)
+    assert all(verdict(c) is None for c in allowed), [c for c in allowed if verdict(c)]
+    assert verdict("ls", environ={"PGHOST": P}) and verdict("git status", environ={"DATABASE_URL": f"sqlserver://{P}"}) and verdict("ls", environ={"PGHOST": "localhost"}) is None, "a session target variable"
+    assert verdict("ls", None, "表坏了") and verdict("ls -la", None, "表坏了"), "no table: refused (fail closed)"
     # brace expansion and the table's format
     assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("192.0.{2..4}.15") == [TEST_IP, "192.0.3.15", "192.0.4.15"] and brace_variants("plain") == ["plain"]
     with tempfile.TemporaryDirectory() as tmp:
@@ -179,23 +202,23 @@ def gate_self_test():
         table, problem, _ = load_table()
         firsts = shipped_firsts()
         assert problem is None and table and firsts and all(v.lower() in table for v in firsts.values()), "the shipped table loads and every target's first pattern is in it"
-        assert g.remote_tools() >= g.REMOTE_TOOLS and not could_concern("") and could_concern("ls")
+        assert not could_concern("") and could_concern("ls")
         # hook process end to end, with the shipped, a missing and an empty table
         script = os.path.join(HERE, "prod_write_gate.py")
         def hook(command, table_path=None, tool="Bash", env=None, raw=None):  # `env` replaces the hook's environment, `raw` its input
             env = env or {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), **({"PROD_TARGETS_FILE": table_path} if table_path else {})}
             return subprocess.run([sys.executable, "-I", script], input=raw or json.dumps({"tool_name": tool, "tool_input": {"command": command}, "cwd": cwd}), capture_output=True, text=True, env=env)
-        for name, value in firsts.items():  # every target of the real table, through a remote tool: refused
-            run = hook(f"aliyun rds DescribeDBInstances --DBInstanceId {value}")
+        for name, value in firsts.items():  # every target of the real table, whatever the program: refused
+            run = hook(f"grep -rn {value} docs")
             assert run.returncode == 2 and "底线 4" in run.stderr, name
-        assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0 and hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"").returncode == 0
+        assert hook("ls").returncode == 0 and hook("x", tool="Read").returncode == 0 and hook("python3 -c \"connect('" + firsts["legacy-rds-sqlserver"] + "')\"").returncode == 2
         gone, remote = hook("python3 clean.py", os.path.join(tmp, "missing.json")), hook("psql -c 'select 1'", os.path.join(tmp, "missing.json"))
-        assert gone.returncode == 0 and remote.returncode == 2 and "缺失或不合格" in remote.stderr, (gone, remote)
+        assert gone.returncode == 2 and remote.returncode == 2 and "缺失或不合格" in gone.stderr, (gone, remote)  # no table: everything refused
         Path(tmp, "empty.json").write_text('{"targets": []}', encoding="utf-8")
         no_git = {"LC_ALL": "C", "PATH": tmp, "PROD_TARGETS_FILE": os.path.join(tmp, "empty.json")}
-        assert hook("python3 clean.py", env=no_git).returncode == 0 and hook("psql -h db.example.org -c 'delete from t'", env=no_git).returncode == 2, "an empty table, no git"
+        assert hook("python3 clean.py", env=no_git).returncode == 2 and "为空" in hook("ls", env=no_git).stderr, "an empty table, no git: refused"
         assert [hook(None, env={"LC_ALL": "C"}, raw=raw).returncode for raw in ("not json", "[1]")] == [2, 2], "input that is no JSON object"
-    print(f"prod_write_gate self-test: ok（原先误拦 {len(MISBLOCKED)} 例放行，远程工具加生产特征 {len(still)} 例照拒）")
+    print(f"prod_write_gate self-test: ok（原先误拦 {len(MISBLOCKED)} 例与按设计不管的 {len(BY_DESIGN)} 例放行，含生产特征 {len(still)} 例照拒；终审对抗样例 {len(refused)} 例拒、按设计不管 {len(allowed)} 例放行）")
 
 def seventeen_self_test():
     """17 例全拦：真实特征表（本仓库 prod_targets.json 加 origin/main 并集）与测试表下各跑；读不懂、未拦的例子逐条列出（只列轮次和编号，不打印命令，免得带出生产值）。
@@ -284,7 +307,7 @@ def pre_tool_dispatch_test():
         put(os.path.join(other, "unnamed", ".claude", "launch.json"), json.dumps({"configurations": [{"runtimeExecutable": "psql", "runtimeArgs": ["-h", PROD_H]}, {"name": "ok", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"]}]}), 0o644)
         for tool_input, where, code in (({"name": "w"}, launch, 2), ({"name": "ok"}, launch, 0), ({"url": "http://localhost:3000"}, launch, 0), ({"name": "missing"}, launch, 2),
                                         ({"name": "args"}, launch, 2), ({"name": "prog"}, launch, 2), ({"name": "w"}, other, 2), ({"name": "ok"}, other, 2), ({"name": "W"}, launch, 2),
-                                        ({"name": "envw"}, launch, 2), ({"name": "twice"}, launch, 2), ({"name": "cwdpy"}, launch, 0), ({"name": "var"}, launch, 2)):  # other: a second launch.json disagrees or lacks the name; W: case ignored
+                                        ({"name": "envw"}, launch, 2), ({"name": "twice"}, launch, 2), ({"name": "cwdpy"}, launch, 2), ({"name": "var"}, launch, 2)):  # other: a second launch.json disagrees or lacks the name; W: case ignored
             assert d.dispatch(json.dumps({"tool_name": LAUNCH_TOOL, "tool_input": tool_input, "cwd": where}))[0] == code, (tool_input, where)
         assert g.launch_command({"name": "ok"}, os.path.join(other, "unnamed"))[0] is None, "an unnamed entry: the app derives its name, so which one runs cannot be seen (69af6c8da review M2)"
         assert g.launch_command({"name": "cwdpy"}, launch)[0].startswith("cd sub && "), "the configuration's cwd runs first: a relative script there is another file"
@@ -571,8 +594,8 @@ def settings_self_test():
         assert found == ENTRIES[event], (event, found)
     gate = commands["scripts/gates/pre_tool_dispatch.py"]
     assert gate[2] == 120 and gate[1].endswith("exit 2") and "/usr/bin/python3 -I -c" in gate[1], "the gate mount: when the gate fails its own pre-filter decides, refusing by default (H4, C3)"
-    far = set(re.search(r'far="([^"]*)"', gate[1]).group(1).split())  # #736: the pre-filter refuses a remote tool's name only (substring: `mongo` covers mongosh, `http` https); shell syntax refuses nothing
-    assert far >= {t for t in g.REMOTE_TOOLS if len(t) > 2} - {"https", "mongosh"} and "ok=set" not in gate[1] and "re.search" not in gate[1], "pre-filter lists"
+    tables = ['os.path.expanduser("~/' + gates["install_dir"][2:] + "/" + gates["install_current_link"] + '/scripts/gates/prod_targets.json")', '"scripts/gates/prod_targets.json"']  # #736: the same feature table, installed and the project's
+    assert all(t in gate[1] for t in tables) and "far=" not in gate[1] and "ok=set" not in gate[1] and "not t or" in gate[1], "pre-filter reads the feature table, fails closed without one"
     ceiling = commands["scripts/hooks/git_ceiling_env.sh"]
     assert ceiling[1].endswith("; exit 0") and "【钩子告警】" in ceiling[1] and "exit 2" not in ceiling[1] and ceiling[2] == 10, ceiling
     # an installed target without its exec bit never runs (O6 review item 1); the tool library's start sheet runs through python3, so it needs none
@@ -673,19 +696,22 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
     def bash(command): return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": repo})
     def points_to(): return os.readlink(current) if os.path.islink(current) else None
     def leftovers(): return [n for n in os.listdir(hooks) if n.startswith(".")] if os.path.isdir(hooks) else []
-    def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) - a remote tool's name refuses (it cannot read the table), anything else passes with a warning (#736)
+    def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) with the same feature table (#736): a production sample, quotes and backslashes removed, refuses; no table refuses all
         for shell in shells:
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
-                                  ("echo x > /dev/tcp/10.0.0.5/6379", 2), ("sort --compress-program=./w.sh x", 0), (f"psql -h {FAKE} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
-                                  ("ssh dev uptime", 2), ("curl -s https://x.example.invalid", 2), *((c, 0) for c in MISBLOCKED if not g.remote_named(c, g.REMOTE_TOOLS)), *((c, 2) for c in extra)):
+                                  ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
+                                  ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 2),
+                                  (f"echo {PROD_D.upper()}", 2), *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
                 r = mount(gate_cmd, bash(command), shell)
                 assert r.returncode == code and why in r.stderr and ("放行" in r.stderr) == (code == 0) and os.path.isfile(os.path.join(hooks, "gate_failures.log")) == os.path.isdir(hooks), (shell, why, command, r.returncode, r.stderr)
+            r = mount(gate_cmd, bash("ls"), shell, CLAUDE_PROJECT_DIR=tmp)  # no table anywhere (nothing installed, none in the project): every command refused
+            assert r.returncode == 2 or os.path.isfile(os.path.join(current, "scripts/gates/prod_targets.json")), ("no feature table: fail closed", shell, r.returncode, r.stderr)
             r = mount(ceiling_cmd, json.dumps({"cwd": repo}), shell)
             assert r.returncode == 0 and r.stdout.splitlines()[-1].startswith("【钩子告警】"), (shell, why, r.returncode, r.stdout, r.stderr)
     # 1. nothing installed: the pre-filter decides (an input it cannot read is refused), SessionStart warns and passes
     closed("入口缺失")
     assert mount(gate_cmd, "not json").returncode == 2 and mount(gate_cmd, json.dumps({"tool_name": "Bash", "tool_input": {}})).returncode == 2
-    for tool, command, code in ((t, c, r) for t in COMMAND_TOOLS[1:] for c, r in ((f"psql -h {FAKE} -c 'delete from t'", 2), ("ls", 0))):  # Monitor, the terminal panel
+    for tool, command, code in ((t, c, r) for t in COMMAND_TOOLS[1:] for c, r in ((f"psql -h {PROD_P} -c 'delete from t'", 2), ("ls", 0))):  # Monitor, the terminal panel
         assert mount(gate_cmd, bash(command).replace('"Bash"', f'"{tool}"')).returncode == code, (tool, command)
     # 2. first install: <install_dir>/<full sha>/, current a relative link to it, nothing half-made left
     r = install()
