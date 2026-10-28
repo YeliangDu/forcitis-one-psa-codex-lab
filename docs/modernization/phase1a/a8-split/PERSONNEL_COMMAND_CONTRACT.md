@@ -28,7 +28,7 @@
 | ADR-0068 2.5 B 不接线入口、identity 在 C 订阅 | 目录 `consumers` 只有审计，`noConsumer` 写明 | EV:495 起 |
 | ADR-0068 第 5 条 F-1 订阅调岗、离职、更正 | 三个事件已建，订阅归 F-1 | EV:567、622、694 |
 | ADR-0068 第 6 条 精度按日，依据人事业务生效日（DECLARED） | 生效日一律 `LocalDate`，测试拒绝时刻类型 | `T/PersonnelCommandContractTest.java:201` |
-| ADR-0068 后果：待登记用语 | 八个事件与触发字段登记为提议术语；其余用语见 Q11 | GL:310-451 |
+| ADR-0068 后果：待登记用语 | 八个事件与触发字段登记为提议术语；其余用语见 Q10 | GL:310-451 |
 | ADR-0055 决定 3.3 管理员离职暂停载体改为离职命令 | `SeparationHeld`、`SeparationHoldReleased` 按人事命令 ID 引用 | 同上 |
 | ADR-0055 决定 3.5 `revocation_separation_command_id` 引用离职命令 | 该列由 R 改名（已合入）；`EmployeeSeparated.personnelCommandId` 即其来源 | `M/events/EmployeeSeparated.java:13` |
 | ADR-0055 决定 4 去重键（人，人事变更命令 ID，触发字段） | 调岗负载带人事命令 ID 与触发字段 | `M/events/EmployeeTransferred.java:17-18` |
