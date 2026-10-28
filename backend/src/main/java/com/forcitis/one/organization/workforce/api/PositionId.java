@@ -1,4 +1,4 @@
-package com.forcitis.one.organization.workforce.domain;
+package com.forcitis.one.organization.workforce.api;
 
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.ValueObject;

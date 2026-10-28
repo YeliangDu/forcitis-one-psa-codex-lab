@@ -14,7 +14,7 @@ import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.domain.Position;
-import com.forcitis.one.organization.workforce.domain.PositionId;
+import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.domain.PositionStatus;
 import com.forcitis.one.organization.workforce.domain.Reconciliation;
 import com.forcitis.one.organization.workforce.domain.RegisteredEmployee;
