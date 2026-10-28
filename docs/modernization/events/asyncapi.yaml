@@ -4368,6 +4368,10 @@ x-system-actors:
   actorId: 7f82e786-478f-594a-a1ff-ad168fbc4775
   module: platform.identity
   description: 作业：清理过期会话
+- name: platform.identity.system-role-declaration
+  actorId: 964051ef-678b-59d2-ab64-f99acf3f520f
+  module: platform.identity
+  description: 启动对账 SystemRoleReconciliation：按系统角色声明写入或修订系统角色的 SEED 版本（ADR-0034 第 1 项第 7 条）
 - name: platform.integration.event.cleanup
   actorId: d13191e2-64c8-5e5f-b615-64bb2a3dbae8
   module: platform.integration

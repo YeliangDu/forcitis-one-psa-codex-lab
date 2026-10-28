@@ -333,13 +333,6 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.identity]
-  platform_identity.role_permissions:
-    role: AGGREGATE_CHILD
-    aggregate: Role
-    mutability: REPLACE_SET
-    retention: {policy: PERMANENT}
-    lineage: {source: NEW}
-    writers: [platform.identity]
   platform_identity.account_roles:
     role: AGGREGATE_CHILD
     aggregate: UserAccount
@@ -358,7 +351,7 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     references: {recorded_by: platform_identity.user_accounts, closed_by: platform_identity.user_accounts}
-    writers: []
+    writers: [platform.identity]
   platform_identity.account_role_grants:
     # Retention as role_versions above (0034-Q2; owner one-1a-par; due within 30 months after the first production deployment; purge job built with the audit online deletion; account_role_grants is purged before role_versions).
     # D17 rule 2: effective basis DECLARED; the current value is the row that is not closed.

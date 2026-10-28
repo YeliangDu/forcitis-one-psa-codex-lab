@@ -1,7 +1,7 @@
 # Tables whose primary key a framework owns: the rule "one uuid column made by IdGenerator" does not apply to them (ADR-0033 section 1 item 8).
 # Only these five, for good: the application cannot choose their key. A table is added only after a report to one-coordinator; a line whose table is gone fails PrimaryKeyTypeGuardTest.
-# Landing record (R-1b P5, RULING-P5-D12): primary-key-type-baseline.txt is deleted; account_roles, role_permissions and sync_run_held_separations
-# got a UUIDv7 single-column key and their old key became a named unique constraint, so no table of ours is listed apart from these five.
+# Landing record (R-1b P5, RULING-P5-D12): primary-key-type-baseline.txt is deleted; account_roles and sync_run_held_separations (and role_permissions,
+# retired by ADR-0034-IMPL PR-2) got a UUIDv7 single-column key and their old key became a named unique constraint, so no table of ours is listed apart from these five.
 # 非框架表只允许 ADR-0048 的 audit_entries；新增须另立 ADR（分区表的形状由 PrimaryKeyTypeGuardTest 校验，不是跳过）
 # Format: <schema.table>  # reason
 platform_identity.sessions  # Spring Session JDBC owns the table: the key is primary_id, a framework-made id

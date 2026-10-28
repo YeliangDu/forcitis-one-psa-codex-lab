@@ -336,7 +336,6 @@ aggregates:
   - code
   - registry
   tables:
-  - platform_identity.role_permissions
   - platform_identity.role_versions
   - platform_identity.roles
   commands:

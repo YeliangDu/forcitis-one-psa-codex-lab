@@ -26,6 +26,8 @@ categories:
   - platform.identity.operations.account.role.granted
   - platform.identity.operations.account.role.revoked
   - platform.identity.privileged.request
+  - platform.identity.role-version.closed
+  - platform.identity.role-version.opened
   - platform.identity.single-operator-mode.applied
   - platform.identity.single-operator-mode.enabled
   - platform.identity.AccountDisabled
