@@ -4,9 +4,10 @@
 生产特征 = prod_targets.json 的 patterns（生产主机名或 IP、生产库名、生产凭据名；与 origin/main 上那份取并集，钩子调用时再并上 cwd 与 CLAUDE_PROJECT_DIR 所在仓库的），
 出现在原文、去引号与反斜杠后的整行，或变量、export、花括号展开后的词与环境值里即拒，不分是什么程序（远程工具、解释器、构建工具、git、grep 都一样）；会话环境里的目标变量（PGHOST 等）指向生产也拒。
 不按 shell 写法拒绝（换目录加运行、注释、here-document、括号、反斜杠、变量、通配、zsh 选项等一概不看），不维护远程工具名单。特征表缺失、不合格或并集为空：一律拒（失败关闭）。
+唯一例外是阿里云命令行（卡 #736，用户「先不动，门补一条」）：本机默认 profile 是生产，命令里出现 aliyun 就拒，除非段首裸写 aliyun 且显式给一个不在特征表的 --profile（cloud_cli_refusal）。
 已知不管、复审不据此判必改（用户 10-28 定，由「本机只有生产只读账号」兜底）：被运行的脚本文件里写着生产主机、解释器内联代码在运行时拼出目标、
 用会话环境里的非目标变量、命令替换、base64、printf 转义等编码藏起来的主机名——命令文本上看不到生产特征的，门放行。
-门出错时 .claude/settings.json 的挂载入口用同一张特征表做保守预筛（去引号与反斜杠后命中即拒，读不到表一律拒）。
+门出错时 .claude/settings.json 的挂载入口用同一张特征表做保守预筛（去引号与反斜杠后命中即拒，见 aliyun 即拒，读不到表一律拒）。
 命令解析（原 command_words）也在本文件，其他钩子经 scripts/hooks/command_words.py 兼容层导入。自测在 gates_selftest.py 的 prod_write_gate 段（O8 合一）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行。用法：prod_write_gate.py  |  prod_write_gate.py --self-test
 """
@@ -280,6 +281,9 @@ COMMAND_TOOLS = ("Bash", "Monitor", "mcp__terminal__run_in_terminal")  # tools w
 LAUNCH_TOOL = "mcp__Claude_Browser__preview_start"  # starts runtimeExecutable + runtimeArgs of the named .claude/launch.json configuration (cfcbcf473 final M4)
 REFUSED = ("拒绝：命令里有生产特征（生产主机名或 IP、生产库名、生产凭据名，见 prod_targets.json；去引号、去反斜杠、变量与花括号展开后也算），"
            "或会话环境里的目标变量指向生产。CLAUDE.md 底线 4：不做生产写操作；生产只读取证走 ADR-0037 专用只读账号和已登记的取证入口。")
+CLOUD_CLI = "aliyun"  # Alibaba Cloud CLI: its default profile on this machine is production (aliyun-prod-profile in prod_targets.json)
+CLOUD_REFUSED = ("拒绝：阿里云命令行的默认 profile 是生产。aliyun 只认段首裸写、显式给一个 --profile <名>（或 --profile=<名>、-p <名>）且名不在 prod_targets.json 的写法；"
+                 "没给 profile、名是生产 profile、用别名、路径、包装程序（env、sudo、xargs、bash -c 等）或变量调用都拒（卡 #736）。CLAUDE.md 底线 4。")
 
 
 def parse_table(text, name):  # (lower-cased patterns, problem or None) of one table's text.
@@ -386,6 +390,40 @@ def texts_of(command_text):  # The raw and quote-free line, plus every word and 
     return texts
 
 
+def cloud_cli_refusal(command_text, patterns):
+    """Refusal text or None for the Alibaba Cloud CLI (卡 #736，用户「先不动，门补一条」): its default profile is production, so a segment naming it is allowed only as a bare
+    `aliyun` at the segment's start with exactly one `--profile <name>` (`--profile=<name>`, `-p <name>`) whose name is plain and matches no pattern. Anywhere else (an alias,
+    a path, a wrapper, an argument, an assignment, a shell body) or seen only after variables are expanded: refused. Unreadable input that names it: refused."""
+    try:
+        tokens = [restore(t) for t in tokens_of(command_text, structured=True)]
+    except ValueError:
+        return CLOUD_REFUSED if CLOUD_CLI in plain(command_text) else None
+    segments, cur, seen = [], [], 0
+    for token in tokens + [";"]:
+        if token in SEPARATORS or token in ("<(", ">(") or set(token) <= set(";&|()"):
+            segments.append(cur)
+            cur = []
+        else:
+            cur.append(token)
+    for seg in segments:
+        hits = sum(CLOUD_CLI in t.lower() for t in seg)
+        seen += hits
+        if not hits:
+            continue
+        if seg[0] != CLOUD_CLI:
+            return CLOUD_REFUSED
+        names = [seg[at + 1] if at + 1 < len(seg) else "" for at, t in enumerate(seg) if t in ("--profile", "-p")] + [t.partition("=")[2] for t in seg if t.startswith("--profile=")]
+        odd = [t for t in seg if (t.startswith("--profile") or t.startswith("-p")) and t not in ("--profile", "-p") and not t.startswith("--profile=")]
+        if len(names) != 1 or odd or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", names[0]) or text_hits(names, patterns):
+            return CLOUD_REFUSED
+    assigned = []
+    try:
+        expanded = [w for c in simple_commands(command_text, assigned=assigned) for w in c.argv + list(c.env.values())] + assigned
+    except ValueError:
+        expanded = []
+    return CLOUD_REFUSED if sum(CLOUD_CLI in w.lower() for w in expanded) > seen else None
+
+
 def judge(command_text, patterns, problem=None, cwd=None, environ=None):
     """Refusal text or None. Refused when production shows, whatever the program (卡 #736，用户「见生产特征即拒，其余靠只读账号」): a pattern in the raw line, the line with quotes and
     backslashes removed, a word or environment value after variables, export and braces are expanded, or a target variable of the session environment pointing at production.
@@ -395,7 +433,7 @@ def judge(command_text, patterns, problem=None, cwd=None, environ=None):
     environ = os.environ if environ is None else environ
     if text_hits(texts_of(command_text), patterns) or any(text_hits([str(environ.get(v, ""))], patterns) for v in ENV_TARGET_VARS):
         return REFUSED
-    return None
+    return cloud_cli_refusal(command_text, patterns)
 
 
 def command_of(payload):  # (shell command of a hook payload or None, refusal or None): Bash, Monitor and the terminal panel run tool_input.command; Monitor's ws source runs none.

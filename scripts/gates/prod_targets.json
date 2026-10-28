@@ -53,6 +53,14 @@
         "cloud-assistant-run"
       ],
       "note": "BI 生产（U13，intent 131816）：BI 发布脚本写死的生产 ECS 实例、站点域名、发布脚本名；aliyun 云脚本仓库路径与远程执行脚本名（gap-5 D16）。不在 BI 仓库装门"
+    },
+    {
+      "id": "aliyun-prod-profile",
+      "kind": "account",
+      "patterns": [
+        "forcitis-production"
+      ],
+      "note": "本机阿里云命令行的默认 profile（生产）；aliyun 命令须显式 --profile 且名不命中本表才放行（卡 #736，用户「先不动，门补一条」）"
     }
   ],
   "trusted_entries": {

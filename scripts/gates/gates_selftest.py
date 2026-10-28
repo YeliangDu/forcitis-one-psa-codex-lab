@@ -167,6 +167,27 @@ def adversarial():
     return refused, allowed
 
 
+def cloud_self_test(verdict):
+    """阿里云命令行（卡 #736，用户「先不动，门补一条」）：本机默认 profile 是生产，只认段首裸写 aliyun 且显式给一个不在特征表的 --profile；生产 profile 按真实表取（源码里不写）。"""
+    prod = shipped_firsts()["aliyun-prod-profile"]
+    real = load_table()[0]
+    allowed = ("aliyun --profile dev-ro ecs DescribeInstances", "aliyun ecs DescribeRegions --profile=dev-ro", "aliyun -p dev-ro ecs DescribeRegions", "aliyun 'ecs' DescribeRegions --profile \"dev-ro\"",
+               "aliyun --profile dev-ro ecs DescribeRegions && echo ok", "echo ok; aliyun --profile dev-ro sts GetCallerIdentity", "aliyun --profile dev.ro_1 oss ls")
+    for command in allowed:
+        assert verdict(command) is None and judge(command, real, None, None, {}) is None, ("a non-production profile given explicitly: allowed", command)
+    refused = ("aliyun ecs DescribeRegions", "aliyun", "echo ok && aliyun ecs DescribeRegions", "aliyun --profile", "aliyun --profile a1 --profile b2 ecs X", "aliyun --profile a1 -p b2 ecs X",
+               "aliyun --profile $P ecs X", "aliyun --profile \"$(echo dev)\" ecs X", "aliyun -pdev-ro ecs X", "aliyun --profile-x dev-ro ecs X", "ALIYUN --profile dev-ro ecs X",
+               "/usr/local/bin/aliyun --profile dev-ro ecs X", "./aliyun --profile dev-ro ecs X", "~/bin/aliyun --profile dev-ro ecs X",
+               "alias a=aliyun; a --profile dev-ro ecs X", "a=aliyun; $a --profile dev-ro ecs X", "a=ali; ${a}yun --profile dev-ro ecs X", "f() { aliyun \"$@\"; }; f --profile dev-ro ecs X",
+               "env aliyun --profile dev-ro ecs X", "sudo aliyun --profile dev-ro ecs X", "command aliyun --profile dev-ro ecs X", "timeout 9 aliyun --profile dev-ro ecs X",
+               "ALIBABA_CLOUD_PROFILE=dev-ro aliyun ecs X", "echo x | xargs aliyun --profile dev-ro ecs", "bash -c 'aliyun --profile dev-ro ecs X'", "eval aliyun --profile dev-ro ecs X",
+               "which aliyun", "echo 'unterminated aliyun", "al\"\"iyun ecs DescribeRegions", "ali\\yun ecs DescribeRegions")
+    for command in refused:
+        assert verdict(command) == g.CLOUD_REFUSED, ("no explicit non-production profile, or not a bare call: refused", command, verdict(command))
+    for command in (f"aliyun --profile {prod} ecs DescribeRegions", f"aliyun --profile={prod.upper()} ecs X", f"aliyun -p {prod} ecs X", f"aliyun --profile {prod}-ro ecs X"):
+        assert judge(command, real, None, None, {}) is not None, ("the production profile, by the real table: refused", command)
+    print(f"prod_write_gate 阿里云: ok（放行 {len(allowed)} 例、拒 {len(refused)} 例、生产 profile 4 例）")
+
 def gate_self_test():
     """卡 #736，用户 10-28「见生产特征即拒，其余靠只读账号」：命令文本里有生产特征就拒，不分程序；原先误拦的样例（没有生产特征）放行；终审 56 例里主机字面可见的全拒。"""
     patterns, P, H = ["pgm-prod0001", "rm-prodhost1", "db.prod.example.com", TEST_IP, ADV_HOST, ADV_IP], "pgm-prod0001", TEST_IP
@@ -190,6 +211,7 @@ def gate_self_test():
     assert all(verdict(c) is None for c in allowed), [c for c in allowed if verdict(c)]
     assert verdict("ls", environ={"PGHOST": P}) and verdict("git status", environ={"DATABASE_URL": f"sqlserver://{P}"}) and verdict("ls", environ={"PGHOST": "localhost"}) is None, "a session target variable"
     assert verdict("ls", None, "表坏了") and verdict("ls -la", None, "表坏了"), "no table: refused (fail closed)"
+    cloud_self_test(verdict)
     # brace expansion and the table's format
     assert brace_variants("a{1,2}b") == ["a1b", "a2b"] and brace_variants("192.0.{2..4}.15") == [TEST_IP, "192.0.3.15", "192.0.4.15"] and brace_variants("plain") == ["plain"]
     with tempfile.TemporaryDirectory() as tmp:
@@ -701,7 +723,8 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
                                   ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 2),
-                                  (f"echo {PROD_D.upper()}", 2), *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
+                                  (f"echo {PROD_D.upper()}", 2), ("aliyun --profile dev-ro ecs DescribeRegions", 2), ("ALI\"\"YUN ecs DescribeRegions", 2),  # 阿里云：门出错时一律拒（#736）
+                                  *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
                 r = mount(gate_cmd, bash(command), shell)
                 assert r.returncode == code and why in r.stderr and ("放行" in r.stderr) == (code == 0) and os.path.isfile(os.path.join(hooks, "gate_failures.log")) == os.path.isdir(hooks), (shell, why, command, r.returncode, r.stderr)
             r = mount(gate_cmd, bash("ls"), shell, CLAUDE_PROJECT_DIR=tmp)  # no table anywhere (nothing installed, none in the project): every command refused
