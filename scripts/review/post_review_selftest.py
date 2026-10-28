@@ -401,6 +401,36 @@ def case_issue_closing_set():
     assert run(s, repo="o/r")[0] == 0 and [c for c in s.calls if c[0][:2] == ["repo", "view"]] == []
 
 
+def case_issue_refs_first_line():
+    """卡 #736：首行 Refs #<卡> 也认（只关联不关卡）：关闭集合须为空、卡须已排期；Closes 照旧须恰为首行卡。"""
+    for body in (f"Refs #{ISSUE}", f"Refs #{ISSUE}\n\n## 改动说明\n", f"﻿Refs #{ISSUE}  \r\n正文"):
+        s = Stub(body=body, refs=[])
+        assert run(s)[0] == 0 and [c[0][2] for c in s.calls if c[0][0] == "issue"] == [str(ISSUE)], repr(body)
+    for why, kw, word in (("关闭集合不为空（正文别处写了 Closes）", {"refs": [closing(ISSUE, HOME)]}, "须首行写 Closes"),
+                          ("关闭集合是别的卡", {"refs": [closing(8, HOME)]}, "须首行写 Closes"),
+                          ("卡未排期（挂起）", {"refs": [], "issue_labels": (SESSION_LABEL, "挂起")}, "挂起"),
+                          ("卡没有会话标签", {"refs": [], "issue_labels": ()}, "会话:"),
+                          ("卡已关", {"refs": [], "issue_state": "CLOSED"}, "不是 open"),
+                          ("读不到关闭集合", {"refs_out": "{}"}, "失败关闭")):
+        msg = refused(Stub(body=f"Refs #{ISSUE}", **kw))
+        assert word in msg and "拒绝提交" in msg, (why, msg)
+    for body in ("refs #7", "Refs  #7", "Refs #07", "Refs #", "Ref #7", "References #7", "Refs #7 Closes #8", "Refs o/r#7"):
+        s = Stub(body=body, refs=[])
+        assert "拒绝提交" in refused(s) and [c for c in s.calls if c[0][0] == "issue"] == [], body
+    assert "须恰为首行那一张卡" in refused(Stub(body=f"Closes #{ISSUE}", refs=[])), "Closes 照旧：关闭集合为空就拒"
+
+
+def case_prompt_dispatch_rules():
+    """卡 #736：复审提示写明开发会话派全新子代理、普通卡 sonnet、权限安全数据范围与守护路径 opus、只跑受影响模块；复核模式已删；机读头仍能被 post_review 解析。"""
+    text = (pathlib.Path(pr_mod.__file__).parent / "PROMPT.md").read_text(encoding="utf-8")
+    for need in ("由开发会话（作者）自己派", "全新复审子代理", "普通卡用 sonnet", "权限、安全、数据范围类", "review.final_paths", "用 opus", "只跑受影响模块", "调度看差异放行"):
+        assert need in text, need
+    assert "复核模式" not in text and "逐条复核上一轮必改" not in text, "复核要求已删"
+    fence = text.split("```")[1].strip().split("\n")
+    assert fence == ["复审结论：通过｜必改", "commit：<40 位 sha>", "复审者：<模型>-<首轮|终审>-<标识>"], fence
+    assert pr_mod.parse_header(header(PASS, SHA, "sonnet-首轮-a1")) and pr_mod.parse_header(header(FIX, SHA, "opus-终审-a1")), "sonnet 首轮与 opus 终审的头都能解析"
+
+
 def case_main_cli():
     s = Stub()
     with mock.patch.object(pr_mod, "gh", s), tempfile.NamedTemporaryFile("w", suffix=".md", encoding="utf-8-sig") as fh:

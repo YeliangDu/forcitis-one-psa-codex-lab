@@ -84,7 +84,7 @@ def decide_drill(tree, sync_args):
         code, out = sync("ZZ", pages)
         assert code == 0 and "对账通过" in out, f"{why}应通过：{out[:200]}"
         os.remove(os.path.join(dec, "answers", "ZZ.json"))
-    for sheet, old, new in (("ZR", "one-rules", "one-coordinator"), ("ZF", "one-arch-finance", "one-architecture")):   # O23b：登记为旧名的单子经别名表放行，片段写现名
+    for sheet, old, new in (("ZR", "one-rules", "one-leader"), ("ZF", "one-arch-finance", "one-architecture")):   # O23b：登记为旧名的单子经别名表放行，片段写现名
         assert fragment_owner(mod, lambda: sync(sheet, HEAD + ROW.format(sheet, old))) == new, f"登记为旧名 {old} 的单子应经别名写成 {new}"
         os.remove(os.path.join(dec, "answers", f"{sheet}.json"))
     with alias_to_nobody(tree):
@@ -168,19 +168,19 @@ def main():
         assert "## 类别\n\n流程\n\n## 负责会话\n\none-ops\n\n## 影响路径\n\nscripts/ci、docs/modernization\n" in text, text
         assert "## 取代" not in text, "「无」不写取代节"
         assert build_rule_index.parse_intent("p", text)[2] == {"类别": "流程", "负责会话": "one-ops", "影响路径": "scripts/ci、docs/modernization"}
-        code, out = run(tree, swap(swap(swap(swap(GOOD, "category", "授权"), "paths", "无"), "supersedes", os.path.basename(first[0])), "owner", "one-coordinator") + ["--date=2026-01-02"])
+        code, out = run(tree, swap(swap(swap(swap(GOOD, "category", "授权"), "paths", "无"), "supersedes", os.path.basename(first[0])), "owner", "one-leader") + ["--date=2026-01-02"])
         assert code == 0, out
         second = [f for f in glob.glob(os.path.join(mod, "intent", "*.md")) if f != first[0]][0]
         text = open(second, encoding="utf-8").read()
         assert f"## 取代\n\n- {os.path.basename(first[0])}\n" in text and "## 影响路径\n\n无\n" in text and "## 类别\n\n授权\n" in text, text
-        for owner in ("one-coordinator", "one-1a-par", "one-merge", "one-glossary"):
+        for owner in ("one-leader", "one-dev-par", "one-merge", "one-glossary"):
             code, out = run(tree, swap(GOOD, "owner", owner))
             assert code == 0, f"{owner} 应认：{out}"
-        for old, new in (("one-rules", "one-coordinator"), ("one-arch-finance", "one-architecture")):   # O23b：旧名经别名放行，片段写现名
+        for old, new in (("one-rules", "one-leader"), ("one-arch-finance", "one-architecture"), ("one-coordinator", "one-leader"), ("one-1a-par", "one-dev-par")):   # O23b、卡 #736：旧名经别名放行，片段写现名
             assert fragment_owner(mod, lambda: run(tree, swap(GOOD, "owner", old))) == new, f"--owner={old} 应经别名写成 {new}"
         dev = os.path.join(mod, "roles", "dev.md")
         open(dev, "w", encoding="utf-8").write(open(dev, encoding="utf-8").read().replace("## 过渡映射\n", "## 过渡映射\n- one-ghost 担任\n", 1))
-        for name in ("one-ghost", "one-dev-par", "one-lead"):   # 只在 roles/ 过渡映射里的名字、第四批新名都不在 sessions.config，应拒
+        for name in ("one-ghost", "one-dev-zz", "one-lead"):   # 只在 roles/ 过渡映射里的名字、第四批新名都不在 sessions.config，应拒
             code, out = run(tree, swap(GOOD, "owner", name))
             assert code != 0 and "--owner" in out, f"未登记名 {name} 应拒：{out[:200]}"
         with alias_to_nobody(tree):
