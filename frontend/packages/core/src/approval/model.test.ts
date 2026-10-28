@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { taskDetailBody } from '../testing/fixtures';
-import { PROCESS_LABELS, labelOf } from './labels';
+import { DOCUMENT_TYPE_LABELS, labelOf, processNameText } from './labels';
 import {
   type InboxItem,
   type TaskDetail,
@@ -50,11 +50,11 @@ describe('办理意见', () => {
   });
 });
 
-const NEW_ITEM: InboxItem = { category: 'TODO', overdue: false, taskId: 'n-1', claimed: false, processKey: 'cost_timesheet_approval', documentId: 'TS-1', title: 'cost_timesheet_approval 42' };
+const NEW_ITEM: InboxItem = { category: 'TODO', overdue: false, taskId: 'n-1', claimed: false, processKey: 'cost_timesheet_approval', processName: '工时单审批', documentId: 'TS-1', title: 'cost_timesheet_approval 42' };
 
 describe('待办标题', () => {
-  it('新系统的待办按流程和单据号在前端拼出标题，不显示服务端给的英文标题', () => {
-    expect(inboxTitle(NEW_ITEM)).toBe(`${PROCESS_LABELS.cost_timesheet_approval} TS-1`);
+  it('新系统的待办按服务端给的流程名称和单据号在前端拼出标题，不显示服务端给的英文标题', () => {
+    expect(inboxTitle(NEW_ITEM)).toBe('工时单审批 TS-1');
     expect(inboxTitle(NEW_ITEM)).not.toContain('cost_timesheet_approval');
   });
 
@@ -98,23 +98,25 @@ describe('待办的行', () => {
     expect(['new', 'notice', 'done', 'all', 'other'].map(inboxViewOf)).toEqual(['new', 'notice', 'done', 'all', 'all']);
   });
 
-  it('已办的标题和待办一样由流程名称与单据号拼出', () => {
-    expect(recordTitle({ processKey: 'cost_timesheet_approval', documentId: 'TS-9' })).toBe(`${PROCESS_LABELS.cost_timesheet_approval} TS-9`);
+  it('已办的标题和待办一样由服务端给的流程名称与单据号拼出', () => {
+    expect(recordTitle({ processName: '工时单审批', documentId: 'TS-9' })).toBe('工时单审批 TS-9');
   });
 
-  it('服务端新加的流程或单据类型，名称显示为破折号而不是 undefined', () => {
-    expect(labelOf(PROCESS_LABELS, 'FUTURE_PROCESS')).toBe('—');
-    expect(inboxTitle({ ...NEW_ITEM, processKey: 'future_process' })).toBe('— TS-1');
+  it('响应没带流程名称、或单据类型不认识时，名称显示为破折号而不是 undefined', () => {
+    expect(processNameText(undefined)).toBe('—');
+    expect(inboxTitle({ category: 'TODO', overdue: false, taskId: 'n-1', claimed: false, processKey: 'future_process', documentId: 'TS-1', title: 'future_process 42' })).toBe('— TS-1');
+    expect(recordTitle({ documentId: 'TS-9' })).toBe('— TS-9');
+    expect(labelOf(DOCUMENT_TYPE_LABELS, 'FUTURE_TYPE')).toBe('—');
   });
 });
 
 describe('服务端新加的枚举值', () => {
   it('类型上就是开放的：直接用它查表无法通过类型检查，必须经过 labelOf', () => {
-    const key = NEW_ITEM.processKey ?? 'cost_timesheet_approval';
+    const key: string = TASK.documentType;
     // @ts-expect-error a value of a newer server may be outside the table; look it up with labelOf
-    const direct: string = PROCESS_LABELS[key];
-    expect(direct).toBe(PROCESS_LABELS.cost_timesheet_approval);
-    expect(labelOf(PROCESS_LABELS, key)).toBe(PROCESS_LABELS.cost_timesheet_approval);
+    const direct: string = DOCUMENT_TYPE_LABELS[key];
+    expect(direct).toBe(DOCUMENT_TYPE_LABELS.TIMESHEET);
+    expect(labelOf(DOCUMENT_TYPE_LABELS, key)).toBe(DOCUMENT_TYPE_LABELS.TIMESHEET);
   });
 });
 
