@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.ValueObject;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
@@ -12,6 +14,8 @@ import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.organization.workforce.api.PositionId;
+import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
@@ -41,6 +45,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
@@ -55,6 +60,10 @@ class PersonnelCommandContractTest {
     static final LocalDate DAY = LocalDate.of(2026, 11, 2);
     static final PersonnelCommandId COMMAND = new PersonnelCommandId(TestIds.uuid(737));
     static final EmployeeId EMPLOYEE = new EmployeeId(TestIds.uuid(738));
+    static final LegalEntityId LEGAL_ENTITY = new LegalEntityId(TestIds.uuid(739));
+    static final SeparationHoldId HOLD = new SeparationHoldId(TestIds.uuid(740));
+    static final UserId RELEASER = new UserId(TestIds.uuid(741));
+    static final String LEGAL_ENTITY_RULE = "信封 legalEntityId 为员工在生效日的法人";
 
     /** ADR-0068 evidence attachment, 事件契约: the seven named events plus EmployeeCorrected; unpaid leave and legal entity events are not named yet. */
     static final Set<String> ADR_0068_EVENTS = Set.of("EmployeeHired", "EmployeeRegularized", "EmployeeTransferred", "EmployeeSeparated",
@@ -138,6 +147,9 @@ class PersonnelCommandContractTest {
         if (businessDate.startsWith("无") || !businessDate.startsWith("人事业务生效日")) {
             problems.add(where + "businessDate is the personnel effective date (人事业务生效日), catalogue says " + businessDate);
         }
+        if (!String.valueOf(message.get("description")).contains(LEGAL_ENTITY_RULE)) {
+            problems.add(where + "the description states that the envelope's legal entity is the employee's on the effective date");
+        }
         Map<String, Map<String, Object>> properties =
                 (Map<String, Map<String, Object>>) ((Map<String, Object>) message.get("payload")).get("properties");
         List<String> declared = new ArrayList<>(properties.keySet());
@@ -160,12 +172,16 @@ class PersonnelCommandContractTest {
             if (type.endsWith("Id") && !"uuid".equals(schema.get("format"))) {
                 problems.add(where + component.getName() + " is an id, so format: uuid");
             }
+            boolean nullableInCode = component.getAnnotatedType().isAnnotationPresent(Nullable.class);
+            if (nullableInCode != Boolean.TRUE.equals(property.get("nullable"))) {
+                problems.add(where + component.getName() + (nullableInCode ? " is @Nullable, so nullable: true" : " is never null, so not nullable"));
+            }
         }
         return problems;
     }
 
     static EventEnvelope seal(String name, LocalDate businessDate) {
-        return TestEnvelopes.INSTANCE.wrap(new EventDraft("organization.workforce." + name, 1, "Employee", EMPLOYEE.value(), 1, null,
+        return TestEnvelopes.INSTANCE.wrap(new EventDraft("organization.workforce." + name, 1, "Employee", EMPLOYEE.value(), 1, LEGAL_ENTITY,
                 businessDate, List.of()));
     }
 
@@ -174,12 +190,12 @@ class PersonnelCommandContractTest {
                 new EmployeeHired(seal("EmployeeHired", DAY), COMMAND, EMPLOYEE, DAY),
                 new EmployeeRegularized(seal("EmployeeRegularized", DAY), COMMAND, EMPLOYEE, DAY),
                 new EmployeeTransferred(seal("EmployeeTransferred", DAY), COMMAND, EMPLOYEE, DAY, List.of(TriggerFieldKind.ORG_UNIT),
-                        new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2))),
+                        new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), new PositionId(TestIds.uuid(3)), null),
                 new EmployeeSeparated(seal("EmployeeSeparated", DAY), COMMAND, EMPLOYEE, DAY),
                 new EmployeeReinstated(seal("EmployeeReinstated", DAY), COMMAND, EMPLOYEE, DAY),
                 new EmployeeCorrected(seal("EmployeeCorrected", DAY), COMMAND, EMPLOYEE, DAY.minusMonths(1), null),
-                new SeparationHeld(seal("SeparationHeld", DAY), COMMAND, EMPLOYEE, DAY),
-                new SeparationHoldReleased(seal("SeparationHoldReleased", DAY), COMMAND, EMPLOYEE, DAY));
+                new SeparationHeld(seal("SeparationHeld", DAY), COMMAND, EMPLOYEE, DAY, HOLD),
+                new SeparationHoldReleased(seal("SeparationHoldReleased", DAY), COMMAND, EMPLOYEE, DAY, HOLD, RELEASER));
     }
 
     @Test
@@ -222,6 +238,8 @@ class PersonnelCommandContractTest {
             assertThat(event.envelope().aggregateType()).isEqualTo("Employee");
             assertThat(event.envelope().aggregateId()).isEqualTo(EMPLOYEE.value());
             assertThat(event.envelope().businessDate()).isEqualTo(DAY);
+            assertThat(event.envelope().legalEntityId()).as("lead 2026-10-28 Q6: the employee's legal entity on the effective date")
+                    .isEqualTo(LEGAL_ENTITY);
         }
         assertThat(names(sealedSamples().stream().<Class<?>>map(Object::getClass).toList())).isEqualTo(new TreeSet<>(ADR_0068_EVENTS));
         for (String name : ADR_0068_EVENTS) {
@@ -246,10 +264,30 @@ class PersonnelCommandContractTest {
         assertThat(TriggerFieldKind.values()).containsExactly(TriggerFieldKind.ORG_UNIT, TriggerFieldKind.POSITION);
         List<TriggerFieldKind> fields = new ArrayList<>(List.of(TriggerFieldKind.POSITION));
         EmployeeTransferred transferred = new EmployeeTransferred(seal("EmployeeTransferred", DAY), COMMAND, EMPLOYEE, DAY, fields,
-                new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(1)));
+                new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(1)), new PositionId(TestIds.uuid(3)), new PositionId(TestIds.uuid(4)));
         fields.add(TriggerFieldKind.ORG_UNIT);
         assertThat(transferred.triggerFieldKinds()).containsExactly(TriggerFieldKind.POSITION);
         assertThatThrownBy(() -> transferred.triggerFieldKinds().add(TriggerFieldKind.ORG_UNIT)).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    static List<String> extraPayload(Class<?> event) {
+        return Arrays.stream(event.getRecordComponents()).skip(event == EmployeeCorrected.class ? 3 : 4)
+                .map(c -> c.getName() + ":" + c.getType().getSimpleName()).toList();
+    }
+
+    @Test
+    @DisplayName("lead 2026-10-28 Q4、Q5：调岗另带前后部门与前后岗位，暂停带待放行离职记录 ID，放行另带放行人账号 ID（运维命令放行时为空）")
+    void theExtraPayloadIsWhatTheLeadDecided() {
+        assertThat(extraPayload(EmployeeTransferred.class)).containsExactly("triggerFieldKinds:List", "previousOrgUnitId:OrgUnitId",
+                "newOrgUnitId:OrgUnitId", "previousPositionId:PositionId", "newPositionId:PositionId");
+        assertThat(extraPayload(SeparationHeld.class)).containsExactly("separationHoldId:SeparationHoldId");
+        assertThat(extraPayload(SeparationHoldReleased.class)).containsExactly("separationHoldId:SeparationHoldId", "releasedBy:UserId");
+        assertThat(extraPayload(EmployeeCorrected.class)).containsExactly("affectedFrom:LocalDate", "affectedTo:LocalDate");
+        for (Class<?> event : List.of(EmployeeHired.class, EmployeeRegularized.class, EmployeeSeparated.class, EmployeeReinstated.class)) {
+            assertThat(extraPayload(event)).as(event.getSimpleName()).isEmpty();
+        }
+        assertThat(SeparationHoldId.class.getPackageName()).isEqualTo(PersonnelCommandId.class.getPackageName());
+        assertThat(PositionId.class.getPackageName()).isEqualTo(PersonnelCommandId.class.getPackageName());
     }
 
     record WithName(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate, String fullName)
@@ -270,5 +308,13 @@ class PersonnelCommandContractTest {
         Map<String, Object> hired = catalogue().get("EmployeeHired");
         assertThat(catalogueProblems(WithName.class, hired)).anySatisfy(p -> assertThat(p).contains("is not the record's"));
         assertThat(catalogueProblems(EmployeeSeparated.class, null)).anySatisfy(p -> assertThat(p).contains("not in"));
+        Map<String, Object> corrected = catalogue().get("EmployeeCorrected");
+        @SuppressWarnings("unchecked")
+        Map<String, Map<String, Object>> properties =
+                (Map<String, Map<String, Object>>) ((Map<String, Object>) corrected.get("payload")).get("properties");
+        properties.get("affectedTo").remove("nullable");
+        corrected.put("description", "无法人说明");
+        assertThat(catalogueProblems(EmployeeCorrected.class, corrected)).anySatisfy(p -> assertThat(p).contains("affectedTo is @Nullable"))
+                .anySatisfy(p -> assertThat(p).contains("legal entity is the employee's"));
     }
 }
