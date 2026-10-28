@@ -12,7 +12,6 @@ CLAUDE, RULES, ROLES = "CLAUDE.md", "docs/modernization/RULES.md", "docs/moderni
 TEMPLATE, PROMPT = ".github/pull_request_template.md", "scripts/review/PROMPT.md"
 LABEL_WRITER = "scripts/review/post_review.py"
 HOOK_DIRS = ("scripts/gates/", "scripts/hooks/")
-MQ_DIRS = ("scripts/merge/", "scripts/queue/")
 SCRIPT_EXT = (".py", ".sh")
 TOOLS_LIB_ROOT = "~/.modernize/"
 SEP = re.compile(r"[、,，;；]")
@@ -71,9 +70,6 @@ def check_limit(v):
 
 def read(path):
     return path.read_text("utf-8", errors="replace")
-
-def count(path):
-    return len(read(path).splitlines())
 
 def is_test(rel):
     return "selftest" in Path(rel).stem or Path(rel).stem.startswith("test_")
@@ -150,47 +146,16 @@ def check_rule_volume(root, pol, rep):
     rep.cap("H7", "(合计)", total_items, lim["total_max_items"], f"{total_items} 条超过 rules.total_max_items")
 
 def check_gate_volume(root, pol, rep):
-    """H1：scripts/gates/ 与 scripts/hooks/ 的 .py/.sh 合计；文件名含 selftest 或以 test_ 开头算自测。"""
-    g = pol["gates"]
+    """H1：scripts/gates/ 与 scripts/hooks/ 的运行代码文件数（文件名含 selftest 或以 test_ 开头算自测，不计）。
+    行数不再查：卡 #736 去掉 gates.max_lines、runtime_max_lines、mq／tools_lib 的 max_lines_total 与「自测行数不得多于运行代码」。"""
     where = "scripts/gates+hooks"
     files = [r for r in tree(root) if r.startswith(HOOK_DIRS) and r.endswith(SCRIPT_EXT)]
     if not files:
         rep.info("H1", where, "尚无 scripts/gates/、scripts/hooks/ 下的脚本")
         return
     run_files = [r for r in files if not is_test(r)]
-    run_lines = sum(count(root / r) for r in run_files)
-    test_lines = sum(count(root / r) for r in files if is_test(r))
-    rep.cap("H1", where, run_lines, g["runtime_max_lines"], f"运行代码 {run_lines} 行超过 gates.runtime_max_lines")
-    rep.cap("H1", where, len(run_files), g["runtime_max_files"],
+    rep.cap("H1", where, len(run_files), pol["gates"]["runtime_max_files"],
             f"运行代码 {len(run_files)} 个文件超过 gates.runtime_max_files")
-    rep.cap("H1", where, test_lines, run_lines, f"自测 {test_lines} 行多于运行代码 {run_lines} 行", policy=False)
-
-def check_line_caps(root, pol, rep):
-    """gates.max_lines.<名> 按文件名或「名_后缀」对 scripts/** 与 docs/**/*.py；门与钩子报 H1，其余报 H23。
-    门与钩子里没有专属键的自测用 selftest 键。budget_check 自身也在内。"""
-    caps = pol["gates"]["max_lines"]
-    for rel in tree(root):
-        p = Path(rel)
-        hook = rel.startswith(HOOK_DIRS)
-        if not (rel.startswith("scripts/") and p.suffix in SCRIPT_EXT or rel.startswith("docs/") and p.suffix == ".py"):
-            continue
-        key = next((k for k in (p.stem, f"{p.stem}_{p.suffix[1:]}") if k in caps), None)
-        if key is None and hook and is_test(rel):
-            key = "selftest"
-        if key:
-            n = count(root / rel)
-            rep.cap("H1" if hook else "H23", rel, n, caps[key], f"{n} 行超过 gates.max_lines.{key}")
-
-def check_mq_total(root, pol, rep):
-    """H23 后半：mq.max_lines_total 管 scripts/merge/ 与 scripts/queue/ 的合计行数。"""
-    n = sum(count(root / r) for r in tree(root) if r.startswith(MQ_DIRS) and r.endswith(SCRIPT_EXT))
-    rep.cap("H23", "scripts/merge+queue", n, pol["mq"]["max_lines_total"], f"{n} 行超过 mq.max_lines_total")
-
-def check_tools_lib_total(root, pol, rep):
-    """H23 后半：tools_lib.max_lines_total 管的工具库在仓库外，由 janitor 查，这里只出一行信息。"""
-    total = pol["tools_lib"]["max_lines_total"]
-    check_limit(total)
-    rep.info("H23", "tools_lib", f"工具库在仓库外，tools_lib.max_lines_total（{total}）由 janitor 查")
 
 def leaves(node, path=""):
     if isinstance(node, (dict, list)):
@@ -257,8 +222,8 @@ def tools_lib_names(pol, rep):
 
 def check_names(root, pol, rep):
     """执行栏可引用的检查名：scripts/、docs/ 下的 .py/.sh，backend/src/test 下的测试类，workflow 文件名与 job 名，
-    gates.max_lines 的键，工具库里的检查（见 tools_lib_names）。"""
-    names = set(pol["gates"]["max_lines"]) | tools_lib_names(pol, rep)
+    工具库里的检查（见 tools_lib_names）。"""
+    names = tools_lib_names(pol, rep)
     for rel in tree(root):
         p = Path(rel)
         if p.suffix in SCRIPT_EXT and rel.startswith(("scripts/", "docs/")):
@@ -409,8 +374,7 @@ def check_docs_scripts(root, pol, rep):
     for rel, msg in found.items():
         rep.viol("H23", rel, msg)
 
-CHECKS = [("H7", check_rule_volume), ("H1", check_gate_volume), ("H23", check_line_caps), ("H23", check_mq_total),
-          ("H23", check_tools_lib_total), ("H8", check_single_source), ("H9", check_exec_column),
+CHECKS = [("H7", check_rule_volume), ("H1", check_gate_volume), ("H8", check_single_source), ("H9", check_exec_column),
           ("H13", check_measures), ("H17", check_ownership), ("H21", check_label_writer), ("H23", check_docs_scripts)]
 
 def main(argv=None):

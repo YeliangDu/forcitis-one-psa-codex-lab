@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """post_review 的前置检查：PR 关联的 Issue 须已排期（定稿 1.8 第 5 点；二乙 #24）。只读：gh pr view 取正文首行与 GitHub 算出的关闭集合，gh issue view 只取状态与标签。
-PR 正文首行须恰为「Closes #<卡号>」（与 .github/pull_request_template.md 一致）；本脚本不解析正文其余部分，改问 GitHub 这个 PR 实际会关闭哪些 Issue
-（gh pr view --json closingIssuesReferences）：集合须恰为首行那一张卡且与本 PR 同仓库（owner、name 比较不分大小写），多一张、少一张、号不一致、跨仓库都拒。
+PR 正文首行须恰为「Closes #<卡号>」（与 .github/pull_request_template.md 一致），或「Refs #<卡号>」（卡 #736：只关联不关卡）；本脚本不解析正文其余部分，改问 GitHub 这个 PR 实际会关闭哪些 Issue
+（gh pr view --json closingIssuesReferences）：Closes 时集合须恰为首行那一张卡且与本 PR 同仓库（owner、name 比较不分大小写），多一张、少一张、号不一致、跨仓库都拒；
+Refs 时集合须为空（正文别处写了 Closes 等于要关卡，须写在首行）。两种写法首行那张卡都须已排期。
 已核（one-ops 10-27 只读）：GraphQL 自省 PullRequest 有 closingIssuesReferences；gh 2.88.1 对公开仓库 gh pr view 14815 -R cli/cli 实测每项形如
 {id, number, repository:{id, name, owner:{id, login}}, url}，无 state、nameWithOwner。故同仓库只比 owner.login 与 name；number 须整数、二者须字符串，缺或类型不对就拒；url 不作依据。
 已排期口径为调度对定稿 1.8 第 5 点的解释（调度 10-27），非用户原话，待用户确认。
@@ -12,7 +13,7 @@ PR 正文首行须恰为「Closes #<卡号>」（与 .github/pull_request_templa
 import json
 import re
 
-FIRST_LINE = re.compile(r"Closes #([1-9][0-9]{0,8})[ \t\r]*")
+FIRST_LINE = re.compile(r"(Closes|Refs) #([1-9][0-9]{0,8})[ \t\r]*")
 SESSION, HANG, HOLD = "会话:", "挂起", "hold"
 
 
@@ -32,11 +33,13 @@ def home_repo(run, scope):
     return slug.lower() if isinstance(slug, str) and re.fullmatch(r"[^/\s]+/[^/\s]+", slug) else None
 
 
-def closing_mismatch(pr, run, scope, num):
-    """GitHub 算出的关闭集合恰为本仓库的 #num 返回 None，否则返回原因。"""
+def closing_mismatch(pr, run, scope, num, refs_only=False):
+    """GitHub 算出的关闭集合恰为本仓库的 #num（首行 Refs 时须为空）返回 None，否则返回原因。"""
     refs = (fetch(run, ["pr", "view", str(pr), *scope, "--json", "closingIssuesReferences"]) or {}).get("closingIssuesReferences")
     if not isinstance(refs, list):
         return f"读不到 PR #{pr} 的关闭集合（closingIssuesReferences 缺失或不是列表），拒绝提交（失败关闭）"
+    if refs_only:
+        return None if not refs else f"首行是 Refs #{num}，GitHub 却算出 PR #{pr} 会关闭 {len(refs)} 个 Issue；要关卡须首行写 Closes，拒绝提交"
     if len(refs) != 1:
         return f"GitHub 算出 PR #{pr} 会关闭 {len(refs)} 个 Issue，须恰为首行那一张卡 #{num}，拒绝提交"
     ref = refs[0] if isinstance(refs[0], dict) else {}
@@ -59,9 +62,9 @@ def unscheduled(pr, run, scope):
         return f"读不到 PR #{pr} 的正文，确认不了关联 Issue，拒绝提交（失败关闭）"
     link = FIRST_LINE.fullmatch(body.lstrip("﻿").partition("\n")[0])
     if link is None:
-        return "PR 正文首行须恰为「Closes #<卡号>」（取不到、格式不对或跨仓库写法），拒绝提交"
-    num = link.group(1)
-    if (why := closing_mismatch(pr, run, scope, num)) is not None:
+        return "PR 正文首行须恰为「Closes #<卡号>」或「Refs #<卡号>」（取不到、格式不对或跨仓库写法），拒绝提交"
+    num = link.group(2)
+    if (why := closing_mismatch(pr, run, scope, num, link.group(1) == "Refs")) is not None:
         return why
     issue = fetch(run, ["issue", "view", num, *scope, "--json", "state,labels"])
     if issue is None:
