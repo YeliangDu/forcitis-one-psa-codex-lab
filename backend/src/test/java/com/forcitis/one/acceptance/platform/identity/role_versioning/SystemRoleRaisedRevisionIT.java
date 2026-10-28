@@ -101,9 +101,12 @@ class SystemRoleRaisedRevisionIT {
                   from platform_identity.role_versions v1 join platform_identity.role_versions v2 on v2.role_id = v1.role_id
                  where v1.role_id = ?::uuid and v1.version_number = 1 and v2.version_number = 2""", EMPLOYEE).getFirst().getFirst();
         assertThat(seamless).as("ADR-0034 decision 1 item 6: version 2 starts where version 1 was closed, not before version 1 began").isEqualTo(true);
-        List<List<Object>> audit = rows(database, "select action from platform_audit.audit_entries where id = ?::uuid", two.get(14));
-        assertThat(audit).as("the audit entry of version 2 exists").hasSize(1);
-        assertThat(audit.getFirst().getFirst()).isEqualTo("platform.identity.role-version.opened");
+        String auditEntryId = String.valueOf(two.get(14));
+        assertThat(raised.linesWith(RaisedDeclarationLauncher.AUDIT_PROBE)).as("the audit query of the raised start answered: %s", raised.output())
+                .noneMatch(line -> line.contains("failed"));
+        assertThat(raised.linesWith(RaisedDeclarationLauncher.AUDIT_PROBE + " " + auditEntryId + " "))
+                .as("the audit entry of version 2 exists, read through the audit module's own query: %s", raised.output())
+                .containsExactly(RaisedDeclarationLauncher.AUDIT_PROBE + " " + auditEntryId + " " + RaisedDeclarationLauncher.OPENED);
 
         Map<String, List<List<Object>>> after = allVersions(database);
         for (SeededRole role : SystemRoleDeclarationIT.SEED) {
