@@ -42,7 +42,7 @@
 需要：旧系统应用服务器 `i-bp1b34hcl0g1cnkdtrb9` 是 SQL Server 白名单内的唯一出口，只读取证（ADR-0037、`LEGACY_READ_REGISTER.md`）与 C-6 导出只能经它跑 Java 驱动。A8 应用服务器 `i-bp1dqbdqgf4vj53qd1q9` 只做过一次文件核对（NAS 合同取证计划），当前不需要。
 
 通道定义（不等于放开 RunCommand）：
-1. **调用方**：仅 `handoff/B-5-dba/tools/` 下已提交的工具（只读取证类：`b5_legacy_run.py` 的辅助函数、`b5_evidence_scan.py`、`c14_run.py` 的只读核实；`b5_evidence_run.py`、`b5_read_all_run.py` 会以高权限改授权，属一次性授权变更，不在通道内，到时另行请示放行）经阿里云 Python SDK（`ecs.run_command`，命令名 `one-ops-b5`、`keep_command=False`）发出，工具开头 `require_committed` 保证脚本已入库；不走 aliyun CLI 手敲。
+1. **调用方**：仅 `handoff/B-5-dba/tools/` 下已提交的工具（只读取证类：`b5_remote.py`（#742 从已删的 B-5 执行脚本抽出的通道函数）、`b5_evidence_scan.py`、`c14_run.py` 的只读核实；`b5_evidence_run.py`、`b5_read_all_run.py` 会以高权限改授权，属一次性授权变更，不在通道内，到时另行请示放行）经阿里云 Python SDK（`ecs.run_command`，命令名 `one-ops-b5`、`keep_command=False`）发出，工具开头 `require_committed` 保证脚本已入库；不走 aliyun CLI 手敲。
 2. **目标**：仅 `i-bp1b34hcl0g1cnkdtrb9`。
 3. **命令内容限定**：只在 `/root/one-ops-b5`（及其下 `c14-stage-*`）暂存与清理；用 `OneSql` 以 `one_evidence_ro`、`one_a8_views_ro`、`one_legacy_names_ro` 连库；SQL 全部是只读（SELECT、元数据查询），不得出现 `u8c` 与任何写、DDL、EXEC；跑完 `rm -rf` 工作目录并回读 `CLEAN`。
 4. **不属于通道**：重启服务、改应用文件、改系统配置、写应用库——一律不做。

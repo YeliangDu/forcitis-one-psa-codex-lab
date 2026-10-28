@@ -5,7 +5,8 @@ and nothing in CI noticed, because the tools only run against production. This r
 execution, no credentials). A non-stdlib import is fine when it is a module in one of DIRS or a pinned third-party SDK.
 #748 final review: the restored modules also read set_env.py as a file (TOOLS / 'set_env.py') and would have crashed
 after changing production. So a path built from BASES and string literals (TOOLS / 'x', B5 / 'read-all' / 'y') must exist.
-Remove this check when the B-5 and runbook evidence tools also move under tools/ with their own self-test (#742 third PR).
+#742: the executed B-5 write runners are deleted; their shared channel code lives in b5_remote.py for b5_evidence_scan.py.
+Keep this check while the tools only run against production.
 
   evidence_imports.py              check the repository
   evidence_imports.py --self-test  a deleted sibling module or read file turns it red
@@ -66,10 +67,10 @@ def self_test(root):
         for d in (os.path.dirname(DIRS[0]),) + DIRS[1:]:  # B5 / '...' reads the B-5-dba folder above tools/
             shutil.copytree(os.path.join(root, d), os.path.join(tmp, d))
         assert problems(tmp) == [], problems(tmp)
-        os.remove(os.path.join(tmp, DIRS[0], "b5_read_all_run.py"))
-        assert any("imports b5_read_all_run" in p for p in problems(tmp)), "a deleted sibling module must be reported"
-        os.remove(os.path.join(tmp, DIRS[0], "set_env.py"))
-        assert any("reads set_env.py" in p for p in problems(tmp)), "a deleted sibling file read by TOOLS / '...' must be reported"
+        os.remove(os.path.join(tmp, DIRS[0], "b5_remote.py"))
+        assert any("imports b5_remote" in p for p in problems(tmp)), "a deleted sibling module must be reported"
+        os.remove(os.path.join(tmp, DIRS[0], "OneSql.java"))
+        assert any("reads OneSql.java" in p for p in problems(tmp)), "a deleted sibling file read by TOOLS / '...' must be reported"
     print("evidence_imports self-test: ok")
 
 
