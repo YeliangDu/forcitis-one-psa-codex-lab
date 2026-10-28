@@ -495,7 +495,7 @@ components:
     EmployeeHired:
       name: EmployeeHired
       title: 员工入职已生效
-      description: 入职命令生效时发布，录入与撤回只写审计。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。
+      description: 入职命令生效时发布，录入与撤回只写审计。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       payload:
         type: object
         properties:
@@ -531,7 +531,7 @@ components:
     EmployeeRegularized:
       name: EmployeeRegularized
       title: 员工转正已生效
-      description: 转正命令生效时发布：雇佣阶段由试用转为正式，在职状态不变（ADR-0068 第 1 条第 3 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。
+      description: 转正命令生效时发布：雇佣阶段由试用转为正式，在职状态不变（ADR-0068 第 1 条第 3 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       payload:
         type: object
         properties:
@@ -567,7 +567,7 @@ components:
     EmployeeTransferred:
       name: EmployeeTransferred
       title: 员工调岗已生效
-      description: 调岗命令生效时发布；负载另带触发字段与生效日前后的部门，供待调整权限按（人，人事命令 ID，触发字段）去重（ADR-0032 第 4 项、ADR-0055 决定 4）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。
+      description: 调岗命令生效时发布；负载另带触发字段与生效日前后的部门，供待调整权限按（人，人事命令 ID，触发字段）去重（ADR-0032 第 4 项、ADR-0055 决定 4）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       payload:
         type: object
         properties:
@@ -604,6 +604,18 @@ components:
             format: uuid
             x-type: OrgUnitId
             description: 生效日起的部门；只改岗位时与前一天相同
+          previousPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 生效日前一天的岗位；任职未设岗位时为空
+          newPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 生效日起的岗位；只改部门时与前一天相同，任职未设岗位时为空
       x-event:
         eventType: organization.workforce.EmployeeTransferred
         version: 1
@@ -622,7 +634,7 @@ components:
     EmployeeSeparated:
       name: EmployeeSeparated
       title: 员工离职已生效
-      description: 离职命令生效时发布；待放行的离职在放行后才发布（ADR-0068 第 2 条第 2 项）。生效日为人事所填最后工作日的次日。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。
+      description: 离职命令生效时发布；待放行的离职在放行后才发布（ADR-0068 第 2 条第 2 项）。生效日为人事所填最后工作日的次日。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       payload:
         type: object
         properties:
@@ -658,7 +670,7 @@ components:
     EmployeeReinstated:
       name: EmployeeReinstated
       title: 员工复职已生效
-      description: 复职命令生效时发布，对应的离职须已生效、复职生效日更晚（ADR-0068 第 1 条第 5、10 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。
+      description: 复职命令生效时发布，对应的离职须已生效、复职生效日更晚（ADR-0068 第 1 条第 5、10 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       payload:
         type: object
         properties:
@@ -694,7 +706,7 @@ components:
     EmployeeCorrected:
       name: EmployeeCorrected
       title: 员工人事已更正
-      description: 更正命令改变了截至今天的部门、岗位、在职状态或直属领导时发布；只改历史时只写审计、不发布。负载为人事命令 ID、员工 ID 与受影响区间，信封 businessDate 为更正命令的生效日（ADR-0068 第 1 条第 9 项）。
+      description: 更正命令改变了截至今天的部门、岗位、在职状态或直属领导时发布；只改历史时只写审计、不发布。负载为人事命令 ID、员工 ID 与受影响区间，信封 businessDate 为更正命令的生效日（ADR-0068 第 1 条第 9 项）。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       payload:
         type: object
         properties:
@@ -735,7 +747,7 @@ components:
     SeparationHeld:
       name: SeparationHeld
       title: 离职已转待放行
-      description: 离职需暂停时发布：命令转待放行，员工保持在职，不发布员工离职已生效（ADR-0068 第 2 条第 2 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。
+      description: 离职需暂停时发布：命令转待放行，员工保持在职，不发布员工离职已生效（ADR-0068 第 2 条第 2 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       payload:
         type: object
         properties:
@@ -753,6 +765,11 @@ components:
             type: string
             x-type: LocalDate
             description: 人事业务生效日（DECLARED）：被暂停的离职命令自己的生效日
+          separationHoldId:
+            type: string
+            format: uuid
+            x-type: SeparationHoldId
+            description: 待放行离职记录 ID（separation_holds，UUIDv7，ADR-0068 第 2 条第 1 项）
       x-event:
         eventType: organization.workforce.SeparationHeld
         version: 1
@@ -771,7 +788,7 @@ components:
     SeparationHoldReleased:
       name: SeparationHoldReleased
       title: 待放行离职已放行
-      description: 待放行的离职被放行时发布，随后按原生效日执行离职（ADR-0068 第 2 条第 3 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。
+      description: 待放行的离职被放行时发布，随后按原生效日执行离职（ADR-0068 第 2 条第 3 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       payload:
         type: object
         properties:
@@ -789,6 +806,17 @@ components:
             type: string
             x-type: LocalDate
             description: 人事业务生效日（DECLARED）：离职命令原定的生效日，放行后按此日补写离职版本
+          separationHoldId:
+            type: string
+            format: uuid
+            x-type: SeparationHoldId
+            description: 待放行离职记录 ID（separation_holds，UUIDv7，ADR-0068 第 2 条第 1 项）
+          releasedBy:
+            type: string
+            format: uuid
+            x-type: UserId
+            nullable: true
+            description: 界面放行时为放行人的用户账号 ID；经双人运维命令放行时为空，操作人与见证人只记审计（ADR-0068 第 2 条第 4 项）
       x-event:
         eventType: organization.workforce.SeparationHoldReleased
         version: 1
