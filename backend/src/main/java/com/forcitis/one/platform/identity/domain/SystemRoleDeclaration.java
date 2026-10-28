@@ -14,6 +14,8 @@ import java.util.UUID;
  * The system roles, declared in code (ADR-0034 decision 1 item 7): the start-up reconciliation writes them; no migration writes role data.
  * The content is the seed of the identity baseline before ADR-0034-IMPL PR-2, code for code (card 7.2, 0034-G8-02). Changing a role here
  * means raising its revision number; the reconciliation then closes the current version and opens a SEED version with the new revision.
+ * A {@code SystemRoleDeclaration} bean in the context replaces {@link #CURRENT}: that is the seam the acceptance tests of
+ * ADR-0034-IMPL PR-2 (role_versioning) use to raise a revision; keep it.
  */
 @ValueObject
 public record SystemRoleDeclaration(List<DeclaredRole> roles) {

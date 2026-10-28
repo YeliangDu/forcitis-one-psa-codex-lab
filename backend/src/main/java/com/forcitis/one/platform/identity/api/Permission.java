@@ -33,6 +33,7 @@ public enum Permission {
     ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE(Codes.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE);
 
     private final String code;
+    /** The acceptance test DeprecatedCodeIT (role_versioning) sets this field by reflection under this name: rename it only together with that test. */
     private final boolean deprecated;
 
     Permission(String code) {
