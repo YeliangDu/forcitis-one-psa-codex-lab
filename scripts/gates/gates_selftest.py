@@ -438,6 +438,13 @@ def commit_msg_gate_test():
                                  ("fixup! feat: x", lambda msg: "Session:" not in msg, "fixup titles are left alone: "), ("#593 修复钩子", lambda msg: "Session: one-ops" in msg, "a title starting with #<number> is not a comment: ")):
             code, err, msg = commit(repo, title)
             assert code == 0 and kept(msg), why + err + msg
+        guard = [p.rstrip("/") + ("/x.py" if p.endswith("/") else "") for p in policy("review")["final_paths"][:3]]  # 卡 #736：守护文件不须单独提交
+        for rel in guard + ["README.md"]:
+            put(os.path.join(repo, rel), "x\n", 0o644)
+        git(repo, "add", "-A")
+        r = git(repo, "commit", "-q", "-m", "feat: 守护路径与普通文件同一提交", ok=False)
+        files = git(repo, "show", "--name-only", "--format=", "HEAD").stdout.split()
+        assert r.returncode == 0 and set(guard + ["README.md"]) <= set(files) and "Session: one-ops" in git(repo, "log", "-1", "--format=%B").stdout, ("a guard file and an ordinary one in one commit", r.stderr, files)
         put(os.path.join(repo, ".claude/session-name"), "one-nope\n")
         code, err, msg = commit(repo, "feat: 标记不是已知会话")
         assert code == 0 and "Session:" not in msg and "未识别" in err, "an unknown marker warns, never guesses: " + err + msg
@@ -465,6 +472,7 @@ def commit_msg_gate_test():
             assert r.returncode == 0 and word in r.stderr, why + r.stderr
     config = Path(ROOT, ".pre-commit-config.yaml").read_text(encoding="utf-8")
     assert "entry: python3 -I scripts/gates/commit_msg_gate.py" in config, ".pre-commit-config.yaml points at the new path"
+    assert re.findall(r"- id: ([\w-]+)", config) == ["gitleaks", "main-checkout-gate", "commit-msg-gate"], "卡 #736：提交时没有按路径把守护文件拆开的检查"
     for gone in ("scripts/hooks/commit_msg_gate.py", "scripts/hooks/task_ids.py"):
         assert not os.path.exists(os.path.join(ROOT, gone)), gone + " is deleted"
     print("commit_msg_gate self-test: ok")
