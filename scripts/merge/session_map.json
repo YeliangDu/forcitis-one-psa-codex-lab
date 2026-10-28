@@ -1,10 +1,11 @@
 {
- "_note": "branch prefix -> owning session, used by gapscan.py and the merged-notice; longest prefix wins; add a line when a session starts a new branch family; archived sessions map to their successor (10-23: arch-* -> one-architecture, one-rules -> one-glossary, next-5/nx5 -> one-1a-par; 10-28 卡 #736: one-coordinator -> one-leader, one-1a-par -> one-dev-par, old branch prefixes kept)",
+ "_note": "branch prefix -> owning session, used by gapscan.py and the merged-notice; longest prefix wins; add a line when a session starts a new branch family; archived sessions map to their successor (10-23: arch-* -> one-architecture, one-rules -> one-glossary, next-5/nx5 -> one-1a-par; 10-28 卡 #736: one-coordinator -> one-leader, one-1a-par -> one-dev-par, old branch prefixes kept; 10-29: one-dev-par renamed one-dev-org)",
  "prefixes": {
   "claude/one-1a-admin": "one-1a-admin",
   "claude/one-1a-next-5": "one-dev-par",
   "claude/one-1a-par": "one-dev-par",
   "claude/one-dev-par": "one-dev-par",
+  "claude/one-dev-org": "one-dev-org",
   "claude/one-arch-finance": "one-architecture",
   "claude/one-arch-people": "one-architecture",
   "claude/one-arch-revenue": "one-architecture",
