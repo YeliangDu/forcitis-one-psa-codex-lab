@@ -37,10 +37,7 @@ COMMENT ON COLUMN platform_identity.user_accounts.event_count IS '事件序号�
 CREATE TABLE platform_identity.roles (
     role_id           uuid        PRIMARY KEY,
     code              text        NOT NULL,
-    name              text        NOT NULL,
     kind              text        NOT NULL DEFAULT 'CUSTOM' CHECK (kind IN ('SYSTEM', 'CUSTOM')),
-    status            text        NOT NULL DEFAULT 'ENABLED' CHECK (status IN ('ENABLED', 'DISABLED')),
-    access_scope      text        NOT NULL DEFAULT 'SELF' CHECK (access_scope IN ('ALL', 'CUSTOM_ORG_UNITS', 'OWN_ORG_UNIT', 'OWN_ORG_UNIT_SUBTREE', 'SELF', 'SELF_AND_DIRECT_REPORTS')),
     is_administrative boolean     NOT NULL DEFAULT false,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
@@ -50,35 +47,27 @@ CREATE TABLE platform_identity.roles (
     CONSTRAINT ck_roles_code CHECK (code ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$')
 );
 CREATE UNIQUE INDEX uq_roles_code ON platform_identity.roles (lower(code));
-CREATE UNIQUE INDEX uq_roles_name ON platform_identity.roles (lower(name));
-COMMENT ON TABLE platform_identity.roles IS '角色：编码与名称各自唯一；SYSTEM 角色冻结；新角色默认数据范围 SELF（RULE-345）。粒度：每个角色一行';
+COMMENT ON TABLE platform_identity.roles IS '角色：只存不可变的身份（编码、类别、是否管理员角色）；名称、状态、范围类型与权限集合在角色版本（role_versions）；删除角色只关闭最后一个版本，角色行保留，编码不得复用（RULE-345 修订、ADR-0034）。粒度：每个角色一行';
 COMMENT ON COLUMN platform_identity.roles.role_id IS '角色 ID（UUIDv7）';
-COMMENT ON COLUMN platform_identity.roles.code IS '角色编码；super_admin 为预留码，只能由迁移脚本建立（RULE-340/345）';
-COMMENT ON COLUMN platform_identity.roles.name IS '角色名称';
+COMMENT ON COLUMN platform_identity.roles.code IS '角色编码；super_admin 为预留码，只能由系统角色声明建立（RULE-340/345）';
 COMMENT ON COLUMN platform_identity.roles.kind IS '角色类别：SYSTEM（冻结，不可改不可删）/ CUSTOM';
-COMMENT ON COLUMN platform_identity.roles.status IS '角色状态：只有 ENABLED 的角色计入权限与数据范围（RULE-343/349）';
-COMMENT ON COLUMN platform_identity.roles.access_scope IS '数据范围类型：新角色默认 SELF（最小权限，RULE-345）；1a 只存类型，范围明细随 1b 的 data_scope_grants';
-COMMENT ON COLUMN platform_identity.roles.is_administrative IS '是否管理员角色：外部签名票据不得让持有者进入（C1a-03）';
+COMMENT ON COLUMN platform_identity.roles.is_administrative IS '是否管理员角色：外部签名票据不得让持有者进入（C1a-03）；写入后不可改';
 COMMENT ON COLUMN platform_identity.roles.created_at IS '创建时间';
 COMMENT ON COLUMN platform_identity.roles.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_identity.roles.version IS '乐观锁版本';
 COMMENT ON COLUMN platform_identity.roles.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 
-CREATE TABLE platform_identity.role_permissions (
-    role_permission_id uuid     NOT NULL,
-    role_id         uuid        NOT NULL REFERENCES platform_identity.roles (role_id) ON DELETE CASCADE,
-    permission_code text        NOT NULL,
-    created_at      timestamptz NOT NULL DEFAULT now(),
-    updated_at      timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_role_permissions PRIMARY KEY (role_permission_id),
-    CONSTRAINT uk_role_permissions_role_id_permission_code UNIQUE (role_id, permission_code)
-);
-COMMENT ON TABLE platform_identity.role_permissions IS '角色—权限：权限码取自 Permission 目录；整组替换（RULE-346）。粒度：每个角色的每个权限码一行';
-COMMENT ON COLUMN platform_identity.role_permissions.role_permission_id IS '角色权限 ID（UUIDv7）';
-COMMENT ON COLUMN platform_identity.role_permissions.role_id IS '角色 ID';
-COMMENT ON COLUMN platform_identity.role_permissions.permission_code IS '权限码：{子域}.{BC}:{资源}:{动作}';
-COMMENT ON COLUMN platform_identity.role_permissions.created_at IS '创建时间';
-COMMENT ON COLUMN platform_identity.role_permissions.updated_at IS '更新时间';
+CREATE FUNCTION platform_identity.refuse_role_identity_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+    IF NEW.role_id IS DISTINCT FROM OLD.role_id OR NEW.code IS DISTINCT FROM OLD.code OR NEW.kind IS DISTINCT FROM OLD.kind
+       OR NEW.is_administrative IS DISTINCT FROM OLD.is_administrative THEN
+        RAISE EXCEPTION 'a role keeps its id, code, kind and administrative marker: %', OLD.role_id USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+COMMENT ON FUNCTION platform_identity.refuse_role_identity_change() IS '角色的身份列不可改：编码、类别、是否管理员角色写入后不变（ADR-0034 第 1 项第 1 条）';
+CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.roles
+    FOR EACH ROW EXECUTE FUNCTION platform_identity.refuse_role_identity_change();
 
 -- 账号仍持有的角色不得被删除：删角色时由外键拒绝，而不是悄悄把账号的授权带走。
 CREATE TABLE platform_identity.account_roles (
@@ -520,17 +509,7 @@ COMMENT ON COLUMN platform_identity.account_role_grants.revocation_audit_entry_i
 COMMENT ON COLUMN platform_identity.account_role_grants.created_at IS '创建时间（应用注入时钟）';
 COMMENT ON COLUMN platform_identity.account_role_grants.updated_at IS '更新时间（应用注入时钟）：关闭时写入关闭时刻（见待裁定 A-4）';
 
--- 系统角色：super_admin 为预留码（RULE-340/345），只能在此建立；employee 是新员工建档时显式授予一次的默认角色（RULE-344），仅含最小权限。
-INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_scope, is_administrative) VALUES
-    ('019a0000-0000-7000-8000-000000000101', 'super_admin', '超级管理员', 'SYSTEM', 'ENABLED', 'ALL', true),
-    ('019a0000-0000-7000-8000-000000000102', 'employee', '员工', 'SYSTEM', 'ENABLED', 'SELF', false);
-
-INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
-SELECT uuidv7(), roles.role_id, grants.permission_code
-  FROM platform_identity.roles roles
- CROSS JOIN (VALUES ('platform.approval:task:read'), ('platform.approval:task:approve')) AS grants (permission_code)
- WHERE roles.code = 'employee';
-
+-- 系统角色（super_admin、employee 等六个）不在迁移中写入：由代码中的系统角色声明在启动时对账写入（ADR-0034 第 1 项第 7 条）。
 INSERT INTO platform_identity.navigation_items (item_id, parent_item_id, name, route_path, permission_code, sort_order) VALUES
     ('019a0000-0000-7000-8000-000000000201', NULL, '待办', '/inbox', 'platform.approval:task:read', 10),
     ('019a0000-0000-7000-8000-000000000202', NULL, '系统管理', NULL, NULL, 90),
@@ -538,49 +517,3 @@ INSERT INTO platform_identity.navigation_items (item_id, parent_item_id, name, r
     ('019a0000-0000-7000-8000-000000000204', '019a0000-0000-7000-8000-000000000202', '编号规则', '/admin/numbering-rules', 'platform.numbering:numbering-rule:read', 20),
     ('019a0000-0000-7000-8000-000000000205', '019a0000-0000-7000-8000-000000000202', '组织浏览', '/admin/org-units', 'organization.workforce:org-unit:read', 30),
     ('019a0000-0000-7000-8000-000000000206', '019a0000-0000-7000-8000-000000000202', '同步记录', '/admin/sync-runs', 'organization.workforce:sync-run:read', 40);
-
--- 流程管理员角色（D-1a-61）：持有人接收没人可派的审批任务、超时升级的任务，可改派任务、查看全部待办；人选由部署前指定（PREDEPLOY_CHECKLIST B-12）。
-INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_scope, is_administrative) VALUES
-    ('019a0000-0000-7000-8000-000000000103', 'process_administrator', '流程管理员', 'SYSTEM', 'ENABLED', 'SELF', false);
-
--- ADR-0027 第 2、3 项：三个系统业务角色；流程管理员（D-1a-61）已在上面种入。组织数据管理员与业务管理员的持有人在上线前由运维命令按账号授予，迁移不写入任何账号。
-INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_scope, is_administrative) VALUES
-    ('019a0000-0000-7000-8000-000000000104', 'org_data_admin', '组织数据管理员', 'SYSTEM', 'ENABLED', 'ALL', false),
-    ('019a0000-0000-7000-8000-000000000105', 'business_admin', '业务管理员', 'SYSTEM', 'ENABLED', 'SELF', false),
-    ('019a0000-0000-7000-8000-000000000106', 'security_auditor', '安全审计员', 'SYSTEM', 'ENABLED', 'ALL', false);
-
-INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
-SELECT uuidv7(), roles.role_id, grants.permission_code
-  FROM platform_identity.roles roles
-  JOIN (VALUES
-      ('org_data_admin', 'organization.workforce:org-unit:read'),
-      ('org_data_admin', 'organization.workforce:sync-run:read'),
-      ('org_data_admin', 'organization.workforce:sync-run:execute'),
-      ('org_data_admin', 'organization.workforce:legal-entity:update'),
-      ('org_data_admin', 'organization.attendance:work-calendar:read'),
-      ('org_data_admin', 'organization.attendance:work-calendar:update'),
-      ('org_data_admin', 'organization.attendance:locked-day:update'),
-      ('org_data_admin', 'platform.numbering:numbering-rule:read'),
-      ('org_data_admin', 'platform.numbering:numbering-rule:update'),
-      ('org_data_admin', 'platform.integration:source-reference:update'),
-      ('business_admin', 'platform.numbering:numbering-rule:read'),
-      ('business_admin', 'platform.numbering:numbering-rule:approve'),
-      ('business_admin', 'platform.integration:source-reference:approve'),
-      ('security_auditor', 'platform.audit:audit-entry:read'),
-      ('security_auditor', 'platform.audit:audit-entry:export'),
-      ('employee', 'platform.audit:own-login-record:read'),
-      ('employee', 'platform.file:file:create'),
-      ('employee', 'platform.file:file:read')
-  ) AS grants (role_code, permission_code) ON grants.role_code = roles.code;
-
--- ADR-0028：安全审计员在普通会话里也能放行管理员离职造成的同步暂停。
-INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
-SELECT uuidv7(), role_id, 'organization.workforce:separation-hold:approve'
-  FROM platform_identity.roles
- WHERE code = 'security_auditor';
-
--- RULE-385：组织数据管理员可更正法人归属的历史记录；更正只增不改，本权限不在敏感权限之列。
-INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
-SELECT uuidv7(), role_id, 'organization.workforce:legal-entity-attribution-correction:create'
-  FROM platform_identity.roles
- WHERE code = 'org_data_admin';

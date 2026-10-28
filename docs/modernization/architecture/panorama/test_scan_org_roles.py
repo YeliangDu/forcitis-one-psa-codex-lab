@@ -27,32 +27,24 @@ ADMINISTRATOR = '''public final class AdministratorMode {
         Permission.Codes.SECOND);
     public static final Set<String> PLATFORM_ONLY = Set.of(Permission.Codes.FIRST);
 }'''
-ROLE_COLUMNS = '(role_id, code, name, kind, status, access_scope, is_administrative)'
-GRANT_COLUMNS = '(role_permission_id, role_id, permission_code)'
+DECLARATION = '''public record SystemRoleDeclaration(List<DeclaredRole> roles) {
+    /** 不输出内部标识；declared("x", "y") 在注释里不算 */
+    public static final SystemRoleDeclaration CURRENT = new SystemRoleDeclaration(List.of(
+            declared("FIRST_ID", "employee", "员,工(", AccessScopeKind.SELF, false,
+                    Codes.FIRST),
+            declared("SECOND_ID", "admin", "管理员", AccessScopeKind.ALL, true, Permission.Codes.FIRST,
+                    "platform.identity:missing:read")));
+
+    private static DeclaredRole declared(String roleId, String code, String name, AccessScopeKind scope, boolean administrative, String... permissionCodes) {
+        return new DeclaredRole(new RoleId(UUID.fromString(roleId)), new RoleCode(code), administrative, FIRST_REVISION,
+                new RoleDefinition(name, RoleStatus.ENABLED, scope, Set.of(permissionCodes)));
+    }
+}'''
 
 
-def seeds():
+def declaration():
     first, second = str(uuid.uuid4()), str(uuid.uuid4())
-    sql = f'''-- 不输出内部标识
-INSERT INTO platform_identity.roles {ROLE_COLUMNS} VALUES
-('{first}', 'employee', '员;工', 'SYSTEM', 'ENABLED', 'SELF', false),
-('{second}', 'admin', '管理员', 'SYSTEM', 'ENABLED', 'ALL', true);
-INSERT INTO platform_identity.role_permissions {GRANT_COLUMNS}
-SELECT uuidv7(), roles.role_id, grants.permission_code
-FROM platform_identity.roles roles
-CROSS JOIN (VALUES ('platform.identity:role:read')) AS grants (permission_code)
-WHERE roles.code = 'employee';
-INSERT INTO platform_identity.role_permissions {GRANT_COLUMNS}
-SELECT uuidv7(), roles.role_id, grants.permission_code
-FROM platform_identity.roles roles
-JOIN (VALUES ('admin', 'platform.identity:role:read'),
-('admin', 'platform.identity:missing:read')) AS grants (role_code, permission_code)
-ON grants.role_code = roles.code;
-INSERT INTO platform_identity.role_permissions {GRANT_COLUMNS}
-SELECT uuidv7(), role_id, 'platform.identity:role:read'
-FROM platform_identity.roles WHERE code = 'admin';
-'''
-    return s.uncomment(sql), first, second
+    return DECLARATION.replace('FIRST_ID', first).replace('SECOND_ID', second), first, second
 
 
 class PermissionTest(unittest.TestCase):
@@ -76,43 +68,58 @@ class PermissionTest(unittest.TestCase):
                 s.permissions(text)
 
 
-class SeedTest(unittest.TestCase):
-    def test_multiline_insert_select_forms_and_both_gaps(self):
-        text, first, second = seeds()
-        path = Path('migration.sql')
-        roles = s.system_roles([(path, text)])
+class DeclarationTest(unittest.TestCase):
+    def test_multiline_declared_calls_fields_locations_and_both_gaps(self):
+        text, first, second = declaration()
+        path = Path('SystemRoleDeclaration.java')
+        roles = s.system_roles(text, s.permissions(JAVA), path)
         self.assertEqual(['employee', 'admin'], [row['code'] for row in roles])
-        self.assertEqual('员;工', roles[0]['name'])
+        self.assertEqual('员,工(', roles[0]['name'])
+        self.assertEqual(['SYSTEM', 'SYSTEM'], [row['kind'] for row in roles])
+        self.assertEqual(['ENABLED', 'ENABLED'], [row['status'] for row in roles])
+        self.assertEqual(['SELF', 'ALL'], [row['access_scope'] for row in roles])
         self.assertFalse(roles[0]['is_administrative'])
         self.assertTrue(roles[1]['is_administrative'])
         self.assertEqual(['platform.identity:role:read'], roles[0]['permission_codes'])
-        self.assertEqual(2, len(roles[1]['permission_sources']['platform.identity:role:read']))
-        self.assertEqual('migration', roles[0]['source'])
-        self.assertEqual('migration', roles[1]['source'])
-        self.assertEqual('migration.sql:3', roles[0]['source_location'])
-        self.assertEqual('migration.sql:4', roles[1]['source_location'])
+        self.assertEqual(['platform.identity:missing:read', 'platform.identity:role:read'], roles[1]['permission_codes'])
+        self.assertEqual({'platform.identity:role:read': ['SystemRoleDeclaration.java:5']}, roles[0]['permission_sources'])
+        self.assertEqual({'platform.identity:role:read': ['SystemRoleDeclaration.java:6'],
+                          'platform.identity:missing:read': ['SystemRoleDeclaration.java:7']}, roles[1]['permission_sources'])
+        self.assertEqual('code', roles[0]['source'])
+        self.assertEqual('code', roles[1]['source'])
+        self.assertEqual('SystemRoleDeclaration.java:4', roles[0]['source_location'])
+        self.assertEqual('SystemRoleDeclaration.java:6', roles[1]['source_location'])
         self.assertNotIn(first, s.dump(roles))
         self.assertNotIn(second, s.dump(roles))
         self.assertEqual((['platform.identity:missing:read'], ['platform.identity:role:update']),
                          s.discrepancies(s.permissions(JAVA), roles))
 
-    def test_values_grants_with_reordered_columns(self):
-        text, first, _ = seeds()
-        text += f'''INSERT INTO platform_identity.role_permissions
-        (permission_code, role_id, role_permission_id) VALUES
-        ('platform.identity:role:update', '{first}', '{uuid.uuid4()}');'''
-        roles = s.system_roles([(Path('migration.sql'), text)])
-        self.assertIn('platform.identity:role:update', roles[0]['permission_codes'])
+    def test_status_follows_helper_and_qualified_constants_resolve(self):
+        text, _, _ = declaration()
+        text = text.replace('RoleStatus.ENABLED', 'RoleStatus.DISABLED').replace(
+            'Codes.FIRST),', 'Permission.Codes.SECOND, Codes.FIRST),')
+        roles = s.system_roles(text, s.permissions(JAVA))
+        self.assertEqual(['DISABLED', 'DISABLED'], [row['status'] for row in roles])
+        self.assertEqual(['platform.identity:role:read', 'platform.identity:role:update'], roles[0]['permission_codes'])
 
-    def test_unsupported_seed_and_missing_roles_fail(self):
-        text, _, _ = seeds()
-        for bad in (text.replace("'employee';", "'absent';"),
-                    text.replace('SELECT uuidv7()', 'SELECT other_function()'),
-                    text.replace("'SYSTEM'", 'dynamic()'),
-                    text.replace('is_administrative)', 'is_administrative, extra)'),
-                    text.replace('false)', "'false')"), ''):
-            with self.subTest(), self.assertRaises(ValueError):
-                s.system_roles([(Path('migration.sql'), bad)])
+    def test_unsupported_declaration_and_missing_roles_fail(self):
+        text, first, second = declaration()
+        for bad in (text.replace('Codes.FIRST),', 'Codes.ABSENT),'),
+                    text.replace('"platform.identity:missing:read"', '"bad"'),
+                    text.replace('"platform.identity:missing:read"', 'dynamic()'),
+                    text.replace('Codes.FIRST),', 'Codes.FIRST, Permission.Codes.FIRST),'),
+                    text.replace('AccessScopeKind.SELF', 'scope()'),
+                    text.replace('false,', '"false",'),
+                    text.replace('"admin"', '"Employee"'),
+                    text.replace(second, first.upper()),
+                    text.replace(first, 'not-a-uuid'),
+                    text.replace('List.of(\n', 'List.of(\n            other(),\n'),
+                    text.replace('RoleStatus.ENABLED, scope', 'RoleStatus.ENABLED, AccessScopeKind.ALL'),
+                    text.replace('Set.of(permissionCodes)', 'Set.of()'),
+                    text.replace('List.of(', 'List.copyOf('),
+                    ''):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                s.system_roles(bad, s.permissions(JAVA))
 
 
 class AdministratorModeTest(unittest.TestCase):
@@ -128,7 +135,7 @@ class AdministratorModeTest(unittest.TestCase):
         self.assertEqual(['platform.identity:role:read'], role['platform_only'])
         self.assertEqual({'platform.identity:role:read': ['AdministratorMode.java:3'],
                           'platform.identity:role:update': ['AdministratorMode.java:4']}, role['permission_sources'])
-        roles = s.system_roles([(Path('migration.sql'), seeds()[0])])
+        roles = s.system_roles(declaration()[0], perms)
         self.assertEqual((['platform.identity:missing:read'], []), s.discrepancies(perms, roles + [role]))
 
     def test_missing_constants_and_unparseable_sets_fail(self):
@@ -162,7 +169,7 @@ class OrgRolesTest(unittest.TestCase):
         self.write(s.MATRIX, self.matrix)
         self.write(s.PERMISSION, JAVA)
         self.write(s.ADMINISTRATOR_MODE, ADMINISTRATOR)
-        self.write(s.MIGRATIONS / 'platform_identity/V1.sql', seeds()[0])
+        self.write(s.SYSTEM_ROLE_DECLARATION, declaration()[0])
         self.sql = '''CREATE TABLE organization_workforce.org_units (
         status text CHECK (status IN ('ACTIVE', 'DISABLED')),
         region_kind text CONSTRAINT ck_org_units_region_kind
@@ -270,7 +277,7 @@ class OrgRolesTest(unittest.TestCase):
             self.assertEqual(2, len(model['perm']))
             self.assertEqual(3, len(model['srole']))
             self.assertEqual(2, sum(edge['kind'] == 'perm-mod' for edge in links))
-            self.assertEqual(5, sum(edge['kind'] == 'srole-perm' for edge in links))
+            self.assertEqual(4, sum(edge['kind'] == 'srole-perm' for edge in links))
             self.assertTrue(all(edge['src'] for edge in links))
             self.assertTrue(all(edge['to'] in model['perm'] for edge in links if edge['kind'] == 'srole-perm'))
             gaps = defaultdict(list)

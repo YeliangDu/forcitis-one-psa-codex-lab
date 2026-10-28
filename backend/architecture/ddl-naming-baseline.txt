@@ -14,7 +14,6 @@ column platform_identity.emergency_admins.last_totp_step | 改名为 last_totp_s
 column platform_identity.emergency_admins.locked_until | 改名为 lock_expires_at
 column platform_identity.emergency_admins.totp_secret_encrypted | 改名为 totp_secret_ciphertext
 column platform_identity.login_states.entry | 改名为 entry_kind（加 CHECK）
-column platform_identity.roles.access_scope | 改名为 access_scope_kind（加 CHECK）
 column platform_identity.sso_ticket_uses.ticket_source | 改名为 ticket_source_code
 column platform_identity.ticket_issuers.key_reference | 改名为 key_reference_name
 column platform_integration.outbound_deliveries.handled_result | 改名为 handled_result_kind（加 CHECK）
@@ -43,7 +42,6 @@ constraint platform_identity.emergency_admins.emergency_admins_user_id_fkey | RE
 constraint platform_identity.login_states.login_states_pkey | RENAME CONSTRAINT login_states_pkey TO pk_login_states
 constraint platform_identity.navigation_items.navigation_items_parent_item_id_fkey | RENAME CONSTRAINT navigation_items_parent_item_id_fkey TO fk_navigation_items_parent_item_id
 constraint platform_identity.navigation_items.navigation_items_pkey | RENAME CONSTRAINT navigation_items_pkey TO pk_navigation_items
-constraint platform_identity.role_permissions.role_permissions_role_id_fkey | RENAME CONSTRAINT role_permissions_role_id_fkey TO fk_role_permissions_role_id
 constraint platform_identity.roles.roles_pkey | RENAME CONSTRAINT roles_pkey TO pk_roles
 constraint platform_identity.ticket_issuers.ticket_issuers_signing_key_code_key | RENAME CONSTRAINT ticket_issuers_signing_key_code_key TO uk_ticket_issuers_signing_key_code
 constraint platform_identity.ticket_issuers.ticket_issuers_pkey | RENAME CONSTRAINT ticket_issuers_pkey TO pk_ticket_issuers
@@ -58,6 +56,5 @@ index organization_workforce.sync_diffs_sync_run_id_idx | ALTER INDEX organizati
 index organization_workforce.sync_runs_started_at_idx | ALTER INDEX organization_workforce.sync_runs_started_at_idx RENAME TO ix_sync_runs_started_at
 index organization_workforce.sync_runs_status_idx | ALTER INDEX organization_workforce.sync_runs_status_idx RENAME TO ix_sync_runs_status
 index platform_identity.uq_roles_code | ALTER INDEX platform_identity.uq_roles_code RENAME TO uk_roles_code
-index platform_identity.uq_roles_name | ALTER INDEX platform_identity.uq_roles_name RENAME TO uk_roles_name
 index platform_integration.outbound_deliveries_dead_idx | ALTER INDEX platform_integration.outbound_deliveries_dead_idx RENAME TO ix_outbound_deliveries_dead
 index platform_integration.outbound_deliveries_due_idx | ALTER INDEX platform_integration.outbound_deliveries_due_idx RENAME TO ix_outbound_deliveries_due

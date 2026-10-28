@@ -116,12 +116,15 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
         MvcResult sensitive = mvc.perform(put("/api/v1/platform/roles/" + reader).header("If-Match", roleVersion(reader)).with(xsrf()).cookie(new Cookie("SESSION", first))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"reader\",\"enabled\":true,\"permissionCodes\":[\"platform.numbering:numbering-rule:approve\"]}")).andReturn();
         String requestId = requestIdOf(sensitive);
-        assertThat(jdbc.sql("select permission_code from platform_identity.role_permissions where role_id = :id").param("id", reader).query(String.class).list())
-                .containsExactly("platform.approval:task:read");
+        assertThat(TestRoles.currentPermissionCodes(jdbc, reader)).containsExactly("platform.approval:task:read");
         assertThat(decide(second, requestId, "confirm").getResponse().getStatus()).isEqualTo(204);
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
-                jdbc.sql("select permission_code from platform_identity.role_permissions where role_id = :id").param("id", reader).query(String.class).list())
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(TestRoles.currentPermissionCodes(jdbc, reader))
                 .containsExactly("platform.numbering:numbering-rule:approve"));
+        assertThat(jdbc.sql("""
+                select count(*) from platform_identity.role_versions
+                 where role_id = :id and effective_to_at is null and authorization_request_id = cast(:request as uuid) and recorded_by is not null
+                """).param("id", reader).param("request", requestId).query(Long.class).single())
+                .as("ADR-0034-IMPL A-5: the version applied after the confirmation names the request and its author").isEqualTo(1);
 
         createAccount(10, "reader");
         MvcResult heldByCaller = mvc.perform(put("/api/v1/platform/roles/" + reader).header("If-Match", roleVersion(reader)).with(xsrf()).cookie(new Cookie("SESSION", loginAgain(second, 10)))

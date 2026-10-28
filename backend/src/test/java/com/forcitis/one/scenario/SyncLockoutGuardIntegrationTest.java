@@ -336,10 +336,12 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("the security auditor role is seeded with the permission to lift a separation hold")
+    @DisplayName("the security auditor role is declared with the permission to lift a separation hold")
     void theAuditorRoleCarriesThePermission() {
-        assertThat(jdbc.sql("select r.code from platform_identity.role_permissions p join platform_identity.roles r on r.role_id = p.role_id where p.permission_code = 'organization.workforce:separation-hold:approve'")
-                .query(String.class).list()).containsExactly("security_auditor");
+        assertThat(jdbc.sql("""
+                select r.code from platform_identity.role_versions v join platform_identity.roles r on r.role_id = v.role_id
+                 where v.effective_to_at is null and 'organization.workforce:separation-hold:approve' = any (v.permission_codes)
+                """).query(String.class).list()).containsExactly("security_auditor");
     }
 
     @Test

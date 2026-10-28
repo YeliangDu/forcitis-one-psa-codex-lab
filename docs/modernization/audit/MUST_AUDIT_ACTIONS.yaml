@@ -26,17 +26,14 @@ categories:
   - platform.identity.operations.account.role.granted
   - platform.identity.operations.account.role.revoked
   - platform.identity.privileged.request
+  - platform.identity.role-version.closed
+  - platform.identity.role-version.opened
   - platform.identity.single-operator-mode.applied
   - platform.identity.single-operator-mode.enabled
   - platform.identity.AccountDisabled
   - platform.identity.AccountEnabled
   - platform.identity.AccountOpened
   - platform.identity.AccountRolesReplaced
-  - platform.identity.RoleCreated
-  - platform.identity.RoleDeleted
-  - platform.identity.RoleDisabled
-  - platform.identity.RoleEnabled
-  - platform.identity.RoleRevised
 - name: 代理
   actions:
   - planned: platform.approval.proxy.acted | 显式代理动作（RULE-270，D-07）随代理功能一起做，1a 没有代理入口
