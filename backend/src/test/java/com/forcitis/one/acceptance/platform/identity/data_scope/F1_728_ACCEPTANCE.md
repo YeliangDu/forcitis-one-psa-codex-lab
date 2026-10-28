@@ -37,4 +37,6 @@ backend/mvnw -B -f backend/pom.xml verify -Dit.test='RoleScopeGrantIT,CustomOrgU
 - 明细表读回用卡 7.1 的列名；`role_versions.access_scope_kind`、`effective_to_at` 取 ADR-0034-IMPL PR-2 建成的。
 - 系统角色声明：`SystemRoleDeclaration` bean 是启动对账的缝（`SystemRoleReconciliation` 类注释）。`RoleDefinition` 须增加一个成员，装「部门 ID（UUID 或只包一个 UUID 的记录）与布尔『含下级』」构成的记录的集合；测试按形状找这个成员，不限定名字。找不到时测试失败并说明，不跳过。启动失败的具体异常类型与文字不断言。
 - 调度裁定：`RoleScopeGrantIT.aTwoPersonRoleIsNotRevisedToIncludeDescendants` 已 @Disabled，归 #729：范围变化走授权申请（ADR-0032 第 1 项第 3 条，有持有人 409、无持有人放宽范围走申请）。该条断言「对已含敏感权限的角色再多列一个仅本部门返回 202」，主线 UpdateRole 现对此返回 403；断言原样不动，随 #729 转绿。
+- 调度裁定 10-28：`RoleScopeGrantIT.changingTheCustomOrgUnitsLeavesHistory` 按 `subjectKind = ROLE` 且 `subjectId = 角色 ID` 过滤审计条目（应答里没有 `subjectKey`）；改前改后的部门写在审计条目的 `detail`（结构化 JSON，卡 C4），不用 `before_text`、`after_text`（二者按 DATA-REPAIR-timesheet-audit 必须为空）。`detail` 的键为 `before`、`after`，各是部门 ID 字符串数组（顺序不限，按集合比较）；键名卡没有写死，由本文约定，实现可在 `detail` 里另加其他键。
+- 调度裁定 10-28：`GrantHistoryAppendOnlyIT.deleteAndTruncateAreRefusedOnBothTables` 中 `TRUNCATE role_versions` 只断言被拒、SQLSTATE 属于 {0A000, 23001}（role_versions 有子表外键后，截断先报 0A000）。其余 TRUNCATE 与 DELETE 断言不动。
 - 授权申请确认时的重新校验（卡「提交与确认两处」）没有黑盒触发方式，本块不写用例，留给实现卡的集成测试。

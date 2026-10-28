@@ -5,8 +5,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.acceptance.DataScopeSupport;
 import com.jayway.jsonpath.JsonPath;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -95,11 +97,14 @@ class RoleScopeGrantIT extends DataScopeSupport {
                     .with(AUDIT_READER)).andReturn().getResponse();
             assertThat(found.getStatus()).as(found.getContentAsString()).isEqualTo(200);
             List<Map<String, Object>> aboutTheRole = items(found).stream()
-                    .filter(entry -> String.valueOf(entry.get("subjectKey")).contains(roleId)).toList();
-            assertThat(aboutTheRole).as("an audit entry about role " + roleId + " carries the org units before and after")
+                    .filter(entry -> "ROLE".equals(String.valueOf(entry.get("subjectKind"))) && roleId.equals(String.valueOf(entry.get("subjectId")))).toList();
+            assertThat(aboutTheRole).as("an audit entry about role " + roleId + " carries the org units before and after in its detail")
                     .anySatisfy(entry -> {
-                        assertThat(String.valueOf(entry.get("beforeText"))).contains(id("F1-A"));
-                        assertThat(String.valueOf(entry.get("afterText"))).contains(id("F1-B")).doesNotContain(id("F1-A"));
+                        String detail = String.valueOf(entry.get("detail"));
+                        Set<String> before = new HashSet<String>(JsonPath.<List<String>>read(detail, "$.before"));
+                        Set<String> after = new HashSet<String>(JsonPath.<List<String>>read(detail, "$.after"));
+                        assertThat(before).as("before, in detail " + detail).containsExactlyInAnyOrder(id("F1-A"));
+                        assertThat(after).as("after, in detail " + detail).containsExactlyInAnyOrder(id("F1-B"));
                     });
         });
     }
