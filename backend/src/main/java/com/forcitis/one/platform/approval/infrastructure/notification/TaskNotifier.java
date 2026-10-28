@@ -130,7 +130,7 @@ class TaskNotifier {
             return;
         }
         send(null, List.of(initiator.get()), ApprovalTexts.completedTitle(event.outcome()),
-                ApprovalTexts.completedBody(engine.processNameOf(event.processKey()), event.document(), event.round().value(),
+                ApprovalTexts.completedBody(engine.processNameOf(event.processKey()).value(), event.document(), event.round().value(),
                         event.reason() == null ? null : event.reason().value()),
                 completed(event));
     }

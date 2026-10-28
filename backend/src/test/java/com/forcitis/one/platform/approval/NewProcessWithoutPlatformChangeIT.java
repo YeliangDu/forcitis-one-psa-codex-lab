@@ -12,6 +12,7 @@ import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.ProcessName;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import java.util.List;
 import java.util.Set;
@@ -40,9 +41,9 @@ class NewProcessWithoutPlatformChangeIT extends ApprovalIntegrationSupport {
     void aDemoProcessStartsFromItsFileAlone() {
         String bpmn = repository.createDeployment().addClasspathResource("newprocess/cost_demo_review.bpmn20.xml").deploy().getId();
         try {
-            assertThat(engine.processNameOf(DEMO)).isEqualTo("演示复核");
+            assertThat(engine.processNameOf(DEMO)).isEqualTo(new ProcessName("演示复核"));
             assertThat(engine.routingFlagRequiredOf(DEMO)).isFalse();
-            assertThat(engine.processNameOf(TimesheetApprovalProcess.KEY)).isEqualTo("工时审批");
+            assertThat(engine.processNameOf(TimesheetApprovalProcess.KEY)).isEqualTo(new ProcessName("工时审批"));
             assertThat(engine.routingFlagRequiredOf(TimesheetApprovalProcess.KEY)).isTrue();
 
             String key = newKey("demo");

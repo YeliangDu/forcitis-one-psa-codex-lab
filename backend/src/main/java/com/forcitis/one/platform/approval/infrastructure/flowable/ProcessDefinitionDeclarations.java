@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.infrastructure.flowable;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.ProcessName;
 import java.util.List;
 import org.flowable.bpmn.model.ExtensionElement;
 import org.flowable.bpmn.model.Process;
@@ -17,12 +18,12 @@ final class ProcessDefinitionDeclarations {
     private ProcessDefinitionDeclarations() {
     }
 
-    static String nameOf(ProcessKey key, Process process) {
+    static ProcessName nameOf(ProcessKey key, Process process) {
         String name = process.getName();
         if (name == null || name.isBlank()) {
             throw ApprovalError.PLATFORM_APPROVAL_NODE_CONFIG_INVALID.refusal("The process " + key.key() + " must carry the name a person reads in its name attribute");
         }
-        return name;
+        return new ProcessName(name);
     }
 
     static boolean routingFlagRequired(ProcessKey key, Process process) {

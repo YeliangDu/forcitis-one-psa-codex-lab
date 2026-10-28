@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.web;
 import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.ProcessName;
 import com.forcitis.one.platform.approval.api.TaskRecordAction;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
@@ -14,8 +15,11 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.lang.Nullable;
 
-/** reason is absent when the deciding person gave none: the screen words that, the data does not pretend (RULE-280). */
-record TaskDetailResponse(UUID taskId, UUID instanceId, ProcessKey processKey, DocumentTypeCode documentType, UUID documentId, String nodeKey,
+/**
+ * reason is absent when the deciding person gave none: the screen words that, the data does not pretend (RULE-280). processName is what a
+ * person calls the process, from its definition; absent when the definition is no longer deployed.
+ */
+record TaskDetailResponse(UUID taskId, UUID instanceId, ProcessKey processKey, @Nullable String processName, DocumentTypeCode documentType, UUID documentId, String nodeKey,
                           @Nullable String nodeName, UUID initiator, String initiatorName, @Nullable String initiatorOrgUnitName,
                           @Nullable UUID assignee, @Nullable String assigneeName, List<UUID> candidates, List<String> candidateNames,
                           Instant createdAt, String status, @Nullable Instant dueAt, @Nullable Instant deadlineAt, boolean overdue,
@@ -29,7 +33,7 @@ record TaskDetailResponse(UUID taskId, UUID instanceId, ProcessKey processKey, D
 
     static TaskDetailResponse of(TaskDetail detail) {
         return new TaskDetailResponse(detail.taskId().value(), detail.instanceId().value(), detail.processKey(),
-                detail.document().documentType(), detail.document().documentId().value(), detail.nodeKey(),
+                detail.processName().map(ProcessName::value).orElse(null), detail.document().documentType(), detail.document().documentId().value(), detail.nodeKey(),
                 detail.nodeName().orElse(null), detail.initiator().value(), detail.initiatorName(),
                 detail.initiatorOrgUnitName().orElse(null), detail.assignee().map(UserId::value).orElse(null),
                 detail.assigneeName().orElse(null), detail.candidates().stream().map(UserId::value).toList(),

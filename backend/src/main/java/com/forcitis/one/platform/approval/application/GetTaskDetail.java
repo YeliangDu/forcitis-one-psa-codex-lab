@@ -61,7 +61,8 @@ public class GetTaskDetail {
         List<TaskDetail.Entry> history = tasks.historyOf(row.processKey(), row.document().documentId()).stream()
                 .map(r -> new TaskDetail.Entry(r.recordId(), r.taskId(), r.nodeKey(), r.nodeName(), r.round(), r.action(), r.actor(),
                         nameOf(r.actor()), r.onBehalfOf().map(this::nameOf), r.assignee().map(this::nameOf), r.reason(), r.decidedAt())).toList();
-        return new TaskDetail(row.taskId(), row.instanceId(), row.processKey(), row.document(), row.nodeKey().value(), nodeName, row.initiator(),
+        return new TaskDetail(row.taskId(), row.instanceId(), row.processKey(), new ProcessNames(engine).of(row.processKey()), row.document(),
+                row.nodeKey().value(), nodeName, row.initiator(),
                 initiator.map(EmployeeProfile::name).orElse(String.valueOf(row.initiator().value())),
                 initiator.flatMap(profile -> org.findOrgUnit(profile.orgUnitId())).map(OrgUnitProfile::name), assignee,
                 assignee.map(this::nameOf), candidates, candidates.stream().map(this::nameOf).toList(), row.createdAt(), row.status(),

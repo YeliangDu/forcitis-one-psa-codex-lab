@@ -126,7 +126,7 @@ class BpmnRuleConventionsTest {
             try (InputStream in = Files.newInputStream(file)) {
                 BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);
                 ProcessKey key = ProcessKey.of(model.getMainProcess().getId());
-                assertThat(ProcessDefinitionDeclarations.nameOf(key, model.getMainProcess())).isNotBlank();
+                assertThat(ProcessDefinitionDeclarations.nameOf(key, model.getMainProcess()).value()).isNotBlank();
                 ProcessDefinitionDeclarations.routingFlagRequired(key, model.getMainProcess());
             }
         }
