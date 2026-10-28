@@ -55,7 +55,7 @@ class ExtractFactsTest(unittest.TestCase):
         for path in ef.EVENTS:
             messages = yaml.safe_load((self.root / path).read_text())['components']['messages']
             expected.extend(messages.values())
-        self.assertEqual(59, len(rows))
+        self.assertEqual(67, len(rows))
         self.assertEqual(42, sum('description' in row['missing_fields'] for row in rows))
         for original, row in zip(expected, rows):
             self.assertEqual(original['title'], row['title'])
@@ -130,7 +130,7 @@ class ExtractFactsTest(unittest.TestCase):
         data = yaml.safe_load((self.root / path).read_text())
         data['components']['messages'].pop(next(iter(data['components']['messages'])))
         self.rewrite_yaml(path, data)
-        with self.assertRaisesRegex(ValueError, '条数应为 59'):
+        with self.assertRaisesRegex(ValueError, '条数应为 67'):
             ef.by_event(self.root)
 
     def test_repeat_bytes_check_is_read_only_and_detects_tampering(self):

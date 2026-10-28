@@ -71,7 +71,13 @@ aggregates:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   events_in_module:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeRegistered
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -81,6 +87,8 @@ aggregates:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
   - organization.workforce.SyncRunFailed
   - organization.workforce.SyncRunHeld
   - organization.workforce.SyncRunHoldReleased
@@ -107,7 +115,13 @@ aggregates:
   - organization.workforce.LegalEntityAttributionCorrected
   - organization.workforce.LegalEntityAttributionEnded
   events_in_module:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeRegistered
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -117,6 +131,8 @@ aggregates:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
   - organization.workforce.SyncRunFailed
   - organization.workforce.SyncRunHeld
   - organization.workforce.SyncRunHoldReleased
@@ -133,7 +149,13 @@ aggregates:
   events:
   - organization.workforce.EmployeeRegistered
   events_in_module:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeRegistered
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -143,6 +165,8 @@ aggregates:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
   - organization.workforce.SyncRunFailed
   - organization.workforce.SyncRunHeld
   - organization.workforce.SyncRunHoldReleased
@@ -173,7 +197,13 @@ aggregates:
   - organization.workforce.SyncRunReleased
   - organization.workforce.SyncRunSucceeded
   events_in_module:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeRegistered
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -183,6 +213,8 @@ aggregates:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
   - organization.workforce.SyncRunFailed
   - organization.workforce.SyncRunHeld
   - organization.workforce.SyncRunHoldReleased
