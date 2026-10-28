@@ -1,0 +1,2 @@
+# 决定库归档清单（#742 PR 2，规格 decisions-batches 批 4）：每行「intent/ 下的完整文件名<TAB>原因码」，原因码：已入正本、已完成、会话退役、已取消。
+# 归档的片段不上现行决定页、不占主题名额、不进疑似取代告警，原文留在 intent/；查看：build_decisions.py --archived。
