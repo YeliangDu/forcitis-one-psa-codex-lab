@@ -160,6 +160,7 @@ def run(mq):
             _train(mq)
             _gapscan(mq, d)
             _head_changed(mq, d)
+            _dev_enqueue(mq, d)
     finally:
         for k, v in old.items():
             os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
@@ -1778,6 +1779,36 @@ def _gapscan(mq, d):
     mapped = gapscan.load_prefixes()
     profiles = {f[:-3] for f in os.listdir(os.path.join(mq.HERE, "..", "..", "docs", "modernization", "sessions")) if f.startswith("one-") and f.endswith(".md")}
     assert profiles <= set(mapped.values()), profiles - set(mapped.values())
+
+
+def _dev_enqueue(mq, d):
+    """卡 #736：开发会话首轮通过后自行 `mq.py enqueue`，调度批准评论可选。enqueue 只问 gh 的 view（冲突提示、记 head），不读评论、不查批准；
+    没有批准评论而已入队的 PR，gap scan 也不报。"""
+    import datetime
+    import gapscan
+
+    class ViewOnly:  # any other gh call (comments, reviews, labels) is an AttributeError: enqueue would fail
+        def __init__(self):
+            self.seen = []
+
+        def view(self, n):
+            self.seen.append(n)
+            return {"state": "OPEN", "merge": "CLEAN", "labels": [], "branch": f"claude/one-dev-{n}", "head": f"{n:040x}"}
+    probe, real = ViewOnly(), mq.Gh
+    mq.Gh = lambda: probe
+    try:
+        queue = os.path.join(d, "dev-enqueue", "queue")
+        os.makedirs(os.path.dirname(queue))
+        mq.main(["--queue", queue, "--log", queue + ".log", "enqueue", "21"])
+    finally:
+        mq.Gh = real
+    q = mq.Queue(queue)
+    assert q.numbers() == [21] and q.head_of(21) == f"{21:040x}" and probe.seen == [21, 21], (q.numbers(), q.head_of(21), probe.seen)
+    now = datetime.datetime(2026, 10, 28, 20, 0, tzinfo=datetime.timezone.utc)
+    stamp = (now - datetime.timedelta(minutes=5)).isoformat().replace("+00:00", "Z")
+    pr = dict(number=21, title="dev", headRefName="claude/one-dev-21", headRefOid=f"{21:040x}", isDraft=False, mergeable="MERGEABLE", statusCheckRollup=[],
+              commits=[dict(committedDate=stamp)], comments=[], createdAt=stamp)
+    assert gapscan.find_gaps([pr], {21}, now, {"claude/one-dev": "one-dev"}) == [], "queued without an approval comment: no gap"
 
 
 def _head_changed(mq, d):
