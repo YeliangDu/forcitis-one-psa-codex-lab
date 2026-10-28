@@ -6,3 +6,41 @@
 取代	2026-10-15-161339-one-coordinator-先等等-我没有同意所有用语-用户.md	2026-10-15-153947-one-glossary-选好了-第三轮用语确认页-365.md	用户说没有同意所有用语，365 条不作最终答复
 取代	2026-10-14-023-就用-PG-18.md	2026-10-14-022-PG-需要现在就用-18-吗.md	提问后已定就用 PG 18
 矛盾	2026-10-15-233152-one-architecture-全企业业务对象确认页-11-组全.md	2026-10-16-134134-one-architecture-ADR-待决-14-题页提交-四.md	Q24 定「借款与报销各自结算」，Q-10 定「员工借款发放与自动冲抵新增 BC 边」：自动冲抵与各自结算相悖，是否冲抵待用户裁定
+取代	2026-10-28-171123-one-coordinator-一次性裁剪-开卡.md	2026-10-24-000537-one-coordinator-问-budget_check.p.md	行数上限整体删除
+取代	2026-10-28-171123-one-coordinator-一次性裁剪-开卡.md	2026-10-24-090726-one-coordinator-问-O8-门自测合一靠超长行压到.md	行数上限整体删除
+取代	2026-10-28-171123-one-coordinator-一次性裁剪-开卡.md	2026-10-26-124151-one-coordinator-A-上限调到-1250.md	行数上限整体删除
+取代	2026-10-28-171123-one-coordinator-一次性裁剪-开卡.md	2026-10-26-220444-one-coordinator-自测上限调到-1250.md	行数上限整体删除
+取代	2026-10-28-171123-one-coordinator-一次性裁剪-开卡.md	2026-10-26-131113-one-coordinator-放二乙.md	先判后清只查干净与交接，去掉复审结论条件
+取代	2026-10-28-180118-one-coordinator-见生产特征即拒-其余靠只读账号.md	2026-10-26-132048-one-coordinator-收窄可信机制.md	门不再认可信入口，只按生产特征拒
+取代	2026-10-28-180118-one-coordinator-见生产特征即拒-其余靠只读账号.md	2026-10-26-140639-one-coordinator-不剥注释-宁可误拦.md	门只按生产特征字面匹配，不剥注释
+取代	2026-10-28-180118-one-coordinator-见生产特征即拒-其余靠只读账号.md	2026-10-26-145156-one-coordinator-照拒-改用-F-文件.md	门只按生产特征拒，不再专管 here-document
+取代	2026-10-28-180118-one-coordinator-见生产特征即拒-其余靠只读账号.md	2026-10-26-160810-one-coordinator-远程工具也只认登记写法.md	不再维护远程工具名单，见生产特征即拒
+取代	2026-10-28-180118-one-coordinator-见生产特征即拒-其余靠只读账号.md	2026-10-26-164931-one-coordinator-按代码改成不确定就拒.md	不再逐分支判放行，见生产特征即拒
+取代	2026-10-28-180118-one-coordinator-见生产特征即拒-其余靠只读账号.md	2026-10-26-165321-one-coordinator-A＋收窄版-B-脚本内部靠只读账.md	门定稿：见生产特征即拒，不分工具
+取代	2026-10-28-180118-one-coordinator-见生产特征即拒-其余靠只读账号.md	2026-10-24-160437-one-coordinator-还有哪些类似文档需要review.md	门不分工具，不再只挂 Bash
+取代	2026-10-28-202019-one-coordinator-不用-你直接简化.md	2026-10-28-195303-one-coordinator-堵上-推荐.md	195303 补丁作废，门只按特征字面匹配
+取代	2026-10-28-202019-one-coordinator-不用-你直接简化.md	2026-10-28-181751-one-coordinator-先不动-门补一条.md	云厂商参数规则已删；凭据由用户自理
+取代	2026-10-28-223140-one-coordinator-业务卡不动-——-业务开发先停.md	2026-10-23-125230-one-coordinator-代码开发先暂停下-我们先解决总验.md	最新：业务开发先停至 harness 改造完成
+取代	2026-10-28-223140-one-coordinator-业务卡不动-——-业务开发先停.md	2026-10-24-185805-one-coordinator-等基建完全结束再恢复-现在远端的.md	最新：业务开发先停至 harness 改造完成
+取代	2026-10-28-223140-one-coordinator-业务卡不动-——-业务开发先停.md	2026-10-27-193058-one-coordinator-第三批这个时间太久了-我要开始开.md	最新：业务开发先停至 harness 改造完成
+取代	2026-10-28-223140-one-coordinator-业务卡不动-——-业务开发先停.md	2026-10-27-193306-one-coordinator-B.md	最新：业务开发先停至 harness 改造完成
+取代	2026-10-28-131616-one-coordinator-整个重构剩下的任务-取消-因为我.md	2026-10-26-212008-one-coordinator-调度用-get_usage-落盘.md	额度读数机制随合并批一并取消
+取代	2026-10-28-131616-one-coordinator-整个重构剩下的任务-取消-因为我.md	2026-10-28-102505-one-coordinator-拆出去.md	合并批拆出小 PR 一并取消
+取代	2026-10-28-131616-one-coordinator-整个重构剩下的任务-取消-因为我.md	2026-10-28-131459-one-coordinator-让我们停下来吧.md	暂停升级为全部取消
+取代	2026-10-28-131616-one-coordinator-整个重构剩下的任务-取消-因为我.md	2026-10-28-112051-one-coordinator-我认为无法穷尽所有绕过状况-这增.md	codex 容器方案随重构取消
+取代	2026-10-28-131616-one-coordinator-整个重构剩下的任务-取消-因为我.md	2026-10-28-114830-one-coordinator-两件都批-推荐.md	codex 容器镜像随重构取消
+取代	2026-10-28-131616-one-coordinator-整个重构剩下的任务-取消-因为我.md	2026-10-28-115707-one-coordinator-ChatGPT-账户登录.md	codex 容器代理随重构取消
+取代	2026-10-28-131616-one-coordinator-整个重构剩下的任务-取消-因为我.md	2026-10-28-123204-one-coordinator-再下载一次-推荐.md	codex 镜像重建随重构取消
+取代	2026-10-28-201509-one-coordinator-你外包模型入口不留.md	2026-10-27-195631-one-coordinator-前置放进本批-过审后开真跑-推荐.md	delegate 外包入口已删
+取代	2026-10-28-201509-one-coordinator-你外包模型入口不留.md	2026-10-23-113916-one-coordinator-采纳-one-merge-one.md	Codex 外包写代码入口已删
+取代	2026-10-28-201509-one-coordinator-你外包模型入口不留.md	2026-10-21-141643-one-coordinator-我希望子代理能除了-codex.md	Codex/DeepSeek 外包入口已删
+取代	2026-10-28-201509-one-coordinator-你外包模型入口不留.md	2026-10-21-152127-one-coordinator-下一批-对比下-sonnet-c.md	三方模型评测随外包入口取消
+取代	2026-10-28-201509-one-coordinator-你外包模型入口不留.md	2026-10-21-181152-one-coordinator-采纳-登记网络第一批卡-2-不再.md	Codex 派工入口已删
+取代	2026-10-28-201509-one-coordinator-你外包模型入口不留.md	2026-10-19-170933-one-coordinator-可以-就用两个模型同步跑-对拍.md	Codex+DeepSeek 对拍入口已删
+取代	2026-10-28-201509-one-coordinator-你外包模型入口不留.md	2026-10-17-085534-one-coordinator-照建议-用-codex-的最好模.md	凡能交 Codex 先交的规矩已删
+取代	2026-10-28-201616-one-coordinator-删.md	2026-10-21-084836-one-coordinator-不是所有都去-gh-我的意思是.md	确认页链路删除；见下节：缺口述原话片段
+取代	2026-10-28-213129-one-coordinator-剩下采纳你的意见.md	2026-10-23-121807-one-coordinator-根目录-CLAUDE.md-只放.md	底线改为五条约六百字节
+取代	2026-10-28-222419-one-coordinator-同意.md	2026-10-23-083031-one-coordinator-代码首轮复审还是opus.md	复审：普通卡 sonnet，权限安全数据范围 opus
+取代	2026-10-28-193819-one-coordinator-采纳建议.md	2026-10-24-154200-one-coordinator-同意.md	budget_check 及其扩展检查已删
+取代	2026-10-24-212327-one-coordinator-我本地仓库都有-刚才看了-Use.md	2026-10-24-205459-one-coordinator-批准-a8-u8c选择一个看下就.md	生产 ECS 清单脚本不再需要
+取代	2026-10-24-212327-one-coordinator-我本地仓库都有-刚才看了-Use.md	2026-10-24-204640-one-coordinator-你先看看目前字节码什么工具反编译.md	字节码以本机 u8c、seeyon 两仓为准
