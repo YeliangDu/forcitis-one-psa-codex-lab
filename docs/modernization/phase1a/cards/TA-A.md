@@ -6,7 +6,7 @@
 
 ## 1. 卡号与类别
 - 卡号：TA-A，对应 `data/repair-cards/DATA-REPAIR-timesheet-audit.md` 第 4 节「第一部分　工时与日历」的 TA-01、TA-02、TA-03 与低级顺带项；负责会话 one-1a-par
-- 类别：缺陷修复（SESSION_PLAYBOOK §6.1 第 9 条）。一张卡，三个小 PR（A1、A2、A3），各自直接合入 main（§6.1 第 10 条）
+- 类别：缺陷修复（ 第 9 条）。一张卡，三个小 PR（A1、A2、A3），各自直接合入 main（§6.1 第 10 条）
 - 批次：已建表数据设计审查修复批；TS-UNIQ 已合入 main（`3ce1b15a` 含其实现 PR），TA-01 依赖的状态集合已定稿
 - 三个 PR 的范围一览（详见第 3 节）：
 
@@ -39,7 +39,7 @@
 
 ### 2.2 规则、ADR、规范
 - ADR-0038（开放期直接改基线、不追加迁移）；ADR-0036（历史数据迁入）；ADR-0033 第 1 项第 5 条（`numbering_rule_version_id` 列）；ADR-0043 R-2（含个人信息关联数据保留期不得无期限，用户决定出处即 `RETENTION_PROPOSAL.md`）。
-- SESSION_PLAYBOOK §12.2（预期表结构 diff）、§14.1 D2、D12；NAMING_STANDARD §2.4（`ck_<表>_<规则>`）、§2.4a。
+-（预期表结构 diff）、§14.1 D2、D12；NAMING_STANDARD §2.4（`ck_<表>_<规则>`）、§2.4a。
 - DATA_DESIGN_GATE：O4、B5、O8、C1、C3、T3、T4、E3。
 - 复审意见：`data/review-parts/timesheet_attendance_audit_idem_sched.md` T-3、WD-1、T-7、CE-1、CE-2、T-8；`data/review-parts/SCAN_SUPPLEMENT.md` §4 第 14 组。
 
@@ -143,7 +143,7 @@
 ## 5. 执行者与模型
 - 测试代理：`code-modernization:test-engineer`，**sonnet**
 - 实现：子代理，**sonnet**（三个 PR 可由同一实现者顺序做，也可并行，同基线 CS-7.6）
-- 复审：**sonnet 一轮**（opus 只用于 B 部分 TB-01、TB-02、TB-07，不用于本卡）；修后复核 sonnet；最多两轮，之后新发现的非 High 列为残余项在 PR 单列（SESSION_PLAYBOOK §11 第 6 条）
+- 复审：**sonnet 一轮**（opus 只用于 B 部分 TB-01、TB-02、TB-07，不用于本卡）；修后复核 sonnet；最多两轮，之后新发现的非 High 列为残余项在 PR 单列（ 第 6 条）
 - 数据设计门禁（`DATA_DESIGN_GATE.md` §1.2）：本卡发 one-data 审查 → A1 当天签发，A2、A3 随后签发 → 各 PR 内验收（红）→ DDL 或登记（绿）。验收与实现开工前核对签发有效（§1.3）
 - 开发库：**不碰任何常驻库**。ECS 上 dev 库由 one-ops 手工安装 rc.4，另请勿重建；测试只用 Testcontainers 临时容器（镜像限 `backend/architecture/test-images.txt`，CLAUDE.md 第 9 条例外）
 - 工作区：每个 PR 一个独立 worktree，分支建议 `claude/one-1a-par-ta-a1`（TA-02）、`claude/one-1a-par-ta-a2`（TA-01、T-8）、`claude/one-1a-par-ta-a3`（TA-03、CE-1），基线为当时的 main（本卡草稿所在的 `claude/one-1a-par-ta` 仅放卡文件）
@@ -160,7 +160,7 @@
 - 不打印、不写入密钥；用语遵守 `terms.yaml`；不用「PSA」指代系统；老系统事实只作证据，不进目标表设计
 - 缺失或无效输入失败并告警，不静默跳过
 
-## 7. 预期表结构 diff（SESSION_PLAYBOOK §12.2）
+## 7. 预期表结构 diff（）
 - 方法：两个空库分别执行改动前（main）、后的基线，`pg_dump --schema-only` 对比，种子另做 `--data-only` 对比；每个 PR 各做一次，只含本 PR 的差异。注意 `pg_dump` 含注释，注释差异也要列出
 
 ### 7.1 A1 预期差异（只能是）
@@ -199,7 +199,7 @@
 
 ## 9. 复审要求（§6.1 第 4、11 条）
 - 复审：sonnet 一轮；Blocker / High 修后 sonnet 复核；Medium / Low 执行者补测试、CI 通过即关闭，负责会话抽查；不阻塞合并的登记进下一批
-- 复审清单：SESSION_PLAYBOOK §14、§14.1（D2、D12）；CODING_STANDARD CS-1.8、CS-1.9、CS-5.5、CS-5.6
+- 复审清单：DATA_DESIGN_CHECKLIST §14、§14.1（D2、D12）；CODING_STANDARD CS-1.8、CS-1.9、CS-5.5、CS-5.6
 - 专查：
   - 实际表结构 diff 只含第 7 节声明项；A3 的注释差异已在 PR 正文单列
   - 两条 `timesheets` CHECK 对迁入单形态（APPROVED、0、空、版本 ID 空）为真，对新建的提交过单为真，对撤销回草稿后的形态（轮次 ≥ 1、提交日非空、DRAFT）为真
@@ -209,10 +209,10 @@
   - 被改的既有断言为零
 
 ## 10. 报告去向
-- 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）；A1、A2、A3 各报一次
+- 完成、部分完成或阻塞，都向 one-1a-par，抄 one-coordinator（ 第 7 步）；A1、A2、A3 各报一次
 - PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事
 
-## 11. 本卡新词（开工前术语门禁，SESSION_PLAYBOOK §5）
+## 11. 本卡新词（开工前术语门禁）
 已查 `docs/modernization/glossary/terms.yaml`（见 `backend/glossary/terms.yaml` 与 `backend/glossary/proposed/*.yaml`）：本卡没有新标识符、界面文字、表列名、错误码；新增的只有三个约束名，按 NAMING_STANDARD §2.4 `ck_<表>_<规则>` 组合已有词（`timesheets`、`round`、`submitted`、`work_calendar_days`），约束名不属术语登记对象。新注释文本用已有中文名（轮次、提交日、工作日期、法人主体、迁入单据）；「迁入单」作为说明性短语出现在注释中，与 TS-UNIQ 注释所用「迁入单据」同义，开工前由实现者在词表中再核一次，查不到同义词条且需要登记时，当场在 `backend/glossary/proposed/` 登记提议术语并写明使用范围与 bc，不自行裁定。
 
 | 标识符 | 种类 | 说明 |

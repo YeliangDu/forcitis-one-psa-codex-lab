@@ -16,7 +16,7 @@
 - ADR-0039（已采纳）：决定第 1 条（外部概念只在 `platform.integration`，业务模块只收已翻译结果）、第 5 条第 2 款（老待办移入集成层，契约中性化可放生产后）、第 6 条（表的位置）、「需同步修改的守护规则」中 `ExternalConnectionIsolationTest` 一条
 - 计划：`phase1a/NEXT_BATCH_PLAN.md` 7.2（P3b 行、C8、C10）与 **7.11（以 7.11 为准）**；负责会话证据 `~/.modernize/psa/handoff/one-1a-next-3/p3b-sequencing.md` 第 2、3 节（表位置与范围）；拆分图 `~/.modernize/psa/handoff/one-1a-next-2/r1b-split-plan.md`（P3b 行、第 3 节验收）
 - 卡：`phase1a/cards/R-1b.md`（§3 至 §9 逐子 PR 适用，文末 2026-10-15 修订：G-A1、「本人」判定清单）；`phase1a/cards/R-1b-0.md` 第 11 节 C-5、第 13、14 节
-- 规范：SESSION_PLAYBOOK §5（开工前术语门禁）、§6.1、§12.2（基线开放期直接改基线，附预期表结构 diff）、§14、§14.1；CODING_STANDARD CS-1.8、CS-1.10、CS-1.11、CS-2.20、CS-2.21、CS-2.29、CS-5.3–5.9；NAMING_STANDARD §2.4、§2.4a
+- 规范：（开工前术语门禁）、§6.1、§12.2（基线开放期直接改基线，附预期表结构 diff）、§14、§14.1；CODING_STANDARD CS-1.8、CS-1.10、CS-1.11、CS-2.20、CS-2.21、CS-2.29、CS-5.3–5.9；NAMING_STANDARD §2.4、§2.4a
 - 用户原话：「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」「也加，自有表零例外 (Recommended)」「认可对照表 (Recommended)」（intent 见 ADR-0033 背景）；防腐层边界 U-ACL-0「认可」、U-ACL-A「同步搬进集成层，离职暂停留组织模块」（intent `2026-10-15-164527-one-architecture-防腐层边界决策页-U-ACL-0.md`）
 - P2 已合并的写法（#209）可作参照：`TestAccounts` 让员工 ID 与用户 ID 取不同值；`UserIdContractTest`、`UserIdColumnsIT` 的契约与列断言写法；`primary-key-type-baseline.txt` 删行；INFRA_RUNBOOK `--employee-id` 段
 
@@ -128,7 +128,7 @@
 - 执行者：子代理，**opus**（体量大：workforce 约 50 个 main 文件，另有 integration、approval、identity、timesheet，测试约 100 个文件）。**按模块分提交**，建议顺序：① 基线 DDL 与 kernel / workforce 类型；② integration（适配器批量查对照、老待办与部门简称移入、签名票据解析）；③ approval（类型、流程变量解析、老待办端口切换）；④ identity、timesheet；⑤ 契约（OpenAPI、事件 yaml、前端生成物与页面）与守护文件。中间提交尽量可编译，不能时在提交说明注明；PR 末提交全绿
 - 工作区：独立 worktree，分支 `claude/one-1a-next-3-r1b-p3b`，基线为 **R-1b-0a 合并后的 main**；开工前确认 R-1b-0a 已合并，否则停下报告
 - 复审：opus，推理强度 high（§14、§14.1 全部条目 + 「老系统形状」专查）
-- 不交 Codex：本卡含身份与「本人」判定（SESSION_PLAYBOOK §5「Codex 派工」）
+- 不交 Codex：本卡含身份与「本人」判定（「Codex 派工」）
 
 ## 6. 禁止事项
 - 不改卡外文件；不顺手重构、改名或统一风格；不改任何原有约束、索引的名字（C10）
@@ -140,7 +140,7 @@
 - Testcontainers 临时容器（镜像限 `backend/architecture/test-images.txt`）可直接跑；其他容器、常驻容器、对外调用、生产取证先问；不建账号
 - 不打印、不写入密钥；测试密钥运行时生成
 
-## 7. 预期表结构 diff（SESSION_PLAYBOOK §12.2）
+## 7. 预期表结构 diff（）
 - 方法：两个空库分别执行改动前、后的基线，`pg_dump --schema-only`（带 / 不带权限）对比，种子另做 `--data-only` 对比
 - 预期差异只能是：
   - 类型 `bigint` → `uuid`：`positions.id`；`org_units.{id, parent_org_unit_id, head_employee_id, regional_receivables_manager_id}`；`employees.id`；`assignments.{employee_id, org_unit_id, position_id, reports_to_employee_id}`；`org_unit_versions.{org_unit_id, parent_org_unit_id, head_employee_id, regional_receivables_manager_id}`；`assignment_versions.{employee_id, org_unit_id, position_id, reports_to_employee_id}`；`org_unit_legal_entities.org_unit_id`；`employee_legal_entities.employee_id`；`sync_run_held_separations.employee_id`；`platform_identity.user_accounts.employee_id`；`cost_timesheet.timesheets.{employee_id, project_manager_id, org_unit_id}`；`platform_approval.approval_requests.initiator_id`、`start_rounds.initiator_id`
@@ -166,14 +166,14 @@
 ## 9. 复审要求（§6.1 第 4、11 条）
 - Blocker / High：opus 复核，合并前修完
 - Medium / Low：执行者补测试、CI 通过即关闭，负责会话抽查；不阻塞合并的登记进下一批
-- 复审清单：SESSION_PLAYBOOK §14、§14.1（D2 键与约束、D6 生效区间、D14 血缘、D16 自有标识、D18 DDL 原则）；CODING_STANDARD CS-1.11、CS-2.20、CS-2.21、CS-2.29、CS-5.5、CS-5.6、CS-5.9
+- 复审清单：DATA_DESIGN_CHECKLIST §14、§14.1（D2 键与约束、D6 生效区间、D14 血缘、D16 自有标识、D18 DDL 原则）；CODING_STANDARD CS-1.11、CS-2.20、CS-2.21、CS-2.29、CS-5.5、CS-5.6、CS-5.9
 - 专查：表结构 diff 只含第 7 节声明项；约束名无一改动；适配器只对新对象调分配、批量查对照；领域与其他模块无 `Source*Id` / `Legacy*Id`、`Source*` 引用不多于例外清单；「本人」判定每条仍有反向测试且比较一侧未变；OpenAPI 与事件中员工 / 部门 / 岗位 ID 无数字形态；老待办与部门简称查不到对照时为「不可用」而非 0 条或空
 
 ## 10. 报告去向
-- 完成、部分完成或阻塞，都向 one-1a-next-3，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
+- 完成、部分完成或阻塞，都向 one-1a-next-3，抄 one-coordinator（ 第 7 步）
 - PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件（按模块）、验证结果（已验证 / 未运行）、precheck 输出、预期表结构 diff、未完成项、需要用户决定的事；合并后通知拆分 b 的执行者在此基础上开工
 
-## 11. 本卡新词（开工前术语门禁，SESSION_PLAYBOOK §5）
+## 11. 本卡新词（开工前术语门禁）
 
 查过：`docs/modernization/glossary/terms.yaml`（`employee`、`org_unit`、`position`、`legal_entity`）与 `backend/glossary/proposed/*.yaml`（`workforce__assignment`、`revision_number`、`source_reference`、`source_system`、`source_object_kind`、`separation_hold`、`inbox`、`todo`、`legacy_system`、`error__platform_approval_assignee_input_invalid`、`error__organization_workforce_attribution_period_*`），中英文都查重。
 

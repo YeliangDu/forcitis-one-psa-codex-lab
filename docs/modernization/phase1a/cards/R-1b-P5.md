@@ -18,7 +18,7 @@
 - 计划：`phase1a/NEXT_BATCH_PLAN.md` 7.2（P5 行；末段「P5 独占 `EventEnvelope` 与全部守护文件」）、7.8（落点 P5 的 L-1、L-8、P2-L12）、**7.11（以 7.11 为准）**：「先保 dev」顺序与 P5 守护收口的三处保留例外；第 8 节（F-1 前置改为 P5 + K-3；K-3b-4 在 P5 之后；第 42 行「新增守护类不改现有守护文件，视为与 P5 不冲突」）
 - 卡：`phase1a/cards/R-1b.md`（§3 至 §9 逐子 PR 适用；文末修订 G-A1「P5 收尾」）；范本 `R-1b-P4.md`（第 13 节 RULING-P4-D6：`InboxItemResponse.taskId` 保留到 ADR-0039 第 6 条契约中性化；第 14 节改名边界与 RULING-P4-6）、`R-1b-P3b.md`
 - 用语：#272（one-glossary-b2）G40–G42 检查与 `backend/glossary/code-term-baseline.txt`；`terms.yaml` 的 `task_handled`「任务已办理」（R3-AP-60，已批准）、`overdue`「已超时」、`audit_subject`「审计对象」（已批准，定义仍写「键形如 {type}:{id}」）、`numbering_counter`、`numbering_rule`
-- 规范：SESSION_PLAYBOOK §5（开工前术语门禁、子代理模型）、§6.1、§12.2（基线开放期直接改基线，附预期表结构 diff）、§14、§14.1（D2、D6、D7、D16、D18）；CODING_STANDARD CS-1.8、CS-1.9、CS-1.10、CS-1.11、CS-2.20、CS-2.21、CS-2.24、CS-5.5、CS-5.6、CS-5.9；NAMING_STANDARD §2.4（`_kind` 为 text + CHECK、`_id` 为 uuid）
+- 规范：（开工前术语门禁、子代理模型）、§6.1、§12.2（基线开放期直接改基线，附预期表结构 diff）、§14、§14.1（D2、D6、D7、D16、D18）；CODING_STANDARD CS-1.8、CS-1.9、CS-1.10、CS-1.11、CS-2.20、CS-2.21、CS-2.24、CS-5.5、CS-5.6、CS-5.9；NAMING_STANDARD §2.4（`_kind` 为 text + CHECK、`_id` 为 uuid）
 - one-coordinator 派卡说明（2026-10-16）：所有 ID 类查询参数非 uuid → 400 ProblemDetail 的用例，至少含 `LegacyNumberController` 的 `documentId`；随带类名改名的具体要求（第 3.5 节）
 
 ## 3. 范围与卡上文件
@@ -157,7 +157,7 @@
 - Testcontainers 临时容器（镜像限 `backend/architecture/test-images.txt`）可直接跑；其他容器、常驻容器、对外调用、生产取证先问；不建账号
 - 不打印、不写入密钥；测试密钥运行时生成
 
-## 7. 预期表结构 diff（SESSION_PLAYBOOK §12.2）
+## 7. 预期表结构 diff（）
 - 方法：两个空库分别执行改动前（P4 合并后的 main）、后的基线，`pg_dump --schema-only`（带 / 不带权限）对比，种子另做 `--data-only` 对比
 - 预期差异只能是：
   - `platform_audit.audit_entries`：删列 `subject_key`；新增列 `subject_kind text NOT NULL`、`subject_id uuid`（可空性按 D-5）；新增约束 `ck_audit_entries_subject_kind`、（D-5 可空时）`ck_audit_entries_subject_id`；索引 `audit_entries_subject_idx` 列改为 `(subject_kind, subject_id, created_at DESC)`，名称不变；`audit_entries_created_idx` 换为 `ix_audit_entries_created_at_id (created_at, id)`（one-data M-1）；列注释
@@ -175,14 +175,14 @@
 ## 9. 复审要求（§6.1 第 4、11 条）
 - 首轮：opus 一次（high）；Blocker / High 修后由 opus 复核，合并前修完
 - Medium / Low：执行者补测试、CI 通过即关闭，修后复核用 sonnet，负责会话抽查；不阻塞合并的登记进下一批
-- 复审清单：SESSION_PLAYBOOK §14、§14.1（D2 键与约束、D6 引用、D7 版本引用、D16 自有标识、D18 DDL 原则）；CODING_STANDARD CS-1.11、CS-2.20、CS-2.21、CS-2.24、CS-5.5、CS-5.6、CS-5.9
+- 复审清单：DATA_DESIGN_CHECKLIST §14、§14.1（D2 键与约束、D6 引用、D7 版本引用、D16 自有标识、D18 DDL 原则）；CODING_STANDARD CS-1.11、CS-2.20、CS-2.21、CS-2.24、CS-5.5、CS-5.6、CS-5.9
 - 专查：表结构 diff 只含第 7 节声明项；每个事件的 `aggregateId` 是该聚合自己的主键（无「类型:ID」文本残留，`git grep '":" *+'` 抽查）；信封与事件目录无 `source`；审计无文本对象键、本人登录记录查询不能经类别不同的同值 ID 越界；守护的例外清单只有第 6 节允许的项且都有到期；新守护各有注入负向样例；`ORDER BY` 不只按主键；`OrgUnitId`、`sync_runs` / `sync_diffs` 未动，D-12 三表只改主键形状；改名后事件目录、`aggregates.yaml`、`MUST_AUDIT_ACTIONS.yaml`、用语基线一致
 
 ## 10. 报告去向
-- 完成、部分完成或阻塞，都向负责会话 one-1a-next-4，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
+- 完成、部分完成或阻塞，都向负责会话 one-1a-next-4，抄 one-coordinator（ 第 7 步）
 - PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件（按模块）、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事；合并后通知 F-1（one-1a-par）与 K-3b-4 的执行者开工，通知拆分 a / b 的负责会话：三处保留例外的到期由它们删除
 
-## 11. 本卡新词（开工前术语门禁，SESSION_PLAYBOOK §5）
+## 11. 本卡新词（开工前术语门禁）
 
 查过：`docs/modernization/glossary/terms.yaml`（`audit_subject`、`task_handled`、`overdue`、`numbering_counter`、`numbering_rule`、`document_number`）与 `backend/glossary/proposed/*.yaml`（`code-aggregates-events.yaml` 的 `approval_task_overdue`、`task_resulted`；`platform-integration.yaml` 的 `delivery_purpose`），中英文都查重；`subject_kind`、`subject_id`、`AuditSubjectKind`、`ApprovalTaskBecameOverdue`、`login_attempt`、`numbering_counter_id` 在两处均未登记。
 

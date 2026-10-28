@@ -293,7 +293,7 @@
    "bc": "platform.numbering",
    "definition": "编号模板的版本号值对象（RuleVersion），从 1 起，每保存一个新模板加 1；版本表的 version_number 列、接口字段 templateVersion 和事件负载 ruleVersion 是同一个东西；与乐观锁 version、事件序号 event_count 无关",
    "verdict": "正式",
-   "refs": "FORCITIS one 内部概念（准则 / 国标无对应条目）；主数据版本化 SESSION_PLAYBOOK §14.1 D17",
+   "refs": "FORCITIS one 内部概念（准则 / 国标无对应条目）；主数据版本化 DATA_DESIGN_CHECKLIST §14.1 D17",
    "why": "同一个东西三处三个名字，且「规则版本」过泛；改成带限定的完整词并统一。代码在用，写回时先开卡。",
    "accounting": false,
    "block": "",

@@ -660,7 +660,7 @@ JSON 下标以0起算；表内 `id` 是稳定引用键。B 表编号是原 B105 
 
 ### 运行期间外部更新
 
-本会话开工及两次预检启动时HEAD为`3d8bb376`，收尾时发现HEAD已由外部更新为`37a8342a`（`merge: origin/main`）。`git diff 3d8bb376 HEAD`只有`docs/modernization/SESSION_PLAYBOOK.md`、`docs/modernization/templates/WORK_CARD.md`、`scripts/hooks/codex_stdin_gate.py`三份文件；逐字节与当前HEAD一致，不是本会话的未提交修改。本会话未执行merge、commit或push，也未回退这些更新。已读新§5的离线约束，所用pnpm离线及禁自动安装参数与之相符。
+本会话开工及两次预检启动时HEAD为`3d8bb376`，收尾时发现HEAD已由外部更新为`37a8342a`（`merge: origin/main`）。`git diff 3d8bb376 HEAD`只有`docs/modernization/METHODS.md`、`docs/modernization/templates/WORK_CARD.md`、`scripts/hooks/codex_stdin_gate.py`三份文件；逐字节与当前HEAD一致，不是本会话的未提交修改。本会话未执行merge、commit或push，也未回退这些更新。已读新§5的离线约束，所用pnpm离线及禁自动安装参数与之相符。
 
 下面预检是启动时快照的实际结果，不能当作最终HEAD的完整验证；最终工作区`git status --short`只有允许的两份任务文档及开工已有的.codex-inputs/。本次与外部已提交更新分开核对，未把后者误算为本卡越界修改。
 

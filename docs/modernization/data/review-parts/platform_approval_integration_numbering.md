@@ -178,7 +178,7 @@
 ### platform_numbering.numbering_rule_versions
 
 **NV-1（中）D17 细则 2 / D15：配置型版本表缺「决定出处」**
-- 证据：迁移 `:94-120` 有版本号、生效日、作者、确认人、确认时间，没有 `decision_ref`；`SESSION_PLAYBOOK.md:286`（配置类版本表须含批准人、决定出处）、`:409`。
+- 证据：迁移 `:94-120` 有版本号、生效日、作者、确认人、确认时间，没有 `decision_ref`；`METHODS.md:286`（配置类版本表须含批准人、决定出处）、`:409`。
 - 建议：加 `decision_ref text`（含义：用户决定的 intent 或 ADR 编号；种子行写 ADR-0010 第 5 项）与长度、非空串 CHECK。依据：D15、D17 细则 2。
 
 **NV-2（高）B3 / B5：`CONFIRMED` 状态不要求有确认人与确认时间**

@@ -50,7 +50,7 @@
 | 11 | 消息键约定、消息格式版本（MF1 / MF2）与库、占位符取指称、回退告警 | NAMING_STANDARD §4a + 前端规范 | one-architecture（前端会话实施） | 空白；`check-copy-glossary.mjs` 与 `OutwardTextGuardTest` 重写 |
 | 12 | 源语言、启用的语言清单与交付阶段 | NAMING_STANDARD 多语言节 | 用户定（批准页第 1 题） | 无 |
 | 12a | 地区格式（日期、数字、货币、时区按 CLDR 与 BCP 47 取）；打印单据、报表、通知模板的消息键约定 | NAMING_STANDARD 多语言节 + 前端规范 | one-architecture | 无（ADR 决定 6 第 4、5 条） |
-| 12b | 业务数据多语言字段：哪些字段可按语言存、表结构放法（按语言标签的子表或 JSON 等候选，须适配研究） | SESSION_PLAYBOOK §14 数据设计 + NAMING_STANDARD §2.4a | one-architecture | 无（ADR 决定 6 第 6 条） |
+| 12b | 业务数据多语言字段：哪些字段可按语言存、表结构放法（按语言标签的子表或 JSON 等候选，须适配研究） | DATA_DESIGN_CHECKLIST §14 数据设计 + NAMING_STANDARD §2.4a | one-architecture | 无（ADR 决定 6 第 6 条） |
 | 12c | 新增命名面的格式与归属：数据库角色与账号、事件主题与队列名、缓存键、对象存储与附件路径、导入导出文件名与列头、通知模板编号、存库的枚举取值码 | NAMING_STANDARD §7 | one-architecture | 无，标「待建」 |
 | 13 | 日志字段与追踪键 | NAMING_STANDARD §7#20 + GUIDING_PRINCIPLES §11 | one-architecture | G-O1、G-O3 待实现 |
 | 14 | 测试名（以 `@DisplayName` 前缀引规则编号，CODING_STANDARD C-8 建议） | CODING_STANDARD + NAMING_STANDARD §5 | one-architecture | G-T4 待实现 |

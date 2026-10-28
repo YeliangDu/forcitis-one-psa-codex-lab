@@ -11,11 +11,8 @@ Closes #<卡>
 ## 验收测试
 <!-- 改验收测试目录的提交须带 Acceptance-Test-Author 或 Acceptance-Ruling 行；否则「不涉及」 -->
 
-## Codex 实现（模型、强度）
-<!-- 外部模型实现的写模型、强度与返工轮次；否则「不涉及」 -->
-
 ## light.sh 输出
-<!-- 贴完整输出（CS-7.1），SKIP 写理由，不含密钥 -->
+<!-- 贴完整输出，SKIP 写理由，不含密钥 -->
 
 ## 复审
-<!-- 开发会话按 scripts/review/PROMPT.md 自派全新复审子代理（普通卡 sonnet；权限、安全、数据范围与守护路径 opus，守护路径另加 opus 终审），它只写结论，用 post_review 提交；必改修好后不再复核，由调度看差异放行。首轮通过（或放行）后开发会话自行 mq.py enqueue。 -->
+<!-- 按 RULES ⑤ 与 scripts/review/PROMPT.md 自派复审子代理，用 post_review 提交；首轮通过后自行 mq.py enqueue。 -->

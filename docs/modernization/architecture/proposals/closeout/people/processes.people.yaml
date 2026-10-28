@@ -3716,7 +3716,7 @@ event_policies:
         decision:
           - {when: 差旅服务商返回失败或回执缺失, goto: end, outcome: 同步失败已告警}
           - {when: otherwise, goto: end, outcome: 已同步}
-    notes: 方向 B-13 → platform.integration 为既有边，不新增边；订阅的是本 BC 事件。外部系统名按 S-31 写「差旅服务商」，集成册登记（SESSION_PLAYBOOK §14.3）。差旅订单、账单、审批进 B-12（S-31 SQ-27、28），与本策略无关。无人工审批。
+    notes: 方向 B-13 → platform.integration 为既有边，不新增边；订阅的是本 BC 事件。外部系统名按 S-31 写「差旅服务商」，集成册登记（DATA_DESIGN_CHECKLIST §14.3）。差旅订单、账单、审批进 B-12（S-31 SQ-27、28），与本策略无关。无人工审批。
 
   - id: PRC-178
     name: 转计发加班工资

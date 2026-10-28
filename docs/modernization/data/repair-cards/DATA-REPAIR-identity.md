@@ -14,7 +14,7 @@
 
 ## 1. 卡号与类别
 - 卡号：DATA-REPAIR-identity
-- 类别：缺陷修复（SESSION_PLAYBOOK §6.1 第 9 条，只选一类）
+- 类别：缺陷修复（ 第 9 条，只选一类）
 - 批次：已建表数据设计审查（门禁 v2 §1.2 第 6 条「补审不通过而卡已合并」）的修复批；一个小 PR 直接合入 main（§6.1 第 10 条）
 - 建议负责会话：one-1a-next-4
 - 与 W2 的关系：ADR-0034 的 R-1 / RP-1 / AR-1 / AQ-2 / AQ-6 已排 W2 独立卡（ADR-0034:288-290；NEXT_BATCH_PLAN:269；COORDINATOR_LEDGER:47），本卡不含，见第 6 节
@@ -22,7 +22,7 @@
 
 ## 2. 依据
 - 门禁 v2（`origin/claude/one-data-gate-v2:docs/modernization/data/DATA_DESIGN_GATE.md`）：B3、B5、O4、O3、O10、O8、C3、C4、C5
-- SESSION_PLAYBOOK §14.1 D2（成对 / 互斥落约束）、D4、D8、D12、D13；§12.2（基线开放期直接改基线，附预期表结构 diff）；ADR-0038（迁移基线开放期）
+- DATA_DESIGN_CHECKLIST §14.1 D2（成对 / 互斥落约束）、D4、D8、D12、D13；§12.2（基线开放期直接改基线，附预期表结构 diff）；ADR-0038（迁移基线开放期）
 - ADR-0030:15-16（授权申请两人约束为不可放宽的双人防线）、ADR-0026 第 6 项第 2 条
 - ADR-0043 第 2、3 项（会话内容 RESTRICTED、列分级）、第 6 项 R-2、U-12（登录地址「改为有期限」、期限提出前以带到期日 gap 登记）、U-13（四段格式前的写法）
 - CLAUDE.md 第 6 条（缺失输入失败，不静默）

@@ -20,7 +20,7 @@
 - 规则卡：RULE-386（审批的一切时刻取注入 Clock，含引擎；`rules/APPROVAL_DEADLINE_RULES.md`）；RULE-389、RULE-392（`rules/TIMESHEET_ROUTING_RULES.md`，在 PR #249）
 - 用户原话：「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」「也加，自有表零例外 (Recommended)」（ADR-0033 背景）；ARCH-D5 D5-06「组织架构中该部门登记的部门负责人（随组织同步维护），节点与用语改称「部门负责人审批」」（intent `2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5.md`，PR #249）；用语问题已登记 `glossary/issues/2026-10-15-222628-one-rules-区域负责人-regional_h.md`（PR #249）
 - 卡：`phase1a/cards/R-1b.md`（§3 至 §9 逐子 PR 适用；文末 2026-10-15 修订 G-A1）；范本 `phase1a/cards/R-1b-P3b.md`
-- 规范：SESSION_PLAYBOOK §5（开工前术语门禁、子代理模型）、§6.1、§12.2（基线开放期直接改基线，附预期表结构 diff）、§14、§14.1（D2、D7、D16、D18）；CODING_STANDARD CS-1.8、CS-1.9、CS-1.10、CS-1.11、CS-2.20、CS-2.21、CS-5.5、CS-5.6、CS-5.9；NAMING_STANDARD §2.4（`_id` 为 uuid、`_key` 为 text、`_number` 为序号；约束 `pk_`/`fk_`/`uk_`/`ck_`/`ix_`）、§2.4a 第 1 条（外键目标必须是主键）
+- 规范：（开工前术语门禁、子代理模型）、§6.1、§12.2（基线开放期直接改基线，附预期表结构 diff）、§14、§14.1（D2、D7、D16、D18）；CODING_STANDARD CS-1.8、CS-1.9、CS-1.10、CS-1.11、CS-2.20、CS-2.21、CS-5.5、CS-5.6、CS-5.9；NAMING_STANDARD §2.4（`_id` 为 uuid、`_key` 为 text、`_number` 为序号；约束 `pk_`/`fk_`/`uk_`/`ck_`/`ix_`）、§2.4a 第 1 条（外键目标必须是主键）
 - dev 基线开放期：在途流程实例随库重建（`runbooks/dev-db-rebuild.md`），**不做实例迁移**，`act_*` 中旧形态 ID 随库清空（one-coordinator 派卡说明）
 
 ## 3. 范围与卡上文件
@@ -150,7 +150,7 @@
 - Testcontainers 临时容器（镜像限 `backend/architecture/test-images.txt`）可直接跑；其他容器、常驻容器、对外调用（含企业微信）、生产取证先问；不建账号
 - 不打印、不写入密钥；测试密钥运行时生成；日志不打印收件人
 
-## 7. 预期表结构 diff（SESSION_PLAYBOOK §12.2）
+## 7. 预期表结构 diff（）
 - 方法：两个空库分别执行改动前（P3b 合并后的 main）、后的基线，`pg_dump --schema-only`（带 / 不带权限）对比，种子另做 `--data-only` 对比；`act_*` 由引擎自建，不在对比范围
 - 预期差异只能是：
   - **类型 `text` → `uuid`**：`approval_requests.current_instance_id`；`start_rounds.instance_id`；`approval_tasks.{task_id, instance_id}`；`approval_task_records.{task_id, instance_id}`；`process_archive_skips.process_instance_id`
@@ -178,14 +178,14 @@
 ## 9. 复审要求（§6.1 第 4、11 条）
 - 首轮：opus 一次（high）；Blocker / High 修后由 opus 复核，合并前修完
 - Medium / Low：执行者补测试、CI 通过即关闭，修后复核用 sonnet，负责会话抽查；不阻塞合并的登记进下一批
-- 复审清单：SESSION_PLAYBOOK §14、§14.1（D2 键与约束、D7 引用、D16 自有标识、D18 DDL 原则）；CODING_STANDARD CS-1.11、CS-2.20、CS-2.21、CS-5.5、CS-5.6、CS-5.9
+- 复审清单：DATA_DESIGN_CHECKLIST §14、§14.1（D2 键与约束、D7 引用、D16 自有标识、D18 DDL 原则）；CODING_STANDARD CS-1.11、CS-2.20、CS-2.21、CS-5.5、CS-5.6、CS-5.9
 - 专查：表结构 diff 只含第 7 节声明项、保留约束名无一改动；Flowable 新建的任务与实例 ID 全为 v7 且取注入 Clock；没有任何排序只按主键或依赖 ID 次序；子表不再以文本键挂根、外键目标都是主键；投递去重在并发重复投递下只得一行、已处理说明不重复；OpenAPI 与事件中任务、实例、单据 ID 无非 uuid 形态（D-6 例外除外）；改名后 BPMN、字段、回放、`processes.yaml` 一致且无旧名残留（老系统词表除外）；`OrgUnitId`、`EventEnvelope`、`FlowableEngineClock` 未动
 
 ## 10. 报告去向
-- 完成、部分完成或阻塞，都向负责会话 one-1a-next-4，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
+- 完成、部分完成或阻塞，都向负责会话 one-1a-next-4，抄 one-coordinator（ 第 7 步）
 - PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件（按模块）、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事；合并后通知 P5 执行者、FLW-2 与 K-3b-3 的执行者、one-1a-par（前端界面文字改名、F-1）在此基础上开工
 
-## 11. 本卡新词（开工前术语门禁，SESSION_PLAYBOOK §5）
+## 11. 本卡新词（开工前术语门禁）
 
 查过：`docs/modernization/glossary/terms.yaml`（`approval_task`、`approval_instance`、`workflow_instance`、`document`、`org_unit_head`「部门负责人」、`regional_head`、`regional_head_approval`、`project_manager_approval`、`sequence_number`）与 `backend/glossary/proposed/*.yaml`（`platform-approval.yaml` 的 `approval_request`、`platform-integration.yaml` 的 `outbound_delivery`、`round3-pending-renames.yaml` 的 `round3_pending__regional_head_review`），中英文都查重。
 

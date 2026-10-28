@@ -367,7 +367,7 @@ def main():
     dump = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     page = (HERE / "page-template.html").read_text(encoding="utf-8")
     page = page.replace("/*__DATA__*/null", dump).replace("/*__TITLE__*/", title).replace("/*__LEDE__*/", lede)
-    # 页面脚本包在独立作用域里：外壳会注入运行环境脚本，全局重名会让页面停在加载中（glossary/gate/README.md）
+    # 页面脚本包在独立作用域里：外壳会注入运行环境脚本，全局重名会让页面停在加载中
     if page.count("<script>") != 1:
         sys.exit("模板应只有一段 <script>")
     page = page.replace("<script>", "<script>\n(() => {", 1).replace("</script>", "})();\n</script>", 1)

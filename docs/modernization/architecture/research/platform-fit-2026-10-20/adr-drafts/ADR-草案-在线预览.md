@@ -16,7 +16,7 @@
 
 本稿依赖《文件服务》基础稿（`platform.file`、按单据授权、关联前不可下载）。图片与 PDF 浏览器本身能打开；老系统近 180 天上传约 132 个文件（`R-opus复核.md` B-6），新系统交付物上线后会变多、量未知（确认页 Q05 题面）。
 
-已有约束：外部服务只在 `platform.integration`（ADR-0039 决定 1）；选型先做适配评审、不预选（ADR-0041 决定 6）；凭据、URL 查询串不进日志（GUIDING_PRINCIPLES §11 O-3）；外部依赖不可用时的行为要登记（SESSION_PLAYBOOK §14.3 I7）；老系统 PC 端 pdf.js 在预览恶意 PDF 时可执行脚本（SEC-016），预览本身是攻击面。
+已有约束：外部服务只在 `platform.integration`（ADR-0039 决定 1）；选型先做适配评审、不预选（ADR-0041 决定 6）；凭据、URL 查询串不进日志（GUIDING_PRINCIPLES §11 O-3）；外部依赖不可用时的行为要登记（DATA_DESIGN_CHECKLIST §14.3 I7）；老系统 PC 端 pdf.js 在预览恶意 PDF 时可执行脚本（SEC-016），预览本身是攻击面。
 
 阶段字段写「待定」：时点为 W2 交付物审核页面之前，`transitions.yaml` 尚未按 ADR-0054 换为 W0–W5 标识。
 

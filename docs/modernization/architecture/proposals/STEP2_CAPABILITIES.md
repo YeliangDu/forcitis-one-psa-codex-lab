@@ -169,7 +169,7 @@ G-2 中展平的 11 个对象：OBJ-22（经报价）、37（经交付物）、3
 | 22 | Finance Management | CAP-103 财务管理 | 覆盖 | — |
 | 23 | Human Resource Management | CAP-056 人员管理 | 覆盖 | — |
 | 24 | Incident Management | CAP-029.108 项目风险与问题管理；CAP-029.038 不符合项管理 | 部分 | 只覆盖项目内；公司层的突发事件（安全、数据、客诉升级）无对象，见 26 |
-| 25 | Information Management | — | 不适用 | 数据治理按 SESSION_PLAYBOOK §14.1 与数据访问注册表，不作业务对象（FRAMEWORKS 第 6 节） |
+| 25 | Information Management | — | 不适用 | 数据治理按 DATA_DESIGN_CHECKLIST §14.1 与数据访问注册表，不作业务对象（FRAMEWORKS 第 6 节） |
 | 26 | Inquiry Management | CAP-029.106 客户满意度调查管理 | **疑似缺失（高）** | 候选「客户反馈与投诉」：客户来函提出的问题、投诉及其处理闭环。满意度调查是我方主动采集，不覆盖客户主动提出 |
 | 27 | Initiative Management | CAP-029 项目管理 | 部分 | 覆盖对客项目；内部非对客项目是否用项目类型承载，留第 ③ 步写实时看 |
 | 28 | Job Management | CAP-058 岗位管理 | 覆盖 | — |
