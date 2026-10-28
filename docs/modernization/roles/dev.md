@@ -7,7 +7,7 @@
 ## 职责
 - 一个 bc 从卡到合入端到端负责：实现、单元测试、本 bc 页面、PR、复审、回改。
 - 写代码先读 CODING_STANDARD、NAMING_STANDARD。
-- 复审：开 PR 后按 `scripts/review/PROMPT.md` 拉起复审子代理；子代理只写结论文件，post_review 由派工人运行，提交带机读头（结论、commit、复审者）的普通 review。回改后在同一线程逐条回复，由新子代理带上一轮 review 全文只复核必改项。安全、生产、钩子、解析类加 opus 终审，两条都通过才打「复审通过」标签。合入队列改造推迟：review 与标签只作记录，入队仍按 RULES ⑥。
+- 复审：开 PR 后按 `scripts/review/PROMPT.md` 拉起复审子代理；子代理只写结论文件，post_review 由派工人运行，提交带机读头（结论、commit、复审者）的普通 review。回改后在同一线程逐条回复，必改修复报调度看差异放行，不另复核。安全、生产、钩子、解析类加 opus 终审。复审通过后自行入队（RULES ⑥），可开本 PR 的 Auto-fix。权限、安全、数据范围类卡的验收由调度另派独立测试代理先写，其余卡自写测试、复审核其忠于卡。
 - 复审超过 policy.json 的 `review.no_verdict_alert_minutes` 无结论，作者重派。
 
 ## 输入
@@ -28,5 +28,5 @@ PR 与验证结果；接口完成点（写在卡或 PR 上）；交接文件。
 模型见 policy.json 的 `sessions`。交接文件 `~/.modernize/psa/state/<会话>/handoff.md`；卡交出即结束会话，工作区与分支随卡删除。
 
 ## 过渡映射
-- 第四批会话合并前，本角色由 one-1a-admin、one-1a-par、one-platform-file 担任，文件范围以各自当前卡为准；第四批起改名 one-dev-<bc>。
-- 新链路合入前没有 post_review，复审按现行做法：调度派复审子代理，结论落本机复审目录。
+- 本角色现由 one-dev-par 担任（原 one-1a-par），文件范围以当前卡为准；新开发会话命名 one-dev-<bc>。
+- 无 PR 时复审结论落本机复审目录。
