@@ -523,7 +523,7 @@ CREATE TABLE platform_identity.role_version_custom_org_units (
     CONSTRAINT uk_role_version_custom_org_units_role_version_id_org_unit_id UNIQUE (role_version_id, org_unit_id)
 );
 CREATE INDEX ix_role_version_custom_org_units_org_unit_id ON platform_identity.role_version_custom_org_units (org_unit_id);
-COMMENT ON TABLE platform_identity.role_version_custom_org_units IS '角色版本的自定义部门：范围类型为 CUSTOM_ORG_UNITS 的角色版本所列部门，每个部门选含下级或仅本部门；随新版本一次写入，不可改不可删，改明细即新增角色版本（ADR-0034 第 5 项）；部门引用组织人事的组织单元，不建外键，部门停用或撤销由范围复核兜底（RULE-387）。粒度：每个角色版本的每个部门一行';
+COMMENT ON TABLE platform_identity.role_version_custom_org_units IS '角色版本自定义部门：范围类型为 CUSTOM_ORG_UNITS 的角色版本所列部门，每个部门选含下级或仅本部门；随新版本一次写入，不可改不可删，改明细即新增角色版本（ADR-0034 第 5 项）；部门引用组织人事的组织单元，不建外键，部门停用或撤销由范围复核兜底（RULE-387）。粒度：每个角色版本的每个部门一行';
 COMMENT ON COLUMN platform_identity.role_version_custom_org_units.role_version_custom_org_unit_id IS '角色版本自定义部门 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.role_version_custom_org_units.role_version_id IS '角色版本 ID：只能是范围类型为 CUSTOM_ORG_UNITS 且仍开放的版本（触发器检查）';
 COMMENT ON COLUMN platform_identity.role_version_custom_org_units.org_unit_id IS '组织单元 ID：跨 schema 引用组织人事的组织单元，不建外键；范围按读取时的组织快照展开，不存展开结果';
@@ -543,7 +543,7 @@ CREATE TABLE platform_identity.authorization_request_custom_org_units (
         REFERENCES platform_identity.authorization_requests (request_id) ON DELETE RESTRICT,
     CONSTRAINT uk_authorization_request_custom_org_units_request_org_unit UNIQUE (request_id, org_unit_id)
 );
-COMMENT ON TABLE platform_identity.authorization_request_custom_org_units IS '授权申请的自定义部门：新建或修改角色的申请中、范围类型为 CUSTOM_ORG_UNITS 时申请的部门，均为仅本部门；随申请提交一次写入，不可改不可删；确认时重新校验。粒度：每个申请的每个部门一行';
+COMMENT ON TABLE platform_identity.authorization_request_custom_org_units IS '授权申请自定义部门：新建或修改角色的申请中、范围类型为 CUSTOM_ORG_UNITS 时申请的部门，均为仅本部门；随申请提交一次写入，不可改不可删；确认时重新校验。粒度：每个申请的每个部门一行';
 COMMENT ON COLUMN platform_identity.authorization_request_custom_org_units.authorization_request_custom_org_unit_id IS '授权申请自定义部门 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.authorization_request_custom_org_units.request_id IS '申请 ID：只能是待确认的 CREATE_ROLE 或 UPDATE_ROLE 申请（触发器检查）';
 COMMENT ON COLUMN platform_identity.authorization_request_custom_org_units.org_unit_id IS '组织单元 ID：跨 schema 引用，不建外键；仅本部门';

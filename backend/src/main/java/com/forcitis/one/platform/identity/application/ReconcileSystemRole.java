@@ -4,6 +4,9 @@ import com.forcitis.one.platform.identity.domain.DeclarationOutcome;
 import com.forcitis.one.platform.identity.domain.DeclarationResult;
 import com.forcitis.one.platform.identity.domain.DeclaredRole;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
+import com.forcitis.one.platform.identity.domain.RoleRuleException;
+import com.forcitis.one.platform.identity.domain.RoleViolation;
+import com.forcitis.one.platform.identity.domain.SensitivePermissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -12,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Reconciles one declared system role with the database, in its own transaction (ADR-0034 decision 1 item 7; card 0034-G8-01): a missing
  * role is created, a higher declaration revision opens a SEED version, the same one changes nothing. A database that holds a higher revision
- * than the code is an alert and keeps what it has; the same revision with another definition stops the start, with nothing written.
+ * than the code is an alert and keeps what it has; the same revision with another definition stops the start, with nothing written. A
+ * declared two-person role with a scope that follows the job, or a custom org unit with descendants, stops the start before anything is
+ * written for it (F-1 card constraint 5, ADR-0044 section 1 "启动对账").
  */
 @Service
 public class ReconcileSystemRole {
@@ -27,6 +32,11 @@ public class ReconcileSystemRole {
 
     @Transactional
     public DeclarationOutcome execute(DeclaredRole declared) {
+        SensitivePermissions.scopeRefusal(declared.definition()).ifPresent(reason -> {
+            LOG.error("ALERT platform.identity system role {}: the declaration gives a two-person role a scope it may not have ({}, ADR-0044 section 1);"
+                    + " the start stops and nothing was written for the role", declared.roleId().value(), reason);
+            throw new RoleRuleException(RoleViolation.SCOPE_NOT_ALLOWED);
+        });
         DeclarationResult result = roles.saveDeclared(declared);
         switch (result.outcome()) {
             case OLDER_IN_CODE -> LOG.error("ALERT platform.identity system role {}: the declaration revision {} is lower than the database revision {};"

@@ -46,8 +46,10 @@ class ApplyConfirmedAuthorization {
         }
     }
 
+    /** The request's units are all without descendants; a request that names none keeps (or, on create, leaves out) the role's units. */
     private static SaveRoleCommand toCommand(AuthorizationRequest request) {
         var draft = request.roleDraft();
-        return new SaveRoleCommand(draft.code(), draft.name(), draft.enabled(), draft.accessScope(), draft.permissionCodes());
+        return new SaveRoleCommand(draft.code(), draft.name(), draft.enabled(), draft.accessScope(), draft.permissionCodes(),
+                draft.customOrgUnitIds().isEmpty() ? null : draft.customOrgUnits());
     }
 }
