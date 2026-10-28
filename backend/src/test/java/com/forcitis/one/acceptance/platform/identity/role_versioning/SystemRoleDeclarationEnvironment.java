@@ -156,8 +156,13 @@ final class SystemRoleDeclarationEnvironment {
 
     /** Starts the launcher in a child JVM; returns when the application reports it started (and stops it) or the process ends. */
     static Outcome launch(String database) throws IOException, InterruptedException {
+        return launch(database, SystemRoleDeclarationLauncher.class);
+    }
+
+    /** The same with another launcher class; it must print the same probe lines, as RaisedDeclarationLauncher does. */
+    static Outcome launch(String database, Class<?> launcher) throws IOException, InterruptedException {
         List<String> command = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-Duser.timezone=UTC", "-cp",
-                System.getProperty("java.class.path"), SystemRoleDeclarationLauncher.class.getName()));
+                System.getProperty("java.class.path"), launcher.getName()));
         command.addAll(arguments(database));
         Process process = new ProcessBuilder(command).directory(new java.io.File(System.getProperty("java.io.tmpdir"))).redirectErrorStream(true).start();
         List<String> lines = Collections.synchronizedList(new ArrayList<>());
@@ -169,7 +174,7 @@ final class SystemRoleDeclarationEnvironment {
                 String line;
                 while ((line = in.readLine()) != null) {
                     lines.add(line);
-                    if (line.contains("Started " + SystemRoleDeclarationLauncher.class.getSimpleName())) {
+                    if (line.contains("Started " + launcher.getSimpleName())) {
                         up.complete(true);
                     }
                     if (line.contains(runnerProbe)) {
