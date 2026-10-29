@@ -22,7 +22,7 @@ touches .github/workflows is updated by a local merge pushed over ssh, because t
 checks while cancelling the others' runs, rerun failed checks once, then merge with a merge commit, pinned to the head that was checked (`--match-head-commit`). Merge only when `gh pr checks` lists the three
 required checks (backend verify, frontend verify, secret scan, none of them with the " (light)" suffix) and every one of them is `pass`; "no failure so far" is never enough (a head still running is not green).
 Conflicts with main: the queue merges main in (over ssh when gh cannot); a text conflict goes back to the author (CONFLICT).
-Release. Before it spends CI on a pull request, and again under the merge lock right before the merge, the queue reads the reviews and comments: the newest statement that speaks for the head must be a 通过 (release_verdict).
+Release. Before it spends CI on a pull request, and again under the merge lock right before the merge, the queue reads the reviews and comments: the newest statement that speaks for the head must be a 通过 (release_verdict). When nothing speaks for the head and it only merges main into an earlier head (the queue's own update: second parent on main, the tree of a clean merge), the earlier head's verdict carries over.
 A first-round review speaks for the head when it was posted on it or on a commit whose patch-id (git patch-id --verbatim, computed by the queue) equals the head's (a rebase, or the queue's own merge of main, that leaves the change as it was);
 a dispatcher comment `调度批准入队 head <sha>` (the coordinator letting a 必改 fix through) speaks for the head it names or one with the same patch-id. Docs-lane pull requests need no review unless they touch a guarded path (policy.json review.final_paths). Not released: HOLD.
 Read-back. After the merge call GitHub must show the pull request MERGED with the pinned head as the second parent of the merge commit; otherwise ALERT READBACK and both lanes pause until `mq.py resume`.
@@ -59,7 +59,6 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, "..", "review"))
 import gapscan   # noqa: E402
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
 from mq_github import Gh, SignalError, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
@@ -88,7 +87,7 @@ def red_checks(checks):
 
 
 def release_verdict(reviews, comments, head, patch_id_of):
-    """(True, why) when the change at `head` may be merged, else (False, why). The newest statement that speaks for `head` decides: a first-round review (通过 or 必改), a 必改 of a final review,
+    """(True, why) when the change at `head` may be merged, (False, why) when the newest statement for it is a 必改, (None, why) when nothing speaks for it. The newest statement that speaks for `head` decides: a first-round review (通过 or 必改), a 必改 of a final review,
     or a dispatcher approval comment `调度批准入队 head <sha>` (gapscan.APPROVAL; how the coordinator lets a 必改 fix through, RULES ⑤), which counts as 通过.
     Every session posts through the same GitHub account: an approval (like a review) is a record of what was decided, not a check of who decided it.
     A review speaks for `head` when GitHub holds it on the commit its header names and that commit is `head` or has the same patch-id as `head`; an approval when it names `head` or a commit with the same patch-id
@@ -112,7 +111,7 @@ def release_verdict(reviews, comments, head, patch_id_of):
         if m and same(m.group(1).lower()):
             said.append((c["at"], post_review.PASS, f"approval of {m.group(1)[:10]}"))
     if not said:
-        return False, f"no first-round review or approval speaks for head {head[:10]} (none on it, none on a commit with its patch-id {head_id or patch_id_of(head) or 'unknown'})"
+        return None, f"no first-round review or approval speaks for head {head[:10]} (none on it, none on a commit with its patch-id {head_id or patch_id_of(head) or 'unknown'})"
     at, verdict, who = max(said)
     return verdict == post_review.PASS, f"newest: {verdict} ({who}, {at})"
 
@@ -672,7 +671,18 @@ class Processor:
             if commit not in known:
                 known[commit] = self.gh.patch_id(self.repo, n, commit)
             return known[commit]
-        return release_verdict(reviews, comments, head, patch_id_of)
+        ok, why = release_verdict(reviews, comments, head, patch_id_of)
+        commit = head
+        for _ in range(10):   # nothing speaks for the head: a merge of main into a released head (the queue's own update) carries its verdict; merging main may change the context lines, and so the patch-id
+            if ok is not None:
+                break
+            commit = self.gh.main_merge_parent(self.repo, n, commit)
+            if not commit:
+                break
+            ok, carried = release_verdict(reviews, comments, commit, patch_id_of)
+            if ok is not None:
+                why = f"{carried}; carried across the merge of main into {commit[:10]}"
+        return ok is True, why
 
     def read_back(self, n, head, since):
         """After the merge call: GitHub must show the pull request MERGED, with the pinned head as the second parent of the merge commit. Anything else is an ALERT and both lanes pause (`mq.py resume`); the main checkout is not fast-forwarded then."""

@@ -148,23 +148,41 @@ class Gh:
         except (ValueError, KeyError, TypeError, AttributeError):
             return None
 
-    def patch_id(self, repo, n, commit):
-        """`git patch-id --verbatim` of the change `commit` makes against main (`git diff origin/main...<commit>`), or None when git cannot say.
-        --verbatim, not --stable: a change that differs only in whitespace (indentation in Python) is another change. A commit no longer on the branch (rebased away) is fetched by its sha."""
+    def fetch(self, repo, n, commit):
+        """Main and the pull request's head into `repo`, and `commit` too when it is no longer on the branch (rebased away: fetched by its sha); False when git cannot."""
         for attempt in range(3):   # the other lane's fetch in the same repository may hold a ref lock for a moment
             if sh(["git", "-C", repo, "fetch", "-q", "--no-write-fetch-head", "origin", "+refs/heads/main:refs/remotes/origin/main", f"refs/pull/{n}/head"]).returncode == 0:
                 break
             time.sleep(self.RETRY_PAUSE)
         else:
-            return None
+            return False
         if sh(["git", "-C", repo, "cat-file", "-e", f"{commit}^{{commit}}"]).returncode and len(commit) == 40:
             sh(["git", "-C", repo, "fetch", "-q", "--no-write-fetch-head", "origin", commit])
+        return True
+
+    def patch_id(self, repo, n, commit):
+        """`git patch-id --verbatim` of the change `commit` makes against main (`git diff origin/main...<commit>`), or None when git cannot say.
+        --verbatim, not --stable: a change that differs only in whitespace (indentation in Python) is another change."""
+        if not self.fetch(repo, n, commit):
+            return None
         diff = sh(["git", "-C", repo, "diff", "--no-color", "--no-ext-diff", f"origin/main...{commit}"])
         if diff.returncode or not diff.stdout:
             return None
         out = subprocess.run(["git", "patch-id", "--verbatim"], input=diff.stdout, capture_output=True, text=True, timeout=60)
         first = out.stdout.split()
         return first[0] if out.returncode == 0 and first else None
+
+    def main_merge_parent(self, repo, n, commit):
+        """The first parent of `commit` when `commit` only merges main into it: two parents, the second one on main, and exactly the tree a clean merge of the two gives
+        (nothing added in the merge itself). The merge the queue makes when it brings a pull request up to date is such a commit. None otherwise, or when git cannot say."""
+        if not self.fetch(repo, n, commit):
+            return None
+        parents = sh(["git", "-C", repo, "rev-list", "--parents", "-n", "1", commit]).stdout.split()
+        if len(parents) != 3 or sh(["git", "-C", repo, "merge-base", "--is-ancestor", parents[2], "origin/main"]).returncode:
+            return None
+        clean = sh(["git", "-C", repo, "merge-tree", "--write-tree", parents[1], parents[2]])
+        tree = sh(["git", "-C", repo, "rev-parse", f"{commit}^{{tree}}"]).stdout.strip()
+        return parents[1] if clean.returncode == 0 and tree and clean.stdout.split()[:1] == [tree] else None
 
     def readback(self, n):
         """(state, parents of the merge commit) as GitHub shows them after the merge, or None when gh cannot say."""
