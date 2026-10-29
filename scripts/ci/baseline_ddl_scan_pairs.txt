@@ -1,5 +1,0 @@
-# Column groups that one CHECK must tie together although their names show no pair (class 4 of baseline_ddl_scan.py). Verified by hand by one-data.
-# Format: <schema.table> | <column>, <column>, ... | <why>. A group is reported when no CHECK of the table mentions every column, or when a declared column does not exist (a stale line).
-# Add a line only for a pair someone has verified; the name patterns (_by with _at, a reason / _at / _kind column with a status column) need no line.
-platform_idempotency.idempotent_responses | response_number, response_name, response_text, response_header_text | all null while the request is in progress, all set once answered
-cost_timesheet.timesheets | submitted_date, round_number | submitted_date is null exactly while round_number is 0 (never submitted)

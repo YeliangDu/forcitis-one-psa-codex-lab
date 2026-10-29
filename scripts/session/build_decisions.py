@@ -129,15 +129,15 @@ def build(entries, order, topics, sup, conflicts, standing, archived=()):
     resident = [n for n, _ in standing]
     recent = [n for n in reversed(order) if n not in sup and n not in archived and n not in resident][:RECENT]
     line = lambda n: f"- `{ids[n]}` {cell(entries[n][1], CUT)}"
-    out = [f"# 现行决定页（自动生成，勿手改）\n\n共 {len(order)} 条决定，现行 {len(order) - len(set(sup) | set(archived))} 条，被取代 {len(sup)} 条、归档 {len(archived)} 条（不列）。标识是 intent/ 下文件名的前缀（`ls intent/<标识>*`）；摘句不作依据，引用前打开原文；同一条可能出现在两个主题下。",
-           f"常驻 {len(standing)} 条由 `decision-digest/standing.txt` 指定、按小节列；新近列最近 {RECENT} 条非常驻的现行条目；其余按主题只记条数，`build_decisions.py --topic=<主题>` 查全。分类靠 `decision-digest/topics.txt` 的关键词，取代与矛盾登记在片段「## 取代」段与 `decision-digest/relations.txt`。疑似取代但未登记 {len(suspects)} 条（只告警）。\n",
+    out = [f"# 现行决定页（自动生成，勿手改）\n\n共 {len(order)} 条决定，现行 {len(order) - len(set(sup) | set(archived))} 条，被取代 {len(sup)} 条、归档 {len(archived)} 条（不列），疑似取代未登记 {len(suspects)} 条。标识是 intent/ 下文件名前缀；摘句不作依据，引用前打开原文。",
+           f"常驻见 `decision-digest/standing.txt`；新近为最近 {RECENT} 条非常驻；其余见主题索引，`build_decisions.py --topic=<主题>` 查全。\n",
            "## 待用户裁定（互相矛盾且未被取代）\n"] + ([f"- `{ids[a]}` ⟷ `{ids[b]}`：{cell(why, 80)}" for a, b, why in live] or ["- 无登记的矛盾"])
     out.append("\n## 常驻")
     for section in dict.fromkeys(s for _, s in standing):
         out += [f"\n### {section}\n"] + [line(n) for n, s in standing if s == section]
-    out += ["\n## 新近\n"] + ([line(n) for n in recent] or ["- 无"]) + ["\n## 主题索引\n"]
+    out += ["\n## 新近\n"] + ([line(n) for n in recent] or ["- 无"]) + ["\n## 主题索引（现行条数）\n"]
     for topic in [t for t, _ in topics] + ["未分类"]:
-        out.append(f"- {topic}：现行 {len([n for n in groups[topic] if n not in sup and n not in archived])} 条，`--topic={topic}`")
+        out.append(f"- {topic} {len([n for n in groups[topic] if n not in sup and n not in archived])}")
     return "\n".join(out) + "\n", len(groups["未分类"]), suspects
 
 def listing(folder, topics_path, relations_path, archived_path, topic):
@@ -185,7 +185,7 @@ def self_test():
         n, unclassified, suspects, text, _, _ = run(intent, topics, rel, arc, std, None, limit=10240)
         assert n == 8 and unclassified == 4 and len(suspects) == 1, (n, unclassified, suspects)   # 疑：含推翻字样但未登记，只告警
         assert "现行 7 条，被取代 1 条、归档 0 条" in text and "报销审批两级" in text and "报销审批三级" not in text and "很长的尾巴" * 20 not in text, "被取代的不列；常驻条目上页；摘句截断"
-        assert "## 常驻\n\n### 财务规则\n" in text and "借款冲抵报销" not in text and "- 财务：现行 3 条，`--topic=财务`" in text, "常驻按小节列；主题索引只记条数、不列条目（甲既非常驻也不在最近 5 条）"
+        assert "## 常驻\n\n### 财务规则\n" in text and "借款冲抵报销" not in text and "\n- 财务 3\n" in text and "--topic=<主题>" in text, "常驻按小节列；主题索引只记条数、不列条目（甲既非常驻也不在最近 5 条）"
         recent = text.split("## 新近\n")[1].split("\n## ")[0]
         assert [l.split("`")[1] for l in recent.split("\n") if l.startswith("- ")] == ["2026-10-04-000003", "2026-10-04-000002", "2026-10-04-000001", "2026-10-04-001", "2026-10-03-000002"], f"新近列最近 5 条非常驻现行条目，新的在前：{recent!r}"
         for body in (f"{old}\t财务规则\n", "2026-10-31-000001-a-无.md\t财务规则\n", f"{new}\t财务规则\n{new}\t别的\n", f"{new}\t \n", f"{new}\n"):
@@ -219,7 +219,7 @@ def self_test():
         assert raises(lambda: run(intent, topics, rel, arc, std, None, policy=pol)), "run 默认按 policy 的键判定体量"
         [frag(f"2026-11-01-{i:06d}-a-量{i}.md", "审批", f"审批第{i}号决定，内容较长较长较长较长较长较长较长较长较长较长") for i in range(300)]
         text = run(intent, topics, rel, arc, std, None, limit=10240)[3]
-        assert len(text.encode()) <= 10240 and "--topic=审批" in text and sum("审批第" in l for l in text.splitlines()) == RECENT, "条目再多页面也只列常驻与新近，整页不超限，并给出查全写法"
+        assert len(text.encode()) <= 10240 and "--topic=<主题>" in text and "\n- 审批 " in text and sum("审批第" in l for l in text.splitlines()) == RECENT, "条目再多页面也只列常驻与新近，整页不超限，并给出查全写法"
         assert any("审批第0号" in l for l in listing(intent, topics, rel, arc, "审批")) and "审批第0号" not in text and not any("审批第" in l for l in listing(intent, topics, rel, arc, "财务")), "--topic 只列该主题、含页面省掉的现行条目"
         assert not any("报销审批三级" in l for l in listing(intent, topics, rel, arc, "审批")), "--topic 不列被取代的条目"
         assert all(raises(lambda t=t: listing(intent, topics, rel, arc, t)) for t in ("无此主题", "")), "--topic 未知或空主题名应报错"
