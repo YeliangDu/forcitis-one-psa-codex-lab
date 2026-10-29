@@ -33,8 +33,8 @@ import org.springframework.test.context.DynamicPropertySource;
  */
 class ApprovalEventRenameIT extends P5Support {
 
-    static final Path EVENTS = Path.of("../docs/modernization/events");
-    static final Path MUST_AUDIT = Path.of("../docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml");
+    static final Path EVENTS = Path.of("../docs/architecture/events");
+    static final Path MUST_AUDIT = Path.of("../docs/architecture/must-audit-actions.yaml");
 
     static final TestDatabase postgres = TestPostgres.database(ApprovalEventRenameIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
 

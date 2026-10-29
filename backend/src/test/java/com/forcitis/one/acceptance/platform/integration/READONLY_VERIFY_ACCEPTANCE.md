@@ -14,7 +14,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - 主类：发布包的默认入口（`OneApplication`），测试以 `java -jar target/forcitis-one-*.jar` 运行，与 ECS 上一样；不改主类。
 - `--connection=<连接名>`：运行中服务的只读连接名（建池名、度量标签 `connection` 与 ALERT 日志中用的同一名称）：
 
-  建池名与各自读取的环境变量（与 one.env 同名）不在本文写出，以 `docs/modernization/phase1a/infra/INFRA_RUNBOOK.md` §4.1 的表格为准；测试类中的枚举 `ReadOnlyConnection` 与之逐项对应。测试覆盖其中三条：组织源只读连接（后台建池名）、老系统部门简称只读连接、老系统待办只读连接；§4.1 中的 `probe`（C-14 探针登录）不测。
+  建池名与各自读取的环境变量（与 one.env 同名）不在本文写出，以 `docs/ops/infra-runbook.md` §4.1 的表格为准；测试类中的枚举 `ReadOnlyConnection` 与之逐项对应。测试覆盖其中三条：组织源只读连接（后台建池名）、老系统部门简称只读连接、老系统待办只读连接；§4.1 中的 `probe`（C-14 探针登录）不测。
 
   组织源的交互建池名虽与后台建池名同一登录，**不在本命令范围**：实现只认 §4.1 的三个建池名加 `probe`，测试不用交互建池名。
 - 只核实所指定的那一条连接：测试的环境里另两条连接都配了违规账号（加入 `db_datareader`），所核实的连接仍须得出自己的结果。

@@ -78,7 +78,7 @@ class A8SourceFlagsIT {
     static final String PURPOSE_RUNTIME_TODO = "RUNTIME_TODO";
     static final Set<String> RUNTIME_PURPOSES = Set.of(PURPOSE_RUNTIME_SYNC, PURPOSE_RUNTIME_TODO);
 
-    static final Path VIEW_SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
+    static final Path VIEW_SCRIPT = Path.of("../docs/data/legacy-views/seeyon-views.sql");
     /** The two relationship-type ids are read from the DBA view script itself, so the fixture and the script cannot drift apart. */
     static final long[] RELATIONSHIP_TYPES = relationshipTypesInViewScript();
     static final long HEAD_TYPE = RELATIONSHIP_TYPES[0];

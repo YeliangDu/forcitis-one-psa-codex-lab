@@ -28,7 +28,7 @@ class ApprovalIdContractTest {
 
     static final Path OPENAPI = Path.of("../frontend/packages/api/openapi.json");
     static final Path VALIDATORS = Path.of("../frontend/packages/api/src/generated/validators.ts");
-    static final Path EVENTS = Path.of("../docs/modernization/events");
+    static final Path EVENTS = Path.of("../docs/architecture/events");
     static final Path OPENAPI_GUARD = Path.of("src/test/java/com/forcitis/one/OpenApiExportTest.java");
 
     /** The one id left as it is (RULING-P4-D6), by full name. */

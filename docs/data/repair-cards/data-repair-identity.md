@@ -21,7 +21,7 @@
 - 排期：本卡排在 dev 部署之后（用户「同意，不挡 dev」，`BASELINE_TABLE_REVIEW.md` §3 末段）；本卡本身不是闸门；W2 须在 dev 正式交用户使用前完成（one-coordinator 2026-10-17 口径：dev 前阻塞，不挡 rc.6 重建；one-ops 登记到 PREDEPLOY，C-15 一组，见 README）
 
 ## 2. 依据
-- 门禁 v2（`origin/claude/one-data-gate-v2:docs/modernization/data/DATA_DESIGN_GATE.md`）：B3、B5、O4、O3、O10、O8、C3、C4、C5
+- 门禁 v2（`2d5d6741c:docs/modernization/data/DATA_DESIGN_GATE.md`）：B3、B5、O4、O3、O10、O8、C3、C4、C5
 - DATA_DESIGN_CHECKLIST §14.1 D2（成对 / 互斥落约束）、D4、D8、D12、D13；§12.2（基线开放期直接改基线，附预期表结构 diff）；ADR-0038（迁移基线开放期）
 - ADR-0030:15-16（授权申请两人约束为不可放宽的双人防线）、ADR-0026 第 6 项第 2 条
 - ADR-0043 第 2、3 项（会话内容 RESTRICTED、列分级）、第 6 项 R-2、U-12（登录地址「改为有期限」、期限提出前以带到期日 gap 登记）、U-13（四段格式前的写法）

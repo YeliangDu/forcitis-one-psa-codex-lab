@@ -35,7 +35,7 @@ class EventCatalogueCoverageTest {
             }).reduce("", String::concat);
         }
         List<String> unexercised = new ArrayList<>();
-        try (Stream<Path> files = Files.list(Path.of("../docs/modernization/events"))) {
+        try (Stream<Path> files = Files.list(Path.of("../docs/architecture/events"))) {
             for (Path file : files.filter(f -> f.toString().endsWith(".yaml") && !f.getFileName().toString().equals("asyncapi.yaml")
                     && !f.getFileName().toString().startsWith("_")).toList()) {
                 try (InputStream in = Files.newInputStream(file)) {

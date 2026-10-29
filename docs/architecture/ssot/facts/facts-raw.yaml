@@ -2,13 +2,13 @@
 meta:
   sources:
   - docs/architecture/ssot/objects/objects.yaml
-  - docs/modernization/events/approval.yaml
-  - docs/modernization/events/attendance.yaml
-  - docs/modernization/events/identity.yaml
-  - docs/modernization/events/integration.yaml
-  - docs/modernization/events/numbering.yaml
-  - docs/modernization/events/timesheet.yaml
-  - docs/modernization/events/workforce.yaml
+  - docs/architecture/events/approval.yaml
+  - docs/architecture/events/attendance.yaml
+  - docs/architecture/events/identity.yaml
+  - docs/architecture/events/integration.yaml
+  - docs/architecture/events/numbering.yaml
+  - docs/architecture/events/timesheet.yaml
+  - docs/architecture/events/workforce.yaml
   - docs/business/bi-scope.md
   counts:
     by_object: 126
@@ -956,7 +956,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalRequestStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:4
+  source: docs/architecture/events/approval.yaml:4
 - event_type: platform.approval.DocumentSubmittedForApproval
   title: 请求发起一轮审批
   description: 单据的所有者请审批模块发起一轮审批的发布语言：所有者的聚合记录它，platform.approval 订阅并发起这一轮，带齐发起所需的全部信息，审批模块不回头问所有者。类型归 platform.approval，由申请审批的模块的聚合发布，目前是 cost.timesheet 的 Timesheet；信封里的聚合与法人是所有者的。同一单据同一轮重复收到只发起一次，比当前轮更早的请求忽略；发起时违反业务规则的不重试，本轮以退回结束并写明原因。
@@ -977,7 +977,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:88
+  source: docs/architecture/events/approval.yaml:88
 - event_type: platform.approval.TaskAssigned
   title: 任务已分配（每位会签审批人一个任务）
   description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键为对象类别 + 对象 ID + 用途 + 触发事件）。系统自动通过的任务（RULE-302）不发此事件，发 TaskHandled（AUTOMATIC）。分析层 L1 以此为审批等待时长的起点。
@@ -998,7 +998,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:179
+  source: docs/architecture/events/approval.yaml:179
 - event_type: platform.approval.TaskClaimed
   title: 任务已被候选人认领
   description: 任务已被候选人认领；过程事实，不过账。通知监听器据此把其他候选人的卡片改为已处理。
@@ -1019,7 +1019,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:273
+  source: docs/architecture/events/approval.yaml:273
 - event_type: platform.approval.TaskHandled
   title: 任务已办理（通过 / 驳回 / 退回）
   description: 任务已办理（通过、驳回、退回）；过程事实，不过账。被跳过的节点不发此事件；系统自动通过（同一审批人同一节点内容未变，RULE-302）发本事件，effect 为 AUTOMATIC（D-1a-66）。加签人的驳回只发 effect=ADVISORY，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。
@@ -1040,7 +1040,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     noConsumer: 暂无消费方：分析层 L1 的审批办理时效与 1b 业务模块的任务级钩子将订阅；现在就发布，是因为办理时刻只在发生当时可记录，事后补不回
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:326
+  source: docs/architecture/events/approval.yaml:326
 - event_type: platform.approval.TaskTransferred
   title: 当前处理人把任务转交给他人（RULE-285）
   description: 当前处理人把任务转交给他人（RULE-285）；过程事实，不过账。通知监听器据此给新处理人发卡片。
@@ -1062,7 +1062,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     title: 当前处理人把任务转交给他人（RULE-285，D-1a-75）
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:408
+  source: docs/architecture/events/approval.yaml:408
 - event_type: platform.approval.ApprovalTaskBecameOverdue
   title: 任务超过审批时限仍未处理（只提醒，不自动通过）
   description: 任务超过审批时限仍未处理，只提醒，不自动通过；过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给处理人发企业微信提醒。
@@ -1082,7 +1082,7 @@ by_event:
     audit: 'not-audited: 只是提醒，不改变任何人的处理权限；超时升级（ApprovalTaskEscalated）才改变处理人，并被审计'
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:481
+  source: docs/architecture/events/approval.yaml:481
 - event_type: platform.approval.ApprovalTaskEscalated
   title: 超时后仍未处理，已升级给审批人的上级（取不到上级则交流程管理员并告警）
   description: 超时后仍未处理，已升级给审批人的上级；取不到上级则交流程管理员并告警（target=PROCESS_ADMINISTRATOR）。过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给升级对象发卡片。
@@ -1103,7 +1103,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:546
+  source: docs/architecture/events/approval.yaml:546
 - event_type: platform.approval.TaskReleased
   title: 处理人把任务退回候选人
   description: 任务的处理人把任务退回候选组，候选人可以再次认领（M-6）；过程事实，不过账。
@@ -1124,7 +1124,7 @@ by_event:
     audit: audited
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:613
+  source: docs/architecture/events/approval.yaml:613
 - event_type: platform.approval.TaskReassigned
   title: 流程管理员改派任务
   description: 流程管理员把任务改派给另一个人，填原因并审计（D-1a-61）；过程事实，不过账。通知监听器据此给新处理人发卡片。
@@ -1146,7 +1146,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
     title: 当前处理人把任务转交给他人（RULE-285，D-1a-75）
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:673
+  source: docs/architecture/events/approval.yaml:673
 - event_type: platform.approval.TaskClosed
   title: 任务因本轮结束而关闭
   description: 本轮在任务办结前结束（驳回、退回、撤回、撤销），任务关闭，未办理的候选人失去办理权；过程事实，不过账。
@@ -1166,7 +1166,7 @@ by_event:
     audit: 'not-audited: 是已审计的审批结束事件的后果，不改变任何人超出该事件的权限'
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:746
+  source: docs/architecture/events/approval.yaml:746
 - event_type: platform.approval.ApprovalRoundStarted
   title: 审批开新一轮
   description: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起（D-1a-78）；过程里程碑，不过账。aggregateId 是审批请求 ID。
@@ -1187,7 +1187,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.approval.domain.ApprovalRequestStateMachineTest
     noConsumer: 暂无消费方：审计之外无人订阅；分析层 L1 以此为审批轮次的起点
   missing_fields: []
-  source: docs/modernization/events/approval.yaml:800
+  source: docs/architecture/events/approval.yaml:800
 - event_type: organization.attendance.WorkCalendarYearMaintained
   title: 工作日历的某一年被维护
   description: null
@@ -1209,7 +1209,7 @@ by_event:
     noConsumer: 暂无消费方：审批超时提醒将在日历变更后重算截止时间（approval 依赖 attendance）；现在就发布，是因为日历变更之后已算出的截止时间需要有据可查
   missing_fields:
   - description
-  source: docs/modernization/events/attendance.yaml:5
+  source: docs/architecture/events/attendance.yaml:5
 - event_type: organization.attendance.WorkCalendarLockedDaysChanged
   title: 工作日历中已过去的日期被组织数据管理员确认修改
   description: null
@@ -1231,7 +1231,7 @@ by_event:
     noConsumer: 暂无消费方：这是对工作日历例外修改的审计留痕；现在就发布，是因为例外修改的操作人与日期事后无法还原
   missing_fields:
   - description
-  source: docs/modernization/events/attendance.yaml:36
+  source: docs/architecture/events/attendance.yaml:36
 - event_type: platform.identity.RoleCreated
   title: 角色新增
   description: null
@@ -1252,7 +1252,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:5
+  source: docs/architecture/events/identity.yaml:5
 - event_type: platform.identity.RoleRevised
   title: 角色的名称、数据范围或权限被修改
   description: null
@@ -1273,7 +1273,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:35
+  source: docs/architecture/events/identity.yaml:35
 - event_type: platform.identity.RoleEnabled
   title: 角色启用
   description: null
@@ -1294,7 +1294,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:65
+  source: docs/architecture/events/identity.yaml:65
 - event_type: platform.identity.RoleDisabled
   title: 角色停用
   description: null
@@ -1315,7 +1315,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:95
+  source: docs/architecture/events/identity.yaml:95
 - event_type: platform.identity.RoleDeleted
   title: 角色删除
   description: null
@@ -1336,7 +1336,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:125
+  source: docs/architecture/events/identity.yaml:125
 - event_type: platform.identity.AccountEnabled
   title: 账号启用
   description: null
@@ -1358,7 +1358,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:155
+  source: docs/architecture/events/identity.yaml:155
 - event_type: platform.identity.AccountDisabled
   title: 账号停用
   description: null
@@ -1380,7 +1380,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:181
+  source: docs/architecture/events/identity.yaml:181
 - event_type: platform.identity.AccountRolesReplaced
   title: 账号的角色被整体替换
   description: null
@@ -1402,7 +1402,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:207
+  source: docs/architecture/events/identity.yaml:207
 - event_type: platform.identity.AccountSeparated
   title: 账号因本人离职而收回全部角色
   description: null
@@ -1425,7 +1425,7 @@ by_event:
     noConsumer: 暂无消费方：交接离职人员在办事项的流程（B3）将订阅；现在就发布，是因为角色一收回，事实只在这一刻可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:239
+  source: docs/architecture/events/identity.yaml:239
 - event_type: platform.identity.AccountOpened
   title: 账号开立（含开立时授予的角色）
   description: null
@@ -1447,7 +1447,7 @@ by_event:
     noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:266
+  source: docs/architecture/events/identity.yaml:266
 - event_type: platform.identity.EmergencyAdminRegistered
   title: 应急账号登记
   description: null
@@ -1469,7 +1469,7 @@ by_event:
     noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:298
+  source: docs/architecture/events/identity.yaml:298
 - event_type: platform.identity.EmergencyAdminEnabled
   title: 应急账号启用
   description: null
@@ -1491,7 +1491,7 @@ by_event:
     noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:324
+  source: docs/architecture/events/identity.yaml:324
 - event_type: platform.identity.EmergencyAdminCredentialsReset
   title: 应急账号凭据重置
   description: null
@@ -1513,7 +1513,7 @@ by_event:
     noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:350
+  source: docs/architecture/events/identity.yaml:350
 - event_type: platform.identity.EmergencyAdminDisabled
   title: 应急账号停用（离职或运维命令）
   description: null
@@ -1535,7 +1535,7 @@ by_event:
     noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:376
+  source: docs/architecture/events/identity.yaml:376
 - event_type: platform.identity.AuthorizationOpened
   title: 敏感授权申请开立
   description: null
@@ -1557,7 +1557,7 @@ by_event:
     noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:408
+  source: docs/architecture/events/identity.yaml:408
 - event_type: platform.identity.AuthorizationConfirmed
   title: 敏感授权申请被另一人确认
   description: null
@@ -1579,7 +1579,7 @@ by_event:
     publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:438
+  source: docs/architecture/events/identity.yaml:438
 - event_type: platform.identity.AuthorizationRejected
   title: 敏感授权申请被拒绝或撤回
   description: null
@@ -1601,7 +1601,7 @@ by_event:
     noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/identity.yaml:468
+  source: docs/architecture/events/identity.yaml:468
 - event_type: platform.integration.SourceReferenceRegistered
   title: 有人登记了一条来源对照（核算组织编码），等待他人确认
   description: null
@@ -1623,7 +1623,7 @@ by_event:
     noConsumer: 暂无消费方：登记只需留痕；现在就发布，是因为录入人与时刻在事后无法还原
   missing_fields:
   - description
-  source: docs/modernization/events/integration.yaml:5
+  source: docs/architecture/events/integration.yaml:5
 - event_type: platform.integration.SourceReferenceConfirmed
   title: 另一个人确认了登记的来源对照，从生效日起用于出站
   description: null
@@ -1645,7 +1645,7 @@ by_event:
     noConsumer: 暂无消费方：确认只需留痕；现在就发布，是因为确认人与时刻在事后无法还原
   missing_fields:
   - description
-  source: docs/modernization/events/integration.yaml:46
+  source: docs/architecture/events/integration.yaml:46
 - event_type: platform.integration.SourceReferenceRejected
   title: 另一个人拒绝了登记的来源对照，已生效的对照不变
   description: null
@@ -1667,7 +1667,7 @@ by_event:
     noConsumer: 暂无消费方：拒绝只需留痕；现在就发布，是因为拒绝人与时刻在事后无法还原
   missing_fields:
   - description
-  source: docs/modernization/events/integration.yaml:87
+  source: docs/architecture/events/integration.yaml:87
 - event_type: platform.integration.SourceReferenceSuperseded
   title: 生效中的来源对照在后继对照的生效日结束
   description: null
@@ -1689,7 +1689,7 @@ by_event:
     noConsumer: 暂无消费方：对照的起止只需留痕；现在就发布，是因为对照何时换掉在事后无法还原
   missing_fields:
   - description
-  source: docs/modernization/events/integration.yaml:128
+  source: docs/architecture/events/integration.yaml:128
 - event_type: platform.integration.SourceReferenceRefused
   title: 有人试图人工登记只能由同步或导入写入的来源对照，已被拒绝
   description: null
@@ -1711,7 +1711,7 @@ by_event:
     noConsumer: 暂无消费方：被拒绝的尝试只需留痕；现在就发布，是因为企图改写同步写入的对照是安全信号，事后补不回
   missing_fields:
   - description
-  source: docs/modernization/events/integration.yaml:173
+  source: docs/architecture/events/integration.yaml:173
 - event_type: platform.numbering.NumberingRuleConfirmed
   title: 编号规则的模板版本确认齐全，开始发号
   description: null
@@ -1733,7 +1733,7 @@ by_event:
     noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
   missing_fields:
   - description
-  source: docs/modernization/events/numbering.yaml:5
+  source: docs/architecture/events/numbering.yaml:5
 - event_type: platform.numbering.NumberingRuleReconfigured
   title: 编号规则保存了新的模板版本，等待他人确认
   description: null
@@ -1755,7 +1755,7 @@ by_event:
     noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
   missing_fields:
   - description
-  source: docs/modernization/events/numbering.yaml:42
+  source: docs/architecture/events/numbering.yaml:42
 - event_type: platform.numbering.NumberingRuleConfirmationGiven
   title: 编号规则的模板版本得到一次确认（业务或财务）
   description: null
@@ -1777,7 +1777,7 @@ by_event:
     noConsumer: 暂无消费方：编号规则变化只需留痕；现在就发布，是因为规则的确认时刻之后无法还原
   missing_fields:
   - description
-  source: docs/modernization/events/numbering.yaml:79
+  source: docs/architecture/events/numbering.yaml:79
 - event_type: cost.timesheet.TimesheetSubmitted
   title: 工时单提交审批（进入新一轮）
   description: 工时单提交审批，进入新一轮；过程里程碑，不过账。请审批模块发起这一轮审批的是另一个事件 DocumentSubmittedForApproval（H-1），本事件只陈述事实：一个事务只改一个聚合，两者由同一次提交记录。工时单事件的 businessDate 一律取工作日期（work_date）；提交日在 submittedOn。
@@ -1799,7 +1799,7 @@ by_event:
     noConsumer: 暂无消费方：分析层 L1 的工时提交时效统计将订阅；现在就发布，是因为提交的时刻只在发生当时可记录，事后补不回
     relatedAggregates: 首次提交同事务取号时列出 NumberingRule（登记在 architecture/multi-aggregate-exceptions.txt）
   missing_fields: []
-  source: docs/modernization/events/timesheet.yaml:4
+  source: docs/architecture/events/timesheet.yaml:4
 - event_type: cost.timesheet.TimesheetApproved
   title: 工时单审批通过，工时成立
   description: 工时单审批通过，工时成立；过程里程碑，形成成本事实的是 Phase 2 的过账事件，届时再定是否使用本事件。businessDate 为工作日期。
@@ -1820,7 +1820,7 @@ by_event:
     publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
     noConsumer: 暂无消费方：分析层 L1 的工时累积快照与 Phase 2 成本过账将订阅；现在就发布，是因为工时成立的时刻只在发生当时可记录，事后补不回
   missing_fields: []
-  source: docs/modernization/events/timesheet.yaml:77
+  source: docs/architecture/events/timesheet.yaml:77
 - event_type: cost.timesheet.TimesheetRejected
   title: 工时单被驳回，工时不成立
   description: 工时单被驳回，工时不成立；过程里程碑。现行 TIMESHEET 流程的三路都在子流程内，驳回即退回，所以这个事件目前只在流程以 REJECTED 结束时才会出现；驳回后填报人可改原单再提交。businessDate 为工作日期。
@@ -1841,7 +1841,7 @@ by_event:
     publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
     noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为驳回时刻只在发生当时可记录，事后补不回
   missing_fields: []
-  source: docs/modernization/events/timesheet.yaml:133
+  source: docs/architecture/events/timesheet.yaml:133
 - event_type: cost.timesheet.TimesheetReturned
   title: 工时单被退回（审批人退回或填报人撤回），回到可修改状态，下一轮重新提交
   description: 工时单被退回（审批人退回或填报人撤回），回到可修改状态，下一轮重新提交；过程里程碑。businessDate 为工作日期。
@@ -1862,7 +1862,7 @@ by_event:
     publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
     noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为退回时刻只在发生当时可记录，事后补不回
   missing_fields: []
-  source: docs/modernization/events/timesheet.yaml:196
+  source: docs/architecture/events/timesheet.yaml:196
 - event_type: cost.timesheet.TimesheetApprovalWithdrawn
   title: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）
   description: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）；过程里程碑。businessDate 为工作日期。
@@ -1883,7 +1883,7 @@ by_event:
     publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
     noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为撤销时刻只在发生当时可记录，事后补不回
   missing_fields: []
-  source: docs/modernization/events/timesheet.yaml:259
+  source: docs/architecture/events/timesheet.yaml:259
 - event_type: organization.workforce.SyncRunSucceeded
   title: 组织同步成功
   description: null
@@ -1904,7 +1904,7 @@ by_event:
     noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:5
+  source: docs/architecture/events/workforce.yaml:5
 - event_type: organization.workforce.SyncRunHeld
   title: 组织同步被缩水保护中止
   description: null
@@ -1926,7 +1926,7 @@ by_event:
     noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:30
+  source: docs/architecture/events/workforce.yaml:30
 - event_type: organization.workforce.SyncRunFailed
   title: 组织同步失败
   description: null
@@ -1948,7 +1948,7 @@ by_event:
     noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:56
+  source: docs/architecture/events/workforce.yaml:56
 - event_type: organization.workforce.SyncRunReleased
   title: 被中止的同步已由管理员放行或被后续成功同步取代
   description: null
@@ -1970,7 +1970,7 @@ by_event:
     noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:82
+  source: docs/architecture/events/workforce.yaml:82
 - event_type: organization.workforce.SyncRunHoldReleased
   title: 被暂停的同步的一类暂停已被有权的人解除，另一类仍在时运行保持暂停
   description: null
@@ -1992,7 +1992,7 @@ by_event:
     noConsumer: 暂无消费方：放行告警（告警通道待用户指定）将订阅；现在就发布，是因为放行只在发生当时有告警价值，事后补不回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:118
+  source: docs/architecture/events/workforce.yaml:118
 - event_type: organization.workforce.OrgSnapshotChanged
   title: 组织快照因同步发生变化
   description: null
@@ -2014,7 +2014,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:155
+  source: docs/architecture/events/workforce.yaml:155
 - event_type: organization.workforce.LegalEntityRegistered
   title: 法人新增
   description: null
@@ -2036,7 +2036,7 @@ by_event:
     noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:198
+  source: docs/architecture/events/workforce.yaml:198
 - event_type: organization.workforce.LegalEntityRenamed
   title: 法人改名
   description: null
@@ -2058,7 +2058,7 @@ by_event:
     noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:227
+  source: docs/architecture/events/workforce.yaml:227
 - event_type: organization.workforce.LegalEntityActivated
   title: 法人启用
   description: null
@@ -2080,7 +2080,7 @@ by_event:
     noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:253
+  source: docs/architecture/events/workforce.yaml:253
 - event_type: organization.workforce.LegalEntityDeactivated
   title: 法人停用
   description: null
@@ -2102,7 +2102,7 @@ by_event:
     noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:279
+  source: docs/architecture/events/workforce.yaml:279
 - event_type: organization.workforce.LegalEntityCodeCorrected
   title: 法人代码更正（仅在尚未发过号时允许）
   description: null
@@ -2124,7 +2124,7 @@ by_event:
     noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:305
+  source: docs/architecture/events/workforce.yaml:305
 - event_type: organization.workforce.EmployeeRegistered
   title: 员工在首次登录时被登记进组织快照
   description: null
@@ -2146,7 +2146,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.domain.RegisteredEmployeeTest
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:337
+  source: docs/architecture/events/workforce.yaml:337
 - event_type: organization.workforce.LegalEntityAttributed
   title: 部门或员工从某日起归属某法人
   description: null
@@ -2168,7 +2168,7 @@ by_event:
     noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为归属变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:363
+  source: docs/architecture/events/workforce.yaml:363
 - event_type: organization.workforce.LegalEntityAttributionEnded
   title: 部门或员工的法人归属在某日结束
   description: null
@@ -2190,7 +2190,7 @@ by_event:
     noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为归属变化只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:403
+  source: docs/architecture/events/workforce.yaml:403
 - event_type: organization.workforce.LegalEntityAttributionCorrected
   title: 已关闭的法人归属期间的结束日被更正
   description: null
@@ -2212,7 +2212,7 @@ by_event:
     noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为更正只在发生当时可被记录，补不回
   missing_fields:
   - description
-  source: docs/modernization/events/workforce.yaml:443
+  source: docs/architecture/events/workforce.yaml:443
 - event_type: organization.workforce.EmployeeHired
   title: 员工入职已生效
   description: 入职命令生效时发布，录入与撤回只写审计。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
@@ -2233,7 +2233,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
     noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
   missing_fields: []
-  source: docs/modernization/events/workforce.yaml:496
+  source: docs/architecture/events/workforce.yaml:496
 - event_type: organization.workforce.EmployeeRegularized
   title: 员工转正已生效
   description: 转正命令生效时发布：雇佣阶段由试用转为正式，在职状态不变（ADR-0068 第 1 条第 3 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead
@@ -2255,7 +2255,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
     noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
   missing_fields: []
-  source: docs/modernization/events/workforce.yaml:532
+  source: docs/architecture/events/workforce.yaml:532
 - event_type: organization.workforce.EmployeeTransferred
   title: 员工调岗已生效
   description: 调岗命令生效时发布；负载另带触发字段与生效日前后的部门，供待调整权限按（人，人事命令 ID，触发字段）去重（ADR-0032 第 4 项、ADR-0055 决定 4）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封
@@ -2277,7 +2277,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
     noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项），F-1 订阅（ADR-0068 第 5 条）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
   missing_fields: []
-  source: docs/modernization/events/workforce.yaml:568
+  source: docs/architecture/events/workforce.yaml:568
 - event_type: organization.workforce.EmployeeSeparated
   title: 员工离职已生效
   description: 离职命令生效时发布；待放行的离职在放行后才发布（ADR-0068 第 2 条第 2 项）。生效日为人事所填最后工作日的次日。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId
@@ -2299,7 +2299,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
     noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项），F-1 订阅（ADR-0068 第 5 条）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
   missing_fields: []
-  source: docs/modernization/events/workforce.yaml:635
+  source: docs/architecture/events/workforce.yaml:635
 - event_type: organization.workforce.EmployeeReinstated
   title: 员工复职已生效
   description: 复职命令生效时发布，对应的离职须已生效、复职生效日更晚（ADR-0068 第 1 条第 5、10 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead
@@ -2321,7 +2321,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
     noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
   missing_fields: []
-  source: docs/modernization/events/workforce.yaml:671
+  source: docs/architecture/events/workforce.yaml:671
 - event_type: organization.workforce.EmployeeCorrected
   title: 员工人事已更正
   description: 更正命令改变了截至今天的部门、岗位、在职状态或直属领导时发布；只改历史时只写审计、不发布。负载为人事命令 ID、员工 ID 与受影响区间，信封 businessDate 为更正命令的生效日（ADR-0068 第 1 条第 9 项）。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
@@ -2342,7 +2342,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
     noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项），F-1 订阅（ADR-0068 第 5 条）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
   missing_fields: []
-  source: docs/modernization/events/workforce.yaml:707
+  source: docs/architecture/events/workforce.yaml:707
 - event_type: organization.workforce.SeparationHeld
   title: 离职已转待放行
   description: 离职需暂停时发布：命令转待放行，员工保持在职，不发布员工离职已生效（ADR-0068 第 2 条第 2 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28
@@ -2364,7 +2364,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
     noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
   missing_fields: []
-  source: docs/modernization/events/workforce.yaml:748
+  source: docs/architecture/events/workforce.yaml:748
 - event_type: organization.workforce.SeparationHoldReleased
   title: 待放行离职已放行
   description: 待放行的离职被放行时发布，随后按原生效日执行离职（ADR-0068 第 2 条第 3 项）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日（ADR-0068 第 1 条第 9 项）；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737
@@ -2386,7 +2386,7 @@ by_event:
     publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
     noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
   missing_fields: []
-  source: docs/modernization/events/workforce.yaml:789
+  source: docs/architecture/events/workforce.yaml:789
 by_bi_bus_matrix:
   header:
   - 业务过程事实

@@ -28,9 +28,9 @@ import org.springframework.test.context.DynamicPropertySource;
  */
 class SourceReferenceRefusedRenameIT extends P5Support {
 
-    static final Path EVENTS = Path.of("../docs/modernization/events");
-    static final Path AGGREGATES = Path.of("../docs/modernization/architecture/ssot/i03-aggregates/built.yaml");
-    static final Path MUST_AUDIT = Path.of("../docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml");
+    static final Path EVENTS = Path.of("../docs/architecture/events");
+    static final Path AGGREGATES = Path.of("../docs/architecture/ssot/aggregates/built.yaml");
+    static final Path MUST_AUDIT = Path.of("../docs/architecture/must-audit-actions.yaml");
 
     static final TestDatabase postgres = TestPostgres.database(SourceReferenceRefusedRenameIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
 

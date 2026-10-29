@@ -39,7 +39,7 @@
 | 10 BC 映射 | `closeout/bc-map.yaml` | 手写 | 1 | 三组 BC 对照 |
 | 10 依赖 | `backend/architecture/module-dependencies.txt` | 手写 | 4 | 代码守护的已有 SSOT |
 | 10 数据访问 | `backend/architecture/data-access-registry.yaml` | 手写 | 0（Java 守护读） | 各模块所有 |
-| 11 事实 / 事件 | `docs/modernization/events/*.yaml`；`closeout/people/events.yaml`、`finance/events.finance.yaml` | 手写 | 2 | 仓库事件目录与组内草稿两套 |
+| 11 事实 / 事件 | `docs/architecture/events/*.yaml`；`closeout/people/events.yaml`、`finance/events.finance.yaml` | 手写 | 2 | 仓库事件目录与组内草稿两套 |
 | 13 指标 | `glossary/terms.yaml`（kind=metric）、`r0/METRIC_BASELINE_DRAFT.md` | 手写 | 21（词表整体） | 指标借住词表 |
 | 12–14 | `data/PANORAMA_TABLES.yaml` | — | 1 | 不存在（one-data 未交） |
 | 责任 | `closeout/RESPONSIBILITY_MATRIX.yaml`、`finance/responsibility.finance.yaml`、`people/raci.yaml`、`revenue/raci.yaml`、`assignments.yaml` | 手写 / 生成 | 1–5 | 两种写法并存 |
