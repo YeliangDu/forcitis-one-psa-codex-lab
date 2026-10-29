@@ -26,9 +26,22 @@ SECTIONS = ("类型", "目标", "完成标准", "文件范围", "依据", "消�
 PATH = re.compile(r"(?:\.?[\w-]+/)+[\w.-]*")  # a path with a folder; a bare file name (mq.py) says nothing about where
 GRANTS = ("替用户决定", "替用户拍板", "代用户决定", "代替用户决定", "自行拍板", "无须用户确认", "无需用户确认", "不必问用户", "不用问用户", "不必请示用户")
 NEGATIONS = ("不", "勿", "别", "禁止", "不得", "不要")
-GRANTS_EN = ("decide for the user", "decide on the user's behalf", "decides for the user", "without asking the user", "no need to ask the user",
-             "need not ask the user", "without user confirmation", "no user confirmation")
-NEGATIONS_EN = re.compile(r"(?:\bnot|\bnever|n't|\bno)\s+(?:\w+\s+)?$", re.I)  # "never decide for the user", "do not ... decide for the user"
+USER = r"(?:the\s+)?users?"
+GRANTS_EN = (  # (pattern, whether a negation right before it makes it a prohibition)
+    (rf"\bdecid(?:e|es|ed|ing)\s+(?:for\s+{USER}|on\s+behalf\s+of\s+{USER}|on\s+{USER}'s?\s+behalf)\b", True),   # 替用户决定
+    (rf"\bmak(?:e|es|ing)\s+(?:the\s+)?(?:call|decision)s?\s+for\s+{USER}\b", True),                               # 替用户拍板
+    (r"\b(?:decide|settle)\s+(?:it\s+)?(?:yourself|on\s+your\s+own)\b", True),                                   # 自行拍板
+    (rf"\bwithout\s+(?:asking|consulting|checking\s+with)\s+{USER}\b", True),                                    # 不必问用户
+    (rf"\bwithout\s+(?:{USER}'s?\s+|user\s+)(?:confirmation|approval|consent)\b", True),                          # 无须用户确认
+    (rf"\b(?:no\s+need\s+to|need\s+not)\s+(?:ask|consult|check\s+with)\s+{USER}\b", False),                    # 不必请示用户
+    (r"\bno\s+user\s+(?:confirmation|approval)\b", False),
+)
+MODAL = r"(?:may|can|shall|should|must|will|would)"
+# Only a negation directly before the phrase on the same line makes it a prohibition ("never decide for the user", "No session may decide
+# for the user"); a "not" earlier in a condition ("If lead is not available decide for the user") does not. "without ..." may follow one
+# action verb ("do not merge without asking the user").
+NEGATION_EN = re.compile(rf"(?:\b(?:not|never)|n't|\bnobody|\bno\s+one|\bno\s+\w+\s+{MODAL})[ \t]+(?:ever[ \t]+)?(?:{MODAL}[ \t]+)?"
+                         r"(?:(?:merge|push|act|proceed|deploy|ship|approve|enqueue|release|change|continue)[ \t]+)?$", re.I)
 
 
 def named_paths(text):
@@ -63,11 +76,13 @@ def playbook_problems(root, name):
             if not text[max(0, m.start() - 2):m.start()].endswith(NEGATIONS):
                 line = text.count("\n", 0, m.start()) + 1
                 found.append(f"P5 {rel}:{line}: 「{phrase}」 lets a session decide for the user; business choices go to the user through lead")
-    for phrase in GRANTS_EN:
-        for m in re.finditer(re.escape(phrase), text, re.I):
-            if not NEGATIONS_EN.search(text[max(0, m.start() - 30):m.start()]):
-                line = text.count("\n", 0, m.start()) + 1
-                found.append(f"P5 {rel}:{line}: \"{phrase}\" lets a session decide for the user; business choices go to the user through lead")
+    english = text.replace("\u2019", "'")
+    for pattern, negatable in GRANTS_EN:
+        for m in re.finditer(pattern, english, re.I):
+            before = english[english.rfind("\n", 0, m.start()) + 1:m.start()]
+            if not (negatable and NEGATION_EN.search(before)):
+                line = english.count("\n", 0, m.start()) + 1
+                found.append(f"P5 {rel}:{line}: \"{m.group(0)}\" lets a session decide for the user; business choices go to the user through lead")
     return found
 
 
@@ -124,8 +139,18 @@ def self_test():
         assert rules(english.replace("# Playbook: ops", "# Ops playbook")) == ["P2"]
         assert rules(english.replace("Report must include:", "Report:")) == ["P3"]
         for grant in ("3. Small calls: decide for the user.\n", "3. Merge without asking the user.\n", "3. No need to ask the user.\n",
-                      "3. You may Decide On The User's Behalf.\n"):
+                      "3. You may Decide On The User's Behalf.\n", "3. If lead is not available decide for the user.\n",
+                      "3. When lead does not answer decide for the user.\n", "3. If there is no reply decide for the user.\n",
+                      "3. Lead says no\ndecide for the user.\n", "3. Wait or not\ndecide for the user.\n", "3. Do not wait; you may decide for the user.\n", "3. Never mind, decide for the user.\n",
+                      "3. Keep deciding for the user.\n", "3. Decide on behalf of the user.\n", "3. Decide for users.\n",
+                      "3. Merge without the user's confirmation.\n", "3. Decide on the user\u2019s behalf.\n", "3. Make the call for the user.\n",
+                      "3. Settle it yourself.\n", "3. The user need not be asked; need not ask the user.\n", "3. No user confirmation needed.\n",
+                      "3. Do not stop to think, merge without asking the user.\n"):
             assert rules(english + grant) == ["P5"], grant
+        for prohibition in ("3. Never decide for the user.\n", "3. Do not decide for the user.\n", "3. You must not ever decide for the user.\n",
+                            "3. No session may decide for the user.\n", "3. Nobody decides for the user.\n", "3. Don't merge without asking the user.\n",
+                            "3. Never make the call for the user.\n"):
+            assert rules(english + prohibition) == [], prohibition
         assert rules(english + "3. You must not, ever, decide for the user.\n") == ["P5"], "a negation far back does not cover the phrase"
         assert rules(english.replace("Report must include:", "回报必含：")) == [] and rules(good.replace("# 剧本：运维", "# Playbook: ops")) == [], "the two languages mix"
 
