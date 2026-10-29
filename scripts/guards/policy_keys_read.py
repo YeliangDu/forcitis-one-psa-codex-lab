@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Every numeric policy.json key in the checked sections has a script that reads it (#822): an unread limit only looks enforced.
 
-A key counts as read when its name appears quoted ("key" or 'key') in a file under scripts/, tools/ or .github/ other than self-tests and this
-file. Keys read only by the tool library (outside the repository) are listed in TOOL_LIBRARY; where the library exists (local runs) the listed
+A key counts as read when its name appears quoted ("key" or 'key') in a file under scripts/, tools/ or .github/, leaving out self-test files,
+self-test functions inside a script (def self_test..., def *_selftest...) and this file. Keys read only by the tool library (outside the repository) are listed in TOOL_LIBRARY; where the library exists (local runs) the listed
 file must really name the key, on CI the entry is trusted.
 
 Each failure names the rule, the key and the fix:
@@ -13,6 +13,7 @@ Each failure names the rule, the key and the fix:
   policy_keys_read.py              check the repository (run from its root)
   policy_keys_read.py --self-test  a red case per rule
 """
+import ast
 import json
 import os
 import sys
@@ -35,6 +36,20 @@ def numeric_keys(policy):
                 yield f"{section}.{key}"
 
 
+def without_self_tests(text):
+    """A Python script's text with its self-test functions blanked: a key a self-test writes into a fake policy is no read."""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return text
+    lines = text.split("\n")
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and ("self_test" in node.name or "selftest" in node.name):
+            for i in range(node.lineno - 1, node.end_lineno):
+                lines[i] = ""
+    return "\n".join(lines)
+
+
 def corpus(root):
     """Text of every file that may read policy.json: scripts, tools and workflows, without self-tests and this check."""
     texts = []
@@ -46,7 +61,8 @@ def corpus(root):
                 if "selftest" in name or os.path.realpath(path) == SELF:
                     continue
                 try:
-                    texts.append(open(path, encoding="utf-8").read())
+                    text = open(path, encoding="utf-8").read()
+                    texts.append(without_self_tests(text) if name.endswith(".py") else text)
                 except (UnicodeDecodeError, OSError):
                     continue
     return "\n".join(texts)
@@ -65,7 +81,8 @@ def problems(root, library=LIBRARY, tool_library=TOOL_LIBRARY):
         key = full.split(".", 1)[1]
         if full in tool_library:
             path = os.path.join(library, tool_library[full])
-            if os.path.isdir(library) and not (os.path.exists(path) and named(open(path, encoding="utf-8").read(), key)):
+            reads = os.path.exists(path) and "selftest" not in os.path.basename(path) and named(without_self_tests(open(path, encoding="utf-8").read()), key)
+            if os.path.isdir(library) and not reads:
                 found.append(f"PK-2 {full}: TOOL_LIBRARY says {tool_library[full]} reads it, but that file does not name \"{key}\"."
                              f" fix: point the entry at the reader, or drop the key")
         elif not named(text, key):
@@ -96,8 +113,13 @@ def self_test():
         open(os.path.join(tmp, "scripts", "check_selftest.py"), "w").write('"b_kb"')
         assert rules(good, '"a_max_kb"') == ["PK-1"], "a self-test is no reader"
         os.remove(os.path.join(tmp, "scripts", "check_selftest.py"))
+        assert rules(good, 'x = policy["rules"]["a_max_kb"]\n\ndef self_test():\n    write({"b_kb": 2})\n') == ["PK-1"], "a self-test function inside a script is no reader"
+        assert rules(good, 'x = policy["rules"]["a_max_kb"]\n\ndef self_test():\n    pass\n\ny = get("b_kb")\n') == [], "code after the self-test still counts"
         assert rules(good, '"a_max_kb"', "get('b_kb')", {"start.b_kb": "x/reader.py"}) == [], "a tool-library reader counts"
         assert rules(good, '"a_max_kb"', "nothing", {"start.b_kb": "x/reader.py"}) == ["PK-2"]
+        open(os.path.join(lib, "x", "reader_selftest.py"), "w").write("get('b_kb')")
+        assert rules(good, '"a_max_kb"', "x", {"start.b_kb": "x/reader_selftest.py"}) == ["PK-2"], "a tool-library self-test is no reader"
+        assert rules(good, '"a_max_kb"', "def self_test():\n    get('b_kb')\n", {"start.b_kb": "x/reader.py"}) == ["PK-2"], "nor is a self-test function there"
         assert rules(good, '"a_max_kb" "b_kb"', "x", {"start.gone": "x/reader.py"}) == ["PK-3"]
         json.dump(good, open(os.path.join(tmp, "policy.json"), "w"))
         open(os.path.join(tmp, "scripts", "check.py"), "w").write('"a_max_kb"')
