@@ -242,7 +242,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 | 生产附加 | `springdoc.api-docs.enabled=false` | 生产 |
 | 前端构建时（CI 变量，非机密） | `VITE_WECOM_CORP_ID`、`VITE_WECOM_AGENT_ID`（PC）；`TARO_APP_WECOM_CORP_ID`（H5） | 构建时 |
 
-模板：`runbooks/files/one.env.template`（只有变量名与非机密默认值）。
+模板：`tools/ops/ecs/files/one.env.template`（只有变量名与非机密默认值）。
 
 ### 5.1 数据库连接的 TLS 与 CA（用户决定 N-3）
 

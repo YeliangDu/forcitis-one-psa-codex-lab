@@ -58,7 +58,7 @@ def tiers_self_test(root):
         write(tmp, t + "ByNameTest.java", 'class ByNameTest { String f = "docs/modernization/events/byname.yaml"; }')
         write(tmp, "frontend/scripts/copy-glossary.mjs", 'const p = "docs/modernization/glossary/front.yaml";')
         write(tmp, "frontend/src/app.ts", 'const p = "docs/modernization/glossary/app.yaml";')
-        write(tmp, "scripts/release/gate.py", 'P = "docs/modernization/phase1a/infra/runbooks/files/"')
+        write(tmp, "scripts/release/gate.py", 'P = "docs/modernization/phase1a/infra/runbooks/sql/"')
         write(tmp, "scripts/other/tool.py", 'P = "docs/modernization/events/tool.yaml"')
         write(tmp, "scripts/ci/light.sh", "cat docs/modernization/events/only-light.yaml")
         write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"; G = "docs/modernization/glossary/"')  # a local tool naming a whole directory hides no reader
@@ -100,8 +100,8 @@ def tiers_self_test(root):
         assert tier(ev + "light.yaml") == ("code", None), "a reader that walks docs: any doc may be read"
         Path(tmp, t + "WalkIT.java").unlink()
         with tempfile.TemporaryDirectory() as tmp2:
-            write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "modernization", "phase1a", "infra", "runbooks", "files"); }')
-            assert rc.tier_of(["docs/modernization/phase1a/infra/runbooks/files/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
+            write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "modernization", "phase1a", "infra", "runbooks", "sql"); }')
+            assert rc.tier_of(["docs/modernization/phase1a/infra/runbooks/sql/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
         write(tmp, t + "EventsApplicationIntegrationTest.java", "x")
         write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/modernization/glossary/terms.yaml"; String q = "docs/modernization/events/other.yaml"; }')
         rc.EXEMPT_HEAVY_READERS[(gl, "ApplicationIntegrationTest")] = "test only"
@@ -112,7 +112,7 @@ def tiers_self_test(root):
         kind, plan = tier(gl + "front.yaml")
         assert kind == "guarded" and plan["frontend"] and not plan["classes"]
         assert tier(gl + "app.yaml") == ("code", None), "a frontend source outside frontend/scripts reads it"
-        kind, plan = tier("docs/modernization/phase1a/infra/runbooks/files/x.md")
+        kind, plan = tier("docs/modernization/phase1a/infra/runbooks/sql/x.md")
         assert kind == "guarded" and plan["release"]
         assert tier(gl + "terms.yaml") == ("code", None), "a heavy test reads it and no exemption is approved"
         rc.EXEMPT_HEAVY_READERS[(gl, "ApplicationIntegrationTest")] = "test only"
