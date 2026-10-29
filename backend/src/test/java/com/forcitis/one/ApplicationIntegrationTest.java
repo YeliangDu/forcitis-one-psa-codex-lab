@@ -147,7 +147,7 @@ class ApplicationIntegrationTest {
         assertThat(checked).isNotEmpty();
         List<String> snapshot = Files.readAllLines(Path.of("architecture/public-endpoints.txt")).stream()
                 .map(String::strip).filter(line -> !line.isEmpty() && !line.startsWith("#")).toList();
-        assertThat(publicActual).as("@PublicEndpoint handlers must equal architecture/public-endpoints.txt (CODEOWNERS review)")
+        assertThat(publicActual).as("@PublicEndpoint handlers must equal architecture/public-endpoints.txt")
                 .containsExactlyInAnyOrderElementsOf(snapshot);
     }
 

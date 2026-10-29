@@ -63,7 +63,7 @@ jobs:
           python3 -I scripts/release/deploy_gate.py --self-test
           python3 -I scripts/release/deploy_gate.py "$TARGET_ENV" "$VERSION"
 
-  # Only the dedicated deploy runner (its own macOS user, CI_RUNNERS.md) runs this job; the OIDC subject names this environment
+  # Only the dedicated deploy runner (its own macOS user, docs/ops/ci-runners.md) runs this job; the OIDC subject names this environment
   deploy:
     name: deploy ${{ inputs.version }} to ${{ inputs.environment }}
     needs: gate

@@ -47,13 +47,13 @@ class SecurityInvariantsTest {
                 while (code.find()) {
                     String issuer = code.group(1);
                     if (!allowed.contains(issuer) || looksLegacy(issuer)) {
-                        problems.add(sql + ": issuer '" + issuer + "' is not in " + ISSUER_ALLOWLIST + " (CODEOWNERS review)");
+                        problems.add(sql + ": issuer '" + issuer + "' is not in " + ISSUER_ALLOWLIST);
                     }
                 }
             }
         }
         assertThat(problems).as(GuardMessage.of("I-2", "a migration inserts a ticket issuer that is not on the reviewed allowlist, or is a legacy backend",
-                "do not insert that issuer; a new reviewed issuer is added to " + ISSUER_ALLOWLIST + " with CODEOWNERS review")).isEmpty();
+                "do not insert that issuer; a new reviewed issuer is added to " + ISSUER_ALLOWLIST)).isEmpty();
     }
 
     /** I-6: WeCom messages go to touser only - never toparty / totag / @all (SEC-118). */

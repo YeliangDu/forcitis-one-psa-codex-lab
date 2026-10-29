@@ -10,7 +10,7 @@ CI（`.github/workflows/ci.yml`、`generated-docs.yml`）全部跑在本机自�
 | 标签 | `self-hosted`、`macOS`、`ARM64`、`forcitis-one` |
 | 位置 | `~/actions-runners/one-N`（N = 1..4），下载包在 `~/actions-runners/_dl` |
 | 常驻方式 | launchd（`~/Library/LaunchAgents/actions.runner.FORCITIS-forcitis-one-psa.mac-one-N.plist`） |
-| 机器 | 16 核 / 64GB，Docker Desktop；工具链来自机器本身（Java 25、Node 24、pnpm 12.4.2、gitleaks 8.30.1、gh（Homebrew，`/opt/homebrew/bin`，`ci-recurrence.yml` 用，作业不核验版本）、python3 为 pyenv 3.12.13 并带 PyYAML 6.0.3（`build_all.py --check` 生成 terms.yaml 用，SUPPLY_CHAIN S1；gitleaks 作业核验版本）），PATH 记录在各 runner 的 `.path` |
+| 机器 | 16 核 / 64GB，Docker Desktop；工具链来自机器本身（Java 25、Node 24、pnpm 12.4.2、gitleaks 8.30.1、gh（Homebrew，`/opt/homebrew/bin`，作业不核验版本）、python3 为 pyenv 3.12.13 并带 PyYAML 6.0.3（`scripts/ci/light.sh` 的守护与生成器用并核验版本，`docs/ops/supply-chain.md` S1）），PATH 记录在各 runner 的 `.path` |
 | 工作目录 | `~/actions-runners/one-N/_work`，`actions/checkout` 每次清理上次产物 |
 
 作业只检查工具版本，不安装：版本不符时作业失败并指出哪一项（gitleaks 例外：版本不符时下载 8.30.1 darwin_arm64 包并校验 SHA256，装到 `$RUNNER_TEMP`，不用 sudo）。
@@ -29,7 +29,7 @@ CI（`.github/workflows/ci.yml`、`generated-docs.yml`）全部跑在本机自�
 - pull request：只有带标签 `queued` 才跑。调度（合并队列脚本）在 PR 排到队首、已与 main 同步之后给它打这个标签（`gh pr edit <n> --add-label queued`），`labeled` 事件启动重步骤；之后因落后 main 而更新分支（`synchronize`），标签仍在，重步骤自动再跑。
 - 没有标签的 PR 只跑轻量检查（密钥扫描、文档与发布脚本检查、迁移与验收守护、断言漂移）。此时 backend、frontend 两个作业的检查名带后缀「 (light)」，与分支保护要求的检查名不同，所以必需检查停在「等待状态」，**未入队的 PR 合不了**；打上 `queued` 后检查名恢复，重步骤通过才算数。docs 类 PR 同样要打标签（重步骤因无相关改动自动跳过，几分钟即绿）。
 - 给 PR 打 `queued` 以外的标签：只跑一次轻量运行，检查名同样带「 (light)」，不会重复也不会覆盖重步骤的结果，并发组独立，不取消在途运行。
-- 编辑 PR 标题或正文（`edited`）：同样只跑轻量运行，并发组与「其他标签」共用（组名 `-other-label`）。因此已入队的 PR 若因正文缺「已通知平台 owner：…」让重检查失败，补正文不能转绿：摘掉 `queued` 再重新打上，整套重跑。合并车 PR 的正文不查此项，成员已在各自 PR 查过。
+- 编辑 PR 标题或正文（`edited`）：同样只跑轻量运行，并发组与「其他标签」共用（组名 `-other-label`）。因此已入队的 PR 若重检查失败，改标题或正文不能转绿：摘掉 `queued` 再重新打上，整套重跑。
 - push 到 main：不跑重步骤。strict 下合入的树就是带标签的 PR 刚测过的树。
 - 每晚 21:03 UTC（`ci.yml` 的 `schedule`）在 main 上全量跑一遍 ci（含前端 verify 与 OpenAPI 比对，不含 SQL Server 测试，那个由 `nightly-legacy-it.yml` 在 23:23 UTC 跑）。
 - 发布门禁 `scripts/release/ci_passed.py` 读的是 main 的 push 运行，它现在只证明轻量检查通过；重步骤的证据是合入前带标签的 PR 运行与当晚的定时全量运行，是否让发布门禁另核由 one-ops 定。
@@ -66,8 +66,6 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 每夜另有 `nightly-legacy-it.yml`：本机凌晨 01:23（cron `23 23 * * *`，UTC 23:23；冬令时 00:23），在当天 PR 的 CI 之后、macOS 凌晨 2～5 点自动装更新重启之前在同一批 runner 上全量运行 `backend_verify.sh -Plegacy-it`，随后核实有 `TEST-*MssqlIT.xml` 报告（没有即失败）；也可手动触发。它占一台 runner，最长 90 分钟。
 
 **怎样发现每夜失败**：不另设通知。调度会话开场执行 `gh run list --workflow nightly-legacy-it.yml -L 1`，最近一次不是 success 就开卡处理。
-
-每夜另有 `ci-recurrence.yml`（UTC 23:17）：按错题本「报错特征」把最近 26 小时失败的 ci 运行归类，报告写入作业摘要；已落实条目复发（`--fail-on-recurrence`），、错题本里没有任何带特征的条目（检测是空的）或检测本身出错（自测、gh 调用、错题本标题格式）时作业失败，由 GitHub 通知；带特征的条目全是「待落实」时只会判出「已登记」，不会失败。
 
 ## 发布与部署：专用 runner
 

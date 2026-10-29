@@ -1,6 +1,6 @@
 -- B-5 · 写入与越权：每一批都应被拒绝（事务内、零行语句，结束回滚）
 -- Q1–Q4（读基表、人员表、令牌表、另一视图）已被 ADR-0037 取代：账号全库只读，读取以 read-all/legacy_login_read.sql 为准，
--- 账号形状以 read-all/readonly_check.sql 核对 (a)–(g)
+-- 账号形状以 read-all/readonly-check.sql 核对 (a)–(g)
 -- Q5 写基表
 UPDATE dbo.system_dept SET name = name WHERE 1 = 0;
 GO

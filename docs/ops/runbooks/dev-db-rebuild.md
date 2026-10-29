@@ -1,6 +1,6 @@
 # dev 库重建剧本（迁移基线开放期内基线变化后）
 
-依据：用户 2026-10-15 决定 dev 部署与结构重构解耦，迁移基线在 dev 期间保持开放、生产前才关闭，并接受「每次重构后 dev 库要重建」（intent 2026-10-15-124901，PR #173）；PREDEPLOY_CHECKLIST C-15。基线关闭时点改到生产前的 ADR-0038 仍在起草，**用户批准前 dev 不因基线变化而重建**；批准后按本剧本执行不再逐次请示，每次执行在文末执行记录登一行，完成后报 one-coordinator。
+依据：用户 2026-10-15 决定 dev 部署与结构重构解耦，迁移基线在 dev 期间保持开放、生产前才关闭，并接受「每次重构后 dev 库要重建」（intent 2026-10-15-124901，PR #173）；predeploy-checklist.md C-15。基线关闭时点改到生产前的 ADR-0038 仍在起草，**用户批准前 dev 不因基线变化而重建**；批准后按本剧本执行不再逐次请示，每次执行在文末执行记录登一行，完成后报 one-coordinator。
 
 ## 何时触发
 
@@ -19,9 +19,9 @@
 
 1. **停应用与拉取**：`systemctl stop forcitis-one`；`systemctl stop forcitis-one-release-pull.timer`（重建期间不受理部署请求）。
 2. **确认无残留连接**：`SELECT count(*) FROM pg_stat_activity WHERE datname = 'forcitis_one_dev'` 为 0；不为 0 时查明来源，不强行终止他人连接。
-3. **删库与角色**：`sql/c3_dev_db_rollback.sql`（在 `forcitis_one` 库上执行；不触碰 IT 服务门户的库与角色）。回读 `pg_roles` 无 `one_dev_%`、`pg_database` 无 `forcitis_one_dev`。
-4. **建库建角色**：`sql/c3_dev_db.sql` → `sql/c3_dev_db_verify.sql`（期望值见 C-3「校验」）。
-5. **设口令**：`scripts/c3_set_role_passwords.py dev <RDS 内网地址> --rotate`（新口令写入 `one.env` 的 `SPRING_DATASOURCE_PASSWORD` 与 `/etc/forcitis-one/migrate/`；旧口令随角色删除已失效）。
+3. **删库与角色**：`sql/dev-db-rollback.sql`（在 `forcitis_one` 库上执行；不触碰 IT 服务门户的库与角色）。回读 `pg_roles` 无 `one_dev_%`、`pg_database` 无 `forcitis_one_dev`。
+4. **建库建角色**：`sql/dev-db.sql` → `sql/dev-db-verify.sql`（期望值见 C-3「校验」）。
+5. **设口令**：`tools/ops/ecs/scripts/c3_set_role_passwords.py dev <RDS 内网地址> --rotate`（新口令写入 `one.env` 的 `SPRING_DATASOURCE_PASSWORD` 与 `/etc/forcitis-one/migrate/`；旧口令随角色删除已失效）。
 6. **重置服务器的发布状态**（库重建后必须同时做；只删库不够）：
    ```bash
    ln -sfn /data/forcitis-one/bootstrap /data/forcitis-one/current     # 没有当前版本：下一次部署按首次安装处理
@@ -33,10 +33,10 @@
    - previous 必须删：新版本健康后，安装器只在切换前有当前版本时才改写 previous，否则 previous 仍指向重置前的版本，`forcitis-one-release rollback`（不带参数）会切回与新库结构不符的旧版本。
    - 版本目录必须移除：带版本号的 `rollback` 只要求该版本目录存在；移除后**重置前的版本一律不能回退**。需要某个旧功能状态时，重新部署（发布包从签名的 GitHub Release 重新下载）。
    - **重建后旧发布包不能再回滚**；回滚只能靠重新部署新版本。
-7. **Flowable 首装凭据**：按 RELEASE.md §4「首次部署」在 `/etc/forcitis-one/migrate/` 放 `flowable.database-schema-update`（`true`）、`spring.datasource.username`、`spring.datasource.password`（迁移账号）、`spring.datasource.url`（带 `&currentSchema=platform_approval`），root 600。
+7. **Flowable 首装凭据**：按 runbooks/release.md §4「首次部署」在 `/etc/forcitis-one/migrate/` 放 `flowable.database-schema-update`（`true`）、`spring.datasource.username`、`spring.datasource.password`（迁移账号）、`spring.datasource.url`（带 `&currentSchema=platform_approval`），root 600。
 8. **首次部署前检查**：`platform_integration.event_publication` 不存在或为空（新库应为空，C-3 第 0.1 步）；ECS `ecs_check.sh` 通过。
 9. **恢复拉取并部署**：`systemctl start forcitis-one-release-pull.timer`；由 one-coordinator 触发 `deploy.yml`（dev，目标版本）。
-10. **部署后**：`sql/c3_dev_db_after_migrations.sql`（版本表只追加）；C-3 `c3_dev_db_verify.sql` 的 V8（表属主、ACT_* 位于 `platform_approval`）；删除第 7 步放入的四个首装文件（非首次安装时这些文件存在，安装器拒绝运行）；首任超管与流程管理员按 C-5、B-12 重新授予（用户本人）。
+10. **部署后**：`sql/dev-db-after-migrations.sql`（版本表只追加）；C-3 `dev-db-verify.sql` 的 V8（表属主、ACT_* 位于 `platform_approval`）；删除第 7 步放入的四个首装文件（非首次安装时这些文件存在，安装器拒绝运行）；首任超管与流程管理员按 C-5、B-12 重新授予（用户本人）。
 
 ## 回退
 

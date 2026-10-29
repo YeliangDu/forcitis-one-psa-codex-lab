@@ -1,6 +1,6 @@
 # Handlers that may be called without a login session (@PublicEndpoint). Snapshot of the reviewed set (SECURITY_INVARIANTS I-3,
 # REIMAGINED_ARCHITECTURE §3.8): ApplicationIntegrationTest fails when the handlers marked @PublicEndpoint differ from this file,
-# in either direction, or when a reason differs. Adding a line needs CODEOWNERS review; no line may create a session without
+# in either direction, or when a reason differs. No line may create a session without
 # proof of identity verified by this system (WeCom OAuth, portal server-side ticket check, signed ticket, emergency admin).
 # Format: METHOD path  # reason (exactly the reason of the annotation)
 POST /api/v1/platform/login-states  # One-time OAuth state for the WeCom login redirect; creates no session. ADR-0009 §3, RULE-322/324, I-9

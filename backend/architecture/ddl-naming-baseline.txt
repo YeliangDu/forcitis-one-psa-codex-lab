@@ -1,6 +1,6 @@
 # NAMING_STANDARD §2.4 生效前（2026-10-14）已存在、尚未改名的列、约束与索引（DdlNamingTest）。
 # 格式：<违规项> | <建议>。1a 用 Flyway 追加迁移改名（RENAME COLUMN / RENAME CONSTRAINT / ALTER INDEX ... RENAME TO），改完删掉对应行；
-# 测试会拒绝新的违规项，也会拒绝已修好却没删的行。新增行须经 CODEOWNERS 评审，且只用于本次基线。
+# 测试会拒绝新的违规项，也会拒绝已修好却没删的行。新增行只用于本次基线。
 column organization_workforce.employees.email | 改名为 email_address
 column organization_workforce.employees.gender | 改名为 gender_code
 column organization_workforce.org_units.region_category | 改名为 region_kind（加 CHECK：总部 / 区域枚举）

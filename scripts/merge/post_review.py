@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""提交复审结论到 PR，并增删「复审通过」标签（定稿 1.8，H21；机读头约定见 workorders/README 第 10 节）。
+"""提交复审结论到 PR，并增删「复审通过」标签（定稿 1.8，H21；机读头约定见 `scripts/review/PROMPT.md` 的 Output 一节）。
 
 用法（复审子代理自己执行）：post_review.py --pr N --body-file F [--guard] [--repo OWNER/REPO]
 F 头三行即机读头（结论、commit、复审者），其后空一行接正文；结论只从文件解析，不接受命令行手填，作者无从改判。
@@ -24,7 +24,7 @@ REPO = re.compile(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+")
 CTRL = re.compile("[\\x00-\\x1f\\x7f-\\x9f\\u2028\\u2029]")
 MODEL = re.compile(r"[A-Za-z0-9._]+")
 IDENT = re.compile("[^\\s:：\\x00-\\x1f\\x7f-\\x9f\\u2028\\u2029]+")
-# 结论与复审者类别的字面值：workorders/README 第 10 节约定，与 mq 共用；不按 policy.json 列表位置取语义
+# 结论与复审者类别的字面值：`scripts/review/PROMPT.md` Output 一节约定，与 mq 共用；不按 policy.json 列表位置取语义
 PASS, FIX, FIRST, FINAL = "通过", "必改", "首轮", "终审"
 ADD_FLAG, REMOVE_FLAG = "--add-label", "--remove-label"
 EXIT_REFUSED, EXIT_REVIEW_FAILED, EXIT_LABEL_FAILED = 2, 3, 4

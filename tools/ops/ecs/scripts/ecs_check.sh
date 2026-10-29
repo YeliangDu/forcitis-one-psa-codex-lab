@@ -10,7 +10,7 @@ pass=0; failed=0
 ok()     { echo "PASS   $1"; pass=$((pass + 1)); }
 bad()    { echo "FAIL   $1"; failed=$((failed + 1)); }
 manual() { echo "MANUAL $1"; }
-check()  { local name="$1"; shift; if eval "$@" >/dev/null 2>&1; then ok "$name"; else bad "$name"; fi; }
+check()  { local name="$1"; shift; if eval "$*" >/dev/null 2>&1; then ok "$name"; else bad "$name"; fi; }
 
 release_source_ok() {
   local source=/etc/forcitis-one/release-source profile
@@ -61,6 +61,7 @@ public_ports_only_web() {
 access_log_without_query() {
   local conf=/etc/nginx/conf.d/one.conf
   grep -q 'log_format one_json' "$conf" || return 1
+  # shellcheck disable=SC2016  # the awk program and the regex match a literal $request
   ! awk '/log_format one_json/{p=1} p{print} p&&/;[[:space:]]*$/{exit}' "$conf" | grep -qE '\$(request|args|query_string|request_uri|arg_[a-z_]+)\b'
 }
 check "E-7 非本机地址只监听 80、443"        public_ports_only_web

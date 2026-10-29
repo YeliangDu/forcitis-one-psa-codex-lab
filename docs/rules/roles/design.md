@@ -24,7 +24,7 @@ Write business code or migrations; change wording sources or business rule cards
 ## Role rules
 1. Before choosing a framework, standard or product, write a fit study for this system and have opus attack it; for outside knowledge read the local public sources first and cite them. Enforced by: manual: design / every choice
 2. Cards that change tables, columns, constraints, indexes, event payloads, read models or migration mappings need this role's data design sign-off on the card before the acceptance test agent is dispatched. Enforced by: manual: design / every card
-3. Identity, authorization and single-person-mode changes follow SECURITY_INVARIANTS. Enforced by: backend, post_review
+3. Identity, authorization and single-person-mode changes follow `docs/ops/security-invariants.md`. Enforced by: backend, post_review
 4. New identifiers, UI text, table and column names: look them up in terms.yaml, register a proposed term on the spot if missing; dialects and homonyms get a GitHub Issue. Enforced by: backend
 
 ## Handoff
