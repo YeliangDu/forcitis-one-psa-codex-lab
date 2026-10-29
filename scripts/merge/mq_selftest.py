@@ -939,10 +939,10 @@ def _docs_tiers(mq, d):
     os.makedirs(os.path.join(repo, "scripts/ci"))
     script = os.path.join(repo, "scripts/ci/relevant_change.py")
     files = lambda f: type("F", (), {"files": lambda self, n: f})()
-    open(script, "w").write("import sys\nprint('tier=' + ('docs' if all(p.startswith('docs/') for p in open(sys.argv[2]).read().split()) else 'code'))\n")
+    open(script, "w").write("import sys\nprint('tier=' + ('docs' if all(p.startswith(('docs/', '.claude/')) for p in open(sys.argv[2]).read().split()) else 'code'))\n")
     lane = mq.default_lane(repo)
     assert lane(files(["docs/a.md"]), 1) == "docs" and lane(files(["docs/a.md", "backend/pom.xml"]), 1) == "code" and lane(files(None), 1) == "code" and lane(files([]), 1) == "code"
-    assert lane(files(["docs/a.md", "docs/ops/predeploy-checklist.md"]), 1) == "code", "a guarded path is never the docs lane, whatever its tier"
+    assert lane(files(["docs/a.md", ".claude/rules/x.md"]), 1) == "code", "a guarded path is never the docs lane, whatever its tier (the fake tier calls .claude/ docs)"
     open(script, "w").write("print('tier=docs')\nraise SystemExit(3)\n")
     assert mq.default_lane(repo)(files(["docs/a.md"]), 1) == "code", "a non-zero exit is never docs"
 
