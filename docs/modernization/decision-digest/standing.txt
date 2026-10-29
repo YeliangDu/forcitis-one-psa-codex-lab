@@ -1,0 +1,33 @@
+# 常驻决定清单（#751 批 3）：每行「intent/ 下的完整文件名<TAB>小节」，按小节、小节内按此顺序上现行决定页；须现行（未被取代、未归档）。
+# 只列今天仍改变做法的决定；完成或落入正本即移出并归档。其余现行条目按主题只记条数，build_decisions.py --topic=<主题> 查全。
+2026-10-28-180118-one-coordinator-见生产特征即拒-其余靠只读账号.md	基线与安全
+2026-10-28-202019-one-coordinator-不用-你直接简化.md	基线与安全
+2026-10-28-202108-one-coordinator-不用你读.md	基线与安全
+2026-10-24-131943-one-coordinator-不用你改-我自己改.md	基线与安全
+2026-10-21-100710-one-coordinator-PR-#494-评论-63111.md	基线与安全
+2026-10-15-024008-one-coordinator-说明读取老数据的目的-我们的目的.md	基线与安全
+2026-10-15-203001-one-coordinator-分两句并列-推荐.md	基线与安全
+2026-10-28-172409-one-coordinator-做到时再定-推荐.md	决定边界
+2026-10-28-224159-one-coordinator-行-那都你管理吧-接下来b线会话.md	决定边界
+2026-10-24-201015-one-coordinator-你先看看timesheet这个b.md	业务范围
+2026-10-24-212327-one-coordinator-我本地仓库都有-刚才看了-Use.md	业务范围
+2026-10-16-133348-one-architecture-施工方案确认页提交-18-题-U.md	业务范围
+2026-10-16-144943-one-architecture-施工方案第-2-轮确认页提交-1.md	业务范围
+2026-10-28-223140-one-coordinator-业务卡不动-——-业务开发先停.md	业务范围
+2026-10-28-172404-one-coordinator-主任职不重叠-兼职不限-推荐.md	业务范围
+2026-10-28-172406-one-coordinator-推迟到有按钮卡片时-推荐.md	业务范围
+2026-10-28-172407-one-coordinator-登记表加名称列-推荐.md	业务范围
+2026-10-28-131616-one-coordinator-整个重构剩下的任务-取消-因为我.md	Harness
+2026-10-28-171412-one-coordinator-一起开-去掉所有不影响代码质量但.md	Harness
+2026-10-28-175217-one-coordinator-批准-推荐.md	Harness
+2026-10-28-193930-one-coordinator-CI-提速先等等.md	Harness
+2026-10-28-214843-one-coordinator-你上面的要采纳的建议我同意.md	Harness
+2026-10-16-050347-one-coordinator-CI-是否搬到独立-Linux.md	Harness
+2026-10-22-151546-one-coordinator-你要把我当前Mac的负载降下来.md	Harness
+2026-10-21-143538-one-coordinator-我的建议是优先本地知识库-获取本.md	Harness
+2026-10-28-192120-one-coordinator-只保留最有价值的脚本-清理不需要.md	Harness
+2026-10-28-221249-one-coordinator-其他留下的脚本都应该全量查.md	Harness
+2026-10-28-212731-one-coordinator-全部按建议.md	会话与资源
+2026-10-28-222419-one-coordinator-同意.md	会话与资源
+2026-10-28-171648-one-coordinator-改.md	会话与资源
+2026-10-29-072701-one-leader-MCP-都移除吧.md	会话与资源
