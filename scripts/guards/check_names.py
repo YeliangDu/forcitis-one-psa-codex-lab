@@ -4,7 +4,7 @@
 Rules, each failure names the rule and the corrected name:
   N1 scripts/, tools/: a script (.py .sh .mjs .js .ts) is snake_case
   N2 scripts/, tools/: a self-test is <name>_selftest.<ext> (not test_<name> or <name>_test)
-  N3 docs/: a .md file is lower-kebab-case, with no dotted variant (.notes.md, .keep.md, .template.md)
+  N3 docs/: every file is lower-kebab-case whatever its format; a .md has no dotted variant (.notes.md, .keep.md, .template.md)
   N4 docs/: a new directory is lower-kebab-case and carries no stage or session name (phase1a, r0, u8c, one-ops ...)
   N5 a new top-level directory under docs/, docs/modernization/, scripts/ or tools/ is not on the allowlist: ask lead
 Exceptions: README.md and CLAUDE.md; ADR-NNNN*.md; fragments under intent/, decisions/ and legacy-read/; frontend/ keeps
@@ -82,11 +82,11 @@ def file_problems(path, sessions, new_dirs):
             found.append(f"N2 {path}: a self-test is <name>_selftest{ext}; use {where}/{selftest_name(stem)}{ext}")
         elif not SNAKE.fullmatch(stem):
             found.append(f"N1 {path}: scripts are snake_case; use {where}/{snake(stem)}{ext}")
-    if top == "docs" and ext == ".md":
-        if "." in stem:
+    if top == "docs":
+        if ext == ".md" and "." in stem:
             found.append(f"N3 {path}: no dotted variants of a document; use {where}/{kebab(stem.split('.')[0])}.md, or a folder")
         elif not KEBAB.fullmatch(stem):
-            found.append(f"N3 {path}: documents under docs/ are lower-kebab-case; use {where}/{kebab(stem)}.md")
+            found.append(f"N3 {path}: files under docs/ are lower-kebab-case, whatever the format; use {where}/{kebab(stem)}{ext}")
     return found
 
 
@@ -142,6 +142,8 @@ def self_test():
     assert rules("tools/ops/runner_test.py") == ["N2"] and rules("scripts/codegen/scan_acceptance_tests.py") == [], "a scanner of tests is no self-test"
     assert rules("scripts/ci/light_selftest.sh") == [] and rules("scripts/ci/relevant_change.py") == [] and rules("scripts/release/allowed_signers") == []
     assert rules("docs/modernization/Some_Notes.md") == ["N3"] and "some-notes.md" in file_problems("docs/modernization/Some_Notes.md", sessions, set())[0]
+    assert rules("docs/modernization/data/Foo_Bar.yaml") == ["N3"] and "foo-bar.yaml" in file_problems("docs/modernization/data/Foo_Bar.yaml", sessions, set())[0]
+    assert rules("docs/modernization/data/c3-dev-db.sql") == [] and rules("docs/modernization/data/rows.csv") == []
     assert rules("docs/modernization/plan.notes.md") == ["N3"] and "no dotted variants" in file_problems("docs/modernization/brief.template.md", sessions, set())[0]
     assert rules("docs/modernization/merge-queue.md") == [] and rules("docs/modernization/x/README.md") == []
     assert rules("docs/modernization/adr/src/ADR-0080.md") == [] and rules("docs/modernization/adr/src/ADR-0081-naming.md") == []
