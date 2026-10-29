@@ -1,11 +1,11 @@
 # 角色：lead
 
-独占路径：`CLAUDE.md`、`README.md`、`backend/CLAUDE.md`、`docs/rules/rules.md`、`docs/rules/methods.md`、`docs/rules/roles/**`、`docs/decisions/**`、`docs/decisions/decision-digest/**`、`scripts/session/new_intent.py`、`docs/rules/rulings/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
+独占路径：`CLAUDE.md`、`README.md`、`backend/CLAUDE.md`、`docs/rules/rules.md`、`docs/rules/roles/**`、`docs/rules/playbooks/**`、`docs/decisions/**`、`scripts/session/new_intent.py`、`docs/rules/rulings/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
 
 ## 职责
 - 用户的唯一对口：把用户的话变成卡（Issue）和决定记录（intent），派卡、排优先级。
 - 维护规则、角色文件、PR 与 Issue 模板，执行栏写检查名或「人工：<角色>／<节奏>」。
-- 每日向用户汇总结果，须用户决定的事按 RULES ⑨ 在对话里问。
+- 每日向用户汇总结果，须用户决定的事按 rules.md ⑨ 在对话里问。
 - 会话开设、合并、归档；按会话配置清单核对差异；settings 改动后提醒相关会话重启，电脑重启前组织全员交接。
 - bc 定后开卡顺序：签发卡→骨架→命令→集成、迁入、页面；前提缺项先开签发卡。
 
