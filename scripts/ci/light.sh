@@ -74,6 +74,8 @@ rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替�
 run "playbooks and the card template are well-formed" python3 -I scripts/guards/check_playbooks.py
 rule "policy.json rules/start 里有数值键没有脚本读（上限看似生效、实则无人执行）" "按输出的 PK 规则号删键，或让需要它的检查读它"
 run "every numeric policy.json rules/start key has a reader" python3 -I scripts/guards/policy_keys_read.py
+rule "JdbcClient 的 SQL 里拼进了值（可注入、计划不复用）；或登记的构造方法、调用点已不再使用" "按输出的 SV 规则号把值改成 :param 绑定，或在 scripts/guards/sql_values.py 登记构造方法并写理由"
+run "no value concatenated into SQL" python3 -I scripts/guards/sql_values.py
 rule "智能体读的规则文件超出层上限（A 开局、B 每路径，policy.json rules.layer_*_max_kb），或 .claude/rules 不是指向带 paths: 文档的相对软链（#827），会话读不全或开局多读" "按输出的 RS 规则号删短所列文件、收窄 paths:、把内容移到按编号寻址的文档（C 层），或按提示修软链"
 run "agent-read rules: layer A/B sizes, .claude/rules links" python3 -I scripts/guards/rule_sizes.py
 rule "代码文件超过 1000 行（复审必改），或登记的超长文件变长、登记过期" "按输出的 FL 规则号拆文件，或按提示更新 scripts/guards/file_lines.py 的 OVER"
