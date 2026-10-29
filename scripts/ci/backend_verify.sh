@@ -11,8 +11,9 @@ bash ../scripts/codegen/generate_api.sh --check || exit 1
 
 # Self-hosted checkouts can retain reports; only this invocation may vouch for its selected tier.
 rm -rf target/surefire-reports target/failsafe-reports
-# CI sets OPENAPI_EXPORTED_FOR to the commit its api-contract job exported and asserted (OpenApiExportTest) in this run: exporting
-# the same commit again proves nothing (#783). Anything else (local, nightly, another commit) exports and compares as before.
+# CI sets OPENAPI_EXPORTED_FOR to the commit its api-contract job exported and asserted (OpenApiExportTest) in this run, so every
+# ci.yml run (pull request, queue, push, its own schedule) skips a second export (#783). A local run, nightly-legacy-it.yml and
+# any other commit export and compare as before.
 if [ -n "${OPENAPI_EXPORTED_FOR:-}" ] && [ "$OPENAPI_EXPORTED_FOR" = "$(git rev-parse HEAD)" ]; then
   echo "OpenAPI: exported and asserted for $OPENAPI_EXPORTED_FOR by this run's api-contract job; not exported again"
 else
