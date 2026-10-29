@@ -77,7 +77,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 只能在 main 上手动运行，输入环境（dev / prod）、版本；prod 另须在 `confirm` 再输一次版本。**部署一律从 main 触发 `deploy.yml`，以 `version` 输入选择发布包**；`v*` 标签只用于发布（`release.yml` 打标签、`gh release download` 寻址），不用于触发部署。从标签触发的运行：`gate` 与 `deploy` 两个作业的 `if: github.ref == 'refs/heads/main'` 不执行；即使改了标签所指提交里的 deploy.yml，OIDC 令牌的 `job_workflow_ref` 为 `…@refs/tags/…`，与 §8.2 信任条件不符，STS 拒绝（失败关闭）。
 
 1. `gate` 作业（`forcitis-one` runner，不进 environment，失败不必等审批）：版本格式；prod 的确认；`deploy_gate.py`：
-   - 门的输入只有一个机读文件 `phase1a/infra/deploy_gate.json`（K02）：缺失或格式不对 → dev、prod 一律失败。其中 `blockers` 有任一条 → 失败；修复批合并后由调度会话删掉该条。
+   - 门的输入只有一个机读文件 `docs/ops/deploy-gate.json`（K02）：缺失或格式不对 → dev、prod 一律失败。其中 `blockers` 有任一条 → 失败；修复批合并后由调度会话删掉该条。
    - 迁移基线开放标记 `backend/architecture/migration-baseline-open`：prod 存在即失败；dev 放行，但在部署输出中告警（Actions 中为 `::warning::`）——开放期内基线文件可能在上次 dev 部署后改过，改过就先按 dev 库重建剧本（[`runbooks/dev-db-rebuild.md`](dev-db-rebuild.md)，one-ops）把 dev 库与服务器上的发布状态一起重置再部署：安装器比对两版的 `migrations.txt`，迁移文件内容变了即拒绝安装（「a migration file changed between releases」），只删库不够；prod 另由 `deploy_gate.py approval` 核对发布包所在提交里也没有该标记（用户 2026-10-15，intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`）。
    - prod：不接受预发布版本；`deploy_gate.json` 的 `exit_conditions`（Phase 1a 出口条件 D 节，**在 dev 上验收**）每一项恰为 ✅（多一个字也不算），且不少于 10 项；`prod_prerequisites` 的 C-9（生产库）、C-15（基线关闭并演练）为 ✅。`PREDEPLOY_CHECKLIST.md` 里这些状态格是 `deploy_gate.py --render` 从该文件写入的视图，手改表格不改变门的判断，且 CI 的 `deploy_gate.py --self-test` 会因不一致失败。
    - prod：版本已列在 `runbooks/prod-approvals.txt`（批准行经 PR 合入 main）。Team 计划的私有仓库没有 environment 的 required reviewers（§11），由这一行代替人工批准。

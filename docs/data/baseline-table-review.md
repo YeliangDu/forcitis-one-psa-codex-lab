@@ -2,7 +2,7 @@
 
 - 日期：2026-10-16 · 会话：one-data · 起因：用户「目前已经建成的表要 review」（经 one-coordinator 派工）。
 - 标尺：数据设计门禁清单 `DATA_DESIGN_GATE.md`（v2，含 B0、B3a、O15、O16 与附录 C；#305，用户已定生效、热点阈值 10%）。其中 OW、PA 两份分报告按旧版清单判，O15 逐条对照未完整重做（见「未核实」）。
-- 范围：main 上 10 个 schema、49 张表（基线迁移 `backend/src/main/resources/db/migration/*`）、`backend/architecture/data-access-registry.yaml`、`data-classification.txt`、`phase1a/DATA_SCORECARD.md`。
+- 范围：main 上 10 个 schema、49 张表（基线迁移 `backend/src/main/resources/db/migration/*`）、`backend/architecture/data-access-registry.yaml`、`data-classification.txt`、`docs/data/data-scorecard.md`。
 - 方法：4 个 sonnet 子代理分 schema 逐表套清单（分报告在 `review-parts/`）→ 1 个 opus 子代理独立复核全部「阻断与高」、各份的高风险项与 6 条中级抽查（`review-parts/OPUS_VERIFY.md`）→ 本会话汇总。生产库未碰；未起容器、未跑测试，结论来自迁移、注册表、事件目录、Java 源码与 ADR 原文。
 - 级别口径：统一按「分级参照表」（`DATA_DESIGN_GATE.md` §4a）；原则：违反已采纳 ADR 或用户决定且未排期为阻断，已排期或已由 P5 解决为高；库内安全不变量可被破坏为高；缺成对 CHECK、缺外键与索引、自由文本无长度上限、保留期或分级缺登记、枚举含未建模块取值为中；内联 CHECK 未具名、业务默认值、「为空表示」注释、`DEFAULT now()` 与注入时钟矛盾、命名与措辞为低。
 

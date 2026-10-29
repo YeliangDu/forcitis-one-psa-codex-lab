@@ -17,7 +17,7 @@
 --      不选择：项目编码/名称、客户、合同号/条款号、单据号、人员、供应商、备注。部门名是组织名，非个人信息。
 --      结果落运维约定的数据盘目录，不带回本机明细；会话里只留结论。每次取证登记一行（账号、库表、目的、输出形式与去向、删除时点）。
 --
--- 【与样板 r0/bi_audit_readonly_queries.sql 的差异】
+-- 【与样板 docs/data/metric-baseline/bi-audit-readonly-queries.sql 的差异】
 --   样板（R0·Q11，2026-10-14 起草）：读 BI 库审计表；沿用「READ UNCOMMITTED + WITH (NOLOCK)」；需用户确认访问方式；输出限于计数；
 --          列名用 <占位> 待元数据确认。
 --   本文件：读业务库 ruoyi-vue-pro；不用 NOLOCK / READ UNCOMMITTED（ADR-0037 第 8 项取代了样板时期的做法，脏读会让对账结论失效）；
@@ -67,7 +67,7 @@ ORDER BY TABLE_NAME, COLUMN_NAME;
 -- =====================================================================================
 -- Q02 部门树：拥有项目的交付部门及其上级（用于确定「区域/BU」取哪一级）
 -- 依赖：psa_pm_project.dept_id；system_dept.id / name / parent_id。
--- 不确定度：中。parent_id 来自 A8 PATH 去掉最后 4 位（phase1a/COLUMN_OWNERSHIP.md system_dept 行），层级深度未核实。
+-- 不确定度：中。parent_id 来自 A8 PATH 去掉最后 4 位（docs/data/column-ownership.md system_dept 行），层级深度未核实。
 SELECT sd.id AS dept_id, sd.name AS dept_name, sd.parent_id, sp.name AS parent_name,
        COUNT_BIG(p.id) AS project_cnt
 FROM dbo.psa_pm_project p

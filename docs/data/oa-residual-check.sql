@@ -1,7 +1,7 @@
 -- 权责事实无遗留检查（ADR-0021 第 4 条）—— 只读查询模板，SQL Server 2016，在生产 RDS 上以只读连接执行
 -- 用法：每个阶段出口前，按 OA_PROCESS_INVENTORY.md §6.3 填入本阶段的 A8 模板 ID、表单 ID 与切换日，逐段执行；
 --      每段期望结果写在注释里，任何一段不满足即出口条件不满足。只取计数，不读单据内容。
--- 参数（示例为 6a；模板 ID、表单 ID 见 runtime/a8_templates.tsv 第 1 列与表单定义）：
+-- 参数（示例为 6a；模板 ID、表单 ID 见 docs/legacy/runtime-usage/a8-templates.tsv 第 1 列与表单定义）：
 --   @cutover      切换日（会计期间首日）
 --   @templates    本阶段 A8 模板 ID（CTP_TEMPLATE.ID）
 --   @forms        本阶段 A8 表单 ID（CAP_FORM_DEFINITION.ID，即 LEXMISCIF_VOUCHER.V_FORMID）

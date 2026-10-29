@@ -490,7 +490,7 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityAttributionTest
         noConsumer: 暂无消费方：核算与授权将按生效区间订阅；现在就发布，是因为更正只在发生当时可被记录，补不回
-    # 人事命令（ADR-0068 第 1 条第 9 项，契约见 phase1a/a8-split/PERSONNEL_COMMAND_CONTRACT.md）：命令生效时才发布；录入、撤回有意不发事件，只写审计。
+    # 人事命令（ADR-0068 第 1 条第 9 项，契约见 docs/architecture/contracts/personnel-command-contract.md）：命令生效时才发布；录入、撤回有意不发事件，只写审计。
     # 停薪留职开始与结束的事件随 ADR-0068 第 3 条定名，法人归属变更的事件名交 one-glossary（ADR-0073 影响面），均未定，此处不登记。
     EmployeeHired:
       name: EmployeeHired

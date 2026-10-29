@@ -9,7 +9,7 @@ terms:
   scope: domain
   definition: 投递只能从待发送离开一次（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []

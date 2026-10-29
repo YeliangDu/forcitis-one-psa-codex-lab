@@ -9,7 +9,7 @@ terms:
   scope: kernel
   definition: 对象在当前状态下不能做这个操作（409）；各模块的状态机没有自己的转换错误码时默认用它（CS-2.24，IMP-1022-COO-02）
   standard_ref:
-  - proposals/B31_ADM02_RULINGS_2026-10-22.md
+  - docs/architecture/proposals/b31-adm02-rulings-2026-10-22.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -24,7 +24,7 @@ terms:
   scope: kernel
   definition: 对象在读取后被别人改过，版本或唯一键冲突（409）（CS-2.24，IMP-1022-COO-02）
   standard_ref:
-  - proposals/B31_ADM02_RULINGS_2026-10-22.md
+  - docs/architecture/proposals/b31-adm02-rulings-2026-10-22.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -39,7 +39,7 @@ terms:
   scope: kernel
   definition: 取消、驳回等须写原因的操作未填写原因（422）；各模块没有自己的缺原因错误码时默认用它（CS-2.24，T-A2，B31_CARD_C_API）
   standard_ref:
-  - proposals/B31_ADM02_RULINGS_2026-10-22.md
+  - docs/architecture/proposals/b31-adm02-rulings-2026-10-22.md
   confidence: medium
   aliases: []
   forbidden: []

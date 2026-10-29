@@ -42,7 +42,7 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 ### RULE-494: A holder can give a task back to the candidates, who can claim it again; the process administrator can hand any open task to a named person
 **Category:** Lifecycle
 **Priority:** P1
-**Source:** intent `2026-10-14-124-1a流程-审批-流程管理员.md` (D-1a-61: the administrator may reassign, with reason and audit); `process/1a/合并待办与通知.md` (claimed and unclaimed task states); glossary terms TaskClaim, Unclaim, Reassignment; reason requirement per RULE-493. Tests: ApprovalTaskStateMachineTest#releaseAndReassign
+**Source:** intent `2026-10-14-124-1a流程-审批-流程管理员.md` (D-1a-61: the administrator may reassign, with reason and audit); `docs/business/processes/merged-todo-and-notification.md` (claimed and unclaimed task states); glossary terms TaskClaim, Unclaim, Reassignment; reason requirement per RULE-493. Tests: ApprovalTaskStateMachineTest#releaseAndReassign
 **Plain English:** A claimed task released by its holder has no holder again and can be claimed by someone else. The administrator can hand an open task, claimed or not, to a named person with a reason; the task then belongs to that person as claimed.
 **Specification:**
 - Given a claimed task, When its holder releases it, Then it has no assignee; When another person claims it, Then that person is the assignee.
@@ -52,7 +52,7 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 ### RULE-495: A task's outcome and effect are recorded together; an automatic pass is always an approval; a content digest is kept only for a binding approval
 **Category:** Lifecycle
 **Priority:** P0
-**Source:** RULE-302 and `REIMAGINED_ARCHITECTURE.md` line 265 (a repeat approver passes automatically when the content digest is unchanged; a changed content must be approved again); RULE-291 (a co-signer's decision is advisory); glossary terms TaskOutcome, TaskEffect, AutoApproved, Advisory; `data/repair-cards/DATA-REPAIR-approval.md` AP-02. Tests: ApprovalRowRulesIT#outcomeAndEffectComeInPairs; ApprovalRowRulesIT#anAutomaticPassIsAnApproval; ApprovalRowRulesIT#anApprovedHashBelongsToABindingApproval
+**Source:** RULE-302 and `REIMAGINED_ARCHITECTURE.md` line 265 (a repeat approver passes automatically when the content digest is unchanged; a changed content must be approved again); RULE-291 (a co-signer's decision is advisory); glossary terms TaskOutcome, TaskEffect, AutoApproved, Advisory; `docs/data/repair-cards/data-repair-approval.md` AP-02. Tests: ApprovalRowRulesIT#outcomeAndEffectComeInPairs; ApprovalRowRulesIT#anAutomaticPassIsAnApproval; ApprovalRowRulesIT#anApprovedHashBelongsToABindingApproval
 **Plain English:** A completed task has either both an outcome and an effect or neither. An automatic pass (effect AUTOMATIC) can only be an approval. The content digest is written only when the outcome is approved and the effect is binding; a rejection, or an advisory approval, never carries one.
 **Specification:**
 - Given a pending task, When it is completed with only the outcome APPROVED, or only the effect BINDING, Then it is refused.
@@ -63,7 +63,7 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 ### RULE-496: Start rounds are append-only: a recorded round is never changed, deleted or truncated
 **Category:** Lifecycle
 **Priority:** P0
-**Source:** intent `2026-10-14-138` and RULE_REVIEWS RULE-287 (every start is a new round on the same document; history is kept per round and can be read round by round); ADR-0033 decision 7 item 2 (`start_rounds` with its own key); `data/repair-cards/DATA-REPAIR-approval.md` AP-05 (registered APPEND_ONLY). Tests: ApprovalRowRulesIT#startRoundsCannotBeChanged; ApprovalRowRulesIT#startRoundsCannotBeTruncated
+**Source:** intent `2026-10-14-138` and RULE_REVIEWS RULE-287 (every start is a new round on the same document; history is kept per round and can be read round by round); ADR-0033 decision 7 item 2 (`start_rounds` with its own key); `docs/data/repair-cards/data-repair-approval.md` AP-05 (registered APPEND_ONLY). Tests: ApprovalRowRulesIT#startRoundsCannotBeChanged; ApprovalRowRulesIT#startRoundsCannotBeTruncated
 **Plain English:** Once a start round is written it cannot be edited, even to change the initiator or touch its timestamp, nor deleted, nor can the table be emptied. A new start still writes a new row.
 **Specification:**
 - Given one recorded round, When its initiator is updated, or its updated-at is set, or it is deleted, Then each attempt is refused (SQLSTATE 23001) and the row is unchanged.
@@ -74,7 +74,7 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 ### RULE-497: A start refused because the caller does not own the document is audited under the signed-in caller, never under the initiator the request names
 **Category:** Validation
 **Priority:** P0
-**Source:** `phase1a/SECURITY_INVARIANTS.md` I-5 (the initiator is the signed-in user only; the caller must own the document; RULE-265, RULE-280 ownership gate); `REIMAGINED_ARCHITECTURE.md` SEC-117 row. Tests: ApprovalStartOwnershipIT#theRefusalNamesTheCallerNotTheInitiatorInTheRequest
+**Source:** `docs/ops/security-invariants.md` I-5 (the initiator is the signed-in user only; the caller must own the document; RULE-265, RULE-280 ownership gate); `REIMAGINED_ARCHITECTURE.md` SEC-117 row. Tests: ApprovalStartOwnershipIT#theRefusalNamesTheCallerNotTheInitiatorInTheRequest
 **Plain English:** When a caller asks to start someone else's document and is refused with access denied, the audit entry `platform.approval.start.denied` names the person who is actually signed in. The initiator written in the request is untrusted and is never the actor of the denial.
 **Specification:**
 - Given document D belongs to user B and user C is signed in, When C starts D naming user A as the initiator, Then access is denied.
@@ -95,7 +95,7 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 ### RULE-499: Every candidate gets the task card; a claim, or a decision on an unclaimed task, marks the same card handled and sends no further reminder
 **Category:** Policy
 **Priority:** P1
-**Source:** intent `2026-10-14-138-合并待办卡片与展示-逐项勾选-办.md` (D-1a-133: the card shows initiator, department, start time and deadline, and a business summary given at start; D-1a-135); `process/1a/合并待办与通知.md` item 8 (a claim or a direct decision marks the same card handled); `REIMAGINED_ARCHITECTURE.md` Q-3 (every candidate gets the card; after a claim only the claimer acts); RULE-374 (recipients are resolved by the messaging id, exact id, no broadcast). Tests: TaskNotificationIT#everyCandidateGetsTheCard; TaskNotificationIT#claimMarksTheCardHandled; TaskNotificationIT#decidingAnUnclaimedTaskMarksTheCardHandled
+**Source:** intent `2026-10-14-138-合并待办卡片与展示-逐项勾选-办.md` (D-1a-133: the card shows initiator, department, start time and deadline, and a business summary given at start; D-1a-135); `docs/business/processes/merged-todo-and-notification.md` item 8 (a claim or a direct decision marks the same card handled); `REIMAGINED_ARCHITECTURE.md` Q-3 (every candidate gets the card; after a claim only the claimer acts); RULE-374 (recipients are resolved by the messaging id, exact id, no broadcast). Tests: TaskNotificationIT#everyCandidateGetsTheCard; TaskNotificationIT#claimMarksTheCardHandled; TaskNotificationIT#decidingAnUnclaimedTaskMarksTheCardHandled
 **Plain English:** When a task is created, one card goes to all its candidates, keyed by the task, linking to it and addressed to exact accounts only. When someone claims the task, or decides it without claiming first (which claims it implicitly), the same card is updated as handled by that person; no second card or reminder is sent.
 **Specification:**
 - Given a task with two candidates, When it is created, Then exactly one card is sent for that task, addressed to both candidates by exact messaging id and no one else.
@@ -116,7 +116,7 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 ### RULE-501: The department of a department-head node is optional; when not given, the initiator's own organization unit is used
 **Category:** Policy
 **Priority:** P1
-**Source:** `phase1a/TIMESHEET_REPLAY.md` line 121 (the department variable of a DEPARTMENT_HEAD node is optional; not written means the initiator's own unit, listed as kept); `REIMAGINED_ARCHITECTURE.md` line 81 (DEPARTMENT_HEAD is one of the four assignment types kept). No user decision found for the default. Tests: AssigneeResolverTest#departmentIsOptionalForTheDepartmentHead
+**Source:** `docs/data/timesheet-replay.md` line 121 (the department variable of a DEPARTMENT_HEAD node is optional; not written means the initiator's own unit, listed as kept); `REIMAGINED_ARCHITECTURE.md` line 81 (DEPARTMENT_HEAD is one of the four assignment types kept). No user decision found for the default. Tests: AssigneeResolverTest#departmentIsOptionalForTheDepartmentHead
 **Plain English:** A department-head node may name a department through a process variable. If it names none, the head of the department the initiator belongs to is the candidate; if it names one, the head of that department is.
 **Specification:**
 - Given a DEPARTMENT_HEAD node with no department written, Then the rule is the department head with no variable.
@@ -137,7 +137,7 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 ### RULE-503: An attribution request that changes nothing records nothing: the same legal entity again, or a correction with the same end date
 **Category:** Policy
 **Priority:** P1
-**Source:** ADR-0026 decision 2 item 5 (attribution periods with effective dates, not overlapping); RULE-385 (a correction adds a record of the corrected period, the new end date, reason and operator); `data/repair-cards/DATA-REPAIR-workforce.md` WF-12 (a correction needs the new end date to differ from the old). No decision found for either case. Tests: LegalEntityAttributionTest#sameEntityIsANoOp; WorkforceRowConstraintsIT#wf12EmptyCorrectionIsRefused
+**Source:** ADR-0026 decision 2 item 5 (attribution periods with effective dates, not overlapping); RULE-385 (a correction adds a record of the corrected period, the new end date, reason and operator); `docs/data/repair-cards/data-repair-workforce.md` WF-12 (a correction needs the new end date to differ from the old). No decision found for either case. Tests: LegalEntityAttributionTest#sameEntityIsANoOp; WorkforceRowConstraintsIT#wf12EmptyCorrectionIsRefused
 **Plain English:** Attributing a department or employee to the legal entity it already has adds no period and raises no event. A correction record whose new end date equals the old end date is refused.
 **Specification:**
 - Given an attribution that already has legal entity LE1 from January, When LE1 is attributed again from July, Then no event is pending and there is still one period.

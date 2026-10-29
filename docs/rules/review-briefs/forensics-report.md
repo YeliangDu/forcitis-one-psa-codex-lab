@@ -12,7 +12,7 @@
 1. ADR-0037 原文（尤其第 5 项取证账号、第 7 项登记、第 8 项读取口径）与 METHODS.md 的「生产取证不逐次请示」全部分条。
 2. 报告本身，以及报告引用的**每一条**查询的 SQL 原文（不是描述）。
 3. `phase1a/infra/legacy-read/` 中对应片段；`LEGACY_READ_REGISTER.md` 的开头说明。
-4. 被读的表与列：`phase1a/SEEYON_VIEWS.sql`、`external-read-registry.yaml`、老系统结构说明（报告引用的）；凭据列清单 `credential_columns.csv`。
+4. 被读的表与列：`docs/data/legacy-views/seeyon-views.sql`、`external-read-registry.yaml`、老系统结构说明（报告引用的）；凭据列清单 `credential_columns.csv`。
 5. 报告结论所服务的规则卡、ADR 或设计文档（看结论被拿去做什么）。
 
 ## 必查项

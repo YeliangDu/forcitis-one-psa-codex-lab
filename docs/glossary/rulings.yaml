@@ -51,7 +51,7 @@ rulings:
     source: R-1b P5 卡第 11 节开工前术语门禁（one-1a-next-4 提出，one-glossary 2026-10-16 预判；技术性对齐，改掉原定义里的键形式 {type}:{id}）
   - op: promote_file
     file: promoted/GL-2026-10-16.yaml
-    source: 用户 2026-10-16 在「词表待确认事项」确认单（GL，固定链接 QPwiXzEFWCTqSGVCQRdK6J）逐组提交，76 题全部按推荐；答复 rules/decide/answers/GL.json
+    source: 用户 2026-10-16 在「词表待确认事项」确认单（GL，固定链接 QPwiXzEFWCTqSGVCQRdK6J）逐组提交，76 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl.json
     confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
   - op: rename
     id: quality_issue
@@ -80,45 +80,45 @@ rulings:
   - op: move_bc
     from: [contract.baseline, contract.changeorder, contract.riskdelivery]
     to: contract.agreement
-    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）
   - op: move_bc
     from: [presales.quoting, presales.customer]
     to: presales.opportunity
-    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）
   - op: promote_file
     file: promoted/GL2-2026-10-16.yaml
-    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json）
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json）
     confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
   - op: move_to_bc
     ids: [customer_group, customer_tier]
     to: masterdata.counterparty
-    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X02：客户集团、客户分级迁往来单位 bc
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X02：客户集团、客户分级迁往来单位 bc
   - op: deprecate
     id: customer
     replaced_by: customer_role
     until: "往来单位 BC 落地（须新 ADR 取代 ADR-0017 决定 1），代码里还没有客户相关类型"
     owner: one-architecture
-    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X02
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X02
   - op: deprecate
     id: ar_item
     replaced_by: receivable
     until: "应收款项聚合落地（随收入链 bc 排期）；需与 one-architecture 确认 AGG-49 去掉质保金类"
     owner: one-architecture
-    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X04
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X04
   - op: rename
     id: revenue_recognition
     zh: 收入确认
     en: RevenueRecognition
     kind: business_rule
     definition: 按客户确认的事实与合同条款确认收入的规则（时点与金额的判定口径），在开票与收入额度聚合内逐行执行，每行是一条收入确认行；不是一张单据；审批通过即确认收入，收入期间取客户签字日所在月；法定入账另为 StatutoryRevenueBooked
-    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X06：类别改 business_rule，原「收入确认单」列为方言别名
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X06：类别改 business_rule，原「收入确认单」列为方言别名
   - op: rename
     id: contract_riskdelivery__responsible_party
     zh: 责任承担方
     en: AuthorizationResponsibleParty
     definition: 授权三要素之三（BU / 法人 / 责任人）；合同 BC 合并后与变更中的「责任方」区别开，故英文名加授权前缀
     forbid_old: false
-    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后同 bc 内 ResponsibleParty 两条之一改名
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X01：合并后同 bc 内 ResponsibleParty 两条之一改名
   - op: redefine
     id: commercial_acceptance_bill
     kind: entity
@@ -255,7 +255,7 @@ rulings:
       scope: domain
       definition: 检查或审核中查出的问题；与缺陷责任期、质量缺陷率无关
       standard_ref:
-      - rules/decide/sheets/GL3.json
+      - docs/decisions/decision-pages/sheets/gl3.json
       confidence: medium
       aliases: []
       forbidden: []
@@ -274,7 +274,7 @@ rulings:
       scope: domain
       definition: 加班后安排的休息（劳动法第 44 条）；不是日历里要上班的周末（那是调休上班日）；「调休」单用易与调休上班日混，列方言
       standard_ref:
-      - rules/decide/sheets/GL3.json
+      - docs/decisions/decision-pages/sheets/gl3.json
       confidence: medium
       aliases:
       - name: 调休
@@ -298,7 +298,7 @@ rulings:
       scope: domain
       definition: 每期按估计进度形成的内部估值，只作经营管理，不是收入，不进财务账（用户 2026-10-16 intent 2026-10-16-144613）
       standard_ref:
-      - rules/decide/sheets/GL3.json
+      - docs/decisions/decision-pages/sheets/gl3.json
       confidence: medium
       aliases: []
       forbidden: []
@@ -353,7 +353,7 @@ rulings:
       scope: domain
       definition: 公司管理人员的泛称；指具体的人时写项目经理、项目总监、部门负责人等角色名，不用「经营层」
       standard_ref:
-      - rules/decide/sheets/GL3.json
+      - docs/decisions/decision-pages/sheets/gl3.json
       confidence: medium
       aliases:
       - name: 经营层
@@ -496,7 +496,7 @@ rulings:
       scope: domain
       definition: 状态显示名「已签署」；协议已签署但尚未满足约定的生效条件；无附条件的协议签署与生效同事务完成，只落已生效
       standard_ref:
-      - rules/decide/sheets/GL5.json
+      - docs/decisions/decision-pages/sheets/gl5.json
       confidence: medium
       aliases: []
       forbidden: []
@@ -515,7 +515,7 @@ rulings:
       scope: domain
       definition: 状态显示名「已生效」；协议已生效；只能由业务操作触发，附条件的协议经「确认生效条件满足」命令转入，不能手工改状态；转入时记生效依据：条件类型、证据单据号（如预付款保函编号）、生效日
       standard_ref:
-      - rules/decide/sheets/GL5.json
+      - docs/decisions/decision-pages/sheets/gl5.json
       confidence: medium
       aliases: []
       forbidden: []
@@ -534,7 +534,7 @@ rulings:
       scope: domain
       definition: 财务为达到固定资产标准的公司资产建的账务档案；卡片、折旧、报废与盘点账务归固定资产模块，行政事务只引用卡片号；不等同于公司资产本身
       standard_ref:
-      - rules/decide/sheets/GL5.json
+      - docs/decisions/decision-pages/sheets/gl5.json
       confidence: medium
       aliases: []
       forbidden: []

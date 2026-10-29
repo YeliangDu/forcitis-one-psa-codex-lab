@@ -200,7 +200,7 @@ IUFO 任务：汇率维护、财务报表-部门、基准财务报表任务；�
 
 ### 5.2 取数公式
 
-逐行的「行项目 → 单元格 → 公式」见 [`u8c/U8C_REPORT_FORMULAS.md`](report-formulas.md)（权责会企01–03、收付 K会01–03 共 6 张表 376 条公式全部对齐坐标，由 sonnet 子代理在本机解析 IUFO 报表格式得到）。要点：
+逐行的「行项目 → 单元格 → 公式」见 [`docs/legacy/general-ledger/report-formulas.md`](report-formulas.md)（权责会企01–03、收付 K会01–03 共 6 张表 376 条公式全部对齐坐标，由 sonnet 子代理在本机解析 IUFO 报表格式得到）。要点：
 
 | 报表 | 取数方式 | 要点 |
 |---|---|---|
@@ -288,18 +288,18 @@ IUFO 任务：汇率维护、财务报表-部门、基准财务报表任务；�
 
 ## 10. 证据
 
-- 只读查询语句：[`u8c/u8c_readonly_queries.sql`](readonly-queries.sql)（q1–q8，全部为 SELECT）；查询结果只在本会话 scratchpad，不进仓库；探针沿用评估会话的 `ro/Q.java`，改为读取查询文件并拒绝非 SELECT。
-- 报表公式：IUFO `iufo_report.repinfo`（Java 序列化的报表格式，不含数据）在本机解析，脚本 [`u8c/parse/`](u8c/parse/)，结果 [`u8c/U8C_REPORT_FORMULAS.md`](report-formulas.md)。
+- 只读查询语句：[`docs/legacy/general-ledger/readonly-queries.sql`](readonly-queries.sql)（q1–q8，全部为 SELECT）；查询结果只在本会话 scratchpad，不进仓库；探针沿用评估会话的 `ro/Q.java`，改为读取查询文件并拒绝非 SELECT。
+- 报表公式：IUFO `iufo_report.repinfo`（Java 序列化的报表格式，不含数据）在本机解析，脚本 [`u8c/parse/`](u8c/parse/)，结果 [`docs/legacy/general-ledger/report-formulas.md`](report-formulas.md)。
 - 老系统侧：`psa/docs/design/U8C凭证传递接口文档.md`、`过账引擎取数与规则配置项.md`、`过账引擎现有依赖的配置.md`；`U8cVoucherPayloadRenderer.java`、`PostingVoucherDrafterImpl.java`、`U8cVoucherPostHandler.java`、`LaborReclassMappings.java`、`U8cSubjectEnum.java`。
 - 服务器与库：`aliyun/reports/account-security-group-isolation-2026-08-01.md`、`forcitis-rds-storage-alert-rootcause-2026-08-30.md`、`aliyun/evidence/oa-psa-accrual-scope-20261013/live-u8c-system-summary.json`。
-- 二开、插件与外部接口逐项清单：[`u8c/U8C_CUSTOMIZATIONS.md`](customizations.md)；使用面统计：[`u8c/U8C_USAGE_STATS.md`](usage-stats.md)、[`u8c/U8C_IDLE_SUBJECTS.md`](idle-subjects.md)；功能盘点与能力归类：[`U8C_CAPABILITY_MAP.md`](capability-map.md)；合规清单：[`GL_COMPLIANCE_CHECKLIST.md`](../../business/gl-compliance-checklist.md)；规则卡：[`rules/GL_RULES.md`](../../business/rules/gl-rules.md)、交财务评审 [`rules/GL_FINANCE_REVIEW.md`](../../business/rules/gl-finance-review.md)。
+- 二开、插件与外部接口逐项清单：[`docs/legacy/general-ledger/customizations.md`](customizations.md)；使用面统计：[`docs/legacy/general-ledger/usage-stats.md`](usage-stats.md)、[`docs/legacy/general-ledger/idle-subjects.md`](idle-subjects.md)；功能盘点与能力归类：[`U8C_CAPABILITY_MAP.md`](capability-map.md)；合规清单：[`GL_COMPLIANCE_CHECKLIST.md`](../../business/gl-compliance-checklist.md)；规则卡：[`docs/business/rules/gl-rules.md`](../../business/rules/gl-rules.md)、交财务评审 [`docs/business/rules/gl-finance-review.md`](../../business/rules/gl-finance-review.md)。
 - 子代理：服务器与访问方式盘点（sonnet）、老系统凭证科目映射（haiku）、报表公式解析（sonnet）、统计与基线 SQL 编写（sonnet）、规范原文检索（sonnet）、二开与插件盘点（sonnet）、使用面统计整理（sonnet）、GL 规则卡与财务评审清单（opus）。
 
 ## 11. 黄金基线（只在本机）
 
 用户 2026-10-14：「U8C 除了蒸馏，还要①导出最近两个已结期间的科目余额表和三大报表作为黄金基线（只放本机）」；本会话当面确认导出金额：「同意，按上述方式导出（推荐）」。
 
-- **位置**：`~/.modernize/psa/u8c-baseline/<QZ|SF>/<账簿>/<YYYY-MM>/`，目录 700、文件 600；不进 git、不进 worktree、不上传。仓库只记清单：[`u8c/U8C_BASELINE_MANIFEST.md`](baseline-manifest.md)（文件、行数、SHA-256、生成时间、口径，共 111 个数据与报表文件，不含金额）。
+- **位置**：`~/.modernize/psa/u8c-baseline/<QZ|SF>/<账簿>/<YYYY-MM>/`，目录 700、文件 600；不进 git、不进 worktree、不上传。仓库只记清单：[`docs/legacy/general-ledger/baseline-manifest.md`](baseline-manifest.md)（文件、行数、SHA-256、生成时间、口径，共 111 个数据与报表文件，不含金额）。
 - **期间**：各账簿取各自「最近两个已结期间」（`gl_syssettled` 总账结账记录的最后期间及其上一期）。
 
 | 账套 | 账簿 | 期间 |
@@ -324,5 +324,5 @@ IUFO 任务：汇率维护、财务报表-部门、基准财务报表任务；�
   - 资产负债表期末平衡：8 / 18；不平的 10 个期间，差额都**正好等于模板没有取数的科目余额**（18 / 18 满足该恒等式），即 §5.2 所列模板缺陷（权责账套未取 D201、D301 和数字科目，收付 1004 未取 5201）。
   - 现金流量表：现金净增加额与资产负债表货币资金变动在 1 元容差内 18 / 18 一致；收付账套 K会03 的期初、期末现金只取 1001 + 1002，与货币资金口径不一致（4 个期间）。
   - 利润表：利润总额 − 所得税 = 净利润 18 / 18；净利润 = 全部损益合计（剔除 TR）16 / 18（收付 1001 的 12 月差额来自模板未取的 6901 以前年度损益调整，11 月有一笔小额差异未查明）；净利润与本年利润科目累计 11 / 18（年末已结转利润分配等原因，未逐笔核对）。
-- **用途**：G1 出口条件「以黄金基线回放，新总账重算的科目余额表与 U8C 逐行一致到分；三大报表与基线一致或差异经财务签字」（`proposals/GL_SCOPE_REVISIONS.md` §C.2）。由于 U8C 报表模板本身有缺陷，**报表层面的比对以科目余额表为准**，报表差异逐项对照模板缺陷解释。
+- **用途**：G1 出口条件「以黄金基线回放，新总账重算的科目余额表与 U8C 逐行一致到分；三大报表与基线一致或差异经财务签字」（`docs/architecture/proposals/gl-scope-revisions.md` §C.2）。由于 U8C 报表模板本身有缺陷，**报表层面的比对以科目余额表为准**，报表差异逐项对照模板缺陷解释。
 - **局限**：权责账套 2025 年 12 月以后大量凭证未记账，余额表几乎为空，所以权责账套的基线停在 2025-10 / 11；如需更新的基线，要等财务补记账、结账后重新导出。

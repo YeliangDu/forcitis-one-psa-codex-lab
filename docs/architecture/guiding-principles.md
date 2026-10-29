@@ -11,7 +11,7 @@
 
 ## 1. 框架总览
 
-各框架的核心思想、锁定版本与出处见 [architecture/FRAMEWORKS.md](frameworks.md)，用法与步骤见 [architecture/METHOD.md](method.md)。
+各框架的核心思想、锁定版本与出处见 [docs/architecture/frameworks.md](frameworks.md)，用法与步骤见 [docs/architecture/method.md](method.md)。
 
 ## 2. TOGAF：用 ADM 组织整个现代化
 
@@ -42,7 +42,7 @@
   - `accounting.ledger` → 财务总账与法定核算 BC
   - `platform.identity`、`platform.approval`、`platform.integration`、`platform.audit`、`platform.numbering` → 权限流程与集成平台 BC 的技术模块
 - **上下文映射 → 依赖方向**：`architecture/module-dependencies.txt` 就是上下文映射的代码形态，由 `ModuleDependencyTest` 强制执行，修改需评审；Modulith 保证只能经 api / events 访问。
-- **统一语言**：`glossary/terms.yaml` 是唯一词源，代码、表、事件、API 都从它派生（`NAMING_STANDARD.md`）。
+- **统一语言**：`docs/glossary/terms.yaml` 是唯一词源，代码、表、事件、API 都从它派生（`NAMING_STANDARD.md`）。
 - **防腐层**：外部系统（A8、U8C、分贝通、企业微信、KM）集中在 `platform.integration` 集成层，防腐层只在此处（ADR-0039）。老系统在过渡期也被当作一个外部系统，通过防腐层读取和反向同步。
 
 **战术设计**
@@ -102,7 +102,7 @@
 | 数据集成与互操作 | 跨 BC 只走事件和 api；外部系统只走防腐层；反向同步有契约测试 |
 | 数据仓库与 BI | 见 §8（OLAP） |
 | 数据生命周期 | 老系统：`ACT_HI_*`（1,100 万行）和 API 日志（490 万行）只读归档并设定保留期，不迁移到新库。新系统（Phase 1a 起）的原则：业务事实与审计只追加、到期归档到对象存储而不是删除；技术性中间表按状态清理；清理与归档由定时作业执行并记录在审计中。各表保留期见下表（用户 2026-10-14 认可建议值） |
-| 参照完整性与 ID | **新建聚合主键用 UUIDv7**（用户 2026-10-14：主键「UUIDv7 (Recommended)」，intent 片段 `2026-10-14-112-平台约定-2026-10-14.md`；细则见 `proposals/PHASE1A_PLATFORM_CONVENTIONS.md`）：应用侧由 kernel 的 `IdGenerator` 生成；外部主数据沿用来源 ID（员工、组织单元用 A8 ID，只存在于对应快照表）；迁移数据用 UUIDv7 新主键，老 ID 放进 `legacy_id` 列（唯一约束），经「原编号 / 原 ID」对照检索。取代原定的「迁移时保留老系统雪花 bigint ID 作主键」。**随 ADR-0033 采纳被取代（现为提议，采纳前仍按前文）**：「外部主数据沿用来源 ID（员工、组织单元用 A8 ID，只存在于对应快照表）」与「老 ID 放进 `legacy_id` 列」两句（用户 2026-10-15：「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」）。新做法：自有的每张表一律由 `IdGenerator` 生成的 UUIDv7 单列主键，无白名单例外；外部系统与老系统的标识只登记在集成层的来源对照（`platform_integration.source_references`），领域只用自有 ID；`user_accounts.user_id` 自有、另有唯一的 `employee_id`；员工编号不作键；见 `adr/src/ADR-0033.md`。**唯一例外（ADR-0048，用户 2026-10-16 批准）**：按月分区的 `platform_audit.audit_entries` 主键为 `(id, created_at)`、事件去重键为 `(event_id, created_at)`，`id` 仍是应用侧生成的 UUIDv7、任何引用只用 `id`；登记在 `backend/architecture/primary-key-exemptions.txt` 并由守护校验形状，新增分区表须另立 ADR；见 `adr/src/ADR-0048.md` |
+| 参照完整性与 ID | **新建聚合主键用 UUIDv7**（用户 2026-10-14：主键「UUIDv7 (Recommended)」，intent 片段 `2026-10-14-112-平台约定-2026-10-14.md`；细则见 `docs/architecture/proposals/phase1-a-platform-conventions.md`）：应用侧由 kernel 的 `IdGenerator` 生成；外部主数据沿用来源 ID（员工、组织单元用 A8 ID，只存在于对应快照表）；迁移数据用 UUIDv7 新主键，老 ID 放进 `legacy_id` 列（唯一约束），经「原编号 / 原 ID」对照检索。取代原定的「迁移时保留老系统雪花 bigint ID 作主键」。**随 ADR-0033 采纳被取代（现为提议，采纳前仍按前文）**：「外部主数据沿用来源 ID（员工、组织单元用 A8 ID，只存在于对应快照表）」与「老 ID 放进 `legacy_id` 列」两句（用户 2026-10-15：「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」）。新做法：自有的每张表一律由 `IdGenerator` 生成的 UUIDv7 单列主键，无白名单例外；外部系统与老系统的标识只登记在集成层的来源对照（`platform_integration.source_references`），领域只用自有 ID；`user_accounts.user_id` 自有、另有唯一的 `employee_id`；员工编号不作键；见 `docs/adr/ADR-0033.md`。**唯一例外（ADR-0048，用户 2026-10-16 批准）**：按月分区的 `platform_audit.audit_entries` 主键为 `(id, created_at)`、事件去重键为 `(event_id, created_at)`，`id` 仍是应用侧生成的 UUIDv7、任何引用只用 `id`；登记在 `backend/architecture/primary-key-exemptions.txt` 并由守护校验形状，新增分区表须另立 ADR；见 `docs/adr/ADR-0048.md` |
 
 
 **Phase 1a 表的保留与归档**（用户 2026-10-14：「都认可 (Recommended)」）
@@ -111,7 +111,7 @@
 |---|---|---|---|
 | `platform_audit.audit_entries` | 审计记录 | 在线 3 年，之后归档到对象存储，保留至满 10 年（流程归档与审计归档共用一个 10 年合规保留的国内 OSS bucket）；审批结论按此 10 年，不随会计档案 30 年（用户 2026-10-14：「不算，按 10 年」）；过账类审计的 30 年存放由首个产生过账的阶段定（见 phase1a/DEFERRED.md） | 《会计档案管理办法》会计凭证与账簿保管 30 年；《网络安全法》日志不少于 6 个月 |
 | `platform_integration.event_publication` | 模块间事件发布记录（Spring Modulith） | 已完成的保留 30 天后删除；未完成的不自动删除，超过 10 分钟告警（用户 2026-10-15：「10 分钟 (Recommended)」；配置 `stale-after`，告警见 §11 O-6） | 只用于可靠投递与重放，事件本身的业务结果已落在各 BC |
-| `cost_timesheet.consumed_events` | 工时监听方已处理事件记录 | 90 天后删除（作业 `cost.timesheet.consumed.events.purge`）。用户 2026-10-16 认可（「已建成表的保留期与匿名化」答「按 one-data 建议」，`data/RETENTION_PROPOSAL.md` 第 29 行：维持 90 天；intent `2026-10-16-090551`） | 大于事件登记的归档期 30 天；幂等不靠本表，监听方按状态转换幂等（DATA-RULE-04） |
+| `cost_timesheet.consumed_events` | 工时监听方已处理事件记录 | 90 天后删除（作业 `cost.timesheet.consumed.events.purge`）。用户 2026-10-16 认可（「已建成表的保留期与匿名化」答「按 one-data 建议」，`docs/data/retention-proposal.md` 第 29 行：维持 90 天；intent `2026-10-16-090551`） | 大于事件登记的归档期 30 天；幂等不靠本表，监听方按状态转换幂等（DATA-RULE-04） |
 | `platform_integration.outbound_deliveries` | 对外投递（企业微信通知等） | 成功的保留 90 天；失败与人工处理过的保留 1 年 | 排查与对账所需；内容含收件人，按内部级处理 |
 | `organization_workforce.sync_runs` / `sync_diffs` | A8 组织同步的运行与差异 | 运行记录保留 2 年；差异明细保留 1 年，被拦截（待放行）的运行及其差异在放行后再保留 1 年 | 追溯组织变更来源；6e 后同步方向反转再评估 |
 | `platform_numbering.legacy_numbers` | 老单据编号对照 | 永久保留，不清理 | 老编号检索与对账依据，随业务单据存续 |
@@ -220,7 +220,7 @@
 
 ## 11. 可观测性（用户 2026-10-15：对原则核对 A 的待决项答「全部按推荐 (Recommended)」；日志保留期另答「nginx 与运维日志保留改 180 天, 审计分区删除用专用维护角色」）
 
-由 `proposals/PHASE1A_PLATFORM_CONVENTIONS.md` §4 升格而来，那一节不再是现行规则。守护见 `NAMING_STANDARD.md` §4「待实现的守护」G-O1–G-O6。
+由 `docs/architecture/proposals/phase1-a-platform-conventions.md` §4 升格而来，那一节不再是现行规则。守护见 `NAMING_STANDARD.md` §4「待实现的守护」G-O1–G-O6。
 
 - **O-1 日志格式与关联号**：应用日志为 ECS 格式的结构化 JSON（Spring Boot structured logging），写到 `/data/forcitis-one/logs/*.json`，由 SLS 采集。每行必有：时间、级别、logger、message、`correlationId`、`userId`（只记 ID）、`module`（`<子域>.<BC>`）。
   - **关联号 `correlationId` 是唯一的追踪键**，不引入 `traceId` 与分布式追踪库：HTTP 入口读取 `X-Correlation-Id`（不是 UUID 时返回 400，不静默替换），没有就生成；写入 MDC 与响应头；发布领域事件时写入事件信封（`causationId` 指向触发它的事件）；消费事件与出站投递时从信封恢复；出站请求带上该头。
@@ -233,7 +233,7 @@
   - P1：立即通知，每 30 分钟重复一次，直到有人确认；
   - P2：每个事件通知一次，另有每日汇总；
   - P3：只进看板与每日汇总。
-  - 通道：P1 企业微信群机器人加短信，P2 企业微信群，P3 看板；接收群与值班人的配置见 `phase1a/infra/runbooks/C-7-alerts.md`。
+  - 通道：P1 企业微信群机器人加短信，P2 企业微信群，P3 看板；接收群与值班人的配置见 `docs/ops/runbooks/alerts.md`。
   - 已定的告警：
 
     | 告警 | 级别 | 触发 |

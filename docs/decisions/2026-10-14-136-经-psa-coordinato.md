@@ -4,4 +4,4 @@
 
 ## 落点
 
-MODERNIZATION_BRIEF.template.md Phase 1a 出口条件；process/1a/登录与会话.md D-1a-35；contract.md
+MODERNIZATION_BRIEF.template.md Phase 1a 出口条件；docs/business/processes/login-and-session.md D-1a-35；contract.md

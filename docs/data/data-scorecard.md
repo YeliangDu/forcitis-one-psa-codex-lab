@@ -8,7 +8,7 @@
 - 方法：
   - 表结构与代码用法：haiku 子代理用脚本按迁移顺序推算最终表结构，并扫描 Java 中的 SQL 字面量；
   - 逐项判断：本会话（opus）；
-  - 依据：GUIDING_PRINCIPLES §6–§8（含用户已认可的 1a 表保留期）、NAMING_STANDARD §2.4–§2.5、ADR-0016、0025（提议）、0026、0027、`proposals/EVENT_ANALYTICS_FIELDS.md` §6、METHODS M3、DATA_DESIGN_CHECKLIST §14。
+  - 依据：GUIDING_PRINCIPLES §6–§8（含用户已认可的 1a 表保留期）、NAMING_STANDARD §2.4–§2.5、ADR-0016、0025（提议）、0026、0027、`docs/architecture/events/event-analytics-fields.md` §6、METHODS M3、DATA_DESIGN_CHECKLIST §14。
 - 判定：✓ 符合；✗ 不符合（问题编号见 §3）；△ 部分符合或有瑕疵；— 不适用。
 
 ## 0. 结论

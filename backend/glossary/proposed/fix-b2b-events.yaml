@@ -10,7 +10,7 @@ terms:
   acl_class: "过渡期"
   definition: 读取组织源快照的那个业务日，即同步运行开始当天（Asia/Shanghai）。它是 OrgSnapshotChanged 信封的 businessDate，也是同一次同步写入的版本行的生效日
   standard_ref:
-  - proposals/EVENT_ANALYTICS_FIELDS.md
+  - docs/architecture/events/event-analytics-fields.md
   confidence: medium
   aliases: []
   forbidden: []

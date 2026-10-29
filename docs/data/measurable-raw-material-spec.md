@@ -21,8 +21,8 @@
 ## 3. 状态转换历史（M3，按 ADR-0058）
 
 - 规则：有状态列（名为 `status` 或以 `_status` 结尾，且有枚举 CHECK）的表，所在 schema 必须有按 ADR-0058 模板建的 `state_transitions` 表，或在注册表写 `state_transitions_exempt: <理由>`（逐行评审）；版本表自身即历史，不需要。
-- 模板、权限、清理通道、投影口径见 `data/STATE_TRANSITIONS_DESIGN.md`（第 2 版，待复核签发）。
-- 现状：对 main 扫描 14 张（见 `data/STATE_TRANSITION_TABLES.md`），按 ADR-0058 分批补；2 张登记例外（`sync_runs`、`outbound_deliveries`）。
+- 模板、权限、清理通道、投影口径见 `docs/data/state-transitions-design.md`（第 2 版，待复核签发）。
+- 现状：对 main 扫描 14 张（见 `docs/data/state-transition-tables.md`），按 ADR-0058 分批补；2 张登记例外（`sync_runs`、`outbound_deliveries`）。
 
 ## 4. 主数据按生效区间留版本（M4）
 
@@ -48,7 +48,7 @@
 
 ## 7. 脚本与接入
 
-- `scripts/ci/measurable_ddl_scan.py`：M1–M5，`--self-test`，`--root`，`--json`；复用 `baseline_ddl_scan.py` 的解析器（同目录）。对 main 的首次结果：`data/MEASURABLE_DDL_SCAN_2026-10-17.txt`。
+- `scripts/ci/measurable_ddl_scan.py`：M1–M5，`--self-test`，`--root`，`--json`；复用 `baseline_ddl_scan.py` 的解析器（同目录）。对 main 的首次结果：`docs/data/measurable-ddl-scan-2026-10-17.txt`。
 - 接入分两步：①**报告**（现在）：脚本只报告，不让任何检查失败；②**基线只减不增**：把 main 现有违反登记成基线（同 `ddl-naming-baseline.txt` 的做法），新违反失败，修好未删基线也失败，接进 `build_all --check` 与 `precheck.sh` 的 DDL 步骤。第②步要先同步 main 才能改这两个共享脚本，并走 PR 与 opus 复审（守护代码由 Claude 写，不交 Codex）。
 - 提议表的扫描在其卡有 DDL 之后用同一脚本做，进门禁条目 O9/O10 旁新增一条「可度量原料」自测。
 

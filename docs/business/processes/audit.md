@@ -2,7 +2,7 @@
 
 - 涉及 BC：`platform.audit`（审计条目）、各写审计的模块（identity、workforce、approval、numbering）
 - 涉及的 A8 模板 / 老系统入口：老登录日志、操作日志（AOP）、API 访问日志、错误日志、令牌管理页
-- 证据采集日期：2026-10-14（老代码只读；生产数字引自 `runtime/prod_usage.tsv`）
+- 证据采集日期：2026-10-14（老代码只读；生产数字引自 `docs/legacy/runtime-usage/prod-usage.tsv`）
 - 梳理会话：psa-1a-process-review（现状 / 目标由 sonnet 子代理整理，差异判断与建议由 opus 完成，差异由用户逐条决定）
 
 范围：哪些动作记审计、记什么、谁能查、保留多久、是否只追加、能否导出。只读调查，不含建议、不做决定。生产数字只引用文档已有的（出处与日期见各处）。

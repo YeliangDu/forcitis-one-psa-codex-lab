@@ -14,7 +14,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: '口语「临时上传区」不入词表；与迁入暂存、检测暂存目录不同层，见 glossary/arch-naming/NAM-1021-GLO-04.md'
+  note: '口语「临时上传区」不入词表；与迁入暂存、检测暂存目录不同层，见 docs/glossary/arch-naming/nam-1021-glo-04.md'
 - id: inspection_staging_directory
   zh: 检测暂存目录
   en: InspectionStagingDirectory

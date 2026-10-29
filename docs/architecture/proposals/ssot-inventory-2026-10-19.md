@@ -40,10 +40,10 @@
 | 10 依赖 | `backend/architecture/module-dependencies.txt` | 手写 | 4 | 代码守护的已有 SSOT |
 | 10 数据访问 | `backend/architecture/data-access-registry.yaml` | 手写 | 0（Java 守护读） | 各模块所有 |
 | 11 事实 / 事件 | `docs/architecture/events/*.yaml`；`closeout/people/events.yaml`、`finance/events.finance.yaml` | 手写 | 2 | 仓库事件目录与组内草稿两套 |
-| 13 指标 | `glossary/terms.yaml`（kind=metric）、`r0/METRIC_BASELINE_DRAFT.md` | 手写 | 21（词表整体） | 指标借住词表 |
+| 13 指标 | `docs/glossary/terms.yaml`（kind=metric）、`docs/data/metric-baseline/baseline-draft.md` | 手写 | 21（词表整体） | 指标借住词表 |
 | 12–14 | `data/PANORAMA_TABLES.yaml` | — | 1 | 不存在（one-data 未交） |
 | 责任 | `closeout/RESPONSIBILITY_MATRIX.yaml`、`finance/responsibility.finance.yaml`、`people/raci.yaml`、`revenue/raci.yaml`、`assignments.yaml` | 手写 / 生成 | 1–5 | 两种写法并存 |
-| 用语 | `glossary/terms.yaml` | 手写（one-glossary） | 21 | 已有 SSOT |
+| 用语 | `docs/glossary/terms.yaml` | 手写（one-glossary） | 21 | 已有 SSOT |
 | 改名 | `closeout/rename/RENAME_{A,B,C,V2}.yaml` | 手写 | 0 | 只作输入 |
 | 施工计划 | `proposals/construction-plan.v1.yaml` | 手写 | 0 | 旧 |
 | 场景 | `closeout/*/scenarios.*.yaml` | 手写 | 0–1 | 三组草稿 |
@@ -60,7 +60,7 @@
 | ADR57 | 已答（批准） | ADR57-20261017-131944-76w | answers/ADR57.json；adr/src/ADR-0057、ADR-0051 | 2026-10-17-132129 |
 | ADR58 | 已答（批准） | ADR58-20261017-225508-gjl | answers/ADR58.json；adr/src/ADR-0058 | 2026-10-17-225559 |
 | TRN | 已答 | 见 answers/TRN.json；TRN-09、13 会话代答 | adr/src/ADR-0054、0055、0056 | 2026-10-17-121025、130124 |
-| CAPINFO | 已答 | CAPINFO-20261017-111010-cfy | answers/CAPINFO.json；value-streams.v2、process-catalog、object-layer、信息图口径行、glossary/decisions-nm.yaml | 2026-10-17-111138 |
+| CAPINFO | 已答 | CAPINFO-20261017-111010-cfy | answers/CAPINFO.json；value-streams.v2、process-catalog、object-layer、信息图口径行、docs/glossary/decisions-nm.yaml | 2026-10-17-111138 |
 | B31 | 已答 | B31-20261017-122917-ctg | answers/B31.json；people/processes、scenarios、parts/b31.*、process-catalog、ARCH_VS14 | 2026-10-17-123053 |
 | ANC | 已答 | ANC-20261017-181237-som | answers/ANC.json；process-catalog（PRC-190/191 移出） | 2026-10-17-181332 |
 | PAN | 已答（会话中答，页未提交） | — | value-streams.v2（VS-15）、PROCESS_ANCHORING_RESEARCH | 2026-10-17-174814 |

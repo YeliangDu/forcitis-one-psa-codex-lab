@@ -197,7 +197,7 @@ flowchart TD
 - 归属：审批请求状态归 `platform.approval`（`approval_requests.status` ∈ RUNNING / RETURNED / APPROVED / REJECTED / CANCELLED，`V20261014132000…sql:12`）；工时单状态归 `cost.timesheet`（`TimesheetStatus` DRAFT / SUBMITTED / RETURNED / APPROVED / REJECTED，撤销回到 DRAFT，RULE-279）。老系统反过来：状态在 fst 头表 `approve_status`，bpm 通过 MQ 通知 fst 回写，且 bpm 也有自己的实例结果。
 - 协作事件（新）：`cost.timesheet` → approval：`Timesheet` 提交时记录 `DocumentSubmittedForApproval`，`platform.approval` 订阅后发起一轮审批（`StartApprovalOnSubmission.java:54`）；approval → 业务：`ApprovalCompleted(instanceId, processKey, businessKey, round, outcome, reason)`、`TaskHandled`；approval → 通知：`TaskAssigned`、`TaskClaimed`；`cost.timesheet` 自发：`TimesheetSubmitted`、`TimesheetApproved`、`TimesheetRejected`、`TimesheetReturned`、`TimesheetCancelled`；approval → 业务：`ApprovalCompleted` 由 `ApplyApprovalResult` 消费。
 - 业务键：`"timesheet:" + timesheetId`（`SubmitTimesheet.java:46`）；幂等键 `(processKey, businessKey)` 与 `(processKey, businessKey, round)`（`V20261014132000…sql:17, 43`）。
-- 映射：`RETURNED` → 工时单 RETURNED（可修改后重提），`CANCELLED` → DRAFT，`REJECTED` → REJECTED（填报人可改原单再提交，仍是同一张单、轮次加一）；`TimesheetSubmitted` 暂无消费方（分析层将订阅，见 `events/timesheet.yaml`）。
+- 映射：`RETURNED` → 工时单 RETURNED（可修改后重提），`CANCELLED` → DRAFT，`REJECTED` → REJECTED（填报人可改原单再提交，仍是同一张单、轮次加一）；`TimesheetSubmitted` 暂无消费方（分析层将订阅，见 `docs/architecture/events/timesheet.yaml`）。
 
 **(d) 审批时限（按用户已定口径）**
 - 计时起点：T = **提交审批当天**（`DOC/intent/2026-10-14-116`，`DOC/INTENT.md:152`）。1a 实现取任务创建当天为 T（创建日非工作日则取下一工作日，`DeadlinePlanner.java:31-36`）；任务创建时刻 `assignedAtMillis`，存为 Flowable 任务本地变量（`BE/platform/approval/infrastructure/flowable/TaskAssignmentListener.java:88`；`FlowableApprovalEngine.java:40, 164-166`），也是合并待办的 `createdAt`；没有「提交日」字段，`approval_requests` 表的 `created_at` 是该单据首轮创建、不是每轮提交（`V20261014132000…sql:14`），`start_rounds.created_at` 才是每轮（`…sql:41`）。
@@ -337,7 +337,7 @@ stateDiagram-v2
 | `TaskHandled` | 通过 / 驳回 / 退回办理（自动完成不发；`advisory` 恒 false） | `taskId`、`instanceId`、`processKey`、`businessKey`、`nodeKey`、`assignee`、`outcome`、`advisory`、`reason` | 无业务方消费（工时行级回写在 Phase 2） | 发布已实现 `ApprovalLifecycle.java:47-50`；`events/TaskHandled.java:10-12` |
 | `ApprovalCompleted` | 全部节点完成（APPROVED）；退回（RETURNED）；顶层驳回（REJECTED）；撤销（CANCELLED） | `instanceId`、`processKey`、`businessKey`、`round`、`outcome`、`reason`；至少一次，消费方按 `(processKey, businessKey, round)` 幂等 | 工时单：`ApplyApprovalResult` 更新状态 | 发布已实现 `ApprovalLifecycle.java:76-80`；`events/ApprovalCompleted.java:7-9` |
 | `TimesheetApproved` | 工时单 SUBMITTED → APPROVED | `document`、`employee`、`submittedHours`、`round` | 应由 Phase 2 的成本归集 / 过账管道消费 | 已实现 `BE/cost/timesheet/domain/Timesheet.java:149-153` |
-| `ApprovalTaskBecameOverdue` / `ApprovalTaskEscalated` | 任务到点逾期 / 升级（见 2.3 (d)） | 见 `events/approval.yaml` | 企业微信卡片、合并待办标红 | 已实现 `BE/platform/approval/events/ApprovalTaskBecameOverdue.java`、`ApprovalTaskEscalated.java` |
+| `ApprovalTaskBecameOverdue` / `ApprovalTaskEscalated` | 任务到点逾期 / 升级（见 2.3 (d)） | 见 `docs/architecture/events/approval.yaml` | 企业微信卡片、合并待办标红 | 已实现 `BE/platform/approval/events/ApprovalTaskBecameOverdue.java`、`ApprovalTaskEscalated.java` |
 
 ### 4.2 老系统（对照）
 
@@ -386,7 +386,7 @@ stateDiagram-v2
 | 编号 | 现状 | 目标 | 影响 | 建议 | 用户决定 |
 |---|---|---|---|---|---|
 | D-1a-102 | 子流程内驳回走 `Error_REJECT`，实例存活停在发起人任务 | 任一驳回 / 退回撤销全部任务，以 RETURNED 结束本轮，重提开新一轮 | 历史按轮次保留 | 按已定 | 已决定：M3「退回即结束本轮，重提开新一轮 (Recommended)」（RULE-275/287） |
-| D-1a-103 | v15 顶层有发起人任务 | 无发起人节点 | 回放节点数不含发起人节点 | 按已定 | 已决定：M3（`phase1a/TIMESHEET_REPLAY.md`） |
+| D-1a-103 | v15 顶层有发起人任务 | 无发起人节点 | 回放节点数不含发起人节点 | 按已定 | 已决定：M3（`docs/data/timesheet-replay.md`） |
 | D-1a-104 | v15 节点为并行会签，多名审批人全部通过才通过 | 候选组，任一人认领办理即完成；回放时把老「全部通过」节点按「任一」比较，差异归为已知变更 | 多项目经理时只需一人审 | 任一人办理 | 已决定：「任一人办理（候选组） (Recommended)」（intent/2026-10-14-140） |
 | D-1a-105 | 三节点「为空跳过」，字段缺失与确实无人都跳过 | 取人所需的表单字段未传入视为配置错误，发起失败并告警；仅显式允许且确实无人才跳过 | 不会再无人审批即通过 | 字段缺失即报错 | 已决定：RULE-300；「字段缺失即报错」（intent/2026-10-14-144）；需改代码（`SubmitTimesheet` 不传 `projectManagerId`，按代码推断项目经理节点被跳过、实例立即 APPROVED） |
 | D-1a-106 | 两个 RocketMQ 主题 + 出箱 + 补偿对账 | 类型化事件经事件发布登记表，至少一次，消费方幂等 | 不再把自动跳过、加签建议当结果发出 | 按已定 | 已决定：RULE-295/303/304/308 |

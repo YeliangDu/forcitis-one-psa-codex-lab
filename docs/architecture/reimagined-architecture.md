@@ -78,8 +78,8 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 | **法人小表**放在 `organization.workforce` | 「新系统维护法人小表 (Recommended)」 | <ul><li>`legal_entities`（法人代码如 FST）由管理员维护，不从外部同步。</li><li>numbering 的 `{LE}` 渲染法人代码，例如 `QT-FST-202610-0001`。</li><li>依赖新增 `platform.numbering -> organization.workforce`；正式词表中 LegalEntity 归属 organization.workforce。</li></ul> |
 | 原编号检索单独授权 | 「单独设 legacy-number:read (Recommended)」 | `platform.numbering:legacy-number:read` |
 | **退回即结束本轮**（取代 §3.4 的发起人节点与令牌回移） | 「退回即结束本轮，重提开新一轮 (Recommended)」 | <ul><li>退回（含子流程内驳回）以 RETURNED 结束本轮实例。</li><li>重提在同一单据上开新一轮（`start_rounds`）。</li><li>只有上一轮发起人能开新一轮。</li><li>INITIATOR 指派类型删除。</li><li>RULE_REVIEWS「实现方式变更」记录 RULE-275/287。</li></ul> |
-| **指派规则类型** | 「按建议：保留 5 种、推迟 3 种、不建 2 种」 | <ul><li>实现：ROLE、DEPARTMENT_HEAD、INITIATOR_SUPERVISOR、FORM_FIELD_USERS（第 5 种 INITIATOR 随上一条删除）。</li><li>推迟：区域应收负责人，见 1b OPP_QUOTATION 与 Phase 2 PM_BUDGET；表单用户的上级，见 Phase 2/4 PM_ETC、PM_REVENUE；部门总监，生产无使用，按新角色体系再定义。</li><li>不建：NAMED_USERS、PROCESS_VARIABLE_USERS。</li><li>由 BpmnRuleConventionsTest 守护；说明见 `phase1a/TIMESHEET_REPLAY.md`。</li></ul> |
-| TIMESHEET 与生产当前版本（v15）对齐 | ——（依据 `runtime/prod_bpm.tsv` ##13） | <ul><li>节点：项目经理 `projectManagerId`；售前分支的区域负责人 `regionalHeadId`，路由标记 `preSalesHours`；发起人一级上级。</li><li>老变量名只在回放转换表中出现。</li><li>节点顺序与子流程范围**待用户确认**。</li></ul> |
+| **指派规则类型** | 「按建议：保留 5 种、推迟 3 种、不建 2 种」 | <ul><li>实现：ROLE、DEPARTMENT_HEAD、INITIATOR_SUPERVISOR、FORM_FIELD_USERS（第 5 种 INITIATOR 随上一条删除）。</li><li>推迟：区域应收负责人，见 1b OPP_QUOTATION 与 Phase 2 PM_BUDGET；表单用户的上级，见 Phase 2/4 PM_ETC、PM_REVENUE；部门总监，生产无使用，按新角色体系再定义。</li><li>不建：NAMED_USERS、PROCESS_VARIABLE_USERS。</li><li>由 BpmnRuleConventionsTest 守护；说明见 `docs/data/timesheet-replay.md`。</li></ul> |
+| TIMESHEET 与生产当前版本（v15）对齐 | ——（依据 `docs/legacy/runtime-usage/prod-bpm.tsv` ##13） | <ul><li>节点：项目经理 `projectManagerId`；售前分支的区域负责人 `regionalHeadId`，路由标记 `preSalesHours`；发起人一级上级。</li><li>老变量名只在回放转换表中出现。</li><li>节点顺序与子流程范围**待用户确认**。</li></ul> |
 | 列名 `is_fee_earner`（原文 `fee_earner_flag`） | ——（DdlNamingTest：布尔列以 is_ 开头，禁用 flag） | `organization_workforce.employees.is_fee_earner` |
 | `event_publication` 归 `platform_integration` schema | psa-coordinator 同意 | Flyway 创建，关闭自动建表 |
 | 外发投递的并发令牌 | psa-coordinator 接受（代理 B 方案） | `outbound_deliveries` 以「认领号（`attempt_count`）+ 状态」作乐观锁；`version` 只递增，不参与校验。原因：卡片在途时，「已处理」说明仍要能写入同一行，若以 version 校验，会让投递作业持有的版本失效；认领号才是这张表真正的并发令牌 |
@@ -152,7 +152,7 @@ flowchart LR
 ```
 
 - **共享内核**：`kernel` 只放不含业务行为的类型与端口；`WorkContext`（关联号、行为人）、`AggregateRoot`、`StateMachine` 也在这里。
-- **发布语言**：领域事件的信封与负载约束见 `proposals/EVENT_ANALYTICS_FIELDS.md` §6，目录在 `docs/architecture/events/asyncapi.yaml`（`EventCatalogueTest` 守护）。
+- **发布语言**：领域事件的信封与负载约束见 `docs/architecture/events/event-analytics-fields.md` §6，目录在 `docs/architecture/events/asyncapi.yaml`（`EventCatalogueTest` 守护）。
 - **防腐层**：外部系统名只出现在 `platform.integration.infrastructure.*`；workforce 直接用 `platform.integration.api` 的 `Source*` 类型，不再有镜像类型。
 - **开放主机服务**：每个模块的 `api` 包（窄接口，`ArchitectureRulesTest` 守护）。
 - **依赖倒置（共享内核端口）**：同步运行要在把人变成离职之前问「会不会让管理员全部离开」，workforce 不能依赖 identity（identity 已依赖 workforce），所以端口 `kernel.SeparationReview` 放在共享内核，由 identity 的 `AdministratorSeparationReview` 实现（ADR-0027 第 1 项、ADR-0028）；`module-dependencies.txt` 因此不增加边。
@@ -191,7 +191,7 @@ flowchart LR
   - **源码扫描测试**：`src/main` 与 Flyway 中禁止出现 `formmain_`、`formson_`、`a8_db`、`LEXMIS`、`T_U8C_`（白名单视图名除外）。
   - **依赖与 DDL 禁令**：Maven Enforcer 禁止 `dynamic-datasource`；Flyway 禁止 `CREATE EXTENSION tds_fdw|postgres_fdw|dblink`、`CREATE SERVER`、`IMPORT FOREIGN SCHEMA`。
   - **schema 守护**：`organization_workforce` 不得有金额列；workforce 的 `api` 不暴露 `Money` / `AccountingPeriod`。
-  - **跨阶段台账**：老系统对 A8 的全部读写登记在 `phase1a/A8_ACCESS_REGISTER.md`，每个阶段出口时更新状态。
+  - **跨阶段台账**：老系统对 A8 的全部读写登记在 `docs/legacy/seeyon-oa/access-register.md`，每个阶段出口时更新状态。
 - 数据源：**A8 只读视图**（视图冻结，ADR-0037 第 6 项；账号全库只读并按第 4 项校验；启动时校验列集合与白名单完全相等；关系类型 ID 等改为配置，RULE-356），不读老 `system_users` / `system_dept`。出口条件「与 A8 零差异」以 A8 为基准。
 - 每 **5 分钟**一次（ShedLock；每次约 1,300 人、367 个部门），全量拉取 → 计算差异 → 单事务写入，并记录 `sync_runs` / `sync_diffs`。源数据缩水超过 20 % 或本次会让超级管理员、安全审计员离职时中止并告警；暂停按类型记录（缩水保护、管理员离职），各类由有资格的人在页面分别放行，全部放行后才按最新源数据重跑（RULE-358/366，评审 #14，ADR-0028）。
 - A8 权威列按值同步，空值也写入（RULE-365）；单行缺部门或岗位时隔离该行并告警（RULE-365）；`we_com_id` 在建档时写入（RULE-362）；多名负责人时取 ID 最小者并告警（RULE-356）。

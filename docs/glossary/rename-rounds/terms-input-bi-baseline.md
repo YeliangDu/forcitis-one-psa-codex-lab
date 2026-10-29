@@ -3,11 +3,11 @@
 - 日期：2026-10-14 · 整理：psa-r0-metric-baseline
 - 用户安排：第三轮用语确认在「1a 第二波和 R0 报表分析交了再一次做」。本文件是 R0 的输入，由第三轮会话与 1a 第二波的输入合并，出一张确认页。本会话不单独出确认页。
 - 规则：ADR-0018。新词条一律先为「提议」；会计类由财务确认，业务类由业务 Admin 确认；确认前不得进入代码。
-- OAT 引用：`glossary/oat/forcitis_operating_accounting_taxonomy.csv` 的 `canonical_symbol`。
+- OAT 引用：`docs/glossary/oat/forcitis-operating-accounting-taxonomy.csv` 的 `canonical_symbol`。
 
 ## A. 已登记的待确认别名（19 项）
 
-已登记在 `glossary/r0_report_aliases.json`，确认表见 `glossary/TERM_CONFIRMATION.md` A 组。每项要确认的是：这个叫法是方言（禁用），还是可以与正式用语并列。
+已登记在 `docs/glossary/r0-report-aliases.json`，确认表见 `glossary/TERM_CONFIRMATION.md` A 组。每项要确认的是：这个叫法是方言（禁用），还是可以与正式用语并列。
 
 | 叫法 | 对应正式用语 | 模块 | 建议 |
 |---|---|---|---|

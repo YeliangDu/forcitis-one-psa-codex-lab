@@ -130,7 +130,7 @@ pnpm audit 汇总：PC 端 critical 4 / high 45 / moderate 42；H5 端 critical 
 
 ## 第 7 轮：Phase 1a 规格挖掘补录（SEC-116 至 119，2026-10-14）
 
-来源：`psa-1a-platform-bridge-reimagine` 会话整理接口与规则时发现（`phase1a/INTERFACES.md` U7、W7、W11、P1；`rules/IDENTITY_ORG_RULES.md` RULE-328、RULE-376）。由 `psa-sec-hotfix` 会话逐条读码确认、修补。位置按未打补丁的老仓 `19d60d234` 标注。
+来源：`psa-1a-platform-bridge-reimagine` 会话整理接口与规则时发现（`docs/legacy/psa-external-interfaces.md` U7、W7、W11、P1；`docs/business/rules/identity-org-rules.md` RULE-328、RULE-376）。由 `psa-sec-hotfix` 会话逐条读码确认、修补。位置按未打补丁的老仓 `19d60d234` 标注。
 
 | ID | CWE | 严重度 | 位置 | 利用条件与场景 | 修复（第 7 轮补丁） |
 |---|---|---|---|---|---|

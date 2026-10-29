@@ -121,7 +121,7 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
 | `DEPARTMENT_HEAD` | `department`（变量名，**可选**；不写 = 发起人所在组织单元） | 脚本 31 | 保留 |
 | `INITIATOR` | — | 脚本 10（发起人重做节点） | **已删**：「退回即结束本轮，重提开新一轮」，新系统没有发起人节点（M3） |
 
-**推迟**（实现与解析已删，规则卡保留；码表拒绝并报「deferred」，启动或部署失败）。时点依据 `runtime/prod_bpm.tsv` ##13 中生产当前版本的使用情况：
+**推迟**（实现与解析已删，规则卡保留；码表拒绝并报「deferred」，启动或部署失败）。时点依据 `docs/legacy/runtime-usage/prod-bpm.tsv` ##13 中生产当前版本的使用情况：
 
 | `type` | 规则卡 | 为什么推迟 / 何时建 |
 |---|---|---|
@@ -140,7 +140,7 @@ java -cp "target/classes:$(cat target/replay-cp.txt)" \
 
 BPMN 守护：`BpmnRuleConventionsTest` 检查每个流程文件（含测试变体）不出现这五种类型，也不出现发起人节点（`initiatorNode`、`skipExpression`）。
 
-老类型 20（部门成员）、22（岗位）、40（用户组）在生产 TIMESHEET 里没有使用（`runtime/prod_bpm.tsv` ##13），回放工具不支持；
+老类型 20（部门成员）、22（岗位）、40（用户组）在生产 TIMESHEET 里没有使用（`docs/legacy/runtime-usage/prod-bpm.tsv` ##13），回放工具不支持；
 类型 21 按固定部门指派在 TIMESHEET 里也没有使用，出现时需要先扩充规则词汇。
 
 ### 老名 → 新名转换表（回放读入时套用）
@@ -158,7 +158,7 @@ BPMN 守护：`BpmnRuleConventionsTest` 检查每个流程文件（含测试变�
 
 ## 生产核实结果（2026-10-14，v15）
 
-生产 TIMESHEET 当前版本是 v15。2026-10-14 经用户授权只读核实流程定义，结构如下，以此为准（取代此前依据 `runtime/prod_bpm.tsv` ##13 的推定）。
+生产 TIMESHEET 当前版本是 v15。2026-10-14 经用户授权只读核实流程定义，结构如下，以此为准（取代此前依据 `docs/legacy/runtime-usage/prod-bpm.tsv` ##13 的推定）。
 
 **核实方式**：经云助手只读通道，只读流程定义（流程定义表、定义文件字节、指派规则表），不读业务数据和个人信息；凭据不出服务器进程；临时目录已删除。
 

@@ -32,7 +32,7 @@
 | CS-1.1 | **代码注释能不写就不写** | [METHODS M5「注释」](methods.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
 | CS-1.2 | **老代码只作证据，不得照搬** | [METHODS M5「老代码只作证据」](methods.md#m5-写代码规则coding_standard-引此为出处) | 守护：`LegacyShapeTest`、ArchitectureRulesTest（G40）；复审（每波 opus 专查「老系统形状」） |
 | CS-1.3 | **领域模块不出现外部或老系统名称**；外部系统只在 `platform.integration` 的适配器内 | CLAUDE.md；DATA_DESIGN_CHECKLIST §14 第 8 项 | 守护：`LegacyShapeTest`、`ExternalConnectionIsolationTest`、Modulith（G1） |
-| CS-1.4 | **新标识符、界面文字、表列名先查 `glossary/terms.yaml`** | [METHODS M5「第二批」第 5 条](methods.md#m5-写代码规则coding_standard-引此为出处)；ADR-0018 | 守护：`GlossaryTest`（G37–G42：G40 聚合根、G41 领域事件按 bc 加类名反查词条，G42 类名技术泛词；存量见 `backend/glossary/code-term-baseline.txt`，只减不增）、`ErrorCodeGlossaryTest`、R-5 中文名唯一检查（错误码全局唯一，其余同一 bc 内唯一）、用语登记规则 `glossary/term_rules.py`（B1）、前端 `pnpm check:copy` |
+| CS-1.4 | **新标识符、界面文字、表列名先查 `docs/glossary/terms.yaml`** | [METHODS M5「第二批」第 5 条](methods.md#m5-写代码规则coding_standard-引此为出处)；ADR-0018 | 守护：`GlossaryTest`（G37–G42：G40 聚合根、G41 领域事件按 bc 加类名反查词条，G42 类名技术泛词；存量见 `backend/glossary/code-term-baseline.txt`，只减不增）、`ErrorCodeGlossaryTest`、R-5 中文名唯一检查（错误码全局唯一，其余同一 bc 内唯一）、用语登记规则 `glossary/term_rules.py`（B1）、前端 `pnpm check:copy` |
 | CS-1.5 | **命名与位置遵守 `NAMING_STANDARD.md`**，守护不通过不得合并 | CLAUDE.md；NAMING_STANDARD §4 | 守护：G1–G48、D1–D3、F1–F14 |
 | CS-1.6 | **复刻老行为以生产为证据，不凭推测** | [METHODS M5「第二批」第 1 条](methods.md#m5-写代码规则coding_standard-引此为出处) | 复审 |
 | CS-1.7 | **缺失或无效输入失败并告警，不静默跳过** | [METHODS M5「第二批」第 3 条](methods.md#m5-写代码规则coding_standard-引此为出处)；DATA_DESIGN_CHECKLIST §14 第 5 项、G-T2 | 守护：`CurrentUserGuardTest`（法人不得写死或默认）；其余复审 |
@@ -154,7 +154,7 @@
 |---|---|---|---|
 | CS-5.1 | **以模块级集成测试为主**：走 HTTP → 鉴权 → 用例 → 领域 → 真实 PostgreSQL（Testcontainers，镜像以 CI 为准，现为 `postgres:18`）；不 mock 自己的模块，外部系统用 WireMock 或替身隔离；单元测试只补边界（值对象、计算、决策表） | GUIDING_PRINCIPLES §9 | 复审 |
 | CS-5.2 | **测试名引用依据编号**：`@DisplayName` 以规则 / 差异 / ADR / 复审 / intent 编号开头（现有写法，如 `@DisplayName("RULE-356 …")`、`"ADR-0027 …"`）；`contract.md` 每条与 ADR 本阶段交付条款都对应至少一个测试 | NAMING_STANDARD §5；METHODS M4、附 M1 第 2、4 条、TEAM-69；G-T4 | 复审；对照守护 G-T4 待实现 |
-| CS-5.3 | **验收测试与实现分开**：测试代理先写并提交验收测试，实现代理只让它转绿、不得修改；目录约定与提交 trailer 见出处 | `roles/design.md` 职责「独立验收测试」、`backend/src/test/java/com/forcitis/one/acceptance/README.md` | 守护：`scripts/guards/acceptance_guard.py`、`acceptance_rulings.py`（裁定尾注须对应已登记裁定）、`acceptance_reports.py` |
+| CS-5.3 | **验收测试与实现分开**：测试代理先写并提交验收测试，实现代理只让它转绿、不得修改；目录约定与提交 trailer 见出处 | `docs/rules/roles/design.md` 职责「独立验收测试」、`backend/src/test/java/com/forcitis/one/acceptance/README.md` | 守护：`scripts/guards/acceptance_guard.py`、`acceptance_rulings.py`（裁定尾注须对应已登记裁定）、`acceptance_reports.py` |
 | CS-5.4 | **不为通过测试而放宽或删除断言** | [METHODS M5「第二批」第 2 条](methods.md#m5-写代码规则coding_standard-引此为出处) | 守护：`scripts/ci/assertion_drift.py`（只警告）；PR 模板；复审 |
 | CS-5.5 | **测试只断言本模块的效果** | [METHODS M5「第二批」第 7 条](methods.md#m5-写代码规则coding_standard-引此为出处)；DATA_DESIGN_CHECKLIST §14 G-T3 | 守护：`TestIsolationGuardTest` |
 | CS-5.6 | **确定性等待，不写宽泛的 `never()`**；另：测试不用 `Thread.sleep` 等时间（新增，现有 6 处） | [METHODS M5「第二批」第 7 条](methods.md#m5-写代码规则coding_standard-引此为出处)；`Thread.sleep` 一句为本文件新增 | 守护（待实现：G-C8） |
@@ -173,7 +173,7 @@
 | CS-6.3 | **测试不写密钥字面量**（与 CS-5.7 同一条，此处为密钥视角的索引） | [METHODS M5「第二批」第 6 条](methods.md#m5-写代码规则coding_standard-引此为出处) | 守护：pre-commit、CI gitleaks、`scripts/precheck.sh` |
 | CS-6.4 | **密钥不进会话记录** | CLAUDE.md 底线 | 复审 |
 | CS-6.5 | 凭据原值只在 `~/.modernize/psa/`（权限 600）或 KMS，不进任何可共享文件 || 守护：gitleaks；复审 |
-| CS-6.6 | 身份、授权、单人模式防线遵守 `phase1a/SECURITY_INVARIANTS.md` 的 I-1…I-13；这类改动不交给 Codex | SECURITY_INVARIANTS| 守护：各不变量对应测试；复审 |
+| CS-6.6 | 身份、授权、单人模式防线遵守 `docs/ops/security-invariants.md` 的 I-1…I-13；这类改动不交给 Codex | SECURITY_INVARIANTS| 守护：各不变量对应测试；复审 |
 | CS-6.7 | 生产配置不含测试值、固定验证码或 mock 取值 | SECURITY_INVARIANTS I-4 | 守护：`ProductionConfigSanityTest`（按 SECURITY_INVARIANTS） |
 | CS-6.8 | **建账号、起容器、对外调用前先问用户**（Testcontainers 本机临时测试容器除外） | [METHODS M5「第二批」第 10 条](methods.md#m5-写代码规则coding_standard-引此为出处)；TEAM-92 | 复审 |
 | CS-6.9 | **生产取证不逐次请示（两条底线）** | CLAUDE.md 底线、ADR-0037 第 7 项 | 复审 |
@@ -219,7 +219,7 @@
 | C-3 | NAMING_STANDARD §2.4 `_id` 类型「`bigint`、`uuid`」、`_by` 类型 `bigint`，与 §14.1 D16「所有自有表主键 UUIDv7」及 R-1（ID 改 UUID）不一致 | 建议：R-1 合入时同步改 §2.4：`_id` 为 `uuid`（外部来源对照列 `text`），`_by` 随 `UserId` 类型 |
 | C-4 | Testcontainers 版本：GUIDING_PRINCIPLES §9 与 NAMING_STANDARD 序言写 PG17，CI 与测试实际用 `postgres:18` | 建议：以 CI 为准，两处改为「镜像以 CI 为准」，不写死版本号 |
 | C-5 | GUIDING_PRINCIPLES §9「架构测试：守护 G1–G33 和前端 F1–F13」已过时（现 G1–G48、F1–F14 及多项专用守护） | 建议：改为「NAMING_STANDARD §4 与本文件各节所列守护」 |
-| C-6 | NAMING_STANDARD §2.1「唯一来源是 `docs/domain/00_战略设计/03-通用语言.md` 的代码名列」与 §7、ADR-0018、CLAUDE.md「以 `terms.yaml` 为准」冲突 | 建议：§2.1 改为 `glossary/terms.yaml`（ADR-0018 已定），原文件只作历史来源 |
+| C-6 | NAMING_STANDARD §2.1「唯一来源是 `docs/domain/00_战略设计/03-通用语言.md` 的代码名列」与 §7、ADR-0018、CLAUDE.md「以 `terms.yaml` 为准」冲突 | 建议：§2.1 改为 `docs/glossary/terms.yaml`（ADR-0018 已定），原文件只作历史来源 |
 | C-7 | NAMING_STANDARD §7 第 16 项「前端界面文案：无守护 ○」已过时，现有 `pnpm check:copy`（`check-copy-glossary.mjs`）与后端 `OutwardTextGuardTest` | 建议：状态改 ✔ 并写守护名 |
 | C-8 | 测试命名：NAMING_STANDARD §5 写方法名 `RULE_012_clauseTotal…`，§4 计划「以 `RULE_NNN_` 开头的测试」；现有代码统一用 `@DisplayName("RULE-356 …")`；METHODS M4 写「测试名或注解引用」 | 建议：以 `@DisplayName` 开头引用编号为准（现状、可读、支持 D / ADR / 复审编号），G-T4 守护按 `@DisplayName` 前缀实现；§5 示例同步改 |
 | C-9 | `@Nullable` 两套：`org.jspecify.annotations.Nullable`（33 个文件）与 `org.springframework.lang.Nullable`（8 个文件，`platform.approval.web` 与 `OpenApiRequiredProperties`）；`NullableResponseGuardTest` 只认 JSpecify | 建议：统一 JSpecify（Spring 7 本身已转 JSpecify），G-C3 禁 Spring 的注解；8 个文件走结构性重构批 |

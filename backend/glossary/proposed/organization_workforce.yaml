@@ -41,7 +41,7 @@ terms:
   scope: domain
   definition: 同步记录不能从当前状态进入目标状态（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -56,7 +56,7 @@ terms:
   scope: domain
   definition: 没有这条同步记录（404）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -71,7 +71,7 @@ terms:
   scope: domain
   definition: 法人不能从当前状态进入目标状态（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -86,7 +86,7 @@ terms:
   scope: domain
   definition: 没有这个法人（404）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -101,7 +101,7 @@ terms:
   scope: domain
   definition: 法人代码全表唯一（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -116,7 +116,7 @@ terms:
   scope: domain
   definition: 该法人已经发过单据编号，代码不能再更正（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -131,7 +131,7 @@ terms:
   scope: domain
   definition: 法人代码是 2 至 10 位大写字母（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -146,7 +146,7 @@ terms:
   scope: domain
   definition: 法人名称为 1 至 100 个字符（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -161,7 +161,7 @@ terms:
   scope: domain
   definition: 法人状态只能是启用或停用（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -176,7 +176,7 @@ terms:
   scope: domain
   definition: 数据已被他人修改（409），重新加载后再试
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -276,7 +276,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列
+  note: 类型 AttributionSubjectId 为它的标识（kind + subjectId，docs/architecture/events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列
 - id: personnel_command
   zh: 人事命令
   en: PersonnelCommand

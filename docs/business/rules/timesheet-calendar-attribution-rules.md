@@ -1,7 +1,7 @@
 # Timesheet, work calendar, legal entity attribution, audit and numbering business rules — RULE-473..RULE-491
 
 Scope: behaviors of the new system asserted by existing tests that had no rule card: filing and lifecycle of a timesheet (`cost.timesheet`), the make-up workday of the work calendar (`organization.attendance`), legal entity attribution and the organization unit list (`organization.workforce`), the audit trail and a person's own login records (`platform.audit`), and the numbering rule versions and legacy numbers (`platform.numbering`).
-Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a/cards/TS-UNIQ.md`, `NUM-VERSION-ID.md`, `K-3b-4.md`; the repair card `data/repair-cards/DATA-REPAIR-timesheet-audit.md` (TA-01, TA-02, TB-08) and `DATA-REPAIR-approval.md` (AP-09); RULE-385, RULE-388..RULE-392, RULE-397..RULE-405. No rule here comes from the legacy system's code.
+Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `docs/architecture/implementation-cards/ts-uniq.md`, `NUM-VERSION-ID.md`, `K-3b-4.md`; the repair card `docs/data/repair-cards/data-repair-timesheet-audit.md` (TA-01, TA-02, TB-08) and `DATA-REPAIR-approval.md` (AP-09); RULE-385, RULE-388..RULE-392, RULE-397..RULE-405. No rule here comes from the legacy system's code.
 
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|
@@ -28,7 +28,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-473: The work date is the calendar day the employee entered, not after today in the Shanghai business day, and never rewritten
 **Category:** Validation
 **Priority:** P0
-**Source:** `phase1a/cards/TS-UNIQ.md` (time zone section, invariant table: work date after creation not changed, work date not after today); intent `2026-10-16-052923-one-coordinator-工时单唯一与填报义务-我的想法是.md` (one timesheet per employee per day, non-workdays included); CC-T01 business zone `Asia/Shanghai`. Tests: `TimesheetEmployeeDayUniqueIT#workDateIsACalendarDayAndTodayIsTheShanghaiDay`, `TimesheetApprovalScenarioIT#workDateAndTheNumberAndDepartmentAreStored`, `TimesheetStateMachineTest#theWorkDateIsEnteredAndKept`
+**Source:** `docs/architecture/implementation-cards/ts-uniq.md` (time zone section, invariant table: work date after creation not changed, work date not after today); intent `2026-10-16-052923-one-coordinator-工时单唯一与填报义务-我的想法是.md` (one timesheet per employee per day, non-workdays included); CC-T01 business zone `Asia/Shanghai`. Tests: `TimesheetEmployeeDayUniqueIT#workDateIsACalendarDayAndTodayIsTheShanghaiDay`, `TimesheetApprovalScenarioIT#workDateAndTheNumberAndDepartmentAreStored`, `TimesheetStateMachineTest#theWorkDateIsEnteredAndKept`
 **Plain English:** The work date is the day the employee says the hours belong to; it is stored as a calendar day with no time zone conversion. It may not be later than today, where today is the business day in Shanghai. Once the timesheet exists the work date is fixed: a revision or a late resubmission does not move the hours to another day, and the submission day is recorded separately.
 **Specification:**
 - Given the clock is 2026-11-02 15:59 UTC (still 2026-11-02 in Shanghai), When an employee submits a timesheet for 2026-11-03, Then it is refused with COST_TIMESHEET_WORK_DATE_IN_FUTURE.
@@ -41,7 +41,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-474: A new timesheet keeps the numbering rule version its number was issued under; a migrated timesheet has none and is still readable
 **Category:** Policy
 **Priority:** P1
-**Source:** ADR-0033 item 1 point 5 (users of a number refer to the version row id); `phase1a/cards/NUM-VERSION-ID.md`; `phase1a/cards/TS-UNIQ.md` (`numbering_rule_version_id` nullable, kept for migrated rows; a new path that cannot get the version fails with an alert and writes no empty value). Tests: `TimesheetNumberingRuleVersionIT#aNewTimesheetKeepsTheRuleVersionItsNumberWasIssuedUnder`, `TimesheetNumberingRuleVersionIT#aMigratedRowWithoutARuleVersionCanStillBeRead`
+**Source:** ADR-0033 item 1 point 5 (users of a number refer to the version row id); `phase1a/cards/NUM-VERSION-ID.md`; `docs/architecture/implementation-cards/ts-uniq.md` (`numbering_rule_version_id` nullable, kept for migrated rows; a new path that cannot get the version fails with an alert and writes no empty value). Tests: `TimesheetNumberingRuleVersionIT#aNewTimesheetKeepsTheRuleVersionItsNumberWasIssuedUnder`, `TimesheetNumberingRuleVersionIT#aMigratedRowWithoutARuleVersionCanStillBeRead`
 **Plain English:** When a timesheet is created here, the numbering rule version in force that issued its number is recorded on the timesheet. A timesheet migrated in from elsewhere was not numbered by this system, so it has no rule version, and that is allowed; it is still read like any other.
 **Specification:**
 - Given an employee submits a new timesheet, When the numbering service issues one number, Then the stored rule version equals the confirmed version that issued it, and the timesheet is SUBMITTED.
@@ -51,7 +51,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-475: Round number and submitted date are zero and empty together; a timesheet issued here is not in a submitted status with round zero
 **Category:** Validation
 **Priority:** P1
-**Source:** `data/repair-cards/DATA-REPAIR-timesheet-audit.md` TA-01 (round zero if and only if no submitted date; a submitted status needs round of at least 1); `phase1a/cards/TS-UNIQ.md` (status set; a cancelled approval returns to DRAFT and keeps round and submitted date). Tests: `TimesheetRoundSubmittedCheckIT#roundAndSubmittedDateMustBeZeroAndEmptyTogether`, `TimesheetRoundSubmittedCheckIT#aNewNonDraftTimesheetWithRoundZeroIsRefused`, `TimesheetRoundSubmittedCheckIT#draftsInBothShapesCanBeInserted`, `TimesheetRoundSubmittedCheckIT#aMigratedTimesheetWithoutARuleVersionCanBeInsertedButOneWithAVersionCannot`
+**Source:** `docs/data/repair-cards/data-repair-timesheet-audit.md` TA-01 (round zero if and only if no submitted date; a submitted status needs round of at least 1); `docs/architecture/implementation-cards/ts-uniq.md` (status set; a cancelled approval returns to DRAFT and keeps round and submitted date). Tests: `TimesheetRoundSubmittedCheckIT#roundAndSubmittedDateMustBeZeroAndEmptyTogether`, `TimesheetRoundSubmittedCheckIT#aNewNonDraftTimesheetWithRoundZeroIsRefused`, `TimesheetRoundSubmittedCheckIT#draftsInBothShapesCanBeInserted`, `TimesheetRoundSubmittedCheckIT#aMigratedTimesheetWithoutARuleVersionCanBeInsertedButOneWithAVersionCannot`
 **Plain English:** A timesheet has been submitted exactly when it has a round of at least 1 and a submitted date. A draft may be in either shape: never submitted (round 0, no date) or sent back to draft after its approval was cancelled (round of 1 or more, with a date). A timesheet issued by this system cannot be in SUBMITTED, RETURNED, APPROVED or REJECTED with round 0; a migrated one, which has no rule version, is exempt.
 **Specification:**
 - Given round 1 and no submitted date, or round 3 and no date, or round 0 with a date, When a row is inserted, Then it is refused by ck_timesheets_round_submitted and no row is stored.
@@ -63,7 +63,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-476: An approval outcome never changes the round number or the submitted date
 **Category:** Lifecycle
 **Priority:** P1
-**Source:** `data/repair-cards/DATA-REPAIR-timesheet-audit.md` TA-01 (acceptance: submit, return, withdraw and re-submit after rejection all pass); `phase1a/cards/TS-UNIQ.md` (state table, rejected timesheet can be filed again). Tests: `TimesheetRoundSubmittedCheckIT#approvalResultsDoNotTouchRoundOrSubmittedDate`
+**Source:** `docs/data/repair-cards/data-repair-timesheet-audit.md` TA-01 (acceptance: submit, return, withdraw and re-submit after rejection all pass); `docs/architecture/implementation-cards/ts-uniq.md` (state table, rejected timesheet can be filed again). Tests: `TimesheetRoundSubmittedCheckIT#approvalResultsDoNotTouchRoundOrSubmittedDate`
 **Plain English:** The round and the submitted date are set when the employee submits. When the approval ends, whether approved, returned or rejected, the outcome is written to the status only and both facts stay as they were.
 **Specification:**
 - Given a timesheet submitted once (round 1) whose submitted date is then set to an earlier day, When the approval is approved, Then the status is APPROVED, the round is 1 and the submitted date is the earlier day.
@@ -73,7 +73,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-477: Cancelling the approval of a submitted timesheet turns it back into a draft and announces TimesheetApprovalWithdrawn
 **Category:** Lifecycle
 **Priority:** P0
-**Source:** `phase1a/cards/TS-UNIQ.md` (state table: SUBMITTED to DRAFT by cancelling the approval; no cancelled status; event renamed from TimesheetCancelled); `glossary/b2/GL_RENAME_CARDS.md` B2-B07; intent `2026-10-16-052923-one-coordinator-工时单唯一与填报义务-我的想法是.md` (after a rejection or withdrawal the original is edited and submitted again, no terminal cancel). Tests: `TimesheetRejectedResubmitIT#cancellingTheApprovalTurnsASubmittedTimesheetBackIntoADraft`
+**Source:** `docs/architecture/implementation-cards/ts-uniq.md` (state table: SUBMITTED to DRAFT by cancelling the approval; no cancelled status; event renamed from TimesheetCancelled); `glossary/b2/GL_RENAME_CARDS.md` B2-B07; intent `2026-10-16-052923-one-coordinator-工时单唯一与填报义务-我的想法是.md` (after a rejection or withdrawal the original is edited and submitted again, no terminal cancel). Tests: `TimesheetRejectedResubmitIT#cancellingTheApprovalTurnsASubmittedTimesheetBackIntoADraft`
 **Plain English:** The filer can cancel the approval of a timesheet that is under approval. The timesheet becomes a draft again, the event published is cost.timesheet.TimesheetApprovalWithdrawn, and no event with the old name is published.
 **Specification:**
 - Given a timesheet submitted and in approval round 1, When its filer cancels the approval with a reason, Then the status becomes DRAFT and one event of type cost.timesheet.TimesheetApprovalWithdrawn for that document is published; its type does not contain "TimesheetCancelled".
@@ -82,7 +82,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-478: A timesheet whose approval round has ended but whose outcome is not yet applied cannot be submitted again
 **Category:** Lifecycle
 **Priority:** P1
-**Source:** `phase1a/review/REVIEW_b12f1df.md` finding M-2 (answer 409 COST_TIMESHEET_RESULT_PENDING when the approval status and the timesheet disagree), closed in `phase1a/review/REVIEW_integration.md`; `phase1a/cards/TS-UNIQ.md` (state table). Tests: `TimesheetApprovalScenarioIT#resubmittingBeforeTheResultArrivedIsRefused`
+**Source:** `phase1a/review/REVIEW_b12f1df.md` finding M-2 (answer 409 COST_TIMESHEET_RESULT_PENDING when the approval status and the timesheet disagree), closed in `phase1a/review/REVIEW_integration.md`; `docs/architecture/implementation-cards/ts-uniq.md` (state table). Tests: `TimesheetApprovalScenarioIT#resubmittingBeforeTheResultArrivedIsRefused`
 **Plain English:** If the approval of a timesheet has already ended but the timesheet has not yet received the outcome, the filer cannot submit it again; the answer says the result is pending (409).
 **Specification:**
 - Given a timesheet submitted and its approval round ended (4 hours), When the filer withdraws it and submits again before the outcome has been applied to the timesheet, Then the submission is refused with COST_TIMESHEET_RESULT_PENDING.
@@ -91,7 +91,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-479: A timesheet belongs to the employee who filed it; anyone else gets the same "not found" as for a timesheet that does not exist
 **Category:** Policy
 **Priority:** P0
-**Source:** `phase1a/cards/TS-UNIQ.md` (only the filer can change, submit, withdraw and cancel; the employee id is the signed-in employee); `phase1a/review/REVIEW_integration.md` M-12 (a non-participant gets a uniform 404 and fixed error text); `phase1a/review/REVIEW_fix-b3.md` (out of scope reads answer 404). Tests: `TimesheetOwnerAccountsIT#aNewTimesheetIsFiledUnderTheSignedInEmployee`, `TimesheetApprovalScenarioIT#foreignAndMissingTimesheetsAreIndistinguishable`
+**Source:** `docs/architecture/implementation-cards/ts-uniq.md` (only the filer can change, submit, withdraw and cancel; the employee id is the signed-in employee); `phase1a/review/REVIEW_integration.md` M-12 (a non-participant gets a uniform 404 and fixed error text); `phase1a/review/REVIEW_fix-b3.md` (out of scope reads answer 404). Tests: `TimesheetOwnerAccountsIT#aNewTimesheetIsFiledUnderTheSignedInEmployee`, `TimesheetApprovalScenarioIT#foreignAndMissingTimesheetsAreIndistinguishable`
 **Plain English:** A timesheet is filed under the signed-in employee. Its filer can read it. Another employee reading or cancelling it receives exactly the answer given for an id that does not exist, so its existence is not revealed.
 **Specification:**
 - Given employee A submits a new timesheet, When A reads it, Then it is returned with status SUBMITTED; When employee B reads it, Then B gets COST_TIMESHEET_NOT_FOUND.
@@ -123,7 +123,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-482: When no legal entity applies on the day the lookup fails and the submission is refused; a default is never answered
 **Category:** Validation
 **Priority:** P0
-**Source:** `phase1a/cards/TS-UNIQ.md` (O13: the legal entity is resolved for the work date; when missing it fails, no default); ADR-0026 item 2 point 5 (a day with no legal entity resolves to none). Tests: `LegalEntityAttributionIntegrationTest#unresolvedFails`, `TimesheetApprovalScenarioIT#missingLegalEntityIsRefused`
+**Source:** `docs/architecture/implementation-cards/ts-uniq.md` (O13: the legal entity is resolved for the work date; when missing it fails, no default); ADR-0026 item 2 point 5 (a day with no legal entity resolves to none). Tests: `LegalEntityAttributionIntegrationTest#unresolvedFails`, `TimesheetApprovalScenarioIT#missingLegalEntityIsRefused`
 **Plain English:** If no department or individual attribution applies on the day, or the employee is unknown, the lookup fails with ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED; no default legal entity is substituted. A timesheet submission that gets this refusal stores nothing.
 **Specification:**
 - Given no attribution exists, When the legal entity of employee 2 is asked for today, Then the lookup fails with ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED.
@@ -134,7 +134,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-483: Legal entity attribution is maintained only by the maintainer; a start day before the existing period, an unknown unit or an unknown legal entity is refused
 **Category:** Policy
 **Priority:** P1
-**Source:** ADR-0026 item 2 point 5 (maintained by the organization data administrator, periods do not overlap); RULE-385; `rules/DATA_ARCHITECTURE_RULES.md` DATA-RULE-03 (the legal entity version is as of the day of record, no backdating in 1a). Tests: `LegalEntityAttributionIntegrationTest#endpoints`
+**Source:** ADR-0026 item 2 point 5 (maintained by the organization data administrator, periods do not overlap); RULE-385; `docs/business/rules/data-architecture-rules.md` DATA-RULE-03 (the legal entity version is as of the day of record, no backdating in 1a). Tests: `LegalEntityAttributionIntegrationTest#endpoints`
 **Plain English:** A holder of org-unit read can read the attribution periods of a unit but not change them; changes need the legal entity maintainer. An unknown unit is not found, an unknown legal entity is unprocessable, a new period that starts before the existing one is unprocessable, and an attribution can be ended on a given day.
 **Specification:**
 - Given unit 1 attributed to legal entity 1 from today, When a reader asks, Then 200 with one period whose legal entity is legal entity 1 and which has no end day.
@@ -156,7 +156,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-485: A make-up workday must fall on a Saturday or a Sunday, whatever the session time zone; a holiday may fall on any day
 **Category:** Validation
 **Priority:** P1
-**Source:** `data/repair-cards/DATA-REPAIR-timesheet-audit.md` TA-02 (a make-up workday must fall on Saturday or Sunday; Saturday and Sunday pass, a Wednesday is refused); glossary terms 调休上班日 (MakeUpWorkday), 节假日 (Holiday), 工作日历 (WorkCalendar). Tests: `WorkCalendarMakeUpWeekendIT#makeUpWorkdayOnSaturdayAndSunday`, `WorkCalendarMakeUpWeekendIT#makeUpWorkdayOnAWeekdayIsRefused`, `WorkCalendarMakeUpWeekendIT#holidaysOnWeekdaysAndWeekends`, `WorkCalendarMakeUpWeekendIT#sameVerdictInAnySessionTimeZone`, `WorkCalendarMakeUpWeekendIT#wednesdayMakeUpDayOverHttpIsA422`
+**Source:** `docs/data/repair-cards/data-repair-timesheet-audit.md` TA-02 (a make-up workday must fall on Saturday or Sunday; Saturday and Sunday pass, a Wednesday is refused); glossary terms 调休上班日 (MakeUpWorkday), 节假日 (Holiday), 工作日历 (WorkCalendar). Tests: `WorkCalendarMakeUpWeekendIT#makeUpWorkdayOnSaturdayAndSunday`, `WorkCalendarMakeUpWeekendIT#makeUpWorkdayOnAWeekdayIsRefused`, `WorkCalendarMakeUpWeekendIT#holidaysOnWeekdaysAndWeekends`, `WorkCalendarMakeUpWeekendIT#sameVerdictInAnySessionTimeZone`, `WorkCalendarMakeUpWeekendIT#wednesdayMakeUpDayOverHttpIsA422`
 **Plain English:** A day marked as a make-up workday must be a Saturday or a Sunday. A holiday is accepted on any day of the week. The verdict depends only on the date, not on the time zone of the database session. Over the interface a weekday make-up day is answered with 422 and ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY, never 500.
 **Specification:**
 - Given 2026-10-03 (Saturday) and 2026-10-04 (Sunday), When each is entered as a make-up workday, Then both are accepted.
@@ -169,7 +169,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-486: An audit entry carries a login method only together with an outcome
 **Category:** Validation
 **Priority:** P2
-**Source:** `data/repair-cards/DATA-REPAIR-timesheet-audit.md` TB-08 (conclusion: only the one-way rule can be stored, the login method has meaning only for an entry with an outcome; the other combinations occur in the 15 writing places). Tests: `AuditArchiveAndOutcomeConstraintsIT#methodWithoutOutcomeIsRefused`, `AuditArchiveAndOutcomeConstraintsIT#otherCombinationsOfOutcomeAndMethodAreAccepted`
+**Source:** `docs/data/repair-cards/data-repair-timesheet-audit.md` TB-08 (conclusion: only the one-way rule can be stored, the login method has meaning only for an entry with an outcome; the other combinations occur in the 15 writing places). Tests: `AuditArchiveAndOutcomeConstraintsIT#methodWithoutOutcomeIsRefused`, `AuditArchiveAndOutcomeConstraintsIT#otherCombinationsOfOutcomeAndMethodAreAccepted`
 **Plain English:** An audit entry that names how the person logged in must also say whether it succeeded or failed. An outcome without a method, or neither, is allowed.
 **Specification:**
 - Given a login method of WECOM_WORKBENCH, WECOM_MINI_PROGRAM, WECOM_QR_CODE_LOGIN, SSO, SIGNED_TICKET or EMERGENCY and no outcome, When the entry is written, Then it is refused (23514, ck_audit_entries_login_method_outcome).
@@ -200,7 +200,7 @@ Basis: ADR-0010, ADR-0026, ADR-0027, ADR-0033, ADR-0036; the work cards `phase1a
 ### RULE-489: A confirmed numbering rule version always names its confirmer; a pending one need not
 **Category:** Validation
 **Priority:** P0
-**Source:** ADR-0027 item 2 point 4 (versions are saved, immutable, confirmed by someone other than the author); `data/repair-cards/DATA-REPAIR-approval.md` AP-09 (a CONFIRMED version needs a confirmer; whether a pending version must have empty confirmation columns was left open, so the check is one-way). Tests: `NumberingRowRulesIT#confirmedWithoutConfirmerRefused`, `NumberingRowRulesIT#confirmedWithConfirmerAndPendingWithoutAccepted`, `NumberingRowRulesIT#businessConfirmationOnUnconfirmedStatusStillAccepted`
+**Source:** ADR-0027 item 2 point 4 (versions are saved, immutable, confirmed by someone other than the author); `docs/data/repair-cards/data-repair-approval.md` AP-09 (a CONFIRMED version needs a confirmer; whether a pending version must have empty confirmation columns was left open, so the check is one-way). Tests: `NumberingRowRulesIT#confirmedWithoutConfirmerRefused`, `NumberingRowRulesIT#confirmedWithConfirmerAndPendingWithoutAccepted`, `NumberingRowRulesIT#businessConfirmationOnUnconfirmedStatusStillAccepted`
 **Plain English:** A numbering rule version that is CONFIRMED must have a confirmer. A PENDING_CONFIRMATION version may have none. The rule is one way: a pending or superseded version that has already received the business confirmation (finance still to confirm) is accepted.
 **Specification:**
 - Given a CONFIRMED version with no confirmer, with or without a confirmation time, When it is inserted, Then it is refused by ck_numbering_rule_versions_confirmed.

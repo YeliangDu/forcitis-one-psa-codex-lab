@@ -622,7 +622,7 @@
       "verdict": "confirmed",
       "at": "2026-10-14T19:49:24+02:00",
       "title": "A closed legal-entity attribution period is never rewritten; a wrong end date is corrected by an append-only correction record",
-      "note": "正确（用户作答，2026-10-14 经 one-coordinator：「单独的更正记录表 (Recommended)」）：部门 / 员工法人归属期间只追加，已关闭期间不改写（T1）。结束日写错时，由组织数据管理员经独立用例追加更正记录（被更正期间、新结束日、原因、操作人），发 LegalEntityAttributionCorrected 并入审计；解析某日法人时合并期间表与更正记录；不追溯已写入单据的法人，需改单据法人的走冲销重做。规则卡：rules/LEGAL_ENTITY_ATTRIBUTION_RULES.md。"
+      "note": "正确（用户作答，2026-10-14 经 one-coordinator：「单独的更正记录表 (Recommended)」）：部门 / 员工法人归属期间只追加，已关闭期间不改写（T1）。结束日写错时，由组织数据管理员经独立用例追加更正记录（被更正期间、新结束日、原因、操作人），发 LegalEntityAttributionCorrected 并入审计；解析某日法人时合并期间表与更正记录；不追溯已写入单据的法人，需改单据法人的走冲销重做。规则卡：docs/business/rules/legal-entity-attribution-rules.md。"
     }
   }
 }

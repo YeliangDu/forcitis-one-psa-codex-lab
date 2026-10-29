@@ -10,8 +10,8 @@ terms:
   scope: domain
   definition: 范围类型为 CUSTOM_ORG_UNITS 的角色版本所列的一个部门及其「含下级」选择；随新版本一次写入，不可改不可删，改明细即新增角色版本（ADR-0034 第 5 项）；表 role_version_custom_org_units，列 is_descendants_included 对应已批准的 include_descendants
   standard_ref:
-  - adr/src/ADR-0034.md
-  - phase1a/cards/F-1.md
+  - docs/adr/ADR-0034.md
+  - docs/architecture/implementation-cards/f-1.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -26,8 +26,8 @@ terms:
   scope: domain
   definition: 新建或修改角色的授权申请中、范围类型为 CUSTOM_ORG_UNITS 时申请的一个部门，均为仅本部门（只为双人逐人级角色开申请，ADR-0044 第 1 项）；随申请提交一次写入，不可改不可删；表 authorization_request_custom_org_units
   standard_ref:
-  - adr/src/ADR-0044.md
-  - phase1a/cards/F-1.md
+  - docs/adr/ADR-0044.md
+  - docs/architecture/implementation-cards/f-1.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -42,7 +42,7 @@ terms:
   scope: domain
   definition: 角色版本自定义部门的列：真为该部门连同全部下级，假为仅本部门；对应已批准的 include_descendants，is_ 前缀为 DdlNamingTest 布尔列规则所加（F-1 卡「本卡新词」）
   standard_ref:
-  - phase1a/cards/F-1.md
+  - docs/architecture/implementation-cards/f-1.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -57,7 +57,7 @@ terms:
   scope: domain
   definition: 范围类型为 CUSTOM_ORG_UNITS 却没有列任何部门（含更新时传空数组，或沿用的原值为空）、同一部门列了两次、其他范围类型却列了部门，或部门缺部门 ID、缺「含下级」（400，F-1 不变量 7，调度裁定走请求校验）
   standard_ref:
-  - phase1a/cards/F-1.md
+  - docs/architecture/implementation-cards/f-1.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -72,8 +72,8 @@ terms:
   scope: domain
   definition: 含双人逐人级权限的角色只许 ALL、CUSTOM_ORG_UNITS、SELF，自定义部门只许「仅本部门」；选相对范围或「含下级」拒绝并审计 platform.identity.grant.refused，不开授权申请（422，ADR-0032 第 3 项、ADR-0044 第 1 项、F1-01）
   standard_ref:
-  - adr/src/ADR-0032.md
-  - adr/src/ADR-0044.md
+  - docs/adr/ADR-0032.md
+  - docs/adr/ADR-0044.md
   confidence: medium
   aliases: []
   forbidden: []

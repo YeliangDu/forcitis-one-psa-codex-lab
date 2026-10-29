@@ -168,7 +168,7 @@ contexts:
   - ADR-0070
   admission: 已准入
   admission_date: '2026-10-21'
-  admission_evidence: architecture/proposals/ADMISSION_PLATFORM_FILE_2026-10-21.md（ADR-0066 决定 6 九条；one-coordinator 核对）
+  admission_evidence: docs/architecture/proposals/admission-platform-file-2026-10-21.md（ADR-0066 决定 6 九条；one-coordinator 核对）
   review: 英文名 FileService，定名 2026-10-21 用户同意（bcs.yaml #496）；层名「基础层」暂定，待 one-glossary 终定 tier 取值
   evidence: ADR-0060 决定 1；ADR-0066 决定 2 第 3 条；backend 模块包与 module-dependencies.txt
 - id: platform.signing

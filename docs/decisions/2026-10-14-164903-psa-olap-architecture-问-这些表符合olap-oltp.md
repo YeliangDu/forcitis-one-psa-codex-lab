@@ -4,4 +4,4 @@
 
 ## 落点
 
-phase1a/DATA_SCORECARD.md：1a 全部表逐表按 OLTP / OLAP 准备 / DAMA 检查；可自动化项给出守护规格（由 1a 实现）；数据架构检查清单并入 SESSION_PLAYBOOK §14
+docs/data/data-scorecard.md：1a 全部表逐表按 OLTP / OLAP 准备 / DAMA 检查；可自动化项给出守护规格（由 1a 实现）；数据架构检查清单并入 SESSION_PLAYBOOK §14

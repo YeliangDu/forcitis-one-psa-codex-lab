@@ -1,6 +1,6 @@
 # M-29 贡献毛利率：分母由不含税收入改为净服务收入的前后值（2026-10-22）
 
-依据：用户 KPI-Q03、KPI-Q02（提交 KPI-20261022-085652-r54）；调度口径批复（基线取 2025 整年，2026 年至今作对照）。取证：one-ops 执行 `r0/m29_baseline_readonly_queries.sql` 16 条（one_evidence_ro，ruoyi-vue-pro，只读聚合；一次登记见 `phase1a/infra/legacy-read/2026-10-22-092853-one-rules.md`），结果在本机仓库外目录，7 天后删除。本文只含公司与区域/事业部层级的聚合金额，不含项目、客户、人员明细。
+依据：用户 KPI-Q03、KPI-Q02（提交 KPI-20261022-085652-r54）；调度口径批复（基线取 2025 整年，2026 年至今作对照）。取证：one-ops 执行 `docs/data/metric-baseline/baseline-readonly-queries.sql` 16 条（one_evidence_ro，ruoyi-vue-pro，只读聚合；一次登记见 `docs/ops/legacy-read/2026-10-22-092853-one-rules.md`），结果在本机仓库外目录，7 天后删除。本文只含公司与区域/事业部层级的聚合金额，不含项目、客户、人员明细。
 
 ## 1. 口径
 

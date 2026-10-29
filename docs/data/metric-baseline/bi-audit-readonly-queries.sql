@@ -1,6 +1,6 @@
 -- R0 · Q11：BI 使用量与 T_FST_* 视图元数据——只读查询（草稿，未执行，执行前须经用户确认访问方式）
 -- 用户决定（BI_SCOPE §6.1 Q11）：「同意，放在 R0 做 (Recommended)」——授权只读、只取计数，不取用户明细。
--- 访问方式（拟）：沿用已授权的 PSA 生产只读通道（runtime/README.md、OA_PROCESS_INVENTORY.md §1）：
+-- 访问方式（拟）：沿用已授权的 PSA 生产只读通道（docs/legacy/runtime-usage/README.md、OA_PROCESS_INVENTORY.md §1）：
 --   经阿里云云助手在 PSA 应用服务器运行单文件程序，以 PSA 数据源只读连接 + READ UNCOMMITTED 访问同一 SQL Server 实例上的 BI 库；
 --   程序拒绝非 SELECT 语句，单条超时 150 秒；凭据只在服务器进程内使用，不打印、不回传；临时目录用后删除。
 --   若第 0 段显示该账号无权访问 BI 库，立即停止并报告，不改用任何其他凭据。

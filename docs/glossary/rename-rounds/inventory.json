@@ -949,7 +949,7 @@
   "bc": "platform.approval",
   "definition": "审批任务超时未处理时，转给上级处理",
   "standard_ref": [
-   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+   "docs/architecture/proposals/phase1-a-platform-conventions.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -973,7 +973,7 @@
   "bc": "platform.approval",
   "definition": "流程管理员把待办改给另一个人",
   "standard_ref": [
-   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+   "docs/architecture/proposals/phase1-a-platform-conventions.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -997,7 +997,7 @@
   "bc": "platform.approval",
   "definition": "认领人放回已认领的任务，让候选人重新认领",
   "standard_ref": [
-   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+   "docs/architecture/proposals/phase1-a-platform-conventions.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1021,7 +1021,7 @@
   "bc": "platform.approval",
   "definition": "会计凭证在对外文案中的叫法（审批单据类型的显示名）",
   "standard_ref": [
-   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+   "docs/architecture/proposals/phase1-a-platform-conventions.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1045,7 +1045,7 @@
   "bc": "platform.identity",
   "definition": "运维命令执行时在场的另一个人，与操作人一起记入审计（双人在场）",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1072,7 +1072,7 @@
   "bc": "platform.identity",
   "definition": "员工从在职变为离职这件事；离职时删除全部角色授予、停用应急账号、吊销会话（ADR-0027 第 1 项）。事件、字段与方法里的 separated 是同一概念的过去分词（已离职），登记为技术词，不另立术语",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1113,7 +1113,7 @@
   "bc": "platform.numbering",
   "definition": "凭证号模板在业务确认之外另需的财务确认所属的职能（D-1a-157）",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1139,7 +1139,7 @@
   "bc": "platform.numbering",
   "definition": "确认某个编号模板版本的人：业务确认人持有 numbering-rule:approve，财务确认人持有凭证号模板的确认权限",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1165,7 +1165,7 @@
   "bc": "platform.numbering",
   "definition": "保存某个编号模板版本的人；作者不能确认自己保存的版本（四眼）",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1194,7 +1194,7 @@
   "bc": "platform.identity",
   "definition": "授予敏感权限、或把角色改成含敏感权限时先建的申请，另一人确认后才生效",
   "standard_ref": [
-   "adr/src/ADR-0028.md"
+   "docs/adr/ADR-0028.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1220,7 +1220,7 @@
   "bc": "organization.workforce",
   "definition": "放行同步暂停的人必须仍是启用账号、持有 super_admin 或安全审计员、在组织快照中明确在职且不在离职名单上（ADR-0028）",
   "standard_ref": [
-   "adr/src/ADR-0028.md"
+   "docs/adr/ADR-0028.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1246,7 +1246,7 @@
   "bc": "platform.identity",
   "definition": "super_admin 持有人经再次验证后在同一会话进入的模式，最长 1 小时、不延长；只有五项平台权限（ADR-0027 第 2 项、ADR-0028），不含业务、敏感读与审计查看",
   "standard_ref": [
-   "adr/src/ADR-0026.md"
+   "docs/adr/ADR-0026.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1275,7 +1275,7 @@
   "bc": "platform.identity",
   "definition": "管理员结束某个人的全部会话：一次一人、须写理由、不能对自己，结束超级管理员或安全审计员的会话会告警（ADR-0027 第 3 项）",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1299,7 +1299,7 @@
   "bc": "platform.identity",
   "definition": "系统角色 org_data_admin：维护组织与法人归属、工作日历、编号模板、同步运行；无敏感权限、不能确认模板（ADR-0027 第 2 项）",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1325,7 +1325,7 @@
   "bc": "platform.identity",
   "definition": "系统角色 business_admin：确认各单据编号模板（凭证号模板的财务确认不在 1a 内设角色）（ADR-0027 第 2 项）",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1351,7 +1351,7 @@
   "bc": "platform.identity",
   "definition": "系统角色 security_auditor：查看与导出审计记录，并在普通会话里放行管理员离职造成的同步暂停（ADR-0027 第 3 项、ADR-0028）",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1377,7 +1377,7 @@
   "bc": "platform.numbering",
   "definition": "凭证号模板的编号规则；其确认权限 voucher-numbering-rule:approve 是敏感权限，1a 不设持有角色，待首个过账阶段再定（用户决定）",
   "standard_ref": [
-   "adr/src/ADR-0027.md"
+   "docs/adr/ADR-0027.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1401,7 +1401,7 @@
   "bc": "kernel",
   "definition": "把 JVM 默认时区设为 UTC 的动作（UtcJvm.installAsDefault）；整合分支的方法名用到了它，此处补登记",
   "standard_ref": [
-   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+   "docs/architecture/proposals/phase1-a-platform-conventions.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1427,7 +1427,7 @@
   "bc": "platform.integration",
   "definition": "已写入归档库并经归档库确认的状态或时间",
   "standard_ref": [
-   "phase1a/DATA_SCORECARD.md"
+   "docs/data/data-scorecard.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1451,7 +1451,7 @@
   "bc": "platform.integration",
   "definition": "不留下数据的写入检查：启动时和每天一次检查归档目标是否可用",
   "standard_ref": [
-   "phase1a/DATA_SCORECARD.md"
+   "docs/data/data-scorecard.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1477,7 +1477,7 @@
   "bc": "platform.integration",
   "definition": "归档对象的字节数",
   "standard_ref": [
-   "phase1a/DATA_SCORECARD.md"
+   "docs/data/data-scorecard.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1507,7 +1507,7 @@
   "bc": "organization.workforce",
   "definition": "版本表同一生效日内的修订序号：同日再次变化时关闭当天版本（空区间）并以加 1 的序号追加新行",
   "standard_ref": [
-   "phase1a/DATA_SCORECARD.md"
+   "docs/data/data-scorecard.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1531,7 +1531,7 @@
   "bc": "organization.attendance",
   "definition": "组织数据管理员确认修改了工作日历中早于今天的日期；载荷列出每个被改日期的改前改后类别，进审计",
   "standard_ref": [
-   "phase1a/DATA_SCORECARD.md"
+   "docs/data/data-scorecard.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1555,7 +1555,7 @@
   "bc": "platform.integration",
   "definition": "把数据留在在线库或归档库的期限，到期后删除或转归档；与「质保金」无关",
   "standard_ref": [
-   "phase1a/DATA_SCORECARD.md"
+   "docs/data/data-scorecard.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1581,7 +1581,7 @@
   "bc": "platform.integration",
   "definition": "归档库的合规保留锁：锁定期内对象不能被覆盖或删除",
   "standard_ref": [
-   "phase1a/DATA_SCORECARD.md"
+   "docs/data/data-scorecard.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1605,7 +1605,7 @@
   "bc": "platform.numbering",
   "definition": "编号模板的版本号值对象（RuleVersion），从 1 起，每保存一个新模板加 1；版本表的 version_number 列、接口字段 templateVersion 和事件负载 ruleVersion 是同一个东西；与乐观锁 version、事件序号 event_count 无关",
   "standard_ref": [
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1629,7 +1629,7 @@
   "bc": "kernel",
   "definition": "某个事实、版本或模板从哪一天起生效（含当天）的日期；事件负载与代码里叫 effectiveFrom，列名带类别词 _date。OrgSnapshotChanged 的 effectiveFrom 语义相同：变化从哪一天起生效，因此与其他地方统一叫 effectiveFrom，不再另设 effectiveDate",
   "standard_ref": [
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1653,7 +1653,7 @@
   "bc": "organization.workforce",
   "definition": "读取组织源快照的那个业务日，即同步运行开始当天（Asia/Shanghai）。它是 OrgSnapshotChanged 信封的 businessDate，也是同一次同步写入的版本行的生效日",
   "standard_ref": [
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1677,7 +1677,7 @@
   "bc": "organization.attendance",
   "definition": "一次工作日历保存新增、删除或改变类型的日期，按日期升序，放在 WorkCalendarYearMaintained 的负载里；原样重存时为空",
   "standard_ref": [
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1701,7 +1701,7 @@
   "bc": "platform.approval",
   "definition": "流程引擎用尽重试后移入死信表的作业，需要运维处理；数量由指标 dead.letter.jobs 导出",
   "standard_ref": [
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -1725,7 +1725,7 @@
   "bc": "platform.scheduling",
   "definition": "带 SchedulerLock 的定时作业抛出异常的一次运行；按作业名（锁名）计数，指标 job.failures。作业自己捕获并记录的失败不在其中，由所属模块的指标覆盖",
   "standard_ref": [
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -2973,7 +2973,7 @@
   "bc": "kernel",
   "definition": "事件或数据来自老系统 / A8 的一次性迁入（与新系统原生相对）",
   "standard_ref": [
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -3001,7 +3001,7 @@
   "bc": "organization.attendance",
   "definition": "按年维护的节假日与调休上班日；默认日历适用全部法人，预留法人专属日历（用户 2026-10-14）",
   "standard_ref": [
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -3028,7 +3028,7 @@
   "bc": "organization.attendance",
   "definition": "工作日历中需要上班的日期：周一至周五且非节假日，或调休上班日",
   "standard_ref": [
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -3297,7 +3297,7 @@
   "definition": "被冲销或被更正的单据所属的会计期间；冲销或更正落在开放期间时标注，与实际落账期间分开记录",
   "standard_ref": [
    "ADR-0016 第 2 条",
-   "proposals/EVENT_ANALYTICS_FIELDS.md"
+   "docs/architecture/events/event-analytics-fields.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -4632,7 +4632,7 @@
   "bc": "platform.approval",
   "definition": "工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）",
   "standard_ref": [
-   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，docs/legacy/runtime-usage/prod-bpm.tsv ##13）"
   ],
   "aliases": [],
   "forbidden": [],
@@ -4658,7 +4658,7 @@
   "bc": "platform.approval",
   "definition": "区域组织单元的负责人；含售前工时的工时单还要经他审批（表单字段 regionalHeadId）",
   "standard_ref": [
-   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，docs/legacy/runtime-usage/prod-bpm.tsv ##13）"
   ],
   "aliases": [],
   "forbidden": [],
@@ -4706,7 +4706,7 @@
   "bc": "platform.approval",
   "definition": "工时审批中由项目经理办理的节点，对应项目工时",
   "standard_ref": [
-   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，docs/legacy/runtime-usage/prod-bpm.tsv ##13）"
   ],
   "aliases": [],
   "forbidden": [],
@@ -4730,7 +4730,7 @@
   "bc": "platform.approval",
   "definition": "工时审批中由区域负责人办理的节点，对应售前工时",
   "standard_ref": [
-   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，docs/legacy/runtime-usage/prod-bpm.tsv ##13）"
   ],
   "aliases": [],
   "forbidden": [],
@@ -4754,7 +4754,7 @@
   "bc": "platform.approval",
   "definition": "工时审批中由发起人的一级汇报人办理的节点，对应 OH 工时",
   "standard_ref": [
-   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，docs/legacy/runtime-usage/prod-bpm.tsv ##13）"
   ],
   "aliases": [],
   "forbidden": [],
@@ -4778,7 +4778,7 @@
   "bc": "platform.approval",
   "definition": "工时单的审批流程；企业微信卡片上展示的流程名",
   "standard_ref": [
-   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，docs/legacy/runtime-usage/prod-bpm.tsv ##13）"
   ],
   "aliases": [],
   "forbidden": [],
@@ -5983,7 +5983,7 @@
   "bc": "platform.identity",
   "definition": "同步发现某人的任职变化后，提醒有权的人复核其授权的待办条目；条目类型 + 去重键，只链接到标准授予流程，本身不授予也不收回（ADR-0032 第 4 项第 3 条、第 5 项）",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6009,7 +6009,7 @@
   "bc": "platform.identity",
   "definition": "待调整权限条目的类型：敏感角色持有人、范围待复核（ADR-0032 第 5 项第 2 条）",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6033,7 +6033,7 @@
   "bc": "platform.identity",
   "definition": "待调整权限类型：持有双人逐人级角色的人部门或岗位变化（ADR-0032 第 4 项第 3 条），送达组织数据管理员与安全审计员，不送本人",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6059,7 +6059,7 @@
   "bc": "platform.identity",
   "definition": "待调整权限类型：持有含自定义部门或列出法人的授权的人调动，送新部门负责人复核（ADR-0032 第 4 项第 2 条）",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6085,7 +6085,7 @@
   "bc": "platform.identity",
   "definition": "待调整权限条目的状态：开启 → 已维持 / 已调整 / 因离职关闭（ADR-0032 第 4 项第 3 条）",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6109,7 +6109,7 @@
   "bc": "platform.identity",
   "definition": "待调整权限条目尚未处理",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6139,7 +6139,7 @@
   "bc": "platform.identity",
   "definition": "处理待调整权限条目：确认此人的授权不需调整并填写原因，路径 :uphold；不改任何授予，本人不能处理关于本人的条目",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6165,7 +6165,7 @@
   "bc": "platform.identity",
   "definition": "待调整权限条目已由处理人维持授权（填写原因）；不改任何授予",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6191,7 +6191,7 @@
   "bc": "platform.identity",
   "definition": "授权已经按标准授予流程调整，条目关联授权申请或授予审计条目",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6217,7 +6217,7 @@
   "bc": "platform.identity",
   "definition": "此人离职，离职处置已关闭其全部授予，开启中的条目随之关闭",
   "standard_ref": [
-   "adr/src/ADR-0032.md"
+   "docs/adr/ADR-0032.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6243,8 +6243,8 @@
   "bc": "platform.identity",
   "definition": "范围类型为 CUSTOM_ORG_UNITS 的角色在角色版本上列出的部门，每个部门选「含下级」或「仅本部门」；改明细即新增角色版本（ADR-0026「1a 交付范围」、ADR-0034 第 5 项）",
   "standard_ref": [
-   "adr/src/ADR-0026.md",
-   "adr/src/ADR-0034.md"
+   "docs/adr/ADR-0026.md",
+   "docs/adr/ADR-0034.md"
   ],
   "aliases": [],
   "forbidden": [],
@@ -6270,7 +6270,7 @@
   "bc": "platform.identity",
   "definition": "自定义部门的逐部门选择：为真时该部门连同全部下级部门在范围内，组织同步新增的下级部门自动纳入；为假即「仅本部门」",
   "standard_ref": [
-   "adr/src/ADR-0034.md"
+   "docs/adr/ADR-0034.md"
   ],
   "aliases": [],
   "forbidden": [],

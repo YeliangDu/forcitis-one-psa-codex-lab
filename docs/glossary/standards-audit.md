@@ -2,7 +2,7 @@
 
 # 统一语言「中英文 + 行业 + 规范标准」对齐审计
 
-日期：2026-10-14 · 对象：`GLOSSARY.md` 的 38 个核心术语，以及财务关键 BC 的附录术语 · 机器可读结果：`glossary/terms.yaml`（由 `glossary/build_terms.py` 生成）
+日期：2026-10-14 · 对象：`GLOSSARY.md` 的 38 个核心术语，以及财务关键 BC 的附录术语 · 机器可读结果：`docs/glossary/terms.yaml`（由 `glossary/build_terms.py` 生成）
 
 ## 命名标准的优先级
 

@@ -10,7 +10,7 @@ terms:
   scope: domain
   definition: 一个部门或一名员工在某段时间内归属于哪个法人主体的记录；各段期间互不重叠，历史只能关闭、不能改写，新的归属只能从最近一段的开始日之后起算
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -24,7 +24,7 @@ terms:
   scope: domain
   definition: 员工首次登录时，在组织来源里找到、但下一次同步尚未把他带入组织快照的人；登记后他即可使用系统
   standard_ref:
-  - events/workforce.yaml (EmployeeRegistered)
+  - docs/architecture/events/workforce.yaml (EmployeeRegistered)
   confidence: low
   aliases: []
   forbidden: []
@@ -38,7 +38,7 @@ terms:
   scope: domain
   definition: 对同一种审批流程中的同一张单据所发起的审批，一张单据在一种流程下只有一个；每一轮审批有自己的流程实例，本轮的审批任务归它管理，只能通过它修改
   standard_ref:
-  - events/approval.yaml
+  - docs/architecture/events/approval.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -53,7 +53,7 @@ terms:
   acl_class: 过渡期
   definition: 有人试图人工登记只能由同步或导入写入的来源对照而被拒绝的一次记录；不存储任何对照，事件本身就是记录，使审计能看到是谁试过
   standard_ref:
-  - events/integration.yaml (SourceReferenceRegistrationRefused)
+  - docs/architecture/events/integration.yaml (SourceReferenceRegistrationRefused)
   confidence: low
   aliases: []
   forbidden: []
@@ -67,7 +67,7 @@ terms:
   scope: domain
   definition: 工时单审批通过，工时成立；过程里程碑，以工作日期记业务日
   standard_ref:
-  - events/timesheet.yaml
+  - docs/architecture/events/timesheet.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -81,7 +81,7 @@ terms:
   scope: domain
   definition: 工时单被驳回，工时不成立；以工作日期记业务日
   standard_ref:
-  - events/timesheet.yaml
+  - docs/architecture/events/timesheet.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -95,7 +95,7 @@ terms:
   scope: domain
   definition: 审批人退回或填报人撤回，工时单回到可修改状态，下一轮重新提交；以工作日期记业务日
   standard_ref:
-  - events/timesheet.yaml
+  - docs/architecture/events/timesheet.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -109,7 +109,7 @@ terms:
   scope: domain
   definition: 填报人把工时单提交审批，工时单进入新一轮审批；以工作日期记业务日，提交日另记；只陈述事实，不过账
   standard_ref:
-  - events/timesheet.yaml
+  - docs/architecture/events/timesheet.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -123,7 +123,7 @@ terms:
   scope: domain
   definition: 某一年的工作日历被保存：有日期被加入、去掉或改了日类型，或该年只是被重新核对；记下变动的日期
   standard_ref:
-  - events/attendance.yaml
+  - docs/architecture/events/attendance.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -137,7 +137,7 @@ terms:
   scope: domain
   definition: 员工第一次登录时，被登记进组织快照；此后下一次同步会带入完整信息
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -151,7 +151,7 @@ terms:
   scope: domain
   definition: 一个法人主体被启用，可以开始作为法人使用
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -165,7 +165,7 @@ terms:
   scope: domain
   definition: 部门或员工从某日起归属于某个法人主体
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -179,7 +179,7 @@ terms:
   scope: domain
   definition: 已关闭的法人归属期间的结束日被更正
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -193,7 +193,7 @@ terms:
   scope: domain
   definition: 部门或员工对某个法人主体的归属在某日结束
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -207,7 +207,7 @@ terms:
   scope: domain
   definition: 法人主体的代码被更正；仅在尚未发过号时允许
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -221,7 +221,7 @@ terms:
   scope: domain
   definition: 一个法人主体被停用，不再作为法人使用
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -235,7 +235,7 @@ terms:
   scope: domain
   definition: 一个新的法人主体被登记进组织人事
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -249,7 +249,7 @@ terms:
   scope: domain
   definition: 法人主体的名称被改变
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -264,7 +264,7 @@ terms:
   acl_class: 过渡期
   definition: 一次组织同步使组织快照发生了变化；离职人员的会话据此被收回；业务日为快照截止日，生效日同截止日
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -278,7 +278,7 @@ terms:
   scope: domain
   definition: 一次组织同步运行失败
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -292,7 +292,7 @@ terms:
   scope: domain
   definition: 一次组织同步因缩水保护而被中止并保持暂停，等待有权的人放行
   standard_ref:
-  - events/workforce.yaml (RULE-358)
+  - docs/architecture/events/workforce.yaml (RULE-358)
   confidence: medium
   aliases: []
   forbidden: []
@@ -306,7 +306,7 @@ terms:
   scope: domain
   definition: 被暂停的同步，其中一类暂停被有权的人解除；另一类暂停仍在时，运行保持暂停
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -320,7 +320,7 @@ terms:
   scope: domain
   definition: 被中止的同步已由管理员放行，或被后续成功的同步取代；记下接替的运行与管理员给出的原因
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -334,7 +334,7 @@ terms:
   scope: domain
   definition: 一次组织同步运行成功
   standard_ref:
-  - events/workforce.yaml
+  - docs/architecture/events/workforce.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -348,7 +348,7 @@ terms:
   scope: domain
   definition: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起；过程里程碑
   standard_ref:
-  - events/approval.yaml (D-1a-78)
+  - docs/architecture/events/approval.yaml (D-1a-78)
   confidence: medium
   aliases: []
   forbidden: []
@@ -362,7 +362,7 @@ terms:
   scope: domain
   definition: 任务超时仍未处理，已升级给审批人的上级；取不到上级则交流程管理员
   standard_ref:
-  - events/approval.yaml
+  - docs/architecture/events/approval.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -376,7 +376,7 @@ terms:
   scope: domain
   definition: 单据的所有者请审批模块发起一轮审批，并带齐发起所需的全部信息；同一单据同一轮重复收到只发起一次
   standard_ref:
-  - events/approval.yaml (H-1)
+  - docs/architecture/events/approval.yaml (H-1)
   confidence: medium
   aliases: []
   forbidden: []
@@ -390,7 +390,7 @@ terms:
   scope: domain
   definition: 任务被候选人之一认领，其他候选人的待办随之改为已处理
   standard_ref:
-  - events/approval.yaml
+  - docs/architecture/events/approval.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -404,7 +404,7 @@ terms:
   scope: domain
   definition: 本轮在任务办结前结束（驳回、退回、撤回、撤销），任务关闭，未办理的候选人失去办理权
   standard_ref:
-  - events/approval.yaml
+  - docs/architecture/events/approval.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -418,7 +418,7 @@ terms:
   scope: domain
   definition: 流程管理员把任务改派给另一个人，填写原因并留痕
   standard_ref:
-  - events/approval.yaml (D-1a-61)
+  - docs/architecture/events/approval.yaml (D-1a-61)
   confidence: medium
   aliases: []
   forbidden: []
@@ -432,7 +432,7 @@ terms:
   scope: domain
   definition: 任务的处理人把任务退回候选组，候选人可以再次认领
   standard_ref:
-  - events/approval.yaml (M-6)
+  - docs/architecture/events/approval.yaml (M-6)
   confidence: medium
   aliases: []
   forbidden: []
@@ -446,7 +446,7 @@ terms:
   scope: domain
   definition: 任务的当前处理人把任务转交给他人
   standard_ref:
-  - events/approval.yaml (RULE-285)
+  - docs/architecture/events/approval.yaml (RULE-285)
   confidence: medium
   aliases: []
   forbidden: []
@@ -460,7 +460,7 @@ terms:
   scope: domain
   definition: 一个用户账号被启用，可以登录使用
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -474,7 +474,7 @@ terms:
   scope: domain
   definition: 为一个人开立用户账号，包含开立时授予的角色
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -488,7 +488,7 @@ terms:
   scope: domain
   definition: 一个用户账号的角色被整体替换为新的一组
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -502,7 +502,7 @@ terms:
   scope: domain
   definition: 账号的本人离职，账号收回全部角色；挂在账号上的东西（如应急账号）随这一事实处理
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -516,7 +516,7 @@ terms:
   scope: domain
   definition: 敏感授权申请被另一个人确认
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -530,7 +530,7 @@ terms:
   scope: domain
   definition: 一个敏感授权申请被提出，等待另一个人确认
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -544,7 +544,7 @@ terms:
   scope: domain
   definition: 敏感授权申请被拒绝，或被申请人撤回
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -558,7 +558,7 @@ terms:
   scope: domain
   definition: 应急管理员的登录凭据被重置
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -572,7 +572,7 @@ terms:
   scope: domain
   definition: 应急管理员因离职或运维命令而被停用
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -586,7 +586,7 @@ terms:
   scope: domain
   definition: 应急管理员被启用，可作为应急入口使用
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -600,7 +600,7 @@ terms:
   scope: domain
   definition: 一名应急管理员被登记
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -614,7 +614,7 @@ terms:
   scope: domain
   definition: 新设立一个角色
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -628,7 +628,7 @@ terms:
   scope: domain
   definition: 一个角色被停用
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -642,7 +642,7 @@ terms:
   scope: domain
   definition: 一个角色被启用
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -656,7 +656,7 @@ terms:
   scope: domain
   definition: 角色的名称、数据范围或权限被修改
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -670,7 +670,7 @@ terms:
   scope: domain
   definition: 另一个人确认了登记的来源对照，从生效日起用于出站
   standard_ref:
-  - events/integration.yaml
+  - docs/architecture/events/integration.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -684,7 +684,7 @@ terms:
   scope: domain
   definition: 有人登记了一条来源对照（核算组织编码），等待他人确认
   standard_ref:
-  - events/integration.yaml
+  - docs/architecture/events/integration.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -698,7 +698,7 @@ terms:
   scope: domain
   definition: 另一个人拒绝了登记的来源对照；已生效的对照不变
   standard_ref:
-  - events/integration.yaml
+  - docs/architecture/events/integration.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -712,7 +712,7 @@ terms:
   scope: domain
   definition: 生效中的来源对照，在后继对照的生效日结束
   standard_ref:
-  - events/integration.yaml
+  - docs/architecture/events/integration.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -726,7 +726,7 @@ terms:
   scope: domain
   definition: 编号规则的模板版本得到业务或财务其中一方的一次确认
   standard_ref:
-  - events/numbering.yaml
+  - docs/architecture/events/numbering.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -740,7 +740,7 @@ terms:
   scope: domain
   definition: 编号规则的模板版本已确认齐全，从此开始发号
   standard_ref:
-  - events/numbering.yaml
+  - docs/architecture/events/numbering.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -754,7 +754,7 @@ terms:
   scope: domain
   definition: 编号规则保存了新的模板版本，等待他人确认
   standard_ref:
-  - events/numbering.yaml
+  - docs/architecture/events/numbering.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -783,7 +783,7 @@ terms:
   scope: domain
   definition: 一个用户账号被停用，不能再登录使用
   standard_ref:
-  - events/identity.yaml
+  - docs/architecture/events/identity.yaml
   confidence: medium
   aliases: []
   forbidden: []
@@ -798,7 +798,7 @@ terms:
   definition: 与我方法人存在劳动或劳务关系、或处于招聘过程中的自然人；类型含员工、候选人等；「员工」保持现名，作为人员的一种类型
   standard_ref:
   - 全企业业务对象确认页 Q38
-  - architecture/proposals/ENTERPRISE_INFO_MAP_ANSWERS.md 用语草案
+  - docs/architecture/proposals/enterprise-info-map-answers.md 用语草案
   confidence: medium
   aliases: []
   forbidden: []
@@ -813,7 +813,7 @@ terms:
   definition: 同一职级内的薪酬档位；标准成本费率的定价键之一（职级 × 薪档 × 城市类别）；涉薪酬敏感，分级与可见性按 C-49
   standard_ref:
   - 全企业业务对象确认页 Q17
-  - architecture/proposals/ENTERPRISE_INFO_MAP_ANSWERS.md 用语草案
+  - docs/architecture/proposals/enterprise-info-map-answers.md 用语草案
   confidence: medium
   aliases: []
   forbidden: []
@@ -828,7 +828,7 @@ terms:
   definition: 按用工成本水平划分的城市分组；标准成本费率的定价键之一；取值清单待财务给出
   standard_ref:
   - 全企业业务对象确认页 Q17
-  - architecture/proposals/ENTERPRISE_INFO_MAP_ANSWERS.md 用语草案
+  - docs/architecture/proposals/enterprise-info-map-answers.md 用语草案
   confidence: medium
   aliases: []
   forbidden: []
@@ -843,7 +843,7 @@ terms:
   definition: 各类协议的统称，信息图一级对象；类型有合同（项目合同）、框架协议、任务订单、联合体协议、劳务派遣协议、居间协议、租赁合同、职业责任保险单等；「合同」是协议下的一种类型
   standard_ref:
   - 全企业业务对象确认页 Q01
-  - architecture/proposals/ENTERPRISE_INFO_MAP_ANSWERS.md 用语草案
+  - docs/architecture/proposals/enterprise-info-map-answers.md 用语草案
   confidence: medium
   aliases: []
   forbidden: []

@@ -104,7 +104,7 @@ R1 与 R2 的大部分数字可在 R3、R5、R6 中找到同名指标。三份 E
 | 预算 / 承诺 / 挑战 / 理论 / 线性目标 | R1、R2、R6 | D | 计划目标值（`operations.planning`），用「目标类型」区分 | PLAN_TARGET_VALUE | 见 K11 |
 | 区域 / BU / 事业部 / 交付中心 / 战区 | 全部 | C | 组织单元 / `org_unit` | — | 见 K14 |
 
-需确认的叫法中，有明确候选词条的 21 个已按 ADR-0018 登记为待确认别名（`glossary/r0_report_aliases.json`）。其中 2 个含「产值」，按已有裁定自动归为方言，其余 19 个进入用语确认表 A 组；不宜作别名的叫法见基线 §5 末尾。新概念的起草清单见 `METRIC_BASELINE_DRAFT.md` §5。
+需确认的叫法中，有明确候选词条的 21 个已按 ADR-0018 登记为待确认别名（`docs/glossary/r0-report-aliases.json`）。其中 2 个含「产值」，按已有裁定自动归为方言，其余 19 个进入用语确认表 A 组；不宜作别名的叫法见基线 §5 末尾。新概念的起草清单见 `METRIC_BASELINE_DRAFT.md` §5。
 
 ## 3. 口径问题清单
 

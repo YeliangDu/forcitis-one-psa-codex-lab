@@ -81,4 +81,4 @@ FORCITIS one 只读这两个库（ADR-0037：全库只读；运行时仍经下�
 
 ## 与正本的关系
 
-视图正文从 `phase1a/SEEYON_VIEWS.sql`、`LEGACY_INBOX_VIEW.sql`、`LEGACY_ORG_NAMES_VIEW.sql` 逐字复制。正本改动后运行 `python3 docs/ops/dba-scripts/check_view_sync.py`，不一致就同步本目录。正本里 `CREATE LOGIN … PASSWORD = N'<<…>>'` 的写法**不要直接执行**：那会建出一个口令为占位文字的账号；请用本目录的 apply 脚本。
+视图正文从 `docs/data/legacy-views/seeyon-views.sql`、`LEGACY_INBOX_VIEW.sql`、`LEGACY_ORG_NAMES_VIEW.sql` 逐字复制。正本改动后运行 `python3 docs/ops/dba-scripts/check_view_sync.py`，不一致就同步本目录。正本里 `CREATE LOGIN … PASSWORD = N'<<…>>'` 的写法**不要直接执行**：那会建出一个口令为占位文字的账号；请用本目录的 apply 脚本。

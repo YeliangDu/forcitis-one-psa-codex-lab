@@ -3,7 +3,7 @@
 - 审查：one-data 子代理，2026-10-16；基线 `backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql`（366 行，下称「迁移」）。
 - 标尺：门禁清单。本分支的 `DATA_DESIGN_GATE.md` 是旧版（无 B0、B3a、O15、附录 C），实际按 `claude/one-data-gate-v2` 分支的版本（`git show` 只读）判定。
 - 整表不适用并视同通过：A1–A8（无分析事实）、O11（无大表，保留期均短）、O13（不进过账、不受法人 × 期间闸门）、A6 / D7（无业务单据）、E2 / E3（无读模型、无迁入映射）、T 系列（基线开放期，随库重建）。
-- E1、B3a 全部通过：事件目录 `events/identity.yaml` 载荷只含 ID 与 `cause` 枚举，无 PI、无 L3/L4 列；`AccountStatus`、`RoleStatus`、`EmergencyAdminStatus`、`AuthorizationRequestStatus`、`AuthorizationRequestKind`、`RoleKind`、`AccessScopeKind`、`WecomEntry` 的取值与迁移 `CHECK` 一致；每个目标状态都有对应事件（AccountEnabled / Disabled、RoleEnabled / Disabled、AuthorizationConfirmed / Rejected）。ADR-0034 要求的 VOIDED 状态及事件尚未建（见 AQ-2）。
+- E1、B3a 全部通过：事件目录 `docs/architecture/events/identity.yaml` 载荷只含 ID 与 `cause` 枚举，无 PI、无 L3/L4 列；`AccountStatus`、`RoleStatus`、`EmergencyAdminStatus`、`AuthorizationRequestStatus`、`AuthorizationRequestKind`、`RoleKind`、`AccessScopeKind`、`WecomEntry` 的取值与迁移 `CHECK` 一致；每个目标状态都有对应事件（AccountEnabled / Disabled、RoleEnabled / Disabled、AuthorizationConfirmed / Rejected）。ADR-0034 要求的 VOIDED 状态及事件尚未建（见 AQ-2）。
 - 命名约定：下文「迁移:N」为迁移文件行号。
 
 ## 逐表结论
@@ -47,7 +47,7 @@
 ### roles
 
 #### R-1 [高] 角色定义未按已采纳的 ADR-0034 版本化，系统角色仍由迁移写入
-- 条目：O15、O6、O7、B3a；ADR-0034 第 1 项第 1、2、7 条（状态「已采纳」，`adr/src/ADR-0034.md:3`）。
+- 条目：O15、O6、O7、B3a；ADR-0034 第 1 项第 1、2、7 条（状态「已采纳」，`docs/adr/ADR-0034.md:3`）。
 - 证据：
   - 迁移:27-39 的 `roles` 仍含 `name`、`status`、`access_scope`；ADR-0034 要求只留 `role_id / code / kind / is_administrative / version / event_count`，其余移入 `role_versions`（`role_version_id`、`version_number`、`effective_from_at / effective_to_at`、`role_name`、`role_status`、`access_scope_kind`、`permission_codes text[]`、变更来源与关闭列，排他约束 `role_id` 与 `lower(role_name)` 各一）；迁移无 `role_versions`。
   - 迁移:305-366 用 `INSERT` 写入六个系统角色与权限，ADR-0034 第 1 项第 7 条要求「迁移不再写角色权限，DDL 迁移只建表」，系统角色改由代码声明启动对账。
@@ -214,7 +214,7 @@
 - 条目：C3（不通过，待用户决定）。证据：注册表 `:293-301` `PERMANENT`；§6 表无该表。含 `requested_by`、`decided_by` 等用户代理键，属 PI 的代理键，不触发 R-2，但保留期须登记并经用户认可。登记待决收件箱。
 
 #### AQ-6 [高] `role_codes` 以业务键数组引用角色
-- 条目：O2、O9。证据：迁移:268；事件 `AccountRolesReplaced` 载荷用 `roleIds`（`events/identity.yaml`），ADR-0034 第 2 项第 5 条要求申请记「相关角色当时的 `role_version_id` 数组」。建议改为 `role_ids uuid[]`（随 AQ-2 的基准列一并定形态）。依据：ADR-0033 第 1 项第 1 条、门禁 O2。
+- 条目：O2、O9。证据：迁移:268；事件 `AccountRolesReplaced` 载荷用 `roleIds`（`docs/architecture/events/identity.yaml`），ADR-0034 第 2 项第 5 条要求申请记「相关角色当时的 `role_version_id` 数组」。建议改为 `role_ids uuid[]`（随 AQ-2 的基准列一并定形态）。依据：ADR-0033 第 1 项第 1 条、门禁 O2。
 
 #### AQ-7 [低] 待处理清单无索引
 - 条目：O10。证据：`findPending`（`where request_status = 'PENDING' order by requested_at`）；`list-paging-gaps.txt:10` 已登记分页缺口。建议：部分索引 `(requested_at, request_id) WHERE request_status = 'PENDING'`，与游标分页一并做。
@@ -281,5 +281,5 @@
 - RULE-347 的「上级必须是目录」在新系统的对应规则卡未找到（N-3）。
 - ADR-0027、ADR-0032、ADR-0044 是否另要求 identity 表增列（授予方式等）：只核了与 ADR-0034 重叠的部分，未逐条对照。
 - Web 出参与日志是否输出 `SENSITIVE`、`RESTRICTED` 列（E1 之外）未核；`RegisterEmergencyAdmin.java` 的异常信息含登录名，是否违反 O-3 未核。
-- `asyncapi.yaml` 与 `events/identity.yaml` 同源，未单独核对生成物。
+- `asyncapi.yaml` 与 `docs/architecture/events/identity.yaml` 同源，未单独核对生成物。
 - Spring Session JDBC 对迁移里额外的 `created_at`、`updated_at` 列是否兼容（框架 INSERT 的列清单）未核；`primary-key-exemptions.txt` 在仓库中不存在，框架表豁免实际由 `DdlNamingTest.FRAMEWORK_TABLES`（`:37`）承担，与 ADR-0033 第 1 项第 8 条的写法不一致，请 one-quality 确认。

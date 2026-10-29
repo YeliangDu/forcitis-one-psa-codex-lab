@@ -1,5 +1,5 @@
 -- M-29 基线补充（第二批）：奖金归期、据实结算合同抽样、年末未结转与跨年项目——只读聚合查询（草稿，未执行）
--- 起草：2026-10-22。接续 r0/m29_baseline_readonly_queries.sql（Q00～Q43）；本批编号 B01 起，不与 Q 号冲突。
+-- 起草：2026-10-22。接续 docs/data/metric-baseline/baseline-readonly-queries.sql（Q00～Q43）；本批编号 B01 起，不与 Q 号冲突。
 -- 口径说明与不确定处见同目录 m29b_notes.md。老系统源码依据：psa-backend/yudao-module-fst（PlLedgerDO、CostLedgerDO、WipEntryDO、WipMovementDO、
 --   AnnualPeriodResolver、AnnualBonusDetailViewDO、MonthlyBonusAccrualViewDO、WipPeriodSnapshotMapper、ContractTermMapper、ProjectDO、CuValueDO）。
 --

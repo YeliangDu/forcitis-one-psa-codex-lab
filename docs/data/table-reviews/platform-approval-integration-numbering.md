@@ -257,7 +257,7 @@
 
 - 未跑 `EXPLAIN`、未起库：TK-2、SRF-2、LN-1、OD-5 的索引判断均出自 SQL 与索引定义对照；数据库排序规则（影响 LN-1）未核。
 - B8（用语）：未逐词核对 `terms.yaml`，依赖 `GlossaryTest`（G37）；本次抽查的 `start_round`、`approval_task_record`、`process_archive_skip`、`outbound_delivery`、`source_reference` 的表名在 `terms.yaml` 里未按 `snake` 找到同名项（`approval_request`、`approval_task`、`numbering_*`、`legacy_number` 有），是否由 `common_words` 覆盖未核。
-- 规则卡只读了与审批原因（RULE-280 修订段）、状态生命周期相关的部分；`rules/APPROVAL_DEADLINE_RULES.md`、`TIMESHEET_ROUTING_RULES.md` 未逐条对照 `due_at`、`remind_at`、`escalate_at` 的计算与存储。
+- 规则卡只读了与审批原因（RULE-280 修订段）、状态生命周期相关的部分；`docs/business/rules/approval-deadline-rules.md`、`TIMESHEET_ROUTING_RULES.md` 未逐条对照 `due_at`、`remind_at`、`escalate_at` 的计算与存储。
 - 事件载荷 Java record 与 `events/*.yaml` 未逐字段比对（E1 只核了载荷里有无 `SENSITIVE`、`RESTRICTED`、PI 直接标识与来源标识：来源对照事件只带 `ownId`，符合）。`DocumentSubmittedForApproval` 的 `publisher` 写 `platform.approval`，聚合与测试却是 `Timesheet`（`approval.yaml:162-172`），发布方应写发布它的模块，未做修正建议，交事件目录维护者判。
 - `platform_approval.act_*`（Flowable 引擎表）不在迁移里，未审。
 - ADR-0036 第 3 条规定的 `migration_batches` 表与 `source_references` 三个新列、ADR-0039 规定的 `external_identities` 与 `legacy_numbers` 搬到 `platform_integration`：基线里都还没有（ADR-0039 写明「首个迁入阶段前」搬表，表现为空），按 CS-1.8 不算缺陷，但 `legacy_numbers.migration_batch_id`（`:64`）已是 `NOT NULL` 而被引用的批次表尚不存在，直到 R-1b 前该列只是无处可查的 ID。

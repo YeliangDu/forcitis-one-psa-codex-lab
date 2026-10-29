@@ -9,7 +9,7 @@
 | 项 | 现状 | 缺口 |
 |---|---|---|
 | OpenAPI | 输出 3.1.0（springdoc 3.1.1） | 规范文档未锁版本；现行最新 3.2.1（2026-09），3.1.x 仍维护 |
-| AsyncAPI | `events/asyncapi.yaml` 3.0.0 | 现行 3.1.0（2026-01）；文档未锁版本 |
+| AsyncAPI | `docs/architecture/events/asyncapi.yaml` 3.0.0 | 现行 3.1.0（2026-01）；文档未锁版本 |
 | RFC 9457 错误响应 | 代码注释有，CODING_STANDARD 只写 ProblemDetail | 文档补 RFC 号 |
 | RFC 9562 UUID v7 | 代码注释有，文档只写 UUIDv7 | 文档补 RFC 号 |
 | CycloneDX SBOM | SUPPLY_CHAIN S5 规定，无版本，CI 无生成步骤 | 现行 1.7（ECMA-424） |
