@@ -40,8 +40,9 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
     public Optional<LegalEntityAttribution> find(AttributionSubject subject) {
         return jdbc.sql("""
                 select attribution_id, version, event_count from organization_workforce.legal_entity_attributions where
-                """
-                        + EffectiveAttributionPeriods.subjectColumn(subject.kind()) + " = :id")
+                """ + EffectiveAttributionPeriods.subjectColumn(subject.kind()) + """
+                 = :id
+                """)
                 .param("id", subject.subjectId())
                 .query((rs, n) -> LegalEntityAttribution.restore(new AttributionId(rs.getObject("attribution_id", UUID.class)), subject, periods(subject),
                         rs.getLong("version"), rs.getLong("event_count"))).optional();
@@ -49,8 +50,14 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
 
     private void updatePeriodEnd(AttributionSubject subject, AttributionPeriod period) {
         String sql = subject.kind() == AttributionKind.ORG_UNIT
-                ? "update organization_workforce.org_unit_legal_entities set effective_to_date = :to, updated_at = :updatedAt where org_unit_id = :id and effective_from_date = :from"
-                : "update organization_workforce.employee_legal_entities set effective_to_date = :to, updated_at = :updatedAt where employee_id = :id and effective_from_date = :from";
+                ? """
+                  update organization_workforce.org_unit_legal_entities set effective_to_date = :to, updated_at = :updatedAt
+                   where org_unit_id = :id and effective_from_date = :from
+                  """
+                : """
+                  update organization_workforce.employee_legal_entities set effective_to_date = :to, updated_at = :updatedAt
+                   where employee_id = :id and effective_from_date = :from
+                  """;
         jdbc.sql(sql).param("id", subject.subjectId()).param("from", period.effectiveFrom())
                 .param("to", period.effectiveTo(), java.sql.Types.DATE)
                 .param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)).update();
@@ -80,8 +87,14 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
 
     private void insertPeriod(AttributionSubject subject, AttributionPeriod period) {
         String sql = subject.kind() == AttributionKind.ORG_UNIT
-                ? "insert into organization_workforce.org_unit_legal_entities (org_unit_legal_entity_id, org_unit_id, legal_entity_id, effective_from_date, effective_to_date) values (:rowId, :id, :legalEntity, :from, :to)"
-                : "insert into organization_workforce.employee_legal_entities (employee_legal_entity_id, employee_id, legal_entity_id, effective_from_date, effective_to_date) values (:rowId, :id, :legalEntity, :from, :to)";
+                ? """
+                  insert into organization_workforce.org_unit_legal_entities (org_unit_legal_entity_id, org_unit_id, legal_entity_id, effective_from_date, effective_to_date)
+                  values (:rowId, :id, :legalEntity, :from, :to)
+                  """
+                : """
+                  insert into organization_workforce.employee_legal_entities (employee_legal_entity_id, employee_id, legal_entity_id, effective_from_date, effective_to_date)
+                  values (:rowId, :id, :legalEntity, :from, :to)
+                  """;
         jdbc.sql(sql).param("rowId", ids.next()).param("id", subject.subjectId()).param("legalEntity", period.legalEntityId().value())
                 .param("from", period.effectiveFrom())
                 .param("to", period.effectiveTo(), java.sql.Types.DATE).update();

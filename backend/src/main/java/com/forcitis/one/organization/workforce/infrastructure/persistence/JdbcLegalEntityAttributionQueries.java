@@ -22,14 +22,17 @@ class JdbcLegalEntityAttributionQueries implements LegalEntityAttributionQueries
     public java.util.Optional<Long> versionOf(AttributionSubject subject) {
         return jdbc.sql("""
                 select version from organization_workforce.legal_entity_attributions where
-                """
-                        + EffectiveAttributionPeriods.subjectColumn(subject.kind()) + " = :id")
+                """ + EffectiveAttributionPeriods.subjectColumn(subject.kind()) + """
+                 = :id
+                """)
                 .param("id", subject.subjectId()).query(Long.class).optional();
     }
 
     @Override
     public List<AttributionPeriod> periodsOf(AttributionSubject subject) {
-        return jdbc.sql(EffectiveAttributionPeriods.select(subject.kind()) + " order by p.effective_from_date")
+        return jdbc.sql(EffectiveAttributionPeriods.select(subject.kind()) + """
+                 order by p.effective_from_date
+                """)
                 .param("id", subject.subjectId())
                 .query((rs, n) -> new AttributionPeriod(new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
                         rs.getObject("effective_from_date", LocalDate.class),
