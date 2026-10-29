@@ -86,4 +86,42 @@ class AccountingCodeConfirmerAccountsIT extends AccountsAcceptanceSupport {
             }
         }
     }
+
+    @Test
+    @DisplayName("P2-M2 驳回同样按真实账号记账：驳回后 decided_by 是驳回人，created_by 仍是登记人")
+    void theRejecterIsRecordedAsTheDecider() throws Exception {
+        UUID unit = newOrgUnitId();
+        orgUnit(unit, null, null);
+        UUID recorderEmployee = newEmployeeId();
+        UUID rejecterEmployee = newEmployeeId();
+        employee(recorderEmployee, unit, null);
+        employee(rejecterEmployee, unit, null);
+        grantByOperations(recorderEmployee, "org_data_admin");
+        grantByOperations(recorderEmployee, "business_admin");
+        grantByOperations(rejecterEmployee, "business_admin");
+        SignedIn recorder = signIn(recorderEmployee);
+        SignedIn rejecter = signIn(rejecterEmployee);
+        UUID legalEntity = createLegalEntity(recorder, newLegalEntityCode("AR"), "Synthetic rejected accounting code");
+
+        MockHttpServletResponse registered = mvc.perform(post(SOURCE_REFERENCES).with(csrf()).with(session(recorder))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"sourceSystem\":\"ACCOUNTING_SYSTEM\",\"sourceObjectKind\":\"LEGAL_ENTITY\",\"sourceId\":\"1022\","
+                        + "\"ownId\":\"" + legalEntity + "\",\"effectiveFrom\":\"" + TODAY + "\"}")).andReturn().getResponse();
+        assertThat(registered.getStatus()).as(registered.getContentAsString()).isEqualTo(201);
+        String row = JsonPath.read(registered.getContentAsString(), "$.sourceReferenceId");
+
+        MockHttpServletResponse rejected = mvc.perform(post(SOURCE_REFERENCES + "/" + row + ":reject").with(csrf()).with(session(rejecter))
+                .header("If-Match", registered.getHeader("ETag"))).andReturn().getResponse();
+
+        assertThat(rejected.getStatus() / 100).as(rejected.getContentAsString()).isEqualTo(2);
+        try (Connection integration = schemaConnection("platform_integration");
+             PreparedStatement select = integration.prepareStatement("select confirmation_status, created_by, decided_by from source_references where source_reference_id = ?")) {
+            select.setObject(1, UUID.fromString(row));
+            try (ResultSet rs = select.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("REJECTED");
+                assertThat(rs.getObject(2, UUID.class)).as("created_by").isEqualTo(recorder.userId());
+                assertThat(rs.getObject(3, UUID.class)).as("decided_by").isEqualTo(rejecter.userId());
+            }
+        }
+    }
 }
