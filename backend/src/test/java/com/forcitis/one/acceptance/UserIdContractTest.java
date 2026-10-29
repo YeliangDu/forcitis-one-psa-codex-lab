@@ -29,7 +29,7 @@ class UserIdContractTest {
 
     /** Schema.property: the user ids in response and request bodies. */
     static final List<String> USER_ID_PROPERTIES = List.of("AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId",
-            "AuthorizationRequestView.requestedBy", "AuthorizationRequestView.subjectUserId", "CurrentUserResponse.userId", "LoginResponse.userId",
+            "AuthorizationRequestResponse.requestedBy", "AuthorizationRequestResponse.subjectUserId", "CurrentUserResponse.userId", "LoginResponse.userId",
             "UserAccountResponse.userId", "HandledTaskResponse.actorId", "HistoryEntry.actorId", "PendingTemplate.authorId", "PendingTemplate.confirmedBy",
             "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy", "TaskDetailResponse.assignee", "TaskDetailResponse.candidates",
             "TaskOverviewResponse.assignee");
