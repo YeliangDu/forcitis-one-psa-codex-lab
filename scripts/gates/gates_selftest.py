@@ -301,8 +301,7 @@ def renamed_test():  # ── pre_commit ──
     sessions, root = policy("sessions"), Path(ROOT)
     for new, old, role in (("one-leader", "one-coordinator", "lead"), ("one-dev-par", "one-1a-par", "dev")):
         assert sessions["config"][new]["role"] == role and new in sessions["config_sources"] and sessions["aliases"][old] == new, new
-        assert old not in sessions["config"] and old not in sessions["config_sources"] and not (root / f"docs/modernization/sessions/{old}.md").exists(), old
-        assert (root / f"docs/modernization/sessions/{new}.md").is_file(), new
+        assert old not in sessions["config"] and old not in sessions["config_sources"], old  # #752: the session profile files are gone; the session is its config entry
     assert all(v in sessions["config"] for v in sessions["aliases"].values()), "every alias points at a session"
     prefixes = json.loads(Path(ROOT, "scripts/merge/session_map.json").read_text(encoding="utf-8"))["prefixes"]
     assert set(prefixes.values()) <= set(sessions["config"]), ("gapscan owners are sessions", set(prefixes.values()) - set(sessions["config"]))
@@ -346,9 +345,6 @@ def policy(section="gates"):
 def sheet_path():  # the tool library's start sheet as the SessionStart mount spells it (O23a: the repository's start_sheet.py and session_context.py are gone)
     return '"$HOME"/' + policy("tools_lib")["dir"][2:] + "/start_sheet/start_sheet.py"
 
-def node_path():  # the tool library's node_ready as the clear_session mount spells it (#14, user intent 2026-10-27-171036)
-    return '"$HOME"/' + policy("tools_lib")["dir"][2:] + "/node_ready/node_ready.py"
-
 def settings_self_test():
     raw = Path(ROOT, ".claude/settings.json").read_text(encoding="utf-8")
     settings, gates = json.loads(raw), policy()
@@ -358,10 +354,9 @@ def settings_self_test():
     verify = ('V="$CLAUDE_PROJECT_DIR"/scripts/gates/hooks_manifest.sh; if [ -x "$V" ]; then "$V" --check ' + link + "; "
               'else echo "【钩子告警】核对不了已装钩子（$V 缺失或不可执行）"; fi; ')  # runs from the session's repository, not from current (O7 final M2)
     hooks = settings["hooks"]
-    stop = [h["command"] for g in hooks.pop("Stop") for h in g["hooks"]]
-    assert stop == ['test -f {0} && /usr/bin/python3 -I {0}; exit 0'.format('"$HOME"/.modernize/psa/tools/one-session/stop_check/stop_check.py')], stop  # #47: the system python, as the start sheet
+    assert "Stop" not in hooks and "node_ready" not in raw and "stop_check" not in raw and "clear_session" not in raw, "#752: no hook points at the retired tools (stop_check, the clear_session gate)"
     assert sorted(hooks) == ["PreToolUse", "SessionStart"], sorted(hooks)
-    assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,)), "mcp__ccd_session_mgmt__clear_session"], "PreToolUse: the production-write gate on the tools that run commands; the clear_session gate apart (#14)"
+    assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,))], "PreToolUse: only the production-write gate on the tools that run commands (#752 retired the clear_session gate)"
     assert json.dumps([*COMMAND_TOOLS, LAUNCH_TOOL]) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
     assert [g["matcher"] for g in hooks["SessionStart"]] == ["startup|clear|compact|resume", "startup|clear|compact"]
     sheet = hooks["SessionStart"].pop(1)["hooks"]
@@ -369,13 +364,6 @@ def settings_self_test():
     sheet = sheet[0]["command"]
     assert sheet.startswith(f'H={sheet_path()}; [ -f "$H" ] && /usr/bin/python3 -I "$H" --hook && exit 0; echo "【钩子告警】') and sheet.endswith('"; exit 0'), sheet
     assert "exit 2" not in sheet and "/tools/hooks/" not in sheet and "~/" + policy("tools_lib")["dir"][2:] + "/start_sheet" in sheet, "warns, pointing at the tool library"
-    node = hooks["PreToolUse"].pop(1)["hooks"]  # #14: the clear_session gate is the tool library's node_ready --gate; anything but 0 is a refusal
-    assert len(node) == 1 and node[0]["type"] == "command" and node[0]["timeout"] == 10, node
-    node = node[0]["command"]
-    want = (f'H={node_path()}; if [ -f "$H" ]; then env -u HANDOFF_STATE /usr/bin/python3 -I "$H" --gate; c=$?; else c=127; fi; [ "$c" = 0 ] && exit 0; [ "$c" = 2 ] || echo "clear_session 门异常退出'
-            f'（退出码 ${{c}}：工具库 node_ready.py 缺失、出错或超时，${{H}}），按拒绝处理；请 one-ops 修工具库 ~/{policy("tools_lib")["dir"][2:]}/node_ready（node_ready.py --self-test）" >&2; exit 2')
-    assert node == want, ("the clear_session mount, word for word (#14 final review: a fragment inserted mid-way must fail)", node, want)
-    assert node.count("exit 0") == 1 and "-I -c" not in node and "/tools/hooks/" not in node, "no pre-filter, no installed copy: the gate fails closed (#14)"
     for gone in ("scripts/hooks/start_sheet.py", "scripts/hooks/session_context.py"):
         assert not os.path.exists(os.path.join(ROOT, gone)) and gone not in raw, gone + " is deleted and mounted nowhere (O23a)"
     commands = {}
@@ -405,7 +393,7 @@ def settings_self_test():
     assert deny == ["Bash(codex *)", "Bash(pi *)", "mcp__terminal__run_in_terminal"], ("permissions.deny 恰为 codex、pi 直接调用（O21a）与整个终端面板工具（#723）", deny)
     for plugin in ("kotlin-lsp", "claude-code-setup", "code-modernization"):
         assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
-    return {**{name: cmd for name, (_, cmd, _) in commands.items()}, "start_sheet": sheet, "node_ready": node}
+    return {**{name: cmd for name, (_, cmd, _) in commands.items()}, "start_sheet": sheet}
 
 def make_repo(repo):
     """A repository holding this working tree's scripts/gates, scripts/hooks and policy.json; returns (A, B, fail_open, refuses_all, passes_writes, first_only, not_executable, main) commits."""
@@ -445,10 +433,10 @@ def make_repo(repo):
 
 def install_test():
     commands = settings_self_test()
-    gate_cmd, ceiling_cmd, sheet_cmd, node_cmd = (commands[k] for k in ("scripts/gates/pre_tool_dispatch.py", "scripts/hooks/git_ceiling_env.sh", "start_sheet", "node_ready"))
+    gate_cmd, ceiling_cmd, sheet_cmd = (commands[k] for k in ("scripts/gates/pre_tool_dispatch.py", "scripts/hooks/git_ceiling_env.sh", "start_sheet"))
     with tempfile.TemporaryDirectory() as top:
         try:
-            body(gate_cmd, ceiling_cmd, (sheet_cmd, node_cmd), os.path.realpath(os.path.join(top, "dir with space")))
+            body(gate_cmd, ceiling_cmd, sheet_cmd, os.path.realpath(os.path.join(top, "dir with space")))
         finally:
             writable(top)
     print("install self-test: ok")
@@ -466,20 +454,7 @@ def sheet_test(sheet_cmd, mount, tool, repo):
             last = r.stdout.splitlines()[-1] if r.stdout.strip() else ""
             assert r.returncode == 0 and (last == f"【开工单】 ['--hook'] {repo}" if ok else last.startswith("【钩子告警】") and tool in last), (shell, text, r.stdout, r.stderr)
 
-def node_test(node_cmd, mount, tool):
-    """The clear_session mount (#14): HANDOFF_STATE cleared, /usr/bin/python3 -I <tool library>/node_ready.py --gate gets the payload; 0 passes, any other ending is 2."""
-    os.makedirs(os.path.dirname(tool), exist_ok=True)
-    put(os.path.join(os.path.dirname(tool), "json.py"), "raise SystemExit(0)\n", 0o644)
-    ok = "import json,os,sys\nsys.exit(0 if sys.argv[1:] == ['--gate'] and 'HANDOFF_STATE' not in os.environ and json.load(sys.stdin)['tool_input'] else 9)\n"
-    for text, code in ((None, 2), (ok, 0), ("import sys\nsys.exit(1)\n", 2), ("import sys\nsys.stderr.write('x')\nsys.exit(2)\n", 2), ("import os,signal\nos.kill(os.getpid(), signal.SIGKILL)\n", 2), ("def (:\n", 2)):
-        if text is not None:
-            put(tool, text, 0o644)
-        for shell in SHELLS:
-            r = mount(node_cmd, json.dumps({"tool_name": "mcp__ccd_session_mgmt__clear_session", "tool_input": {"session_id": "self"}}), shell, HANDOFF_STATE="/x")
-            assert r.returncode == code and (code == 0 or r.stderr.strip()), (shell, text, r.returncode, r.stderr)
-
-def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
-    sheet_cmd, node_cmd = sheet_cmds
+def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     home, repo = os.path.join(tmp, "home"), os.path.join(tmp, "repo")
     os.makedirs(home)
     a, b, fail_open, refuses_all, passes_writes, first_only, not_exec, on_main = make_repo(repo)
@@ -526,7 +501,6 @@ def body(gate_cmd, ceiling_cmd, sheet_cmds, tmp):
         r = mount(ceiling_cmd, "{}", shell, CLAUDE_ENV_FILE=os.path.join(tmp, "env"))
         assert r.returncode == 0 and "【钩子告警】" not in r.stdout, (r.stdout, r.stderr)
     sheet_test(sheet_cmd, mount, os.path.join(home, sheet_path()[len('"$HOME"/'):]), repo)
-    node_test(node_cmd, mount, os.path.join(home, node_path()[len('"$HOME"/'):]))
     # 3. a second version: installed beside the first, current switched; again: already installed, only switched
     r = install(b)
     assert r.returncode == 0 and points_to() == b and os.path.isdir(os.path.join(hooks, a)) and not leftovers(), (r.stdout, r.stderr)
