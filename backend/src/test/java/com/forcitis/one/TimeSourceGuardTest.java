@@ -48,7 +48,9 @@ class TimeSourceGuardTest {
     static ArchRule noAmbientTime() {
         return noClasses().that().doNotHaveFullyQualifiedName(CLOCK_BUILDER).and().doNotHaveFullyQualifiedName(SESSION_STORE_CLOCK)
                 .should().callMethodWhere(ASKS_THE_MACHINE)
-                .because("inject java.time.Clock; an instant or a business day read off the machine cannot be controlled in a test or tied to the business zone");
+                .because(GuardMessage.of("G25",
+                        "a class asks the machine for the time (java.time now(), Clock.system*, System.currentTimeMillis)",
+                        "take the instant from the injected java.time.Clock (application passes the instant or business day into domain); only KernelConfiguration builds the system Clock"));
     }
 
     @Test
@@ -96,7 +98,9 @@ class TimeSourceGuardTest {
     static ArchRule onlyTheExpiredSessionsUseTheStoreClock(String clock, String user) {
         return classes().that().haveFullyQualifiedName(clock)
                 .should().onlyHaveDependentClassesThat().haveFullyQualifiedName(user)
-                .because("the session store clock is the framework's clock; business instants come from the injected Clock");
+                .because(GuardMessage.of("CS-2.26",
+                        "a class other than JdbcExpiredSessions depends on SessionStoreClock, which is the framework's clock for session expiry only",
+                        "take the instant from the injected java.time.Clock instead of SessionStoreClock"));
     }
 
     @Test
@@ -140,7 +144,8 @@ class TimeSourceGuardTest {
         Set<String> entries = new LinkedHashSet<>();
         for (String line : Files.readAllLines(SQL_EXCEPTIONS)) {
             if (!line.isBlank() && !line.startsWith("#")) {
-                assertThat(line).as("an exception states its reason after two spaces and #").contains("  # ");
+                assertThat(line).as(GuardMessage.of("CS-3.8", "line '" + line + "' in the SQL clock exceptions register has no reason",
+                        "write each line in backend/architecture/sql-database-clock-exceptions.txt as <file>#<token>  # <reason>")).contains("  # ");
                 entries.add(line.substring(0, line.indexOf("  #")).trim());
             }
         }
@@ -160,7 +165,9 @@ class TimeSourceGuardTest {
         List<String> problems = new ArrayList<>();
         used.stream().filter(u -> !exceptions.contains(u)).forEach(u -> problems.add(u + " reads the database clock: pass the Clock's instant as a parameter"));
         exceptions.stream().filter(e -> !used.contains(e)).forEach(e -> problems.add(e + " is registered but no longer needed: remove it from " + SQL_EXCEPTIONS));
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("CS-3.8",
+                "SQL in Java reads the database clock, or a registered exception is stale",
+                "pass the Clock's instant to the SQL as a bound parameter; for a stale exception delete its line from " + SQL_EXCEPTIONS)).isEmpty();
     }
 
     @Test

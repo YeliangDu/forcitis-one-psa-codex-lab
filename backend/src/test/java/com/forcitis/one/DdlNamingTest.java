@@ -26,12 +26,11 @@ class DdlNamingTest {
     void migrationAndBaselineIdentifiersFit63Bytes() throws IOException {
         Map<String, String> migrations = readMigrations();
         assertThat(migrations).isNotEmpty();
-        assertThat(DdlIdentifierLengths.sourceProblems(migrations))
-                .as("按 UTF-8 计数；请登记获准缩写，不能依赖数据库截断").isEmpty();
-        assertThat(DdlIdentifierLengths.modelProblems(model(migrations))).isEmpty();
+        assertThat(DdlIdentifierLengths.sourceProblems(migrations)) .as(GuardMessage.of("N3-L1", "an identifier in a migration is longer than 63 bytes in UTF-8", "shorten it with a registered abbreviation in the migration (the database must not truncate it)")).isEmpty();
+        assertThat(DdlIdentifierLengths.modelProblems(model(migrations))) .as(GuardMessage.of("N3-L1", "an identifier of the final schema model, with its prefix or suffix, is longer than 63 bytes in UTF-8", "shorten the table, column or constraint name with a registered abbreviation in a new migration")).isEmpty();
         for (String entry : readBaseline().keySet()) {
             for (String part : entry.substring(entry.indexOf(' ') + 1).split("\\.")) {
-                assertThat(DdlIdentifierLengths.bytes(part)).as("命名基线 %s 的 %s", entry, part).isLessThanOrEqualTo(63);
+                assertThat(DdlIdentifierLengths.bytes(part)).as(GuardMessage.of("N3-L1", "the entry " + entry + " of architecture/ddl-naming-baseline.txt has the part " + part + " over 63 bytes", "rename the object in a new migration and remove the baseline line")).isLessThanOrEqualTo(63);
             }
         }
     }
@@ -311,7 +310,7 @@ class DdlNamingTest {
             check(file, folder, Files.readString(file), problems);
         }
         if (!problems.isEmpty()) {
-            throw new AssertionError("DDL violates NAMING_STANDARD.md §2.3:\n  " + String.join("\n  ", problems));
+            throw new AssertionError(GuardMessage.of("D2 (NAMING_STANDARD.md §2.3)", "a migration breaks the DDL naming rules", "change the migration as each line below says (while the baseline is open) or add a new migration") + "\n  " + String.join("\n  ", problems));
         }
     }
 
@@ -319,7 +318,7 @@ class DdlNamingTest {
     @DisplayName("every CREATE TABLE of a migration is read by the model: a table the parser cannot see would escape the naming, key and glossary guards")
     void everyTableDefinitionIsParsed() throws IOException {
         for (Map.Entry<String, String> migration : readMigrations().entrySet()) {
-            assertThat(undeclared(migration.getValue())).as(migration.getKey()).isZero();
+            assertThat(undeclared(migration.getValue())).as(GuardMessage.of("D2 (NAMING_STANDARD.md §2.3)", migration.getKey() + " has a CREATE TABLE the model cannot read, so its naming, key and glossary checks are skipped", "write the CREATE TABLE in the plain form the DdlNamingTest parser reads, or teach the parser the clause")).isZero();
         }
     }
 
@@ -358,7 +357,7 @@ class DdlNamingTest {
             }
         }
         if (!problems.isEmpty()) {
-            throw new AssertionError("DDL violates NAMING_STANDARD.md §2.4 (class words / constraint and index names):\n  " + String.join("\n  ", problems));
+            throw new AssertionError(GuardMessage.of("D2 (NAMING_STANDARD.md §2.4)", "a column, constraint or index of the resulting schema breaks the class word or name rules, or a baseline line is stale", "rename or retype it in a new migration as each line says; delete a stale line from " + BASELINE + ", and add a line there only for a gap with a reason") + "\n  " + String.join("\n  ", problems));
         }
     }
 
@@ -367,7 +366,7 @@ class DdlNamingTest {
     void sensitiveColumnsAreClassified() throws IOException {
         List<String> problems = classificationProblems(model(readMigrations()), readClassification());
         if (!problems.isEmpty()) {
-            throw new AssertionError("Data classification (" + CLASSIFICATION + ", NAMING_STANDARD.md §2.5):\n  " + String.join("\n  ", problems));
+            throw new AssertionError(GuardMessage.of("D2 (NAMING_STANDARD.md §2.5)", "a sensitive-looking column is not classified, or a classified column does not exist", "add <schema.table.column> | SENSITIVE or RESTRICTED | <reason> to " + CLASSIFICATION + ", or delete the line of a column that is gone") + "\n  " + String.join("\n  ", problems));
         }
     }
 
@@ -476,7 +475,7 @@ class DdlNamingTest {
     @Test
     @DisplayName("ADR-0048 guard 3: no foreign key points at audit_entries, and uk_audit_entries_event_id_created_at is exactly (event_id, created_at)")
     void auditEntriesAreReferencedByIdOnly() throws IOException {
-        assertThat(auditReferenceProblems(readMigrations())).isEmpty();
+        assertThat(auditReferenceProblems(readMigrations())).as(GuardMessage.of("ADR-0048 guard 3", "a foreign key points at audit_entries, or uk_audit_entries_event_id_created_at is not (event_id, created_at)", "store the audit entry id as a plain uuid column without REFERENCES, and keep the event key exactly (event_id, created_at)")).isEmpty();
     }
 
     @Test
@@ -772,8 +771,8 @@ class DdlNamingTest {
                 continue;
             }
             String[] parts = line.split("\\s*\\|\\s*", 2);
-            assertThat(parts).as("%s: <violation> | <reason>: %s", BASELINE, line).hasSize(2);
-            assertThat(parts[1]).as("%s needs a reason", parts[0]).isNotBlank();
+            assertThat(parts).as(GuardMessage.of("D2 (NAMING_STANDARD.md §2.4)", "a line of " + BASELINE + " is not <violation> | <reason>: " + line, "write the line as <violation> | <reason>")).hasSize(2);
+            assertThat(parts[1]).as(GuardMessage.of("D2 (NAMING_STANDARD.md §2.4)", parts[0] + " in " + BASELINE + " has no reason", "write the reason after the | in " + BASELINE)).isNotBlank();
             entries.put(parts[0].trim(), parts[1].trim());
         }
         return entries;
@@ -786,8 +785,8 @@ class DdlNamingTest {
                 continue;
             }
             String[] parts = line.split("\\s*\\|\\s*", 3);
-            assertThat(parts).as("%s: <schema.table.column> | <LEVEL> | <reason>: %s", CLASSIFICATION, line).hasSize(3);
-            assertThat(LEVELS).as("level of %s", parts[0]).contains(parts[1].trim());
+            assertThat(parts).as(GuardMessage.of("D2 (NAMING_STANDARD.md §2.5)", "a line of " + CLASSIFICATION + " is not <schema.table.column> | <LEVEL> | <reason>: " + line, "write the line as <schema.table.column> | <LEVEL> | <reason>")).hasSize(3);
+            assertThat(LEVELS).as(GuardMessage.of("D2 (NAMING_STANDARD.md §2.5)", "the level of " + parts[0] + " in " + CLASSIFICATION + " is not one of the known levels", "use one of PUBLIC, INTERNAL, SENSITIVE, RESTRICTED")).contains(parts[1].trim());
             entries.put(parts[0].trim(), parts[1].trim());
         }
         return entries;
@@ -987,8 +986,8 @@ class DdlNamingTest {
         for (String line : Files.readAllLines(TYPED_TEXT_KEY_EXCEPTIONS)) {
             if (!line.isBlank() && !line.startsWith("#")) {
                 int hash = line.indexOf('#');
-                assertThat(hash).as("a reason after # on: " + line).isPositive();
-                assertThat(line.substring(hash + 1)).as("reason of " + line).isNotBlank();
+                assertThat(hash).as(GuardMessage.of("ADR-0033 guard 8", "a line of " + TYPED_TEXT_KEY_EXCEPTIONS + " has no # reason: " + line, "write <schema.table.column>  # <reason>")).isPositive();
+                assertThat(line.substring(hash + 1)).as(GuardMessage.of("ADR-0033 guard 8", "the reason of a line of " + TYPED_TEXT_KEY_EXCEPTIONS + " is empty: " + line, "write the reason after #")).isNotBlank();
                 excepted.add(line.substring(0, hash).strip());
             }
         }
@@ -998,7 +997,7 @@ class DdlNamingTest {
     @Test
     @DisplayName("ADR-0033 guard 8: no COALESCE sentinel in a unique key, unique index or exclusion, and no '{type}:{id}' text column outside the listed exception")
     void noSentinelsAndNoTypedTextKeys() throws IOException {
-        assertThat(sentinelProblems(readMigrations(), typedTextKeyExceptions())).isEmpty();
+        assertThat(sentinelProblems(readMigrations(), typedTextKeyExceptions())).as(GuardMessage.of("ADR-0033 guard 8", "a unique key, unique index or exclusion has a COALESCE sentinel, or a text column holds a kind and an id", "use a partial unique index or separate kind and id columns; list a typed text key in " + TYPED_TEXT_KEY_EXCEPTIONS + " only with a reason")).isEmpty();
     }
 
     @Test

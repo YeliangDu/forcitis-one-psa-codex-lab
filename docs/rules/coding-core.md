@@ -15,7 +15,7 @@ CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 | Part | File | Pattern |
 |---|---|---|
 | Use case | `SubmitTimesheet:65` | `@Transactional` on execute, one aggregate, save then publish |
-| Caller | `SubmitTimesheet:66` | inject `CurrentUser`, never take `UserId caller` (now: in identity) |
+| Caller | `SubmitTimesheet:66` | inject `CurrentUser`, never take `UserId caller` (now: 3 other modules) |
 | Data scope | `GetOrgUnit:31` | inject `OrgUnitAccess`; out of scope = not found + audit (now: a parameter) |
 | Controller | `OrgUnitController:33` | convert and call the use case; return a `*Response` record on 200, `ResponseEntity` only for other status or headers (now: computes scope, takes caller) |
 | Repository | `JdbcRoleRepository:117` | text-block lowercase SQL, named params, versioned update |

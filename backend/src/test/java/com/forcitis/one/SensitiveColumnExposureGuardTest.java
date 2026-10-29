@@ -70,7 +70,8 @@ class SensitiveColumnExposureGuardTest {
         Set<String> entries = new LinkedHashSet<>();
         for (String line : Files.readAllLines(EXCEPTIONS)) {
             if (!line.isBlank() && !line.startsWith("#")) {
-                assertThat(line).as("an exception states its reason after two spaces and #").contains("  # ");
+                assertThat(line).as(GuardMessage.of("CS-2.13", "line '" + line + "' in the sensitive response exceptions register has no reason",
+                        "write each line in " + EXCEPTIONS + " as <Response class>#<field>  # <reason>")).contains("  # ");
                 entries.add(line.substring(0, line.indexOf("  #")).trim());
             }
         }
@@ -87,7 +88,9 @@ class SensitiveColumnExposureGuardTest {
         List<String> problems = new ArrayList<>();
         found.stream().filter(f -> !registered.contains(f)).forEach(f -> problems.add(f + " sends a classified column: drop it, or register it in " + EXCEPTIONS + " with the reason"));
         registered.stream().filter(r -> !found.contains(r)).forEach(r -> problems.add(r + " is registered but is gone or no longer matches: remove it from " + EXCEPTIONS));
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("CS-2.13",
+                "a web or api *Response record has a field named like a SENSITIVE or RESTRICTED column (architecture/data-classification.txt), or a registered exception is stale",
+                "remove the field from the response, or register it in " + EXCEPTIONS + " with the reason it must be sent; for a stale line delete it")).isEmpty();
     }
 
     record LeakyResponse(String id, String email, String passwordHash, String lastLoginAddress, String displayName) {
@@ -111,6 +114,8 @@ class SensitiveColumnExposureGuardTest {
     @Test
     @DisplayName("the classification lists sensitive columns to guard against")
     void classificationIsRead() throws IOException {
-        assertThat(sensitiveColumns()).containsKeys("email", "password_hash", "last_login_address");
+        assertThat(sensitiveColumns()).as(GuardMessage.of("CS-2.13",
+                "architecture/data-classification.txt no longer lists email, password_hash and last_login_address as SENSITIVE or RESTRICTED",
+                "restore those classifications in " + CLASSIFICATION)).containsKeys("email", "password_hash", "last_login_address");
     }
 }

@@ -82,7 +82,7 @@ class MustAuditActionsTest {
         List<String> problems = new ArrayList<>();
         actual.stream().filter(a -> !listed.contains(a)).forEach(a -> problems.add(a + ": audited in code but not on " + LIST + "; add it under a category"));
         listed.stream().filter(l -> !actual.contains(l)).forEach(l -> problems.add(l + ": on " + LIST + " but nothing writes it; remove it or mark it planned"));
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("D-1a-174", "the audited actions in code and in the catalogue differ from the must-audit list", "add the action under a category of " + LIST + ", or remove or mark planned a listed action that nothing writes")).isEmpty();
     }
 
     @Test
@@ -90,7 +90,7 @@ class MustAuditActionsTest {
     void plannedActionsDoNotExistYet() throws IOException {
         Set<String> actual = writtenInCode(Path.of("src/main/java"));
         actual.addAll(auditedEvents());
-        assertThat(listed(true)).isNotEmpty().doesNotContainAnyElementsOf(actual);
+        assertThat(listed(true)).as(GuardMessage.of("D-1a-174", "an action marked planned is already written in code or audited by the catalogue", "move it from the planned entries to the real list of " + LIST)).isNotEmpty().doesNotContainAnyElementsOf(actual);
     }
 
     @Test

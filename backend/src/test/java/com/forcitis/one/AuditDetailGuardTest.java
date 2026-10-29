@@ -31,7 +31,7 @@ class AuditDetailGuardTest {
                 }
             }
         }
-        assertThat(problems).as("keep the address in source_address and write ids, not names, into detail").isEmpty();
+        assertThat(problems).as(GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "main code joins an address, browser, login name, WeCom user id or person name into an audit text", "keep the address in the source_address column and write ids, not names, into the detail")).isEmpty();
     }
 
     @Test
@@ -102,7 +102,7 @@ class AuditDetailGuardTest {
             }
         }
         List<String> registered = Files.readAllLines(REGISTER).stream().filter(l -> !l.isBlank() && !l.startsWith("#")).map(String::strip).toList();
-        assertThat(found).as("add a row of the allowed-content table on the card and a line to " + REGISTER).containsExactlyInAnyOrderElementsOf(registered);
+        assertThat(found).as(GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "the classes that implement AuditDetail differ from the register", "add a row of the allowed-content table on the card and a line to " + REGISTER + ", or delete the register line of a class that no longer implements AuditDetail")).containsExactlyInAnyOrderElementsOf(registered);
     }
 
     @Test

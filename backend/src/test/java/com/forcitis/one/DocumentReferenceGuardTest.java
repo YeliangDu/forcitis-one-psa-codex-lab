@@ -40,7 +40,9 @@ class DocumentReferenceGuardTest {
     void contractsUseDocumentReference() {
         List<Class<?>> classes = new ArrayList<>();
         ArchitectureRulesTest.CLASSES.forEach(c -> classes.add(c.reflect()));
-        assertThat(violations(classes, PENDING_MODULES)).isEmpty();
+        assertThat(violations(classes, PENDING_MODULES)).as(GuardMessage.of("CS-2.7",
+                "an api or events record carries a business document as a bare String or long",
+                "replace the component with kernel.DocumentReference (document type and id together)")).isEmpty();
     }
 
     @Test

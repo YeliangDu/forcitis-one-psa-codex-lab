@@ -3,6 +3,7 @@ package com.forcitis.one.platform.integration.guard;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.GuardMessage;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.SourceObjectKind;
 import com.forcitis.one.platform.integration.application.SourceReferences;
@@ -23,15 +24,16 @@ class SourceReferenceAllocationGuardTest {
 
     static final ArchRule ONLY_THE_ORG_SOURCE_ADAPTER_ALLOCATES = noClasses().that().resideOutsideOfPackage(ORG_SOURCE_ADAPTER)
             .should().callMethod(SourceReferences.class, "allocate", ExternalSource.class, SourceObjectKind.class, long.class)
-            .because("only the organisation source allocates own ids on first sight (ADR-0033 section 2); call SourceReferences.allocate from "
-                    + "platform.integration.infrastructure.seeyon, and look up with findOwnIds / findOwnId / findSourceId everywhere else");
+            .because(GuardMessage.of("P3B-L8 / ADR-0033 section 2", "a class outside platform.integration.infrastructure.seeyon calls SourceReferences.allocate, but only the organisation source allocates own ids on first sight",
+                    "call SourceReferences.allocate only from platform.integration.infrastructure.seeyon, and look up with findOwnIds / findOwnId / findSourceId everywhere else"));
 
     static final String ALLOCATE_OWN_ID = "com.forcitis.one.platform.integration.application.AllocateOwnId";
 
     static final ArchRule ONLY_SOURCE_REFERENCES_USES_ALLOCATE_OWN_ID = noClasses()
             .that().haveNameNotMatching("com\\.forcitis\\.one\\.platform\\.integration\\.application\\.(SourceReferences|AllocateOwnId)(\\$.*)?")
             .should().dependOnClassesThat().haveFullyQualifiedName(ALLOCATE_OWN_ID).allowEmptyShould(true)
-            .because("AllocateOwnId is the writing half of SourceReferences.allocate and is used through it only, so the rule above cannot be walked around");
+            .because(GuardMessage.of("P3B-L8", "a class other than SourceReferences depends on AllocateOwnId, the writing half of SourceReferences.allocate, which would walk around the allocation rule",
+                    "call SourceReferences.allocate from platform.integration.infrastructure.seeyon instead of using AllocateOwnId directly"));
 
     @Test
     @DisplayName("P3B-L8 AllocateOwnId is used by SourceReferences only")

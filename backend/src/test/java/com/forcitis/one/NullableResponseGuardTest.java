@@ -40,7 +40,8 @@ class NullableResponseGuardTest {
                 problems.addAll(unmarked(type.reflect()));
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("CS-2.23", "a boxed component of a web response record has no @Nullable, so the generated client treats it as always present",
+                "annotate the component with org.jspecify.annotations.Nullable, or make it a primitive when it always has a value")).isEmpty();
     }
 
     record Sample(Long number, @Nullable Integer other, long plain) {

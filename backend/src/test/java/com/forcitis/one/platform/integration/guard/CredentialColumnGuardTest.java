@@ -2,6 +2,7 @@ package com.forcitis.one.platform.integration.guard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.GuardMessage;
 import com.forcitis.one.JavaCode;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -63,9 +64,9 @@ class CredentialColumnGuardTest {
     }
 
     static List<DeniedColumn> deniedColumns() throws IOException {
-        assertThat(DENY_LIST).as("the credential deny list of ADR-0037 item 3.4 must exist; a missing list fails, it is never skipped").exists();
+        assertThat(DENY_LIST).as(GuardMessage.of("ADR37-1", "the credential deny list is missing", "restore docs/data/evidence/dba-handoff/credential-columns.csv; a missing list fails and is never skipped")).exists();
         List<String> lines = Files.readAllLines(DENY_LIST);
-        assertThat(lines).as("deny list header").first().isEqualTo("database,schema,table,column,classification");
+        assertThat(lines).as(GuardMessage.of("ADR37-1", "the deny list header changed", "keep the header database,schema,table,column,classification in the deny list csv")).first().isEqualTo("database,schema,table,column,classification");
         List<DeniedColumn> denied = new ArrayList<>();
         Set<String> reviewRows = new TreeSet<>();
         for (String line : lines.subList(1, lines.size())) {
@@ -73,8 +74,8 @@ class CredentialColumnGuardTest {
                 continue;
             }
             String[] f = line.split(",", -1);
-            assertThat(f).as("deny list row: %s", line).hasSize(5);
-            assertThat(f[4]).as("classification of %s", line).isIn("credential", "review");
+            assertThat(f).as(GuardMessage.of("ADR37-1", "the deny list row '" + line + "' has not five columns", "write the row as database,schema,table,column,classification")).hasSize(5);
+            assertThat(f[4]).as(GuardMessage.of("ADR37-1", "the deny list row '" + line + "' has another classification", "classify it as credential or review")).isIn("credential", "review");
             DeniedColumn column = new DeniedColumn(f[0], f[2], f[3]);
             if (f[4].equals("review")) {
                 reviewRows.add(column.key());
@@ -83,9 +84,9 @@ class CredentialColumnGuardTest {
                 denied.add(column);
             }
         }
-        assertThat(reviewRows).as("every column judged not a credential is a review row of the current deny list (a rescan may drop or reclassify it)")
+        assertThat(reviewRows).as(GuardMessage.of("ADR37-1", "a column judged not a credential in REVIEWED_NOT_CREDENTIAL is no review row of the current deny list", "delete it from REVIEWED_NOT_CREDENTIAL, because a rescan dropped or reclassified it"))
                 .containsAll(REVIEWED_NOT_CREDENTIAL.keySet());
-        assertThat(denied).as("the deny list has credential rows").isNotEmpty();
+        assertThat(denied).as(GuardMessage.of("ADR37-1", "the deny list has no credential rows", "restore the deny list csv; an empty list would let every credential column pass")).isNotEmpty();
         return denied;
     }
 
@@ -123,7 +124,7 @@ class CredentialColumnGuardTest {
     }
 
     static List<Path> files(Path root, String... suffixes) throws IOException {
-        assertThat(root).as("scan root").isDirectory();
+        assertThat(root).as(GuardMessage.of("ADR37-1", "the scan root " + root + " is not a directory", "run the test from the backend directory so the scan finds src/main and architecture")).isDirectory();
         try (Stream<Path> walk = Files.walk(root)) {
             return walk.filter(Files::isRegularFile)
                     .filter(p -> Stream.of(suffixes).anyMatch(s -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(s)))
@@ -137,7 +138,7 @@ class CredentialColumnGuardTest {
         List<DeniedColumn> denied = deniedColumns();
         List<String> violations = new ArrayList<>();
         List<Path> java = files(MAIN_JAVA, ".java");
-        assertThat(java).as("Java sources to scan").isNotEmpty();
+        assertThat(java).as(GuardMessage.of("ADR37-1", "no Java source was found to scan", "run the test from the backend directory")).isNotEmpty();
         for (Path file : java) {
             namedDeniedColumns(stringLiterals(Files.readString(file)), denied).forEach(c -> violations.add(file + " names " + c));
         }
@@ -145,8 +146,7 @@ class CredentialColumnGuardTest {
             namedDeniedColumns(Files.readString(file), denied).forEach(c -> violations.add(file + " names " + c));
         }
 
-        assertThat(violations).as("credential columns may be read by the account but never by the application (ADR-0037 item 3.4); "
-                + "a new use needs its own ADR. Remove the column from the statement").isEmpty();
+        assertThat(violations).as(GuardMessage.of("ADR37-1", "main SQL text names a column of the credential deny list", "remove the credential column from the statement; a new use of a credential column needs its own ADR")).isEmpty();
     }
 
     /** Every source of platform.integration, and of any other package that opens an external connection. */
@@ -176,14 +176,14 @@ class CredentialColumnGuardTest {
     @DisplayName("ADR37-1 复审 M-2 凭据列守护：集成层的 SQL 文本不用 SELECT * 或 别名.*，列一一写出，凭据列才看得见")
     void integrationSqlNamesItsColumns() throws IOException {
         List<Path> layer = integrationLayer();
-        assertThat(layer).as("the integration layer includes the adapters of both external databases")
+        assertThat(layer).as(GuardMessage.of("ADR37-1", "the scanned integration layer holds no seeyon adapter", "check integrationLayer(): the adapter packages must still be found through the ExternalConnections port"))
                 .anyMatch(p -> p.toString().contains("seeyon"));
         List<String> violations = new ArrayList<>();
         for (Path file : layer) {
             starSelections(stringLiterals(Files.readString(file))).forEach(star -> violations.add(file + " selects " + star));
         }
 
-        assertThat(violations).as("a star reads every column, credential columns included, without naming them (ADR-0037 item 3.4)").isEmpty();
+        assertThat(violations).as(GuardMessage.of("ADR37-1", "integration SQL text reads columns through a star, which hides credential columns", "name the columns one by one instead of SELECT * or alias.*")).isEmpty();
     }
 
     @Test
@@ -212,7 +212,7 @@ class CredentialColumnGuardTest {
         List<DeniedColumn> denied = deniedColumns();
         List<String> violations = new ArrayList<>();
         List<Path> registries = files(REGISTRIES, ".yaml", ".yml", ".csv");
-        assertThat(registries).as("read registries under backend/architecture").isNotEmpty();
+        assertThat(registries).as(GuardMessage.of("ADR37-1", "no read registry was found under backend/architecture", "run the test from the backend directory")).isNotEmpty();
         for (Path file : registries) {
             List<String> lines = Files.readAllLines(file);
             for (int i = 0; i < lines.size(); i++) {
@@ -223,7 +223,7 @@ class CredentialColumnGuardTest {
             }
         }
 
-        assertThat(violations).as("a credential column must not be registered for reading (ADR-0037 items 3.4 and 6.1)").isEmpty();
+        assertThat(violations).as(GuardMessage.of("ADR37-1", "a read registry under backend/architecture registers a credential column of the deny list", "delete the column from the registry line; a credential column is never registered for reading")).isEmpty();
     }
 
     @Test

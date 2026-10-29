@@ -26,7 +26,7 @@ class EventSequenceCoverageTest {
         List<JavaClass> roots = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
                 .importPackages("com.forcitis.one").stream()
                 .filter(type -> type.isAssignableTo(AggregateRoot.class) && !type.isEquivalentTo(AggregateRoot.class)).toList();
-        assertThat(roots).as("aggregate roots found").isNotEmpty();
+        assertThat(roots).as(GuardMessage.of("DDD-3", "no AggregateRoot subclass was found, so the coverage check proves nothing", "check that the production classes are compiled and AggregateRoot is still their base type")).isNotEmpty();
         String tests;
         try (Stream<Path> files = Files.walk(Path.of("src/test/java"))) {
             tests = files.filter(file -> file.getFileName().toString().contains("EventSequence") && file.toString().endsWith(".java"))
@@ -39,7 +39,7 @@ class EventSequenceCoverageTest {
                     }).reduce("", String::concat);
         }
         for (JavaClass root : roots) {
-            assertThat(tests).as("%s is checked by an EventSequence*IT", root.getSimpleName()).contains(root.getSimpleName());
+            assertThat(tests).as(GuardMessage.of("DDD-3", root.getSimpleName() + " is an aggregate root that no EventSequence test names", "add " + root.getSimpleName() + " to EventSequenceContinuityTest or to an EventSequence*IT test of its module so its event numbers are checked")).contains(root.getSimpleName());
         }
     }
 }

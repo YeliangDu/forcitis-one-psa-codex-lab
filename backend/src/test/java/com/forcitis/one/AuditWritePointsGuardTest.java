@@ -114,8 +114,8 @@ class AuditWritePointsGuardTest {
         for (Map.Entry<String, String> source : sources.entrySet()) {
             changeTexts(source.getValue()).forEach(wrong -> problems.add(source.getKey() + " writes a before or after text: " + wrong));
         }
-        assertThat(problems).isEmpty();
-        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions), F-1 #728 adds CreateRole (grant.refused for a two-person role's scope: reason code, scope kind and org unit ids)").hasSize(42);
+        assertThat(problems).as(GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "a file writes an audit entry without a register line, with another number of write places, or with a before or after text", "register the file in " + REGISTER + " with its row of the allowed-content table and write count, or delete a stale line, and pass the literal null as before and after text of withChange")).isEmpty();
+        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions), F-1 #728 adds CreateRole (grant.refused for a two-person role's scope: reason code, scope kind and org unit ids). " + GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "the number of registered audit writers changed", "update the expected count here only together with the allowed-content row of the new writer")).hasSize(42);
     }
 
     @Test

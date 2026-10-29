@@ -244,11 +244,14 @@ class PrimaryKeyTypeGuardTest {
     void everyKeyIsOneUuidColumnTheApplicationMakes() throws IOException {
         Map<String, String> exemptions = PrimaryKeyExemptions.read();
 
-        assertThat(exemptions.keySet()).as("ADR-0033 section 1 item 8 allows these five framework tables, ADR-0048 the partitioned audit_entries, and no other")
+        assertThat(exemptions.keySet()).as(GuardMessage.of("CS-3.4 / ADR-0033 section 1 item 8", "backend/architecture/primary-key-exemptions.txt lists a table other than the five framework tables and the ADR-0048 audit_entries",
+                "give the table a uuid primary key made with IdGenerator instead of exempting it"))
                 .containsExactlyInAnyOrder("platform_identity.sessions", "platform_identity.sessions_attributes", "platform_integration.event_publication",
                         "platform_integration.event_publication_archive", "platform_scheduling.scheduler_locks", "platform_audit.audit_entries");
         assertThat(exemptions.get("platform_audit.audit_entries")).contains("ADR-0048");
-        assertThat(problems(DdlNamingTest.readMigrations(), exemptions, CrossSchemaVersionReferences.read())).isEmpty();
+        assertThat(problems(DdlNamingTest.readMigrations(), exemptions, CrossSchemaVersionReferences.read()))
+                .as(GuardMessage.of("CS-3.4 / ADR-0033 section 1", "a table breaks the primary key rules (one uuid key made by the application, overlap exclusion, *_version_id references, partitioned table key)",
+                        "follow the fix named on each line; register an exemption only in backend/architecture/primary-key-exemptions.txt with an ADR, and a cross-schema version reference in backend/architecture/cross-schema-version-references.txt")).isEmpty();
     }
 
     private static final String SAMPLE = """

@@ -50,7 +50,9 @@ class TypedIdComparisonGuardTest {
     @Test
     @DisplayName("P2-L7 every conversion the scan cannot see is on record and its class still exists")
     void conversionsOutOfSightAreOnRecord() {
-        CONVERTS_OUT_OF_SIGHT.keySet().forEach(name -> assertThat(java.util.Arrays.stream(ALL).map(JavaClass::getName)).as(name).contains(name));
+        CONVERTS_OUT_OF_SIGHT.keySet().forEach(name -> assertThat(java.util.Arrays.stream(ALL).map(JavaClass::getName))
+                .as(GuardMessage.of("ADR-0033", "CONVERTS_OUT_OF_SIGHT lists " + name + " but that class no longer exists",
+                        "delete the entry from CONVERTS_OUT_OF_SIGHT in TypedIdComparisonGuardTest")).contains(name));
     }
 
     private static List<TypedIdComparisons.Violation> inspect(Class<?> type) throws IOException {
@@ -62,7 +64,8 @@ class TypedIdComparisonGuardTest {
     @Test
     @DisplayName("production code never compares the raw value of a typed id")
     void productionCodeComparesTypedIds() throws IOException {
-        assertThat(TYPED_IDS).as("the guard knows the typed ids").hasSizeGreaterThan(25).contains("com/forcitis/one/kernel/UserId",
+        assertThat(TYPED_IDS).as(GuardMessage.of("ADR-0033", "the guard knows 25 or fewer typed ids, so it is scanning the wrong classes",
+                "check how TYPED_IDS is built in TypedIdComparisonGuardTest")).hasSizeGreaterThan(25).contains("com/forcitis/one/kernel/UserId",
                 "com/forcitis/one/kernel/EmployeeId");
         List<String> problems = new ArrayList<>();
         Set<String> builders = new java.util.TreeSet<>();
@@ -79,8 +82,13 @@ class TypedIdComparisonGuardTest {
             }
         }
 
-        assertThat(problems).isEmpty();
-        assertThat(builders).as("every entry of MAY_BUILD_FROM_ANOTHER_ID still builds an id from another: remove the ones that do not")
+        assertThat(problems).as(GuardMessage.of("ADR-0033",
+                "code compares or looks up the raw value of a typed id, compares ids of different kinds, or builds one kind of id from the raw value of another",
+                "compare the typed ids themselves (equals on the id records) and convert between id kinds only through a mapped lookup; a reviewed exception goes in MAY_BUILD_FROM_ANOTHER_ID with a reason"))
+                .isEmpty();
+        assertThat(builders).as(GuardMessage.of("ADR-0033",
+                "an entry of MAY_BUILD_FROM_ANOTHER_ID no longer builds an id from another kind of id",
+                "remove that entry from MAY_BUILD_FROM_ANOTHER_ID in TypedIdComparisonGuardTest"))
                 .isEqualTo(MAY_BUILD_FROM_ANOTHER_ID.keySet());
     }
 
@@ -125,6 +133,9 @@ class TypedIdComparisonGuardTest {
     void errorProneChecksStayOn() throws IOException {
         String pom = Files.readString(Path.of("pom.xml"));
 
-        assertThat(pom).contains("-Xplugin:ErrorProne").contains("-Xep:CollectionIncompatibleType:ERROR").contains("-Xep:EqualsIncompatibleType:ERROR");
+        assertThat(pom).as(GuardMessage.of("ADR-0033",
+                "backend/pom.xml no longer keeps Error Prone's CollectionIncompatibleType and EqualsIncompatibleType checks at ERROR",
+                "restore -Xplugin:ErrorProne, -Xep:CollectionIncompatibleType:ERROR and -Xep:EqualsIncompatibleType:ERROR in the compiler arguments of backend/pom.xml"))
+                .contains("-Xplugin:ErrorProne").contains("-Xep:CollectionIncompatibleType:ERROR").contains("-Xep:EqualsIncompatibleType:ERROR");
     }
 }
