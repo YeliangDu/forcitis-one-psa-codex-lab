@@ -1,7 +1,6 @@
 """Self-test of mq.py: a fake gh object for the queue's decisions, a fake `gh` binary for the real Gh class, real git for the ssh update, patch-id and the main checkout,
 real processes for the queue lock. Every check keeps at least one case where it must refuse. Not run on its own: `mq.py --self-test`."""
 import contextlib
-import datetime
 import importlib.util
 import io
 import json
@@ -12,6 +11,8 @@ import sys
 import tempfile
 import threading
 import time
+
+import gapscan_selftest
 
 LOG_LINE = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d [A-Z-]+ pr=#(\d+|-) run=(\d+|-) elapsed=\d+s( .*)?$")
 HEAVY = "backend verify (Modulith + ArchUnit guardrails + integration tests)", "frontend verify (typecheck + lint guardrails F1-F14 + structure + build)"
@@ -47,7 +48,7 @@ class FakeGh:
     def add(self, n, merge="CLEAN", labels=(), rounds=None, update_ok=True, merge_results=((True, ""),), behind=0, state="OPEN"):
         head = f"{n:040x}"
         self.prs[n] = dict(state=state, merge=merge, labels=set(labels), branch=f"b{n}", head=head, behind=behind, rounds=rounds or [dict(pending=0, checks=green())], round=0, pend=None,
-                           update_ok=update_ok, merge_results=list(merge_results), reviews=[review(head)], comments=[], pids={})
+                           update_ok=update_ok, merge_results=list(merge_results), reviews=[review(head)], comments=[], pids={}, merges={})
         return self.prs[n]
 
     def view(self, n):
@@ -80,7 +81,9 @@ class FakeGh:
         self.calls.append(("update-branch", n))
         p = self.prs[n]
         if p["update_ok"]:
-            p["merge"], p["behind"], p["head"] = "CLEAN", 0, p["head"][:-1] + "u"
+            new = p["head"][:-2] + ("dd" if p["head"].endswith("ee") else "ee")
+            p["merges"][new] = p["head"]   # the merge commit of main into the head, as gh update-branch makes it
+            p["merge"], p["behind"], p["head"] = "CLEAN", 0, new
         return p["update_ok"]
 
     def label(self, n, name, add):
@@ -145,6 +148,9 @@ class FakeGh:
     def comments(self, n):
         return self.prs[n]["comments"]
 
+    def main_merge_parent(self, repo, n, commit):
+        return self.prs[n]["merges"].get(commit)
+
     def patch_id(self, repo, n, commit):
         self.calls.append(("patch-id", n, commit))
         return self.prs[n]["pids"].get(commit, PID)
@@ -161,7 +167,7 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             fake_gh(d, [])   # nothing in the self-test reaches the real gh: an unknown call exits 97
-            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, _gapscan):
+            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, gapscan_selftest.run):
                 case(mq, d)
     finally:
         for k, v in old.items():
@@ -244,7 +250,7 @@ def _flow(mq, d):
     gh = FakeGh(); gh.add(1, merge="BEHIND", behind=2); gh.add(2); gh.runs["b2"] = [555, 556]
     proc, q, log, _ = _proc(mq, d, "a", gh, [1, 2])
     assert proc.process(1) == "MERGED" and events(log) == ["START", "CANCEL-RUN", "CANCEL-RUN", "UPDATE", "LABEL-QUEUED", "MERGED"], events(log)
-    assert ("cancel", 555) in gh.calls and merged(gh) == [("merge", 1, True, f"{1:040x}"[:-1] + "u")] and all(LOG_LINE.match(l) for l in log.lines)
+    assert ("cancel", 555) in gh.calls and merged(gh) == [("merge", 1, True, f"{1:040x}"[:-2] + "ee")] and all(LOG_LINE.match(l) for l in log.lines)
     assert "pr=#2 run=555" in log.lines[1] and log.lines[-1].split()[3] == "run=100" and open(os.path.join(d, "a", "merge.log")).read().splitlines() == log.lines
     gh = FakeGh(); gh.add(3, behind=4)
     assert once(mq, d, "a2", gh, 3)[0] == "MERGED" and ("update-branch", 3) in gh.calls, "behind by commit count while GitHub says CLEAN: updated anyway"
@@ -337,7 +343,7 @@ def _flow(mq, d):
     real_checks, polls = gh.checks, []
     gh.checks = lambda n: (polls.append(1), len(polls) == 2 and gh.prs[32].update(behind=1), real_checks(n))[2]
     result, ev, _, _ = once(mq, d, "m3", gh, 32)
-    assert result == "MERGED" and "BEHIND-AT-MERGE" in ev and ev.count("UPDATE") == 1 and merged(gh)[0][3].endswith("u")
+    assert result == "MERGED" and "BEHIND-AT-MERGE" in ev and ev.count("UPDATE") == 1 and merged(gh)[0][3].endswith("ee")
     gh = FakeGh(); gh.add(33)
     values = iter([0] + [1] * 80)
     gh.behind_by = lambda n, head: next(values)
@@ -447,12 +453,19 @@ def _release(mq, d):
     gh = FakeGh(); p = gh.add(61, rounds=[dict(pending=2, checks=green())])
     result, ev, log, _ = once(mq, d, "r-late", gh, 61, on_sleep=lambda s: p["reviews"].append(review(p["head"], "必改", at="2026-10-29T05:00:00Z")))
     assert result == "HOLD" and "LABEL-QUEUED" in ev and not merged(gh) and "必改" in log.lines[-1]
-    # the queue's own update changed the head: the review of the old head speaks for it by patch-id; a different patch-id does not
+    # the queue's own update changed the head: the review of the old head speaks for it by patch-id, and when merging main changed the context (#760, 2026-10-29) by the merge it carries over
     gh = FakeGh(); p = gh.add(62, merge="BEHIND", behind=1)
     assert once(mq, d, "r-pid", gh, 62)[0] == "MERGED" and ("patch-id", 62, p["head"]) in gh.calls
-    gh = FakeGh(); p = gh.add(63, merge="BEHIND", behind=1); p["pids"][f"{63:040x}"[:-1] + "u"] = "6" * 40
-    result, ev, log, _ = once(mq, d, "r-pid2", gh, 63)
-    assert result == "HOLD" and "LABEL-QUEUED" in ev and not merged(gh) and "666666" in log.lines[-1]
+    gh = FakeGh(); p = gh.add(63, merge="BEHIND", behind=1); p["pids"][f"{63:040x}"[:-2] + "ee"] = "6" * 40
+    result, ev, log, _ = once(mq, d, "r-carry", gh, 63)
+    assert result == "MERGED", log.lines
+    # not carried: a commit the author added after the release (no merge of main), a merge that is not only main (git says no), a 必改 on the merged head itself
+    for name, change in (("author commit", lambda p: p["merges"].clear()), ("必改 on the merge", lambda p: p["reviews"].append(review(p["head"], "必改", at="2026-10-29T05:00:00Z")))):
+        gh = FakeGh(); p = gh.add(64, merge="BEHIND", behind=1); p["pids"][f"{64:040x}"[:-2] + "ee"] = "6" * 40
+        real_update = gh.update_branch
+        gh.update_branch = lambda n, p=p, change=change, real=real_update: (real(n), change(p))[0]
+        result, ev, log, _ = once(mq, d, "r-nocarry-" + name, gh, 64)
+        assert result == "HOLD" and not merged(gh) and "not released" in log.lines[-1], name
     # the coordinator's approval of a fix after a 必改; the docs lane needs no review
     gh = FakeGh(); p = gh.add(64); p["reviews"], p["pids"]["c" * 40] = [review("c" * 40, "必改")], "7" * 40; p["comments"] = [approval(p["head"][:9])]
     assert once(mq, d, "r-appr", gh, 64)[0] == "MERGED"
@@ -843,6 +856,12 @@ def _git(mq, d):
     assert gh.patch_id(work, 1, c1) == gh.patch_id(work, 1, c2) == gh.patch_id(work, 1, c5) != gh.patch_id(work, 1, c3), "the queue's merge of main and a rebase keep it; another change does not"
     assert gh.patch_id(work, 1, c4) not in (None, gh.patch_id(work, 1, c1)), "a change that differs only in whitespace is another change"
     assert gh.patch_id(work, 1, "f" * 40) is None
+    # a merge that only brings main in leads back to the head it merged; a plain commit, a merge with an edit of its own, a merge of something not on main do not
+    assert gh.main_merge_parent(work, 1, c2) == c1 and gh.main_merge_parent(work, 1, c1) is None
+    g(work, "checkout", "-q", "-b", "evil", c1); g(work, "merge", "-q", "--no-commit", "origin/main"); open(os.path.join(work, "x.txt"), "w").write("sneaked in\n"); g(work, "add", "x.txt"); g(work, "commit", "-q", "--no-edit")
+    g(work, "checkout", "-q", "-b", "side", "main"); side = commit(work, "s.txt", "s\n", "not on main")
+    g(work, "checkout", "-q", "-b", "notmain", c1); g(work, "merge", "-q", "--no-edit", side)
+    assert gh.main_merge_parent(work, 1, g(work, "rev-parse", "evil")) is None and gh.main_merge_parent(work, 1, g(work, "rev-parse", "notmain")) is None
     assert gh.patch_id(os.path.join(d, "nowhere"), 1, c1) is None
     g(work, "checkout", "-q", "main")
 
@@ -937,56 +956,3 @@ def _docs_tiers(mq, d):
     assert check([plain])
     for read in ["docs/modernization/events/asyncapi.yaml", "docs/modernization/glossary/terms.yaml", guarded]:
         assert not check([read]) and not check([plain, read]), f"{read} is read by a test: not docs"
-
-
-def _gapscan(mq, d):
-    import gapscan
-    now = datetime.datetime(2026, 10, 22, 20, 0, tzinfo=datetime.timezone.utc)
-    at = lambda minutes: (now - datetime.timedelta(minutes=minutes)).isoformat().replace("+00:00", "Z")
-    prefixes = {"claude/one-a": "one-a", "claude/one-a-b": "one-a-b"}
-
-    def pr(n, head="a" * 40, idle=5, mergeable="MERGEABLE", rollup=(), comments=(), draft=False):
-        return dict(number=n, title=f"pr {n}", headRefName="claude/one-a-x", headRefOid=head, isDraft=draft, mergeable=mergeable, statusCheckRollup=list(rollup), commits=[dict(committedDate=at(idle))], comments=list(comments), createdAt=at(idle))
-    check = lambda name, conclusion, started: dict(name=name, workflowName="ci", conclusion=conclusion, startedAt=at(started))
-    ok = lambda head, minutes=1, author=gapscan.APPROVER: dict(author=author, createdAt=at(minutes), body=f"调度批准入队 head {head}")
-    assert gapscan.approved_head([ok("ABCDEF123")], "abcdef123" + "0" * 31)
-    assert gapscan.author_session("claude/one-a-b-thing", prefixes) == "one-a-b" and gapscan.author_session("claude/one-ab", prefixes) == "?(claude/one-ab)", "a prefix ends at a dash"
-    for rollup, want in (([check("backend verify", "FAILURE", 30), check("backend verify", "SUCCESS", 10)], []), ([check("backend verify", "SUCCESS", 30), check("backend verify", "FAILURE", 10)], ["backend verify"]),
-                         ([check("backend verify", "FAILURE", 30), check("backend verify", "CANCELLED", 10)], ["backend verify"]), ([check("backend verify", "FAILURE", 30), dict(check("backend verify", "", 10), status="IN_PROGRESS")], []),
-                         ([check("assertion drift", "FAILURE", 10), check("backend verify (light)", "FAILURE", 10)], []), ([dict(context="secret scan", state="ERROR")], ["secret scan"])):
-        assert gapscan.red_checks(rollup) == want, rollup
-    head = "b" * 40
-    prs = [pr(1, mergeable="CONFLICTING"), pr(2, rollup=[check("backend verify", "FAILURE", 10)]), pr(3, head=head, comments=[ok(head[:9])]), pr(4, idle=61), pr(5, idle=59), pr(6, idle=600, draft=True),
-           pr(7, idle=600, mergeable="CONFLICTING"), pr(8, head=head, comments=[ok("c" * 9)]), pr(9, head=head, comments=[ok(head[:9], author="x")]), pr(10, head=head, comments=[ok("c" * 9, 20), ok(head[:9], 5)]),
-           pr(11, head=head, comments=[ok(head[:9], 20), ok("c" * 9, 5)])]
-    gaps = gapscan.find_gaps(prs, {7}, now, prefixes)
-    assert sorted((g["pr"], g["reason"]) for g in gaps) == [(1, "CONFLICT"), (2, "CI_RED"), (3, "APPROVED_NOT_QUEUED"), (4, "STALE"), (10, "APPROVED_NOT_QUEUED")]
-    assert gapscan.find_gaps([pr(21)], {21}, now, prefixes) == [], "queued without an approval comment: no gap"
-    state = {}
-    assert len(gapscan.select_new(gaps, state, now)) == 5 and gapscan.select_new(gaps, state, now + datetime.timedelta(hours=3, minutes=59)) == [], "once in 4 hours"
-    assert len(gapscan.select_new(gaps, state, now + datetime.timedelta(hours=4))) == 5, "reported again once the window ran out"
-    gapscan.select_new([g for g in gaps if g["reason"] != "CONFLICT"], state, now + datetime.timedelta(hours=4, minutes=30))
-    assert gapscan.select_new(gaps, state, now + datetime.timedelta(hours=5)) == [], "back inside its window after a flicker: not new"
-    assert len(gapscan.select_new(gaps, {"#1:CONFLICT": 12345}, now)) == 5, "a state value that is not a time is no report"
-    directory = os.path.join(d, "gapscan")
-    q = mq.Queue(os.path.join(directory, "merge.queue")); q.enqueue(7)
-    log = mq.Log(os.path.join(directory, "merge.log"), echo=False)
-    listing = lambda rows: type("L", (), {"open_prs": lambda self: rows})()
-    assert len(gapscan.scan(listing(prs), q, directory, log, now=now, prefixes=prefixes)) == 5 and gapscan.scan(listing(prs), q, directory, log, now=now, prefixes=prefixes) == []
-    text = open(os.path.join(directory, "gaps.md"), encoding="utf-8").read()
-    assert "* #1 [one-a] CONFLICT" in text and text.count("* #") == 5 and sum(" GAPS " in l for l in log.lines) == 1
-    before = open(os.path.join(directory, "gaps.state.json")).read()
-    assert gapscan.scan(listing(None), q, directory, log, now=now, prefixes=prefixes) is None and open(os.path.join(directory, "gaps.state.json")).read() == before, "gh failing forgets nothing"
-    calls, slept = [], []
-
-    def boom():
-        calls.append(1)
-        if len(calls) == 1:
-            raise RuntimeError("boom")
-        return []
-    proc = mq.Processor(type("B", (), {"open_prs": lambda self: boom()})(), q, log, "/repo", sleep=slept.append, lane=lambda g, n: "code", docs_only_fn=lambda f: False)
-    mq.run_scan(proc, directory, every=1800, first=60, stop=lambda: len(slept) > 3)
-    assert slept[:3] == [60, 1800, 1800] and len(calls) == 3 and any("gap scan: RuntimeError: boom" in l for l in log.lines), "scans on its own clock and survives a failing scan"
-    mapped = gapscan.load_prefixes()
-    profiles = set(json.load(open(os.path.join(mq.HERE, "..", "..", "policy.json"), encoding="utf-8"))["sessions"]["config"])  # #752: the session list is policy.json
-    assert profiles <= set(mapped.values()), profiles - set(mapped.values())
