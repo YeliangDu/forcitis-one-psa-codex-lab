@@ -55,19 +55,25 @@ class IdPrintingGuardTest {
     @Test
     @DisplayName("every id value object prints as its value")
     void idsPrintTheirValue() throws ReflectiveOperationException {
-        assertThat(ID_RECORDS).as("the guard sees the id records").hasSizeGreaterThan(15);
-        assertThat(problems(ID_RECORDS.stream().<Class<?>>map(JavaClass::reflect).toList())).isEmpty();
+        assertThat(ID_RECORDS).as(GuardMessage.of("CS-2.7", "the guard sees 15 or fewer id records, so it is scanning the wrong classes",
+                "check the ID_RECORDS filter in IdPrintingGuardTest")).hasSizeGreaterThan(15);
+        assertThat(problems(ID_RECORDS.stream().<Class<?>>map(JavaClass::reflect).toList())).as(GuardMessage.of("CS-2.7",
+                "an id record prints as Name[value=...] instead of its value",
+                "override toString in the id record to return the value")).isEmpty();
     }
 
     @Test
     @DisplayName("M-1 an id value object made of a UUID refuses null and the nil UUID")
     void uuidIdsRefuseNilAndNull() throws ReflectiveOperationException {
         List<Class<?>> uuidIds = ID_RECORDS.stream().<Class<?>>map(JavaClass::reflect).filter(c -> c.getRecordComponents()[0].getType() == UUID.class).toList();
-        assertThat(uuidIds).hasSizeGreaterThan(10);
+        assertThat(uuidIds).as(GuardMessage.of("CS-2.7", "the guard sees 10 or fewer UUID id records, so it is scanning the wrong classes",
+                "check the ID_RECORDS filter in IdPrintingGuardTest")).hasSizeGreaterThan(10);
         for (Class<?> type : uuidIds) {
             Constructor<?> constructor = type.getDeclaredConstructor(UUID.class);
-            assertThat(catchThrowable(() -> constructor.newInstance((Object) null)).getCause()).as(type.getSimpleName() + " with null").isInstanceOf(NullPointerException.class);
-            assertThat(catchThrowable(() -> constructor.newInstance(new UUID(0, 0))).getCause()).as(type.getSimpleName() + " with the nil UUID")
+            assertThat(catchThrowable(() -> constructor.newInstance((Object) null)).getCause()).as(GuardMessage.of("CS-2.7", type.getSimpleName() + " accepts null",
+                    "validate in the compact constructor with Objects.requireNonNull")).isInstanceOf(NullPointerException.class);
+            assertThat(catchThrowable(() -> constructor.newInstance(new UUID(0, 0))).getCause()).as(GuardMessage.of("CS-2.7", type.getSimpleName() + " accepts the nil UUID",
+                    "reject the nil UUID with IllegalArgumentException in the compact constructor"))
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }

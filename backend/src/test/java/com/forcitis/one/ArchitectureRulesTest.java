@@ -44,7 +44,7 @@ class ArchitectureRulesTest {
     void apiPackagesContainOnlyInterfacesAndRecords() {
         classes().that().resideInAPackage("..api..").and().doNotHaveSimpleName("package-info")
                 .should().beInterfaces().orShould().beRecords().orShould().beEnums()
-                .because("a module's api is a narrow contract: interfaces, immutable records and typed enum catalogues")
+                .because(GuardMessage.of("G2", "a class in an api package is not an interface, record or enum (a module's api is a narrow contract)", "make it an interface, record or enum, or move the implementation to ..application.. or ..infrastructure.."))
                 .check(CLASSES);
     }
 
@@ -52,7 +52,7 @@ class ArchitectureRulesTest {
     void apiSignaturesDoNotLeakModuleInternals() {
         noClasses().that().resideInAPackage("..api..")
                 .should().dependOnClassesThat().resideInAnyPackage("..domain..", "..application..", "..infrastructure..", "..web..")
-                .because("api types may only mention api records, kernel types and JDK types; internals stay hidden")
+                .because(GuardMessage.of("G3", "an api type depends on domain, application, infrastructure or web classes", "change the signature to use api records, kernel types or JDK types and map the internal model inside the module"))
                 .check(CLASSES);
     }
 
@@ -61,7 +61,7 @@ class ArchitectureRulesTest {
         classes().that().resideInAPackage("..events..").and().doNotHaveSimpleName("package-info")
                 .should().beRecords()
                 .andShould().haveSimpleNameNotEndingWith("Event")
-                .because("events are immutable facts named in the past tense, e.g. TimesheetApproved")
+                .because(GuardMessage.of("G5", "a class in an events package is not a record or its name ends with Event", "make it a record named as a past-tense fact without the Event suffix, e.g. TimesheetApproved"))
                 .check(CLASSES);
     }
 
@@ -97,8 +97,9 @@ class ArchitectureRulesTest {
                     ? API_LIMIT_EXCEPTIONS.get(module).max()
                     : MAX_API_METHODS_PER_MODULE;
             if (count > max) {
-                throw new AssertionError(module + " exposes " + count + " api methods (max " + max
-                        + "). Deepen the module instead of widening its interface.");
+                throw new AssertionError(GuardMessage.of("G4",
+                        module + " exposes " + count + " api methods (max " + max + ")",
+                        "Deepen the module instead of widening its interface. A wider limit needs an entry in API_LIMIT_EXCEPTIONS with a source and a one-architecture ruling"));
             }
         });
     }
@@ -108,7 +109,7 @@ class ArchitectureRulesTest {
         classes().that().resideInAnyPackage("..web..", "..infrastructure..")
                 .and().doNotHaveFullyQualifiedName(ROOT + ".platform.web.NotFromQuery")
                 .should().notBePublic()
-                .because("controllers and adapters are wired by Spring; nothing else should reference them")
+                .because(GuardMessage.of("G6", "a class in web or infrastructure is public", "remove the public modifier so the class is package-private; Spring wires it and other code must go through the api"))
                 .check(CLASSES);
     }
 
@@ -117,7 +118,7 @@ class ArchitectureRulesTest {
         noClasses().that().resideInAPackage("..domain..")
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "org.springframework..", "jakarta.servlet..", "..application..", "..infrastructure..", "..web..")
-                .because("domain = pure business rules; it must be unit-testable without Spring or a database")
+                .because(GuardMessage.of("G7", "a domain class depends on Spring, Servlet or another layer", "remove the dependency from domain: declare a port interface in domain and implement it in infrastructure, or pass the value in from application"))
                 .check(CLASSES);
     }
 
@@ -125,7 +126,7 @@ class ArchitectureRulesTest {
     void applicationDoesNotTouchWebOrInfrastructure() {
         noClasses().that().resideInAPackage("..application..")
                 .should().dependOnClassesThat().resideInAnyPackage("..web..", "..infrastructure..")
-                .because("use cases talk to domain ports, never to controllers or JDBC adapters")
+                .because(GuardMessage.of("G8", "an application class depends on web or infrastructure", "depend on the domain port interface and let Spring inject the infrastructure adapter"))
                 .check(CLASSES);
     }
 
@@ -133,7 +134,7 @@ class ArchitectureRulesTest {
     void webOnlyCallsApplication() {
         noClasses().that().resideInAPackage("..web..")
                 .should().dependOnClassesThat().resideInAnyPackage("..infrastructure..", "..domain..")
-                .because("controllers delegate to one use case; they never load aggregates or run SQL")
+                .because(GuardMessage.of("G9", "a web class depends on infrastructure or domain", "call one application use case from the controller and return an api record"))
                 .check(CLASSES);
     }
 
@@ -141,7 +142,7 @@ class ArchitectureRulesTest {
     void jdbcOnlyInInfrastructure() {
         noClasses().that().resideOutsideOfPackage("..infrastructure..")
                 .should().dependOnClassesThat().resideInAnyPackage("org.springframework.jdbc..", "java.sql..")
-                .because("SQL lives in infrastructure.persistence and only touches the module's own schema")
+                .because(GuardMessage.of("G10", "a class outside infrastructure uses JDBC or java.sql", "move the SQL into a Jdbc*Repository in ..infrastructure.persistence.. behind a domain port"))
                 .check(CLASSES);
     }
 
@@ -149,14 +150,15 @@ class ArchitectureRulesTest {
     void transactionsOnlyInApplication() {
         methods().that().areAnnotatedWith("org.springframework.transaction.annotation.Transactional")
                 .should().beDeclaredInClassesThat().resideInAPackage("..application..")
-                .because("one use case = one transaction boundary")
+                .because(GuardMessage.of("G11", "a @Transactional method is declared outside ..application..", "move @Transactional to the application use case that owns the transaction"))
                 .check(CLASSES);
         noClasses().that().resideOutsideOfPackage("..application..")
                 .should().beAnnotatedWith("org.springframework.transaction.annotation.Transactional")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("org.springframework.transaction.support.TransactionTemplate")
+                .because(GuardMessage.of("G11", "a class outside ..application.. is @Transactional or uses TransactionTemplate", "move the transaction boundary into the application use case"))
                 .check(CLASSES);
         noClasses().should().dependOnClassesThat().haveFullyQualifiedName("jakarta.transaction.Transactional")
-                .because("use Spring's @Transactional on the use case only")
+                .because(GuardMessage.of("G11", "jakarta.transaction.Transactional is used", "use org.springframework.transaction.annotation.Transactional on the application use case"))
                 .check(CLASSES);
     }
 
@@ -164,6 +166,7 @@ class ArchitectureRulesTest {
     void controllersLiveInWebAndEndWithController() {
         classes().that().areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
                 .should().resideInAPackage("..web..").andShould().haveSimpleNameEndingWith("Controller")
+                .because(GuardMessage.of("G12", "a @RestController is outside ..web.. or its name does not end with Controller", "move it to the module's ..web.. package and rename it <Name>Controller"))
                 .check(CLASSES);
     }
 
@@ -171,10 +174,11 @@ class ArchitectureRulesTest {
     void repositoriesFollowPortAdapterNaming() {
         classes().that().resideInAPackage("..domain..").and().haveSimpleNameEndingWith("Repository")
                 .should().beInterfaces()
-                .because("the domain declares the port; infrastructure provides Jdbc<Name>Repository")
+                .because(GuardMessage.of("G13", "a *Repository class in domain is not an interface", "make it an interface (the port) and put the implementation in ..infrastructure.persistence.. as Jdbc<Name>Repository"))
                 .check(CLASSES);
         classes().that().resideInAPackage("..infrastructure.persistence..").and().areAnnotatedWith("org.springframework.stereotype.Repository")
                 .should().haveSimpleNameStartingWith("Jdbc")
+                .because(GuardMessage.of("G13", "a @Repository in ..infrastructure.persistence.. does not start with Jdbc", "rename it Jdbc<Name>Repository"))
                 .check(CLASSES);
     }
 
@@ -185,7 +189,7 @@ class ArchitectureRulesTest {
                 .orShould().haveSimpleNameEndingWith("Info").orShould().haveSimpleNameEndingWith("Data")
                 .orShould().haveSimpleNameEndingWith("Impl").orShould().haveSimpleNameEndingWith("DO")
                 .orShould().haveSimpleNameContaining("ManHour").orShould().haveSimpleNameContaining("Manhour")
-                .because("use the glossary name (03-通用语言): Timesheet/TimeEntry, Quote, RateCardItem...")
+                .because(GuardMessage.of("G14", "a class name ends with Util, Utils, Helper, Manager, Info, Data, Impl or DO, or contains ManHour", "rename the class with the glossary term from docs/glossary/terms.yaml, e.g. Timesheet, TimeEntry, Quote, RateCardItem"))
                 .check(CLASSES);
     }
 
@@ -204,7 +208,7 @@ class ArchitectureRulesTest {
                 }
             }
         };
-        classes().should(asciiOnly).because("no Chinese or pinyin identifiers; Chinese belongs in UI text and comments")
+        classes().should(asciiOnly).because(GuardMessage.of("G15", "a class or member name is not ASCII", "rename it with an English glossary term; keep Chinese only in UI text and comments"))
                 .check(CLASSES);
     }
 
@@ -217,7 +221,7 @@ class ArchitectureRulesTest {
                         return t.isEnum();
                     }
                 })
-                .because("statuses are enums stored by name; no magic ints or dictionary ids")
+                .because(GuardMessage.of("G16", "a domain field named *status is not an enum", "declare the status as an enum stored by name"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }
@@ -228,23 +232,23 @@ class ArchitectureRulesTest {
                 .and().areDeclaredInClassesThat().resideInAnyPackage("..domain..", "..api..", "..events..")
                 .should().haveRawType(java.math.BigDecimal.class).orShould().haveRawType(double.class)
                 .orShould().haveRawType(Double.class).orShould().haveRawType(long.class)
-                .because("ADR-0001: Money = (amount, currency); use kernel.Money")
+                .because(GuardMessage.of("G17", "a domain, api or events field named like amount, price, cost, total, balance, fee, wage or tax is a bare number", "use kernel.Money (amount and currency) instead of BigDecimal, double or long"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }
 
     @Test
     void generalCodingRules() {
-        NO_CLASSES_SHOULD_USE_FIELD_INJECTION.check(CLASSES);
-        NO_CLASSES_SHOULD_ACCESS_STANDARD_STREAMS.check(CLASSES);
-        NO_CLASSES_SHOULD_USE_JAVA_UTIL_LOGGING.check(CLASSES);
+        NO_CLASSES_SHOULD_USE_FIELD_INJECTION.because(GuardMessage.of("G18", "a class uses field injection", "inject through the constructor")).check(CLASSES);
+        NO_CLASSES_SHOULD_ACCESS_STANDARD_STREAMS.because(GuardMessage.of("G18", "a class uses System.out or System.err", "log through SLF4J instead")).check(CLASSES);
+        NO_CLASSES_SHOULD_USE_JAVA_UTIL_LOGGING.because(GuardMessage.of("G18", "a class uses java.util.logging", "log through SLF4J instead")).check(CLASSES);
         noClasses().that().doNotHaveFullyQualifiedName(ROOT + ".platform.approval.infrastructure.flowable.FlowableEngineClock")
                 .and().doNotHaveFullyQualifiedName(ROOT + ".platform.integration.infrastructure.filestore.OssBusinessFileStore")
                 .should().dependOnClassesThat().haveFullyQualifiedName("java.util.Date")
-                .because("use java.time; the exceptions implement Flowable's Clock (FLW-1) and set the OSS presign expiry, both java.util.Date only")
+                .because(GuardMessage.of("G18", "a class depends on java.util.Date", "use java.time types; only FlowableEngineClock and OssBusinessFileStore may use java.util.Date"))
                 .check(CLASSES);
         noClasses().should().dependOnClassesThat().haveFullyQualifiedName("jakarta.annotation.security.PermitAll")
-                .because("anonymous endpoints only via the identity module's SSO allowlist")
+                .because(GuardMessage.of("G18", "a class uses @PermitAll", "remove @PermitAll; secure the endpoint with @PreAuthorize, or declare it @PublicEndpoint(reason) or add it to the identity module's SSO allowlist"))
                 .check(CLASSES);
     }
 
@@ -252,7 +256,7 @@ class ArchitectureRulesTest {
     void flowableOnlyInsideApprovalInfrastructure() {
         noClasses().that().resideOutsideOfPackage(ROOT + ".platform.approval.infrastructure..")
                 .should().dependOnClassesThat().resideInAPackage("org.flowable..")
-                .because("Flowable is an implementation detail of the approval module; others use approval::api")
+                .because(GuardMessage.of("G19", "a class outside platform.approval.infrastructure depends on org.flowable", "remove the Flowable dependency and call the approval module through its api"))
                 .check(CLASSES);
     }
 
@@ -270,7 +274,7 @@ class ArchitectureRulesTest {
                         }
                     }
                 })
-                .because("every endpoint path starts with /api/v1/; a breaking change gets its own /api/v2/ controller")
+                .because(GuardMessage.of("G20", "a @RestController does not declare @RequestMapping starting with /api/v1/", "add @RequestMapping(\"/api/v1/<subdomain>/<resources>\") to the controller"))
                 .check(CLASSES);
     }
 
@@ -278,7 +282,7 @@ class ArchitectureRulesTest {
     void valueObjectsAreRecords() {
         classes().that().areAnnotatedWith(com.forcitis.one.kernel.ValueObject.class)
                 .should().beRecords()
-                .because("value objects are immutable and validate themselves in the compact constructor")
+                .because(GuardMessage.of("G21", "a @ValueObject class is not a record", "make it a record that validates itself in the compact constructor"))
                 .check(CLASSES);
     }
 
@@ -293,6 +297,7 @@ class ArchitectureRulesTest {
                         return t.isArray();
                     }
                 })
+                .because(GuardMessage.of("G22", "a @ValueObject holds a Date, ArrayList, HashMap or array field", "use an immutable type such as java.time, List.copyOf or Map.copyOf"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }
@@ -307,7 +312,7 @@ class ArchitectureRulesTest {
                         return t.isRecord() && t.getSimpleName().endsWith("Id");
                     }
                 })
-                .because("typed ids stop an agent passing a project id where a timesheet id is expected")
+                .because(GuardMessage.of("G31", "a domain field named *Id is not a typed id record", "declare the field with the typed id record, e.g. TimesheetId, instead of UUID, String or long"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }
@@ -317,7 +322,7 @@ class ArchitectureRulesTest {
         noFields().that().haveNameMatching("(?i).*hours").and().areDeclaredInClassesThat().resideInAPackage("..domain..")
                 .should().haveRawType(java.math.BigDecimal.class).orShould().haveRawType(double.class)
                 .orShould().haveRawType(Double.class)
-                .because("use kernel.Hours (non-negative, 2 decimals) instead of a bare number")
+                .because(GuardMessage.of("G23", "a domain field named *hours is a bare BigDecimal or double", "use kernel.Hours"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }
@@ -327,7 +332,7 @@ class ArchitectureRulesTest {
         noClasses().that().resideInAnyPackage("..domain..", "..application..")
                 .should().callMethod(java.math.BigDecimal.class, "equals", Object.class)
                 .orShould().callConstructor(java.math.BigDecimal.class, double.class)
-                .because("BigDecimal.equals is scale-sensitive and new BigDecimal(double) is inexact; use Money/Hours or compareTo")
+                .because(GuardMessage.of("G24", "domain or application code calls BigDecimal.equals or new BigDecimal(double)", "compare with compareTo or use Money/Hours, and build with BigDecimal.valueOf or new BigDecimal(String)"))
                 .check(CLASSES);
     }
 
@@ -341,7 +346,7 @@ class ArchitectureRulesTest {
         noClasses().should().haveSimpleNameStartingWith("Fix").orShould().haveSimpleNameStartingWith("Demo")
                 .orShould().haveSimpleNameStartingWith("Mock").orShould().haveSimpleNameStartingWith("Test")
                 .orShould().haveSimpleNameStartingWith("Sample").orShould().haveSimpleNameContaining("Example")
-                .because("legacy shipped @PermitAll data-fix and demo controllers to production; repairs are Flyway scripts or ops jobs")
+                .because(GuardMessage.of("G26", "a main class is named Fix*, Demo*, Mock*, Test*, Sample* or *Example*", "delete the class; repairs are Flyway scripts or ops jobs and test doubles belong in src/test"))
                 .check(CLASSES);
     }
 
@@ -357,7 +362,7 @@ class ArchitectureRulesTest {
                         }
                     }
                 })
-                .because("one use case per class: no god services, and no this.call() bypassing @Transactional")
+                .because(GuardMessage.of("G27", "an application @Service does not have exactly one public method", "split it into one use case class per action with a single public execute method"))
                 .check(CLASSES);
     }
 
@@ -372,7 +377,7 @@ class ArchitectureRulesTest {
                 .or().areAnnotatedWith("org.springframework.web.bind.annotation.RequestMapping")
                 .should().beAnnotatedWith("org.springframework.security.access.prepost.PreAuthorize")
                 .orShould().beAnnotatedWith(com.forcitis.one.kernel.PublicEndpoint.class)
-                .because("default deny: legacy shipped 84 @PermitAll write endpoints and ~190 endpoints with no permission check")
+                .because(GuardMessage.of("G28", "a web handler has neither @PreAuthorize nor @PublicEndpoint", "add @PreAuthorize with a catalogued permission code, or @PublicEndpoint(reason) if it is deliberately open"))
                 .check(CLASSES);
     }
 
@@ -381,7 +386,7 @@ class ArchitectureRulesTest {
         noClasses().that().resideOutsideOfPackage(ROOT + ".platform.identity..")
                 .should().dependOnClassesThat().resideInAnyPackage("org.springframework.security.config..",
                         "org.springframework.security.web..")
-                .because("one security configuration, owned by the identity module; no per-module permitAll()")
+                .because(GuardMessage.of("G33", "a class outside platform.identity depends on spring-security config or web classes", "remove it; only the identity module configures Spring Security"))
                 .check(CLASSES);
     }
 
@@ -390,7 +395,7 @@ class ArchitectureRulesTest {
         noFields().that().areDeclaredInClassesThat().resideInAPackage("..web..")
                 .and().areDeclaredInClassesThat().haveSimpleNameEndingWith("Request")
                 .should().haveNameMatching("(?i)(userId|creator|creatorId|operatorId|approverId|submitterId|loginUser)")
-                .because("the caller comes from CurrentUser (session); legacy trusted a client-sent creator (SEC-005)")
+                .because(GuardMessage.of("G33", "a web *Request record has a caller identity field such as userId or creator", "remove the field and read the caller from CurrentUser"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }
@@ -399,7 +404,7 @@ class ArchitectureRulesTest {
     void contractsAreStronglyTyped() {
         noFields().that().areDeclaredInClassesThat().resideInAnyPackage("..api..", "..events..")
                 .should().haveRawType(Object.class).orShould().haveRawType(java.util.Map.class)
-                .because("no Map<String,Object> / Object in module contracts: use records, enums and typed ids")
+                .because(GuardMessage.of("G32", "an api or events field is Object or Map", "use a record, an enum or a typed id instead"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
         fields().that().areDeclaredInClassesThat().resideInAnyPackage("..api..", "..events..", "..domain..")
@@ -410,6 +415,7 @@ class ArchitectureRulesTest {
                         return t.isRecord() && t.getSimpleName().endsWith("Id");
                     }
                 })
+                .because(GuardMessage.of("G31", "an api, events or domain field named *Id is not a typed id record", "declare the field with the typed id record, e.g. TimesheetId, instead of UUID, String or long"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }
@@ -419,7 +425,7 @@ class ArchitectureRulesTest {
         noClasses().that().resideInAPackage("..events..")
                 .should().haveSimpleNameEndingWith("Request").orShould().haveSimpleNameEndingWith("Requested")
                 .orShould().haveSimpleNameEndingWith("Command").orShould().haveSimpleNameEndingWith("Query")
-                .because("events announce facts; synchronous questions go through api interfaces")
+                .because(GuardMessage.of("G29", "an events class name ends with Request, Requested, Command or Query", "rename it as a past-tense fact, or replace it with a call on the module's api interface"))
                 .check(CLASSES);
         noMethodsAnnotatedWithEventListenerOutsideModuleListener();
     }
@@ -427,7 +433,7 @@ class ArchitectureRulesTest {
     private static void noMethodsAnnotatedWithEventListenerOutsideModuleListener() {
         methods().that().areAnnotatedWith("org.springframework.context.event.EventListener")
                 .should().beDeclaredInClassesThat().resideInAPackage(ROOT + ".nothing")
-                .because("cross-module listeners use @ApplicationModuleListener (async, own transaction, retried)")
+                .because(GuardMessage.of("G29", "a method uses plain @EventListener", "use @ApplicationModuleListener"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }
@@ -437,7 +443,7 @@ class ArchitectureRulesTest {
         classes().that().haveSimpleName("package-info")
                 .and().areAnnotatedWith("org.springframework.modulith.NamedInterface")
                 .should().resideInAnyPackage("..api", "..events")
-                .because("a module has exactly two exits; extra named interfaces would bypass the narrow-interface budget")
+                .because(GuardMessage.of("G30", "@NamedInterface is used outside an api or events package", "remove @NamedInterface from that package; expose only api and events"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
     }

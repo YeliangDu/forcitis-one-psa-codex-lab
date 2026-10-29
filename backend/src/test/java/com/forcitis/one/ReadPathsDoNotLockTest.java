@@ -88,8 +88,11 @@ class ReadPathsDoNotLockTest {
     void readPathsDoNotLock() {
         JavaClasses classes = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS).importPackages(ROOT);
         assertThat(classes.stream().filter(c -> c.getPackageName().endsWith(".application") && READ_USE_CASE.matcher(c.getSimpleName()).matches()).count())
-                .as("read use cases found").isGreaterThan(5);
-        assertThat(violations(classes)).isEmpty();
+                .as(GuardMessage.of("DDD-9", "the guard found no more than 5 Get*/List*/Check* use cases, so it is scanning the wrong classes",
+                        "check READ_USE_CASE and ROOT in ReadPathsDoNotLockTest")).isGreaterThan(5);
+        assertThat(violations(classes)).as(GuardMessage.of("DDD-9",
+                "a Get*/List*/Check* use case is not read-only or reaches a repository method that locks (*ForUpdate or lock*)",
+                "annotate it @Transactional(readOnly = true) and read through a method that does not lock; keep the locking method on the write path")).isEmpty();
     }
 
     @Test

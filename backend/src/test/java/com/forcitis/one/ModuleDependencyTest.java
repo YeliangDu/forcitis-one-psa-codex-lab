@@ -45,8 +45,9 @@ class ModuleDependencyTest {
             }
         }
         if (!violations.isEmpty()) {
-            throw new AssertionError("Dependencies outside the approved context map (edit architecture/module-dependencies.txt only "
-                    + "after design review):\n  " + String.join("\n  ", violations));
+            throw new AssertionError(GuardMessage.of("D1",
+                    "dependencies outside the approved context map (backend/architecture/module-dependencies.txt):\n  " + String.join("\n  ", violations) + "\n",
+                    "remove the dependency and call the other module's api or events; only after design review add the edge to backend/architecture/module-dependencies.txt"));
         }
     }
 
@@ -56,7 +57,11 @@ class ModuleDependencyTest {
     @Test
     @DisplayName("ADR-0064 decision 1 item 3 and ADR-0066: the signing service reaches only foundation modules and organization.workforce, and only business modules depend on it")
     void signingServiceStaysAtTheFoundationLayer() throws IOException {
-        assertThat(signingViolations(declaredGraph(Files.readAllLines(Path.of("architecture/module-dependencies.txt"))))).isEmpty();
+        assertThat(signingViolations(declaredGraph(Files.readAllLines(Path.of("architecture/module-dependencies.txt")))))
+                .as(GuardMessage.of("ADR-0064",
+                        "platform.signing reaches a module outside the foundation layer, or a platform module depends on platform.signing",
+                        "remove that edge from backend/architecture/module-dependencies.txt; signing may reach only " + SIGNING_MAY_REACH + " and only business modules may depend on it"))
+                .isEmpty();
     }
 
     @Test
@@ -112,7 +117,11 @@ class ModuleDependencyTest {
     @Test
     @DisplayName("P2 recheck M-1 platform.identity uses platform.web only for the NotFromQuery marker, and only from infrastructure.security")
     void identityUsesTheWebModuleOnlyForTheMarker() {
-        assertThat(identityUsesOfTheWebModule(ArchitectureRulesTest.CLASSES)).isEmpty();
+        assertThat(identityUsesOfTheWebModule(ArchitectureRulesTest.CLASSES))
+                .as(GuardMessage.of("D1",
+                        "platform.identity uses platform.web beyond the NotFromQuery marker used from infrastructure.security (P2 recheck M-1)",
+                        "remove the use of the other platform.web type, or use the NotFromQuery marker only in platform.identity.infrastructure.security"))
+                .isEmpty();
     }
 
     @Test

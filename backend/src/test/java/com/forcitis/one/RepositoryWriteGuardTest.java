@@ -72,7 +72,9 @@ class RepositoryWriteGuardTest {
             problems.addAll(RepositoryWritePolicy.insertsWithoutStatus(MAIN.relativize(file).toString(), Files.readString(file),
                     table -> statusColumns(tables, table)));
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("CS-2.4",
+                "an INSERT into a table with a status column leaves the status column out, so the database default decides the status",
+                "list the status column in the INSERT and take its value from the aggregate")).isEmpty();
     }
 
     @Test
@@ -95,8 +97,11 @@ class RepositoryWriteGuardTest {
                 }
             }
         }
-        assertThat(problems).isEmpty();
-        assertThat(allowed).as("an exception that is no longer needed must be deleted from " + METHOD_EXCEPTIONS).isEqualTo(found);
+        assertThat(problems).as(GuardMessage.of("CS-2.4",
+                "a persistence adapter changes state in a method that is not a save of the aggregate",
+                "turn the write into a save/insert/update/upsert/delete method of the aggregate's repository, or register it in " + METHOD_EXCEPTIONS + " with a reason")).isEmpty();
+        assertThat(allowed).as(GuardMessage.of("CS-2.4", "an exception in the repository write register is no longer needed",
+                "delete that line from " + METHOD_EXCEPTIONS)).isEqualTo(found);
     }
 
     @Test
@@ -122,8 +127,11 @@ class RepositoryWriteGuardTest {
                 }
             }
         }
-        assertThat(problems).isEmpty();
-        assertThat(allowed).as("an exception that is no longer needed must be deleted from " + UNCONDITIONAL_EXCEPTIONS).isEqualTo(found);
+        assertThat(problems).as(GuardMessage.of("CS-2.6",
+                "an UPDATE or DELETE of a table with a version column does not state the version it expects",
+                "add 'and version = :version' to the statement, or register the write in " + UNCONDITIONAL_EXCEPTIONS + " with a reason")).isEmpty();
+        assertThat(allowed).as(GuardMessage.of("CS-2.6", "an exception in the versioned table unconditional writes register is no longer needed",
+                "delete that line from " + UNCONDITIONAL_EXCEPTIONS)).isEqualTo(found);
     }
 
     @Test
@@ -148,8 +156,11 @@ class RepositoryWriteGuardTest {
                 }
             }
         }
-        assertThat(problems).isEmpty();
-        assertThat(allowed).as("an exception that is no longer needed must be deleted from " + UNVERSIONED_EXCEPTIONS).isEqualTo(found);
+        assertThat(problems).as(GuardMessage.of("CS-2.6",
+                "a write goes to a table without an optimistic version column and is not registered",
+                "add a version column and condition the write on it, or register the write in " + UNVERSIONED_EXCEPTIONS + " with the reason it is safe")).isEmpty();
+        assertThat(allowed).as(GuardMessage.of("CS-2.6", "an exception in the unversioned table writes register is no longer needed",
+                "delete that line from " + UNVERSIONED_EXCEPTIONS)).isEqualTo(found);
     }
 
     @Test

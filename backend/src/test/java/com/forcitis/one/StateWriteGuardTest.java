@@ -55,8 +55,12 @@ class StateWriteGuardTest {
                 problems.addAll(found);
             }
         }
-        assertThat(problems).as("move the status change into a method of the aggregate; the repository writes what the aggregate holds").isEmpty();
-        assertThat(allowed).as("an exception that is no longer needed must be deleted from " + EXCEPTIONS).isEqualTo(needed);
+        assertThat(problems).as(GuardMessage.of("CS-2.4",
+                "application or infrastructure code constructs or writes a status",
+                "move the status change into a method of the aggregate; the repository writes what the aggregate holds, or register the file in " + EXCEPTIONS + " with a reason")).isEmpty();
+        assertThat(allowed).as(GuardMessage.of("CS-2.4",
+                "a file in the status write exceptions register no longer writes a status",
+                "delete that line from " + EXCEPTIONS)).isEqualTo(needed);
     }
 
     @Test

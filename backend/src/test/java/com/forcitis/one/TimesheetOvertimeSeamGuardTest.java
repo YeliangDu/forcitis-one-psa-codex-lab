@@ -36,17 +36,23 @@ class TimesheetOvertimeSeamGuardTest {
     @DisplayName("RULE-412: no class of cost.timesheet depends on a class of the leave and overtime context")
     void timesheetClassesDoNotDependOnLeave() {
         var classes = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS).importPackages(ArchitectureRulesTest.ROOT);
-        assertThat(classes.stream().filter(c -> c.getPackageName().startsWith("com.forcitis.one.cost.timesheet"))).isNotEmpty();
+        assertThat(classes.stream().filter(c -> c.getPackageName().startsWith("com.forcitis.one.cost.timesheet")))
+                .as(GuardMessage.of("RULE-412", "the guard found no cost.timesheet classes, so it checks nothing",
+                        "check the package name in TimesheetOvertimeSeamGuardTest")).isNotEmpty();
         noClasses().that().resideInAPackage("com.forcitis.one.cost.timesheet..")
                 .should().dependOnClassesThat().resideInAPackage(LEAVE_ROOT)
-                .because("RULE-412: the timesheet context never reads an overtime approval or a compensatory-leave balance; the leave context owns both")
+                .because(GuardMessage.of("RULE-412",
+                        "a cost.timesheet class depends on organization.leave: the timesheet context never reads an overtime approval or a compensatory-leave balance",
+                        "remove the dependency; hours filed on a non-workday are plain time records and the leave context owns overtime and compensatory leave"))
                 .check(classes);
     }
 
     @Test
     @DisplayName("RULE-412: cost.timesheet declares no dependency on the leave module in module-dependencies.txt")
     void moduleGraphHasNoEdgeToLeave() throws IOException {
-        assertThat(leaveEdges(Files.readString(MODULE_DEPENDENCIES))).isEmpty();
+        assertThat(leaveEdges(Files.readString(MODULE_DEPENDENCIES))).as(GuardMessage.of("RULE-412",
+                "cost.timesheet declares a dependency on organization.leave in module-dependencies.txt",
+                "delete organization.leave from the cost.timesheet line in " + MODULE_DEPENDENCIES)).isEmpty();
     }
 
     @Test
@@ -60,12 +66,15 @@ class TimesheetOvertimeSeamGuardTest {
         }
         scanned.add(TIMESHEET_PROCESS);
         scanned.add(TIMESHEET_CONFIG);
-        assertThat(scanned).hasSizeGreaterThan(2);
+        assertThat(scanned).as(GuardMessage.of("RULE-412", "the guard scanned 2 or fewer timesheet files, so it checks nothing",
+                "check the TIMESHEET_* paths in TimesheetOvertimeSeamGuardTest")).hasSizeGreaterThan(2);
         List<String> problems = new ArrayList<>();
         for (Path file : scanned) {
             problems.addAll(vocabularyIn(file.toString(), Files.readString(file)));
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("RULE-412",
+                "timesheet code, tables, process or config names an overtime or compensatory-leave term",
+                "remove the term from cost.timesheet; the leave context owns overtime approvals and compensatory-leave balances")).isEmpty();
     }
 
     @Test
