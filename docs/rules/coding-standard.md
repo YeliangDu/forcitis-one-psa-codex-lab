@@ -6,7 +6,23 @@
 
 ## A. 黄金样板
 
-由 #812 填写：每类构件一个真实文件
+每类一种写法，照「为何」写；标「现」的为样板偏差，#812 修。
+
+| 构件 | 样板 | 为何 |
+|---|---|---|
+| 用例 | `SubmitTimesheet:65` | execute 上 `@Transactional`，一个聚合，save 后 publish |
+| 调用者 | `SubmitTimesheet:66` | 注入 `CurrentUser`，不收 `UserId caller`（现在 identity） |
+| 数据范围 | `GetOrgUnit:31` | 用例注入 `OrgUnitAccess`；范围外答找不到并审计（现由参数传入） |
+| 控制器 | `OrgUnitController:33` | 只转换、调用例；200 返回 record，非 200 或带头才 `ResponseEntity`（现算范围、收 caller） |
+| 仓储 | `JdbcRoleRepository:117` | 文本块小写 SQL，命名参数，版本条件更新 |
+| 事件 | `ApplyApprovalResult:41` | application 中 `@ApplicationModuleListener`，先去重 |
+| 时间 | `JdbcRoleRepository:347` | `Instant` + `BusinessZone`；JDBC 用 `OffsetDateTime`，不用 `Timestamp` |
+| ID | `CreateLegalEntity:29` | 注入 `IdGenerator`，不调 `randomUUID` |
+| 金额 | `Money:10` | 计算不舍入，成额时 HALF_UP 到分；合计 = 各行舍入后之和（FD-02/07/08；现构造即舍入） |
+| 流程 | `FlowableApprovalEngine:54` | Flowable 只在适配器，业务经 `ApprovalProcesses` |
+| 单元测试 | `TimesheetStateMachineTest:62` | 不起 Spring，固定日期 |
+| 集成测试 | `AuditExportAndOwnRecordsIT:36` | MockMvc + `TestPostgres.database` |
+| 验收测试 | `WorkCalendarMakeUpWeekendIT:38` | 同上，`@DisplayName` 以卡号开头 |
 
 ## B. 底线
 
@@ -27,7 +43,7 @@
 13. 不为过测试放宽或删断言；确需改，PR 单列理由（CS-5.4）。执行：PR 模板、复审
 14. 标识符只用 ASCII，用语取 `docs/glossary/terms.yaml`，查不到先登记提议术语（CS-1.4）。执行：`identifiersAreAscii`、`GlossaryTest`、`term_rules.py`
 15. 命名与位置按 `docs/rules/naming-standard.md`（CS-1.5）。执行：`NamingSurfaceTest`
-16. 单文件 ≤ 400 行、单方法 ≤ 60 行（CS-1.15）；超 1000 行必改。执行：待建
+16. 单文件超 1000 行必改（硬上限）；宜单文件 ≤ 400 行、单方法 ≤ 60 行，超出作复审建议（CS-1.15）。执行：#810 行数检查（待建）
 17. 缺失或无效输入失败并告警，不静默跳过（规则卡明确允许的除外；CS-1.7）；不吞异常，无空 `catch`（CS-2.24）。执行：`CurrentUserGuardTest`；其余待建
 18. 时间只经注入的 `Clock`，domain 不持有它，时刻与业务日由 application 传入；SQL 与迁移不读库时钟（CS-2.26、CS-3.8）。执行：`TimeSourceGuardTest`
 19. 状态只经聚合的领域方法改（CS-2.4）。执行：`StateWriteGuardTest`
@@ -91,26 +107,6 @@
 
 日期：2026-10-15 · 用户要求：问编码规范是否需要完善，建议 A 合并为本文件唯一来源、B 补语言层规范、C 交付前自查命令、D 派工卡模板：「A–D 全做」（intent `2026-10-15-014844-one-coordinator-…`）
 
-## 黄金样板
-
-每类一种写法，照「为何」写；标「现」的为样板偏差，#812 修。
-
-| 构件 | 样板 | 为何 |
-|---|---|---|
-| 用例 | `SubmitTimesheet:65` | execute 上 `@Transactional`，一个聚合，save 后 publish |
-| 调用者 | `SubmitTimesheet:66` | 注入 `CurrentUser`，不收 `UserId caller`（现在 identity） |
-| 数据范围 | `GetOrgUnit:31` | 用例注入 `OrgUnitAccess`；范围外答找不到并审计（现由参数传入） |
-| 控制器 | `OrgUnitController:33` | 只转换、调用例；200 返回 record，非 200 或带头才 `ResponseEntity`（现算范围、收 caller） |
-| 仓储 | `JdbcRoleRepository:117` | 文本块小写 SQL，命名参数，版本条件更新 |
-| 事件 | `ApplyApprovalResult:41` | application 中 `@ApplicationModuleListener`，先去重 |
-| 时间 | `JdbcRoleRepository:347` | `Instant` + `BusinessZone`；JDBC 用 `OffsetDateTime`，不用 `Timestamp` |
-| ID | `CreateLegalEntity:29` | 注入 `IdGenerator`，不调 `randomUUID` |
-| 金额 | `Money:10` | 计算不舍入，成额时 HALF_UP 到分；合计 = 各行舍入后之和（FD-02/07/08；现构造即舍入） |
-| 流程 | `FlowableApprovalEngine:54` | Flowable 只在适配器，业务经 `ApprovalProcesses` |
-| 单元测试 | `TimesheetStateMachineTest:62` | 不起 Spring，固定日期 |
-| 集成测试 | `AuditExportAndOwnRecordsIT:36` | MockMvc + `TestPostgres.database` |
-| 验收测试 | `WorkCalendarMakeUpWeekendIT:38` | 同上，`@DisplayName` 以卡号开头 |
-
 ## 0. 适用范围与优先级
 
 **适用范围**：FORCITIS one 仓库中的全部新代码——后端（Java / Spring Boot / Spring Modulith）、数据库迁移与 SQL、前端（React + TypeScript，PC `apps/web`，H5 `apps/h5`（Taro））、测试、CI 与交付脚本。人和代理（Claude 会话、子代理）同样适用。
@@ -151,7 +147,7 @@
 | CS-1.12 | **深模块、窄接口**：模块对外只有 `api` 与 `events`；`api` 方法总数 ≤ 12；前端模块经 `index.ts` 导出 ≤ 8 | NAMING_STANDARD §0 | 守护：G1–G4、G30、F1–F4、F12、F13 |
 | CS-1.13 | **生成的代码只放 `generated/`，不手改**；改生成器或源契约后重新生成 | NAMING_STANDARD §5 | 守护：前端 `pnpm check:generated` |
 | CS-1.14 | **系统名称**：新系统写 FORCITIS one，老系统写「老系统」（英文 the legacy system），不用旧缩写指代系统；老路径、表名、接口、代码标识、仓库名、会话名与用户原话照原样 | CLAUDE.md（用户 2026-10-14） | 复审 |
-| CS-1.15 | 一个文件一个顶层类型；单文件 ≤ 400 行、单方法 ≤ 60 行 | NAMING_STANDARD §5；§4「计划补充的守护」 | 复审（Checkstyle 守护计划中，未实现） |
+| CS-1.15 | 一个文件一个顶层类型；单文件超 1000 行必改（硬上限，与 `scripts/review/PROMPT.md` 一致）；宜单文件 ≤ 400 行、单方法 ≤ 60 行，超出作复审建议 | NAMING_STANDARD §5 | #810 行数检查（待建）；复审 |
 
 ## 2. Java / Spring（DDD 落地）
 
