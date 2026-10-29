@@ -59,7 +59,6 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-sys.path.insert(0, os.path.join(HERE, "..", "review"))
 import gapscan   # noqa: E402
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
 from mq_github import Gh, SignalError, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
