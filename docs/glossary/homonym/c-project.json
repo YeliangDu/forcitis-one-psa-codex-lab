@@ -75,7 +75,7 @@
   {"code": "PJ-08", "zh": "项目启动金额", "en": "ProjectInitiationValue", "kind": "metric", "bc": "delivery.execution",
    "definition": "项目建立时登记的预计合同额（含税口径另列），订单前置指标，用来看从项目建立到签约的转化；与新签合同额分开统计。证据显示项目建立可以早于合同（报表里合同表项目编号为空）。",
    "verdict": "待定",
-   "refs": "PMBOK（Initiating 启动过程组）；docs/glossary/rename-rounds/terms-input-bi-baseline.md 第 74 行（用户 B6）；docs/glossary/rename-rounds/r0-items.json；docs/modernization/r0/structure/term_mapping.md 第 268 行、S-12",
+   "refs": "PMBOK（Initiating 启动过程组）；docs/glossary/rename-rounds/terms-input-bi-baseline.md 第 74 行（用户 B6）；docs/glossary/rename-rounds/r0-items.json；docs/legacy/bi/report-structure/term-mapping.md 第 268 行、S-12",
    "why": "「立项」已判为方言，指标名不宜再带；用「启动」对齐 PMBOK。",
    "code_note": "第三轮提议名「项目立项金额」需改；现无代码。归属 bc（交付执行还是经营分析）也待定。",
    "options": [

@@ -71,7 +71,7 @@ def file_problems(path, sessions, new_dirs):
             continue
         if parent in ALLOWED and child not in ALLOWED[parent]:
             found.append(f"N5 {directory}/: new top-level directory under {parent}/ is not on the allowlist in scripts/guards/check_names.py; ask lead")
-        if top == "docs" and not (directory + "/").startswith(FRAGMENT_DIRS):
+        if top == "docs":
             if not KEBAB.fullmatch(child):
                 found.append(f"N4 {directory}/: directories under docs/ are lower-kebab-case; use {parent}/{kebab(child)}/")
             if any(STAGE.fullmatch(word) for word in child.split("-")) or any(re.search(rf"(^|-){re.escape(n)}(-|$)", child) for n in sessions):
@@ -158,6 +158,7 @@ def self_test():
     assert rules("docs/adr/ADR-0080.md") == [] and rules("docs/adr/ADR-0081-naming.md") == []
     assert rules("docs/decisions/2026-10-29-120000-one-ops-中文.md") == [] and rules("docs/ops/legacy-read/2026-10-29-1-one-ops-DAT.md") == []
     assert rules("docs/glossary/issues/2026-10-21-191312-one-architecture-CMD-命令.resolution.md") == [] and rules("docs/data/issues/X_Y.md") == ["N3"], "only the listed fragment folders are exempt"
+    assert rules("docs/decisions/Phase1a/a.md", ["docs/decisions/Phase1a"]) == ["N4"] and rules("docs/ops/legacy-read/Bad_Dir/a.md", ["docs/ops/legacy-read/Bad_Dir"]) == ["N4"], "fragment folders exempt file names, not new directories"
     assert rules("docs/data/Ops_Notes/a.md", ["docs/data/Ops_Notes"]) == ["N4"]
     assert rules("docs/data/phase2/a.md", ["docs/data/phase2"]) == ["N4"]
     assert rules("docs/data/one-ops/a.md", ["docs/data/one-ops"]) == ["N4"]

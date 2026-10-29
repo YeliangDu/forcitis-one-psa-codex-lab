@@ -31,8 +31,8 @@
     "资料类别二：Unanet AE手册及Vantagepoint产品资料。前者证明手册描述的做法，后者本轮主要是静态客户端证据，不证明后台已运行，也不证明本企业实际有该业务量。",
     "资料类别三：SPI 2026专业服务基准调查，及Silverston、Maister、Barr、Kaplan/Norton、Corr、Adamson和APQC等资料。调查平均值、管理自评、概念解释与本地计算公式分开；SPI基准值不能当目标，源内口径不一致处不强行合并。",
     "资料类别四：本系统的对象、流程、阶段、词表及BI范围稿件，用于说明当前设计写了什么。now均指本次可读的设计资料或词表，不代表已查到生产、实际执行或验收结果；反方主要是关键词复核，未逐条回原文。",
-    "依据中的缩写与锚点：外部笔记位于docs/modernization/architecture/frameworks/notes/；SPI26=spi-psmb-2026.md，SIL2=silverston-dmrb2.md，UAE=unanet-ae.md，VP26=vantagepoint-2026.md，GFD=gf-design-contracts.md，GFQ=gf-consulting-contracts.md，FIDW=fidic-white-book-2017.md，LAB=labor-contract.md，LEAV=leave-wage.md，BARR=barr-prove-it.md，BSC=kaplan-norton-bsc.md，MAI=maister-mpsf.md，CORR=corr-adwd.md，ADAM=adamson-star-schema.md，PCF8=apqc-pcf-80.md。#后文字是笔记表格中的概念锚点，页码及条款随题列出。",
-    "〔词〕为docs/modernization/glossary/terms.yaml的词条；〔BI〕为docs/modernization/BI_SCOPE.md §3；〔对象〕、〔流程〕及〔VS〕分别见architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md、architecture/ssot/09-processes/catalog.yaml及value-streams.v2.yaml。新增度量叫法及公式均为本页提议，不在本卡登记正式术语或改写已定口径；落定后由负责会话交one-glossary处理。",
+    "依据中的缩写与锚点：外部笔记位于docs/architecture/frameworks/notes/；SPI26=spi-psmb-2026.md，SIL2=silverston-dmrb2.md，UAE=unanet-ae.md，VP26=vantagepoint-2026.md，GFD=gf-design-contracts.md，GFQ=gf-consulting-contracts.md，FIDW=fidic-white-book-2017.md，LAB=labor-contract.md，LEAV=leave-wage.md，BARR=barr-prove-it.md，BSC=kaplan-norton-bsc.md，MAI=maister-mpsf.md，CORR=corr-adwd.md，ADAM=adamson-star-schema.md，PCF8=apqc-pcf-80.md。#后文字是笔记表格中的概念锚点，页码及条款随题列出。",
+    "〔词〕为docs/glossary/terms.yaml的词条；〔BI〕为docs/business/bi-scope.md §3；〔对象〕、〔流程〕及〔VS〕分别见architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md、architecture/ssot/09-processes/catalog.yaml及value-streams.v2.yaml。新增度量叫法及公式均为本页提议，不在本卡登记正式术语或改写已定口径；落定后由负责会话交one-glossary处理。",
     "度量共同约定提议：同一比较须同主体、范围、币种及期间，金额说明含税与否、总额或净额及分摊范围；比率展示原分子分母，总计先加组成量再重算，分母为零报不适用。示例数字只解释算法，不是经营目标。缺资料列未知或待核，不默认为零。"
    ]
   }
@@ -981,7 +981,7 @@
  ],
  "result": {
   "status": "草稿已生成；全库确认页检查失败，不能标为全部完成",
-  "scope": "本卡只新增docs/modernization/rules/decide/sheets/ADV1.json。自测与待核事项写在本字段，生成器不把本字段放入确认页面。未发布、未提交、未推送。",
+  "scope": "本卡只新增docs/decisions/decision-pages/sheets/adv1.json。自测与待核事项写在本字段，生成器不把本字段放入确认页面。未发布、未提交、未推送。",
   "verified": [
    "30条用户定来源逐项核对，src各覆盖一次；R1-C-08与R1-D-21合为ADV1-08，最终ADV1-01至ADV1-29连续。",
    "对象与状态6题、流程与变更8题、度量口径15题，均不超过15；每题所需字段非空，2至4选项、每项有effect且恰好一个rec为true。",
