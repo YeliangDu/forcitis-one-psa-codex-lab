@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 轻检查的同一入口（GOV-1023-FV2 O9，定稿 A39）：CI 轻作业跑它，本机交付前也可以选跑它；取代 scripts/precheck.sh。
 # 用法：scripts/ci/light.sh [<基线>]   基线默认 origin/main（本脚本不 fetch）；传空串或 40 个 0（新分支的推送）时只跑自测，不比基线。
-# 真实检查每次全跑；shell 语法与各脚本的自测在「按改动触发」一节，按 light_triggers.sh 的路径模式挑（没有基线时全跑；自测 light_selftest.sh）；一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
+# 真实检查每次全跑（每项先用 rule 登记它防的失败与改法）；shell 语法、各脚本的自测与 deploy.yml 检查（ci_steps_selftest）在「按改动触发」一节，按 light_triggers.sh 的路径模式挑（没有基线时全跑；自测 light_selftest.sh）；一项失败不中断，最后汇总，有 FAIL 退出 1，基线认不出退出 2。
 # CI 里由 .github/workflows/ci.yml 的 backend 作业调用（每个事件都跑）。不在这里的：
 # - 后端与前端测试、SQL Server 集成测试：backend、frontend 作业的重步骤（本机要跑就用 scripts/ci/backend_verify.sh、legacy_it.sh，起容器先问用户）；
 # - gitleaks 全史扫描、发布脚本自测：secret scan 作业；判档（relevant_change.py 输出）要写 ${GITHUB_OUTPUT}：只在 CI 里；

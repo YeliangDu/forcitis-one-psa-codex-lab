@@ -64,6 +64,7 @@ def main():
     assert deploy_checkout_problem(good) is None
     assert deploy_checkout_problem({"jobs": {"deploy": {"steps": [{"uses": "actions/checkout@abc"}]}}}), "checkout without set-safe-directory: false"
     assert deploy_checkout_problem({"jobs": {"deploy": {"steps": [{"run": "true"}]}}}), "no checkout step"
+    assert deploy_checkout_problem({"jobs": {"deploy": {"steps": [{"uses": "actions/checkout@abc", "with": {"set-safe-directory": False, "submodules": True}}]}}}), "checkout with submodules"
     problem = deploy_checkout_problem(yaml.safe_load(DEPLOY.read_text(encoding="utf-8")))
     assert problem is None, problem
     text = CI.read_text(encoding="utf-8")

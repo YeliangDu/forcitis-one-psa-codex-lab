@@ -104,6 +104,7 @@ run() {  # run <名字> <命令…>：后台起跑，各项互不依赖，并行
   if [ -z "${pending_rule:-}" ]; then  # 没登记规则的检查不算数：直接记 FAIL
     printf '规则：（缺）\n改法：在 scripts/ci/light.sh 里这项 run 之前加 rule <防的是什么> <怎么修>\n' >"$work/$i.rule"
     printf '1 0\n' >"$work/$i.rc"
+    : >"$work/$i.log"
     count=$((count + 1))
     return
   fi
