@@ -6,7 +6,7 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.TaskOverview;
 import java.time.Instant;
 import java.util.UUID;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 record TaskOverviewResponse(UUID taskId, ProcessKey processKey, DocumentTypeCode documentType, UUID documentId, String nodeKey, String status,
                             @Nullable UUID assignee, Instant createdAt, @Nullable Instant dueAt, boolean overdue) {

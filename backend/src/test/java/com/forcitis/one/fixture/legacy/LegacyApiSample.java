@@ -16,6 +16,8 @@ public final class LegacyApiSample {
     ObjectMapper jackson2;
     LocalDateTime stamp;
     List<LocalDateTime> stamps;
+    @SuppressWarnings("deprecation")
+    @org.springframework.lang.Nullable String springNullable;
 
     public void at(LocalDateTime moment) {}
 
