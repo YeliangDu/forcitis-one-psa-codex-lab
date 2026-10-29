@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.audit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.P5Names;
 import com.forcitis.one.acceptance.P5Support;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -13,18 +15,15 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P5 ADR-0033 section 7 item 2 / ADR-0027 section 3 item 3 (card acceptance item 2): an employee's own login records are the
  * entries of kind USER_ACCOUNT whose object id is the caller's user id, and nothing else. An entry of another kind whose object id
  * happens to be the same UUID is not theirs. The action and field whitelists are unchanged.
  */
-@Testcontainers
 class OwnLoginRecordsBySubjectIT extends P5Support {
 
     static final String OWN = "/api/v1/platform/own-login-records";
@@ -33,9 +32,12 @@ class OwnLoginRecordsBySubjectIT extends P5Support {
     static final String LOGOUT = "platform.identity.logout";
     static final String ROLES_REPLACED = "platform.identity.account.roles.replaced";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(OwnLoginRecordsBySubjectIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Test
     @DisplayName("R-1b P5 ADR-0033 第 7 项第 2 条 / ADR-0027 第 3 项第 3 条：员工查本人登录记录只按「用户账号 + 本人用户 ID」取——本人的登录成功、失败、登出都在；他人的不在；类别不同而对象 ID 恰为本人用户 ID 的条目不在")

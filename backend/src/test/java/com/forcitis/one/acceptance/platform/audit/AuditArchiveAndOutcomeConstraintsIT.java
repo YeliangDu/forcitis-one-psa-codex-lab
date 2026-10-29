@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.audit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.acceptance.P5Names;
 import java.sql.Connection;
@@ -14,10 +16,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.postgresql.util.PSQLException;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * DATA-REPAIR-timesheet-audit PR-3 (TB-06, TB-08; one-data ruling 2026-10-16): black-box checks of the database constraints.
@@ -26,7 +26,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * Audit entries carry an explicit created_at inside a pre-built partition (no DEFAULT partition, ADR-0048).
  * Not pinned on purpose (ruled out): paired outcome/method/address, "address implies outcome", first/last same-month CHECK.
  */
-@Testcontainers
 class AuditArchiveAndOutcomeConstraintsIT extends AcceptanceSupport {
 
     static final String CHECK_VIOLATION = "23514";
@@ -38,9 +37,12 @@ class AuditArchiveAndOutcomeConstraintsIT extends AcceptanceSupport {
     static final String CK_LOGIN_METHOD = "ck_audit_entries_login_method_outcome";
     static final String VALID_HASH = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AuditArchiveAndOutcomeConstraintsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** SQLSTATE and constraint name of what the database answered; state is "accepted" when the row went in. */
     private record Outcome(String state, String constraint) {

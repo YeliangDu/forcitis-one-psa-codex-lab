@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -23,12 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.DefaultApplicationArguments;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.util.ClassUtils;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P3b, ADR-0033 section 3 item 6 and RULING-P3B-D8 / RULING-P3B-7: the read-only operations command that lists the employee ids and
@@ -37,12 +37,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * platform.integration with {@code int run(ApplicationArguments, PrintStream out, PrintStream err)}, the same shape as the operations
  * commands of identity; it is looked up at run time, and a missing one fails the test.
  */
-@Testcontainers
 class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ExternalSubjectLookupCommandIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** Command and argument names of RULING-P3B-D8 (one-glossary 2026-10-15): the subject and the kind of its identity provider. */
     static final String FIND_ACCOUNTS = "find-accounts-by-external-subject";

@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.forcitis.one.acceptance.P4Names;
 import com.forcitis.one.kernel.Uuids;
@@ -13,10 +15,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P4 ADR-0033 guard 10 (FlowableIdTest), item 8 item 1: the engine takes its ids from the kernel id generator, so the process
@@ -24,12 +24,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * The clock is moved to an instant of its own before each start so that the millisecond counter of the generator has not been used up
  * by what the test class did before.
  */
-@Testcontainers
 class EngineIdsIT extends ApprovalP4Support {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(EngineIdsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private static boolean canonical(String text) {
         try {

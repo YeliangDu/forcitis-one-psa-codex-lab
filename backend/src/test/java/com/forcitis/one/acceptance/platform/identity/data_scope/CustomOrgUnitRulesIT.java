@@ -5,6 +5,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.DataScopeSupport;
 import com.forcitis.one.kernel.Uuids;
 import com.jayway.jsonpath.JsonPath;
@@ -18,12 +20,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * F-1 card (#728), constraint table rows 4 and 7 and section "引用" (the application half of the first block): what saving a role with
@@ -33,12 +33,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * exists (a dangling one is caught by the scope review). Rows are read from identity's own schema; the assumed contract is in
  * F1_728_ACCEPTANCE.md.
  */
-@Testcontainers
 class CustomOrgUnitRulesIT extends DataScopeSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = startedDatabase();
+    static final TestDatabase postgres = TestPostgres.database(CustomOrgUnitRulesIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @BeforeAll
     void twoAdministratorsAndAnOrganisation() throws Exception {

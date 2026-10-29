@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
@@ -23,15 +25,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P3b, ADR-0033 section 3 item 5 (card section 3.2 item 4): the subject of a signed ticket is the organisation source's person id. It is
@@ -40,7 +38,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * The ticket is signed here with the wire form of ADR-0009 section 3 (base64url(kid|issuer|subject|nonce|issuedAt|expiresAt) "." base64url(HMAC-SHA256));
  * the issuer key is generated per run and handed to the application as the environment property its key reference names.
  */
-@Testcontainers
 class SignedTicketSubjectIT extends AccountsAcceptanceSupport {
 
     static final String TICKET_LOGIN = "/api/v1/platform/sessions:ticket-login";
@@ -52,9 +49,12 @@ class SignedTicketSubjectIT extends AccountsAcceptanceSupport {
     static final String KEY_PROPERTY = String.join("_", "FORCITIS", "TICKET", "KEY", "ACCEPTANCE", "P3B");
     static final String KEY = randomKey();
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(SignedTicketSubjectIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @DynamicPropertySource
     static void issuerKey(DynamicPropertyRegistry registry) {

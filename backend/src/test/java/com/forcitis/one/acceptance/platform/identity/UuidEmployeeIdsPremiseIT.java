@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -9,10 +11,8 @@ import java.sql.ResultSet;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P3b ★ (ADR-0033 section 3 items 1 and 3; card section 4 items 8 and 9): the reverse tests of the "本人" gates (EmergencyLoginEmploymentIT,
@@ -21,12 +21,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * unchanged once the employee ids are UUIDs. This case pins that they then really run with UUIDs: the build's EmployeeId wraps a UUID,
  * the employee id an account names is the UUID the employee entry has, and it is not the account's own UUID.
  */
-@Testcontainers
 class UuidEmployeeIdsPremiseIT extends AccountsAcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(UuidEmployeeIdsPremiseIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Test
     @DisplayName("R-1b P3b ADR-0033 第 3 项第 3 条：「本人」闸门反向测试的前提——员工 ID 为 UUID，账号所指员工 ID 即员工条目的 UUID，且与用户 ID 不同")

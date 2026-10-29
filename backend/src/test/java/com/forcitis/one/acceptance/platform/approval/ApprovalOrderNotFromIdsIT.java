@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.forcitis.one.acceptance.P4Names;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
@@ -20,13 +22,11 @@ import org.junit.jupiter.api.Test;
 import org.postgresql.util.PSQLException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P4 ADR-0033 section 1 items 9 and 10 (CS-2.21), acceptance items 4, 5 and 6: nothing about the approval depends on how its ids
@@ -35,7 +35,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * of the request), the tasks of a request are restored by creation time, and the request gets its id when it is made, not in the
  * repository.
  */
-@Testcontainers
 class ApprovalOrderNotFromIdsIT extends ApprovalP4Support {
 
     @TestConfiguration
@@ -47,9 +46,12 @@ class ApprovalOrderNotFromIdsIT extends ApprovalP4Support {
         }
     }
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ApprovalOrderNotFromIdsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     DescendingIds ids;

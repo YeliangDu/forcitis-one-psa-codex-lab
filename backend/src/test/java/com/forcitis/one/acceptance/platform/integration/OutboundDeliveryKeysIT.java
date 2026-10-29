@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.P4Names;
 import com.forcitis.one.kernel.WecomUserId;
@@ -37,15 +38,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P4 ADR-0033 section 7 item 3 and card decision D-4/D-5 (acceptance item 8): an outbound card is identified by the structured
@@ -56,7 +53,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * constructors found at run time, so this class compiles before the key type exists and fails at run time until it does.
  */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true", "spring.datasource.hikari.connection-timeout=2000"})
-@Testcontainers
 class OutboundDeliveryKeysIT {
 
     static final String TOKEN_PATH = "/cgi-bin/gettoken";
@@ -89,9 +85,12 @@ class OutboundDeliveryKeysIT {
     @MockitoBean
     RoleDirectory roleDirectory;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(OutboundDeliveryKeysIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     WecomGateway gateway;
