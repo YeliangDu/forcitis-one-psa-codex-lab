@@ -17,14 +17,18 @@ The rule tables of the coding standards are read too (#860): the Check column of
 (and the `Check:` line of each prose CS block), and the "Enforced by" column of the implemented guard tables of
 docs/rules/naming-standard.md §4. A cell is parts separated by ";", each `manual: review`, `planned: <ids>` or a comma list of
 enforcers; text in (parentheses) is a note. An enforcer is a guard id or range (G1–G33, F1–F4) defined in an implemented table, or a
-`backticked` name that resolves: `pnpm <script>`; `Class#member`; an ESLint rule named in an eslint config; a path; a file name;
-a Java class; a member of a backend test class; a workflow job. Planned ids are those of coding-standard.md §8 and of the
-naming-standard.md planned table. docs/rules/coding-core.md §A cites golden files as `Class#member`.
-  RE-4 a Check cell is empty or has text that is no part of the grammar (e.g. "to be built": write `planned: <id>`)
+`backticked` name that resolves: `pnpm <script>`; `TestClass#member`; an ESLint rule named in an eslint config; a path; a file name;
+a test class; a member of a backend test class; a workflow job. Classes resolve only under backend/src/test (production code is
+no enforcer). Planned ids are those of coding-standard.md §8 and of the naming-standard.md planned table. docs/rules/coding-core.md
+§A cites golden files as `Class#member` (main or test). A file, section or table that is gone or changed shape fails, so the check
+cannot pass by reading nothing.
+  RE-4 a Check cell is empty or has text that is no part of the grammar (e.g. "to be built": write `planned: <id>`), or a rule row
+       or prose rule does not start with its bare id (`| CS-2.8 |`, `**CS-2.25 Title**`)
   RE-5 an enforcer does not resolve, or a guard id is not in an implemented table
   RE-6 a `planned:` id is in no planned table, or is also implemented (then name the guard)
   RE-7 a planned row says a `path` is "to be created" while the path exists (the plan is stale)
   RE-8 a golden file in coding-core.md §A is not `Class#member`, or the class or member does not exist
+  RE-9 a file, section or table this check reads is missing or has no rows
 
   check_rules_enforced.py              check the repository (run from its root)
   check_rules_enforced.py --self-test  a red case per rule
@@ -118,20 +122,24 @@ def expand(text):
     return [f"{a[0]}{n}" for n in range(int(a[1]), int(b[1]) + 1)]
 
 
-def rows(text, first):
-    """(line, cells) of each table row whose first cell matches the regex first."""
-    for no, line in enumerate(text.splitlines(), 1):
-        if line.startswith("|"):
-            cells = [c.strip() for c in line.strip().strip("|").split("|")]
-            if re.fullmatch(first, cells[0]):
-                yield no, cells
+def rows(text, first=None):
+    """(line, cells) of each table row, header and separator rows left out; with first, only rows whose first cell matches it."""
+    lines = text.splitlines()
+    for no, line in enumerate(lines, 1):
+        if not line.startswith("|") or re.fullmatch(r"\|[\s|:-]*", line.strip()):
+            continue
+        if no < len(lines) and re.fullmatch(r"\|[\s|:-]*-[\s|:-]*", lines[no].strip()):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if first is None or re.fullmatch(first, cells[0]):
+            yield no, cells
 
 
 def section(text, start, end=r"^#{2,3} "):
-    """The lines from the heading matching start to the next heading, with their line offset."""
+    """The lines from the heading matching start to the next heading, with their line offset; None when the heading is gone."""
     m = re.search(start, text, re.M)
     if not m:
-        return "", 0
+        return None, 0
     rest = text[m.end():]
     n = re.search(end, rest, re.M)
     return rest[:n.start()] if n else rest, text.count("\n", 0, m.end())
@@ -165,15 +173,17 @@ class Repo:
                 return True
         return False
 
-    def classes(self, name):
-        return [f for f in self.base.get(name + ".java", []) if f.startswith("backend/src/")]
+    def classes(self, name, main=False):
+        roots = ("backend/src/test/", "backend/src/main/") if main else ("backend/src/test/",)
+        return [f for f in self.base.get(name + ".java", []) if f.startswith(roots)]
 
-    def resolves(self, token):
+    def resolves(self, token, main=False):
+        """Whether token names something that exists; classes only under backend/src/test unless main (golden files)."""
         if token.startswith("pnpm "):
             return token[5:] in self.pnpm
         if "#" in token:
             cls, _, member = token.partition("#")
-            return any(self.declares(f, member) for f in self.classes(cls))
+            return any(self.declares(f, member) for f in self.classes(cls, main))
         if re.fullmatch(r"(@[\w-]+/)?[a-z][\w-]*(/[\w-]+)?", token) and re.search(rf"['\"]{re.escape(token)}['\"]", self.eslint):
             return True
         if "/" in token:
@@ -181,7 +191,7 @@ class Repo:
         if re.fullmatch(r"[\w.-]+\.[a-z]{1,5}", token):
             return token in self.base
         if re.fullmatch(r"[A-Z]\w*", token):
-            return bool(self.classes(token))
+            return bool(self.classes(token, main))
         if re.fullmatch(r"[a-z]\w*", token) and any(self.declares(f, token) for f in self.tests):
             return True
         return token in self.jobs
@@ -207,7 +217,7 @@ def cell_parts(cell):
             tok = re.fullmatch(r"\0(\d+)\0", item)
             if tok and kind == "guard":
                 items.append("`" + names[int(tok.group(1))])
-            elif expand(item):
+            elif expand(item) is not None:
                 items.extend(expand(item))
             else:
                 return None
@@ -215,17 +225,25 @@ def cell_parts(cell):
     return out
 
 
-def guard_tables(text):
-    """(implemented ids -> (line, enforcer cell), planned ids) of naming-standard.md §4."""
+GUARD_HEADINGS = (r"^### Backend, implemented.*$", r"^### Frontend, implemented.*$", r"^### Planned guards.*$")
+
+
+def guard_tables(text, found):
+    """(implemented ids -> (line, enforcer cell), planned ids) of naming-standard.md §4; shape problems go to found."""
     implemented, planned = {}, set()
-    for heading in (r"^### Backend, implemented.*$", r"^### Frontend, implemented.*$"):
-        body, offset = section(text, heading)
-        for line, cells in rows(body, rf"{GUARD_ID}(?:[–-]{GUARD_ID})?"):
-            for gid in expand(cells[0]) or []:
-                implemented[gid] = (line + offset, cells[-1])
-    body, offset = section(text, r"^### Planned guards.*$", r"^## ")
-    for line, cells in rows(body, rf"{GUARD_ID}(?:[–-]{GUARD_ID})?"):
-        planned.update(expand(cells[0]) or [])
+    for heading in GUARD_HEADINGS:
+        body, offset = section(text, heading, r"^## " if "Planned" in heading else r"^#{2,3} ")
+        table = list(rows(body)) if body is not None else []
+        if not table:
+            found.append(f"RE-9 {NAMING}: no table rows under the heading /{heading[1:-2]}/. fix: restore the heading and its table, or update this check")
+        for line, cells in table:
+            ids = expand(cells[0])
+            if not ids:
+                found.append(f"RE-4 {NAMING}:{line + offset}: row `{cells[0]}` does not start with a bare guard id or range. fix: put the id alone in the first cell")
+            elif "Planned" in heading:
+                planned.update(ids)
+            else:
+                implemented.update((gid, (line + offset, cells[-1])) for gid in ids)
     return implemented, planned
 
 
@@ -252,37 +270,52 @@ def check_cells(repo, implemented, planned, cells):
 
 
 def table_problems(root):
-    if not all(os.path.exists(os.path.join(root, f)) for f in (CODING, NAMING, CORE)):
-        return []
+    missing = [f for f in (CODING, NAMING, CORE) if not os.path.exists(os.path.join(root, f))]
+    if missing:
+        return [f"RE-9 {f}: missing, so its rules are not checked. fix: restore it, or move this check to its new place" for f in missing]
     repo = Repo(root)
     coding, naming, core = (repo.read(f) for f in (CODING, NAMING, CORE))
-    implemented, planned = guard_tables(naming)
+    found = []
+    implemented, planned = guard_tables(naming, found)
     planned |= {cells[0] for _, cells in rows(coding, r"G-CS\d+")}
-    cells = [(f"{CODING}:{line} {c[0]}", c[-1]) for line, c in rows(coding, r"CS-\d+\.\d+")]
+    cells = []
+    for line, c in rows(coding, r"\W*CS-.*"):
+        if re.fullmatch(r"CS-\d+\.\d+", c[0]):
+            cells.append((f"{CODING}:{line} {c[0]}", c[-1]))
+        else:
+            found.append(f"RE-4 {CODING}:{line}: rule row `{c[0]}` does not start with a bare CS-x.y id, so its Check cell would go unread."
+                         f" fix: put the id alone in the first cell")
     lines = coding.splitlines()
     for no, line in enumerate(lines, 1):
+        if not re.match(r"\W*CS-\d", line) or line.startswith("|"):
+            continue
         block = re.match(r"\*\*(CS-\d+\.\d+) ", line)
-        if block:
-            check = next((i for i in range(no, len(lines)) if lines[i].startswith(("Check: ", "**CS-", "#"))), None)
-            if check is None or not lines[check].startswith("Check: "):
-                found_line = f"{CODING}:{no} {block.group(1)}"
-                cells.append((found_line, ""))
-            else:
-                cells.append((f"{CODING}:{check + 1} {block.group(1)}", lines[check][len("Check: "):]))
+        if not block:
+            if line.startswith("**"):
+                found.append(f"RE-4 {CODING}:{no}: prose rule `{line[:30]}` does not start `**CS-x.y Title`. fix: write the bare id after **")
+            continue
+        check = next((i for i in range(no, len(lines)) if lines[i].startswith(("Check: ", "**", "#"))), None)
+        if check is None or not lines[check].startswith("Check: "):
+            cells.append((f"{CODING}:{no} {block.group(1)}", ""))
+        else:
+            cells.append((f"{CODING}:{check + 1} {block.group(1)}", lines[check][len("Check: "):]))
+    if not cells:
+        found.append(f"RE-9 {CODING}: no CS-x.y rule rows found. fix: restore the rule tables, or update this check")
     cells += [(f"{NAMING}:{line} {gid}", cell) for gid, (line, cell) in sorted(implemented.items())]
-    found = check_cells(repo, implemented, planned, cells)
-    body, offset = section(naming, r"^### Planned guards.*$", r"^## ")
-    for line, row in rows(body, rf"{GUARD_ID}(?:[–-]{GUARD_ID})?"):
+    found += check_cells(repo, implemented, planned, cells)
+    body, offset = section(naming, GUARD_HEADINGS[2], r"^## ")
+    for line, row in rows(body or ""):
         for path in re.findall(r"`([^`]+)` \(to be created", " ".join(row)):
-            if repo.resolves(path):
+            if repo.resolves(path, main=True):
                 found.append(f"RE-7 {NAMING}:{line + offset} {row[0]}: `{path}` is \"to be created\" but exists."
                              f" fix: move the guard to an implemented table naming it, or correct the plan")
-    body, offset = section(core, r"^## A\. .*$", r"^## ")
-    for line, row in rows(body, r"[A-Z][\w /]*"):
-        if row[0] == "Part":
-            continue
-        for token in re.findall(r"`([^`]+)`", row[1]) or [row[1]]:
-            if not re.fullmatch(r"[A-Z]\w*#\w+", token) or not repo.resolves(token):
+    body, offset = section(core, r"^## A\..*$", r"^## ")
+    golden = list(rows(body)) if body is not None else []
+    if not golden:
+        found.append(f"RE-9 {CORE}: no golden-file table under `## A.`. fix: restore the section and its table, or update this check")
+    for line, row in golden:
+        for token in (re.findall(r"`([^`]+)`", row[1]) if len(row) > 1 else []) or [row[1] if len(row) > 1 else ""]:
+            if not re.fullmatch(r"[A-Z]\w*#\w+", token) or not repo.resolves(token, main=True):
                 found.append(f"RE-8 {CORE}:{line + offset} {row[0]}: golden file `{token}` is not an existing `Class#member`"
                              f" (line numbers drift). fix: cite the class and the method or field that shows the pattern")
     return found
@@ -297,7 +330,8 @@ def self_test():
 
         def hit(rules, library=None, tool_library=None):
             write("docs/rules/rules.md", rules)
-            return sorted({p.split()[0] for p in problems(tmp, library or os.path.join(tmp, "nolib"), tool_library or {})})
+            found = problems(tmp, library or os.path.join(tmp, "nolib"), tool_library or {})
+            return sorted({p.split()[0] for p in found if p.split()[0] in ("RE-1", "RE-2", "RE-3")})  # the standards are absent here (RE-9)
 
         write("scripts/guards/post_review.py", "")
         write("tools/x/mq.sh", "")
@@ -326,22 +360,24 @@ def table_self_test():
 
         write("backend/src/test/java/x/ArchTest.java", "class ArchTest {\n    static final ArchRule noCycles = rule();\n    @Test\n    void layers() { return check(); }\n}\n")
         write("backend/src/main/java/x/SubmitThing.java", "class SubmitThing {\n    public Result execute(Command c) {\n        return other.run(c);\n    }\n}\n")
+        write("backend/src/test/java/x/CallTest.java", "class CallTest {\n    void a() {\n        return check(c);\n    }\n}\n")
         write("scripts/guards/file_lines.py", "")
         write("frontend/eslint.config.js", "rules: { 'no-restricted-syntax': ['error'] }\n")
         write("frontend/package.json", '{"scripts": {"typecheck": "tsc"}}')
         write(".github/workflows/ci.yml", "on: push\njobs:\n  gitleaks:\n    runs-on: x\n")
         naming = ("### Backend, implemented\n\n| # | Rule | Enforced by |\n|---|---|---|\n| G1 | r | `noCycles` |\n| G2 | r | `ArchTest#layers` (note) |\n\n"
                   "### Frontend, implemented\n\n| # | Rule | Enforced by |\n|---|---|---|\n| F1–F2 | r | `frontend/eslint.config.js` |\n\n"
-                  "### Planned guards (not implemented)\n\n| # | Check | Source | Before | Owner |\n|---|---|---|---|---|\n| G3 | r | s | b | unscheduled |\n{planned}\n## 5. Next\n")
+                  "### Planned guards (not implemented)\n\n| # | Check | Source | Before | Owner |\n|---|---|---|---|---|\n| G3 | r | s | b | unscheduled |\n| G2 | r | s | b | unscheduled |\n{planned}\n## 5. Next\n")
         coding = ("| # | Rule | Source | Check |\n|---|---|---|---|\n| CS-1.1 | r | s | {cell} |\n\n**CS-2.20 Prose rule** (new)\n- text\n{prose}\n\n"
                   "| Id | Rule | Points |\n|---|---|---|\n| G-CS1 | CS-2.20 | p |\n")
-        core = "## A. Golden files\n\n| Part | Class#member | Pattern |\n|---|---|---|\n| Use case | `{golden}` | p |\n\n## B. Rules\n"
+        core = "## A. Golden files\n\n| Part | Class#member | Pattern |\n|---|---|---|\n| {part} | `{golden}` | p |\n\n## B. Rules\n"
 
         def hit(cell="Guard: G1, F1–F2, `ArchTest`, `file_lines.py`, `no-restricted-syntax`, `pnpm typecheck`, `gitleaks` (n, m); manual: review",
-                prose="\nCheck: planned: G-CS1; Guard: `ArchTest#noCycles`", golden="SubmitThing#execute", planned=""):
-            write(CODING, coding.format(cell=cell, prose=prose))
+                prose="\nCheck: planned: G-CS1; Guard: `ArchTest#noCycles`", golden="SubmitThing#execute", planned="", part="Use case",
+                coding_text=None, core_text=None):
+            write(CODING, coding_text or coding.format(cell=cell, prose=prose))
             write(NAMING, naming.format(planned=planned))
-            write(CORE, core.format(golden=golden))
+            write(CORE, core_text or core.format(golden=golden, part=part))
             return sorted({p.split()[0] for p in table_problems(tmp)})
 
         assert hit() == [], "every enforcer kind resolves"
@@ -355,10 +391,30 @@ def table_self_test():
         assert hit(cell="Guard: `scripts/guards/gone.py`") == ["RE-5"], "a path that does not exist"
         assert hit(cell="Guard: G1–G3") == ["RE-5"], "a range that reaches a planned guard"
         assert hit(cell="planned: G9") == ["RE-6"], "a planned id in no planned table"
-        assert hit(cell="planned: G1") == ["RE-6"], "a planned id that is implemented"
+        assert hit(cell="planned: G2") == ["RE-6"], "a planned id that is also implemented (G2 is in both tables here)"
+        assert hit(cell="Guard: `no-console`") == ["RE-5"], "an ESLint rule no eslint config names"
+        assert hit(cell="Guard: `CallTest#check`") == ["RE-5"], "`return check(...)` is a call, not a declaration"
+        assert hit(cell="Guard: G2–G1") == ["RE-4"], "a reversed range"
+        assert hit(cell="Guard: `SubmitThing`") == ["RE-5"], "a production class is no enforcer"
+        assert hit(cell="Guard: `SubmitThing#execute`") == ["RE-5"], "a production member is no enforcer"
+        assert hit(coding_text=coding.format(cell="manual: review", prose="\nCheck: planned: G-CS1").replace("| CS-1.1 |", "| CS-1.1 (new) |")) == ["RE-4"], "a rule row whose id cell carries more than the id"
+        assert hit(coding_text=coding.format(cell="manual: review", prose="").replace("**CS-2.20 ", "**CS-2.20: ")) == ["RE-4"], "a prose rule whose heading changed shape"
+        assert hit(coding_text="no rules here\n") == ["RE-9"], "a standard with no rule rows"
+        assert hit(part="Money (kernel)", golden="SubmitThing:2") == ["RE-8"], "every golden row is read, whatever its Part says"
+        assert hit(core_text=core.format(golden="SubmitThing:2", part="Use case").replace("## A. Golden", "## A Golden")) == ["RE-9"], "a renamed §A heading"
+        write(CORE, core.format(golden="SubmitThing#execute", part="Use case"))
+        write(NAMING, naming.format(planned="").replace("### Frontend, implemented", "### Frontend guards"))
+        assert sorted({p.split()[0] for p in table_problems(tmp)}) == ["RE-5", "RE-9"], "a renamed guard-table heading (its ids are then unknown too)"
+        os.remove(os.path.join(tmp, CORE))
+        assert sorted({p.split()[0] for p in table_problems(tmp)}) == ["RE-9"], "a missing coding-core.md"
+        write(CORE, core.format(golden="SubmitThing#execute", part="Use case"))
+        write(CODING, coding.format(cell="#810 line-count check (to be built)", prose="\nCheck: planned: G-CS1"))
+        assert "RE-4" in {p.split()[0] for p in problems(tmp, os.path.join(tmp, "nolib"), {})}, "the check light.sh runs includes the tables"
         assert hit(planned="| G4 | `scripts/guards/file_lines.py` (to be created): count | s | b | unscheduled |") == ["RE-7"], "a stale plan"
         assert hit(golden="SubmitThing:2") == ["RE-8"], "a golden file by line number"
         assert hit(golden="SubmitThing#gone") == ["RE-8"], "a golden member that does not exist"
+        assert hit(golden="SubmitThing") == ["RE-8"], "a golden class without its member"
+        assert hit(planned="| G9 (old) | r | s | b | unscheduled |") == ["RE-4"], "a guard row whose id cell carries more than the id"
 
 
 if __name__ == "__main__":
