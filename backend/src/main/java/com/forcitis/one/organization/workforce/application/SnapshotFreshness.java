@@ -3,7 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.support.CronExpression;
@@ -36,16 +36,16 @@ class SnapshotFreshness {
     /** The longest gap between two triggers within a week, so a cron with uneven gaps counts by its longest; a cron that fires less than twice a week is refused. */
     static Duration cycleOf(String cron) {
         CronExpression expression = CronExpression.parse(cron);
-        LocalDateTime windowStart = LocalDateTime.of(2026, 1, 1, 0, 0);
-        LocalDateTime windowEnd = windowStart.plusDays(7);
+        OffsetDateTime windowStart = OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        OffsetDateTime windowEnd = windowStart.plusDays(7);
         Duration longest = null;
-        LocalDateTime previous = expression.next(windowStart);
+        OffsetDateTime previous = expression.next(windowStart);
         while (previous != null && previous.isBefore(windowEnd)) {
-            LocalDateTime next = expression.next(previous);
+            OffsetDateTime next = expression.next(previous);
             if (next == null || !next.isBefore(windowEnd)) {
                 break;
             }
-            Duration gap = Duration.between(previous.toInstant(ZoneOffset.UTC), next.toInstant(ZoneOffset.UTC));
+            Duration gap = Duration.between(previous, next);
             if (longest == null || gap.compareTo(longest) > 0) {
                 longest = gap;
             }

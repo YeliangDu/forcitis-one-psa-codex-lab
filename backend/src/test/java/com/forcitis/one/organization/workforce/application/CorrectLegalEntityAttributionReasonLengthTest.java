@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.CallerPermissions;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -29,17 +30,19 @@ class CorrectLegalEntityAttributionReasonLengthTest {
     final LegalEntityAttributionRepository attributions = mock(LegalEntityAttributionRepository.class);
     final AttributionSubjects subjects = mock(AttributionSubjects.class);
     final CallerPermissions caller = mock(CallerPermissions.class);
+    final CurrentUser currentUser = mock(CurrentUser.class);
     final CorrectLegalEntityAttribution correct = new CorrectLegalEntityAttribution(attributions, subjects, mock(DomainEvents.class), caller,
-            mock(AuditLog.class), mock(OwnAttributionGuard.class));
+            mock(AuditLog.class), mock(OwnAttributionGuard.class), currentUser);
     final UUID subjectId = UUID.randomUUID();
 
     CorrectLegalEntityAttributionReasonLengthTest() {
         when(caller.holds(CorrectLegalEntityAttribution.PERMISSION)).thenReturn(true);
+        when(currentUser.userId()).thenReturn(TestAccounts.account(1001));
         when(subjects.require(any(), any())).thenThrow(REACHED_SUBJECT_LOOKUP);
     }
 
     private void run(String reason) {
-        correct.execute(AttributionKind.EMPLOYEE, subjectId, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 6, 30), reason, TestAccounts.account(1001),
+        correct.execute(AttributionKind.EMPLOYEE, subjectId, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 6, 30), reason,
                 ExpectedVersion.of(1));
     }
 
