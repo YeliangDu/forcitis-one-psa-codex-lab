@@ -18,7 +18,7 @@ import sys
 import tempfile
 
 MAX_LINES = 1000
-SUFFIXES = (".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".py", ".sh")
+SUFFIXES = (".java", ".kt", ".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs", ".py", ".sh", ".sql")
 OVER = {  # path -> (registered lines, reason); shrink only
     "backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java":
         (1424, "acceptance test: only the test engineer splits it (CLAUDE.md baseline 4)"),
@@ -63,6 +63,10 @@ def problems(root, files=None, over=OVER, limit=MAX_LINES):
     return found
 
 
+def tracked_like(found):
+    return [p.split()[1].rstrip(":") for p in found]
+
+
 def self_test():
     with tempfile.TemporaryDirectory() as tmp:
         def write(rel, n):
@@ -86,6 +90,12 @@ def self_test():
         assert hit([], {"a/gone.py": (12, "r")}) == ["FL-3"], "an entry for a file that is gone"
         assert "fix: split it" in problems(tmp, ["a/A.java"], {}, limit=10)[0], "a failure says how to fix it"
         assert all(p.endswith(SUFFIXES) for p in OVER), "OVER lists only checked suffixes"
+        for suffix in SUFFIXES:
+            write("b/f" + suffix, 11)
+        files = ["b/f" + suffix for suffix in SUFFIXES]
+        assert sorted(tracked_like(problems(tmp, files, {}, limit=10))) == sorted(files), "every suffix is checked"
+        for suffix in (".java", ".ts", ".mts", ".sql", ".jsx"):
+            assert suffix in SUFFIXES, f"{suffix} is a code file"
     print("file_lines self-test: ok")
 
 
