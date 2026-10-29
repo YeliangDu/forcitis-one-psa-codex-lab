@@ -418,7 +418,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 - SQL 只引用本模块 schema（扫描 `infrastructure.persistence` 里的 SQL 文本）；
 - 每个 P0 规则都有一个以 `RULE_NNN_` 开头的测试（对照 `docs/business/business-rules.md` 检查覆盖率）；
 - 新出现的聚合、事件、表名必须在词表中；
-- 单个文件不超过 400 行、单个方法不超过 60 行（Checkstyle）；
+- 单个文件超过 1000 行必须拆分（复审必改，`scripts/review/PROMPT.md`）；≤ 400 行 / 文件、≤ 60 行 / 方法只是复审建议，不设 Checkstyle 硬门槛（CS-1.15）；
 - 前端用 ESLint 的 `no-restricted-imports` 禁止跨模块 import 内部目录。
 
 

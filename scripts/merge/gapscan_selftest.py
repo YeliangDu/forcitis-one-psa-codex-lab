@@ -54,8 +54,8 @@ def run(mq, d):
     assert slept[:3] == [60, 1800, 1800] and len(calls) == 3 and any("gap scan: RuntimeError: boom" in l for l in log.lines), "scans on its own clock and survives a failing scan"
     # the owner comes from policy.json alone: current names, old names and old branch families through aliases; an unknown name is reported, not guessed
     owners = gapscan.load_owners()
-    for branch, owner in (("claude/one-dev-org-753", "one-dev-org"), ("one-1a-par-731", "one-dev-org"), ("claude/one-1a-par-731", "one-dev-org"), ("claude/one-coordinator-x", "one-leader"),
-                          ("claude/nx5-1", "one-dev-org"), ("claude/one-ops", "one-ops"), ("claude/one-opsx-1", "?(claude/one-opsx-1)"), ("test/735-isolation-fix", "?(test/735-isolation-fix)")):
+    for branch, owner in (("claude/one-dev-org-753", "one-dev-org"), ("one-1a-par-731", "one-dev-org"), ("claude/one-1a-par-731", "one-dev-org"), ("claude/one-coordinator-x", "one-lead"),
+                          ("claude/nx5-1", "one-dev-org"), ("claude/one-ops", "one-platform"), ("claude/one-platform-810-x", "one-platform"), ("claude/one-platform-file-1", "one-dev-org"), ("claude/one-opsx-1", "?(claude/one-opsx-1)"), ("test/735-isolation-fix", "?(test/735-isolation-fix)")):
         assert gapscan.author_session(branch, owners) == owner, (branch, gapscan.author_session(branch, owners))
     policy = json.load(open(gapscan.POLICY, encoding="utf-8"))["sessions"]
     assert set(owners.values()) == set(policy["config"]), "every name and alias leads to a session of sessions.config"
