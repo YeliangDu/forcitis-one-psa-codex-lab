@@ -22,7 +22,7 @@ CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 | Listener | `ApplyApprovalResult:41` | `@ApplicationModuleListener` in application, dedupe first |
 | Time | `JdbcRoleRepository:347` | `Instant` + `BusinessZone`; JDBC `OffsetDateTime`, not `Timestamp` |
 | ID | `CreateLegalEntity:29` | inject `IdGenerator` |
-| Money | `Money:10` | compute unrounded, round HALF_UP to the minor unit when forming; total = sum of rounded lines (FD-02/07/08; now: rounds on construction) |
+| Money | `ExactMoney:25` | compute in `ExactMoney`, unrounded; `round()` to `Money` HALF_UP to the minor unit; total = sum of rounded lines (FD-02/07/08) |
 | Workflow | `FlowableApprovalEngine:54` | Flowable only in the adapter; callers use `ApprovalProcesses` |
 | Unit test | `TimesheetStateMachineTest:62` | no Spring, fixed date |
 | IT / acceptance | `AuditExportAndOwnRecordsIT:36`, `WorkCalendarMakeUpWeekendIT:38` | MockMvc + `TestPostgres.database`; `@DisplayName` starts with the card or rule id |
