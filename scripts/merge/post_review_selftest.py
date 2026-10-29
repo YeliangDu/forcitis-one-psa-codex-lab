@@ -6,6 +6,7 @@
 import json
 import os
 import pathlib
+import re
 import sys
 import tempfile
 from unittest import mock
@@ -423,9 +424,13 @@ def case_issue_refs_first_line():
 def case_prompt_dispatch_rules():
     """卡 #736：复审提示写明开发会话派全新子代理、普通卡 sonnet、权限安全数据范围与守护路径 opus、只跑受影响模块；复核模式已删；机读头仍能被 post_review 解析。"""
     text = (pathlib.Path(pr_mod.__file__).parents[1] / "review" / "PROMPT.md").read_text(encoding="utf-8")
-    for need in ("由开发会话（作者）自己派", "全新复审子代理", "普通卡用 sonnet", "权限、安全、数据范围类", "review.final_paths", "用 opus", "只跑受影响模块", "调度看差异放行"):
+    for need in ("The development session (the author) dispatches", "fresh review subagent", "sonnet for normal cards", "permission, security and data-scope cards",
+                 "review.final_paths", "; opus for", "Run tests only for the affected modules", "lead reviews the fix diff and releases it"):   # #822: English since 10-29
         assert need in text, need
     assert "复核模式" not in text and "逐条复核上一轮必改" not in text, "复核要求已删"
+    assert "Must-fix fixes are not re-reviewed" in text, "the English prompt still says fixes are not re-reviewed"
+    assert not re.search(r"(?i)re-?review mode|re-?check(?:ing)? (?:each|every|the previous round's) must-fix|re-?review(?:ing)? (?:each|every|the previous round's) must-fix",
+                         text), "no re-review mode came back in English (#822)"
     fence = text.split("```")[1].strip().split("\n")
     assert fence == ["复审结论：通过｜必改", "commit：<40 位 sha>", "复审者：<模型>-<首轮|终审>-<标识>"], fence
     assert pr_mod.parse_header(header(PASS, SHA, "sonnet-首轮-a1")) and pr_mod.parse_header(header(FIX, SHA, "opus-终审-a1")), "sonnet 首轮与 opus 终审的头都能解析"
