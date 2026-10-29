@@ -22,8 +22,7 @@ docs/ops/LEGACY_READ_REGISTER.md
 __pycache__/
 .claude/session-name
 .pi-lens-probe-home/
-# 旧派生文档（生成器与 generated-docs 分支已随 #742 删除）：规则留着防本地残留误入仓
-docs/adr/ADR-*.md
+# 旧派生文档（生成器与 generated-docs 分支已随 #742 删除）：规则留着防本地残留误入仓。ADR 正本在 docs/adr/ADR-*.md（#755 去掉了 src/ 层），不再忽略
 docs/adr/INDEX.md
 docs/adr/README.md
 docs/MODERNIZATION_BRIEF.md

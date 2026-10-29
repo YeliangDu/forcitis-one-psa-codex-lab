@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从 intent/ 片段生成按主题的现行决定页 CURRENT_DECISIONS.md，上限取自 policy.json 的 decisions.current_page_max_kb（GOV-1023-FV2 G4，定稿 1.5、H14）。
+"""从 docs/decisions/ 片段生成按主题的现行决定页 CURRENT_DECISIONS.md，上限取自 policy.json 的 decisions.current_page_max_kb（GOV-1023-FV2 G4，定稿 1.5、H14）。
 取代 build_decision_digest.py（速查表）与 INTENT.md；产物不入仓（.gitignore），由本脚本在本机生成（new_intent.py 记决定后自动跑）。引用条目写文件名前缀，摘句不作依据，引用前打开原文。
 页面只列现行条目：常驻（decision-digest/standing.txt 指定，按小节）、新近（最近 5 条非常驻）、主题索引（按 decision-digest/topics.txt 分类，每主题只记条数）；超限即失败，删减 standing.txt；--topic=<主题> 把该主题全部现行条目打到终端。
 取代：片段「## 取代」段与 decision-digest/relations.txt；含推翻字样却没登记的只告警。归档：decision-digest/archived.txt 每行「完整文件名<TAB>原因码」，归档的不上页、不计入主题索引、不进疑似告警，--archived 列出。沿用原脚本的校验：文件名须为 <日期>-<HHMMSS>-<会话名>-<短名>.md 或旧式 <日期>-<三位序号>-<短名>.md；
@@ -9,8 +9,10 @@
 import json, os, re, sys, tempfile
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-BASE = os.path.join(ROOT, "docs", "modernization")
+DECISIONS = os.path.join(ROOT, "docs", "decisions")
+DIGEST = os.path.join(DECISIONS, "decision-digest")
 OUT, RECENT, CUT, POLICY = "CURRENT_DECISIONS.md", 5, 48, os.path.join(ROOT, "policy.json")
+OUT_PATH = os.path.join(os.path.dirname(DECISIONS), OUT)  # docs/CURRENT_DECISIONS.md, generated, not in git (.gitignore)
 REVERSAL = ("改选", "看错了", "先等等", "不作为最终", "推翻", "已被", "作废")
 REF = re.compile(r"[A-Za-z]+-[\dA-Za-z-]*\d[\w-]*|PR\s*#\d+|§[\d.]+|[\w./-]+\.(?:md|py|yaml|json|html|txt|yml)")
 SECTION = re.compile(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)(?:\n\n## 取代\n\n(.*?))?\n(?:\n## (?:规则|影响的 ADR|单子|题号|类别|负责会话|影响路径)\n\n[^\n]+\n)*", re.S)
@@ -51,24 +53,24 @@ def load_entries(folder):
     return entries, [f for _, f in sorted(keyed)]
 
 def load_archived(path, entries):
-    """{文件名: 原因码}；文件名不在 intent/ 下、原因码不在 ARCHIVE_REASONS 里、同一文件重复都失败。已被取代的也可归档。"""
+    """{文件名: 原因码}；文件名不在 decisions/ 下、原因码不在 ARCHIVE_REASONS 里、同一文件重复都失败。已被取代的也可归档。"""
     archived = {}
     for n, line in enumerate(read(path).splitlines(), 1):
         if not line.strip() or line.startswith("#"): continue
         parts = line.split("\t")
-        if len(parts) != 2 or parts[0] not in entries: raise ValueError(f"{path}:{n}：须为「intent/ 下的完整文件名<TAB>原因码」")
+        if len(parts) != 2 or parts[0] not in entries: raise ValueError(f"{path}:{n}：须为「decisions/ 下的完整文件名<TAB>原因码」")
         if parts[1] not in ARCHIVE_REASONS: raise ValueError(f"{path}:{n}：原因码须是 {'、'.join(ARCHIVE_REASONS)} 之一：{parts[1]!r}")
         if parts[0] in archived: raise ValueError(f"{path}:{n}：{parts[0]} 重复归档")
         archived[parts[0]] = parts[1]
     return archived
 
 def load_standing(path, entries, sup, archived):
-    """[(文件名, 小节)]，按文件顺序；文件名不在 intent/ 下、已被取代、已归档、重复、小节为空都失败。"""
+    """[(文件名, 小节)]，按文件顺序；文件名不在 decisions/ 下、已被取代、已归档、重复、小节为空都失败。"""
     rows = []
     for n, line in enumerate(read(path).splitlines(), 1):
         if not line.strip() or line.startswith("#"): continue
         parts = line.split("\t")
-        if len(parts) != 2 or parts[0] not in entries: raise ValueError(f"{path}:{n}：须为「intent/ 下的完整文件名<TAB>小节」")
+        if len(parts) != 2 or parts[0] not in entries: raise ValueError(f"{path}:{n}：须为「decisions/ 下的完整文件名<TAB>小节」")
         if not parts[1].strip(): raise ValueError(f"{path}:{n}：小节为空")
         if parts[0] in sup or parts[0] in archived: raise ValueError(f"{path}:{n}：{parts[0]} 已被取代或已归档，不能常驻")
         if parts[0] in [r[0] for r in rows]: raise ValueError(f"{path}:{n}：{parts[0]} 重复常驻")
@@ -78,7 +80,7 @@ def load_standing(path, entries, sup, archived):
 def load_relations(path, entries, order):
     pos, sup, conflicts = {n: i for i, n in enumerate(order)}, {}, []
     def add_sup(new, old, why, where):
-        if any(f not in entries for f in (new, old)): raise ValueError(f"{where}：{new} 或 {old} 不在 intent/ 下")
+        if any(f not in entries for f in (new, old)): raise ValueError(f"{where}：{new} 或 {old} 不在 decisions/ 下")
         if new == old or pos[new] < pos[old]: raise ValueError(f"{where}：取代方须是更晚的条目（{new} 不晚于 {old}）")
         lst = sup.setdefault(old, [])
         if new not in [n for n, _ in lst]: lst.append((new, why))
@@ -89,7 +91,7 @@ def load_relations(path, entries, order):
         if not line.strip() or line.startswith("#"): continue
         if len(parts) != 4 or parts[0] not in ("取代", "矛盾"): raise ValueError(f"{path}:{n}：须为「取代|矛盾<TAB>文件<TAB>文件<TAB>说明」")
         if parts[0] == "取代": add_sup(parts[1], parts[2], parts[3], f"{path}:{n}")
-        elif any(f not in entries for f in parts[1:3]) or parts[1] == parts[2]: raise ValueError(f"{path}:{n}：矛盾的两个文件须不同且都在 intent/ 下")
+        elif any(f not in entries for f in parts[1:3]) or parts[1] == parts[2]: raise ValueError(f"{path}:{n}：矛盾的两个文件须不同且都在 decisions/ 下")
         else: conflicts.append(tuple(parts[1:4]))
     for name in sup: reaches(name, None, sup)
     return sup, conflicts
@@ -129,7 +131,7 @@ def build(entries, order, topics, sup, conflicts, standing, archived=()):
     resident = [n for n, _ in standing]
     recent = [n for n in reversed(order) if n not in sup and n not in archived and n not in resident][:RECENT]
     line = lambda n: f"- `{ids[n]}` {cell(entries[n][1], CUT)}"
-    out = [f"# 现行决定页（自动生成，勿手改）\n\n共 {len(order)} 条决定，现行 {len(order) - len(set(sup) | set(archived))} 条，被取代 {len(sup)} 条、归档 {len(archived)} 条（不列），疑似取代未登记 {len(suspects)} 条。标识是 intent/ 下文件名前缀；摘句不作依据，引用前打开原文。",
+    out = [f"# 现行决定页（自动生成，勿手改）\n\n共 {len(order)} 条决定，现行 {len(order) - len(set(sup) | set(archived))} 条，被取代 {len(sup)} 条、归档 {len(archived)} 条（不列），疑似取代未登记 {len(suspects)} 条。标识是 docs/decisions/ 下文件名前缀；摘句不作依据，引用前打开原文。",
            f"常驻见 `decision-digest/standing.txt`；新近为最近 {RECENT} 条非常驻；其余见主题索引，`build_decisions.py --topic=<主题>` 查全。\n",
            "## 待用户裁定（互相矛盾且未被取代）\n"] + ([f"- `{ids[a]}` ⟷ `{ids[b]}`：{cell(why, 80)}" for a, b, why in live] or ["- 无登记的矛盾"])
     out.append("\n## 常驻")
@@ -240,21 +242,21 @@ def self_test():
             put(path, body)
             assert raises(lambda: run(intent, topics, rel, arc, std, None, limit=10240)), f"应拒绝：{body!r}"
             put(path, good) if good is not None else os.remove(path)
-    entries, order = load_entries(os.path.join(BASE, "intent"))
-    topics = load_topics(os.path.join(BASE, "decision-digest", "topics.txt"))
-    for prefix, topic in [l.split("\t") for l in read(os.path.join(BASE, "decision-digest", "expected.txt")).splitlines() if l.strip() and not l.startswith("#")]:
+    entries, order = load_entries(DECISIONS)
+    topics = load_topics(os.path.join(DIGEST, "topics.txt"))
+    for prefix, topic in [l.split("\t") for l in read(os.path.join(DIGEST, "expected.txt")).splitlines() if l.strip() and not l.startswith("#")]:
         hits = [n for n in order if n.startswith(prefix)]
         assert len(hits) == 1, f"expected.txt：{prefix} 命中 {len(hits)} 个片段"
         assert topic in topics_of(topics, entries[hits[0]][1], entries[hits[0]][0]), f"expected.txt：{prefix} 应含主题「{topic}」"
     print("ok")
 
 if __name__ == "__main__":
-    src = (os.path.join(BASE, "intent"), os.path.join(BASE, "decision-digest/topics.txt"), os.path.join(BASE, "decision-digest/relations.txt"), os.path.join(BASE, "decision-digest/archived.txt"))
-    standing = os.path.join(BASE, "decision-digest/standing.txt")
+    src = (DECISIONS, os.path.join(DIGEST, "topics.txt"), os.path.join(DIGEST, "relations.txt"), os.path.join(DIGEST, "archived.txt"))
+    standing = os.path.join(DIGEST, "standing.txt")
     if "--self-test" in sys.argv: self_test()
     elif sys.argv[1:2] and (sys.argv[1].startswith("--topic=") or sys.argv[1] == "--archived"):
         try: print("\n".join(listing(*src, sys.argv[1][8:] if sys.argv[1].startswith("--topic=") else None)))
         except ValueError as e: sys.exit(str(e))
     else:
-        n, unclassified, suspects, text, archived, resident = run(*src, standing, None if "--check" in sys.argv else os.path.join(BASE, OUT))
+        n, unclassified, suspects, text, archived, resident = run(*src, standing, None if "--check" in sys.argv else OUT_PATH)
         print(f"{OUT}: {n} 条，归档 {archived}，常驻 {resident}，{len(text.encode())} 字节（上限 {limit_of()}），未分类 {unclassified}，疑似取代未登记 {len(suspects)}")

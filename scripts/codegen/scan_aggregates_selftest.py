@@ -164,12 +164,13 @@ class AggregateScanTest(unittest.TestCase):
         self.write(s.DRAFT, planned_text())
         with contextlib.redirect_stdout(io.StringIO()):
             s.generate(self.root)
-            first = {p.name: p.read_bytes() for p in (self.root / s.OUTPUT).iterdir()}
+            outputs = lambda: {p.name: p.read_bytes() for p in [*(self.root / s.OUTPUT).iterdir(), self.root / s.BUILT]}
+            first = outputs()
             s.generate(self.root)
-            self.assertEqual(first, {p.name: p.read_bytes() for p in (self.root / s.OUTPUT).iterdir()})
+            self.assertEqual(first, outputs())
             s.generate(self.root, check=True)
             s.generate(self.root, check=True)
-            built = self.root / s.OUTPUT / 'built.yaml'
+            built = self.root / s.BUILT
             built.write_bytes(b'stale\n')
             with self.assertRaisesRegex(ValueError, '产物不一致'):
                 s.generate(self.root, check=True)

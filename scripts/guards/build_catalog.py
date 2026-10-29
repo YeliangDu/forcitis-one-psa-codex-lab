@@ -1,4 +1,4 @@
-"""Validate catalog.yaml (the process registry) and generate CATALOG.md from it.
+"""Validate catalog.yaml (the process registry) and generate catalog.md from it.
 
 Usage: python3 -I build_catalog.py [--check | --self-test]
 Errors exit 1 and write nothing; --check validates without writing. Warnings (business without bpmn or stages) do not fail.
@@ -15,9 +15,9 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[2]
 HERE = REPO / "docs/architecture/ssot/processes"
-PROPOSALS = HERE.parents[1] / "proposals"   # 限期读取例外，见 architecture/proposal_reads.yaml
+PROPOSALS = HERE.parents[1] / "proposals"   # 限期读取例外，见 docs/architecture/proposal-reads.yaml
 CATALOG = HERE / "catalog.yaml"
-OUT = HERE / "CATALOG.md"
+OUT = HERE / "catalog.md"
 RUNTIME = "backend/src/main/resources/processes"
 TYPES = ["business", "event_policy", "single_aggregate", "read_model", "integration", "merged", "retired"]
 STATUSES = ["draft", "sample", "reviewed", "user_confirmed"]
@@ -31,15 +31,15 @@ def load():
 
 
 def valid_stages():
-    vs = yaml.safe_load((HERE.parent / "05-value-streams" / "value-streams.yaml").read_text(encoding="utf-8"))["value_streams"]
+    vs = yaml.safe_load((HERE.parent / "value-streams" / "value-streams.yaml").read_text(encoding="utf-8"))["value_streams"]
     return {s["id"] for v in vs for s in v["stages"]}
 
 
 def valid_owners():
-    text = (PROPOSALS / "ENTERPRISE_AGGREGATES_DRAFT.md").read_text(encoding="utf-8")
+    text = (PROPOSALS / "enterprise-aggregates-draft.md").read_text(encoding="utf-8")
     sec = text.split("### 3.2 ", 1)[1].split("\n### ", 1)[0]
     owners = set(re.findall(r"^\|\s*(B-\d{2})\s*\|", sec, re.M))
-    items = (PROPOSALS / "closeout" / "STRUCTURAL_ITEMS.md").read_text(encoding="utf-8")
+    items = (PROPOSALS / "closeout" / "structural-items.md").read_text(encoding="utf-8")
     if "B-31" in items:
         owners.add("B-31")
     return owners

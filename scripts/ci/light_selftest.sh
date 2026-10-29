@@ -67,7 +67,7 @@ direct scripts/session/build_decisions.py t_start_sheet 1
 direct x/CLAUDE.md t_start_sheet 0
 direct "$onesql" t_onesql 1
 direct x/OneSql.java t_onesql 0
-direct "$(dirname "$(dirname "$onesql")")/evidence/q.sql" t_onesql 1
+direct "$onesql_evidence/q.sql" t_onesql 1
 : >"$changed"
 ! touches "$t_shell" || no "有基线而没有改动时不该触发"
 LIGHT_ALL=1

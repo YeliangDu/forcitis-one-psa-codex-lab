@@ -56,23 +56,23 @@ else
 fi
 rule "新词条违反用语登记规则（terms.yaml 与 backend/glossary/proposed）" "按输出逐条改词条，规则见 scripts/guards/term_rules.py"
 run "glossary term rules (terms.yaml, proposed terms)" python3 -I scripts/guards/term_rules.py --check
-rule "运行时的 BPMN 流程没在流程目录登记" "在 architecture/ssot/09-processes/catalog.yaml 登记该流程"
+rule "运行时的 BPMN 流程没在流程目录登记" "在 architecture/ssot/processes/catalog.yaml 登记该流程"
 run "every runtime BPMN process is catalogued" python3 -I scripts/guards/build_catalog.py --check
-rule "代码读了未定稿的提议稿目录" "改读正本；确需暂读的在 architecture/proposal_reads.yaml 登记来源与到期日"
+rule "代码读了未定稿的提议稿目录" "改读正本；确需暂读的在 architecture/proposal-reads.yaml 登记来源与到期日"
 run "code reads no proposals/ (registered exceptions only)" python3 -I scripts/guards/proposal_reads.py
 rule "built.yaml 与源码里的聚合不一致，两个改名集成测试会读到旧登记" "运行 python3 scripts/codegen/scan_aggregates.py 重新生成并提交"
 run "built.yaml is up to date" python3 scripts/codegen/scan_aggregates.py --check
 rule "asyncapi.yaml 与事件分片不一致，事件目录测试会读到旧目录" "重新运行 python3 scripts/codegen/build_asyncapi.py 生成并提交"
 run "asyncapi.yaml is up to date" python3 -I scripts/codegen/build_asyncapi.py --check
-rule "决定片段格式错、引用断或现行页超限" "按输出改 intent/ 下的片段或 decision-digest/ 清单"
+rule "决定片段格式错、引用断或现行页超限" "按输出改 decisions/ 下的片段或 decisions/decision-digest/ 清单"
 run "decision fragments are valid" python3 -I scripts/session/build_decisions.py --check
-rule "老系统读取登记片段缺字段或格式错（ADR-0037）" "按输出改 phase1a/infra/legacy-read/ 下的片段"
+rule "老系统读取登记片段缺字段或格式错（ADR-0037）" "按输出改 ops/legacy-read/ 下的片段"
 run "legacy-read fragments are valid" python3 -I tools/evidence/new_legacy_read.py --check
 rule "只在生产上跑的取证工具缺模块、缺名字或缺同目录文件，到生产才崩" "恢复被删的模块或文件，或改掉对它的引用"
 run "evidence tools: imports resolve" python3 -I scripts/ci/evidence_imports.py
-rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替用户拍板" "按输出的规则号改 playbooks/ 或 .github/ISSUE_TEMPLATE/card.md"
+rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替用户拍板" "按输出的规则号改 rules/playbooks/ 或 .github/ISSUE_TEMPLATE/card.md"
 run "playbooks and the card template are well-formed" python3 -I scripts/guards/check_playbooks.py
-rule "dev 与 prod 建库脚本、参考 DDL 不一致，生产库结构与测试不同" "改 c3 脚本后运行 phase1a/infra/runbooks/sql/render_prod_sql.sh 重新生成 c9"
+rule "dev 与 prod 建库脚本、参考 DDL 不一致，生产库结构与测试不同" "改 dev-db 脚本后运行 ops/runbooks/sql/render-prod-sql.sh 重新生成 prod-db"
 run "database scripts aligned" python3 -I scripts/guards/db_scripts_aligned.py
 
 # 只增不改的登记与验收守护（原 backend 作业里的步骤；它们的自测在「按改动触发」一节）
@@ -82,7 +82,7 @@ rule "系统参与者名录被删改，审计记录里的历史身份失效" "�
 against_base "system actors append-only" python3 scripts/guards/system_actors_append_only.py
 rule "实现方改了验收测试（底线：实现方不改验收测试）" "撤掉对验收目录的改动；确需改的由测试工程师提交或按裁定加 Acceptance-Ruling 行"
 against_base "acceptance guard" python3 scripts/guards/acceptance_guard.py
-rule "提交引用了不存在、复用或范围不符的验收裁定" "引用 rulings/ACCEPTANCE_RULINGS.yaml 里真实的裁定号"
+rule "提交引用了不存在、复用或范围不符的验收裁定" "引用 rules/rulings/acceptance-rulings.yaml 里真实的裁定号"
 against_base "acceptance rulings" python3 scripts/guards/acceptance_rulings.py
 rule "新增或改名的文件、目录不合命名规则" "照输出给出的改正名改名；新的顶层目录先问 lead"
 against_base "file and directory names (added or renamed)" python3 -I scripts/guards/check_names.py
@@ -97,7 +97,7 @@ else skip "start_sheet under /usr/bin/python3" "相关路径没改（按改动�
 rule "取证工具 OneSql.java 放进了写语句或不回滚（生产只读底线）" "按输出修 OneSql.java，或改掉会被拒的取证脚本"
 if ! touches "$t_onesql"; then skip "OneSql.java read only (self-test)" "相关路径没改（按改动触发）"
 elif ! command -v java >/dev/null; then skip "OneSql.java read only (self-test)" "本机没有 java（CI 的 backend 作业有）"
-else run "OneSql.java read only (self-test)" java "$onesql" --self-test "$(dirname "$(dirname "$onesql")")/evidence"; fi
+else run "OneSql.java read only (self-test)" java "$onesql" --self-test "$onesql_evidence"; fi
 rule '$VAR 后紧跟全角字符，bash 3.2 下 set -u 即崩' '把 $VAR 写成 ${VAR}'
 run "shell: no \$VAR right before non-ASCII" var_before_non_ascii
 # 验收测试改了就跑全部免容器单测（CLAUDE.md 交付第 2 步）；export-openapi 绑在 process-test-classes 上要起容器，所以用 test-compile surefire:test

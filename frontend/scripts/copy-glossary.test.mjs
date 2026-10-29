@@ -11,11 +11,11 @@ import { loadVocabulary, problemsOfText, scan, sourceFiles, textsOf } from './co
 const frontend = join(dirname(fileURLToPath(import.meta.url)), '..');
 const repository = join(frontend, '..');
 const glossary = loadVocabulary({
-  officialTerms: join(repository, 'docs', 'modernization', 'glossary', 'terms.yaml'),
+  officialTerms: join(repository, 'docs', 'glossary', 'terms.yaml'),
   backendTerms: join(repository, 'backend', 'glossary', 'terms.yaml'),
   proposedDirectory: join(repository, 'backend', 'glossary', 'proposed'),
   allowList: join(frontend, 'scripts', 'copy-allow-list.yaml'),
-  contexts: join(repository, 'docs', 'modernization', 'glossary', 'bcs.yaml'),
+  contexts: join(repository, 'docs', 'glossary', 'bcs.yaml'),
 });
 
 const kinds = (text) => problemsOfText(text, glossary).map((problem) => `${problem.kind}:${problem.word}`);

@@ -1,5 +1,5 @@
 -- FORCITIS one · C-3 校验（只读；连 forcitis_one_dev 执行，结果截图或导出留档）
--- 用法：psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_dev -f c3_dev_db_verify.sql
+-- 用法：psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_dev -f dev-db-verify.sql
 
 -- V1 角色与属性：期望 6 行（含 history_loader，不可登录）；owner 不可登录；app / readonly / audit_maintainer 为 NOINHERIT；连接上限 migrator 2、app 25、readonly 3、audit_maintainer 1
 SELECT rolname, rolcanlogin, rolinherit, rolconnlimit

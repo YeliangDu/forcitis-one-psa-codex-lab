@@ -1,9 +1,9 @@
 -- FORCITIS one · C-3 · forcitis_one_dev 建库、角色、schema 与授权（可执行版，取代 ../../one_db_roles_schemas.sql 草稿）
 -- 实例：pgm-bp13vak0sew3m003（PG 18）。执行人：运维，用 RDS 高权限账号；执行前须用户确认（对外变更）。
--- 用法：psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f c3_dev_db.sql
+-- 用法：psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f dev-db.sql
 --      （或在 DMS 中按 STEP 顺序分段执行，STEP 2 起须切到 forcitis_one_dev 库）
 -- 本文件不含口令；带 LOGIN 的角色口令在执行后用 RDS 控制台或 \password 设置。
--- 生产版 c9_prod_db.sql 由本文件经 render_prod_sql.sh 生成，不手改。
+-- 生产版 prod-db.sql 由本文件经 render-prod-sql.sh 生成，不手改。
 
 -- ===== STEP 0 冲突检查（只读；任一查询返回行即停止，结果报 one-coordinator）=====
 SELECT rolname FROM pg_roles WHERE rolname LIKE 'one\_dev\_%';
@@ -102,4 +102,4 @@ REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integrati
                         platform_scheduling, organization_workforce, organization_attendance, organization_administration, platform_idempotency, cost_timesheet, one_migration
   FROM one_dev_app, one_dev_readonly, one_dev_audit_maintainer;
 
--- 下一步：c3_dev_db_verify.sql；每次迁移之后执行 c3_dev_db_after_migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_dev_migrator、one_dev_app、one_dev_readonly、one_dev_audit_maintainer 设口令（≥24 位随机）。
+-- 下一步：dev-db-verify.sql；每次迁移之后执行 dev-db-after-migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_dev_migrator、one_dev_app、one_dev_readonly、one_dev_audit_maintainer 设口令（≥24 位随机）。

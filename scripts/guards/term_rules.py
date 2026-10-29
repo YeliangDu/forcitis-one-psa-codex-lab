@@ -54,7 +54,7 @@ def words(en):
 DEPRECATED_FIELDS = ("replaced_by", "until", "owner")
 BC_KINDS = ("bc", "kernel")
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-GLOSSARY = os.path.join(ROOT, "docs", "modernization", "glossary")
+GLOSSARY = os.path.join(ROOT, "docs", "glossary")
 BASELINE = os.path.join(GLOSSARY, "term-rules-baseline.json")
 
 
@@ -281,7 +281,7 @@ def check_repo():
     here = GLOSSARY
     bcs = {b["id"]: b["kind"] for b in yaml.safe_load(open(os.path.join(here, "bcs.yaml"), encoding="utf-8"))["bcs"]}
     entries = [("terms.yaml", t) for t in yaml.safe_load(open(os.path.join(here, "terms.yaml"), encoding="utf-8"))["terms"]]
-    proposed = sorted(glob.glob(os.path.join(here, "..", "..", "..", "backend", "glossary", "proposed", "*.yaml")))
+    proposed = sorted(glob.glob(os.path.join(ROOT, "backend", "glossary", "proposed", "*.yaml")))
     if not proposed:
         raise SystemExit("找不到 backend/glossary/proposed/*.yaml")
     for f in proposed:

@@ -4,13 +4,14 @@
 Rules, each failure names the rule and the corrected name:
   N1 scripts/, tools/: a script (.py .sh .mjs .js .ts) is snake_case
   N2 scripts/, tools/: a self-test is <name>_selftest.<ext> (not test_<name> or <name>_test)
-  N3 docs/: every file is lower-kebab-case whatever its format; a .md has no dotted variant (.notes.md, .keep.md, .template.md);
+  N3 docs/: every file is lower-kebab-case whatever its format, except a .py there is snake_case (an importable module); a .md has no dotted variant (.notes.md, .keep.md, .template.md);
      no dotfiles (.gitkeep: docs/ holds files, not empty folders). Dotfiles elsewhere are not named by these rules
   N4 docs/: a new directory is lower-kebab-case and carries no stage or session name (phase1a, r0, u8c, one-ops ...)
-  N5 a new top-level directory under docs/, docs/, scripts/ or tools/ is not on the allowlist: ask lead
-Exceptions: README.md and CLAUDE.md; ADR-NNNN*.md; fragments under intent/, decisions/ and legacy-read/; frontend/ keeps
+  N5 a new top-level directory under docs/, scripts/ or tools/ is not on the allowlist: ask lead
+Exceptions: README.md and CLAUDE.md; ADR-NNNN*.md; fragments under docs/decisions/, docs/glossary/issues/ and docs/ops/legacy-read/; frontend/ keeps
 its package conventions. Phase 1 checks only added or renamed files, and directory rules only directories new in the
-diff, so legacy names do not block a pull request; after #755 renames the rest, check everything.
+diff, so legacy names do not block a pull request; once the files acceptance tests read have left docs/modernization/ (#755 PR B),
+check everything.
 
   check_names.py <base>       exit 1 on a broken rule, 2 when the base or the diff cannot be read (fails closed)
   check_names.py --self-test
@@ -29,10 +30,10 @@ TEST_WORD = re.compile(r"^test_|_test$")
 STAGE = re.compile(r"(phase\d+[a-z]?|r\d+[a-z]?|u8c)")
 EXEMPT_NAMES = {"README.md", "CLAUDE.md"}
 ADR = re.compile(r"ADR-\d{4}(-.*)?\.md")
-FRAGMENT_DIRS = {"intent", "decisions", "legacy-read"}
+FRAGMENT_DIRS = ("docs/decisions/", "docs/glossary/issues/", "docs/ops/legacy-read/")  # dated fragments keep their generated names
 ALLOWED = {  # top-level directories; a new one needs lead's yes
-    "docs": {"modernization"},
-    "docs": set(),  # plus every directory already there at the base (legacy area, flattened by #744)
+    # modernization/: the files acceptance tests read, until #755 PR B moves them
+    "docs": {"modernization", "adr", "architecture", "business", "data", "decisions", "glossary", "legacy", "ops", "rules"},
     "scripts": {"ci", "codegen", "gates", "guards", "hooks", "merge", "release", "review", "session"},
     "tools": {"docs", "evidence", "ops"},
 }
@@ -70,12 +71,12 @@ def file_problems(path, sessions, new_dirs):
             continue
         if parent in ALLOWED and child not in ALLOWED[parent]:
             found.append(f"N5 {directory}/: new top-level directory under {parent}/ is not on the allowlist in scripts/guards/check_names.py; ask lead")
-        if top == "docs" and child not in FRAGMENT_DIRS:
+        if top == "docs" and not (directory + "/").startswith(FRAGMENT_DIRS):
             if not KEBAB.fullmatch(child):
                 found.append(f"N4 {directory}/: directories under docs/ are lower-kebab-case; use {parent}/{kebab(child)}/")
             if any(STAGE.fullmatch(word) for word in child.split("-")) or any(re.search(rf"(^|-){re.escape(n)}(-|$)", child) for n in sessions):
                 found.append(f"N4 {directory}/: no stage or session names in docs/ directories; name it after what it holds")
-    if name in EXEMPT_NAMES or ADR.fullmatch(name) or (top == "docs" and FRAGMENT_DIRS & set(parts[:-1])):
+    if name in EXEMPT_NAMES or ADR.fullmatch(name) or path.startswith(FRAGMENT_DIRS):
         return found
     where = "/".join(parts[:-1])
     if name.startswith("."):  # dotfiles: refused under docs/ (sources of truth only), not named by these rules elsewhere
@@ -91,6 +92,9 @@ def file_problems(path, sessions, new_dirs):
     if top == "docs":
         if ext == ".md" and "." in stem:
             found.append(f"N3 {path}: no dotted variants of a document; use {where}/{kebab(stem.split('.')[0])}.md, or a folder")
+        elif ext == ".py":
+            if not SNAKE.fullmatch(stem):
+                found.append(f"N3 {path}: a Python module under docs/ is snake_case so it can be imported; use {where}/{snake(stem)}{ext}")
         elif not KEBAB.fullmatch(stem):
             found.append(f"N3 {path}: files under docs/ are lower-kebab-case, whatever the format; use {where}/{kebab(stem)}{ext}")
     return found
@@ -150,12 +154,14 @@ def self_test():
     assert rules("docs/Some_Notes.md") == ["N3"] and "some-notes.md" in file_problems("docs/Some_Notes.md", sessions, set())[0]
     assert rules("docs/data/Foo_Bar.yaml") == ["N3"] and "foo-bar.yaml" in file_problems("docs/data/Foo_Bar.yaml", sessions, set())[0]
     assert rules("docs/data/c3-dev-db.sql") == [] and rules("docs/data/rows.csv") == []
+    assert rules("docs/ops/tools/b5_remote.py") == [] and rules("docs/ops/tools/b5-remote.py") == ["N3"] and "b5_remote.py" in file_problems("docs/ops/tools/b5-remote.py", sessions, set())[0]
     assert rules("docs/data/.gitkeep") == ["N3"] and "remove .gitkeep" in file_problems("docs/data/.gitkeep", sessions, set())[0]
-    assert rules("docs/modernization/.prettierrc") == ["N3"] and rules("scripts/ci/.keep") == [] and rules("tools/ops/.gitignore") == []
+    assert rules("docs/.prettierrc") == ["N3"] and rules("scripts/ci/.keep") == [] and rules("tools/ops/.gitignore") == []
     assert rules("docs/plan.notes.md") == ["N3"] and "no dotted variants" in file_problems("docs/brief.template.md", sessions, set())[0]
     assert rules("docs/merge-queue.md") == [] and rules("docs/x/README.md") == []
     assert rules("docs/adr/ADR-0080.md") == [] and rules("docs/adr/ADR-0081-naming.md") == []
     assert rules("docs/decisions/2026-10-29-120000-one-ops-中文.md") == [] and rules("docs/ops/legacy-read/2026-10-29-1-one-ops-DAT.md") == []
+    assert rules("docs/glossary/issues/2026-10-21-191312-one-architecture-CMD-命令.resolution.md") == [] and rules("docs/data/issues/X_Y.md") == ["N3"], "only the listed fragment folders are exempt"
     assert rules("docs/data/Ops_Notes/a.md", ["docs/data/Ops_Notes"]) == ["N4"]
     assert rules("docs/data/phase2/a.md", ["docs/data/phase2"]) == ["N4"]
     assert rules("docs/data/one-ops/a.md", ["docs/data/one-ops"]) == ["N4"]
@@ -163,7 +169,7 @@ def self_test():
     for compound in ("phase1a-infra", "notes-phase2", "u8c-map", "r0-review", "one-ops-notes", "x-one-coordinator"):
         assert rules(f"docs/data/{compound}/a.md", [f"docs/data/{compound}"]) == ["N4"], compound
     assert rules("docs/data/release-notes/a.md", ["docs/data/release-notes"]) == [], "words that only contain a stage-like or session-like part are fine"
-    assert rules("docs/stuff/a.md", ["docs/stuff"]) == ["N5"]
+    assert rules("docs/stuff/a.md", ["docs/stuff"]) == ["N5"] and rules("docs/ops/a.md", ["docs/ops"]) == [], "the target layout (#755) is on the allowlist"
     assert rules("scripts/misc/a.py", ["scripts/misc"]) == ["N5"] and "ask lead" in file_problems("scripts/misc/a.py", sessions, {"scripts/misc"})[0]
     assert rules("docs/other/a.md", ["docs/other"]) == ["N5"] and rules("tools/misc/a.py", ["tools/misc"]) == ["N5"]
     assert rules("frontend/scripts/check-copy-glossary.mjs") == [] and rules("frontend/apps/web/src/App.tsx") == []

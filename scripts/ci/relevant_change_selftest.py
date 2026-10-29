@@ -100,7 +100,7 @@ def tiers_self_test(root):
         assert tier(ev + "light.yaml") == ("code", None), "a reader that walks docs: any doc may be read"
         Path(tmp, t + "WalkIT.java").unlink()
         with tempfile.TemporaryDirectory() as tmp2:
-            write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "modernization", "phase1a", "infra", "runbooks", "sql"); }')
+            write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "ops", "runbooks", "sql"); }')
             assert rc.tier_of(["docs/ops/runbooks/sql/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
         write(tmp, t + "EventsApplicationIntegrationTest.java", "x")
         write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/glossary/terms.yaml"; String q = "docs/modernization/events/other.yaml"; }')
@@ -161,7 +161,7 @@ def rename_self_test():
         cwd = os.getcwd()
         try:
             os.chdir(tmp)
-            assert sorted(rc.changed_files("main")) == ["docs/other/INFRA_RUNBOOK_OLD.md", "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md"], rc.changed_files("main")
+            assert sorted(rc.changed_files("main")) == ["docs/modernization/phase1a/infra/INFRA_RUNBOOK.md", "docs/other/INFRA_RUNBOOK_OLD.md"], rc.changed_files("main")
             assert sorted(rc.files_since(base)) == sorted(rc.changed_files("main"))
         finally:
             os.chdir(cwd)

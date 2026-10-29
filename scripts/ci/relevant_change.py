@@ -173,8 +173,11 @@ def files_since(before):
 SCANNED = ("backend/src", "frontend", "scripts")
 SKIPPED_DIRS = {"node_modules", "dist", ".pnpm", "target"}
 SOURCE_SUFFIXES = {".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".json", ".yaml", ".yml", ".py", ".sh", ".properties", ".xml", ".sql"}
-LITERAL = re.compile(r"docs/modernization(?:/[\w.*{}-]+)*")
-SEGMENTS = re.compile(r"""['"]docs['"]\s*,\s*['"]modernization['"]((?:\s*,\s*['"][\w.*-]+['"])*)""")
+# a path into one of the docs/ folders (#755 layout; modernization/ holds what acceptance tests read until PR B), written whole or as
+# separate string arguments ("docs", "glossary", "terms.yaml"); docs/<anything else> in a test string is a fixture or a label, not a read
+DOCS_TOP = "modernization|adr|architecture|business|data|decisions|glossary|legacy|ops|rules"
+LITERAL = re.compile(rf"(?<![\w-])(?<![\w-]/)docs/(?:{DOCS_TOP})(?![\w.-])(?:/[\w.*{{}}-]+)*")
+SEGMENTS = re.compile(rf"""['"]docs['"]((?:\s*,\s*['"](?:{DOCS_TOP})['"])(?:\s*,\s*['"][\w.*-]+['"])*)""")
 # this script and its self-test name docs paths as data and fixtures: never readers
 OWN_FILES = {Path(__file__).name, "relevant_change_selftest.py"}
 
@@ -217,7 +220,7 @@ GUARDED_READER_DIRS = {"scripts/release/": "release"}
 WILDCARD = re.compile(r"[*{]")
 CODE_SUFFIXES = {".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs"}
 TEST_ROOT = "backend/src/test/java/"
-WIDE = re.compile(r"""[(,]\s*(["'`](?:docs|modernization)["'`])|(?<=\.\./)(docs\b(?!/modernization))""")
+WIDE = re.compile(r"""[(,]\s*(["'`](?:docs|modernization)["'`])|(?<=\.\./)(docs\b)""")
 # sources that match WIDE without reading docs at all (a pull request label named "docs" in a test string); every entry must still match, the self-test fails on a stale one
 WIDE_NOT_READERS = {
     "scripts/ci/heavy_gate.py": "the test strings use \"docs\" as a label name",

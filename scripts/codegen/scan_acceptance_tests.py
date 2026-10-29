@@ -364,7 +364,7 @@ def main():
     try:
         tests, java_count, frontend_count = collect(ROOT)
         gaps, unnamed, missing = render_gaps(ROOT, tests)
-        outputs = {'tests.yaml': render_yaml(tests), 'GAPS.md': gaps}
+        outputs = {'tests.yaml': render_yaml(tests), 'gaps.md': gaps}
         different = []
         for name, content in outputs.items():
             path = ROOT / OUTPUT / name

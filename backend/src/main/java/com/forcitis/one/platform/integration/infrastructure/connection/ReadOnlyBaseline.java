@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * will not tell (a failed or timed-out query, an empty answer where a real login always has rows) is undeterminable, which also refuses the
  * start-up but is told apart at a re-check (ADR-0037 item 4.4 as interpreted by the user, intent 2026-10-15-120940). The baselines are what
  * the four real logins on the RDS instance (SQL Server 2016) returned, identical for all four (one-ops, PR #143, B-5 README
- * "有效权限平台基线"; H-1 export B-5-dba/evidence/h1_m3_permissions.sql).
+ * "有效权限平台基线"; H-1 export data/evidence/dba-handoff/h1-m3-permissions.sql under docs).
  */
 final class ReadOnlyBaseline {
 

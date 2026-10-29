@@ -150,7 +150,7 @@ public class OneSql {
             try (var files = Files.list(evidence)) {
                 for (Path f : (Iterable<Path>) files.sorted()::iterator) {
                     String name = f.getFileName().toString();
-                    if (!name.endsWith(".sql") || name.startsWith("evidence_")) continue;  // evidence_*.sql create the evidence account: run by the DBA, never through OneSql
+                    if (!name.endsWith(".sql") || name.startsWith("evidence-")) continue;  // evidence-*.sql create the evidence account: run by the DBA, never through OneSql
                     readOnlyBatches(Files.readString(f, StandardCharsets.UTF_8), none);
                     scripts++;
                 }

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""new_intent.py 的自测（二乙 #25 C7）：在临时副本里跑，不写仓库的 intent/。用法：python3 scripts/session/new_intent_selftest.py（附带的 --self-test 参数忽略）。"""
+"""new_intent.py 的自测（二乙 #25 C7）：在临时副本里跑，不写仓库的 docs/decisions/。用法：python3 scripts/session/new_intent_selftest.py（附带的 --self-test 参数忽略）。"""
 import contextlib, glob, json, os, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-BASE = os.path.join(HERE, "..", "..", "docs", "modernization")
-GOOD = ["--session=one-ops", "--category=流程", "--owner=one-ops", "--paths=scripts/ci,docs", "--supersedes=无"]
+ROOT = os.path.join(HERE, "..", "..")
+GOOD = ["--session=one-ops", "--category=流程", "--owner=one-ops", "--paths=scripts/ci,docs/decisions", "--supersedes=无"]
 TEXT = ["用户原话", "落点说明"]
 
 
@@ -21,10 +21,10 @@ def swap(args, key, value=None):
 
 def fragment_owner(mod, act):
     """执行 act（返回码、输出），断言恰好新生成一个片段，返回其「负责会话」节的值。"""
-    before = set(glob.glob(os.path.join(mod, "intent", "*.md")))
+    before = set(glob.glob(os.path.join(mod, "*.md")))
     code, out = act()
     assert code == 0, out
-    (frag,) = set(glob.glob(os.path.join(mod, "intent", "*.md"))) - before
+    (frag,) = set(glob.glob(os.path.join(mod, "*.md"))) - before
     return open(frag, encoding="utf-8").read().split("## 负责会话\n\n", 1)[1].split("\n", 1)[0]
 
 
@@ -44,15 +44,13 @@ def alias_to_nobody(tree):
 
 def main():
     with tempfile.TemporaryDirectory() as tree:
-        mod = os.path.join(tree, "docs", "modernization")
-        os.makedirs(os.path.join(mod, "intent"))
-        shutil.copy(os.path.join(BASE, "..", "..", "policy.json"), tree)
-        shutil.copytree(os.path.join(BASE, "roles"), os.path.join(mod, "roles"))
-        os.makedirs(os.path.join(mod, "decision-digest"))
-        shutil.copy(os.path.join(BASE, "decision-digest", "topics.txt"), os.path.join(mod, "decision-digest"))
-        open(os.path.join(mod, "decision-digest", "relations.txt"), "w").close()
-        open(os.path.join(mod, "decision-digest", "archived.txt"), "w").close()
-        open(os.path.join(mod, "decision-digest", "standing.txt"), "w").close()
+        mod, digest = os.path.join(tree, "docs", "decisions"), os.path.join(tree, "docs", "decisions", "decision-digest")
+        os.makedirs(digest)
+        shutil.copy(os.path.join(ROOT, "policy.json"), tree)
+        shutil.copytree(os.path.join(ROOT, "docs", "rules", "roles"), os.path.join(tree, "docs", "rules", "roles"))
+        shutil.copy(os.path.join(ROOT, "docs", "decisions", "decision-digest", "topics.txt"), digest)
+        for name in ("relations.txt", "archived.txt", "standing.txt"):
+            open(os.path.join(digest, name), "w").close()
         os.makedirs(os.path.join(tree, "scripts", "session"))
         for f in ("new_intent.py", "build_decisions.py"):
             shutil.copy(os.path.join(HERE, f), os.path.join(tree, "scripts", "session"))
@@ -66,22 +64,22 @@ def main():
             assert code != 0, f"--{key}={value!r} 应拒"
         code, out = run(tree, swap(GOOD, "category", "杂项"))
         assert "--category" in out and "--owner" not in out and "--paths" not in out,f"只打印出错的项：{out[:200]}"
-        assert not glob.glob(os.path.join(mod, "intent", "*.md")), "拒绝时不应生成片段"
+        assert not glob.glob(os.path.join(mod, "*.md")), "拒绝时不应生成片段"
         code, out = run(tree, GOOD + ["--date=2026-01-01"])
         assert code == 0, out
-        first = glob.glob(os.path.join(mod, "intent", "*.md"))
+        first = glob.glob(os.path.join(mod, "*.md"))
         assert len(first) == 1, first
         text = open(first[0], encoding="utf-8").read()
         assert all(f"## {s}\n" in text for s in ("原话", "落点", "类别", "负责会话", "影响路径")), text
-        assert "## 类别\n\n流程\n\n## 负责会话\n\none-ops\n\n## 影响路径\n\nscripts/ci、docs/modernization\n" in text, text
+        assert "## 类别\n\n流程\n\n## 负责会话\n\none-ops\n\n## 影响路径\n\nscripts/ci、docs/decisions\n" in text, text
         assert "## 取代" not in text, "「无」不写取代节"
         code, out = run(tree, swap(swap(swap(swap(GOOD, "category", "授权"), "paths", "无"), "supersedes", os.path.basename(first[0])), "owner", "one-leader") + ["--date=2026-01-02"])
         assert code == 0, out
-        second = [f for f in glob.glob(os.path.join(mod, "intent", "*.md")) if f != first[0]][0]
+        second = [f for f in glob.glob(os.path.join(mod, "*.md")) if f != first[0]][0]
         text = open(second, encoding="utf-8").read()
         assert f"## 取代\n\n- {os.path.basename(first[0])}\n" in text and "## 影响路径\n\n无\n" in text and "## 类别\n\n授权\n" in text, text
         code, out = run(tree, GOOD + ["--rules=RULE-1,ABC-RULE-22", "--date=2026-01-03"])   # #742：规则号只核格式（规则索引已删）
-        assert code == 0 and "## 规则\n\nRULE-1、ABC-RULE-22\n" in open(sorted(glob.glob(os.path.join(mod, "intent", "2026-01-03-*.md")))[0], encoding="utf-8").read(), out
+        assert code == 0 and "## 规则\n\nRULE-1、ABC-RULE-22\n" in open(sorted(glob.glob(os.path.join(mod, "2026-01-03-*.md")))[0], encoding="utf-8").read(), out
         code, out = run(tree, GOOD + ["--rules=rule-1"])
         assert code != 0 and "--rules" in out, "规则号格式不合应拒"
         for owner in ("one-leader", "one-dev-org", "one-merge", "one-glossary"):
@@ -89,7 +87,7 @@ def main():
             assert code == 0, f"{owner} 应认：{out}"
         for old, new in (("one-rules", "one-leader"), ("one-arch-finance", "one-architecture"), ("one-coordinator", "one-leader"), ("one-1a-par", "one-dev-org"), ("one-dev-par", "one-dev-org")):   # O23b、卡 #736：旧名经别名放行，片段写现名
             assert fragment_owner(mod, lambda: run(tree, swap(GOOD, "owner", old))) == new, f"--owner={old} 应经别名写成 {new}"
-        dev = os.path.join(mod, "roles", "dev.md")
+        dev = os.path.join(tree, "docs", "rules", "roles", "dev.md")
         open(dev, "w", encoding="utf-8").write(open(dev, encoding="utf-8").read().replace("## 过渡映射\n", "## 过渡映射\n- one-ghost 担任\n", 1))
         for name in ("one-ghost", "one-dev-zz", "one-lead"):   # 只在 roles/ 过渡映射里的名字、第四批新名都不在 sessions.config，应拒
             code, out = run(tree, swap(GOOD, "owner", name))

@@ -3,7 +3,7 @@
 
 取证口令在新 ECS 的 /etc/forcitis-one/evidence.env，用老系统服务器的临时公钥加密后转交；本进程只经手密文。
 结果经 gzip + base64 带回（云助手单次输出约 24 KB 上限），写到给定路径。
-用法：b5_evidence_scan.py <输出文件> [evidence/ 下的 SQL 文件名，默认 credential_columns_scan.sql]
+用法：b5_evidence_scan.py <输出文件> [docs/data/evidence/dba-handoff/ 下的 SQL 文件名，默认 credential-columns-scan.sql]
 """
 import base64
 import gzip
@@ -16,7 +16,7 @@ import ops_venv_guard  # noqa: E402,F401  须排在所有第三方与同目录�
 from b5_remote import DRIVER, LEGACY_SERVER, LEGACY_WORK, ONE_SERVER, key_pair, put, stage_legacy, step  # noqa: E402
 
 TOOLS = Path(__file__).resolve().parent
-B5 = TOOLS.parent
+EVIDENCE = TOOLS.parents[2] / 'data' / 'evidence' / 'dba-handoff'  # #755: the evidence queries moved to docs/data/
 ONE_WORK = '/root/one-ops-b5-scan'
 EVIDENCE_ENV = '/etc/forcitis-one/evidence.env'
 ENCRYPT = r'''
@@ -38,8 +38,8 @@ def main(target):
     if status != 'Success' or len(cipher) != 1:
         raise SystemExit('evidence password not available')
     stage = f'{LEGACY_WORK}/stage'
-    files = {'OneSql.java': (TOOLS / 'OneSql.java').read_text(), 'evidence.enc': cipher[0],
-             'scan.sql': (B5 / 'evidence' / (sys.argv[2] if len(sys.argv) > 2 else 'credential_columns_scan.sql')).read_text()}
+    files = {'OneSql.java': (TOOLS / 'one-sql.java').read_text(), 'evidence.enc': cipher[0],
+             'scan.sql': (EVIDENCE / (sys.argv[2] if len(sys.argv) > 2 else 'credential-columns-scan.sql')).read_text()}
     env = f'LOGIN_USER=one_evidence_ro LOGIN_SECRET_ENC={stage}/evidence.enc LOGIN_KEY={LEGACY_WORK}/logintest.key'
     java = f'java -cp {LEGACY_WORK}/mssql-jdbc.jar {stage}/OneSql.java'
     script = stage_legacy(files) + DRIVER + (

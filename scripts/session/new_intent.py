@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""新增一条用户决定片段 intent/<日期>-<HHMMSS>-<会话名>-<短名>.md，然后运行 build_decisions.py 校验并重新生成现行决定页（INTENT.md、速查表已停止生成，定稿 1.11）。
+"""新增一条用户决定片段 docs/decisions/<日期>-<HHMMSS>-<会话名>-<短名>.md，然后运行 build_decisions.py 校验并重新生成现行决定页（INTENT.md、速查表已停止生成，定稿 1.11）。
 
 用法：python3 scripts/session/new_intent.py --session=<会话名> --category=<类别> --owner=<负责会话> --paths=<路径前缀[,...]|无> --supersedes=<被取代的 intent 文件名[,...]|无> "<用户原话>" "<落点>" [--date=YYYY-MM-DD] [--rules=RULE-272,RULE-273] [--adrs=ADR-0044] [--sheet=D5] [--items=D5-01,D5-02]
 必填四项，缺任一即拒并列缺项：--category 取 口径、范围、流程、授权、技术、其他；--owner 负责落地的会话名（旧名先按 policy.json 的 sessions.aliases 换成现名，再须在 sessions.config 里；片段写现名）；--paths 受影响的仓库相对路径前缀，没有写「无」。依次写进片段的「类别」「负责会话」「影响路径」节，旧片段不回填。
-本决定推翻或取代了此前哪些决定，就在 --supersedes 里写出（现行决定页据此不再列它，build_decisions.py）；文件名须是 intent/ 下已有的片段，没有写「无」。
+本决定推翻或取代了此前哪些决定，就在 --supersedes 里写出（现行决定页据此不再列它，build_decisions.py）；文件名须是 docs/decisions/ 下已有的片段，没有写「无」。
 可选的 --rules / --adrs / --sheet / --items 把决定影响的规则号、ADR、确认页单子与题号记入片段（只核格式），规则索引与 ADR 治理据此反查「被哪些决定改过」。
 原话与落点各为一行。文件名由日期、当前时刻与会话名组成，并行会话互不撞名，无需协调序号。
 """
@@ -11,7 +11,7 @@ import datetime, json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..", "..")
-BASE = os.path.join(ROOT, "docs", "modernization")
+DECISIONS = os.path.join(ROOT, "docs", "decisions")
 CATEGORIES = ("口径", "范围", "流程", "授权", "技术", "其他")
 
 
@@ -35,17 +35,17 @@ def parse_args(doc, n):
     return opts, args
 
 
-def create(folder, date, session, slug, text, builder="build_decisions.py"):
+def create(date, session, slug, text, builder="build_decisions.py"):
     now = datetime.datetime.now()
     while True:
         name = f"{date}-{now:%H%M%S}-{short_name(session, 40)}" + (f"-{slug}" if slug else "") + ".md"
-        path = os.path.join(BASE, folder, name)
+        path = os.path.join(DECISIONS, name)
         try:
             open(path, "x", encoding="utf-8").write(text)
             break
         except FileExistsError:
             now += datetime.timedelta(seconds=1)
-    print(os.path.relpath(path, BASE))
+    print(os.path.relpath(path, os.path.dirname(DECISIONS)))
     subprocess.run([sys.executable, os.path.join(HERE, builder)], check=True)
 
 
@@ -64,8 +64,8 @@ if __name__ == "__main__":
     if wrong: sys.exit("\n".join(wrong))
     olds = [x for x in opts["supersedes"].split(",") if x != "无"]
     for old in olds:
-        if not os.path.isfile(os.path.join(BASE, "intent", old)):
-            sys.exit(f"--supersedes：intent/{old} 不存在")
+        if not os.path.isfile(os.path.join(DECISIONS, old)):
+            sys.exit(f"--supersedes：docs/decisions/{old} 不存在")
     tags = "\n## 取代\n\n" + "".join(f"- {o}\n" for o in olds) if olds else ""
     for opt, name, pattern in (("rules", "规则", r"(?:[A-Z]+-)?RULE-\d+(?:、(?:[A-Z]+-)?RULE-\d+)*"), ("adrs", "影响的 ADR", r"ADR-\d{4}(?:、ADR-\d{4})*"),
                                ("sheet", "单子", r"[A-Za-z0-9_-]+"), ("items", "题号", r"[A-Za-z0-9_-]+(?:、[A-Za-z0-9_-]+)*")):
@@ -78,5 +78,5 @@ if __name__ == "__main__":
                 sys.exit(f"--{opt} 有重复项：{opts[opt]}")
             tags += f"\n## {name}\n\n{value}\n"
     tags += f"\n## 类别\n\n{opts['category']}\n\n## 负责会话\n\n{resolve_owner(opts['owner'])}\n\n## 影响路径\n\n{'、'.join(paths) or '无'}\n"
-    create("intent", opts.get("date", datetime.date.today().isoformat()), opts["session"], short_name(quote),
+    create(opts.get("date", datetime.date.today().isoformat()), opts["session"], short_name(quote),
            f"## 原话\n\n{quote}\n\n## 落点\n\n{landing}\n{tags}")

@@ -2,7 +2,7 @@
 """拦截代码读 proposals/（TEAM-108；GOV-1023-ARC-01 第②步）。
 
 扫描仓库里 proposals/ 目录以外的已跟踪脚本与测试（py、sh、java、kt、ts、mjs），凡在路径里写到 proposals/（前面是 / 或引号、行首，
-后面是 / 或引号），须在 proposal_reads.yaml 登记。失败条件：未登记；登记了却已不再写到；kind=data 的来源到期，或来源名已不在文件里；
+后面是 / 或引号），须在 docs/architecture/proposal-reads.yaml 登记。失败条件：未登记；登记了却已不再写到；kind=data 的来源到期，或来源名已不在文件里；
 kind 或字段不合法。architecture-guardrails/ 是守护测试的镜像，不扫。
 用法：proposal_reads.py | proposal_reads.py --self-test
 """
@@ -59,7 +59,7 @@ def problems(rows, found, today):
                 errors.append(f"{path}: 来源 {name} 已不在文件里，删掉这条")
             elif due < today:
                 errors.append(f"{path}: 读 proposals/ 的 {name} 已过期（{due}），升正本后改读正本或删掉读取")
-    errors += [f"{f}: 读 proposals/ 未登记，改读正本；确需暂读的在 architecture/proposal_reads.yaml 登记来源与到期日" for f in sorted(set(found) - listed)]
+    errors += [f"{f}: 读 proposals/ 未登记，改读正本；确需暂读的在 docs/architecture/proposal-reads.yaml 登记来源与到期日" for f in sorted(set(found) - listed)]
     return errors
 
 

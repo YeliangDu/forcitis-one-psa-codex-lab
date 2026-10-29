@@ -1,6 +1,6 @@
 -- FORCITIS one · C-9 回滚：删除 forcitis_one_prod 与 one_prod_* 角色。只在库中尚无须保留的数据时使用；执行前须用户确认。
 -- 不触碰 forcitis_one（IT 服务门户）库与其角色。
--- 用法：psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f c9_prod_db_rollback.sql
+-- 用法：psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f prod-db-rollback.sql
 
 -- 先停应用（systemctl stop forcitis-one），再确认无残留连接：期望 0 行
 SELECT pid, usename, application_name FROM pg_stat_activity WHERE datname = 'forcitis_one_prod';

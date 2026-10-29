@@ -132,7 +132,7 @@ class SeeyonViewsMssqlIT {
         }
     }
 
-    /** The shape one-ops applied on 2026-10-15 (B-5 read-all/a8_apply.sql, ADR-0037 item 1.2): whole-database SELECT, database-level DENY of every write. */
+    /** The shape one-ops applied on 2026-10-15 (ops/dba-scripts/read-all/a8-apply.sql under docs, ADR-0037 item 1.2): whole-database SELECT, database-level DENY of every write. */
     private static void widenToTheWholeDatabase() throws SQLException {
         run(SEEYON_DB, "REVOKE SELECT ON SCHEMA::dbo FROM " + READER_LOGIN, "REVOKE VIEW DEFINITION ON SCHEMA::dbo FROM " + READER_LOGIN,
                 "GRANT SELECT ON DATABASE::" + SEEYON_DB + " TO " + READER_LOGIN,
