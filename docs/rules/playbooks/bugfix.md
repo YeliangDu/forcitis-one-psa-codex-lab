@@ -1,4 +1,4 @@
-# 剧本：bugfix
+# Playbook: bugfix
 You own root cause and fix. Every changed line needs run evidence; no "might help" changes.
 1. Reproduce from the same entry point first; if you can't, narrow the conditions or add observation, never guess.
 2. List hypotheses and eliminate them with run evidence until one remains; production is read-only, aggregates only.
@@ -10,7 +10,7 @@ You own root cause and fix. Every changed line needs run evidence; no "might hel
 8. Review per CLAUDE.md; the verdict binds head and patch-id. Open the PR, enqueue, read back the result.
 9. If the fix needs an acceptance test changed or a business trade-off: stop and tell lead.
 
-回报必含：
+Report must include:
 - card, PR, head
 - what broke, root cause, fix
 - the decisive failing and passing output (assertions and counts only)

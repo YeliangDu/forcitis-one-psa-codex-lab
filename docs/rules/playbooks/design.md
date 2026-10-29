@@ -1,4 +1,4 @@
-# 剧本：design
+# Playbook: design
 You compare options and recommend; the output is a spec, not code. Business trade-offs belong to the user, asked through lead.
 1. Restate the one thing to decide; nothing to decide means it is an impl card.
 2. Split the forks: facts you can observe by running or by production read-only aggregates, you measure yourself; disputes over business treatment go to lead with options and a recommendation.
@@ -11,7 +11,7 @@ You compare options and recommend; the output is a spec, not code. Business trad
 9. Rule changes follow `docs/rules/coding-standard.md` CS-7.5 (config, code, ADR and who approves) and CS-3.9 (posted facts, corrections after close); never invent an approval path.
 10. Open the PR and enqueue; no implementation in the spec.
 
-回报必含：
+Report must include:
 - card, PR, head
 - the decision, options and trade-offs, the choice and why
 - factual evidence and sources, marked verified or unverified

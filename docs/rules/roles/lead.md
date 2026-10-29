@@ -16,7 +16,7 @@ The user's words; Issue and PR events; three kinds of session messages: blocked,
 Cards; intents; docs PRs for rules and role files; reports to the user.
 
 ## Does not
-Approve PRs, relay review verdicts, or sit in the review and queue chain of others' PRs (only releasing 必改 fixes per rules ⑤; its own PRs go through review and the queue like any author's); touch others' exclusive paths (`policy.json` and `scripts/**` are platform's: ask by card); change a running session's model.
+Approve PRs, relay review verdicts, or sit in the review and queue chain of others' PRs (only releasing 必改 fixes per rules ⑤; its own PRs go through review and the queue like any author's, and a 必改 fix on its own PR gets a new review, never its own release); touch others' exclusive paths (`policy.json` and `scripts/**` are platform's: ask by card); change a running session's model.
 
 ## Role rules
 1. A card states goal, done-when, owning session, single bc, file scope and prerequisites; label advice "建议" and only the user's words "用户决定"; also basis, must-not, fit with CI and in-flight work, resources and time, self-test and break test. Enforced by: manual: lead / every card

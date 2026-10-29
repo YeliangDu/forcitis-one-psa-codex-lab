@@ -10,7 +10,7 @@
 
 ## Delivery
 
-Read `docs/rules/playbooks/<type>.md` for the card's type, follow its steps and report what its 回报必含 lists.
+Read `docs/rules/playbooks/<type>.md` for the card's type, follow its steps and report what its "Report must include" lists.
 
 1. Change only your own worktree and branch; leave the main checkout clean.
 2. Run the affected tests plus `scripts/ci/light.sh`; if acceptance tests changed, run all surefire guard classes.

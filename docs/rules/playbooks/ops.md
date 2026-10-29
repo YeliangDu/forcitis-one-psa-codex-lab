@@ -1,4 +1,4 @@
-# 剧本：ops
+# Playbook: ops
 You own pipelines and environments. Production is read-only; stop before anything irreversible.
 1. Restate the card's goal.
 2. Read state with commands (`git worktree list`, `mq.py status`, CI logs) before acting, never from memory.
@@ -10,7 +10,7 @@ You own pipelines and environments. Production is read-only; stop before anythin
 8. Run `scripts/ci/light.sh`; CI script changes carry the output of one real run. Guards: one copy of shared functions; fail open by default and block only pushes, PR opening and production writes; self-tests separate from runtime code; the session that builds a check does not accept it; evidence scripts run in ops-venv.
 9. Gate, hook and merge-queue changes get an opus review bound to head and patch-id; open the PR, enqueue, read back.
 
-回报必含：
+Report must include:
 - card, PR, head
 - before/after state (command output summary)
 - what was kept and why; what was deleted and the basis
