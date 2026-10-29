@@ -29,8 +29,7 @@ class ControllerResponseGuardTest {
     static final Map<String, String> OTHER_ANSWERS = Map.of(
             "com.forcitis.one.platform.audit.web.AuditExportController.export", "a file download (byte[] with its content type)",
             "com.forcitis.one.platform.identity.web.RoleController.create", "ResponseEntity<?>: RoleResponse or a problem per outcome",
-            "com.forcitis.one.platform.identity.web.RoleController.update", "ResponseEntity<?>: RoleResponse or a problem per outcome",
-            "com.forcitis.one.platform.identity.web.RoleController.replaceRoles", "ResponseEntity<?>: no content or a problem per outcome");
+            "com.forcitis.one.platform.identity.web.RoleController.update", "ResponseEntity<?>: RoleResponse or a problem per outcome");
 
     static final List<Class<?>> WRAPPERS = List.of(ResponseEntity.class, CursorPage.class, List.class, Optional.class);
 

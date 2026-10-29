@@ -105,7 +105,7 @@ class OpenApiExportTest {
 
     /** Ids of this system (R-1a) are string / uuid on the wire; the rest are named here until R-1b gives them their own ids. */
     static final Set<String> OWN_ID_FIELDS = Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
-            "AuthorizationRequestResponse.requestId", "AuthorizationRequestResponse.roleId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
+            "AuthorizationRequestResponse.requestId", "AuthorizationRequestResponse.roleId", "AwaitingConfirmationResponse.requestId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
             "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
             "RoleResponse.roleId", "SyncRunResponse.syncRunId", "SyncRunResponse.releasedByRunId", "ProblemDetail.correlationId",
             "RegisterSourceReferenceRequest.ownId", "SourceReferenceResponse.ownId", "SourceReferenceResponse.sourceReferenceId",
