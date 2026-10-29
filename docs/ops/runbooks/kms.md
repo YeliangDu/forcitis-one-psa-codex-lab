@@ -1,6 +1,6 @@
 # C-8 剧本：配置与密钥从 `one.env` 迁到 KMS 凭据管家，轮换周期
 
-依据：`docs/architecture/proposals/phase1-a-platform-conventions.md` §6（凭据命名 `forcitis-one/<env>/<name>`、ECS RAM 角色、启动拉取、轮换表）、INFRA_RUNBOOK §5。时点：生产前。性质：开通 KMS 实例与凭据属购买 / 对外变更，执行前须用户确认。
+依据：`docs/architecture/proposals/phase1-a-platform-conventions.md` §6（凭据命名 `forcitis-one/<env>/<name>`、ECS RAM 角色、启动拉取、轮换表）、infra-runbook.md §5。时点：生产前。性质：开通 KMS 实例与凭据属购买 / 对外变更，执行前须用户确认。
 
 ## 迁移范围与轮换（建议，按平台约定 §6）
 
@@ -14,7 +14,7 @@
 | `a8-views-ro` | `A8_DB_PASSWORD` | 90 天 | 手工，由 A8 DBA 改口令 |
 | `legacy-inbox-ro` | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD` | 90 天 | 手工，老系统 DBA |
 | `legacy-names-ro` | `LEGACY_DB_RO_PASSWORD` | 90 天 | 手工，老系统 DBA |
-| `evidence-ro` | `EVIDENCE_DB_PASSWORD`（`/etc/forcitis-one/evidence.env`，不在 `one.env`） | 90 天 | 手工：以 RDS 高权限账号 `ALTER LOGIN [one_evidence_ro] WITH PASSWORD`，口令在服务器端生成、只经密文（同 `handoff/B-5-dba/tools/b5_evidence_run.py` 的做法；该脚本 #742 已删，原文见 `git show 7d3f2d2ea:docs/modernization/phase1a/infra/handoff/B-5-dba/tools/b5_evidence_run.py`）；应用不用此口令，轮换无须重启 |
+| `evidence-ro` | `EVIDENCE_DB_PASSWORD`（`/etc/forcitis-one/evidence.env`，不在 `one.env`） | 90 天 | 手工：以 RDS 高权限账号 `ALTER LOGIN [one_evidence_ro] WITH PASSWORD`，口令在服务器端生成、只经密文（同 `b5_evidence_run.py` 的做法；该脚本 #742 已删，原文见 `git show 7d3f2d2ea:docs/modernization/phase1a/infra/handoff/B-5-dba/tools/b5_evidence_run.py`）；应用不用此口令，轮换无须重启 |
 | `alert-webhooks` | C-7 的群机器人 Webhook | 泄露时 | 手工 |
 
 非机密配置（地址、开关、ID）留在 one.env，不进 KMS。

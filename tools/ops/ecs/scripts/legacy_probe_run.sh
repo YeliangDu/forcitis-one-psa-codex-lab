@@ -12,6 +12,7 @@ chmod 700 "$work"; umask 077
 
 app_dir=/usr/local/software/psa
 app_jar="$app_dir/yudao-module-system-biz.jar"
+# shellcheck disable=SC2012  # a glob over fixed JDK folder names without special characters
 java_bin=$(ls -d /usr/lib/jvm/java-11-*/bin/java | head -1)
 [[ -x "$java_bin" ]] || { echo "java 11 not found" >&2; exit 2; }
 
@@ -23,6 +24,7 @@ bootstrap=$(unzip -p "$app_jar" BOOT-INF/classes/bootstrap-prod.yaml)
 config_block=$(printf '%s\n' "$bootstrap" | awk '/^[[:space:]]+config:[[:space:]]*$/{f=1;next} f&&/server-addr:|namespace:/{print} f&&/shared-configs:/{exit}')
 addr=$(printf '%s\n' "$config_block" | sed -nE 's/^[[:space:]]*server-addr:[[:space:]]*([^ #]+).*/\1/p' | head -1)
 namespace=$(printf '%s\n' "$config_block" | sed -nE 's/^[[:space:]]*namespace:[[:space:]]*([^ #]+).*/\1/p' | head -1)
+# shellcheck disable=SC2016  # matches the literal ${ of an unresolved placeholder
 [[ -n "$addr" && -n "$namespace" && "$addr" != *'${'* && "$namespace" != *'${'* ]] || { echo "config center address or namespace not resolvable" >&2; exit 2; }
 
 curl -sf --max-time 10 -G "http://${addr}/nacos/v1/cs/configs" \

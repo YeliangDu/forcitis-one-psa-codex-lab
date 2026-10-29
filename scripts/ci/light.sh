@@ -41,17 +41,17 @@ against_base() {  # against_base <名字> <命令…>：命令后面接上基线
   fi
 }
 
-pyyaml() {  # SUPPLY_CHAIN S1：生成文档与若干守护读 YAML，版本钉死
-  python3 -c 'import sys, yaml; sys.exit(None if yaml.__version__ == "6.0.3" else f"PyYAML {yaml.__version__} != 6.0.3（SUPPLY_CHAIN S1，CI_RUNNERS.md）")'
+pyyaml() {  # 供应链规则 S1：守护与生成器读写 YAML，版本钉死
+  python3 -c 'import sys, yaml; sys.exit(None if yaml.__version__ == "6.0.3" else f"PyYAML {yaml.__version__} != 6.0.3（供应链规则 S1，装法见 runner 运维页）")'
 }
 
 echo "light.sh：基线 ${base:-无}，HEAD $(git rev-parse --short HEAD)"
 command -v python3 >/dev/null || { echo "FAIL  找不到 python3" >&2; exit 1; }
 
 # 供应链、正本校验与被代码读的生成物（#742：build_all 与派生文档已删，留下的检查直接在这里跑）
-if [ -z "${CI:-}" ] && ! pyyaml >/dev/null 2>&1; then skip "python3 has PyYAML 6.0.3" "本机 PyYAML 不是 6.0.3：生成物可能与 CI 不同，CI 里这项会红（装 6.0.3 见 CI_RUNNERS.md）"
+if [ -z "${CI:-}" ] && ! pyyaml >/dev/null 2>&1; then skip "python3 has PyYAML 6.0.3" "本机 PyYAML 不是 6.0.3：生成物可能与 CI 不同，CI 里这项会红（装 6.0.3 见 runner 运维页）"
 else
-  rule "生成物与守护按钉死的 PyYAML 6.0.3 读写 YAML（SUPPLY_CHAIN S1）；版本不同，生成结果会漂移" "装 PyYAML 6.0.3（CI_RUNNERS.md）"
+  rule "生成物与守护按钉死的 PyYAML 6.0.3 读写 YAML（供应链规则 S1）；版本不同，生成结果会漂移" "装 PyYAML 6.0.3（见 runner 运维页）"
   run "python3 has PyYAML 6.0.3" pyyaml
 fi
 rule "新词条违反用语登记规则（terms.yaml 与 backend/glossary/proposed）" "按输出逐条改词条，规则见 scripts/guards/term_rules.py"
@@ -70,10 +70,12 @@ rule "老系统读取登记片段缺字段或格式错（ADR-0037）" "按输出
 run "legacy-read fragments are valid" python3 -I tools/evidence/new_legacy_read.py --check
 rule "只在生产上跑的取证工具缺模块、缺名字或缺同目录文件，到生产才崩" "恢复被删的模块或文件，或改掉对它的引用"
 run "evidence tools: imports resolve" python3 -I scripts/ci/evidence_imports.py
-rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替用户拍板" "按输出的规则号改 rules/playbooks/ 或 .github/ISSUE_TEMPLATE/card.md"
+rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替用户拍板；CLAUDE.md、规则、角色、PROMPT.md、PR 模板或脚本说明点名不存在的路径（P6）" "按输出的规则号改 rules/playbooks/、.github/ISSUE_TEMPLATE/card.md 或所列文件"
 run "playbooks and the card template are well-formed" python3 -I scripts/guards/check_playbooks.py
-rule "policy.json rules/start 里有数值键没有脚本读（上限看似生效、实则无人执行）" "按输出的 PK 规则号删键，或让需要它的检查读它"
-run "every numeric policy.json rules/start key has a reader" python3 -I scripts/guards/policy_keys_read.py
+rule "规则或角色文件的「Enforced by」点名了不存在的脚本、作业或工具（规则看似有人执行，实则没有）" "按输出的 RE 规则号改成真实的检查名，或写 manual: <角色> / <频次>"
+run "every rule names an enforcer that exists" python3 -I scripts/guards/check_rules_enforced.py
+rule "policy.json 有数值或字符串键没有脚本读、也没登记为规则文本读者（上限或名字看似生效、实则无人执行）" "按输出的 PK 规则号删键，或让需要它的检查读它，或在 policy_keys_read.py 的 RULE_READERS 登记"
+run "every numeric or string policy.json key has a reader" python3 -I scripts/guards/policy_keys_read.py
 rule "智能体读的规则文件超出层上限（A 开局、B 每路径，policy.json rules.layer_*_max_kb），或 .claude/rules 不是指向带 paths: 文档的相对软链（#827），会话读不全或开局多读" "按输出的 RS 规则号删短所列文件、收窄 paths:、把内容移到按编号寻址的文档（C 层），或按提示修软链"
 run "agent-read rules: layer A/B sizes, .claude/rules links" python3 -I scripts/guards/rule_sizes.py
 rule "代码文件超过 1000 行（复审必改），或登记的超长文件变长、登记过期" "按输出的 FL 规则号拆文件，或按提示更新 scripts/guards/file_lines.py 的 OVER"
@@ -108,6 +110,7 @@ rule "取证工具 OneSql.java 放进了写语句或不回滚（生产只读底�
 if ! touches "$t_onesql"; then skip "OneSql.java read only (self-test)" "相关路径没改（按改动触发）"
 elif ! command -v java >/dev/null; then skip "OneSql.java read only (self-test)" "本机没有 java（CI 的 backend 作业有）"
 else run "OneSql.java read only (self-test)" java "$onesql" --self-test "$onesql_evidence"; fi
+# shellcheck disable=SC2016  # the rule text shows $VAR literally
 rule '$VAR 后紧跟全角字符，bash 3.2 下 set -u 即崩' '把 $VAR 写成 ${VAR}'
 run "shell: no \$VAR right before non-ASCII" var_before_non_ascii
 # 验收测试改了就跑全部免容器单测（CLAUDE.md 交付第 2 步）；export-openapi 绑在 process-test-classes 上要起容器，所以用 test-compile surefire:test

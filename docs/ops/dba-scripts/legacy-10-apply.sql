@@ -1,7 +1,7 @@
 -- FORCITIS one · B-5 · 老系统库（ruoyi-vue-pro，SQL Server 2016+）两个只读视图与两个专用账号 —— 执行脚本
 -- 执行人：老系统 RDS 的 DBA。工具：sqlcmd，或 SSMS「SQLCMD 模式」。不改任何老表，不写任何老数据。
 -- 用法：sqlcmd -S <老系统 RDS 内网地址> -d ruoyi-vue-pro -U <高权限账号> -b -i legacy_10_apply.sql
--- 视图正文与 docs/data/legacy-views/legacy-inbox-view.sql、docs/data/legacy-views/legacy-org-names-view.sql 逐字一致（check_view_sync.py 校验）。
+-- 视图正文与 docs/data/legacy-views/legacy-inbox-view.sql、docs/data/legacy-views/legacy-org-names-view.sql 逐字一致（原校验脚本 check_view_sync.py 已于 #742 删除，改动时人工对照）。
 -- 必须是两个账号：应用对每个连接启动时都校验「能 SELECT 的对象恰好只有本视图」（I-1），一个账号读两个视图会两边都拒绝启动；
 -- 授权必须直接给用户，不经数据库角色（information_schema 看不到经角色得到的授权，应用据此禁止角色成员）。
 -- 账号名须与应用的环境变量一致：
@@ -55,7 +55,7 @@ GO
 
 -- ===== STEP 3 两个登录名（随机口令，各只显示一次）=====
 -- 托管实例不允许 T-SQL 建登录时，改在 RDS 控制台建同名登录、≥ 32 位随机口令，跳过本步。
--- CHECK_EXPIRATION 关闭：服务账号口令到期会让合并待办与简称同步中断；按 90 天由 DBA 计划轮换（runbooks/C-8）。
+-- CHECK_EXPIRATION 关闭：服务账号口令到期会让合并待办与简称同步中断；按 90 天由 DBA 计划轮换（docs/ops/runbooks/kms.md）。
 DECLARE @logins TABLE (login_name sysname, env_name sysname);
 INSERT INTO @logins VALUES (N'$(INBOX_LOGIN)', N'FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD'),
                            (N'$(NAMES_LOGIN)', N'LEGACY_DB_RO_PASSWORD');

@@ -19,7 +19,7 @@ SELECT u.name AS user_name, r.name AS role_name
  WHERE u.name IN (N'$(INBOX_LOGIN)', N'$(NAMES_LOGIN)');
 
 -- V3 / V4「能 SELECT 的对象恰好 1 行」「令牌表为 0」已被 ADR-0037 取代：两个账号全库只读，形状以各账号真实登录执行
--- read-all/readonly_check.sql 核对 (a)–(g)，与应用启动校验同一组查询。这里只留视图可读的行数核对。
+-- read-all/readonly-check.sql 核对 (a)–(g)，与应用启动校验同一组查询。这里只留视图可读的行数核对。
 -- V3 合并待办视图可读
 EXECUTE AS USER = N'$(INBOX_LOGIN)';
 SELECT COUNT(*) AS open_todos FROM dbo.v_psa_one_legacy_todo;

@@ -341,8 +341,7 @@ class Processor:
         if not behind:
             return behind
         files = self.gh.behind_files(head)
-        # a Python file under docs/ is check logic (check_*.py run in every pull request's secret scan job): it is no plain documentation for this purpose, the pull request is tested again against it
-        if files is not None and self.docs_only(files) and not any(f.endswith(".py") for f in files):
+        if files is not None and self.docs_only(files):
             return 0
         return behind
 

@@ -15,4 +15,4 @@ Closes #<卡>
 <!-- 贴末行（PASS/FAIL/SKIP 计数与用时）加全部 FAIL、SKIP 行，不含密钥 -->
 
 ## 复审
-<!-- 按 RULES ⑤ 与 scripts/review/PROMPT.md 自派复审子代理，用 post_review 提交；首轮通过后自行 mq.py enqueue。 -->
+<!-- 按 docs/rules/rules.md ⑤ 与 scripts/review/PROMPT.md 自派复审子代理，用 post_review 提交；首轮通过后自行 mq.py enqueue。 -->

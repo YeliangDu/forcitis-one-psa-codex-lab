@@ -8,7 +8,7 @@ t_shell='\.sh$'
 t_guards='^scripts/guards/'
 t_guards_config='^scripts/guards/|^backend/pom\.xml$|^backend/src/test/java/com/forcitis/one/acceptance/|^scripts/ci/(legacy_it|backend_verify)\.sh$|^scripts/codegen/generate_api\.sh$|^docs/rules/rulings/|^\.github/workflows/(ci|nightly-legacy-it)\.yml$'
 t_evidence_imports='^scripts/ci/evidence_imports\.py$'
-t_gates='^scripts/(gates|hooks)/|^policy\.json$|^\.claude/|^\.pre-commit-config\.yaml$|^scripts/merge/session_map\.json$'
+t_gates='^scripts/(gates|hooks)/|^policy\.json$|^\.claude/|^\.pre-commit-config\.yaml$'
 t_session='^scripts/session/|^policy\.json$|^docs/rules/roles/|^docs/decisions/decision-digest/'
 t_new_adr='^tools/docs/|^docs/adr/'
 t_mq='^scripts/merge/|^scripts/ci/relevant_change|^policy\.json$'
@@ -27,7 +27,8 @@ onesql=tools/ops/dba/OneSql.java
 onesql_evidence=docs/data/evidence/dba-handoff
 t_onesql='^tools/ops/dba/OneSql\.java$|^docs/data/evidence/dba-handoff/.*\.sql$'  # light.sh 直接用：要 java，缺了记 SKIP
 t_light='^scripts/ci/light(_selftest|_triggers)?\.sh$'
-TRIGGER_KEYS='t_shell t_guards t_guards_config t_evidence_imports t_gates t_session t_new_adr t_mq t_unit_classes t_heavy_gate t_backend_verify t_evidence t_scan t_post_review t_ci_steps t_runner_watch t_docker t_light'
+t_c3_passwords='^tools/ops/ecs/scripts/c3_(set_role|rotate_admin)_password'
+TRIGGER_KEYS='t_shell t_guards t_guards_config t_evidence_imports t_gates t_session t_new_adr t_mq t_unit_classes t_heavy_gate t_backend_verify t_evidence t_scan t_post_review t_ci_steps t_runner_watch t_docker t_light t_c3_passwords'
 
 # 检查表：模式名|名字|命令（命令按空格切分，路径里不能有空格）
 TRIGGERED_CHECKS='t_shell|shell syntax (bash -n)|shell_syntax
@@ -42,6 +43,7 @@ t_guards|build_catalog (self-test)|python3 scripts/guards/build_catalog.py --sel
 t_guards|term_rules (self-test)|python3 scripts/guards/term_rules.py --self-test
 t_guards|check_names (self-test)|python3 -I scripts/guards/check_names.py --self-test
 t_guards|check_playbooks (self-test)|python3 -I scripts/guards/check_playbooks.py --self-test
+t_guards|check_rules_enforced (self-test)|python3 -I scripts/guards/check_rules_enforced.py --self-test
 t_guards|policy_keys_read (self-test)|python3 -I scripts/guards/policy_keys_read.py --self-test
 t_guards|rule_sizes (self-test)|python3 -I scripts/guards/rule_sizes.py --self-test
 t_guards|file_lines (self-test)|python3 -I scripts/guards/file_lines.py --self-test
@@ -56,10 +58,12 @@ t_heavy_gate|heavy_gate (self-test)|python3 scripts/ci/heavy_gate.py --self-test
 t_backend_verify|backend_verify_selftest (OpenAPI export skipped only for this commit)|bash scripts/ci/backend_verify_selftest.sh
 t_evidence|evidence_selftest (self-test)|python3 tools/evidence/evidence_selftest.py --self-test
 t_scan|scan_aggregates tests|python3 scripts/codegen/scan_aggregates_selftest.py
+t_scan|scan_acceptance_tests (self-test)|python3 scripts/codegen/scan_acceptance_tests.py --self-test
 t_post_review|post_review_selftest|python3 scripts/merge/post_review_selftest.py
 t_ci_steps|ci_steps_selftest (ci.yml cleanup spares the runner)|python3 scripts/ci/ci_steps_selftest.py
 t_runner_watch|runner_watch_selftest (runner keep-alive and watch)|python3 scripts/release/runner_watch_selftest.py
 t_docker|docker_ensure_selftest (about 85 s)|bash scripts/release/docker_ensure_selftest.sh
+t_c3_passwords|c3_set_role_passwords (self-test)|python3 -I tools/ops/ecs/scripts/c3_set_role_passwords.py --self-test
 t_light|light_selftest (by-change triggers)|bash scripts/ci/light_selftest.sh'
 
 touches() {  # touches <模式>：没有基线或 LIGHT_ALL=1（CI 推到 main）时一律算改到；否则看 $changed 里有没有匹配的路径（大小写不敏感：macOS 上大小写改名的路径也触发）
@@ -103,6 +107,7 @@ surefire_guards() {  # 全部免容器单测（light_unit_classes.py 列出，�
 var_before_non_ascii() {  # 仓库里的 shell（*.sh、工作流 run 段、.claude/settings.json 的挂载命令）：$VAR 后不得紧跟非 ASCII 字符。UTF-8 下 bash 3.2 会把全角标点读进变量名，set -u 即崩；写成 ${VAR}
   local hits
   hits=$(git ls-files -z '*.sh' .github/workflows .claude/settings.json | LC_ALL=C xargs -0 grep -nE $'\\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]')
+  # shellcheck disable=SC2016  # the message shows $VAR and ${VAR} literally
   [ -z "$hits" ] || { printf '$VAR 后紧跟非 ASCII 字符，改成 ${VAR}：\n%s\n' "$hits" >&2; return 1; }
 }
 

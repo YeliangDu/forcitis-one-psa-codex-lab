@@ -242,7 +242,7 @@ def collect(root):
 
 def render_yaml(tests):
     quote = lambda value: json.dumps(value, ensure_ascii=False)
-    lines = ['# 由 architecture/panorama/scan_acceptance_tests.py 生成，勿手改',
+    lines = ['# 由 scripts/codegen/scan_acceptance_tests.py 生成，勿手改',
              'meta:', f'  count: {len(tests)}',
              f'  covers_nonempty: {sum(bool(t["covers"]) for t in tests)}',
              '  generated_from:']
@@ -273,7 +273,7 @@ def render_gaps(root, tests):
     for test in unnamed:
         groups[test['location'].rsplit(':', 1)[0]].append(test)
     lines = ['# 验收测试编号缺口', '',
-             '由 architecture/panorama/scan_acceptance_tests.py 生成，勿手改。', '',
+             '由 scripts/codegen/scan_acceptance_tests.py 生成，勿手改。', '',
              '仅核对源码中的编号引用；不代表测试已运行或业务规则已验证。', '',
              f'## 有测试无编号（{len(unnamed)} 条）', '']
     for path, items in sorted(groups.items()):

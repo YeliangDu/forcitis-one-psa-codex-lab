@@ -6,7 +6,7 @@ Dev sessions share `backend/` and `frontend/`, so none is exclusive: change only
 
 ## Owns
 - One bc end to end from card to merge: implementation, unit tests, the bc's pages, PR, review, fixes.
-- Code per `docs/rules/coding-core.md` (read it before coding; auto-loads once `.claude/rules` lands, #827) and the detail rows it cites.
+- Code per `docs/rules/coding-core.md` (loaded automatically for `backend/**` through `.claude/rules`, #827) and the detail rows it cites.
 - Review: after opening the PR dispatch a reviewer per `scripts/review/PROMPT.md`; it only writes the verdict file, the dispatcher runs post_review. Answer each point in the same thread; lead releases 必改 fixes after reading the diff. Security, production, hook and parser changes add an opus final review. Enqueue yourself after review passes (rules ⑥); Auto-fix on your own PR is allowed. For permission, security and data-scope cards lead dispatches an independent test agent to write acceptance tests first; on other cards you write the tests and review checks they match the card.
 - No verdict within `policy.json` `review.no_verdict_alert_minutes`: re-dispatch.
 

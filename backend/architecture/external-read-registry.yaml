@@ -7,7 +7,6 @@
 # 守护见 platform/integration/guard 与 ExternalReadRegisterTest。启动时只查 a8_db 运行时用途的行：视图列与登记相等，基表行做子集检查；
 # 本文件不进运行时 classpath，启动检查读的是与之逐列相等的代码常量 SeeyonViewSql。
 # 老系统两个视图的列与集成层 SQL 常量逐列相等由 LegacyReadRegisterTest 守护（R-1b-0 C-5，P3b 移适配器后补）。
-# 变更本文件需 CODEOWNERS 评审（与 module-dependencies.txt 同等对待）。
 #
 # 字段（每行一个流式映射，不跨行）：
 #   database     databases 列出的库之一

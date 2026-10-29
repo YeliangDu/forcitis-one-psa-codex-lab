@@ -9,6 +9,8 @@ Each failure names the rule, the file and the fix:
   P5 it has no wording, Chinese or English, that lets a session decide for the user
   C1 .github/ISSUE_TEMPLATE/card.md keeps its seven sections
   C2 the type list in the card's 类型 section equals the playbook files
+  P6 every repository path named in backticks in a CLAUDE.md, rules.md, a role file, PROMPT.md, the PR template, or the docstring
+     (leading comment for shell) of a script under scripts/ exists, relative to the repository or to the file (#856)
 Runs on every event: a deleted or renamed file breaks P4 wherever it happens.
 
   check_playbooks.py              check the repository (run from its root)
@@ -106,10 +108,59 @@ def card_problems(root, types):
     return found
 
 
+DOC_FILES = ("docs/rules/rules.md", "scripts/review/PROMPT.md", ".github/pull_request_template.md")
+
+
+def tracked(root):
+    """Tracked files (git ls-files); without git (the self-test's folder), every file under root."""
+    if os.path.isdir(os.path.join(root, ".git")) or os.path.isfile(os.path.join(root, ".git")):
+        import subprocess
+        return subprocess.run(["git", "-C", root, "ls-files"], capture_output=True, text=True, check=True).stdout.split("\n")[:-1]
+    return [os.path.relpath(os.path.join(d, f), root) for d, _, fs in os.walk(root) for f in fs]
+
+
+def leading_text(rel, text):
+    """The part of a script that documents it: a Python module docstring, or a shell script's leading # comment block."""
+    if rel.endswith(".py"):
+        import ast
+        try:
+            return ast.get_docstring(ast.parse(text)) or ""
+        except SyntaxError:
+            return ""
+    lines = text.split("\n")
+    block = []
+    for line in lines[1:] if lines and lines[0].startswith("#!") else lines:
+        if not line.startswith("#"):
+            break
+        block.append(line)
+    return "\n".join(block)
+
+
+def doc_path_problems(root):
+    found = []
+    for rel in tracked(root):
+        doc = (os.path.basename(rel) == "CLAUDE.md" or rel in DOC_FILES
+               or (rel.startswith("docs/rules/roles/") and rel.endswith(".md")))
+        script = rel.startswith("scripts/") and rel.endswith((".py", ".sh"))
+        if not (doc or script):
+            continue
+        path = os.path.join(root, rel)
+        if not os.path.isfile(path):
+            continue
+        text = open(path, encoding="utf-8").read()
+        text = text if doc else leading_text(rel, text)
+        here = os.path.dirname(path)
+        for word in named_paths(text):
+            word = word.rstrip("/")
+            if not (os.path.exists(os.path.join(root, word)) or os.path.exists(os.path.join(here, word))):
+                found.append(f"P6 {rel}: names `{word}`, which does not exist (from the repository root or from the file); fix the path or drop it")
+    return found
+
+
 def problems(root):
     names = sorted(n for n in os.listdir(os.path.join(root, PLAYBOOKS)) if n.endswith(".md"))
     found = [p for n in names for p in playbook_problems(root, n)]
-    return found + card_problems(root, {n[:-3] for n in names})
+    return found + card_problems(root, {n[:-3] for n in names}) + doc_path_problems(root)
 
 
 def self_test():
@@ -171,6 +222,21 @@ def self_test():
         os.remove(os.path.join(tmp, PLAYBOOKS, "impl.md"))
         rules(good.replace("light.sh", "gone.sh"))
         assert "fix the path" in problems(tmp)[0], "a failure says how to fix it"
+        docs = {"CLAUDE.md": "See `scripts/ci/light.sh`, `~/.x`, `docs/<card>.md`.\n",
+                "backend/CLAUDE.md": "Migrations in `src/db`.\n", "backend/src/db/V1.sql": "",
+                "docs/rules/roles/dev.md": "Use `scripts/ci/light.sh`.\n",
+                "scripts/x/tool.py": '"""Reads `scripts/ci/light.sh`."""\nX = "`scripts/gone.py` in code is no docstring"\n',
+                "scripts/x/run.sh": "#!/bin/sh\n# Calls `scripts/ci/light.sh`.\necho '`scripts/gone.sh` after the header'\n"}
+        for rel, text in docs.items():
+            os.makedirs(os.path.dirname(os.path.join(tmp, rel)) or tmp, exist_ok=True)
+            open(os.path.join(tmp, rel), "w", encoding="utf-8").write(text)
+        assert rules() == [], "paths from the root or from the file; placeholders, home paths and script bodies are not checked"
+        for rel, stale in (("CLAUDE.md", "See `scripts/ci/gone.sh`.\n"), ("backend/CLAUDE.md", "See `src/gone`.\n"),
+                           ("docs/rules/roles/dev.md", "Use `docs/gone.md`.\n"), ("scripts/x/tool.py", '"""Reads `scripts/gone.py`."""\n'),
+                           ("scripts/x/run.sh", "#!/bin/sh\n# Calls `scripts/gone.sh`.\n")):
+            open(os.path.join(tmp, rel), "w", encoding="utf-8").write(stale)
+            assert rules() == ["P6"], f"a stale path in {rel}"
+            open(os.path.join(tmp, rel), "w", encoding="utf-8").write(docs[rel])
     print("check_playbooks self-test: ok")
 
 
