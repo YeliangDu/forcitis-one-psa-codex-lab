@@ -18,13 +18,6 @@ reads:
     sources:
       - {source: enterprise-aggregates-draft.md, due: 2026-12-01, note: 校验 owner_bc}
       - {source: structural-items.md, due: 2026-12-01}
-  - path: backend/src/test/java/com/forcitis/one/acceptance/EventEnvelopeContractTest.java
-    kind: data
-    sources:
-      - {source: EVENT_ANALYTICS_FIELDS.md, due: 2026-12-01, note: docs/architecture/events/ 下的事件信封字段定义（#755 PR B 随验收测试一起搬）；升正本或改读事件目录，归属待调度定}
-  - path: scripts/ci/relevant_change.py
-    kind: tool
-    note: 改动分级登记 proposals/ 里的工具与事件信封文件
   - path: scripts/guards/proposal_reads.py
     kind: tool
     note: 本检查自身（扫描规则与自测夹具）
