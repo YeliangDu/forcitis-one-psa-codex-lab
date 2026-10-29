@@ -4,10 +4,9 @@ import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import java.time.LocalDate;
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
 
 /** One appended correction: the closed period that started on periodFrom ended on previousEffectiveTo and from now on ends on newEffectiveTo. */
-public record AttributionCorrection(LocalDate periodFrom, @Nullable LocalDate previousEffectiveTo, LocalDate newEffectiveTo, Reason reason, UserId correctedBy) {
+public record AttributionCorrection(LocalDate periodFrom, LocalDate previousEffectiveTo, LocalDate newEffectiveTo, Reason reason, UserId correctedBy) {
     public AttributionCorrection {
         Objects.requireNonNull(periodFrom, "periodFrom");
         Objects.requireNonNull(previousEffectiveTo, "previousEffectiveTo");

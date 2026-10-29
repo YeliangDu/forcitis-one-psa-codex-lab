@@ -153,7 +153,7 @@ public final class LegalEntityAttribution extends AggregateRoot {
         List<AttributionPeriod> next = new ArrayList<>(periods);
         next.set(next.indexOf(period), period.closedOn(newEffectiveTo));
         this.periods = List.copyOf(next);
-        pendingCorrections.add(new AttributionCorrection(periodFrom, previous, newEffectiveTo, reason, correctedBy));
+        pendingCorrections.add(new AttributionCorrection(periodFrom, Objects.requireNonNull(previous, "a corrected period is closed"), newEffectiveTo, reason, correctedBy));
         record((envelopes, sequence) -> new LegalEntityAttributionCorrected(envelopes.wrap(draft("LegalEntityAttributionCorrected", sequence,
                 period.legalEntityId(), newEffectiveTo)), subject.kind(), new AttributionSubjectId(subject.subjectId()), period.legalEntityId(), periodFrom, previous, newEffectiveTo, reason));
     }
