@@ -14,6 +14,7 @@ diff, so legacy names do not block a pull request; after #755 renames the rest, 
   check_names.py <base>       exit 1 on a broken rule, 2 when the base or the diff cannot be read (fails closed)
   check_names.py --self-test
 """
+import contextlib
 import json
 import os
 import re
@@ -24,7 +25,7 @@ SCRIPT_SUFFIXES = (".py", ".sh", ".mjs", ".js", ".ts")
 SNAKE = re.compile(r"[a-z0-9]+(_[a-z0-9]+)*")
 KEBAB = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 TEST_WORD = re.compile(r"^test_|_test$")
-STAGE = re.compile(r"(phase\d+\w*|r\d+\w*|u8c\w*)")
+STAGE = re.compile(r"(phase\d+[a-z]?|r\d+[a-z]?|u8c)")
 EXEMPT_NAMES = {"README.md", "CLAUDE.md"}
 ADR = re.compile(r"ADR-\d{4}(-.*)?\.md")
 FRAGMENT_DIRS = {"intent", "decisions", "legacy-read"}
@@ -71,9 +72,9 @@ def file_problems(path, sessions, new_dirs):
         if top == "docs" and child not in FRAGMENT_DIRS:
             if not KEBAB.fullmatch(child):
                 found.append(f"N4 {directory}/: directories under docs/ are lower-kebab-case; use {parent}/{kebab(child)}/")
-            if STAGE.fullmatch(child) or child in sessions:
+            if any(STAGE.fullmatch(word) for word in child.split("-")) or any(re.search(rf"(^|-){re.escape(n)}(-|$)", child) for n in sessions):
                 found.append(f"N4 {directory}/: no stage or session names in docs/ directories; name it after what it holds")
-    if name in EXEMPT_NAMES or ADR.fullmatch(name) or FRAGMENT_DIRS & set(parts[:-1]):
+    if name in EXEMPT_NAMES or ADR.fullmatch(name) or (top == "docs" and FRAGMENT_DIRS & set(parts[:-1])):
         return found
     where = "/".join(parts[:-1])
     if top in ("scripts", "tools") and ext in SCRIPT_SUFFIXES:
@@ -149,11 +150,16 @@ def self_test():
     assert rules("docs/modernization/data/phase2/a.md", ["docs/modernization/data/phase2"]) == ["N4"]
     assert rules("docs/modernization/data/one-ops/a.md", ["docs/modernization/data/one-ops"]) == ["N4"]
     assert rules("docs/modernization/data/phase2/a.md") == [], "a directory that already exists at the base is legacy: phase 1 leaves it"
+    for compound in ("phase1a-infra", "notes-phase2", "u8c-map", "r0-review", "one-ops-notes", "x-one-coordinator"):
+        assert rules(f"docs/modernization/data/{compound}/a.md", [f"docs/modernization/data/{compound}"]) == ["N4"], compound
+    assert rules("docs/modernization/data/release-notes/a.md", ["docs/modernization/data/release-notes"]) == [], "words that only contain a stage-like or session-like part are fine"
     assert rules("docs/modernization/stuff/a.md", ["docs/modernization/stuff"]) == ["N5"]
     assert rules("scripts/misc/a.py", ["scripts/misc"]) == ["N5"] and "ask lead" in file_problems("scripts/misc/a.py", sessions, {"scripts/misc"})[0]
     assert rules("docs/other/a.md", ["docs/other"]) == ["N5"] and rules("tools/misc/a.py", ["tools/misc"]) == ["N5"]
     assert rules("frontend/scripts/check-copy-glossary.mjs") == [] and rules("frontend/apps/web/src/App.tsx") == []
-    assert check("refs/heads/no-such-base-for-check-names") == 2, "a base that cannot be read fails closed"
+    with open(os.devnull, "w") as quiet, contextlib.redirect_stderr(quiet):
+        assert check("refs/heads/no-such-base-for-check-names") == 2, "a base that cannot be read fails closed"
+    assert rules("docs/modernization/data/r2dbc/a.md", ["docs/modernization/data/r2dbc"]) == [] and rules("scripts/ci/intent/BadName.py") == ["N1"]
     print("check_names self-test: ok")
 
 
