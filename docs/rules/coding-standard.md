@@ -2,6 +2,26 @@
 
 日期：2026-10-15 · 用户要求：问编码规范是否需要完善，建议 A 合并为本文件唯一来源、B 补语言层规范、C 交付前自查命令、D 派工卡模板：「A–D 全做」（intent `2026-10-15-014844-one-coordinator-…`）
 
+## 黄金样板
+
+每类一种写法，照「为何」写；标「现」的为样板偏差，#812 修。
+
+| 构件 | 样板 | 为何 |
+|---|---|---|
+| 用例 | `SubmitTimesheet:65` | execute 上 `@Transactional`，一个聚合，save 后 publish |
+| 调用者 | `SubmitTimesheet:66` | 注入 `CurrentUser`，不收 `UserId caller`（现在 identity） |
+| 数据范围 | `GetOrgUnit:31` | 用例注入 `OrgUnitAccess`；范围外答找不到并审计（现由参数传入） |
+| 控制器 | `OrgUnitController:33` | 只转换、调用例；200 返回 record，非 200 或带头才 `ResponseEntity`（现算范围、收 caller） |
+| 仓储 | `JdbcRoleRepository:117` | 文本块小写 SQL，命名参数，版本条件更新 |
+| 事件 | `ApplyApprovalResult:41` | application 中 `@ApplicationModuleListener`，先去重 |
+| 时间 | `JdbcRoleRepository:347` | `Instant` + `BusinessZone`；JDBC 用 `OffsetDateTime`，不用 `Timestamp` |
+| ID | `CreateLegalEntity:29` | 注入 `IdGenerator`，不调 `randomUUID` |
+| 金额 | `Money:10` | 计算不舍入，成额时 HALF_UP 到分；合计 = 各行舍入后之和（FD-02/07/08；现构造即舍入） |
+| 流程 | `FlowableApprovalEngine:54` | Flowable 只在适配器，业务经 `ApprovalProcesses` |
+| 单元测试 | `TimesheetStateMachineTest:62` | 不起 Spring，固定日期 |
+| 集成测试 | `AuditExportAndOwnRecordsIT:36` | MockMvc + `TestPostgres.database` |
+| 验收测试 | `WorkCalendarMakeUpWeekendIT:38` | 同上，`@DisplayName` 以卡号开头 |
+
 ## 0. 适用范围与优先级
 
 **适用范围**：FORCITIS one 仓库中的全部新代码——后端（Java / Spring Boot / Spring Modulith）、数据库迁移与 SQL、前端（React + TypeScript，PC `apps/web`，H5 `apps/h5`（Taro））、测试、CI 与交付脚本。人和代理（Claude 会话、子代理）同样适用。
@@ -221,4 +241,3 @@
 | Q-2 | §0 的优先级顺序（用户原话 > 已采纳 ADR > 规格与规则卡 > 三份规范 > 现有代码）是否认可 | 建议认可 |
 | Q-4 | `organization.workforce.domain` 中 `SourceTerms`、`SnapshotReconciler`、`EmployeeChecks` 引用 `Source*`：把翻译移到 `application`（或新的防腐翻译包），还是登记为同步防腐层例外 | 建议移到 application 层的翻译类，domain 只见自有类型；走结构性重构批 |
 | Q-6 | 覆盖率门槛：GUIDING_PRINCIPLES §9 写「行 ≥ 80%、分支 ≥ 70%」，CI `backend_verify.sh` 为 `-Djacoco.skip=true`，门槛无人检查：恢复进 CI，还是在 GUIDING_PRINCIPLES 写明「复审参考，不作门槛」 | 待用户决定 |
-
