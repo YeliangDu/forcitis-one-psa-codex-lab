@@ -256,7 +256,7 @@ def self_test(module):
     assert rc.is_covered("docs/modernization/glossary/terms.yaml")
     assert not rc.is_covered("docs/modernization/glossary/issues/x.md"), "a build reading NOT_READ_BY_BUILDS must fail the scan"
     assert not rc.is_covered("docs/modernization/glossary/issues")
-    assert rc.is_covered("docs/modernization/sessions/one-ops.md")
+    assert rc.is_covered("docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml")
     assert rc.is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
     assert rc.is_relevant("docs/modernization/phase1a/infra/deploy_gate.json")
     assert not rc.is_relevant("docs/modernization/adr/src/ADR-0001.md")
