@@ -72,7 +72,7 @@ run "glossary term rules (terms.yaml, proposed terms)" python3 -I scripts/guards
 run "every runtime BPMN process is catalogued" python3 -I scripts/guards/build_catalog.py --check
 run "code reads no proposals/ (registered exceptions only)" python3 -I scripts/guards/proposal_reads.py
 run "built.yaml is up to date" python3 scripts/codegen/scan_aggregates.py --check
-run "asyncapi.yaml is up to date" python3 -I scripts/codegen/build_asyncapi.py --check
+run "asyncapi.yaml is up to date" python3 -I docs/modernization/events/build_asyncapi.py --check
 run "decision fragments are valid" python3 -I scripts/session/build_decisions.py --check
 run "legacy-read fragments are valid" python3 -I tools/evidence/new_legacy_read.py --check
 run "evidence tools: imports resolve (self-test)" python3 -I scripts/ci/evidence_imports.py --self-test

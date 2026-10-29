@@ -296,7 +296,7 @@ class SystemActorCatalogueTest {
                 declared.add(String.join(" | ", Stream.of(row.split("\\|")).map(String::strip).toList()));
             }
         }
-        assertThat(published).as("run python3 scripts/codegen/build_asyncapi.py").isEqualTo(declared);
+        assertThat(published).as("run python3 docs/modernization/events/build_asyncapi.py").isEqualTo(declared);
     }
 
     private static int namesWritten(Path root, List<Pattern> patterns, Set<String> declared, List<String> missing) throws IOException {
