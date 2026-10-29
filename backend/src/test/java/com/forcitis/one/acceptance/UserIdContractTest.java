@@ -25,7 +25,7 @@ import tools.jackson.databind.json.JsonMapper;
 class UserIdContractTest {
 
     static final Path OPENAPI = Path.of("../frontend/packages/api/openapi.json");
-    static final Path EVENTS = Path.of("../docs/modernization/events");
+    static final Path EVENTS = Path.of("../docs/architecture/events");
 
     /** Schema.property: the user ids in response and request bodies. */
     static final List<String> USER_ID_PROPERTIES = List.of("AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId",
