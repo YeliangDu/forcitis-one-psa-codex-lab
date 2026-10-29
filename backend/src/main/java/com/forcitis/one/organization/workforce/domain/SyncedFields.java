@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import org.jspecify.annotations.Nullable;
 
 /** Single list of synced fields: decides what is written, diffed and when the event is published; shortName and bookkeeping are not in it. */
 public final class SyncedFields {
-    public record Field<T>(String name, Function<T, Object> reader) {
+    public record Field<T>(String name, Function<T, @Nullable Object> reader) {
     }
 
     public static final List<Field<OrgUnit>> ORG_UNIT = List.of(

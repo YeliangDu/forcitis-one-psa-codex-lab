@@ -2,8 +2,9 @@ package com.forcitis.one.platform.numbering.domain;
 
 import com.forcitis.one.kernel.LegalEntityId;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
-public record CounterScope(CounterScopeKind kind, LegalEntityId legalEntity) {
+public record CounterScope(CounterScopeKind kind, @Nullable LegalEntityId legalEntity) {
 
     public static final CounterScope GLOBAL = new CounterScope(CounterScopeKind.GLOBAL, null);
 

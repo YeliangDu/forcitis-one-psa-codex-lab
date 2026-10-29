@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +67,7 @@ public final class Timesheet extends AggregateRoot {
 
     private final TimesheetId timesheetId;
     private final DocumentNumber number;
-    private final NumberingRuleVersionId numberingRuleVersionId;
+    private final @Nullable NumberingRuleVersionId numberingRuleVersionId;
     private final EmployeeId employee;
     private final LegalEntityId legalEntityId;
     private final OrgUnitId orgUnitId;
@@ -78,12 +79,12 @@ public final class Timesheet extends AggregateRoot {
     private EmployeeId projectManager;
     private TimesheetStatus status;
     private int round;
-    private LocalDate submittedOn;
+    private @Nullable LocalDate submittedOn;
 
-    private Timesheet(TimesheetId timesheetId, DocumentNumber number, NumberingRuleVersionId numberingRuleVersionId,
+    private Timesheet(TimesheetId timesheetId, DocumentNumber number, @Nullable NumberingRuleVersionId numberingRuleVersionId,
             EmployeeId employee, LegalEntityId legalEntityId, OrgUnitId orgUnitId,
             LocalDate workDate, Hours submittedHours, EmployeeId projectManager, TimesheetStatus status,
-            int round, LocalDate submittedOn, List<AggregateReference> touchedTogether, long version, long eventSequence, boolean isNew) {
+            int round, @Nullable LocalDate submittedOn, List<AggregateReference> touchedTogether, long version, long eventSequence, boolean isNew) {
         super(version, eventSequence);
         this.timesheetId = Objects.requireNonNull(timesheetId, "timesheetId");
         this.number = Objects.requireNonNull(number, "number");
@@ -106,7 +107,7 @@ public final class Timesheet extends AggregateRoot {
      * counter: the numbering aggregate that took a number in the same transaction as this timesheet is created; the events of this
      * unit of work name it as a related aggregate. ruleVersionId: the numbering rule version the number was issued under.
      */
-    public static Timesheet draft(TimesheetId timesheetId, DocumentNumber number, AggregateReference counter, NumberingRuleVersionId ruleVersionId,
+    public static Timesheet draft(TimesheetId timesheetId, DocumentNumber number, AggregateReference counter, @Nullable NumberingRuleVersionId ruleVersionId,
             EmployeeId employee,
             LegalEntityId legalEntityId, OrgUnitId orgUnitId, LocalDate workDate, Hours submittedHours,
             EmployeeId projectManager, LocalDate today) {
@@ -123,10 +124,10 @@ public final class Timesheet extends AggregateRoot {
     }
 
     /** ruleVersionId is empty for a timesheet carried over from the old system, whose number was not issued here. */
-    public static Timesheet restore(TimesheetId timesheetId, DocumentNumber number, NumberingRuleVersionId ruleVersionId,
+    public static Timesheet restore(TimesheetId timesheetId, DocumentNumber number, @Nullable NumberingRuleVersionId ruleVersionId,
             EmployeeId employee, LegalEntityId legalEntityId,
             OrgUnitId orgUnitId, LocalDate workDate, Hours submittedHours, EmployeeId projectManager,
-            TimesheetStatus status, int round, LocalDate submittedOn, long version, long eventSequence) {
+            TimesheetStatus status, int round, @Nullable LocalDate submittedOn, long version, long eventSequence) {
         return new Timesheet(timesheetId, number, ruleVersionId, employee, legalEntityId, orgUnitId, workDate, submittedHours,
                 projectManager, status, round, submittedOn, List.of(), version, eventSequence, false);
     }
@@ -192,7 +193,7 @@ public final class Timesheet extends AggregateRoot {
 
     /** What an event reports is fixed when it is recorded, not when it is published. */
     private record Snapshot(DocumentReference document, EmployeeId employee, Hours submittedHours,
-                            LocalDate submittedOn, int round) {
+                            @Nullable LocalDate submittedOn, int round) {
     }
 
     private Snapshot snapshot() {

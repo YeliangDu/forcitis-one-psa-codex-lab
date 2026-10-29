@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * eventId is a UUIDv7 and the consumers' idempotency key. aggregateVersion is the per-aggregate event sequence kept on the
@@ -16,8 +17,8 @@ import java.util.UUID;
  */
 public record EventEnvelope(UUID eventId, String eventType, int schemaVersion, Instant occurredAt,
                             String aggregateType, UUID aggregateId, long aggregateVersion, UUID correlationId,
-                            UUID causationId, ActorType actorType, UUID actorId, LegalEntityId legalEntityId,
-                            LocalDate businessDate, AccountingPeriod accountingPeriod,
+                            @Nullable UUID causationId, ActorType actorType, UUID actorId, @Nullable LegalEntityId legalEntityId,
+                            @Nullable LocalDate businessDate, @Nullable AccountingPeriod accountingPeriod,
                             List<AggregateReference> relatedAggregates) {
 
     public EventEnvelope {

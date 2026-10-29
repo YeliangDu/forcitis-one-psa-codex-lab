@@ -15,6 +15,7 @@ import com.forcitis.one.platform.approval.api.TaskOutcome;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 /** Part of an {@link ApprovalRequest}: it changes only through the request, which records the events and owns the version. */
 public final class ApprovalTask {
@@ -29,22 +30,22 @@ public final class ApprovalTask {
     private final NodeKey nodeKey;
     private final NodeName nodeName;
     private final Instant createdAt;
-    private final DeadlinePlan deadline;
+    private final @Nullable DeadlinePlan deadline;
     private final boolean isNew;
     private boolean changed;
     private ApprovalTaskStatus status;
-    private UserId assignee;
-    private Instant claimedAt;
-    private Instant completedAt;
-    private Instant overdueAt;
-    private Instant escalatedAt;
-    private TaskOutcome outcome;
-    private TaskEffect effect;
-    private Reason resultReason;
-    private ContentHash approvedHash;
+    private @Nullable UserId assignee;
+    private @Nullable Instant claimedAt;
+    private @Nullable Instant completedAt;
+    private @Nullable Instant overdueAt;
+    private @Nullable Instant escalatedAt;
+    private @Nullable TaskOutcome outcome;
+    private @Nullable TaskEffect effect;
+    private @Nullable Reason resultReason;
+    private @Nullable ContentHash approvedHash;
 
     private ApprovalTask(ApprovalTaskId taskId, ApprovalInstanceId instanceId, NodeKey nodeKey, NodeName nodeName, Instant createdAt,
-            DeadlinePlan deadline, ApprovalTaskStatus status, boolean isNew) {
+            @Nullable DeadlinePlan deadline, ApprovalTaskStatus status, boolean isNew) {
         this.taskId = Objects.requireNonNull(taskId, "taskId");
         this.instanceId = Objects.requireNonNull(instanceId, "instanceId");
         this.nodeKey = Objects.requireNonNull(nodeKey, "nodeKey");
@@ -72,8 +73,8 @@ public final class ApprovalTask {
     }
 
     public static ApprovalTask restore(ApprovalTaskId taskId, ApprovalInstanceId instanceId, NodeKey nodeKey, NodeName nodeName, ApprovalTaskStatus status,
-            UserId assignee, Instant createdAt, DeadlinePlan deadline, Instant claimedAt, Instant completedAt, Instant overdueAt,
-            Instant escalatedAt, TaskOutcome outcome, TaskEffect effect, Reason resultReason, ContentHash approvedHash) {
+            @Nullable UserId assignee, Instant createdAt, @Nullable DeadlinePlan deadline, @Nullable Instant claimedAt, @Nullable Instant completedAt, @Nullable Instant overdueAt,
+            @Nullable Instant escalatedAt, @Nullable TaskOutcome outcome, @Nullable TaskEffect effect, @Nullable Reason resultReason, @Nullable ContentHash approvedHash) {
         ApprovalTask task = new ApprovalTask(taskId, instanceId, nodeKey, nodeName, createdAt, deadline, status, false);
         task.assignee = assignee;
         task.claimedAt = claimedAt;
@@ -121,7 +122,7 @@ public final class ApprovalTask {
         claimedAt = at;
     }
 
-    void complete(UserId by, TaskOutcome result, boolean advisory, Reason reason, ContentHash digest, Instant at) {
+    void complete(UserId by, TaskOutcome result, boolean advisory, @Nullable Reason reason, @Nullable ContentHash digest, Instant at) {
         requireHeldBy(by, "complete");
         move(ApprovalTaskStatus.COMPLETED);
         completedAt = at;
@@ -159,7 +160,7 @@ public final class ApprovalTask {
     }
 
     private void requireHeldBy(UserId user, String action) {
-        if (status != ApprovalTaskStatus.CLAIMED || !assignee.equals(user)) {
+        if (status != ApprovalTaskStatus.CLAIMED || !Objects.requireNonNull(assignee, "a claimed task has an assignee").equals(user)) {
             throw illegal(action);
         }
     }

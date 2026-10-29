@@ -4,14 +4,16 @@ import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.integration.api.SourcePerson;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import org.jspecify.annotations.Nullable;
 
 public final class EmployeeChecks {
     private EmployeeChecks() {
     }
 
-    public static boolean hasLogin(String loginName) {
+    public static boolean hasLogin(@Nullable String loginName) {
         return loginName != null && !loginName.isBlank();
     }
 
@@ -27,7 +29,7 @@ public final class EmployeeChecks {
         PositionId positionId = SourceTerms.position(person.positionId());
         if (!orgUnitKnown.test(orgUnitId)) {
             return Optional.of(SyncDiff.issue(EntityKind.EMPLOYEE, subject, IssueKind.ISOLATED_MISSING_ORG_UNIT,
-                    "org unit " + orgUnitId.value() + " is not in the snapshot; row isolated"));
+                    "org unit " + Objects.requireNonNull(orgUnitId, "SourcePerson requires unitId").value() + " is not in the snapshot; row isolated"));
         }
         if (positionId == null || !positionKnown.test(positionId)) {
             return Optional.of(SyncDiff.issue(EntityKind.EMPLOYEE, subject, IssueKind.ISOLATED_MISSING_POSITION,
@@ -37,8 +39,8 @@ public final class EmployeeChecks {
     }
 
     public static Employee toEmployee(SourcePerson person, boolean keepWecomUserId) {
-        String login = hasLogin(person.loginName()) ? person.loginName().trim() : null;
-        return new Employee(SourceTerms.person(person.personId()), person.employeeCode(), person.displayName(), login, person.email(),
+        @Nullable String login = hasLogin(person.loginName()) ? person.loginName().trim() : null;
+        return new Employee(Objects.requireNonNull(SourceTerms.person(person.personId()), "SourcePerson requires personId"), person.employeeCode(), person.displayName(), login, person.email(),
                 SourceTerms.gender(person.gender()), keepWecomUserId ? person.wecomUserId() : null, employmentOf(person), person.feeEarner());
     }
 }

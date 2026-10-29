@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One message to the outside. It is queued PENDING (or already SKIPPED / FAILED when nobody may receive it) and leaves PENDING
@@ -20,7 +21,7 @@ public final class OutboundDelivery extends AggregateRoot {
             .allow(DeliveryStatus.PENDING, DeliveryStatus.SENT, DeliveryStatus.SKIPPED, DeliveryStatus.DEAD_LETTER, DeliveryStatus.PENDING)
             .build();
 
-    private final OutboundDeliveryId deliveryId;
+    private final @Nullable OutboundDeliveryId deliveryId;
     private final DeliverySubject subject;
     private final List<WecomUserId> recipients;
     private final List<WecomUserId> skippedRecipients;
@@ -29,22 +30,22 @@ public final class OutboundDelivery extends AggregateRoot {
     private final String targetUrl;
     private final DeliveryStatus loadedStatus;
     private final int attemptCount;
-    private String handledNote;
-    private String handledResult;
+    private @Nullable String handledNote;
+    private @Nullable String handledResult;
     private final DeliveryKind kind;
     // 被本投递替换的投递
-    private final OutboundDeliveryId target;
+    private final @Nullable OutboundDeliveryId target;
     private final UUID correlation;
     private DeliveryStatus status;
-    private String responseCode;
-    private Instant nextAttemptAt;
-    private Instant sentAt;
-    private String lastError;
+    private @Nullable String responseCode;
+    private @Nullable Instant nextAttemptAt;
+    private @Nullable Instant sentAt;
+    private @Nullable String lastError;
 
-    private OutboundDelivery(OutboundDeliveryId deliveryId, DeliverySubject subject, List<WecomUserId> recipients,
+    private OutboundDelivery(@Nullable OutboundDeliveryId deliveryId, DeliverySubject subject, List<WecomUserId> recipients,
                              List<WecomUserId> skippedRecipients, String title, String description, String targetUrl,
-                             DeliveryStatus status, int attemptCount, String responseCode, String handledNote, String handledResult, DeliveryKind kind,
-                             OutboundDeliveryId target, UUID correlationId, Instant nextAttemptAt, String lastError, long version, long eventSequence) {
+                             DeliveryStatus status, int attemptCount, @Nullable String responseCode, @Nullable String handledNote, @Nullable String handledResult, DeliveryKind kind,
+                             @Nullable OutboundDeliveryId target, UUID correlationId, @Nullable Instant nextAttemptAt, @Nullable String lastError, long version, long eventSequence) {
         super(version, eventSequence);
         this.deliveryId = deliveryId;
         this.subject = Objects.requireNonNull(subject, "subject");
@@ -93,14 +94,14 @@ public final class OutboundDelivery extends AggregateRoot {
 
     public static OutboundDelivery restore(OutboundDeliveryId deliveryId, DeliverySubject subject, List<WecomUserId> recipients,
                                            String title, String description, String targetUrl, String status, int attemptCount,
-                                           String responseCode, String handledNote, String handledResult,
-                                           DeliveryKind kind, UUID target, UUID correlationId, long version, long eventSequence) {
+                                           @Nullable String responseCode, @Nullable String handledNote, @Nullable String handledResult,
+                                           DeliveryKind kind, @Nullable UUID target, UUID correlationId, long version, long eventSequence) {
         return new OutboundDelivery(Objects.requireNonNull(deliveryId, "deliveryId"), subject, recipients, List.of(), title,
                 description, targetUrl, DeliveryStatus.valueOf(status), attemptCount, responseCode, handledNote, handledResult, kind, target == null ? null : new OutboundDeliveryId(target),
                 correlationId, null, null, version, eventSequence);
     }
 
-    public OutboundDeliveryId deliveryId() {
+    public @Nullable OutboundDeliveryId deliveryId() {
         return deliveryId;
     }
 
@@ -140,15 +141,15 @@ public final class OutboundDelivery extends AggregateRoot {
         return attemptCount;
     }
 
-    public String responseCode() {
+    public @Nullable String responseCode() {
         return responseCode;
     }
 
-    public String handledNote() {
+    public @Nullable String handledNote() {
         return handledNote;
     }
 
-    public String handledResult() {
+    public @Nullable String handledResult() {
         return handledResult;
     }
 
@@ -168,7 +169,7 @@ public final class OutboundDelivery extends AggregateRoot {
     }
 
     /** The card a HANDLED_NOTE replaces; null for a card. */
-    public OutboundDeliveryId target() {
+    public @Nullable OutboundDeliveryId target() {
         return target;
     }
 
@@ -176,15 +177,15 @@ public final class OutboundDelivery extends AggregateRoot {
         return correlation;
     }
 
-    public Instant nextAttemptAt() {
+    public @Nullable Instant nextAttemptAt() {
         return nextAttemptAt;
     }
 
-    public Instant sentAt() {
+    public @Nullable Instant sentAt() {
         return sentAt;
     }
 
-    public String lastError() {
+    public @Nullable String lastError() {
         return lastError;
     }
 

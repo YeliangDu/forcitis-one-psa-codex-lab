@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /** One maintained year of one calendar. A year with no exception is still maintained: saving it says "this year has been checked". */
 public final class WorkCalendarYear extends AggregateRoot {
@@ -99,7 +100,7 @@ public final class WorkCalendarYear extends AggregateRoot {
         }
     }
 
-    private static DayException exception(DayKind kind) {
+    private static DayException exception(@Nullable DayKind kind) {
         return kind == null ? DayException.NONE : DayException.valueOf(kind.name());
     }
 

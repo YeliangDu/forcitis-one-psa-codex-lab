@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /** The legal transitions of one aggregate, declared next to it; anything else is refused. */
@@ -22,11 +23,11 @@ public final class StateMachine<S extends Enum<S>> {
     }
 
     public boolean allows(S from, S to) {
-        return legal.get(from).contains(to);
+        return Objects.requireNonNull(legal.get(from), "every state has an entry from the builder").contains(to);
     }
 
     public Set<S> successors(S from) {
-        return Set.copyOf(legal.get(from));
+        return Set.copyOf(Objects.requireNonNull(legal.get(from), "every state has an entry from the builder"));
     }
 
     /** The transition the module has no code of its own for: {@link KernelError#KERNEL_TRANSITION_ILLEGAL}. */
@@ -55,7 +56,7 @@ public final class StateMachine<S extends Enum<S>> {
 
         @SafeVarargs
         public final Builder<S> allow(S from, S... to) {
-            legal.get(from).addAll(Arrays.asList(to));
+            Objects.requireNonNull(legal.get(from), "every state has an entry from the builder").addAll(Arrays.asList(to));
             return this;
         }
 
