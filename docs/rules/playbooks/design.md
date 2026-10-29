@@ -7,8 +7,8 @@
 5. 至少两个方案，各给取舍；技术方案自己定，写明理由。
 6. 写规格：数据形状、模块边界、消费方清单、完成标准（一行一条、可检查）、不做什么。
 7. 自派复审挑反例。
-8. 改表、列、约束、索引、事件载荷、读模型或迁入映射的，按 `docs/data/data-design-gate.md` 先签数据设计；顺序：卡、签发、表结构 PR（附预期表结构 diff，迁移基线见 `docs/adr/ADR-0038.md`）、验收、实现。
-9. 改规则分三类，拿不准取更严：配置类新增版本不覆盖，登记 `docs/ops/config-changelog.md`；代码类先在 `docs/business/rule-reviews.json` 的 revisions 末尾追加结论，再改测试与实现；ADR 类按 `docs/adr/readme-lifecycle.md`。业务口径用户批，会计口径财务批。已过账事实不改不删，更正只走冲销（`docs/adr/ADR-0016.md`）。
+8. 改表、列、约束、索引、事件载荷、读模型或迁入映射的，按 `docs/data/data-design-gate.md` 先签数据设计；顺序：卡、签发、表结构 PR（附预期表结构 diff，迁移基线见 `docs/adr/ADR-0038.md`）合并、验收、实现。
+9. 改规则分三类，拿不准取更严：配置类新增版本不覆盖，登记 `docs/ops/config-changelog.md`，业务口径用户批、会计口径财务批，按生效日期生效、不追溯；代码类先在 `docs/business/rule-reviews.json` 的 revisions 末尾追加结论草案，用户确认后再改测试与实现；ADR 类按 `docs/adr/readme-lifecycle.md`。已过账事实不改不删，更正只走冲销（`docs/adr/ADR-0016.md`）；关账后更正、期间重开须财务批准。
 10. 规格落库，开 PR，自己入队；规格里不夹带实现。
 
 回报必含：
