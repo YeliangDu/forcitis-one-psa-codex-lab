@@ -26,7 +26,7 @@ Related decisions: `docs/adr/ADR-0003.md`, `ADR-0004.md`, `ADR-0005.md`, `ADR-00
 | **Constraints for agents** | Names are located by concept, language and usage (§2.1); code sits at fixed places by responsibility. A failing rule says "why" and "where" | Rule text carries `because(...)`; each module has a `package-info.java` stating responsibility, owned schema and allowed dependencies; the repo has a "where does code go" cheat sheet (§3) |
 | **Error-proofing** | Wrong code fails at compile time or in CI, not by review | ArchUnit + Modulith + Checkstyle / Error Prone + tests named by rule id |
 
-## 1. (removed: history; see `git show edeb13d6a:docs/rules/naming-standard.md`)
+## 1. (removed: history; see `git show 59315c148^:docs/rules/naming-standard.md`)
 
 ## 2. Naming rules: English, industry-idiomatic, predictable
 
@@ -237,7 +237,7 @@ Registered in `backend/architecture/data-classification.txt` (`<schema.table.col
 
 - **A-1 Resources and commands**: read with `GET`; create on a collection with `POST /{plural resource}`; replace editable fields wholesale with `PUT /{plural resource}/{id}`; state transitions and business actions are commands `POST /{plural resource}/{id}:{action}` (action from `standard_actions` in `terms.yaml`), never `PUT` to change state; delete with `DELETE`, only for objects that may be deleted (e.g. an unsubmitted draft); a business "void" or "revoke" is a command. A read-only computation that changes no state (e.g. trial calculation, preview) may use `GET /{plural resource}:{action}` or `GET /{plural resource}/{id}:{action}`, parameters in the query string, with no side effects.
 - **A-2 Status codes**: create returns `201` with `Location` and `ETag`; a command returns `200` (body is the resource after the command) or `204`; delete returns `204`; read returns `200` with `ETag`. Status codes in the contract match runtime.
-- **A-3 Lists**: the response is always `{items, nextCursor}`; parameters `cursor` (opaque, carries a format version, unsigned; internally encodes the sort key + `id`; the server strictly validates structure and type, and an invalid one returns 400 `PLATFORM_WEB_CURSOR_INVALID`) and `limit`. `limit` defaults to 50 with a maximum of 200; these two values are the system's only constants (kernel); OpenAPI declares `maximum: 200`; exceeding the maximum returns 400, with no silent truncation. Lists always use index-based keyset pagination, never in-memory slicing (GUIDING_PRINCIPLES §7). When a total is needed, add `GET /{plural resource}:count` with the same filter parameters as the list. The cap for small tables without pagination: GUIDING_PRINCIPLES §7a R-P2.
+- **A-3 Lists**: the response is always `{items, nextCursor}`; parameters `cursor` (opaque, carries a format version, unsigned; internally encodes the sort key + `id`; the server strictly validates structure and type, and an invalid one returns 400 `PLATFORM_WEB_CURSOR_INVALID`) and `limit`. `limit` defaults to 50 with a maximum of 200; these two values are single constants for the whole system (defined once, in kernel); OpenAPI declares `maximum: 200`; exceeding the maximum returns 400, with no silent truncation. Lists always use index-based keyset pagination, never in-memory slicing (GUIDING_PRINCIPLES §7). When a total is needed, add `GET /{plural resource}:count` with the same filter parameters as the list. The cap for small tables without pagination: GUIDING_PRINCIPLES §7a R-P2.
 - **A-4 Filtering and sorting**: filter parameters are camelCase field names, multiple values comma-separated, no general expression language; sorting is `sort=field,-field`, whitelisted fields only; an unknown parameter or a field outside the whitelist returns 400 `PLATFORM_WEB_REQUEST_INVALID`, and the response extension property `invalidParameters` names the parameters (in force for every `GET` under `/api`, including single-resource reads). An export interface uses the same filter parameters as the corresponding list.
 - **A-5 No `PATCH`**: partial changes use `PUT` replacing the editable fields wholesale, or a named command that expresses the business intent.
 - **A-6 Batch**: written `POST /{plural resource}:{action}-batch`, at most 100 items per call (same cap as GUIDING_PRINCIPLES §7a R-P2; source: one-coordinator 2026-10-15 took the stricter of two recommended values (100 / 200), user 「全部按推荐」); authorisation and execution are per item, each item succeeds or fails on its own. The response is `200` returning per-item results in request order (object ID, result, ProblemDetail on failure); partial success also returns `200`; a malformed whole batch returns 400 and executes nothing.
@@ -314,7 +314,7 @@ Rules below are implemented unless marked otherwise. Format: id | rule | enforce
 | G14 | Names such as `Util` / `Helper` / `Manager` / `Info` / `Data` / `Impl` / `DO` / `ManHour` are forbidden | `noVagueOrLegacyNames` |
 | G15 | Identifiers must be ASCII | `identifiersAreAscii` |
 | G16 | A `*status` field in domain must be an enum | `statusesAreEnums` |
-| G17 | Outside kernel, `*amount` / `*price` / `*cost` fields must not be a bare `BigDecimal` (Money = (amount, currency)) | `moneyIsNeverABareDecimalNamedAmount` |
+| G17 | Outside kernel, `*amount` / `*price` / `*cost` fields must not be a bare `BigDecimal` (Money = (amount, currency)) | `ArchitectureRulesTest#moneyIsNeverABareDecimal` |
 | G18 | Field injection, `System.out`, JUL, `java.util.Date`, `@PermitAll` are forbidden | `generalCodingRules` |
 | G19 | Only `platform.approval.infrastructure` may use Flowable | `flowableOnlyInsideApprovalInfrastructure` |
 | G20 | Controllers must map to `/api/{version}/…` | `controllersAreVersioned` |
@@ -331,13 +331,10 @@ Rules below are implemented unless marked otherwise. Format: id | rule | enforce
 | G31 | A `*Id` field in api / events / domain must be a typed-ID record | `contractsAreStronglyTyped` |
 | G32 | `Object` and `Map` are forbidden in api / events | `contractsAreStronglyTyped` |
 | G33 | Only identity may configure Spring Security; a request record must not contain identity fields such as userId / creator | `onlyIdentityConfiguresSecurity`, `requestsNeverCarryTheCallerIdentity` |
-| G34 | [adopted (ADR-0016), Phase 2 skeleton implemented] fact repositories of `operations.facts` have only insert and query methods; fact tables have triggers rejecting UPDATE / DELETE | ArchUnit + DDL test (ADR-0016) |
-| G35 | [adopted (ADR-0016)] only `accounting.ledger` may depend on accounting subjects and subject mapping | ArchUnit (ADR-0016) |
-| G36 | [adopted (ADR-0016)] a booking-touching BC may submit posting candidates only through the `operations.facts` api and must not write fact tables | dependency graph D1 + ArchUnit (ADR-0016) |
 | G37 | [adopted (ADR-0018)] type names, record components, enum constants, non-private methods in domain / api / events / web / kernel, and table and column names in migrations, once split into words, must be registered in `docs/glossary/terms.yaml` or belong to `common_words` | `GlossaryTest` (on failure generates the draft `target/glossary-draft.yaml`) |
 | G38 | [adopted (ADR-0018)] a forbidden spelling in the glossary (old name, pinyin, non-standard term) fails | `GlossaryTest` |
 | G39 | [adopted (ADR-0018)] when a column name corresponds to a glossary term, the column comment must start with the term's Chinese name | `GlossaryTest` (parses `COMMENT ON` in migrations) |
-| G40 | [adopted (ADR-0019)] new code must not depend on `cn.iocoder..` or yudao base classes and tools (`BaseDO`, `CommonResult`, `TenantBaseDO`, etc.) | ArchUnit |
+| G40 | [adopted (ADR-0019)] new code must not depend on `cn.iocoder..` or yudao base classes and tools (`BaseDO`, `CommonResult`, `TenantBaseDO`, etc.) | `LegacyShapeTest#theCodeBaseHasNoOldSystemShape` |
 | G41 | HTTP path is `/api/v{n}/{subdomain of the owning module}/{kebab plural resource}[/{id}][:{action}]`, resource word registered | `NamingSurfaceTest` |
 | G42 | OpenAPI schema names PascalCase; properties and parameters camelCase and registered; JSON keys of serialised events camelCase | `NamingSurfaceTest` (reads `/v3/api-docs`, springdoc 3.1.1) |
 | G43 | Permission code `{subdomain}.{BC}:{resource}:{action}`, action from the glossary's `standard_actions`; permission codes in `@PreAuthorize` must be in the catalog | `NamingSurfaceTest` |
@@ -352,21 +349,21 @@ Rules below are implemented unless marked otherwise. Format: id | rule | enforce
 | G-A2 | List response shape is `{items, nextCursor}`, parameters `cursor` / `limit` (judged by response shape, not class name). Existing gaps are registered in `backend/architecture/list-paging-gaps.txt` (a new violation fails; a registered gap that is fixed but not deleted also fails) | `ListPagingGuardTest` (K-3a) |
 | G-P1 | The `limit` cap comes from one kernel constant (`ListLimits`); every OpenAPI `limit` declares `minimum: 1`, `maximum: 200`, `default: 50`; other `MAX_LIMIT`-type constants are forbidden (§2.6 A-3, GUIDING_PRINCIPLES §7a R-P2) | `ListPagingGuardTest` (K-3a); gaps as G-A2 |
 
-### Frontend, implemented (`architecture-guardrails/frontend`, ESLint + TypeScript strict)
+### Frontend, implemented (`frontend/eslint.config.js`, `frontend/stylelint.config.js`, `frontend/scripts/check-structure.mjs`; TypeScript strict)
 
 | # | Rule | Enforced by |
 |---|---|---|
 | F1–F4 | One-way dependency `app → modules(index) → shared`; cross-module only via `modules/<m>/index.ts` | eslint-plugin-boundaries |
-| F5 | axios, fetch and hand-written `/api` URLs forbidden; only the OpenAPI-generated client | ESLint (`architecture-guardrails/frontend`) |
-| F6 | ASCII identifiers only; kebab-case file names; class names Util / Helper / Manager / Info / Data / Impl forbidden | ESLint (`architecture-guardrails/frontend`) |
-| F7 | `any` forbidden; React hooks rules | ESLint (`architecture-guardrails/frontend`) |
-| F8 | hooks live in `hooks/` and are named `useXxx` | ESLint (`architecture-guardrails/frontend`) |
-| F9 | `model/` and `shared/lib` are pure logic and must not reference React or API | ESLint (`architecture-guardrails/frontend`) |
-| F10 | Only `modules/<m>/api` may import the generated client | ESLint (`architecture-guardrails/frontend`) |
-| F11 | `dangerouslySetInnerHTML` forbidden (stored XSS, SEC-008) | ESLint (`architecture-guardrails/frontend`) |
-| F12 | `export *` forbidden | ESLint (`architecture-guardrails/frontend`) |
+| F5 | axios, fetch and hand-written `/api` URLs forbidden; only the OpenAPI-generated client | ESLint (`frontend/eslint.config.js`) |
+| F6 | ASCII identifiers only; kebab-case file names; class names Util / Helper / Manager / Info / Data / Impl forbidden | ESLint (`frontend/eslint.config.js`) |
+| F7 | `any` forbidden; React hooks rules | ESLint (`frontend/eslint.config.js`) |
+| F8 | hooks live in `hooks/` and are named `useXxx` | ESLint (`frontend/eslint.config.js`) |
+| F9 | `model/` and `shared/lib` are pure logic and must not reference React or API | ESLint (`frontend/eslint.config.js`) |
+| F10 | Only `modules/<m>/api` may import the generated client | ESLint (`frontend/eslint.config.js`) |
+| F11 | `dangerouslySetInnerHTML` forbidden (stored XSS, SEC-008) | ESLint (`frontend/eslint.config.js`) |
+| F12 | `export *` forbidden | ESLint (`frontend/eslint.config.js`) |
 | F13 | Each module's `index.ts` has ≤ 8 exports | `frontend/scripts/check-structure.mjs` |
-| F14 | Business modules must not import antd directly, no inline styles, no hard-coded colours; raw tokens are read only in `shared/design-system` (ADR-0013) | ESLint (`architecture-guardrails/frontend`) |
+| F14 | Business modules must not import antd directly, no inline styles, no hard-coded colours; raw tokens are read only in `shared/design-system` (ADR-0013) | ESLint (`frontend/eslint.config.js`) |
 
 ### Planned guards (not implemented)
 
@@ -374,6 +371,9 @@ Rules below are implemented unless marked otherwise. Format: id | rule | enforce
 
 | # | Check | Source | Must exist before | Owner / status |
 |---|---|---|---|---|
+| G34 | fact repositories of `operations.facts` have only insert and query methods; fact tables have triggers rejecting UPDATE / DELETE | ADR-0016 | first card that builds `operations.facts` / `accounting.ledger` | planned: the modules do not exist yet; enforce as ArchUnit + DDL test (ADR-0016) |
+| G35 | only `accounting.ledger` may depend on accounting subjects and subject mapping | ADR-0016 | first card that builds `operations.facts` / `accounting.ledger` | planned: the modules do not exist yet; enforce as ArchUnit (ADR-0016) |
+| G36 | a booking-touching BC may submit posting candidates only through the `operations.facts` api and must not write fact tables | ADR-0016 | first card that builds `operations.facts` / `accounting.ledger` | planned: the modules do not exist yet; enforce as dependency graph D1 + ArchUnit (ADR-0016) |
 | G-A1 | All own IDs in OpenAPI (properties, path parameters, query parameters) are `type: string, format: uuid`; IDs in frontend generated types are not number | §2.6 A-7 | immediately (before handoff / reassignment UI goes live) | R-1b (changed together with own UUIDv7) |
 | G-A3 | Merged into G-C4 (modifying interfaces declare required `If-Match` and 412 / 428, runtime consistent; exemptions registered one by one with reasons) | §2.6 A-8, ADR-0035 item 8 | see G-C4 | see G-C4 |
 | G-A4 | Merged into G-C4 (a `POST` on a collection returns 201 with `Location`) | §2.6 A-2, ADR-0035 item 8 | see G-C4 | see G-C4 |
@@ -473,7 +473,7 @@ Other planned items (no id):
 - Generated code (OpenAPI client, jOOQ, etc.) lives only in a `generated/` directory, is never hand-edited, and is excluded from the guards.
 - A guard's failure message must contain "where to put it / what to name it", so an agent can correct itself on reading the error.
 
-## 6. (removed: history; see `git show edeb13d6a:docs/rules/naming-standard.md`)
+## 6. (removed: history; see `git show 59315c148^:docs/rules/naming-standard.md`)
 
 ## 7. Naming-surface list: everywhere in the new system that needs unified naming
 
