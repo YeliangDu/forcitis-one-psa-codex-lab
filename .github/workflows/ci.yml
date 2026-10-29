@@ -84,10 +84,11 @@ jobs:
           echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
           nohup docker events --filter type=container --since "$(date +%s)" --format '{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}' > "$RUNNER_TEMP/docker-events.log" 2>&1 &
           echo "DOCKER_EVENTS_PID=$!" >> "$GITHUB_ENV"
-      # the light checks, the same entry a session may run before delivery (GOV-1023-FV2 O9, A39; it replaced scripts/precheck.sh): generated docs, registers and acceptance guards against the base, every hook and CI-script self-test
+      # the light checks, the same entry a session may run before delivery (GOV-1023-FV2 O9, A39; it replaced scripts/precheck.sh): generated docs, registers and acceptance guards against the base; each script self-test only when its files changed (all of them on a push to main)
       - name: light checks (scripts/ci/light.sh)
         env:
           BEFORE: ${{ github.event.before }}
+          LIGHT_ALL: ${{ github.event_name == 'push' && '1' || '' }}  # pull requests run only the self-tests their changes touch; main runs them all
         run: |
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
           scripts/ci/light.sh "$base"
@@ -300,4 +301,3 @@ jobs:
           python3 -I scripts/release/deploy_gate.py --self-test
           scripts/release/install_request_test.sh
           scripts/release/ship_test.sh
-          bash scripts/release/docker_ensure_selftest.sh
