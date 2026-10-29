@@ -1,19 +1,19 @@
-# 剧本：业务实现
-你负责本卡范围内的实现与证据；卡外范围不归你。
-1. 复述卡的目标与完成标准，说出预期的最小改动；证据表明卡的做法不成立就停下报 lead。
-2. 在自己的工作区与分支开工；写代码前读 `docs/rules/coding-core.md` 全文。老代码只作证据，复刻老行为以生产数据为证。
-3. 先定数据形状（类型、状态机、表），再写逻辑；跨模块边界的设计先比较两个方案。
-4. 先提交会红的测试，再提交实现；每个单元验证后再提交。
-5. 跑受影响的测试加 `scripts/ci/light.sh`；在真实入口验证行为。
-6. 提交前删投机代码；问自己这次能删什么。不改验收测试，不弱化断言。注释写为什么、约束、不能动的理由、单位/精度/时区、老行为证据（聚合），可引规范条款；删复述、卡号决定号、作者日期、注释掉的代码、无卡 TODO。
-7. 按 `scripts/review/PROMPT.md` 自派复审（普通卡 sonnet；权限、安全、数据范围 opus）。结论绑定 head 与 patch-id；内容改了重审，只变基不重审。
-8. 开 PR，首行 `Closes #卡`，自己入队，合入后回读结果。
-9. 业务规则、验收口径拿不准：停下报 lead。技术取舍自己定，写进 PR。
-跳过的步骤保留，写 `skip: 原因`。
+# 剧本：impl
+You own the implementation and evidence within the card; anything outside it is not yours.
+1. Restate the card's goal and done-when and the smallest change you expect; if evidence shows the card's approach can't work, stop and tell lead.
+2. Read `docs/rules/coding-core.md` before writing code.
+3. Settle data shapes (types, state machine, tables) before logic; compare two options for anything crossing a module boundary.
+4. Commit a failing test before the implementation; commit each unit once verified.
+5. Run affected tests plus `scripts/ci/light.sh`; verify behaviour at the real entry point.
+6. Before committing, delete speculative code and ask what else this change can remove.
+7. Review per CLAUDE.md (sonnet for normal cards; opus for permission, security, data scope). The verdict binds head and patch-id: content changes need a new review, a pure rebase does not.
+8. Open the PR, enqueue, read back the result after merge.
+9. Unsure about a business rule or acceptance treatment: stop and tell lead. Make technical choices yourself and write them in the PR.
+A skipped step stays listed as `skip: <reason>`.
 
 回报必含：
-- 卡号、PR 号、head
-- 做了什么、选了什么及理由
-- 跑过的命令与真实输出（通过/失败计数）
-- 复审：模型、head、patch-id、结论
-- 未决项与要报 lead 的业务问题
+- card, PR, head
+- what you did, what you chose and why
+- commands run and their real output (pass/fail counts)
+- review: model, head, patch-id, verdict
+- open items and business questions for lead
