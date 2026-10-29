@@ -1,7 +1,8 @@
 package com.forcitis.one.platform.integration.infrastructure.registry;
 
-import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -28,6 +29,6 @@ class JdbcEventPublicationStatistics implements EventPublicationStatistics {
                         select count(*) from platform_integration.event_publication
                          where completion_date is null and publication_date < :cutoff
                         """)
-                .param("cutoff", Timestamp.from(cutoff)).query(Long.class).single();
+                .param("cutoff", OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC)).query(Long.class).single();
     }
 }
