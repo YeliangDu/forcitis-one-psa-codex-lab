@@ -1,6 +1,6 @@
 # 编码规范细则 — FORCITIS one
 
-核心页在 `docs/rules/coding-core.md`（读写 `backend/` 下文件时自动载入）；本文件按编号（CS-x.y）查。
+核心页在 `docs/rules/coding-core.md`；本文件按编号（CS-x.y）查。
 
 日期：2026-10-15 · 用户要求：问编码规范是否需要完善，建议 A 合并为本文件唯一来源、B 补语言层规范、C 交付前自查命令、D 派工卡模板：「A–D 全做」（intent `2026-10-15-014844-one-coordinator-…`）
 
@@ -12,7 +12,7 @@
 
 | 文档 | 管什么 | 不管什么 |
 |---|---|---|
-| 本文件 `docs/rules/coding-standard.md` | **怎么写代码**：通用写法、语言层规范、测试、日志与密钥、交付前自查。编码规则的唯一入口（原 METHODS M5、M6 的代码规则已并入各行，出处栏标「原 METHODS M5」等） | 命名与 DDL 的细则、会话流程 |
+| 本文件 `docs/rules/coding-standard.md` | **怎么写代码**：通用写法、语言层规范、测试、日志与密钥、交付前自查。编码细则（原 METHODS M5、M6 的代码规则已并入各行，出处栏标「原 METHODS M5」等）；入口是核心页 `docs/rules/coding-core.md` | 命名与 DDL 的细则、会话流程 |
 | `docs/rules/naming-standard.md`（简称 NAMING_STANDARD） | **叫什么、放哪里**：词源、类名后缀、包结构、列名类别词、约束与索引命名、DDL 设计原则（§2.4a）、守护 G1–G48 / F1–F14 / D1–D3 | 写法与流程 |
 | `docs/rules/data-design-checklist.md`（简称 DATA_DESIGN_CHECKLIST） | **数据怎么设计**：DDD 与数据架构检查清单 §14、§14.1，迁入 §14.2，集成 §14.3 | 具体写法 |
 | `CLAUDE.md`、`docs/rules/rules.md`（流程）、`docs/rules/playbooks/`（按卡类型的步骤） | 最硬的规则摘要与指向、会话与交付流程；复审按 `scripts/review/PROMPT.md` | 细则（以本文件与上两份为准） |
@@ -223,3 +223,4 @@
 | Q-2 | §0 的优先级顺序（用户原话 > 已采纳 ADR > 规格与规则卡 > 三份规范 > 现有代码）是否认可 | 建议认可 |
 | Q-4 | `organization.workforce.domain` 中 `SourceTerms`、`SnapshotReconciler`、`EmployeeChecks` 引用 `Source*`：把翻译移到 `application`（或新的防腐翻译包），还是登记为同步防腐层例外 | 建议移到 application 层的翻译类，domain 只见自有类型；走结构性重构批 |
 | Q-6 | 覆盖率门槛：GUIDING_PRINCIPLES §9 写「行 ≥ 80%、分支 ≥ 70%」，CI `backend_verify.sh` 为 `-Djacoco.skip=true`，门槛无人检查：恢复进 CI，还是在 GUIDING_PRINCIPLES 写明「复审参考，不作门槛」 | 待用户决定 |
+| Q-7 | 技术栈待核（未核实，不作规则）：Testcontainers 2 的 `PostgreSQLContainer` 新包名；Security 7 去掉 `.and()` 与 `AntPathRequestMatcher`；等待库用 Awaitility（未引入） | #810 核实后进核心页 D 表 |
