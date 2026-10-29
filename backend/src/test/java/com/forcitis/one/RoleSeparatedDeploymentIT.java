@@ -2,6 +2,7 @@ package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.application.CreateLegalEntity;
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -144,11 +146,8 @@ class RoleSeparatedDeploymentIT {
         }
 
         assertThat(listLegalEntities.execute(com.forcitis.one.kernel.PageRequest.of(null, null, "legal-entities")).items()).extracting(view -> view.code()).contains("SMK");
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
-        while (jdbc.sql("select count(*) from platform_audit.audit_entries where action = 'organization.workforce.LegalEntityRegistered'").query(Long.class).single() == 0) {
-            assertThat(System.nanoTime()).as("the audit listener wrote its entry").isLessThan(deadline);
-            Thread.sleep(100);
-        }
+        await("the audit listener wrote its entry").atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(100))
+                .until(() -> jdbc.sql("select count(*) from platform_audit.audit_entries where action = 'organization.workforce.LegalEntityRegistered'").query(Long.class).single() > 0);
         assertThat(jdbc.sql("select current_user").query(String.class).single()).isEqualTo(RUNTIME);
         assertThat(jdbc.sql("select count(*) from platform_approval.approval_requests").query(Long.class).single()).as("the approval schema is readable").isZero();
         assertThat(jdbc.sql("select count(*) from platform_approval.act_ru_task").query(Long.class).single()).as("so are the engine tables").isZero();

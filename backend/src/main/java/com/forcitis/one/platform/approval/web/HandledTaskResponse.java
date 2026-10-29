@@ -8,7 +8,7 @@ import com.forcitis.one.platform.approval.api.TaskRecordAction;
 import com.forcitis.one.platform.approval.application.HandledTask;
 import java.time.Instant;
 import java.util.UUID;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * reason is absent when the person gave none: the screen words that, the data does not pretend (RULE-280). processName is what a person

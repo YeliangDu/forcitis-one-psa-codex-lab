@@ -23,7 +23,6 @@ import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
@@ -33,6 +32,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -52,13 +53,17 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
 
     @Override
     public void lockForWrite() {
-        jdbc.sql("select pg_advisory_xact_lock(:key)").param("key", WRITER_LOCK_KEY).query().singleRow();
+        jdbc.sql("""
+                select pg_advisory_xact_lock(:key)
+                """).param("key", WRITER_LOCK_KEY).query().singleRow();
     }
 
     @Override
     public OrgSnapshot loadAll() {
         List<OrgUnit> units = jdbc.sql(OrgSnapshotRows.SELECT_ORG_UNITS).query((rs, n) -> OrgSnapshotRows.orgUnit(rs)).list();
-        List<Position> positions = jdbc.sql("select id, code, name, sort_order, status from organization_workforce.positions")
+        List<Position> positions = jdbc.sql("""
+                select id, code, name, sort_order, status from organization_workforce.positions
+                """)
                 .query((rs, n) -> new Position(new PositionId(rs.getObject("id", UUID.class)), rs.getString("code"), rs.getString("name"),
                         OrgSnapshotRows.integer(rs, "sort_order"), PositionStatus.valueOf(rs.getString("status")))).list();
         List<StaffEmployee> staff = jdbc.sql(OrgSnapshotRows.SELECT_STAFF).query((rs, n) -> OrgSnapshotRows.staff(rs)).list();
@@ -68,7 +73,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     @Override
     public void save(Reconciliation changes, SyncRunId syncRunId, Instant now, LocalDate snapshotDate) {
         UUID run = syncRunId == null ? null : syncRunId.value();
-        Timestamp at = Timestamp.from(now);
+        OffsetDateTime at = OffsetDateTime.ofInstant(now, ZoneOffset.UTC);
         for (Position p : changes.positions()) {
             jdbc.sql("""
                     insert into organization_workforce.positions (id, code, name, sort_order, status, created_at, updated_at)
@@ -86,7 +91,9 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
         // The unique WeCom key covers employed people only; clearing the batch first makes the write order irrelevant.
         List<UUID> staffIds = changes.staff().stream().map(s -> s.employeeId().value()).toList();
         if (!staffIds.isEmpty()) {
-            jdbc.sql("update organization_workforce.employees set wecom_user_id = null where id in (:ids) and wecom_user_id is not null")
+            jdbc.sql("""
+                    update organization_workforce.employees set wecom_user_id = null where id in (:ids) and wecom_user_id is not null
+                    """)
                     .param("ids", staffIds).update();
         }
         for (StaffEmployee s : changes.staff()) {
@@ -98,19 +105,23 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     @Override
     public void saveRegisteredEmployee(RegisteredEmployee registered, Instant now) {
         LocalDate day = zone.dateOf(now);
-        upsertStaff(registered.staff(), Timestamp.from(now));
+        upsertStaff(registered.staff(), OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
         history.recordAssignments(List.of(registered.staff().assignment()), day);
-        jdbc.sql("update organization_workforce.employees set event_count = :sequence where id = :id")
+        jdbc.sql("""
+                update organization_workforce.employees set event_count = :sequence where id = :id
+                """)
                 .param("sequence", registered.eventSequenceAfterSave()).param("id", registered.staff().employeeId().value()).update();
     }
 
     @Override
     public long findEmployeeEventSequence(EmployeeId employeeId) {
-        return jdbc.sql("select event_count from organization_workforce.employees where id = :id").param("id", employeeId.value())
+        return jdbc.sql("""
+                select event_count from organization_workforce.employees where id = :id
+                """).param("id", employeeId.value())
                 .query(Long.class).optional().orElse(0L);
     }
 
-    private void upsertOrgUnit(OrgUnit u, UUID run, Timestamp now) {
+    private void upsertOrgUnit(OrgUnit u, UUID run, OffsetDateTime now) {
         jdbc.sql("""
                 insert into organization_workforce.org_units (id, code, name, parent_org_unit_id, sort_order, status,
                        head_employee_id, regional_receivables_manager_id, region_category, is_delivery_unit, short_name,
@@ -135,7 +146,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .param("run", run).param("now", now).update();
     }
 
-    private void upsertStaff(StaffEmployee s, Timestamp now) {
+    private void upsertStaff(StaffEmployee s, OffsetDateTime now) {
         Employee e = s.employee();
         Assignment a = s.assignment();
         jdbc.sql("""
@@ -172,20 +183,24 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
 
     @Override
     public Set<OrgUnitId> findOrgUnitIds() {
-        return jdbc.sql("select id from organization_workforce.org_units").query(UUID.class).list().stream()
+        return jdbc.sql("""
+                select id from organization_workforce.org_units
+                """).query(UUID.class).list().stream()
                 .map(OrgUnitId::new).collect(Collectors.toSet());
     }
 
     @Override
     public Set<PositionId> findPositionIds() {
-        return jdbc.sql("select id from organization_workforce.positions").query(UUID.class).list().stream()
+        return jdbc.sql("""
+                select id from organization_workforce.positions
+                """).query(UUID.class).list().stream()
                 .map(PositionId::new).collect(Collectors.toSet());
     }
 
     @Override
     public int updateShortNames(Map<OrgUnitId, String> shortNames, Instant now) {
         int changed = 0;
-        Timestamp at = Timestamp.from(now);
+        OffsetDateTime at = OffsetDateTime.ofInstant(now, ZoneOffset.UTC);
         for (Map.Entry<OrgUnitId, String> entry : shortNames.entrySet()) {
             changed += jdbc.sql("""
                     update organization_workforce.org_units set short_name = :name, updated_at = :now, version = version + 1

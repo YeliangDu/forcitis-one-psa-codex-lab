@@ -18,12 +18,14 @@ final class EffectiveAttributionPeriods {
     static String select(AttributionKind kind) {
         String table = kind == AttributionKind.ORG_UNIT ? "org_unit_legal_entities" : "employee_legal_entities";
         String column = subjectColumn(kind);
-        return "select p.legal_entity_id, p.effective_from_date, coalesce(c.new_effective_to_date, p.effective_to_date) as effective_to_date"
-                + " from organization_workforce." + table + " p"
-                + " left join lateral (select new_effective_to_date from organization_workforce.legal_entity_attribution_corrections"
-                + "                     where " + column + " = p." + column
-                + "                       and period_effective_from_date = p.effective_from_date"
-                + "                     order by correction_number desc limit 1) c on true"
-                + " where p." + column + " = :id";
+        return """
+                select p.legal_entity_id, p.effective_from_date, coalesce(c.new_effective_to_date, p.effective_to_date) as effective_to_date
+                  from organization_workforce.%1$s p
+                  left join lateral (select new_effective_to_date from organization_workforce.legal_entity_attribution_corrections
+                                      where %2$s = p.%2$s
+                                        and period_effective_from_date = p.effective_from_date
+                                      order by correction_number desc limit 1) c on true
+                 where p.%2$s = :id
+                """.formatted(table, column);
     }
 }

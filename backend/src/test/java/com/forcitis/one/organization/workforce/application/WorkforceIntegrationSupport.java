@@ -102,20 +102,8 @@ public abstract class WorkforceIntegrationSupport {
     // otherwise the two wait on each other (PessimisticLockingFailureException). Only the events of this module are waited for,
     // and a timeout names the listeners that did not finish.
     protected void awaitEventListeners() {
-        long deadline = System.nanoTime() + java.time.Duration.ofSeconds(20).toNanos();
-        java.util.List<String> unfinished = unfinishedListeners();
-        while (!unfinished.isEmpty()) {
-            if (System.nanoTime() > deadline) {
-                throw new AssertionError("event listeners still running after 20 s: " + unfinished);
-            }
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new AssertionError(e);
-            }
-            unfinished = unfinishedListeners();
-        }
+        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(20)).pollInterval(java.time.Duration.ofMillis(20))
+                .untilAsserted(() -> org.assertj.core.api.Assertions.assertThat(unfinishedListeners()).as("event listeners still running after 20 s").isEmpty());
     }
 
     private java.util.List<String> unfinishedListeners() {

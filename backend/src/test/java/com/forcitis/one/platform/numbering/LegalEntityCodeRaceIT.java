@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,15 +85,10 @@ class LegalEntityCodeRaceIT {
         }
     }
 
-    private void awaitBlockedStatement() throws InterruptedException {
-        long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
-        while (jdbc.sql("select count(*) from pg_stat_activity where datname = current_database() and cardinality(pg_blocking_pids(pid)) > 0")
-                .query(Long.class).single() == 0) {
-            if (System.nanoTime() > deadline) {
-                throw new AssertionError("nobody is waiting for a lock");
-            }
-            Thread.sleep(10);
-        }
+    private void awaitBlockedStatement() {
+        Awaitility.await("somebody is waiting for a lock").atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(10))
+                .until(() -> jdbc.sql("select count(*) from pg_stat_activity where datname = current_database() and cardinality(pg_blocking_pids(pid)) > 0")
+                        .query(Long.class).single() > 0);
     }
 
     @Test
