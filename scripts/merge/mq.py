@@ -116,11 +116,17 @@ def release_verdict(reviews, comments, head, patch_id_of):
     return verdict == post_review.PASS, f"newest: {verdict} ({who}, {at})"
 
 
+def full_named(check):
+    """A check of a full (non-light) run. A label other than `queued` starts a run whose jobs all skip, and GitHub lists those checks
+    under the unexpanded name template (`...${{ ... }}`): never a verdict, never the full check (#808)."""
+    return not check["name"].endswith("(light)") and "${{" not in check["name"]
+
+
 def required_state(checks):
     """(ok, problems): the three required checks are listed (never with the " (light)" suffix) and every one of them is `pass`."""
     problems = []
     for prefix in REQUIRED:
-        found = [c for c in checks if c["name"].startswith(prefix) and not c["name"].endswith("(light)")]
+        found = [c for c in checks if c["name"].startswith(prefix) and full_named(c)]
         if not found:
             problems.append(f"{prefix}: not listed")
         problems += [f"{c['name']}={c['bucket']}" for c in found if c["bucket"] != "pass"]
@@ -419,7 +425,7 @@ class Processor:
         for _ in range(20):
             self.checkpoint(n)   # until the full-named backend check is listed: right after the label only the light run's checks may be there
             listed = self.gh.checks(n) or []
-            if any(c["name"].startswith("backend verify") and not c["name"].endswith("(light)") for c in listed):
+            if any(c["name"].startswith("backend verify") and full_named(c) for c in listed):
                 break
             self.sleep(15)
         waited = 0
