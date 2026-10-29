@@ -47,7 +47,7 @@ CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 
 ## C. Stack: old → new
 
-#810 will enforce these; the pom still has `spring-boot-starter-web` until it does.
+`LegacyApiGuardTest` (LA-*) enforces the rows a check can catch; a failure names the replacement.
 
 | Don't | Use |
 |---|---|

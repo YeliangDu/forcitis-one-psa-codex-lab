@@ -24,11 +24,19 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Code standard v2 (#810 item 4): APIs of Boot 3 / Framework 6 and older that agents still write, each failure naming the replacement.
@@ -191,6 +199,56 @@ class LegacyApiGuardTest {
         RULES.forEach(rule -> rule.check(inside));
         assertThat(ArchitectureRulesTest.CLASSES.stream().anyMatch(type -> type.getDirectDependenciesFromSelf().stream()
                 .anyMatch(d -> d.getTargetClass().getPackageName().startsWith("javax.sql")))).as("main uses javax.sql, which is allowed").isTrue();
+    }
+
+    /** The class file of a preview-feature build carries minor version 0xFFFF; a normal build carries 0. */
+    static List<String> previewClassFiles(Path root) throws IOException {
+        if (!Files.isDirectory(root)) {
+            return List.of();
+        }
+        try (Stream<Path> files = Files.walk(root)) {
+            return files.filter(file -> file.toString().endsWith(".class")).filter(file -> {
+                try (DataInputStream in = new DataInputStream(Files.newInputStream(file))) {
+                    in.readInt();
+                    return in.readUnsignedShort() == 0xFFFF;
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }).map(Path::toString).toList();
+        }
+    }
+
+    @Test
+    @DisplayName("no class file is compiled with Java preview features")
+    void noPreviewFeatures() throws IOException {
+        List<String> preview = new java.util.ArrayList<>(previewClassFiles(Path.of("target", "classes")));
+        preview.addAll(previewClassFiles(Path.of("target", "test-classes")));
+        assertThat(Path.of("target", "classes")).as("run from backend/, where the compiled classes are").isDirectory();
+        assertThat(preview).as("LA-10 class files compiled with --enable-preview (preview features change or vanish in the next JDK)."
+                + " fix: drop --enable-preview from pom.xml and rewrite the code without preview features").isEmpty();
+    }
+
+    @Test
+    @DisplayName("injection: a class file with minor version 0xFFFF is reported as preview")
+    void aPreviewClassFileIsCaught(@TempDir Path dir) throws IOException {
+        try (DataOutputStream out = new DataOutputStream(Files.newOutputStream(dir.resolve("Preview.class")))) {
+            out.writeInt(0xCAFEBABE);
+            out.writeShort(0xFFFF);
+            out.writeShort(69);
+        }
+        try (DataOutputStream out = new DataOutputStream(Files.newOutputStream(dir.resolve("Normal.class")))) {
+            out.writeInt(0xCAFEBABE);
+            out.writeShort(0);
+            out.writeShort(69);
+        }
+        assertThat(previewClassFiles(dir)).singleElement().asString().endsWith("Preview.class");
+    }
+
+    @Test
+    @DisplayName("the build declares no starter that Boot 4 deprecated")
+    void noDeprecatedStarter() throws IOException {
+        assertThat(Files.readString(Path.of("pom.xml"))).as("LA-11 pom.xml declares spring-boot-starter-web (deprecated in Boot 4)."
+                + " fix: declare spring-boot-starter-webmvc").doesNotContain("<artifactId>spring-boot-starter-web</artifactId>");
     }
 
     @Test
