@@ -26,7 +26,7 @@ public final class GeneratedApiArtifacts implements BeforeAllCallback {
             Path path = api.resolve(file);
             if (!Files.isRegularFile(path) || Files.size(path) == 0) {
                 throw new IllegalStateException("缺少生成产物 " + path
-                        + "；请在仓库根运行 bash scripts/codegen/generate-api.sh（需 Docker 和已安装的前端依赖；离线 Maven 加 -o）");
+                        + "；请在仓库根运行 bash scripts/codegen/generate_api.sh（需 Docker 和已安装的前端依赖；离线 Maven 加 -o）");
             }
         }
     }

@@ -111,7 +111,7 @@
       <!-- At JVM exit the cached Spring contexts close after Testcontainers stopped the database; each waits for its connection timeout, so a fork with many contexts needs more than the default 30 s to leave. -->
       <!-- every test class owns its Testcontainers database, so classes run in parallel JVMs: ./mvnw verify -Dtest.forks=1 restores serial runs -->
       <!-- test.fork.timeout: total seconds a reused fork may run (0 = no limit); CI sets it so a hung fork is killed, after its watchdog took thread dumps -->
-      <!-- OpenAPI is not tracked. Bootstrap with bash scripts/codegen/generate-api.sh before verify (acceptance tests also read generated TS).
+      <!-- OpenAPI is not tracked. Bootstrap with bash scripts/codegen/generate_api.sh before verify (acceptance tests also read generated TS).
            The lifecycle exports JSON at process-test-classes, before surefire/failsafe; direct plugin calls require that bootstrap first. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId>

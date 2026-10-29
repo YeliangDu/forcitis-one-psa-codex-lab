@@ -19,7 +19,7 @@ import tempfile
 
 DIRS = (
     "docs/modernization/phase1a/infra/handoff/B-5-dba/tools",
-    "docs/modernization/phase1a/infra/runbooks/scripts",
+    "tools/ops/ecs/scripts",
     "tools/evidence",
 )
 THIRD_PARTY = {"alibabacloud_ecs20140526", "alibabacloud_tea_openapi"}

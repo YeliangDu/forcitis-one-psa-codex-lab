@@ -81,7 +81,7 @@ class SnapshotFreshnessTest {
             settings.load(in);
         }
         Duration staleAfter = Duration.parse(settings.getProperty("forcitis.organization.workforce.sync.stale-after"));
-        String rules = Files.readString(Path.of("../docs/modernization/phase1a/infra/runbooks/files/alert-rules.yaml"));
+        String rules = Files.readString(Path.of("../tools/ops/ecs/files/alert-rules.yaml"));
         Matcher threshold = Pattern.compile("alert: OneWorkforceSyncLagging\\s+expr: max\\(forcitis_organization_workforce_sync_lag_seconds\\) > (\\d+)").matcher(rules);
 
         assertThat(threshold.find()).as("the OneWorkforceSyncLagging rule").isTrue();

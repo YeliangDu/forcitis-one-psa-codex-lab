@@ -20,7 +20,7 @@ class SingleOperatorModeNotPublishedTest {
     static final Path RESOURCES = Path.of("src/main/resources");
     static final Path JAVA = Path.of("src/main/java");
     static final Path IDENTITY = JAVA.resolve("com/forcitis/one/platform/identity");
-    static final Path ENV_TEMPLATE = Path.of("../docs/modernization/phase1a/infra/runbooks/files/one.env.template");
+    static final Path ENV_TEMPLATE = Path.of("../tools/ops/ecs/files/one.env.template");
 
     static final Pattern PUBLISHED = Pattern.compile("(?i)single[-_.]?operator");
     static final Pattern KEY_FORMS = Pattern.compile("(?i)single[-_.]?operator[-_.]?mode");
