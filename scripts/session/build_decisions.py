@@ -2,7 +2,7 @@
 """从 intent/ 片段生成按主题的现行决定页 CURRENT_DECISIONS.md，上限取自 policy.json 的 decisions.current_page_max_kb（GOV-1023-FV2 G4，定稿 1.5、H14）。
 取代 build_decision_digest.py（速查表）与 INTENT.md；产物不入仓（.gitignore），由本脚本在本机生成（new_intent.py 记决定后自动跑）。引用条目写文件名前缀，摘句不作依据，引用前打开原文。
 页面只列现行条目：常驻（decision-digest/standing.txt 指定，按小节）、新近（最近 5 条非常驻）、主题索引（按 decision-digest/topics.txt 分类，每主题只记条数）；超限即失败，删减 standing.txt；--topic=<主题> 把该主题全部现行条目打到终端。
-取代：片段「## 取代」段与 decision-digest/relations.txt；含推翻字样却没登记的只告警。归档：decision-digest/archived.txt 每行「完整文件名<TAB>原因码」，归档的不上页、不占主题名额、不进疑似告警，--archived 列出。沿用原脚本的校验：文件名须为 <日期>-<HHMMSS>-<会话名>-<短名>.md 或旧式 <日期>-<三位序号>-<短名>.md；
+取代：片段「## 取代」段与 decision-digest/relations.txt；含推翻字样却没登记的只告警。归档：decision-digest/archived.txt 每行「完整文件名<TAB>原因码」，归档的不上页、不计入主题索引、不进疑似告警，--archived 列出。沿用原脚本的校验：文件名须为 <日期>-<HHMMSS>-<会话名>-<短名>.md 或旧式 <日期>-<三位序号>-<短名>.md；
 格式「## 原话」「## 落点」[「## 取代」][规则、影响的 ADR、单子、题号、类别、负责会话、影响路径]，原话落点非空；topics.txt 无重复主题与空白关键词；取代引用不存在的文件、循环取代、新条目早于旧条目都失败。
 用法：python3 scripts/session/build_decisions.py [--check | --self-test | --topic=<主题> | --archived]（--check 只校验与量体，不写文件；不收目录参数）
 """
@@ -186,8 +186,13 @@ def self_test():
         assert n == 8 and unclassified == 4 and len(suspects) == 1, (n, unclassified, suspects)   # 疑：含推翻字样但未登记，只告警
         assert "现行 7 条，被取代 1 条、归档 0 条" in text and "报销审批两级" in text and "报销审批三级" not in text and "很长的尾巴" * 20 not in text, "被取代的不列；常驻条目上页；摘句截断"
         assert "## 常驻\n\n### 财务规则\n" in text and "借款冲抵报销" not in text and "\n- 财务 3\n" in text and "--topic=<主题>" in text, "常驻按小节列；主题索引只记条数、不列条目（甲既非常驻也不在最近 5 条）"
-        recent = text.split("## 新近\n")[1].split("\n## ")[0]
-        assert [l.split("`")[1] for l in recent.split("\n") if l.startswith("- ")] == ["2026-10-04-000003", "2026-10-04-000002", "2026-10-04-000001", "2026-10-04-001", "2026-10-03-000002"], f"新近列最近 5 条非常驻现行条目，新的在前：{recent!r}"
+        recent = lambda text: [l.split("`")[1] for l in text.split("## 新近\n")[1].split("\n## ")[0].split("\n") if l.startswith("- ")]
+        assert recent(text) == ["2026-10-04-000003", "2026-10-04-000002", "2026-10-04-000001", "2026-10-04-001", "2026-10-03-000002"], f"新近列最近 5 条非常驻现行条目，新的在前：{recent(text)}"
+        put(std, f"{new}\t财务规则\n2026-10-04-000003-a-疑.md\t预算\n")
+        put(rel, read(rel) + "取代\t2026-10-04-000002-a-词界.md\t2026-10-04-000001-a-杂.md\t并入\n")
+        assert recent(run(intent, topics, rel, arc, std, None, limit=10240)[3]) == ["2026-10-04-000002", "2026-10-04-001", "2026-10-03-000002", "2026-10-03-000001"], "新近跳过常驻与被取代的条目"
+        put(rel, f"取代\t{new}\t{old}\t改两级\n矛盾\t{a}\t{b}\t冲抵之争\n")
+        put(std, f"{new}\t财务规则\n")
         for body in (f"{old}\t财务规则\n", "2026-10-31-000001-a-无.md\t财务规则\n", f"{new}\t财务规则\n{new}\t别的\n", f"{new}\t \n", f"{new}\n"):
             put(std, body)
             assert raises(lambda: run(intent, topics, rel, arc, std, None, limit=10240)), f"常驻清单应拒绝（已被取代、不存在、重复、小节为空、缺小节）：{body!r}"
