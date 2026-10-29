@@ -37,6 +37,6 @@
 commit：<40 位 sha>
 复审者：<模型>-<首轮|终审>-<标识>
 ```
-- 空一行后，正文第一行写 `patch-id：<git diff <base>...<sha> | git patch-id --stable 的第一列>`。
+- 空一行后，正文第一行写 `patch-id：<git diff <base>...<sha> | git patch-id --verbatim 的第一列>`，只供人看；合并队列自己计算 patch-id，不读这一行。
 - 接着依次：影响面（一行：这次改动影响到谁、证明到第几层调用方）、必改、建议、已核无问题项（逐项写证据：命令或文件:行，含破坏验证表）。
 - 有 PR 时提交：`python3 scripts/review/post_review.py --pr N --body-file <文件> [--guard]`；退出码非 0 照提示处理并报告。
