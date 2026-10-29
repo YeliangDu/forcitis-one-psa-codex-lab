@@ -2,7 +2,6 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
@@ -48,6 +47,8 @@ import java.util.concurrent.Future;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.kernel.WorkContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -276,7 +277,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        release.execute(held.syncRunId(), TestAccounts.account(9001L), "line one\nline\ttwo\rend", true, false);
+        releaseAsSyncRunExecutor(held.syncRunId(), "line one\nline\ttwo\rend");
 
         org.mockito.ArgumentCaptor<AuditEntry> entry = org.mockito.ArgumentCaptor.forClass(AuditEntry.class);
         verify(audit, atLeastOnce()).record(entry.capture());
@@ -292,7 +293,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
         SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
 
-        ReleaseResult released = release.execute(held.syncRunId(), TestAccounts.account(9001L), "source repaired by hand", true, false);
+        ReleaseResult released = releaseAsSyncRunExecutor(held.syncRunId(), "source repaired by hand");
 
         assertThat(released).isInstanceOfSatisfying(ReleaseResult.Released.class, r -> assertThat(r.releasedRun().status()).isEqualTo("SUCCEEDED"));
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(3);
@@ -305,8 +306,8 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
 
-        assertThat(release.execute(held.syncRunId(), TestAccounts.account(9001L), "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotHeld.class);
-        assertThat(release.execute(new SyncRunId(TestIds.uuid(424242)), TestAccounts.account(9001L), "source repaired by hand", true, false)).isInstanceOf(ReleaseResult.NotFound.class);
+        assertThat(releaseAsSyncRunExecutor(held.syncRunId(), "source repaired by hand")).isInstanceOf(ReleaseResult.NotHeld.class);
+        assertThat(releaseAsSyncRunExecutor(new SyncRunId(TestIds.uuid(424242)), "source repaired by hand")).isInstanceOf(ReleaseResult.NotFound.class);
     }
 
     @Test
@@ -422,5 +423,16 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         oldSystem.unavailable = false;
         oldSystem.names = Map.of(unitId(1), "HQ", unitId(2), "");
         assertThat(refreshShortNames.execute()).isEqualTo(1);
+    }
+
+    /** The release reads the caller and its permissions from the session: account 9001 holding sync-run:execute only. */
+    private ReleaseResult releaseAsSyncRunExecutor(SyncRunId held, String reason) {
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(TestAccounts.account(9001L).value().toString(), "x",
+                ReleaseSyncRun.SYNC_RUN_EXECUTE));
+        try {
+            return release.execute(held, reason);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 }
