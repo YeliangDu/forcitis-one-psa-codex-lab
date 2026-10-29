@@ -10,8 +10,8 @@ Rules, each failure names the rule and the corrected name:
   N5 a new top-level directory under docs/, scripts/ or tools/ is not on the allowlist: ask lead
 Exceptions: README.md and CLAUDE.md; ADR-NNNN*.md; fragments under docs/decisions/, docs/glossary/issues/ and docs/ops/legacy-read/; frontend/ keeps
 its package conventions. Phase 1 checks only added or renamed files, and directory rules only directories new in the
-diff, so legacy names do not block a pull request; once the files acceptance tests read have left docs/modernization/ (#755 PR B),
-check everything.
+diff, so legacy names do not block a pull request; checking everything follows
+#755 PR B.
 
   check_names.py <base>       exit 1 on a broken rule, 2 when the base or the diff cannot be read (fails closed)
   check_names.py --self-test
@@ -32,8 +32,7 @@ EXEMPT_NAMES = {"README.md", "CLAUDE.md"}
 ADR = re.compile(r"ADR-\d{4}(-.*)?\.md")
 FRAGMENT_DIRS = ("docs/decisions/", "docs/glossary/issues/", "docs/ops/legacy-read/")  # dated fragments keep their generated names
 ALLOWED = {  # top-level directories; a new one needs lead's yes
-    # modernization/: the files acceptance tests read, until #755 PR B moves them
-    "docs": {"modernization", "adr", "architecture", "business", "data", "decisions", "glossary", "legacy", "ops", "rules"},
+    "docs": {"adr", "architecture", "business", "data", "decisions", "glossary", "legacy", "ops", "rules"},
     "scripts": {"ci", "codegen", "gates", "guards", "hooks", "merge", "release", "review", "session"},
     "tools": {"docs", "evidence", "ops"},
 }

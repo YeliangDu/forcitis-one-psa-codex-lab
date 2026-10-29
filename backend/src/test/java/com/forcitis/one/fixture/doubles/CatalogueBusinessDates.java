@@ -16,7 +16,7 @@ import org.yaml.snakeyaml.Yaml;
  * anything else means a date. Event types the catalogue does not know (test-only events) are not checked.
  */
 public final class CatalogueBusinessDates {
-    private static final Path EVENTS = Path.of("../docs/modernization/events");
+    private static final Path EVENTS = Path.of("../docs/architecture/events");
     private static final Map<String, String> DECLARED = load();
 
     private CatalogueBusinessDates() {

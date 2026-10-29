@@ -35,7 +35,7 @@ class SystemActorCatalogueTest {
     static final Path TEST_CATALOGUE = Path.of("src/test/resources/architecture/system-actors.txt");
     static final Path MAIN = Path.of("src/main/java");
     static final Path TESTS = Path.of("src/test/java");
-    static final Path ASYNCAPI = Path.of("../docs/modernization/events/asyncapi.yaml");
+    static final Path ASYNCAPI = Path.of("../docs/architecture/events/asyncapi.yaml");
     static final JavaClasses CLASSES = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages("com.forcitis.one");
     static final Pattern ENTERED = Pattern.compile("WorkContext\\.enter\\([^;{]*?\"([^\"]+)\"\\)", Pattern.DOTALL);
