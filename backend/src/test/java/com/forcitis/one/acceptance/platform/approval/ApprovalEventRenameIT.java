@@ -34,8 +34,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class ApprovalEventRenameIT extends P5Support {
 
-    static final Path EVENTS = Path.of("../docs/modernization/events");
-    static final Path MUST_AUDIT = Path.of("../docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml");
+    static final Path EVENTS = Path.of("../docs/architecture/events");
+    static final Path MUST_AUDIT = Path.of("../docs/architecture/must-audit-actions.yaml");
 
     @Container
     @ServiceConnection

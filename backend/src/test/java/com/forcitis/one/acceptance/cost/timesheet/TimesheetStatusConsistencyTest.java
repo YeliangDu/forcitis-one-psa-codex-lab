@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 class TimesheetStatusConsistencyTest {
 
     static final Path BASELINE = Path.of("src/main/resources/db/migration/cost_timesheet/V20261014140000__cost_timesheet_baseline.sql");
-    static final Path EVENT_CATALOGUE = Path.of("../docs/modernization/events/timesheet.yaml");
+    static final Path EVENT_CATALOGUE = Path.of("../docs/architecture/events/timesheet.yaml");
 
     /** The status each catalogued timesheet event moves the timesheet into. */
     static final Map<String, TimesheetStatus> EVENT_TARGETS = Map.of(

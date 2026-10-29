@@ -34,7 +34,7 @@ class SingleOperatorRelaxationRegisterTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Path IDENTITY = MAIN.resolve("com/forcitis/one/platform/identity");
     static final Path WRITERS = Path.of("architecture/audit-text-writers.txt");
-    static final Path MUST_AUDIT = Path.of("../docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml");
+    static final Path MUST_AUDIT = Path.of("../docs/architecture/must-audit-actions.yaml");
     static final String APPLIED = "platform.identity.single-operator-mode.applied";
     static final Pattern NEW_ENTRY_WITH_APPLIED = Pattern.compile("new\\s+AuditEntry\\s*\\(\\s*\"[^\"]*single-operator-mode\\.applied\"");
 

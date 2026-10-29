@@ -29,7 +29,7 @@ class ReadOnlyCheckSwitchGuardTest {
     static final Path SELF = Path.of("src/test/java/com/forcitis/one/platform/integration/guard/ReadOnlyCheckSwitchGuardTest.java");
     static final List<Path> DEPLOYMENT = List.of(
             Path.of("../tools/ops/ecs/files/one.env.template"),
-            Path.of("../docs/modernization/phase1a/infra/INFRA_RUNBOOK.md"));
+            Path.of("../docs/ops/infra-runbook.md"));
 
     static List<Path> textFiles(Path root) throws IOException {
         assertThat(root).as("scan root").isDirectory();

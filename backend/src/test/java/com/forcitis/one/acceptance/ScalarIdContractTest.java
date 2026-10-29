@@ -18,12 +18,12 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * G-C5 on the written contracts: the event catalogue (docs/modernization/events/*.yaml) and the OpenAPI document describe an id as a
+ * G-C5 on the written contracts: the event catalogue (docs/architecture/events/*.yaml) and the OpenAPI document describe an id as a
  * scalar, never as an object with a "value" property. An id field is one whose name says so (…Id, …Ids) or that refers to a person.
  */
 class ScalarIdContractTest {
 
-    static final Path EVENTS = Path.of("../docs/modernization/events");
+    static final Path EVENTS = Path.of("../docs/architecture/events");
     static final Path OPENAPI = Path.of("../frontend/packages/api/openapi.json");
     static final Pattern ID_FIELD = Pattern.compile(
             "(?i)(.*Ids?|userId|employee|employees|changedEmployees|separatedEmployees|initiator|projectManager|claimedBy|releasedBy|assignee|candidates|holders|escalatedTo|from|to)");

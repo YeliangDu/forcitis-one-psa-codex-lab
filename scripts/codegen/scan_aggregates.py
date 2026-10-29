@@ -14,7 +14,7 @@ from scan_acceptance_tests import LEXER, pairs
 ROOT = Path(__file__).resolve().parents[2]
 ARCH = Path('docs/architecture')
 OUTPUT = ARCH / 'ssot/aggregates'
-BUILT = Path('docs/modernization/architecture/ssot/i03-aggregates/built.yaml')  # two acceptance tests read it here until #755 PR B moves it
+BUILT = Path('docs/architecture/ssot/aggregates/built.yaml')  # two acceptance tests read it
 JAVA = Path('backend/src/main/java/com/forcitis/one')
 REGISTRY = Path('backend/architecture/data-access-registry.yaml')
 DRAFT = ARCH / 'proposals/enterprise-aggregates-draft.md'

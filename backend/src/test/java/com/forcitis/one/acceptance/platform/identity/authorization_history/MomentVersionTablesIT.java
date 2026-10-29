@@ -36,7 +36,7 @@ import org.yaml.snakeyaml.Yaml;
 class MomentVersionTablesIT {
 
     static final Path REGISTRY = Path.of("architecture/data-access-registry.yaml");
-    static final Path DATABASE_SCRIPT = Path.of("../docs/modernization/phase1a/infra/one_db_roles_schemas.sql");
+    static final Path DATABASE_SCRIPT = Path.of("../docs/ops/one-db-roles-schemas.sql");
     static final List<String> MOMENT_TABLES = List.of("platform_identity.role_versions", "platform_identity.account_role_grants");
 
     private AuthorizationHistoryRows db;

@@ -1,6 +1,6 @@
 # ADR-0034-IMPL PR-2 验收测试：角色版本化与系统角色声明
 
-依据只有：卡 `docs/modernization/phase1a/cards/ADR-0034-IMPL.md`（第 4 节测试清单、7.2、第 12 节第 3 条）、`docs/modernization/adr/src/ADR-0034.md`（现行；ADR-0055、0068 取代的部分与角色版本化无关）、identity 基线 `V20261014130000__platform_identity_baseline.sql` 中 roles 的种子（main `f62af6ae8`，:523-586）。写法、夹具与容器用法照 PR-1 的 `authorization_history/` 与 `SingleOperatorModeEnvironment`。测试作者：独立测试代理（`Acceptance-Test-Author: test-engineer`）。
+依据只有：卡 `docs/architecture/implementation-cards/adr-0034-impl.md`（第 4 节测试清单、7.2、第 12 节第 3 条）、`docs/adr/ADR-0034.md`（现行；ADR-0055、0068 取代的部分与角色版本化无关）、identity 基线 `V20261014130000__platform_identity_baseline.sql` 中 roles 的种子（main `f62af6ae8`，:523-586）。写法、夹具与容器用法照 PR-1 的 `authorization_history/` 与 `SingleOperatorModeEnvironment`。测试作者：独立测试代理（`Acceptance-Test-Author: test-engineer`）。
 
 ## 运行
 
@@ -105,7 +105,7 @@ cd backend
 
 ## 需实现方改的守护（G9、G10，单独提交、PR 正文单列）
 
-- G9 `SingleAggregateGuardTest`：该测试本身没有表到聚合的映射；映射在 `data-access-registry.yaml` 的 `aggregate:`（`role_versions → Role` 已在，PR-2 把 `writers: []` 改 `[platform.identity]`，删 `role_permissions` 条目）与 `aggregates.yaml`（卡 3.3 所指 `docs/modernization/architecture/ddd/aggregates.yaml` 在本检出中未找到，待核）。`multi-aggregate-exceptions.txt` 不变；启动对账逐角色提交。
+- G9 `SingleAggregateGuardTest`：该测试本身没有表到聚合的映射；映射在 `data-access-registry.yaml` 的 `aggregate:`（`role_versions → Role` 已在，PR-2 把 `writers: []` 改 `[platform.identity]`，删 `role_permissions` 条目）与 `aggregates.yaml`（卡 3.3 所指 `docs/architecture/ddd/aggregates.yaml` 在本检出中未找到，待核）。`multi-aggregate-exceptions.txt` 不变；启动对账逐角色提交。
 - G10：`ddl-naming-baseline.txt` 删 :17 `roles.access_scope`、:46 `role_permissions…fkey`、:61 `uq_roles_name`（:39 `account_roles` 留 PR-3；:47 `roles_pkey`、:60 `uq_roles_code` 保留）；`unversioned-table-writes.txt` 删 :18（`role_permissions`），`role_versions` 写入按需登记理由；`RepositoryWriteGuardTest`、`TimeSourceGuardTest`（新 SQL 无数据库时钟、`:now` 为参数）、`PrimaryKeyTypeGuardTest`（`primary-key-exemptions.txt` 头注提及 `role_permissions`）、`MustAuditActionsTest`（`role-version.opened/closed`、Role 事件 `@NotAudited`，A-6）、`GlossaryTest`（提议术语）、`SystemActorCatalogueTest`（`system-actors.txt` 加启动对账的系统操作者）、`DataArchitectureTest`（registry writers）全绿。
 
 ## 待实现方与调度确认

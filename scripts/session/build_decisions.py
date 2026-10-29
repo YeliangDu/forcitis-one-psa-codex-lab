@@ -194,6 +194,11 @@ def self_test():
         put(rel, read(rel) + "取代\t2026-10-04-000002-a-词界.md\t2026-10-04-000001-a-杂.md\t并入\n")
         assert recent(run(intent, topics, rel, arc, std, None, limit=10240)[3]) == ["2026-10-04-000002", "2026-10-04-001", "2026-10-03-000002", "2026-10-03-000001"], "新近跳过常驻与被取代的条目"
         put(rel, f"取代\t{new}\t{old}\t改两级\n矛盾\t{a}\t{b}\t冲抵之争\n")
+        put(std, f"{new}\t财务规则\n2026-10-04-000001-a-杂.md\t其他\n2026-10-04-001-旧式序号.md\t财务规则\n")
+        part = run(intent, topics, rel, arc, std, None, limit=10240)[3].split("## 常驻\n")[1].split("\n## 新近")[0]
+        heads = [l for l in part.splitlines() if l.startswith("### ")]
+        rows = [l.split("`")[1] for l in part.splitlines() if l.startswith("- ")]
+        assert heads == ["### 财务规则", "### 其他"] and rows == ["2026-10-02-000001", "2026-10-04-001", "2026-10-04-000001"], f"常驻按小节归组：同一小节在 standing.txt 里不相邻也只出一个标题，小节按首次出现排序：{heads} {rows}"
         put(std, f"{new}\t财务规则\n")
         for body in (f"{old}\t财务规则\n", "2026-10-31-000001-a-无.md\t财务规则\n", f"{new}\t财务规则\n{new}\t别的\n", f"{new}\t \n", f"{new}\n"):
             put(std, body)

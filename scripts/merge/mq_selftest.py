@@ -954,5 +954,5 @@ def _docs_tiers(mq, d):
     guarded = next((f for f in tracked if rc.is_guarded_doc(f) and (rc.plan_for([f], index, light) or {}).get("classes")), None)
     assert guarded, "no doc of the guarded tier is left: the guarded case would silently vanish; pick the sample differently"
     assert check([plain])
-    for read in ["docs/modernization/events/asyncapi.yaml", "docs/glossary/terms.yaml", guarded]:
+    for read in ["docs/architecture/events/asyncapi.yaml", "docs/glossary/terms.yaml", guarded]:
         assert not check([read]) and not check([plain, read]), f"{read} is read by a test: not docs"

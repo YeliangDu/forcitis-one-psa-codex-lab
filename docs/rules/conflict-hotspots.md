@@ -18,7 +18,7 @@
 | `phase1a/infra/DEV_DEPLOY_REMAINING.md` | 21 | 63 行表格 / 89 行，追加待办 | 每项一个片段，完成即删片段 |
 | `phase1a/DEFERRED.md` | 17 | 29 行表格 / 47 行 | 每项一个片段 |
 | `phase1a/infra/RESOURCES.md` | 6（本周才多会话写） | 28 行表格 / 32 行，登记与删行 | 每项一个片段，总表生成已规定“建立时登记、用完删” |
-| `docs/modernization/events/asyncapi.yaml` | 34 | 4366 行单文件 | 难按片段：按 BC 拆成多个文件再合并生成；须与 one-architecture 商定 |
+| `docs/architecture/events/asyncapi.yaml` | 34 | 4366 行单文件 | 难按片段：按 BC 拆成多个文件再合并生成；须与 one-architecture 商定 |
 | `backend/architecture/*.txt` 基线 / 例外清单（`module-dependencies.txt` 19 次、`unversioned-table-writes.txt` 12 次、`ddl-naming-baseline.txt` 9 次） | 见左 | 按行排序的清单：基线类（如 `ddl-naming-baseline.txt`）只减不增；`module-dependencies.txt`（批准的依赖图）、`unversioned-table-writes.txt`（例外清单）可增 | 不改片段：行级冲突易解；若冲突仍多，改为每模块一个文件 |
 | `scripts/ci/relevant_change.py` 的 `READ_BY_BUILDS` / `LEGACY_IT_PATHS` 元组 | 23 | 代码内路径清单，守护文件 | 不改片段；冲突点小，改动须带复审 |
 
