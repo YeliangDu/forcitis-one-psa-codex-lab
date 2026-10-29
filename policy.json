@@ -84,7 +84,7 @@
     "evidence": 7
   },
   "decisions": {
-    "current_page_max_kb": 10,
+    "current_page_max_kb": 6,
     "daily_decide_at": "20:00"
   },
   "sessions": {
