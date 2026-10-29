@@ -5,33 +5,35 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.jayway.jsonpath.JsonPath;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P2 (ADR-0033 section 3 item 3 「本人」判定清单, I-12 first half): nobody changes their own roles. Both sides are accounts, so the
  * caller's user id is set against the user id in the path; the account id differs from the employee id, and the path takes the
  * account's UUID (G-A1), not a number.
  */
-@Testcontainers
 class OwnRolesIT extends AccountsAcceptanceSupport {
 
     static final String ACCOUNTS = "/api/v1/platform/user-accounts/";
     static final String ROLES = "/api/v1/platform/roles";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(OwnRolesIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** A super_admin holder (operations command), signed in through WeCom and in the administrator mode of their own session. */
     private SignedIn roleAdministrator(UUID employee) throws Exception {

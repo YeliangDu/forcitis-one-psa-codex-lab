@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
@@ -18,12 +20,10 @@ import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -33,15 +33,17 @@ import tools.jackson.databind.json.JsonMapper;
  * its actorId is a UUID that stands for that job: the same for every event of the job, never its name, never the id of an account. The
  * audit trail still says which job it was. The envelopes are read as the event publication registry keeps them (platform_integration).
  */
-@Testcontainers
 class EventEnvelopeActorIT extends AccountsAcceptanceSupport {
 
     static final String ACCOUNT_PROVISIONING = "platform.identity.account-provisioning";
     static final JsonMapper JSON = JsonMapper.builder().build();
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(EventEnvelopeActorIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** The envelopes of the event type registered for the aggregate, one per event id, waiting up to 15 s for the first. */
     private List<JsonNode> envelopes(String eventType, String aggregateId) {

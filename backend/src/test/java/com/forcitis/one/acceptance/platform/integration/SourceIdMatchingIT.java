@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,10 +11,8 @@ import java.sql.SQLException;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P3b, ADR-0033 section 2 item 3 and guard 7 (card section 4 items 2 and 3): the sync matches a source object by its source id through
@@ -20,12 +20,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * and login name all change stays the same own id; the employee code is unique and fixed once issued (ADR-0078), so a second person with a code already issued is isolated and reported.
  * The evidence is the number of references and the number of allocation statements, read black-box.
  */
-@Testcontainers
 class SourceIdMatchingIT extends OrgSourceWorldSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(SourceIdMatchingIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String EMPLOYEE = "EMPLOYEE";
     static final String UNIT_PATH = ROOT_PATH + "0021";

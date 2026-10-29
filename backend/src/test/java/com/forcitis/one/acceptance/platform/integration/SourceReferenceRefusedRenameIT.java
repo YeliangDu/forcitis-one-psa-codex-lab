@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.P5Names;
 import com.forcitis.one.acceptance.P5Support;
 import java.nio.file.Files;
@@ -14,28 +16,28 @@ import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P5 rename B2-B05 (card section 14, RULING-P5-4): the refusal of a hand-made source reference is published as
  * platform.integration.SourceReferenceRefused. The old name is in neither the event catalogues, the aggregate model, the list of actions
  * that must be audited, the registry of published events nor the audit trail.
  */
-@Testcontainers
 class SourceReferenceRefusedRenameIT extends P5Support {
 
     static final Path EVENTS = Path.of("../docs/modernization/events");
     static final Path AGGREGATES = Path.of("../docs/modernization/architecture/ssot/i03-aggregates/built.yaml");
     static final Path MUST_AUDIT = Path.of("../docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml");
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(SourceReferenceRefusedRenameIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Test
     @DisplayName("R-1b P5 随带改名 B2-B05：事件目录、聚合模型与审计清单只有新名 SourceReferenceRefused，旧名 SourceReferenceRegistrationRefused 不在")

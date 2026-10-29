@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.forcitis.one.acceptance.P4Names;
 import java.sql.SQLException;
@@ -10,10 +12,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.postgresql.util.PSQLException;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P4 DDL-04 (acceptance item 3) and ADR-0033 section 1 item 2 (item 7): the engine's instance ids are unique where they are
@@ -22,12 +22,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * instance is refused (NOT NULL). The rows are written with plain SQL on the approval schema, which is the only way to bring two of them
  * into conflict.
  */
-@Testcontainers
 class ApprovalUniqueKeysIT extends ApprovalP4Support {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ApprovalUniqueKeysIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private static String refusedBy(ThrowingSql statement) {
         try {

@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.P5Support;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,19 +13,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P5 ADR-0033 section 1 item 9, written like RULING-P4-3 (card acceptance item 6): the work calendar year, the legal entity
  * attribution and the numbering rule get their id when the aggregate is built, from the injected IdGenerator, in domain or application
  * code; the repository does not make it. The generator is replaced by one that remembers who asked for each id.
  */
-@Testcontainers
 class AggregateIdsMadeAtConstructionIT extends P5Support {
 
     @TestConfiguration
@@ -35,9 +34,12 @@ class AggregateIdsMadeAtConstructionIT extends P5Support {
         }
     }
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AggregateIdsMadeAtConstructionIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     DescendingIds ids;

@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.acceptance.P4Names;
 import java.sql.Connection;
@@ -12,22 +14,22 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P4 ADR-0033 section 8 item 2 (card 3.1, acceptance item 2; written like UserIdColumnsIT): the approval tables carry the engine's
  * and the document's ids as uuid, the child tables hang on the approval request by a foreign key to its primary key instead of
  * the text keys, and the indexes and constraints of DDL-04 and DDL-08 exist. Read from the catalogue of the migrated database.
  */
-@Testcontainers
 class ApprovalOwnIdColumnsIT extends AcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ApprovalOwnIdColumnsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** schema, table, column: the columns that are uuid in the final shape. */
     static final List<String[]> UUID_COLUMNS = List.of(

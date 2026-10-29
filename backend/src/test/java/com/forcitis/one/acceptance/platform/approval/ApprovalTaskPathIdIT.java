@@ -5,6 +5,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.jayway.jsonpath.JsonPath;
@@ -12,12 +14,10 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P4 G-A1 (acceptance item 10): the task id in a path is a lower-case canonical UUID. Anything else (the old text and number
@@ -25,12 +25,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * A well-formed id of no task still is 404, and a real task is still found. The write operations get a valid If-Match and body, so that
  * the path is the only thing wrong with them.
  */
-@Testcontainers
 class ApprovalTaskPathIdIT extends ApprovalP4Support {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ApprovalTaskPathIdIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private MockHttpServletResponse write(String taskId, String operation) throws Exception {
         String body = switch (operation) {

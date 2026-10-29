@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.organization.workforce;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.Uuids;
 import java.sql.Connection;
@@ -12,10 +14,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P3b DA-5 (ADR-0033 section 2 item 10, section 7 item 4; card section 3.1): a legal entity attribution and its corrections name
@@ -23,12 +23,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * department or an employee has one attribution at most. Checked on the migrated schema with plain SQL; the constraint names are the
  * card's, given here once.
  */
-@Testcontainers
 class AttributionSubjectColumnsIT extends AccountsAcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AttributionSubjectColumnsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String CHECK_VIOLATION = "23514";
     static final String FOREIGN_KEY_VIOLATION = "23503";

@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.audit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.P5Names;
 import com.forcitis.one.acceptance.P5Support;
 import com.forcitis.one.fixture.doubles.RecordingArchiveVault;
@@ -20,14 +22,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P5 ADR-0033 section 1 item 10 and section 7 item 6 (card acceptance item 10, RULING-P5-D7): the audit archive does not depend
@@ -35,7 +35,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * archive takes batches by (created_at, id), remembers its position as a moment and an id, and the reconciliation finds nothing missing.
  * The job is run the way the scheduler would (its run method), against a recording vault.
  */
-@Testcontainers
 @TestPropertySource(properties = "forcitis.platform.audit.archive.enabled=true")
 @Import(AuditArchiveOrderIT.Vault.class)
 class AuditArchiveOrderIT extends P5Support {
@@ -51,9 +50,12 @@ class AuditArchiveOrderIT extends P5Support {
         }
     }
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AuditArchiveOrderIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     ApplicationContext context;
