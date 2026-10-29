@@ -15,9 +15,10 @@ import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -30,8 +31,11 @@ import org.springframework.stereotype.Repository;
 class JdbcTimesheetRepository implements TimesheetRepository {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcTimesheetRepository.class);
-    private static final String COLUMNS = "id, timesheet_number, numbering_rule_version_id, employee_id, legal_entity_id, org_unit_id, work_date,"
-            + " submitted_hours, project_manager_id, status, round_number, submitted_date, event_count, version";
+    private static final String SELECT = """
+            select id, timesheet_number, numbering_rule_version_id, employee_id, legal_entity_id, org_unit_id, work_date,
+                   submitted_hours, project_manager_id, status, round_number, submitted_date, event_count, version
+              from cost_timesheet.timesheets
+            """;
 
     private static final String CLASH_OF_EMPLOYEE_DAY = "uk_timesheets_employee_id_work_date";
     private static final String CLASH_OF_NUMBER = "uk_timesheets_timesheet_number";
@@ -47,25 +51,34 @@ class JdbcTimesheetRepository implements TimesheetRepository {
 
     @Override
     public Optional<Timesheet> find(TimesheetId timesheetId) {
-        return jdbc.sql("SELECT " + COLUMNS + " FROM cost_timesheet.timesheets WHERE id = :id")
+        return jdbc.sql(SELECT + """
+                 where id = :id
+                """)
                 .param("id", timesheetId.value()).query((rs, n) -> read(rs)).optional();
     }
 
     @Override
     public boolean existsFor(EmployeeId employee, LocalDate workDate) {
-        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM cost_timesheet.timesheets WHERE employee_id = :employee AND work_date = :workDate)")
+        return jdbc.sql("""
+                select exists (select 1 from cost_timesheet.timesheets where employee_id = :employee and work_date = :workDate)
+                """)
                 .param("employee", employee.value()).param("workDate", workDate).query(Boolean.class).single();
     }
 
     @Override
     public Optional<Timesheet> findForUpdate(TimesheetId timesheetId) {
-        return jdbc.sql("SELECT " + COLUMNS + " FROM cost_timesheet.timesheets WHERE id = :id FOR UPDATE")
+        return jdbc.sql(SELECT + """
+                 where id = :id
+                   for update
+                """)
                 .param("id", timesheetId.value()).query((rs, n) -> read(rs)).optional();
     }
 
     @Override
     public void lockForCreate(TimesheetId timesheetId) {
-        jdbc.sql("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))").param("key", "timesheet-create:" + timesheetId.value())
+        jdbc.sql("""
+                select pg_advisory_xact_lock(hashtextextended(:key, 0))
+                """).param("key", "timesheet-create:" + timesheetId.value())
                 .query().singleValue();
     }
 
@@ -74,9 +87,9 @@ class JdbcTimesheetRepository implements TimesheetRepository {
         if (timesheet.isNew()) {
             try {
                 jdbc.sql("""
-                        INSERT INTO cost_timesheet.timesheets (id, timesheet_number, numbering_rule_version_id, employee_id, legal_entity_id, org_unit_id,
+                        insert into cost_timesheet.timesheets (id, timesheet_number, numbering_rule_version_id, employee_id, legal_entity_id, org_unit_id,
                                work_date, submitted_hours, project_manager_id, status, round_number, submitted_date, event_count, version)
-                        VALUES (:id, :number, :ruleVersion, :employee, :legalEntity, :orgUnit, :workDate, :hours, :manager, :status, :round,
+                        values (:id, :number, :ruleVersion, :employee, :legalEntity, :orgUnit, :workDate, :hours, :manager, :status, :round,
                                 :submittedDate, :sequence, :next)
                         """)
                         .param("id", timesheet.timesheetId().value()).param("number", timesheet.number().value())
@@ -93,17 +106,17 @@ class JdbcTimesheetRepository implements TimesheetRepository {
             return;
         }
         int updated = jdbc.sql("""
-                UPDATE cost_timesheet.timesheets
-                   SET submitted_hours = :hours, project_manager_id = :manager, status = :status,
+                update cost_timesheet.timesheets
+                   set submitted_hours = :hours, project_manager_id = :manager, status = :status,
                        round_number = :round, submitted_date = :submittedDate, event_count = :sequence, updated_at = :updatedAt, version = :next
-                 WHERE id = :id AND version = :version AND status = :previous
+                 where id = :id and version = :version and status = :previous
                 """)
                 .param("hours", timesheet.submittedHours().value())
                 .param("manager", timesheet.projectManager().value()).param("status", timesheet.status().name())
                 .param("round", timesheet.round()).param("submittedDate", timesheet.submittedOn().orElse(null))
                 .param("sequence", timesheet.eventSequenceAfterSave()).param("next", timesheet.versionAfterSave())
                 .param("id", timesheet.timesheetId().value()).param("version", timesheet.version())
-                .param("previous", timesheet.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .param("previous", timesheet.loadedStatus().name()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();
         if (updated != 1) {
             throw changedByOthers(timesheet);
