@@ -3,6 +3,7 @@ package com.forcitis.one.platform.audit.application;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.ListLimits;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
@@ -12,7 +13,7 @@ import org.mockito.Mockito;
 
 class Nits1ExportMaxRowsTest {
     private static ExportAuditEntries exporting(int maxRows) {
-        return new ExportAuditEntries(Mockito.mock(AuditEntryQueries.class), Mockito.mock(AuditLog.class), maxRows);
+        return new ExportAuditEntries(Mockito.mock(AuditEntryQueries.class), Mockito.mock(AuditLog.class), Mockito.mock(CurrentUser.class), maxRows);
     }
 
     @Test

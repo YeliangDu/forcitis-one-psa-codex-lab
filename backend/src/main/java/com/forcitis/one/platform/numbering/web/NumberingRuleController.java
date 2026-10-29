@@ -7,7 +7,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.NumberingRuleView;

@@ -4,7 +4,7 @@ import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import org.springframework.beans.factory.ObjectProvider;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalField;

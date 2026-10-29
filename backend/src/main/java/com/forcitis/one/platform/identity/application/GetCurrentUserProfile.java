@@ -4,7 +4,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.identity.domain.AccessProfile;
 import com.forcitis.one.platform.identity.domain.AdministratorMode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;

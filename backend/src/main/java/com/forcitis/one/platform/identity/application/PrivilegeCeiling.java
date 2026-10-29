@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.identity.domain.AccessProfile;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.SensitivePermissions;

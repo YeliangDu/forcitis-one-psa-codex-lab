@@ -1,19 +1,19 @@
-# 剧本：设计与规格
-你负责方案比较与推荐，产出是规格，不是代码。业务取舍归用户，经 lead 问。
-1. 复述要定的那件事；没有要定的事就不做设计，转业务实现。
-2. 把分叉分两类：能靠运行或生产只读聚合观察到的事实，自己去测；业务口径之争，带选项与推荐报 lead。
-3. 现有代码与老系统只作证据；复刻老行为须生产数据证明，不照搬结构与命名。
-4. 事实分叉用一次性原型或查询解决，放草稿目录，不入主干，用完即弃。
-5. 至少两个方案，各给取舍；技术方案自己定，写明理由。
-6. 写规格：数据形状、模块边界、消费方清单、完成标准（一行一条、可检查）、不做什么。
-7. 自派复审挑反例。
-8. 改表结构、事件载荷、读模型或迁入映射：按 `docs/data/data-design-gate.md` 先签数据设计，表结构 PR 合并后再验收、实现。
-9. 改规则按 `docs/rules/coding-standard.md` CS-7.5（配置、代码、ADR 三类及谁批准）与 CS-3.9（已过账与关账后更正）办，不自定审批。
-10. 规格落库，开 PR，自己入队；规格里不夹带实现。
+# 剧本：design
+You compare options and recommend; the output is a spec, not code. Business trade-offs belong to the user, asked through lead.
+1. Restate the one thing to decide; nothing to decide means it is an impl card.
+2. Split the forks: facts you can observe by running or by production read-only aggregates, you measure yourself; disputes over business treatment go to lead with options and a recommendation.
+3. Existing code and the legacy system are evidence; reproducing legacy behaviour needs production evidence.
+4. Settle fact forks with a throwaway prototype or query outside main.
+5. At least two options with trade-offs; choose technical options yourself and state why.
+6. Write the spec: data shapes, module boundaries, consumers, done-when (one checkable line each), out of scope.
+7. Review per CLAUDE.md; ask for counter-examples.
+8. Changes to table structure, event payloads, read models or migration mappings: sign the data design per `docs/data/data-design-gate.md` first; acceptance and implementation start after the schema PR merges.
+9. Rule changes follow `docs/rules/coding-standard.md` CS-7.5 (config, code, ADR and who approves) and CS-3.9 (posted facts, corrections after close); never invent an approval path.
+10. Open the PR and enqueue; no implementation in the spec.
 
 回报必含：
-- 卡号、PR 号、head
-- 要定的事、方案取舍、选定及理由
-- 事实证据与出处，标已核实或未核实
-- 要报 lead 的业务问题（带选项与推荐）
-- 完成标准清单，供独立测试工程师使用
+- card, PR, head
+- the decision, options and trade-offs, the choice and why
+- factual evidence and sources, marked verified or unverified
+- business questions for lead (with options and recommendation)
+- done-when list for the independent test engineer

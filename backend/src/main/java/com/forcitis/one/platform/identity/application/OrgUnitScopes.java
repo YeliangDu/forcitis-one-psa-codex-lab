@@ -6,7 +6,7 @@ import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AccessScopeCalculator;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
