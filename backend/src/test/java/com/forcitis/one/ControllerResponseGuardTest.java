@@ -30,9 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 class ControllerResponseGuardTest {
     /** Handlers that answer otherwise, with the reason; an entry whose handler now complies or is gone fails the stale check. */
     static final Map<String, String> OTHER_ANSWERS = Map.of(
-            "com.forcitis.one.platform.audit.web.AuditExportController.export", "a file download (byte[] with its content type)",
-            "com.forcitis.one.platform.identity.web.RoleController.create", "ResponseEntity<RoleChangeResponse>: a sealed interface of RoleResponse (201/200) or AwaitingConfirmationResponse (202); the guard accepts records only",
-            "com.forcitis.one.platform.identity.web.RoleController.update", "ResponseEntity<RoleChangeResponse>: a sealed interface of RoleResponse (201/200) or AwaitingConfirmationResponse (202); the guard accepts records only");
+            "com.forcitis.one.platform.audit.web.AuditExportController.export", "a file download (byte[] with its content type)");
 
     static final List<Class<?>> WRAPPERS = List.of(ResponseEntity.class, CursorPage.class, List.class, Optional.class);
 
