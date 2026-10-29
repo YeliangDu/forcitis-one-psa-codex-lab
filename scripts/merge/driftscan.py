@@ -77,7 +77,7 @@ def find_owner_absent(issues, markers):
     found = []
     for issue in issues:
         names = [label["name"] for label in issue.get("labels", [])]
-        if any(h in name.lower() for name in names for h in HOLD_LABELS):
+        if any(name.lower() in HOLD_LABELS for name in names):
             continue
         for name in names:
             owner = name[len("会话:"):] if name.startswith("会话:") else None
@@ -134,6 +134,9 @@ def check(src, queued, log_lines, owners=None, sessions=None):
         if issues is not None:
             findings += find_owner_absent(issues, {m for _, m in worktrees if m})
     started, changed = src.runner_started(), src.main_changed()
+    if started is False:
+        errors.append("runner process")
+        started = None
     if changed is None:
         errors.append("main history")
     findings += find_runner_stale(started, changed)
@@ -240,12 +243,15 @@ class Live:
         return found
 
     def runner_started(self):
+        """Start time of the oldest `mq.py run` process, None when none runs, False when ps cannot say. The runner finds itself here: no process is skipped."""
         out = self.run(["ps", "-axo", "pid=,lstart=,command="])
+        if out is None:
+            return False
         times = []
-        for line in (out or "").splitlines():
+        for line in out.splitlines():
             m = PS_LINE.match(line)
             words = m.group(3).split() if m else []
-            if len(words) >= 2 and words[-2].endswith("mq.py") and words[-1] == "run" and int(m.group(1)) != os.getpid():
+            if len(words) >= 2 and words[-2].endswith("mq.py") and words[-1] == "run":
                 times.append(datetime.datetime.strptime(m.group(2), "%a %b %d %H:%M:%S %Y").astimezone())
         return min(times) if times else None
 

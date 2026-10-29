@@ -100,9 +100,41 @@ def run(d=None):
         assert "* DROPPED #1 " in text and "* MARKER_MISSING /w/1 " in text
         assert driftscan.scan(Fake(prs=None), q, directory, out, now=NOW, owners=OWNERS, sessions=SESSIONS) == [] and any("drift check: could not read pull requests" in l for l in out.lines)
         assert driftscan.scan(Fake(), q, directory, out, now=NOW, owners=OWNERS, sessions=SESSIONS) == [] and sum(" DRIFT " in l for l in out.lines) == 1, "clean writes no DRIFT line"
-    # the real worktree and ps parsing
-    m = driftscan.PS_LINE.match("24090 Thu Oct 29 23:52:53 2026 /x/python3 scripts/merge/mq.py run")
-    assert m and m.group(1) == "24090" and m.group(3).split()[-2:] == ["scripts/merge/mq.py", "run"]
+    # the real sources, with the command runner faked: worktree list + marker files, ps (the runner finds itself), git log
+    with tempfile.TemporaryDirectory() as tmp:
+        git_dirs = {}
+        for name, marker in (("a", "one-platform"), ("b", None)):
+            git_dirs[name] = os.path.join(tmp, name + ".git")
+            os.makedirs(git_dirs[name])
+            if marker:
+                open(os.path.join(git_dirs[name], "one-session"), "w").write(marker + "\n")
+        porcelain = ("worktree /main\nHEAD 1\nbranch refs/heads/main\n\nworktree /w/a\nHEAD 2\ndetached\n\nworktree /w/b\nHEAD 3\ndetached\n\nworktree /w/gone\nHEAD 4\ndetached\nprunable gitdir file points to non-existent location\n")
+        ps = ("    1 Thu Oct 29 23:52:53 2026 /sbin/launchd\n24090 Thu Oct 29 23:52:53 2026 /x/python3 scripts/merge/mq.py run\n24091 Thu Oct 29 23:55:00 2026 /x/python3 scripts/merge/mq.py status\n"
+              f"{os.getpid()} Fri Oct 30 01:00:00 2026 /x/python3 scripts/merge/mq.py run\n")
+        calls = []
+
+        def fake(args, cwd=None):
+            calls.append(args)
+            if args[:3] == ["git", "worktree", "list"]:
+                return porcelain
+            if args[:2] == ["git", "rev-parse"]:
+                return git_dirs[os.path.basename(cwd)] + "\n"
+            if args[0] == "ps":
+                return ps
+            if args[:2] == ["git", "log"]:
+                return "2026-10-29T23:12:19+01:00\n"
+            return None
+        live = driftscan.Live(handoff=os.path.join(tmp, "no-handoff.md"))
+        live.run = fake
+        assert live.worktrees() == [("/w/a", "one-platform"), ("/w/b", None)], "main checkout and prunable entries are skipped, the marker is read from the git dir"
+        assert live.runner_started() == datetime.datetime(2026, 10, 29, 23, 52, 53).astimezone(), "the oldest `mq.py run`, this process included (the runner is that process)"
+        assert live.main_changed() == datetime.datetime.fromisoformat("2026-10-29T23:12:19+01:00")
+        assert calls[-1][-4:] == ["main", "--", "scripts/merge", "policy.json"], calls[-1]
+        assert live.handoff() is None
+        live.run = lambda args, cwd=None: None
+        assert live.runner_started() is False and live.worktrees() is None and live.main_changed() is None and live.open_prs() is None
+        findings, errors = driftscan.check(Fake(started=False, changed=NOW), set(), [], OWNERS, SESSIONS)
+        assert findings == [] and errors == ["runner process"], "ps failing is an error, not 'not running'"
     # policy.json sessions are what the scan compares markers with
     assert set(driftscan.gapscan.load_owners()) == set(json.load(open(driftscan.gapscan.POLICY, encoding="utf-8"))["sessions"]["config"])
 
@@ -122,5 +154,13 @@ def run_with_mq(mq, d):
                 raise RuntimeError("boom")
             return []
     proc = mq.Processor(type("B", (), {})(), q, log, "/repo", sleep=slept.append, lane=lambda g, n: "code", docs_only_fn=lambda f: False)
+    started = []
+    real = mq.run_drift
+    mq.run_drift = lambda *a, **k: started.append(1)
+    try:
+        mq.run_loop(proc, idle=0, stop=lambda: True, directory=directory)
+    finally:
+        mq.run_drift = real
+    assert started == [1], "run_loop starts the drift check thread"
     mq.run_drift(proc, directory, every=86400, first=30, stop=lambda: len(slept) > 3, src=Boom())
     assert slept[:3] == [30, 86400, 86400] and len(calls) == 3 and any("drift check: RuntimeError: boom" in l for l in log.lines), "checks on its own clock and survives a failing check"
