@@ -5,7 +5,7 @@ paths:
 
 # Coding core — FORCITIS one
 
-Loaded for `backend/**` via the `.claude/rules` symlink (#810); until then read it before coding.
+Loaded for `backend/**` via the `.claude/rules` symlink (#827).
 CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 
 ## A. Golden files — copy these
@@ -39,10 +39,11 @@ CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 8. Events: past-tense immutable records of IDs and value objects, published in the same transaction after `save` (`DomainEvents`; CS-2.5). Listeners get redeliveries; make them idempotent (`ConsumedEvents`).
 9. `JdbcClient` with named `:params` and explicit columns; never concatenate values into SQL; dynamic sort columns from an allow-list (CS-3.6, CS-3.7).
 10. `RESTRICTED` data never in logs or exception messages (CS-6.2). Ask the user before creating accounts, starting containers (not local Testcontainers) or calling outside systems (CS-6.8).
-11. Files over 1000 lines must be split; aim for ≤ 400 per file and ≤ 60 per method (CS-1.15).
-12. No single-caller pass-through wrappers.
-13. Comment only a non-obvious why (constraint, rule id, quirk, trade-off, unit/zone, legacy evidence); a comment contradicting the code is a bug (CS-1.1).
-14. Tests: red first (a bug's regression test fails on the base); deterministic waits, no broad `never()`; fixed `Clock` and `IdGenerator` (CS-5.6, CS-5.8, CS-7.3).
+11. Posted facts are never updated or deleted; corrections only by reversal (CS-3.9; guard G34 planned, the modules don't exist yet).
+12. Files over 1000 lines must be split; aim for ≤ 400 per file and ≤ 60 per method (CS-1.15).
+13. No single-caller pass-through wrappers.
+14. Comment only a non-obvious why (constraint, rule id, quirk, trade-off, unit/zone, legacy evidence); a comment contradicting the code is a bug (CS-1.1).
+15. Tests: red first (a bug's regression test fails on the base); deterministic waits, no broad `never()`; fixed `Clock` and `IdGenerator` (CS-5.6, CS-5.8, CS-7.3).
 
 ## C. Stack: old → new
 
@@ -63,4 +64,4 @@ CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 
 ## D. Guarded — a failing test names the fix
 
-Modules talk only via `api`/`events` · layers: domain no Spring, web → application, JDBC in infrastructure · `@Transactional` only on use cases, one aggregate each · every endpoint `@PreAuthorize` or `@PublicEndpoint` · money only `kernel.Money`, no cross-currency math · posted facts, audit and version rows append-only · merged migrations append-only (ADR-0038) · ASCII identifiers, terms from `docs/glossary/terms.yaml` · time only from injected `Clock`, stored as `timestamptz`, business date via `BusinessZone.today` · state changes only via aggregate methods · SQL only in `Jdbc*Repository`, own schema, registered · IDs are typed records, never ordered on · status enums, transitions in the aggregate · `POST` idempotency only for registered endpoints · `version` + `If-Match`/`ETag` · must-audit actions registered, no names in detail · `DomainException` + module `ErrorCode` · `Optional` returns, `@Nullable` response parts · events registered in asyncapi · controllers under `/api/v1/` · ITs use real PostgreSQL, assert own module only.
+Modules talk only via `api`/`events` · layers: domain no Spring, web → application, JDBC in infrastructure · `@Transactional` only on use cases, one aggregate each · every endpoint `@PreAuthorize` or `@PublicEndpoint` · money only `kernel.Money`, no cross-currency math · audit and version rows append-only · merged migrations append-only (ADR-0038) · ASCII identifiers, terms from `docs/glossary/terms.yaml` · time only from injected `Clock`, stored as `timestamptz`, business date via `BusinessZone.today` · state changes only via aggregate methods · SQL only in `Jdbc*Repository`, own schema, registered · IDs are typed records, never ordered on · status enums, transitions in the aggregate · `POST` idempotency only for registered endpoints · `version` + `If-Match`/`ETag` · must-audit actions registered, no names in detail · `DomainException` + module `ErrorCode` · `Optional` returns, `@Nullable` response parts · events registered in asyncapi · controllers under `/api/v1/` · ITs use real PostgreSQL, assert own module only.
