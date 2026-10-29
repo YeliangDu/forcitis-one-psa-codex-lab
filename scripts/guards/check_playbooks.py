@@ -32,9 +32,11 @@ def named_paths(text):
     """Repository paths named in backticks; placeholders (<...>), home paths and option-like words are left out."""
     for code in re.findall(r"`([^`]+)`", text):
         for word in code.split():
-            if "<" in word or word.startswith(("~", "-", "$", "http")) or not PATH.fullmatch(word):
+            if "<" in word or word.startswith(("~", "-", "$", "http")):
                 continue
-            yield word
+            word = re.sub(r"^\./", "", re.sub(r"(:\d+(-\d+)?|#\S*)$", "", word.rstrip(".,;:)）、，。；")))  # path:12, path#anchor, trailing punctuation
+            if PATH.fullmatch(word):
+                yield word
 
 
 def playbook_problems(root, name):
@@ -100,12 +102,20 @@ def self_test():
 
         assert rules() == [], problems(tmp)
         assert rules(good + "x" * MAX_BYTES) == ["P1"]
+        pad = MAX_BYTES - len(good.encode("utf-8"))
+        assert rules(good + "x" * pad) == [] and rules(good + "x" * (pad + 1)) == ["P1"], "the limit is exactly 2048 bytes"
+        for named in ("scripts/ci/gone.py:12", "./scripts/ci/gone.py", "scripts/ci/gone.py#L3", "scripts/ci/gone.py，"):
+            assert rules(good + f"3. 见 `{named}`。\n") == ["P4"], named
+        assert rules(good + "3. 见 `scripts/ci/light.sh:12` 与 `./scripts/ci/light.sh`。\n") == []
         assert rules(good.replace("# 剧本：运维", "# 运维剧本")) == ["P2"]
         assert rules(good.replace("回报必含：", "回报：")) == ["P3"]
         assert rules(good.replace("scripts/ci/light.sh", "scripts/ci/gone.sh")) == ["P4"]
         assert rules(good + "3. 小事可替用户决定。\n") == ["P5"] and rules(good + "3. 无须用户确认即可合入。\n") == ["P5"]
         assert rules(card_text=good_card.replace("## 消费方\n", "")) == ["C1"]
         assert rules(card_text=good_card.replace("ops 运维", "ops 运维 / impl 实现")) == ["C2"]
+        open(os.path.join(tmp, PLAYBOOKS, "impl.md"), "w", encoding="utf-8").write(good)
+        assert rules() == ["C2"], "a playbook the card does not list"
+        os.remove(os.path.join(tmp, PLAYBOOKS, "impl.md"))
         rules(good.replace("light.sh", "gone.sh"))
         assert "fix the path" in problems(tmp)[0], "a failure says how to fix it"
     print("check_playbooks self-test: ok")
