@@ -9,7 +9,6 @@ import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
 import com.forcitis.one.platform.identity.domain.EmergencyAdminStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -39,19 +38,31 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
 
     @Override
     public Optional<EmergencyAdmin> findByLoginName(String loginName) {
-        return jdbc.sql("select " + COLUMNS + " from platform_identity.emergency_admins where account_name = :name")
+        return jdbc.sql("""
+                select
+                """ + COLUMNS + """
+                 from platform_identity.emergency_admins where account_name = :name
+                """)
                 .param("name", loginName).query((rs, n) -> row(rs)).optional();
     }
 
     @Override
     public Optional<EmergencyAdmin> findByUserId(UserId userId) {
-        return jdbc.sql("select " + COLUMNS + " from platform_identity.emergency_admins where user_id = :id")
+        return jdbc.sql("""
+                select
+                """ + COLUMNS + """
+                 from platform_identity.emergency_admins where user_id = :id
+                """)
                 .param("id", userId.value()).query((rs, n) -> row(rs)).optional();
     }
 
     @Override
     public List<EmergencyAdmin> findAll() {
-        return jdbc.sql("select " + COLUMNS + " from platform_identity.emergency_admins order by created_at, user_id").query((rs, n) -> row(rs)).list();
+        return jdbc.sql("""
+                select
+                """ + COLUMNS + """
+                 from platform_identity.emergency_admins order by created_at, user_id
+                """).query((rs, n) -> row(rs)).list();
     }
 
     private static EmergencyAdmin row(ResultSet rs) throws SQLException {
@@ -91,7 +102,7 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
                 .param("credentialsChanged", admin.credentialsChanged()).param("next", admin.versionAfterSave())
                 .param("eventSequence", admin.eventSequenceAfterSave()).param("id", admin.userId().value())
                 .param("version", admin.version()).param("loadedEnabled", admin.loadedStatus() == EmergencyAdminStatus.ENABLED)
-                .param("updatedAt", Timestamp.from(clock.instant()))
+                .param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();
         if (updated != 1) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
@@ -110,14 +121,16 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
                          where user_id = :id and (locked_until is null or locked_until <= :now)
                         """.formatted(newCount, newCount))
                 .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).param("max", maxAttempts)
-                .param("until", OffsetDateTime.ofInstant(now.plus(lock), ZoneOffset.UTC)).param("id", userId.value()).param("updatedAt", Timestamp.from(clock.instant()))
+                .param("until", OffsetDateTime.ofInstant(now.plus(lock), ZoneOffset.UTC)).param("id", userId.value()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update() == 1;
     }
 
     @Override
     public void recordSuccess(UserId userId) {
-        jdbc.sql("update platform_identity.emergency_admins set failed_attempts = 0, locked_until = null, updated_at = :updatedAt where user_id = :id")
-                .param("id", userId.value()).param("updatedAt", Timestamp.from(clock.instant()))
+        jdbc.sql("""
+                update platform_identity.emergency_admins set failed_attempts = 0, locked_until = null, updated_at = :updatedAt where user_id = :id
+                """)
+                .param("id", userId.value()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();
     }
 
@@ -127,7 +140,7 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
                         update platform_identity.emergency_admins set last_totp_step = :step, updated_at = :updatedAt
                          where user_id = :id and last_totp_step < :step
                         """)
-                .param("step", step).param("id", userId.value()).param("updatedAt", Timestamp.from(clock.instant()))
+                .param("step", step).param("id", userId.value()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update() == 1;
     }
 }

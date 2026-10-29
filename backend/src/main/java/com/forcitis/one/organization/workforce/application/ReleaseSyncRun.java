@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.CallerPermissions;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.Reason;
@@ -24,6 +26,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ReleaseSyncRun {
     static final int MAX_REASON_LENGTH = 200;
+    static final String SYNC_RUN_EXECUTE = "organization.workforce:sync-run:execute";
+    static final String SEPARATION_HOLD_APPROVE = "organization.workforce:separation-hold:approve";
     private static final Logger LOG = LoggerFactory.getLogger(ReleaseSyncRun.class);
 
     private final SyncRunRepository runs;
@@ -32,9 +36,13 @@ public class ReleaseSyncRun {
     private final ReleaseSyncRunHolds lift;
     private final RecordSyncRunRelease record;
     private final WithdrawSyncRunReleases withdraw;
+    private final CurrentUser currentUser;
+    private final CallerPermissions permissions;
 
     ReleaseSyncRun(SyncRunRepository runs, SyncRunQueries queries, SyncOrgSnapshot sync, ReleaseSyncRunHolds lift, RecordSyncRunRelease record,
-            WithdrawSyncRunReleases withdraw) {
+            WithdrawSyncRunReleases withdraw, CurrentUser currentUser, CallerPermissions permissions) {
+        this.currentUser = currentUser;
+        this.permissions = permissions;
         this.withdraw = withdraw;
         this.runs = runs;
         this.queries = queries;
@@ -43,7 +51,11 @@ public class ReleaseSyncRun {
         this.record = record;
     }
 
-    public ReleaseResult execute(SyncRunId held, UserId actor, String reason, boolean mayLiftShrinkGuard, boolean mayLiftSeparation) {
+    /** A shrink-guard hold is lifted by the holder of sync-run:execute, a separation hold by the holder of separation-hold:approve. */
+    public ReleaseResult execute(SyncRunId held, String reason) {
+        UserId actor = currentUser.userId();
+        boolean mayLiftShrinkGuard = permissions.holds(SYNC_RUN_EXECUTE);
+        boolean mayLiftSeparation = permissions.holds(SEPARATION_HOLD_APPROVE);
         if (reason == null || reason.isBlank()) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED, ErrorKind.INVALID,
                     "a reason is required to release a held sync run");
