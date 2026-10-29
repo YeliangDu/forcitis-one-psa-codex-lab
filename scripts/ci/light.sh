@@ -93,7 +93,7 @@ rule "开工单在 /usr/bin/python3 下跑不起来（会话开工即失败）" 
 if [ ! -f "$sheet" ]; then skip "start_sheet under /usr/bin/python3" "本机没有工具库的 $sheet"
 elif touches "$t_start_sheet"; then run "start_sheet under /usr/bin/python3" /usr/bin/python3 -I "$sheet"
 else skip "start_sheet under /usr/bin/python3" "相关路径没改（按改动触发）"; fi
-rule "开工单最坏体量（交接写满 2 KB 加最长剧本）超过 4 KB，会话开工时剧本尾部被截掉" "删短最长的剧本（docs/rules/playbooks/，最坏体量＝路由提示＋2 KB 交接＋最长剧本）；/usr/bin/python3 start_sheet.py --check 列出各会话最坏体量"
+rule "开工单最坏体量（交接写满 2 KB 加最长剧本）超过 4 KB，会话开工时剧本尾部被截掉" "删短最长的剧本（rules/playbooks/ 下，最坏体量＝路由提示＋2 KB 交接＋最长剧本）；/usr/bin/python3 start_sheet.py --check 列出各会话最坏体量"
 if [ ! -f "$sheet" ]; then skip "start_sheet worst case within 4 KB" "本机没有工具库的 $sheet"
 elif touches "$t_start_sheet"; then run "start_sheet worst case within 4 KB" /usr/bin/python3 -I "${sheet%_selftest.py}.py" --check
 else skip "start_sheet worst case within 4 KB" "相关路径没改（按改动触发）"; fi
