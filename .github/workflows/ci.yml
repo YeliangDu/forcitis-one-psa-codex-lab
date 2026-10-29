@@ -76,9 +76,6 @@ jobs:
         with:
           name: api-contract
           path: frontend/packages/api
-      - name: generated API inputs are present
-        working-directory: .
-        run: bash scripts/codegen/generate_api.sh --check
       # the engine answers `docker events --since` only from its last 256 events, far too few on an engine the four runners share: record the container events from here on and keep them for a failure
       - name: remember when the job started and record docker container events (evidence if it fails)
         run: |
@@ -166,6 +163,8 @@ jobs:
         # Two forks per plugin (four test JVMs per runner instead of eight): the runners share one Docker Desktop (CI_RUNNERS.md)
         env:
           BACKEND_WATCHDOG_SECONDS: '1500'
+          # this run's api-contract job exported and asserted OpenAPI for this very checkout; backend_verify.sh does not export it again
+          OPENAPI_EXPORTED_FOR: ${{ github.sha }}
         run: scripts/ci/backend_verify.sh -Dtest.forks=2 -Dtest.fork.timeout=1800
       - name: every acceptance test class produced a surefire or failsafe report
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
@@ -216,9 +215,6 @@ jobs:
         with:
           name: api-contract
           path: frontend/packages/api
-      - name: generated API inputs are present
-        working-directory: .
-        run: bash scripts/codegen/generate_api.sh --check
       - name: backend or frontend inputs changed?
         id: change
         working-directory: .
