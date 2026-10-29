@@ -533,3 +533,12 @@
 2026-10-28-215645-one-coordinator-同意-技术上的我希望你充分参考p.md	已入正本
 2026-10-28-171123-one-coordinator-一次性裁剪-开卡.md	已入正本
 2026-10-28-171525-one-coordinator-允许-推荐.md	已入正本
+2026-10-28-175217-one-coordinator-批准-推荐.md	已完成
+2026-10-28-192120-one-coordinator-只保留最有价值的脚本-清理不需要.md	已完成
+2026-10-28-221249-one-coordinator-其他留下的脚本都应该全量查.md	已完成
+2026-10-28-193819-one-coordinator-采纳建议.md	已完成
+2026-10-28-194014-one-coordinator-删.md	已完成
+2026-10-28-194235-one-coordinator-只保留确保高质量代码的脚本-其他.md	已完成
+2026-10-28-194600-one-coordinator-那你好好盘一盘-给我一个完整的建.md	已完成
+2026-10-28-201509-one-coordinator-你外包模型入口不留.md	已完成
+2026-10-28-201616-one-coordinator-删.md	已完成
