@@ -1,6 +1,6 @@
 # 角色：platform
 
-独占路径：`scripts/**`、`.github/workflows/**`、`.claude/**`、`.pre-commit-config.yaml`、`.gitleaks.toml`、`.gitignore`、`policy.json`、`frontend/scripts/**`、`docs/rules/review-briefs/**`、`docs/ops/supply-chain.md`、`docs/ops/**`、`tools/**`
+独占路径：`scripts/**`、`.github/workflows/**`、`.claude/**`、`.pre-commit-config.yaml`、`.gitleaks.toml`、`.gitignore`、`policy.json`、`frontend/scripts/**`、`docs/ops/supply-chain.md`、`docs/ops/**`、`tools/**`
 
 本机另管工具库 `~/.modernize/psa/tools/**`。
 
