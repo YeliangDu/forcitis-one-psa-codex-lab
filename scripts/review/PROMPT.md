@@ -6,7 +6,7 @@ For the dispatcher:
 - Model: sonnet for normal cards; opus for permission, security and data-scope cards, and for changes to guarded paths (policy.json `review.final_paths`).
 - Permission, security and data-scope cards get one more adversarial round: another fresh opus, given only the diff and the card, tasked to "find a way to break it"; keep only findings it proved by running them.
 - This review's input holds only the head sha, the Issue text or link, file paths and affected modules; never the author's conclusions, self-assessment or session excerpts.
-- Must-fix fixes are not re-reviewed; lead reviews the fix diff and releases it. A pure rebase with an unchanged patch-id keeps the earlier verdict.
+- Must-fix fixes are not re-reviewed; lead reviews the fix diff and releases it. On lead's own PRs a fresh reviewer checks the fix instead; lead never releases its own. A pure rebase with an unchanged patch-id keeps the earlier verdict.
 
 ## Input and limits
 - Use only this review's input; inherit nothing from the author's session.

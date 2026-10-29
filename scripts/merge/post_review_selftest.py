@@ -429,6 +429,7 @@ def case_prompt_dispatch_rules():
         assert need in text, need
     assert "复核模式" not in text and "逐条复核上一轮必改" not in text, "复核要求已删"
     assert "Must-fix fixes are not re-reviewed" in text, "the English prompt still says fixes are not re-reviewed"
+    assert "On lead's own PRs a fresh reviewer checks the fix instead" in text, "lead never releases its own 必改 fix (rules ⑤, #822)"
     assert not re.search(r"(?i)re-?review mode|re-?check(?:ing)? (?:each|every|the previous round's) must-fix|re-?review(?:ing)? (?:each|every|the previous round's) must-fix",
                          text), "no re-review mode came back in English (#822)"
     fence = text.split("```")[1].strip().split("\n")
