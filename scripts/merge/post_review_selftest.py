@@ -47,7 +47,8 @@ class Stub:
     def __init__(self, heads=(SHA,), view_rc=0, review_rc=0, post_out=None, edit_rc=0,
                  labels=(), labels_rc=0, labels_out=None, reviews=(), reviews_rc=0, reviews_out=None,
                  body=BODY, body_rc=0, body_out=None, issue_state="OPEN", issue_labels=(SESSION_LABEL,), issue_rc=0, issue_out=None,
-                 refs=None, refs_rc=0, refs_out=None, home_out=None):
+                 refs=None, refs_rc=0, refs_out=None, home_out=None, files=("docs/notes.md",), files_rc=0, files_out=None):
+        self.files, self.files_rc, self.files_out = files, files_rc, files_out   # PR 改动的文件（#856：守护类由 final_paths 判定）；缺省不命中
         self.body, self.body_rc, self.body_out = body, body_rc, body_out   # 关联 Issue 检查（#24）：PR 正文、GitHub 算的关闭集合与 Issue 的桩；缺省为已排期
         self.refs, self.refs_rc, self.refs_out, self.home_out = refs, refs_rc, refs_out, home_out
         self.issue_state, self.issue_labels, self.issue_rc, self.issue_out = issue_state, issue_labels, issue_rc, issue_out
@@ -77,6 +78,9 @@ class Stub:
         if args[:3] == ["api", "--method", "POST"]:
             out = json.dumps({"commit_id": json.loads(stdin)["commit_id"]})
             return self.review_rc, out if self.post_out is None else self.post_out
+        if args[:3] == ["api", "--paginate", "--slurp"] and args[3].endswith("/files"):
+            out = json.dumps([[{"filename": f} if isinstance(f, str) else f for f in self.files]])
+            return self.files_rc, out if self.files_out is None else self.files_out
         if args[:3] == ["api", "--paginate", "--slurp"]:
             return self.reviews_rc, json.dumps([self.reviews]) if self.reviews_out is None else self.reviews_out
         if args[:2] == ["pr", "edit"]:
@@ -239,6 +243,36 @@ def case_guard():
     for kw in ({"reviews_rc": 1}, {"reviews_out": "坏"}, {"reviews_out": "{}"}, {"reviews_out": "[{}]"}):
         rc, msg, ed = go(R2, [rv(FIRST, PASS)], **kw)
         assert rc == 4 and ed == [] and "请重跑" in msg, kw   # unreadable is not "the other one has not come yet"
+
+
+def case_guard_from_final_paths():
+    """#856：守护类由 PR 的文件列表对照 final_paths 判定，作者不声明也照办；读不到文件列表按守护类。"""
+    def go(files=("docs/notes.md",), reviews=(), guard=False, **kw):
+        s = Stub(reviews=list(reviews), files=files, **kw)
+        rc, msg = run(s, reviewer=R1, guard=guard)
+        return rc, msg, s.edits()
+    rc, msg, ed = go(files=("scripts/merge/mq.py",))
+    assert rc == 0 and ed == [] and "等另一份结论" in msg, "改到 final_paths：不带 --guard 也要首轮与终审都过"
+    assert go(files=("docs/notes.md", "policy.json"))[2] == [], "任一文件命中即守护类"
+    assert go(files=({"filename": "docs/new.md", "previous_filename": "scripts/merge/old.py"},))[2] == [], "从守护路径改名出去也算"
+    assert go(files=("scripts/merge/mq.py",), reviews=[rv(FINAL, PASS)])[2] == edit(pr_mod.ADD_FLAG), "两份都过才加标签"
+    assert go()[2] == edit(pr_mod.ADD_FLAG), "不命中：首轮通过即加"
+    assert go(guard=True)[2] == [], "--guard 只会更严"
+    for kw in ({"files_rc": 1}, {"files_out": "坏"}, {"files_out": "[{}]"}, {"files_out": "[[]]"}, {"files_out": '[[{"filename": 3}]]'}):
+        assert go(**kw)[2] == [], ("文件列表读不到按守护类", kw)
+    policy = pr_mod.load_policy()
+    assert policy[0]["final_paths"] and all(isinstance(x, str) and x for x in policy[0]["final_paths"])
+    real = json.loads(pathlib.Path(pr_mod.POLICY).read_text(encoding="utf-8"))
+    for bad in ([], [""], "scripts/", None):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump({**real, "review": {**real["review"], "final_paths": bad}}, f)
+        try:
+            pr_mod.load_policy(f.name)
+            raise AssertionError(f"final_paths={bad!r} 应拒（空表等于关掉终审）")
+        except pr_mod.Refused as exc:
+            assert exc.args[0] == pr_mod.EXIT_REFUSED
+        finally:
+            os.unlink(f.name)
 
 
 def case_repo_passthrough():

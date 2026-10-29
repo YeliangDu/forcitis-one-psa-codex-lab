@@ -4,8 +4,8 @@
 用法（复审子代理自己执行）：post_review.py --pr N --body-file F [--guard] [--repo OWNER/REPO]
 F 头三行即机读头（结论、commit、复审者），其后空一行接正文；结论只从文件解析，不接受命令行手填，作者无从改判。
 解析不过即拒绝；再核 PR head 等于头里的 commit、通过结论另核关联 Issue 已排期（issue_gate.py，二乙 #24；必改不拦。已知缺口：结论提交后再改 PR 正文加关联管不到，合入时复核属队列改造、推后；PR 指向非默认分支时关闭集合可能为空，多拒而非门坏），然后把 F 原样作为普通 review（COMMENT，commit_id=该 commit）提交。
-review 成功后才动标签：必改 → 去；首轮通过 → 加；终审通过 → 不动。--guard（钩子/安全类，派工人声明）
-须同 commit 首轮与终审最新结论都为通过才加，缺一份就等。加标签前再核 head 与返回的 commit_id。mq 对守护路径仍自查。
+review 成功后才动标签：必改 → 去；首轮通过 → 加；终审通过 → 不动。守护类（PR 改到 policy.json review.final_paths 的任一前缀；
+本脚本自己读 PR 的文件列表判定，读不到按守护类，#856；--guard 只能把非守护类也按守护类办，不能免掉）须同 commit 首轮与终审最新结论都为通过才加，缺一份就等。加标签前再核 head 与返回的 commit_id。mq 对守护路径仍自查。
 本脚本是仓库里唯一写「复审通过」标签的地方（H21）。退出码：0 成功（含等另一份结论）；2 参数、policy、gh、head 或关联 Issue 不过
 （未提交）；3 review 提交失败（标签未动）；4 review 已提交但标签未按预期完成。
 """
@@ -40,11 +40,12 @@ def load_policy(path=POLICY):
         review, labels = data["review"], data["labels"]
         ok = (set(review["verdicts"]) == {PASS, FIX} and len(review["header_fields"]) == 3
               and all(isinstance(f, str) and f for f in review["header_fields"])
-              and isinstance(labels["review_passed"], str))
+              and isinstance(labels["review_passed"], str)
+              and isinstance(review["final_paths"], list) and review["final_paths"] and all(isinstance(x, str) and x for x in review["final_paths"]))
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise Refused(EXIT_REFUSED, f"policy.json 读不到或缺键（{type(exc).__name__}: {exc}）") from None
     if not ok:
-        raise Refused(EXIT_REFUSED, "policy.json 不合约定：verdicts 须恰为通过/必改，header_fields 3 项，标签名为字符串")
+        raise Refused(EXIT_REFUSED, "policy.json 不合约定：verdicts 须恰为通过/必改，header_fields 3 项，标签名为字符串，final_paths 为非空字符串列表")
     return review, labels
 
 
@@ -128,6 +129,18 @@ def latest_verdicts(pr, commit, run, slug, fields):
     return found
 
 
+def guarded(pr, run, slug, prefixes):
+    """PR 改到 final_paths 的任一前缀即 True；文件列表读不到或结构不对也 True（宁严）。"""
+    pages = loads(*run(["api", "--paginate", "--slurp", f"repos/{slug}/pulls/{pr}/files"]))
+    if not (isinstance(pages, list) and all(isinstance(p, list) for p in pages)):
+        return True
+    names = [x.get("filename") for page in pages for x in page if isinstance(x, dict)]
+    previous = [x.get("previous_filename") for page in pages for x in page if isinstance(x, dict) and x.get("previous_filename")]
+    if not names or not all(isinstance(n, str) for n in names):
+        return True
+    return any(n.startswith(tuple(prefixes)) for n in names + previous)
+
+
 def label_present(pr, label, run, scope):
     """去标签失败后复查；只有 labels 为带 name 的字典列表才算读到，其余按仍在处理（失败关闭）。"""
     data = loads(*run(["pr", "view", str(pr), *scope, "--json", "labels"]))
@@ -154,6 +167,7 @@ def post(pr, text, run=None, policy=None, guard=False, repo=None):
     if rc != 0:
         raise Refused(EXIT_REVIEW_FAILED, f"review 提交失败（gh 退出码 {rc}），标签未动")
     done, label = f"review 已提交（{verdict}，{reviewer}）", labels["review_passed"]
+    guard = guard or guarded(pr, run, slug, review["final_paths"])
     if verdict == FIX:
         rc, _ = run(["pr", "edit", str(pr), *scope, REMOVE_FLAG, label])
         if rc != 0 and label_present(pr, label, run, scope):
@@ -180,7 +194,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="复审子代理提交复审结论（正文文件头三行为机读头）并增删复审通过标签")
     ap.add_argument("--pr", type=int, required=True)
     ap.add_argument("--body-file", required=True, help="头三行机读头，空一行后接正文；整份原样作为 review 正文")
-    ap.add_argument("--guard", action="store_true", help="钩子/安全类：须同 commit 首轮与终审都通过才加标签")
+    ap.add_argument("--guard", action="store_true", help="把非守护类也按守护类办（须首轮与终审都通过）；守护类由 final_paths 自动判定，不靠这个参数")
     ap.add_argument("--repo", help="OWNER/REPO，透传给 gh")
     args = ap.parse_args(argv)
     try:
