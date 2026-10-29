@@ -3,7 +3,7 @@
 SET LOCK_TIMEOUT 30000;
 -- Q02 部门树：拥有项目的交付部门及其上级（用于确定「区域/BU」取哪一级）
 -- 依赖：psa_pm_project.dept_id；system_dept.id / name / parent_id。
--- 不确定度：中。parent_id 来自 A8 PATH 去掉最后 4 位（phase1a/COLUMN_OWNERSHIP.md system_dept 行），层级深度未核实。
+-- 不确定度：中。parent_id 来自 A8 PATH 去掉最后 4 位（docs/data/column-ownership.md system_dept 行），层级深度未核实。
 IF DB_NAME() = N'ruoyi-vue-pro'
 BEGIN
 SELECT sd.id AS dept_id, sd.name AS dept_name, sd.parent_id, sp.name AS parent_name,

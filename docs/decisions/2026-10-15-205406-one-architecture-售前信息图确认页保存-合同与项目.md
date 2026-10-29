@@ -4,4 +4,4 @@
 
 ## 落点
 
-architecture/proposals/PRESALES_INFO_MAP.md；页面 https://claude.ai/artifact/E81Q66FndvdBFSA4ufVrvH （db decisions/presales-info-map）；下一步聚合与 BC 推导
+docs/architecture/proposals/presales-info-map.md；页面 https://claude.ai/artifact/E81Q66FndvdBFSA4ufVrvH （db decisions/presales-info-map）；下一步聚合与 BC 推导

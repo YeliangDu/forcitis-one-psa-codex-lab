@@ -3,7 +3,7 @@
 日期：2026-10-14 · 会话：psa-1a-platform-bridge-reimagine · 命令：`/code-modernization:modernize-reimagine`
 范围：brief §3「Phase 1a — 平台桥接」所列 Modules（身份、组织、审批、企业微信通知、平台可靠投递、PC/H5 登录与审批页面、布局与路由）。brief 对本规格有约束力，本规格不改写 brief 的任何条件。
 
-**输入**：`BUSINESS_RULES.md`（审批域 RULE-248..315）、`rules/IDENTITY_ORG_RULES.md`（本会话补抽 RULE-316..376，**待评审**）、`RULE_REVIEWS.json`（审批域 28 条已评审）、`DATA_OBJECTS.md`、`topology.json`、`ASSESSMENT.md`、`phase1a/INTERFACES.md`（本会话：187 个接口）、`phase1a/COLUMN_OWNERSHIP.md`（本会话：14 张表、217 列）、`runtime/`（生产只读采集，访问日志窗口约 180 天）、ADR-0001..0020。
+**输入**：`BUSINESS_RULES.md`（审批域 RULE-248..315）、`docs/business/rules/identity-org-rules.md`（本会话补抽 RULE-316..376，**待评审**）、`RULE_REVIEWS.json`（审批域 28 条已评审）、`DATA_OBJECTS.md`、`topology.json`、`ASSESSMENT.md`、`docs/legacy/psa-external-interfaces.md`（本会话：187 个接口）、`docs/data/column-ownership.md`（本会话：14 张表、217 列）、`runtime/`（生产只读采集，访问日志窗口约 180 天）、ADR-0001..0020。
 
 凭据一律以环境变量名出现（如 `${WECOM_CORP_SECRET}`），本文件不含任何原值。
 
@@ -85,7 +85,7 @@ erDiagram
 ```
 
 要点：
-- `USER_ACCOUNT.id` 与 `EMPLOYEE.id` 沿用 A8 `ORG_MEMBER.ID`（有符号 bigint，生产存在负数）；`ORG_UNIT.id` 沿用 `ORG_UNIT.ID`。ID 沿用只为身份连续性；新系统不向 A8 写任何业务数据，也不为老 OA 存储过程（`oa-quotation-sync`、`oa-cuvalue-sync` 等，把权责事实写进 A8）供数，它们随所服务的 OA 流程按阶段下线（§9a，`phase1a/A8_ACCESS_REGISTER.md`）。
+- `USER_ACCOUNT.id` 与 `EMPLOYEE.id` 沿用 A8 `ORG_MEMBER.ID`（有符号 bigint，生产存在负数）；`ORG_UNIT.id` 沿用 `ORG_UNIT.ID`。ID 沿用只为身份连续性；新系统不向 A8 写任何业务数据，也不为老 OA 存储过程（`oa-quotation-sync`、`oa-cuvalue-sync` 等，把权责事实写进 A8）供数，它们随所服务的 OA 流程按阶段下线（§9a，`docs/legacy/seeyon-oa/access-register.md`）。
 - `APPROVAL_REQUEST` 唯一键（流程类型, 单据 ID）+（流程类型, 单据 ID, 轮次）（RULE-266/278 修正）。
 - `INBOX_ITEM` 是读模型：新引擎任务 + 老系统 `bpm_task_ext` 只读投影，带来源标记。
 - 内核值对象（ADR-0016）：`Money`、`AccountingPeriod`、`ProjectCoordinate`、`LegalEntityId`；1a 实际使用 `LegalEntityId`（编号、数据范围）。`ProjectCoordinate` 先用最小形态「项目 + 可选 WBS 节点」，Phase 2 由业务确认是否增加维度（用户 2026-10-14：「先用最小形态，Phase 2 再定 (Recommended)」）。法人代码由 `organization.workforce.legal_entities` 维护（用户：「新系统维护法人小表 (Recommended)」）。
@@ -95,7 +95,7 @@ erDiagram
 ## 3. Interface Contracts
 
 ### 3.1 老系统现状
-全部 187 个接口（含 26 个匿名端点、8 个 RocketMQ 主题、10 个定时任务）及其 OpenAPI / AsyncAPI 片段见 `phase1a/INTERFACES.md` §11。
+全部 187 个接口（含 26 个匿名端点、8 个 RocketMQ 主题、10 个定时任务）及其 OpenAPI / AsyncAPI 片段见 `docs/legacy/psa-external-interfaces.md` §11。
 
 ### 3.2 新系统（目标，`/api/v1`，ADR-0008）
 
@@ -225,7 +225,7 @@ channels:
 - 规则卡与 Given/When/Then 见 `BUSINESS_RULES.md`「审批」一节；评审备注见 `RULE_REVIEWS.md`。
 
 ### 5.2 身份与组织——**已评审**（2026-10-14，psa-review-identity-org；brief Phase 1a 入口条件已勾选）
-- 61 条，RULE-316..376，见 `rules/IDENTITY_ORG_RULES.md`：identity 41、org 20；P0 37 条；标记需评审的 45 条（其中 P0 31 条）已全部有用户确认的结论，记录在 `RULE_REVIEWS.json` / `RULE_REVIEWS.md`（第三批）。未标记的 16 条（320、321、330、334、339–343、346–348、353、354、358、371）按老行为复刻。
+- 61 条，RULE-316..376，见 `docs/business/rules/identity-org-rules.md`：identity 41、org 20；P0 37 条；标记需评审的 45 条（其中 P0 31 条）已全部有用户确认的结论，记录在 `RULE_REVIEWS.json` / `RULE_REVIEWS.md`（第三批）。未标记的 16 条（320、321、330、334、339–343、346–348、353、354、358、371）按老行为复刻。
 - 结论：**正确+修 16 条**——316、322、323、345、349、355、356、357、360、362、363、364、372、373、374、375；**错误（不复刻）29 条**——317、318、319、324–329、331、332、333、335–338、344、350、351、352、359、361、365–370、376。验收测试以规则 ID 命名，按备注中的修正行为断言；原先的 expected-failure 占位改为启用。
 - 用户逐条作答（原话见 INTENT.md）：
   - RULE-323 小程序登录「保留」——与 H5 共用 `we_com_id` 精确映射与「启用且在职」校验（C1a-01 范围含小程序）。
@@ -246,7 +246,7 @@ channels:
 | 回滚 | 演练记录 |
 | **授权模型**（ADR-0026，用户 2026-10-14 批准） | `DataAccessRegistryTest`；ArchUnit `onlyRegisteredPersistenceTouchesTheDatabase`、`onlyIdentityBuildsAccessScope`；`ScopedRepositoryContract`（部门浏览、人员详情）；`ScopePerPermissionTest`；`AdminModeBoundaryTest`；`SelfGrantForbiddenIT`；`SensitiveGrantTwoPersonIT`；`AccessDeniedAuditIT`；`LegalEntityAttributionTest`（部门默认、员工单独指定、按日期取值、区间不重叠）；`PendingIdentityRulesTest` 中 RULE-350/352、353 启用 |
 | **身份与授权修订**（ADR-0027，用户 2026-10-14 批准） | `EmergencyLoginIT`、`SeparationRevokesRolesIT`、`SyncLockoutGuardIT`、`EmergencyAccountDailyCheckTest`、`OrgDataAdminRoleTest`、`SelfLegalEntityEditForbiddenIT`、`NumberingRuleFourEyesIT`、`OwnLoginRecordsIT`、`ForcedLogoutIT`；`AdminModeBoundaryTest` 清单改为三项；`NumberingPatternTest` 占位符集合 |
-| **安全不变量**（`phase1a/SECURITY_INVARIANTS.md`，用户：「老系统先不管，确保新系统没有这些缺陷」） | I-1 `LegacyTokenIsolationTest`（ArchUnit + 启动时权限校验）；I-2 `TicketIssuerAllowlistTest`；I-3 `AnonymousAccessIT` + 公开端点白名单快照；I-4 白名单无验证码端点 + `ProductionConfigSanityTest`；I-5 `ApprovalStartOwnershipIT`（1a 验证发起人只取当前用户、无「客户端传单据 ID」的 HTTP 发起接口、退回后重提只能由发起人办理；单据归属部分 1b 启用）；I-6 `WecomMessagePayloadTest`（ArchUnit 限定请求体构造入口）；I-7 `TaskActorAuthorizationIT`（认领、办理、退回；转交 / 加签随 1b，资源任务随 Phase 2）；I-8 `WecomCallbackActorIT`（随卡片按钮回调上线，1a 推迟）；I-9 `OneTimeCredentialConcurrencyIT` |
+| **安全不变量**（`docs/ops/security-invariants.md`，用户：「老系统先不管，确保新系统没有这些缺陷」） | I-1 `LegacyTokenIsolationTest`（ArchUnit + 启动时权限校验）；I-2 `TicketIssuerAllowlistTest`；I-3 `AnonymousAccessIT` + 公开端点白名单快照；I-4 白名单无验证码端点 + `ProductionConfigSanityTest`；I-5 `ApprovalStartOwnershipIT`（1a 验证发起人只取当前用户、无「客户端传单据 ID」的 HTTP 发起接口、退回后重提只能由发起人办理；单据归属部分 1b 启用）；I-6 `WecomMessagePayloadTest`（ArchUnit 限定请求体构造入口）；I-7 `TaskActorAuthorizationIT`（认领、办理、退回；转交 / 加签随 1b，资源任务随 Phase 2）；I-8 `WecomCallbackActorIT`（随卡片按钮回调上线，1a 推迟）；I-9 `OneTimeCredentialConcurrencyIT` |
 | **§9a 证明**（brief 出口 Proposed revision） | `A8ViewColumnWhitelistIT`（列集合完全相等）、`A8ReadOnlyIT`（写被拒绝）、`A8SourceScanTest`（禁止 `formmain_`、`formson_`、`a8_db` 等） |
 
 ---

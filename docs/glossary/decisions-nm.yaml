@@ -3,16 +3,16 @@ meta:
   card: N9
   source: NM2/NM3/NM4 用户已提交答复；会计用语本批免转财务
   intents:
-    NM2: intent/2026-10-17-105923-one-glossary-NM2-决策页提交-NM2-20.md
-    NM3: intent/2026-10-17-105923-one-glossary-NM3-决策页提交-NM3-20.md
-    NM4: intent/2026-10-17-105924-one-glossary-NM4-决策页提交-NM4-20.md
+    NM2: docs/decisions/2026-10-17-105923-one-glossary-NM2-决策页提交-NM2-20.md
+    NM3: docs/decisions/2026-10-17-105923-one-glossary-NM3-决策页提交-NM3-20.md
+    NM4: docs/decisions/2026-10-17-105924-one-glossary-NM4-决策页提交-NM4-20.md
   alias_policy: 本概念不再首选的旧指称保留可追溯别名；与上下文中文名、words、描述或其他词条中文名、定义同形或互为子串时 type standard-zh / deprecated true，不写入 forbidden；仅未冲突的纯旧名保留 dialect / deprecated true。
   verb_policy: verbs 是 N4 受控动词定稿源，不是 DDD terms；没有完整对象及 BC 的片段不得伪造为命令词条。
   submitted_sheets:
   - NM5
   handoffs:
     CAPINFO:
-      path: glossary/arch-naming/CAPINFO_NEWTERMS.md
+      path: docs/glossary/arch-naming/capinfo-newterms.md
       submission: CAPINFO-20261017-111010-cfy
   registration_card: NAM-1017-GLO-02
   registration_source: NM5 已提交 answers 与题面逐项核对（本地无对应 intent）；CAPINFO 用户授权对象移交，逐行核对中文、建议英文、bc 与提交号。
@@ -2579,7 +2579,7 @@ terms:
     bc: organization.workforce
     definition: 某一法人范围内承担财务职责的负责人；每个法人分别明确其财务负责人。跨法人事项须另行写明由哪个法人的财务负责人承担；具体任职、代理人与权限配置沿用已定授权规则。
     standard_ref:
-    - rules/decide/answers/NM5.json NM5-01
+    - docs/decisions/decision-pages/answers/nm5.json NM5-01
     - ADR-0053 决定2第1条、决定7第1条
     confidence: medium
     aliases: []
@@ -2601,7 +2601,7 @@ terms:
     bc: cost.costing
     definition: 分摊规则据以分摊成本的量；每条分摊规则须写明所用的具体量与单位。与用于计算社会保险及住房公积金缴费额的缴费基数分别定义，不将两者合并，也不在本次指定各规则的公式、档位或数值。
     standard_ref:
-    - rules/decide/answers/NM5.json NM5-02
+    - docs/decisions/decision-pages/answers/nm5.json NM5-02
     - ADR-0053 决定2第1条
     confidence: medium
     aliases: []
@@ -2623,7 +2623,7 @@ terms:
     bc: organization.payroll
     definition: 人员参加社会保险或住房公积金时，据以计算相应缴费额的基数；按缴费项目及适用期间明确其金额与币种，不作为成本分摊的分摊基数。本次不设定具体缴费标准、上下限或费率。
     standard_ref:
-    - rules/decide/answers/NM5.json NM5-02
+    - docs/decisions/decision-pages/answers/nm5.json NM5-02
     - glossary/arch-naming/n5-nouns-draft.yaml terms[draft_id=N5-082]
     confidence: medium
     aliases: []
@@ -2645,7 +2645,7 @@ terms:
     bc: organization.workforce
     definition: 人员擅长的专业类别，供项目团队成员等人员使用场景引用；实际类别清单由业务提供。与表示组织结构的业务线及表示所提供服务的服务产品区分，不指人员在本次项目承担的服务类别。
     standard_ref:
-    - rules/decide/answers/NM5.json NM5-03
+    - docs/decisions/decision-pages/answers/nm5.json NM5-03
     - ADR-0053 决定2第1条、决定7第1条
     confidence: medium
     aliases: []

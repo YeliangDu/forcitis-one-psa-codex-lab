@@ -23,7 +23,7 @@
 1. **全局禁用范围**：复审列出的 13 个通用短语全部改为 `standard-zh / deprecated: true`，从 `forbidden` 删除；法定申报涉及两个词条。新增检查按字面执行双向子串比对，覆盖 `bcs.yaml` 的 `zh`、`words`、`description`，以及其他正式／提议词条的 `zh`、`definition`；检查本轮新增的全局禁用，不重判上游已存在的禁用。另检出 IT 需求工单及 9 处子串冲突，共更正 24 个别名记录。未冲突的延期申请记录、用印申请记录、请假申请记录、检查表模板版本、服务产品版本、激励方案版本等仍保留 `dialect`。
    - **口径边界**：严格双向检查使“报表行定义版本／行”“分摊规则版本／规则版本”“员工活动申请记录／员工”冲突。本轮优先执行“互为子串时报错”，这 3 个旧名也改成 `standard-zh / deprecated: true`，没有为纯旧名增加绕过检查的例外。已向用户说明此项与“纯旧名保留 dialect”的冲突；尚未收到口径答复，供负责会话复核。
 2. **定向更新与确认来源**：11 条 update 各自声明 `fields`，仅写对应答复的 `zh`、`definition`、`aliases`、`forbidden`、`standard_ref` 或追加 `note`；快照中其他字段与上游不一致即失败。列表合并去重，`note`、`confirmed` 保留原串并追加。本批有 9 条更新原先已有 `confirmed`，均逐条核实保留；另 2 条原先无该字段，写入本批确认。上游新增而快照未列出的字段也保留。
-3. **别名与循环来源**：删除整表 bank_statement 上的 BankStatementLine 别名，单笔正式词条保留；删除 account、cash_receipt、receivable、wbs_node 的 4 条 `glossary/terms.yaml terms[id=…]` 自引用。
+3. **别名与循环来源**：删除整表 bank_statement 上的 BankStatementLine 别名，单笔正式词条保留；删除 account、cash_receipt、receivable、wbs_node 的 4 条 `docs/glossary/terms.yaml terms[id=…]` 自引用。
 4. **非空与提议词冲突**：`id`、`zh`、`en`、`snake`、`definition` 必须是非空文本（空串、纯空白、null 均失败）；新增词条的 `id`、`snake` 与 `backend/glossary/proposed/*.yaml` 比对，冲突即失败。未修改提议词文件。
 5. **申请与岗位含义**：延期申请、员工活动申请、用印申请、请假申请的定义都以“申请”指称；position 恢复“任职与费率适用的岗级体系”，只追加区分说明；job_grade 和职位职级目录同步保留这层既有约束。“职位”缺独立英文与 snake，继续列入文末待补，不擅自登记。
 6. **报告时效**：区分复审记载的主机 10 PASS、0 FAIL、上轮沙箱结果与本轮实跑结果；当前操作边界以 N9R 用户指令为准。文末附本轮原始 precheck 输出及每项 SKIP 理由。
@@ -490,7 +490,7 @@ $ vitest run
 
 ### 本卡来源与回写机制
 
-- NM5 三题均来自 `rules/decide/answers/NM5.json`，提交 `NM5-20261017-113346-5l9`；逐项核对 `sheets/NM5.json` 的选项序号、label、noun_refs 和提交号，拒绝未答、带待核说明及空提交。NM5-01 采用用户实际选择，不用页面的推荐或默认值替代它。
+- NM5 三题均来自 `docs/decisions/decision-pages/answers/nm5.json`，提交 `NM5-20261017-113346-5l9`；逐项核对 `sheets/NM5.json` 的选项序号、label、noun_refs 和提交号，拒绝未答、带待核说明及空提交。NM5-01 采用用户实际选择，不用页面的推荐或默认值替代它。
 - 本地没有 NM5 对应 intent，故在 `decisions-nm.yaml` 的 `meta.submitted_sheets` 显式声明直接核对已提交答复。NM2–NM4 原有 intent 原话及提交号核对继续执行，没有删除或放宽。
 - OBJ-117–123 来自 [CAPINFO 对象交接](capinfo-newterms.md)，提交 `CAPINFO-20261017-111010-cfy`。新增对象交接答复类型，逐行校验中文、建议英文、BC、提交号及来源覆盖；新增词条的中文、英文、BC 必须与交接行一致。核对而不新增的 OBJ-117 和待合并的 OBJ-122／123 也各保留来源行，不伪造选择题或 intent。
 - `apply_nm.py` 仅为上述新答复类型扩展来源校验与自测；原有定向更新、禁用词双向子串检查、提议源 id／snake 冲突检查、同 BC 查重及跨 BC 同名互列机制继续执行。最终仍由 `term_rules.py` 校验正式与提议词，不改守护或基线。

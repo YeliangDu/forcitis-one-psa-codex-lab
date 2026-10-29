@@ -1,7 +1,7 @@
 -- FORCITIS one · B-5 · A8 库（a8_db）只读视图与专用账号 —— 执行脚本
 -- 执行人：A8 侧 DBA。工具：sqlcmd，或 SSMS 打开「SQLCMD 模式」。不改任何 A8 基表，不写任何 A8 数据。
 -- 用法：sqlcmd -S <A8 SQL Server> -d a8_db -E -b -i a8_10_apply.sql [-v READER_LOGIN=<登录名>]
--- 视图正文与 phase1a/SEEYON_VIEWS.sql 的 schema、views 两段逐字一致（check_view_sync.py 校验）；列与
+-- 视图正文与 docs/data/legacy-views/seeyon-views.sql 的 schema、views 两段逐字一致（check_view_sync.py 校验）；列与
 -- backend/architecture/seeyon-view-columns.yaml 逐列对应（应用启动时要求完全相等，多一列、少一列都拒绝启动）。
 -- 口令：STEP 3 在服务器上随机生成，只显示一次；本文件与仓库不含任何口令。
 :setvar READER_LOGIN one_a8_views_ro

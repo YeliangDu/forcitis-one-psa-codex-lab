@@ -134,7 +134,7 @@
 
 ## 证据
 
-- 用户：intent `2026-10-20-201656`、`204731`、`204733`、`204734`、`211104`；`rules/decide/answers/B31.json`（B31-3）。
+- 用户：intent `2026-10-20-201656`、`204731`、`204733`、`204734`、`211104`；`docs/decisions/decision-pages/answers/b31.json`（B31-3）。
 - 取证：`tasks/DAT-1020-COO-01.md` 及其 legacy-read 登记四行。
 - 法规核实状态沿 R2：电子印章管理办法所引各条与令第 6 号【已核】；电子签名法【转载】；地方审图文件现行有效性【未核】。
 - 检索记录：基线 `2e1a13cb`，`rg -n '用印|印章|签章|电子签|数字证书|执业|seal|registered_practice|SignatureEvidence|签署证据' docs/adr/ADR-*.md`。命中：ADR-0057 相容；ADR-0055 决定 1 相容；ADR-0054 决定 1 本 ADR 部分取代；ADR-0051 决定 3 表 B-13 相容，平台模块数经文件服务基础 ADR 改写后相容；ADR-0021（已被 ADR-0055 取代）无关；ADR-0006、0016、0019 命中 `sealed`，无关。

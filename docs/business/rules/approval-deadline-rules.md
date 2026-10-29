@@ -105,7 +105,7 @@ User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 �
 ### RULE-384: Overdue and escalation are events with the task's own event number, counted for timeliness statistics
 **Category:** Policy
 **Priority:** P1
-**Source:** proposals/EVENT_ANALYTICS_FIELDS.md §6 (item 3: timer-triggered events take the owning aggregate's sequence)
+**Source:** docs/architecture/events/event-analytics-fields.md §6 (item 3: timer-triggered events take the owning aggregate's sequence)
 **Plain English:** `ApprovalTaskBecameOverdue` and `ApprovalTaskEscalated` are published through the event publication registry like every domain event; their envelope's aggregateVersion is the task's event number (assigned = 1, then claimed, overdue, escalated … in order). They are process facts, not posting facts.
 **Tests:** `ApprovalDeadlineIT`, `ApprovalTaskStateMachineTest.eventsCarryTheTaskSequence`; catalogue entries in `docs/architecture/events/approval.yaml`.
 **Confidence:** High.

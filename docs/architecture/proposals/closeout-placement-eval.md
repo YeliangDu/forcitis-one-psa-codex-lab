@@ -9,7 +9,7 @@
 ## 0. 先澄清两点
 
 1. **(a) 本来就跑在平台流程能力上。** 结项审批走 `platform.approval`，B-29 只实现审批钩子（`ENTERPRISE_AGGREGATES_DRAFT.md`:983「提交结项申请（经 `platform.approval`，编排方实现审批钩子…）」；`processes.v1.yaml`:339）。(a) 与 (b) 的区别只在一处：**由谁把五项检查组合成「能否结项」**。(a) 由一个业务流程模块组合，(b) 由平台按注册表组合。
-2. **「平台不依赖任何业务 BC」现在已经不成立。** 已建依赖中有 `platform.approval -> organization.workforce, organization.attendance`（`backend/architecture/module-dependencies.txt`:11）。另有 ADR-0036 已采纳的 `platform.migration`：它是无表的编排模块，依赖各目标 BC，任何模块都不依赖它（`adr/src/ADR-0036.md`:46；`ddd/contexts.yaml`:445-455 标 `kind: platform`）。所以「只此一个」只在业务侧成立，平台侧已有一个同形态的先例。
+2. **「平台不依赖任何业务 BC」现在已经不成立。** 已建依赖中有 `platform.approval -> organization.workforce, organization.attendance`（`backend/architecture/module-dependencies.txt`:11）。另有 ADR-0036 已采纳的 `platform.migration`：它是无表的编排模块，依赖各目标 BC，任何模块都不依赖它（`docs/adr/ADR-0036.md`:46；`ddd/contexts.yaml`:445-455 标 `kind: platform`）。所以「只此一个」只在业务侧成立，平台侧已有一个同形态的先例。
 
 ## 1. 同一模式在 ⑥a 清单里有多少
 
@@ -27,9 +27,9 @@
 
 - 已采纳的约束：
   - 流程只编排人，不计算业务，不查业务表，不在脚本任务里写业务逻辑（`GUIDING_PRINCIPLES.md`:55-66）。
-  - BPMN 只用可执行流程（ADR-0041 决定 1，`adr/src/ADR-0041.md`:21）。
-  - BPMN「只编排人工步骤、超时与退回，不做业务计算」（`architecture/FRAMEWORKS.md`:33；`FRAMEWORKS_V4_DRAFT.md`:135）。
-  - ADR-0039 把外部概念限定在 `platform.integration`，并把 approval 契约中性化（`adr/src/ADR-0039.md`:47）。
+  - BPMN 只用可执行流程（ADR-0041 决定 1，`docs/adr/ADR-0041.md`:21）。
+  - BPMN「只编排人工步骤、超时与退回，不做业务计算」（`docs/architecture/frameworks.md`:33；`FRAMEWORKS_V4_DRAFT.md`:135）。
+  - ADR-0039 把外部概念限定在 `platform.integration`，并把 approval 契约中性化（`docs/adr/ADR-0039.md`:47）。
 - **结项前检查是业务规则，不是编排。** INV-40 的三项拒绝来自 Q10，两项预警来自 P-16；收入覆盖的「结论」载体待 Q20 定；Q09 状态机未定时有专门处理（聚合稿 :135、:974-984）。哪些项拒绝、哪些项只预警、缺项怎么处理，都是业务口径。
 - (b) 下这些口径没有业务归属。可能的落点有两个：
   - 平台按注册表合成结果，并区分拒绝与预警：业务逻辑进了平台，违反 GUIDING §4。

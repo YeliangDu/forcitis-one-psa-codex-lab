@@ -67,7 +67,7 @@ B 部分（one-1a-next-4）允许改动：
 - 依据：门禁 O4、B5；D2。
 
 #### TA-03　TS-UNIQ 待核 5　中　`timesheets` 保留期 10 年的登记与归档 / 清理作业
-- 问题：用户已认可 `timesheets` 保留 10 年、归档到对象存储后在线删除（`data/RETENTION_PROPOSAL.md`，用户「按 one-data 建议」）；注册表现为 `BUSINESS_RECORD`（无期限），没有清理或归档作业；GUIDING_PRINCIPLES §6 无该行。TS-UNIQ 不改保留期，故不阻塞该卡；本条是承接。
+- 问题：用户已认可 `timesheets` 保留 10 年、归档到对象存储后在线删除（`docs/data/retention-proposal.md`，用户「按 one-data 建议」）；注册表现为 `BUSINESS_RECORD`（无期限），没有清理或归档作业；GUIDING_PRINCIPLES §6 无该行。TS-UNIQ 不改保留期，故不阻塞该卡；本条是承接。
 - 改法：注册表 `retention` 改 `{policy: 10y, job: cost.timesheet.timesheet.archive}`；归档 / 清理作业按审计、审批归档同一口径新建（属功能补做，与财务是否认定工时单为会计档案原始凭证（改 30 年）一并在 Phase 2 工时规格前定；**作业未建成前**，注册表登记带 owner 与到期日的 gap，不得静默留空）；GUIDING_PRINCIPLES §6 补一行（交 one-architecture / one-coordinator）。
 - 预期表结构 diff：无 DDL；注册表与作业。
 - 验收要点：注册表有 10y 与作业名，作业按期归档并删除在线行；或有 gap 条目含 owner、到期日。

@@ -2,7 +2,7 @@
 
 日期：2026-10-14 · 来源：architecture-critic（opus）对 GUIDING_PRINCIPLES §9a 的专项核对（会话 psa-1a-platform-bridge-reimagine）。
 
-用途：§9a 要求「每个阶段的出口条件证明本阶段涉及的权责事实没有遗留在老系统或 OA」。本表登记老系统对 A8 的全部读取与写入，作为跨阶段台账：每个阶段出口时，本阶段对应行的状态改为「已停用」（老路径）或「已迁入」（新系统自有事实）。新系统可只读 A8 全库（ADR-0037），读取只在 `platform.integration` 内（A8 读取与致远验票在 `platform.integration.infrastructure.seeyon` 适配器，REIMAGINED_ARCHITECTURE §2.1，用户 2026-10-14：「改名并移到 integration」）；运行时读取的表与列见外部读取登记 `backend/architecture/external-read-registry.yaml`（视图 DDL `phase1a/SEEYON_VIEWS.sql`，视图冻结，ADR-0037 第 6 项）。A8 数据不作为权责事实的输入（ADR-0037 第 2 项第 3 条）。生日（#6）不在 1a 白名单。
+用途：§9a 要求「每个阶段的出口条件证明本阶段涉及的权责事实没有遗留在老系统或 OA」。本表登记老系统对 A8 的全部读取与写入，作为跨阶段台账：每个阶段出口时，本阶段对应行的状态改为「已停用」（老路径）或「已迁入」（新系统自有事实）。新系统可只读 A8 全库（ADR-0037），读取只在 `platform.integration` 内（A8 读取与致远验票在 `platform.integration.infrastructure.seeyon` 适配器，REIMAGINED_ARCHITECTURE §2.1，用户 2026-10-14：「改名并移到 integration」）；运行时读取的表与列见外部读取登记 `backend/architecture/external-read-registry.yaml`（视图 DDL `docs/data/legacy-views/seeyon-views.sql`，视图冻结，ADR-0037 第 6 项）。A8 数据不作为权责事实的输入（ADR-0037 第 2 项第 3 条）。生日（#6）不在 1a 白名单。
 
 | 状态列约定 | 含义 |
 |---|---|
@@ -62,7 +62,7 @@
 
 ### 仅生产 SQL Agent、无仓库脚本（R0 Q11 发现，2026-10-14）
 
-来源：生产只读查询 `msdb` 作业元数据。只取了作业名、步骤名、目标库、调度、最近运行状态，以及步骤正文中引用的库表名，未取正文（`r0/BI_USAGE_SUMMARY.md` §3；原始结果在仓库外 `~/.modernize/psa/bi-inputs/runtime/bi_09_*.tsv`、`bi_10_*.tsv`）。这些作业在 psa 仓库中没有脚本，只存在于生产 SQL Agent，全部启用，最近一次运行均为 2026-10-14 且成功。「同步商机档案到 PSA」作业即 #26 / #27 的生产作业，不另编号。
+来源：生产只读查询 `msdb` 作业元数据。只取了作业名、步骤名、目标库、调度、最近运行状态，以及步骤正文中引用的库表名，未取正文（`docs/legacy/bi/bi-usage-summary.md` §3；原始结果在仓库外 `~/.modernize/psa/bi-inputs/runtime/bi_09_*.tsv`、`bi_10_*.tsv`）。这些作业在 psa 仓库中没有脚本，只存在于生产 SQL Agent，全部启用，最近一次运行均为 2026-10-14 且成功。「同步商机档案到 PSA」作业即 #26 / #27 的生产作业，不另编号。
 
 | # | 作业（步骤数，调度） | 读取（A8 / BI 视图） | 写入（老系统） | 分类 | 新系统去向 |
 |---|---|---|---|---|---|

@@ -3,14 +3,14 @@
 - 日期：2026-10-14 · 整理：psa-r0-metric-baseline
 - 用途：把经营分析与总账两条线上要问财务的问题合成一张表，去重并标明来源，由用户一次转给财务。
 - **2026-10-15 去向**：财务已答复第 2 版（FQ-01..FQ-22，FQ-18 未答）；用户逐条处理 13 处分歧（intent `2026-10-15-124316-one-coordinator-财务确认单第-2-版答复的-13.md`），并决定尚未定案的口径由用户全盘拍板（经 one-coordinator 转达，intent 由调度会话登记），不再向财务发第 4 版问卷。各题去向见文末「去向（2026-10-15）」：已定的写出处，未定的指向《财务口径决策单》`FINANCE_DECISIONS.md` 的题号（FD-xx），只能由财务回答的事实指向 F-xx。第 3 版确认单 `FINANCE_CONFIRM.html` 保留为历史。
-- 本表只列问题，**不替财务作答**。答复后回填到各自来源：总账类回填 `rules/GL_FINANCE_DECISIONS.json` 的 `finance_answer` 并重新生成；经营分析类记入 INTENT 与 `METRIC_BASELINE_DRAFT.md`。
+- 本表只列问题，**不替财务作答**。答复后回填到各自来源：总账类回填 `docs/business/rules/gl-finance-decisions.json` 的 `finance_answer` 并重新生成；经营分析类记入 INTENT 与 `METRIC_BASELINE_DRAFT.md`。
 
 来源说明：
 
 | 来源 | 位置 |
 |---|---|
 | BI-F1..F5 | BI_SCOPE.md §6.1「待财务」 |
-| R0-F6..F10 | `r0/METRIC_BASELINE_DRAFT.md` §6.2 |
+| R0-F6..F10 | `docs/data/metric-baseline/baseline-draft.md` §6.2 |
 | GL:事项 | `rules/GL_FINANCE_DECISIONS.md`「待财务清单」，按事项编号引用（D17-x / GL-xxx），不按清单序号，避免清单增删后错位 |
 
 ## 1. 收入与收入确认

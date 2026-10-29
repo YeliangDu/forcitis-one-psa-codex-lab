@@ -30,7 +30,7 @@
 
 **依据**：
 - 复核：`architecture/research/platform-fit-2026-10-20/平台分档适配复核.md` §3；
-- 复审：`architecture/proposals/REVIEW_ADR_PLATFORM_TIERS_2026-10-20.md`；
+- 复审：`docs/architecture/proposals/review-adr-platform-tiers-2026-10-20.md`；
 - 改后复核：`R-平台分档改后复核.md`。
 
 ## 决定

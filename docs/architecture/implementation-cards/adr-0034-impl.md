@@ -22,15 +22,15 @@
 
 ### 2.1 用户决定
 - ADR-0034 已采纳：用户 2026-10-15「两份都批准 (Recommended)」；0034-Q2「授予与角色版本保留期与审计同周期（在线 3 年 + 归档到满 10 年）；在线删除只走受控特权路径，运行角色始终没有 DELETE」；0034-Q3「删除角色关闭最后一个版本、编码不得复用」。
-- 复职 D-1a-17（`process/1a/contract.md`:56）：「只授基础角色 (Recommended)」，复职重授 `employee`，其余由管理员重新分配，审计记录（intent `2026-10-14-115-1a流程-复职角色.md`）。
+- 复职 D-1a-17（`docs/business/processes/contract.md`:56）：「只授基础角色 (Recommended)」，复职重授 `employee`，其余由管理员重新分配，审计记录（intent `2026-10-14-115-1a流程-复职角色.md`）。
 - §14.1 D17（METHODS.md:419-429）：主数据默认版本化；授权关系按时刻、`timestamptz` 区间；授权取未关闭的行；早于最早版本的查询失败告警。
 - 迁移基线开放期直接改基线（ADR-0038；`backend/architecture/migration-baseline-open` 存在，已核）。
 
 ### 2.2 规则、ADR、规范
-- ADR-0034 全文（`adr/src/ADR-0034.md`），逐条见数据设计「ADR 条款对照」。
+- ADR-0034 全文（`docs/adr/ADR-0034.md`），逐条见数据设计「ADR 条款对照」。
 - RULE-345 修订已写入 `RULE_REVIEWS.json`（第 438 行起 `revisions`，2026-10-15，出处 ADR-0034 / 0034-Q3，已核）；RULE-344、RULE-363 不变。
 - DDL 审计 DDL-17（`~/.modernize/psa/audit/DDL_AUDIT_2026-10-15.md`:31，未入仓）：「roles 被物理删除（JdbcRoleRepository.java:100）→ RETIRED 状态 + 关闭版本，代码不复用；ApplySourceSnapshot 删合并的同步运行属技术去重，登记 delete_reason」。前半由本卡承担（形态按 ADR-0034，见待裁定 A-1）；后半属 `organization.workforce`，见待定 C-4。
-- DATA-REPAIR-identity 并入 W2 的条目（`HANDOFF_one-1a-next-4.md`:34「ID-01/02/10/13 → W2」；`data/repair-cards/DATA-REPAIR-identity.md` §6：AQ-2「`VOIDED`、基准列、事件 `AuthorizationVoided`」、AQ-6「`role_codes` 改 `role_ids uuid[]`」归 W2 卡）。是否由本卡承担见待定 C-3。
+- DATA-REPAIR-identity 并入 W2 的条目（`HANDOFF_one-1a-next-4.md`:34「ID-01/02/10/13 → W2」；`docs/data/repair-cards/data-repair-identity.md` §6：AQ-2「`VOIDED`、基准列、事件 `AuthorizationVoided`」、AQ-6「`role_codes` 改 `role_ids uuid[]`」归 W2 卡）。是否由本卡承担见待定 C-3。
 - NAMING_STANDARD §2.4（类别词、约束与索引命名）、§2.4a（UUIDv7、外键索引、空值与默认值、删除语义、文本长度、枚举 CHECK 具名）、§14、§14.1；`DATA_DESIGN_GATE.md` 附录 A。
 
 ### 2.3 核对结果（基线 `cfb04dd4`，凡「有 / 没有」均已 grep 或读文件）
@@ -75,7 +75,7 @@
 - 测试建库：`TestPostgres` 或 `src/test/resources/init-*.sql` 预建 `btree_gist`（ADR 迁移方案第 2 条「测试建库脚本同步」）
 - 守护文件（单独提交）：`DataArchitectureTest`（D2 时刻变体）、`RoleSeparatedDeploymentIT`、`SingleAggregateGuardTest` 的映射、`RepositoryWriteGuardTest` 相关登记、`DdlNamingTest` 基线行
 - 登记文件：`data-access-registry.yaml`、`ddl-naming-baseline.txt`（删 6 行）、`unversioned-table-writes.txt`（删 2 行，新表按需加理由）、`system-actors.txt`（启动对账的系统操作者）、`docs/ops/one-db-roles-schemas.sql` §4b 及可执行版 `runbooks/sql/c3_dev_db_after_migrations.sql`（存在性待核）、`docs/architecture/must-audit-actions.yaml`、`docs/architecture/events/identity.yaml`、`docs/architecture/ddd/aggregates.yaml`、`backend/glossary/proposed/platform-identity.yaml`（提议术语）、权限目录快照文件（新建，名由实现定，守护第 8 条「只能标停用不能删除」）
-- 文档（与实现同一提交，ADR 影响面）：`phase1a/SECURITY_INVARIANTS.md`（I-11 改句、I-11/I-12 注「持有」、新增 I-14 及验收对照）、`AI_NATIVE_SPEC.md`:25 C1a-08、`REIMAGINED_ARCHITECTURE.md` 与 `phase1a/DATA_SCORECARD.md` 中这几张表的描述、`docs/glossary/terms.yaml` 的 `separation` 定义改为「关闭全部有效授予」（经 one-glossary，`new_term_issue.py` 登记，不自行改正式词表）、`phase1a/NEXT_BATCH_PLAN.md` K-2 行范围说明
+- 文档（与实现同一提交，ADR 影响面）：`docs/ops/security-invariants.md`（I-11 改句、I-11/I-12 注「持有」、新增 I-14 及验收对照）、`AI_NATIVE_SPEC.md`:25 C1a-08、`REIMAGINED_ARCHITECTURE.md` 与 `docs/data/data-scorecard.md` 中这几张表的描述、`docs/glossary/terms.yaml` 的 `separation` 定义改为「关闭全部有效授予」（经 one-glossary，`new_term_issue.py` 登记，不自行改正式词表）、`phase1a/NEXT_BATCH_PLAN.md` K-2 行范围说明
 
 ### 3.4 归属与不碰
 - 本卡独占：`roles`、`role_versions`、`account_role_grants`、`authorization_requests` 的列与约束；退役 `role_permissions`、`account_roles`；系统角色声明；`AuthorizationHistory`
@@ -362,7 +362,7 @@ COMMENT ON COLUMN platform_identity.authorization_requests.base_role_version_ids
 ```
 
 - 注册表、§4b、守护（非 DDL，同一 PR 单独提交）：两张新表登记（见数据设计「注册表条目草稿」；PR-1 中 `writers: []`，因 `DataArchitectureTest`:571-573 要求登记的写方有 SQL，PR-3 / PR-2 改为 `[platform.identity]`——待核 D-4）；§4b 撤销清单加两表；`DataArchitectureTest` D2 时刻变体；测试建库预建 `btree_gist`。
-- **B 组（待 one-coordinator 确认并入，见 C-3；并入则其 diff 按 `data/repair-cards/DATA-REPAIR-identity.md` 对应条目「预期表结构 diff」原文追加到本节，并须 one-data 补签，这几条曾被排除在 PR-5 签发之外）**：ID-01（`ck_authorization_requests_decision` 新增、`ck_authorization_requests_two_people` 改写为 `request_status IN ('PENDING','REJECTED') OR (…)`，VOIDED 落在「非 PENDING、保留确认人」一侧）、ID-02（`ck_authorization_requests_kind_columns`）、ID-10（`fk_authorization_requests_requested_by`、`_decided_by`、`_subject_user_id` 及三索引；另加 `fk_authorization_requests_role_id` 与 `ix_authorization_requests_role_id`，删注册表 `fk_exceptions.role_id`：角色行不再删除，原豁免理由失效）、ID-13 中 `authorization_requests` 部分（`ck_authorization_requests_new_role_code`、`ck_authorization_requests_role_name`）。
+- **B 组（待 one-coordinator 确认并入，见 C-3；并入则其 diff 按 `docs/data/repair-cards/data-repair-identity.md` 对应条目「预期表结构 diff」原文追加到本节，并须 one-data 补签，这几条曾被排除在 PR-5 签发之外）**：ID-01（`ck_authorization_requests_decision` 新增、`ck_authorization_requests_two_people` 改写为 `request_status IN ('PENDING','REJECTED') OR (…)`，VOIDED 落在「非 PENDING、保留确认人」一侧）、ID-02（`ck_authorization_requests_kind_columns`）、ID-10（`fk_authorization_requests_requested_by`、`_decided_by`、`_subject_user_id` 及三索引；另加 `fk_authorization_requests_role_id` 与 `ix_authorization_requests_role_id`，删注册表 `fk_exceptions.role_id`：角色行不再删除，原豁免理由失效）、ID-13 中 `authorization_requests` 部分（`ck_authorization_requests_new_role_code`、`ck_authorization_requests_role_name`）。
 - 不得出现：`roles`、`role_permissions`、`account_roles`、`user_accounts` 及其他表的任何变化；种子变化；B 组未获确认时 `authorization_requests` 除两列与两条注释外的变化。
 
 ### 7.2 PR-2 角色版本化与系统角色声明
@@ -700,7 +700,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 ### 基线 / 目标 / 过渡 / 回滚（T1–T4）
 - T1 基线：`roles`（可变定义原地覆盖）、`role_permissions`、`account_roles`（整组替换、物理删除）、`authorization_requests` 三状态；种子写角色与权限（2.3）。老系统角色只作迁入证据（ADR-0026 第 8 项），不进目标设计。
 - T2 目标：BC `platform.identity`，Phase 1a W2，首次部署前（时点口径见 C-1）。
-- T3 过渡（开放期）：**没有已部署的数据**——dev 库首次部署前不执行任何迁移（`C-3-dev-db.md`:69），无角色、授予、申请行；三个 PR 直接改 identity 基线，dev 按 `phase1a/infra/runbooks/dev-db-rebuild.md` 随库重建；系统角色由首次启动对账写入（替代种子）；没有在途授权申请（ADR 迁移方案第 5 条）。`legacy_numbers` 不受影响。老角色迁入（`MIGRATION` 渠道）不在本卡，迁入卡另写 E3。
+- T3 过渡（开放期）：**没有已部署的数据**——dev 库首次部署前不执行任何迁移（`C-3-dev-db.md`:69），无角色、授予、申请行；三个 PR 直接改 identity 基线，dev 按 `docs/ops/runbooks/dev-db-rebuild.md` 随库重建；系统角色由首次启动对账写入（替代种子）；没有在途授权申请（ADR 迁移方案第 5 条）。`legacy_numbers` 不受影响。老角色迁入（`MIGRATION` 渠道）不在本卡，迁入卡另写 E3。
 - T4 回滚：首次部署前回退实现提交即恢复基线（随库重建）；首次部署后不回到删除语义，按 ADR 回滚方案（只读视图投影、提高声明修订号回退定义）。
 
 ### 专项（E1–E3）

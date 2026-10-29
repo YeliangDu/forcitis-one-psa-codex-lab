@@ -1,6 +1,6 @@
 # table_inventory.csv：全库表清单（机器可读）
 
-- 生成：`python3 docs/data/build_table_inventory.py --root <含 backend/ 与 scripts/ci/ 的检出或导出> --object-list data/TABLE_OBJECT_LIST.md --aggregates ENTERPRISE_AGGREGATES_DRAFT.md --finance … --people … --revenue … --out data/table_inventory.csv`。作者 one-data，2026-10-17；输入快照：`origin/main` 的注册表与迁移（已建表 52 行，含 `act_*` 通配一行）、#476 两张、F-1 三张、ADR-0058 六张 `state_transitions`、三组提议 362 表项，共 425 行。
+- 生成：`python3 docs/data/build_table_inventory.py --root <含 backend/ 与 scripts/ci/ 的检出或导出> --object-list docs/data/table-object-list.md --aggregates ENTERPRISE_AGGREGATES_DRAFT.md --finance … --people … --revenue … --out docs/data/table-inventory.csv`。作者 one-data，2026-10-17；输入快照：`origin/main` 的注册表与迁移（已建表 52 行，含 `act_*` 通配一行）、#476 两张、F-1 三张、ADR-0058 六张 `state_transitions`、三组提议 362 表项，共 425 行。
 - 列：`schema, table, bc_module, bc_id, aggregate, obj, kind, has_status, legal_entity_column, source, registry_role`。
   - `kind`：业务记录 / 版本 / 关系 / 投影 / 技术。已建表按注册表 role 映射（技术：QUEUE、COUNTER、IDEMPOTENCY、FRAMEWORK、ONE_TIME、LINEAGE、LOG_APPEND_ONLY、PLACEHOLDER，外加我判为技术的 `sync_*` 三张；版本：DIMENSION_VERSIONED 或表名以 `_versions` 结尾；关系：五张法人归属/权限关系表；投影：SNAPSHOT 四张，自有化后会变）；提议表按 yaml 的 role（root、child→业务记录，version→版本，link→关系，staging→技术）。**`registry_role` 原样保留，映射可以重做**。
   - `obj`：已建表来自 `TABLE_OBJECT_LIST.md` 我的判断（平台类无对象，留空）；提议表取聚合稿中该聚合名称里括号标的 OBJ（没标则空）。**空 ≠ 没有对象**，是未判断或平台对象。

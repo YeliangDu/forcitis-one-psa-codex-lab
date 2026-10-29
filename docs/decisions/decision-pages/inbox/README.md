@@ -18,7 +18,7 @@
 | `title` | 是 | 一句话标题 |
 | `ask` | 否 | 要用户选什么、定什么 |
 | `options` | 否 | 数组 `[{"label": "选项", "effect": "后果，可空"}]`；没有选项时页面给文字答复框。**不预选** |
-| `sheet` | 否 | 对应确认页的单子编号（如 `FD2`）；写了它，调度用 `decide_sync.py --check` 才能核对「收件箱 pending 但确认页已提交」；不写则按 `link` 与 `rules/decide/README.md` 页面表对应 |
+| `sheet` | 否 | 对应确认页的单子编号（如 `FD2`）；写了它，调度用 `decide_sync.py --check` 才能核对「收件箱 pending 但确认页已提交」；不写则按 `link` 与 `docs/decisions/decision-pages/README.md` 页面表对应 |
 | `link` | 否 | 确认页链接，`https://` 开头；有则页面显示「打开确认页」 |
 | `blocker` | 否 | 卡住了什么 |
 | `urgency` | 是 | `main` 卡主线 / `normal` 一般 / `low` 不急（待定区按此排序，同级按 `createdAt`） |

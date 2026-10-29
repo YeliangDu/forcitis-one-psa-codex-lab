@@ -374,8 +374,8 @@
 ## 10. 证据索引
 
 - 仓库（`origin/claude/one-architecture-adr-governance`）：
-  - ADR：`adr/src/ADR-0016.md`（决定 2、4，:23、:25-32）；`ADR-0047.md`（:3、:26、:85、:98-101、:116-117、:149、:170）；`ADR-0049.md`（决定 1–6，:19、守护 1）；`ADR-0024.md`（第 3、4 条）；`ADR-0036.md`；`ADR-0045.md`（决定 2、S7、S8、U-2）；`ADR-0037.md`；`ADR-0021.md`。
-  - 聚合稿 `architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md`：（2026-10-16 逐条核对）:37（Q20）、:63（额度占用）、:102-103（INV-22、23）、:141（INV-40）、:199-200（INV-86、88）、:206、:420（AGG-43）、:426（AGG-44）、:427（AGG-45）、:429（AGG-47）、:457（AGG-57）、:516（AGG-77）、:585（REF-02）、:829（收入阶段门）、:1053（N-12）；施工方案 `CONSTRUCTION_PLAN_DRAFT.md`:178、:229、:406、:440。
+  - ADR：`docs/adr/ADR-0016.md`（决定 2、4，:23、:25-32）；`ADR-0047.md`（:3、:26、:85、:98-101、:116-117、:149、:170）；`ADR-0049.md`（决定 1–6，:19、守护 1）；`ADR-0024.md`（第 3、4 条）；`ADR-0036.md`；`ADR-0045.md`（决定 2、S7、S8、U-2）；`ADR-0037.md`；`ADR-0021.md`。
+  - 聚合稿 `docs/architecture/proposals/enterprise-aggregates-draft.md`：（2026-10-16 逐条核对）:37（Q20）、:63（额度占用）、:102-103（INV-22、23）、:141（INV-40）、:199-200（INV-86、88）、:206、:420（AGG-43）、:426（AGG-44）、:427（AGG-45）、:429（AGG-47）、:457（AGG-57）、:516（AGG-77）、:585（REF-02）、:829（收入阶段门）、:1053（N-12）；施工方案 `CONSTRUCTION_PLAN_DRAFT.md`:178、:229、:406、:440。
   - 信息图 `ENTERPRISE_INFO_MAP_DRAFT.md`：:14、:62（OBJ-08）、:142（OBJ-81）、:148（OBJ-87）、:296-301（§2.7）、:491（C-05）、:503（C-17）、:530（C-44）。
   - 规则：`BUSINESS_RULES.md` RULE-072、080、184、185、205、213、222、236；`rules/GL_FINANCE_DECISIONS.md` D17-0、D17-5、D17-8、GL-024、GL-026、GL-123。
   - 决定页 `architecture/decision-page/PENDING.json` Q-04；`METHODS.md` §12.2、§12.3。

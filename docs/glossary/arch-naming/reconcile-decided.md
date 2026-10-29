@@ -546,7 +546,7 @@ DECIDED_NOT_REGISTERED: submission=… question=F-1
 
 DECIDED_PROJECTION_MISMATCH: question=B2-B09 concept=contract_modification
   en expected=ContractModified actual=ContractModification
-  source=rules/decide/answers/GL.json
+  source=docs/decisions/decision-pages/answers/gl.json
 
 DECISION_SOURCE_MISSING: submission=CAPINFO-20261017-111010-cfy
   found=交接稿；missing=原始题面版本和逐题答复；不得自动标为已写回

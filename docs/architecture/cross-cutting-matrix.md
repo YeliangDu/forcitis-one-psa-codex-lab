@@ -2,7 +2,7 @@
 
 日期：2026-10-14 · 会话：one-crosscut（由 one-coordinator 派出）· 决定单：`CROSS_CUTTING_DECISIONS.md`
 
-2026-10-16 按 main cf3b9a3e 重核状态（one-architecture，见 architecture/proposals/FOUNDATION_RECHECK.md）
+2026-10-16 按 main cf3b9a3e 重核状态（one-architecture，见 docs/architecture/proposals/foundation-recheck.md）
 
 用户原话：问「怎么才能将类似问题一次识别出来呢？」，对普查方案答「启动」。起因是用户指出「money 的尾差问题是很重要的问题，尤其我们涉及到分摊」。
 
@@ -29,12 +29,12 @@
 | GL | `docs/business/rules/gl-rules.md` |
 | GP | `GUIDING_PRINCIPLES.md` |
 | NS | `NAMING_STANDARD.md` |
-| PC | `proposals/PHASE1A_PLATFORM_CONVENTIONS.md` |
-| EAF | `proposals/EVENT_ANALYTICS_FIELDS.md` |
-| DS | `phase1a/DATA_SCORECARD.md` |
-| 契约 | `process/1a/contract.md`（D-1a-n） |
+| PC | `docs/architecture/proposals/phase1-a-platform-conventions.md` |
+| EAF | `docs/architecture/events/event-analytics-fields.md` |
+| DS | `docs/data/data-scorecard.md` |
+| 契约 | `docs/business/processes/contract.md`（D-1a-n） |
 | brief | `MODERNIZATION_BRIEF.md`（行号是生成后的行号） |
-| FQ | `r0/FINANCE_QUESTIONS.md`，以及确认单 v2（FQ-01..22 全部未答） |
+| FQ | `docs/business/finance-questions.md`，以及确认单 v2（FQ-01..22 全部未答） |
 
 ## 1. 统计
 
@@ -174,7 +174,7 @@
 
 ### 2.9 业财架构核查清单（用户 2026-10-15 提交，经 one-coordinator 转达）
 
-前提：收入确认用产出法，以客户签认为准（「产出法 · 客户价值确认」，`r0/FINANCE_ADR_POINTS.md:20`；ACC-R01），不用完工百分比。下列各行中凡涉及收入的，都以此为前提。用户原话的 intent 片段由 1a 会话记录，随 #72 已在 main：`intent/2026-10-14-222541-psa-1a-platform-bridge-reimagine-利润中心就是某一级部门.md`、`…-按职级标准费率看到个人行.md`、`…-适用-纳入-Phase-2.md`。
+前提：收入确认用产出法，以客户签认为准（「产出法 · 客户价值确认」，`docs/business/finance-adr-points.md:20`；ACC-R01），不用完工百分比。下列各行中凡涉及收入的，都以此为前提。用户原话的 intent 片段由 1a 会话记录，随 #72 已在 main：`docs/decisions/2026-10-14-222541-psa-1a-platform-bridge-reimagine-利润中心就是某一级部门.md`、`…-按职级标准费率看到个人行.md`、`…-适用-纳入-Phase-2.md`。
 
 | 编号 | 关注点 | 首次阶段 | 用户 / 财务决定 | 实现现状与缺口 | 类别 |
 |---|---|---|---|---|---|
@@ -187,7 +187,7 @@
 | CC-B07 | 专业产值切分 | 2 | 用户 2026-10-15 原话：「适用，纳入 Phase 2」 | 无。核算维度须预留「专业」 | **阶段**：Phase 2 流程梳理入口「专业维度及其产值切分规则」；切分走 `prorate`（§3.3） |
 | CC-B08 | 分包进度确权与暂估成本 | 6d | 用户 2026-10-15 核查清单 | 无 | **阶段**：6d 流程梳理入口 |
 | CC-B09 | 关账期间快照事实表 | 4 / R1 | ADR-0025 采纳（L2 期间快照） | ADR-0025:99-106（L2 在可重复读事务中生成，例外重开时作废重建并留版本） | **已覆盖**（决定层；实现在 R1） |
-| CC-B10 | 利用率、乘数、变现率统一口径 | R0 | ADR-0023:31（指标声明口径版本）；R0 指标基线 | `r0/METRIC_BASELINE_DRAFT.md`；「人工成本产出倍数」与 NRPM 的对齐排在第三轮用语确认 | **已覆盖**（另需第三轮用语） |
+| CC-B10 | 利用率、乘数、变现率统一口径 | R0 | ADR-0023:31（指标声明口径版本）；R0 指标基线 | `docs/data/metric-baseline/baseline-draft.md`；「人工成本产出倍数」与 NRPM 的对齐排在第三轮用语确认 | **已覆盖**（另需第三轮用语） |
 | CC-B11 | 业财穿刺验收 | 1a 出口；2 出口 | 用户 2026-10-15 核查清单 | brief 模板已以 `Proposed revision:` 提出：1a 出口「平台穿刺」，Phase 2 出口「1 小时工时业财穿刺」（工时 → 审批 → 人工成本 → 过账 → 项目成本 / 利润中心 / L2 快照逐分一致，冲销后归零） | **阶段** |
 
 ## 3. 金额尾差专节

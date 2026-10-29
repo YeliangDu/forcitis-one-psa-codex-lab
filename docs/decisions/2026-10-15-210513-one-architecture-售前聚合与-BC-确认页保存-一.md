@@ -4,4 +4,4 @@
 
 ## 落点
 
-architecture/proposals/PRESALES_AGGREGATES.md；页面 https://claude.ai/artifact/RXUryW6oyUQTDi1v8rT2c4 （db decisions/presales-aggregates）；新 ADR 待起草
+docs/architecture/proposals/presales-aggregates.md；页面 https://claude.ai/artifact/RXUryW6oyUQTDi1v8rT2c4 （db decisions/presales-aggregates）；新 ADR 待起草

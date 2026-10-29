@@ -12,8 +12,8 @@
   |---|---|
   | 会话分工、协作流程、报告与派工约定 | `METHODS.md` |
   | 编码与命名约定 | `CODING_STANDARD.md`、`NAMING_STANDARD.md` |
-  | 用语 | `glossary/terms.yaml` |
-  | 清单、快照、参数（BC 与聚合登记、阶段表、权限码、阈值） | 经用户认可的进各自的 SSOT 文件（如 `architecture/ssot/d-domain/contexts.yaml`、`architecture/ssot/t-transitions/transitions.yaml`），受守护测试保护；未经用户认可的留在提议稿（提议中的 ADR 或 `architecture/proposals/`） |
+  | 用语 | `docs/glossary/terms.yaml` |
+  | 清单、快照、参数（BC 与聚合登记、阶段表、权限码、阈值） | 经用户认可的进各自的 SSOT 文件（如 `docs/architecture/ssot/domain/contexts.yaml`、`docs/architecture/ssot/transitions/transitions.yaml`），受守护测试保护；未经用户认可的留在提议稿（提议中的 ADR 或 `architecture/proposals/`） |
   | 业务口径与政策参数 | 配置类（METHODS M3「规则调整三类」，`CONFIG_CHANGELOG.md`） |
   | 领域规则结论 | `rules/RULE_REVIEWS.json` |
   | 现状勘查、取证明细、设计细节、方案比较长文 | `architecture/proposals/` 或证据文件，ADR 只引用路径 |
@@ -23,6 +23,6 @@
   - 清单经用户认可后进 SSOT（用户 2026-10-16：「我认可的规划，要进SSOT」，intent `2026-10-16-124649`），ADR 引用其路径与提交号；未经用户认可的部分留在提议稿，不进 SSOT。
 - ADR-0020 中的协作规则（会话、协议、调度）以 `METHODS.md` 为准，今后只改 METHODS.md，不再为其开 ADR；ADR 正文不动（见「勘误与历史偏差」第 3 节性质登记）。
 
-**怎么找**：下方总表按编号排列，列出类别与 BC；生成器另出按类别、按 BC 分组的索引和「现行有效」视图（剔除已被取代、已废弃、已拒绝、已撤回，并标出部分取代的范围），见 `adr/INDEX.md`。旧格式 ADR 的类别、BC、阶段与被部分取代的范围取自旁表 `adr/catalog.yaml`（不改 ADR 正文）。。
+**怎么找**：下方总表按编号排列，列出类别与 BC；生成器另出按类别、按 BC 分组的索引和「现行有效」视图（剔除已被取代、已废弃、已拒绝、已撤回，并标出部分取代的范围），见 `adr/INDEX.md`。旧格式 ADR 的类别、BC、阶段与被部分取代的范围取自旁表 `docs/adr/catalog.yaml`（不改 ADR 正文）。。
 
-架构正本 2026-10-23 起统一在 `architecture/ssot/`（GOV-1023-ARC-01）。ADR 正文中的 `ddd/`、`togaf/` 旧路径不改，按 `architecture/ssot/PATHS.md` 对照读。
+架构正本 2026-10-23 起统一在 `architecture/ssot/`（GOV-1023-ARC-01）。ADR 正文中的 `ddd/`、`togaf/` 旧路径不改，按 `docs/architecture/ssot/paths.md` 对照读。

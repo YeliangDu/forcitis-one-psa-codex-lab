@@ -2,7 +2,7 @@
 
 状态：评审中｜2026-10-17｜负责：one-architecture
 
-配套 `adr/src/ADR-0053.md`（提议）。依据 `NAMING_SYSTEM_RESEARCH.md`；one-glossary 合写素材 `glossary/arch-naming/NAMING_ATOMS_DRAFT.md`、`NAMING_ATOMS_PREP.md`（分支 `claude/one-glossary-bcs-systems` 提交 c544ab2d，下称「one-glossary c544ab2d」，全部是候选、不是裁定）。
+配套 `docs/adr/ADR-0053.md`（提议）。依据 `NAMING_SYSTEM_RESEARCH.md`；one-glossary 合写素材 `glossary/arch-naming/NAMING_ATOMS_DRAFT.md`、`NAMING_ATOMS_PREP.md`（分支 `claude/one-glossary-bcs-systems` 提交 c544ab2d，下称「one-glossary c544ab2d」，全部是候选、不是裁定）。
 
 ## 1. 标准链接核对记录（2026-10-17 联网）
 

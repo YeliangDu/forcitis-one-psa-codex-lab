@@ -43,7 +43,7 @@
 
 归属：本卡独占 `platform_identity` 基线文件的上述片段；`roles`、`role_permissions`、`account_roles`、`authorization_requests` 的 ADR-0034 部分归 W2 卡，本卡改动的是不会被 W2 卡重写的列与约束（`roles.code`、`roles.kind`、`authorization_requests` 的 `decided_*` 与 `request_kind` 配对）。
 
-不碰：`role_versions`、`account_role_grants` 等 ADR-0034 新表；`events/identity.yaml`；验收测试目录；他卡文件；`sessions` 与 `sessions_attributes` 的表结构（框架表）。
+不碰：`role_versions`、`account_role_grants` 等 ADR-0034 新表；`docs/architecture/events/identity.yaml`；验收测试目录；他卡文件；`sessions` 与 `sessions_attributes` 的表结构（框架表）。
 
 ## 4. 条目清单
 

@@ -29,11 +29,11 @@
 
 | 事项 | 用户答复 | 收件箱 / intent | 落在 |
 |---|---|---|---|
-| 审批被驳回、撤销后能否再发起 | 「驳回、撤销后可原单再发起；加签人驳回也须填原因；删掉免填放行」 | 2026-10-16-one-data-approval-resubmit；`intent/2026-10-16-085331-one-data-审批被驳回-被撤销后能不能再发起.md` | approval 卡 AP-01（CHECK 覆盖驳回、撤销、退回、加签人驳回；删 `hookDecidesReason` 分支；状态机保留 `REJECTED → RUNNING`、`CANCELLED → RUNNING`） |
-| 会话标识级别 | 「RESTRICTED（口令、密钥级，不出库、不进日志与分析层）」 | 2026-10-16-one-data-baseline-classification；`intent/2026-10-16-085331-one-data-会话标识-session_id.md` | identity 卡 ID-03（`sessions.session_id`、`primary_id` 登记 `RESTRICTED + NONE`）；`binding_hash`「同口径另议」仍待用户（ID-04） |
-| 审计表按月分区 | 2026-10-15 已定主键 `(id, created_at)`、去重键 `(event_id, created_at)`；2026-10-16「知道了，ADR 成文后我再确认」 | `intent/2026-10-15-020820-one-coordinator-审计表按月分区主键须含分区键-与.md`；2026-10-16-one-data-audit-partition；`intent/2026-10-16-085331-one-data-审计表按月分区-知道了-ADR.md` | timesheet-audit 卡 TB-07，分区键 `created_at`；**依 ADR-0048（已采纳，2026-10-16）实施，基线关闭前做，属生产前闸门** |
-| 员工与岗位怎样版本化 | 「都做维度型版本表（以同步观察日为生效依据）」；**生效依据后改为人事业务生效日**（intent 2026-10-16-134434） | 2026-10-16-one-data-employee-position-versioning；`intent/2026-10-16-085331-one-data-员工与岗位怎样版本化-都做维度型.md` | workforce 卡「不含」（并入 W2 DA-7，离职时刻字段按 OBSERVED 口径定，不再列待用户决定） |
-| WY-1 日历范围列时点 | 「追认：W2 随日历版本化完成，基线关闭前必须完成」 | 2026-10-16-one-data-wy1-calendar-scope；`intent/2026-10-16-085332-one-data-日历-calendar_scop.md` | timesheet-audit 卡「不含」；NEXT_BATCH_PLAN 第 299 行补注出处由 one-architecture 做 |
+| 审批被驳回、撤销后能否再发起 | 「驳回、撤销后可原单再发起；加签人驳回也须填原因；删掉免填放行」 | 2026-10-16-one-data-approval-resubmit；`docs/decisions/2026-10-16-085331-one-data-审批被驳回-被撤销后能不能再发起.md` | approval 卡 AP-01（CHECK 覆盖驳回、撤销、退回、加签人驳回；删 `hookDecidesReason` 分支；状态机保留 `REJECTED → RUNNING`、`CANCELLED → RUNNING`） |
+| 会话标识级别 | 「RESTRICTED（口令、密钥级，不出库、不进日志与分析层）」 | 2026-10-16-one-data-baseline-classification；`docs/decisions/2026-10-16-085331-one-data-会话标识-session_id.md` | identity 卡 ID-03（`sessions.session_id`、`primary_id` 登记 `RESTRICTED + NONE`）；`binding_hash`「同口径另议」仍待用户（ID-04） |
+| 审计表按月分区 | 2026-10-15 已定主键 `(id, created_at)`、去重键 `(event_id, created_at)`；2026-10-16「知道了，ADR 成文后我再确认」 | `docs/decisions/2026-10-15-020820-one-coordinator-审计表按月分区主键须含分区键-与.md`；2026-10-16-one-data-audit-partition；`docs/decisions/2026-10-16-085331-one-data-审计表按月分区-知道了-ADR.md` | timesheet-audit 卡 TB-07，分区键 `created_at`；**依 ADR-0048（已采纳，2026-10-16）实施，基线关闭前做，属生产前闸门** |
+| 员工与岗位怎样版本化 | 「都做维度型版本表（以同步观察日为生效依据）」；**生效依据后改为人事业务生效日**（intent 2026-10-16-134434） | 2026-10-16-one-data-employee-position-versioning；`docs/decisions/2026-10-16-085331-one-data-员工与岗位怎样版本化-都做维度型.md` | workforce 卡「不含」（并入 W2 DA-7，离职时刻字段按 OBSERVED 口径定，不再列待用户决定） |
+| WY-1 日历范围列时点 | 「追认：W2 随日历版本化完成，基线关闭前必须完成」 | 2026-10-16-one-data-wy1-calendar-scope；`docs/decisions/2026-10-16-085332-one-data-日历-calendar_scop.md` | timesheet-audit 卡「不含」；NEXT_BATCH_PLAN 第 299 行补注出处由 one-architecture 做 |
 | 闸门口径 | 「同意，不挡 dev」 | `BASELINE_TABLE_REVIEW.md` §3 末段（intent 文件名待核，本批 `085331` 一组中无此条） | 全部卡与 README：下节 |
 
 ## 生产前闸门（不是 dev 部署闸门）

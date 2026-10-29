@@ -4,7 +4,7 @@
 
 ## 职责
 - 架构正本、ADR、施工图与平台准入；`docs/rules/coding-standard.md`、`docs/rules/naming-standard.md`、`docs/rules/data-design-checklist.md` 条文。
-- 用语与命名词源：概念、受控动词、命名模板（`glossary/terms.yaml`）；`backend/glossary/proposed/` 下的提议片段任何会话可新增，裁定归本角色；业务规则卡与规则评审结论的维护；不替用户批准用语、口径。
+- 用语与命名词源：概念、受控动词、命名模板（`docs/glossary/terms.yaml`）；`backend/glossary/proposed/` 下的提议片段任何会话可新增，裁定归本角色；业务规则卡与规则评审结论的维护；不替用户批准用语、口径。
 - 数据设计签发与 DD 门禁、迁入映射与对账设计、取证读取口径（ADR-0037 第 8 项；落盘保留期见 policy.json 的 `retention_days.evidence`；取证子代理不改不包装、不在仓库外跑运维脚本，不装依赖）。
 - 独立验收测试：派测试代理先写先提交，实现方不改。
 - 偏离判定：卡、规范与已定决定字面不符由本角色判，偏离的报 lead。

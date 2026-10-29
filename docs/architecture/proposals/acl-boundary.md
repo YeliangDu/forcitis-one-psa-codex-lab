@@ -2,7 +2,7 @@
 
 状态：已成文→ADR-0039｜2026-10-16｜负责：one-architecture
 
-- 起因：用户 2026-10-15「先等等，我没有同意所有用语」「所有用语检查下，acl用语单列，不能进入新系统模块」（经 one-coordinator 转达）；one-glossary 全量归类 `glossary/acl/acl-classification.json`（分支 `claude/one-glossary-term-gate`）。
+- 起因：用户 2026-10-15「先等等，我没有同意所有用语」「所有用语检查下，acl用语单列，不能进入新系统模块」（经 one-coordinator 转达）；one-glossary 全量归类 `docs/glossary/acl-classification/acl-classification.json`（分支 `claude/one-glossary-term-gate`）。
 - 证据：代码以 origin/main 为准；计数口径写在各行。
 - 起草：one-architecture（Opus 5.5）。第 2 版按 one-coordinator opus 复审（2026-10-15）修改：删去原 ②b、②c；改写 A、B3、C、E、②a；排期按生产前后切分。每块第一个选项为推荐，结构性选择以用户答复为准。
 
@@ -48,7 +48,7 @@
 |---|---|---|
 | **B1 `WecomUserId`** | main 共 33 个文件引用；集成层以外 16 个（kernel 1、workforce 12、approval 2、identity 1，2026-10-15 按 origin/main `git grep`，one-coordinator 复核） | 随 ADR-0033 第 4 项落地：移入集成层，`employees` 删 `wecom_user_id`、`login_name`，收件人解析在集成层，审批通知只传 `UserId` |
 | **B2 `ExternalSystemUnavailableException`** | kernel；workforce 4 处、web 映射 1 处 | 改中性名，留 kernel（错误链属 kernel，CS-2.24）；用语交 one-glossary |
-| **B3 事件信封 `source`**（已定：ADR-0039 第 5 条；落地：R-1b P5 删除信封 `source`，本行「现状」为 2026-10-15 的 main，删除后不再成立） | `kernel.event.EventSource(system, documentRef)`；`SourceSystem` 取值 `ONE` / `MIGRATION`；`SourceSystem.ONE` 在 main 14 个文件构造；信封 schema 在 `events/asyncapi.yaml:1283-1292`（`source.system` 枚举、`documentRef` 为原单号）；`MIGRATION` 无人构造 | **从信封删除 `source`（含 `documentRef`）**：ADR-0036 第 5 条规定迁入用例不发布领域事件，信封里的 `MIGRATION` 与原单号没有使用场景，原单号属 ACL。这同时解决与「来源系统」的撞名：NEXT_BATCH_PLAN C7（:319）已把新词定为 `ExternalSource`，删掉旧的 `SourceSystem` 后只剩一个。并入 P5（P5 独占 `EventEnvelope`，:308） |
+| **B3 事件信封 `source`**（已定：ADR-0039 第 5 条；落地：R-1b P5 删除信封 `source`，本行「现状」为 2026-10-15 的 main，删除后不再成立） | `kernel.event.EventSource(system, documentRef)`；`SourceSystem` 取值 `ONE` / `MIGRATION`；`SourceSystem.ONE` 在 main 14 个文件构造；信封 schema 在 `docs/architecture/events/asyncapi.yaml:1283-1292`（`source.system` 枚举、`documentRef` 为原单号）；`MIGRATION` 无人构造 | **从信封删除 `source`（含 `documentRef`）**：ADR-0036 第 5 条规定迁入用例不发布领域事件，信封里的 `MIGRATION` 与原单号没有使用场景，原单号属 ACL。这同时解决与「来源系统」的撞名：NEXT_BATCH_PLAN C7（:319）已把新词定为 `ExternalSource`，删掉旧的 `SourceSystem` 后只剩一个。并入 P5（P5 独占 `EventEnvelope`，:308） |
 
 ### C 登录（企业微信、致远单点、签名票据）
 

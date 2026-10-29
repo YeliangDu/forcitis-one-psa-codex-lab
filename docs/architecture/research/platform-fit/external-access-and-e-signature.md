@@ -20,8 +20,8 @@
 
 | 外部方 | 仓库证据 | 现状做法（设计内） |
 |---|---|---|
-| 客户（开发商/政府业主/设计院总包）：签成果确认函、验收单 | architecture/ssot/01-stakeholders/SSOT.yaml:162、1156（拜访 V031「需配合签成果确认函」）；ADR-0047 第 6 类等 | 线下签或邮件，我方人员登记扫描件与原始邮件（ADR-0047 证据类型表 :64-72） |
-| 外协设计与顾问单位（SH-P1） | SSOT.yaml:299-302、architecture/proposals/STAKEHOLDERS.md:19；value-streams.v2.yaml:48（只作阶段参与者） | 不进系统，由项目经理代记 |
+| 客户（开发商/政府业主/设计院总包）：签成果确认函、验收单 | docs/architecture/ssot/stakeholders/ssot.yaml:162、1156（拜访 V031「需配合签成果确认函」）；ADR-0047 第 6 类等 | 线下签或邮件，我方人员登记扫描件与原始邮件（ADR-0047 证据类型表 :64-72） |
+| 外协设计与顾问单位（SH-P1） | SSOT.yaml:299-302、docs/architecture/proposals/stakeholders.md:19；value-streams.v2.yaml:48（只作阶段参与者） | 不进系统，由项目经理代记 |
 | 分包方确认履约（OBJ-87/AGG-57） | ADR-0051.md:61；processes.v1.yaml:683-691（「专人验收供方履约」，actor 是我方验收人，INV-83）；形态随 Q20「暂不定」（decision-page/FIN_TRACE.md:180） | 我方验收人确认；分包方不登录 |
 | 海外业主与海外持牌伙伴（SH-P-海外） | SSOT.yaml:85、470-492 | 无专门通道；涉跨境个人信息问题（见 §2.3） |
 | 外部人员的授权范围 | phase1a/cards/F-1-aec-check.md:25 第 8 项「外部人员只许项目范围」，标「否、one-rules→用户排期」（登记项，未实施） | 仅登记 |

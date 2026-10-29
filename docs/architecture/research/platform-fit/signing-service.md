@@ -20,7 +20,7 @@
 
 | | 用印申请（行政流程） | 签章服务（平台能力） |
 |---|---|---|
-| 词表 | `seal_usage_request`，aggregate，bc `organization.administration`，定义「保存拟用印文件、印章类别、事由、批准结论及实际用印情况的申请」（glossary/terms.yaml:12914-12921，confidence low，中文认可不批准边界） | 「签章服务」是用户本次定名，词表**未登记**；术语、模块名、标识符交 one-glossary；本稿不定标识符 |
+| 词表 | `seal_usage_request`，aggregate，bc `organization.administration`，定义「保存拟用印文件、印章类别、事由、批准结论及实际用印情况的申请」（docs/glossary/terms.yaml:12914-12921，confidence low，中文认可不批准边界） | 「签章服务」是用户本次定名，词表**未登记**；术语、模块名、标识符交 one-glossary；本稿不定标识符 |
 | 回答什么 | 谁、为什么、用哪个法人的章、盖哪份文件、批没批、盖了几份 | 这枚章/这张证书是谁的、是否有效、谁有权用、这次签章是否发生并可验证、文件是否被改过 |
 | 载体 | 审批（`platform.approval`）+ 行政人员办理 | 可被多个业务调用：用印申请、合同、客户签认、交付物、检测报告等 |
 | 依赖方向 | 调用签章服务（api） | 不得依赖业务 BC；向下依赖文件服务、`platform.audit`、`platform.identity` |
@@ -30,7 +30,7 @@
 ---
 ## 2. 业务量证据（含 OA 用量）
 
-`runtime/a8_templates.tsv`（A8 生产，2026-10-14）；`architecture/proposals/closeout/BURDEN_EVIDENCE.md:30、82`。件数为模板实例数。
+`docs/legacy/runtime-usage/a8-templates.tsv`（A8 生产，2026-10-14）；`architecture/proposals/closeout/BURDEN_EVIDENCE.md:30、82`。件数为模板实例数。
 
 | 类别 | A8 模板（365 天 / 180 天 / 在途） | 签署或盖章方 | 属于哪一块 |
 |---|---|---|---|
@@ -194,4 +194,4 @@
 - https://zh.wikisource.org/wiki/中华人民共和国电子签名法 ；https://zh.wikisource.org/wiki/中华人民共和国民法典
 - https://www.gov.cn/zhengce/2022-01/25/content_5712004.htm
 - 上海 沪建建管联〔2016〕596 号 PDF（ciac.zjw.sh.gov.cn/digitalblueprint/dl/pdf/ 下）；梅州转发广东省通知（meizhou.gov.cn/attachment/0/73/73182/2004645.docx）；郑州交付规范（zzjsj.zhengzhou.gov.cn/u/cms/public/202005/01193354e7ns.pdf）
-- 仓库：runtime/a8_templates.tsv；BURDEN_EVIDENCE.md；glossary/terms.yaml（seal_usage_request、registered_practice_certificate）；ADR-0007、0009、0026、0047、0051、0054、0055、0057；B-文档与出件.md；A-外部访问与电子签.md
+- 仓库：docs/legacy/runtime-usage/a8-templates.tsv；BURDEN_EVIDENCE.md；docs/glossary/terms.yaml（seal_usage_request、registered_practice_certificate）；ADR-0007、0009、0026、0047、0051、0054、0055、0057；B-文档与出件.md；A-外部访问与电子签.md

@@ -4,4 +4,4 @@
 
 ## 落点
 
-ADR-0026；process/1a/组织与人员同步.md D-1a-27；contract.md
+ADR-0026；docs/business/processes/org-and-personnel-sync.md D-1a-27；contract.md

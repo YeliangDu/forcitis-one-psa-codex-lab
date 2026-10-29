@@ -20,7 +20,7 @@
 | 〔质保金办法〕 | 《建设工程质量保证金管理办法》（建质〔2017〕138 号） | 住建部原链接 404；第二、七、八条内容来自地方政府转载文件与检索摘要（如 https://zjt.xinjiang.gov.cn/ 转载 PDF），**原件未读** |
 | 〔民法典〕 | 《中华人民共和国民法典》第五百八十五条（违约金） | 未联网复读，条号取自词表 `liquidated_damages` 注 |
 | 〔GLD〕 | `rules/GL_FINANCE_DECISIONS.md`（财务评审定案 D17-0..12、GL-026 等，含用户 2026-10-15 作答 A1–A13） | 本地 |
-| 〔FD〕 | `r0/FINANCE_DECISIONS.md`（财务口径决策单 FD-01..46、待核实 F-01..09，未作答）；其外部来源 1–4（上市设计院年报、证监会 2023 年报监管报告）为该文件转引，本次未复读 | 本地 |
+| 〔FD〕 | `docs/business/finance-decisions.md`（财务口径决策单 FD-01..46、待核实 F-01..09，未作答）；其外部来源 1–4（上市设计院年报、证监会 2023 年报监管报告）为该文件转引，本次未复读 | 本地 |
 | 〔ADR〕 | ADR-0016、0021、0022、0023、0024、0031（`adr/src/`） | 本地 |
 | 〔规则〕 | `BUSINESS_RULES.md` 中老系统规则卡（RULE-066..098、181..199） | 本地；只作证据，不复刻 |
 | 〔条例〕 | 《招标投标法实施条例》，同售前段 | 转引售前段已核对的第 26、35、57、58 条 |
@@ -30,7 +30,7 @@
 | 〔VP-DD〕 | Deltek Vantagepoint 2026.4 数据字典（本地，表名即页标题） | 本次读 `LD`、`BT`、`PR`、`CFGOHMain`、`CostRT`、`AR`、`ARCreditMemo`、`InvoiceVoid`、`CancelledInvoices`、`billRetDetail` 等 |
 | 〔VP-H〕 | Deltek Vantagepoint 帮助镜像（本地） | `rev_concept_standard_revenue_methods.html.md`、`asjc_adjust_salaried_job_costing.html.md`、`asjc_benefits_and_considerations_for_using_adjust_salaried_job_costing.html.md` |
 | 〔SPI〕 | SPI Research《2023 Professional Services Maturity Benchmark》本地 PDF | Finance and Operations 支柱定义；表 35 指标名 |
-| 〔词表〕 | `glossary/terms.yaml`（580 条） | 本地 |
+| 〔词表〕 | `docs/glossary/terms.yaml`（580 条） | 本地 |
 
 产品证据（Deltek、SPI）只说明「行业成熟产品这样建模」，不是权威；与法规、准则、已采纳 ADR 冲突时以后者为准。
 
@@ -326,7 +326,7 @@ flowchart LR
 - 《增值税法》实施条例与 2026 年配套公告（纳税义务细则）：未读。
 - 《民法典》第五百八十五条、CAS 22 第六十三条、CAS 13（亏损合同）：本次未复读，条号转引自词表与决策单。
 - GF-2015-0209 的付款、结算条款（第 10.5 条等）、首付款或定金约定：本次未复读，转引售前段；FIDIC White Book 与 AIA B101 的付款与报酬条款：未核实。
-- 两家上市设计院年报与证监会监管报告：转引自 `r0/FINANCE_DECISIONS.md` 外部来源，本次未复读。
+- 两家上市设计院年报与证监会监管报告：转引自 `docs/business/finance-decisions.md` 外部来源，本次未复读。
 - 实际人工成本的构成（工资、社保、公积金、奖金、福利、个税代扣是否计入）：须随 6e 算薪定义，劳动、社保法规条款本次未查。
 - 《企业产品成本核算制度（试行）》（财会〔2013〕17 号）对服务业间接费用分配的要求：未查。
 - Deltek 收入方法、Adjust Salaried Job Cost 只读帮助页；`CFGOHMain` 只读字段说明，未读分摊过程的完整帮助。

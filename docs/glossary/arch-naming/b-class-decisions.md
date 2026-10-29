@@ -114,7 +114,7 @@ C类总数48：原C3、B改归C44、宽口径“证据”英文待确认1，完�
 57. `project_closed` · 项目已结项（原转正）：**改归C，保持proposed**。涉及业务对象、合同权利义务、会计或经营事件含义，设计方无权批准；按原字段保持提议，交业务 Admin，涉及会计的另经财务确认。 原据：ENTERPRISE_AGGREGATES_DRAFT.md AGG-19。
 58. `project_terminated` · 项目已终止（原其他结论）：**改归C，保持proposed**。涉及业务对象、合同权利义务、会计或经营事件含义，设计方无权批准；按原字段保持提议，交业务 Admin，涉及会计的另经财务确认。 原据：ENTERPRISE_AGGREGATES_DRAFT.md AGG-19。
 59. `project_cancelled` · 项目已取消（原其他结论）：**改归C，保持proposed**。涉及业务对象、合同权利义务、会计或经营事件含义，设计方无权批准；按原字段保持提议，交业务 Admin，涉及会计的另经财务确认。 原据：ENTERPRISE_AGGREGATES_DRAFT.md AGG-19。
-60. `snapshot_date` · 快照日（原转正）：**改归C，保持proposed**。涉及人事生效、在职或法人归属含义，设计方无权批准；按原字段保持提议，交业务 Admin，涉及会计的另经财务确认。 原据：proposals/EVENT_ANALYTICS_FIELDS.md。
+60. `snapshot_date` · 快照日（原转正）：**改归C，保持proposed**。涉及人事生效、在职或法人归属含义，设计方无权批准；按原字段保持提议，交业务 Admin，涉及会计的另经财务确认。 原据：docs/architecture/events/event-analytics-fields.md。
 61. `ui_released_state` · 已放行（原转正）：**维持提议**。原提议无实质出处；ADR-0053 只定命名规则，不能单独支持此状态转正。 原据：无实质出处。
 62. `ui_external_system` · 外部系统（原其他结论）：**维持提议**。外部系统是系统概念，现行 kind 没有系统类；待 bcs/系统目录接入，保留原提议。 原据：无实质出处。
 63. `trigger_mode` · 触发方式（原转正）：**维持提议**。原提议无实质出处，触发方式的值域未有本条可追溯依据，维持提议。 原据：无实质出处。
@@ -142,9 +142,9 @@ C类总数48：原C3、B改归C44、宽口径“证据”英文待确认1，完�
 85. `external_identity` · 外部身份（原转正）：**转正**；英文 `ExternalIdentity`，kind=entity，scope=acl，bc=platform.identity。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0033.md。
 86. `provider_kind` · 身份提供方类别（原转正）：**转正**；英文 `ProviderKind`，kind=state，scope=acl，bc=platform.identity。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0033.md。
 87. `external_subject` · 外部主体标识（原转正）：**转正**；英文 `ExternalSubject`，kind=value_object，scope=acl，bc=platform.identity。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0033.md。
-88. `single_operator_mode` · 单人运维模式（原转正）：**转正**；英文 `SingleOperatorMode`，kind=state，scope=domain，bc=platform.identity。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/src/ADR-0030.md。
-89. `single_operator_relaxation` · 单人运维放宽项（原转正）：**转正**；英文 `SingleOperatorRelaxation`，kind=state，scope=domain，bc=platform.identity。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/src/ADR-0030.md。
-90. `super_admin` · 超级管理员（原转正）：**转正**；英文 `SuperAdmin`，kind=value_object，scope=domain，bc=platform.identity。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/src/ADR-0030.md。
+88. `single_operator_mode` · 单人运维模式（原转正）：**转正**；英文 `SingleOperatorMode`，kind=state，scope=domain，bc=platform.identity。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：docs/adr/ADR-0030.md。
+89. `single_operator_relaxation` · 单人运维放宽项（原转正）：**转正**；英文 `SingleOperatorRelaxation`，kind=state，scope=domain，bc=platform.identity。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：docs/adr/ADR-0030.md。
+90. `super_admin` · 超级管理员（原转正）：**转正**；英文 `SuperAdmin`，kind=value_object，scope=domain，bc=platform.identity。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：docs/adr/ADR-0030.md。
 91. `outbound_delivery` · 外发投递（原转正）：**转正**；英文 `OutboundDelivery`，kind=aggregate，scope=acl，bc=platform.integration。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：REIMAGINED_ARCHITECTURE.md §3.7 §3.9。
 92. `recipient` · 收件人（原转正）：**转正**；英文 `Recipient`，kind=role，scope=acl，bc=platform.integration。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：SECURITY_INVARIANTS.md I-6。
 93. `source_reference` · 来源对照（原转正）：**转正**；英文 `SourceReference`，kind=aggregate，scope=acl，bc=platform.integration。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0033.md。
@@ -154,7 +154,7 @@ C类总数48：原C3、B改归C44、宽口径“证据”英文待确认1，完�
 97. `registration` · 登记（原其他结论）：**维持提议**。代码仍使用 Registration；先由 platform.integration 完成 N7 改名，再审 RegisterSourceReference。 原据：adr/ADR-0033.md。
 98. `supersede` · 取代（原转正）：**转正**；英文 `SupersedeSourceReference`，kind=command，scope=acl，bc=platform.integration。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0033.md。
 99. `evidence` · 取证（原其他结论）：**维持提议**。只读取证是治理活动，现行值对象类别不适合；等待治理动作目录，保持提议。 原据：adr/ADR-0037.md。
-100. `read_only_verification` · 只读核实（原转正）：**转正**；英文 `VerifyReadOnlyConnection`，kind=command，scope=acl，bc=platform.integration。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0037.md；phase1a/infra/PREDEPLOY_CHECKLIST.md C-14。
+100. `read_only_verification` · 只读核实（原转正）：**转正**；英文 `VerifyReadOnlyConnection`，kind=command，scope=acl，bc=platform.integration。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0037.md；docs/ops/predeploy-checklist.md C-14。
 101. `read_only_verification_result` · 只读核实结果（原转正）：**转正**；英文 `ReadOnlyVerificationResult`，kind=state，scope=acl，bc=platform.integration。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0037.md。
 102. `read_only_verification_result__passed` · 核实通过（原转正）：**转正**；英文 `Passed`，kind=state，scope=acl，bc=platform.integration。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0037.md。
 103. `read_only_verification_result__violated` · 确认违规（原转正）：**转正**；英文 `Violated`，kind=state，scope=acl，bc=platform.integration。只登记系统作业身份、外部登录凭据、绑定、运行配置或投递/只读核实的 ACL 技术概念。 原据：adr/ADR-0037.md。

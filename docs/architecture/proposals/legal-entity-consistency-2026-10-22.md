@@ -37,7 +37,7 @@
 
 ## 用户答复（LEB，2026-10-22）
 
-用户提交 `LEB-20261022-082103-ioy`，9 题全选推荐、无说明（原文 `rules/decide/answers/LEB.json`；intent 由 one-coordinator 记）。均在现有 ADR 范围内细化设计，不需新 ADR：主体变更是协议变更的一种；内部结算仍按 ADR-0017 第 4 条列为后续路线。
+用户提交 `LEB-20261022-082103-ioy`，9 题全选推荐、无说明（原文 `docs/decisions/decision-pages/answers/leb.json`；intent 由 one-coordinator 记）。均在现有 ADR 范围内细化设计，不需新 ADR：主体变更是协议变更的一种；内部结算仍按 ADR-0017 第 4 条列为后续路线。
 
 | 题 | 决定 | 落设计的组 |
 |---|---|---|

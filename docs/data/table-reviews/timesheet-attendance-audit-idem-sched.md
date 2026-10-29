@@ -26,14 +26,14 @@
 
 **T-1　高　O3 / B5 / O4：没有「员工 × 工作日」唯一约束**
 - 问题：用户决定「一人一日一单」，库里只有单据编号唯一，同一员工同一天可以存在多张单；应用层也没有按（员工，工作日）查重。
-- 证据：迁移 `cost_timesheet/V20261014140000__cost_timesheet_baseline.sql:24`（只有 `uk_timesheets_timesheet_number`）、`:26`（`ix_timesheets_employee_id (employee_id, work_date)` 为非唯一）；信息图 OBJ-66 行（`ENTERPRISE_INFO_MAP_DRAFT.md:123`，Q15）；`ENTERPRISE_AGGREGATES_DRAFT.md:160`（INV-64，写明按 B 类落部分唯一索引）与 `:996`（N-10 已登记并报 one-coordinator）；规则卡 `rules/raw/timesheet-lifecycle.md:44`（RULE-04，旧系统用过滤唯一索引镜像）；`SubmitTimesheet.java:66-67,80-88`（只按调用方给的工时单 ID 加锁、查找，新建分支不查（员工，日期））。
+- 证据：迁移 `cost_timesheet/V20261014140000__cost_timesheet_baseline.sql:24`（只有 `uk_timesheets_timesheet_number`）、`:26`（`ix_timesheets_employee_id (employee_id, work_date)` 为非唯一）；信息图 OBJ-66 行（`ENTERPRISE_INFO_MAP_DRAFT.md:123`，Q15）；`ENTERPRISE_AGGREGATES_DRAFT.md:160`（INV-64，写明按 B 类落部分唯一索引）与 `:996`（N-10 已登记并报 one-coordinator）；规则卡 `docs/business/rules/raw/timesheet-lifecycle.md:44`（RULE-04，旧系统用过滤唯一索引镜像）；`SubmitTimesheet.java:66-67,80-88`（只按调用方给的工时单 ID 加锁、查找，新建分支不查（员工，日期））。
 - 建议改法：加（`employee_id`，`work_date`）的唯一索引（`uk_timesheets_employee_id_work_date`），谓词（哪些状态排除）见「待用户决定」第 1 条；建成后 `ix_timesheets_employee_id` 成为其前缀冗余，删除。
 - 依据：门禁 O3、B5、附录 C 缺陷 a；§14.1 D2。
 
 **T-2　中　B3 / B3a：状态集合、事件名与信息图、聚合草稿对不上**
 - 问题：①信息图 OBJ-66 的状态含「已撤回」，`CHECK` 没有；撤回走 `WithdrawTimesheet` 却落到 `RETURNED` 并发 `TimesheetReturned`，状态与事件上看不出撤回与退回的区别；②事件 `TimesheetCancelled` 的目标状态是 `DRAFT`，名字与目标不一致（B3a ④）；③`REJECTED` 不在信息图的工时状态里，事件目录自述「驳回即退回，目前只在流程以 REJECTED 结束时才出现」，`CHECK` 多出的取值没有来由；④N-10 指出 `CHECK` 缺 `CANCELLED`，Phase 2 要定是否设终态；⑤没有测试比对 `CHECK` ↔ `TimesheetStatus` ↔ `Timesheet.MACHINE`（`TimesheetStateMachineTest` 里没有 `CHECK` 比对）。
 - 已核通过的部分：`CHECK` 五个取值 = `TimesheetStatus` 五个枚举值 = `MACHINE` 状态集（`Timesheet.java:55-60`，`TimesheetStatus.java:4-9`），每个取值都有进入它的转换，五个事件的目标状态都在 `CHECK` 内。
-- 证据：迁移 `:11`、`:36`；事件目录 `events/timesheet.yaml:135,195,258`（三个事件的说明）；`CancelTimesheet.java`、`WithdrawTimesheet.java`、`Timesheet.java:163-175`；`ENTERPRISE_AGGREGATES_DRAFT.md:996`。
+- 证据：迁移 `:11`、`:36`；事件目录 `docs/architecture/events/timesheet.yaml:135,195,258`（三个事件的说明）；`CancelTimesheet.java`、`WithdrawTimesheet.java`、`Timesheet.java:163-175`；`ENTERPRISE_AGGREGATES_DRAFT.md:996`。
 - 建议改法：状态集合由用户定（见待决第 2 条）；定后在 `CHECK`、事件目录、事件类、列注释、用例名同步，并补一个三方一致的测试（同 G-D12）。
 - 依据：门禁 B3、B3a、B7；§14 第 2、3 项。
 
@@ -230,5 +230,5 @@
 - 工时单日工时上限（是否应有 `<= 24` 的 `CHECK`）：未找到规则卡，信息图只写「超日标准只预警」（OBJ-72）；最低时数 Q15 的数值留第 6 步，均未落库，符合 B7。
 - `OperationAttestation` 的例外登记：只在 `backend/architecture/*.txt` 里搜索未见，可能登记在别处。
 - RULE-270 是旧系统「批量审批以被代理人名义记录」的规则卡，被 `on_behalf_of_id` 的列注释引用；新系统的代理动作规则卡未找到，`on_behalf_of_id` 与 `actor_id` 的成对关系未核。
-- 事件目录 `events/attendance.yaml` 的载荷字段未逐项核对 ADR-0035 的兼容规则。
+- 事件目录 `docs/architecture/events/attendance.yaml` 的载荷字段未逐项核对 ADR-0035 的兼容规则。
 - 工时单事件与审计 `change_reason` 带驳回、退回、撤销的自由文本原因（事件目录 `timesheet.yaml:179,242,305`），E1 与 ADR-0043 第 4 项对「原因全文」是否允许进事件载荷，未取得明确条文，未单列为问题。

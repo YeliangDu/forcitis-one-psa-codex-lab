@@ -1,6 +1,6 @@
 # ADR-0058 补写：数据侧输入（交 one-architecture 起草）
 
-- 日期：2026-10-22；作者：one-data。ADR 的起草与修订归 one-architecture（本会话只给数据侧事实与建议条文，不改 `adr/src/ADR-0058.md`）。
+- 日期：2026-10-22；作者：one-data。ADR 的起草与修订归 one-architecture（本会话只给数据侧事实与建议条文，不改 `docs/adr/ADR-0058.md`）。
 - 已不用补的：子实体自有状态机的记法与序号口径已在 ADR-0075（决定 1、3、4 及 `aggregates.yaml` 登记），列名勘误见 E-009。以下只列 ADR-0058 正文与现行落地仍有出入、且 ADR-0075 没覆盖的几处。
 
 | # | ADR-0058 现行字面 | 现行落地与依据 | 建议的补写 |

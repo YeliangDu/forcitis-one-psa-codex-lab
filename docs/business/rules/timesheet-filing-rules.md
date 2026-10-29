@@ -1,6 +1,6 @@
 # Timesheet filing duty business rules — RULE-397..RULE-405
 
-Scope: Phase 2 `cost.timesheet` (submission checks, reminders), with leave hours read from the absence system (`organization.attendance` / future leave data). Rule 1 「每人每天最多一张」 is decided and implemented by one-1a-par, not repeated here. These are rules of FORCITIS one, decided by the user on 2026-10-16 on the filing-duty decision page (`rules/decide/sheets/FD2.json`, answers `rules/decide/answers/FD2.json`, intent `2026-10-16-054259-one-rules-工时填报义务决策页-FD2-6.md`), plus additions the user gave afterwards, relayed by one-coordinator (RULE-400, RULE-403, and the pending-leave handling in RULE-398, RULE-404, RULE-405; their intents are recorded by one-coordinator). Industry practice (SAP CATS, Oracle, Workday, Deltek) was the basis; production totals of the old system (hours dated from 2026-05-01, `phase1a/infra/handoff/B-5-dba/evidence/timesheet_filing_duty.sql`) were only a cross-check. The old system's minimum-hours check is not implemented until Phase 2.
+Scope: Phase 2 `cost.timesheet` (submission checks, reminders), with leave hours read from the absence system (`organization.attendance` / future leave data). Rule 1 「每人每天最多一张」 is decided and implemented by one-1a-par, not repeated here. These are rules of FORCITIS one, decided by the user on 2026-10-16 on the filing-duty decision page (`docs/decisions/decision-pages/sheets/fd2.json`, answers `docs/decisions/decision-pages/answers/fd2.json`, intent `2026-10-16-054259-one-rules-工时填报义务决策页-FD2-6.md`), plus additions the user gave afterwards, relayed by one-coordinator (RULE-400, RULE-403, and the pending-leave handling in RULE-398, RULE-404, RULE-405; their intents are recorded by one-coordinator). Industry practice (SAP CATS, Oracle, Workday, Deltek) was the basis; production totals of the old system (hours dated from 2026-05-01, `docs/data/evidence/dba-handoff/timesheet-filing-duty.sql`) were only a cross-check. The old system's minimum-hours check is not implemented until Phase 2.
 
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|
@@ -79,7 +79,7 @@ Scope: Phase 2 `cost.timesheet` (submission checks, reminders), with leave hours
 ### RULE-403: Hours filed plus approved leave hours of one day are at most 15
 **Category:** Validation
 **Priority:** P0
-**Source:** user words relayed by one-coordinator on 2026-10-16 (「每天含请假最高不超过 15 小时」); the old system's daily 15-hour check (`ManHourServiceImpl`, per process/1a/TIMESHEET审批.md step 2)
+**Source:** user words relayed by one-coordinator on 2026-10-16 (「每天含请假最高不超过 15 小时」); the old system's daily 15-hour check (`ManHourServiceImpl`, per docs/business/processes/timesheet-approval.md step 2)
 **Plain English:** For every day (workday, non-workday and leave day alike), submitted hours plus approved leave hours must not exceed 15; otherwise the submission is refused with an alert. Only approved leave counts here (user answer 「采用」 relayed by one-coordinator on 2026-10-16: the 15-hour cap still counts approved leave only, while the minimum of RULE-398 also counts pending leave). The old system counted any leave record regardless of approval status.
 **Specification:**
 - Given 4 approved leave hours, When 11.5 hours are submitted, Then it fails; with 11 it passes.

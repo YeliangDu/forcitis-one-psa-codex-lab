@@ -18,12 +18,12 @@
 | `proposals/value-streams.v2.yaml` | `ssot/05-value-streams/value-streams.yaml`（用户 2026-10-26 U08=A 升正本） |
 | `proposals/ENTERPRISE_INFO_MAP_DRAFT.md` | `ssot/10-objects/ENTERPRISE_INFO_MAP.md`（用户 2026-10-26 U08=A 升正本；`ssot/10-objects/objects.yaml` 由它生成） |
 | `togaf/capabilities.yaml` | 退役；能力由信息图重建时直接进 ssot（原 ADR-0050 决定 22 拟放 `business/`，未建） |
-| `bpmn/processes.yaml` | 已删（第②步）；可执行 BPMN 登记为流程目录条目的 `runtime_bpmn`（工时审批 → PRC-23），用户任务与指派以 `.bpmn20.xml` 为准；documented 6 条只是 `process/1a/` 文档清单，见 `process/README.md` |
+| `bpmn/processes.yaml` | 已删（第②步）；可执行 BPMN 登记为流程目录条目的 `runtime_bpmn`（工时审批 → PRC-23），用户任务与指派以 `.bpmn20.xml` 为准；documented 6 条只是 `process/1a/` 文档清单，见 `docs/business/processes/README.md` |
 | `proposals/closeout/process-catalog.yaml` | `ssot/09-processes/catalog.yaml`（业务流程唯一登记；`CATALOG.md` 与生成校验脚本 `build_catalog.py` 同目录） |
 | `process/<阶段>/*.md` | 不搬：阶段流程梳理文档（附 M4），是目录条目 `flow_docs` 指向的细节，不另成流程清单；平台机制（审批引擎、编号、审计、登录）的梳理只在这里，不进目录 |
 
 ## 2. 代码读 proposals/ 的限期例外
 
-TEAM-108 定「proposals/ 不算权威，脚本不读」。例外登记在 `architecture/proposal_reads.yaml`（来源、到期日、kind），由 `architecture/proposal_reads.py` 在 `build_all.py` 里检查：未登记、到期仍读、登记过期都失败。升正本的次序由用户定：先价值流 v2 与信息图（已于 2026-10-26 升正本，U08=A，11-06 的登记已删），后聚合草稿与三组骨架（原 2026-11-20，按用户「B 到期日顺延到冻结后」顺延到 2026-12-01，intent 2026-10-26-122240）。
+TEAM-108 定「proposals/ 不算权威，脚本不读」。例外登记在 `docs/architecture/proposal-reads.yaml`（来源、到期日、kind），由 `architecture/proposal_reads.py` 在 `build_all.py` 里检查：未登记、到期仍读、登记过期都失败。升正本的次序由用户定：先价值流 v2 与信息图（已于 2026-10-26 升正本，U08=A，11-06 的登记已删），后聚合草稿与三组骨架（原 2026-11-20，按用户「B 到期日顺延到冻结后」顺延到 2026-12-01，intent 2026-10-26-122240）。
 
 `proposals/STAKEHOLDERS.md` 由 panorama_build 写入、不读，不在例外内；它的去向随第③步定。

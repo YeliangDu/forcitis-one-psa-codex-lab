@@ -12,8 +12,8 @@
 1. 页面本身：每个问题、每个选项、每处数字与日期、页面脚本如何保存与读回答案。
 2. 页上每个选项所依据的原文：ADR、规则卡、规范条款、证据文件或查询结果。**事实性的话（口径、金额、影响条数、日期）逐个回到原文核。**
 3.–94（必须由用户决定的事）与 METHODS M3「规则调整三类」。
-4. 页面所属流程的约定：待决定收件箱的字段说明（`rules/decide/inbox/README.md`，若已合入）；词表小决策页的约定（METHODS.md 里 one-glossary 部分）。
-5. `glossary/terms.yaml`（页面用语）。
+4. 页面所属流程的约定：待决定收件箱的字段说明（`docs/decisions/decision-pages/inbox/README.md`，若已合入）；词表小决策页的约定（METHODS.md 里 one-glossary 部分）。
+5. `docs/glossary/terms.yaml`（页面用语）。
 
 ## 必查项
 

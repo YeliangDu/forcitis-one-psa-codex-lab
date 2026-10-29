@@ -27,7 +27,7 @@
 | C2 | ADR-0052 生效：与 C1 同批采纳，同一提交把 METHOD.md、FRAMEWORKS.md 换成第 4 稿（附差异） | one-architecture | 否（AN-01 已批，待 C1） | 等 C1 |
 | C3 | 阶段层收尾：SD-11～15 写入价值流（VS-10.0 新段与 10 条流程改归、各段补参与者、6 条阶段条件、获客段段内状态、经营复盘退出）；三组按新段复跑归段检查 | one-architecture 写价值流，三组改骨架 | 否（AN-07～11 已批） | 本轮做 |
 | C4 | 能力层待定：阶段能力清单漏映射 11 处（含 PRC-99 公司资产与第 ③ 步结论相反）、两新段能力（VS-04.6、VS-08.0）、用途类别（13 条价值流、21 个一级能力）、内部服务价值流 VS-14 方案 | one-architecture 出页 | **是** | 提议稿已有，未出页 |
-| C5 | 信息层待定：主对象落在技术聚合或声明无业务对象的流程；出差申请、费用事前申请、差旅订单月账单、人员薪酬档案、假期余额 5 项是否立对象（one-glossary 已从 N5 撤出归此，见 glossary/arch-naming/N5_NOUN_JUDGMENT.md） | one-architecture 出页 | **是** | 未出页 |
+| C5 | 信息层待定：主对象落在技术聚合或声明无业务对象的流程；出差申请、费用事前申请、差旅订单月账单、人员薪酬档案、假期余额 5 项是否立对象（one-glossary 已从 N5 撤出归此，见 docs/glossary/arch-naming/n5-noun-judgment.md） | one-architecture 出页 | **是** | 未出页 |
 | C6 | 撤出的 24 张确认页按对齐结果改题重出（PAGE_IMPACT.md），过 check_pages 与审题 | one-architecture，三组供题 | **是**：作答 | 等 C3–C5 |
 | C7 | 流程骨架按价值流铺开、bpmn_gen 出图，每个价值流评审完即出确认页（AN-02） | 三组；one-architecture 合并与检查 | **是**：每个价值流一页 | 方法已定，铺开中 |
 | C8 | 云端额度试点派单（一个价值流骨架 + bpmn_gen 出图） | one-architecture 写派单 | 否 | ANM 已发出，可写 |

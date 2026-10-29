@@ -2710,7 +2710,7 @@ terms:
     scope: domain
     snake: approval_task_became_overdue
     standard_ref:
-    - events/approval.yaml
+    - docs/architecture/events/approval.yaml
     - docs/decisions/decision-pages/answers/gl.json#GL~B2-A27
     - docs/decisions/decision-pages/answers/gl.json#GL~B2-B02
     status: approved
@@ -3194,7 +3194,7 @@ terms:
     scope: domain
     snake: role_abolished
     standard_ref:
-    - events/identity.yaml
+    - docs/architecture/events/identity.yaml
     - docs/decisions/decision-pages/answers/gl.json#GL~B2-B06
     status: approved
     zh: 角色已废除
@@ -3216,7 +3216,7 @@ terms:
     scope: acl
     snake: source_reference_refused
     standard_ref:
-    - events/integration.yaml
+    - docs/architecture/events/integration.yaml
     - docs/decisions/decision-pages/answers/gl.json#GL~B2-A54
     - docs/decisions/decision-pages/answers/gl.json#GL~B2-B05
     status: approved
@@ -3260,7 +3260,7 @@ terms:
     scope: domain
     snake: timesheet_approval_withdrawn
     standard_ref:
-    - events/timesheet.yaml (RULE-279)
+    - docs/architecture/events/timesheet.yaml (RULE-279)
     - docs/decisions/decision-pages/answers/gl.json#GL~B2-B07
     status: approved
     zh: 工时单已撤回审批
@@ -3568,7 +3568,7 @@ promotions:
     scope: domain
     snake: timesheet_approval_withdrawn
     standard_ref:
-    - events/timesheet.yaml (RULE-279)
+    - docs/architecture/events/timesheet.yaml (RULE-279)
     status: proposed
     zh: 工时单已撤回审批
 - file: backend/glossary/proposed/code-aggregates-events.yaml
@@ -3591,7 +3591,7 @@ promotions:
     scope: domain
     snake: approval_task_became_overdue
     standard_ref:
-    - events/approval.yaml
+    - docs/architecture/events/approval.yaml
     status: proposed
     zh: 任务已超时
 - file: backend/glossary/proposed/code-aggregates-events.yaml
@@ -3614,7 +3614,7 @@ promotions:
     scope: domain
     snake: role_deleted
     standard_ref:
-    - events/identity.yaml
+    - docs/architecture/events/identity.yaml
     status: proposed
     zh: 角色已废除
 - file: backend/glossary/proposed/code-aggregates-events.yaml
@@ -3638,7 +3638,7 @@ promotions:
     scope: domain
     snake: source_reference_refused
     standard_ref:
-    - events/integration.yaml
+    - docs/architecture/events/integration.yaml
     status: proposed
     zh: 来源对照登记已被拒绝
 - file: backend/glossary/proposed/data-migration.yaml
@@ -4026,7 +4026,7 @@ promotions:
     scope: domain
     snake: act
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-04
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-04
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 办理
@@ -4052,7 +4052,7 @@ promotions:
     scope: domain
     snake: assigned
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-05
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-05
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 已分配
@@ -4078,7 +4078,7 @@ promotions:
     scope: domain
     snake: completed
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-07
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-07
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 已完成
@@ -4104,7 +4104,7 @@ promotions:
     scope: domain
     snake: escalated
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-10
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-10
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 已升级
@@ -4130,7 +4130,7 @@ promotions:
     scope: domain
     snake: fallback
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-11
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-11
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 兜底
@@ -4156,7 +4156,7 @@ promotions:
     scope: domain
     snake: form
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-12
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-12
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 表单
@@ -4182,7 +4182,7 @@ promotions:
     scope: domain
     snake: round
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-15
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-15
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 轮次
@@ -4208,7 +4208,7 @@ promotions:
     scope: domain
     snake: row
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-16
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-16
     status: deprecated
     until: 代码改名随 R-2a，生产前；界面文字 dev 前
     zh: 行
@@ -4234,7 +4234,7 @@ promotions:
     scope: domain
     snake: deadline
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-21
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-21
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 审批时限
@@ -4260,7 +4260,7 @@ promotions:
     scope: domain
     snake: effect
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-22
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-22
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 效力
@@ -4286,7 +4286,7 @@ promotions:
     scope: domain
     snake: release_of_task
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-25
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-25
     status: deprecated
     until: 界面文字 dev 前
     zh: 释放
@@ -4312,7 +4312,7 @@ promotions:
     scope: domain
     snake: business_summary
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-41
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-41
     status: deprecated
     until: 界面文字 dev 前
     zh: 业务摘要
@@ -4338,7 +4338,7 @@ promotions:
     scope: domain
     snake: proxy_handling
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-42
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-42
     status: deprecated
     until: 界面文字 dev 前
     zh: 代理
@@ -4364,7 +4364,7 @@ promotions:
     scope: domain
     snake: task_participant
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-53
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-53
     status: deprecated
     until: 界面文字 dev 前
     zh: 参与人
@@ -4390,7 +4390,7 @@ promotions:
     scope: domain
     snake: decision
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-57
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-57
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 决定
@@ -4417,7 +4417,7 @@ promotions:
     scope: domain
     snake: resulted
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-60
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-60
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 已出结果
@@ -4443,7 +4443,7 @@ promotions:
     scope: domain
     snake: skipped
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-65
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-65
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 已跳过
@@ -4469,7 +4469,7 @@ promotions:
     scope: domain
     snake: project_manager_review
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-68
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-68
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 项目经理审批
@@ -4497,7 +4497,7 @@ promotions:
     scope: domain
     snake: regional_head_review
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-69
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-69
     status: deprecated
     until: 代码改名随 R-1b P4（one-1a-next-4），生产前
     zh: 区域负责人审批
@@ -4523,7 +4523,7 @@ promotions:
     scope: domain
     snake: supervisor_review
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-70
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-70
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 一级汇报人审批
@@ -4549,7 +4549,7 @@ promotions:
     scope: domain
     snake: cutoff
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-74
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-74
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 撤回截止点
@@ -4575,7 +4575,7 @@ promotions:
     scope: domain
     snake: administrator_mode
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-ID-04
+    - docs/glossary/decisions-round3-2026-10-15.json R3-ID-04
     status: deprecated
     until: 界面文字 dev 前
     zh: 管理模式
@@ -4601,7 +4601,7 @@ promotions:
     scope: domain
     snake: authorization
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-ID-10
+    - docs/glossary/decisions-round3-2026-10-15.json R3-ID-10
     status: deprecated
     until: 代码改名随 R-2a，生产前；界面文字 dev 前
     zh: 授权
@@ -4628,7 +4628,7 @@ promotions:
     scope: domain
     snake: account_disabled
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-ID-11
+    - docs/glossary/decisions-round3-2026-10-15.json R3-ID-11
     status: deprecated
     until: 界面文字 dev 前
     zh: 停用
@@ -4654,7 +4654,7 @@ promotions:
     scope: domain
     snake: sensitive_role_holder
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-ID-22
+    - docs/glossary/decisions-round3-2026-10-15.json R3-ID-22
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 敏感角色持有人
@@ -4680,7 +4680,7 @@ promotions:
     scope: domain
     snake: size
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-IN-07
+    - docs/glossary/decisions-round3-2026-10-15.json R3-IN-07
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 大小
@@ -4706,7 +4706,7 @@ promotions:
     scope: domain
     snake: keep
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-IN-08
+    - docs/glossary/decisions-round3-2026-10-15.json R3-IN-08
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 保留
@@ -4732,7 +4732,7 @@ promotions:
     scope: domain
     snake: worm
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-IN-36
+    - docs/glossary/decisions-round3-2026-10-15.json R3-IN-36
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 一次写入多次读取
@@ -4758,7 +4758,7 @@ promotions:
     scope: domain
     snake: voucher_numbering_rule
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-NU-08
+    - docs/glossary/decisions-round3-2026-10-15.json R3-NU-08
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 凭证号规则
@@ -4784,7 +4784,7 @@ promotions:
     scope: domain
     snake: rule_version
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-NU-09
+    - docs/glossary/decisions-round3-2026-10-15.json R3-NU-09
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 规则版本
@@ -4810,7 +4810,7 @@ promotions:
     scope: domain
     snake: overhead_hours
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-TS-04
+    - docs/glossary/decisions-round3-2026-10-15.json R3-TS-04
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: OH 工时
@@ -4836,7 +4836,7 @@ promotions:
     scope: domain
     snake: email
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-WF-06
+    - docs/glossary/decisions-round3-2026-10-15.json R3-WF-06
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 企业邮箱
@@ -4863,7 +4863,7 @@ promotions:
     scope: domain
     snake: department
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-09
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-09
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 部门
@@ -4890,7 +4890,7 @@ promotions:
     scope: domain
     snake: task_handler
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-32
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-32
     status: deprecated
     until: 界面文字 dev 前
     zh: 办理人
@@ -4917,7 +4917,7 @@ promotions:
     scope: domain
     snake: running
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-61
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-61
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 进行中
@@ -4946,7 +4946,7 @@ promotions:
     scope: domain
     snake: ts
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-NU-06
+    - docs/glossary/decisions-round3-2026-10-15.json R3-NU-06
     status: deprecated
     until: 废弃分支 one-design-sync-staging 删除后即删本条（one-coordinator 2026-10-15：该卡不派）
     zh: 工时单据类型代码
@@ -4975,7 +4975,7 @@ promotions:
     scope: domain
     snake: qt
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-NU-17
+    - docs/glossary/decisions-round3-2026-10-15.json R3-NU-17
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 报价单据类型代码
@@ -5004,7 +5004,7 @@ promotions:
     scope: domain
     snake: jv
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-NU-18
+    - docs/glossary/decisions-round3-2026-10-15.json R3-NU-18
     status: deprecated
     until: 代码改名随 R-2a，生产前
     zh: 记账凭证单据类型代码
@@ -5031,7 +5031,7 @@ promotions:
     scope: domain
     snake: journal_voucher
     standard_ref:
-    - glossary/decisions-round3-2026-10-15.json R3-AP-26
+    - docs/glossary/decisions-round3-2026-10-15.json R3-AP-26
     status: deprecated
     until: 界面文字 dev 前
     zh: 会计凭证

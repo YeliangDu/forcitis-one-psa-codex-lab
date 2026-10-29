@@ -1,6 +1,6 @@
 # Identity: single operator mode, authorization history, emergency login, sessions and tickets business rules — RULE-437..RULE-459
 
-Scope: `platform.identity` (Phase 1a). Rules of FORCITIS one, written from the behaviour the existing tests assert and from the documents named per card. Basis: ADR-0030 (single operator mode in non-production) with its work card `phase1a/cards/SINGLE-OP.md`; ADR-0034 (authorization history, role and grant versions) with DATA_DESIGN_CHECKLIST §14.1 D17; ADR-0027 section 1 (emergency admin) as amended by ADR-0028 and ADR-0033 section 3 item 7 (U-4); `phase1a/SECURITY_INVARIANTS.md` I-11, I-12, I-13; `process/1a/登录与会话.md` (T5, T7, T8, T9, D-1a-41, D-1a-45); RULE_REVIEWS conclusions of RULE-332 and RULE-349. No legacy code is used as evidence. Existing legacy-behaviour cards (RULE-316, RULE-332, RULE-349) describe the old system and are cited only through their review conclusions; none of them covers the behaviour below.
+Scope: `platform.identity` (Phase 1a). Rules of FORCITIS one, written from the behaviour the existing tests assert and from the documents named per card. Basis: ADR-0030 (single operator mode in non-production) with its work card `phase1a/cards/SINGLE-OP.md`; ADR-0034 (authorization history, role and grant versions) with DATA_DESIGN_CHECKLIST §14.1 D17; ADR-0027 section 1 (emergency admin) as amended by ADR-0028 and ADR-0033 section 3 item 7 (U-4); `docs/ops/security-invariants.md` I-11, I-12, I-13; `docs/business/processes/login-and-session.md` (T5, T7, T8, T9, D-1a-41, D-1a-45); RULE_REVIEWS conclusions of RULE-332 and RULE-349. No legacy code is used as evidence. Existing legacy-behaviour cards (RULE-316, RULE-332, RULE-349) describe the old system and are cited only through their review conclusions; none of them covers the behaviour below.
 
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|
@@ -31,7 +31,7 @@ Scope: `platform.identity` (Phase 1a). Rules of FORCITIS one, written from the b
 ### RULE-437: In single operator mode an operations command may leave out the witness; the omission is marked in the same transaction as the change
 **Category:** Policy
 **Priority:** P0
-**Source:** ADR-0030 section 2 row 1 (witness omission; user words in intent `2026-10-15-000912-one-coordinator-ADR-0030-dev-单人操.md`, approved 2026-10-15) as worded by `adr/src/_readme_deviations.md` E-004 (`witnessId=none`); `phase1a/cards/SINGLE-OP.md` P2-01, P2-02, P2-03. Tests: SingleOperatorWitnessOmissionIT#p201_grantRoleWithoutWitnessSucceeds, SingleOperatorWitnessOmissionIT#p202_markIsWrittenInTheSameTransaction, SingleOperatorWitnessOmissionIT#p203_resetWithoutWitness, SingleOperatorWitnessOmissionIT#p203_revokeWithoutWitness
+**Source:** ADR-0030 section 2 row 1 (witness omission; user words in intent `2026-10-15-000912-one-coordinator-ADR-0030-dev-单人操.md`, approved 2026-10-15) as worded by `docs/adr/readme-deviations.md` E-004 (`witnessId=none`); `phase1a/cards/SINGLE-OP.md` P2-01, P2-02, P2-03. Tests: SingleOperatorWitnessOmissionIT#p201_grantRoleWithoutWitnessSucceeds, SingleOperatorWitnessOmissionIT#p202_markIsWrittenInTheSameTransaction, SingleOperatorWitnessOmissionIT#p203_resetWithoutWitness, SingleOperatorWitnessOmissionIT#p203_revokeWithoutWitness
 **Plain English:** Where one person alone runs the development environment, the six operations commands (grant a role, revoke a role, register, reset, disable and enable an emergency admin) may be run without a witness. The normal audit entry is still written, naming the operator and recording that there is no witness, and a second entry in the same transaction marks that the witness requirement was relaxed.
 **Specification:**
 - Given the single operator mode is on and an employed, known employee, When the operations command grant-role runs with an operator and no witness for role business_admin, Then it exits with 0 and prints "role granted", the employee holds business_admin, and the normal entry has detail "operatorId=<operator> witnessId=none role=business_admin" on the user account.
@@ -54,7 +54,7 @@ Scope: `platform.identity` (Phase 1a). Rules of FORCITIS one, written from the b
 ### RULE-439: The operator is always required and must be a known employee, in single operator mode too
 **Category:** Validation
 **Priority:** P0
-**Source:** ADR-0030 section 2 row 1, "仍然保留" column (the operator is mandatory); `phase1a/cards/SINGLE-OP.md` P2-04; RULING-COORD-20261017-01 (`rulings/COORD-2026-10-17.md`: with no witness the operator must exist as an employee; with a witness, the witness is checked); ADR-0069 decision on operations commands (operator and witness are employee identifiers). Tests: SingleOperatorWitnessOmissionIT#p204_operatorIsStillRequired, SingleOperatorWitnessOmissionIT#rulingCoord20261017_01_unknownOperatorWithoutWitnessIsRefused
+**Source:** ADR-0030 section 2 row 1, "仍然保留" column (the operator is mandatory); `phase1a/cards/SINGLE-OP.md` P2-04; RULING-COORD-20261017-01 (`docs/rules/rulings/coord-2026-10-17.md`: with no witness the operator must exist as an employee; with a witness, the witness is checked); ADR-0069 decision on operations commands (operator and witness are employee identifiers). Tests: SingleOperatorWitnessOmissionIT#p204_operatorIsStillRequired, SingleOperatorWitnessOmissionIT#rulingCoord20261017_01_unknownOperatorWithoutWitnessIsRefused
 **Plain English:** Leaving out the witness does not leave out the person responsible. A command with no operator, with an operator that is not a valid identifier, or with an operator who is not an employee in the organisation snapshot is refused with the witness-required error, and nothing is changed or marked.
 **Specification:**
 - Given mode on, When grant-role runs with no `--operator`, or with only `--witness`, or with the operator in upper case, or with operator "alice", Then the exit code is 1, the error contains PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED, the identity tables are unchanged and no role-granted entry exists.
@@ -150,7 +150,7 @@ Scope: `platform.identity` (Phase 1a). Rules of FORCITIS one, written from the b
 ### RULE-448: Emergency login is accepted only from the internal network, judged before any credential is looked at
 **Category:** Validation
 **Priority:** P0
-**Source:** ADR-0027 decision 1 items 2 and 9 (internal source first; internal network limit unchanged); `process/1a/登录与会话.md` T7 (emergency account: internal network only). Tests: EmergencyLoginIntegrationTest#internalNetworkOnly, EmergencyLoginIntegrationTest#forwardedHeaderFromAnOutsiderIsIgnored
+**Source:** ADR-0027 decision 1 items 2 and 9 (internal source first; internal network limit unchanged); `docs/business/processes/login-and-session.md` T7 (emergency account: internal network only). Tests: EmergencyLoginIntegrationTest#internalNetworkOnly, EmergencyLoginIntegrationTest#forwardedHeaderFromAnOutsiderIsIgnored
 **Plain English:** The emergency endpoint answers only requests whose own network address is internal. A request from outside is refused before its password or code is examined, so an outsider cannot count failures against the account. A client cannot make itself look internal by sending forwarding headers.
 **Specification:**
 - Given an emergency admin and a valid password and code, When the request comes from address 203.0.113.9, Then 403 with PLATFORM_IDENTITY_NETWORK_DENIED and the account's failed-attempt counter is 0.
@@ -160,7 +160,7 @@ Scope: `platform.identity` (Phase 1a). Rules of FORCITIS one, written from the b
 ### RULE-449: An emergency one-time code works once
 **Category:** Validation
 **Priority:** P0
-**Source:** ADR-0027 decision 1 item 2 (the one-time code is a single step); `process/1a/登录与会话.md` T7 (TOTP with step replay protection). Tests: EmergencyLoginIntegrationTest#codeCannotBeReplayed
+**Source:** ADR-0027 decision 1 item 2 (the one-time code is a single step); `docs/business/processes/login-and-session.md` T7 (TOTP with step replay protection). Tests: EmergencyLoginIntegrationTest#codeCannotBeReplayed
 **Plain English:** Once a one-time code has been used for a successful login, the same code is refused even with the right password.
 **Specification:**
 - Given a valid password and a current code, When the login succeeds and the same request is repeated with the same code, Then the first answer is 200 and the second 401.
@@ -222,7 +222,7 @@ Scope: `platform.identity` (Phase 1a). Rules of FORCITIS one, written from the b
 ### RULE-455: An expired session is audited with its cause, idle or absolute, and then removed
 **Category:** Lifecycle
 **Priority:** P1
-**Source:** `process/1a/登录与会话.md` T8 and D-1a-41 (session lifetime: 10 hours idle, 24 hours absolute; user answer recorded in intent `2026-10-14-050-规则评审第三批-identity.md`, RULE_REVIEWS RULE-332); D-1a-45 (the reason a session ended is recorded only in the audit). Tests: SessionLifecycleIntegrationTest#expiredSessionsAreAuditedThenRemoved
+**Source:** `docs/business/processes/login-and-session.md` T8 and D-1a-41 (session lifetime: 10 hours idle, 24 hours absolute; user answer recorded in intent `2026-10-14-050-规则评审第三批-identity.md`, RULE_REVIEWS RULE-332); D-1a-45 (the reason a session ended is recorded only in the audit). Tests: SessionLifecycleIntegrationTest#expiredSessionsAreAuditedThenRemoved
 **Plain English:** Sessions have no status field, so when a session runs out the reason is kept in the audit. A background purge writes one entry per expired session saying whether it was idle too long or too old, and then deletes it. A live session is left alone.
 **Specification:**
 - Given three sessions: one whose expiry is already past, one created 24 hours and one second ago whose idle expiry is still ahead, and one live, When the purge runs, Then it removes 2, one session row remains, and the audit holds `platform.identity.session.expired` for the first person with detail "cause=IDLE" and for the second with "cause=ABSOLUTE", each on the user account subject.
@@ -231,7 +231,7 @@ Scope: `platform.identity` (Phase 1a). Rules of FORCITIS one, written from the b
 ### RULE-456: A signed ticket never admits an administrator and admits only people holding a role in the issuer's scope
 **Category:** Validation
 **Priority:** P0
-**Source:** `process/1a/登录与会话.md` T5 and section 2A.7 (tickets cannot bring in an administrator role; an issuer has an allowed role scope; an empty scope lets nobody in; no super_admin in a scope); SECURITY_INVARIANTS I-3; ADR-0009 decision 3. Status: the ticket mechanism may be removed after the identity lifecycle study and T-13 (ADR-0055 decision 6, ADR-0069 H-2); the card holds while it exists. Tests: SignedTicketLoginIntegrationTest#administratorsAreRefused, SignedTicketLoginIntegrationTest#userScope
+**Source:** `docs/business/processes/login-and-session.md` T5 and section 2A.7 (tickets cannot bring in an administrator role; an issuer has an allowed role scope; an empty scope lets nobody in; no super_admin in a scope); SECURITY_INVARIANTS I-3; ADR-0009 decision 3. Status: the ticket mechanism may be removed after the identity lifecycle study and T-13 (ADR-0055 decision 6, ADR-0069 H-2); the card holds while it exists. Tests: SignedTicketLoginIntegrationTest#administratorsAreRefused, SignedTicketLoginIntegrationTest#userScope
 **Plain English:** An external system's signed ticket can never start a session for someone who holds super_admin, whatever the issuer is configured for, and an issuer cannot even be configured with that role. A person is admitted only if they hold at least one role the issuer is allowed to bring in; an issuer with an empty list admits nobody.
 **Specification:**
 - Given an account holding super_admin, When its valid ticket is redeemed, Then 403 PLATFORM_IDENTITY_ROLE_NOT_ALLOWED and no session cookie; Given an issuer record scoped to super_admin, When it is inserted, Then the database rejects it.

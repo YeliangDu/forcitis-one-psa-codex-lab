@@ -4,4 +4,4 @@
 
 ## 落点
 
-6 项按一手来源核实版本后写进 architecture/FRAMEWORKS.md（ADR-0040 防漂移规则）；第三范式与六边形架构给出建议交用户定；记录 Artifact GtFkMvqxnWe6wZc1euM9Ec
+6 项按一手来源核实版本后写进 docs/architecture/frameworks.md（ADR-0040 防漂移规则）；第三范式与六边形架构给出建议交用户定；记录 Artifact GtFkMvqxnWe6wZc1euM9Ec

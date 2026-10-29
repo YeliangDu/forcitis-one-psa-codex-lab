@@ -1,7 +1,7 @@
 # B31P 取证准备：本地证据盘点与只读查询包（草稿）
 
 - 任务：ARC-1017-DAT-01（one-data；输入 `claude/one-architecture-adr-governance@84ba2706` 的 `B31P_EVIDENCE_SPEC.md`）
-- 产出方式：Codex（gpt-6.1-sol，xhigh，read-only）起草，one-data 抽查：本地证据的路径与行号抽查 8 处，与原文一致（`runtime/a8_templates.tsv` 的用印申请、需求工单、IT 资产采购申请、IT 资产领用申请，`runtime/a8_forms.tsv`，`OA_PROCESS_INVENTORY.md:173`）。**其余行号未逐条核**。
+- 产出方式：Codex（gpt-6.1-sol，xhigh，read-only）起草，one-data 抽查：本地证据的路径与行号抽查 8 处，与原文一致（`docs/legacy/runtime-usage/a8-templates.tsv` 的用印申请、需求工单、IT 资产采购申请、IT 资产领用申请，`docs/legacy/runtime-usage/a8-forms.tsv`，`OA_PROCESS_INVENTORY.md:173`）。**其余行号未逐条核**。
 - 状态：**草稿，SQL 全部未执行、未编译**。含 `<…>` 的表与列是假设，必须先跑 Q00 元数据探查确认，禁止直接执行。生产取证只经 one-ops 的取证通道，每次登记一行（ADR-0037）；结果只留配置与计数，明细与个人信息不进会话和仓库。
 - 建议执行顺序：先 Q00、Q01、Q03、Q10（只读元数据与索引，不读任何值），再据此把 Q02、Q04 以后的查询实例化；Q05–Q09、Q11、Q12 的表与列在元数据确认前不得执行。
 
@@ -17,107 +17,107 @@
 
 共同边界：
 
-- `runtime/a8_templates.tsv:1–2`：2026-10-14 模板快照，包含模板标识、实际名称、表单主表、删除标志、近 365 天计数等；**没有模板版本、节点、授权规则**。
-- `runtime/a8_forms.tsv:1–2`：表单名称、类型、主表及行数；**没有字段标签、字段规则和受控值定义**。主表行数也不能替代流程实例数。
+- `docs/legacy/runtime-usage/a8-templates.tsv:1–2`：2026-10-14 模板快照，包含模板标识、实际名称、表单主表、删除标志、近 365 天计数等；**没有模板版本、节点、授权规则**。
+- `docs/legacy/runtime-usage/a8-forms.tsv:1–2`：表单名称、类型、主表及行数；**没有字段标签、字段规则和受控值定义**。主表行数也不能替代流程实例数。
 - `OA_PROCESS_INVENTORY.md:19–22`：上述历史取证使用 `READ UNCOMMITTED`；本次后续取证必须按 ADR-0037 重取，不能沿用其隔离方式。
-- `OA_PROCESS_INVENTORY.md:46`、`r0/FINANCE_ADR_POINTS.md:38` 的“留在 OA”属于历史规划；`architecture/proposals/closeout/PRC_ALLOCATIONS.md:8–13` 后来登记了迁入 B-31 的目标。两者都不能证明生产参数配置。
-- `process/1a/审批通用流程.md:4–5` 主要盘点老系统 Flowable；不能直接当作 A8 用印、IT、资产及活动模板的节点配置。
+- `OA_PROCESS_INVENTORY.md:46`、`docs/business/finance-adr-points.md:38` 的“留在 OA”属于历史规划；`docs/architecture/proposals/closeout/prc-allocations.md:8–13` 后来登记了迁入 B-31 的目标。两者都不能证明生产参数配置。
+- `docs/business/processes/general-approval-flow.md:4–5` 主要盘点老系统 Flowable；不能直接当作 A8 用印、IT、资产及活动模板的节点配置。
 
 1. **B31P-01 用印责任制度版本与生效信息——取证待补。**  
-   `runtime/a8_templates.tsv:7`、`runtime/a8_forms.tsv:177`：实际存在「用印申请」，主表 `formmain_0642`。`OA_PROCESS_INVENTORY.md:173` 记录其使用量及报价同步关系。未见责任制度正式名称、版本、批准引用、有效期和维护授权。
+   `docs/legacy/runtime-usage/a8-templates.tsv:7`、`docs/legacy/runtime-usage/a8-forms.tsv:177`：实际存在「用印申请」，主表 `formmain_0642`。`OA_PROCESS_INVENTORY.md:173` 记录其使用量及报价同步关系。未见责任制度正式名称、版本、批准引用、有效期和维护授权。
 
 2. **B31P-02 用印用途、法人、归属对象与批准责任——部分证据。**  
-   `runtime/a8_forms.tsv:92`：存在「用印申请档案」`formmain_0643`。`rules/raw/presales-validation-lifecycle.md:82–94`：老报价用印登记检查文件名、用印公司、印章类型、原件／复印件及份数。后者是报价代码规则摘录，未证明 A8 用途字典、用途×法人×归属对象责任映射和批准角色。
+   `docs/legacy/runtime-usage/a8-forms.tsv:92`：存在「用印申请档案」`formmain_0643`。`docs/business/rules/raw/presales-validation-lifecycle.md:82–94`：老报价用印登记检查文件名、用印公司、印章类型、原件／复印件及份数。后者是报价代码规则摘录，未证明 A8 用途字典、用途×法人×归属对象责任映射和批准角色。
 
 3. **B31P-03 用印授权层级与适用边界——部分证据。**  
-   `runtime/a8_templates.tsv:7`、`OA_PROCESS_INVENTORY.md:173`：可定位用印模板。尚无该模板的各级节点、串并行、越级／代办／缺位分支及正式授权表；不能从通用审批能力推定其配置。
+   `docs/legacy/runtime-usage/a8-templates.tsv:7`、`OA_PROCESS_INVENTORY.md:173`：可定位用印模板。尚无该模板的各级节点、串并行、越级／代办／缺位分支及正式授权表；不能从通用审批能力推定其配置。
 
 4. **B31P-04 用印加审制度版本与生效信息——取证待补。**  
-   `runtime/a8_templates.tsv:7` 提供流程入口；未找到加审制度版本、条款、批准及生效证据。
+   `docs/legacy/runtime-usage/a8-templates.tsv:7` 提供流程入口；未找到加审制度版本、条款、批准及生效证据。
 
 5. **B31P-05 需加审的用途、条件与层级——部分证据。**  
-   `runtime/prod_bpm2.tsv:16`：老系统 `OPP_QUOTATION` 存在读取 `needSeal` 的分支表达式。`rules/raw/presales-validation-lifecycle.md:44` 也记录该变量。它们仅证明报价审批中的用印标志分路，不能证明 A8 用印加审用途、授权层级或正式依据。
+   `docs/legacy/runtime-usage/prod-bpm2.tsv:16`：老系统 `OPP_QUOTATION` 存在读取 `needSeal` 的分支表达式。`docs/business/rules/raw/presales-validation-lifecycle.md:44` 也记录该变量。它们仅证明报价审批中的用印标志分路，不能证明 A8 用印加审用途、授权层级或正式依据。
 
 6. **B31P-06 加审条件与来源审批直通的对应——部分证据。**  
-   `rules/raw/presales-validation-lifecycle.md:93`：报价登记要求份数至少为 1；`map/packets/fst_domain_presales.txt:98–99`：报价聚合持有用印登记集合。未见来源审批状态映射、来源实例核准份数、累计已办理口径和直通分支。最少份数校验不等于来源份数上限。
+   `docs/business/rules/raw/presales-validation-lifecycle.md:93`：报价登记要求份数至少为 1；`map/packets/fst_domain_presales.txt:98–99`：报价聚合持有用印登记集合。未见来源审批状态映射、来源实例核准份数、累计已办理口径和直通分支。最少份数校验不等于来源份数上限。
 
 7. **B31P-07 IT 类别制度版本与生效信息——取证待补。**  
-   `runtime/a8_templates.tsv:24`：实际模板名「需求工单」，表单名「IT需求工单」，主表 `formmain_0875`。未见类别制度及正式批准、生效信息。
+   `docs/legacy/runtime-usage/a8-templates.tsv:24`：实际模板名「需求工单」，表单名「IT需求工单」，主表 `formmain_0875`。未见类别制度及正式批准、生效信息。
 
 8. **B31P-08 受控类别、人审条件及批准责任——部分证据。**  
-   `runtime/a8_forms.tsv:22`、`runtime/a8_templates.tsv:24`：可定位 IT 工单。尚无类别／子类字典、受控标志、人审触发条件、权限需求批准与实际授权节点的配置。
+   `docs/legacy/runtime-usage/a8-forms.tsv:22`、`docs/legacy/runtime-usage/a8-templates.tsv:24`：可定位 IT 工单。尚无类别／子类字典、受控标志、人审触发条件、权限需求批准与实际授权节点的配置。
 
 9. **B31P-09 类别表提供方与维护授权——取证待补。**  
-   `runtime/a8_forms.tsv:207`：存在「IT需求工单档案」`formmain_0879`，只证明档案定义存在。未见类别提供、维护、批准、发布角色及字段级授权。
+   `docs/legacy/runtime-usage/a8-forms.tsv:207`：存在「IT需求工单档案」`formmain_0879`，只证明档案定义存在。未见类别提供、维护、批准、发布角色及字段级授权。
 
 10. **B31P-10 默认受理路由与采购交接——部分证据。**  
-    `runtime/a8_templates.tsv:24`：需求工单；`:63`：另有「IT资产采购申请」`formmain_1065`。两者并存不能证明交接关系，仍缺类别→受理角色、采购交接条件、字段映射及接收回执配置。
+    `docs/legacy/runtime-usage/a8-templates.tsv:24`：需求工单；`:63`：另有「IT资产采购申请」`formmain_1065`。两者并存不能证明交接关系，仍缺类别→受理角色、采购交接条件、字段映射及接收回执配置。
 
 11. **B31P-11 IT 金额制度版本与生效信息——取证待补。**  
-    `runtime/a8_templates.tsv:63`、`runtime/a8_forms.tsv:231`：可定位 IT 采购申请。没有 IT 金额制度、授权表版本、批准和有效范围证据。
+    `docs/legacy/runtime-usage/a8-templates.tsv:63`、`docs/legacy/runtime-usage/a8-forms.tsv:231`：可定位 IT 采购申请。没有 IT 金额制度、授权表版本、批准和有效范围证据。
 
 12. **B31P-12 IT 单据金额的承载范围——部分证据。**  
-    `runtime/a8_forms.tsv:22`、`:135`、`:194`、`:231`：分别有 IT 工单、IT 资产采购档案、标为停用的 IT 资产采购付款申请、IT 资产采购申请。尚无金额字段及其可填／必填／展示规则，不能断言金额由 IT 工单承载，也不能据表名认定交接成立。
+    `docs/legacy/runtime-usage/a8-forms.tsv:22`、`:135`、`:194`、`:231`：分别有 IT 工单、IT 资产采购档案、标为停用的 IT 资产采购付款申请、IT 资产采购申请。尚无金额字段及其可填／必填／展示规则，不能断言金额由 IT 工单承载，也不能据表名认定交接成立。
 
 13. **B31P-13 IT 金额两档阈值与币种——取证待补。**  
-    `runtime/a8_templates.tsv:24`、`:63` 仅提供定位入口。未找到两档阈值、币种、含税口径、比较运算和区间边界；不得补零或推定不适用。
+    `docs/legacy/runtime-usage/a8-templates.tsv:24`、`:63` 仅提供定位入口。未找到两档阈值、币种、含税口径、比较运算和区间边界；不得补零或推定不适用。
 
 14. **B31P-14 领用配置制度版本与生效信息——取证待补。**  
-    `runtime/a8_templates.tsv:144`：实际模板「IT资产领用申请」，表单「IT资产领用单」，主表 `formmain_1055`。未见岗位设备标准制度、批准版本及生效信息。
+    `docs/legacy/runtime-usage/a8-templates.tsv:144`：实际模板「IT资产领用申请」，表单「IT资产领用单」，主表 `formmain_1055`。未见岗位设备标准制度、批准版本及生效信息。
 
 15. **B31P-15 岗位与资产类别标准——取证待补。**  
-    `runtime/a8_forms.tsv:132`、`:192`、`:195`：存在 IT 信息资产汇总表、领用单和资产状态列表。`process/1a/组织与人员同步.md:28` 提及 `ORG_POST` 岗位同步。均未提供岗位×资产类别标准、数量单位、多岗位选择规则或唯一使用人校验。
+    `docs/legacy/runtime-usage/a8-forms.tsv:132`、`:192`、`:195`：存在 IT 信息资产汇总表、领用单和资产状态列表。`docs/business/processes/org-and-personnel-sync.md:28` 提及 `ORG_POST` 岗位同步。均未提供岗位×资产类别标准、数量单位、多岗位选择规则或唯一使用人校验。
 
 16. **B31P-16 超配规则、清单提供方与维护责任——取证待补。**  
-    `runtime/a8_templates.tsv:144` 只有领用模板线索。未找到“超配”对应的原始条件、允许／拒绝结果、重叠处理及清单维护授权。
+    `docs/legacy/runtime-usage/a8-templates.tsv:144` 只有领用模板线索。未找到“超配”对应的原始条件、允许／拒绝结果、重叠处理及清单维护授权。
 
 17. **B31P-17 活动制度版本与生效信息——取证待补。**  
-    `runtime/a8_templates.tsv:47`、`:112`、`:127`：实际有「周年贺卡」「感恩节活动」「创新项目发布申请」。`architecture/proposals/closeout/PRC_ALLOCATIONS.md:13` 是新系统流程归属，不能替代现行活动制度。
+    `docs/legacy/runtime-usage/a8-templates.tsv:47`、`:112`、`:127`：实际有「周年贺卡」「感恩节活动」「创新项目发布申请」。`docs/architecture/proposals/closeout/prc-allocations.md:13` 是新系统流程归属，不能替代现行活动制度。
 
 18. **B31P-18 活动类型、适用员工与清单维护——部分证据。**  
-    `runtime/a8_forms.tsv:116`、`:198–199`：上述活动各有表单，主表分别为 `formmain_1377`、`formmain_1239`、`formmain_0856`。这些模板名称不能直接当作受控活动类型字典；适用员工条件及清单维护角色未见。
+    `docs/legacy/runtime-usage/a8-forms.tsv:116`、`:198–199`：上述活动各有表单，主表分别为 `formmain_1377`、`formmain_1239`、`formmain_0856`。这些模板名称不能直接当作受控活动类型字典；适用员工条件及清单维护角色未见。
 
 19. **B31P-19 活动预算的可执行条件——取证待补。**  
-    `runtime/a8_forms.tsv:110`、`:199`：存在感恩节活动及其档案。未见预算来源、期间、单次／人均／累计口径、币种、校验条件及费用交接规则。
+    `docs/legacy/runtime-usage/a8-forms.tsv:110`、`:199`：存在感恩节活动及其档案。未见预算来源、期间、单次／人均／累计口径、币种、校验条件及费用交接规则。
 
 20. **B31P-20 活动组织安排的可执行条件——取证待补。**  
-    `runtime/a8_templates.tsv:112`、`:127` 提供活动入口。未见次数、人数上限、组织职责、场地类别或允许／拒绝条件；不能把历史活动存在当作安排规则存在。
+    `docs/legacy/runtime-usage/a8-templates.tsv:112`、`:127` 提供活动入口。未见次数、人数上限、组织职责、场地类别或允许／拒绝条件；不能把历史活动存在当作安排规则存在。
 
 21. **B31P-21 周年规则版本、生效与维护责任——取证待补。**  
-    `runtime/a8_templates.tsv:47`、`runtime/a8_forms.tsv:116`：可定位周年贺卡。未见周年制度版本、批准引用、维护角色及可维护字段范围。
+    `docs/legacy/runtime-usage/a8-templates.tsv:47`、`docs/legacy/runtime-usage/a8-forms.tsv:116`：可定位周年贺卡。未见周年制度版本、批准引用、维护角色及可维护字段范围。
 
 22. **B31P-22 周年贺卡适用员工与人员事实条件——取证待补。**  
-    `runtime/a8_templates.tsv:47` 只证明模板存在。`process/1a/组织与人员同步.md:4` 列出一般人员来源，不能证明周年任务采用相同人员范围；周年纳入／排除条件、判断时点和自动生成入口均待补。
+    `docs/legacy/runtime-usage/a8-templates.tsv:47` 只证明模板存在。`docs/business/processes/org-and-personnel-sync.md:4` 列出一般人员来源，不能证明周年任务采用相同人员范围；周年纳入／排除条件、判断时点和自动生成入口均待补。
 
 23. **B31P-23 入职日期来源与采用口径——部分证据。**  
-    `phase1a/infra/legacy-read/2026-10-15-000015-存量迁移.md:3–4`：历史取证登记将 `formmain_0307.field0229` 标为入职字段，用于身份生命周期研究。它没有证明周年功能使用此字段，也未证明首次／本次任职选择、类型、时区和异常处理。
+    `docs/ops/legacy-read/2026-10-15-000015-存量迁移.md:3–4`：历史取证登记将 `formmain_0307.field0229` 标为入职字段，用于身份生命周期研究。它没有证明周年功能使用此字段，也未证明首次／本次任职选择、类型、时区和异常处理。
 
 24. **B31P-24 周年日期与闰日计算——取证待补。**  
-    `runtime/a8_templates.tsv:47`、`runtime/a8_forms.tsv:116` 仅有周年模板／表单。未找到周年公式、首周年年数、闰日和跨年规则；不能从历史日期反推。
+    `docs/legacy/runtime-usage/a8-templates.tsv:47`、`docs/legacy/runtime-usage/a8-forms.tsv:116` 仅有周年模板／表单。未找到周年公式、首周年年数、闰日和跨年规则；不能从历史日期反推。
 
 25. **B31P-25 重新入职的周年计算口径——取证待补。**  
-    `process/1a/组织与人员同步.md:113` 提及复职恢复，属于身份同步设计，并非周年口径。没有重新入职后的基准日期、历史任职累计、离职间隔和去重关联配置。
+    `docs/business/processes/org-and-personnel-sync.md:113` 提及复职恢复，属于身份同步设计，并非周年口径。没有重新入职后的基准日期、历史任职累计、离职间隔和去重关联配置。
 
 26. **B31P-26 周年漏跑后的补跑与补发范围——取证待补。**  
-    `runtime/prod_usage.tsv:1195–1196`、`:1415–1425`：只证明一般作业／Quartz 表有历史计数。`process/1a/组织与人员同步.md:15–18` 记录组织同步作业且注明 cron 不在仓库；不能据此认定存在周年作业。补跑窗口、首次覆盖起点、去重键、补发授权均无证据。
+    `docs/legacy/runtime-usage/prod-usage.tsv:1195–1196`、`:1415–1425`：只证明一般作业／Quartz 表有历史计数。`docs/business/processes/org-and-personnel-sync.md:15–18` 记录组织同步作业且注明 cron 不在仓库；不能据此认定存在周年作业。补跑窗口、首次覆盖起点、去重键、补发授权均无证据。
 
 27. **B31P-27 报价用印制度版本与正式条款——取证待补。**  
-    `rules/raw/presales-validation-lifecycle.md:82–94` 仅描述提交报价时的登记完整性校验。未见投标／非投标发出前必须实际用印的正式条款、批准版本和适用范围。
+    `docs/business/rules/raw/presales-validation-lifecycle.md:82–94` 仅描述提交报价时的登记完整性校验。未见投标／非投标发出前必须实际用印的正式条款、批准版本和适用范围。
 
 28. **B31P-28 用印登记样表与实际凭据要求——部分证据。**  
-    `rules/raw/presales-validation-lifecycle.md:86–94` 给出报价用印登记所需字段；`map/packets/fst_domain_presales.txt:98–99` 有登记集合；`runtime/a8_forms.tsv:92` 有用印档案。缺空白样表版本、实际办理状态／时间、凭据类型、有效性及关闭后查询规则。**申请完整不能证明已实际用印。**
+    `docs/business/rules/raw/presales-validation-lifecycle.md:86–94` 给出报价用印登记所需字段；`map/packets/fst_domain_presales.txt:98–99` 有登记集合；`docs/legacy/runtime-usage/a8-forms.tsv:92` 有用印档案。缺空白样表版本、实际办理状态／时间、凭据类型、有效性及关闭后查询规则。**申请完整不能证明已实际用印。**
 
 29. **B31P-29 报价版本、法人、文件与凭据的核验对应——部分证据。**  
-    `architecture/proposals/PRESALES_OBJECTS_EVIDENCE.md:65` 记录报价与用印子表，`:72–73` 记载当时未见报价版本链及相关缺口。`map/packets/fst_domain_presales.txt:83` 的 `version` 明确是乐观锁版本，不能当作报价业务版本。仍缺报价版本→法人→拟发文件版本→实际用印→凭据映射，以及投标／非投标发出校验点。
+    `docs/architecture/proposals/presales-objects-evidence.md:65` 记录报价与用印子表，`:72–73` 记载当时未见报价版本链及相关缺口。`map/packets/fst_domain_presales.txt:83` 的 `version` 明确是乐观锁版本，不能当作报价业务版本。仍缺报价版本→法人→拟发文件版本→实际用印→凭据映射，以及投标／非投标发出校验点。
 
 另有可复用的取证方法线索：
 
-- `phase1a/infra/legacy-read/2026-10-15-000022-存量迁移.md:3–5`：曾从 `CAP_FORM_DEFINITION`、`CTP_ENUM`、`CTP_ENUM_ITEM` 读取字段与枚举配置；没有证明本次五块配置已经取得。
-- `phase1a/infra/legacy-read/2026-10-15-000021-存量迁移.md:3–5`：售前历史聚合登记，不是用印授权或实际用印凭据的原始配置。
+- `docs/ops/legacy-read/2026-10-15-000022-存量迁移.md:3–5`：曾从 `CAP_FORM_DEFINITION`、`CTP_ENUM`、`CTP_ENUM_ITEM` 读取字段与枚举配置；没有证明本次五块配置已经取得。
+- `docs/ops/legacy-read/2026-10-15-000021-存量迁移.md:3–5`：售前历史聚合登记，不是用印授权或实际用印凭据的原始配置。
 
 =====PART2=====
 
-**本包为分阶段 SQL 草稿，全部未执行。** 已参考 `phase1a/infra/runbooks/sql/c6_legacy_readonly_export.sql:1–12`、`c6_step0_counts.sql:1–32`：来源为 SQL Server，业务库为 `a8_db` 和 `[ruoyi-vue-pro]`，沿用 `dbo.` 限定、`TOP`、`COUNT_BIG`、`DATEADD` 等写法。
+**本包为分阶段 SQL 草稿，全部未执行。** 已参考 `docs/ops/runbooks/sql/legacy-readonly-export.sql:1–12`、`c6_step0_counts.sql:1–32`：来源为 SQL Server，业务库为 `a8_db` 和 `[ruoyi-vue-pro]`，沿用 `dbo.` 限定、`TOP`、`COUNT_BIG`、`DATEADD` 等写法。
 
 仅沿用其库名和方言。C-6 文件中的旧账号、人员角色持有关系导出及本机输出方式不适用于本任务。
 

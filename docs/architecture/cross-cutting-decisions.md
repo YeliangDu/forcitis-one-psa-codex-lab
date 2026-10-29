@@ -9,7 +9,7 @@
 | 分组 | 题数 | 题号 | 状态（2026-10-15） |
 |---|---|---|---|
 | 一、1a 下一批派工前必须定 | 8 | XD-01、02、04、05、06、07、08、10 | 全部已定：5 题用户已答；XD-04、05、06 为已有决定 |
-| 二、1b 开工前必须定 | 7 | XD-03、XD-09、FQ-23..27 | XD-03、XD-09 已答；FQ-23..27 待财务（已追加到 `r0/FINANCE_QUESTIONS.md`） |
+| 二、1b 开工前必须定 | 7 | XD-03、XD-09、FQ-23..27 | XD-03、XD-09 已答；FQ-23..27 待财务（已追加到 `docs/business/finance-questions.md`） |
 | 三、更晚（注明阶段） | 4 | FQ-28..31 | 待财务 |
 | **合计** | **19** | | 已定 10，待财务 9 |
 
@@ -19,7 +19,7 @@
 
 **XD-01 金额在接口里怎么表示？**（CC-N14）
 
-> **已答**（2026-10-15）：A，「十进制字符串 + 币种 (Recommended)」（`intent/2026-10-15-214059-one-coordinator-横切决定单-XD-01-金额在接.md`）。
+> **已答**（2026-10-15）：A，「十进制字符串 + 币种 (Recommended)」（`docs/decisions/2026-10-15-214059-one-coordinator-横切决定单-XD-01-金额在接.md`）。
 - A. `{"amount": "1234.50", "currency": "CNY"}`：数额用十进制字符串（**建议**）。
 - B. JSON 数字。
 - C. 以分为单位的整数。
@@ -28,7 +28,7 @@
 
 **XD-02 比率和百分比在系统内部怎么表示？**（CC-N11）
 
-> **已答**（2026-10-15）：A，「一律 0–1 小数 (Recommended)」（`intent/2026-10-15-214059-one-coordinator-横切决定单-XD-02-比率和百.md`）。
+> **已答**（2026-10-15）：A，「一律 0–1 小数 (Recommended)」（`docs/decisions/2026-10-15-214059-one-coordinator-横切决定单-XD-02-比率和百.md`）。
 - A. 领域与接口一律用 0–1 的小数（`Ratio`），只在界面上显示成百分数（**建议**）。
 - B. 一律用 0–100 的百分数。
 
@@ -61,7 +61,7 @@
 
 **XD-07 术语登记：下列三个词是否按建议登记为提议术语？**（CC-N03、§3.1）
 
-> **已答**（2026-10-15）：A，「同意 (Recommended)」（`intent/2026-10-15-214100-one-coordinator-横切决定单-XD-07-尾调-舍.md`）；已在 terms.yaml 登记提议术语 `tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分），「尾差」列为方言。
+> **已答**（2026-10-15）：A，「同意 (Recommended)」（`docs/decisions/2026-10-15-214100-one-coordinator-横切决定单-XD-07-尾调-舍.md`）；已在 terms.yaml 登记提议术语 `tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分），「尾差」列为方言。
 - A. 同意：「尾调」指报价整单的人工调整（RULE-142 原称「尾差」），「舍入差」指舍入产生的分厘差（英文 rounding residual），「按权重拆分」指 kernel 的拆分原语（英文 prorate）；「尾差」一词作为方言，不再使用（**建议**）。
 - B. 另定用词。
 
@@ -69,7 +69,7 @@
 
 **XD-08 财务答复之前，kernel 是否先按建议把金额原语建好？**（CC-N01、N03、N05、N10）
 
-> **已答**（2026-10-15）：A，「先按建议建 (Recommended)」（`intent/2026-10-15-214100-one-coordinator-横切决定单-XD-08-财务答复.md`）。
+> **已答**（2026-10-15）：A，「先按建议建 (Recommended)」（`docs/decisions/2026-10-15-214100-one-coordinator-横切决定单-XD-08-财务答复.md`）。
 - A. 先建：舍入口径用 `HALF_UP` 到分（与 1b 已定的 RULE-141「四舍五入到分」一致），拆分用最大余数法，口径集中在一处；财务答复不同时，按配置类规则从某期首日起改口径，或增加具名策略（**建议**）。
 - B. 等 FQ-23..27 答复后再建。
 
@@ -77,7 +77,7 @@
 
 **XD-10 是否把「横切关注点矩阵」步骤写进 METHODS M4，并在 brief 各阶段入口加一条？**（矩阵 §4.1）
 
-> **已答**（2026-10-15）：A，「采纳 (Recommended)」（`intent/2026-10-15-214100-one-coordinator-横切决定单-XD-10-横切关注.md`）；已写入 METHODS M4，brief 各阶段入口加了 `Proposed revision:` 行。
+> **已答**（2026-10-15）：A，「采纳 (Recommended)」（`docs/decisions/2026-10-15-214100-one-coordinator-横切决定单-XD-10-横切关注.md`）；已写入 METHODS M4，brief 各阶段入口加了 `Proposed revision:` 行。
 - A. 采纳：每阶段开工前更新矩阵，本阶段的待决题有答复、地基行已冻结，才勾选入口（**建议**）。
 - B. 只在本次普查用一次。
 
@@ -87,7 +87,7 @@
 
 **XD-03 中文名称（人名、部门、客户、项目）默认怎么排序？**（CC-I01）
 
-> **已答**（2026-10-15）：A，「按拼音 (Recommended)」（`intent/2026-10-15-214100-one-coordinator-横切决定单-XD-03-中文名称.md`）；作为 1b 前平台约定，加守护 G-X2，交 1a 下一批。
+> **已答**（2026-10-15）：A，「按拼音 (Recommended)」（`docs/decisions/2026-10-15-214100-one-coordinator-横切决定单-XD-03-中文名称.md`）；作为 1b 前平台约定，加守护 G-X2，交 1a 下一批。
 - A. 按拼音（ICU `zh` 排序规则）（**建议**）。
 - B. 按笔画。
 - C. 按编码，不按名称。
@@ -96,11 +96,11 @@
 
 **XD-09 brief 中「分摊余数归属」这一入口条件，是否从 Phase 4 提前到 1b？**（CC-N04）
 
-> **已答**（2026-10-15）：A，「提前到 1b (Recommended)」（`intent/2026-10-15-214100-one-coordinator-横切决定单-XD-09-分摊余数.md`）；brief 以 `Proposed revision:` 写法移到 Phase 1b 入口。
+> **已答**（2026-10-15）：A，「提前到 1b (Recommended)」（`docs/decisions/2026-10-15-214100-one-coordinator-横切决定单-XD-09-分摊余数.md`）；brief 以 `Proposed revision:` 写法移到 Phase 1b 入口。
 - A. 提前到 1b：报价条款拆分（RULE-159）是第一个拆分场景，Phase 2 人天拆分（RULE-004）是第二个（**建议**）。
 - B. 保持在 Phase 4，1b 与 2 的拆分各自约定。
 
-### 财务（接在 FQ-22 之后；已追加到 `r0/FINANCE_QUESTIONS.md` §7，财务确认单第 3 版）
+### 财务（接在 FQ-22 之后；已追加到 `docs/business/finance-questions.md` §7，财务确认单第 3 版）
 
 **FQ-23 金额舍入：会计口径（凭证、分摊、结转）是否统一按「四舍五入到分」？**（CC-N02）
 - A. 是，全系统统一四舍五入到分（**建议**；1b 报价已定同一口径）。

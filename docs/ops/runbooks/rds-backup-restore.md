@@ -1,6 +1,6 @@
 # C-2 剧本：RDS 删除保护、备份策略与恢复演练
 
-依据：`proposals/PHASE1A_PLATFORM_CONVENTIONS.md` §5（RPO ≤ 5 分钟、RTO ≤ 1 小时，用户已采纳）。时点：配置在 dev 前；首次演练在 1a 出口前，之后每季度一次。性质：配置属对外变更；演练会**新建临时实例（产生费用）**，执行前须用户确认。
+依据：`docs/architecture/proposals/phase1-a-platform-conventions.md` §5（RPO ≤ 5 分钟、RTO ≤ 1 小时，用户已采纳）。时点：配置在 dev 前；首次演练在 1a 出口前，之后每季度一次。性质：配置属对外变更；演练会**新建临时实例（产生费用）**，执行前须用户确认。
 
 ## 一、配置（dev 前）
 

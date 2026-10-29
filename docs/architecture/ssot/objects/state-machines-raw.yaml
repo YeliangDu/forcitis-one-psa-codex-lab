@@ -263,7 +263,7 @@ by_object:
   key_states_text: 已发起 → 已确认 / 72 小时未确认自动作废
   source: docs/architecture/ssot/objects/enterprise-info-map.md:149
 - object: OBJ-85
-  key_states_text: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 r0/structure/pptx.md 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
+  key_states_text: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 docs/legacy/bi/report-structure/pptx.md 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
   source: docs/architecture/ssot/objects/enterprise-info-map.md:150
 - object: OBJ-86
   key_states_text: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销

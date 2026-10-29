@@ -10,7 +10,7 @@ terms:
   scope: domain
   definition: 用户裁定（GL 确认单 B2-B06）已定为「角色已废除 / RoleAbolished」；代码事件类改名合入前保留旧写法 RoleDeleted。
   standard_ref:
-  - rules/decide/answers/GL.json GL~B2-B06
+  - docs/decisions/decision-pages/answers/gl.json GL~B2-B06
   confidence: high
   aliases: []
   forbidden: []

@@ -1,5 +1,5 @@
 # 第三轮用语确认的待改名登记（one-glossary 维护）：用户已定新名，旧名仍在代码或界面中使用。
-# 负责会话按 glossary/round3/RENAME_CARDS.md 改名并合入后，one-glossary 删除对应条目，方言禁用随之生效。
+# 负责会话按 docs/glossary/rename-rounds/rename-cards.md 改名并合入后，one-glossary 删除对应条目，方言禁用随之生效。
 terms:
 - id: round3_pending__act
   zh: 办理
@@ -10,7 +10,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-04）已定为：办理 / Handle（handle）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-04
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-04
   confidence: high
   aliases: []
   forbidden: []
@@ -28,7 +28,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-05）已定为：任务已分配 / TaskAssigned（task_assigned）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-05
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-05
   confidence: high
   aliases: []
   forbidden: []
@@ -46,7 +46,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-07）已定为：审批已完成 / ApprovalCompleted（approval_completed）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-07
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-07
   confidence: high
   aliases: []
   forbidden: []
@@ -64,7 +64,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-10）已定为：已上推 / ReroutedToSuperior（rerouted_to_superior）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-10
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-10
   confidence: high
   aliases: []
   forbidden: []
@@ -82,7 +82,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-11）已定为：转流程管理员 / AdministratorFallback（administrator_fallback）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-11
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-11
   confidence: high
   aliases: []
   forbidden: []
@@ -100,7 +100,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-12）已定为：审批表单字段 / ApprovalField（approval_field）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-12
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-12
   confidence: high
   aliases: []
   forbidden: []
@@ -118,7 +118,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-15）已定为：审批轮次 / ApprovalRound（approval_round）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-15
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-15
   confidence: high
   aliases: []
   forbidden: []
@@ -136,7 +136,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-16）已定为：行级任务 / LineTask（line_task）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-16
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-16
   confidence: high
   aliases: []
   forbidden: []
@@ -154,7 +154,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-21）已定为：审批时限 / ApprovalTimeLimit（approval_time_limit）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-21
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-21
   confidence: high
   aliases: []
   forbidden: []
@@ -172,7 +172,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-22）已定为：办理效力 / TaskEffect（task_effect）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-22
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-22
   confidence: high
   aliases: []
   forbidden: []
@@ -190,7 +190,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-25）已定为：取消认领 / Unclaim（unclaim）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-25
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-25
   confidence: high
   aliases: []
   forbidden: []
@@ -208,7 +208,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-41）已定为：审批摘要 / ApprovalSummary（approval_summary）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-41
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-41
   confidence: high
   aliases: []
   forbidden: []
@@ -226,7 +226,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-42）已定为：代理办理 / ProxyHandling（ui_proxy_handling）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-42
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-42
   confidence: high
   aliases: []
   forbidden: []
@@ -244,7 +244,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-53）已定为：任务参与人 / TaskParticipant（task_participant）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-53
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-53
   confidence: high
   aliases: []
   forbidden: []
@@ -262,7 +262,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-57）已定为：审批决定 / TaskDecision（task_decision）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-57
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-57
   confidence: high
   aliases: []
   forbidden: []
@@ -280,7 +280,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-60）已定为：任务已办理 / TaskHandled（task_handled）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-60
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-60
   confidence: high
   aliases: []
   forbidden: []
@@ -298,7 +298,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-65）已定为：通知已跳过 / NotificationSkipped（notification_skipped）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-65
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-65
   confidence: high
   aliases: []
   forbidden: []
@@ -316,7 +316,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-68）已定为：项目经理审批 / ProjectManagerApproval（project_manager_approval）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-68
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-68
   confidence: high
   aliases: []
   forbidden: []
@@ -334,7 +334,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-69）曾定为区域负责人审批 / RegionalHeadApproval，后由 D5-06 取代，改为：部门负责人审批 / OrgUnitHeadApproval（org_unit_head_approval）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-69
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-69
   confidence: high
   aliases: []
   forbidden: []
@@ -352,7 +352,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-70）已定为：直属上级审批 / SupervisorApproval（supervisor_approval）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-70
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-70
   confidence: high
   aliases: []
   forbidden: []
@@ -370,7 +370,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-74）已定为：撤回截止点 / WithdrawalCutoff（withdrawal_cutoff）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-74
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-74
   confidence: high
   aliases: []
   forbidden: []
@@ -388,7 +388,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-ID-04）已定为：管理员模式 / AdministratorMode（administrator_mode）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-ID-04
+  - docs/glossary/decisions-round3-2026-10-15.json R3-ID-04
   confidence: high
   aliases: []
   forbidden: []
@@ -406,7 +406,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-ID-10）已定为：授予权限 / GrantPermission（grant_permission）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-ID-10
+  - docs/glossary/decisions-round3-2026-10-15.json R3-ID-10
   confidence: high
   aliases: []
   forbidden: []
@@ -424,7 +424,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-ID-11）已定为：账号停用 / AccountDisabled（account_disabled）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-ID-11
+  - docs/glossary/decisions-round3-2026-10-15.json R3-ID-11
   confidence: high
   aliases: []
   forbidden: []
@@ -442,7 +442,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-ID-22）已定为：敏感角色复核 / SensitiveRoleReview（permission_adjustment_kind__sensitive_role_review）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-ID-22
+  - docs/glossary/decisions-round3-2026-10-15.json R3-ID-22
   confidence: high
   aliases: []
   forbidden: []
@@ -460,7 +460,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-IN-07）已定为：字节数 / ByteCount（byte_count）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-IN-07
+  - docs/glossary/decisions-round3-2026-10-15.json R3-IN-07
   confidence: high
   aliases: []
   forbidden: []
@@ -478,7 +478,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-IN-08）已定为：数据保留期限 / DataRetentionPeriod（data_retention_period）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-IN-08
+  - docs/glossary/decisions-round3-2026-10-15.json R3-IN-08
   confidence: high
   aliases: []
   forbidden: []
@@ -496,7 +496,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-IN-36）已定为：一次写入多次读取 / WriteOnceReadMany（write_once_read_many）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-IN-36
+  - docs/glossary/decisions-round3-2026-10-15.json R3-IN-36
   confidence: high
   aliases: []
   forbidden: []
@@ -514,7 +514,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-NU-08）已定为：记账凭证编号规则 / JournalVoucherNumberingRule（journal_voucher_numbering_rule）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-NU-08
+  - docs/glossary/decisions-round3-2026-10-15.json R3-NU-08
   confidence: high
   aliases: []
   forbidden: []
@@ -532,7 +532,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-NU-09）已定为：编号规则版本 / NumberingRuleVersion（numbering_rule_version）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-NU-09
+  - docs/glossary/decisions-round3-2026-10-15.json R3-NU-09
   confidence: high
   aliases: []
   forbidden: []
@@ -550,7 +550,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-TS-04）已定为：间接工时 / IndirectHours（indirect_hours）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-TS-04
+  - docs/glossary/decisions-round3-2026-10-15.json R3-TS-04
   confidence: high
   aliases: []
   forbidden: []
@@ -568,7 +568,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-WF-06）已定为：企业邮箱 / EmailAddress（workforce__email_address）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-WF-06
+  - docs/glossary/decisions-round3-2026-10-15.json R3-WF-06
   confidence: high
   aliases: []
   forbidden: []
@@ -586,7 +586,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-09）已定为：并入 org_unit。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-09
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-09
   confidence: high
   aliases: []
   forbidden: []
@@ -604,7 +604,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-32）已定为：并入 actor。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-32
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-32
   confidence: high
   aliases: []
   forbidden: []
@@ -622,7 +622,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-61）已定为：并入 ui_approval_running。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-61
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-61
   confidence: high
   aliases: []
   forbidden: []
@@ -640,7 +640,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-NU-06）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-NU-06
+  - docs/glossary/decisions-round3-2026-10-15.json R3-NU-06
   confidence: high
   aliases: []
   forbidden: []
@@ -658,7 +658,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-NU-17）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-NU-17
+  - docs/glossary/decisions-round3-2026-10-15.json R3-NU-17
   confidence: high
   aliases: []
   forbidden: []
@@ -676,7 +676,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-NU-18）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-NU-18
+  - docs/glossary/decisions-round3-2026-10-15.json R3-NU-18
   confidence: high
   aliases: []
   forbidden: []
@@ -694,7 +694,7 @@ terms:
   scope: domain
   definition: 第三轮用语确认（R3-AP-26）已定为：记账凭证 / JournalVoucher（journal_voucher）。代码与界面改名合入前保留旧写法。
   standard_ref:
-  - glossary/decisions-round3-2026-10-15.json R3-AP-26
+  - docs/glossary/decisions-round3-2026-10-15.json R3-AP-26
   confidence: high
   aliases: []
   forbidden: []

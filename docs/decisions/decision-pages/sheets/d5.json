@@ -19,7 +19,7 @@
    "no": "D5-01",
    "grp": "d5-route",
    "title": "项目工时由谁审批",
-   "src": "ARCH-D5；process/1a/TIMESHEET审批.md T1、T3",
+   "src": "ARCH-D5；docs/business/processes/timesheet-approval.md T1、T3",
    "ctx": "一张工时单常含多个项目的行。1a 已实现「项目经理审批」节点（projectManagerReview，候选取表单字段 projectManagerId）。要定的是：项目行的审批人是谁，多个项目时怎么拆。",
    "now": "老系统核对（2026-05 起）：项目行占 66%；按「项目经理 → 任务负责人 → 行上经理 → 按项目编码反查」四级回退取人，与按现行项目经理推算一致 92.9%；驳回率 0%。",
    "check": "",
@@ -140,7 +140,7 @@
    "now": "老系统核对：近 180 天三个节点共约 4.2 万个任务，93% 在 24 小时内办完；各类型驳回率都低于 0.1%。整单确认若每张都加，约再增加 2.5 万个任务 / 半年。",
    "check": "",
    "basis": [
-    "工时完整性（工作日工时加请假不少于 7.5 小时、单日不超过 15 小时、整天请假不得提交）已由提交校验保证（process/1a/TIMESHEET审批.md 步骤 2）。"
+    "工时完整性（工作日工时加请假不少于 7.5 小时、单日不超过 15 小时、整天请假不得提交）已由提交校验保证（docs/business/processes/timesheet-approval.md 步骤 2）。"
    ],
    "practice": [
     "Deltek Vision 7.6 行审批配置（项目行审批与整单审批是两套独立机制，可单开或并用；可按项目类型关闭间接与 promotional 项目的行审批）：https://help.deltek.com/Product/Vision/7.6/CF_TS_Line_Item_Approval_Tab.html",
