@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.platform.identity.application.OperationsCommands;
 import java.io.ByteArrayOutputStream;
@@ -16,22 +18,22 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * DR-TB01-FU1-1 (NITS-1 item 5, RULING-COORD-20261017-03): an employee exists when organization_workforce.employees has a row for the id;
  * an assignment is not required. The operator and the witness here have an employees row and no assignments row at all, so this stays red
  * until the existence check stops joining the assignment.
  */
-@Testcontainers
 class OperationsCommandEmployeeRowOnlyIT extends AccountsAcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(OperationsCommandEmployeeRowOnlyIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     OperationsCommands operations;

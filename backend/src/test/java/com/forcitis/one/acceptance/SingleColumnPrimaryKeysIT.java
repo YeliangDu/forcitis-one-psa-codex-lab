@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,22 +12,22 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P5 RULING-P5-D12 (ADR-0033 section 1 item 2, "same for the old tables that are still there when R-1b merges"): account_roles,
  * role_versions (which took over from the retired role_permissions in ADR-0034-IMPL PR-2a) and sync_run_held_separations get a single uuid primary key, and the columns of their former key become a named
  * unique constraint. Read from the catalogue of the migrated database.
  */
-@Testcontainers
 class SingleColumnPrimaryKeysIT extends AcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(SingleColumnPrimaryKeysIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private List<String> columnsOf(Connection catalogue, String schema, String table, boolean primary) throws SQLException {
         List<List<String>> constraints = new ArrayList<>();

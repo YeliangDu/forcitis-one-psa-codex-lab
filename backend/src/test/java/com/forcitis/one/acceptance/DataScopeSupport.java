@@ -57,7 +57,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Ground of the F-1 data scope tests. The organisation enters the way production gets it: a snapshot read through the org source
@@ -91,13 +90,6 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
     public static final String BUSINESS_ADMIN = "business_admin";
 
     private static final Duration ASYNC_LIMIT = Duration.ofSeconds(20);
-
-    /** The instance of a PER_CLASS test exists before the Testcontainers extension starts anything, and the context needs the database. */
-    protected static PostgreSQLContainer startedDatabase() {
-        PostgreSQLContainer container = database();
-        container.start();
-        return container;
-    }
 
     @MockitoBean
     protected OrgSource orgSource;

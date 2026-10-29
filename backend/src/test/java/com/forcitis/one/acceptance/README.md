@@ -14,7 +14,7 @@ cd backend
 
 ## 加一条用例
 
-- 放进 `acceptance/<子域>/<BC>/`，类名以 `IT` 结尾，继承 `AcceptanceSupport`，并声明自己的容器：`@Container @ServiceConnection static PostgreSQLContainer postgres = database();`。
+- 放进 `acceptance/<子域>/<BC>/`，类名以 `IT` 结尾，继承 `AcceptanceSupport`，并在本类声明自己的库（共享 PostgreSQL 上每类一库，#783）：`static final TestDatabase postgres = TestPostgres.database(本类.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");` 加 `@DynamicPropertySource static void database(DynamicPropertyRegistry registry) { postgres.register(registry); }`。字段不放基类：基类的静态字段只初始化一次，子类会共用一个库。要读容器日志的才用 `database()` 自起容器。
 - `@DisplayName` 用中文，以卡号或规则编号开头并写明依据条款（如「R-1b P3a ADR-0033 第 2 项第 1 条：…」）。
 - 只经公开接口断言：HTTP（`mvc` + `person(n, 权限码…)`）、模块 `api` 包的接口、或该模块自己的 schema（`schemaConnection("<schema>")`，SQL 不写 schema 前缀）。
 - 时间取固定时钟 `AcceptanceSupport.NOW` / `TODAY`，要换日期用 `setToday`（例外：`SessionPurgeClockIT` 第 2 条直接读系统时间，因会话表时间由框架按系统时钟写入，见 RULING-FS-1）；等待异步结果用 Awaitility 带上限，不用 `Thread.sleep`。

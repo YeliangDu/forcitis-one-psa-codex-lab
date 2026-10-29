@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.identity.role_versioning;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.lang.reflect.Field;
@@ -10,11 +12,9 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * ADR-0034 decision 1 item 3 (运行时读到未知或已停用的码：该码被忽略并告警，不抛异常，不影响同一角色的其他码) and guard rule 8; ADR-0034-IMPL card
@@ -26,12 +26,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * holder signs in. The mark is set on the private field behind {@code Permission.deprecated()} and always put back. This couples the test to
  * the field's name (the contract only names the method); if the implementation renames it, the test fails with a message that says so.
  */
-@Testcontainers
 class DeprecatedCodeIT extends RoleVersioningSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(DeprecatedCodeIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String CURRENT_USER = "/api/v1/platform/sessions:current";
     static final String STAYS = "organization.workforce:org-unit:read";

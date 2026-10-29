@@ -5,6 +5,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.PublicEndpoint;
 import com.jayway.jsonpath.JsonPath;
@@ -17,16 +19,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * RULE-337 as corrected 2026-10-21 (ADR-0009 decisions 1 and 5, C1a-07): every endpoint not marked public answers an anonymous caller
@@ -34,16 +34,18 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * endpoints are the ones the running application maps (the handler mapping), the public ones are those the application itself marks
  * with the kernel annotation PublicEndpoint.
  */
-@Testcontainers
 class AnonymousRequestsDeniedIT extends AccountsAcceptanceSupport {
 
     static final String CURRENT = "/api/v1/platform/sessions:current";
     /** Header the old gateway forwarded to the services as the caller's identity. */
     static final String FORGED_HEADER = "login-user";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AnonymousRequestsDeniedIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     @Qualifier("requestMappingHandlerMapping")

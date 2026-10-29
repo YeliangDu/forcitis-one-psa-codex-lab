@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.application.SyncResult;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
@@ -18,10 +20,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * ADR-0078: the employee code is globally unique (database key uk_employees_employee_code). When another transaction takes the code of a
@@ -29,12 +29,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * ends FAILED (not SUCCEEDED, not swallowed), no half-built newcomer stays, and nothing is thrown to the caller. Black-box: a second JDBC
  * connection holds an uncommitted row with the code, the sync runs on its own thread, and once that thread waits on the key the row is committed.
  */
-@Testcontainers
 class EmployeeCodeConcurrentSyncIT extends OrgSourceWorldSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(EmployeeCodeConcurrentSyncIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final long UNIT = 9300;
     static final String UNIT_PATH = ROOT_PATH + "0031";
