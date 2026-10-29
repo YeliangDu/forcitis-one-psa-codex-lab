@@ -123,6 +123,13 @@ printf '%s\n' "$out" | grep -q '^FAIL  unruled' && printf '%s\n' "$out" | grep -
 printf '%s\n' "$out" | grep -q '^FAIL  vanished' || no "没写出退出码的检查要记 FAIL，不能沿用上一项：$out"
 [ "$(printf '%s\n' "$out" | grep -oE '^(PASS|FAIL|SKIP)  [a-z]+' | awk '{print $2}' | tr '\n' ' ')" = "slow vanished broken absent unruled " ] || no "结果要按起跑顺序打印：$out"
 
+# maven_offline_ready：本机离线解析不过算前提不满足（light.sh 记 SKIP）；CI 里不查
+printf '#!/bin/sh\n[ -n "$FAKE_DEPS_MISSING" ] && { echo "Cannot access central in offline mode and the artifact x has not been downloaded"; exit 1; }\n[ -n "$FAKE_COMPILE_ERROR" ] && { echo "COMPILATION ERROR"; exit 1; }\nexit 0\n' >"$fake/backend/mvnw"
+(cd "$fake" && FAKE_DEPS_MISSING=1 CI="" maven_offline_ready) && no "maven_offline_ready：本机缺依赖时应返回非零"
+(cd "$fake" && FAKE_DEPS_MISSING="" CI="" maven_offline_ready) || no "maven_offline_ready：依赖齐全时应返回 0"
+(cd "$fake" && FAKE_COMPILE_ERROR=1 CI="" maven_offline_ready) || no "maven_offline_ready：编译错误不是缺依赖，要进检查判红"
+(cd "$fake" && FAKE_DEPS_MISSING=1 CI=1 maven_offline_ready) || no "maven_offline_ready：CI 里不查，由 surefire_guards 判红"
+
 # list_changed：在临时仓库里核对三种来源、特殊字符文件名、git 出错时返回非零
 repo=$tmp/repo
 git init -q "$repo" && cd "$repo" || exit 2

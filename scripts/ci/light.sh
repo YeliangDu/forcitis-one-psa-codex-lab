@@ -105,6 +105,7 @@ rule "改了验收测试却没跑守护类，要等 20 分钟的队列才发现"
 if ! touches "$t_acceptance"; then skip "surefire guard classes (acceptance changed)" "相关路径没改（按改动触发）"
 elif [ "${LIGHT_ALL:-}" = 1 ]; then skip "surefire guard classes (acceptance changed)" "推到 main：ci.yml 的 container-free unit tests 一步跑同一批"
 elif ! bash scripts/codegen/generate_api.sh --check >/dev/null 2>&1; then skip "surefire guard classes (acceptance changed)" "本机没有 OpenAPI 生成产物，先跑 bash scripts/codegen/generate_api.sh"
+elif ! maven_offline_ready; then skip "surefire guard classes (acceptance changed)" "本机 Maven 仓库缺依赖，离线解析不过：先跑 cd backend && ./mvnw dependency:go-offline"
 else run "surefire guard classes (acceptance changed)" surefire_guards; fi
 # relevant_change 的自测连带核对整个仓库的读者分档（读者随任何源文件变），每次都跑
 rule "改动的分档漏了读者，该跑的测试被跳过" "按输出把新读者或新路径登记进 scripts/ci/relevant_change.py 的表"

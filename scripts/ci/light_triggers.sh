@@ -77,6 +77,13 @@ shell_syntax() {  # 改到的 .sh 逐个 bash -n（没有基线时全部已跟�
   done < <(if [ -n "$base" ]; then grep -E "$t_shell" "$changed"; else git ls-files '*.sh'; fi)
 }
 
+maven_offline_ready() {  # 本机 ~/.m2 够离线编译后端测试：只有 Maven 报「拿不到依赖」才算没准备好（编译错误照常进检查）；CI 里不查
+  local out
+  [ -z "${CI:-}" ] || return 0
+  out=$(cd backend && ./mvnw -q -o test-compile 2>&1) && return 0
+  ! printf '%s\n' "$out" | grep -qiE 'offline mode|has not been downloaded|could not be resolved|Could not resolve dependencies|could not transfer'
+}
+
 surefire_guards() {  # 全部免容器单测（light_unit_classes.py 列出，含守护类）；每个类都要出报告，没出报告即没跑，算失败
   local classes class
   classes=$(python3 scripts/ci/light_unit_classes.py) && [ -n "$classes" ] || return 1
