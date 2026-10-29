@@ -2,8 +2,8 @@ name: ci
 
 on:
   pull_request:
-    # labeled: the merge queue labels the head of the queue `queued`, which starts the heavy steps (scripts/ci/heavy_gate.py)
-    types: [opened, synchronize, reopened, labeled, edited]
+    # labeled: the merge queue labels the head of the queue `queued`, which starts the heavy steps (scripts/ci/heavy_gate.py); any other label skips every job
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
   # full run of main every night (the push to main runs the light steps only): 21:03 UTC; nightly-legacy-it runs at 23:23 UTC
@@ -17,8 +17,8 @@ env:
   PYTHONDONTWRITEBYTECODE: "1"  # no __pycache__ in the checkout: the backend job runs light.sh and then the tests in the same workspace, and a test walking a source directory reads the .pyc (#693, LegacyNumberSourceIT); python3 -I ignores it, so light.sh also removes what its run left
 
 concurrency:
-  # a label other than `queued` must not cancel a run in progress, and the nightly full run must not cancel (nor be cancelled by) the push to main that the release gate reads: each gets its own group
-  group: ci-${{ github.ref }}${{ (github.event.action == 'labeled' && github.event.label.name != 'queued' || github.event.action == 'edited') && '-other-label' || github.event_name == 'schedule' && '-nightly' || '' }}
+  # a label other than `queued` (its run skips every job) must not cancel a run in progress, and the nightly full run must not cancel (nor be cancelled by) the push to main that the release gate reads: each gets its own group
+  group: ci-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'queued' && '-other-label' || github.event_name == 'schedule' && '-nightly' || '' }}
   cancel-in-progress: true
 
 # Self-hosted runners (docs/modernization/CI_RUNNERS.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
@@ -28,6 +28,7 @@ concurrency:
 jobs:
   api-contract:
     name: export OpenAPI and generate frontend API
+    if: ${{ !(github.event.action == 'labeled' && github.event.label.name != 'queued') }}
     runs-on: [self-hosted, forcitis-one]
     timeout-minutes: 20
     steps:
@@ -57,9 +58,9 @@ jobs:
 
   backend:
     needs: api-contract
-    if: ${{ always() }}
+    if: ${{ always() && !(github.event.action == 'labeled' && github.event.label.name != 'queued') }}
     # the check name gains ' (light)' when this pull request run will not run the heavy steps: the required check then stays 'expected' until the queue labels the pull request
-    name: backend verify (Modulith + ArchUnit guardrails + integration tests)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || github.event.action == 'edited' || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
+    name: backend verify (Modulith + ArchUnit guardrails + integration tests)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
     runs-on: [self-hosted, forcitis-one]
     steps:
       # A failed prerequisite must fail the existing required check, not leave it skipped.
@@ -195,8 +196,8 @@ jobs:
 
   frontend:
     needs: api-contract
-    if: ${{ always() }}
-    name: frontend verify (typecheck + lint guardrails F1-F14 + structure + build)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || github.event.action == 'edited' || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
+    if: ${{ always() && !(github.event.action == 'labeled' && github.event.label.name != 'queued') }}
+    name: frontend verify (typecheck + lint guardrails F1-F14 + structure + build)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
     runs-on: [self-hosted, forcitis-one]
     defaults:
       run:
@@ -256,7 +257,9 @@ jobs:
           pnpm run test:scripts
 
   gitleaks:
-    name: secret scan (gitleaks)
+    # a skipped required check counts as passed: on a label event other than `queued` it reports under another name
+    name: secret scan (gitleaks)${{ github.event.action == 'labeled' && github.event.label.name != 'queued' && ' (light)' || '' }}
+    if: ${{ !(github.event.action == 'labeled' && github.event.label.name != 'queued') }}
     runs-on: [self-hosted, forcitis-one]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
