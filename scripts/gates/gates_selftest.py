@@ -304,9 +304,9 @@ def renamed_test():  # ── pre_commit ──
                             ("one-design", ("one-architecture", "one-data", "one-glossary", "one-arch-finance"), "design"),
                             ("one-platform", ("one-ops", "one-merge", "one-quality"), "platform"),
                             ("one-dev-org", ("one-1a-admin", "one-platform-file", "one-1a-par", "one-dev-par"), "dev")):
-        assert sessions["config"][new]["role"] == role and new in sessions["config_sources"] and all(sessions["aliases"][old] == new for old in olds), new
+        assert sessions["config"][new]["role"] == role and all(sessions["aliases"][old] == new for old in olds), new
         for old in olds:
-            assert old not in sessions["config"] and old not in sessions["config_sources"], old  # #752: the session profile files are gone; the session is its config entry
+            assert old not in sessions["config"], old  # #752: the session profile files are gone; the session is its config entry
     assert all(v in sessions["config"] for v in sessions["aliases"].values()), "every alias points at a session"
     assert not (root / "scripts/merge/session_map.json").exists(), "branch owners come from policy.json only (#754)"
     sys.path.insert(0, str(root / "scripts" / "merge"))

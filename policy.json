@@ -1,5 +1,4 @@
 {
-  "schema_version": 1,
   "_说明": "流程数值与枚举的唯一出处（定稿 P4、H8）。规则、角色、模板只引用键名，不写字面值。改动走普通文档 PR，正文引用 intent。约定：值为 null 表示「待定」，读取方按最保守处理（拦截类不开、上限类不放宽），例外在键旁注明；delegate.billing 用 no_cap: true 表示不设上限（D34）。枚举：budget_check.mode 与 budget.level_mode 取 warn｜enforce。",
   "rules": {
     "_note": "Size limits of agent-read rule files, 1 KB = 1024 UTF-8 bytes (decision 2026-10-29-144628), checked by scripts/guards/rule_sizes.py (#810). layer_a_max_kb: read at every session start (root CLAUDE.md + .claude/rules without paths: + the start sheet at start.sheet_max_kb). layer_b_max_kb: added per file read (folder CLAUDE.md files below the root + .claude/rules whose paths: match). Layer C has no limit; MEMORY.md is printed only. scripts/guards/policy_keys_read.py fails on a numeric key here that nothing reads.",
@@ -13,12 +12,7 @@
     "playbook_max_kb": 2
   },
   "gates": {
-    "_说明": "行数上限（max_lines、runtime_max_lines、mq 与 tools_lib 的 max_lines_total、自测不多于运行代码）按卡 #736 删去（用户 intent 2026-10-28-171123）。node_record_max_age_seconds 管 clear_session 门（工具库 node_ready.py --gate，用户 intent 2026-10-27-171036）：它只读 node_ready --record 的结果，判定时间超过这个秒数即拒（二乙 #14，调度 10-27「先判后清」）。",
-    "runtime_max_files": 8,
-    "hook_p99_ms": 100,
-    "per_call_total_ms": 300,
-    "node_record_max_age_seconds": 600,
-    "precommit_max_seconds": 10,
+    "_说明": "行数上限（max_lines、runtime_max_lines、mq 与 tools_lib 的 max_lines_total、自测不多于运行代码）按卡 #736 删去（用户 intent 2026-10-28-171123）。耗时与节点记录的数值键无程序读取，按 #856 删去。",
     "install_dir": "~/.modernize/psa/tools/hooks",
     "install_current_link": "current"
   },
@@ -61,31 +55,15 @@
     "_final_paths_说明": "仓库根起的完整前缀，改动路径以任一项开头即须 opus 终审。不得写裸目录名或空表（空表等于关闭终审）。表里原为生产写门可信脚本（DOC_SCRIPTS、只读取证工具）列的前缀，卡 #736 起门不再认可信脚本，暂留作守护路径。"
   },
   "labels": {
-    "review_passed": "复审通过",
-    "hold": "hold",
-    "integration": "整合"
-  },
-  "ci": {
-    "light_job_p90_minutes": 2,
-    "light_job_cancel_rate_max": 0.05,
-    "infra_pr_weekly_share_max": 0.2,
-    "infra_release_weekday": "monday",
-    "new_test_repeat": 3
+    "review_passed": "复审通过"
   },
   "retention_days": {
-    "worktree_after_merge": 1,
-    "branch_cleanup_backup": 7,
-    "handoff_history": 7,
-    "jsonl_logs": 14,
-    "snapshot_backup": 7,
     "evidence": 7
   },
   "decisions": {
-    "current_page_max_kb": 6,
-    "daily_decide_at": "20:00"
+    "current_page_max_kb": 6
   },
   "sessions": {
-    "resident_max": 4,
     "config": {
       "one-lead": {
         "role": "lead",
@@ -114,20 +92,6 @@
         "remote_control": true
       }
     },
-    "config_sources": {
-      "one-lead": {
-        "effort": "TEAM-13「调度、整合、复审 high」之调度"
-      },
-      "one-design": {
-        "effort": "未定：定稿未给值"
-      },
-      "one-platform": {
-        "effort": "未定：定稿未给值"
-      },
-      "one-dev-org": {
-        "effort": "未定：定稿未给值"
-      }
-    },
     "aliases": {
       "one-leader": "one-lead",
       "one-coordinator": "one-lead",
@@ -149,7 +113,7 @@
       "one-1a-next-5": "one-dev-org",
       "nx5": "one-dev-org"
     },
-    "_说明": "config 是会话清单：键即会话名，按角色取名 one-lead、one-design、one-platform，开发会话 one-dev-<bc>；role 指 docs/rules/roles/ 的角色文件；effort 是目标值，出处在 config_sources。aliases 是旧名→现名：new_intent 的 --owner、开工单（工作区目录名）、合入队列 gapscan（分支 [claude/]<名>-… 取 config 键或 aliases 键中最长匹配）都先按它换成现名，再只认 config 的键；查不到即拒或报未知，不猜。"
+    "_说明": "config 是会话清单：键即会话名，按角色取名 one-lead、one-design、one-platform，开发会话 one-dev-<bc>；role 指 docs/rules/roles/ 的角色文件；effort 是目标值。aliases 是旧名→现名：new_intent 的 --owner、开工单（工作区目录名）、合入队列 gapscan（分支 [claude/]<名>-… 取 config 键或 aliases 键中最长匹配）都先按它换成现名，再只认 config 的键；查不到即拒或报未知，不猜。"
   },
   "tools_lib": {
     "dir": "~/.modernize/psa/tools/one-session",
