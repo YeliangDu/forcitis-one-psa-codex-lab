@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.web;
 
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -16,7 +15,6 @@ import com.forcitis.one.organization.workforce.application.SyncRunView;
 import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -65,14 +63,13 @@ class SyncRunController {
     /** The actor is the authenticated session user, never a request field. */
     @PostMapping(path = "/{syncRunId}:release")
     @PreAuthorize("hasAnyAuthority('" + WorkforcePermissions.SYNC_RUN_EXECUTE + "', '" + WorkforcePermissions.SEPARATION_HOLD_APPROVE + "')")
-    ResponseEntity<ReleaseResponse> release(@PathVariable UUID syncRunId, @RequestBody ReleaseRequest request, Authentication session, UserId caller) {
-        ReleaseResult result = releaseSyncRun.execute(new SyncRunId(syncRunId), caller, request.reason(),
-                holds(session, WorkforcePermissions.SYNC_RUN_EXECUTE), holds(session, WorkforcePermissions.SEPARATION_HOLD_APPROVE));
+    ReleaseResponse release(@PathVariable UUID syncRunId, @RequestBody ReleaseRequest request) {
+        ReleaseResult result = releaseSyncRun.execute(new SyncRunId(syncRunId), request.reason());
         return switch (result) {
-            case ReleaseResult.PartlyReleased partly -> ResponseEntity.ok(
-                    new ReleaseResponse("PARTLY_RELEASED", "a hold of another kind is still waiting", SyncRunResponse.of(partly.heldRun())));
-            case ReleaseResult.Released released -> ResponseEntity.ok(
-                    new ReleaseResponse("RELEASED", null, SyncRunResponse.of(released.releasedRun())));
+            case ReleaseResult.PartlyReleased partly ->
+                    new ReleaseResponse("PARTLY_RELEASED", "a hold of another kind is still waiting", SyncRunResponse.of(partly.heldRun()));
+            case ReleaseResult.Released released ->
+                    new ReleaseResponse("RELEASED", null, SyncRunResponse.of(released.releasedRun()));
             case ReleaseResult.NotFound notFound -> throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND,
                     ErrorKind.NOT_FOUND, "no sync run " + syncRunId);
             case ReleaseResult.NotHeld notHeld -> throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL,
