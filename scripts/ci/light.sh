@@ -82,6 +82,8 @@ rule "智能体读的规则文件超出层上限（A 开局、B 每路径，poli
 run "agent-read rules: layer A/B sizes, .claude/rules links" python3 -I scripts/guards/rule_sizes.py
 rule "代码文件超过 1000 行（复审必改），或登记的超长文件变长、登记过期" "按输出的 FL 规则号拆文件，或按提示更新 scripts/guards/file_lines.py 的 OVER"
 run "code files within 1000 lines" python3 -I scripts/guards/file_lines.py
+rule "后端有包既没标 @NullMarked 也没登记在 null-unmarked-packages.txt（NullAway 不查它），或登记过期" "按输出的 NM 规则号给包的 package-info.java 加 @NullMarked，或删去过期的登记行"
+run "every backend package is @NullMarked or listed" python3 -I scripts/guards/null_marked.py
 rule "dev 与 prod 建库脚本、参考 DDL 不一致，生产库结构与测试不同" "改 dev-db 脚本后运行 ops/runbooks/sql/render-prod-sql.sh 重新生成 prod-db"
 run "database scripts aligned" python3 -I scripts/guards/db_scripts_aligned.py
 
