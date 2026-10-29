@@ -43,6 +43,8 @@ def survives(command, pid_value, extra=None):
 
 
 def main():
+    text = CI.read_text(encoding="utf-8")
+    assert "LIGHT_ALL: ${{ github.event_name == 'push' && '1' || '' }}" in text, "light 步骤推到 main 时须设 LIGHT_ALL=1：按改动挑自测的唯一兜底"
     run = step_run("stop the docker events recorder")
     assert "${DOCKER_EVENTS_PID:-0}" not in run, run
     mark = Path(os.environ.get("TMPDIR", "/tmp")) / f"ci_steps_selftest.{os.getpid()}"
