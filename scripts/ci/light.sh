@@ -110,6 +110,7 @@ rule "取证工具 OneSql.java 放进了写语句或不回滚（生产只读底�
 if ! touches "$t_onesql"; then skip "OneSql.java read only (self-test)" "相关路径没改（按改动触发）"
 elif ! command -v java >/dev/null; then skip "OneSql.java read only (self-test)" "本机没有 java（CI 的 backend 作业有）"
 else run "OneSql.java read only (self-test)" java "$onesql" --self-test "$onesql_evidence"; fi
+# shellcheck disable=SC2016  # the rule text shows $VAR literally
 rule '$VAR 后紧跟全角字符，bash 3.2 下 set -u 即崩' '把 $VAR 写成 ${VAR}'
 run "shell: no \$VAR right before non-ASCII" var_before_non_ascii
 # 验收测试改了就跑全部免容器单测（CLAUDE.md 交付第 2 步）；export-openapi 绑在 process-test-classes 上要起容器，所以用 test-compile surefire:test

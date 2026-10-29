@@ -293,8 +293,7 @@ jobs:
         if: github.event_name == 'push' || steps.change.outputs.relevant == 'true'
         run: |
           for script in scripts/release/*.sh; do bash -n "$script"; done
-          shellcheck -x scripts/release/*.sh
-          shellcheck -x tools/ops/*.sh
+          git ls-files -z '*.sh' | xargs -0 shellcheck -x   # every tracked shell script (#856); a finding is fixed or disabled inline with its reason
           python3 -I scripts/release/ci_passed.py --self-test
           python3 -I scripts/release/manifest.py --self-test
           python3 -I scripts/release/deploy_gate.py --self-test

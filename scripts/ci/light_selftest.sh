@@ -39,6 +39,8 @@ expect .claude/settings.json t_gates
 expect .pre-commit-config.yaml t_gates
 expect .github/workflows/nightly-legacy-it.yml t_guards_config
 expect scripts/session/new_intent.py t_session
+expect tools/ops/ecs/scripts/c3_set_role_passwords.py t_c3_passwords
+expect tools/ops/ecs/scripts/c3_rotate_admin_password.py t_c3_passwords
 expect tools/docs/new_adr.py t_new_adr
 expect scripts/ci/relevant_change_selftest.py t_mq
 expect scripts/merge/gapscan.py t_mq
@@ -97,6 +99,7 @@ done
 # surefire_guards：在假仓库里跑（假的类清单与 mvnw）；有一个类没出报告就失败，都出了才通过
 fake=$tmp/fake && mkdir -p "$fake/scripts/ci" "$fake/backend/target/surefire-reports"
 printf 'print("ATest,BTest")\n' >"$fake/scripts/ci/light_unit_classes.py"
+# shellcheck disable=SC2016  # writes a fake mvnw; its $ stays literal
 printf '#!/bin/sh\nfor c in $FAKE_REPORTS; do : > "target/surefire-reports/TEST-x.$c.xml"; done\nexit ${FAKE_EXIT:-0}\n' >"$fake/backend/mvnw" && chmod +x "$fake/backend/mvnw"
 (cd "$fake" && FAKE_REPORTS=ATest surefire_guards 2>/dev/null) && no "surefire_guards：BTest 没出报告时应失败"
 : >"$fake/backend/target/surefire-reports/TEST-x.BTest.xml"
@@ -109,6 +112,7 @@ work=$tmp/par && mkdir -p "$work" && passed=0 failed=0 skipped=0 count=0 shown=0
 rule "slow rule" "slow fix"
 run slow bash -c 'sleep 1; echo one'
 rule "vanished rule" "vanished fix"
+# shellcheck disable=SC2016  # $PPID belongs to the inner bash
 run vanished bash -c 'sleep 1; kill -9 $PPID'
 rule "broken rule" "broken fix"
 run broken bash -c 'echo boom; exit 3'
@@ -118,13 +122,17 @@ run unruled true
 report >"$tmp/report.out" 2>/dev/null
 out=$(cat "$tmp/report.out")
 [ "$passed $failed $skipped" = "1 3 1" ] || no "report 计数不对：$passed PASS $failed FAIL $skipped SKIP"
+# shellcheck disable=SC2015  # A && B || no: no runs exactly when a check fails
 printf '%s\n' "$out" | grep -q '^FAIL  broken.*退出 3' && printf '%s\n' "$out" | grep -q '      | boom' || no "失败项要报 FAIL、退出码与输出：$out"
+# shellcheck disable=SC2015  # A && B || no: no runs exactly when a check fails
 printf '%s\n' "$out" | grep -q '^      规则：broken rule' && printf '%s\n' "$out" | grep -q '^      改法：broken fix' || no "FAIL 要打印规则与改法：$out"
+# shellcheck disable=SC2015  # A && B || no: no runs exactly when a check fails
 printf '%s\n' "$out" | grep -q '^FAIL  unruled' && printf '%s\n' "$out" | grep -q '规则：（缺）' || no "没登记规则的检查要记 FAIL：$out"
 printf '%s\n' "$out" | grep -q '^FAIL  vanished' || no "没写出退出码的检查要记 FAIL，不能沿用上一项：$out"
 [ "$(printf '%s\n' "$out" | grep -oE '^(PASS|FAIL|SKIP)  [a-z]+' | awk '{print $2}' | tr '\n' ' ')" = "slow vanished broken absent unruled " ] || no "结果要按起跑顺序打印：$out"
 
 # maven_offline_ready：本机离线解析不过算前提不满足（light.sh 记 SKIP）；CI 里不查
+# shellcheck disable=SC2016  # writes a fake mvnw; its $ stays literal
 printf '#!/bin/sh\n[ -n "$FAKE_DEPS_MISSING" ] && { echo "Cannot access central in offline mode and the artifact x has not been downloaded"; exit 1; }\n[ -n "$FAKE_COMPILE_ERROR" ] && { echo "COMPILATION ERROR"; exit 1; }\nexit 0\n' >"$fake/backend/mvnw"
 (cd "$fake" && FAKE_DEPS_MISSING=1 CI="" maven_offline_ready) && no "maven_offline_ready：本机缺依赖时应返回非零"
 (cd "$fake" && FAKE_DEPS_MISSING="" CI="" maven_offline_ready) || no "maven_offline_ready：依赖齐全时应返回 0"
@@ -149,7 +157,9 @@ base=$(g commit-tree "$(git hash-object -w -t tree /dev/null)" -m orphan) && [ -
 ! list_changed "$changed" 2>/dev/null || no "基线与 HEAD 没有共同祖先时 list_changed 应返回非零"
 
 # $VAR 后跟非 ASCII：已跟踪的 .sh 里有就失败，改成 ${VAR} 就通过
+# shellcheck disable=SC2016,SC2015  # writes a literal $x on purpose; A && B || no as above
 printf 'echo "$x\xef\xbc\x8c"\n' >bad.sh && g add bad.sh && ! var_before_non_ascii 2>/dev/null || no "var_before_non_ascii 没认出 \$x 后紧跟全角逗号"
+# shellcheck disable=SC2016,SC2015  # writes a literal $x on purpose; A && B || no as above
 printf 'echo "${x}\xef\xbc\x8c"\n' >bad.sh && g add bad.sh && var_before_non_ascii || no "var_before_non_ascii 把 \${x} 也判成了问题"
 
 # 字节码清理：一个没有时不报错；跑前已有的不动；新增的（含中文路径）删掉；中途 exit 也删，退出码不变

@@ -27,7 +27,8 @@ onesql=tools/ops/dba/OneSql.java
 onesql_evidence=docs/data/evidence/dba-handoff
 t_onesql='^tools/ops/dba/OneSql\.java$|^docs/data/evidence/dba-handoff/.*\.sql$'  # light.sh 直接用：要 java，缺了记 SKIP
 t_light='^scripts/ci/light(_selftest|_triggers)?\.sh$'
-TRIGGER_KEYS='t_shell t_guards t_guards_config t_evidence_imports t_gates t_session t_new_adr t_mq t_unit_classes t_heavy_gate t_backend_verify t_evidence t_scan t_post_review t_ci_steps t_runner_watch t_docker t_light'
+t_c3_passwords='^tools/ops/ecs/scripts/c3_(set_role|rotate_admin)_password'
+TRIGGER_KEYS='t_shell t_guards t_guards_config t_evidence_imports t_gates t_session t_new_adr t_mq t_unit_classes t_heavy_gate t_backend_verify t_evidence t_scan t_post_review t_ci_steps t_runner_watch t_docker t_light t_c3_passwords'
 
 # 检查表：模式名|名字|命令（命令按空格切分，路径里不能有空格）
 TRIGGERED_CHECKS='t_shell|shell syntax (bash -n)|shell_syntax
@@ -62,6 +63,7 @@ t_post_review|post_review_selftest|python3 scripts/merge/post_review_selftest.py
 t_ci_steps|ci_steps_selftest (ci.yml cleanup spares the runner)|python3 scripts/ci/ci_steps_selftest.py
 t_runner_watch|runner_watch_selftest (runner keep-alive and watch)|python3 scripts/release/runner_watch_selftest.py
 t_docker|docker_ensure_selftest (about 85 s)|bash scripts/release/docker_ensure_selftest.sh
+t_c3_passwords|c3_set_role_passwords (self-test)|python3 -I tools/ops/ecs/scripts/c3_set_role_passwords.py --self-test
 t_light|light_selftest (by-change triggers)|bash scripts/ci/light_selftest.sh'
 
 touches() {  # touches <模式>：没有基线或 LIGHT_ALL=1（CI 推到 main）时一律算改到；否则看 $changed 里有没有匹配的路径（大小写不敏感：macOS 上大小写改名的路径也触发）
@@ -105,6 +107,7 @@ surefire_guards() {  # 全部免容器单测（light_unit_classes.py 列出，�
 var_before_non_ascii() {  # 仓库里的 shell（*.sh、工作流 run 段、.claude/settings.json 的挂载命令）：$VAR 后不得紧跟非 ASCII 字符。UTF-8 下 bash 3.2 会把全角标点读进变量名，set -u 即崩；写成 ${VAR}
   local hits
   hits=$(git ls-files -z '*.sh' .github/workflows .claude/settings.json | LC_ALL=C xargs -0 grep -nE $'\\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]')
+  # shellcheck disable=SC2016  # the message shows $VAR and ${VAR} literally
   [ -z "$hits" ] || { printf '$VAR 后紧跟非 ASCII 字符，改成 ${VAR}：\n%s\n' "$hits" >&2; return 1; }
 }
 

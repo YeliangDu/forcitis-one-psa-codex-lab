@@ -49,4 +49,5 @@ case_ "another commit: export and compare"            00000000000000000000000000
 case_ "unset, contract differs: stop before any test" -                                           '{"other":1}'  1 yes no
 case_ "another commit, contract differs: stop"        0000000000000000000000000000000000000000    '{"other":1}'  1 yes no
 
+# shellcheck disable=SC2015  # echo cannot fail, so the || branch runs only when there are failures
 [ "$failures" -eq 0 ] && echo "backend_verify_selftest: ok" || { echo "backend_verify_selftest: $failures failed"; exit 1; }
