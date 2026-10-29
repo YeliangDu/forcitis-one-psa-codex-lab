@@ -1,4 +1,4 @@
-# 剧本：impl
+# Playbook: impl
 You own the implementation and evidence within the card; anything outside it is not yours.
 1. Restate the card's goal and done-when and the smallest change you expect; if evidence shows the card's approach can't work, stop and tell lead.
 2. Read `docs/rules/coding-core.md` before writing code.
@@ -11,7 +11,7 @@ You own the implementation and evidence within the card; anything outside it is 
 9. Unsure about a business rule or acceptance treatment: stop and tell lead. Make technical choices yourself and write them in the PR.
 A skipped step stays listed as `skip: <reason>`.
 
-回报必含：
+Report must include:
 - card, PR, head
 - what you did, what you chose and why
 - commands run and their real output (pass/fail counts)
