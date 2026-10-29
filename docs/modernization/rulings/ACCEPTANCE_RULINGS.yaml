@@ -1,5 +1,5 @@
 # 验收测试裁定记录（METHODS.md M1 第 4 条、roles/lead.md 专属规则 2）：实现代理认为验收测试有误时停下报告，由复审（不是实现会话本人）裁定；
-# 改验收测试的提交在说明里写 `Acceptance-Ruling: RULING-<编号>`，scripts/ci/acceptance_rulings.py 核对该编号必须记在这里，
+# 改验收测试的提交在说明里写 `Acceptance-Ruling: RULING-<编号>`，scripts/guards/acceptance_rulings.py 核对该编号必须记在这里，
 # 并且记录在 PR 的 base（main）上已有：同一个 PR 里自己补的记录不算（那是实现会话自己裁定自己）。
 #
 # 条目：
