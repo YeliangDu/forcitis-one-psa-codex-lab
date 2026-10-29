@@ -6,6 +6,7 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -94,18 +95,8 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     }
 
     private void awaitListeners() {
-        long deadline = System.nanoTime() + Duration.ofSeconds(20).toNanos();
-        while (jdbc.sql("select count(*) from platform_integration.event_publication").query(Integer.class).single() > 0) {
-            if (System.nanoTime() > deadline) {
-                throw new AssertionError("event listeners still running after 20 s");
-            }
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw new AssertionError(interrupted);
-            }
-        }
+        await("event listeners finished within 20 s").atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(20))
+                .until(() -> jdbc.sql("select count(*) from platform_integration.event_publication").query(Integer.class).single() == 0);
     }
 
     private SyncResult syncWith(List<SourcePerson> people) {

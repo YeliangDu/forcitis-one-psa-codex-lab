@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 
 import com.forcitis.one.fixture.legacy.LegacyApiSample;
 import com.forcitis.one.fixture.legacy.LocalDateTimeInsideSample;
+import com.forcitis.one.fixture.legacy.ThreadSleepSample;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaCodeUnit;
 import com.tngtech.archunit.core.domain.JavaField;
@@ -80,6 +82,31 @@ class LegacyApiGuardTest {
     static final ArchRule NO_TEST_REST_TEMPLATE = noClasses().should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.boot.resttestclient.TestRestTemplate")
             .as("LA-6 a test uses TestRestTemplate").because("fix: call the API through RestTestClient or MockMvc");
 
+    /**
+     * Tests that still sleep, until their owner changes them, with the reason. Acceptance tests change only through the test engineer
+     * (CLAUDE.md baseline 4), so the implementer of #810 could not convert this one. An entry that no longer sleeps fails the stale check.
+     */
+    static final Map<String, String> SLEEP_ALLOWED = Map.of(
+            "com.forcitis.one.acceptance.platform.integration.EmployeeCodeConcurrentSyncIT",
+            "acceptance test: polls pg_locks every 50 ms; to be converted to Awaitility by the test engineer");
+
+    static boolean sleepAllowed(JavaClass type) {
+        return SLEEP_ALLOWED.keySet().stream().anyMatch(name -> type.getName().equals(name) || type.getName().startsWith(name + "$"));
+    }
+
+    static final ArchRule NO_THREAD_SLEEP = noClasses().should(new ArchCondition<JavaClass>("call Thread.sleep") {
+        @Override
+        public void check(JavaClass type, ConditionEvents events) {
+            if (sleepAllowed(type)) {
+                return;
+            }
+            type.getMethodCallsFromSelf().stream()
+                    .filter(call -> call.getTargetOwner().isEquivalentTo(Thread.class) && call.getName().equals("sleep"))
+                    .forEach(call -> events.add(SimpleConditionEvent.satisfied(call, call.getDescription())));
+        }
+    }).as("LA-8 a test calls Thread.sleep (a fixed wait is slow when the condition is met early and flaky when it is late)")
+            .because("fix: wait for the condition with Awaitility, await().atMost(...).until(...); to assert that nothing happens, await().during(...)");
+
     static final List<ArchRule> RULES = List.of(NO_JAVAX, NO_REST_TEMPLATE, NO_JACKSON_2, NO_LOCAL_DATE_TIME_FIELDS, NO_LOCAL_DATE_TIME_SIGNATURES);
 
     @Test
@@ -95,10 +122,34 @@ class LegacyApiGuardTest {
                 .withImportOption(location -> !location.contains("/fixture/legacy/")).importPackages(ArchitectureRulesTest.ROOT));
     }
 
+    static JavaClasses testClasses() {
+        return new ClassFileImporter().withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS)
+                .withImportOption(location -> !location.contains("/fixture/legacy/")).importPackages(ArchitectureRulesTest.ROOT);
+    }
+
+    @Test
+    @DisplayName("tests do not call Thread.sleep (only the entries of SLEEP_ALLOWED, each with its reason)")
+    void testsDoNotSleep() {
+        NO_THREAD_SLEEP.check(testClasses());
+    }
+
+    @Test
+    @DisplayName("injection: every form of Thread.sleep is caught and the failure names Awaitility; a stale SLEEP_ALLOWED entry fails")
+    void threadSleepIsCaught() {
+        assertThatThrownBy(() -> NO_THREAD_SLEEP.check(new ClassFileImporter().importClasses(ThreadSleepSample.class)))
+                .hasMessageContaining("Thread.sleep(long)").hasMessageContaining("Thread.sleep(long, int)").hasMessageContaining("Thread.sleep(java.time.Duration)")
+                .hasMessageContaining("fix: wait for the condition with Awaitility");
+        JavaClasses tests = testClasses();
+        assertAll(SLEEP_ALLOWED.keySet().stream().map(name -> () -> assertThat(tests.stream().filter(type -> type.getName().equals(name) || type.getName().startsWith(name + "$"))
+                .flatMap(type -> type.getMethodCallsFromSelf().stream()).anyMatch(call -> call.getTargetOwner().isEquivalentTo(Thread.class) && call.getName().equals("sleep")))
+                .as("LA-8 SLEEP_ALLOWED lists " + name + ", which no longer calls Thread.sleep. fix: delete the entry")
+                .isTrue()));
+    }
+
     @Test
     @DisplayName("every rule here fails with its id, what is wrong and how to fix it (coding-core D)")
     void everyFailureNamesIdProblemAndFix() {
-        for (ArchRule rule : List.of(NO_JAVAX, NO_REST_TEMPLATE, NO_JACKSON_2, NO_LOCAL_DATE_TIME_FIELDS, NO_LOCAL_DATE_TIME_SIGNATURES, NO_TEST_REST_TEMPLATE)) {
+        for (ArchRule rule : List.of(NO_JAVAX, NO_REST_TEMPLATE, NO_JACKSON_2, NO_LOCAL_DATE_TIME_FIELDS, NO_LOCAL_DATE_TIME_SIGNATURES, NO_TEST_REST_TEMPLATE, NO_THREAD_SLEEP)) {
             assertThat(rule.getDescription()).matches("LA-\\d+ .+, because fix: .+");
         }
     }
