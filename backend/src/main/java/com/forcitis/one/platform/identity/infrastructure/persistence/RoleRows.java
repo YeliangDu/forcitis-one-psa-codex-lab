@@ -33,10 +33,14 @@ final class RoleRows {
     private static final Logger LOG = LoggerFactory.getLogger(RoleRows.class);
 
     /** The only way identity reads the current version of a role: the join every role read goes through. */
-    static final String CURRENT_VERSION = "join platform_identity.role_versions v on v.role_id = r.role_id and v.effective_to_at is null";
+    static final String CURRENT_VERSION = """
+            join platform_identity.role_versions v on v.role_id = r.role_id and v.effective_to_at is null
+            """;
 
-    private static final String COLUMNS = "r.role_id, r.code, r.kind, r.is_administrative, r.version, r.event_count,"
-            + " v.role_version_id, v.role_name, v.role_status, v.access_scope_kind, v.permission_codes";
+    private static final String COLUMNS = """
+            r.role_id, r.code, r.kind, r.is_administrative, r.version, r.event_count,
+            v.role_version_id, v.role_name, v.role_status, v.access_scope_kind, v.permission_codes
+            """;
 
     private RoleRows() {
     }
@@ -48,7 +52,11 @@ final class RoleRows {
 
     /** rest: what follows "from platform_identity.roles r join (current version) v": further joins, where, order by. */
     static List<Role> select(JdbcClient jdbc, String rest, Map<String, Object> params) {
-        List<Row> rows = jdbc.sql("select " + COLUMNS + " from platform_identity.roles r " + CURRENT_VERSION + " " + rest).params(params)
+        List<Row> rows = jdbc.sql("""
+                select
+                """ + COLUMNS + """
+                 from platform_identity.roles r
+                """ + CURRENT_VERSION + rest).params(params)
                 .query((rs, n) -> {
                     RoleId roleId = new RoleId(rs.getObject("role_id", UUID.class));
                     RoleVersionId versionId = new RoleVersionId(rs.getObject("role_version_id", UUID.class));
