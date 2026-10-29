@@ -52,6 +52,7 @@ def main():
         shutil.copy(os.path.join(BASE, "decision-digest", "topics.txt"), os.path.join(mod, "decision-digest"))
         open(os.path.join(mod, "decision-digest", "relations.txt"), "w").close()
         open(os.path.join(mod, "decision-digest", "archived.txt"), "w").close()
+        open(os.path.join(mod, "decision-digest", "standing.txt"), "w").close()
         os.makedirs(os.path.join(tree, "scripts", "session"))
         for f in ("new_intent.py", "build_decisions.py"):
             shutil.copy(os.path.join(HERE, f), os.path.join(tree, "scripts", "session"))
