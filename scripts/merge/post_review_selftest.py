@@ -6,6 +6,7 @@
 import json
 import os
 import pathlib
+import re
 import sys
 import tempfile
 from unittest import mock
@@ -427,6 +428,9 @@ def case_prompt_dispatch_rules():
                  "review.final_paths", "; opus for", "Run tests only for the affected modules", "lead reviews the fix diff and releases it"):   # #822: English since 10-29
         assert need in text, need
     assert "复核模式" not in text and "逐条复核上一轮必改" not in text, "复核要求已删"
+    assert "Must-fix fixes are not re-reviewed" in text, "the English prompt still says fixes are not re-reviewed"
+    assert not re.search(r"(?i)re-?review mode|re-?check(?:ing)? (?:each|every|the previous round's) must-fix|re-?review(?:ing)? (?:each|every|the previous round's) must-fix",
+                         text), "no re-review mode came back in English (#822)"
     fence = text.split("```")[1].strip().split("\n")
     assert fence == ["复审结论：通过｜必改", "commit：<40 位 sha>", "复审者：<模型>-<首轮|终审>-<标识>"], fence
     assert pr_mod.parse_header(header(PASS, SHA, "sonnet-首轮-a1")) and pr_mod.parse_header(header(FIX, SHA, "opus-终审-a1")), "sonnet 首轮与 opus 终审的头都能解析"
