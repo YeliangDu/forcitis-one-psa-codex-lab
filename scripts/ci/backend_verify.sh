@@ -11,21 +11,28 @@ bash ../scripts/codegen/generate_api.sh --check || exit 1
 
 # Self-hosted checkouts can retain reports; only this invocation may vouch for its selected tier.
 rm -rf target/surefire-reports target/failsafe-reports
-contract=$(mktemp)
-export_log=$(mktemp)
-cp ../frontend/packages/api/openapi.json "$contract"
-if ! ./mvnw -B surefire:test@export-openapi "$@" >"$export_log" 2>&1; then
+# ci.yml's heavy step (queued pull request, its nightly schedule) sets OPENAPI_EXPORTED_FOR to the commit that run's api-contract
+# job exported and asserted (OpenApiExportTest), so it skips a second export (#783). A local run, nightly-legacy-it.yml and any
+# other commit export and compare as before.
+if [ -n "${OPENAPI_EXPORTED_FOR:-}" ] && [ "$OPENAPI_EXPORTED_FOR" = "$(git rev-parse HEAD)" ]; then
+  echo "OpenAPI: exported and asserted for $OPENAPI_EXPORTED_FOR by this run's api-contract job; not exported again"
+else
+  contract=$(mktemp)
+  export_log=$(mktemp)
+  cp ../frontend/packages/api/openapi.json "$contract"
+  if ! ./mvnw -B surefire:test@export-openapi "$@" >"$export_log" 2>&1; then
+    cat "$export_log"
+    rm -f "$contract" "$export_log"
+    exit 1
+  fi
   cat "$export_log"
+  if ! cmp -s "$contract" ../frontend/packages/api/openapi.json; then
+    echo "OpenAPI 与本次前端生成输入不一致；请在仓库根重新运行 bash scripts/codegen/generate_api.sh 后重试。" >&2
+    rm -f "$contract" "$export_log"
+    exit 1
+  fi
   rm -f "$contract" "$export_log"
-  exit 1
 fi
-cat "$export_log"
-if ! cmp -s "$contract" ../frontend/packages/api/openapi.json; then
-  echo "OpenAPI 与本次前端生成输入不一致；请在仓库根重新运行 bash scripts/codegen/generate_api.sh 后重试。" >&2
-  rm -f "$contract" "$export_log"
-  exit 1
-fi
-rm -f "$contract" "$export_log"
 # Export must finish before failsafe too: its acceptance classes read the same contract.
 unit_log=$(mktemp)
 integration_log=$(mktemp)
