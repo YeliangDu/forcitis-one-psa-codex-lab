@@ -72,6 +72,7 @@ public abstract class AcceptanceSupport {
         }
     }
 
+    /** A container of the class's own, only for tests that read the server log (K3b4AuditPagingIT, WorkCalendarYearsPagingIT); others use TestPostgres.database. */
     protected static PostgreSQLContainer database() {
         return TestPostgres.container().withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
     }

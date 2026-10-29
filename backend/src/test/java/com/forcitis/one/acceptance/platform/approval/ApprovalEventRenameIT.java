@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.P4Names;
 import com.forcitis.one.acceptance.P5Names;
 import com.forcitis.one.acceptance.P5Support;
@@ -20,10 +22,8 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P5 rename (one-glossary-b2; card 3.5 and acceptance item 12): the events of an overdue approval task and of a handled one are
@@ -31,15 +31,17 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * catalogue nor the list of actions that must be audited nor in the audit trail; the reminder card and the timesheet write-back still
  * happen.
  */
-@Testcontainers
 class ApprovalEventRenameIT extends P5Support {
 
     static final Path EVENTS = Path.of("../docs/architecture/events");
     static final Path MUST_AUDIT = Path.of("../docs/architecture/must-audit-actions.yaml");
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ApprovalEventRenameIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     EnforceDeadlines enforceDeadlines;

@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.P5Support;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.approval.api.TaskEffect;
@@ -14,11 +16,9 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.modulith.events.IncompleteEventPublications;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * RULE-304 as corrected 2026-10-21: delivery of results is the event publication register's job. An event is written in the same
@@ -26,15 +26,17 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * completion the engine made without a decision never goes out as a result. The register is read and the redelivery is asked through
  * the framework's public IncompleteEventPublications (the redelivery job calls exactly that).
  */
-@Testcontainers
 class ResultEventRedeliveryIT extends P5Support {
 
     static final String APPROVAL_COMPLETED = "ApprovalCompleted";
     static final String TASK_HANDLED = "TaskHandled";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ResultEventRedeliveryIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     IncompleteEventPublications incomplete;

@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.cost.timesheet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.P5Names;
 import com.forcitis.one.acceptance.P5Support;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
@@ -21,17 +23,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P5 rename B2-B07 (card section 14, RULING-P5-4): the owner pulling a submitted timesheet out of its approval is published as
  * cost.timesheet.TimesheetApprovalWithdrawn. The old name is in neither the event catalogues, the aggregate model, the list of actions
  * that must be audited, the registry of published events nor the audit trail.
  */
-@Testcontainers
 class TimesheetApprovalWithdrawnRenameIT extends P5Support {
 
     static final Path EVENTS = Path.of("../docs/architecture/events");
@@ -39,9 +38,12 @@ class TimesheetApprovalWithdrawnRenameIT extends P5Support {
     static final Path MUST_AUDIT = Path.of("../docs/architecture/must-audit-actions.yaml");
     static final String NEW_NAME = "TimesheetApprovalWithdrawn";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(TimesheetApprovalWithdrawnRenameIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     SubmitTimesheet submitTimesheet;

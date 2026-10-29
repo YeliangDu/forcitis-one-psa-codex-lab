@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.numbering;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,10 +22,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * ADR-0033 section 2 item 7 (DA-11), ADR-0010 item 5 and the #129 review of legacy numbers: the original number of a migrated document is
@@ -31,7 +31,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * schema inside one transaction that is rolled back; the insert names only the columns the decision fixes and lets the primary key and
  * the audit timestamps be filled from the catalogue.
  */
-@Testcontainers
 class LegacyNumberSourceIT extends AcceptanceSupport {
 
     static final String ACCEPTED = "accepted";
@@ -40,9 +39,12 @@ class LegacyNumberSourceIT extends AcceptanceSupport {
     static final String NOT_NULL_VIOLATION = "23502";
     static final UUID BATCH = UUID.fromString("01900000-0000-7000-8000-0000000000b1");
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(LegacyNumberSourceIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private Connection numbering;
     private String primaryKey;

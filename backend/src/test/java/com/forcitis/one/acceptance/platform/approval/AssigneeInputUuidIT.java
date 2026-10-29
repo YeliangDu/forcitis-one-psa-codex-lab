@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.approval;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.kernel.DocumentReference;
@@ -23,10 +25,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P3b, ADR-0033 section 3 item 3 (card section 4 item 6): the people a form field names are employee ids, canonical UUIDs. A value
@@ -34,15 +34,17 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID and an alert; it is not skipped while the valid values go on, and no approval or task is written.
  * Until P3b such a value is dropped without a word. Started through the approval api as the timesheet module does (no HTTP start, I-5).
  */
-@Testcontainers
 class AssigneeInputUuidIT extends AccountsAcceptanceSupport {
 
     static final String ASSIGNEE_INPUT_INVALID = "PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID";
     static final String FORM_FIELD = "projectManagerId";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AssigneeInputUuidIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     ApprovalProcesses approvals;

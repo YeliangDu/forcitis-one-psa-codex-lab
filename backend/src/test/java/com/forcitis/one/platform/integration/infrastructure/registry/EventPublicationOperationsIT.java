@@ -3,6 +3,7 @@ package com.forcitis.one.platform.integration.infrastructure.registry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -21,21 +22,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import com.forcitis.one.kernel.SystemActors;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.integration.event-publication.jobs-enabled=true",
         "forcitis.platform.integration.event-publication.republish-interval=PT6H",
         "spring.datasource.hikari.connection-timeout=2000"})
-@Testcontainers
 class EventPublicationOperationsIT {
     @MockitoBean
     OrgDirectory orgDirectory;
@@ -46,11 +44,12 @@ class EventPublicationOperationsIT {
     @MockitoBean
     WecomGateway wecomGateway;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(EventPublicationOperationsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     ApplicationEventPublisher publisher;

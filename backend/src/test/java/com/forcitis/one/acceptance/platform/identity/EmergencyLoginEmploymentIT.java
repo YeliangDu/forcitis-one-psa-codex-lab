@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.platform.identity.application.OperationsCommands;
 import java.io.ByteArrayOutputStream;
@@ -28,14 +30,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P2 (ADR-0033 section 3 item 7, U-4 answered "拒绝并告警"; ADR-0027 section 1 item 3): the employment check of the emergency login
@@ -45,16 +43,18 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * The bound account's id and its employee id differ (the account id is a UUID), so the check has to be made on the employee's side.
  * The emergency account is registered with the operations command; its password and one-time-code secret exist only in this test's memory.
  */
-@Testcontainers
 class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
 
     static final String EMERGENCY_LOGIN = "/api/v1/platform/sessions:emergency-login";
     static final Pattern PASSWORD = Pattern.compile("(?m)^password\\s*: (\\S+)$");
     static final Pattern SECRET = Pattern.compile("(?m)^one-time-code secret \\(base32\\)\\s*: ([A-Z2-7]+)$");
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(EmergencyLoginEmploymentIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** A throw-away encryption key for the one-time-code secrets, generated per run. */
     @DynamicPropertySource

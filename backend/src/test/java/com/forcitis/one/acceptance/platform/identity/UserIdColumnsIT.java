@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,22 +13,22 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P2 (ADR-0033 section 3 item 1, NAMING_STANDARD 2.4 "_id" and "_by"): every column that holds the id of a user account is a uuid,
  * in identity and in every other schema at once; the account row names its employee in a column of its own that is unique. Read from the
  * catalogue of the migrated database, so the test asserts the tables the application really runs on.
  */
-@Testcontainers
 class UserIdColumnsIT extends AcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(UserIdColumnsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** schema, table, column: the user id columns listed for P2 (NEXT_BATCH_PLAN 7.2, R-1b split plan section 2). */
     static final List<String[]> USER_ID_COLUMNS = List.of(

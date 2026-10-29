@@ -3,6 +3,7 @@ package com.forcitis.one.acceptance.platform.identity.data_scope;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.OneApplication;
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.RoleCode;
@@ -24,14 +25,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * F-1 card (#728), constraint table row 5, "系统角色声明对账（启动失败）" (ADR-0044 section 1, F1-01): the start-up reconciliation of the
@@ -49,17 +47,7 @@ class SystemRoleDeclarationScopeIT {
     private static final String SENSITIVE = "platform.audit:audit-entry:read";
     private static final String ORDINARY = "organization.workforce:org-unit:read";
 
-    private static final PostgreSQLContainer POSTGRES = TestPostgres.container().withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
-
-    @BeforeAll
-    static void aDatabase() {
-        POSTGRES.start();
-    }
-
-    @AfterAll
-    static void noDatabase() {
-        POSTGRES.stop();
-    }
+    private static final TestDatabase POSTGRES = TestPostgres.database(SystemRoleDeclarationScopeIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
 
     /** What a start on the container comes to: the application up (and closed again) or the failure that stopped it. */
     private record Start(Throwable failure) {
@@ -84,8 +72,8 @@ class SystemRoleDeclarationScopeIT {
         try {
             context = new SpringApplicationBuilder(OneApplication.class)
                     .initializers(initializing -> ((GenericApplicationContext) initializing).registerBean("acceptanceSystemRoleDeclaration", SystemRoleDeclaration.class, () -> declaration))
-                    .properties("spring.datasource.url=" + POSTGRES.getJdbcUrl(), "spring.datasource.username=" + POSTGRES.getUsername(),
-                            "spring.datasource.password=" + POSTGRES.getPassword(), "server.port=0", "flowable.async-executor-activate=false")
+                    .properties("spring.datasource.url=" + POSTGRES.url(), "spring.datasource.username=" + POSTGRES.username(),
+                            "spring.datasource.password=" + POSTGRES.password(), "server.port=0", "flowable.async-executor-activate=false")
                     .run();
             return new Start(null);
         } catch (Throwable failure) {
@@ -170,7 +158,7 @@ class SystemRoleDeclarationScopeIT {
     }
 
     private static long rolesWithId(UUID roleId) throws SQLException {
-        try (Connection connection = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+        try (Connection connection = DriverManager.getConnection(POSTGRES.url(), POSTGRES.username(), POSTGRES.password());
              PreparedStatement select = connection.prepareStatement("select count(*) from platform_identity.roles where role_id = ?")) {
             select.setObject(1, roleId);
             try (ResultSet rs = select.executeQuery()) {

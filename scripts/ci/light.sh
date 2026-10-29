@@ -84,8 +84,8 @@ rule "实现方改了验收测试（底线：实现方不改验收测试）" "�
 against_base "acceptance guard" python3 scripts/guards/acceptance_guard.py
 rule "提交引用了不存在、复用或范围不符的验收裁定" "引用 rules/rulings/acceptance-rulings.yaml 里真实的裁定号"
 against_base "acceptance rulings" python3 scripts/guards/acceptance_rulings.py
-rule "新增或改名的文件、目录不合命名规则" "照输出给出的改正名改名；新的顶层目录先问 lead"
-against_base "file and directory names (added or renamed)" python3 -I scripts/guards/check_names.py
+rule "文件、目录不合命名规则（全仓）" "照输出给出的改正名改名；新的顶层目录先问 lead"
+run "file and directory names (whole tree)" python3 -I scripts/guards/check_names.py
 
 # 工具库开工单（仓库外）读的规则与角色文件；脚本自身的自测都在「按改动触发」一节
 sheet=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}/start_sheet/start_sheet_selftest.py  # 开工单固定由 /usr/bin/python3 跑（#47），3.10 以上语法在这里就红；工具库不在本机（CI）时同 acceptance_v2 V05 不判红

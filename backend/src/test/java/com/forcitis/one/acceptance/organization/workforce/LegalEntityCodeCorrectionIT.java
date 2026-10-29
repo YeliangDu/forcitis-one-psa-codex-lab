@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -18,31 +20,31 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Characterization of behaviour that already exists and must survive R-1b P3a (expected green before and after): ADR-0033 section 5
  * item 5 and the user's 2026-10-15 answer "未发过号前可更正，发号后禁改". A number is issued through the public numbering api after
  * the seeded quote template was confirmed over HTTP; nothing is mocked.
  */
-@Testcontainers
 class LegalEntityCodeCorrectionIT extends AcceptanceSupport {
 
     static final RequestPostProcessor NUMBERING_APPROVER = person(21, Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE,
             Permission.Codes.PLATFORM_NUMBERING_RULE_READ);
     static final String CODE_CORRECTED = "organization.workforce.LegalEntityCodeCorrected";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(LegalEntityCodeCorrectionIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     DocumentNumbers numbers;

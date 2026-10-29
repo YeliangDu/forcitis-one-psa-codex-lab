@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.ApprovalP4Support.DescendingIds;
 import com.jayway.jsonpath.JsonPath;
 import java.util.ArrayList;
@@ -11,21 +13,18 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P5 ADR-0033 section 1 item 10 (card acceptance item 11, 3.2 item 6): the source reference list is paged by the moment a row was
  * made (and its id only to break a tie), not by its id. The ids are made to fall, so a row made later has the smaller id; paging one
  * row at a time must still give every row once, oldest first. The cursor stays an opaque string.
  */
-@Testcontainers
 class SourceReferenceCursorOrderIT extends SourceReferenceHttpSupport {
 
     @TestConfiguration
@@ -37,9 +36,12 @@ class SourceReferenceCursorOrderIT extends SourceReferenceHttpSupport {
         }
     }
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(SourceReferenceCursorOrderIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private MockHttpServletResponse page(String cursor) throws Exception {
         MockHttpServletRequestBuilder request = get(SOURCE_REFERENCES).param("sourceSystem", ACCOUNTING_SYSTEM).param("sourceObjectKind", LEGAL_ENTITY)

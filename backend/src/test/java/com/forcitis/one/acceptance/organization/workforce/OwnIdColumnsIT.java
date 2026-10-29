@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.organization.workforce;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,10 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P3b (ADR-0033 section 1; DDL-01, DDL-06; card section 3.1 and C10) on the catalogue of the migrated database, written like
@@ -22,12 +22,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * have a one-column uuid primary key under the name they always had; the version and attribution period tables keep their natural key
  * as a unique constraint; the new foreign key indexes exist; the held separations keep their two-column key until split b.
  */
-@Testcontainers
 class OwnIdColumnsIT extends AcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(OwnIdColumnsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String WORKFORCE = "organization_workforce";
 
