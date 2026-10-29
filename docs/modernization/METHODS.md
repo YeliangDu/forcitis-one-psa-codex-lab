@@ -10,7 +10,7 @@
 
 ### M3 变更治理
 
-- **ADR**：已采纳正文冻结，只改头部可变字段；决定有任何变化都新增 ADR 写明「取代」范围，同一提交给旧 ADR 标「已被取代」或「被部分取代」。新 ADR 必写影响面、迁移、回滚、需同步修改的守护（同一 PR 或写明紧随的 PR）。源在 `adr/src/`，`adr/build_adrs.py` 生成并校验，`new_adr.py` 开空壳 PR 占号；状态、头部、档位、勘误、评审、提议复审以 `adr/src/_readme_lifecycle.md` 为准，进不进 ADR 见 `adr/src/_readme_*.md`。
+- **ADR**：已采纳正文冻结，只改头部可变字段；决定有任何变化都新增 ADR 写明「取代」范围，同一提交给旧 ADR 标「已被取代」或「被部分取代」。新 ADR 必写影响面、迁移、回滚、需同步修改的守护（同一 PR 或写明紧随的 PR）。源在 `adr/src/`，`adr/build_adrs.py` 生成并校验，`tools/docs/new_adr.py` 开空壳 PR 占号；状态、头部、档位、勘误、评审、提议复审以 `adr/src/_readme_lifecycle.md` 为准，进不进 ADR 见 `adr/src/_readme_*.md`。
 - **规则调整三类**（拿不准取更严：配置 < 代码 < ADR）：配置类（DMN、业务编号、经营口径、政策参数）新增版本不覆盖，业务口径用户批、会计口径财务批，运行时版本表与 `CONFIG_CHANGELOG.md` 只追加，按与会计期间对齐的生效日期生效、不追溯、不重算；代码类（领域规则、计算、校验、状态机、DDL）先在 `RULE_REVIEWS.json` 增改结论（原字段不改，只在 `revisions` 末尾追加，当前结论取最后一条），再改以规则 ID 命名的测试，最后改实现，brief §5 由 `rules/build_brief.py` 重生成；ADR 类（模块边界、选型、跨 bc 契约、主干不变量）占号→提议→首轮 opus 评审（正式档 `code-modernization:architecture-critic` 对抗评审，轻量档按 `quality/review-briefs/03-adr.md` 子集，起草者写检索记录供重放）→用户批准→已采纳。
 - **迁移基线**（ADR-0038；开放期内取代各处「Flyway 只新增」）：首次生产部署前基线开放（标记 `backend/architecture/migration-baseline-open`），dev 可丢弃，dev 执行过不算已应用；每 schema 一份基线，表结构改动直接改基线，PR 附「预期表结构 diff」（两个空库 `pg_dump --schema-only` 对比，opus 核对）。首次生产部署前单开 PR 删除标记（夹带迁移改动即 CI 失败），此后已合入迁移只追加。`deploy_gate.py` 对 dev 告警、对 prod 拦截；开放期内基线改后 dev 库按重建剧本重置。守护 `migrations_immutable.py`。
 - **已过账事实**不改不删（ADR-0016 第 2 条），更正只走冲销：反向事实加新过账序号，原行保留并双向关联，按正确口径重做；关账后更正落开放期间并标原期间；配置新版本、规则修正、数据迁移都不回写。
@@ -36,7 +36,7 @@
 
 ### M6 用语
 
-- 登记：新标识符、界面文字、表列名先查 terms.yaml，查不到当场登记提议术语，写使用范围（domain、kernel、acl）与 bc；kind 只取 DDD 战术分类，聚合根与领域事件都要有词条，事件=聚合名加过去式业务动词，命令用祈使动词（`glossary/term_rules.py`）；同一 bc 内中英文名都查重；不同 bc 同名各自登记（id 加 `<bc>__` 前缀）并在 homonyms 互列；错误码中文名全局唯一。
+- 登记：新标识符、界面文字、表列名先查 terms.yaml，查不到当场登记提议术语，写使用范围（domain、kernel、acl）与 bc；kind 只取 DDD 战术分类，聚合根与领域事件都要有词条，事件=聚合名加过去式业务动词，命令用祈使动词（`scripts/guards/term_rules.py`）；同一 bc 内中英文名都查重；不同 bc 同名各自登记（id 加 `<bc>__` 前缀）并在 homonyms 互列；错误码中文名全局唯一。
 - 业务用语以用户或财务确认的为准，出口不留未确认的会计类提议（ADR-0018）；改名 PR 先合、forbidden 后合，先禁用须带到期日与负责会话的允许清单。
 - 文档里的方言、同名异义开 GitHub Issue 登记，不自行裁定。
 
