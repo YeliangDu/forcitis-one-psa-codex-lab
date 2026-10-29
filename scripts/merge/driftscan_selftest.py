@@ -162,5 +162,8 @@ def run_with_mq(mq, d):
     finally:
         mq.run_drift = real
     assert started == [1], "run_loop starts the drift check thread"
+    import inspect
+    defaults = inspect.signature(real).parameters
+    assert defaults["every"].default == driftscan.EVERY == 86400 and 0 < defaults["first"].default <= 60, "once per 24 h, the first check at runner start"
     mq.run_drift(proc, directory, every=86400, first=30, stop=lambda: len(slept) > 3, src=Boom())
     assert slept[:3] == [30, 86400, 86400] and len(calls) == 3 and any("drift check: RuntimeError: boom" in l for l in log.lines), "checks on its own clock and survives a failing check"
