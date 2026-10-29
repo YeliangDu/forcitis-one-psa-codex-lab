@@ -32,7 +32,7 @@ CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 3. API money is `{amount: decimal string, currency: ISO 4217}` (XD-01); floats lose cents.
 4. Aggregates that post or face the legal-entity × period gate carry `LegalEntityId` and `AccountingPeriod`; unknown source = fail. Config versions take effect on a period-aligned date, never retroactively (CS-7.5).
 5. In a transaction: no outside calls, HTTP or batch work (use the outbox); take document numbers from `platform.numbering` `DocumentNumbers` here (CS-2.25).
-6. Parse external input once at the web edge (`kernel.InvalidRequestException` → 400), then trust the types, no repeated null checks (CS-2.24).
+6. Parse external input once at the web edge (`kernel.InvalidRequestException` → 400), then trust the types, no repeated null checks (CS-2.24). NullAway checks `@NullMarked` main code (not tests, which pass null on purpose), but not Jackson-filled request fields (validate at the edge) nor unannotated libraries such as JDBC `ResultSet` getters (taken as non-null: map nullable columns explicitly).
 7. Missing or invalid input fails loudly (skip silently only if the rule card says so); no swallowed exceptions, no empty `catch` (CS-1.7, CS-2.24).
 8. Events: past-tense immutable records of IDs and value objects, published in the same transaction after `save` (`DomainEvents`; CS-2.5). Listeners get redeliveries; make them idempotent (`ConsumedEvents`).
 9. `JdbcClient` with named `:params` and explicit columns; never concatenate values into SQL; dynamic sort columns from an allow-list (CS-3.6, CS-3.7).
