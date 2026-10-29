@@ -10,17 +10,15 @@ CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 
 ## A. Golden files — copy these
 
-"now:" = known deviation, #812 fixes it.
-
 | Part | File | Pattern |
 |---|---|---|
 | Use case | `SubmitTimesheet:65` | `@Transactional` on execute, one aggregate, save then publish |
 | Caller | `SubmitTimesheet:66` | inject `CurrentUser`, never take `UserId caller` (`HandlerCallerGuardTest`) |
-| Data scope | `GetOrgUnit:31` | inject `OrgUnitAccess`; out of scope = not found + audit (now: a parameter) |
-| Controller | `OrgUnitController:33` | convert, call the use case; `*Response` record on 200, `ResponseEntity` only for other status or headers (now: computes scope, takes caller) |
-| Repository | `JdbcRoleRepository:117` | text-block lowercase SQL, named params, versioned update |
+| Data scope | `GetOrgUnit:35` | inject `OrgUnitAccess`; out of scope = not found + audit |
+| Controller | `OrgUnitController:36` | convert, call the use case; `*Response` record on 200, `ResponseEntity` only for other status or headers |
+| Repository | `JdbcRoleRepository:123` | text-block lowercase SQL, named params, versioned update |
 | Listener | `ApplyApprovalResult:41` | `@ApplicationModuleListener` in application, dedupe first |
-| Time | `JdbcRoleRepository:347` | `Instant` + `BusinessZone`; JDBC `OffsetDateTime`, not `Timestamp` |
+| Time | `JdbcRoleRepository:367` | `Instant` + `BusinessZone`; JDBC `OffsetDateTime`, not `Timestamp` |
 | ID | `CreateLegalEntity:29` | inject `IdGenerator` |
 | Money | `ExactMoney:25` | compute unrounded in `ExactMoney`; `round()` to `Money`, HALF_UP to the minor unit; total = sum of rounded lines (FD-02/07/08) |
 | Workflow | `FlowableApprovalEngine:54` | Flowable only in the adapter; callers use `ApprovalProcesses` |
