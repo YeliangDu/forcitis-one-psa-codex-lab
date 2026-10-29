@@ -44,9 +44,9 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 ### 2.1 词源
 
-本节只放登记与投影细则。稳定原则、三层模型、组合、生命周期、改名及多语言结构分别引用 **ADR-0053 决定 1、2、3、5、6**，不在此复制决定正文。词源入口按其决定 1.3 指向 `docs/glossary/terms.yaml` 及并入源、`docs/glossary/bcs.yaml` 与 ACL 归类数据；`03-通用语言.md` 是历史来源，不是新增命名的登记入口。现有词条状态与含义以这些源为准，本节示例不裁定改词。
+本节只放登记与投影细则。稳定原则、三层模型、组合、生命周期、改名及多语言结构分别引用 **ADR-0053 决定 1、2、3、5、6**，不在此复制决定正文。词源入口按其决定 1.3 指向 `glossary/terms.yaml` 及并入源、`glossary/bcs.yaml` 与 ACL 归类数据；`03-通用语言.md` 是历史来源，不是新增命名的登记入口。现有词条状态与含义以这些源为准，本节示例不裁定改词。
 
-**出处**：ADR-0053 的 `docs/adr/ADR-0053.md`；下称「登记方案」为 `glossary/arch-naming/NAMING_ATOMS_REGISTRATION_PLANS.md`，其 `NAMING_ATOMS_DRAFT.md` §4 与 `NAMING_ATOMS_PREP.md`「目标结构」只作候选字段的补充出处。下称「N3 定稿」为 one-glossary 的 `glossary/arch-naming/N3_DECISIONS.md`（分支 `claude/one-glossary-bcs-systems`，提交 `f22d6b0b`）；本轮七项按该定稿，取代前稿相应待定表述与不一致的机器值。路径均相对 `docs/`。字段名沿 `glossary/migrate_to_concepts.py`；迁移对照按 N3 定稿第 3 项，映射变更须同步工具并重跑往返比对。
+**出处**：ADR-0053 的 `adr/src/ADR-0053.md`；下称「登记方案」为 `glossary/arch-naming/NAMING_ATOMS_REGISTRATION_PLANS.md`，其 `NAMING_ATOMS_DRAFT.md` §4 与 `NAMING_ATOMS_PREP.md`「目标结构」只作候选字段的补充出处。下称「N3 定稿」为 one-glossary 的 `glossary/arch-naming/N3_DECISIONS.md`（分支 `claude/one-glossary-bcs-systems`，提交 `f22d6b0b`）；本轮七项按该定稿，取代前稿相应待定表述与不一致的机器值。路径均相对 `docs/`。字段名沿 `glossary/migrate_to_concepts.py`；迁移对照按 N3 定稿第 3 项，映射变更须同步工具并重跑往返比对。
 
 **守护现状**：`GlossaryTest`、`glossary/term_rules.py`、`NamingSurfaceTest` 仍读取现行词表形状；概念与指称的新结构、角色选择及投影一致性均为**待补守护**，由 one-quality 按后续命名卡实施、one-coordinator 排期，须在新结构切换前到位。本卡仅改细则，期间按出处复审。出处：ADR-0053 决定 4、7 与迁移方案第 2、5 项；登记方案「落地次序与出口」。
 
@@ -303,7 +303,7 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 ### 2.6 HTTP 接口约定（用户 2026-10-15：对原则核对 A 的待决项答「全部按推荐 (Recommended)」）
 
-适用于全部 `/api/v{n}/…` 接口；由 `docs/architecture/proposals/phase1-a-platform-conventions.md` §2–3 升格而来，那两节不再是现行规则。路径与命名见 §2.3；接口版本与契约演进见 ADR-0008 与 ADR-0035。守护见 §4「待实现的守护」G-A1–G-A9，未实现前由每波复审逐条检查。
+适用于全部 `/api/v{n}/…` 接口；由 `proposals/PHASE1A_PLATFORM_CONVENTIONS.md` §2–3 升格而来，那两节不再是现行规则。路径与命名见 §2.3；接口版本与契约演进见 ADR-0008 与 ADR-0035。守护见 §4「待实现的守护」G-A1–G-A9，未实现前由每波复审逐条检查。
 
 - **A-1 资源与命令**：读取用 `GET`；在集合上创建用 `POST /{复数资源}`；整体替换可编辑字段用 `PUT /{复数资源}/{id}`；状态转换与业务动作写成命令 `POST /{复数资源}/{id}:{动作}`（动作取自 `terms.yaml` 的 `standard_actions`），不用 `PUT` 改状态；删除用 `DELETE`，只用于允许删除的对象（如未提交的草稿），业务上的「作废」「撤销」是命令。不改变任何状态的只读计算（如试算、预览）可用 `GET /{复数资源}:{动作}` 或 `GET /{复数资源}/{id}:{动作}`，参数放查询串，不得有副作用。
 - **A-2 状态码**：创建返回 `201`，带 `Location` 与 `ETag`；命令返回 `200`（响应体为命令后的资源）或 `204`；删除返回 `204`；读取返回 `200` 与 `ETag`。契约中的状态码与运行时一致。
@@ -400,7 +400,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G34 | 【已采纳（ADR-0016），Phase 2 骨架实现】`operations.facts` 的事实仓储只能有插入和查询方法；事实表有拒绝 UPDATE / DELETE 的触发器 | 直接改已过账的数据，而不是冲销 | ArchUnit + DDL 测试（ADR-0016） |
 | G35 | 【已采纳（ADR-0016）】只有 `accounting.ledger` 能依赖会计科目和科目映射 | 业务 BC 写死科目代码 | ArchUnit（ADR-0016） |
 | G36 | 【已采纳（ADR-0016）】触账 BC 只能通过 `operations.facts` 的 api 提交过账候选，不能写事实表 | 绕过期间校验和借贷平衡 | 依赖图 D1 + ArchUnit（ADR-0016） |
-| G37 | 【已采纳（ADR-0018）】domain / api / events / web / kernel 中的类型名、record 组件、枚举常量、非私有方法，以及迁移中的表名、列名，拆词后必须已在 `docs/glossary/terms.yaml` 登记或属于 `common_words` | 自造词、同义词漂移 | `GlossaryTest`（失败时生成 `target/glossary-draft.yaml` 草稿） |
+| G37 | 【已采纳（ADR-0018）】domain / api / events / web / kernel 中的类型名、record 组件、枚举常量、非私有方法，以及迁移中的表名、列名，拆词后必须已在 `glossary/terms.yaml` 登记或属于 `common_words` | 自造词、同义词漂移 | `GlossaryTest`（失败时生成 `target/glossary-draft.yaml` 草稿） |
 | G38 | 【已采纳（ADR-0018）】出现词表中的禁用写法（老名、拼音、非标准用语）即失败 | 把 ManHour、Quotation、cuvalue 带进新代码 | `GlossaryTest` |
 | G39 | 【已采纳（ADR-0018）】列名对应词表术语时，列注释必须以该术语的中文开头 | 数据字典与统一语言不一致 | `GlossaryTest`（解析迁移中的 COMMENT ON） |
 | G40 | 【已采纳（ADR-0019）】新代码禁止依赖 `cn.iocoder..` 及 yudao 的基类和工具（`BaseDO`、`CommonResult`、`TenantBaseDO` 等） | 把脚手架习惯带进新系统 | ArchUnit |

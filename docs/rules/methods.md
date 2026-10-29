@@ -10,19 +10,19 @@
 
 ### M3 变更治理
 
-- **ADR**：已采纳正文冻结，只改头部可变字段；决定有任何变化都新增 ADR 写明「取代」范围，同一提交给旧 ADR 标「已被取代」或「被部分取代」。新 ADR 必写影响面、迁移、回滚、需同步修改的守护（同一 PR 或写明紧随的 PR）。源在 `adr/src/`，`adr/build_adrs.py` 生成并校验，`tools/docs/new_adr.py` 开空壳 PR 占号；状态、头部、档位、勘误、评审、提议复审以 `docs/adr/readme-lifecycle.md` 为准，进不进 ADR 见 `adr/src/_readme_*.md`。
-- **规则调整三类**（拿不准取更严：配置 < 代码 < ADR）：配置类（DMN、业务编号、经营口径、政策参数）新增版本不覆盖，业务口径用户批、会计口径财务批，运行时版本表与 `CONFIG_CHANGELOG.md` 只追加，按与会计期间对齐的生效日期生效、不追溯、不重算；代码类（领域规则、计算、校验、状态机、DDL）先在 `RULE_REVIEWS.json` 增改结论（原字段不改，只在 `revisions` 末尾追加，当前结论取最后一条），再改以规则 ID 命名的测试，最后改实现，brief §5 由 `rules/build_brief.py` 重生成；ADR 类（模块边界、选型、跨 bc 契约、主干不变量）占号→提议→首轮 opus 评审（正式档 `code-modernization:architecture-critic` 对抗评审，轻量档按 `docs/rules/review-briefs/adr.md` 子集，起草者写检索记录供重放）→用户批准→已采纳。
+- **ADR**：已采纳正文冻结，只改头部可变字段；决定有任何变化都新增 ADR 写明「取代」范围，同一提交给旧 ADR 标「已被取代」或「被部分取代」。新 ADR 必写影响面、迁移、回滚、需同步修改的守护（同一 PR 或写明紧随的 PR）。源在 `adr/src/`，`adr/build_adrs.py` 生成并校验，`tools/docs/new_adr.py` 开空壳 PR 占号；状态、头部、档位、勘误、评审、提议复审以 `adr/src/_readme_lifecycle.md` 为准，进不进 ADR 见 `adr/src/_readme_*.md`。
+- **规则调整三类**（拿不准取更严：配置 < 代码 < ADR）：配置类（DMN、业务编号、经营口径、政策参数）新增版本不覆盖，业务口径用户批、会计口径财务批，运行时版本表与 `CONFIG_CHANGELOG.md` 只追加，按与会计期间对齐的生效日期生效、不追溯、不重算；代码类（领域规则、计算、校验、状态机、DDL）先在 `RULE_REVIEWS.json` 增改结论（原字段不改，只在 `revisions` 末尾追加，当前结论取最后一条），再改以规则 ID 命名的测试，最后改实现，brief §5 由 `rules/build_brief.py` 重生成；ADR 类（模块边界、选型、跨 bc 契约、主干不变量）占号→提议→首轮 opus 评审（正式档 `code-modernization:architecture-critic` 对抗评审，轻量档按 `quality/review-briefs/03-adr.md` 子集，起草者写检索记录供重放）→用户批准→已采纳。
 - **迁移基线**（ADR-0038；开放期内取代各处「Flyway 只新增」）：首次生产部署前基线开放（标记 `backend/architecture/migration-baseline-open`），dev 可丢弃，dev 执行过不算已应用；每 schema 一份基线，表结构改动直接改基线，PR 附「预期表结构 diff」（两个空库 `pg_dump --schema-only` 对比，opus 核对）。首次生产部署前单开 PR 删除标记（夹带迁移改动即 CI 失败），此后已合入迁移只追加。`deploy_gate.py` 对 dev 告警、对 prod 拦截；开放期内基线改后 dev 库按重建剧本重置。守护 `migrations_immutable.py`。
 - **已过账事实**不改不删（ADR-0016 第 2 条），更正只走冲销：反向事实加新过账序号，原行保留并双向关联，按正确口径重做；关账后更正落开放期间并标原期间；配置新版本、规则修正、数据迁移都不回写。
-- **谁可以改什么**：ADR 改为已采纳、已被取代、已废弃须用户批准后照原话改，lead 不能代批；起草与改提议稿、勘误按 `docs/adr/readme-lifecycle.md`；已采纳正文谁都不改。配置新版本起草并登记 CONFIG_CHANGELOG（待批准）由用户批；代码类规则修正先提结论草案，用户确认后改测试与实现；关账后更正、期间重开须财务批准。
+- **谁可以改什么**：ADR 改为已采纳、已被取代、已废弃须用户批准后照原话改，lead 不能代批；起草与改提议稿、勘误按 `adr/src/_readme_lifecycle.md`；已采纳正文谁都不改。配置新版本起草并登记 CONFIG_CHANGELOG（待批准）由用户批；代码类规则修正先提结论草案，用户确认后改测试与实现；关账后更正、期间重开须财务批准。
 
 ### M4 流程梳理（每阶段实施前）
 
-- 阶段入口条件之一，一阶段一单元；模板与 contract.md 格式见 `docs/business/processes/README.md`。每个端到端流程写现状（每步附证据：老代码 file:line、`OA_PROCESS_INVENTORY.md`、注日期与出处的生产只读计数）、目标（依规格、ADR、规则卡与已有决定）、差异清单（`D-<阶段>-<序号>`）。
+- 阶段入口条件之一，一阶段一单元；模板与 contract.md 格式见 `process/README.md`。每个端到端流程写现状（每步附证据：老代码 file:line、`OA_PROCESS_INVENTORY.md`、注日期与出处的生产只读计数）、目标（依规格、ADR、规则卡与已有决定）、差异清单（`D-<阶段>-<序号>`）。
 - 差异逐条由用户定，不整批默认，原话记 intent；contract.md 只收已定差异，未决的不进、入口不勾。改变规则的差异按 M3 代码类追加 `revisions`，新规则补抽规则卡。
-- 证据走已授权只读通道（`docs/legacy/runtime-usage/README.md`）。子代理：读老代码 sonnet，生产计数 haiku，差异判断 opus。
-- 数据模型先行：梳理后、派功能代理前，逐表按 DATA_DESIGN_CHECKLIST §14.1 与 `docs/data/data-scorecard.md` 打分；表结构 PR（迁移、表与列注释、数据访问注册表）单开，合并后才派业务代码。
-- DD 门禁（`docs/data/data-design-gate.md`）：改表、列、约束、索引、事件载荷、读模型、迁入映射的卡，派验收测试代理前须 design 在卡上签数据设计；顺序：卡→签发→表结构 PR（附预期 diff）合并→验收→实现。
+- 证据走已授权只读通道（`runtime/README.md`）。子代理：读老代码 sonnet，生产计数 haiku，差异判断 opus。
+- 数据模型先行：梳理后、派功能代理前，逐表按 DATA_DESIGN_CHECKLIST §14.1 与 `phase1a/DATA_SCORECARD.md` 打分；表结构 PR（迁移、表与列注释、数据访问注册表）单开，合并后才派业务代码。
+- DD 门禁（`data/DATA_DESIGN_GATE.md`）：改表、列、约束、索引、事件载荷、读模型、迁入映射的卡，派验收测试代理前须 design 在卡上签数据设计；顺序：卡→签发→表结构 PR（附预期 diff）合并→验收→实现。
 - contract.md 每条与 ADR 要求本阶段交付的每条至少对应一个测试（测试名或注解引 D 编号或 ADR 条款），CI 守护对照；无测试不算交付。
 - 横切关注点（舍入与拆分、时区、幂等、分页、导出、保留期等，类别定义见 `CROSS_CUTTING_MATRIX.md`）：梳理前更新矩阵，「已覆盖」附证据；待决行写成选择题汇入 `CROSS_CUTTING_DECISIONS.md`，由 lead 一次问清；地基行派功能代理前做进 kernel 或 platform 并冻结；必问本阶段新敏感数据的可见角色，敏感权限只授给具体的人（两人确认、季度复核），不经岗位或同步自动授予。
 
