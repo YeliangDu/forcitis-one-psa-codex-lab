@@ -9,7 +9,7 @@ useDefault = true
 description = "用语确认页条目键（R2-P-…、A-…、B-…、C-… 等），非凭据"
 targetRules = ["generic-api-key"]
 condition = "AND"
-paths = ['''^docs/glossary/confirm-page/(index|template)\.html$''']
+paths = ['''^docs/(modernization/)?glossary/confirm-page/(index|template)\.html$''']  # #755 moved it; history keeps the old path
 regexTarget = "match"
 regexes = ['''key":"(R2-)?[ABCNP]-[a-z0-9_\-]+"''']
 
@@ -27,6 +27,6 @@ keywords = ["password", "passwd", "pwd", "secret", "token", "key", "credential"]
 description = "命名预览的词元键，非凭据"
 targetRules = ["credential-assignment-literal"]
 condition = "AND"
-paths = ['''^docs/glossary/arch-naming/naming-preview\.json$''']
+paths = ['''^docs/(modernization/)?glossary/arch-naming/naming-preview\.json$''']  # #755 moved it; history keeps the old path
 regexTarget = "match"
 regexes = ['''^"token"''']
