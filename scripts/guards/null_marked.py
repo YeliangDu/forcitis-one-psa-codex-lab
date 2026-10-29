@@ -10,7 +10,9 @@ Each failure names the rule, the package and the fix:
   NM-2 a listed package is marked now, or no longer exists (the list is stale)
   NM-3 backend/pom.xml does not run NullAway as an error on @NullMarked code: the Error Prone args lack -Xep:NullAway:ERROR,
        -XepOpt:NullAway:OnlyNullMarked=true or -XepOpt:NullAway:JSpecifyMode=true, or nullaway is not on the annotation-processor path
-       (-XepDisableAllChecks switches off every check it does not name, so a dropped flag silently turns NullAway off)
+       (-XepDisableAllChecks switches off every check it does not name, so a dropped flag silently turns NullAway off), or it carries
+       an argument that undoes them: -Xep:NullAway:<anything but ERROR>, -XepAllErrorsAsWarnings, -XepExcludedPaths, or a NullAway option
+       set back to something other than true
 
   null_marked.py              check the repository (run from its root)
   null_marked.py --self-test  a red case per rule
@@ -24,7 +26,14 @@ SOURCES = "backend/src/main/java"
 UNMARKED_FILE = "backend/architecture/null-unmarked-packages.txt"
 POM = "backend/pom.xml"
 REQUIRED_ARGS = ("-Xep:NullAway:ERROR", "-XepOpt:NullAway:OnlyNullMarked=true", "-XepOpt:NullAway:JSpecifyMode=true")
-MARKED = re.compile(r"^\s*@(?:org\.jspecify\.annotations\.)?NullMarked\b", re.M)
+QUALIFIED = re.compile(r"^\s*@org\.jspecify\.annotations\.NullMarked\b", re.M)
+SIMPLE = re.compile(r"^\s*@NullMarked\b", re.M)
+IMPORT = re.compile(r"^\s*import\s+org\.jspecify\.annotations\.NullMarked\s*;", re.M)
+
+
+def marked(text):
+    """@org.jspecify.annotations.NullMarked, written qualified or as @NullMarked with its import (another NullMarked does not count)."""
+    return bool(QUALIFIED.search(text) or (SIMPLE.search(text) and IMPORT.search(text)))
 
 
 def packages(root):
@@ -37,7 +46,7 @@ def packages(root):
             continue
         name = os.path.relpath(folder, base).replace(os.sep, ".")
         info = os.path.join(folder, "package-info.java")
-        found[name] = os.path.isfile(info) and bool(MARKED.search(open(info, encoding="utf-8").read()))
+        found[name] = os.path.isfile(info) and marked(open(info, encoding="utf-8").read())
     return found
 
 
@@ -56,6 +65,10 @@ def build_problems(root):
     args = [a for a in re.findall(r"<arg>([^<]*)</arg>", text) if a.strip().startswith("-Xplugin:ErrorProne")]
     words = args[0].split() if len(args) == 1 else []
     missing = [w for w in REQUIRED_ARGS if w not in words]
+    undoing = [w for w in words if (w.startswith("-Xep:NullAway:") and w != "-Xep:NullAway:ERROR") or w == "-XepAllErrorsAsWarnings"
+               or w.startswith("-XepExcludedPaths") or (w.startswith(("-XepOpt:NullAway:OnlyNullMarked=", "-XepOpt:NullAway:JSpecifyMode="))
+                                                        and not w.endswith("=true"))]
+    missing += [f"no {w} (it undoes NullAway at ERROR)" for w in undoing]
     if not re.search(r"<path>\s*<groupId>com\.uber\.nullaway</groupId>\s*<artifactId>nullaway</artifactId>", text):
         missing.append("nullaway on annotationProcessorPaths")
     if len(args) != 1:
@@ -99,6 +112,10 @@ def self_test():
         for drop in REQUIRED_ARGS:
             write(POM, good_pom.replace(" " + drop, ""))
             assert [p.split()[0] for p in build_problems(tmp)] == ["NM-3"] and drop in build_problems(tmp)[0], ("a dropped flag", drop)
+        for undo in ("-Xep:NullAway:OFF", "-Xep:NullAway:WARN", "-XepAllErrorsAsWarnings", "-XepExcludedPaths:.*/src/main/.*",
+                     "-XepOpt:NullAway:OnlyNullMarked=false", "-XepOpt:NullAway:JSpecifyMode=false"):
+            write(POM, good_pom.replace(" -XepOpt:NullAway:JSpecifyMode=true</arg>", f" -XepOpt:NullAway:JSpecifyMode=true {undo}</arg>"))
+            assert build_problems(tmp) and undo in build_problems(tmp)[0], ("an argument that undoes NullAway at ERROR", undo)
         write(POM, good_pom.replace("<path><groupId>com.uber.nullaway</groupId><artifactId>nullaway</artifactId><version>1</version></path>", ""))
         assert "nullaway on annotationProcessorPaths" in build_problems(tmp)[0], "the processor is gone"
         write(POM, good_pom.replace("<arg>-Xplugin:ErrorProne", "<!-- <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR --><arg>-Xplugin:ErrorProne"))
@@ -118,6 +135,10 @@ def self_test():
         write(src + "a/package-info.java", "@NullMarked\npackage com.x.a;\n\nimport org.jspecify.annotations.NullMarked;\n")
         write(src + "b/B.java", "class B {}")
         write(src + "b/package-info.java", "@org.jspecify.annotations.NullMarked\npackage com.x.b;\n")
+        write(src + "f/F.java", "class F {}")
+        write(src + "f/package-info.java", "@NullMarked\npackage com.x.f;\n\nimport other.lib.NullMarked;\n")
+        assert hit() == ["NM-1"], "a NullMarked from another library is no JSpecify marker"
+        write(src + "f/package-info.java", "@NullMarked\npackage com.x.f;\n\nimport org.jspecify.annotations.NullMarked;\n")
         write(src + "c/C.java", "class C {}")
         write(UNMARKED_FILE, "# legacy packages\ncom.x.c\n")
         assert hit() == [], "marked (imported or qualified) or listed"
@@ -125,9 +146,9 @@ def self_test():
         assert hit() == ["NM-1"], "a new package without package-info"
         write(src + "d/package-info.java", "/** @NullMarked in a comment is no annotation */\npackage com.x.d;\n")
         assert hit() == ["NM-1"], "a mention in a comment does not count"
-        write(src + "d/package-info.java", "@NullMarked\npackage com.x.d;\n")
+        write(src + "d/package-info.java", "@NullMarked\npackage com.x.d;\n\nimport org.jspecify.annotations.NullMarked;\n")
         assert hit() == []
-        write(src + "c/package-info.java", "@NullMarked\npackage com.x.c;\n")
+        write(src + "c/package-info.java", "@NullMarked\npackage com.x.c;\n\nimport org.jspecify.annotations.NullMarked;\n")
         assert hit() == ["NM-2"], "a listed package that is marked now"
         write(UNMARKED_FILE, "com.x.gone\n")
         assert hit() == ["NM-2"], "a listed package that is gone"
