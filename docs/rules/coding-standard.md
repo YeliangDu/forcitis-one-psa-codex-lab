@@ -124,7 +124,7 @@
 | CS-3.6 | SQL 只在 `infrastructure.persistence` 的 `Jdbc*Repository` 中，用 `JdbcClient` 与类型化手写映射，不用反射 ORM；只访问本模块 schema；持久化类与访问的表登记在 `architecture/data-access-registry.yaml` | NAMING_STANDARD G10、§3；GUIDING_PRINCIPLES §10；SECURITY_INVARIANTS I-10 | 守护：G10、`DataArchitectureTest`（注册表与 SQL 对照）、`WorkforceSchemaGuardTest` |
 | CS-3.7 | **参数一律绑定**（`:name` 参数），不把值拼进 SQL 文本；动态排序列、动态表名只能取自代码内的白名单枚举（新增） | 新增（SEC 类缺陷的预防） | 守护（待实现：G-C6） |
 | CS-3.8 | SQL 不读数据库时钟；DDL 不写时钟默认值 | R-4；NAMING_STANDARD §2.4a 第 3 条 | 守护：`TimeSourceGuardTest`（SQL 字符串；迁移扫描随 R-4） |
-| CS-3.9 | **已过账事实不改不删**，审计、版本表只追加；更正只走冲销：反向事实加新过账序号，原行保留并双向关联，按正确口径重做；关账后更正落开放期间并标原期间；配置新版本、规则修正、数据迁移都不回写 | ADR-0016 第 2 条（原 METHODS M3） | 守护：G34、`DataArchitectureTest`（D8） |
+| CS-3.9 | **已过账事实不改不删**，审计、版本表只追加；更正只走冲销：反向事实加新过账序号，原行保留并双向关联，按正确口径重做；关账后更正落开放期间并标原期间；配置新版本、规则修正、数据迁移都不回写；关账后更正、期间重开须财务批准 | ADR-0016 第 2 条（原 METHODS M3） | 守护：G34、`DataArchitectureTest`（D8） |
 | CS-3.10 | 列表查询只用索引覆盖的游标分页（`cursor` + `limit`，默认 50、上限 200），不内存分页、不全表扫描；排序键以 `id` 兜底（CS-2.21） | GUIDING_PRINCIPLES §7；NAMING_STANDARD §2.4a 第 2 条；NEXT_BATCH_PLAN K-3 | 复审（EXPLAIN 抽查） |
 | CS-3.11 | 建库脚本（C-3、C-9）与参考 DDL、迁移目录的 schema 清单一致 | `db_scripts_aligned.py` 说明 | 守护：`scripts/guards/db_scripts_aligned.py` |
 | CS-3.12 | 交易表上不跑分析；汇总、趋势走 `reporting` | DATA_DESIGN_CHECKLIST §14.1 D9；ADR-0025 | 复审 |
@@ -186,7 +186,7 @@
 | CS-7.2 | PR 模板各栏如实填写：改动的断言 / 测试及理由、新增术语、OpenAPI 与架构文档同步、验收测试 trailer、light.sh 最后一行与 FAIL/SKIP 项 | `.github/pull_request_template.md` | 复审 |
 | CS-7.3 | **缺陷修复、功能补做（应交付未做）、结构性重构（含改名）分开派工，不混批、不混提交**。缺陷修复手术式：一张缺陷卡（复审编号、复现步骤、预计改动文件）对应一次最小改动加一个先失败的回归测试；只改卡上文件，越界先报告，不顺手重构、改名、统一风格；小 PR，复审过即合入，不攒大整合分支；无法局部修的标「结构性」写理由，转重构 | 本文件（原 METHODS M5） | 复审 |
 | CS-7.4 | **用户的口头决定用脚本记原话**：`python3 scripts/session/new_intent.py`（`--session`、`--category`、`--owner`、`--paths`、`--supersedes` 四项必填，用法见脚本头），文件名由脚本按时刻与会话名生成，不手工起名；生成产物不入仓、不直接编辑 | `docs/rules/rules.md` ⑧⑨ | 复审 |
-| CS-7.5 | **变更治理自查**（规则调整分三类，拿不准取更严：配置 < 代码 < ADR）：已采纳 ADR 只改状态行（`docs/adr/readme-lifecycle.md`），新 ADR 带必备小节；代码类（领域规则、计算、校验、状态机、DDL）先在 `docs/business/rule-reviews.json` 的 `revisions` 末尾追加结论（原字段不改，当前结论取最后一条），再改以规则 ID 命名的测试，最后改实现；代码类规则的测试以规则 ID（RULE-NNN）命名；配置类（DMN、业务编号、经营口径、政策参数）登记版本与生效日期于 `docs/ops/config-changelog.md`，配置版本只追加、不覆盖，按与会计期间对齐的生效日期生效，不追溯、不回溯改日期、不重算 | 本文件（原 METHODS M3）；`docs/rules/playbooks/design.md` 第 9 步 | 复审 |
+| CS-7.5 | **变更治理自查**（规则调整分三类，拿不准取更严：配置 < 代码 < ADR）：已采纳 ADR 只改状态行（`docs/adr/readme-lifecycle.md`），新 ADR 带必备小节；代码类（领域规则、计算、校验、状态机、DDL）先在 `docs/business/rule-reviews.json` 的 `revisions` 末尾追加结论草案（原字段不改，当前结论取最后一条），经用户确认后再改以规则 ID 命名的测试，最后改实现；代码类规则的测试以规则 ID（RULE-NNN）命名；配置类（DMN、业务编号、经营口径、政策参数；业务口径用户批，会计口径财务批）登记版本与生效日期于 `docs/ops/config-changelog.md`，配置版本只追加、不覆盖，按与会计期间对齐的生效日期生效，不追溯、不回溯改日期、不重算 | 本文件（原 METHODS M3）；`docs/rules/playbooks/design.md` 第 9 步 | 复审 |
 | CS-7.6 | **并行子代理同一基线出发**，整合提交重跑全部守护 | 本文件（原 METHODS M5） | 复审 |
 | CS-7.7 | **复审与入队**：作者按 `scripts/review/PROMPT.md` 拉起全新复审子代理（模型与范围见该文件），安全与生产改动加 opus 终审；必改修复由 lead 看差异放行；复审通过后作者自行 `python3 scripts/merge/mq.py enqueue <PR>`，入队后不再推送；不开自动合入 | `docs/rules/rules.md` ⑤⑥⑨ | CI；lead 核对 |
 | CS-7.8 | 提交说明中文，格式 `type(scope): 摘要`，scope 用子域 slug；验收测试 trailer 见 CS-5.3 | NAMING_STANDARD §7 第 21 项 | 复审 |
