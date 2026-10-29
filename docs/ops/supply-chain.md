@@ -4,19 +4,16 @@
 
 **出处**：用户 2026-10-15 对原则核对 B 的待决项答「全部按推荐 (Recommended)」（含 Dependabot、osv-scanner、新版本 7 天冷却、AG Grid 1b 前随表格选型定）；同日单独决定时未选「给 CI runner 建专用 macOS 用户」（见 S6）。
 
-发布链已有的做法（发布包签名、动作固定 SHA、`pnpm install --ignore-scripts` 等）继续有效；本文补的是日常依赖进出的规则。守护见 `NAMING_STANDARD.md` §4「待实现的守护」G-S1–G-S6；runner 的日常维护见 `CI_RUNNERS.md`。
+发布链已有的做法（发布包签名、动作固定 SHA、`pnpm install --ignore-scripts` 等）继续有效；本文补的是日常依赖进出的规则。守护见 `NAMING_STANDARD.md` §4「待实现的守护」G-S1–G-S6；runner 的日常维护见 `docs/ops/ci-runners.md`。
 
 ## S1 依赖来源与锁定
 
 - Maven 只用 Maven Central，`pom.xml` 不声明其他仓库；构建用严格校验和（`-C`）。
 - pnpm 一律 `--frozen-lockfile`；允许执行安装脚本的包只限 `pnpm-workspace.yaml` 的 `allowBuilds` 白名单，新增须在 PR 中写理由。
 - 新发布的版本满 7 天才引入（pnpm `minimumReleaseAge`，Maven 依赖由 Dependabot 冷却期控制）；安全修复可例外，PR 中写明对应的漏洞编号。
-- **文档生成用的 Python 依赖**（不进发布包与 SBOM，只在 CI 的 `build_all.py --check` 与本地生成时用）：
-  - PyYAML 6.0.3（MIT）：`docs/glossary/build_terms.py` 生成正式术语 `docs/glossary/terms.yaml`，`build_all.py --check` 据此校验可复现（#186）。来源为本机 pyenv Python 3.12.13 的 site-packages，CI runner（`CI_RUNNERS.md`）的 PATH 先走同一 pyenv，因此 CI 与本地是同一份。缺少时 `--check` 明确失败，不跳过。
-- **架构图本机生成工具**（不进发布包与 SBOM，不进 `frontend` 依赖，CI 不使用；用户 2026-10-15 批准「允许安装，图在本机生成（推荐）」，经 one-coordinator 转达）：
-  - `@mermaid-js/mermaid-cli` 11.4.2（MIT，`npm install --save-exact`，装在仓库外 `~/.modernize/psa/tools/mermaid-cli`），依赖 puppeteer 23.11.1（Apache-2.0），它使用本机缓存 `~/.cache/puppeteer/chrome-headless-shell/mac_arm-131.0.6778.204`。只由 `docs/architecture/build_architecture.py --svg` 调用，把 `generated/*.mmd` 渲染成入库的 SVG；在线图页只嵌静态 SVG，不加载外部脚本或字体。
-  - CI 与 `build_all.py --check` 只校验 mmd 可复现、SVG 未过期（`generated/svg-sources.sha256`），不运行该工具。
-  - 其余文档脚本只用标准库（如 `backend/glossary/build_proposed_index.py` 自带 YAML 子集解析器）；新增 Python 依赖照本条登记。
+- **守护与生成用的 Python 依赖**（不进发布包与 SBOM，只在 `scripts/ci/light.sh` 与本地运行时用）：
+  - PyYAML 6.0.3（MIT）：`scripts/` 下的守护与生成器（如 `scripts/codegen/scan_aggregates.py`、`scripts/codegen/build_asyncapi.py`）读写 YAML，light.sh 核验版本。来源为本机 pyenv Python 3.12.13 的 site-packages，CI runner（`docs/ops/ci-runners.md`）的 PATH 先走同一 pyenv，因此 CI 与本地是同一份。
+  - 其余脚本只用标准库；新增 Python 依赖照本条登记。
 
 ## S2 升级节奏
 
@@ -26,7 +23,7 @@
 
 ## S3 漏洞扫描
 
-- osv-scanner 在每个 PR 与每次发布时扫描后端与前端的锁定依赖；并入已有 CI 作业，不新增作业（`CI_RUNNERS.md`「并发与缓存」）。
+- osv-scanner 在每个 PR 与每次发布时扫描后端与前端的锁定依赖；并入已有 CI 作业，不新增作业（`docs/ops/ci-runners.md`「并发与缓存」）。
 - 有修复版本的 Critical / High 漏洞使检查失败；豁免登记在仓库中，写明理由与到期日，期限不超过 90 天，到期仍在即失败。
 
 ## S4 许可证
@@ -53,7 +50,7 @@
 
 - 工作流中 `uses:` 一律固定 40 位提交 SHA（可附版本注释）；禁用 `pull_request_target`；工作流权限按作业最小授予。
 - **目标**：runner 以专用的非管理员用户运行，该用户的 HOME 中没有任何凭据（部署密钥、云凭据、`gh` 令牌、SSH 私钥），也不能写系统级工具目录。
-  - **用户 2026-10-15 本次未选，风险已登记，待决**：现状是 4 个 runner 以开发者账号常驻运行（`CI_RUNNERS.md`），依赖与安装脚本在 CI 中执行时能读到本机凭据目录、改写本机工具链。在用户决定之前，S1 的锁定与 `allowBuilds` 白名单、S3 扫描是主要缓解；G-S6 待决定后实现。
+  - **用户 2026-10-15 本次未选，风险已登记，待决**：现状是 4 个 runner 以开发者账号常驻运行（`docs/ops/ci-runners.md`），依赖与安装脚本在 CI 中执行时能读到本机凭据目录、改写本机工具链。在用户决定之前，S1 的锁定与 `allowBuilds` 白名单、S3 扫描是主要缓解；G-S6 待决定后实现。
 
 ## S7 测试镜像
 

@@ -8,7 +8,7 @@ t_shell='\.sh$'
 t_guards='^scripts/guards/'
 t_guards_config='^scripts/guards/|^backend/pom\.xml$|^backend/src/test/java/com/forcitis/one/acceptance/|^scripts/ci/(legacy_it|backend_verify)\.sh$|^scripts/codegen/generate_api\.sh$|^docs/rules/rulings/|^\.github/workflows/(ci|nightly-legacy-it)\.yml$'
 t_evidence_imports='^scripts/ci/evidence_imports\.py$'
-t_gates='^scripts/(gates|hooks)/|^policy\.json$|^\.claude/|^\.pre-commit-config\.yaml$|^scripts/merge/session_map\.json$'
+t_gates='^scripts/(gates|hooks)/|^policy\.json$|^\.claude/|^\.pre-commit-config\.yaml$'
 t_session='^scripts/session/|^policy\.json$|^docs/rules/roles/|^docs/decisions/decision-digest/'
 t_new_adr='^tools/docs/|^docs/adr/'
 t_mq='^scripts/merge/|^scripts/ci/relevant_change|^policy\.json$'
@@ -57,6 +57,7 @@ t_heavy_gate|heavy_gate (self-test)|python3 scripts/ci/heavy_gate.py --self-test
 t_backend_verify|backend_verify_selftest (OpenAPI export skipped only for this commit)|bash scripts/ci/backend_verify_selftest.sh
 t_evidence|evidence_selftest (self-test)|python3 tools/evidence/evidence_selftest.py --self-test
 t_scan|scan_aggregates tests|python3 scripts/codegen/scan_aggregates_selftest.py
+t_scan|scan_acceptance_tests (self-test)|python3 scripts/codegen/scan_acceptance_tests.py --self-test
 t_post_review|post_review_selftest|python3 scripts/merge/post_review_selftest.py
 t_ci_steps|ci_steps_selftest (ci.yml cleanup spares the runner)|python3 scripts/ci/ci_steps_selftest.py
 t_runner_watch|runner_watch_selftest (runner keep-alive and watch)|python3 scripts/release/runner_watch_selftest.py

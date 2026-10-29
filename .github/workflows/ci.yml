@@ -160,7 +160,7 @@ jobs:
           for class in ${CLASSES//,/ }; do ls target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run" >&2; exit 1; }; done
       - name: surefire and failsafe, side by side
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
-        # Two forks per plugin (four test JVMs per runner instead of eight): the runners share one Docker Desktop (CI_RUNNERS.md)
+        # Two forks per plugin (four test JVMs per runner instead of eight): the runners share one Docker Desktop (docs/ops/ci-runners.md)
         env:
           BACKEND_WATCHDOG_SECONDS: '1500'
           # this run's api-contract job exported and asserted OpenAPI for this very checkout; backend_verify.sh does not export it again

@@ -37,7 +37,6 @@ expect scripts/ci/evidence_imports.py t_evidence_imports
 expect policy.json t_gates t_session t_mq t_evidence t_post_review
 expect .claude/settings.json t_gates
 expect .pre-commit-config.yaml t_gates
-expect scripts/merge/session_map.json t_gates t_mq
 expect .github/workflows/nightly-legacy-it.yml t_guards_config
 expect scripts/session/new_intent.py t_session
 expect tools/docs/new_adr.py t_new_adr

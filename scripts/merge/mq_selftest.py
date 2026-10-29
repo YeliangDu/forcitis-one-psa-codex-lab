@@ -409,9 +409,9 @@ def _flow(mq, d):
     gh.checks = lambda n: (polls.append(1), len(polls) == 23 and gh.prs[45].update(behind=1), [] if len(polls) <= 22 else real_checks(n))[2]
     assert "BEHIND-AT-MERGE" in once(mq, d, "s5", gh, 45)[1]
 
-    # behind only by docs commits: up to date (merged as it is); by a test-read doc, code, a .py under docs, an unknown or empty list: synced; GitHub's strict BEHIND: synced, never a refusal
+    # behind only by docs commits: up to date (merged as it is); by a test-read doc, code, an unknown or empty list: synced; GitHub's strict BEHIND: synced, never a refusal
     for name, files, synced in (("docs", ["docs/a.md"], False), ("guarded", ["docs/a.md", "docs/guarded/t.yaml"], True), ("code", ["backend/pom.xml"], True),
-                                ("py", ["docs/x/check.py"], True), ("unknown", None, True), ("empty", [], True)):
+                                ("unknown", None, True), ("empty", [], True)):
         gh = FakeGh(); gh.add(46, behind=3)["behind_files"] = files
         assert once(mq, d, "bd-" + name, gh, 46)[0] == "MERGED" and (("update-branch", 46) in gh.calls) == synced and (synced or gh.merged_behind == [3]), name
     gh = FakeGh(); gh.add(47, merge="BEHIND", behind=2)["behind_files"] = ["docs/a.md"]

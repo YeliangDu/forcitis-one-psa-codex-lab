@@ -41,17 +41,17 @@ against_base() {  # against_base <名字> <命令…>：命令后面接上基线
   fi
 }
 
-pyyaml() {  # SUPPLY_CHAIN S1：生成文档与若干守护读 YAML，版本钉死
-  python3 -c 'import sys, yaml; sys.exit(None if yaml.__version__ == "6.0.3" else f"PyYAML {yaml.__version__} != 6.0.3（SUPPLY_CHAIN S1，CI_RUNNERS.md）")'
+pyyaml() {  # 供应链规则 S1：守护与生成器读写 YAML，版本钉死
+  python3 -c 'import sys, yaml; sys.exit(None if yaml.__version__ == "6.0.3" else f"PyYAML {yaml.__version__} != 6.0.3（供应链规则 S1，装法见 runner 运维页）")'
 }
 
 echo "light.sh：基线 ${base:-无}，HEAD $(git rev-parse --short HEAD)"
 command -v python3 >/dev/null || { echo "FAIL  找不到 python3" >&2; exit 1; }
 
 # 供应链、正本校验与被代码读的生成物（#742：build_all 与派生文档已删，留下的检查直接在这里跑）
-if [ -z "${CI:-}" ] && ! pyyaml >/dev/null 2>&1; then skip "python3 has PyYAML 6.0.3" "本机 PyYAML 不是 6.0.3：生成物可能与 CI 不同，CI 里这项会红（装 6.0.3 见 CI_RUNNERS.md）"
+if [ -z "${CI:-}" ] && ! pyyaml >/dev/null 2>&1; then skip "python3 has PyYAML 6.0.3" "本机 PyYAML 不是 6.0.3：生成物可能与 CI 不同，CI 里这项会红（装 6.0.3 见 runner 运维页）"
 else
-  rule "生成物与守护按钉死的 PyYAML 6.0.3 读写 YAML（SUPPLY_CHAIN S1）；版本不同，生成结果会漂移" "装 PyYAML 6.0.3（CI_RUNNERS.md）"
+  rule "生成物与守护按钉死的 PyYAML 6.0.3 读写 YAML（供应链规则 S1）；版本不同，生成结果会漂移" "装 PyYAML 6.0.3（见 runner 运维页）"
   run "python3 has PyYAML 6.0.3" pyyaml
 fi
 rule "新词条违反用语登记规则（terms.yaml 与 backend/glossary/proposed）" "按输出逐条改词条，规则见 scripts/guards/term_rules.py"
