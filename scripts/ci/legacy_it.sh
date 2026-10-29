@@ -4,9 +4,9 @@
 # nightly (nightly-legacy-it.yml via backend_verify.sh -Plegacy-it).
 set -euo pipefail
 cd "$(dirname "$0")/../../backend"
-bash ../scripts/generate-api.sh --check
+bash ../scripts/codegen/generate-api.sh --check
 
-tests=$(python3 ../scripts/ci/acceptance_reports.py --legacy-it-tests)
+tests=$(python3 ../scripts/guards/acceptance_reports.py --legacy-it-tests)
 watchdog_dir=$(mktemp -d)
 watchdog_mark="$watchdog_dir/timed-out"
 dumps=target/thread-dumps
@@ -56,4 +56,4 @@ if [ -e "$watchdog_mark" ]; then
   status=124
 fi
 [ "$status" -eq 0 ] || exit "$status"
-python3 ../scripts/ci/acceptance_reports.py --tier legacy-it --report-dir backend/target/legacy-it-reports
+python3 ../scripts/guards/acceptance_reports.py --tier legacy-it --report-dir backend/target/legacy-it-reports

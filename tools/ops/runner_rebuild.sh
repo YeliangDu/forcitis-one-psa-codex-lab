@@ -1,13 +1,13 @@
 #!/bin/bash
 # FORCITIS one · RELEASE.md §7 R-0：重建专用部署 runner（mac-one-deploy）。以 sudo 运行，口令由操作者在终端输入。
-# 用法：sudo scripts/release/runner_rebuild.sh <runner 发行包 .tar.gz> <GitHub 公布的 SHA256> <注册令牌文件>
+# 用法：sudo tools/ops/runner_rebuild.sh <runner 发行包 .tar.gz> <GitHub 公布的 SHA256> <注册令牌文件>
 #   注册令牌文件由操作者（非 root）用 gh api -X POST repos/FORCITIS/forcitis-one-psa/actions/runners/registration-token --jq .token 写出（0600），本脚本读后即删。
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "请用 sudo 运行"; exit 1; }
 TAR="${1:?runner 发行包}"
 TAR_SHA="${2:?发行包 SHA256}"
 TOKEN_FILE="${3:?注册令牌文件}"
-HOOK_SRC="$(cd "$(dirname "$0")" && pwd)/runner_job_started.sh"
+HOOK_SRC="$(cd "$(dirname "$0")/../../scripts/release" && pwd)/runner_job_started.sh"
 U=forcitis-deploy
 DIR=/opt/forcitis-one-runner
 RHOME=/opt/forcitis-one-runner-home
@@ -16,7 +16,8 @@ PLIST=/Library/LaunchDaemons/actions.runner.forcitis-one-deploy.plist
 LABEL=actions.runner.forcitis-one-deploy
 step() { echo; echo "==== $*"; }
 
-step "0 核对发行包与令牌"
+step "0 核对发行包、令牌与作业钩子"
+[ -f "$HOOK_SRC" ] || { echo "缺少作业钩子 ${HOOK_SRC}（在任何删除之前停下）"; exit 1; }
 echo "$TAR_SHA  $TAR" | shasum -a 256 -c -
 [ -s "$TOKEN_FILE" ] || { echo "缺少注册令牌文件"; exit 1; }
 if dseditgroup -o checkmember -m $U admin >/dev/null 2>&1; then echo "$U 在 admin 组，停止"; exit 1; fi

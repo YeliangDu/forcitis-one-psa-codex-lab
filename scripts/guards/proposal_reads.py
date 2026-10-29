@@ -11,9 +11,8 @@ from pathlib import Path
 
 import yaml
 
-HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[2]
-REGISTRY = HERE / "proposal_reads.yaml"
+REPO = Path(__file__).resolve().parents[2]
+REGISTRY = REPO / "docs/modernization/architecture/proposal_reads.yaml"
 SUFFIXES = (".py", ".sh", ".java", ".kt", ".ts", ".mjs")
 SKIP = ("docs/modernization/architecture-guardrails/",)
 MENTION = re.compile(r"""(?:^|[/"'])proposals(?:/|["'])""", re.M)

@@ -17,7 +17,7 @@ test('GOV-1023-QUA-02: missing or empty artifacts fail with the generation comma
     const missing = check();
     assert.notEqual(missing.status, 0);
     assert.ok(missing.stderr.includes(file), missing.stderr);
-    assert.match(missing.stderr, /bash scripts\/generate-api.sh/);
+    assert.match(missing.stderr, /bash scripts\/codegen\/generate-api.sh/);
     const path = join(root, 'packages', 'api', file);
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, '');

@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """新增一条老系统 / A8 生产数据读取登记片段 legacy-read/<日期>-<HHMMSS>-<会话名>.md（ADR-0037 第 7 项）；片段即正本，#742 起不再生成总表。
 
-用法：python3 docs/modernization/phase1a/infra/new_legacy_read.py --session=<会话名> "<执行账号>" "<库与表>" "<用途>" "<输出形式与去向>" "<落盘目录与删除时点>" "<依据>" [--date=YYYY-MM-DD]
+用法：python3 tools/evidence/new_legacy_read.py --session=<会话名> "<执行账号>" "<库与表>" "<用途>" "<输出形式与去向>" "<落盘目录与删除时点>" "<依据>" [--date=YYYY-MM-DD]
 参数里不要写生产特征（实例号、主机名、生产库名）：生产写门对整条命令做字面匹配，见特征即拒（用户 intent 2026-10-28-202019）。
 用法二：new_legacy_read.py --check  校验 legacy-read/ 下全部片段（light.sh 跑）。
 六个值各为一行，不能为空、不能含「|」。文件名由日期、当前时刻与会话名组成，并行会话互不撞名。
 """
 import datetime, os, re, sys
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "docs", "modernization", "phase1a", "infra")
 FIELDS = ("执行账号", "库与表", "用途", "输出形式与去向", "落盘目录与删除时点", "依据")
 LINE = re.compile(r"- \*\*([^*]+)\*\*：(.*)")
 

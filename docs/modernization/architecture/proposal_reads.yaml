@@ -9,11 +9,11 @@
 # 2026-10-26：价值流 v2 与信息图已升正本（U08=A）；原 2026-11-20 到期的 13 项按用户「B 到期日顺延到冻结后」（intent 2026-10-26-122240）顺延到 2026-12-01。
 #   依据：治理冻结 = GOV-1023-COO-01 通过起两周，COO-01 尚无日期；按批三约 10-31 起、读数验证满 7 天推算 COO-01 最迟约 11-17 通过，冻结 12-01 前结束。COO-01 晚于 11-17 通过时须在到期前再定。
 reads:
-  - path: docs/modernization/architecture/panorama/scan_aggregates.py
+  - path: scripts/codegen/scan_aggregates.py
     kind: data
     sources:
       - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-12-01}
-  - path: docs/modernization/architecture/ssot/09-processes/build_catalog.py
+  - path: scripts/guards/build_catalog.py
     kind: data
     sources:
       - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-12-01, note: 校验 owner_bc}
@@ -25,6 +25,6 @@ reads:
   - path: scripts/ci/relevant_change.py
     kind: tool
     note: 改动分级登记 proposals/ 里的工具与事件信封文件
-  - path: docs/modernization/architecture/proposal_reads.py
+  - path: scripts/guards/proposal_reads.py
     kind: tool
     note: 本检查自身（扫描规则与自测夹具）

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""post_review.py 自测：gh 全部打桩，不联网。运行：python3 scripts/review/post_review_selftest.py
+"""post_review.py 自测：gh 全部打桩，不联网。运行：python3 scripts/merge/post_review_selftest.py
 
 标签名从 policy.json 取，结论与类别从 post_review 常量取，本文件不写标签字面值（H21 写入点唯一）。
 """
@@ -422,7 +422,7 @@ def case_issue_refs_first_line():
 
 def case_prompt_dispatch_rules():
     """卡 #736：复审提示写明开发会话派全新子代理、普通卡 sonnet、权限安全数据范围与守护路径 opus、只跑受影响模块；复核模式已删；机读头仍能被 post_review 解析。"""
-    text = (pathlib.Path(pr_mod.__file__).parent / "PROMPT.md").read_text(encoding="utf-8")
+    text = (pathlib.Path(pr_mod.__file__).parents[1] / "review" / "PROMPT.md").read_text(encoding="utf-8")
     for need in ("由开发会话（作者）自己派", "全新复审子代理", "普通卡用 sonnet", "权限、安全、数据范围类", "review.final_paths", "用 opus", "只跑受影响模块", "调度看差异放行"):
         assert need in text, need
     assert "复核模式" not in text and "逐条复核上一轮必改" not in text, "复核要求已删"

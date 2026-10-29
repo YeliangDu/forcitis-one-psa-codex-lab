@@ -7,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = Path('docs/modernization/architecture/ssot/i09-acceptance')
 SOURCES = ['backend/src/test/java/**/*.java (exclude **/architecture/**; '
            'outside acceptance require RULE-/INV-)',

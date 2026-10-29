@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+INSTALL = HERE.parents[1] / "tools" / "ops" / "runner_watch_install.sh"
 LABEL = "actions.runner.FORCITIS-forcitis-one-psa.mac-one-{}"
 FAKE_LAUNCHCTL = """#!/bin/bash
 echo "$*" >> "$FAKE_DIR/calls"
@@ -87,7 +88,7 @@ def install_tests():
             with open(agents / f"{LABEL.format(n)}.plist", "wb") as f:
                 plistlib.dump({**RUNNER_PLIST, "Label": LABEL.format(n)}, f)
         env = {**env, "RUNNER_NAMES": "1 2 3", "RUNNERS_HOME": str(Path(tmp, "runners"))}
-        r = subprocess.run(["bash", str(HERE / "runner_watch_install.sh")], env=env, capture_output=True, text=True)
+        r = subprocess.run(["bash", str(INSTALL)], env=env, capture_output=True, text=True)
         ok = True
         for n in (1, 2):
             with open(agents / f"{LABEL.format(n)}.plist", "rb") as f:
@@ -102,14 +103,14 @@ def install_tests():
         check("巡检 plist 装好、__HOME__ 已替换、脚本已复制", "__HOME__" not in watch and f"{home}/.modernize/psa/ops/bin/runner_watch.sh" in watch
               and (home / ".modernize/psa/ops/bin/runner_watch.sh").read_bytes() == (HERE / "runner_watch.sh").read_bytes(), watch[:300])
         (fake / "calls").unlink()
-        r = subprocess.run(["bash", str(HERE / "runner_watch_install.sh")], env={**env, "RUNNER_NAMES": "1 2"}, capture_output=True, text=True)
+        r = subprocess.run(["bash", str(INSTALL)], env={**env, "RUNNER_NAMES": "1 2"}, capture_output=True, text=True)
         calls = (fake / "calls").read_text()
         check("重跑：已加过的运行器不重载", r.returncode == 0 and "mac-one-1" not in calls and "mac-one-2" not in calls and "已有" in r.stdout, (r, calls))
         with open(agents / f"{LABEL.format(1)}.plist", "wb") as f:  # svc.sh reinstall drops the keys; this runner is running a job
             plistlib.dump({**RUNNER_PLIST, "Label": LABEL.format(1)}, f)
         busy = subprocess.Popen(["bash", "-c", "exec -a " + str(Path(tmp, "runners/one-1/bin/Runner.Worker")) + " sleep 30"])
         try:
-            r = subprocess.run(["bash", str(HERE / "runner_watch_install.sh")], env={**env, "RUNNER_NAMES": "1"}, capture_output=True, text=True)
+            r = subprocess.run(["bash", str(INSTALL)], env={**env, "RUNNER_NAMES": "1"}, capture_output=True, text=True)
         finally:
             busy.kill()
         with open(agents / f"{LABEL.format(1)}.plist", "rb") as f:

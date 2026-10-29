@@ -37,7 +37,7 @@ class GlossaryTest {
     static final Set<String> GENERIC_LAST = Set.of("data", "info", "manager", "handler", "helper", "util", "utils", "processor");
     static final Set<String> PARTICLES = Set.of("off", "out", "up", "down", "in", "over", "back", "away", "on");
     static final Set<String> PREPOSITIONS = Set.of("for", "to", "by", "from", "in", "on", "at", "with", "of", "into", "after", "before");
-    // keep in step with IRREGULAR_PAST in docs/modernization/glossary/term_rules.py
+    // keep in step with IRREGULAR_PAST in scripts/guards/term_rules.py
     static final Set<String> IRREGULAR_PAST = Set.of("sent", "built", "held", "made", "paid", "set", "put", "read", "lost", "kept", "begun",
             "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset",
             "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come",
