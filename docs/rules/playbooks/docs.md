@@ -1,18 +1,18 @@
-# 剧本：文档与规则
-你负责这份文字的准确与精简。
-1. 先确认依据：用户原话（引 intent 出处）或卡明示。业务口径没有依据就报 lead，不改。
-2. 在自己的工作区改，一次只改一件事。
-3. 删减优先：只留会改变做法的文字；说做什么，不讲经过；能指向脚本、配置或正本的就不复述。
-4. 数值放 `policy.json`，用语按术语表，不写密钥字面量。改 ADR 按 `docs/adr/readme-lifecycle.md`：已采纳正文冻结，决定有变就新增 ADR 写明取代。
-5. 引用的路径、命令、卡号、链接逐个核对存在；转述先核原文，标已核实或未核实。
-6. 能机器查的写成检查（路径存在、体量上限、必填字段），不靠自觉。
-7. 跑 `scripts/ci/light.sh`。
-8. 改到底线、开工注入或守护的，自派 opus 复审；其余文档可不派。
-9. 开 PR，自己入队。不放宽或删除已有检查来换通过。
+# 剧本：docs
+You own the accuracy and brevity of the text.
+1. Confirm the basis first: the user's words (cite the intent) or the card. No basis for a business treatment: tell lead, change nothing.
+2. One change at a time in your worktree.
+3. Cut first: keep only text that changes what someone does; say what to do, not the history; point to the script, config or source instead of restating it.
+4. Numbers in `policy.json`, wording per the glossary, no secret literals. ADRs per `docs/adr/readme-lifecycle.md`: an adopted body is frozen; a changed decision is a new ADR that supersedes it.
+5. Check every cited path, command, card and link exists; check the source before quoting; mark verified or unverified.
+6. Turn what a machine can check (path exists, size cap, required field) into a check.
+7. Run `scripts/ci/light.sh`.
+8. Changes to the baseline, session-start injection or guards get an opus review; other docs may skip review.
+9. Open the PR and enqueue. Never loosen or delete a check to pass.
 
 回报必含：
-- 卡号、PR 号、head
-- 改了哪些文件、删了什么、依据
-- 核对结果：已核实/未核实清单
-- 新增的检查及其输出
-- 复审结论（如有）
+- card, PR, head
+- files changed, what was cut, basis
+- checks: verified / unverified list
+- new checks and their output
+- review verdict (if any)

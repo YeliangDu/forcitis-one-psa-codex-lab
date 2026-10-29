@@ -1,52 +1,52 @@
-# 规则
+# Rules
 
-规则只有 `CLAUDE.md` 底线、本文件与 `roles/`，数值只在 `policy.json`。编号沿用，不重排（⑦⑪⑫已删）。
+Rules live only in the `CLAUDE.md` baseline, this file and `roles/`; numbers live only in `policy.json`. Numbering is kept, never renumbered (⑦⑪⑫ deleted).
 
-## ① 底线
-执行：gitleaks、prod_write_gate、new_intent、main_checkout_gate、backend、人工：首轮复审／每个 PR
+## ① Baseline
+Enforced by: gitleaks, prod_write_gate, new_intent, main_checkout_gate, backend; manual: first-round review / every PR
 
-底线见 `CLAUDE.md`。
+See `CLAUDE.md`.
 
-## ② 开卡与交接
-执行：handoff、start_sheet、人工：lead／周复盘
+## ② Cards and handoff
+Enforced by: handoff, start_sheet; manual: lead / weekly review
 
-一卡一个可验收结果、一个负责会话、单 bc，一卡一个 Issue；入口条件不满足即停下报 lead。卡交出（PR 合入或关闭）时先覆盖写交接文件（上限见 policy.json 的 `start.handoff_max_kb`），再结束会话或 `/clear`；记录与事实不符按事实更正；开工先核实况。新会话一律由 lead 用 start_session 开。会话消息只用于唤醒，内容写卡或 PR 评论；只在被阻塞、须用户决定、事故时给 lead 发消息。开发会话做完一张卡，按交接里的卡序自己接下一张，不等 lead 转达；卡序要变由 lead 改交接。有前置的卡，前置合入后再开工；要并行就把分支叠在前置 PR 的分支上开 PR，前置合入后变基。
+One card = one acceptable result, one owning session, one bc, one Issue; if entry conditions fail, stop and tell lead. When a card is handed over (PR merged or closed), overwrite the handoff file first (cap: `policy.json` `start.handoff_max_kb`), then end the session or `/clear`; correct records that contradict the facts; check the actual state when starting. Lead opens every new session with start_session. Session messages only wake someone up; content goes on the card or PR. Message lead only when blocked, when the user must decide, or on an incident. A dev session that finishes a card takes the next one in its handoff order without waiting for lead; lead changes the order in the handoff. A card with a prerequisite starts after it merges; to work in parallel, stack the branch on the prerequisite's PR branch and rebase after it merges.
 
-## ③ 分支与工作区
-执行：main_checkout_gate
+## ③ Branches and worktrees
+Enforced by: main_checkout_gate
 
-会话名 S 是 policy.json `sessions.config` 的键（旧名经 `sessions.aliases` 换成现名），开发会话名为 `one-dev-<bc>`；工作区目录名 `S-<6 位十六进制>`，分支名 `claude/S-<卡号>-<短名>`，从最新 main 建，与卡同生同灭、不复用；改同一文件的卡串行；git 写操作用绝对路径。
+Session name S is a key of `policy.json` `sessions.config` (old names map via `sessions.aliases`); dev sessions are `one-dev-<bc>`. Worktree dir `S-<6 hex>`, branch `claude/S-<card>-<short>`, cut from the latest main, living and dying with the card; cards that change the same file run in series; git writes use absolute paths.
 
-## ④ 提交与推送
-执行：人工：全员／每次
+## ④ Commits and pushes
+Enforced by: manual: everyone / every time
 
-一项一提交，带 Session trailer；推送不跑测试，测试只在 CI。命令超过 policy.json 的 `shell.foreground_max_seconds` 放后台，不在前台轮询，拿到退出码才报成功。改文件只改所需片段；长输出筛选后存文件按需读，失败段读全；大块阅读交子代理并注明文件与行号。
+One item per commit, with the Session trailer. Pushing runs no tests; tests run in CI. Long commands (builds, full test runs) run in the background; report success only with the exit code. Edit only the needed span; filter long output to a file and read on demand, failures in full; hand bulk reading to a subagent with files and line numbers.
 
-## ⑤ PR 与复审
-执行：post_review、人工：首轮复审／每个 PR
+## ⑤ PRs and review
+Enforced by: post_review; manual: first-round review / every PR
 
-PR 能单独合入与回退，按模板填，首行 `Closes #<卡>`，一卡多 PR 时中间的用 `Refs`；守护、CI、钩子、跨 bc 接口、机械改名、部署阻塞各自单开 PR，合入后 main 仍绿。作者按 `scripts/review/PROMPT.md` 拉起全新复审子代理（模型与范围见该文件），它只写结论文件，派工人用 post_review 提交；安全、生产、钩子、解析类加 opus 终审。复审必改只限正确性、硬约束、底线三类；必改修复由 lead 看差异放行。
+A PR merges and reverts on its own and follows the template. First line `Closes #<card>` only on the PR that completes the card; earlier PRs of the same card use `Refs`. Guards, CI, hooks, cross-bc interfaces, mechanical renames and deploy blockers each get their own PR, and main stays green after each. The author dispatches a fresh reviewer per `scripts/review/PROMPT.md` (model and scope there); it only writes the verdict file, the dispatcher posts it with post_review; security, production, hook and parser changes add an opus final review. 必改 is limited to correctness, hard constraints and the baseline; lead releases 必改 fixes after reading the diff.
 
-## ⑥ 入队与合入
-执行：mq、relevant_change、人工：lead／每个 PR
+## ⑥ Queue and merge
+Enforced by: mq, relevant_change; manual: lead / every PR
 
-复审通过后作者自行 `mq.py enqueue`；只由合入队列合入，入队后不再推送。文档改动开小 PR，relevant_change 判为文档档的免复审，入队同上。
+After review passes the author runs `mq.py enqueue`; only the merge queue merges, and nothing is pushed after enqueueing. Docs changes go in small PRs; those relevant_change classes as docs need no review and are enqueued the same way.
 
-## ⑧ 什么进 git
-执行：build_all、gitleaks
+## ⑧ What goes into git
+Enforced by: build_all, gitleaks
 
-CI 或别的会话要读的进；可由仓库生成的、一次性的不进；本机自用的放工具库；机密与个人信息永不进，报告前扫全历史。一类一份正本，归属见角色文件；只改源不改生成物。记忆只放用户偏好与指针，规则回仓库，冲突以仓库为准。建常驻任务、持久配置或云资源即登记资源表，用完清理。
+What CI or another session reads goes in; what the repo can generate, or is one-off, stays out; personal tooling lives in the tool library; secrets and personal data never go in — scan the full history before reporting. One source per kind, owned per the role files; edit sources, never generated output. Memory holds only user preferences and pointers; rules go back to the repo, and the repo wins on conflict. A standing task, persistent config or cloud resource is registered in the resource list and cleaned up after use.
 
-## ⑨ 决定边界
-执行：new_intent、人工：lead／每次对话
+## ⑨ Decision boundary
+Enforced by: new_intent; manual: lead / every conversation
 
-用户定（intent 2026-10-28-215645）：业务范围与先后；业务规则、用语、会计口径（经财务），老系统行为哪些复刻、哪些改；功能验收；资源（会话数、额度、购买与对外账号）；红线：部署与生产变更、凭据、敏感数据可见角色、对外调用、关账后更正与期间重开及其他不可逆操作。
+The user decides (intent 2026-10-28-215645): business scope and order; business rules, wording, accounting treatment (via finance); which legacy behaviours to reproduce or change; functional acceptance; resources (session count, budget, purchases, external accounts); red lines: deployment and production changes, credentials, roles that see sensitive data, outside calls, corrections after close, reopening periods, and other irreversible acts.
 
-lead 与各会话按底线自定、lead 每日向用户汇总结果：代码、架构与 ADR、测试、脚本、CI、流程、工具、规则与 harness，以及其他可撤回的技术取舍；技术取舍先参考 pstack 的原则与 playbook。
+Lead and sessions decide within the baseline, lead reports results to the user daily: code, architecture and ADRs, tests, scripts, CI, process, tools, rules and harness, and other reversible technical choices; check pstack's principles and playbooks first.
 
-只有 lead 向用户提问，在对话里问，写清选项与推荐；用户的口头决定当场用 new_intent 记原话。与已定决定字面不符的停下报 lead。推送、开 PR、触发 CI 有长期授权，卡上另有限制的从卡；作者可开自己 PR 的 Auto-fix，不开自动合入；应用提示的常设授权、钩子留的口子不算用户授权。
+Only lead asks the user, in the conversation, with options and a recommendation; record the user's spoken decision verbatim with new_intent at once. Anything that contradicts a recorded decision word for word: stop and tell lead. Pushing, opening PRs and triggering CI are standing permissions unless the card limits them; authors may turn on Auto-fix for their own PR, never auto-merge; app-level standing permissions and gaps left by hooks are not user authorization.
 
-## ⑩ 模型分配
-执行：人工：lead／每次派工
+## ⑩ Models
+Enforced by: manual: lead / every dispatch
 
-会话模型与配置见 policy.json 的 `sessions`。opus 只用于首轮复审、安全、守护实现与终审、设计判断，其余 sonnet。派子代理写明模型、范围、输出上限，不重复派同一件事；Explore、Plan 不读 CLAUDE.md，提示须自带底线。
+Session models and config: `policy.json` `sessions`. opus only for first-round review, security, guard implementation and final review, and design judgement; everything else sonnet. A subagent brief names model, scope and output cap; never dispatch the same thing twice; Explore and Plan don't read CLAUDE.md, so their prompt carries the baseline.
