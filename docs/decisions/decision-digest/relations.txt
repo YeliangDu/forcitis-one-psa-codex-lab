@@ -44,3 +44,4 @@
 取代	2026-10-28-193819-one-coordinator-采纳建议.md	2026-10-24-154200-one-coordinator-同意.md	budget_check 及其扩展检查已删
 取代	2026-10-24-212327-one-coordinator-我本地仓库都有-刚才看了-Use.md	2026-10-24-205459-one-coordinator-批准-a8-u8c选择一个看下就.md	生产 ECS 清单脚本不再需要
 取代	2026-10-24-212327-one-coordinator-我本地仓库都有-刚才看了-Use.md	2026-10-24-204640-one-coordinator-你先看看目前字节码什么工具反编译.md	字节码以本机 u8c、seeyon 两仓为准
+取代	2026-10-29-181019-one-lead-开工必读我啥时候同意过了.md	2026-10-29-144628-one-leader-同意-agent-读的英文-人读.md	仅更正落点里的「开工必读合计 12 KB」（lead 的数字，非用户决定）；agent 读英文、人读中文的决定仍有效

@@ -1,10 +1,11 @@
 package com.forcitis.one.organization.workforce.infrastructure.scheduling;
 
 import com.forcitis.one.kernel.BusinessZone;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.Period;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,15 +67,19 @@ class SyncPurgeJob {
     }
 
     private int deleteDiffs() {
-        return jdbc.sql("delete from organization_workforce.sync_diffs where sync_run_id in (select id from organization_workforce.sync_runs where "
+        return jdbc.sql("""
+                delete from organization_workforce.sync_diffs where sync_run_id in (select id from organization_workforce.sync_runs where
+                """
                 + SETTLED + ")").param("cutoff", before(keep.diffKeepPeriod())).update();
     }
 
     private int deleteRuns() {
-        return jdbc.sql("delete from organization_workforce.sync_runs where " + SETTLED).param("cutoff", before(keep.runKeepPeriod())).update();
+        return jdbc.sql("""
+                delete from organization_workforce.sync_runs where
+                """ + SETTLED).param("cutoff", before(keep.runKeepPeriod())).update();
     }
 
-    private Timestamp before(Period period) {
-        return Timestamp.from(Instant.from(clock.instant().atZone(zone.zone()).minus(period)));
+    private OffsetDateTime before(Period period) {
+        return OffsetDateTime.ofInstant(Instant.from(clock.instant().atZone(zone.zone()).minus(period)), ZoneOffset.UTC);
     }
 }
