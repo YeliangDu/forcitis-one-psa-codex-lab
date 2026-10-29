@@ -121,13 +121,13 @@
 | CS-3.2 | DDL 设计十条：业务唯一约束、外键与查询路径索引、空值与默认值（只许技术默认值）、删除语义、代码格式与文本长度、`text + CHECK` 枚举、`jsonb` 边界、大表分区规划、上线后迁移安全、高频更新行 | NAMING_STANDARD §2.4a；DATA_DESIGN_CHECKLIST §14.1 D18 | 守护：`DdlNamingTest` / `DataArchitectureTest`（按各条）；其余复审 |
 | CS-3.3 | **数据设计以 DATA_DESIGN_CHECKLIST §14.1 全部条目为准** | [DATA_DESIGN_CHECKLIST §14.1](DATA_DESIGN_CHECKLIST.md#141-数据架构检查清单用户-2026-10-14问这些表符合olapoltpdama的核心思想吗这么检查对吗后选做并把能自动化的变成守护-recommended) 全部条目 | 守护：`DataArchitectureTest`、`DdlNamingTest`、`PrimaryKeyTypeGuardTest`；其余复审 |
 | CS-3.4 | **自有表主键 UUIDv7**，由 `kernel.IdGenerator` 生成；外部 ID 只作来源对照列；外部代码在防腐层映射为自有枚举 | DATA_DESIGN_CHECKLIST §14.1 D16 | 守护：`PrimaryKeyTypeGuardTest` |
-| CS-3.5 | **迁移只追加**；首次生产部署前基线开放期内直接改基线，每个改表 PR 附「预期表结构 diff」（两个空库 `pg_dump --schema-only` 对比），opus 核对；删除开放标记单独成 PR | METHODS M3「迁移基线」 | 守护：`scripts/ci/migrations_immutable.py`；复审（diff） |
+| CS-3.5 | **迁移只追加**；首次生产部署前基线开放期内直接改基线，每个改表 PR 附「预期表结构 diff」（两个空库 `pg_dump --schema-only` 对比），opus 核对；删除开放标记单独成 PR | METHODS M3「迁移基线」 | 守护：`scripts/guards/migrations_immutable.py`；复审（diff） |
 | CS-3.6 | SQL 只在 `infrastructure.persistence` 的 `Jdbc*Repository` 中，用 `JdbcClient` 与类型化手写映射，不用反射 ORM；只访问本模块 schema；持久化类与访问的表登记在 `architecture/data-access-registry.yaml` | NAMING_STANDARD G10、§3；GUIDING_PRINCIPLES §10；SECURITY_INVARIANTS I-10 | 守护：G10、`DataArchitectureTest`（注册表与 SQL 对照）、`WorkforceSchemaGuardTest` |
 | CS-3.7 | **参数一律绑定**（`:name` 参数），不把值拼进 SQL 文本；动态排序列、动态表名只能取自代码内的白名单枚举（新增） | 新增（SEC 类缺陷的预防） | 守护（待实现：G-C6） |
 | CS-3.8 | SQL 不读数据库时钟；DDL 不写时钟默认值 | R-4；NAMING_STANDARD §2.4a 第 3 条 | 守护：`TimeSourceGuardTest`（SQL 字符串；迁移扫描随 R-4） |
 | CS-3.9 | 已过账事实、审计、版本表只追加；更正靠冲销或新版本 | METHODS M3「已过账事实」；ADR-0016 | 守护：G34、`DataArchitectureTest`（D8） |
 | CS-3.10 | 列表查询只用索引覆盖的游标分页（`cursor` + `limit`，默认 50、上限 200），不内存分页、不全表扫描；排序键以 `id` 兜底（CS-2.21） | GUIDING_PRINCIPLES §7；NAMING_STANDARD §2.4a 第 2 条；NEXT_BATCH_PLAN K-3 | 复审（EXPLAIN 抽查） |
-| CS-3.11 | 建库脚本（C-3、C-9）与参考 DDL、迁移目录的 schema 清单一致 | `db_scripts_aligned.py` 说明 | 守护：`scripts/ci/db_scripts_aligned.py` |
+| CS-3.11 | 建库脚本（C-3、C-9）与参考 DDL、迁移目录的 schema 清单一致 | `db_scripts_aligned.py` 说明 | 守护：`scripts/guards/db_scripts_aligned.py` |
 | CS-3.12 | 交易表上不跑分析；汇总、趋势走 `reporting` | DATA_DESIGN_CHECKLIST §14.1 D9；ADR-0025 | 复审 |
 | CS-3.13 | **按中文排序的 SQL 显式写 `COLLATE "zh-x-icu"`**：库的默认排序规则是内建 C.UTF-8（中文按码位排序，测试库与 dev 库一致，DDL-11），需要拼音顺序的 `ORDER BY` 自己带上；键集分页的排序键若带该 `COLLATE`，游标比较与索引也用同一个 | CROSS_CUTTING_DECISIONS XD-03；CROSS_CUTTING_MATRIX CC-I01、G-X2 | 复审（不做 SQL 守护，K-3a 裁定第 5 条） |
 
@@ -154,7 +154,7 @@
 |---|---|---|---|
 | CS-5.1 | **以模块级集成测试为主**：走 HTTP → 鉴权 → 用例 → 领域 → 真实 PostgreSQL（Testcontainers，镜像以 CI 为准，现为 `postgres:18`）；不 mock 自己的模块，外部系统用 WireMock 或替身隔离；单元测试只补边界（值对象、计算、决策表） | GUIDING_PRINCIPLES §9 | 复审 |
 | CS-5.2 | **测试名引用依据编号**：`@DisplayName` 以规则 / 差异 / ADR / 复审 / intent 编号开头（现有写法，如 `@DisplayName("RULE-356 …")`、`"ADR-0027 …"`）；`contract.md` 每条与 ADR 本阶段交付条款都对应至少一个测试 | NAMING_STANDARD §5；METHODS M4、附 M1 第 2、4 条、TEAM-69；G-T4 | 复审；对照守护 G-T4 待实现 |
-| CS-5.3 | **验收测试与实现分开**：测试代理先写并提交验收测试，实现代理只让它转绿、不得修改；目录约定与提交 trailer 见出处 | `roles/design.md` 职责「独立验收测试」、`backend/src/test/java/com/forcitis/one/acceptance/README.md` | 守护：`scripts/ci/acceptance_guard.py`、`acceptance_rulings.py`（裁定尾注须对应已登记裁定）、`acceptance_reports.py` |
+| CS-5.3 | **验收测试与实现分开**：测试代理先写并提交验收测试，实现代理只让它转绿、不得修改；目录约定与提交 trailer 见出处 | `roles/design.md` 职责「独立验收测试」、`backend/src/test/java/com/forcitis/one/acceptance/README.md` | 守护：`scripts/guards/acceptance_guard.py`、`acceptance_rulings.py`（裁定尾注须对应已登记裁定）、`acceptance_reports.py` |
 | CS-5.4 | **不为通过测试而放宽或删除断言** | [METHODS M5「第二批」第 2 条](METHODS.md#m5-写代码规则coding_standard-引此为出处) | 守护：`scripts/ci/assertion_drift.py`（只警告）；PR 模板；复审 |
 | CS-5.5 | **测试只断言本模块的效果** | [METHODS M5「第二批」第 7 条](METHODS.md#m5-写代码规则coding_standard-引此为出处)；DATA_DESIGN_CHECKLIST §14 G-T3 | 守护：`TestIsolationGuardTest` |
 | CS-5.6 | **确定性等待，不写宽泛的 `never()`**；另：测试不用 `Thread.sleep` 等时间（新增，现有 6 处） | [METHODS M5「第二批」第 7 条](METHODS.md#m5-写代码规则coding_standard-引此为出处)；`Thread.sleep` 一句为本文件新增 | 守护（待实现：G-C8） |

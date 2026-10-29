@@ -53,7 +53,9 @@ def words(en):
     return [w.lower() for w in re.split(r"[^A-Za-z0-9]+", spaced) if w and not w.isdigit()]
 DEPRECATED_FIELDS = ("replaced_by", "until", "owner")
 BC_KINDS = ("bc", "kernel")
-BASELINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "term-rules-baseline.json")
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+GLOSSARY = os.path.join(ROOT, "docs", "modernization", "glossary")
+BASELINE = os.path.join(GLOSSARY, "term-rules-baseline.json")
 
 
 def _blank(v):
@@ -276,7 +278,7 @@ def self_test():
 def check_repo():
     """正本 terms.yaml 与 backend/glossary/proposed/*.yaml 逐条校验（#742：terms.yaml 固化为正本，build_terms.py 已删，校验由 light.sh 直接调）。"""
     import glob, yaml
-    here = os.path.dirname(os.path.abspath(__file__))
+    here = GLOSSARY
     bcs = {b["id"]: b["kind"] for b in yaml.safe_load(open(os.path.join(here, "bcs.yaml"), encoding="utf-8"))["bcs"]}
     entries = [("terms.yaml", t) for t in yaml.safe_load(open(os.path.join(here, "terms.yaml"), encoding="utf-8"))["terms"]]
     proposed = sorted(glob.glob(os.path.join(here, "..", "..", "..", "backend", "glossary", "proposed", "*.yaml")))
@@ -296,4 +298,4 @@ if __name__ == "__main__":
     elif sys.argv[1:] == ["--check"]:
         check_repo()
     else:
-        sys.exit("用法：python3 docs/modernization/glossary/term_rules.py --check | --self-test")
+        sys.exit("用法：python3 scripts/guards/term_rules.py --check | --self-test")

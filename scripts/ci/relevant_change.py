@@ -19,6 +19,7 @@ from pathlib import Path
 
 # Release checks invoke this script with -I; only trusted sibling modules go back on sys.path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(1, str(Path(__file__).resolve().parents[1] / "guards"))
 from acceptance_reports import legacy_acceptance_paths
 
 READ_BY_BUILDS = (
@@ -40,8 +41,6 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
     # DataArchitectureTest runs the V11 part of the c3/c9 verify scripts against a container database (also checked by db_scripts_aligned.py)
     "docs/modernization/phase1a/infra/runbooks/sql/",
-    # light.sh runs the new_intent self-test (C7, #25)
-    "docs/modernization/new_intent_selftest.py",
 )
 
 # inside READ_BY_BUILDS directories but read by no build: the one-glossary records
@@ -52,7 +51,17 @@ NOT_READ_BY_BUILDS = (
 
 # files outside the builds that read READ_BY_BUILDS docs and run in a CI job whatever changed
 ALWAYS_RUN_READERS = (
-    "scripts/ci/db_scripts_aligned.py",   # scripts/ci/light.sh (backend job), whatever changed
+    "scripts/guards/db_scripts_aligned.py",   # scripts/ci/light.sh (backend job), whatever changed
+    # #742: checks and self-tests light.sh runs directly on every event (term rules, BPMN catalogue, proposals/ reads, built.yaml, rulings, decision fragments)
+    "scripts/guards/term_rules.py",
+    "scripts/guards/build_catalog.py",
+    "scripts/guards/proposal_reads.py",
+    "scripts/guards/acceptance_rulings.py",
+    "scripts/codegen/scan_aggregates.py",
+    "scripts/codegen/scan_acceptance_tests.py",   # imported by scan_aggregates.py
+    "scripts/session/build_decisions.py",
+    "scripts/session/new_intent.py",   # run by new_intent_selftest.py
+    "scripts/session/new_intent_selftest.py",
 )
 # developer tools that name docs paths but are no CI step: they are not readers. scripts/gates/ holds the local hooks (the gates and their installer);
 # its gates_selftest.py does run in CI, but through scripts/ci/light.sh on every event, so a doc only it names needs no further tier
@@ -64,18 +73,10 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     # rule and role files: 工具库 start_sheet 的开工单（仓库外，O23a）点名 RULES.md 与角色文件
     "docs/modernization/RULES.md",
     "docs/modernization/roles/",
-    # ruling record: read by scripts/ci/acceptance_rulings.py in the always-run acceptance step
+    # ruling record: read by scripts/guards/acceptance_rulings.py in the always-run acceptance step
     "docs/modernization/rulings/",
     # session profiles: read by the tool library's start_sheet (outside the repository, O23a)
     "docs/modernization/sessions/",
-    "docs/modernization/adr/new_adr.py",  # tool self-tests run by scripts/ci/light.sh
-    # #742: checks light.sh runs directly since build_all.py is gone (term rules, BPMN catalogue, proposals/ reads, built.yaml, decision and legacy-read fragments)
-    "docs/modernization/architecture/panorama/scan_aggregates.py",
-    "docs/modernization/architecture/panorama/test_scan_aggregates.py",
-    "docs/modernization/architecture/proposal_reads.py",
-    "docs/modernization/architecture/ssot/09-processes/build_catalog.py",
-    "docs/modernization/build_decisions.py",
-    "docs/modernization/phase1a/infra/new_legacy_read.py",
     # scripts/ci/evidence_imports.py (light.sh) parses the production evidence tools
     "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/",
     "docs/modernization/phase1a/infra/runbooks/scripts/",
@@ -127,8 +128,8 @@ LEGACY_IT_PATHS = (
     "docs/modernization/phase1a/SEEYON_VIEWS.sql",
     "scripts/ci/legacy_it.sh",
     "scripts/ci/backend_verify.sh",
-    "scripts/ci/acceptance_reports.py",
-    "scripts/ci/ci_git.py",
+    "scripts/guards/acceptance_reports.py",
+    "scripts/guards/ci_git.py",
     "scripts/ci/relevant_change.py",
     ".github/workflows/nightly-legacy-it.yml",
     ".github/workflows/ci.yml",
@@ -150,7 +151,7 @@ def is_relevant(path):
         return False
     if path.startswith(READ_BY_BUILDS):
         return True
-    if path.startswith("docs/"):
+    if path.startswith(("docs/", "tools/docs/")):  # tools/docs/ was under docs/ before #742; tools/ops and tools/evidence stay relevant (release-job shellcheck, evidence self-test)
         return False
     return not ("/" not in path and path.endswith(".md"))
 
@@ -208,7 +209,8 @@ def referenced_docs_paths(root):
 
 
 def uncovered_reads(root):
-    return sorted({f"{rel}: {path}" for rel, path in referenced_docs_paths(root) if not is_covered(path)})
+    """Docs paths named by a source that may not run when they change; ALWAYS_RUN_READERS run on every event, so what they read needs no tier."""
+    return sorted({f"{rel}: {path}" for rel, path in referenced_docs_paths(root) if rel not in ALWAYS_RUN_READERS and not is_covered(path)})
 
 
 GUARDED_READER_DIRS = {"scripts/release/": "release"}

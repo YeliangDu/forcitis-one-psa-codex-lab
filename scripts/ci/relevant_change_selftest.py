@@ -1,6 +1,7 @@
 """Self-test of relevant_change.py (run by `relevant_change.py --self-test`, which passes in its own names: importing it would run its main()).
 Kept beside it so the judge stays small; relevant_change.py skips this file when it scans sources, since its fixtures name docs paths."""
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -62,7 +63,7 @@ def tiers_self_test(root):
         write(tmp, "scripts/ci/light.sh", "cat docs/modernization/events/only-light.yaml")
         write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"; G = "docs/modernization/glossary/"')  # a local tool naming a whole directory hides no reader
         write(tmp, "scripts/gates/g.py", 'P = "docs/modernization/events/only-gate.yaml"; G = "docs/modernization/glossary/"')  # the local gates: no reader either
-        write(tmp, "scripts/ci/db_scripts_aligned.py", 'P = "docs/modernization/events/always.yaml"')
+        write(tmp, "scripts/guards/db_scripts_aligned.py", 'P = "docs/modernization/events/always.yaml"')
         write(tmp, t + "StarGlobIT.java", 'class StarGlobIT { String g = "glob:**/*.java"; String p = "docs/modernization/events/after-star.yaml"; } /** */')
         write(tmp, "frontend/scripts/generate-api.mjs", 'const p = "docs/modernization/glossary/gen.yaml";')
         write(tmp, t + "GlossaryRelatedTest.java", 'class GlossaryRelatedTest { String p = "docs/modernization/glossary/terms.yaml"; }')
@@ -213,6 +214,11 @@ def self_test(module):
     global rc
     rc = module
     root = Path(rc.__file__).resolve().parents[2]
+    light = "\n".join(Path(root, "scripts/ci", f).read_text(encoding="utf-8") for f in ("light.sh", "light_triggers.sh"))
+    named = [p for p in rc.ALWAYS_RUN_READERS if p in light]
+    for entry in rc.ALWAYS_RUN_READERS:  # uncovered_reads trusts this table: light.sh runs each entry, or a script it runs names the entry
+        stem = Path(entry).stem
+        assert entry in named or any(re.search(rf"\b{re.escape(stem)}\b", Path(root, p).read_text(encoding="utf-8")) for p in named), f"rc.ALWAYS_RUN_READERS lists {entry}, but scripts/ci/light.sh does not run it"
     for path in (
         "backend/src/main/resources/application.properties",
         "backend/src/main/resources/application-read-only-verification.properties",
@@ -223,7 +229,7 @@ def self_test(module):
         "backend/src/main/resources/db/migration/platform_integration/V20261014133000__platform_integration_baseline.sql",
         "backend/src/main/resources/db/migration/organization_workforce/V20261014000000__organization_workforce_baseline.sql",
         "backend/src/main/java/com/forcitis/one/organization/workforce/application/ApplySourceSnapshot.java",
-        "scripts/ci/ci_git.py",
+        "scripts/guards/ci_git.py",
     ):
         assert rc.is_legacy_it(path), f"QUAL-CARD-H-R2-3: direct SQL Server input must trigger legacy-it: {path}"
     scheduled = subprocess.run([sys.executable, str(Path(rc.__file__).resolve()), "main"],
@@ -260,7 +266,9 @@ def self_test(module):
     assert rc.is_relevant('"docs/q\\"x.md"'), "a path git still quotes must count as relevant"
     assert rc.is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql"), "DataArchitectureTest executes the verify scripts here"
     assert rc.is_relevant("notes.txt")
-    assert not rc.is_relevant("docs/modernization/adr/new_adr.py"), "a docs tool run only by light.sh's self-tests"
+    assert not rc.is_relevant("tools/docs/new_adr.py"), "a hand-run tool whose self-test light.sh runs"
+    assert rc.is_relevant("tools/ops/runner_rebuild.sh"), "the release job shellchecks tools/ops on relevant pull requests"
+    assert rc.is_relevant("tools/evidence/evidence.py")
     assert rc.is_relevant("docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml")
     assert rc.is_relevant("docs/modernization/phase1a/infra/one_db_roles_schemas.sql")
     assert rc.any_relevant(["docs/modernization/CODING_STANDARD.md", "docs/modernization/glossary/terms.yaml"])

@@ -33,7 +33,7 @@ jobs:
       - working-directory: frontend
         run: pnpm install --frozen-lockfile --prefer-offline
       - name: export OpenAPI and generate TypeScript before either test plugin
-        run: bash scripts/generate-api.sh -Plegacy-it
+        run: bash scripts/codegen/generate-api.sh -Plegacy-it
       - name: surefire and failsafe under profile legacy-it
         # Same concurrency limit and watchdog as ci.yml: the nightly run shares the runners' Docker Desktop
         env:
@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           compgen -G 'backend/target/failsafe-reports/TEST-*MssqlIT.xml'
-          python3 scripts/ci/acceptance_reports.py --tier full
+          python3 scripts/guards/acceptance_reports.py --tier full
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

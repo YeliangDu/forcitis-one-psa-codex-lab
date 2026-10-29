@@ -24,7 +24,7 @@ import sys
 
 import yaml
 
-HERE = pathlib.Path(__file__).resolve().parent
+HERE = pathlib.Path(__file__).resolve().parent  # stays next to the fragments: acceptance EventEnvelopeContractTest reads this file here (#742)
 TARGET = HERE / 'asyncapi.yaml'
 SYSTEM_ACTORS = HERE.parents[2] / 'backend' / 'architecture' / 'system-actors.txt'
 

@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       # Panorama and the light contract readers also need a fresh export, even on docs-only and push events.
-      - run: bash scripts/ops/docker_ensure.sh --ci
+      - run: bash scripts/release/docker_ensure.sh --ci
       - name: Java 25, Node 24 and pinned pnpm
         run: |
           java -version 2>&1 | head -1 | grep -q '"25'
@@ -44,7 +44,7 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile --prefer-offline
       - name: export, assert the backend contract, then generate TypeScript
-        run: bash scripts/generate-api.sh
+        run: bash scripts/codegen/generate-api.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: api-contract
@@ -77,7 +77,7 @@ jobs:
           path: frontend/packages/api
       - name: generated API inputs are present
         working-directory: .
-        run: bash scripts/generate-api.sh --check
+        run: bash scripts/codegen/generate-api.sh --check
       # the engine answers `docker events --since` only from its last 256 events, far too few on an engine the four runners share: record the container events from here on and keep them for a failure
       - name: remember when the job started and record docker container events (evidence if it fails)
         run: |
@@ -108,18 +108,18 @@ jobs:
       - name: toolchain is Java 25
         if: ((steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true') || steps.change.outputs.tier == 'guarded' || github.event_name == 'push'
         run: java -version 2>&1 | head -1 | grep -q '"25'
-      # the local Docker Desktop can be stopped (task OPS-1022-OPS-02): try to bring it up (scripts/ops/docker_ensure.sh) and otherwise fail with a clear message instead of a pull or keychain error below
+      # the local Docker Desktop can be stopped (task OPS-1022-OPS-02): try to bring it up (scripts/release/docker_ensure.sh) and otherwise fail with a clear message instead of a pull or keychain error below
       - name: docker is running
         if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
         shell: bash
         timeout-minutes: 5
         run: |
           # --ci: do not open Docker from this runner session (not the graphical login session, no login keychain); ask the launchd agent to do it and wait for the engine
-          if ! test -f scripts/ops/docker_ensure.sh; then
-            echo "::error::scripts/ops/docker_ensure.sh is missing on this branch (merge or rebase main)"
+          if ! test -f scripts/release/docker_ensure.sh; then
+            echo "::error::scripts/release/docker_ensure.sh is missing on this branch (merge or rebase main)"
             exit 1
           fi
-          if ! bash scripts/ops/docker_ensure.sh --ci; then
+          if ! bash scripts/release/docker_ensure.sh --ci; then
             echo "::error::Docker 未运行，且自动拉起失败（见本机 ~/.modernize/psa/ops/docker-watch/alert.log；若报「已暂停」或「未安装」，先看 docker_watch_install.sh 的装机状态）"
             exit 1
           fi
@@ -145,7 +145,7 @@ jobs:
         env:
           CLASSES: ${{ steps.change.outputs.guard_classes }}
         run: |
-          bash ../scripts/generate-api.sh --check
+          bash ../scripts/codegen/generate-api.sh --check
           for class in ${CLASSES//,/ }; do rm -f target/surefire-reports/*"$class".* "target/surefire-reports/TEST-"*".$class.xml"; done
           ./mvnw -q test-compile surefire:test -Dtest="$CLASSES"
           for class in ${CLASSES//,/ }; do ls target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run" >&2; exit 1; }; done
@@ -156,7 +156,7 @@ jobs:
         run: |
           CLASSES=$(python3 ../scripts/ci/light_unit_classes.py)
           test -n "$CLASSES"
-          bash ../scripts/generate-api.sh --check
+          bash ../scripts/codegen/generate-api.sh --check
           ./mvnw -q test-compile surefire:test -Dtest="$CLASSES"
           for class in ${CLASSES//,/ }; do ls target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run" >&2; exit 1; }; done
       - name: surefire and failsafe, side by side
@@ -168,7 +168,7 @@ jobs:
       - name: every acceptance test class produced a surefire or failsafe report
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         # Check the default invocation before explicit -Dit.test reruns can add SQL Server reports.
-        run: python3 scripts/ci/acceptance_reports.py --tier default
+        run: python3 scripts/guards/acceptance_reports.py --tier default
       - name: SQL Server integration tests (profile legacy-it)
         if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
         timeout-minutes: 30
@@ -216,7 +216,7 @@ jobs:
           path: frontend/packages/api
       - name: generated API inputs are present
         working-directory: .
-        run: bash scripts/generate-api.sh --check
+        run: bash scripts/codegen/generate-api.sh --check
       - name: backend or frontend inputs changed?
         id: change
         working-directory: .
@@ -294,10 +294,10 @@ jobs:
         run: |
           for script in scripts/release/*.sh; do bash -n "$script"; done
           shellcheck -x scripts/release/*.sh
-          shellcheck -x scripts/ops/*.sh
+          shellcheck -x tools/ops/*.sh
           python3 -I scripts/release/ci_passed.py --self-test
           python3 -I scripts/release/manifest.py --self-test
           python3 -I scripts/release/deploy_gate.py --self-test
           scripts/release/install_request_test.sh
           scripts/release/ship_test.sh
-          bash scripts/ops/docker_ensure_selftest.sh
+          bash scripts/release/docker_ensure_selftest.sh

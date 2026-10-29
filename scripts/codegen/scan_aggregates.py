@@ -11,7 +11,7 @@ import yaml
 
 from scan_acceptance_tests import LEXER, pairs
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[2]
 ARCH = Path('docs/modernization/architecture')
 OUTPUT = ARCH / 'ssot/i03-aggregates'
 JAVA = Path('backend/src/main/java/com/forcitis/one')

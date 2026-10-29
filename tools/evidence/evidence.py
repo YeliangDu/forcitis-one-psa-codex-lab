@@ -2,12 +2,12 @@
 """取证单入口（二乙 #6 O22a；定稿 2.6、1.12）：跑本目录的一张取证单，输出落 0700 目录，文件名与文件头带过期日期；不要口令。
 
 用法（只用标准库；固定由 /usr/bin/python3 -I -S 运行，须保持 3.9 兼容）：
-  /usr/bin/python3 -I -S scripts/evidence/evidence.py --session=<会话> <取证单>
+  /usr/bin/python3 -I -S tools/evidence/evidence.py --session=<会话> <取证单>
       跑本目录的 sheet_<取证单>.py 的 collect(session, output)（会话名与输出文件路径由入口传入，取证单不读环境；返回若干行文本），在 / 下运行，写 ~/.modernize/psa/ops/evidence/<取证单>-<会话>-<UTC 时刻>-expires-<YYYYMMDD>.txt，
       只在标准输出打印这个路径，不打印内容（明细不进会话）。过期天数读仓库 policy.json 的 retention_days.evidence，缺项或不是正整数即停；到期由 janitor 按名里的 expires- 删。
-  /usr/bin/python3 -I -S scripts/evidence/evidence.py --entry
+  /usr/bin/python3 -I -S tools/evidence/evidence.py --entry
       打印本入口在 scripts/gates/prod_targets.json trusted_entries.entries 里的登记行（JSON）；登记行只由它生成，自测核对表里那一条与它逐字段相等。
-命令行不收目录；家目录取自账号库（pwd），不读 HOME。门的可信条件（整棵 scripts/evidence/ 树与 origin/main 逐字节一致、取证单写法限制）见 prod_write_gate.py 与 README.md；只运行目录里名字逐字等于 sheet_<名>.py 的文件，不写 __pycache__。
+命令行不收目录；家目录取自账号库（pwd），不读 HOME。门的可信条件（整棵 tools/evidence/ 树与 origin/main 逐字节一致、取证单写法限制）见 prod_write_gate.py 与 README.md；只运行目录里名字逐字等于 sheet_<名>.py 的文件，不写 __pycache__。
 无口令：取证单运行前标准输入接到 /dev/null，getpass 被换成直接失败；凭据只能来自专用只读账号的本机配置（底线 4），不经命令行、不经交互。已知未覆盖：取证单或它起的子进程自己打开 /dev/tty 要口令，入口拦不住，靠首轮＋终审（README）。
 退出码：0 完成；2 启动方式不对、参数不对、取证单缺失或出错、policy 缺项、输出目录不安全。
 """
@@ -28,7 +28,7 @@ SESSION = re.compile(r"[a-z0-9][a-z0-9-]{0,39}")
 
 
 def entry_row():  # this entry's trusted_entries row: the only place it is written
-    return {"id": "evidence", "script": "scripts/evidence/evidence.py", "interpreter": INTERPRETER, "forms": [["--session={name}", "{name}"]], "trust_dirs": []}
+    return {"id": "evidence", "script": "tools/evidence/evidence.py", "interpreter": INTERPRETER, "forms": [["--session={name}", "{name}"]], "trust_dirs": []}
 
 
 def home():  # from the account database, never the HOME variable

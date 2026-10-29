@@ -5,7 +5,7 @@ and nothing in CI noticed, because the tools only run against production. This r
 execution, no credentials). A non-stdlib import is fine when it is a module in one of DIRS or a pinned third-party SDK.
 #748 final review: the restored modules also read set_env.py as a file (TOOLS / 'set_env.py') and would have crashed
 after changing production. So a path built from BASES and string literals (TOOLS / 'x', B5 / 'read-all' / 'y') must exist.
-Remove this check when the evidence tools move under tools/ with their own self-test (#742 second PR).
+Remove this check when the B-5 and runbook evidence tools also move under tools/ with their own self-test (#742 third PR).
 
   evidence_imports.py              check the repository
   evidence_imports.py --self-test  a deleted sibling module or read file turns it red
@@ -19,7 +19,7 @@ import tempfile
 DIRS = (
     "docs/modernization/phase1a/infra/handoff/B-5-dba/tools",
     "docs/modernization/phase1a/infra/runbooks/scripts",
-    "scripts/evidence",
+    "tools/evidence",
 )
 THIRD_PARTY = {"alibabacloud_ecs20140526", "alibabacloud_tea_openapi"}
 BASES = {"TOOLS": ".", "SCRIPTS": ".", "B5": ".."}  # module-level Path names in the tools, relative to the file's folder

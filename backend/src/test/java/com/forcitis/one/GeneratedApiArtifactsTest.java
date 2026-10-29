@@ -20,7 +20,7 @@ class GeneratedApiArtifactsTest {
     void missingOrEmptyArtifactsFailWithTheGenerationCommand() throws Exception {
         for (String file : List.of("openapi.json", "src/generated/schema.ts", "src/generated/validators.ts", "src/generated/operations.ts")) {
             assertThatThrownBy(() -> GeneratedApiArtifacts.require(api)).isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining(file).hasMessageContaining("bash scripts/generate-api.sh");
+                    .hasMessageContaining(file).hasMessageContaining("bash scripts/codegen/generate-api.sh");
             Path path = api.resolve(file);
             Files.createDirectories(path.getParent());
             Files.writeString(path, "");
