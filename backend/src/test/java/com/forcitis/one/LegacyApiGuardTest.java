@@ -40,17 +40,16 @@ class LegacyApiGuardTest {
             "javax.management..", "javax.annotation.processing.."};
 
     static final ArchRule NO_JAVAX = noClasses().should().dependOnClassesThat(resideInAPackage("javax..").and(not(resideInAnyPackage(JDK_JAVAX))))
-            .as("no javax.* except the JDK packages listed in JDK_JAVAX")
-            .because("Spring Framework 7 runs on Jakarta EE 11 and no longer supports javax.annotation / javax.inject: use jakarta.*,"
-                    + " and org.jspecify.annotations for nullness");
+            .as("LA-1 javax.* outside the JDK packages in JDK_JAVAX (Spring Framework 7 dropped javax.annotation / javax.inject)")
+            .because("fix: use jakarta.*, and org.jspecify.annotations for nullness");
 
     static final ArchRule NO_REST_TEMPLATE = noClasses().should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.web.client.RestTemplate")
-            .because("RestTemplate is deprecated in Spring Framework 7: use RestClient (or an @HttpExchange interface)");
+            .as("LA-2 RestTemplate (deprecated in Spring Framework 7)").because("fix: use RestClient (or an @HttpExchange interface)");
 
     static final ArchRule NO_JACKSON_2 = noClasses().should()
             .dependOnClassesThat(resideInAPackage("com.fasterxml.jackson..").and(not(resideInAPackage("com.fasterxml.jackson.annotation.."))))
-            .because("Boot 4 defaults to Jackson 3 and Jackson 2 support is deprecated: use tools.jackson.*"
-                    + " (annotations stay in com.fasterxml.jackson.annotation)");
+            .as("LA-3 Jackson 2 com.fasterxml.jackson.* (Boot 4 defaults to Jackson 3)")
+            .because("fix: use tools.jackson.*; annotations stay in com.fasterxml.jackson.annotation");
 
     static boolean involvesLocalDateTime(JavaType type) {
         return type.getAllInvolvedRawTypes().stream().anyMatch(raw -> raw.isEquivalentTo(LocalDateTime.class));
@@ -63,8 +62,9 @@ class LegacyApiGuardTest {
                 events.add(SimpleConditionEvent.violated(field, field.getFullName() + " holds a LocalDateTime"));
             }
         }
-    }).because("a LocalDateTime is no moment and no business day: store an Instant (timestamptz) or a LocalDate in the business zone;"
-            + " a LocalDateTime local to one calculation is fine").allowEmptyShould(true);
+    }).as("LA-4 a field holds a LocalDateTime (no moment and no business day)")
+            .because("fix: store an Instant (timestamptz) or a LocalDate in the business zone; a LocalDateTime local to one calculation is fine")
+            .allowEmptyShould(true);
 
     static final ArchRule NO_LOCAL_DATE_TIME_SIGNATURES = codeUnits().should(new ArchCondition<JavaCodeUnit>("not take or return a LocalDateTime") {
         @Override
@@ -73,11 +73,12 @@ class LegacyApiGuardTest {
                 events.add(SimpleConditionEvent.violated(unit, unit.getFullName() + " takes or returns a LocalDateTime"));
             }
         }
-    }).because("a LocalDateTime is no moment and no business day: pass an Instant or a LocalDate in the business zone");
+    }).as("LA-5 a method or constructor takes or returns a LocalDateTime (no moment and no business day)")
+            .because("fix: pass an Instant or a LocalDate in the business zone");
 
     /** On the test classpath (spring-boot-resttestclient comes in transitively), but Class.forName on it fails with NoClassDefFoundError. */
     static final ArchRule NO_TEST_REST_TEMPLATE = noClasses().should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.boot.resttestclient.TestRestTemplate")
-            .because("Boot 4 tests call the API through RestTestClient or MockMvc");
+            .as("LA-6 a test uses TestRestTemplate").because("fix: call the API through RestTestClient or MockMvc");
 
     static final List<ArchRule> RULES = List.of(NO_JAVAX, NO_REST_TEMPLATE, NO_JACKSON_2, NO_LOCAL_DATE_TIME_FIELDS, NO_LOCAL_DATE_TIME_SIGNATURES);
 
@@ -95,20 +96,28 @@ class LegacyApiGuardTest {
     }
 
     @Test
+    @DisplayName("every rule here fails with its id, what is wrong and how to fix it (coding-core D)")
+    void everyFailureNamesIdProblemAndFix() {
+        for (ArchRule rule : List.of(NO_JAVAX, NO_REST_TEMPLATE, NO_JACKSON_2, NO_LOCAL_DATE_TIME_FIELDS, NO_LOCAL_DATE_TIME_SIGNATURES, NO_TEST_REST_TEMPLATE)) {
+            assertThat(rule.getDescription()).matches("LA-\\d+ .+, because fix: .+");
+        }
+    }
+
+    @Test
     @DisplayName("injection: RULES, as the production check runs them, catch each banned API in the sample and the failure names its replacement")
     void eachLegacyApiIsCaught() {
         JavaClasses sample = new ClassFileImporter().importClasses(LegacyApiSample.class);
         List<String> reports = RULES.stream().map(rule -> rule.evaluate(sample).getFailureReport().toString()).toList();
         String sampleName = LegacyApiSample.class.getName();
         Map<String, String> caught = Map.of(
-                "javax.swing.Icon", "use jakarta.*",
-                "org.springframework.web.client.RestTemplate", "use RestClient",
-                "com.fasterxml.jackson.databind.ObjectMapper", "use tools.jackson.*",
-                sampleName + ".stamp holds", "store an Instant (timestamptz) or a LocalDate in the business zone",
-                sampleName + ".stamps holds", "store an Instant (timestamptz) or a LocalDate in the business zone",
-                sampleName + ".at(java.time.LocalDateTime) takes", "pass an Instant or a LocalDate in the business zone",
-                sampleName + ".made() takes", "pass an Instant or a LocalDate in the business zone",
-                sampleName + ".later() takes", "pass an Instant or a LocalDate in the business zone");
+                "javax.swing.Icon", "fix: use jakarta.*",
+                "org.springframework.web.client.RestTemplate", "fix: use RestClient",
+                "com.fasterxml.jackson.databind.ObjectMapper", "fix: use tools.jackson.*",
+                sampleName + ".stamp holds", "fix: store an Instant (timestamptz) or a LocalDate in the business zone",
+                sampleName + ".stamps holds", "fix: store an Instant (timestamptz) or a LocalDate in the business zone",
+                sampleName + ".at(java.time.LocalDateTime) takes", "fix: pass an Instant or a LocalDate in the business zone",
+                sampleName + ".made() takes", "fix: pass an Instant or a LocalDate in the business zone",
+                sampleName + ".later() takes", "fix: pass an Instant or a LocalDate in the business zone");
         assertAll(caught.entrySet().stream().map(entry -> () -> assertThat(reports)
                 .as("one failure report names " + entry.getKey() + " and its replacement")
                 .anyMatch(report -> report.contains(entry.getKey()) && report.contains(entry.getValue()))));
@@ -129,12 +138,12 @@ class LegacyApiGuardTest {
     @DisplayName("libraries replaced in Boot 4 stay off the classpath, so they cannot be used at all")
     void replacedLibrariesAreNotOnTheClasspath() {
         Map<String, String> banned = Map.of(
-                "jakarta.persistence.Entity", "JPA: persistence is JdbcClient",
-                "org.hibernate.Session", "Hibernate ORM: persistence is JdbcClient",
-                "org.springframework.data.jpa.repository.JpaRepository", "Spring Data JPA: persistence is JdbcClient",
-                "org.springframework.retry.annotation.Retryable", "spring-retry: use @Retryable from spring-context (@EnableResilientMethods); never retry a non-idempotent write");
+                "jakarta.persistence.Entity", "persistence is JdbcClient (JPA)",
+                "org.hibernate.Session", "persistence is JdbcClient (Hibernate ORM)",
+                "org.springframework.data.jpa.repository.JpaRepository", "persistence is JdbcClient (Spring Data JPA)",
+                "org.springframework.retry.annotation.Retryable", "use @Retryable from spring-context (@EnableResilientMethods); never retry a non-idempotent write");
         assertAll(banned.entrySet().stream().map(entry -> () -> assertThatThrownBy(() -> Class.forName(entry.getKey()))
-                .as(entry.getKey() + " is on the classpath; remove the dependency. " + entry.getValue())
+                .as("LA-7 " + entry.getKey() + " is on the classpath. fix: remove the dependency; " + entry.getValue())
                 .isInstanceOf(ClassNotFoundException.class)));
     }
 }
