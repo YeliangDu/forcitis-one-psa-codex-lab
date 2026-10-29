@@ -1,5 +1,7 @@
 # B-5 交接包：A8 与老系统库的只读视图和专用账号（给 DBA）
 
+> #742：`tools/` 下的执行脚本 `b5_legacy_run.py`、`b5_read_all_run.py`、`b5_evidence_run.py`、`set_env.py` 已执行完毕并删除，原文见 `git show 7d3f2d2ea:docs/modernization/phase1a/infra/handoff/B-5-dba/tools/<文件>`；只读取证入口 `b5_evidence_scan.py` 共用的通道函数在 `tools/b5_remote.py`。下文提到这些脚本处是执行记录。
+
 收件人：A8 数据库 DBA、老系统 RDS（SQL Server）DBA（人选见 `DECISIONS_A.md` A-2）。时点：dev 部署前。
 
 **执行状态（2026-10-15，经用户授权以 RDS 高权限账号执行）**：A8 部分已完成并校验（one-ops-1a）；老系统部分首次在 STEP 1 失败（排序规则冲突，未建出任何对象），视图修正后由 one-ops 重跑完成：apply 与 verify（云助手 t-hz0701f88r8dedc）全部符合验收标准，在途待办 196、部门 41；两个账号写入 `one.env`（t-hz0701f8mylkpa8，dev 连接按用户决定加 `trustServerCertificate=true`，`A8_DB_URL` 同步）；真实登录（t-hz0701f8s68gikg）两个账号都能读自己的视图，读基表、读人员表、读令牌表、读对方视图、写基表、经视图删除、建表、读 `a8_db` 8 项全部被拒（229 / 4405 / 262 / 916）；两台服务器临时目录与临时密钥已删除。执行工具在 `tools/`（`b5_legacy_run.py` 编排；`OneSql.java` 执行 sqlcmd 风格脚本，`one_time_secret` 列只输出 RSA-OAEP 密文；`set_env.py` 从 stdin 写 `one.env`）。实测要点：

@@ -36,8 +36,22 @@ def literal_path(node):
     return None
 
 
+def top_level_names(path):
+    """Names a module defines at top level (functions, classes, assignments, imports)."""
+    names = set()
+    for node in ast.parse(open(path, encoding="utf-8").read(), path).body:
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, ast.Assign):
+            names.update(t.id for t in node.targets if isinstance(t, ast.Name))
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            names.update((a.asname or a.name).split(".")[0] for a in node.names)
+    return names
+
+
 def problems(root):
-    local = {f[:-3] for d in DIRS if os.path.isdir(os.path.join(root, d)) for f in os.listdir(os.path.join(root, d)) if f.endswith(".py")}
+    paths = {f[:-3]: os.path.join(root, d, f) for d in DIRS if os.path.isdir(os.path.join(root, d)) for f in os.listdir(os.path.join(root, d)) if f.endswith(".py")}
+    local = set(paths)
     found = []
     for d in DIRS:
         folder = os.path.join(root, d)
@@ -54,6 +68,9 @@ def problems(root):
                     mods = [a.name.split(".")[0] for a in node.names]
                 elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
                     mods = [node.module.split(".")[0]]
+                    if node.module in local:  # a helper moved or renamed in a sibling: the name must still be there
+                        missing = sorted({a.name for a in node.names} - top_level_names(paths[node.module]))
+                        found += [f"{d}/{name}:{node.lineno} imports {m} from {node.module}, which does not define it" for m in missing]
                 else:
                     continue
                 for mod in mods:
@@ -67,6 +84,9 @@ def self_test(root):
         for d in (os.path.dirname(DIRS[0]),) + DIRS[1:]:  # B5 / '...' reads the B-5-dba folder above tools/
             shutil.copytree(os.path.join(root, d), os.path.join(tmp, d))
         assert problems(tmp) == [], problems(tmp)
+        remote = os.path.join(tmp, DIRS[0], "b5_remote.py")
+        open(remote, "w", encoding="utf-8").write(open(remote, encoding="utf-8").read().replace("def key_pair(", "def key_pair_renamed("))
+        assert any("imports key_pair from b5_remote" in p for p in problems(tmp)), "a name no longer defined by a sibling module must be reported"
         os.remove(os.path.join(tmp, DIRS[0], "b5_remote.py"))
         assert any("imports b5_remote" in p for p in problems(tmp)), "a deleted sibling module must be reported"
         os.remove(os.path.join(tmp, DIRS[0], "OneSql.java"))

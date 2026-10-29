@@ -57,8 +57,6 @@ if [ ! -s {LEGACY_WORK}/mssql-jdbc.jar ]; then
   entry=$(unzip -l "$jar" | grep -oE 'BOOT-INF/lib/mssql-jdbc-[^ ]+\\.jar' | head -1)
   unzip -p "$jar" "$entry" > {LEGACY_WORK}/mssql-jdbc.jar
 fi
-nacos_ds() {{ curl -fsS -m 10 "http://127.0.0.1:8848/nacos/v1/cs/configs?dataId=psa-datasource.yaml&group=DEFAULT_GROUP&tenant=prod"; }}
-onesql() {{ nacos_ds | java -cp {LEGACY_WORK}/mssql-jdbc.jar {LEGACY_WORK}/stage/OneSql.java "$@"; }}
 '''
 
 
