@@ -44,7 +44,29 @@ def survives(command, pid_value, extra=None):
     return result
 
 
+DEPLOY = CI.with_name("deploy.yml")
+
+
+def deploy_checkout_problem(workflow):
+    """deploy.yml's checkout steps must keep the runner's global git config out (R-0, run 40387799615, 569ed501f)."""
+    steps = [x for x in workflow["jobs"]["deploy"]["steps"] if str(x.get("uses", "")).lower().startswith("actions/checkout@")]
+    options = [{str(k).lower(): v for k, v in (x.get("with") or {}).items()} for x in steps]
+    if not steps:
+        return "deploy.yml：deploy 作业找不到 actions/checkout 步"
+    if not all(o.get("set-safe-directory") is False and not o.get("submodules") for o in options):
+        return ("deploy.yml：deploy 作业的 checkout 须写 set-safe-directory: false、不开 submodules；"
+                "否则全局 git 配置落进 $HOME/.gitconfig，toolchain.sh 按 R-0 拒绝")
+    return None
+
+
 def main():
+    good = {"jobs": {"deploy": {"steps": [{"uses": "actions/checkout@abc", "with": {"set-safe-directory": False}}]}}}
+    assert deploy_checkout_problem(good) is None
+    assert deploy_checkout_problem({"jobs": {"deploy": {"steps": [{"uses": "actions/checkout@abc"}]}}}), "checkout without set-safe-directory: false"
+    assert deploy_checkout_problem({"jobs": {"deploy": {"steps": [{"run": "true"}]}}}), "no checkout step"
+    assert deploy_checkout_problem({"jobs": {"deploy": {"steps": [{"uses": "actions/checkout@abc", "with": {"set-safe-directory": False, "submodules": True}}]}}}), "checkout with submodules"
+    problem = deploy_checkout_problem(yaml.safe_load(DEPLOY.read_text(encoding="utf-8")))
+    assert problem is None, problem
     text = CI.read_text(encoding="utf-8")
     assert "LIGHT_ALL: ${{ github.event_name == 'push' && '1' || '' }}" in text, "light 步骤推到 main 时须设 LIGHT_ALL=1：按改动挑自测的唯一兜底"
     workflow = yaml.safe_load(text)
