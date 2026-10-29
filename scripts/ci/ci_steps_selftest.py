@@ -11,6 +11,8 @@ import sys
 import time
 from pathlib import Path
 
+import yaml
+
 CI = Path(__file__).resolve().parents[2] / ".github/workflows/ci.yml"
 OLD = 'kill "${DOCKER_EVENTS_PID:-0}" 2>/dev/null || true'
 
@@ -45,6 +47,13 @@ def survives(command, pid_value, extra=None):
 def main():
     text = CI.read_text(encoding="utf-8")
     assert "LIGHT_ALL: ${{ github.event_name == 'push' && '1' || '' }}" in text, "light 步骤推到 main 时须设 LIGHT_ALL=1：按改动挑自测的唯一兜底"
+    workflow = yaml.safe_load(text)
+    other = "github.event.action == 'labeled' && github.event.label.name != 'queued'"
+    assert workflow[True]["pull_request"]["types"] == ["opened", "synchronize", "reopened", "labeled"], "pull_request 只在开、推、重开与贴标签时跑（edited 已无读者）"
+    for job, spec in workflow["jobs"].items():
+        assert other in str(spec.get("if", "")), f"{job}：非 queued 标签的事件不跑任何作业"
+    for job in ("backend", "frontend", "gitleaks"):
+        assert other in workflow["jobs"][job]["name"], f"{job}：跳过的必需检查算通过，非 queued 标签的事件须换名报告"
     run = step_run("stop the docker events recorder")
     assert "${DOCKER_EVENTS_PID:-0}" not in run, run
     mark = Path(os.environ.get("TMPDIR", "/tmp")) / f"ci_steps_selftest.{os.getpid()}"

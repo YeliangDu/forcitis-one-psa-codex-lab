@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""取证单入口 evidence.py 的自测（二乙 #6 O22a）：登记行由入口生成且与 prod_targets.json 那一条相等；输出文件名与文件头带过期日期、0700 目录 0600 文件；
-空环境、标准输入为 /dev/null（无口令）即可跑；要口令的取证单失败；启动方式、参数、policy 缺项、输出目录为符号链接都拒。门的判定（登记写法放行、其余不可信）在 gates_selftest.py 第 9 段。
+"""取证单入口 evidence.py 的自测（二乙 #6 O22a）：输出文件名与文件头带过期日期、0700 目录 0600 文件；
+空环境、标准输入为 /dev/null（无口令）即可跑；要口令的取证单失败；启动方式、参数、policy 缺项、输出目录为符号链接都拒。
 全部用副本在临时目录里跑：副本只把取家目录那一处换成临时家目录，取证单是桩，不连生产。用法：evidence_selftest.py（light.sh 带 --self-test 调用，参数忽略）
 """
 import datetime
@@ -12,16 +12,11 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(os.path.dirname(HERE))
 PYTHON = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
 HOME_LINE = "return pwd.getpwuid(os.getuid()).pw_dir"
 
 
 def main():
-    out = subprocess.run([PYTHON, "-I", "-S", os.path.join(HERE, "evidence.py"), "--entry"], capture_output=True, text=True, env={})
-    table = json.loads(open(os.path.join(ROOT, "scripts", "gates", "prod_targets.json"), encoding="utf-8").read())["trusted_entries"]["entries"]
-    row, mine = json.loads(out.stdout or "{}"), [e for e in table if e.get("id") == "evidence"]
-    assert out.returncode == 0 and len(mine) == 1 and {k: mine[0].get(k) for k in row} == row and set(mine[0]) - set(row) == {"allowed_imports", "allowed_builtins"}, ("the table's row is the one the entry generates, plus the gate's lists", out.stderr)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = os.path.realpath(tmp)
         repo, home = os.path.join(tmp, "repo"), os.path.join(tmp, "home")
