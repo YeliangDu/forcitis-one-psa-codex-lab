@@ -39,7 +39,9 @@
       ".gitleaksignore",
       "tools/ops/",
       "docs/ops/deploy-gate.json",
-      "docs/ops/runbooks/prod-approvals.txt"
+      "docs/ops/runbooks/prod-approvals.txt",
+      "docs/ops/dba-scripts/",
+      "docs/data/evidence/dba-handoff/"
     ],
     "_final_paths_说明": "仓库根起的完整前缀，改动路径以任一项开头即须 opus 终审。不得写裸目录名或空表（空表等于关闭终审）。表里原为生产写门可信脚本（DOC_SCRIPTS、只读取证工具）列的前缀，卡 #736 起门不再认可信脚本，暂留作守护路径。"
   },
