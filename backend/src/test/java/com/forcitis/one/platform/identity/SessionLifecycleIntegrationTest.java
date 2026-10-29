@@ -228,8 +228,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
 
         jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(2001) + ")").update();
         publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), List.of(TestAccounts.employee(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
-        Thread.sleep(1000);
-        assertThat(count("account_roles")).isZero();
+        await().during(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(count("account_roles")).isZero());
     }
 
     @Test
