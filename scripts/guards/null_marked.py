@@ -10,9 +10,9 @@ Each failure names the rule, the package and the fix:
   NM-2 a listed package is marked now, or no longer exists (the list is stale)
   NM-3 backend/pom.xml does not run NullAway as an error on @NullMarked code: the Error Prone args lack -Xep:NullAway:ERROR,
        -XepOpt:NullAway:OnlyNullMarked=true or -XepOpt:NullAway:JSpecifyMode=true, or nullaway is not on the annotation-processor path
-       (-XepDisableAllChecks switches off every check it does not name, so a dropped flag silently turns NullAway off), or it carries
-       an argument that undoes them: -Xep:NullAway:<anything but ERROR>, -XepAllErrorsAsWarnings, -XepExcludedPaths, or a NullAway option
-       set back to something other than true
+       (-XepDisableAllChecks switches off every check it does not name, so a dropped flag silently turns NullAway off), or the argument
+       holds a word outside ALLOWED_ARGS (an option such as UnannotatedSubPackages, ExcludedPaths or AllErrorsAsWarnings can switch it off),
+       or an execution or profile other than default-testCompile has its own compilerArgs (it can replace the main arguments)
 
   null_marked.py              check the repository (run from its root)
   null_marked.py --self-test  a red case per rule
@@ -26,6 +26,9 @@ SOURCES = "backend/src/main/java"
 UNMARKED_FILE = "backend/architecture/null-unmarked-packages.txt"
 POM = "backend/pom.xml"
 REQUIRED_ARGS = ("-Xep:NullAway:ERROR", "-XepOpt:NullAway:OnlyNullMarked=true", "-XepOpt:NullAway:JSpecifyMode=true")
+# Every word the main Error Prone argument may hold: an allow-list, since any other -Xep flag or NullAway option can switch NullAway off or
+# narrow it (UnannotatedSubPackages, ExcludedPaths, AllErrorsAsWarnings, a second -Xep:NullAway:...); adding a check means adding it here, reviewed
+ALLOWED_ARGS = ("-Xplugin:ErrorProne", "-XepDisableAllChecks", "-Xep:CollectionIncompatibleType:ERROR", "-Xep:EqualsIncompatibleType:ERROR") + REQUIRED_ARGS
 QUALIFIED = re.compile(r"^\s*@org\.jspecify\.annotations\.NullMarked\b", re.M)
 SIMPLE = re.compile(r"^\s*@NullMarked\b", re.M)
 IMPORT = re.compile(r"^\s*import\s+org\.jspecify\.annotations\.NullMarked\s*;", re.M)
@@ -65,10 +68,12 @@ def build_problems(root):
     args = [a for a in re.findall(r"<arg>([^<]*)</arg>", text) if a.strip().startswith("-Xplugin:ErrorProne")]
     words = args[0].split() if len(args) == 1 else []
     missing = [w for w in REQUIRED_ARGS if w not in words]
-    undoing = [w for w in words if (w.startswith("-Xep:NullAway:") and w != "-Xep:NullAway:ERROR") or w == "-XepAllErrorsAsWarnings"
-               or w.startswith("-XepExcludedPaths") or (w.startswith(("-XepOpt:NullAway:OnlyNullMarked=", "-XepOpt:NullAway:JSpecifyMode="))
-                                                        and not w.endswith("=true"))]
-    missing += [f"no {w} (it undoes NullAway at ERROR)" for w in undoing]
+    missing += [f"no {w} (not in the allow-list ALLOWED_ARGS of scripts/guards/null_marked.py; it may switch NullAway off or narrow it)"
+                for w in words if w not in ALLOWED_ARGS]
+    blocks = len(re.findall(r"<compilerArgs\b", text))
+    if blocks != 1:
+        missing.append(f"no compilerArgs outside the main plugin configuration and default-testCompile (found {blocks} blocks: an execution or"
+                       f" profile with its own compilerArgs, e.g. default-compile combine.self=\"override\", replaces the main arguments)")
     if not re.search(r"<path>\s*<groupId>com\.uber\.nullaway</groupId>\s*<artifactId>nullaway</artifactId>", text):
         missing.append("nullaway on annotationProcessorPaths")
     if len(args) != 1:
@@ -113,9 +118,20 @@ def self_test():
             write(POM, good_pom.replace(" " + drop, ""))
             assert [p.split()[0] for p in build_problems(tmp)] == ["NM-3"] and drop in build_problems(tmp)[0], ("a dropped flag", drop)
         for undo in ("-Xep:NullAway:OFF", "-Xep:NullAway:WARN", "-XepAllErrorsAsWarnings", "-XepExcludedPaths:.*/src/main/.*",
-                     "-XepOpt:NullAway:OnlyNullMarked=false", "-XepOpt:NullAway:JSpecifyMode=false"):
+                     "-XepOpt:NullAway:OnlyNullMarked=false", "-XepOpt:NullAway:JSpecifyMode=false",
+                     "-XepOpt:NullAway:UnannotatedSubPackages=com.forcitis", "-XepOpt:NullAway:ExcludedClasses=com.forcitis.X", "-Xep:NullAway",
+                     "-Xep:SomeOtherCheck:ERROR"):
             write(POM, good_pom.replace(" -XepOpt:NullAway:JSpecifyMode=true</arg>", f" -XepOpt:NullAway:JSpecifyMode=true {undo}</arg>"))
             assert build_problems(tmp) and undo in build_problems(tmp)[0], ("an argument that undoes NullAway at ERROR", undo)
+        write(POM, good_pom.replace("<arg>-Xplugin:ErrorProne", "<!-- <arg>-Xplugin:ErrorProne").replace("JSpecifyMode=true</arg>", "JSpecifyMode=true</arg> -->"))
+        assert build_problems(tmp) and "exactly one -Xplugin:ErrorProne" in build_problems(tmp)[0], "the main argument commented out entirely"
+        override = ("<executions><execution><id>default-compile</id><configuration><compilerArgs combine.self=\"override\">"
+                    "<arg>-XDcompilePolicy=simple</arg></compilerArgs></configuration></execution></executions>")
+        write(POM, good_pom.replace("</configuration></plugin>", "</configuration>" + override + "</plugin>"))
+        assert build_problems(tmp) and "outside the main plugin configuration" in build_problems(tmp)[0], "an execution that overrides the main arguments"
+        write(POM, good_pom.replace("</project>", "<profiles><profile><id>p</id><build><plugins><plugin><configuration><compilerArgs>"
+                                    "<arg>-XDx</arg></compilerArgs></configuration></plugin></plugins></build></profile></profiles></project>"))
+        assert build_problems(tmp), "a profile with its own compilerArgs"
         write(POM, good_pom.replace("<path><groupId>com.uber.nullaway</groupId><artifactId>nullaway</artifactId><version>1</version></path>", ""))
         assert "nullaway on annotationProcessorPaths" in build_problems(tmp)[0], "the processor is gone"
         write(POM, good_pom.replace("<arg>-Xplugin:ErrorProne", "<!-- <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR --><arg>-Xplugin:ErrorProne"))
