@@ -9,7 +9,7 @@
 | 构件 | 样板 | 为何 |
 |---|---|---|
 | 用例 | `SubmitTimesheet:65` | execute 上 `@Transactional`，一个聚合，save 后 publish |
-| 调用者 | `SubmitTimesheet:66` | 注入 `CurrentUser`，不收 `UserId caller`（现 workforce、file、integration 收 caller） |
+| 调用者 | `SubmitTimesheet:66` | 注入 `CurrentUser`，不收 `UserId caller`（另 3 模块待改） |
 | 数据范围 | `GetOrgUnit:31` | 用例注入 `OrgUnitAccess`；范围外答找不到并审计（现由参数传入） |
 | 控制器 | `OrgUnitController:33` | 只转换、调用例；200 返回 record，非 200 或带头才 `ResponseEntity`（现算范围、收 caller） |
 | 仓储 | `JdbcRoleRepository:117` | 文本块小写 SQL，命名参数，版本条件更新 |
