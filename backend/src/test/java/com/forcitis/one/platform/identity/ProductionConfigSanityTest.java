@@ -97,7 +97,7 @@ class ProductionConfigSanityTest {
         assertThat(shared.getProperty("spring.flyway.default-schema")).isEqualTo("one_migration");
     }
 
-    static final Path ENV_TEMPLATE = Path.of("../docs/modernization/phase1a/infra/runbooks/files/one.env.template");
+    static final Path ENV_TEMPLATE = Path.of("../tools/ops/ecs/files/one.env.template");
 
     @Test
     @DisplayName("D1-3 生产配置模板暴露 prometheus 端点")
