@@ -4,23 +4,23 @@
 
 ## 黄金样板
 
-每类一种写法，照样板写；样板偏差由 #812 迁移。
+每类一种写法，照「为何」写；标「现」的为样板偏差，#812 修。
 
 | 构件 | 样板 | 为何 |
 |---|---|---|
 | 用例 | `SubmitTimesheet:65` | execute 上 `@Transactional`，一个聚合，save 后 publish |
-| 调用者 | `SubmitTimesheet:66` | 注入 `CurrentUser`（迁入 kernel），不收 `UserId caller` |
-| 数据范围 | `GetOrgUnit:31` | 用例注入 `OrgUnitAccess`；范围外答找不到并审计 |
-| 控制器 | `OrgUnitController:33` | 薄；200 返回 record，非 200 或带头才 `ResponseEntity` |
-| 仓储 | `JdbcTimesheetRepository:73` | 文本块小写 SQL，命名参数，版本条件更新 |
+| 调用者 | `SubmitTimesheet:66` | 注入 `CurrentUser`，不收 `UserId caller`（现在 identity） |
+| 数据范围 | `GetOrgUnit:31` | 用例注入 `OrgUnitAccess`；范围外答找不到并审计（现由参数传入） |
+| 控制器 | `OrgUnitController:33` | 只转换、调用例；200 返回 record，非 200 或带头才 `ResponseEntity`（现算范围、收 caller） |
+| 仓储 | `JdbcRoleRepository:117` | 文本块小写 SQL，命名参数，版本条件更新 |
 | 事件 | `ApplyApprovalResult:41` | application 中 `@ApplicationModuleListener`，先去重 |
 | 时间 | `JdbcRoleRepository:347` | `Instant` + `BusinessZone`；JDBC 用 `OffsetDateTime`，不用 `Timestamp` |
 | ID | `CreateLegalEntity:29` | 注入 `IdGenerator`，不调 `randomUUID` |
-| 金额 | `Money:10` | 数值带币种；计算不舍入，成额时 HALF_UP 到分一次，合计取各行之和（FD-02/07/08；现构造即舍入，#812 修） |
+| 金额 | `Money:10` | 计算不舍入，成额时 HALF_UP 到分；合计 = 各行舍入后之和（FD-02/07/08；现构造即舍入） |
 | 流程 | `FlowableApprovalEngine:54` | Flowable 只在适配器，业务经 `ApprovalProcesses` |
 | 单元测试 | `TimesheetStateMachineTest:62` | 不起 Spring，固定日期 |
 | 集成测试 | `AuditExportAndOwnRecordsIT:36` | MockMvc + `TestPostgres.database` |
-| 验收测试 | `TimesheetEmployeeDayUniqueIT:63` | 同上，`@DisplayName` 以卡号开头 |
+| 验收测试 | `WorkCalendarMakeUpWeekendIT:38` | 同上，`@DisplayName` 以卡号开头 |
 
 ## 0. 适用范围与优先级
 
