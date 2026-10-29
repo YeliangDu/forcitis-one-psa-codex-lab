@@ -183,7 +183,7 @@
 | # | 规则 | 出处 | 检查 |
 |---|---|---|---|
 | CS-7.1 | **交付前运行 `scripts/precheck.sh`**（默认基线 `origin/main`，可传参数），全部 PASS 或有理由的 SKIP 才开 PR；输出贴进 PR「precheck.sh 输出」一栏。脚本会执行分支自带的检查脚本，复审方在不可信分支上不运行 precheck，以 CI 为准 | 用户「A–D 全做」之 C（intent `2026-10-15-014844-one-coordinator-…`） | PR 模板 |
-| CS-7.2 | PR 模板各栏如实填写：改动的断言 / 测试及理由、新增术语、OpenAPI 与架构文档同步、验收测试 trailer、precheck 输出 | `.github/pull_request_template.md`| 复审（调度合并前核对） |
+| CS-7.2 | PR 模板各栏如实填写：改动的断言 / 测试及理由、新增术语、OpenAPI 与架构文档同步、验收测试 trailer、light.sh 最后一行与 FAIL/SKIP 项 | `.github/pull_request_template.md`| 复审（调度合并前核对） |
 | CS-7.3 | **只改卡上文件**，越界先报告；缺陷修复、功能补做、结构性重构分开派工、分开提交；缺陷修复手术式（最小改动 + 回归测试），不顺手重构、改名、统一风格 | METHODS M5「缺陷修复手术式」 | 复审；派工卡模板 `templates/WORK_CARD.md` |
 | CS-7.4 | **记录只改片段**：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `build_all.py` 生成；用 `new_intent.py --session=<会话名> --category=<类别> --owner=<负责会话> --paths=<路径前缀|无> --supersedes=<被取代片段|无>`（四项必填，用法见脚本头）、`new_log.py <会话名>` 新增片段（文件名由脚本按时刻与会话名生成，不手工起名），改完运行 `build_all.py`；INTENT / SESSION_LOG / STATUS、ADR 拷贝与索引、brief 等生成产物都不入仓（只提交片段或源；本地运行 `build_all.py` 或看 generated-docs 分支）；不直接编辑生成产物 || 守护：`build_all.py --check` |
 | CS-7.5 | **变更治理自查**：已采纳 ADR 只改状态行；新 ADR 带四个必备小节；代码类改动先有 `RULE_REVIEWS.json` 结论；配置变更登记版本与生效日期 |附 M3 | 守护：`adr/build_adrs.py`（经 `build_all.py`）；复审 |

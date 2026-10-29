@@ -90,6 +90,10 @@ sheet=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}/start_sheet/s
 if [ ! -f "$sheet" ]; then skip "start_sheet under /usr/bin/python3" "本机没有工具库的 $sheet"
 elif touches "$t_start_sheet"; then run "start_sheet under /usr/bin/python3" /usr/bin/python3 -I "$sheet"
 else skip "start_sheet under /usr/bin/python3" "相关路径没改（按改动触发）"; fi
+# 老系统取证用的 OneSql.java 只读（#752）：自测不连库，要本机有 java
+if ! touches "$t_onesql"; then skip "OneSql.java read only (self-test)" "相关路径没改（按改动触发）"
+elif ! command -v java >/dev/null; then skip "OneSql.java read only (self-test)" "本机没有 java（CI 的 backend 作业有）"
+else run "OneSql.java read only (self-test)" java "$onesql" --self-test "$(dirname "$(dirname "$onesql")")/evidence"; fi
 run "shell: no \$VAR right before non-ASCII" var_before_non_ascii
 # 验收测试改了就跑全部免容器单测（CLAUDE.md 交付第 2 步）；export-openapi 绑在 process-test-classes 上要起容器，所以用 test-compile surefire:test
 if ! touches "$t_acceptance"; then skip "surefire guard classes (acceptance changed)" "相关路径没改（按改动触发）"
