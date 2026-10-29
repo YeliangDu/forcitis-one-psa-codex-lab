@@ -20,7 +20,7 @@ Session name S is a key of `policy.json` `sessions.config` (old names map via `s
 ## ④ Commits and pushes
 Enforced by: manual: everyone / every time
 
-One item per commit, with the Session trailer. Pushing runs no tests; tests run in CI. Long commands (builds, full test runs) run in the background; report success only with the exit code. Edit only the needed span; filter long output to a file and read on demand, failures in full; hand bulk reading to a subagent with files and line numbers.
+One item per commit, with the Session trailer. Pushing runs no tests; tests run in CI. Long commands (builds, full test runs) run in the background, never polled in the foreground; report success only with the exit code. Edit only the needed span; filter long output to a file and read on demand, failures in full; hand bulk reading to a subagent with files and line numbers.
 
 ## ⑤ PRs and review
 Enforced by: post_review; manual: first-round review / every PR
