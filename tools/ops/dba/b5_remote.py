@@ -12,7 +12,7 @@ from pathlib import Path
 
 from alibabacloud_ecs20140526 import models as em
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[7] / 'tools' / 'ops' / 'ecs' / 'scripts'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'ecs' / 'scripts'))  # tools/ops/ecs/scripts
 from ops_credentials import MIN_SECONDS, ecs_client, require_committed  # noqa: E402
 
 REGION = 'cn-hangzhou'

@@ -4,7 +4,7 @@
 Rules, each failure names the rule and the corrected name:
   N1 scripts/, tools/: a script (.py .sh .mjs .js .ts) is snake_case
   N2 scripts/, tools/: a self-test is <name>_selftest.<ext> (not test_<name> or <name>_test)
-  N3 docs/: every file is lower-kebab-case whatever its format, except a .py there is snake_case (an importable module); a .md has no dotted variant (.notes.md, .keep.md, .template.md);
+  N3 docs/: every file is lower-kebab-case whatever its format; a .md has no dotted variant (.notes.md, .keep.md, .template.md);
      no dotfiles (.gitkeep: docs/ holds files, not empty folders). Dotfiles elsewhere are not named by these rules
   N4 docs/: a new directory is lower-kebab-case and carries no stage or session name (phase1a, r0, u8c, one-ops ...)
   N5 a new top-level directory under docs/, scripts/ or tools/ is not on the allowlist: ask lead
@@ -92,9 +92,6 @@ def file_problems(path, sessions, new_dirs):
     if top == "docs":
         if ext == ".md" and "." in stem:
             found.append(f"N3 {path}: no dotted variants of a document; use {where}/{kebab(stem.split('.')[0])}.md, or a folder")
-        elif ext == ".py":
-            if not SNAKE.fullmatch(stem):
-                found.append(f"N3 {path}: a Python module under docs/ is snake_case so it can be imported; use {where}/{snake(stem)}{ext}")
         elif not KEBAB.fullmatch(stem):
             found.append(f"N3 {path}: files under docs/ are lower-kebab-case, whatever the format; use {where}/{kebab(stem)}{ext}")
     return found
@@ -154,7 +151,6 @@ def self_test():
     assert rules("docs/Some_Notes.md") == ["N3"] and "some-notes.md" in file_problems("docs/Some_Notes.md", sessions, set())[0]
     assert rules("docs/data/Foo_Bar.yaml") == ["N3"] and "foo-bar.yaml" in file_problems("docs/data/Foo_Bar.yaml", sessions, set())[0]
     assert rules("docs/data/c3-dev-db.sql") == [] and rules("docs/data/rows.csv") == []
-    assert rules("docs/ops/tools/b5_remote.py") == [] and rules("docs/ops/tools/b5-remote.py") == ["N3"] and "b5_remote.py" in file_problems("docs/ops/tools/b5-remote.py", sessions, set())[0]
     assert rules("docs/data/.gitkeep") == ["N3"] and "remove .gitkeep" in file_problems("docs/data/.gitkeep", sessions, set())[0]
     assert rules("docs/.prettierrc") == ["N3"] and rules("scripts/ci/.keep") == [] and rules("tools/ops/.gitignore") == []
     assert rules("docs/plan.notes.md") == ["N3"] and "no dotted variants" in file_problems("docs/brief.template.md", sessions, set())[0]

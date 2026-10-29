@@ -16,7 +16,7 @@ import ops_venv_guard  # noqa: E402,F401  须排在所有第三方与同目录�
 from b5_remote import DRIVER, LEGACY_SERVER, LEGACY_WORK, ONE_SERVER, key_pair, put, stage_legacy, step  # noqa: E402
 
 TOOLS = Path(__file__).resolve().parent
-EVIDENCE = TOOLS.parents[2] / 'data' / 'evidence' / 'dba-handoff'  # #755: the evidence queries moved to docs/data/
+EVIDENCE = TOOLS.parents[2] / 'docs' / 'data' / 'evidence' / 'dba-handoff'  # #755: the tools live in tools/ops/dba/, the evidence queries in docs/
 ONE_WORK = '/root/one-ops-b5-scan'
 EVIDENCE_ENV = '/etc/forcitis-one/evidence.env'
 ENCRYPT = r'''
@@ -38,7 +38,7 @@ def main(target):
     if status != 'Success' or len(cipher) != 1:
         raise SystemExit('evidence password not available')
     stage = f'{LEGACY_WORK}/stage'
-    files = {'OneSql.java': (TOOLS / 'one-sql.java').read_text(), 'evidence.enc': cipher[0],
+    files = {'OneSql.java': (TOOLS / 'OneSql.java').read_text(), 'evidence.enc': cipher[0],
              'scan.sql': (EVIDENCE / (sys.argv[2] if len(sys.argv) > 2 else 'credential-columns-scan.sql')).read_text()}
     env = f'LOGIN_USER=one_evidence_ro LOGIN_SECRET_ENC={stage}/evidence.enc LOGIN_KEY={LEGACY_WORK}/logintest.key'
     java = f'java -cp {LEGACY_WORK}/mssql-jdbc.jar {stage}/OneSql.java'

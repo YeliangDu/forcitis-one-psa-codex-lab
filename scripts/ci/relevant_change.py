@@ -78,8 +78,6 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/rules/roles/",
     # ruling record: read by scripts/guards/acceptance_rulings.py in the always-run acceptance step
     "docs/rules/rulings/",
-    # scripts/ci/evidence_imports.py (light.sh) parses the production evidence tools
-    "docs/ops/dba-scripts/tools/",
     # deleted by #742; scripts/merge/mq.py still names it: its conflict auto-resolve finds no build_all.py and settles nothing (that code goes in #742's cleanup PR)
     "docs/build_all.py",
 )

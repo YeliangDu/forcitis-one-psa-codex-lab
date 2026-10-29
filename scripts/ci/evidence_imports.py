@@ -18,7 +18,7 @@ import sys
 import tempfile
 
 DIRS = (
-    "docs/ops/dba-scripts/tools",
+    "tools/ops/dba",
     "tools/ops/ecs/scripts",
     "tools/evidence",
 )
@@ -81,7 +81,7 @@ def problems(root):
 
 def self_test(root):
     with tempfile.TemporaryDirectory() as tmp:
-        for d in (os.path.dirname(DIRS[0]),) + DIRS[1:]:  # B5 / '...' reads the dba-scripts folder above tools/
+        for d in DIRS:
             shutil.copytree(os.path.join(root, d), os.path.join(tmp, d))
         assert problems(tmp) == [], problems(tmp)
         remote = os.path.join(tmp, DIRS[0], "b5_remote.py")
@@ -89,8 +89,8 @@ def self_test(root):
         assert any("imports key_pair from b5_remote" in p for p in problems(tmp)), "a name no longer defined by a sibling module must be reported"
         os.remove(os.path.join(tmp, DIRS[0], "b5_remote.py"))
         assert any("imports b5_remote" in p for p in problems(tmp)), "a deleted sibling module must be reported"
-        os.remove(os.path.join(tmp, DIRS[0], "one-sql.java"))
-        assert any("reads one-sql.java" in p for p in problems(tmp)), "a deleted sibling file read by TOOLS / '...' must be reported"
+        os.remove(os.path.join(tmp, DIRS[0], "OneSql.java"))
+        assert any("reads OneSql.java" in p for p in problems(tmp)), "a deleted sibling file read by TOOLS / '...' must be reported"
     print("evidence_imports self-test: ok")
 
 

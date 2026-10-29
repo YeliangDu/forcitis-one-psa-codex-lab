@@ -559,7 +559,7 @@ ORDER BY n.[<模板版本引用列>], n.[<节点定义键列>];
 
 1. **先核验通道和账号。** 使用当前已提交的专用取证通道及 `one_evidence_ro`，执行现行只读基线校验；失败或无法判定即停止。不得使用老系统应用数据源，也不运行建账号／改权限脚本。
 2. **确认服务器落盘能力。** 拟用目录 `/data/forensics/<YYYYMMDD>-one-ops-b31p/`，属主为取证执行用户、目录 `0700`、文件 `0600`，最长保留 7 天。  
-   当前 `phase1a/infra/handoff/B-5-dba/tools/b5_evidence_scan.py:49–53` 会将结果带回并写到本机；`OneSql.java:103` 固定语句超时 300 秒。**不能直接用它们声称满足本包要求，也不能内存改写或包装绕过。** 若没有已提交且满足服务器落盘、限时和输出过滤要求的执行器，先报告通道缺口。
+   当前 `tools/ops/dba/b5_evidence_scan.py:49–53` 会将结果带回并写到本机；`OneSql.java:103` 固定语句超时 300 秒。**不能直接用它们声称满足本包要求，也不能内存改写或包装绕过。** 若没有已提交且满足服务器落盘、限时和输出过滤要求的执行器，先报告通道缺口。
 3. **Q00 → Q01 → Q03／Q10。** 分别落 `metadata-a8.tsv`、`metadata-legacy.tsv`、`source-settings.tsv`、`physical-columns/`、`indexes/`。确认实际表列、类型、主键与可用范围。
 4. **Q02 → Q05 → Q06／Q11。** 落 `templates.tsv`、`fields/`、`nodes/`、`roles/`。建立模板—版本—表单—字段—节点的受控关联清单，剔除个人化配置和凭据。
 5. **Q07 → Q08 → Q09。** 落 `policies/`、`rules/B31P-xx/`、`schedules/`。逐题记录实际来源和缺失项；制度批准证据与模板发布状态分开。
