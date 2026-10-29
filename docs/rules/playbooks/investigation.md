@@ -1,4 +1,4 @@
-# 剧本：investigation
+# Playbook: investigation
 You own the answer. Read-only: no code changes, no implementation PR.
 1. Restate the question and the decision it serves; say so if the premise is wrong.
 2. Read-only means only: code, docs, the production read-only account for aggregates.
@@ -9,7 +9,7 @@ You own the answer. Read-only: no code changes, no implementation PR.
 7. Diagnose mechanism and source only; fixes are new cards.
 8. Write the result where the card says; no extra documents.
 
-回报必含：
+Report must include:
 - card, question, conclusion
 - evidence and sources
 - verified / unverified marks
