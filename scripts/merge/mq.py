@@ -86,10 +86,14 @@ def red_checks(checks):
     return [c for c in checks if c["bucket"] not in OK and not (c["name"].endswith("(light)") and c["name"][:-len("(light)")].rstrip() in full)]
 
 
-def release_verdict(reviews, comments, head, patch_id_of):
+LEAD = "one-lead"   # the session that posts approvals; it never releases its own pull request (rules ⑤, #856)
+
+
+def release_verdict(reviews, comments, head, patch_id_of, approvals_count=True):
     """(True, why) when the change at `head` may be merged, (False, why) when the newest statement for it is a 必改, (None, why) when nothing speaks for it. The newest statement that speaks for `head` decides: a first-round review (通过 or 必改), a 必改 of a final review,
     or a dispatcher approval comment `调度批准入队 head <sha>` (gapscan.APPROVAL; how the coordinator lets a 必改 fix through, RULES ⑤), which counts as 通过.
-    Every session posts through the same GitHub account: an approval (like a review) is a record of what was decided, not a check of who decided it.
+    Every session posts through the same GitHub account, so who wrote an approval cannot be told apart: approvals_count=False (lead's own pull request, or one whose branch is unknown)
+    ignores them, and only a first-round review can release it (#856).
     A review speaks for `head` when GitHub holds it on the commit its header names and that commit is `head` or has the same patch-id as `head`; an approval when it names `head` or a commit with the same patch-id
     (a rebase, or the queue's own merge of main, that leaves the change as it was). The patch-ids are git's (`patch_id_of(commit)`, None when git cannot say), never the one a review body states."""
     fields = post_review.load_policy()[0]["header_fields"]
@@ -107,7 +111,7 @@ def release_verdict(reviews, comments, head, patch_id_of):
         if h and r["commit"] == h["commit"] and not (h["kind"] == post_review.FINAL and h["verdict"] == post_review.PASS) and same(h["commit"]):
             said.append((r["at"], h["verdict"], f"{h['reviewer']} on {h['commit'][:10]}"))
     for c in comments:
-        m = gapscan.APPROVAL.search(c["body"]) if c["author"] == gapscan.APPROVER else None
+        m = gapscan.APPROVAL.search(c["body"]) if approvals_count and c["author"] == gapscan.APPROVER else None
         if m and same(m.group(1).lower()):
             said.append((c["at"], post_review.PASS, f"approval of {m.group(1)[:10]}"))
     if not said:
@@ -676,7 +680,12 @@ class Processor:
             if commit not in known:
                 known[commit] = self.gh.patch_id(self.repo, n, commit)
             return known[commit]
-        ok, why = release_verdict(reviews, comments, head, patch_id_of)
+        view = self.gh.view(n)
+        branch = view.get("branch") if isinstance(view, dict) else None
+        own = not branch or gapscan.author_session(branch, gapscan.load_owners()) == LEAD
+        ok, why = release_verdict(reviews, comments, head, patch_id_of, approvals_count=not own)
+        if own and ok is not True:
+            why += "; approvals do not count on lead's own pull request (or one whose branch gh cannot give): a first-round review must pass"
         commit = head
         for _ in range(10):   # nothing speaks for the head: a merge of main into a released head (the queue's own update) carries its verdict; merging main may change the context lines, and so the patch-id
             if ok is not None:
@@ -684,7 +693,7 @@ class Processor:
             commit = self.gh.main_merge_parent(self.repo, n, commit)
             if not commit:
                 break
-            ok, carried = release_verdict(reviews, comments, commit, patch_id_of)
+            ok, carried = release_verdict(reviews, comments, commit, patch_id_of, approvals_count=not own)
             if ok is not None:
                 why = f"{carried}; carried across the merge of main into {commit[:10]}"
         return ok is True, why

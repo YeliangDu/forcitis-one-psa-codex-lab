@@ -247,6 +247,9 @@ def _units(mq, d):
     assert not rv([], [approval("e" * 9)], pids={h: None})[0], "an approval whose patch-id git cannot compute does not match a head git cannot compute either"
     assert rv([review(h, "必改")], [approval(h[:9])])[0] and rv([review("e" * 40, "必改")], [approval("c" * 9)])[0], "the coordinator's approval of the fix, by name or by patch-id"
     assert PID[:6] in rv([])[1], "the refusal says the head's patch-id"
+    lead_rv = lambda reviews, comments=(): mq.release_verdict(reviews, list(comments), h, lambda c: pid.get(c), approvals_count=False)
+    assert not lead_rv([review(h, "必改")], [approval(h)])[0] and lead_rv([], [approval(h)])[0] is None, "lead's own pull request: its approval does not count (#856)"
+    assert lead_rv([review(h)], [approval(h)])[0], "a first-round 通过 still releases it"
 
 
 def _flow(mq, d):
@@ -453,6 +456,18 @@ def _release(mq, d):
         gh = FakeGh(); change(gh.add(60, merge="BEHIND", behind=1))
         result, ev, log, _ = once(mq, d, "r-" + name, gh, 60)
         assert result == "HOLD" and "not released" in log.lines[-1] and not [c for c in gh.calls if c[0] in ("merge", "update-branch", "label")], (name, gh.calls)
+    # lead's own pull request (branch claude/one-lead-...): an approval comment does not release it, a first-round 通过 does (#856); another branch: the approval does
+    for name, branch, reviews, released in (("lead, approval only", "claude/one-lead-860-x", [], "HOLD"), ("lead, first round", "claude/one-lead-860-x", None, "MERGED"),
+                                            ("other session, approval only", "claude/one-platform-860-x", [], "MERGED")):
+        gh = FakeGh(); p = gh.add(66)
+        p["branch"] = branch
+        if reviews is not None:
+            p["reviews"] = reviews
+        p["comments"] = [approval(p["head"])]
+        result, ev, log, _ = once(mq, d, "r-lead-" + name.replace(" ", "-").replace(",", ""), gh, 66)
+        assert result == released, (name, result, log.lines[-1:])
+        if released == "HOLD":
+            assert "approvals do not count on lead's own pull request" in log.lines[-1], log.lines[-1]
     # a 必改 arrives while the CI runs: the check under the merge lock stops it
     gh = FakeGh(); p = gh.add(61, rounds=[dict(pending=2, checks=green())])
     result, ev, log, _ = once(mq, d, "r-late", gh, 61, on_sleep=lambda s: p["reviews"].append(review(p["head"], "必改", at="2026-10-29T05:00:00Z")))
