@@ -2,7 +2,7 @@
 
 日期：2026-10-14 · 适用范围：`reimagine` 产出的全部新代码（后端、PC、H5、数据库、事件、API）
 
-N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起草（gpt-6.1-sol，xhigh）；词源与指称结构由 one-glossary 负责，投影、格式与守护清单由 one-architecture 负责（ADR-0053 决定 7.2）。
+N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）；词源与指称结构由 one-glossary 负责，投影、格式与守护清单由 one-architecture 负责（ADR-0053 决定 7.2）。
 
 用户诉求原话：
 - 「可以在现代化过程中规范命名吗？将原代码的命名和编码规范化」
@@ -15,7 +15,7 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 2. **结构**：用固定的包结构决定代码「放哪里」。
 3. **守护**：用 Modulith 和 ArchUnit 让放错位置、起错名字、越过边界的代码在 CI 中失败，失败信息里直接写明该怎么改。
 
-第 3 层已实证：`architecture-guardrails/backend` 是可运行的模板工程（Boot 4.1.1 / Java 25 / Modulith 2.1.1 / Flowable 8 / Flyway / Testcontainers PG17 / ArchUnit 1.4.2），52 项测试全绿，注入的错误全部被拦下；`architecture-guardrails/frontend` 对应前端（ESLint + TS strict），注入 16 类错误全部被拦下。决策见 `adr/ADR-0003`、`ADR-0004`、`ADR-0005`、`ADR-0006`。
+相关决策见 `docs/adr/ADR-0003.md`、`ADR-0004.md`、`ADR-0005.md`、`ADR-0006.md`。本文件中的 `DATA_DESIGN_CHECKLIST`、`NAMING_STANDARD`、`CODING_STANDARD` 是 `docs/rules/data-design-checklist.md`、`naming-standard.md`、`coding-standard.md` 的简称（测试与 ADR 以简称加节号引用）。
 
 ## 0. 基本原则
 
@@ -28,27 +28,17 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 ## 1. 老代码的命名问题（实测）
 
-| 问题 | 规模 | 例子 |
-|---|---|---|
-| 中文标识符（枚举、常量、类成员） | 129 个 Java 文件，代码引用 1,234 处 | `FSTConstant.IsOrNo.是`（145 处）、`WorkSpaceType.项目`（134 处）、`ApproveStatus.通过`（121 处）、`CommonConstants.日小时`、`RoleCode.营销` |
-| 同一概念多套叫法 | 工时：`manhour` 3,491 处、`works` 949 处、`timesheet` 689 处，另有 `man_hour`、`time_sheet` | 表 `psa_time_sheet` + `psa_time_sheet_works` + `psa_time_sheet_works_end`；包 `service/manhour`；页面 `manhour` 和 `timesheet` 并存 |
-| 同一状态在两套代码中数值互换 | 审批结果：BPM 中 2 = 通过、3 = 不通过；fst 中 3 = 通过、2 = 驳回 | `BpmProcessInstanceResult` 与 `ApproveStatus` |
-| 雪花 ID 当状态值 | `FSTConstant` 中 27 个 | `OppCloseStatus.未关闭 = 5665184657220652440` |
-| 同一常量多处定义 | 7.5 小时 / 人天 | `CommonConstants.日小时`、`FSTConstant.HUMAN_DAYS`，以及多处字面量 |
-| 拼写错误、拼音、自造缩写 | | `costopenning`、`socail`、`biget`、`cuvalue`、`arbad`、`ohproject` |
-| 名不副实 | 9 个 `dal/mysql` 包实际访问 SQL Server；`fst` 没有业务含义；`controller` 包里放着 `@Service` | |
-| 空泛后缀 | 61 个类 | `*Util`、`*Helper`、`*Manager`、`*Info`、`*Data`、`*Impl`、`*DO` |
-| 可变的 `public static` 常量 | 56 个内部类 | `FSTConstant`；`CommonConstants` 里的密钥字段（SEC-006） |
+（已移除：历史记录，见 git 历史）
 
 ## 2. 命名规则：英文、行业惯用、可预测
 
 ### 2.1 词源
 
-本节只放登记与投影细则。稳定原则、三层模型、组合、生命周期、改名及多语言结构分别引用 **ADR-0053 决定 1、2、3、5、6**，不在此复制决定正文。词源入口按其决定 1.3 指向 `glossary/terms.yaml` 及并入源、`glossary/bcs.yaml` 与 ACL 归类数据；`03-通用语言.md` 是历史来源，不是新增命名的登记入口。现有词条状态与含义以这些源为准，本节示例不裁定改词。
+本节只放登记与投影细则。稳定原则、三层模型、组合、生命周期、改名及多语言结构分别引用 **ADR-0053 决定 1、2、3、5、6**，不在此复制决定正文。词源入口按其决定 1.3 指向 `docs/glossary/terms.yaml` 及并入源、`docs/glossary/bcs.yaml` 与 ACL 归类数据；旧版「通用语言」文档（已不在仓库）只是历史来源，不是新增命名的登记入口。现有词条状态与含义以这些源为准，本节示例不裁定改词。
 
-**出处**：ADR-0053 的 `adr/src/ADR-0053.md`；下称「登记方案」为 `glossary/arch-naming/NAMING_ATOMS_REGISTRATION_PLANS.md`，其 `NAMING_ATOMS_DRAFT.md` §4 与 `NAMING_ATOMS_PREP.md`「目标结构」只作候选字段的补充出处。下称「N3 定稿」为 one-glossary 的 `glossary/arch-naming/N3_DECISIONS.md`（分支 `claude/one-glossary-bcs-systems`，提交 `f22d6b0b`）；本轮七项按该定稿，取代前稿相应待定表述与不一致的机器值。路径均相对 `docs/`。字段名沿 `glossary/migrate_to_concepts.py`；迁移对照按 N3 定稿第 3 项，映射变更须同步工具并重跑往返比对。
+**出处**：ADR-0053 的 `docs/adr/ADR-0053.md`；下称「登记方案」为 `docs/glossary/arch-naming/naming-atoms-registration-plans.md`，其 `naming-atoms-draft.md` §4 与 `naming-atoms-prep.md`「目标结构」只作候选字段的补充出处。下称「N3 定稿」为 one-glossary 的 `docs/glossary/arch-naming/n3-decisions.md`（分支 `claude/one-glossary-bcs-systems`，提交 `f22d6b0b`）；本轮七项按该定稿，取代前稿相应待定表述与不一致的机器值。字段名按 N3 定稿；迁移对照按 N3 定稿第 3 项。
 
-**守护现状**：`GlossaryTest`、`glossary/term_rules.py`、`NamingSurfaceTest` 仍读取现行词表形状；概念与指称的新结构、角色选择及投影一致性均为**待补守护**，由 one-quality 按后续命名卡实施、one-coordinator 排期，须在新结构切换前到位。本卡仅改细则，期间按出处复审。出处：ADR-0053 决定 4、7 与迁移方案第 2、5 项；登记方案「落地次序与出口」。
+**守护现状**：`GlossaryTest`、`scripts/guards/term_rules.py`、`NamingSurfaceTest` 仍读取现行词表形状；概念与指称的新结构、角色选择及投影一致性均为**待补守护**，由 one-quality 按后续命名卡实施、one-coordinator 排期，须在新结构切换前到位。本卡仅改细则，期间按出处复审。出处：ADR-0053 决定 4、7 与迁移方案第 2、5 项；登记方案「落地次序与出口」。
 
 #### 2.1.1 概念条目与叫法条目
 
@@ -56,12 +46,12 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 | 层次 | 字段或登记项 | 细则与待定边界 | 出处 | 守护 |
 |---|---|---|---|---|
-| 概念 | `id`、`kind` | 概念主条目保留这两个字段；概念 `id` 即引用键，永久不变、不含含义，不另设 `concept_ref`，任何引用处直接写 `id`；BC 作概念时仍用 `bcs.yaml` 的 `id`。`kind` 沿 DDD 分类，元词语另分 `atom_kind` | N3 定稿第 4 项；ADR-0053 决定 1.1–2、2.1；登记方案「共用结构与职责」；DRAFT §4 | 现有 `term_rules.py` 查 id、kind；新结构待补守护 |
-| 概念 | `bc / scope / definition` | 登记所属范围与定义；具体值域沿词表与 `bcs.yaml` | ADR-0053 决定 2.1；登记方案「共用结构与职责」 | 现有 `term_rules.py` 查范围；新结构待补守护 |
+| 概念 | `id`、`kind` | 概念主条目保留这两个字段；概念 `id` 即引用键，永久不变、不含含义，不另设 `concept_ref`，任何引用处直接写 `id`；BC 作概念时仍用 `bcs.yaml` 的 `id`。`kind` 沿 DDD 分类，元词语另分 `atom_kind` | N3 定稿第 4 项；ADR-0053 决定 1.1–2、2.1；登记方案「共用结构与职责」；DRAFT §4 | 现有 `scripts/guards/term_rules.py` 查 id、kind；新结构待补守护 |
+| 概念 | `bc / scope / definition` | 登记所属范围与定义；具体值域沿词表与 `bcs.yaml` | ADR-0053 决定 2.1；登记方案「共用结构与职责」 | 现有 `scripts/guards/term_rules.py` 查范围；新结构待补守护 |
 | 概念 | `standard_ref / relations / status` | 标准依据、概念关系与概念状态；关系的边结构、`homonyms / upstream_term` 迁入方式待 one-glossary 定 | ADR-0053 决定 2.1、5.1 与影响面；登记方案「共用结构与职责」；DRAFT §4 | 现有守护只查旧结构；待补守护 |
 | 概念 / 元词语并入行 | `id / atom_kind / designations / decision_ref` | 并入行直接以概念 `id` 引用，不另立引用键；`decision_ref` 是否逐条必填待 one-glossary 定；`atom_kind` 不替代 `kind` | N3 定稿第 4 项；登记方案「共用结构与职责」、§3–6；ADR-0053 决定 2 | 待补守护（切换前） |
-| 指称 | `locale / name / role` | **采纳迁移工具取值**：分别表示语言、名称、用途角色；语言与角色分列，角色选择见 §2.1.2，不把 snake、接口或权限串放进语言字段 | `migrate_to_concepts.py:13`；ADR-0053 决定 2.2–3、6.1 | 待补守护（切换前） |
-| 指称 | `usage_status / approval_status / source_type` | **采纳迁移工具取值**：分别表示使用状态、审批状态、来源类型，不能共用一个 `status`，也不将别名、方言塞入用途角色；机器值见下表 | `migrate_to_concepts.py:14`；ADR-0053 决定 2.2、5.2 | 现有禁用词检查不等于新状态组合检查；待补守护 |
+| 指称 | `locale / name / role` | **采纳 N3 定稿取值**：分别表示语言、名称、用途角色；语言与角色分列，角色选择见 §2.1.2，不把 snake、接口或权限串放进语言字段 | N3 定稿；ADR-0053 决定 2.2–3、6.1 | 待补守护（切换前） |
+| 指称 | `usage_status / approval_status / source_type` | **采纳 N3 定稿取值**：分别表示使用状态、审批状态、来源类型，不能共用一个 `status`，也不将别名、方言塞入用途角色；机器值见下表 | N3 定稿；ADR-0053 决定 2.2、5.2 | 现有禁用词检查不等于新状态组合检查；待补守护 |
 | 指称 | `abbreviation` | 布尔属性，表示该指称是否为缩写形式，不占用途角色；角色表示用途，缩写属性表示形式 | N3 定稿第 2 项 | 待补守护（切换前） |
 | 指称 | 改名后的替代引用、出处与生效 / 退役时间 | 替代引用按 ADR；时间字段来自 PREP 候选，字段名、必填条件与概念状态的边界待 one-glossary 定 | ADR-0053 决定 5.3；PREP「目标结构」 | 待补守护（改名迁移前） |
 | 派生结果 | snake / camel / kebab、各命名面成品 | 按 §2.1.4 产生；旧字段仅作为兼容投影，切换核对逐项对照 `zh / en / snake / aliases / forbidden` | ADR-0053 决定 2.3 与迁移方案第 2 项；登记方案「共用结构与职责」「落地次序与出口」 | 待补守护（新旧投影比对，切换前） |
@@ -78,19 +68,19 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 使用资格同时检查两种状态：`forbidden` 或 `pending_confirmation` 均禁止引用；`proposed` 按 ADR-0053 决定 5.2 构建提醒。各面默认取指定语言、角色的唯一 `preferred` 指称，不能把 `permitted` 当缺失时的回退。
 
-**N3 七项定稿对照**：出处均为 `glossary/arch-naming/N3_DECISIONS.md @ 7e4eb96b`；第 5 项先采用下列字段骨架，正式结构随 NAM-1017-GLO-06 产出后核对。
+**N3 七项定稿对照**：出处均为 `docs/glossary/arch-naming/n3-decisions.md @ 7e4eb96b`；第 5 项先采用下列字段骨架，正式结构随 NAM-1017-GLO-06 产出后核对。
 
 | 项 | 定稿内容 |
 |---|---|
 | 1. 角色与界面用途 | `canonical / code_name` 现用；`terse / verbose / column_header / documentation / ui_label` 预留、未启用，缺失不失败。现阶段界面文字取 `zh-CN / canonical`；同一概念确需不同于规范名的界面叫法时再启用 `ui_label` |
 | 2. 缩写 | 指称上的布尔属性 `abbreviation`，不占角色；同一缩写可用于代码名与界面 |
-| 3. `aliases / forbidden` 迁移对照 | 按下表采用 N3 定稿给出的 `migrate_to_concepts.py` 映射；变更须改工具并重跑往返比对 |
+| 3. `aliases / forbidden` 迁移对照 | 按下表采用 N3 定稿给出的映射 |
 | 4. 概念引用 | 不设 `concept_ref`；概念 `id` 即引用键，任何引用处写 `id`；BC 概念沿 `bcs.yaml` 的 `id` |
-| 5. 动词、模板、消息目录 | `verbs.yaml`、`naming-templates.yaml` 与 `messages/zh-CN.yaml` 字段骨架见 §2.1.5–6；正式结构随 NAM-1017-GLO-06 产出后核对 |
+| 5. 动词、模板、消息目录 | 动词登记、模板登记与消息目录（均待建）字段骨架见 §2.1.5–6；正式结构随 NAM-1017-GLO-06 产出后核对 |
 | 6. 消息状态与缺译 | `proposed / approved / deprecated / retired`，与概念生命周期一致；缺译回退按 ADR-0053 决定 6.4，运行时回退须告警 |
 | 7. 英文 locale | 用 `en`；英式、美式拼写另待用户裁定（N4 Q13），裁定前新代码词形按 N4 候选，不由 locale 区分拼写变体 |
 
-**别名与禁用写法的迁移映射**（N3 定稿第 3 项修订版，`glossary/arch-naming/N3_DECISIONS.md @ 7e4eb96b`；与已过复审、往返无损的 `glossary/migrate_to_concepts.py` 一致）：`source_type` 原样保留旧类型值；语义分类由本细则按 `source_type` 查表。
+**别名与禁用写法的迁移映射**（N3 定稿第 3 项修订版，`docs/glossary/arch-naming/n3-decisions.md @ 7e4eb96b`）：`source_type` 原样保留旧类型值；语义分类由本细则按 `source_type` 查表。
 
 | 旧输入 | 定稿映射 |
 |---|---|
@@ -107,10 +97,10 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 |---|---|---|---|
 | 规范名 | `locale: zh-CN`、`role: canonical`，现阶段同时用于中文界面文字 | N3 定稿第 1 项；ADR-0053 决定 2.2、1.5 | 待补守护（切换前） |
 | 界面叫法 | 现阶段取 `zh-CN / canonical`，不另分角色；同一概念在界面须用不同于规范名的叫法时，再启用 `ui_label`；其余预留角色缺失不失败 | N3 定稿第 1 项；ADR-0053 决定 6.3–4；登记方案 §2 | 待补守护（消息目录启用前） |
-| 内部英文名（代码名） | **采纳迁移工具取值**：`locale: en`、`role: code_name`，名称为英文 ASCII | `migrate_to_concepts.py:18–19`；ADR-0053 决定 2.2、6.3 | 现有 ASCII、拆词检查；角色选择待补守护 |
+| 内部英文名（代码名） | **采纳 N3 定稿取值**：`locale: en`、`role: code_name`，名称为英文 ASCII | N3 定稿；ADR-0053 决定 2.2、6.3 | 现有 ASCII、拆词检查；角色选择待补守护 |
 | 英文界面叫法（AN-05） | 与内部英文名分开登记，允许不同；即使同词也按两种用途记录。当前未交付英文界面，不要求补齐英文界面指称 | ANM 批准记录（intent `2026-10-17-084935-one-coordinator`，AN-04、AN-05）；ADR-0053 决定 6.2–3；登记方案 §2 | 待补守护（角色区分在切换前；英文完整性在启用前） |
 | 缩写 | 指称以布尔属性 `abbreviation` 表示缩写形式，不占角色；先按 §2.1.4 登记全称与用途，不默认把所有缩写当可用别名 | N3 定稿第 2 项；ADR-0053 决定 2.2、8；登记方案 §5 | 现有拆词检查不能证明缩写已授权；待补守护 |
-| 旧称、方言、别名 | 以 `source_type` 与两种状态分别登记，不作用途角色；映射见 §2.1.1，§6 的老名来源机器值为 `old-code / legacy-code / legacy-table` | N3 定稿第 3 项；ADR-0053 背景「取代」与决定 2.2、5.3 | 现有禁用写法守护；新结构待补守护 |
+| 旧称、方言、别名 | 以 `source_type` 与两种状态分别登记，不作用途角色；映射见 §2.1.1，老名来源机器值为 `old-code / legacy-code / legacy-table` | N3 定稿第 3 项；ADR-0053 背景「取代」与决定 2.2、5.3 | 现有禁用写法守护；新结构待补守护 |
 
 #### 2.1.3 源语言与当前交付语言
 
@@ -118,7 +108,7 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 | 项目 | 细则 | 出处 | 守护 |
 |---|---|---|---|
-| 源语言 | `zh-CN`；**采纳迁移工具取值**；语言标签采用 ADR-0053 决定 6.1 所引规则 | `migrate_to_concepts.py:18`；ADR-0053 决定 6.2；登记方案 §2 | 待补守护（标签及源语言登记，切换前） |
+| 源语言 | `zh-CN`；**采纳 N3 定稿取值**；语言标签采用 ADR-0053 决定 6.1 所引规则 | N3 定稿；ADR-0053 决定 6.2；登记方案 §2 | 待补守护（标签及源语言登记，切换前） |
 | 当前启用的界面语言 | 仅 `zh-CN`，覆盖 PC、H5、服务端给人的文字、打印、报表和通知；英文界面无本期交付安排 | ANM AN-04；ADR-0053 决定 6.4；登记方案 §2 | F19 中文配置、消息与指称完整性均待补守护 |
 | 英文代码名 | `en / code_name`；不等于启用英文界面，界面不得取代码名作回退。locale 用 `en`，不区分拼写变体；英式、美式拼写另待用户裁定（N4 Q13），裁定前新代码词形按 N4 候选 | N3 定稿第 7 项；ANM AN-05；ADR-0053 决定 1.5、6.3–4 | 待补守护（切换前） |
 
@@ -167,14 +157,14 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 | 项目 | 细则 | 出处 | 守护 |
 |---|---|---|---|
-| 命令与事件词形 | 命令用原形动词 + 对象；事件用对象 + 已发生事实的过去式 / 过去分词，无 `Event / Request / Command` 后缀，继续禁止 G29 的 `Requested / Query` 结尾。`SubmitTimesheet → TimesheetSubmitted` 只说明英文词形，中文仍取登记指称，不据示例更名 | ADR-0053 决定 3；登记方案 §1；§2.2、§4 G5、G29；METHODS M5「第二批」第 5 条 | `ArchitectureRulesTest`、`GlossaryTest`、`term_rules.py`；新槽位渲染等值待补守护 |
-| 动词登记 | `glossary/verbs.yaml` 每项：`id`（V 编号，永久不变）、`zh`、`en`（原形）、`en_past_participle`、`snake`、`standard_action`、`merged_from`（并入的近义词）、`status`；词义、词形与权限标准动作的对应逐项核对 | N3 定稿第 5 项；ADR-0053 决定 3、7.1；登记方案 §1；N4 §4 | 待补守护（动词源启用与组合迁移前） |
-| 模板登记 | `glossary/naming-templates.yaml`：槽位 `{object, verb, aspect, complement}`，每种目标（命令、事件、状态）的中文渲染式、英文渲染式与样例；概念引用直接写 `id`。`perfective / pending / progressive` 是体标记，不作业务对象。补语、介词尾与连接片段须在模板允许位置使用 | N3 定稿第 4–5 项；ADR-0053 决定 3；登记方案 §1、§5 | 现有 `GlossaryTest / term_rules.py` 识别部分过去式、介词尾；槽位合法性待补守护 |
+| 命令与事件词形 | 命令用原形动词 + 对象；事件用对象 + 已发生事实的过去式 / 过去分词，无 `Event / Request / Command` 后缀，继续禁止 G29 的 `Requested / Query` 结尾。`SubmitTimesheet → TimesheetSubmitted` 只说明英文词形，中文仍取登记指称，不据示例更名 | ADR-0053 决定 3；登记方案 §1；§2.2、§4 G5、G29；`docs/rules/coding-standard.md` CS-1.4 | `ArchitectureRulesTest`、`GlossaryTest`、`scripts/guards/term_rules.py`；新槽位渲染等值待补守护 |
+| 动词登记 | `docs/glossary/verbs.yaml`（待建）每项：`id`（V 编号，永久不变）、`zh`、`en`（原形）、`en_past_participle`、`snake`、`standard_action`、`merged_from`（并入的近义词）、`status`；词义、词形与权限标准动作的对应逐项核对 | N3 定稿第 5 项；ADR-0053 决定 3、7.1；登记方案 §1；N4 §4 | 待补守护（动词源启用与组合迁移前） |
+| 模板登记 | `docs/glossary/naming-templates.yaml`（待建）：槽位 `{object, verb, aspect, complement}`，每种目标（命令、事件、状态）的中文渲染式、英文渲染式与样例；概念引用直接写 `id`。`perfective / pending / progressive` 是体标记，不作业务对象。补语、介词尾与连接片段须在模板允许位置使用 | N3 定稿第 4–5 项；ADR-0053 决定 3；登记方案 §1、§5 | 现有 `GlossaryTest / term_rules.py` 识别部分过去式、介词尾；槽位合法性待补守护 |
 | 词汇化事实与反例 | `BecameOverdue` 按词汇化事实模板登记；`WrittenOff / SubmittedForApproval` 沿现行词形识别。`Locked` 位于对象内、`Changed` 位于事件尾时，不凭词尾将两者都判作主事件动词；未登记例外不得靠尾缀规则放行 | ADR-0053 决定 3；登记方案 §1；现行 `GlossaryTest.pastTense` | 现有词形检查部分覆盖；对象 / 主动词区分及例外引用待补守护（组合迁移前） |
 
 #### 2.1.6 界面消息目录
 
-负责：前后端负责会话编目录，one-glossary 审业务指称，one-architecture 定共用契约，one-quality 实现检查。源位置为 **`glossary/messages/zh-CN.yaml`**，前后端从同一源各生成适用格式；按 N3 定稿第 5–6 项采用 **消息键 → `{text, status, note}`** 的字段骨架，**正式结构随 NAM-1017-GLO-06 产出后核对**，本卡不创建文件。出处：N3 定稿；登记方案 §2；ADR-0053 决定 6.4、7。守护：待补守护（目录启用、新页面采用前）；实施由后续命名卡承接，本卡文件范围不含实现。
+负责：前后端负责会话编目录，one-glossary 审业务指称，one-architecture 定共用契约，one-quality 实现检查。源位置为 **`docs/glossary/messages/zh-CN.yaml`（待建）**，前后端从同一源各生成适用格式；按 N3 定稿第 5–6 项采用 **消息键 → `{text, status, note}`** 的字段骨架，**正式结构随 NAM-1017-GLO-06 产出后核对**，本卡不创建文件。出处：N3 定稿；登记方案 §2；ADR-0053 决定 6.4、7。守护：待补守护（目录启用、新页面采用前）；实施由后续命名卡承接，本卡文件范围不含实现。
 
 | 字段 | 登记内容 | 出处 | 守护 |
 |---|---|---|---|
@@ -200,7 +190,6 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 | 消息键单数资源、点分小写用途、`kernel` 共用前缀、唯一与使用点对应（§2.1.4、§2.1.6） | 消息目录启用、新页面采用前 | 待定（one-quality、前后端负责会话） |
 | 消息模式、占位符类型 / 概念 / 角色、无写死文字与已启用语言完整性；运行时回退并告警（§2.1.6） | 消息目录启用、新页面采用前；新增语言启用前 | 待定（one-quality、前后端负责会话） |
 | 中文配置 F19、代码名与英文界面名分用途（§2.1.2–3、§4a U4） | 中文配置首次部署前；角色区分在新结构切换前，英文完整性在英文界面启用前 | 待定（前端负责会话、one-quality） |
-| §6 禁用来源指称投影可复现、新旧对照一致 | 词源切换前 | 待定（one-glossary、one-quality） |
 
 ### 2.2 写法
 
@@ -303,7 +292,7 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 
 ### 2.6 HTTP 接口约定（用户 2026-10-15：对原则核对 A 的待决项答「全部按推荐 (Recommended)」）
 
-适用于全部 `/api/v{n}/…` 接口；由 `proposals/PHASE1A_PLATFORM_CONVENTIONS.md` §2–3 升格而来，那两节不再是现行规则。路径与命名见 §2.3；接口版本与契约演进见 ADR-0008 与 ADR-0035。守护见 §4「待实现的守护」G-A1–G-A9，未实现前由每波复审逐条检查。
+适用于全部 `/api/v{n}/…` 接口；由 `docs/architecture/proposals/phase1-a-platform-conventions.md` §2–3 升格而来，那两节不再是现行规则。路径与命名见 §2.3；接口版本与契约演进见 ADR-0008 与 ADR-0035。守护见 §4「待实现的守护」G-A1–G-A9，未实现前由每波复审逐条检查。
 
 - **A-1 资源与命令**：读取用 `GET`；在集合上创建用 `POST /{复数资源}`；整体替换可编辑字段用 `PUT /{复数资源}/{id}`；状态转换与业务动作写成命令 `POST /{复数资源}/{id}:{动作}`（动作取自 `terms.yaml` 的 `standard_actions`），不用 `PUT` 改状态；删除用 `DELETE`，只用于允许删除的对象（如未提交的草稿），业务上的「作废」「撤销」是命令。不改变任何状态的只读计算（如试算、预览）可用 `GET /{复数资源}:{动作}` 或 `GET /{复数资源}/{id}:{动作}`，参数放查询串，不得有副作用。
 - **A-2 状态码**：创建返回 `201`，带 `Location` 与 `ETag`；命令返回 `200`（响应体为命令后的资源）或 `204`；删除返回 `204`；读取返回 `200` 与 `ETag`。契约中的状态码与运行时一致。
@@ -400,7 +389,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G34 | 【已采纳（ADR-0016），Phase 2 骨架实现】`operations.facts` 的事实仓储只能有插入和查询方法；事实表有拒绝 UPDATE / DELETE 的触发器 | 直接改已过账的数据，而不是冲销 | ArchUnit + DDL 测试（ADR-0016） |
 | G35 | 【已采纳（ADR-0016）】只有 `accounting.ledger` 能依赖会计科目和科目映射 | 业务 BC 写死科目代码 | ArchUnit（ADR-0016） |
 | G36 | 【已采纳（ADR-0016）】触账 BC 只能通过 `operations.facts` 的 api 提交过账候选，不能写事实表 | 绕过期间校验和借贷平衡 | 依赖图 D1 + ArchUnit（ADR-0016） |
-| G37 | 【已采纳（ADR-0018）】domain / api / events / web / kernel 中的类型名、record 组件、枚举常量、非私有方法，以及迁移中的表名、列名，拆词后必须已在 `glossary/terms.yaml` 登记或属于 `common_words` | 自造词、同义词漂移 | `GlossaryTest`（失败时生成 `target/glossary-draft.yaml` 草稿） |
+| G37 | 【已采纳（ADR-0018）】domain / api / events / web / kernel 中的类型名、record 组件、枚举常量、非私有方法，以及迁移中的表名、列名，拆词后必须已在 `docs/glossary/terms.yaml` 登记或属于 `common_words` | 自造词、同义词漂移 | `GlossaryTest`（失败时生成 `target/glossary-draft.yaml` 草稿） |
 | G38 | 【已采纳（ADR-0018）】出现词表中的禁用写法（老名、拼音、非标准用语）即失败 | 把 ManHour、Quotation、cuvalue 带进新代码 | `GlossaryTest` |
 | G39 | 【已采纳（ADR-0018）】列名对应词表术语时，列注释必须以该术语的中文开头 | 数据字典与统一语言不一致 | `GlossaryTest`（解析迁移中的 COMMENT ON） |
 | G40 | 【已采纳（ADR-0019）】新代码禁止依赖 `cn.iocoder..` 及 yudao 的基类和工具（`BaseDO`、`CommonResult`、`TenantBaseDO` 等） | 把脚手架习惯带进新系统 | ArchUnit |
@@ -426,7 +415,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 
 **计划补充的守护**（模板中尚未实现，Phase 1 骨架补齐）：
 - SQL 只引用本模块 schema（扫描 `infrastructure.persistence` 里的 SQL 文本）；
-- 每个 P0 规则都有一个以 `RULE_NNN_` 开头的测试（对照 `BUSINESS_RULES.md` 检查覆盖率）；
+- 每个 P0 规则都有一个以 `RULE_NNN_` 开头的测试（对照 `docs/business/business-rules.md` 检查覆盖率）；
 - 新出现的聚合、事件、表名必须在词表中；
 - 单个文件不超过 400 行、单个方法不超过 60 行（Checkstyle）；
 - 前端用 ESLint 的 `no-restricted-imports` 禁止跨模块 import 内部目录。
@@ -445,7 +434,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | F10 | 只有 `modules/<m>/api` 能 import 生成的客户端 | 页面直接调接口 |
 | F11 | 禁 `dangerouslySetInnerHTML` | 存储型 XSS（SEC-008） |
 | F12 | 禁 `export *` | 公开接口失控 |
-| F13 | 每个模块 `index.ts` 的导出数 ≤ 8（`check-public-api.mjs`） | 窄接口变宽 |
+| F13 | 每个模块 `index.ts` 的导出数 ≤ 8（`frontend/scripts/check-structure.mjs`） | 窄接口变宽 |
 | F14 | 业务模块禁止直接 import antd、禁内联样式、禁硬编码颜色；原始令牌只在 `shared/design-system` 中读取 | 偏离设计系统（ADR-0013） |
 
 **待实现的守护**（用户 2026-10-15：对 DDL 审计、原则核对 A / B 的待决项答「全部按推荐 (Recommended)」）：以下守护**只登记、尚未实现**，状态均为「待实现」。规则正文在「出处」一列所指的地方，本表只写检查什么、何时必须有、归属哪个工作单元。**归属由 one-1a-next-2 在计划中排定**：「归属」一列中已由 ADR 或用户决定落定的写工作单元名，其余写「one-1a-next-2 排定」，括号内是初拟的分组，供排定参考。未实现前由每波复审按出处逐条检查。与已有守护重叠的，实现时合并为一个测试，不重复写。
@@ -461,7 +450,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G-A7 | 控制器返回类型只能是 `web` 包内的 `*Response` | §2.6 A-11 | 首次部署前 | one-1a-next-2 排定（初拟：HTTP 契约守护；与 G-X6 互补） |
 | G-A8 | kernel 以外不得定义通用错误码 | §2.3、§2.6 A-9 | 首次部署前 | R-5（与 G48 同一实现） |
 | G-A9 | 错误响应只由统一的处理器生成，控制器不手工拼 ProblemDetail | §2.6 A-9 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护） |
-| G-C1 | `scripts/ci/openapi_compat.py`：与 merge-base 的 OpenAPI 比对；读取弃用登记，已登记且到期的删除放行；其他破坏性变更即失败，只能用提交 trailer `Contract-Break:` 放行并在 PR 中单列 | ADR-0035 第 3、7、9 条 | 首次生产部署前 | one-1a-next-2 排定（初拟：契约演进守护） |
+| G-C1 | `scripts/ci/openapi_compat.py`（待建）：与 merge-base 的 OpenAPI 比对；读取弃用登记，已登记且到期的删除放行；其他破坏性变更即失败，只能用提交 trailer `Contract-Break:` 放行并在 PR 中单列 | ADR-0035 第 3、7、9 条 | 首次生产部署前 | one-1a-next-2 排定（初拟：契约演进守护） |
 | G-C2 | 事件兼容（AsyncAPI 形状比对）：`asyncapi.yaml` 各消息的负载 schema 与类名同 merge-base 比对，形状或类名、包名有变化即判为破坏性，要求 `schemaVersion + 1` 或新事件类型二选一，并把本次发布标为「需排空」 | ADR-0035 第 3、5、9 条 | 首次生产部署前 | 同上 |
 | G-C3 | 部署前排空预检：标为「需排空」的发布，在开启维护模式（库内标记 `platform_scheduling.maintenance_modes`）之后检查未完成的事件发布与死信为 0，排不空的经隔离登记处理，否则中止部署 | ADR-0035 第 6 条 | 首次生产部署前 | 同上（接入部署剧本，one-ops） |
 | G-C4 | 契约如实：OpenAPI 的状态码（201 与 `Location`）、必填请求头（`If-Match`、412 / 428）、`ETag`、具名枚举、无无类型响应体、`info` 与运行时一致（扩展 `HttpContractIT`；G-A3、G-A4 并入）；dev 期生效的两条契约守护之一，另一条为 G-C5 | ADR-0035 第 2、8 条、§2.6 | H-1 合入即生效（H-1 排在 R-5 之后） | H-1 |
@@ -474,12 +463,12 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G-P4 | 外部只读连接三种超时生效：对挂起端口的集成测试在预算内失败或降级 | DATA_DESIGN_CHECKLIST §14.3 I2 | 首次部署前 | 同上（与 G-I1、G-I3 同卡） |
 | G-P5 | 生产配置中连接池、语句超时、直方图桶、慢查询阈值存在且取值符合 R-P4–R-P6 | GUIDING_PRINCIPLES §7a | 首次部署前 | 同上 |
 | G-P6 | k6 压测：R-P1 各类接口达标（阶段出口） | GUIDING_PRINCIPLES §7a R-P1 | Phase 2 入口 | one-1a-next-2 排定（初拟：性能守护；安装 k6 前按 CLAUDE.md 请示） |
-| G-S1 | `scripts/ci/workflows_pinned.py`：工作流 `uses:` 一律固定 40 位 SHA；禁 `pull_request_target` | SUPPLY_CHAIN.md S6 | 首次部署前 | one-1a-next-2 排定（初拟：CI 供应链） |
-| G-S2 | osv-scanner：漏洞与许可证检查（并入已有作业，不加作业数） | SUPPLY_CHAIN.md S3、S4 | 首次部署前 | 同上 |
-| G-S3 | `pom.xml` 不声明自定义仓库，只用 Maven Central | SUPPLY_CHAIN.md S1 | 首次部署前 | 同上 |
-| G-S4 | 测试数据库镜像只在一处常量定义，带摘要 | SUPPLY_CHAIN.md S7 | 首次部署前 | 同上 |
-| G-S5 | 发布包含 SBOM，且 SBOM 写入签名声明 | SUPPLY_CHAIN.md S5 | 生产部署前 | 同上 |
-| G-S6 | runner 作业前钩子检查运行用户与凭据目录 | SUPPLY_CHAIN.md S6 | 待决（随 runner 专用用户的决定） | 同上 |
+| G-S1 | `scripts/ci/workflows_pinned.py`（待建）：工作流 `uses:` 一律固定 40 位 SHA；禁 `pull_request_target` | docs/ops/supply-chain.md S6 | 首次部署前 | one-1a-next-2 排定（初拟：CI 供应链） |
+| G-S2 | osv-scanner：漏洞与许可证检查（并入已有作业，不加作业数） | docs/ops/supply-chain.md S3、S4 | 首次部署前 | 同上 |
+| G-S3 | `pom.xml` 不声明自定义仓库，只用 Maven Central | docs/ops/supply-chain.md S1 | 首次部署前 | 同上 |
+| G-S4 | 测试数据库镜像只在一处常量定义，带摘要 | docs/ops/supply-chain.md S7 | 首次部署前 | 同上 |
+| G-S5 | 发布包含 SBOM，且 SBOM 写入签名声明 | docs/ops/supply-chain.md S5 | 生产部署前 | 同上 |
+| G-S6 | runner 作业前钩子检查运行用户与凭据目录 | docs/ops/supply-chain.md S6 | 待决（随 runner 专用用户的决定） | 同上 |
 | G-O1 | 日志扫描：`ERROR` 行必须以「ALERT P1\|P2\|P3 <子域>.<BC> 」开头 | GUIDING_PRINCIPLES §11 O-2 | 首次部署前 | one-1a-next-2 排定（初拟：可观测性） |
 | G-O2 | 日志参数不得是个人信息类方法的返回值；未知异常只记类名 | GUIDING_PRINCIPLES §11 O-3 | 首次部署前 | 同上 |
 | G-O3 | 集成测试断言每行日志有 correlationId，唯一约束冲突中的邮箱等值不落盘 | GUIDING_PRINCIPLES §11 O-1、O-3 | 首次部署前 | 同上 |
@@ -487,7 +476,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G-O5 | 告警规则引用的指标在应用中存在 | GUIDING_PRINCIPLES §11 O-6 | 首次部署前 | 同上 |
 | G-O6 | 关联断开计数：事件发布时缺 correlationId 计数并告警，不静默新建 | GUIDING_PRINCIPLES §11 O-1 | 1b 前 | 同上 |
 | G-I1 | 外部连接只经集成层的连接工厂，工厂强制连接、查询、锁等待三种超时 | DATA_DESIGN_CHECKLIST §14.3 I2 | 首次部署前 | one-1a-next-2 排定（初拟：外部集成韧性） |
-| G-I2 | 集成登记册 `backend/architecture/integration-register.yaml` 与代码中的适配器一致 | DATA_DESIGN_CHECKLIST §14.3 | 首次部署前 | 同上 |
+| G-I2 | 集成登记册 `backend/architecture/integration-register.yaml`（待建） 与代码中的适配器一致 | DATA_DESIGN_CHECKLIST §14.3 | 首次部署前 | 同上 |
 | G-I3 | 用 `WAITFOR` 挂住的视图验证超时生效与降级 | DATA_DESIGN_CHECKLIST §14.3 I2、I7 | 首次部署前 | 同上 |
 | G-I4 | 用户路径冷却：连续失败 3 次后 60 秒内不再调用 | DATA_DESIGN_CHECKLIST §14.3 I6 | 1b 前 | 同上 |
 | G-I5 | 一次故障只记一次带堆栈的 `ERROR` | DATA_DESIGN_CHECKLIST §14.3 I10 | 首次部署前 | 同上 |
@@ -514,14 +503,14 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G-DDL8 | 禁 `CREATE TYPE … AS ENUM`；枚举 CHECK 命名并与 Java 枚举一致（与 G-D12 同一测试） | §2.4a 第 6 条；DDL 审计（2026-10-15）守护 G8 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL9 | `jsonb` 列已登记用途并有 `jsonb_typeof` CHECK | §2.4a 第 7 条；DDL 审计（2026-10-15）守护 G9 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL10 | 长期保留或大表在注册表登记规模与分区决定 | §2.4a 第 8 条；DDL 审计（2026-10-15）守护 G10 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL11 | `scripts/ci/migration_safety.py`：`CONCURRENTLY`、`lock_timeout` / `statement_timeout`、禁全表重写、外键与 CHECK 用 `NOT VALID`、先扩后缩、无无效索引 | §2.4a 第 9 条；DDL 审计（2026-10-15）守护 G11 | 首次部署前（C-3 删基线标记前合入） | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL11 | `scripts/ci/migration_safety.py`（待建）：`CONCURRENTLY`、`lock_timeout` / `statement_timeout`、禁全表重写、外键与 CHECK 用 `NOT VALID`、先扩后缩、无无效索引 | §2.4a 第 9 条；DDL 审计（2026-10-15）守护 G11 | 首次部署前（C-3 删基线标记前合入） | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL12 | 测试库排序规则为 C（与生产一致）；迁移后无无效索引；高频更新表的 fillfactor 有注释 | §2.4a 第 2、10 条；DDL 审计（2026-10-15）守护 G12 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | F15 | VI 色值以 sRGB 十六进制登记在 palette；`oklch` 必须落在 sRGB 色域内 | §4a U1 | D-8 首次 design-sync 前 | one-1a-next-2 排定（初拟：前端设计系统） |
 | F16 | 令牌配对的文字与非文字对比度达标 | §4a U2 | D-8 首次 design-sync 前 | 同上 |
 | F17 | `eslint-plugin-jsx-a11y` 规则 | §4a U3 | 1b 前 | 同上 |
 | F18 | 组件测试中跑 axe | §4a U3 | 1b 前 | 同上 |
 | F19 | 应用根部设置 antd `zhCN` 与 dayjs `zh-cn` | §4a U4 | 首次部署前 | 同上 |
-| F20 | `check-bundle-size.mjs`：gzip 体积超过预算即失败 | §4a U8 | 1b 前 | 同上 |
+| F20 | `check-bundle-size.mjs`（待建；现有 `frontend/apps/h5/scripts/check-bundle.mjs`）：gzip 体积超过预算即失败 | §4a U8 | 1b 前 | 同上 |
 | F21 | PC 与 H5 的语义组件契约类型一致（类型测试） | §4a U7 | 1b 前 | 同上 |
 | F22 | 查询视图三态结构检查 | §4a U5 | 1b 前 | 同上 |
 
@@ -548,34 +537,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 
 ## 6. 老名 → 新名对照（历史快照，待由指称投影替换）
 
-维护入口改为 `source_type` 属 `old-code / legacy-code / legacy-table` 且 `usage_status: forbidden` 的指称，按 N3 定稿第 3 项修订版（`glossary/arch-naming/N3_DECISIONS.md @ 7e4eb96b`）：来源类型保留三个原值。按 ADR-0053 背景「取代」与决定 5 投影到本节；负责：one-glossary 提供源，one-architecture 定投影。下表保留为历史快照，不再手工补写，不用于批准新名或代替迁移映射。生成替换待词源切换同批实施；守护：待补守护（§6 投影可复现，新旧对照一致；切换前）。
-
-| 老（老系统） | 新（模块.对象 / schema.table） |
-|---|---|
-| `yudao-module-fst`、`cn.iocoder.yudao.module.fst` | 按 BC 拆为 `presales.quoting`、`delivery.execution`、`receivables.wip`、`cost.timesheet`、`cost.costing`、`expense.spend`、`accounting.ledger` 等模块（GLOSSARY §1） |
-| `yudao-module-bpm`、`bpm_*`、`ACT_*` | `platform.approval` 模块、`platform_approval` schema |
-| `yudao-module-system`（用户 / 部门 / 角色 / 菜单） | `platform.identity` + `organization.workforce` 模块 |
-| `psa_time_sheet` / `psa_time_sheet_works` / `psa_time_sheet_works_end` | `cost_timesheet.timesheets` / `cost_timesheet.time_entries` / `cost_costing.labor_cost_entries` |
-| `ManHourDO`、`ManHourServiceImpl`（3,085 行） | `Timesheet` 聚合 + `TimeEntry`；用例 `SubmitTimesheet`、`ApproveTimeEntries`、`WithdrawTimesheet`…… |
-| `ApproveStatus`（0 / 1 / 2 / 3 / 4） | `ApprovalStatus.DRAFT / IN_APPROVAL / REJECTED / APPROVED / CANCELLED` |
-| `BpmProcessInstanceResult`（1 / 2 / 3 / 4） | `platform.approval.api.ApprovalOutcome.PENDING / APPROVED / REJECTED / CANCELLED` |
-| `FSTConstant.ProjectStatus.*`（字典 ID） | `delivery.execution.api.ProjectStatus.PLANNING / EXECUTING / PAUSED / COMPLETED / CLOSED / TERMINATED` |
-| `FSTConstant.OppCloseStatus.*`（雪花 ID） | `presales.quoting.api.OpportunityStatus.OPEN / WON / LOST` |
-| `FSTConstant.IsOrNo.是 / 否` | `boolean` |
-| `CommonConstants.日小时`、`FSTConstant.HUMAN_DAYS`、7.5 字面量 | `cost.timesheet` 的 `StandardWorkday` 参数（单一来源） |
-| `psa_quotation*`、`psa_cost_template*` | `presales_quoting.quotes`、`presales_quoting.quote_lines`、`presales_quoting.cost_estimate_nodes`、`presales_quoting.cost_templates` |
-| `psa_pm_project`、`psa_task_package`、`psa_budget_*` | `delivery_execution.projects`、`delivery_execution.work_packages`、`delivery_execution.project_budgets`、`delivery_execution.budget_revisions` |
-| `psa_pm_cuvalue`（产值） | `receivables_wip.progress_recognitions`（收入确认准备，原「产值」） |
-| `psa_cost_ledger`、`psa_cost_allocation*`、`psa_carry_batch*`、`psa_wip_*` | `cost_costing.cost_entries`、`cost_costing.overhead_allocations`、`cost_costing.carry_batches`、`cost_costing.cost_wip_entries` |
-| `psa_voucher*`、`psa_u8c_voucher`、`mdm_accounting_period` | `accounting_ledger.journal_vouchers`、`accounting_ledger.accounting_periods` |
-| `psa_travel_application*`、`psa_fenbeitong_*` | `expense_spend.expense_requests`、`expense_spend.expense_claims`；分贝通快照在 `platform_integration` |
-| `psa_bd_customer`、`psa_crm_*` | `presales_customer.customers`（CRM 只读快照） |
-| `psa_biget_*`（必捷巡检） | 待定：生产 180 天只调用过 11 个端点中的 2 个，先确认是否下线 |
-| `companyCode` | `legal_entity_id` / `LegalEntity` |
-| 包 `dal/mysql`、`dal/dataobject`、`service/impl`、`controller/admin` | 模块内的 `infrastructure.persistence`、`domain`、`application`、`web` |
-| 前端 `views/costopenning`、`socail` | `modules/cost-costing/pages/opening`、`modules/platform-identity/pages/social-login` |
-
-**数据迁移字段映射的生成源、生成器与产物路径：待定**，由 one-data 随各阶段迁入规格提出、one-coordinator 排定承接卡；验收按 DATA_DESIGN_CHECKLIST §14.2 与 ADR-0036。本节词源投影只供名称核对，不生成数据字段映射，这份历史名字快照不证明字段映射完整。
+（已移除：历史记录，见 git 历史）
 
 ## 7. 命名面清单：新系统中所有需要统一命名的地方（2026-10-14）
 
