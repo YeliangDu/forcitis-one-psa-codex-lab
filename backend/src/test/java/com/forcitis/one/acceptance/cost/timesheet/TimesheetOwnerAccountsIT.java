@@ -18,7 +18,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.OptionalLong;
