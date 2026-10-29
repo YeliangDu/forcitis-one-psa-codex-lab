@@ -75,8 +75,6 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/roles/",
     # ruling record: read by scripts/guards/acceptance_rulings.py in the always-run acceptance step
     "docs/modernization/rulings/",
-    # session profiles: read by the tool library's start_sheet (outside the repository, O23a)
-    "docs/modernization/sessions/",
     # scripts/ci/evidence_imports.py (light.sh) parses the production evidence tools
     "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/",
     "docs/modernization/phase1a/infra/runbooks/scripts/",
