@@ -471,7 +471,17 @@ def _release(mq, d):
         assert result == released, (name, result, log.lines[-1:])
         if released == "HOLD":
             assert "approvals do not count on lead's own pull request" in log.lines[-1], log.lines[-1]
-    # a 必改 arrives while the CI runs: the check under the merge lock stops it
+    # carried across the queue's merge of main: an approval of the pre-merge commit releases a known non-lead branch, never lead's own (#856)
+    for name, branch, ok in (("other session", "claude/one-platform-67-x", True), ("lead", "claude/one-lead-67-x", False), ("old name", "claude/one-leader-67-x", False)):
+        gh = FakeGh(); p = gh.add(67)
+        merged_head, before = p["head"], "d" * 40
+        p.update(branch=branch, reviews=[], comments=[approval(before)])
+        p["merges"][merged_head] = before
+        p["pids"].update({merged_head: "1" * 40, before: "2" * 40})
+        proc = _proc(mq, d, "r-carry-appr-" + name.replace(" ", "-"), gh)[0]
+        released, why = proc.released(67, merged_head)
+        assert released is ok, (name, why)
+        assert not ok or "carried across the merge of main" in why, why
     gh = FakeGh(); p = gh.add(61, rounds=[dict(pending=2, checks=green())])
     result, ev, log, _ = once(mq, d, "r-late", gh, 61, on_sleep=lambda s: p["reviews"].append(review(p["head"], "必改", at="2026-10-29T05:00:00Z")))
     assert result == "HOLD" and "LABEL-QUEUED" in ev and not merged(gh) and "必改" in log.lines[-1]
