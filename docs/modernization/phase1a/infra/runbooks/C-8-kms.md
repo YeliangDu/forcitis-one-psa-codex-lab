@@ -14,7 +14,7 @@
 | `a8-views-ro` | `A8_DB_PASSWORD` | 90 天 | 手工，由 A8 DBA 改口令 |
 | `legacy-inbox-ro` | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD` | 90 天 | 手工，老系统 DBA |
 | `legacy-names-ro` | `LEGACY_DB_RO_PASSWORD` | 90 天 | 手工，老系统 DBA |
-| `evidence-ro` | `EVIDENCE_DB_PASSWORD`（`/etc/forcitis-one/evidence.env`，不在 `one.env`） | 90 天 | 手工：以 RDS 高权限账号 `ALTER LOGIN [one_evidence_ro] WITH PASSWORD`，口令在服务器端生成、只经密文（同 `handoff/B-5-dba/tools/b5_evidence_run.py`）；应用不用此口令，轮换无须重启 |
+| `evidence-ro` | `EVIDENCE_DB_PASSWORD`（`/etc/forcitis-one/evidence.env`，不在 `one.env`） | 90 天 | 手工：以 RDS 高权限账号 `ALTER LOGIN [one_evidence_ro] WITH PASSWORD`，口令在服务器端生成、只经密文（同 `handoff/B-5-dba/tools/b5_evidence_run.py` 的做法；该脚本 #742 已删，原文见 `git show 7d3f2d2ea:docs/modernization/phase1a/infra/handoff/B-5-dba/tools/b5_evidence_run.py`）；应用不用此口令，轮换无须重启 |
 | `alert-webhooks` | C-7 的群机器人 Webhook | 泄露时 | 手工 |
 
 非机密配置（地址、开关、ID）留在 one.env，不进 KMS。

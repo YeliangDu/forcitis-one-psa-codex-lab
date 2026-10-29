@@ -13,13 +13,8 @@
     "branch_rule_change_alert_hours": 24
   },
   "start": {
-    "_说明": "cards_gh_timeout_seconds：工具库开工单 start_sheet 用 gh issue list 取在途卡的超时秒数（#23 删 tasks/ 后 Issues 是唯一来源；调度 10-27 裁定，建议值 3，二乙 #50）。读不到或不是正数时用 3，封顶 5 秒以免撞 10 秒钩子总闹钟；超时只在在途卡一节告警一行，不阻塞开工单。",
-    "cards_gh_timeout_seconds": 3,
-    "inject_max_kb": 8,
-    "required_read_max_kb": 15,
-    "start_sheet_p99_seconds": 2,
-    "handoff_max_kb": 2,
-    "context_remind_pct": 70
+    "_说明": "handoff_max_kb：工具库 handoff.py 写交接文件的上限；开工单 start_sheet 注入交接时也截到这个长度（#752）。",
+    "handoff_max_kb": 2
   },
   "gates": {
     "_说明": "行数上限（max_lines、runtime_max_lines、mq 与 tools_lib 的 max_lines_total、自测不多于运行代码）按卡 #736 删去（用户 intent 2026-10-28-171123）。node_record_max_age_seconds 管 clear_session 门（工具库 node_ready.py --gate，用户 intent 2026-10-27-171036）：它只读 node_ready --record 的结果，判定时间超过这个秒数即拒（二乙 #14，调度 10-27「先判后清」）。",
@@ -73,17 +68,6 @@
     "hold": "hold",
     "integration": "整合"
   },
-  "mq": {
-    "batch_max_prs": 5,
-    "batch_branch_prefix": "mq/batch-",
-    "enqueue_alert_minutes": 45,
-    "ready_to_merged_p90_minutes": 45,
-    "merged_per_hour_min": 8,
-    "merge_method": {
-      "default": "squash",
-      "integration": "merge"
-    }
-  },
   "ci": {
     "light_job_p90_minutes": 2,
     "light_job_cancel_rate_max": 0.05,
@@ -99,91 +83,9 @@
     "snapshot_backup": 7,
     "evidence": 7
   },
-  "janitor": {
-    "daily_at": "03:00"
-  },
-  "board": {
-    "interval_minutes": 10
-  },
   "decisions": {
     "current_page_max_kb": 10,
     "daily_decide_at": "20:00"
-  },
-  "memory_max_kb": 2,
-  "budget": {
-    "level_interval_minutes": 30,
-    "level_file": "~/.modernize/psa/budget/level.json",
-    "line": {
-      "from_pct": 0,
-      "to_pct": 95,
-      "end_hours_before_reset": 12
-    },
-    "ladder": {
-      "L0": {
-        "over_line_max_pts": 3
-      },
-      "L1": {
-        "over_line_min_pts": 3,
-        "over_line_max_pts": 8
-      },
-      "L2": {
-        "over_line_min_pts": 8,
-        "keep_sessions": [
-          "one-lead",
-          "one-platform"
-        ],
-        "platform_scope": "blocking_fixes_only",
-        "keep_business_line_key": "budget.l2_keep_business_line"
-      },
-      "L3": {
-        "usage_min_pct": 95
-      }
-    },
-    "l2_keep_business_line": "one-dev-par",
-    "agent_tier_gate_enabled": false,
-    "reading_validation_days": 7,
-    "reading_max_deviation_pts": 5,
-    "share_overrun_factor": 1.5,
-    "night_window": {
-      "from": "22:00",
-      "to": "08:00"
-    },
-    "level_mode": "warn",
-    "_level_mode_说明": "验证期只告警（D32）。reading_max_deviation_pts 为 null 时，budget_level 与 agent_tier_gate 一律按不开拦截处理，失败关闭。",
-    "review_days_after_enable": [
-      7,
-      14
-    ],
-    "revoke_no_l1_weeks": 2,
-    "revoke_l2_stuck_hours": 24,
-    "coordinator_model": {
-      "day": "opus",
-      "night": "sonnet",
-      "level_ge_L1": "sonnet"
-    },
-    "weekly_share": {
-      "coordinator": 0.08,
-      "design": 0.2,
-      "opus_review_security": 0.15,
-      "business": 0.35,
-      "quality_infra": 0.07,
-      "language_ops_evidence": 0.1,
-      "reserve": 0.05
-    },
-    "weekly_share_capped": [
-      "coordinator",
-      "design",
-      "quality_infra"
-    ],
-    "week_reset_anchor": "2026-10-26T09:00Z",
-    "reading_max_age_min": 360,
-    "_reading_说明": "week_reset_anchor 取自用量页周重置时间（北京时间周一 17:00），按 7 天推算；reading_max_age_min：读数源每天只采样 3～4 次，超过即视为无读数；reading_max_deviation_pts=5 为验证期暂定（本地 80%、用量页 82% 一次对照），验证满一周后复核再定。"
-  },
-  "machine": {
-    "ci_runners": 4,
-    "heavy_parallel_max": null,
-    "delegate_nice": 10,
-    "_说明": "heavy_parallel_max、delegate_nice 定稿 1.15 点名未给数，由 one-ops 与 one-platform 定；delegate_nice 调度 10-26 晚签值（b2b-plan 第 3 节第 4 条），heavy_parallel_max 推后（b2b-plan 0.1）。"
   },
   "sessions": {
     "resident_max": 4,
@@ -293,39 +195,13 @@
     },
     "_说明": "config 是会话配置清单（O23b，定稿 1.13 第 4 条、1.3 第 2 条（D09））：会话名取自 roles/ 各角色文件「过渡映射」列出的现有会话，不写第四批新名；role 为所属角色文件；model 取自盘点四 1.4 节（10-23 会话管理接口实况；定稿 1.13、1.15 无逐会话模型分配，1.13 第 4 条调度模型见 model_schedule）；effort 是目标值不是实况，出处见 config_sources（不放进 config，免得开工单当配置项显示，10b 终审必改 1），未写 effort 键表示定稿未给值、待定稿（调度 10-27 裁定 7）；one-merge、one-quality 对应「整合」「复审」是依据会话画像的推断，待用户确认；permission_mode、remote_control 取自盘点 gap-3 L02、L14（用户级设置，对全部会话生效）；外接工具未定，不写；one-coordinator 的 model_schedule 指向 budget.coordinator_model（D39）。二乙只写入与由开工单显示差异，第四批起生效。aliases 是旧会话名别名表（旧名→现名，调度 10-26 深夜定）；10-28 卡 #736 用户改显示名：one-coordinator→one-leader（lead）、one-1a-par→one-dev-par（dev），旧名进别名表：new_intent 的 --owner 与 decide_sync 先按它把旧名换成现名，再只核对 config 的键；目标不在 config 即拒。"
   },
-  "measures": [
-    {
-      "id": "budget-ladder",
-      "措施": "额度预算线加 L0～L3 梯子（D32）",
-      "指标": [
-        "每日超速量",
-        "各档停留时长",
-        "降级期间合入数",
-        "降级期间 High 数"
-      ],
-      "基线": null,
-      "_基线说明": "拦截开启前一周的读数，由 one-platform 落实读数后填",
-      "复盘日": "budget.review_days_after_enable",
-      "撤销条件": [
-        "连续 budget.revoke_no_l1_weeks 周没进过 L1",
-        "进入 L2 后 budget.revoke_l2_stuck_hours 小时仍回不到线下"
-      ]
-    }
-  ],
   "tools_lib": {
     "dir": "~/.modernize/psa/tools/one-session",
     "checks": [
-      "board",
-      "budget_level",
       "handoff",
-      "janitor",
       "node_ready",
       "ops_venv_lock",
-      "start_sheet",
-      "stop_check"
+      "start_sheet"
     ]
-  },
-  "shell": {
-    "foreground_max_seconds": 60
   }
 }

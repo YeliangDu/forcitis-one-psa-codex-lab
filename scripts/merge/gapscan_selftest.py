@@ -1,5 +1,6 @@
 """Self-test of gapscan.py, run by mq_selftest.py (`mq.py --self-test`): the reasons, the once-per-window report, gaps.md, and the scan thread of the runner."""
 import datetime
+import json
 import os
 
 
@@ -52,5 +53,5 @@ def run(mq, d):
     mq.run_scan(proc, directory, every=1800, first=60, stop=lambda: len(slept) > 3)
     assert slept[:3] == [60, 1800, 1800] and len(calls) == 3 and any("gap scan: RuntimeError: boom" in l for l in log.lines), "scans on its own clock and survives a failing scan"
     mapped = gapscan.load_prefixes()
-    profiles = {f[:-3] for f in os.listdir(os.path.join(mq.HERE, "..", "..", "docs", "modernization", "sessions")) if f.startswith("one-") and f.endswith(".md")}
+    profiles = set(json.load(open(os.path.join(mq.HERE, "..", "..", "policy.json"), encoding="utf-8"))["sessions"]["config"])  # #752: the session list is policy.json
     assert profiles <= set(mapped.values()), profiles - set(mapped.values())
