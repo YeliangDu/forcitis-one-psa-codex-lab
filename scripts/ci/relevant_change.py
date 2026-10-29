@@ -62,6 +62,8 @@ ALWAYS_RUN_READERS = (
     "scripts/session/build_decisions.py",
     "scripts/session/new_intent.py",   # run by new_intent_selftest.py
     "scripts/session/new_intent_selftest.py",
+    # light.sh sources it on every event; the docs paths there are change patterns that pick self-tests
+    "scripts/ci/light_triggers.sh",
 )
 # developer tools that name docs paths but are no CI step: they are not readers. scripts/gates/ holds the local hooks (the gates and their installer);
 # its gates_selftest.py does run in CI, but through scripts/ci/light.sh on every event, so a doc only it names needs no further tier

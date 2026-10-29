@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# light.sh「按改动触发」一节的自测（GOV-1023-FV2 gap-2）：逐路径核对 light_triggers.sh 的模式（#742 起只剩 shell 语法一项）与检查表，并在临时仓库里核对 list_changed 与字节码清理（#693）。
-# 用法：scripts/ci/light_selftest.sh   light.sh 每次都跑它；通过时末行 light_selftest: ok，否则逐条说哪里不对并退出 1。
+# light.sh「按改动触发」一节的自测（GOV-1023-FV2 gap-2）：逐路径核对 light_triggers.sh 的模式（#742 起含各脚本自测）与检查表，并在临时仓库里核对 list_changed 与字节码清理（#693）。
+# 用法：scripts/ci/light_selftest.sh   light.sh 在 scripts/ci/light* 改了时跑它；通过时末行 light_selftest: ok，否则逐条说哪里不对并退出 1。
 # 示例路径用 x/ 代替文档根目录前缀：写全了会被 relevant_change 当成读文档（模式本身不锚定前缀）。
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
@@ -11,6 +11,7 @@ tmp=$(mktemp -d "${TMPDIR:-/tmp}/light-self.XXXXXX") || exit 2
 trap 'rm -rf "$tmp"' EXIT
 changed=$tmp/changed
 bad=0
+LIGHT_ALL=""  # light.sh 在 CI 推送时带着 LIGHT_ALL=1 调本自测；逐路径核对要在它关掉时做
 no() { echo "不对：$*"; bad=1; }
 
 expect() {  # expect <路径> <应触发的模式名…>：每个模式逐个核对，应触发的触发、其余不触发
@@ -24,13 +25,52 @@ expect() {  # expect <路径> <应触发的模式名…>：每个模式逐个核
   done
 }
 base=x
-expect scripts/gates/install.sh t_shell
-expect scripts/ops/Runner_Watch.SH t_shell
-expect backend/src/test/java/com/forcitis/one/a/FooTest.java
+expect scripts/gates/install.sh t_shell t_gates
+expect tools/ops/Runner_Watch.SH t_shell t_runner_watch
+expect backend/src/test/java/com/forcitis/one/a/FooTest.java t_unit_classes
 expect x/notes.txt
 expect x/install.sh.bak
+expect x/scripts/guards/ci_git.py
+expect scripts/guards/ci_git.py t_guards t_guards_config
+expect backend/pom.xml t_guards_config
+expect scripts/ci/evidence_imports.py t_evidence_imports
+expect policy.json t_gates t_session t_mq t_evidence t_post_review
+expect .claude/settings.json t_gates
+expect .pre-commit-config.yaml t_gates
+expect scripts/merge/session_map.json t_gates t_mq
+expect .github/workflows/nightly-legacy-it.yml t_guards_config
+expect scripts/session/new_intent.py t_session
+expect tools/docs/new_adr.py t_new_adr
+expect scripts/ci/relevant_change_selftest.py t_mq
+expect scripts/merge/gapscan.py t_mq
+expect scripts/ci/light_unit_classes.py t_unit_classes
+expect scripts/ci/heavy_gate.py t_heavy_gate
+expect scripts/gates/prod_targets.json t_gates t_evidence
+expect scripts/codegen/scan_acceptance_tests.py t_scan
+expect scripts/merge/post_review.py t_mq t_post_review
+expect scripts/review/PROMPT.md t_post_review
+expect .github/workflows/ci.yml t_guards_config t_ci_steps
+expect scripts/release/runner_watch_selftest.py t_runner_watch
+expect scripts/ci/light.sh t_shell t_light
+expect scripts/release/docker_ensure.sh t_shell t_docker
+expect tools/ops/com.forcitis.docker-watch.plist t_docker
+direct() {  # direct <路径> <模式名> <0|1>：light.sh 直接用、不进检查表的模式
+  printf '%s\n' "$1" >"$changed"
+  if touches "${!2}"; then got=1; else got=0; fi
+  [ "$got" = "$3" ] || no "$1 对 $2 应为 ${3}，实为 $got"
+}
+direct backend/src/test/java/com/forcitis/one/acceptance/a/FooAT.java t_acceptance 1
+direct backend/src/test/java/com/forcitis/one/a/FooTest.java t_acceptance 0
+direct CLAUDE.md t_start_sheet 1
+direct scripts/session/build_decisions.py t_start_sheet 1
+direct x/CLAUDE.md t_start_sheet 0
 : >"$changed"
 ! touches "$t_shell" || no "有基线而没有改动时不该触发"
+LIGHT_ALL=1
+for key in $TRIGGER_KEYS; do
+  touches "${!key}" || no "LIGHT_ALL=1 时 $key 应触发"
+done
+LIGHT_ALL=""
 base=""
 for key in $TRIGGER_KEYS; do
   touches "${!key}" || no "没有基线时 $key 应触发"
@@ -48,11 +88,16 @@ for key in $TRIGGER_KEYS; do
   case "$keys_used" in *" $key "*) ;; *) no "模式 $key 在检查表里没有检查" ;; esac
 done
 
-# 仓库里的 shell（*.sh、工作流 run 段、.claude/settings.json 的挂载命令，后者由 /bin/sh 跑）：$VAR 后不得紧跟非 ASCII 字符。UTF-8 终端下 /bin/bash 3.2 会把全角标点读进变量名，set -u 即崩；写成 ${VAR}
-var_cjk=$'\\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]'
-hits=$(cd "$here/../.." && git ls-files -z '*.sh' .github/workflows .claude/settings.json | LC_ALL=C xargs -0 grep -nE "$var_cjk")
-[ -z "$hits" ] || no "\$VAR 后紧跟非 ASCII 字符，改成 \${VAR}：
-$hits"
+
+# surefire_guards：在假仓库里跑（假的类清单与 mvnw）；有一个类没出报告就失败，都出了才通过
+fake=$tmp/fake && mkdir -p "$fake/scripts/ci" "$fake/backend/target/surefire-reports"
+printf 'print("ATest,BTest")\n' >"$fake/scripts/ci/light_unit_classes.py"
+printf '#!/bin/sh\nfor c in $FAKE_REPORTS; do : > "target/surefire-reports/TEST-x.$c.xml"; done\nexit ${FAKE_EXIT:-0}\n' >"$fake/backend/mvnw" && chmod +x "$fake/backend/mvnw"
+(cd "$fake" && FAKE_REPORTS=ATest surefire_guards 2>/dev/null) && no "surefire_guards：BTest 没出报告时应失败"
+: >"$fake/backend/target/surefire-reports/TEST-x.BTest.xml"
+(cd "$fake" && FAKE_REPORTS=ATest surefire_guards 2>/dev/null) && no "surefire_guards：上次留下的 BTest 报告不能顶替这次"
+(cd "$fake" && FAKE_REPORTS="ATest BTest" FAKE_EXIT=1 surefire_guards 2>/dev/null) && no "surefire_guards：Maven 失败时应失败"
+(cd "$fake" && FAKE_REPORTS="ATest BTest" surefire_guards 2>/dev/null) || no "surefire_guards：两个类都出了报告时应通过"
 
 # list_changed：在临时仓库里核对三种来源、特殊字符文件名、git 出错时返回非零
 repo=$tmp/repo
@@ -70,6 +115,10 @@ base=nosuchref
 ! list_changed "$changed" 2>/dev/null || no "基线认不出时 list_changed 应返回非零"
 base=$(g commit-tree "$(git hash-object -w -t tree /dev/null)" -m orphan) && [ -n "$base" ] || no "建不出无共同祖先的提交"
 ! list_changed "$changed" 2>/dev/null || no "基线与 HEAD 没有共同祖先时 list_changed 应返回非零"
+
+# $VAR 后跟非 ASCII：已跟踪的 .sh 里有就失败，改成 ${VAR} 就通过
+printf 'echo "$x\xef\xbc\x8c"\n' >bad.sh && g add bad.sh && ! var_before_non_ascii 2>/dev/null || no "var_before_non_ascii 没认出 \$x 后紧跟全角逗号"
+printf 'echo "${x}\xef\xbc\x8c"\n' >bad.sh && g add bad.sh && var_before_non_ascii || no "var_before_non_ascii 把 \${x} 也判成了问题"
 
 # 字节码清理：一个没有时不报错；跑前已有的不动；新增的（含中文路径）删掉；中途 exit 也删，退出码不变
 printf '__pycache__/\n' >.gitignore && work=$tmp/w && mkdir -p "$work"
