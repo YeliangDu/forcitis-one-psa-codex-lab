@@ -23,7 +23,7 @@ t_start_sheet="$t_gates|$t_session|^CLAUDE\.md$|^docs/modernization/(RULES\.md|s
 t_acceptance='^backend/src/test/java/com/forcitis/one/acceptance/'  # 验收测试改了：跑全部免容器单测（含各守护类），light.sh 直接用
 t_docker='^scripts/release/docker_ensure|^tools/ops/(docker_watch|com\.forcitis\.docker)'
 onesql=docs/modernization/phase1a/infra/handoff/B-5-dba/tools/OneSql.java
-t_onesql='^docs/modernization/phase1a/infra/handoff/B-5-dba/tools/OneSql\.java$'  # light.sh 直接用：要 java，缺了记 SKIP
+t_onesql='^docs/modernization/phase1a/infra/handoff/B-5-dba/(tools/OneSql\.java|evidence/.*\.sql)$'  # light.sh 直接用：要 java，缺了记 SKIP
 t_light='^scripts/ci/light(_selftest|_triggers)?\.sh$'
 TRIGGER_KEYS='t_shell t_guards t_guards_config t_evidence_imports t_gates t_session t_new_adr t_mq t_unit_classes t_heavy_gate t_evidence t_scan t_post_review t_ci_steps t_runner_watch t_docker t_light'
 
