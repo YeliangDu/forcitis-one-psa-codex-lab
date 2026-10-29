@@ -458,7 +458,10 @@ def _release(mq, d):
         assert result == "HOLD" and "not released" in log.lines[-1] and not [c for c in gh.calls if c[0] in ("merge", "update-branch", "label")], (name, gh.calls)
     # lead's own pull request (branch claude/one-lead-...): an approval comment does not release it, a first-round 通过 does (#856); another branch: the approval does
     for name, branch, reviews, released in (("lead, approval only", "claude/one-lead-860-x", [], "HOLD"), ("lead, first round", "claude/one-lead-860-x", None, "MERGED"),
-                                            ("other session, approval only", "claude/one-platform-860-x", [], "MERGED")):
+                                            ("other session, approval only", "claude/one-platform-860-x", [], "MERGED"),
+                                            ("old lead name, approval only", "claude/one-leader-860-x", [], "HOLD"),
+                                            ("unnamed branch, approval only", "fix-something", [], "HOLD"),
+                                            ("no branch, approval only", "", [], "HOLD")):
         gh = FakeGh(); p = gh.add(66)
         p["branch"] = branch
         if reviews is not None:
@@ -487,6 +490,7 @@ def _release(mq, d):
         assert result == "HOLD" and not merged(gh) and "not released" in log.lines[-1], name
     # the coordinator's approval of a fix after a 必改; the docs lane needs no review
     gh = FakeGh(); p = gh.add(64); p["reviews"], p["pids"]["c" * 40] = [review("c" * 40, "必改")], "7" * 40; p["comments"] = [approval(p["head"][:9])]
+    p["branch"] = "claude/one-platform-64-x"   # approvals count only on a branch of a known session other than lead (#856)
     assert once(mq, d, "r-appr", gh, 64)[0] == "MERGED"
     for name, files, outcome in (("plain", ["docs/a.md"], "MERGED"), ("guarded", ["docs/a.md", "scripts/merge/x.md"], "HOLD"), ("unknown", None, "HOLD")):
         gh = FakeGh(); p = gh.add(65); p["reviews"], p["files"] = [], files

@@ -15,7 +15,7 @@ One card = one acceptable result, one owning session, one bc, one Issue; if entr
 ## ③ Branches and worktrees
 Enforced by: main_checkout_gate
 
-Session name S is a key of `policy.json` `sessions.config` (old names map via `sessions.aliases`); dev sessions are `one-dev-<bc>`. Worktree dir `S-<6 hex>`, branch `claude/S-<card>-<short>`, cut from the latest main, living and dying with the card; cards that change the same file run in series; git writes use absolute paths.
+Session name S is a key of `policy.json` `sessions.config`, set per worktree by its session marker (lead sets it when starting the session); dev sessions are `one-dev-<bc>`. Worktree dir `S-<6 hex>`, branch `claude/S-<card>-<short>`, cut from the latest main, living and dying with the card; cards that change the same file run in series; git writes use absolute paths.
 
 ## ④ Commits and pushes
 Enforced by: manual: everyone / every time

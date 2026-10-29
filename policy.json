@@ -36,6 +36,7 @@
       ".claude/",
       "policy.json",
       ".gitleaks.toml",
+      ".gitleaksignore",
       "tools/ops/",
       "docs/ops/deploy-gate.json",
       "docs/ops/runbooks/prod-approvals.txt"
