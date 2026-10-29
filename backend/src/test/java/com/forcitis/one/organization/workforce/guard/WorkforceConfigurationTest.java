@@ -70,4 +70,19 @@ class WorkforceConfigurationTest {
         }
         assertThat(local.getDeclaredFields()).filteredOn(f -> f.getType() == String.class).as(GuardMessage.of("org-and-personnel-sync", "WorkforcePermissions has another number of permission codes than this test checks", "add the new code to the pairs of this test and compare it with Permission.Codes, then update the count")).hasSize(6);
     }
+
+    @Test
+    @DisplayName("the permission codes the use cases ask for themselves (data scope, release, correction) equal platform.identity's Permission.Codes")
+    void useCasePermissionCodesMatchTheIdentityCatalogue() throws Exception {
+        String application = "com.forcitis.one.organization.workforce.application.";
+        for (String[] triple : new String[][] {
+                {"OrgUnitVisibility", "ORG_UNIT_READ", Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ},
+                {"ReleaseSyncRun", "SYNC_RUN_EXECUTE", Permission.Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE},
+                {"ReleaseSyncRun", "SEPARATION_HOLD_APPROVE", Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE},
+                {"CorrectLegalEntityAttribution", "PERMISSION", Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE}}) {
+            Field field = Class.forName(application + triple[0]).getDeclaredField(triple[1]);
+            field.setAccessible(true);
+            assertThat(field.get(null)).as(GuardMessage.of("org-and-personnel-sync", triple[0] + "." + triple[1] + " differs from the code in platform.identity Permission.Codes", "set the constant in organization.workforce.application." + triple[0] + " to the same string as the Permission.Codes constant")).isEqualTo(triple[2]);
+        }
+    }
 }

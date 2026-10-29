@@ -14,14 +14,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class ListOrgUnits {
     private final OrgSnapshotQueries snapshots;
+    private final OrgUnitAccess access;
 
-    ListOrgUnits(OrgSnapshotQueries snapshots) {
+    ListOrgUnits(OrgSnapshotQueries snapshots, OrgUnitAccess access) {
         this.snapshots = snapshots;
+        this.access = access;
     }
 
-    public List<OrgUnitView> execute(boolean includeRevoked, OrgUnitAccess.Visible visible) {
+    public List<OrgUnitView> execute(boolean includeRevoked) {
         List<OrgUnit> all = snapshots.findAllOrgUnits();
-        Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(all, visible);
+        Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(all, access.visibleOrgUnits(OrgUnitVisibility.ORG_UNIT_READ));
         return OrgHierarchy.parentsFirst(all.stream()
                 .filter(unit -> allowed.contains(unit.orgUnitId()))
                 .filter(unit -> includeRevoked || unit.status() != OrgUnitStatus.REVOKED)
