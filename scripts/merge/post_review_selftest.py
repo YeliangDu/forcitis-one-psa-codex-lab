@@ -423,7 +423,8 @@ def case_issue_refs_first_line():
 def case_prompt_dispatch_rules():
     """卡 #736：复审提示写明开发会话派全新子代理、普通卡 sonnet、权限安全数据范围与守护路径 opus、只跑受影响模块；复核模式已删；机读头仍能被 post_review 解析。"""
     text = (pathlib.Path(pr_mod.__file__).parents[1] / "review" / "PROMPT.md").read_text(encoding="utf-8")
-    for need in ("由开发会话（作者）自己派", "全新复审子代理", "普通卡用 sonnet", "权限、安全、数据范围类", "review.final_paths", "用 opus", "只跑受影响模块", "调度看差异放行"):
+    for need in ("The development session (the author) dispatches", "fresh review subagent", "sonnet for normal cards", "permission, security and data-scope cards",
+                 "review.final_paths", "; opus for", "Run tests only for the affected modules", "lead reviews the fix diff and releases it"):   # #822: English since 10-29
         assert need in text, need
     assert "复核模式" not in text and "逐条复核上一轮必改" not in text, "复核要求已删"
     fence = text.split("```")[1].strip().split("\n")
