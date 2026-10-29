@@ -2,7 +2,6 @@ package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.organization.workforce.domain.LegalEntity;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -27,20 +26,22 @@ final class LegalEntityHistory {
                           from organization_workforce.legal_entity_versions where legal_entity_id = :id and effective_to_date is null
                         """)
                 .param("id", id).param("code", entity.code().value()).param("name", entity.name()).param("status", entity.status().name())
-                .query((rs, n) -> new Open(rs.getDate("effective_from_date").toLocalDate(), rs.getInt("revision_number"), rs.getBoolean("same"))).list();
+                .query((rs, n) -> new Open(rs.getObject("effective_from_date", LocalDate.class), rs.getInt("revision_number"), rs.getBoolean("same"))).list();
         if (!open.isEmpty() && open.getFirst().same()) {
             return;
         }
         int revision = open.isEmpty() || !open.getFirst().from().equals(day) ? 0 : open.getFirst().revision() + 1;
         if (!open.isEmpty()) {
-            jdbc.sql("update organization_workforce.legal_entity_versions set effective_to_date = :day where legal_entity_id = :id and effective_to_date is null")
-                    .param("id", id).param("day", Date.valueOf(day)).update();
+            jdbc.sql("""
+                    update organization_workforce.legal_entity_versions set effective_to_date = :day where legal_entity_id = :id and effective_to_date is null
+                    """)
+                    .param("id", id).param("day", day).update();
         }
         jdbc.sql("""
                         insert into organization_workforce.legal_entity_versions (legal_entity_version_id, legal_entity_id, effective_from_date, revision_number, code, name, status)
                         values (:versionId, :id, :day, :revision, :code, :name, :status)
                         """)
-                .param("versionId", ids.next()).param("id", id).param("day", Date.valueOf(day)).param("revision", revision).param("code", entity.code().value())
+                .param("versionId", ids.next()).param("id", id).param("day", day).param("revision", revision).param("code", entity.code().value())
                 .param("name", entity.name()).param("status", entity.status().name()).update();
     }
 }

@@ -9,10 +9,11 @@ import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.LegalEntity;
 import com.forcitis.one.organization.workforce.domain.LegalEntityRepository;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -44,7 +45,9 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     }
 
     private Optional<LegalEntity> load(LegalEntityId legalEntityId, String lock) {
-        return jdbc.sql("select id, code, name, status, version, event_count from organization_workforce.legal_entities where id = :id" + lock)
+        return jdbc.sql("""
+                select id, code, name, status, version, event_count from organization_workforce.legal_entities where id = :id
+                """ + lock)
                 .param("id", legalEntityId.value())
                 .query((rs, n) -> LegalEntity.restore(new LegalEntityId(rs.getObject("id", UUID.class)), new LegalEntityCode(rs.getString("code")),
                         rs.getString("name"), rs.getString("status"),
@@ -83,7 +86,7 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
                     .param("eventSequence", legalEntity.eventSequenceAfterSave())
                     .param("id", legalEntity.legalEntityId().value()).param("version", legalEntity.version())
                     .param("loadedStatus", legalEntity.loadedStatus().name()).param("loadedCode", legalEntity.loadedCode().value())
-                    .param("updatedAt", Timestamp.from(clock.instant()))
+                    .param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                     .update();
         } catch (DuplicateKeyException taken) {
             throw codeTaken(legalEntity.code());

@@ -7,11 +7,12 @@ import com.forcitis.one.organization.workforce.domain.IssueKind;
 import com.forcitis.one.organization.workforce.domain.SyncDiff;
 import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
 import com.forcitis.one.organization.workforce.domain.SyncRunRecord;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -25,18 +26,24 @@ class JdbcSyncRunQueries implements SyncRunQueries {
 
     @Override
     public Optional<SyncRunRecord> find(SyncRunId syncRunId) {
-        return jdbc.sql(SyncRunRows.SELECT + " where id = :id").param("id", syncRunId.value())
+        return jdbc.sql(SyncRunRows.SELECT + """
+                 where id = :id
+                """).param("id", syncRunId.value())
                 .query((rs, n) -> SyncRunRows.record(rs)).optional();
     }
 
     @Override
     public List<SyncRunRecord> findBefore(Position before, int limit) {
         if (before == null) {
-            return jdbc.sql(SyncRunRows.SELECT + " order by started_at desc, id desc limit :limit").param("limit", limit)
+            return jdbc.sql(SyncRunRows.SELECT + """
+                     order by started_at desc, id desc limit :limit
+                    """).param("limit", limit)
                     .query((rs, n) -> SyncRunRows.record(rs)).list();
         }
-        return jdbc.sql(SyncRunRows.SELECT + " where (started_at, id) < (:startedAt, :id) order by started_at desc, id desc limit :limit")
-                .param("startedAt", Timestamp.from(before.startedAt())).param("id", before.syncRunId().value()).param("limit", limit)
+        return jdbc.sql(SyncRunRows.SELECT + """
+                 where (started_at, id) < (:startedAt, :id) order by started_at desc, id desc limit :limit
+                """)
+                .param("startedAt", OffsetDateTime.ofInstant(before.startedAt(), ZoneOffset.UTC)).param("id", before.syncRunId().value()).param("limit", limit)
                 .query((rs, n) -> SyncRunRows.record(rs)).list();
     }
 
@@ -57,19 +64,25 @@ class JdbcSyncRunQueries implements SyncRunQueries {
 
     @Override
     public Optional<Instant> findLastSucceededAt() {
-        List<Timestamp> latest = jdbc.sql("select max(finished_at) from organization_workforce.sync_runs where status = 'SUCCEEDED'")
-                .query((rs, n) -> rs.getTimestamp(1)).list();
-        return latest.stream().filter(Objects::nonNull).findFirst().map(Timestamp::toInstant);
+        List<OffsetDateTime> latest = jdbc.sql("""
+                select max(finished_at) from organization_workforce.sync_runs where status = 'SUCCEEDED'
+                """)
+                .query((rs, n) -> rs.getObject(1, OffsetDateTime.class)).list();
+        return latest.stream().filter(Objects::nonNull).findFirst().map(OffsetDateTime::toInstant);
     }
 
     @Override
     public List<SyncRunRecord> findHeld() {
-        return jdbc.sql(SyncRunRows.SELECT + " where status = 'HELD' order by started_at, id").query((rs, n) -> SyncRunRows.record(rs)).list();
+        return jdbc.sql(SyncRunRows.SELECT + """
+                 where status = 'HELD' order by started_at, id
+                """).query((rs, n) -> SyncRunRows.record(rs)).list();
     }
 
     @Override
     public int countHeld() {
-        return jdbc.sql("select count(*) from organization_workforce.sync_runs where status = 'HELD'").query(Integer.class).single();
+        return jdbc.sql("""
+                select count(*) from organization_workforce.sync_runs where status = 'HELD'
+                """).query(Integer.class).single();
     }
 
     @Override

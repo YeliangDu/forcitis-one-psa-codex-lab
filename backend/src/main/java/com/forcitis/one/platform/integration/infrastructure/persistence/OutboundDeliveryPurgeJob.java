@@ -1,10 +1,11 @@
 package com.forcitis.one.platform.integration.infrastructure.persistence;
 
 import com.forcitis.one.kernel.BusinessZone;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.Period;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +76,7 @@ class OutboundDeliveryPurgeJob {
                 .param("failedCutoff", cutoff(keep.failedKeepPeriod())).update();
     }
 
-    private Timestamp cutoff(Period period) {
-        return Timestamp.from(Instant.from(clock.instant().atZone(zone.zone()).minus(period)));
+    private OffsetDateTime cutoff(Period period) {
+        return OffsetDateTime.ofInstant(Instant.from(clock.instant().atZone(zone.zone()).minus(period)), ZoneOffset.UTC);
     }
 }

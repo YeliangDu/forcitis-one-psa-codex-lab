@@ -10,6 +10,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
@@ -27,6 +28,7 @@ import com.forcitis.one.platform.integration.domain.OutboundDeliveryRepository;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -342,9 +344,8 @@ class WecomDeliveryIT {
         queue(card("approval-task:16", ALICE));
 
         var sending = java.util.concurrent.CompletableFuture.runAsync(deliver::execute);
-        while (wecom.countRequestsMatching(postRequestedFor(urlPathEqualTo(SEND_PATH)).build()).getCount() == 0) {
-            Thread.sleep(20);
-        }
+        await("the card send reached WeCom").atMost(Duration.ofSeconds(10)).pollInterval(Duration.ofMillis(20))
+                .until(() -> wecom.countRequestsMatching(postRequestedFor(urlPathEqualTo(SEND_PATH)).build()).getCount() > 0);
         markHandled("approval-task:16", "handled by Dave");
         sending.get(10, java.util.concurrent.TimeUnit.SECONDS);
 

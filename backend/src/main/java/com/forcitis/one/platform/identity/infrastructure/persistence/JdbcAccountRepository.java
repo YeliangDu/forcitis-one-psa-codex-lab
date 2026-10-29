@@ -11,7 +11,6 @@ import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.UserAccount;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -60,7 +59,9 @@ class JdbcAccountRepository implements AccountRepository {
             return found;
         }
         UserAccount account = found.get();
-        Set<RoleId> roles = new HashSet<>(jdbc.sql("select role_id from platform_identity.account_roles where user_id = :id")
+        Set<RoleId> roles = new HashSet<>(jdbc.sql("""
+                select role_id from platform_identity.account_roles where user_id = :id
+                """)
                 .param("id", userId.value()).query(UUID.class).list().stream().map(RoleId::new).toList());
         return Optional.of(UserAccount.restore(account.userId(), account.employeeId(), account.status().name(), roles, account.version(),
                 account.eventSequence()));
@@ -68,13 +69,17 @@ class JdbcAccountRepository implements AccountRepository {
 
     @Override
     public Optional<UserId> findByEmployee(EmployeeId employeeId) {
-        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :employee").param("employee", employeeId.value())
+        return jdbc.sql("""
+                select user_id from platform_identity.user_accounts where employee_id = :employee
+                """).param("employee", employeeId.value())
                 .query(UUID.class).optional().map(UserId::new);
     }
 
     @Override
     public Optional<EmployeeId> findEmployee(UserId userId) {
-        return jdbc.sql("select employee_id from platform_identity.user_accounts where user_id = :id").param("id", userId.value())
+        return jdbc.sql("""
+                select employee_id from platform_identity.user_accounts where user_id = :id
+                """).param("id", userId.value())
                 .query(UUID.class).optional().map(EmployeeId::new);
     }
 
@@ -101,7 +106,7 @@ class JdbcAccountRepository implements AccountRepository {
                         """)
                 .param("status", account.status().name()).param("next", account.versionAfterSave())
                 .param("eventSequence", account.eventSequenceAfterSave()).param("id", account.userId().value())
-                .param("version", account.version()).param("loadedStatus", account.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .param("version", account.version()).param("loadedStatus", account.loadedStatus().name()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();
         if (updated != 1) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
@@ -114,13 +119,19 @@ class JdbcAccountRepository implements AccountRepository {
 
     private void saveRoles(UserId userId, Set<RoleId> roleIds) {
         if (roleIds.isEmpty()) {
-            jdbc.sql("delete from platform_identity.account_roles where user_id = :user").param("user", userId.value()).update();
+            jdbc.sql("""
+                    delete from platform_identity.account_roles where user_id = :user
+                    """).param("user", userId.value()).update();
             return;
         }
-        jdbc.sql("delete from platform_identity.account_roles where user_id = :user and role_id not in (:roles)")
+        jdbc.sql("""
+                delete from platform_identity.account_roles where user_id = :user and role_id not in (:roles)
+                """)
                 .param("user", userId.value()).param("roles", roleIds.stream().map(RoleId::value).toList()).update();
         for (RoleId roleId : roleIds) {
-            jdbc.sql("insert into platform_identity.account_roles (account_role_id, user_id, role_id) values (:id, :user, :role) on conflict do nothing")
+            jdbc.sql("""
+                    insert into platform_identity.account_roles (account_role_id, user_id, role_id) values (:id, :user, :role) on conflict do nothing
+                    """)
                     .param("id", ids.next()).param("user", userId.value()).param("role", roleId.value()).update();
         }
     }
@@ -134,7 +145,7 @@ class JdbcAccountRepository implements AccountRepository {
                          where user_id = :id
                         """)
                 .param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC)).param("address", stored).param("id", userId.value())
-                .param("updatedAt", Timestamp.from(clock.instant()))
+                .param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();
     }
 

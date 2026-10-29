@@ -10,6 +10,8 @@ import java.util.Set;
 
 /** Turns what the caller may see into the ids of the units that exist: a unit outside it is not there for the caller. */
 final class OrgUnitVisibility {
+    /** The permission whose org unit scope decides what can be seen (a copy of platform.identity Permission.Codes, checked by WorkforceConfigurationTest). */
+    static final String ORG_UNIT_READ = "organization.workforce:org-unit:read";
 
     private OrgUnitVisibility() {
     }

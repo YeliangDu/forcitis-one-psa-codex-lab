@@ -36,6 +36,8 @@ class JdbcExpiredSessions implements ExpiredSessions {
         if (primaryKeys.isEmpty()) {
             return 0;
         }
-        return jdbc.sql("delete from platform_identity.sessions where primary_id in (:ids)").param("ids", primaryKeys).update();
+        return jdbc.sql("""
+                delete from platform_identity.sessions where primary_id in (:ids)
+                """).param("ids", primaryKeys).update();
     }
 }

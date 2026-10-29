@@ -124,7 +124,6 @@ class OpenApiRequiredProperties implements SmartInitializingSingleton {
     }
 
     private static boolean nullable(RecordComponent component) {
-        return component.getAnnotatedType().isAnnotationPresent(Nullable.class) || component.getAccessor().isAnnotationPresent(org.springframework.lang.Nullable.class)
-                || component.getType() == Optional.class;
+        return component.getAnnotatedType().isAnnotationPresent(Nullable.class) || component.getType() == Optional.class;
     }
 }

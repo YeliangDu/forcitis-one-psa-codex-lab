@@ -14,7 +14,10 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcLegalEntityQueries implements LegalEntityQueries {
-    private static final String COLUMNS = "id, code, name, status, version";
+    private static final String SELECT = """
+            select id, code, name, status, version
+              from organization_workforce.legal_entities
+            """;
 
     private final JdbcClient jdbc;
 
@@ -24,19 +27,26 @@ class JdbcLegalEntityQueries implements LegalEntityQueries {
 
     @Override
     public List<LegalEntityRecord> findAll() {
-        return jdbc.sql("select " + COLUMNS + " from organization_workforce.legal_entities order by code")
+        return jdbc.sql(SELECT + """
+                 order by code
+                """)
                 .query((rs, n) -> row(rs)).list();
     }
 
     @Override
     public Optional<LegalEntityRecord> find(LegalEntityId legalEntityId) {
-        return jdbc.sql("select " + COLUMNS + " from organization_workforce.legal_entities where id = :id")
+        return jdbc.sql(SELECT + """
+                 where id = :id
+                """)
                 .param("id", legalEntityId.value()).query((rs, n) -> row(rs)).optional();
     }
 
     @Override
     public Optional<LegalEntityRecord> findSharedLocked(LegalEntityId legalEntityId) {
-        return jdbc.sql("select " + COLUMNS + " from organization_workforce.legal_entities where id = :id for share")
+        return jdbc.sql(SELECT + """
+                 where id = :id
+                   for share
+                """)
                 .param("id", legalEntityId.value()).query((rs, n) -> row(rs)).optional();
     }
 

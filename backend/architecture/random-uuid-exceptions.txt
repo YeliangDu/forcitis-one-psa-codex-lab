@@ -1,3 +1,2 @@
 # Classes that call UUID.randomUUID although only kernel.Uuids may (IdMakingGuardTest, ADR-0033 guard 2).
 # Format: <class>  # reason and the card that ends the exception. A line whose class no longer calls it fails the test.
-com.forcitis.one.platform.identity.application.OperationsCommands  # the correlation id of a command run is a random UUID; OPS-CID gives it a Clock and Uuids.timeOrdered

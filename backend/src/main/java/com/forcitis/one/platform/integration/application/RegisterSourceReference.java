@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.application;
 
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
@@ -28,9 +29,11 @@ public class RegisterSourceReference {
     private final RecordSourceReferenceRefusal refusals;
     private final DomainEvents events;
     private final IdGenerator ids;
+    private final CurrentUser currentUser;
 
     RegisterSourceReference(SourceReferenceRepository references, KnownLegalEntities legalEntities, RecordSourceReferenceRefusal refusals,
-                            DomainEvents events, IdGenerator ids) {
+                            DomainEvents events, IdGenerator ids, CurrentUser currentUser) {
+        this.currentUser = currentUser;
         this.references = references;
         this.legalEntities = legalEntities;
         this.refusals = refusals;
@@ -40,7 +43,8 @@ public class RegisterSourceReference {
 
     @Transactional
     public SourceReferenceView execute(ExternalSource sourceSystem, SourceObjectKind sourceObjectKind, long sourceId, UUID ownId,
-                                       LocalDate effectiveFrom, UserId registeredBy) {
+                                       LocalDate effectiveFrom) {
+        UserId registeredBy = currentUser.userId();
         try {
             SourceReference.requireRegistrationAllowed(sourceSystem, sourceObjectKind);
         } catch (DomainException refused) {

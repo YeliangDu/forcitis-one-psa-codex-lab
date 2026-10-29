@@ -9,14 +9,17 @@ import com.forcitis.one.platform.integration.domain.SourceReference;
 import com.forcitis.one.platform.integration.domain.SourceReferenceId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 final class SourceReferenceRows {
 
-    static final String COLUMNS = "source_reference_id, created_at, source_system, source_object_kind, source_id, own_id, confirmation_status, "
-            + "effective_from_date, effective_to_date, created_by, decided_by, decided_at, version, event_count";
+    static final String SELECT = """
+            select source_reference_id, created_at, source_system, source_object_kind, source_id, own_id, confirmation_status,
+                   effective_from_date, effective_to_date, created_by, decided_by, decided_at, version, event_count
+              from platform_integration.source_references
+            """;
 
     private SourceReferenceRows() {
     }
@@ -24,7 +27,7 @@ final class SourceReferenceRows {
     static SourceReference map(ResultSet rs) throws SQLException {
         UUID registeredBy = rs.getObject("created_by", UUID.class);
         UUID decidedBy = rs.getObject("decided_by", UUID.class);
-        Timestamp decidedAt = rs.getTimestamp("decided_at");
+        OffsetDateTime decidedAt = rs.getObject("decided_at", OffsetDateTime.class);
         return SourceReference.restore(new SourceReferenceId(rs.getObject("source_reference_id", UUID.class)),
                 ExternalSource.valueOf(rs.getString("source_system")), SourceObjectKind.valueOf(rs.getString("source_object_kind")),
                 new SourceObjectId(rs.getLong("source_id")), new OwnObjectId(rs.getObject("own_id", UUID.class)), rs.getObject("effective_from_date", LocalDate.class),

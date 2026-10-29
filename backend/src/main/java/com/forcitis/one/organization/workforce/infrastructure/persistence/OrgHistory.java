@@ -4,7 +4,6 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -46,7 +45,7 @@ final class OrgHistory {
                 .query((rs, n) -> open.put(rs.getObject("org_unit_id", UUID.class), new Values(rs.getObject("parent_org_unit_id", UUID.class),
                         rs.getObject("head_employee_id", UUID.class), rs.getObject("regional_receivables_manager_id", UUID.class), rs.getString("code"), rs.getString("name"), rs.getString("status"),
                         rs.getString("region_kind"), rs.getBoolean("is_delivery_unit"),
-                        new Open(rs.getDate("effective_from_date").toLocalDate(), rs.getInt("revision_number"))))).list();
+                        new Open(rs.getObject("effective_from_date", LocalDate.class), rs.getInt("revision_number"))))).list();
         for (OrgUnit u : units) {
             Values before = open.get(u.orgUnitId().value());
             UUID parent = u.parentOrgUnitId() == null ? null : u.parentOrgUnitId().value();
@@ -60,15 +59,17 @@ final class OrgHistory {
             }
             int revision = revisionFor(before == null ? null : before.open(), day);
             if (before != null) {
-                jdbc.sql("update organization_workforce.org_unit_versions set effective_to_date = :day where org_unit_id = :id and effective_to_date is null")
-                        .param("id", u.orgUnitId().value()).param("day", Date.valueOf(day)).update();
+                jdbc.sql("""
+                        update organization_workforce.org_unit_versions set effective_to_date = :day where org_unit_id = :id and effective_to_date is null
+                        """)
+                        .param("id", u.orgUnitId().value()).param("day", day).update();
             }
             jdbc.sql("""
                             insert into organization_workforce.org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, code, name,
                                    parent_org_unit_id, status, head_employee_id, regional_receivables_manager_id, region_kind, is_delivery_unit, revision_number)
                             values (:versionId, :id, :day, :code, :name, :parent, :status, :head, :manager, :category, :delivery, :revision)
                             """)
-                    .param("versionId", ids.next()).param("id", u.orgUnitId().value()).param("day", Date.valueOf(day)).param("code", u.code()).param("name", u.name())
+                    .param("versionId", ids.next()).param("id", u.orgUnitId().value()).param("day", day).param("code", u.code()).param("name", u.name())
                     .param("parent", parent, java.sql.Types.OTHER).param("status", u.status().name()).param("head", head, java.sql.Types.OTHER)
                     .param("manager", manager, java.sql.Types.OTHER).param("category", category, java.sql.Types.VARCHAR)
                     .param("delivery", u.deliveryUnit()).param("revision", revision).update();
@@ -89,7 +90,7 @@ final class OrgHistory {
                 .param("ids", assignments.stream().map(a -> a.employeeId().value()).toList())
                 .query((rs, n) -> open.put(rs.getObject("employee_id", UUID.class), new Values(new OrgUnitId(rs.getObject("org_unit_id", UUID.class)),
                         rs.getObject("position_id", UUID.class), rs.getObject("reports_to_employee_id", UUID.class),
-                        new Open(rs.getDate("effective_from_date").toLocalDate(), rs.getInt("revision_number"))))).list();
+                        new Open(rs.getObject("effective_from_date", LocalDate.class), rs.getInt("revision_number"))))).list();
         for (Assignment a : assignments) {
             Values before = open.get(a.employeeId().value());
             UUID position = a.positionId() == null ? null : a.positionId().value();
@@ -99,15 +100,17 @@ final class OrgHistory {
             }
             int revision = revisionFor(before == null ? null : before.open(), day);
             if (before != null) {
-                jdbc.sql("update organization_workforce.assignment_versions set effective_to_date = :day where employee_id = :id and effective_to_date is null")
-                        .param("id", a.employeeId().value()).param("day", Date.valueOf(day)).update();
+                jdbc.sql("""
+                        update organization_workforce.assignment_versions set effective_to_date = :day where employee_id = :id and effective_to_date is null
+                        """)
+                        .param("id", a.employeeId().value()).param("day", day).update();
             }
             jdbc.sql("""
                             insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id,
                                    position_id, reports_to_employee_id, revision_number)
                             values (:versionId, :id, :day, :orgUnit, :position, :reportsTo, :revision)
                             """)
-                    .param("versionId", ids.next()).param("id", a.employeeId().value()).param("day", Date.valueOf(day)).param("orgUnit", a.orgUnitId().value())
+                    .param("versionId", ids.next()).param("id", a.employeeId().value()).param("day", day).param("orgUnit", a.orgUnitId().value())
                     .param("position", position, java.sql.Types.OTHER).param("reportsTo", reportsTo, java.sql.Types.OTHER)
                     .param("revision", revision).update();
         }

@@ -1,10 +1,10 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.domain.OrgHierarchy;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
@@ -22,13 +22,17 @@ import org.springframework.stereotype.Service;
 public class GetOrgUnit {
     private final OrgSnapshotQueries snapshots;
     private final AuditLog audit;
+    private final OrgUnitAccess access;
+    private final CurrentUser currentUser;
 
-    GetOrgUnit(OrgSnapshotQueries snapshots, AuditLog audit) {
+    GetOrgUnit(OrgSnapshotQueries snapshots, AuditLog audit, OrgUnitAccess access, CurrentUser currentUser) {
         this.snapshots = snapshots;
         this.audit = audit;
+        this.access = access;
+        this.currentUser = currentUser;
     }
 
-    public Optional<OrgUnitDetailView> execute(UUID orgUnitId, OrgUnitAccess.Visible visible, UserId actor) {
+    public Optional<OrgUnitDetailView> execute(UUID orgUnitId) {
         OrgUnitId id = new OrgUnitId(orgUnitId);
         var all = snapshots.findAllOrgUnits();
         Map<OrgUnitId, OrgUnit> byId = new LinkedHashMap<>();
@@ -37,9 +41,9 @@ public class GetOrgUnit {
         if (unit == null) {
             return Optional.empty();
         }
-        Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(all, visible);
+        Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(all, access.visibleOrgUnits(OrgUnitVisibility.ORG_UNIT_READ));
         if (!allowed.contains(id)) {
-            audit.recordIndependently(new AuditEntry("organization.workforce.org-unit.denied", actor, null, AuditSubject.of(AuditSubjectKind.ORG_UNIT, orgUnitId),
+            audit.recordIndependently(new AuditEntry("organization.workforce.org-unit.denied", currentUser.userId(), null, AuditSubject.of(AuditSubjectKind.ORG_UNIT, orgUnitId),
                     "outside the scope of the caller"));
             return Optional.empty();
         }

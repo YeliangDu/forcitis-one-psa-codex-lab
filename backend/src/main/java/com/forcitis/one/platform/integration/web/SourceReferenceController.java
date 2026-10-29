@@ -3,7 +3,6 @@ package com.forcitis.one.platform.integration.web;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.InvalidRequestException;
 import com.forcitis.one.kernel.PageRequest;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.integration.api.ConfirmationStatus;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.SourceObjectKind;
@@ -55,25 +54,25 @@ class SourceReferenceController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('" + IntegrationPermissions.SOURCE_REFERENCE_UPDATE + "')")
-    ResponseEntity<SourceReferenceResponse> register(@RequestBody RegisterSourceReferenceRequest request, UserId caller) {
+    ResponseEntity<SourceReferenceResponse> register(@RequestBody RegisterSourceReferenceRequest request) {
         if (request.sourceSystem() == null || request.sourceObjectKind() == null || request.sourceId() == null || request.ownId() == null) {
             throw new InvalidRequestException("sourceSystem, sourceObjectKind, sourceId and ownId are required");
         }
         SourceReferenceView view = register.execute(request.sourceSystem(), request.sourceObjectKind(), sourceId(request.sourceId()), request.ownId(),
-                request.effectiveFrom(), caller);
+                request.effectiveFrom());
         return ResponseEntity.status(HttpStatus.CREATED).body(SourceReferenceResponse.of(view));
     }
 
     @PostMapping("/{sourceReferenceId}:confirm")
     @PreAuthorize("hasAuthority('" + IntegrationPermissions.SOURCE_REFERENCE_APPROVE + "')")
-    SourceReferenceResponse confirm(@PathVariable UUID sourceReferenceId, UserId caller) {
-        return SourceReferenceResponse.of(confirm.execute(sourceReferenceId, caller));
+    SourceReferenceResponse confirm(@PathVariable UUID sourceReferenceId) {
+        return SourceReferenceResponse.of(confirm.execute(sourceReferenceId));
     }
 
     @PostMapping("/{sourceReferenceId}:reject")
     @PreAuthorize("hasAuthority('" + IntegrationPermissions.SOURCE_REFERENCE_APPROVE + "')")
-    SourceReferenceResponse reject(@PathVariable UUID sourceReferenceId, UserId caller) {
-        return SourceReferenceResponse.of(reject.execute(sourceReferenceId, caller));
+    SourceReferenceResponse reject(@PathVariable UUID sourceReferenceId) {
+        return SourceReferenceResponse.of(reject.execute(sourceReferenceId));
     }
 
     private static long sourceId(String text) {

@@ -11,7 +11,6 @@ import com.forcitis.one.platform.integration.domain.OutboundDeliveryId;
 import com.forcitis.one.platform.integration.domain.OutboundDeliveryRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Clock;
 import java.time.Duration;
@@ -20,16 +19,27 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
 
-    private static final String COLUMNS = "id, subject_kind, subject_id, purpose_kind, trigger_event_id, recipient_codes, title, description, target_url, status, "
-            + "attempt_count, response_code, handled_note, handled_result, kind, target_delivery_id, correlation_id, version, event_count";
-    private static final String CARD_OF_SUBJECT = " where kind = 'CARD' and subject_kind = :kind and subject_id = :subject and purpose_kind = :purpose"
-            + " and trigger_event_id is not distinct from cast(:trigger as uuid)";
+    private static final String COLUMNS = """
+            id, subject_kind, subject_id, purpose_kind, trigger_event_id, recipient_codes, title, description, target_url, status,
+            attempt_count, response_code, handled_note, handled_result, kind, target_delivery_id, correlation_id, version, event_count
+            """;
+    private static final String SELECT = """
+            select
+            """ + COLUMNS + """
+              from platform_integration.outbound_deliveries
+            """;
+    private static final String CARD_OF_SUBJECT = """
+             where kind = 'CARD' and subject_kind = :kind and subject_id = :subject and purpose_kind = :purpose
+               and trigger_event_id is not distinct from cast(:trigger as uuid)
+            """;
 
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -63,18 +73,20 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                 .param("description", unsaved.description(), Types.VARCHAR)
                 .param("url", unsaved.targetUrl())
                 .param("status", unsaved.status().name())
-                .param("next", unsaved.nextAttemptAt() == null ? null : Timestamp.from(unsaved.nextAttemptAt()), Types.TIMESTAMP)
+                .param("next", unsaved.nextAttemptAt() == null ? null : OffsetDateTime.ofInstant(unsaved.nextAttemptAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("reason", unsaved.lastError(), Types.VARCHAR)
                 .param("kind", unsaved.kind().name())
                 .param("target", unsaved.target() == null ? null : unsaved.target().value(), Types.OTHER)
                 .param("correlation", unsaved.correlation(), Types.OTHER)
-                .param("now", Timestamp.from(now))
+                .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
                 .update() > 0;
     }
 
     @Override
     public Optional<OutboundDelivery> findById(UUID deliveryId) {
-        return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries where id = :id")
+        return jdbc.sql(SELECT + """
+                 where id = :id
+                """)
                 .param("id", deliveryId).query((rs, n) -> row(rs)).optional();
     }
 
@@ -85,11 +97,11 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
 
     @Override
     public Optional<OutboundDelivery> lockCard(DeliverySubject subject) {
-        return cardOf(subject, " for update");
+        return cardOf(subject, "for update");
     }
 
     private Optional<OutboundDelivery> cardOf(DeliverySubject subject, String lock) {
-        return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries" + CARD_OF_SUBJECT + lock)
+        return jdbc.sql(SELECT + CARD_OF_SUBJECT + lock)
                 .param("kind", subject.kind().name()).param("subject", subject.id()).param("purpose", subject.purpose().name())
                 .param("trigger", subject.triggerEvent().orElse(null), Types.OTHER).query((rs, n) -> row(rs)).optional();
     }
@@ -104,16 +116,20 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                                        order by next_attempt_at, id
                                        limit :limit
                                          for update skip locked)
-                        returning """ + " " + COLUMNS)
-                .param("leaseEnd", Timestamp.from(now.plus(lease)))
-                .param("now", Timestamp.from(now))
+                        returning
+                        """ + COLUMNS)
+                .param("leaseEnd", OffsetDateTime.ofInstant(now.plus(lease), ZoneOffset.UTC))
+                .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
                 .param("limit", limit)
                 .query((rs, n) -> row(rs)).list();
     }
 
     @Override
     public Optional<OutboundDelivery> lockById(UUID deliveryId) {
-        return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries where id = :id for update")
+        return jdbc.sql(SELECT + """
+                 where id = :id
+                   for update
+                """)
                 .param("id", deliveryId).query((rs, n) -> row(rs)).optional();
     }
 
@@ -127,11 +143,11 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                         """)
                 .param("status", claimed.status().name())
                 .param("code", claimed.responseCode(), Types.VARCHAR)
-                .param("sentAt", claimed.sentAt() == null ? null : Timestamp.from(claimed.sentAt()), Types.TIMESTAMP)
-                .param("next", claimed.nextAttemptAt() == null ? null : Timestamp.from(claimed.nextAttemptAt()), Types.TIMESTAMP)
+                .param("sentAt", claimed.sentAt() == null ? null : OffsetDateTime.ofInstant(claimed.sentAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("next", claimed.nextAttemptAt() == null ? null : OffsetDateTime.ofInstant(claimed.nextAttemptAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("error", claimed.lastError(), Types.VARCHAR)
                 .param("id", claimed.deliveryId().value()).param("loadedStatus", claimed.loadedStatus().name())
-                .param("claimedAttempt", claimed.attemptCount()).param("updatedAt", Timestamp.from(clock.instant()))
+                .param("claimedAttempt", claimed.attemptCount()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update() > 0;
     }
 
@@ -144,19 +160,23 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                         """)
                 .param("note", delivery.handledNote(), Types.VARCHAR).param("result", delivery.handledResult(), Types.VARCHAR)
                 .param("id", delivery.deliveryId().value()).param("loadedStatus", delivery.loadedStatus().name())
-                .param("attempt", delivery.attemptCount()).param("updatedAt", Timestamp.from(clock.instant()))
+                .param("attempt", delivery.attemptCount()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update() > 0;
     }
 
     @Override
     public long countPendingCreatedBefore(Instant cutoff) {
-        return jdbc.sql("select count(*) from platform_integration.outbound_deliveries where status = 'PENDING' and created_at < :cutoff")
-                .param("cutoff", Timestamp.from(cutoff)).query(Long.class).single();
+        return jdbc.sql("""
+                select count(*) from platform_integration.outbound_deliveries where status = 'PENDING' and created_at < :cutoff
+                """)
+                .param("cutoff", OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC)).query(Long.class).single();
     }
 
     @Override
     public long countDeadLetters() {
-        return jdbc.sql("select count(*) from platform_integration.outbound_deliveries where status = 'DEAD_LETTER'")
+        return jdbc.sql("""
+                select count(*) from platform_integration.outbound_deliveries where status = 'DEAD_LETTER'
+                """)
                 .query(Long.class).single();
     }
 
