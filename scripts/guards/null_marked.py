@@ -11,8 +11,10 @@ Each failure names the rule, the package and the fix:
   NM-3 backend/pom.xml does not run NullAway as an error on @NullMarked code: the Error Prone args lack -Xep:NullAway:ERROR,
        -XepOpt:NullAway:OnlyNullMarked=true or -XepOpt:NullAway:JSpecifyMode=true, or nullaway is not on the annotation-processor path
        (-XepDisableAllChecks switches off every check it does not name, so a dropped flag silently turns NullAway off), or the argument
-       holds a word outside ALLOWED_ARGS (an option such as UnannotatedSubPackages, ExcludedPaths or AllErrorsAsWarnings can switch it off),
-       or an execution or profile other than default-testCompile has its own compilerArgs (it can replace the main arguments)
+       is not exactly the words of ALLOWED_ARGS in that order (an option such as UnannotatedSubPackages, ExcludedPaths or AllErrorsAsWarnings,
+       a repeated flag, or -XepDisableAllChecks after the checks can switch NullAway off),
+       or the pom does not hold exactly one compilerArgs besides default-testCompile's, inside maven-compiler-plugin's own <configuration>
+       under <build><plugins> (one in an execution, a profile or another plugin replaces the main arguments or applies to nothing)
 
   null_marked.py              check the repository (run from its root)
   null_marked.py --self-test  a red case per rule
@@ -28,6 +30,7 @@ POM = "backend/pom.xml"
 REQUIRED_ARGS = ("-Xep:NullAway:ERROR", "-XepOpt:NullAway:OnlyNullMarked=true", "-XepOpt:NullAway:JSpecifyMode=true")
 # Every word the main Error Prone argument may hold: an allow-list, since any other -Xep flag or NullAway option can switch NullAway off or
 # narrow it (UnannotatedSubPackages, ExcludedPaths, AllErrorsAsWarnings, a second -Xep:NullAway:...); adding a check means adding it here, reviewed
+# in this order: -XepDisableAllChecks turns off what is named before it, so it must come right after the plugin
 ALLOWED_ARGS = ("-Xplugin:ErrorProne", "-XepDisableAllChecks", "-Xep:CollectionIncompatibleType:ERROR", "-Xep:EqualsIncompatibleType:ERROR") + REQUIRED_ARGS
 QUALIFIED = re.compile(r"^\s*@org\.jspecify\.annotations\.NullMarked\b", re.M)
 SIMPLE = re.compile(r"^\s*@NullMarked\b", re.M)
@@ -60,6 +63,21 @@ def listed(root):
     return [line.strip() for line in open(path, encoding="utf-8") if line.strip() and not line.startswith("#")]
 
 
+def main_holds_args(text):
+    """True when maven-compiler-plugin under <build><plugins> (outside <profiles>) has, in its own <configuration> (not an execution's),
+    the compilerArgs block holding the -Xplugin:ErrorProne argument."""
+    outside = re.sub(r"<profiles>.*?</profiles>", "", text, flags=re.S)
+    for plugin in re.findall(r"<plugin>(.*?)</plugin>", outside, flags=re.S):
+        if not re.search(r"<artifactId>\s*maven-compiler-plugin\s*</artifactId>", plugin):
+            continue
+        own = re.sub(r"<executions>.*?</executions>", "", plugin, flags=re.S)
+        config = re.search(r"<configuration>(.*?)</configuration>", own, flags=re.S)
+        args = re.search(r"<compilerArgs\b[^>]*>(.*?)</compilerArgs>", config.group(1), flags=re.S) if config else None
+        if args and "-Xplugin:ErrorProne" in args.group(1):
+            return True
+    return False
+
+
 def build_problems(root):
     """NM-3: the Error Prone argument of backend/pom.xml names NullAway at ERROR with both options, and nullaway is a processor path."""
     path = os.path.join(root, POM)
@@ -70,10 +88,16 @@ def build_problems(root):
     missing = [w for w in REQUIRED_ARGS if w not in words]
     missing += [f"no {w} (not in the allow-list ALLOWED_ARGS of scripts/guards/null_marked.py; it may switch NullAway off or narrow it)"
                 for w in words if w not in ALLOWED_ARGS]
+    if words and not missing and tuple(words) != ALLOWED_ARGS:
+        missing.append(f"the words in the order of ALLOWED_ARGS ({' '.join(ALLOWED_ARGS)}): a later -XepDisableAllChecks or a repeated flag"
+                       f" switches off what came before it")
     blocks = len(re.findall(r"<compilerArgs\b", text))
     if blocks != 1:
         missing.append(f"no compilerArgs outside the main plugin configuration and default-testCompile (found {blocks} blocks: an execution or"
                        f" profile with its own compilerArgs, e.g. default-compile combine.self=\"override\", replaces the main arguments)")
+    if not main_holds_args(text):
+        missing.append("the compilerArgs with the Error Prone argument inside maven-compiler-plugin's own <configuration> under <build><plugins>"
+                       " (not in a profile, an execution or another plugin, where it does not apply to the main compile)")
     if not re.search(r"<path>\s*<groupId>com\.uber\.nullaway</groupId>\s*<artifactId>nullaway</artifactId>", text):
         missing.append("nullaway on annotationProcessorPaths")
     if len(args) != 1:
@@ -107,8 +131,8 @@ def self_test():
         def hit():
             return sorted({p.split()[0] for p in problems(tmp)})
 
-        good_pom = ("<project><build><plugins><plugin><configuration><compilerArgs><arg>-XDcompilePolicy=simple</arg>"
-                    "<arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true"
+        good_pom = ("<project><build><plugins><plugin><artifactId>maven-compiler-plugin</artifactId><configuration><compilerArgs><arg>-XDcompilePolicy=simple</arg>"
+                    "<arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:CollectionIncompatibleType:ERROR -Xep:EqualsIncompatibleType:ERROR -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true"
                     " -XepOpt:NullAway:JSpecifyMode=true</arg></compilerArgs><annotationProcessorPaths>"
                     "<path><groupId>com.uber.nullaway</groupId><artifactId>nullaway</artifactId><version>1</version></path>"
                     "</annotationProcessorPaths></configuration></plugin></plugins></build></project>")
@@ -132,6 +156,21 @@ def self_test():
         write(POM, good_pom.replace("</project>", "<profiles><profile><id>p</id><build><plugins><plugin><configuration><compilerArgs>"
                                     "<arg>-XDx</arg></compilerArgs></configuration></plugin></plugins></build></profile></profiles></project>"))
         assert build_problems(tmp), "a profile with its own compilerArgs"
+        write(POM, good_pom.replace("-Xplugin:ErrorProne -XepDisableAllChecks -Xep:", "-Xplugin:ErrorProne -Xep:")
+              .replace("JSpecifyMode=true</arg>", "JSpecifyMode=true -XepDisableAllChecks</arg>"))
+        assert build_problems(tmp) and "in the order of ALLOWED_ARGS" in build_problems(tmp)[0], "-XepDisableAllChecks moved to the end"
+        write(POM, good_pom.replace("JSpecifyMode=true</arg>", "JSpecifyMode=true -Xep:NullAway:ERROR</arg>"))
+        assert build_problems(tmp), "a repeated flag"
+        main_args = good_pom[good_pom.index("<compilerArgs>"):good_pom.index("</compilerArgs>") + len("</compilerArgs>")]
+        moved = good_pom.replace(main_args, "").replace("</plugins>", "<plugin><artifactId>maven-resources-plugin</artifactId><configuration>"
+                                                         + main_args + "</configuration></plugin></plugins>")
+        write(POM, moved)
+        assert build_problems(tmp) and "maven-compiler-plugin's own <configuration>" in build_problems(tmp)[0], "the main block moved to another plugin"
+        moved = good_pom.replace(main_args, "").replace("</project>", "<profiles><profile><id>off</id><build><plugins><plugin>"
+                                                        "<artifactId>maven-compiler-plugin</artifactId><configuration>" + main_args
+                                                        + "</configuration></plugin></plugins></build></profile></profiles></project>")
+        write(POM, moved)
+        assert build_problems(tmp) and "maven-compiler-plugin's own <configuration>" in build_problems(tmp)[0], "the main block moved into a profile"
         write(POM, good_pom.replace("<path><groupId>com.uber.nullaway</groupId><artifactId>nullaway</artifactId><version>1</version></path>", ""))
         assert "nullaway on annotationProcessorPaths" in build_problems(tmp)[0], "the processor is gone"
         write(POM, good_pom.replace("<arg>-Xplugin:ErrorProne", "<!-- <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR --><arg>-Xplugin:ErrorProne"))
