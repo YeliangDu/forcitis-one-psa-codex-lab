@@ -2,7 +2,7 @@
 """Playbooks and the card template stay short, complete and consistent (lead decision, #742 PR 3).
 
 Each failure names the rule, the file and the fix:
-  P1 docs/rules/playbooks/<type>.md is at most 2048 bytes (a session reads it whole at start)
+  P1 docs/rules/playbooks/<type>.md is at most policy.json start.playbook_max_kb (a session reads it whole at start)
   P2 its first line is `# 剧本：<类型>` or `# Playbook: <type>`
   P3 it has a 「回报必含：」 or `Report must include:` section
   P4 every repository path it names in backticks exists
@@ -14,6 +14,7 @@ Runs on every event: a deleted or renamed file breaks P4 wherever it happens.
   check_playbooks.py              check the repository (run from its root)
   check_playbooks.py --self-test  a red case per rule
 """
+import json
 import os
 import re
 import sys
@@ -21,7 +22,6 @@ import tempfile
 
 PLAYBOOKS = "docs/rules/playbooks"
 CARD = ".github/ISSUE_TEMPLATE/card.md"
-MAX_BYTES = 2048
 SECTIONS = ("类型", "目标", "完成标准", "文件范围", "依据", "消费方", "不得做")
 PATH = re.compile(r"(?:\.?[\w-]+/)+[\w.-]*")  # a path with a folder; a bare file name (mq.py) says nothing about where
 GRANTS = ("替用户决定", "替用户拍板", "代用户决定", "代替用户决定", "自行拍板", "无须用户确认", "无需用户确认", "不必问用户", "不用问用户", "不必请示用户")
@@ -55,14 +55,19 @@ def named_paths(text):
                 yield word
 
 
+def max_bytes(root):
+    """policy.json start.playbook_max_kb in bytes (1 KB = 1024)."""
+    return int(json.load(open(os.path.join(root, "policy.json"), encoding="utf-8"))["start"]["playbook_max_kb"] * 1024)
+
+
 def playbook_problems(root, name):
     path = os.path.join(root, PLAYBOOKS, name)
     rel = f"{PLAYBOOKS}/{name}"
     raw = open(path, "rb").read()
     text = raw.decode("utf-8")
     found = []
-    if len(raw) > MAX_BYTES:
-        found.append(f"P1 {rel}: {len(raw)} bytes, over {MAX_BYTES}; cut it to the steps a session needs")
+    if len(raw) > max_bytes(root):
+        found.append(f"P1 {rel}: {len(raw)} bytes, over start.playbook_max_kb ({max_bytes(root)}); cut it to the steps a session needs")
     first = text.split("\n", 1)[0]
     if not re.fullmatch(r"# 剧本：\S.*|# Playbook: \S.*", first):
         found.append(f"P2 {rel}:1: first line is {first!r}; make it `# Playbook: <type>` (or `# 剧本：<类型>`)")
@@ -111,6 +116,8 @@ def self_test():
     with tempfile.TemporaryDirectory() as tmp:
         os.makedirs(os.path.join(tmp, PLAYBOOKS))
         os.makedirs(os.path.join(tmp, "scripts/ci"))
+        json.dump({"start": {"playbook_max_kb": 2}}, open(os.path.join(tmp, "policy.json"), "w"))
+        MAX_BYTES = max_bytes(tmp)
         open(os.path.join(tmp, "scripts/ci/light.sh"), "w").close()
         book = os.path.join(tmp, PLAYBOOKS, "ops.md")
         good = "# 剧本：运维\n1. 跑 `scripts/ci/light.sh` 与 `git worktree list`；`~/.x/y.md`、`docs/<卡>.md` 不核。\n2. 不替用户拍板。\n\n回报必含：\n- 卡号\n"
@@ -126,7 +133,10 @@ def self_test():
         assert rules() == [], problems(tmp)
         assert rules(good + "x" * MAX_BYTES) == ["P1"]
         pad = MAX_BYTES - len(good.encode("utf-8"))
-        assert rules(good + "x" * pad) == [] and rules(good + "x" * (pad + 1)) == ["P1"], "the limit is exactly 2048 bytes"
+        assert rules(good + "x" * pad) == [] and rules(good + "x" * (pad + 1)) == ["P1"], "the limit is exactly start.playbook_max_kb"
+        json.dump({"start": {"playbook_max_kb": 1}}, open(os.path.join(tmp, "policy.json"), "w"))
+        assert rules(good + "x" * (1024 - len(good.encode("utf-8")) + 1)) == ["P1"], "the limit follows policy.json"
+        json.dump({"start": {"playbook_max_kb": 2}}, open(os.path.join(tmp, "policy.json"), "w"))
         for named in ("scripts/ci/gone.py:12", "./scripts/ci/gone.py", "scripts/ci/gone.py#L3", "scripts/ci/gone.py，"):
             assert rules(good + f"3. 见 `{named}`。\n") == ["P4"], named
         assert rules(good + "3. 见 `scripts/ci/light.sh:12` 与 `./scripts/ci/light.sh`。\n") == []
