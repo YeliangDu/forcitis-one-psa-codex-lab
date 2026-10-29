@@ -70,8 +70,10 @@ rule "老系统读取登记片段缺字段或格式错（ADR-0037）" "按输出
 run "legacy-read fragments are valid" python3 -I tools/evidence/new_legacy_read.py --check
 rule "只在生产上跑的取证工具缺模块、缺名字或缺同目录文件，到生产才崩" "恢复被删的模块或文件，或改掉对它的引用"
 run "evidence tools: imports resolve" python3 -I scripts/ci/evidence_imports.py
-rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替用户拍板" "按输出的规则号改 rules/playbooks/ 或 .github/ISSUE_TEMPLATE/card.md"
+rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替用户拍板；CLAUDE.md、规则、角色、PROMPT.md、PR 模板或脚本说明点名不存在的路径（P6）" "按输出的规则号改 rules/playbooks/、.github/ISSUE_TEMPLATE/card.md 或所列文件"
 run "playbooks and the card template are well-formed" python3 -I scripts/guards/check_playbooks.py
+rule "规则或角色文件的「Enforced by」点名了不存在的脚本、作业或工具（规则看似有人执行，实则没有）" "按输出的 RE 规则号改成真实的检查名，或写 manual: <角色> / <频次>"
+run "every rule names an enforcer that exists" python3 -I scripts/guards/check_rules_enforced.py
 rule "policy.json rules/start 里有数值键没有脚本读（上限看似生效、实则无人执行）" "按输出的 PK 规则号删键，或让需要它的检查读它"
 run "every numeric policy.json rules/start key has a reader" python3 -I scripts/guards/policy_keys_read.py
 rule "智能体读的规则文件超出层上限（A 开局、B 每路径，policy.json rules.layer_*_max_kb），或 .claude/rules 不是指向带 paths: 文档的相对软链（#827），会话读不全或开局多读" "按输出的 RS 规则号删短所列文件、收窄 paths:、把内容移到按编号寻址的文档（C 层），或按提示修软链"

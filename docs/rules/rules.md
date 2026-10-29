@@ -33,7 +33,7 @@ Enforced by: mq, relevant_change; manual: lead / every PR
 After review passes the author runs `mq.py enqueue`; only the merge queue merges, and nothing is pushed after enqueueing. Docs changes go in small PRs; those relevant_change classes as docs need no review and are enqueued the same way.
 
 ## ⑧ What goes into git
-Enforced by: build_all, gitleaks
+Enforced by: scan_aggregates, build_asyncapi, gitleaks
 
 What CI or another session reads goes in; what the repo can generate, or is one-off, stays out; personal tooling lives in the tool library; secrets and personal data never go in — scan the full history before reporting. One source per kind, owned per the role files; edit sources, never generated output. Memory holds only user preferences and pointers; rules go back to the repo, and the repo wins on conflict. A standing task, persistent config or cloud resource is registered in the resource list and cleaned up after use.
 

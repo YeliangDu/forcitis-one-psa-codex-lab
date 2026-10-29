@@ -42,6 +42,7 @@ t_guards|build_catalog (self-test)|python3 scripts/guards/build_catalog.py --sel
 t_guards|term_rules (self-test)|python3 scripts/guards/term_rules.py --self-test
 t_guards|check_names (self-test)|python3 -I scripts/guards/check_names.py --self-test
 t_guards|check_playbooks (self-test)|python3 -I scripts/guards/check_playbooks.py --self-test
+t_guards|check_rules_enforced (self-test)|python3 -I scripts/guards/check_rules_enforced.py --self-test
 t_guards|policy_keys_read (self-test)|python3 -I scripts/guards/policy_keys_read.py --self-test
 t_guards|rule_sizes (self-test)|python3 -I scripts/guards/rule_sizes.py --self-test
 t_guards|file_lines (self-test)|python3 -I scripts/guards/file_lines.py --self-test
