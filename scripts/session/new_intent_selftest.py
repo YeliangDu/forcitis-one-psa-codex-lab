@@ -83,10 +83,10 @@ def main():
         assert code == 0 and "## 规则\n\nRULE-1、ABC-RULE-22\n" in open(sorted(glob.glob(os.path.join(mod, "intent", "2026-01-03-*.md")))[0], encoding="utf-8").read(), out
         code, out = run(tree, GOOD + ["--rules=rule-1"])
         assert code != 0 and "--rules" in out, "规则号格式不合应拒"
-        for owner in ("one-leader", "one-dev-par", "one-merge", "one-glossary"):
+        for owner in ("one-leader", "one-dev-org", "one-merge", "one-glossary"):
             code, out = run(tree, swap(GOOD, "owner", owner))
             assert code == 0, f"{owner} 应认：{out}"
-        for old, new in (("one-rules", "one-leader"), ("one-arch-finance", "one-architecture"), ("one-coordinator", "one-leader"), ("one-1a-par", "one-dev-par")):   # O23b、卡 #736：旧名经别名放行，片段写现名
+        for old, new in (("one-rules", "one-leader"), ("one-arch-finance", "one-architecture"), ("one-coordinator", "one-leader"), ("one-1a-par", "one-dev-org"), ("one-dev-par", "one-dev-org")):   # O23b、卡 #736：旧名经别名放行，片段写现名
             assert fragment_owner(mod, lambda: run(tree, swap(GOOD, "owner", old))) == new, f"--owner={old} 应经别名写成 {new}"
         dev = os.path.join(mod, "roles", "dev.md")
         open(dev, "w", encoding="utf-8").write(open(dev, encoding="utf-8").read().replace("## 过渡映射\n", "## 过渡映射\n- one-ghost 担任\n", 1))
