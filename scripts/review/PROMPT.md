@@ -22,7 +22,7 @@ For the dispatcher:
 - Flag defensive code that hides symptoms (swallowed exceptions, fallback defaults, needless null checks).
 - Module boundaries: no reading or writing another module's tables or internal classes; the legacy system is evidence only, its structure and names not copied.
 - Deletions: `git grep` confirms no reader is left behind.
-- Any single file over 1000 lines is a must-fix.
+- Any code file over 1000 lines is a must-fix (code files as `scripts/guards/file_lines.py` defines them; its OVER list holds the known ones, shrink only).
 - A comment or docstring that contradicts the code it describes (stale claims, paths that no longer exist) is a must-fix, filed as correctness (agents follow comments); a comment that only restates the code is a suggestion.
 - Defect cards: one minimal change plus one regression test that fails on the baseline (a compile failure counts); no regression test, or one that also passes on the baseline, is a must-fix (the test does not prove the claim).
 - Table or migration changes: the actual schema diff matches the expected diff on the card or PR, table by table and column by column; merged migrations are not edited, deleted or renamed; a new migration's version is above the highest on the baseline (while `backend/architecture/migration-baseline-open` exists this only warns and the baseline may change; once the marker is removed it blocks hard; ADR-0038, ADR-0054, `scripts/guards/migrations_immutable.py`).
