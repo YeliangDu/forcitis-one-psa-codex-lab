@@ -21,7 +21,7 @@ cd backend
 ./mvnw -o failsafe:integration-test -Dit.test='com/forcitis/one/acceptance/organization/administration/*IT'
 ```
 
-前三个类用 `TestPostgres.database(类, MIGRATED)`：共享 `postgres:18` 容器上由模板库复制出的库，模板用 `application.properties` 的 `spring.flyway.schemas` 迁移，所以实现须把 `organization_administration` 加进该清单。`AdministrationGrantsIT` 自起一个容器，执行 `docs/modernization/phase1a/infra/one_db_roles_schemas.sql`（含迁移后一节）、以迁移账号跑 Flyway，再以运行账号连接，所以实现须同改该脚本（schema 清单、`REVOKE`）。
+前三个类用 `TestPostgres.database(类, MIGRATED)`：共享 `postgres:18` 容器上由模板库复制出的库，模板用 `application.properties` 的 `spring.flyway.schemas` 迁移，所以实现须把 `organization_administration` 加进该清单。`AdministrationGrantsIT` 自起一个容器，执行 `docs/ops/one-db-roles-schemas.sql`（含迁移后一节）、以迁移账号跑 Flyway，再以运行账号连接，所以实现须同改该脚本（schema 清单、`REVOKE`）。
 
 ## 约定
 

@@ -24,16 +24,16 @@ from acceptance_reports import legacy_acceptance_paths
 
 READ_BY_BUILDS = (
     "docs/glossary/",
-    "docs/modernization/events/",
-    "docs/modernization/phase1a/SEEYON_VIEWS.sql",
-    "docs/modernization/phase1a/infra/one_db_roles_schemas.sql",
-    "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml",
+    "docs/architecture/events/",
+    "docs/data/legacy-views/seeyon-views.sql",
+    "docs/ops/one-db-roles-schemas.sql",
+    "docs/architecture/must-audit-actions.yaml",
     # R-1b P5 acceptance (EventEnvelopeContractTest, the rename ITs) read the field list and the aggregate register
-    "docs/modernization/proposals/EVENT_ANALYTICS_FIELDS.md",
-    "docs/modernization/architecture/ssot/i03-aggregates/built.yaml",
+    "docs/architecture/events/event-analytics-fields.md",
+    "docs/architecture/ssot/aggregates/built.yaml",
     # ADR37-1 guards: the credential deny list (CredentialColumnGuardTest) and the runbook that must not list a check switch (ReadOnlyCheckSwitchGuardTest)
     "docs/data/evidence/dba-handoff/credential-columns.csv",
-    "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md",
+    "docs/ops/infra-runbook.md",
     # read by scripts/release (deploy gate, release bundle); their self-tests run in ci
     "docs/ops/deploy-gate.json",
     "docs/ops/predeploy-checklist.md",
@@ -123,7 +123,7 @@ LEGACY_IT_PATHS = (
     "backend/src/test/java/com/forcitis/one/fixture/doubles/TestAccounts.java",
     "backend/src/test/resources/init-schemas.sql",
     "backend/pom.xml",
-    "docs/modernization/phase1a/SEEYON_VIEWS.sql",
+    "docs/data/legacy-views/seeyon-views.sql",
     "scripts/ci/legacy_it.sh",
     "scripts/ci/backend_verify.sh",
     "scripts/guards/acceptance_reports.py",
@@ -171,9 +171,9 @@ def files_since(before):
 SCANNED = ("backend/src", "frontend", "scripts")
 SKIPPED_DIRS = {"node_modules", "dist", ".pnpm", "target"}
 SOURCE_SUFFIXES = {".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".json", ".yaml", ".yml", ".py", ".sh", ".properties", ".xml", ".sql"}
-# a path into one of the docs/ folders (#755 layout; modernization/ holds what acceptance tests read until PR B), written whole or as
+# a path into one of the docs/ folders (#755 layout), written whole or as
 # separate string arguments ("docs", "glossary", "terms.yaml"); docs/<anything else> in a test string is a fixture or a label, not a read
-DOCS_TOP = "modernization|adr|architecture|business|data|decisions|glossary|legacy|ops|rules"
+DOCS_TOP = "adr|architecture|business|data|decisions|glossary|legacy|ops|rules"
 LITERAL = re.compile(rf"(?<![\w-])(?<![\w-]/)docs/(?:{DOCS_TOP})(?![\w.-])(?:/[\w.*{{}}-]+)*")
 SEGMENTS = re.compile(rf"""['"]docs['"]((?:\s*,\s*['"](?:{DOCS_TOP})['"])(?:\s*,\s*['"][\w.*-]+['"])*)""")
 # this script and its self-test name docs paths as data and fixtures: never readers

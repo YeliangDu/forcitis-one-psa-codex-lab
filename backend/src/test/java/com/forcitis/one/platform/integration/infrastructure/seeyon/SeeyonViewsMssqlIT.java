@@ -40,7 +40,7 @@ class SeeyonViewsMssqlIT {
     static final String SEEYON_DB = TestMssql.database(SeeyonViewsMssqlIT.class, "seeyontest").name();
     static final String READER_LOGIN = TestMssql.login(SeeyonViewsMssqlIT.class, "forcitis_reader");
 
-    static final Path SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
+    static final Path SCRIPT = Path.of("../docs/data/legacy-views/seeyon-views.sql");
     static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "-2682590999914657055", "-3267712510147735998", "00000001");
 
     static String readerPassword = "Aa1!" + UUID.randomUUID();

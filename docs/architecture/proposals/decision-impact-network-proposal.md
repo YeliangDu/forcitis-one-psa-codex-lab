@@ -46,7 +46,7 @@
 | I02 限界上下文 | D/contexts.yaml | 点号名 | 41（已建 13） | subdomain | 已有，但与 glossary/bcs.yaml（68）、bc-map.yaml 三套不同步 | contexts.yaml 为唯一；bcs.yaml 只引用 |
 | I03 聚合 | D/aggregates.yaml | `<模块>/<类>` | 15 | bc | 过时（停在 10-16，此后已建模块的新聚合未登记；调度 2026-10-21 审定） | 规划聚合 AGG-001..130 在 md 草稿，两套 ID 须对照后并成一份 |
 | I04a 命令 | 同 11 | — | — | — | 见 11 | 见 11 |
-| I04b 领域事件 | docs/modernization/events/*.yaml（8 个文件） | eventType | 59 条消息 | 发布者 | 已有（守护测试） | 不变；加 `fact`→FACT |
+| I04b 领域事件 | docs/architecture/events/*.yaml（8 个文件） | eventType | 59 条消息 | 发布者 | 已有（守护测试） | 不变；加 `fact`→FACT |
 | I05 接口契约 | openapi.json；B/external-read-registry.yaml；C/INTEGRATION_INVENTORY.yaml | — | 68 操作；19 | owner_bc | API 已有；集成清单提议稿、id 全空 | 不变；集成清单补 IE- 编号 |
 | I06 表 | B/data-access-registry.yaml | schema.table | 52 | aggregate（28 张有值） | 已有 | 不变；`aggregate` 补齐 |
 | I07 代码模块 | B/module-dependencies.txt | 模块名 | 12 行 | — | 已有 | 不变 |

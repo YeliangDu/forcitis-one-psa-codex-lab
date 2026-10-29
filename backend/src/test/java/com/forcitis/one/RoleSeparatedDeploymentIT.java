@@ -73,7 +73,7 @@ class RoleSeparatedDeploymentIT {
     }
 
     private static void prepare() throws Exception {
-        String script = Files.readString(Path.of("../docs/modernization/phase1a/infra/one_db_roles_schemas.sql"));
+        String script = Files.readString(Path.of("../docs/ops/one-db-roles-schemas.sql"));
         int afterMigrationAt = script.indexOf("-- §4b");
         try (Connection c = superuser()) {
             c.createStatement().execute(script.substring(0, afterMigrationAt));

@@ -55,7 +55,7 @@ import org.yaml.snakeyaml.Yaml;
  * the publisher and its own test.
  */
 class PersonnelCommandContractTest {
-    static final Path FRAGMENT = Path.of("../docs/modernization/events/workforce.yaml");
+    static final Path FRAGMENT = Path.of("../docs/architecture/events/workforce.yaml");
     static final String EVENTS = "com.forcitis.one.organization.workforce.events";
     static final LocalDate DAY = LocalDate.of(2026, 11, 2);
     static final PersonnelCommandId COMMAND = new PersonnelCommandId(TestIds.uuid(737));

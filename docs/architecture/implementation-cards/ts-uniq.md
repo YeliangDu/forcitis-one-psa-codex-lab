@@ -84,7 +84,7 @@
 6. X-6 取得版本 ID（**前置：numbering 小卡，待 one-coordinator 指定负责会话；`platform.numbering` 的 API 扩展不由本卡带做，该小卡合并后本卡实现 PR 才开工，见第 13 节第 1 条**）。小卡的内容是：`platform/numbering/api/IssuedNumber.java` 增版本行 ID（新类型 `NumberingRuleVersionId`，放 `platform/numbering/api/`），`application/IssueDocumentNumber.java` 填入发号时 `inForceOn` 选中的那一版；`TemplateVersion` 带 ID 还是仓储按（类型，版本号）取 ID，由实现者在 `platform.numbering` 内选改动最小的一种，**先报告再动手**。测试里直接构造 `IssuedNumber` 的两处（`platform/approval/ApprovalIntegrationSupport.java`、`cost/timesheet/application/TimesheetOwnerGateTest.java`）只补参数，不改断言（以上随小卡走，不在本卡 PR）。本卡只消费小卡提供的 `IssuedNumber` 版本 ID。
 7. 前端：`frontend/packages/core/src/error-messages.ts` 增 `COST_TIMESHEET_WORK_DATE_DUPLICATE` 一条（该表对 OpenAPI 的每个 `ErrorCode` 逐条要求，缺则类型检查失败）；`frontend/packages/api/openapi.json` 与 `src/generated/*` 为生成物，按生成脚本重新生成，不手改。
 8. 文档与目录（与代码同 PR）：
-   - `docs/modernization/events/timesheet.yaml`：`TimesheetRejected` 的描述补「驳回后填报人可改原单再提交」；改后运行 `build_asyncapi.py` 重新生成 `events/asyncapi.yaml`（`EventCatalogueTest` 校验两者一致）。
+   - `docs/architecture/events/timesheet.yaml`：`TimesheetRejected` 的描述补「驳回后填报人可改原单再提交」；改后运行 `build_asyncapi.py` 重新生成 `events/asyncapi.yaml`（`EventCatalogueTest` 校验两者一致）。
    - `docs/business/processes/timesheet-approval.md` 中两处状态流转（`REJECTED` 无出边）：由实现者核对后同步，只改与本卡流转相关的句子。
    - `backend/glossary/proposed/cost-timesheet.yaml`：新错误码的提议术语（已在起草本卡时登记，见第 11 节）。
 9. 现有测试的夹具与断言（PR 单列，附理由）：

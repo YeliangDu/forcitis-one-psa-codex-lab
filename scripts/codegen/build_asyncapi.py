@@ -25,7 +25,7 @@ import sys
 import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-HERE = ROOT / 'docs' / 'modernization' / 'events'
+HERE = ROOT / 'docs' / 'architecture' / 'events'
 TARGET = HERE / 'asyncapi.yaml'
 SYSTEM_ACTORS = ROOT / 'backend' / 'architecture' / 'system-actors.txt'
 

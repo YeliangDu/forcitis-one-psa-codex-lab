@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-REFERENCE = ROOT / "docs/modernization/phase1a/infra/one_db_roles_schemas.sql"
+REFERENCE = ROOT / "docs/ops/one-db-roles-schemas.sql"
 SQL = ROOT / "docs/ops/runbooks/sql"
 MIGRATIONS = ROOT / "backend/src/main/resources/db/migration"
 OWNER_ROLE = "one_dev_owner"

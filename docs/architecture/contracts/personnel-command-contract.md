@@ -2,7 +2,7 @@
 
 - 依据：ADR-0068（含证据附件「事件契约」）、ADR-0069、ADR-0073、ADR-0055 决定 3；表 `organization_workforce.personnel_commands` 已在基线（#632）。
 - 范围：命令 ID 类型、领域事件与负载、生效日、事件目录登记。用例、仓储、接口、作业、撤同步归 #738 及后续卡（C、D、E）。
-- 路径缩写：`M/` = `backend/src/main/java/com/forcitis/one/organization/workforce/`；`T/` = `backend/src/test/java/com/forcitis/one/organization/workforce/`；`WF` = `backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql`；`EV` = `docs/modernization/events/workforce.yaml`；`GL` = `backend/glossary/proposed/organization_workforce.yaml`。
+- 路径缩写：`M/` = `backend/src/main/java/com/forcitis/one/organization/workforce/`；`T/` = `backend/src/test/java/com/forcitis/one/organization/workforce/`；`WF` = `backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql`；`EV` = `docs/architecture/events/workforce.yaml`；`GL` = `backend/glossary/proposed/organization_workforce.yaml`。
 
 ## 1. 逐条对照
 

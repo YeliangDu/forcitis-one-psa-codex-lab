@@ -152,7 +152,7 @@ flowchart LR
 ```
 
 - **共享内核**：`kernel` 只放不含业务行为的类型与端口；`WorkContext`（关联号、行为人）、`AggregateRoot`、`StateMachine` 也在这里。
-- **发布语言**：领域事件的信封与负载约束见 `proposals/EVENT_ANALYTICS_FIELDS.md` §6，目录在 `docs/modernization/events/asyncapi.yaml`（`EventCatalogueTest` 守护）。
+- **发布语言**：领域事件的信封与负载约束见 `proposals/EVENT_ANALYTICS_FIELDS.md` §6，目录在 `docs/architecture/events/asyncapi.yaml`（`EventCatalogueTest` 守护）。
 - **防腐层**：外部系统名只出现在 `platform.integration.infrastructure.*`；workforce 直接用 `platform.integration.api` 的 `Source*` 类型，不再有镜像类型。
 - **开放主机服务**：每个模块的 `api` 包（窄接口，`ArchitectureRulesTest` 守护）。
 - **依赖倒置（共享内核端口）**：同步运行要在把人变成离职之前问「会不会让管理员全部离开」，workforce 不能依赖 identity（identity 已依赖 workforce），所以端口 `kernel.SeparationReview` 放在共享内核，由 identity 的 `AdministratorSeparationReview` 实现（ADR-0027 第 1 项、ADR-0028）；`module-dependencies.txt` 因此不增加边。
@@ -259,7 +259,7 @@ sequenceDiagram
     T-->>R: TimesheetApproved / Returned / Rejected / Cancelled
 ```
 - **一个事务只改一个聚合**：`ApprovalRequest` 聚合含本轮的任务（任务是内部实体，共用请求的版本与事件序号）；提交只改 `Timesheet`，审批由事件异步发起，结果由事件回写。唯一登记的例外是首次提交同事务取号（`architecture/multi-aggregate-exceptions.txt`），其事件的 relatedAggregates 列出 NumberingRule。订阅者放在 cost.timesheet 一侧，是因为模块依赖图里 platform.approval 不能反向依赖业务模块。D-1a-107：1a 不对外开放工时单的提交、撤回、取消，也无只读接口，入口随 Phase 2。
-- 两边只经事件协作：approval 拥有流程状态，业务模块拥有单据状态。事件由聚合记录（`EventDraft`，聚合上的事件计数就是信封的 `aggregateVersion`），应用层在同一事务里用 `EventEnvelopes` 包装后交 Modulith 发布；事件目录条目见 `docs/modernization/events/approval.yaml`、`timesheet.yaml`。
+- 两边只经事件协作：approval 拥有流程状态，业务模块拥有单据状态。事件由聚合记录（`EventDraft`，聚合上的事件计数就是信封的 `aggregateVersion`），应用层在同一事务里用 `EventEnvelopes` 包装后交 Modulith 发布；事件目录条目见 `docs/architecture/events/approval.yaml`、`timesheet.yaml`。
 - **会签**（RULE-248/273，G-2 已做）：TIMESHEET 三路都是 Flowable 多实例并行节点，集合表达式 `approverResolution` 给出去重后的审批人，每人一个任务；全部通过才过节点，任一正式驳回结束本轮（子流程内驳回即退回），加签人的驳回只作建议。
 - **节点属性**（D-1a-100，1a 不用 DMN）：走哪几路（`routingFlag`）、取不到人能否跳过（`skipWhenEmpty`）、重复审批人能否自动通过（`autoApproveRepeat`）、节点时限与升级间隔（`deadlineWorkdays` 与 `escalationWorkdays`，成对出现）都是 BPMN 节点规则元素的属性，随流程文件的部署版本生效。发起时给出的路由标记若没有任何节点声明，发起被拒绝（M-10）。「取谁」由类型化指派规则决定。
 - **重复审批人**（RULE-302）：同一审批人在同一实例的同一节点再次出现，且内容摘要未变，由系统自动通过并记审计；内容变了必须重审。**撤回 / 撤销 / 截止点**（RULE-268/269/309）：「能否撤回」的显示与执行用同一个判断（`ApprovalRequest.checkWithdraw`），截止点是 BPMN 上标了 `cutoff` 的节点，只要有已完成的任务即越过。**转交**（RULE-285）只有当前处理人能做，新处理人要在职、非发起人、不在同节点已有任务。

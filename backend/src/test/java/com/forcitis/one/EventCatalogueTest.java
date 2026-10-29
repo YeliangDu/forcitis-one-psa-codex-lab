@@ -23,11 +23,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * docs/modernization/events/asyncapi.yaml is composed from the fragments next to it (build_asyncapi.py) and must describe exactly the
+ * docs/architecture/events/asyncapi.yaml is composed from the fragments next to it (build_asyncapi.py) and must describe exactly the
  * events in the code. The rules themselves are in EventCataloguePolicy, shown to work by EventCataloguePolicyTest.
  */
 class EventCatalogueTest {
-    static final Path EVENTS = Path.of("../docs/modernization/events");
+    static final Path EVENTS = Path.of("../docs/architecture/events");
     /** Modules whose events are catalogued by their own work stream: remove the entry when its fragment is merged. */
     static final Map<String, String> PENDING_FRAGMENTS = Map.of();
 
