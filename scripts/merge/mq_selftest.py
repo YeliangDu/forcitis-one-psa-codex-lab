@@ -47,7 +47,7 @@ class FakeGh:
     def add(self, n, merge="CLEAN", labels=(), rounds=None, update_ok=True, merge_results=((True, ""),), behind=0, state="OPEN"):
         head = f"{n:040x}"
         self.prs[n] = dict(state=state, merge=merge, labels=set(labels), branch=f"b{n}", head=head, behind=behind, rounds=rounds or [dict(pending=0, checks=green())], round=0, pend=None,
-                           update_ok=update_ok, merge_results=list(merge_results), reviews=[review(head)], comments=[], pids={})
+                           update_ok=update_ok, merge_results=list(merge_results), reviews=[review(head)], comments=[], pids={}, merges={})
         return self.prs[n]
 
     def view(self, n):
@@ -80,7 +80,8 @@ class FakeGh:
         self.calls.append(("update-branch", n))
         p = self.prs[n]
         if p["update_ok"]:
-            p["merge"], p["behind"], p["head"] = "CLEAN", 0, p["head"][:-1] + "u"
+            p["merges"][p["head"][:-2] + "ee"] = p["head"]   # the merge commit of main into the head, as gh update-branch makes it
+            p["merge"], p["behind"], p["head"] = "CLEAN", 0, p["head"][:-2] + "ee"
         return p["update_ok"]
 
     def label(self, n, name, add):
@@ -144,6 +145,9 @@ class FakeGh:
 
     def comments(self, n):
         return self.prs[n]["comments"]
+
+    def main_merge_parent(self, repo, n, commit):
+        return self.prs[n]["merges"].get(commit)
 
     def patch_id(self, repo, n, commit):
         self.calls.append(("patch-id", n, commit))
@@ -244,7 +248,7 @@ def _flow(mq, d):
     gh = FakeGh(); gh.add(1, merge="BEHIND", behind=2); gh.add(2); gh.runs["b2"] = [555, 556]
     proc, q, log, _ = _proc(mq, d, "a", gh, [1, 2])
     assert proc.process(1) == "MERGED" and events(log) == ["START", "CANCEL-RUN", "CANCEL-RUN", "UPDATE", "LABEL-QUEUED", "MERGED"], events(log)
-    assert ("cancel", 555) in gh.calls and merged(gh) == [("merge", 1, True, f"{1:040x}"[:-1] + "u")] and all(LOG_LINE.match(l) for l in log.lines)
+    assert ("cancel", 555) in gh.calls and merged(gh) == [("merge", 1, True, f"{1:040x}"[:-2] + "ee")] and all(LOG_LINE.match(l) for l in log.lines)
     assert "pr=#2 run=555" in log.lines[1] and log.lines[-1].split()[3] == "run=100" and open(os.path.join(d, "a", "merge.log")).read().splitlines() == log.lines
     gh = FakeGh(); gh.add(3, behind=4)
     assert once(mq, d, "a2", gh, 3)[0] == "MERGED" and ("update-branch", 3) in gh.calls, "behind by commit count while GitHub says CLEAN: updated anyway"
@@ -337,7 +341,7 @@ def _flow(mq, d):
     real_checks, polls = gh.checks, []
     gh.checks = lambda n: (polls.append(1), len(polls) == 2 and gh.prs[32].update(behind=1), real_checks(n))[2]
     result, ev, _, _ = once(mq, d, "m3", gh, 32)
-    assert result == "MERGED" and "BEHIND-AT-MERGE" in ev and ev.count("UPDATE") == 1 and merged(gh)[0][3].endswith("u")
+    assert result == "MERGED" and "BEHIND-AT-MERGE" in ev and ev.count("UPDATE") == 1 and merged(gh)[0][3].endswith("ee")
     gh = FakeGh(); gh.add(33)
     values = iter([0] + [1] * 80)
     gh.behind_by = lambda n, head: next(values)
@@ -447,12 +451,19 @@ def _release(mq, d):
     gh = FakeGh(); p = gh.add(61, rounds=[dict(pending=2, checks=green())])
     result, ev, log, _ = once(mq, d, "r-late", gh, 61, on_sleep=lambda s: p["reviews"].append(review(p["head"], "必改", at="2026-10-29T05:00:00Z")))
     assert result == "HOLD" and "LABEL-QUEUED" in ev and not merged(gh) and "必改" in log.lines[-1]
-    # the queue's own update changed the head: the review of the old head speaks for it by patch-id; a different patch-id does not
+    # the queue's own update changed the head: the review of the old head speaks for it by patch-id, and when merging main changed the context (#760, 2026-10-29) by the merge it carries over
     gh = FakeGh(); p = gh.add(62, merge="BEHIND", behind=1)
     assert once(mq, d, "r-pid", gh, 62)[0] == "MERGED" and ("patch-id", 62, p["head"]) in gh.calls
-    gh = FakeGh(); p = gh.add(63, merge="BEHIND", behind=1); p["pids"][f"{63:040x}"[:-1] + "u"] = "6" * 40
-    result, ev, log, _ = once(mq, d, "r-pid2", gh, 63)
-    assert result == "HOLD" and "LABEL-QUEUED" in ev and not merged(gh) and "666666" in log.lines[-1]
+    gh = FakeGh(); p = gh.add(63, merge="BEHIND", behind=1); p["pids"][f"{63:040x}"[:-2] + "ee"] = "6" * 40
+    result, ev, log, _ = once(mq, d, "r-carry", gh, 63)
+    assert result == "MERGED", log.lines
+    # not carried: a commit the author added after the release (no merge of main), a merge that is not only main (git says no), a 必改 on the merged head itself
+    for name, change in (("author commit", lambda p: p["merges"].clear()), ("必改 on the merge", lambda p: p["reviews"].append(review(p["head"], "必改", at="2026-10-29T05:00:00Z")))):
+        gh = FakeGh(); p = gh.add(64, merge="BEHIND", behind=1); p["pids"][f"{64:040x}"[:-2] + "ee"] = "6" * 40
+        real_update = gh.update_branch
+        gh.update_branch = lambda n, p=p, change=change, real=real_update: (real(n), change(p))[0]
+        result, ev, log, _ = once(mq, d, "r-nocarry-" + name, gh, 64)
+        assert result == "HOLD" and not merged(gh) and "not released" in log.lines[-1], name
     # the coordinator's approval of a fix after a 必改; the docs lane needs no review
     gh = FakeGh(); p = gh.add(64); p["reviews"], p["pids"]["c" * 40] = [review("c" * 40, "必改")], "7" * 40; p["comments"] = [approval(p["head"][:9])]
     assert once(mq, d, "r-appr", gh, 64)[0] == "MERGED"
@@ -843,6 +854,12 @@ def _git(mq, d):
     assert gh.patch_id(work, 1, c1) == gh.patch_id(work, 1, c2) == gh.patch_id(work, 1, c5) != gh.patch_id(work, 1, c3), "the queue's merge of main and a rebase keep it; another change does not"
     assert gh.patch_id(work, 1, c4) not in (None, gh.patch_id(work, 1, c1)), "a change that differs only in whitespace is another change"
     assert gh.patch_id(work, 1, "f" * 40) is None
+    # a merge that only brings main in leads back to the head it merged; a plain commit, a merge with an edit of its own, a merge of something not on main do not
+    assert gh.main_merge_parent(work, 1, c2) == c1 and gh.main_merge_parent(work, 1, c1) is None
+    g(work, "checkout", "-q", "-b", "evil", c1); g(work, "merge", "-q", "--no-commit", "origin/main"); open(os.path.join(work, "x.txt"), "w").write("sneaked in\n"); g(work, "add", "x.txt"); g(work, "commit", "-q", "--no-edit")
+    g(work, "checkout", "-q", "-b", "side", "main"); side = commit(work, "s.txt", "s\n", "not on main")
+    g(work, "checkout", "-q", "-b", "notmain", c1); g(work, "merge", "-q", "--no-edit", side)
+    assert gh.main_merge_parent(work, 1, g(work, "rev-parse", "evil")) is None and gh.main_merge_parent(work, 1, g(work, "rev-parse", "notmain")) is None
     assert gh.patch_id(os.path.join(d, "nowhere"), 1, c1) is None
     g(work, "checkout", "-q", "main")
 
