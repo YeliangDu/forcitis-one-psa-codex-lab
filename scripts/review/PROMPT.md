@@ -20,6 +20,7 @@ For the dispatcher:
 - No assertion was loosened or deleted; the implementer did not change acceptance tests; hooks and CI were not bypassed.
 - Tests test behaviour, not implementation details; a claimed fix has a test that goes red.
 - Flag defensive code that hides symptoms (swallowed exceptions, fallback defaults, needless null checks).
+- Coding rules no test catches: check backend diffs against `docs/rules/coding-core.md` §B and frontend diffs against `docs/rules/coding-core-frontend.md` item by item.
 - Module boundaries: no reading or writing another module's tables or internal classes; the legacy system is evidence only, its structure and names not copied.
 - Deletions: `git grep` confirms no reader is left behind.
 - Any single file over 1000 lines is a must-fix.

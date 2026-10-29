@@ -1,0 +1,1 @@
+../../docs/rules/coding-core-frontend.md
