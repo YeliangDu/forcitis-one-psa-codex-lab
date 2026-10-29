@@ -15,7 +15,7 @@ import com.forcitis.one.platform.approval.application.TaskDetail;
 import com.forcitis.one.platform.approval.application.TransferTask;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.InvalidRequestException;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.UUID;

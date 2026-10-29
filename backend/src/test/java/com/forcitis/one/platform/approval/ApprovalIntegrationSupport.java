@@ -28,7 +28,7 @@ import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;

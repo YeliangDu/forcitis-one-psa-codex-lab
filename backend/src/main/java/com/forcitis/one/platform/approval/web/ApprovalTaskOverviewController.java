@@ -2,7 +2,7 @@ package com.forcitis.one.platform.approval.web;
 
 import com.forcitis.one.platform.approval.application.ListAllTasks;
 import com.forcitis.one.platform.approval.application.ListPage;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;

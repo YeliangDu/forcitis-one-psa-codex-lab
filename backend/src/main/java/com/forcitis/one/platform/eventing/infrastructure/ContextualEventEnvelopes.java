@@ -8,7 +8,7 @@ import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.EventEnvelopes;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;

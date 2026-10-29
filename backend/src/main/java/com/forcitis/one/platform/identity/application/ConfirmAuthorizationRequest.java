@@ -5,7 +5,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
