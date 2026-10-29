@@ -2,7 +2,9 @@
   "schema_version": 1,
   "_说明": "流程数值与枚举的唯一出处（定稿 P4、H8）。规则、角色、模板只引用键名，不写字面值。改动走普通文档 PR，正文引用 intent。约定：值为 null 表示「待定」，读取方按最保守处理（拦截类不开、上限类不放宽），例外在键旁注明；delegate.billing 用 no_cap: true 表示不设上限（D34）。枚举：budget_check.mode 与 budget.level_mode 取 warn｜enforce。",
   "rules": {
-    "_note": "Size limits of agent-read rule files, 1 KB = 1024 UTF-8 bytes (decision 2026-10-29-144628). The layer A/B keys arrive with the #810 size check that reads them; scripts/guards/policy_keys_read.py fails on a numeric key here that nothing reads."
+    "_note": "Size limits of agent-read rule files, 1 KB = 1024 UTF-8 bytes (decision 2026-10-29-144628), checked by scripts/guards/rule_sizes.py (#810). layer_a_max_kb: read at every session start (root CLAUDE.md + .claude/rules without paths: + the start sheet at start.sheet_max_kb). layer_b_max_kb: added per file read (folder CLAUDE.md files below the root + .claude/rules whose paths: match). Layer C has no limit; MEMORY.md is printed only. scripts/guards/policy_keys_read.py fails on a numeric key here that nothing reads.",
+    "layer_a_max_kb": 6,
+    "layer_b_max_kb": 7
   },
   "start": {
     "_说明": "handoff_max_kb：工具库 handoff.py 写交接的上限，开工单注入交接时也截到这个长度（#752）；sheet_max_kb：开工单 start_sheet 注入的总上限；playbook_max_kb：一份剧本的上限（check_playbooks P1）。1 KB = 1024 字节；数值键须有脚本读（policy_keys_read.py，#822）。",

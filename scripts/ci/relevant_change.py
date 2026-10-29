@@ -58,6 +58,7 @@ ALWAYS_RUN_READERS = (
     "scripts/guards/acceptance_rulings.py",
     "scripts/guards/check_playbooks.py",   # reads the playbooks; runs on every event
     "scripts/guards/policy_keys_read.py",   # reads policy.json and scripts/; runs on every event (#822)
+    "scripts/guards/rule_sizes.py",   # reads CLAUDE.md files and .claude/rules targets under docs/rules/; runs on every event (#810, #827)
     "scripts/guards/check_names.py",   # docs paths there are naming rules and the directory allowlist
     "scripts/codegen/scan_aggregates.py",
     "scripts/codegen/scan_acceptance_tests.py",   # imported by scan_aggregates.py

@@ -12,13 +12,13 @@ import com.forcitis.one.organization.workforce.api.HoldKind;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 final class SyncRunRows {
     static final String SELECT = """
@@ -37,14 +37,14 @@ final class SyncRunRows {
 
     static SyncRun aggregate(ResultSet rs) throws SQLException {
         return SyncRun.restore(new SyncRunId(rs.getObject("id", UUID.class)), SyncTrigger.valueOf(rs.getString("trigger_kind")), rs.getString("status"),
-                rs.getTimestamp("started_at").toInstant(), instant(rs, "finished_at"), stats(rs), rs.getString("held_reason"),
+                rs.getObject("started_at", OffsetDateTime.class).toInstant(), instant(rs, "finished_at"), stats(rs), rs.getString("held_reason"),
                 rs.getString("failure_reason"), user(rs, "released_by"), instant(rs, "released_at"), runId(rs, "released_by_run_id"),
                 kinds(rs, "hold_kind_codes"), kinds(rs, "released_kind_codes"), separations(rs), rs.getLong("version"), rs.getLong("event_count"));
     }
 
     static SyncRunRecord record(ResultSet rs) throws SQLException {
         return new SyncRunRecord(new SyncRunId(rs.getObject("id", UUID.class)), SyncTrigger.valueOf(rs.getString("trigger_kind")),
-                SyncRunStatus.valueOf(rs.getString("status")), rs.getTimestamp("started_at").toInstant(), instant(rs, "finished_at"),
+                SyncRunStatus.valueOf(rs.getString("status")), rs.getObject("started_at", OffsetDateTime.class).toInstant(), instant(rs, "finished_at"),
                 stats(rs), rs.getString("held_reason"), rs.getString("failure_reason"), user(rs, "released_by"),
                 instant(rs, "released_at"), runId(rs, "released_by_run_id"), kinds(rs, "hold_kind_codes"), kinds(rs, "released_kind_codes"),
                 separations(rs));
@@ -85,7 +85,7 @@ final class SyncRunRows {
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {
-        Timestamp value = rs.getTimestamp(column);
+        OffsetDateTime value = rs.getObject(column, OffsetDateTime.class);
         return value == null ? null : value.toInstant();
     }
 

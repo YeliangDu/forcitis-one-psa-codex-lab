@@ -24,42 +24,56 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
 
     @Override
     public Optional<StaffEmployee> findStaff(EmployeeId employeeId) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + " where e.id = :id").param("id", employeeId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
+        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + """
+                 where e.id = :id
+                """).param("id", employeeId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
     }
 
     @Override
     public boolean employeeExists(EmployeeId employeeId) {
-        return Boolean.TRUE.equals(jdbc.sql("select exists(select 1 from organization_workforce.employees where id = :id)")
+        return Boolean.TRUE.equals(jdbc.sql("""
+                select exists(select 1 from organization_workforce.employees where id = :id)
+                """)
                 .param("id", employeeId.value()).query(Boolean.class).single());
     }
 
     @Override
     public Optional<StaffEmployee> findStaffByWecomUser(WecomUserId wecomUserId) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + " where e.wecom_user_id = :wecom order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1")
+        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + """
+                 where e.wecom_user_id = :wecom order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1
+                """)
                 .param("wecom", wecomUserId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
     }
 
     @Override
     public Optional<StaffEmployee> findStaffByLoginName(String loginName) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + " where e.login_name = :login order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1")
+        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + """
+                 where e.login_name = :login order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1
+                """)
                 .param("login", loginName).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
     }
 
     @Override
     public List<EmployeeId> findEmployeeIdsByLoginName(String loginName) {
-        return jdbc.sql("select id from organization_workforce.employees where login_name = :login order by updated_at desc, id")
+        return jdbc.sql("""
+                select id from organization_workforce.employees where login_name = :login order by updated_at desc, id
+                """)
                 .param("login", loginName).query(UUID.class).list().stream().map(EmployeeId::new).toList();
     }
 
     @Override
     public List<EmployeeId> findEmployeeIdsByWecomUser(WecomUserId wecomUserId) {
-        return jdbc.sql("select id from organization_workforce.employees where wecom_user_id = :wecom order by updated_at desc, id")
+        return jdbc.sql("""
+                select id from organization_workforce.employees where wecom_user_id = :wecom order by updated_at desc, id
+                """)
                 .param("wecom", wecomUserId.value()).query(UUID.class).list().stream().map(EmployeeId::new).toList();
     }
 
     @Override
     public Optional<OrgUnit> findOrgUnit(OrgUnitId orgUnitId) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_ORG_UNITS + " where id = :id").param("id", orgUnitId.value()).query((rs, n) -> OrgSnapshotRows.orgUnit(rs)).optional();
+        return jdbc.sql(OrgSnapshotRows.SELECT_ORG_UNITS + """
+                 where id = :id
+                """).param("id", orgUnitId.value()).query((rs, n) -> OrgSnapshotRows.orgUnit(rs)).optional();
     }
 
     @Override

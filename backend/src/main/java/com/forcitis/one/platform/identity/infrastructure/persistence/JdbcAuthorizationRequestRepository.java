@@ -15,7 +15,6 @@ import com.forcitis.one.platform.identity.domain.RoleDraft;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Clock;
 import java.time.Instant;
@@ -52,13 +51,21 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
 
     @Override
     public Optional<AuthorizationRequest> find(AuthorizationRequestId id) {
-        return withUnits(jdbc.sql("select " + COLUMNS + " from platform_identity.authorization_requests where request_id = :id")
+        return withUnits(jdbc.sql("""
+                select
+                """ + COLUMNS + """
+                 from platform_identity.authorization_requests where request_id = :id
+                """)
                 .param("id", id.value()).query((rs, n) -> row(rs)).list()).stream().findFirst();
     }
 
     @Override
     public List<AuthorizationRequest> findPending() {
-        return withUnits(jdbc.sql("select " + COLUMNS + " from platform_identity.authorization_requests where request_status = 'PENDING' order by requested_at")
+        return withUnits(jdbc.sql("""
+                select
+                """ + COLUMNS + """
+                 from platform_identity.authorization_requests where request_status = 'PENDING' order by requested_at
+                """)
                 .query((rs, n) -> row(rs)).list());
     }
 
@@ -105,7 +112,9 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
         if (requests.isEmpty()) {
             return units;
         }
-        jdbc.sql("select request_id, org_unit_id from platform_identity.authorization_request_custom_org_units where request_id in (:requests)")
+        jdbc.sql("""
+                select request_id, org_unit_id from platform_identity.authorization_request_custom_org_units where request_id in (:requests)
+                """)
                 .param("requests", requests)
                 .query((ResultSet rs) -> {
                     units.computeIfAbsent(rs.getObject("request_id", UUID.class), id -> new HashSet<>()).add(rs.getObject("org_unit_id", UUID.class));
@@ -128,7 +137,7 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
                 .param("status", request.status().name()).param("by", request.decidedBy() == null ? null : request.decidedBy().value(), Types.OTHER)
                 .param("at", request.decidedAt() == null ? null : OffsetDateTime.ofInstant(request.decidedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("next", request.versionAfterSave()).param("eventSequence", request.eventSequenceAfterSave())
-                .param("id", request.requestId().value()).param("version", request.version()).param("loaded", request.loadedStatus().name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .param("id", request.requestId().value()).param("version", request.version()).param("loaded", request.loadedStatus().name()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();
         if (updated != 1) {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT, "the authorization request was decided by someone else");
