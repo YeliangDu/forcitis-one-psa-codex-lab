@@ -28,8 +28,6 @@ class ControllerResponseGuardTest {
     /** Handlers that answer otherwise, with the reason; an entry whose handler now complies or is gone fails the stale check. */
     static final Map<String, String> OTHER_ANSWERS = Map.of(
             "com.forcitis.one.platform.audit.web.AuditExportController.export", "a file download (byte[] with its content type)",
-            "com.forcitis.one.platform.identity.web.AuthorizationRequestController.pending",
-            "answers the application's AuthorizationRequestView; needs its own *Response (an OpenAPI change, own PR)",
             "com.forcitis.one.platform.identity.web.RoleController.create", "ResponseEntity<?>: RoleResponse or a problem per outcome",
             "com.forcitis.one.platform.identity.web.RoleController.update", "ResponseEntity<?>: RoleResponse or a problem per outcome",
             "com.forcitis.one.platform.identity.web.RoleController.replaceRoles", "ResponseEntity<?>: no content or a problem per outcome");

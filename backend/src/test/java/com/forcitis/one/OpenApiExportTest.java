@@ -105,11 +105,11 @@ class OpenApiExportTest {
 
     /** Ids of this system (R-1a) are string / uuid on the wire; the rest are named here until R-1b gives them their own ids. */
     static final Set<String> OWN_ID_FIELDS = Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
-            "AuthorizationRequestView.requestId", "AuthorizationRequestView.roleId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
+            "AuthorizationRequestResponse.requestId", "AuthorizationRequestResponse.roleId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
             "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
             "RoleResponse.roleId", "SyncRunResponse.syncRunId", "SyncRunResponse.releasedByRunId", "ProblemDetail.correlationId",
             "RegisterSourceReferenceRequest.ownId", "SourceReferenceResponse.ownId", "SourceReferenceResponse.sourceReferenceId",
-            "AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId", "AuditEntryResponse.subjectId", "AuthorizationRequestView.subjectUserId", "CurrentUserResponse.userId",
+            "AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId", "AuditEntryResponse.subjectId", "AuthorizationRequestResponse.subjectUserId", "CurrentUserResponse.userId",
             "LoginResponse.userId", "UserAccountResponse.userId", "HandledTaskResponse.actorId", "HistoryEntry.actorId", "PendingTemplate.authorId",
             "parameter userId", "parameter actorId", "parameter onBehalfOfId", "parameter subjectId",
             "parameter legalEntityId", "parameter ownId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers",
@@ -121,7 +121,7 @@ class OpenApiExportTest {
             "TaskDetailResponse.taskId", "TaskDetailResponse.instanceId", "TaskDetailResponse.documentId", "TaskOverviewResponse.taskId", "TaskOverviewResponse.documentId",
             "InboxItemResponse.documentId", "parameter taskId", "StoredFileResponse.fileId", "FileStatusResponse.fileId", "parameter fileId",
             "parameter orgUnitId", "parameter employeeId",
-            "AuthorizationRequestView.requestedBy", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy",
+            "AuthorizationRequestResponse.requestedBy", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy",
             "TaskDetailResponse.initiator", "TaskDetailResponse.assignee", "TaskOverviewResponse.assignee");
 
     /** Employee ids whose names do not end in Id or By (D-10): named in full so the guard looks at them. */
