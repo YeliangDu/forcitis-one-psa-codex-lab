@@ -1,26 +1,26 @@
-# FORCITIS one 现代化——会话须知
+# FORCITIS one modernization — session rules
 
-## 底线
+## Baseline
 
-1. 老代码、老系统、外部系统只作证据，不照搬结构与命名；复刻老行为以生产数据为证。
-2. 安全：不写、不打印密钥；不做任何生产写；明细与个人信息不进会话与仓库，只出聚合。
-3. 用户已定的照做，有异议停下报告，不替用户拍板。
-4. 钩子或 CI 挡住按提示改，不绕过；不为过测试放宽或删断言；实现方不改验收测试。
-5. 宣告完成附可复现验证；转述先核原文，标已核实或未核实。
+1. Old code, the legacy system and outside systems are evidence only: never copy their structure or names; reproduce legacy behaviour only on production evidence.
+2. Security: never write or print secrets; no production writes; row-level and personal data stay out of sessions and the repo, only aggregates.
+3. Follow what the user decided; if you disagree, stop and report. Never decide for the user.
+4. When a hook or CI blocks you, fix what it says; never bypass it, never loosen or delete an assertion to pass, never change acceptance tests you implement against.
+5. Claim done only with reproducible verification; check the source before quoting it and mark claims verified or unverified.
 
-## 交付
+## Delivery
 
-按卡的「类型」读 `docs/rules/playbooks/<类型>.md`，照它的步骤做、按它的「回报必含」回报。
+Read `docs/rules/playbooks/<type>.md` for the card's type, follow its steps and report what its 回报必含 lists.
 
-1. 只在自己的工作区与分支改，主检出不留改动。
-2. 跑受影响的测试，加 `scripts/ci/light.sh`；改了验收目录再跑全部 surefire 守护类。
-3. 按 `scripts/review/PROMPT.md` 自派复审子代理，必改修好再走。
-4. 开 PR，首行 `Closes #卡`。
-5. `python3 scripts/merge/mq.py enqueue <PR>` 自己入队。
+1. Change only your own worktree and branch; leave the main checkout clean.
+2. Run the affected tests plus `scripts/ci/light.sh`; if acceptance tests changed, run all surefire guard classes.
+3. Dispatch a fresh reviewer per `scripts/review/PROMPT.md`; fix every 必改 before moving on.
+4. Open the PR: first line `Closes #<card>` when it finishes the card, `Refs #<card>` otherwise.
+5. Enqueue it yourself: `python3 scripts/merge/mq.py enqueue <PR>`.
 
-拿不准时查：`docs/rules/rules.md`、本会话角色文件 `docs/rules/roles/<角色>.md`（会话与角色见 `policy.json` 的 `sessions`）。
+When unsure: `docs/rules/rules.md` and your role file `docs/rules/roles/<role>.md` (sessions and roles: `policy.json` `sessions`). Talk to the user in Chinese; everything agents read is English.
 
 # Compact instructions
 
-- 保留：卡号、PR 号与 head、未决项、已排除的做法及原因。
-- 不留明细：命令输出、文件全文、已解决问题的过程。
+- Keep: card numbers, PR numbers and heads, open items, approaches ruled out and why.
+- Drop: command output, file contents, how solved problems were solved.

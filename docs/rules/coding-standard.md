@@ -71,16 +71,16 @@
 **CS-2.20 ID 值对象输出用 `value()`**（新增；R-1a 复审（PR #125 正文）H-1）
 - 类型化 ID（`UserId`、`OrgUnitId`、`SyncRunId` 等 `@ValueObject` record）写到接口响应、事件负载、日志键、游标、审计明细、SQL 参数时，一律取 `id.value()`（需要文本时 `id.value().toString()` 或 `String.valueOf(id.value())`），**不得对 ID 对象本身调用 `String.valueOf(id)` / `id.toString()` / 字符串拼接**：record 的 `toString()` 是 `OrgUnitId[value=…]`，换实现（long → UUID）时会静默改变对外形状。
 - 响应 record 的 ID 字段类型优先直接用 ID 的值类型（由 OpenAPI 生成器声明格式），而不是自己转字符串。契约以 springdoc 实际输出为准，版本升级走 ADR；错误响应为 RFC 9457 problem details（用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827））。
-- 守护（待实现：G-C1）。现状：`organization/workforce/web/*Response.java` 中有 `String.valueOf(view.orgUnitId())` 一类写法，须按 R-1 一并核对。
+- 守护（待实现：G-CS1）。现状：`organization/workforce/web/*Response.java` 中有 `String.valueOf(view.orgUnitId())` 一类写法，须按 R-1 一并核对。
 
 **CS-2.21 不靠 ID 的顺序表达业务顺序**（新增；R-1a 复审（PR #125 正文）H-2）
 - UUIDv7 大致按时间递增、自增 ID 按插入递增，都**不是业务事实**：同毫秒、时钟回拨、批量导入、迁入数据都会打乱它。需要顺序时用显式序号列（`_number` / `_order`，在同一事务里取号）或「业务时间 + `id`」：业务时间决定顺序，`id` 只作并列时的稳定兜底（游标分页的排序键同理，NAMING_STANDARD §2.4a 第 2 条）。
 - 禁止：`ORDER BY id` 表达「先后」、取 `max(id)` 当「最新」、比较两个 ID 大小判断先后、测试断言依赖 ID 顺序。
-- 守护（待实现：G-C2）+ 复审。
+- 守护（待实现：G-CS2）+ 复审。
 
 **CS-2.22 值对象、record 与不可变性**（汇总 + 新增）
 - 值对象是 `@ValueObject` record，校验放在紧凑构造器中，非法值抛 `IllegalArgumentException`（只表示编程错误，对外输入先由 web 边界校验，见 CS-2.24）（§14 第 7 项；守护：G21）。
-- record 中不放可变状态：集合组件在构造器里 `List.copyOf` / `Set.copyOf` / `Map.copyOf`，不放数组和 `Date`（守护：G22；集合拷贝为新增，守护待实现：G-C3）。
+- record 中不放可变状态：集合组件在构造器里 `List.copyOf` / `Set.copyOf` / `Map.copyOf`，不放数组和 `Date`（守护：G22；集合拷贝为新增，守护待实现：G-CS3）。
 - 聚合与实体不是 record：它们有身份和生命周期，状态只经领域方法改变（CS-2.4）；字段 `private`，不提供 setter。
 - `api` / `events` 只放 interface、record、enum、类型化 ID（守护：G2、G5、G32）。
 - 常量 `static final` 且不可变；不用可变 `public static` 字段（NAMING_STANDARD §1 老代码问题）。
@@ -90,7 +90,7 @@
 - 「可能找不到」的单值查询返回 `Optional<T>`（现有用例 `Optional<OrgUnitDetailView> execute(...)` 等）；`Optional` **只用作返回值**，不作字段、参数、record 组件（响应 record 除外，见下）、集合元素。
 - 集合返回空集合，不返回 `null`；分页返回空页。
 - 响应 record 中确需「无值」的组件标 `@Nullable`（生成的契约随之声明 nullable）；统一用 `org.jspecify.annotations.Nullable`（现有 33 个文件用 JSpecify、8 个文件用 `org.springframework.lang.Nullable`（`platform.approval.web` 与 `OpenApiRequiredProperties`），后者走结构性重构批；Spring 7 本身已转 JSpecify）。
-- 守护：`NullableResponseGuardTest`（装箱类型组件须 `@Nullable`）；其余守护（待实现：G-C3）。
+- 守护：`NullableResponseGuardTest`（装箱类型组件须 `@Nullable`）；其余守护（待实现：G-CS3）。
 
 **CS-2.24 异常分类**（汇总 + 新增）
 - 业务拒绝：抛 `kernel.DomainException`（或其子类），带本模块错误码枚举（实现 `kernel.ErrorCode`，格式 `{SUBDOMAIN}_{BC}_{REASON}`）与 `ErrorKind`；`platform.web.GlobalExceptionHandler` 统一转成 ProblemDetail。链路：领域异常 → ErrorCode → ProblemDetail（§14 第 10 项；守护：G48、`ErrorCodeGlossaryTest`）。
@@ -98,7 +98,7 @@
 - 异常 message 写给日志；调用方看到的只有错误码、类别与异常自己声明可展示的扩展字段（`DomainException` 约定）。message 中不放敏感值（CS-6.2）。
 - web 边界的输入校验失败（缺字段、格式不对、取值越界）用 `kernel.InvalidRequestException`（400），在进入值对象之前拦下；值对象构造器抛的 `IllegalArgumentException` 只表示编程错误（调用方没先校验），不作为对外的业务拒绝。
 - 编程错误与不变式破坏用 `IllegalArgumentException` / `IllegalStateException` / `NullPointerException`，**不**用它们表达业务拒绝；外部系统不可用用 `kernel.ExternalSystemUnavailableException`。
-- 不吞异常：`catch` 后要么转换为上面的类型再抛，要么记录并按规则卡明确的降级处理；空 `catch` 块禁止（新增；守护待实现：G-C4）。
+- 不吞异常：`catch` 后要么转换为上面的类型再抛，要么记录并按规则卡明确的降级处理；空 `catch` 块禁止（新增；守护待实现：G-CS4）。
 
 **CS-2.25 事务边界**（汇总）：`@Transactional` 只在 application 用例上；一个用例一个聚合（CS-2.3）；事务内不调外部系统、不发 HTTP、不跑批量计算，外部调用走发件箱与可靠投递（GUIDING_PRINCIPLES §7）；业务编号在本用例事务内取号（NAMING_STANDARD §3）。守护：G11、`SingleAggregateGuardTest`；事务内外部调用靠复审。
 
@@ -112,7 +112,7 @@
 - 配置用 `@ConfigurationProperties("forcitis.<子域>.<bc>…")` 的 record 注入，不在代码里散读 `Environment`；配置键前缀由 G46 检查。
 - 不用静态可变单例、不在静态初始化里读配置或时间。
 
-**CS-2.29 领域层不引用外部系统类型**（新增）：外部来源类型（`platform.integration.api` 中的 `Source*`，如 `SourceUnitId`、`SourcePersonId`、`SourceOrgSnapshot`）只在 `platform.integration` 与消费方模块的**防腐翻译处**出现；业务模块的聚合、实体、值对象、`api`、`events` 不持有、不暴露它们，翻译后只用自有类型与自有枚举（DATA_DESIGN_CHECKLIST §14.1 D16「外部 ID 只作来源对照列……只在同步防腐层使用」；§14 第 8 项）。守护（待实现：G-C5）。现状：`organization/workforce/domain/` 的 `SourceTerms`、`SnapshotReconciler`、`EmployeeChecks` 引用 `Source*`，须由用户决定翻译处的位置（§10 Q-4）。
+**CS-2.29 领域层不引用外部系统类型**（新增）：外部来源类型（`platform.integration.api` 中的 `Source*`，如 `SourceUnitId`、`SourcePersonId`、`SourceOrgSnapshot`）只在 `platform.integration` 与消费方模块的**防腐翻译处**出现；业务模块的聚合、实体、值对象、`api`、`events` 不持有、不暴露它们，翻译后只用自有类型与自有枚举（DATA_DESIGN_CHECKLIST §14.1 D16「外部 ID 只作来源对照列……只在同步防腐层使用」；§14 第 8 项）。守护（待实现：G-CS5）。现状：`organization/workforce/domain/` 的 `SourceTerms`、`SnapshotReconciler`、`EmployeeChecks` 引用 `Source*`，须由用户决定翻译处的位置（§10 Q-4）。
 
 ## 3. SQL 与迁移
 
@@ -120,11 +120,11 @@
 |---|---|---|---|
 | CS-3.1 | schema、表、列、约束、索引、Flyway 文件命名 | NAMING_STANDARD §2.3、§2.4 | 守护：`DdlNamingTest`、`NamingSurfaceTest`（G44）、`GlossaryTest`（G37–G39） |
 | CS-3.2 | DDL 设计十条：业务唯一约束、外键与查询路径索引、空值与默认值（只许技术默认值）、删除语义、代码格式与文本长度、`text + CHECK` 枚举、`jsonb` 边界、大表分区规划、上线后迁移安全、高频更新行 | NAMING_STANDARD §2.4a；DATA_DESIGN_CHECKLIST §14.1 D18 | 守护：`DdlNamingTest` / `DataArchitectureTest`（按各条）；其余复审 |
-| CS-3.3 | **数据设计以 DATA_DESIGN_CHECKLIST §14.1 全部条目为准** | [DATA_DESIGN_CHECKLIST §14.1](data-design-checklist.md#141-数据架构检查清单用户-2026-10-14问这些表符合olapoltpdama的核心思想吗这么检查对吗后选做并把能自动化的变成守护-recommended) 全部条目 | 守护：`DataArchitectureTest`、`DdlNamingTest`、`PrimaryKeyTypeGuardTest`；其余复审 |
+| CS-3.3 | **数据设计以 DATA_DESIGN_CHECKLIST §14.1 全部条目为准** | [DATA_DESIGN_CHECKLIST §14.1](data-design-checklist.md#141-data-architecture-checklist) 全部条目 | 守护：`DataArchitectureTest`、`DdlNamingTest`、`PrimaryKeyTypeGuardTest`；其余复审 |
 | CS-3.4 | **自有表主键 UUIDv7**，由 `kernel.IdGenerator` 生成；外部 ID 只作来源对照列；外部代码在防腐层映射为自有枚举 | DATA_DESIGN_CHECKLIST §14.1 D16 | 守护：`PrimaryKeyTypeGuardTest` |
 | CS-3.5 | **迁移基线**（取代各处「Flyway 只新增」，开放期内）：首次生产部署前基线开放（标记 `backend/architecture/migration-baseline-open`），dev 可丢弃，dev 执行过不算已应用；每 schema 一份基线，表结构改动直接改基线，每个改表 PR 附「预期表结构 diff」（两个空库 `pg_dump --schema-only` 对比，opus 核对）。首次生产部署前单开 PR 删除标记（夹带迁移改动即 CI 失败），此后已合入迁移只追加。`scripts/release/deploy_gate.py` 对 dev 告警、对 prod 拦截；开放期内基线改后 dev 库按重建剧本重置 | ADR-0038（原 METHODS M3） | 守护：`scripts/guards/migrations_immutable.py`；复审（diff） |
 | CS-3.6 | SQL 只在 `infrastructure.persistence` 的 `Jdbc*Repository` 中，用 `JdbcClient` 与类型化手写映射，不用反射 ORM；只访问本模块 schema；持久化类与访问的表登记在 `architecture/data-access-registry.yaml` | NAMING_STANDARD G10、§3；GUIDING_PRINCIPLES §10；SECURITY_INVARIANTS I-10 | 守护：G10、`DataArchitectureTest`（注册表与 SQL 对照）、`WorkforceSchemaGuardTest` |
-| CS-3.7 | **参数一律绑定**（`:name` 参数），不把值拼进 SQL 文本；动态排序列、动态表名只能取自代码内的白名单枚举（新增） | 新增（SEC 类缺陷的预防） | 守护（待实现：G-C6） |
+| CS-3.7 | **参数一律绑定**（`:name` 参数），不把值拼进 SQL 文本；动态排序列、动态表名只能取自代码内的白名单枚举（新增） | 新增（SEC 类缺陷的预防） | 守护（待实现：G-CS6） |
 | CS-3.8 | SQL 不读数据库时钟；DDL 不写时钟默认值 | R-4；NAMING_STANDARD §2.4a 第 3 条 | 守护：`TimeSourceGuardTest`（SQL 字符串；迁移扫描随 R-4） |
 | CS-3.9 | **已过账事实不改不删**，审计、版本表只追加；更正只走冲销：反向事实加新过账序号，原行保留并双向关联，按正确口径重做；关账后更正落开放期间并标原期间；配置新版本、规则修正、数据迁移都不回写；关账后更正、期间重开须财务批准 | ADR-0016 第 2 条（原 METHODS M3） | 守护：G34、`DataArchitectureTest`（D8） |
 | CS-3.10 | 列表查询只用索引覆盖的游标分页（`cursor` + `limit`，默认 50、上限 200），不内存分页、不全表扫描；排序键以 `id` 兜底（CS-2.21） | GUIDING_PRINCIPLES §7；NAMING_STANDARD §2.4a 第 2 条；NEXT_BATCH_PLAN K-3 | 复审（EXPLAIN 抽查） |
@@ -136,12 +136,12 @@
 
 | # | 规则 | 出处 | 检查 |
 |---|---|---|---|
-| CS-4.1 | **严格类型**：`strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`verbatimModuleSyntax`；禁 `any`；不用非空断言 `!` 绕过可空（新增） | `frontend/tsconfig.base.json`；NAMING_STANDARD F7；GUIDING_PRINCIPLES §10 | 守护：`pnpm typecheck`、F7；非空断言（待实现：G-C7） |
+| CS-4.1 | **严格类型**：`strict`、`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`verbatimModuleSyntax`；禁 `any`；不用非空断言 `!` 绕过可空（新增） | `frontend/tsconfig.base.json`；NAMING_STANDARD F7；GUIDING_PRINCIPLES §10 | 守护：`pnpm typecheck`、F7；非空断言（待实现：G-CS7） |
 | CS-4.2 | **接口调用只经生成的客户端**：禁 axios、`fetch`、`XMLHttpRequest`、手写 `/api` URL；只有 `modules/<m>/api` 能 import `@forcitis/api`；类型由 OpenAPI 生成，不手写接口类型 | NAMING_STANDARD §2.3、F5、F10 | 守护：F5、F10、`pnpm check:generated` |
 | CS-4.3 | 模块边界：`app → modules(index) → shared` 单向；跨模块只经 `modules/<m>/index.ts`；禁 `export *`；`model/` 与 `shared/lib` 为纯逻辑 | F1–F4、F9、F12、F13 | 守护：ESLint、`pnpm check:structure`（F13） |
 | CS-4.4 | 命名：ASCII 标识符、文件 kebab-case、组件 PascalCase、hook `useXxx` 且在 `hooks/` | F6、F8 | 守护：ESLint、`pnpm check:structure` |
 | CS-4.5 | **界面文字取词表**：业务名词用 `docs/glossary/terms.yaml` 的 `zh`，同一概念全站同一叫法；非业务词登记在 `frontend/scripts/copy-allow-list.yaml` | NAMING_STANDARD §7 第 16 项；CS-1.4 | 守护：`pnpm check:copy` |
-| CS-4.6 | **错误提示**：只经 `@forcitis/core` 的 `describeFailure`；每个 `ErrorCode` 在 `error-messages.ts` 中决定文案或明确为 `null`（用 HTTP 状态的通用文案）；页面不直接显示服务端 `detail`、异常 message 或英文；不吞错误，失败要让用户看到可操作的提示 | `packages/core/src/failure.ts`、`error-messages.ts`（现有写法）；CS-1.7 | 守护：`pnpm typecheck`（`Record<ErrorCode, …>` 穷尽）；页面直接读 message（待实现：G-C7） |
+| CS-4.6 | **错误提示**：只经 `@forcitis/core` 的 `describeFailure`；每个 `ErrorCode` 在 `error-messages.ts` 中决定文案或明确为 `null`（用 HTTP 状态的通用文案）；页面不直接显示服务端 `detail`、异常 message 或英文；不吞错误，失败要让用户看到可操作的提示 | `packages/core/src/failure.ts`、`error-messages.ts`（现有写法）；CS-1.7 | 守护：`pnpm typecheck`（`Record<ErrorCode, …>` 穷尽）；页面直接读 message（待实现：G-CS7） |
 | CS-4.7 | 设计系统：业务模块不直接 import antd 或 Taro 原语；禁内联样式与硬编码颜色；令牌只在 `packages/design-system` 读取 | F14；ADR-0013 | 守护：ESLint、stylelint |
 | CS-4.8 | 安全：禁 `dangerouslySetInnerHTML`；外部链接经 `safe-url` | F11；SEC-008 | 守护：F11；`safe-url` 靠复审 |
 | CS-4.9 | 不用 `console.log`，用共用 logger | `frontend/eslint.config.js` | 守护：ESLint |
@@ -158,7 +158,7 @@
 | CS-5.3 | **验收测试与实现分开**：测试代理先写并提交验收测试，实现代理只让它转绿、不得修改；目录约定与提交 trailer 见出处 | `roles/design.md` 职责「独立验收测试」、`backend/src/test/java/com/forcitis/one/acceptance/README.md` | 守护：`scripts/guards/acceptance_guard.py`、`acceptance_rulings.py`（裁定尾注须对应已登记裁定）、`acceptance_reports.py` |
 | CS-5.4 | **不为通过测试而放宽或删除断言**；确需改的，在报告与 PR 中单列理由 | 本文件（原 METHODS M5） | PR 模板；复审 |
 | CS-5.5 | **测试只断言本模块的效果** | 本文件（原 METHODS M5）；DATA_DESIGN_CHECKLIST §14 G-T3 | 守护：`TestIsolationGuardTest` |
-| CS-5.6 | **确定性等待，不写宽泛的 `never()`**：异步用带上限的确定性等待；另：测试不用 `Thread.sleep` 等时间（新增，现有 6 处） | 本文件（原 METHODS M5）；`Thread.sleep` 一句为本文件新增 | 守护（待实现：G-C8） |
+| CS-5.6 | **确定性等待，不写宽泛的 `never()`**：异步用带上限的确定性等待；另：测试不用 `Thread.sleep` 等时间（新增，现有 6 处） | 本文件（原 METHODS M5）；`Thread.sleep` 一句为本文件新增 | 守护（待实现：G-CS8） |
 | CS-5.7 | **测试不写密钥字面量** | 本文件（原 METHODS M5） | 守护：gitleaks（pre-commit、CI） |
 | CS-5.8 | 测试用固定 `Clock` 与固定 `IdGenerator`，不依赖运行时刻与 ID 顺序（CS-2.21、CS-2.26） | 新增（由 CS-2.21、CS-2.26 推出） | 复审 |
 | CS-5.9 | **新守护带负向样例**：每条守护有「注入错误被拦下」的测试，失败信息写明「放哪里 / 用什么名字」；例外清单每行附理由，新增例外须复审 | NAMING_STANDARD §4「负向验证」、§5；现有守护的 `injection:` 测试 | 复审 |
@@ -170,7 +170,7 @@
 | # | 规则 | 出处 | 检查 |
 |---|---|---|---|
 | CS-6.1 | 日志用 SLF4J，输出 ECS 结构化 JSON（`logging.structured.format.console=ecs`），上下文带 `correlationId`、`userId`；结构化日志键 camelCase、业务键取词表；不用 `System.out`、JUL | `backend/src/main/resources/application.properties`；NAMING_STANDARD G18、§7 第 20 项 | 守护：G18；键名复审 |
-| CS-6.2 | `RESTRICTED`（口令、密钥、会话内容）不进日志、不进异常 message、不出库；`SENSITIVE`（个人信息、工资日薪、银行卡）日志中只记 ID 不记明文 | NAMING_STANDARD §2.5 | 复审；守护（待实现：G-C9） |
+| CS-6.2 | `RESTRICTED`（口令、密钥、会话内容）不进日志、不进异常 message、不出库；`SENSITIVE`（个人信息、工资日薪、银行卡）日志中只记 ID 不记明文 | NAMING_STANDARD §2.5 | 复审；守护（待实现：G-CS9） |
 | CS-6.3 | **测试不写密钥字面量**（与 CS-5.7 同一条，此处为密钥视角的索引） | 本文件（原 METHODS M5） | 守护：pre-commit、CI gitleaks |
 | CS-6.4 | **密钥不进会话记录** | CLAUDE.md 底线 | 复审 |
 | CS-6.5 | 凭据原值只在 `~/.modernize/psa/`（权限 600）或 KMS，不进任何可共享文件 | CLAUDE.md 底线 | 守护：gitleaks；复审 |
@@ -195,21 +195,21 @@
 | CS-7.9 | **IntelliJ 构建**：构建进程不读 `backend/.mvn/jvm.config`，Error Prone 会因 `IllegalAccessError` 加载失败；在 Settings → Build, Execution, Deployment → Compiler → Shared build process VM options 里加入与该文件相同的 `--add-exports` / `--add-opens` 参数，或改用 Maven 构建 | ADR-0033 守护 14；`backend/.mvn/jvm.config` | 复审 |
 | CS-7.10 | **文档引用**：`proposals/` 下的方案草稿不算权威、脚本不读；ADR 只引 intent 号，不抄用户原话 | 本文件（原 METHODS M7） | 复审 |
 
-## 8. 待实现守护设计（G-C 系列）
+## 8. 待实现守护设计（G-CS 系列；与 naming-standard 的 G-C 系列（ADR-0035 契约守护）不同）
 
 本节只写设计，不在本次实现。实现时各自开 PR（结构性重构批或守护批），带负向样例（CS-5.9）；落地前已有违规的，按 `ddl-naming-baseline.txt` 的做法登记基线文件，新违规与「已修好却没删」的基线行都失败。
 
 | 编号 | 对应规则 | 实现要点 |
 |---|---|---|
-| G-C1 | CS-2.20 ID 输出用 `value()` | ArchUnit：扫描 `web`、`application`、`infrastructure` 中对 `String.valueOf(Object)`、`Object.toString()`、`StringBuilder.append(Object)`、字符串拼接（`StringConcatFactory` 调用的参数类型）的调用，参数静态类型是带 `@ValueObject` 且只有一个名为 `value` 组件的 record 即违规。再加一条集成断言：OpenAPI 导出中不出现 `[value=` 样式的示例，事件 JSON 序列化后 ID 字段为标量 |
-| G-C2 | CS-2.21 不靠 ID 顺序 | 文本扫描 `infrastructure.persistence` 中的 SQL：`ORDER BY` 的**第一个**排序键是 `id` 或 `*_id`、或出现 `max(id)` / `min(id)` 即违规；排序键里 `id` 只允许出现在业务时间或序号之后。ArchUnit：domain / application 中对类型化 ID 或 `UUID` 调用 `compareTo`、或把它们放进 `Comparator.comparing` 即违规 |
-| G-C3 | CS-2.22、CS-2.23 不可变与空值 | ArchUnit：record 组件类型为 `List` / `Set` / `Map` 的，紧凑构造器字节码中须有对应 `copyOf` 调用；domain / application / api 的方法不得 `return null`（字节码 `ACONST_NULL` + `ARETURN`，排除 `@Nullable` 返回）；`Optional` 不得作字段、参数类型、集合元素（`web` 响应 record 例外）；禁 import `org.springframework.lang.Nullable`（统一 JSpecify，见 CS-2.23） |
-| G-C4 | CS-2.24 异常 | ArchUnit：domain / application 不得 `new RuntimeException` / `new Exception`；业务模块中抛出的非 kernel 异常须是 `DomainException` 子类或 JDK 的编程错误类；源码扫描空 `catch` 块（`catch (...) {}` 且块内无语句） |
-| G-C5 | CS-2.29 领域不引用外部类型 | ArchUnit：除 `platform.integration..` 与登记的防腐翻译包外，任何 `..domain..`、`..api..`、`..events..` 不得依赖 `platform.integration.api.Source*`；翻译包清单与现有违规登记在 `backend/architecture/source-type-exceptions.txt`（新文件，只减不增） |
-| G-C6 | CS-3.7 SQL 参数绑定 | 源码扫描 `Jdbc*Repository`：传给 `JdbcClient.sql(...)` / `JdbcTemplate` 的字符串参数不得由非 `static final` 变量拼接；允许拼接的只有代码内枚举或 `static final` 常量 |
-| G-C7 | CS-4.1、CS-4.6 前端 | ESLint：`@typescript-eslint/no-non-null-assertion: error`；`no-restricted-syntax` 禁止在 `pages/`、`components/` 中访问 `.message` / `.detail`（`MemberExpression[property.name=/^(message|detail)$/]` 且对象来自 `catch` 参数或 `error`），提示改用 `describeFailure` |
-| G-C8 | CS-5.6 确定性等待 | 源码扫描 `src/test/java`：禁 `Thread.sleep`（测试支撑类中的轮询辅助登记例外）；`never()` 必须与具体方法和参数匹配器同用，`verifyNoInteractions` / `verifyNoMoreInteractions` 需登记理由；现有 `Thread.sleep` 6 处入基线 |
-| G-C9 | CS-6.2 日志不含敏感值 | ArchUnit：`Logger` 的 `info/warn/error/debug` 调用参数中不得出现类型或字段名命中 `data-classification.txt` 中 `SENSITIVE` / `RESTRICTED` 列（按 snake → camel 映射）的取值；补一条集成测试：用固定敏感值跑登录与同步流程，断言日志输出不含该值 |
+| G-CS1 | CS-2.20 ID 输出用 `value()` | ArchUnit：扫描 `web`、`application`、`infrastructure` 中对 `String.valueOf(Object)`、`Object.toString()`、`StringBuilder.append(Object)`、字符串拼接（`StringConcatFactory` 调用的参数类型）的调用，参数静态类型是带 `@ValueObject` 且只有一个名为 `value` 组件的 record 即违规。再加一条集成断言：OpenAPI 导出中不出现 `[value=` 样式的示例，事件 JSON 序列化后 ID 字段为标量 |
+| G-CS2 | CS-2.21 不靠 ID 顺序 | 文本扫描 `infrastructure.persistence` 中的 SQL：`ORDER BY` 的**第一个**排序键是 `id` 或 `*_id`、或出现 `max(id)` / `min(id)` 即违规；排序键里 `id` 只允许出现在业务时间或序号之后。ArchUnit：domain / application 中对类型化 ID 或 `UUID` 调用 `compareTo`、或把它们放进 `Comparator.comparing` 即违规 |
+| G-CS3 | CS-2.22、CS-2.23 不可变与空值 | ArchUnit：record 组件类型为 `List` / `Set` / `Map` 的，紧凑构造器字节码中须有对应 `copyOf` 调用；domain / application / api 的方法不得 `return null`（字节码 `ACONST_NULL` + `ARETURN`，排除 `@Nullable` 返回）；`Optional` 不得作字段、参数类型、集合元素（`web` 响应 record 例外）；禁 import `org.springframework.lang.Nullable`（统一 JSpecify，见 CS-2.23） |
+| G-CS4 | CS-2.24 异常 | ArchUnit：domain / application 不得 `new RuntimeException` / `new Exception`；业务模块中抛出的非 kernel 异常须是 `DomainException` 子类或 JDK 的编程错误类；源码扫描空 `catch` 块（`catch (...) {}` 且块内无语句） |
+| G-CS5 | CS-2.29 领域不引用外部类型 | ArchUnit：除 `platform.integration..` 与登记的防腐翻译包外，任何 `..domain..`、`..api..`、`..events..` 不得依赖 `platform.integration.api.Source*`；翻译包清单与现有违规登记在 `backend/architecture/source-type-exceptions.txt`（新文件，只减不增） |
+| G-CS6 | CS-3.7 SQL 参数绑定 | 源码扫描 `Jdbc*Repository`：传给 `JdbcClient.sql(...)` / `JdbcTemplate` 的字符串参数不得由非 `static final` 变量拼接；允许拼接的只有代码内枚举或 `static final` 常量 |
+| G-CS7 | CS-4.1、CS-4.6 前端 | ESLint：`@typescript-eslint/no-non-null-assertion: error`；`no-restricted-syntax` 禁止在 `pages/`、`components/` 中访问 `.message` / `.detail`（`MemberExpression[property.name=/^(message|detail)$/]` 且对象来自 `catch` 参数或 `error`），提示改用 `describeFailure` |
+| G-CS8 | CS-5.6 确定性等待 | 源码扫描 `src/test/java`：禁 `Thread.sleep`（测试支撑类中的轮询辅助登记例外）；`never()` 必须与具体方法和参数匹配器同用，`verifyNoInteractions` / `verifyNoMoreInteractions` 需登记理由；现有 `Thread.sleep` 6 处入基线 |
+| G-CS9 | CS-6.2 日志不含敏感值 | ArchUnit：`Logger` 的 `info/warn/error/debug` 调用参数中不得出现类型或字段名命中 `data-classification.txt` 中 `SENSITIVE` / `RESTRICTED` 列（按 snake → camel 映射）的取值；补一条集成测试：用固定敏感值跑登录与同步流程，断言日志输出不含该值 |
 
 ## 9. 冲突与重复
 

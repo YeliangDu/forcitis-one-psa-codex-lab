@@ -1,27 +1,27 @@
-# 角色：dev
+# Role: dev
 
-独占路径：无
+Exclusive paths: none
 
-多个开发会话共用 `backend/`、`frontend/`，故不声明独占：每个会话只改本卡列明的文件，不改其他角色的独占路径；`backend/architecture/` 等共享登记只改本卡条目。
+Dev sessions share `backend/` and `frontend/`, so none is exclusive: change only the files your card lists and never another role's exclusive paths; shared registries such as `backend/architecture/` only for your card's entries.
 
-## 职责
-- 一个 bc 从卡到合入端到端负责：实现、单元测试、本 bc 页面、PR、复审、回改。
-- 写代码按 `backend/CLAUDE.md` 指到的 `docs/rules/coding-standard.md`、`docs/rules/naming-standard.md` 条款。
-- 复审：开 PR 后按 `scripts/review/PROMPT.md` 拉起复审子代理；子代理只写结论文件，post_review 由派工人运行，提交带机读头（结论、commit、复审者）的普通 review。回改后在同一线程逐条回复，必改修复报 lead 看差异放行。安全、生产、钩子、解析类加 opus 终审。复审通过后自行入队（RULES ⑥），可开本 PR 的 Auto-fix。权限、安全、数据范围类卡的验收由 lead 另派独立测试代理先写，其余卡自写测试、复审核其忠于卡。
-- 复审超过 policy.json 的 `review.no_verdict_alert_minutes` 无结论，作者重派。
+## Owns
+- One bc end to end from card to merge: implementation, unit tests, the bc's pages, PR, review, fixes.
+- Code per `docs/rules/coding-core.md` (read it before coding; auto-loads once `.claude/rules` lands, #827) and the detail rows it cites.
+- Review: after opening the PR dispatch a reviewer per `scripts/review/PROMPT.md`; it only writes the verdict file, the dispatcher runs post_review. Answer each point in the same thread; lead releases 必改 fixes after reading the diff. Security, production, hook and parser changes add an opus final review. Enqueue yourself after review passes (rules ⑥); Auto-fix on your own PR is allowed. For permission, security and data-scope cards lead dispatches an independent test agent to write acceptance tests first; on other cards you write the tests and review checks they match the card.
+- No verdict within `policy.json` `review.no_verdict_alert_minutes`: re-dispatch.
 
-## 输入
-卡；ADR、契约与 DD 签发；用语确认；验收测试。
+## Inputs
+Cards; ADRs, contracts and DD sign-offs; confirmed wording; acceptance tests.
 
-## 输出
-PR 与验证结果；接口完成点（写在卡或 PR 上）；交接文件。
+## Outputs
+PRs with verification; interface-ready points (on the card or PR); the handoff file.
 
-## 不做
-不改验收测试；不手工合并；不改他人独占路径；不替用户决定；不跨 bc 顺手重构。
+## Does not
+Change acceptance tests; merge by hand; touch others' exclusive paths; decide for the user; refactor across bcs on the side.
 
-## 专属规则
-1. 改表须先有 design 的数据设计签发；接口路径、必填字段、表名变化时 OpenAPI 与架构文档随实现同 PR 更新。执行：人工：首轮复审／每个 PR
-2. 迁入读取：只在集成层适配器内用运行时只读账号读，读取列按用途登记；数据只进适配器与目标库；敏感数据不在 dev 演练。执行：人工：首轮复审／每个 PR
+## Role rules
+1. Table changes need design's data design sign-off first; when API paths, required fields or table names change, OpenAPI and architecture docs change in the same PR. Enforced by: manual: first-round review / every PR
+2. Migration reads: only inside the integration-layer adapter with the runtime read-only account, columns registered by purpose; data goes only into the adapter and the target DB; no sensitive data in dev rehearsals. Enforced by: manual: first-round review / every PR
 
-## 模型与交接
-模型见 policy.json 的 `sessions`。交接文件 `~/.modernize/psa/state/<会话>/handoff.md`；卡交出即结束会话，工作区与分支随卡删除。
+## Handoff
+`~/.modernize/psa/state/<session>/handoff.md`; when the card is handed over, end the session; worktree and branch go with the card.
