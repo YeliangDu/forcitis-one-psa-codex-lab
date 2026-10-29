@@ -158,7 +158,7 @@ def legacy_script_self_test(root):
         script = scripts / "legacy_it.sh"
         script.write_text(Path(root, "scripts/ci/legacy_it.sh").read_text())
         (base / "scripts/codegen").mkdir()
-        (base / "scripts/codegen/generate-api.sh").write_text(Path(root, "scripts/codegen/generate-api.sh").read_text())
+        (base / "scripts/codegen/generate_api.sh").write_text(Path(root, "scripts/codegen/generate_api.sh").read_text())
         (base / "scripts/guards").mkdir()
         (base / "scripts/guards/acceptance_reports.py").write_text(
             'import sys\nprint("SelectedIT" if "--legacy-it-tests" in sys.argv else "reports checked")\n')
@@ -188,7 +188,7 @@ sys.exit(int(os.environ.get("FAILSAFE_STATUS", "0")))
         env = {**os.environ, "BACKEND_WATCHDOG_SECONDS": "1500"}
         args = ["bash", str(script), "-Dtest.forks=2", "-Dtest.fork.timeout=1800"]
         missing = subprocess.run(args, env=env, capture_output=True, text=True, timeout=10)
-        assert missing.returncode == 1 and "bash scripts/codegen/generate-api.sh" in missing.stderr, missing.stdout + missing.stderr
+        assert missing.returncode == 1 and "bash scripts/codegen/generate_api.sh" in missing.stderr, missing.stdout + missing.stderr
         assert not (backend / "calls.jsonl").exists(), "缺生成物必须先失败，不能启动 Maven 或容器"
         for name in ("openapi.json", "src/generated/schema.ts", "src/generated/validators.ts", "src/generated/operations.ts"):
             product = base / "frontend/packages/api" / name

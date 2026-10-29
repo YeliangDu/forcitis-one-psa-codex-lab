@@ -57,6 +57,7 @@ ALWAYS_RUN_READERS = (
     "scripts/guards/build_catalog.py",
     "scripts/guards/proposal_reads.py",
     "scripts/guards/acceptance_rulings.py",
+    "scripts/guards/check_names.py",   # docs paths there are naming rules and the directory allowlist
     "scripts/codegen/scan_aggregates.py",
     "scripts/codegen/scan_acceptance_tests.py",   # imported by scan_aggregates.py
     "scripts/session/build_decisions.py",

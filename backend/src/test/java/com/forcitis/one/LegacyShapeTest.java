@@ -189,7 +189,7 @@ class LegacyShapeTest {
         }
         Path contract = frontend.resolve("packages/api/openapi.json");
         if (!Files.isRegularFile(contract)) {
-            throw new IllegalStateException("缺少 " + contract + "；请在仓库根运行 bash scripts/codegen/generate-api.sh（需 Docker 和前端依赖）");
+            throw new IllegalStateException("缺少 " + contract + "；请在仓库根运行 bash scripts/codegen/generate_api.sh（需 Docker 和前端依赖）");
         }
         files.add(contract);
         return files;
@@ -513,7 +513,7 @@ class LegacyShapeTest {
         Path project = backendIn(root);
         Files.delete(root.resolve("frontend/packages/api/openapi.json"));
         assertThatThrownBy(() -> scan(project)).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("bash scripts/codegen/generate-api.sh");
+                .hasMessageContaining("bash scripts/codegen/generate_api.sh");
     }
 
     @Test

@@ -6,7 +6,7 @@
 t_shell='\.sh$'
 # 自测只在被测脚本或它读的仓库文件改了才跑（#742）：自测的结果只随这些文件变；推到 main（LIGHT_ALL=1）与没有基线时全跑，兜住环境变化
 t_guards='^scripts/guards/'
-t_guards_config='^scripts/guards/|^backend/pom\.xml$|^backend/src/test/java/com/forcitis/one/acceptance/|^scripts/ci/(legacy_it|backend_verify)\.sh$|^scripts/codegen/generate-api\.sh$|^docs/modernization/rulings/|^\.github/workflows/(ci|nightly-legacy-it)\.yml$'
+t_guards_config='^scripts/guards/|^backend/pom\.xml$|^backend/src/test/java/com/forcitis/one/acceptance/|^scripts/ci/(legacy_it|backend_verify)\.sh$|^scripts/codegen/generate_api\.sh$|^docs/modernization/rulings/|^\.github/workflows/(ci|nightly-legacy-it)\.yml$'
 t_evidence_imports='^scripts/ci/evidence_imports\.py$'
 t_gates='^scripts/(gates|hooks)/|^policy\.json$|^\.claude/|^\.pre-commit-config\.yaml$|^docs/modernization/sessions/|^scripts/merge/session_map\.json$'
 t_session='^scripts/session/|^policy\.json$|^docs/modernization/(roles|decision-digest)/'
@@ -36,6 +36,7 @@ t_guards|db_scripts_aligned (self-test)|python3 -I scripts/guards/db_scripts_ali
 t_guards|proposal_reads (self-test)|python3 scripts/guards/proposal_reads.py --self-test
 t_guards|build_catalog (self-test)|python3 scripts/guards/build_catalog.py --self-test
 t_guards|term_rules (self-test)|python3 scripts/guards/term_rules.py --self-test
+t_guards|check_names (self-test)|python3 -I scripts/guards/check_names.py --self-test
 t_evidence_imports|evidence tools: imports resolve (self-test)|python3 -I scripts/ci/evidence_imports.py --self-test
 t_gates|gates (gates_selftest.py)|python3 scripts/gates/gates_selftest.py
 t_session|build_decisions (self-test)|python3 scripts/session/build_decisions.py --self-test

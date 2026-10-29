@@ -3,7 +3,7 @@
 # the OOS request parameters, polling the result parameter, and that no ECS execution API is called. Tokens are generated per run; nothing
 # leaves the host.
 #
-#   scripts/release/ship_test.sh
+#   scripts/release/ship_selftest.sh
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"

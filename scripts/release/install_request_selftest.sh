@@ -4,7 +4,7 @@
 # session-token flow and every request signature; release assets are built and signed here with keys generated for the run and served by
 # a stand-in curl; alerts go to a stand-in one_alert_send. Only 127.0.0.1 is contacted. Runs on macOS and Linux without root.
 #
-#   scripts/release/install_request_test.sh
+#   scripts/release/install_request_selftest.sh
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
