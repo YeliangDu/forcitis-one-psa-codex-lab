@@ -10,12 +10,13 @@ import com.forcitis.one.organization.workforce.domain.SyncDiff;
 import com.forcitis.one.organization.workforce.domain.SyncRun;
 import com.forcitis.one.organization.workforce.domain.SyncRunRepository;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -39,25 +40,31 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                 insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at, created_at, updated_at, version, event_count)
                 values (:id, :trigger, :status, :now, :now, :now, 0, 0)
                 """).param("id", id.value()).param("trigger", trigger.name()).param("status", draft.status().name())
-                .param("now", Timestamp.from(now)).update();
+                .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).update();
         return draft.withId(id);
     }
 
     @Override
     public Optional<SyncRun> find(SyncRunId syncRunId) {
-        return jdbc.sql(SyncRunRows.SELECT + " where id = :id").param("id", syncRunId.value())
+        return jdbc.sql(SyncRunRows.SELECT + """
+                 where id = :id
+                """).param("id", syncRunId.value())
                 .query((rs, n) -> SyncRunRows.aggregate(rs)).optional();
     }
 
     @Override
     public List<SyncRun> findAbandoned(Instant cutoff) {
-        return jdbc.sql(SyncRunRows.SELECT + " where status = 'RUNNING' and started_at < :cutoff order by started_at, id")
-                .param("cutoff", Timestamp.from(cutoff)).query((rs, n) -> SyncRunRows.aggregate(rs)).list();
+        return jdbc.sql(SyncRunRows.SELECT + """
+                 where status = 'RUNNING' and started_at < :cutoff order by started_at, id
+                """)
+                .param("cutoff", OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC)).query((rs, n) -> SyncRunRows.aggregate(rs)).list();
     }
 
     @Override
     public List<SyncRun> findHeldExcept(SyncRunId syncRunId) {
-        return jdbc.sql(SyncRunRows.SELECT + " where status = 'HELD' and id <> :id order by started_at, id").param("id", syncRunId.value())
+        return jdbc.sql(SyncRunRows.SELECT + """
+                 where status = 'HELD' and id <> :id order by started_at, id
+                """).param("id", syncRunId.value())
                 .query((rs, n) -> SyncRunRows.aggregate(rs)).list();
     }
 
@@ -76,7 +83,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                  where id = :id and version = :version and status = :loadedStatus
                 """)
                 .param("status", run.status().name())
-                .param("finishedAt", run.finishedAt() == null ? null : Timestamp.from(run.finishedAt()), Types.TIMESTAMP)
+                .param("finishedAt", run.finishedAt() == null ? null : OffsetDateTime.ofInstant(run.finishedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("a", s == null ? null : s.sourceOrgUnitCount(), Types.INTEGER)
                 .param("b", s == null ? null : s.sourceEmployeeCount(), Types.INTEGER)
                 .param("c", s == null ? null : s.incomingActiveOrgUnitCount(), Types.INTEGER)
@@ -92,28 +99,34 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                 .param("heldReason", run.heldReason(), Types.VARCHAR)
                 .param("failureReason", truncate(run.failureReason()), Types.VARCHAR)
                 .param("releasedBy", run.releasedBy() == null ? null : run.releasedBy().value(), Types.OTHER)
-                .param("releasedAt", run.releasedAt() == null ? null : Timestamp.from(run.releasedAt()), Types.TIMESTAMP)
+                .param("releasedAt", run.releasedAt() == null ? null : OffsetDateTime.ofInstant(run.releasedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("releasedByRun", run.releasedByRunId() == null ? null : run.releasedByRunId().value(), Types.OTHER)
                 .param("holdKinds", run.holdKinds().stream().map(Enum::name).toArray(String[]::new))
                 .param("releasedKinds", run.releasedKinds().stream().map(Enum::name).toArray(String[]::new))
                 .param("nextVersion", run.versionAfterSave()).param("eventSequence", run.eventSequenceAfterSave())
                 .param("id", run.syncRunId().value()).param("version", run.version()).param("loadedStatus", run.loadedStatus().name())
-                .param("updatedAt", Timestamp.from(clock.instant()))
+                .param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();
         if (updated != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
                     "sync run " + run.syncRunId().value() + " was changed by someone else");
         }
-        jdbc.sql("delete from organization_workforce.sync_run_held_separations where sync_run_id = :id").param("id", run.syncRunId().value()).update();
+        jdbc.sql("""
+                delete from organization_workforce.sync_run_held_separations where sync_run_id = :id
+                """).param("id", run.syncRunId().value()).update();
         for (var person : run.heldSeparations()) {
-            jdbc.sql("insert into organization_workforce.sync_run_held_separations (sync_run_held_separation_id, sync_run_id, employee_id) values (:rowId, :id, :employee)")
+            jdbc.sql("""
+                    insert into organization_workforce.sync_run_held_separations (sync_run_held_separation_id, sync_run_id, employee_id) values (:rowId, :id, :employee)
+                    """)
                     .param("rowId", ids.next()).param("id", run.syncRunId().value()).param("employee", person.value()).update();
         }
     }
 
     @Override
     public void delete(SyncRun run) {
-        int removed = jdbc.sql("delete from organization_workforce.sync_runs where id = :id and version = :version and status = :loadedStatus")
+        int removed = jdbc.sql("""
+                delete from organization_workforce.sync_runs where id = :id and version = :version and status = :loadedStatus
+                """)
                 .param("id", run.syncRunId().value()).param("version", run.version()).param("loadedStatus", run.loadedStatus().name()).update();
         if (removed != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT,

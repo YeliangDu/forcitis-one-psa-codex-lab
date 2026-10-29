@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.kernel.CallerPermissions;
 import com.forcitis.one.kernel.DomainException;
@@ -36,9 +37,11 @@ public class CorrectLegalEntityAttribution {
     private final CallerPermissions caller;
     private final AuditLog audit;
     private final OwnAttributionGuard ownAttribution;
+    private final CurrentUser currentUser;
 
     CorrectLegalEntityAttribution(LegalEntityAttributionRepository attributions, AttributionSubjects subjects, DomainEvents events,
-            CallerPermissions caller, AuditLog audit, OwnAttributionGuard ownAttribution) {
+            CallerPermissions caller, AuditLog audit, OwnAttributionGuard ownAttribution, CurrentUser currentUser) {
+        this.currentUser = currentUser;
         this.ownAttribution = ownAttribution;
         this.attributions = attributions;
         this.subjects = subjects;
@@ -50,7 +53,8 @@ public class CorrectLegalEntityAttribution {
     /** A refusal for want of the permission is audited in its own transaction, so the entry survives the refusal. */
     @Transactional
     public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId, LocalDate periodFrom, LocalDate newEffectiveTo, String reasonText,
-                                              UserId correctedBy, ExpectedVersion expected) {
+                                              ExpectedVersion expected) {
+        UserId correctedBy = currentUser.userId();
         if (!caller.holds(PERMISSION)) {
             audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.correction-refused", correctedBy, null,
                     AuditSubject.of(AttributionAuditKinds.of(kind), subjectId), "the caller lacks " + PERMISSION)

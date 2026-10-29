@@ -1,11 +1,11 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
@@ -30,8 +30,13 @@ public class GetLegalEntityAttribution {
     private final AttributionSubjects subjects;
     private final OrgSnapshotQueries snapshot;
     private final AuditLog audit;
+    private final OrgUnitAccess access;
+    private final CurrentUser currentUser;
 
-    GetLegalEntityAttribution(LegalEntityAttributionQueries attributions, AttributionSubjects subjects, OrgSnapshotQueries snapshot, AuditLog audit) {
+    GetLegalEntityAttribution(LegalEntityAttributionQueries attributions, AttributionSubjects subjects, OrgSnapshotQueries snapshot, AuditLog audit,
+            OrgUnitAccess access, CurrentUser currentUser) {
+        this.access = access;
+        this.currentUser = currentUser;
         this.attributions = attributions;
         this.subjects = subjects;
         this.snapshot = snapshot;
@@ -39,15 +44,15 @@ public class GetLegalEntityAttribution {
     }
 
     @Transactional(readOnly = true)
-    public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId, OrgUnitAccess.Visible visible, UserId actor) {
+    public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId) {
         var subject = subjects.require(kind, subjectId);
-        Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(snapshot.findAllOrgUnits(), visible);
+        Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(snapshot.findAllOrgUnits(), access.visibleOrgUnits(OrgUnitVisibility.ORG_UNIT_READ));
         boolean permitted = switch (kind) {
             case ORG_UNIT -> allowed.contains(new OrgUnitId(subjectId));
             case EMPLOYEE -> snapshot.findStaff(new EmployeeId(subjectId)).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false);
         };
         if (!permitted) {
-            audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.denied", actor, null,
+            audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.denied", currentUser.userId(), null,
                     AuditSubject.of(AttributionAuditKinds.of(kind), subjectId), "outside the scope of the caller"));
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND, ErrorKind.NOT_FOUND,
                     "no such " + kind.name().toLowerCase(Locale.ROOT));
