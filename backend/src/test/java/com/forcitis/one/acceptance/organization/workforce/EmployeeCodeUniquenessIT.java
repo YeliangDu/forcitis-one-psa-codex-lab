@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.organization.workforce;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,10 +20,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * ADR-0078 (replaces the unique-key part of ADR-0033 guard 7): the employee code is unique over all employees, including the separated,
@@ -30,12 +30,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * interface of the main sources fetches a single object by it. A second person with a code already issued is isolated by the sync, which
  * is in SourceIdMatchingIT.
  */
-@Testcontainers
 class EmployeeCodeUniquenessIT extends AcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(EmployeeCodeUniquenessIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String EMPLOYEE_CODE = "employee_code";
     static final Path MAIN = Path.of("src/main/java/com/forcitis/one");

@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.approval;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.forcitis.one.kernel.DocumentReference;
 import com.jayway.jsonpath.JsonPath;
@@ -10,25 +12,25 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * IMP-1023-NX5-01 完成标准第 1 条（「前端不再自带流程显示名表」）、卡目标 ①（#644 opus 首轮 #6：显示名由响应带 processName）、
  * REG-4 裁定第 3 项第 3 条（流程显示名是流程定义数据，经引擎端口读取）：收件箱、任务详情、已办记录三个响应各带 processName，
  * 值是流程定义的名字，前端不必再按流程键查表。
  */
-@Testcontainers
 class ProcessNameResponseIT extends ApprovalP4Support {
 
     static final String TIMESHEET_PROCESS_NAME = "工时审批";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ProcessNameResponseIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Test
     @DisplayName("IMP-1023-NX5-01 目标①：收件箱每条都带 processName，值是流程定义的名字")

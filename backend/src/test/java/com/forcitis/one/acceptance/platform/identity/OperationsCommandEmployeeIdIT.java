@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.platform.identity.application.OperationsCommands;
 import java.io.ByteArrayOutputStream;
@@ -20,10 +22,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P3b, ADR-0033 guard 9 and section 3 item 6: the operations commands name the person by the employee id, which is a UUID in its
@@ -31,12 +31,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * employee that does not exist is refused and writes nothing; a valid id opens or reuses the account. The read-only lookup by an external
  * subject (RULING-P3B-D8) is a command of platform.integration and is tested there (ExternalSubjectLookupCommandIT, RULING-P3B-7).
  */
-@Testcontainers
 class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(OperationsCommandEmployeeIdIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final int WRONG_USAGE = 2;
 

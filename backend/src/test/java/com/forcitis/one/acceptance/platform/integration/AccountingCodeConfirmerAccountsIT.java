@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
@@ -12,13 +14,11 @@ import java.sql.ResultSet;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P2 review P2-M2 (ADR-0033 section 3 item 3 「本人」判定清单: 核算组织编码四眼; section 5 item 4): the person who registered an
@@ -26,14 +26,16 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * id) holding the seeded roles granted with the operations command, acting in their own sessions (RULING-P2-8); recorded and compared
  * as user ids.
  */
-@Testcontainers
 class AccountingCodeConfirmerAccountsIT extends AccountsAcceptanceSupport {
 
     static final String SOURCE_REFERENCES = "/api/v1/platform/source-references";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AccountingCodeConfirmerAccountsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private MockHttpServletResponse confirm(SignedIn who, String sourceReferenceId, String etag) throws Exception {
         MockHttpServletRequestBuilder request = post(SOURCE_REFERENCES + "/" + sourceReferenceId + ":confirm").with(csrf()).with(session(who));

@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.acceptance.P5Names;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -15,20 +17,17 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P5 G-A1 (card acceptance item 7): an id given as a query parameter is a canonical lower-case UUID. The old number, free text,
  * an upper-case UUID and the nil UUID are a malformed request, 400 as a ProblemDetail with PLATFORM_WEB_REQUEST_INVALID, and not an
  * empty 200 list, a 404 or a 500. The same request with a fresh well-formed id is answered 200, so that the id is the only thing wrong.
  */
-@Testcontainers
 class IdQueryParameterIT extends AcceptanceSupport {
 
     static final String LEGACY_NUMBERS = "/api/v1/platform/legacy-numbers";
@@ -41,9 +40,12 @@ class IdQueryParameterIT extends AcceptanceSupport {
     static final RequestPostProcessor AUDITOR = person(42, Permission.Codes.PLATFORM_AUDIT_ENTRY_READ, Permission.Codes.PLATFORM_AUDIT_ENTRY_EXPORT);
     static final RequestPostProcessor REFERENCE_APPROVER = person(43, Permission.Codes.PLATFORM_INTEGRATION_SOURCE_REFERENCE_APPROVE);
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(IdQueryParameterIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** path, parameter, the other query parameters the request needs to be otherwise valid, caller. */
     record Case(String path, String parameter, Map<String, String> others, RequestPostProcessor caller) {

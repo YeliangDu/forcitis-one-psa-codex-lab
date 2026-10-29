@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.organization.workforce;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.Uuids;
 import java.sql.Connection;
@@ -18,22 +20,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * DATA-REPAIR-workforce PR-8 (WF-04, WF-05, WF-09, WF-11, WF-12): row constraints of the workforce schema, checked as a black box through
  * the database: a statement that breaks one constraint is refused with the constraint's name and SQLSTATE, the same statement made valid
  * goes through. Every refused statement breaks exactly one constraint. Constraint names are the design section's.
  */
-@Testcontainers
 class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(WorkforceRowConstraintsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String CHECK_VIOLATION = "23514";
     static final String FOREIGN_KEY_VIOLATION = "23503";

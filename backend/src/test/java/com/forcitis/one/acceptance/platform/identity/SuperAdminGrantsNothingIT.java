@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
@@ -13,12 +15,10 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * RULE-340 as superseded by ADR-0026 D-7 (ADR-0027 section 2, ADR-0028): the role code super_admin bypasses nothing. A holder of the
@@ -26,7 +26,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * administrator mode alike; the administrator mode carries only the fixed list of platform permissions. Everything is asked over HTTP
  * in the session of a real WeCom login; the permission list the session reports is read from sessions:current.
  */
-@Testcontainers
 class SuperAdminGrantsNothingIT extends AccountsAcceptanceSupport {
 
     static final String CURRENT = "/api/v1/platform/sessions:current";
@@ -39,9 +38,12 @@ class SuperAdminGrantsNothingIT extends AccountsAcceptanceSupport {
             Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE, Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE,
             Permission.Codes.PLATFORM_AUDIT_ENTRY_READ, Permission.Codes.TIMESHEET_APPROVE);
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(SuperAdminGrantsNothingIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private SignedIn superAdministrator() throws Exception {
         UUID unit = newOrgUnitId();

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestMssql;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
@@ -55,7 +56,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * D1-1 (principles audit A 3-H1): a stalled A8 or old-system database must never hold a request thread. The sources are real SQL Server
@@ -98,8 +98,8 @@ class StalledExternalSourceIT {
     static final String A8_READER_PASSWORD = "Bb2!" + UUID.randomUUID();
     static final String NAMES_READER_PASSWORD = "Dd4!" + UUID.randomUUID();
 
-    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
-            .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase POSTGRES = TestPostgres.database(StalledExternalSourceIT.class, TestPostgres.MIGRATED)
+            .withUrlParam("currentSchema", "platform_approval");
 
     static final GenericContainer<?> MSSQL = TestMssql.shared();
 
@@ -109,15 +109,12 @@ class StalledExternalSourceIT {
     static final String NAMES_READER = TestMssql.login(StalledExternalSourceIT.class, "names_reader");
 
     static {
-        POSTGRES.start();
         createExternalWorld();
     }
 
     @DynamicPropertySource
     static void infrastructure(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
+        POSTGRES.register(registry);
         registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> url(A8_WORLD));
         registry.add("forcitis.platform.integration.seeyon.views.username", () -> A8_READER);
         registry.add("forcitis.platform.integration.seeyon.views.password", () -> A8_READER_PASSWORD);

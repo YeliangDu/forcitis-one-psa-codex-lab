@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.cost.timesheet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.forcitis.one.acceptance.P4Names;
 import com.forcitis.one.kernel.DocumentReference;
@@ -17,11 +19,9 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P4 ARCH-D5 D5-06 / RULE-389 (acceptance items 11 and 12): the pre-sales node of the timesheet approval is the org unit head's
@@ -30,12 +30,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * old regionalHeadId) fails with an alert instead of letting the node be skipped as empty (RULING-P4-D10, CLAUDE.md rule 6).
  * Only the names changed: the people are still named by the submitter (FORM_FIELD_USERS, D-9).
  */
-@Testcontainers
 class OrgUnitHeadApprovalIT extends ApprovalP4Support {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(OrgUnitHeadApprovalIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String PROCESS_RESOURCE = "/processes/cost_timesheet_approval.bpmn20.xml";
 

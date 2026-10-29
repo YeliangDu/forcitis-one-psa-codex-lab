@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.identity.role_versioning;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,11 +19,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * ADR-0034 decision 1 item 6 (「实际钟点 :now 写进审计 detail」) and guard rule 5 (角色版本同理); ADR-0034-IMPL card rows 0034-G5-02 and
@@ -33,12 +33,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * compares them as instants, and names no key and no digit count. The clock reading must be one of them. Written in that form, the
  * reading is machine-readable, unambiguous across time zones and equal to what the timestamptz columns hold.
  */
-@Testcontainers
 class RoleVersionAuditDetailIT extends RoleVersioningSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(RoleVersionAuditDetailIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private static final Pattern ISO_DATE_TIME = Pattern.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d+)?)?(?:Z|[+-]\\d{2}:\\d{2})");
 

@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.time.LocalDate;
@@ -13,13 +15,11 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Review M4 of PR #139: the manual source references can be read, so that an approver finds the {@code sourceReferenceId} to decide and the
@@ -41,12 +41,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * registered, the approver what waits; same pattern as the held sync runs open to the separation-hold approver). No session 401,
  * neither permission 403.
  */
-@Testcontainers
 class SourceReferenceQueryIT extends SourceReferenceHttpSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(SourceReferenceQueryIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final RequestPostProcessor SECOND_APPROVER = person(16, APPROVE);
     static final RequestPostProcessor LEGAL_ENTITY_MAINTAINER_ONLY = person(17, Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE,

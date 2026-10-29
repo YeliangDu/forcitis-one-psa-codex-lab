@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.platform.identity.application.PurgeExpiredSessions;
 import java.sql.Connection;
@@ -12,21 +14,21 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * FLAKY-SESS: the purge judges expiry on the same time basis as the framework writes into the session table; the injected Clock takes
  * no part. Run once, deterministically: no dependence on the minute boundary of the scheduled job.
  */
-@Testcontainers
 class SessionPurgeClockIT extends AccountsAcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(SessionPurgeClockIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private static final String LOGIN_REQUIRED = "/api/v1/platform/sessions:current";
 

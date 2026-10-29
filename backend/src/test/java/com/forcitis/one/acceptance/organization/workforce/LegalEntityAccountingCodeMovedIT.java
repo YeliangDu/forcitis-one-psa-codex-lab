@@ -5,6 +5,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,22 +18,22 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /** ADR-0033 section 5 items 1 and 6 (DA-9): the accounting organization code leaves the legal entity and lives in the source references. */
-@Testcontainers
 class LegalEntityAccountingCodeMovedIT extends AcceptanceSupport {
 
     static final String ACCOUNTING_CODE_FIELD = "accountingOrganizationNumber";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(LegalEntityAccountingCodeMovedIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 5 项第 1 条：法人表不再有核算组织编码列及其唯一与 CHECK 约束")

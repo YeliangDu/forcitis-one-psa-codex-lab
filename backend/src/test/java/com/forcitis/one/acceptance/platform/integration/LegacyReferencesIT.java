@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.organization.workforce.application.RefreshShortNames;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
@@ -12,11 +14,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P3b, ADR-0033 section 2 items 6 and 9, ADR-0039 item 5.2, NEXT_BATCH_PLAN C8 (card section 3.2 items 5 to 7): the old system names
@@ -26,12 +26,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * alert. With a reference the old item and the short name come through. The old system's rows here carry the very number the employee
  * or department had before P3b, so a reader that still takes the own id as the old system's id is caught.
  */
-@Testcontainers
 class LegacyReferencesIT extends OrgSourceWorldSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(LegacyReferencesIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String INBOX = "/api/v1/platform/approval-tasks";
     static final String EMPLOYEE = "EMPLOYEE";

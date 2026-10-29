@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -34,18 +35,16 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * ADR-0033 item 1 point 5 (card NUM-VERSION-ID): a number taken from the numbering module names the rule version it was issued
@@ -54,7 +53,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
-@Testcontainers
 class NumberingRuleVersionIdIT {
     @MockitoBean
     OrgDirectory orgDirectory;
@@ -74,11 +72,12 @@ class NumberingRuleVersionIdIT {
     @MockitoSpyBean
     IdGenerator ids;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(NumberingRuleVersionIdIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String RULES = "/api/v1/platform/numbering-rules";
     static final String VERSIONS = "platform_numbering.numbering_rule_versions";

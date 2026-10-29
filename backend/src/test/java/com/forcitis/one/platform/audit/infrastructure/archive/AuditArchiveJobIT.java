@@ -3,6 +3,7 @@ package com.forcitis.one.platform.audit.infrastructure.archive;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.RecordingArchiveVault;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -19,17 +20,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "spring.datasource.hikari.connection-timeout=2000", "forcitis.platform.audit.archive.enabled=true"})
-@Testcontainers
 @Import(AuditArchiveJobIT.Doubles.class)
 class AuditArchiveJobIT {
     @TestConfiguration
@@ -49,9 +47,12 @@ class AuditArchiveJobIT {
     @MockitoBean
     WecomGateway wecomGateway;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container();
+    static final TestDatabase postgres = TestPostgres.database(AuditArchiveJobIT.class, TestPostgres.MIGRATED);
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     AuditArchiveJob job;

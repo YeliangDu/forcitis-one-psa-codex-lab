@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.identity.role_versioning;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,11 +20,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * ADR-0034 guard rule 2 (性质测试 GrantIntervalPropertyTest：随机序列含开启、关闭、同刻开关、时钟回拨、「快节点关闭后慢节点再开」；每条至多一条开放行、
@@ -36,12 +36,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * the last version) predicts every role's versions; the rows must equal it, and the version found at any moment by the as-of predicate
  * must be the one the model has in force then. Fixed seeds keep runs reproducible (CS-5.6).
  */
-@Testcontainers
 class RoleVersionIntervalPropertyIT extends RoleVersioningSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(RoleVersionIntervalPropertyIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final int OPERATIONS = 32;
     static final List<String> SCOPES = List.of("SELF", "ALL", "OWN_ORG_UNIT", "SELF_AND_DIRECT_REPORTS");

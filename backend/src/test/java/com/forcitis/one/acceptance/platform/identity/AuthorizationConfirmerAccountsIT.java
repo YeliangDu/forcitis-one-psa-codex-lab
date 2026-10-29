@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
@@ -15,12 +17,10 @@ import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P2 review P2-M2 (ADR-0033 section 3 item 3 「本人」判定清单: I-12 后半句、授权申请的确认人不是申请人; ADR-0034): a sensitive change
@@ -28,16 +28,18 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * changed cannot confirm. All people are real accounts (WeCom login, UUIDs that equal no employee id) given super_admin with the
  * operations command, and act in their own sessions after entering the administrator mode over HTTP (RULING-P2-8).
  */
-@Testcontainers
 class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
 
     static final String ROLES = "/api/v1/platform/roles";
     static final String ACCOUNTS = "/api/v1/platform/user-accounts/";
     static final String REQUESTS = "/api/v1/platform/authorization-requests";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AuthorizationConfirmerAccountsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private UUID newAdministrator(UUID unit) {
         UUID person = newEmployeeId();

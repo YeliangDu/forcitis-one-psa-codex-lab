@@ -2,13 +2,13 @@ package com.forcitis.one.acceptance.platform.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P3b, ADR-0033 guard 6 (card section 4 item 1): the organisation source hands out signed 64-bit ids, negative ones included. A
@@ -16,12 +16,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * UUIDv7 through the source references, the sync files them under those own ids with every relationship translated, and the next sync
  * finds the same own ids without allocating again. Nothing on the way may assume a positive id.
  */
-@Testcontainers
 class NegativeSourceIdIT extends OrgSourceWorldSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(NegativeSourceIdIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final long LOWEST = Long.MIN_VALUE;
     static final long MINUS_ONE = -1L;
