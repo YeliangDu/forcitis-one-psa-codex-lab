@@ -45,6 +45,7 @@ t_guards|check_names (self-test)|python3 -I scripts/guards/check_names.py --self
 t_guards|check_playbooks (self-test)|python3 -I scripts/guards/check_playbooks.py --self-test
 t_guards|check_rules_enforced (self-test)|python3 -I scripts/guards/check_rules_enforced.py --self-test
 t_guards|policy_keys_read (self-test)|python3 -I scripts/guards/policy_keys_read.py --self-test
+t_guards|sql_values (self-test)|python3 -I scripts/guards/sql_values.py --self-test
 t_guards|rule_sizes (self-test)|python3 -I scripts/guards/rule_sizes.py --self-test
 t_guards|file_lines (self-test)|python3 -I scripts/guards/file_lines.py --self-test
 t_evidence_imports|evidence tools: imports resolve (self-test)|python3 -I scripts/ci/evidence_imports.py --self-test
