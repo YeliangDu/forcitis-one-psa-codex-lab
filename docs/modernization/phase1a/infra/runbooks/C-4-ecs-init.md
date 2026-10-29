@@ -13,7 +13,7 @@
 | `files/nginx-one.conf` | nginx（E-8..E-10），访问日志不记查询串 |
 | `files/one.env.template` | `/etc/forcitis-one/one.env` 模板，只有变量名与非机密默认值 |
 
-把 `runbooks/` 目录经云助手「发送文件」上传到 ECS 的 `/root/one-runbooks/`（只含脚本与模板，无机密），再执行。
+把仓库的 `tools/ops/ecs/` 目录（`scripts/` 与 `files/`，#742 起从 `runbooks/` 搬到这里）经云助手「发送文件」上传到 ECS 的 `/root/one-runbooks/`（只含脚本与模板，无机密），再执行；服务器上的目录结构不变。
 
 ## 执行前确认点
 

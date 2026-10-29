@@ -19,7 +19,7 @@
 | `docs/…/runbooks/prod-approvals.txt` | prod 部署批准行（经 PR 合入 main），代替 Team 计划下不可用的 required reviewers |
 | `scripts/release/ship.sh` | 部署最后一段：把四个 Release 附件解析为 GitHub 的短期签名下载地址，经 GitHub OIDC 换取阿里云临时凭据，把安装请求写进该环境固定的 OOS 参数，轮询结果参数等待 ECS 回报 |
 | `scripts/release/remote_install.sh` | ECS 上的安装器（装为 `/usr/local/sbin/forcitis-one-release`）：`pull` 由定时器每分钟运行，以实例角色从 OOS 读回并严格校验安装请求、下载附件、验签、安装、写结果参数；另有 `rollback`、`status` |
-| `docs/…/runbooks/files/forcitis-one-release-pull.{service,timer}` | ECS 上的拉取服务与定时器（root，`Type=oneshot`，上一次结束 1 分钟后再运行），随发布包 `deploy/` 分发并纳入「服务器文件一致」检查 |
+| `tools/ops/ecs/files/forcitis-one-release-pull.{service,timer}` | ECS 上的拉取服务与定时器（root，`Type=oneshot`，上一次结束 1 分钟后再运行），随发布包 `deploy/` 分发并纳入「服务器文件一致」检查 |
 | `scripts/release/install_request_test.sh` | `pull` 的本地测试：本机替身服务扮演元数据服务（加固模式）与 OOS（核对签名、记录结果参数），运行时生成签名密钥、构建并签名测试附件（含篡改与混搭的变体），替身 curl 与告警命令；覆盖静默跳过、告警限频、单实例与签名的已知答案测试；只连 127.0.0.1、不需 root（ci 运行） |
 | `scripts/release/ship_test.sh` | `ship.sh` 的本地测试：替身 gh / curl / aliyun，覆盖 Location 解析、OIDC 与 STS 应答、屏蔽、OOS 参数写入、按 `request_id` 轮询结果与超时、不调用任何 ECS 接口（ci 运行） |
 
