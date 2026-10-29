@@ -139,7 +139,7 @@
         "usage_min_pct": 95
       }
     },
-    "l2_keep_business_line": "one-dev-par",
+    "l2_keep_business_line": "one-dev-org",
     "agent_tier_gate_enabled": false,
     "reading_validation_days": 7,
     "reading_max_deviation_pts": 5,
@@ -240,7 +240,7 @@
         "permission_mode": "bypassPermissions",
         "remote_control": true
       },
-      "one-dev-par": {
+      "one-dev-org": {
         "role": "dev",
         "model": "sonnet",
         "permission_mode": "bypassPermissions",
@@ -278,7 +278,7 @@
       "one-1a-admin": {
         "effort": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）"
       },
-      "one-dev-par": {
+      "one-dev-org": {
         "effort": "待定稿：TEAM-13 执行类「按卡定」，无会话级固定值；定稿未给值（裁定 7「其余照定稿」）"
       },
       "one-platform-file": {
@@ -289,9 +289,15 @@
       "one-rules": "one-leader",
       "one-arch-finance": "one-architecture",
       "one-coordinator": "one-leader",
-      "one-1a-par": "one-dev-par"
+      "one-1a-par": "one-dev-org",
+      "one-dev-par": "one-dev-org",
+      "one-1a-next-5": "one-dev-org",
+      "nx5": "one-dev-org",
+      "one-arch-people": "one-architecture",
+      "one-arch-revenue": "one-architecture",
+      "one-platform-signing": "one-platform-file"
     },
-    "_说明": "config 是会话配置清单（O23b，定稿 1.13 第 4 条、1.3 第 2 条（D09））：会话名取自 roles/ 各角色文件「过渡映射」列出的现有会话，不写第四批新名；role 为所属角色文件；model 取自盘点四 1.4 节（10-23 会话管理接口实况；定稿 1.13、1.15 无逐会话模型分配，1.13 第 4 条调度模型见 model_schedule）；effort 是目标值不是实况，出处见 config_sources（不放进 config，免得开工单当配置项显示，10b 终审必改 1），未写 effort 键表示定稿未给值、待定稿（调度 10-27 裁定 7）；one-merge、one-quality 对应「整合」「复审」是依据会话画像的推断，待用户确认；permission_mode、remote_control 取自盘点 gap-3 L02、L14（用户级设置，对全部会话生效）；外接工具未定，不写；one-coordinator 的 model_schedule 指向 budget.coordinator_model（D39）。二乙只写入与由开工单显示差异，第四批起生效。aliases 是旧会话名别名表（旧名→现名，调度 10-26 深夜定）；10-28 卡 #736 用户改显示名：one-coordinator→one-leader（lead）、one-1a-par→one-dev-par（dev），旧名进别名表：new_intent 的 --owner 与 decide_sync 先按它把旧名换成现名，再只核对 config 的键；目标不在 config 即拒。"
+    "_说明": "config 是会话配置清单（O23b，定稿 1.13 第 4 条、1.3 第 2 条（D09））：会话名取自 roles/ 各角色文件「过渡映射」列出的现有会话，不写第四批新名；role 为所属角色文件；model 取自盘点四 1.4 节（10-23 会话管理接口实况；定稿 1.13、1.15 无逐会话模型分配，1.13 第 4 条调度模型见 model_schedule）；effort 是目标值不是实况，出处见 config_sources（不放进 config，免得开工单当配置项显示，10b 终审必改 1），未写 effort 键表示定稿未给值、待定稿（调度 10-27 裁定 7）；one-merge、one-quality 对应「整合」「复审」是依据会话画像的推断，待用户确认；permission_mode、remote_control 取自盘点 gap-3 L02、L14（用户级设置，对全部会话生效）；外接工具未定，不写；one-coordinator 的 model_schedule 指向 budget.coordinator_model（D39）。二乙只写入与由开工单显示差异，第四批起生效。aliases 是旧会话名别名表（旧名→现名，调度 10-26 深夜定）；10-28 卡 #736 用户改显示名：one-coordinator→one-leader（lead）、one-1a-par→one-dev-par（dev），旧名进别名表：new_intent 的 --owner 与 decide_sync 先按它把旧名换成现名，再只核对 config 的键；目标不在 config 即拒。10-29（#754）one-dev-par→one-dev-org；合入队列 gapscan 也只读这里：分支 [claude/]<名>-… 的 <名> 取 config 键或 aliases 键中最长匹配，旧分支前缀（one-1a-next-5、nx5、one-arch-people 等）也作别名登记；查不到即报未知，不猜。"
   },
   "measures": [
     {
