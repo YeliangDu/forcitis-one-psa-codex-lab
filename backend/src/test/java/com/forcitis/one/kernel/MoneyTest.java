@@ -32,20 +32,20 @@ class MoneyTest {
     @DisplayName("FD-02 FD-08 computing does not round; rounding happens once, half up to the currency's minor unit, when the amount is formed")
     void roundsOnceWhenTheAmountIsFormed() {
         ExactMoney half = Money.of("0.05", "CNY").exact().times(Ratio.of("0.5"));
-        assertThat(half.times(Ratio.of("0.5")).rounded()).isEqualTo(Money.of("0.01", "CNY"));
-        assertThat(half.rounded().exact().times(Ratio.of("0.5")).rounded()).isEqualTo(Money.of("0.02", "CNY"));
-        assertThat(ExactMoney.of("10.005", "CNY").rounded()).isEqualTo(Money.of("10.01", "CNY"));
-        assertThat(ExactMoney.of("-10.005", "CNY").rounded()).isEqualTo(Money.of("-10.01", "CNY"));
-        assertThat(Money.of("10.00", "CNY").exact().times(Rate.of("0.0625")).rounded()).isEqualTo(Money.of("0.63", "CNY"));
+        assertThat(half.times(Ratio.of("0.5")).round()).isEqualTo(Money.of("0.01", "CNY"));
+        assertThat(half.round().exact().times(Ratio.of("0.5")).round()).isEqualTo(Money.of("0.02", "CNY"));
+        assertThat(ExactMoney.of("10.005", "CNY").round()).isEqualTo(Money.of("10.01", "CNY"));
+        assertThat(ExactMoney.of("-10.005", "CNY").round()).isEqualTo(Money.of("-10.01", "CNY"));
+        assertThat(Money.of("10.00", "CNY").exact().times(Rate.of("0.0625")).round()).isEqualTo(Money.of("0.63", "CNY"));
     }
 
     @Test
     @DisplayName("FD-07 a total is the sum of the lines after each line is formed, not the rounded sum of the unrounded lines")
     void totalIsTheSumOfFormedLines() {
         ExactMoney line = ExactMoney.of("0.333", "CNY");
-        Money total = line.rounded().plus(line.rounded()).plus(line.rounded());
+        Money total = line.round().plus(line.round()).plus(line.round());
         assertThat(total).isEqualTo(Money.of("0.99", "CNY"));
-        assertThat(line.plus(line).plus(line).rounded()).isEqualTo(Money.of("1.00", "CNY"));
+        assertThat(line.plus(line).plus(line).round()).isEqualTo(Money.of("1.00", "CNY"));
     }
 
     @Test
@@ -88,7 +88,7 @@ class MoneyTest {
         assertThat(Money.of("0", "CNY").isZero()).isTrue();
         assertThat(Money.of("0.01", "CNY").isPositive()).isTrue();
         assertThat(Money.zero(Currency.getInstance("USD")).isZero()).isTrue();
-        assertThat(ExactMoney.of("0.001", "CNY").rounded().isZero()).isTrue();
+        assertThat(ExactMoney.of("0.001", "CNY").round().isZero()).isTrue();
         assertThat(ExactMoney.of("3", "CNY").minus(ExactMoney.of("5", "CNY")).negate()).isEqualTo(ExactMoney.of("2", "CNY"));
     }
 
