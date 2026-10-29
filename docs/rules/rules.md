@@ -25,7 +25,7 @@ One item per commit, with the Session trailer. Pushing runs no tests; tests run 
 ## ⑤ PRs and review
 Enforced by: post_review; manual: first-round review / every PR
 
-A PR merges and reverts on its own and follows the template. First line `Closes #<card>` only on the PR that completes the card; earlier PRs of the same card use `Refs`. Guards, CI, hooks, cross-bc interfaces, mechanical renames and deploy blockers each get their own PR, and main stays green after each. The author dispatches a fresh reviewer per `scripts/review/PROMPT.md` (model and scope there); it only writes the verdict file, the dispatcher posts it with post_review; security, production, hook and parser changes add an opus final review. 必改 is limited to correctness, hard constraints and the baseline; lead releases 必改 fixes after reading the diff.
+A PR merges and reverts on its own and follows the template. First line `Closes #<card>` only on the PR that completes the card; earlier PRs of the same card use `Refs`. Guards, CI, hooks, cross-bc interfaces, mechanical renames and deploy blockers each get their own PR, and main stays green after each. The author dispatches a fresh reviewer per `scripts/review/PROMPT.md` (model and scope there); it only writes the verdict file, the dispatcher posts it with post_review; security, production, hook and parser changes add an opus final review. 必改 is limited to correctness, hard constraints and the baseline; lead releases 必改 fixes after reading the diff; on lead's own PRs a fresh reviewer checks the fix instead.
 
 ## ⑥ Queue and merge
 Enforced by: mq, relevant_change; manual: lead / every PR
