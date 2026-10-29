@@ -52,7 +52,7 @@ def selftest_name(stem):
 
 def session_names(policy):
     sessions = policy.get("sessions", {})
-    return set(sessions.get("config", {})) | set(sessions.get("aliases", {}))
+    return set(sessions.get("config", {}))
 
 
 def file_problems(path, sessions, dirs):

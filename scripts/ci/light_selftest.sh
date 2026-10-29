@@ -101,10 +101,14 @@ fake=$tmp/fake && mkdir -p "$fake/scripts/ci" "$fake/backend/target/surefire-rep
 printf 'print("ATest,BTest")\n' >"$fake/scripts/ci/light_unit_classes.py"
 # shellcheck disable=SC2016  # writes a fake mvnw; its $ stays literal
 printf '#!/bin/sh\nfor c in $FAKE_REPORTS; do : > "target/surefire-reports/TEST-x.$c.xml"; done\nexit ${FAKE_EXIT:-0}\n' >"$fake/backend/mvnw" && chmod +x "$fake/backend/mvnw"
+# shellcheck disable=SC2119  # no argument on purpose: the whole list of container-free classes, as light.sh runs it
 (cd "$fake" && FAKE_REPORTS=ATest surefire_guards 2>/dev/null) && no "surefire_guards：BTest 没出报告时应失败"
 : >"$fake/backend/target/surefire-reports/TEST-x.BTest.xml"
+# shellcheck disable=SC2119  # no argument on purpose: the whole list of container-free classes, as light.sh runs it
 (cd "$fake" && FAKE_REPORTS=ATest surefire_guards 2>/dev/null) && no "surefire_guards：上次留下的 BTest 报告不能顶替这次"
+# shellcheck disable=SC2119  # no argument on purpose: the whole list of container-free classes, as light.sh runs it
 (cd "$fake" && FAKE_REPORTS="ATest BTest" FAKE_EXIT=1 surefire_guards 2>/dev/null) && no "surefire_guards：Maven 失败时应失败"
+# shellcheck disable=SC2119  # no argument on purpose: the whole list of container-free classes, as light.sh runs it
 (cd "$fake" && FAKE_REPORTS="ATest BTest" surefire_guards 2>/dev/null) || no "surefire_guards：两个类都出了报告时应通过"
 
 # run、skip、report：并行起跑，按起跑顺序打印；失败计 FAIL 并附输出，SKIP 带原因

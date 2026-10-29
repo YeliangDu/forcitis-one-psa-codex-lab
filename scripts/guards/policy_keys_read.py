@@ -20,7 +20,7 @@ import os
 import sys
 import tempfile
 
-MAPS = ("sessions.config", "sessions.aliases")  # data maps: the reader reads the whole map, its keys are data
+MAPS = ("sessions.config",)  # data maps: the reader reads the whole map, its keys are data
 SEARCH = ("scripts", "tools", ".github")
 LIBRARY = os.path.expanduser("~/.modernize/psa/tools")
 TOOL_LIBRARY = {  # section.key -> file in the tool library that reads it
@@ -124,7 +124,7 @@ def self_test():
         good = {"rules": {"_note": "x", "a_max_kb": 6}, "start": {"b_kb": 2, "flag": True, "items": [1]}}
         assert rules(good, 'policy["rules"]["a_max_kb"]; get("b_kb")') == [], "quoted names count; booleans, lists and _ notes are skipped"
         deep = {"rules": {"a_max_kb": 6}, "start": {"b_kb": 2}, "labels": {"hold": "hold-label"}, "x": {"y": {"z": 1}},
-                "sessions": {"config": {"one-a": {"role": "r"}}, "aliases": {"old": "one-a"}}}
+                "sessions": {"config": {"one-a": {"role": "r"}}}}
         assert rules(deep, '"a_max_kb" "b_kb" "hold" "z"') == [], "every section and nesting level; MAPS keys are data, not readers"
         assert rules(deep, '"a_max_kb" "b_kb" "z"') == ["PK-1"], "a string leaf (labels.hold) is checked too"
         assert rules(deep, '"a_max_kb" "b_kb" "hold"') == ["PK-1"], "a nested leaf (x.y.z) is checked too"

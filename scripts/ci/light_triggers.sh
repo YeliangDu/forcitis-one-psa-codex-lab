@@ -95,9 +95,10 @@ maven_offline_ready() {  # 本机 ~/.m2 够离线编译后端测试：只有 Mav
   ! printf '%s\n' "$out" | grep -qiE 'offline mode|has not been downloaded|could not be resolved|Could not resolve dependencies|could not transfer'
 }
 
-surefire_guards() {  # 全部免容器单测（light_unit_classes.py 列出，含守护类）；每个类都要出报告，没出报告即没跑，算失败
+surefire_guards() {  # 免容器单测（light_unit_classes.py 列出，含守护类）；给了改动清单文件（每行一个路径）就只跑它影响得到的类（check_all.sh）；每个类都要出报告，没出报告即没跑，算失败
   local classes class
-  classes=$(python3 scripts/ci/light_unit_classes.py) && [ -n "$classes" ] || return 1
+  if [ -n "${1:-}" ]; then classes=$(python3 scripts/ci/light_unit_classes.py --changed "$1") || return 1; [ -n "$classes" ] || { echo "改动影响不到任何免容器单测"; return 0; }
+  else classes=$(python3 scripts/ci/light_unit_classes.py) && [ -n "$classes" ] || return 1; fi
   for class in ${classes//,/ }; do rm -f backend/target/surefire-reports/TEST-*."$class".xml; done  # 本机 target 里的旧报告不算数
   (cd backend && ./mvnw -q -o test-compile surefire:test -Dtest="$classes") || return 1  # -o：轻检查不联网
   for class in ${classes//,/ }; do

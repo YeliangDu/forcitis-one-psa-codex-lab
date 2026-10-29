@@ -28,20 +28,6 @@ def fragment_owner(mod, act):
     return open(frag, encoding="utf-8").read().split("## 负责会话\n\n", 1)[1].split("\n", 1)[0]
 
 
-@contextlib.contextmanager
-def alias_to_nobody(tree):
-    """临时把副本 policy.json 的别名 one-rules 指向不存在的会话 one-nobody，用完复原。"""
-    path = os.path.join(tree, "policy.json")
-    orig = open(path, encoding="utf-8").read()
-    policy = json.loads(orig)
-    policy["sessions"]["aliases"]["one-rules"] = "one-nobody"
-    open(path, "w", encoding="utf-8").write(json.dumps(policy, ensure_ascii=False))
-    try:
-        yield
-    finally:
-        open(path, "w", encoding="utf-8").write(orig)
-
-
 def main():
     with tempfile.TemporaryDirectory() as tree:
         mod, digest = os.path.join(tree, "docs", "decisions"), os.path.join(tree, "docs", "decisions", "decision-digest")
@@ -85,17 +71,14 @@ def main():
         for owner in ("one-lead", "one-design", "one-platform", "one-dev-org"):
             code, out = run(tree, swap(GOOD, "owner", owner))
             assert code == 0, f"{owner} 应认：{out}"
-        for old, new in (("one-rules", "one-lead"), ("one-arch-finance", "one-design"), ("one-coordinator", "one-lead"), ("one-1a-par", "one-dev-org"), ("one-dev-par", "one-dev-org"),
-                         ("one-leader", "one-lead"), ("one-glossary", "one-design"), ("one-ops", "one-platform"), ("one-merge", "one-platform"), ("one-platform-file", "one-dev-org")):   # O23b、#736、#744：旧名经别名放行，片段写现名
-            assert fragment_owner(mod, lambda: run(tree, swap(GOOD, "owner", old))) == new, f"--owner={old} 应经别名写成 {new}"
+        for old in ("one-rules", "one-coordinator", "one-leader", "one-ops", "one-architecture", "one-platform-file"):   # #856：旧名不再放行
+            code, out = run(tree, swap(GOOD, "owner", old))
+            assert code != 0 and "--owner" in out, f"旧名 {old} 应拒：{out[:200]}"
         dev = os.path.join(tree, "docs", "rules", "roles", "dev.md")
         open(dev, "w", encoding="utf-8").write(open(dev, encoding="utf-8").read().replace("## 过渡映射\n", "## 过渡映射\n- one-ghost 担任\n", 1))
         for name in ("one-ghost", "one-dev-zz", "one-leadx"):   # 只在 roles/ 过渡映射里的名字、未登记名都不在 sessions.config，应拒
             code, out = run(tree, swap(GOOD, "owner", name))
             assert code != 0 and "--owner" in out, f"未登记名 {name} 应拒：{out[:200]}"
-        with alias_to_nobody(tree):
-            code, out = run(tree, swap(GOOD, "owner", "one-rules"))
-            assert code != 0 and "--owner" in out, f"别名指向不存在的会话应拒：{out[:200]}"
     print("ok")
 
 

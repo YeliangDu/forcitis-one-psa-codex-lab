@@ -247,6 +247,9 @@ def _units(mq, d):
     assert not rv([], [approval("e" * 9)], pids={h: None})[0], "an approval whose patch-id git cannot compute does not match a head git cannot compute either"
     assert rv([review(h, "必改")], [approval(h[:9])])[0] and rv([review("e" * 40, "必改")], [approval("c" * 9)])[0], "the coordinator's approval of the fix, by name or by patch-id"
     assert PID[:6] in rv([])[1], "the refusal says the head's patch-id"
+    lead_rv = lambda reviews, comments=(): mq.release_verdict(reviews, list(comments), h, lambda c: pid.get(c), approvals_count=False)
+    assert not lead_rv([review(h, "必改")], [approval(h)])[0] and lead_rv([], [approval(h)])[0] is None, "lead's own pull request: its approval does not count (#856)"
+    assert lead_rv([review(h)], [approval(h)])[0], "a first-round 通过 still releases it"
 
 
 def _flow(mq, d):
@@ -453,7 +456,32 @@ def _release(mq, d):
         gh = FakeGh(); change(gh.add(60, merge="BEHIND", behind=1))
         result, ev, log, _ = once(mq, d, "r-" + name, gh, 60)
         assert result == "HOLD" and "not released" in log.lines[-1] and not [c for c in gh.calls if c[0] in ("merge", "update-branch", "label")], (name, gh.calls)
-    # a 必改 arrives while the CI runs: the check under the merge lock stops it
+    # lead's own pull request (branch claude/one-lead-...): an approval comment does not release it, a first-round 通过 does (#856); another branch: the approval does
+    for name, branch, reviews, released in (("lead, approval only", "claude/one-lead-860-x", [], "HOLD"), ("lead, first round", "claude/one-lead-860-x", None, "MERGED"),
+                                            ("other session, approval only", "claude/one-platform-860-x", [], "MERGED"),
+                                            ("old lead name, approval only", "claude/one-leader-860-x", [], "HOLD"),
+                                            ("unnamed branch, approval only", "fix-something", [], "HOLD"),
+                                            ("no branch, approval only", "", [], "HOLD")):
+        gh = FakeGh(); p = gh.add(66)
+        p["branch"] = branch
+        if reviews is not None:
+            p["reviews"] = reviews
+        p["comments"] = [approval(p["head"])]
+        result, ev, log, _ = once(mq, d, "r-lead-" + name.replace(" ", "-").replace(",", ""), gh, 66)
+        assert result == released, (name, result, log.lines[-1:])
+        if released == "HOLD":
+            assert "approvals do not count on lead's own pull request" in log.lines[-1], log.lines[-1]
+    # carried across the queue's merge of main: an approval of the pre-merge commit releases a known non-lead branch, never lead's own (#856)
+    for name, branch, ok in (("other session", "claude/one-platform-67-x", True), ("lead", "claude/one-lead-67-x", False), ("old name", "claude/one-leader-67-x", False)):
+        gh = FakeGh(); p = gh.add(67)
+        merged_head, before = p["head"], "d" * 40
+        p.update(branch=branch, reviews=[], comments=[approval(before)])
+        p["merges"][merged_head] = before
+        p["pids"].update({merged_head: "1" * 40, before: "2" * 40})
+        proc = _proc(mq, d, "r-carry-appr-" + name.replace(" ", "-"), gh)[0]
+        released, why = proc.released(67, merged_head)
+        assert released is ok, (name, why)
+        assert not ok or "carried across the merge of main" in why, why
     gh = FakeGh(); p = gh.add(61, rounds=[dict(pending=2, checks=green())])
     result, ev, log, _ = once(mq, d, "r-late", gh, 61, on_sleep=lambda s: p["reviews"].append(review(p["head"], "必改", at="2026-10-29T05:00:00Z")))
     assert result == "HOLD" and "LABEL-QUEUED" in ev and not merged(gh) and "必改" in log.lines[-1]
@@ -472,6 +500,7 @@ def _release(mq, d):
         assert result == "HOLD" and not merged(gh) and "not released" in log.lines[-1], name
     # the coordinator's approval of a fix after a 必改; the docs lane needs no review
     gh = FakeGh(); p = gh.add(64); p["reviews"], p["pids"]["c" * 40] = [review("c" * 40, "必改")], "7" * 40; p["comments"] = [approval(p["head"][:9])]
+    p["branch"] = "claude/one-platform-64-x"   # approvals count only on a branch of a known session other than lead (#856)
     assert once(mq, d, "r-appr", gh, 64)[0] == "MERGED"
     for name, files, outcome in (("plain", ["docs/a.md"], "MERGED"), ("guarded", ["docs/a.md", "scripts/merge/x.md"], "HOLD"), ("unknown", None, "HOLD")):
         gh = FakeGh(); p = gh.add(65); p["reviews"], p["files"] = [], files
@@ -939,10 +968,10 @@ def _docs_tiers(mq, d):
     os.makedirs(os.path.join(repo, "scripts/ci"))
     script = os.path.join(repo, "scripts/ci/relevant_change.py")
     files = lambda f: type("F", (), {"files": lambda self, n: f})()
-    open(script, "w").write("import sys\nprint('tier=' + ('docs' if all(p.startswith('docs/') for p in open(sys.argv[2]).read().split()) else 'code'))\n")
+    open(script, "w").write("import sys\nprint('tier=' + ('docs' if all(p.startswith(('docs/', '.claude/')) for p in open(sys.argv[2]).read().split()) else 'code'))\n")
     lane = mq.default_lane(repo)
     assert lane(files(["docs/a.md"]), 1) == "docs" and lane(files(["docs/a.md", "backend/pom.xml"]), 1) == "code" and lane(files(None), 1) == "code" and lane(files([]), 1) == "code"
-    assert lane(files(["docs/a.md", "docs/ops/predeploy-checklist.md"]), 1) == "code", "a guarded path is never the docs lane, whatever its tier"
+    assert lane(files(["docs/a.md", ".claude/rules/x.md"]), 1) == "code", "a guarded path is never the docs lane, whatever its tier (the fake tier calls .claude/ docs)"
     open(script, "w").write("print('tier=docs')\nraise SystemExit(3)\n")
     assert mq.default_lane(repo)(files(["docs/a.md"]), 1) == "code", "a non-zero exit is never docs"
 

@@ -24,7 +24,7 @@ required checks (backend verify, frontend verify, secret scan, none of them with
 Conflicts with main: the queue merges main in (over ssh when gh cannot); a text conflict goes back to the author (CONFLICT).
 Release. Before it spends CI on a pull request, and again under the merge lock right before the merge, the queue reads the reviews and comments: the newest statement that speaks for the head must be a 通过 (release_verdict). When nothing speaks for the head and it only merges main into an earlier head (the queue's own update: second parent on main, the tree of a clean merge), the earlier head's verdict carries over.
 A first-round review speaks for the head when it was posted on it or on a commit whose patch-id (git patch-id --verbatim, computed by the queue) equals the head's (a rebase, or the queue's own merge of main, that leaves the change as it was);
-a dispatcher comment `调度批准入队 head <sha>` (the coordinator letting a 必改 fix through) speaks for the head it names or one with the same patch-id. Docs-lane pull requests need no review unless they touch a guarded path (policy.json review.final_paths). Not released: HOLD.
+a dispatcher comment `调度批准入队 head <sha>` (the coordinator letting a 必改 fix through) speaks for the head it names or one with the same patch-id, but only on a branch that names a session of policy.json sessions.config other than lead: on lead's own branch, an old or unknown branch name, or no branch it does not count and a first-round review must pass (#856). Docs-lane pull requests need no review unless they touch a guarded path (policy.json review.final_paths). Not released: HOLD.
 Read-back. After the merge call GitHub must show the pull request MERGED with the pinned head as the second parent of the merge commit; otherwise ALERT READBACK and both lanes pause until `mq.py resume`.
 Outcomes: MERGED, CONFLICT (text conflict with main in a file a person wrote: back to the author), HOLD (red after the rerun, CI timeout, closed, not released, an update that could not be pushed, attempts exhausted: reported to the coordinator).
 
@@ -38,7 +38,7 @@ It does so only when that checkout is on main, has no change to a tracked file a
 unit test (ci.yml), the nightly the full ci: together they are the alarm for a merge whose tree no full run tested exactly as merged.
 
 Gap scan. Every 30 minutes the runner looks at all open pull requests, whether or not the queue is empty (scripts/merge/gapscan.py): conflict, red CI, approved but not queued (a comment `调度批准入队 head <sha>`), no commit or comment for an hour.
-It cannot message a session: a GAPS line in the log and <queue dir>/gaps.md say who owns what (branch [claude/]<session>-... -> session, names and aliases from policy.json sessions), the session watching the log forwards it. The same pull request and reason is reported once in 4 hours.
+It cannot message a session: a GAPS line in the log and <queue dir>/gaps.md say who owns what (branch [claude/]<session>-... -> session, names from policy.json sessions.config), the session watching the log forwards it. The same pull request and reason is reported once in 4 hours.
 
 Queue file: one pull request number per line, optionally "<n> after=<m>[,<m>...]" (`mq.py enqueue <n> --after <m>`: n is not started until every m is MERGED, whatever lane either is in; WAIT-DEP in the log
 while it waits and again every hour, HOLD when a dependency was closed unmerged;
@@ -86,10 +86,14 @@ def red_checks(checks):
     return [c for c in checks if c["bucket"] not in OK and not (c["name"].endswith("(light)") and c["name"][:-len("(light)")].rstrip() in full)]
 
 
-def release_verdict(reviews, comments, head, patch_id_of):
+LEAD = "one-lead"   # the session that posts approvals; it never releases its own pull request (rules ⑤, #856)
+
+
+def release_verdict(reviews, comments, head, patch_id_of, approvals_count=True):
     """(True, why) when the change at `head` may be merged, (False, why) when the newest statement for it is a 必改, (None, why) when nothing speaks for it. The newest statement that speaks for `head` decides: a first-round review (通过 or 必改), a 必改 of a final review,
     or a dispatcher approval comment `调度批准入队 head <sha>` (gapscan.APPROVAL; how the coordinator lets a 必改 fix through, RULES ⑤), which counts as 通过.
-    Every session posts through the same GitHub account: an approval (like a review) is a record of what was decided, not a check of who decided it.
+    Every session posts through the same GitHub account, so who wrote an approval cannot be told apart: approvals count only on a branch that names a session of sessions.config other than
+    lead (Processor.released); approvals_count=False (lead's branch, an old or unknown branch name, or no branch) ignores them, and only a first-round review can release it (#856).
     A review speaks for `head` when GitHub holds it on the commit its header names and that commit is `head` or has the same patch-id as `head`; an approval when it names `head` or a commit with the same patch-id
     (a rebase, or the queue's own merge of main, that leaves the change as it was). The patch-ids are git's (`patch_id_of(commit)`, None when git cannot say), never the one a review body states."""
     fields = post_review.load_policy()[0]["header_fields"]
@@ -107,7 +111,7 @@ def release_verdict(reviews, comments, head, patch_id_of):
         if h and r["commit"] == h["commit"] and not (h["kind"] == post_review.FINAL and h["verdict"] == post_review.PASS) and same(h["commit"]):
             said.append((r["at"], h["verdict"], f"{h['reviewer']} on {h['commit'][:10]}"))
     for c in comments:
-        m = gapscan.APPROVAL.search(c["body"]) if c["author"] == gapscan.APPROVER else None
+        m = gapscan.APPROVAL.search(c["body"]) if approvals_count and c["author"] == gapscan.APPROVER else None
         if m and same(m.group(1).lower()):
             said.append((c["at"], post_review.PASS, f"approval of {m.group(1)[:10]}"))
     if not said:
@@ -676,7 +680,15 @@ class Processor:
             if commit not in known:
                 known[commit] = self.gh.patch_id(self.repo, n, commit)
             return known[commit]
-        ok, why = release_verdict(reviews, comments, head, patch_id_of)
+        view = self.gh.view(n)
+        branch = view.get("branch") if isinstance(view, dict) else None
+        owners = gapscan.load_owners()
+        owner = gapscan.author_session(branch, owners) if branch else None
+        own = owner not in owners or owner == LEAD   # approvals count only on a branch of a known session other than lead
+        ok, why = release_verdict(reviews, comments, head, patch_id_of, approvals_count=not own)
+        if own and ok is not True:
+            why += (f"; approvals do not count on lead's own pull request, nor on one whose branch names no session of sessions.config "
+                    f"({branch or 'branch unknown'}): a first-round review must pass")
         commit = head
         for _ in range(10):   # nothing speaks for the head: a merge of main into a released head (the queue's own update) carries its verdict; merging main may change the context lines, and so the patch-id
             if ok is not None:
@@ -684,7 +696,7 @@ class Processor:
             commit = self.gh.main_merge_parent(self.repo, n, commit)
             if not commit:
                 break
-            ok, carried = release_verdict(reviews, comments, commit, patch_id_of)
+            ok, carried = release_verdict(reviews, comments, commit, patch_id_of, approvals_count=not own)
             if ok is not None:
                 why = f"{carried}; carried across the merge of main into {commit[:10]}"
         return ok is True, why
