@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.platform.integration;
 
+import static org.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -13,6 +14,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -111,23 +113,20 @@ class EmployeeCodeConcurrentSyncIT extends OrgSourceWorldSupport {
 
     /** Polls until a backend of this database waits on a lock (the sync insert waiting on the rival's uncommitted key); fails on timeout or if the sync ended early. */
     private void awaitSomeoneWaitingOnALock(Future<SyncResult> run) throws Exception {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
         try (Connection watcher = schemaConnection("organization_workforce"); PreparedStatement query = watcher.prepareStatement(
                 "select count(*) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid() and wait_event_type = 'Lock'")) {
-            while (System.nanoTime() < deadline) {
-                if (run.isDone()) {
-                    fail("the sync ended before it waited on the rival's uncommitted code: " + run.get().status() + " " + run.get().note());
-                }
-                try (ResultSet rs = query.executeQuery()) {
-                    rs.next();
-                    if (rs.getInt(1) > 0) {
-                        return;
-                    }
-                }
-                Thread.sleep(50);
-            }
+            await("the sync waits on the rival's uncommitted code within " + WAIT_SECONDS + " seconds")
+                    .atMost(Duration.ofSeconds(WAIT_SECONDS)).pollInterval(Duration.ofMillis(50))
+                    .until(() -> {
+                        if (run.isDone()) {
+                            fail("the sync ended before it waited on the rival's uncommitted code: " + run.get().status() + " " + run.get().note());
+                        }
+                        try (ResultSet rs = query.executeQuery()) {
+                            rs.next();
+                            return rs.getInt(1) > 0;
+                        }
+                    });
         }
-        fail("the sync never waited on the rival's uncommitted code within " + WAIT_SECONDS + " seconds");
     }
 
     private int employeesWithCode(String code) throws SQLException {
