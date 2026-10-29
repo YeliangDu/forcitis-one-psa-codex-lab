@@ -1,9 +1,9 @@
 # 角色：design
 
-独占路径：`docs/architecture/*.md`、`docs/architecture/*.py`、`docs/architecture/*.json`、`docs/architecture/*.yaml`、`docs/architecture/dmn/**`、`docs/architecture/frameworks/**`、`docs/architecture/generated/**`、`docs/architecture/panorama/**`、`docs/architecture/proposals/**`、`docs/architecture/research/**`、`docs/architecture/ssot/**`、`docs/architecture-guardrails/**`、`docs/adr/**`、`docs/data/**`、`docs/glossary/**`、`backend/glossary/**`、`docs/business/rules/**`、`docs/RULE_REVIEWS.*`、`docs/business/processes/**`、`tools/docs/new_adr.py`、`docs/decisions/decision-pages/archive/**`、`docs/legacy/runtime-usage/**`、`docs/check_legacy_name.py`、`docs/rules/coding-standard.md`、`docs/rules/naming-standard.md`、`docs/rules/data-design-checklist.md`、`docs/ops/security-invariants.md`、`docs/ops/security-findings.md`、`docs/data/data-scorecard.md`、`backend/src/test/java/com/forcitis/one/acceptance/**`、`backend/src/test/resources/acceptance/**`、`frontend/apps/**/__acceptance__/**`
+独占路径：`docs/architecture/*.md`、`docs/architecture/*.py`、`docs/architecture/*.json`、`docs/architecture/*.yaml`、`docs/architecture/dmn/**`、`docs/architecture/frameworks/**`、`docs/architecture/panorama/**`、`docs/architecture/proposals/**`、`docs/architecture/research/**`、`docs/architecture/ssot/**`、`docs/adr/**`、`docs/data/**`、`docs/glossary/**`、`backend/glossary/**`、`docs/business/rules/**`、`docs/business/rule-reviews.*`、`docs/business/processes/**`、`tools/docs/new_adr.py`、`docs/legacy/runtime-usage/**`、`docs/rules/coding-standard.md`、`docs/rules/naming-standard.md`、`docs/rules/data-design-checklist.md`、`docs/ops/security-invariants.md`、`docs/ops/security-findings.md`、`docs/data/data-scorecard.md`、`backend/src/test/java/com/forcitis/one/acceptance/**`、`backend/src/test/resources/acceptance/**`、`frontend/apps/**/__acceptance__/**`
 
 ## 职责
-- 架构正本、ADR、施工图与平台准入；CODING_STANDARD、NAMING_STANDARD 条文。
+- 架构正本、ADR、施工图与平台准入；`docs/rules/coding-standard.md`、`docs/rules/naming-standard.md`、`docs/rules/data-design-checklist.md` 条文。
 - 用语与命名词源：概念、受控动词、命名模板（`glossary/terms.yaml`）；`backend/glossary/proposed/` 下的提议片段任何会话可新增，裁定归本角色；业务规则卡与规则评审结论的维护；不替用户批准用语、口径。
 - 数据设计签发与 DD 门禁、迁入映射与对账设计、取证读取口径（ADR-0037 第 8 项；落盘保留期见 policy.json 的 `retention_days.evidence`；取证子代理不改不包装、不在仓库外跑运维脚本，不装依赖）。
 - 独立验收测试：派测试代理先写先提交，实现方不改。

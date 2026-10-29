@@ -1,6 +1,6 @@
 # FORCITIS one
 
-老系统的接班系统（one.forcitis.com）。代码将按 `docs/rules/modernization-brief-template.md`的阶段逐步加入。
+老系统的接班系统（one.forcitis.com）。代码按卡逐步加入，做法见 `docs/rules/rules.md` 与 `docs/rules/playbooks/`。
 
 - 会话规则：`CLAUDE.md`（底线）、`docs/rules/rules.md` 与 `docs/rules/roles/`
 - 架构决策：`docs/adr/`

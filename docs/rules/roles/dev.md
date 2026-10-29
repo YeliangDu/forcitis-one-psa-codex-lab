@@ -6,7 +6,7 @@
 
 ## 职责
 - 一个 bc 从卡到合入端到端负责：实现、单元测试、本 bc 页面、PR、复审、回改。
-- 写代码先读 CODING_STANDARD、NAMING_STANDARD。
+- 写代码按 `backend/CLAUDE.md` 指到的 `docs/rules/coding-standard.md`、`docs/rules/naming-standard.md` 条款。
 - 复审：开 PR 后按 `scripts/review/PROMPT.md` 拉起复审子代理；子代理只写结论文件，post_review 由派工人运行，提交带机读头（结论、commit、复审者）的普通 review。回改后在同一线程逐条回复，必改修复报 lead 看差异放行。安全、生产、钩子、解析类加 opus 终审。复审通过后自行入队（RULES ⑥），可开本 PR 的 Auto-fix。权限、安全、数据范围类卡的验收由 lead 另派独立测试代理先写，其余卡自写测试、复审核其忠于卡。
 - 复审超过 policy.json 的 `review.no_verdict_alert_minutes` 无结论，作者重派。
 
