@@ -71,11 +71,15 @@ class AuditPartitionJob implements SmartInitializingSingleton {
         LocalDate thisMonth = clock.instant().atOffset(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1);
         LocalDate through = thisMonth.plusMonths(policy.monthsAhead());
         try {
-            int created = jdbc.sql("select platform_audit.create_audit_entry_partitions(:from, :through)")
+            int created = jdbc.sql("""
+                    select platform_audit.create_audit_entry_partitions(:from, :through)
+                    """)
                     .param("from", thisMonth).param("through", through).query(Integer.class).single();
             LOG.info("platform.audit created {} audit partitions up to {}", created, through);
             String next = "platform_audit.audit_entries_p" + thisMonth.plusMonths(1).format(MONTH);
-            if (Boolean.FALSE.equals(jdbc.sql("select to_regclass(:name) is not null").param("name", next).query(Boolean.class).single())) {
+            if (Boolean.FALSE.equals(jdbc.sql("""
+                    select to_regclass(:name) is not null
+                    """).param("name", next).query(Boolean.class).single())) {
                 failures.increment();
                 LOG.error("ALERT platform.audit the audit partition {} of next month is missing: entries of that month will be refused", next);
             }

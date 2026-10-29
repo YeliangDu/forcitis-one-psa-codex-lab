@@ -184,12 +184,6 @@ relations:
   via: api：来源对照（防腐层）
   status: built
   basis: module-dependencies.txt；关系类型为 one-architecture 提议，待架构评审
-- id: platform.web>platform.identity
-  upstream: platform.web
-  downstream: platform.identity
-  via: api：Web 参数约定（NotFromQuery）
-  status: built
-  basis: module-dependencies.txt（A1 实现时补登，2026-10-15）
 - id: platform.integration>platform.file
   upstream: platform.integration
   downstream: platform.file

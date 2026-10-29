@@ -2,11 +2,8 @@ package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.forcitis.one.platform.web.NotFromQuery;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
-import com.tngtech.archunit.core.domain.JavaClasses;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -112,45 +109,6 @@ class ModuleDependencyTest {
             }
         }
         return seen;
-    }
-
-    @Test
-    @DisplayName("P2 recheck M-1 platform.identity uses platform.web only for the NotFromQuery marker, and only from infrastructure.security")
-    void identityUsesTheWebModuleOnlyForTheMarker() {
-        assertThat(identityUsesOfTheWebModule(ArchitectureRulesTest.CLASSES))
-                .as(GuardMessage.of("D1",
-                        "platform.identity uses platform.web beyond the NotFromQuery marker used from infrastructure.security (P2 recheck M-1)",
-                        "remove the use of the other platform.web type, or use the NotFromQuery marker only in platform.identity.infrastructure.security"))
-                .isEmpty();
-    }
-
-    @Test
-    @DisplayName("P2 recheck M-1 counterexamples: another platform.web type, or the marker outside infrastructure.security, is reported")
-    void otherUsesOfTheWebModuleAreReported() throws ClassNotFoundException {
-        JavaClasses samples = new ClassFileImporter().importClasses(
-                Class.forName(ROOT + "platform.identity.infrastructure.security.WebSamplesInSecurity$Marked"),
-                Class.forName(ROOT + "platform.identity.infrastructure.security.WebSamplesInSecurity$UsesAnotherWebType"),
-                Class.forName(ROOT + "platform.identity.application.WebMarkerOutsideSecurity"));
-        assertThat(identityUsesOfTheWebModule(samples)).containsExactlyInAnyOrder(
-                ROOT + "platform.identity.application.WebMarkerOutsideSecurity uses " + NotFromQuery.class.getName(),
-                ROOT + "platform.identity.infrastructure.security.WebSamplesInSecurity$UsesAnotherWebType uses " + ROOT + "platform.web.WebTypeSample");
-    }
-
-    static Set<String> identityUsesOfTheWebModule(JavaClasses classes) {
-        Set<String> violations = new TreeSet<>();
-        for (JavaClass c : classes) {
-            if (!moduleOf(c).equals(Optional.of("platform.identity"))) {
-                continue;
-            }
-            for (Dependency d : c.getDirectDependenciesFromSelf()) {
-                if (moduleOf(d.getTargetClass()).equals(Optional.of("platform.web"))
-                        && (!d.getTargetClass().getName().equals(NotFromQuery.class.getName())
-                        || !c.getPackageName().equals(ROOT + "platform.identity.infrastructure.security"))) {
-                    violations.add(c.getName() + " uses " + d.getTargetClass().getName());
-                }
-            }
-        }
-        return violations;
     }
 
     static Optional<String> moduleOf(JavaClass c) {

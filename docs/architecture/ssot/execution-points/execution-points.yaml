@@ -1,6 +1,6 @@
 # 正本，直接编辑（原生成脚本已随 #742 删除）
 meta:
-  count: 601
+  count: 599
   enforces_nonempty: 2
   unnamed_constraints: 44
 execution_points:
@@ -1014,11 +1014,6 @@ execution_points:
     kind: "不变量"
     location: "backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:327"
     name: "ck_org_unit_versions_status"
-    enforces: []
-  - id: "EP-57534736cb"
-    kind: "守护"
-    location: "backend/src/test/java/com/forcitis/one/ModuleDependencyTest.java:69"
-    name: "otherUsesOfTheWebModuleAreReported"
     enforces: []
   - id: "EP-57553416f3"
     kind: "守护"
@@ -2387,11 +2382,6 @@ execution_points:
     kind: "不变量"
     location: "backend/src/main/resources/db/migration/platform_approval/V20261014132000__platform_approval_baseline.sql:79"
     name: "start_rounds_reject_truncate"
-    enforces: []
-  - id: "EP-c80eb6c848"
-    kind: "守护"
-    location: "backend/src/test/java/com/forcitis/one/ModuleDependencyTest.java:63"
-    name: "identityUsesTheWebModuleOnlyForTheMarker"
     enforces: []
   - id: "EP-c8380441b7"
     kind: "守护"

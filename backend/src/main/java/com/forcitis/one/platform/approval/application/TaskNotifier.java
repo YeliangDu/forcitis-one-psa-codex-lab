@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.approval.infrastructure.notification;
+package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.AccountEmployees;
@@ -10,7 +10,6 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
-import com.forcitis.one.platform.approval.application.ApprovalTexts;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;

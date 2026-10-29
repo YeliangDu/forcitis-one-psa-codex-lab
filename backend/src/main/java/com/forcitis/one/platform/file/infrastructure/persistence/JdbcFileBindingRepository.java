@@ -23,12 +23,13 @@ import com.forcitis.one.platform.file.domain.FileBindingRepository;
 import com.forcitis.one.platform.file.domain.FilePreservation;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -61,7 +62,9 @@ class JdbcFileBindingRepository implements FileBindingRepository {
         if (locked.isEmpty()) {
             return locked;
         }
-        boolean bound = jdbc.sql("select exists (select 1 from platform_file.file_bindings where stored_file_id = :id)")
+        boolean bound = jdbc.sql("""
+                select exists (select 1 from platform_file.file_bindings where stored_file_id = :id)
+                """)
                 .param("id", file.value()).query(Boolean.class).single();
         BindingTarget t = locked.get();
         return Optional.of(new BindingTarget(t.id(), t.status(), t.uploader(), t.previous(), t.objectKey(), t.contentHash(), t.size(), bound));
@@ -122,7 +125,7 @@ class JdbcFileBindingRepository implements FileBindingRepository {
                 .param("document", document.documentId().value()).param("access", classification.accessLevel().name())
                 .param("mark", classification.personalInformation().name()).param("kind", boundBy.kind().name())
                 .param("userId", idOf(boundBy, FileSubjectKind.USER)).param("linkId", idOf(boundBy, FileSubjectKind.ONE_TIME_LINK))
-                .param("moduleCode", boundBy.kind() == FileSubjectKind.PLATFORM_MODULE ? boundBy.id() : null).param("at", Timestamp.from(at))
+                .param("moduleCode", boundBy.kind() == FileSubjectKind.PLATFORM_MODULE ? boundBy.id() : null).param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC))
                 .update();
     }
 
@@ -134,7 +137,7 @@ class JdbcFileBindingRepository implements FileBindingRepository {
                         values (:id, :file, 1, :version, :type, :document, :at, :at, :at)
                         """)
                 .param("id", ids.next()).param("file", file.value()).param("version", categoryVersion)
-                .param("type", anchor.documentType().value()).param("document", anchor.documentId().value()).param("at", Timestamp.from(at))
+                .param("type", anchor.documentType().value()).param("document", anchor.documentId().value()).param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC))
                 .update();
     }
 
@@ -160,7 +163,7 @@ class JdbcFileBindingRepository implements FileBindingRepository {
                 .param("document", initiator.documentId().value()).param("kind", heldBy.kind().name())
                 .param("userId", idOf(heldBy, FileSubjectKind.USER)).param("linkId", idOf(heldBy, FileSubjectKind.ONE_TIME_LINK))
                 .param("moduleCode", heldBy.kind() == FileSubjectKind.PLATFORM_MODULE ? heldBy.id() : null).param("reason", reason.value())
-                .param("at", Timestamp.from(at))
+                .param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC))
                 .update();
     }
 
@@ -194,7 +197,7 @@ class JdbcFileBindingRepository implements FileBindingRepository {
                 .param("type", document.documentType().value()).param("document", document.documentId().value())
                 .query((rs, n) -> new StoredFileSummary(new FileId(rs.getObject("stored_file_id", UUID.class)), new ContentHash(rs.getString("content_hash")),
                         rs.getLong("byte_count"), rs.getString("media_type_code"), rs.getString("original_name"), FileStatus.valueOf(rs.getString("file_status")),
-                        rs.getBoolean("has_macros"), subject(rs, "uploader"), rs.getTimestamp("stored_at").toInstant(), lineage(rs)))
+                        rs.getBoolean("has_macros"), subject(rs, "uploader"), rs.getObject("stored_at", OffsetDateTime.class).toInstant(), lineage(rs)))
                 .list();
     }
 

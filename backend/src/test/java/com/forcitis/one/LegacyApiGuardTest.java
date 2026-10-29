@@ -97,13 +97,8 @@ class LegacyApiGuardTest {
             .as("LA-9 Spring's nullness annotations org.springframework.lang.* (deprecated in Spring Framework 7; OpenApiRequiredProperties reads only JSpecify)")
             .because("fix: use org.jspecify.annotations.Nullable / @NullMarked; on a qualified type write java.time.@Nullable Instant");
 
-    /**
-     * Tests that still sleep, until their owner changes them, with the reason. Acceptance tests change only through the test engineer
-     * (CLAUDE.md baseline 4), so the implementer of #810 could not convert this one. An entry that no longer sleeps fails the stale check.
-     */
-    static final Map<String, String> SLEEP_ALLOWED = Map.of(
-            "com.forcitis.one.acceptance.platform.integration.EmployeeCodeConcurrentSyncIT",
-            "acceptance test: polls pg_locks every 50 ms; to be converted to Awaitility by the test engineer");
+    /** Tests that still sleep, until their owner changes them, with the reason. An entry that no longer sleeps fails the stale check. */
+    static final Map<String, String> SLEEP_ALLOWED = Map.of();
 
     static boolean sleepAllowed(JavaClass type) {
         return SLEEP_ALLOWED.keySet().stream().anyMatch(name -> type.getName().equals(name) || type.getName().startsWith(name + "$"));

@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.file.infrastructure;
 
+import com.forcitis.one.platform.file.application.UploadFile;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.file.api.FileSubjectKind;
@@ -63,8 +65,13 @@ class FileServiceConfiguration {
     }
 
     @Bean
-    GetUploadStatus getUploadStatus(StoredFileRepository files) {
-        return new GetUploadStatus(files);
+    GetUploadStatus getUploadStatus(StoredFileRepository files, CurrentUser currentUser) {
+        return new GetUploadStatus(files, currentUser);
+    }
+
+    @Bean
+    UploadFile uploadFile(StoreContent storeContent, CurrentUser currentUser) {
+        return new UploadFile(storeContent, currentUser);
     }
 
     @Bean

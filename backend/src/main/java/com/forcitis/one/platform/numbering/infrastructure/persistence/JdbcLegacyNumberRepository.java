@@ -11,12 +11,13 @@ import com.forcitis.one.platform.numbering.api.LegacyNumberEntry;
 import com.forcitis.one.platform.numbering.domain.LegacyNumberRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -99,7 +100,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
                 .param("document", entry.document().documentId().value())
                 .param("le", entry.legalEntity().map(LegalEntityId::value).orElse(null))
                 .param("batch", entry.migrationBatchId().value())
-                .param("now", Timestamp.from(clock.instant()))
+                .param("now", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update() == 1;
     }
 }

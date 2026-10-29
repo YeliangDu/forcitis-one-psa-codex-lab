@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.file.api.PlatformFileContent;
 import com.forcitis.one.platform.file.application.BindFile;
 import com.forcitis.one.platform.file.application.GetUploadStatus;
 import com.forcitis.one.platform.file.application.IssueDownloadLink;
 import com.forcitis.one.platform.file.application.StoreContent;
+import com.forcitis.one.platform.file.application.UploadFile;
 import com.forcitis.one.platform.file.domain.BindingAudit;
 import com.forcitis.one.platform.file.domain.ContentChecks;
 import com.forcitis.one.platform.file.domain.FileBindingRepository;
@@ -39,7 +41,7 @@ class FileServiceConfigurationTest {
                 .withBean(StoreAudit.class, () -> mock(StoreAudit.class))
                 .withBean(FileBindingRepository.class, () -> mock(FileBindingRepository.class)).withBean(BindingAudit.class, () -> mock(BindingAudit.class)).withBean(IdGenerator.class, () -> UUID::randomUUID)
                 .withBean(Clock.class, Clock::systemUTC).withBean(BusinessZone.class, () -> new BusinessZone(ZoneId.of("Asia/Shanghai"))).withBean(PlatformTransactionManager.class, () -> mock(PlatformTransactionManager.class))
-                .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
+                .withBean(MeterRegistry.class, SimpleMeterRegistry::new).withBean(CurrentUser.class, () -> mock(CurrentUser.class))
                 .withPropertyValues("forcitis.platform.file.store.enabled=true", "forcitis.platform.file.store.environment-prefix=dev",
                         "forcitis.platform.file.store.max-file-size=100MB", "forcitis.platform.file.store.allowed-media-types=application/pdf",
                         "forcitis.platform.file.store.staging-root=" + staging, "forcitis.platform.file.store.upload-deadline=PT10M", "forcitis.platform.file.store.staging-sweep-age=PT1H",
@@ -67,7 +69,8 @@ class FileServiceConfigurationTest {
     void onWithBothPortsStores() {
         runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, FileServiceConfigurationTest::bucket)
                 .run(context -> assertThat(context).hasNotFailed().hasSingleBean(StoreContent.class).hasSingleBean(BindFile.class)
-                        .hasSingleBean(IssueDownloadLink.class).hasSingleBean(PlatformFileContent.class).hasSingleBean(GetUploadStatus.class));
+                        .hasSingleBean(IssueDownloadLink.class).hasSingleBean(PlatformFileContent.class).hasSingleBean(GetUploadStatus.class)
+                        .hasSingleBean(UploadFile.class));
     }
 
     @Test
@@ -102,6 +105,7 @@ class FileServiceConfigurationTest {
     @Test
     void offStoresNothing() {
         new ApplicationContextRunner().withUserConfiguration(FileServiceConfiguration.class)
-                .run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(StoreContent.class).doesNotHaveBean(PlatformFileContent.class));
+                .run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(StoreContent.class).doesNotHaveBean(PlatformFileContent.class)
+                        .doesNotHaveBean(UploadFile.class));
     }
 }

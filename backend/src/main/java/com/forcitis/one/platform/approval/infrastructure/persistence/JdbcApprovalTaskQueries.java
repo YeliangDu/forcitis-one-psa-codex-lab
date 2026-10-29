@@ -38,18 +38,18 @@ import org.springframework.stereotype.Repository;
 class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
 
     private static final String RECORD = """
-            SELECT t.task_id, t.instance_id, r.process_key, r.document_id, r.document_type, t.node_key, r.initiator_id, t.status,
+            select t.task_id, t.instance_id, r.process_key, r.document_id, r.document_type, t.node_key, r.initiator_id, t.status,
                    t.assignee_id, t.created_at, t.due_at, t.completed_at, t.outcome_kind, t.effect_kind, t.result_reason, r.summary_text, r.version,
-                   COALESCE((SELECT s.round_number FROM platform_approval.start_rounds s WHERE s.instance_id = t.instance_id), 0) AS round_number
-              FROM platform_approval.approval_tasks t
-              JOIN platform_approval.approval_requests r ON r.id = t.approval_request_id
+                   coalesce((select s.round_number from platform_approval.start_rounds s where s.instance_id = t.instance_id), 0) as round_number
+              from platform_approval.approval_tasks t
+              join platform_approval.approval_requests r on r.id = t.approval_request_id
             """;
 
     private static final String HANDLING = """
-            SELECT r.record_id, q.process_key, q.document_type, q.document_id, r.round_number, r.task_id, r.instance_id, r.node_key,
+            select r.record_id, q.process_key, q.document_type, q.document_id, r.round_number, r.task_id, r.instance_id, r.node_key,
                    r.node_name, r.action_kind, r.actor_id, r.on_behalf_of_id, r.assignee_id, r.record_reason, r.decided_at
-              FROM platform_approval.approval_task_records r
-              JOIN platform_approval.approval_requests q ON q.id = r.approval_request_id
+              from platform_approval.approval_task_records r
+              join platform_approval.approval_requests q on q.id = r.approval_request_id
             """;
 
     private final JdbcClient jdbc;
@@ -60,23 +60,27 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
 
     @Override
     public Optional<TaskRecord> find(ApprovalTaskId taskId) {
-        return jdbc.sql(RECORD + " WHERE t.task_id = :id").param("id", taskId.value()).query((rs, n) -> read(rs)).optional();
+        return jdbc.sql(RECORD + """
+                 where t.task_id = :id
+                """).param("id", taskId.value()).query((rs, n) -> read(rs)).optional();
     }
 
     @Override
     public Optional<ApprovalInstanceId> instanceOf(ApprovalTaskId taskId) {
-        return jdbc.sql("SELECT instance_id FROM platform_approval.approval_tasks WHERE task_id = :id").param("id", taskId.value())
+        return jdbc.sql("""
+                select instance_id from platform_approval.approval_tasks where task_id = :id
+                """).param("id", taskId.value())
                 .query((rs, n) -> new ApprovalInstanceId(rs.getObject("instance_id", UUID.class))).optional();
     }
 
     @Override
     public List<TaskHandling> handledBy(UserId user, Optional<Instant> after, Optional<UUID> afterId, int limit) {
         return jdbc.sql(HANDLING + """
-                 WHERE r.actor_id = :user
-                   AND r.action_kind <> 'PASSED_AUTOMATICALLY'
-                   AND (CAST(:after AS timestamptz) IS NULL OR (r.decided_at, r.record_id) < (CAST(:after AS timestamptz), CAST(:afterId AS uuid)))
-                 ORDER BY r.decided_at DESC, r.record_id DESC
-                 LIMIT :limit
+                 where r.actor_id = :user
+                   and r.action_kind <> 'PASSED_AUTOMATICALLY'
+                   and (cast(:after as timestamptz) is null or (r.decided_at, r.record_id) < (cast(:after as timestamptz), cast(:afterId as uuid)))
+                 order by r.decided_at desc, r.record_id desc
+                 limit :limit
                 """)
                 .param("user", user.value()).param("after", after.map(JdbcApprovalTaskQueries::at).orElse(null))
                 .param("afterId", afterId.orElse(null)).param("limit", limit).query((rs, n) -> readHandling(rs)).list();
@@ -97,10 +101,10 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     @Override
     public List<TaskRecord> openTasks(Optional<Instant> overdueAt, Optional<Instant> after, Optional<ApprovalTaskId> afterId, int limit) {
         return jdbc.sql(RECORD + """
-                 WHERE t.status IN ('PENDING', 'CLAIMED') AND (CAST(:overdueAt AS timestamptz) IS NULL OR t.due_at < CAST(:overdueAt AS timestamptz))
-                   AND (CAST(:after AS timestamptz) IS NULL OR (t.created_at, t.task_id) > (CAST(:after AS timestamptz), CAST(:afterId AS uuid)))
-                 ORDER BY t.created_at, t.task_id
-                 LIMIT :limit
+                 where t.status in ('PENDING', 'CLAIMED') and (cast(:overdueAt as timestamptz) is null or t.due_at < cast(:overdueAt as timestamptz))
+                   and (cast(:after as timestamptz) is null or (t.created_at, t.task_id) > (cast(:after as timestamptz), cast(:afterId as uuid)))
+                 order by t.created_at, t.task_id
+                 limit :limit
                 """)
                 .param("overdueAt", overdueAt.map(JdbcApprovalTaskQueries::at).orElse(null))
                 .param("after", after.map(JdbcApprovalTaskQueries::at).orElse(null)).param("afterId", afterId.map(ApprovalTaskId::value).orElse(null))
@@ -113,7 +117,9 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
         if (taskIds.isEmpty()) {
             return due;
         }
-        jdbc.sql("SELECT task_id, due_at FROM platform_approval.approval_tasks WHERE due_at IS NOT NULL AND task_id IN (:ids)")
+        jdbc.sql("""
+                select task_id, due_at from platform_approval.approval_tasks where due_at is not null and task_id in (:ids)
+                """)
                 .param("ids", taskIds.stream().map(ApprovalTaskId::value).toList())
                 .query((rs, n) -> due.put(new ApprovalTaskId(rs.getObject("task_id", UUID.class)), JdbcApprovalRequestRepository.instant(rs, "due_at")))
                 .list();
@@ -123,8 +129,8 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     @Override
     public List<TaskHandling> historyOf(ProcessKey processKey, DocumentId documentId) {
         return jdbc.sql(HANDLING + """
-                 WHERE q.process_key = :processKey AND q.document_id = :documentId
-                 ORDER BY r.record_number
+                 where q.process_key = :processKey and q.document_id = :documentId
+                 order by r.record_number
                 """)
                 .param("processKey", processKey.value()).param("documentId", documentId.value()).query((rs, n) -> readHandling(rs)).list();
     }
@@ -132,14 +138,14 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
     @Override
     public List<ApprovalTaskId> findDue(Instant now) {
         return jdbc.sql("""
-                SELECT due.task_id FROM (
-                    SELECT task_id, remind_at FROM platform_approval.approval_tasks
-                     WHERE status IN ('PENDING', 'CLAIMED') AND overdue_at IS NULL AND remind_at <= :now
-                    UNION ALL
-                    SELECT task_id, remind_at FROM platform_approval.approval_tasks
-                     WHERE status IN ('PENDING', 'CLAIMED') AND overdue_at IS NOT NULL AND escalated_at IS NULL AND escalate_at <= :now
+                select due.task_id from (
+                    select task_id, remind_at from platform_approval.approval_tasks
+                     where status in ('PENDING', 'CLAIMED') and overdue_at is null and remind_at <= :now
+                    union all
+                    select task_id, remind_at from platform_approval.approval_tasks
+                     where status in ('PENDING', 'CLAIMED') and overdue_at is not null and escalated_at is null and escalate_at <= :now
                 ) due
-                 ORDER BY due.remind_at
+                 order by due.remind_at
                 """)
                 .param("now", at(now)).query((rs, n) -> new ApprovalTaskId(rs.getObject("task_id", UUID.class))).list();
     }

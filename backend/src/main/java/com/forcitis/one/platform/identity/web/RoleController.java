@@ -19,6 +19,10 @@ import com.forcitis.one.platform.identity.application.ReplaceAccountRoles;
 import com.forcitis.one.platform.identity.application.RoleView;
 import com.forcitis.one.platform.identity.application.SaveRoleCommand;
 import com.forcitis.one.platform.identity.application.UpdateRole;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.net.URI;
 import java.util.Set;
 import java.util.UUID;
@@ -82,24 +86,28 @@ class RoleController {
 
     @PostMapping(path = "/roles")
     @PreAuthorize(UPDATE)
-    ResponseEntity<?> create(@RequestBody RoleRequest request) {
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "created", content = @Content(schema = @Schema(implementation = RoleResponse.class))),
+            @ApiResponse(responseCode = "202", description = "waits for a second holder to confirm", content = @Content(schema = @Schema(implementation = AwaitingConfirmationResponse.class)))})
+    ResponseEntity<RoleChangeResponse> create(@RequestBody RoleRequest request) {
         return switch (createRole.execute(command(request))) {
             case AdminOutcome.Done<RoleView> done -> ResponseEntity.created(URI.create("/api/v1/platform/roles/" + done.value().roleId().value()))
                     .eTag(ExpectedVersion.etag(done.value().version())).body(RoleResponse.of(done.value()));
             case AdminOutcome.Refused<RoleView> refused -> throw refusal(refused.error());
-            case AdminOutcome.Awaiting<RoleView> awaiting -> accepted(awaiting.requestId());
+            case AdminOutcome.Awaiting<RoleView> awaiting -> ResponseEntity.accepted().body(new AwaitingConfirmationResponse(UUID.fromString(awaiting.requestId())));
         };
     }
 
     @PutMapping(path = "/roles/{roleId}")
     @PreAuthorize(UPDATE)
-    ResponseEntity<?> update(@PathVariable UUID roleId, @RequestBody RoleRequest request,
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "changed", content = @Content(schema = @Schema(implementation = RoleResponse.class))),
+            @ApiResponse(responseCode = "202", description = "waits for a second holder to confirm", content = @Content(schema = @Schema(implementation = AwaitingConfirmationResponse.class)))})
+    ResponseEntity<RoleChangeResponse> update(@PathVariable UUID roleId, @RequestBody RoleRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         return switch (updateRole.execute(new RoleId(roleId), ExpectedVersion.fromHeader(ifMatch), command(request))) {
             case AdminOutcome.Done<RoleView> done -> ResponseEntity.ok().eTag(ExpectedVersion.etag(done.value().version()))
                     .body(RoleResponse.of(done.value()));
             case AdminOutcome.Refused<RoleView> refused -> throw refusal(refused.error());
-            case AdminOutcome.Awaiting<RoleView> awaiting -> accepted(awaiting.requestId());
+            case AdminOutcome.Awaiting<RoleView> awaiting -> ResponseEntity.accepted().body(new AwaitingConfirmationResponse(UUID.fromString(awaiting.requestId())));
         };
     }
 
@@ -114,13 +122,15 @@ class RoleController {
 
     @PostMapping(path = "/user-accounts/{userId}:replace-roles")
     @PreAuthorize(UPDATE_ACCOUNT_ROLES)
-    ResponseEntity<?> replaceRoles(@PathVariable UUID userId, @RequestBody ReplaceRolesRequest request,
+    @ApiResponses({@ApiResponse(responseCode = "204", description = "replaced", content = @Content),
+            @ApiResponse(responseCode = "202", description = "waits for a second holder to confirm", content = @Content(schema = @Schema(implementation = AwaitingConfirmationResponse.class)))})
+    ResponseEntity<AwaitingConfirmationResponse> replaceRoles(@PathVariable UUID userId, @RequestBody ReplaceRolesRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         Set<String> codes = request.roleCodes() == null ? Set.of() : request.roleCodes();
         return switch (replaceAccountRoles.execute(AccountPath.user(userId), codes, ExpectedVersion.fromHeader(ifMatch))) {
             case AdminOutcome.Done<Long> done -> ResponseEntity.noContent().eTag(ExpectedVersion.etag(done.value())).build();
             case AdminOutcome.Refused<Long> refused -> throw refusal(refused.error());
-            case AdminOutcome.Awaiting<Long> awaiting -> accepted(awaiting.requestId());
+            case AdminOutcome.Awaiting<Long> awaiting -> ResponseEntity.accepted().body(new AwaitingConfirmationResponse(UUID.fromString(awaiting.requestId())));
         };
     }
 
@@ -147,10 +157,6 @@ class RoleController {
 
     private static DomainException refusal(IdentityError error) {
         return error.refusal(error.name());
-    }
-
-    private static ResponseEntity<AwaitingConfirmationResponse> accepted(String requestId) {
-        return ResponseEntity.accepted().body(new AwaitingConfirmationResponse(requestId));
     }
 
     private static SaveRoleCommand command(RoleRequest request) {

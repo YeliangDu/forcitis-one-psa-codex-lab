@@ -14,11 +14,12 @@ import com.forcitis.one.platform.file.domain.LineageTarget;
 import com.forcitis.one.platform.file.domain.NewStoredFile;
 import com.forcitis.one.platform.file.domain.StoredFile;
 import com.forcitis.one.platform.file.domain.StoredFileRepository;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -41,7 +42,7 @@ class JdbcStoredFileRepository implements StoredFileRepository {
     @Override
     public void insert(NewStoredFile file) {
         FileSubject uploader = file.uploader();
-        Timestamp at = Timestamp.from(file.storedAt());
+        OffsetDateTime at = OffsetDateTime.ofInstant(file.storedAt(), ZoneOffset.UTC);
         jdbc.sql("""
                         insert into platform_file.stored_files (stored_file_id, object_key, content_hash, byte_count, media_type_code, uploader_kind,
                             uploader_user_id, uploader_link_id, uploader_module_code, file_status, has_macros, previous_file_id, derived_from_file_id,
@@ -130,7 +131,7 @@ class JdbcStoredFileRepository implements StoredFileRepository {
                          order by f.stored_at, f.stored_file_id
                          limit :limit
                         """)
-                .param("kind", uploaderKind.name()).param("cutoff", Timestamp.from(cutoff)).param("limit", limit)
+                .param("kind", uploaderKind.name()).param("cutoff", OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC)).param("limit", limit)
                 .query((rs, n) -> new FileId(rs.getObject("stored_file_id", UUID.class))).list();
     }
 
@@ -146,13 +147,15 @@ class JdbcStoredFileRepository implements StoredFileRepository {
                            for no key update
                         """)
                 .param("id", file.value())
-                .query((rs, n) -> new Locked(FileSubjectKind.valueOf(rs.getString("uploader_kind")), rs.getTimestamp("stored_at").toInstant(),
+                .query((rs, n) -> new Locked(FileSubjectKind.valueOf(rs.getString("uploader_kind")), rs.getObject("stored_at", OffsetDateTime.class).toInstant(),
                         FileStatus.valueOf(rs.getString("file_status")), rs.getLong("version")))
                 .optional();
         if (locked.isEmpty()) {
             return Optional.empty();
         }
-        boolean bound = jdbc.sql("select exists (select 1 from platform_file.file_bindings where stored_file_id = :id)")
+        boolean bound = jdbc.sql("""
+                select exists (select 1 from platform_file.file_bindings where stored_file_id = :id)
+                """)
                 .param("id", file.value()).query(Boolean.class).single();
         Locked row = locked.get();
         return Optional.of(StoredFile.restore(file, row.uploaderKind(), row.storedAt(), bound, row.status(), row.version()));
@@ -160,7 +163,7 @@ class JdbcStoredFileRepository implements StoredFileRepository {
 
     @Override
     public void saveExpiry(StoredFile file, Instant at) {
-        Timestamp now = Timestamp.from(at);
+        OffsetDateTime now = OffsetDateTime.ofInstant(at, ZoneOffset.UTC);
         int changed = jdbc.sql("""
                         update platform_file.stored_files
                            set file_status = :status, version = :next, updated_at = :at
