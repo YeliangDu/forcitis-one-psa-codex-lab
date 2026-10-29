@@ -2,13 +2,14 @@ package com.forcitis.one;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
+import org.springframework.modulith.core.Violations;
 
 class ModularityTest {
     @Test
     void modulesRespectBoundaries() {
         try {
             ApplicationModules.of(OneApplication.class).verify();
-        } catch (RuntimeException violations) {
+        } catch (Violations violations) {
             throw new AssertionError(GuardMessage.of("G1",
                     "modules break the Modulith boundaries (cross-module access outside api/events, a cycle, or a dependency not in allowedDependencies): "
                             + violations.getMessage(),

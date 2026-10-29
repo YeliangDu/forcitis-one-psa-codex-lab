@@ -41,7 +41,7 @@ class IdempotentResponseSizeTest {
     void limitIsTheLimitOfTheTable() throws Exception {
         String ddl = Files.readString(Path.of("src/main/resources/db/migration/platform_idempotency/V20261014221000__platform_idempotency_baseline.sql"));
 
-        assertThat(ddl).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "IdempotentResponses.MAX_RESPONSE_LENGTH differs from the CHECK on response_text in the platform_idempotency baseline",
+        assertThat(ddl).as(GuardMessage.of("TB-02", "IdempotentResponses.MAX_RESPONSE_LENGTH differs from the CHECK on response_text in the platform_idempotency baseline",
                 "make the constant and the CHECK of the platform_idempotency migration the same number")).contains("CONSTRAINT ck_idempotent_responses_response_text CHECK (char_length(response_text) <= " + IdempotentResponses.MAX_RESPONSE_LENGTH + ")");
     }
 
@@ -59,7 +59,7 @@ class IdempotentResponseSizeTest {
         }
 
         assertThat(sizes).as("the answer types of the listed endpoints").isNotEmpty();
-        sizes.forEach((type, size) -> assertThat(size).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "the largest possible answer " + type.getSimpleName() + " is " + size + " characters, not under half of the stored limit " + HALF_LIMIT,
+        sizes.forEach((type, size) -> assertThat(size).as(GuardMessage.of("TB-02", "the largest possible answer " + type.getSimpleName() + " is " + size + " characters, not under half of the stored limit " + HALF_LIMIT,
                 "make the answer smaller (fewer or shorter fields, a bounded list) or take the endpoint off backend/architecture/idempotent-endpoints.txt")).isLessThan(HALF_LIMIT));
         assertThat(sizes.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getValue()).isPositive();
     }
@@ -73,7 +73,7 @@ class IdempotentResponseSizeTest {
         problem.setProperty("correlationId", UUID.randomUUID().toString());
         problem.setProperty("invalidParameters", "p".repeat(2000));
 
-        assertThat(JSON.writeValueAsString(problem).length()).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "the problem+json of a refusal with long texts is not under half of the stored limit",
+        assertThat(JSON.writeValueAsString(problem).length()).as(GuardMessage.of("TB-02", "the problem+json of a refusal with long texts is not under half of the stored limit",
                 "shorten the refusal fields or the extensions the error handler adds")).isLessThan(HALF_LIMIT);
     }
 

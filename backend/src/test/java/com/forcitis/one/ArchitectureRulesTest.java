@@ -248,7 +248,7 @@ class ArchitectureRulesTest {
                 .because(GuardMessage.of("G18", "a class depends on java.util.Date", "use java.time types; only FlowableEngineClock and OssBusinessFileStore may use java.util.Date"))
                 .check(CLASSES);
         noClasses().should().dependOnClassesThat().haveFullyQualifiedName("jakarta.annotation.security.PermitAll")
-                .because(GuardMessage.of("G18", "a class uses @PermitAll", "remove @PermitAll; secure the endpoint with @PreAuthorize, or declare it @PublicEndpoint(reason) or add it to the identity module's SSO allowlist"))
+                .because(GuardMessage.of("G18", "a class uses @PermitAll", "remove @PermitAll; secure the endpoint with @PreAuthorize, or declare it @PublicEndpoint(reason)"))
                 .check(CLASSES);
     }
 
