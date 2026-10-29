@@ -55,7 +55,8 @@ SITES = {  # "path: piece" -> reason; the piece is the argument text as the chec
     _W + "platform/integration/infrastructure/persistence/JdbcOutboundDeliveryRepository.java: lock":
         "private cardOf(subject, lock): every caller passes \"\" or \"for update\"",
     _W + "platform/integration/infrastructure/persistence/JdbcSourceReferenceQueries.java: sql.toString()":
-        "a StringBuilder appending fixed conditions per present filter; values bound",
+        "a StringBuilder appending fixed conditions per present filter; values bound, except the ConfirmationStatus enum name,"
+        " written as a literal so the planner can use the partial index ix_source_references_pending",
     _W + "platform/integration/infrastructure/persistence/JdbcSourceReferenceRepository.java: onConflict":
         "private insertStatement(reference, onConflict): every caller passes \"\" or \" on conflict do nothing\"",
 }
@@ -155,6 +156,20 @@ def wrapped(piece):
     return True
 
 
+def one_call(piece):
+    """(name, args) when piece is exactly name(args) with that first '(' closing at the end, else None (a chained call is not one)."""
+    call = CALL.fullmatch(piece)
+    if not call:
+        return None
+    open_at, depth = len(call.group(1)), 0
+    for i in range(open_at, len(piece)):
+        depth += piece[i] == "("
+        depth -= piece[i] == ")"
+        if depth == 0:
+            return (call.group(1), call.group(2)) if i == len(piece) - 1 else None
+    return None
+
+
 def registered(name, builders):
     return name in builders or ".".join(name.split(".")[-2:]) in builders
 
@@ -174,9 +189,9 @@ def bad_pieces(expr, builders):
         if len(branches) == 2:
             bad += bad_pieces(branches[0], builders) + bad_pieces(branches[1], builders)
             continue
-        call = CALL.fullmatch(piece)
+        call = one_call(piece)
         if call:
-            name, args = call.group(1), call.group(2)
+            name, args = call
             target, _, method = name.rpartition(".")
             if (method == "formatted" and (target == "S" or CONSTANT.fullmatch(target))) or name == "String.join":
                 bad += [b for a in split_top(args, ",") if a.strip() for b in bad_pieces(a, builders)]
@@ -235,6 +250,10 @@ def self_test():
         assert hit('jdbc.sql(Periods.select(kind) + " x")') == ["SV-1"], "an unregistered builder"
         assert hit('jdbc.sql(Periods.select(kind) + " x")', {"Periods.select": "r"}) == [], "a registered builder"
         assert hit('jdbc.sql(x.Periods.select(kind))', {"Periods.select": "r"}) == [], "a qualified call of a registered builder"
+        assert hit('jdbc.sql(Periods.select(kind).concat(" and x = " + id))', {"Periods.select": "r"}) == ["SV-1"], \
+            "a call chained after a registered builder is not the builder"
+        assert hit('jdbc.sql(TEMPLATE.formatted(TABLE).concat(id))') == ["SV-1"], "nor after formatted"
+        assert hit('jdbc.sql(Periods.select(a(b), c(d)))', {"Periods.select": "r"}) == [], "nested calls inside the arguments are fine"
         assert hit('jdbc.sql(sql)', sites={"A.java: sql": "r"}) == [], "a registered site"
         assert hit('jdbc.sql("x")', {"Periods.select": "r"}) == ["SV-2"], "an unused builder entry"
         assert hit('jdbc.sql("x")', sites={"A.java: sql": "r"}) == ["SV-2"], "an unused site entry"

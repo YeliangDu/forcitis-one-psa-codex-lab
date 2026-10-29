@@ -89,7 +89,7 @@ class JdbcSourceReferenceQueries implements SourceReferenceQueries {
                 where source_system = :system and source_object_kind = :kind
                 """);
         if (status != null) {
-            sql.append(" and confirmation_status = :status");
+            sql.append(" and confirmation_status = '").append(status.name()).append("'");
         }
         if (ownId != null) {
             sql.append(" and own_id = :ownId");
@@ -99,9 +99,6 @@ class JdbcSourceReferenceQueries implements SourceReferenceQueries {
         }
         sql.append(" order by created_at, source_reference_id limit :limit");
         JdbcClient.StatementSpec statement = jdbc.sql(sql.toString()).param("system", system.name()).param("kind", kind.name()).param("limit", limit);
-        if (status != null) {
-            statement = statement.param("status", status.name());
-        }
         if (ownId != null) {
             statement = statement.param("ownId", ownId.value());
         }
