@@ -24,7 +24,8 @@ class SecurityInvariantsTest {
     @Test
     void legacyTokenTablesAreNeverTouched() {
         assertThat(matches(MAIN, Pattern.compile("system_oauth2", Pattern.CASE_INSENSITIVE)))
-                .as("I-1 (Q-1, ADR-0009 §6, ADR-0037 item 3): no code, SQL or config may reference legacy token tables system_oauth2_*")
+                .as(GuardMessage.of("I-1", "code, SQL or config references the legacy token tables system_oauth2_* (ADR-0037 item 3)",
+                        "remove the reference; token values never enter the new system and it never writes or validates them"))
                 .isEmpty();
     }
 
@@ -33,7 +34,8 @@ class SecurityInvariantsTest {
     void ticketIssuersAreReviewedAndNeverTheLegacyBackend() throws IOException {
         Set<String> allowed = Set.copyOf(Files.readAllLines(ISSUER_ALLOWLIST).stream()
                 .map(String::trim).filter(l -> !l.isEmpty() && !l.startsWith("#")).toList());
-        assertThat(allowed).as("I-2: the legacy backend must not be an issuer").noneMatch(SecurityInvariantsTest::looksLegacy);
+        assertThat(allowed).as(GuardMessage.of("I-2", "the ticket issuers allowlist contains a legacy backend issuer (psa, legacy or yudao)",
+                "remove that issuer from " + ISSUER_ALLOWLIST)).noneMatch(SecurityInvariantsTest::looksLegacy);
         Pattern insert = Pattern.compile("insert\\s+into\\s+\\S*ticket_issuers[^;]*?values\\s*(.*?);",
                 Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
         Pattern firstString = Pattern.compile("\\(\\s*'([^']+)'");
@@ -50,14 +52,16 @@ class SecurityInvariantsTest {
                 }
             }
         }
-        assertThat(problems).as("I-2 ticket issuers").isEmpty();
+        assertThat(problems).as(GuardMessage.of("I-2", "a migration inserts a ticket issuer that is not on the reviewed allowlist, or is a legacy backend",
+                "do not insert that issuer; a new reviewed issuer is added to " + ISSUER_ALLOWLIST + " with CODEOWNERS review")).isEmpty();
     }
 
     /** I-6: WeCom messages go to touser only - never toparty / totag / @all (SEC-118). */
     @Test
     void wecomMessagesNeverBroadcast() {
         assertThat(matches(MAIN, Pattern.compile("toparty|totag|@all", Pattern.CASE_INSENSITIVE)))
-                .as("I-6: WeCom payloads must use touser only")
+                .as(GuardMessage.of("I-6", "a WeCom payload uses toparty, totag or @all (SEC-118)",
+                        "address WeCom messages to touser only"))
                 .isEmpty();
     }
 

@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.guard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.GuardMessage;
 import com.forcitis.one.platform.identity.api.Permission;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,9 +31,9 @@ class WorkforceConfigurationTest {
     void safeDefaults() throws IOException {
         Properties p = load();
 
-        assertThat(p.getProperty("forcitis.organization.workforce.sync.enabled")).isEqualTo("${WORKFORCE_SYNC_ENABLED:false}");
-        assertThat(p.getProperty("forcitis.organization.workforce.short-name.enabled")).isEqualTo("${WORKFORCE_SHORT_NAME_ENABLED:false}");
-        assertThat(Files.readString(CONFIG)).doesNotContain("jdbc:").doesNotContain("password").doesNotContain("username");
+        assertThat(p.getProperty("forcitis.organization.workforce.sync.enabled")).as(GuardMessage.of("org-and-personnel-sync", "the workforce sync is not off by default", "set forcitis.organization.workforce.sync.enabled to ${WORKFORCE_SYNC_ENABLED:false}")).isEqualTo("${WORKFORCE_SYNC_ENABLED:false}");
+        assertThat(p.getProperty("forcitis.organization.workforce.short-name.enabled")).as(GuardMessage.of("org-and-personnel-sync", "the short-name refresh is not off by default", "set forcitis.organization.workforce.short-name.enabled to ${WORKFORCE_SHORT_NAME_ENABLED:false}")).isEqualTo("${WORKFORCE_SHORT_NAME_ENABLED:false}");
+        assertThat(Files.readString(CONFIG)).as(GuardMessage.of("CS-1.3 / CS-6.5", "the workforce properties hold a connection or credential setting", "keep connections and credentials in platform_integration.properties as environment placeholders; workforce reads through platform.integration")).doesNotContain("jdbc:").doesNotContain("password").doesNotContain("username");
     }
 
     @Test
@@ -45,11 +46,11 @@ class WorkforceConfigurationTest {
         LocalDateTime first = sync.next(LocalDateTime.of(2026, 10, 14, 9, 0, 1));
         LocalDateTime second = sync.next(first);
         LocalDateTime third = sync.next(second);
-        assertThat(java.time.Duration.between(first, second)).isEqualTo(java.time.Duration.ofMinutes(5));
-        assertThat(java.time.Duration.between(second, third)).isEqualTo(java.time.Duration.ofMinutes(5));
+        assertThat(java.time.Duration.between(first, second)).as(GuardMessage.of("org-and-personnel-sync", "the sync cron does not run every 5 minutes", "set forcitis.organization.workforce.sync.cron to a 5-minute period")).isEqualTo(java.time.Duration.ofMinutes(5));
+        assertThat(java.time.Duration.between(second, third)).as(GuardMessage.of("org-and-personnel-sync", "the sync cron does not run every 5 minutes", "set forcitis.organization.workforce.sync.cron to a 5-minute period")).isEqualTo(java.time.Duration.ofMinutes(5));
         LocalDateTime day1 = names.next(LocalDateTime.of(2026, 10, 14, 0, 0));
-        assertThat(java.time.Duration.between(day1, names.next(day1))).isEqualTo(java.time.Duration.ofHours(24));
-        assertThat(p.getProperty("forcitis.organization.workforce.sync.max-drop-percent")).isEqualTo("20");
+        assertThat(java.time.Duration.between(day1, names.next(day1))).as(GuardMessage.of("org-and-personnel-sync", "the short-name cron does not run once a day", "set forcitis.organization.workforce.short-name.cron to a daily period")).isEqualTo(java.time.Duration.ofHours(24));
+        assertThat(p.getProperty("forcitis.organization.workforce.sync.max-drop-percent")).as(GuardMessage.of("org-and-personnel-sync", "the shrink guard does not allow a 20 % drop", "set forcitis.organization.workforce.sync.max-drop-percent to 20, or change the rule in the process document first")).isEqualTo("20");
     }
 
     @Test
@@ -65,8 +66,8 @@ class WorkforceConfigurationTest {
                 {"LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE", Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE}}) {
             Field field = local.getDeclaredField(pair[0]);
             field.setAccessible(true);
-            assertThat(field.get(null)).as(pair[0]).isEqualTo(pair[1]);
+            assertThat(field.get(null)).as(GuardMessage.of("org-and-personnel-sync", "WorkforcePermissions." + pair[0] + " differs from the code in platform.identity Permission.Codes", "set the constant in organization.workforce.web.WorkforcePermissions to the same string as the Permission.Codes constant")).isEqualTo(pair[1]);
         }
-        assertThat(local.getDeclaredFields()).filteredOn(f -> f.getType() == String.class).hasSize(6);
+        assertThat(local.getDeclaredFields()).filteredOn(f -> f.getType() == String.class).as(GuardMessage.of("org-and-personnel-sync", "WorkforcePermissions has another number of permission codes than this test checks", "add the new code to the pairs of this test and compare it with Permission.Codes, then update the count")).hasSize(6);
     }
 }

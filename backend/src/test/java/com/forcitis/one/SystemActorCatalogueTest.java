@@ -61,7 +61,8 @@ class SystemActorCatalogueTest {
                 continue;
             }
             String[] fields = row.split("\\|");
-            assertThat(fields).as(row).hasSize(4);
+            assertThat(fields).as(GuardMessage.of("RULING-P2-C5", "a line of a system actor catalogue does not have four columns: " + row,
+                    "write it as <name> | <uuid> | <module> | <description>")).hasSize(4);
             lines.add(new Line(fields[0].strip(), UUID.fromString(fields[1].strip()), fields[2].strip()));
         }
         return lines;
@@ -94,7 +95,8 @@ class SystemActorCatalogueTest {
                 problems.add(line.name() + " is not v5 of its name");
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("RULING-P2-C5", "a line of architecture/system-actors.txt is duplicated, outside its module or has an id that is not the v5 UUID of its name",
+                "set the id to SystemActors.idOf(<name>), prefix the name with its module and a dot, and delete duplicates")).isEmpty();
         assertThat(lines).isNotEmpty();
     }
 
@@ -125,7 +127,8 @@ class SystemActorCatalogueTest {
             }
         }
         assertThat(listeners).isNotEmpty();
-        assertThat(missing).as("names to declare in " + CATALOGUE).isEmpty();
+        assertThat(missing).as(GuardMessage.of("RULING-P2-C5", "a job or listener acts under a name that is not declared",
+                "add a line <name> | <v5 uuid of the name> | <module> | <description> to " + CATALOGUE + ", and give each listener class a @SystemActorName of a declared name")).isEmpty();
     }
 
     @Test
@@ -133,7 +136,8 @@ class SystemActorCatalogueTest {
     void namesEnteredInCodeAreDeclared() throws IOException {
         List<String> missing = new ArrayList<>();
         assertThat(namesWritten(MAIN, List.of(ENTERED, ACTOR_CONSTANT, ACTOR_ANNOTATION), declaredNames(), missing)).isGreaterThan(3);
-        assertThat(missing).isEmpty();
+        assertThat(missing).as(GuardMessage.of("RULING-P2-C5", "a name written into WorkContext.enter is not declared",
+                "add a line <name> | <v5 uuid of the name> | <module> | <description> to " + CATALOGUE)).isEmpty();
     }
 
     @Test
@@ -154,7 +158,8 @@ class SystemActorCatalogueTest {
             }
         }
         assertThat(seen).isGreaterThanOrEqualTo(3);
-        assertThat(literal).isEmpty();
+        assertThat(literal).as(GuardMessage.of("RULING-P2-C5 (L-4)", "an ACTOR constant is not read from the class own @SystemActorName",
+                "write ACTOR = <Class>.class.getAnnotation(SystemActorName.class).value() so the start-up check covers it")).isEmpty();
     }
 
     /** Actor expressions that are not a name but pass one on: the listener or job the aspect wraps, and delivery inside or outside a job. */
@@ -224,8 +229,9 @@ class SystemActorCatalogueTest {
             }
         }
         assertThat(seen).isGreaterThan(10);
-        assertThat(hidden).isEmpty();
-        assertThat(passedOn).as("every listed pass-on is still in use; delete the ones that are not").containsOnlyKeys(PASSED_ON.keySet());
+        assertThat(hidden).as(GuardMessage.of("RULING-P2-C5 (L-1)", "the actor given to WorkContext.enter is held in a variable or computed, so the catalogue check cannot see the name",
+                "pass a string literal, the ACTOR constant or null; a real pass-on goes into PASSED_ON of SystemActorCatalogueTest with its file")).isEmpty();
+        assertThat(passedOn).as(GuardMessage.of("RULING-P2-C5 (L-1)", "a listed pass-on of an actor is no longer used", "delete it from PASSED_ON of SystemActorCatalogueTest")).containsOnlyKeys(PASSED_ON.keySet());
     }
 
     @Test
@@ -251,7 +257,8 @@ class SystemActorCatalogueTest {
         catalogue(TEST_CATALOGUE).forEach(line -> declared.add(line.name()));
         List<String> missing = new ArrayList<>();
         assertThat(namesWritten(TESTS, List.of(ENTERED, ACTOR_CONSTANT, LOCK_NAME, ACTOR_ANNOTATION, ID_OF), declared, missing)).isGreaterThan(10);
-        assertThat(missing).isEmpty();
+        assertThat(missing).as(GuardMessage.of("RULING-P2-C5 (B-1)", "a test acts under a name that is in neither the main nor the test catalogue",
+                "add the name to the test catalogue (a test. or acceptance. name) with the v5 UUID of the name, or use a declared name")).isEmpty();
     }
 
     @Test
@@ -275,7 +282,8 @@ class SystemActorCatalogueTest {
                 problems.add(line.name() + " does not start with test. or acceptance.");
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("RULING-P2-C5 (L-2)", "a line of the test catalogue is duplicated, is also in the main catalogue, is not the v5 UUID of its name, or does not start with test. or acceptance.",
+                "fix the line in the test catalogue; a production name never goes there")).isEmpty();
     }
 
     @Test
@@ -296,7 +304,8 @@ class SystemActorCatalogueTest {
                 declared.add(String.join(" | ", Stream.of(row.split("\\|")).map(String::strip).toList()));
             }
         }
-        assertThat(published).as("run python3 scripts/codegen/build_asyncapi.py").isEqualTo(declared);
+        assertThat(published).as(GuardMessage.of("RULING-P2-C5 (M-1)", "x-system-actors in asyncapi.yaml does not list backend/architecture/system-actors.txt line by line",
+                "run python3 scripts/codegen/build_asyncapi.py and commit the result")).isEqualTo(declared);
     }
 
     private static int namesWritten(Path root, List<Pattern> patterns, Set<String> declared, List<String> missing) throws IOException {

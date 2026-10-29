@@ -38,7 +38,7 @@ class TestContainerGuardTest {
     void containersAreStartedThroughTestPostgres() throws IOException {
         Set<String> found = new TreeSet<>();
         JavaClasses compiled = new ClassFileImporter().importPath(TEST_CLASSES);
-        assertThat(compiled.size()).as("compiled test classes (run test-compile first)").isGreaterThan(100);
+        assertThat(compiled.size()).as(GuardMessage.of("DDL-11", "fewer than 100 compiled test classes were found in target/test-classes", "run ./mvnw test-compile in backend first so the guard can read the compiled tests")).isGreaterThan(100);
         for (JavaClass type : compiled) {
             String top = type.getName().replaceAll("\\$.*", "");
             if (top.equals(HOME)) {
@@ -67,18 +67,18 @@ class TestContainerGuardTest {
                 continue;
             }
             String[] columns = line.split(" \\| ", -1);
-            assertThat(columns).as("%s: path | owner | deadline", line).hasSize(3);
-            assertThat(columns[1].strip()).as("owner of %s", line).isNotEmpty();
-            assertThat(columns[2].strip()).as("deadline of %s", line).isNotEmpty();
-            assertThat(listed.add(columns[0])).as("%s is listed twice", columns[0]).isTrue();
+            assertThat(columns).as(GuardMessage.of("DDL-11", "the line '" + line + "' of " + GAPS + " has not three columns", "write it as path | owner | deadline")).hasSize(3);
+            assertThat(columns[1].strip()).as(GuardMessage.of("DDL-11", "the line '" + line + "' of " + GAPS + " has no owner", "fill the owner column")).isNotEmpty();
+            assertThat(columns[2].strip()).as(GuardMessage.of("DDL-11", "the line '" + line + "' of " + GAPS + " has no deadline", "fill the deadline column")).isNotEmpty();
+            assertThat(listed.add(columns[0])).as(GuardMessage.of("DDL-11", columns[0] + " is listed twice in " + GAPS, "delete the duplicate line")).isTrue();
         }
         Set<String> added = new TreeSet<>(found);
         added.removeAll(listed);
         Set<String> closed = new TreeSet<>(listed);
         closed.removeAll(found);
 
-        assertThat(added).as("test sources that start a PostgreSQL container themselves: use TestPostgres.container()").isEmpty();
-        assertThat(closed).as("listed in %s but they no longer do (delete the line)", GAPS).isEmpty();
+        assertThat(added).as(GuardMessage.of("DDL-11", "these test sources start a PostgreSQL container themselves", "get the container from TestPostgres.container() (or TestPostgres.database) instead of PostgreSQLContainer or a jdbc:tc: URL; do not add a line to the gaps file")).isEmpty();
+        assertThat(closed).as(GuardMessage.of("DDL-11", "these files are listed in " + GAPS + " but no longer start a PostgreSQL container", "delete their lines from " + GAPS)).isEmpty();
     }
 
     @Test
@@ -86,7 +86,7 @@ class TestContainerGuardTest {
     void sqlServerContainersAreStartedThroughTestMssql() throws IOException {
         Set<String> found = new TreeSet<>();
         JavaClasses compiled = new ClassFileImporter().importPath(TEST_CLASSES);
-        assertThat(compiled.size()).as("compiled test classes (run test-compile first)").isGreaterThan(100);
+        assertThat(compiled.size()).as(GuardMessage.of("DDL-11", "fewer than 100 compiled test classes were found in target/test-classes", "run ./mvnw test-compile in backend first so the guard can read the compiled tests")).isGreaterThan(100);
         for (JavaClass type : compiled) {
             String top = type.getName().replaceAll("\\$.*", "");
             if (top.equals(MSSQL_HOME)) {
@@ -111,7 +111,7 @@ class TestContainerGuardTest {
             }
         }
 
-        assertThat(found).as("test sources that start SQL Server themselves, read TestImages.MSSQL_PREFIX or name the SQL Server image: use TestMssql.shared() / database()")
+        assertThat(found).as(GuardMessage.of("DDL-11", "these test sources start SQL Server themselves, read TestImages.MSSQL_PREFIX or name the SQL Server image", "use TestMssql.shared() or TestMssql.database() instead"))
                 .isEmpty();
     }
 }

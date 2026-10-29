@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.guard;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.GuardMessage;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -54,8 +55,8 @@ class WorkforceSchemaGuardTest {
                 }
             }
         }
-        assertThat(tables).as("the guard must see the workforce tables").isGreaterThanOrEqualTo(6);
-        assertThat(problems).isEmpty();
+        assertThat(tables).as(GuardMessage.of("§9a", "the guard saw fewer than 6 workforce tables", "check that the CREATE TABLE statements under db/migration/organization_workforce still match the guard pattern")).isGreaterThanOrEqualTo(6);
+        assertThat(problems).as(GuardMessage.of("§9a", "organization_workforce has a money-like column or a decimal type", "remove the listed column; organisation master data holds no money, and money belongs in a cost or accounting module")).isEmpty();
     }
 
     @Test
@@ -67,7 +68,7 @@ class WorkforceSchemaGuardTest {
                 while (t.find()) {
                     for (String raw : t.group(2).split(",\\s*\\n")) {
                         String column = raw.trim().split("\\s+")[0].toLowerCase();
-                        assertThat(column).as(t.group(1)).doesNotContainPattern("password|secret|token|credential|hash|salt|birth");
+                        assertThat(column).as(GuardMessage.of("RULE-362/370", "the table " + t.group(1) + " has a password, secret, token, credential, hash, salt or birth column", "drop the column; synced people carry no local credential")).doesNotContainPattern("password|secret|token|credential|hash|salt|birth");
                     }
                 }
             }
@@ -94,6 +95,7 @@ class WorkforceSchemaGuardTest {
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("com.forcitis.one.kernel.AccountingPeriod")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("java.math.BigDecimal")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("java.util.Currency")
+                .because(GuardMessage.of("§9a", "the workforce api or events depend on Money, AccountingPeriod, BigDecimal or Currency", "remove the money type from the api or event record; organisation master data exposes none"))
                 .check(CLASSES);
     }
 
@@ -103,6 +105,7 @@ class WorkforceSchemaGuardTest {
         noClasses().that().resideInAPackage("com.forcitis.one.organization.workforce..")
                 .should().dependOnClassesThat().haveFullyQualifiedName("com.forcitis.one.kernel.Money")
                 .orShould().dependOnClassesThat().haveFullyQualifiedName("com.forcitis.one.kernel.AccountingPeriod")
+                .because(GuardMessage.of("§9a", "a class of organization.workforce uses Money or AccountingPeriod", "remove the use; organisation master data holds no money or accounting period"))
                 .check(CLASSES);
     }
 }

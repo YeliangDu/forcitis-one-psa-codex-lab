@@ -51,7 +51,7 @@ class EventCatalogueTest {
                     Map<String, Object> document = new Yaml().load(in);
                     Map<String, Object> components = (Map<String, Object>) document.get("components");
                     ((Map<String, Map<String, Object>>) components.get("messages")).forEach((message, body) -> {
-                        assertThat(messages.put(message, body)).as("%s is defined in two fragments", message).isNull();
+                        assertThat(messages.put(message, body)).as(GuardMessage.of("CS-2.5", message + " is defined in two fragments", "keep each message in exactly one fragment of " + EVENTS)).isNull();
                     });
                 }
             }
@@ -59,14 +59,14 @@ class EventCatalogueTest {
         return messages;
     }
 
-    private static void none(String rule, List<String> problems) {
-        assertThat(problems).as(rule).isEmpty();
+    private static void none(String message, List<String> problems) {
+        assertThat(problems).as(message).isEmpty();
     }
 
     @Test
     @DisplayName("events live only in the events package of their module, and everything there is an event")
     void eventsOnlyInTheEventsPackage() {
-        none("location", EventCataloguePolicy.location(ALL.stream().filter(c -> !PENDING_FRAGMENTS.containsKey(EventCataloguePolicy.moduleOf(c))
+        none(GuardMessage.of("CS-2.5", "a DomainEvent sits outside an events package, or a plain class sits inside one", "move the event record into the events package of its module and keep only event records there"), EventCataloguePolicy.location(ALL.stream().filter(c -> !PENDING_FRAGMENTS.containsKey(EventCataloguePolicy.moduleOf(c))
                 || !EventCataloguePolicy.inEventsPackage(c)).toList()));
     }
 
@@ -76,19 +76,19 @@ class EventCatalogueTest {
         assertThat(events()).isNotEmpty();
         List<String> problems = new ArrayList<>();
         events().forEach(event -> problems.addAll(EventCataloguePolicy.shape(event)));
-        none("shape", problems);
+        none(GuardMessage.of("CS-2.5", "an event is not an immutable record implementing DomainEvent with the envelope first and a payload of ids and value objects", "make it a record that implements DomainEvent, put the envelope component first and carry only typed ids, value objects or Lists of them"), problems);
     }
 
     @Test
     @DisplayName("the catalogue and the code list the same events, with the same type, publisher and payload fields")
     void catalogueMatchesTheCode() throws IOException {
-        none("catalogue", EventCataloguePolicy.catalogue(events(), fragmentMessages(), PENDING_FRAGMENTS.keySet()));
+        none(GuardMessage.of("CS-2.5", "the event catalogue and the code differ in events, type, publisher or payload fields", "edit the fragment in docs/architecture/events/<module>.yaml so eventType, publisher and payload match the record, then run python3 scripts/codegen/build_asyncapi.py"), EventCataloguePolicy.catalogue(events(), fragmentMessages(), PENDING_FRAGMENTS.keySet()));
     }
 
     @Test
     @DisplayName("every event has a publisher test that names it")
     void everyEventHasAPublisherTest() throws IOException {
-        none("publisher tests", EventCataloguePolicy.publisherTests(events(), fragmentMessages(), className -> {
+        none(GuardMessage.of("CS-2.5", "an event has no publisher test that names it", "set publisherTest in the x-event block of the catalogue fragment to an existing test class that constructs the event"), EventCataloguePolicy.publisherTests(events(), fragmentMessages(), className -> {
             Path file = Path.of("src/test/java", className.replace('.', '/') + ".java");
             try {
                 return Files.isRegularFile(file) ? Files.readString(file) : null;
@@ -101,21 +101,21 @@ class EventCatalogueTest {
     @Test
     @DisplayName("every event is audited through platform.audit's subscription or says why not, in the record and in the catalogue")
     void everyEventIsAuditedOrSaysWhyNot() throws IOException {
-        assertThat(EventCataloguePolicy.auditSubscriptionExists(ALL)).as("platform.audit subscribes to DomainEvent").isTrue();
-        none("audit", EventCataloguePolicy.audit(events(), fragmentMessages(), EventCataloguePolicy.auditSubscriptionExists(ALL)));
+        assertThat(EventCataloguePolicy.auditSubscriptionExists(ALL)).as(GuardMessage.of("CS-2.5", "platform.audit has no subscription to DomainEvent", "restore the platform.audit listener that subscribes to DomainEvent")).isTrue();
+        none(GuardMessage.of("CS-2.5", "an event is neither audited nor declared not-audited with a reason in the record and in the catalogue", "audit it through the platform.audit subscription, or put @NotAudited with a reason on the record and the same reason as audit: not-audited in the catalogue fragment"), EventCataloguePolicy.audit(events(), fragmentMessages(), EventCataloguePolicy.auditSubscriptionExists(ALL)));
     }
 
     @Test
     @DisplayName("the declared consumers are the real listeners; an event without one says 暂无消费方 and why it is published now")
     void consumersAreDeclared() throws IOException {
-        none("consumers", EventCataloguePolicy.consumers(events(), fragmentMessages(), ALL));
+        none(GuardMessage.of("CS-2.5", "the declared consumers differ from the real listeners, or an event without a consumer gives no 暂无消费方 reason", "make the consumers list of the catalogue fragment equal the real listeners, or write noConsumer as 暂无消费方：<why it is published now>"), EventCataloguePolicy.consumers(events(), fragmentMessages(), ALL));
     }
 
     @Test
     @DisplayName("a pending module drops out of the exemption as soon as its fragment exists")
     void pendingModulesHaveNoFragmentYet() {
         PENDING_FRAGMENTS.forEach((module, fragment) -> assertThat(Files.exists(EVENTS.resolve(fragment)))
-                .as("%s exists: delete %s from PENDING_FRAGMENTS so its events are checked", fragment, module).isFalse());
+                .as(GuardMessage.of("CS-2.5", fragment + " exists for the module " + module + " that is still in PENDING_FRAGMENTS", "delete " + module + " from PENDING_FRAGMENTS so its events are checked")).isFalse());
     }
 
     @Test
@@ -126,17 +126,17 @@ class EventCatalogueTest {
         try (InputStream in = Files.newInputStream(EVENTS.resolve("asyncapi.yaml"))) {
             composed = new Yaml().load(in);
         }
-        assertThat(composed.get("asyncapi")).isEqualTo("3.0.0");
+        assertThat(composed.get("asyncapi")).as(GuardMessage.of("CS-2.5", "asyncapi.yaml is not AsyncAPI 3.0.0", "run python3 scripts/codegen/build_asyncapi.py and commit asyncapi.yaml")).isEqualTo("3.0.0");
         Map<String, Map<String, Object>> fromFragments = fragmentMessages();
         Map<String, Map<String, Object>> messages = (Map<String, Map<String, Object>>) ((Map<String, Object>) composed.get("components")).get("messages");
-        assertThat(new TreeSet<>(messages.keySet())).as("run python3 scripts/codegen/build_asyncapi.py").isEqualTo(new TreeSet<>(fromFragments.keySet()));
-        fromFragments.forEach((name, message) -> assertThat(messages.get(name).get("x-event")).as(name).isEqualTo(message.get("x-event")));
+        assertThat(new TreeSet<>(messages.keySet())).as(GuardMessage.of("CS-2.5", "asyncapi.yaml lists other messages than the fragments", "run python3 scripts/codegen/build_asyncapi.py and commit asyncapi.yaml")).isEqualTo(new TreeSet<>(fromFragments.keySet()));
+        fromFragments.forEach((name, message) -> assertThat(messages.get(name).get("x-event")).as(GuardMessage.of("CS-2.5", name + " has an x-event block in asyncapi.yaml that differs from its fragment", "run python3 scripts/codegen/build_asyncapi.py and commit asyncapi.yaml")).isEqualTo(message.get("x-event")));
         Map<String, Object> channels = (Map<String, Object>) composed.get("channels");
         Set<String> addresses = new TreeSet<>();
         channels.values().forEach(channel -> addresses.add((String) ((Map<String, Object>) channel).get("address")));
         Set<String> types = new TreeSet<>();
         fromFragments.values().forEach(message -> types.add((String) ((Map<String, Object>) message.get("x-event")).get("eventType")));
-        assertThat(addresses).isEqualTo(types);
+        assertThat(addresses).as(GuardMessage.of("CS-2.5", "the channel addresses of asyncapi.yaml differ from the event types of the fragments", "run python3 scripts/codegen/build_asyncapi.py and commit asyncapi.yaml")).isEqualTo(types);
     }
 
     // ADR-0033 guard 8 (event part) and D-17
@@ -245,9 +245,9 @@ class EventCatalogueTest {
             problems.addAll(typedIdProblems(message.getKey(), message.getValue().get("payload")));
             gatherAggregates(message.getValue(), aggregates);
         }
-        assertThat(aggregates).as("aggregates named by the fragments").isNotEmpty();
+        assertThat(aggregates).as(GuardMessage.of("ADR-0033 guard 8", "no aggregate is named by the catalogue fragments", "keep the aggregate field in the x-event block of every fragment message")).isNotEmpty();
         problems.addAll(auditKindProblems(aggregates, allAuditMigrations()));
-        none("catalogue ids and audit kinds", problems);
+        none(GuardMessage.of("ADR-0033 guard 8 / ADR-0039", "the catalogue envelope has a source or non-uuid ids, a typed id of a payload is not format: uuid, or an aggregate has no audit subject kind", "fix the schema in the fragment (format: uuid on every typed id, no source in the envelope), or add the AuditSubjectKind constant and the seed row in db/migration/platform_audit before the aggregate"), problems);
     }
 
     @Test

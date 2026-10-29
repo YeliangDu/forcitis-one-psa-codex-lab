@@ -60,8 +60,11 @@ class CurrentUserGuardTest {
                 problems.addAll(problems(MAIN.relativize(file).toString(), source));
             }
         }
-        assertThat(implementations).as("the guard must see both implementations").isGreaterThanOrEqualTo(2);
-        assertThat(problems).isEmpty();
+        assertThat(implementations).as(GuardMessage.of("CS-1.7", "the guard found fewer than 2 CurrentUser / EmployeeLegalEntities implementations, so it is scanning the wrong files",
+                "check the ANSWERS pattern and MAIN in CurrentUserGuardTest")).isGreaterThanOrEqualTo(2);
+        assertThat(problems).as(GuardMessage.of("CS-1.7",
+                "a CurrentUser or EmployeeLegalEntities implementation answers with a literal, constant or default legal entity, or a CurrentUser is made on the spot",
+                "resolve the legal entity from the organisation and fail when it is missing: no literal, no constant, no orElse / orElseGet, and take CurrentUser from the session context")).isEmpty();
     }
 
     @Test

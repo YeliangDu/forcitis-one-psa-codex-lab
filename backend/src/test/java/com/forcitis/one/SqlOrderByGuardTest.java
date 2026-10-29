@@ -100,7 +100,8 @@ class SqlOrderByGuardTest {
                 problems.addAll(problems(MAIN.relativize(file).toString(), Files.readString(file)));
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("ADR-0033 section 1 item 10 / guard 2", "a top-level ORDER BY orders by the primary key or *_id columns alone",
+                "write the moment first (ORDER BY created_at, id) or an explicit number; ids tell nothing about creation order")).isEmpty();
     }
 
     @Test

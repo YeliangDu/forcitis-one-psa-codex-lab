@@ -2,6 +2,7 @@ package com.forcitis.one.platform.integration.guard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.GuardMessage;
 import com.forcitis.one.platform.integration.guard.ExternalReadRegister.Row;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -147,14 +148,14 @@ class SeeyonSourceScanTest {
     @Test
     @DisplayName("§9a src/main never names formmain_, formson_, a8_db, LEXMIS or T_U8C_ (registered object names excepted)")
     void mainSourcesDoNotNameForbiddenA8Objects() throws IOException {
-        assertThat(violations(MAIN, registeredNames())).as("§9a: only registered objects may be named").isEmpty();
+        assertThat(violations(MAIN, registeredNames())).as(GuardMessage.of("CS-1.3 / ADR-0037 item 6.1", "src/main names formmain_, formson_, a8_db, LEXMIS or T_U8C_ outside a registered forcitis_one view", "delete the name from the listed line and read the data through a view registered in the external read register under backend/architecture; the A8 form tables are never named")).isEmpty();
     }
 
     @Test
     @DisplayName("§9a Flyway scripts never name them either (no foreign tables, no cross-database views)")
     void migrationsDoNotNameForbiddenA8Objects() throws IOException {
-        assertThat(Files.isDirectory(MIGRATIONS)).isTrue();
-        assertThat(violations(MIGRATIONS, registeredNames())).isEmpty();
+        assertThat(Files.isDirectory(MIGRATIONS)).as(GuardMessage.of("CS-1.3", "the migration directory is missing", "run the test from the backend directory")).isTrue();
+        assertThat(violations(MIGRATIONS, registeredNames())).as(GuardMessage.of("CS-1.3 / ADR-0037 item 6.1", "a Flyway script names formmain_, formson_, a8_db, LEXMIS or T_U8C_", "remove the foreign table or cross-database name from the listed line of the migration")).isEmpty();
     }
 
     @Test
@@ -188,7 +189,9 @@ class SeeyonSourceScanTest {
         List<Row> rows = ExternalReadRegister.rows();
         Set<Path> layer = Set.copyOf(CredentialColumnGuardTest.integrationLayer());
 
-        assertThat(registeredBaseObjectsOutside(MAIN, layer, ExternalReadRegister.baseObjectNames(rows))).isEmpty();
+        assertThat(registeredBaseObjectsOutside(MAIN, layer, ExternalReadRegister.baseObjectNames(rows)))
+                .as(GuardMessage.of("CS-1.3 / ADR-0037 item 6.1", "a file outside the integration layer names a registered dbo object", "move that SQL into platform.integration and read through its api port"))
+                .isEmpty();
     }
 
     @Test
@@ -200,9 +203,11 @@ class SeeyonSourceScanTest {
             named.addAll(namedObjects(Files.readString(file)));
         }
 
-        assertThat(named).as("the scan sees the SQL of both external databases")
+        assertThat(named).as(GuardMessage.of("ADR-0037 item 6.1", "the scan does not see the SQL of both external databases", "check integrationLayer() and the scan patterns; the integration SQL must still name dbo.ORG_UNIT, forcitis_one.v_org_member and dbo.v_one_legacy_org_short_name"))
                 .contains("dbo.ORG_UNIT", "forcitis_one.v_org_member", "dbo.v_one_legacy_org_short_name");
-        assertThat(unregisteredObjects(layer, ExternalReadRegister.objects(ExternalReadRegister.rows()))).isEmpty();
+        assertThat(unregisteredObjects(layer, ExternalReadRegister.objects(ExternalReadRegister.rows())))
+                .as(GuardMessage.of("ADR-0037 item 6.1", "integration SQL names a dbo object or view that is not in the external read register", "register the object with its columns in the external read register under backend/architecture, or remove it from the SQL"))
+                .isEmpty();
     }
 
     @Test
@@ -242,7 +247,7 @@ class SeeyonSourceScanTest {
                 Pattern.CASE_INSENSITIVE);
         try (Stream<Path> files = Files.walk(MIGRATIONS.resolve("organization_workforce"))) {
             for (Path file : files.filter(Files::isRegularFile).toList()) {
-                assertThat(foreign.matcher(Files.readString(file)).find()).as(file.toString()).isFalse();
+                assertThat(foreign.matcher(Files.readString(file)).find()).as(GuardMessage.of("CS-1.3", "a workforce migration creates a foreign data wrapper, server or cross-database link: " + file, "remove the DDL; external data is read only through platform.integration")).isFalse();
             }
         }
     }

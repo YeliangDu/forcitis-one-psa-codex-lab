@@ -38,8 +38,9 @@ class IdMakingGuardTest {
         for (String line : Files.readAllLines(file)) {
             if (!line.isBlank() && !line.startsWith("#")) {
                 int hash = line.indexOf('#');
-                assertThat(hash).as("a reason and the ending card after # on: " + line).isPositive();
-                assertThat(line.substring(hash + 1)).as("reason of " + line).isNotBlank();
+                String fix = "write the line as <name>  # <reason>, <ending card> in " + file;
+                assertThat(hash).as(GuardMessage.of("CS-3.4", "register line '" + line + "' has no reason and ending card after #", fix)).isPositive();
+                assertThat(line.substring(hash + 1)).as(GuardMessage.of("CS-3.4", "register line '" + line + "' has an empty reason", fix)).isNotBlank();
                 entries.add(line.substring(0, hash).strip());
             }
         }
@@ -137,19 +138,31 @@ class IdMakingGuardTest {
     @Test
     @DisplayName("no repository makes the id of the aggregate root it returns (ADR-0033 section 1 item 9)")
     void repositoriesDoNotMakeRootIds() throws IOException {
-        assertThat(repositoryProblems(ArchitectureRulesTest.CLASSES, type -> type.getPackageName().contains(".infrastructure.persistence"), read(REPOSITORY_EXCEPTIONS))).isEmpty();
+        assertThat(repositoryProblems(ArchitectureRulesTest.CLASSES, type -> type.getPackageName().contains(".infrastructure.persistence"), read(REPOSITORY_EXCEPTIONS)))
+                .as(GuardMessage.of("ADR-0033",
+                        "a repository returns an aggregate root and makes its id with IdGenerator, or a repository id exception is stale",
+                        "make the id in the application with the injected IdGenerator when the aggregate is built and pass it in; for a stale line delete it from " + REPOSITORY_EXCEPTIONS))
+                .isEmpty();
     }
 
     @Test
     @DisplayName("the id of every aggregate root is final, so no repository can make it afterwards")
     void rootIdsAreFinal() {
-        assertThat(mutableRootIdProblems(ArchitectureRulesTest.CLASSES, IRREGULAR_ID_FIELDS)).isEmpty();
+        assertThat(mutableRootIdProblems(ArchitectureRulesTest.CLASSES, IRREGULAR_ID_FIELDS))
+                .as(GuardMessage.of("ADR-0033",
+                        "an aggregate root's id field is not final, or the root does not have exactly one id field named id or <root>Id",
+                        "declare the id field final and set it in the constructor; name it id or <root>Id, or list the irregular name in IRREGULAR_ID_FIELDS"))
+                .isEmpty();
     }
 
     @Test
     @DisplayName("nothing but kernel.Uuids calls UUID.randomUUID in production code")
     void onlyUuidsMakesRandomUuids() throws IOException {
-        assertThat(randomUuidProblems(ArchitectureRulesTest.CLASSES, read(RANDOM_UUID_EXCEPTIONS))).isEmpty();
+        assertThat(randomUuidProblems(ArchitectureRulesTest.CLASSES, read(RANDOM_UUID_EXCEPTIONS)))
+                .as(GuardMessage.of("CS-3.4",
+                        "a class other than kernel.Uuids calls UUID.randomUUID, or a random UUID exception is stale",
+                        "take ids from the injected IdGenerator and other random values from kernel.Uuids; for a stale line delete it from " + RANDOM_UUID_EXCEPTIONS))
+                .isEmpty();
     }
 
     static final class SampleRoot extends AggregateRoot {

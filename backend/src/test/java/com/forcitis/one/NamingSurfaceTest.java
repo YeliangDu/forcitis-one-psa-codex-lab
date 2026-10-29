@@ -99,7 +99,8 @@ class NamingSurfaceTest {
                 }
             }
         }
-        fail("G41 HTTP path must start with /api/v1/ and be /api/v1/{subdomain}/{plural-kebab-resource}[/{id}][:{action}] (NAMING_STANDARD.md §2.3)", problems);
+        fail("G41 HTTP path must start with /api/v1/ and be /api/v1/{subdomain}/{plural-kebab-resource}[/{id}][:{action}] (NAMING_STANDARD.md §2.3)", problems,
+                "rename the @RequestMapping path as each line says: the owning subdomain slug, a registered plural kebab-case resource, a camelCase id variable, a kebab-case action");
     }
 
     private static void checkHttpPath(String where, String full, String module, String subdomain, List<String> problems) {
@@ -152,7 +153,8 @@ class NamingSurfaceTest {
                 words(where, rc.getName(), problems);
             }
         }
-        fail("G42 domain event components must be camelCase glossary words", problems);
+        fail("G42 domain event components must be camelCase glossary words", problems,
+                "rename the event record component to a camelCase name made of registered glossary words (register a missing word in docs/glossary/terms.yaml)");
     }
 
     static final Pattern PERMISSION = Pattern.compile("(?<module>[a-z]+\\.[a-z]+):(?<resource>[a-z]+(?:-[a-z]+)*):(?<action>[a-z]+)");
@@ -193,7 +195,8 @@ class NamingSurfaceTest {
             }
         }
         fail("G43 permission code must be {subdomain}.{bc}:{resource}:{action} (lower case, glossary resource, action from "
-                + "standard_actions " + Glossary.standardActions() + ")", problems);
+                + "standard_actions " + Glossary.standardActions() + ")", problems,
+                "rename the permission code (Permission and Permission.Codes) to {subdomain}.{bc}:{kebab-resource}:{standard action}, keep Codes and the enum in step, and use only catalogued codes in @PreAuthorize");
     }
 
     private static void checkPermission(String where, String code, List<String> problems) {
@@ -265,7 +268,8 @@ class NamingSurfaceTest {
                         + "' must be English snake_case: lower-case ASCII letters and single underscores only");
             }
         }
-        fail("G44 Flyway file must be V{14-digit timestamp}__{module}_{english_snake_case}.sql in db/migration/{module}/", problems);
+        fail("G44 Flyway file must be V{14-digit timestamp}__{module}_{english_snake_case}.sql in db/migration/{module}/", problems,
+                "rename or move the migration file as each line says: a module schema folder, a real unique timestamp, the module prefix of the folder and an English snake_case description");
     }
 
     @Test
@@ -292,7 +296,8 @@ class NamingSurfaceTest {
                 problems.add("numbering_rules row for document_type_id " + ruleTypeId + " has no seeded document_types row");
             }
         }
-        fail("G45 document type codes (platform_numbering.document_types seed)", problems);
+        fail("G45 document type codes of the platform_numbering seed must be UPPER_SNAKE_CASE glossary words of a registered BC, each with exactly one numbering rule", problems,
+                "fix the code or the owner_bc_code in the platform_numbering seed migration, and seed one numbering_rules row for each document type");
     }
 
     @Test
@@ -351,7 +356,8 @@ class NamingSurfaceTest {
         for (Map.Entry<String, String> jobType : allInsertedValues("job_type").entrySet()) {
             checkDottedName("job_type '" + jobType.getKey() + "' in " + jobType.getValue(), jobType.getKey(), null, problems);
         }
-        fail("G46 job / ShedLock lock / job_type names must be {subdomain}.{bc}.{name} (dot-separated lower case)", problems);
+        fail("G46 job / ShedLock lock / job_type names must be {subdomain}.{bc}.{name} (dot-separated lower case)", problems,
+                "name the lock in @SchedulerLock(name = \"{subdomain}.{bc}.{name}\") after the declaring module, add the annotation to every @Scheduled job, and fix the job_type value the same way");
     }
 
     @Test
@@ -377,7 +383,8 @@ class NamingSurfaceTest {
                 }
             }
         }
-        fail("G46 Micrometer meter names must be {subdomain}.{bc}.{name} of the declaring module (dot-separated lower case)", problems);
+        fail("G46 Micrometer meter names must be {subdomain}.{bc}.{name} of the declaring module (dot-separated lower case)", problems,
+                "pass the meter name as a string literal that starts with the declaring module and is dot-separated lower case, without a forcitis. prefix");
     }
 
     @Test
@@ -420,7 +427,8 @@ class NamingSurfaceTest {
             }
         }
         fail("G46 own configuration keys must be forcitis.{subdomain}.{bc}.{kebab-case} of the reading module; "
-                + "any other key must be a framework key from spring-configuration-metadata.json", problems);
+                + "any other key must be a framework key from spring-configuration-metadata.json", problems,
+                "rename the key to forcitis.{subdomain}.{bc}.{kebab-case} of the module that reads it, or use a key that spring-configuration-metadata.json knows");
     }
 
     private static void checkConfigKey(String where, String key, String module, Map<String, String> known, List<String> problems) {
@@ -556,7 +564,8 @@ class NamingSurfaceTest {
             }
         }
         fail("G47 BPMN process / DMN decision id must be {subdomain}_{bc}_{snake_name} of the owning module "
-                + "(= the ProcessKey constant its owning context declares in its api); userTask ids camelCase glossary words", problems);
+                + "(= the ProcessKey constant its owning context declares in its api); userTask ids camelCase glossary words", problems,
+                "rename the process or decision id (and the file) as each line says, declare ProcessKey.of(\"<id>\") in the api of the owning context, and write userTask ids in camelCase");
     }
 
     private static final java.util.regex.Pattern PROCESS_KEY_LITERAL = java.util.regex.Pattern.compile("ProcessKey\\.of\\(\"([^\"]+)\"\\)");
@@ -645,7 +654,8 @@ class NamingSurfaceTest {
         if (found == 0) {
             problems.add("no ErrorCode enum found: the guard would pass vacuously");
         }
-        fail("G48 error code must be {SUBDOMAIN}_{BC}_{REASON} (upper snake_case, glossary words)", problems);
+        fail("G48 error code must be {SUBDOMAIN}_{BC}_{REASON} (upper snake_case, glossary words)", problems,
+                "keep one ErrorCode enum per module and name each constant {SUBDOMAIN}_{BC}_{REASON} after the module in glossary words; generic errors live in kernel");
     }
 
     private static void words(String where, String identifier, List<String> problems) {
@@ -655,9 +665,9 @@ class NamingSurfaceTest {
         }
     }
 
-    private static void fail(String rule, List<String> problems) {
+    private static void fail(String rule, List<String> problems, String fix) {
         if (!problems.isEmpty()) {
-            throw new AssertionError(rule + ":\n  " + String.join("\n  ", new LinkedHashSet<>(problems)));
+            throw new AssertionError(rule + ". Fix: " + fix + ".\n  " + String.join("\n  ", new LinkedHashSet<>(problems)));
         }
     }
 

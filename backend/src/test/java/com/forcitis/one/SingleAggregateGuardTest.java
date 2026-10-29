@@ -33,13 +33,21 @@ class SingleAggregateGuardTest {
     @DisplayName("DDD-1 every registered multi-aggregate transaction names an existing use case, at least two aggregates and a reason")
     void theRegisterIsCurrent() throws Exception {
         List<String> lines = Files.readAllLines(EXCEPTIONS).stream().filter(l -> !l.isBlank() && !l.startsWith("#")).toList();
-        assertThat(lines).isNotEmpty();
+        assertThat(lines).as(GuardMessage.of("CS-2.3", "the multi-aggregate register has no entries",
+                "restore the entries in backend/architecture/multi-aggregate-exceptions.txt")).isNotEmpty();
+        String fix = "edit backend/architecture/multi-aggregate-exceptions.txt so the line reads <use case class> | <Aggregate>+<Aggregate> | <reason>, "
+                + "and delete the line when the use case no longer exists";
         for (String line : lines) {
             String[] parts = line.split("\\|");
-            assertThat(parts).as(line).hasSize(3);
-            assertThat(Class.forName(parts[0].trim(), false, getClass().getClassLoader()).getName()).isEqualTo(parts[0].trim());
-            assertThat(parts[1].trim().split("\\+")).as(line).hasSizeGreaterThan(1);
-            assertThat(parts[2].trim()).as(line).isNotBlank();
+            assertThat(parts).as(GuardMessage.of("CS-2.3", "register line '" + line + "' does not have three '|' separated fields", fix)).hasSize(3);
+            try {
+                assertThat(Class.forName(parts[0].trim(), false, getClass().getClassLoader()).getName()).isEqualTo(parts[0].trim());
+            } catch (ClassNotFoundException gone) {
+                throw new AssertionError(GuardMessage.of("CS-2.3", "register line '" + line + "' names a use case class that no longer exists", fix), gone);
+            }
+            assertThat(parts[1].trim().split("\\+")).as(GuardMessage.of("CS-2.3", "register line '" + line + "' names fewer than two aggregates", fix))
+                    .hasSizeGreaterThan(1);
+            assertThat(parts[2].trim()).as(GuardMessage.of("CS-2.3", "register line '" + line + "' has no reason", fix)).isNotBlank();
         }
     }
 

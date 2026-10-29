@@ -103,7 +103,8 @@ class OutwardTextGuardTest {
                 problems.addAll(problems(MAIN.relativize(file).toString(), Files.readString(file), vocabulary));
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("CS-2.12 (review M-16)", "a Chinese text in a *Texts class has a piece that is neither a registered term nor an allowed non-business word",
+                "use the registered Chinese term, register the term in glossary/terms.yaml, or add a non-business word to frontend/scripts/copy-allow-list.yaml")).isEmpty();
     }
 
     @Test

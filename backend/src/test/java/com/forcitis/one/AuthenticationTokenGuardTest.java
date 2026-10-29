@@ -44,6 +44,9 @@ class AuthenticationTokenGuardTest {
     @DisplayName("P2 recheck L-7 the main code makes no Authentication token other than IdentityAuthentication")
     void onlyIdentityMakesTheSessionPrincipal() {
         assertThat(tokensMade(new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS).importPackages("com.forcitis.one")))
+                .as(GuardMessage.of("P2 recheck L-7",
+                        "main code other than IdentityAuthentication makes an Authentication token (constructor or authenticated/unauthenticated factory)",
+                        "remove it and build the session principal only through platform.identity.infrastructure.security.IdentityAuthentication"))
                 .isEmpty();
     }
 

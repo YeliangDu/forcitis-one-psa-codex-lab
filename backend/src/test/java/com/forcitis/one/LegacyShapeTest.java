@@ -44,7 +44,7 @@ class LegacyShapeTest {
     @Test
     @DisplayName("every approved anti-corruption area is a directory that exists; a moved or deleted one is removed from APPROVED_AREAS")
     void approvedAreasExist() {
-        assertThat(missingAreas(APPROVED_AREAS)).isEmpty();
+        assertThat(missingAreas(APPROVED_AREAS)).as(GuardMessage.of("CS-1.3", "an approved anti-corruption area is not a directory that exists", "remove the moved or deleted directory from APPROVED_AREAS in LegacyShapeTest")).isEmpty();
     }
 
     @Test
@@ -336,7 +336,7 @@ class LegacyShapeTest {
                     continue;
                 }
                 String[] parts = line.split("\\|", -1);
-                assertThat(parts).as("path | RULE,RULE | reason: %s", line).hasSize(3);
+                assertThat(parts).as(GuardMessage.of("CS-1.3", "a line of legacy-shape-exceptions.txt is not path | RULE,RULE | reason: " + line, "write the line as <path> | <RULE,RULE> | <reason>")).hasSize(3);
                 Set<Rule> rules = Arrays.stream(parts[1].split(",")).map(String::trim).map(Rule::valueOf)
                         .collect(Collectors.toCollection(LinkedHashSet::new));
                 list.add(new Allowed(parts[0].trim(), rules, parts[2].trim()));
@@ -362,8 +362,9 @@ class LegacyShapeTest {
     void theCodeBaseHasNoOldSystemShape() {
         List<Hit> violations = violations(scan(Path.of(".")), exceptions(EXCEPTIONS));
 
-        assertThat(violations).as("old-system identifiers (write the new thing from the spec, rule cards and glossary; an anti-corruption "
-                + "layer registers its file in architecture/legacy-shape-exceptions.txt):\n  %s",
+        assertThat(violations).as(GuardMessage.of("CS-1.3 / CS-1.2", "an old-system or external-system name or shape appears in the code base",
+                "write the new thing from the spec, rule cards and glossary; only an anti-corruption layer in platform.integration may name the external system, "
+                + "and it registers its file in backend/architecture/legacy-shape-exceptions.txt") + ":\n  %s",
                 violations.stream().map(Hit::toString).collect(Collectors.joining("\n  "))).isEmpty();
     }
 
@@ -376,25 +377,25 @@ class LegacyShapeTest {
         hits.forEach(h -> hitRules.computeIfAbsent(h.file(), k -> new TreeSet<>()).add(h.rule()));
 
         for (Allowed e : exceptions) {
-            assertThat(Files.isRegularFile(Path.of(e.file()))).as("%s exists", e.file()).isTrue();
-            assertThat(APPROVED_AREAS.stream().anyMatch(e.file()::startsWith)).as("%s is in an approved anti-corruption layer", e.file()).isTrue();
-            assertThat(e.reason()).as("reason of %s", e.file()).isNotBlank();
-            assertThat(e.rules()).as("rules of %s", e.file()).isNotEmpty();
+            assertThat(Files.isRegularFile(Path.of(e.file()))).as(GuardMessage.of("CS-1.3", "an exception line names " + e.file() + ", which does not exist", "delete or correct the line in backend/architecture/legacy-shape-exceptions.txt")).isTrue();
+            assertThat(APPROVED_AREAS.stream().anyMatch(e.file()::startsWith)).as(GuardMessage.of("CS-1.3", e.file() + " is not in an approved anti-corruption layer", "move the code into platform.integration (an area of APPROVED_AREAS) or remove the exception and the old-system name")).isTrue();
+            assertThat(e.reason()).as(GuardMessage.of("CS-1.3", "the exception for " + e.file() + " has no reason", "write the reason as the third column in backend/architecture/legacy-shape-exceptions.txt")).isNotBlank();
+            assertThat(e.rules()).as(GuardMessage.of("CS-1.3", "the exception for " + e.file() + " names no rule", "write the rule names as the second column in backend/architecture/legacy-shape-exceptions.txt")).isNotEmpty();
             for (Rule rule : e.rules()) {
-                assertThat(hitRules.getOrDefault(e.file(), Set.of())).as("%s needs the exception for %s (stale entries are removed)", e.file(), rule)
+                assertThat(hitRules.getOrDefault(e.file(), Set.of())).as(GuardMessage.of("CS-1.3", "the exception for " + e.file() + " names " + rule + ", which the file no longer hits", "remove " + rule + " from that line of backend/architecture/legacy-shape-exceptions.txt"))
                         .contains(rule);
             }
         }
         for (Allowed standing : STANDING) {
-            assertThat(Files.isRegularFile(Path.of(standing.file()))).as("%s exists", standing.file()).isTrue();
-            assertThat(standing.reason()).isNotBlank();
+            assertThat(Files.isRegularFile(Path.of(standing.file()))).as(GuardMessage.of("CS-1.3", "a standing exception names " + standing.file() + ", which does not exist", "delete or correct it in STANDING of LegacyShapeTest")).isTrue();
+            assertThat(standing.reason()).as(GuardMessage.of("CS-1.3", "a standing exception for " + standing.file() + " has no reason", "write the reason in STANDING of LegacyShapeTest")).isNotBlank();
         }
         for (String guard : GUARD_TESTS) {
-            assertThat(Files.isRegularFile(Path.of(guard))).as("%s exists (remove it from GUARD_TESTS when deleted)", guard).isTrue();
+            assertThat(Files.isRegularFile(Path.of(guard))).as(GuardMessage.of("CS-1.3", "the guard test " + guard + " does not exist", "remove it from GUARD_TESTS of LegacyShapeTest")).isTrue();
         }
-        assertThat(exceptions.stream().map(Allowed::file).distinct().count()).as("one line per file").isEqualTo(exceptions.size());
+        assertThat(exceptions.stream().map(Allowed::file).distinct().count()).as(GuardMessage.of("CS-1.3", "a file has more than one line in legacy-shape-exceptions.txt", "merge the lines of that file into one, listing all its rules")).isEqualTo(exceptions.size());
         assertThat(exceptions.stream().flatMap(e -> e.rules().stream()).collect(Collectors.toSet()))
-                .as("the platform.integration names rule never needs an exception").doesNotContain(Rule.EXTERNAL_SYSTEM_NAME);
+                .as(GuardMessage.of("CS-1.3", "an exception names the rule EXTERNAL_SYSTEM_NAME, which platform.integration never needs", "delete EXTERNAL_SYSTEM_NAME from that line of backend/architecture/legacy-shape-exceptions.txt")).doesNotContain(Rule.EXTERNAL_SYSTEM_NAME);
     }
 
     static final Map<Rule, Map<String, String>> SAMPLES = samples();

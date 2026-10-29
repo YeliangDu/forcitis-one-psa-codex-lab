@@ -89,7 +89,11 @@ class KernelPortDetourTest {
     @Test
     @DisplayName("P2-H2 kernel 端口的提问方与实现方之间已有依赖边时不得经 kernel 绕行，问题放进实现方的 api")
     void P2_H2_noKernelPortDetoursAnExistingEdge() throws IOException {
-        assertThat(detours(CLASSES, edges())).isEmpty();
+        assertThat(detours(CLASSES, edges()))
+                .as(GuardMessage.of("P2-H2",
+                        "a kernel port is a detour around an existing module dependency edge: every asking module may already use the answering module",
+                        "delete the kernel port, put the question on the answering module's api and let the askers call it"))
+                .isEmpty();
     }
 
     @Test
