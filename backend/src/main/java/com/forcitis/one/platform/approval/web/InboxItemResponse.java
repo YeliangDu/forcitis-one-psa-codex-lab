@@ -5,7 +5,7 @@ import com.forcitis.one.platform.approval.api.ProcessName;
 import com.forcitis.one.platform.approval.application.InboxItem;
 import java.time.Instant;
 import java.util.UUID;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** processName is what a person calls the process, from its definition; a client shows it as given and keeps no table of its own. */
 record InboxItemResponse(String taskId, String title, @Nullable String nodeName, @Nullable Instant createdAt,
