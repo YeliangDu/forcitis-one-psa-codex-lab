@@ -20,22 +20,27 @@ APPROVER = "YeliangDu"
 APPROVAL = re.compile(r"调度批准入队\s*head\s+([0-9a-f]{7,40})", re.I)
 REQUIRED = ("backend verify", "frontend verify", "secret scan")   # the checks the queue merges on (mq.py REQUIRED); anything else red is not a gap
 FAILING = ("FAILURE", "TIMED_OUT", "STARTUP_FAILURE", "ERROR")
-SESSION_MAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "session_map.json")
+POLICY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "policy.json")
 
 
 def parse_time(text):
     return datetime.datetime.fromisoformat(text.replace("Z", "+00:00")) if text else None
 
 
-def load_prefixes(path=SESSION_MAP):
+def load_owners(path=POLICY):
+    """Session name -> the session that owns it now, from policy.json, the one list of session names: every key of sessions.config is its own owner, every key of sessions.aliases
+    (an old session name, or an old branch family) points at one."""
     with open(path, encoding="utf-8") as f:
-        return json.load(f)["prefixes"]
+        sessions = json.load(f)["sessions"]
+    return {**{name: name for name in sessions["config"]}, **sessions.get("aliases", {})}
 
 
-def author_session(branch, prefixes):
-    """The session that owns a branch: the longest prefix of the branch name in session_map.json, else the branch itself so that nothing is silently unowned."""
-    best = max((p for p in prefixes if branch == p or branch.startswith(p + "-") or branch.startswith(p + "/")), key=len, default=None)
-    return prefixes[best] if best else f"?({branch})"
+def author_session(branch, owners):
+    """The session that owns a branch `[claude/]<name>[-|/]...`: <name> is the longest session name (load_owners) the branch starts with, up to a dash or slash.
+    No such name: `?(<branch>)`, so that nothing is silently unowned or guessed."""
+    rest = branch[len("claude/"):] if branch.startswith("claude/") else branch
+    best = max((n for n in owners if rest == n or rest.startswith(n + "-") or rest.startswith(n + "/")), key=len, default=None)
+    return owners[best] if best else f"?({branch})"
 
 
 def approved_head(comments, head):
@@ -65,13 +70,13 @@ def last_move(pr):
     return max(times) if times else parse_time(pr.get("createdAt"))
 
 
-def find_gaps(prs, queued, now, prefixes):
+def find_gaps(prs, queued, now, owners):
     gaps = []
     for pr in prs:
         n = pr["number"]
         if pr.get("isDraft") or n in queued:
             continue
-        who = author_session(pr["headRefName"], prefixes)
+        who = author_session(pr["headRefName"], owners)
         found = []
         if pr.get("mergeable") == "CONFLICTING":
             found.append(("CONFLICT", "text conflict with main"))
@@ -108,7 +113,7 @@ def render(gaps):
     return "".join(f"#{g['pr']} [{g['session']}] {g['reason']}: {g['detail']} ({g['title']})\n" for g in gaps)
 
 
-def scan(gh, queue, directory, log, now=None, prefixes=None):
+def scan(gh, queue, directory, log, now=None, owners=None):
     """One scan: report to the log and to gaps.md. Returns the gaps reported as new (None when gh could not list the pull requests: logged, nothing else changes)."""
     now = now or datetime.datetime.now(datetime.timezone.utc)
     prs = gh.open_prs()
@@ -118,7 +123,7 @@ def scan(gh, queue, directory, log, now=None, prefixes=None):
     if len(prs) >= OPEN_LIMIT:
         prs = prs[:OPEN_LIMIT - 1]
         log.event("ERROR", None, None, None, f"gap scan: more than {OPEN_LIMIT - 1} open pull requests, the list is cut off: the oldest are not looked at")
-    gaps = find_gaps(prs, set(queue.numbers()), now, prefixes if prefixes is not None else load_prefixes())
+    gaps = find_gaps(prs, set(queue.numbers()), now, owners if owners is not None else load_owners())
     state_path = os.path.join(directory, "gaps.state.json")
     try:
         with open(state_path, encoding="utf-8") as f:
