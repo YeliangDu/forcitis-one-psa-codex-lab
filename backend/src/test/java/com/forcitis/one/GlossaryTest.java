@@ -125,7 +125,8 @@ class GlossaryTest {
         if (unregistered.isEmpty()) {
             return;
         }
-        StringBuilder msg = new StringBuilder("G37 unregistered domain words (add a term to glossary/terms.yaml or rename to the glossary word):");
+        StringBuilder msg = new StringBuilder(GuardMessage.of("G37", "domain words used in code or migrations are not registered in the glossary",
+                "add a term for each word to docs/glossary/terms.yaml (status: proposed is enough, the draft entries below can be pasted) or rename to the glossary word") + "\nWords and where they are used:");
         unregistered.forEach((word, where) -> {
             msg.append("\n  ").append(word).append(" -> ");
             msg.append(String.join(", ", where.stream().map(Occurrence::where).distinct().limit(5).toList()));
@@ -153,7 +154,8 @@ class GlossaryTest {
             }
         }
         if (!problems.isEmpty()) {
-            throw new AssertionError("G38 forbidden legacy / pinyin spellings (glossary/terms.yaml forbidden):\n  "
+            throw new AssertionError(GuardMessage.of("G38", "a forbidden legacy or pinyin spelling of the glossary (terms.yaml forbidden) is used in an identifier",
+                    "rename the identifier to the spelling each line names (class, field, method, table or column)") + "\n  "
                     + String.join("\n  ", new LinkedHashSet<>(problems)));
         }
     }
@@ -175,14 +177,16 @@ class GlossaryTest {
             }
         });
         if (!problems.isEmpty()) {
-            throw new AssertionError("G39 data-dictionary Chinese differs from the glossary:\n  " + String.join("\n  ", problems));
+            throw new AssertionError(GuardMessage.of("G39", "a COMMENT of a table or column does not start with the Chinese name of the glossary term",
+                    "start the COMMENT with the Chinese name each line names (new migration), or correct zh in docs/glossary/terms.yaml") + "\n  " + String.join("\n  ", problems));
         }
     }
 
     @Test
     void glossaryIsWellFormed() {
         if (!glossaryProblems.isEmpty()) {
-            throw new AssertionError("glossary/terms.yaml is malformed:\n  " + String.join("\n  ", glossaryProblems));
+            throw new AssertionError(GuardMessage.of("CS-1.4", "glossary/terms.yaml or a proposed glossary file is malformed",
+                    "correct the entries each line names (required fields, unique ids, known kind and status)") + "\n  " + String.join("\n  ", glossaryProblems));
         }
     }
 
@@ -210,7 +214,9 @@ class GlossaryTest {
         baseline.stream().filter(k -> !codeProblems.containsKey(k)).forEach(k -> failures.add(
                 "stale baseline line (fixed, remove it from " + CODE_BASELINE + "): " + k));
         if (!failures.isEmpty()) {
-            throw new AssertionError("G40-G42 aggregate / domain event classes vs glossary (terms.yaml, proposed/*.yaml):\n  " + String.join("\n  ", failures));
+            throw new AssertionError(GuardMessage.of("G40-G42", "an aggregate or domain event class does not match a glossary term (aggregate term, past-tense domain_event term, no technical generic word), or the baseline is stale",
+                    "add or fix the term in docs/glossary/terms.yaml or glossary/proposed/<module>.yaml, or rename the class; delete a fixed line from " + CODE_BASELINE + " and lower its count, never add one")
+                    + "\n  " + String.join("\n  ", failures));
         }
     }
 

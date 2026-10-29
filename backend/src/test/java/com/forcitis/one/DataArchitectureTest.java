@@ -580,14 +580,16 @@ class DataArchitectureTest {
                 problems.add(name + ": mutability " + entry.text("mutability") + " is not one of " + MUTABILITY);
             }
         });
-        assertThat(problems).as("data access registry").isEmpty();
+        assertThat(problems).as(GuardMessage.of("CS-3.6 / K15", "the data access registry and the migrated database disagree",
+                "register each new table in backend/architecture/data-access-registry.yaml with a valid role, mutability, retention and lineage, and delete the entry of a table that is gone")).isEmpty();
     }
 
     @Test
     @DisplayName("D1..D10 the tables follow the data scorecard rules; the only tolerated violations are the gaps listed (with an owner) in the registry, and a fixed gap must be removed")
     void scorecardRulesHold() throws IOException {
         List<String> problems = problems(violations(tables, registry, DdlNamingTest.readClassification(), lockNames()), registry, LocalDate.now());
-        assertThat(problems).as("data scorecard D1..D10 (DATA_SCORECARD section 4)").isEmpty();
+        assertThat(problems).as(GuardMessage.of("CS-3.3 / scorecard D1..D10 (DATA_SCORECARD section 4)", "a table breaks a data scorecard rule that is not a listed gap",
+                "change the table as the named rule says in a new migration, or record a gap with owner, ref, note and due in backend/architecture/data-access-registry.yaml; remove a gap that is already fixed")).isEmpty();
     }
 
     @Test
@@ -624,7 +626,8 @@ class DataArchitectureTest {
                 problems.add(e.table() + ": the registry lists readers or writers but no SQL touches the table");
             }
         });
-        assertThat(problems).as("data access registry vs SQL in src/main/java").isEmpty();
+        assertThat(problems).as(GuardMessage.of("CS-3.6 / K15 / ADR-0026 item 5", "the tables the SQL in src/main/java touches differ from the registry, or a module reaches into another schema",
+                "make writers and readers in backend/architecture/data-access-registry.yaml equal what the SQL does, move SQL into the owning module, or list the module under cross_module with a reason")).isEmpty();
     }
 
     private static void assertSame(List<String> problems, String table, String what, Set<String> registered, Set<String> found) {
@@ -747,7 +750,8 @@ class DataArchitectureTest {
                 }
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("CS-3.6 / M6", "a SQL literal that writes names a table without its schema",
+                "write the table as <schema>.<table> in the SQL text so the access check sees it")).isEmpty();
     }
 
     record RoutineRow(String signature, String schema, boolean securityDefiner, boolean publicMayExecute, String searchPath, List<String> otherCreators) {}
@@ -806,7 +810,8 @@ class DataArchitectureTest {
         try (Connection c = connect()) {
             List<RoutineRow> functions = readFunctions(c);
             assertThat(functions).as("the migrated database has functions to check").hasSizeGreaterThan(30);
-            assertThat(searchPathProblems(functions)).isEmpty();
+            assertThat(searchPathProblems(functions)).as(GuardMessage.of("R-SP-1 (FUNCTION_SEARCH_PATH_PINNING.md)", "a function does not pin its search_path, or a SECURITY DEFINER function is executable by PUBLIC",
+                    "add SET search_path = pg_catalog, [<own schema>,] pg_temp to the function in a new migration, and REVOKE EXECUTE ON the SECURITY DEFINER function FROM PUBLIC")).isEmpty();
         }
     }
 
@@ -881,7 +886,8 @@ class DataArchitectureTest {
                 registered.add(table);
             }
         });
-        assertThat(revoked).isEqualTo(registered);
+        assertThat(revoked).as(GuardMessage.of("CS-3.9 / M5", "the REVOKE DELETE, TRUNCATE list in docs/ops/one-db-roles-schemas.sql differs from the registered DIMENSION_VERSIONED tables",
+                "make the table list of that REVOKE in docs/ops/one-db-roles-schemas.sql equal the DIMENSION_VERSIONED tables of backend/architecture/data-access-registry.yaml")).isEqualTo(registered);
     }
 
     @Test
@@ -891,9 +897,12 @@ class DataArchitectureTest {
         for (String line : Files.readAllLines(Path.of("architecture/archive-columns.txt"))) {
             if (!line.isBlank() && !line.startsWith("#")) {
                 String[] parts = line.split("\\s*\\|\\s*", 4);
-                assertThat(parts).as(line).hasSize(4);
-                assertThat(parts[1]).as(line).isIn("ARCHIVE", "EXCLUDE");
-                assertThat(parts[3]).as("a reason: " + line).isNotBlank();
+                assertThat(parts).as(GuardMessage.of("N9", "a line of archive-columns.txt does not have four columns: " + line,
+                        "write it as <column> | ARCHIVE or EXCLUDE | <classification> | <reason> in backend/architecture/archive-columns.txt")).hasSize(4);
+                assertThat(parts[1]).as(GuardMessage.of("N9", "the second column of an archive-columns.txt line is neither ARCHIVE nor EXCLUDE: " + line,
+                        "write ARCHIVE or EXCLUDE as the second column in backend/architecture/archive-columns.txt")).isIn("ARCHIVE", "EXCLUDE");
+                assertThat(parts[3]).as(GuardMessage.of("N9", "a line of archive-columns.txt has no reason: " + line,
+                        "write the reason as the fourth column in backend/architecture/archive-columns.txt")).isNotBlank();
                 decided.put(parts[0], parts[1]);
             }
         }
@@ -908,7 +917,8 @@ class DataArchitectureTest {
         }
         decided.keySet().stream().filter(c -> !tables.get("platform_audit.audit_entries").columns.containsKey(c))
                 .forEach(c -> problems.add("archive-columns.txt names " + c + ", which audit_entries does not have"));
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("N9", "the audit archive columns are not decided exactly for the columns of audit_entries",
+                "add or remove the line <column> | ARCHIVE or EXCLUDE | <reason> in backend/architecture/archive-columns.txt; a RESTRICTED column must be EXCLUDE")).isEmpty();
     }
 
     // ---------- R-1b P3b, ADR-0033 guard 7: the employee code is an attribute, never a key ----------
@@ -1009,16 +1019,20 @@ class DataArchitectureTest {
     @DisplayName("ADR-0078 守护 1 EmployeeCodeKeyScopeTest：uk_employees_employee_code 存在且是单列无条件的唯一约束，employee_code 不在任何其他键中，工号列只在允许集的表上，主代码没有按员工编号取单个对象的方法")
     void theEmployeeCodeKeyIsTheOnlyOne() throws Exception {
         try (Connection c = connect()) {
-            assertThat(keysOver(c, EMPLOYEE_CODE)).as("keys over employee_code").containsExactly(EMPLOYEE_CODE_KEY);
-            assertThat(employeeCodeKeyDefinition(c)).as("the key is one column, no condition").isEqualTo("UNIQUE (employee_code)");
+            assertThat(keysOver(c, EMPLOYEE_CODE)).as(GuardMessage.of("ADR-0078 guard 1", "employee_code is part of a key other than " + EMPLOYEE_CODE_KEY,
+                    "the employee code is an attribute, never a key: drop it from that key or foreign key in a new migration")).containsExactly(EMPLOYEE_CODE_KEY);
+            assertThat(employeeCodeKeyDefinition(c)).as(GuardMessage.of("ADR-0078 guard 1", "the employee code key is not one column without a condition",
+                    "define " + EMPLOYEE_CODE_KEY + " as UNIQUE (employee_code) in a new migration")).isEqualTo("UNIQUE (employee_code)");
             Set<String> carrying = tablesCarryingTheEmployeeCode(c, DdlNamingTest.readClassification());
-            assertThat(carrying).as("tables carrying the employee code, against architecture/employee-code-columns.txt").isEqualTo(employeeCodeTables());
+            assertThat(carrying).as(GuardMessage.of("ADR-0078 guard 1", "the tables carrying an employee code column differ from backend/architecture/employee-code-columns.txt",
+                    "keep the employee code column only on the allowed tables, or list the table in backend/architecture/employee-code-columns.txt with a reason")).isEqualTo(employeeCodeTables());
         }
         Map<String, String> sources = new TreeMap<>();
         for (Path file : javaFiles()) {
             sources.put(MAIN.relativize(file).toString(), Files.readString(file));
         }
-        assertThat(lookupsByEmployeeCode(sources)).as("methods that fetch an object by the employee code").isEmpty();
+        assertThat(lookupsByEmployeeCode(sources)).as(GuardMessage.of("ADR-0078 guard 1", "a method fetches one object by the employee code",
+                "fetch by the object id and use the employee code only to show or search")).isEmpty();
     }
 
     @Test

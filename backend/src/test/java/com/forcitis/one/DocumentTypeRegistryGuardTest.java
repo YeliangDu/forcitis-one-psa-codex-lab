@@ -41,7 +41,8 @@ class DocumentTypeRegistryGuardTest {
                 }
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("ADR-0066 decision 4", "kernel or platform code names a business document type",
+                "read the type from the numbering registry (platform_numbering.document_types) or take the code from the declaring context instead of writing the literal")).isEmpty();
     }
 
     @Test
@@ -61,7 +62,8 @@ class DocumentTypeRegistryGuardTest {
                 }
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("ADR-0066 decision 4", "a table lists document types in a CHECK, or has a foreign key into the platform_numbering registry from another schema",
+                "drop the CHECK and let the registry hold the types; reference the registry by a plain code column outside platform_numbering")).isEmpty();
     }
 
     @Test
@@ -103,7 +105,8 @@ class DocumentTypeRegistryGuardTest {
                 }
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("ADR-0066 decision 4 / REG-4", "kernel or platform code or a platform_* migration names a business process key or name",
+                "let the process own its key in its context's api and its name in its definition; platform code receives them as parameters")).isEmpty();
     }
 
     @Test
