@@ -9,7 +9,7 @@ terms:
   scope: domain
   definition: 该单据类型没有有效的编号规则（404）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -24,7 +24,7 @@ terms:
   scope: domain
   definition: 模板或重置周期不符合规则（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -39,7 +39,7 @@ terms:
   scope: domain
   definition: 编号规则已经确认，不能再次确认（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -54,7 +54,7 @@ terms:
   scope: domain
   definition: 规则已被他人修改（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -123,7 +123,7 @@ terms:
   scope: domain
   definition: 编号运维起草命令只在单人运维模式开启时可用，模式关闭时一律拒绝（403）
   standard_ref:
-  - adr/src/ADR-0030.md
+  - docs/adr/ADR-0030.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -196,7 +196,7 @@ terms:
   kind: value_object
   bc: platform.numbering
   scope: domain
-  definition: glossary/bcs.yaml 中登记的业务模块标识，如 cost.timesheet；登记属主列用它
+  definition: docs/glossary/bcs.yaml 中登记的业务模块标识，如 cost.timesheet；登记属主列用它
   standard_ref:
   - ADR-0066 决定 4
   confidence: medium

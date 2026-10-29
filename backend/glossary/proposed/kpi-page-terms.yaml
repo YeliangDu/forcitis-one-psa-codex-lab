@@ -9,7 +9,7 @@ terms:
   scope: domain
   definition: 员工填报在商机（尚未签约的业务机会）上的工时；与收费工时、非计费工时并列，用于工时结构（M-43）
   standard_ref:
-  - r0/METRIC_BASELINE_DRAFT
+  - docs/data/metric-baseline/baseline-draft.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -24,7 +24,7 @@ terms:
   scope: domain
   definition: 员工在期间内可供使用的工时，来自工作日历扣除休假后的小时数；利用率的分母（可计费工时 / 可用工时）
   standard_ref:
-  - r0/METRIC_BASELINE_DRAFT
+  - docs/data/metric-baseline/baseline-draft.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -42,7 +42,7 @@ terms:
   scope: domain
   definition: 合同或客户未另行约定付款周期时采用的账期天数，配置项；到期日由账期与开票日推算（R1-B-06）
   standard_ref:
-  - r0/METRIC_BASELINE_DRAFT
+  - docs/data/metric-baseline/baseline-draft.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -57,7 +57,7 @@ terms:
   scope: domain
   definition: 无合同风险敞口超出授权额度的投入金额（M-46）；授权额度按客户等级配置
   standard_ref:
-  - r0/METRIC_BASELINE_DRAFT
+  - docs/data/metric-baseline/baseline-draft.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -75,7 +75,7 @@ terms:
   scope: domain
   definition: 期间内工时按收费、商机、非计费划分的占比（M-43），与有效 / 无效工时划分对齐
   standard_ref:
-  - r0/METRIC_BASELINE_DRAFT
+  - docs/data/metric-baseline/baseline-draft.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -93,7 +93,7 @@ terms:
   scope: domain
   definition: 期间内有效工时占全部填报工时的比例；有效工时指经有效性认定的工时
   standard_ref:
-  - r0/METRIC_BASELINE_DRAFT
+  - docs/data/metric-baseline/baseline-draft.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -111,7 +111,7 @@ terms:
   scope: domain
   definition: 期间现金流入合计除以现金流出合计（M-37）；是否含筹资活动待确认
   standard_ref:
-  - r0/METRIC_BASELINE_DRAFT
+  - docs/data/metric-baseline/baseline-draft.md
   confidence: medium
   aliases: []
   forbidden: []

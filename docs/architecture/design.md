@@ -24,7 +24,7 @@
 | DMN | `dmn/decisions.yaml` | `DEC-xx` | 输入、输出、所属 BC、规则卡、执行方式 | 决策点清单（均在代码中）；DMN 推迟到第一张真实决策表，届时另开 ADR 在 DMN 与版本化配置表之间选（FRAMEWORKS §7） |
 | DAMA | 不建文件（ADR-0041 决定 4） | — | 数据类别、记录系统、负责 BC、敏感分级以数据访问注册表与 `data-classification.txt` 为准 | 数据访问注册表、`data-classification.txt` |
 | OLTP | 不新建文件 | — | BC → 模块 → schema → 表由生成器从 `contexts.yaml`、迁移目录与注册表推导 | 迁移目录、数据访问注册表 |
-| OLAP | 不另建文件 | `M-xx` | 口径以 OAT 与 `r0/METRIC_BASELINE_DRAFT.md`（确认后的正式版）为准；KPI → M-xx 只在 `ssot/04-goals/vision.yaml` 登记（ADR-0041 决定 4） | OAT、METRIC_BASELINE |
+| OLAP | 不另建文件 | `M-xx` | 口径以 OAT 与 `docs/data/metric-baseline/baseline-draft.md`（确认后的正式版）为准；KPI → M-xx 只在 `ssot/04-goals/vision.yaml` 登记（ADR-0041 决定 4） | OAT、METRIC_BASELINE |
 
 **追溯链**（ADR-0041）：规则卡 / 不变量 → 聚合 → 事件 → BC → 流程 → 表（注册表）→ 分析事实 → 指标；一级能力只作范围查漏。追溯表为生成的报告，不作合并门禁。
 
@@ -50,7 +50,7 @@
 | A4 | 每个已建模块在 `contexts.yaml` 登记；`terms.yaml` 的 `bc` 取值都是已登记的 BC 或子域（规划 BC 也要登记） |
 | A5 | kernel 白名单：现有类先登记为「待用户决定去向」，只拦新增 |
 | A6 | `architecture_change_guard`（仿 `acceptance_guard.py`）：改 `architecture/` 或 `module-dependencies.txt` 的提交须带 trailer `Architecture-Ref: ADR-xxxx` 或 `intent <文件名>` |
-| A7 | ADR-0003 偏差（例如 BC 编号的载体）登记到 `adr/src/_readme_deviations.md`；CODEOWNERS 按用户既定「生产前再定」，本期不加 |
+| A7 | ADR-0003 偏差（例如 BC 编号的载体）登记到 `docs/adr/readme-deviations.md`；CODEOWNERS 按用户既定「生产前再定」，本期不加 |
 
 ## 5. 交付顺序（每步一个 PR，PR 由 one-coordinator 入队）
 

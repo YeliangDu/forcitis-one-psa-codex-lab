@@ -42,8 +42,8 @@
 | 档位 | 是 | 单 | `正式` 或 `轻量`（第 6 节）；也是新旧格式的判定字段（第 1 节） |
 | 起草 | 是 | 单 | 负责会话名（如 `one-architecture`），复审提醒发给它 |
 | 类别 | 是 | 单 | 第 3.1 节枚举之一 |
-| BC | 是 | 多 | `architecture/ssot/d-domain/contexts.yaml` 的 `id`；跨全部 BC 写 `全局` |
-| 阶段 | 是 | 多 | `architecture/ssot/t-transitions/transitions.yaml` 的 `id`（如 `TA-1a`）；不限阶段写 `全阶段` |
+| BC | 是 | 多 | `docs/architecture/ssot/domain/contexts.yaml` 的 `id`；跨全部 BC 写 `全局` |
+| 阶段 | 是 | 多 | `docs/architecture/ssot/transitions/transitions.yaml` 的 `id`（如 `TA-1a`）；不限阶段写 `全阶段` |
 | 取代 | 否 | 多 | 见第 4 节 |
 | 被部分取代 | 否 | 多 | 写在被部分取代的一方，列出取代它的 ADR 与范围；见第 4 节；只由后来的 ADR 采纳时添加 |
 | 用户原话 | 视状态 | 多 | 每项：「原话」（YYYY-MM-DD，intent `文件名.md`）；只摘决定性的一句，全文在 intent |
@@ -133,7 +133,7 @@
 
 ### 9. 评审
 
-1. 首轮评审一律用 opus（现行模型分级：opus 做首轮评审）。正式档经 `code-modernization:architecture-critic` 对抗性评审；轻量档的评审即按评审模板 `quality/review-briefs/03-adr.md` 的轻量子集出题，模板子集即该档的架构评审（对应 2026-10-14 原话第 3 条「ADR 类走架构评审」，intent `2026-10-14-089`）。评审意见与处理结果写入「证据」小节。
+1. 首轮评审一律用 opus（现行模型分级：opus 做首轮评审）。正式档经 `code-modernization:architecture-critic` 对抗性评审；轻量档的评审即按评审模板 `docs/rules/review-briefs/adr.md` 的轻量子集出题，模板子集即该档的架构评审（对应 2026-10-14 原话第 3 条「ADR 类走架构评审」，intent `2026-10-14-089`）。评审意见与处理结果写入「证据」小节。
 2. **全文检索被改条款**（每份新稿必做）：起草者对本 ADR 修订或涉及的对象、表、列、枚举值、权限码、BC 标识，在 `adr/src/` 全文检索，在「证据」小节中写「检索记录」：检索词、命令、命中的 ADR 列表，以及每份的结论（相容 / 本 ADR 取代其某条 / 无关）。评审员重放检索并核对：命中而未列入「取代」又判为不相容的，评审不通过。
 3. 用户批准后改为「已采纳」，填用户原话与批准证据字段。
 

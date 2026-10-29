@@ -9,7 +9,7 @@ terms:
   scope: domain
   definition: 角色已经处于目标状态（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -24,7 +24,7 @@ terms:
   scope: domain
   definition: 账号已经处于目标状态（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -39,7 +39,7 @@ terms:
   scope: domain
   definition: 角色或账号已被他人修改（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -54,7 +54,7 @@ terms:
   scope: domain
   definition: 角色定义（名称、状态、数据范围类型、完整权限集合）的每次变化一行，只追加；当前版本是没有失效时刻的那一行，每个角色至多一个；删除角色是关闭最后一个版本（ADR-0034 第 1 项）
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -69,7 +69,7 @@ terms:
   scope: domain
   definition: 某账号在一段时间内持有某角色，只追加；结束一律称收回，收回是关闭开放行，再次获得新增一行（ADR-0034 第 2 项）
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -84,7 +84,7 @@ terms:
   scope: domain
   definition: 角色授予被收回的原因：账号授权、离职、运维命令、迁入批次回退（ADR-0034 第 2 项）；列名 revocation_cause_kind
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -99,7 +99,7 @@ terms:
   scope: domain
   definition: 删除角色时给最后一个角色版本写下失效时刻、关闭人、关闭理由与审计条目，不再开新版本；被新版本接替的关闭不记这三项（ADR-0034 第 1 项）
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -114,7 +114,7 @@ terms:
   scope: domain
   definition: 六个系统角色（固定角色 ID、编码、是否管理员角色、名称、状态、数据范围类型、完整权限集合）在代码中的声明，每个角色带声明修订号；启动时对账写入角色版本，迁移不写角色数据（ADR-0034 第 1 项第 7 条）
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -129,7 +129,7 @@ terms:
   scope: domain
   definition: 系统角色声明中每个角色的修订号，从 1 起只增不减；只有 SEED 版本记录它；库中修订号更小时追加新版本，更大时告警不写，相等而内容不同时启动失败（ADR-0034 第 1 项第 7 条）
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -144,7 +144,7 @@ terms:
   scope: domain
   definition: 角色版本的来源：SEED 系统角色声明对账、MANUAL 角色管理、MIGRATION 老角色迁入；列名 change_channel_kind（ADR-0034 第 1 项第 2 条）。MANUAL、MIGRATION 与授予渠道同名同义
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -159,7 +159,7 @@ terms:
   scope: domain
   definition: 变更渠道为 SEED 的角色版本：由启动对账按系统角色声明写入，记声明修订号、不记记录人（ADR-0034 第 1 项第 2、7 条）
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -174,7 +174,7 @@ terms:
   scope: domain
   definition: 一个角色版本所含的名称、状态、数据范围类型与完整权限集合；内容不变的修改不新增版本（ADR-0034 第 1 项第 2、4 条）
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -189,7 +189,7 @@ terms:
   scope: domain
   definition: 权限目录中保留但不再授予的权限码：写入角色版本时拒绝，运行时读到只忽略该码并告警，目录中的码只能标停用不能删除（ADR-0034 第 1 项第 3 条）；代码中为 Permission.deprecated()
   standard_ref:
-  - adr/src/ADR-0034.md
+  - docs/adr/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []

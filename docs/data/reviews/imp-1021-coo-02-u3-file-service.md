@@ -1,6 +1,6 @@
 # 文件服务表结构草案 DD 审（IMP-1021-COO-02 单元 3）
 
-- 日期：2026-10-21；审者：one-data；对象：`claude/one-platform-file` @89fe88cb，`docs/data/file-service-ddl-draft.sql`（schema `platform_file` 十张表）。依据：ADR-0060/0061/0070、ADR-0058、ADR-0066 决定 4、ADR-0033、DATA_DESIGN_CHECKLIST §14/§14.1 D1–D19、NAMING_STANDARD、DATA_DESIGN_GATE。
+- 日期：2026-10-21；审者：one-data；对象：`claude/one-platform-file` @89fe88cb，`docs/modernization/phase1a/file-service/DDL_DRAFT.sql`（schema `platform_file` 十张表）。依据：ADR-0060/0061/0070、ADR-0058、ADR-0066 决定 4、ADR-0033、DATA_DESIGN_CHECKLIST §14/§14.1 D1–D19、NAMING_STANDARD、DATA_DESIGN_GATE。
 - 范围：只审草案的数据设计；草案未进 `db/migration`，实际 DDL 出来后我再复核实际表结构 diff。
 
 ## 结论

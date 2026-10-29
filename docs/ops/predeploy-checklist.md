@@ -1,6 +1,6 @@
 # Phase 1a 部署前清单
 
-整理：psa-coordinator，2026-10-14。用途：dev 部署与 1a 出口验证之前，一次问清并跟踪所有需要用户决定、只能由用户或运维执行、或执行前须用户确认的事项。细节以 `INFRA_RUNBOOK.md`、ADR 与 `process/1a/contract.md` 为准；本清单只做汇总与状态跟踪。
+整理：psa-coordinator，2026-10-14。用途：dev 部署与 1a 出口验证之前，一次问清并跟踪所有需要用户决定、只能由用户或运维执行、或执行前须用户确认的事项。细节以 `INFRA_RUNBOOK.md`、ADR 与 `docs/business/processes/contract.md` 为准；本清单只做汇总与状态跟踪。
 
 **1a 修复批合并前禁止部署任何环境**（status/blockers/080）。下表的交接包与剧本只是准备，执行仍须逐项经用户确认。
 
@@ -60,7 +60,7 @@
 | C-14 | ADR-0037 第 4 项只读账号校验（ADR37-1）：dev 依次配置三条只读连接，启动校验通过；人为撤销一项库级 DENY 后，下一次同步前的重检停掉该连接并写 ALERT；随后恢复授权并重启。实现合入时部署阻塞项 100 关闭，由阻塞项 101 接替：本项 dev 验证与真实账号逐项反例核实（runbooks/C-14-readonly-probe.md，含 PR #163 复审 H-1、H-2 新增反例（H-2 的 msdb 角色移出平台不可构造，不做））都完成后删除 101 | dev 前 | ADR-0037 迁移方案第 4、5 步 | INFRA_RUNBOOK §4 | ✅ 2026-10-16 真实账号核实完成（三个正式账号第一步 PASSED；探针第 1–15 项、第 17 项记录见 C-14 剧本「执行记录」）；阻塞项 101 已删；第 14 项 (g) 口径待 one-1a-par、生产前须定；dev 验证（撤销一项库级 DENY 后重检停连接并写 ALERT）随首次部署做 |
 | C-15 | 删除迁移基线开放标记 `backend/architecture/migration-baseline-open`（单独 PR，不夹带迁移改动），此后迁移只追加；dev 期间保持开放，基线改动后 dev 库与服务器发布状态一起重置（见 C-16）。`deploy_gate.py` 对 prod 拦截、对 dev 只告警 | 生产前 | METHODS M3「迁移基线」；用户 2026-10-15（ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等）；intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`） | — | ⬜ |
 | C-16 | dev 库重建剧本 `runbooks/dev-db-rebuild.md`（one-ops）：基线开放期内基线迁移文件改过后，删库重建 dev 库并重置服务器发布状态（安装器比对两版 `migrations.txt`，迁移文件内容变了即拒绝安装，只删库不够；重置后不得回退到重置前的版本）；含 Flowable 首次安装项与首次部署前检查 | 基线改动后的第二次 dev 部署前 | ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等）；PAR-1 复审 H-1 | — | ⬜ |
-| C-17 | ECS `/etc/forcitis-one/one.env` 补 `FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_ROOT_PATH=00000001`（同步根单位的层级路径；没有默认值，启用视图读取而缺此项应用启动失败，INFRA_RUNBOOK §5）。2026-10-15 只读核对（t-hz0704aw6gtu0ao）该键缺失 | dev 首次部署前 | 值出处：规则卡 `rules/IDENTITY_ORG_RULES.md` 的 `A8_DEPT_ROOT_PATH = "00000001"`；R-1b-0 取证（PR #193）按此口径得到范围内 1254 人 | — | ⬜ |
+| C-17 | ECS `/etc/forcitis-one/one.env` 补 `FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_ROOT_PATH=00000001`（同步根单位的层级路径；没有默认值，启用视图读取而缺此项应用启动失败，INFRA_RUNBOOK §5）。2026-10-15 只读核对（t-hz0704aw6gtu0ao）该键缺失 | dev 首次部署前 | 值出处：规则卡 `docs/business/rules/identity-org-rules.md` 的 `A8_DEPT_ROOT_PATH = "00000001"`；R-1b-0 取证（PR #193）按此口径得到范围内 1254 人 | — | ⬜ |
 | C-18 | ECS `/etc/forcitis-one/one.env` 补 `FORCITIS_JOBS_ENABLED=true`（dev 只有一个实例，须为 true），并确认没有 `SPRING_AUTOCONFIGURE_EXCLUDE`。`application.properties` 的 `forcitis.platform.scheduling.jobs-enabled=${FORCITIS_JOBS_ENABLED}` 没有默认值，模板与部署脚本原先都缺这一项，照模板部署应用起不来（复核 High） | dev 首次部署前 | INFRA_RUNBOOK §5、§9；`one.env.template` 与 `remote_install.sh` 已补校验（缺键、值不是 true / false、设置了 `SPRING_AUTOCONFIGURE_EXCLUDE` 都拒绝安装） | — | ⬜ |
 | C-19 | 090（ADR-0026 1a 数据范围机制）完成并在 dev 验证之前，dev 只对用户本人开放（intent 2026-10-15-214650、2026-10-15-215052），同时收窄三处：(a) **登录入口**：dev 企业微信自建应用（B-2）的可见范围只含用户本人——在企业微信管理后台「应用管理 → 该自建应用 → 可见范围」只保留用户本人，删去其余成员与部门（需用户本人在后台操作，one-ops 执行时报 one-coordinator 转用户）；核对：用应用凭据调用 `agent/get` 回读 `allow_userinfos` 只有 1 人、`allow_partys` 与 `allow_tags` 为空，只记人数不记 userid；(b) **角色**：本系统除用户本人外不授予任何角色——核对：运维只读查询 `platform_identity` 中角色持有关系，持有人只有 1 人（只记人数）；(c) **消息**：`WECOM_RESTRICT_RECIPIENTS=true`，`WECOM_RECIPIENT_ALLOWLIST` 只含用户本人 1 条（只回读条目数）。090 删除之前三处都不得加人；每次加人前先核对 090 已删除 | dev 首次部署前（a、c）、首次部署后（b），及每次改可见范围、授角色、改白名单前 | `status/blockers/090-*`；A-8、B-2、B-12、C-5 | — | ⬜ |
 | C-20 | ECS `/etc/forcitis-one/one.env` 把老待办连接三个键改名：`FORCITIS_PLATFORM_APPROVAL_LEGACY_URL / _USERNAME / _PASSWORD`（另有 `_VIEW_NAME`、`_DETAIL_URL_TEMPLATE` 若设置）改为 `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_*`，值不变，改前备份；改后回读键名与非空。R-1b P3b（#260）起：留着旧键应用拒绝启动，新模板缺新键安装器拒绝安装，核实命令的旧连接名 `legacy-approval` 是用法错误（新名 `integration-legacy-inbox`，读新键）。需在含 P3b 的 rc 做 C-14 第一步之前完成，生产变更先报 one-coordinator | 含 P3b 的 rc 的 C-14 第一步前 | INFRA_RUNBOOK §4.1、§5；P3b RULING-P3B-10 | — | ⬜ |
@@ -85,7 +85,7 @@
 - 第三轮用语确认（ADR-0018：阶段结束时不得留有会计类提议术语）——1a 代码下一批交付后启动。
 - 财务确认单 v2 的答复（G1 开工前必须）。
 - AG Grid 企业版许可采购（R1 前）。
-- OAT 文件在 ddd-theory 提交后，`glossary/oat/README.md` 改引提交号。
+- OAT 文件在 ddd-theory 提交后，`docs/glossary/oat/README.md` 改引提交号。
 
 ## 核对中发现、清单尚未列出的前置项（供 one-coordinator 决定是否立项）
 

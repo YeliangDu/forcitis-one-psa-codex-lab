@@ -1,4 +1,4 @@
-# GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-21，NAM-1021-GLO-14，proposed）。已被取代、草拟两个状态名是各对象状态链里的取值名，随各对象登记，决定记在 glossary/arch-naming/STATE_NAME_RULINGS.md。
+# GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-21，NAM-1021-GLO-14，proposed）。已被取代、草拟两个状态名是各对象状态链里的取值名，随各对象登记，决定记在 docs/glossary/arch-naming/state-name-rulings.md。
 terms:
 - id: statutory_filing
   zh: 法定申报

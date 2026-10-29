@@ -1,6 +1,6 @@
 # R0 指标基线草稿（待用户确认）
 
-- 日期：2026-10-14 · 会话：psa-r0-metric-baseline · 输入：`REPORT_INVENTORY.md`（六份在用报表的结构与口径问题）、BI_SCOPE.md §3 与 §6.1、ADR-0022 与 `rules/GL_FINANCE_DECISIONS.md`、OAT 机器主数据、`glossary/terms.yaml`
+- 日期：2026-10-14 · 会话：psa-r0-metric-baseline · 输入：`REPORT_INVENTORY.md`（六份在用报表的结构与口径问题）、BI_SCOPE.md §3 与 §6.1、ADR-0022 与 `rules/GL_FINANCE_DECISIONS.md`、OAT 机器主数据、`docs/glossary/terms.yaml`
 - **状态：草稿。** B6–B11 已由用户决定（§6.1）；其余待用户与财务确认。 用户已说明这些报表「都不是最佳的报表，全部需要重新梳理，这只作为你的参考」，所以本稿不按老报表的结构排，而是按经营子域 4 个 BC 与 L0–L4 分层（ADR-0023）重新归位。老报表叫法只作为「替代的叫法」列出。
 - 名称一栏是**建议名**。凡是不在 `terms.yaml` 中的，按 ADR-0018 先起草为「提议」，经确认后才能进入代码与界面（§5）。
 - 模型：口径判断与重新梳理由本会话（opus）完成。
@@ -158,7 +158,7 @@ OAT 声明的其余字段（单位、加总规则、口径版本）见 BI_SCOPE 
 
 逐条起草稿（中英文、类别、定义、OAT、确认方）见 `TERMS_ROUND3_INPUT.md`。
 
-老报表叫法中，可能对应已有词条的 C 类叫法，已登记为待确认别名：`glossary/r0_report_aliases.json` → 用语确认表 A 组。下列新概念词表中没有，需在 R0 后续或用语确认会话中起草，确认前不得进入代码：
+老报表叫法中，可能对应已有词条的 C 类叫法，已登记为待确认别名：`docs/glossary/r0-report-aliases.json` → 用语确认表 A 组。下列新概念词表中没有，需在 R0 后续或用语确认会话中起草，确认前不得进入代码：
 
 | 模块 | 词条（建议中文 / 英文） |
 |---|---|

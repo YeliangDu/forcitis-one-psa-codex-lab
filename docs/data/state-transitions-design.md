@@ -127,7 +127,7 @@ c3 / c9 两份运行时脚本同步。`DataArchitectureTest` 核对：注册表�
 - **统一落表点（S3）**：每个 BC 一个类实现转换落表（建议名 `Jdbc<Aggregate>Transitions` 或一个 schema 级 `JdbcStateTransitions`），聚合仓储的 `save` 只经它写转换；结构守护扫描：实现标记接口的聚合，其仓储源码必须调用该落表点；漏调用由行为守护（状态变化次数等于新增转换行数，含冲销路径）兜住。
 - **守护两端（S7）**：Java 端「有状态枚举的聚合必须实现标记接口」（结构守护，防漏标）+ DDL 端 `measurable_ddl_scan.py` 的 M3（schema 必须有 `state_transitions`，或注册表例外）。`measurable_ddl_scan.py` 目前在分支 `claude/one-data-handoff-1`，不在 main，进 main 由「模板与守护」公共卡（第 8 节）带入。
 - **模板一致性守护**：比对各 schema 的 `state_transitions` DDL 与本页第 1 节模板（列、类型、约束名、索引名、触发器名），只允许 `<schema>` 与函数属主差异。
-- 触发器命名（N4）：按 `data/TRIGGER_NAMING_PROPOSAL.md`（`tg_<表名>_append_only` 与 `_truncate`），该条款提议稿尚未采纳，本表按此命名，采纳后无需改名。
+- 触发器命名（N4）：按 `docs/data/trigger-naming-proposal.md`（`tg_<表名>_append_only` 与 `_truncate`），该条款提议稿尚未采纳，本表按此命名，采纳后无需改名。
 
 ## 7. 保留期建议（D12，交用户认可；S9：认可前不进表结构 PR）
 

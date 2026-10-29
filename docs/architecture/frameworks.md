@@ -2,13 +2,13 @@
 
 状态：已成文→ADR-0052｜2026-10-17｜负责：one-architecture
 
-日期：2026-10-17 · 负责：one-architecture。现行依据为 ADR-0050、ADR-0052 与 ADR-0054；方法见 `architecture/METHOD.md`。`proposals/FRAMEWORKS_V4_DRAFT.md` 保留同文副本，历史条目追溯见 METHOD §8。文内实践稿以 `architecture/proposals/` 为根，SSOT 路径以 `architecture/` 为根，最终命名与路径按 ADR-0053。
+日期：2026-10-17 · 负责：one-architecture。现行依据为 ADR-0050、ADR-0052 与 ADR-0054；方法见 `docs/architecture/method.md`。`proposals/FRAMEWORKS_V4_DRAFT.md` 保留同文副本，历史条目追溯见 METHOD §8。文内实践稿以 `architecture/proposals/` 为根，SSOT 路径以 `architecture/` 为根，最终命名与路径按 ADR-0053。
 
 依据：ADR-0052 决定 1–6（流程目录、骨架、描述级图与可执行版分工及三项参照）；ADR-0054 决定 1–2（全企业设计、W0–W5 建造与一次投产）。用户 2026-10-15「你需要有一个稳定的知识框架，不能漂移」（intent `2026-10-15-163920`）；ADR-0041 适配评审收窄；框架纳入页「BIZBOK 五项（干系人与价值流、业务对象判据、能力命名、流程映射、参考模型查漏）、TOGAF G178、G190、G211 全部纳入（按所列范围）」（intent `2026-10-15-222319`）；「G178 与 BIZBOK 冲突时：以 BIZBOK 为准；TOGAF 许可：已有许可」（intent `2026-10-15-222350`）；方法评审决定（intent `2026-10-15-221201`）；本地原文可用（intent `2026-10-15-220121`）。适配评审（opus，逐页核对原文）见 `decision-page/frameworks-fit.html`。
 
 本文件是 one-architecture 做架构判断时唯一的理论参照：只收经过适配评审、对本系统确有用处的框架与概念，每项锁定权威版本，写明本项目怎么用；概念用官方英文名加中文，释义用我们自己的话写，出处可查。`forcitis-architecture` 目录不是信源（干系人部分经用户指定除外，intent `2026-10-15-213742`）。
 
-标记沿用 METHOD 第 4 稿：【已定】【推出】【裁量】【提议】；本稿【推出】项用户已过目认可（intent `2026-10-16-112800` L-11）；提议项汇总见第 13 节。第 4 稿评审处理记录见 `architecture/METHOD.md` 第 10 节。
+标记沿用 METHOD 第 4 稿：【已定】【推出】【裁量】【提议】；本稿【推出】项用户已过目认可（intent `2026-10-16-112800` L-11）；提议项汇总见第 13 节。第 4 稿评审处理记录见 `docs/architecture/method.md` 第 10 节。
 
 **防漂移规则**
 1. 改动本文件（换版本、增删框架或概念、改释义）须引 ADR 或 intent，提交带 `Architecture-Ref:`。
@@ -54,7 +54,7 @@
 
 | 概念 | 中文 | 本项目怎么用 |
 |---|---|---|
-| Ubiquitous Language | 统一语言 | `glossary/terms.yaml`（ADR-0018） |
+| Ubiquitous Language | 统一语言 | `docs/glossary/terms.yaml`（ADR-0018） |
 | Bounded Context | 限界上下文 | 一个 BC = 一个模块 = 一个 schema（ADR-0003）。**边界由统一语言与模型的一致范围决定**，同名异义处必须切开；不变量与事务一致性决定的是聚合，不是 BC（DDD Reference 2015「Bounded Context」「Aggregates」两节）【已定】（intent `2026-10-16-112800` L-7）（取代 ADR-0041 版「边界由统一语言的一致范围、不变量与事务一致性决定」的读法）。不由能力或老系统模块决定。技术模块（`platform.web`、`idempotency`、`eventing`、`scheduling` 等）在 `ssot/d-domain/contexts.yaml` 标 `kind: technical`，不称 BC |
 | Aggregate、Entity、Value Object、Domain Event、Service、Repository | 聚合、实体、值对象、领域事件、领域服务、仓储 | 一个事务只改一个聚合（DATA_DESIGN_CHECKLIST §14 第 1 项）；不变量分 A / B / C 三类（METHOD 第 4 稿第 ④ 步）；聚合与表的对应以数据访问注册表 `aggregate` 字段为准 |
 | Context Map：只用有代码后果的四种关系——Anticorruption Layer、Open-host Service + Published Language、Shared Kernel、Conformist | 上下文映射 | `ssot/d-domain/context-map.yaml` 登记已建与已认可的规划边，分别标明实现状态，记方向、经由（`api` 或 `events` 契约）与上述关系；含 Q-11 的规划边与聚合随整合确认包 D 册经用户确认后写入，已建边才与代码依赖对账（ADR-0054 迁移第 2 步，intent `2026-10-17-112814`）；防腐层 = `platform.integration`（ADR-0039）。只用四种关系【已定】（L-10，intent `2026-10-16-112800`）。Partnership、Customer/Supplier、Separate Ways 是团队间关系，单团队单体中不用。引用的依赖方式（不校验 / api / 事件）与查环见 METHOD 第 4 稿第 ⑤ 步 |
@@ -202,11 +202,11 @@ DAMA-DMBOK 第 2 版修订版（2024，https://dama.org/dama-dmbok-revision/ ）
 | 项 | 怎么用 | 落点 / 负责 |
 |---|---|---|
 | OpenAPI | 以 springdoc 实际输出版本（现为 3.1.0）为准，升级随生成工具走 ADR；最新发布为 3.2.1 | CODING_STANDARD CS-4.2、CS-1.10 |
-| AsyncAPI 3.0.0 | 只作事件目录的文件格式，不追新版、不引工具链，不声称完全符合规范；守护以 EventCatalogueTest 为准 | `events/asyncapi.yaml` |
+| AsyncAPI 3.0.0 | 只作事件目录的文件格式，不追新版、不引工具链，不声称完全符合规范；守护以 EventCatalogueTest 为准 | `docs/architecture/events/asyncapi.yaml` |
 | RFC 9457 | 错误响应结构 | CODING_STANDARD |
 | RFC 9562（UUID 第 7 版） | 自有表主键；排序用业务时间列，不用 ID | NAMING_STANDARD、§14.1 D16 |
 | CycloneDX | 物料清单，不锁版本（取生成插件默认输出），只在发布流程生成；现行 1.7 即 ECMA-424 第 2 版 | SUPPLY_CHAIN S5；one-ops |
-| OWASP ASVS 5.0.0 | L2，只取适用章节，一次性对照写进安全不变量，阶段出口抽查新增攻击面；OWASP Top 10:2025 并入此对照，不单列 | `phase1a/SECURITY_INVARIANTS.md` |
+| OWASP ASVS 5.0.0 | L2，只取适用章节，一次性对照写进安全不变量，阶段出口抽查新增攻击面；OWASP Top 10:2025 并入此对照，不单列 | `docs/ops/security-invariants.md` |
 | ISO/IEC 25010:2023 | 只作写非功能需求的用语参照，术语先过 `terms.yaml` | — |
 | SLSA v1.2 | 不追级别；SUPPLY_CHAIN 写一段现有发布链对照（仓库脚本生成的签名声明只到 Build L1，L2 要求构建平台生成出处证明） | SUPPLY_CHAIN；one-ops |
 | DORA | 推迟到上生产后，只取变更失败率、失败部署恢复时间，从部署运行记录取数 | — |

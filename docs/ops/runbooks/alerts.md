@@ -1,6 +1,6 @@
 # C-7 剧本：四类告警配置与 dev 演练
 
-依据：`proposals/PHASE1A_PLATFORM_CONVENTIONS.md` §4（告警表与「按级别分通道」）、INFRA_RUNBOOK E-13、§9。时点：出口前（出口条件 D-6）。性质：控制台配置属对外变更，执行前须用户确认；接收人见 A-5。
+依据：`docs/architecture/proposals/phase1-a-platform-conventions.md` §4（告警表与「按级别分通道」）、INFRA_RUNBOOK E-13、§9。时点：出口前（出口条件 D-6）。性质：控制台配置属对外变更，执行前须用户确认；接收人见 A-5。
 
 规则文件：`files/alert-rules.yaml`（Prometheus 规则格式，导入 ARMS Prometheus 告警）。
 

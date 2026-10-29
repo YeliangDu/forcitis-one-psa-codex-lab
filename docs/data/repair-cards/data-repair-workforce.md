@@ -38,7 +38,7 @@
 
 归属：本卡独占上述 workforce 约束与索引片段；`positions`、`employees` 的版本化（P-1、E-1）、`separated_at`（E-2）归 W2（DA-7），不碰这两张表的列。
 
-不碰：`sync_run_held_separations` 的主键与外键索引（已被 P5 覆盖）；`employees` 与 `positions` 表形状；`events/workforce.yaml`；验收测试目录；他卡文件。
+不碰：`sync_run_held_separations` 的主键与外键索引（已被 P5 覆盖）；`employees` 与 `positions` 表形状；`docs/architecture/events/workforce.yaml`；验收测试目录；他卡文件。
 
 ## 4. 条目清单
 
@@ -207,7 +207,7 @@
     - B7-2（one-architecture ⑦ 裁定：保留，不删，不延后）：`org_units.regional_receivables_manager_id`、`org_unit_versions.regional_receivables_manager_id`、`org_units.is_delivery_unit`、`org_unit_versions.is_delivery_unit`、`employees.is_fee_earner` 五列保留；在注册表 `org_units`、`org_unit_versions`、`employees` 条目上写注释「使用方未建，由同步原样入库」，并写明各列现状：区域应收负责人经 `OrgDirectory.findRegionalReceivablesManager`（`application/OrgDirectoryService.java:90-93`）暴露，调用方尚无；`is_delivery_unit` 经 `application/OrgUnitView.java`、`web/OrgUnitResponse.java` 只读暴露；`is_fee_earner` 经 `api/EmployeeProfile.java:7-9` 暴露，使用方（`cost.costing` 等）未建，且不等于可计费。不加使用方，不改取值，不加约束。
     - 测试与验收：注册表由 `DataArchitectureTest` 双向核对（含 D6，见 WF-09）；LE-2 补测如上。
   - **⑤ WF-11　文本列：只落有证据的约束，其余「未核实，不落」**
-    - 方法：上限逐列要有证据（代码校验、来源字段长度、规格）；非空白形态的证据是来源适配器的规范化。适配器 `platform/integration/infrastructure/seeyon/SeeyonViewReader.java`：`text()`（:131-134）把空白读成 null 并 `trim`；部门缺名称或路径整行跳过（:27-32）、岗位缺名称跳过（:77-80）、人员缺工号或姓名跳过（:91-96），SQL 另有 `CODE IS NOT NULL AND CODE <> ''`（`SeeyonViewSql.java:46`）；简称由 `platform/integration/infrastructure/legacy/LegacyOrgNames.java:56-57` 同样空白置 null。所以「非空白」对真实来源路径恒成立。长度上限：来源（Seeyon 视图）字段宽度仓库内无记录（`docs/data/legacy-views/seeyon-views.sql` 只有 `NVARCHAR(32)` 的两个枚举 ID 转换）；`phase1a/COLUMN_OWNERSHIP.md` 记的是老系统列宽（部门名 30、姓名 30、工号 10、邮箱 50），按 CLAUDE.md 第 4 条老系统只作参考，且老系统列宽是它自己的存储限制，不是来源上限，把它当上限会让来源里更长的值使每 5 分钟一次的同步在提交时失败，故不采。
+    - 方法：上限逐列要有证据（代码校验、来源字段长度、规格）；非空白形态的证据是来源适配器的规范化。适配器 `platform/integration/infrastructure/seeyon/SeeyonViewReader.java`：`text()`（:131-134）把空白读成 null 并 `trim`；部门缺名称或路径整行跳过（:27-32）、岗位缺名称跳过（:77-80）、人员缺工号或姓名跳过（:91-96），SQL 另有 `CODE IS NOT NULL AND CODE <> ''`（`SeeyonViewSql.java:46`）；简称由 `platform/integration/infrastructure/legacy/LegacyOrgNames.java:56-57` 同样空白置 null。所以「非空白」对真实来源路径恒成立。长度上限：来源（Seeyon 视图）字段宽度仓库内无记录（`docs/data/legacy-views/seeyon-views.sql` 只有 `NVARCHAR(32)` 的两个枚举 ID 转换）；`docs/data/column-ownership.md` 记的是老系统列宽（部门名 30、姓名 30、工号 10、邮箱 50），按 CLAUDE.md 第 4 条老系统只作参考，且老系统列宽是它自己的存储限制，不是来源上限，把它当上限会让来源里更长的值使每 5 分钟一次的同步在提交时失败，故不采。
     - 逐列结论：
       | 表.列 | 非空白 CHECK | 长度 CHECK | 依据 |
       |---|---|---|---|

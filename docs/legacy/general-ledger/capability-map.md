@@ -2,7 +2,7 @@
 
 日期：2026-10-14 · 会话：psa-gl-scope · 用户要求：「盘点 U8C 实际启用的模块、功能和近一年使用量，以及角色权限分工；把凭证流转、账簿查询、出纳与银行对账、往来核销、年结与期初、打印与会计档案、审计轨迹、GB/T 24589 数据接口逐项归类（第一步需要 / 第二步前需要 / 不迁移 / 留外部）；按《会计软件基本功能和服务规范》列出合规清单。」
 
-依据：使用量与权限统计 [`u8c/U8C_USAGE_STATS.md`](usage-stats.md)（近 12 个月 = 2025-10 至 2026-09，只读查询见 `u8c/u8c_readonly_queries.sql`）、二开清单 [`u8c/U8C_CUSTOMIZATIONS.md`](customizations.md)、合规清单 [`GL_COMPLIANCE_CHECKLIST.md`](../../business/gl-compliance-checklist.md)、ADR-0022（提议）。用户只计数，不列姓名。
+依据：使用量与权限统计 [`docs/legacy/general-ledger/usage-stats.md`](usage-stats.md)（近 12 个月 = 2025-10 至 2026-09，只读查询见 `docs/legacy/general-ledger/readonly-queries.sql`）、二开清单 [`docs/legacy/general-ledger/customizations.md`](customizations.md)、合规清单 [`GL_COMPLIANCE_CHECKLIST.md`](../../business/gl-compliance-checklist.md)、ADR-0022（提议）。用户只计数，不列姓名。
 
 **归类口径**（对齐用户决定「两步：先管理口径，再年度切换法定账」）：
 - **第一步需要**：G1（新系统出管理口径三大报表，U8C 仍为法定账）期间新系统必须具备；
@@ -123,7 +123,7 @@
 |---|---|---|---|---|---|
 | 月结（结账） | 有；两套账都长期不按月结账 | 第一步需要 | 期间闸门是 ADR-0016 主干 | `accounting.period` 关账前置检查 | 规范第 24 条；ADR-0022 第 10 条 |
 | 反结账 | 参数统一放开，不单独授权 | 第一步需要（受控） | 规范无条文，按内控须审批留痕 | `accounting.period:period:reopen`，财务负责人审批 | GL-123 |
-| 损益结转、未分配利润 | 自动转账模板（有漏项与名称对调） | 第一步需要 | 报表依赖 | 期末结转模板按版本生效 | `rules/GL_RULES.md` |
+| 损益结转、未分配利润 | 自动转账模板（有漏项与名称对调） | 第一步需要 | 报表依赖 | 期末结转模板按版本生效 | `docs/business/rules/gl-rules.md` |
 | 项目成本、研发支出结转 | 收付账套模板（全额转出） | 第一步需要（研发）/ 待定（项目成本，取决于是否保留收付口径） | 准则口径下项目成本按收入确认转出 | `cost.costing` 与 FORCITIS one 结转事实 | GL-013 |
 | 年结、结转下年 | U8C 年结 | 第二步前需要 | 法定账年度结转 | `accounting.period` 年度关账 | — |
 | 期初余额 | U8C 建账年期初（权责 2025、收付 2020–2025） | 第一步需要（G1 起步余额）/ 第二步前需要（法定期初迁移） | G1 从某个已结期间起步，G2 需正式迁移 | 期初导入 + 逐项核对（黄金基线） | ADR-0022 第 9 条 |

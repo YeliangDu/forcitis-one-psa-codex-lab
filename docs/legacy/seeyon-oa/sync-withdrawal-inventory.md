@@ -374,7 +374,7 @@
 19. 被点名但没有卡的工作（`phase1a/cards/` 下找不到）：W0“平台与人事”的人事命令、身份生命周期研究、T-13 外部调用方取证、迁入适配器。拆分 a、b 和 R-1b-0b 只是不再建设，但已提交的 `A8SourceFlagsIT` 还在 main 上。
 20. `source_references`“投产后全表只读”（TRN-06）没有落地方式（触发器、授权还是应用层），现有触发器（integration 基线 :189-222）只禁止改两侧 ID 和删除。
 21. `AuditSubjectKind.SYNC_RUN` 和已有审计条目的处置没有说明。
-22. 文档滞后：`process/1a/组织与人员同步.md` 没标退役；`TASKS.md:89-90` 和 `ADR-0034-IMPL.md:3` 的状态与 PR #476 已合并不符。
+22. 文档滞后：`docs/business/processes/org-and-personnel-sync.md` 没标退役；`TASKS.md:89-90` 和 `ADR-0034-IMPL.md:3` 的状态与 PR #476 已合并不符。
 
 ---
 
@@ -384,7 +384,7 @@
 
 | 序 | PR | 范围 | 依赖 | 表结构（one-data 签发） | 安全项 | Codex | 先写的验收测试 |
 |---|---|---|---|---|---|---|---|
-| 0 | 文档（不开 PR） | one-architecture 裁 §8 缺口（第 8、9、10、11、5、15 条优先）；新人事命令卡（W0）；改写 ADR-0034-IMPL、F-1、WF-REINSTATE（撤或改为复职命令事件）、DATA-REPAIR-workforce、W2 设计（交 one-data）；`process/1a/组织与人员同步.md` 标退役；TASKS 状态补正 | — | 设计签发 | — | — | — |
+| 0 | 文档（不开 PR） | one-architecture 裁 §8 缺口（第 8、9、10、11、5、15 条优先）；新人事命令卡（W0）；改写 ADR-0034-IMPL、F-1、WF-REINSTATE（撤或改为复职命令事件）、DATA-REPAIR-workforce、W2 设计（交 one-data）；`docs/business/processes/org-and-personnel-sync.md` 标退役；TASKS 状态补正 | — | 设计签发 | — | — | — |
 | R | 列改名 | identity 基线 `revocation_sync_run_id` 改为 `revocation_separation_command_id`，连同 CHECK、触发器列清单、注释和 3 个授权历史测试；基线开放期直接改 | 无（可立即做；必须早于 ADR-0034-IMPL PR-3） | 是 | 是（授权表） | 否（机械，但属授权，sonnet 做，opus 审） | 改现有 3 个 IT |
 | F | 删老待办 | §1.5 legacy inbox 全套、`ListInbox` 合并、`InboxResponse` 两个字段、OpenAPI 和前端 web/h5/core、external-read 的 RUNTIME_TODO、配置、runbook、相关测试 | 无 | 否 | 否 | 可 | 收件箱只含本系统待办的负向测试 |
 | G | 删部门简称刷新 | `RefreshShortNames`、Job、`ShortNameAdapter`、`OrgShortNames`、`LegacyOrgNames`/`DisabledOrgNames`/`LegacyConfiguration`、配置、登记、`ExternalConnectionIsolationTest` 的 legacy 段 | 先裁 §8-13 简称的维护方 | 列是否保留看裁定 | 否 | 可 | — |

@@ -820,7 +820,7 @@ terms:
     scope: domain
     snake: single_operator_mode
     standard_ref:
-    - adr/src/ADR-0030.md
+    - docs/adr/ADR-0030.md
     - docs/adr/ADR-0053.md#3
     status: approved
     zh: 单人运维模式
@@ -841,7 +841,7 @@ terms:
     scope: domain
     snake: single_operator_relaxation
     standard_ref:
-    - adr/src/ADR-0030.md
+    - docs/adr/ADR-0030.md
     - docs/adr/ADR-0053.md#3
     status: approved
     zh: 单人运维放宽项
@@ -862,7 +862,7 @@ terms:
     scope: domain
     snake: super_admin
     standard_ref:
-    - adr/src/ADR-0030.md
+    - docs/adr/ADR-0030.md
     - docs/adr/ADR-0053.md#4
     status: approved
     zh: 超级管理员
@@ -1039,7 +1039,7 @@ terms:
     snake: verify_read_only_connection
     standard_ref:
     - adr/ADR-0037.md
-    - phase1a/infra/PREDEPLOY_CHECKLIST.md C-14
+    - docs/ops/predeploy-checklist.md C-14
     - docs/adr/ADR-0053.md#3
     status: approved
     zh: 只读核实
@@ -2989,7 +2989,7 @@ promotions:
     scope: acl
     snake: snapshot_date
     standard_ref:
-    - proposals/EVENT_ANALYTICS_FIELDS.md
+    - docs/architecture/events/event-analytics-fields.md
     status: proposed
     zh: 快照日
   keep_proposed: 涉及人事生效、在职或法人归属含义，设计方无权批准；按原字段保持提议，交业务 Admin，涉及会计的另经财务确认。
@@ -3599,7 +3599,7 @@ promotions:
     forbidden: []
     id: attribution_subject
     kind: value_object
-    note: 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列
+    note: 类型 AttributionSubjectId 为它的标识（kind + subjectId，docs/architecture/events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列
     scope: domain
     snake: attribution_subject
     standard_ref:
@@ -3810,7 +3810,7 @@ promotions:
     scope: domain
     snake: single_operator_mode
     standard_ref:
-    - adr/src/ADR-0030.md
+    - docs/adr/ADR-0030.md
     status: proposed
     zh: 单人运维模式
   promote: single_operator_mode
@@ -3844,7 +3844,7 @@ promotions:
     scope: domain
     snake: single_operator_relaxation
     standard_ref:
-    - adr/src/ADR-0030.md
+    - docs/adr/ADR-0030.md
     status: proposed
     zh: 单人运维放宽项
   promote: single_operator_relaxation
@@ -3878,7 +3878,7 @@ promotions:
     scope: domain
     snake: super_admin
     standard_ref:
-    - adr/src/ADR-0030.md
+    - docs/adr/ADR-0030.md
     status: proposed
     zh: 超级管理员
   promote: super_admin
@@ -4187,7 +4187,7 @@ promotions:
     snake: read_only_verification
     standard_ref:
     - adr/ADR-0037.md
-    - phase1a/infra/PREDEPLOY_CHECKLIST.md C-14
+    - docs/ops/predeploy-checklist.md C-14
     status: proposed
     zh: 只读核实
   promote: read_only_verification

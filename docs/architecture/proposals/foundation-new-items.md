@@ -40,12 +40,12 @@
 | 原编号 | `platform_numbering.legacy_numbers` 已按 ADR-0033 形状建好，`migration_batch_id uuid NOT NULL`，但**没有批次表**（无外键，批次 ID 只是个 UUID）；`LegacyNumberEntry`、`JdbcLegacyNumberRepository`；`NumberingRulesIT`:326-356 覆盖读写 | `db/migration/platform_numbering/V20261014100100__platform_numbering_baseline.sql`:57-78 |
 | 批次标识类型 | 只有值对象 `MigrationBatchId` | `platform/integration/api/MigrationBatchId.java` |
 | 读取通道 | 老系统与 A8 的只读连接、启动校验、只读核实命令、读取登记守护（`CredentialColumnGuardTest`、`ExternalConnectionIsolationTest`、`LegacyAdapterPlacementTest`、`QualifiedBaseTableGuardTest`、`ReadOnlyVerificationCommandIT`） | `platform/integration/infrastructure/connection/*`；`src/test/.../platform/integration/guard/*` |
-| 读取列登记 | `architecture/external-read-registry.yaml` 只含组织、岗位、员工、任职、待办的 `RUNTIME_SYNC` / `RUNTIME_TODO` 行；**用途 `MIGRATION` 行数为 0**；词表 `read_purpose` 已有 `MIGRATION`、`MIGRATION_TIE_OUT` 取值 | 同文件:19；`glossary/terms.yaml`:6493 |
+| 读取列登记 | `architecture/external-read-registry.yaml` 只含组织、岗位、员工、任职、待办的 `RUNTIME_SYNC` / `RUNTIME_TODO` 行；**用途 `MIGRATION` 行数为 0**；词表 `read_purpose` 已有 `MIGRATION`、`MIGRATION_TIE_OUT` 取值 | 同文件:19；`docs/glossary/terms.yaml`:6493 |
 | 离线命令范式 | `integration-operations`、`identity-operations`、`read-only-verification`、`migrate` 四种 profile，进程跑完一条命令即退出 | `IntegrationOperationsRunner`；`application-*.properties`；`MigrateOnlyIT` |
 | 数据架构守护 | 变更性词表已含 `MIGRATION_ONLY`，来源词表含 `MIGRATION`，迁移溯源只认 `legacy_numbers` 或 `ONE_OFF_IMPORT` | `DataArchitectureTest`:47-50、:414 |
 | 归档 | `ArchiveVault`（对象存储、WORM、保留期一致性检查） | `platform/integration/api/ArchiveVault.java` |
 
-**不存在**：`platform.migration` 包（`module-dependencies.txt` 无此行）；`migration_batches`、`migration_rejects`、`migration_tie_outs`、暂存表、`migration_period_reservations`；`history_loader` 角色（`phase1a/infra/one_db_roles_schemas.sql` 只有 owner、migrator、app、readonly 四类）；G-MG2、G-MG4、G-MG5、G-MG7、G-MG9、G-MG10 的守护；各 BC 的迁入入口；`accounting.period`、`operations.facts`。已有的 `GlossaryTest`、`DdlNamingTest` 会要求新表列有注释、有词表登记、有数据分级（`data-classification.txt`）。
+**不存在**：`platform.migration` 包（`module-dependencies.txt` 无此行）；`migration_batches`、`migration_rejects`、`migration_tie_outs`、暂存表、`migration_period_reservations`；`history_loader` 角色（`docs/ops/one-db-roles-schemas.sql` 只有 owner、migrator、app、readonly 四类）；G-MG2、G-MG4、G-MG5、G-MG7、G-MG9、G-MG10 的守护；各 BC 的迁入入口；`accounting.period`、`operations.facts`。已有的 `GlossaryTest`、`DdlNamingTest` 会要求新表列有注释、有词表登记、有数据分级（`data-classification.txt`）。
 
 ### 1.3 缺口
 
@@ -202,7 +202,7 @@
 | 环境清单 | 只有 `dev` 与 `prod`：`deploy.yml`:18-21（`options: [dev, prod]`）；`scripts/release/build.sh`:25、:57（`dev,prod`）；`deploy_gate.py`；`application-dev.properties`、`application-prod.properties`；GitHub environments `release`、`dev`、`prod`（`phase1a/infra/DEV_DEPLOY_REMAINING.md` R-1） |
 | 实际资源 | dev：ECS `i-bp122xlpar8w2uylmal2`，库 `forcitis_one_dev`，角色 `one_dev_*`；**prod 的 ECS 待建**（同文件 R-6）；两库共用一个 PG 18 实例（`pgm-bp13vak0sew3m003`，与 it_portal 共用；`INFRA_RUNBOOK.md` D-1：生产「扩容现有实例共用」，建议 8 核 32 GB） |
 | 部署脚本 | 发布包签名、GitHub OIDC 换 RAM 角色、OOS 参数下发、ECS 每分钟自取（`scripts/release/{build,ship,remote_install,deploy_gate,ci_passed}`；`.github/workflows/{deploy,release}.yml`）；每环境一个 RAM 角色、一组 OOS 参数、一个 `one.env` |
-| 数据库角色与 schema | `phase1a/infra/one_db_roles_schemas.sql` 按环境名写死 `one_dev_*`；无 `rehearsal` |
+| 数据库角色与 schema | `docs/ops/one-db-roles-schemas.sql` 按环境名写死 `one_dev_*`；无 `rehearsal` |
 | 配置 | `one.env` 模板每个键必须存在（`remote_install.sh`:230-232）；profile 与目标环境一致（`remote_install.sh`:407-409）；企业微信收件人白名单（dev 仅 1 条）、`DisabledWecomClient`、单点登录开关、`FORCITIS_JOBS_ENABLED` 必设 |
 | 生产闸门 | 生产部署需 Phase 1a 出口条件、C-9、基线关闭（`deploy_gate.py`） |
 | 敏感数据与加密 | `runbooks/C-8-kms.md` 有 KMS；ADR-0037 允许运行时只读两库，读取列登记含敏感级别 |

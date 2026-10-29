@@ -4635,7 +4635,7 @@ If permissions cannot be loaded, approval is refused. A pass defaults its reason
   When BPM is unreachable for permissions
   Then it fails with WORKFLOW_APPROVE_PERMISSION_UNAVAILABLE
 **Parameters:** Result codes come from the RESULT_APPROVE/RESULT_REJECT constants. The default pass reason is "同意".
-**Revision (2026-10-14, user: 「留空并如实审计 (Recommended)」):** In FORCITIS one a pass with an empty reason keeps the reason empty and is audited as such; no "同意" is filled in. Rejects and returns still require a reason. See proposals/RULE-280_DEFAULT_REASON.md and RULE_REVIEWS「实现方式变更」.
+**Revision (2026-10-14, user: 「留空并如实审计 (Recommended)」):** In FORCITIS one a pass with an empty reason keeps the reason empty and is audited as such; no "同意" is filled in. Rejects and returns still require a reason. See docs/architecture/proposals/rule-280-default-reason.md and RULE_REVIEWS「实现方式变更」.
 **Edge cases handled:** Ownership-check failures are fail-closed.
 **Suspected defect:**
 - `handler.applyApproved` commits on its own before `completeApprovalTask`. The fst gate accepts candidates, but BPM then requires the exact assignee and taskDefinitionKey (BpmProcessTaskApiImpl.java:494-506). An unclaimed candidate's field edits can therefore be committed and then fail completion, leaving changes without an approval record.

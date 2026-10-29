@@ -13,7 +13,7 @@
 2. 派工卡的「数据设计」节和「预期表结构 diff」（卡上写了的；旧 WORK_CARD §7 模板已删）。one-data 的审查记录含结论，**先独立判完 T1–T8 再读**，不一致的单列。
 3. 实际 diff：`backend/src/main/resources/db/migration/**`、`backend/architecture/data-access-registry.yaml`、`data-classification.txt`、其他 `backend/architecture/*.txt` 清单的变化。
 4. DATA_DESIGN_CHECKLIST §14、§14.1（D1–D19）、METHODS M3「迁移基线」（迁移不可变）；`NAMING_STANDARD.md` 的 DDL 部分。
-5. `phase1a/DATA_SCORECARD.md`（逐表打分是否落表）。
+5. `docs/data/data-scorecard.md`（逐表打分是否落表）。
 
 ## 必查项（引用门禁，评审员逐项判过 / 不过）
 

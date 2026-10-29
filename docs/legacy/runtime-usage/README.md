@@ -41,7 +41,7 @@
   | TRAVEL_REVISION | 1 | |
   | PM_DELIVERABLE、PM_STAGE_REVIEW、EXTERNAL_APPROVAL | 0 | |
 
-- BPMN 结构：每个流程有 3–11 个用户任务，排他网关 0–5 个。**没有并行网关、服务任务**；子流程只在 TIMESHEET v15 出现（评审阶段在子流程中，见 `phase1a/TIMESHEET_REPLAY.md`）。包容网关只出现在 TRAVEL（4 个）和 TIMESHEET（2 个），用于按行类型分路。少量会签（多实例）。唯一的边界事件是驳回错误边界（`errorEventDefinition`，`Error_REJECT`），不是超时；生产 `ACT_RU_TIMER_JOB` = 0（2026-10-14 生产只读核实）。
+- BPMN 结构：每个流程有 3–11 个用户任务，排他网关 0–5 个。**没有并行网关、服务任务**；子流程只在 TIMESHEET v15 出现（评审阶段在子流程中，见 `docs/data/timesheet-replay.md`）。包容网关只出现在 TRAVEL（4 个）和 TIMESHEET（2 个），用于按行类型分路。少量会签（多实例）。唯一的边界事件是驳回错误边界（`errorEventDefinition`，`Error_REJECT`），不是超时；生产 `ACT_RU_TIMER_JOB` = 0（2026-10-14 生产只读核实）。
 - 条件表达式只读取领域预先算好的标志，例如 `needSeal`、`budgetGmNotBelowQuote`、`routeType == 'project'`、`firstPass`、`manHourTypeList.type`。
 - 审批人分配规则 230 条，按类型分：
 

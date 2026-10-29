@@ -4,7 +4,7 @@
 
 第二批为售前与报价域（Phase 1b 前）的 14 条被标记 P0 规则，2026-10-14 由会话 psa-review-quotation 评审：RULE-139/141/147/155 的业务问题由用户逐条作答（均选推荐项）；其余 10 条由用户整批同意评审建议，并同意随 145、155 修订已定规则 RULE-160 的契约（RULE-160 一并记入本表）。结论：正确 11 条（158 为原样复刻，其余为「正确+修」），错误 3 条（144、145、169），待讨论 0 条；另 RULE-160 修订。
 
-第三批为身份与组织域（platform.identity、organization.workforce，Phase 1a 入口条件）的 45 条被标记规则（其中 P0 31 条，规则卡见 `rules/IDENTITY_ORG_RULES.md`），2026-10-14 由会话 psa-review-identity-org 评审：RULE-323（小程序是否保留）、RULE-331/332（会话时长）、RULE-349（「本人及下属」深度）的业务问题由用户逐条作答（均选推荐项）；其余条目由用户整批同意评审建议。结论：正确 16 条（均为「正确+修」），错误 29 条（新系统不复刻老行为，按备注实现），待讨论 0 条。建议依据检查点 1 已批准的 C1a-01..20 与舍弃项 D-01..D-09、ADR-0009/0011/0019、SECURITY_FINDINGS。
+第三批为身份与组织域（platform.identity、organization.workforce，Phase 1a 入口条件）的 45 条被标记规则（其中 P0 31 条，规则卡见 `docs/business/rules/identity-org-rules.md`），2026-10-14 由会话 psa-review-identity-org 评审：RULE-323（小程序是否保留）、RULE-331/332（会话时长）、RULE-349（「本人及下属」深度）的业务问题由用户逐条作答（均选推荐项）；其余条目由用户整批同意评审建议。结论：正确 16 条（均为「正确+修」），错误 29 条（新系统不复刻老行为，按备注实现），待讨论 0 条。建议依据检查点 1 已批准的 C1a-01..20 与舍弃项 D-01..D-09、ADR-0009/0011/0019、SECURITY_FINDINGS。
 
 | Rule | Verdict | When | Title | Note |
 |---|---|---|---|---|
@@ -103,8 +103,8 @@
 |---|---|---|---|
 | RULE-275 | 2026-10-14 | 「退回即结束本轮，重提开新一轮 (Recommended)」（Phase 1a 复审 M3，经 psa-coordinator 询问） | 退回发起人＝以「已退回」结束本轮审批（仍要求原因、仍经 BEFORE 钩子）；不再使用发起人假首节点与令牌回移 |
 | RULE-287 | 2026-10-14 | 同上 | 重提＝在同一单据上开新一轮（`start_rounds` 轮次 +1，幂等键含轮次）；审批历史按轮次保留，可逐轮查看 |
-| RULE-280 | 2026-10-14 | 「留空并如实审计 (Recommended)」（第二波复审 Nit，经 psa-coordinator 询问） | 审批通过时意见为空就保持为空，不再补「同意」；审计如实记录 reason=null，界面上显示「（未填写意见）」（只用于展示，不写入数据）。驳回、退回仍须填写原因；RULE-302 的系统自动通过记为系统动作，原因用固定文案。依据：proposals/RULE-280_DEFAULT_REASON.md |
-| RULE-385 | 正确 | 2026-10-14 19:49 | A closed legal-entity attribution period is never rewritten; a wrong end date is corrected by an append-only correction record | 正确（用户作答，2026-10-14 经 one-coordinator：「单独的更正记录表 (Recommended)」）：部门 / 员工法人归属期间只追加，已关闭期间不改写（T1）。结束日写错时，由组织数据管理员经独立用例追加更正记录（被更正期间、新结束日、原因、操作人），发 LegalEntityAttributionCorrected 并入审计；解析某日法人时合并期间表与更正记录；不追溯已写入单据的法人，需改单据法人的走冲销重做。规则卡：rules/LEGAL_ENTITY_ATTRIBUTION_RULES.md。 |
+| RULE-280 | 2026-10-14 | 「留空并如实审计 (Recommended)」（第二波复审 Nit，经 psa-coordinator 询问） | 审批通过时意见为空就保持为空，不再补「同意」；审计如实记录 reason=null，界面上显示「（未填写意见）」（只用于展示，不写入数据）。驳回、退回仍须填写原因；RULE-302 的系统自动通过记为系统动作，原因用固定文案。依据：docs/architecture/proposals/rule-280-default-reason.md |
+| RULE-385 | 正确 | 2026-10-14 19:49 | A closed legal-entity attribution period is never rewritten; a wrong end date is corrected by an append-only correction record | 正确（用户作答，2026-10-14 经 one-coordinator：「单独的更正记录表 (Recommended)」）：部门 / 员工法人归属期间只追加，已关闭期间不改写（T1）。结束日写错时，由组织数据管理员经独立用例追加更正记录（被更正期间、新结束日、原因、操作人），发 LegalEntityAttributionCorrected 并入审计；解析某日法人时合并期间表与更正记录；不追溯已写入单据的法人，需改单据法人的走冲销重做。规则卡：docs/business/rules/legal-entity-attribution-rules.md。 |
 
 ## 结论修订（不改原结论）
 

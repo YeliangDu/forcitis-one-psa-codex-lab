@@ -12,7 +12,7 @@
 - pnpm 一律 `--frozen-lockfile`；允许执行安装脚本的包只限 `pnpm-workspace.yaml` 的 `allowBuilds` 白名单，新增须在 PR 中写理由。
 - 新发布的版本满 7 天才引入（pnpm `minimumReleaseAge`，Maven 依赖由 Dependabot 冷却期控制）；安全修复可例外，PR 中写明对应的漏洞编号。
 - **文档生成用的 Python 依赖**（不进发布包与 SBOM，只在 CI 的 `build_all.py --check` 与本地生成时用）：
-  - PyYAML 6.0.3（MIT）：`docs/glossary/build_terms.py` 生成正式术语 `glossary/terms.yaml`，`build_all.py --check` 据此校验可复现（#186）。来源为本机 pyenv Python 3.12.13 的 site-packages，CI runner（`CI_RUNNERS.md`）的 PATH 先走同一 pyenv，因此 CI 与本地是同一份。缺少时 `--check` 明确失败，不跳过。
+  - PyYAML 6.0.3（MIT）：`docs/glossary/build_terms.py` 生成正式术语 `docs/glossary/terms.yaml`，`build_all.py --check` 据此校验可复现（#186）。来源为本机 pyenv Python 3.12.13 的 site-packages，CI runner（`CI_RUNNERS.md`）的 PATH 先走同一 pyenv，因此 CI 与本地是同一份。缺少时 `--check` 明确失败，不跳过。
 - **架构图本机生成工具**（不进发布包与 SBOM，不进 `frontend` 依赖，CI 不使用；用户 2026-10-15 批准「允许安装，图在本机生成（推荐）」，经 one-coordinator 转达）：
   - `@mermaid-js/mermaid-cli` 11.4.2（MIT，`npm install --save-exact`，装在仓库外 `~/.modernize/psa/tools/mermaid-cli`），依赖 puppeteer 23.11.1（Apache-2.0），它使用本机缓存 `~/.cache/puppeteer/chrome-headless-shell/mac_arm-131.0.6778.204`。只由 `docs/architecture/build_architecture.py --svg` 调用，把 `generated/*.mmd` 渲染成入库的 SVG；在线图页只嵌静态 SVG，不加载外部脚本或字体。
   - CI 与 `build_all.py --check` 只校验 mmd 可复现、SVG 未过期（`generated/svg-sources.sha256`），不运行该工具。

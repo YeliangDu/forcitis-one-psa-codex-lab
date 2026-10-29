@@ -790,7 +790,7 @@ by_glossary_metric:
   status: approved
   change_ref: G-27
   note: 定义专指无合同敞口（NR+CA+AR，F127A），通用名 RiskExposure 与其它风险敞口歧义；且无合同时不存在准则口径合同资产，CA 段应为未开票在制
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
   source: docs/glossary/terms.yaml:1638
 - id: estimate_to_complete
@@ -1446,7 +1446,7 @@ by_glossary_metric:
   - 合约储备
   status: approved
   change_ref: G-21
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
   source: docs/glossary/terms.yaml:5382
 - id: estimate_at_completion
@@ -1706,7 +1706,7 @@ by_glossary_metric:
   bc: platform.scheduling
   definition: 带 SchedulerLock 的定时作业抛出异常的一次运行；按作业名（锁名）计数，指标 job.failures。作业自己捕获并记录的失败不在其中，由所属模块的指标覆盖
   standard_ref:
-  - proposals/EVENT_ANALYTICS_FIELDS.md
+  - docs/architecture/events/event-analytics-fields.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -2029,7 +2029,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-new_contract_value，R3-RN-37）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
   source: docs/glossary/terms.yaml:10174
 - id: project_initiation_value
@@ -2221,7 +2221,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-pipeline_value，R3-RN-55）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
   source: docs/glossary/terms.yaml:10479
 - id: win_rate
@@ -2238,7 +2238,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-win_rate，R3-RN-56）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
   source: docs/glossary/terms.yaml:10495
 - id: lead_conversion_rate
@@ -2255,7 +2255,7 @@ by_glossary_metric:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-lead_conversion_rate，R3-RN-57）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 docs/decisions/decision-pages/answers/gl2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
   source: docs/glossary/terms.yaml:10511
 - id: expense_payment
@@ -2515,9 +2515,9 @@ by_vision_kpi:
   goal_name: 老系统在持续运行中按阶段切换并下线
 - id: KPI-16
   name: 安全不变量满足数
-  definition: phase1a/SECURITY_INVARIANTS.md 中 I-1 至 I-13 已由测试或守护证明成立的条数。
+  definition: docs/ops/security-invariants.md 中 I-1 至 I-13 已由测试或守护证明成立的条数。
   direction: ↑
   metrics: []
-  source: INTENT 2026-10-14「老系统先不管，确保新系统没有这些缺陷」；phase1a/SECURITY_INVARIANTS.md
+  source: INTENT 2026-10-14「老系统先不管，确保新系统没有这些缺陷」；docs/ops/security-invariants.md
   goal_id: GOAL-08
   goal_name: 新系统不带入老系统的安全缺陷

@@ -4,4 +4,4 @@
 
 ## 落点
 
-one-architecture 起草「从愿景到代码」的施工图方法（architecture/METHOD.md）：逐个写明框架之间的接缝与衔接规则、每一步的交付物与 SSOT 文件、可校验的追溯链；与知识框架 FRAMEWORKS.md 一起列入画像上下文文档；方法本身作为提议 ADR 交用户批准
+one-architecture 起草「从愿景到代码」的施工图方法（docs/architecture/method.md）：逐个写明框架之间的接缝与衔接规则、每一步的交付物与 SSOT 文件、可校验的追溯链；与知识框架 FRAMEWORKS.md 一起列入画像上下文文档；方法本身作为提议 ADR 交用户批准

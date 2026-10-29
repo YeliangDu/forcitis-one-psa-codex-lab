@@ -27,9 +27,9 @@
 
 | # | 出入 | 判定 | 落点 |
 |---|---|---|---|
-| 1 | `cause` → `cause_kind`，取值代码 | 命名，不改含义 → 勘误 | E-010（`adr/src/_readme_deviations.md`）；取值代码由 one-glossary 登记 |
+| 1 | `cause` → `cause_kind`，取值代码 | 命名，不改含义 → 勘误 | E-010（`docs/adr/readme-deviations.md`）；取值代码由 one-glossary 登记 |
 | 2 | 迁入初始转换的 `to_status` 可为仅历史状态（B31 物理模型裁定 §5） | ADR-0058 决定 1、8 没有限定 `to_state` 的取值范围；决定 4 要求转换由领域入口产出，仅历史状态映射为自有取值后，经迁入用例产出初始转换，两者相容。是落地细化，不改正文，不另起 ADR | 依据写在本节；各表的仅历史状态清单随迁入规格（M1）逐表列出 |
 | 3 | 五个列名 | E-009 已全部覆盖；只是 E-009 的位置写错（实为决定 1） | 一并写进 E-010 |
-| 4 | 成对 CHECK 用 `coalesce(…, false)` 包住 | 实现写法，不入 ADR | 留在 `data/STATE_TRANSITIONS_DESIGN.md`；守护由实现侧 IT 覆盖 |
+| 4 | 成对 CHECK 用 `coalesce(…, false)` 包住 | 实现写法，不入 ADR | 留在 `docs/data/state-transitions-design.md`；守护由实现侧 IT 覆盖 |
 
 结论：ADR-0058 不需要补写正文，只登一条勘误 E-010；勘误由 one-coordinator 核对后合并。

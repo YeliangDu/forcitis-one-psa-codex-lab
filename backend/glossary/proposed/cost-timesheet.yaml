@@ -9,7 +9,7 @@ terms:
   scope: domain
   definition: 找不到该工时单（404）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -24,7 +24,7 @@ terms:
   scope: domain
   definition: 只有填报人能查看、提交、撤回、撤销该工时单（403）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -39,7 +39,7 @@ terms:
   scope: domain
   definition: 审批的截止节点已有办结任务，不能再撤回或撤销（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -54,7 +54,7 @@ terms:
   scope: domain
   definition: 提交时没有填写工作日期（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -69,7 +69,7 @@ terms:
   scope: domain
   definition: 工作日期不得晚于今天（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -84,7 +84,7 @@ terms:
   scope: domain
   definition: 工时单创建时填写的工作日期，重新提交时不能改写（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -99,7 +99,7 @@ terms:
   scope: domain
   definition: 上一轮审批已结束但结果还没回写到工时单，暂不能再次提交（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -114,7 +114,7 @@ terms:
   scope: domain
   definition: 找不到填报人的组织信息（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -129,7 +129,7 @@ terms:
   scope: domain
   definition: 提交工时单时指定的项目经理不是在职员工，审批没有人可以处理（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -144,7 +144,7 @@ terms:
   scope: domain
   definition: 同一员工在该工作日期已有一张工时单（任何状态），不能再建；每人每个工作日只有一张（409）
   standard_ref:
-  - phase1a/cards/TS-UNIQ.md
+  - docs/architecture/implementation-cards/ts-uniq.md
   confidence: medium
   aliases: []
   forbidden: []

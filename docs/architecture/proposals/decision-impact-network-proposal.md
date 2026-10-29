@@ -39,11 +39,11 @@
 | 12 业务事实 | 无 | — | 0 | — | 缺 | ssot/12-facts，`produced_by`→CMD/EVT，业务时间与记录时间 |
 | 13 维度 | 无（注册表的 DIMENSION_VERSIONED 是版本化主数据，与分析维度同名异义） | — | 0 | — | 缺 | ssot/13-dimensions，`slices`→FACT，SCD 版本；同名异义交 one-glossary |
 | 14 计算绑定 | 无 | — | 0 | — | 缺 | ssot/14-bindings，`fact`、`formula_version`、时间基准 |
-| 15 指标与评价 | terms kind=metric 79；r0/METRIC_BASELINE_DRAFT.md 48；vision KPI 16 | 三套 | — | 无 | 过时且三口径互不引用 | ssot/15-kpis 唯一，`bound_by`→BIND、`answers`→CON |
-| 16 决策与行动 | adr/*.md；adr/catalog.yaml；data/repair-cards/ 5 张 | ADR-、无 | 70；50；5 | category、bc、stage | ADR 已有；catalog 缺 0052–0070；整改无机器登记 | ADR 不变；整改与偏差行动并入任务登记 `tasks/*.md`，`triggered_by`→KPI 或 ADR |
+| 15 指标与评价 | terms kind=metric 79；docs/data/metric-baseline/baseline-draft.md 48；vision KPI 16 | 三套 | — | 无 | 过时且三口径互不引用 | ssot/15-kpis 唯一，`bound_by`→BIND、`answers`→CON |
+| 16 决策与行动 | adr/*.md；docs/adr/catalog.yaml；data/repair-cards/ 5 张 | ADR-、无 | 70；50；5 | category、bc、stage | ADR 已有；catalog 缺 0052–0070；整改无机器登记 | ADR 不变；整改与偏差行动并入任务登记 `tasks/*.md`，`triggered_by`→KPI 或 ADR |
 | C1 约束与认定规则 | P/ENTERPRISE_AGGREGATES_DRAFT.md §1.2（INV）；rules/*.md（RULE） | INV-、RULE- | 134；126 | 归属 AGG | 提议稿（md 表）；INV 与 RULE 无对照 | ssot/c1-rules：INV 为主键、RULE 卡引用 INV；`execution_points`→EP、`tests`→TC、`exceptions`（审批、到期、补偿） |
 | I01 子域 | D/subdomains.yaml | 无（id 如 cost） | 13 | — | 已有 | 不变；加 `capabilities`→CAP（见第 4 节 U1） |
-| I02 限界上下文 | D/contexts.yaml | 点号名 | 41（已建 13） | subdomain | 已有，但与 glossary/bcs.yaml（68）、bc-map.yaml 三套不同步 | contexts.yaml 为唯一；bcs.yaml 只引用 |
+| I02 限界上下文 | D/contexts.yaml | 点号名 | 41（已建 13） | subdomain | 已有，但与 docs/glossary/bcs.yaml（68）、bc-map.yaml 三套不同步 | contexts.yaml 为唯一；bcs.yaml 只引用 |
 | I03 聚合 | D/aggregates.yaml | `<模块>/<类>` | 15 | bc | 过时（停在 10-16，此后已建模块的新聚合未登记；调度 2026-10-21 审定） | 规划聚合 AGG-001..130 在 md 草稿，两套 ID 须对照后并成一份 |
 | I04a 命令 | 同 11 | — | — | — | 见 11 | 见 11 |
 | I04b 领域事件 | docs/architecture/events/*.yaml（8 个文件） | eventType | 59 条消息 | 发布者 | 已有（守护测试） | 不变；加 `fact`→FACT |
@@ -54,7 +54,7 @@
 | I09 验收用例 | backend/src/test/.../acceptance/ 130 个文件；分支 scenarios 1444 条 | 无登记 | — | 测试名里的 RULE- | 登记缺 | 不另建登记：用例以注解或 DisplayName 带 `INV-`、`CMD-` 编号，脚本从代码抽出 |
 | I10 ADR | 同 16 | — | — | — | — | 同 16 |
 | I11 读模型 | terms kind=read_model 6；process-catalog type=read_model 6 | — | 6 | — | 缺登记 | ssot/i11-read-models：RM-，`binds`→BIND |
-| I12 防腐层 | glossary/acl/acl-classification.json；P/ACL_BOUNDARY.md | — | 672 | — | 已有（JSON） | 不变；加 `contexts`→BC |
+| I12 防腐层 | docs/glossary/acl-classification/acl-classification.json；P/ACL_BOUNDARY.md | — | 672 | — | 已有（JSON） | 不变；加 `contexts`→BC |
 
 ### 1.2 连线
 
@@ -97,7 +97,7 @@
 
 ### 2.3 要改的文件（用户批准后才改）
 
-1. `adr/src/_readme_lifecycle.md` 第 5 节：在「影响面」小节的写法中加锚点、依据链摘要与附件链接三项。
+1. `docs/adr/readme-lifecycle.md` 第 5 节：在「影响面」小节的写法中加锚点、依据链摘要与附件链接三项。
 2. `adr/new_adr.py`：「影响面」小节空壳加这三项占位。
 3. `adr/build_adrs.py`：是否校验附件、硬失败还是告警，见 U6；试点期不改（第 2.5 节）。
 4. 取舍决定（DEC-R）登记加 `anchors`、`impact_file` 两个字段（随 U2 的 SSOT 重建批次）。

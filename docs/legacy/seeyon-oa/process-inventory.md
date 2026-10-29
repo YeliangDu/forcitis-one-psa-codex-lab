@@ -36,7 +36,7 @@
 | A8 自建表（`T_FST_*`） | 32 张，如商机快照、项目、预算、工时作废、土拍数据 |
 | 对外接口（`CIP_*`） | 单点登录、携程、FORCITIS BI 人员与部门事件、e 签宝、凭证生成（NC / SAP 接口登记） |
 
-最大的档案（无流程表单，A8 作为存放地）：原始打卡记录 794,221 行、工时档案表 676,868 行、外勤申请档案 32,385、工资条 29,139、发票档案 24,544、请假档案 24,240、差旅费用报销单档案 23,679、客户产值确认档案 19,901、日常费用报销单档案 19,381、回款单档案 14,644、项目档案底表 5,432、销售合同档案 5,247。完整清单见 `runtime/a8_forms.tsv`。
+最大的档案（无流程表单，A8 作为存放地）：原始打卡记录 794,221 行、工时档案表 676,868 行、外勤申请档案 32,385、工资条 29,139、发票档案 24,544、请假档案 24,240、差旅费用报销单档案 23,679、客户产值确认档案 19,901、日常费用报销单档案 19,381、回款单档案 14,644、项目档案底表 5,432、销售合同档案 5,247。完整清单见 `docs/legacy/runtime-usage/a8-forms.tsv`。
 
 ## 3. 模板清单与分类
 
@@ -49,7 +49,7 @@
 「蓝图 BC」按 ADR-0017 对照；标「未覆盖」的是蓝图没有对应的 BC：「应付与付款」已决定新建（编号由 psa-gl-scope 统一），HRM 相关 BC 与非项目采购随 6e、6d 建设。
 
 <!-- BEGIN:templates -->
-近 365 天有实例或有在途实例的模板共 **125** 个（数据：`runtime/a8_templates.tsv`，生成：`build_oa_inventory.py`）。
+近 365 天有实例或有在途实例的模板共 **125** 个（数据：`docs/legacy/runtime-usage/a8-templates.tsv`，生成：`build_oa_inventory.py`）。
 
 | 分类 | 模板数 | 近 180 天实例 |
 |---|---|---|
@@ -228,7 +228,7 @@
 
 | 集成 | 方向 | 现状 | 与本盘点的关系 |
 |---|---|---|---|
-| A8 组织同步（`syncDeptJob`、`syncUserJob`、`syncPostsJob`、生日） | A8 → 老系统 | 直查 `ORG_MEMBER`、`ORG_UNIT`、`ORG_POST`、`ORG_RELATIONSHIP`、员工档案 `formmain_0307` | Phase 1a 至 6e 前组织主数据仍以 A8 为源（`phase1a/COLUMN_OWNERSHIP.md` 不变）；6e 自建 HRM 后方向反转，新系统为源、A8 为接收方，经 `platform.integration` |
+| A8 组织同步（`syncDeptJob`、`syncUserJob`、`syncPostsJob`、生日） | A8 → 老系统 | 直查 `ORG_MEMBER`、`ORG_UNIT`、`ORG_POST`、`ORG_RELATIONSHIP`、员工档案 `formmain_0307` | Phase 1a 至 6e 前组织主数据仍以 A8 为源（`docs/data/column-ownership.md` 不变）；6e 自建 HRM 后方向反转，新系统为源、A8 为接收方，经 `platform.integration` |
 | 致远 SSO（`/seeyon-sso`） | A8 → 老系统 | 服务端验票 | ADR-0009 已定；用户从 OA 门户进入新系统仍走它 |
 | A8 → BI 事件、携程、e 签宝 | A8 ↔ 第三方 | `CIP_LOG` 有记录 | 与权责事实无关；e 签宝若用于合同签署，6a 须评估是否迁到新系统；HRM 迁入后 BI 的人员事件来源随之改变 |
 | U8C 客商推送（`syncCustomerAndSupplierToU8CJob`） | 老系统 → U8C | 读 A8 的 `T_U8C_BD_CUBASDOC` | 客商主档归新系统（用户决定），推送改为从新系统主档出发 |
@@ -293,7 +293,7 @@ ADR-0016 后果中「A8 产值同步在新系统中作为防腐层输入」与 b
 
 另有 3 处只有实体映射、没有有效查询（`SalaryMapper`、`CustomerAndSupplierMapper`、`UnitPriceOfWorkingHoursDO`），以及 6 个读取上述视图的 Java 读取方（如 `BudgetSourceArchiveTermFinder`、`ManHourPostingCheckServiceImpl`）。合计权责相关 26 处，非权责 10 处（组织主数据 7 处 6e 后反转，其余随主数据迁入）。
 
-**补充（R0 Q11，2026-10-14）**：第 37–40 行是只存在于生产 SQL Agent、仓库里没有脚本的通道，盘点时未覆盖，由 BI 审计元数据查询发现。详见 `phase1a/A8_ACCESS_REGISTER.md` #28–#32（含预发布环境的 2 个作业）与 `r0/BI_USAGE_SUMMARY.md` §3。计入后权责相关为 29 处（另有预算 1 处相关、不过账）。§4 矩阵中「工时与成本」「费用」「合同签订与付款条款」各行的老路径，均须加上这些作业的停用作为阶段出口条件。
+**补充（R0 Q11，2026-10-14）**：第 37–40 行是只存在于生产 SQL Agent、仓库里没有脚本的通道，盘点时未覆盖，由 BI 审计元数据查询发现。详见 `docs/legacy/seeyon-oa/access-register.md` #28–#32（含预发布环境的 2 个作业）与 `docs/legacy/bi/bi-usage-summary.md` §3。计入后权责相关为 29 处（另有预算 1 处相关、不过账）。§4 矩阵中「工时与成本」「费用」「合同签订与付款条款」各行的老路径，均须加上这些作业的停用作为阶段出口条件。
 
 **注意**：老系统今天不仅读 A8，还**写** A8（第 28–36 行，含生产 DML）。新系统的规则是：A8 交互只在 `platform.integration` 防腐层，单向所有权；凡写 A8 的权责数据通道，在对应阶段出口前删除。
 
@@ -380,7 +380,7 @@ flowchart LR
 - **薪酬**（`organization.payroll`）：算薪、个税与社保代扣、工资补录、调薪、工资条；产出职工薪酬事实经过账管道进入 `cost.costing`，并成为工时成本单价的来源。
 - **绩效与激励**（`organization.incentive`）：月度评估、奖金计提与补录。
 
-入口条件（草稿）：薪酬与假勤规则补抽并评审（含 A8 表单触发器与 `T_FST_*` 自建表）；个税、社保口径经财务与 HR 确认；敏感个人信息的加密与授权方案经安全评审（`phase1a/SECURITY_INVARIANTS.md`）；HRM 用语登记并确认；设计正本补齐 HR 与假勤页面组件。
+入口条件（草稿）：薪酬与假勤规则补抽并评审（含 A8 表单触发器与 `T_FST_*` 自建表）；个税、社保口径经财务与 HR 确认；敏感个人信息的加密与授权方案经安全评审（`docs/ops/security-invariants.md`）；HRM 用语登记并确认；设计正本补齐 HR 与假勤页面组件。
 
 出口条件（草稿）：上述 A8 模板停用、在途为 0；至少两个月的算薪在新系统与 A8 逐人一致或差异经 HR 与财务签字；`psa_daily_rate`、`monthly_salary_calculation`、`psa_cost_summary_zero_hour_salary`、`PrePostingCheckOaMapper` 改读新系统；组织同步方向反转（新系统 → A8），老库中引用 `a8_db` 的视图与作业为 0；回滚演练通过。
 
@@ -394,7 +394,7 @@ flowchart LR
 
 ## 7. 统一用语
 
-- **已登记为待确认**（`glossary/oa_aliases.json` → `build_terms.py` → `terms.yaml` 的 `undetermined` 别名 → `glossary/TERM_CONFIRMATION.md` A 组 20 项，建议均为「方言」）：销售合同、销售合同变更、项目立项、项目档案、项目结算、付款条件档案、项目预算编制、项目工时填报单、项目委外、BU岗位人天单价、发票档案、项目开票申请、首付款开票申请、回款单档案、预收款单、应收坏账申请、报价档案、日常费用报销单、业务招待费用报销单、差旅费用报销单。这些叫法在确认前不得进入新代码、界面文案、接口文档、列注释。
+- **已登记为待确认**（`docs/glossary/oa-aliases.json` → `build_terms.py` → `terms.yaml` 的 `undetermined` 别名 → `glossary/TERM_CONFIRMATION.md` A 组 20 项，建议均为「方言」）：销售合同、销售合同变更、项目立项、项目档案、项目结算、付款条件档案、项目预算编制、项目工时填报单、项目委外、BU岗位人天单价、发票档案、项目开票申请、首付款开票申请、回款单档案、预收款单、应收坏账申请、报价档案、日常费用报销单、业务招待费用报销单、差旅费用报销单。这些叫法在确认前不得进入新代码、界面文案、接口文档、列注释。
 - **按已有裁定直接归方言**（用户 2026-10-14：「产值确认单就是收入确认单……现在的叫法可以归为方言」）：客户产值确认单、客户产值确认档案（已列入「收入确认单」的禁用写法）。
 - **需新增词条**（词表中没有对应概念，由对应阶段按 ADR-0018 起草、财务或业务 Admin 确认）：产值坏账（6a，会计含义待定）、项目结项 / 项目关闭（6a）、发票退票 / 红冲（6b，参照「冲销」）、退款（6b）、应收票据（6b）、付款申请 / 应付（6c）、员工借款 / 还款 / 预付款核销（6c）、预提费用（6c）、非项目采购合同（6d）、薪资计算、人工成本、奖金计提（6e）、CommitCall 承诺、承诺目标（6f）；HRM 用语——假勤、考勤、工资条、个税代扣、试用期、人事异动等（6e）；应付与付款、权益（注资退回）（6c）。
 
@@ -425,7 +425,7 @@ flowchart LR
 
 ## 10. 证据与复现
 
-- 生产只读：`runtime/a8_templates.tsv`、`a8_forms.tsv`、`a8_u8c_vouchers.tsv`、`a8_collab_state.tsv`、`u8c_voucher_sources.tsv`。
+- 生产只读：`docs/legacy/runtime-usage/a8-templates.tsv`、`a8_forms.tsv`、`a8_u8c_vouchers.tsv`、`a8_collab_state.tsv`、`u8c_voucher_sources.tsv`。
 - 无遗留检查查询模板：`oa_residual_check.sql`（只读，按阶段填参数）。
 - 模板分类表：`python3 build_oa_inventory.py`（校验活跃模板全部分类）。
 - 用语：`python3 glossary/build_terms.py && python3 glossary/build_confirmation.py`。

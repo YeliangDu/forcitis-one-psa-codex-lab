@@ -6,7 +6,7 @@
 - 日期：2026-10-16（外部来源访问日期均为当天）
 - 性质：只读研究稿，没有改仓库，没有访问生产库。不是会计、法律意见；涉及准则判断的结论要交财务与审计师，涉及合同效力的要交法务或律师。
 - 起因：用户 2026-10-16 原话「收入确认是个很重要的话题，我们需要认真研究下，一个是 AEC 行业常见的合同模式，比如固定总价里程碑；还有计次；这个应该专题研究下，再定」；此前原话「每期都要估进度，而且证据不足现在影响我们司法途径解决合同资产减值的问题」。
-- 读过的仓库材料：`origin/claude/one-architecture-adr-governance` 上的 `RESEARCH_PLAN_REVENUE_RECOGNITION_OBJECT.md`、`Q04_REVENUE_OBJECT_RESEARCH.md`、`Q04_REVIEW.md`、`Q04_OVER_TIME_PROGRESS_RESEARCH.md`、`Q04_LITIGATION_EVIDENCE_RESEARCH.md`、`AEC_OBJECTS_COST_REVENUE.md`；`origin/main` 上的 ADR-0016、0046、0047、0049，`rules/GL_FINANCE_DECISIONS.md`（GL-024、GL-026、D17-5、D17-6、D17-8），`BUSINESS_RULES.md`（RULE-184、185、213、222），`ENTERPRISE_AGGREGATES_DRAFT.md`（AGG-13、14、44、45、47，INV-21、22、23、71），`ENTERPRISE_INFO_MAP_DRAFT.md`（OBJ-05 至 09、OBJ-48、49），`glossary/terms.yaml`（计价模式等词条），intent 中相关条目。私有财务材料（`ADVISOR_BATCH_2.md`、财务确认单第 2 版答复）只取口径，不写明细与个人信息。
+- 读过的仓库材料：`origin/claude/one-architecture-adr-governance` 上的 `RESEARCH_PLAN_REVENUE_RECOGNITION_OBJECT.md`、`Q04_REVENUE_OBJECT_RESEARCH.md`、`Q04_REVIEW.md`、`Q04_OVER_TIME_PROGRESS_RESEARCH.md`、`Q04_LITIGATION_EVIDENCE_RESEARCH.md`、`AEC_OBJECTS_COST_REVENUE.md`；`origin/main` 上的 ADR-0016、0046、0047、0049，`rules/GL_FINANCE_DECISIONS.md`（GL-024、GL-026、D17-5、D17-6、D17-8），`BUSINESS_RULES.md`（RULE-184、185、213、222），`ENTERPRISE_AGGREGATES_DRAFT.md`（AGG-13、14、44、45、47，INV-21、22、23、71），`ENTERPRISE_INFO_MAP_DRAFT.md`（OBJ-05 至 09、OBJ-48、49），`docs/glossary/terms.yaml`（计价模式等词条），intent 中相关条目。私有财务材料（`ADVISOR_BATCH_2.md`、财务确认单第 2 版答复）只取口径，不写明细与个人信息。
 - 外部来源的可信度：每条都注明 URL；只拿到搜索摘要、没读到正文的标「二手」；没取到的标「未核实」；准则条文没取到原文的标「请核对」。
 - 标注约定（修订加入）：【原文】= 已读到一手原文；【二手】= 摘要、转载、转述、仓库概括，未读原文；【推断】= 本稿由上述材料推出，没有直接来源。准则判断、合同效力一律交财务、审计师、律师；本稿只列选项与依据，不下「合规 / 不合规」的结论。
 
@@ -181,11 +181,11 @@ CAS 14 第十一条、第十二条、第十三条、第四十一条的原文已�
 | 专用条款改为「解约时按已完成工作量协商结算」 | 很可能不满足 | 没有可执行的金额标准；用户 2026-10-15 说的「要跟客户协商」若指这种写法，即落此行 |
 | 只约定违约金（如固定比例），与已完成工作无关 | 不满足 | 应用指南例 23（造船，客户解约只付合同总价 30% 违约金）判为不满足（二手，CPA 辅导教材 https://www.chinaacc.com/upload/resources/file/2021/03/15/1225815.pdf ） |
 | 合同未写解约付款 | 不确定，交律师 | 设计合同属建设工程合同（《民法典》第七百八十八条，请核对），本章没有规定的适用承揽合同（第八百零八条）；第七百八十七条：定作人在承揽人完成工作前可以随时解除合同，造成承揽人损失的，应当赔偿损失。「赔偿损失」能否稳定得到「已发生成本加合理利润」要看司法实践，最高法 2022-07-19 答问（摄影合同案，https://www.court.gov.cn/zixun/xiangqing/366401.html ）只确认任意解除权须通知、须在完成前、须赔偿 |
-| 按里程碑付款加解约补偿条款 | 逐份判断 | 证监会《上市公司 2023 年年度财务报告会计监管报告》指出这种安排**不一定**构成该项权利【二手，未复读；进确认页前须复读或删去】（仓库 `r0/FINANCE_DECISIONS.md` 外部来源 3） |
+| 按里程碑付款加解约补偿条款 | 逐份判断 | 证监会《上市公司 2023 年年度财务报告会计监管报告》指出这种安排**不一定**构成该项权利【二手，未复读；进确认页前须复读或删去】（仓库 `docs/business/finance-decisions.md` 外部来源 3） |
 
 **补充**：GF-2015-0210（外立面、照明）与分包身份的合同格式不在 0209 范围，本稿均未取得原文；上表各行只是条款写法的推断，哪份合同落哪一行，交财务、律师逐份判断。
 
-**同行做法**【二手，仓库已收录，未复读年报原文】：苏州规划设计研究院 2024 年报把规划设计、工程设计作为时段内履约，按各阶段成果经客户确认的结算金额确认；南京大学环境规划设计研究院 2024 年审计报告以「不可替代用途 + 有权就累计已完成部分收款」认定咨询与设计为时段内履约，用送交初稿、通过审查、提交正式报告三个节点，并以工时系统的人工成本占比校准节点比例（`r0/FINANCE_DECISIONS.md` 外部来源 1、2）。这与「时段法 + 以客户确认里程碑为骨架的产出法」一致，可作选项参考，不构成推荐。南京大学环境规划设计研究院是否已上市、所引是招股文件还是年报，须核实。
+**同行做法**【二手，仓库已收录，未复读年报原文】：苏州规划设计研究院 2024 年报把规划设计、工程设计作为时段内履约，按各阶段成果经客户确认的结算金额确认；南京大学环境规划设计研究院 2024 年审计报告以「不可替代用途 + 有权就累计已完成部分收款」认定咨询与设计为时段内履约，用送交初稿、通过审查、提交正式报告三个节点，并以工时系统的人工成本占比校准节点比例（`docs/business/finance-decisions.md` 外部来源 1、2）。这与「时段法 + 以客户确认里程碑为骨架的产出法」一致，可作选项参考，不构成推荐。南京大学环境规划设计研究院是否已上市、所引是招股文件还是年报，须核实。
 
 **对 A1 的含义**：A1 是否成立，取决于各类合同里第 14.1.1 条（或同类条款）的实际写法。这是事实题，不是选择题（第 6 节 F-1、F-2）。
 
@@ -229,7 +229,7 @@ CAS 14 第十一条、第十二条、第十三条、第四十一条的原文已�
 
 **减值**：
 - 合同资产按金融工具准则（CAS 22）计提预期信用损失，可用简化方法按账龄组合（第四十一条末句；IFRS 15.107 指向 IFRS 9，AASB 镜像文本，请核对）。
-- 同行实例：苏州规划设计研究院按账龄组合计提，1 年内 5%、1–2 年 10%、2–3 年 50%、3 年以上 100%【二手，未复读；进确认页前须复读或删去】（`r0/FINANCE_DECISIONS.md`）。
+- 同行实例：苏州规划设计研究院按账龄组合计提，1 年内 5%、1–2 年 10%、2–3 年 50%、3 年以上 100%【二手，未复读；进确认页前须复读或删去】（`docs/business/finance-decisions.md`）。
 - 已定口径：合同资产减值只记权责账簿，借资产减值损失、贷合同资产减值准备（D17-8 ③）。
 - 区分两件事：
   - **收入冲减**（D17-8 ①）：客户不认可、审计压价，是可变对价重估，冲收入；
@@ -543,11 +543,11 @@ CAS 14 第十一条、第十二条、第十三条、第四十一条的原文已�
 ## 附：主要出处
 
 **仓库内**（基线：`origin/main` 与 `origin/claude/one-architecture-adr-governance`，2026-10-16 fetch）：
-- ADR：`adr/src/ADR-0016.md`（决定 4）、`ADR-0047.md`（:16、:26、第 1–5 条）、`ADR-0049.md`、`ADR-0046.md`。
+- ADR：`docs/adr/ADR-0016.md`（决定 4）、`ADR-0047.md`（:16、:26、第 1–5 条）、`ADR-0049.md`、`ADR-0046.md`。
 - 规则与口径：`rules/GL_FINANCE_DECISIONS.md`（GL-024、GL-026、D17-5、D17-6、D17-8）；`BUSINESS_RULES.md`（RULE-184、185、213、222）。
 - 架构稿：`ENTERPRISE_AGGREGATES_DRAFT.md`（AGG-13、14、44、45、47，INV-10、21、22、23、71）；`ENTERPRISE_INFO_MAP_DRAFT.md`（OBJ-05 至 09、48、49）。
-- 词表：`glossary/terms.yaml`（`pricing_model`、`fixed_price`、`time_and_materials`、`cost_plus`、`framework_agreement`、`payment_term_item`、`measure_of_progress`、`progress_assessment`、`contract_asset_risk_tier`）；`GLOSSARY.md:302`。
-- Q-04 系列：`Q04_REVENUE_OBJECT_RESEARCH.md`、`Q04_OVER_TIME_PROGRESS_RESEARCH.md`、`Q04_LITIGATION_EVIDENCE_RESEARCH.md`、`Q04_REVIEW.md`、`RESEARCH_PLAN_REVENUE_RECOGNITION_OBJECT.md`；`AEC_OBJECTS_COST_REVENUE.md`；`r0/FINANCE_DECISIONS.md` 外部来源 1–3。
+- 词表：`docs/glossary/terms.yaml`（`pricing_model`、`fixed_price`、`time_and_materials`、`cost_plus`、`framework_agreement`、`payment_term_item`、`measure_of_progress`、`progress_assessment`、`contract_asset_risk_tier`）；`GLOSSARY.md:302`。
+- Q-04 系列：`Q04_REVENUE_OBJECT_RESEARCH.md`、`Q04_OVER_TIME_PROGRESS_RESEARCH.md`、`Q04_LITIGATION_EVIDENCE_RESEARCH.md`、`Q04_REVIEW.md`、`RESEARCH_PLAN_REVENUE_RECOGNITION_OBJECT.md`；`AEC_OBJECTS_COST_REVENUE.md`；`docs/business/finance-decisions.md` 外部来源 1–3。
 
 **外部**（访问日期 2026-10-16）：
 - GF-2015-0209 填写本全文：https://ggzyfw.beijing.gov.cn/cmsbj/u/cms/cn.gov.bjggzyfw.www/202503/2450364991094.pdf

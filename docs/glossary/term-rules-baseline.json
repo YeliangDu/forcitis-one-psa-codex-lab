@@ -3,7 +3,7 @@
  "rules": {
   "metric": {
    "owner": "one-glossary",
-   "where": "指标口径（公式、粒度、时点）随 BI 指标卡补齐，来源 glossary/oat/KPI体系设计.md；不在 B1 决策页",
+   "where": "指标口径（公式、粒度、时点）随 BI 指标卡补齐，来源 docs/glossary/oat/kpi-system-design.md；不在 B1 决策页",
    "count": 75
   },
   "unique_zh_error_code": {

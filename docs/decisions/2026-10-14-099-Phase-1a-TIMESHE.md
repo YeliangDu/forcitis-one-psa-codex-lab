@@ -4,4 +4,4 @@ Phase 1a TIMESHEET 节点顺序核实（2026-10-14，psa-coordinator 询问）�
 
 ## 落点
 
-phase1a/TIMESHEET_REPLAY.md「生产核实结果（v15）」（并行包容网关三路、子流程内驳回即退回、补 OH 分支）；brief Phase 2 入口 Proposed revision 草稿
+docs/data/timesheet-replay.md「生产核实结果（v15）」（并行包容网关三路、子流程内驳回即退回、补 OH 分支）；brief Phase 2 入口 Proposed revision 草稿

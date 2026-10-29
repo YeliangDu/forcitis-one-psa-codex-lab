@@ -118,7 +118,7 @@
 | E10 | 维度只有当前名称，没有历史；考勤经月中间表汇总丢失日粒度；工时与开票处于不同命名空间 | `analytics/docs/adr/0006`、`0018-attendance-day.md:11`、`0015-timesheet-on-a8-dimensions.md:16` |
 | E11 | **BI 在写业务数据**：条款进度更新、应收催收跟进等 6 个数据更新页；直接 UPDATE A8 的合同条款、开票、商机、项目档案字段。按 GUIDING_PRINCIPLES §9a，权责事实的产生与变更不能在 BI | §1.2；`bi-inventory.md` §3 |
 | E12 | 性能：付款 / 存货查询公司级季度 217 秒；财务接口秒级耗时 | `BI/docs/performance/inventory-query-equivalence.md`；issue FORCITIS/BI#3、#20 |
-| E13 | 用语与统一语言不一致：「产值」族 7 个度量（词表已裁定为方言，正式用语是「收入确认」）；「在手合同金额」对应词表的「剩余履约义务」；「付款条款」对应「合同条款」；新经营分析的指标没有 owner、口径依据、含税性、期间类型、加总规则字段，不满足 OAT 的声明要求 | `analytics/contracts/semantic.ts:113-237`；`glossary/terms.yaml`（RevenueRecognition、RemainingPerformanceObligation、ContractClause 条目）；OAT 槽位文件第 25–26 行 |
+| E13 | 用语与统一语言不一致：「产值」族 7 个度量（词表已裁定为方言，正式用语是「收入确认」）；「在手合同金额」对应词表的「剩余履约义务」；「付款条款」对应「合同条款」；新经营分析的指标没有 owner、口径依据、含税性、期间类型、加总规则字段，不满足 OAT 的声明要求 | `analytics/contracts/semantic.ts:113-237`；`docs/glossary/terms.yaml`（RevenueRecognition、RemainingPerformanceObligation、ContractClause 条目）；OAT 槽位文件第 25–26 行 |
 | E14 | 安全（老系统，按用户「老系统先不管」原则只记录）：数据权限修复未进发布副本；OA 账号口令拼进 URL；服务端口直接暴露公网且有扫描记录 | `BI-release/utils/db/queryBuild.js:65-67`；`BI/controllers/system/index.js:332`；`bi-inventory.md` §4 |
 
 ## 2. 经营子域 4 个 BC
@@ -387,7 +387,7 @@ Q1、Q2 由 psa-coordinator 询问并记入 INTENT；Q3–Q12 由 psa-bi-decisio
 
 | # | 用户决定（原话） | 落实 | 待财务 / 待业务 |
 |---|---|---|---|
-| Q1 | 「先不定，由 R0 出对比后再定 (Recommended)」；R0 对比后（2026-10-14，经 psa-coordinator 转达）：「C 为主，D 待定为后期可选 (Recommended)」；透视「沿用 AG Grid 企业版」 | 以 C 为主：语义层（指标目录由 `operations.policy` 治理、编译与执行在 `reporting`）与 8 个报表包并入 FORCITIS one；B 冻结作设计输入；D（自助 BI 工具）待定为 R6 之后的可选项，若采用只连 L1 / L2 只读视图、关闭原生 SQL；A 只作过渡。前端透视沿用 AG Grid 企业版，许可采购为部署前事项，许可密钥不进仓库。依据与 R1 入口条件草稿见 `r0/TOOL_COMPARISON.md` §0、§7 | — |
+| Q1 | 「先不定，由 R0 出对比后再定 (Recommended)」；R0 对比后（2026-10-14，经 psa-coordinator 转达）：「C 为主，D 待定为后期可选 (Recommended)」；透视「沿用 AG Grid 企业版」 | 以 C 为主：语义层（指标目录由 `operations.policy` 治理、编译与执行在 `reporting`）与 8 个报表包并入 FORCITIS one；B 冻结作设计输入；D（自助 BI 工具）待定为 R6 之后的可选项，若采用只连 L1 / L2 只读视图、关闭原生 SQL；A 只作过渡。前端透视沿用 AG Grid 企业版，许可采购为部署前事项，许可密钥不进仓库。依据与 R1 入口条件草稿见 `docs/architecture/bi-tool-comparison.md` §0、§7 | — |
 | Q2 | 「已被 10-14 的决定取代 (Recommended)」 | 2026-12-31 替换 BI、A8 财务部分年内替代、先 OLAP 后 OLTP 不再有效；以 R0–R6 与现代化阶段为准，日期在统一编排时重估；老 BI 保持运行 | — |
 | Q3 | 「冻结作设计输入 (Recommended)」 | BI-olap `analytics/` 代码冻结、不上线；PR #50–#58 不合入 BI master（保持未合并，分支保留）；其 20 份口径 ADR、11 份对账 JSON、权限模型与规模测试由 R0 / R1 / R3 引用。本仓库不对 BI 仓库做任何操作（BI 会话由用户自行处理） | — |
 | Q4 | 「按建议划分，两者都建 (Recommended)」 | `operations.planning` 管目标值（含 A8「承诺目标 / 预算目标」#90–#102，`BudgetTarget`）；`operations.budgeting` 只管额度（占用 / 释放 / 消耗 / 可用 / 调整 / 超预算审批 / 冻结），R4 建，预算占用接入 6c 的费用、付款单据 | 待业务 B3 |

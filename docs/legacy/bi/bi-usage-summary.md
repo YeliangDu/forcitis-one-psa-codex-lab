@@ -96,7 +96,7 @@
 
 ## 4. 补充：同步到老系统的作业步骤元数据（psa-coordinator 补派，2026-10-14）
 
-用同一只读通道又执行 2 次，只取作业步骤名、目标库、调度、运行状态，以及步骤正文中引用的库表名；正文不回传。原始结果在仓库外 `bi_09_sqlagent_jobs_meta.tsv`、`bi_10_timesheet_job_refs.tsv`。结论已登记到 `phase1a/A8_ACCESS_REGISTER.md` #28–#32 与 `OA_PROCESS_INVENTORY.md` §5.3 第 37–40 行：
+用同一只读通道又执行 2 次，只取作业步骤名、目标库、调度、运行状态，以及步骤正文中引用的库表名；正文不回传。原始结果在仓库外 `bi_09_sqlagent_jobs_meta.tsv`、`bi_10_timesheet_job_refs.tsv`。结论已登记到 `docs/legacy/seeyon-oa/access-register.md` #28–#32 与 `OA_PROCESS_INVENTORY.md` §5.3 第 37–40 行：
 
 - **成本明细**（每小时）：读 A8 项目档案、付款申请、特殊付款与 BI 视图 `T_FST_PAY`，写老系统 `psa_pm_pay`，属于权责事实。第 3 步「委外和居间付款申请不结转」是隐含业务规则。
 - **项目档案**（每 30 分钟）：读 A8 七张表与 `T_FST_PROJECT`，写 `psa_pm_project`。

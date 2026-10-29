@@ -75,7 +75,7 @@
 
 **SR-3 [中] O10**　登录路径热点查询无合适索引。证据：`SnapshotFreshness.isCurrent()` 经 `OrgDirectoryService.java:53` 在登录判定时调用，执行 `select max(finished_at) … where status = 'SUCCEEDED'`（`JdbcSyncRunQueries.java:59`）；`sync_runs_status_idx`（M:L151）只含 `status`，SUCCEEDED 占几乎全部行（每 5 分钟一次，约 21 万行 / 2 年），索引选择性为零，需扫描全部 SUCCEEDED 索引项；`SyncMetrics` 的 gauge 也调用同一查询。`findHeld`、`countHeld`、`findAbandoned`、`findHeldExcept` 只关心 HELD / RUNNING，应走部分索引。分页 `order by started_at desc, id desc`（`:42-49`）对应索引 `sync_runs_started_at_idx`（M:L150）缺 `id` 兜底。建议：以 `(finished_at DESC) WHERE status = 'SUCCEEDED'` 与 `(started_at, id) WHERE status IN ('RUNNING', 'HELD')` 两个部分索引取代 `sync_runs_status_idx`；`started_at` 索引改 `(started_at DESC, id DESC)`。依据：O10、D19、§2.4a-2。
 
-**SR-4 [低] B3**　放行原因与逐类放行人只在事件 / 审计里：`SyncRunReleased.reason`、`SyncRunHoldReleased.releasedBy`（`events/workforce.yaml`）无对应列，表里 `released_by` 只记最终放行人，被后续成功同步取代时为空（M:L172）。审计在线 3 年、归档至 10 年（GUIDING §6），长于本表 2 年，故判低；若要在表上自洽，加 `release_reason`。依据：B3、D12。
+**SR-4 [低] B3**　放行原因与逐类放行人只在事件 / 审计里：`SyncRunReleased.reason`、`SyncRunHoldReleased.releasedBy`（`docs/architecture/events/workforce.yaml`）无对应列，表里 `released_by` 只记最终放行人，被后续成功同步取代时为空（M:L172）。审计在线 3 年、归档至 10 年（GUIDING §6），长于本表 2 年，故判低；若要在表上自洽，加 `release_reason`。依据：B3、D12。
 
 **SR-5 [低] O3　待核**　「同一时刻至多一条 RUNNING」未落库：`BeginSyncRun.java:32-37` 先关闭超 15 分钟的遗弃运行再 `insertRunning`，不检查现有 RUNNING；靠 ShedLock（`OrgSnapshotSyncJob`，`lockAtMostFor PT4M`）与 advisory 写锁。定时与管理员触发（`MANUAL`）能否并发起 RUNNING，我没有测试证据。若业务要求单飞，加 `CREATE UNIQUE INDEX … ON sync_runs ((true)) WHERE status = 'RUNNING'`。依据：O3、O4。
 
@@ -139,9 +139,9 @@
 
 ## 跨表共性问题
 
-**X-1 [中] B2 / D3**　聚合归属未登记且文档不一致。REG 中 `positions`、`org_units`、`employees`、`assignments`、`org_unit_versions`、`assignment_versions` 无 `aggregate` 字段（REG L50-96）；事件与 Java 却引用 `OrgSnapshot`（`multi-aggregate-exceptions.txt:6`、`SyncRun.draftWithSnapshot`）与 `Employee`（`events/workforce.yaml` EmployeeRegistered 的 `aggregate: Employee`），而 `architecture/ddd/aggregates.yaml` 里没有 `OrgSnapshot`，`RegisteredEmployee` 聚合 `tables: []`，`LegalEntity` 的表清单漏了 `legal_entity_versions`（注册表标其属 LegalEntity）。建议：补 `OrgSnapshot`（或明确快照是「读模型 / 外部镜像」不属聚合）并给六张表登记；`Employee` 与 `RegisteredEmployee` 二选一。依据：B2、D3。
+**X-1 [中] B2 / D3**　聚合归属未登记且文档不一致。REG 中 `positions`、`org_units`、`employees`、`assignments`、`org_unit_versions`、`assignment_versions` 无 `aggregate` 字段（REG L50-96）；事件与 Java 却引用 `OrgSnapshot`（`multi-aggregate-exceptions.txt:6`、`SyncRun.draftWithSnapshot`）与 `Employee`（`docs/architecture/events/workforce.yaml` EmployeeRegistered 的 `aggregate: Employee`），而 `architecture/ddd/aggregates.yaml` 里没有 `OrgSnapshot`，`RegisteredEmployee` 聚合 `tables: []`，`LegalEntity` 的表清单漏了 `legal_entity_versions`（注册表标其属 LegalEntity）。建议：补 `OrgSnapshot`（或明确快照是「读模型 / 外部镜像」不属聚合）并给六张表登记；`Employee` 与 `RegisteredEmployee` 二选一。依据：B2、D3。
 
-**X-2 [中] E1**　事件目录缺 `relatedAggregates`：`SyncRunSucceeded`、`OrgSnapshotChanged` 在 Java 里带 `AggregateReference("OrgSnapshot")`（`J/domain/SyncRun.java` `draftWithSnapshot`），`multi-aggregate-exceptions.txt:6` 声称「在 relatedAggregates 里列出 OrgSnapshot」，但 `events/workforce.yaml` 这两个事件的 `x-event` 无该字段（grep 无命中）。依据：E1、§14 第 3、8 项。
+**X-2 [中] E1**　事件目录缺 `relatedAggregates`：`SyncRunSucceeded`、`OrgSnapshotChanged` 在 Java 里带 `AggregateReference("OrgSnapshot")`（`J/domain/SyncRun.java` `draftWithSnapshot`），`multi-aggregate-exceptions.txt:6` 声称「在 relatedAggregates 里列出 OrgSnapshot」，但 `docs/architecture/events/workforce.yaml` 这两个事件的 `x-event` 无该字段（grep 无命中）。依据：E1、§14 第 3、8 项。
 
 **X-3 [中] O3**　快照三表（`positions.code`、`org_units.code`、`employees.employee_code`）无本地业务唯一约束，业务身份依赖 `platform_integration.source_references`（来源系统 + 类别 + 来源 ID，ADR-0033 第 2 项），注册表也没有 `business_key`（DG-0）。门禁要求「业务上 X 在 Y 范围内唯一」写进卡或约束：现状（a）`employee_code` 在来源里并不唯一（`WORKFORCE_HISTORY_RULES.md` 取证：5 个 CODE 出现在多行，其中 3 个同时在在职与离职记录）；（b）`IssueKind` 有 `DUPLICATE_UNIT`、`DUPLICATE_EMPLOYEE`、`DUPLICATE_WECOM_USER_ID`，说明来源重复是常态，同步里已有隔离逻辑；（c）`wecom_user_id` 在职内唯一已落（M:L79-80）。建议：先把「身份来自来源对照」写进注册表；工号、部门编码、岗位编码是否在某范围内唯一（例如在职员工内工号唯一）由数据管理员定，定了再建部分唯一索引；不定则写明「只作展示用，不作唯一键」。见「待用户决定」6。依据：O3、NAMING_STANDARD §2.4a-1。
 
@@ -163,7 +163,7 @@
 
 **X-12 [低] B8 / CLAUDE.md 第 1 条**　`sync_runs.employed_without_wecom_count`（M:L137）把外部产品名带进领域表列名；`wecom_user_id` 在 DA-3 删除，该统计列不在 DA-3 范围内。建议：改为不含供应商名的指标名（如「无外部身份绑定的在职人数」，名称走 `terms.yaml` 登记）。待核：`terms.yaml` 里有无对应术语。
 
-**X-13 [低] E1 / B6　待核**　`OrgSnapshotChanged` 只带 `changedEmployees`、`separatedEmployees`、`changedOrgUnits`（`events/workforce.yaml`），不区分复职（`ChangeKind.REHIRED`）与撤销 / 复活（`REVOKED`、`REVIVED`），也无岗位变更；消费方 `platform.identity`、`platform.audit` 是否需要区分，我没有核实（RULE-364 复职需恢复账号）。
+**X-13 [低] E1 / B6　待核**　`OrgSnapshotChanged` 只带 `changedEmployees`、`separatedEmployees`、`changedOrgUnits`（`docs/architecture/events/workforce.yaml`），不区分复职（`ChangeKind.REHIRED`）与撤销 / 复活（`REVOKED`、`REVIVED`），也无岗位变更；消费方 `platform.identity`、`platform.audit` 是否需要区分，我没有核实（RULE-364 复职需恢复账号）。
 
 ## 待用户决定
 

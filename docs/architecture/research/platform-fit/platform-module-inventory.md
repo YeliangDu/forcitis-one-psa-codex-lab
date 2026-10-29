@@ -2,7 +2,7 @@
 
 - 日期：2026-10-20；只读评审，没有改仓库。
 - 代码基线：`origin/main` @ `8cddaee3`（`backend/src/main/java/com/forcitis/one/`），使用方按 `import com.forcitis.one.<模块>` 统计（同模块内部的引用不计）。
-- 规划依据：ADR-0051 决定 3 表与决定 7（下文用 B-xx 编号），聚合稿 `ENTERPRISE_AGGREGATES_DRAFT.md` §4.1 依赖骨架（B-31 `organization.administration` 由聚合稿收尾回补新增），`runtime/a8_templates.tsv`，2026-10-20 已批的 6 份 ADR 草案（intent `2026-10-20-221808`），研究稿 C/B 与 R 复核（以 R 为准）。
+- 规划依据：ADR-0051 决定 3 表与决定 7（下文用 B-xx 编号），聚合稿 `ENTERPRISE_AGGREGATES_DRAFT.md` §4.1 依赖骨架（B-31 `organization.administration` 由聚合稿收尾回补新增），`docs/legacy/runtime-usage/a8-templates.tsv`，2026-10-20 已批的 6 份 ADR 草案（intent `2026-10-20-221808`），研究稿 C/B 与 R 复核（以 R 为准）。
 - 判定口径：**真平台**＝已有或预计有 ≥2 个 BC 使用，且模块里没有业务语义；**单一 BC 能力**＝只有 1 个使用方，应归那个 BC；**技术模块**＝没有 api、谁也不 import，靠端口或框架接入（ADR-0004 的「两个出口」对它不适用）。
 
 ---

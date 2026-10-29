@@ -6,7 +6,7 @@
 
 **现状核查**：
 
-- **GL-124 是规则卡，不是 ADR**（`rules/GL_RULES.md:1894`）：「只用人民币；会计期间为自然年 12 个月，无调整期」。要取代的只是后半句；「只用人民币」仍有效（`CROSS_CUTTING_MATRIX.md` CC-N06 引用它）。
+- **GL-124 是规则卡，不是 ADR**（`docs/business/rules/gl-rules.md:1894`）：「只用人民币；会计期间为自然年 12 个月，无调整期」。要取代的只是后半句；「只用人民币」仍有效（`CROSS_CUTTING_MATRIX.md` CC-N06 引用它）。
 - **排期**：取代 GL-124 的 ADR 尚未起草，也没有排期。
   - origin/main 的 `COORDINATOR_LEDGER.md` 与 brief 都没有它；
   - `GL_FINANCE_REVIEW.md` 第 101 项把它归在「G2」；
@@ -17,7 +17,7 @@
     - `AccountingPeriodTest` 断言 `of(2026, 13)` 抛异常；
     - `containing(LocalDate)` 把日期映射到月份，`next()` 把 12 月接到次年 1 月；
     - `parse` 用 `yyyyMM`。
-  - **已进入契约**：`EventEnvelope.accountingPeriod` 用这个类型，`events/asyncapi.yaml` 中 `accountingPeriod` 是字符串，「只由过账管道写入」。
+  - **已进入契约**：`EventEnvelope.accountingPeriod` 用这个类型，`docs/architecture/events/asyncapi.yaml` 中 `accountingPeriod` 是字符串，「只由过账管道写入」。
   - **Phase 2 会把这个类型用到更多地方**：`accounting.period` 与 `operations.facts` 会把它用作 (期间, 法人) 闸门的期间键、落账期间列和事件字段。
   - **第 13 期要求的表示方式**：第 13 期没有对应的日历日期，与 12 月同属一个年度，排在 12 月之后、次年 1 月之前。
   - **现在不定的后果**：Phase 2 按 12 个月建模，G2 前加第 13 期时要改 kernel 值对象、事件契约、所有落账期间列与 L2 快照键，而且要改已有断言（须写理由，CLAUDE.md 第 5 条）。

@@ -4,4 +4,4 @@
 
 ## 落点
 
-开场瘦身第④步按草稿落地（~/.modernize/psa/coordinator/team-audit/CLAUDE.new.md、memory-plan.md）：先把移走的记忆原文追加进仓库（PB §5 新增「架构判断」、rules/decide/README.md 出页守则、台账调度惯例），换新 CLAUDE.md，PB 去掉写死的 xhigh；合入后备份再删记忆
+开场瘦身第④步按草稿落地（~/.modernize/psa/coordinator/team-audit/CLAUDE.new.md、memory-plan.md）：先把移走的记忆原文追加进仓库（PB §5 新增「架构判断」、docs/decisions/decision-pages/README.md 出页守则、台账调度惯例），换新 CLAUDE.md，PB 去掉写死的 xhigh；合入后备份再删记忆

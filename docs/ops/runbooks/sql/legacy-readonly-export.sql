@@ -67,5 +67,5 @@ SELECT YEAR(c.[datetime]) AS calendar_year, COUNT(*) AS days, COUNT(DISTINCT CAS
  ORDER BY calendar_year;
 
 -- ===== STEP 4 TIMESHEET 回放导出 =====
--- 格式与取数口径以 phase1a/TIMESHEET_REPLAY.md「导出文件」与「执行步骤」为准（当前定义版本的实例样本、当时的组织快照、
+-- 格式与取数口径以 docs/data/timesheet-replay.md「导出文件」与「执行步骤」为准（当前定义版本的实例样本、当时的组织快照、
 -- bpm_task_assign_rule、流程变量、工时行类型集合与实际审批人序列），文件写新词汇；本文件不重复其查询，避免两处漂移。

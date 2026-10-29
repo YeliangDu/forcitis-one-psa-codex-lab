@@ -2,7 +2,7 @@
 
 状态：已确认｜2026-10-22｜负责：one-architecture
 
-触发：one-1a-par 实施 F2（IMP-1021-PAR-04）时问：交接单要求删 `ReadOnlyVerificationCommand` 的 `integration-legacy-inbox` 连接，而 ADR-0055 决定 7 保留「迁入、对账、归档及取证的访问控制」，`phase1a/infra/INFRA_RUNBOOK.md` 第 126 行把该名列为「仅供受控退役用途账号核实」的兼容名。
+触发：one-1a-par 实施 F2（IMP-1021-PAR-04）时问：交接单要求删 `ReadOnlyVerificationCommand` 的 `integration-legacy-inbox` 连接，而 ADR-0055 决定 7 保留「迁入、对账、归档及取证的访问控制」，`docs/ops/infra-runbook.md` 第 126 行把该名列为「仅供受控退役用途账号核实」的兼容名。
 
 ## 裁定
 

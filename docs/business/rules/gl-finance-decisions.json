@@ -1,6 +1,6 @@
 {
   "system": "psa",
-  "scope": "rules/GL_FINANCE_REVIEW.md ★ 项与 proposals/GL_SCOPE_REVISIONS.md §D 第 3、17 项",
+  "scope": "docs/business/rules/gl-finance-review.md ★ 项与 docs/architecture/proposals/gl-scope-revisions.md §D 第 3、17 项",
   "version": 1,
   "decisions": {
     "D17-0": {

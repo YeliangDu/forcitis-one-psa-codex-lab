@@ -4,4 +4,4 @@
 
 ## 落点
 
-forcitis-architecture 不作信源（架构决策 Q1 随之改为在本仓库按权威标准推导能力与价值流）；one-architecture 建立版本锁定、出处可查的架构知识框架 architecture/FRAMEWORKS.md，列入画像上下文文档（压缩或清空后自动注入），修改须引 ADR 或 intent
+forcitis-architecture 不作信源（架构决策 Q1 随之改为在本仓库按权威标准推导能力与价值流）；one-architecture 建立版本锁定、出处可查的架构知识框架 docs/architecture/frameworks.md，列入画像上下文文档（压缩或清空后自动注入），修改须引 ADR 或 intent

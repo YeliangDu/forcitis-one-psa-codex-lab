@@ -4,7 +4,7 @@
 
 依据：ADR-0066 决定 6（准入九条）、决定 7（待准入到期条件）。触发：one-1a-admin 的 opus 复审（one-coordinator 2026-10-22 转来，Medium）指出，签章服务的待准入在 B-31 开工时已到期，main 上却写「准入判断在 one-platform-file 开工签章第一段时做」。
 
-证据取自 origin/main（2026-10-22）。签章服务目前只有登记：`contexts.yaml` 中 status planned、admission 待准入、owner one-platform-file；`glossary/bcs.yaml:236` 有模块名；没有 api、实现、表、迁移，也没有 `module-dependencies.txt` 行。
+证据取自 origin/main（2026-10-22）。签章服务目前只有登记：`contexts.yaml` 中 status planned、admission 待准入、owner one-platform-file；`docs/glossary/bcs.yaml:236` 有模块名；没有 api、实现、表、迁移，也没有 `module-dependencies.txt` 行。
 
 ## 到期判断
 

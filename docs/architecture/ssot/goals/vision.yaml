@@ -193,10 +193,10 @@ goals:
     kpis:
       - id: KPI-16
         name: 安全不变量满足数
-        definition: phase1a/SECURITY_INVARIANTS.md 中 I-1 至 I-13 已由测试或守护证明成立的条数。
+        definition: docs/ops/security-invariants.md 中 I-1 至 I-13 已由测试或守护证明成立的条数。
         direction: "↑"
         metrics: []
-        source: INTENT 2026-10-14「老系统先不管，确保新系统没有这些缺陷」；phase1a/SECURITY_INVARIANTS.md
+        source: INTENT 2026-10-14「老系统先不管，确保新系统没有这些缺陷」；docs/ops/security-invariants.md
 
 principles:
   # 只引用 GUIDING_PRINCIPLES.md 的节号与标题，内容不在此复制；以下为本愿景最直接相关的节。

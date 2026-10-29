@@ -9,7 +9,7 @@ terms:
   scope: domain
   definition: 应急账号已经处于目标状态（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -24,7 +24,7 @@ terms:
   scope: domain
   definition: 该用户没有应急账号（404）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -39,7 +39,7 @@ terms:
   scope: domain
   definition: 该用户已有应急账号，或登录名已被占用（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -54,7 +54,7 @@ terms:
   scope: domain
   definition: 绑定的人没有启用的账号，或不持有超级管理员；或登录名格式不对（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -69,7 +69,7 @@ terms:
   scope: domain
   definition: 运维命令须填操作人和另一名见证人，两人不得相同（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -84,7 +84,7 @@ terms:
   scope: domain
   definition: 再次验证未通过、验证的是另一个人、本人不持有超级管理员，或已在管理模式中（403）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -99,7 +99,7 @@ terms:
   scope: domain
   definition: 强制下线不能对本人操作（403）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -114,7 +114,7 @@ terms:
   scope: domain
   definition: 强制下线必须填写 1 至 200 字的原因（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -129,7 +129,7 @@ terms:
   scope: domain
   definition: 规则没有已确认的模板版本，不发号（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -144,7 +144,7 @@ terms:
   scope: domain
   definition: 模板版本的作者不能确认自己的版本（403）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -159,7 +159,7 @@ terms:
   scope: domain
   definition: 业务确认与财务确认须来自不同的人（403）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -174,7 +174,7 @@ terms:
   scope: domain
   definition: 该单据的编号规则没有待确认的模板版本（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -189,7 +189,7 @@ terms:
   scope: domain
   definition: 只有凭证号模板需要财务确认（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -204,7 +204,7 @@ terms:
   scope: domain
   definition: 符合条件的审计条目超过导出上限，请缩小筛选范围（422）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -219,7 +219,7 @@ terms:
   scope: domain
   definition: 不能新增或修改本人、本人所在部门及其上级部门的法人归属（403）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -234,7 +234,7 @@ terms:
   scope: domain
   definition: 不能修改本人的角色集合（403，I-12）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -249,7 +249,7 @@ terms:
   scope: domain
   definition: 不能修改或删除本人持有的角色的定义（403，I-12）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -264,7 +264,7 @@ terms:
   scope: domain
   definition: 没有这个授权申请（404）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -279,7 +279,7 @@ terms:
   scope: domain
   definition: 授权申请已被确认或拒绝（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -294,7 +294,7 @@ terms:
   scope: domain
   definition: 申请人与受益人不能确认该授权申请（403）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -309,7 +309,7 @@ terms:
   scope: domain
   definition: 确认时看到的模板版本不是现在待确认的版本，作者在确认前保存了新版本（409）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -324,7 +324,7 @@ terms:
   scope: domain
   definition: 作者填写的生效日早于确认当天；不改写作者的日期，由作者改日期重新提交（422，用户决定）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -339,7 +339,7 @@ terms:
   scope: domain
   definition: 操作人没有任何一类仍在等待的暂停的解除资格：持有 sync-run:execute 才能解除缩水保护，留任的超级管理员或安全审计员持有 separation-hold:approve 才能解除管理员离职暂停（403，ADR-0028）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -354,7 +354,7 @@ terms:
   scope: domain
   definition: 放行后将没有可用的超级管理员，界面拒绝，只能走运维命令（409，ADR-0028）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -369,7 +369,7 @@ terms:
   scope: domain
   definition: 放行被暂停的同步必须写明理由（400，ADR-0028）
   standard_ref:
-  - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -384,7 +384,7 @@ terms:
   scope: domain
   definition: 调用人的数据范围算不出来时一律拒绝，不放宽成全部（403，RULE-350）
   standard_ref:
-  - adr/src/ADR-0026.md
+  - docs/adr/ADR-0026.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -399,7 +399,7 @@ terms:
   scope: domain
   definition: 角色定义、账号授权、强制下线这类平台权限只在管理模式里有，自定义角色不能带（422，ADR-0026 第 5 项、ADR-0027 第 2 项）
   standard_ref:
-  - adr/src/ADR-0027.md
+  - docs/adr/ADR-0027.md
   confidence: medium
   aliases: []
   forbidden: []

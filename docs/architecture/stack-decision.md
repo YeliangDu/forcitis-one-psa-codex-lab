@@ -49,7 +49,7 @@
 | 可观测性 | Micrometer 指标经 Prometheus 端点由 ARMS 抓取，ECS JSON 日志由 SLS 采集；关联号 correlationId 为唯一追踪键，不用 OpenTelemetry 与追踪探针（GUIDING_PRINCIPLES §11）；对同步延迟、事件发布、作业、登录失败率告警 | 0002、0042 | **已采纳**（用户 2026-10-14 定稿） | — |
 | 部署 | 新单体独立主机部署，与老系统分开；nginx 负责 TLS 和限流；去掉网关 | 0002 | **已采纳**（用户 2026-10-14 定稿） | — |
 | 数据过渡 | 保留雪花 ID；逐列所有权矩阵；老 URL 兼容门面；BI 读 `reporting` | 0011 | **已采纳**（用户 2026-10-14 定稿） | — |
-| 统一语言 | `glossary/terms.yaml` 为唯一来源；用语按会计准则 → 国标 / PMBOK / FIDIC → 行业通行写法的优先级；新词不登记构建即失败（G37–G39）；自动生成词条草稿，财务 / 业务 Admin 批准 | 0018 | **已采纳** | ✔ GlossaryTest 四类注入全部拦下 |
+| 统一语言 | `docs/glossary/terms.yaml` 为唯一来源；用语按会计准则 → 国标 / PMBOK / FIDIC → 行业通行写法的优先级；新词不登记构建即失败（G37–G39）；自动生成词条草稿，财务 / 业务 Admin 批准 | 0018 | **已采纳** | ✔ GlossaryTest 四类注入全部拦下 |
 | 脚手架 | 退出 yudao（ruoyi-vue-pro）：不迁移框架、starter 和基类，只按 BC 重建生产在用的能力（认证、权限、字典、文件、审计日志）；多租户、代码生成、支付等不迁移；新代码禁止依赖 `cn.iocoder..`（G40） | 0019 | **已采纳** | 依据生产调用量与表行数 |
 | 指导思想 | DDD、DAMA、TOGAF、BPMN、DMN、OLTP、OLAP | 0014 | 已采纳 | GUIDING_PRINCIPLES.md |
 | 安全 | 先在老系统止血（harden 补丁，3 轮复审），再推进各阶段 | 0015 | 已采纳 | SECURITY_FINDINGS.md |

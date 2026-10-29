@@ -1,6 +1,6 @@
 # 售前到签约信息图（草案，待用户确认）
 
-状态：已取代→architecture/ssot/10-objects/ENTERPRISE_INFO_MAP.md｜2026-10-16｜负责：one-architecture
+状态：已取代→docs/architecture/ssot/objects/enterprise-info-map.md｜2026-10-16｜负责：one-architecture
 
 **已被全企业稿取代（回溯检查 RD-17）**：以 `ENTERPRISE_INFO_MAP_DRAFT.md` 为准；本稿对象表保留为历史对照，之后不再双改。线索行已按 OBJ-17 订正。
 

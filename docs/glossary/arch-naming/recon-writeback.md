@@ -14,7 +14,7 @@
 
 ## 决策源与重放
 
-新增 `glossary/decisions-recon.yaml`：含 60 项漏登对照、63 项词条操作、A66 原提议快照及正式目标、97 个来源定位与 SHA-256。裁定来源回读了本地 JSON 答复／题面、intent、NM 决策和 ADR-0049；补丁准备阶段逐项比对 JSON 原答复及 intent 原文，运行期验证来源哈希、确认来源及登记依据。未把题面预选或草稿当作用户提交。
+新增 `docs/glossary/decisions-recon.yaml`：含 60 项漏登对照、63 项词条操作、A66 原提议快照及正式目标、97 个来源定位与 SHA-256。裁定来源回读了本地 JSON 答复／题面、intent、NM 决策和 ADR-0049；补丁准备阶段逐项比对 JSON 原答复及 intent 原文，运行期验证来源哈希、确认来源及登记依据。未把题面预选或草稿当作用户提交。
 
 `apply_recon.py` 复用 `apply_nm.validate_term`、旧值追加与通用短语禁用保护；原 `apply_nm.py` 未改。新增须具备所有必填字段，id/snake 与正式词表及提议目录比对，snake 从英文机械派生；更新用 sparse patch，只允许明确列出的答复字段，原 confirmed 追加、无关字段保留。`build_terms.py` 只增加两行调用，生成后仍走原有 term_rules，无过滤或豁免。
 

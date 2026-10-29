@@ -1,5 +1,5 @@
 {
-  "_comment": "R0 在用报表盘点（2026-10-14，见 r0/REPORT_INVENTORY.md §2、r0/structure/term_mapping.md）：管理报表中的叫法，按 ADR-0018 只登记为待确认别名，不定为正式用语。含「产值」的叫法按用户已有裁定自动归为方言。没有对应词条的新概念不在此处，列在 r0/METRIC_BASELINE_DRAFT.md §5，由后续会话起草。 未登记（不宜作别名）：「坏账准备」「主营业务收入」为准则科目名称，归 accounting.ledger 科目表（D3）；「预实比」为比率，归目标达成率；「区域」「事业部」「战区」为组织层级、「分摊」为通用动词，归组织维度设计与分摊政策（见 r0/METRIC_BASELINE_DRAFT.md §5）。",
+  "_comment": "R0 在用报表盘点（2026-10-14，见 docs/legacy/bi/report-inventory.md §2、docs/legacy/bi/report-structure/term-mapping.md）：管理报表中的叫法，按 ADR-0018 只登记为待确认别名，不定为正式用语。含「产值」的叫法按用户已有裁定自动归为方言。没有对应词条的新概念不在此处，列在 docs/data/metric-baseline/baseline-draft.md §5，由后续会话起草。 未登记（不宜作别名）：「坏账准备」「主营业务收入」为准则科目名称，归 accounting.ledger 科目表（D3）；「预实比」为比率，归目标达成率；「区域」「事业部」「战区」为组织层级、「分摊」为通用动词，归组织维度设计与分摊政策（见 docs/data/metric-baseline/baseline-draft.md §5）。",
   "aliases": [
     {
       "term": "revenue_recognition",

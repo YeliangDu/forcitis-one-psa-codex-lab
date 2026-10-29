@@ -1,5 +1,5 @@
 ## 数据设计审查
-- 审查：one-data，2026-10-16，依据 `docs/architecture/implementation-cards/ts-uniq.md`（分支 `claude/one-1a-par-ts-uniq` @40edf239）
+- 审查：one-data，2026-10-16，依据 `docs/modernization/phase1a/cards/TS-UNIQ.md`（分支 `claude/one-1a-par-ts-uniq` @40edf239）
 - 核对：卡对基线、状态机、事件目录、注册表的陈述我抽查了状态机 `MACHINE`、`CHECK` 五值、事件五个与转换的对应、唯一约束与旧索引，与卡一致
 - 判定：
   - B0–B2、B4、B5、B7、B8：通过。B1 出处为 OBJ-66 的单据行；撤回 = `SUBMITTED → DRAFT`、没有「撤回」状态，`CHECK` 不改，与事件改名一致。

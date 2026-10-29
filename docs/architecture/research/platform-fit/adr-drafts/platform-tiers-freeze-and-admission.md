@@ -12,7 +12,7 @@
 
 ## 背景
 
-触发：用户问「平台模块是不是要冻结？进入平台的条件要不要约定？」（intent `2026-10-20-225316`），同意先做适配复核，再起草 ADR。任务号 ARC-1020-COO-11。本稿属用户指派，撤回须经用户。复核稿为 `platform-review/平台分档适配复核.md`（下称「复核」），盘点稿为 `architecture/research/platform-fit-2026-10-20/平台模块盘点.md`（下称「盘点」）。
+触发：用户问「平台模块是不是要冻结？进入平台的条件要不要约定？」（intent `2026-10-20-225316`），同意先做适配复核，再起草 ADR。任务号 ARC-1020-COO-11。本稿属用户指派，撤回须经用户。复核稿为 `platform-review/平台分档适配复核.md`（下称「复核」），盘点稿为 `docs/architecture/research/platform-fit/platform-module-inventory.md`（下称「盘点」）。
 
 为什么现在定：
 
@@ -185,7 +185,7 @@
 2. `ModuleDependencyTest`：基础层、骨架层不得到达组织地基以外的业务 BC（含传递闭包），与 ADR-0051 守护第 1、2 条共用实现。负责：one-architecture；时点：采纳后首张守护卡。
 3. ArchUnit：厂商 SDK 包只在 `platform.integration..`，包清单取自集成登记册（G-I2）。负责：one-architecture；时点同上。
 4. 冻结快照：已冻结模块的 api 与 events 签名、平台 schema 表结构有变化即失败，须带 trailer（暂名 `Platform-Contract:`）写明类别与批准出处；首次生产后 OpenAPI 与事件部分交 G-C1、G-C2。负责：one-architecture；时点：第一个模块冻结前。
-5. 复审清单（`quality/review-briefs/03-adr.md` 或 DATA_DESIGN_CHECKLIST §14）：加一项「新增阈值、期限、路由是否登记为策略项」。「不认识业务对象」的语义检查只作复审项，不做自动拦截（误伤高，见复核 §2.5）。
+5. 复审清单（`docs/rules/review-briefs/adr.md` 或 DATA_DESIGN_CHECKLIST §14）：加一项「新增阈值、期限、路由是否登记为策略项」。「不认识业务对象」的语义检查只作复审项，不做自动拦截（误伤高，见复核 §2.5）。
 
 ## 后果
 
@@ -245,7 +245,7 @@
   - 已批 AI 底座稿决定 2 第 3 条；
   - ADR-0057 决定 3；
   -、§13 第 4 条；
-  - `architecture/ssot/01-stakeholders/SSOT.yaml` 的冻结写法；
+  - `docs/architecture/ssot/stakeholders/ssot.yaml` 的冻结写法；
   - ADR-0054 决定 3 第 9 条；
   - intent `2026-10-20-223058`（AI 首批 3 个场景）。
 - **检索记录**：在 `docs/adr/ADR-*.md` 上分别执行 `grep -l -E '<词>'`，检索词与命中如下（基线 `2ffdb94d`）：

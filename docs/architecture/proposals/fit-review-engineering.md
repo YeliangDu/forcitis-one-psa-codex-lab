@@ -4,7 +4,7 @@
 
 起因：用户 2026-10-15「关于架构的任何选择都要非常谨慎，必须深入研究后才能决策」（intent `2026-10-15-193135`）。评审：opus 子代理（architecture-critic，只读、未联网），one-architecture 抽查核实（见文末）。外部事实（版本、条款、文号）待联网核实，核实前不作硬依据（FRAMEWORKS 防漂移规则 3）。结论待用户在确认页重新定；在用户决定前，FRAMEWORKS §9 不改。
 
-评审对象：`architecture/FRAMEWORKS.md` §9 的 13 项，盘点 `proposals/ENGINEERING_STANDARDS.md`。
+评审对象：`docs/architecture/frameworks.md` §9 的 13 项，盘点 `proposals/ENGINEERING_STANDARDS.md`。
 
 ## 汇总
 
@@ -16,7 +16,7 @@
 | 4 | RFC 9562 UUIDv7 | 保留；CODING_STANDARD 加「排序用业务时间列，不用 ID」 | 高 | `kernel/Uuids.java` 已实现；同一毫秒内无定义顺序 |
 | 5 | CycloneDX 1.7 | 降级：保留 S5，不锁 1.7，用生成插件默认输出（不低于 1.5），只在 release.yml 生成 | 中 | 无外部使用方，osv-scanner 已覆盖漏洞查询；「1.7 = ECMA-424」存疑 |
 | 6 | OpenTelemetry | 去掉；另开 ADR 把 ADR-0002 与 STACK_DECISION 的「OpenTelemetry」改到与 O-1 一致 | 高 | 与 GUIDING_PRINCIPLES §11 O-1「不引入 traceId 与分布式追踪库」冲突；pom 无 OTel |
-| 7 | OWASP ASVS 5.0 | 降级：L2、只取适用章节，一次性对照写进 `phase1a/SECURITY_INVARIANTS.md`，阶段出口抽查新增攻击面 | 中 | 总账 + 薪资 + 银行卡，L2 合理；逐条逐阶段全量走不现实 |
+| 7 | OWASP ASVS 5.0 | 降级：L2、只取适用章节，一次性对照写进 `docs/ops/security-invariants.md`，阶段出口抽查新增攻击面 | 中 | 总账 + 薪资 + 银行卡，L2 合理；逐条逐阶段全量走不现实 |
 | 8 | OWASP Top 10:2025 | 不作独立标准，并入 ASVS 对照（可按 Top 10 分组） | 中高 | Top 10 是认知文档，与 ASVS 重复 |
 | 9 | ISO/IEC 25010:2023 | 降级：只作写非功能需求的用语参照，不进阶段出口评审 | 中 | GUIDING_PRINCIPLES §7a、§11 O-5 已有可量化预算 |
 | 10 | 等保 2.0（GB/T 22239-2019） | 保留并改时点：现在按 GB/T 22240-2020 拟定第二级、启动定级备案，不等「上生产前」 | 义务高；级别中低 | 网络安全法第二十一条、财会〔2024〕11 号第 39–41 条；Phase 1a 出口即全员生产登录 |
@@ -28,18 +28,18 @@
 
 - **S-1 §9 漏掉本系统唯一有行业约束力的软件规范。** 财会〔2024〕11 号、12 号在盘点里列为「已在用」却未进 §9；`GL_COMPLIANCE_CHECKLIST.md` 里的《会计档案管理办法》（财政部 国家档案局令第 79 号）、GB/T 24589.1-2024 也未进。对要做法定账的系统，比 #7–#9、#12、#13 加起来更有约束力。
 - **S-2 落点不存在。** §9 写的「安全复审清单」「度量方案」仓库中没有对应文件；阶段出口评审也没有 25010 栏。没有落点、负责会话、守护的标准是摆设。
-- **S-3 OpenTelemetry 前后不一致。** `STACK_DECISION.md:49`、`adr/src/ADR-0002.md:27` 写「Micrometer + OpenTelemetry → ARMS / SLS」；`GUIDING_PRINCIPLES.md:233`（§11 O-1，用户 2026-10-15「全部按推荐」）写不引入追踪库；`backend/pom.xml` 只有 `micrometer-registry-prometheus`。
+- **S-3 OpenTelemetry 前后不一致。** `STACK_DECISION.md:49`、`docs/adr/ADR-0002.md:27` 写「Micrometer + OpenTelemetry → ARMS / SLS」；`GUIDING_PRINCIPLES.md:233`（§11 O-1，用户 2026-10-15「全部按推荐」）写不引入追踪库；`backend/pom.xml` 只有 `micrometer-registry-prometheus`。
 
 建议 §9 重排：本系统的合规义务清单（网络安全法与等保、个人信息保护法、数据安全法、财会〔2024〕11/12 号、会计档案管理办法）在前，可选实践在后，每项写明落点与负责会话。
 
 ## 逐项要点
 
 1. **OpenAPI**：`backend/pom.xml:18` springdoc 3.1.1；CI「OpenAPI contract unchanged」；`frontend/package.json:24` openapi-typescript；CS-4.2、CS-1.10 以它为准。代价只有补版本号。
-2. **AsyncAPI**：`events/asyncapi.yaml` 由 `build_asyncapi.py` 合成；STACK_DECISION 定「不保留 RocketMQ」，`address` 只是类名；`EventCatalogueTest.java:121-126` 只校验合成一致、版本字段、目录与代码一致。事件目录的价值来自自定义守护而非 AsyncAPI；Phase 3 出站投递时才可能用到 AsyncAPI 语义。真要「锁定」须引官方解析器（新 Node 依赖，走 SUPPLY_CHAIN S1）。
+2. **AsyncAPI**：`docs/architecture/events/asyncapi.yaml` 由 `build_asyncapi.py` 合成；STACK_DECISION 定「不保留 RocketMQ」，`address` 只是类名；`EventCatalogueTest.java:121-126` 只校验合成一致、版本字段、目录与代码一致。事件目录的价值来自自定义守护而非 AsyncAPI；Phase 3 出站投递时才可能用到 AsyncAPI 语义。真要「锁定」须引官方解析器（新 Node 依赖，走 SUPPLY_CHAIN S1）。
 3. **RFC 9457**：`platform/web/package-info.java`、`ProblemDetails.java`、`OpenApiProblems.java`。小决定：`type` 用 `about:blank`、可解析 URI 还是 `urn:` 错误码。
 4. **RFC 9562**：`kernel/Uuids.java`、`kernel/TimeOrderedIds.java`；§14.1 D16 用户决定。
 5. **CycloneDX**：代价含 cyclonedx-maven-plugin、前端 SBOM 工具（S1 与 7 天冷却）、release.yml 一步、改 `scripts/release/statement.sh` 与 `verify_bundle.sh` 及其自测；强锁 1.7 可能要配置或升级插件。收益「某已部署版本是否含某组件」，对已打标签提交跑 osv-scanner（S3）也能答。
-6. **OpenTelemetry**：O-1 定 correlationId 为唯一追踪键；`proposals/PHASE1A_PLATFORM_CONVENTIONS.md:8`「不再承诺 traceId」；指标走 Prometheus（O-4），日志 ECS JSON 到 SLS（CS-6.1）。照 §9 做须推翻 O-1，引入 SDK / agent、导出端、在 Modulith 事件发布登记表传播上下文。进程内用 Micrometer Observation，出站 correlationId 已覆盖。
+6. **OpenTelemetry**：O-1 定 correlationId 为唯一追踪键；`docs/architecture/proposals/phase1-a-platform-conventions.md:8`「不再承诺 traceId」；指标走 Prometheus（O-4），日志 ECS JSON 到 SLS（CS-6.1）。照 §9 做须推翻 O-1，引入 SDK / agent、导出端、在 Modulith 事件发布登记表传播上下文。进程内用 Micrometer Observation，出站 correlationId 已覆盖。
 7. **ASVS**：风险画像重（总账、法定账 G2、HRM 算薪、银行卡 INTENT.md:97、老系统 CWE-306 等 8 项）。很多章节不适用（本系统是 OAuth 客户端而非授权服务器）。与 §11 O-3、CS-6.2、ADR-0009 部分重叠。
 8. **Top 10**：每类都能在 ASVS 中找到对应。
 9. **25010**：逐特性评审是没有阈值的主观评分；可检查的阈值在 §7a R-P1–R-P6、§11 O-5、brief 各阶段出口。用其术语也要先过 terms.yaml。
@@ -87,4 +87,4 @@
 - `GUIDING_PRINCIPLES.md:233` 原文「关联号 `correlationId` 是唯一的追踪键，不引入 `traceId` 与分布式追踪库」，S-3 属实。
 - `STACK_DECISION.md:49` 原文「Micrometer + OpenTelemetry → ARMS / SLS」，冲突属实。
 - `backend/pom.xml:36` 只有 `micrometer-registry-prometheus`，无 OTel 依赖，属实。
-- `events/asyncapi.yaml` 中 `x-event` 出现 60 处，属实。
+- `docs/architecture/events/asyncapi.yaml` 中 `x-event` 出现 60 处，属实。

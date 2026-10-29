@@ -180,7 +180,7 @@ C1 0；C2 0；C3 1；C4 0；C5 0；已定论排除 8
 ```text
 新格式笔记 84 份，锚点 1741 个，引用 6382 处；旧格式待迁移 0 份
 WARN BI_SCOPE.md:109: BI# 不是已登记笔记编号（拼错或尚未迁移？）
-ERROR rules/decide/sheets/ADV1.json:526: 断链 SPI26#老客户既有服务收入占比至（两条引用之间须用「、」或空格分隔）
+ERROR docs/decisions/decision-pages/sheets/adv1.json:526: 断链 SPI26#老客户既有服务收入占比至（两条引用之间须用「、」或空格分隔）
 ```
 
 ### 未运行

@@ -99,9 +99,9 @@ Prometheus 里的名字是 Micrometer 名字把点换成下划线、计数器加
 
 | 库 | 对象 | 账号 | 授权 | 脚本 |
 |---|---|---|---|---|
-| A8（a8_db） | 全库只读仅限受控退役用途；组织、人员等读取范围随一次性迁入规格确认，不保留运行时组织视图读取 | 既有专用只读账号 `one_a8_views_ro`；仅按用途方案使用并退出 | 库级 GRANT SELECT；库级 DENY INSERT、UPDATE、DELETE、ALTER、EXECUTE、REFERENCES、CREATE TABLE / VIEW / PROCEDURE / FUNCTION / SCHEMA；不入任何数据库角色 | `handoff/B-5-dba/read-all/a8_apply.sql`（历史组织视图：`phase1a/SEEYON_VIEWS.sql`，仅供迁入适配器核对，不作常驻部署步骤） |
-| 老系统（ruoyi-vue-pro） | 全库只读仅限受控退役用途；撤销合并待办与老待办视图的运行时读取 | 既有专用只读账号 `psa_one_legacy_ro`；仅按用途方案使用并退出 | 同上；凭据列可读但应用代码不引用（ADR-0037 第 3 项，凭据列拒绝清单守护） | `handoff/B-5-dba/read-all/legacy_apply.sql`；原老待办视图 `dbo.v_psa_one_legacy_todo` 及 `phase1a/LEGACY_INBOX_VIEW.sql` 不再作为部署步骤 |
-| 老系统 | 部门简称仅在迁入规格确认有需要时用于一次性迁入匹配，须有取证与差异清单，不定时刷新 | 既有专用只读账号 `one_legacy_names_ro`；用途与退出另行确认，不自动与其他账号合并 | 同上 | 同上（历史视图 `dbo.v_one_legacy_org_short_name`、`phase1a/LEGACY_ORG_NAMES_VIEW.sql` 仅供迁入适配器核对） |
+| A8（a8_db） | 全库只读仅限受控退役用途；组织、人员等读取范围随一次性迁入规格确认，不保留运行时组织视图读取 | 既有专用只读账号 `one_a8_views_ro`；仅按用途方案使用并退出 | 库级 GRANT SELECT；库级 DENY INSERT、UPDATE、DELETE、ALTER、EXECUTE、REFERENCES、CREATE TABLE / VIEW / PROCEDURE / FUNCTION / SCHEMA；不入任何数据库角色 | `handoff/B-5-dba/read-all/a8_apply.sql`（历史组织视图：`docs/data/legacy-views/seeyon-views.sql`，仅供迁入适配器核对，不作常驻部署步骤） |
+| 老系统（ruoyi-vue-pro） | 全库只读仅限受控退役用途；撤销合并待办与老待办视图的运行时读取 | 既有专用只读账号 `psa_one_legacy_ro`；仅按用途方案使用并退出 | 同上；凭据列可读但应用代码不引用（ADR-0037 第 3 项，凭据列拒绝清单守护） | `handoff/B-5-dba/read-all/legacy_apply.sql`；原老待办视图 `dbo.v_psa_one_legacy_todo` 及 `docs/data/legacy-views/legacy-inbox-view.sql` 不再作为部署步骤 |
+| 老系统 | 部门简称仅在迁入规格确认有需要时用于一次性迁入匹配，须有取证与差异清单，不定时刷新 | 既有专用只读账号 `one_legacy_names_ro`；用途与退出另行确认，不自动与其他账号合并 | 同上 | 同上（历史视图 `dbo.v_one_legacy_org_short_name`、`docs/data/legacy-views/legacy-org-names-view.sql` 仅供迁入适配器核对） |
 
 受控退役用途进程只对本次实际使用的只读连接做同一项校验（ADR-0037 第 4 项的访问控制保留，按 ADR-0055 决定 7 限定用途；`platform.integration` 连接工厂）：服务器级与库级有效权限**等于**写死的 RDS 平台基线，库级 DENY 11 项存在且库级 GRANT 恰好 CONNECT、SELECT，只在 public 角色，不在任何固定服务器角色，不是 dbo、不拥有任何 schema / 对象 / 角色、无主体类授权，`sys.server_permissions` 中本登录的行恰好一行 GRANT CONNECT SQL（无针对登录等的授权，也无其他 GRANT 或 DENY），`HAS_DBACCESS` 只有本库与系统库（master、tempdb、model、msdb 及 rdscore），系统库只经 guest 进入，例外是 RDS 为每个登录自动建的 msdb 与 rdscore 本人用户（见 4.1「(f) 系统库本人用户」，msdb 本人用户的直接授权与有效权限另有限制），且本登录不拥有 SQL Agent 作业，库级以下的授权（本登录的，及 public 在用户对象上的）只有 DENY、GRANT SELECT，或被本登录自己的同名 DENY 覆盖的 GRANT（被拒绝覆盖的授权，见 4.1「(g) 的覆盖口径」）。任一不满足或无法判定即拒绝启动本次退役用途进程，日志按 (a)–(g) 报出违反项；每次受控读取前重检；通道跨日仍在使用时至少每天重检一次：确认违规即停掉该连接（写 ALERT，重启前不再读取）；暂时判定不了（查询失败、超时、为空）只让本次读取不可用并写 ALERT，连续 3 次判定不了才停掉，一次判定通过即清零（用户 2026-10-15，intent 2026-10-15-120940）。**没有关闭开关**；账号授权变更后先用真实登录核对基线再启动本次退役用途进程。
 
@@ -470,4 +470,4 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 
 - 本卡未联网，未运行云、数据库或容器命令，未读取或打印凭据；未核实实际账号授权、白名单、出站规则、CA、部署配置、调用方及账号撤销条件是否达成。§4.1 既有 SQL Server 实测待核项及安全残余原文保留，不因本次文档对齐视为通过。
 - 仅本文件纳入修改；旧部署模板、剧本、SQL 和代码引用只作关联入口，本卡未证明它们已经按 ADR-0055 清理。常驻配置、票据去留与离职接口须由后续实施卡核对。
-- 新增业务名词沿用 `glossary/terms.yaml` 已批准的迁入、迁入核对、迁入批次、来源对照、外部身份、组织单元、员工、人员、岗位、在职、离职与部门简称；不新增领域标识或术语。
+- 新增业务名词沿用 `docs/glossary/terms.yaml` 已批准的迁入、迁入核对、迁入批次、来源对照、外部身份、组织单元、员工、人员、岗位、在职、离职与部门简称；不新增领域标识或术语。

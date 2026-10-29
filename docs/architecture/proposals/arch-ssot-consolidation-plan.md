@@ -55,21 +55,21 @@
 | 流程目录、骨架、权责、审批和场景 | `processes.v1.yaml` 五类 135 条；`closeout/process-catalog.yaml` 200 条（business105、event_policy33、single_aggregate29、read_model6、integration17、merged10）；各组骨架、`CONVENTIONS.md`、`RESPONSIBILITY_MATRIX.yaml` 586 行、`APPROVAL_RULES.yaml`、`ORG_NEEDS.md` | BIZBOK B4；BPMN FRAMEWORKS §2；ADR-0052 决定 1–6：目录管身份，骨架管步骤、角色、命令、判断、审批、超时、证据、权限与页面；多对多映射阶段 | `bpmn/processes.yaml` 当前 7 条（built1、documented6）；拟在 `bpmn/` 落目录及三组骨架，保留并收窄实现登记 | 主要只在三组分支；AN-01 已批准但 ADR-0052 文本仍提议，生效依赖 ADR-0054 决定 2；组内待题见 §1.3 | 200 含 10 合并号，非合并190仍含非业务类型；未实现唯一目录迁移；旧 v1 不能继续作为生成器最终输入；权责一致不等于审批业务已获认可 |
 | BPMN 描述级图与可执行图 | 三组 `closeout/<组>/bpmn/PRC-*.bpmn`：收入56、人员3、财务29（不计 sample）；`BPMN_STYLE.md`、`bpmn_gen.py`、`bpmn_check.py`；可执行文件 `backend/src/main/resources/processes/cost_timesheet_approval.bpmn20.xml` | BPMN 2.0.2；FRAMEWORKS §2；ADR-0052 决定 3/4：描述级非执行、Flow Objects/Sequence Flow/Lane/DI、图从骨架生成；可执行版随实现 | 描述图是生成物，不是另一 SSOT；实现登记 `bpmn/processes.yaml` 指向 `.bpmn20.xml` | 分支图稿；当前只1个运行时 BPMN 登记；TRN-02／ADR-0054 决定 2 是方法生效依赖 | 文件存在数不是覆盖率；人员分支主要仍为样板；需按目录筛“业务流程”重生成、逐价值流核对；XML通过不证明审批或异常路径正确 |
 | DMN 决策点 | `dmn/decisions.yaml` 15 个 DEC（代码位置、输入输出、规则、证据及部分 test）；骨架判断点和规则卡 | FRAMEWORKS §7：推迟采用；METHOD 接缝1：判定与计算、不变量、人工编排分开 | `dmn/decisions.yaml` 为决策点目录；没有本轮可确认的真实 DMN 表 | 已入目录；引擎/版本待首张真实表另开 ADR；不是待用户立即重选框架 | `target: dmn-planned` 不能解读为已采用 DMN；不能把15点批量转DMN；若采用再补 decision/inputs/outputs/hit policy/rules/version/effective-date/tests |
-| DAMA 数据对象、表级模型、分类与血缘 | 三组 `data-model.<组>.yaml`：53/34/44 承载记录，162/95/105 表项；people/DATA_MODEL.md、finance/OBJECTS.md；`data/DATA_DESIGN_GATE.md`、`phase1a/DATA_SCORECARD.md` | FRAMEWORKS §5／DAMA 2024仅参照；DATA_DESIGN_CHECKLIST §14/14.1：粒度、归属、记录系统、键、版本、保留、分级、血缘、质量、变更 | `backend/architecture/data-access-registry.yaml` 50 表键；`backend/architecture/data-classification.txt`、`phase1a/COLUMN_OWNERSHIP.md`、迁移目录；`dama/` 未建且按决定不另建 data-objects.yaml | 部分已入；全企业模型只在三组分支，未等于 one-data 签字；Q34、财务U类与人员数据例外待核销 | 362 是表项数，不是362张已建表；131承载记录含 REF-01/02，AGG-47规则层无表，不能与130聚合硬对齐；访问分级大小写、PI/SPI写法在组间不同，须按固定字段规范化 |
-| OLAP 总线矩阵、指标与 OAT | `r0/METRIC_BASELINE_DRAFT.md` M-01–48、8报表包；`glossary/oat/{README.md,forcitis_operating_accounting_taxonomy.csv,standard_concept_mapping.csv,KPI体系设计.md}`；`BI_SCOPE.md`、ADR-0023/0025 | FRAMEWORKS §3／Kimball 2013；ADR-0050 决定20：度量事件→粒度→事实表类型→一致性维→指标，期间/含税/账簿/加总/口径版本可追溯 | 指标基线和 OAT 是外部于 architecture 的唯一来源；`olap/` 未建，不新增一套口径YAML；`togaf/vision.yaml` 只存KPI→M引用 | 指标草稿，B6–B11 已答；其余业务/财务口径看基线 §6，不能整包宣告已定 | 48个ID不是48个已批准指标；缺全企业度量事件与注册表/事件目录的完整追溯；总线矩阵应生成，报表不是直接查询OLTP的授权 |
+| DAMA 数据对象、表级模型、分类与血缘 | 三组 `data-model.<组>.yaml`：53/34/44 承载记录，162/95/105 表项；people/DATA_MODEL.md、finance/OBJECTS.md；`docs/data/data-design-gate.md`、`docs/data/data-scorecard.md` | FRAMEWORKS §5／DAMA 2024仅参照；DATA_DESIGN_CHECKLIST §14/14.1：粒度、归属、记录系统、键、版本、保留、分级、血缘、质量、变更 | `backend/architecture/data-access-registry.yaml` 50 表键；`backend/architecture/data-classification.txt`、`docs/data/column-ownership.md`、迁移目录；`dama/` 未建且按决定不另建 data-objects.yaml | 部分已入；全企业模型只在三组分支，未等于 one-data 签字；Q34、财务U类与人员数据例外待核销 | 362 是表项数，不是362张已建表；131承载记录含 REF-01/02，AGG-47规则层无表，不能与130聚合硬对齐；访问分级大小写、PI/SPI写法在组间不同，须按固定字段规范化 |
+| OLAP 总线矩阵、指标与 OAT | `docs/data/metric-baseline/baseline-draft.md` M-01–48、8报表包；`glossary/oat/{README.md,forcitis_operating_accounting_taxonomy.csv,standard_concept_mapping.csv,KPI体系设计.md}`；`BI_SCOPE.md`、ADR-0023/0025 | FRAMEWORKS §3／Kimball 2013；ADR-0050 决定20：度量事件→粒度→事实表类型→一致性维→指标，期间/含税/账簿/加总/口径版本可追溯 | 指标基线和 OAT 是外部于 architecture 的唯一来源；`olap/` 未建，不新增一套口径YAML；`togaf/vision.yaml` 只存KPI→M引用 | 指标草稿，B6–B11 已答；其余业务/财务口径看基线 §6，不能整包宣告已定 | 48个ID不是48个已批准指标；缺全企业度量事件与注册表/事件目录的完整追溯；总线矩阵应生成，报表不是直接查询OLTP的授权 |
 | 过渡架构、边界与地基/估算 | `togaf/transitions.yaml` 12 条；`CONSTRUCTION_PLAN_DRAFT.md`、`construction-plan.v1.yaml`、`FOUNDATION_RECHECK*.md`、`FOUNDATION_NEW_ITEMS.md`、`LOC_AND_STAFFING_ESTIMATE.md`、`CALIBRATION_SLICE.md`；C4见 `REIMAGINED_ARCHITECTURE.md` | FRAMEWORKS §4 TOGAF C220及§6 C4：基线/目标/过渡、入口出口、依赖、回滚；不要求完整ADM | `togaf/transitions.yaml` 与已有brief/边界文档；`FOUNDATION_MATRIX.md` 本基线未见正式产出 | 提议与旧SSOT并存；TRN-01–14未见答案；ADR-0054/55/56均提议 | 旧12过渡条目与一次投产路线尚未整合；不能据结构估算宣告工期；ARCH_CLOSEOUT_PLAN标题“六项”实列七项，历史估时不作为本轮承诺 |
-| ADR、方法与变更治理 | `adr/src/ADR-*.md`、`adr/catalog.yaml`、`adr/src/_readme_deviations.md`（勘误与历史偏差）；`FRAMEWORKS.md/METHOD.md/DESIGN.md` 与 V3/V4、适配/符合性研究 | 项目ADR生命周期；FRAMEWORKS防漂移规则；决策要有范围、后果、影响、迁移、回滚、守护及取代链 | ADR正文只编辑 `adr/src/`，`adr/ADR-*.md`、README由 `build_adrs.py` 生成；已有ADR只引用 | 0050/51/53已采纳；0052已获AN-01答复但生效受条件约束；0054/55/56提议。详见TRN | “批准”与“生效”分离；不得因整合重写已采纳正文；METHOD仍六步而0050已七步，换稿须连依赖和生成器一起处理 |
-| 命名 N1–N7 与改名对照 | ADR-0053；`NAMING_STANDARD.md`；`PREREQ_NAMING_CONSTRUCTION_2026-10-17.md`；`closeout/rename/RENAME_A/B/C.{md,yaml}`、`RENAME_V2.{md,yaml}`；用语分支 `glossary/arch-naming/`、NM1–NM5页/答案 | DDD统一语言（FRAMEWORKS §1）；ADR-0053：概念/指称/命名面、槽位、语言/用途角色、生命周期、引用稳定ID | `glossary/terms.yaml`及并入源、`bcs.yaml`、ACL归类；NAMING_STANDARD为细则唯一入口，不另创架构词表 | N1完成；N2已定；N3未见落地；N4部分有NM1答复；N5部分NM2–4写回但分支门禁未全过；N6真实迁移FAIL；N7候选待重算及认可 | N7本地旧输入2384条：blocked2117/generated210/manual57，另155条架构名沿用；不能用N4/N5新答复自动宣告旧候选有效；具体开工条件见§2.1 |
+| ADR、方法与变更治理 | `adr/src/ADR-*.md`、`docs/adr/catalog.yaml`、`docs/adr/readme-deviations.md`（勘误与历史偏差）；`FRAMEWORKS.md/METHOD.md/DESIGN.md` 与 V3/V4、适配/符合性研究 | 项目ADR生命周期；FRAMEWORKS防漂移规则；决策要有范围、后果、影响、迁移、回滚、守护及取代链 | ADR正文只编辑 `adr/src/`，`adr/ADR-*.md`、README由 `build_adrs.py` 生成；已有ADR只引用 | 0050/51/53已采纳；0052已获AN-01答复但生效受条件约束；0054/55/56提议。详见TRN | “批准”与“生效”分离；不得因整合重写已采纳正文；METHOD仍六步而0050已七步，换稿须连依赖和生成器一起处理 |
+| 命名 N1–N7 与改名对照 | ADR-0053；`NAMING_STANDARD.md`；`PREREQ_NAMING_CONSTRUCTION_2026-10-17.md`；`closeout/rename/RENAME_A/B/C.{md,yaml}`、`RENAME_V2.{md,yaml}`；用语分支 `glossary/arch-naming/`、NM1–NM5页/答案 | DDD统一语言（FRAMEWORKS §1）；ADR-0053：概念/指称/命名面、槽位、语言/用途角色、生命周期、引用稳定ID | `docs/glossary/terms.yaml`及并入源、`bcs.yaml`、ACL归类；NAMING_STANDARD为细则唯一入口，不另创架构词表 | N1完成；N2已定；N3未见落地；N4部分有NM1答复；N5部分NM2–4写回但分支门禁未全过；N6真实迁移FAIL；N7候选待重算及认可 | N7本地旧输入2384条：blocked2117/generated210/manual57，另155条架构名沿用；不能用N4/N5新答复自动宣告旧候选有效；具体开工条件见§2.1 |
 
 ### 1.2 业务架构与命名的收口边界
 
 愿景文件已经存在，商业模式材料则未在本次目标目录、草稿树与所读分支发现可作为正本的完整产出。该结论限于已查范围，不是断言企业没有商业模式。FRAMEWORKS §8 明确不采用商业模式画布，故本轮只把“现有经营背景／价值主张的来源、缺失业务事实、是否需要单独研究”列入业务册；不补画九格、不把系统迁移KPI当经营战略。OQ-01–06先对DECISION_DIGEST及新路线去重；如需重启某题，写明为何原答案或原前提不再适用。
 
-能力和信息层以CAPINFO原始答复为准：`rules/decide/answers/CAPINFO.json` 的提交 `CAPINFO-20261017-111010-cfy`，7题按推荐、I08/I09改选。假期余额账户、薪酬档案已选单列，不能沿用旧前提清单说这两项“待用户定”。新增名词交接见 `closeout/CAPINFO_NEWTERMS.md`；这不自动完成新对象与聚合、表、流程的全部设计。
+能力和信息层以CAPINFO原始答复为准：`docs/decisions/decision-pages/answers/capinfo.json` 的提交 `CAPINFO-20261017-111010-cfy`，7题按推荐、I08/I09改选。假期余额账户、薪酬档案已选单列，不能沿用旧前提清单说这两项“待用户定”。新增名词交接见 `closeout/CAPINFO_NEWTERMS.md`；这不自动完成新对象与聚合、表、流程的全部设计。
 
 命名逐项核对：
 
-1. **N1**：`adr/src/ADR-0053.md`状态已采纳；AN-03有原始答案，不能重复申请批准。
+1. **N1**：`docs/adr/ADR-0053.md`状态已采纳；AN-03有原始答案，不能重复申请批准。
 2. **N2**：AN-06单立“确认入账”已答；前提清单记用户免再转财务的单项决定。不能扩大为其他会计用语均免确认。
 3. **N3**：本基线NAMING_STANDARD仍含旧词源、21命名面、旧多语言规则；尚不具备ADR-0053完整字段、角色与投影细则。新文件名也须通过N3/N7，本文后续路径除已采纳ADR指定者外均是提议落点。
 4. **N4**：用语分支N4文件记NM1共22题已答（`NM1-20261017-101116-a4n`），中文动词/状态归并有依据；拟英文代码名、权限映射未因该次答复一并批准。
@@ -117,7 +117,7 @@ one-architecture另须冻结资料清单（提交号、文件摘要、计数口�
 
 **G册：框架、ADR与命名（跨册前置）**
 
-- 写入：按生效条件同步`architecture/FRAMEWORKS.md`、`METHOD.md`、`DESIGN.md`及README指针；命名细则`NAMING_STANDARD.md`和`glossary/`源由各自负责会话交付。ADR只引用；确需变更决定时新增`adr/src/ADR-*.md`并按生命周期占号，不能在本册直接改已采纳正文。
+- 写入：按生效条件同步`docs/architecture/frameworks.md`、`METHOD.md`、`DESIGN.md`及README指针；命名细则`NAMING_STANDARD.md`和`glossary/`源由各自负责会话交付。ADR只引用；确需变更决定时新增`adr/src/ADR-*.md`并按生命周期占号，不能在本册直接改已采纳正文。
 - 骨架：框架ID/版本/采用范围/排除项/出处/本地偏离；ADR与intent引用；每个命名面取用的语言和用途角色、投影与守护。数量：现行FRAMEWORKS九节；本次重点核对0050–0056共7份ADR及N1–N7共7个前提项，不把它们算作7份新ADR。
 - 未定/依赖：N7、NM5-01–03及N6冲突；TRN-01–14分流到T册；AN-01/03–06及NM1–4已答只列依据。G册不越权裁定命名业务词。
 - 检查/生成：`adr/build_adrs.py`、`glossary/build_terms.py`、`term_rules.py`、`build_all.py --check`、`name_id_check.py`、`term_gate_check.py`，读取新概念/指称结构的工具须先到位；已知状态行冲突见§3。
@@ -158,7 +158,7 @@ one-architecture另须冻结资料清单（提交号、文件摘要、计数口�
 
 **A册：DAMA数据治理与OLTP承载**
 
-- 写入：`backend/architecture/data-access-registry.yaml`、`backend/architecture/data-classification.txt`，必要时由既有负责会话更新`phase1a/COLUMN_OWNERSHIP.md`引用；全企业未实现模型仍留各组草稿，经one-data签字并进入实现时逐表入登记。不新增`dama/data-objects.yaml`，本册确认不等于建362张表。
+- 写入：`backend/architecture/data-access-registry.yaml`、`backend/architecture/data-classification.txt`，必要时由既有负责会话更新`docs/data/column-ownership.md`引用；全企业未实现模型仍留各组草稿，经one-data签字并进入实现时逐表入登记。不新增`dama/data-objects.yaml`，本册确认不等于建362张表。
 - 骨架：表键→聚合/BC、类别/粒度、记录系统、读写方、business_key、mutability、version/有效区间、retention、lineage、references、敏感分级/PI属性、查询路径、豁免依据。列级隐私不由表级最高分级代替；跨BC按ID引用、不建跨schema外键。
 - 数量：50当前表键；候选131承载记录/362表项（162＋95＋105），逐项区分已有/改形/新建/退役/不落表，最终入册数待one-data确认。REF与AGG差异见§1.4。
 - 未定：Q34、各组数据例外、敏感与保留判定、主数据版本规则、财务配置/期间闭环；不把报告中的建议改成豁免。依赖G/B/D/P的对象、聚合、流程输入。
@@ -166,7 +166,7 @@ one-architecture另须冻结资料清单（提交号、文件摘要、计数口�
 
 **M册：Kimball/OLAP指标与总线矩阵**
 
-- 写入：经业务/财务确认的`r0/METRIC_BASELINE_DRAFT.md`正式化去向由指标负责会话决定，OAT源仍在`glossary/oat/`；`togaf/vision.yaml`仅更新KPI→M-ID/口径版本引用。`architecture/olap/*.yaml`不另存指标算法。
+- 写入：经业务/财务确认的`docs/data/metric-baseline/baseline-draft.md`正式化去向由指标负责会话决定，OAT源仍在`glossary/oat/`；`togaf/vision.yaml`仅更新KPI→M-ID/口径版本引用。`architecture/olap/*.yaml`不另存指标算法。
 - 骨架：指标ID、OAT概念、业务定义、事实来源、粒度、单位、账簿/期间/含税口径、加总规则、分母、口径版本/生效日、确认依据；生成总线矩阵以度量事件为行、主数据一致性维为列，含来源事件/过账明细与主数据版本引用。
 - 数量：48指标草稿ID、8报表包；16阶段KPI属于另一清单；全企业度量事件行数和事实表数尚无冻结总数，不能用流程数或指标数代填。
 - 未定：基线§6未核销口径、OAT映射、分母与财务确认、目标/期限；B6–B11已答只回读。依赖G/B/D/A与P/R的事实/判断来源，不能在交易表上直接跑分析凑报表。

@@ -2303,7 +2303,7 @@
         "scope": "domain",
         "snake": "timesheet_approval_withdrawn",
         "standard_ref": [
-          "events/timesheet.yaml (RULE-279)"
+          "docs/architecture/events/timesheet.yaml (RULE-279)"
         ],
         "status": "proposed",
         "zh": "工时单已撤回审批"
@@ -2369,7 +2369,7 @@
         "scope": "domain",
         "snake": "approval_task_became_overdue",
         "standard_ref": [
-          "events/approval.yaml"
+          "docs/architecture/events/approval.yaml"
         ],
         "status": "proposed",
         "zh": "任务已超时"
@@ -2418,7 +2418,7 @@
         "scope": "domain",
         "snake": "role_deleted",
         "standard_ref": [
-          "events/identity.yaml"
+          "docs/architecture/events/identity.yaml"
         ],
         "status": "proposed",
         "zh": "角色已废除"
@@ -2485,7 +2485,7 @@
         "scope": "domain",
         "snake": "source_reference_refused",
         "standard_ref": [
-          "events/integration.yaml"
+          "docs/architecture/events/integration.yaml"
         ],
         "status": "proposed",
         "zh": "来源对照登记已被拒绝"
@@ -6370,7 +6370,7 @@
         "scope": "acl",
         "snake": "snapshot_date",
         "standard_ref": [
-          "proposals/EVENT_ANALYTICS_FIELDS.md"
+          "docs/architecture/events/event-analytics-fields.md"
         ],
         "status": "proposed",
         "zh": "快照日"
@@ -7767,7 +7767,7 @@
         "forbidden": [],
         "id": "attribution_subject",
         "kind": "value_object",
-        "note": "类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列",
+        "note": "类型 AttributionSubjectId 为它的标识（kind + subjectId，docs/architecture/events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列",
         "scope": "domain",
         "snake": "attribution_subject",
         "standard_ref": [
@@ -8243,7 +8243,7 @@
         "scope": "domain",
         "snake": "single_operator_mode",
         "standard_ref": [
-          "adr/src/ADR-0030.md"
+          "docs/adr/ADR-0030.md"
         ],
         "status": "proposed",
         "zh": "单人运维模式"
@@ -8283,7 +8283,7 @@
         "scope": "domain",
         "snake": "single_operator_relaxation",
         "standard_ref": [
-          "adr/src/ADR-0030.md"
+          "docs/adr/ADR-0030.md"
         ],
         "status": "proposed",
         "zh": "单人运维放宽项"
@@ -8323,7 +8323,7 @@
         "scope": "domain",
         "snake": "super_admin",
         "standard_ref": [
-          "adr/src/ADR-0030.md"
+          "docs/adr/ADR-0030.md"
         ],
         "status": "proposed",
         "zh": "超级管理员"
@@ -9039,7 +9039,7 @@
         "snake": "read_only_verification",
         "standard_ref": [
           "adr/ADR-0037.md",
-          "phase1a/infra/PREDEPLOY_CHECKLIST.md C-14"
+          "docs/ops/predeploy-checklist.md C-14"
         ],
         "status": "proposed",
         "zh": "只读核实"
@@ -9826,7 +9826,7 @@
         "scope": "domain",
         "snake": "act",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-04"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-04"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -9895,7 +9895,7 @@
         "scope": "domain",
         "snake": "assigned",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-05"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-05"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -9964,7 +9964,7 @@
         "scope": "domain",
         "snake": "completed",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-07"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-07"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -10033,7 +10033,7 @@
         "scope": "domain",
         "snake": "escalated",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-10"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-10"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -10102,7 +10102,7 @@
         "scope": "domain",
         "snake": "fallback",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-11"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-11"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -10171,7 +10171,7 @@
         "scope": "domain",
         "snake": "form",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-12"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-12"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -10240,7 +10240,7 @@
         "scope": "domain",
         "snake": "round",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-15"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-15"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -10309,7 +10309,7 @@
         "scope": "domain",
         "snake": "row",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-16"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-16"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前；界面文字 dev 前",
@@ -10378,7 +10378,7 @@
         "scope": "domain",
         "snake": "deadline",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-21"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-21"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -10447,7 +10447,7 @@
         "scope": "domain",
         "snake": "effect",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-22"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-22"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -10516,7 +10516,7 @@
         "scope": "domain",
         "snake": "release_of_task",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-25"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-25"
         ],
         "status": "deprecated",
         "until": "界面文字 dev 前",
@@ -10585,7 +10585,7 @@
         "scope": "domain",
         "snake": "business_summary",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-41"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-41"
         ],
         "status": "deprecated",
         "until": "界面文字 dev 前",
@@ -10654,7 +10654,7 @@
         "scope": "domain",
         "snake": "proxy_handling",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-42"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-42"
         ],
         "status": "deprecated",
         "until": "界面文字 dev 前",
@@ -10723,7 +10723,7 @@
         "scope": "domain",
         "snake": "task_participant",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-53"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-53"
         ],
         "status": "deprecated",
         "until": "界面文字 dev 前",
@@ -10792,7 +10792,7 @@
         "scope": "domain",
         "snake": "decision",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-57"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-57"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -10878,7 +10878,7 @@
         "scope": "domain",
         "snake": "resulted",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-60"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-60"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -10947,7 +10947,7 @@
         "scope": "domain",
         "snake": "skipped",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-65"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-65"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11016,7 +11016,7 @@
         "scope": "domain",
         "snake": "project_manager_review",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-68"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-68"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11118,7 +11118,7 @@
         "scope": "domain",
         "snake": "regional_head_review",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-69"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-69"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-1b P4（one-1a-next-4），生产前",
@@ -11187,7 +11187,7 @@
         "scope": "domain",
         "snake": "supervisor_review",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-70"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-70"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11256,7 +11256,7 @@
         "scope": "domain",
         "snake": "cutoff",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-74"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-74"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11325,7 +11325,7 @@
         "scope": "domain",
         "snake": "administrator_mode",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-ID-04"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-ID-04"
         ],
         "status": "deprecated",
         "until": "界面文字 dev 前",
@@ -11394,7 +11394,7 @@
         "scope": "domain",
         "snake": "authorization",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-ID-10"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-ID-10"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前；界面文字 dev 前",
@@ -11480,7 +11480,7 @@
         "scope": "domain",
         "snake": "account_disabled",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-ID-11"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-ID-11"
         ],
         "status": "deprecated",
         "until": "界面文字 dev 前",
@@ -11549,7 +11549,7 @@
         "scope": "domain",
         "snake": "sensitive_role_holder",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-ID-22"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-ID-22"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11618,7 +11618,7 @@
         "scope": "domain",
         "snake": "size",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-IN-07"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-IN-07"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11687,7 +11687,7 @@
         "scope": "domain",
         "snake": "keep",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-IN-08"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-IN-08"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11756,7 +11756,7 @@
         "scope": "domain",
         "snake": "worm",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-IN-36"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-IN-36"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11825,7 +11825,7 @@
         "scope": "domain",
         "snake": "voucher_numbering_rule",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-NU-08"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-NU-08"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11894,7 +11894,7 @@
         "scope": "domain",
         "snake": "rule_version",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-NU-09"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-NU-09"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -11963,7 +11963,7 @@
         "scope": "domain",
         "snake": "overhead_hours",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-TS-04"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-TS-04"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -12032,7 +12032,7 @@
         "scope": "domain",
         "snake": "email",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-WF-06"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-WF-06"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -12117,7 +12117,7 @@
         "scope": "domain",
         "snake": "department",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-09"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-09"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -12202,7 +12202,7 @@
         "scope": "domain",
         "snake": "task_handler",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-32"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-32"
         ],
         "status": "deprecated",
         "until": "界面文字 dev 前",
@@ -12305,7 +12305,7 @@
         "scope": "domain",
         "snake": "running",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-61"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-61"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -12476,7 +12476,7 @@
         "scope": "domain",
         "snake": "ts",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-NU-06"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-NU-06"
         ],
         "status": "deprecated",
         "until": "废弃分支 one-design-sync-staging 删除后即删本条（one-coordinator 2026-10-15：该卡不派）",
@@ -12647,7 +12647,7 @@
         "scope": "domain",
         "snake": "qt",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-NU-17"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-NU-17"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -12818,7 +12818,7 @@
         "scope": "domain",
         "snake": "jv",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-NU-18"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-NU-18"
         ],
         "status": "deprecated",
         "until": "代码改名随 R-2a，生产前",
@@ -12900,7 +12900,7 @@
         "scope": "domain",
         "snake": "journal_voucher",
         "standard_ref": [
-          "glossary/decisions-round3-2026-10-15.json R3-AP-26"
+          "docs/glossary/decisions-round3-2026-10-15.json R3-AP-26"
         ],
         "status": "deprecated",
         "until": "界面文字 dev 前",

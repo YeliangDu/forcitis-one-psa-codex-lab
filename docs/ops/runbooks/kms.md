@@ -1,6 +1,6 @@
 # C-8 剧本：配置与密钥从 `one.env` 迁到 KMS 凭据管家，轮换周期
 
-依据：`proposals/PHASE1A_PLATFORM_CONVENTIONS.md` §6（凭据命名 `forcitis-one/<env>/<name>`、ECS RAM 角色、启动拉取、轮换表）、INFRA_RUNBOOK §5。时点：生产前。性质：开通 KMS 实例与凭据属购买 / 对外变更，执行前须用户确认。
+依据：`docs/architecture/proposals/phase1-a-platform-conventions.md` §6（凭据命名 `forcitis-one/<env>/<name>`、ECS RAM 角色、启动拉取、轮换表）、INFRA_RUNBOOK §5。时点：生产前。性质：开通 KMS 实例与凭据属购买 / 对外变更，执行前须用户确认。
 
 ## 迁移范围与轮换（建议，按平台约定 §6）
 

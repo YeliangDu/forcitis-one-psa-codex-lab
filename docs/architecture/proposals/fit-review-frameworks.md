@@ -4,7 +4,7 @@
 
 起因：用户 2026-10-15「关于架构的任何选择都要非常谨慎，必须深入研究后才能决策」（intent `2026-10-15-193135`）。评审：opus 子代理（architecture-critic，只读、未联网），one-architecture 抽查核实（见文末）。结论待用户在确认页重新定；在用户决定前，FRAMEWORKS.md 不改。
 
-评审对象：`architecture/FRAMEWORKS.md` §1–§8、`METHOD.md`、`DESIGN.md`，ADR-0040、0016、0003、0017。
+评审对象：`docs/architecture/frameworks.md` §1–§8、`METHOD.md`、`DESIGN.md`，ADR-0040、0016、0003、0017。
 
 系统实况（从文件核实）：单家 AEC 专业服务公司内部业财一体系统，335 名活跃用户（MODERNIZATION_BRIEF §1）；Spring Modulith 单体；`ddd/contexts.yaml` 已建 13、规划 28，已建业务模块只有 `cost.timesheet`、`organization.*`；生产中 1 个 BPMN 流程，无 DMN；多个 Claude 会话开发，一人拍板；FRAMEWORKS、METHOD、ADR-0040、6 项补充框架、§9 工程标准均于 2026-10-15 经勾选页采纳。
 
