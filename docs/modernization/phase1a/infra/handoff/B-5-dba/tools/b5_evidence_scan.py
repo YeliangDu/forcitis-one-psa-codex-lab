@@ -13,9 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ops_venv_guard  # noqa: E402,F401  须排在所有第三方与同目录导入之前
-from b5_legacy_run import DRIVER, LEGACY_SERVER, LEGACY_WORK, ONE_SERVER, put, stage_legacy  # noqa: E402
-from b5_evidence_run import key_pair  # noqa: E402
-from b5_read_all_run import step  # noqa: E402
+from b5_remote import DRIVER, LEGACY_SERVER, LEGACY_WORK, ONE_SERVER, key_pair, put, stage_legacy, step  # noqa: E402
 
 TOOLS = Path(__file__).resolve().parent
 B5 = TOOLS.parent

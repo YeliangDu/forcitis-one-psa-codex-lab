@@ -26,76 +26,190 @@ import javax.crypto.spec.PSource;
 
 /**
  * Runs a sqlcmd-style script (":setvar", "$(VAR)", "GO") against the legacy SQL Server instance.
- * usage: java -cp mssql-jdbc.jar OneSql.java <ro|rw> <database> <script> [VAR=VALUE ...]
- *   stdin: Nacos datasource yaml (DBA login), unless LOGIN_USER + LOGIN_SECRET_ENC + LOGIN_KEY are set
+ * usage: java -cp mssql-jdbc.jar OneSql.java ro <database> <script> [VAR=VALUE ...]   |   java OneSql.java --self-test
+ *   login: LOGIN_USER + LOGIN_SECRET_ENC + LOGIN_KEY (the evidence account's password as RSA-OAEP ciphertext); nothing else
  *   ENC_PUBKEY: PEM public key; any result column named one_time_secret is printed only as RSA-OAEP(SHA-256) ciphertext
- *   ro mode: script must not contain DDL/DML keywords; runs inside a transaction that is rolled back.
+ *   read only (#752): the only mode is ro; a script with a DDL/DML keyword is refused before connecting, and the
+ *   batches run inside a transaction that is always rolled back. The rw and deny modes and the DBA login from stdin are gone.
  */
 public class OneSql {
     static final String HOST = "rm-bp1690ep53t9778dp.sqlserver.rds.aliyuncs.com";
-    static final Pattern WRITE = Pattern.compile("\\b(CREATE|ALTER|DROP|GRANT|DENY|REVOKE|INSERT|UPDATE|DELETE|MERGE|EXEC|EXECUTE\\s+(?!AS\\b)|TRUNCATE|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC)\\b",
-            Pattern.CASE_INSENSITIVE);
+    // matched on the code only (comments and string literals removed by codeOnly): anything that writes, runs other code, ends the transaction or reaches outside the server
+    static final Pattern WRITE = Pattern.compile("\\b(CREATE|ALTER|DROP|GRANT|DENY|REVOKE|INSERT|UPDATE|DELETE|MERGE|EXEC|EXECUTE|TRUNCATE|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC"
+            + "|COMMIT|ROLLBACK|SAVE|BEGIN\\s+(TRAN|TRANSACTION|DISTRIBUTED)|WRITETEXT|UPDATETEXT|BULK|OPENROWSET|OPENDATASOURCE|OPENQUERY|RECONFIGURE|USE"
+            + "|(sp|xp)_\\w+|INTO\\s+(?!#))\\b", Pattern.CASE_INSENSITIVE);
 
     public static void main(String[] a) throws Exception {
-        String mode = a[0], db = a[1];
+        if (a.length >= 1 && a[0].equals("--self-test")) {
+            selfTest(a.length > 1 ? Path.of(a[1]) : null);
+            return;
+        }
+        if (a.length < 3 || !a[0].equals("ro")) throw new IllegalArgumentException("usage: OneSql.java ro <database> <script> [VAR=VALUE ...] (read only; no other mode)");
+        String db = a[1];
         String script = Files.readString(Path.of(a[2]), StandardCharsets.UTF_8);
         Map<String, String> vars = new LinkedHashMap<>();
         for (int i = 3; i < a.length; i++) {
             int eq = a[i].indexOf('=');
             vars.put(a[i].substring(0, eq), a[i].substring(eq + 1));
         }
-        List<String> batches = parse(script, vars);
-        if (mode.equals("ro")) {
-            for (String b : batches) {
-                Matcher m = WRITE.matcher(stripComments(b));
-                if (m.find()) throw new IllegalStateException("ro script contains write keyword: " + m.group());
-            }
-        }
-        String user, secret;
-        if (System.getenv("LOGIN_USER") != null) {
-            user = System.getenv("LOGIN_USER");
-            secret = decrypt(Files.readString(Path.of(System.getenv("LOGIN_SECRET_ENC"))).trim(), System.getenv("LOGIN_KEY"));
-        } else {
-            String yaml = new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
-            int master = yaml.indexOf("master:");
-            if (master < 0) throw new IllegalStateException("no master datasource in config");
-            String tail = yaml.substring(master);
-            user = field(tail, "username");
-            secret = field(tail, "password");
-            if (secret.startsWith("ENC(")) throw new IllegalStateException("encrypted password in config; stop");
-        }
+        List<String> batches = readOnlyBatches(script, vars);
+        if (System.getenv("LOGIN_USER") == null) throw new IllegalStateException("LOGIN_USER, LOGIN_SECRET_ENC and LOGIN_KEY are required (the evidence account)");
+        String user = System.getenv("LOGIN_USER");
+        String secret = decrypt(Files.readString(Path.of(System.getenv("LOGIN_SECRET_ENC"))).trim(), System.getenv("LOGIN_KEY"));
         String url = "jdbc:sqlserver://" + HOST + ":1433;databaseName=" + db
                 + ";encrypt=true;trustServerCertificate=true;applicationName=forcitis-one-ops;loginTimeout=15";
         PublicKey pub = System.getenv("ENC_PUBKEY") == null ? null : publicKey(System.getenv("ENC_PUBKEY"));
         try (Connection c = DriverManager.getConnection(url, user, secret)) {
             secret = null;
-            System.out.println("connected as " + user + " db=" + db + " mode=" + mode);
-            boolean deny = mode.equals("deny");
-            if (mode.equals("ro") || deny) c.setAutoCommit(false);
-            int n = 0, allowed = 0;
-            try {
-                for (String b : batches) {
-                    n++;
-                    String head = firstComment(b);
-                    System.out.println("---- batch " + n + (head.isEmpty() ? "" : " " + head));
-                    if (!deny) {
-                        run(c, b, pub);
-                        continue;
-                    }
-                    try {
-                        run(c, b, pub);
-                        allowed++;
-                        System.out.println("  UNEXPECTED: statement was allowed");
-                    } catch (SQLException e) {
-                        System.out.println("  DENIED as expected (error " + e.getErrorCode() + ")");
-                    }
-                }
-            } finally {
-                if (mode.equals("ro") || deny) c.rollback();
-            }
-            System.out.println("DONE batches=" + n + (deny ? " allowed=" + allowed : ""));
-            if (allowed > 0) System.exit(3);
+            System.out.println("connected as " + user + " db=" + db + " mode=ro");
+            System.out.println("DONE batches=" + runRolledBack(c, batches, pub));
         }
+    }
+
+    /** Runs the batches with auto-commit off and rolls back whatever happened, also when a batch fails. Returns the number of batches run. */
+    static int runRolledBack(Connection c, List<String> batches, PublicKey pub) throws Exception {
+        c.setAutoCommit(false);
+        int n = 0;
+        try {
+            for (String b : batches) {
+                n++;
+                String head = firstComment(b);
+                System.out.println("---- batch " + n + (head.isEmpty() ? "" : " " + head));
+                run(c, b, pub);
+            }
+        } finally {
+            c.rollback();
+        }
+        return n;
+    }
+
+    /** The batch with comments blanked and string literals emptied, scanned in one pass so that '--' inside a string is no comment and a quote inside a comment no string. */
+    static String codeOnly(String s) {
+        StringBuilder out = new StringBuilder();
+        int i = 0, n = s.length();
+        while (i < n) {
+            char ch = s.charAt(i);
+            if (ch == '-' && i + 1 < n && s.charAt(i + 1) == '-') {
+                while (i < n && s.charAt(i) != '\n') i++;
+                out.append(' ');
+            } else if (ch == '/' && i + 1 < n && s.charAt(i + 1) == '*') {
+                int end = s.indexOf("*/", i + 2);
+                i = end < 0 ? n : end + 2;
+                out.append(' ');
+            } else if (ch == '\'') {
+                i++;
+                while (i < n && !(s.charAt(i) == '\'' && (i + 1 >= n || s.charAt(i + 1) != '\''))) i += s.charAt(i) == '\'' ? 2 : 1;
+                i++;
+                out.append("''");
+            } else {
+                out.append(ch);
+                i++;
+            }
+        }
+        return out.toString();
+    }
+
+    /** The script's batches, refused as a whole when any batch carries a write keyword (comments ignored). */
+    static List<String> readOnlyBatches(String script, Map<String, String> vars) {
+        List<String> batches = parse(script, vars);
+        for (String b : batches) {
+            Matcher m = WRITE.matcher(codeOnly(b));
+            if (m.find()) throw new IllegalStateException("read-only script contains write keyword: " + m.group());
+        }
+        return batches;
+    }
+
+    /** No database: a write statement is refused, a read passes, any mode but ro is refused before the script is read, the batches always run with
+     * auto-commit off and end in a rollback (also when one fails), and every evidence script in the given folder (the B-5 evidence/ folder) is accepted. */
+    static void selfTest(Path evidence) throws Exception {
+        Map<String, String> none = new LinkedHashMap<>();
+        check(readOnlyBatches("SELECT name FROM sys.tables\nGO\n-- DELETE in a comment is fine\nSELECT 1\n", none).size() == 2, "reads pass, comments are not keywords");
+        check(readOnlyBatches("SELECT N'EXECUTE', 'it''s -- not a comment' AS a INTO #tmp FROM t\nSELECT p.permission_name FROM #tmp p WHERE p.x IN (N'DELETE')", none).size() == 1,
+                "keywords inside string literals and SELECT INTO a temporary table are reads");
+        for (String write : new String[] {"DELETE FROM t", "update t set a = 1", "INSERT INTO t VALUES (1)", "DROP TABLE t", "GRANT SELECT ON t TO u",
+                "ALTER LOGIN x WITH PASSWORD = 'p'", "EXEC sp_who", "TRUNCATE TABLE t", "MERGE t USING s ON 1 = 1 WHEN MATCHED THEN DELETE;",
+                "SELECT 1\nGO\nCREATE TABLE t (a int)", "SELECT '--'; DELETE FROM t", "SELECT 'a'' -- ''b'; DELETE FROM t", "EXECUTE('DEL' + 'ETE FROM t')",
+                "sp_executesql N'DELETE FROM t'", "SELECT * INTO dbo.copy FROM t", "WRITETEXT t.c @p 'x'", "UPDATETEXT t.c @p 0 NULL 'x'", "COMMIT",
+                "SELECT 1; COMMIT TRANSACTION", "BEGIN TRAN; SELECT 1", "ROLLBACK", "SELECT * FROM OPENROWSET('SQLNCLI', 'x', 'SELECT 1')", "xp_cmdshell 'dir'",
+                "USE master", "/* ' */ DELETE FROM t", "SELECT 1 /* -- */; DELETE FROM t"}) {
+            check(refused(() -> readOnlyBatches(write, none)), "a write statement is refused: " + write);
+        }
+        for (String mode : new String[] {"rw", "deny", "RO", ""}) {
+            check(refused(() -> main(new String[] {mode, "db", "/nonexistent"})), "mode " + mode + " is refused");
+        }
+        check(refused(() -> main(new String[] {"ro", "db"})), "missing script is refused");
+        List<String> calls = new ArrayList<>();
+        Connection fake = fakeConnection(calls);
+        check(runRolledBack(fake, List.of("SELECT 1", "SELECT 2"), null) == 2 && calls.equals(List.of("setAutoCommit:false", "execute:SELECT 1", "execute:SELECT 2", "rollback")),
+                "auto-commit off first, rollback last: " + calls);
+        calls.clear();
+        check(refusedAny(() -> runRolledBack(fake, List.of("SELECT 1", "FAIL", "SELECT 3"), null)) && calls.equals(List.of("setAutoCommit:false", "execute:SELECT 1", "execute:FAIL", "rollback")),
+                "a failing batch still ends in a rollback, and stops the rest: " + calls);
+        if (evidence != null) {
+            int scripts = 0;
+            try (var files = Files.list(evidence)) {
+                for (Path f : (Iterable<Path>) files.sorted()::iterator) {
+                    String name = f.getFileName().toString();
+                    if (!name.endsWith(".sql") || name.startsWith("evidence_")) continue;  // evidence_*.sql create the evidence account: run by the DBA, never through OneSql
+                    readOnlyBatches(Files.readString(f, StandardCharsets.UTF_8), none);
+                    scripts++;
+                }
+            }
+            check(scripts > 0, "no evidence script found in " + evidence);
+            System.out.println("evidence scripts accepted: " + scripts);
+        }
+        System.out.println("OneSql self-test: ok");
+    }
+
+    interface Call { void run() throws Exception; }
+
+    static boolean refusedAny(Call call) {
+        try {
+            call.run();
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    /** A Connection whose Statement records what runs; a batch "FAIL" throws as the server would. */
+    static Connection fakeConnection(List<String> calls) {
+        java.lang.reflect.InvocationHandler statement = (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "execute":
+                    calls.add("execute:" + args[0]);
+                    if ("FAIL".equals(args[0])) throw new SQLException("failed", "42000", 1);
+                    return false;
+                case "getUpdateCount": return -1;
+                case "getMoreResults": return false;
+                default: return null;
+            }
+        };
+        java.lang.reflect.InvocationHandler connection = (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "createStatement":
+                    return java.lang.reflect.Proxy.newProxyInstance(Statement.class.getClassLoader(), new Class<?>[] {Statement.class}, statement);
+                case "setAutoCommit": calls.add("setAutoCommit:" + args[0]); return null;
+                case "rollback": calls.add("rollback"); return null;
+                default: return null;
+            }
+        };
+        return (Connection) java.lang.reflect.Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[] {Connection.class}, connection);
+    }
+
+    static boolean refused(Call call) {
+        try {
+            call.run();
+            return false;
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    static void check(boolean ok, String what) {
+        if (!ok) throw new AssertionError(what);
     }
 
     static void run(Connection c, String sql, PublicKey pub) throws Exception {
@@ -185,14 +299,6 @@ public class OneSql {
             if (t.startsWith("-- =====") || t.startsWith("-- V") || t.startsWith("-- Q")) return t;
         }
         return "";
-    }
-
-    static String field(String yaml, String key) {
-        Matcher m = Pattern.compile("(?m)^\\s*" + key + ":\\s*(.*?)\\s*$").matcher(yaml);
-        if (!m.find()) throw new IllegalStateException("missing " + key);
-        String v = m.group(1);
-        if ((v.startsWith("'") && v.endsWith("'")) || (v.startsWith("\"") && v.endsWith("\""))) v = v.substring(1, v.length() - 1);
-        return v;
     }
 
     static OAEPParameterSpec oaep() {

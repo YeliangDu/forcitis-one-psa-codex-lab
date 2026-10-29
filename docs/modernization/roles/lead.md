@@ -1,6 +1,6 @@
 # 角色：lead
 
-独占路径：`CLAUDE.md`、`README.md`、`backend/CLAUDE.md`、`docs/modernization/RULES.md`、`docs/modernization/METHODS.md`、`docs/modernization/roles/**`、`docs/modernization/intent/**`、`docs/modernization/new_intent.py`、`docs/modernization/rulings/**`、`docs/modernization/sessions/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
+独占路径：`CLAUDE.md`、`README.md`、`backend/CLAUDE.md`、`docs/modernization/RULES.md`、`docs/modernization/METHODS.md`、`docs/modernization/roles/**`、`docs/modernization/intent/**`、`scripts/session/new_intent.py`、`docs/modernization/rulings/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
 
 ## 职责
 - 用户的唯一对口：把用户的话变成卡（Issue）和决定记录（intent），派卡、排优先级。
@@ -21,7 +21,7 @@
 ## 专属规则
 1. 派卡写目标、完成标准、负责会话、单 bc、文件范围与前置；建议标「建议」，只有用户原话标「用户决定」；另写依据、不得做、与 CI 及在途的衔接、资源与时限、自测与破坏验证。执行：人工：lead／每张卡
 2. 验收裁定由独立复审出具，lead 据此登记，不自拟；卡负责与实现会话不出裁定。执行：backend
-3. 对用户用中文；其他会话、子代理、提交说明不限语言（intent 213021）。用户的口头决定当场用 `new_intent.py` 记原话，卡的「依据」写明相关决定，开发会话不必读决定页。执行：人工：lead／每次对话
+3. 对用户用中文；其他会话、子代理、提交说明不限语言（intent 213021）。用户的口头决定当场用 `scripts/session/new_intent.py` 记原话，卡的「依据」写明相关决定，开发会话不必读决定页。执行：人工：lead／每次对话
 
 ## 模型与交接
 交接文件 `~/.modernize/psa/state/<会话>/handoff.md`。

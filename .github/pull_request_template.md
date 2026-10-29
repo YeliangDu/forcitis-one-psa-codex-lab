@@ -12,7 +12,7 @@ Closes #<卡>
 <!-- 改验收测试目录的提交须带 Acceptance-Test-Author 或 Acceptance-Ruling 行；否则「不涉及」 -->
 
 ## light.sh 输出
-<!-- 贴完整输出，SKIP 写理由，不含密钥 -->
+<!-- 贴末行（PASS/FAIL/SKIP 计数与用时）加全部 FAIL、SKIP 行，不含密钥 -->
 
 ## 复审
 <!-- 按 RULES ⑤ 与 scripts/review/PROMPT.md 自派复审子代理，用 post_review 提交；首轮通过后自行 mq.py enqueue。 -->

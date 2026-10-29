@@ -62,6 +62,8 @@ ALWAYS_RUN_READERS = (
     "scripts/session/build_decisions.py",
     "scripts/session/new_intent.py",   # run by new_intent_selftest.py
     "scripts/session/new_intent_selftest.py",
+    # light.sh sources it on every event; the docs paths there are change patterns that pick self-tests
+    "scripts/ci/light_triggers.sh",
 )
 # developer tools that name docs paths but are no CI step: they are not readers. scripts/gates/ holds the local hooks (the gates and their installer);
 # its gates_selftest.py does run in CI, but through scripts/ci/light.sh on every event, so a doc only it names needs no further tier
@@ -75,8 +77,6 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/roles/",
     # ruling record: read by scripts/guards/acceptance_rulings.py in the always-run acceptance step
     "docs/modernization/rulings/",
-    # session profiles: read by the tool library's start_sheet (outside the repository, O23a)
-    "docs/modernization/sessions/",
     # scripts/ci/evidence_imports.py (light.sh) parses the production evidence tools
     "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/",
     "docs/modernization/phase1a/infra/runbooks/scripts/",

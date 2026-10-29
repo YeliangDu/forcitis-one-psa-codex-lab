@@ -1,1 +1,0 @@
-角色与规则见 `docs/modernization/roles/design.md`（本会话在该文件「过渡映射」中）。

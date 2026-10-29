@@ -59,5 +59,3 @@ def run(mq, d):
         assert gapscan.author_session(branch, owners) == owner, (branch, gapscan.author_session(branch, owners))
     policy = json.load(open(gapscan.POLICY, encoding="utf-8"))["sessions"]
     assert set(owners.values()) == set(policy["config"]), "every name and alias leads to a session of sessions.config"
-    profiles = {f[:-3] for f in os.listdir(os.path.join(mq.HERE, "..", "..", "docs", "modernization", "sessions")) if f.startswith("one-") and f.endswith(".md")}
-    assert profiles <= set(owners.values()), profiles - set(owners.values())

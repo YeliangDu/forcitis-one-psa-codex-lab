@@ -1,16 +1,61 @@
 # shellcheck shell=bash disable=SC2034,SC2154  # 被 source 的库：变量在读入方用，base 与 changed 由读入方设
-# light.sh 的辅助：按改动触发的检查（GOV-1023-FV2 gap-2）与字节码清理（#693）；由 light.sh 与 light_selftest.sh 用 source 读入，不单独运行。
+# light.sh 的辅助：按改动触发的检查（GOV-1023-FV2 gap-2；#742 起含各脚本自测）与字节码清理（#693）；由 light.sh 与 light_selftest.sh 用 source 读入，不单独运行。
 # 路径模式照搬原 precheck.sh 的 touches 模式（ERE，对仓库相对路径）；改动＝相对基线的提交、未提交与未跟踪文件；没有基线（$base 为空）时全算改到。
 # 读入方须先设 base（基线，可为空）与 changed（改动列表文件，一行一个路径）。Bash 3.2 可用。
 
 t_shell='\.sh$'
-TRIGGER_KEYS='t_shell'
+# 自测只在被测脚本或它读的仓库文件改了才跑（#742）：自测的结果只随这些文件变；推到 main（LIGHT_ALL=1）与没有基线时全跑，兜住环境变化
+t_guards='^scripts/guards/'
+t_guards_config='^scripts/guards/|^backend/pom\.xml$|^backend/src/test/java/com/forcitis/one/acceptance/|^scripts/ci/(legacy_it|backend_verify)\.sh$|^scripts/codegen/generate-api\.sh$|^docs/modernization/rulings/|^\.github/workflows/(ci|nightly-legacy-it)\.yml$'
+t_evidence_imports='^scripts/ci/evidence_imports\.py$'
+t_gates='^scripts/(gates|hooks)/|^policy\.json$|^\.claude/|^\.pre-commit-config\.yaml$|^docs/modernization/sessions/|^scripts/merge/session_map\.json$'
+t_session='^scripts/session/|^policy\.json$|^docs/modernization/(roles|decision-digest)/'
+t_new_adr='^tools/docs/|^docs/modernization/adr/'
+t_mq='^scripts/merge/|^scripts/ci/relevant_change|^policy\.json$'
+t_unit_classes='^scripts/ci/light_unit_classes\.py$|^backend/src/test/java/'
+t_heavy_gate='^scripts/ci/heavy_gate\.py$'
+t_evidence='^tools/evidence/|^scripts/gates/prod_targets\.json$|^policy\.json$'
+t_scan='^scripts/codegen/scan_'
+t_post_review='^scripts/merge/(post_review|issue_gate)|^scripts/review/|^policy\.json$'
+t_ci_steps='^scripts/ci/ci_steps_selftest\.py$|^\.github/workflows/ci\.yml$'
+t_runner_watch='^scripts/release/runner_watch|^tools/ops/(runner_watch|com\.forcitis\.runner)'
+t_start_sheet="$t_gates|$t_session|^CLAUDE\.md$|^docs/modernization/(RULES\.md|sessions/|playbooks/)"  # 工具库开工单（仓库外）读的文件：light.sh 直接用，不进检查表
+t_acceptance='^backend/src/test/java/com/forcitis/one/acceptance/'  # 验收测试改了：跑全部免容器单测（含各守护类），light.sh 直接用
+t_docker='^scripts/release/docker_ensure|^tools/ops/(docker_watch|com\.forcitis\.docker)'
+onesql=docs/modernization/phase1a/infra/handoff/B-5-dba/tools/OneSql.java
+t_onesql='^docs/modernization/phase1a/infra/handoff/B-5-dba/(tools/OneSql\.java|evidence/.*\.sql)$'  # light.sh 直接用：要 java，缺了记 SKIP
+t_light='^scripts/ci/light(_selftest|_triggers)?\.sh$'
+TRIGGER_KEYS='t_shell t_guards t_guards_config t_evidence_imports t_gates t_session t_new_adr t_mq t_unit_classes t_heavy_gate t_evidence t_scan t_post_review t_ci_steps t_runner_watch t_docker t_light'
 
-# 检查表：模式名|名字|命令（命令按空格切分，路径里不能有空格）。#742 删了确认页、j_checks 与两个只报不拦的扫描，只剩 shell 语法一项。
-TRIGGERED_CHECKS='t_shell|shell syntax (bash -n)|shell_syntax'
+# 检查表：模式名|名字|命令（命令按空格切分，路径里不能有空格）
+TRIGGERED_CHECKS='t_shell|shell syntax (bash -n)|shell_syntax
+t_guards|migrations_immutable (self-test)|python3 scripts/guards/migrations_immutable.py --self-test
+t_guards|system_actors_append_only (self-test)|python3 scripts/guards/system_actors_append_only.py --self-test
+t_guards|acceptance_guard (self-test)|python3 scripts/guards/acceptance_guard.py --self-test
+t_guards_config|acceptance_reports (self-test)|python3 scripts/guards/acceptance_reports.py --self-test
+t_guards_config|acceptance_rulings (self-test)|python3 scripts/guards/acceptance_rulings.py --self-test
+t_guards|db_scripts_aligned (self-test)|python3 -I scripts/guards/db_scripts_aligned.py --self-test
+t_guards|proposal_reads (self-test)|python3 scripts/guards/proposal_reads.py --self-test
+t_guards|build_catalog (self-test)|python3 scripts/guards/build_catalog.py --self-test
+t_guards|term_rules (self-test)|python3 scripts/guards/term_rules.py --self-test
+t_evidence_imports|evidence tools: imports resolve (self-test)|python3 -I scripts/ci/evidence_imports.py --self-test
+t_gates|gates (gates_selftest.py)|python3 scripts/gates/gates_selftest.py
+t_session|build_decisions (self-test)|python3 scripts/session/build_decisions.py --self-test
+t_session|new_intent_selftest (self-test)|python3 scripts/session/new_intent_selftest.py --self-test
+t_new_adr|new_adr (self-test)|python3 tools/docs/new_adr.py --self-test
+t_mq|mq (self-test)|python3 scripts/merge/mq.py --self-test
+t_unit_classes|light_unit_classes (self-test)|python3 scripts/ci/light_unit_classes.py --self-test
+t_heavy_gate|heavy_gate (self-test)|python3 scripts/ci/heavy_gate.py --self-test
+t_evidence|evidence_selftest (self-test)|python3 tools/evidence/evidence_selftest.py --self-test
+t_scan|scan_aggregates tests|python3 scripts/codegen/scan_aggregates_selftest.py
+t_post_review|post_review_selftest|python3 scripts/merge/post_review_selftest.py
+t_ci_steps|ci_steps_selftest (ci.yml cleanup spares the runner)|python3 scripts/ci/ci_steps_selftest.py
+t_runner_watch|runner_watch_selftest (runner keep-alive and watch)|python3 scripts/release/runner_watch_selftest.py
+t_docker|docker_ensure_selftest (about 85 s)|bash scripts/release/docker_ensure_selftest.sh
+t_light|light_selftest (by-change triggers)|bash scripts/ci/light_selftest.sh'
 
-touches() {  # touches <模式>：没有基线时一律算改到；否则看 $changed 里有没有匹配的路径（大小写不敏感：macOS 上大小写改名的路径也触发，同 check_pages.is_page_path）
-  [ -z "$base" ] || grep -Eqi "$1" "$changed"
+touches() {  # touches <模式>：没有基线或 LIGHT_ALL=1（CI 推到 main）时一律算改到；否则看 $changed 里有没有匹配的路径（大小写不敏感：macOS 上大小写改名的路径也触发）
+  [ -z "$base" ] || [ "${LIGHT_ALL:-}" = 1 ] || grep -Eqi "$1" "$changed"
 }
 
 list_changed() {  # list_changed <输出文件>：写出相对 $base 的改动路径；任一条 git 命令失败即返回非零（不当成「没有改动」）
@@ -28,6 +73,22 @@ shell_syntax() {  # 改到的 .sh 逐个 bash -n（没有基线时全部已跟�
   while IFS= read -r file; do
     [ ! -f "$file" ] || bash -n "$file" || return 1
   done < <(if [ -n "$base" ]; then grep -E "$t_shell" "$changed"; else git ls-files '*.sh'; fi)
+}
+
+surefire_guards() {  # 全部免容器单测（light_unit_classes.py 列出，含守护类）；每个类都要出报告，没出报告即没跑，算失败
+  local classes class
+  classes=$(python3 scripts/ci/light_unit_classes.py) && [ -n "$classes" ] || return 1
+  for class in ${classes//,/ }; do rm -f backend/target/surefire-reports/TEST-*."$class".xml; done  # 本机 target 里的旧报告不算数
+  (cd backend && ./mvnw -q test-compile surefire:test -Dtest="$classes") || return 1
+  for class in ${classes//,/ }; do
+    ls backend/target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class 没出报告：没跑" >&2; return 1; }
+  done
+}
+
+var_before_non_ascii() {  # 仓库里的 shell（*.sh、工作流 run 段、.claude/settings.json 的挂载命令）：$VAR 后不得紧跟非 ASCII 字符。UTF-8 下 bash 3.2 会把全角标点读进变量名，set -u 即崩；写成 ${VAR}
+  local hits
+  hits=$(git ls-files -z '*.sh' .github/workflows .claude/settings.json | LC_ALL=C xargs -0 grep -nE $'\\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]')
+  [ -z "$hits" ] || { printf '$VAR 后紧跟非 ASCII 字符，改成 ${VAR}：\n%s\n' "$hits" >&2; return 1; }
 }
 
 pyc() {  # 被忽略的未跟踪字节码，未跟踪目录折叠成一行；-z 防非 ASCII 路径被加引号；一个没有也返回 0
