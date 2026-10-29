@@ -40,6 +40,26 @@ class MoneyTest {
     }
 
     @Test
+    @DisplayName("FD-08 adding and multiplying by a rate or a ratio keep every digit")
+    void computingKeepsEveryDigit() {
+        assertThat(ExactMoney.of("0.01", "CNY").times(Rate.of("0.123456")).amount()).isEqualByComparingTo("0.00123456");
+        assertThat(ExactMoney.of("0.01", "CNY").times(Ratio.of("0.0000000001")).amount()).isEqualByComparingTo("0.000000000001");
+        assertThat(ExactMoney.of("0.001", "CNY").plus(ExactMoney.of("0.001", "CNY")).amount()).isEqualByComparingTo("0.002");
+        assertThat(ExactMoney.of("0.003", "CNY").minus(ExactMoney.of("0.001", "CNY")).amount()).isEqualByComparingTo("0.002");
+    }
+
+    @Test
+    @DisplayName("FD-02 the minor unit is the currency's own: yen has none after the point, and a currency without a minor unit carries no amount")
+    void minorUnitIsTheCurrencys() {
+        assertThat(Money.of("100", "JPY").amount().scale()).isZero();
+        assertThatThrownBy(() -> Money.of("100.5", "JPY")).isInstanceOf(IllegalArgumentException.class);
+        assertThat(ExactMoney.of("100.5", "JPY").round()).isEqualTo(Money.of("101", "JPY"));
+        assertThatThrownBy(() -> Money.of("1", "XXX")).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("minor unit");
+        assertThatThrownBy(() -> ExactMoney.of("1.25", "XXX").round()).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("minor unit");
+    }
+
+    @Test
     @DisplayName("FD-07 a total is the sum of the lines after each line is formed, not the rounded sum of the unrounded lines")
     void totalIsTheSumOfFormedLines() {
         ExactMoney line = ExactMoney.of("0.333", "CNY");
