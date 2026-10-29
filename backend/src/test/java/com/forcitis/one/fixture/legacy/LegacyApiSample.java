@@ -2,6 +2,8 @@ package com.forcitis.one.fixture.legacy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import javax.swing.Icon;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.web.client.RestTemplate;
@@ -10,11 +12,18 @@ import org.springframework.web.client.RestTemplate;
 public final class LegacyApiSample {
     Icon outsideTheJdkAllowList;
     RestTemplate http;
+    TestRestTemplate testHttp;
     ObjectMapper jackson2;
     LocalDateTime stamp;
-    TestRestTemplate testHttp;
+    List<LocalDateTime> stamps;
 
-    public LocalDateTime when(LocalDateTime at) {
-        return at;
+    public void at(LocalDateTime moment) {}
+
+    public LocalDateTime made() {
+        return null;
+    }
+
+    public Optional<LocalDateTime> later() {
+        return Optional.empty();
     }
 }

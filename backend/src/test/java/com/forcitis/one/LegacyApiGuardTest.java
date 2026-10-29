@@ -5,7 +5,7 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPac
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.codeUnits;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -14,6 +14,8 @@ import com.forcitis.one.fixture.legacy.LegacyApiSample;
 import com.forcitis.one.fixture.legacy.LocalDateTimeInsideSample;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaCodeUnit;
+import com.tngtech.archunit.core.domain.JavaField;
+import com.tngtech.archunit.core.domain.JavaType;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchCondition;
@@ -33,39 +35,47 @@ import org.junit.jupiter.api.Test;
  * Instant.now() and friends (TimeSourceGuardTest).
  */
 class LegacyApiGuardTest {
-    /** javax packages that are the JDK's own and have no jakarta successor. */
+    /** javax packages that are the JDK's own and have no jakarta successor; any other JDK javax package that is needed goes here with a reason. */
     static final String[] JDK_JAVAX = {"javax.crypto..", "javax.sql..", "javax.xml..", "javax.net..", "javax.security..", "javax.naming..",
             "javax.management..", "javax.annotation.processing.."};
 
     static final ArchRule NO_JAVAX = noClasses().should().dependOnClassesThat(resideInAPackage("javax..").and(not(resideInAnyPackage(JDK_JAVAX))))
-            .as("no javax.* outside the JDK's own packages")
+            .as("no javax.* except the JDK packages listed in JDK_JAVAX")
             .because("Spring Framework 7 runs on Jakarta EE 11 and no longer supports javax.annotation / javax.inject: use jakarta.*,"
                     + " and org.jspecify.annotations for nullness");
 
     static final ArchRule NO_REST_TEMPLATE = noClasses().should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.web.client.RestTemplate")
             .because("RestTemplate is deprecated in Spring Framework 7: use RestClient (or an @HttpExchange interface)");
 
-    static final ArchRule NO_JACKSON_2 = noClasses().should().dependOnClassesThat().resideInAPackage("com.fasterxml.jackson.databind..")
-            .because("Boot 4 defaults to Jackson 3 and Jackson 2 support is deprecated: use tools.jackson.databind"
+    static final ArchRule NO_JACKSON_2 = noClasses().should()
+            .dependOnClassesThat(resideInAPackage("com.fasterxml.jackson..").and(not(resideInAPackage("com.fasterxml.jackson.annotation.."))))
+            .because("Boot 4 defaults to Jackson 3 and Jackson 2 support is deprecated: use tools.jackson.*"
                     + " (annotations stay in com.fasterxml.jackson.annotation)");
 
-    static final ArchRule NO_LOCAL_DATE_TIME_FIELDS = noFields().should().haveRawType(LocalDateTime.class)
-            .because("a LocalDateTime is no moment and no business day: store an Instant (timestamptz) or a LocalDate in the business zone;"
-                    + " a LocalDateTime local to one calculation is fine")
-            .allowEmptyShould(true);
+    static boolean involvesLocalDateTime(JavaType type) {
+        return type.getAllInvolvedRawTypes().stream().anyMatch(raw -> raw.isEquivalentTo(LocalDateTime.class));
+    }
+
+    static final ArchRule NO_LOCAL_DATE_TIME_FIELDS = fields().should(new ArchCondition<JavaField>("not hold a LocalDateTime") {
+        @Override
+        public void check(JavaField field, ConditionEvents events) {
+            if (involvesLocalDateTime(field.getType())) {
+                events.add(SimpleConditionEvent.violated(field, field.getFullName() + " holds a LocalDateTime"));
+            }
+        }
+    }).because("a LocalDateTime is no moment and no business day: store an Instant (timestamptz) or a LocalDate in the business zone;"
+            + " a LocalDateTime local to one calculation is fine").allowEmptyShould(true);
 
     static final ArchRule NO_LOCAL_DATE_TIME_SIGNATURES = codeUnits().should(new ArchCondition<JavaCodeUnit>("not take or return a LocalDateTime") {
         @Override
         public void check(JavaCodeUnit unit, ConditionEvents events) {
-            boolean uses = unit.getRawReturnType().isEquivalentTo(LocalDateTime.class)
-                    || unit.getRawParameterTypes().stream().anyMatch(type -> type.isEquivalentTo(LocalDateTime.class));
-            if (uses) {
+            if (involvesLocalDateTime(unit.getReturnType()) || unit.getParameterTypes().stream().anyMatch(LegacyApiGuardTest::involvesLocalDateTime)) {
                 events.add(SimpleConditionEvent.violated(unit, unit.getFullName() + " takes or returns a LocalDateTime"));
             }
         }
     }).because("a LocalDateTime is no moment and no business day: pass an Instant or a LocalDate in the business zone");
 
-    /** On the test classpath (spring-boot-resttestclient comes in transitively) but not loadable without its http client, so a test must not use it. */
+    /** On the test classpath (spring-boot-resttestclient comes in transitively), but Class.forName on it fails with NoClassDefFoundError. */
     static final ArchRule NO_TEST_REST_TEMPLATE = noClasses().should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.boot.resttestclient.TestRestTemplate")
             .because("Boot 4 tests call the API through RestTestClient or MockMvc");
 
@@ -85,17 +95,25 @@ class LegacyApiGuardTest {
     }
 
     @Test
-    @DisplayName("injection: each banned API in the sample is caught and the failure names its replacement")
+    @DisplayName("injection: RULES, as the production check runs them, catch each banned API in the sample and the failure names its replacement")
     void eachLegacyApiIsCaught() {
         JavaClasses sample = new ClassFileImporter().importClasses(LegacyApiSample.class);
-        for (var expected : List.of(List.of(NO_JAVAX, "javax.swing.Icon", "jakarta.*"), List.of(NO_REST_TEMPLATE, "RestTemplate", "RestClient"),
-                List.of(NO_TEST_REST_TEMPLATE, "TestRestTemplate", "RestTestClient"),
-                List.of(NO_JACKSON_2, "ObjectMapper", "tools.jackson.databind"), List.of(NO_LOCAL_DATE_TIME_FIELDS, "stamp", "Instant"),
-                List.of(NO_LOCAL_DATE_TIME_SIGNATURES, "when(java.time.LocalDateTime)", "LocalDate"))) {
-            ArchRule rule = (ArchRule) expected.get(0);
-            assertThatThrownBy(() -> rule.check(sample)).isInstanceOf(AssertionError.class)
-                    .hasMessageContaining((String) expected.get(1)).hasMessageContaining((String) expected.get(2));
-        }
+        List<String> reports = RULES.stream().map(rule -> rule.evaluate(sample).getFailureReport().toString()).toList();
+        String sampleName = LegacyApiSample.class.getName();
+        Map<String, String> caught = Map.of(
+                "javax.swing.Icon", "use jakarta.*",
+                "org.springframework.web.client.RestTemplate", "use RestClient",
+                "com.fasterxml.jackson.databind.ObjectMapper", "use tools.jackson.*",
+                sampleName + ".stamp holds", "store an Instant (timestamptz) or a LocalDate in the business zone",
+                sampleName + ".stamps holds", "store an Instant (timestamptz) or a LocalDate in the business zone",
+                sampleName + ".at(java.time.LocalDateTime) takes", "pass an Instant or a LocalDate in the business zone",
+                sampleName + ".made() takes", "pass an Instant or a LocalDate in the business zone",
+                sampleName + ".later() takes", "pass an Instant or a LocalDate in the business zone");
+        assertAll(caught.entrySet().stream().map(entry -> () -> assertThat(reports)
+                .as("one failure report names " + entry.getKey() + " and its replacement")
+                .anyMatch(report -> report.contains(entry.getKey()) && report.contains(entry.getValue()))));
+        assertThatThrownBy(() -> NO_TEST_REST_TEMPLATE.check(sample)).hasMessageContaining("org.springframework.boot.resttestclient.TestRestTemplate")
+                .hasMessageContaining("RestTestClient");
     }
 
     @Test
