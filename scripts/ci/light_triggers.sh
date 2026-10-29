@@ -115,7 +115,8 @@ report() {  # 等已起跑的各项都结束，按起跑顺序打印还没打印
       printf 'SKIP  %-46s %s\n' "$name" "$(cat "$work/$shown.skip")"
       skipped=$((skipped + 1))
     else
-      read -r code took <"$work/$shown.rc"
+      code="" took=0
+      read -r code took 2>/dev/null <"$work/$shown.rc" || code=${code:-"没写出退出码（检查被杀或中途退出）"}  # 读不到结果算失败，不沿用上一项
       if [ "$code" = 0 ]; then
         printf 'PASS  %-46s %4d s\n' "$name" "$took"
         passed=$((passed + 1))
