@@ -10,7 +10,10 @@
     "role_rules_max": 3,
     "total_max_kb": 20,
     "total_max_items": 25,
-    "branch_rule_change_alert_hours": 24
+    "branch_rule_change_alert_hours": 24,
+    "_size_note": "Agent-read files are English, so 1 KB = 1024 UTF-8 bytes (as build_decisions.py counts), about one character each (decision 2026-10-29-144628). startup_read_max_kb caps what one code session must read at start: root and directory CLAUDE.md, coding core, role, playbook, handoff. The check that reads these keys comes from #810; the unread keys above are cleaned up by the follow-up card.",
+    "coding_core_max_kb": 6,
+    "startup_read_max_kb": 12
   },
   "start": {
     "_说明": "handoff_max_kb：工具库 handoff.py 写交接文件的上限；开工单 start_sheet 注入交接时也截到这个长度（#752）。",

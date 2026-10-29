@@ -1,26 +1,8 @@
-# 编码规范 — FORCITIS one
+# 编码规范细则 — FORCITIS one
+
+核心页在 `docs/rules/coding-core.md`；本文件按编号（CS-x.y）查。
 
 日期：2026-10-15 · 用户要求：问编码规范是否需要完善，建议 A 合并为本文件唯一来源、B 补语言层规范、C 交付前自查命令、D 派工卡模板：「A–D 全做」（intent `2026-10-15-014844-one-coordinator-…`）
-
-## 黄金样板
-
-每类一种写法，照「为何」写；标「现」的为样板偏差，#812 修。
-
-| 构件 | 样板 | 为何 |
-|---|---|---|
-| 用例 | `SubmitTimesheet:65` | execute 上 `@Transactional`，一个聚合，save 后 publish |
-| 调用者 | `SubmitTimesheet:66` | 注入 `CurrentUser`，不收 `UserId caller`（现在 identity） |
-| 数据范围 | `GetOrgUnit:31` | 用例注入 `OrgUnitAccess`；范围外答找不到并审计（现由参数传入） |
-| 控制器 | `OrgUnitController:33` | 只转换、调用例；200 返回 record，非 200 或带头才 `ResponseEntity`（现算范围、收 caller） |
-| 仓储 | `JdbcRoleRepository:117` | 文本块小写 SQL，命名参数，版本条件更新 |
-| 事件 | `ApplyApprovalResult:41` | application 中 `@ApplicationModuleListener`，先去重 |
-| 时间 | `JdbcRoleRepository:347` | `Instant` + `BusinessZone`；JDBC 用 `OffsetDateTime`，不用 `Timestamp` |
-| ID | `CreateLegalEntity:29` | 注入 `IdGenerator`，不调 `randomUUID` |
-| 金额 | `ExactMoney:25` | 计算用 `ExactMoney` 不舍入，`round()` 成 `Money` 时 HALF_UP 到分；合计 = 各行舍入后之和（FD-02/07/08） |
-| 流程 | `FlowableApprovalEngine:54` | Flowable 只在适配器，业务经 `ApprovalProcesses` |
-| 单元测试 | `TimesheetStateMachineTest:62` | 不起 Spring，固定日期 |
-| 集成测试 | `AuditExportAndOwnRecordsIT:36` | MockMvc + `TestPostgres.database` |
-| 验收测试 | `WorkCalendarMakeUpWeekendIT:38` | 同上，`@DisplayName` 以卡号开头 |
 
 ## 0. 适用范围与优先级
 
@@ -30,7 +12,7 @@
 
 | 文档 | 管什么 | 不管什么 |
 |---|---|---|
-| 本文件 `docs/rules/coding-standard.md` | **怎么写代码**：通用写法、语言层规范、测试、日志与密钥、交付前自查。编码规则的唯一入口（原 METHODS M5、M6 的代码规则已并入各行，出处栏标「原 METHODS M5」等） | 命名与 DDL 的细则、会话流程 |
+| 本文件 `docs/rules/coding-standard.md` | **怎么写代码**：通用写法、语言层规范、测试、日志与密钥、交付前自查。编码细则（原 METHODS M5、M6 的代码规则已并入各行，出处栏标「原 METHODS M5」等）；入口是核心页 `docs/rules/coding-core.md` | 命名与 DDL 的细则、会话流程 |
 | `docs/rules/naming-standard.md`（简称 NAMING_STANDARD） | **叫什么、放哪里**：词源、类名后缀、包结构、列名类别词、约束与索引命名、DDL 设计原则（§2.4a）、守护 G1–G48 / F1–F14 / D1–D3 | 写法与流程 |
 | `docs/rules/data-design-checklist.md`（简称 DATA_DESIGN_CHECKLIST） | **数据怎么设计**：DDD 与数据架构检查清单 §14、§14.1，迁入 §14.2，集成 §14.3 | 具体写法 |
 | `CLAUDE.md`、`docs/rules/rules.md`（流程）、`docs/rules/playbooks/`（按卡类型的步骤） | 最硬的规则摘要与指向、会话与交付流程；复审按 `scripts/review/PROMPT.md` | 细则（以本文件与上两份为准） |
@@ -62,7 +44,7 @@
 | CS-1.12 | **深模块、窄接口**：模块对外只有 `api` 与 `events`；`api` 方法总数 ≤ 12；前端模块经 `index.ts` 导出 ≤ 8 | NAMING_STANDARD §0 | 守护：G1–G4、G30、F1–F4、F12、F13 |
 | CS-1.13 | **生成的代码只放 `generated/`，不手改**；改生成器或源契约后重新生成 | NAMING_STANDARD §5 | 守护：前端 `pnpm check:generated` |
 | CS-1.14 | **系统名称**：新系统写 FORCITIS one，老系统写「老系统」（英文 the legacy system），不用旧缩写指代系统；老路径、表名、接口、代码标识、仓库名、会话名与用户原话照原样 | CLAUDE.md（用户 2026-10-14） | 复审 |
-| CS-1.15 | 一个文件一个顶层类型；单文件 ≤ 400 行、单方法 ≤ 60 行 | NAMING_STANDARD §5；§4「计划补充的守护」 | 复审（Checkstyle 守护计划中，未实现） |
+| CS-1.15 | 一个文件一个顶层类型；单文件超 1000 行必改（硬上限，与 `scripts/review/PROMPT.md` 一致）；宜单文件 ≤ 400 行、单方法 ≤ 60 行，超出作复审建议 | NAMING_STANDARD §5 | #810 行数检查（待建）；复审 |
 
 ## 2. Java / Spring（DDD 落地）
 
@@ -241,3 +223,4 @@
 | Q-2 | §0 的优先级顺序（用户原话 > 已采纳 ADR > 规格与规则卡 > 三份规范 > 现有代码）是否认可 | 建议认可 |
 | Q-4 | `organization.workforce.domain` 中 `SourceTerms`、`SnapshotReconciler`、`EmployeeChecks` 引用 `Source*`：把翻译移到 `application`（或新的防腐翻译包），还是登记为同步防腐层例外 | 建议移到 application 层的翻译类，domain 只见自有类型；走结构性重构批 |
 | Q-6 | 覆盖率门槛：GUIDING_PRINCIPLES §9 写「行 ≥ 80%、分支 ≥ 70%」，CI `backend_verify.sh` 为 `-Djacoco.skip=true`，门槛无人检查：恢复进 CI，还是在 GUIDING_PRINCIPLES 写明「复审参考，不作门槛」 | 待用户决定 |
+| Q-7 | 技术栈待核（未核实，不作规则）：Testcontainers 2 的 `PostgreSQLContainer` 新包名；Security 7 去掉 `.and()` 与 `AntPathRequestMatcher`；等待库用 Awaitility（未引入） | #810 核实后进核心页 D 表 |

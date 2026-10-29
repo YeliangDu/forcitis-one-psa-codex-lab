@@ -1,5 +1,6 @@
 # backend 须知
 
+- 先读：`docs/rules/coding-core.md` 全文，再按下列指向查细则
 - 写代码：`docs/rules/coding-standard.md`（Java/Spring 看「2. Java / Spring」，测试看「5. 测试」，交付前看「7. 交付前自查与 PR」）
 - 命名与包结构：`docs/rules/naming-standard.md`「2. 命名规则」「3. 包结构」
 - 接口：`docs/rules/naming-standard.md`「2.6 HTTP 接口约定」

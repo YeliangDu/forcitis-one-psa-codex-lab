@@ -20,8 +20,8 @@ class JdbcConsumedEvents implements ConsumedEvents {
     @Override
     public boolean firstTime(UUID eventId, String consumerName) {
         return jdbc.sql("""
-                INSERT INTO cost_timesheet.consumed_events (consumed_event_id, event_id, consumer_name) VALUES (:id, :event, :consumer)
-                ON CONFLICT (event_id, consumer_name) DO NOTHING
+                insert into cost_timesheet.consumed_events (consumed_event_id, event_id, consumer_name) values (:id, :event, :consumer)
+                on conflict (event_id, consumer_name) do nothing
                 """)
                 .param("id", ids.next()).param("event", eventId).param("consumer", consumerName).update() == 1;
     }

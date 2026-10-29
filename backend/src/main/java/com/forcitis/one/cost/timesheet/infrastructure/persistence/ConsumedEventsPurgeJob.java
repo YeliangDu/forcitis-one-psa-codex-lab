@@ -1,8 +1,10 @@
 package com.forcitis.one.cost.timesheet.infrastructure.persistence;
 
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +47,10 @@ class ConsumedEventsPurgeJob {
         LOG.info("cost.timesheet removed {} handled-event records older than {}", deleteOlderThan(clock.instant().minus(keepPeriod)), keepPeriod);
     }
 
-    private int deleteOlderThan(java.time.Instant cutoff) {
-        return jdbc.sql("DELETE FROM cost_timesheet.consumed_events WHERE consumed_at < :cutoff").param("cutoff", Timestamp.from(cutoff)).update();
+    private int deleteOlderThan(Instant cutoff) {
+        return jdbc.sql("""
+                delete from cost_timesheet.consumed_events where consumed_at < :cutoff
+                """)
+                .param("cutoff", OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC)).update();
     }
 }
