@@ -1,19 +1,19 @@
-# 剧本：缺陷修复
-你负责根因与修复。每一行改动都要有运行证据；「可能有用」的保险性改动不进。
-1. 在自己的工作区，从同一入口先复现；复现不了就收紧条件或加观测，不凭猜。
-2. 列候选假设，用运行证据逐个排除到只剩一个；生产只读取证，只出聚合。
-3. 确认机理后再动手；证据推翻假设，就回退由它引出的改动。
-4. 先提交会红的复现测试，再提交修复；掩盖症状的防御代码不进。
-5. 从同一入口验证原复现已通过；跑受影响的测试加 `scripts/ci/light.sh`。
-6. 只交证据支持的最小改动，只改卡上文件，不顺手重构、改名或统一风格；顺手发现的别的缺陷报 lead 另开卡。
-7. 同类缺陷可能再犯的，提议一条机器检查（light.sh 或 ArchUnit），并证明它在这次的错误上会红。
-8. 按 `scripts/review/PROMPT.md` 自派复审，结论绑定 head 与 patch-id；开 PR，自己入队，回读结果。
-9. 修复要改验收测试或要取舍业务：停下报 lead。
+# 剧本：bugfix
+You own root cause and fix. Every changed line needs run evidence; no "might help" changes.
+1. Reproduce from the same entry point first; if you can't, narrow the conditions or add observation, never guess.
+2. List hypotheses and eliminate them with run evidence until one remains; production is read-only, aggregates only.
+3. Change code only once the mechanism is confirmed; if evidence overturns a hypothesis, revert what it led to.
+4. Commit the failing reproduction test before the fix; no symptom-masking defensive code.
+5. Verify the original reproduction now passes from the same entry; run affected tests plus `scripts/ci/light.sh`.
+6. Ship only the minimal change the evidence supports, only in the card's files; other bugs you notice go to lead as new cards.
+7. If the same kind of bug can recur, propose a machine check (light.sh or ArchUnit) and show it goes red on this bug.
+8. Review per CLAUDE.md; the verdict binds head and patch-id. Open the PR, enqueue, read back the result.
+9. If the fix needs an acceptance test changed or a business trade-off: stop and tell lead.
 
 回报必含：
-- 卡号、PR 号、head
-- 什么坏了、根因、修复
-- 决定性的失败与通过输出（只留断言与计数）
-- 被排除的假设及依据
-- 复审：模型、head、patch-id、结论
-- 未决项
+- card, PR, head
+- what broke, root cause, fix
+- the decisive failing and passing output (assertions and counts only)
+- hypotheses ruled out and the evidence
+- review: model, head, patch-id, verdict
+- open items
