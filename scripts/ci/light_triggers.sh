@@ -1,7 +1,7 @@
 # shellcheck shell=bash disable=SC2034,SC2154  # 被 source 的库：变量在读入方用，base 与 changed 由读入方设
 # light.sh 的辅助：按改动触发的检查（GOV-1023-FV2 gap-2；#742 起含各脚本自测）与字节码清理（#693）；由 light.sh 与 light_selftest.sh 用 source 读入，不单独运行。
 # 路径模式照搬原 precheck.sh 的 touches 模式（ERE，对仓库相对路径）；改动＝相对基线的提交、未提交与未跟踪文件；没有基线（$base 为空）时全算改到。
-# 读入方须先设 base（基线，可为空）与 changed（改动列表文件，一行一个路径）。Bash 3.2 可用。
+# 读入方须先设 base（基线，可为空）与 changed（改动列表文件，一行一个路径）；用 run、skip、report 还须设 work（临时目录）与 passed=0 failed=0 skipped=0 count=0 shown=0。Bash 3.2 可用。
 
 t_shell='\.sh$'
 # 自测只在被测脚本或它读的仓库文件改了才跑（#742）：自测的结果只随这些文件变；推到 main（LIGHT_ALL=1）与没有基线时全跑，兜住环境变化
@@ -90,6 +90,44 @@ var_before_non_ascii() {  # 仓库里的 shell（*.sh、工作流 run 段、.cla
   local hits
   hits=$(git ls-files -z '*.sh' .github/workflows .claude/settings.json | LC_ALL=C xargs -0 grep -nE $'\\$[A-Za-z_][A-Za-z0-9_]*[\x80-\xff]')
   [ -z "$hits" ] || { printf '$VAR 后紧跟非 ASCII 字符，改成 ${VAR}：\n%s\n' "$hits" >&2; return 1; }
+}
+
+run() {  # run <名字> <命令…>：后台起跑，各项互不依赖，并行；结果由 report 按起跑顺序打印（PASS 或 FAIL 加用时，失败时附最后 30 行）
+  local name=$1 i=$count
+  shift
+  printf '%s' "$name" >"$work/$i.name"
+  (started=$SECONDS; "$@" >"$work/$i.log" 2>&1; echo "$? $((SECONDS - started))" >"$work/$i.rc") &
+  count=$((count + 1))
+}
+
+skip() {  # skip <名字> <原因>：前提不满足，记 SKIP 与原因，不算失败
+  printf '%s' "$1" >"$work/$count.name"
+  printf '%s' "$2" >"$work/$count.skip"
+  count=$((count + 1))
+}
+
+report() {  # 等已起跑的各项都结束，按起跑顺序打印还没打印的结果
+  local name code took
+  wait
+  while [ "$shown" -lt "$count" ]; do
+    name=$(cat "$work/$shown.name")
+    if [ -f "$work/$shown.skip" ]; then
+      printf 'SKIP  %-46s %s\n' "$name" "$(cat "$work/$shown.skip")"
+      skipped=$((skipped + 1))
+    else
+      code="" took=0
+      read -r code took 2>/dev/null <"$work/$shown.rc" || code=${code:-"没写出退出码（检查被杀或中途退出）"}  # 读不到结果算失败，不沿用上一项
+      if [ "$code" = 0 ]; then
+        printf 'PASS  %-46s %4d s\n' "$name" "$took"
+        passed=$((passed + 1))
+      else
+        printf 'FAIL  %-46s %4d s（退出 %s）\n' "$name" "$took" "$code"
+        tail -n 30 "$work/$shown.log" | sed 's/^/      | /'
+        failed=$((failed + 1))
+      fi
+    fi
+    shown=$((shown + 1))
+  done
 }
 
 pyc() {  # 被忽略的未跟踪字节码，未跟踪目录折叠成一行；-z 防非 ASCII 路径被加引号；一个没有也返回 0

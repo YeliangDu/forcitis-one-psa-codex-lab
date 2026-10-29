@@ -102,6 +102,19 @@ printf '#!/bin/sh\nfor c in $FAKE_REPORTS; do : > "target/surefire-reports/TEST-
 (cd "$fake" && FAKE_REPORTS="ATest BTest" FAKE_EXIT=1 surefire_guards 2>/dev/null) && no "surefire_guards：Maven 失败时应失败"
 (cd "$fake" && FAKE_REPORTS="ATest BTest" surefire_guards 2>/dev/null) || no "surefire_guards：两个类都出了报告时应通过"
 
+# run、skip、report：并行起跑，按起跑顺序打印；失败计 FAIL 并附输出，SKIP 带原因
+work=$tmp/par && mkdir -p "$work" && passed=0 failed=0 skipped=0 count=0 shown=0
+run slow bash -c 'sleep 1; echo one'
+run vanished bash -c 'sleep 1; kill -9 $PPID'
+run broken bash -c 'echo boom; exit 3'
+skip absent "no input"
+report >"$tmp/report.out" 2>/dev/null
+out=$(cat "$tmp/report.out")
+[ "$passed $failed $skipped" = "1 2 1" ] || no "report 计数不对：$passed PASS $failed FAIL $skipped SKIP"
+printf '%s\n' "$out" | grep -q '^FAIL  broken.*退出 3' && printf '%s\n' "$out" | grep -q '      | boom' || no "失败项要报 FAIL、退出码与输出：$out"
+printf '%s\n' "$out" | grep -q '^FAIL  vanished' || no "没写出退出码的检查要记 FAIL，不能沿用上一项：$out"
+[ "$(printf '%s\n' "$out" | grep -oE '^(PASS|FAIL|SKIP)  [a-z]+' | awk '{print $2}' | tr '\n' ' ')" = "slow vanished broken absent " ] || no "结果要按起跑顺序打印：$out"
+
 # list_changed：在临时仓库里核对三种来源、特殊字符文件名、git 出错时返回非零
 repo=$tmp/repo
 git init -q "$repo" && cd "$repo" || exit 2

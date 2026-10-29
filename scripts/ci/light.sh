@@ -28,26 +28,8 @@ if [ -n "$base" ] && ! list_changed "$changed"; then
   exit 2
 fi
 
-passed=0 failed=0 skipped=0
+passed=0 failed=0 skipped=0 count=0 shown=0
 started_all=$SECONDS
-
-run() {  # run <名字> <命令…>：PASS 或 FAIL 加用时；输出只在失败时显示最后 30 行
-  local name=$1 log="$work/$((passed + failed)).log" started=$SECONDS
-  shift
-  if "$@" >"$log" 2>&1; then
-    printf 'PASS  %-46s %4d s\n' "$name" $((SECONDS - started))
-    passed=$((passed + 1))
-  else
-    printf 'FAIL  %-46s %4d s（退出 %s）\n' "$name" $((SECONDS - started)) "$?"
-    tail -n 30 "$log" | sed 's/^/      | /'
-    failed=$((failed + 1))
-  fi
-}
-
-skip() {
-  printf 'SKIP  %-46s %s\n' "$1" "$2"
-  skipped=$((skipped + 1))
-}
 
 against_base() {  # against_base <名字> <命令…>：命令后面接上基线；没有基线时 SKIP
   local name=$1
@@ -109,7 +91,9 @@ while IFS='|' read -r key name cmd; do
   # shellcheck disable=SC2086
   if touches "${!key}"; then run "$name" $cmd; else skip "$name" "相关路径没改（按改动触发）"; fi
 done <<<"$TRIGGERED_CHECKS"
+report
 run "remove __pycache__ left by this run" rm_new_pyc
+report
 
 echo
 echo "light.sh：$passed PASS，$failed FAIL，$skipped SKIP，共 $((SECONDS - started_all)) 秒（基线 ${base:-无}）"
