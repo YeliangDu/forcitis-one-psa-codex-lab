@@ -43,6 +43,7 @@ t_guards|term_rules (self-test)|python3 scripts/guards/term_rules.py --self-test
 t_guards|check_names (self-test)|python3 -I scripts/guards/check_names.py --self-test
 t_guards|check_playbooks (self-test)|python3 -I scripts/guards/check_playbooks.py --self-test
 t_guards|policy_keys_read (self-test)|python3 -I scripts/guards/policy_keys_read.py --self-test
+t_guards|file_lines (self-test)|python3 -I scripts/guards/file_lines.py --self-test
 t_evidence_imports|evidence tools: imports resolve (self-test)|python3 -I scripts/ci/evidence_imports.py --self-test
 t_gates|gates (gates_selftest.py)|python3 scripts/gates/gates_selftest.py
 t_session|build_decisions (self-test)|python3 scripts/session/build_decisions.py --self-test
