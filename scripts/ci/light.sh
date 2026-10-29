@@ -72,7 +72,7 @@ rule "只在生产上跑的取证工具缺模块、缺名字或缺同目录文�
 run "evidence tools: imports resolve" python3 -I scripts/ci/evidence_imports.py
 rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替用户拍板；CLAUDE.md、规则、角色、PROMPT.md、PR 模板或脚本说明点名不存在的路径（P6）" "按输出的规则号改 rules/playbooks/、.github/ISSUE_TEMPLATE/card.md 或所列文件"
 run "playbooks and the card template are well-formed" python3 -I scripts/guards/check_playbooks.py
-rule "规则或角色文件的「Enforced by」点名了不存在的脚本、作业或工具（规则看似有人执行，实则没有）" "按输出的 RE 规则号改成真实的检查名，或写 manual: <角色> / <频次>"
+rule "规则或角色文件的「Enforced by」、编码与命名规范的检查列点名了不存在的脚本、作业、测试或工具，或 coding-core §A 的范例类与成员不存在（规则看似有人执行，实则没有）" "按输出的 RE 规则号改成真实的检查名，或写 manual: <角色> / <频次>（规范表里写 manual: review、planned: <编号>）"
 run "every rule names an enforcer that exists" python3 -I scripts/guards/check_rules_enforced.py
 rule "policy.json 有数值或字符串键没有脚本读、也没登记为规则文本读者（上限或名字看似生效、实则无人执行）" "按输出的 PK 规则号删键，或让需要它的检查读它，或在 policy_keys_read.py 的 RULE_READERS 登记"
 run "every numeric or string policy.json key has a reader" python3 -I scripts/guards/policy_keys_read.py
