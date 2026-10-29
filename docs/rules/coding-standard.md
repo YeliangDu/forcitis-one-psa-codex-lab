@@ -2,6 +2,26 @@
 
 日期：2026-10-15 · 用户要求：问编码规范是否需要完善，建议 A 合并为本文件唯一来源、B 补语言层规范、C 交付前自查命令、D 派工卡模板：「A–D 全做」（intent `2026-10-15-014844-one-coordinator-…`）
 
+## 黄金样板
+
+每类一种写法，照样板写；样板偏差由 #812 迁移。
+
+| 构件 | 样板 | 为何 |
+|---|---|---|
+| 用例 | `SubmitTimesheet:65` | execute 上 `@Transactional`，一个聚合，save 后 publish |
+| 调用者 | `SubmitTimesheet:66` | 注入 `CurrentUser`（迁入 kernel），不收 `UserId caller` |
+| 数据范围 | `GetOrgUnit:31` | 用例注入 `OrgUnitAccess`；范围外答找不到并审计 |
+| 控制器 | `OrgUnitController:33` | 薄；200 返回 record，非 200 或带头才 `ResponseEntity` |
+| 仓储 | `JdbcTimesheetRepository:73` | 文本块小写 SQL，命名参数，版本条件更新 |
+| 事件 | `ApplyApprovalResult:41` | application 中 `@ApplicationModuleListener`，先去重 |
+| 时间 | `JdbcRoleRepository:347` | `Instant` + `BusinessZone`；JDBC 用 `OffsetDateTime`，不用 `Timestamp` |
+| ID | `CreateLegalEntity:29` | 注入 `IdGenerator`，不调 `randomUUID` |
+| 金额 | `Money:10` | 数值带币种，禁裸 `BigDecimal` |
+| 流程 | `FlowableApprovalEngine:54` | Flowable 只在适配器，业务经 `ApprovalProcesses` |
+| 单元测试 | `TimesheetStateMachineTest:62` | 不起 Spring，固定日期 |
+| 集成测试 | `AuditExportAndOwnRecordsIT:36` | MockMvc + `TestPostgres.database` |
+| 验收测试 | `TimesheetEmployeeDayUniqueIT:63` | 同上，`@DisplayName` 以卡号开头 |
+
 ## 0. 适用范围与优先级
 
 **适用范围**：FORCITIS one 仓库中的全部新代码——后端（Java / Spring Boot / Spring Modulith）、数据库迁移与 SQL、前端（React + TypeScript，PC `apps/web`，H5 `apps/h5`（Taro））、测试、CI 与交付脚本。人和代理（Claude 会话、子代理）同样适用。
@@ -221,24 +241,3 @@
 | Q-2 | §0 的优先级顺序（用户原话 > 已采纳 ADR > 规格与规则卡 > 三份规范 > 现有代码）是否认可 | 建议认可 |
 | Q-4 | `organization.workforce.domain` 中 `SourceTerms`、`SnapshotReconciler`、`EmployeeChecks` 引用 `Source*`：把翻译移到 `application`（或新的防腐翻译包），还是登记为同步防腐层例外 | 建议移到 application 层的翻译类，domain 只见自有类型；走结构性重构批 |
 | Q-6 | 覆盖率门槛：GUIDING_PRINCIPLES §9 写「行 ≥ 80%、分支 ≥ 70%」，CI `backend_verify.sh` 为 `-Djacoco.skip=true`，门槛无人检查：恢复进 CI，还是在 GUIDING_PRINCIPLES 写明「复审参考，不作门槛」 | 待用户决定 |
-
-
-## 黄金样板
-
-一类构件只用一种写法。新代码照「写法」列与样板文件写；样板与本节不一致处以本节为准，样板的已知偏差列在「现存偏差」，由 #812 第 2 步逐模块迁移；「不用」列的写法不得新增。路径前缀 `B` = `backend/src/main/java/com/forcitis/one/`，`T` = `backend/src/test/java/com/forcitis/one/`。
-
-| # | 构件 | 写法 | 样板 | 不用 | 现存偏差 | 检查 |
-|---|---|---|---|---|---|---|
-| GS-1 | 用例 | application 中 `@Service public class`，动宾命名，包内可见构造器注入；唯一 public 方法 `execute`，`@Transactional` 标在它上面；只写一个聚合：`repository.save(aggregate)` 后 `events.publish(aggregate)`；登录的调用者与数据范围从注入的端口取（GS-2、GS-3），不作参数；来自事件或系统身份的操作人是数据，照常作参数 | `B/cost/timesheet/application/SubmitTimesheet.java` | 用例参数里收当前登录人（`UserId caller` / `actor`）或 `OrgUnitAccess.Visible` | 见 GS-2、GS-3 | 守护：G27、`SingleAggregateGuardTest`、`transactionsOnlyInApplication` |
-| GS-2 | 调用者身份 | 用例注入 `CurrentUser`；controller 不取调用者。`CurrentUser` 与 `OrgUnitAccess`、`CallerPermissions`、`AccountEmployees` 一样是 identity 实现的内核端口，放 `kernel` | `SubmitTimesheet.java`（`currentUser.employeeId()`） | controller 参数 `UserId caller`（`CallerUserIdResolver`）；`platform.identity.api.CurrentUser` | `CurrentUser` 仍在 `platform.identity.api`；workforce、audit、file、integration 的 controller 收 `UserId caller` 并下传 | 第 3 步：web 处理方法不收 `UserId`；application 方法参数不叫 `caller` |
-| GS-3 | 数据范围 | 用例注入 `OrgUnitAccess`，用本用例的权限码取可见范围；范围外与不存在答得一样（找不到），并独立记一条审计。本人单据的归属检查是聚合规则（如 `Timesheet` 的 `requireOwner`），不属此条 | `B/organization/workforce/application/GetOrgUnit.java`（判定与审计） | controller 计算 `access.visibleOrgUnits(...)` 再传给用例 | `GetOrgUnit` 等 4 个 workforce 用例由参数收范围与调用者 | 第 3 步：web 不依赖 `OrgUnitAccess` |
-| GS-4 | 控制器 | web 中包内可见 `@RestController`，`@RequestMapping("/api/v1/...")`；每个处理方法 `@PreAuthorize("hasAuthority('" + 权限常量 + "')")`；只做入参转换、调一个用例、出参映射。状态 200 且只有响应体：直接返回响应 record；状态不是 200、随结果变化或要设响应头：`ResponseEntity`；ETag 只经 `ExpectedVersion.etag(...)` | `B/organization/workforce/web/OrgUnitController.java` | `ResponseEntity.ok(body)` 不带头；手拼 ETag | `OrgUnitController` 带 GS-2、GS-3 的偏差；`ApprovalTaskController` 手拼 ETag | 守护：G28、`controllersAreVersioned`、`everyHandlerIsAuthorizedOrExplicitlyPublic`；ETag 第 3 步 |
-| GS-5 | JdbcClient 仓储 | infrastructure.persistence 中包内可见 `Jdbc*Repository` 实现 domain 端口；SQL 一律文本块 `"""`，关键字小写，表名带 schema，命名参数 `:name` + `.param(...)`；列清单可用 `static final` 常量拼接；单行查找 `.optional()`，加锁读 `for update`；带版本的更新写 `where id = :id and version = :version`，影响行数不是 1 抛 `KERNEL_CONCURRENT_CHANGE`；唯一约束冲突按约束名翻译为本模块错误码；行映射手写到聚合的 `restore(...)` | `B/cost/timesheet/infrastructure/persistence/JdbcTimesheetRepository.java` | 单行 SQL 字符串、大写关键字、`JdbcTemplate` / `NamedParameterJdbcTemplate`、反射映射 | 单行 SQL 92 处（各模块都有）；timesheet、approval、integration 用大写关键字；样板本身有单行 SQL、大写关键字与 `Timestamp` | 守护：`jdbcOnlyInInfrastructure`、`repositoriesFollowPortAdapterNaming`；SQL 文本块与小写第 3 步 |
-| GS-6 | 事件发布与监听 | 聚合登记事件，用例 `events.publish(aggregate)`（`kernel.event.DomainEvents`）；监听者在 application，包内可见方法 `on(事件)` 标 `@ApplicationModuleListener`，先用 `ConsumedEvents.firstTime(eventId, CONSUMER)` 去重；要对外发送的经端口交给 infrastructure | 发布：`SubmitTimesheet.java`；监听：`B/cost/timesheet/application/ApplyApprovalResult.java` | `@EventListener`、`@TransactionalEventListener`、直接注入 `ApplicationEventPublisher`、infrastructure 中的监听者 | `B/platform/approval/infrastructure/notification/TaskNotifier.java` 在 infrastructure 监听 | 守护：`noMethodsAnnotatedWithEventListenerOutsideModuleListener`；监听者位置第 3 步 |
-| GS-7 | 时间 | 时刻用 `Instant`（`clock.instant()`），业务日用 `LocalDate`（`BusinessZone.today(clock)`）；JDBC 绑定时刻用 `OffsetDateTime.ofInstant(instant, ZoneOffset.UTC)`，读取用 `rs.getObject(列, OffsetDateTime.class).toInstant()`（pgjdbc 不收 `Instant`）；`OffsetDateTime` 只出现在 JDBC 边界 | 业务日：`SubmitTimesheet.java`；JDBC 边界：`B/platform/identity/infrastructure/persistence/JdbcRoleRepository.java` | `java.sql.Timestamp`、`LocalDateTime`（解析不带时区的外部文本并当场转 `Instant` 的登记例外）、`ZonedDateTime`、`java.util.Date` | `Timestamp` 30 个文件；`LocalDateTime`：workforce `SnapshotFreshness`、integration `ClamdReply`（后者为外部文本） | 守护：`TimeSourceGuardTest`、`generalCodingRules`；`Timestamp` 与 `LocalDateTime` 第 3 步 |
-| GS-8 | ID | 自有聚合 ID 由注入的 `IdGenerator` 生成；其他随机值用 `kernel.Uuids` | `B/organization/workforce/application/CreateLegalEntity.java` | `UUID.randomUUID()` | `OperationsCommands` 登记在 `backend/architecture/random-uuid-exceptions.txt` | 守护：`IdMakingGuardTest`（例外清单清空后不再收新行） |
-| GS-9 | 金额 | 金额只用 `kernel.Money`（数值 + 币种，构造时定标度）；数量与工时同型（`kernel.Hours`） | `B/kernel/Money.java`；用法同型：`B/cost/timesheet/domain/Timesheet.java` 的 `Hours` | 裸 `BigDecimal` / `double` / `long` 金额字段、`BigDecimal.equals`、`new BigDecimal(double)` | 尚无业务模块使用 `Money` | 守护：`moneyIsNeverABareDecimal`、`noBigDecimalEqualsInBusinessCode` |
-| GS-10 | 流程引擎 | 业务模块只经 `platform.approval.api.ApprovalProcesses`；Flowable 只在 `platform.approval.infrastructure.flowable`，以适配器实现 domain 端口 `ApprovalEngine` | 适配器：`B/platform/approval/infrastructure/flowable/FlowableApprovalEngine.java`；调用方：`B/cost/timesheet/application/CancelTimesheet.java` | 业务模块引用 `org.flowable..` 或 approval 内部类型 | 无 | 守护：`flowableOnlyInsideApprovalInfrastructure`、Modulith |
-| GS-11 | 单元测试 | JUnit + AssertJ，不起 Spring；用固定日期，需要时刻用 `Clock.fixed(...)`；`@DisplayName` 以依据编号开头 | `T/cost/timesheet/domain/TimesheetStateMachineTest.java` | `assertEquals`、`Thread.sleep`、运行时刻 | 无 | 复审；`Thread.sleep` 见 G-C8 |
-| GS-12 | 集成测试 | `@SpringBootTest` + `@AutoConfigureMockMvc`，`MockMvc` 发 HTTP 走鉴权；库用 `TestPostgres.database(本类.class, TestPostgres.MIGRATED)` + `@DynamicPropertySource`；别的模块与外部系统用 `@MockitoBean`；异步用 Awaitility 或 Modulith `Scenario` | `T/platform/audit/AuditExportAndOwnRecordsIT.java` | 每类自起容器（读服务器日志等登记例外除外）、`@MockBean`、`TestRestTemplate`、mock 本模块 | 无 | 守护：`TestContainerGuardTest`、`TestIsolationGuardTest` |
-| GS-13 | 验收测试 | 放 `T/acceptance/`，测试工程师先提交（CS-5.3）；写法同 GS-12；`@DisplayName` 以卡号或规则号开头 | `T/acceptance/cost/timesheet/TimesheetEmployeeDayUniqueIT.java` | 同 GS-12 | 无 | 守护：`scripts/guards/acceptance_guard.py`、GS-12 的守护 |
