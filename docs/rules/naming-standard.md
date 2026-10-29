@@ -1,582 +1,515 @@
-# 命名、包结构与架构守护规范 — FORCITIS one 现代化
+# Naming, package structure and architecture guards — FORCITIS one modernisation
 
-日期：2026-10-14 · 适用范围：`reimagine` 产出的全部新代码（后端、PC、H5、数据库、事件、API）
+Date: 2026-10-14. Scope: all new code produced by `reimagine` (backend, PC, H5, database, events, API).
 
-N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）；词源与指称结构由 one-glossary 负责，投影、格式与守护清单由 one-architecture 负责（ADR-0053 决定 7.2）。
+N3 detail update: 2026-10-17, NAM-1017-ARC-04 (rework round 2). The glossary owns word sources and designation structure; one-architecture owns projection, format and the guard list (ADR-0053 decision 7.2).
 
-用户诉求原话：
+User's request, in the user's own words:
 - 「可以在现代化过程中规范命名吗？将原代码的命名和编码规范化」
 - 「命名要符合英文、行业、规范的习惯，agent 开发友好。而且要考虑 archunit 和包结构来保证目录结构不会让 agent 犯错。」
 - 「一些基本的原则：深模块、窄接口，要给 agent 约束，避免错代码」
 
-**结论**：新系统是重建（reimagine），老代码的名字和目录一律不沿用。规范的落地分三层：
+**Conclusion**: the new system is a rebuild (reimagine); old code names and directories are never reused. The standard lands in three layers:
 
-1. **词源**：每个英文名都来自词表。
-2. **结构**：用固定的包结构决定代码「放哪里」。
-3. **守护**：用 Modulith 和 ArchUnit 让放错位置、起错名字、越过边界的代码在 CI 中失败，失败信息里直接写明该怎么改。
+1. **Word source**: every English name comes from the glossary.
+2. **Structure**: a fixed package structure decides where code goes.
+3. **Guards**: Modulith and ArchUnit make misplaced code, wrong names and boundary crossings fail in CI, with the failure message saying how to fix it.
 
-相关决策见 `docs/adr/ADR-0003.md`、`ADR-0004.md`、`ADR-0005.md`、`ADR-0006.md`。本文件中的 `DATA_DESIGN_CHECKLIST`、`NAMING_STANDARD`、`CODING_STANDARD` 是 `docs/rules/data-design-checklist.md`、`naming-standard.md`、`coding-standard.md` 的简称（测试与 ADR 以简称加节号引用）。
+Related decisions: `docs/adr/ADR-0003.md`, `ADR-0004.md`, `ADR-0005.md`, `ADR-0006.md`. In this file `DATA_DESIGN_CHECKLIST`, `NAMING_STANDARD` and `CODING_STANDARD` are short names of `docs/rules/data-design-checklist.md`, `naming-standard.md` and `coding-standard.md`; tests and ADRs cite them as short name plus section number.
 
-## 0. 基本原则
+## 0. Basic principles
 
-| 原则 | 含义 | 怎么落地 |
+| Principle | Meaning | How it lands |
 |---|---|---|
-| **深模块** | 每个模块（= 一个 BC）把复杂度藏在内部：工时的费率锁定、人天折算、行级审批，都在 `timesheet` 内部完成，调用方只看到一个结果 | 模块内部（domain / application / infrastructure / web）对外不可见，由 Modulith 校验 |
-| **窄接口** | 模块对外只有两个出口：`api`（查询或命令的接口 + record）和 `events`（已发生事实的 record） | 规则：`api` 只放接口和 record；签名不得出现内部类型；每个模块的 api 方法总数 ≤ 12（超出说明应加深模块，而不是加宽接口） |
-| **对 agent 的约束** | 名字按概念、语言与用途定位（§2.1）；代码按职责放在固定位置。规则失败时直接说明「为什么」和「放哪里」 | 规则文本里写 `because(...)`；每个模块带 `package-info.java` 说明职责、拥有的 schema 和允许的依赖；仓库里配「代码放哪里」速查表（§3） |
-| **防错代码** | 让错误代码在编译期或 CI 阶段就失败，而不是靠 review 发现 | ArchUnit + Modulith + Checkstyle / Error Prone + 以规则 ID 命名的测试 |
+| **Deep module** | Each module (= one BC) hides complexity inside: rate locking, person-day conversion and row-level approval of timesheets are all done inside `timesheet`; callers see one result | Module internals (domain / application / infrastructure / web) are invisible outside; verified by Modulith |
+| **Narrow interface** | A module has exactly two exits: `api` (query or command interface + record) and `events` (records of facts that happened) | `api` holds only interfaces and records; signatures must not contain internal types; each module has ≤ 12 api methods in total (beyond that, deepen the module rather than widen the interface) |
+| **Constraints for agents** | Names are located by concept, language and usage (§2.1); code sits at fixed places by responsibility. A failing rule says "why" and "where" | Rule text carries `because(...)`; each module has a `package-info.java` stating responsibility, owned schema and allowed dependencies; the repo has a "where does code go" cheat sheet (§3) |
+| **Error-proofing** | Wrong code fails at compile time or in CI, not by review | ArchUnit + Modulith + Checkstyle / Error Prone + tests named by rule id |
 
-## 1. 老代码的命名问题（实测）
+## 1. (removed: history; see `git show edeb13d6a:docs/rules/naming-standard.md`)
 
-（已移除：历史记录，见 git 历史）
+## 2. Naming rules: English, industry-idiomatic, predictable
 
-## 2. 命名规则：英文、行业惯用、可预测
+### 2.1 Word source
 
-### 2.1 词源
+This section holds only registration and projection detail. Stable principles, the three-layer model, composition, lifecycle, renaming and multi-language structure cite **ADR-0053 decisions 1, 2, 3, 5, 6** and are not copied here. The word-source entry points to `docs/glossary/terms.yaml` and its merge sources, `docs/glossary/bcs.yaml` and the ACL classification data (ADR-0053 decision 1.3). The old "ubiquitous language" document (no longer in the repo) is only a historical source, not a registration entry for new names. Current term status and meaning follow those sources; examples in this section do not rule on renaming words.
 
-本节只放登记与投影细则。稳定原则、三层模型、组合、生命周期、改名及多语言结构分别引用 **ADR-0053 决定 1、2、3、5、6**，不在此复制决定正文。词源入口按其决定 1.3 指向 `docs/glossary/terms.yaml` 及并入源、`docs/glossary/bcs.yaml` 与 ACL 归类数据；旧版「通用语言」文档（已不在仓库）只是历史来源，不是新增命名的登记入口。现有词条状态与含义以这些源为准，本节示例不裁定改词。
+**Sources**: ADR-0053 is `docs/adr/ADR-0053.md`. "Registration plan" is `docs/glossary/arch-naming/naming-atoms-registration-plans.md`; its `naming-atoms-draft.md` §4 (DRAFT) and `naming-atoms-prep.md` "target structure" (PREP) are supplementary sources for candidate fields only. "N3 decisions" is one-glossary's `docs/glossary/arch-naming/n3-decisions.md` (branch `claude/one-glossary-bcs-systems`, commit `f22d6b0b`); the seven items of this round follow it and replace earlier pending wording and inconsistent machine values. Field names follow N3 decisions; migration mapping follows its item 3.
 
-**出处**：ADR-0053 的 `docs/adr/ADR-0053.md`；下称「登记方案」为 `docs/glossary/arch-naming/naming-atoms-registration-plans.md`，其 `naming-atoms-draft.md` §4 与 `naming-atoms-prep.md`「目标结构」只作候选字段的补充出处。下称「N3 定稿」为 one-glossary 的 `docs/glossary/arch-naming/n3-decisions.md`（分支 `claude/one-glossary-bcs-systems`，提交 `f22d6b0b`）；本轮七项按该定稿，取代前稿相应待定表述与不一致的机器值。字段名按 N3 定稿；迁移对照按 N3 定稿第 3 项。
+**Guard status**: `GlossaryTest`, `scripts/guards/term_rules.py` and `NamingSurfaceTest` still read the current term-table shape. Guards for the new concept / designation structure, role selection and projection consistency are **planned**: one-quality implements them under later naming cards, one-coordinator schedules them, and they must be in place before the new structure switches; review checks against the sources meanwhile. Sources: ADR-0053 decisions 4, 7 and migration plan items 2, 5; registration plan "landing order and exits".
 
-**守护现状**：`GlossaryTest`、`scripts/guards/term_rules.py`、`NamingSurfaceTest` 仍读取现行词表形状；概念与指称的新结构、角色选择及投影一致性均为**待补守护**，由 one-quality 按后续命名卡实施、one-coordinator 排期，须在新结构切换前到位。本卡仅改细则，期间按出处复审。出处：ADR-0053 决定 4、7 与迁移方案第 2、5 项；登记方案「落地次序与出口」。
+The glossary schema design that is not yet implemented (concept and designation fields, N3 seven-decision table, alias migration mapping, verb and template registers, message catalog, planned-guard summary) lives in `docs/glossary/glossary-schema-design.md`.
 
-#### 2.1.1 概念条目与叫法条目
+#### 2.1.1 Concept entries and designation entries
 
-负责：one-glossary。本文「叫法条目」对应 ADR 的「指称」。以下分列概念字段、指称字段与派生结果；已采纳的字段名与取值按本节执行，其余序列化形状待 one-glossary 定，不用旧的 `zh / en / snake` 三字段代替设计。
+Owner: one-glossary. The field-level design (concept fields, designation fields, derived results, N3 seven-decision cross-reference, alias migration mapping) is moved to `docs/glossary/glossary-schema-design.md` §1. Adopted machine values stay here.
 
-| 层次 | 字段或登记项 | 细则与待定边界 | 出处 | 守护 |
-|---|---|---|---|---|
-| 概念 | `id`、`kind` | 概念主条目保留这两个字段；概念 `id` 即引用键，永久不变、不含含义，不另设 `concept_ref`，任何引用处直接写 `id`；BC 作概念时仍用 `bcs.yaml` 的 `id`。`kind` 沿 DDD 分类，元词语另分 `atom_kind` | N3 定稿第 4 项；ADR-0053 决定 1.1–2、2.1；登记方案「共用结构与职责」；DRAFT §4 | 现有 `scripts/guards/term_rules.py` 查 id、kind；新结构待补守护 |
-| 概念 | `bc / scope / definition` | 登记所属范围与定义；具体值域沿词表与 `bcs.yaml` | ADR-0053 决定 2.1；登记方案「共用结构与职责」 | 现有 `scripts/guards/term_rules.py` 查范围；新结构待补守护 |
-| 概念 | `standard_ref / relations / status` | 标准依据、概念关系与概念状态；关系的边结构、`homonyms / upstream_term` 迁入方式待 one-glossary 定 | ADR-0053 决定 2.1、5.1 与影响面；登记方案「共用结构与职责」；DRAFT §4 | 现有守护只查旧结构；待补守护 |
-| 概念 / 元词语并入行 | `id / atom_kind / designations / decision_ref` | 并入行直接以概念 `id` 引用，不另立引用键；`decision_ref` 是否逐条必填待 one-glossary 定；`atom_kind` 不替代 `kind` | N3 定稿第 4 项；登记方案「共用结构与职责」、§3–6；ADR-0053 决定 2 | 待补守护（切换前） |
-| 指称 | `locale / name / role` | **采纳 N3 定稿取值**：分别表示语言、名称、用途角色；语言与角色分列，角色选择见 §2.1.2，不把 snake、接口或权限串放进语言字段 | N3 定稿；ADR-0053 决定 2.2–3、6.1 | 待补守护（切换前） |
-| 指称 | `usage_status / approval_status / source_type` | **采纳 N3 定稿取值**：分别表示使用状态、审批状态、来源类型，不能共用一个 `status`，也不将别名、方言塞入用途角色；机器值见下表 | N3 定稿；ADR-0053 决定 2.2、5.2 | 现有禁用词检查不等于新状态组合检查；待补守护 |
-| 指称 | `abbreviation` | 布尔属性，表示该指称是否为缩写形式，不占用途角色；角色表示用途，缩写属性表示形式 | N3 定稿第 2 项 | 待补守护（切换前） |
-| 指称 | 改名后的替代引用、出处与生效 / 退役时间 | 替代引用按 ADR；时间字段来自 PREP 候选，字段名、必填条件与概念状态的边界待 one-glossary 定 | ADR-0053 决定 5.3；PREP「目标结构」 | 待补守护（改名迁移前） |
-| 派生结果 | snake / camel / kebab、各命名面成品 | 按 §2.1.4 产生；旧字段仅作为兼容投影，切换核对逐项对照 `zh / en / snake / aliases / forbidden` | ADR-0053 决定 2.3 与迁移方案第 2 项；登记方案「共用结构与职责」「落地次序与出口」 | 待补守护（新旧投影比对，切换前） |
+**Adopted machine values** (N3 decisions; migration mapping in `docs/glossary/glossary-schema-design.md` §1; absence of a role that is not enabled does not fail):
 
-**已定机器值**：以下采用 N3 定稿；迁移对照见后表，未启用角色缺失不失败。
-
-| 项 | 机器值与边界 | 取值裁定 |
+| Item | Machine value and boundary | Basis |
 |---|---|---|
-| `locale` | `zh-CN / en / und`；`und` 表示语言未确定，不能当作已启用的界面语言；英文用 `en`，不以地区标签区分英美拼写 | 迁移工具取值；N3 定稿第 7 项 |
-| `locale / role` 配对 | `zh-CN / canonical`、`en / code_name`；分别用于中文规范名与内部英文代码名 | 采纳迁移工具取值 |
-| `role` | `canonical / code_name` 现用；`terse / verbose / column_header / documentation / ui_label` 预留、未启用，登记缺失不失败 | N3 定稿第 1 项 |
-| `usage_status` | `preferred / permitted / forbidden`（首选 / 可用 / 禁用），仅此三值 | 迁移工具取值；N3 定稿第 3 项 |
-| `approval_status` | `proposed / pending_confirmation / approved`（提议 / 待确认 / 已批准） | 采纳迁移工具取值 |
+| `locale` | `zh-CN / en / und`; `und` = language undetermined, not an enabled UI language; English is `en`, no region tag distinguishes British / American spelling | migration tool value; N3 decisions item 7 |
+| `locale / role` pairing | `zh-CN / canonical`, `en / code_name`; for the Chinese canonical name and the internal English code name respectively | migration tool value adopted |
+| `role` | `canonical / code_name` in use; `terse / verbose / column_header / documentation / ui_label` reserved, not enabled, missing registration does not fail | N3 decisions item 1 |
+| `usage_status` | `preferred / permitted / forbidden` only | migration tool value; N3 decisions item 3 |
+| `approval_status` | `proposed / pending_confirmation / approved` | migration tool value adopted |
 
-使用资格同时检查两种状态：`forbidden` 或 `pending_confirmation` 均禁止引用；`proposed` 按 ADR-0053 决定 5.2 构建提醒。各面默认取指定语言、角色的唯一 `preferred` 指称，不能把 `permitted` 当缺失时的回退。
+Eligibility checks both statuses: `forbidden` or `pending_confirmation` may not be referenced; `proposed` builds a warning per ADR-0053 decision 5.2. Each surface takes the unique `preferred` designation of the specified language and role; `permitted` is never a fallback when none is found.
 
-**N3 七项定稿对照**：出处均为 `docs/glossary/arch-naming/n3-decisions.md @ 7e4eb96b`；第 5 项先采用下列字段骨架，正式结构随 NAM-1017-GLO-06 产出后核对。
+#### 2.1.2 Usage roles and AN-05
 
-| 项 | 定稿内容 |
-|---|---|
-| 1. 角色与界面用途 | `canonical / code_name` 现用；`terse / verbose / column_header / documentation / ui_label` 预留、未启用，缺失不失败。现阶段界面文字取 `zh-CN / canonical`；同一概念确需不同于规范名的界面叫法时再启用 `ui_label` |
-| 2. 缩写 | 指称上的布尔属性 `abbreviation`，不占角色；同一缩写可用于代码名与界面 |
-| 3. `aliases / forbidden` 迁移对照 | 按下表采用 N3 定稿给出的映射 |
-| 4. 概念引用 | 不设 `concept_ref`；概念 `id` 即引用键，任何引用处写 `id`；BC 概念沿 `bcs.yaml` 的 `id` |
-| 5. 动词、模板、消息目录 | 动词登记、模板登记与消息目录（均待建）字段骨架见 §2.1.5–6；正式结构随 NAM-1017-GLO-06 产出后核对 |
-| 6. 消息状态与缺译 | `proposed / approved / deprecated / retired`，与概念生命周期一致；缺译回退按 ADR-0053 决定 6.4，运行时回退须告警 |
-| 7. 英文 locale | 用 `en`；英式、美式拼写另待用户裁定（N4 Q13），裁定前新代码词形按 N4 候选，不由 locale 区分拼写变体 |
+Owner: one-glossary defines roles and designations; one-architecture defines which role each surface takes. The role enumeration follows N3 decisions item 1: `canonical / code_name` in use; `terse / verbose / column_header / documentation / ui_label` reserved, not enabled, missing registration does not fail.
 
-**别名与禁用写法的迁移映射**（N3 定稿第 3 项修订版，`docs/glossary/arch-naming/n3-decisions.md @ 7e4eb96b`）：`source_type` 原样保留旧类型值；语义分类由本细则按 `source_type` 查表。
-
-| 旧输入 | 定稿映射 |
-|---|---|
-| `deprecated`，或 `type` 属 `dialect / forbidden / old-code / legacy-code / legacy-table` | `usage_status: forbidden`；`source_type` 为原类型值 |
-| 其余类型（如 `standard-zh`、`kpi-symbol`） | `usage_status: permitted`；`source_type` 为原类型值 |
-| 状态 `undetermined` | `approval_status: pending_confirmation`（待确认） |
-| 其余 | `approval_status` 沿用概念状态 |
-
-#### 2.1.2 用途角色与 AN-05
-
-负责：one-glossary 定角色与指称，one-architecture 定各面取用角色。角色枚举按 N3 定稿第 1 项：`canonical / code_name` 现用，`terse / verbose / column_header / documentation / ui_label` 预留、未启用，登记缺失不失败。
-
-| 用途 / 叫法 | 登记与取用细则 | 出处 | 守护 |
+| Usage / name | Registration and use | Source | Guard |
 |---|---|---|---|
-| 规范名 | `locale: zh-CN`、`role: canonical`，现阶段同时用于中文界面文字 | N3 定稿第 1 项；ADR-0053 决定 2.2、1.5 | 待补守护（切换前） |
-| 界面叫法 | 现阶段取 `zh-CN / canonical`，不另分角色；同一概念在界面须用不同于规范名的叫法时，再启用 `ui_label`；其余预留角色缺失不失败 | N3 定稿第 1 项；ADR-0053 决定 6.3–4；登记方案 §2 | 待补守护（消息目录启用前） |
-| 内部英文名（代码名） | **采纳 N3 定稿取值**：`locale: en`、`role: code_name`，名称为英文 ASCII | N3 定稿；ADR-0053 决定 2.2、6.3 | 现有 ASCII、拆词检查；角色选择待补守护 |
-| 英文界面叫法（AN-05） | 与内部英文名分开登记，允许不同；即使同词也按两种用途记录。当前未交付英文界面，不要求补齐英文界面指称 | ANM 批准记录（intent `2026-10-17-084935-one-coordinator`，AN-04、AN-05）；ADR-0053 决定 6.2–3；登记方案 §2 | 待补守护（角色区分在切换前；英文完整性在启用前） |
-| 缩写 | 指称以布尔属性 `abbreviation` 表示缩写形式，不占角色；先按 §2.1.4 登记全称与用途，不默认把所有缩写当可用别名 | N3 定稿第 2 项；ADR-0053 决定 2.2、8；登记方案 §5 | 现有拆词检查不能证明缩写已授权；待补守护 |
-| 旧称、方言、别名 | 以 `source_type` 与两种状态分别登记，不作用途角色；映射见 §2.1.1，老名来源机器值为 `old-code / legacy-code / legacy-table` | N3 定稿第 3 项；ADR-0053 背景「取代」与决定 2.2、5.3 | 现有禁用写法守护；新结构待补守护 |
+| Canonical name | `locale: zh-CN`, `role: canonical`; for now also used for Chinese UI text | N3 decisions item 1; ADR-0053 decisions 2.2, 1.5 | planned (before switch) |
+| UI name | For now `zh-CN / canonical`, no separate role; when one concept must use a UI wording different from the canonical name, enable `ui_label`; other reserved roles missing does not fail | N3 decisions item 1; ADR-0053 decisions 6.3–4; registration plan §2 | planned (before the message catalog is enabled) |
+| Internal English name (code name) | **N3 values adopted**: `locale: en`, `role: code_name`, name is English ASCII | N3 decisions; ADR-0053 decisions 2.2, 6.3 | existing ASCII and word-split checks; role selection: planned |
+| English UI name (AN-05) | Registered separately from the internal English name and may differ; even if the word is the same, record it as two usages. No English UI is delivered now, so English UI designations need not be completed | ANM approval record (intent `2026-10-17-084935-one-coordinator`, AN-04, AN-05); ADR-0053 decisions 6.2–3; registration plan §2 | planned (role distinction before switch; English completeness before it is enabled) |
+| Abbreviation | A designation expresses an abbreviated form by boolean `abbreviation`, not a role; first register the full name and usage per §2.1.4; abbreviations are not assumed to be permitted aliases | N3 decisions item 2; ADR-0053 decisions 2.2, 8; registration plan §5 | existing word-split check cannot prove an abbreviation is authorised; planned |
+| Old names, dialects, aliases | Registered by `source_type` and the two statuses, not as a usage role; mapping in `docs/glossary/glossary-schema-design.md` §1; machine values for old-name sources are `old-code / legacy-code / legacy-table` | N3 decisions item 3; ADR-0053 background "supersedes" and decisions 2.2, 5.3 | existing forbidden-spelling guard; new structure: planned |
 
-#### 2.1.3 源语言与当前交付语言
+#### 2.1.3 Source language and current delivery language
 
-负责：one-glossary 登记语言，前后端负责会话使用；投影格式由 one-architecture 维护。
+Owner: one-glossary registers languages, frontend and backend sessions use them; one-architecture maintains the projection format.
 
-| 项目 | 细则 | 出处 | 守护 |
+| Item | Rule | Source | Guard |
 |---|---|---|---|
-| 源语言 | `zh-CN`；**采纳 N3 定稿取值**；语言标签采用 ADR-0053 决定 6.1 所引规则 | N3 定稿；ADR-0053 决定 6.2；登记方案 §2 | 待补守护（标签及源语言登记，切换前） |
-| 当前启用的界面语言 | 仅 `zh-CN`，覆盖 PC、H5、服务端给人的文字、打印、报表和通知；英文界面无本期交付安排 | ANM AN-04；ADR-0053 决定 6.4；登记方案 §2 | F19 中文配置、消息与指称完整性均待补守护 |
-| 英文代码名 | `en / code_name`；不等于启用英文界面，界面不得取代码名作回退。locale 用 `en`，不区分拼写变体；英式、美式拼写另待用户裁定（N4 Q13），裁定前新代码词形按 N4 候选 | N3 定稿第 7 项；ANM AN-05；ADR-0053 决定 1.5、6.3–4 | 待补守护（切换前） |
+| Source language | `zh-CN`; **N3 values adopted**; language tags follow the rules ADR-0053 decision 6.1 cites | N3 decisions; ADR-0053 decision 6.2; registration plan §2 | planned (tags and source-language registration, before switch) |
+| UI language currently enabled (AN-04) | `zh-CN` only, covering PC, H5, server-side human text, print, reports and notifications; no English UI is scheduled this phase | ANM AN-04; ADR-0053 decision 6.4; registration plan §2 | F19 Chinese config, message and designation completeness: all planned |
+| English code name | `en / code_name`; does not mean an English UI is enabled, and the UI must not fall back to a code name. Locale is `en`, no spelling variants; British vs American spelling awaits a user ruling (N4 Q13); until then new code spelling follows the N4 candidate | N3 decisions item 7; ANM AN-05; ADR-0053 decisions 1.5, 6.3–4 | planned (before switch) |
 
-#### 2.1.4 从指称到各命名面的投影
+#### 2.1.4 Projection from designations to naming surfaces
 
-负责：**one-architecture**。投影以概念 `id` 定位条目，选择 `locale: en / role: code_name / usage_status: preferred` 的唯一 `name`，并按 §2.1.1 检查审批状态；中文规范名选择 `zh-CN / canonical / preferred`。缺条目、缺所需指称、首选不唯一或状态不可用均失败，未启用角色缺失不失败（N3 定稿第 1、4 项）。指称选取、组合与缺失处理引用 ADR-0053 决定 1.5、2.3、3。下表的新格式属于本节细则（决定 4、8），已有格式仍指向原节。
+Owner: **one-architecture**. A projection locates the entry by concept `id`, selects the unique `name` with `locale: en / role: code_name / usage_status: preferred`, and checks approval status per §2.1.1; the Chinese canonical name is selected as `zh-CN / canonical / preferred`. A missing entry, missing required designation, non-unique preferred or unusable status fails; a role not enabled missing does not fail (N3 decisions items 1, 4). Designation selection, composition and missing-handling cite ADR-0053 decisions 1.5, 2.3, 3. The new formats in the table below belong to this section (decisions 4, 8); existing formats still point to their original sections.
 
-| 命名面 | 取用与格式 | 出处 | 守护与边界 |
+| Naming surface | Selection and format | Source | Guard and boundary |
 |---|---|---|---|
-| 代码标识 | 英文代码名按用途转 PascalCase 类型、camelCase 字段 / 方法、UPPER_SNAKE_CASE 常量；技术前后缀取 §2.2，不能从概念 id 拆词 | ADR-0053 决定 2.3、6.3；登记方案「共用结构与职责」、§5；§2.2 | `ArchitectureRulesTest`、`GlossaryTest`；角色选取与正向投影待补守护 |
-| schema、表、列、约束、索引 | schema 按下述 `bcs.yaml` 字段路径生成；表名取已登记复数词形后转 snake_case，列取限定词与 §2.4 类别词，约束、索引套 §2.4 模板；不另填 snake 指称 | ADR-0053 决定 1.2、2.3、4；登记方案「共用结构与职责」、§5；§2.3–2.4 | `DdlNamingTest`、`GlossaryTest`；新结构、受控复数与长度待补守护 |
-| 事件名、事件 JSON 键 | 事件用对象与受控动词槽位按 §2.1.5 渲染为英文代码名；类型 PascalCase，载荷键 camelCase | ADR-0053 决定 3；登记方案 §1；§2.2–2.3 | `ArchitectureRulesTest`、`GlossaryTest`、`NamingSurfaceTest`（载荷组件）；槽位等值待补守护 |
-| API 路径与参数 | 子域代码名转 slug + 已登记资源的复数词形转 kebab-case，动作取受控动作；参数 camelCase；BC 不代替子域，客户端由 OpenAPI 生成 | ADR-0053 决定 2.3、4；登记方案「共用结构与职责」；§2.3、§2.6 A-1、A-4 | `NamingSurfaceTest` G41 查路径，`ApplicationIntegrationTest` 查 OpenAPI 命名；角色选取与受控词形待补守护 |
-| 权限码 | `{子域}.{BC}:{kebab资源}:{标准动作}`；资源与 API 共指概念，沿现有权限目录用单数，不将 API 复数串直接复制；动词映射到 `standard_actions` 后使用 | ADR-0053 决定 2.3、4；DRAFT §1（动作映射为候选，须核对）；§4 G43、§7 第 9 项 | `NamingSurfaceTest` G43 查现有格式、资源和动作；概念引用投影待补守护 |
-| 界面文字与消息键 | 业务名词现阶段取 `zh-CN / canonical` 的首选指称；整条消息登记在 §2.1.6。键为 `{子域}.{BC}.{单数kebab资源}.{小写点分用途}`，跨 BC 共用消息为 `kernel.{单数kebab资源}.{小写点分用途}`，与业务指称分别维护 | N3 定稿第 1 项；ADR-0053 决定 6.3–4；登记方案 §2；键格式由本节规定 | 现有 `check-copy-glossary.mjs / OutwardTextGuardTest` 只查旧用语；键、角色与占位符待补守护（新页面采用前） |
+| Code identifiers | English code name converted by usage: PascalCase types, camelCase fields / methods, UPPER_SNAKE_CASE constants; technical prefixes/suffixes per §2.2; no word-splitting of a concept id | ADR-0053 decisions 2.3, 6.3; registration plan "shared structure and duties", §5; §2.2 | `ArchitectureRulesTest`, `GlossaryTest`; role selection and forward projection: planned |
+| schema, table, column, constraint, index | schema generated from the `bcs.yaml` field path below; table name = registered plural form converted to snake_case; column = qualifier + §2.4 class word; constraints and indexes use the §2.4 templates; no separate snake designation | ADR-0053 decisions 1.2, 2.3, 4; registration plan "shared structure and duties", §5; §2.3–2.4 | `DdlNamingTest`, `GlossaryTest`; new structure, controlled plural and length: planned |
+| Event name, event JSON key | Events use object and controlled-verb slots rendered to an English code name per §2.1.5; type PascalCase, payload keys camelCase | ADR-0053 decision 3; registration plan §1; §2.2–2.3 | `ArchitectureRulesTest`, `GlossaryTest`, `NamingSurfaceTest` (payload components); slot equality: planned |
+| API path and parameters | subdomain code name converted to slug + registered plural form of the resource converted to kebab-case; action from the controlled actions; parameters camelCase; BC does not stand in for subdomain; client generated from OpenAPI | ADR-0053 decisions 2.3, 4; registration plan "shared structure and duties"; §2.3, §2.6 A-1, A-4 | `NamingSurfaceTest` G41 checks paths, `ApplicationIntegrationTest` checks OpenAPI naming; role selection and controlled forms: planned |
+| Permission code | `{subdomain}.{BC}:{kebab resource}:{standard action}`; the resource co-refers with the API concept; follow the existing permission catalog in singular, do not copy the API plural string; verbs map to `standard_actions` before use | ADR-0053 decisions 2.3, 4; DRAFT §1 (action mapping is a candidate, must be checked); §4 G43, §7 item 9 | `NamingSurfaceTest` G43 checks existing format, resource and action; concept-reference projection: planned |
+| UI text and message key | Business nouns for now take the preferred `zh-CN / canonical` designation; whole messages are registered per `docs/glossary/glossary-schema-design.md` §3. Key = `{subdomain}.{BC}.{singular kebab resource}.{lowercase dotted usage}`; cross-BC shared messages use `kernel.{singular kebab resource}.{lowercase dotted usage}`; maintained separately from business designations | N3 decisions item 1; ADR-0053 decisions 6.3–4; registration plan §2; key format is set by this section | existing `check-copy-glossary.mjs / OutwardTextGuardTest` check only old wording; key, role and placeholders: planned (before new pages adopt it) |
 
-**schema 字段路径**：以 BC 引用精确匹配 `bcs.yaml` 的 `bcs[].id`，要求 `kind: bc`；`kind: kernel` 的条目不经本路径投影（直接失败即为预期），kernel 的 schema 安排以 ADR-0051 决定 2 为准；用该行 `subdomain` 精确引用 `kind: subdomain` 的条目。子域片段取子域条目的 `designations[].name`，BC 片段取 BC 条目的 `designations[].name`，两者均按本节的 `en / code_name / preferred` 选择与状态检查，分别转 snake_case，以 `_` 连接。`id`、`subdomain` 只作引用，不拆字符串来充当名字。任一字段缺失、引用无效或指称不可用即失败，不回退到 `id`、`zh` 或手填片段。当前 `bcs.yaml` 尚无 `designations`，新投影须在补齐后启用，现有格式检查通过不能证明此路径可执行。
+**Schema field path**: match the BC reference exactly against `bcs.yaml` `bcs[].id` and require `kind: bc`; entries with `kind: kernel` are not projected by this path (failing directly is expected), and kernel's schema arrangement follows ADR-0051 decision 2; reference the `kind: subdomain` entry exactly by that row's `subdomain`. The subdomain fragment is the subdomain entry's `designations[].name`, the BC fragment is the BC entry's `designations[].name`; both are selected and status-checked as `en / code_name / preferred` per this section, each converted to snake_case, joined with `_`. `id` and `subdomain` are references only; do not split the string to make a name. A missing field, invalid reference or unusable designation fails, with no fallback to `id`, `zh` or a hand-filled fragment. `bcs.yaml` has no `designations` yet, so the new projection is enabled only after they are filled; passing the current format check does not prove this path is executable.
 
-**受控复数**：表名与 API 资源必须查到针对该概念与命名面的已登记复数词形 / 模板；**未登记即失败，不自动加 `s`**，也不自动套英语变形规则。`Analysis` 的复数不能生成为 `Analysiss`；集合名 `Staff` 也不能默认生成为 `Staffs`。这些只是反例，不批准其业务用法；词形登记结构随 §2.1.1 待定模板由 one-glossary 定，定后迁移工具须同步。
+**Controlled plural**: a table name or API resource must find a registered plural form / template for that concept and naming surface; **unregistered fails, no automatic `s`**, and no automatic English inflection rules. The plural of `Analysis` must not be generated as `Analysiss`; the collective name `Staff` must not default to `Staffs`. These are only counter-examples and do not approve their business use; the plural-registration structure follows the template pending under §2.1.1 (one-glossary decides), and the migration tool must follow once decided.
 
-**消息键用途**：用途由一个或多个 `[a-z]+` 段以 `.` 连接，采用点分小写，与 `NamingSurfaceTest` 中常量 `DOTTED`、`OWN_KEY` 共同的小写段风格一致；不沿用 JSON 字段的 camelCase。资源槽位保持单数 kebab-case，例 `cost.timesheet.timesheet.submit.succeeded`；跨 BC 共用例 `kernel.document.version.conflict`。这两个现有正则分别检查作业 / 指标与配置键，均不是消息键守护；完整消息键另按本节格式检查，不能直接套 `DOTTED` 排除 kebab 资源。
+**Message-key usage**: the usage is one or more `[a-z]+` segments joined by `.`, lowercase dotted, in the same lowercase-segment style as the constants `DOTTED` and `OWN_KEY` in `NamingSurfaceTest`; JSON-field camelCase is not reused. The resource slot stays singular kebab-case, e.g. `cost.timesheet.timesheet.submit.succeeded`; a cross-BC shared example is `kernel.document.version.conflict`. The two existing regexes check job / metric keys and config keys respectively, neither is a message-key guard; full message keys are checked by the format in this section, and `DOTTED` cannot be applied directly because it excludes kebab resources.
 
-**不投影对象**：价值流名、价值流阶段名是业务架构名，只登记 `zh-CN canonical`，不投影为代码标识、表列名、事件名或消息键，不套命令 / 事件命名模板。价值流名用动宾、结果视角（如「获得内部服务」）；阶段名用动宾（如「提交申请」），动词须在受控动词表内。出处：one-architecture 与 one-glossary 2026-10-17 直连口径（NAM-1017-ARC-04）。守护：待补（价值流与阶段名动词在受控表内的检查）。
+**Objects not projected**: value-stream names and value-stage names are business-architecture names, registered only as `zh-CN canonical`, not projected to code identifiers, table / column names, event names or message keys, and do not use the command / event naming templates. Value-stream names use verb-object, result-view wording (e.g. 「获得内部服务」); stage names use verb-object (e.g. 「提交申请」), and the verb must be in the controlled verb table. Source: one-architecture and one-glossary direct line of 2026-10-17 (NAM-1017-ARC-04). Guard: planned (check that value-stream and stage-name verbs are in the controlled table).
 
-**对照例子**（只解释投影，以 `terms.yaml` 的当前条目、状态与获准指称为准，不新增词条或裁定改名；复数须另有登记）：
+**Illustrative examples** (they only explain projection; current entries, status and approved designations in `terms.yaml` prevail; they add no entries or renames; the plural must be separately registered):
 
-| 词源输入 | 投影示例 | 不采用的写法 |
+| Word-source input | Projection example | Not adopted |
 |---|---|---|
-| `Timesheet` 代码名与已登记复数 | 类型 `Timesheet`、表 `timesheets`、资源 `/api/v1/cost/timesheets` | `manhour`、`time_sheet` 等另起叫法 |
-| `LegalEntity` 代码名 + ID 技术形态 | `LegalEntityId / legalEntityId / legal_entity_id` | 用 `companyCode` 代替该标识符 |
-| `Timesheet` 对象槽位 + `Submit` 的已登记事件词形 | `TimesheetSubmitted`；载荷键 `legalEntityId` | 事件加 `Event` 后缀、载荷键写 `legal_entity_id` |
+| `Timesheet` code name and registered plural | type `Timesheet`, table `timesheets`, resource `/api/v1/cost/timesheets` | other names such as `manhour`, `time_sheet` |
+| `LegalEntity` code name + ID technical form | `LegalEntityId / legalEntityId / legal_entity_id` | using `companyCode` for this identifier |
+| `Timesheet` object slot + registered event form of `Submit` | `TimesheetSubmitted`; payload key `legalEntityId` | an `Event` suffix on the event, payload key `legal_entity_id` |
 
-**词表改词建议：已交 one-glossary**：`ManhourEstimateItem / LaborEstimateLine`、`TimeEntry / TimesheetLine`、`RateVersion / CustomerRateCard / RateCard` 三项待其按用语问题流程处理，本节不作裁定。
+**Word-table rename proposals handed to one-glossary**: `ManhourEstimateItem / LaborEstimateLine`, `TimeEntry / TimesheetLine`, `RateVersion / CustomerRateCard / RateCard` are for it to process through the term-issue flow; this section does not rule on them.
 
-**长度与缩写**（one-architecture 负责格式，one-glossary 负责缩写指称）：
+**Length and abbreviation** (one-architecture owns format, one-glossary owns abbreviation designations):
 
-| # | 细则 | 出处 | 守护 |
+| # | Rule | Source | Guard |
 |---|---|---|---|
-| N3-L1 | PostgreSQL 每个标识符最多 **63 字节**，对最终输出按 UTF-8 计数，前后缀与分隔符均计入；schema 与对象分别检查，不对 `schema.object` 合计。适用于 schema、表、列、约束、索引、视图、触发器、函数、序列等；不得依赖数据库截断 | ADR-0053 背景、需同步修改的守护规则；决定 4（本节长度细则） | **待补守护**：`DdlNamingTest` 现无长度检查；新命名 / 改名 DDL 应用前补齐，期间复审 |
-| N3-L2 | 默认用全称；标准或行业惯用缩写已登记且适用该面，或全称投影超过 63 字节时，才选已登记缩写。先记录全称投影与字节数，再按登记的替换位置生成短名并复查长度。**冲突检查以 schema 为范围**：表、视图、索引、序列共用关系名空间，`pk / uk` 约束自动建立的同名索引也计入关系名占用，与其他关系重名即失败；约束与其自身索引的同名只计一次关系名占用。约束名在表内唯一，不能以表内唯一代替其索引的 schema 级检查。缩不下来交 one-glossary / one-architecture，不截字、不拼首字母、不临时附随机串 | ADR-0053 决定 4、8；登记方案 §5；§1 自造缩写问题、§2.2（本节补使用条件与冲突范围） | **待补守护**：长度、登记来源及 schema 内关系名、表内约束名冲突检查；DDL 应用前，期间复审 |
-| N3-L3 | 缩写以指称的布尔属性 `abbreviation` 表示，不占角色；登记须能追到概念 `id`、完整指称、缩写文本、语言、适用命名面与决定出处，其余字段 schema 待 one-glossary 定。投影只替换已登记部分，保留类别词与约束 / 索引前缀。类名把缩写当单词：`WbsNode / PocValue / ArItem`，不用 `WBSNode`；这些既有写法示例不自动放行所有同形缩写 | N3 定稿第 2、4 项；ADR-0053 决定 2.2、4、8；登记方案 §5；§2.2 | 现有拆词与 ASCII 检查仅部分覆盖；缩写授权与投影待补守护（切换前） |
+| N3-L1 | Every PostgreSQL identifier is at most **63 bytes**, counted as UTF-8 on the final output, with prefixes, suffixes and separators included; schema and object are checked separately, not as a combined `schema.object`. Applies to schema, table, column, constraint, index, view, trigger, function, sequence etc.; never rely on database truncation | ADR-0053 background, "guard rules to be changed in sync"; decision 4 (this section's length rule) | **planned**: `DdlNamingTest` has no length check yet; fill in before new-name / rename DDL is applied; review meanwhile |
+| N3-L2 | Default to the full name; choose a registered abbreviation only when a standard or industry-idiomatic abbreviation is registered and applies to that surface, or when the full-name projection exceeds 63 bytes. First record the full-name projection and its byte count, then generate the short name at the registered replacement position and re-check length. **Collision checks are scoped by schema**: table, view, index and sequence share the relation-name space; the same-name index that a `pk / uk` constraint creates automatically also occupies a relation name, and a clash with another relation fails; a constraint and its own same-name index count once. Constraint names are unique within a table; table-level uniqueness does not replace the schema-level check of its index. If it cannot be shortened, hand it to one-glossary / one-architecture; no truncation, no initial-letter joining, no ad-hoc random suffix | ADR-0053 decisions 4, 8; registration plan §5; self-made abbreviation problem of the old code (history, now removed), §2.2 (this section adds usage conditions and collision scope) | **planned**: checks for length, registration source, in-schema relation-name and in-table constraint-name collisions; before DDL is applied, review meanwhile |
+| N3-L3 | An abbreviation is expressed by the designation's boolean `abbreviation`, not a role; registration must trace to the concept `id`, the full designation, the abbreviation text, the language, applicable naming surfaces and the decision source; other field schema is for one-glossary to decide. Projection replaces only the registered part and keeps class words and constraint / index prefixes. In class names an abbreviation is a word: `WbsNode / PocValue / ArItem`, not `WBSNode`; these existing spellings do not automatically permit every same-shape abbreviation | N3 decisions items 2, 4; ADR-0053 decisions 2.2, 4, 8; registration plan §5; §2.2 | existing word-split and ASCII checks cover only part; abbreviation authorisation and projection: planned (before switch) |
 
-#### 2.1.5 事件写法与动词 / 模板登记
+#### 2.1.5 Event wording
 
-负责：one-glossary 登记词形，one-architecture 定槽位与格式，one-quality 承接守护。动词与模板按 N3 定稿第 5 项采用下列字段骨架；**正式结构随 NAM-1017-GLO-06 产出后核对**，文件未建立不等于规则已机器化。
+Owner: one-glossary registers word forms, one-architecture sets slots and format, one-quality takes the guards. The verb register and template register designs (not yet created) are in `docs/glossary/glossary-schema-design.md` §2.
 
-| 项目 | 细则 | 出处 | 守护 |
+| Item | Rule | Source | Guard |
 |---|---|---|---|
-| 命令与事件词形 | 命令用原形动词 + 对象；事件用对象 + 已发生事实的过去式 / 过去分词，无 `Event / Request / Command` 后缀，继续禁止 G29 的 `Requested / Query` 结尾。`SubmitTimesheet → TimesheetSubmitted` 只说明英文词形，中文仍取登记指称，不据示例更名 | ADR-0053 决定 3；登记方案 §1；§2.2、§4 G5、G29；`docs/rules/coding-standard.md` CS-1.4 | `ArchitectureRulesTest`、`GlossaryTest`、`scripts/guards/term_rules.py`；新槽位渲染等值待补守护 |
-| 动词登记 | `docs/glossary/verbs.yaml`（待建）每项：`id`（V 编号，永久不变）、`zh`、`en`（原形）、`en_past_participle`、`snake`、`standard_action`、`merged_from`（并入的近义词）、`status`；词义、词形与权限标准动作的对应逐项核对 | N3 定稿第 5 项；ADR-0053 决定 3、7.1；登记方案 §1；N4 §4 | 待补守护（动词源启用与组合迁移前） |
-| 模板登记 | `docs/glossary/naming-templates.yaml`（待建）：槽位 `{object, verb, aspect, complement}`，每种目标（命令、事件、状态）的中文渲染式、英文渲染式与样例；概念引用直接写 `id`。`perfective / pending / progressive` 是体标记，不作业务对象。补语、介词尾与连接片段须在模板允许位置使用 | N3 定稿第 4–5 项；ADR-0053 决定 3；登记方案 §1、§5 | 现有 `GlossaryTest / term_rules.py` 识别部分过去式、介词尾；槽位合法性待补守护 |
-| 词汇化事实与反例 | `BecameOverdue` 按词汇化事实模板登记；`WrittenOff / SubmittedForApproval` 沿现行词形识别。`Locked` 位于对象内、`Changed` 位于事件尾时，不凭词尾将两者都判作主事件动词；未登记例外不得靠尾缀规则放行 | ADR-0053 决定 3；登记方案 §1；现行 `GlossaryTest.pastTense` | 现有词形检查部分覆盖；对象 / 主动词区分及例外引用待补守护（组合迁移前） |
+| Command and event word forms | A command is a base-form verb + object; an event is object + past tense / past participle of a fact that happened, with no `Event / Request / Command` suffix; G29's ban on `Requested / Query` endings continues. `SubmitTimesheet → TimesheetSubmitted` shows only the English word form; the Chinese still takes the registered designation, and no renaming follows from the example | ADR-0053 decision 3; registration plan §1; §2.2, §4 G5, G29; `docs/rules/coding-standard.md` CS-1.4 | `ArchitectureRulesTest`, `GlossaryTest`, `scripts/guards/term_rules.py`; slot-rendering equality: planned |
 
-#### 2.1.6 界面消息目录
+#### 2.1.6 UI message catalog
 
-负责：前后端负责会话编目录，one-glossary 审业务指称，one-architecture 定共用契约，one-quality 实现检查。源位置为 **`docs/glossary/messages/zh-CN.yaml`（待建）**，前后端从同一源各生成适用格式；按 N3 定稿第 5–6 项采用 **消息键 → `{text, status, note}`** 的字段骨架，**正式结构随 NAM-1017-GLO-06 产出后核对**，本卡不创建文件。出处：N3 定稿；登记方案 §2；ADR-0053 决定 6.4、7。守护：待补守护（目录启用、新页面采用前）；实施由后续命名卡承接，本卡文件范围不含实现。
+The catalog (source `docs/glossary/messages/zh-CN.yaml`, to be created; skeleton message key → `{text, status, note}`) is not implemented; its design moved to `docs/glossary/glossary-schema-design.md` §3. Message-key format is in §2.1.4. Guard: planned (before the catalog is enabled and new pages adopt it); a pass of the current `check-copy-glossary.mjs / OutwardTextGuardTest` must not substitute for message-key acceptance. The language scope validated this phase is in §2.1.3.
 
-| 字段 | 登记内容 | 出处 | 守护 |
-|---|---|---|---|
-| 消息键（映射键） | §2.1.4 的稳定用途键，值为 `{text, status, note}`；格式示例不代表已登记 | N3 定稿第 5 项；§2.1.4 | 待补守护：唯一、已登记、使用点存在 |
-| `text` | 完整消息文本，含 `{noun:<概念 id>}` 与 `{verb:<V 编号>}` 占位符，不收业务名词字面串；概念直接以 `id` 引用，现阶段名词取 `zh-CN / canonical`。使用 ADR 所引 CLDR / ICU 消息格式；不把完整句子登记成业务概念，不可把程序表达式 `${...}` 原样当术语 | N3 定稿第 1、4–5 项；登记方案 §2；ADR-0053 决定 6.4–5 | 待补守护：模式解析、引用存在、角色可用、模式与参数类型一致；具体语法版本与库待定 |
-| `status` | `proposed`（提议）/ `approved`（已批准）/ `deprecated`（已弃用）/ `retired`（已退役），与概念生命周期一致，不混用指称的使用状态或审批状态 | N3 定稿第 6 项；ADR-0053 决定 5–6 | 待补守护（消息目录启用前） |
-| `note` | 消息备注；具体必填条件随 NAM-1017-GLO-06 正式结构核对 | N3 定稿第 5 项 | 待补守护（消息目录启用前） |
+#### 2.1.7 Summary of planned guards
 
-缺某语言的指称或消息时，运行时按 ADR-0053 决定 6.4 回退到源语言并告警（日志或指标），不显示键名；构建时对已启用语言做完整性检查，缺失即失败（N3 定稿第 6 项）。地区格式引用 ADR-0053 决定 6.5；本期校验语言范围见 §2.1.3。消息覆盖前端、H5、服务端给人的文字及打印 / 报表 / 通知；日志、测试文字与注释不作消息登记。现有 `copy-allow-list.yaml`、`*Texts` 与中文切词守护仅是迁移输入，不能证明完整消息已经登记。出处：登记方案 §2；守护：`check-copy-glossary.mjs / OutwardTextGuardTest` 改验消息目录**待补守护**，不得以现行检查通过替代消息键验收。
+Moved to `docs/glossary/glossary-schema-design.md` §4. The N3-L1–L3 gaps stay in §2.1.4 above.
 
-#### 2.1.7 待补守护汇总
+### 2.2 Spelling
 
-本表汇总本轮 N3 缺口，不表示已实现。承接卡均待 one-coordinator 排定，one-quality 与各面负责会话实施；触发门槛之前须到位，期间由复审按对应条款检查。
+- English ASCII identifiers only; Chinese appears only in UI text, i18n and comments (guarded by ArchUnit `identifiersAreAscii`).
+- Abbreviations are treated as words: `WbsNode`, `PocValue`, `ArItem`, not `WBSNode`; when an abbreviation may be used and how it is registered: §2.1.4 N3-L2–L3.
+- Class suffixes are **only** those in the table below; each suffix has exactly one location.
 
-| 项 | 触发门槛 | 承接卡 |
+| Suffix / form | Location | Example |
 |---|---|---|
-| 概念与指称新结构：稳定 id、语言 / 角色、两种状态、唯一首选、禁用与待确认不得引用（§2.1.1–3） | 新结构切换前 | 待定（one-quality、one-glossary） |
-| 正向投影与旧 `zh / en / snake / aliases / forbidden` 逐项等值；不从 id 解析名字（§2.1.1、§2.1.4） | 新结构与读取方切换前 | 待定（one-quality） |
-| schema 的 `bcs[].subdomain / designations` 引用、指称选取与缺失失败（§2.1.4） | 新 schema 投影启用前 | 待定（one-quality、one-glossary） |
-| 受控复数登记、缺失失败与 `Analysis / Staff` 反例（§2.1.4） | 新表名 / API 资源投影启用前 | 待定（one-quality） |
-| 63 字节、缩写授权、schema 内关系名与表内约束名冲突，含 `pk / uk` 同名索引（N3-L1–L3） | 新命名 / 改名 DDL 应用前 | 待定（one-quality） |
-| 动词词形、槽位 / 体 / 模板合法、词汇化例外与渲染等值（§2.1.5） | 动词源启用与组合迁移前 | 待定（one-quality、one-glossary） |
-| 消息键单数资源、点分小写用途、`kernel` 共用前缀、唯一与使用点对应（§2.1.4、§2.1.6） | 消息目录启用、新页面采用前 | 待定（one-quality、前后端负责会话） |
-| 消息模式、占位符类型 / 概念 / 角色、无写死文字与已启用语言完整性；运行时回退并告警（§2.1.6） | 消息目录启用、新页面采用前；新增语言启用前 | 待定（one-quality、前后端负责会话） |
-| 中文配置 F19、代码名与英文界面名分用途（§2.1.2–3、§4a U4） | 中文配置首次部署前；角色区分在新结构切换前，英文完整性在英文界面启用前 | 待定（前端负责会话、one-quality） |
-| §6 禁用来源指称投影可复现、新旧对照一致 | 词源切换前 | 待定（one-glossary、one-quality） |
+| Aggregate, entity, value object: noun, no suffix | `<module>.domain` | `Timesheet`, `Quote`, `Money` |
+| `*Repository` (interface) | `<module>.domain` | `TimesheetRepository` |
+| `Jdbc*Repository` (implementation, package-private) | `<module>.infrastructure.persistence` | `JdbcTimesheetRepository` |
+| Use case: verb-object, no suffix, one class per use case | `<module>.application` | `SubmitTimesheet`, `ApproveQuote` |
+| `*Queries` / `*Commands` (interface) | `<module>.api` | `WorkPackageQueries` |
+| Event: past tense, no `Event` suffix, record | `<module>.events` | `TimesheetApproved`, `QuoteApproved` |
+| `*Controller` (package-private) | `<module>.web` | `TimesheetController` |
+| `*Request` / `*Response` (record) | `<module>.web` | `SubmitTimesheetRequest` |
+| `*Client` / `*Gateway` (anti-corruption layer) | `integration.<system>` | `U8cVoucherClient` |
+| Status enum `*Status`; the enum name is stored in the database | `<module>.domain` | `TimesheetStatus.APPROVED` |
+| **Forbidden** | anywhere | `Util(s)`, `Helper`, `Manager`, `Info`, `Data`, `Impl`, `DO`, `ManHour` |
 
-### 2.2 写法
+### 2.3 Database, API, frontend
 
-- 只用英文 ASCII 标识符；中文只出现在 UI 文案、i18n 和注释里（由 ArchUnit `identifiersAreAscii` 守护）。
-- 缩写按单词处理：`WbsNode`、`PocValue`、`ArItem`，不写 `WBSNode`；何时可缩及登记要求见 §2.1.4 N3-L2–L3。
-- 类名后缀**只允许**下表这些，每种后缀对应唯一的位置：
+- **PostgreSQL**:
+  - One BC, one schema; the schema name is `<subdomain>_<bc>` (e.g. `cost_timesheet`); table names are snake_case plural, no `psa_` prefix.
+  - An external reference is `<object>_id`; audit columns are `created_at`, `updated_at`, `version`. For "who did it", no generic `created_by` / `updated_by` columns: the operator of a state change is recorded in `state_transitions.actor_id` (ADR-0058), other actions go to audit (`platform_audit`), and a column is created only for an operator with business meaning (e.g. `confirmed_by`, `released_by`, the column name states the action) (one-architecture 2026-10-22, from one-data's check of main-baseline practice). Boolean columns start with `is_` / `has_`.
+  - Amounts are stored in pairs `<name>_amount` + `<name>_currency`; status stores the enum name (`text` + `CHECK`).
+  - Flyway scripts live under each module's directory, named `V{yyyyMMddHHmmss}__{module}_{description}.sql`; the description is English snake_case (a Chinese explanation goes in the script's first-line comment).
+- **HTTP**: path is `/api/v{n}/{subdomain}/{plural resource}` (ADR-0008, e.g. `/api/v1/cost/timesheets`; the second segment is the **subdomain** slug, not a BC or feature name), kebab-case; actions are written `:submit` / `:approve`; **all JSON (interfaces, domain-event payloads, external delivery) fields are camelCase**, snake_case only in the database; error codes are segmented by module; errors common across modules (illegal state transition, concurrent modification by someone else, reason required, past the withdrawal cut-off, not logged in, etc.) are defined once only in the shared base `kernel` and used directly by modules, and a module defines only its own specific errors (user 2026-10-15, on the extracted rule: 「通用错误码只在公共基础定义」). Status codes, lists, type representation, concurrency and error responses: §2.6.
+  - Correction (2026-10-14): the original example `/api/v1/timesheet/timesheets` treated a BC as a subdomain, and the original rule "event payload snake_case" disagreed with interface camelCase; both are unified.
+- **Frontend**: `src/modules/<module>/{pages,components,hooks,api}`; the API client is generated from OpenAPI (hand-written URLs forbidden); TypeScript strict; components PascalCase, hooks `useXxx`, file names kebab-case.
 
-| 后缀 / 形态 | 位置 | 例子 |
+### 2.4 Column-name class words, constraints and indexes (after DAMA / ISO 11179)
+
+**Column name = qualifier + class word** (ISO 11179 representation term). The class word decides the type. A column name may consist of the class word alone (e.g. `code`, `name`, `status`); the table name is then its object.
+
+| Class word | Meaning | Type |
 |---|---|---|
-| 聚合、实体、值对象：名词，无后缀 | `<module>.domain` | `Timesheet`、`Quote`、`Money` |
-| `*Repository`（接口） | `<module>.domain` | `TimesheetRepository` |
-| `Jdbc*Repository`（实现，包内可见） | `<module>.infrastructure.persistence` | `JdbcTimesheetRepository` |
-| 用例：动宾，无后缀，一个类一个用例 | `<module>.application` | `SubmitTimesheet`、`ApproveQuote` |
-| `*Queries` / `*Commands`（接口） | `<module>.api` | `WorkPackageQueries` |
-| 事件：过去式，无 `Event` 后缀，record | `<module>.events` | `TimesheetApproved`、`QuoteApproved` |
-| `*Controller`（包内可见） | `<module>.web` | `TimesheetController` |
-| `*Request` / `*Response`（record） | `<module>.web` | `SubmitTimesheetRequest` |
-| `*Client` / `*Gateway`（防腐层） | `integration.<system>` | `U8cVoucherClient` |
-| 状态枚举 `*Status`；存库时存枚举名 | `<module>.domain` | `TimesheetStatus.APPROVED` |
-| **禁止** | 任何位置 | `Util(s)`、`Helper`、`Manager`、`Info`、`Data`、`Impl`、`DO`、`ManHour` |
+| `_id` | identifier | `bigint`, `uuid`; `text` only for external-system identifiers (e.g. WeCom userid). **In force with ADR-0033**: always `uuid`; the only exception is `platform_integration.source_references.source_id` (the source's actual type, `bigint` for A8, may be negative); an external system's text identifier does not use `_id` but `_key` (e.g. `external_identities.external_subject_key`) |
+| `_ids` | set of identifiers (ADR-0034-IMPL pending ruling A-3; one-architecture 2026-10-17 took (a)) | `uuid[]` |
+| `_key` | business key, idempotency key; **in force with ADR-0033**: also an external system's text identifier (e.g. `external_identities.external_subject_key`) | `text` |
+| `_code` / `_codes` | code / code set | `text` / `text[]` |
+| `_name` | name | `text` |
+| `_text`, `_description`, `_reason`, `_note`, `_title`, `_message` | free text | `text` |
+| `_address` | address (email, IP) | `text` |
+| `_ciphertext` | encrypted value | `text` |
+| `_status`, `_kind`, `_type`, `_policy`, `_system` | enumeration (`_system`: category of an external system, e.g. `source_system`, ADR-0033) | `text` + `CHECK` listing enum names |
+| `_at` | point in time | `timestamptz` |
+| `_date` | business date | `date` |
+| `_amount` | amount; must pair with a same-named `_currency` | `numeric` |
+| `_currency` | currency (ISO 4217) | `text` / `char(3)` |
+| `_qty`, `_hours`, `_days` | quantity; quantity with unit (hours, person-days) | `numeric` (`_qty` may also be integer) |
+| `_rate` / `_pct` | ratio, unit price / percentage | `numeric` |
+| `_count` | count | `integer` / `bigint` |
+| `_number` | number (document number), sequence (round) | `text` / `integer` / `bigint` |
+| `_order` | ordering | `integer` |
+| `_hash` | digest | `text` |
+| `_url` / `_path` | address / path | `text` |
+| `_by` | operator (audit) | `bigint`. **In force with ADR-0033**: `uuid` (the user account's `user_id`) |
+| `_value` | numeric value (counter, start value) | `numeric` / `integer` / `bigint` |
+| `is_` / `has_` (prefix) | indicator | `boolean` |
 
-### 2.3 数据库、API、前端
+Two standalone column names `id` and `version` are also allowed. A document number uses `_number` (consistent with the numbering module's terms `legacy_number`, `round_number`), not `_no`.
 
-- **PostgreSQL**：
-  - 一个 BC 一个 schema，schema 名为 `<subdomain>_<bc>`（例如 `cost_timesheet`）；表名用 snake_case 复数，不加 `psa_` 前缀。
-  - 外部引用写 `<对象>_id`；审计列为 `created_at`、`updated_at`、`version`；「谁做的」不建通用的 `created_by`、`updated_by` 列：状态变化的操作人记在 `state_transitions.actor_id`（ADR-0058），其他动作记审计（`platform_audit`），只有业务含义的操作人才建列（如 `confirmed_by`、`released_by`，列名写明动作）（one-architecture 2026-10-22，依 one-data 对 main 基线实践的核对）；布尔列以 `is_` / `has_` 开头。
-  - 金额成对存放 `<名>_amount` + `<名>_currency`；状态存枚举名（`text` + `CHECK`）。
-  - Flyway 脚本放在各模块目录下，命名为 `V{yyyyMMddHHmmss}__{module}_{描述}.sql`，描述用英文 snake_case（中文说明写在脚本首行注释）。
-- **HTTP**：路径为 `/api/v{n}/{subdomain}/{复数资源}`（ADR-0008，例如 `/api/v1/cost/timesheets`；第二段是**子域** slug，不是 BC 或功能名），用 kebab-case；动作写成 `:submit` / `:approve`；**所有 JSON（接口、领域事件载荷、外部投递）字段一律 camelCase**，snake_case 只用于数据库；错误码按模块分段；跨模块通用的错误（状态转换不合法、被他人同时修改、必须填写原因、已过撤回截止点、未登录等）只在公共基础 `kernel` 定义一次，各模块直接使用，模块只定义本模块特有的错误（用户 2026-10-15 对抽规则答「通用错误码只在公共基础定义」）。状态码、列表、类型表示、并发与错误响应等接口约定见 §2.6。
-  - 更正（2026-10-14）：原示例 `/api/v1/timesheet/timesheets` 把 BC 当成子域，原规则「事件载荷 snake_case」与接口 camelCase 不一致，均已统一。
-- **前端**：`src/modules/<module>/{pages,components,hooks,api}`；API 客户端由 OpenAPI 生成（禁止手写 URL）；TypeScript strict；组件用 PascalCase，hook 用 `useXxx`，文件名用 kebab-case。
+**Constraints and indexes**: primary key `pk_<table>`; foreign key `fk_<table>_<column>`; unique `uk_<table>_<column>` (for both unique constraints and unique indexes); table-level check `ck_<table>_<rule>`; ordinary index `ix_<table>_<column>`. Primary keys, foreign keys and unique constraints must be named explicitly with `CONSTRAINT <name>`, not rely on PostgreSQL default names. **Every enum `CHECK` is named `ck_<table>_<column>`** (DDL-22; user 2026-10-15: all pending DDL-audit items answered 「全部按推荐 (Recommended)」); no unnamed column-level CHECK, because changing values after go-live requires dropping and recreating by name; the value set of a column matches the corresponding Java enum. Existing items during the open-baseline period are renamed this way and folded into the baseline DDL tightening (R-2); the guard is an extension of `DdlNamingTest` (§4 planned guard G-D12).
 
-### 2.4 列名类别词、约束与索引命名（借鉴 DAMA / ISO 11179，2026-10-14）
+**Guard**: `DdlNamingTest` derives the final table structure from all migration scripts (tracking `ADD COLUMN`, `RENAME COLUMN`, `RENAME CONSTRAINT`, `ALTER INDEX ... RENAME TO`) and checks class words vs types and constraint / index names; injected samples cover each kind of error. Items that existed before the rule took effect are registered in `backend/architecture/ddl-naming-baseline.txt` (each line carries a rename suggestion); a new violation, and a baseline line that is fixed but not deleted, both fail. Tables whose column names are owned by a framework are exempt: `platform_identity.sessions`, `sessions_attributes` (Spring Session JDBC), `platform_integration.event_publication` (Spring Modulith), `platform_scheduling.scheduler_locks` (ShedLock).
 
-用户 2026-10-14：问「1a 还有哪些设计需要现在考虑？所有表命名是否有标准？需要借鉴 dama 的标准吗」，选「全部在 1a 做 (Recommended)」。
+### 2.4a DDL design principles
 
-**列名 = 限定词 + 类别词**（ISO 11179 representation term）。类别词决定类型；列名也可以只由类别词本身构成（如 `code`、`name`、`status`），表名就是它的对象。
+(User 2026-10-15, asked 「看看 ddl 设计上还有什么需要强化的原则？比如索引？」, chose 「全部采纳 (Recommended)」.) Applies to all own tables; framework-created tables (Spring Session, ShedLock, Modulith event registry) are exempt and registered in the guards. Items marked "guard" are checked by `DdlNamingTest` / `DataArchitectureTest`; the rest rely on per-wave review (DATA_DESIGN_CHECKLIST §14.1).
 
-| 类别词 | 含义 | 类型 |
+1. **Business unique constraint**: the primary key is always UUIDv7 (RFC 9562, adopted by the user 2026-10-15, ADR-0041, FRAMEWORKS §9 (intent 195827); §14.1 D16; order by a business-time column, not the ID). Transaction, master-data, reference and configuration tables also need at least one business unique constraint (e.g. document type + document number, legal-entity code, role code, source system + object type + source ID; an exclusion constraint for effective-interval rows), and `business_key` is registered in the data-access registry. Pure log and event tables may be exempt with a stated reason. References always use UUID; a business key is never a foreign key. Guard.
+2. **Indexes**:
+   - A foreign-key column must have an index starting with that column (PostgreSQL does not create one). Guard (G-DDL2, planned).
+   - Every list / query path is registered in the registry (filter columns, sort columns) and covered by an index; the sort key of cursor pagination falls back to `id` in a composite index. Guard (§4 G-P3 and G-DDL4 merge into one EXPLAIN integration test, planned; review before it is implemented).
+   - Hot status paths use a partial index (`WHERE status IN (...)`).
+   - No duplicate or redundant indexes (same prefix as another index, duplicating a unique constraint). Guard (G-DDL3, planned).
+3. **Nulls and defaults**: `NOT NULL` by default; a nullable column must state the business meaning of "empty" in its column comment (guard: a nullable column's comment contains 「为空表示」 or an equivalent statement). A text column must not use an empty string for null (`CHECK (col <> '')`). The database allows only technical defaults (e.g. the initial `version`); business values and times are always written explicitly by the application. Guard.
+4. **Delete semantics**: foreign keys default to `ON DELETE RESTRICT`; only child rows within the same aggregate may use `CASCADE`, and must be registered. No soft-delete flag column; a business delete is expressed by status or version, and a physical delete is only for expiring technical data. Guard (CASCADE whitelist, ban on `is_deleted`-type columns).
+5. **Code format and text length**: a `_code` column has a format CHECK (character set, case, length); for a case-insensitive comparison column, the unique constraint is built on the normalised value (e.g. `lower(email_address)`). Free-text columns have a length cap (`CHECK (char_length(col) <= n)`). Guard.
+6. **Enum evolution**: no PostgreSQL `ENUM` type, uniformly `text + CHECK` (naming in §2.4); a new value changes the CHECK by migration (`DROP CONSTRAINT`, then `ADD CONSTRAINT … NOT VALID`, then `VALIDATE`, to avoid long lock holding), and removing a value first migrates the data. Guard (ban on `CREATE TYPE ... AS ENUM`).
+7. **jsonb boundary**: `jsonb` only for payloads with no fixed structure by nature (event archive, external raw text, idempotent response body); domain fields must be proper columns; every `jsonb` column registers its purpose in the registry and has a `jsonb_typeof` CHECK. Guard.
+8. **Large-table planning**: an append-only table with retention over 3 years or an expected over ten million rows (audit, event archive, process archive, etc.) decides its partition key (by time range) and archive / purge method when created and registers them in the registry; partitioning after go-live rewrites the whole table. Review.
+9. **Post-go-live migration safety** (in force once the open-baseline marker is deleted): schema changes only "expand then contract"; add indexes with `CREATE INDEX CONCURRENTLY` (a separate, non-transactional migration); migrations set `lock_timeout` and `statement_timeout`; changes that rewrite the whole table are forbidden (e.g. changing a column type, adding a column with a volatile default); dropping and renaming a column take two releases. Guard (static check of migration scripts).
+10. **Frequently updated rows**: tables whose rows are updated repeatedly (numbering counter cells, idempotency registry, etc.) may set `fillfactor` to reduce bloat and lock contention; a performance recommendation, used as needed and explained in the table comment.
+
+### 2.5 Column-level sensitivity classification
+
+| Level | Meaning | Handling |
 |---|---|---|
-| `_id` | 标识符 | `bigint`、`uuid`；`text` 只用于外部系统标识（如企业微信 userid）。**随 ADR-0033 采纳生效**：一律 `uuid`；唯一例外 `platform_integration.source_references.source_id`（按来源实际类型，A8 为 `bigint`，可为负数）；外部系统的文本标识不用 `_id`，用 `_key`（如 `external_identities.external_subject_key`） |
-| `_ids` | 标识符集合（ADR-0034-IMPL 待裁定 A-3，one-architecture 2026-10-17 取 (a)） | `uuid[]` |
-| `_key` | 业务键、幂等键；**随 ADR-0033 采纳生效**：另含外部系统的文本标识（如 `external_identities.external_subject_key`） | `text` |
-| `_code` / `_codes` | 代码 / 代码集合 | `text` / `text[]` |
-| `_name` | 名称 | `text` |
-| `_text`、`_description`、`_reason`、`_note`、`_title`、`_message` | 自由文本 | `text` |
-| `_address` | 地址（邮箱、IP） | `text` |
-| `_ciphertext` | 加密后的值 | `text` |
-| `_status`、`_kind`、`_type`、`_policy`、`_system` | 枚举（`_system`：外部系统的类别，如 `source_system` 来源系统，ADR-0033） | `text` + `CHECK` 列出枚举名 |
-| `_at` | 时间点 | `timestamptz` |
-| `_date` | 业务日期 | `date` |
-| `_amount` | 金额，必须配同名 `_currency` | `numeric` |
-| `_currency` | 币种（ISO 4217） | `text` / `char(3)` |
-| `_qty`、`_hours`、`_days` | 数量；带单位的数量（工时、人天） | `numeric`（`_qty` 也可整数） |
-| `_rate` / `_pct` | 比率、单价 / 百分比 | `numeric` |
-| `_count` | 计数 | `integer` / `bigint` |
-| `_number` | 编号（单据编号）、序号（轮次） | `text` / `integer` / `bigint` |
-| `_order` | 排序 | `integer` |
-| `_hash` | 摘要 | `text` |
-| `_url` / `_path` | 地址 / 路径 | `text` |
-| `_by` | 操作人（审计） | `bigint`。**随 ADR-0033 采纳生效**：`uuid`（用户账号的 `user_id`） |
-| `_value` | 数值（计数器、起始值） | `numeric` / `integer` / `bigint` |
-| `is_` / `has_`（前缀） | 指示 | `boolean` |
+| `PUBLIC` | may go outside | — |
+| `INTERNAL` | default level | visible after login, by function permission |
+| `SENSITIVE` | personal information, salary and daily rate, bank cards (GUIDING_PRINCIPLES §6) | masked display, authorised by legal entity × department × project role, access traced; not in analytics-layer detail |
+| `RESTRICTED` | passwords, keys, session content | never leaves the database (used only inside the module), not in logs, not in the analytics layer |
 
-另允许 `id`、`version` 两个独立列名。单据编号用 `_number`（与编号模块用语 `legacy_number`、`round_number` 一致），不用 `_no`。
+Registered in `backend/architecture/data-classification.txt` (`<schema.table.column> | <level> | <reason>`); an unregistered column defaults to `INTERNAL`. Guard: `DdlNamingTest` requires a column whose name looks like sensitive information (password, key, TOTP, bank, salary, daily rate, ID document, mobile, email, birthday, gender, address, session content) to be registered as `SENSITIVE` or `RESTRICTED`, and a registered column must exist. web / api outputs must not expose `SENSITIVE` or `RESTRICTED` columns directly; that guard is implemented by the 1a session.
 
-**约束与索引**：主键 `pk_<表>`；外键 `fk_<表>_<列>`；唯一 `uk_<表>_<列>`（唯一约束和唯一索引都用）；表级检查 `ck_<表>_<规则>`；普通索引 `ix_<表>_<列>`。主键、外键、唯一约束都要用 `CONSTRAINT <名>` 显式命名，不依赖 PostgreSQL 的默认名。**枚举 `CHECK` 一律命名为 `ck_<表>_<列>`**（用户 2026-10-15：对 DDL 审计的待决项答「全部按推荐 (Recommended)」，DDL-22），不写不具名的列上 CHECK——上线后改取值要按名字删除重建；同一列的取值集合与对应 Java 枚举一致。基线开放期内的存量按此改名并入基线 DDL 收紧（R-2）；守护由 `DdlNamingTest` 扩展（§4「待实现的守护」G-D12）。
+### 2.6 HTTP interface conventions
 
-**守护**：`DdlNamingTest` 按全部迁移脚本推算最终表结构（跟踪 `ADD COLUMN`、`RENAME COLUMN`、`RENAME CONSTRAINT`、`ALTER INDEX ... RENAME TO`），检查类别词与类型、约束与索引命名；注入样例覆盖每类错误。规则生效前已存在的项登记在 `backend/architecture/ddl-naming-baseline.txt`（每行附改名建议），新违规和「已修好却没删」的基线行都会失败。框架拥有列名的表豁免：`platform_identity.sessions`、`sessions_attributes`（Spring Session JDBC）、`platform_integration.event_publication`（Spring Modulith）、`platform_scheduling.scheduler_locks`（ShedLock）。
+(User 2026-10-15, on the pending items of principle check A: 「全部按推荐 (Recommended)」.) Applies to all `/api/v{n}/…` interfaces; promoted from §2–3 of `docs/architecture/proposals/phase1-a-platform-conventions.md`, which are no longer current rules. Paths and naming: §2.3; interface versioning and contract evolution: ADR-0008 and ADR-0035. Guards: §4 planned guards G-A1–G-A9; until implemented, each wave's review checks them one by one.
 
-### 2.4a DDL 设计原则（用户 2026-10-15：问「看看 ddl 设计上还有什么需要强化的原则？比如索引？」后选「全部采纳 (Recommended)」）
+- **A-1 Resources and commands**: read with `GET`; create on a collection with `POST /{plural resource}`; replace editable fields wholesale with `PUT /{plural resource}/{id}`; state transitions and business actions are commands `POST /{plural resource}/{id}:{action}` (action from `standard_actions` in `terms.yaml`), never `PUT` to change state; delete with `DELETE`, only for objects that may be deleted (e.g. an unsubmitted draft); a business "void" or "revoke" is a command. A read-only computation that changes no state (e.g. trial calculation, preview) may use `GET /{plural resource}:{action}` or `GET /{plural resource}/{id}:{action}`, parameters in the query string, with no side effects.
+- **A-2 Status codes**: create returns `201` with `Location` and `ETag`; a command returns `200` (body is the resource after the command) or `204`; delete returns `204`; read returns `200` with `ETag`. Status codes in the contract match runtime.
+- **A-3 Lists**: the response is always `{items, nextCursor}`; parameters `cursor` (opaque, carries a format version, unsigned; internally encodes the sort key + `id`; the server strictly validates structure and type, and an invalid one returns 400 `PLATFORM_WEB_CURSOR_INVALID`) and `limit`. `limit` defaults to 50 with a maximum of 200; these two values are the system's only constants (kernel); OpenAPI declares `maximum: 200`; exceeding the maximum returns 400, with no silent truncation. Lists always use index-based keyset pagination, never in-memory slicing (GUIDING_PRINCIPLES §7). When a total is needed, add `GET /{plural resource}:count` with the same filter parameters as the list. The cap for small tables without pagination: GUIDING_PRINCIPLES §7a R-P2.
+- **A-4 Filtering and sorting**: filter parameters are camelCase field names, multiple values comma-separated, no general expression language; sorting is `sort=field,-field`, whitelisted fields only; an unknown parameter or a field outside the whitelist returns 400 `PLATFORM_WEB_REQUEST_INVALID`, and the response extension property `invalidParameters` names the parameters (in force for every `GET` under `/api`, including single-resource reads). An export interface uses the same filter parameters as the corresponding list.
+- **A-5 No `PATCH`**: partial changes use `PUT` replacing the editable fields wholesale, or a named command that expresses the business intent.
+- **A-6 Batch**: written `POST /{plural resource}:{action}-batch`, at most 100 items per call (same cap as GUIDING_PRINCIPLES §7a R-P2; source: one-coordinator 2026-10-15 took the stricter of two recommended values (100 / 200), user 「全部按推荐」); authorisation and execution are per item, each item succeeds or fails on its own. The response is `200` returning per-item results in request order (object ID, result, ProblemDetail on failure); partial success also returns `200`; a malformed whole batch returns 400 and executes nothing.
+- **A-7 Type representation**:
+  - Own IDs are always string uuids: JSON string, OpenAPI `type: string, format: uuid` (ADR-0033 item 6 clause 2), likewise for properties, path parameters and query parameters; the frontend treats them as opaque strings, no numeric operations, no parsing; source-system IDs do not enter the interface (ADR-0033);
+  - Instants are ISO-8601 UTC with `Z` (`2026-10-15T02:00:00Z`), not a `+08:00` offset, not epoch milliseconds; business dates are `YYYY-MM-DD`, the day taken in the business time zone (`Asia/Shanghai`);
+  - An amount is `{amount, currency}`, `amount` a decimal string; a ratio is a decimal string in 0–1; other decimal quantities (hours, person-days) are likewise strings;
+  - Status, type and similar values are named `enum` schemas in OpenAPI, not an unconstrained `string`.
+- **A-8 Idempotency and concurrency**:
+  - A side-effecting `POST` accepts `Idempotency-Key`: the server stores the response (status, body, `ETag`, `Location`) for 24 hours by "user + key" and replays a repeated request verbatim; the same key with a different body returns 422, and 409 while the first request is still processing; once the in-progress placeholder exceeds the configured timeout it may be taken over; 5xx is not stored. Session and login-state endpoints (path contains `/sessions`, or ends with `/login-states`) never store the response body and do not declare this header in the contract; the scope is expressed solely by `IdempotencyScope` and guarded by `HttpContractIT.idempotencyKeyIsOfferedExactlyWhereItIsStored`.
+  - A `PUT`, `DELETE` or command that modifies an existing resource must carry `If-Match: "<version>"`: missing returns 428, a version mismatch returns 412; the contract declares the header required and declares 412 / 428. The version is not in the request body. A command that truly needs no version (e.g. forced logout) is registered in the guard as an exemption with its reason.
+  - 409 means only "the current state does not allow the operation" (illegal state transition etc.), not a concurrency conflict.
+- **A-9 Errors**: always RFC 9457 ProblemDetail, `type` and `code` taken from `ErrorCode`; common errors are defined only in kernel (§2.3, G48); each interface declares in OpenAPI the error status codes it may return; a 5xx body carries only the correlation id (correlationId), details go only to the log. Error responses are produced in one place.
+- **A-10 Access control at the interface**: not logged in: 401; no function permission: 403; function permission but a single resource outside the caller's data scope: 404, not revealing whether it exists; lists are filtered by data scope without error; the data scope is decided by the session and is never a request parameter.
+- **A-11 Output**: a response body is always a `*Response` record in the `web` package, never an application-layer `*View` or a domain object directly; `SENSITIVE` fields are masked per §2.5, `RESTRICTED` fields do not appear.
 
-适用于全部自有表；框架自建表（Spring Session、ShedLock、Modulith 事件登记）豁免并在守护中登记。标「守护」的由 `DdlNamingTest` / `DataArchitectureTest` 检查，其余靠每波复审（DATA_DESIGN_CHECKLIST §14.1）。
-
-1. **业务唯一约束**：主键一律 UUIDv7（RFC 9562，用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827）；§14.1 D16；排序用业务时间列，不用 ID）；交易、主数据、参考、配置表另须至少一个业务唯一约束（如单据类型 + 单据编号、法人代码、角色代码、来源系统 + 对象类型 + 来源 ID；带生效区间的用排他约束），并在数据访问注册表登记 `business_key`。纯日志、事件类表可豁免，须写理由。引用一律用 UUID，不以业务键作外键。守护。
-2. **索引**：
-   - 外键列必须有以该列开头的索引（PostgreSQL 不自动建）。守护（G-DDL2，待实现）。
-   - 每条列表 / 查询路径在注册表登记（过滤列、排序列），并有索引覆盖；游标分页的排序键以 `id` 兜底组成联合索引。守护（§4 G-P3 与 G-DDL4 合并为一个 EXPLAIN 集成测试，待实现；实现前复审）。
-   - 状态类热点用部分索引（`WHERE status IN (...)`）。
-   - 不留重复或冗余索引（与另一索引前缀相同、与唯一约束重复）。守护（G-DDL3，待实现）。
-3. **空值与默认值**：默认 `NOT NULL`；可空列须在列注释写明「空」的业务含义（守护：可空列注释含「为空表示」或等价说明）。文本列禁止空串代替空值（`CHECK (col <> '')`）。数据库只允许技术默认值（如 `version` 初值）；业务值与时间一律由应用显式写入。守护。
-4. **删除语义**：外键默认 `ON DELETE RESTRICT`；仅同一聚合内的子行允许 `CASCADE`，须登记。不用软删除标志列；业务删除以状态或版本表达，物理删除只用于技术数据过期清理。守护（CASCADE 白名单、禁 `is_deleted` 类列）。
-5. **代码格式与文本长度**：`_code` 列有格式 CHECK（字符集、大小写、长度）；不区分大小写比较的列，唯一约束建在规范化值上（如 `lower(email_address)`）。自由文本类列设长度上限（`CHECK (char_length(col) <= n)`）。守护。
-6. **枚举演进**：不用 PostgreSQL `ENUM` 类型，统一 `text + CHECK`（命名见 §2.4）；新增取值以迁移改 CHECK（`DROP CONSTRAINT` 后 `ADD CONSTRAINT … NOT VALID` 再 `VALIDATE`，避免长时间持锁），删除取值先迁移数据。守护（禁 `CREATE TYPE ... AS ENUM`）。
-7. **jsonb 边界**：`jsonb` 只用于本来无固定结构的载荷（事件归档、外部原文、幂等应答体），领域字段必须是正式列；每个 `jsonb` 列在注册表登记用途并有 `jsonb_typeof` CHECK。守护。
-8. **大表规划**：保留期超过 3 年或预计超过千万行的只追加表（审计、事件归档、过程归档等），在建表时定好分区键（按时间范围）与归档 / 清理方式，登记在注册表；上线后再分区要重写全表。复审。
-9. **上线后迁移安全**（基线开放标记删除后生效）：表结构变更只能「先扩后缩」（expand / contract）；加索引用 `CREATE INDEX CONCURRENTLY`（单独迁移、非事务）；迁移设 `lock_timeout` 与 `statement_timeout`；禁止会重写全表的变更（如改列类型、加带易变默认值的列）；删列、改名分两次发布。守护（迁移脚本静态检查）。
-10. **高频更新行**：同一行被反复更新的表（编号计数格、幂等登记等）可设 `fillfactor`，减少膨胀与锁竞争；属性能建议，按需使用并在表注释说明。
-
-### 2.5 列级敏感分级
-
-| 级别 | 含义 | 处理 |
-|---|---|---|
-| `PUBLIC` 公开 | 可对外 | — |
-| `INTERNAL` 内部 | 默认级别 | 登录可见，按功能权限 |
-| `SENSITIVE` 敏感 | 个人信息、工资与日薪、银行卡（GUIDING_PRINCIPLES §6） | 脱敏展示、按法人 × 部门 × 项目角色授权、访问留痕；不进分析层明细 |
-| `RESTRICTED` 高度敏感 | 口令、密钥、会话内容 | 不出库（只在本模块内部使用）、不进日志、不进分析层 |
-
-登记在 `backend/architecture/data-classification.txt`（`<schema.table.column> | <级别> | <理由>`），未登记的列默认 `INTERNAL`。守护：`DdlNamingTest` 要求名字像敏感信息的列（口令、密钥、TOTP、银行、工资、日薪、证件、手机、邮箱、生日、性别、地址、会话内容）必须登记为 `SENSITIVE` 或 `RESTRICTED`，登记的列必须存在。web / api 出参不得直接暴露 `SENSITIVE`、`RESTRICTED` 列，这一守护由 1a 会话实现。
-
-### 2.6 HTTP 接口约定（用户 2026-10-15：对原则核对 A 的待决项答「全部按推荐 (Recommended)」）
-
-适用于全部 `/api/v{n}/…` 接口；由 `docs/architecture/proposals/phase1-a-platform-conventions.md` §2–3 升格而来，那两节不再是现行规则。路径与命名见 §2.3；接口版本与契约演进见 ADR-0008 与 ADR-0035。守护见 §4「待实现的守护」G-A1–G-A9，未实现前由每波复审逐条检查。
-
-- **A-1 资源与命令**：读取用 `GET`；在集合上创建用 `POST /{复数资源}`；整体替换可编辑字段用 `PUT /{复数资源}/{id}`；状态转换与业务动作写成命令 `POST /{复数资源}/{id}:{动作}`（动作取自 `terms.yaml` 的 `standard_actions`），不用 `PUT` 改状态；删除用 `DELETE`，只用于允许删除的对象（如未提交的草稿），业务上的「作废」「撤销」是命令。不改变任何状态的只读计算（如试算、预览）可用 `GET /{复数资源}:{动作}` 或 `GET /{复数资源}/{id}:{动作}`，参数放查询串，不得有副作用。
-- **A-2 状态码**：创建返回 `201`，带 `Location` 与 `ETag`；命令返回 `200`（响应体为命令后的资源）或 `204`；删除返回 `204`；读取返回 `200` 与 `ETag`。契约中的状态码与运行时一致。
-- **A-3 列表**：响应一律为 `{items, nextCursor}`；参数 `cursor`（不透明，带格式版本，不签名；内部编码排序键 + `id`，服务端严格校验结构与类型，不合格返回 400 `PLATFORM_WEB_CURSOR_INVALID`）与 `limit`。`limit` 默认 50、上限 200，两个值是全系统唯一的常量（kernel），OpenAPI 声明 `maximum: 200`，超出上限返回 400，不静默截断。列表一律按索引做键集分页，不在内存中切片（GUIDING_PRINCIPLES §7）；需要总数时另设 `GET /{复数资源}:count`，与列表用同一组过滤参数。不分页的小表上限见 GUIDING_PRINCIPLES §7a R-P2。
-- **A-4 过滤与排序**：过滤参数为 camelCase 字段名，多值用逗号分隔，不提供通用表达式语言；排序写 `sort=field,-field`，只接受白名单字段；未知参数、白名单外的字段返回 400 `PLATFORM_WEB_REQUEST_INVALID`，响应扩展属性 `invalidParameters` 给出参数名（所有 `/api` 的 `GET` 生效，含单资源读取）。导出接口与对应列表使用同一组过滤参数。
-- **A-5 不提供 `PATCH`**：局部修改用 `PUT` 整体替换可编辑字段，或用具名命令表达业务意图。
-- **A-6 批量**：写成 `POST /{复数资源}:{动作}-batch`，一次最多 100 项（与 GUIDING_PRINCIPLES §7a R-P2 同一上限；出处：one-coordinator 2026-10-15 在两份推荐值（100 / 200）中取较严者，用户「全部按推荐」）；逐项鉴权、逐项执行，各项各自成败。响应 `200`，按请求顺序返回逐项结果（对象 ID、结果、失败时的 ProblemDetail），部分成功也返回 `200`；整批格式不合法时返回 400、一项都不执行。
-- **A-7 类型表示**：
-  - 自有 ID 一律是字符串 uuid：JSON string，OpenAPI `type: string, format: uuid`（ADR-0033 第 6 项第 2 条），属性、路径参数与查询参数同样；前端把它当不透明字符串，不做数值运算、不解析；来源系统的 ID 不进接口（ADR-0033）；
-  - 时刻用 ISO-8601 UTC，带 `Z`（`2026-10-15T02:00:00Z`），不用 `+08:00` 偏移，不用纪元毫秒；业务日期用 `YYYY-MM-DD`，按业务时区（`Asia/Shanghai`）取日；
-  - 金额为 `{amount, currency}`，`amount` 是十进制字符串；比率为 0–1 的十进制字符串；其他十进制量（工时、人天）同样用字符串；
-  - 状态、类型等取值在 OpenAPI 中是具名 `enum` schema，不用无约束的 `string`。
-- **A-8 幂等与并发**：
-  - 有副作用的 `POST` 接受 `Idempotency-Key`：服务端按「用户 + 键」保存 24 小时的应答（状态、正文、`ETag`、`Location`），重复请求原样回放；同键不同请求体返回 422，首个请求仍在处理时返回 409；处理中占位超过配置的超时后允许接管；5xx 不保存。会话与登录状态端点（路径含 `/sessions`、以 `/login-states` 结尾）永不保存应答正文，也不在契约中声明该请求头；范围由 `IdempotencyScope` 唯一表达，`HttpContractIT.idempotencyKeyIsOfferedExactlyWhereItIsStored` 守护。
-  - 修改已有资源的 `PUT`、`DELETE` 与命令必须带 `If-Match: "<version>"`：缺失返回 428，版本不一致返回 412；契约中声明该请求头为必填，并声明 412 / 428。版本不放在请求体。确实不需要版本的命令（如强制登出）在守护中登记豁免与理由。
-  - 409 只表示「当前状态不允许该操作」（状态转换不合法等），不用于并发冲突。
-- **A-9 错误**：一律 RFC 9457 ProblemDetail，`type` 与 `code` 取自 `ErrorCode`；通用错误只在 kernel 定义（§2.3、G48）；每个接口在 OpenAPI 中声明自己可能返回的错误状态码；5xx 的响应体只带关联号（correlationId），细节只进日志。错误响应由一处统一生成。
-- **A-10 访问控制在接口上的表现**：未登录 401；没有功能权限 403；有功能权限但单个资源不在本人数据范围内时返回 404，不暴露资源是否存在；列表按数据范围过滤，不报错；数据范围由会话决定，不作请求参数。
-- **A-11 出参**：响应体一律是 `web` 包内的 `*Response` record，不直接返回 application 层的 `*View` 或领域对象；`SENSITIVE` 字段按 §2.5 掩码，`RESTRICTED` 字段不出现。
-
-## 3. 包结构：代码放在哪里（agent 速查表）
+## 3. Package structure: where code goes (agent cheat sheet)
 
 ```
 com.forcitis.one
 ├── OneApplication.java
-├── SubdomainModuleDetection.java   模块识别策略：每个 <subdomain>.<bc> 是一个顶层模块（ADR-0003）
-├── kernel/                         共享内核（OPEN 模块）：Money、Hours、LegalEntityId、UserId、@ValueObject、@PublicEndpoint
-├── <subdomain>/                    子域命名空间（12 个，见 02-子域划分）：presales | contract | delivery | cost | receivables
+├── SubdomainModuleDetection.java   module detection strategy: every <subdomain>.<bc> is a top-level module (ADR-0003)
+├── kernel/                         shared kernel (OPEN module): Money, Hours, LegalEntityId, UserId, @ValueObject, @PublicEndpoint
+├── <subdomain>/                    subdomain namespace (12, see 02-子域划分): presales | contract | delivery | cost | receivables
 │   │                               | expense | procurement | km | organization | accounting | platform | operations
-│   └── <bc>/                       一个 BC = 一个 Modulith 模块，例如 cost.timesheet、delivery.execution、platform.approval
-│       ├── package-info.java       职责、对应的 BC 中文名、拥有的 schema（不加 @ApplicationModule 注解）
-│       ├── api/                    @NamedInterface("api")：接口 + record + 类型化枚举 + 类型化 ID（窄接口）
-│       ├── events/                 @NamedInterface("events")：已发生事实的 record（过去式）
-│       ├── domain/                 聚合、实体、值对象、领域服务、*Repository 端口。不依赖 Spring 或 JDBC
-│       ├── application/            用例（一类一用例，唯一的 public 方法），唯一的事务边界
+│   └── <bc>/                       one BC = one Modulith module, e.g. cost.timesheet, delivery.execution, platform.approval
+│       ├── package-info.java       responsibility, the BC's Chinese name, owned schema (no @ApplicationModule annotation)
+│       ├── api/                    @NamedInterface("api"): interface + record + typed enum + typed ID (narrow interface)
+│       ├── events/                 @NamedInterface("events"): records of facts that happened (past tense)
+│       ├── domain/                 aggregate, entity, value object, domain service, *Repository port. No Spring or JDBC
+│       ├── application/            use cases (one class per use case, a single public method), the only transaction boundary
 │       ├── infrastructure/
-│       │   └── persistence/        Jdbc*Repository（JdbcClient + 类型化映射），只访问 <subdomain>_<bc> schema
-│       └── web/                    *Controller（/api/{version}/…）、*Request / *Response record
-└── (resources) db/migration/<subdomain>_<bc>/V<yyyyMMddHHmmss>__<subdomain>_<bc>_<描述>.sql
-architecture/module-dependencies.txt  已批准的模块依赖图（上下文映射的代码形态），改动需评审
+│       │   └── persistence/        Jdbc*Repository (JdbcClient + typed mapping), accesses only the <subdomain>_<bc> schema
+│       └── web/                    *Controller (/api/{version}/…), *Request / *Response record
+└── (resources) db/migration/<subdomain>_<bc>/V<yyyyMMddHHmmss>__<subdomain>_<bc>_<description>.sql
+architecture/module-dependencies.txt  the approved module dependency graph (code form of the context map); changes need review
 ```
 
-| 我要写… | 放在 | 名字 |
+| I want to write… | Put it in | Name |
 |---|---|---|
-| 新的业务规则或计算 | `<module>.domain`（聚合方法或值对象） | 用词表名词 |
-| 一个用户动作 / 接口背后的流程 | `<module>.application` | 动宾，例如 `SubmitTimesheet` |
-| 给其他模块用的查询 | `<module>.api` 接口 + `application` 实现 | `*Queries` |
-| 通知其他模块「发生了什么」 | `<module>.events` record，在用例中 publish | 过去式 |
+| a new business rule or calculation | `<module>.domain` (aggregate method or value object) | glossary noun |
+| the flow behind one user action / interface | `<module>.application` | verb-object, e.g. `SubmitTimesheet` |
+| a query for other modules | `<module>.api` interface + `application` implementation | `*Queries` |
+| notify other modules "what happened" | `<module>.events` record, published inside the use case | past tense |
 | SQL | `<module>.infrastructure.persistence` | `Jdbc*Repository` |
-| REST 接口 | `<module>.web` | `*Controller` |
-| 调用外部系统 | `integration.<system>` | `*Client` |
-| 共享的值类型 | `kernel`（需评审；不得放业务行为） | |
-| 新的跨模块依赖 | 先改 `architecture/module-dependencies.txt` 并通过评审 | |
-| 新表 / 新字段 | `db/migration/<subdomain>_<bc>/`，必须带中文 COMMENT | 表名和列名由词表派生 |
-| 业务编号 | 调用 `platform.numbering` 的 `DocumentNumbers.next(...)`，在本用例的事务内调用 | 新单据类型要在 `DocumentType` 中登记 |
+| REST interface | `<module>.web` | `*Controller` |
+| calling an external system | `integration.<system>` | `*Client` |
+| a shared value type | `kernel` (needs review; no business behaviour) | |
+| a new cross-module dependency | first change `architecture/module-dependencies.txt` and pass review | |
+| a new table / column | `db/migration/<subdomain>_<bc>/`, must carry a Chinese COMMENT | table and column names derived from the glossary |
+| a business number | call `DocumentNumbers.next(...)` of `platform.numbering` inside this use case's transaction | register a new document type in `DocumentType` |
 
-## 4. 守护规则（模板工程中已实现并验证）
+## 4. Guard rules
 
-| # | 规则 | 防的是哪类 agent 错误 | 实现 |
-|---|---|---|---|
-| G1 | 模块之间只能经 `api` / `events` 访问，无环，依赖只能指向 `allowedDependencies` | 直接 import 别的模块的 domain 或 repository | Modulith `ApplicationModules.verify()` |
-| G2 | `api` 只放接口和 record | 把实现类或可变对象当契约 | `apiPackagesContainOnlyInterfacesAndRecords` |
-| G3 | `api` 签名不得引用 domain / application / infrastructure / web | 通过接口泄露内部模型（窄接口变宽） | `apiSignaturesDoNotLeakModuleInternals` |
-| G4 | 每个模块的 api 方法总数 ≤ 12 | 为图方便不断给接口加方法 | `apiSurfaceStaysNarrow` |
-| G5 | `events` 只放 record，名称不以 `Event` 结尾 | 可变事件、命名不一致 | `eventsAreRecords` |
-| G6 | web 和 infrastructure 的类不得 public | 其他代码直接引用控制器或适配器 | `webAndInfrastructureAreNotPublic` |
-| G7 | domain 不依赖 Spring、Servlet 或其他层 | 在领域对象里写框架代码或 SQL | `domainIsFrameworkFree` |
-| G8 | application 不依赖 web 或 infrastructure | 用例里直接写 JDBC 或调控制器 | `applicationDoesNotTouchWebOrInfrastructure` |
-| G9 | web 只调用 application | 控制器直连仓储或领域对象 | `webOnlyCallsApplication` |
-| G10 | JDBC / `java.sql` 只出现在 infrastructure | 在任意位置写 SQL | `jdbcOnlyInInfrastructure` |
-| G11 | `@Transactional` 只出现在 application | 事务边界散落（老代码 WIP 结转缺陷的根源） | `transactionsOnlyInApplication` |
-| G12 | `@RestController` 只在 web，且以 `Controller` 结尾 | 控制器放错包 | `controllersLiveInWebAndEndWithController` |
-| G13 | domain 里的 `*Repository` 必须是接口；实现以 `Jdbc` 开头 | 端口和适配器混淆 | `repositoriesFollowPortAdapterNaming` |
-| G14 | 禁止 `Util` / `Helper` / `Manager` / `Info` / `Data` / `Impl` / `DO` / `ManHour` 等命名 | 沿用老代码的命名习惯 | `noVagueOrLegacyNames` |
-| G15 | 标识符只能是 ASCII | 中文或拼音标识符 | `identifiersAreAscii` |
-| G16 | domain 中的 `*status` 字段必须是 enum | 魔法数、字典 ID 当状态 | `statusesAreEnums` |
-| G17 | kernel 以外，`*amount` / `*price` / `*cost` 字段不得是裸 `BigDecimal` | 违反 Money = (amount, currency) | `moneyIsNeverABareDecimalNamedAmount` |
-| G18 | 禁止字段注入、`System.out`、JUL、`java.util.Date`、`@PermitAll` | 老代码的常见坏味道和 SEC-003 类漏洞 | `generalCodingRules` |
-| G19 | 只有 `platform.approval.infrastructure` 能使用 Flowable | 业务模块直接操作流程引擎 | `flowableOnlyInsideApprovalInfrastructure` |
-| G20 | 控制器必须映射到 `/api/{version}/…` | 接口无版本 | `controllersAreVersioned` |
-| G21 | `@ValueObject` 必须是 record | 可变值对象 | `valueObjectsAreRecords` |
-| G22 | 值对象内不得有 `Date`、可变集合、数组 | 值对象被意外修改 | `valueObjectsHoldNoMutableState` |
-| G23 | domain 中的 `*hours` 字段必须用 `Hours` | 用裸数字表示工时 | `hoursAndQuantitiesUseValueObjects` |
-| G24 | 领域层和应用层禁止 `BigDecimal.equals` 和 `new BigDecimal(double)` | 精度和小数位比较错误 | `noBigDecimalEqualsInBusinessCode` |
-| G25 | 业务代码禁止直接调用 `now()`，必须注入 `Clock` | 按「今天」取费率导致漂移 | `timeComesFromAnInjectedClock` |
-| G26 | 主代码禁止 `Fix*`、`Demo*`、`Mock*`、`Test*`、`Sample*`、`*Example*` | 调试和修数代码上生产 | `noDebugOrDataFixCodeInMain` |
-| G27 | 用例类只有一个 public 方法 | 超大类、`this.` 自调用绕过事务 | `useCasesExposeExactlyOnePublicMethod` |
-| G28 | 每个接口方法有 `@PreAuthorize` 或 `@PublicEndpoint(reason)` | 匿名写接口、缺少权限校验 | `everyHandlerIsAuthorizedOrExplicitlyPublic` |
-| G29 | 事件名不得以 Request / Requested / Command / Query 结尾；禁用普通 `@EventListener` | 用事件冒充 RPC、在同一事务里耦合 | `eventsAreFactsNotRequests` |
-| G30 | `@NamedInterface` 只能用在 api / events 包 | 多开出口，绕过窄接口预算 | `namedInterfacesAreOnlyApiAndEvents` |
-| G31 | api / events / domain 中的 `*Id` 字段必须是类型化 ID record | 把一种 ID 传给另一种 | `contractsAreStronglyTyped` |
-| G32 | api / events 中禁止 `Object` 和 `Map` | `Map<String,Object>` 契约 | `contractsAreStronglyTyped` |
-| G33 | 只有 identity 能配置 Spring Security；请求 record 不得含 userId / creator 等身份字段 | 到处 `permitAll()`、冒充发起人 | `onlyIdentityConfiguresSecurity`、`requestsNeverCarryTheCallerIdentity` |
-| G34 | 【已采纳（ADR-0016），Phase 2 骨架实现】`operations.facts` 的事实仓储只能有插入和查询方法；事实表有拒绝 UPDATE / DELETE 的触发器 | 直接改已过账的数据，而不是冲销 | ArchUnit + DDL 测试（ADR-0016） |
-| G35 | 【已采纳（ADR-0016）】只有 `accounting.ledger` 能依赖会计科目和科目映射 | 业务 BC 写死科目代码 | ArchUnit（ADR-0016） |
-| G36 | 【已采纳（ADR-0016）】触账 BC 只能通过 `operations.facts` 的 api 提交过账候选，不能写事实表 | 绕过期间校验和借贷平衡 | 依赖图 D1 + ArchUnit（ADR-0016） |
-| G37 | 【已采纳（ADR-0018）】domain / api / events / web / kernel 中的类型名、record 组件、枚举常量、非私有方法，以及迁移中的表名、列名，拆词后必须已在 `docs/glossary/terms.yaml` 登记或属于 `common_words` | 自造词、同义词漂移 | `GlossaryTest`（失败时生成 `target/glossary-draft.yaml` 草稿） |
-| G38 | 【已采纳（ADR-0018）】出现词表中的禁用写法（老名、拼音、非标准用语）即失败 | 把 ManHour、Quotation、cuvalue 带进新代码 | `GlossaryTest` |
-| G39 | 【已采纳（ADR-0018）】列名对应词表术语时，列注释必须以该术语的中文开头 | 数据字典与统一语言不一致 | `GlossaryTest`（解析迁移中的 COMMENT ON） |
-| G40 | 【已采纳（ADR-0019）】新代码禁止依赖 `cn.iocoder..` 及 yudao 的基类和工具（`BaseDO`、`CommonResult`、`TenantBaseDO` 等） | 把脚手架习惯带进新系统 | ArchUnit |
-| G41 | HTTP 路径为 `/api/v{n}/{所在模块的子域}/{kebab 复数资源}[/{id}][:{动作}]`，资源词已登记 | 路径随手起名、把 BC 当子域 | `NamingSurfaceTest` |
-| G42 | OpenAPI schema 名 PascalCase、属性与参数 camelCase 且已登记；事件序列化后的 JSON 键为 camelCase | 接口与事件字段大小写混用 | `NamingSurfaceTest`（读 `/v3/api-docs`，springdoc 3.1.1） |
-| G43 | 权限码 `{子域}.{BC}:{资源}:{动作}`，动作取自词表 `standard_actions`；`@PreAuthorize` 中的权限码必须在目录中 | 自造权限串 | `NamingSurfaceTest` |
-| G44 | Flyway 文件 `V{真实 14 位时间戳}__{module}_{english_snake}.sql`，目录为模块 schema，前缀与目录一致，版本不重复 | 中文描述、放错目录 | `NamingSurfaceTest` |
-| G45 | 业务编号单据类型枚举与种子行一一对应，大写下划线且已登记 | 编号规则代码与代码不一致 | `NamingSurfaceTest` |
-| G46 | `@Scheduled` 作业必须有 `{module}.{name}` 的 ShedLock 锁；指标名为字面量且按模块前缀；`job_type` 受检；配置键以 `forcitis.{module}.` 开头或为框架已知键 | 作业互踩、指标和配置命名混乱 | `NamingSurfaceTest` |
-| G47 | 流程 / 决策 id 为 `{子域}_{BC}_{snake}`，文件名同 id，`ProcessKey` 与流程一一对应，用户任务 id camelCase | 流程键与代码脱节 | `NamingSurfaceTest` |
-| G48 | 错误码：每个模块一个实现 `kernel.ErrorCode` 的枚举，格式 `{SUBDOMAIN}_{BC}_{REASON}`；通用错误只在 `kernel` 定义，模块枚举不得与之或彼此同义（中文名唯一，R-5 守护） | 错误码散落为字符串；同义错误码各模块各一份 | `NamingSurfaceTest` |
-| D1 | 模块依赖必须在 `architecture/module-dependencies.txt` 中登记 | 随手引入新依赖 | `ModuleDependencyTest` |
-| D2 | DDL：文件名规范、只建本 schema 的表、snake_case、禁用老名和空泛词、审计列、金额带币种、状态 `CHECK`、布尔 `is_` / `has_`、每列有 COMMENT；列名类别词与类型、约束与索引命名（§2.4）；敏感列登记（§2.5） | 数据字典混乱 | `DdlNamingTest` |
-| D3 | 数据字典从数据库元数据生成，每张表、每个字段必须有注释 | 字段无说明 | `ApplicationIntegrationTest.everyTableAndColumnIsDocumented…` |
+Rules below are implemented unless marked otherwise. Format: id | rule | enforced by. Planned (not implemented) guards are in the tables after the implemented ones; until implemented, each wave's review checks them by their source.
 
-**负向验证（后端）**：向模板注入以下错误，`./mvnw verify` 失败并报出 8 条违规，信息逐条指出位置和原因：
-- 在 timesheet 用例里 import `delivery.execution.domain.WorkPackage`（模板初版时为 TaskPackage）；
-- 新建 `ManHourServiceImpl`，内含中文常量和裸 `BigDecimal costAmount`，并在 application 层用 `JdbcClient`；
-- 在 web 层写 public 控制器并返回领域对象；
-- 在 delivery 的 api 中返回 domain 类型。
+### Backend, implemented
 
-删除注入的代码后恢复全绿。
-
-**计划补充的守护**（模板中尚未实现，Phase 1 骨架补齐）：
-- SQL 只引用本模块 schema（扫描 `infrastructure.persistence` 里的 SQL 文本）；
-- 每个 P0 规则都有一个以 `RULE_NNN_` 开头的测试（对照 `docs/business/business-rules.md` 检查覆盖率）；
-- 新出现的聚合、事件、表名必须在词表中；
-- 单个文件超过 1000 行必须拆分（复审必改，`scripts/review/PROMPT.md`）；≤ 400 行 / 文件、≤ 60 行 / 方法只是复审建议，不设 Checkstyle 硬门槛（CS-1.15）；
-- 前端用 ESLint 的 `no-restricted-imports` 禁止跨模块 import 内部目录。
-
-
-**前端守护（`architecture-guardrails/frontend`，ESLint + TypeScript strict）**
-
-| # | 规则 | 防的是哪类错误 |
+| # | Rule | Enforced by |
 |---|---|---|
-| F1–F4 | `app → modules(index) → shared` 单向依赖；跨模块只能经 `modules/<m>/index.ts`（eslint-plugin-boundaries） | 跨模块引用内部文件、shared 反向依赖业务 |
-| F5 | 禁 axios、fetch、手写 `/api` URL；只用 OpenAPI 生成的客户端 | 手写 URL 失配 |
-| F6 | 只用 ASCII 标识符；文件名 kebab-case；禁用 Util / Helper / Manager / Info / Data / Impl 类名 | 命名混乱 |
-| F7 | 禁 `any`；React hooks 规则 | 类型漏洞、hooks 误用 |
-| F8 | hooks 放在 hooks/ 目录，且命名为 `useXxx` | 放错位置 |
-| F9 | `model/` 和 `shared/lib` 为纯逻辑，不得引用 React 或 API | 逻辑与界面耦合 |
-| F10 | 只有 `modules/<m>/api` 能 import 生成的客户端 | 页面直接调接口 |
-| F11 | 禁 `dangerouslySetInnerHTML` | 存储型 XSS（SEC-008） |
-| F12 | 禁 `export *` | 公开接口失控 |
-| F13 | 每个模块 `index.ts` 的导出数 ≤ 8（`frontend/scripts/check-structure.mjs`） | 窄接口变宽 |
-| F14 | 业务模块禁止直接 import antd、禁内联样式、禁硬编码颜色；原始令牌只在 `shared/design-system` 中读取 | 偏离设计系统（ADR-0013） |
+| G1 | Modules access each other only via `api` / `events`; no cycles; dependencies point only to `allowedDependencies` | Modulith `ApplicationModules.verify()` |
+| G2 | `api` holds only interfaces and records | `apiPackagesContainOnlyInterfacesAndRecords` |
+| G3 | `api` signatures must not reference domain / application / infrastructure / web | `apiSignaturesDoNotLeakModuleInternals` |
+| G4 | Each module has ≤ 12 api methods in total | `apiSurfaceStaysNarrow` |
+| G5 | `events` hold only records, names do not end in `Event` | `eventsAreRecords` |
+| G6 | web and infrastructure classes must not be public | `webAndInfrastructureAreNotPublic` |
+| G7 | domain does not depend on Spring, Servlet or other layers | `domainIsFrameworkFree` |
+| G8 | application does not depend on web or infrastructure | `applicationDoesNotTouchWebOrInfrastructure` |
+| G9 | web calls only application | `webOnlyCallsApplication` |
+| G10 | JDBC / `java.sql` appear only in infrastructure | `jdbcOnlyInInfrastructure` |
+| G11 | `@Transactional` appears only in application | `transactionsOnlyInApplication` |
+| G12 | `@RestController` only in web, and ends with `Controller` | `controllersLiveInWebAndEndWithController` |
+| G13 | A `*Repository` in domain must be an interface; the implementation starts with `Jdbc` | `repositoriesFollowPortAdapterNaming` |
+| G14 | Names such as `Util` / `Helper` / `Manager` / `Info` / `Data` / `Impl` / `DO` / `ManHour` are forbidden | `noVagueOrLegacyNames` |
+| G15 | Identifiers must be ASCII | `identifiersAreAscii` |
+| G16 | A `*status` field in domain must be an enum | `statusesAreEnums` |
+| G17 | Outside kernel, `*amount` / `*price` / `*cost` fields must not be a bare `BigDecimal` (Money = (amount, currency)) | `moneyIsNeverABareDecimalNamedAmount` |
+| G18 | Field injection, `System.out`, JUL, `java.util.Date`, `@PermitAll` are forbidden | `generalCodingRules` |
+| G19 | Only `platform.approval.infrastructure` may use Flowable | `flowableOnlyInsideApprovalInfrastructure` |
+| G20 | Controllers must map to `/api/{version}/…` | `controllersAreVersioned` |
+| G21 | A `@ValueObject` must be a record | `valueObjectsAreRecords` |
+| G22 | A value object must not hold `Date`, mutable collections or arrays | `valueObjectsHoldNoMutableState` |
+| G23 | A `*hours` field in domain must use `Hours` | `hoursAndQuantitiesUseValueObjects` |
+| G24 | `BigDecimal.equals` and `new BigDecimal(double)` are forbidden in domain and application layers | `noBigDecimalEqualsInBusinessCode` |
+| G25 | Business code must not call `now()` directly; inject a `Clock` | `timeComesFromAnInjectedClock` |
+| G26 | Main code must not contain `Fix*`, `Demo*`, `Mock*`, `Test*`, `Sample*`, `*Example*` | `noDebugOrDataFixCodeInMain` |
+| G27 | A use-case class has exactly one public method | `useCasesExposeExactlyOnePublicMethod` |
+| G28 | Every interface method has `@PreAuthorize` or `@PublicEndpoint(reason)` | `everyHandlerIsAuthorizedOrExplicitlyPublic` |
+| G29 | Event names must not end in Request / Requested / Command / Query; plain `@EventListener` is forbidden | `eventsAreFactsNotRequests` |
+| G30 | `@NamedInterface` only on api / events packages | `namedInterfacesAreOnlyApiAndEvents` |
+| G31 | A `*Id` field in api / events / domain must be a typed-ID record | `contractsAreStronglyTyped` |
+| G32 | `Object` and `Map` are forbidden in api / events | `contractsAreStronglyTyped` |
+| G33 | Only identity may configure Spring Security; a request record must not contain identity fields such as userId / creator | `onlyIdentityConfiguresSecurity`, `requestsNeverCarryTheCallerIdentity` |
+| G34 | [adopted (ADR-0016), Phase 2 skeleton implemented] fact repositories of `operations.facts` have only insert and query methods; fact tables have triggers rejecting UPDATE / DELETE | ArchUnit + DDL test (ADR-0016) |
+| G35 | [adopted (ADR-0016)] only `accounting.ledger` may depend on accounting subjects and subject mapping | ArchUnit (ADR-0016) |
+| G36 | [adopted (ADR-0016)] a booking-touching BC may submit posting candidates only through the `operations.facts` api and must not write fact tables | dependency graph D1 + ArchUnit (ADR-0016) |
+| G37 | [adopted (ADR-0018)] type names, record components, enum constants, non-private methods in domain / api / events / web / kernel, and table and column names in migrations, once split into words, must be registered in `docs/glossary/terms.yaml` or belong to `common_words` | `GlossaryTest` (on failure generates the draft `target/glossary-draft.yaml`) |
+| G38 | [adopted (ADR-0018)] a forbidden spelling in the glossary (old name, pinyin, non-standard term) fails | `GlossaryTest` |
+| G39 | [adopted (ADR-0018)] when a column name corresponds to a glossary term, the column comment must start with the term's Chinese name | `GlossaryTest` (parses `COMMENT ON` in migrations) |
+| G40 | [adopted (ADR-0019)] new code must not depend on `cn.iocoder..` or yudao base classes and tools (`BaseDO`, `CommonResult`, `TenantBaseDO`, etc.) | ArchUnit |
+| G41 | HTTP path is `/api/v{n}/{subdomain of the owning module}/{kebab plural resource}[/{id}][:{action}]`, resource word registered | `NamingSurfaceTest` |
+| G42 | OpenAPI schema names PascalCase; properties and parameters camelCase and registered; JSON keys of serialised events camelCase | `NamingSurfaceTest` (reads `/v3/api-docs`, springdoc 3.1.1) |
+| G43 | Permission code `{subdomain}.{BC}:{resource}:{action}`, action from the glossary's `standard_actions`; permission codes in `@PreAuthorize` must be in the catalog | `NamingSurfaceTest` |
+| G44 | Flyway file `V{real 14-digit timestamp}__{module}_{english_snake}.sql`, directory is the module schema, prefix matches directory, versions not duplicated | `NamingSurfaceTest` |
+| G45 | The document-type enum of business numbers corresponds one-to-one with seed rows, upper snake case and registered | `NamingSurfaceTest` |
+| G46 | A `@Scheduled` job must have a ShedLock lock `{module}.{name}`; metric names are literals prefixed by module; `job_type` is checked; config keys start with `forcitis.{module}.` or are framework-known keys | `NamingSurfaceTest` |
+| G47 | Process / decision id is `{subdomain}_{BC}_{snake}`, file name equals id, `ProcessKey` corresponds one-to-one with processes, user-task ids are camelCase | `NamingSurfaceTest` |
+| G48 | Error codes: one enum per module implementing `kernel.ErrorCode`, format `{SUBDOMAIN}_{BC}_{REASON}`; common errors are defined only in `kernel`; module enums must not be synonymous with it or each other (Chinese name unique, R-5 guard) | `NamingSurfaceTest` |
+| D1 | Module dependencies must be registered in `architecture/module-dependencies.txt` | `ModuleDependencyTest` |
+| D2 | DDL: file-name convention, create only this schema's tables, snake_case, ban old names and vague words, audit columns, amounts with currency, status `CHECK`, boolean `is_` / `has_`, a COMMENT on every column; column class words vs types, constraint and index naming (§2.4); sensitive-column registration (§2.5) | `DdlNamingTest` |
+| D3 | The data dictionary is generated from database metadata; every table and field must have a comment | `ApplicationIntegrationTest.everyTableAndColumnIsDocumented…` |
+| G-A2 | List response shape is `{items, nextCursor}`, parameters `cursor` / `limit` (judged by response shape, not class name). Existing gaps are registered in `backend/architecture/list-paging-gaps.txt` (a new violation fails; a registered gap that is fixed but not deleted also fails) | `ListPagingGuardTest` (K-3a) |
+| G-P1 | The `limit` cap comes from one kernel constant (`ListLimits`); every OpenAPI `limit` declares `minimum: 1`, `maximum: 200`, `default: 50`; other `MAX_LIMIT`-type constants are forbidden (§2.6 A-3, GUIDING_PRINCIPLES §7a R-P2) | `ListPagingGuardTest` (K-3a); gaps as G-A2 |
 
-**待实现的守护**（用户 2026-10-15：对 DDL 审计、原则核对 A / B 的待决项答「全部按推荐 (Recommended)」）：以下守护**只登记、尚未实现**，状态均为「待实现」。规则正文在「出处」一列所指的地方，本表只写检查什么、何时必须有、归属哪个工作单元。**归属由 one-1a-next-2 在计划中排定**：「归属」一列中已由 ADR 或用户决定落定的写工作单元名，其余写「one-1a-next-2 排定」，括号内是初拟的分组，供排定参考。未实现前由每波复审按出处逐条检查。与已有守护重叠的，实现时合并为一个测试，不重复写。
+### Frontend, implemented (`architecture-guardrails/frontend`, ESLint + TypeScript strict)
 
-| # | 检查什么 | 出处 | 必须在何时之前 | 归属 |
+| # | Rule | Enforced by |
+|---|---|---|
+| F1–F4 | One-way dependency `app → modules(index) → shared`; cross-module only via `modules/<m>/index.ts` | eslint-plugin-boundaries |
+| F5 | axios, fetch and hand-written `/api` URLs forbidden; only the OpenAPI-generated client | ESLint (`architecture-guardrails/frontend`) |
+| F6 | ASCII identifiers only; kebab-case file names; class names Util / Helper / Manager / Info / Data / Impl forbidden | ESLint (`architecture-guardrails/frontend`) |
+| F7 | `any` forbidden; React hooks rules | ESLint (`architecture-guardrails/frontend`) |
+| F8 | hooks live in `hooks/` and are named `useXxx` | ESLint (`architecture-guardrails/frontend`) |
+| F9 | `model/` and `shared/lib` are pure logic and must not reference React or API | ESLint (`architecture-guardrails/frontend`) |
+| F10 | Only `modules/<m>/api` may import the generated client | ESLint (`architecture-guardrails/frontend`) |
+| F11 | `dangerouslySetInnerHTML` forbidden (stored XSS, SEC-008) | ESLint (`architecture-guardrails/frontend`) |
+| F12 | `export *` forbidden | ESLint (`architecture-guardrails/frontend`) |
+| F13 | Each module's `index.ts` has ≤ 8 exports | `frontend/scripts/check-structure.mjs` |
+| F14 | Business modules must not import antd directly, no inline styles, no hard-coded colours; raw tokens are read only in `shared/design-system` (ADR-0013) | ESLint (`architecture-guardrails/frontend`) |
+
+### Planned guards (not implemented)
+
+(User 2026-10-15, on the pending items of the DDL audit and principle checks A / B: 「全部按推荐 (Recommended)」.) These guards are **registered only**; status is "planned" for all. The rule text is where the "Source" column points; this table says what is checked, by when it must exist, and which work unit owns it. **Ownership is scheduled by one-1a-next-2 in its plan**: an owner already fixed by an ADR or user decision is written as the work-unit name; the others read "scheduled by one-1a-next-2", with the initial grouping in brackets for reference. Until implemented, each wave's review checks by source, item by item. Where a guard overlaps an existing one, implementation merges them into one test.
+
+| # | Check | Source | Must exist before | Owner / status |
 |---|---|---|---|---|
-| G-A1 | OpenAPI 中所有自有 ID（属性、路径参数、查询参数）为 `type: string, format: uuid`；前端生成类型中 ID 不是 number | §2.6 A-7 | 立即（转交 / 改派界面上线前） | R-1b（与自有 UUIDv7 同改） |
-| G-A2 | 列表响应形状为 `{items, nextCursor}`，参数为 `cursor` / `limit`（按响应形状判断，不按类名） | §2.6 A-3 | 首次部署前 | K-3a 已实现：`ListPagingGuardTest`；现存缺口登记于 `backend/architecture/list-paging-gaps.txt`（新增违规失败，登记了但已修好未删也失败） |
-| G-A3 | 并入 G-C4（修改类接口声明必填 `If-Match` 与 412 / 428，运行时一致；豁免逐条登记理由） | §2.6 A-8、ADR-0035 第 8 条 | 见 G-C4 | 见 G-C4 |
-| G-A4 | 并入 G-C4（集合上的 `POST` 返回 201 并带 `Location`） | §2.6 A-2、ADR-0035 第 8 条 | 见 G-C4 | 见 G-C4 |
-| G-A5 | 没有 `PATCH` 映射 | §2.6 A-5 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护） |
-| G-A6 | 时刻字段为带 `Z` 的 `date-time`；金额为 `{amount: string, currency}` | §2.6 A-7 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护；金额部分与 G-M5 合并） |
-| G-A7 | 控制器返回类型只能是 `web` 包内的 `*Response` | §2.6 A-11 | 首次部署前 | one-1a-next-2 排定（初拟：HTTP 契约守护；与 G-X6 互补） |
-| G-A8 | kernel 以外不得定义通用错误码 | §2.3、§2.6 A-9 | 首次部署前 | R-5（与 G48 同一实现） |
-| G-A9 | 错误响应只由统一的处理器生成，控制器不手工拼 ProblemDetail | §2.6 A-9 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护） |
-| G-C1 | `scripts/ci/openapi_compat.py`（待建）：与 merge-base 的 OpenAPI 比对；读取弃用登记，已登记且到期的删除放行；其他破坏性变更即失败，只能用提交 trailer `Contract-Break:` 放行并在 PR 中单列 | ADR-0035 第 3、7、9 条 | 首次生产部署前 | one-1a-next-2 排定（初拟：契约演进守护） |
-| G-C2 | 事件兼容（AsyncAPI 形状比对）：`asyncapi.yaml` 各消息的负载 schema 与类名同 merge-base 比对，形状或类名、包名有变化即判为破坏性，要求 `schemaVersion + 1` 或新事件类型二选一，并把本次发布标为「需排空」 | ADR-0035 第 3、5、9 条 | 首次生产部署前 | 同上 |
-| G-C3 | 部署前排空预检：标为「需排空」的发布，在开启维护模式（库内标记 `platform_scheduling.maintenance_modes`）之后检查未完成的事件发布与死信为 0，排不空的经隔离登记处理，否则中止部署 | ADR-0035 第 6 条 | 首次生产部署前 | 同上（接入部署剧本，one-ops） |
-| G-C4 | 契约如实：OpenAPI 的状态码（201 与 `Location`）、必填请求头（`If-Match`、412 / 428）、`ETag`、具名枚举、无无类型响应体、`info` 与运行时一致（扩展 `HttpContractIT`；G-A3、G-A4 并入）；dev 期生效的两条契约守护之一，另一条为 G-C5 | ADR-0035 第 2、8 条、§2.6 | H-1 合入即生效（H-1 排在 R-5 之后） | H-1 |
-| G-C5 | 事件负载与出站负载扁平：ID 为字符串 uuid，不出现 `{value: …}` 包装（dev 期生效的两条契约守护之一，另一条为 G-C4） | ADR-0035 第 2、5 条 | R-1b 合入即生效 | R-1b |
-| G-C6 | 弃用到期：定时检查到期未删的弃用项，发 P3 提醒并报调度会话（不让无关 PR 变红）；PR 中改动已弃用对象（删除除外）即失败 | ADR-0035 第 7 条 | 首次生产部署前 | one-1a-next-2 排定（初拟：契约演进守护） |
-| G-C7 | `reporting` 数据集契约：视图列名、类型与登记一致，破坏性变更按 ADR-0035 处理 | ADR-0035 | R1 | R1 工作单元 |
-| G-P1 | `limit` 上限只来自 kernel 一处常量（`ListLimits`），OpenAPI 所有 `limit` 声明 `minimum: 1`、`maximum: 200`、`default: 50`；禁止其他 `MAX_LIMIT` 类常量 | §2.6 A-3、GUIDING_PRINCIPLES §7a R-P2 | 1b 前 | K-3a 已实现：`ListPagingGuardTest`；缺口同上 |
-| G-P2 | 列表与批量用例的 SQL 语句数不随行数增长（计数的 DataSource 装饰器，默认预算 ≤ 5） | GUIDING_PRINCIPLES §7a R-P3 | 1b 前 | one-1a-next-2 排定（初拟：性能守护） |
-| G-P3 | 登记的查询路径在 `enable_seqscan = off` 下 `EXPLAIN` 走索引 | GUIDING_PRINCIPLES §7a、DATA_DESIGN_CHECKLIST §14.1 D19 | 1b 前 | 同上 |
-| G-P4 | 外部只读连接三种超时生效：对挂起端口的集成测试在预算内失败或降级 | DATA_DESIGN_CHECKLIST §14.3 I2 | 首次部署前 | 同上（与 G-I1、G-I3 同卡） |
-| G-P5 | 生产配置中连接池、语句超时、直方图桶、慢查询阈值存在且取值符合 R-P4–R-P6 | GUIDING_PRINCIPLES §7a | 首次部署前 | 同上 |
-| G-P6 | k6 压测：R-P1 各类接口达标（阶段出口） | GUIDING_PRINCIPLES §7a R-P1 | Phase 2 入口 | one-1a-next-2 排定（初拟：性能守护；安装 k6 前按 CLAUDE.md 请示） |
-| G-S1 | `scripts/ci/workflows_pinned.py`（待建）：工作流 `uses:` 一律固定 40 位 SHA；禁 `pull_request_target` | docs/ops/supply-chain.md S6 | 首次部署前 | one-1a-next-2 排定（初拟：CI 供应链） |
-| G-S2 | osv-scanner：漏洞与许可证检查（并入已有作业，不加作业数） | docs/ops/supply-chain.md S3、S4 | 首次部署前 | 同上 |
-| G-S3 | `pom.xml` 不声明自定义仓库，只用 Maven Central | docs/ops/supply-chain.md S1 | 首次部署前 | 同上 |
-| G-S4 | 测试数据库镜像只在一处常量定义，带摘要 | docs/ops/supply-chain.md S7 | 首次部署前 | 同上 |
-| G-S5 | 发布包含 SBOM，且 SBOM 写入签名声明 | docs/ops/supply-chain.md S5 | 生产部署前 | 同上 |
-| G-S6 | runner 作业前钩子检查运行用户与凭据目录 | docs/ops/supply-chain.md S6 | 待决（随 runner 专用用户的决定） | 同上 |
-| G-O1 | 日志扫描：`ERROR` 行必须以「ALERT P1\|P2\|P3 <子域>.<BC> 」开头 | GUIDING_PRINCIPLES §11 O-2 | 首次部署前 | one-1a-next-2 排定（初拟：可观测性） |
-| G-O2 | 日志参数不得是个人信息类方法的返回值；未知异常只记类名 | GUIDING_PRINCIPLES §11 O-3 | 首次部署前 | 同上 |
-| G-O3 | 集成测试断言每行日志有 correlationId，唯一约束冲突中的邮箱等值不落盘 | GUIDING_PRINCIPLES §11 O-1、O-3 | 首次部署前 | 同上 |
-| G-O4 | 生产配置暴露 Prometheus 端点、连接串含 `logServerErrorDetail=false`；部署后抓取到的业务指标数为 0 即失败 | GUIDING_PRINCIPLES §11 O-3、O-4 | 首次部署前 | 同上（部署后检查归 one-ops） |
-| G-O5 | 告警规则引用的指标在应用中存在 | GUIDING_PRINCIPLES §11 O-6 | 首次部署前 | 同上 |
-| G-O6 | 关联断开计数：事件发布时缺 correlationId 计数并告警，不静默新建 | GUIDING_PRINCIPLES §11 O-1 | 1b 前 | 同上 |
-| G-I1 | 外部连接只经集成层的连接工厂，工厂强制连接、查询、锁等待三种超时 | DATA_DESIGN_CHECKLIST §14.3 I2 | 首次部署前 | one-1a-next-2 排定（初拟：外部集成韧性） |
-| G-I2 | 集成登记册 `backend/architecture/integration-register.yaml`（待建） 与代码中的适配器一致 | DATA_DESIGN_CHECKLIST §14.3 | 首次部署前 | 同上 |
-| G-I3 | 用 `WAITFOR` 挂住的视图验证超时生效与降级 | DATA_DESIGN_CHECKLIST §14.3 I2、I7 | 首次部署前 | 同上 |
-| G-I4 | 用户路径冷却：连续失败 3 次后 60 秒内不再调用 | DATA_DESIGN_CHECKLIST §14.3 I6 | 1b 前 | 同上 |
-| G-I5 | 一次故障只记一次带堆栈的 `ERROR` | DATA_DESIGN_CHECKLIST §14.3 I10 | 首次部署前 | 同上 |
-| G-MG1 | `legacy_numbers` 形状：UUIDv7 主键、来源系统列、`uk(来源系统, 单据类型, 原编号)`、`migration_batch_id uuid NOT NULL`、只追加 | ADR-0036 第 3 条、ADR-0033 | 首次部署前 | R-1b |
-| G-MG2 | 暂存跑两次或中断后续跑，暂存结果与一次跑完相同；提交中断后续提，目标结果与一次提交相同（原 G-MG3 并入） | ADR-0036 第 7 条 | 首个迁入权责事实的阶段前 | 首个迁入阶段 |
-| G-MG3 | 并入 G-MG2 | ADR-0036 第 7 条 | — | — |
-| G-MG4 | 迁入无副作用。测试级：只起迁入离线上下文跑一个批次，`@RecordApplicationEvents` 断言发布的应用事件为 0，计数器不变、不启动流程、`accounting.ledger` 不为迁入事实生成分录、迁入单据过账结果表行数 = 迁入事实行数，并有注入反例；生产级：离线进程启动时 `com.forcitis.one` 下带 `@ApplicationModuleListener` / `@TransactionalEventListener` 的已加载方法数为 0，否则拒绝启动 | ADR-0036 第 1、5 条 | 同上 | 同上 |
-| G-MG5 | 迁入离线进程的上下文不含 `@Scheduled` 方法、ShedLock 作业、Flowable 异步与定时执行器、事件监听、出站投递 worker（逐项断言）；迁入编排模块不被任何模块依赖 | ADR-0036 第 1 条 | 同上 | 同上 |
-| G-MG6 | 批次术语唯一：代码与表结构中只出现「迁入批次」一种写法（R-1b 改名后给 `migration_batch` 加禁用写法 `import_batch` / `ImportBatch`） | ADR-0036 第 3 条 | 首次部署前 | R-1b |
-| G-MG7 | 迁入核对完整：该阶段迁入规格对象清单中的每个（期间 × 法人 × 对象类型）都有核对行，且零差异或有财务签字，否则不能提交；每批有质量报告（ADR-0071 第 6 条） | ADR-0036 第 8 条 | 首个迁入权责事实的阶段前 | 首个迁入阶段 |
-| G-MG8 | 已删除：暂存后提交（ADR-0036 第 7 条）取代读取侧可见性谓词 | ADR-0036 | — | — |
-| G-MG9 | 编号一致：迁入单据的编号列与 `legacy_numbers` 中的原编号一致，不一致即告警（以 `legacy_numbers` 为准） | ADR-0036 第 4 条 | 同上 | 同上 |
-| G-MG10 | 迁入入口：各 BC 的迁入入口只能被 `platform.migration` 调用（ArchUnit）；迁入入口声明 `Propagation.MANDATORY`，迁入路径上没有 `REQUIRES_NEW` | ADR-0036 第 1 条 | 同上 | 同上 |
-| G-MG11 | 迁入质量规则一致：规则文件与代码的 `MQ-*` 编号双向一致；迁入规格引用的规则存在；`ACCEPTED_WITH_NOTE` 只用于告警，`EXCLUDED` 只用于来源对照类发现，`NORMALIZED` 只由登记的 `MQ-N` 规则写入 | ADR-0071 第 3、5 条 | W1 建迁入编排时 | 首个 BC 演练前 |
-| G-MG12 | 迁入质量门槛：待核对前提、提交门槛、生效门槛逐项构造反例被拒；迁入数据库角色对处置表无写权限，应用内迁入角色无处置、延期、Q5 录入权限；延期批准人与负责人同一人时被拒；发现在试提交回滚后仍在清单中；「批准不迁」超上限被拒 | ADR-0071 第 5、6、8 条 | W1 建迁入编排时 | 首个 BC 演练前 |
-| G-D12 | 枚举 `CHECK` 已命名为 `ck_<表>_<列>`，取值集合与对应 Java 枚举一致（与 G-DDL8 同一测试） | §2.4、§2.4a 第 6 条 | 首次部署前 | R-2a |
-| G-DDL1 | 交易、主数据、参考、配置表在注册表登记 `business_key` 且有对应唯一约束；外键目标须为主键或仅由 uuid 列组成的唯一约束（复合外键保证同行，不以业务键作外键；one-architecture 2026-10-16 判定，数据修复卡 AP-04、WF-12） | §2.4a 第 1 条；DDL 审计（2026-10-15）守护 G1 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL2 | 外键列有以该列开头的索引 | §2.4a 第 2 条；DDL 审计（2026-10-15）守护 G2 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL3 | 没有重复或冗余索引（前缀相同、与唯一约束重复） | §2.4a 第 2 条；DDL 审计（2026-10-15）守护 G3 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL4 | 查询路径登记且 `EXPLAIN` 走索引（与 G-P3 合并为一个测试；依赖 G-DDL12） | §2.4a 第 2 条、DATA_DESIGN_CHECKLIST §14.1 D19；DDL 审计（2026-10-15）守护 G4 | 1b 前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL5 | 可空列注释写明「为空表示」；文本列有空串 CHECK；默认值只在技术默认白名单内 | §2.4a 第 3 条；DDL 审计（2026-10-15）守护 G5 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL6 | `CASCADE` 登记、禁软删除标志列、物理删除只在白名单内 | §2.4a 第 4 条；DDL 审计（2026-10-15）守护 G6 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL7 | `_code` 列有格式 CHECK；自由文本有长度上限；不区分大小写的唯一建在规范化值上 | §2.4a 第 5 条；DDL 审计（2026-10-15）守护 G7 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL8 | 禁 `CREATE TYPE … AS ENUM`；枚举 CHECK 命名并与 Java 枚举一致（与 G-D12 同一测试） | §2.4a 第 6 条；DDL 审计（2026-10-15）守护 G8 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL9 | `jsonb` 列已登记用途并有 `jsonb_typeof` CHECK | §2.4a 第 7 条；DDL 审计（2026-10-15）守护 G9 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL10 | 长期保留或大表在注册表登记规模与分区决定 | §2.4a 第 8 条；DDL 审计（2026-10-15）守护 G10 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL11 | `scripts/ci/migration_safety.py`（待建）：`CONCURRENTLY`、`lock_timeout` / `statement_timeout`、禁全表重写、外键与 CHECK 用 `NOT VALID`、先扩后缩、无无效索引 | §2.4a 第 9 条；DDL 审计（2026-10-15）守护 G11 | 首次部署前（C-3 删基线标记前合入） | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| G-DDL12 | 测试库排序规则为 C（与生产一致）；迁移后无无效索引；高频更新表的 fillfactor 有注释 | §2.4a 第 2、10 条；DDL 审计（2026-10-15）守护 G12 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
-| F15 | VI 色值以 sRGB 十六进制登记在 palette；`oklch` 必须落在 sRGB 色域内 | §4a U1 | D-8 首次 design-sync 前 | one-1a-next-2 排定（初拟：前端设计系统） |
-| F16 | 令牌配对的文字与非文字对比度达标 | §4a U2 | D-8 首次 design-sync 前 | 同上 |
-| F17 | `eslint-plugin-jsx-a11y` 规则 | §4a U3 | 1b 前 | 同上 |
-| F18 | 组件测试中跑 axe | §4a U3 | 1b 前 | 同上 |
-| F19 | 应用根部设置 antd `zhCN` 与 dayjs `zh-cn` | §4a U4 | 首次部署前 | 同上 |
-| F20 | `check-bundle-size.mjs`（待建；现有 `frontend/apps/h5/scripts/check-bundle.mjs`）：gzip 体积超过预算即失败 | §4a U8 | 1b 前 | 同上 |
-| F21 | PC 与 H5 的语义组件契约类型一致（类型测试） | §4a U7 | 1b 前 | 同上 |
-| F22 | 查询视图三态结构检查 | §4a U5 | 1b 前 | 同上 |
+| G-A1 | All own IDs in OpenAPI (properties, path parameters, query parameters) are `type: string, format: uuid`; IDs in frontend generated types are not number | §2.6 A-7 | immediately (before handoff / reassignment UI goes live) | R-1b (changed together with own UUIDv7) |
+| G-A3 | Merged into G-C4 (modifying interfaces declare required `If-Match` and 412 / 428, runtime consistent; exemptions registered one by one with reasons) | §2.6 A-8, ADR-0035 item 8 | see G-C4 | see G-C4 |
+| G-A4 | Merged into G-C4 (a `POST` on a collection returns 201 with `Location`) | §2.6 A-2, ADR-0035 item 8 | see G-C4 | see G-C4 |
+| G-A5 | No `PATCH` mapping | §2.6 A-5 | before 1b | scheduled by one-1a-next-2 (initial: HTTP contract guard) |
+| G-A6 | Instant fields are `date-time` with `Z`; amounts are `{amount: string, currency}` | §2.6 A-7 | before 1b | scheduled by one-1a-next-2 (initial: HTTP contract guard; the amount part merges with G-M5) |
+| G-A7 | A controller return type may only be a `*Response` in the `web` package | §2.6 A-11 | before first deployment | scheduled by one-1a-next-2 (initial: HTTP contract guard; complements G-X6) |
+| G-A8 | No common error codes defined outside kernel | §2.3, §2.6 A-9 | before first deployment | R-5 (same implementation as G48) |
+| G-A9 | Error responses are produced only by the unified handler; controllers do not hand-assemble ProblemDetail | §2.6 A-9 | before 1b | scheduled by one-1a-next-2 (initial: HTTP contract guard) |
+| G-C1 | `scripts/ci/openapi_compat.py` (to be created): compare OpenAPI with the merge-base; read the deprecation register; a registered and expired deletion is let through; any other breaking change fails and can be let through only by the commit trailer `Contract-Break:`, listed separately in the PR | ADR-0035 items 3, 7, 9 | before first production deployment | scheduled by one-1a-next-2 (initial: contract-evolution guard) |
+| G-C2 | Event compatibility (AsyncAPI shape comparison): each message's payload schema and class name in `asyncapi.yaml` is compared with the merge-base; a change of shape, class name or package name is breaking and requires either `schemaVersion + 1` or a new event type, and marks the release "needs drain" | ADR-0035 items 3, 5, 9 | before first production deployment | same as above |
+| G-C3 | Pre-deployment drain check: for a release marked "needs drain", after maintenance mode is on (database flag `platform_scheduling.maintenance_modes`), unfinished event publications and dead letters must be 0; what cannot be drained is handled by quarantine registration, otherwise the deployment aborts | ADR-0035 item 6 | before first production deployment | same as above (wired into the deployment playbook, one-ops) |
+| G-C4 | Contract is truthful: OpenAPI status codes (201 with `Location`), required headers (`If-Match`, 412 / 428), `ETag`, named enums, no untyped response bodies, `info` consistent with runtime (extends `HttpContractIT`; G-A3, G-A4 merged in); one of the two contract guards in force during dev, the other is G-C5 | ADR-0035 items 2, 8, §2.6 | in force when H-1 merges (H-1 is scheduled after R-5) | H-1 |
+| G-C5 | Event payloads and outbound payloads are flat: IDs are string uuids, no `{value: …}` wrapper (one of the two contract guards in force during dev, the other is G-C4) | ADR-0035 items 2, 5 | in force when R-1b merges | R-1b |
+| G-C6 | Deprecation expiry: a scheduled check of expired but undeleted deprecated items, sends a P3 reminder and reports to the scheduling session (does not turn unrelated PRs red); changing a deprecated object in a PR (deletion excepted) fails | ADR-0035 item 7 | before first production deployment | scheduled by one-1a-next-2 (initial: contract-evolution guard) |
+| G-C7 | `reporting` dataset contract: view column names and types match the registration; breaking changes handled per ADR-0035 | ADR-0035 | R1 | R1 work unit |
+| G-P2 | The number of SQL statements of list and batch use cases does not grow with row count (a counting DataSource decorator, default budget ≤ 5) | GUIDING_PRINCIPLES §7a R-P3 | before 1b | scheduled by one-1a-next-2 (initial: performance guard) |
+| G-P3 | Registered query paths use an index in `EXPLAIN` with `enable_seqscan = off` | GUIDING_PRINCIPLES §7a, DATA_DESIGN_CHECKLIST §14.1 D19 | before 1b | same as above |
+| G-P4 | The three timeouts of external read-only connections take effect: an integration test against a hanging port fails or degrades within budget | DATA_DESIGN_CHECKLIST §14.3 I2 | before first deployment | same as above (same card as G-I1, G-I3) |
+| G-P5 | Production config has connection pool, statement timeout, histogram buckets and slow-query threshold, with values conforming to R-P4–R-P6 | GUIDING_PRINCIPLES §7a | before first deployment | same as above |
+| G-P6 | k6 load test: every interface class of R-P1 meets target (phase exit) | GUIDING_PRINCIPLES §7a R-P1 | Phase 2 entry | scheduled by one-1a-next-2 (initial: performance guard; ask per CLAUDE.md before installing k6) |
+| G-S1 | `scripts/ci/workflows_pinned.py` (to be created): workflow `uses:` always pinned to a 40-character SHA; `pull_request_target` forbidden | docs/ops/supply-chain.md S6 | before first deployment | scheduled by one-1a-next-2 (initial: CI supply chain) |
+| G-S2 | osv-scanner: vulnerability and licence check (merged into an existing job, no added job count) | docs/ops/supply-chain.md S3, S4 | before first deployment | same as above |
+| G-S3 | `pom.xml` declares no custom repository, only Maven Central | docs/ops/supply-chain.md S1 | before first deployment | same as above |
+| G-S4 | The test database image is defined in one constant, with a digest | docs/ops/supply-chain.md S7 | before first deployment | same as above |
+| G-S5 | A release includes an SBOM, and the SBOM is written into the signed attestation | docs/ops/supply-chain.md S5 | before production deployment | same as above |
+| G-S6 | A runner pre-job hook checks the run user and credential directory | docs/ops/supply-chain.md S6 | pending (follows the decision on a dedicated runner user) | same as above |
+| G-O1 | Log scan: an `ERROR` line must begin with 「ALERT P1\|P2\|P3 <subdomain>.<BC> 」 | GUIDING_PRINCIPLES §11 O-2 | before first deployment | scheduled by one-1a-next-2 (initial: observability) |
+| G-O2 | A log argument must not be the return value of a personal-information method; for an unknown exception log only the class name | GUIDING_PRINCIPLES §11 O-3 | before first deployment | same as above |
+| G-O3 | An integration test asserts every log line has a correlationId, and values such as the email in a unique-constraint conflict are not written to disk | GUIDING_PRINCIPLES §11 O-1, O-3 | before first deployment | same as above |
+| G-O4 | Production config exposes a Prometheus endpoint and the connection string contains `logServerErrorDetail=false`; zero business metrics scraped after deployment fails | GUIDING_PRINCIPLES §11 O-3, O-4 | before first deployment | same as above (post-deployment check belongs to one-ops) |
+| G-O5 | Metrics referenced by alert rules exist in the application | GUIDING_PRINCIPLES §11 O-6 | before first deployment | same as above |
+| G-O6 | Correlation-break counter: a missing correlationId at event publication is counted and alerted, not silently created anew | GUIDING_PRINCIPLES §11 O-1 | before 1b | same as above |
+| G-I1 | External connections go only through the integration layer's connection factory, which enforces three timeouts: connect, query, lock wait | DATA_DESIGN_CHECKLIST §14.3 I2 | before first deployment | scheduled by one-1a-next-2 (initial: external-integration resilience) |
+| G-I2 | The integration register `backend/architecture/integration-register.yaml` (to be created) matches the adapters in code | DATA_DESIGN_CHECKLIST §14.3 | before first deployment | same as above |
+| G-I3 | A view hung with `WAITFOR` verifies that timeouts take effect and degradation works | DATA_DESIGN_CHECKLIST §14.3 I2, I7 | before first deployment | same as above |
+| G-I4 | User-path cool-down: after 3 consecutive failures, no call for 60 seconds | DATA_DESIGN_CHECKLIST §14.3 I6 | before 1b | same as above |
+| G-I5 | One failure logs only one `ERROR` with a stack trace | DATA_DESIGN_CHECKLIST §14.3 I10 | before first deployment | same as above |
+| G-MG1 | `legacy_numbers` shape: UUIDv7 primary key, source-system column, `uk(source system, document type, original number)`, `migration_batch_id uuid NOT NULL`, append-only | ADR-0036 item 3, ADR-0033 | before first deployment | R-1b |
+| G-MG2 | A staging run twice, or resumed after interruption, gives the same staged result as one full run; a commit resumed after interruption gives the same target result as a single commit (former G-MG3 merged in) | ADR-0036 item 7 | before the phase that first migrates in rights-and-duties facts | first migration-in phase |
+| G-MG3 | Merged into G-MG2 | ADR-0036 item 7 | — | — |
+| G-MG4 | Migration-in has no side effects. Test level: start only the migration-in offline context and run one batch; `@RecordApplicationEvents` asserts 0 published application events, counters unchanged, no process started, `accounting.ledger` generates no journal entry for migrated facts, rows of the posting-result table for migrated documents = rows of migrated facts, with injected counter-examples. Production level: at offline-process start the number of loaded methods under `com.forcitis.one` carrying `@ApplicationModuleListener` / `@TransactionalEventListener` must be 0, otherwise startup is refused | ADR-0036 items 1, 5 | same as above | same as above |
+| G-MG5 | The context of the migration-in offline process contains no `@Scheduled` method, ShedLock job, Flowable async and timer executor, event listener, or outbound delivery worker (asserted item by item); the migration-in orchestration module is depended on by no module | ADR-0036 item 1 | same as above | same as above |
+| G-MG6 | Batch term is unique: only one spelling 「迁入批次」 appears in code and table structure (after R-1b renames, add forbidden spellings `import_batch` / `ImportBatch` for `migration_batch`) | ADR-0036 item 3 | before first deployment | R-1b |
+| G-MG7 | Migration-in reconciliation is complete: every (period × legal entity × object type) in the phase's migration-in spec object list has a reconciliation row, with zero difference or finance sign-off, otherwise it cannot be committed; each batch has a quality report (ADR-0071 item 6) | ADR-0036 item 8 | before the phase that first migrates in rights-and-duties facts | first migration-in phase |
+| G-MG8 | Deleted: stage-then-commit (ADR-0036 item 7) replaces the read-side visibility predicate | ADR-0036 | — | — |
+| G-MG9 | Number consistency: the number column of a migrated document matches the original number in `legacy_numbers`; a mismatch alerts (`legacy_numbers` prevails) | ADR-0036 item 4 | same as above | same as above |
+| G-MG10 | Migration-in entry: each BC's migration-in entry may be called only by `platform.migration` (ArchUnit); the entry declares `Propagation.MANDATORY`, and there is no `REQUIRES_NEW` on the migration-in path | ADR-0036 item 1 | same as above | same as above |
+| G-MG11 | Migration quality rules are consistent: the rule file and the `MQ-*` numbers in code agree both ways; rules cited by the migration-in spec exist; `ACCEPTED_WITH_NOTE` is used only for warnings, `EXCLUDED` only for source-comparison findings, `NORMALIZED` is written only by registered `MQ-N` rules | ADR-0071 items 3, 5 | when W1 builds migration-in orchestration | before the first BC rehearsal |
+| G-MG12 | Migration quality gates: each of the pending-reconciliation precondition, commit gate and effect gate is rejected by a constructed counter-example; the migration-in database role has no write permission on the disposition table, the in-app migration-in role has no disposition, deferral or Q5 entry permission; a deferral rejected when approver and owner are the same person; a finding stays in the list after a trial-commit rollback; "approved not to migrate" over its cap is rejected | ADR-0071 items 5, 6, 8 | when W1 builds migration-in orchestration | before the first BC rehearsal |
+| G-D12 | The enum `CHECK` is named `ck_<table>_<column>` and its value set matches the Java enum (same test as G-DDL8) | §2.4, §2.4a item 6 | before first deployment | R-2a |
+| G-DDL1 | Transaction, master-data, reference and configuration tables register `business_key` in the registry and have the matching unique constraint; a foreign-key target must be a primary key or a unique constraint made only of uuid columns (a composite foreign key guarantees the same row; a business key is not a foreign key; one-architecture 2026-10-16 ruling, data-fix cards AP-04, WF-12) | §2.4a item 1; DDL audit (2026-10-15) guard G1 | before first deployment | scheduled by one-1a-next-2 (initial: baseline DDL tightening) |
+| G-DDL2 | A foreign-key column has an index starting with that column | §2.4a item 2; DDL audit (2026-10-15) guard G2 | before first deployment | same as G-DDL1 |
+| G-DDL3 | No duplicate or redundant indexes (same prefix, duplicating a unique constraint) | §2.4a item 2; DDL audit (2026-10-15) guard G3 | before first deployment | same as G-DDL1 |
+| G-DDL4 | A query path is registered and `EXPLAIN` uses an index (merged with G-P3 into one test; depends on G-DDL12) | §2.4a item 2, DATA_DESIGN_CHECKLIST §14.1 D19; DDL audit (2026-10-15) guard G4 | before 1b | same as G-DDL1 |
+| G-DDL5 | A nullable column's comment states 「为空表示」; text columns have the empty-string CHECK; defaults are only within the technical-default whitelist | §2.4a item 3; DDL audit (2026-10-15) guard G5 | before first deployment | same as G-DDL1 |
+| G-DDL6 | `CASCADE` registered, soft-delete flag columns forbidden, physical delete only within a whitelist | §2.4a item 4; DDL audit (2026-10-15) guard G6 | before first deployment | same as G-DDL1 |
+| G-DDL7 | A `_code` column has a format CHECK; free text has a length cap; case-insensitive uniqueness is built on the normalised value | §2.4a item 5; DDL audit (2026-10-15) guard G7 | before first deployment | same as G-DDL1 |
+| G-DDL8 | `CREATE TYPE … AS ENUM` forbidden; enum CHECK named and consistent with the Java enum (same test as G-D12) | §2.4a item 6; DDL audit (2026-10-15) guard G8 | before first deployment | same as G-DDL1 |
+| G-DDL9 | A `jsonb` column has a registered purpose and a `jsonb_typeof` CHECK | §2.4a item 7; DDL audit (2026-10-15) guard G9 | before first deployment | same as G-DDL1 |
+| G-DDL10 | Long-retention or large tables register scale and partition decision in the registry | §2.4a item 8; DDL audit (2026-10-15) guard G10 | before first deployment | same as G-DDL1 |
+| G-DDL11 | `scripts/ci/migration_safety.py` (to be created): `CONCURRENTLY`, `lock_timeout` / `statement_timeout`, no full-table rewrite, foreign keys and CHECK with `NOT VALID`, expand-then-contract, no invalid indexes | §2.4a item 9; DDL audit (2026-10-15) guard G11 | before first deployment (merged before C-3 deletes the baseline marker) | same as G-DDL1 |
+| G-DDL12 | The test database collation is C (as in production); no invalid indexes after migration; fillfactor of frequently updated tables is commented | §2.4a items 2, 10; DDL audit (2026-10-15) guard G12 | before first deployment | same as G-DDL1 |
+| F15 | VI colour values registered in the palette as sRGB hex; `oklch` must fall inside the sRGB gamut | §4a U1 | before the first D-8 design-sync | scheduled by one-1a-next-2 (initial: frontend design system) |
+| F16 | Token-paired text and non-text contrast meet the requirement | §4a U2 | before the first D-8 design-sync | same as F15 |
+| F17 | `eslint-plugin-jsx-a11y` rules | §4a U3 | before 1b | same as F15 |
+| F18 | Run axe in component tests | §4a U3 | before 1b | same as F15 |
+| F19 | antd `zhCN` and dayjs `zh-cn` set at the app root | §4a U4 | before first deployment | same as F15 |
+| F20 | `check-bundle-size.mjs` (to be created; the existing one is `frontend/apps/h5/scripts/check-bundle.mjs`): fail when gzip size exceeds budget | §4a U8 | before 1b | same as F15 |
+| F21 | The semantic-component contract types of PC and H5 are identical (type test) | §4a U7 | before 1b | same as F15 |
+| F22 | Structure check of the query view's three states | §4a U5 | before 1b | same as F15 |
 
-## 4a. 前端界面规则（用户 2026-10-15：对原则核对 B 的待决项答「全部按推荐 (Recommended)」）
+Other planned items (no id):
+- SQL references only this module's schema (scan the SQL text in `infrastructure.persistence`);
+- every P0 rule has one test beginning with `RULE_NNN_` (coverage checked against `docs/business/business-rules.md`);
+- a new aggregate, event or table name must be in the glossary;
+- a file over 1000 lines must be split (review must-fix, `scripts/review/PROMPT.md`); ≤ 400 lines per file and ≤ 60 lines per method are review advice only, no hard Checkstyle gate (CS-1.15);
+- frontend: ESLint `no-restricted-imports` forbids cross-module import of internal directories.
 
-适用于 PC 与 H5。守护见上表 F15–F22。
+## 4a. Frontend UI rules
 
-- **U1 品牌色与字体**：VI 色值按 sRGB 十六进制写入设计令牌的原始调色板，语义层只引用调色板：FOR 灰 `#595757`、CITIS 红 `#CF000E`（精确值，取代现有近似的 `oklch` 值，并同步设计令牌正本）。使用 `oklch` 时取值必须落在 sRGB 色域内。品牌字标用 SVG，不用字体渲染。Montserrat 等字体按 OFL 随包分发，字体文件在 1b 前入库。
-- **U2 对比度**：文字对比度 ≥ 4.5:1（大字 ≥ 3:1），非文字元素（图标、边框、焦点环）≥ 3:1，按令牌实际配对（文字色 × 所在背景）计算。三级文字色与待审批状态文字色加深到达标，其余配对保持。
-- **U3 无障碍**：全部操作键盘可达，焦点可见，弹层关闭后焦点回到触发处；错误提示 `role="alert"`，非打断的状态提示 `role="status"`（H5 同样）；只有图标的按钮带 `aria-label`。
-- **U4 语言与格式**：源语言与本期界面语言为 `zh-CN`，本期只交付中文；指称与消息结构见 §2.1.2–2.1.3、§2.1.6。antd 设 `zhCN`、dayjs 设 `zh-cn`；日期、时刻、金额、数量的格式化只经 core 的格式化函数。出处：ANM AN-04、AN-05；ADR-0053 决定 6；登记方案 §2。守护：F19（中文配置，待实现）；消息目录与语言完整性待补守护，目录启用前落实。
-- **U5 加载、空、错误三态**：数据视图统一经查询视图组件呈现三态；5xx 错误显示可复制的「关联号」（即 correlationId，与 §2.6 A-9 同一个值），便于报障时对日志。
-- **U6 不做乐观更新**：单据、审批、金额相关的命令等服务端确认后再更新界面；只有无业务后果的界面偏好可乐观更新。
-- **U7 组件契约只定义一次**：语义组件（状态标签、金额、审批动作等）的契约只在 `shared/design-system` 定义一次，PC 与 H5 各自实现同一契约；core 只用 React 18 API。
-- **U8 包体积预算**（gzip）：PC 入口 ≤ 300 KB，单个路由 ≤ 150 KB，H5 入口 ≤ 200 KB；超出即 CI 失败，调整预算须在 PR 中写理由。
+(User 2026-10-15, on the pending items of principle check B: 「全部按推荐 (Recommended)」.) Applies to PC and H5. Guards: F15–F22 in the planned-guards table above.
 
-## 5. 对 agent 友好的约定
+- **U1 Brand colour and font**: VI colour values are written as sRGB hex into the raw palette of the design tokens, and the semantic layer references only the palette: FOR grey `#595757`, CITIS red `#CF000E` (exact values, replacing the current approximate `oklch` values, and synced to the design-token master). When using `oklch`, the value must fall inside the sRGB gamut. The brand wordmark is SVG, not font-rendered. Fonts such as Montserrat ship with the package under OFL, and the font files are checked in before 1b.
+- **U2 Contrast**: text contrast ≥ 4.5:1 (large text ≥ 3:1), non-text elements (icons, borders, focus ring) ≥ 3:1, computed on the actual token pairings (text colour × its background). The tertiary text colour and the pending-approval status text colour are darkened to comply; other pairings stay.
+- **U3 Accessibility**: all operations reachable by keyboard, focus visible, focus returns to the trigger after an overlay closes; error prompts `role="alert"`, non-interrupting status prompts `role="status"` (H5 likewise); icon-only buttons carry `aria-label`.
+- **U4 Language and format**: source language and this phase's UI language are `zh-CN`, only Chinese is delivered this phase; designation and message structure: §2.1.2–2.1.3 and `docs/glossary/glossary-schema-design.md` §3 (was §2.1.6). antd is set to `zhCN`, dayjs to `zh-cn`; date, instant, amount and quantity formatting goes only through core's formatting functions. Source: ANM AN-04, AN-05; ADR-0053 decision 6; registration plan §2. Guard: F19 (Chinese config, planned); message catalog and language completeness are planned guards, to land before the catalog is enabled.
+- **U5 Loading, empty, error states**: data views present the three states uniformly through the query-view component; a 5xx error shows a copyable 「关联号」 (the correlationId, the same value as §2.6 A-9), for matching logs when reporting a fault.
+- **U6 No optimistic updates**: commands on documents, approvals and amounts update the UI only after server confirmation; only UI preferences with no business consequence may update optimistically.
+- **U7 Component contract defined once**: the contract of semantic components (status tag, amount, approval actions, etc.) is defined once in `shared/design-system`, PC and H5 each implement the same contract; core uses only React 18 APIs.
+- **U8 Bundle-size budget** (gzip): PC entry ≤ 300 KB, a single route ≤ 150 KB, H5 entry ≤ 200 KB; exceeding fails CI, and adjusting a budget needs a reason in the PR.
 
-- 每个模块根目录放 `README.md`（与 `package-info.java` 一致），写明：职责、拥有的 schema、对外的 api / events 清单、允许的依赖、相关规则 ID 范围。
-- 一个文件一个顶层类型；一个用例一个类，入口方法统一为 `execute`。
-- 测试与生产代码的包结构一一对应；P0 规则测试命名为 `RULE_012_clauseTotalMustEqualFinalAmount`，agent 可以按规则 ID 定位。
-- 生成的代码（OpenAPI 客户端、jOOQ 之类）只放在 `generated/` 目录，不手改，并排除在守护规则之外。
-- 守护规则的失败信息必须包含「放哪里 / 用什么名字」，这样 agent 读到报错就能自我修正。
+## 5. Agent-friendly conventions
 
-## 6. 老名 → 新名对照（历史快照，待由指称投影替换）
+- Each module root has a `README.md` (consistent with `package-info.java`) stating: responsibility, owned schema, the list of api / events exposed, allowed dependencies, and the range of related rule ids.
+- One top-level type per file; one class per use case, with the entry method uniformly named `execute`.
+- The package structure of tests mirrors production code one to one; P0 rule tests are named like `RULE_012_clauseTotalMustEqualFinalAmount`, so an agent can locate them by rule id.
+- Generated code (OpenAPI client, jOOQ, etc.) lives only in a `generated/` directory, is never hand-edited, and is excluded from the guards.
+- A guard's failure message must contain "where to put it / what to name it", so an agent can correct itself on reading the error.
 
-（已移除：历史记录，见 git 历史）
+## 6. (removed: history; see `git show edeb13d6a:docs/rules/naming-standard.md`)
 
-维护入口：本对照由 `source_type` 属 `old-code / legacy-code / legacy-table` 且 `usage_status: forbidden` 的指称投影生成（ADR-0053 背景「取代」与决定 5；守护见 §2.1.7）。
+## 7. Naming-surface list: everywhere in the new system that needs unified naming
 
-## 7. 命名面清单：新系统中所有需要统一命名的地方（2026-10-14）
+The word-source entry is §2.1 (ADR-0053 decision 1.3); the scope of naming surfaces cites ADR-0053 decision 4; this section and the detail rules together are the entry. The ✔ in the table means only that the original-format guard exists and the historical measurement; it does not mean it now reads concepts / designations or covers the new projection; new-structure coverage and planned guards are in §2.1. Status: ✔ existing-format guard; ○ to be built or partly covered. Owners: concepts, designations and controlled words belong to one-glossary; each surface's format, projection and guard list belong to one-architecture; checks are implemented by one-quality and the surface-owning sessions (ADR-0053 decision 7; registration plan "shared structure and duties").
 
-词源入口见 §2.1（ADR-0053 决定 1.3）；命名面范围引用 ADR-0053 决定 4，本节与各细则共同作为入口。下表既有 ✔ 只表示原格式守护已存在及历史实测，不代表已经改读概念 / 指称或覆盖新投影；新结构覆盖与待补守护见 §2.1。状态：✔ 既有格式守护；○ 待建或部分覆盖。负责：概念、指称及受控词归 one-glossary；各面的格式、投影与守护清单归 one-architecture；检查实施由 one-quality 与各面负责会话承接（ADR-0053 决定 7；登记方案「共用结构与职责」）。
-
-| # | 命名面 | 规则 | 守护 | 状态 |
+| # | Naming surface | Rule | Guard | Status |
 |---|---|---|---|---|
-| 1 | 仓库、模块、Java 包 | `forcitis-one-psa`；`com.forcitis.one.<子域>.<BC>.{api,events,domain,application,infrastructure,web}` | G1、D1、ModularityTest | ✔ |
-| 2 | 类、record、枚举、方法 | 英文、行业标准词；禁含糊词、老名、拼音、`fst`、`cn.iocoder` | G12–G15、G26、G37、G38、G40 | ✔ |
-| 3 | 领域事件 | 过去式事实（`TimesheetSubmitted`），不以 Event / Request / Command 结尾 | G5、G29、G37 | ✔ |
-| 4 | 值对象、类型化 ID | `Money`、`Hours`、`TimesheetId`… | G16、G17、G21–G23、G31 | ✔ |
-| 5 | 数据库 schema、表、列、约束、注释 | §2.1.4、§2.3–2.4；列注释比对概念的 `zh-CN` 首选标准名（ADR-0053 背景「取代」ADR-0018 决定 3） | D2、D3、G37、G39（现有旧投影检查） | ✔；新指称比对待补守护（切换前） |
-| 6 | Flyway 文件名 | `V{时间戳}__{module}_{english_snake}.sql` | D2；G44 | ✔ |
-| 7 | HTTP 路径 | `/api/v{n}/{子域}/{kebab 复数资源}[:{动作}]` | G20（版本）；G41（子域与资源登记） | ✔ |
-| 8 | JSON 字段、OpenAPI schema、事件载荷 | 一律 camelCase，schema 名 PascalCase，拆词已登记 | G42 | ✔ |
-| 9 | 权限码 | `{子域}.{BC}:{资源}:{动作}`，动作取自标准动作集 | G28（类型化）；G43（格式） | ✔ |
-| 10 | 业务编号规则代码 | 大写下划线（`QUOTE`、`TIMESHEET`），已登记 | G45 | ✔ |
-| 11 | 定时作业、锁名、作业表 `job_type`、指标名、配置键 | `{子域}.{BC}.{name}`；配置键前缀 `forcitis.{子域}.{BC}.` | G46 | ✔ |
-| 12 | BPMN 流程、DMN 决策、用户任务 | 键名按子域 / BC 前缀统一；任务 id camelCase 且已登记 | G19（引擎隔离）；G47 | ✔ |
-| 13 | 错误码 | `{SUBDOMAIN}_{BC}_{REASON}` | G48 | ✔ |
-| 14 | 前端 PC 目录、文件、组件、hooks | `modules/<m>`；kebab-case 文件、PascalCase 组件、`useXxx` | F1–F8、F13 | ✔ |
-| 15 | 设计令牌 | 只用正本语义令牌名（`--surface-*`、`--status-*`…） | F14 | ✔ |
-| 16 | 界面文字与消息键（PC、H5、服务端、打印、报表、通知） | §2.1.2–2.1.3、§2.1.6；整条消息入目录，业务名词占位符取指称，键格式见 §2.1.4 | 现有 `check-copy-glossary.mjs / OutwardTextGuardTest` 查旧用语 | ○ 消息目录、角色、占位符与完整性待补守护（目录启用、新页面采用前） |
-| 17 | H5（Taro） | 目录、命名、接口客户端与 PC 同规则 | 无（守护模板只覆盖 PC） | ○ Phase 2 前为 H5 建同等 lint |
-| 18 | `reporting` 视图与 BI 列 | 视图名 `rpt_<主题>`，列名与词表 `snake` 一致 | 无 | ○ Phase 5 前补 |
-| 19 | 外部投递通道与防腐层 | 外部系统名统一（`wecom`、`seeyon`、`u8c`、`fenbeitong`），外部字段只在防腐层内出现 | G1（防腐层隔离） | ○ 补名称约定守护 |
-| 20 | 日志字段、追踪属性 | 结构化日志键 camelCase，业务键取词表；字段集与追踪键见 GUIDING_PRINCIPLES §11 O-1 | G-O1、G-O3（待实现） | ○ |
-| 21 | Git 分支、提交、PR | 会话 worktree 分支 `claude/<会话名>-<主题>`（）；提交 `type(scope): 中文`，scope 用子域 slug；PR 与文档合集按 TEAM-40、53 | commit-msg 门；其余复审 | ○ 不以旧仓库分支格式作门槛 |
-| 22 | 概念、指称、用途角色与语言 | §2.1.1–2.1.3；ADR-0053 决定 2、5–6；登记方案「共用结构与职责」、§2 | 现有 `term_rules.py / GlossaryTest` 查旧结构 | ○ 新 schema、角色及状态组合待补守护（切换前） |
-| 23 | 动词、状态体标记、事件组合与模板 | §2.1.5；ADR-0053 决定 3；登记方案 §1、§5 | 现有事件词形守护 | ○ 正向渲染与例外引用待补守护（组合迁移前） |
-| 24 | PostgreSQL 标识符长度与缩写 | §2.1.4 N3-L1–L3；ADR-0053「需同步修改的守护规则」 | `DdlNamingTest` 尚无长度检查 | ○ 待补守护（新命名 / 改名 DDL 应用前） |
+| 1 | repository, module, Java package | `forcitis-one-psa`; `com.forcitis.one.<subdomain>.<BC>.{api,events,domain,application,infrastructure,web}` | G1, D1, ModularityTest | ✔ |
+| 2 | class, record, enum, method | English, industry-standard words; no vague words, old names, pinyin, `fst`, `cn.iocoder` | G12–G15, G26, G37, G38, G40 | ✔ |
+| 3 | domain event | past-tense fact (`TimesheetSubmitted`), not ending in Event / Request / Command | G5, G29, G37 | ✔ |
+| 4 | value object, typed ID | `Money`, `Hours`, `TimesheetId`… | G16, G17, G21–G23, G31 | ✔ |
+| 5 | database schema, table, column, constraint, comment | §2.1.4, §2.3–2.4; column comment compared to the concept's `zh-CN` preferred standard name (ADR-0053 background "supersedes" ADR-0018 decision 3) | D2, D3, G37, G39 (existing old-projection checks) | ✔; new-designation comparison: planned (before switch) |
+| 6 | Flyway file name | `V{timestamp}__{module}_{english_snake}.sql` | D2; G44 | ✔ |
+| 7 | HTTP path | `/api/v{n}/{subdomain}/{kebab plural resource}[:{action}]` | G20 (version); G41 (subdomain and resource registration) | ✔ |
+| 8 | JSON field, OpenAPI schema, event payload | always camelCase, schema names PascalCase, split words registered | G42 | ✔ |
+| 9 | permission code | `{subdomain}.{BC}:{resource}:{action}`, action from the standard action set | G28 (typed); G43 (format) | ✔ |
+| 10 | business-number rule code | upper snake case (`QUOTE`, `TIMESHEET`), registered | G45 | ✔ |
+| 11 | scheduled job, lock name, job table `job_type`, metric name, config key | `{subdomain}.{BC}.{name}`; config-key prefix `forcitis.{subdomain}.{BC}.` | G46 | ✔ |
+| 12 | BPMN process, DMN decision, user task | key names unified by subdomain / BC prefix; task id camelCase and registered | G19 (engine isolation); G47 | ✔ |
+| 13 | error code | `{SUBDOMAIN}_{BC}_{REASON}` | G48 | ✔ |
+| 14 | frontend PC directory, file, component, hooks | `modules/<m>`; kebab-case files, PascalCase components, `useXxx` | F1–F8, F13 | ✔ |
+| 15 | design tokens | only master semantic token names (`--surface-*`, `--status-*`…) | F14 | ✔ |
+| 16 | UI text and message keys (PC, H5, server, print, reports, notifications) | §2.1.2–2.1.3, `docs/glossary/glossary-schema-design.md` §3; whole messages enter the catalog, business-noun placeholders take designations, key format in §2.1.4 | existing `check-copy-glossary.mjs / OutwardTextGuardTest` check old wording | ○ message catalog, role, placeholders and completeness: planned (before the catalog is enabled and new pages adopt it) |
+| 17 | H5 (Taro) | directory, naming and API client follow the same rules as PC | none (the guard template covers only PC) | ○ build equivalent lint for H5 before Phase 2 |
+| 18 | `reporting` views and BI columns | view name `rpt_<topic>`, column names match the glossary `snake` | none | ○ fill in before Phase 5 |
+| 19 | external delivery channels and anti-corruption layer | external system names unified (`wecom`, `seeyon`, `u8c`, `fenbeitong`), external fields appear only inside the anti-corruption layer | G1 (anti-corruption isolation) | ○ add a name-convention guard |
+| 20 | log fields, trace attributes | structured log keys camelCase, business keys from the glossary; field set and trace keys: GUIDING_PRINCIPLES §11 O-1 | G-O1, G-O3 (planned) | ○ |
+| 21 | Git branch, commit, PR | session worktree branch `claude/<session name>-<topic>` (the original text has an empty parenthesis here); commit `type(scope): 中文`, scope is the subdomain slug; PRs and document collections per TEAM-40, 53 | commit-msg gate; the rest by review | ○ the old repo's branch format is not a gate |
+| 22 | concept, designation, usage role and language | §2.1.1–2.1.3; ADR-0053 decisions 2, 5–6; registration plan "shared structure and duties", §2 | existing `term_rules.py / GlossaryTest` check the old structure | ○ new schema, roles and status combinations: planned (before switch) |
+| 23 | verb, aspect marker, event composition and template | §2.1.5, `docs/glossary/glossary-schema-design.md` §2; ADR-0053 decision 3; registration plan §1, §5 | existing event word-form guard | ○ forward rendering and exception references: planned (before composition migration) |
+| 24 | PostgreSQL identifier length and abbreviation | §2.1.4 N3-L1–L3; ADR-0053 "guard rules to be changed in sync" | `DdlNamingTest` has no length check yet | ○ planned (before new-name / rename DDL is applied) |
 
-**本次统一时发现并更正的不一致**：
-- HTTP 示例 `/api/v1/timesheet/timesheets` 把 BC 当成子域，已改为 `/api/v1/cost/timesheets`；
-- 「事件载荷字段 snake_case」与接口 camelCase 不一致，已统一为所有 JSON 用 camelCase；
-- Flyway 描述明确用英文 snake_case（老仓库使用中文描述）；
-- 收入确认口径：词表「投入法、产出法并存」与定稿规则 ACC-R01「统一产出法 · 客户价值确认」冲突，以 ACC-R01 为准（ADR-0016）。
+**Inconsistencies found and corrected during this unification**:
+- the HTTP example `/api/v1/timesheet/timesheets` treated a BC as a subdomain, changed to `/api/v1/cost/timesheets`;
+- "event payload fields snake_case" disagreed with interface camelCase, unified to camelCase for all JSON;
+- Flyway descriptions are explicitly English snake_case (the old repo used Chinese descriptions);
+- revenue-recognition basis: the glossary's "input method and output method coexist" conflicts with the final rule ACC-R01 「统一产出法 · 客户价值确认」; ACC-R01 prevails (ADR-0016).
 
-**G41–G48 的已知盲区**：运行时拼出的指标名；`.yml` 中的配置键；Flowable `candidateGroups` 名；DMN 文件与 `job_type` 表尚无真实样例（只用注入用例验证）；测试数据迁移不受 G44 约束；事件发布登记表未启用，事件键经应用的 JSON 映射器检查；写成普通字符串的错误码检测不到。模板为满足守护新增了 4 个词条（cost、error-code、capacity、scheduler-lock），状态为提议，进入下一轮用语确认。
+**Known blind spots of G41–G48**: metric names assembled at runtime; config keys in `.yml`; Flowable `candidateGroups` names; the DMN files and the `job_type` table have no real samples yet (verified only by injected cases); test-data migration is not bound by G44; the event publication registry table is not enabled, event keys are checked via the application's JSON mapper; an error code written as a plain string is not detected. To satisfy the guards the template added 4 glossary entries (cost, error-code, capacity, scheduler-lock), status proposed, entering the next terminology confirmation round.
