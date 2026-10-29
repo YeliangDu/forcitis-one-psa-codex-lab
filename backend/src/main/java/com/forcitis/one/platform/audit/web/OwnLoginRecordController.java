@@ -2,7 +2,6 @@ package com.forcitis.one.platform.audit.web;
 
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.PageRequest;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.application.ListOwnLoginRecords;
 import com.forcitis.one.platform.audit.application.OwnLoginRecordPageView;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,8 +23,8 @@ class OwnLoginRecordController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('" + AuditPermissions.OWN_LOGIN_RECORD_READ + "')")
-    CursorPage<OwnLoginRecordResponse> list(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor, UserId caller) {
-        OwnLoginRecordPageView page = list.execute(caller, PageRequest.of(limit, cursor, "own-login-records"));
+    CursorPage<OwnLoginRecordResponse> list(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+        OwnLoginRecordPageView page = list.execute(PageRequest.of(limit, cursor, "own-login-records"));
         return CursorPage.of(page.items().stream().map(OwnLoginRecordResponse::of).toList(), page.nextCursor());
     }
 }

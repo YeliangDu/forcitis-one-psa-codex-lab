@@ -19,7 +19,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalProgress;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.numbering.api.IssuedNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import java.time.Clock;

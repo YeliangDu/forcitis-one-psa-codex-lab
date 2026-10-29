@@ -6,7 +6,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
-import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.kernel.CurrentUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

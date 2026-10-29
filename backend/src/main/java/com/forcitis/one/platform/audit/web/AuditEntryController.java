@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.audit.web;
 
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
@@ -38,9 +37,9 @@ class AuditEntryController {
                            @RequestParam(required = false) AuditSubjectKind subjectKind, @Parameter(description = "Id of the audited object. Must be given together with subjectKind: subjectId alone answers 400, because one id can name several kinds of object; kinds without an object (REQUEST, OPERATION, LOGIN_ATTEMPT) take no subjectId.") @RequestParam(required = false) UUID subjectId,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
-                           @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor, UserId caller) {
+                           @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
         AuditEntryPageView page = search.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKind, subjectId, sourceAddress, outcome, from, to),
-                PageRequest.of(limit, cursor, "audit-entries"), caller);
+                PageRequest.of(limit, cursor, "audit-entries"));
         return CursorPage.of(page.items().stream().map(AuditEntryResponse::of).toList(), page.nextCursor());
     }
 }

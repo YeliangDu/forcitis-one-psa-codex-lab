@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.audit.web;
 
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.application.AuditExport;
@@ -41,8 +40,8 @@ class AuditExportController {
                                   @RequestParam(required = false) String sourceAddress, @RequestParam(required = false) AuditOutcome outcome,
                                   @RequestParam(required = false) AuditSubjectKind subjectKind, @Parameter(description = "Id of the audited object. Must be given together with subjectKind: subjectId alone answers 400, because one id can name several kinds of object; kinds without an object (REQUEST, OPERATION, LOGIN_ATTEMPT) take no subjectId.") @RequestParam(required = false) UUID subjectId,
                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
-                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to, UserId caller) {
-        AuditExport result = export.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKind, subjectId, sourceAddress, outcome, from, to), caller);
+                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+        AuditExport result = export.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKind, subjectId, sourceAddress, outcome, from, to));
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename("audit-entries.csv").build().toString())
