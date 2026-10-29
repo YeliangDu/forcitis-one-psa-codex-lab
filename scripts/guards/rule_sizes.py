@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Agent-read rule files stay within the layer limits in policy.json `rules` (#810, #822; decision 2026-10-29-144628). 1 KB = 1024 UTF-8 bytes.
+Every .claude/rules entry is a relative symlink into the repository whose target carries paths: front matter (#827, RS-4..6).
 
 Layer A, read at every session start: root CLAUDE.md + every .claude/rules file without `paths:` + the start sheet at its cap
 (`start.sheet_max_kb`; the sheet is cut to that, so the cap is its worst case). Limit `rules.layer_a_max_kb`.
@@ -11,6 +12,9 @@ Each failure names the rule, what is over and the fix:
   RS-1 layer A over its limit
   RS-2 layer B over its limit for some files (one line per set of loaded files)
   RS-3 a .claude/rules file cannot be read (broken symlink) or its paths: front matter cannot be parsed
+  RS-4 a .claude/rules entry is a plain file, not a symlink (a core.symlinks=false checkout, or copied text; #827)
+  RS-5 a .claude/rules symlink is absolute or points outside the repository
+  RS-6 a .claude/rules target has no paths: front matter, so it loads at every start and loses its path scope
 
   rule_sizes.py              check the repository (run from its root)
   rule_sizes.py --self-test  a red case per rule
@@ -86,6 +90,35 @@ def rule_files(root, found):
                 found.append(f"RS-3 {rel}: cannot be read or parsed ({e}), so its size is not counted."
                              f" fix: repoint or remove the symlink, or write paths: as a YAML list of globs")
     return out
+
+
+def link_problems(root):
+    """RS-4..6: every .claude/rules entry is a relative symlink into the repository whose target is path-scoped (#827)."""
+    found, real_root = [], os.path.realpath(root)
+    for folder, dirs, files in os.walk(os.path.join(root, RULES_DIR)):
+        dirs.sort()
+        for name in sorted(files):
+            path = os.path.join(folder, name)
+            rel = os.path.relpath(path, root)
+            if not os.path.islink(path):
+                found.append(f"RS-4 {rel}: a plain file, not a symlink. With core.symlinks=false git writes the link as a text file holding"
+                             f" the target path, which Claude Code then reads as the rule. fix: git config core.symlinks true, then"
+                             f" git checkout -- {rel}; a new rule is a relative symlink into docs/rules/, never copied text")
+                continue
+            target = os.readlink(path)
+            resolved = os.path.realpath(path)
+            if os.path.isabs(target) or os.path.commonpath([real_root, resolved]) != real_root:
+                found.append(f"RS-5 {rel} -> {target}: absolute or outside the repository, so other checkouts miss it."
+                             f" fix: make it a relative symlink into docs/rules/")
+                continue
+            try:
+                scoped = front_paths(open(path, encoding="utf-8").read()) is not None
+            except (OSError, UnicodeDecodeError, ValueError, yaml.YAMLError):
+                continue  # dangling or unparsable: RS-3 reports it
+            if not scoped:
+                found.append(f"RS-6 {rel} -> {target}: the target has no paths: front matter, so it loads at every session start."
+                             f" fix: add paths: globs to the front matter of {os.path.relpath(resolved, real_root)}")
+    return found
 
 
 def kb_limit(policy, section, key):
@@ -193,7 +226,45 @@ def self_test():
         assert "fix: shorten those files" in measure(tmp, files)[0][0], "a failure says how to fix it"
         assert glob_regex("**/*.java").match("A.java") and glob_regex("**/*.java").match("a/b/A.java")
         assert not glob_regex("backend/**").match("backend-x/a")
+    link_self_test()
     print("rule_sizes self-test: ok")
+
+
+def link_self_test():
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = os.path.realpath(tmp)
+        rules = os.path.join(tmp, RULES_DIR)
+        os.makedirs(rules)
+        os.makedirs(os.path.join(tmp, "docs", "rules"))
+        open(os.path.join(tmp, "docs", "rules", "core.md"), "w").write('---\npaths:\n  - "backend/**"\n---\nx\n')
+        open(os.path.join(tmp, "docs", "rules", "open.md"), "w").write("# no front matter\n")
+        link = os.path.join(rules, "core.md")
+
+        def hit():
+            return sorted({p.split()[0] for p in link_problems(tmp)})
+
+        os.symlink("../../docs/rules/core.md", link)
+        assert hit() == [], "a relative symlink to a path-scoped doc"
+        os.remove(link)
+        open(link, "w").write("../../docs/rules/core.md")
+        assert hit() == ["RS-4"], "core.symlinks=false: the link became a text file"
+        os.remove(link)
+        os.symlink(os.path.join(tmp, "docs", "rules", "core.md"), link)
+        assert hit() == ["RS-5"], "an absolute link"
+        os.remove(link)
+        outside = tempfile.NamedTemporaryFile("w", suffix=".md", delete=False)
+        outside.write('---\npaths: ["a/**"]\n---\n')
+        outside.close()
+        os.symlink(os.path.relpath(outside.name, rules), link)
+        assert hit() == ["RS-5"], "a relative link that leaves the repository"
+        os.remove(link)
+        os.remove(outside.name)
+        os.symlink("../../docs/rules/open.md", link)
+        assert hit() == ["RS-6"], "a target without paths: loads at start"
+        assert "fix: add paths: globs" in link_problems(tmp)[0], "a failure says how to fix it"
+        os.remove(link)
+        os.symlink("../../docs/rules/gone.md", link)
+        assert hit() == [], "a dangling link is RS-3's, reported once"
 
 
 if __name__ == "__main__":
@@ -201,6 +272,7 @@ if __name__ == "__main__":
         self_test()
         sys.exit(0)
     found, report = measure(os.getcwd())
+    found += link_problems(os.getcwd())
     for line in report[:6]:
         print(line)
     note = memory_note(os.getcwd())
