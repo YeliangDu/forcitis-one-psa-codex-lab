@@ -97,7 +97,14 @@ def link_problems(root):
     found, real_root = [], os.path.realpath(root)
     for folder, dirs, files in os.walk(os.path.join(root, RULES_DIR)):
         dirs.sort()
+        for name in dirs:
+            path = os.path.join(folder, name)
+            if os.path.islink(path):  # os.walk does not follow it, so neither these checks nor the sizes would see its rules
+                found.append(f"RS-4 {os.path.relpath(path, root)}: a directory symlink; the rules behind it escape the link and size checks."
+                             f" fix: link each rule file on its own")
         for name in sorted(files):
+            if not name.endswith(".md"):  # Claude Code loads only .md rules (.DS_Store and the like are no rule)
+                continue
             path = os.path.join(folder, name)
             rel = os.path.relpath(path, root)
             if not os.path.islink(path):
@@ -265,20 +272,41 @@ def link_self_test():
         os.remove(link)
         os.symlink("../../docs/rules/gone.md", link)
         assert hit() == [], "a dangling link is RS-3's, reported once"
+        os.remove(link)
+        open(os.path.join(rules, ".DS_Store"), "w").write("x")
+        assert hit() == [], "a non-.md file is no rule"
+        os.symlink("../../docs/rules", os.path.join(rules, "more"))
+        assert hit() == ["RS-4"], "a directory symlink is not walked, so it is refused"
+        os.remove(os.path.join(rules, "more"))
+        json.dump({"rules": {"layer_a_max_kb": 6, "layer_b_max_kb": 7}, "start": {"sheet_max_kb": 4}},
+                  open(os.path.join(tmp, "policy.json"), "w"))
+        subprocess.run(["git", "init", "-q", tmp], check=True)
+        os.symlink("../../docs/rules/core.md", link)
+        subprocess.run(["git", "-C", tmp, "add", "-A"], check=True)
+        assert main(tmp, quiet=True) == 0, "the command passes a good tree"
+        os.remove(link)
+        open(link, "w").write("../../docs/rules/core.md")
+        assert main(tmp, quiet=True) == 1, "the command itself runs the link checks"
+
+
+def main(root, quiet=False):
+    """Run every check on root, print the report and problems; 1 when there are problems."""
+    found, report = measure(root)
+    found += link_problems(root)
+    if not quiet:
+        for line in report[:6]:
+            print(line)
+        note = memory_note(root)
+        if note:
+            print(note)
+        for p in found:
+            print(p)
+        print(f"rule_sizes: {len(found)} problems")
+    return 1 if found else 0
 
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         self_test()
         sys.exit(0)
-    found, report = measure(os.getcwd())
-    found += link_problems(os.getcwd())
-    for line in report[:6]:
-        print(line)
-    note = memory_note(os.getcwd())
-    if note:
-        print(note)
-    for p in found:
-        print(p)
-    print(f"rule_sizes: {len(found)} problems")
-    sys.exit(1 if found else 0)
+    sys.exit(main(os.getcwd()))
