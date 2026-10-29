@@ -2,6 +2,7 @@ package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.fixture.web.ControllerAnswerSamples;
 import com.forcitis.one.kernel.CursorPage;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -15,21 +16,21 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * A handler answers with a *Response record of its web package (coding-core B, Controller row), wrapped at most in ResponseEntity,
- * CursorPage, List or Optional, or answers nothing (void / Void): an application view or domain type returned as-is becomes the
- * contract and changes with the use case (#810 item 5).
+ * A handler answers with a *Response record of a web package (coding-core B, Controller row), or a sealed *Response interface of a
+ * web package whose permitted types all are such answers, wrapped at most in ResponseEntity, CursorPage, List or Optional, or answers
+ * nothing (void / Void): an application view or domain type returned as-is becomes the contract and changes with the use case
+ * (#810 item 5). Handlers inherited from a superclass count too.
  */
 class ControllerResponseGuardTest {
     /** Handlers that answer otherwise, with the reason; an entry whose handler now complies or is gone fails the stale check. */
     static final Map<String, String> OTHER_ANSWERS = Map.of(
-            "com.forcitis.one.platform.audit.web.AuditExportController.export", "a file download (byte[] with its content type)",
-            "com.forcitis.one.platform.identity.web.RoleController.create", "ResponseEntity<RoleChangeResponse>: a sealed interface of RoleResponse (201/200) or AwaitingConfirmationResponse (202); the guard accepts records only",
-            "com.forcitis.one.platform.identity.web.RoleController.update", "ResponseEntity<RoleChangeResponse>: a sealed interface of RoleResponse (201/200) or AwaitingConfirmationResponse (202); the guard accepts records only");
+            "com.forcitis.one.platform.audit.web.AuditExportController.export", "a file download (byte[] with its content type)");
 
     static final List<Class<?>> WRAPPERS = List.of(ResponseEntity.class, CursorPage.class, List.class, Optional.class);
 
@@ -38,7 +39,13 @@ class ControllerResponseGuardTest {
             return true;
         }
         if (type instanceof Class<?> raw) {
-            return raw.isRecord() && raw.getSimpleName().endsWith("Response");
+            if (!raw.getSimpleName().endsWith("Response") || !isWebPackage(raw)) {
+                return false;
+            }
+            if (raw.isRecord()) {
+                return true;
+            }
+            return raw.isInterface() && raw.isSealed() && Arrays.stream(raw.getPermittedSubclasses()).allMatch(ControllerResponseGuardTest::answersWithResponse);
         }
         if (type instanceof ParameterizedType parameterized && WRAPPERS.contains(parameterized.getRawType())) {
             return Arrays.stream(parameterized.getActualTypeArguments()).allMatch(ControllerResponseGuardTest::answersWithResponse);
@@ -46,8 +53,14 @@ class ControllerResponseGuardTest {
         return false;
     }
 
+    static boolean isWebPackage(Class<?> type) {
+        String name = type.getPackageName();
+        return name.endsWith(".web") || name.contains(".web.");
+    }
+
     static List<Method> handlers(Class<?> controller) {
-        return Arrays.stream(controller.getDeclaredMethods()).filter(method -> AnnotatedElementUtils.hasAnnotation(method, RequestMapping.class)).toList();
+        return Arrays.stream(ReflectionUtils.getUniqueDeclaredMethods(controller, ReflectionUtils.USER_DECLARED_METHODS))
+                .filter(method -> AnnotatedElementUtils.hasAnnotation(method, RequestMapping.class)).toList();
     }
 
     static List<String> otherAnswers(Iterable<Class<?>> controllers) {
@@ -89,42 +102,25 @@ class ControllerResponseGuardTest {
                 + " with a *Response record", "delete the entry")).allMatch(current::contains);
     }
 
-    record SampleResponse(String value) {
+    /** Right name, outside a web package. */
+    record OutsideResponse(String value) {
     }
 
-    record SampleView(String value) {
-    }
-
-    /** Not a @RestController, so component scanning of the Spring tests never registers it; otherAnswers takes the class directly. */
-    static class SampleController {
-        @GetMapping("/a")
-        SampleView view() {
-            return new SampleView("a");
-        }
-
-        @GetMapping("/b")
-        ResponseEntity<CursorPage<SampleResponse>> page() {
-            return ResponseEntity.ok(null);
-        }
-
-        @GetMapping("/c")
-        ResponseEntity<?> anything() {
-            return ResponseEntity.ok().build();
-        }
-
-        @GetMapping("/d")
-        void nothing() {
-        }
-
-        String notAHandler() {
-            return "x";
+    static class OutsideController {
+        @GetMapping("/o")
+        OutsideResponse outside() {
+            return new OutsideResponse("o");
         }
     }
 
     @Test
-    @DisplayName("injection: a view, and a wildcard ResponseEntity, are reported; a wrapped *Response, void and non-handlers are not")
+    @DisplayName("injection: views, wildcards, open or leaky *Response interfaces, inherited and non-web answers are reported;"
+            + " a wrapped *Response record, a sealed *Response interface of them, void and non-handlers are not")
     void otherAnswersAreCaught() {
-        assertThat(otherAnswers(List.of(SampleController.class))).extracting(ControllerResponseGuardTest::handlerName)
-                .containsExactlyInAnyOrder(SampleController.class.getName() + ".view", SampleController.class.getName() + ".anything");
+        String sample = ControllerAnswerSamples.SampleController.class.getName() + ".";
+        assertThat(otherAnswers(List.of(ControllerAnswerSamples.SampleController.class, OutsideController.class)))
+                .extracting(ControllerResponseGuardTest::handlerName)
+                .containsExactlyInAnyOrder(sample + "view", sample + "anything", sample + "leaky", sample + "open", sample + "inherited",
+                        OutsideController.class.getName() + ".outside");
     }
 }

@@ -10,20 +10,20 @@ CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 
 ## A. Golden files — copy these
 
-| Part | File | Pattern |
+| Part | Class#member | Pattern |
 |---|---|---|
-| Use case | `SubmitTimesheet:65` | `@Transactional` on execute, one aggregate, save then publish |
-| Caller | `SubmitTimesheet:66` | inject `CurrentUser`, never take `UserId caller` (`HandlerCallerGuardTest`) |
-| Data scope | `GetOrgUnit:35` | inject `OrgUnitAccess`; out of scope = not found + audit |
-| Controller | `OrgUnitController:36` | convert, call the use case; `*Response` record on 200, `ResponseEntity` only for other status or headers |
-| Repository | `JdbcRoleRepository:123` | text-block lowercase SQL, named params, versioned update |
-| Listener | `ApplyApprovalResult:41` | `@ApplicationModuleListener` in application, dedupe first |
-| Time | `JdbcRoleRepository:367` | `Instant` + `BusinessZone`; JDBC `OffsetDateTime`, not `Timestamp` |
-| ID | `CreateLegalEntity:29` | inject `IdGenerator` |
-| Money | `ExactMoney:25` | compute unrounded in `ExactMoney`; `round()` to `Money`, HALF_UP to the minor unit; total = sum of rounded lines (FD-02/07/08) |
-| Workflow | `FlowableApprovalEngine:54` | Flowable only in the adapter; callers use `ApprovalProcesses` |
-| Unit test | `TimesheetStateMachineTest:62` | no Spring, fixed date |
-| IT / acceptance | `AuditExportAndOwnRecordsIT:36`, `WorkCalendarMakeUpWeekendIT:38` | MockMvc + `TestPostgres.database`; `@DisplayName` starts with the card or rule id |
+| Use case | `SubmitTimesheet#execute` | `@Transactional` on execute, one aggregate, save then publish |
+| Caller | `SubmitTimesheet#currentUser` | inject `CurrentUser`, never take `UserId caller` (`HandlerCallerGuardTest`) |
+| Data scope | `GetOrgUnit#execute` | inject `OrgUnitAccess`; out of scope = not found + audit |
+| Controller | `OrgUnitController#get` | convert, call the use case; `*Response` record on 200, `ResponseEntity` only for other status or headers |
+| Repository | `JdbcRoleRepository#update` | text-block lowercase SQL, named params, versioned update |
+| Listener | `ApplyApprovalResult#on` | `@ApplicationModuleListener` in application, dedupe first |
+| Time | `JdbcRoleRepository#at` | `Instant` + `BusinessZone`; JDBC `OffsetDateTime`, not `Timestamp` |
+| ID | `CreateLegalEntity#execute` | inject `IdGenerator` |
+| Money | `ExactMoney#round` | compute unrounded in `ExactMoney`; `round()` to `Money`, HALF_UP to the minor unit; total = sum of rounded lines (FD-02/07/08) |
+| Workflow | `FlowableApprovalEngine#startInstance` | Flowable only in the adapter; callers use `ApprovalProcesses` |
+| Unit test | `TimesheetStateMachineTest#everyOperationInEveryStatus` | no Spring, fixed date |
+| IT / acceptance | `AuditExportAndOwnRecordsIT#postgres`, `WorkCalendarMakeUpWeekendIT#postgres` | MockMvc + `TestPostgres.database`; `@DisplayName` starts with the card or rule id |
 
 ## B. Rules no test catches — follow them
 

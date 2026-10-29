@@ -197,7 +197,7 @@ Moved to `docs/glossary/glossary-schema-design.md` §4. The N3-L1–L3 gaps stay
 
 Two standalone column names `id` and `version` are also allowed. A document number uses `_number` (consistent with the numbering module's terms `legacy_number`, `round_number`), not `_no`.
 
-**Constraints and indexes**: primary key `pk_<table>`; foreign key `fk_<table>_<column>`; unique `uk_<table>_<column>` (for both unique constraints and unique indexes); table-level check `ck_<table>_<rule>`; ordinary index `ix_<table>_<column>`. Primary keys, foreign keys and unique constraints must be named explicitly with `CONSTRAINT <name>`, not rely on PostgreSQL default names. **Every enum `CHECK` is named `ck_<table>_<column>`** (DDL-22; user 2026-10-15: all pending DDL-audit items answered 「全部按推荐 (Recommended)」); no unnamed column-level CHECK, because changing values after go-live requires dropping and recreating by name; the value set of a column matches the corresponding Java enum. Existing items during the open-baseline period are renamed this way and folded into the baseline DDL tightening (R-2); the guard is an extension of `DdlNamingTest` (§4 planned guard G-D12).
+**Constraints and indexes**: primary key `pk_<table>`; foreign key `fk_<table>_<column>`; unique `uk_<table>_<column>` (for both unique constraints and unique indexes); table-level check `ck_<table>_<rule>`; exclusion `ex_<table>_<rule>`; ordinary index `ix_<table>_<column>`. Primary keys, foreign keys and unique constraints must be named explicitly with `CONSTRAINT <name>`, not rely on PostgreSQL default names. **Every enum `CHECK` is named `ck_<table>_<column>`** (DDL-22; user 2026-10-15: all pending DDL-audit items answered 「全部按推荐 (Recommended)」); no unnamed column-level CHECK, because changing values after go-live requires dropping and recreating by name; the value set of a column matches the corresponding Java enum. Existing items during the open-baseline period are renamed this way and folded into the baseline DDL tightening (R-2); the guard is an extension of `DdlNamingTest` (§4 planned guard G-D12).
 
 **Guard**: `DdlNamingTest` derives the final table structure from all migration scripts (tracking `ADD COLUMN`, `RENAME COLUMN`, `RENAME CONSTRAINT`, `ALTER INDEX ... RENAME TO`) and checks class words vs types and constraint / index names; injected samples cover each kind of error. Items that existed before the rule took effect are registered in `backend/architecture/ddl-naming-baseline.txt` (each line carries a rename suggestion); a new violation, and a baseline line that is fixed but not deleted, both fail. Tables whose column names are owned by a framework are exempt: `platform_identity.sessions`, `sessions_attributes` (Spring Session JDBC), `platform_integration.event_publication` (Spring Modulith), `platform_scheduling.scheduler_locks` (ShedLock).
 
@@ -293,13 +293,13 @@ architecture/module-dependencies.txt  the approved module dependency graph (code
 
 ## 4. Guard rules
 
-Rules below are implemented unless marked otherwise. Format: id | rule | enforced by. Planned (not implemented) guards are in the tables after the implemented ones; until implemented, each wave's review checks them by their source.
+Rules below are implemented unless marked otherwise. Format: id | rule | enforced by; the enforced-by cell follows the Check-column format of `docs/rules/coding-standard.md` §0 (checked by `scripts/guards/check_rules_enforced.py`). Planned (not implemented) guards are in the tables after the implemented ones; until implemented, each wave's review checks them by their source.
 
 ### Backend, implemented
 
 | # | Rule | Enforced by |
 |---|---|---|
-| G1 | Modules access each other only via `api` / `events`; no cycles; dependencies point only to `allowedDependencies` | Modulith `ApplicationModules.verify()` |
+| G1 | Modules access each other only via `api` / `events`; no cycles; dependencies point only to `allowedDependencies` | `ModularityTest` (Modulith `ApplicationModules.verify()`) |
 | G2 | `api` holds only interfaces and records | `apiPackagesContainOnlyInterfacesAndRecords` |
 | G3 | `api` signatures must not reference domain / application / infrastructure / web | `apiSignaturesDoNotLeakModuleInternals` |
 | G4 | Each module has ≤ 12 api methods in total | `apiSurfaceStaysNarrow` |
@@ -346,29 +346,29 @@ Rules below are implemented unless marked otherwise. Format: id | rule | enforce
 | G48 | Error codes: one enum per module implementing `kernel.ErrorCode`, format `{SUBDOMAIN}_{BC}_{REASON}`; common errors are defined only in `kernel`; module enums must not be synonymous with it or each other (Chinese name unique, R-5 guard) | `NamingSurfaceTest` |
 | D1 | Module dependencies must be registered in `architecture/module-dependencies.txt` | `ModuleDependencyTest` |
 | D2 | DDL: file-name convention, create only this schema's tables, snake_case, ban old names and vague words, audit columns, amounts with currency, status `CHECK`, boolean `is_` / `has_`, a COMMENT on every column; column class words vs types, constraint and index naming (§2.4); sensitive-column registration (§2.5) | `DdlNamingTest` |
-| D3 | The data dictionary is generated from database metadata; every table and field must have a comment | `ApplicationIntegrationTest.everyTableAndColumnIsDocumented…` |
+| D3 | The data dictionary is generated from database metadata; every table and field must have a comment | `ApplicationIntegrationTest#everyTableAndColumnIsDocumentedAndTheDictionaryIsGenerated` |
 | G-A2 | List response shape is `{items, nextCursor}`, parameters `cursor` / `limit` (judged by response shape, not class name). Existing gaps are registered in `backend/architecture/list-paging-gaps.txt` (a new violation fails; a registered gap that is fixed but not deleted also fails) | `ListPagingGuardTest` (K-3a) |
-| G-P1 | The `limit` cap comes from one kernel constant (`ListLimits`); every OpenAPI `limit` declares `minimum: 1`, `maximum: 200`, `default: 50`; other `MAX_LIMIT`-type constants are forbidden (§2.6 A-3, `docs/architecture/guiding-principles.md` §7a R-P2) | `ListPagingGuardTest` (K-3a); gaps as G-A2 |
+| G-P1 | The `limit` cap comes from one kernel constant (`ListLimits`); every OpenAPI `limit` declares `minimum: 1`, `maximum: 200`, `default: 50`; other `MAX_LIMIT`-type constants are forbidden (§2.6 A-3, `docs/architecture/guiding-principles.md` §7a R-P2) | `ListPagingGuardTest` (K-3a; gaps as G-A2) |
 
 ### Frontend, implemented (`frontend/eslint.config.js`, `frontend/stylelint.config.js`, `frontend/scripts/check-structure.mjs`; TypeScript strict)
 
 | # | Rule | Enforced by |
 |---|---|---|
-| F1–F4 | One-way dependency `app → modules(index) → shared`; cross-module only via `modules/<m>/index.ts` | eslint-plugin-boundaries |
-| F5 | axios, fetch and hand-written `/api` URLs forbidden; only the OpenAPI-generated client | ESLint (`frontend/eslint.config.js`) |
-| F6 | ASCII identifiers only; kebab-case file names; class names Util / Helper / Manager / Info / Data / Impl forbidden | ESLint (`frontend/eslint.config.js`) |
-| F7 | `any` forbidden; React hooks rules | ESLint (`frontend/eslint.config.js`) |
-| F8 | hooks live in `hooks/` and are named `useXxx` | ESLint (`frontend/eslint.config.js`) |
-| F9 | `model/` and `shared/lib` are pure logic and must not reference React or API | ESLint (`frontend/eslint.config.js`) |
-| F10 | Only `modules/<m>/api` may import the generated client | ESLint (`frontend/eslint.config.js`) |
-| F11 | `dangerouslySetInnerHTML` forbidden (stored XSS, SEC-008) | ESLint (`frontend/eslint.config.js`) |
-| F12 | `export *` forbidden | ESLint (`frontend/eslint.config.js`) |
+| F1–F4 | One-way dependency `app → modules(index) → shared`; cross-module only via `modules/<m>/index.ts` | `frontend/eslint.config.js` (eslint-plugin-boundaries) |
+| F5 | axios, fetch and hand-written `/api` URLs forbidden; only the OpenAPI-generated client | `frontend/eslint.config.js` |
+| F6 | ASCII identifiers only; kebab-case file names; class names Util / Helper / Manager / Info / Data / Impl forbidden | `frontend/eslint.config.js` |
+| F7 | `any` forbidden; React hooks rules | `frontend/eslint.config.js` |
+| F8 | hooks live in `hooks/` and are named `useXxx` | `frontend/eslint.config.js` |
+| F9 | `model/` and `shared/lib` are pure logic and must not reference React or API | `frontend/eslint.config.js` |
+| F10 | Only `modules/<m>/api` may import the generated client | `frontend/eslint.config.js` |
+| F11 | `dangerouslySetInnerHTML` forbidden (stored XSS, SEC-008) | `frontend/eslint.config.js` |
+| F12 | `export *` forbidden | `frontend/eslint.config.js` |
 | F13 | Each module's `index.ts` has ≤ 8 exports | `frontend/scripts/check-structure.mjs` |
-| F14 | Business modules must not import antd directly, no inline styles, no hard-coded colours; raw tokens are read only in `shared/design-system` (ADR-0013) | ESLint (`frontend/eslint.config.js`) |
+| F14 | Business modules must not import antd directly, no inline styles, no hard-coded colours; raw tokens are read only in `shared/design-system` (ADR-0013) | `frontend/eslint.config.js` |
 
 ### Planned guards (not implemented)
 
-(User 2026-10-15, on the pending items of the DDL audit and principle checks A / B: 「全部按推荐 (Recommended)」.) These guards are **registered only**; status is "planned" for all. The rule text is where the "Source" column points; this table says what is checked, by when it must exist, and which work unit owns it. **Ownership is scheduled by one-1a-next-2 in its plan**: an owner already fixed by an ADR or user decision is written as the work-unit name; the others read "scheduled by one-1a-next-2", with the initial grouping in brackets for reference. Until implemented, each wave's review checks by source, item by item. Where a guard overlaps an existing one, implementation merges them into one test.
+(User 2026-10-15, on the pending items of the DDL audit and principle checks A / B: 「全部按推荐 (Recommended)」.) These guards are **registered only**; status is "planned" for all. The rule text is where the "Source" column points; this table says what is checked, by when it must exist, and which work unit owns it. An owner already fixed by an ADR or user decision is written as the work-unit name; the others read "unscheduled", with the initial grouping in brackets for reference. Until implemented, each wave's review checks by source, item by item. Where a guard overlaps an existing one, implementation merges them into one test.
 
 | # | Check | Source | Must exist before | Owner / status |
 |---|---|---|---|---|
@@ -378,36 +378,36 @@ Rules below are implemented unless marked otherwise. Format: id | rule | enforce
 | G-A1 | All own IDs in OpenAPI (properties, path parameters, query parameters) are `type: string, format: uuid`; IDs in frontend generated types are not number | §2.6 A-7 | immediately (before handoff / reassignment UI goes live) | R-1b (changed together with own UUIDv7) |
 | G-A3 | Merged into G-C4 (modifying interfaces declare required `If-Match` and 412 / 428, runtime consistent; exemptions registered one by one with reasons) | §2.6 A-8, ADR-0035 item 8 | see G-C4 | see G-C4 |
 | G-A4 | Merged into G-C4 (a `POST` on a collection returns 201 with `Location`) | §2.6 A-2, ADR-0035 item 8 | see G-C4 | see G-C4 |
-| G-A5 | No `PATCH` mapping | §2.6 A-5 | before 1b | scheduled by one-1a-next-2 (initial: HTTP contract guard) |
-| G-A6 | Instant fields are `date-time` with `Z`; amounts are `{amount: string, currency}` | §2.6 A-7 | before 1b | scheduled by one-1a-next-2 (initial: HTTP contract guard; the amount part merges with G-M5) |
-| G-A7 | A controller return type may only be a `*Response` in the `web` package | §2.6 A-11 | before first deployment | scheduled by one-1a-next-2 (initial: HTTP contract guard; complements G-X6) |
+| G-A5 | No `PATCH` mapping | §2.6 A-5 | before 1b | unscheduled (initial: HTTP contract guard) |
+| G-A6 | Instant fields are `date-time` with `Z`; amounts are `{amount: string, currency}` | §2.6 A-7 | before 1b | unscheduled (initial: HTTP contract guard; the amount part merges with G-M5) |
+| G-A7 | A controller return type may only be a `*Response` in the `web` package | §2.6 A-11 | before first deployment | unscheduled (initial: HTTP contract guard; complements G-X6) |
 | G-A8 | No common error codes defined outside kernel | §2.3, §2.6 A-9 | before first deployment | R-5 (same implementation as G48) |
-| G-A9 | Error responses are produced only by the unified handler; controllers do not hand-assemble ProblemDetail | §2.6 A-9 | before 1b | scheduled by one-1a-next-2 (initial: HTTP contract guard) |
-| G-C1 | `scripts/ci/openapi_compat.py` (to be created): compare OpenAPI with the merge-base; read the deprecation register; a registered and expired deletion is let through; any other breaking change fails and can be let through only by the commit trailer `Contract-Break:`, listed separately in the PR | ADR-0035 items 3, 7, 9 | before first production deployment | scheduled by one-1a-next-2 (initial: contract-evolution guard) |
+| G-A9 | Error responses are produced only by the unified handler; controllers do not hand-assemble ProblemDetail | §2.6 A-9 | before 1b | unscheduled (initial: HTTP contract guard) |
+| G-C1 | `scripts/ci/openapi_compat.py` (to be created): compare OpenAPI with the merge-base; read the deprecation register; a registered and expired deletion is let through; any other breaking change fails and can be let through only by the commit trailer `Contract-Break:`, listed separately in the PR | ADR-0035 items 3, 7, 9 | before first production deployment | unscheduled (initial: contract-evolution guard) |
 | G-C2 | Event compatibility (AsyncAPI shape comparison): each message's payload schema and class name in `asyncapi.yaml` is compared with the merge-base; a change of shape, class name or package name is breaking and requires either `schemaVersion + 1` or a new event type, and marks the release "needs drain" | ADR-0035 items 3, 5, 9 | before first production deployment | same as above |
 | G-C3 | Pre-deployment drain check: for a release marked "needs drain", after maintenance mode is on (database flag `platform_scheduling.maintenance_modes`), unfinished event publications and dead letters must be 0; what cannot be drained is handled by quarantine registration, otherwise the deployment aborts | ADR-0035 item 6 | before first production deployment | same as above (wired into the deployment playbook, one-ops) |
 | G-C4 | Contract is truthful: OpenAPI status codes (201 with `Location`), required headers (`If-Match`, 412 / 428), `ETag`, named enums, no untyped response bodies, `info` consistent with runtime (extends `HttpContractIT`; G-A3, G-A4 merged in); one of the two contract guards in force during dev, the other is G-C5 | ADR-0035 items 2, 8, §2.6 | in force when H-1 merges (H-1 is scheduled after R-5) | H-1 |
 | G-C5 | Event payloads and outbound payloads are flat: IDs are string uuids, no `{value: …}` wrapper (one of the two contract guards in force during dev, the other is G-C4) | ADR-0035 items 2, 5 | in force when R-1b merges | R-1b |
-| G-C6 | Deprecation expiry: a scheduled check of expired but undeleted deprecated items, sends a P3 reminder and reports to the scheduling session (does not turn unrelated PRs red); changing a deprecated object in a PR (deletion excepted) fails | ADR-0035 item 7 | before first production deployment | scheduled by one-1a-next-2 (initial: contract-evolution guard) |
+| G-C6 | Deprecation expiry: a scheduled check of expired but undeleted deprecated items, sends a P3 reminder and reports to the scheduling session (does not turn unrelated PRs red); changing a deprecated object in a PR (deletion excepted) fails | ADR-0035 item 7 | before first production deployment | unscheduled (initial: contract-evolution guard) |
 | G-C7 | `reporting` dataset contract: view column names and types match the registration; breaking changes handled per ADR-0035 | ADR-0035 | R1 | R1 work unit |
-| G-P2 | The number of SQL statements of list and batch use cases does not grow with row count (a counting DataSource decorator, default budget ≤ 5) | `docs/architecture/guiding-principles.md` §7a R-P3 | before 1b | scheduled by one-1a-next-2 (initial: performance guard) |
+| G-P2 | The number of SQL statements of list and batch use cases does not grow with row count (a counting DataSource decorator, default budget ≤ 5) | `docs/architecture/guiding-principles.md` §7a R-P3 | before 1b | unscheduled (initial: performance guard) |
 | G-P3 | Registered query paths use an index in `EXPLAIN` with `enable_seqscan = off` | `docs/architecture/guiding-principles.md` §7a, DATA_DESIGN_CHECKLIST §14.1 D19 | before 1b | same as above |
 | G-P4 | The three timeouts of external read-only connections take effect: an integration test against a hanging port fails or degrades within budget | DATA_DESIGN_CHECKLIST §14.3 I2 | before first deployment | same as above (same card as G-I1, G-I3) |
 | G-P5 | Production config has connection pool, statement timeout, histogram buckets and slow-query threshold, with values conforming to R-P4–R-P6 | `docs/architecture/guiding-principles.md` §7a | before first deployment | same as above |
-| G-P6 | k6 load test: every interface class of R-P1 meets target (phase exit) | `docs/architecture/guiding-principles.md` §7a R-P1 | Phase 2 entry | scheduled by one-1a-next-2 (initial: performance guard; ask per CLAUDE.md before installing k6) |
-| G-S1 | `scripts/ci/workflows_pinned.py` (to be created): workflow `uses:` always pinned to a 40-character SHA; `pull_request_target` forbidden | docs/ops/supply-chain.md S6 | before first deployment | scheduled by one-1a-next-2 (initial: CI supply chain) |
+| G-P6 | k6 load test: every interface class of R-P1 meets target (phase exit) | `docs/architecture/guiding-principles.md` §7a R-P1 | Phase 2 entry | unscheduled (initial: performance guard; ask per CLAUDE.md before installing k6) |
+| G-S1 | `scripts/ci/workflows_pinned.py` (to be created): workflow `uses:` always pinned to a 40-character SHA; `pull_request_target` forbidden | docs/ops/supply-chain.md S6 | before first deployment | unscheduled (initial: CI supply chain) |
 | G-S2 | osv-scanner: vulnerability and licence check (merged into an existing job, no added job count) | docs/ops/supply-chain.md S3, S4 | before first deployment | same as above |
 | G-S3 | `pom.xml` declares no custom repository, only Maven Central | docs/ops/supply-chain.md S1 | before first deployment | same as above |
 | G-S4 | The test database image is defined in one constant, with a digest | docs/ops/supply-chain.md S7 | before first deployment | same as above |
 | G-S5 | A release includes an SBOM, and the SBOM is written into the signed attestation | docs/ops/supply-chain.md S5 | before production deployment | same as above |
 | G-S6 | A runner pre-job hook checks the run user and credential directory | docs/ops/supply-chain.md S6 | pending (follows the decision on a dedicated runner user) | same as above |
-| G-O1 | Log scan: an `ERROR` line must begin with 「ALERT P1\|P2\|P3 <subdomain>.<BC> 」 | `docs/architecture/guiding-principles.md` §11 O-2 | before first deployment | scheduled by one-1a-next-2 (initial: observability) |
+| G-O1 | Log scan: an `ERROR` line must begin with 「ALERT P1\|P2\|P3 <subdomain>.<BC> 」 | `docs/architecture/guiding-principles.md` §11 O-2 | before first deployment | unscheduled (initial: observability) |
 | G-O2 | A log argument must not be the return value of a personal-information method; for an unknown exception log only the class name | `docs/architecture/guiding-principles.md` §11 O-3 | before first deployment | same as above |
 | G-O3 | An integration test asserts every log line has a correlationId, and values such as the email in a unique-constraint conflict are not written to disk | `docs/architecture/guiding-principles.md` §11 O-1, O-3 | before first deployment | same as above |
 | G-O4 | Production config exposes a Prometheus endpoint and the connection string contains `logServerErrorDetail=false`; zero business metrics scraped after deployment fails | `docs/architecture/guiding-principles.md` §11 O-3, O-4 | before first deployment | same as above (post-deployment check belongs to one-ops) |
 | G-O5 | Metrics referenced by alert rules exist in the application | `docs/architecture/guiding-principles.md` §11 O-6 | before first deployment | same as above |
 | G-O6 | Correlation-break counter: a missing correlationId at event publication is counted and alerted, not silently created anew | `docs/architecture/guiding-principles.md` §11 O-1 | before 1b | same as above |
-| G-I1 | External connections go only through the integration layer's connection factory, which enforces three timeouts: connect, query, lock wait | DATA_DESIGN_CHECKLIST §14.3 I2 | before first deployment | scheduled by one-1a-next-2 (initial: external-integration resilience) |
+| G-I1 | External connections go only through the integration layer's connection factory, which enforces three timeouts: connect, query, lock wait | DATA_DESIGN_CHECKLIST §14.3 I2 | before first deployment | unscheduled (initial: external-integration resilience) |
 | G-I2 | The integration register `backend/architecture/integration-register.yaml` (to be created) matches the adapters in code | DATA_DESIGN_CHECKLIST §14.3 | before first deployment | same as above |
 | G-I3 | A view hung with `WAITFOR` verifies that timeouts take effect and degradation works | DATA_DESIGN_CHECKLIST §14.3 I2, I7 | before first deployment | same as above |
 | G-I4 | User-path cool-down: after 3 consecutive failures, no call for 60 seconds | DATA_DESIGN_CHECKLIST §14.3 I6 | before 1b | same as above |
@@ -425,7 +425,7 @@ Rules below are implemented unless marked otherwise. Format: id | rule | enforce
 | G-MG11 | Migration quality rules are consistent: the rule file and the `MQ-*` numbers in code agree both ways; rules cited by the migration-in spec exist; `ACCEPTED_WITH_NOTE` is used only for warnings, `EXCLUDED` only for source-comparison findings, `NORMALIZED` is written only by registered `MQ-N` rules | ADR-0071 items 3, 5 | when W1 builds migration-in orchestration | before the first BC rehearsal |
 | G-MG12 | Migration quality gates: each of the pending-reconciliation precondition, commit gate and effect gate is rejected by a constructed counter-example; the migration-in database role has no write permission on the disposition table, the in-app migration-in role has no disposition, deferral or Q5 entry permission; a deferral rejected when approver and owner are the same person; a finding stays in the list after a trial-commit rollback; "approved not to migrate" over its cap is rejected | ADR-0071 items 5, 6, 8 | when W1 builds migration-in orchestration | before the first BC rehearsal |
 | G-D12 | The enum `CHECK` is named `ck_<table>_<column>` and its value set matches the Java enum (same test as G-DDL8) | §2.4, §2.4a item 6 | before first deployment | R-2a |
-| G-DDL1 | Transaction, master-data, reference and configuration tables register `business_key` in the registry and have the matching unique constraint; a foreign-key target must be a primary key or a unique constraint made only of uuid columns (a composite foreign key guarantees the same row; a business key is not a foreign key; one-architecture 2026-10-16 ruling, data-fix cards AP-04, WF-12) | §2.4a item 1; DDL audit (2026-10-15) guard G1 | before first deployment | scheduled by one-1a-next-2 (initial: baseline DDL tightening) |
+| G-DDL1 | Transaction, master-data, reference and configuration tables register `business_key` in the registry and have the matching unique constraint; a foreign-key target must be a primary key or a unique constraint made only of uuid columns (a composite foreign key guarantees the same row; a business key is not a foreign key; one-architecture 2026-10-16 ruling, data-fix cards AP-04, WF-12) | §2.4a item 1; DDL audit (2026-10-15) guard G1 | before first deployment | unscheduled (initial: baseline DDL tightening) |
 | G-DDL2 | A foreign-key column has an index starting with that column | §2.4a item 2; DDL audit (2026-10-15) guard G2 | before first deployment | same as G-DDL1 |
 | G-DDL3 | No duplicate or redundant indexes (same prefix, duplicating a unique constraint) | §2.4a item 2; DDL audit (2026-10-15) guard G3 | before first deployment | same as G-DDL1 |
 | G-DDL4 | A query path is registered and `EXPLAIN` uses an index (merged with G-P3 into one test; depends on G-DDL12) | §2.4a item 2, DATA_DESIGN_CHECKLIST §14.1 D19; DDL audit (2026-10-15) guard G4 | before 1b | same as G-DDL1 |
@@ -437,7 +437,7 @@ Rules below are implemented unless marked otherwise. Format: id | rule | enforce
 | G-DDL10 | Long-retention or large tables register scale and partition decision in the registry | §2.4a item 8; DDL audit (2026-10-15) guard G10 | before first deployment | same as G-DDL1 |
 | G-DDL11 | `scripts/ci/migration_safety.py` (to be created): `CONCURRENTLY`, `lock_timeout` / `statement_timeout`, no full-table rewrite, foreign keys and CHECK with `NOT VALID`, expand-then-contract, no invalid indexes | §2.4a item 9; DDL audit (2026-10-15) guard G11 | before first deployment (merged before C-3 deletes the baseline marker) | same as G-DDL1 |
 | G-DDL12 | The test database collation is C (as in production); no invalid indexes after migration; fillfactor of frequently updated tables is commented | §2.4a items 2, 10; DDL audit (2026-10-15) guard G12 | before first deployment | same as G-DDL1 |
-| F15 | VI colour values registered in the palette as sRGB hex; `oklch` must fall inside the sRGB gamut | §4a U1 | before the first D-8 design-sync | scheduled by one-1a-next-2 (initial: frontend design system) |
+| F15 | VI colour values registered in the palette as sRGB hex; `oklch` must fall inside the sRGB gamut | §4a U1 | before the first D-8 design-sync | unscheduled (initial: frontend design system) |
 | F16 | Token-paired text and non-text contrast meet the requirement | §4a U2 | before the first D-8 design-sync | same as F15 |
 | F17 | `eslint-plugin-jsx-a11y` rules | §4a U3 | before 1b | same as F15 |
 | F18 | Run axe in component tests | §4a U3 | before 1b | same as F15 |
@@ -450,7 +450,6 @@ Other planned items (no id):
 - SQL references only this module's schema (scan the SQL text in `infrastructure.persistence`);
 - every P0 rule has one test beginning with `RULE_NNN_` (coverage checked against `docs/business/business-rules.md`);
 - a new aggregate, event or table name must be in the glossary;
-- a file over 1000 lines must be split (review must-fix, `scripts/review/PROMPT.md`); ≤ 400 lines per file and ≤ 60 lines per method are review advice only, no hard Checkstyle gate (CS-1.15);
 - frontend: ESLint `no-restricted-imports` forbids cross-module import of internal directories.
 
 ## 4a. Frontend UI rules
@@ -502,7 +501,7 @@ The word-source entry is §2.1 (ADR-0053 decision 1.3); the scope of naming surf
 | 18 | `reporting` views and BI columns | view name `rpt_<topic>`, column names match the glossary `snake` | none | ○ fill in before Phase 5 |
 | 19 | external delivery channels and anti-corruption layer | external system names unified (`wecom`, `seeyon`, `u8c`, `fenbeitong`), external fields appear only inside the anti-corruption layer | G1 (anti-corruption isolation) | ○ add a name-convention guard |
 | 20 | log fields, trace attributes | structured log keys camelCase, business keys from the glossary; field set and trace keys: `docs/architecture/guiding-principles.md` §11 O-1 | G-O1, G-O3 (planned) | ○ |
-| 21 | Git branch, commit, PR | session worktree branch `claude/<session name>-<topic>` (the original text has an empty parenthesis here); commit `type(scope): 中文`, scope is the subdomain slug; PRs and document collections per TEAM-40, 53 | commit-msg gate; the rest by review | ○ the old repo's branch format is not a gate |
+| 21 | Git branch, commit, PR | branch `claude/<session>-<card>-<short>` (`docs/rules/rules.md` ③); commit `type(scope): 中文`, scope is the subdomain slug; PRs and document collections per TEAM-40, 53 | review | ○ |
 | 22 | concept, designation, usage role and language | §2.1.1–2.1.3; ADR-0053 decisions 2, 5–6; registration plan "shared structure and duties", §2 | existing `term_rules.py / GlossaryTest` check the old structure | ○ new schema, roles and status combinations: planned (before switch) |
 | 23 | verb, aspect marker, event composition and template | §2.1.5, `docs/glossary/glossary-schema-design.md` §2; ADR-0053 decision 3; registration plan §1, §5 | existing event word-form guard | ○ forward rendering and exception references: planned (before composition migration) |
 | 24 | PostgreSQL identifier length and abbreviation | §2.1.4 N3-L1–L3; ADR-0053 "guard rules to be changed in sync" | `DdlNamingTest` has no length check yet | ○ planned (before new-name / rename DDL is applied) |
