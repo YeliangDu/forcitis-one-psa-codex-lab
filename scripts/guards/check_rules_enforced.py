@@ -291,8 +291,8 @@ def table_problems(root):
             continue
         block = re.match(r"\*\*(CS-\d+\.\d+) ", line)
         if not block:
-            if line.startswith("**"):
-                found.append(f"RE-4 {CODING}:{no}: prose rule `{line[:30]}` does not start `**CS-x.y Title`. fix: write the bare id after **")
+            found.append(f"RE-4 {CODING}:{no}: prose rule `{line[:30]}` does not start `**CS-x.y Title`, so its Check line would go unread."
+                         f" fix: start the line with ** and the bare id")
             continue
         check = next((i for i in range(no, len(lines)) if lines[i].startswith(("Check: ", "**", "#"))), None)
         if check is None or not lines[check].startswith("Check: "):
@@ -398,7 +398,8 @@ def table_self_test():
         assert hit(cell="Guard: `SubmitThing`") == ["RE-5"], "a production class is no enforcer"
         assert hit(cell="Guard: `SubmitThing#execute`") == ["RE-5"], "a production member is no enforcer"
         assert hit(coding_text=coding.format(cell="manual: review", prose="\nCheck: planned: G-CS1").replace("| CS-1.1 |", "| CS-1.1 (new) |")) == ["RE-4"], "a rule row whose id cell carries more than the id"
-        assert hit(coding_text=coding.format(cell="manual: review", prose="").replace("**CS-2.20 ", "**CS-2.20: ")) == ["RE-4"], "a prose rule whose heading changed shape"
+        for heading in ("**CS-2.20: ", "### CS-2.20 ", "- **CS-2.20 ", "CS-2.20 "):
+            assert hit(coding_text=coding.format(cell="manual: review", prose="").replace("**CS-2.20 ", heading)) == ["RE-4"], f"a prose rule headed {heading!r}"
         assert hit(coding_text="no rules here\n") == ["RE-9"], "a standard with no rule rows"
         assert hit(part="Money (kernel)", golden="SubmitThing:2") == ["RE-8"], "every golden row is read, whatever its Part says"
         assert hit(core_text=core.format(golden="SubmitThing:2", part="Use case").replace("## A. Golden", "## A Golden")) == ["RE-9"], "a renamed §A heading"
