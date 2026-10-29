@@ -2,6 +2,7 @@ package com.forcitis.one.platform.integration.guard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.GuardMessage;
 import com.forcitis.one.JavaCode;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,7 +33,7 @@ class ReadOnlyCheckSwitchGuardTest {
             Path.of("../docs/ops/infra-runbook.md"));
 
     static List<Path> textFiles(Path root) throws IOException {
-        assertThat(root).as("scan root").isDirectory();
+        assertThat(root).as(GuardMessage.of("ADR37-1", "the scan root " + root + " is not a directory", "run the test from the backend directory")).isDirectory();
         try (Stream<Path> walk = Files.walk(root)) {
             return walk.filter(Files::isRegularFile)
                     .filter(p -> Stream.of(".java", ".properties", ".yaml", ".yml", ".xml", ".json")
@@ -64,7 +65,7 @@ class ReadOnlyCheckSwitchGuardTest {
             hits.addAll(lines(file, SWITCH));
         }
 
-        assertThat(hits).as("ADR-0037 item 4.3: delete the switch, the check runs whenever the connection is configured").isEmpty();
+        assertThat(hits).as(GuardMessage.of("ADR37-1", "main code or configuration has a validate-on-startup switch", "delete the switch from the listed lines; the check runs whenever the connection is configured")).isEmpty();
     }
 
     @Test
@@ -78,7 +79,7 @@ class ReadOnlyCheckSwitchGuardTest {
             }
         }
 
-        assertThat(hits).as("a check that a property can switch off is a switch").isEmpty();
+        assertThat(hits).as(GuardMessage.of("ADR37-1", "a read-only connection check is conditional on a property", "remove the @ConditionalOnProperty from the listed class so the check always runs")).isEmpty();
     }
 
     @Test
@@ -86,11 +87,11 @@ class ReadOnlyCheckSwitchGuardTest {
     void deploymentTemplatesHaveNoSwitch() throws IOException {
         List<String> hits = new ArrayList<>();
         for (Path file : DEPLOYMENT) {
-            assertThat(file).as("deployment file").exists();
+            assertThat(file).as(GuardMessage.of("ADR37-1", "the deployment file " + file + " is missing", "restore the file or update DEPLOYMENT in the guard if it moved")).exists();
             hits.addAll(lines(file, SWITCH));
         }
 
-        assertThat(hits).as("contract first: the variable leaves the template and the runbook with the code").isEmpty();
+        assertThat(hits).as(GuardMessage.of("ADR37-1", "the deployment template or runbook still lists a VALIDATE_ON_STARTUP variable", "delete the variable from tools/ops/ecs/files/one.env.template and docs/ops/infra-runbook.md")).isEmpty();
     }
 
     @Test
@@ -103,7 +104,7 @@ class ReadOnlyCheckSwitchGuardTest {
             }
         }
 
-        assertThat(hits).isEmpty();
+        assertThat(hits).as(GuardMessage.of("ADR37-1", "a test sets the removed validate-on-startup key", "delete the key from the listed test; it has no effect and only suggests the check is off")).isEmpty();
     }
 
     @Test

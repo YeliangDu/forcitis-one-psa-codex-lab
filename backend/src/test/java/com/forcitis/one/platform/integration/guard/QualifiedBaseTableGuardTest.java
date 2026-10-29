@@ -2,6 +2,7 @@ package com.forcitis.one.platform.integration.guard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.GuardMessage;
 import com.forcitis.one.platform.integration.guard.ExternalReadRegister.Row;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -51,13 +52,13 @@ class QualifiedBaseTableGuardTest {
     @DisplayName("R-1b-0 集成层读 A8 基表一律写 dbo. 或 [dbo]. 限定名")
     void integrationSqlQualifiesA8BaseTables() throws IOException {
         Set<String> tables = a8BaseTables(ExternalReadRegister.rows());
-        assertThat(tables).contains("ORG_UNIT", "ORG_MEMBER");
+        assertThat(tables).as(GuardMessage.of("ADR-0037 item 6.3", "the external read register lists no ORG_UNIT or ORG_MEMBER base table of A8", "restore the A8 rows in the external read register under backend/architecture")).contains("ORG_UNIT", "ORG_MEMBER");
         List<String> violations = new ArrayList<>();
         for (Path file : CredentialColumnGuardTest.integrationLayer()) {
             unqualified(Files.readString(file), tables).forEach(v -> violations.add(file + ": " + v));
         }
 
-        assertThat(violations).as("unqualified, the name resolves in the login's default schema forcitis_one first").isEmpty();
+        assertThat(violations).as(GuardMessage.of("ADR-0037 item 6.3 / R-1b-0", "integration SQL names an A8 base table without the dbo schema, so it resolves in the login default schema forcitis_one first", "write the table as dbo.<table> or [dbo].[table] in the SQL text of the listed file")).isEmpty();
     }
 
     @Test

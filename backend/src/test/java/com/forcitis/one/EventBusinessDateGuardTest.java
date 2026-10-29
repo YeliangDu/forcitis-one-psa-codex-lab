@@ -37,13 +37,13 @@ class EventBusinessDateGuardTest {
         return noClasses().that().resideInAPackage(packageIdentifier)
                 .should().dependOnClassesThat().haveFullyQualifiedName(Clock.class.getName())
                 .orShould().dependOnClassesThat().haveFullyQualifiedName(BusinessZone.class.getName())
-                .because("the day of a business fact is passed in by the use case that knows it");
+                .because(GuardMessage.of("CS-2.5 / CS-2.26", "a domain class depends on Clock or BusinessZone", "remove the Clock or BusinessZone from the domain class and pass the day in as an argument from the application use case that knows it"));
     }
 
     static ArchRule domainDoesNotCallNow(String packageIdentifier) {
         return noClasses().that().resideInAPackage(packageIdentifier)
                 .should().callMethodWhere(JAVA_TIME_NOW)
-                .because("a java.time now() in an aggregate would date an event with the moment it is recorded");
+                .because(GuardMessage.of("CS-2.5 / CS-2.26", "a domain class calls now() of a java.time class, which would date an event with the moment it is recorded", "take the instant or day as a parameter from the application layer, which reads the injected Clock"));
     }
 
     @Test

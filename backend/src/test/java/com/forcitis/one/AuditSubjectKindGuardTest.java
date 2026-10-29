@@ -48,9 +48,9 @@ class AuditSubjectKindGuardTest {
     void constantsAndSeedsAgree() throws IOException {
         Map<String, Seed> seeds = seeds();
 
-        assertThat(seeds.keySet()).containsExactlyInAnyOrderElementsOf(List.of(AuditSubjectKind.values()).stream().map(Enum::name).toList());
+        assertThat(seeds.keySet()).as(GuardMessage.of("ADR-0069 decision 14", "the seeded audit subject kinds and the AuditSubjectKind constants differ", "add the missing constant or seed row in the platform_audit migrations so each kind has both")).containsExactlyInAnyOrderElementsOf(List.of(AuditSubjectKind.values()).stream().map(Enum::name).toList());
         for (AuditSubjectKind kind : AuditSubjectKind.values()) {
-            assertThat(seeds.get(kind.name()).hasObject()).as(kind + " has_object").isEqualTo(kind.hasObject());
+            assertThat(seeds.get(kind.name()).hasObject()).as(GuardMessage.of("ADR-0069 decision 14", kind + " has a has_object in the seed that differs from the constant", "make the seed row and AuditSubjectKind." + kind + " agree")).isEqualTo(kind.hasObject());
         }
     }
 
@@ -58,17 +58,17 @@ class AuditSubjectKindGuardTest {
     @DisplayName("the kinds without an object are exactly the ones ck_audit_entries_subject_id lists (a new kind without an object must change that CHECK too)")
     void noObjectKindsMatchTheSubjectIdCheck() throws IOException {
         Matcher check = Pattern.compile("ck_audit_entries_subject_id CHECK \\(\\(subject_id IS NULL\\) = \\(subject_kind IN \\(([^)]*)\\)\\)\\)").matcher(Files.readString(MIGRATION));
-        assertThat(check.find()).as("ck_audit_entries_subject_id in the baseline").isTrue();
+        assertThat(check.find()).as(GuardMessage.of("ADR-0069 decision 14", "ck_audit_entries_subject_id is not found in the platform_audit baseline", "keep that CHECK in " + MIGRATION + " in the form the guard reads")).isTrue();
         Set<String> listed = java.util.Arrays.stream(check.group(1).split(",")).map(v -> v.strip().replace("'", "")).collect(Collectors.toSet());
         Set<String> registeredWithoutObject = seeds().entrySet().stream().filter(e -> !e.getValue().hasObject()).map(Map.Entry::getKey).collect(Collectors.toSet());
 
-        assertThat(registeredWithoutObject).isEqualTo(listed);
+        assertThat(registeredWithoutObject).as(GuardMessage.of("ADR-0069 decision 14", "the kinds without an object differ from the kinds ck_audit_entries_subject_id lists", "change the CHECK ck_audit_entries_subject_id in a new platform_audit migration together with the new kind")).isEqualTo(listed);
     }
 
     @Test
     @DisplayName("the baseline no longer lists the kinds in a CHECK on audit_entries")
     void noEnumeratedCheckOnTheEntries() throws IOException {
-        assertThat(Files.readString(MIGRATION)).doesNotContain("ck_audit_entries_subject_kind CHECK").contains("fk_audit_entries_subject_kind");
+        assertThat(Files.readString(MIGRATION)).as(GuardMessage.of("ADR-0069 decision 14", "the baseline lists the subject kinds in a CHECK on audit_entries", "register the kind by a seed row of the kind table and keep the foreign key fk_audit_entries_subject_kind instead of a CHECK")).doesNotContain("ck_audit_entries_subject_kind CHECK").contains("fk_audit_entries_subject_kind");
     }
 
     @Test
@@ -82,6 +82,8 @@ class AuditSubjectKindGuardTest {
                     .collect(Collectors.toSet());
         }
 
-        assertThat(seeds().entrySet().stream().filter(e -> !bcs.contains(e.getValue().owner())).map(e -> e.getKey() + " -> " + e.getValue().owner()).toList()).isEmpty();
+        assertThat(seeds().entrySet().stream().filter(e -> !bcs.contains(e.getValue().owner())).map(e -> e.getKey() + " -> " + e.getValue().owner()).toList())
+                .as(GuardMessage.of("ADR-0069 decision 14", "an audit subject kind is owned by something that is not a bc entry of glossary/bcs.yaml", "set the owner of the seed row to the id of a bc listed in docs/glossary/bcs.yaml"))
+                .isEmpty();
     }
 }
