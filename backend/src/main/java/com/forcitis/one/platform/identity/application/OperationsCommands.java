@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.EmployeeExistence;
 import com.forcitis.one.platform.audit.api.AuditPartitions;
@@ -14,7 +15,6 @@ import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Set;
-import java.util.UUID;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.stereotype.Component;
 
@@ -74,7 +74,7 @@ public class OperationsCommands {
             err.println("wrong usage: " + wrongUsage.getMessage());
             return 2;
         }
-        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
+        try (WorkContext.Scope scope = WorkContext.enter(Uuids.timeOrdered(clock), null, "platform.identity.operations")) {
             OperationAttestation attestation = attestation(arguments);
             EmployeeId employeeId = employeeId(arguments);
             requireUsage(operation, arguments);

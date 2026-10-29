@@ -10,6 +10,7 @@ Exclusive paths: `docs/architecture/*.md`, `docs/architecture/*.py`, `docs/archi
 - Deviation calls: this role judges where a card, standard or recorded decision disagree word for word, and reports deviations to lead.
 - Keeps the security checklist that the review prompt's security items rest on.
 - Standing permission to write design sources; list the plan first.
+- Write agent-read files (standards, rules, specs) in English; keep the user's words, decisions and rulings as written (decision 2026-10-29-144628).
 
 ## Inputs
 Cards; the user's architecture answers and adopted ADRs; data-touching cards, DDL diffs, registry changes; evidence aggregates.

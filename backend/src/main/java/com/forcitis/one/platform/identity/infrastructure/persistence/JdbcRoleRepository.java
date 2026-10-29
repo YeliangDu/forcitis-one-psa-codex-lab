@@ -63,17 +63,23 @@ class JdbcRoleRepository implements RoleRepository {
 
     @Override
     public Optional<Role> findById(RoleId roleId) {
-        return RoleRows.select(jdbc, "where r.role_id = :id", Map.of("id", roleId.value())).stream().findFirst();
+        return RoleRows.select(jdbc, """
+                where r.role_id = :id
+                """, Map.of("id", roleId.value())).stream().findFirst();
     }
 
     @Override
     public Optional<Role> findByCode(RoleCode code) {
-        return RoleRows.select(jdbc, "where lower(r.code) = lower(:code)", Map.of("code", code.value())).stream().findFirst();
+        return RoleRows.select(jdbc, """
+                where lower(r.code) = lower(:code)
+                """, Map.of("code", code.value())).stream().findFirst();
     }
 
     @Override
     public List<Role> findAll() {
-        return RoleRows.select(jdbc, "order by r.code", Map.of());
+        return RoleRows.select(jdbc, """
+                order by r.code
+                """, Map.of());
     }
 
     @Override
@@ -130,12 +136,16 @@ class JdbcRoleRepository implements RoleRepository {
     public void delete(Role role, UserId deletedBy, String reason) {
         Instant now = clock.instant();
         CurrentVersion current = lockCurrent(role);
-        boolean held = jdbc.sql("select exists (select 1 from platform_identity.account_roles where role_id = :id)")
+        boolean held = jdbc.sql("""
+                select exists (select 1 from platform_identity.account_roles where role_id = :id)
+                """)
                 .param("id", role.roleId().value()).query(Boolean.class).single();
         if (held) {
             throw IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE.refusal("role " + role.roleId().value() + " is still held by accounts");
         }
-        Instant to = jdbc.sql("select greatest(:now, effective_from_at) from platform_identity.role_versions where role_version_id = :version")
+        Instant to = jdbc.sql("""
+                select greatest(:now, effective_from_at) from platform_identity.role_versions where role_version_id = :version
+                """)
                 .param("now", at(now)).param("version", current.id().value())
                 .query((rs, n) -> rs.getObject(1, OffsetDateTime.class).toInstant()).single();
         AuditEntryId entry = audit.closed(role.roleId(), current.id(), current.number(), deletedBy, to, now);
@@ -194,7 +204,9 @@ class JdbcRoleRepository implements RoleRepository {
         Optional<CurrentVersion> current = currentVersion(declared.roleId());
         Instant from = nextStart(declared.roleId(), now);
         current.ifPresent(version -> updateToReplace(version.id(), from));
-        int number = jdbc.sql("select coalesce(max(version_number), 0) + 1 from platform_identity.role_versions where role_id = :id")
+        int number = jdbc.sql("""
+                select coalesce(max(version_number), 0) + 1 from platform_identity.role_versions where role_id = :id
+                """)
                 .param("id", declared.roleId().value()).query(Integer.class).single();
         insertVersion(declared.roleId(), number, from, now, declared.definition(), RoleChange.seed(declared.revisionNumber()),
                 current.map(version -> version.definition().customOrgUnits()).orElse(Set.of()));
@@ -224,7 +236,9 @@ class JdbcRoleRepository implements RoleRepository {
             return new DeclarationResult(DeclarationOutcome.CONFLICTING, null);
         }
         Optional<CurrentVersion> current = currentVersion(declared.roleId());
-        int stored = jdbc.sql("select coalesce(max(declaration_revision_number), 0) from platform_identity.role_versions where role_id = :id")
+        int stored = jdbc.sql("""
+                select coalesce(max(declaration_revision_number), 0) from platform_identity.role_versions where role_id = :id
+                """)
                 .param("id", declared.roleId().value()).query(Integer.class).single();
         Integer highest = stored == 0 ? null : stored;
         DeclarationOutcome outcome = declared.outcome(current.map(CurrentVersion::definition).orElse(null),
@@ -233,7 +247,9 @@ class JdbcRoleRepository implements RoleRepository {
     }
 
     private Optional<Identity> identity(RoleId roleId, boolean locked) {
-        return jdbc.sql("select code, kind, is_administrative, version from platform_identity.roles where role_id = :id" + (locked ? " for update" : ""))
+        return jdbc.sql("""
+                select code, kind, is_administrative, version from platform_identity.roles where role_id = :id
+                """ + (locked ? " for update" : ""))
                 .param("id", roleId.value())
                 .query((rs, n) -> new Identity(rs.getString("code"), rs.getString("kind"), rs.getBoolean("is_administrative"), rs.getLong("version")))
                 .optional();
@@ -241,7 +257,9 @@ class JdbcRoleRepository implements RoleRepository {
 
     /** Locks the roles row and returns the current version; a role changed or deleted since it was loaded is a conflict. */
     private CurrentVersion lockCurrent(Role role) {
-        Optional<Long> locked = jdbc.sql("select version from platform_identity.roles where role_id = :id for update")
+        Optional<Long> locked = jdbc.sql("""
+                select version from platform_identity.roles where role_id = :id for update
+                """)
                 .param("id", role.roleId().value()).query(Long.class).optional();
         if (locked.isEmpty() || locked.get() != role.version()) {
             throw staleRole(role);
@@ -327,7 +345,9 @@ class JdbcRoleRepository implements RoleRepository {
     }
 
     private boolean codeTaken(RoleCode code) {
-        return jdbc.sql("select exists (select 1 from platform_identity.roles where lower(code) = lower(:code))")
+        return jdbc.sql("""
+                select exists (select 1 from platform_identity.roles where lower(code) = lower(:code))
+                """)
                 .param("code", code.value()).query(Boolean.class).single();
     }
 
