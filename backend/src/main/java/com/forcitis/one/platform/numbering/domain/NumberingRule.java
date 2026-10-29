@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The template of one document type, kept as saved versions (ADR-0027 section 2). A version is never edited: changing the template
@@ -220,7 +221,7 @@ public final class NumberingRule extends AggregateRoot {
         return draft(eventName, version, null);
     }
 
-    private EventDraft draft(String eventName, long version, LocalDate businessDate) {
+    private EventDraft draft(String eventName, long version, @Nullable LocalDate businessDate) {
         return new EventDraft("platform.numbering." + eventName, 1, "NumberingRule", numberingRuleId.value(), version, null, businessDate, List.of());
     }
 }

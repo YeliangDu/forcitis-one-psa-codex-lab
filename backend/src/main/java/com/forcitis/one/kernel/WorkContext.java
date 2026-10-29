@@ -2,6 +2,7 @@ package com.forcitis.one.kernel;
 
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.MDC;
 
 /**
@@ -14,7 +15,7 @@ public final class WorkContext {
 
     private static final ThreadLocal<Frame> FRAME = ThreadLocal.withInitial(() -> new Frame(null, null));
 
-    private record Frame(UUID causationId, String systemActor) {
+    private record Frame(@Nullable UUID causationId, @Nullable String systemActor) {
     }
 
     private WorkContext() {
@@ -41,7 +42,7 @@ public final class WorkContext {
     }
 
     /** Starts a unit of work (a request, a job run, a handled event); close restores the previous one. */
-    public static Scope enter(UUID correlationId, UUID causationId, String systemActor) {
+    public static Scope enter(UUID correlationId, @Nullable UUID causationId, @Nullable String systemActor) {
         String previousCorrelation = MDC.get(MDC_KEY);
         Frame previous = FRAME.get();
         MDC.put(MDC_KEY, correlationId.toString());

@@ -1,9 +1,10 @@
 package com.forcitis.one.kernel;
 
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 @ValueObject
-public record ProjectCoordinate(ProjectId project, WbsNodeId wbsNode) {
+public record ProjectCoordinate(ProjectId project, @Nullable WbsNodeId wbsNode) {
     public ProjectCoordinate {
         Objects.requireNonNull(project, "project");
     }

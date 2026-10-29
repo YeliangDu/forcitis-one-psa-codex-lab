@@ -7,6 +7,7 @@ import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceGender;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.SourceRegionKind;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The source's enums become the workforce model's own; the ids come already translated into own ids by platform.integration and only
@@ -16,15 +17,15 @@ public final class SourceTerms {
     private SourceTerms() {
     }
 
-    public static OrgUnitId unit(OwnObjectId id) {
+    public static @Nullable OrgUnitId unit(@Nullable OwnObjectId id) {
         return id == null ? null : new OrgUnitId(id.value());
     }
 
-    public static EmployeeId person(OwnObjectId id) {
+    public static @Nullable EmployeeId person(@Nullable OwnObjectId id) {
         return id == null ? null : new EmployeeId(id.value());
     }
 
-    public static PositionId position(OwnObjectId id) {
+    public static @Nullable PositionId position(@Nullable OwnObjectId id) {
         return id == null ? null : new PositionId(id.value());
     }
 
@@ -40,7 +41,7 @@ public final class SourceTerms {
         };
     }
 
-    public static RegionCategory region(SourceRegionKind kind) {
+    public static @Nullable RegionCategory region(@Nullable SourceRegionKind kind) {
         if (kind == null) {
             return null;
         }
@@ -50,7 +51,7 @@ public final class SourceTerms {
         };
     }
 
-    public static Gender gender(SourceGender gender) {
+    public static @Nullable Gender gender(@Nullable SourceGender gender) {
         if (gender == null) {
             return null;
         }

@@ -1,6 +1,7 @@
 package com.forcitis.one.kernel;
 
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 @ValueObject
 public record Reason(String value) {
@@ -12,7 +13,7 @@ public record Reason(String value) {
         }
     }
 
-    public static Reason ofNullable(String text) {
+    public static @Nullable Reason ofNullable(@Nullable String text) {
         return text == null || text.isBlank() ? null : new Reason(text);
     }
 }

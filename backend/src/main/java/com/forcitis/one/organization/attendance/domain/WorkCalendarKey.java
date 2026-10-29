@@ -5,10 +5,11 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.ValueObject;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
+import org.jspecify.annotations.Nullable;
 
 /** legalEntityId is null for the default calendar that every legal entity without its own calendar follows. */
 @ValueObject
-public record WorkCalendarKey(LegalEntityId legalEntityId, int calendarYear) {
+public record WorkCalendarKey(@Nullable LegalEntityId legalEntityId, int calendarYear) {
     public static final int FIRST_YEAR = 2000;
     public static final int LAST_YEAR = 2100;
 

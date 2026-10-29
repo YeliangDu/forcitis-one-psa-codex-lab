@@ -13,6 +13,7 @@ import com.forcitis.one.platform.identity.events.EmergencyAdminRegistered;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A break-glass login bound to the person who holds super_admin (ADR-0027 section 1). The failure counter, the lock and the
@@ -31,14 +32,14 @@ public final class EmergencyAdmin extends AggregateRoot {
     private final boolean stored;
     private final long lastTotpStep;
     private final int failedAttempts;
-    private final Instant lockedUntil;
+    private final @Nullable Instant lockedUntil;
     private String passwordHash;
     private String totpSecretEncrypted;
     private EmergencyAdminStatus status;
     private boolean credentialsChanged;
 
     private EmergencyAdmin(UserId userId, String loginName, String passwordHash, String totpSecretEncrypted, long lastTotpStep,
-                           int failedAttempts, Instant lockedUntil, EmergencyAdminStatus status, boolean stored, long version,
+                           int failedAttempts, @Nullable Instant lockedUntil, EmergencyAdminStatus status, boolean stored, long version,
                            long eventSequence) {
         super(version, eventSequence);
         this.userId = Objects.requireNonNull(userId, "userId");
@@ -62,7 +63,7 @@ public final class EmergencyAdmin extends AggregateRoot {
     }
 
     public static EmergencyAdmin restore(UserId userId, String loginName, String passwordHash, String totpSecretEncrypted,
-                                         long lastTotpStep, int failedAttempts, Instant lockedUntil, boolean enabled, long version,
+                                         long lastTotpStep, int failedAttempts, @Nullable Instant lockedUntil, boolean enabled, long version,
                                          long eventSequence) {
         return new EmergencyAdmin(userId, loginName, passwordHash, totpSecretEncrypted, lastTotpStep, failedAttempts, lockedUntil,
                 enabled ? EmergencyAdminStatus.ENABLED : EmergencyAdminStatus.DISABLED, true, version, eventSequence);
@@ -92,7 +93,7 @@ public final class EmergencyAdmin extends AggregateRoot {
         return failedAttempts;
     }
 
-    public Instant lockedUntil() {
+    public @Nullable Instant lockedUntil() {
         return lockedUntil;
     }
 

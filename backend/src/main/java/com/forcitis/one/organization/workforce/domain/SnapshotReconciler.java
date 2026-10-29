@@ -21,10 +21,12 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 
 /** Pure: no I/O, no clock; the same function builds the expected state for reconciliation against the source. */
 public final class SnapshotReconciler {
@@ -50,7 +52,7 @@ public final class SnapshotReconciler {
         Map<PositionId, Position> before = current.positionsById();
         Map<PositionId, Position> wanted = new LinkedHashMap<>();
         for (SourcePosition p : source.positions()) {
-            PositionId id = SourceTerms.position(p.positionId());
+            PositionId id = Objects.requireNonNull(SourceTerms.position(p.positionId()), "SourcePosition requires positionId");
             wanted.putIfAbsent(id, new Position(id, p.code(), p.name(), p.sortOrder(), SourceTerms.positionStatus(p.state())));
         }
         List<Position> changed = new ArrayList<>();
@@ -92,14 +94,14 @@ public final class SnapshotReconciler {
         Map<EmployeeId, SourcePerson> valid = new LinkedHashMap<>();
         int incomingEmployed = 0;
         for (SourcePerson person : source.staff()) {
-            EmployeeId employeeId = SourceTerms.person(person.personId());
+            @Nullable EmployeeId employeeId = SourceTerms.person(person.personId());
             if (!seen.add(employeeId)) {
-                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + employeeId.value(), IssueKind.DUPLICATE_EMPLOYEE,
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + Objects.requireNonNull(employeeId, "SourcePerson requires personId").value(), IssueKind.DUPLICATE_EMPLOYEE,
                         "the source returned this person more than once; the first row is used"));
                 continue;
             }
             if (person.internalFlagMissing()) {
-                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + employeeId.value(), IssueKind.NULL_FLAG,
+                diffs.add(SyncDiff.issue(EntityKind.EMPLOYEE, "employee:" + Objects.requireNonNull(employeeId, "SourcePerson requires personId").value(), IssueKind.NULL_FLAG,
                         "the internal flag is NULL in the source; the person is treated as internal"));
             }
             if (EmployeeChecks.employmentOf(person) == EmploymentStatus.EMPLOYED) {
@@ -129,7 +131,7 @@ public final class SnapshotReconciler {
                 claimed.put(id, SourceTerms.person(m.supervisorId()));
             }
         });
-        Function<EmployeeId, EmployeeId> storedSupervisor = id -> {
+        Function<EmployeeId, @Nullable EmployeeId> storedSupervisor = id -> {
             StaffEmployee s = currentStaff.get(id);
             return s == null ? null : s.assignment().reportsToEmployeeId();
         };
@@ -151,7 +153,7 @@ public final class SnapshotReconciler {
             boolean employed = employee.employmentStatus() == EmploymentStatus.EMPLOYED;
             EmployeeId supervisor = SourceTerms.person(m.supervisorId());
             EmployeeId leader = employed ? acceptedSupervisors.get(id) : (id.equals(supervisor) ? null : supervisor);
-            StaffEmployee desired = new StaffEmployee(employee, new Assignment(id, SourceTerms.unit(m.unitId()),
+            StaffEmployee desired = new StaffEmployee(employee, new Assignment(id, Objects.requireNonNull(SourceTerms.unit(m.unitId()), "SourcePerson requires unitId"),
                     SourceTerms.position(m.positionId()), leader));
             StaffEmployee before = currentStaff.get(id);
             String subject = "employee:" + id.value();
@@ -245,7 +247,7 @@ public final class SnapshotReconciler {
         Set<EmployeeId> keep = new HashSet<>();
         valid.forEach((id, m) -> {
             boolean unique = m.wecomUserId() == null || EmployeeChecks.employmentOf(m) != EmploymentStatus.EMPLOYED
-                    || employedHolders.get(m.wecomUserId()) <= 1;
+                    || Objects.requireNonNull(employedHolders.get(m.wecomUserId()), "every employed holder was counted above") <= 1;
             if (unique) {
                 keep.add(id);
             } else {
@@ -279,10 +281,10 @@ public final class SnapshotReconciler {
         sorted.forEach(u -> knownUnits.add(SourceTerms.unit(u.unitId())));
         List<OrgUnit> changed = new ArrayList<>();
         for (SourceOrgUnit unit : sorted) {
-            OrgUnitId unitId = SourceTerms.unit(unit.unitId());
+            OrgUnitId unitId = Objects.requireNonNull(SourceTerms.unit(unit.unitId()), "SourceOrgUnit requires unitId");
             sourceIds.add(unitId);
             String subject = "org-unit:" + unitId.value();
-            OrgUnitId parent = SourceTerms.unit(unit.parentUnitId());
+            @Nullable OrgUnitId parent = SourceTerms.unit(unit.parentUnitId());
             if (parent != null && !knownUnits.contains(parent)) {
                 diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, subject, IssueKind.PARENT_NOT_FOUND,
                         "parent org unit " + parent.value() + " is neither in the snapshot nor stored; stored empty"));
@@ -348,7 +350,7 @@ public final class SnapshotReconciler {
         return depth;
     }
 
-    private static EmployeeId known(EmployeeId person, Map<EmployeeId, EmploymentStatus> statusAfter, String subject,
+    private static @Nullable EmployeeId known(@Nullable EmployeeId person, Map<EmployeeId, EmploymentStatus> statusAfter, String subject,
                                 IssueKind issue, String role, List<SyncDiff> diffs) {
         if (person != null && !statusAfter.containsKey(person)) {
             diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, subject, issue, role + " " + person.value() + " is not in the snapshot; stored empty"));

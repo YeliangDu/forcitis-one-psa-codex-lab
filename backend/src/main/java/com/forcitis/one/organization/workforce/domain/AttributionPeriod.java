@@ -3,9 +3,10 @@ package com.forcitis.one.organization.workforce.domain;
 import com.forcitis.one.kernel.LegalEntityId;
 import java.time.LocalDate;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /** From the day it starts up to, not including, the day it ends; open while effectiveTo is null. */
-public record AttributionPeriod(LegalEntityId legalEntityId, LocalDate effectiveFrom, LocalDate effectiveTo) {
+public record AttributionPeriod(LegalEntityId legalEntityId, LocalDate effectiveFrom, @Nullable LocalDate effectiveTo) {
     public AttributionPeriod {
         Objects.requireNonNull(legalEntityId, "legalEntityId");
         Objects.requireNonNull(effectiveFrom, "effectiveFrom");

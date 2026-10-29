@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 
 /** Only IP literals are parsed, never a host name, so a check can never trigger a DNS lookup. */
 public final class NetworkAllowList {
@@ -25,10 +26,10 @@ public final class NetworkAllowList {
         return new NetworkAllowList(cidrs.stream().map(String::trim).filter(s -> !s.isEmpty()).map(NetworkAllowList::range).toList());
     }
 
-    public boolean allows(String address) {
+    public boolean allows(@Nullable String address) {
         BigInteger value;
         int bits;
-        byte[] raw = literal(address);
+        byte @Nullable [] raw = literal(address);
         if (raw == null) {
             return false;
         }
@@ -49,7 +50,7 @@ public final class NetworkAllowList {
 
     private static Range range(String cidr) {
         String[] parts = cidr.split("/", 2);
-        byte[] raw = literal(parts[0]);
+        byte @Nullable [] raw = literal(parts[0]);
         if (raw == null) {
             throw new IllegalArgumentException("not an IP address: " + cidr);
         }
@@ -62,7 +63,7 @@ public final class NetworkAllowList {
     }
 
     /** IPv4-mapped IPv6 addresses are returned as IPv4. */
-    private static byte[] literal(String text) {
+    private static byte @Nullable [] literal(@Nullable String text) {
         if (text == null) {
             return null;
         }

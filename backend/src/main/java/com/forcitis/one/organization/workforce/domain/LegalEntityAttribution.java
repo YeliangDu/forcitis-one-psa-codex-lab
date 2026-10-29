@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.forcitis.one.organization.workforce.api.AttributionSubjectId;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Which legal entity a department or an employee belongs to, period by period. Periods never overlap; history is only closed,
@@ -148,16 +149,16 @@ public final class LegalEntityAttribution extends AggregateRoot {
                         "ending on " + newEffectiveTo + " would run into the period that starts on " + other.effectiveFrom());
             }
         }
-        LocalDate previous = period.effectiveTo();
+        @Nullable LocalDate previous = period.effectiveTo();
         List<AttributionPeriod> next = new ArrayList<>(periods);
         next.set(next.indexOf(period), period.closedOn(newEffectiveTo));
         this.periods = List.copyOf(next);
-        pendingCorrections.add(new AttributionCorrection(periodFrom, previous, newEffectiveTo, reason, correctedBy));
+        pendingCorrections.add(new AttributionCorrection(periodFrom, Objects.requireNonNull(previous, "a corrected period is closed"), newEffectiveTo, reason, correctedBy));
         record((envelopes, sequence) -> new LegalEntityAttributionCorrected(envelopes.wrap(draft("LegalEntityAttributionCorrected", sequence,
                 period.legalEntityId(), newEffectiveTo)), subject.kind(), new AttributionSubjectId(subject.subjectId()), period.legalEntityId(), periodFrom, previous, newEffectiveTo, reason));
     }
 
-    private EventDraft draft(String eventName, long sequence, LegalEntityId legalEntityId, LocalDate businessDate) {
+    private EventDraft draft(String eventName, long sequence, LegalEntityId legalEntityId, @Nullable LocalDate businessDate) {
         return new EventDraft("organization.workforce." + eventName, 1, "LegalEntityAttribution",
                 id.value(), sequence, legalEntityId, businessDate, List.of());
     }

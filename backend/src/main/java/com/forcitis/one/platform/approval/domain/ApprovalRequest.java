@@ -49,6 +49,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One request per (process type, document). Each round has its own engine instance, and the tasks of the round belong to the
@@ -82,13 +83,13 @@ public final class ApprovalRequest extends AggregateRoot {
     private int round;
     private ApprovalInstanceId instanceId;
     private ApprovalStatus status;
-    private Reason resultReason;
+    private @Nullable Reason resultReason;
     private ApprovalSummary summary;
-    private UUID trigger;
+    private @Nullable UUID trigger;
 
     private ApprovalRequest(ApprovalRequestId id, IdGenerator ids, ProcessKey processKey, DocumentReference document, LegalEntityId legalEntityId,
-            EmployeeId initiator, int round, ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason, ApprovalSummary summary,
-            List<ApprovalTask> tasks, UUID trigger, long version, long eventSequence, boolean isNew) {
+            EmployeeId initiator, int round, ApprovalInstanceId instanceId, ApprovalStatus status, @Nullable Reason resultReason, ApprovalSummary summary,
+            List<ApprovalTask> tasks, @Nullable UUID trigger, long version, long eventSequence, boolean isNew) {
         super(version, eventSequence);
         this.id = Objects.requireNonNull(id, "id");
         this.ids = Objects.requireNonNull(ids, "ids");
@@ -117,7 +118,7 @@ public final class ApprovalRequest extends AggregateRoot {
     }
 
     public static ApprovalRequest restore(ApprovalRequestId id, IdGenerator ids, ProcessKey processKey, DocumentReference document,
-            LegalEntityId legalEntityId, EmployeeId initiator, int round, ApprovalInstanceId instanceId, ApprovalStatus status, Reason resultReason,
+            LegalEntityId legalEntityId, EmployeeId initiator, int round, ApprovalInstanceId instanceId, ApprovalStatus status, @Nullable Reason resultReason,
             ApprovalSummary summary, List<ApprovalTask> tasks, long version, long eventSequence) {
         return new ApprovalRequest(id, ids, processKey, document, legalEntityId, initiator, round, instanceId, status, resultReason, summary, tasks,
                 null, version, eventSequence, false);
@@ -196,7 +197,7 @@ public final class ApprovalRequest extends AggregateRoot {
     public void reassignTask(ApprovalTaskId taskId, UserId by, UserId to, Reason reason, Moment now) {
         requireReason(reason, "A reassignment");
         ApprovalTask task = task(taskId);
-        UserId previous = task.assignee().orElse(null);
+        @Nullable UserId previous = task.assignee().orElse(null);
         task.reassign(to, now.at());
         note(task, TaskRecordAction.REASSIGNED, by, previous, to, reason, now);
         ApprovalInstanceId instance = task.instanceId();
@@ -204,8 +205,8 @@ public final class ApprovalRequest extends AggregateRoot {
         emit("TaskReassigned", now, envelope -> new TaskReassigned(envelope, taskId, instance, document, node, previous, to, reason));
     }
 
-    public void completeTask(ApprovalTaskId taskId, UserId by, TaskOutcome outcome, boolean advisory, Reason reason,
-            ContentHash digest, Moment now) {
+    public void completeTask(ApprovalTaskId taskId, UserId by, TaskOutcome outcome, boolean advisory, @Nullable Reason reason,
+            @Nullable ContentHash digest, Moment now) {
         if (outcome != TaskOutcome.APPROVED) {
             requireReason(reason, "A rejection or a return");
         }
@@ -275,7 +276,7 @@ public final class ApprovalRequest extends AggregateRoot {
         end(ApprovalStatus.CANCELLED, ApprovalOutcome.CANCELLED, reason, null, now);
     }
 
-    private void requireWithdrawable(EmployeeId actor, boolean cutoffPassed, Reason reason) {
+    private void requireWithdrawable(EmployeeId actor, boolean cutoffPassed, @Nullable Reason reason) {
         switch (checkWithdraw(actor, cutoffPassed)) {
             case NOT_INITIATOR -> throw ApprovalError.PLATFORM_APPROVAL_NOT_INITIATOR.refusal("Only the initiator may withdraw or cancel");
             case CUTOFF_PASSED -> throw ApprovalError.PLATFORM_APPROVAL_CUTOFF_PASSED.refusal("A cut-off node has already finished a task");
@@ -287,7 +288,7 @@ public final class ApprovalRequest extends AggregateRoot {
         requireReason(reason, "A withdrawal or cancellation");
     }
 
-    private void end(ApprovalStatus target, ApprovalOutcome outcome, Reason reason, ReturnSource source, Moment now) {
+    private void end(ApprovalStatus target, ApprovalOutcome outcome, @Nullable Reason reason, @Nullable ReturnSource source, Moment now) {
         if (target != ApprovalStatus.APPROVED) {
             requireReason(reason, "A rejection, a return or a cancellation");
         }
@@ -310,7 +311,7 @@ public final class ApprovalRequest extends AggregateRoot {
         emit("TaskClosed", now, envelope -> new TaskClosed(envelope, id, instance, document, node));
     }
 
-    private void note(ApprovalTask task, TaskRecordAction action, UserId actor, UserId onBehalfOf, UserId assignee, Reason reason, Moment now) {
+    private void note(ApprovalTask task, TaskRecordAction action, UserId actor, @Nullable UserId onBehalfOf, @Nullable UserId assignee, @Nullable Reason reason, Moment now) {
         handlings.add(new TaskHandling(new TaskRecordId(ids.next()), processKey, document, round, task.taskId(),
                 task.instanceId(), task.nodeKey(), task.nodeName(), action, actor, Optional.ofNullable(onBehalfOf), Optional.ofNullable(assignee),
                 Optional.ofNullable(reason), now.at()));
@@ -324,7 +325,7 @@ public final class ApprovalRequest extends AggregateRoot {
     }
 
     private void emitResult(ApprovalTaskId taskId, ApprovalInstanceId instance, NodeKey node, UserId by, TaskOutcome outcome,
-            TaskEffect effect, Reason reason, Moment now) {
+            TaskEffect effect, @Nullable Reason reason, Moment now) {
         emit("TaskHandled", now, envelope -> new TaskHandled(envelope, taskId, instance, processKey, document, node, by, outcome,
                 effect, reason));
     }
@@ -344,7 +345,7 @@ public final class ApprovalRequest extends AggregateRoot {
         }
     }
 
-    private static void requireReason(Reason reason, String what) {
+    private static void requireReason(@Nullable Reason reason, String what) {
         if (reason == null) {
             throw KernelError.KERNEL_REASON_REQUIRED.refusal(what + " needs a reason");
         }

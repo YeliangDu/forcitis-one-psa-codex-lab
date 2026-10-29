@@ -4,10 +4,11 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /** Empty loginName means separated; no birthday (sensitive, not in the view). */
-public record Employee(EmployeeId employeeId, String employeeCode, String displayName, String loginName, String email,
-                       Gender gender, WecomUserId wecomUserId, EmploymentStatus employmentStatus, boolean feeEarner) {
+public record Employee(EmployeeId employeeId, String employeeCode, String displayName, @Nullable String loginName, @Nullable String email,
+                       @Nullable Gender gender, @Nullable WecomUserId wecomUserId, EmploymentStatus employmentStatus, boolean feeEarner) {
     public Employee {
         Objects.requireNonNull(employeeId, "employeeId");
         Objects.requireNonNull(employeeCode, "employeeCode");

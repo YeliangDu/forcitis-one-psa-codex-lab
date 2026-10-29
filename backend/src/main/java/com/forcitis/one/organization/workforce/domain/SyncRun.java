@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One run of the org snapshot sync. RUNNING ends as SUCCEEDED, HELD (shrink guard) or FAILED; a HELD run is refreshed by a later
@@ -37,25 +38,25 @@ public final class SyncRun extends AggregateRoot {
             .allow(SyncRunStatus.HELD, SyncRunStatus.HELD, SyncRunStatus.RELEASED)
             .build();
 
-    private final SyncRunId syncRunId;
+    private final @Nullable SyncRunId syncRunId;
     private final SyncTrigger trigger;
     private final Instant startedAt;
     private final SyncRunStatus loadedStatus;
     private SyncRunStatus status;
-    private Instant finishedAt;
-    private RunStats stats;
-    private String heldReason;
-    private String failureReason;
-    private UserId releasedBy;
-    private Instant releasedAt;
-    private SyncRunId releasedByRunId;
+    private @Nullable Instant finishedAt;
+    private @Nullable RunStats stats;
+    private @Nullable String heldReason;
+    private @Nullable String failureReason;
+    private @Nullable UserId releasedBy;
+    private @Nullable Instant releasedAt;
+    private @Nullable SyncRunId releasedByRunId;
     private Set<HoldKind> holdKinds;
     private Set<HoldKind> releasedKinds;
     private List<EmployeeId> heldSeparations;
 
-    private SyncRun(SyncRunId syncRunId, SyncTrigger trigger, SyncRunStatus status, Instant startedAt, Instant finishedAt,
-                    RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
-                    SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds, List<EmployeeId> heldSeparations, long version,
+    private SyncRun(@Nullable SyncRunId syncRunId, SyncTrigger trigger, SyncRunStatus status, Instant startedAt, @Nullable Instant finishedAt,
+                    @Nullable RunStats stats, @Nullable String heldReason, @Nullable String failureReason, @Nullable UserId releasedBy, @Nullable Instant releasedAt,
+                    @Nullable SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds, List<EmployeeId> heldSeparations, long version,
                     long eventSequence) {
         super(version, eventSequence);
         this.holdKinds = Set.copyOf(holdKinds);
@@ -86,16 +87,16 @@ public final class SyncRun extends AggregateRoot {
     }
 
     /** Rebuilds a stored run; status is the stored name. */
-    public static SyncRun restore(SyncRunId syncRunId, SyncTrigger trigger, String status, Instant startedAt, Instant finishedAt,
-                                  RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
-                                  SyncRunId releasedByRunId, long version, long eventSequence) {
+    public static SyncRun restore(@Nullable SyncRunId syncRunId, SyncTrigger trigger, String status, Instant startedAt, @Nullable Instant finishedAt,
+                                  @Nullable RunStats stats, @Nullable String heldReason, @Nullable String failureReason, @Nullable UserId releasedBy, @Nullable Instant releasedAt,
+                                  @Nullable SyncRunId releasedByRunId, long version, long eventSequence) {
         return restore(syncRunId, trigger, status, startedAt, finishedAt, stats, heldReason, failureReason, releasedBy, releasedAt,
                 releasedByRunId, heldReason == null ? Set.of() : Set.of(HoldKind.SHRINK_GUARD), Set.of(), List.of(), version, eventSequence);
     }
 
-    public static SyncRun restore(SyncRunId syncRunId, SyncTrigger trigger, String status, Instant startedAt, Instant finishedAt,
-                                  RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
-                                  SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds,
+    public static SyncRun restore(@Nullable SyncRunId syncRunId, SyncTrigger trigger, String status, Instant startedAt, @Nullable Instant finishedAt,
+                                  @Nullable RunStats stats, @Nullable String heldReason, @Nullable String failureReason, @Nullable UserId releasedBy, @Nullable Instant releasedAt,
+                                  @Nullable SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds,
                                   List<EmployeeId> heldSeparations, long version, long eventSequence) {
         return new SyncRun(syncRunId, trigger, SyncRunStatus.valueOf(status), startedAt, finishedAt, stats, heldReason,
                 failureReason, releasedBy, releasedAt, releasedByRunId, holdKinds, releasedKinds, heldSeparations, version, eventSequence);
@@ -117,7 +118,7 @@ public final class SyncRun extends AggregateRoot {
         return releasedKinds.containsAll(holdKinds);
     }
 
-    public SyncRunId syncRunId() {
+    public @Nullable SyncRunId syncRunId() {
         return syncRunId;
     }
 
@@ -137,31 +138,31 @@ public final class SyncRun extends AggregateRoot {
         return startedAt;
     }
 
-    public Instant finishedAt() {
+    public @Nullable Instant finishedAt() {
         return finishedAt;
     }
 
-    public RunStats stats() {
+    public @Nullable RunStats stats() {
         return stats;
     }
 
-    public String heldReason() {
+    public @Nullable String heldReason() {
         return heldReason;
     }
 
-    public String failureReason() {
+    public @Nullable String failureReason() {
         return failureReason;
     }
 
-    public UserId releasedBy() {
+    public @Nullable UserId releasedBy() {
         return releasedBy;
     }
 
-    public Instant releasedAt() {
+    public @Nullable Instant releasedAt() {
         return releasedAt;
     }
 
-    public SyncRunId releasedByRunId() {
+    public @Nullable SyncRunId releasedByRunId() {
         return releasedByRunId;
     }
 
@@ -203,7 +204,7 @@ public final class SyncRun extends AggregateRoot {
     public void releaseKind(HoldKind kind, UserId by) {
         if (status != SyncRunStatus.HELD || !holdKinds.contains(kind) || releasedKinds.contains(kind)) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL, ErrorKind.CONFLICT,
-                    "the hold " + kind + " of run " + syncRunId.value() + " is not waiting to be lifted");
+                    "the hold " + kind + " of run " + Objects.requireNonNull(syncRunId, "syncRunId is null until the repository assigns it with withId").value() + " is not waiting to be lifted");
         }
         Set<HoldKind> lifted = new HashSet<>(releasedKinds);
         lifted.add(kind);
@@ -223,7 +224,7 @@ public final class SyncRun extends AggregateRoot {
     }
 
     /** releasedBy is null when the next successful run supersedes the hold. */
-    public void release(UserId by, SyncRunId byRun, Instant now, Reason reason) {
+    public void release(@Nullable UserId by, SyncRunId byRun, Instant now, Reason reason) {
         move(SyncRunStatus.RELEASED);
         this.releasedBy = by;
         this.releasedAt = now;
@@ -236,16 +237,16 @@ public final class SyncRun extends AggregateRoot {
     }
 
     /** A successful run applies the snapshot in the same transaction (ApplySourceSnapshot, registered in multi-aggregate-exceptions.txt); its events say so. */
-    private EventDraft draftWithSnapshot(String eventName, long version, LocalDate businessDate) {
-        return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, syncRunId.value(), version, null, businessDate, List.of(new AggregateReference("OrgSnapshot", syncRunId.value())));
+    private EventDraft draftWithSnapshot(String eventName, long version, @Nullable LocalDate businessDate) {
+        return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, Objects.requireNonNull(syncRunId, "syncRunId is null until the repository assigns it with withId").value(), version, null, businessDate, List.of(new AggregateReference("OrgSnapshot", Objects.requireNonNull(syncRunId, "syncRunId is null until the repository assigns it with withId").value())));
     }
 
     private EventDraft draft(String eventName, long version) {
         return draft(eventName, version, null);
     }
 
-    private EventDraft draft(String eventName, long version, LocalDate businessDate) {
-        return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, syncRunId.value(), version, null,
+    private EventDraft draft(String eventName, long version, @Nullable LocalDate businessDate) {
+        return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, Objects.requireNonNull(syncRunId, "syncRunId is null until the repository assigns it with withId").value(), version, null,
                 businessDate, List.of());
     }
 }

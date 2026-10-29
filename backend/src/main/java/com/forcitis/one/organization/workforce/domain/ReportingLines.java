@@ -8,8 +8,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import org.jspecify.annotations.Nullable;
 
 /** Invalid leaders are not written and are reported; the chain must not loop. */
 final class ReportingLines {
@@ -17,7 +19,7 @@ final class ReportingLines {
     }
 
     static Map<EmployeeId, EmployeeId> accept(Map<EmployeeId, EmployeeId> claimed, Map<EmployeeId, EmploymentStatus> statusOf,
-                                      Function<EmployeeId, EmployeeId> storedSupervisor, List<SyncDiff> diffs) {
+                                      Function<EmployeeId, @Nullable EmployeeId> storedSupervisor, List<SyncDiff> diffs) {
         Map<EmployeeId, EmployeeId> candidates = new LinkedHashMap<>();
         claimed.forEach((person, leader) -> {
             String subject = "employee:" + person.value();
@@ -45,8 +47,8 @@ final class ReportingLines {
     }
 
     private static Set<EmployeeId> findCycles(Map<EmployeeId, EmployeeId> candidates, Set<EmployeeId> claimedPeople,
-                                          Function<EmployeeId, EmployeeId> storedSupervisor) {
-        Function<EmployeeId, EmployeeId> next = person -> {
+                                          Function<EmployeeId, @Nullable EmployeeId> storedSupervisor) {
+        Function<EmployeeId, @Nullable EmployeeId> next = person -> {
             if (candidates.containsKey(person)) {
                 return candidates.get(person);
             }
@@ -59,13 +61,13 @@ final class ReportingLines {
                 continue;
             }
             List<EmployeeId> path = new ArrayList<>();
-            EmployeeId at = start;
+            @Nullable EmployeeId at = start;
             while (at != null && !state.containsKey(at)) {
                 state.put(at, 1);
                 path.add(at);
                 at = next.apply(at);
             }
-            if (at != null && state.get(at) == 1) {
+            if (at != null && Objects.requireNonNull(state.get(at), "at is a state key: the loop above ends on a null or an already-visited person") == 1) {
                 inCycle.addAll(path.subList(path.indexOf(at), path.size()));
             }
             path.forEach(p -> state.put(p, 2));
