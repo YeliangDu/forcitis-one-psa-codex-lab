@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.approval;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.kernel.DomainException;
@@ -23,22 +25,22 @@ import org.flowable.engine.RepositoryService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * IMP-1023-NX5-01 目标②（#644 opus 首轮 #8、#10、#11）与完成标准第 2、3 条：引擎端口的 processNameOf 返回 ProcessName 值对象；
  * 同一流程键重复定义（多次部署）取最新的定义；未知流程键返回错误码登记表里登记的错误码，不再是未包装的 IllegalStateException（HTTP 500）。
  * 经反射调用 processNameOf，使返回类型尚未改时本类仍可编译，红在断言上。
  */
-@Testcontainers
 class ProcessNameOfIT extends AcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ProcessNameOfIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     ApprovalEngine engine;

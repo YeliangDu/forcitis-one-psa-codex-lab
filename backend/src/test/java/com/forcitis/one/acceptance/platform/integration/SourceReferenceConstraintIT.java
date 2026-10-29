@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.kernel.WorkContext;
 import com.jayway.jsonpath.JsonPath;
@@ -20,20 +22,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * ADR-0033 section 2 item 1: the table of source references and its constraints, probed in the database. Every probe row is a copy of a
  * row the service wrote (so the probes need no knowledge of audit columns), with a few columns overridden; all probes run in one
  * transaction that is rolled back.
  */
-@Testcontainers
 class SourceReferenceConstraintIT extends AcceptanceSupport {
 
     static final String UNIQUE_VIOLATION = "23505";
@@ -44,9 +43,12 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
     static final UUID LEGAL_ENTITY_A = UUID.fromString("01900000-0000-7000-8000-0000000000e1");
     static final UUID LEGAL_ENTITY_B = UUID.fromString("01900000-0000-7000-8000-0000000000e2");
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(SourceReferenceConstraintIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     ApplicationContext context;

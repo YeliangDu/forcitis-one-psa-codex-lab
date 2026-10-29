@@ -6,6 +6,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
@@ -20,12 +22,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * DATA-REPAIR-workforce PR-8b (WF-11, length limits of one-data's ruling of 2026-10-16): a text column takes exactly its limit and refuses
@@ -34,12 +34,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * and codes, 100 for the e-mail address, 255 for the short name) and 200 for the reason, as the release and forced-logout reasons.
  * Expected red until the constraints and the entry check exist.
  */
-@Testcontainers
 class WorkforceLengthLimitsIT extends AccountsAcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(WorkforceLengthLimitsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String CHECK_VIOLATION = "23514";
     static final String EMPLOYEES_PATH = "/api/v1/organization/employee-legal-entities/";

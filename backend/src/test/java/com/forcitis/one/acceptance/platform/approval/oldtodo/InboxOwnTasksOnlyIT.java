@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.approval.oldtodo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.jayway.jsonpath.JsonPath;
 import java.lang.reflect.Constructor;
@@ -17,28 +19,28 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationContext;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * IMP-1021-PAR-01 (split plan F, ADR-0055 decision 6): the inbox holds this system's approval tasks only. The application here has no
  * old to-do connection configured, so what the response says is what the approval module alone produces. The response must not carry
  * the old to-do source or the merge: top level legacyCount and legacyAvailable, per item source and detailUrl.
  */
-@Testcontainers
 class InboxOwnTasksOnlyIT extends ApprovalP4Support {
 
     static final String INBOX = "/api/v1/platform/approval-tasks";
     static final List<String> TOP_LEVEL_OLD_TODO_FIELDS = List.of("legacyCount", "legacyAvailable");
     static final List<String> ITEM_OLD_TODO_FIELDS = List.of("source", "detailUrl");
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(InboxOwnTasksOnlyIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     ApplicationContext context;

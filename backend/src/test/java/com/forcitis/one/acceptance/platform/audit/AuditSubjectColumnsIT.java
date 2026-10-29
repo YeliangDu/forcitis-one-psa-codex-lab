@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.audit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.acceptance.P5Names;
 import java.sql.Connection;
@@ -15,10 +17,8 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P5 ADR-0033 section 7 item 2 and item 6 (card acceptance item 1, D-5, D-7): an audit entry names its object in two columns, a
@@ -26,7 +26,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * batch carries the moments of its first and last entry. Read from the catalogue of the migrated database; the checks that insert use a
  * transaction that is rolled back (the table refuses update and delete, so a rollback is how the test leaves nothing behind).
  */
-@Testcontainers
 class AuditSubjectColumnsIT extends AcceptanceSupport {
 
     static final String CHECK_VIOLATION = "23514";
@@ -35,9 +34,12 @@ class AuditSubjectColumnsIT extends AcceptanceSupport {
     static final String ACCEPTED = "accepted";
     static final String NEW_IX_SUBJECT = "ix_audit_entries_subject_kind_subject_id_created_at";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AuditSubjectColumnsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private String scalar(Connection catalogue, String sql, Object... parameters) throws SQLException {
         try (PreparedStatement select = catalogue.prepareStatement(sql)) {

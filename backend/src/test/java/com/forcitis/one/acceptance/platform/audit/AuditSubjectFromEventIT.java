@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.platform.audit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.P5Names;
 import com.forcitis.one.acceptance.P5Support;
 import java.lang.reflect.Method;
@@ -12,10 +14,8 @@ import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P5 ADR-0033 section 7 items 1 and 2 (card acceptance item 3, 3.2 item 3): the audit trail subscribes to domain events and
@@ -25,14 +25,16 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * The envelopes are built by hand around the real LegalEntityRegistered record, with the aggregate type and id of the case, so that
  * every aggregate of the card is covered without driving its whole use case; item 4 drives the real use cases.
  */
-@Testcontainers
 class AuditSubjectFromEventIT extends P5Support {
 
     static final String EVENT_TYPE = "organization.workforce.LegalEntityRegistered";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(AuditSubjectFromEventIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private List<Map<String, Object>> entriesOf(Object envelope) throws Exception {
         Method eventId = envelope.getClass().getMethod("eventId");

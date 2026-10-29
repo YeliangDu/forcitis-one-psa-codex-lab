@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.ApprovalP4Support;
 import com.forcitis.one.acceptance.P4Names;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
@@ -28,12 +30,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.postgresql.util.PSQLException;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * DATA-REPAIR-approval AP-01 to AP-05 (data design of PR-6, one-data ruling 2026-10-16): the approval tables carry the rules that the
@@ -44,12 +44,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * (a completed task that is REJECTED or RETURNED needs a reason whatever its effect). Rows are written with plain SQL, the only way
  * to bring the database to a state the code would never produce.
  */
-@Testcontainers
 class ApprovalRowRulesIT extends ApprovalP4Support {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(ApprovalRowRulesIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     private static final String SYNTHETIC_REASON = "synthetic: reason";
 

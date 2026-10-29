@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.identity.role_versioning;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.time.Duration;
@@ -17,23 +19,23 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * ADR-0034 decision 1 item 3 (写入时码必须存在且未停用；运行时读到未知或已停用的码：只拒绝该码并告警（fail-closed），不抛异常，不影响同一角色的其他码)
  * and guard rule 8 (权限目录：测试库中全部角色的当前版本的码都存在且未停用；运行时读到未知码：该码被忽略并告警，同一角色的其他码照常生效，不抛异常);
  * ADR-0034-IMPL card row 0034-G8-04 and card section 6 (未知或已停用权限码只忽略该码并告警). The snapshot side is in PermissionCatalogueTest.
  */
-@Testcontainers
 class PermissionCatalogueIT extends RoleVersioningSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(PermissionCatalogueIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String CURRENT_USER = "/api/v1/platform/sessions:current";
     static final String KNOWN = "organization.workforce:org-unit:read";

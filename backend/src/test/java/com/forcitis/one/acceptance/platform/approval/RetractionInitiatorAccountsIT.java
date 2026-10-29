@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.approval;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.kernel.DocumentReference;
@@ -28,23 +30,23 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.security.access.AccessDeniedException;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P2 review P2-M2 (NEXT_BATCH_PLAN 7.2 C4 撤回时发起人的比较; ADR-0033 section 3 item 3): only the initiator withdraws or cancels an
  * approval. The initiator is an employee, the person asking is an account: the account is turned into its employee before the
  * comparison. Real accounts (WeCom login), whose UUIDs equal no employee id.
  */
-@Testcontainers
 class RetractionInitiatorAccountsIT extends AccountsAcceptanceSupport {
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(RetractionInitiatorAccountsIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     ApprovalProcesses approvals;

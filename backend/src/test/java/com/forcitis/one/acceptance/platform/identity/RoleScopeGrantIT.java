@@ -3,6 +3,8 @@ package com.forcitis.one.acceptance.platform.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.DataScopeSupport;
 import com.jayway.jsonpath.JsonPath;
 import java.util.HashSet;
@@ -13,11 +15,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * F-1 role scope grants, first block (#728): the custom org units of a role (ADR-0026 "1a 交付范围"), versioned with the role (ADR-0034
@@ -26,15 +26,17 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * Moved from the F-1 acceptance branch claude/one-1a-par-f1-acceptance (base 771b7b0dc) with the assertions unchanged; what the fixture
  * had to follow on the main line is listed in the commit message. The holder's visible scope after a change belongs to #729.
  */
-@Testcontainers
 class RoleScopeGrantIT extends DataScopeSupport {
 
     static final String SCOPE_NOT_ALLOWED = "PLATFORM_IDENTITY_ROLE_SCOPE_NOT_ALLOWED";
     static final String GRANT_REFUSED = "platform.identity.grant.refused";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = startedDatabase();
+    static final TestDatabase postgres = TestPostgres.database(RoleScopeGrantIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @BeforeAll
     void twoAdministratorsAndAnOrganisation() throws Exception {

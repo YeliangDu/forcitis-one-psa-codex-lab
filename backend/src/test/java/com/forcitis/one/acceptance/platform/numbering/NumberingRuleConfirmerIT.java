@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
@@ -14,26 +16,26 @@ import java.sql.ResultSet;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b P2 (ADR-0033 section 3 item 3 「本人」判定清单: 编号模板四眼; ADR-0027 section 2 item 4): the confirmer of a numbering template
  * version is not its author. Both are accounts, recorded and compared as user ids (UUIDs), never as employee ids.
  */
-@Testcontainers
 class NumberingRuleConfirmerIT extends AccountsAcceptanceSupport {
 
     static final String QUOTE_RULE = "/api/v1/platform/numbering-rules/QUOTE";
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = database();
+    static final TestDatabase postgres = TestPostgres.database(NumberingRuleConfirmerIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
 
     private MockHttpServletResponse confirm(RequestPostProcessor who, int templateVersion) throws Exception {
