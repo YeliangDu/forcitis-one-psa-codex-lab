@@ -16,7 +16,7 @@
 | 事件 | `ApplyApprovalResult:41` | application 中 `@ApplicationModuleListener`，先去重 |
 | 时间 | `JdbcRoleRepository:347` | `Instant` + `BusinessZone`；JDBC 用 `OffsetDateTime`，不用 `Timestamp` |
 | ID | `CreateLegalEntity:29` | 注入 `IdGenerator`，不调 `randomUUID` |
-| 金额 | `Money:10` | 计算不舍入，成额时 HALF_UP 到分；合计 = 各行舍入后之和（FD-02/07/08；现构造即舍入） |
+| 金额 | `ExactMoney:25` | 计算用 `ExactMoney` 不舍入，`round()` 成 `Money` 时 HALF_UP 到分；合计 = 各行舍入后之和（FD-02/07/08） |
 | 流程 | `FlowableApprovalEngine:54` | Flowable 只在适配器，业务经 `ApprovalProcesses` |
 | 单元测试 | `TimesheetStateMachineTest:62` | 不起 Spring，固定日期 |
 | 集成测试 | `AuditExportAndOwnRecordsIT:36` | MockMvc + `TestPostgres.database` |
