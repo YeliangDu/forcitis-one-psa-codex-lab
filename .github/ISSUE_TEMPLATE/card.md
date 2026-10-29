@@ -6,7 +6,7 @@ title: ""
 <!-- 标签：会话:<名>（负责会话，一个）、挂起、hold。一卡一个可验收结果、一个负责会话、单 bc。PR 首行写 Closes #<本 Issue 号>。 -->
 
 ## 类型
-<!-- 选一：impl 业务实现 / acceptance 验收测试 / bugfix 缺陷修复 / docs 文档与规则 / ops 运维与 CI / design 设计与规格 / investigation 调研。会话按 docs/modernization/playbooks/<类型>.md 做。 -->
+<!-- 选一：impl 业务实现 / acceptance 验收测试 / bugfix 缺陷修复 / docs 文档与规则 / ops 运维与 CI / design 设计与规格 / investigation 调研。会话按 docs/rules/playbooks/<类型>.md 做。 -->
 
 ## 目标
 

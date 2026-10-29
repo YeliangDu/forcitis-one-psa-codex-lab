@@ -1,0 +1,1714 @@
+# 正本，直接编辑（原生成脚本已随 #742 删除）
+meta:
+  sources:
+  - docs/architecture/ssot/stakeholders/ssot.yaml
+  - docs/glossary/terms.yaml
+  - docs/architecture/proposals/closeout/responsibility-matrix.yaml
+  counts:
+    stakeholder_ssot:
+      roles: 6
+      project_roles: 5
+    glossary: 33
+    responsibility_matrix: 28
+stakeholder_ssot:
+  roles:
+  - id: ROLE-01
+    label: 发起人
+    status: role
+    participates:
+    - VS-01.1
+    - VS-01.2
+    - VS-02.0
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-02
+    label: 决策人
+    status: role
+    participates:
+    - VS-01.2
+    - VS-02.1
+    - VS-02.2
+    - VS-02.7
+    - VS-04.1
+    - VS-04.6
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-03
+    label: 经济买方
+    status: role
+    participates:
+    - VS-01.2
+    - VS-02.5
+    - VS-02.7
+    - VS-04.1
+    - VS-04.5
+    - VS-04.6
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-04
+    label: 付款方
+    status: role
+    participates:
+    - VS-04.3
+    - VS-04.4
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-05
+    label: 使用者
+    status: role
+    participates:
+    - VS-02.0
+    - VS-02.1
+    - VS-02.2
+    - VS-02.3
+    - VS-02.4
+    - VS-02.6
+    - VS-04.2
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-06
+    label: 用人经理
+    status: role
+    participates:
+    - VS-07.1
+    - VS-07.2
+    - VS-07.3
+    - VS-13.1
+    - VS-13.2
+    - VS-13.6
+    basis: 流程角色：招聘流程中由部门负责人扮演，不是稳定人群（BIZBOK p.266）
+    host: 本企业
+    process: 招聘
+    host_category: 人力资源
+  project_roles:
+  - id: PRJ-01
+    label: 监理
+    status: project_role
+    participates:
+    - VS-02.6
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+  - id: PRJ-02
+    label: 造价咨询与招标代理
+    status: project_role
+    participates:
+    - VS-01.2
+    - VS-02.5
+    - VS-02.7
+    - VS-04.5
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+  - id: PRJ-03
+    label: 保险技术检查机构（TIS）
+    status: project_role
+    participates:
+    - VS-02.6
+    - VS-03.2
+    - VS-03.4
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+  - id: PRJ-04
+    label: 资金监管主办银行
+    status: project_role
+    participates:
+    - VS-04.4
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+  - id: PRJ-05
+    label: 物业服务企业（未代业主委托时）
+    status: project_role
+    participates:
+    - VS-03.1
+    - VS-03.2
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+glossary:
+- id: operations_facts__responsible_party
+  zh: 责任对象
+  en: ResponsibleParty
+  bc: operations.facts
+  definition: 事实归属的责任承载（责任人/BU/法人）
+- id: customer_party
+  zh: 客户方主体
+  en: CustomerParty
+  bc: contract.agreement
+  definition: 合同甲方的客户引用与签约瞬间冻结快照（customerId 稳定引用 + 名称/法定标识快照——历史基线不随客户主数据演变漂移；内部结算协议形态为空、改用关联法人对）；付款/开票/项目业主主体同构引用（缺省=客户方主体）
+- id: project_owner_party
+  zh: 项目业主主体
+  en: ProjectOwnerParty
+  bc: contract.agreement
+  definition: 合同上的项目业主客户引用（客户 BC 多主体之一的合约侧登记；开票主体合约侧统一沿用客户 BC 码名 InvoicedParty、不另造 InvoiceTitleParty——评估 D-06 双码名裁决 2026-07-07）
+- id: contracting_legal_entity
+  zh: 签约法人
+  en: ContractingLegalEntity
+  bc: contract.agreement
+  definition: 合同的我方法人主体（与交付法人可不同，均必填）
+- id: contract_riskdelivery__responsible_party
+  zh: 责任承担方
+  en: AuthorizationResponsibleParty
+  bc: contract.agreement
+  definition: 授权三要素之三（BU / 法人 / 责任人）；合同 BC 合并后与变更中的「责任方」区别开，故英文名加授权前缀
+- id: contract_changeorder__responsible_party
+  zh: 责任方
+  en: ResponsibleParty
+  bc: contract.agreement
+  definition: 变更/签证/索赔的归因必填维度（对齐 dim_scope）
+- id: initiator
+  zh: 发起人
+  en: Initiator
+  bc: platform.approval
+  definition: 发起审批的用户。
+- id: approver
+  zh: 审批人
+  en: Approver
+  bc: platform.approval
+  definition: 处理审批任务的用户。
+- id: supervisor
+  zh: 直属上级
+  en: Supervisor
+  bc: organization.workforce
+  definition: 员工的人员级汇报对象（RULE-372）
+- id: org_unit_head
+  zh: 部门负责人
+  en: OrgUnitHead
+  bc: organization.workforce
+  definition: 组织单元的负责人（RULE-356/257）
+- id: regional_receivables_manager
+  zh: 区域应收负责人
+  en: RegionalReceivablesManager
+  bc: organization.workforce
+  definition: 组织单元的区域应收负责人（RULE-255/356）；职责角色，不是应收事实
+- id: role_holder
+  zh: 角色持有人
+  en: RoleHolder
+  bc: platform.identity
+  definition: 持有某角色的启用账号（在职员工）
+- id: actor
+  zh: 操作人
+  en: Actor
+  bc: platform.audit
+  definition: 执行动作的用户；系统作业为空
+- id: on_behalf_of
+  zh: 被代理人
+  en: OnBehalfOf
+  bc: platform.audit
+  definition: 显式代理操作中被代理的用户（RULE-270）
+- id: business_owner
+  zh: 业务负责人
+  en: BusinessOwner
+  bc: platform.identity
+  definition: 权限复核中，对某人的授权「维持不变」时须写明的、为这项授权的业务需要负责并确认的人，以员工 ID 标识（接口字段 businessOwnerEmployeeId），须在职、不得为当事人本人（ADR-0044 草案，待 Q4）；与组织单元的部门负责人不是同一概念
+- id: assignee
+  zh: 处理人
+  en: Assignee
+  bc: platform.approval
+  definition: 认领后唯一可以办理任务的人（RULE-276，I-7）
+- id: project_manager
+  zh: 项目经理
+  en: ProjectManager
+  bc: platform.approval
+  definition: 工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）；「项目负责人」是同一角色的方言，不用；与权责表对齐：revenue/raci.yaml 里暂停、恢复、终止、取消项目的批准人统一写项目.项目经理（VS02-05，intent 2026-10-16-163556）
+- id: ui_proxy_handling
+  zh: 代理办理
+  en: ProxyHandling
+  bc: platform.approval
+  definition: 流程管理员替被代理人办理任务；审批记录同时显示操作人与被代理人
+- id: candidate_approver
+  zh: 候选审批人
+  en: CandidateApprover
+  bc: platform.approval
+  definition: 任务尚未认领时，有资格认领并办理该任务的审批人
+- id: task_participant
+  zh: 任务参与人
+  en: TaskParticipant
+  bc: platform.approval
+  definition: 审批任务的候选审批人或处理人
+- id: director
+  zh: 总监
+  en: Director
+  bc: platform.approval
+  definition: BU-002 部门总监（RULE-256）
+- id: regional_head
+  zh: 区域负责人
+  en: RegionalHead
+  bc: platform.approval
+  definition: 区域组织单元的负责人；区域是介于项目和公司之间的一层组织，与事业部同属组织单元的类型（F1-05、Q37a），将另作数据范围维度；不承担工时审批，售前工时的审批人是部门负责人（D5-06）
+- id: witness
+  zh: 见证人
+  en: Witness
+  bc: platform.identity
+  definition: 运维命令执行时在场的另一个人，与操作人一起记入审计（双人在场）
+- id: org_data_admin
+  zh: 组织数据管理员
+  en: OrgDataAdmin
+  bc: platform.identity
+  definition: 系统角色 org_data_admin：维护组织与法人归属、工作日历、编号模板、同步运行；无敏感权限、不能确认模板（ADR-0027 第 2 项）
+- id: business_admin
+  zh: 业务管理员
+  en: BusinessAdmin
+  bc: platform.identity
+  definition: 系统角色 business_admin：确认各单据编号模板（凭证号模板的财务确认不在 1a 内设角色）（ADR-0027 第 2 项）
+- id: security_auditor
+  zh: 安全审计员
+  en: SecurityAuditor
+  bc: platform.identity
+  definition: 系统角色 security_auditor：查看与导出审计记录，并在普通会话里放行管理员离职造成的同步暂停（ADR-0027 第 3 项、ADR-0028）
+- id: administrator
+  zh: 管理员
+  en: Administrator
+  bc: platform.identity
+  definition: 持有 super_admin 或管理员角色的人；不得通过外部票据进入
+- id: confirmer
+  zh: 确认人
+  en: Confirmer
+  bc: platform.numbering
+  definition: 确认某个编号模板版本的人：业务确认人持有 numbering-rule:approve，财务确认人持有凭证号模板的确认权限
+- id: author
+  zh: 作者
+  en: Author
+  bc: platform.numbering
+  definition: 保存某个编号模板版本的人；作者不能确认自己保存的版本（四眼）
+- id: customer_role
+  zh: 客户
+  en: CustomerRole
+  bc: masterdata.counterparty
+  definition: 往来单位承担的客户角色：具备独立签约与付款主体资格，带准入状态；主数据只有一份（往来单位），客户是它的一个角色，不是另一个主体
+- id: legal_entity_finance_head
+  zh: 法人财务负责人
+  en: LegalEntityFinanceHead
+  bc: organization.workforce
+  definition: 某一法人范围内承担财务职责的负责人；每个法人分别明确其财务负责人。跨法人事项须另行写明由哪个法人的财务负责人承担；具体任职、代理人与权限配置沿用已定授权规则。
+- id: system_actor
+  zh: 系统操作主体
+  en: SystemActor
+  bc: kernel
+  definition: 以 SYSTEM 身份发出事件的作业、监听器或运维入口；名字人为声明在 backend/architecture/system-actors.txt，事件信封 actorId 为该名字在固定命名空间下的 UUIDv5，同一名字恒定、不同于任何用户 ID，任何实例都可由目录反查名字（RULING-P2-C5）
+- id: recipient
+  zh: 收件人
+  en: Recipient
+  bc: platform.integration
+  definition: 消息的接收人，用企业微信用户 ID 精确指定；不允许按部门、标签或全员投递
+responsibility_matrix:
+  roles:
+    SH-C3:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 业主方在现场签认检查记录，不登录本系统
+        approval_right: 无（现场签认作证据）
+        department_hint: 外部，不在本系统组织内
+        position_hint: 业主代表
+      - responsibility: 业主作为整改责任方接收发现，不登录本系统
+        approval_right: 无
+        department_hint: 外部，不在本系统组织内
+        position_hint: 业主代表
+      - responsibility: 整改责任方（业主）：按期整改并书面申报；风险保留时书面确认，不登录本系统
+        approval_right: 书面接受风险（线下，委托人代表或授权人）
+        department_hint: 外部，不在本系统组织内
+        position_hint: 业主代表
+      - responsibility: 业主委托检测机构并转交报告，不登录本系统
+        approval_right: 无
+        department_hint: 外部，不在本系统组织内
+        position_hint: 业主代表
+      groups:
+      - revenue
+    SH-C5:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 委托方（保险公司等），不登录本系统
+        approval_right: 无（线下委托）
+        department_hint: 外部，不在本系统组织内
+        position_hint: —
+      - responsibility: 委托方（保险公司等）接收检查报告与发现，不登录本系统
+        approval_right: 无
+        department_hint: 外部，不在本系统组织内
+        position_hint: —
+      - responsibility: 委托方（保险公司等）接收发现，不登录本系统
+        approval_right: 无
+        department_hint: 外部，不在本系统组织内
+        position_hint: —
+      - responsibility: 委托方（保险公司等）知悉整改与闭合结果，不登录本系统
+        approval_right: 无
+        department_hint: 外部，不在本系统组织内
+        position_hint: —
+      groups:
+      - revenue
+    SH-C6a:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 外部方，按本流程的交互提供信息、文件或答复
+        approval_right: 无（外部方，不设系统权限）
+        department_hint: 不适用（外部方）
+        position_hint: 不适用（外部方）
+      - responsibility: 书面批准对客交付计划
+        approval_right: 交付计划批准（客户方，外部）
+        department_hint: 客户方设计或项目管理部门（外部）
+        position_hint: 客户项目负责人、发包人代表（外部）
+      - responsibility: 客户方项目或设计管理，出具书面认可、批准与答复
+        approval_right: 无（外部方）
+        department_hint: 客户方设计或项目管理部门（外部）
+        position_hint: 客户项目负责人、发包人代表（外部）
+      - responsibility: 书面认可、退回或答复交付物
+        approval_right: 交付物认可（客户方，外部）
+        department_hint: 客户方设计或项目管理部门（外部）
+        position_hint: 客户项目负责人、发包人代表（外部）
+      - responsibility: 书面批准或拒绝延期申请
+        approval_right: 延期答复（客户方，外部）
+        department_hint: 客户方设计或项目管理部门（外部）
+        position_hint: 客户项目负责人、发包人代表（外部）
+      - responsibility: 客户方项目或设计管理负责人：对变更出具书面同意、对现场签证签认
+        approval_right: 客户方书面同意或签认（线下证据，本系统只登记）
+        department_hint: 客户方
+        position_hint: 客户项目或设计管理负责人
+      - responsibility: 客户方项目或设计管理负责人：签认、答复
+        approval_right: 客户方书面认可（线下证据，本系统只登记）
+        department_hint: 客户方
+        position_hint: 客户项目或设计管理负责人
+      - responsibility: 出具外部证据：竣工验收证书、结算审定书、缺陷责任期终止证书
+        approval_right: 客户方书面文件（线下证据，本系统只登记）
+        department_hint: 客户方
+        position_hint: 客户项目或设计管理负责人
+      groups:
+      - revenue
+    SH-C6b:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 客户决策人：回签、认定索赔与变更
+        approval_right: 客户方书面决定（线下证据，本系统只登记）
+        department_hint: 客户方
+        position_hint: 客户决策人（产品、工程负责人）
+      groups:
+      - revenue
+    SH-C6c:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 外部方，按本流程的交互提供信息、文件或答复
+        approval_right: 无（外部方，不设系统权限）
+        department_hint: 不适用（外部方）
+        position_hint: 不适用（外部方）
+      groups:
+      - revenue
+    SH-C6d:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 客户财务：付款、确认红字信息
+        approval_right: 客户方财务确认（经税务平台或银行回单）
+        department_hint: 客户方财务
+        position_hint: 客户财务付款经办
+      groups:
+      - revenue
+    SH-C6e:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 客户方使用者，接收成果并反馈
+        approval_right: 无（外部方）
+        department_hint: 客户方设计或工程管理（外部）
+        position_hint: 客户设计管理、工程管理人员（外部）
+      groups:
+      - revenue
+    SH-E1:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 提出本部门招聘需求
+        approval_right: 无（提出人不得批准自己的需求）
+        department_hint: 用人部门
+        position_hint: 用人经理（职能：对本部门用人需求负责）
+      - responsibility: 面试评价并作出录用决定
+        approval_right: 作出录用决定（自行决定，不另设审批，V-8 待定）
+        department_hint: 用人部门
+        position_hint: 用人经理（职能：对所辖用人决定负责）
+      - responsibility: 知悉新员工入职与任职
+        approval_right: 无
+        department_hint: 用人部门
+        position_hint: 用人经理
+      - responsibility: 编制并确认试用期绩效评估
+        approval_right: 无
+        department_hint: 用人部门
+        position_hint: 用人经理（职能：试用期评估人）
+      - responsibility: 知悉下属补卡
+        approval_right: 无（补卡不设审批，由次数与时限规则守卫）
+        department_hint: 员工所在组织单元
+        position_hint: 部门负责人、用人经理
+      - responsibility: 作为申请人所在组织单元的责任人，判断异常请假能否离岗
+        approval_right: 正常一级审批（cost_object_owner 解析结果）；超阈值时 AR-11、AR-12 加审
+        department_hint: 员工所在组织单元
+        position_hint: 部门负责人、用人经理
+      - responsibility: 知悉下属加班登记，也可代员工登记；补休额度到期前收到提醒，与员工排定补休
+        approval_right: 无（加班不设审批，由打卡核实）
+        department_hint: 员工所在组织单元
+        position_hint: 部门负责人、用人经理
+      - responsibility: 接收逾期未确认名单，必要时提醒下属
+        approval_right: 无
+        department_hint: 员工所在组织单元
+        position_hint: 部门负责人、用人经理
+      - responsibility: 编制、提交并确认下属月度绩效评估，对评估结论负责
+        approval_right: 无（评估是专业判断）
+        department_hint: 员工所在组织单元
+        position_hint: 部门负责人、用人经理
+      - responsibility: 作为被评人所在组织单元的责任人，核对草拟奖金是否有规则看不到的情况
+        approval_right: 正常一级审批（cost_object_owner 解析结果）；本人是被核定人时由上级核定
+        department_hint: 被评人所在组织单元
+        position_hint: 部门负责人、用人经理
+      - responsibility: 知悉所辖员工离职
+        approval_right: 无
+        department_hint: 用人部门
+        position_hint: 用人经理
+      - responsibility: 知悉原、新用人经理所辖变动
+        approval_right: 无
+        department_hint: 原、新用人部门
+        position_hint: 用人经理
+      groups:
+      - finance
+      - people
+    SH-E2:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 申请风险交付授权，授权批准后先行投入
+        approval_right: 无审批权
+        department_hint: 各承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 建立项目、定承担法人与团队、开始执行
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 经营项目的计划、预算、交付推进与客户沟通
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 按 WBS 编制并锁定项目预算
+        approval_right: 无；不得审批自己编制的预算
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 核实本项目工时是否属实并审批
+        approval_right: 本项目工时审批；项目经理本人工时上一级审批
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 知悉检查计划已生效，对项目整体交付节奏负责
+        approval_right: 无
+        department_hint: 承担项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 在 PRC-28 登记无异议声明；期满仍无声明时收到催办
+        approval_right: 无审批权（认定是系统按三个条件自动认定，不是审批）
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 付款条件项可结算后提出开票
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 命中加审条件时作为项目责任人审批开票申请
+        approval_right: 一级审批（责任人）
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 作为协议所属项目的责任人审批红冲申请
+        approval_right: 一级审批（责任人）
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 作为应收所属项目的责任人审批第三方代付认领
+        approval_right: 一级审批（责任人）；AR-15 命中后财务负责人、总经理加审
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 作为协议所属项目的责任人审批坏账核销（可回收性判断）
+        approval_right: 一级审批（责任人）；金额超阈值时财务负责人、总经理加审
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 收到逾期提醒，协助催收
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 作为协议所属项目的责任人审批最终价款低于协议价的让价或审减
+        approval_right: 一级审批（责任人）；AR-01、AR-02 命中时财务负责人、总经理加审
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 提出新供方并申请往来单位角色
+        approval_right: 无审批权
+        department_hint: 各承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 因投标、诉讼、审计或结算申请借阅合同
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 移交回签原件、按退回补签或补交
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 作为协议所属项目的责任人审批收入冲销；也可发起冲销
+        approval_right: 一级审批（责任人）
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 每期按项目填报当期累计产值估计
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 收到条件达成与可结算的通知，申请返还质保金、提出开票
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 收到合同原件逾期未还的催还待办
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 收到收入确认审批被驳回的通知，补证据或另案处理
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 登记新供方档案
+        approval_right: 无审批权
+        department_hint: 各承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 登记受检建设工程
+        approval_right: 无审批权
+        department_hint: 各承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 收到质保金到期提示，申请返还
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: 查看本人项目三口径差额，推进客户确认与开票
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目经理
+      - responsibility: VS-09.2 参与者；本骨架无其动作，待用户确认
+        approval_right: 无
+        department_hint: 项目管理相关部门
+        position_hint: 项目经理职能岗
+      - responsibility: 在项目复盘后决定提炼并从提炼入口创建知识条目
+        approval_right: 无
+        department_hint: 项目管理相关部门
+        position_hint: 项目经理职能岗（复盘编制人）
+      groups:
+      - finance
+      - people
+      - revenue
+    SH-E3:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 按工作包编制成果、采集证据、记工时
+        approval_right: 无
+        department_hint: 承接项目的业务部门（专业所、设计室）
+        position_hint: 设计师、咨询顾问
+      - responsibility: 按日填报并提交本人工时
+        approval_right: 无；不得审批本人工时单
+        department_hint: 承接项目的业务部门（专业所、设计室）
+        position_hint: 设计师、咨询顾问
+      - responsibility: 核对发包人资料的完整性与可用性，确认或退回
+        approval_right: 发包人资料确认（专业核对）
+        department_hint: 承接项目的业务部门（专业所、设计室）
+        position_hint: 设计师、咨询顾问
+      - responsibility: 现场检查、采集证据（系统自动关联到检查）、逐项填写并提交检查记录
+        approval_right: 无
+        department_hint: 承担检查业务的部门
+        position_hint: 检查人员（设计师和顾问，含驻场；资质经 B-13 读取）
+      - responsibility: 登记发现并关联证据
+        approval_right: 无
+        department_hint: 承担检查业务的部门
+        position_hint: 检查人员（设计师和顾问）
+      - responsibility: 复查时到场或凭资料核验整改结果，采集复查证据（系统自动关联到不符合项）
+        approval_right: 无
+        department_hint: 承担检查业务的部门
+        position_hint: 检查人员（设计师和顾问）
+      - responsibility: 员工（任一岗位）事前申请借支
+        approval_right: 无
+        department_hint: 借款人所在部门
+        position_hint: 借款员工
+      - responsibility: 按新版本模板执行后续检查
+        approval_right: 无
+        department_hint: 承担检查业务的部门
+        position_hint: 检查人员（设计师和顾问）
+      - responsibility: 知悉转正结果
+        approval_right: 无
+        department_hint: 所属部门
+        position_hint: 被评员工
+      - responsibility: 参与起草知识条目内容（VS-11.1）
+        approval_right: 无
+        department_hint: 设计与咨询相关部门
+        position_hint: 设计师和顾问
+      - responsibility: 提出并对本人申请事项的真实性负责
+        approval_right: 无（本人申请不得自批）
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      - responsibility: 提出并对本人申请事项的真实性负责；在补休额度有效期届满前自行排定并休完补休
+        approval_right: 无（本人申请不得自批）
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      - responsibility: 核对并确认本人当月出勤、请假、加班，有异议提出更正
+        approval_right: 无（确认是数据主体对自己事实的确认，不是审批）
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      - responsibility: 提出离职申请或撤回
+        approval_right: 无
+        department_hint: 所属部门
+        position_hint: 员工（任一类员工）
+      - responsibility: 知悉本人调岗
+        approval_right: 无
+        department_hint: 所属部门
+        position_hint: 被调动员工
+      - responsibility: 收到开通通知
+        approval_right: 无
+        department_hint: 所属部门
+        position_hint: 新员工
+      - responsibility: 提出用印申请，写明印章类别、用印法人、文件与份数；有已批准来源单据（合同、报价等）的，填来源审批实例 ID，并对来源文件的真实性负责
+        approval_right: 无（只提交，不批准、不登记）
+        department_hint: 申请人所在组织单元（全部门）
+        position_hint: 任一在职员工，不限职位
+      - responsibility: 提出 IT 需求，描述问题与优先级，解决后确认关闭
+        approval_right: 无（只提交与确认）
+        department_hint: 需求提出人所在组织单元（全部门）
+        position_hint: 任一在职员工，不限职位
+      - responsibility: 申请领用 IT 资产，签收设备，并对名下资产负责
+        approval_right: 无（只申请）
+        department_hint: 使用人所在组织单元（全部门）
+        position_hint: 任一在职员工，不限职位
+      - responsibility: 登记周年贺卡以外的活动类型、参与人和费用预估；周年贺卡由系统自动生成，无需员工申请
+        approval_right: 无（只提交）
+        department_hint: 申请人所在组织单元（全部门）
+        position_hint: 任一在职员工，不限职位
+      - responsibility: 发起调拨，选定调入使用人，配合交接
+        approval_right: 无（只申请，调拨由规则守卫、不设审批）
+        department_hint: 调出使用人所在组织单元
+        position_hint: 任一在职员工，不限职位
+      - responsibility: 按要求归还设备，对归还前的资产负责
+        approval_right: 无（只知悉）
+        department_hint: 使用人所在组织单元（全部门）
+        position_hint: 任一在职员工，不限职位
+      - responsibility: 发现设备故障时报修，描述故障
+        approval_right: 无（只报修）
+        department_hint: 使用人所在组织单元（全部门）
+        position_hint: 任一在职员工，不限职位
+      - responsibility: 本人支付失败时更正工资卡账户；补发顺延时收到通知
+        approval_right: 无
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      - responsibility: 查看本人工资条
+        approval_right: 无
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      - responsibility: 查看本人当年度假期额度
+        approval_right: 无
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      - responsibility: 知悉本人到期未休的补休余额已转计发加班工资
+        approval_right: 无
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      - responsibility: 本人年度申报或修改专项附加扣除，对申报内容负责；接收本人薪酬变更通知并核对
+        approval_right: 无（员工对申报内容负责，税务端核验）
+        department_hint: 员工所在部门
+        position_hint: 全体在职员工
+      groups:
+      - finance
+      - people
+      - revenue
+    SH-E4:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 逐级校对、审核、审定交付物
+        approval_right: 交付物内部校审（专业复核）
+        department_hint: 技术委员会或总工办
+        position_hint: 技术专家、专业负责人、审核人
+      - responsibility: 认定变更归因与影响并内审
+        approval_right: 设计变更内审（专业复核）
+        department_hint: 技术委员会或总工办
+        position_hint: 技术专家、专业负责人、审核人
+      - responsibility: 确认不符合项等级、认定返工、复核整改并关闭
+        approval_right: 不符合项确认与关闭（专业复核）
+        department_hint: 技术委员会或总工办
+        position_hint: 技术专家、专业负责人、审核人
+      - responsibility: 评审项目复盘的客观性与可复用性
+        approval_right: 项目复盘评审（专业复核）
+        department_hint: 技术委员会或总工办
+        position_hint: 技术专家、专业负责人、审核人
+      - responsibility: 对受托 IDI 检查的计划负责：协议回签后制定并生效检查计划，到期前判断是否续做或停止受托
+        approval_right: 无（登记、生效、标记不再受托均为本人经办，不是审批）
+        department_hint: 承担检查业务的技术部门
+        position_hint: 检查负责人（技术专家，持技术委员会资格）
+      - responsibility: 对检查的专业质量与结论负责：安排与指派、审核检查记录、锁定、关联检查报告
+        approval_right: 检查记录审核（专业复核，不涉资金，aggregate 内单级）；回避：不得审核本人提交的记录
+        department_hint: 承担检查业务的技术部门
+        position_hint: 检查负责人（技术专家，持技术委员会资格）
+      - responsibility: 审核检查项结果与证据是否支撑、未检原因是否充分
+        approval_right: 同上（检查记录审核）
+        department_hint: 承担检查业务的技术部门
+        position_hint: 检查负责人（技术专家）
+      - responsibility: 复核发现是否成立、等级是否恰当，发布并送达，决定是否建议外部检测
+        approval_right: 不符合项复核（专业复核，不涉资金，aggregate 内单级）；回避：不得复核本人登记的发现
+        department_hint: 承担检查业务的技术部门
+        position_hint: 检查负责人（技术专家，持技术委员会资格）
+      - responsibility: 开始整改、登记申报、复查、闭合或退回、登记客户接受风险、停止跟踪
+        approval_right: 整改复查结论（专业复核，不涉资金，aggregate 内单级）
+        department_hint: 承担检查业务的技术部门
+        position_hint: 检查负责人（技术专家，持技术委员会资格）
+      - responsibility: 判断整改是否满足该等级不符合项的要求
+        approval_right: 同上（整改复查结论）
+        department_hint: 承担检查业务的技术部门
+        position_hint: 检查负责人（技术专家）
+      - responsibility: 登记业主委托与报告，核对出具机构，决定采信与否
+        approval_right: 采信决定（技术判断，本人决定，无第二人审批，不涉资金）
+        department_hint: 承担检查业务的技术部门
+        position_hint: 检查负责人（技术专家，持技术委员会资格）
+      - responsibility: 登记独立性检查结论与书面同意附件（技术专家）
+        approval_right: 独立性结论的专业判断权（不属费用审批）
+        department_hint: 技术委员会
+        position_hint: 技术专家
+      - responsibility: 登记专业结论或发布目录版本（目录管理员、技术专家）
+        approval_right: 专业结论与目录发布权（专业判断，不属费用审批）
+        department_hint: 技术委员会
+        position_hint: 技术专家、目录管理员
+      - responsibility: 专业校审、技术内审与不符合项处置
+        approval_right: 无
+        department_hint: 技术委员会或总工办
+        position_hint: 技术专家、专业负责人、审核人
+      - responsibility: 维护检查表模板：随检查标准变化编辑检查项并发布新版本
+        approval_right: 无（本人发布，聚合内命令；是否加技术委员会复核待用户定）
+        department_hint: 承担检查业务的技术部门（技术委员会）
+        position_hint: 检查表模板管理员（技术专家）
+      - responsibility: 起草、提交、发布、修订与废止知识条目
+        approval_right: 无（起草与发布；评审由他人）
+        department_hint: 技术委员会及各专业组织单元
+        position_hint: 技术专家（专业组成员）
+      - responsibility: 对知识条目的技术正确性、适用范围与有效期负专业责任
+        approval_right: 知识条目评审（类型级专业角色，聚合内单级评审）
+        department_hint: 知识条目所属专业类别对应的组织单元（技术委员会）
+        position_hint: 专业负责人（技术委员会的专业负责人）
+      - responsibility: 依据使用情况决定知识条目的修订或废止
+        approval_right: 无（只读；修订与废止在 PRC-107）
+        department_hint: 技术委员会及各专业组织单元
+        position_hint: 专业负责人、技术专家
+      groups:
+      - people
+      - revenue
+    SH-E5:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 登记并跟进线索，新建商机、确认线索，维护商机负责人与参与团队
+        approval_right: 无审批权
+        department_hint: 市场与经营部门（各区域事业部市场条线）
+        position_hint: 市场经理、客户经理
+      - responsibility: 编制并提交报价版本，评审通过后生效或作废
+        approval_right: 无审批权
+        department_hint: 市场与经营部门、各区域事业部
+        position_hint: 客户经理、商务
+      - responsibility: 登记资格预审、递交投标与评标结果，登记商机丢单或放弃
+        approval_right: 无审批权
+        department_hint: 市场与经营部门、各区域事业部
+        position_hint: 客户经理、商务、投标专员
+      - responsibility: 商机负责人按判断清单逐项评分、写明理由，决定参投或放弃
+        approval_right: 无审批权
+        department_hint: 市场与经营部门、各区域事业部
+        position_hint: 客户经理、商机负责人
+      - responsibility: 生效协议价目版本（按往来单位议定的单价条目）
+        approval_right: 无审批权
+        department_hint: 市场与经营部门
+        position_hint: 商务
+      - responsibility: 协议生效后转正风险交付授权，并入协议
+        approval_right: 无审批权
+        department_hint: 市场与经营部门
+        position_hint: 商务
+      - responsibility: 收到计划到期知会后跟进续做线索（另起「登记并跟进线索」）
+        approval_right: 无
+        department_hint: 市场与客户经营部门
+        position_hint: 市场和客户经理
+      - responsibility: 起草协议、登记合同—项目关联与视为同意参数、登记回签
+        approval_right: 无
+        department_hint: 市场与商务部门
+        position_hint: 商务经理（合同管理岗）
+      - responsibility: 提出协议变更、评估影响、登记现场签证
+        approval_right: 无
+        department_hint: 市场与商务部门
+        position_hint: 商务经理（合同管理岗）
+      - responsibility: 提出索赔、登记对方答复与认定
+        approval_right: 无（索赔提交不设审批，见待用户定）
+        department_hint: 市场与商务部门
+        position_hint: 商务经理（合同管理岗）
+      - responsibility: 占用框架限额、起草并提交任务订单
+        approval_right: 无
+        department_hint: 市场与商务部门
+        position_hint: 商务经理（合同管理岗）
+      - responsibility: 提交开票申请（预收、首付款先于回签的由其发起）
+        approval_right: 无
+        department_hint: 市场与商务部门
+        position_hint: 商务经理
+      - responsibility: 发起结算、编制结算书、与对方确认最终价款、结算协议
+        approval_right: 无
+        department_hint: 市场与商务部门
+        position_hint: 商务经理（合同管理岗）
+      - responsibility: 因投标、诉讼或结算申请借阅合同
+        approval_right: 无
+        department_hint: 市场与商务部门
+        position_hint: 商务经理
+      - responsibility: 登记非成果认可型付款条件达成并附外部证据
+        approval_right: 无
+        department_hint: 市场与商务部门
+        position_hint: 商务经理（合同管理岗）
+      - responsibility: 向招标人催退投标保证金
+        approval_right: 无
+        department_hint: 市场与商务部门
+        position_hint: 商务经理
+      - responsibility: 登记、维护本流程对象并推进状态
+        approval_right: 无审批权
+        department_hint: 市场与经营部门
+        position_hint: 市场经理、客户经理
+      - responsibility: 登记新客户档案
+        approval_right: 无审批权
+        department_hint: 市场与经营部门
+        position_hint: 客户经理
+      - responsibility: 登记建设工程与招标项目
+        approval_right: 无审批权
+        department_hint: 市场与经营部门
+        position_hint: 客户经理
+      - responsibility: 提交协议终止申请并登记终止原因、依据文件
+        approval_right: 无
+        department_hint: 市场与商务部门
+        position_hint: 商务经理（合同管理岗）
+      - responsibility: 按周编制本人的销售预测版本
+        approval_right: 无（预测不审批）
+        department_hint: 市场与客户部门
+        position_hint: 市场和客户经理职能岗
+      groups:
+      - people
+      - revenue
+    SH-E6:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 核实往来单位档案（线索转商机的前置，见 PRC-05）
+        approval_right: 无审批权
+        department_hint: 财务部（往来单位管理岗）
+        position_hint: 财务专员
+      - responsibility: 出纳按银行付款回单登记投标保证金缴纳，系统提交过账候选（退还见 PRC-153）
+        approval_right: 无审批权（登记退还须按法人范围授权）
+        department_hint: 财务部（资金岗）
+        position_hint: 出纳
+      - responsibility: 编制费率版本与计费系数并提交批准，生效已批准的版本
+        approval_right: 无审批权
+        department_hint: 财务部（经营分析岗）、经营管理部
+        position_hint: 财务经理、经营分析专员
+      - responsibility: 财务核算、收入确认复核与清算知会
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 财务经理、会计
+      - responsibility: 知会结项以便核对收入与清算
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 财务经理、会计
+      - responsibility: 命中加审规则时复核合同的财务与法律风险
+        approval_right: 加审审批权（财务负责人）；法务提专业意见
+        department_hint: 财务部、法务
+        position_hint: 财务负责人、法务
+      - responsibility: 变更金额超阈值或关联方时加审
+        approval_right: 加审审批权（财务负责人）
+        department_hint: 财务部
+        position_hint: 财务负责人
+      - responsibility: 订单金额超阈值时加审
+        approval_right: 加审审批权（财务负责人）
+        department_hint: 财务部
+        position_hint: 财务负责人
+      - responsibility: 认定成立后在 PRC-53 的收入确认审批中复核
+        approval_right: 在 PRC-53 有复核审批权（财务负责人）
+        department_hint: 财务部
+        position_hint: 财务负责人
+      - responsibility: 金额超第二阈值或关联方时加审
+        approval_right: 加审审批权（财务负责人）
+        department_hint: 财务部
+        position_hint: 财务负责人
+      - responsibility: 经税务平台开具销项发票、作废开票申请
+        approval_right: 无审批权（经办）
+        department_hint: 财务部
+        position_hint: 开票会计
+      - responsibility: 提交红冲申请，通过后发起红字信息确认并红冲发票
+        approval_right: 无审批权（红冲须经下列责任人审批）
+        department_hint: 财务部
+        position_hint: 开票会计
+      - responsibility: 命中 AR-06 时加审：核对红冲是否影响已过账事实
+        approval_right: 加审审批权（财务负责人）
+        department_hint: 财务部
+        position_hint: 财务负责人
+      - responsibility: 每日认领到账流水、核销应收、记分配
+        approval_right: 无审批权（经办；认领与流水登记职务分离）
+        department_hint: 财务部
+        position_hint: 出纳
+      - responsibility: 登记争议与处置分类、核销坏账
+        approval_right: 无审批权（经办；核销坏账须经责任人审批）
+        department_hint: 财务部
+        position_hint: 应收会计、财务主管
+      - responsibility: 登记商票兑付，到期未兑付标逾期
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 出纳
+      - responsibility: 核验供方资质、核准角色合格，暂停或停用角色
+        approval_right: 无审批权（核准合格为职能经办，不是费用审批）
+        department_hint: 财务部（往来单位管理岗）
+        position_hint: 财务专员
+      - responsibility: 发起资质核查、登记核查结果、办理延续申请
+        approval_right: 无审批权
+        department_hint: 行政与综合管理部（资质管理岗）
+        position_hint: 资质专员
+      - responsibility: 登记员工借款发放、认领归还、手工冲抵
+        approval_right: 无审批权（经办；发放与付款执行职务分离）
+        department_hint: 财务部
+        position_hint: 应收会计、出纳
+      - responsibility: 登记借出与归还，管理原件
+        approval_right: 无审批权（经办；与借阅人职务分离）
+        department_hint: 行政或档案部门
+        position_hint: 档案管理员
+      - responsibility: 接收原件、核对份数与签章并归档
+        approval_right: 无审批权（经办）
+        department_hint: 行政或档案部门
+        position_hint: 档案管理员
+      - responsibility: 提交冲销申请；命中 AR-06 时作为财务负责人加审
+        approval_right: 加审审批权（财务负责人）
+        department_hint: 财务部
+        position_hint: 财务负责人、应收会计
+      - responsibility: 确认招标人退款到账并登记退还、过账
+        approval_right: 无审批权（经办）
+        department_hint: 财务部（资金岗）
+        position_hint: 出纳
+      - responsibility: 财务复核客户确认证据的实质与签认人身份
+        approval_right: 收入确认审批的复核审批权（承担法人财务负责人）
+        department_hint: 财务部
+        position_hint: 财务负责人
+      - responsibility: 收到催还待办，跟进原件归还
+        approval_right: 无
+        department_hint: 行政或档案部门
+        position_hint: 档案管理员
+      - responsibility: 二次校验失败后人工处置占用：释放，或补证据后重新发起审批
+        approval_right: 无审批权（经办；财务负责人处置）
+        department_hint: 财务部
+        position_hint: 财务负责人
+      - responsibility: 收到已收款后红冲的待办，处理退款或重开发票
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 应收会计
+      - responsibility: 核实往来单位档案，变更银行账户，合并或停用往来单位
+        approval_right: 核实、变更银行账户、合并、停用的经办权（建议另设复核，见待用户定）
+        department_hint: 财务部（往来单位管理岗）
+        position_hint: 财务专员
+      - responsibility: 出纳登记保证金与保函的缴纳、扣减、退还、没收、到期或索赔；扣减、没收经审批后登记
+        approval_right: 无审批权（须按法人范围授权）
+        department_hint: 财务部（资金岗）
+        position_hint: 出纳
+      - responsibility: 经办开放证据类型，依据为财务负责人书面确认文件，每年复核
+        approval_right: 财务负责人书面确认（线下留档）；经办岗无审批权
+        department_hint: 财务部
+        position_hint: 财务负责人、财务会计
+      - responsibility: 编制并经财务负责人批准生效应收默认账期规则
+        approval_right: 财务负责人批准
+        department_hint: 财务部
+        position_hint: 财务负责人、应收会计
+      - responsibility: 查看到期提示并催收质保金
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 应收会计
+      - responsibility: 核对权责收入与开票收入差额
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 收入会计、财务负责人
+      - responsibility: 维护法人、组织单元、职位目录与法人归属主数据
+        approval_right: 无（全部由不变量守卫，不设审批）
+        department_hint: 人力资源部
+        position_hint: 人事主数据维护岗（职能：维护组织与职位目录）
+      - responsibility: 需求批准后开展招聘
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 招聘专员（职能：组织招聘）
+      - responsibility: 登记候选人与答复，发出录用通知
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 招聘专员（职能：候选人登记与录用事务）
+      - responsibility: 登记入职、建立任职、提交并登记劳动合同
+        approval_right: 无（劳动合同批准由部门负责人）
+        department_hint: 人力资源部
+        position_hint: 人事专员（职能：入职与合同事务）
+      - responsibility: 办理参保增员并建立薪酬档案
+        approval_right: 无
+        department_hint: 人力资源部（薪酬与社保）
+        position_hint: 薪酬与社保专员（职能：参保经办与薪酬档案）
+      - responsibility: 办理转正
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人事专员（职能：办理转正与用工状态变更）
+      - responsibility: 为预算类基线开立预算账户，在基线额度总额内调剂账户额度
+        approval_right: 无（账户级调剂由规则守卫，不设审批）
+        department_hint: 财务部门
+        position_hint: 预算管理与预算会计职能岗
+      - responsibility: 在预测周期末编制现金流预测
+        approval_right: 无
+        department_hint: 财务部门
+        position_hint: 现金流与资金预测职能岗
+      - responsibility: 接收导入失败告警，修复人员对照后重新拉取
+        approval_right: 无
+        department_hint: 人力资源部、信息部门
+        position_hint: 人力资源专员、考勤管理员
+      - responsibility: 维护额度与假期规则，接收请假知会
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人力资源专员
+      - responsibility: 接收当月加班超 36 小时的预警
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人力资源专员
+      - responsibility: 接收系统告警与知会并跟进处理
+        approval_right: 无
+        department_hint: 人力资源部（薪酬事项含财务部）
+        position_hint: 人力资源专员、薪酬岗
+      - responsibility: 按管理层要求编制激励方案版本（规则与额度），对内容完整性负责
+        approval_right: 无（编制人不得审批本人编制的方案）
+        department_hint: 人力资源部
+        position_hint: 人力资源负责人、薪酬岗
+      - responsibility: 接收奖金草拟已中止或被驳回的告警，调整方案或评估后重新草拟
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人力资源专员、薪酬岗
+      - responsibility: 核对系统计算结果与异常清单，确认无误后提交审核，对输入修正负责
+        approval_right: 无（提交人不得审批同一份结算）
+        department_hint: 人力资源部（薪酬岗）
+        position_hint: 薪酬岗
+      - responsibility: 作为薪酬法人的财务责任人，对薪酬支付依据的合理性负责
+        approval_right: 正常一级审批（cost_object_owner 解析结果）；金额超阈值加审
+        department_hint: 财务部
+        position_hint: 财务负责人、财务主管
+      - responsibility: 核对系统生成的申报数据，在外部渠道办理申报与缴款并登记回执
+        approval_right: 无（人工只做外部申报与登记；缴款资金支出由出纳另行执行）
+        department_hint: 人力资源部（薪酬、申报岗）
+        position_hint: 薪酬岗、申报岗
+      - responsibility: 发起公司终止、登记终止依据、办理离职
+        approval_right: 无（公司终止的批准由部门负责人）
+        department_hint: 人力资源部
+        position_hint: 人事专员（职能：离职办理）
+      - responsibility: 收到离职提醒，资产归还见 B-31
+        approval_right: 无
+        department_hint: 信息部门
+        position_hint: 信息管理员（职能：账号与设备）
+      - responsibility: 提交调岗申请，办理合同与薪酬、参保变更
+        approval_right: 无（调岗批准由新组织单元负责人）
+        department_hint: 人力资源部
+        position_hint: 人事专员（职能：任职变更事务）
+      - responsibility: 信息、薪酬与社保经办
+        approval_right: 无
+        department_hint: 信息部门与人力资源部（薪酬与社保）
+        position_hint: 信息管理员、薪酬与社保专员（职能）
+      - responsibility: 处理企业微信开通失败
+        approval_right: 无
+        department_hint: 信息部门
+        position_hint: 信息管理员（职能：企业微信与账号管理）
+      - responsibility: 入职日未绑定时知悉告警
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人事专员
+      - responsibility: 手工停用企业微信成员并登记，放行离职处置
+        approval_right: 无
+        department_hint: 信息部门
+        position_hint: 信息管理员（职能：账号与企业微信管理）
+      - responsibility: 知悉停用结果
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人事专员
+      - responsibility: 保管印章，按已批准内容（来源审批实例已通过，或负责人已批准）核对后实际盖章，并登记用印时间、份数、经办人，归档扫描件
+        approval_right: 登记用印（不批准申请）
+        department_hint: 行政
+        position_hint: 印章保管与行政事务经办人员；岗位体系未定，按职能描述
+      - responsibility: 受理、处理并解决 IT 需求，登记处理过程与结论，不成立时退回提出人
+        approval_right: 受理、解决、退回 IT 需求（不审批）
+        department_hint: 信息（IT）
+        position_hint: IT 服务台与运维人员；岗位体系未定，按职能描述
+      - responsibility: 交付设备并登记领用，保证同一资产同一时刻只有一个使用人
+        approval_right: 登记领用（不批准申请）
+        department_hint: 信息（IT）
+        position_hint: IT 资产管理员；岗位体系未定，按职能描述
+      - responsibility: 组织实施活动并确认完成；登记记错或活动取消时办理取消登记，写原因并保留审计，按需要重新登记
+        approval_right: 确认完成、取消员工活动登记（均不审批）
+        department_hint: 行政
+        position_hint: 行政事务经办人员；岗位体系未定，按职能描述
+      - responsibility: 核对并登记交接，结束调出方使用期间并开启调入方使用期间
+        approval_right: 登记调拨（不批准申请）
+        department_hint: 信息（IT）
+        position_hint: IT 资产管理员；岗位体系未定，按职能描述
+      - responsibility: 验收归还的设备并登记归还日，处理离职触发的归还待办
+        approval_right: 登记归还（验收人不得是名下资产自己的管理员）
+        department_hint: 信息（IT）
+        position_hint: IT 资产管理员；岗位体系未定，按职能描述
+      - responsibility: 送修或内部处理，并登记维修结果与证据
+        approval_right: 登记维修结果（不审批）
+        department_hint: 信息（IT）
+        position_hint: IT 资产管理员；岗位体系未定，按职能描述
+      - responsibility: 作为 B-24 资产卡片维护人，知悉维修无法修复的结果并另行发起报废
+        approval_right: 无（只知悉，报废由财务在 B-24 发起）
+        department_hint: 财务
+        position_hint: 固定资产核算与卡片维护人员；岗位体系未定，按职能描述
+      - responsibility: 经营月报出具后为偏差提供口径说明与财务分析支持
+        approval_right: 无
+        department_hint: 财务部门
+        position_hint: 经营分析与管理会计职能岗
+      - responsibility: 按银行代发回单逐行登记代发结果（含银行退回日）
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 财务职能人员（出纳）
+      - responsibility: 支付失败行在员工更正工资卡后于补发截止日前发起补发；长假确实办不完时登记顺延并通知员工
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人力资源职能人员（薪酬岗）
+      - responsibility: 补发截止日到期未补发时收到提醒并督办
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 法人财务负责人
+      - responsibility: 知悉申报批次中出现股息红利并入项
+        approval_right: 无
+        department_hint: 人力资源部（薪酬、申报岗）
+        position_hint: 薪酬岗、申报岗
+      - responsibility: 财务知悉待付清单出现应付薪酬或补发明细，按付款流程办理
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 出纳、应付会计
+      - responsibility: 知悉薪酬已发放
+        approval_right: 无
+        department_hint: 财务部、人力资源部
+        position_hint: 薪酬岗、财务
+      - responsibility: 吊销失败时处理告警
+        approval_right: 无
+        department_hint: 信息部门
+        position_hint: 信息管理员
+      - responsibility: 办理参保减员与公积金封存或转移
+        approval_right: 无
+        department_hint: 人力资源部（薪酬与社保）
+        position_hint: 薪酬与社保专员（职能：参保经办）
+      - responsibility: 知悉薪酬已过账
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 总账会计
+      - responsibility: 接收三口径不一致预警并核对更正
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人力资源专员、薪酬岗
+      - responsibility: 接收结转或开账失败告警并跟进处理
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人力资源专员、考勤管理员
+      - responsibility: 接收关闭待处理告警，先释放或消耗占用中的占用行后重新触发
+        approval_right: 无
+        department_hint: 财务部
+        position_hint: 预算会计、财务负责人
+      - responsibility: 接收同步失败告警并跟进重试
+        approval_right: 无
+        department_hint: 信息部门、人力资源部
+        position_hint: 信息管理员、人事专员
+      - responsibility: 接收补休转计发登记待处理的告警并补齐加班工资基数后重新触发
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 薪酬岗
+      - responsibility: 办理并登记延续注册
+        approval_right: 无
+        department_hint: 人力资源部
+        position_hint: 人事专员（职能：执业证书管理）
+      - responsibility: 每年维护工作日历与标准工时版本，对依据文件的准确性负责
+        approval_right: 无（版本区间由不变量守卫）
+        department_hint: 人力资源部
+        position_hint: 人力资源专员、考勤管理员
+      - responsibility: 依据调薪决定登记薪酬档案版本，年度更新专项附加扣除，对依据完整性负责
+        approval_right: 无（无依据即由规则拒绝；调薪决定是否进审批待用户定 U9）
+        department_hint: 人力资源部（薪酬岗）
+        position_hint: 薪酬岗
+      - responsibility: 依据制度与法规发布假期规则版本，对依据完整性负责
+        approval_right: 无（区间唯一由不变量守卫）
+        department_hint: 人力资源部
+        position_hint: 人力资源专员、考勤管理员
+      - responsibility: 依据法规与公司制度编制并发布薪酬规则版本，对依据完整性负责；编制人与确认人不得为同一人（U7③ 推荐）
+        approval_right: 无（区间唯一由不变量守卫；编制与确认分人见 U7③）
+        department_hint: 人力资源部与财务部
+        position_hint: 薪酬岗（编制）、财务确认人（职能：薪酬规则确认）
+      groups:
+      - finance
+      - people
+      - revenue
+    SH-E7:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 在资格范围内签发交付物并负专业责任
+        approval_right: 交付物签发（须持证且专业、等级相符）
+        department_hint: 技术部门
+        position_hint: 注册建筑师、注册工程师等注册执业人员
+      - responsibility: 登记本人继续教育学时
+        approval_right: 无
+        department_hint: 所属部门
+        position_hint: 注册执业人员
+      groups:
+      - people
+      - revenue
+    SH-H1:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 应聘、面试、答复录用通知
+        approval_right: 无
+        department_hint: （外部）
+        position_hint: 候选人
+      - responsibility: 确认入职日、签署劳动合同
+        approval_right: 无
+        department_hint: （外部）
+        position_hint: 候选人（入职前）
+      groups:
+      - people
+    SH-M1:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 评审报价（价格、毛利、范围与风险）
+        approval_right: 按费用或业务归属对象的责任人审批本类单据（谁负责谁批）；基础审批人为商机负责人；命中加审规则时上送财务负责人、总经理；商机负责人本人提交时由汇报线上级代批（AR-11）
+        department_hint: 各区域事业部、经营管理部
+        position_hint: 事业部负责人、项目总监
+      - responsibility: 投标保证金付款审批（归属对象责任人，商机负责人的部门负责人）；参投判断已移至 PRC-183
+        approval_right: 投标保证金付款：一级审批，超额按 AR-01、AR-02 加审
+        department_hint: 市场与经营部门或区域事业部
+        position_hint: 部门负责人
+      - responsibility: 触发异常条件（低于毛利底线、超产能、独立性冲突）时审批参投决策（商机负责人的部门负责人）
+        approval_right: 参投例外：一级审批
+        department_hint: 市场与经营部门或区域事业部
+        position_hint: 部门负责人
+      - responsibility: 批准标准成本费率与计费系数版本
+        approval_right: 按费用或业务归属对象的责任人审批本类单据（谁负责谁批）；命中加审规则时上送财务负责人、总经理；基础审批人为经营管理职能负责人
+        department_hint: 经营管理部、财务部
+        position_hint: 经营管理负责人、财务负责人
+      - responsibility: 审批授权，授权期限届满时决定转正或叫停
+        approval_right: 按费用或业务归属对象的责任人审批本类单据（谁负责谁批）；命中加审规则时上送财务负责人、总经理
+        department_hint: 各区域事业部、经营管理部
+        position_hint: 事业部负责人、项目总监
+      - responsibility: 知会项目已开始执行
+        approval_right: 无
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 所辖项目与部门的经营管理、资源与成本责任
+        approval_right: 无
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 项目预算由项目经理负责（A）；项目经理本人提交时由其汇报线上级代批（AR-11，intent 164324）
+        approval_right: 上级代批项目预算（AR-11），一级
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 按专长、负荷与项目优先级确认本部门人员的资源分配
+        approval_right: 资源分配确认：本部门人员，单级
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 审批售前、管理间接工时及项目经理本人的项目工时
+        approval_right: 售前与管理间接工时审批，项目经理本人工时审批
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 决定暂停、恢复、终止或取消项目并写明原因
+        approval_right: 项目状态处置（暂停、恢复、终止、取消）；是否加审随 Q09
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 项目总监：审核本项目交付物校审结论
+        approval_right: 交付物校审（类型级）
+        department_hint: 业务部门
+        position_hint: 项目总监
+      - responsibility: 批准完工估算（项目总监，类型级；与提出人须不同人）
+        approval_right: 完工估算批准：一级
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 结项申请由项目经理负责（A）；项目经理本人提交时由其汇报线上级代批（AR-11，intent 164324）
+        approval_right: 上级代批结项申请（AR-11），一级
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 作为合同负责人评审合同（合同负责人是谁待新题）
+        approval_right: 一级评审（责任人）；总经理参与特殊加审
+        department_hint: 承接合同的业务部门
+        position_hint: 部门负责人
+      - responsibility: 作为项目责任人审批「是否向发包人提出」该变更；发包人答复或签认逾期时接收升级
+        approval_right: 一级审批（责任人）
+        department_hint: 承接项目的业务部门
+        position_hint: 项目总监、部门负责人
+      - responsibility: 索赔时限临近的超时升级知会
+        approval_right: 无
+        department_hint: 承接项目的业务部门
+        position_hint: 项目总监、部门负责人
+      - responsibility: 作为项目责任人审批任务订单
+        approval_right: 一级审批（责任人）
+        department_hint: 承接项目的业务部门
+        position_hint: 项目总监、部门负责人
+      - responsibility: 期满无声明、催办仍无人处理时接收升级
+        approval_right: 无
+        department_hint: 事业部或区域
+        position_hint: 部门负责人
+      - responsibility: 审批超时升级与特殊加审
+        approval_right: 特殊加审时参与
+        department_hint: 事业部或区域
+        position_hint: 部门负责人、总经理
+      - responsibility: 审批超时升级；金额超第二阈值或关联方时特殊加审
+        approval_right: 特殊加审时参与
+        department_hint: 事业部或区域
+        position_hint: 部门负责人、总经理
+      - responsibility: 待认领超期与审批超时的升级；AR-15 特殊加审
+        approval_right: 特殊加审时参与
+        department_hint: 事业部或区域
+        position_hint: 部门负责人、总经理
+      - responsibility: 处置登记与坏账核销审批超时的升级知会
+        approval_right: 无
+        department_hint: 事业部或区域
+        position_hint: 部门负责人
+      - responsibility: 商票到期未登记的升级知会
+        approval_right: 无
+        department_hint: 事业部或区域
+        position_hint: 财务负责人的上级（总经理）
+      - responsibility: 结算确认超期与审批超时的升级知会
+        approval_right: 无
+        department_hint: 事业部或区域
+        position_hint: 部门负责人
+      - responsibility: 批准资质延续（经营决策）
+        approval_right: 资质延续批准权（专业或经营决策，不属费用审批）
+        department_hint: 经营管理层（执委会、职能高管）
+        position_hint: 总经理、分管副总
+      - responsibility: 作为借款人所在部门的责任人审批借款用途与必要性；到期未还的升级知会
+        approval_right: 一级审批（责任人）
+        department_hint: 借款人所在部门
+        position_hint: 部门负责人
+      - responsibility: 作为借阅人所在部门的责任人审批借阅
+        approval_right: 一级审批（责任人）
+        department_hint: 借阅人所在部门
+        position_hint: 部门负责人
+      - responsibility: 审批超时的升级知会；AR-02、AR-07 特殊加审
+        approval_right: 特殊加审时参与
+        department_hint: 事业部或区域
+        position_hint: 总经理
+      - responsibility: 抽查所辖项目的产值估计是否合理，发现偏差通知项目经理更正
+        approval_right: 无审批权（抽查，不设审批）
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人
+      - responsibility: 退款长期未到账的升级知会
+        approval_right: 无
+        department_hint: 事业部或区域
+        position_hint: 部门负责人
+      - responsibility: 收入确认审批超时的升级处理（财务负责人的上级）；AR-02、AR-07 加审
+        approval_right: 无
+        department_hint: 事业部或区域
+        position_hint: 总经理（财务负责人的上级）
+      - responsibility: 占用处置超期的升级知会（财务负责人的上级）
+        approval_right: 无
+        department_hint: 事业部或区域
+        position_hint: 总经理
+      - responsibility: 作为保证金所属协议或商机的责任人审批扣减、没收
+        approval_right: 一级审批（责任人）；AR-01、AR-02 命中加审
+        department_hint: 承接项目的业务部门或商机负责部门
+        position_hint: 项目经理、商机负责人、部门负责人
+      - responsibility: 接受残余风险并记依据
+        approval_right: 风险与问题接受
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 作为合同负责人审批终止（合同负责人是谁待新题）；知会法务
+        approval_right: 一级审批（责任人）；AR-01、AR-02、AR-07 命中加审
+        department_hint: 承接合同的业务部门
+        position_hint: 部门负责人
+      - responsibility: 看经营产值与收入、开票的差额与时滞，判断确认与开票推进
+        approval_right: 无
+        department_hint: 承接项目的业务部门或事业部
+        position_hint: 部门负责人、项目总监
+      - responsibility: 数据范围待复核时确认是否调整授权
+        approval_right: 无
+        department_hint: 区域或事业部
+        position_hint: 区域负责人（职能：对本区域组织数据范围负责）
+      - responsibility: 对本组织单元的用人取舍负责
+        approval_right: 批准招聘需求（类型级，单级）
+        department_hint: 需求所在组织单元
+        position_hint: 部门负责人（职能：组织单元责任人）
+      - responsibility: 对新员工所在组织单元的用人负责
+        approval_right: 批准劳动合同（类型级，单级）
+        department_hint: 新员工所在组织单元
+        position_hint: 部门负责人（职能：组织单元责任人）
+      - responsibility: 编制所辖组织单元的经营计划版本并提交审批
+        approval_right: 无（编制与提交）
+        department_hint: 计划归属组织单元（部门、事业部；公司级为管理层）
+        position_hint: 组织单元负责人或其指定的计划编制人
+      - responsibility: 对本组织单元经营计划的可达性与资源取舍负责
+        approval_right: 经营计划审批（实例级，计划归属组织单元的责任人）
+        department_hint: 计划归属组织单元（公司级为管理层）
+        position_hint: 组织单元负责人（部门负责人）；公司级为管理层负责人
+      - responsibility: 获知预测与逾期未报升级
+        approval_right: 无
+        department_hint: 管理层
+        position_hint: 管理层负责人
+      - responsibility: 获知知识条目发布情况；评审逾期时收到升级提醒并督办
+        approval_right: 无（评审不由管理层做）
+        department_hint: 管理层
+        position_hint: 管理层负责人
+      - responsibility: 接收审批超期或期限提醒的升级，必要时督办
+        approval_right: 无（升级只提醒，不替代审批人）
+        department_hint: 公司管理层
+        position_hint: 总经理、分管副总
+      - responsibility: 作为方案适用范围的责任人，对经营取舍负责
+        approval_right: 正常一级审批（cost_object_owner 解析结果）；金额超阈值时上加一级
+        department_hint: 公司管理层
+        position_hint: 总经理、分管副总、事业部负责人
+      - responsibility: 奖金金额超阈值时的上一级责任人
+        approval_right: 加审一级（AR-02 总经理）
+        department_hint: 公司管理层
+        position_hint: 总经理
+      - responsibility: 知悉薪酬总额；审批超期时接收升级提醒
+        approval_right: 无（升级只提醒，不替代审批人）
+        department_hint: 公司管理层
+        position_hint: 总经理、分管副总
+      - responsibility: 申报期限提醒的升级对象
+        approval_right: 无
+        department_hint: 公司管理层
+        position_hint: 分管副总
+      - responsibility: 对被终止员工所属组织单元负责
+        approval_right: 批准公司单方终止（类型级，单级）
+        department_hint: 被终止员工所在组织单元
+        position_hint: 部门负责人（职能：组织单元责任人）
+      - responsibility: 对接收方组织单元的人工成本负责
+        approval_right: 批准调岗申请（类型级，单级）
+        department_hint: 新组织单元
+        position_hint: 部门负责人（职能：新组织单元责任人）
+      - responsibility: 按用印用途、法人、归属对象的正式制度配置判断无来源单据用印；责任归属不由 AR-11、AR-12 代替
+        approval_right: 仅在 D15 用印人工批准责任及加审范围配置完整时批准；AR-16 候选范围不能直接启用
+        department_hint: 按正式制度配置解析，不默认申请人部门
+        position_hint: 正式责任角色与授权层级上线前须填，见 ARCH-B31-materials 1、2
+      - responsibility: 按受控类别和正式制度配置判断业务必要性及范围，不默认提出人部门负责人
+        approval_right: 仅批准已配置为需人审的类别；金额先分清 IT 或采购承载，IT 自身承载才配置两档阈值和币种
+        department_hint: 各类别责任表指定，上线前须填
+        position_hint: 批准角色、类别表提供方与维护方、默认路由及采购交接上线前须填，见 ARCH-B31-materials 3、4
+      - responsibility: 知悉跨组织单元的调拨，对本单元资产使用情况负责
+        approval_right: 无（同一核算主体内跨组织只通知调出、调入两侧负责人，不增加批准）
+        department_hint: 调出方、调入方所在组织单元
+        position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
+      - responsibility: 离职员工原组织单元负责人，对逾期未归还的资产收到提醒并督促
+        approval_right: 无（只接收提醒）
+        department_hint: 离职员工原组织单元
+        position_hint: 组织单元负责人（部门负责人）；岗位体系未定，按职能描述
+      - responsibility: 对所辖组织单元的经营偏差作出解释，确定经营动作及其责任人和期限，定稿复盘
+        approval_right: 无（复盘记录不设审批）
+        department_hint: 复盘组织单元（部门、事业部；公司级为管理层）
+        position_hint: 组织单元负责人（部门负责人）；公司级为管理层负责人
+      - responsibility: 作为经营动作责任人完成动作并登记完成
+        approval_right: 无
+        department_hint: 动作责任人所在组织单元
+        position_hint: 组织单元负责人或其指定的动作责任人
+      - responsibility: 补发逾期超过 5 个工作日时收到升级提醒并督办
+        approval_right: 无
+        department_hint: 管理层
+        position_hint: 法人负责人（ROLE-26 总经理，按法人解析）
+      - responsibility: 获知知识条目的使用与复审情况
+        approval_right: 无
+        department_hint: 管理层
+        position_hint: 管理层负责人
+      groups:
+      - finance
+      - people
+      - revenue
+    SH-O1:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 获知经营计划基线
+        approval_right: 无
+        department_hint: 不适用（股东和合伙人）
+        position_hint: 不适用
+      - responsibility: 获知经营复盘结论与动作完成情况
+        approval_right: 无
+        department_hint: 不适用（股东和合伙人）
+        position_hint: 不适用
+      - responsibility: 自然人股东是个税纳税人，法人股东自行处理所得
+        approval_right: 无（外部相关方）
+        department_hint: 外部（股东）
+        position_hint: 不适用
+      groups:
+      - finance
+      - people
+    SH-P1:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 外部方，按本流程的交互提供信息、文件或答复
+        approval_right: 无（外部方，不设系统权限）
+        department_hint: 不适用（外部方）
+        position_hint: 不适用（外部方）
+      groups:
+      - revenue
+    SH-P1c:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 外部方，按本流程的交互提供信息、文件或答复
+        approval_right: 无（外部方，不设系统权限）
+        department_hint: 不适用（外部方）
+        position_hint: 不适用（外部方）
+      groups:
+      - revenue
+    SH-P2:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 外部方，按本流程的交互提供信息、文件或答复
+        approval_right: 无（外部方，不设系统权限）
+        department_hint: 不适用（外部方）
+        position_hint: 不适用（外部方）
+      groups:
+      - finance
+      - revenue
+    SH-P3:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 外部方，按本流程的交互提供信息、文件或答复
+        approval_right: 无（外部方，不设系统权限）
+        department_hint: 不适用（外部方）
+        position_hint: 不适用（外部方）
+      groups:
+      - revenue
+    SH-R1:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 出具施工图审查合格书
+        approval_right: 不适用（外部监管）
+        department_hint: 审图机构
+        position_hint: —
+      groups:
+      - revenue
+    SH-R2:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 税务平台开具并返回结果
+        approval_right: 不适用
+        department_hint: 税务机关
+        position_hint: —
+      - responsibility: 税务机关（经税务平台）
+        approval_right: 不适用（外部监管）
+        department_hint: 税务机关
+        position_hint: —
+      - responsibility: 外部方，按本流程的交互提供信息、文件或答复
+        approval_right: 无（外部方，不设系统权限）
+        department_hint: 不适用（外部方）
+        position_hint: 不适用（外部方）
+      - responsibility: 受理申报并出具回执
+        approval_right: 无（外部机构，系统外）
+        department_hint: 外部（税务、社保、公积金经办机构）
+        position_hint: 不适用
+      - responsibility: 受理延续注册
+        approval_right: 无
+        department_hint: （外部）
+        position_hint: 注册执业管理机构
+      groups:
+      - finance
+      - people
+      - revenue
+    SH-X2:
+      positions:
+      - 待岗位体系定
+      org_needs: []
+      groups:
+      - finance
+    SH-X4:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 外部方，按本流程的交互提供信息、文件或答复
+        approval_right: 无（外部方，不设系统权限）
+        department_hint: 不适用（外部方）
+        position_hint: 不适用（外部方）
+      - responsibility: 招标人或招标代理：退还投标保证金
+        approval_right: 不适用（外部）
+        department_hint: 招标人、招标代理
+        position_hint: —
+      groups:
+      - revenue
+    SH-X5:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 我方为 TIS 专项分包时的上游保险技术检查机构
+        approval_right: 无
+        department_hint: 外部，不在本系统组织内
+        position_hint: —
+      groups:
+      - revenue
+    SH-X6:
+      positions:
+      - 待岗位体系定
+      org_needs:
+      - responsibility: 持证检测机构，受业主委托做第三方检测
+        approval_right: 无
+        department_hint: 外部，不在本系统组织内
+        position_hint: —
+      - responsibility: 持证检测机构出具报告
+        approval_right: 无
+        department_hint: 外部，不在本系统组织内
+        position_hint: —
+      groups:
+      - revenue
+    SH-X7:
+      positions:
+      - 待岗位体系定
+      org_needs: []
+      groups:
+      - finance
+  command_references:
+    SH-E1:
+      A: 0
+      R: 11
+      any: 11
+    SH-E2:
+      A: 0
+      R: 56
+      any: 56
+    SH-E3:
+      A: 2
+      R: 47
+      any: 47
+    SH-E4:
+      A: 13
+      R: 44
+      any: 44
+    SH-E5:
+      A: 5
+      R: 65
+      any: 65
+    SH-E6:
+      A: 100
+      R: 182
+      any: 219
+    SH-E7:
+      A: 1
+      R: 2
+      any: 2
+    SH-M1:
+      A: 183
+      R: 48
+      any: 198
+    SH-O1:
+      A: 2
+      R: 2
+      any: 2
+    platform.approval:
+      A: 0
+      R: 8
+      any: 8
+    system:
+      A: 0
+      R: 147
+      any: 147
+    system（B-11 PRC-71 经 api 调用）:
+      A: 0
+      R: 1
+      any: 1
+    system（B-11、B-12、定时对账）:
+      A: 0
+      R: 1
+      any: 1
+    财务负责人:
+      A: 2
+      R: 0
+      any: 2

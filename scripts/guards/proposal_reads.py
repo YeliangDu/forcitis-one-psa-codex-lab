@@ -12,9 +12,9 @@ from pathlib import Path
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
-REGISTRY = REPO / "docs/modernization/architecture/proposal_reads.yaml"
+REGISTRY = REPO / "docs/architecture/proposal-reads.yaml"
 SUFFIXES = (".py", ".sh", ".java", ".kt", ".ts", ".mjs")
-SKIP = ("docs/modernization/architecture-guardrails/",)
+SKIP = ("docs/architecture-guardrails/",)
 MENTION = re.compile(r"""(?:^|[/"'])proposals(?:/|["'])""", re.M)
 KINDS = {"data", "tool", "mention"}
 

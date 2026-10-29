@@ -76,7 +76,7 @@ class AuditSubjectKindGuardTest {
     @SuppressWarnings("unchecked")
     void ownersAreBcs() throws IOException {
         Set<String> bcs;
-        try (InputStream in = Files.newInputStream(Path.of("../docs/modernization/glossary/bcs.yaml"))) {
+        try (InputStream in = Files.newInputStream(Path.of("../docs/glossary/bcs.yaml"))) {
             Map<String, Object> root = new Yaml().load(in);
             bcs = ((List<Map<String, Object>>) root.get("bcs")).stream().filter(e -> "bc".equals(e.get("kind"))).map(e -> String.valueOf(e.get("id")))
                     .collect(Collectors.toSet());

@@ -14,7 +14,7 @@ from pathlib import Path
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
-HERE = REPO / "docs/modernization/architecture/ssot/09-processes"
+HERE = REPO / "docs/architecture/ssot/processes"
 PROPOSALS = HERE.parents[1] / "proposals"   # 限期读取例外，见 architecture/proposal_reads.yaml
 CATALOG = HERE / "catalog.yaml"
 OUT = HERE / "CATALOG.md"

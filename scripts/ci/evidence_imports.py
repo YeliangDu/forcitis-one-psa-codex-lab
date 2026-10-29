@@ -18,7 +18,7 @@ import sys
 import tempfile
 
 DIRS = (
-    "docs/modernization/phase1a/infra/handoff/B-5-dba/tools",
+    "docs/ops/dba-scripts/tools",
     "tools/ops/ecs/scripts",
     "tools/evidence",
 )

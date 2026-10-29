@@ -9,35 +9,35 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/node_modules
 # 记录类生成产物不入仓。CURRENT_DECISIONS.md 由 scripts/session/build_decisions.py 在本机生成；其余的生成器已随 #742 删除，规则留着防本地残留误入仓
-docs/modernization/INTENT.md
-docs/modernization/DECISION_DIGEST.md
-docs/modernization/CURRENT_DECISIONS.md
-docs/modernization/SESSION_LOG.md
-docs/modernization/STATUS.md
-docs/modernization/SESSIONS.md
-docs/modernization/rules/RULE_INDEX.md
-docs/modernization/WORK_BOARD.md
-docs/modernization/glossary/ISSUES.md
-docs/modernization/phase1a/infra/LEGACY_READ_REGISTER.md
+docs/INTENT.md
+docs/DECISION_DIGEST.md
+docs/CURRENT_DECISIONS.md
+docs/SESSION_LOG.md
+docs/STATUS.md
+docs/SESSIONS.md
+docs/business/rules/RULE_INDEX.md
+docs/WORK_BOARD.md
+docs/glossary/ISSUES.md
+docs/ops/LEGACY_READ_REGISTER.md
 __pycache__/
 .claude/session-name
 .pi-lens-probe-home/
 # 旧派生文档（生成器与 generated-docs 分支已随 #742 删除）：规则留着防本地残留误入仓
-docs/modernization/adr/ADR-*.md
-docs/modernization/adr/INDEX.md
-docs/modernization/adr/README.md
-docs/modernization/MODERNIZATION_BRIEF.md
+docs/adr/ADR-*.md
+docs/adr/INDEX.md
+docs/adr/README.md
+docs/MODERNIZATION_BRIEF.md
 backend/glossary/proposed/README.md
-docs/modernization/architecture/frameworks/CONCEPT_INDEX.md
-docs/modernization/architecture/frameworks/NOTES_INDEX.md
-docs/modernization/architecture/panorama/FREEZE_FACTS.md
-docs/modernization/architecture/panorama/FREEZE_FACTS.yaml
-docs/modernization/architecture/panorama/FREEZE_IMPACT.md
-docs/modernization/architecture/panorama/panorama.yaml
-docs/modernization/architecture/panorama/GAPS.md
+docs/architecture/frameworks/CONCEPT_INDEX.md
+docs/architecture/frameworks/NOTES_INDEX.md
+docs/architecture/panorama/FREEZE_FACTS.md
+docs/architecture/panorama/FREEZE_FACTS.yaml
+docs/architecture/panorama/FREEZE_IMPACT.md
+docs/architecture/panorama/panorama.yaml
+docs/architecture/panorama/GAPS.md
 # 命令目录旧生成产物（生成器已随 #742 删除）：规则留着防本地残留误入仓
-docs/modernization/architecture/ssot/11-commands/commands.yaml
-docs/modernization/architecture/ssot/11-commands/GAPS.md
+docs/architecture/ssot/commands/commands.yaml
+docs/architecture/ssot/commands/GAPS.md
 # OpenAPI 构建产物：本地先装前端依赖，再运行 bash scripts/codegen/generate_api.sh（需 Docker；离线加 -o）。
 # CI 的 api-contract 作业先导出并生成，其他作业下载本次运行的产物。
 frontend/packages/api/openapi.json

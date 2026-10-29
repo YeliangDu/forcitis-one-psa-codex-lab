@@ -9,7 +9,7 @@
 import datetime, json, os, re, subprocess, sys
 
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "docs", "modernization", "adr")
-SRC_PATH = "docs/modernization/adr/src"
+SRC_PATH = "docs/adr"
 NAME = re.compile(rf"{SRC_PATH}/ADR-(\d{{4}})\.md")
 
 

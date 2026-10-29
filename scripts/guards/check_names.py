@@ -7,7 +7,7 @@ Rules, each failure names the rule and the corrected name:
   N3 docs/: every file is lower-kebab-case whatever its format; a .md has no dotted variant (.notes.md, .keep.md, .template.md);
      no dotfiles (.gitkeep: docs/ holds files, not empty folders). Dotfiles elsewhere are not named by these rules
   N4 docs/: a new directory is lower-kebab-case and carries no stage or session name (phase1a, r0, u8c, one-ops ...)
-  N5 a new top-level directory under docs/, docs/modernization/, scripts/ or tools/ is not on the allowlist: ask lead
+  N5 a new top-level directory under docs/, docs/, scripts/ or tools/ is not on the allowlist: ask lead
 Exceptions: README.md and CLAUDE.md; ADR-NNNN*.md; fragments under intent/, decisions/ and legacy-read/; frontend/ keeps
 its package conventions. Phase 1 checks only added or renamed files, and directory rules only directories new in the
 diff, so legacy names do not block a pull request; after #755 renames the rest, check everything.
@@ -32,7 +32,7 @@ ADR = re.compile(r"ADR-\d{4}(-.*)?\.md")
 FRAGMENT_DIRS = {"intent", "decisions", "legacy-read"}
 ALLOWED = {  # top-level directories; a new one needs lead's yes
     "docs": {"modernization"},
-    "docs/modernization": set(),  # plus every directory already there at the base (legacy area, flattened by #744)
+    "docs": set(),  # plus every directory already there at the base (legacy area, flattened by #744)
     "scripts": {"ci", "codegen", "gates", "guards", "hooks", "merge", "release", "review", "session"},
     "tools": {"docs", "evidence", "ops"},
 }
@@ -147,29 +147,29 @@ def self_test():
     assert rules("scripts/codegen/test_scan_aggregates.py") == ["N2"] and "scan_aggregates_selftest.py" in file_problems("scripts/codegen/test_scan_aggregates.py", sessions, set())[0]
     assert rules("tools/ops/runner_test.py") == ["N2"] and rules("scripts/codegen/scan_acceptance_tests.py") == [], "a scanner of tests is no self-test"
     assert rules("scripts/ci/light_selftest.sh") == [] and rules("scripts/ci/relevant_change.py") == [] and rules("scripts/release/allowed_signers") == []
-    assert rules("docs/modernization/Some_Notes.md") == ["N3"] and "some-notes.md" in file_problems("docs/modernization/Some_Notes.md", sessions, set())[0]
-    assert rules("docs/modernization/data/Foo_Bar.yaml") == ["N3"] and "foo-bar.yaml" in file_problems("docs/modernization/data/Foo_Bar.yaml", sessions, set())[0]
-    assert rules("docs/modernization/data/c3-dev-db.sql") == [] and rules("docs/modernization/data/rows.csv") == []
-    assert rules("docs/modernization/data/.gitkeep") == ["N3"] and "remove .gitkeep" in file_problems("docs/modernization/data/.gitkeep", sessions, set())[0]
+    assert rules("docs/Some_Notes.md") == ["N3"] and "some-notes.md" in file_problems("docs/Some_Notes.md", sessions, set())[0]
+    assert rules("docs/data/Foo_Bar.yaml") == ["N3"] and "foo-bar.yaml" in file_problems("docs/data/Foo_Bar.yaml", sessions, set())[0]
+    assert rules("docs/data/c3-dev-db.sql") == [] and rules("docs/data/rows.csv") == []
+    assert rules("docs/data/.gitkeep") == ["N3"] and "remove .gitkeep" in file_problems("docs/data/.gitkeep", sessions, set())[0]
     assert rules("docs/modernization/.prettierrc") == ["N3"] and rules("scripts/ci/.keep") == [] and rules("tools/ops/.gitignore") == []
-    assert rules("docs/modernization/plan.notes.md") == ["N3"] and "no dotted variants" in file_problems("docs/modernization/brief.template.md", sessions, set())[0]
-    assert rules("docs/modernization/merge-queue.md") == [] and rules("docs/modernization/x/README.md") == []
-    assert rules("docs/modernization/adr/src/ADR-0080.md") == [] and rules("docs/modernization/adr/src/ADR-0081-naming.md") == []
-    assert rules("docs/modernization/intent/2026-10-29-120000-one-ops-中文.md") == [] and rules("docs/modernization/phase1a/infra/legacy-read/2026-10-29-1-one-ops-DAT.md") == []
-    assert rules("docs/modernization/data/Ops_Notes/a.md", ["docs/modernization/data/Ops_Notes"]) == ["N4"]
-    assert rules("docs/modernization/data/phase2/a.md", ["docs/modernization/data/phase2"]) == ["N4"]
-    assert rules("docs/modernization/data/one-ops/a.md", ["docs/modernization/data/one-ops"]) == ["N4"]
-    assert rules("docs/modernization/data/phase2/a.md") == [], "a directory that already exists at the base is legacy: phase 1 leaves it"
+    assert rules("docs/plan.notes.md") == ["N3"] and "no dotted variants" in file_problems("docs/brief.template.md", sessions, set())[0]
+    assert rules("docs/merge-queue.md") == [] and rules("docs/x/README.md") == []
+    assert rules("docs/adr/ADR-0080.md") == [] and rules("docs/adr/ADR-0081-naming.md") == []
+    assert rules("docs/decisions/2026-10-29-120000-one-ops-中文.md") == [] and rules("docs/ops/legacy-read/2026-10-29-1-one-ops-DAT.md") == []
+    assert rules("docs/data/Ops_Notes/a.md", ["docs/data/Ops_Notes"]) == ["N4"]
+    assert rules("docs/data/phase2/a.md", ["docs/data/phase2"]) == ["N4"]
+    assert rules("docs/data/one-ops/a.md", ["docs/data/one-ops"]) == ["N4"]
+    assert rules("docs/data/phase2/a.md") == [], "a directory that already exists at the base is legacy: phase 1 leaves it"
     for compound in ("phase1a-infra", "notes-phase2", "u8c-map", "r0-review", "one-ops-notes", "x-one-coordinator"):
-        assert rules(f"docs/modernization/data/{compound}/a.md", [f"docs/modernization/data/{compound}"]) == ["N4"], compound
-    assert rules("docs/modernization/data/release-notes/a.md", ["docs/modernization/data/release-notes"]) == [], "words that only contain a stage-like or session-like part are fine"
-    assert rules("docs/modernization/stuff/a.md", ["docs/modernization/stuff"]) == ["N5"]
+        assert rules(f"docs/data/{compound}/a.md", [f"docs/data/{compound}"]) == ["N4"], compound
+    assert rules("docs/data/release-notes/a.md", ["docs/data/release-notes"]) == [], "words that only contain a stage-like or session-like part are fine"
+    assert rules("docs/stuff/a.md", ["docs/stuff"]) == ["N5"]
     assert rules("scripts/misc/a.py", ["scripts/misc"]) == ["N5"] and "ask lead" in file_problems("scripts/misc/a.py", sessions, {"scripts/misc"})[0]
     assert rules("docs/other/a.md", ["docs/other"]) == ["N5"] and rules("tools/misc/a.py", ["tools/misc"]) == ["N5"]
     assert rules("frontend/scripts/check-copy-glossary.mjs") == [] and rules("frontend/apps/web/src/App.tsx") == []
     with open(os.devnull, "w") as quiet, contextlib.redirect_stderr(quiet):
         assert check("refs/heads/no-such-base-for-check-names") == 2, "a base that cannot be read fails closed"
-    assert rules("docs/modernization/data/r2dbc/a.md", ["docs/modernization/data/r2dbc"]) == [] and rules("scripts/ci/intent/BadName.py") == ["N1"]
+    assert rules("docs/data/r2dbc/a.md", ["docs/data/r2dbc"]) == [] and rules("scripts/ci/intent/BadName.py") == ["N1"]
     print("check_names self-test: ok")
 
 

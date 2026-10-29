@@ -5,7 +5,7 @@ import contextlib, glob, json, os, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 BASE = os.path.join(HERE, "..", "..", "docs", "modernization")
-GOOD = ["--session=one-ops", "--category=流程", "--owner=one-ops", "--paths=scripts/ci,docs/modernization", "--supersedes=无"]
+GOOD = ["--session=one-ops", "--category=流程", "--owner=one-ops", "--paths=scripts/ci,docs", "--supersedes=无"]
 TEXT = ["用户原话", "落点说明"]
 
 

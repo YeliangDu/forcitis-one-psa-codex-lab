@@ -526,10 +526,10 @@ terms:
   zh: 证据
   snake: acceptance_evidence
   standard_ref:
-  - docs/modernization/intent/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md
+  - docs/decisions/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md
   definition: 用于证明交付、认可等事实的证据内容；证据本身保存内容与采集人 ID，证据关联记录单独记录其挂在哪个交付物或阶段，归质量与认可 BC。
   status: proposed
-  confirmed: 2026-10-16（用户裁定，2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至，docs/modernization/intent/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md）
+  confirmed: 2026-10-16（用户裁定，2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至，docs/decisions/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md）
   confidence: medium
   aliases: []
   forbidden: []

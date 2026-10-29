@@ -1,0 +1,17 @@
+# 用「PSA」字样的数据值白名单（check_legacy_name.py 例外 6）：路径<Tab>子串
+docs/legacy/seeyon-oa/process-inventory.md	PSA部门账套对照表
+docs/ops/security-findings.md	PSA direct gateway compatibility
+docs/architecture/stack-decision.md	《PSA 边界蓝图 v2.3》
+docs/decisions/2026-10-14-017-前端要参考-claude-des.md	《PSA 边界蓝图 v2.3》
+docs/rules/naming-standard.md	PSA / 专业服务
+docs/decisions/2026-10-14-103-当前仓库的所有文档里要避免使用.md	文档去除旧名称 PSA
+docs/business/rules/gl-rules.md	PSA系统
+docs/legacy/general-ledger/practice.md	PSA系统
+docs/business/business-rules.md	dataOrigin = PSA
+docs/business/business-rules.md	data origin PSA
+docs/business/rule-reviews.md	PSA现代化工程
+docs/legacy/psa-external-interfaces.md	PSA 或 PSA_prod 的 Secret
+docs/legacy/psa-external-interfaces.md	取值与 PSA 前缀相同
+docs/architecture/proposals/gl-scope-revisions.md	蓝图中超出 PSA 现有功能的范围
+docs/legacy/bi/report-structure/pptx.md	页面未出现 PSA、A8
+docs/business/rules/extractor-brief.md	formerly PSA

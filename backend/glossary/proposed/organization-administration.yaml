@@ -13,8 +13,8 @@ terms:
   scope: domain
   definition: 用印申请中逐份列明的拟用印文件：名称、份数、原件或复印件，以及不可变文件版本、内容哈希与报价版本追溯引用。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml YY-03
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml YY-03
   confidence: medium
   aliases: []
   forbidden: []
@@ -29,8 +29,8 @@ terms:
   scope: domain
   definition: 经办人对一次实际用印的只追加登记：用印时点、本次份数、经办人、所用印章台账条目及版本、拟发文件与实际盖章凭据的文件标识和内容哈希，以申请加登记请求键去重。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§11
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml YY-06
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§11
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml YY-06
   confidence: medium
   aliases: []
   forbidden: []
@@ -45,8 +45,8 @@ terms:
   scope: domain
   definition: 用印申请所属的用途分类（如报价用印、投标用印）；审批人表的行、加审条件与预盖空白页的资格都按用途确定，取值为配置数据而非代码枚举。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1、Q2
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml JS-01
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1、Q2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml JS-01
   confidence: medium
   aliases: []
   forbidden: []
@@ -61,8 +61,8 @@ terms:
   scope: domain
   definition: 无来源单据的用印按用途确定第一审批人岗位与备用审批人岗位的版本化配置：作为配置集「用印审批人」的条目，随配置集版本只追加，带版本号、生效日、定版人与决定依据；上线前须定版，是上线出口条件。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1、§11 第 2 条
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml JS-01
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1、§11 第 2 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml JS-01
   confidence: medium
   aliases: []
   forbidden: []
@@ -77,7 +77,7 @@ terms:
   scope: domain
   definition: 用印审批人表中一个用途对应的一行：用途、第一审批人岗位、备用审批人岗位；备用审批人存岗位引用，不存个人。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1、§11 第 2 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1、§11 第 2 条
   confidence: medium
   aliases: []
   forbidden: []
@@ -92,7 +92,7 @@ terms:
   scope: domain
   definition: 用途未列入用印审批人表的用印不直接拒绝，改由行政负责人特批；特批有单号、可审计，并留审批实例号。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1
   confidence: medium
   aliases: []
   forbidden: []
@@ -107,8 +107,8 @@ terms:
   scope: domain
   definition: 担保、外借与预盖章属高风险用途：审批人解析结果不含备用审批人，缺人即挂起并告警，不进备用改派。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 2 条
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml JS-03
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 2 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml JS-03
   confidence: medium
   aliases: []
   forbidden: []
@@ -123,8 +123,8 @@ terms:
   scope: domain
   definition: 仅投标用印可预先盖章的空白页或待填栏的登记：张数、用途、领用人、日期、编号；用完登记收回，未用当场记作废，不删除。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q3、§11 第 1 条
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml BJ-02
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q3、§11 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml BJ-02
   confidence: medium
   aliases: []
   forbidden: []
@@ -139,7 +139,7 @@ terms:
   scope: domain
   definition: 投标用印可预盖空白页的张数上限，为行政填写的数字并记录定版人；未设定时不允许预盖。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q3、§11 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q3、§11 第 1 条
   confidence: medium
   aliases: []
   forbidden: []
@@ -154,7 +154,7 @@ terms:
   scope: domain
   definition: 用印申请经通用审批办理时使用的审批单据类型，只适用于无来源单据的人工审批路径。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §4.1
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §4.1
   confidence: medium
   aliases: []
   forbidden: []
@@ -171,7 +171,7 @@ terms:
   scope: domain
   definition: 一类版本化配置的根：以配置集代码区分用印审批人、信息技术服务类别、岗位资产配置标准、员工活动类型、提醒规则，并记负责该配置的角色；各配置的内容行落在各自的条目表，不挂在任何聚合下。
   standard_ref:
-  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md（claude/one-data-handoff-1） §2
+  - docs/data/b31-physical-model-rulings.md（claude/one-data-handoff-1） §2
   confidence: medium
   aliases: []
   forbidden: []
@@ -186,7 +186,7 @@ terms:
   scope: domain
   definition: 配置集的一个版本头：版本号、生效日区间、待确认或已确认状态、作者与确认人（四眼）、决定依据；按业务日期取已确认且生效区间包含该日的版本，找不到失败告警。
   standard_ref:
-  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md（claude/one-data-handoff-1） §2
+  - docs/data/b31-physical-model-rulings.md（claude/one-data-handoff-1） §2
   confidence: medium
   aliases: []
   forbidden: []
@@ -201,7 +201,7 @@ terms:
   scope: domain
   definition: 提醒规则配置集中的一条条目：提醒代码与提前天数（七日提醒、归还提醒等参数），类型化列、不用自由文本。
   standard_ref:
-  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md（claude/one-data-handoff-1） §2
+  - docs/data/b31-physical-model-rulings.md（claude/one-data-handoff-1） §2
   confidence: medium
   aliases: []
   forbidden: []
@@ -216,8 +216,8 @@ terms:
   scope: domain
   definition: 公司资产卡片的业务编号，信息技术资产使用记录以它为业务键；先行期无固定资产模块，根由迁入或「登记资产卡片」命令建立；W5 固定资产落地后追加可空的公司资产标识并按卡片号回填。
   standard_ref:
-  - docs/modernization/architecture/proposals/B31_ARCH_RULINGS_2026-10-21.md 第 3 项（claude/one-architecture-admission-file）
-  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md §10（claude/one-data-handoff-1）
+  - docs/architecture/proposals/b31-arch-rulings-2026-10-21.md 第 3 项（claude/one-architecture-admission-file）
+  - docs/data/b31-physical-model-rulings.md §10（claude/one-data-handoff-1）
   confidence: medium
   aliases: []
   forbidden: []
@@ -234,7 +234,7 @@ terms:
   scope: domain
   definition: 既有审批系统已审批的用印单据在合同、报价、投标模块上线前，经行政核对批准页后直接办理的过渡规则，相关模块上线即废止。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 3 条、§10 Q7
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 3 条、§10 Q7
   confidence: medium
   aliases: []
   forbidden: []
@@ -249,7 +249,7 @@ terms:
   scope: domain
   definition: 用印申请来源为既有审批系统已审批单据时保存的凭据：既有审批单号、批准页文件、批准份数，以及行政核对的核对人与核对时间；同一既有审批单号的累计用印份数在本系统内计数。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 3 条、§10 Q7、§11 第 3 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 3 条、§10 Q7、§11 第 3 条
   confidence: medium
   aliases: []
   forbidden: []
@@ -264,7 +264,7 @@ terms:
   scope: domain
   definition: 既有审批系统中已审批用印单据的单号，过渡通道据此累计用印份数；不是本系统的单据编号。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: medium
   aliases: []
   forbidden: []
@@ -279,7 +279,7 @@ terms:
   scope: domain
   definition: 过渡通道存续期间行政负责人每季度对通道使用情况的复核记录，进入审计。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
   confidence: medium
   aliases: []
   forbidden: []
@@ -294,7 +294,7 @@ terms:
   scope: domain
   definition: 过渡通道存续期间每月抽取 5 单回既有审批系统核对批准页的抽检记录，结果留痕。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
   confidence: medium
   aliases: []
   forbidden: []
@@ -311,7 +311,7 @@ terms:
   scope: domain
   definition: 审批人表中按用途或类别指定的首选审批岗位；不可用时才改派备用审批人。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1、§11 第 2 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1、§11 第 2 条
   confidence: medium
   aliases: []
   forbidden: []
@@ -326,7 +326,7 @@ terms:
   scope: domain
   definition: 第一审批人不可用时改派的同职能第二岗位，存岗位引用而非个人；改派加事后知会，不并行双批，不兜到总经理，高风险用途不进备用。预先指定的接手人；将来若做运行时委派（临时转派给他人代办）是另一个机制，须另立词条，不用本词吸收。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 2 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 2 条
   confidence: low
   aliases:
   - name: 兜底
@@ -357,7 +357,7 @@ terms:
   scope: domain
   definition: 信息技术服务工单受理后每次处理的只追加记录：处理时点、处理人、处理说明、处理结论与受理序号。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -372,8 +372,8 @@ terms:
   scope: domain
   definition: 信息技术服务工单类别的版本化配置：作为配置集「信息技术服务类别」的条目，随配置集版本只追加；类别可增删改并留版本与操作人，不写死在代码或迁移，上线前由信息技术负责人定版。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q4、Q5
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml IT-01
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q4、Q5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml IT-01
   confidence: medium
   aliases: []
   forbidden: []
@@ -388,9 +388,9 @@ terms:
   scope: domain
   definition: 类别表中的一行：类别名称、是否需审批及理由、审批人与备用审批人岗位、受理人与替补、提供方、维护方与采购交接。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3、§10 Q5
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml IT-01
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml IT-02
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3、§10 Q5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml IT-01
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml IT-02
   confidence: medium
   aliases: []
   forbidden: []
@@ -405,7 +405,7 @@ terms:
   scope: domain
   definition: 提出人填写的信息技术服务工单紧急程度。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: low
   aliases: []
   forbidden: []
@@ -420,7 +420,7 @@ terms:
   scope: domain
   definition: 开通新权限的信息技术服务工单须写明的有效期或复核日，到期自动收回或提醒。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q5
   confidence: low
   aliases: []
   forbidden: []
@@ -435,7 +435,7 @@ terms:
   scope: domain
   definition: 信息技术服务工单经通用审批办理时使用的审批单据类型，只适用于类别表要求人工审批的类别。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §4.1
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §4.1
   confidence: medium
   aliases: []
   forbidden: []
@@ -452,7 +452,7 @@ terms:
   scope: domain
   definition: 信息技术资产使用记录内的领用申请或调拨申请，以申请类型区分；领用只登记、不审批。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -467,7 +467,7 @@ terms:
   scope: domain
   definition: 一件信息技术资产被一名使用人持有的起止区间，左闭右开，同一资产至多一个未结束期间；结束原因区分归还与调拨。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -482,7 +482,7 @@ terms:
   scope: domain
   definition: 调拨时调出使用人与调入使用人的交接确认、交接日期与证据。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4、§4.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4、§4.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -497,7 +497,7 @@ terms:
   scope: domain
   definition: 资产管理员对归还设备的验收：验收人、归还日期与归还时设备状态；管理员不得验收自己名下资产的归还。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4、§6.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4、§6.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -512,7 +512,7 @@ terms:
   scope: domain
   definition: 领用交付或归还时登记的设备实物状况。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -527,8 +527,8 @@ terms:
   scope: domain
   definition: 按岗位核对可领用资产类别、规格与数量的版本化配置：作为配置集「岗位资产配置标准」的条目，随配置集版本只追加；规则缺失或领用超出标准时拒绝领用。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 清单、§3.4
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZC-01
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 清单、§3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZC-01
   confidence: medium
   aliases: []
   forbidden: []
@@ -543,7 +543,7 @@ terms:
   scope: domain
   definition: 岗位资产配置标准中一个岗位对应的一行：资产类别、规格、数量与计量单位。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -558,8 +558,8 @@ terms:
   scope: domain
   definition: 领用超出岗位资产配置标准；允许条件确认前一律拒绝领用，不新增领用审批，也不转人审。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §0 第 4 条
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZC-02
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §0 第 4 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZC-02
   confidence: medium
   aliases: []
   forbidden: []
@@ -574,8 +574,8 @@ terms:
   scope: domain
   definition: 员工离职生效满七个日历日仍有在用资产未归还时，对原组织单元负责人发出的非中断提醒；起算点固定，晚到与重试不重置，已归还不重建，不阻塞离职。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.2
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZC-04
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZC-04
   confidence: medium
   aliases: []
   forbidden: []
@@ -590,7 +590,7 @@ terms:
   scope: domain
   definition: 报修人对资产故障的文字描述。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
   confidence: medium
   aliases: []
   forbidden: []
@@ -605,7 +605,7 @@ terms:
   scope: domain
   definition: 登记维修结果时填写的结论：已修复或无法修复；是工单属性，不另设状态，无法修复不自动报废也不自动归还。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
   confidence: medium
   aliases: []
   forbidden: []
@@ -622,7 +622,7 @@ terms:
   scope: domain
   definition: 员工活动申请登记时列明的参与员工，登记后不可改；同一申请内参与人唯一。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -637,8 +637,8 @@ terms:
   scope: domain
   definition: 员工活动的类型清单（周年贺卡、节日活动、创新项目发布），独立版本化维护、只追加；新增类型须先确认规则。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6、§8.3
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml HD-01
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6、§8.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml HD-01
   confidence: medium
   aliases: []
   forbidden: []
@@ -653,8 +653,8 @@ terms:
   scope: domain
   definition: 员工活动类型之一：全体正式员工满周年时由系统自动生成的贺卡活动。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.3、§0 第 1 条
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZN-01
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.3、§0 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZN-01
   confidence: medium
   aliases: []
   forbidden: []
@@ -669,8 +669,8 @@ terms:
   scope: domain
   definition: 员工本次入职日期在某一年的对应日期；闰日入职在平年取 02-28，重新入职从本次入职重算。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.3、§0 第 1 条
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZN-03
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.3、§0 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZN-03
   confidence: medium
   aliases: []
   forbidden: []
@@ -685,8 +685,8 @@ terms:
   scope: domain
   definition: 登记员工活动时必填并留底的预估金额，只留底、不核对预算；预算上线后另加检查。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q6
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml HD-03
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml HD-03
   confidence: medium
   aliases: []
   forbidden: []
@@ -703,7 +703,7 @@ terms:
   scope: domain
   definition: 合同原件借出、归还与续借的记录：同一份原件同时只能有一笔未归还的借出，借出时填归还日；先行期记在行政事务，合同模块建成后按 INV-125 移交。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q8
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q8
   confidence: low
   aliases: []
   forbidden: []
@@ -718,7 +718,7 @@ terms:
   scope: domain
   definition: 合同原件借出与续借经通用审批办理时使用的审批单据类型：合同经办部门负责人批，外借再加该公司负责人。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q9、Q10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q9、Q10
   confidence: low
   aliases: []
   forbidden: []
@@ -733,7 +733,7 @@ terms:
   scope: domain
   definition: 合同原件离开办公场所或交给外部人员的借阅，须写明用途、地点与携带人，另经该公司负责人批准。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q9
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q9
   confidence: medium
   aliases: []
   forbidden: []
@@ -748,7 +748,7 @@ terms:
   scope: domain
   definition: 借阅期满前经原批准人同意的一次续借，续借为新审批，每笔借阅至多一次。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
   confidence: medium
   aliases: []
   forbidden: []
@@ -763,7 +763,7 @@ terms:
   scope: domain
   definition: 借阅逾期时提醒借阅人及其部门负责人，逾期满 7 天升级到行政负责人。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
   confidence: medium
   aliases: []
   forbidden: []
@@ -780,7 +780,7 @@ terms:
   scope: domain
   definition: 用印申请经人工审批通过而置为已批准（先行期的既有审批凭证通道经行政核对后同样置为已批准）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -795,7 +795,7 @@ terms:
   scope: domain
   definition: 经办人登记了一次实际用印，每次登记发布，关闭不删除凭据。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
   confidence: low
   aliases: []
   forbidden: []
@@ -810,7 +810,7 @@ terms:
   scope: domain
   definition: 信息技术服务工单经受理后判定需求成立且可实现并已解决；需求不成立或无法实现直接退回，不发布本事件。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -825,7 +825,7 @@ terms:
   scope: domain
   definition: 一件信息技术资产登记领用，开启了使用人的使用期间。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -840,7 +840,7 @@ terms:
   scope: domain
   definition: 一件信息技术资产在同一事务内结束调出方使用期间并开启调入方使用期间。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -855,7 +855,7 @@ terms:
   scope: domain
   definition: 一件信息技术资产经归还命令结束了使用期间；调拨结束旧期间不算归还。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -870,7 +870,7 @@ terms:
   scope: domain
   definition: 员工活动登记经规则校验通过，不是人工批准，周年自动生成同样发布。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3、§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §2.3、§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -887,7 +887,7 @@ terms:
   scope: domain
   definition: 申请人提交用印申请：无既有审批凭证的进入审批，使用既有审批凭证的经行政核对后办理；原单重提保留编号并递增轮次。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
   confidence: medium
   aliases: []
   forbidden: []
@@ -902,7 +902,7 @@ terms:
   scope: domain
   definition: 审批通过回调：把审批中的用印申请置为已批准，须匹配实例、轮次与当前状态。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -917,7 +917,7 @@ terms:
   scope: domain
   definition: 审批驳回回调：把审批中的用印申请置为已驳回，保留旧轮次与意见。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -932,7 +932,7 @@ terms:
   scope: domain
   definition: 申请人在审批期撤回用印申请。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -947,7 +947,7 @@ terms:
   scope: domain
   definition: 经办人登记一次实际用印，累计份数不得超过批准份数，也不得超过同一来源累计批准份数。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
   confidence: medium
   aliases: []
   forbidden: []
@@ -962,7 +962,7 @@ terms:
   scope: domain
   definition: 用印份数到齐或经确认放弃剩余份数后，规则关闭用印申请；关闭不删除实际登记与凭据。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
   confidence: medium
   aliases: []
   forbidden: []
@@ -977,7 +977,7 @@ terms:
   scope: domain
   definition: 提出人提交工单：类别要求人审的进入审批，常规类别直接待受理；未列入类别表的拒绝。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -992,7 +992,7 @@ terms:
   scope: domain
   definition: 审批通过回调：把审批中的工单置为已提交。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3、§4.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3、§4.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -1007,7 +1007,7 @@ terms:
   scope: domain
   definition: 审批驳回回调：把审批中的工单置为已退回。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3、§4.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3、§4.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -1022,7 +1022,7 @@ terms:
   scope: domain
   definition: 提出人在审批期撤回工单。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3、§4.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3、§4.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -1037,7 +1037,7 @@ terms:
   scope: domain
   definition: 处理人受理已提交的工单，或在提出人反馈未解决时重开回处理中；不设受理超时提醒。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -1052,7 +1052,7 @@ terms:
   scope: domain
   definition: 处理人写出处理结论并把处理中的工单置为已解决，同时发布工单已解决事件。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -1067,7 +1067,7 @@ terms:
   scope: domain
   definition: 仅提出人人工确认并已有处理结论时关闭已解决的工单，系统无代关权。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -1082,7 +1082,7 @@ terms:
   scope: domain
   definition: 处理人因需求不成立或无法实现，把处理中的工单直接退回，不发布解决事件。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: medium
   aliases: []
   forbidden: []
@@ -1097,7 +1097,7 @@ terms:
   scope: domain
   definition: 提出人反馈未解决时把已解决的工单重开回处理中。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §1.1、§3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §1.1、§3.3
   confidence: low
   aliases: []
   forbidden: []
@@ -1112,7 +1112,7 @@ terms:
   scope: domain
   definition: 使用人申请领用资产：岗位标准规则通过则直达已通过，资产已有使用人则提前拒绝，不转人审。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -1127,7 +1127,7 @@ terms:
   scope: domain
   definition: 行政登记一张公司资产卡片号，建立信息技术资产使用记录的根；先行期根只来自迁入与本命令，领用申请的卡片号必须已有根。
   standard_ref:
-  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md §10（claude/one-data-handoff-1）
+  - docs/data/b31-physical-model-rulings.md §10（claude/one-data-handoff-1）
   confidence: low
   aliases: []
   forbidden: []
@@ -1142,7 +1142,7 @@ terms:
   scope: domain
   definition: 资产管理员在领用申请已通过后登记交付，开启使用期间；使用人不得登记自己的领用。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -1157,7 +1157,7 @@ terms:
   scope: domain
   definition: 在用资产形成调拨申请；资产无当前使用人则转为领用，跨法人转让不在此办理。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -1172,7 +1172,7 @@ terms:
   scope: domain
   definition: 调出使用人或资产管理员撤销尚未登记交接的调拨申请。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -1187,7 +1187,7 @@ terms:
   scope: domain
   definition: 登记调出方与调入方交接，同一事务结束旧使用期间并开启新使用期间。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -1202,7 +1202,7 @@ terms:
   scope: domain
   definition: 资产管理员验收归还并结束使用期间；离职提醒不改变在用状态。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: medium
   aliases: []
   forbidden: []
@@ -1217,7 +1217,7 @@ terms:
   scope: domain
   definition: 当前使用人或资产管理员代报，登记资产故障报修。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
   confidence: medium
   aliases: []
   forbidden: []
@@ -1232,7 +1232,7 @@ terms:
   scope: domain
   definition: 资产管理员登记已修复或无法修复、完成日期与维修单或发票引用。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
   confidence: medium
   aliases: []
   forbidden: []
@@ -1247,7 +1247,7 @@ terms:
   scope: domain
   definition: 登记员工活动并由规则校验直达已批准；周年自动生成与人工登记共用本入口，重复提交返回原记录。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1262,7 +1262,7 @@ terms:
   scope: domain
   definition: 行政把已批准的员工活动登记置为已办结，已取消的拒绝办结。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: medium
   aliases: []
   forbidden:
@@ -1279,7 +1279,7 @@ terms:
   scope: domain
   definition: 行政把已批准或已办结的活动登记取消，原因必填并记取消人与时间，保留原记录，不设人审。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1296,7 +1296,7 @@ terms:
   scope: domain
   definition: 申请人放弃批准后未用的份数，放弃即释放来源份数占用并可触发规则关闭。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 2 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 2 条
   confidence: low
   aliases: []
   forbidden: []
@@ -1311,7 +1311,7 @@ terms:
   scope: domain
   definition: 投标用印经批准后登记预盖的空白页张数、用途、领用人、日期与编号。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
   confidence: low
   aliases: []
   forbidden: []
@@ -1326,7 +1326,7 @@ terms:
   scope: domain
   definition: 预盖空白页用完后登记收回。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q3
   confidence: low
   aliases: []
   forbidden: []
@@ -1341,7 +1341,7 @@ terms:
   scope: domain
   definition: 预盖空白页未使用时当场记作废，不删除原登记。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
   confidence: low
   aliases: []
   forbidden: []
@@ -1356,7 +1356,7 @@ terms:
   scope: domain
   definition: 行政核对既有审批页与所填单号、份数是否一致并留痕（谁核、何时核）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low
   aliases: []
   forbidden: []
@@ -1371,7 +1371,7 @@ terms:
   scope: domain
   definition: 行政负责人完成季度复核待办并留下复核记录。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
   confidence: low
   aliases: []
   forbidden: []
@@ -1386,7 +1386,7 @@ terms:
   scope: domain
   definition: 行政完成月度抽检待办并留下抽检结果。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
   confidence: low
   aliases: []
   forbidden: []
@@ -1403,7 +1403,7 @@ terms:
   scope: domain
   definition: 单据已起草、尚未提交的状态。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1418,7 +1418,7 @@ terms:
   scope: domain
   definition: 用印申请经审批而获批准，或员工活动登记经规则校验通过。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1433,7 +1433,7 @@ terms:
   scope: domain
   definition: 申请人或提出人在审批期撤回，本轮提前结束，可经同一提交命令重提。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1448,7 +1448,7 @@ terms:
   scope: domain
   definition: 用印申请已有实际用印登记，分次登记保持本状态。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1463,7 +1463,7 @@ terms:
   scope: domain
   definition: 用印份数到齐或放弃剩余份数后规则关闭，或工单经提出人确认关闭。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1478,7 +1478,7 @@ terms:
   scope: domain
   definition: 信息技术服务工单已提交、待受理。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1493,7 +1493,7 @@ terms:
   scope: domain
   definition: 信息技术服务工单已受理或重开，处理人正在处理。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1508,7 +1508,7 @@ terms:
   scope: domain
   definition: 处理人写出处理结论并解决工单，待提出人确认关闭。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1523,7 +1523,7 @@ terms:
   scope: domain
   definition: 领用申请已登记交付，使用人已持有资产。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1538,7 +1538,7 @@ terms:
   scope: domain
   definition: 调拨申请已提交，待登记交接。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1553,7 +1553,7 @@ terms:
   scope: domain
   definition: 调拨申请已登记交接，旧使用期间结束且新期间开启。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1568,7 +1568,7 @@ terms:
   scope: domain
   definition: 调拨申请发现资产无当前使用人，改走领用。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1583,7 +1583,7 @@ terms:
   scope: domain
   definition: 使用期间尚未结束，资产仍由该使用人持有。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1598,7 +1598,7 @@ terms:
   scope: domain
   definition: 使用期间因归还或调拨而结束。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1613,7 +1613,7 @@ terms:
   scope: domain
   definition: 使用期间的结束原因：资产被归还。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1628,7 +1628,7 @@ terms:
   scope: domain
   definition: 使用期间的结束原因：资产被调拨给他人。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1643,7 +1643,7 @@ terms:
   scope: domain
   definition: 维修单已登记故障，待登记维修结果。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1658,7 +1658,7 @@ terms:
   scope: domain
   definition: 维修单已登记维修结果，终态。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1673,7 +1673,7 @@ terms:
   scope: domain
   definition: 维修结果取值：故障已修复。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
   confidence: medium
   aliases: []
   forbidden: []
@@ -1688,7 +1688,7 @@ terms:
   scope: domain
   definition: 维修结果取值：无法修复，不自动报废也不自动归还，报废归公司资产所在模块。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
   confidence: medium
   aliases: []
   forbidden: []
@@ -1703,7 +1703,7 @@ terms:
   scope: domain
   definition: 员工活动登记因记错或活动取消而作废，终态，不可修改、恢复或完成，重登另建记录并引用被取消记录。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1718,7 +1718,7 @@ terms:
   scope: domain
   definition: 员工活动登记的活动已办理完毕，终态之一；已取消的不可办结。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: medium
   aliases: []
   forbidden: []
@@ -1733,7 +1733,7 @@ terms:
   scope: domain
   definition: 预盖空白页已登记张数与领用人，尚未收回或作废。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
   confidence: medium
   aliases: []
   forbidden: []
@@ -1748,7 +1748,7 @@ terms:
   scope: domain
   definition: 预盖空白页用完后已登记收回。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q3
   confidence: medium
   aliases: []
   forbidden: []
@@ -1763,7 +1763,7 @@ terms:
   scope: domain
   definition: 预盖空白页未使用而作废，不删除。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
   confidence: medium
   aliases: []
   forbidden: []
@@ -1780,7 +1780,7 @@ terms:
   scope: domain
   definition: 员工活动登记被取消后，另建一条新登记并引用被取消记录；被取消记录不变，同一被取消记录只能有一条重登：重复重登内容相同返回原后继，内容不同拒绝并带后继编号（T-R5）。重登也是手工提交，仍须校验类型与参与人。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
   confidence: medium
   aliases: []
   forbidden: []
@@ -1795,7 +1795,7 @@ terms:
   scope: domain
   definition: 登记员工活动的人，恒为会话员工；库列 applicant_id。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
   confidence: medium
   aliases: []
   forbidden: []
@@ -1810,7 +1810,7 @@ terms:
   scope: domain
   definition: 取消员工活动登记的操作人，记其用户账号标识，不设外键；库列 cancelled_by。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
   confidence: medium
   aliases: []
   forbidden: []
@@ -1825,7 +1825,7 @@ terms:
   scope: domain
   definition: 登记被取消那一刻所处的状态（已批准或已办结），取消后保留以便追溯；库列 cancelled_from_status。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
   confidence: medium
   aliases: []
   forbidden: []
@@ -1840,7 +1840,7 @@ terms:
   scope: domain
   definition: 员工活动类型版本条目的属性：标为仅系统生成的类型只能由系统作业生成（如周年贺卡），手工提交与重登一律拒绝；契约与代码不写死类型代码，只读该属性；库内布尔列 is_system_only，JSON 字段 isSystemOnly；周年作业走内部用例可生成。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §3.1
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §3.1
   confidence: medium
   aliases: []
   forbidden: []
@@ -1855,7 +1855,7 @@ terms:
   scope: domain
   definition: 被取消登记已有的重登记录；重登内容不同被拒时，响应带后继编号 successorDocumentNumber 与后继标识 successorRequestId 两个扩展属性。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
   confidence: medium
   aliases: []
   forbidden: []
@@ -1870,7 +1870,7 @@ terms:
   scope: domain
   definition: 重登记录所引用的被取消登记；库列 reregistration_of_request_id，同一被取消登记至多被引用一次。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §10
   confidence: medium
   aliases: []
   forbidden: []
@@ -1887,7 +1887,7 @@ terms:
   scope: domain
   definition: 按标识找不到用印申请，或调用方无权知道它（404）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
   confidence: low
   aliases: []
   forbidden: []
@@ -1902,7 +1902,7 @@ terms:
   scope: domain
   definition: 用印法人不是申请日有效的法人主体，申请留在草稿（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
   confidence: low
   aliases: []
   forbidden: []
@@ -1917,7 +1917,7 @@ terms:
   scope: domain
   definition: 实际用印须基于已批准的申请（INV-118，409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
   confidence: low
   aliases: []
   forbidden: []
@@ -1932,7 +1932,7 @@ terms:
   scope: domain
   definition: 本申请累计登记份数将超过批准份数（INV-119，409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
   confidence: low
   aliases: []
   forbidden: []
@@ -1947,7 +1947,7 @@ terms:
   scope: domain
   definition: 报价版本、用印法人、拟发文件与实际盖章凭据不能核验对应，拒绝并告警（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.4
   confidence: low
   aliases: []
   forbidden: []
@@ -1962,7 +1962,7 @@ terms:
   scope: domain
   definition: 担保类用印未附决议或授权文件，不予盖章（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q2
   confidence: low
   aliases: []
   forbidden: []
@@ -1977,7 +1977,7 @@ terms:
   scope: domain
   definition: 担保或跨法人事项缺所需的法务、财务复核证据，拒绝（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 2 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 2 条
   confidence: low
   aliases: []
   forbidden: []
@@ -1992,7 +1992,7 @@ terms:
   scope: domain
   definition: 已关闭的用印申请不再接受登记或放弃（409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
   confidence: low
   aliases: []
   forbidden: []
@@ -2007,7 +2007,7 @@ terms:
   scope: domain
   definition: 高风险用途的第一审批人不可用，且不得改派备用审批人，挂起并告警（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 2 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 2 条
   confidence: low
   aliases: []
   forbidden: []
@@ -2022,7 +2022,7 @@ terms:
   scope: domain
   definition: 只有投标用印可以预盖空白页或待填栏（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
   confidence: low
   aliases: []
   forbidden: []
@@ -2037,7 +2037,7 @@ terms:
   scope: domain
   definition: 登记的预盖张数超过行政填写的上限（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
   confidence: low
   aliases: []
   forbidden: []
@@ -2052,7 +2052,7 @@ terms:
   scope: domain
   definition: 预盖张数上限尚未定版，不允许预盖（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
   confidence: low
   aliases: []
   forbidden: []
@@ -2067,7 +2067,7 @@ terms:
   scope: domain
   definition: 过渡通道的用印申请未填既有审批单号（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low
   aliases: []
   forbidden: []
@@ -2082,7 +2082,7 @@ terms:
   scope: domain
   definition: 过渡通道的用印申请未上传批准页附件（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low
   aliases: []
   forbidden: []
@@ -2097,7 +2097,7 @@ terms:
   scope: domain
   definition: 同一既有审批单号累计用印份数将超过批准页所载份数（409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low
   aliases: []
   forbidden: []
@@ -2112,7 +2112,7 @@ terms:
   scope: domain
   definition: 行政尚未核对批准页就办理用印（409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low
   aliases: []
   forbidden: []
@@ -2127,7 +2127,7 @@ terms:
   scope: domain
   definition: 合同、报价、投标模块上线后过渡通道已废止，不再接受既有审批系统来源（409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low
   aliases: []
   forbidden: []
@@ -2142,7 +2142,7 @@ terms:
   scope: domain
   definition: 按标识找不到信息技术服务工单，或调用方无权知道它（404）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: low
   aliases: []
   forbidden: []
@@ -2157,7 +2157,7 @@ terms:
   scope: domain
   definition: 提交的类别不在有效的信息技术服务类别表中，拒绝并告警，不默认常规支持（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: low
   aliases: []
   forbidden: []
@@ -2172,7 +2172,7 @@ terms:
   scope: domain
   definition: 解决或关闭工单须有处理结论（INV-120，422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: low
   aliases: []
   forbidden: []
@@ -2187,7 +2187,7 @@ terms:
   scope: domain
   definition: 关闭、撤回或重提工单的人不是提出人（403）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
   confidence: low
   aliases: []
   forbidden: []
@@ -2202,7 +2202,7 @@ terms:
   scope: domain
   definition: 开通新权限的工单未写有效期或复核日（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q5
   confidence: low
   aliases: []
   forbidden: []
@@ -2217,7 +2217,7 @@ terms:
   scope: domain
   definition: 资产存在未结束的使用期间，领用或调拨登记被拒（INV-121，409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: low
   aliases: []
   forbidden: []
@@ -2232,7 +2232,7 @@ terms:
   scope: domain
   definition: 资产卡片不存在、已处置、不属信息技术资产类别或不在同一核算主体（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: low
   aliases: []
   forbidden: []
@@ -2247,7 +2247,7 @@ terms:
   scope: domain
   definition: 领用超出岗位资产配置标准，超配允许条件未定前拒绝，不转人审（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §0 第 4 条
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §0 第 4 条
   confidence: low
   aliases: []
   forbidden: []
@@ -2262,7 +2262,7 @@ terms:
   scope: domain
   definition: 调拨双方不在同一核算主体，跨法人转让归固定资产流程（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: low
   aliases: []
   forbidden: []
@@ -2277,7 +2277,7 @@ terms:
   scope: domain
   definition: 申请或登记调拨的调出方不是资产当前使用人（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: low
   aliases: []
   forbidden: []
@@ -2292,7 +2292,7 @@ terms:
   scope: domain
   definition: 调入使用人在调拨日不在职（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: low
   aliases: []
   forbidden: []
@@ -2307,7 +2307,7 @@ terms:
   scope: domain
   definition: 归还资产时找不到未结束的使用期间，待办重复或已先行归还（409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
   confidence: low
   aliases: []
   forbidden: []
@@ -2322,7 +2322,7 @@ terms:
   scope: domain
   definition: 使用人登记自己的领用或调拨，或管理员验收自己名下资产的归还，职责分离不允许（403）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §6.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §6.3
   confidence: low
   aliases: []
   forbidden: []
@@ -2337,7 +2337,7 @@ terms:
   scope: domain
   definition: 报修人不是该资产当前使用人，资产管理员代报时须选使用人（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
   confidence: low
   aliases: []
   forbidden: []
@@ -2352,7 +2352,7 @@ terms:
   scope: domain
   definition: 按标识找不到维修单，或调用方无权知道它（404）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
   confidence: low
   aliases: []
   forbidden: []
@@ -2367,7 +2367,7 @@ terms:
   scope: domain
   definition: 按标识找不到员工活动申请，或调用方无权知道它（404）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: low
   aliases: []
   forbidden: []
@@ -2382,7 +2382,7 @@ terms:
   scope: domain
   definition: 登记的活动类型不在有效的类型清单中或已停用（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: low
   aliases: []
   forbidden: []
@@ -2397,7 +2397,7 @@ terms:
   scope: domain
   definition: 有花费的员工活动未填预估金额（422）；预估金额为 0 表示无费用，允许（T-R1）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q6
   confidence: low
   aliases: []
   forbidden: []
@@ -2412,7 +2412,7 @@ terms:
   scope: domain
   definition: 员工活动申请人不是在职员工（422）
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
   confidence: medium
   aliases: []
   forbidden: []
@@ -2427,7 +2427,7 @@ terms:
   scope: domain
   definition: 员工活动登记的参与人不在员工表中（422）
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
   confidence: medium
   aliases: []
   forbidden: []
@@ -2442,7 +2442,7 @@ terms:
   scope: domain
   definition: 所需配置集没有生效版本，所有配置集共用（422）
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
   confidence: medium
   aliases: []
   forbidden: []
@@ -2457,7 +2457,7 @@ terms:
   scope: domain
   definition: 手工提交或重登了标为仅系统生成的活动类型（422）
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
   confidence: medium
   aliases: []
   forbidden: []
@@ -2472,7 +2472,7 @@ terms:
   scope: domain
   definition: 参与人中有登记业务日当天不在职的员工（422）
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
   confidence: medium
   aliases: []
   forbidden: []
@@ -2487,7 +2487,7 @@ terms:
   scope: domain
   definition: 被取消登记已有内容不同的重登记录，响应带后继编号（409）
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
   confidence: medium
   aliases: []
   forbidden: []
@@ -2502,7 +2502,7 @@ terms:
   scope: domain
   definition: 周年生成时读不到员工本次入职日期，拒绝并告警（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.3
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.3
   confidence: low
   aliases: []
   forbidden: []
@@ -2517,7 +2517,7 @@ terms:
   scope: domain
   definition: 同一份合同原件同时只能有一笔未归还的借出（INV-125，409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q8
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q8
   confidence: low
   aliases: []
   forbidden: []
@@ -2532,7 +2532,7 @@ terms:
   scope: domain
   definition: 借出时未填归还日（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
   confidence: low
   aliases: []
   forbidden: []
@@ -2547,7 +2547,7 @@ terms:
   scope: domain
   definition: 借阅期限超过 30 天且没有公司负责人批准（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
   confidence: low
   aliases: []
   forbidden: []
@@ -2562,7 +2562,7 @@ terms:
   scope: domain
   definition: 每笔借阅至多续借一次（409）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
   confidence: low
   aliases: []
   forbidden: []
@@ -2577,7 +2577,7 @@ terms:
   scope: domain
   definition: 续借的批准人不是原批准人（403）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
   confidence: low
   aliases: []
   forbidden: []
@@ -2592,7 +2592,7 @@ terms:
   scope: domain
   definition: 外借未写明用途、地点或携带人（422）。
   standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q9
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q9
   confidence: low
   aliases: []
   forbidden: []

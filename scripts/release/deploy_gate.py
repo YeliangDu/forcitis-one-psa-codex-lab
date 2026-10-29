@@ -7,7 +7,7 @@
   deploy_gate.py --render                                    write the status cells of PREDEPLOY_CHECKLIST.md section D, C-9 and C-15 from the gate file
   deploy_gate.py --self-test
 
-The repository's say is one machine-readable file, docs/modernization/phase1a/infra/deploy_gate.json (K02, GOV-1023-FV2): blockers, the
+The repository's say is one machine-readable file, docs/ops/deploy-gate.json (K02, GOV-1023-FV2): blockers, the
 section D exit conditions, C-9 and C-15. The checklist's cells for them are a view written by --render; the self-test fails when they differ.
 A missing or malformed gate file refuses every deployment.
 - Any environment: every entry in the gate file's blockers stops the deployment. The coordinating session deletes the entry when the
@@ -31,9 +31,9 @@ import subprocess
 import sys
 import tempfile
 
-GATE_FILE = "docs/modernization/phase1a/infra/deploy_gate.json"
-CHECKLIST = "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md"
-PROD_APPROVALS = "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt"
+GATE_FILE = "docs/ops/deploy-gate.json"
+CHECKLIST = "docs/ops/predeploy-checklist.md"
+PROD_APPROVALS = "docs/ops/runbooks/prod-approvals.txt"
 BASELINE_MARKER = "backend/architecture/migration-baseline-open"
 DONE = "✅"
 EXPECTED_EXIT_CONDITIONS = 10

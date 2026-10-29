@@ -1,0 +1,7886 @@
+# 正本，直接编辑（原生成脚本已随 #742 删除）
+meta:
+  by_object_count: 126
+  by_aggregate_count: 132
+  group_counts:
+    finance: 44
+    people: 35
+    revenue: 53
+by_object:
+- object: OBJ-01
+  key_states_text: 待核实 → 有效（档案已核实）→ 已合并 / 已停用；档案按 D17 版本化；「正式往来单位」= 状态为「有效」（intent 120544 P-3）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:59
+- object: OBJ-02
+  key_states_text: 已申请 → 合格 → 已暂停 → 已停用（原因必填；适用需准入的角色：供应商、合伙人、渠道伙伴、联合体伙伴、海外持牌伙伴）；客户角色无准入状态，往来单位档案已核实即可用（intent 120544 P-3）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:60
+- object: OBJ-03
+  key_states_text: 有效 / 已停用
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:61
+- object: OBJ-04
+  key_states_text: 有效 / 已停用
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:62
+- object: OBJ-05
+  key_states_text: 草案 → 审批中 → 已签署 → 已生效（无附生效条件的回签即生效；附生效条件的经确认生效条件满足后生效，GL5-01；基线 1；劳动合同仍为「已签署生效」，供方协议为「已生效」）→ 履行中 → 已完成 → 已结算（结算书经双方确认）/ 已终止（原因必填）；生效后只经协议变更产生新基线；违法分包认定时标「无效」；审批中的「合同评审」是协议审批的单据，不另立对象（完整性检查（intent
+    072440），M-20）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:63
+- object: OBJ-06
+  key_states_text: 有效 → 被取代（只经协议变更）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:64
+- object: OBJ-07
+  key_states_text: 待生效 → 已生效 → 可结算 → 被取代 / 已作废
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:65
+- object: OBJ-08
+  key_states_text: 未履行 → 已部分履行 → 已履行
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:66
+- object: OBJ-09
+  key_states_text: 已提出 → 影响评估 → 审批 → 已生效（新基线）/ 驳回
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:67
+- object: OBJ-10
+  key_states_text: 已通知（时限内）→ 已提交 → 已认定 / 已拒绝 / 撤回
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:68
+- object: OBJ-11
+  key_states_text: 已生效 → 已失效（带生效期）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:69
+- object: OBJ-12
+  key_states_text: 已申请 → 已批准 → 已转正（并入协议）/ 叫停
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:70
+- object: OBJ-13
+  key_states_text: 现金：待缴 → 已缴 → 已退 / 被没收（可部分扣减）；保函：已开立 → 已到期 / 被索赔
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:71
+- object: OBJ-14
+  key_states_text: 已扣留 → 到期可收（可付）→ 已收（已付）/ 被扣减
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:72
+- object: OBJ-15
+  key_states_text: 编制 → 双方已确认 → 已结清；结算折让留痕
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:73
+- object: OBJ-16
+  key_states_text: 已计划 → 进行中 → 已结束
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:75
+- object: OBJ-17
+  key_states_text: 新建 → 跟进中 ⇄ 挂起 → 已确认（转商机）/ 已关闭（无价值，原因必填）；公海池
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:76
+- object: OBJ-18
+  key_states_text: 跟进中（内部阶段）→ 已决定参投（参投决策，用户 VS01-10）→ 已赢单 / 丢单（原因、竞争对手、中标单位、中标价）/ 已放弃（跟进中或已决定参投均可放弃）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:77
+- object: OBJ-19
+  key_states_text: 外部：已公告 → 已截止 → 已开标 → 公示 → 已定标；已终止 / 已重新招标
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:78
+- object: OBJ-20
+  key_states_text: 准备中 →（资格预审：通过 / 未通过）→ 已递交 → 已开标 → 公示中 → 已中标 / 未中标 / 已废标；截止前撤回、截止后撤销、已放弃
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:79
+- object: OBJ-21
+  key_states_text: 草拟 → 审批中 → 已通过 / 驳回 → 生效（成为该（商机，标段）的当前版本）；被取代；已作废（「已通过」= 评审通过并冻结，「生效」= 当前版本，回溯检查 RD-06）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:80
+- object: OBJ-22
+  key_states_text: 随报价版本冻结
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:81
+- object: OBJ-23
+  key_states_text: 待查 → 无冲突 / 有冲突已获书面同意 / 有冲突不得承接
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:82
+- object: OBJ-24
+  key_states_text: 已启用 → 已停用；版本化
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:84
+- object: OBJ-25
+  key_states_text: 已启用 → 已停用；版本化
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:85
+- object: OBJ-26
+  key_states_text: 草拟 → 已批准 → 已生效（生效期不重叠）→ 被取代
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:86
+- object: OBJ-27
+  key_states_text: 草拟 → 已批准 → 已生效 → 被取代
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:87
+- object: OBJ-28
+  key_states_text: 年度：未维护 → 已维护；过去日期锁定
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:88
+- object: OBJ-29
+  key_states_text: 已立项 → 执行中 ⇄ 已暂停（原因）→ 收尾中 → 已结项 → 已归档（成果与证据已封存后）；已终止（解除或放弃，原因必填）；已取消（无任何投入时）（Q09：暂停期间拒绝记工时已答，intent 134134 Q-05；其余取值仍待定）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:90
+- object: OBJ-30
+  key_states_text: 阶段：未开始 → 进行中 → 已完成（只记工作进程；成果的提交与认可是交付物 OBJ-35 的事实，SC-01，聚合稿 §4.4.1）；工作包：进行中 → 已完成 → 已锁定 → 返工中；均可作废（保留历史）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:91
+- object: OBJ-31
+  key_states_text: 草拟 → 已批准（对客）/ 内部锁定 → 被修订版取代
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:92
+- object: OBJ-32
+  key_states_text: 编制中 → 审批中 → 已锁定（成本基线）→ 修订中 → 已锁定（新版本）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:93
+- object: OBJ-33
+  key_states_text: 已提出 → 已批准 / 已驳回
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:94
+- object: OBJ-34
+  key_states_text: 已拟派 → 在岗 → 已撤出
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:95
+- object: OBJ-35
+  key_states_text: '编制中 → 内审中 → 已签发（报告类）→ 已交付（签收）→ 审查中 → 已认可 / 退回修改（轮次 +1）/ 已声明（项目经理登记的无异议声明：期满前未收到发包人书面异议，附往来函件检索记录，声明人与复核人按 ADR-0047 U-2；交付侧登记事实，与「已交付（签收）/ 审查中」并列；送达、退回也记在交付侧；期满判定在 receivables.wip；「视为同意」不是交付物状态，由
+    reporting 读模型派生显示，delivery.acceptance 不读、不订阅 receivables.wip；客户书面同意属认可，即「已认可」（ADR-0047 第 1 类），不是「已声明」；D-8，用户 2026-10-16，intent 061232；按 D-8 字面订正，ADR-0049 评审；状态名与事件「无异议已声明」一致，PR #320）；被取代 / 撤回（原因必填）/
+    已作废；结项归档时已发布成果「已封存」'
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:96
+- object: OBJ-36
+  key_states_text: 编制 → 已发布 → 被取代
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:97
+- object: OBJ-37
+  key_states_text: 待评审 → 通过 / 已不通过（整改后复审）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:98
+- object: OBJ-38
+  key_states_text: 已识别 → 已确认 → 处置（返工 / 让步接受）→ 已关闭（我方成果类）；已识别 → 已复核 → 已发布 → 整改中 → 整改已申报 → 已闭合（复查通过）/ 回整改中 / 客户书面接受风险（推断，须有依据）/ 已停止跟踪（原因必填）（客户资产类）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:99
+- object: OBJ-39
+  key_states_text: 草拟 → 已认定；可撤销（冲销）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:100
+- object: OBJ-40
+  key_states_text: 已提出 → 原因认定与影响评估 → 编制 → 内审 → 已发出 → 已关闭
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:101
+- object: OBJ-41
+  key_states_text: 已通知（5 天内）→ 已提交详细说明（10 天内）→ 已批准 / 已拒绝 / 视为批准
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:102
+- object: OBJ-42
+  key_states_text: 待提供 → 已提供 → 已确认 / 有缺陷（退回）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:103
+- object: OBJ-43
+  key_states_text: 已开放 → 已封存（签发、结项）→ 已移交客户（如约定）→ 已归档 → 到期处置
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:104
+- object: OBJ-44
+  key_states_text: 草拟 → 已提出 → 已部分满足 / 已满足 / 已取消
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:105
+- object: OBJ-45
+  key_states_text: 已计划（项目经理自排）→ 已确认（部门负责人审批）→ 已释放
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:106
+- object: OBJ-46
+  key_states_text: 外部：规划 → 在建 → 已竣工（在用）→ 已超设计使用年限 → 改造中 → 已拆除
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:108
+- object: OBJ-47
+  key_states_text: 在用 → 已超年限 → 改造中 → 已拆除；不再受托
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:109
+- object: OBJ-48
+  key_states_text: 已生效 → 已执行 / 已逾期 / 不再受托（删「到期提醒」状态：到期只作提醒，派生 / 策略，人工转线索或商机，另签协议；按周期或按次结算用协议付款条件项，用户 intent 090004）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:110
+- object: OBJ-49
+  key_states_text: 已计划 → 已安排 → 现场进行中 → 记录已提交 → 已审核 → 已锁定；已取消（原因必填）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:111
+- object: OBJ-50
+  key_states_text: 草拟 → 已生效 → 已停用（只增版本）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:112
+- object: OBJ-51
+  key_states_text: 见 OBJ-38
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:113
+- object: OBJ-52
+  key_states_text: 已建议 → 业主已委托 → 报告已收到 → 已采信 / 未采信（原因）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:114
+- object: OBJ-53
+  key_states_text: 已采集 → 已上传（摘要）→ 已关联 → 已封存；已作废（原因必填，保留原件）；「已关联」= 技术聚合「证据关联」（AGG-110，B-28）中存在该证据的挂接记录，证据聚合 AGG-38 不存该状态，只作段内状态、不入阶段门（intent 114200 F-1）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:115
+- object: OBJ-54
+  key_states_text: 筹建 → 存续 → 已注销
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:117
+- object: OBJ-55
+  key_states_text: 已启用 → 已停用 / 已撤销；树按生效区间版本化（组织调整产生新版本）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:118
+- object: OBJ-56
+  key_states_text: 已登记（候选）→ 面试中 → 待入职 → 试用期 → 正式 → 待离职 → 已离职；未录用（候选阶段终态）；已停薪留职（可恢复）；权限用的在职 / 离职二值另存
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:119
+- object: OBJ-57
+  key_states_text: 生效区间版本（只追加）；主任职区间不重叠，兼职任职可多个并行、不设上限（用户 intent 072440 INV-62）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:120
+- object: OBJ-58
+  key_states_text: 已启用 → 已停用
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:121
+- object: OBJ-59
+  key_states_text: 已登记 → 面试中 → 已录用（转员工）/ 未录用
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:122
+- object: OBJ-60
+  key_states_text: 草稿 → 已提交 → 已批准 / 已驳回 → 招聘中 → 已关闭（录满 / 取消）（与 AGG-65 统一，SC-03）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:123
+- object: OBJ-61
+  key_states_text: 版本（调薪产生新版本）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:124
+- object: OBJ-62
+  key_states_text: 增员 → 在缴 → 减员（转移 / 封存）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:125
+- object: OBJ-63
+  key_states_text: 年度有效
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:126
+- object: OBJ-64
+  key_states_text: 有效 → 已到期 / 已注销
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:127
+- object: OBJ-65
+  key_states_text: 有效 → 核查中（年检 / 动态核查）→ 有效 / 已降级 / 已撤销；有效 → 延续中 → 有效（新有效期）/ 已到期（未延续）（用户答复 Q-D 第 1 项纳入资质维护，intent 082311）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:128
+- object: OBJ-66
+  key_states_text: 草稿 → 已提交（含审批中）→ 已通过 / 已退回 / 已驳回（驳回、退回后改原单再提交，不设取消终态）；撤回是转换（已提交 → 草稿，事件 TimesheetApprovalWithdrawn），不是状态；已过账属 Phase 2；关期后只能冲销或修正（one-data TS-UNIQ 审查，intent 052923）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:129
+- object: OBJ-67
+  key_states_text: 草拟 → 已认定（封期锁定）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:130
+- object: OBJ-68
+  key_states_text: 草稿 → 审批中 → 已批准 / 已驳回 → 已销假 / 已撤销
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:131
+- object: OBJ-69
+  key_states_text: 已核定 → 使用中 → 已清零 / 已结转
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:132
+- object: OBJ-70
+  key_states_text: 只追加
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:133
+- object: OBJ-71
+  key_states_text: 已生成 → 员工确认 → 已锁定
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:134
+- object: OBJ-72
+  key_states_text: 已申请 → 已批准 → 已补偿（付薪 / 调休）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:135
+- object: OBJ-73
+  key_states_text: 草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账；更正走冲销；员工薪酬行支付状态：待支付 → 已实付 / 支付失败（待补发）；部分成功时成功行保留实付，失败行待补发，整期仍为「已批准」，应付薪酬行全部实付后才转整期「已发放」
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:136
+- object: OBJ-74
+  key_states_text: 编制 → 审批 → 已生效 → 已结束
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:137
+- object: OBJ-75
+  key_states_text: 只追加；更正只能冲销（反向事实 + 新序号）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:139
+- object: OBJ-76
+  key_states_text: 已试算 → 已确认 → 已过账；整批冲销重做
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:140
+- object: OBJ-77
+  key_states_text: 每期间：归集中 → 已分摊 / 已结转下期
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:141
+- object: OBJ-78
+  key_states_text: 草稿 → 已批准 → 已生效 → 被取代
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:142
+- object: OBJ-79
+  key_states_text: 已试算 → 已生效；冲销按原比例
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:143
+- object: OBJ-80
+  key_states_text: 草稿 → 已确认 → 已过账；已冲销
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:144
+- object: OBJ-81
+  key_states_text: 若作对象：草稿 → 审批中 → 已确认（锁定）/ 驳回；更正走冲销
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:146
+- object: OBJ-82
+  key_states_text: 草稿 → 审批中 → 准入通过 → 已开票 / 驳回 / 撤回 / 已作废（开具前）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:147
+- object: OBJ-83
+  key_states_text: 已开具 → 部分红冲 → 全额红冲（销项蓝字）；已开具（红字，引用蓝字）；已取得（查验）→ 已用途确认（抵扣 / 不抵扣）→ 已入账（进项）；进项转出；红冲确认中（蓝字已用途确认或入账者红冲前；红字信息确认单由税务平台登记，72 小时未确认自动作废则回到原状态；原 OBJ-84）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:148
+- object: OBJ-84
+  key_states_text: 已发起 → 已确认 / 72 小时未确认自动作废
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:149
+- object: OBJ-85
+  key_states_text: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 r0/structure/pptx.md 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:150
+- object: OBJ-86
+  key_states_text: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:151
+- object: OBJ-87
+  key_states_text: 已提交 → 审核 → 已确认；已冲销
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:152
+- object: OBJ-88
+  key_states_text: 草稿 → 已提交 → 审批中 → 已核定（所属期间确定）→ 已过账 → 已付；驳回、已冲销
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:153
+- object: OBJ-89
+  key_states_text: 已开立 → 在用 → 已冻结 → 已销户
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:154
+- object: OBJ-90
+  key_states_text: 已导入 → 已匹配 / 未匹配
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:155
+- object: OBJ-91
+  key_states_text: 已认缴 → 已实缴（到账）→ 已部分退回 / 已退回
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:156
+- object: OBJ-92
+  key_states_text: 待申报 → 已申报 → 已缴款；更正申报
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:157
+- object: OBJ-93
+  key_states_text: 在用 → 已闲置 → 处置
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:158
+- object: OBJ-94
+  key_states_text: 已预提 → 已冲回 / 已结算
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:159
+- object: OBJ-95
+  key_states_text: 已启用 → 已停用（被引用不可删）；科目表版本化
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:161
+- object: OBJ-96
+  key_states_text: 已开立 → 在用 → 只读
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:162
+- object: OBJ-97
+  key_states_text: 未开 → 已开放 → 关账中 → 已关账；重开须审批
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:163
+- object: OBJ-98
+  key_states_text: 草稿 → 已审核 → 已记账（不可逆）；更正只能冲销
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:164
+- object: OBJ-99
+  key_states_text: 草拟 → 财务评审 → 已生效 → 被取代
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:165
+- object: OBJ-100
+  key_states_text: 编制中 → 审批 → 基线（不可变）→ 新版本
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:166
+- object: OBJ-101
+  key_states_text: 编制 → 审批 → 生效基线 → 已调整（新版本）；账户可冻结
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:167
+- object: OBJ-102
+  key_states_text: 草拟 → 审批 → 已生效（不追溯）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:168
+- object: OBJ-103
+  key_states_text: —
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:170
+- object: OBJ-104
+  key_states_text: 草拟 → 已核定 → 已发放（经月度薪酬结算）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:171
+- object: OBJ-105
+  key_states_text: 已计划 → 已变更 → 已完成（结果反馈）/ 已取消（原因必填）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:173
+- object: OBJ-106
+  key_states_text: 已发出 → 已回收 → 已评分 → 已跟进
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:174
+- object: OBJ-107
+  key_states_text: 草拟 → 已评审 → 已发布
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:175
+- object: OBJ-108
+  key_states_text: 已登记 → 应对中 → 已关闭 / 已接受（须记接受人与依据）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:176
+- object: OBJ-109
+  key_states_text: 草拟 → 已提交 → 已确认（推断，待第 6 步）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:177
+- object: OBJ-110
+  key_states_text: 起草 → 评审 → 已发布 → 已修订（新版本）→ 已废止
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:178
+- object: OBJ-111
+  key_states_text: 已生成 → 已确认（本人）→ 已锁定；锁定后不重开
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:180
+- object: OBJ-112
+  key_states_text: 草拟 → 已决议 → 已部分支付 → 已支付；已决议后变更须新决议并引用被取代决议
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:181
+- object: OBJ-113
+  key_states_text: 草稿 → 审批中 → 已批准 / 已驳回 → 已用印 → 已关闭
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:183
+- object: OBJ-114
+  key_states_text: 已提交 → 审批中（需审批的类别）→ 处理中 → 已解决 → 已关闭 / 已退回
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:184
+- object: OBJ-115
+  key_states_text: 领用申请：草稿 → 已通过（规则直通，无人审）→ 已领用；规则缺失或不满足时拒绝并告警；调拨申请：草稿 → 已申请 → 已调拨 / 已转领用 / 已撤销；使用期间：在用 → 已结束；归还记录：已归还（期间已结束）；维修：草稿 → 已报修 → 已维修登记；原领用审批中、已驳回、已撤回及审批轮次只作迁入历史保留（PRC-143，B31-5）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:185
+- object: OBJ-116
+  key_states_text: 草稿 → 已批准（规则直通，无人工批准）→ 已完成；登记取消路径：已批准 / 已完成 → 已取消（提议状态名，待 one-glossary 定名），取消不构成 VS-14.4 正常退出；原审批中、已驳回及审批轮次只作迁入历史保留（PRC-144，B31-8）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:186
+- object: OBJ-117
+  key_states_text: 未关闭 → 已解释 / 已修正 / 已豁免（均为关闭结局）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:189
+- object: OBJ-118
+  key_states_text: 已提交 → 已批准 / 已驳回 / 已撤回 → 已用尽 / 已关闭
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:190
+- object: OBJ-119
+  key_states_text: 已提交 → 已批准 / 已驳回 / 已撤回 → 已同步 / 已关闭
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:191
+- object: OBJ-120
+  key_states_text: 超标审批：待审批 → 已批准 / 已驳回；归属、退改与核对依据分别记录
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:192
+- object: OBJ-121
+  key_states_text: 已登记 → 已核对 → 已确认应付
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:193
+- object: OBJ-122
+  key_states_text: 年度账户：已开账 → 已结转；占用行：已占用 → 已转用 / 已释放；补休额度行：有效 → 已转计薪 / 已休完
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:194
+- object: OBJ-123
+  key_states_text: 版本：生效（按生效区间）→ 已结束；根记录无单独生命周期
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:195
+- object: OBJ-124
+  key_states_text: 版本草稿 → 已生效 → 已停用（被新版本取代）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:196
+- object: OBJ-125
+  key_states_text: 对账中 → 已签字
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:197
+- object: OBJ-126
+  key_states_text: 已登记 → 持股中 → 已退出（提议，随 OBJFIN-14）
+  source: docs/architecture/ssot/objects/enterprise-info-map.md:198
+by_aggregate:
+- aggregate: AGG-40
+  initial: 草稿
+  states:
+  - 草稿
+  - 审批中
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 草稿
+    command: 编制分摊规则版本
+    guard: []
+    reverse_of: null
+  - from: 草稿
+    to: 审批中
+    command: 批准分摊规则版本
+    guard:
+    - 编制与批准分离
+    reverse_of: null
+  - from: 审批中
+    to: 已生效
+    command: 生效分摊规则版本
+    guard:
+    - INV-91
+    reverse_of: null
+    on_event: 审批已通过
+  - from: 审批中
+    to: 草稿
+    command: null
+    guard: []
+    reverse_of: 批准分摊规则版本
+    on_event: 审批已驳回
+    note: 驳回退回草稿
+  - from: 审批中
+    to: 草稿
+    command: null
+    guard: []
+    reverse_of: 批准分摊规则版本
+    on_event: 审批已撤回
+    note: 撤回退回草稿
+  - from: 已生效
+    to: 已取代
+    command: null
+    guard:
+    - 同类型同法人后继版本已生效（部分唯一索引，只一个生效）
+    reverse_of: null
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  note: 批准分摊规则版本即提交批准；草稿存放位置待 one-data
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[0]
+- aggregate: AGG-41
+  initial: 已试算
+  states:
+  - 已试算
+  - 已确认
+  - 已过账
+  - name: 已作废
+    terminal: true
+  - name: 已冲销
+    terminal: true
+  transitions:
+  - from: null
+    to: 已试算
+    command: 试算人工成本分配
+    guard:
+    - INV-89
+    - 每期间一次有效
+    reverse_of: null
+  - from: 已试算
+    to: 已试算
+    command: 试算人工成本分配
+    guard: []
+    reverse_of: 试算人工成本分配
+    note: 确认前可重新试算，覆盖未确认结果
+  - from: 已试算
+    to: 已确认
+    command: 确认人工成本分配
+    guard:
+    - INV-89
+    reverse_of: null
+  - from: 已确认
+    to: 已过账
+    command: 提交过账候选
+    guard:
+    - 期间开放或落当前开放期间
+    reverse_of: null
+  - command: 作废人工成本分配运行
+    from:
+    - 已试算
+    - 已确认
+    guard: []
+    reverse_of: 试算人工成本分配
+    to: 已作废
+    note: 未过账前作废（S-31 SQ-17）
+  - command: 冲销人工成本分配运行
+    from: 已过账
+    guard:
+    - INV-95
+    - AR-06 加审
+    reverse_of: 提交过账候选
+    to: 已冲销
+    note: 所属期间已关账的不再冲原运行，差额进下期运行（ADR-0045 决定 2）
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  note: 口径待 FD-09
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[1]
+- aggregate: AGG-42
+  initial: 已试算
+  states:
+  - 已试算
+  - 已生效
+  - name: 已冲销
+    terminal: true
+  transitions:
+  - from: null
+    to: 已试算
+    command: 试算分摊运行
+    guard: []
+    reverse_of: null
+  - from: 已试算
+    to: 已试算
+    command: 试算分摊运行
+    guard: []
+    reverse_of: 试算分摊运行
+    note: 生效前可重新试算
+  - from: 已试算
+    to: 已生效
+    command: 生效分摊运行
+    guard:
+    - INV-90
+    reverse_of: null
+  - command: 冲销分摊运行
+    from: 已生效
+    guard:
+    - INV-95
+    - AR-06 加审
+    reverse_of: 生效分摊运行
+    to: 已冲销
+  reversal_note: 管理口径、不过账；更正以新运行追加，已生效运行状态不变
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[2]
+- aggregate: AGG-43
+  initial: 已生成
+  states:
+  - 已生成
+  - name: 已过账
+    terminal: true
+  transitions:
+  - from: null
+    to: 已生成
+    command: 售前投入转费用
+    guard: []
+    reverse_of: null
+  - from: null
+    to: 已生成
+    command: 转入售前投入
+    guard: []
+    reverse_of: null
+  - from: null
+    to: 已生成
+    command: 终止清算成本
+    guard: []
+    reverse_of: null
+  - from: null
+    to: 已生成
+    command: 结转合同履约成本
+    guard:
+    - INV-88（待定 Q20）
+    reverse_of: null
+  - from: 已生成
+    to: 已生成
+    command: 提交过账候选
+    guard:
+    - 过账管道接受（拒收则保持已生成并告警，由 PRC-158 处置）
+    reverse_of: null
+    note: 提交不改状态，结果由订阅得到
+  - from: 已生成
+    to: 已过账
+    command: 标记成本结转已过账
+    guard:
+    - 订阅 BusinessFactAttributed，幂等键相同
+    reverse_of: null
+    on_event: BusinessFactAttributed
+  - command: 冲回成本结转
+    from: 已过账
+    guard:
+    - INV-94
+    - INV-95
+    reverse_of: 结转合同履约成本
+    to: 已生成
+    on_event: BusinessFactRestated
+    note: S-31 SQ-04：订阅 BusinessFactRestated，只取收入确认类事实，据原单回冲已配对结转；再经提交过账候选、标记成本结转已过账回到已过账；pending Q20
+  reversal_note: 已过账的运行单据被更正：原单置「已冲销」，新单引用原单（S-30 ③；冲销命令范围随 SQ-17 回补，本稿暂不加状态）
+  note: 四个结转命令只在批次内记结转行（→（内部）），提交过账候选 → B-16，订阅过账结果后标记成本结转已过账并发成本结转已过账（S-30 ①）
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[3]
+- aggregate: AGG-52
+  initial: 已确认
+  states:
+  - 已确认
+  - 已部分结清
+  - 已结清
+  - name: 已冲销
+    terminal: true
+  - 预付款已登记
+  - 已部分冲抵
+  - name: 已冲抵
+    terminal: true
+  transitions:
+  - from: null
+    to: 已确认
+    command: 确认应付
+    guard:
+    - 来源单据幂等
+    - INV-74
+    - INV-75a
+    reverse_of: null
+  - from: null
+    to: 已确认
+    command: 提交应付利润
+    guard:
+    - 利润分配已决议
+    reverse_of: null
+  - from: null
+    to: 已确认
+    command: 提交应付薪酬
+    guard:
+    - 来源为月度薪酬结算
+    reverse_of: null
+  - from: 已确认
+    to: 已确认
+    command: 提交过账候选
+    guard: &id001 []
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已部分结清
+    to: 已部分结清
+    command: 提交过账候选
+    guard: *id001
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已结清
+    to: 已结清
+    command: 提交过账候选
+    guard: *id001
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已确认
+    to: 已确认
+    command: 在应付上核销占用
+    guard:
+    - INV-79
+    - 付款不超过未付余额
+    reverse_of: null
+    note: 占用不减余额
+  - from: 已部分结清
+    to: 已部分结清
+    command: 在应付上核销占用
+    guard:
+    - INV-79
+    reverse_of: null
+    note: 占用不减余额
+  - from: 已确认
+    to: 已确认
+    command: 释放核销占用
+    guard: []
+    reverse_of: 在应付上核销占用
+    note: 审批驳回、撤回、付款失败或发起失败时补偿
+  - from: 已部分结清
+    to: 已部分结清
+    command: 释放核销占用
+    guard: []
+    reverse_of: 在应付上核销占用
+  - from: 已确认
+    to: 已部分结清
+    command: 核销应付
+    guard:
+    - INV-78a
+    - 余额大于零
+    reverse_of: null
+  - from: 已确认
+    to: 已结清
+    command: 核销应付
+    guard:
+    - INV-78a
+    - 余额为零
+    reverse_of: null
+  - from: 已部分结清
+    to: 已部分结清
+    command: 核销应付
+    guard:
+    - 余额大于零
+    reverse_of: null
+  - from: 已部分结清
+    to: 已结清
+    command: 核销应付
+    guard:
+    - 余额为零
+    reverse_of: null
+  - from: 已结清
+    to: 已部分结清
+    command: 冲回应付核销
+    guard:
+    - 退票或部分退回后仍有核销，未结余额大于零
+    reverse_of: 核销应付
+    note: S-30 ③：付款已退票后恢复未结余额；代发部分退回时只冲回退回额（PAYROLL_REISSUE_SEAM J-2）
+  - from: 已部分结清
+    to: 已部分结清
+    command: 登记薪酬补发明细
+    guard:
+    - 来源为月度薪酬结算
+    - 累计补发额不超过累计冲回额
+    reverse_of: null
+    note: 薪酬补发不新建应付，在原应付上登记补发明细，由 PRC-75 付清未结余额（one-architecture 2026-10-22 裁定 J-1）；提议命令
+  - from:
+    - 已部分结清
+    - 已结清
+    to: 已确认
+    command: 冲回应付核销
+    guard:
+    - 冲回后无任何核销
+    reverse_of: 核销应付
+  - from: 已部分结清
+    to: 已部分结清
+    command: 冲回应付核销
+    guard:
+    - 冲回后仍有其他核销
+    reverse_of: 核销应付
+  - from:
+    - 已确认
+    - 已部分结清
+    to: 已部分结清
+    command: 人工处置核销差异
+    guard:
+    - 余额大于零
+    reverse_of: null
+    note: S-29 SQ-49：人工核销
+  - from:
+    - 已确认
+    - 已部分结清
+    to: 已结清
+    command: 人工处置核销差异
+    guard:
+    - 余额为零
+    reverse_of: null
+    note: S-29 SQ-49：人工核销
+  - command: 登记其他应付
+    from: null
+    guard:
+    - RULE-407 豁免清单
+    - INV-03c
+    reverse_of: null
+    to: 已确认
+    note: S-31 SQ-29；S-34 ④
+  - command: 登记预付款
+    from: null
+    guard:
+    - RULE-407 豁免清单
+    - INV-03c
+    reverse_of: null
+    to: 预付款已登记
+    note: S-31 SQ-29；预付款进待付清单的触发待补
+  - command: 预付款冲抵应付
+    from: 预付款已登记
+    guard:
+    - INV-77a
+    - INV-130
+    - 冲抵后预付款余额大于零
+    reverse_of: null
+    to: 已部分冲抵
+  - command: 预付款冲抵应付
+    from: 预付款已登记
+    guard:
+    - INV-77a
+    - INV-130
+    - 冲抵后预付款余额为零
+    reverse_of: null
+    to: 已冲抵
+  - command: 预付款冲抵应付
+    from: 已部分冲抵
+    guard:
+    - INV-77a
+    - 冲抵后预付款余额大于零
+    reverse_of: 预付款冲抵应付
+    to: 已部分冲抵
+  - command: 预付款冲抵应付
+    from: 已部分冲抵
+    guard:
+    - INV-77a
+    - 冲抵后预付款余额为零
+    reverse_of: 预付款冲抵应付
+    to: 已冲抵
+  - command: 冲销应付利润
+    from: 已确认
+    guard:
+    - 无核销
+    reverse_of: 提交应付利润
+    to: 已冲销
+    note: S-34 ②：撤销利润分配决议后注销未付应付；提议命令
+  - command: 预付款冲抵应付
+    from: 已确认
+    guard:
+    - INV-77a
+    - 冲抵后应付余额大于零
+    reverse_of: null
+    to: 已部分结清
+    note: 冲抵同时核销被冲抵的应付（S-31 SQ-29）
+  - command: 预付款冲抵应付
+    from: 已确认
+    guard:
+    - INV-77a
+    - 冲抵后应付余额为零
+    reverse_of: null
+    to: 已结清
+  - command: 预付款冲抵应付
+    from: 已部分结清
+    guard:
+    - INV-77a
+    - 冲抵后应付余额大于零
+    reverse_of: null
+    to: 已部分结清
+  - command: 预付款冲抵应付
+    from: 已部分结清
+    guard:
+    - INV-77a
+    - 冲抵后应付余额为零
+    reverse_of: null
+    to: 已结清
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  note: 争议状态与处置分类聚合稿无命令，见 NOTES 收敛节；暂估应付是标记不是状态；应付类型含税费（PRC-159 订阅申报已提交确认）
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[4]
+- aggregate: AGG-53
+  initial: 已发起
+  states:
+  - 已发起
+  - 审批中
+  - 已成功
+  - name: 已失败
+    terminal: true
+  - name: 已驳回
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  - 已核销
+  - name: 已退票
+    terminal: true
+  transitions:
+  - from: null
+    to: 已发起
+    command: 发起付款
+    guard:
+    - INV-79
+    - INV-80
+    - INV-03c
+    - INV-04b
+    reverse_of: null
+  - from: 已发起
+    to: 审批中
+    command: null
+    guard: []
+    reverse_of: null
+    on_event: 提交审批
+  - from: 审批中
+    to: 已成功
+    command: 登记银行结果
+    guard:
+    - INV-78a
+    - INV-81
+    reverse_of: null
+    on_event: 审批已通过
+  - from: 审批中
+    to: 已失败
+    command: 登记付款失败
+    guard: []
+    reverse_of: null
+  - from: 审批中
+    to: 已驳回
+    command: null
+    guard: []
+    reverse_of: 发起付款
+    on_event: 审批已驳回
+    note: 补偿：AGG-52 释放核销占用
+  - from: 审批中
+    to: 已撤回
+    command: null
+    guard: []
+    reverse_of: 发起付款
+    on_event: 审批已撤回
+    note: 补偿：AGG-52 释放核销占用
+  - from: 已成功
+    to: 已核销
+    command: 标记付款已核销
+    guard: []
+    reverse_of: null
+    on_event: 应付已核销
+  - from: 已成功
+    to: 已失败
+    command: 登记付款失败
+    guard:
+    - 银行结果更正为失败（核销前）
+    reverse_of: 登记银行结果
+    note: 成功后、核销前银行结果更正为失败；核销后的退票走登记退票
+  - from: 已核销
+    to: 已核销
+    command: 提交过账候选
+    guard: []
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已核销
+    to: 已退票
+    command: 登记退票
+    guard:
+    - INV-78a
+    reverse_of: 登记银行结果
+    note: S-30 ③：事件付款已退票，AGG-52 订阅后冲回应付核销
+  - from: 已核销
+    to: 已核销
+    command: 登记代发退回
+    guard:
+    - 累计退回额不超过付款金额
+    reverse_of: null
+    note: 代发部分退回，付款状态不变、累计退回额增加；发付款已部分退回，AGG-52 只冲回退回额（PAYROLL_REISSUE_SEAM J-2）；提议命令
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045）；退票后原付款置「已退票」，重新发起为新付款
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[5]
+- aggregate: AGG-54
+  initial: 已认缴
+  states:
+  - 已认缴
+  - 已部分实缴
+  - 已实缴
+  - 已部分退回
+  - name: 已退回
+    terminal: true
+  transitions:
+  - from: null
+    to: 已认缴
+    command: 登记出资认缴
+    guard: []
+    reverse_of: null
+  - from: 已认缴
+    to: 已实缴
+    command: 登记出资实缴
+    guard:
+    - 累计实缴等于认缴额（INV-127）
+    reverse_of: null
+  - from: 已实缴
+    to: 已部分退回
+    command: 登记出资退回
+    guard:
+    - 退回不超过已实缴（INV-128）
+    - 减资或退伙决议依据
+    reverse_of: 登记出资实缴
+  - from: 已实缴
+    to: 已退回
+    command: 登记出资退回
+    guard:
+    - 退回等于已实缴
+    reverse_of: 登记出资实缴
+  - from: 已部分退回
+    to: 已部分退回
+    command: 登记出资退回
+    guard:
+    - 退回不超过已实缴
+    reverse_of: 登记出资实缴
+  - from: 已部分退回
+    to: 已退回
+    command: 登记出资退回
+    guard:
+    - 退回等于已实缴
+    reverse_of: 登记出资实缴
+  - from: 已实缴
+    to: 已实缴
+    command: 提交过账候选
+    guard: &id002 []
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已部分退回
+    to: 已部分退回
+    command: 提交过账候选
+    guard: *id002
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已退回
+    to: 已退回
+    command: 提交过账候选
+    guard: *id002
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已认缴
+    to: 已部分实缴
+    command: 登记出资实缴
+    guard:
+    - 累计实缴小于认缴额（INV-127）
+    reverse_of: null
+  - from: 已部分实缴
+    to: 已部分实缴
+    command: 登记出资实缴
+    guard:
+    - 累计实缴仍小于认缴额（INV-127）
+    reverse_of: null
+  - from: 已部分实缴
+    to: 已实缴
+    command: 登记出资实缴
+    guard:
+    - 累计实缴等于认缴额（INV-127）
+    reverse_of: null
+  - from: 已实缴
+    to: 已部分实缴
+    command: 更正出资登记
+    guard:
+    - 更正后累计实缴小于认缴额（INV-127）
+    reverse_of: 登记出资实缴
+  - from: 已部分实缴
+    to: 已认缴
+    command: 更正出资登记
+    guard:
+    - 更正后累计实缴为零
+    reverse_of: 登记出资实缴
+  - from: 已部分实缴
+    to: 已部分实缴
+    command: 更正出资登记
+    guard:
+    - 更正后累计实缴仍大于零且小于认缴额
+    reverse_of: 登记出资实缴
+  - from: 已部分实缴
+    to: 已部分退回
+    command: 登记出资退回
+    guard:
+    - 退回不超过已实缴（INV-128）
+    reverse_of: 登记出资实缴
+  - from: 已部分实缴
+    to: 已退回
+    command: 登记出资退回
+    guard:
+    - 退回等于已实缴
+    reverse_of: 登记出资实缴
+  - from: 已部分实缴
+    to: 已部分实缴
+    command: 提交过账候选
+    guard: []
+    reverse_of: null
+    note: 过账不改业务状态
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[6]
+- aggregate: AGG-109
+  initial: 草拟
+  states:
+  - 草拟
+  - 已决议
+  - 已部分支付
+  - name: 已支付
+    terminal: true
+  - name: 已撤销
+    terminal: true
+  transitions:
+  - from: null
+    to: 草拟
+    command: 草拟利润分配
+    guard: []
+    reverse_of: null
+  - from: 草拟
+    to: 已决议
+    command: 决议利润分配
+    guard:
+    - INV-117
+    reverse_of: null
+  - from: 已决议
+    to: 已决议
+    command: 提交过账候选
+    guard: &id003 []
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已部分支付
+    to: 已部分支付
+    command: 提交过账候选
+    guard: *id003
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已支付
+    to: 已支付
+    command: 提交过账候选
+    guard: *id003
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已决议
+    to: 已部分支付
+    command: 登记利润分配支付
+    guard:
+    - 支付额小于决议额
+    reverse_of: null
+    note: 由 PRC-163 订阅 AGG-52「应付已结清」后调用（S-34 ③ 单一触发）
+  - from: 已决议
+    to: 已支付
+    command: 登记利润分配支付
+    guard:
+    - 支付额等于决议额
+    reverse_of: null
+    note: 由 PRC-163 订阅 AGG-52「应付已结清」后调用（S-34 ③ 单一触发）
+  - from: 已部分支付
+    to: 已部分支付
+    command: 登记利润分配支付
+    guard:
+    - 累计支付小于决议额
+    reverse_of: null
+    note: 由 PRC-163 订阅 AGG-52「应付已结清」后调用（S-34 ③ 单一触发）
+  - from: 已部分支付
+    to: 已支付
+    command: 登记利润分配支付
+    guard:
+    - 累计支付等于决议额
+    reverse_of: null
+    note: 由 PRC-163 订阅 AGG-52「应付已结清」后调用（S-34 ③ 单一触发）
+  - from:
+    - 已决议
+    - 已部分支付
+    to: 已撤销
+    command: null
+    guard: []
+    reverse_of: 决议利润分配
+    on_event: 后继决议已登记
+    note: 决议被后继决议取代时，以新决议撤销原决议、留原决议（S-34 ②）；已支付部分以后继决议承接
+  - from: 已决议
+    to: 已撤销
+    command: 撤销利润分配决议
+    guard:
+    - 尚无支付
+    reverse_of: 决议利润分配
+    note: S-29 SQ-48：股东会或合伙人会议撤销决议；置「已撤销」，决议不是运行单据，不用「已冲销」；已过账的应付股利经冲销过账更正（S-34 ②）
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变；决议撤销置「已撤销」（S-34 ②）
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[7]
+- aggregate: AGG-55
+  initial: 草拟
+  states:
+  - 草拟
+  - 审批中
+  - 已生效
+  - 履行中
+  - 已完成
+  - name: 已结算
+    terminal: true
+  - name: 已终止
+    terminal: true
+  transitions:
+  - from: null
+    to: 草拟
+    command: 起草供方协议
+    guard: []
+    reverse_of: null
+  - from: 草拟
+    to: 审批中
+    command: null
+    guard: []
+    reverse_of: null
+    on_event: 提交审批
+  - from: 审批中
+    to: 已生效
+    command: 生效供方协议
+    guard:
+    - INV-03b
+    - INV-04a
+    - INV-11
+    - INV-12
+    - INV-13
+    - INV-15
+    reverse_of: null
+    on_event: 审批已通过
+  - from: 审批中
+    to: 草拟
+    command: null
+    guard: []
+    reverse_of: 生效供方协议
+    on_event: 审批已驳回
+    note: 驳回退回起草
+  - from: 审批中
+    to: 草拟
+    command: null
+    guard: []
+    reverse_of: 生效供方协议
+    on_event: 审批已撤回
+    note: 撤回退回起草
+  - from: 已生效
+    to: 履行中
+    command: null
+    guard: []
+    reverse_of: null
+    on_event: 供方履约已确认
+    note: 首次履约确认触发，本 BC 内策略
+  - from: 履行中
+    to: 已完成
+    command: 完成供方协议
+    guard:
+    - 累计履约达协议金额或额度用尽
+    reverse_of: null
+  - from:
+    - 已生效
+    - 履行中
+    to: 已终止
+    command: 终止供方协议
+    guard:
+    - 终止原因必填
+    reverse_of: null
+    on_event: 审批已通过
+  - from: 已完成
+    to: 已结算
+    command: 结算供方协议
+    guard:
+    - 已完成状态
+    - 累计履约与协议金额关系
+    reverse_of: null
+    on_event: 审批已通过
+  - from: 已完成
+    to: 已完成
+    command: null
+    guard: []
+    reverse_of: 结算供方协议
+    on_event: 审批已驳回
+    note: 结算审批驳回或撤回，状态不变
+  - from: 已生效
+    to: 已生效
+    command: null
+    guard: &id004 []
+    reverse_of: 终止供方协议
+    on_event: 审批已驳回
+    note: 终止审批驳回或撤回，状态不变
+  - from: 履行中
+    to: 履行中
+    command: null
+    guard: *id004
+    reverse_of: 终止供方协议
+    on_event: 审批已驳回
+    note: 终止审批驳回或撤回，状态不变
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[8]
+- aggregate: AGG-56
+  initial: 已提出
+  states:
+  - 已提出
+  - name: 已生效
+    terminal: true
+  - name: 已驳回
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  transitions:
+  - from: null
+    to: 已提出
+    command: 提出分包变更
+    guard:
+    - INV-16b
+    reverse_of: null
+  - from: 已提出
+    to: 已生效
+    command: 生效分包变更
+    guard:
+    - INV-16b
+    - 变更后金额不低于履约累计
+    reverse_of: null
+    on_event: 审批已通过
+  - from: 已提出
+    to: 已驳回
+    command: null
+    guard: []
+    reverse_of: 提出分包变更
+    on_event: 审批已驳回
+  - from: 已提出
+    to: 已撤回
+    command: null
+    guard: []
+    reverse_of: 提出分包变更
+    on_event: 审批已撤回
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[9]
+- aggregate: AGG-57
+  initial: 已确认
+  states:
+  - 已确认
+  - name: 已过账
+    terminal: true
+  - name: 已冲销
+    terminal: true
+  transitions:
+  - from: null
+    to: 已确认
+    command: 确认供方履约
+    guard:
+    - INV-83
+    - INV-39a
+    reverse_of: null
+  - from: 已确认
+    to: 已过账
+    command: 提交过账候选
+    guard:
+    - 过账管道接受（拒收则保持已确认并告警）
+    reverse_of: null
+  - from:
+    - 已确认
+    - 已过账
+    to: 已冲销
+    command: 冲销供方履约确认
+    guard:
+    - INV-95
+    - 加审 AR-06
+    reverse_of: 确认供方履约
+    note: S-30 ③：运行单据被更正后原单置已冲销
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  note: 形态待定 Q20
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[10]
+- aggregate: AGG-58
+  stateless: true
+  reason: 额度聚合只保留协议金额与占用行，余额与用尽由占用累计推出；占用以新行追加，释放以反向行表达，不设状态字段
+  transitions: []
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[11]
+- aggregate: AGG-59
+  initial: 已提交
+  states:
+  - 已提交
+  - 已核定
+  - name: 已付
+    terminal: true
+  - name: 已驳回
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  - name: 已冲销
+    terminal: true
+  transitions:
+  - from: null
+    to: 已提交
+    command: 提交费用报销
+    guard:
+    - INV-84
+    - INV-75
+    - INV-39b
+    reverse_of: null
+  - from: 已提交
+    to: 已核定
+    command: 核定费用报销
+    guard:
+    - 审批通过
+    reverse_of: null
+    on_event: 审批已通过
+  - from: 已提交
+    to: 已驳回
+    command: null
+    guard: []
+    reverse_of: 提交费用报销
+    on_event: 审批已驳回
+    note: 补偿：释放预算占用、释放进项发票占用
+  - from: 已提交
+    to: 已撤回
+    command: null
+    guard: []
+    reverse_of: 提交费用报销
+    on_event: 审批已撤回
+    note: 补偿同驳回
+  - from: 已核定
+    to: 已核定
+    command: 提交过账候选
+    guard: []
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已核定
+    to: 已付
+    command: 标记费用报销已付
+    guard:
+    - 应付已结清或借款冲抵净额为零
+    reverse_of: null
+    on_event: 应付已结清
+  - from: 已核定
+    to: 已冲销
+    command: 冲销费用报销
+    guard:
+    - INV-95
+    - 加审 AR-06
+    - 未付且应付无核销
+    reverse_of: 核定费用报销
+    note: S-30 ③：运行单据被更正后原单置已冲销
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[12]
+- aggregate: AGG-77
+  stateless: true
+  reason: 过账事实只追加（ADR-0016），更正以冲销并重过账追加反向与重过账事实，原事实不改状态；拒收记录的处置状态在 AGG-77 内部技术表，不进本状态机（PRC-158）
+  transitions: []
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[13]
+- aggregate: AGG-81
+  initial: 未开放
+  states:
+  - 未开放
+  - 已开放
+  - 关账中
+  - name: 已关账
+    terminal: true
+  transitions:
+  - from: null
+    to: 已开放
+    command: 开立会计年度
+    guard:
+    - 法人 × 会计年度唯一
+    reverse_of: null
+    note: S-30 ②：一次生成第 1–12 期；第 13 期仍由开放第 13 期
+  - from: 未开放
+    to: 已开放
+    command: 开放第 13 期
+    guard:
+    - INV-104
+    - 第 13 期启用登记已生效
+    reverse_of: null
+  - from: 已开放
+    to: 关账中
+    command: 发起关账
+    guard:
+    - INV-99
+    - 发起人与确认人不同
+    reverse_of: null
+  - from: 已开放
+    to: 关账中
+    command: 发起年末关账
+    guard:
+    - INV-99
+    - 发起人与确认人不同
+    reverse_of: null
+  - from: 关账中
+    to: 已关账
+    command: 确认关账
+    guard:
+    - INV-100
+    - 前置检查通过
+    - 确认人不同于发起人
+    reverse_of: null
+  - from: 关账中
+    to: 已关账
+    command: 确认年末关账
+    guard:
+    - INV-99
+    - 前置检查通过
+    - 确认人不同于发起人
+    reverse_of: null
+  - from: 关账中
+    to: 已开放
+    command: 退回开放
+    guard:
+    - 前置检查未通过（ADR-0045 决定 1）
+    reverse_of: 发起关账
+  - from: 关账中
+    to: 已开放
+    command: 退回开放
+    guard:
+    - 前置检查未通过
+    reverse_of: 发起年末关账
+  note: 已关账不重开（ADR-0045），无指向开放的转换；第 1–12 期由开立会计年度置开放（S-30 ②）
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[14]
+- aggregate: AGG-96
+  stateless: true
+  reason: 配置类版本，登记即生效，只追加；更改以新版本取代，不改旧行
+  transitions: []
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[15]
+- aggregate: AGG-82
+  initial: 草稿
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 草稿
+    command: 起草科目表版本
+    guard: []
+    reverse_of: null
+  - from: 草稿
+    to: 已生效
+    command: 发布科目表版本
+    guard:
+    - INV-103
+    - 起草与批准分离
+    reverse_of: null
+  - from: 草稿
+    to: 草稿
+    command: null
+    guard: []
+    reverse_of: 发布科目表版本
+    on_event: 审批已驳回
+    note: 批准人驳回，退回起草
+  - from: 已生效
+    to: 已取代
+    command: null
+    guard:
+    - 同类型同法人后继版本已生效（部分唯一索引，只一个生效）
+    reverse_of: null
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿存放位置待 one-data
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[16]
+- aggregate: AGG-83
+  stateless: true
+  reason: 参照数据，每法人两个，随法人登记，无聚合命令（D17）
+  transitions: []
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[17]
+- aggregate: AGG-84
+  initial: 待处理
+  states:
+  - 待处理
+  - 待推送
+  - 已推送
+  - 死信
+  - 挂起
+  - name: 已确认记账
+    terminal: true
+  - name: 已记账（无需推送）
+    terminal: true
+  transitions:
+  - from: null
+    to: 待处理
+    command: 生成分录
+    guard:
+    - INV-98
+    - 来源不在授权表或映射缺失
+    reverse_of: null
+  - from: null
+    to: 待推送
+    command: 生成分录
+    guard:
+    - INV-96
+    - INV-98
+    - 收付口径账簿
+    reverse_of: null
+  - from: null
+    to: 已记账（无需推送）
+    command: 生成分录
+    guard:
+    - INV-96
+    - 权责口径账簿
+    reverse_of: null
+  - from: 待处理
+    to: 待推送
+    command: 处理待处理队列
+    guard:
+    - INV-98
+    - 来源已授权且映射已补齐
+    reverse_of: null
+  - from: 待推送
+    to: 已推送
+    command: 推送分录
+    guard: []
+    reverse_of: null
+  - from: 已推送
+    to: 已确认记账
+    command: 登记外部记账确认
+    guard:
+    - 对账（AGG-101）经 platform.integration 读到 U8C 记账结果后登记（S-31 SQ-11）
+    reverse_of: null
+  - from: 已推送
+    to: 死信
+    command: 推送分录
+    guard:
+    - U8C 拒收，带返回码
+    reverse_of: null
+  - from: 死信
+    to: 待推送
+    command: 推送分录
+    guard:
+    - 财务处理原因后重投
+    reverse_of: 推送分录
+    note: 重投回到待推送
+  - from: 待推送
+    to: 挂起
+    command: 推送分录
+    guard:
+    - 凭证依赖的主数据尚未同步到 U8C（S-29 SQ-50）
+    reverse_of: null
+  - from: 挂起
+    to: 已推送
+    command: 推送分录
+    guard:
+    - 每日定时重投成功
+    reverse_of: 推送分录
+  - from: 挂起
+    to: 死信
+    command: 推送分录
+    guard:
+    - U8C 拒收，带返回码
+    reverse_of: null
+  reversal_note: 分录冲销以新行（红字）表达，原行状态不变
+  note: 待处理队列放 AGG-84 下作无父行技术表，分录本身只追加、不改状态，状态只在队列项上（INV-95a，S-31 SQ-23）
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[18]
+- aggregate: AGG-85
+  initial: 草稿
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 草稿
+    command: 起草映射表版本
+    guard: []
+    reverse_of: null
+  - from: 草稿
+    to: 已生效
+    command: 发布映射表版本
+    guard:
+    - 起草与批准分离
+    - 引用完整
+    reverse_of: null
+  - from: 草稿
+    to: 草稿
+    command: null
+    guard: []
+    reverse_of: 发布映射表版本
+    on_event: 审批已驳回
+    note: 批准人驳回，退回起草
+  - from: 已生效
+    to: 已取代
+    command: null
+    guard:
+    - 同类型同法人后继版本已生效（部分唯一索引，只一个生效）
+    reverse_of: null
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  note: 发布含 SH-M1 批准（聚合内审批）
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[19]
+- aggregate: AGG-94
+  initial: 草稿
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 草稿
+    command: 起草授权表版本
+    guard: []
+    reverse_of: null
+  - from: 草稿
+    to: 已生效
+    command: 发布授权表版本
+    guard:
+    - 起草与批准分离
+    - 引用完整
+    reverse_of: null
+  - from: 草稿
+    to: 草稿
+    command: null
+    guard: []
+    reverse_of: 发布授权表版本
+    on_event: 审批已驳回
+    note: 批准人驳回，退回起草
+  - from: 已生效
+    to: 已取代
+    command: null
+    guard:
+    - 同类型同法人后继版本已生效（部分唯一索引，只一个生效）
+    reverse_of: null
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  note: 发布含 SH-M1 批准（聚合内审批）
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[20]
+- aggregate: AGG-98
+  initial: 草稿
+  states:
+  - 草稿
+  - 已复核
+  - 已审批
+  - name: 已提交过账
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  - name: 已作废
+    terminal: true
+  transitions:
+  - from: null
+    to: 草稿
+    command: 制单手工凭证
+    guard:
+    - INV-108
+    - 理由与附件必填
+    - 授权表范围
+    reverse_of: null
+  - from: 草稿
+    to: 已复核
+    command: 复核手工凭证
+    guard:
+    - 制单与复核分离
+    reverse_of: null
+  - from: 已复核
+    to: 已审批
+    command: null
+    guard: []
+    reverse_of: null
+    on_event: 审批已通过
+  - from: 已复核
+    to: 草稿
+    command: null
+    guard: []
+    reverse_of: 复核手工凭证
+    on_event: 审批已驳回
+    note: 驳回退回制单
+  - from: 已复核
+    to: 已撤回
+    command: null
+    guard: []
+    reverse_of: 复核手工凭证
+    on_event: 审批已撤回
+  - from: 已审批
+    to: 已提交过账
+    command: 提交过账候选
+    guard:
+    - INV-92
+    - INV-93
+    reverse_of: null
+  - from: 草稿
+    to: 已作废
+    command: 作废手工凭证草稿
+    guard:
+    - 只有草稿可作废
+    reverse_of: 制单手工凭证
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[21]
+- aggregate: AGG-99
+  initial: 已生成
+  states:
+  - 已生成
+  - 已过账
+  - name: 已冲销
+    terminal: true
+  transitions:
+  - from: null
+    to: 已生成
+    command: 生成期末结转运行
+    guard:
+    - INV-109
+    reverse_of: null
+  - from: 已生成
+    to: 已生成
+    command: 生成期末结转运行
+    guard:
+    - INV-109
+    reverse_of: 生成期末结转运行
+    note: 过账前可重新生成，覆盖未过账结果
+  - from: 已生成
+    to: 已过账
+    command: 提交过账候选
+    guard: []
+    reverse_of: null
+  - command: 冲销期末结转运行
+    from: 已过账
+    guard:
+    - INV-95
+    - AR-06 加审
+    reverse_of: 提交过账候选
+    to: 已冲销
+    note: 所属期间已关账的不再冲原运行，差额进下期运行
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[22]
+- aggregate: AGG-100
+  stateless: true
+  reason: 只追加的期间快照；更正落开放期间的「上年调整」「以前期间更正」栏，已生成快照不改（ADR-0046）
+  transitions: []
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[23]
+- aggregate: AGG-101
+  initial: 进行中
+  states:
+  - 进行中
+  - name: 差异已清零
+    terminal: true
+  - name: 已签字接受
+    terminal: true
+  transitions:
+  - from: null
+    to: 进行中
+    command: 登记对账差异
+    guard:
+    - INV-107
+    reverse_of: null
+  - from: 进行中
+    to: 进行中
+    command: 登记对账差异
+    guard: []
+    reverse_of: null
+    note: 追加差异行
+  - from: 进行中
+    to: 差异已清零
+    command: 登记对账差异
+    guard:
+    - 差异合计为零
+    reverse_of: null
+  - from: 进行中
+    to: 已签字接受
+    command: 签字接受差异
+    guard:
+    - INV-107
+    - 登记与签字分离
+    reverse_of: null
+    on_event: 签字通过
+  - from: 进行中
+    to: 进行中
+    command: null
+    guard: []
+    reverse_of: 签字接受差异
+    on_event: 审批已驳回
+    note: 签字被驳回，退回登记差异
+  note: 签字人与容差待定
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[24]
+- aggregate: AGG-86
+  initial: 草稿
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 草稿
+    command: 编制报表行定义版本
+    guard: []
+    reverse_of: null
+  - from: 草稿
+    to: 已生效
+    command: 生效报表行定义版本
+    guard:
+    - INV-91a
+    - 编制与评审分离
+    reverse_of: null
+  - from: 草稿
+    to: 草稿
+    command: null
+    guard: []
+    reverse_of: 生效报表行定义版本
+    on_event: 审批已驳回
+    note: 批准人驳回，退回起草
+  - from: 已生效
+    to: 已取代
+    command: null
+    guard:
+    - 同类型同法人后继版本已生效（部分唯一索引，只一个生效）
+    reverse_of: null
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  note: 生效含 SH-M1 评审（聚合内审批）
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[25]
+- aggregate: AGG-87
+  initial: 待确认开立
+  states:
+  - 待确认开立
+  - 已开立
+  - 已冻结
+  - 待确认销户
+  - name: 已销户
+    terminal: true
+  transitions:
+  - from: null
+    to: 待确认开立
+    command: 开立资金账户
+    guard: []
+    reverse_of: null
+  - from: 待确认开立
+    to: 已开立
+    command: 确认开立资金账户
+    guard:
+    - 确认人不同于开立经办
+    reverse_of: null
+    note: engine aggregate，类型级 SH-M1
+  - from: 已开立
+    to: 已冻结
+    command: 冻结资金账户
+    guard: []
+    reverse_of: null
+  - from: 已冻结
+    to: 已开立
+    command: 解冻资金账户
+    guard:
+    - 解除冻结依据齐备
+    reverse_of: 冻结资金账户
+    note: engine aggregate，类型级 SH-M1
+  - from:
+    - 已开立
+    - 已冻结
+    to: 待确认销户
+    command: 销户资金账户
+    guard:
+    - 无未结付款占用与未对账流水
+    reverse_of: null
+  - from: 待确认销户
+    to: 已销户
+    command: 确认销户资金账户
+    guard:
+    - 确认人不同于销户经办
+    reverse_of: null
+    note: engine aggregate，类型级 SH-M1
+  note: 开立、解冻、销户各分登记与确认两步（S-29 SQ-42）
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[26]
+- aggregate: AGG-88
+  stateless: true
+  reason: 流水行只追加，不记匹配（匹配记在收款、付款上）；利息与手续费行过账不改行
+  transitions: []
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[27]
+- aggregate: AGG-89
+  initial: 已登记
+  states:
+  - 已登记
+  - 已查验
+  - 已用途确认
+  - 已占用
+  - 已入账
+  - name: 已转出
+    terminal: true
+  transitions:
+  - from: null
+    to: 已登记
+    command: 登记进项发票
+    guard: []
+    reverse_of: null
+  - from: 已登记
+    to: 已查验
+    command: 查验进项发票
+    guard:
+    - INV-75
+    reverse_of: null
+  - from: 已查验
+    to: 已用途确认
+    command: 确认进项发票用途
+    guard: []
+    reverse_of: null
+  - from:
+    - 已查验
+    - 已用途确认
+    to: 已占用
+    command: 占用进项发票入账
+    guard:
+    - INV-74
+    - INV-75a
+    reverse_of: null
+  - from: 已占用
+    to: 已查验
+    command: 释放进项发票占用
+    guard: []
+    reverse_of: 占用进项发票入账
+    note: 报销被驳回或撤回时释放占用
+  - from: 已占用
+    to: 已入账
+    command: 登记进项发票入账
+    guard:
+    - 占用方已过账
+    reverse_of: null
+    note: 占用方（报销或供方来源应付）过账后登记税务平台的入账状态；入账后不再释放占用，更正走红冲或进项转出（transition-review CF-032）；由谁向税务平台报送入账状态待定（U-55）；提议命令
+  - from:
+    - 已用途确认
+    - 已入账
+    to: 已转出
+    command: 进项转出
+    guard: []
+    reverse_of: null
+  - from: 已用途确认
+    to: 已用途确认
+    command: 提交过账候选
+    guard: &id005 []
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 已转出
+    to: 已转出
+    command: 提交过账候选
+    guard: *id005
+    reverse_of: null
+    note: 过账不改业务状态
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[28]
+- aggregate: AGG-90
+  initial: 待申报
+  states:
+  - 待申报
+  - 已申报
+  - 已缴款
+  - name: 已更正
+    terminal: true
+  transitions:
+  - from: null
+    to: 待申报
+    command: 生成申报
+    guard: []
+    reverse_of: null
+  - from: 待申报
+    to: 已申报
+    command: 提交申报
+    guard:
+    - 复核通过（SH-M1）
+    reverse_of: null
+  - from: 待申报
+    to: 待申报
+    command: null
+    guard: []
+    reverse_of: 提交申报
+    on_event: 审批已驳回
+    note: 复核驳回，退回重新生成
+  - from: 已申报
+    to: 已缴款
+    command: 登记缴款
+    guard: []
+    reverse_of: null
+  - from:
+    - 已申报
+    - 已缴款
+    to: 已更正
+    command: 更正申报
+    guard:
+    - 更正产生新申报，原申报标已更正
+    reverse_of: 提交申报
+  - from: 已缴款
+    to: 已缴款
+    command: 提交过账候选
+    guard: []
+    reverse_of: null
+    note: 过账不改业务状态
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[29]
+- aggregate: AGG-91
+  initial: 在用
+  states:
+  - 在用
+  - name: 已处置
+    terminal: true
+  transitions:
+  - from: null
+    to: 在用
+    command: 登记公司资产
+    guard: []
+    reverse_of: null
+  - from: 在用
+    to: 在用
+    command: 计提折旧与摊销
+    guard: []
+    reverse_of: null
+    note: 月末计提，不改状态
+  - from: 在用
+    to: 已处置
+    command: 处置资产
+    guard:
+    - 资产卡片存在
+    - 未重复处置
+    reverse_of: null
+    on_event: 审批已通过
+  - from: 在用
+    to: 在用
+    command: null
+    guard: []
+    reverse_of: 处置资产
+    on_event: 审批已驳回
+    note: 处置审批驳回或撤回，状态不变
+  - from: 已处置
+    to: 已处置
+    command: 提交过账候选
+    guard: []
+    reverse_of: null
+    note: 过账不改业务状态
+  - from: 在用
+    to: 在用
+    command: 提交过账候选
+    guard: []
+    reverse_of: null
+    note: 折旧过账不改业务状态
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[30]
+- aggregate: AGG-78
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - command: 编制口径版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布口径版本
+    from: 草稿
+    guard:
+    - INV-131（起草与批准分离）
+    - INV-91
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布口径版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard:
+    - 同类型后继版本已生效（只一个生效）
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[31]
+- aggregate: AGG-123
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - command: 编制成本核算参数版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布成本核算参数版本
+    from: 草稿
+    guard:
+    - INV-131（起草与批准分离）
+    - INV-91
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布成本核算参数版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard:
+    - 同类型后继版本已生效（只一个生效）
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[32]
+- aggregate: AGG-124
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - command: 编制资产类别与折旧政策版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布资产类别与折旧政策版本
+    from: 草稿
+    guard:
+    - INV-131（起草与批准分离）
+    - INV-91
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布资产类别与折旧政策版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard:
+    - 同类型后继版本已生效（只一个生效）
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[33]
+- aggregate: AGG-128
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - command: 起草期末结转模板版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布期末结转模板版本
+    from: 草稿
+    guard:
+    - INV-131（起草与批准分离）
+    - INV-91
+    - INV-136
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布期末结转模板版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard:
+    - 同类型后继版本已生效（只一个生效）
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[34]
+- aggregate: AGG-129
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - command: 起草现金流量项目表版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布现金流量项目表版本
+    from: 草稿
+    guard:
+    - INV-131（起草与批准分离）
+    - INV-91
+    - INV-136
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布现金流量项目表版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard:
+    - 同类型后继版本已生效（只一个生效）
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[35]
+- aggregate: AGG-133
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - name: 已取代
+    terminal: true
+  transitions:
+  - command: 编制出差补贴标准版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布出差补贴标准版本
+    from: 草稿
+    guard:
+    - INV-131（起草与批准分离）
+    - INV-91
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布出差补贴标准版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard:
+    - 同类型后继版本已生效（只一个生效）
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[36]
+- aggregate: AGG-125
+  initial: 编制中
+  note: 投产时一次性建立；生效后不改，U8C 年结差额走 AGG-98「期初调整」类受控手工凭证（S-31 SQ-21）；签字之外的把关方式待 A1-02（S-06）
+  states:
+  - 编制中
+  - name: 已生效
+    terminal: true
+  transitions:
+  - command: 编制期初余额
+    from: null
+    guard:
+    - INV-134
+    reverse_of: null
+    to: 编制中
+  - command: 编制期初余额
+    from: 编制中
+    guard:
+    - INV-134
+    reverse_of: 编制期初余额
+    to: 编制中
+    note: 可反复编制
+  - command: 签字确认期初余额
+    from: 编制中
+    guard:
+    - INV-133
+    - INV-134
+    - 财务负责人书面确认（G-2）
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 编制中
+    guard: []
+    reverse_of: 签字确认期初余额
+    to: 编制中
+    on_event: 签字退回
+    note: 财务负责人退回，回编制中
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[37]
+- aggregate: AGG-126
+  initial: 未关闭
+  note: 未关闭的超容差差异案使关账前置检查不通过（INV-135）
+  states:
+  - 未关闭
+  - name: 已解释
+    terminal: true
+  - name: 已修正
+    terminal: true
+  - name: 已豁免
+    terminal: true
+  transitions:
+  - command: 登记勾稽差异案
+    from: null
+    guard:
+    - INV-135
+    reverse_of: null
+    to: 未关闭
+  - command: 解释勾稽差异案
+    from: 未关闭
+    guard:
+    - INV-135
+    reverse_of: null
+    to: 已解释
+  - command: 修正勾稽差异案
+    from: 未关闭
+    guard:
+    - INV-135
+    - INV-95
+    reverse_of: null
+    to: 已修正
+    note: 更正经原流程冲销并重过账
+  - command: 豁免勾稽差异案
+    from: 未关闭
+    guard:
+    - INV-135
+    - 豁免须财务负责人确认
+    reverse_of: null
+    to: 已豁免
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[38]
+- aggregate: AGG-127
+  stateless: true
+  reason: 配置型版本行随代码发布登记，只追加，无业务状态（S-31 SQ-24）
+  transitions: []
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[39]
+- aggregate: AGG-122
+  initial: 等待齐备
+  note: 每商机一个；两事件分别到达，不要求同时（S-31 SQ-18）
+  states:
+  - 等待齐备
+  - name: 已转入
+    terminal: true
+  - name: 已转费用
+    terminal: true
+  transitions:
+  - command: 登记协议已生效
+    from: null
+    guard:
+    - INV-132
+    reverse_of: null
+    to: 等待齐备
+  - command: 登记协议已生效
+    from: 等待齐备
+    guard:
+    - INV-132
+    reverse_of: 登记协议已生效
+    to: 等待齐备
+  - command: 登记项目已建立
+    from: null
+    guard:
+    - INV-132
+    reverse_of: null
+    to: 等待齐备
+  - command: 登记项目已建立
+    from: 等待齐备
+    guard:
+    - INV-132
+    reverse_of: 登记项目已建立
+    to: 等待齐备
+  - command: 登记售前投入挂接归属
+    from: 等待齐备
+    guard:
+    - INV-132
+    reverse_of: null
+    to: 等待齐备
+  - command: 标记售前投入已转入
+    from: 等待齐备
+    guard:
+    - INV-132
+    - 协议已生效且项目已建立
+    reverse_of: null
+    to: 已转入
+  - command: 标记售前投入已转费用
+    from: 等待齐备
+    guard:
+    - INV-132
+    reverse_of: null
+    to: 已转费用
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[40]
+- aggregate: AGG-130
+  initial: 已提交
+  note: 本期只做业务招待一类；是否扩到全部费用类别 pending U-34
+  states:
+  - 已提交
+  - 已批准
+  - name: 已驳回
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  - name: 已用尽
+    terminal: true
+  - name: 已关闭
+    terminal: true
+  transitions:
+  - command: 提交费用事前申请
+    from: null
+    guard: []
+    reverse_of: null
+    to: 已提交
+  - command: 批准费用事前申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已批准
+    on_event: 审批已通过
+  - command: 驳回费用事前申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已驳回
+    on_event: 审批已驳回
+  - command: 撤回费用事前申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已撤回
+  - command: 标记费用事前申请已用尽
+    from: 已批准
+    guard:
+    - 报销累计达额度
+    reverse_of: null
+    to: 已用尽
+    note: 提议命令，由报销累计触发
+  - command: 关闭费用事前申请
+    from: 已批准
+    guard: []
+    reverse_of: null
+    to: 已关闭
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[41]
+- aggregate: AGG-132
+  initial: 已提交
+  states:
+  - 已提交
+  - 已批准
+  - name: 已驳回
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  - name: 已同步
+    terminal: true
+  transitions:
+  - command: 提交出差申请
+    from: null
+    guard: []
+    reverse_of: null
+    to: 已提交
+  - command: 批准出差申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已批准
+    on_event: 审批已通过
+  - command: 驳回出差申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已驳回
+    on_event: 审批已驳回
+  - command: 撤回出差申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已撤回
+  - command: 登记出差申请已同步
+    from: 已批准
+    guard:
+    - 差旅服务商推送成功
+    reverse_of: null
+    to: 已同步
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[42]
+- aggregate: AGG-131
+  initial: 已登记
+  note: 付款方式（预充值或月结）pending U-39，暂只写月结形态
+  states:
+  - 已登记
+  - 已核对
+  - name: 已确认应付
+    terminal: true
+  transitions:
+  - command: 登记差旅订单与月账单
+    from: null
+    guard:
+    - INV-137
+    reverse_of: null
+    to: 已登记
+  - command: 登记差旅订单与月账单
+    from: 已登记
+    guard:
+    - INV-137
+    reverse_of: 登记差旅订单与月账单
+    to: 已登记
+    note: 订单与账单分别到达
+  - command: 归属差旅订单
+    from: 已登记
+    guard: []
+    reverse_of: null
+    to: 已登记
+  - command: 登记超标订单待审批
+    from: 已登记
+    guard: []
+    reverse_of: null
+    to: 已登记
+    note: 账单状态不变；订单行状态见 sub_machines 差旅订单行
+  - command: 批准差旅超标订单
+    from: 已登记
+    guard: []
+    reverse_of: 登记超标订单待审批
+    to: 已登记
+    note: 账单状态不变；订单行状态见 sub_machines 差旅订单行
+  - command: 驳回差旅超标订单
+    from: 已登记
+    guard: []
+    reverse_of: 登记超标订单待审批
+    to: 已登记
+    note: 账单状态不变；订单行状态见 sub_machines 差旅订单行
+  - command: 核对差旅月账单
+    from: 已登记
+    guard:
+    - INV-137
+    reverse_of: null
+    to: 已核对
+  - command: 处理账单差异
+    from: 已核对
+    guard:
+    - INV-137
+    reverse_of: 核对差旅月账单
+    to: 已登记
+    note: 更正账单后回到核对；提议命令
+  - command: 确认差旅账单应付
+    from: 已核对
+    guard:
+    - INV-137
+    reverse_of: null
+    to: 已确认应付
+  - command: 提交过账候选
+    from: 已确认应付
+    guard: []
+    reverse_of: null
+    to: 已确认应付
+    note: 过账不改业务状态
+  sub_machines:
+  - entity: 差旅订单行
+    object: OBJ-120
+    note: 超标审批是订单行的状态，与月账单状态正交（transition-review CF-036）；未超标订单停在已登记
+    initial: 已登记
+    states:
+    - 已登记
+    - 待审批
+    - name: 已批准
+      terminal: true
+    - name: 已驳回
+      terminal: true
+    transitions:
+    - command: 登记差旅订单与月账单
+      from: null
+      guard:
+      - INV-137
+      reverse_of: null
+      to: 已登记
+    - command: 登记超标订单待审批
+      from: 已登记
+      guard: []
+      reverse_of: null
+      to: 待审批
+    - command: 批准差旅超标订单
+      from: 待审批
+      guard: []
+      reverse_of: null
+      to: 已批准
+    - command: 驳回差旅超标订单
+      from: 待审批
+      guard: []
+      reverse_of: null
+      to: 已驳回
+  group: finance
+  source: docs/architecture/proposals/closeout/finance/state-machines.yaml#machines[43]
+- aggregate: AGG-60
+  machine: legal_entity
+  entity: legal_entities
+  perpetual: true
+  reason: 法人主体只增不删、可停用可启用，长期存在，无业务终结
+  note: 根只留代码，名称与状态随版本表；聚合稿只列登记法人主体，更名 / 停用 / 启用三条〔缺〕命令取自词表事件（法人主体已更名 / 已停用 / 已启用），经对象增删改查检查补入（vs07.notes.md 结构问题 19）；词表区分已登记与已启用，本稿登记即有效；代码更正（仅未发号前，INV-59）按已建代码补「更正法人主体代码」，状态不变
+  states:
+  - 有效
+  - 已停用
+  initial: null
+  transitions:
+  - from: null
+    to: 有效
+    command: 登记法人主体
+    guard:
+    - INV-59
+    kind: forward
+  - from: 有效
+    to: 有效
+    command: 更名法人主体
+    guard:
+    - INV-59：代码不改
+    kind: forward
+    note: 追加名称版本
+  - from: 有效
+    to: 已停用
+    command: 停用法人主体
+    guard: []
+    kind: forward
+  - from: 已停用
+    to: 有效
+    command: 启用法人主体
+    guard: []
+    kind: reverse
+  - from: 有效
+    to: 有效
+    command: 更正法人主体代码
+    guard:
+    - INV-59：仅代码未发号时
+    kind: non_state
+    note: 恢复
+  source_part: vs07
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[0]
+- aggregate: AGG-61
+  machine: org_unit
+  entity: org_units
+  note: 状态取数据模型「启用 / 停用 / 撤销」；调整组织单元一条命令按「调整类型」参数新建、变更、停用、恢复、撤销（聚合稿只有这一条命令）；已撤销与停用是两个不同状态（RULE-355）
+  states:
+  - 已启用
+  - 已停用
+  - name: 已撤销
+    terminal: true
+  initial: null
+  transitions:
+  - from: null
+    to: 已启用
+    command: 调整组织单元
+    guard: []
+    kind: forward
+    note: 新建
+  - from: 已启用
+    to: 已启用
+    command: 调整组织单元
+    guard: []
+    kind: forward
+    note: 变更名称、上级、负责人、单元类型
+  - from: 已启用
+    to: 已停用
+    command: 调整组织单元
+    guard: []
+    kind: forward
+  - from: 已停用
+    to: 已启用
+    command: 调整组织单元
+    guard: []
+    kind: reverse
+    note: 恢复启用
+  - from: 已启用
+    to: 已撤销
+    command: 调整组织单元
+    guard:
+    - INV-60：下有在职任职则拒绝
+    kind: forward
+  - from: 已停用
+    to: 已撤销
+    command: 调整组织单元
+    guard:
+    - INV-60
+    kind: forward
+  source_part: vs07
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[1]
+- aggregate: AGG-117
+  machine: legal_entity_attribution
+  entity: legal_entity_attributions
+  perpetual: true
+  reason: 归属对象的期间聚合，期间在版本表追加，历史只能关闭不能改写，随归属对象长期存续，无生命周期终态
+  note: 根是归属对象（部门或员工）的期间聚合，期间在版本表追加，历史只能关闭不能改写；无生命周期终态
+  states:
+  - 已指定
+  initial: null
+  transitions:
+  - from: null
+    to: 已指定
+    command: 指定法人归属
+    guard:
+    - INV-122
+    kind: forward
+  - from: 已指定
+    to: 已指定
+    command: 指定法人归属
+    guard:
+    - INV-122：新期间只能从最近一段开始日之后起算
+    kind: forward
+  - from: 已指定
+    to: 已指定
+    command: 更正法人归属
+    guard:
+    - INV-122：仅已关闭期间的结束日，只追加更正行
+    kind: non_state
+  - from: 已指定
+    to: 已指定
+    command: 结束法人归属
+    guard:
+    - INV-122：只关闭当前期间
+    - 操作人不得终止本人归属
+    kind: non_state
+    note: 关闭当前期间，聚合随归属对象长期存续
+  source_part: vs07
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[2]
+- aggregate: AGG-64
+  machine: job_catalog_entry
+  entity: jobs
+  note: 新建 / 修改命令聚合稿缺（vs07.notes.md 结构问题 8），经对象增删改查检查补〔缺〕新建岗位、修改岗位（结构问题 19）；初始目录仍由初始化录入；职级、职位族暂随本聚合不拆（S-10）
+  states:
+  - 已启用
+  - name: 已停用
+    terminal: true
+  initial: 已启用
+  transitions:
+  - from: null
+    to: 已启用
+    command: 新建岗位
+    guard: []
+    kind: forward
+  - from: 已启用
+    to: 已启用
+    command: 修改岗位
+    guard: []
+    kind: forward
+    note: 追加版本
+  - from: 已启用
+    to: 已停用
+    command: 停用岗位
+    guard:
+    - INV-63
+    kind: forward
+  source_part: vs07
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[3]
+- aggregate: AGG-65
+  machine: recruitment_requisition
+  entity: recruitment_requisitions
+  note: 草稿来自编辑页保存或迁入，保存草稿不是领域命令；聚合稿状态「已驳回」「招聘中」本稿不设：v1 以关闭代驳回，进入「招聘中」的命令聚合稿与分片均缺（PG-08），见 vs07conv.notes.md 结构问题 2
+  states:
+  - 草稿
+  - 已提交
+  - 已批准
+  - name: 已关闭
+    terminal: true
+  initial: 草稿
+  transitions:
+  - from: 草稿
+    to: 已提交
+    command: 提交招聘需求
+    guard:
+    - R-01
+    kind: forward
+  - from: 已提交
+    to: 已批准
+    command: 批准招聘需求
+    guard:
+    - AR-11
+    - AR-12
+    - 提出人 ≠ 批准人
+    kind: forward
+    process_outcome: 已批准
+  - from: 已提交
+    to: 已关闭
+    command: 关闭招聘需求
+    guard:
+    - 批准人驳回，或提出人撤回
+    kind: reverse
+    process_outcome: 已关闭
+  - from: 已批准
+    to: 已关闭
+    command: 关闭招聘需求
+    guard:
+    - 取消或录满（PG-08：录满无触发）
+    kind: forward
+    process_outcome: 已关闭
+  source_part: vs07
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[4]
+- aggregate: AGG-62
+  machine: person
+  entity: employees / employment_versions / interviews / hiring_decisions / separation_requests
+  sub_machines:
+  - 人员
+  - 离职申请
+  note: '同一聚合两个子生命周期合成一台（状态名带「人员:」「离职申请:」前缀，各子生命周期以 from: null 的创建转换为入口）。人员:试用期 / 正式 都是在职（词表「在职」Employed）；停薪留职（数据模型状态列）无命令，本稿不设。办理离职、离职生效、撤销离职登记同事务改两个子生命周期，各列两条转换'
+  states:
+  - 人员:候选人
+  - 人员:待答复
+  - 人员:录用已确认
+  - 人员:待入职
+  - 人员:试用期
+  - 人员:正式
+  - 人员:待离职
+  - name: 人员:未录用
+    terminal: true
+  - name: 人员:候选人已放弃
+    terminal: true
+  - name: 人员:已离职
+    terminal: true
+  - 离职申请:已申请
+  - 离职申请:已受理
+  - 离职申请:已批准
+  - 离职申请:已登记
+  - name: 离职申请:已驳回
+    terminal: true
+  - name: 离职申请:已撤回
+    terminal: true
+  - name: 离职申请:已生效
+    terminal: true
+  - name: 离职申请:已撤销
+    terminal: true
+  initial: null
+  transitions:
+  - from: null
+    to: 人员:候选人
+    command: 登记候选人
+    guard:
+    - T-5：个人信息保护
+    kind: forward
+  - from: 人员:候选人
+    to: 人员:候选人
+    command: 记录面试
+    guard:
+    - 面试轮次追加，不改状态
+    kind: non_state
+  - from: 人员:候选人
+    to: 人员:待答复
+    command: 作出录用决定
+    guard:
+    - R-02：拟任职位须启用
+    - V-8：不另设审批
+    kind: forward
+  - from: 人员:待答复
+    to: 人员:录用已确认
+    command: 登记候选人答复
+    guard:
+    - 答复为接受并确认入职日
+    - V-19：答复期限提醒
+    kind: forward
+  - from: 人员:待答复
+    to: 人员:候选人已放弃
+    command: 登记候选人答复
+    guard:
+    - 答复为放弃
+    kind: reverse
+    process_outcome: 候选人已放弃
+  - from: 人员:候选人
+    to: 人员:未录用
+    command: 标记未录用
+    guard:
+    - 面试结论为不通过
+    kind: forward
+    process_outcome: 未录用
+  - from: 人员:录用已确认
+    to: 人员:待入职
+    command: 登记入职
+    guard:
+    - U-12：入职日为人事业务生效日
+    kind: forward
+  - from: null
+    to: 人员:待入职
+    command: 登记入职
+    guard:
+    - 非招聘入职（调入、返聘）无候选阶段，直接登记〔推〕
+    kind: forward
+  - from: 人员:待入职
+    to: 人员:试用期
+    command: 入职生效
+    guard:
+    - U-12：入职日到达
+    - 用工约定含试用期
+    kind: forward
+  - from: 人员:待入职
+    to: 人员:正式
+    command: 入职生效
+    guard:
+    - U-12：入职日到达
+    - 用工约定无试用期（如实习、退休返聘）〔推〕
+    kind: forward
+  - from: 人员:试用期
+    to: 人员:正式
+    command: 办理转正
+    guard:
+    - P-46：转正前读评估，结论是输入不是拒绝条件
+    kind: forward
+    process_outcome: 已转正
+  - from: 人员:试用期
+    to: 人员:待离职
+    command: 办理离职
+    guard:
+    - 离职申请为已受理或已批准
+    - U-12
+    kind: forward
+  - from: 人员:正式
+    to: 人员:待离职
+    command: 办理离职
+    guard:
+    - 离职申请为已受理或已批准
+    - U-12
+    kind: forward
+  - from: 人员:待离职
+    to: 人员:已离职
+    command: 离职生效
+    guard:
+    - U-12：离职日结束
+    - G-2：发 Separated 即吊销会话
+    kind: forward
+    process_outcome: 离职已生效
+  - from: 人员:待离职
+    to: 人员:试用期
+    command: 撤销离职登记
+    guard:
+    - 离职日前；回到登记前状态
+    kind: reverse
+  - from: 人员:待离职
+    to: 人员:正式
+    command: 撤销离职登记
+    guard:
+    - 离职日前；回到登记前状态
+    kind: reverse
+  - from: null
+    to: 离职申请:已申请
+    command: 申请离职
+    guard:
+    - 来源为公司终止：依据与原因类别必填
+    - 人员为试用期或正式且无进行中申请
+    kind: forward
+  - from: null
+    to: 离职申请:已受理
+    command: 申请离职
+    guard:
+    - 来源为员工：自动受理（V-20）
+    - R-03：期望离职日早于法定通知期只预警
+    kind: forward
+  - from: 离职申请:已申请
+    to: 离职申请:已批准
+    command: 批准公司终止
+    guard:
+    - AR-11
+    - AR-12
+    - 发起人 ≠ 批准人
+    kind: forward
+  - from: 离职申请:已申请
+    to: 离职申请:已驳回
+    command: 驳回公司终止
+    guard: []
+    kind: reverse
+    process_outcome: 终止已驳回
+  - from: 离职申请:已受理
+    to: 离职申请:已撤回
+    command: 撤回离职申请
+    guard:
+    - 登记离职日前
+    - 仅申请人（人力代录入的由人力代撤回）
+    kind: reverse
+    process_outcome: 离职申请已撤回
+  - from: 离职申请:已受理
+    to: 离职申请:已登记
+    command: 办理离职
+    guard:
+    - V-1：离职日语义
+    kind: forward
+  - from: 离职申请:已批准
+    to: 离职申请:已登记
+    command: 办理离职
+    guard:
+    - V-1：离职日语义
+    kind: forward
+  - from: 离职申请:已登记
+    to: 离职申请:已生效
+    command: 离职生效
+    guard:
+    - U-12
+    kind: forward
+  - from: 离职申请:已登记
+    to: 离职申请:已撤销
+    command: 撤销离职登记
+    guard:
+    - 离职日前；离职日后不可撤销
+    kind: reverse
+    process_outcome: 离职登记已撤销
+  source_part: vs07
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[5]
+- aggregate: AGG-63
+  machine: assignment
+  entity: assignments / assignment_versions
+  sub_machines:
+  - 任职
+  - 调岗申请
+  note: '同一聚合两个子生命周期合成一台（前缀「任职:」「调岗申请:」，各以 from: null 为入口）。任职是版本化对象（D6），「任职:变更待生效」表示已写入未来版本、未到业务生效日；变更任职、任职变更生效同事务改两个子生命周期。数据模型无调岗申请表（vs07conv.notes.md 结构问题 5）'
+  states:
+  - 任职:生效中
+  - 任职:变更待生效
+  - name: 任职:已终止
+    terminal: true
+  - 调岗申请:已提交
+  - 调岗申请:已批准
+  - 调岗申请:已写入
+  - name: 调岗申请:已驳回
+    terminal: true
+  - name: 调岗申请:已生效
+    terminal: true
+  initial: null
+  transitions:
+  - from: null
+    to: 任职:生效中
+    command: 建立任职
+    guard:
+    - INV-62
+    - INV-63
+    - INV-60
+    kind: forward
+  - from: 任职:生效中
+    to: 任职:已终止
+    command: 终止任职
+    guard:
+    - 区间止于离职日
+    kind: forward
+  - from: null
+    to: 调岗申请:已提交
+    command: 提交调岗申请
+    guard:
+    - INV-63
+    - INV-60
+    kind: forward
+  - from: 调岗申请:已提交
+    to: 调岗申请:已批准
+    command: 批准调岗申请
+    guard:
+    - AR-11
+    - AR-12
+    - 提交人 ≠ 批准人
+    kind: forward
+  - from: 调岗申请:已提交
+    to: 调岗申请:已驳回
+    command: 驳回调岗申请
+    guard:
+    - 批准人驳回，或提交人撤回
+    kind: reverse
+    process_outcome: 已驳回
+  - from: 任职:生效中
+    to: 任职:变更待生效
+    command: 变更任职
+    guard:
+    - INV-62：原子关旧开新，主任职不重叠
+    - 跨法人：新劳动合同已签订
+    kind: forward
+  - from: 调岗申请:已批准
+    to: 调岗申请:已写入
+    command: 变更任职
+    guard:
+    - 调岗申请为已批准
+    kind: forward
+  - from: 任职:变更待生效
+    to: 任职:生效中
+    command: 任职变更生效
+    guard:
+    - U-12：业务生效日到达
+    kind: forward
+  - from: 调岗申请:已写入
+    to: 调岗申请:已生效
+    command: 任职变更生效
+    guard:
+    - U-12
+    kind: forward
+    process_outcome: 调岗已生效
+  source_part: vs07
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[6]
+- aggregate: AGG-66
+  machine: practice_certificate
+  entity: practice_certificates
+  note: 登记注册执业证书、注销注册执业证书聚合稿缺，经对象增删改查检查补〔缺〕命令（vs07.notes.md 结构问题 19），对应数据模型状态列「有效 / 到期 / 注销」；迁入的存量证书仍直接为有效
+  states:
+  - 有效
+  - name: 已到期
+    terminal: true
+  - name: 已注销
+    terminal: true
+  initial: 有效
+  transitions:
+  - from: null
+    to: 有效
+    command: 登记注册执业证书
+    guard:
+    - INV-47
+    kind: forward
+    process_outcome: 证书已登记
+  - from: 有效
+    to: 已注销
+    command: 注销注册执业证书
+    guard:
+    - 证书为有效
+    kind: forward
+    process_outcome: 证书已注销
+  - from: 有效
+    to: 有效
+    command: 登记继续教育学时
+    guard:
+    - 按注册期累计，追加不改写
+    kind: non_state
+    process_outcome: 学时已登记
+  - from: 有效
+    to: 有效
+    command: 延续注册执业证书
+    guard:
+    - V-14：学时未达标只预警，不拒绝
+    kind: forward
+    process_outcome: 证书已延续
+  - from: 有效
+    to: 已到期
+    command: 标记执业证书已到期
+    guard:
+    - 有效期届满且无新注册期
+    kind: forward
+    process_outcome: 执业证书已到期
+  source_part: vs07
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[7]
+- aggregate: AGG-67
+  machine: labor_contract
+  entity: labor_contracts
+  note: 草案来自编辑页保存，保存草案不是领域命令；续订另立新合同。跨法人调动的新合同在 R-04 通过时由草案直接进入已批准（免二次批准）。「已完成 / 已结算」不适用
+  states:
+  - 草案
+  - 审批中
+  - 已批准
+  - 已签署生效
+  - name: 已终止
+    terminal: true
+  initial: 草案
+  transitions:
+  - from: 草案
+    to: 审批中
+    command: 提交劳动合同
+    guard:
+    - INV-14
+    - 常规入职合同（非跨法人调动）
+    kind: forward
+  - from: 草案
+    to: 已批准
+    command: 提交劳动合同
+    guard:
+    - INV-14
+    - R-04：跨法人调动，合同要素与已批准调岗一致
+    kind: forward
+  - from: 审批中
+    to: 已批准
+    command: 批准劳动合同
+    guard:
+    - AR-11
+    - AR-12
+    - 提交人 ≠ 批准人
+    kind: forward
+  - from: 审批中
+    to: 草案
+    command: 驳回劳动合同
+    guard: []
+    kind: reverse
+  - from: 已批准
+    to: 已签署生效
+    command: 签订劳动合同
+    guard:
+    - INV-14
+    - P-05：满一个月未签只提醒
+    kind: forward
+    process_outcome: 入职已办理（人员试用期 / 正式，协议已签署生效）
+  - from: 已签署生效
+    to: 已签署生效
+    command: 登记劳动合同终止依据
+    guard:
+    - 依据文件线下签署或送达
+    kind: non_state
+  - from: 已签署生效
+    to: 已终止
+    command: 终止劳动合同
+    guard:
+    - 终止日 = 离职日或调动生效日
+    kind: forward
+  source_part: vs07
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[8]
+- aggregate: AGG-69
+  machine: attendance_record
+  entity: attendance_records
+  note: 只追加不可改（INV-69），记录类型（打卡 / 外勤 / 补卡）是属性不分状态；导入与补卡都是创建，创建即终态
+  states:
+  - name: 已记录
+    terminal: true
+  initial: null
+  transitions:
+  - from: null
+    to: 已记录
+    command: 导入考勤记录
+    guard:
+    - INV-69
+    kind: forward
+  - from: null
+    to: 已记录
+    command: 补卡
+    guard:
+    - INV-69
+    - R-b
+    - INV-105：所属月已锁定则计入下月更正行
+    kind: forward
+  source_part: vs13att
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[9]
+- aggregate: AGG-70
+  machine: leave_request
+  entity: leave_requests
+  note: 草稿来自编辑页保存或迁入；已提交 = 规则内自动批准路径的瞬时待批状态（聚合稿与数据模型状态列无此状态，见 vs13att.notes.md 结构问题 2）；已批准休完后仍停在已批准
+  states:
+  - 草稿
+  - 已提交
+  - 审批中
+  - 已批准
+  - name: 已驳回
+    terminal: true
+  - name: 已撤销
+    terminal: true
+  - name: 已销假
+    terminal: true
+  initial: 草稿
+  transitions:
+  - from: 草稿
+    to: 已提交
+    command: 提交请假
+    guard:
+    - INV-68
+    - INV-116
+    - R-a：规则内自动批准路径
+    kind: forward
+  - from: 草稿
+    to: 审批中
+    command: 提交请假
+    guard:
+    - INV-68
+    - INV-116
+    - R-a：超阈值 / 需证明材料 / 透支转人审
+    kind: forward
+  - from: 已提交
+    to: 已批准
+    command: 批准请假
+    guard:
+    - R-a
+    kind: forward
+  - from: 审批中
+    to: 已批准
+    command: 批准请假
+    guard:
+    - AR-11
+    - AR-12
+    kind: forward
+  - from: 审批中
+    to: 已驳回
+    command: 驳回请假
+    guard: []
+    kind: reverse
+  - from: 审批中
+    to: 已撤销
+    command: 撤销请假
+    guard:
+    - 仅申请人，同时撤回审批实例
+    kind: reverse
+  - from: 已批准
+    to: 已撤销
+    command: 撤销请假
+    guard:
+    - 仅申请人，请假未开始
+    kind: reverse
+  - from: 已批准
+    to: 已销假
+    command: 销假
+    guard:
+    - 仅申请人，请假已开始且未休完
+    kind: reverse
+  source_part: vs13att
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[10]
+- aggregate: AGG-71
+  sub_machines:
+  - leave_balance_account
+  - leave_balance_hold
+  - leave_comp_grant
+  states:
+  - leave_balance_account:已开账
+  - name: leave_balance_account:已结转
+    terminal: true
+  - leave_balance_hold:已占用
+  - leave_balance_hold:已转用
+  - name: leave_balance_hold:已释放
+    terminal: true
+  - leave_comp_grant:有效
+  - name: leave_comp_grant:已转计薪
+    terminal: true
+  - name: leave_comp_grant:已休完
+    terminal: true
+  transitions:
+  - from: null
+    to: leave_balance_account:已开账
+    command: 开立年度额度账户
+    guard:
+    - INV-123
+    kind: forward
+  - from: leave_balance_account:已开账
+    to: leave_balance_account:已开账
+    command: 占用余额
+    guard:
+    - INV-68
+    kind: forward
+    effect: 占用 +
+  - from: leave_balance_account:已开账
+    to: leave_balance_account:已开账
+    command: 批准转已用
+    guard: []
+    kind: forward
+    effect: 占用 −，已用 +
+  - from: leave_balance_account:已开账
+    to: leave_balance_account:已开账
+    command: 释放余额占用
+    guard: []
+    kind: reverse
+    effect: 占用 −
+  - from: leave_balance_account:已开账
+    to: leave_balance_account:已开账
+    command: 回冲已用额度
+    guard:
+    - 回冲不超已用
+    kind: reverse
+    effect: 已用 −
+  - from: leave_balance_account:已开账
+    to: leave_balance_account:已结转
+    command: 年度结转额度账户
+    guard:
+    - 年度届满
+    - AGG-118 结转规则版本取得到（取不到失败并告警）
+    - 无占用中的占用行
+    kind: forward
+  - from: null
+    to: leave_balance_hold:已占用
+    command: 占用余额
+    guard:
+    - INV-68
+    - 账户已开账
+    kind: forward
+  - from: leave_balance_hold:已占用
+    to: leave_balance_hold:已转用
+    command: 批准转已用
+    guard: []
+    kind: forward
+  - from: leave_balance_hold:已占用
+    to: leave_balance_hold:已释放
+    command: 释放余额占用
+    guard:
+    - 驳回 / 审批中撤销 / 孤儿占用
+    kind: reverse
+  - from: leave_balance_hold:已转用
+    to: leave_balance_hold:已释放
+    command: 回冲已用额度
+    guard:
+    - 已批准后撤销：全部回冲
+    kind: reverse
+  - from: leave_balance_hold:已转用
+    to: leave_balance_hold:已转用
+    command: 回冲已用额度
+    guard:
+    - 销假：未休完部分回冲
+    kind: reverse
+  - from: null
+    to: leave_comp_grant:有效
+    command: 计入补休额度
+    guard:
+    - 加班已批准且补偿方式为补休
+    - 休息日加班
+    - 补休有效期取得到
+    kind: forward
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:有效
+    command: 占用余额
+    guard:
+    - INV-68：补休类按到期日先后冲抵
+    - 请假日不晚于到期日
+    kind: forward
+    effect: 占用 +
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:有效
+    command: 批准转已用
+    guard: []
+    kind: forward
+    effect: 占用 −，已用 +
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:有效
+    command: 释放余额占用
+    guard: []
+    kind: reverse
+    effect: 占用 −
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:有效
+    command: 回冲已用额度
+    guard:
+    - 回冲不超已用
+    - 回冲回原额度行
+    kind: reverse
+    effect: 已用 −
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:已转计薪
+    command: 补休到期转计薪
+    guard:
+    - 到期日届满
+    - 未休余额大于零
+    - 无占用中的补休请假
+    kind: forward
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:已休完
+    command: 补休到期转计薪
+    guard:
+    - 到期日届满
+    - 未休余额为零
+    kind: forward
+  source_part: vs13att
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[11]
+- aggregate: AGG-72
+  machine: overtime_request
+  entity: overtime_requests
+  note: 登记即创建（无草稿）；批准由系统以打卡核实代替人工；登记后无撤销命令（见 vs13att.notes.md 结构问题 4）；付薪的随月度考勤确认标已补偿，补休的在计入补休额度时标已计入补休额度，之后补偿追踪转到 AGG-71 额度行（补休到期转计薪、休完）
+  states:
+  - 已申请
+  - 已批准
+  - name: 已补偿
+    terminal: true
+  - name: 已计入补休额度
+    terminal: true
+  - name: 已驳回
+    terminal: true
+  initial: null
+  transitions:
+  - from: null
+    to: 已申请
+    command: 提交加班申请
+    guard:
+    - R-c
+    kind: forward
+  - from: 已申请
+    to: 已批准
+    command: 批准加班
+    guard:
+    - R-d
+    kind: forward
+  - from: 已申请
+    to: 已驳回
+    command: 驳回加班
+    guard:
+    - R-d：打卡不支持登记时长
+    kind: reverse
+  - from: 已批准
+    to: 已补偿
+    command: 标记加班已补偿
+    guard:
+    - 月度考勤已确认
+    - 补偿方式为付薪
+    kind: forward
+  - from: 已批准
+    to: 已计入补休额度
+    command: 标记加班已计补休
+    guard:
+    - 补偿方式为补休
+    - 已计入补休额度
+    kind: forward
+  source_part: vs13att
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[12]
+- aggregate: AGG-97
+  machine: monthly_attendance_confirmation
+  entity: monthly_attendance_confirmations
+  note: 暂缓（月内有日期导入失败）不创建聚合，是生成命令的前置条件失败；确认方式（员工 / 默认）与默认确认原因（逾期未确认 / 已离职）是属性不分状态；已确认后到确认期限届满前不可重新生成，更正走下月更正行
+  states:
+  - 已生成
+  - 已确认
+  - name: 已锁定
+    terminal: true
+  initial: null
+  transitions:
+  - from: null
+    to: 已生成
+    command: 生成月度考勤
+    guard:
+    - 导入无缺失（CLAUDE.md 第 6 条）
+    - INV-116
+    - INV-105
+    kind: forward
+  - from: 已生成
+    to: 已生成
+    command: 重新生成月度考勤
+    guard:
+    - INV-105：未确认未锁定
+    kind: forward
+  - from: 已生成
+    to: 已确认
+    command: 员工确认
+    guard:
+    - INV-105
+    - 确认期限内
+    kind: forward
+  - from: 已生成
+    to: 已确认
+    command: 默认确认月度考勤
+    guard:
+    - R-e：期限届满或人员已离职
+    kind: forward
+  - from: 已确认
+    to: 已锁定
+    command: 锁定
+    guard:
+    - R-e：确认期限届满
+    - INV-105
+    kind: forward
+  source_part: vs13att
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[13]
+- aggregate: AGG-118
+  machine: leave_entitlement_rule_version
+  entity: leave_entitlement_rule_versions
+  perpetual: true
+  reason: 配置型版本聚合：发布即生效，被新版本取代不改旧版本状态，无业务终结
+  note: 每版本一个聚合，发布即生效，生效后不可改（D15），更正另发布新版本；假期类型（leave_types）为受控代码表，只由迁移维护，无命令（见 vs13att.notes.md 结构问题 6）
+  states:
+  - name: 已生效
+    terminal: true
+  initial: null
+  transitions:
+  - from: null
+    to: 已生效
+    command: 发布假期规则版本
+    guard:
+    - INV-123
+    kind: forward
+  source_part: vs13att
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[14]
+- aggregate: AGG-68
+  machine: work_calendar_year
+  entity: work_calendar_years
+  perpetual: true
+  reason: 长期存续配置（按日历年度反复维护的可变根，无业务终结；年度过去后只读，不是状态）
+  note: 可变根 + 审计，过去日期锁定；首次维护创建，之后每年反复维护（现状为整集替换，是否改按配置型版本化待 one-data）
+  states:
+  - 已建
+  initial: null
+  transitions:
+  - from: null
+    to: 已建
+    command: 维护工作日历年度
+    guard: []
+    kind: forward
+  - from: 已建
+    to: 已建
+    command: 维护工作日历年度
+    guard:
+    - 过去日期锁定
+    kind: forward
+  source_part: vs13att
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[15]
+- aggregate: AGG-108
+  machine: standard_work_hour_version
+  entity: standard_work_hour_versions
+  note: 每版本一个聚合，发布即生效，生效后不可改（INV-116）；被新版本取代不改旧版本状态，按日期区间取当日生效版本
+  states:
+  - name: 已生效
+    terminal: true
+  initial: null
+  transitions:
+  - from: null
+    to: 已生效
+    command: 发布标准工时版本
+    guard:
+    - INV-116：区间不重叠
+    kind: forward
+  source_part: vs13att
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[16]
+- aggregate: AGG-106
+  machine: performance_review
+  entity: performance_reviews
+  note: 已确认后不得改，更正另记（INV-114）；更正由 S-32 新增的登记绩效更正追加记录，不改状态
+  states:
+  - 草拟
+  - 已提交
+  - name: 已确认
+    terminal: true
+  initial: 草拟
+  transitions:
+  - from: null
+    to: 草拟
+    command: 编制绩效评估
+    guard:
+    - INV-114
+    kind: forward
+  - from: null
+    to: 草拟
+    command: 编制试用期绩效评估
+    guard:
+    - INV-114
+    kind: forward
+  - from: 草拟
+    to: 已提交
+    command: 提交绩效评估
+    guard:
+    - U11：接收方未定
+    kind: forward
+  - from: 已提交
+    to: 已确认
+    command: 确认绩效评估
+    guard:
+    - INV-114
+    kind: forward
+    process_outcome: 已确认
+  - from: 草拟
+    to: 已确认
+    command: 确认绩效评估
+    guard:
+    - 试用期评估无提交环节（PRC-85 步 2）〔推〕
+    kind: forward
+    process_outcome: 已确认
+  - from: 已确认
+    to: 已确认
+    command: 登记绩效更正
+    guard:
+    - INV-114：追加更正记录引用原评估，不改原评估
+    kind: reverse
+  source_part: vs13pay
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[17]
+- aggregate: AGG-73
+  sub_machines:
+  - payroll_settlement
+  - payroll_line_payment
+  states:
+  - payroll_settlement:已计算
+  - payroll_settlement:审核中
+  - payroll_settlement:已批准
+  - payroll_settlement:已发放
+  - name: payroll_settlement:已过账
+    terminal: true
+  - payroll_settlement:已退回
+  - payroll_line_payment:待支付
+  - name: payroll_line_payment:已实付
+    terminal: true
+  - payroll_line_payment:支付失败
+  transitions:
+  - from: null
+    to: payroll_settlement:已计算
+    command: 计算月度薪酬
+    guard:
+    - R-VS13-h
+    - INV-70
+    - 规则版本取得到（同 INV-116）
+    kind: forward
+  - from: payroll_settlement:已计算
+    to: payroll_settlement:已计算
+    command: 计算月度薪酬
+    guard:
+    - 提交审核前发现输入有误重算
+    kind: forward
+  - from: payroll_settlement:已退回
+    to: payroll_settlement:已计算
+    command: 计算月度薪酬
+    guard:
+    - 退回或撤回后重新计算
+    kind: forward
+  - from: payroll_settlement:已计算
+    to: payroll_settlement:审核中
+    command: 提交薪酬审核
+    guard:
+    - 异常清单已生成
+    - 制单人 ≠ 审批人（AR-11）
+    kind: forward
+  - from: payroll_settlement:审核中
+    to: payroll_settlement:已批准
+    command: 批准月度薪酬
+    guard:
+    - INV-70
+    - AR-01
+    - AR-02
+    - AR-11
+    kind: forward
+    process_outcome: 已批准
+  - from: payroll_settlement:审核中
+    to: payroll_settlement:已退回
+    command: 退回薪酬重算
+    guard: []
+    kind: reverse
+  - from: payroll_settlement:审核中
+    to: payroll_settlement:已退回
+    command: 撤回薪酬审核
+    guard:
+    - 仅提交人
+    kind: reverse
+  - from: payroll_settlement:已批准
+    to: payroll_settlement:已发放
+    command: 标记薪酬已发放
+    guard:
+    - 应付已结清且应付类型为应付薪酬
+    - 全部薪酬结算行已实付
+    kind: forward
+    process_outcome: 已发放
+  - from: payroll_settlement:已批准
+    to: payroll_settlement:已批准
+    command: 标记薪酬已过账
+    guard:
+    - 薪酬尚未发放：只置位过账事实已入账
+    kind: forward
+    process_outcome: 待发放后再置位
+  - from: payroll_settlement:已发放
+    to: payroll_settlement:已过账
+    command: 标记薪酬已过账
+    guard:
+    - 来源单据类型为月度薪酬结算
+    kind: forward
+    process_outcome: 已过账
+  - from: payroll_settlement:已计算
+    to: payroll_settlement:已计算
+    command: 提交过账候选
+    kind: non_state
+  - from: payroll_settlement:审核中
+    to: payroll_settlement:审核中
+    command: 提交过账候选
+    kind: non_state
+  - from: payroll_settlement:已批准
+    to: payroll_settlement:已批准
+    command: 提交过账候选
+    kind: non_state
+  - from: payroll_settlement:已发放
+    to: payroll_settlement:已发放
+    command: 提交过账候选
+    kind: non_state
+  - from: payroll_settlement:已退回
+    to: payroll_settlement:已退回
+    command: 提交过账候选
+    kind: non_state
+  - from: null
+    to: payroll_line_payment:待支付
+    command: 计算月度薪酬
+    guard:
+    - 建行时置待支付，version 1、序号 1（ADR-0075 决定 3）
+    kind: forward
+  - from: payroll_line_payment:待支付
+    to: payroll_line_payment:待支付
+    command: 计算月度薪酬
+    guard:
+    - 批准前重算只改金额不改状态，version 照常推进、不写转换（决定 5）
+    kind: non_state
+  - from: payroll_line_payment:待支付
+    to: payroll_line_payment:已实付
+    command: 登记代发结果
+    guard:
+    - 回单行人员与实发金额一致
+    kind: forward
+  - from: payroll_line_payment:待支付
+    to: payroll_line_payment:支付失败
+    command: 登记代发结果
+    guard:
+    - 失败原因必填
+    kind: forward
+  - from: payroll_line_payment:支付失败
+    to: payroll_line_payment:待支付
+    command: 发起薪酬补发
+    guard:
+    - 工资卡账户已更正
+    - 补发金额等于原实发
+    kind: reverse
+  - from: payroll_line_payment:支付失败
+    to: payroll_line_payment:支付失败
+    command: 登记薪酬补发顺延
+    guard:
+    - 原截止日落在长假内
+    - 顺延日为长假前最后或长假后第一个工作日
+    - 已通知员工
+    kind: non_state
+  source_part: vs13pay
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[18]
+- aggregate: AGG-74
+  machine: insurance_enrollment
+  entity: insurance_enrollments
+  added_states:
+  - 在缴
+  - 已减员
+  note: 数据模型状态列只写「状态」未列取值，本稿取在缴与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在缴）。缴费基数年度调整由 S-32 新增的调整缴费基数追加新版本
+  states:
+  - 在缴
+  - name: 已减员
+    terminal: true
+  initial: 在缴
+  transitions:
+  - from: null
+    to: 在缴
+    command: 参保增员
+    guard:
+    - 人员已入职
+    - 同人同主体无在缴
+    - 用工类型不是退休返聘或实习〔推〕
+    kind: forward
+  - from: 在缴
+    to: 已减员
+    command: 参保减员
+    guard:
+    - 用工类型不是退休返聘或实习
+    kind: forward
+    process_outcome: 社保与公积金参保已减员
+  - from: 在缴
+    to: 已减员
+    command: 变更参保缴纳主体
+    guard:
+    - 新缴纳主体与原主体不同
+    - 同事务为新主体创建在缴登记
+    kind: forward
+  - from: null
+    to: 在缴
+    command: 变更参保缴纳主体
+    guard:
+    - 新主体无在缴登记
+    kind: forward
+  - from: 在缴
+    to: 在缴
+    command: 调整缴费基数
+    kind: non_state
+  source_part: vs13pay
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[19]
+- aggregate: AGG-75
+  machine: incentive_plan_version
+  entity: incentive_plan_versions
+  added_states:
+  - 草稿
+  - 已批准
+  - 已撤回
+  note: '数据模型状态列为「编制 → 审批 → 生效 → 结束」。草稿即编制页保存（编辑页行为，不是领域命令）；驳回回到草稿再编制（PRC-121 on_reject 回第 1 步）。
+
+    已批准 = 审批通过但生效日期未到，到期由定时触发生效激励方案版本。已结束 = 同方案后继版本生效，旧版本区间同事务结束（D15），没有独立命令。
+
+    '
+  states:
+  - 草稿
+  - 审批中
+  - 已批准
+  - 已生效
+  - name: 已结束
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  initial: 草稿
+  transitions:
+  - from: 草稿
+    to: 审批中
+    command: 编制激励方案版本
+    guard:
+    - R-VS13-f
+    - D15
+    kind: forward
+  - from: 审批中
+    to: 已生效
+    command: 生效激励方案版本
+    guard:
+    - AR-01
+    - AR-02
+    - 生效日期已到
+    kind: forward
+    process_outcome: 已生效
+  - from: 审批中
+    to: 已批准
+    command: 生效激励方案版本
+    guard:
+    - AR-01
+    - AR-02
+    - 生效日期未到
+    kind: forward
+  - from: 已批准
+    to: 已生效
+    command: 生效激励方案版本
+    guard:
+    - 生效日期到达（定时）
+    kind: forward
+    process_outcome: 已生效
+  - from: 审批中
+    to: 草稿
+    command: 驳回激励方案版本
+    guard: []
+    kind: reverse
+  - from: 审批中
+    to: 已撤回
+    command: 撤回激励方案版本
+    guard:
+    - 仅编制人
+    kind: reverse
+    process_outcome: 已撤回
+  - from: 已生效
+    to: 已结束
+    command: 生效激励方案版本
+    guard:
+    - 后继版本生效，同事务结束旧区间（D15）
+    kind: forward
+  source_part: vs13pay
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[20]
+- aggregate: AGG-76
+  machine: bonus_determination
+  entity: bonus_determinations
+  added_states:
+  - 已驳回
+  note: '数据模型状态列为「草拟 → 已核定 → 已发放」。驳回另补「已驳回」；重新草拟另建新核定单（同一人同期无草拟或已核定时）。
+
+    「已发放」未建模：数据模型说明由 AGG-73 批准后事件置位，但聚合稿与流程都没有置位命令或事件策略，本稿不自造，见 notes 结构问题 2。
+
+    该状态补上后，已核定不再是终态。
+
+    '
+  states:
+  - 草拟
+  - name: 已核定
+    terminal: true
+  - name: 已驳回
+    terminal: true
+  initial: 草拟
+  transitions:
+  - from: null
+    to: 草拟
+    command: 草拟奖金核定
+    guard:
+    - R-VS13-g
+    - 评估类型为月度
+    kind: forward
+  - from: 草拟
+    to: 已核定
+    command: 核定奖金
+    guard:
+    - AR-01
+    - AR-02
+    - AR-11
+    - R-VS13-g：核定人不改额
+    kind: forward
+    process_outcome: 已核定
+  - from: 草拟
+    to: 已驳回
+    command: 驳回奖金核定
+    guard: []
+    kind: reverse
+    process_outcome: 已驳回
+  - from: 草拟
+    to: 草拟
+    command: 提交过账候选
+    kind: non_state
+  source_part: vs13pay
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[21]
+- aggregate: AGG-138
+  machine: bonus_accrual_run
+  entity: bonus_accrual_runs
+  added_states:
+  - 计算中
+  - 已计算
+  - 已提交过账
+  - 已中止
+  note: S-6 新增（AGG-138 技术聚合·运行单据，同 AGG-41；one-architecture @3541ced0b 第 6 点；ARC-1022-APE-01）；每法人 × 期间一次运行，已中止后人力补齐规则或方案版本再发起另建运行
+  states:
+  - 计算中
+  - 已计算
+  - name: 已提交过账
+    terminal: true
+  - name: 已中止
+    terminal: true
+  initial: 计算中
+  transitions:
+  - from: null
+    to: 计算中
+    command: 启动奖金计提
+    guard:
+    - 计提规则齐备
+    - 激励方案版本在 AGG-75 有效
+    kind: forward
+  - from: null
+    to: 已中止
+    command: 启动奖金计提
+    guard:
+    - 缺计提规则或版本校验不过：失败并告警
+    kind: forward
+    process_outcome: 已中止
+  - from: 计算中
+    to: 已计算
+    command: 计算奖金计提
+    guard:
+    - 基数事实已过账
+    kind: forward
+  - from: 已计算
+    to: 已提交过账
+    command: 提交过账候选
+    guard:
+    - INV-92
+    - 无计提额时提交零额完成记录（无分录行）
+    kind: forward
+    process_outcome: 已提交过账
+  source_part: vs13pay
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[22]
+- aggregate: AGG-93
+  machine: payroll_profile_version
+  entity: payroll_profile_versions
+  added_states:
+  - 已生效
+  - 已结束
+  note: 根表 payroll_profiles 无生命周期；版本行按生效区间，调薪追加新版本并结束旧版本（D17）。未来生效日的版本也记为生效（区间决定何时适用）。离职后由 S-32 新增的终止薪酬档案结束最后一个生效版本；重新入职在原根下建立新版本
+  states:
+  - 已生效
+  - name: 已结束
+    terminal: true
+  initial: 已生效
+  transitions:
+  - from: null
+    to: 已生效
+    command: 建立薪酬档案
+    guard:
+    - 人员已入职
+    - 一人一档案
+    kind: forward
+    process_outcome: 社保与公积金参保在缴，薪酬档案已建立
+  - from: null
+    to: 已生效
+    command: 调整薪酬档案
+    guard:
+    - R-VS13-j：引用调薪决定依据
+    - U9
+    kind: forward
+    process_outcome: 薪酬档案已调整
+  - from: 已生效
+    to: 已结束
+    command: 调整薪酬档案
+    guard:
+    - 同事务结束旧版本区间（D17）
+    kind: forward
+  - from: 已生效
+    to: 已结束
+    command: 终止薪酬档案
+    guard:
+    - Separated：区间止于离职日
+    - 无版本时失败并告警
+    kind: forward
+    process_outcome: 薪酬档案已终止
+  - from: 已生效
+    to: 已生效
+    command: 登记补休转加班工资
+    kind: non_state
+  source_part: vs13pay
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[23]
+- aggregate: AGG-120
+  machine: special_deduction_declaration
+  entity: payroll_special_deduction_declarations
+  added_states:
+  - 有效
+  - 已取代
+  note: 数据模型状态列只写「状态」未列取值，本稿取有效与已取代；年内修改追加新声明并取代旧声明
+  states:
+  - 有效
+  - name: 已取代
+    terminal: true
+  initial: 有效
+  transitions:
+  - from: null
+    to: 有效
+    command: 更新专项附加扣除
+    guard:
+    - 扣除额不超扣除标准版本
+    kind: forward
+    process_outcome: 专项附加扣除已更新
+  - from: 有效
+    to: 已取代
+    command: 更新专项附加扣除
+    guard:
+    - 同事务取代旧声明
+    kind: forward
+  source_part: vs13pay
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[24]
+- aggregate: AGG-95
+  machine: tax_social_filing
+  entity: tax_social_filings
+  added_states:
+  - 已更正
+  note: '数据模型状态列为「待申报 → 已申报 → 已缴款」，更正通过 corrects_filing_id 另起新行。原申报被更正后补「已更正」（终态），新行从已申报起，再走登记缴款。
+
+    申报类别（个税扣缴、社保、公积金）各一条申报行，三类各自走本机器；「个税与社保公积金申报已提交」在三类均到已申报后发布。
+
+    '
+  states:
+  - 待申报
+  - 已申报
+  - name: 已缴款
+    terminal: true
+  - name: 已更正
+    terminal: true
+  initial: 待申报
+  transitions:
+  - from: null
+    to: 待申报
+    command: 并入扣缴申报
+    guard:
+    - 股东为自然人
+    - 所属期尚无个税申报
+    kind: forward
+  - from: 待申报
+    to: 待申报
+    command: 并入扣缴申报
+    guard:
+    - 股东为自然人
+    - 所属期个税申报为待申报
+    kind: forward
+  - from: null
+    to: 待申报
+    command: 生成申报
+    guard:
+    - R-VS13-i
+    kind: forward
+  - from: 待申报
+    to: 待申报
+    command: 生成申报
+    guard:
+    - R-VS13-i：重新汇总
+    kind: forward
+  - from: 待申报
+    to: 已申报
+    command: 提交申报
+    guard:
+    - 已登记受理回执
+    - P-39
+    kind: forward
+  - from: 已申报
+    to: 已缴款
+    command: 登记缴款
+    guard:
+    - 职责分离：登记人 ≠ 缴款资金支出人
+    kind: forward
+    process_outcome: 已申报缴款
+  - from: 已申报
+    to: 已更正
+    command: 更正申报
+    guard:
+    - 被退回或发现差错
+    kind: reverse
+  - from: null
+    to: 已申报
+    command: 更正申报
+    guard:
+    - 引用原申报 corrects_filing_id，与原申报置已更正同事务
+    kind: reverse
+  - from: 待申报
+    to: 待申报
+    command: 提交过账候选
+    kind: non_state
+  - from: 已申报
+    to: 已申报
+    command: 提交过账候选
+    kind: non_state
+  source_part: vs13pay
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[25]
+- aggregate: AGG-119
+  machine: payroll_rule_version
+  entity: payroll_rule_versions
+  perpetual: true
+  reason: 配置型版本聚合：发布即生效，被后继版本取代时旧版本置已被取代，无业务终结命令；更正出新版本，不修改、不冲销旧版本（D15）
+  added_states:
+  - 草稿
+  - 已生效
+  - 已被取代
+  note: 数据模型「版本状态」列未列取值，本稿取草稿、已生效、已被取代（S-43 取代原「已结束」，口径同 AGG-118、AGG-108）；草稿即编制页保存。每版本一个聚合，同类别同适用范围生效区间不重叠（INV-139）
+  states:
+  - 草稿
+  - 已生效
+  - name: 已被取代
+    terminal: true
+  initial: 草稿
+  transitions:
+  - from: 草稿
+    to: 已生效
+    command: 发布薪酬规则版本
+    guard:
+    - INV-139：区间不重叠
+    - U7③：编制人 ≠ 确认人〔推〕
+    kind: forward
+    process_outcome: 薪酬规则版本已发布
+  - from: 已生效
+    to: 已被取代
+    command: 发布薪酬规则版本
+    guard:
+    - 后继版本发布，同事务结束旧区间（INV-139）
+    kind: forward
+  source_part: vs13pay
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[26]
+- aggregate: AGG-79
+  sub_machines:
+  - null
+  - null
+  - null
+  states:
+  - 经营计划版本（business_plan_versions.状态）:编制中
+  - 经营计划版本（business_plan_versions.状态）:审批中
+  - 经营计划版本（business_plan_versions.状态）:已通过
+  - 经营计划版本（business_plan_versions.状态）:基线
+  - 经营计划版本（business_plan_versions.状态）:已编制
+  - name: 经营计划版本（business_plan_versions.状态）:被取代
+    terminal: true
+  - name: 经营计划版本（business_plan_versions.状态）:已作废
+    terminal: true
+  - 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+  - 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+  - name: 经营复盘（business_reviews.状态；次级，PRC-181）:已闭环
+    terminal: true
+  - 经营动作（action_items.状态；次级，PRC-181）:待完成
+  - name: 经营动作（action_items.状态；次级，PRC-181）:已完成
+    terminal: true
+  transitions:
+  - from: null
+    to: 经营计划版本（business_plan_versions.状态）:编制中
+    command: 编制经营计划版本
+    guard:
+    - INV-101
+    steps:
+    - PRC-88#1
+  - from: 经营计划版本（business_plan_versions.状态）:编制中
+    to: 经营计划版本（business_plan_versions.状态）:编制中
+    command: 编制经营计划版本
+    guard:
+    - INV-101
+    steps:
+    - PRC-88#1
+    note: 编辑
+  - from: 经营计划版本（business_plan_versions.状态）:编制中
+    to: 经营计划版本（business_plan_versions.状态）:已作废
+    command: 作废经营计划草稿
+    guard:
+    - INV-101：仅编制中，审批中须先撤回
+    steps:
+    - PRC-88#9
+    reverse: 作废
+  - from: 经营计划版本（business_plan_versions.状态）:编制中
+    to: 经营计划版本（business_plan_versions.状态）:审批中
+    command: 〔缺〕提交经营计划审批
+    guard:
+    - 候选规则-目标值完整
+    steps:
+    - PRC-88#2
+  - from: 经营计划版本（business_plan_versions.状态）:审批中
+    to: 经营计划版本（business_plan_versions.状态）:编制中
+    command: 〔缺〕撤回经营计划审批
+    guard:
+    - 平台可取消审批实例
+    steps:
+    - PRC-88#3(withdraw)
+    reverse: 撤回
+  - from: 经营计划版本（business_plan_versions.状态）:审批中
+    to: 经营计划版本（business_plan_versions.状态）:编制中
+    command: 〔缺〕驳回经营计划审批
+    guard: []
+    steps:
+    - PRC-88#4
+    reverse: 驳回
+  - from: 经营计划版本（business_plan_versions.状态）:审批中
+    to: 经营计划版本（business_plan_versions.状态）:已通过
+    command: 〔缺〕通过经营计划审批
+    guard:
+    - 候选规则-编制人不审自己
+    steps:
+    - PRC-88#5
+  - from: 经营计划版本（business_plan_versions.状态）:已通过
+    to: 经营计划版本（business_plan_versions.状态）:基线
+    command: 基线化经营计划
+    guard:
+    - INV-101
+    - 候选规则-审批通过自动基线化
+    steps:
+    - PRC-88#6
+  - from: 经营计划版本（business_plan_versions.状态）:基线
+    to: 经营计划版本（business_plan_versions.状态）:被取代
+    command: 基线化经营计划
+    guard:
+    - INV-101
+    steps:
+    - PRC-88#6
+    cascade: true
+    note: 同计划新版本基线化时，原基线版本被取代（引用在新版本的被取代版本引用上）
+  - from: null
+    to: 经营计划版本（business_plan_versions.状态）:已编制
+    command: 编制预测版本
+    guard:
+    - INV-101
+    - 候选规则-预测不审批
+    steps:
+    - PRC-89#1
+  - from: null
+    to: 经营计划版本（business_plan_versions.状态）:已编制
+    command: 编制现金流预测
+    guard:
+    - INV-101
+    steps:
+    - PRC-89#2
+  - from: 经营计划版本（business_plan_versions.状态）:已编制
+    to: 经营计划版本（business_plan_versions.状态）:被取代
+    command: 编制预测版本
+    guard:
+    - INV-101
+    steps:
+    - PRC-89#1
+    cascade: true
+    note: 下一次滚动的新版本取代上一版（现金流预测同理，由编制现金流预测触发）
+  - from: null
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    command: 〔缺〕创建经营复盘
+    guard:
+    - 候选规则-复盘期间已关账
+    - 候选规则-复盘唯一
+    steps:
+    - PRC-181#1
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    command: 〔缺〕记录偏差解释
+    guard: []
+    steps:
+    - PRC-181#2
+    note: 编辑
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    command: 〔缺〕确定经营动作
+    guard:
+    - 候选规则-动作要素齐全
+    steps:
+    - PRC-181#3
+    note: 追加动作
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+    command: 〔缺〕定稿经营复盘
+    guard:
+    - 候选规则-偏差须解释
+    - 候选规则-定稿后不可改
+    steps:
+    - PRC-181#4
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:已闭环
+    command: 〔缺〕定稿经营复盘
+    guard:
+    - 候选规则-偏差须解释
+    steps:
+    - PRC-181#4
+    note: 无动作时直接闭环
+    process_outcome: 经营复盘已闭环
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+    command: 〔缺〕完成经营动作
+    guard: []
+    steps:
+    - PRC-181#5
+    note: 仍有未完成的动作
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:已闭环
+    command: 〔缺〕完成经营动作
+    guard: []
+    steps:
+    - PRC-181#5
+    note: 最后一个动作完成
+    process_outcome: 经营复盘已闭环
+  - from: null
+    to: 经营动作（action_items.状态；次级，PRC-181）:待完成
+    command: 〔缺〕确定经营动作
+    guard:
+    - 候选规则-动作要素齐全
+    steps:
+    - PRC-181#3
+  - from: 经营动作（action_items.状态；次级，PRC-181）:待完成
+    to: 经营动作（action_items.状态；次级，PRC-181）:已完成
+    command: 〔缺〕完成经营动作
+    guard:
+    - 候选规则-动作责任人本人登记
+    steps:
+    - PRC-181#5
+  source_part: vs0911
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[27]
+- aggregate: AGG-80
+  sub_machines:
+  - null
+  - null
+  states:
+  - 预算账户（budget_accounts.状态）:已开立
+  - name: 预算账户（budget_accounts.状态）:已关闭
+    terminal: true
+  - 预算占用行（budget_reservations.状态）:占用中
+  - name: 预算占用行（budget_reservations.状态）:已消耗
+    terminal: true
+  - name: 预算占用行（budget_reservations.状态）:已释放
+    terminal: true
+  transitions:
+  - from: null
+    to: 预算账户（budget_accounts.状态）:已开立
+    command: 开立预算账户
+    guard:
+    - INV-101
+    - 候选规则-预算类型分流
+    - 候选规则-额度不超基线
+    steps:
+    - PRC-88#7
+  - from: 预算账户（budget_accounts.状态）:已开立
+    to: 预算账户（budget_accounts.状态）:已开立
+    command: 调整预算
+    guard:
+    - 候选规则-额度总额内调剂
+    steps:
+    - PRC-88#8
+    note: 额度调剂，状态不变，记调整记录
+  - from: 预算账户（budget_accounts.状态）:已开立
+    to: 预算账户（budget_accounts.状态）:已关闭
+    command: 关闭预算账户
+    guard:
+    - 计划周期已结束或已被新基线取代
+    - 无占用中的占用行（占用中的先释放或消耗）
+    steps:
+    - PRC-161#1
+    note: S-32：PRC-161 年末定时触发，B-18 向 platform.scheduling 登记
+  - from: null
+    to: 预算占用行（budget_reservations.状态）:占用中
+    command: 占用预算
+    kind: entry
+    guard:
+    - G-3 拦截或预警待定
+    - AR-03
+    steps: []
+    note: 发起步骤在 PRC-70、PRC-87（他组），本片段只有 PRC-88#7 入口声明
+  - from: 预算占用行（budget_reservations.状态）:占用中
+    to: 预算占用行（budget_reservations.状态）:已释放
+    command: 释放预算占用
+    guard: []
+    steps: []
+    reverse: 释放
+    note: 驳回、作废、终止及孤儿占用定时释放
+  - from: 预算占用行（budget_reservations.状态）:占用中
+    to: 预算占用行（budget_reservations.状态）:占用中
+    command: 调整预算占用
+    kind: non_state
+    guard:
+    - INV-102 只预警
+    steps: []
+    note: 按增减额改占用额，状态不变（PRC-71 他组调用，S-31 SQ-08）
+  - from: 预算占用行（budget_reservations.状态）:占用中
+    to: 预算占用行（budget_reservations.状态）:已消耗
+    command: 〔缺〕消耗预算占用
+    guard: []
+    steps: []
+    note: 命令为〔缺〕，孤儿
+  source_part: vs0911
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[28]
+- aggregate: AGG-107
+  entity: 知识条目版本（knowledge_entry_versions.状态）
+  reverse_paths:
+  - 退回（评审中 → 起草中）
+  - 废止（已发布 → 已废止）
+  no_reverse: 已发布版本不可撤回，更正只出新版本；废止不可恢复，需要时新建条目或新版本
+  open_questions:
+  - 评审中起草人撤回提交、评审逾期中断无命令（one-architecture 回补聚合稿；骨架只写非中断升级提醒，期限待用户定 8）
+  states:
+  - 起草中
+  - 评审中
+  - 已评审通过
+  - 已发布
+  - name: 被取代
+    terminal: true
+  - name: 已废止
+    terminal: true
+  initial: null
+  transitions:
+  - from: null
+    to: 起草中
+    command: 创建知识条目
+    guard:
+    - 必填类别
+    steps:
+    - PRC-107#1
+  - from: 起草中
+    to: 起草中
+    command: 起草知识条目
+    guard:
+    - INV-115
+    steps:
+    - PRC-107#2
+    note: 编辑；评审退回后也回到本步
+  - from: 起草中
+    to: 评审中
+    command: 提交知识条目评审
+    guard:
+    - 候选规则-必填校验
+    steps:
+    - PRC-107#3
+  - from: 评审中
+    to: 已评审通过
+    command: 评审知识条目
+    guard:
+    - 候选规则-评审人不是起草人
+    - AR-11
+    - AR-12
+    steps:
+    - PRC-107#4
+  - from: 评审中
+    to: 起草中
+    command: 评审知识条目
+    guard: []
+    steps:
+    - PRC-107#4
+    reverse: 退回
+    note: 评审结论为退回（不另设退回命令）
+  - from: 已评审通过
+    to: 已发布
+    command: 发布知识条目
+    guard:
+    - INV-115
+    steps:
+    - PRC-107#5
+  - from: 已发布
+    to: 被取代
+    command: 发布知识条目
+    guard:
+    - INV-115
+    steps:
+    - PRC-107#5
+    cascade: true
+    note: 修订版本发布时，其引用的被取代版本变被取代
+  - from: null
+    to: 起草中
+    command: 修订知识条目
+    requires_source_state: 已发布
+    guard:
+    - INV-115
+    steps:
+    - PRC-107#6
+    note: 产生新版本（新行）起于起草中并引用被取代版本，经流程第三个触发从第 2 步重新进入；原版本仍为已发布直至新版本发布；须重新评审
+  - from: 已发布
+    to: 已废止
+    command: 废止知识条目
+    guard:
+    - INV-115
+    steps:
+    - PRC-107#7
+    reverse: 废止
+  source_part: vs0911
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[29]
+- aggregate: AGG-113
+  machine: seal_application
+  entity: seal_applications
+  note: 草稿来自编辑页保存或迁入（在途清不完以草稿迁入）；有已批准来源单据的申请由提交用印申请直接置已批准（S-40，规则核对来源审批实例）；保存草稿是编辑页行为，不是领域命令；已驳回、已撤回是本轮提前结束态（可经同一提交命令重提），原单编号及旧审批轮次全量保留，新轮重新校验配置及来源，旧回调不作用新轮
+  states:
+  - 草稿
+  - 审批中
+  - 已批准
+  - 已用印
+  - name: 已关闭
+    terminal: true
+  - 已驳回
+  - 已撤回
+  initial: 草稿
+  transitions:
+  - from: 草稿
+    to: 审批中
+    command: 提交用印申请
+    guard:
+    - R-B31-1
+    - R-B31-12：无来源单据
+    kind: forward
+  - from: 草稿
+    to: 已批准
+    command: 提交用印申请
+    guard:
+    - R-B31-1
+    - R-B31-12：来源审批实例已通过
+    - INV-138：同一来源实例累计份数不超审批载荷份数，不设人审
+    kind: forward
+  - from: 审批中
+    to: 已批准
+    command: 批准用印申请
+    guard:
+    - R-B31-11：正式制度责任配置有效
+    - R-B31-12：加审范围及层级已配置，AR-16 候选不直接启用
+    - AR-11
+    - AR-12
+    kind: forward
+  - from: 审批中
+    to: 已驳回
+    command: 驳回用印申请
+    guard: []
+    kind: reverse
+  - from: 审批中
+    to: 已撤回
+    command: 撤回用印申请
+    guard:
+    - 仅申请人
+    kind: reverse
+  - from: 已批准
+    to: 已用印
+    command: 登记用印
+    guard:
+    - INV-118
+    - INV-119
+    - R-B31-2
+    - INV-138
+    - 报价版本、法人、拟发文件与实际用印凭据可核验对应
+    kind: forward
+  - from: 已用印
+    to: 已用印
+    command: 登记用印
+    guard:
+    - INV-119
+    - R-B31-2：仍有未用印份数
+    - INV-138
+    - 报价版本、法人、拟发文件与实际用印凭据可核验对应
+    kind: forward
+  - from: 已用印
+    to: 已关闭
+    command: 关闭用印申请
+    guard:
+    - R-B31-2：份数到齐或确认放弃
+    kind: forward
+  - start_round: 新轮，保留旧轮次及原编号
+    from: 已驳回
+    to: 审批中
+    command: 提交用印申请
+    guard:
+    - 无来源单据且用印责任及加审配置有效
+    - 仅申请人
+    - R-B31-1
+    - INV-138
+    kind: forward
+  - start_round: 新轮，保留旧轮次及原编号
+    from: 已驳回
+    to: 已批准
+    command: 提交用印申请
+    guard:
+    - 来源审批通过且 INV-138 满足
+    - 仅申请人
+    - R-B31-1
+    - INV-138
+    kind: forward
+  - start_round: 新轮，保留旧轮次及原编号
+    from: 已撤回
+    to: 审批中
+    command: 提交用印申请
+    guard:
+    - 无来源单据且用印责任及加审配置有效
+    - 仅申请人
+    - R-B31-1
+    - INV-138
+    kind: forward
+  - start_round: 新轮，保留旧轮次及原编号
+    from: 已撤回
+    to: 已批准
+    command: 提交用印申请
+    guard:
+    - 来源审批通过且 INV-138 满足
+    - 仅申请人
+    - R-B31-1
+    - INV-138
+    kind: forward
+  source_part: b31
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[30]
+- aggregate: AGG-114
+  machine: it_request
+  entity: it_requests
+  note: 已提交 = 待受理（常规类别提交后，或需审批类别批准后）；对应聚合稿状态「已提交」；人工超期不改变状态，受理提醒和系统代关任务全部撤销；无处理结论不得关闭；A3 在受理后、解决前分流；已退回、已撤回为本轮提前结束态，原单可重提并保留旧轮次及原编号
+  states:
+  - 草稿
+  - 审批中
+  - 已提交
+  - 处理中
+  - 已解决
+  - name: 已关闭
+    terminal: true
+  - 已退回
+  - 已撤回
+  initial: 草稿
+  transitions:
+  - from: 草稿
+    to: 审批中
+    command: 提交 IT 需求
+    guard:
+    - R-B31-3：类别要求审批
+    - D15 类别、责任及金额适用配置完整有效；未列类别拒绝并告警
+    kind: forward
+  - from: 草稿
+    to: 已提交
+    command: 提交 IT 需求
+    guard:
+    - R-B31-3：常规类别
+    - D15 类别、责任及金额适用配置完整有效；未列类别拒绝并告警
+    kind: forward
+  - from: 审批中
+    to: 已提交
+    command: 批准 IT 需求
+    guard:
+    - AR-11
+    - AR-12
+    - R-B31-11：按类别和正式制度解析负责人
+    kind: forward
+  - from: 审批中
+    to: 已退回
+    command: 驳回 IT 需求
+    guard: []
+    kind: reverse
+  - from: 审批中
+    to: 已撤回
+    command: 撤回 IT 需求
+    guard:
+    - 仅提出人
+    kind: reverse
+  - from: 已提交
+    to: 处理中
+    command: 受理 IT 需求
+    guard:
+    - 仅人工受理，不设超时任务
+    kind: forward
+  - from: 处理中
+    to: 已解决
+    command: 解决 IT 需求
+    guard:
+    - INV-120：须有处理结论
+    kind: forward
+  - from: 处理中
+    to: 已退回
+    command: 退回 IT 需求
+    guard:
+    - 需求不成立或无法实现
+    kind: reverse
+  - from: 已解决
+    to: 已关闭
+    command: 关闭 IT 需求
+    guard:
+    - INV-120
+    - 仅提出人人工确认，不设系统代关
+    kind: forward
+  - from: 已解决
+    to: 处理中
+    command: 受理 IT 需求
+    guard:
+    - 提出人反馈未解决（重开）
+    kind: reverse
+  - from: 已退回
+    to: 审批中
+    command: 提交 IT 需求
+    guard:
+    - 有效类别表要求人审
+    - 仅提出人
+    - 保留旧审批轮次、意见与原编号，新轮重新核对有效配置
+    kind: forward
+  - from: 已退回
+    to: 已提交
+    command: 提交 IT 需求
+    guard:
+    - 有效类别表常规类别
+    - 仅提出人
+    - 保留旧审批轮次、意见与原编号，新轮重新核对有效配置
+    kind: forward
+  - from: 已撤回
+    to: 审批中
+    command: 提交 IT 需求
+    guard:
+    - 有效类别表要求人审
+    - 仅提出人
+    - 保留旧审批轮次、意见与原编号，新轮重新核对有效配置
+    kind: forward
+  - from: 已撤回
+    to: 已提交
+    command: 提交 IT 需求
+    guard:
+    - 有效类别表常规类别
+    - 仅提出人
+    - 保留旧审批轮次、意见与原编号，新轮重新核对有效配置
+    kind: forward
+  source_part: b31
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[31]
+- aggregate: AGG-115
+  sub_machines:
+  - use_request
+  - transfer_request
+  - use_period
+  states:
+  - use_request:草稿
+  - use_request:已通过
+  - name: use_request:已领用
+    terminal: true
+  - transfer_request:草稿
+  - transfer_request:已申请
+  - name: transfer_request:已调拨
+    terminal: true
+  - name: transfer_request:已转领用
+    terminal: true
+  - name: transfer_request:已撤销
+    terminal: true
+  - use_period:在用
+  - name: use_period:已结束
+    terminal: true
+  transitions:
+  - from: use_request:草稿
+    to: use_request:已通过
+    command: 申请领用资产
+    guard:
+    - R-B31-5：岗位标准及超配可执行规则有效且通过
+    - R-B31-6
+    - INV-121：申请时提前校验
+    kind: forward
+  - from: use_request:已通过
+    to: use_request:已领用
+    command: 登记领用
+    guard:
+    - INV-121
+    - R-B31-6
+    kind: forward
+  - from: null
+    to: use_request:草稿
+    command: null
+    kind: entry
+    note: 子生命周期入口
+  - from: transfer_request:草稿
+    to: transfer_request:已申请
+    command: 申请调拨资产
+    guard:
+    - R-B31-6
+    - R-B31-7
+    kind: forward
+  - from: transfer_request:草稿
+    to: transfer_request:已转领用
+    command: 申请调拨资产
+    guard:
+    - R-B31-7：资产无当前使用人
+    kind: forward
+  - from: transfer_request:已申请
+    to: transfer_request:已调拨
+    command: 调拨资产
+    guard:
+    - INV-121
+    - R-B31-6
+    kind: forward
+  - from: transfer_request:已申请
+    to: transfer_request:已撤销
+    command: 撤销调拨申请
+    guard:
+    - 调出使用人或资产管理员
+    kind: reverse
+  - from: null
+    to: transfer_request:草稿
+    command: null
+    kind: entry
+    note: 子生命周期入口
+  - from: null
+    to: use_period:在用
+    command: 登记领用
+    guard:
+    - INV-121
+    kind: forward
+  - from: null
+    to: use_period:在用
+    command: 调拨资产
+    guard:
+    - INV-121：调入方新期间，与结束旧期间同事务
+    kind: forward
+  - from: use_period:在用
+    to: use_period:已结束
+    command: 调拨资产
+    guard:
+    - INV-121：调出方旧期间
+    kind: forward
+  - from: use_period:在用
+    to: use_period:已结束
+    command: 归还资产
+    guard:
+    - R-B31-9：须有未结束期间
+    kind: reverse
+    process_outcome: 已归还
+  source_part: b31
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[32]
+- aggregate: AGG-121
+  machine: repair_order
+  entity: it_asset_repair_orders
+  note: 维修结果（已修复 / 无法修复）是工单属性，不分状态；无法修复的报废归 B-24
+  states:
+  - 草稿
+  - 已报修
+  - name: 已维修登记
+    terminal: true
+  initial: 草稿
+  transitions:
+  - from: 草稿
+    to: 已报修
+    command: 报修资产
+    guard:
+    - R-B31-8
+    kind: forward
+  - from: 已报修
+    to: 已维修登记
+    command: 登记维修结果
+    guard: []
+    kind: forward
+  source_part: b31
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[33]
+- aggregate: AGG-116
+  machine: employee_activity
+  entity: employee_activity_requests
+  note: 全部只登记，规则通过才到已批准（规则结果）；登记内容不可改，记错或活动取消先从已批准或已完成取消到提议终态已取消，再另建登记并引用原单；取消须写原因、人、时间及审计，不删历史、不设人审；新单不进入审批中，缺规则或不满足拒绝并告警，不回退人审；历史审批中、已驳回、已撤回、轮次及原编号只保留迁入历史，按 ADR-0036 U-4 逐项处置，不批量改草稿
+  migration: 全量保留历史审批中、已驳回、已撤回及审批实例、轮次、意见、原编号；上述仅历史值，不是现行新单的状态路径
+  states:
+  - 草稿
+  - 已批准
+  - name: 已完成
+    terminal: true
+  - name: 已取消
+    terminal: true
+  initial: 草稿
+  transitions:
+  - from: 草稿
+    to: 已批准
+    command: 提交员工活动申请
+    guard:
+    - R-B31-10：活动类型、预算、组织安排与周年适用规则有效且通过
+    kind: forward
+  - from: 已批准
+    to: 已完成
+    command: 完成员工活动
+    guard:
+    - 登记内容不可修改，已取消不得完成
+    kind: forward
+  - from: 已批准
+    to: 已取消
+    command: 取消员工活动登记
+    guard:
+    - B31-8：不设人审
+    - 取消原因必填，缺失拒绝并告警
+    - 记录取消人、时间及审计，不删历史
+    kind: reverse
+  - from: 已完成
+    to: 已取消
+    command: 取消员工活动登记
+    guard:
+    - B31-8：不设人审
+    - 取消原因必填，缺失拒绝并告警
+    - 记录取消人、时间及审计，不删历史
+    kind: reverse
+  source_part: b31
+  group: people
+  source: docs/architecture/proposals/closeout/people/state-machines.yaml#machines[34]
+- aggregate: AGG-34
+  name: 检查计划
+  initial: 已登记
+  states:
+  - 已登记
+  - 已生效
+  - name: 不再受托
+    terminal: true
+  transitions:
+  - from: null
+    to: 已登记
+    command: 登记检查计划
+  - from: 已登记
+    to: 已生效
+    command: 生效检查计划
+  - from: 已生效
+    to: 不再受托
+    command: 标记检查计划不再受托
+    guard:
+    - 拟规则：原因必填
+    kind: reverse
+    reverse_of: 生效检查计划
+    note: 客户不再委托，撤回计划的生效；原因必填（C_DEFAULTS VS03-18）
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[0]
+- aggregate: AGG-35
+  name: 检查
+  initial: 已计划
+  states:
+  - 已计划
+  - 已安排
+  - 现场进行中
+  - 记录已提交
+  - 已审核
+  - name: 已锁定
+    terminal: true
+  - name: 已取消
+    terminal: true
+  transitions:
+  - from: null
+    to: 已计划
+    command: 安排检查
+  - from: null
+    to: 已计划
+    command: 复查检查
+    guard:
+    - 拟规则-VS03-03
+    note: 复查是一次新的检查
+  - from: 已计划
+    to: 已安排
+    command: 指派检查人员
+    guard:
+    - INV-56
+  - from: 已安排
+    to: 已安排
+    command: 指派检查人员
+    guard:
+    - INV-56
+    note: 调整指派
+  - from: 已安排
+    to: 现场进行中
+    command: 开始现场检查
+    note: 拟命令
+  - from: 已安排
+    to: 记录已提交
+    command: 提交检查记录
+    guard:
+    - INV-55
+    - 拟规则-VS03-01
+  - from: 现场进行中
+    to: 记录已提交
+    command: 提交检查记录
+    guard:
+    - INV-55
+    - 拟规则-VS03-01
+  - from: 记录已提交
+    to: 已审核
+    command: 审核检查记录
+    guard:
+    - 提交人≠审核人
+  - from: 记录已提交
+    to: 现场进行中
+    command: 审核检查记录
+    guard:
+    - 审核不通过，退回补录
+    reverse_of: 提交检查记录
+  - from: 已审核
+    to: 已锁定
+    command: 锁定检查
+    guard:
+    - INV-55
+  - from: 已锁定
+    to: 已锁定
+    command: 关联检查报告
+  - from: 已计划
+    to: 已取消
+    command: 取消检查
+    reverse_of: 安排检查
+    note: 拟命令
+  - from: 已安排
+    to: 已取消
+    command: 取消检查
+    reverse_of: 安排检查
+    note: 拟命令
+  - from: 现场进行中
+    to: 已取消
+    command: 取消检查
+    reverse_of: 安排检查
+    note: 拟命令
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[1]
+- aggregate: AGG-36
+  name: 检查表模板版本
+  initial: 已生效
+  states:
+  - 已生效
+  - name: 已停用
+    terminal: true
+  transitions:
+  - from: null
+    to: 已生效
+    command: 发布检查表模板版本
+    guard:
+    - INV-34b
+  - from: 已生效
+    to: 已停用
+    command: 停用检查表模板版本
+    guard:
+    - INV-34b
+    reverse_of: 发布检查表模板版本
+    note: 拟命令
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[2]
+- aggregate: AGG-37
+  name: 外部检测
+  initial: 已建议
+  states:
+  - 已建议
+  - 已委托
+  - 报告已登记
+  - name: 报告已采信
+    terminal: true
+  - name: 报告未采信
+    terminal: true
+  transitions:
+  - from: null
+    to: 已建议
+    command: 建议外部检测
+  - from: 已建议
+    to: 已委托
+    command: 登记业主委托外部检测
+  - from: 已委托
+    to: 报告已登记
+    command: 登记外部检测报告
+    guard:
+    - INV-57
+  - from: 报告已登记
+    to: 报告已采信
+    command: 采信外部检测报告
+    guard:
+    - INV-57
+  - from: 报告已登记
+    to: 报告未采信
+    command: 不采信外部检测报告
+    guard:
+    - INV-57
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[3]
+- aggregate: AGG-28
+  name: 不符合项
+  note: 一台机承载两条路径：我方成果（登记→确认→让步接受或返工→关闭，PRC-34）与客户资产（登记→复核→发布→整改→闭合，PRC-44、45）；状态名「已登记」改为「已识别」，与价值流阶段条件同名（阶段对齐）
+  initial: 已识别
+  states:
+  - 已识别
+  - 已确认
+  - 让步已接受
+  - 已复核
+  - 已发布
+  - 整改中
+  - 整改已申报
+  - name: 已关闭
+    terminal: true
+  - name: 已闭合
+    terminal: true
+  - name: 风险已保留
+    terminal: true
+  - name: 已停止跟踪
+    terminal: true
+  transitions:
+  - from: null
+    to: 已识别
+    command: 登记不符合项
+    guard:
+    - 拟规则-VS03-02
+  - from: 已识别
+    to: 已确认
+    command: 确认不符合项
+  - from: 已确认
+    to: 让步已接受
+    command: 让步接受不符合项
+    guard:
+    - INV-49
+  - from: 已识别
+    to: 已关闭
+    command: 关闭不符合项
+    guard:
+    - INV-48
+    note: 客户资产复核不成立也走关闭（待用户定 5）
+  - from: 已确认
+    to: 已关闭
+    command: 关闭不符合项
+    guard:
+    - INV-48
+    note: 客户资产复核不成立也走关闭（待用户定 5）
+  - from: 让步已接受
+    to: 已关闭
+    command: 关闭不符合项
+    guard:
+    - INV-48
+    note: 客户资产复核不成立也走关闭（待用户定 5）
+  - from: 已识别
+    to: 已复核
+    command: 复核不符合项
+    guard:
+    - 登记人≠复核人
+  - from: 已识别
+    to: 已识别
+    command: 记录重大险情已报告
+    guard:
+    - INV-52
+    note: 拟命令
+  - from: 已复核
+    to: 已复核
+    command: 记录重大险情已报告
+    guard:
+    - INV-52
+    note: 拟命令
+  - from: 已复核
+    to: 已发布
+    command: 发布不符合项
+    guard:
+    - INV-50
+    - INV-52
+  - from: 已发布
+    to: 已发布
+    command: 登记不符合项送达
+    note: 拟命令
+  - from: 已发布
+    to: 整改中
+    command: 开始整改
+  - from: 整改中
+    to: 整改已申报
+    command: 登记整改申报
+  - from: 整改已申报
+    to: 已闭合
+    command: 闭合不符合项
+    guard:
+    - INV-50
+    - 拟规则-VS03-04
+  - from: 整改已申报
+    to: 整改中
+    command: 退回整改
+    guard:
+    - 拟规则-VS03-03
+    reverse_of: 登记整改申报
+  - from: 整改中
+    to: 风险已保留
+    command: 登记客户接受风险
+  - from: 整改已申报
+    to: 风险已保留
+    command: 登记客户接受风险
+  - from: 已发布
+    to: 已停止跟踪
+    command: 停止跟踪不符合项
+    guard:
+    - 拟规则：原因必填
+  - from: 整改中
+    to: 已停止跟踪
+    command: 停止跟踪不符合项
+    guard:
+    - 拟规则：原因必填
+  - from: 整改已申报
+    to: 已停止跟踪
+    command: 停止跟踪不符合项
+    guard:
+    - 拟规则：原因必填
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[4]
+- aggregate: AGG-38
+  name: 证据
+  initial: 已采集
+  states:
+  - 已采集
+  - name: 已封存
+    terminal: true
+  - name: 已作废
+    terminal: true
+  transitions:
+  - from: null
+    to: 已采集
+    command: 采集证据
+    guard:
+    - INV-58
+  - from: 已采集
+    to: 已采集
+    command: 上传证据摘要
+    guard:
+    - INV-58
+  - from: 已采集
+    to: 已封存
+    command: 封存证据
+    guard:
+    - INV-58
+  - from: 已采集
+    to: 已作废
+    command: 作废证据
+    guard:
+    - INV-58
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[5]
+- aggregate: AGG-110
+  name: 证据关联行
+  note: 技术聚合：状态在关联行上，关联与解除各追加一行不物理删除
+  initial: 已关联
+  states:
+  - 已关联
+  - name: 已解除
+    terminal: true
+  transitions:
+  - from: null
+    to: 已关联
+    command: 关联证据
+    guard:
+    - INV-58
+  - from: 已关联
+    to: 已解除
+    command: 解除证据关联
+    guard:
+    - INV-58
+    reverse_of: 关联证据
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[6]
+- aggregate: AGG-13
+  name: 协议
+  initial: 草案
+  note: 用户 GL5-01（intent 2026-10-22-061733）：已签署与已生效分为两个状态；转已生效只能由业务操作触发——无附生效条件的回签在同一事务内只落「已生效」，附生效条件的须经「确认生效条件满足」，不得手工改状态（ADR-0058）；转已生效时记生效依据（条件类型、证据单据号、生效日）
+  states:
+  - 草案
+  - 审批中
+  - 已签署
+  - 已生效
+  - 履行中
+  - 已完成
+  - name: 已结算
+    terminal: true
+  - name: 已终止
+    terminal: true
+  transitions:
+  - from: null
+    to: 草案
+    command: 起草协议
+    guard:
+    - INV-03a
+    - INV-06
+  - from: 草案
+    to: 草案
+    command: 登记合同—项目关联与范围挂 WBS
+    guard:
+    - INV-09
+    - INV-08
+  - from: 已生效
+    to: 已生效
+    command: 登记合同—项目关联与范围挂 WBS
+    guard:
+    - INV-09
+    - INV-08
+  - from: 履行中
+    to: 履行中
+    command: 登记合同—项目关联与范围挂 WBS
+    guard:
+    - INV-09
+    - INV-08
+  - from: 草案
+    to: 草案
+    command: 登记视为同意参数与发包人代表
+  - from: 草案
+    to: 审批中
+    command: 提交合同评审
+    note: 拟命令
+  - from: 审批中
+    to: 审批中
+    command: 通过合同评审
+    note: 拟命令；记评审通过，回签的前置
+  - from: 审批中
+    to: 草案
+    command: 驳回合同评审
+    reverse_of: 提交合同评审
+    note: 拟命令；提交人撤回评审同样回草案（平台一侧）
+  - from: 审批中
+    to: 已生效
+    command: 回签
+    guard:
+    - INV-05
+    - INV-06
+    - INV-07
+    - INV-33
+    - 无附生效条件
+    note: 签署即生效，同一事务记生效依据（条件类型「签署即生效」、证据单据号为回签合同文件、生效日为回签日），不落「已签署」
+  - from: 审批中
+    to: 已签署
+    command: 回签
+    guard:
+    - INV-05
+    - INV-06
+    - INV-07
+    - INV-33
+    - 附生效条件
+  - from: 已签署
+    to: 已生效
+    command: 确认生效条件满足
+    guard:
+    - 生效依据三项必填（条件类型、证据单据号、生效日）
+    - 证据须已登记（AGG-38）
+    note: 拟命令（GL5-01）；唯一由「已签署」转「已生效」的途径，不得手工改状态（ADR-0058）；合同负责人凭证据确认（LEB-08）；停留未约定期限的签署后 30 天提醒、90 天升级部门负责人，不自动终止（LEB-09）
+  - from: 已生效
+    to: 履行中
+    command: 开始履行协议
+    guard:
+    - 事件触发：履行启动（触发条件待定，见 NOTES 结构 3）
+    event: 项目已开始执行（AGG-19，B-04）
+    note: S-33：由事件触发、不设人工命令。选 AGG-19「项目已开始执行」：协议经合同—项目关联（INV-09）关联的任一项目开始执行即进入履行中，按协议幂等。不选「首个交付物建立」：编制交付物在交付侧是内部命令、不发事件。须给既有边 B-05 → B-04 加「事件」方式，事件订阅方由「仅分析」改为 B-05
+  - from: 已生效
+    to: 已生效
+    command: 应用变更
+    guard:
+    - INV-07
+    - INV-08
+  - from: 履行中
+    to: 履行中
+    command: 应用变更
+    guard:
+    - INV-07
+    - INV-08
+  - from: 已生效
+    to: 已生效
+    command: 提交任务订单
+    guard:
+    - INV-10
+    - INV-03a
+  - from: 履行中
+    to: 履行中
+    command: 提交任务订单
+    guard:
+    - INV-10
+    - INV-03a
+  - from: 已生效
+    to: 已生效
+    command: 标记付款条件项可结算
+  - from: 履行中
+    to: 履行中
+    command: 标记付款条件项可结算
+  - from: 已完成
+    to: 已完成
+    command: 标记付款条件项可结算
+  - from: 已生效
+    to: 已生效
+    command: 登记付款条件达成
+    note: 拟命令
+  - from: 履行中
+    to: 履行中
+    command: 登记付款条件达成
+    note: 拟命令
+  - from: 已完成
+    to: 已完成
+    command: 登记付款条件达成
+    note: 拟命令
+  - from: 履行中
+    to: 已完成
+    command: 完成协议
+    guard:
+    - B-08 报告全部履约义务已履行
+  - from: 已完成
+    to: 已完成
+    command: 编制结算书
+  - from: 已完成
+    to: 已完成
+    command: 确认最终价款
+    guard:
+    - 低于协议价须先过让价审批
+  - from: 已完成
+    to: 已结算
+    command: 结算协议
+    guard:
+    - 最终价款已确认
+  - from: 已生效
+    to: 已终止
+    command: 终止协议
+    guard:
+    - 原因必填
+  - from: 履行中
+    to: 已终止
+    command: 终止协议
+    guard:
+    - 原因必填
+  - from: 已生效
+    to: 已生效
+    command: 归档协议
+    guard:
+    - INV-124
+  - from: 履行中
+    to: 履行中
+    command: 归档协议
+    guard:
+    - INV-124
+  - from: 已完成
+    to: 已完成
+    command: 归档协议
+    guard:
+    - INV-124
+  - from: 已结算
+    to: 已结算
+    command: 归档协议
+    guard:
+    - INV-124
+  - from: 已终止
+    to: 已终止
+    command: 归档协议
+    guard:
+    - INV-124
+  - from: 已生效
+    to: 已生效
+    command: 登记协议借出
+    guard:
+    - INV-125
+  - from: 履行中
+    to: 履行中
+    command: 登记协议借出
+    guard:
+    - INV-125
+  - from: 已完成
+    to: 已完成
+    command: 登记协议借出
+    guard:
+    - INV-125
+  - from: 已结算
+    to: 已结算
+    command: 登记协议借出
+    guard:
+    - INV-125
+  - from: 已终止
+    to: 已终止
+    command: 登记协议借出
+    guard:
+    - INV-125
+  - from: 已生效
+    to: 已生效
+    command: 登记协议归还
+    guard:
+    - INV-126
+  - from: 履行中
+    to: 履行中
+    command: 登记协议归还
+    guard:
+    - INV-126
+  - from: 已完成
+    to: 已完成
+    command: 登记协议归还
+    guard:
+    - INV-126
+  - from: 已结算
+    to: 已结算
+    command: 登记协议归还
+    guard:
+    - INV-126
+  - from: 已终止
+    to: 已终止
+    command: 登记协议归还
+    guard:
+    - INV-126
+  - from: 已生效
+    to: 已生效
+    command: 标记协议借阅逾期
+  - from: 履行中
+    to: 履行中
+    command: 标记协议借阅逾期
+  - from: 已完成
+    to: 已完成
+    command: 标记协议借阅逾期
+  - from: 已结算
+    to: 已结算
+    command: 标记协议借阅逾期
+  - from: 已终止
+    to: 已终止
+    command: 标记协议借阅逾期
+  - from: 已签署
+    to: 已签署
+    command: 登记合同—项目关联与范围挂 WBS
+    guard:
+    - INV-09
+    - INV-08
+  - from: 已签署
+    to: 已签署
+    command: 归档协议
+    guard:
+    - INV-124
+  - from: 已签署
+    to: 已签署
+    command: 登记协议借出
+    guard:
+    - INV-125
+  - from: 已签署
+    to: 已签署
+    command: 登记协议归还
+    guard:
+    - INV-126
+  - from: 已签署
+    to: 已签署
+    command: 标记协议借阅逾期
+  - from: 已签署
+    to: 已终止
+    command: 终止协议
+    guard:
+    - 原因必填
+    note: 生效条件确定不能成就或双方解除（GL5-01 停留时限推荐见 NOTES）
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[7]
+- aggregate: AGG-14
+  name: 框架限额占用行
+  note: 技术聚合：占用行状态；被拒不落行，只发事件框架限额占用被拒
+  initial: 占用中
+  states:
+  - 占用中
+  - name: 已释放
+    terminal: true
+  transitions:
+  - from: null
+    to: 占用中
+    command: 占用框架限额
+    guard:
+    - INV-10
+  - from: 占用中
+    to: 占用中
+    command: 占用框架限额
+    guard:
+    - INV-10
+    note: 变更按增减额重占
+  - from: 占用中
+    to: 已释放
+    command: 释放框架限额
+    guard:
+    - INV-10
+    reverse_of: 占用框架限额
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[8]
+- aggregate: AGG-15
+  name: 协议变更
+  initial: 已提出
+  states:
+  - 已提出
+  - 已评估
+  - 变更审批中
+  - 内部审批已通过
+  - 已获发包人同意
+  - name: 已生效
+    terminal: true
+  - name: 未获同意
+    terminal: true
+  - name: 现场签证已确认
+    terminal: true
+  transitions:
+  - from: null
+    to: 已提出
+    command: 提出协议变更
+  - from: 已提出
+    to: 已评估
+    command: 评估变更影响
+  - from: 已评估
+    to: 变更审批中
+    command: 提交协议变更审批
+    note: 拟命令
+  - from: 变更审批中
+    to: 内部审批已通过
+    command: 通过协议变更审批
+    note: 拟命令
+  - from: 变更审批中
+    to: 已评估
+    command: 驳回协议变更审批
+    reverse_of: 提交协议变更审批
+    note: 拟命令；修订后可再提交
+  - from: 内部审批已通过
+    to: 已获发包人同意
+    command: 登记发包人书面同意
+    guard:
+    - 书面同意附件已上传
+    note: 拟命令
+  - from: 内部审批已通过
+    to: 未获同意
+    command: 登记发包人书面同意
+    guard:
+    - 发包人拒绝或逾期未答复
+    note: 拟命令
+  - from: 已获发包人同意
+    to: 已生效
+    command: 生效协议变更
+    guard:
+    - INV-16a
+  - from: 已获发包人同意
+    to: 现场签证已确认
+    command: 确认现场签证
+    guard:
+    - INV-16a
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[9]
+- aggregate: AGG-16
+  name: 索赔
+  note: 双向（我方主张 / 对方主张）。先通知后提交详细报告（GF-2017-0201 通用条款第 19.1 款、FIDIC 2017 第 20.2 款）；「已拒绝」是被索赔方拒绝，「已撤回」是索赔方撤回，行为人不同分两状态
+  initial: 已通知
+  states:
+  - 已通知
+  - 已提交
+  - name: 已认定
+    terminal: true
+  - name: 已拒绝
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  transitions:
+  - from: null
+    to: 已通知
+    command: 提出索赔
+    guard:
+    - INV-17
+  - from: 已通知
+    to: 已提交
+    command: 提交索赔详细报告
+    guard:
+    - INV-17
+    note: 拟命令；详细报告时限取协议上登记的约定，超时限须注明理由（INV-17 已扩至详细报告时限，one-architecture 5849fa0f5）
+  - from: 已提交
+    to: 已认定
+    command: 认定索赔
+  - from: 已提交
+    to: 已拒绝
+    command: 拒绝索赔
+    note: 拟命令；被索赔方书面拒绝，理由必填
+  - from: 已通知
+    to: 已撤回
+    command: 撤回索赔
+    reverse_of: 提出索赔
+    note: 拟命令；索赔方撤回，理由必填
+  - from: 已提交
+    to: 已撤回
+    command: 撤回索赔
+    reverse_of: 提出索赔
+    note: 拟命令；索赔方撤回，理由必填
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[10]
+- aggregate: AGG-17
+  name: 风险交付授权
+  initial: 已申请
+  states:
+  - 已申请
+  - 审批中
+  - 已批准
+  - name: 已转正
+    terminal: true
+  - name: 已叫停
+    terminal: true
+  - name: 已驳回
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  transitions:
+  - from: null
+    to: 已申请
+    command: 申请风险交付授权
+    guard:
+    - INV-18
+  - from: 已申请
+    to: 审批中
+    command: 提交风险交付授权审批
+    note: 拟命令
+  - from: 审批中
+    to: 已批准
+    command: 批准风险交付授权
+  - from: 审批中
+    to: 已驳回
+    command: 驳回风险交付授权
+    note: 拟命令
+  - from: 已申请
+    to: 已撤回
+    command: 撤回风险交付授权申请
+    reverse_of: 申请风险交付授权
+    note: 拟命令
+  - from: 审批中
+    to: 已撤回
+    command: 撤回风险交付授权申请
+    reverse_of: 申请风险交付授权
+    note: 拟命令
+  - from: 已批准
+    to: 已转正
+    command: 转正风险交付授权
+    guard:
+    - INV-19
+  - from: 已批准
+    to: 已叫停
+    command: 叫停风险交付授权
+    guard:
+    - INV-19
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[11]
+- aggregate: AGG-44
+  name: 开票与收入额度（占用行与只追加事实）
+  note: 技术聚合，一台机承载各子表行的生命周期：额度变动行与视为同意认定行、确认事实行只追加；开票占用、收入确认占用、冲销占用各为一类占用行。状态名带前缀区分行类。
+  initial: 额度变动已追加
+  states:
+  - name: 额度变动已追加
+    terminal: true
+  - 开票占用已转实
+  - name: 开票占用已回冲
+    terminal: true
+  - 收入占用中
+  - name: 收入占用已转实
+    terminal: true
+  - name: 收入占用已释放
+    terminal: true
+  - name: 视为同意已认定
+    terminal: true
+  - name: 收入确认事实已追加
+    terminal: true
+  - 冲销申请已登记
+  - 冲销占用中
+  - name: 冲销已转实
+    terminal: true
+  - name: 冲销已释放
+    terminal: true
+  transitions:
+  - from: null
+    to: 额度变动已追加
+    command: 更新开票与收入额度
+    guard:
+    - INV-21
+    - INV-22
+  - from: null
+    to: 开票占用已转实
+    command: 开具销项发票并改写 WIP
+    guard:
+    - INV-21
+    - INV-73
+    note: AGG-46 同名命令的同事务改写
+  - from: 开票占用已转实
+    to: 开票占用已回冲
+    command: 回冲开票额度
+    guard:
+    - INV-73
+    reverse_of: 开具销项发票并改写 WIP
+  - from: null
+    to: 视为同意已认定
+    command: 认定视为同意成立
+    guard:
+    - ADR-0049 决定 1、2、5
+  - from: null
+    to: 收入占用中
+    command: 占用收入额度
+    guard:
+    - INV-23
+    - INV-22
+    - INV-86
+  - from: 收入占用中
+    to: 收入占用已转实
+    command: 追加收入确认事实并占用转实
+    guard:
+    - INV-23
+    - RULE-222
+  - from: null
+    to: 收入确认事实已追加
+    command: 追加收入确认事实并占用转实
+    guard:
+    - INV-23
+    - RULE-222
+    note: 与占用转实同事务追加不可改的确认事实
+  - from: 收入占用中
+    to: 收入占用已释放
+    command: 释放收入额度占用
+    guard:
+    - 审批驳回、撤回或二次校验失败
+    reverse_of: 占用收入额度
+  - from: null
+    to: 冲销申请已登记
+    command: 冲销收入确认
+    guard:
+    - 冲销额≤原确认事实未冲销余额
+    note: 拟命令
+  - from: 冲销申请已登记
+    to: 冲销占用中
+    command: 占用冲销额度
+    guard:
+    - 在途冲销合计≤未冲销余额
+    note: 拟命令
+  - from: 冲销占用中
+    to: 冲销已转实
+    command: 追加冲销行并占用转实
+    guard:
+    - INV-22
+    - RULE-222
+    reverse_of: 追加收入确认事实并占用转实
+    note: 拟命令
+  - from: 冲销占用中
+    to: 冲销已释放
+    command: 释放收入额度占用
+    guard:
+    - 审批驳回、撤回或二次校验失败
+    reverse_of: 占用冲销额度
+  - from: 收入确认事实已追加
+    to: 收入确认事实已追加
+    command: 提交过账候选
+    guard:
+    - INV-92
+  - from: 冲销已转实
+    to: 冲销已转实
+    command: 提交过账候选
+    guard:
+    - INV-92
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[12]
+- aggregate: AGG-45
+  name: 开票申请
+  initial: 已提交
+  states:
+  - 已提交
+  - 已准入
+  - name: 已开具
+    terminal: true
+  - name: 已驳回
+    terminal: true
+  - name: 已作废
+    terminal: true
+  transitions:
+  - from: null
+    to: 已提交
+    command: 提交开票申请
+  - from: 已提交
+    to: 已准入
+    command: 准入开票申请
+    guard:
+    - INV-71
+    - RULE-407
+    - RULE-411
+    - INV-21
+  - from: 已提交
+    to: 已驳回
+    command: 驳回开票申请
+  - from: 已准入
+    to: 已驳回
+    command: 驳回开票申请
+  - from: 已提交
+    to: 已作废
+    command: 作废开票申请
+    guard:
+    - INV-71（只在开具前）
+    reverse_of: 提交开票申请
+  - from: 已准入
+    to: 已作废
+    command: 作废开票申请
+    guard:
+    - INV-71（只在开具前）
+    reverse_of: 提交开票申请
+  - from: 已准入
+    to: 已开具
+    command: null
+    guard:
+    - 事件触发：InvoiceIssued（AGG-46，同 BC）
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[13]
+- aggregate: AGG-46
+  name: 销项发票
+  initial: 已开具
+  states:
+  - 已开具
+  - 红冲确认中
+  - name: 已红冲
+    terminal: true
+  transitions:
+  - from: null
+    to: 已开具
+    command: 开具销项发票并改写 WIP
+    guard:
+    - INV-72
+    - INV-73
+  - from: 已开具
+    to: 已开具
+    command: 提交过账候选
+    guard:
+    - INV-92
+  - from: 已红冲
+    to: 已红冲
+    command: 提交过账候选
+    guard:
+    - INV-92
+  - from: 已开具
+    to: 红冲确认中
+    command: 发起红字信息确认
+    guard:
+    - INV-72
+  - from: 红冲确认中
+    to: 已开具
+    command: 撤销红字信息确认
+    reverse_of: 发起红字信息确认
+    note: 拟命令
+  - from: 红冲确认中
+    to: 已红冲
+    command: 红冲发票
+    guard:
+    - INV-72
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[14]
+- aggregate: AGG-92
+  name: 证据类型配置版本
+  note: 每版本一个聚合；关闭或撤销已开放类型的命令缺，见 NOTES
+  initial: 未开放
+  states:
+  - 未开放
+  - name: 已开放
+    terminal: true
+  transitions:
+  - from: 未开放
+    to: 已开放
+    command: 开放证据类型
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[15]
+- aggregate: AGG-136
+  name: 应收默认账期规则版本
+  note: 用户 KPI-Q04；每版本一个聚合，同一时点只有一个生效版本；覆盖行不得重叠（同一协议类型 × 客户分级组合只一行）
+  initial: 草稿
+  states:
+  - 草稿
+  - 已生效
+  - name: 已被取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 草稿
+    command: 编制账期规则版本
+  - from: 草稿
+    to: 已生效
+    command: 生效账期规则版本
+    guard:
+    - 覆盖行不重叠
+    - 财务负责人已批准
+  - from: 已生效
+    to: 已被取代
+    command: 生效账期规则版本
+    note: 新版本生效时旧版本同事务被取代
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[16]
+- aggregate: AGG-49
+  name: 应收往来款项
+  note: 逾期与争议在业务上与结清程度正交，这里为简化按互斥状态建模，见 NOTES 结构 5
+  initial: 未结
+  states:
+  - 未结
+  - 已部分结清
+  - 已逾期
+  - 争议中
+  - name: 已结清
+    terminal: true
+  - name: 坏账已核销
+    terminal: true
+  - name: 已冲减
+    terminal: true
+  - name: 已转预收或待退
+    terminal: true
+  transitions:
+  - from: null
+    to: 未结
+    command: 创建应收
+    guard:
+    - INV-76
+  - from: 未结
+    to: 已结清
+    command: 在应收上核销占用
+    guard:
+    - INV-77
+    - 核销合计=未结余额
+  - from: 已部分结清
+    to: 已结清
+    command: 在应收上核销占用
+    guard:
+    - INV-77
+    - 核销合计=未结余额
+  - from: 已逾期
+    to: 已结清
+    command: 在应收上核销占用
+    guard:
+    - INV-77
+    - 核销合计=未结余额
+  - from: 争议中
+    to: 已结清
+    command: 在应收上核销占用
+    guard:
+    - INV-77
+    - 核销合计=未结余额
+  - from: 未结
+    to: 已部分结清
+    command: 在应收上核销占用
+    guard:
+    - INV-77
+    - 核销合计<未结余额
+  - from: 已部分结清
+    to: 已部分结清
+    command: 在应收上核销占用
+    guard:
+    - INV-77
+    - 核销合计<未结余额
+  - from: 已逾期
+    to: 已部分结清
+    command: 在应收上核销占用
+    guard:
+    - INV-77
+    - 核销合计<未结余额
+  - from: 争议中
+    to: 已部分结清
+    command: 在应收上核销占用
+    guard:
+    - INV-77
+    - 核销合计<未结余额
+  - from: 未结
+    to: 已逾期
+    command: 检测应收逾期
+  - from: 已部分结清
+    to: 已逾期
+    command: 检测应收逾期
+  - from: 未结
+    to: 争议中
+    command: 登记争议与处置分类
+  - from: 已部分结清
+    to: 争议中
+    command: 登记争议与处置分类
+  - from: 已逾期
+    to: 争议中
+    command: 登记争议与处置分类
+  - from: 已部分结清
+    to: 坏账已核销
+    command: 核销坏账
+    guard:
+    - 拟规则：坏账核销审批
+  - from: 已逾期
+    to: 坏账已核销
+    command: 核销坏账
+    guard:
+    - 拟规则：坏账核销审批
+  - from: 争议中
+    to: 坏账已核销
+    command: 核销坏账
+    guard:
+    - 拟规则：坏账核销审批
+  - from: 未结
+    to: 已结清
+    command: 冲抵员工借款
+    guard:
+    - INV-77
+    - 冲抵额=未结余额
+  - from: 已部分结清
+    to: 已结清
+    command: 冲抵员工借款
+    guard:
+    - INV-77
+    - 冲抵额=未结余额
+  - from: 未结
+    to: 已部分结清
+    command: 冲抵员工借款
+    guard:
+    - INV-77
+    - 冲抵额<未结余额
+  - from: 已部分结清
+    to: 已部分结清
+    command: 冲抵员工借款
+    guard:
+    - INV-77
+    - 冲抵额<未结余额
+  - from: 未结
+    to: 已冲减
+    command: 冲减应收
+    guard:
+    - 红冲额=未结余额
+  - from: 已部分结清
+    to: 已冲减
+    command: 冲减应收
+    guard:
+    - 红冲额=未结余额
+  - from: 已逾期
+    to: 已冲减
+    command: 冲减应收
+    guard:
+    - 红冲额=未结余额
+  - from: 争议中
+    to: 已冲减
+    command: 冲减应收
+    guard:
+    - 红冲额=未结余额
+  - from: 未结
+    to: 已部分结清
+    command: 冲减应收
+    guard:
+    - 红冲额<未结余额
+  - from: 已部分结清
+    to: 已部分结清
+    command: 冲减应收
+    guard:
+    - 红冲额<未结余额
+  - from: 已逾期
+    to: 已部分结清
+    command: 冲减应收
+    guard:
+    - 红冲额<未结余额
+  - from: 争议中
+    to: 已部分结清
+    command: 冲减应收
+    guard:
+    - 红冲额<未结余额
+  - from: 已结清
+    to: 已转预收或待退
+    command: 转预收或待退
+    guard:
+    - 红冲额超过未结余额
+    reverse_of: 在应收上核销占用
+  - from: 已结清
+    to: 未结
+    command: 释放占用、恢复应收
+    guard:
+    - 释放后无其他核销
+    reverse_of: 在应收上核销占用
+  - from: 已部分结清
+    to: 未结
+    command: 释放占用、恢复应收
+    guard:
+    - 释放后无其他核销
+    reverse_of: 在应收上核销占用
+  - from: 已结清
+    to: 已部分结清
+    command: 释放占用、恢复应收
+    guard:
+    - 释放后仍有其他核销
+    reverse_of: 在应收上核销占用
+  - from: 已部分结清
+    to: 已部分结清
+    command: 释放占用、恢复应收
+    guard:
+    - 释放后仍有其他核销
+    reverse_of: 在应收上核销占用
+  - from: 未结
+    to: 未结
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 已部分结清
+    to: 已部分结清
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 已逾期
+    to: 已逾期
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 争议中
+    to: 争议中
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 已结清
+    to: 已结清
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 坏账已核销
+    to: 坏账已核销
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 已冲减
+    to: 已冲减
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 已转预收或待退
+    to: 已转预收或待退
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 不改变业务状态，只追加过账候选提交事实
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[17]
+- aggregate: AGG-50
+  name: 收款
+  note: 商票兑付状态与分配状态正交，这里用前缀状态并列建模
+  initial: 已认领
+  states:
+  - 待认领
+  - 已认领
+  - name: 已分配
+    terminal: true
+  - name: 已处置
+    terminal: true
+  - 商票已收到
+  - 商票已逾期
+  - name: 商票已兑付
+    terminal: true
+  transitions:
+  - from: null
+    to: 已认领
+    command: 收款认领
+    guard:
+    - AR-09
+    - RULE-410
+    - AR-15
+  - from: null
+    to: 待认领
+    command: 收款认领
+    guard:
+    - 流水行无法对应应收，挂账待认领
+  - from: 待认领
+    to: 已认领
+    command: 收款认领
+    guard:
+    - AR-09
+    - RULE-410
+    - AR-15
+  - from: null
+    to: 商票已收到
+    command: 收款认领
+    guard:
+    - 收款方式=商票，收票时尚未到账
+  - from: 已认领
+    to: 已分配
+    command: 记分配行与流水行
+    guard:
+    - INV-78
+  - from: 待认领
+    to: 已处置
+    command: 处置待认领流水
+    note: 拟命令
+  - from: 商票已收到
+    to: 商票已兑付
+    command: 登记商票兑付
+  - from: 商票已收到
+    to: 商票已逾期
+    command: 标记商票已逾期
+  - from: 商票已逾期
+    to: 商票已兑付
+    command: 登记商票兑付
+  - from: 已分配
+    to: 已分配
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 过账时点取收票或兑付待财务定
+  - from: 商票已兑付
+    to: 商票已兑付
+    command: 提交过账候选
+    guard:
+    - INV-92
+    note: 过账时点取收票或兑付待财务定
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[18]
+- aggregate: AGG-51
+  name: 保证金与押金
+  initial: 已缴
+  states:
+  - 已缴
+  - name: 已退
+    terminal: true
+  - name: 被没收
+    terminal: true
+  - 已开立
+  - name: 已到期
+    terminal: true
+  - name: 被索赔
+    terminal: true
+  transitions:
+  - from: null
+    to: 已缴
+    command: 登记保证金缴纳
+    note: 直接缴纳无应缴登记
+  - from: null
+    to: 已开立
+    command: 登记保函开立
+  - from: 已缴
+    to: 已缴
+    command: 扣减保证金
+    guard:
+    - INV-20
+  - from: 已缴
+    to: 已退
+    command: 退还保证金
+    guard:
+    - INV-20
+    - AR-09（RULE-410）
+    kind: reverse
+    reverse_of: 登记保证金缴纳
+    note: 退还是缴纳的资金逆向（INV-20 与没收互斥各一次）
+  - from: 已缴
+    to: 被没收
+    command: 没收保证金
+    guard:
+    - INV-20
+  - from: 已开立
+    to: 已到期
+    command: 登记保函到期或索赔
+    guard:
+    - 结果=到期
+  - from: 已开立
+    to: 被索赔
+    command: 登记保函到期或索赔
+    guard:
+    - 结果=被索赔
+  - from: 已缴
+    to: 已缴
+    command: 提交过账候选
+    guard:
+    - INV-92
+  - from: 已退
+    to: 已退
+    command: 提交过账候选
+    guard:
+    - INV-92
+  - from: 被没收
+    to: 被没收
+    command: 提交过账候选
+    guard:
+    - INV-92
+  note: ；只留一个现金创建入口「登记保证金缴纳」（null → 已缴），删去未被骨架使用的拟命令「登记保证金应缴」（接缝复核）；保函另由「登记保函开立」创建
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[19]
+- aggregate: AGG-01
+  name: 往来单位
+  note: 一台机承载三类实例：档案（待核实、有效、已合并、停用）、需准入的角色（角色·前缀，INV-02；客户角色无准入状态）、银行账户版本（生效、被取代：变更即追加新版本，旧版本被取代，不覆盖）
+  initial: 待核实
+  states:
+  - 待核实
+  - 有效
+  - name: 已合并
+    terminal: true
+  - name: 已停用
+    terminal: true
+  - 角色申请中
+  - 角色合格
+  - 角色已暂停
+  - name: 角色已停用
+    terminal: true
+  - 银行账户版本已生效
+  - name: 银行账户版本被取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 待核实
+    command: 登记往来单位
+    guard:
+    - INV-01
+  - from: 待核实
+    to: 有效
+    command: 核实往来单位档案
+  - from: 待核实
+    to: 待核实
+    command: 变更银行账户
+    note: 档案本身状态不变，账户版本见下两条
+  - from: 有效
+    to: 有效
+    command: 变更银行账户
+    note: 档案本身状态不变，账户版本见下两条
+  - from: null
+    to: 银行账户版本已生效
+    command: 变更银行账户
+  - from: 银行账户版本已生效
+    to: 银行账户版本被取代
+    command: 变更银行账户
+    note: 同事务：旧版本被新版本取代
+  - from: 有效
+    to: 已合并
+    command: 合并往来单位
+    guard:
+    - INV-01
+  - from: 有效
+    to: 已停用
+    command: 停用往来单位
+  - from: null
+    to: 角色申请中
+    command: 申请往来单位角色
+    guard:
+    - INV-02
+  - from: 角色申请中
+    to: 角色合格
+    command: 核准往来单位角色合格
+    guard:
+    - INV-02
+  - from: 角色已暂停
+    to: 角色合格
+    command: 核准往来单位角色合格
+    guard:
+    - INV-02
+  - from: 角色合格
+    to: 角色已暂停
+    command: 暂停往来单位角色
+    guard:
+    - INV-02
+    - 原因必填
+    reverse_of: 核准往来单位角色合格
+  - from: 角色申请中
+    to: 角色已停用
+    command: 停用往来单位角色
+    guard:
+    - INV-02
+    - 原因必填
+  - from: 角色合格
+    to: 角色已停用
+    command: 停用往来单位角色
+    guard:
+    - INV-02
+    - 原因必填
+  - from: 角色已暂停
+    to: 角色已停用
+    command: 停用往来单位角色
+    guard:
+    - INV-02
+    - 原因必填
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[20]
+- aggregate: AGG-02
+  name: 资质证书
+  note: 版本化：延续或降级后登记的是新有效期或新等级版本；延续时旧版本被取代，降级时旧版本到已降级；已撤销、已到期不再恢复。核查中、延续中期间证书仍有效（引用方按有效判断）
+  initial: 有效
+  states:
+  - 有效
+  - 核查中
+  - 延续中
+  - name: 已到期
+    terminal: true
+  - name: 已撤销
+    terminal: true
+  - name: 已降级
+    terminal: true
+  - name: 被取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 有效
+    command: 登记资质证书
+  - from: 有效
+    to: 核查中
+    command: 发起资质核查
+  - from: 核查中
+    to: 有效
+    command: 登记核查结果
+    guard:
+    - 结果=有效
+  - from: 核查中
+    to: 已降级
+    command: 登记核查结果
+    guard:
+    - 结果=降级（新等级版本同事务生效）
+  - from: null
+    to: 有效
+    command: 登记核查结果
+    guard:
+    - 结果=降级：新等级版本生效
+    note: 新版本实例
+  - from: 核查中
+    to: 已撤销
+    command: 登记核查结果
+    guard:
+    - 结果=撤销
+  - from: 有效
+    to: 延续中
+    command: 登记资质延续申请
+    note: 拟命令；附发证机关受理回执
+  - from: null
+    to: 有效
+    command: 延续资质
+    note: 新有效期版本实例
+  - from: 延续中
+    to: 被取代
+    command: 延续资质
+    note: 同事务：旧版本被取代
+  - from: 有效
+    to: 已到期
+    command: 标记资质已到期
+    guard:
+    - 到期日届满且未延续
+  - from: 核查中
+    to: 已到期
+    command: 标记资质已到期
+    guard:
+    - 到期日届满且未延续
+  - from: 延续中
+    to: 已到期
+    command: 标记资质已到期
+    guard:
+    - 到期日届满且未获延续
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[21]
+- aggregate: AGG-03
+  name: 服务产品版本
+  note: 版本化：各版本并行，「启用」= 该版本已发布，「停用」= 已停用（逐版本映射，不是新版取代旧版）
+  initial: 已发布
+  states:
+  - 已发布
+  - name: 已停用
+    terminal: true
+  transitions:
+  - from: null
+    to: 已发布
+    command: 发布服务产品版本
+    guard:
+    - INV-34
+  - from: 已发布
+    to: 已停用
+    command: 停用服务产品版本
+    kind: reverse
+    reverse_of: 发布服务产品版本
+    note: 停用撤回已发布版本的可用性；不追溯已引用的报价与合同
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[22]
+- aggregate: AGG-04
+  name: 阶段类型版本
+  note: 版本化：各版本并行，「启用」= 该版本已发布，「停用」= 已停用（逐版本映射，不是新版取代旧版）
+  initial: 已发布
+  states:
+  - 已发布
+  - name: 已停用
+    terminal: true
+  transitions:
+  - from: null
+    to: 已发布
+    command: 发布阶段类型版本
+    guard:
+    - INV-34a
+  - from: 已发布
+    to: 已停用
+    command: 停用阶段类型版本
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[23]
+- aggregate: AGG-05
+  name: 标准成本费率表版本
+  note: 版本化：审批中 → 已批准 → 已生效 → 被取代；已批准的版本不可改（INV-36）。驳回结果事件（审批已驳回）回到编制，不另设状态
+  initial: 审批中
+  states:
+  - 审批中
+  - 已批准
+  - 已生效
+  - name: 被取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 审批中
+    command: 编制费率版本
+    guard:
+    - INV-35
+    note: 拟命令
+  - from: 审批中
+    to: 审批中
+    command: 编制费率版本
+    note: 驳回后修改再提交；拟命令
+  - from: 审批中
+    to: 已批准
+    command: 批准费率版本
+    guard:
+    - INV-36
+  - from: 已批准
+    to: 已生效
+    command: 生效费率版本
+    guard:
+    - INV-35
+    - INV-36
+  - from: 已生效
+    to: 被取代
+    command: 生效费率版本
+    note: 同事务：被新生效版本取代（旧版本实例）
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[24]
+- aggregate: AGG-06
+  name: 计费系数版本
+  note: 版本化：待生效 → 已生效 → 被取代；已生效的版本不可改（INV-36a）。批准随费率版本一并走审批平台（建议，见 NOTES）
+  initial: 待生效
+  states:
+  - 待生效
+  - 已生效
+  - name: 被取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 待生效
+    command: 编制计费系数版本
+    guard:
+    - INV-36a
+    note: 拟命令
+  - from: 待生效
+    to: 待生效
+    command: 编制计费系数版本
+    note: 修订；拟命令
+  - from: 待生效
+    to: 已生效
+    command: 生效计费系数版本
+    guard:
+    - INV-36a
+  - from: 已生效
+    to: 被取代
+    command: 生效计费系数版本
+    note: 新版本生效同事务取代旧版，即旧版生效的逆向；不追溯（D15）
+    kind: reverse
+    reverse_of: 生效计费系数版本
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[25]
+- aggregate: AGG-07
+  name: 协议价目版本
+  note: 版本化：待生效 → 已生效 → 被取代；已生效的版本不可改（INV-36）。批准随费率版本一并走审批平台（建议，见 NOTES）
+  initial: 待生效
+  states:
+  - 待生效
+  - 已生效
+  - name: 被取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 待生效
+    command: 编制协议价目版本
+    guard:
+    - INV-36
+    note: 拟命令
+  - from: 待生效
+    to: 待生效
+    command: 编制协议价目版本
+    note: 修订；拟命令
+  - from: 待生效
+    to: 已生效
+    command: 生效协议价目版本
+    guard:
+    - INV-36
+  - from: 已生效
+    to: 被取代
+    command: 生效协议价目版本
+    note: 同事务：被新生效版本取代（旧版本实例）
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[26]
+- aggregate: AGG-08
+  name: 市场活动
+  initial: 已计划
+  states:
+  - 已计划
+  - 进行中
+  - name: 已结束
+    terminal: true
+  transitions:
+  - from: null
+    to: 已计划
+    command: 计划市场活动
+  - from: 已计划
+    to: 进行中
+    command: 开展市场活动
+  - from: 进行中
+    to: 已结束
+    command: 结束市场活动
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[27]
+- aggregate: AGG-09
+  name: 线索
+  initial: 待认领
+  states:
+  - 待认领
+  - 跟进中
+  - 挂起
+  - name: 已确认
+    terminal: true
+  - name: 已关闭
+    terminal: true
+  transitions:
+  - from: null
+    to: 待认领
+    command: 登记线索
+  - from: 待认领
+    to: 跟进中
+    command: 认领线索
+  - from: 跟进中
+    to: 挂起
+    command: 挂起线索
+  - from: 挂起
+    to: 跟进中
+    command: 恢复线索
+    guard:
+    - INV-24
+    reverse_of: 挂起线索
+  - from: 跟进中
+    to: 已确认
+    command: 确认线索
+    guard:
+    - INV-24
+    - 携带商机ID
+  - from: 待认领
+    to: 已关闭
+    command: 关闭线索
+    guard:
+    - INV-24
+    - 原因必填
+    - 已确认的线索不可关闭
+  - from: 跟进中
+    to: 已关闭
+    command: 关闭线索
+    guard:
+    - INV-24
+    - 原因必填
+    - 已确认的线索不可关闭
+  - from: 挂起
+    to: 已关闭
+    command: 关闭线索
+    guard:
+    - INV-24
+    - 原因必填
+    - 已确认的线索不可关闭
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[28]
+- aggregate: AGG-10
+  name: 商机
+  initial: 跟进中
+  states:
+  - 跟进中
+  - 已决定参投
+  - name: 已赢单
+    terminal: true
+  - name: 已丢单
+    terminal: true
+  - name: 已放弃
+    terminal: true
+  transitions:
+  - from: null
+    to: 跟进中
+    command: 新建商机
+    guard:
+    - INV-25
+    - INV-26
+  - from: 跟进中
+    to: 跟进中
+    command: 变更商机负责人
+    guard:
+    - INV-26
+  - from: 跟进中
+    to: 跟进中
+    command: 维护商机参与团队
+  - from: 跟进中
+    to: 跟进中
+    command: 登记参投判断
+    note: 只记判断清单、评分与理由，状态不变（PRC-183）
+  - from: 跟进中
+    to: 已决定参投
+    command: 作出参投决策
+    note: 用户 VS01-10；异常条件时经参投例外审批后生效
+  - from: 已决定参投
+    to: 已决定参投
+    command: 变更商机负责人
+    guard:
+    - INV-26
+  - from: 已决定参投
+    to: 已决定参投
+    command: 维护商机参与团队
+  - from: 已决定参投
+    to: 已赢单
+    command: 登记商机赢单
+    guard:
+    - INV-27
+    - INV-33
+    note: 赢单须先作参投决策（用户 VS01-10，适用所有商机）
+  - from: 已决定参投
+    to: 已丢单
+    command: 登记商机丢单
+  - from: 已决定参投
+    to: 已放弃
+    command: 放弃商机
+  - from: 跟进中
+    to: 已丢单
+    command: 登记商机丢单
+  - from: 跟进中
+    to: 已放弃
+    command: 放弃商机
+    kind: reverse
+    reverse_of: 新建商机
+    note: 我方主动撤回商机；丢单是外部结果，不算逆向
+  note: ；状态名「推进中」改为「跟进中」，与价值流阶段条件同名（阶段对齐）
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[29]
+- aggregate: AGG-11
+  name: 投标
+  note: 已撤销不是终态：撤回或撤销后商机若不再跟进，登记放弃投标（PRC-08 步 12→13）；商机继续跟进的，投标停在已撤销
+  initial: 资格预审已登记
+  states:
+  - 资格预审已登记
+  - 已递交
+  - name: 已中标
+    terminal: true
+  - name: 未中标
+    terminal: true
+  - name: 已废标
+    terminal: true
+  - 已撤销
+  - name: 已放弃
+    terminal: true
+  transitions:
+  - from: null
+    to: 资格预审已登记
+    command: 登记资格预审结果
+    guard:
+    - INV-28
+  - from: 资格预审已登记
+    to: 已递交
+    command: 递交投标
+    guard:
+    - INV-33
+  - from: 已递交
+    to: 已中标
+    command: 登记中标
+  - from: 已递交
+    to: 未中标
+    command: 登记未中标
+  - from: 已递交
+    to: 已废标
+    command: 登记废标
+  - from: 已递交
+    to: 已撤销
+    command: 撤回或撤销投标
+    reverse_of: 递交投标
+  - from: 资格预审已登记
+    to: 已放弃
+    command: 放弃投标
+  - from: 已撤销
+    to: 已放弃
+    command: 放弃投标
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[30]
+- aggregate: AGG-12
+  name: 报价版本
+  note: 已通过 = 评审通过并冻结（INV-31），已生效 = 当前版本（INV-30）；评审经 platform.approval，结果以回调命令进入
+  initial: 草拟
+  states:
+  - 草拟
+  - 审批中
+  - 已通过
+  - 驳回
+  - 已生效
+  - name: 被取代
+    terminal: true
+  - name: 已作废
+    terminal: true
+  transitions:
+  - from: null
+    to: 草拟
+    command: 编制报价版本
+    guard:
+    - INV-32
+  - from: 驳回
+    to: 草拟
+    command: 编制报价版本
+    note: 驳回后修订
+  - from: 草拟
+    to: 审批中
+    command: 提交报价评审
+  - from: 审批中
+    to: 已通过
+    command: 通过报价评审
+    guard:
+    - INV-31
+  - from: 审批中
+    to: 驳回
+    command: 驳回报价评审
+  - from: 已通过
+    to: 已生效
+    command: 生效报价版本
+    guard:
+    - INV-30
+    - INV-31
+  - from: 已生效
+    to: 被取代
+    command: 生效报价版本
+    guard:
+    - INV-30
+    note: 同事务：被新生效版本取代（旧版本实例）
+  - from: 已生效
+    to: 已生效
+    command: 登记报价发出
+    note: 只记录，不改状态
+  - from: 草拟
+    to: 已作废
+    command: 作废报价版本
+  - from: 驳回
+    to: 已作废
+    command: 作废报价版本
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[31]
+- aggregate: AGG-18
+  name: 独立性检查
+  note: 待查由商机建立后的检查要求事件创建，聚合稿无创建命令（见 NOTES）
+  initial: 待查
+  states:
+  - 待查
+  - name: 无冲突
+    terminal: true
+  - name: 有冲突已获书面同意
+    terminal: true
+  - name: 有冲突不得承接
+    terminal: true
+  transitions:
+  - from: null
+    to: 待查
+    command: 创建独立性检查
+    note: 事件触发：创建检查（触发条件待定）
+    event: 独立性检查要求（AGG-10，同 BC）
+  - from: 待查
+    to: 无冲突
+    command: 登记独立性检查结论
+    guard:
+    - INV-33
+  - from: 待查
+    to: 有冲突已获书面同意
+    command: 登记独立性检查结论
+    guard:
+    - INV-33
+    - 书面同意必填并已上传
+  - from: 待查
+    to: 有冲突不得承接
+    command: 登记独立性检查结论
+    guard:
+    - INV-33
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[32]
+- aggregate: AGG-102
+  name: 客户活动
+  initial: 已计划
+  states:
+  - 已计划
+  - 已变更
+  - name: 已完成
+    terminal: true
+  - name: 已取消
+    terminal: true
+  transitions:
+  - from: null
+    to: 已计划
+    command: 计划客户活动
+  - from: 已计划
+    to: 已变更
+    command: 变更客户活动
+    guard:
+    - INV-110
+  - from: 已变更
+    to: 已变更
+    command: 变更客户活动
+    guard:
+    - INV-110
+  - from: 已计划
+    to: 已完成
+    command: 完成客户活动
+    guard:
+    - INV-110
+    - 结果反馈必填
+  - from: 已变更
+    to: 已完成
+    command: 完成客户活动
+    guard:
+    - INV-110
+    - 结果反馈必填
+  - from: 已计划
+    to: 已取消
+    command: 取消客户活动
+    guard:
+    - 原因必填
+  - from: 已变更
+    to: 已取消
+    command: 取消客户活动
+    guard:
+    - 原因必填
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[33]
+- aggregate: AGG-19
+  name: 项目
+  note: Q09 状态取值仍待定，「收尾中」暂不设；暂停期间拒记工时（INV-39）；已结项到已归档
+  initial: 已立项
+  states:
+  - 已立项
+  - 执行中
+  - 已暂停
+  - 已结项
+  - name: 已终止
+    terminal: true
+  - name: 已取消
+    terminal: true
+  - name: 已归档
+    terminal: true
+  transitions:
+  - from: null
+    to: 已立项
+    command: 建立项目
+  - from: 已立项
+    to: 执行中
+    command: 开始执行项目
+  - from: 执行中
+    to: 已暂停
+    command: 暂停项目
+    guard:
+    - 原因必填
+  - from: 已暂停
+    to: 执行中
+    command: 恢复项目
+    reverse_of: 暂停项目
+  - from: 执行中
+    to: 已终止
+    command: 终止项目
+    guard:
+    - 原因必填
+  - from: 已暂停
+    to: 已终止
+    command: 终止项目
+    guard:
+    - 原因必填
+  - from: 已立项
+    to: 已取消
+    command: 取消项目
+    guard:
+    - 原因必填
+    - 无任何投入
+  - from: 执行中
+    to: 已取消
+    command: 取消项目
+    guard:
+    - 原因必填
+    - 无任何投入
+  - from: 已暂停
+    to: 已取消
+    command: 取消项目
+    guard:
+    - 原因必填
+    - 无任何投入
+  - from: 执行中
+    to: 已结项
+    command: 结项
+    guard:
+    - INV-40
+  - from: 已结项
+    to: 已归档
+    command: 归档项目
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[34]
+- aggregate: AGG-20
+  name: 项目 WBS
+  note: 一台机承载两类节点：阶段节点（阶段·前缀）与工作包（工作包·前缀）。工作包「发布」即进入进行中，INV-42 的「已发布」指进行中及其后各状态；「锁定」是完成后停止记工时，返工经「转入返工」重开（返工工时另由 INV-53 在工时侧读返工认定，WBS 不引用返工认定）；未发布的可删或作废，已发布的只作废、原因必填（INV-42、S-33）
+  initial: 阶段未开始
+  states:
+  - 阶段未开始
+  - 阶段进行中
+  - name: 阶段已完成
+    terminal: true
+  - 工作包未发布
+  - 工作包进行中
+  - 工作包已完成
+  - 工作包已锁定
+  - 工作包返工中
+  - name: 工作包已作废
+    terminal: true
+  transitions:
+  - from: null
+    to: 阶段未开始
+    command: 建立项目 WBS
+    guard:
+    - INV-41
+  - from: null
+    to: 工作包未发布
+    command: 建立项目 WBS
+    guard:
+    - INV-41
+  - from: 阶段未开始
+    to: 阶段进行中
+    command: 开始阶段
+    guard:
+    - INV-41
+  - from: 阶段进行中
+    to: 阶段已完成
+    command: 完成阶段
+    guard:
+    - INV-41
+  - from: 工作包未发布
+    to: 工作包进行中
+    command: 发布工作包
+    guard:
+    - INV-41
+    note: 拟命令；发布后可记工时，不再可删（INV-42）
+  - from: 工作包进行中
+    to: 工作包已完成
+    command: 完成工作包
+    note: 拟命令；完成后仍可补记工时，至锁定为止
+  - from: 工作包已完成
+    to: 工作包已锁定
+    command: 锁定工作包
+    guard:
+    - INV-42
+    note: 锁定即停止记工时
+  - from: 工作包已完成
+    to: 工作包返工中
+    command: 转入返工
+    note: 拟命令；返工原因必填
+  - from: 工作包已锁定
+    to: 工作包返工中
+    command: 转入返工
+    note: 拟命令；返工原因必填，重开记工时（返工工时仍须有返工认定，INV-53）
+  - from: 工作包返工中
+    to: 工作包已完成
+    command: 完成工作包
+    note: 拟命令
+  - from: 工作包未发布
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+  - from: 工作包进行中
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填
+  - from: 工作包已完成
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填
+  - from: 工作包已锁定
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填（S-33）
+  - from: 工作包返工中
+    to: 工作包已作废
+    command: 作废工作包
+    guard:
+    - INV-42
+    note: 已发布只作废，原因必填
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[35]
+- aggregate: AGG-21
+  name: 交付计划版本
+  note: 版本化：对客基线与内部基线各只有一个生效版本，新版本批准后旧版本被取代；对客基线须注明依据的内部基线版本（INV-140，缺即拒），内部基线须含全部合同里程碑、日期晚于对客只提示（INV-141）；考核按内部基线，延期、结算与索赔按对客基线（用户 LEB-07）
+  initial: 草拟
+  states:
+  - 草拟
+  - 已批准
+  - name: 被取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 草拟
+    command: 编制交付计划版本
+    guard:
+    - INV-43
+  - from: 草拟
+    to: 草拟
+    command: 编制交付计划版本
+    guard:
+    - INV-43
+    note: 修订须写原因
+  - from: 草拟
+    to: 已批准
+    command: 批准交付计划
+    guard:
+    - INV-43
+  - from: 已批准
+    to: 被取代
+    command: 批准交付计划
+    guard:
+    - INV-43
+    note: 同事务：旧基线被新版本取代
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[36]
+- aggregate: AGG-22
+  name: 项目预算版本
+  note: 版本化：锁定后修订须写原因并另出版本，新版本锁定后旧版本被取代
+  initial: 草拟
+  states:
+  - 草拟
+  - 已锁定
+  - name: 被取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 草拟
+    command: 编制项目预算版本
+    guard:
+    - INV-44
+  - from: 草拟
+    to: 草拟
+    command: 编制项目预算版本
+    guard:
+    - INV-44
+  - from: 草拟
+    to: 已锁定
+    command: 锁定项目预算
+    guard:
+    - INV-44
+  - from: 已锁定
+    to: 被取代
+    command: 锁定项目预算
+    guard:
+    - INV-44
+    note: 同事务：旧版本被取代
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[37]
+- aggregate: AGG-23
+  name: 完工估算
+  note: 两类行：完工估算（提出 → 批准 → 被取代）与产值估计（只追加，更正以新行追加，不进收入确认）
+  initial: 已提出
+  states:
+  - 已提出
+  - 已批准
+  - name: 被取代
+    terminal: true
+  - name: 产值估计已追加
+    terminal: true
+  transitions:
+  - from: null
+    to: 已提出
+    command: 提出完工估算
+  - from: 已提出
+    to: 已批准
+    command: 批准完工估算
+    guard:
+    - 提出人≠批准人
+  - from: 已批准
+    to: 被取代
+    command: 批准完工估算
+    note: 同事务：旧估算被新估算取代
+  - from: null
+    to: 产值估计已追加
+    command: 填报产值估计
+    guard:
+    - 只追加
+    note: 拟命令
+  - from: 产值估计已追加
+    to: 产值估计已追加
+    command: 填报产值估计
+    guard:
+    - 只追加
+    note: 拟命令；更正以新行追加
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[38]
+- aggregate: AGG-24
+  name: 项目团队
+  note: Q13 待定：名册现不作工时授权依据；成员变动以期间区分，不另设状态
+  initial: 名册有效
+  states:
+  - name: 名册有效
+    terminal: true
+  transitions:
+  - from: null
+    to: 名册有效
+    command: 维护项目团队成员
+  - from: 名册有效
+    to: 名册有效
+    command: 维护项目团队成员
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[39]
+- aggregate: AGG-25
+  name: 资源需求
+  note: S-33：加「已满足」（资源分配累计达到需求，由事件触发）与「已关闭」（人工，原因必填）
+  initial: 已提出
+  states:
+  - name: 已提出
+  - name: 已满足
+    terminal: true
+  - name: 已关闭
+    terminal: true
+  transitions:
+  - from: null
+    to: 已提出
+    command: 提出资源需求
+  - from: 已提出
+    to: 已满足
+    command: 标记资源需求已满足
+  - from: 已提出
+    to: 已关闭
+    command: 关闭资源需求
+    kind: reverse
+    reverse_of: 提出资源需求
+    note: 需求不再需要时撤回（原因必填，S-33）
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[40]
+- aggregate: AGG-26
+  name: 资源分配
+  note: 分配调整、释放无命令（见 NOTES）
+  initial: 已确认
+  states:
+  - name: 已确认
+    terminal: true
+  transitions:
+  - from: null
+    to: 已确认
+    command: 确认资源分配
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[41]
+- aggregate: AGG-27
+  name: 交付物
+  note: 已声明 = 项目经理登记的无异议声明，不是已认可；视为同意不是交付物状态（D-8，由 reporting 派生）；每次退回后轮次加 1 回到草拟
+  initial: 草拟
+  states:
+  - 草拟
+  - 已内审
+  - 已签发
+  - 已送达
+  - 已退回
+  - 已声明
+  - 已认可
+  - name: 已封存
+    terminal: true
+  transitions:
+  - from: null
+    to: 草拟
+    command: 编制交付物
+  - from: 已退回
+    to: 草拟
+    command: 编制交付物
+    note: 退回后修订，提交轮次加 1
+  - from: 草拟
+    to: 已内审
+    command: 登记内部评审结论
+    guard:
+    - AR-13
+    - AR-14
+  - from: 已内审
+    to: 草拟
+    command: 登记内部评审结论
+    guard:
+    - 评审不通过，退回修改
+    reverse_of: 登记内部评审结论
+  - from: 已内审
+    to: 已签发
+    command: 签发交付物
+    guard:
+    - INV-47
+  - from: 已签发
+    to: 已送达
+    command: 登记提交轮次送达
+  - from: 已送达
+    to: 已认可
+    command: 登记客户认可
+    guard:
+    - INV-48
+    - INV-51
+  - from: 已声明
+    to: 已认可
+    command: 登记客户认可
+    guard:
+    - INV-48
+    - INV-51
+  - from: 已送达
+    to: 已退回
+    command: 登记客户退回
+  - from: 已声明
+    to: 已退回
+    command: 登记客户退回
+  - from: 已送达
+    to: 已声明
+    command: 登记项目经理的无异议声明
+    guard:
+    - INV-46
+  - from: 已认可
+    to: 已封存
+    command: 封存交付物
+    guard:
+    - INV-40
+  - from: 已声明
+    to: 已封存
+    command: 封存交付物
+    guard:
+    - INV-40
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[42]
+- aggregate: AGG-29
+  name: 返工认定
+  initial: 已认定
+  states:
+  - 已认定
+  - name: 已撤销
+    terminal: true
+  transitions:
+  - from: null
+    to: 已认定
+    command: 认定返工
+    guard:
+    - INV-53
+  - from: 已认定
+    to: 已撤销
+    command: 撤销返工认定
+    guard:
+    - 原因必填
+    reverse_of: 认定返工
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[43]
+- aggregate: AGG-30
+  name: 设计变更
+  initial: 已提出
+  states:
+  - 已提出
+  - 已认定归因
+  - 已内审
+  - 已发出
+  - 待主张
+  - 不主张
+  - name: 已关闭
+    terminal: true
+  - name: 已撤销
+    terminal: true
+  transitions:
+  - from: null
+    to: 已提出
+    command: 提出设计变更
+  - from: 已提出
+    to: 已认定归因
+    command: 认定变更归因与影响
+    guard:
+    - INV-54
+  - from: 已认定归因
+    to: 已内审
+    command: 内审设计变更
+    guard:
+    - 提出人≠内审人
+  - from: 已内审
+    to: 已认定归因
+    command: 内审设计变更
+    guard:
+    - 内审不通过，退回重认定
+    reverse_of: 认定变更归因与影响
+  - from: 已内审
+    to: 已发出
+    command: 发出设计变更
+  - from: 已发出
+    to: 待主张
+    command: 标记待主张
+    guard:
+    - 发包人原因且增加工作量（P-24）
+  - from: 已发出
+    to: 不主张
+    command: 标记待主张
+    guard:
+    - 须写明不主张的理由（P-24）
+  - from: 已发出
+    to: 已关闭
+    command: 关闭设计变更
+  - from: 待主张
+    to: 已关闭
+    command: 关闭设计变更
+  - from: 不主张
+    to: 已关闭
+    command: 关闭设计变更
+  - from:
+    - 已发出
+    - 待主张
+    to: 已撤销
+    command: 撤销设计变更
+    reverse_of: 发出设计变更
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[44]
+- aggregate: AGG-31
+  name: 延期申请
+  initial: 已通知
+  states:
+  - 已通知
+  - 已提交说明
+  - name: 已批准
+    terminal: true
+  - name: 已拒绝
+    terminal: true
+  - name: 视为批准
+    terminal: true
+  - name: 已撤回
+    terminal: true
+  transitions:
+  - from: null
+    to: 已通知
+    command: 通知延期
+  - from: 已通知
+    to: 已提交说明
+    command: 提交延期详细说明
+  - from: 已提交说明
+    to: 已批准
+    command: 登记延期批准
+  - from: 已提交说明
+    to: 已拒绝
+    command: 登记延期拒绝
+  - from: 已提交说明
+    to: 视为批准
+    command: 登记延期视为批准
+    guard:
+    - 合同约定答复期满仍无书面答复
+  - from:
+    - 已通知
+    - 已提交说明
+    to: 已撤回
+    command: 撤回延期通知
+    reverse_of: 通知延期
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[45]
+- aggregate: AGG-32
+  name: 发包人提供资料
+  initial: 待提供
+  states:
+  - 待提供
+  - 已提供
+  - name: 已确认
+    terminal: true
+  - 已退回
+  transitions:
+  - from: null
+    to: 待提供
+    command: 登记资料需求
+    note: 拟命令
+  - from: 待提供
+    to: 已提供
+    command: 登记资料已提供
+    note: 退回后补充再登记
+  - from: 已退回
+    to: 已提供
+    command: 登记资料已提供
+    note: 退回后补充再登记
+  - from: 已提供
+    to: 已确认
+    command: 确认发包人资料
+  - from: 已提供
+    to: 已退回
+    command: 退回发包人资料
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[46]
+- aggregate: AGG-33
+  name: 建设工程
+  note: 外部状态只记录，带登记日期与来源，追加不覆盖；骨架把前两条命令挂在 REF-01（接缝 2）
+  initial: 已登记
+  states:
+  - name: 已登记
+    terminal: true
+  transitions:
+  - from: null
+    to: 已登记
+    command: 登记建设工程
+  - from: 已登记
+    to: 已登记
+    command: 更新外部状态
+  - from: 已登记
+    to: 已登记
+    command: 登记我方参与记录
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[47]
+- aggregate: REF-01
+  name: 招标项目登记（外部引用）
+  note: 聚合稿 REF-01 为无聚合的外部引用，只登记；建设工程的登记与外部状态属 AGG-33（骨架 PRC-14 已逐条标注，converge_check 已按条目级聚合识别）
+  initial: 已登记
+  states:
+  - name: 已登记
+    terminal: true
+  transitions:
+  - from: null
+    to: 已登记
+    command: 登记招标项目
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[48]
+- aggregate: AGG-103
+  name: 项目复盘
+  note: 版本化：已发布后更正另出新版本并引用被取代版本（INV-112），新版本发布后旧版本被取代
+  initial: 草拟
+  states:
+  - 草拟
+  - 已评审
+  - 已发布
+  - name: 被取代
+    terminal: true
+  transitions:
+  - from: null
+    to: 草拟
+    command: 编制项目复盘
+    guard:
+    - INV-112
+  - from: 草拟
+    to: 已评审
+    command: 评审项目复盘
+    guard:
+    - INV-112
+  - from: 已评审
+    to: 草拟
+    command: 评审项目复盘
+    guard:
+    - 评审不通过，退回修改
+    reverse_of: 评审项目复盘
+  - from: 已评审
+    to: 已发布
+    command: 发布项目复盘
+    guard:
+    - INV-112
+  - from: 已发布
+    to: 被取代
+    command: 发布项目复盘
+    note: 同事务：旧版本被更正版本取代
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[49]
+- aggregate: AGG-104
+  name: 项目风险与问题
+  initial: 已登记
+  states:
+  - 已登记
+  - 应对中
+  - name: 已关闭
+    terminal: true
+  - name: 已接受
+    terminal: true
+  transitions:
+  - from: null
+    to: 已登记
+    command: 登记风险与问题
+  - from: 已登记
+    to: 应对中
+    command: 记录应对措施
+  - from: 应对中
+    to: 应对中
+    command: 记录应对措施
+  - from: 已登记
+    to: 已关闭
+    command: 关闭风险与问题
+    kind: reverse
+    reverse_of: 登记风险与问题
+    note: 未采取应对即关闭＝撤回登记（登记有误或不再适用）
+  - from: 应对中
+    to: 已关闭
+    command: 关闭风险与问题
+  - from: 应对中
+    to: 已接受
+    command: 接受风险与问题
+    guard:
+    - INV-113
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[50]
+- aggregate: AGG-105
+  name: 客户满意度调查
+  note: 评分后无需跟进的调查止于已评分；低分经 P-45 登记风险，跟进说明另记
+  initial: 已发出
+  states:
+  - 已发出
+  - 已回收
+  - name: 已评分
+    terminal: true
+  - name: 已跟进
+    terminal: true
+  transitions:
+  - from: null
+    to: 已发出
+    command: 发出满意度调查
+  - from: 已发出
+    to: 已回收
+    command: 登记调查回收
+  - from: 已回收
+    to: 已评分
+    command: 评分满意度调查
+    guard:
+    - INV-111
+  - from: 已评分
+    to: 已跟进
+    command: 登记满意度跟进
+    guard:
+    - INV-111
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[51]
+- aggregate: AGG-39
+  name: 工时单
+  note: 以已建代码为准（cost.timesheet TimesheetStatus：DRAFT 草稿、SUBMITTED 已提交、RETURNED 已退回、APPROVED 已通过、REJECTED 已驳回；Timesheet.MACHINE）；已退回、草稿可改可再提交；通过后仅追加过账候选
+  initial: 草稿
+  states:
+  - 草稿
+  - 已提交
+  - 已退回
+  - name: 已通过
+    terminal: true
+  - name: 已驳回
+    terminal: true
+  transitions:
+  - from: null
+    to: 草稿
+    command: 起草工时单
+    guard:
+    - INV-64
+    note: 拟命令；已建 Timesheet.draft()
+  - from: 草稿
+    to: 已提交
+    command: 提交工时单
+    guard:
+    - INV-39
+    - INV-64
+    - INV-65
+  - from: 已退回
+    to: 已提交
+    command: 提交工时单
+    guard:
+    - INV-39
+    - INV-64
+    - INV-65
+  - from: 已提交
+    to: 已通过
+    command: 通过工时单
+  - from: 已提交
+    to: 已驳回
+    command: 驳回工时单
+    guard:
+    - 驳回须写原因
+  - from: 已提交
+    to: 已退回
+    command: 退回工时单
+  - from: 已提交
+    to: 草稿
+    command: 撤回工时单
+    reverse_of: 提交工时单
+    note: 拟命令；审批期间撤回或取消，回到草稿
+  - from: 已通过
+    to: 已通过
+    command: 提交过账候选
+    guard:
+    - INV-37
+    - INV-67
+    note: 不改业务状态，追加过账候选提交事实
+  - from: 已通过
+    to: 已通过
+    command: 认定工时有效性
+    guard:
+    - INV-53
+    - INV-66
+    note: 不改状态，写条目分类属性
+  group: revenue
+  source: docs/architecture/proposals/closeout/revenue/state-machines.yaml#machines[52]

@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
 class DocumentTypeCodeTest {
-    static final Path OFFICIAL = Path.of("../docs/modernization/glossary/terms.yaml");
+    static final Path OFFICIAL = Path.of("../docs/glossary/terms.yaml");
     static final Path PROPOSED = Path.of("glossary/proposed/platform-numbering.yaml");
 
     static final Path MIGRATION = Path.of("src/main/resources/db/migration/platform_numbering/V20261014100100__platform_numbering_baseline.sql");

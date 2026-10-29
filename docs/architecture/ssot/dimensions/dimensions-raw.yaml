@@ -1,0 +1,1229 @@
+# 正本，直接编辑（原生成脚本已随 #742 删除）
+meta:
+  sources:
+  - docs/business/bi-scope.md
+  - docs/data/metric-baseline/baseline-draft.md
+  - backend/architecture/data-access-registry.yaml
+  - backend/src/main/resources/db/migration
+  counts:
+    by_bi_bus_matrix: 14
+    by_metric_baseline: 48
+    by_versioned_master_tables: 8
+    literal_differences:
+      only_bi_bus_matrix: 14
+      only_metric_baseline_oat: 39
+  versioned_master_tables: 版本化主数据表，非分析维度
+  bus_matrix_cells: 14 列均保留 16 行；单元格标记符号不解释。
+  literal_comparison: 按去除 Markdown 单元格外围空白后的完整字符串去重比对；保留括注、组合表达式与占位符，不拆分、不判同义。
+  missing_fields: writers/readers 缺字段时输出 null 并登记 missing_fields；原有空列表保留 []。
+by_bi_bus_matrix:
+- name: 业务过程事实
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: 商机（累积快照）
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: 报价
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: 合同、合同条款（累积快照）
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: 工时条目
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: 成本台账分录
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: 费用
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: 收入确认
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: 开票
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: 回款分配
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: 付款
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: 考勤、休假
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: 人工成本 / 薪酬
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: 计划目标、预测
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: 预算执行
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: 审批时效（累积快照）
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    source: docs/business/bi-scope.md:207
+- name: 粒度
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: 一个商机
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: 一版报价
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: 一份合同 / 一个条款
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: 一条审批通过的工时
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: 一条成本归集
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: 一条费用明细（权责 + 支付日两个日期）
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: 一张收入确认单
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: 一条开票记录（含红冲、作废状态）
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: 一笔回款分配到一条开票 / 条款
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: 一笔付款
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: 一人一天
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: 一人一期间
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: 一个目标 × 版本
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: 一次占用 / 释放 / 消耗
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: 一个审批任务（指派 → 超时 → 升级 → 办理）
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: 一个对象 × 期间
+    source: docs/business/bi-scope.md:207
+- name: 事实 BC（来源）
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: '`presales.customer` / `quoting`'
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: '`presales.quoting`'
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: '`contract.baseline`、`changeorder`'
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: '`cost.timesheet`'
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: '`cost.costing`（经过账管道）'
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: '`expense.spend`'
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: '`receivables.wip` ← `delivery.acceptance`'
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: '`receivables.wip`'
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: '`receivables.collection`'
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: '`payables.payment`'
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: '`organization.attendance`'
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: '`organization.payroll`'
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: '`operations.planning`'
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: '`operations.budgeting`'
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: '`platform.approval`（领域事件，不过账；ADR-0025）'
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: 由 L1 生成
+    source: docs/business/bi-scope.md:207
+- name: 阶段
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: 6f
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: 1b
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: 6a
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: '2'
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: '4'
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: 3、6c
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: 6a
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: 6b
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: 6b
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: 6c
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: 6e
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: 6e
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: R4
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: R4
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: R1
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: 随来源
+    source: docs/business/bi-scope.md:207
+- name: 期间
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: ✔
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: ✔
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: ✔
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: ✔
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: ✔
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: ✔
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: ✔
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: ✔
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: ✔
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: ✔
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: ✔
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: ✔
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: ✔
+    source: docs/business/bi-scope.md:207
+- name: 法人
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: ✔
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: ✔
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: ✔
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: ✔
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: ✔
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: ✔
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: ✔
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: ✔
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: ✔
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: ✔
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: ✔
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: ✔
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: ✔
+    source: docs/business/bi-scope.md:207
+- name: 组织
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: ✔
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: ✔
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: ✔
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: ✔
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: ✔
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: ✔
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: ✔
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: ✔
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: ✔
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: ✔
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: ✔
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: ✔
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: ✔
+    source: docs/business/bi-scope.md:207
+- name: 项目 / WBS
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: —
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: ✔
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: ✔
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: ✔
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: ✔
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: ✔
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: ✔
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: ✔
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: —
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: ✔
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: ✔
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: ✔
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: ✔
+    source: docs/business/bi-scope.md:207
+- name: 合同 / 条款
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: —
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: —
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: ✔
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: —
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: ✔
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: ✔
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: ✔
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: —
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: —
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: —
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: —
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: —
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: ✔
+    source: docs/business/bi-scope.md:207
+- name: 客户
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: ✔
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: —
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: —
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: —
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: ✔
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: ✔
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: ✔
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: —
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: —
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: —
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: ✔
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: —
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: ✔
+    source: docs/business/bi-scope.md:207
+- name: 人员
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: ✔
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: ✔
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: ✔
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: ✔
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: ✔
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: ✔
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: —
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: ✔
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: ✔
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: ✔
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: ✔
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: ✔
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: —
+    source: docs/business/bi-scope.md:207
+- name: 服务产品
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: ✔
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: ✔
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: —
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: —
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: —
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: ✔
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: —
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: —
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: —
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: —
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: —
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: ✔
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: —
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: —
+    source: docs/business/bi-scope.md:207
+- name: 成本类型
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: —
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: —
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: ✔
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: ✔
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: —
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: —
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: —
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: ✔
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: —
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: ✔
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: —
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: ✔
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: —
+    source: docs/business/bi-scope.md:207
+- name: 供应商
+  source: docs/business/bi-scope.md:190
+  rows:
+  - fact: 商机（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:192
+  - fact: 报价
+    cell: —
+    source: docs/business/bi-scope.md:193
+  - fact: 合同、合同条款（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:194
+  - fact: 工时条目
+    cell: —
+    source: docs/business/bi-scope.md:195
+  - fact: 成本台账分录
+    cell: ✔
+    source: docs/business/bi-scope.md:196
+  - fact: 费用
+    cell: ✔
+    source: docs/business/bi-scope.md:197
+  - fact: 收入确认
+    cell: —
+    source: docs/business/bi-scope.md:198
+  - fact: 开票
+    cell: —
+    source: docs/business/bi-scope.md:199
+  - fact: 回款分配
+    cell: —
+    source: docs/business/bi-scope.md:200
+  - fact: 付款
+    cell: ✔
+    source: docs/business/bi-scope.md:201
+  - fact: 考勤、休假
+    cell: —
+    source: docs/business/bi-scope.md:202
+  - fact: 人工成本 / 薪酬
+    cell: —
+    source: docs/business/bi-scope.md:203
+  - fact: 计划目标、预测
+    cell: —
+    source: docs/business/bi-scope.md:204
+  - fact: 预算执行
+    cell: ✔
+    source: docs/business/bi-scope.md:205
+  - fact: 审批时效（累积快照）
+    cell: —
+    source: docs/business/bi-scope.md:206
+  - fact: '**期间快照**：合同资产 / 未开票在制、应收账龄、剩余履约义务、预算执行、人员编制'
+    cell: —
+    source: docs/business/bi-scope.md:207
+by_metric_baseline:
+- metric: M-01
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  OAT: PIPE
+  期间: I
+  加总: S
+  事实 BC: '`presales.customer`'
+  source: docs/data/metric-baseline/baseline-draft.md:65
+- metric: M-02
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  OAT: WON_PROPOSAL_VALUE、WR
+  期间: D
+  加总: A / N
+  事实 BC: '`presales.quoting`'
+  source: docs/data/metric-baseline/baseline-draft.md:66
+- metric: M-03
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  OAT: —（待定扩展原语）
+  期间: D
+  加总: A
+  事实 BC: '`delivery.execution`'
+  source: docs/data/metric-baseline/baseline-draft.md:67
+- metric: M-04
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  OAT: CONV
+  期间: D
+  加总: N
+  事实 BC: '`presales.customer`'
+  source: docs/data/metric-baseline/baseline-draft.md:68
+- metric: M-05
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  OAT: SIGNED_NET_BOOKINGS 的变体（不扣转付）
+  期间: D
+  加总: A
+  事实 BC: '`contract.baseline`'
+  source: docs/data/metric-baseline/baseline-draft.md:69
+- metric: M-06
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  OAT: RPO
+  期间: I
+  加总: S
+  事实 BC: '`contract.baseline` + `receivables.wip`'
+  source: docs/data/metric-baseline/baseline-draft.md:70
+- metric: M-07
+  section: '### 3.2 商机与订单（`presales.*`、`contract.*`）'
+  OAT: PIPE（近似）
+  期间: I
+  加总: S
+  事实 BC: '`contract.baseline`（合同草案）'
+  source: docs/data/metric-baseline/baseline-draft.md:71
+- metric: M-08
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: REV
+  期间: D
+  加总: A
+  事实 BC: '`receivables.wip` ← `delivery.acceptance`'
+  source: docs/data/metric-baseline/baseline-draft.md:77
+- metric: M-09
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: —
+  期间: D
+  加总: A
+  事实 BC: 同上
+  source: docs/data/metric-baseline/baseline-draft.md:78
+- metric: M-10
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: BILL
+  期间: D
+  加总: A
+  事实 BC: '`receivables.wip`'
+  source: docs/data/metric-baseline/baseline-draft.md:79
+- metric: M-11
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: —
+  期间: D
+  加总: A
+  事实 BC: '`receivables.collection`'
+  source: docs/data/metric-baseline/baseline-draft.md:80
+- metric: M-12
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: CASH 相关
+  期间: D
+  加总: A
+  事实 BC: '`receivables.collection` + `accounting.cashbank`'
+  source: docs/data/metric-baseline/baseline-draft.md:81
+- metric: M-13
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: AR
+  期间: I
+  加总: S
+  事实 BC: '`receivables.collection`'
+  source: docs/data/metric-baseline/baseline-draft.md:82
+- metric: M-14
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: —
+  期间: I
+  加总: S
+  事实 BC: 同上
+  source: docs/data/metric-baseline/baseline-draft.md:83
+- metric: M-15
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: ODAR 的分子
+  期间: I
+  加总: S
+  事实 BC: 同上（到期日取自合同条款）
+  source: docs/data/metric-baseline/baseline-draft.md:84
+- metric: M-16
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: DSO
+  期间: I（区间）
+  加总: N
+  事实 BC: 派生
+  source: docs/data/metric-baseline/baseline-draft.md:85
+- metric: M-17
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: CA
+  期间: I
+  加总: S
+  事实 BC: '`receivables.wip`'
+  source: docs/data/metric-baseline/baseline-draft.md:86
+- metric: M-18
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: BCR
+  期间: D
+  加总: N
+  事实 BC: 派生
+  source: docs/data/metric-baseline/baseline-draft.md:87
+- metric: M-19
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: COLR
+  期间: D
+  加总: N
+  事实 BC: 派生
+  source: docs/data/metric-baseline/baseline-draft.md:88
+- metric: M-20
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: IMP
+  期间: I / D
+  加总: S / A
+  事实 BC: '`receivables.*` → `accounting.ledger`'
+  source: docs/data/metric-baseline/baseline-draft.md:89
+- metric: M-21
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: WO
+  期间: D
+  加总: A
+  事实 BC: '`receivables.*`'
+  source: docs/data/metric-baseline/baseline-draft.md:90
+- metric: M-22
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: —
+  期间: I
+  加总: S
+  事实 BC: '`receivables.collection`'
+  source: docs/data/metric-baseline/baseline-draft.md:91
+- metric: M-23
+  section: '### 3.3 收入、开票、回款、应收（`receivables.*`）'
+  OAT: —
+  期间: I
+  加总: S
+  事实 BC: '`operations.planning`（承诺）× `receivables.wip`'
+  source: docs/data/metric-baseline/baseline-draft.md:92
+- metric: M-24
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: DL
+  期间: D
+  加总: A
+  事实 BC: '`cost.costing` ← `cost.timesheet`'
+  source: docs/data/metric-baseline/baseline-draft.md:98
+- metric: M-25
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: DE
+  期间: D
+  加总: A
+  事实 BC: '`cost.costing` ← `expense.spend`'
+  source: docs/data/metric-baseline/baseline-draft.md:99
+- metric: M-26
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: PTC / DC
+  期间: D
+  加总: A
+  事实 BC: '`cost.costing` ← `procurement.subcontracting`'
+  source: docs/data/metric-baseline/baseline-draft.md:100
+- metric: M-27
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: DC / COGS
+  期间: D
+  加总: A
+  事实 BC: '`cost.costing`（D17-1、D17-3）'
+  source: docs/data/metric-baseline/baseline-draft.md:101
+- metric: M-28
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: NR
+  期间: D
+  加总: A
+  事实 BC: 派生：M-08 − 转付成本
+  source: docs/data/metric-baseline/baseline-draft.md:102
+- metric: M-29
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: CM、CMR
+  期间: D
+  加总: A / N
+  事实 BC: 派生（项目级）
+  source: docs/data/metric-baseline/baseline-draft.md:103
+- metric: M-30
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: CM（层级变体）
+  期间: D
+  加总: A
+  事实 BC: 派生 + 分摊政策
+  source: docs/data/metric-baseline/baseline-draft.md:104
+- metric: M-31
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: OH
+  期间: D
+  加总: A
+  事实 BC: '`cost.costing`、`accounting.ledger`'
+  source: docs/data/metric-baseline/baseline-draft.md:105
+- metric: M-32
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: OP、OPM
+  期间: D
+  加总: A / N
+  事实 BC: 派生
+  source: docs/data/metric-baseline/baseline-draft.md:106
+- metric: M-33
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: DE / OE
+  期间: D
+  加总: A
+  事实 BC: '`expense.spend` → `accounting.ledger`'
+  source: docs/data/metric-baseline/baseline-draft.md:107
+- metric: M-34
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: —
+  期间: D
+  加总: A
+  事实 BC: '`payables.payment`'
+  source: docs/data/metric-baseline/baseline-draft.md:108
+- metric: M-35
+  section: '### 3.4 成本与利润（`cost.*`、`operations.policy`、`accounting.reporting`）'
+  OAT: REV、P、OP（标准层）
+  期间: D / I
+  加总: —
+  事实 BC: '`accounting.reporting`'
+  source: docs/data/metric-baseline/baseline-draft.md:109
+- metric: M-36
+  section: '### 3.5 现金（`accounting.reporting`）'
+  OAT: OCF
+  期间: D
+  加总: A
+  事实 BC: '`accounting.reporting`（GL-057：两账标注相同）'
+  source: docs/data/metric-baseline/baseline-draft.md:115
+- metric: M-37
+  section: '### 3.5 现金（`accounting.reporting`）'
+  OAT: —
+  期间: D
+  加总: N
+  事实 BC: 派生自 M-36 的明细
+  source: docs/data/metric-baseline/baseline-draft.md:116
+- metric: M-38
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: AVG_HEADCOUNT
+  期间: D
+  加总: N
+  事实 BC: '`organization.workforce`'
+  source: docs/data/metric-baseline/baseline-draft.md:122
+- metric: M-39
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: EMPLOYEE_SEPARATIONS ÷ AVG_HEADCOUNT
+  期间: D
+  加总: N
+  事实 BC: '`organization.workforce`'
+  source: docs/data/metric-baseline/baseline-draft.md:123
+- metric: M-40
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: PLAN_TARGET_VALUE
+  期间: D / I
+  加总: A
+  事实 BC: '`operations.planning`（目标值）、`operations.budgeting`（额度）'
+  source: docs/data/metric-baseline/baseline-draft.md:124
+- metric: M-41
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: —
+  期间: D
+  加总: N
+  事实 BC: 派生
+  source: docs/data/metric-baseline/baseline-draft.md:125
+- metric: M-42
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: UR
+  期间: D
+  加总: N
+  事实 BC: '`cost.timesheet` + 日历参数'
+  source: docs/data/metric-baseline/baseline-draft.md:126
+- metric: M-43
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: HRS 拆分
+  期间: D
+  加总: N
+  事实 BC: '`cost.timesheet`'
+  source: docs/data/metric-baseline/baseline-draft.md:127
+- metric: M-44
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: —
+  期间: D
+  加总: N
+  事实 BC: 派生
+  source: docs/data/metric-baseline/baseline-draft.md:128
+- metric: M-45
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: NRPM（参照）
+  期间: D
+  加总: N
+  事实 BC: 派生：X ÷ 人工成本（`organization.payroll`）
+  source: docs/data/metric-baseline/baseline-draft.md:129
+- metric: M-46
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: —
+  期间: I
+  加总: S
+  事实 BC: '`contract.riskdelivery`'
+  source: docs/data/metric-baseline/baseline-draft.md:130
+- metric: M-47
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: BURN
+  期间: I / D
+  加总: S / N
+  事实 BC: '`operations.budgeting`'
+  source: docs/data/metric-baseline/baseline-draft.md:131
+- metric: M-48
+  section: '### 3.6 人员、目标与效率（`organization.*`、`operations.planning`、`operations.budgeting`、`cost.timesheet`）'
+  OAT: 启动会就绪检查、NPS 相关原语
+  期间: D
+  加总: N / A
+  事实 BC: '`delivery.execution`、`delivery.acceptance`'
+  source: docs/data/metric-baseline/baseline-draft.md:132
+by_versioned_master_tables:
+- table: organization_workforce.employee_versions
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: NEW
+  writers: []
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:660
+  - name: effective_to_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:661
+  source: backend/architecture/data-access-registry.yaml:142
+- table: organization_workforce.org_unit_versions
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: ORG_SOURCE
+  writers:
+  - organization.workforce
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:320
+  - name: effective_to_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:321
+  source: backend/architecture/data-access-registry.yaml:163
+- table: organization_workforce.assignment_versions
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: ORG_SOURCE
+  writers:
+  - organization.workforce
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:361
+  - name: effective_to_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:362
+  source: backend/architecture/data-access-registry.yaml:170
+- table: organization_workforce.legal_entity_versions
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: NEW
+  writers:
+  - organization.workforce
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:392
+  - name: effective_to_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:394
+  source: backend/architecture/data-access-registry.yaml:206
+- table: organization_workforce.org_unit_legal_entities
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: NEW
+  writers:
+  - organization.workforce
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:270
+  - name: effective_to_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:271
+  source: backend/architecture/data-access-registry.yaml:220
+- table: organization_workforce.employee_legal_entities
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: NEW
+  writers:
+  - organization.workforce
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:295
+  - name: effective_to_date
+    type: date
+    source: backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:296
+  source: backend/architecture/data-access-registry.yaml:227
+- table: platform_identity.role_versions
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: NEW
+  writers:
+  - platform.identity
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_at
+    type: timestamptz
+    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:348
+  - name: effective_to_at
+    type: timestamptz
+    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:349
+  source: backend/architecture/data-access-registry.yaml:348
+- table: platform_identity.account_role_grants
+  role: DIMENSION_VERSIONED
+  mutability: APPEND_ONLY
+  retention:
+    policy: PERMANENT
+  lineage:
+    source: NEW
+  writers: []
+  readers: null
+  missing_fields:
+  - readers
+  effective_columns:
+  - name: effective_from_at
+    type: timestamptz
+    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:426
+  - name: effective_to_at
+    type: timestamptz
+    source: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:427
+  source: backend/architecture/data-access-registry.yaml:370

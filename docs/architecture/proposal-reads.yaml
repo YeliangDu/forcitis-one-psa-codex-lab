@@ -1,0 +1,30 @@
+# 代码读 proposals/ 的例外登记（TEAM-108「proposals/ 不算权威，脚本不读」；GOV-1023-ARC-01 第②步）。维护：one-architecture。
+# proposal_reads.py 检查：仓库里 proposals/ 目录以外的脚本与测试（py、sh、java、kt、ts、mjs）凡在路径里写到 proposals/，须在此登记一行；
+# 登记了却已不再写到的行、kind=data 中已不在文件里的来源，都算过期登记，须删。
+# kind：
+#   data     读提议稿里的数据。每个来源写 due，到期仍在读就失败——到期前把来源升为正本、改读正本，或删掉读取。
+#   tool     运行或治理 proposals/ 里的工具（自测接线、改动分级、状态行检查），或读旧交接位置，不读架构数据。不设期限。
+#   mention  只在生成的文字或链接里提到 proposals/ 路径，不读文件。不设期限。
+# 升正本的次序由用户定：先价值流 v2 与信息图（批次一），后聚合草稿与三组骨架（批次二）。
+# 2026-10-26：价值流 v2 与信息图已升正本（U08=A）；原 2026-11-20 到期的 13 项按用户「B 到期日顺延到冻结后」（intent 2026-10-26-122240）顺延到 2026-12-01。
+#   依据：治理冻结 = GOV-1023-COO-01 通过起两周，COO-01 尚无日期；按批三约 10-31 起、读数验证满 7 天推算 COO-01 最迟约 11-17 通过，冻结 12-01 前结束。COO-01 晚于 11-17 通过时须在到期前再定。
+reads:
+  - path: scripts/codegen/scan_aggregates.py
+    kind: data
+    sources:
+      - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-12-01}
+  - path: scripts/guards/build_catalog.py
+    kind: data
+    sources:
+      - {source: ENTERPRISE_AGGREGATES_DRAFT.md, due: 2026-12-01, note: 校验 owner_bc}
+      - {source: STRUCTURAL_ITEMS.md, due: 2026-12-01}
+  - path: backend/src/test/java/com/forcitis/one/acceptance/EventEnvelopeContractTest.java
+    kind: data
+    sources:
+      - {source: EVENT_ANALYTICS_FIELDS.md, due: 2026-12-01, note: docs/architecture/proposals/ 下的事件信封字段定义；升正本或改读事件目录，归属待调度定}
+  - path: scripts/ci/relevant_change.py
+    kind: tool
+    note: 改动分级登记 proposals/ 里的工具与事件信封文件
+  - path: scripts/guards/proposal_reads.py
+    kind: tool
+    note: 本检查自身（扫描规则与自测夹具）

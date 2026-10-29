@@ -1,7 +1,7 @@
 # Snapshot of the places that write the free-text columns of an audit entry (detail, change_reason, before_text, after_text): every main file that calls
 # `new AuditEntry(` or `.withChange(`. AuditWritePointsGuardTest fails when this file and the code differ in either direction, in the file set or in a count.
 # Format: <path under backend/> | <writes: number of `new AuditEntry(` plus `.withChange(` calls> | <rows of the allowed-content table> | <personal data>.
-# Rows are the numbers of the table in docs/modernization/data/repair-cards/DATA-REPAIR-timesheet-audit.md, TB-01 item 2 (row 19: before_text and
+# Rows are the numbers of the table in docs/data/repair-cards/data-repair-timesheet-audit.md, TB-01 item 2 (row 19: before_text and
 # after_text are never written non-null). Personal data after the TB-01 repair: NONE | SURROGATE (only own ids, still personal data under ADR-0043
 # section 4 item 2, allowed) | POSSIBLE (free text typed by a person; shown, not blocked). The class PI is never allowed (the guard refuses it).
 # A new writer must name the row it belongs to, or add a row to the card first. Changes need design review.

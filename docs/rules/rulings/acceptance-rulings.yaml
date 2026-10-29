@@ -1,0 +1,326 @@
+# 验收测试裁定记录（METHODS.md M1 第 4 条、roles/lead.md 专属规则 2）：实现代理认为验收测试有误时停下报告，由复审（不是实现会话本人）裁定；
+# 改验收测试的提交在说明里写 `Acceptance-Ruling: RULING-<编号>`，scripts/guards/acceptance_rulings.py 核对该编号必须记在这里，
+# 并且记录在 PR 的 base（main）上已有：同一个 PR 里自己补的记录不算（那是实现会话自己裁定自己）。
+#
+# 条目：
+#   - id: RULING-12                  # 编号，唯一
+#     date: 2026-10-17
+#     ruled_by: one-coordinator      # 谁裁定：复审会话、调度或用户；不得是想改测试的实现会话本人
+#     implementer: one-1a-next-5     # 想改测试的实现会话（测试挡住了它）
+#     files: [backend/src/test/java/com/forcitis/one/acceptance/xxx/FooIT.java]   # 裁定允许改的文件或目录前缀，至少一项
+#     reason: 一句话，测试哪里有误
+#     ref: 裁定写在哪里（intent 文件、评审记录、ADR），可选
+#
+# 存量：本守护合入 main 之前的提交里的裁定尾注不查（调度 2026-10-17 决定，不补记录）；合入之后的 PR 一律要求记录。
+# 下面 10 条是 one-1a-next-5 的 #405 train 在守护合入前已写进提交的裁定，由调度追认后登记，files 取各提交实际改动的验收文件。
+rulings:
+  - id: RULING-DR-PR1-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/PrimaryKeyExemptionsTest.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/AuditArchiveOrderIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/AuditSubjectColumnsIT.java
+    reason: PR-1 使四个验收测试的前提消失，按新前提改
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR6-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalOwnIdColumnsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalUniqueKeysIT.java
+    reason: 审批请求当前实例改 NOT NULL 后的两处验收断言
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR6-2
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
+    reason: 收紧 start_rounds TRUNCATE 用例，精确断言 0A000 并核对触发器目录
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR7-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
+    reason: 办理记录夹具按动作带处理人，使 record_reason 约束可单独触发
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR7-2
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRequestTextAndRecordRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowConstraintsPr7IT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRowConstraintsPr7IT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRowRulesIT.java
+    reason: PR-7 验收类按内容改名
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR8-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/AttributionSubjectColumnsIT.java
+    reason: 归属主体列用例补建根归属
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-TB01-FU1-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/AccountsAcceptanceSupport.java
+    reason: 夹具造员工时补组织单元与任职
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-TB01-FU1-2
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/OperationsCommandEmployeeIdIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ExternalSubjectLookupCommandIT.java
+    reason: DR-TB01-FU1 验收复审修正（Low-3/4/7）
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-K3B4-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/AuditIdContractTest.java
+      - backend/src/test/java/com/forcitis/one/acceptance/UserIdContractTest.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/OwnLoginRecordsBySubjectIT.java
+    reason: 契约变化引起的三处现有验收改断言（本人登录记录响应改 items；导出路径新增 onBehalfOfId）
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-K3B4-2
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/K3b4AuditPagingIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/web/IdQueryParameterIT.java
+    reason: 验收补 onBehalfOfId 畸形 uuid 用例并让 no-count 测试复原数据库设置
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-COORD-20261017-01
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorEndToEndIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorMarkTransactionIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorWitnessOmissionIT.java
+    reason: 单人模式验收前置改为每例新造员工作操作人（断言不变），并新增操作人不存在例
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-COORD-20261017-02
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/LegacyNumberSourceIT.java
+    reason: 目录遍历跳过以「.」开头的隐藏文件（macOS .DS_Store 非 UTF-8 致 MalformedInputException），断言与样本集不变
+    ref: docs/rules/rulings/coord-2026-10-17.md
+  - id: RULING-COORD-20261017-03
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/OperationsCommandEmployeeRowOnlyIT.java
+    reason: 依 one-data reviews/DR-TB01-FU1-1.md 新增用例「有员工行、无任职 → 运维证明通过」，不改既有用例断言
+    ref: docs/rules/rulings/coord-2026-10-17.md
+  - id: RULING-COORD-20261017-04
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorEndToEndIT.java
+    reason: 子进程用例启动运维命令前，用管理账号对运行时 UTC 当月调用 platform_audit.create_audit_entry_partitions 预建分区（运维档案关了建分区，新库缺当月分区），断言不变，只改前置步骤
+    ref: docs/rules/rulings/coord-2026-10-17.md
+  - id: RULING-COORD-20261017-06
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorModeStartupIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java
+    reason: 慢验收类（CI 耗时复盘）只在测试启动参数里调短外部连接池获取超时（ExternalConnectionFactory limits.acquireTimeout），使「库不可达」用例尽快失败；断言、用例集合与前置数据一字不动，不改生产代码默认值；拆文件暂缓，不在本登记内
+    ref: docs/rules/rulings/coord-2026-10-17.md
+  - id: RULING-COORD-20261017-07
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorModeEnvironment.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/A8SourceFlagsIT.java
+    reason: 验收测试启动被测应用的参数里加一行 --server.address=127.0.0.1（SIGTERM 后卡在 Tomcat 停止监听约 2 秒，加参数后关闭 2.4 秒到 0.3–0.4 秒）；不改断言、用例集合、前置数据与生产代码。「同类在进程内或子进程中启动应用的验收类」经 one-1a-par 逐类实测、调度确认后补登记：A8SourceFlagsIT（11 例）；ManagementEndpointIT、StalledExternalSourceIT、ReadOnlyVerificationCommandIT 实测无需改
+    ref: docs/rules/rulings/coord-2026-10-17.md
+  - id: RULING-COORD-20261021-01
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/ApprovalP4Support.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetEmployeeDayUniqueIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetNumberingRuleVersionIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRejectedResubmitIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRoundSubmittedCheckIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetWorkerSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/LegalEntityCodeCorrectionIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/AssigneeInputUuidIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/RetractionInitiatorAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/eventing/EventEnvelopeAggregateIdIT.java
+    reason: REG-1 机械改名：DocumentType 枚举改为 DocumentTypeCode（ADR-0066 决定 4），断言、用例与前置取值不变
+    ref: docs/rules/rulings/coord-2026-10-21.md
+  - id: RULING-COORD-20261021-02
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRowRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/LegacyNumberSourceIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRuleConfirmerIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRuleVersionIdIT.java
+    reason: REG-1：document_type 改 document_type_id、IN 列表 CHECK 改 schema 内外键；未登记类型被拒的断言改为断言新约束名，不得删除
+    ref: docs/rules/rulings/coord-2026-10-21.md
+  - id: RULING-COORD-20261021-03
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRequestTextAndRecordRulesIT.java
+    reason: AP-14 不得改为接受 QUOTE/JOURNAL_VOUCHER；改为经审批写入路径以「无审批流程」业务错误码拒绝、TIMESHEET 通过、格式非法另断言；删除的库层断言须在 PR 单列
+    ref: docs/rules/rulings/coord-2026-10-21.md
+  - id: RULING-COORD-20261021-04
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/LegacyAdapterPlacementTest.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/LegacyReferencesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java
+    reason: 删老待办（ADR-0055 决定 6）后删去引用老待办的断言与用例，其余不动；同 PR 带新验收测试断言收件箱不含老待办字段、本系统审批待办照常；删除项在 PR 单列
+    ref: docs/rules/rulings/coord-2026-10-21.md
+  - id: RULING-COORD-20261021-05
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java
+    reason: 老待办连接的启动校验随 F 删除（ADR-0055 决定 6），删去 LEGACY_APPROVAL 参数项与只测该校验的用例（含 legacyInboxCheckDoesNotSwallowADatabaseFailure），其余不动；删除项在 PR 单列
+    ref: docs/rules/rulings/coord-2026-10-21.md
+  - id: RULING-COORD-20261021-06
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRowRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRuleVersionIdIT.java
+    reason: 编号规则版本须标来源（IMP-1021-NX5-03），只在夹具直插版本表语句中加 source_kind='SEEDED'，断言与用例不动；PR 改断言栏写明
+    ref: docs/rules/rulings/coord-2026-10-21.md
+  - id: RULING-COORD-20261021-07
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-platform-file
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+    reason: 审计主体种类新增 STORED_FILE（one-architecture 裁定，单元 5），KINDS_WITH_OBJECT 只加一项，其余不动；PR 改断言栏写明
+    ref: docs/rules/rulings/coord-2026-10-21.md
+  - id: RULING-COORD-20261022-01
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/OrgSourceWorldSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/A8SourceFlagsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java
+    reason: 清老待办连接运行时残留（ADR-0055 决定 7），只删相关夹具、参数与无调用方辅助代码，不删用例、不改断言字面；断言用例内查询条件去 TODO_READER 等三项在 PR 单列；核实命令连接保留
+    ref: docs/rules/rulings/coord-2026-10-22.md
+  - id: RULING-COORD-20261022-02
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java
+    reason: 老待办只读账号已撤，删核实命令 integration-legacy-inbox 入口；删 RULING-P3B-17 用例，旧名并入 missingOrUnknownConnectionIsWrongUsage 并补「无 RESULT 行」断言；两用例改用 LEGACY_NAMES 断言不变
+    ref: docs/rules/rulings/coord-2026-10-22.md
+  - id: RULING-COORD-20261022-03
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/AuditSubjectColumnsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+    reason: ADR-0069 第 14 条外键取代 CHECK；约束断言改外键并补断言旧 CHECK 不存在；未知类别带 id 与旧前缀改 23503，未知类别且 id 空保持 23514；DisplayName 同步；补登记表集合与 has_object 一致性断言；PR 附预期表结构 diff、改断言栏单列
+    ref: docs/rules/rulings/coord-2026-10-22.md
+  - id: RULING-COORD-20261022-04
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRejectedResubmitIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetWorkerSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetEmployeeDayUniqueIT.java
+    reason: KERR 通用错误码进 kernel，工时两条码改名为 KERNEL_TRANSITION_ILLEGAL、KERNEL_CONCURRENT_CHANGE；只改码名字面与显示名，不删用例、不改断言结构；PR 改断言栏单列
+    ref: docs/rules/rulings/coord-2026-10-22.md
+  - id: RULING-COORD-20261022-05
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/EmployeeCodeNotKeyIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/EmployeeCodeUniquenessIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/WorkforceLengthLimitsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/WorkforceRowConstraintsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/SourceIdMatchingIT.java
+    reason: 用户定工号全局唯一（intent 2026-10-21-100711，ADR-0078 已批准 intent 2026-10-22-211131）；工号键断言改为恰有 uk_employees_employee_code 一项（改名 EmployeeCodeUniquenessIT 按 ADR-0078 守护第 2 条）；WF11 夹具工号改唯一值、断言不变；同号第二人改断言隔离并写 DUPLICATE_EMPLOYEE_CODE 例外（one-data 签）；不删用例；PR 改断言栏单列
+    ref: docs/rules/rulings/coord-2026-10-22.md
+  - id: RULING-COORD-20261022-06
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
+    reason: KERR-2（IMP-1022-COO-04）KERNEL_REASON_REQUIRED 进 kernel，期望码 PLATFORM_APPROVAL_REASON_REQUIRED 改为 KERNEL_REASON_REQUIRED、DisplayName 同步；只改码名字面，不删用例、不改断言结构与场景；PR 改断言栏单列
+    ref: docs/rules/rulings/coord-2026-10-22.md
+  - id: RULING-COORD-20261022-07
+    date: 2026-10-22
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/ApprovalP4Support.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRejectedResubmitIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRoundSubmittedCheckIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalOrderNotFromIdsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRequestTextAndRecordRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/AssigneeInputUuidIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/RetractionInitiatorAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/TypedResultEventIT.java
+    reason: REG-4（IMP-1022-COO-01）ProcessKey 枚举改登记字符串值对象；验收测试只把 ProcessKey.COST_TIMESHEET_APPROVAL 换为 TimesheetApprovalProcess.KEY、直插 SQL 字面量改为登记键值 cost_timesheet_approval；不删用例、不改断言结构；PR 改断言栏单列
+    ref: docs/rules/rulings/coord-2026-10-22.md
+  - id: RULING-COORD-20261023-08
+    date: 2026-10-23
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/SourceIdMatchingIT.java
+    reason: PR-B2 按 ADR-0078 决定 3（工号发号后禁改）改 theSyncMatchesBySourceIdAndCreatesOnlyForNewOnes：employee_code 由 E9101-NEW 改为仍为 E9101，补 EMPLOYEE_CODE_CHANGE_IGNORED 例外断言（detail 不含工号值）；display_name、login_name 随源更新断言保留；不删用例；PR 改断言栏单列
+    ref: docs/rules/rulings/coord-2026-10-23.md
+  - id: RULING-COORD-20261023-09
+    date: 2026-10-23
+    ruled_by: one-coordinator
+    implementer: one-1a-admin
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/AdministrationStateTransitionsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/AdministrationDb.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/ConfigSetItemsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/README.md
+    reason: 卡 C（IMP-1022-ADM-01）迁移使 DRAFT 不落库、条目表新增必填列 is_system_only；卡 A 的 ADM-A-46/48/49/50 去 DRAFT 或降为 SQLSTATE，条目夹具显式给 is_system_only=false；不删用例，ADM-A-35 至 44、61 断言原样；PR 改断言栏单列
+    ref: docs/rules/rulings/coord-2026-10-23.md

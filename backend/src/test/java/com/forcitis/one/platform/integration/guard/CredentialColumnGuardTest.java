@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
  */
 class CredentialColumnGuardTest {
 
-    static final Path DENY_LIST = Path.of("../docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/credential_columns.csv");
+    static final Path DENY_LIST = Path.of("../docs/data/evidence/dba-handoff/credential-columns.csv");
     static final Path MAIN_JAVA = Path.of("src/main/java");
     static final Path MAIN_RESOURCES = Path.of("src/main/resources");
     static final Path REGISTRIES = Path.of("architecture");

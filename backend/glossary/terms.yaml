@@ -1,4 +1,4 @@
-# 统一语言：通用词与标准动作（本文件）+ 正式术语（docs/modernization/glossary/terms.yaml，单一来源）+ 各模块提议术语（glossary/proposed/*.yaml）
+# 统一语言：通用词与标准动作（本文件）+ 正式术语（docs/glossary/terms.yaml，单一来源）+ 各模块提议术语（glossary/proposed/*.yaml）
 # GlossaryTest 以本文件为准：
 #   G37 类型 / record 组件 / 枚举常量 / 方法 / 表 / 列中的每个词，必须来自某条术语的 en / snake，或 common_words
 #   G38 任何位置不得出现某条术语 forbidden 中的写法
