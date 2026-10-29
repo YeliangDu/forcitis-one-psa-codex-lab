@@ -3,10 +3,11 @@ package com.forcitis.one.platform.identity.infrastructure.persistence;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.domain.BrowserIdentifiers;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -28,12 +29,12 @@ class JdbcBrowserIdentifiers implements BrowserIdentifiers {
                          where identifier_hash = :hash and user_id = :user
                         """)
                 .param("hash", identifierHash).param("user", userId.value())
-                .query((rs, n) -> new Known(rs.getTimestamp("last_login_at").toInstant(), rs.getBoolean("retired"))).optional();
+                .query((rs, n) -> new Known(rs.getObject("last_login_at", OffsetDateTime.class).toInstant(), rs.getBoolean("retired"))).optional();
     }
 
     @Override
     public void replace(UserId userId, String oldHash, String newHash, Instant now) {
-        Timestamp at = Timestamp.from(now);
+        OffsetDateTime at = OffsetDateTime.ofInstant(now, ZoneOffset.UTC);
         if (oldHash != null) {
             jdbc.sql("""
                     update platform_identity.browser_identifiers set retired_at = :now, updated_at = :now
@@ -44,7 +45,7 @@ class JdbcBrowserIdentifiers implements BrowserIdentifiers {
                      where identifier_hash = :old and user_id <> :user and retired_at is null
                     returning user_id, last_login_at
                     """).param("now", at).param("old", oldHash).param("user", userId.value())
-                    .query((rs, n) -> new Moved(rs.getObject("user_id", UUID.class), rs.getTimestamp("last_login_at"))).list();
+                    .query((rs, n) -> new Moved(rs.getObject("user_id", UUID.class), rs.getObject("last_login_at", OffsetDateTime.class))).list();
             for (Moved other : moved) {
                 insert(other.userId(), newHash, other.lastLoginAt());
             }
@@ -52,10 +53,10 @@ class JdbcBrowserIdentifiers implements BrowserIdentifiers {
         insert(userId.value(), newHash, at);
     }
 
-    private record Moved(UUID userId, Timestamp lastLoginAt) {
+    private record Moved(UUID userId, OffsetDateTime lastLoginAt) {
     }
 
-    private void insert(UUID userId, String hash, Timestamp lastLoginAt) {
+    private void insert(UUID userId, String hash, OffsetDateTime lastLoginAt) {
         jdbc.sql("""
                 insert into platform_identity.browser_identifiers (browser_identifier_id, user_id, identifier_hash, last_login_at)
                 values (:id, :user, :hash, :at)
@@ -64,7 +65,9 @@ class JdbcBrowserIdentifiers implements BrowserIdentifiers {
 
     @Override
     public int invalidateAll(UserId userId) {
-        return jdbc.sql("delete from platform_identity.browser_identifiers where user_id = :user").param("user", userId.value()).update();
+        return jdbc.sql("""
+                delete from platform_identity.browser_identifiers where user_id = :user
+                """).param("user", userId.value()).update();
     }
 
     @Override
@@ -72,6 +75,6 @@ class JdbcBrowserIdentifiers implements BrowserIdentifiers {
         return jdbc.sql("""
                 delete from platform_identity.browser_identifiers
                  where last_login_at < :limit or retired_at < :limit
-                """).param("limit", Timestamp.from(olderThan)).update();
+                """).param("limit", OffsetDateTime.ofInstant(olderThan, ZoneOffset.UTC)).update();
     }
 }
