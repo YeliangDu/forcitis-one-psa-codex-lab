@@ -50,6 +50,7 @@ expect scripts/codegen/scan_acceptance_tests.py t_scan
 expect scripts/merge/post_review.py t_mq t_post_review
 expect scripts/review/PROMPT.md t_post_review
 expect .github/workflows/ci.yml t_guards_config t_ci_steps
+expect .github/workflows/deploy.yml t_ci_steps
 expect scripts/release/runner_watch_selftest.py t_runner_watch
 expect scripts/ci/light.sh t_shell t_light
 expect scripts/release/docker_ensure.sh t_shell t_docker
@@ -104,16 +105,23 @@ printf '#!/bin/sh\nfor c in $FAKE_REPORTS; do : > "target/surefire-reports/TEST-
 
 # run、skip、report：并行起跑，按起跑顺序打印；失败计 FAIL 并附输出，SKIP 带原因
 work=$tmp/par && mkdir -p "$work" && passed=0 failed=0 skipped=0 count=0 shown=0
+rule "slow rule" "slow fix"
 run slow bash -c 'sleep 1; echo one'
+rule "vanished rule" "vanished fix"
 run vanished bash -c 'sleep 1; kill -9 $PPID'
+rule "broken rule" "broken fix"
 run broken bash -c 'echo boom; exit 3'
+rule "absent rule" "absent fix"
 skip absent "no input"
+run unruled true
 report >"$tmp/report.out" 2>/dev/null
 out=$(cat "$tmp/report.out")
-[ "$passed $failed $skipped" = "1 2 1" ] || no "report 计数不对：$passed PASS $failed FAIL $skipped SKIP"
+[ "$passed $failed $skipped" = "1 3 1" ] || no "report 计数不对：$passed PASS $failed FAIL $skipped SKIP"
 printf '%s\n' "$out" | grep -q '^FAIL  broken.*退出 3' && printf '%s\n' "$out" | grep -q '      | boom' || no "失败项要报 FAIL、退出码与输出：$out"
+printf '%s\n' "$out" | grep -q '^      规则：broken rule' && printf '%s\n' "$out" | grep -q '^      改法：broken fix' || no "FAIL 要打印规则与改法：$out"
+printf '%s\n' "$out" | grep -q '^FAIL  unruled' && printf '%s\n' "$out" | grep -q '规则：（缺）' || no "没登记规则的检查要记 FAIL：$out"
 printf '%s\n' "$out" | grep -q '^FAIL  vanished' || no "没写出退出码的检查要记 FAIL，不能沿用上一项：$out"
-[ "$(printf '%s\n' "$out" | grep -oE '^(PASS|FAIL|SKIP)  [a-z]+' | awk '{print $2}' | tr '\n' ' ')" = "slow vanished broken absent " ] || no "结果要按起跑顺序打印：$out"
+[ "$(printf '%s\n' "$out" | grep -oE '^(PASS|FAIL|SKIP)  [a-z]+' | awk '{print $2}' | tr '\n' ' ')" = "slow vanished broken absent unruled " ] || no "结果要按起跑顺序打印：$out"
 
 # list_changed：在临时仓库里核对三种来源、特殊字符文件名、git 出错时返回非零
 repo=$tmp/repo

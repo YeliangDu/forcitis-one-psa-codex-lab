@@ -17,7 +17,7 @@ t_heavy_gate='^scripts/ci/heavy_gate\.py$'
 t_evidence='^tools/evidence/|^scripts/gates/prod_targets\.json$|^policy\.json$'
 t_scan='^scripts/codegen/scan_'
 t_post_review='^scripts/merge/(post_review|issue_gate)|^scripts/review/|^policy\.json$'
-t_ci_steps='^scripts/ci/ci_steps_selftest\.py$|^\.github/workflows/ci\.yml$'
+t_ci_steps='^scripts/ci/ci_steps_selftest\.py$|^\.github/workflows/(ci|deploy)\.yml$'
 t_runner_watch='^scripts/release/runner_watch|^tools/ops/(runner_watch|com\.forcitis\.runner)'
 t_start_sheet="$t_gates|$t_session|^CLAUDE\.md$|^docs/modernization/(RULES\.md|sessions/|playbooks/)"  # 工具库开工单（仓库外）读的文件：light.sh 直接用，不进检查表
 t_acceptance='^backend/src/test/java/com/forcitis/one/acceptance/'  # 验收测试改了：跑全部免容器单测（含各守护类），light.sh 直接用
@@ -81,7 +81,7 @@ surefire_guards() {  # 全部免容器单测（light_unit_classes.py 列出，�
   local classes class
   classes=$(python3 scripts/ci/light_unit_classes.py) && [ -n "$classes" ] || return 1
   for class in ${classes//,/ }; do rm -f backend/target/surefire-reports/TEST-*."$class".xml; done  # 本机 target 里的旧报告不算数
-  (cd backend && ./mvnw -q test-compile surefire:test -Dtest="$classes") || return 1
+  (cd backend && ./mvnw -q -o test-compile surefire:test -Dtest="$classes") || return 1  # -o：轻检查不联网
   for class in ${classes//,/ }; do
     ls backend/target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class 没出报告：没跑" >&2; return 1; }
   done
@@ -93,15 +93,28 @@ var_before_non_ascii() {  # 仓库里的 shell（*.sh、工作流 run 段、.cla
   [ -z "$hits" ] || { printf '$VAR 后紧跟非 ASCII 字符，改成 ${VAR}：\n%s\n' "$hits" >&2; return 1; }
 }
 
-run() {  # run <名字> <命令…>：后台起跑，各项互不依赖，并行；结果由 report 按起跑顺序打印（PASS 或 FAIL 加用时，失败时附最后 30 行）
+rule() {  # rule <防的是什么> <怎么修>：登记下一项 run 的规则与改法，FAIL 时随输出打印（输出给出位置）
+  pending_rule=$1 pending_fix=$2
+}
+
+run() {  # run <名字> <命令…>：后台起跑，各项互不依赖，并行；结果由 report 按起跑顺序打印（PASS 或 FAIL 加用时，失败时附规则、改法与最后 30 行）
   local name=$1 i=$count
   shift
   printf '%s' "$name" >"$work/$i.name"
+  if [ -z "${pending_rule:-}" ]; then  # 没登记规则的检查不算数：直接记 FAIL
+    printf '规则：（缺）\n改法：在 scripts/ci/light.sh 里这项 run 之前加 rule <防的是什么> <怎么修>\n' >"$work/$i.rule"
+    printf '1 0\n' >"$work/$i.rc"
+    count=$((count + 1))
+    return
+  fi
+  printf '规则：%s\n改法：%s\n' "$pending_rule" "$pending_fix" >"$work/$i.rule"
+  pending_rule="" pending_fix=""
   (started=$SECONDS; "$@" >"$work/$i.log" 2>&1; echo "$? $((SECONDS - started))" >"$work/$i.rc") &
   count=$((count + 1))
 }
 
 skip() {  # skip <名字> <原因>：前提不满足，记 SKIP 与原因，不算失败
+  pending_rule="" pending_fix=""
   printf '%s' "$1" >"$work/$count.name"
   printf '%s' "$2" >"$work/$count.skip"
   count=$((count + 1))
@@ -123,6 +136,7 @@ report() {  # 等已起跑的各项都结束，按起跑顺序打印还没打印
         passed=$((passed + 1))
       else
         printf 'FAIL  %-46s %4d s（退出 %s）\n' "$name" "$took" "$code"
+        sed 's/^/      /' "$work/$shown.rule"
         tail -n 30 "$work/$shown.log" | sed 's/^/      | /'
         failed=$((failed + 1))
       fi
