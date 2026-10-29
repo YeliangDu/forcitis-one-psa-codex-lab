@@ -10,7 +10,7 @@
 ## ② 开卡与交接
 执行：handoff、start_sheet、人工：lead／周复盘
 
-一卡一个可验收结果、一个负责会话、单 bc，一卡一个 Issue；入口条件不满足即停下报 lead。卡交出（PR 合入或关闭）时先覆盖写交接文件（上限见 policy.json 的 `start.handoff_max_kb`），再结束会话或 `/clear`；记录与事实不符按事实更正；开工先核实况。新会话一律由 lead 用 start_session 开。会话消息只用于唤醒，内容写卡或 PR 评论；只在被阻塞、须用户决定、事故时给 lead 发消息。
+一卡一个可验收结果、一个负责会话、单 bc，一卡一个 Issue；入口条件不满足即停下报 lead。卡交出（PR 合入或关闭）时先覆盖写交接文件（上限见 policy.json 的 `start.handoff_max_kb`），再结束会话或 `/clear`；记录与事实不符按事实更正；开工先核实况。新会话一律由 lead 用 start_session 开。会话消息只用于唤醒，内容写卡或 PR 评论；只在被阻塞、须用户决定、事故时给 lead 发消息。开发会话做完一张卡，按交接里的卡序自己接下一张，不等 lead 转达；卡序要变由 lead 改交接。有前置的卡，前置合入后再开工；要并行就把分支叠在前置 PR 的分支上开 PR，前置合入后变基。
 
 ## ③ 分支与工作区
 执行：main_checkout_gate
