@@ -45,8 +45,12 @@ class ReadModelGuardTest {
     @Test
     @DisplayName("organisation browsing, sync runs, the audit trail and the work calendar are read through query services, not the write repositories")
     void projectionsDoNotUseWriteRepositories() {
-        assertThat(ArchitectureRulesTest.CLASSES.stream().filter(c -> isProjection(c, PROJECTION_PACKAGES)).count()).as("projections found").isGreaterThan(5);
-        assertThat(violations(ArchitectureRulesTest.CLASSES, PROJECTION_PACKAGES)).isEmpty();
+        assertThat(ArchitectureRulesTest.CLASSES.stream().filter(c -> isProjection(c, PROJECTION_PACKAGES)).count()).as(GuardMessage.of("CS-2.8",
+                "the guard found no more than 5 projection use cases, so it is scanning the wrong packages",
+                "update PROJECTION_PACKAGES and PROJECTION in ReadModelGuardTest to the current projection packages")).isGreaterThan(5);
+        assertThat(violations(ArchitectureRulesTest.CLASSES, PROJECTION_PACKAGES)).as(GuardMessage.of("CS-2.8",
+                "a projection query service depends on the write repository that loads and saves aggregates",
+                "read through a *Queries port (a domain interface implemented in infrastructure.persistence) instead of the *Repository")).isEmpty();
     }
 
     @Test

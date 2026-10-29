@@ -2,6 +2,7 @@ package com.forcitis.one.platform.integration.guard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.GuardMessage;
 import com.forcitis.one.JavaCode;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -65,7 +66,7 @@ class ExternalConnectionFactoryGuardTest {
         Set<String> builders = classesThatBuildConnections();
 
         assertThat(builders)
-                .as("the A8 and old-system connections must be built by one factory that forces the query, socket and lock-wait timeouts; found these builders")
+                .as(GuardMessage.of("D1-1", "classes other than the single *ConnectionFactory build JDBC connections or pools; found these builders", "build external connections only in the *ConnectionFactory class and remove the HikariConfig, DriverManager or driver use from the other classes"))
                 .hasSize(1)
                 .allSatisfy(name -> assertThat(name).endsWith(FACTORY_SUFFIX));
     }
@@ -75,14 +76,14 @@ class ExternalConnectionFactoryGuardTest {
     void theFactorySetsAllThreeTimeouts() throws IOException {
         Set<String> builders = classesThatBuildConnections();
         Optional<String> factory = builders.stream().filter(name -> name.endsWith(FACTORY_SUFFIX)).findFirst();
-        assertThat(factory).as("a *ConnectionFactory class must exist; builders found: " + builders).isPresent();
+        assertThat(factory).as(GuardMessage.of("D1-1", "no *ConnectionFactory class builds the external connections; builders found: " + builders, "keep one class named *ConnectionFactory that builds them with the three timeouts")).isPresent();
 
         Path source = MAIN_SOURCES.resolve(factory.get().replace('.', '/') + ".java");
-        assertThat(source).as("source of " + factory.get()).exists();
+        assertThat(source).as(GuardMessage.of("D1-1", "the source file of " + factory.get() + " is not under src/main/java", "run the test from the backend directory")).exists();
         String text = JavaCode.withoutComments(Files.readString(source)).toLowerCase(Locale.ROOT);
 
-        assertThat(text).as("statement timeout (JDBC queryTimeout)").contains("\"querytimeout\"");
-        assertThat(text).as("network read timeout (JDBC socketTimeout)").contains("\"sockettimeout\"");
-        assertThat(text).as("lock wait limit (SET LOCK_TIMEOUT, SQL Server waits for ever by default)").contains("\"set lock_timeout ");
+        assertThat(text).as(GuardMessage.of("D1-1", "the connection factory sets no JDBC queryTimeout", "set the queryTimeout property in the factory")).contains("\"querytimeout\"");
+        assertThat(text).as(GuardMessage.of("D1-1", "the connection factory sets no JDBC socketTimeout", "set the socketTimeout property in the factory")).contains("\"sockettimeout\"");
+        assertThat(text).as(GuardMessage.of("D1-1", "the connection factory sets no SET LOCK_TIMEOUT, and SQL Server waits for ever by default", "run SET LOCK_TIMEOUT <ms> on every new connection in the factory")).contains("\"set lock_timeout ");
     }
 }

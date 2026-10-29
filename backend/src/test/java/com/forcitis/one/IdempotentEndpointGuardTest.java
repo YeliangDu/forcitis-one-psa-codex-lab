@@ -38,10 +38,14 @@ class IdempotentEndpointGuardTest {
             }
             String[] halves = line.split("#", 2);
             String[] parts = halves[0].strip().split("\\s+");
-            assertThat(parts).as("METHOD path: " + line).hasSize(2);
-            assertThat(parts[0]).as(line).isEqualTo("POST");
-            assertThat(halves.length).as("the comment names the answer: " + line).isEqualTo(2);
-            assertThat(rows.put(parts[1], halves[1].strip())).as("two lines for " + parts[1]).isNull();
+            assertThat(parts).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "a line of idempotent-endpoints.txt is not METHOD path-template: " + line,
+                    "write the line as POST <path-template>  # <answer types; what was checked>")).hasSize(2);
+            assertThat(parts[0]).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "a line of idempotent-endpoints.txt does not start with POST: " + line,
+                    "only POST endpoints can be idempotent; start the line with POST")).isEqualTo("POST");
+            assertThat(halves.length).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "a line of idempotent-endpoints.txt has no # comment naming the answer: " + line,
+                    "add # <answer types; what was checked> to the line")).isEqualTo(2);
+            assertThat(rows.put(parts[1], halves[1].strip())).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "idempotent-endpoints.txt has two lines for " + parts[1],
+                    "delete the duplicate line")).isNull();
         }
         return rows;
     }
@@ -83,11 +87,14 @@ class IdempotentEndpointGuardTest {
         Set<String> applying = new LinkedHashSet<>();
         for (IdempotentEndpointScan.Handler handler : IdempotentEndpointScan.postHandlers()) {
             if (rows.containsKey(handler.template())) {
-                assertThat(applying.add(handler.template())).as("one handler for " + handler.template()).isTrue();
+                assertThat(applying.add(handler.template())).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "two POST handlers have the template " + handler.template(),
+                        "give the handlers different paths, one line in backend/architecture/idempotent-endpoints.txt covers exactly one handler")).isTrue();
             }
         }
-        assertThat(applying).as("a line without a POST handler, or a POST handler the list covers twice").containsExactlyInAnyOrderElementsOf(rows.keySet());
-        assertThat(rows).hasSize(21);
+        assertThat(applying).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "a line of idempotent-endpoints.txt has no POST handler, or a POST handler is covered twice",
+                "make the lines of backend/architecture/idempotent-endpoints.txt match the POST handlers that take an Idempotency-Key, one line per handler")).containsExactlyInAnyOrderElementsOf(rows.keySet());
+        assertThat(rows).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "the number of idempotent endpoints is not 21; adding one needs design review",
+                "after the review, update the expected count here and the comment of the new line in backend/architecture/idempotent-endpoints.txt")).hasSize(21);
     }
 
     @Test
@@ -104,7 +111,8 @@ class IdempotentEndpointGuardTest {
                 }
             }
         }
-        assertThat(problems).as("take the endpoint off idempotent-endpoints.txt, or leave the field out of the answer").isEmpty();
+        assertThat(problems).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "the answer of a listed idempotent endpoint carries a sensitive, personal or direct-identifier field",
+                "leave the field out of the answer record, or take the endpoint off backend/architecture/idempotent-endpoints.txt")).isEmpty();
     }
 
     @Test
@@ -123,10 +131,12 @@ class IdempotentEndpointGuardTest {
                 }
             }
             if (handler.method().getReturnType().equals(void.class) || IdempotentEndpointScan.answerTypes(handler).isEmpty()) {
-                assertThat(comment).as(handler.template() + " has no answer body").containsAnyOf("204", "without a body");
+                assertThat(comment).as(GuardMessage.of("ADR-0043 section 4 / TB-02", handler.template() + " has no answer body but its comment does not say so",
+                        "write 204 or \"without a body\" in the comment of the line in backend/architecture/idempotent-endpoints.txt")).containsAnyOf("204", "without a body");
             }
         }
-        assertThat(problems).isEmpty();
+        assertThat(problems).as(GuardMessage.of("ADR-0043 section 4 / TB-02", "the comment of a line in idempotent-endpoints.txt does not name every answer record type of its handler",
+                "add the missing answer type name to the comment of that line in backend/architecture/idempotent-endpoints.txt after checking it for personal data")).isEmpty();
     }
 
     record Clean(String id, String status) {

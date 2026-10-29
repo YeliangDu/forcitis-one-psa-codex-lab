@@ -6,6 +6,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.GuardMessage;
 import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.tngtech.archunit.core.domain.JavaAnnotation;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -41,7 +42,7 @@ class ExternalConnectionIsolationTest {
         noClasses().that().resideOutsideOfPackage(CONNECTION)
                 .should().dependOnClassesThat(resideInAnyPackage("com.zaxxer.hikari..", "org.springframework.jdbc.datasource..", "org.postgresql..", "com.microsoft.sqlserver..")
                         .or(equivalentTo(java.sql.Driver.class)).or(equivalentTo(java.sql.DriverManager.class)))
-                .because("every external connection carries the query, socket and lock-wait timeouts only if it is built by platform.integration.infrastructure.connection")
+                .because(GuardMessage.of("D1-1 / CS-1.3", "a class outside platform.integration.infrastructure.connection uses a JDBC driver, pool or datasource builder", "get the connection from ExternalConnections and build pools only in platform.integration.infrastructure.connection, which sets the query, socket and lock-wait timeouts"))
                 .check(CLASSES);
     }
 
@@ -50,7 +51,7 @@ class ExternalConnectionIsolationTest {
     void onlyTheApprovedAdaptersObtainExternalConnections() {
         noClasses().that().resideOutsideOfPackages(SEEYON, INTEGRATION_LEGACY, CONNECTION)
                 .should().dependOnClassesThat(equivalentTo(ExternalConnections.class))
-                .because("ADR-0037 item 2 and ADR-0039 item 1: external connections only in platform.integration; the shared api type must not widen the adapters")
+                .because(GuardMessage.of("D1-1-R1 / CS-1.3", "a class outside the Seeyon, legacy and connection packages uses platform.integration.domain.ExternalConnections", "move the external read into an adapter in platform.integration.infrastructure.seeyon or .legacy and expose it through a platform.integration api port"))
                 .check(CLASSES);
     }
 
@@ -59,20 +60,21 @@ class ExternalConnectionIsolationTest {
     void seeyonIsOnlyReachedFromTheSeeyonPackage() {
         noClasses().that().resideOutsideOfPackage(SEEYON)
                 .should().dependOnClassesThat().resideInAPackage(SEEYON)
-                .because("the Seeyon ACL is used through the platform.integration api ports (OrgSource, SsoTicketVerifier), never directly")
+                .because(GuardMessage.of("CS-1.3", "a class outside platform.integration.infrastructure.seeyon depends on a class in it", "call Seeyon through the platform.integration api ports (OrgSource, SsoTicketVerifier) instead of the adapter class"))
                 .check(CLASSES);
         noClasses().that().resideOutsideOfPackages(SEEYON, WECOM)
                 .should().dependOnClassesThat().resideInAPackage("java.net.http..")
-                .because("the portal ticket check (Seeyon) and the WeCom client are the only HTTP clients of the application's own code")
+                .because(GuardMessage.of("CS-1.3", "a class outside the Seeyon and WeCom adapters uses java.net.http", "put the HTTP call in an adapter under platform.integration.infrastructure.seeyon or .wecom"))
                 .check(CLASSES);
         noClasses().that().resideOutsideOfPackage(INTEGRATION_LEGACY)
                 .should().dependOnClassesThat().resideInAPackage(INTEGRATION_LEGACY)
+                .because(GuardMessage.of("CS-1.3", "a class outside platform.integration.infrastructure.legacy depends on a class in it", "use the old-system data through the platform.integration api ports, not the legacy adapter classes"))
                 .check(CLASSES);
         noClasses().that().resideInAnyPackage(SEEYON).should().dependOnClassesThat().resideInAnyPackage(INTEGRATION_LEGACY)
-                .because("the Seeyon adapter never touches the old system")
+                .because(GuardMessage.of("CS-1.3", "the Seeyon adapter depends on the old-system (legacy) adapter", "remove the dependency; each adapter reads only its own external system"))
                 .check(CLASSES);
         noClasses().that().resideInAnyPackage(INTEGRATION_LEGACY).should().dependOnClassesThat().resideInAPackage(SEEYON)
-                .because("the old-system adapters never touch Seeyon")
+                .because(GuardMessage.of("CS-1.3", "an old-system (legacy) adapter depends on the Seeyon adapter", "remove the dependency; each adapter reads only its own external system"))
                 .check(CLASSES);
     }
 
@@ -81,6 +83,7 @@ class ExternalConnectionIsolationTest {
     void businessLayersDoNotHoldExternalConnections() {
         noClasses().that().resideInAnyPackage("..domain..", "..application..", "..web..")
                 .should().dependOnClassesThat().resideInAnyPackage("com.zaxxer.hikari..", "java.sql..", "org.springframework.jdbc..")
+                .because(GuardMessage.of("D1-1 / CS-1.3", "a domain, application or web class depends on JDBC drivers or pools", "read external data through a platform.integration api port; SQL belongs in infrastructure.persistence"))
                 .check(CLASSES);
     }
 
@@ -107,6 +110,7 @@ class ExternalConnectionIsolationTest {
                         }
                     }
                 })
+                .because(GuardMessage.of("CS-1.3", "a class outside the Seeyon and legacy adapters injects a bean qualified seeyon, legacy or legacy-approval", "remove the @Qualifier and read through a platform.integration api port"))
                 .check(CLASSES);
     }
 
@@ -115,10 +119,11 @@ class ExternalConnectionIsolationTest {
     void connectionsAreNotDataSourceBeans() {
         Optional<JavaClass> connection = CLASSES.stream().filter(c -> c.getSimpleName().equals("ExternalConnectionFactory")).findFirst();
 
-        assertThat(connection).isPresent();
-        assertThat(connection.get().isAssignableTo(DataSource.class)).isFalse();
+        assertThat(connection).as(GuardMessage.of("D1-1", "the class ExternalConnectionFactory is not found", "keep the factory class named ExternalConnectionFactory under platform.integration.infrastructure.connection")).isPresent();
+        assertThat(connection.get().isAssignableTo(DataSource.class)).as(GuardMessage.of("D1-1", "ExternalConnectionFactory is a DataSource, so a second DataSource would switch off the application's own PostgreSQL DataSource", "keep it a plain factory that returns connections and does not implement DataSource")).isFalse();
         noClasses().that().resideInAnyPackage(SEEYON, INTEGRATION_LEGACY, CONNECTION)
                 .should().beAssignableTo(DataSource.class)
+                .because(GuardMessage.of("D1-1", "a class of the external adapter packages is a DataSource, which would switch off the application's own PostgreSQL DataSource", "return plain connections from ExternalConnections and do not implement DataSource"))
                 .check(CLASSES);
         classes().that().resideInAnyPackage(SEEYON, INTEGRATION_LEGACY, CONNECTION).and().haveSimpleNameEndingWith("Configuration")
                 .should(new ArchCondition<JavaClass>("declare no @Bean method returning a DataSource") {
@@ -128,6 +133,7 @@ class ExternalConnectionIsolationTest {
                                 .forEach(m -> events.add(SimpleConditionEvent.violated(c, m.getFullName() + " returns a DataSource")));
                     }
                 })
+                .because(GuardMessage.of("D1-1", "an adapter configuration declares a @Bean returning a DataSource, which would switch off the application's own PostgreSQL DataSource", "remove the @Bean method and hand out connections through ExternalConnections"))
                 .check(CLASSES);
     }
 
@@ -135,9 +141,10 @@ class ExternalConnectionIsolationTest {
     @DisplayName("I-1 the old system is read with nothing but the two views: one reader class per view, each used only by its own adapter package")
     void legacyAccessIsTwoViews() {
         long shortNameReaders = CLASSES.stream().filter(c -> c.getSimpleName().equals("LegacyOrgNames")).count();
-        assertThat(shortNameReaders).isEqualTo(1);
+        assertThat(shortNameReaders).as(GuardMessage.of("I-1", "the old system must have exactly one LegacyOrgNames reader class", "keep one reader class per old-system view and do not add a second reader of the short-name view")).isEqualTo(1);
         noClasses().that().resideOutsideOfPackage(INTEGRATION_LEGACY)
                 .should().dependOnClassesThat().haveSimpleName("LegacyOrgNames")
+                .because(GuardMessage.of("I-1", "a class outside platform.integration.infrastructure.legacy depends on LegacyOrgNames", "use the platform.integration api port for the old-system names, not the reader class"))
                 .check(CLASSES);
     }
 }

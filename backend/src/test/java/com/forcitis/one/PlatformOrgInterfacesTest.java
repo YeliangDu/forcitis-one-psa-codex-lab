@@ -38,13 +38,17 @@ class PlatformOrgInterfacesTest {
     @Test
     @DisplayName("ADR-0066 decision 1 item 3: a platform module uses organization code only through a listed NamedInterface")
     void platformUsesOnlyListedOrganizationInterfaces() throws IOException {
-        assertThat(usageViolations(read(), ArchitectureRulesTest.CLASSES)).isEmpty();
+        assertThat(usageViolations(read(), ArchitectureRulesTest.CLASSES)).as(GuardMessage.of("ADR-0066",
+                "a platform module uses an organization class that is not in a NamedInterface listed in architecture/platform-org-interfaces.txt",
+                "use only the listed organization interfaces, or add the line <platform module> -> <organization module>::<interface> to " + LIST + " after telling the platform owner")).isEmpty();
     }
 
     @Test
     @DisplayName("every listed interface exists with @NamedInterface, is on an edge of module-dependencies.txt and is used")
     void listedInterfacesExistAndAreUsed() throws IOException {
-        assertThat(listViolations(read(), moduleEdges(), ArchitectureRulesTest.CLASSES)).isEmpty();
+        assertThat(listViolations(read(), moduleEdges(), ArchitectureRulesTest.CLASSES)).as(GuardMessage.of("ADR-0066",
+                "a line of architecture/platform-org-interfaces.txt has no @NamedInterface, no module-dependencies.txt edge or no user",
+                "fix or delete the line in " + LIST + " so that it names an existing @NamedInterface on an edge of architecture/module-dependencies.txt that the platform module uses")).isEmpty();
     }
 
     @Test
@@ -76,8 +80,10 @@ class PlatformOrgInterfacesTest {
         pinned.forEach(added::remove);
         Set<String> removed = new TreeSet<>(pinned);
         actual.forEach(removed::remove);
-        assertThat(added).as("signatures new or changed since the snapshot (regenerate with -Dorg.interfaces.update=true and write 已通知平台 owner in the pull request)").isEmpty();
-        assertThat(removed).as("signatures gone or changed since the snapshot (regenerate with -Dorg.interfaces.update=true and write 已通知平台 owner in the pull request)").isEmpty();
+        assertThat(added).as(GuardMessage.of("ADR-0066", "public signatures of a listed organization interface are new or changed since the snapshot",
+                "regenerate " + SNAPSHOT + " with -Dorg.interfaces.update=true and write 已通知平台 owner in the pull request")).isEmpty();
+        assertThat(removed).as(GuardMessage.of("ADR-0066", "public signatures of a listed organization interface are gone or changed since the snapshot",
+                "regenerate " + SNAPSHOT + " with -Dorg.interfaces.update=true and write 已通知平台 owner in the pull request")).isEmpty();
     }
 
     static String header() {
@@ -95,7 +101,8 @@ class PlatformOrgInterfacesTest {
             String[] sides = line.split("->", -1);
             String[] target = sides.length == 2 ? sides[1].trim().split("::", -1) : new String[0];
             if (sides.length != 2 || target.length != 2) {
-                throw new AssertionError("platform-org-interfaces.txt line not of the form <platform module> -> <organization module>::<interface>: " + raw);
+                throw new AssertionError(GuardMessage.of("ADR-0066", "platform-org-interfaces.txt line is malformed: " + raw,
+                        "write it as <platform module> -> <organization module>::<interface>"));
             }
             entries.add(new Entry(sides[0].trim(), target[0].trim(), target[1].trim()));
         }
@@ -185,7 +192,8 @@ class PlatformOrgInterfacesTest {
                 return null;
             }
             if (annotation.value().length != 1) {
-                throw new AssertionError(pkg.getName() + ": @NamedInterface must carry exactly one name, found " + Arrays.toString(annotation.value()));
+                throw new AssertionError(GuardMessage.of("ADR-0066", pkg.getName() + ": @NamedInterface carries " + Arrays.toString(annotation.value()),
+                        "give @NamedInterface exactly one name"));
             }
             return annotation.value()[0];
         } catch (ClassNotFoundException e) {

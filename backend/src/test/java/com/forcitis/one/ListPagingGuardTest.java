@@ -91,7 +91,7 @@ class ListPagingGuardTest {
                 continue;
             }
             var content = get.path("responses").path("200").path("content").properties();
-            assertThat(content).as("GET %s declares no 200 answer with content: a GET answers a body", path.getKey()).isNotEmpty();
+            assertThat(content).as(GuardMessage.of("G-A2", "GET " + path.getKey() + " declares no 200 answer with content", "declare the response body of the 200 answer in the controller, a GET answers a body")).isNotEmpty();
             JsonNode schema = resolve(document, content.iterator().next().getValue().path("schema"));
             boolean array = "array".equals(schema.path("type").asString());
             if (!array && !schema.path("properties").has("items")) {
@@ -108,7 +108,8 @@ class ListPagingGuardTest {
         }
 
         assertThat(checked).as("the document has collections").isGreaterThan(10);
-        assertGaps("G-A2", violations, "GET ");
+        assertGaps("G-A2", violations, "a collection GET does not answer exactly {items, nextCursor} or does not take cursor and limit",
+                "make the endpoint answer {items, nextCursor} and take the cursor and limit parameters", "GET ");
     }
 
     @Test
@@ -121,7 +122,8 @@ class ListPagingGuardTest {
                         && field.getModifiers().contains(com.tngtech.archunit.core.domain.JavaModifier.FINAL)
                         && LIST_SIZE_CONSTANT.matcher(field.getName()).matches())
                 .forEach(field -> constants.add(type.getName() + "." + field.getName())));
-        assertGaps("G-P1", constants, "com.");
+        assertGaps("G-P1", constants, "a page size constant is defined outside kernel",
+                "delete the constant and use kernel ListLimits", "com.");
 
         JsonNode document = document();
         List<String> wrong = new ArrayList<>();
@@ -140,7 +142,8 @@ class ListPagingGuardTest {
             }
         }
         assertThat(declared).as("the document declares limit parameters").isGreaterThan(5);
-        assertThat(wrong).as("limit parameters that do not say minimum 1 / maximum 200 / default 50").isEmpty();
+        assertThat(wrong).as(GuardMessage.of("G-P1", "a limit parameter of the contract does not say minimum 1, maximum 200, default 50",
+                "declare the limit parameter with ListLimits (minimum 1, maximum 200, default 50) in the controller")).isEmpty();
     }
 
     @Test
@@ -174,7 +177,8 @@ class ListPagingGuardTest {
             });
         }
 
-        assertGaps("A-3 in-memory paging and row caps", found, "slice:", "config:");
+        assertGaps("CS-3.10 / A-3", found, "a list is cut in memory with PageRequest.slice, or an export or import row cap in the configuration exceeds the agreed one",
+                "page in SQL with the cursor and limit, and set the cap at or below ListLimits.EXPORT_MAX / IMPORT_MAX", "slice:", "config:");
     }
 
     @Test
@@ -185,10 +189,10 @@ class ListPagingGuardTest {
                 continue;
             }
             String[] columns = line.split(" \\| ", -1);
-            assertThat(columns).as("%s: path | owner card | deadline", line).hasSize(3);
-            assertThat(PREFIXES.stream().anyMatch(columns[0]::startsWith)).as("%s starts with none of %s", line, PREFIXES).isTrue();
-            assertThat(OWNERS).as("owner of %s", line).contains(columns[1].strip());
-            assertThat(columns[2].strip()).as("deadline of %s", line).isNotEmpty();
+            assertThat(columns).as(GuardMessage.of("G-A2", "a line of " + GAPS + " is not path | owner card | deadline: " + line, "write the line as <path> | <owner card> | <deadline>")).hasSize(3);
+            assertThat(PREFIXES.stream().anyMatch(columns[0]::startsWith)).as(GuardMessage.of("G-A2", "a line of " + GAPS + " starts with none of " + PREFIXES + ", so no guard reads it: " + line, "start the path with one of those prefixes")).isTrue();
+            assertThat(OWNERS).as(GuardMessage.of("G-A2", "the owner card of a line of " + GAPS + " is unknown: " + line, "use one of the owner cards " + OWNERS)).contains(columns[1].strip());
+            assertThat(columns[2].strip()).as(GuardMessage.of("G-A2", "a line of " + GAPS + " has no deadline: " + line, "write the deadline as the third column")).isNotEmpty();
         }
     }
 
@@ -212,7 +216,7 @@ class ListPagingGuardTest {
         return ref.isEmpty() ? schema : document.path("components").path("schemas").path(ref.substring(ref.lastIndexOf('/') + 1));
     }
 
-    private static void assertGaps(String guard, Set<String> found, String... pathPrefixes) throws IOException {
+    private static void assertGaps(String guard, Set<String> found, String wrong, String fix, String... pathPrefixes) throws IOException {
         Set<String> listed = new TreeSet<>();
         for (String line : Files.readAllLines(GAPS)) {
             if (line.isBlank() || line.startsWith("#")) {
@@ -220,14 +224,14 @@ class ListPagingGuardTest {
             }
             String path = line.split(" \\| ", -1)[0];
             if (java.util.Arrays.stream(pathPrefixes).anyMatch(path::startsWith)) {
-                assertThat(listed.add(path)).as("%s is listed twice", path).isTrue();
+                assertThat(listed.add(path)).as(GuardMessage.of(guard, path + " is listed twice in " + GAPS, "delete the duplicate line")).isTrue();
             }
         }
         Set<String> added = new TreeSet<>(found);
         added.removeAll(listed);
         Set<String> closed = new TreeSet<>(listed);
         closed.removeAll(found);
-        assertThat(added).as("%s: new violations (fix them; the list is for the gaps that exist today)", guard).isEmpty();
-        assertThat(closed).as("%s: listed in %s but already closed (delete the line)", guard, GAPS).isEmpty();
+        assertThat(added).as(GuardMessage.of(guard, wrong + " (new violations)", fix + "; " + GAPS + " is only for the gaps that exist today, do not add a line")).isEmpty();
+        assertThat(closed).as(GuardMessage.of(guard, "a gap listed in " + GAPS + " is already closed", "delete its line from " + GAPS)).isEmpty();
     }
 }

@@ -37,7 +37,8 @@ class ErrorCodeGlossaryTest {
         List<String> codes = codes();
         assertThat(codes).as("the guard must see the error codes").hasSizeGreaterThan(40);
         assertThat(codes.stream().filter(code -> !ids.contains("error__" + code.toLowerCase(Locale.ROOT))).toList())
-                .as("add an error__<code> term (kind: error_code) to glossary/proposed/<module>.yaml").isEmpty();
+                .as(GuardMessage.of("CS-1.4 / G48 (DATA_DESIGN_CHECKLIST section 14 item 10)", "an ErrorCode constant has no error__<code> term in the glossary",
+                        "add a term error__<code lower case> with kind: error_code, its Chinese name and meaning to glossary/proposed/<module>.yaml")).isEmpty();
     }
 
     @Test

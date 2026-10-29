@@ -79,8 +79,8 @@ class TestIsolationGuardTest {
                 }
             }
         }
-        assertThat(problems).isEmpty();
-        assertThat(allowed).as("an exception that is no longer needed must be deleted from " + EXCEPTIONS).isEqualTo(found);
+        assertThat(problems).as(GuardMessage.of("CS-5.5", "a test of a module names the schema of another module in SQL", "prepare and check only the own schema; use the api of the other module or a double, or register the file#schema key in " + EXCEPTIONS + " with a reason")).isEmpty();
+        assertThat(allowed).as(GuardMessage.of("CS-5.5", "an exception of " + EXCEPTIONS + " is no longer needed", "delete the stale line from " + EXCEPTIONS)).isEqualTo(found);
     }
 
     @Test

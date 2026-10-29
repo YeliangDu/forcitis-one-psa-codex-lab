@@ -45,6 +45,6 @@ class EventCatalogueCoverageTest {
                 }
             }
         }
-        assertThat(unexercised).as("catalogue events no test seals").isEmpty();
+        assertThat(unexercised).as(GuardMessage.of("CS-2.5", "a catalogue event is sealed by no test, so its businessDate declaration is never checked", "construct the event in its publisher test through an envelope factory that calls CatalogueBusinessDates, naming the event record type")).isEmpty();
     }
 }
