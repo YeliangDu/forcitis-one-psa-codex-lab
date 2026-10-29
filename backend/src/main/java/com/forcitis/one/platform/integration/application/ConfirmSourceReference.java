@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.application;
 
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.integration.domain.SourceReference;
@@ -17,15 +18,18 @@ public class ConfirmSourceReference {
     private final SourceReferenceRepository references;
     private final DomainEvents events;
     private final Clock clock;
+    private final CurrentUser currentUser;
 
-    ConfirmSourceReference(SourceReferenceRepository references, DomainEvents events, Clock clock) {
+    ConfirmSourceReference(SourceReferenceRepository references, DomainEvents events, Clock clock, CurrentUser currentUser) {
+        this.currentUser = currentUser;
         this.references = references;
         this.events = events;
         this.clock = clock;
     }
 
     @Transactional
-    public SourceReferenceView execute(UUID sourceReferenceId, UserId confirmer) {
+    public SourceReferenceView execute(UUID sourceReferenceId) {
+        UserId confirmer = currentUser.userId();
         SourceReference reference = references.findForUpdate(new SourceReferenceId(sourceReferenceId)).orElseThrow(() -> new SourceReferenceNotFound(sourceReferenceId));
         Optional<SourceReference> inEffect = reference.kind().hasPeriod()
                 ? references.findOpenConfirmedForUpdate(reference.system(), reference.kind(), reference.ownId())

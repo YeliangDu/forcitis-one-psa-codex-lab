@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.integration.infrastructure.persistence;
 
-import java.sql.Timestamp;
 import com.forcitis.one.platform.integration.api.ConfirmationStatus;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.OwnObjectId;
@@ -17,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -84,8 +85,7 @@ class JdbcSourceReferenceQueries implements SourceReferenceQueries {
     @Override
     public List<ListedSourceReference> list(ExternalSource system, SourceObjectKind kind, @Nullable ConfirmationStatus status, @Nullable OwnObjectId ownId,
                                       @Nullable SourceReferencePosition after, int limit) {
-        StringBuilder sql = new StringBuilder("select " + SourceReferenceRows.COLUMNS + """
-                 from platform_integration.source_references
+        StringBuilder sql = new StringBuilder(SourceReferenceRows.SELECT + """
                 where source_system = :system and source_object_kind = :kind
                 """);
         if (status != null) {
@@ -103,8 +103,8 @@ class JdbcSourceReferenceQueries implements SourceReferenceQueries {
             statement = statement.param("ownId", ownId.value());
         }
         if (after != null) {
-            statement = statement.param("afterAt", Timestamp.from(after.createdAt())).param("afterId", after.id().value());
+            statement = statement.param("afterAt", OffsetDateTime.ofInstant(after.createdAt(), ZoneOffset.UTC)).param("afterId", after.id().value());
         }
-        return statement.query((rs, n) -> new ListedSourceReference(SourceReferenceRows.map(rs), rs.getTimestamp("created_at").toInstant())).list();
+        return statement.query((rs, n) -> new ListedSourceReference(SourceReferenceRows.map(rs), rs.getObject("created_at", OffsetDateTime.class).toInstant())).list();
     }
 }

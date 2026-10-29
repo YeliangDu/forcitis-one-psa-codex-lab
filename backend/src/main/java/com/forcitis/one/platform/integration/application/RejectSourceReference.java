@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.application;
 
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.integration.domain.SourceReference;
@@ -16,15 +17,18 @@ public class RejectSourceReference {
     private final SourceReferenceRepository references;
     private final DomainEvents events;
     private final Clock clock;
+    private final CurrentUser currentUser;
 
-    RejectSourceReference(SourceReferenceRepository references, DomainEvents events, Clock clock) {
+    RejectSourceReference(SourceReferenceRepository references, DomainEvents events, Clock clock, CurrentUser currentUser) {
+        this.currentUser = currentUser;
         this.references = references;
         this.events = events;
         this.clock = clock;
     }
 
     @Transactional
-    public SourceReferenceView execute(UUID sourceReferenceId, UserId rejecter) {
+    public SourceReferenceView execute(UUID sourceReferenceId) {
+        UserId rejecter = currentUser.userId();
         SourceReference reference = references.findForUpdate(new SourceReferenceId(sourceReferenceId)).orElseThrow(() -> new SourceReferenceNotFound(sourceReferenceId));
         reference.reject(rejecter, clock.instant());
         references.save(reference);

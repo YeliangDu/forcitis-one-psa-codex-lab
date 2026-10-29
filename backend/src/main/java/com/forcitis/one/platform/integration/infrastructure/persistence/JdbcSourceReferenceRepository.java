@@ -10,10 +10,11 @@ import com.forcitis.one.platform.integration.domain.SourceReference;
 import com.forcitis.one.platform.integration.domain.SourceReferenceId;
 import com.forcitis.one.platform.integration.domain.SourceReferenceRepository;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Clock;
 import java.util.Optional;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -43,7 +44,7 @@ class JdbcSourceReferenceRepository implements SourceReferenceRepository {
     }
 
     private int insertStatement(SourceReference reference, String onConflict) {
-        Timestamp now = Timestamp.from(clock.instant());
+        OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
         return jdbc.sql("""
                         insert into platform_integration.source_references
                                (source_reference_id, source_system, source_object_kind, source_id, own_id, confirmation_status, effective_from_date,
@@ -67,14 +68,16 @@ class JdbcSourceReferenceRepository implements SourceReferenceRepository {
 
     @Override
     public Optional<SourceReference> findForUpdate(SourceReferenceId id) {
-        return jdbc.sql("select " + SourceReferenceRows.COLUMNS + " from platform_integration.source_references where source_reference_id = :id for update")
+        return jdbc.sql(SourceReferenceRows.SELECT + """
+                 where source_reference_id = :id
+                   for update
+                """)
                 .param("id", id.value()).query((rs, n) -> SourceReferenceRows.map(rs)).optional();
     }
 
     @Override
     public Optional<SourceReference> findOpenConfirmedForUpdate(ExternalSource system, SourceObjectKind kind, OwnObjectId ownId) {
-        return jdbc.sql("select " + SourceReferenceRows.COLUMNS + """
-                         from platform_integration.source_references
+        return jdbc.sql(SourceReferenceRows.SELECT + """
                         where source_system = :system and source_object_kind = :kind and own_id = :ownId
                           and confirmation_status = 'CONFIRMED' and effective_to_date is null
                           for update
@@ -95,10 +98,10 @@ class JdbcSourceReferenceRepository implements SourceReferenceRepository {
                     .param("status", reference.status().name())
                     .param("to", reference.effectiveTo(), Types.DATE)
                     .param("decidedBy", reference.decidedBy() == null ? null : reference.decidedBy().value(), Types.OTHER)
-                    .param("decidedAt", reference.decidedAt() == null ? null : Timestamp.from(reference.decidedAt()), Types.TIMESTAMP)
+                    .param("decidedAt", reference.decidedAt() == null ? null : OffsetDateTime.ofInstant(reference.decidedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                     .param("next", reference.versionAfterSave())
                     .param("eventSequence", reference.eventSequenceAfterSave())
-                    .param("updatedAt", Timestamp.from(clock.instant()))
+                    .param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                     .param("id", reference.sourceReferenceId().value())
                     .param("version", reference.version())
                     .param("loadedStatus", reference.loadedStatus().name())
