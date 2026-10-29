@@ -24,13 +24,17 @@ class JdbcOneTimeCredentials implements OneTimeCredentials {
 
     @Override
     public void storeLoginState(String stateHash, String bindingHash, WecomEntry entry, Instant expiresAt) {
-        jdbc.sql("insert into platform_identity.login_states (login_state_id, state_hash, binding_hash, entry, expires_at) values (:id, :hash, :binding, :entry, :expires)")
+        jdbc.sql("""
+                insert into platform_identity.login_states (login_state_id, state_hash, binding_hash, entry, expires_at) values (:id, :hash, :binding, :entry, :expires)
+                """)
                 .param("id", ids.next()).param("hash", stateHash).param("binding", bindingHash).param("entry", entry.name()).param("expires", utc(expiresAt)).update();
     }
 
     @Override
     public Optional<WecomEntry> consumeLoginState(String stateHash, String bindingHash, Instant now) {
-        return jdbc.sql("delete from platform_identity.login_states where state_hash = :hash and binding_hash = :binding and expires_at > :now returning entry")
+        return jdbc.sql("""
+                delete from platform_identity.login_states where state_hash = :hash and binding_hash = :binding and expires_at > :now returning entry
+                """)
                 .param("hash", stateHash).param("binding", bindingHash).param("now", utc(now))
                 .query(String.class).optional().map(WecomEntry::valueOf);
     }
@@ -47,8 +51,12 @@ class JdbcOneTimeCredentials implements OneTimeCredentials {
 
     @Override
     public int purgeExpired(Instant now) {
-        int states = jdbc.sql("delete from platform_identity.login_states where expires_at <= :now").param("now", utc(now)).update();
-        int tickets = jdbc.sql("delete from platform_identity.sso_ticket_uses where expires_at <= :now").param("now", utc(now)).update();
+        int states = jdbc.sql("""
+                delete from platform_identity.login_states where expires_at <= :now
+                """).param("now", utc(now)).update();
+        int tickets = jdbc.sql("""
+                delete from platform_identity.sso_ticket_uses where expires_at <= :now
+                """).param("now", utc(now)).update();
         return states + tickets;
     }
 
