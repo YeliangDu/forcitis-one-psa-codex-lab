@@ -28,11 +28,11 @@ def parse_time(text):
 
 
 def load_owners(path=POLICY):
-    """Session name -> the session that owns it now, from policy.json, the one list of session names: every key of sessions.config is its own owner, every key of sessions.aliases
-    (an old session name, or an old branch family) points at one."""
+    """Session name -> itself, for every key of policy.json sessions.config, the one list of session names. Old names are no owners any more (#856):
+    a branch still named after one is reported as unowned, not guessed."""
     with open(path, encoding="utf-8") as f:
         sessions = json.load(f)["sessions"]
-    return {**{name: name for name in sessions["config"]}, **sessions.get("aliases", {})}
+    return {name: name for name in sessions["config"]}
 
 
 def author_session(branch, owners):

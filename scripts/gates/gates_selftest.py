@@ -296,24 +296,20 @@ def main_checkout_gate_test():
     print("main_checkout_gate self-test: ok")
 
 def renamed_test():  # ── pre_commit ──
-    """#744：会话名随角色（one-lead、one-design、one-platform、one-dev-<bc>）。新名在 sessions.config；
-    旧名只留在 aliases（指向新名），不再是会话；合入队列的分支归属（gapscan.load_owners）只读 policy.json，新旧分支前缀都归到新名。"""
+    """#744：会话名随角色（one-lead、one-design、one-platform、one-dev-<bc>），都在 sessions.config。#856：旧名不再登记（没有 sessions.aliases），
+    会话由工作区会话标记认定；合入队列的分支归属（gapscan.load_owners）只认 sessions.config 的键，旧前缀的分支报未知。"""
     sessions, root = policy("sessions"), Path(ROOT)
     assert set(sessions["config"]) == {"one-lead", "one-design", "one-platform", "one-dev-org"}, sorted(sessions["config"])
-    for new, olds, role in (("one-lead", ("one-leader", "one-coordinator", "one-rules"), "lead"),
-                            ("one-design", ("one-architecture", "one-data", "one-glossary", "one-arch-finance"), "design"),
-                            ("one-platform", ("one-ops", "one-merge", "one-quality"), "platform"),
-                            ("one-dev-org", ("one-1a-admin", "one-platform-file", "one-1a-par", "one-dev-par"), "dev")):
-        assert sessions["config"][new]["role"] == role and all(sessions["aliases"][old] == new for old in olds), new
-        for old in olds:
-            assert old not in sessions["config"], old  # #752: the session profile files are gone; the session is its config entry
-    assert all(v in sessions["config"] for v in sessions["aliases"].values()), "every alias points at a session"
+    for name, role in (("one-lead", "lead"), ("one-design", "design"), ("one-platform", "platform"), ("one-dev-org", "dev")):
+        assert sessions["config"][name]["role"] == role, name
+    assert "aliases" not in sessions, "no old names are kept (#856)"
     assert not (root / "scripts/merge/session_map.json").exists(), "branch owners come from policy.json only (#754)"
     sys.path.insert(0, str(root / "scripts" / "merge"))
     import gapscan
     owners = gapscan.load_owners()
-    assert all(gapscan.author_session(b, owners) == o for b, o in (("claude/one-coordinator-x", "one-lead"), ("claude/one-leader-3f1c09", "one-lead"), ("claude/one-lead-x", "one-lead"), ("claude/one-1a-par-x", "one-dev-org"), ("claude/one-dev-org-x", "one-dev-org"),
-                                                               ("claude/one-ops-744-x", "one-platform"), ("claude/one-platform-810-x", "one-platform"), ("claude/one-platform-file-x", "one-dev-org"), ("claude/one-architecture-812-x", "one-design")))
+    assert all(gapscan.author_session(b, owners) == o for b, o in (("claude/one-lead-x", "one-lead"), ("claude/one-dev-org-x", "one-dev-org"),
+                                                               ("claude/one-platform-810-x", "one-platform"), ("claude/one-design-860-x", "one-design"),
+                                                               ("claude/one-ops-744-x", "?(claude/one-ops-744-x)"))), "only current names own branches"
 
 def pre_commit_test():
     """.pre-commit-config.yaml 只挂 gitleaks 与主检出守护（卡 #736：提交时不按路径拆守护文件；#742：commit_msg_gate 的 Session 追加已删）。"""

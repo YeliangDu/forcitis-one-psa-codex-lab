@@ -38,7 +38,7 @@ It does so only when that checkout is on main, has no change to a tracked file a
 unit test (ci.yml), the nightly the full ci: together they are the alarm for a merge whose tree no full run tested exactly as merged.
 
 Gap scan. Every 30 minutes the runner looks at all open pull requests, whether or not the queue is empty (scripts/merge/gapscan.py): conflict, red CI, approved but not queued (a comment `调度批准入队 head <sha>`), no commit or comment for an hour.
-It cannot message a session: a GAPS line in the log and <queue dir>/gaps.md say who owns what (branch [claude/]<session>-... -> session, names and aliases from policy.json sessions), the session watching the log forwards it. The same pull request and reason is reported once in 4 hours.
+It cannot message a session: a GAPS line in the log and <queue dir>/gaps.md say who owns what (branch [claude/]<session>-... -> session, names from policy.json sessions.config), the session watching the log forwards it. The same pull request and reason is reported once in 4 hours.
 
 Queue file: one pull request number per line, optionally "<n> after=<m>[,<m>...]" (`mq.py enqueue <n> --after <m>`: n is not started until every m is MERGED, whatever lane either is in; WAIT-DEP in the log
 while it waits and again every hour, HOLD when a dependency was closed unmerged;
