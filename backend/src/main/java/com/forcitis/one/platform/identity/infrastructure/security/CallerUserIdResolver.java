@@ -15,7 +15,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * A controller parameter of type UserId is the signed-in caller's account, read from the session like CurrentUser (never from the request);
- * modules that may not depend on identity take it this way. A broken principal is refused as not signed in (RULING-P2-4).
+ * kept only until the remaining controllers inject kernel.CurrentUser in their use cases instead (#812); do not add new uses. A broken
+ * principal is refused as not signed in (RULING-P2-4).
  */
 @Component
 @NotFromQuery(source = "the session")
