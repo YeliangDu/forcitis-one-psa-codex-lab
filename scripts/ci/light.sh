@@ -74,8 +74,8 @@ rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替�
 run "playbooks and the card template are well-formed" python3 -I scripts/guards/check_playbooks.py
 rule "规则或角色文件的「Enforced by」点名了不存在的脚本、作业或工具（规则看似有人执行，实则没有）" "按输出的 RE 规则号改成真实的检查名，或写 manual: <角色> / <频次>"
 run "every rule names an enforcer that exists" python3 -I scripts/guards/check_rules_enforced.py
-rule "policy.json rules/start 里有数值键没有脚本读（上限看似生效、实则无人执行）" "按输出的 PK 规则号删键，或让需要它的检查读它"
-run "every numeric policy.json rules/start key has a reader" python3 -I scripts/guards/policy_keys_read.py
+rule "policy.json 有数值或字符串键没有脚本读、也没登记为规则文本读者（上限或名字看似生效、实则无人执行）" "按输出的 PK 规则号删键，或让需要它的检查读它，或在 policy_keys_read.py 的 RULE_READERS 登记"
+run "every numeric or string policy.json key has a reader" python3 -I scripts/guards/policy_keys_read.py
 rule "智能体读的规则文件超出层上限（A 开局、B 每路径，policy.json rules.layer_*_max_kb），或 .claude/rules 不是指向带 paths: 文档的相对软链（#827），会话读不全或开局多读" "按输出的 RS 规则号删短所列文件、收窄 paths:、把内容移到按编号寻址的文档（C 层），或按提示修软链"
 run "agent-read rules: layer A/B sizes, .claude/rules links" python3 -I scripts/guards/rule_sizes.py
 rule "代码文件超过 1000 行（复审必改），或登记的超长文件变长、登记过期" "按输出的 FL 规则号拆文件，或按提示更新 scripts/guards/file_lines.py 的 OVER"
