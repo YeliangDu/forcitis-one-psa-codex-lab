@@ -45,6 +45,8 @@ expect scripts/ci/relevant_change_selftest.py t_mq
 expect scripts/merge/gapscan.py t_mq
 expect scripts/ci/light_unit_classes.py t_unit_classes
 expect scripts/ci/heavy_gate.py t_heavy_gate
+expect scripts/ci/backend_verify.sh t_shell t_guards_config t_backend_verify
+expect scripts/ci/backend_verify_selftest.sh t_shell t_backend_verify
 expect scripts/gates/prod_targets.json t_gates t_evidence
 expect scripts/codegen/scan_acceptance_tests.py t_scan
 expect scripts/merge/post_review.py t_mq t_post_review
