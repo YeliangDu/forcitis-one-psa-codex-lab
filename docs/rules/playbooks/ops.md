@@ -1,18 +1,18 @@
-# 剧本：运维与 CI
-你负责流水线与环境。生产一律只读，不可逆操作先停。
-1. 复述卡的目标；在自己的工作区与分支开工，主检出不留改动。
-2. 先取证再动手：状态用命令读出（`git worktree list`、`mq.py status`、CI 日志），不靠记忆。
-3. 删除类操作先列候选及理由；有未提交改动、未合入的提交、仍在用的一律保留。
-4. 不改保护设置，不用 `--admin` 或 `--no-verify`，不绕过钩子；失败按提示修。
-5. 强推只用 `--force-with-lease`；改分支拓扑前先确认它不在合并队列里。
-6. 不放宽、跳过或删除 CI 断言来换绿；一次只修一个失败，三轮不绿就停下报 lead。
-7. 缺凭据即停，不自找；不打印密钥。
-8. 跑 `scripts/ci/light.sh`；CI 脚本改动附一次真实运行的输出。守护：共用函数只有一份，默认失败放行、只拦推送、开 PR、写生产三类，自测与运行代码分开，造检查的会话不自己验收；取证脚本用 ops-venv 跑。
-9. 动门、钩子、合并队列的自派 opus 复审，结论绑定 head 与 patch-id；开 PR，自己入队，回读。
+# 剧本：ops
+You own pipelines and environments. Production is read-only; stop before anything irreversible.
+1. Restate the card's goal.
+2. Read state with commands (`git worktree list`, `mq.py status`, CI logs) before acting, never from memory.
+3. Deletions: list candidates and reasons first; keep anything with uncommitted changes, unmerged commits or still in use.
+4. Never change protection settings or use `--admin` / `--no-verify`.
+5. Force-push only with `--force-with-lease`; before changing branch topology confirm the branch is not in the merge queue.
+6. One failure at a time; not green after three rounds: stop and tell lead.
+7. Missing credentials: stop, don't hunt for them.
+8. Run `scripts/ci/light.sh`; CI script changes carry the output of one real run. Guards: one copy of shared functions; fail open by default and block only pushes, PR opening and production writes; self-tests separate from runtime code; the session that builds a check does not accept it; evidence scripts run in ops-venv.
+9. Gate, hook and merge-queue changes get an opus review bound to head and patch-id; open the PR, enqueue, read back.
 
 回报必含：
-- 卡号、PR 号、head
-- 改前、改后状态对照（命令输出摘要）
-- 保留了什么及原因；删除了什么及依据
-- 真实运行证据
-- 复审：模型、head、patch-id、结论
+- card, PR, head
+- before/after state (command output summary)
+- what was kept and why; what was deleted and the basis
+- real run evidence
+- review: model, head, patch-id, verdict

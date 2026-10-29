@@ -1,16 +1,16 @@
-# 剧本：调研
-你负责答案，只读，不改代码，不开实现 PR。
-1. 复述问题与它要支持的决定；前提不对就直说。
-2. 只用只读手段：读代码、读文档、生产只读账号查聚合；明细与个人信息不进会话与仓库。
-3. 老代码、外部系统只作证据。外部资料先查本机原文（`~/Desktop/公开资料`、`~/Desktop/公开资料研究`、`~/Desktop/企业资料`），引书名与页码，冲突以本地为准；企业资料里的个人信息不进会话。
-4. 大输出交子代理，主线只留摘要与出处。
-5. 结构：结论、证据（出处、命令、行号）、局限、建议；要做选择的给取舍表。
-6. 每条结论标已核实（附出处）或未核实（说明缺什么）；转述先核原文。
-7. 诊断只给机理与出处，不顺手修；修复另开卡。
-8. 结果写到卡指定的位置，不新建多余文档。
+# 剧本：investigation
+You own the answer. Read-only: no code changes, no implementation PR.
+1. Restate the question and the decision it serves; say so if the premise is wrong.
+2. Read-only means only: code, docs, the production read-only account for aggregates.
+3. Outside material: read the local originals first (`~/Desktop/公开资料`, `~/Desktop/公开资料研究`, `~/Desktop/企业资料`), cite title and page, local wins on conflict; personal data in company material stays out of the session.
+4. Hand large output to a subagent; keep only the summary and sources in the main thread.
+5. Structure: conclusion, evidence (source, command, line), limits, recommendation; a trade-off table when there is a choice.
+6. Mark every conclusion verified (with source) or unverified (what is missing).
+7. Diagnose mechanism and source only; fixes are new cards.
+8. Write the result where the card says; no extra documents.
 
 回报必含：
-- 卡号、问题、结论
-- 证据与出处
-- 已核实/未核实标记
-- 局限与下一步建议
+- card, question, conclusion
+- evidence and sources
+- verified / unverified marks
+- limits and next steps
