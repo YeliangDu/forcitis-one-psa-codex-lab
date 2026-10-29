@@ -224,6 +224,10 @@ def _units(mq, d):
         assert not mq.required_state(bad)[0], bad
     assert "secret scan: not listed" in mq.required_state(green()[:2])[1]
     assert mq.required_state(green() + [{"name": "assertion drift", "bucket": "fail", "link": ""}])[0] and mq.required_state(green(light=True) + green())[0], "only the three full checks decide"
+    # a label other than `queued` starts a run whose jobs all skip; GitHub lists their checks under the unexpanded name template (#808, 2026-10-29)
+    unexpanded = [{"name": n + "${{ (((github.event_name == 'pull_request') && ' (light)') || '') }}", "bucket": "skipping", "link": link(99)} for n in (*HEAVY, SECRET)]
+    assert mq.required_state(green() + unexpanded)[0], "a skipped label run's template-named checks are no verdict"
+    assert not mq.required_state(unexpanded)[0] and "backend verify: not listed" in mq.required_state(unexpanded)[1], "nor do they stand in for the real checks"
     r = mq.sh([sys.executable, "-c", "import time; time.sleep(300)"], timeout=1)
     assert r.returncode == 124 and "timed out" in r.stderr, "a hanging call is a failed call"
 
