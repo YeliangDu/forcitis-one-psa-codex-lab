@@ -84,6 +84,7 @@ against_base "migrations immutable" python3 scripts/guards/migrations_immutable.
 against_base "system actors append-only" python3 scripts/guards/system_actors_append_only.py
 against_base "acceptance guard" python3 scripts/guards/acceptance_guard.py
 against_base "acceptance rulings" python3 scripts/guards/acceptance_rulings.py
+against_base "file and directory names (added or renamed)" python3 -I scripts/guards/check_names.py
 
 # 工具库开工单（仓库外）读的规则与角色文件；脚本自身的自测都在「按改动触发」一节
 sheet=${ONE_SESSION_TOOLS:-$HOME/.modernize/psa/tools/one-session}/start_sheet/start_sheet_selftest.py  # 开工单固定由 /usr/bin/python3 跑（#47），3.10 以上语法在这里就红；工具库不在本机（CI）时同 acceptance_v2 V05 不判红
@@ -98,7 +99,7 @@ run "shell: no \$VAR right before non-ASCII" var_before_non_ascii
 # 验收测试改了就跑全部免容器单测（CLAUDE.md 交付第 2 步）；export-openapi 绑在 process-test-classes 上要起容器，所以用 test-compile surefire:test
 if ! touches "$t_acceptance"; then skip "surefire guard classes (acceptance changed)" "相关路径没改（按改动触发）"
 elif [ "${LIGHT_ALL:-}" = 1 ]; then skip "surefire guard classes (acceptance changed)" "推到 main：ci.yml 的 container-free unit tests 一步跑同一批"
-elif ! bash scripts/codegen/generate-api.sh --check >/dev/null 2>&1; then skip "surefire guard classes (acceptance changed)" "本机没有 OpenAPI 生成产物，先跑 bash scripts/codegen/generate-api.sh"
+elif ! bash scripts/codegen/generate_api.sh --check >/dev/null 2>&1; then skip "surefire guard classes (acceptance changed)" "本机没有 OpenAPI 生成产物，先跑 bash scripts/codegen/generate_api.sh"
 else run "surefire guard classes (acceptance changed)" surefire_guards; fi
 # relevant_change 的自测连带核对整个仓库的读者分档（读者随任何源文件变），每次都跑
 run "relevant_change (self-test)" python3 scripts/ci/relevant_change.py --self-test

@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const api = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'api');
-const command = '请在仓库根运行 bash scripts/codegen/generate-api.sh（需 Docker 和已安装的前端依赖）；已有本次导出的 openapi.json 时在 frontend/ 运行 pnpm generate:api。';
+const command = '请在仓库根运行 bash scripts/codegen/generate_api.sh（需 Docker 和已安装的前端依赖）；已有本次导出的 openapi.json 时在 frontend/ 运行 pnpm generate:api。';
 
 export function requireOpenApi() {
   const path = join(api, 'openapi.json');
