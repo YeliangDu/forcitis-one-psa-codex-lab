@@ -89,7 +89,7 @@ Authority: user request of 2026-10-15 (intent `2026-10-15-014844-one-coordinator
 - Non-null by default: parameters, return values and record components in domain, application and api are never `null`; at construction `Objects.requireNonNull(x, "x")`.
 - A single-value query that "may find nothing" returns `Optional<T>` (existing use cases such as `Optional<OrgUnitDetailView> execute(...)`); `Optional` is **return-value only**, never a field, parameter, record component (response records excepted, see below) or collection element.
 - Collections return an empty collection, never `null`; paging returns an empty page.
-- A response-record component that genuinely needs "no value" is marked `@Nullable` (the generated contract then declares nullable); use `org.jspecify.annotations.Nullable` throughout (currently 33 files use JSpecify and 8 files use `org.springframework.lang.Nullable` (`platform.approval.web` and `OpenApiRequiredProperties`); the latter goes to a structural refactor batch; Spring 7 itself has moved to JSpecify).
+- A response-record component that genuinely needs "no value" is marked `@Nullable` (the generated contract then declares nullable); use `org.jspecify.annotations.Nullable` throughout; Spring's `org.springframework.lang` nullness annotations are banned (`LegacyApiGuardTest` LA-9; Spring 7 itself has moved to JSpecify).
 - Guard: `NullableResponseGuardTest` (boxed-type components must be `@Nullable`); the rest Guard (planned: G-CS3).
 
 **CS-2.24 Exception classification** (summary + new)
