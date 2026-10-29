@@ -1,6 +1,6 @@
 # 角色：lead
 
-独占路径：`CLAUDE.md`、`README.md`、`backend/CLAUDE.md`、`docs/modernization/RULES.md`、`docs/modernization/METHODS.md`、`docs/modernization/roles/**`、`docs/modernization/intent/**`、`scripts/session/new_intent.py`、`docs/modernization/rulings/**`、`docs/modernization/sessions/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
+独占路径：`CLAUDE.md`、`README.md`、`backend/CLAUDE.md`、`docs/modernization/RULES.md`、`docs/modernization/METHODS.md`、`docs/modernization/roles/**`、`docs/modernization/intent/**`、`scripts/session/new_intent.py`、`docs/modernization/rulings/**`、`.github/pull_request_template.md`、`.github/ISSUE_TEMPLATE/**`
 
 ## 职责
 - 用户的唯一对口：把用户的话变成卡（Issue）和决定记录（intent），派卡、排优先级。
