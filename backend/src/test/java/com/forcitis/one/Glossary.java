@@ -17,9 +17,9 @@ import org.yaml.snakeyaml.Yaml;
 
 final class Glossary {
     static final Path FILE = Path.of("glossary/terms.yaml");
-    static final Path OFFICIAL = Path.of("../docs/modernization/glossary/terms.yaml");
+    static final Path OFFICIAL = Path.of("../docs/glossary/terms.yaml");
     /** Bounded-context register: the names of external systems (kind: system) are registered words, they are no longer terms (B2). */
-    static final Path CONTEXTS = Path.of("../docs/modernization/glossary/bcs.yaml");
+    static final Path CONTEXTS = Path.of("../docs/glossary/bcs.yaml");
     /** One file per module so parallel work never edits the same file. */
     static final Path PROPOSED_DIR = Path.of("glossary/proposed");
     static final Set<String> STATUSES = Set.of("approved", "proposed", "deprecated");

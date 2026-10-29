@@ -315,7 +315,7 @@ class NamingSurfaceTest {
 
     @SuppressWarnings("unchecked")
     private static Set<String> registeredBcs() throws IOException {
-        try (java.io.InputStream in = Files.newInputStream(Path.of("../docs/modernization/glossary/bcs.yaml"))) {
+        try (java.io.InputStream in = Files.newInputStream(Path.of("../docs/glossary/bcs.yaml"))) {
             Object root = new org.yaml.snakeyaml.Yaml().load(in);
             List<Map<String, Object>> entries = root instanceof Map<?, ?> m ? (List<Map<String, Object>>) m.get("bcs") : (List<Map<String, Object>>) root;
             return entries.stream().filter(e -> "bc".equals(e.get("kind"))).map(e -> String.valueOf(e.get("id"))).collect(Collectors.toSet());

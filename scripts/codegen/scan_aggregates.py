@@ -12,12 +12,13 @@ import yaml
 from scan_acceptance_tests import LEXER, pairs
 
 ROOT = Path(__file__).resolve().parents[2]
-ARCH = Path('docs/modernization/architecture')
-OUTPUT = ARCH / 'ssot/i03-aggregates'
+ARCH = Path('docs/architecture')
+OUTPUT = ARCH / 'ssot/aggregates'
+BUILT = Path('docs/modernization/architecture/ssot/i03-aggregates/built.yaml')  # two acceptance tests read it here until #755 PR B moves it
 JAVA = Path('backend/src/main/java/com/forcitis/one')
 REGISTRY = Path('backend/architecture/data-access-registry.yaml')
-DRAFT = ARCH / 'proposals/ENTERPRISE_AGGREGATES_DRAFT.md'
-UNBUILT = ARCH / 'panorama/unbuilt_roots.yaml'
+DRAFT = ARCH / 'proposals/enterprise-aggregates-draft.md'
+UNBUILT = ARCH / 'panorama/unbuilt-roots.yaml'
 MAX_DUE_DAYS = 60   # 名单只容过渡期，到期日最远为当天起 60 天
 PREFIX = 'com.forcitis.one.'
 HEADERS = ['#', '聚合', '内含', '对应', '不变量', '命令（→ 事件；前置 INV）', '对外事件（订阅方）', '引用与依赖方式']
@@ -253,20 +254,20 @@ def documents(root):
     dump = lambda data: '# 由 panorama/scan_aggregates.py 生成，勿手改\n' + yaml.safe_dump(data, allow_unicode=True, sort_keys=False, width=200)
     for row in unbuilt:
         print(f'告警：{row["table"]} 已登记为聚合根、domain 类未建（负责 {row["owner"]}，到期 {row["due"]}）', file=sys.stderr)
-    return {'built.yaml': dump(built_doc), 'planned.yaml': dump(planned), 'GAPS.md': gap_report(built, planned)}
+    return {'built.yaml': dump(built_doc), 'planned.yaml': dump(planned), 'gaps.md': gap_report(built, planned)}
 
 
 def generate(root=ROOT, check=False):
     contents = {name: text.encode('utf-8') for name, text in documents(root).items()}
+    where = lambda name: root / (BUILT if name == 'built.yaml' else OUTPUT / name)
     if check:
-        different = [name for name, data in contents.items() if not (root / OUTPUT / name).is_file()
-                     or (root / OUTPUT / name).read_bytes() != data]
+        different = [name for name, data in contents.items() if not where(name).is_file() or where(name).read_bytes() != data]
         if different:
             raise ValueError('产物不一致，重跑 scan_aggregates.py：' + '、'.join(different))
     else:
-        (root / OUTPUT).mkdir(parents=True, exist_ok=True)
         for name, data in contents.items():
-            (root / OUTPUT / name).write_bytes(data)
+            where(name).parent.mkdir(parents=True, exist_ok=True)
+            where(name).write_bytes(data)
     print('聚合登记：' + '、'.join(contents) + ('；check 通过' if check else '；已生成'))
 
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = Path('docs/modernization/architecture/ssot/i09-acceptance')
+OUTPUT = Path('docs/architecture/ssot/acceptance')
 SOURCES = ['backend/src/test/java/**/*.java (exclude **/architecture/**; '
            'outside acceptance require RULE-/INV-)',
            'frontend/**/__acceptance__/**']
@@ -259,8 +259,8 @@ def render_yaml(tests):
 
 
 def render_gaps(root, tests):
-    rules_file = root / 'docs/modernization/architecture/ssot/c1-rules/rules.yaml'
-    rule_dir = root / 'docs/modernization/rules'
+    rules_file = root / 'docs/architecture/ssot/constraint-rules/rules.yaml'
+    rule_dir = root / 'docs/business/rules'
     if not rules_file.is_file() or not rule_dir.is_dir():
         raise ValueError('缺少规则来源 rules.yaml 或 rules/ 目录')
     rules = set()
@@ -284,8 +284,8 @@ def render_gaps(root, tests):
     if not unnamed:
         lines.extend(['无。', ''])
     lines.extend([f'## 有规则无测试（{len(missing)} 条）', '',
-                  '来源：`docs/modernization/architecture/ssot/c1-rules/rules.yaml`'
-                  ' 与 `docs/modernization/rules/*.md` 中全部 RULE-/INV- 编号（含正文引用）。', ''])
+                  '来源：`docs/architecture/ssot/constraint-rules/rules.yaml`'
+                  ' 与 `docs/business/rules/*.md` 中全部 RULE-/INV- 编号（含正文引用）。', ''])
     categories = [('新规则卡（RULE-316 及以上）',
                    [r for r in missing if r.startswith('RULE-') and int(re.search(r'\d+', r)[0]) >= 316]),
                   ('老行为卡（RULE-315 及以下）',
@@ -364,7 +364,7 @@ def main():
     try:
         tests, java_count, frontend_count = collect(ROOT)
         gaps, unnamed, missing = render_gaps(ROOT, tests)
-        outputs = {'tests.yaml': render_yaml(tests), 'GAPS.md': gaps}
+        outputs = {'tests.yaml': render_yaml(tests), 'gaps.md': gaps}
         different = []
         for name, content in outputs.items():
             path = ROOT / OUTPUT / name

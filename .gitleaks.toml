@@ -2,14 +2,14 @@
 [extend]
 useDefault = true
 
-# 用语确认页（docs/modernization/glossary/confirm-page）的条目数据里有 "key":"R2-P-actual-hours" 这类键，
+# 用语确认页（docs/glossary/confirm-page）的条目数据里有 "key":"R2-P-actual-hours" 这类键，
 # 是页面存储的文档 id（组别前缀 + 词条 id），不是凭据，会被 generic-api-key 误报。
 # 放行范围：只限 generic-api-key、只限确认页的两个 HTML 文件、只限 "key":"<组别>-<词条 id>" 形状的匹配（三者同时满足）。
 [[allowlists]]
 description = "用语确认页条目键（R2-P-…、A-…、B-…、C-… 等），非凭据"
 targetRules = ["generic-api-key"]
 condition = "AND"
-paths = ['''^docs/modernization/glossary/confirm-page/(index|template)\.html$''']
+paths = ['''^docs/(modernization/)?glossary/confirm-page/(index|template)\.html$''']  # #755 moved it; history keeps the old path
 regexTarget = "match"
 regexes = ['''key":"(R2-)?[ABCNP]-[a-z0-9_\-]+"''']
 
@@ -27,6 +27,6 @@ keywords = ["password", "passwd", "pwd", "secret", "token", "key", "credential"]
 description = "命名预览的词元键，非凭据"
 targetRules = ["credential-assignment-literal"]
 condition = "AND"
-paths = ['''^docs/modernization/glossary/arch-naming/naming-preview\.json$''']
+paths = ['''^docs/(modernization/)?glossary/arch-naming/naming-preview\.json$''']  # #755 moved it; history keeps the old path
 regexTarget = "match"
 regexes = ['''^"token"''']

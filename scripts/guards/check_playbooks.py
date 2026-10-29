@@ -2,7 +2,7 @@
 """Playbooks and the card template stay short, complete and consistent (lead decision, #742 PR 3).
 
 Each failure names the rule, the file and the fix:
-  P1 docs/modernization/playbooks/<type>.md is at most 2048 bytes (a session reads it whole at start)
+  P1 docs/rules/playbooks/<type>.md is at most 2048 bytes (a session reads it whole at start)
   P2 its first line is `# 剧本：<类型>`
   P3 it has a 「回报必含」 section
   P4 every repository path it names in backticks exists
@@ -19,7 +19,7 @@ import re
 import sys
 import tempfile
 
-PLAYBOOKS = "docs/modernization/playbooks"
+PLAYBOOKS = "docs/rules/playbooks"
 CARD = ".github/ISSUE_TEMPLATE/card.md"
 MAX_BYTES = 2048
 SECTIONS = ("类型", "目标", "完成标准", "文件范围", "依据", "消费方", "不得做")

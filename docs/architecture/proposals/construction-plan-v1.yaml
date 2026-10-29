@@ -1,0 +1,144 @@
+# 全企业施工方案定稿版（第 3 版）的机读版（CONSTRUCTION_PLAN_DRAFT.md 第 1–2、6、7、10 节）。用户已定口径：intent 2026-10-16-133348；投产日 2028-01-01：intent 2026-10-16-134135；U-12：intent 2026-10-16-134434；规划依赖边与聚合稿一次认可全部进 SSOT：intent 2026-10-16-134134 (Q-11)。
+# 层、入度由 aggregates_dep_check.py 的解析与分层函数计算（2026-10-16，聚合稿当前版本）；方法见 CONSTRUCTION_PLAN_DRAFT.md 第 1.2 节。
+# 字段：layer = 聚合稿 §4.1 层号；in_direct / in_transitive = 依赖它的业务 BC 数；current_stage = 现行路线归属；depth = 聚合稿 §3.2 深 / 薄；wave = 建造批（W0–W5）；start / finish = 达成配置（L=12、重叠 30%、拆分 3 路、产出 1.055 倍）下的模型日期，2026-11-02 起算；effort_lane_weeks = 基数车道周（区间 0.7–1.4 倍）。
+status: 用户已定口径，U-14 不适用
+bcs:
+  - {id: B-13, module: organization.workforce, layer: 2, in_direct: 23, in_transitive: 27, current_stage: 1a, depth: 薄（一次投产 / 法人分批下建议按深，人事记录系统）, wave: W0, start: "2026-11-02", finish: "2027-01-20", effort_lane_weeks: 36}
+  - {id: B-14, module: organization.attendance, layer: 2, in_direct: 3, in_transitive: 22, current_stage: 1a, depth: 薄, wave: W0, start: "2026-11-02", finish: "2026-11-06", effort_lane_weeks: 1}
+  - {id: B-01, module: masterdata.counterparty, layer: 3, in_direct: 11, in_transitive: 17, current_stage: 6a 之前（未排定）, depth: 薄, wave: W1, start: "2026-11-26", finish: "2027-01-30", effort_lane_weeks: 9}
+  - {id: B-19, module: accounting.period, layer: 3, in_direct: 8, in_transitive: 16, current_stage: 2 / 4（C-11）, depth: 深, wave: W1, start: "2026-11-26", finish: "2027-02-05", effort_lane_weeks: 11}
+  - {id: B-30, module: km.knowledge, layer: 3, in_direct: 4, in_transitive: 17, current_stage: 未排期, depth: 薄, wave: W1, start: "2026-11-26", finish: "2027-01-30", effort_lane_weeks: 6}
+  - {id: B-16, module: operations.facts, layer: 4, in_direct: 13, in_transitive: 15, current_stage: 2 / 4（C-11）, depth: 深, wave: W1, start: "2027-01-01", finish: "2027-04-02", effort_lane_weeks: 14}
+  - {id: B-02, module: masterdata.catalog, layer: 5, in_direct: 4, in_transitive: 16, current_stage: 1b, depth: 薄, wave: W1, start: "2026-12-31", finish: "2027-03-09", effort_lane_weeks: 10}
+  - {id: B-20, module: accounting.ledger, layer: 5, in_direct: 4, in_transitive: 9, current_stage: "4（收付推送 6a 入口）", depth: 深, wave: W1, start: "2027-01-28", finish: "2027-04-12", effort_lane_weeks: 21}
+  - {id: B-22, module: accounting.cashbank, layer: 5, in_direct: 2, in_transitive: 7, current_stage: "4", depth: 深, wave: W3, start: "2027-01-28", finish: "2027-04-19", effort_lane_weeks: 12}
+  - {id: B-18, module: operations.planning, layer: 5, in_direct: 2, in_transitive: 4, current_stage: 6f, depth: 薄（预算账户若拦截则深）, wave: W2, start: "2026-11-26", finish: "2027-01-30", effort_lane_weeks: 6}
+  - {id: B-27, module: organization.leave, layer: 5, in_direct: 2, in_transitive: 3, current_stage: 6e, depth: 薄, wave: W2, start: "2026-11-26", finish: "2027-01-30", effort_lane_weeks: 8}
+  - {id: B-03, module: presales.opportunity, layer: 6, in_direct: 6, in_transitive: 15, current_stage: 1b, depth: 深, wave: W2, start: "2027-01-21", finish: "2027-03-19", effort_lane_weeks: 19}
+  - {id: B-17, module: operations.policy, layer: 6, in_direct: 0, in_transitive: 0, current_stage: "4", depth: 深, wave: W5, start: "2027-03-16", finish: "2027-05-14", effort_lane_weeks: 9}
+  - {id: B-21, module: accounting.reporting, layer: 6, in_direct: 0, in_transitive: 0, current_stage: "4", depth: 薄, wave: W5, start: "2027-03-16", finish: "2027-04-23", effort_lane_weeks: 5}
+  - {id: B-04, module: delivery.execution, layer: 7, in_direct: 8, in_transitive: 14, current_stage: "2", depth: 深, wave: W2, start: "2027-02-05", finish: "2027-04-04", effort_lane_weeks: 26}
+  - {id: B-28, module: delivery.acceptance, layer: 8, in_direct: 5, in_transitive: 13, current_stage: 6a, depth: 深, wave: W2, start: "2027-03-05", finish: "2027-04-17", effort_lane_weeks: 19}
+  - {id: B-05, module: contract.agreement, layer: 9, in_direct: 6, in_transitive: 11, current_stage: 6a, depth: 深, wave: W3, start: "2027-04-04", finish: "2027-05-09", effort_lane_weeks: 16}
+  - {id: B-06, module: cost.timesheet, layer: 9, in_direct: 1, in_transitive: 1, current_stage: 1a 样板 / 2, depth: 深, wave: W3, start: "2027-03-18", finish: "2027-05-30", effort_lane_weeks: 11}
+  - {id: B-08, module: receivables.wip, layer: 10, in_direct: 3, in_transitive: 8, current_stage: 6a, depth: 深, wave: W3, start: "2027-04-17", finish: "2027-06-08", effort_lane_weeks: 24}
+  - {id: B-07, module: cost.costing, layer: 10, in_direct: 0, in_transitive: 0, current_stage: "4", depth: 深, wave: W5, start: "2027-04-15", finish: "2027-07-10", effort_lane_weeks: 13}
+  - {id: B-26, module: delivery.inspection, layer: 10, in_direct: 0, in_transitive: 0, current_stage: 未排期, depth: 深, wave: W5, start: "2027-04-15", finish: "2027-07-02", effort_lane_weeks: 12}
+  - {id: B-23, module: accounting.tax, layer: 11, in_direct: 2, in_transitive: 6, current_stage: "4", depth: 深, wave: W3, start: "2027-05-02", finish: "2027-07-22", effort_lane_weeks: 12}
+  - {id: B-09, module: receivables.collection, layer: 11, in_direct: 0, in_transitive: 0, current_stage: 6b, depth: 深, wave: W4, start: "2027-05-09", finish: "2027-08-10", effort_lane_weeks: 14}
+  - {id: B-10, module: payables.payment, layer: 12, in_direct: 3, in_transitive: 5, current_stage: 6c, depth: 深, wave: W4, start: "2027-05-27", finish: "2027-08-27", effort_lane_weeks: 14}
+  - {id: B-11, module: procurement.subcontracting, layer: 13, in_direct: 2, in_transitive: 2, current_stage: 6d, depth: 深, wave: W4, start: "2027-06-23", finish: "2027-09-06", effort_lane_weeks: 16}
+  - {id: B-12, module: expense.spend, layer: 13, in_direct: 0, in_transitive: 0, current_stage: "3", depth: 深, wave: W4, start: "2027-06-23", finish: "2027-09-06", effort_lane_weeks: 10}
+  - {id: B-15, module: organization.payroll, layer: 13, in_direct: 0, in_transitive: 0, current_stage: 6e, depth: 深, wave: W4, start: "2027-06-23", finish: "2027-09-06", effort_lane_weeks: 24}
+  - {id: B-24, module: accounting.fixedasset, layer: 14, in_direct: 0, in_transitive: 0, current_stage: "4", depth: 深, wave: W5, start: "2027-07-04", finish: "2027-09-17", effort_lane_weeks: 9}
+  - {id: B-29, module: delivery.closeout, layer: 14, in_direct: 0, in_transitive: 0, current_stage: 未排期, depth: 薄（流程模块）, wave: W5, start: "2027-07-10", finish: "2027-09-17", effort_lane_weeks: 6}
+extra_tasks:
+  - {id: X-MIG, name: 迁入编排与历史期间 platform.migration, wave: W1, start: "2026-11-26", finish: "2027-01-30", effort_lane_weeks: 8}
+  - {id: X-EVT, name: 事件机制实施项, wave: W0, start: "2026-11-26", finish: "2027-01-30", effort_lane_weeks: 6}
+  - {id: X-RPT, name: reporting 承接 BI, wave: W5, start: "2027-03-09", finish: "2027-05-14", effort_lane_weeks: 10}
+  - {id: X-ADM, name: A8 行政流程迁走或停用线, wave: W2, start: "2026-11-26", finish: "2027-01-30", effort_lane_weeks: 8}
+  - {id: X-ARC, name: 老库与 A8 库只读归档与调阅, wave: W5, start: "2026-12-12", finish: "2027-01-28", effort_lane_weeks: 3}
+batches:
+  - {id: W0, name: 平台与人事记录系统, start: "2026-11-02", finish: "2027-01-30", bcs: [B-13, B-14], extra: [X-EVT]}
+  - {id: W1, name: 主数据与业财主干, start: "2026-11-26", finish: "2027-04-12", bcs: [B-01, B-02, B-30, B-19, B-16, B-20], extra: [X-MIG]}
+  - {id: W2, name: 收入链前段与经营, start: "2026-11-26", finish: "2027-04-17", bcs: [B-03, B-04, B-28, B-27, B-18], extra: [X-ADM]}
+  - {id: W3, name: 收入链后段与工时, start: "2027-01-28", finish: "2027-07-22", bcs: [B-05, B-06, B-08, B-22, B-23]}
+  - {id: W4, name: 收付供方费用薪酬, start: "2027-05-09", finish: "2027-09-06", bcs: [B-09, B-10, B-11, B-12, B-15]}
+  - {id: W5, name: 核算报表收尾与演练, build_start: "2026-12-12", build_finish: "2027-09-17", rehearsal_start: "2027-09-27", rehearsal_finish: "2027-12-05", bcs: [B-07, B-17, B-21, B-24, B-29, B-26], extra: [X-RPT, X-ARC]}
+route: 一次投产
+launch_date: "2028-01-01"
+scope: 全部业务与流程模块（无投产后增建）
+opening_balance: 全部历史明细迁入（U-3 不推翻）
+milestones:
+  build_complete: "2027-09-17"
+  build_latest_line: "2027-10-08"
+  baseline_close_before: "2027-09-24"
+  simulation_1: {start: "2027-09-27", end: "2027-10-15", fix_until: "2027-10-22"}
+  simulation_2: {start: "2027-10-25", end: "2027-11-12", timed_window: "2027-11-06"}
+  recalc_comparison: {start: "2027-11-15", end: "2027-12-03", periods: ["2027-09", "2027-10"], parallel_run: false}
+  final_rehearsal: {start: "2027-12-04", end: "2027-12-05"}
+  go_no_go: "2027-12-08"
+  freeze_from: "2027-12-13"
+  cutover_window: {start: "2027-12-30T18:00", end: "2028-01-02"}
+schedule_assumptions:
+  lane_week: 一个会话加其调度的 Codex 派工组合在一个 BC 内持续产出一周
+  effort_formula: "薄 3+0.8×聚合数；深 5+1.2×聚合数；触账 +1；B-13 +6；B-14 取 0.5；B-06 ×0.7；迁入适配器 +25%（大数据量 +100%，B-15 +60%）；测试 +20%；区间 0.7–1.4 倍"
+  achieved_config: {lanes: 12, overlap_ratio: 0.3, split_ways: 3, productivity: 1.055, build_complete: "2027-09-17"}
+  conservative_config: {lanes: 8, overlap_ratio: 0.5, split_ways: 2, productivity: 1.0, build_complete: "2028-03-22"}
+  sensitivity_build_complete:
+    lanes_minus_30pct_to_8: "2027-12-23"
+    lanes_minus_15pct_to_9: "2027-11-09"
+    productivity_minus_30pct: "2028-01-23"
+    lanes_plus_30pct_to_16: "2027-08-20"
+    productivity_plus_30pct: "2027-07-10"
+  critical_path: [B-13, B-01, B-02, B-03, B-04, B-28, B-05, B-08, B-23, B-10, B-11, B-24]
+  highest_risk_bcs: [B-13, B-04, B-08, B-20, B-16, B-15]
+  pending_inputs: [T-2, T-3, T-4]
+selected_options:
+  U-1: 读作自成体系；老系统加 A8 都不接；企业微信、U8C、分贝通、税务、银行保留为外部服务
+  U-2: 一次投产
+  U-3: 不推翻，全部历史权责事实仍进交易库
+  U-4: 全部历史明细迁入
+  U-5: 全部业务与流程模块
+  U-6: 会计年度首日 1 月 1 日；投产日 2028-01-01
+  U-7: A8 行政流程迁走或停用
+  U-8: 推送收付口径凭证到 U8C、按月对账，自出法定账以后再定
+  U-9: 老库只读归档，按会计档案保管要求保留
+  U-10: 不并行；最近两个已结期间在新系统重算并与老结果比对
+  U-11: 在途按稿第 7 节（定稿第 8 节更新）
+  U-12: 人事业务生效日（入职日、调岗生效日，人事登记时填写）
+  U-13: 知识库引用保持校验，投产前建薄版
+  U-14: 不适用
+  U-15: 不引入消息中间件，判据登记
+  U-16: 幂等两种写法都允许，监听者声明，守护测试检查
+  U-17: 运维重放命令（30 天内）
+  U-18: 运维页面、业务死信责任人与时限、分析侧死信隔离后放行部署，三项都做
+eventing:
+  registry: platform_integration.event_publication（每事件每监听者一行，进程内投递，至少一次）
+  archive_days: 30
+  republish: {interval: PT1M, minimum_age: PT1M, maximum_attempts: 8, stale_alert_after: PT10M}
+  built_now: {asyncapi_channels: 59, listeners: 17}
+  enterprise_estimate: {aggregates: 109, external_events: 179, events_with_business_subscribers: 44, business_subscription_pairs: 58, analytics_only: 116, same_bc: 10}
+  quarantine: "ADR-0035 决定 6 已采纳，event_quarantines 未建"
+  decided:
+    broker: 不引入（判据 4 条登记，任一满足即评估）
+    idempotency: 两种写法，监听者声明，守护测试
+    replay_command: 30 天内按事件类型或时间段重放给指定监听者
+    ops_page: 做
+    business_dead_letter_owner_and_deadline: 做（值待用户）
+    analytics_dead_letter_release_deploy: 做（不适用于过账请求与关账前置）
+  implementation_items: [E-1, E-2, E-3, E-4, E-5, E-6, E-7, E-8]
+affected_adrs:
+  - {id: ADR-0011, items: ["决定 3 :19 撤", "备选 :32 被推翻", "决定 4 :20 过渡期视图改为仅投产当日 BI 切换（待 T-13）"], carrier: 过渡 ADR}
+  - {id: ADR-0021, items: ["决定 1 :16-20 留在 OA 撤", "决定 3 :23 改一次切换", "决定 4 :24-31 改投产日一次", ":37 撤", ":40 致远 SSO 撤"], carrier: 过渡 ADR}
+  - {id: ADR-0022, items: ["决定 8 :72、:95 改投产日一次", "决定 11 :75 年份定 2028", ":94 改", ":73、:101-104 保留"], carrier: 过渡 ADR 与勘误}
+  - {id: ADR-0024, items: ["决定 2 :17 改随投产", "决定 4 :19 保留"], carrier: 过渡 ADR}
+  - {id: ADR-0025, items: ["决定 5 :127-143、:196 撤", "决定 6 :145-157 保留"], carrier: 过渡 ADR}
+  - {id: ADR-0026, items: [":138 改"], carrier: 勘误}
+  - {id: ADR-0027, items: [":28、:31 改离职来源"], carrier: 过渡 ADR 或人事记录系统 ADR}
+  - {id: ADR-0028, items: [":9-18 同步运行暂停撤，管理员离职暂停保留"], carrier: 过渡 ADR 或人事记录系统 ADR}
+  - {id: ADR-0033, items: [":94、:97、:100 撤", ":98、:102、:93 保留或并入迁入", ":195-196 改", "来源对照用途收窄"], carrier: 勘误与迁移卡}
+  - {id: ADR-0034, items: [":184、:237-238 改人事离职命令 ID"], carrier: 基线开放期内直接改}
+  - {id: ADR-0035, items: ["决定 2 :36-39 保留", "决定 6 :51-57 加分析侧放行、责任人时限、页面与重放"], carrier: 勘误}
+  - {id: ADR-0036, items: ["决定 10 :135 改（敏感数据演练）", "迁移方案 :168-170 改一次迁入"], carrier: 过渡 ADR 或修订，须 one-security 评审}
+  - {id: ADR-0037, items: ["第 5 项第 4 条 :109-112、:221-223、:272 投产后处置"], carrier: 勘误与迁移卡}
+  - {id: ADR-0038, items: ["决定 1 :31-49 保留，关闭时点前移到 2027-09-24 前"], carrier: 勘误}
+  - {id: ADR-0039, items: ["决定 2 :24-27 撤（管理员离职暂停 :26 保留）", "决定 3 :29-32 致远票据撤", ":39 老待办撤", ":34-35 保留"], carrier: 过渡 ADR}
+  - {id: ADR-0002, items: [":21 保留并补判据登记"], carrier: 勘误}
+  - {id: brief, items: ["§3 :74-85 撤", "Phase 1a 出口 :125 :128 :132 改撤改", "Phase 1b–5 改为 W0–W5", "D-1a-02 :481 时点提前"], carrier: 过渡 ADR}
+  - {id: transitions.yaml, items: ["TA-1a 至 TA-5 改为 TA-W0 至 TA-W5 与投产", "delivers 机械更新"], carrier: 与聚合稿同一提交进 SSOT（Q-11）}
+  - {id: GUIDING_PRINCIPLES, items: [":26 改"], carrier: 过渡 ADR}
+  - {id: 员工与岗位版本表, items: ["生效依据改人事业务生效日（U-12）"], carrier: 迁移卡，交 one-data}
+in_flight:
+  keep: [dev 首次部署, 1a 其余平台模块, R-1b 主线 P3b-P4-P5-F-1, DA-3, DA-10, 修复批 identity/approval/timesheet-audit, 修复批 AP-12/AP-18, ADR-0050/0051 起草]
+  change: [R-1b P6 并入 ADR-0036 人事全量迁入, W2 版本表 DA-7 生效依据改人事业务生效日, Phase 1a 出口条件]
+  revoke: [workforce 同步代码, RegisterEmployeeOnLogin, HandleOrgSnapshotChange, LegacyOrgNames, 老待办收件箱, 拆分 a/b, R-1b-0b, 修复批 WF-01/02/03(同步表部分)/07/08/13/14, 1b 逐列所有权矩阵与兼容门面]
+pending_user: [达成条件认可（6.4）, 敏感数据演练环境, 业务死信责任人与时限的值, A8 行政流程各项处置与 KM、IT 门户去留, go/no-go 判据与培训完成率比例]
+decided_since: [U-12 人事业务生效日 (intent 2026-10-16-134434)]
+evidence_done:
+  - id: T-1
+    date: 2026-10-16
+    topic: 五法人耦合度（只计数与比例；法人分批未选，留存）
+    record: docs/ops/legacy-read/2026-10-16-132158-one-architecture.md
+evidence_pending: [T-2 拒收率, T-3 未结对象量, T-4 A8 行政流程组织依赖与权责归属, T-5 薪酬期初, T-6 审计师要求, T-7 未结判据（财务）, T-8 档案办法附表原件, T-9 12 号对自研软件适用, T-10 补录量, T-12 事件量, T-13 外部调用方清单与 BI 查询清单]
+referred_to_finance: [未结判定口径（ADR-0018），现只用于在途排空与重算比对]

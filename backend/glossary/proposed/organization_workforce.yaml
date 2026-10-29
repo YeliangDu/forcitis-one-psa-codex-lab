@@ -256,7 +256,7 @@ terms:
   acl_class: "过渡期"
   definition: 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日
   standard_ref:
-  - docs/modernization/rules/WORKFORCE_HISTORY_RULES.md
+  - docs/business/rules/workforce-history-rules.md
   confidence: medium
   aliases: []
   forbidden: [离职日期, separation_date]

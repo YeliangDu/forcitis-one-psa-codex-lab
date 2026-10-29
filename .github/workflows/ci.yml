@@ -21,7 +21,7 @@ concurrency:
   group: ci-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'queued' && '-other-label' || github.event_name == 'schedule' && '-nightly' || '' }}
   cancel-in-progress: true
 
-# Self-hosted runners (docs/modernization/CI_RUNNERS.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
+# Self-hosted runners (docs/ops/ci-runners.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
 # Three tiers (scripts/ci/relevant_change.py): docs (nothing the builds read changed: light checks only), guarded (only docs that container-free tests, the glossary copy scripts or the release scripts read: just those run, on every pull request event), code (everything). A push to main and the nightly run are always tier code.
 # Heavy steps (backend tests, SQL Server tests, frontend verify) run only for a pull request labelled `queued` and never on a push to main (scripts/ci/heavy_gate.py), where the nightly schedule runs everything; the light steps run on every event. Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs the light steps (release approval depends on it).
 # OpenAPI and the frontend generated code are not tracked (frontend/packages/api/README.md): the api-contract job exports and generates them on every event, because the contract tests read them, and the backend and frontend jobs download this run's products; it never publishes a main snapshot.

@@ -2,7 +2,7 @@
 """Check that the Acceptance-Ruling a commit names is a real ruling (SESSION_PLAYBOOK 附 M1 第 4 条、TEAM-69; scripts/guards/acceptance_guard.py only checks that a trailer of the right shape is there).
 
 Acceptance tests may be changed by the test engineer, or by a commit that carries `Acceptance-Ruling: RULING-<id>`: a review (not the implementing session) decided the test was wrong. The ruling must exist in the
-repository record docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml, **as of the pull request's base** (a record added in the same pull request is the implementing session ruling for itself). An entry is
+repository record docs/rules/rulings/acceptance-rulings.yaml, **as of the pull request's base** (a record added in the same pull request is the implementing session ruling for itself). An entry is
   - id: RULING-12
     date: 2026-10-17
     ruled_by: one-coordinator        # who decided: the review, the coordinator, the user; never the session that wants the change
@@ -27,7 +27,7 @@ import tempfile
 from acceptance_guard import ACCEPTANCE, RULING_ID, changed_files, parents_of, trailer_values
 from ci_git import CiError, commit_of, git, git_ok, require_full_history, run, toplevel
 
-RECORD = "docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml"
+RECORD = "docs/rules/rulings/acceptance-rulings.yaml"
 ENFORCE = True
 FIELDS = ("id", "date", "ruled_by", "implementer", "files", "reason", "ref")
 

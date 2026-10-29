@@ -938,7 +938,7 @@ def _docs_tiers(mq, d):
     open(script, "w").write("import sys\nprint('tier=' + ('docs' if all(p.startswith('docs/') for p in open(sys.argv[2]).read().split()) else 'code'))\n")
     lane = mq.default_lane(repo)
     assert lane(files(["docs/a.md"]), 1) == "docs" and lane(files(["docs/a.md", "backend/pom.xml"]), 1) == "code" and lane(files(None), 1) == "code" and lane(files([]), 1) == "code"
-    assert lane(files(["docs/a.md", "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md"]), 1) == "code", "a guarded path is never the docs lane, whatever its tier"
+    assert lane(files(["docs/a.md", "docs/ops/predeploy-checklist.md"]), 1) == "code", "a guarded path is never the docs lane, whatever its tier"
     open(script, "w").write("print('tier=docs')\nraise SystemExit(3)\n")
     assert mq.default_lane(repo)(files(["docs/a.md"]), 1) == "code", "a non-zero exit is never docs"
 
@@ -954,5 +954,5 @@ def _docs_tiers(mq, d):
     guarded = next((f for f in tracked if rc.is_guarded_doc(f) and (rc.plan_for([f], index, light) or {}).get("classes")), None)
     assert guarded, "no doc of the guarded tier is left: the guarded case would silently vanish; pick the sample differently"
     assert check([plain])
-    for read in ["docs/modernization/events/asyncapi.yaml", "docs/modernization/glossary/terms.yaml", guarded]:
+    for read in ["docs/modernization/events/asyncapi.yaml", "docs/glossary/terms.yaml", guarded]:
         assert not check([read]) and not check([plain, read]), f"{read} is read by a test: not docs"

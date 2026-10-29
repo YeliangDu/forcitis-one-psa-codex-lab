@@ -10,7 +10,7 @@
 
 ## 交付
 
-按卡的「类型」读 `docs/modernization/playbooks/<类型>.md`，照它的步骤做、按它的「回报必含」回报。
+按卡的「类型」读 `docs/rules/playbooks/<类型>.md`，照它的步骤做、按它的「回报必含」回报。
 
 1. 只在自己的工作区与分支改，主检出不留改动。
 2. 跑受影响的测试，加 `scripts/ci/light.sh`；改了验收目录再跑全部 surefire 守护类。
@@ -18,7 +18,7 @@
 4. 开 PR，首行 `Closes #卡`。
 5. `python3 scripts/merge/mq.py enqueue <PR>` 自己入队。
 
-拿不准时查：`docs/modernization/RULES.md`、本会话角色文件 `docs/modernization/roles/<角色>.md`（会话与角色见 `policy.json` 的 `sessions`）。
+拿不准时查：`docs/rules/rules.md`、本会话角色文件 `docs/rules/roles/<角色>.md`（会话与角色见 `policy.json` 的 `sessions`）。
 
 # Compact instructions
 

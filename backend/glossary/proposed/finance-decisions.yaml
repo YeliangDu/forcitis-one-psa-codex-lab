@@ -1,4 +1,4 @@
-# 财务口径决策单（docs/modernization/r0/FINANCE_DECISIONS.md，2026-10-15）中出现、词表未收的会计与经营用语。
+# 财务口径决策单（docs/business/finance-decisions.md，2026-10-15）中出现、词表未收的会计与经营用语。
 # 会计类提议术语须经财务口径确认（ADR-0018）；「产值收入」是方言，登记在正式用语「权责收入」下。
 terms:
 - id: operating_output_value

@@ -1,0 +1,246 @@
+# 草稿（ADR-0041）：目标汇编保留供讨论；KPI 是阶段出口度量，不驱动 BC 推导；业务目标与目标值待用户给出。第 0、1 步确认页已作废。
+# 架构施工图方法第 0 步：愿景、驱动力、目标与 KPI（草稿，待用户确认）
+# 路径约定：docs/ 下的相对路径；INTENT = docs/INTENT.md（生成文件，按日期与原话引用）
+# 规则：每条都有出处；用户没说过、文档里也没有的目标不写进 goals，写进 open_questions。
+# 所有 KPI 的目标值（量化阈值）都未经用户给定，统一见 open_questions，不在此处编造。
+meta:
+  step: 0
+  status: draft
+  date: "2026-10-15"
+  framework: TOGAF 10 Preliminary / Phase A（FRAMEWORKS.md 第 1 节）
+  vision_statement: >-
+    以 AEC 项目为业务基础的专业服务公司（FORCITIS），在新系统 FORCITIS one 中以权责发生制为核心实现业务财务一体：
+    权责业务事实只在新系统产生并留痕，一次过账、期间受控，由新系统直接出权责口径的三大报表与统一口径的经营分析，
+    老系统在持续运行中按阶段切换并下线。
+  vision_statement_source:
+    - "INTENT 2026-10-14「这是一个 AEC 行业项目为基础的专业服务公司，权责发生制为核心的业务财务一体化系统，这个对现代化有用吗」"
+    - "GUIDING_PRINCIPLES §9a 首段（以 AEC 项目为业务基础，核心是权责发生制下的业财一体）"
+    - "MODERNIZATION_BRIEF §1（FORCITIS one，按 BC 绞杀式切换）"
+  note: 愿景句是对上述原话与文档的归纳，不是用户逐字所说；请用户确认或改写。
+
+drivers:
+  - id: DRV-01
+    name: 技术栈全线过保与公网可利用的安全缺陷
+    statement: 老系统栈（Boot 2.7、Vue 2 等）已过保，生产存在免密登录和入库明文密钥，核心规则锁在无测试的老 service 层。
+    source: MODERNIZATION_BRIEF §1「为什么是现在」
+  - id: DRV-02
+    name: 权责发生制业财一体是业务核心
+    statement: 公司是以 AEC 项目为基础的专业服务公司，需要把人的时间转化为收入和现金，并在过账、开票、确认收入、关账这些控制点上受控留痕。
+    source: INTENT 2026-10-14「这是一个 AEC 行业项目为基础的专业服务公司…」；GUIDING_PRINCIPLES §9a；ADR-0016「背景」
+  - id: DRV-03
+    name: 权责事实分散在老系统与 OA 两处
+    statement: 致远 A8 不只是审批工具，它还是第二个权责事实来源和过账通道（直接给 U8C 生成凭证、直接开具销项发票），需要全部迁入新系统。
+    source: INTENT 2026-10-14「确保权责业务事实全部在新系统」；OA_PROCESS_INVENTORY §0；ADR-0021
+  - id: DRV-04
+    name: 财务总账与三大报表要由新系统直接产出
+    statement: 用户要求总账纳入新系统，通过新系统直接出权责口径的三大报表，先管理口径、再年度切换法定账。
+    source: INTENT 2026-10-14「我要财务总账集成到新系统，通过新系统直接可以出权责口径的三大报表」；ADR-0022「决定」第 1 条
+  - id: DRV-05
+    name: 现有经营分析不满足经营管理需要
+    statement: 两套 BI 都不在新系统事实上，同一指标多套算法、无期间快照、无毛利和权责口径成本，经营结果与财务结果无法勾稽。
+    source: INTENT 2026-10-14「BI 要重构，不满足经营管理需要」；BI_SCOPE §0、§1.5（E1–E14）；ADR-0023
+  - id: DRV-06
+    name: 避免按旧系统架构直接现代化
+    statement: 新系统的能力、边界和流程从目标、能力与价值流推导，老系统只作证据。
+    source: intent 2026-10-15-160111「避免按照旧系统架构直接现代化」（经 architecture/ARCH_CONTEXT.md、METHOD.md §4 引用）；ADR-0040
+
+goals:
+  - id: GOAL-01
+    name: 权责业务事实只在新系统产生
+    statement: 合同、交付与收入确认、工时与成本、费用、开票与应收、回款、分包与应付、付款、薪酬等权责事实的记录系统一律是 FORCITIS one，A8 不再是这些事实的产生地或存放地，U8C 只接收新系统推送的结果；每类事实在会计期间边界一次切换，不设双源期。
+    drivers: [DRV-03, DRV-02]
+    source: INTENT 2026-10-14「确保权责业务事实全部在新系统」；INTENT 2026-10-14 H-1「迁入新系统，不设双源期 (Recommended)」；GUIDING_PRINCIPLES §9a「权责事实全部在新系统」；ADR-0021 第 2 条
+    kpis:
+      - id: KPI-01
+        name: OA 迁入模板停用率
+        definition: 已到切换阶段的「迁入」类 A8 模板中，已停用且在途实例为 0 的模板数 ÷ 应迁入模板数（清单共 80 个，OA_PROCESS_INVENTORY §3）。
+        direction: "↑"
+        metrics: []
+        source: OA_PROCESS_INVENTORY §0 第 1 点、§6.3 各阶段出口条件；ADR-0021 第 4 条
+      - id: KPI-02
+        name: 切换后 A8 凭证插件新增凭证行数
+        definition: 各阶段切换日之后，A8 凭证插件（LEXMISCIF_*）对已迁表单新增的 U8C 凭证行数；出口条件要求为 0。
+        direction: "↓"
+        metrics: []
+        source: OA_PROCESS_INVENTORY §0 第 2 点、§6.3（6a、6b、6c 出口条件）
+      - id: KPI-03
+        name: 权责事实遗留类别数
+        definition: 用 oa_residual_check.sql 检查，仍留在老系统或 OA 中的权责事实类别数（权责事实完整性矩阵的行）。
+        direction: "↓"
+        metrics: []
+        source: ADR-0021 第 4 条；OA_PROCESS_INVENTORY §4；GUIDING_PRINCIPLES §9a 末段「每个阶段的出口条件须证明…没有遗留」
+
+  - id: GOAL-02
+    name: 业务事实一次过账、事实只追加、期间受控
+    statement: 触账的业务只提交类型化的过账候选，由单一过账管道校验（期间开放、借贷平衡、幂等、法人一致）并分配序号；更正只能冲销，关账后的更正落在开放期间；业务模块不认识会计科目。
+    drivers: [DRV-02]
+    source: ADR-0016「决定」第 1–3 条（用户 2026-10-14「采纳 ADR-0016 和 ADR-0017」）；GUIDING_PRINCIPLES §9a
+    kpis:
+      - id: KPI-04
+        name: 经单一过账管道入账的权责事实占比
+        definition: 已迁入阶段的权责事实中，经 operations.facts 过账管道写入明细事实的比例；绕过管道直接写账的为违规。
+        direction: "↑"
+        metrics: []
+        source: ADR-0016 第 1 条；GUIDING_PRINCIPLES §9a「DDD」行（operations.facts 是唯一过账管道）
+      - id: KPI-05
+        name: 月结对账等式差异数
+        definition: 月结时对账等式不成立的项数（归集守恒、合同资产滚动恒等式 F113、借贷平衡；两账相同类科目余额不等）。
+        direction: "↓"
+        metrics: []
+        source: GUIDING_PRINCIPLES §9a「DAMA」行；ADR-0016 第 1 条；ADR-0022 第 2 条（三条对账等式）
+
+  - id: GOAL-03
+    name: 新系统直接出权责口径三大报表
+    statement: 五家法人（1001、1002、1003、1006、1007）每月由新系统出权责口径的资产负债表、利润表、现金流量表；收付口径账簿（法定账）与 U8C 收付账套按 法人 × 科目 对账一致；条件成熟后年度切换法定账。
+    drivers: [DRV-04]
+    source: INTENT 2026-10-14「我要财务总账集成到新系统，通过新系统直接可以出权责口径的三大报表」「两步：先管理口径，再年度切换法定账（推荐）」；ADR-0022 第 1、4、8、9 条
+    kpis:
+      - id: KPI-06
+        name: 权责口径三大报表按月产出率
+        definition: 期间内新系统已出具三大报表的（法人 × 期间）数 ÷ 应出具数。
+        direction: "↑"
+        metrics: [M-35, M-36]
+        source: ADR-0022 第 1、4 条；r0/METRIC_BASELINE_DRAFT §3.4（M-35）、§3.5（M-36）
+      - id: KPI-07
+        name: 与 U8C 收付账套对账差异数
+        definition: 每月按 法人 × 科目 对账，新系统收付口径账簿与 U8C 收付账套不一致的项数；第二步入口要求连续若干个月一致。
+        direction: "↓"
+        metrics: []
+        source: ADR-0022 第 1、8、9 条
+
+  - id: GOAL-04
+    name: 经营指标一个定义、一套口径
+    statement: 每个经营指标只有一个定义，定义放在口径版本中，报表、导出、AI 只经语义层取数；指标按 OAT 声明（原语、单位、期间类型、加总规则、含税、核算基础）。
+    drivers: [DRV-05]
+    source: INTENT 2026-10-14「BI 要重构，不满足经营管理需要。经营分析纳入现代化…」；BI_SCOPE §0 第 4 点、§6.1 Q5、Q6；ADR-0023 第 2、3 条；r0/METRIC_BASELINE_DRAFT §1 第 1 条
+    kpis:
+      - id: KPI-08
+        name: 指标目录 OAT 声明完整率
+        definition: 指标目录中字段声明完整（OAT 原语、词条、单位、期间类型、加总规则、事实归属、核算基础、含税、口径版本）的指标数 ÷ 指标总数。
+        direction: "↑"
+        metrics: ["M-01..M-48"]
+        source: ADR-0023 第 3 条；BI_SCOPE §3.3；METRIC_BASELINE_DRAFT §3（共 48 个指标 M-01 至 M-48）
+      - id: KPI-09
+        name: 同一指标的并存算法数
+        definition: 同名或同义指标在报表、接口中并存的不同算法个数（老系统基线：应收 4 套、利用率 3 套、收入 3 处来源）。
+        direction: "↓"
+        metrics: [M-13, M-42, M-08]
+        source: BI_SCOPE §1.5 E1、E2、E3；r0/METRIC_BASELINE_DRAFT §3.3、§3.6
+
+  - id: GOAL-05
+    name: 经营管理能回答「上月末是多少」，且经营结果与财务结果可勾稽
+    statement: 应收、在手合同（剩余履约义务）、合同资产等存量指标随关账生成期间快照；经营口径与法定口径的差异由口径差异清单逐期勾稽。
+    drivers: [DRV-05]
+    source: BI_SCOPE §1.5 E6、E8；ADR-0023 第 2 条（L2 期间快照）、第 4 条（口径差异清单）
+    kpis:
+      - id: KPI-10
+        name: 关账期间快照覆盖率
+        definition: 已关账的（期间 × 法人）中，已冻结期间快照的比例。
+        direction: "↑"
+        metrics: [M-06, M-13, M-17]
+        source: ADR-0023 第 2 条；METRIC_BASELINE_DRAFT §3.2（M-06）、§3.3（M-13、M-17）
+      - id: KPI-11
+        name: 口径差异清单逐期勾稽完成率
+        definition: 已关账期间中，经营口径与法定口径差异清单已勾稽并闭合的期数 ÷ 已关账期数。
+        direction: "↑"
+        metrics: [M-35]
+        source: ADR-0023 第 4 条；BI_SCOPE §0 第 5 点
+
+  - id: GOAL-06
+    name: 经营管理可见权责口径成本与毛利
+    statement: 项目、BU 层面可得权责口径的成本与贡献毛利（OAT 的 CM 及其变体），经营利润口径统一，取代老 BI 中「产值减当期全部费用」等混用算法。
+    drivers: [DRV-05, DRV-02]
+    source: BI_SCOPE §1.5 E7；BI_SCOPE §6.1 Q6-2「统一用 CM 及其变体 (Recommended)」；METRIC_BASELINE_DRAFT §3.4（M-24 至 M-32）
+    kpis:
+      - id: KPI-12
+        name: 项目贡献毛利可得覆盖率
+        definition: 在执行项目中，可由事实算出权责口径贡献毛利（实际、预估）的项目数 ÷ 在执行项目数。
+        direction: "↑"
+        metrics: [M-29, M-30, M-32]
+        source: METRIC_BASELINE_DRAFT §3.4（M-29、M-30、M-32）；BI_SCOPE §1.5 E7
+      - id: KPI-13
+        name: 贡献毛利率
+        definition: 贡献毛利 ÷ 同层级、同变体的净服务收入（用户 KPI-Q03，2026-10-22，原为 ÷ 不含税收入确认；口径变更与前后值见 ssot/15-kpis/kpis.yaml KPI-13），按 OAT 的 CMR 变体（报价、预算、预估、实际）声明；本 KPI 是经营结果度量，不是目标值。
+        direction: "↑"
+        metrics: [M-29, M-08]
+        source: BI_SCOPE §6.1 Q6-2；METRIC_BASELINE_DRAFT §3.4（M-29）
+        note: 方向「↑」是通用经营含义的推定，用户未给出目标值，见 open_questions OQ-02。
+
+  - id: GOAL-07
+    name: 老系统在持续运行中按阶段切换并下线
+    statement: 迁移期间老系统持续运行，行为功能复刻但现代化；按 BC 绞杀式切换，老系统与 A8 之间的数据通道逐阶段下线；老 BI 在切换期不中断（过渡镜像）。
+    drivers: [DRV-01, DRV-06]
+    source: INTENT「必须保持成立（用户原话）」：老系统迁移期间持续运行、功能复刻但是行为要现代化；MODERNIZATION_BRIEF §1；BI_SCOPE §6.1 Q7；ADR-0023 第 5 条
+    kpis:
+      - id: KPI-14
+        name: 老系统与 A8 数据通道下线数
+        definition: 已下线（改读新系统或删除）的老系统与 A8 之间数据通道数 ÷ 总数（基线共约 36 处，其中 26 处承载权责事实）。
+        direction: "↑"
+        metrics: []
+        source: OA_PROCESS_INVENTORY §0 第 5 点、§5
+      - id: KPI-15
+        name: 过渡镜像对账通过率
+        definition: 切换日前，受影响的 T_FST_* 视图中已有形状一致的过渡来源并通过对账的比例。
+        direction: "↑"
+        metrics: []
+        source: ADR-0023 第 5 条；BI_SCOPE §6.1 Q7
+
+  - id: GOAL-08
+    name: 新系统不带入老系统的安全缺陷
+    statement: 新系统的鉴权、会话、敏感信息处理按安全不变量建设，不信任老系统令牌，数据范围默认拒绝。
+    drivers: [DRV-01]
+    source: INTENT「必须保持成立」先做安全审查；INTENT「原系统鉴权存在的问题，这次现代化要一并解决」；INTENT 2026-10-14「老系统先不管，确保新系统没有这些缺陷」
+    kpis:
+      - id: KPI-16
+        name: 安全不变量满足数
+        definition: phase1a/SECURITY_INVARIANTS.md 中 I-1 至 I-13 已由测试或守护证明成立的条数。
+        direction: "↑"
+        metrics: []
+        source: INTENT 2026-10-14「老系统先不管，确保新系统没有这些缺陷」；phase1a/SECURITY_INVARIANTS.md
+
+principles:
+  # 只引用 GUIDING_PRINCIPLES.md 的节号与标题，内容不在此复制；以下为本愿景最直接相关的节。
+  document: GUIDING_PRINCIPLES.md
+  refs:
+    - { section: "§1", title: 总览：每个框架管什么 }
+    - { section: "§2", title: "TOGAF：用 ADM 组织整个现代化" }
+    - { section: "§3", title: "DDD：边界、语言、模型" }
+    - { section: "§4", title: "BPMN：流程只编排人，不计算业务" }
+    - { section: "§5", title: "DMN：决策与流程、代码分离" }
+    - { section: "§6", title: "DAMA-DMBOK：把数据当资产治理" }
+    - { section: "§7", title: "OLTP：交易库要短、准、稳" }
+    - { section: "§7a", title: 性能预算 }
+    - { section: "§8", title: "OLAP：分析与交易分离" }
+    - { section: "§9", title: 测试策略 }
+    - { section: "§9a", title: 权责发生制业财一体 }
+    - { section: "§10", title: 强类型 }
+    - { section: "§11", title: 可观测性 }
+  most_relevant_to_goals:
+    GOAL-01: ["§9a"]
+    GOAL-02: ["§9a", "§7", "§6"]
+    GOAL-03: ["§9a", "§6"]
+    GOAL-04: ["§8", "§5"]
+    GOAL-05: ["§8", "§6"]
+    GOAL-06: ["§8", "§9a"]
+    GOAL-07: ["§2", "§8"]
+    GOAL-08: ["§3", "§11"]
+
+open_questions:
+  - id: OQ-01
+    question: 业务增长类目标（新签合同额、收入、利润率、回款周期、人效等的目标水平）用户和文档中均未给出。哪些作为公司级目标写入 vision？
+    why: 现有 GOAL 全部是「系统要达成的业务能力状态」，来自用户决定；M-xx 指标只有口径，没有目标值。写任何业务目标值都会是编造。
+  - id: OQ-02
+    question: 每个 KPI 的目标值与达成期限（例如 KPI-01 至 KPI-16 的数字、各阶段出口时点）由用户定。
+    why: 材料中只有出口条件（为 0、一致、通过），没有统一的量化目标；法定账切换的会计年度也未定（ADR-0022 第 11 条称随 Phase 4 排期）。
+  - id: OQ-03
+    question: BI_SCOPE §6.1 Q12 要求的「经营管理需要回答、现在答不了的问题」清单（待业务 B4）尚无，GOAL-04 至 GOAL-06 的 KPI 是否完整，需要等该清单。
+    why: BI_SCOPE §1.5 说明仓库中没有找到业务方的需求清单或访谈记录。
+  - id: OQ-04
+    question: 知识资产与 AI 赋能（老 contexts 中 km.knowledge）是否是目标？材料中除 AI_NATIVE_SPEC（Phase 1a 范围）外，没有用户对 AI 或知识管理的目标性表述。
+    why: 未找到用户原话，因此未写进 goals 与 capabilities。
+  - id: OQ-05
+    question: 是否需要「老系统下线日期」类目标？BI_SCOPE §6.1 Q2 已取消 2026-12-31 的日期，日期待统一编排时重估。
+    why: 目前只有阶段顺序，没有用户确认的日期。
+  - id: OQ-06
+    question: 是否需要面向员工与客户的体验类目标（例如审批时限、报销处理时长）？
+    why: 材料里有审批时限规则（T+1 工作日）等用户决定，但它们是规则而不是目标陈述，也没有统一的度量口径。

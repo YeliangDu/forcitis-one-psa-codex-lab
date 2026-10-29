@@ -1,0 +1,1365 @@
+# 正本，直接编辑（原生成脚本已随 #742 删除）；rule_cards 见 rule_cards.yaml
+meta:
+  status: proposal
+  source: docs/architecture/proposals/enterprise-aggregates-draft.md
+  count: 151
+rules:
+  - id: INV-01
+    statement: "一个法律主体一份档案：按证件类型部分唯一——有统一社会信用代码的按该代码唯一，境外主体、自然人等按各自证件类型与号码唯一"
+    category: "B（部分唯一索引，键为证件类型 + 号码）"
+    owner_aggregates: [AGG-01]
+    aggregate_note: "AGG-01"
+    owner_bc: [masterdata.counterparty]
+    group: "往来单位与协议"
+    source: "OBJ-01；i205406"
+    source_line: 90
+  - id: INV-02
+    statement: "需准入的角色（供应商、分包、合伙人、渠道伙伴、联合体伙伴、海外持牌伙伴）的准入状态按 申请 → 合格 → 暂停 → 停用 转换，停用须原因；客户角色无准入状态，档案核实即可用（intent 120544 P-3）"
+    category: "A"
+    owner_aggregates: [AGG-01]
+    aggregate_note: "AGG-01"
+    owner_bc: [masterdata.counterparty]
+    group: "往来单位与协议"
+    source: "OBJ-02"
+    source_line: 91
+  - id: INV-03a
+    statement: "已停用或已合并的单位不得新建项目协议与付款（协议侧；J 检查：由 INV-03 按聚合拆出，各聚合各自前置读往来单位状态）"
+    category: "A（前置）"
+    owner_aggregates: [AGG-13]
+    aggregate_note: "AGG-13"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-01"
+    source_line: 92
+  - id: INV-03b
+    statement: "已停用或已合并的单位不得新建供方协议（供方协议侧；J 检查：由 INV-03 拆出）"
+    category: "A（前置）"
+    owner_aggregates: [AGG-55]
+    aggregate_note: "AGG-55"
+    owner_bc: [procurement.subcontracting]
+    group: "往来单位与协议"
+    source: "OBJ-01"
+    source_line: 93
+  - id: INV-03c
+    statement: "已停用或已合并的单位不得发起付款（付款侧；J 检查：由 INV-03 拆出）"
+    category: "A（前置）"
+    owner_aggregates: [AGG-53]
+    aggregate_note: "AGG-53"
+    owner_bc: [payables.payment]
+    group: "往来单位与协议"
+    source: "OBJ-01"
+    source_line: 94
+  - id: INV-04a
+    statement: "未合格或已停用的供应商角色不得签分包、采购协议（供方协议侧；J 检查：由 INV-04 按聚合拆出）"
+    category: "A（前置）"
+    owner_aggregates: [AGG-55]
+    aggregate_note: "AGG-55"
+    owner_bc: [procurement.subcontracting]
+    group: "往来单位与协议"
+    source: "OBJ-02"
+    source_line: 95
+  - id: INV-04b
+    statement: "未合格或已停用的供应商角色不得付款（付款侧；J 检查：由 INV-04 拆出）"
+    category: "A（前置）"
+    owner_aggregates: [AGG-53]
+    aggregate_note: "AGG-53"
+    owner_bc: [payables.payment]
+    group: "往来单位与协议"
+    source: "OBJ-02"
+    source_line: 96
+  - id: INV-05
+    statement: "依法招标的项目合同基线化前完成与中标投标承诺的比对，实质条款不得背离，差异只能拒绝或澄清；非招标的差异须有处理结论"
+    category: "A（承诺快照随投标递交复制进协议）"
+    owner_aggregates: [AGG-13]
+    aggregate_note: "AGG-13"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-05、06；I-7；招标法第 46 条"
+    source_line: 97
+  - id: INV-06
+    statement: "项目合同须有来源：赢单商机，或经审批的直建例外"
+    category: "A"
+    owner_aggregates: [AGG-13]
+    aggregate_note: "AGG-13"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-05；I-8"
+    source_line: 98
+  - id: INV-07
+    statement: "无附生效条件的回签即生效；附生效条件的回签只到「已签署」，只经「确认生效条件满足」生效（生效依据三项必填、证据已登记）；生效后只能经协议变更产生新基线"
+    category: "A"
+    owner_aggregates: [AGG-13]
+    aggregate_note: "AGG-13"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-05；I-9；GL5-01、LEB-08（2026-10-22）"
+    source_line: 99
+  - id: INV-08
+    statement: "合同范围条目只经协议变更修改，变更记「取代」"
+    category: "A"
+    owner_aggregates: [AGG-13]
+    aggregate_note: "AGG-13"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-06"
+    source_line: 100
+  - id: INV-09
+    statement: "同一协议—项目关联的生效期不重叠"
+    category: "A（关联记在协议内）"
+    owner_aggregates: [AGG-13]
+    aggregate_note: "AGG-13"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-11；i210513"
+    source_line: 101
+  - id: INV-10
+    statement: "框架协议限额：任务订单提交审批时占用，驳回、作废、终止释放，变更按增减额重占；占用合计不超过限额"
+    category: "A（额度占用）"
+    owner_aggregates: [AGG-14]
+    aggregate_note: "AGG-14"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-05；I-10"
+    source_line: 102
+  - id: INV-11
+    statement: "我方为分包人时，不得对专业分包再分包"
+    category: "A（前置：读主协议的承包链位置）"
+    owner_aggregates: [AGG-55]
+    aggregate_note: "AGG-55"
+    owner_bc: [procurement.subcontracting]
+    group: "往来单位与协议"
+    source: "Q02；招标法第 48 条；质量条例第 78 条"
+    source_line: 103
+  - id: INV-12
+    statement: "分包协议须引用分包方有效资质"
+    category: "A（前置：读资质证书）"
+    owner_aggregates: [AGG-55]
+    aggregate_note: "AGG-55"
+    owner_bc: [procurement.subcontracting]
+    group: "往来单位与协议"
+    source: "Q03；OBJ-65"
+    source_line: 104
+  - id: INV-13
+    statement: "分包协议须附发包方书面同意或合同约定的证据"
+    category: "A"
+    owner_aggregates: [AGG-55]
+    aggregate_note: "AGG-55"
+    owner_bc: [procurement.subcontracting]
+    group: "往来单位与协议"
+    source: "Q03"
+    source_line: 105
+  - id: INV-14
+    statement: "劳动合同试用期不超过法定上限"
+    category: "A"
+    owner_aggregates: [AGG-67]
+    aggregate_note: "AGG-67"
+    owner_bc: [organization.workforce]
+    group: "往来单位与协议"
+    source: "OBJ-05；劳动合同法第 19 条"
+    source_line: 106
+  - id: INV-15
+    statement: "（条件：我方为大型企业、对方为中小企业）付款条件不得以收到第三方付款或按第三方付款进度为条件"
+    category: "A（按法人参数启用；R1 各法人规模未核定前不计入 A 的统计；J 检查：规则落在 AGG-55 一个聚合内，只是否启用取决于法人参数）"
+    owner_aggregates: [AGG-55]
+    aggregate_note: "AGG-55"
+    owner_bc: [procurement.subcontracting]
+    group: "往来单位与协议"
+    source: "OBJ-05；中小款项第 9 条；C-24、C-42"
+    source_line: 107
+  - id: INV-16a
+    statement: "协议变更生效后不可改，只能再变更；「协议信息更正」只留痕、不动基线"
+    category: "A"
+    owner_aggregates: [AGG-15]
+    aggregate_note: "AGG-15"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-09（符合性审查 建-3：由 INV-16 拆出）"
+    source_line: 108
+  - id: INV-16b
+    statement: "分包变更生效后不可改，只能再变更"
+    category: "A"
+    owner_aggregates: [AGG-56]
+    aggregate_note: "AGG-56"
+    owner_bc: [procurement.subcontracting]
+    group: "往来单位与协议"
+    source: "OBJ-09 的类型「分包变更」（符合性审查 建-3：由 INV-16 拆出）"
+    source_line: 109
+  - id: INV-17
+    statement: "超过索赔时限的索赔须注明理由"
+    category: "A"
+    owner_aggregates: [AGG-16]
+    aggregate_note: "AGG-16"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-10；GF0209 6.3.1、11.5"
+    source_line: 110
+  - id: INV-18
+    statement: "风险交付授权：同一对象同类型同时段唯一"
+    category: "B"
+    owner_aggregates: [AGG-17]
+    aggregate_note: "AGG-17"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-12；I-12"
+    source_line: 111
+  - id: INV-19
+    statement: "风险交付授权：转正与叫停互斥"
+    category: "A"
+    owner_aggregates: [AGG-17]
+    aggregate_note: "AGG-17"
+    owner_bc: [contract.agreement]
+    group: "往来单位与协议"
+    source: "OBJ-12；I-12"
+    source_line: 112
+  - id: INV-20
+    statement: "保证金的退还与没收互斥、各只发生一次；履约保证金可部分扣减"
+    category: "A"
+    owner_aggregates: [AGG-51]
+    aggregate_note: "AGG-51"
+    owner_bc: [receivables.collection]
+    group: "往来单位与协议"
+    source: "OBJ-13；I-11；条例第 35、57、58 条"
+    source_line: 113
+  - id: INV-21
+    statement: "同一付款条件项累计开票不超过条款金额"
+    category: "A（额度占用）"
+    owner_aggregates: [AGG-44]
+    aggregate_note: "AGG-44"
+    owner_bc: [receivables.wip]
+    group: "往来单位与协议"
+    source: "OBJ-07"
+    source_line: 114
+  - id: INV-22
+    statement: "履约义务累计确认不超过分摊的交易价格"
+    category: "A（额度占用；**待定** Q21）"
+    owner_aggregates: [AGG-44]
+    aggregate_note: "AGG-44"
+    owner_bc: [receivables.wip]
+    group: "往来单位与协议"
+    source: "OBJ-08；CAS 14"
+    source_line: 115
+  - id: INV-23
+    statement: "收入只凭已开放类型的客户认可证据确认，须附该类证据，期间取认可日所在月；财务负责人书面确认并留档前只有带客户签字日的客户价值确认单可触发（字面按 S-26 订正，原写「审计师书面认可」，用户已定无法定审计；随过渡 ADR 的 ADR-0047 部分取代生效，one-rules A1 后续页答复）"
+    category: "A（规则层，在 AGG-44 的收入确认行上执行；**待定** Q20，受 ADR-0016 决定 4 约束）"
+    owner_aggregates: [AGG-44]
+    aggregate_note: "AGG-44"
+    owner_bc: [receivables.wip]
+    group: "往来单位与协议"
+    source: "OBJ-08、81；Q22；ADR-0047 第 2–5 条"
+    source_line: 116
+  - id: INV-24
+    statement: "线索关闭须原因；已确认的线索不能再关闭；挂起可恢复为跟进"
+    category: "A"
+    owner_aggregates: [AGG-09]
+    aggregate_note: "AGG-09"
+    owner_bc: [presales.opportunity]
+    group: "售前"
+    source: "OBJ-17；I-1"
+    source_line: 122
+  - id: INV-25
+    statement: "一个线索至多一个商机"
+    category: "B"
+    owner_aggregates: [AGG-10]
+    aggregate_note: "AGG-10"
+    owner_bc: [presales.opportunity]
+    group: "售前"
+    source: "OBJ-18；I-2"
+    source_line: 123
+  - id: INV-26
+    statement: "商机须有正式往来单位（「正式」= 往来单位档案已核实，即 OBJ-01 状态为「有效」；「待核实」「已合并」「已停用」都不是；不查客户角色准入，客户角色无准入状态，intent 120544 P-3），只有一个负责人"
+    category: "A"
+    owner_aggregates: [AGG-10]
+    aggregate_note: "AGG-10"
+    owner_bc: [presales.opportunity]
+    group: "售前"
+    source: "OBJ-18；I-3"
+    source_line: 124
+  - id: INV-27
+    statement: "赢单须有证据：某次投标中标，或直接委托的委托证据（委托书文件引用在 AGG-10 内，中标通知书在 AGG-11 内；售前聚合不引用 AGG-38，回溯检查 RD-03）"
+    category: "A（前置：读投标结果，同 BC）"
+    owner_aggregates: [AGG-10]
+    aggregate_note: "AGG-10"
+    owner_bc: [presales.opportunity]
+    group: "售前"
+    source: "OBJ-18；I-4；招标法第 45 条"
+    source_line: 125
+  - id: INV-28
+    statement: "同一招标同一标段，我方只能以一种身份参加一次"
+    category: "B（键为招标项目登记 ID + 标段，招标项目登记在 B-01）"
+    owner_aggregates: [AGG-11]
+    aggregate_note: "AGG-11"
+    owner_bc: [presales.opportunity]
+    group: "售前"
+    source: "OBJ-20；I-6；招标法第 31 条；条例第 37 条"
+    source_line: 126
+  - id: INV-29
+    statement: "资格预审未通过不得递交"
+    category: "A"
+    owner_aggregates: [AGG-11]
+    aggregate_note: "AGG-11"
+    owner_bc: [presales.opportunity]
+    group: "售前"
+    source: "OBJ-20；条例第 19 条"
+    source_line: 127
+  - id: INV-30
+    statement: "同一（商机，标段）任一时刻只有一个生效报价版本"
+    category: "B（部分唯一索引；新版生效与旧版被取代同事务改同类型两个实例，先例 `ConfirmSourceReference`）"
+    owner_aggregates: [AGG-12]
+    aggregate_note: "AGG-12"
+    owner_bc: [presales.opportunity]
+    group: "售前"
+    source: "OBJ-21；I-5"
+    source_line: 128
+  - id: INV-31
+    statement: "已通过的报价版本不可改；估算分解随版本冻结"
+    category: "A"
+    owner_aggregates: [AGG-12]
+    aggregate_note: "AGG-12"
+    owner_bc: [presales.opportunity]
+    group: "售前"
+    source: "OBJ-21、22；I-5"
+    source_line: 129
+  - id: INV-32
+    statement: "报价须引用已生效的计费系数版本与标准成本费率版本"
+    category: "A（前置）"
+    owner_aggregates: [AGG-12]
+    aggregate_note: "AGG-12"
+    owner_bc: [presales.opportunity]
+    group: "售前"
+    source: "OBJ-27；i211139"
+    source_line: 130
+  - id: INV-33
+    statement: "我方为 IDI 风险管理机构（TIS）时，独立性检查有冲突不得承接：递交投标前、直接委托赢单前读检查结论（前置，同 BC），签约前再读一次；有冲突须已获书面同意"
+    category: "A（检查结论）+ A（前置：递交投标前、直接委托赢单前、签约前读检查结论）；拦截点 D-4 用户已定 b（intent 061232），回溯检查 RD-02 落到命令前置"
+    owner_aggregates: [AGG-18, AGG-10, AGG-11, AGG-13]
+    aggregate_note: "AGG-18、AGG-10、AGG-11、AGG-13"
+    owner_bc: [contract.agreement, presales.opportunity]
+    group: "售前"
+    source: "OBJ-23；沪TIS 第 6 条；Q33"
+    source_line: 131
+  - id: INV-34
+    statement: "服务产品版本：被引用的版本不可改，只增版本"
+    category: "A"
+    owner_aggregates: [AGG-03]
+    aggregate_note: "AGG-03"
+    owner_bc: [masterdata.catalog]
+    group: "服务、费率、日历"
+    source: "OBJ-24、25、50；§14.1 D15"
+    source_line: 137
+  - id: INV-34a
+    statement: "阶段类型版本：被引用的版本不可改，只增版本（同 INV-34）"
+    category: "A"
+    owner_aggregates: [AGG-04]
+    aggregate_note: "AGG-04"
+    owner_bc: [masterdata.catalog]
+    group: "服务、费率、日历"
+    source: "OBJ-24、25、50；§14.1 D15"
+    source_line: 138
+  - id: INV-34b
+    statement: "检查表模板版本：被引用的版本不可改，只增版本（同 INV-34）"
+    category: "A"
+    owner_aggregates: [AGG-36]
+    aggregate_note: "AGG-36"
+    owner_bc: [delivery.inspection]
+    group: "服务、费率、日历"
+    source: "OBJ-24、25、50；§14.1 D15"
+    source_line: 139
+  - id: INV-35
+    statement: "标准成本费率表版本生效期不重叠"
+    category: "B（排他约束）"
+    owner_aggregates: [AGG-05]
+    aggregate_note: "AGG-05"
+    owner_bc: [masterdata.catalog]
+    group: "服务、费率、日历"
+    source: "OBJ-26"
+    source_line: 140
+  - id: INV-36
+    statement: "已批准的费率版本不可改"
+    category: "A"
+    owner_aggregates: [AGG-05]
+    aggregate_note: "AGG-05"
+    owner_bc: [masterdata.catalog]
+    group: "服务、费率、日历"
+    source: "OBJ-26、27"
+    source_line: 141
+  - id: INV-36a
+    statement: "已批准的计费系数版本不可改（同 INV-36）"
+    category: "A"
+    owner_aggregates: [AGG-06]
+    aggregate_note: "AGG-06"
+    owner_bc: [masterdata.catalog]
+    group: "服务、费率、日历"
+    source: "OBJ-26、27"
+    source_line: 142
+  - id: INV-37
+    statement: "缺费率的工时不得计成本，失败并告警"
+    category: "A（前置：工时过账时读所锁定的费率版本）"
+    owner_aggregates: [AGG-39]
+    aggregate_note: "AGG-39"
+    owner_bc: [cost.timesheet]
+    group: "服务、费率、日历"
+    source: "OBJ-26、66；CLAUDE.md 第 6 条"
+    source_line: 143
+  - id: INV-39
+    statement: "已结项、已终止、已取消、已暂停的项目不得新记工时（工时单侧前置；「已暂停」由 intent 134134 Q-05 加入，原策略 P-15 升为拒）"
+    category: "A（前置，命令方）"
+    owner_aggregates: [AGG-39]
+    aggregate_note: "AGG-39"
+    owner_bc: [cost.timesheet]
+    group: "交付与检查"
+    source: "OBJ-29"
+    source_line: 151
+  - id: INV-39a
+    statement: "已结项、已终止、已取消的项目不得新记分包成本（供方履约确认侧前置，同 INV-39）"
+    category: "A（前置，命令方）"
+    owner_aggregates: [AGG-57]
+    aggregate_note: "AGG-57"
+    owner_bc: [procurement.subcontracting]
+    group: "交付与检查"
+    source: "OBJ-29"
+    source_line: 152
+  - id: INV-39b
+    statement: "已结项、已终止、已取消的项目不得新记费用（费用报销侧前置，同 INV-39）"
+    category: "A（前置，命令方）"
+    owner_aggregates: [AGG-59]
+    aggregate_note: "AGG-59"
+    owner_bc: [expense.spend]
+    group: "交付与检查"
+    source: "OBJ-29"
+    source_line: 153
+  - id: INV-40
+    statement: "结项前：收入确认已覆盖已认可成果或有结论、分包已结算或有结论、资料已归档"
+    category: "A（前置，**下游编排**，编排方为项目结项模块 B-29，D-9 用户已定，见 §4.6；收入覆盖**待定** Q20，归档随 Q34）"
+    owner_aggregates: [AGG-19]
+    aggregate_note: "AGG-19"
+    owner_bc: [delivery.execution]
+    group: "交付与检查"
+    source: "OBJ-29；Q10"
+    source_line: 154
+  - id: INV-41
+    statement: "WBS 层次合法：阶段在第一层并引用阶段类型，工作包为末级"
+    category: "A"
+    owner_aggregates: [AGG-20]
+    aggregate_note: "AGG-20"
+    owner_bc: [delivery.execution]
+    group: "交付与检查"
+    source: "OBJ-30"
+    source_line: 155
+  - id: INV-42
+    statement: "工作包删除规则（随 D-6；推荐方案：未发布可删，已发布只作废；已锁定的工作包也可作废，原因必填，S-33）"
+    category: "A（以工作包自身的发布状态判，不读工时）"
+    owner_aggregates: [AGG-20]
+    aggregate_note: "AGG-20"
+    owner_bc: [delivery.execution]
+    group: "交付与检查"
+    source: "OBJ-30"
+    source_line: 156
+  - id: INV-43
+    statement: "交付计划修订须写原因；同一项目同类（对客 / 内部）只有一个生效基线"
+    category: "A + B"
+    owner_aggregates: [AGG-21]
+    aggregate_note: "AGG-21"
+    owner_bc: [delivery.execution]
+    group: "交付与检查"
+    source: "OBJ-31"
+    source_line: 157
+  - id: INV-44
+    statement: "项目预算锁定时冻结费率版本；修订须原因；只有一个生效版本"
+    category: "A + B"
+    owner_aggregates: [AGG-22]
+    aggregate_note: "AGG-22"
+    owner_bc: [delivery.execution]
+    group: "交付与检查"
+    source: "OBJ-32"
+    source_line: 158
+  - id: INV-46
+    statement: "已发布报告不得修改或删除，只能出新版本并引用被取代版本；已封存的不得抽撤、涂改"
+    category: "A"
+    owner_aggregates: [AGG-27]
+    aggregate_note: "AGG-27"
+    owner_bc: [delivery.acceptance]
+    group: "交付与检查"
+    source: "OBJ-35；检测办法第 26 条（参照）"
+    source_line: 159
+  - id: INV-47
+    statement: "签发人须具备约定资格"
+    category: "A（前置：读注册执业证书）"
+    owner_aggregates: [AGG-27]
+    aggregate_note: "AGG-27"
+    owner_bc: [delivery.acceptance]
+    group: "交付与检查"
+    source: "OBJ-35"
+    source_line: 160
+  - id: INV-48
+    statement: "我方成果的阻断性不符合项未关闭，交付物不得登记认可"
+    category: "A（前置：读不符合项，同 BC）"
+    owner_aggregates: [AGG-27]
+    aggregate_note: "AGG-27"
+    owner_bc: [delivery.acceptance]
+    group: "交付与检查"
+    source: "OBJ-38"
+    source_line: 161
+  - id: INV-49
+    statement: "让步接受须有客户书面确认"
+    category: "A"
+    owner_aggregates: [AGG-28]
+    aggregate_note: "AGG-28"
+    owner_bc: [delivery.acceptance]
+    group: "交付与检查"
+    source: "OBJ-38"
+    source_line: 162
+  - id: INV-50
+    statement: "客户资产类不符合项发布前至少引用一条证据；闭合须引用复查或整改证据"
+    category: "A（按 ID 引用证据；证据形态**待定** Q29）"
+    owner_aggregates: [AGG-28]
+    aggregate_note: "AGG-28"
+    owner_bc: [delivery.acceptance]
+    group: "交付与检查"
+    source: "OBJ-38；沪TIS 第 12 条（九）"
+    source_line: 163
+  - id: INV-51
+    statement: "IDI 有「严重」等级不符合项未闭合，不得签发竣工最终风险评估报告"
+    category: "A（前置：签发时读不符合项，同 BC）"
+    owner_aggregates: [AGG-27]
+    aggregate_note: "AGG-27"
+    owner_bc: [delivery.acceptance]
+    group: "交付与检查"
+    source: "OBJ-38；沪IDI 第 10 条"
+    source_line: 164
+  - id: INV-52
+    statement: "重大险情须记录已报告"
+    category: "A"
+    owner_aggregates: [AGG-28]
+    aggregate_note: "AGG-28"
+    owner_bc: [delivery.acceptance]
+    group: "交付与检查"
+    source: "OBJ-38；深幕墙第 16 条"
+    source_line: 165
+  - id: INV-53
+    statement: "返工工时只能由返工认定产生"
+    category: "A（前置：工时条目读返工认定）"
+    owner_aggregates: [AGG-39]
+    aggregate_note: "AGG-39"
+    owner_bc: [cost.timesheet]
+    group: "交付与检查"
+    source: "OBJ-39"
+    source_line: 166
+  - id: INV-54
+    statement: "设计变更归因必填"
+    category: "A"
+    owner_aggregates: [AGG-30]
+    aggregate_note: "AGG-30"
+    owner_bc: [delivery.acceptance]
+    group: "交付与检查"
+    source: "OBJ-40；Q08"
+    source_line: 167
+  - id: INV-55
+    statement: "每个检查项须有结果或未检原因；检查锁定后只能追加更正"
+    category: "A"
+    owner_aggregates: [AGG-35]
+    aggregate_note: "AGG-35"
+    owner_bc: [delivery.inspection]
+    group: "交付与检查"
+    source: "OBJ-49"
+    source_line: 168
+  - id: INV-56
+    statement: "我方为 TIS 时负责人兼项限制"
+    category: "B（集合约束：同一负责人兼项数上限；前置检查加预警兜底竞态，P-44；兼项上限大于 1 时落不成数据库约束；J 检查）"
+    owner_aggregates: [AGG-35]
+    aggregate_note: "AGG-35"
+    owner_bc: [delivery.inspection]
+    group: "交付与检查"
+    source: "OBJ-49；沪TIS 第 4、12 条"
+    source_line: 169
+  - id: INV-57
+    statement: "外部检测报告只引用、不修改"
+    category: "A"
+    owner_aggregates: [AGG-37]
+    aggregate_note: "AGG-37"
+    owner_bc: [delivery.inspection]
+    group: "交付与检查"
+    source: "OBJ-52"
+    source_line: 170
+  - id: INV-58
+    statement: "证据封存后不可修改或删除"
+    category: "A（**待定** Q29、Q34）"
+    owner_aggregates: [AGG-38]
+    aggregate_note: "AGG-38"
+    owner_bc: [delivery.acceptance]
+    group: "交付与检查"
+    source: "OBJ-53"
+    source_line: 171
+  - id: INV-59
+    statement: "法人代码发号后不可改"
+    category: "A"
+    owner_aggregates: [AGG-60]
+    aggregate_note: "AGG-60（已建）"
+    owner_bc: [organization.workforce]
+    group: "组织与人力"
+    source: "OBJ-54；§14.1 D17 细则 8"
+    source_line: 177
+  - id: INV-60
+    statement: "有在职任职的组织单元不得撤销"
+    category: "A（前置；新系统成为组织来源后生效，6e）"
+    owner_aggregates: [AGG-61]
+    aggregate_note: "AGG-61"
+    owner_bc: [organization.workforce]
+    group: "组织与人力"
+    source: "OBJ-55"
+    source_line: 178
+  - id: INV-62
+    statement: "同一人员的**主任职**区间不重叠；兼职任职可多个并行、不设上限，成本与费率按主任职取值"
+    category: "B（排他约束，条件为主任职）"
+    owner_aggregates: [AGG-63]
+    aggregate_note: "AGG-63"
+    owner_bc: [organization.workforce]
+    group: "组织与人力"
+    source: "OBJ-57；§14.1 D6；**用户 intent 072440 INV-62 已定**（信息图原「全部任职不重叠」已改写）"
+    source_line: 179
+  - id: INV-63
+    statement: "被在职任职引用的岗位不得停用"
+    category: "A（前置，同 BC）"
+    owner_aggregates: [AGG-64]
+    aggregate_note: "AGG-64"
+    owner_bc: [organization.workforce]
+    group: "组织与人力"
+    source: "OBJ-58"
+    source_line: 180
+  - id: INV-64
+    statement: "工时单一人一日一单"
+    category: "B（全表唯一约束（人员，工作日），无谓词，含非工作日、全状态；用户 intent 052923；§6 N-10）"
+    owner_aggregates: [AGG-39]
+    aggregate_note: "AGG-39"
+    owner_bc: [cost.timesheet]
+    group: "组织与人力"
+    source: "OBJ-66；Q15"
+    source_line: 181
+  - id: INV-65
+    statement: "每日工时低于最低时数拦截；最低时数取当日标准工时（AGG-108），扣减「已批准 + 待批（审批中）」请假（AGG-70）时长，15 小时上限只计已批准，已销假、已撤销不扣（用户经 one-rules 定，RULE-398/403/404/405）；标准工时 450 分钟，按法人可配置，首版五家同值（FD-10）；出差例外与数值留后续；请假日仍占一人一日一单名额（INV-64），工时单可自愿提交；取不到标准工时须失败并告警（one-architecture 2026-10-16，供 RULE-398/403/404/405 与 one-data）"
+    category: "A"
+    owner_aggregates: [AGG-39]
+    aggregate_note: "AGG-39"
+    owner_bc: [cost.timesheet]
+    group: "组织与人力"
+    source: "Q15"
+    source_line: 182
+  - id: INV-66
+    statement: "工时只能记到当天有权使用的工作包"
+    category: "A（前置；权限来源**待定** Q13）"
+    owner_aggregates: [AGG-39]
+    aggregate_note: "AGG-39"
+    owner_bc: [cost.timesheet]
+    group: "组织与人力"
+    source: "OBJ-66"
+    source_line: 183
+  - id: INV-67
+    statement: "期间关账后工时只能冲销或修正"
+    category: "A + A（前置：期间闸门，见 INV-92）"
+    owner_aggregates: [AGG-39]
+    aggregate_note: "AGG-39、77"
+    owner_bc: [cost.timesheet]
+    group: "组织与人力"
+    source: "OBJ-66；ADR-0016 决定 2；ADR-0031"
+    source_line: 184
+  - id: INV-68
+    statement: "请假不得超过可用额度（政策允许的除外）"
+    category: "A（额度占用）"
+    owner_aggregates: [AGG-71]
+    aggregate_note: "AGG-71"
+    owner_bc: [organization.leave]
+    group: "组织与人力"
+    source: "OBJ-68、69"
+    source_line: 185
+  - id: INV-69
+    statement: "考勤记录不可修改，补卡另记"
+    category: "A（只追加）"
+    owner_aggregates: [AGG-69]
+    aggregate_note: "AGG-69"
+    owner_bc: [organization.leave]
+    group: "组织与人力"
+    source: "OBJ-70"
+    source_line: 186
+  - id: INV-70
+    statement: "薪酬代扣只限法定项目；以法定货币支付"
+    category: "A"
+    owner_aggregates: [AGG-73]
+    aggregate_note: "AGG-73"
+    owner_bc: [organization.payroll]
+    group: "组织与人力"
+    source: "OBJ-73；工资支付第 5、7、15 条"
+    source_line: 187
+  - id: INV-105
+    statement: "月度考勤确认锁定后不改；锁定后的补卡、请假、加班变动计入下月确认并标原月份"
+    category: "A"
+    owner_aggregates: [AGG-97]
+    aggregate_note: "AGG-97"
+    owner_bc: [organization.leave]
+    group: "组织与人力"
+    source: "OBJ-111（原 OBJ-71「拒：锁定后不改，更正走下月调整」；阶段门走查补，§4.3.2；第 ② 步回补升为次级对象，intent 082311）"
+    source_line: 188
+  - id: INV-71
+    statement: "开票申请的作废只发生在开具前；准入按计价模式；协议须已生效，例外仅开票原因为「预收 / 首付款」且附委托函或中标通知书证据时可早于回签，其余拒（用户 intent 074053 P-1）；历史 31 个合同迁入标例外（迁入规则）"
+    category: "A + A（前置：读协议状态与证据）"
+    owner_aggregates: [AGG-45]
+    aggregate_note: "AGG-45"
+    owner_bc: [receivables.wip]
+    group: "收入、支出与资金"
+    source: "OBJ-82；ADR-0016 决定 5"
+    source_line: 194
+  - id: INV-72
+    statement: "销项蓝字发票不得作废，更正走红字；红字引用蓝字"
+    category: "A"
+    owner_aggregates: [AGG-46]
+    aggregate_note: "AGG-46"
+    owner_bc: [receivables.wip]
+    group: "收入、支出与资金"
+    source: "OBJ-83；数电公告第八、十条"
+    source_line: 195
+  - id: INV-73
+    statement: "开票接受与作废在同一事务内改写 WIP 终态"
+    category: "**C**（本稿两处之一，另一处 INV-96）"
+    owner_aggregates: [AGG-44, AGG-46]
+    aggregate_note: "AGG-44 + AGG-46"
+    owner_bc: [receivables.wip]
+    group: "收入、支出与资金"
+    source: "ADR-0016 决定 5"
+    source_line: 196
+  - id: INV-74
+    statement: "同一发票不得重复入账（报销、应付、预付核销共用一次「入账占用」；占用方是报销或供方来源的应付，报销产生的应付引用报销、不另占用，符合性审查 G-17）"
+    category: "A（额度占用，占用记在进项发票上；自 G1 起在独立 BC `accounting.tax`，D-7 用户已定）"
+    owner_aggregates: [AGG-89]
+    aggregate_note: "AGG-89"
+    owner_bc: [accounting.tax]
+    group: "收入、支出与资金"
+    source: "OBJ-83"
+    source_line: 197
+  - id: INV-75
+    statement: "不合规发票不得报销（报销侧前置：读发票查验结果）"
+    category: "A（前置：读发票查验结果）"
+    owner_aggregates: [AGG-59]
+    aggregate_note: "AGG-59"
+    owner_bc: [expense.spend]
+    group: "收入、支出与资金"
+    source: "OBJ-83、88；发票办法第 20 条"
+    source_line: 198
+  - id: INV-75a
+    statement: "不合规发票不得作供方来源应付的入账占用与扣除凭证（应付侧前置：读发票查验结果，同 INV-75）"
+    category: "A（前置：读发票查验结果）"
+    owner_aggregates: [AGG-52]
+    aggregate_note: "AGG-52"
+    owner_bc: [payables.payment]
+    group: "收入、支出与资金"
+    source: "OBJ-83、88；发票办法第 20 条"
+    source_line: 199
+  - id: INV-76
+    statement: "销售应收只由蓝字发票产生"
+    category: "A（创建约束）"
+    owner_aggregates: [AGG-49]
+    aggregate_note: "AGG-49"
+    owner_bc: [receivables.collection]
+    group: "收入、支出与资金"
+    source: "OBJ-85；词表 `ar_item`"
+    source_line: 200
+  - id: INV-77
+    statement: "应收往来款项核销合计不超过未结余额"
+    category: "A（额度占用：核销占用记在往来款项上）"
+    owner_aggregates: [AGG-49]
+    aggregate_note: "AGG-49"
+    owner_bc: [receivables.collection]
+    group: "收入、支出与资金"
+    source: "OBJ-85"
+    source_line: 201
+  - id: INV-77a
+    statement: "应付往来款项核销合计不超过未结余额（同 INV-77）"
+    category: "A（额度占用：核销占用记在往来款项上）"
+    owner_aggregates: [AGG-52]
+    aggregate_note: "AGG-52"
+    owner_bc: [payables.payment]
+    group: "收入、支出与资金"
+    source: "OBJ-85"
+    source_line: 202
+  - id: INV-78
+    statement: "收款分配合计等于到账金额"
+    category: "A"
+    owner_aggregates: [AGG-50]
+    aggregate_note: "AGG-50"
+    owner_bc: [receivables.collection]
+    group: "收入、支出与资金"
+    source: "OBJ-86"
+    source_line: 203
+  - id: INV-78a
+    statement: "付款分配合计等于付款金额（同 INV-78）"
+    category: "A"
+    owner_aggregates: [AGG-53]
+    aggregate_note: "AGG-53"
+    owner_bc: [payables.payment]
+    group: "收入、支出与资金"
+    source: "OBJ-86"
+    source_line: 204
+  - id: INV-79
+    statement: "付款不超过所选应付的未付余额"
+    category: "A（额度占用：付款分配先在应付往来款项上占用，同 INV-77）"
+    owner_aggregates: [AGG-52]
+    aggregate_note: "AGG-52"
+    owner_bc: [payables.payment]
+    group: "收入、支出与资金"
+    source: "OBJ-86"
+    source_line: 205
+  - id: INV-80
+    statement: "收款方须为已登记账户"
+    category: "A（前置：读往来单位银行账户）"
+    owner_aggregates: [AGG-53]
+    aggregate_note: "AGG-53"
+    owner_bc: [payables.payment]
+    group: "收入、支出与资金"
+    source: "OBJ-86"
+    source_line: 206
+  - id: INV-81
+    statement: "经办、审批、出纳、记账不相容"
+    category: "A（前置：执行人校验，经 `platform.approval` 与 `platform.identity`）"
+    owner_aggregates: [AGG-53]
+    aggregate_note: "AGG-53"
+    owner_bc: [payables.payment]
+    group: "收入、支出与资金"
+    source: "OBJ-86；会计法第 25、35 条；内控第 6 号第 21 条"
+    source_line: 207
+  - id: INV-82
+    statement: "供方履约累计确认不超过协议金额（含已生效变更）"
+    category: "A（额度占用）"
+    owner_aggregates: [AGG-58]
+    aggregate_note: "AGG-58"
+    owner_bc: [procurement.subcontracting]
+    group: "收入、支出与资金"
+    source: "OBJ-87"
+    source_line: 208
+  - id: INV-83
+    statement: "采购须专人验收"
+    category: "A"
+    owner_aggregates: [AGG-57]
+    aggregate_note: "AGG-57"
+    owner_bc: [procurement.subcontracting]
+    group: "收入、支出与资金"
+    source: "OBJ-87；内控第 7 号第 11 条"
+    source_line: 209
+  - id: INV-84
+    statement: "报销的原始凭证要素齐全"
+    category: "A"
+    owner_aggregates: [AGG-59]
+    aggregate_note: "AGG-59"
+    owner_bc: [expense.spend]
+    group: "收入、支出与资金"
+    source: "OBJ-88；会计基础第 47–49 条"
+    source_line: 210
+  - id: INV-85
+    statement: "银行流水导入后不可改，保留原始文件与校验和"
+    category: "A（只追加）"
+    owner_aggregates: [AGG-88]
+    aggregate_note: "AGG-88"
+    owner_bc: [accounting.cashbank]
+    group: "收入、支出与资金"
+    source: "OBJ-90；ADR-0022 第 3、6 条"
+    source_line: 211
+  - id: INV-86
+    statement: "收入确认金额 > 0；协议须已生效（无例外，用户 intent 074053 P-1）"
+    category: "A + A（前置：读协议）"
+    owner_aggregates: [AGG-44]
+    aggregate_note: "AGG-44（**待定** Q20）"
+    owner_bc: [receivables.wip]
+    group: "收入、支出与资金"
+    source: "OBJ-81"
+    source_line: 212
+  - id: INV-88
+    statement: "合同履约成本转出金额配对已确认收入"
+    category: "A（前置：读已过账的收入事实；**待定** Q20）"
+    owner_aggregates: [AGG-43]
+    aggregate_note: "AGG-43"
+    owner_bc: [cost.costing]
+    group: "收入、支出与资金"
+    source: "OBJ-80；D17-1–4"
+    source_line: 213
+  - id: INV-89
+    statement: "人工成本分配只分配已锁定工时，项目分配额 + 人工成本分配差异 = 实际人工成本（零容差；差异＝加班按法定倍数计价后与公司实付的差额，挂员工所在部门、不进项目）；ADR-0016 决定 1 的 `operations.policy` 归集守恒等式为主，INV-89 为对账"
+    category: "A"
+    owner_aggregates: [AGG-41]
+    aggregate_note: "AGG-41"
+    owner_bc: [cost.costing]
+    group: "收入、支出与资金"
+    source: "OBJ-76；FD-09"
+    source_line: 214
+  - id: INV-90
+    statement: "每期间一次有效全量分摊运行（冲销后该运行失效，本期可再跑一次，S-31 SQ-17）；分摊合计等于池金额"
+    category: "A + B"
+    owner_aggregates: [AGG-42]
+    aggregate_note: "AGG-42"
+    owner_bc: [cost.costing]
+    group: "收入、支出与资金"
+    source: "OBJ-79；规则卡 RULE-070、092"
+    source_line: 215
+  - id: INV-91
+    statement: "分摊规则版本只在期间首日生效"
+    category: "A"
+    owner_aggregates: [AGG-40]
+    aggregate_note: "AGG-40"
+    owner_bc: [cost.costing]
+    group: "收入、支出与资金"
+    source: "OBJ-78、99"
+    source_line: 216
+  - id: INV-91a
+    statement: "报表行定义版本只在期间首日生效（同 INV-91）"
+    category: "A"
+    owner_aggregates: [AGG-86]
+    aggregate_note: "AGG-86"
+    owner_bc: [accounting.reporting]
+    group: "收入、支出与资金"
+    source: "OBJ-78、99"
+    source_line: 217
+  - id: INV-92
+    statement: "未开放期间不得过账（期间闸门；「未开放」含关账中：关账中的期间不接受业务日期在本期的过账，过账候选得到「期间关账中、可重试」结果，不进拒收记录，由来源 BC 投递重试，确认关账后按下一句路由办理，退回开放则仍落原期；S-31 SQ-12）；业务日期在已关账期间的，路由到该法人当前开放期间并标原期间；第 13 期只由显式指定落账期间的通道写入；显式指定落账期间的通道（受控手工凭证、期末结转运行）所指期间未开放时拒绝并告警，不是对路由的例外（S-31 SQ-32）"
+    category: "A（前置，同事务读锁读 AGG-81 会计期间，ADR-0016 决定 1；被读的会计期间不被修改）"
+    owner_aggregates: [AGG-77]
+    aggregate_note: "AGG-77"
+    owner_bc: [operations.facts]
+    group: "财务与经营"
+    source: "OBJ-97；ADR-0016 决定 1；ADR-0045 决定 2；ADR-0046 第 3 项；S-31 SQ-12、SQ-32"
+    source_line: 225
+  - id: INV-93
+    statement: "过账借贷平衡、法人一致"
+    category: "A"
+    owner_aggregates: [AGG-77]
+    aggregate_note: "AGG-77"
+    owner_bc: [operations.facts]
+    group: "财务与经营"
+    source: "ADR-0016 决定 1"
+    source_line: 226
+  - id: INV-94
+    statement: "过账幂等"
+    category: "B（幂等键唯一）"
+    owner_aggregates: [AGG-77]
+    aggregate_note: "AGG-77"
+    owner_bc: [operations.facts]
+    group: "财务与经营"
+    source: "ADR-0016 决定 1"
+    source_line: 227
+  - id: INV-95
+    statement: "事实只追加，更正只能冲销"
+    category: "A"
+    owner_aggregates: [AGG-77]
+    aggregate_note: "AGG-77"
+    owner_bc: [operations.facts]
+    group: "财务与经营"
+    source: "ADR-0016 决定 2；会计软件规范第 21 条"
+    source_line: 228
+  - id: INV-95a
+    statement: "已记账分录只追加，更正只能冲销（同 INV-95）"
+    category: "A"
+    owner_aggregates: [AGG-84]
+    aggregate_note: "AGG-84"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "ADR-0016 决定 2；会计软件规范第 21 条"
+    source_line: 229
+  - id: INV-96
+    statement: "同一事实的两账分录同一事务写入，不允许只生成一账"
+    category: "**C**（ADR-0022 决定 2 明文要求两账同一事务；登记 `multi-aggregate-exceptions.txt`；符合性审查 建-3，改前为 A）"
+    owner_aggregates: [AGG-84]
+    aggregate_note: "AGG-84（收付账簿、权责账簿各一个实例）"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "ADR-0022 第 2 条"
+    source_line: 230
+  - id: INV-97
+    statement: "现金分录须标注现金流量项目；只影响一个账簿的手工凭证须带差异类别代码"
+    category: "A"
+    owner_aggregates: [AGG-84]
+    aggregate_note: "AGG-84"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "ADR-0022 第 2、5 条"
+    source_line: 231
+  - id: INV-98
+    statement: "控制科目只接受授权的来源通道；不在授权表内的事实进入待处理队列"
+    category: "A（前置：读授权表版本，同 BC）"
+    owner_aggregates: [AGG-84]
+    aggregate_note: "AGG-84"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "OBJ-95；ADR-0022 第 2、3 条"
+    source_line: 232
+  - id: INV-99
+    statement: "已关账期间不重开；12 月与第 13 期（已启用的年度）同时开放、同时关账"
+    category: "A（同类型两个实例同事务：12 月与第 13 期原子关账，ADR-0046）"
+    owner_aggregates: [AGG-81]
+    aggregate_note: "AGG-81"
+    owner_bc: [accounting.period]
+    group: "财务与经营"
+    source: "ADR-0045 决定 1；ADR-0046 第 5 项（取代信息图 OBJ-97「重开须审批」，见 §6 N-01）"
+    source_line: 233
+  - id: INV-100
+    statement: "关账前置检查通过才能关账（前置检查项含：受控手工凭证在途、成本分配与分摊运行办结、过账拒收记录已处置、银行余额调节；S-29 SQ-54①，不另编号；未关闭的超容差勾稽差异案，INV-135，S-31 SQ-22，不另编号；检查结论不建聚合，确认关账时带检查结果摘要，由 AGG-81 所在 BC 写审计记录，S-31 SQ-12）"
+    category: "A（前置，**下游编排**：`operations.policy` 月结检查）"
+    owner_aggregates: [AGG-81]
+    aggregate_note: "AGG-81"
+    owner_bc: [accounting.period]
+    group: "财务与经营"
+    source: "ADR-0022 第 10 条"
+    source_line: 234
+  - id: INV-101
+    statement: "经营计划基线不可变，只出新版本"
+    category: "A"
+    owner_aggregates: [AGG-79]
+    aggregate_note: "AGG-79"
+    owner_bc: [operations.planning]
+    group: "财务与经营"
+    source: "OBJ-100"
+    source_line: 235
+  - id: INV-103
+    statement: "被引用的科目不可删除"
+    category: "A"
+    owner_aggregates: [AGG-82]
+    aggregate_note: "AGG-82"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "OBJ-95"
+    source_line: 236
+  - id: INV-104
+    statement: "某会计年度任一法人的 12 月关账后，该年度第 13 期的启用状态不得再改（不补启用、不撤销）"
+    category: "A（前置：读该年度 12 月的期间状态，同 BC）"
+    owner_aggregates: [AGG-96]
+    aggregate_note: "AGG-96"
+    owner_bc: [accounting.period]
+    group: "财务与经营"
+    source: "ADR-0046 决定 4 第 2 项"
+    source_line: 237
+  - id: INV-106
+    statement: "期间余额快照生成后不变；已关账期间之后的更正只进开放期间快照的「上年调整」或「以前期间更正」栏"
+    category: "A（只追加）"
+    owner_aggregates: [AGG-100]
+    aggregate_note: "AGG-100"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "ADR-0045 决定 2；ADR-0046 第 6 项第 1 条；ADR-0022 第 3 条（阶段门走查补，§4.3.3）"
+    source_line: 238
+  - id: INV-107
+    statement: "收付口径账簿与外部法定账的对账差异须为零，或由财务负责人逐项签字接受，否则该期间收付口径账簿不得出表"
+    category: "A"
+    owner_aggregates: [AGG-101]
+    aggregate_note: "AGG-101"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "ADR-0022 第 8、10 条（阶段门走查补，§4.3.3）"
+    source_line: 239
+  - id: INV-108
+    statement: "受控手工凭证须有理由与附件、复核人不同于制单人；触及控制科目须在授权表内；只有年度审计调整类可显式指定落账期间，且只能指定第 13 期"
+    category: "A（授权表同 BC 读）"
+    owner_aggregates: [AGG-98]
+    aggregate_note: "AGG-98"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "ADR-0022 第 3 条；ADR-0046 第 3 项第 2 条（阶段门走查补，§4.3.3）"
+    source_line: 240
+  - id: INV-109
+    statement: "期末结转（损益结转等）每（法人，期间，模板）只有一次有效运行；按模板版本生成，已过账的只能冲销重做（冲销后原运行失效，可再跑一次有效运行，S-31 SQ-17）"
+    category: "A + B"
+    owner_aggregates: [AGG-99]
+    aggregate_note: "AGG-99"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "ADR-0022 第 3、10 条；ADR-0045 第 4 项 S8（阶段门走查补，§4.3.3）"
+    source_line: 241
+  - id: INV-110
+    statement: "客户活动：完成须有结果反馈；已完成、已取消的活动不得再变更；计划变更保留历史（只追加）"
+    category: "A"
+    owner_aggregates: [AGG-102]
+    aggregate_note: "AGG-102"
+    owner_bc: [presales.opportunity]
+    group: "财务与经营"
+    source: "OBJ-105；用户 intent 072440 C-1（状态流转由用户定，细则为推断，待第 6 步）"
+    source_line: 242
+  - id: INV-111
+    statement: "客户满意度调查：评分只能在已回收后记；已评分的评分不得改，更正另记；已跟进须记跟进说明"
+    category: "A"
+    owner_aggregates: [AGG-105]
+    aggregate_note: "AGG-105"
+    owner_bc: [delivery.acceptance]
+    group: "财务与经营"
+    source: "OBJ-106；用户 intent 072440 C-2（状态流转由用户定，细则为推断）"
+    source_line: 243
+  - id: INV-112
+    statement: "项目复盘：须评审后才能发布；已发布的不得修改，只出新版本并引用被取代版本"
+    category: "A"
+    owner_aggregates: [AGG-103]
+    aggregate_note: "AGG-103"
+    owner_bc: [delivery.execution]
+    group: "财务与经营"
+    source: "OBJ-107；用户 intent 072440 C-3（状态流转由用户定，不可改规则类比 INV-46，为推断）"
+    source_line: 244
+  - id: INV-113
+    statement: "项目风险与问题：已接受须记接受人与依据；已关闭或已接受后不得再改应对记录，重开另记"
+    category: "A"
+    owner_aggregates: [AGG-104]
+    aggregate_note: "AGG-104"
+    owner_bc: [delivery.execution]
+    group: "财务与经营"
+    source: "OBJ-108；用户 intent 072440 C-4（状态流转由用户定，细则为推断）"
+    source_line: 245
+  - id: INV-114
+    statement: "同一人员同一评估期间同一类型只有一份绩效评估；已确认后不得改，更正另记"
+    category: "A + B（部分唯一索引）"
+    owner_aggregates: [AGG-106]
+    aggregate_note: "AGG-106"
+    owner_bc: [organization.workforce]
+    group: "财务与经营"
+    source: "OBJ-109；用户 intent 072440 C-5（唯一性与不可改为推断，待第 6 步）"
+    source_line: 246
+  - id: INV-115
+    statement: "知识条目：已发布的版本不得修改，修订产生新版本并引用被取代版本；废止后不得被新引用（已有引用不受影响）；评审中仅起草人可撤回，逾期评审仅按规则中断，均回到起草（待第 6 步确认）"
+    category: "A"
+    owner_aggregates: [AGG-107]
+    aggregate_note: "AGG-107"
+    owner_bc: [km.knowledge]
+    group: "财务与经营"
+    source: "OBJ-110；用户 intent 074053 K-1（状态流转与适用范围、审批人、有效期由用户定；不可改与废止后不得新引用为推断，待第 6 步确认）"
+    source_line: 247
+  - id: INV-116
+    statement: "标准工时版本：同一法人（空 = 默认）的生效区间不重叠；生效后不得修改，更正另追加新版本，不追溯已确认的工时与请假拆分；取不到当日生效版本须失败并告警，不回退默认值"
+    category: "A + B（区间不重叠用排除约束或部分唯一索引）"
+    owner_aggregates: [AGG-108]
+    aggregate_note: "AGG-108"
+    owner_bc: [organization.attendance]
+    group: "财务与经营"
+    source: "OBJ-28 标准工时版本属性；§14.1 D15（one-architecture 2026-10-16，供 RULE-398/403/404/405 与 one-data）"
+    source_line: 248
+  - id: INV-117
+    statement: "利润分配：决议分配额不超过所属年度已关账的可分配利润（公司按弥补亏损、提取法定公积金后的余额，合伙企业按合伙协议）；支付合计不超过决议金额；已决议不得改，变更须新决议并引用被取代决议"
+    category: "A + A（前置：读已关账年度的期间余额快照）"
+    owner_aggregates: [AGG-109]
+    aggregate_note: "AGG-109"
+    owner_bc: [payables.payment]
+    group: "财务与经营"
+    source: "OBJ-112；公司法（2023 修订）第 210、211 条，合伙企业法第 33 条（条号待外部出处复核）；第 ② 步回补（intent 082311）"
+    source_line: 249
+  - id: INV-118
+    statement: "用印须基于已批准的申请"
+    category: "A（前置）"
+    owner_aggregates: [AGG-113]
+    aggregate_note: "AGG-113"
+    owner_bc: [organization.administration]
+    group: "财务与经营"
+    source: "架构收尾回补（people NOTES，原临时号 INV-新-P1）；S-09"
+    source_line: 250
+  - id: INV-119
+    statement: "登记的用印份数合计不超过批准份数"
+    category: "A"
+    owner_aggregates: [AGG-113]
+    aggregate_note: "AGG-113"
+    owner_bc: [organization.administration]
+    group: "财务与经营"
+    source: "同上（原 INV-新-P2）"
+    source_line: 251
+  - id: INV-120
+    statement: "IT 需求工单关闭须有处理结论"
+    category: "A（前置）"
+    owner_aggregates: [AGG-114]
+    aggregate_note: "AGG-114"
+    owner_bc: [organization.administration]
+    group: "财务与经营"
+    source: "同上（原 INV-新-P3）"
+    source_line: 252
+  - id: INV-121
+    statement: "同一资产的使用期间不重叠（同一时刻只有一个使用人）"
+    category: "A + B（排他约束；跨申请单，聚合边界待评审，S-21）"
+    owner_aggregates: [AGG-115]
+    aggregate_note: "AGG-115"
+    owner_bc: [organization.administration]
+    group: "财务与经营"
+    source: "同上（原 INV-新-P4）；intent 152926"
+    source_line: 253
+  - id: INV-122
+    statement: "同一部门 / 员工的法人归属期间不重叠"
+    category: "A + B（已建 `EXCLUDE` 约束）"
+    owner_aggregates: [AGG-117]
+    aggregate_note: "AGG-117"
+    owner_bc: [organization.workforce]
+    group: "财务与经营"
+    source: "同上（原 INV-新-P5）；Q-09（intent 134134）"
+    source_line: 254
+  - id: INV-123
+    statement: "同一假期类型同一适用范围只有一个生效版本"
+    category: "A + B（部分唯一索引）"
+    owner_aggregates: [AGG-118]
+    aggregate_note: "AGG-118"
+    owner_bc: [organization.leave]
+    group: "财务与经营"
+    source: "同上（原 INV-新-P6）；D15"
+    source_line: 255
+  - id: INV-124
+    statement: "归档协议：协议须已签署（「已签署」及其后各状态，GL5-01）；原件份数与签章齐全，不齐拒绝并告警（退回补齐）"
+    category: "A（前置）"
+    owner_aggregates: [AGG-13]
+    aggregate_note: "AGG-13"
+    owner_bc: [contract.agreement]
+    group: "财务与经营"
+    source: "revenue NOTES 聚合稿回补 1（原 INV-新A）；S-23；C-4"
+    source_line: 256
+  - id: INV-125
+    statement: "登记协议借出：协议已归档；同一份原件同时只能有一笔未归还的借出（复印件不受限）；须引用已通过的合同借阅审批实例"
+    category: "A（前置）"
+    owner_aggregates: [AGG-13]
+    aggregate_note: "AGG-13"
+    owner_bc: [contract.agreement]
+    group: "财务与经营"
+    source: "revenue NOTES 聚合稿回补 1（原 INV-新B）；S-22、S-23"
+    source_line: 257
+  - id: INV-126
+    statement: "登记协议归还：只对未归还的借出登记，每笔借出归还一次"
+    category: "A"
+    owner_aggregates: [AGG-13]
+    aggregate_note: "AGG-13"
+    owner_bc: [contract.agreement]
+    group: "财务与经营"
+    source: "revenue NOTES 聚合稿回补 1（原 INV-新C）；S-23"
+    source_line: 258
+  - id: INV-127
+    statement: "合伙人出资：累计实缴不超过认缴"
+    category: "A"
+    owner_aggregates: [AGG-54]
+    aggregate_note: "AGG-54"
+    owner_bc: [payables.payment]
+    group: "财务与经营"
+    source: "finance NOTES 回补第 20 行；S-29 SQ-47"
+    source_line: 259
+  - id: INV-128
+    statement: "合伙人出资：退回不超过已实缴"
+    category: "A"
+    owner_aggregates: [AGG-54]
+    aggregate_note: "AGG-54"
+    owner_bc: [payables.payment]
+    group: "财务与经营"
+    source: "同上"
+    source_line: 260
+  - id: INV-129
+    statement: "同一发票代码与号码只登记一次（登记人与确认用途人分离写流程 `segregation`，不作不变量）"
+    category: "A + B（唯一约束；分类由编号人推定，待复核）"
+    owner_aggregates: [AGG-89]
+    aggregate_note: "AGG-89"
+    owner_bc: [accounting.tax]
+    group: "财务与经营"
+    source: "finance NOTES 回补第 25 行；S-29 SQ-53"
+    source_line: 261
+  - id: INV-130
+    statement: "应付处于争议状态时拒绝付款（落在 AGG-52 的「在应付上核销占用」前置，AGG-53「发起付款」经此占用；争议状态记在 AGG-52，同聚合内判定；付款条件未到期只作提前付款预警，见 §1.3 P-51，不拦）"
+    category: "A（前置）"
+    owner_aggregates: [AGG-52]
+    aggregate_note: "AGG-52"
+    owner_bc: [payables.payment]
+    group: "财务与经营"
+    source: "S-29 SQ-54②"
+    source_line: 262
+  - id: INV-131
+    statement: "配置版本起草人不得为批准人（草稿另存、可改，批准时才写只追加的版本行；聚合内记了起草与批准两人，可校验；与 S-29 SQ-53 不同，本条有明文依据，所以是不变量，不只写成 segregation；S-39 ② 把适用范围扩到口径版本、成本核算参数、资产类别与折旧政策、出差补贴标准并分列出处）"
+    category: "A"
+    owner_aggregates: [AGG-82, AGG-05, AGG-05]
+    aggregate_note: "出处一（ADR-0022 决定 2 所列版本化配置）：AGG-82、85、86、94、128、129；出处二（《企业内部控制基本规范》财会〔2008〕7 号第二十九条不相容职务分离，其余配置）：AGG-05、06、07、40、78、123、124、133（AGG-05–07 按 S-33「同 SQ-10」）"
+    owner_bc: [accounting.ledger, masterdata.catalog]
+    group: "财务与经营"
+    source: "S-31 SQ-10；S-39 ②；ADR-0022 决定 2；财会〔2008〕7 号第二十九条；R-31，D15"
+    source_line: 263
+  - id: INV-132
+    statement: "同一商机的售前投入只转出一次（转入合同履约成本或转费用，二选一）"
+    category: "A + B"
+    owner_aggregates: [AGG-122]
+    aggregate_note: "AGG-122"
+    owner_bc: [cost.costing]
+    group: "财务与经营"
+    source: "S-31 SQ-18"
+    source_line: 264
+  - id: INV-133
+    statement: "期初余额签字后才生效，每（法人, 账簿）只有一个生效版本，生效后不改"
+    category: "A + B"
+    owner_aggregates: [AGG-125]
+    aggregate_note: "AGG-125"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "S-31 SQ-21；ADR-0022 决定 11、迁移方案"
+    source_line: 265
+  - id: INV-134
+    statement: "期初余额借贷平衡，项目拆分合计等于法人 × 科目余额（差额挂未分配项目）"
+    category: "A"
+    owner_aggregates: [AGG-125]
+    aggregate_note: "AGG-125"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "S-31 SQ-21；ADR-0022 迁移方案"
+    source_line: 266
+  - id: INV-135
+    statement: "勾稽差异案须以解释、修正、豁免之一关闭，豁免须财务负责人确认；未关闭的超容差差异案使关账前置检查不通过（扩 INV-100 检查项）"
+    category: "A"
+    owner_aggregates: [AGG-126]
+    aggregate_note: "AGG-126"
+    owner_bc: [operations.policy]
+    group: "财务与经营"
+    source: "S-31 SQ-22；ADR-0023 决定 4"
+    source_line: 267
+  - id: INV-136
+    statement: "期末结转模板、现金流量项目表、口径转换规则的版本只在期间首日生效（同 INV-91）"
+    category: "A"
+    owner_aggregates: [AGG-127]
+    aggregate_note: "AGG-127、128、129"
+    owner_bc: [accounting.ledger]
+    group: "财务与经营"
+    source: "S-31 SQ-24；ADR-0022 决定 2"
+    source_line: 268
+  - id: INV-137
+    statement: "同一差旅订单只结算一次（公司直付账单与员工报销互斥）"
+    category: "A + B（同 BC）"
+    owner_aggregates: [AGG-131, AGG-59]
+    aggregate_note: "AGG-131、AGG-59"
+    owner_bc: [expense.spend]
+    group: "财务与经营"
+    source: "S-31 SQ-27"
+    source_line: 269
+  - id: INV-138
+    statement: "同一来源审批实例的累计用印份数不超过批准份数（多次用印按累计校验）"
+    category: "A"
+    owner_aggregates: [AGG-113]
+    aggregate_note: "AGG-113"
+    owner_bc: [organization.administration]
+    group: "财务与经营"
+    source: "S-41；S-40"
+    source_line: 270
+  - id: INV-139
+    statement: "薪酬规则版本的生效区间不重叠（沿 INV-116 写法；取不到当日生效版本须失败并告警）"
+    category: "A + B（同 BC）"
+    owner_aggregates: [AGG-119]
+    aggregate_note: "AGG-119"
+    owner_bc: [organization.payroll]
+    group: "财务与经营"
+    source: "S-43；S-28"
+    source_line: 271
+  - id: INV-140
+    statement: "对客交付计划基线版本须注明其编制所据的内部基线版本，缺即拒（不得提交发包人批准）"
+    category: "A"
+    owner_aggregates: [AGG-21]
+    aggregate_note: "AGG-21"
+    owner_bc: [delivery.execution]
+    group: "财务与经营"
+    source: "LEB-07（用户 2026-10-22）；revenue NOTES「AGG-21 待定·对客基线与内部基线」"
+    source_line: 272
+  - id: INV-141
+    statement: "内部基线须含对客基线的全部合同里程碑；同名里程碑内部日期晚于对客日期只提示、不拒"
+    category: "A（提示）"
+    owner_aggregates: [AGG-21]
+    aggregate_note: "AGG-21"
+    owner_bc: [delivery.execution]
+    group: "财务与经营"
+    source: "LEB-07（用户 2026-10-22）；进度考核按内部基线，延期、结算与索赔按对客基线"
+    source_line: 273
+  - id: INV-142
+    statement: "间接成本池只分摊到同一法人的项目：分摊规则把某一法人的成本池分摊到其他法人的项目，试算即拒收并告警"
+    category: "A"
+    owner_aggregates: [AGG-42]
+    aggregate_note: "AGG-42"
+    owner_bc: [cost.costing]
+    group: "财务与经营"
+    source: "成本口径 C-4；LEGAL_ENTITY_CONSISTENCY_2026-10-22 第 5 条；PRC-98"
+    source_line: 274

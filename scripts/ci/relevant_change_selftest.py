@@ -56,20 +56,20 @@ def tiers_self_test(root):
         write(tmp, t + "CommentOnlyTest.java", 'class CommentOnlyTest {\n // reads docs/modernization/events/comment.yaml in theory\n /* and comment.yaml again */ }')
         write(tmp, t + "ByNameIT.java", 'class ByNameIT { String dir = base(); String f = dir + "/byname.yaml"; }')
         write(tmp, t + "ByNameTest.java", 'class ByNameTest { String f = "docs/modernization/events/byname.yaml"; }')
-        write(tmp, "frontend/scripts/copy-glossary.mjs", 'const p = "docs/modernization/glossary/front.yaml";')
-        write(tmp, "frontend/src/app.ts", 'const p = "docs/modernization/glossary/app.yaml";')
-        write(tmp, "scripts/release/gate.py", 'P = "docs/modernization/phase1a/infra/runbooks/sql/"')
+        write(tmp, "frontend/scripts/copy-glossary.mjs", 'const p = "docs/glossary/front.yaml";')
+        write(tmp, "frontend/src/app.ts", 'const p = "docs/glossary/app.yaml";')
+        write(tmp, "scripts/release/gate.py", 'P = "docs/ops/runbooks/sql/"')
         write(tmp, "scripts/other/tool.py", 'P = "docs/modernization/events/tool.yaml"')
         write(tmp, "scripts/ci/light.sh", "cat docs/modernization/events/only-light.yaml")
-        write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"; G = "docs/modernization/glossary/"')  # a local tool naming a whole directory hides no reader
-        write(tmp, "scripts/gates/g.py", 'P = "docs/modernization/events/only-gate.yaml"; G = "docs/modernization/glossary/"')  # the local gates: no reader either
+        write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"; G = "docs/glossary/"')  # a local tool naming a whole directory hides no reader
+        write(tmp, "scripts/gates/g.py", 'P = "docs/modernization/events/only-gate.yaml"; G = "docs/glossary/"')  # the local gates: no reader either
         write(tmp, "scripts/guards/db_scripts_aligned.py", 'P = "docs/modernization/events/always.yaml"')
         write(tmp, t + "StarGlobIT.java", 'class StarGlobIT { String g = "glob:**/*.java"; String p = "docs/modernization/events/after-star.yaml"; } /** */')
-        write(tmp, "frontend/scripts/generate-api.mjs", 'const p = "docs/modernization/glossary/gen.yaml";')
-        write(tmp, t + "GlossaryRelatedTest.java", 'class GlossaryRelatedTest { String p = "docs/modernization/glossary/terms.yaml"; }')
-        write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/modernization/glossary/terms.yaml"; }')
+        write(tmp, "frontend/scripts/generate-api.mjs", 'const p = "docs/glossary/gen.yaml";')
+        write(tmp, t + "GlossaryRelatedTest.java", 'class GlossaryRelatedTest { String p = "docs/glossary/terms.yaml"; }')
+        write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/glossary/terms.yaml"; }')
         ev = "docs/modernization/events/"
-        gl = "docs/modernization/glossary/"
+        gl = "docs/glossary/"
 
         def tier(*paths):
             return rc.tier_of(list(paths), tmp)
@@ -100,10 +100,10 @@ def tiers_self_test(root):
         assert tier(ev + "light.yaml") == ("code", None), "a reader that walks docs: any doc may be read"
         Path(tmp, t + "WalkIT.java").unlink()
         with tempfile.TemporaryDirectory() as tmp2:
-            write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "modernization", "phase1a", "infra", "runbooks", "sql"); }')
-            assert rc.tier_of(["docs/modernization/phase1a/infra/runbooks/sql/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
+            write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "ops", "runbooks", "sql"); }')
+            assert rc.tier_of(["docs/ops/runbooks/sql/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
         write(tmp, t + "EventsApplicationIntegrationTest.java", "x")
-        write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/modernization/glossary/terms.yaml"; String q = "docs/modernization/events/other.yaml"; }')
+        write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/glossary/terms.yaml"; String q = "docs/modernization/events/other.yaml"; }')
         rc.EXEMPT_HEAVY_READERS[(gl, "ApplicationIntegrationTest")] = "test only"
         try:
             assert tier(ev + "other.yaml") == ("code", None), "the exemption is limited to its doc prefix"
@@ -112,7 +112,7 @@ def tiers_self_test(root):
         kind, plan = tier(gl + "front.yaml")
         assert kind == "guarded" and plan["frontend"] and not plan["classes"]
         assert tier(gl + "app.yaml") == ("code", None), "a frontend source outside frontend/scripts reads it"
-        kind, plan = tier("docs/modernization/phase1a/infra/runbooks/sql/x.md")
+        kind, plan = tier("docs/ops/runbooks/sql/x.md")
         assert kind == "guarded" and plan["release"]
         assert tier(gl + "terms.yaml") == ("code", None), "a heavy test reads it and no exemption is approved"
         rc.EXEMPT_HEAVY_READERS[(gl, "ApplicationIntegrationTest")] = "test only"
@@ -123,9 +123,9 @@ def tiers_self_test(root):
             rc.EXEMPT_HEAVY_READERS.clear()
         # mixed changes
         assert tier(ev + "light.yaml", "backend/pom.xml") == ("code", None)
-        assert tier(ev + "light.yaml", "docs/modernization/adr/src/ADR-0001.md")[0] == "guarded"
+        assert tier(ev + "light.yaml", "docs/adr/ADR-0001.md")[0] == "guarded"
         assert tier(ev + "light.yaml", ev + "heavy.yaml") == ("code", None)
-        assert tier("docs/modernization/adr/src/ADR-0001.md", "README.md") == ("docs", None)
+        assert tier("docs/adr/ADR-0001.md", "README.md") == ("docs", None)
         assert tier(gl + "issues/x.md") == ("docs", None)
         assert tier() == ("docs", None)
         lines = rc.tier_lines(*tier(ev + "helper.yaml"))
@@ -155,13 +155,13 @@ def rename_self_test():
         git("add", "-A"); git("-c", "commit.gpgsign=false", "commit", "-q", "-m", "base")
         git("update-ref", "refs/remotes/origin/main", "HEAD")
         base = git("rev-parse", "HEAD").strip()
-        new = Path(tmp, "docs/modernization/other/INFRA_RUNBOOK_OLD.md")
+        new = Path(tmp, "docs/other/INFRA_RUNBOOK_OLD.md")
         new.parent.mkdir(parents=True)
         git("mv", str(old), str(new)); git("-c", "commit.gpgsign=false", "commit", "-q", "-m", "move")
         cwd = os.getcwd()
         try:
             os.chdir(tmp)
-            assert sorted(rc.changed_files("main")) == ["docs/modernization/other/INFRA_RUNBOOK_OLD.md", "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md"], rc.changed_files("main")
+            assert sorted(rc.changed_files("main")) == ["docs/modernization/phase1a/infra/INFRA_RUNBOOK.md", "docs/other/INFRA_RUNBOOK_OLD.md"], rc.changed_files("main")
             assert sorted(rc.files_since(base)) == sorted(rc.changed_files("main"))
         finally:
             os.chdir(cwd)
@@ -185,7 +185,7 @@ def real_tiers_self_test(root):
     for entry in rc.READ_BY_ALWAYS_RUN_CHECKS:
         tests = sorted(r for r in index.readers(entry) if r.startswith(("backend/", "frontend/")))
         assert not tests, f"{entry} is read by {tests}: a build reads it, so it belongs in rc.READ_BY_BUILDS"
-    assert rc.plan_for(["docs/modernization/phase1a/infra/runbooks/sql/c9_prod_db_verify.sql"], index, light) is None, "DataArchitectureTest (a container test) runs it: full run"
+    assert rc.plan_for(["docs/ops/runbooks/sql/prod-db-verify.sql"], index, light) is None, "DataArchitectureTest (a container test) runs it: full run"
     guarded = 0
     for path in docs:
         plan = rc.plan_for([path], index, light)
@@ -199,15 +199,15 @@ def real_tiers_self_test(root):
     assert guarded, "every doc went to the full run: the middle tier is empty"
     expected = {
         "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md": {"ReadOnlyCheckSwitchGuardTest"},
-        "docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/credential_columns.csv": {"CredentialColumnGuardTest"},
+        "docs/data/evidence/dba-handoff/credential-columns.csv": {"CredentialColumnGuardTest"},
     }
     for path, classes in expected.items():
         plan = rc.plan_for([path], index, light)
         assert plan is not None and classes <= plan["classes"], f"{path} must trigger {sorted(classes)}, plans {plan}"
     assert rc.plan_for(["docs/modernization/events/asyncapi.yaml"], index, light) is None, "ITs read the event catalogue: full run"
-    for path in ("docs/modernization/glossary/terms.yaml", "docs/modernization/glossary/bcs.yaml"):
+    for path in ("docs/glossary/terms.yaml", "docs/glossary/bcs.yaml"):
         assert rc.plan_for([path], index, light) is None, f"{path}: a heavy test (ApplicationIntegrationTest) reads it and no exemption is approved: full run"
-    assert rc.plan_for(["docs/modernization/phase1a/infra/deploy_gate.json"], index, light)["release"]
+    assert rc.plan_for(["docs/ops/deploy-gate.json"], index, light)["release"]
 
 
 def self_test(module):
@@ -249,30 +249,30 @@ def self_test(module):
     assert rc.is_relevant("backend/pom.xml")
     assert rc.is_relevant(".github/workflows/ci.yml")
     assert rc.is_relevant("scripts/ci/relevant_change.py")
-    assert rc.is_relevant("docs/modernization/glossary/terms.yaml")
+    assert rc.is_relevant("docs/glossary/terms.yaml")
     assert rc.is_relevant("docs/modernization/events/asyncapi.yaml")
-    assert not rc.is_relevant("docs/modernization/glossary/issues/2026-10-15-120000-one-ops-x.md")
-    assert not rc.is_relevant("docs/modernization/glossary/decision-sheets/2026-10-20.md")
-    assert rc.is_covered("docs/modernization/glossary/terms.yaml")
-    assert not rc.is_covered("docs/modernization/glossary/issues/x.md"), "a build reading NOT_READ_BY_BUILDS must fail the scan"
-    assert not rc.is_covered("docs/modernization/glossary/issues")
-    assert rc.is_covered("docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml")
+    assert not rc.is_relevant("docs/glossary/issues/2026-10-15-120000-one-ops-x.md")
+    assert not rc.is_relevant("docs/glossary/decision-sheets/2026-10-20.md")
+    assert rc.is_covered("docs/glossary/terms.yaml")
+    assert not rc.is_covered("docs/glossary/issues/x.md"), "a build reading NOT_READ_BY_BUILDS must fail the scan"
+    assert not rc.is_covered("docs/glossary/issues")
+    assert rc.is_covered("docs/rules/rulings/acceptance-rulings.yaml")
     assert rc.is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
-    assert rc.is_relevant("docs/modernization/phase1a/infra/deploy_gate.json")
-    assert not rc.is_relevant("docs/modernization/adr/src/ADR-0001.md")
-    assert not rc.is_relevant("docs/modernization/phase1a/INTERFACES.md")
+    assert rc.is_relevant("docs/ops/deploy-gate.json")
+    assert not rc.is_relevant("docs/adr/ADR-0001.md")
+    assert not rc.is_relevant("docs/legacy/psa-external-interfaces.md")
     assert not rc.is_relevant("README.md")
-    assert not rc.is_relevant("docs/modernization/intent/2026-10-15-120000-one-ops-中文.md")
+    assert not rc.is_relevant("docs/decisions/2026-10-15-120000-one-ops-中文.md")
     assert rc.is_relevant('"docs/q\\"x.md"'), "a path git still quotes must count as relevant"
-    assert rc.is_relevant("docs/modernization/phase1a/infra/runbooks/sql/c3_dev_db.sql"), "DataArchitectureTest executes the verify scripts here"
+    assert rc.is_relevant("docs/ops/runbooks/sql/dev-db.sql"), "DataArchitectureTest executes the verify scripts here"
     assert rc.is_relevant("notes.txt")
     assert not rc.is_relevant("tools/docs/new_adr.py"), "a hand-run tool whose self-test light.sh runs"
     assert rc.is_relevant("tools/ops/runner_rebuild.sh"), "the release job shellchecks tools/ops on relevant pull requests"
     assert rc.is_relevant("tools/evidence/evidence.py")
     assert rc.is_relevant("docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml")
     assert rc.is_relevant("docs/modernization/phase1a/infra/one_db_roles_schemas.sql")
-    assert rc.any_relevant(["docs/modernization/CODING_STANDARD.md", "docs/modernization/glossary/terms.yaml"])
-    assert not rc.any_relevant(["docs/modernization/CODING_STANDARD.md", "CLAUDE.md", ""])
+    assert rc.any_relevant(["docs/rules/coding-standard.md", "docs/glossary/terms.yaml"])
+    assert not rc.any_relevant(["docs/rules/coding-standard.md", "CLAUDE.md", ""])
     assert not rc.any_relevant([])
     assert rc.is_legacy_it("backend/src/main/java/com/forcitis/one/platform/integration/infrastructure/seeyon/SeeyonViews.java")
     assert rc.is_legacy_it("backend/src/main/java/com/forcitis/one/platform/approval/infrastructure/legacy/LegacyInboxConfiguration.java")
@@ -284,8 +284,8 @@ def self_test(module):
     assert rc.is_legacy_it("backend/architecture/external-read-registry.yaml")
     assert rc.is_legacy_it("backend/pom.xml")
     assert rc.is_legacy_it("docs/modernization/phase1a/SEEYON_VIEWS.sql")
-    assert rc.is_legacy_it("docs/modernization/phase1a/infra/handoff/B-5-dba/read-all/a8_apply.sql")
-    assert not rc.is_legacy_it("docs/modernization/phase1a/infra/handoff/B-5-dba/README.md")
+    assert rc.is_legacy_it("docs/ops/dba-scripts/read-all/a8-apply.sql")
+    assert not rc.is_legacy_it("docs/ops/dba-scripts/README.md")
     assert not rc.is_legacy_it("backend/src/main/java/com/forcitis/one/platform/integrationx/Other.java")
     assert rc.is_legacy_it("backend/src/main/java/com/forcitis/one/organization/workforce/WorkforceService.java")
     assert not rc.is_legacy_it("backend/src/test/java/com/forcitis/one/organization/workforce/WorkforceServiceTest.java")

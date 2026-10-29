@@ -1,0 +1,224 @@
+{"card": "C-PROJECT", "session": "one-glossary", "date": "2026-10-15",
+ "lede": "同一个「项目」在各 bc 含义不同：只有交付执行 bc 拥有「项目」这个对象，其他 bc 或引用它（项目坐标），或其实说的是别的东西（商机、工程项目、研发项目、现金流量项目等），逐 bc 定叫法与边界",
+ "items": [
+  {"code": "PJ-01", "zh": "商机", "en": "Opportunity", "kind": "aggregate", "bc": "presales.quoting",
+   "definition": "签约前跟进的销售机会：线索验证通过后成为商机，经追/不追评估、报价、承诺，赢单时发出商机转化（OpportunityAccepted）把承诺快照交给合同基线，或以失单/不追/关闭结束。含：评估、报价、售前投入（售前工时记在商机上）。不含：签约后的执行、WBS、成本归集、收入。老系统与报表里的「售前项目」「商机工时（售前项目）」以及签约前就叫「项目」的口头说法都指它；它与交付执行的「项目」不是同一个对象，是上游，赢单后由下游另建项目。",
+   "verdict": "正式",
+   "refs": "专业服务行业通行（Opportunity / Pipeline）；docs/glossary/terms.yaml opportunity；docs/glossary/glossary.md presales.quoting 节；docs/legacy/bi/report-structure/term-mapping.md 第 170 行（商机工时 = BD 售前项目）、S-12；docs/business/business-rules.md RULE-039",
+   "why": "签约前要跟进的东西已经有正式叫法「商机」，不必再叫「售前项目」；把「项目」留给签约后真正要交付的那一个。",
+   "code_note": "terms.yaml opportunity 定义「立项跟进的销售机会」里的「立项」与已判方言的「项目立项」撞词，建议改为「签约前跟进的销售机会」；新增别名「售前项目」（dialect）。",
+   "options": [
+     {"action": "merge", "into": "opportunity", "zh": "商机", "en": "Opportunity", "label": "并入已有「商机」，「售前项目」登记为方言", "recommended": true},
+     {"action": "rename", "zh": "售前项目", "en": "PresalesProject", "label": "单设「售前项目」，与商机并存"}]},
+
+  {"code": "PJ-02", "zh": "项目坐标", "en": "ProjectCoordinate", "kind": "value_object", "bc": "kernel",
+   "definition": "共享内核里的值对象：指向交付执行 bc 的一个项目，可选再指到其中一个 WBS 节点（最小形态，Phase 2 再定是否加维度）。只有标识，不带任何业务行为。成本、收入与应收、核算、经营分析都用它引用项目，而不是各自再建一个「项目」。",
+   "verdict": "正式",
+   "refs": "ADR-0016 第 8 条（共享内核只放值对象，含 ProjectCoordinate）；docs/architecture/ai-native-spec.md 第 91 行；docs/business/bi-scope.md 第 268 行；PMBOK（WBS）",
+   "why": "这是各 bc 共用同一个项目的「门牌号」，大家引用同一个，口径才不会分裂。",
+   "code_note": "backend/src/main/java/com/forcitis/one/kernel/ProjectCoordinate.java、ProjectId.java 已存在；terms.yaml 尚无 project_coordinate 词条，需补登。",
+   "options": [
+     {"action": "approve", "zh": "项目坐标", "en": "ProjectCoordinate", "label": "沿用「项目坐标」并补登词表", "recommended": true},
+     {"action": "rename", "zh": "项目引用", "en": "ProjectReference", "label": "改叫「项目引用」"}]},
+
+  {"code": "PJ-03", "zh": "合同基线", "en": "ContractBaseline", "kind": "entity", "bc": "contract.baseline",
+   "definition": "签署审批后生效的合同事实版本（条款、金额、交付部门、付款条件）。老系统与 A8 的「项目档案」「项目档案变更」实际改的是这些合同属性，在合同 bc 里「项目」其实指合同基线。不含：执行进度、WBS、成本。合同（含框架协议下的任务订单）与交付项目是上下游关系：项目引用合同，合同不拥有项目。",
+   "verdict": "正式",
+   "refs": "CAS 14 / IFRS 15（合同）；docs/legacy/seeyon-oa/process-inventory.md 第 64、68、196–197 行（项目档案变更改的是项目与条款主档，迁入 contract.baseline）；docs/business/business-rules.md 第 624 行（条款编码挂在项目档案）",
+   "why": "合同条款和金额属于合同，叫「项目档案」会让人以为是交付侧的东西；归到「合同基线」，改动走合同变更。",
+   "code_note": "terms.yaml 把「项目档案」作为 project（delivery.execution）的方言别名；按证据应改挂到 contract_baseline（或两处都挂并注明）。",
+   "options": [
+     {"action": "merge", "into": "contract_baseline", "zh": "合同基线", "en": "ContractBaseline", "label": "「项目档案」并入合同基线，作方言别名", "recommended": true},
+     {"action": "approve", "zh": "项目", "en": "Project", "label": "维持现状：「项目档案」仍挂在交付的项目下"}]},
+
+  {"code": "PJ-04", "zh": "工程项目", "en": "ConstructionProject", "kind": "value_object", "bc": "contract.baseline",
+   "definition": "客户那一侧被服务的建设工程（某栋楼、某个园区），记名称、所在城市、业态等描述，作为合同与商机上的快照。它比公司的交付项目大、活得久：同一个工程项目可能先后签幕墙、照明等多份合同、对应多个交付项目。不含：公司内部的执行、成本、收入。「项目业主」「项目业态」「追/不追评估 B 项目」里的「项目」都是它。",
+   "verdict": "待定",
+   "refs": "GB/T 50326 建设工程项目管理规范（建设工程项目）；docs/glossary/glossary.md 第 218 行（追/不追评估 B 项目）、第 194 行（项目业主）；docs/legacy/bi/report-structure/term-mapping.md 第 235 行（项目业态）；docs/legacy/seeyon-oa/process-inventory.md 第 287 行（项目预算所属城市）",
+   "why": "设计公司常说的「这个项目」很多时候指甲方的楼，而不是我们的交付任务；单独起名能避免把两份合同误当成一个项目。",
+   "code_note": "新词条，现无代码；若采纳，项目业主主体定义改为引用「工程项目」。是否需要独立主数据（多合同共用一个工程）待业务确认。",
+   "options": [
+     {"action": "approve", "zh": "工程项目", "en": "ConstructionProject", "label": "新登记「工程项目」，专指客户的建设工程", "recommended": true},
+     {"action": "rename", "zh": "项目概况", "en": "ProjectProfile", "label": "只作合同上的描述字段，叫「项目概况」"},
+     {"action": "merge", "into": "project", "zh": "项目", "en": "Project", "label": "不区分，统一算交付的项目"}]},
+
+  {"code": "PJ-05", "zh": "项目业主主体", "en": "ProjectOwnerParty", "kind": "role", "bc": "contract.baseline",
+   "definition": "合同上登记的工程项目业主（建设单位）的客户引用，客户 bc 多主体之一；缺省等于客户方主体，但设计分包时客户往往是总包或幕墙施工方，业主另有其人。这里的「项目」指工程项目（见 P04），不是公司的交付项目。",
+   "verdict": "待定",
+   "refs": "GB/T 50326（建设工程项目、发包人）；docs/glossary/terms.yaml project_owner_party、customer_party；docs/glossary/glossary.md 第 194、285 行",
+   "why": "名字可以沿用，但要在定义里写明「项目」是甲方的工程，免得和交付项目混。",
+   "code_note": "terms.yaml project_owner_party 定义补一句「项目指工程项目」；现无 Java 代码。",
+   "options": [
+     {"action": "approve", "zh": "项目业主主体", "en": "ProjectOwnerParty", "label": "沿用，定义写明指工程项目的业主", "recommended": true},
+     {"action": "rename", "zh": "建设单位主体", "en": "OwnerParty", "label": "改叫「建设单位主体」，不带「项目」二字"}]},
+
+  {"code": "PJ-06", "zh": "项目", "en": "Project", "kind": "aggregate", "bc": "delivery.execution",
+   "definition": "公司为履行合同（或经风险交付授权、合同未签先做）而开展的一次有起止的交付工作，是全系统唯一叫「项目」的对象。生命周期：建立（老系统 A8「项目立项申请」）→ 执行中 → 暂停 / 已完成 → 已关闭或终止（状态值待定义）。含：WBS、计划基线、里程碑、进度与 EAC、项目经理与成员。不含：合同条款与金额（合同 bc）、成本金额（成本 bc）、收入与开票（收入与应收 bc）。其他 bc 通过项目坐标引用它。",
+   "verdict": "正式",
+   "refs": "PMBOK（Project：为创造独特产品、服务或成果而进行的临时性工作）；GB/T 50326；docs/glossary/terms.yaml project；docs/glossary/glossary.md 第 61、359 行（交付项目聚合）；docs/legacy/bi/report-structure/term-mapping.md 第 80、244 行、S-12",
+   "why": "「项目」这个名字只给签约后真正交付的那件事用，别的 bc 只引用它，不再各起一个「项目」。",
+   "code_note": "terms.yaml project：kind 由 entity 改 aggregate，definition「词表未收录，补入」需改成正式定义；kernel/ProjectId 即其标识。与合同的数量关系（一对一、一对多或框架下多任务订单）待定。",
+   "options": [
+     {"action": "approve", "zh": "项目", "en": "Project", "label": "沿用「项目」，作为全系统唯一叫项目的对象", "recommended": true},
+     {"action": "rename", "zh": "交付项目", "en": "DeliveryProject", "label": "改叫「交付项目」，名字里带上 bc"}]},
+
+  {"code": "PJ-07", "zh": "项目预算（WBS 预算）", "en": "ProjectBudget", "kind": "entity", "bc": "delivery.execution",
+   "definition": "按 WBS 层级编的项目成本预算，锁定即计划基线生效。这里的「项目」与 P06 同一个对象。",
+   "verdict": "正式",
+   "refs": "PMBOK（Cost Baseline / WBS）；docs/glossary/terms.yaml project_budget、plan_baseline；docs/glossary/TERM_CONFIRMATION.md P7",
+   "why": "含义清楚，沿用；只需清掉词表里的一处自相矛盾。",
+   "code_note": "terms.yaml plan_baseline 把「ProjectBudget, wbs_budget_*」列为已弃用老代码别名，而 project_budget 的正式英文名就是 ProjectBudget，二者冲突，需删去 plan_baseline 那条别名中的 ProjectBudget。",
+   "options": [
+     {"action": "approve", "zh": "项目预算（WBS 预算）", "en": "ProjectBudget", "label": "沿用，并修掉计划基线里的冲突别名", "recommended": true},
+     {"action": "merge", "into": "plan_baseline", "zh": "计划基线", "en": "PlanBaseline", "label": "并入计划基线，不单设项目预算"}]},
+
+  {"code": "PJ-08", "zh": "项目启动金额", "en": "ProjectInitiationValue", "kind": "metric", "bc": "delivery.execution",
+   "definition": "项目建立时登记的预计合同额（含税口径另列），订单前置指标，用来看从项目建立到签约的转化；与新签合同额分开统计。证据显示项目建立可以早于合同（报表里合同表项目编号为空）。",
+   "verdict": "待定",
+   "refs": "PMBOK（Initiating 启动过程组）；docs/glossary/rename-rounds/terms-input-bi-baseline.md 第 74 行（用户 B6）；docs/glossary/rename-rounds/r0-items.json；docs/legacy/bi/report-structure/term-mapping.md 第 268 行、S-12",
+   "why": "「立项」已判为方言，指标名不宜再带；用「启动」对齐 PMBOK。",
+   "code_note": "第三轮提议名「项目立项金额」需改；现无代码。归属 bc（交付执行还是经营分析）也待定。",
+   "options": [
+     {"action": "rename", "zh": "项目启动金额", "en": "ProjectInitiationValue", "label": "改叫「项目启动金额」，去掉方言「立项」", "recommended": true},
+     {"action": "approve", "zh": "项目立项金额", "en": "ProjectInitiationValue", "label": "保留「项目立项金额」"}]},
+
+  {"code": "PJ-09", "zh": "项目工时", "en": "ProjectHours", "kind": "value_object", "bc": "cost.timesheet",
+   "definition": "工时类别的取值：记在交付项目（WBS 工作包）上的工时，由项目经理审批。与之并列的售前工时记在商机上、OH 工时记在部门间接事项上，二者都不是项目。",
+   "verdict": "正式",
+   "refs": "专业服务行业通行（Project time / Timesheet）；backend/glossary/proposed/cost-timesheet.yaml project_hours、time_entry_category；docs/architecture/guiding-principles.md 第 87 行",
+   "why": "工时记到哪里只有三类，「项目工时」只指真正的交付项目，口径清楚。",
+   "code_note": "backend/src/main/java/com/forcitis/one/cost/timesheet/api/TimesheetRoutingFlag.java PROJECT_HOURS、Timesheet.projectManager 沿用。",
+   "options": [
+     {"action": "approve", "zh": "项目工时", "en": "ProjectHours", "label": "沿用「项目工时」", "recommended": true},
+     {"action": "rename", "zh": "交付工时", "en": "DeliveryHours", "label": "改叫「交付工时」"}]},
+
+  {"code": "PJ-10", "zh": "间接工作事项", "en": "OverheadWorkItem", "kind": "value_object", "bc": "cost.timesheet",
+   "definition": "按部门配置、可以记 OH 工时的间接工作条目（如内部管理、培训）。老系统叫「OH 项目」（psa_ohproject_detail），但它没有合同、没有交付、成本进间接成本池再分摊，不是项目。",
+   "verdict": "待定",
+   "refs": "docs/business/business-rules.md 第 860–867 行（OH source = psa_ohproject_detail）；docs/legacy/psa-data-objects.md 第 46 行；backend/glossary/proposed/cost-timesheet.yaml time_entry_category",
+   "why": "叫「OH 项目」会让 OH 工时混进项目口径；换个不带「项目」的名字。",
+   "code_note": "新系统尚无对应代码；「OH 项目」登记为方言别名。",
+   "options": [
+     {"action": "rename", "zh": "间接工作事项", "en": "OverheadWorkItem", "label": "改叫「间接工作事项」，「OH 项目」为方言", "recommended": true},
+     {"action": "merge", "into": "time_entry_category", "zh": "工时类别", "en": "TimeEntryCategory", "label": "不单设，只用工时类别 OH 区分"}]},
+
+  {"code": "PJ-11", "zh": "项目成本", "en": "ProjectCost", "kind": "metric", "bc": "cost.costing",
+   "definition": "按项目坐标归集的直接投入（直接人工 + 直接费用 + 分包），管理口径。这里的「项目」是交付项目在成本侧的视角（成本核算对象），用项目坐标引用，不另建项目。不含：U8C 科目 5201「项目成本」（法定科目，见 P18），也不含 OH 分摊前的间接成本。",
+   "verdict": "正式",
+   "refs": "财会〔2013〕17 号《企业产品成本核算制度（试行）》（成本核算对象，条文待核）；PMBOK（Actual Cost）；docs/glossary/terms.yaml project_cost；docs/legacy/general-ledger/practice.md §8",
+   "why": "名字沿用，但要写明它是管理口径、按项目坐标归集，和账上同名科目不是一回事。",
+   "code_note": "terms.yaml project_cost 定义补「按项目坐标归集、非科目」；现无 Java 代码。",
+   "options": [
+     {"action": "approve", "zh": "项目成本", "en": "ProjectCost", "label": "沿用，定义写明按项目坐标归集", "recommended": true},
+     {"action": "rename", "zh": "项目直接成本", "en": "ProjectDirectCost", "label": "改叫「项目直接成本」，与科目名彻底分开"}]},
+
+  {"code": "PJ-12", "zh": "项目成本账户", "en": "ProjectCostAccount", "kind": "entity", "bc": "cost.costing",
+   "definition": "项目 × 承担法人 × 币种的成本归集与期间封闭载体；一个交付项目在成本侧可有多个账户（跨法人承担时）。",
+   "verdict": "正式",
+   "refs": "PMBOK（Control Account）；docs/glossary/terms.yaml project_cost_account",
+   "why": "现在中文「成本账户」、英文 ProjectCostAccount，中英不一致，补上「项目」二字对齐。",
+   "code_note": "terms.yaml project_cost_account 中文名「成本账户」改「项目成本账户」。",
+   "options": [
+     {"action": "rename", "zh": "项目成本账户", "en": "ProjectCostAccount", "label": "中文补成「项目成本账户」与英文对齐", "recommended": true},
+     {"action": "approve", "zh": "成本账户", "en": "ProjectCostAccount", "label": "维持中文「成本账户」"}]},
+
+  {"code": "PJ-13", "zh": "项目坐标", "en": "ProjectCoordinate", "kind": "value_object", "bc": "receivables.wip",
+   "definition": "收入与应收侧按「项目 × 合同条款」计量履约进度、未开票在制、开票。这里的「项目」只是计量维度，引用交付项目，本 bc 不拥有项目；收入的计量单元是履约义务与合同条款，不是项目。",
+   "verdict": "正式",
+   "refs": "CAS 14 / IFRS 15（履约义务是计量单元）；docs/glossary/terms.yaml unbilled_wip、progress_assessment；docs/glossary/oat/kpi-system-design.md 第 184 行（可退化为 project_id + period，但须保留履约义务粒度）",
+   "why": "收入按合同和履约义务算，项目只是挂靠维度；直接用共享内核的项目坐标即可。",
+   "code_note": "unbilled_wip、progress_assessment 定义里「项目 ×」写成「项目坐标 ×」；不新建 receivables 侧项目实体。",
+   "options": [
+     {"action": "merge", "into": "project_coordinate", "zh": "项目坐标", "en": "ProjectCoordinate", "label": "引用内核项目坐标，不另建", "recommended": true},
+     {"action": "rename", "zh": "计量对象", "en": "MeasurementObject", "label": "本 bc 另起「计量对象」"}]},
+
+  {"code": "PJ-14", "zh": "付款阶段", "en": "PaymentStage", "kind": "value_object", "bc": "receivables.collection",
+   "definition": "应收报表里的「项目阶段」（预付款 / 进度款 / 结算款）实际是这笔应收所属的付款节点类型，来自合同条款，和交付项目进行到哪一步无关。",
+   "verdict": "方言",
+   "refs": "GB/T 50500（预付款、进度款、竣工结算）；docs/legacy/bi/report-structure/term-mapping.md 第 91、331 行；docs/glossary/terms.yaml interim_payment_certificate、contract_clause",
+   "why": "「项目阶段」听着像交付进度，其实是收款节点；改个名防止误读。",
+   "code_note": "新系统尚无代码；「项目阶段」登记为方言别名。取值可能直接取合同条款类型，是否单设待定。",
+   "options": [
+     {"action": "rename", "zh": "付款阶段", "en": "PaymentStage", "label": "改叫「付款阶段」，「项目阶段」为方言", "recommended": true},
+     {"action": "merge", "into": "contract_clause", "zh": "合同条款", "en": "ContractClause", "label": "不单设，直接用合同条款的类型"}]},
+
+  {"code": "PJ-15", "zh": "项目与合同核算维度", "en": "ProjectContractDimension", "kind": "value_object", "bc": "accounting.ledger",
+   "definition": "总账分录上挂的辅助核算维度「项目与合同」（两本账都挂，范围含合同履约成本、合同资产与负债、收入、营业成本、应收、生产成本），取值来自项目坐标加合同。U8C 原来没有这个维度。不含：研发项目（P16）、现金流量项目（P17）。",
+   "verdict": "待定",
+   "refs": "ADR-0022 第 36 行；docs/business/rules/GL_FINANCE_DECISIONS.md GL-116；docs/business/finance-decisions.md 第 272 行",
+   "why": "核算里的「项目」只是凭证上的一个维度，叫清楚是「项目与合同维度」，和研发项目、现金流量项目分开。",
+   "code_note": "terms.yaml 暂无对应词条；凭证分录维度列命名待 G1 落地时定。",
+   "options": [
+     {"action": "approve", "zh": "项目与合同核算维度", "en": "ProjectContractDimension", "label": "登记「项目与合同核算维度」", "recommended": true},
+     {"action": "merge", "into": "project_coordinate", "zh": "项目坐标", "en": "ProjectCoordinate", "label": "直接叫项目坐标，合同另挂一维"}]},
+
+  {"code": "PJ-16", "zh": "研发项目", "en": "ResearchAndDevelopmentProject", "kind": "entity", "bc": "accounting.ledger",
+   "definition": "公司内部为研发费用归集与加计扣除设立的研发课题，挂在研发支出明细上。U8C 的「项目档案」实际只用于它。没有客户、合同、收入，与交付项目根本不是一类东西。",
+   "verdict": "正式",
+   "refs": "财会〔2019〕6 号（研发费用单列）；财税〔2015〕119 号（研发费用按研发项目归集）；docs/business/rules/gl-rules.md GL-117；ADR-0022 第 36 行；docs/business/finance-decisions.md 第 374–376 行",
+   "why": "税法原文就叫「研发项目」，必须带「研发」二字，不能简称「项目」。",
+   "code_note": "terms.yaml 暂无词条，需补登；GL-117 建议研发项目与经营项目分为两类维度。",
+   "options": [
+     {"action": "approve", "zh": "研发项目", "en": "ResearchAndDevelopmentProject", "label": "登记「研发项目」，禁止简称「项目」", "recommended": true},
+     {"action": "rename", "zh": "研发课题", "en": "ResearchTopic", "label": "改叫「研发课题」"}]},
+
+  {"code": "PJ-17", "zh": "现金流量项目", "en": "CashFlowItem", "kind": "value_object", "bc": "accounting.ledger",
+   "definition": "现金流量表的分类条目（准则 4 位主项目 + 公司 6 位末级），标在现金及现金等价物科目的分录上。这里的「项目」是报表条目的意思，与任何业务项目无关。",
+   "verdict": "正式",
+   "refs": "CAS 31《现金流量表》；ADR-0022 第 44 行；docs/business/rules/gl-rules.md GL-057、GL-058",
+   "why": "准则原词，保留；但只能整词使用，不能单说「项目」。",
+   "code_note": "terms.yaml 暂无词条，ADR-0022 已列为待登记；代码里不得用 item/project 单词简称。",
+   "options": [
+     {"action": "approve", "zh": "现金流量项目", "en": "CashFlowItem", "label": "沿用准则原词「现金流量项目」", "recommended": true},
+     {"action": "rename", "zh": "现金流量分类", "en": "CashFlowClassification", "label": "改叫「现金流量分类」"}]},
+
+  {"code": "PJ-18", "zh": "合同履约成本", "en": "ContractFulfilmentCost", "kind": "entity", "bc": "accounting.ledger",
+   "definition": "U8C 科目「5201 项目成本」「项目设计成本（640101）」中的「项目成本」是科目名，按准则应分别称合同履约成本、营业成本；与成本 bc 的管理口径项目成本（P11）同名不同义。",
+   "verdict": "方言",
+   "refs": "CAS 14（合同履约成本）；企业会计准则应用指南科目表（5201 为劳务成本）；docs/legacy/general-ledger/practice.md §8；docs/business/rules/gl-rules.md GL-125",
+   "why": "账上的「项目成本」是科目名且偏离准则，按准则改名，免得和管理口径的项目成本混在一起。",
+   "code_note": "terms.yaml contract_fulfilment_cost、cost_of_sales 增加别名「项目成本（5201）」「项目设计成本」为方言。",
+   "options": [
+     {"action": "merge", "into": "contract_fulfilment_cost", "zh": "合同履约成本", "en": "ContractFulfilmentCost", "label": "科目名「项目成本」并入合同履约成本作方言", "recommended": true},
+     {"action": "merge", "into": "cost_of_sales", "zh": "营业成本", "en": "CostOfSales", "label": "并入营业成本作方言"}]},
+
+  {"code": "PJ-19", "zh": "报表行项目", "en": "LineItem", "kind": "value_object", "bc": "accounting.reporting",
+   "definition": "三大报表上的一行（如合同资产、合同负债），由行项目映射到科目。「项目」是报表行的意思，与业务项目无关。",
+   "verdict": "正式",
+   "refs": "IAS 1（line item）；CAS 30《财务报表列报》（报表项目）；ADR-0022 第 41 行；ADR-0023 第 33 行",
+   "why": "会计上「报表项目」是固定说法，保留但要带「报表行」前缀。",
+   "code_note": "bc accounting.reporting 尚未进 terms.yaml 的 bc 清单；词条待 G1 登记。",
+   "options": [
+     {"action": "approve", "zh": "报表行项目", "en": "LineItem", "label": "沿用「报表行项目」", "recommended": true},
+     {"action": "rename", "zh": "报表项目", "en": "StatementLineItem", "label": "改用准则原词「报表项目」"}]},
+
+  {"code": "PJ-20", "zh": "项目管理（业务线）", "en": "ProjectManagementLine", "kind": "value_object", "bc": "organization.workforce",
+   "definition": "业务线的一个取值：公司对外提供的项目管理咨询服务（与幕墙设计、照明设计等并列）。它是一种服务产品，不是某个项目，也不是项目经理的工作。",
+   "verdict": "待定",
+   "refs": "docs/glossary/terms.yaml business_line；docs/glossary/glossary.md 第 534 行",
+   "why": "报表按业务线切时「项目管理」容易被看成「所有项目」，名字里带上「业务线」或「咨询」区分。",
+   "code_note": "业务线取值由组织主数据维护，非枚举常量；只需在取值显示名上区分。",
+   "options": [
+     {"action": "rename", "zh": "项目管理咨询", "en": "ProjectManagementConsulting", "label": "取值改叫「项目管理咨询」", "recommended": true},
+     {"action": "approve", "zh": "项目管理", "en": "ProjectManagement", "label": "维持「项目管理」"}]},
+
+  {"code": "PJ-21", "zh": "项目角色", "en": "ProjectRole", "kind": "value_object", "bc": "platform.identity",
+   "definition": "人在某个交付项目中的身份（项目经理、成员等），用于数据范围「法人 × 部门 × 项目角色」。这里的「项目」与 P06 同一个；不同于老系统的系统角色「项目辅助」「交付辅助」。",
+   "verdict": "待定",
+   "refs": "ADR-0009 第 4 条；ADR-0026 第 147 行（项目角色访问推迟到 Phase 2）；backend/glossary/proposed/platform-identity.yaml access_scope、access_grant；docs/business/business-rules.md RULE-039",
+   "why": "含义与交付项目一致，可沿用；但取值目前是自由文本，需要在 Phase 2 定清单。",
+   "code_note": "backend/src/main/java/com/forcitis/one/platform/identity/api/ProjectRole.java、AccessGrant、AccessTarget；terms.yaml 尚无词条。",
+   "options": [
+     {"action": "approve", "zh": "项目角色", "en": "ProjectRole", "label": "沿用「项目角色」并补登词表", "recommended": true},
+     {"action": "rename", "zh": "项目成员角色", "en": "ProjectMemberRole", "label": "改叫「项目成员角色」"}]},
+
+  {"code": "PJ-22", "zh": "项目经理", "en": "ProjectManager", "kind": "role", "bc": "platform.approval",
+   "definition": "交付项目的负责人，工时审批第一道审批人（表单字段 projectManagerId 取自业务单据）。「项目」与 P06 同一个。",
+   "verdict": "正式",
+   "refs": "PMBOK（Project Manager）；backend/glossary/proposed/platform-approval.yaml project_manager、project_manager_review；frontend/packages/core/src/error-messages.ts",
+   "why": "行业通行、含义一致，沿用。",
+   "code_note": "Timesheet.projectManager、TimesheetApprovalField.PROJECT_MANAGER、前端「项目经理审核」沿用；来源模块（delivery.execution 提供）待 brief 决定。",
+   "options": [
+     {"action": "approve", "zh": "项目经理", "en": "ProjectManager", "label": "沿用「项目经理」", "recommended": true},
+     {"action": "rename", "zh": "交付负责人", "en": "DeliveryLead", "label": "改叫「交付负责人」"}]}
+ ]}

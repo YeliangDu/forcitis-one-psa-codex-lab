@@ -2,7 +2,7 @@ name: release
 
 # Builds the release bundle of a commit on main that ci already passed, signs a release statement for it and attaches both to a GitHub
 # Release. Only started by hand from main. The scripts that prove, build and sign always come from the workflow's own commit on main
-# (github.sha), never from the commit being built. Runbook: docs/modernization/phase1a/infra/runbooks/RELEASE.md
+# (github.sha), never from the commit being built. Runbook: docs/ops/runbooks/release.md
 on:
   workflow_dispatch:
     inputs:
@@ -175,7 +175,7 @@ jobs:
           DRAFT: ${{ inputs.draft }}
         run: |
           flags=(--repo "$GITHUB_REPOSITORY" --title "FORCITIS one $VERSION" --target "$SHA"
-                 --notes "Commit $SHA. Built and signed by release run $GITHUB_RUN_ID; see docs/modernization/phase1a/infra/runbooks/RELEASE.md.")
+                 --notes "Commit $SHA. Built and signed by release run $GITHUB_RUN_ID; see docs/ops/runbooks/release.md.")
           [ "$DRAFT" != true ] || flags+=(--draft)
           case "$VERSION" in *-rc.*) flags+=(--prerelease) ;; esac
           gh release create "v$VERSION" "${flags[@]}" "forcitis-one-$VERSION.tar.gz" "forcitis-one-$VERSION.tar.gz.sha256" \

@@ -1,6 +1,6 @@
 // Terminology guard for what users read (JSX text, button / title / notice / placeholder / aria-label strings, message tables).
-// Every Chinese text in production source must be made of registered terms (docs/modernization/glossary/terms.yaml and the attributes listed under a term,
-// backend/glossary/terms.yaml, backend/glossary/proposed/*.yaml), the names in the context register (docs/modernization/glossary/bcs.yaml: the zh of every
+// Every Chinese text in production source must be made of registered terms (docs/glossary/terms.yaml and the attributes listed under a term,
+// backend/glossary/terms.yaml, backend/glossary/proposed/*.yaml), the names in the context register (docs/glossary/bcs.yaml: the zh of every
 // bc / subdomain / system and the `words` a bc lists for business words it describes without a term of their own) and the allow list of non-business words (scripts/copy-allow-list.yaml); a forbidden dialect fails outright.
 // A single-character allowed word (的, 和, 已 ...) is only a connector: it must sit between two words, never start, end or stand next to another one,
 // otherwise any Chinese text could be spelled from connectors and registered fragments. A state such as 已认领 is registered as a term, not assembled.

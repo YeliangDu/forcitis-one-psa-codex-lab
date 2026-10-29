@@ -10,11 +10,11 @@ const given = process.argv.flatMap((argument, index, all) => (argument === '--ro
 const ROOTS = given.length > 0 ? given : DEFAULT_ROOTS;
 
 const glossary = loadVocabulary({
-  officialTerms: join(repository, 'docs', 'modernization', 'glossary', 'terms.yaml'),
+  officialTerms: join(repository, 'docs', 'glossary', 'terms.yaml'),
   backendTerms: join(repository, 'backend', 'glossary', 'terms.yaml'),
   proposedDirectory: join(repository, 'backend', 'glossary', 'proposed'),
   allowList: join(frontend, 'scripts', 'copy-allow-list.yaml'),
-  contexts: join(repository, 'docs', 'modernization', 'glossary', 'bcs.yaml'),
+  contexts: join(repository, 'docs', 'glossary', 'bcs.yaml'),
 });
 
 const files = sourceFiles(ROOTS);

@@ -1,0 +1,6287 @@
+[
+ {
+  "key": "contract-evolution.yaml#maintenance_mode",
+  "file": "contract-evolution.yaml",
+  "branch": null,
+  "id": "maintenance_mode",
+  "zh": "维护模式",
+  "en": "MaintenanceMode",
+  "snake": "maintenance_mode",
+  "kind": "value",
+  "bc": "platform.scheduling",
+  "definition": "部署或回滚期间的系统状态：停写请求与业务类定时作业，事件投递与重投照常，用于排空事件发布；状态存于库内标记，由 one-ops 部署剧本开关（ADR-0035 第 6 条）",
+  "standard_ref": [
+   "ADR-0035 契约演进与兼容"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "contract-evolution.yaml#event_quarantine",
+  "file": "contract-evolution.yaml",
+  "branch": null,
+  "id": "event_quarantine",
+  "zh": "隔离登记",
+  "en": "EventQuarantine",
+  "snake": "event_quarantine",
+  "kind": "entity",
+  "bc": "platform.integration",
+  "definition": "部署或回滚时排不空的事件发布被移入的登记，保留原负载、类型、关联号与部署批次，修复后重新投递或人工处理（ADR-0035 第 6 条）",
+  "standard_ref": [
+   "ADR-0035 契约演进与兼容"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "与组织同步的「被隔离的行」（isolated row）无关",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "contract-evolution.yaml#deprecation_register",
+  "file": "contract-evolution.yaml",
+  "branch": null,
+  "id": "deprecation_register",
+  "zh": "弃用登记",
+  "en": "DeprecationRegister",
+  "snake": "deprecation_register",
+  "kind": "entity",
+  "bc": "platform.web",
+  "definition": "已标为弃用的接口、字段、事件或数据集列的登记（backend/architecture/deprecations.yaml）：对象、弃用日、消费方类别、到期条件、出处；G-C1 据此放行到期删除（ADR-0035 第 7 条）",
+  "standard_ref": [
+   "ADR-0035 契约演进与兼容"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "仓库内文件，不是数据库表",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "cost-timesheet.yaml#time_entry_category",
+  "file": "cost-timesheet.yaml",
+  "branch": null,
+  "id": "time_entry_category",
+  "zh": "工时类别",
+  "en": "TimeEntryCategory",
+  "snake": "time_entry_category",
+  "kind": "value",
+  "bc": "cost.timesheet",
+  "definition": "工时按用途的分类，取值为项目工时、售前工时、OH 工时；决定工时单走哪些审批分支",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "cost-timesheet.yaml#project_hours",
+  "file": "cost-timesheet.yaml",
+  "branch": null,
+  "id": "project_hours",
+  "zh": "项目工时",
+  "en": "ProjectHours",
+  "snake": "project_hours",
+  "kind": "value",
+  "bc": "cost.timesheet",
+  "definition": "工时类别的取值：记在项目工作上的工时",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "cost-timesheet.yaml#pre_sales_hours",
+  "file": "cost-timesheet.yaml",
+  "branch": null,
+  "id": "pre_sales_hours",
+  "zh": "售前工时",
+  "en": "PreSalesHours",
+  "snake": "pre_sales_hours",
+  "kind": "value",
+  "bc": "cost.timesheet",
+  "definition": "工时类别的取值：记在售前工作上的工时",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "尚非正式用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "cost-timesheet.yaml#overhead_hours",
+  "file": "cost-timesheet.yaml",
+  "branch": null,
+  "id": "overhead_hours",
+  "zh": "OH 工时",
+  "en": "OverheadHours",
+  "snake": "overhead_hours",
+  "kind": "value",
+  "bc": "cost.timesheet",
+  "definition": "工时类别的取值：记在间接（管理）工作上的工时",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）"
+  ],
+  "aliases": [
+   {
+    "name": "OH工时",
+    "type": "undetermined"
+   }
+  ],
+  "forbidden": [],
+  "note": "疑似方言，第三轮用语确认",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_batch",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_batch",
+  "zh": "迁入批次",
+  "en": "MigrationBatch",
+  "snake": "migration_batch",
+  "kind": "entity",
+  "bc": "platform.integration",
+  "definition": "一次历史数据迁入运行；登记来源系统、对象类型、范围、状态、行数与来源 ID 摘要；批次挂在来源对照与原编号对照上，业务表不带批次列",
+  "standard_ref": [
+   "用户 2026-10-15 批次术语统一",
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [
+   "导入批次",
+   "import_batch",
+   "ImportBatch"
+  ],
+  "note": "用户 2026-10-15 定批次术语唯一写法；platform.numbering 的 import_batch 已在 R-1b P3a（#139）改为 migration_batch_id，同一提交加入 forbidden 并删去 platform-integration.yaml 中的重复条目",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md",
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_orchestration",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_orchestration",
+  "zh": "迁入编排",
+  "en": "MigrationOrchestration",
+  "snake": "migration_orchestration",
+  "kind": "entity",
+  "bc": "platform.migration",
+  "definition": "按依赖顺序调用集成层与各目标 BC 迁入用例、推进迁入批次的独立模块（暂定 platform.migration）；只依赖它们的 api，不被任何模块依赖（ADR-0036 第 1 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "模块名在实现 PR 定",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_reject",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_reject",
+  "zh": "迁入拒收",
+  "en": "MigrationReject",
+  "snake": "migration_reject",
+  "kind": "entity",
+  "bc": "platform.integration",
+  "definition": "迁入时被拒绝的一条来源行，带批次、来源对象、来源 ID 与原因代码；处置经应用内带权限的操作录入，批次提交前须逐条处置（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_reject_reason__unmappable_value",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_reject_reason__unmappable_value",
+  "zh": "取值无法映射",
+  "en": "UnmappableValue",
+  "snake": "unmappable_value",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入拒收原因代码：来源取值在映射表中没有对应的自有取值（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_reject_reason__required_missing",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_reject_reason__required_missing",
+  "zh": "必填缺失",
+  "en": "RequiredMissing",
+  "snake": "required_missing",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入拒收原因代码：目标必填项在来源中为空（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_reject_reason__number_conflict",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_reject_reason__number_conflict",
+  "zh": "编号冲突",
+  "en": "NumberConflict",
+  "snake": "number_conflict",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入拒收原因代码：原编号与已有编号在（单据类型, 编号）上冲突（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_reject_reason__original_missing",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_reject_reason__original_missing",
+  "zh": "原行缺失",
+  "en": "OriginalMissing",
+  "snake": "original_missing",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入拒收原因代码：冲销行的原行不在本批次也不在目标库中（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_reject_reason__legal_entity_out_of_scope",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_reject_reason__legal_entity_out_of_scope",
+  "zh": "法人不在范围",
+  "en": "LegalEntityOutOfScope",
+  "snake": "legal_entity_out_of_scope",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入拒收原因代码：来源行的法人不在新系统的法人范围内（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_reject_reason__trial_commit_failed",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_reject_reason__trial_commit_failed",
+  "zh": "试提交失败",
+  "en": "TrialCommitFailed",
+  "snake": "trial_commit_failed",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入拒收原因代码：试提交中领域校验或数据库约束不通过（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_reject_disposition__rerun_after_fix",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_reject_disposition__rerun_after_fix",
+  "zh": "修正后重跑",
+  "en": "RerunAfterFix",
+  "snake": "rerun_after_fix",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入拒收处置取值：修正映射或来源后由新的暂存重跑（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_reject_disposition__excluded",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_reject_disposition__excluded",
+  "zh": "确认不迁",
+  "en": "Excluded",
+  "snake": "excluded",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入拒收处置取值：确认该行不迁入；权责事实须财务负责人确认，其他由业务管理员确认（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_tie_out",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_tie_out",
+  "zh": "迁入核对",
+  "en": "MigrationTieOut",
+  "snake": "migration_tie_out",
+  "kind": "entity",
+  "bc": "platform.integration",
+  "definition": "一个迁入批次按期间 × 法人 × 对象类型比对来源侧聚合与暂存的行数、金额合计、来源 ID 摘要与按来源单号的行数金额的结果；零差异或经财务签字后批次才能提交（ADR-0036 第 8 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#period_status__historical",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "period_status__historical",
+  "zh": "历史期间",
+  "en": "Historical",
+  "snake": "historical",
+  "kind": "value",
+  "bc": "accounting.period",
+  "definition": "期间状态的一个取值，终态：FORCITIS one 首个业务期间之前的 (期间, 法人)，永不接受业务过账，只接受迁入过账通道；不逐期关账、不发关账事件（ADR-0036 第 6 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "会计类用语，待财务确认（ADR-0018；ADR-0036 U-3）",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_period_reservation",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_period_reservation",
+  "zh": "迁入占用",
+  "en": "MigrationPeriodReservation",
+  "snake": "migration_period_reservation",
+  "kind": "entity",
+  "bc": "accounting.period",
+  "definition": "迁入批次对 (期间, 法人) 的占用登记，由 accounting.period 自持；有未解除占用的期间不得关账，批次转为提交中时加锁确认期间状态（ADR-0036 第 6 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_marker",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_marker",
+  "zh": "迁入标记",
+  "en": "MigrationMarker",
+  "snake": "migration_marker",
+  "kind": "value",
+  "bc": "operations.facts",
+  "definition": "事实行上区分原生与迁入的标记；只在事实行，单据表不带；accounting.ledger 不为迁入标记的事实生成分录（ADR-0036 第 5、6 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "列名在实现 PR 中按 NAMING_STANDARD 定",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_posting_channel",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_posting_channel",
+  "zh": "迁入过账通道",
+  "en": "MigrationPostingChannel",
+  "snake": "migration_posting_channel",
+  "kind": "entity",
+  "bc": "operations.facts",
+  "definition": "operations.facts 中只供迁入用例使用的过账入口：期间可为历史期间或开放期间，不发布事件（ADR-0036 第 6 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_staging",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_staging",
+  "zh": "迁入暂存",
+  "en": "MigrationStaging",
+  "snake": "migration_staging",
+  "kind": "entity",
+  "bc": "platform.integration",
+  "definition": "来源行转换为目标形状后存放的集成层暂存表（Flyway 按对象类型建固定表，带批次列、来源键、摘要与核对所需来源取值）；试提交与核对都针对它，核对通过后才提交目标库（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "暂存只有一份，不另存来源快照",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#trial_commit",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "trial_commit",
+  "zh": "试提交",
+  "en": "TrialCommit",
+  "snake": "trial_commit",
+  "kind": "entity",
+  "bc": "platform.migration",
+  "definition": "用与正式提交同一套代码把整批写入目标库后回滚事务，以跑全部领域校验与数据库约束（ADR-0036 第 7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_batch_status__staging",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_batch_status__staging",
+  "zh": "暂存中",
+  "en": "Staging",
+  "snake": "staging",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入批次状态取值：正在抽取、转换与暂存，可试提交（ADR-0036 第 3 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_batch_status__awaiting_tie_out",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_batch_status__awaiting_tie_out",
+  "zh": "待核对",
+  "en": "AwaitingTieOut",
+  "snake": "awaiting_tie_out",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入批次状态取值：暂存与试提交完成，等待核对通过或签字（ADR-0036 第 3 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_batch_status__committing",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_batch_status__committing",
+  "zh": "提交中",
+  "en": "Committing",
+  "snake": "committing",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入批次状态取值：核对已通过，正在分块提交目标库（ADR-0036 第 3 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_batch_status__effective",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_batch_status__effective",
+  "zh": "已生效",
+  "en": "Effective",
+  "snake": "effective",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入批次状态取值：提交后复核一致；可转为已冲销（ADR-0036 第 3 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_batch_status__reversed",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_batch_status__reversed",
+  "zh": "已冲销",
+  "en": "Reversed",
+  "snake": "reversed",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入批次状态取值：提交阶段失败或生效后发现错误，事实行已整批冲销，终态；重跑为新批次（ADR-0036 第 3 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#migration_batch_status__abandoned",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "migration_batch_status__abandoned",
+  "zh": "已放弃",
+  "en": "Abandoned",
+  "snake": "abandoned",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "迁入批次状态取值：提交前放弃，目标库未受影响，终态（ADR-0036 第 3 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#source_reference_status",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "source_reference_status",
+  "zh": "对照状态",
+  "en": "SourceReferenceStatus",
+  "snake": "source_reference_status",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "来源对照行的状态：当前 CURRENT / 已冲销 REVERSED；只有事实类对照可为已冲销，冲销与关闭旧对照同一事务（ADR-0036 第 3、9 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "与确认状态 confirmation_status 是两列；自然键只约束已确认且当前的行；取值「已冲销」REVERSED 与迁入批次状态的「已冲销」同词同义，不另登记",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "data-migration.yaml#source_reference_status__current",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "source_reference_status__current",
+  "zh": "当前",
+  "en": "Current",
+  "snake": "current",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "对照状态取值：该对照仍指向有效的自有行（ADR-0036 第 3 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "data-migration.yaml#source_row_digest",
+  "file": "data-migration.yaml",
+  "branch": null,
+  "id": "source_row_digest",
+  "zh": "来源行摘要",
+  "en": "SourceRowDigest",
+  "snake": "source_row_digest",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "来源行规范化后的 SHA-256，存于来源对照与暂存行，用于重跑时判断同一来源行是否变化（ADR-0036 第 3、7 条）",
+  "standard_ref": [
+   "ADR-0036 历史数据迁入"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "finance-decisions.yaml#accrual_revenue",
+  "file": "finance-decisions.yaml",
+  "branch": null,
+  "id": "accrual_revenue",
+  "zh": "权责收入",
+  "en": "AccrualRevenue",
+  "snake": "accrual_revenue",
+  "kind": "metric",
+  "bc": "operations.policy",
+  "definition": "权责口径账簿按客户确认（收入确认单）确认的营业收入（不含税）；与收付口径账簿按开票确认的收入相对，经营分析以此为收入主口径",
+  "standard_ref": [
+   "企业会计准则第 14 号——收入（财会〔2017〕22 号）",
+   "ADR-0022 总账纳入新系统",
+   "ADR-0023 经营分析纳入现代化"
+  ],
+  "aliases": [
+   {
+    "name": "产值收入",
+    "type": "dialect",
+    "deprecated": true,
+    "source": "财务确认单第 2 版答复（ADR-0023 意见）"
+   }
+  ],
+  "forbidden": [
+   "产值收入"
+  ],
+  "note": "收付口径账簿的收入在开票时确认，叫法见「开票」词条的别名「开票收入」；指标含税口径见决策单 FD-14",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "finance-decisions.yaml#information_service_fee",
+  "file": "finance-decisions.yaml",
+  "branch": null,
+  "id": "information_service_fee",
+  "zh": "信息服务费",
+  "en": "InformationServiceFee",
+  "snake": "information_service_fee",
+  "kind": "value",
+  "bc": "expense.spend",
+  "definition": "公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；性质（转付成本、合同取得成本或销售费用）待向财务核实，决定其在净收入还是贡献毛利中扣减",
+  "standard_ref": [
+   "企业会计准则第 14 号——收入（第二十八条合同取得成本、第三十四条主要责任人与代理人）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "决策单 FD-41、F-06；A8 流程「信息服务费备案申请」（OA_PROCESS_INVENTORY 第 81 行）",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "finance-decisions.yaml#debt_settlement_asset",
+  "file": "finance-decisions.yaml",
+  "branch": null,
+  "id": "debt_settlement_asset",
+  "zh": "抵债资产",
+  "en": "DebtSettlementAsset",
+  "snake": "debt_settlement_asset",
+  "kind": "entity",
+  "bc": "receivables.collection",
+  "definition": "客户以房产、车位、卡券等非现金资产清偿所欠款项时，公司取得控制权后按放弃债权的公允价值确认的资产；取得控制权前仍为对客户的应收款",
+  "standard_ref": [
+   "企业会计准则第 12 号——债务重组（2019 修订）",
+   "企业会计准则第 23 号——金融资产转移"
+  ],
+  "aliases": [
+   {
+    "name": "工抵资产",
+    "type": "undetermined",
+    "deprecated": false,
+    "source": "财务确认单第 2 版答复（ADR-0016 第 6 条补充）"
+   },
+   {
+    "name": "工抵",
+    "type": "undetermined",
+    "deprecated": false,
+    "source": "财务确认单第 2 版答复（FQ-14、FQ-16）"
+   }
+  ],
+  "forbidden": [],
+  "note": "「工抵」为工程行业「工程款抵房」的简称，是否作为正式用语待用语确认；回款计入时点见决策单 FD-40，专项台账见用户 A6",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b.yaml#escalation",
+  "file": "fix-b.yaml",
+  "branch": null,
+  "id": "escalation",
+  "zh": "升级",
+  "en": "Escalation",
+  "snake": "escalation",
+  "kind": "action",
+  "bc": "platform.approval",
+  "definition": "审批任务超时未处理时，转给上级处理",
+  "standard_ref": [
+   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b.yaml#reassignment",
+  "file": "fix-b.yaml",
+  "branch": null,
+  "id": "reassignment",
+  "zh": "改派",
+  "en": "Reassignment",
+  "snake": "reassignment",
+  "kind": "action",
+  "bc": "platform.approval",
+  "definition": "流程管理员把待办改给另一个人",
+  "standard_ref": [
+   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b.yaml#release_of_task",
+  "file": "fix-b.yaml",
+  "branch": null,
+  "id": "release_of_task",
+  "zh": "释放",
+  "en": "ReleaseOfTask",
+  "snake": "release_of_task",
+  "kind": "action",
+  "bc": "platform.approval",
+  "definition": "认领人放回已认领的任务，让候选人重新认领",
+  "standard_ref": [
+   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b.yaml#accounting_voucher_text",
+  "file": "fix-b.yaml",
+  "branch": null,
+  "id": "accounting_voucher_text",
+  "zh": "记账凭证",
+  "en": "AccountingVoucherText",
+  "snake": "accounting_voucher_text",
+  "kind": "concept",
+  "bc": "platform.approval",
+  "definition": "会计凭证在对外文案中的叫法（审批单据类型的显示名）",
+  "standard_ref": [
+   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#witness",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "witness",
+  "zh": "见证人",
+  "en": "Witness",
+  "snake": "witness",
+  "kind": "role",
+  "bc": "platform.identity",
+  "definition": "运维命令执行时在场的另一个人，与操作人一起记入审计（双人在场）",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#separation",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "separation",
+  "zh": "离职",
+  "en": "Separation",
+  "snake": "separation",
+  "kind": "concept",
+  "bc": "platform.identity",
+  "definition": "员工从在职变为离职这件事；离职时删除全部角色授予、停用应急账号、吊销会话（ADR-0027 第 1 项）。事件、字段与方法里的 separated 是同一概念的过去分词（已离职），登记为技术词，不另立术语",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [
+   {
+    "field": "zh",
+    "file": "terms.yaml",
+    "id": "separated",
+    "zh": "离职",
+    "en": "Separated",
+    "bc": "organization.workforce",
+    "status": "approved",
+    "kind": "value",
+    "definition": "在职状态取值；离职即吊销会话（RULE-338/363）"
+   }
+  ],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/D1.md"
+   ]
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#finance",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "finance",
+  "zh": "财务",
+  "en": "Finance",
+  "snake": "finance",
+  "kind": "concept",
+  "bc": "platform.numbering",
+  "definition": "凭证号模板在业务确认之外另需的财务确认所属的职能（D-1a-157）",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#confirmer",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "confirmer",
+  "zh": "确认人",
+  "en": "Confirmer",
+  "snake": "confirmer",
+  "kind": "role",
+  "bc": "platform.numbering",
+  "definition": "确认某个编号模板版本的人：业务确认人持有 numbering-rule:approve，财务确认人持有凭证号模板的确认权限",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#author",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "author",
+  "zh": "作者",
+  "en": "Author",
+  "snake": "author",
+  "kind": "role",
+  "bc": "platform.numbering",
+  "definition": "保存某个编号模板版本的人；作者不能确认自己保存的版本（四眼）",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/D1.md",
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#authorization_request",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "authorization_request",
+  "zh": "授权申请",
+  "en": "AuthorizationRequest",
+  "snake": "authorization_request",
+  "kind": "concept",
+  "bc": "platform.identity",
+  "definition": "授予敏感权限、或把角色改成含敏感权限时先建的申请，另一人确认后才生效",
+  "standard_ref": [
+   "adr/src/ADR-0028.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#retained",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "retained",
+  "zh": "留任",
+  "en": "Retained",
+  "snake": "retained",
+  "kind": "concept",
+  "bc": "organization.workforce",
+  "definition": "放行同步暂停的人必须仍是启用账号、持有 super_admin 或安全审计员、在组织快照中明确在职且不在离职名单上（ADR-0028）",
+  "standard_ref": [
+   "adr/src/ADR-0028.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#administrator_mode",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "administrator_mode",
+  "zh": "管理模式",
+  "en": "AdministratorMode",
+  "snake": "administrator_mode",
+  "kind": "concept",
+  "bc": "platform.identity",
+  "definition": "super_admin 持有人经再次验证后在同一会话进入的模式，最长 1 小时、不延长；只有五项平台权限（ADR-0027 第 2 项、ADR-0028），不含业务、敏感读与审计查看",
+  "standard_ref": [
+   "adr/src/ADR-0026.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/D1.md"
+   ]
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#forced_logout",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "forced_logout",
+  "zh": "强制下线",
+  "en": "ForcedLogout",
+  "snake": "forced_logout",
+  "kind": "concept",
+  "bc": "platform.identity",
+  "definition": "管理员结束某个人的全部会话：一次一人、须写理由、不能对自己，结束超级管理员或安全审计员的会话会告警（ADR-0027 第 3 项）",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#org_data_admin",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "org_data_admin",
+  "zh": "组织数据管理员",
+  "en": "OrgDataAdmin",
+  "snake": "org_data_admin",
+  "kind": "role",
+  "bc": "platform.identity",
+  "definition": "系统角色 org_data_admin：维护组织与法人归属、工作日历、编号模板、同步运行；无敏感权限、不能确认模板（ADR-0027 第 2 项）",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#business_admin",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "business_admin",
+  "zh": "业务管理员",
+  "en": "BusinessAdmin",
+  "snake": "business_admin",
+  "kind": "role",
+  "bc": "platform.identity",
+  "definition": "系统角色 business_admin：确认各单据编号模板（凭证号模板的财务确认不在 1a 内设角色）（ADR-0027 第 2 项）",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#security_auditor",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "security_auditor",
+  "zh": "安全审计员",
+  "en": "SecurityAuditor",
+  "snake": "security_auditor",
+  "kind": "role",
+  "bc": "platform.identity",
+  "definition": "系统角色 security_auditor：查看与导出审计记录，并在普通会话里放行管理员离职造成的同步暂停（ADR-0027 第 3 项、ADR-0028）",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#voucher_numbering_rule",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "voucher_numbering_rule",
+  "zh": "凭证号规则",
+  "en": "VoucherNumberingRule",
+  "snake": "voucher_numbering_rule",
+  "kind": "concept",
+  "bc": "platform.numbering",
+  "definition": "凭证号模板的编号规则；其确认权限 voucher-numbering-rule:approve 是敏感权限，1a 不设持有角色，待首个过账阶段再定（用户决定）",
+  "standard_ref": [
+   "adr/src/ADR-0027.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b1-identity.yaml#install",
+  "file": "fix-b1-identity.yaml",
+  "branch": null,
+  "id": "install",
+  "zh": "安装",
+  "en": "Install",
+  "snake": "install",
+  "kind": "concept",
+  "bc": "kernel",
+  "definition": "把 JVM 默认时区设为 UTC 的动作（UtcJvm.installAsDefault）；整合分支的方法名用到了它，此处补登记",
+  "standard_ref": [
+   "proposals/PHASE1A_PLATFORM_CONVENTIONS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md"
+   ]
+  }
+ },
+ {
+  "key": "fix-b2-data.yaml#archived",
+  "file": "fix-b2-data.yaml",
+  "branch": null,
+  "id": "archived",
+  "zh": "已归档",
+  "en": "Archived",
+  "snake": "archived",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "已写入归档库并经归档库确认的状态或时间",
+  "standard_ref": [
+   "phase1a/DATA_SCORECARD.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2-data.yaml#probe",
+  "file": "fix-b2-data.yaml",
+  "branch": null,
+  "id": "probe",
+  "zh": "探针",
+  "en": "Probe",
+  "snake": "probe",
+  "kind": "action",
+  "bc": "platform.integration",
+  "definition": "不留下数据的写入检查：启动时和每天一次检查归档目标是否可用",
+  "standard_ref": [
+   "phase1a/DATA_SCORECARD.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2-data.yaml#size",
+  "file": "fix-b2-data.yaml",
+  "branch": null,
+  "id": "size",
+  "zh": "大小",
+  "en": "Size",
+  "snake": "size",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "归档对象的字节数",
+  "standard_ref": [
+   "phase1a/DATA_SCORECARD.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/D1.md"
+   ]
+  }
+ },
+ {
+  "key": "fix-b2-data.yaml#revision_number",
+  "file": "fix-b2-data.yaml",
+  "branch": null,
+  "id": "revision_number",
+  "zh": "修订序号",
+  "en": "RevisionNumber",
+  "snake": "revision_number",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "版本表同一生效日内的修订序号：同日再次变化时关闭当天版本（空区间）并以加 1 的序号追加新行",
+  "standard_ref": [
+   "phase1a/DATA_SCORECARD.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2-data.yaml#work_calendar_locked_days_changed",
+  "file": "fix-b2-data.yaml",
+  "branch": null,
+  "id": "work_calendar_locked_days_changed",
+  "zh": "工作日历锁定日期被修改",
+  "en": "WorkCalendarLockedDaysChanged",
+  "snake": "work_calendar_locked_days_changed",
+  "kind": "event",
+  "bc": "organization.attendance",
+  "definition": "组织数据管理员确认修改了工作日历中早于今天的日期；载荷列出每个被改日期的改前改后类别，进审计",
+  "standard_ref": [
+   "phase1a/DATA_SCORECARD.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2-data.yaml#keep",
+  "file": "fix-b2-data.yaml",
+  "branch": null,
+  "id": "keep",
+  "zh": "保留",
+  "en": "Keep",
+  "snake": "keep",
+  "kind": "action",
+  "bc": "platform.integration",
+  "definition": "把数据留在在线库或归档库的期限，到期后删除或转归档；与「质保金」无关",
+  "standard_ref": [
+   "phase1a/DATA_SCORECARD.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2-data.yaml#worm",
+  "file": "fix-b2-data.yaml",
+  "branch": null,
+  "id": "worm",
+  "zh": "一次写入多次读取",
+  "en": "Worm",
+  "snake": "worm",
+  "kind": "concept",
+  "bc": "platform.integration",
+  "definition": "归档库的合规保留锁：锁定期内对象不能被覆盖或删除",
+  "standard_ref": [
+   "phase1a/DATA_SCORECARD.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2b-events.yaml#rule_version",
+  "file": "fix-b2b-events.yaml",
+  "branch": null,
+  "id": "rule_version",
+  "zh": "规则版本",
+  "en": "RuleVersion",
+  "snake": "rule_version",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "编号模板的版本号值对象（RuleVersion），从 1 起，每保存一个新模板加 1；版本表的 version_number 列、接口字段 templateVersion 和事件负载 ruleVersion 是同一个东西；与乐观锁 version、事件序号 event_count 无关",
+  "standard_ref": [
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2b-events.yaml#effective_from_date",
+  "file": "fix-b2b-events.yaml",
+  "branch": null,
+  "id": "effective_from_date",
+  "zh": "生效日",
+  "en": "EffectiveFromDate",
+  "snake": "effective_from_date",
+  "kind": "value",
+  "bc": "kernel",
+  "definition": "某个事实、版本或模板从哪一天起生效（含当天）的日期；事件负载与代码里叫 effectiveFrom，列名带类别词 _date。OrgSnapshotChanged 的 effectiveFrom 语义相同：变化从哪一天起生效，因此与其他地方统一叫 effectiveFrom，不再另设 effectiveDate",
+  "standard_ref": [
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2b-events.yaml#snapshot_date",
+  "file": "fix-b2b-events.yaml",
+  "branch": null,
+  "id": "snapshot_date",
+  "zh": "快照日",
+  "en": "SnapshotDate",
+  "snake": "snapshot_date",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "读取组织源快照的那个业务日，即同步运行开始当天（Asia/Shanghai）。它是 OrgSnapshotChanged 信封的 businessDate，也是同一次同步写入的版本行的生效日",
+  "standard_ref": [
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2b-events.yaml#changed_dates",
+  "file": "fix-b2b-events.yaml",
+  "branch": null,
+  "id": "changed_dates",
+  "zh": "被修改的日期",
+  "en": "ChangedDates",
+  "snake": "changed_dates",
+  "kind": "value",
+  "bc": "organization.attendance",
+  "definition": "一次工作日历保存新增、删除或改变类型的日期，按日期升序，放在 WorkCalendarYearMaintained 的负载里；原样重存时为空",
+  "standard_ref": [
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2b-events.yaml#dead_letter_job",
+  "file": "fix-b2b-events.yaml",
+  "branch": null,
+  "id": "dead_letter_job",
+  "zh": "死信作业",
+  "en": "DeadLetterJob",
+  "snake": "dead_letter_job",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "流程引擎用尽重试后移入死信表的作业，需要运维处理；数量由指标 dead.letter.jobs 导出",
+  "standard_ref": [
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-b2b-events.yaml#job_failure",
+  "file": "fix-b2b-events.yaml",
+  "branch": null,
+  "id": "job_failure",
+  "zh": "作业失败",
+  "en": "JobFailure",
+  "snake": "job_failure",
+  "kind": "concept",
+  "bc": "platform.scheduling",
+  "definition": "带 SchedulerLock 的定时作业抛出异常的一次运行；按作业名（锁名）计数，指标 job.failures。作业自己捕获并记录的失败不在其中，由所属模块的指标覆盖",
+  "standard_ref": [
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_done_task",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_done_task",
+  "zh": "已办",
+  "en": "DoneTask",
+  "snake": "done_task",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "当前用户已经办理过的审批任务，列出办理结果和意见",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待办页的「已办」列表（D-1a-90）",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_pending_claim",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_pending_claim",
+  "zh": "待认领",
+  "en": "PendingClaim",
+  "snake": "pending_claim",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "任务有候选审批人但还没有人认领；与「已认领」相对",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "界面状态用语，任务详情的处理人一栏也显示它",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_approval_record",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_approval_record",
+  "zh": "审批记录",
+  "en": "ApprovalRecord",
+  "snake": "approval_record",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "任务详情中按时间列出的办理记录：节点、办理结果、办理人、办理时间、意见",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "对应 D-1a-90 的任务办理记录",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_task_outcome",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_task_outcome",
+  "zh": "办理结果",
+  "en": "TaskOutcome",
+  "snake": "task_outcome",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "一次办理的结论：通过、驳回、退回、转交或自动通过",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "审批记录的列名",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_task_handler",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_task_handler",
+  "zh": "办理人",
+  "en": "TaskHandler",
+  "snake": "task_handler",
+  "kind": "role",
+  "bc": "platform.approval",
+  "definition": "办理了这条任务的人；代理办理时是被代理人以外实际操作的人",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "审批记录的列名；「处理人」指认领后唯一可办理的人，两者不同",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_flow_node",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_flow_node",
+  "zh": "节点",
+  "en": "FlowNode",
+  "snake": "flow_node",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "审批流程中的一个环节，每个节点有自己的审批人规则",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "审批记录的列名；「当前节点」是它的特指",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_approval_running",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_approval_running",
+  "zh": "审批中",
+  "en": "ApprovalRunning",
+  "snake": "approval_running",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "审批已经发起且尚未结束；工时单提交之后即处于此状态",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "展示用语；对应审批状态 RUNNING 与工时单状态 SUBMITTED",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_approval_approved",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_approval_approved",
+  "zh": "已通过",
+  "en": "ApprovalApproved",
+  "snake": "approval_approved",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "审批以通过结束",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "展示用语；对应审批状态 APPROVED",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_approval_rejected",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_approval_rejected",
+  "zh": "已驳回",
+  "en": "ApprovalRejected",
+  "snake": "approval_rejected",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "审批以驳回结束",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "展示用语；对应审批状态 REJECTED",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_approval_returned",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_approval_returned",
+  "zh": "已退回",
+  "en": "ApprovalReturned",
+  "snake": "approval_returned",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "审批被退回，本轮结束，发起人修改后重提开新一轮",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "展示用语；对应审批状态 RETURNED",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_auto_approved",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_auto_approved",
+  "zh": "自动通过",
+  "en": "AutoApproved",
+  "snake": "auto_approved",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "系统在同一审批人重复出现等情形下自动给出的通过，办理记录里标注「自动」",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "D-1a-66；办理结果的取值",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_opinion_unfilled",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_opinion_unfilled",
+  "zh": "未填写意见",
+  "en": "OpinionUnfilled",
+  "snake": "opinion_unfilled",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "通过时没有填写意见；数据里留空，界面显示为「（未填写意见）」，不写入数据",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "RULE-280",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_pending_confirmation_state",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_pending_confirmation_state",
+  "zh": "待确认",
+  "en": "PendingConfirmationState",
+  "snake": "pending_confirmation_state",
+  "kind": "state",
+  "bc": "platform.numbering",
+  "definition": "编号规则还没有由管理员确认",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "展示用语；对应确认状态 PENDING_CONFIRMATION",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_confirmed_state",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_confirmed_state",
+  "zh": "已确认",
+  "en": "ConfirmedState",
+  "snake": "confirmed_state",
+  "kind": "state",
+  "bc": "platform.numbering",
+  "definition": "编号规则已由管理员确认",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "展示用语；对应确认状态 CONFIRMED",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_released_state",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_released_state",
+  "zh": "已放行",
+  "en": "ReleasedState",
+  "snake": "released_state",
+  "kind": "state",
+  "bc": "organization.workforce",
+  "definition": "被中止的同步已由管理员放行并生效",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "展示用语；同步记录状态 RELEASED",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_never_reset",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_never_reset",
+  "zh": "不重置",
+  "en": "NeverReset",
+  "snake": "never_reset",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "流水号永不重置，一直递增",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "展示用语；重置周期 NEVER",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_locked_day",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_locked_day",
+  "zh": "已锁定",
+  "en": "LockedDay",
+  "snake": "locked_day",
+  "kind": "state",
+  "bc": "organization.attendance",
+  "definition": "工作日历中已经过去的日期；修改需要组织数据管理员二次确认",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "用户决定 T2；展示用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_cc_notice",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_cc_notice",
+  "zh": "知会",
+  "en": "CcNotice",
+  "snake": "cc_notice",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "只通知、不阻塞流程的审批知会；在合并待办里单列，打开即已读",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "D-1a-67、D-1a-128",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_business_summary",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_business_summary",
+  "zh": "业务摘要",
+  "en": "BusinessSummary",
+  "snake": "business_summary",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "业务模块在发起审批时随请求提供的单据摘要，待办与通知据此显示，不回查业务单据",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "D-1a-133",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_proxy_handling",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_proxy_handling",
+  "zh": "代理",
+  "en": "ProxyHandling",
+  "snake": "proxy_handling",
+  "kind": "role",
+  "bc": "platform.approval",
+  "definition": "流程管理员替被代理人办理任务；审批记录同时显示操作人与被代理人",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "D-1a-77",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_task_deadline",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_task_deadline",
+  "zh": "截止时间",
+  "en": "TaskDeadline",
+  "snake": "task_deadline",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "审批任务应办理完的时刻；超过则提醒并升级，待办标出已超时",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "D-1a-84、D-1a-110；任务详情的字段名",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_external_system",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_external_system",
+  "zh": "外部系统",
+  "en": "ExternalSystem",
+  "snake": "external_system",
+  "kind": "entity",
+  "bc": "platform.integration",
+  "definition": "本系统之外、通过防腐层接入的系统，如企业微信、致远、组织来源",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "错误提示用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_maintain",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_maintain",
+  "zh": "维护",
+  "en": "Maintain",
+  "snake": "maintain",
+  "kind": "command",
+  "bc": "organization.attendance",
+  "definition": "录入和修改工作日历这类基础数据",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "界面与提示用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_calculation",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_calculation",
+  "zh": "计算",
+  "en": "Calculation",
+  "snake": "calculation",
+  "kind": "command",
+  "bc": "kernel",
+  "definition": "按规则得出日期、时限、编号等的过程",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "提示用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_outcome_result",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_outcome_result",
+  "zh": "结果",
+  "en": "OutcomeResult",
+  "snake": "outcome_result",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "一次办理或一次计算得出的结论",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "提示用语；「办理结果」是它在审批记录里的特指",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_rest_day",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_rest_day",
+  "zh": "休息日",
+  "en": "RestDay",
+  "snake": "rest_day",
+  "kind": "value",
+  "bc": "organization.attendance",
+  "definition": "周末且不是调休上班日的日期",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "工作日历的展示用语，与「工作日」相对",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "fix-c.yaml#ui_advisory_note",
+  "file": "fix-c.yaml",
+  "branch": null,
+  "id": "ui_advisory_note",
+  "zh": "加签建议",
+  "en": "AdvisoryNote",
+  "snake": "advisory_note",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "加签人给出的参考意见，不算正式的办理结果",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "D-1a-76；办理结果的取值 ADVISED",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#correlation_id",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "correlation_id",
+  "zh": "关联号",
+  "en": "CorrelationId",
+  "snake": "correlation_id",
+  "kind": "value",
+  "bc": "kernel",
+  "definition": "一次请求及其引发的事件与投递共用的追踪编号（X-Correlation-Id）；出错时界面显示可复制的关联号，便于对日志（NAMING_STANDARD §4a U5、GUIDING_PRINCIPLES §11 O-1）",
+  "standard_ref": [
+   "GUIDING_PRINCIPLES §11 O-1"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "界面不另称「错误编号」，与 platform-web 错误响应同一用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#pending_task",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "pending_task",
+  "zh": "待办",
+  "en": "PendingTask",
+  "snake": "pending_task",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "当前用户待处理的审批任务，新系统任务与老系统待办合并后在待办页展示",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "界面页面标题与导航用语；与 platform-approval.yaml 的 todo（待办事项）、inbox（待办收件箱）指同一事物，第三轮用语确认时合并",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#candidate_approver",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "candidate_approver",
+  "zh": "候选审批人",
+  "en": "CandidateApprover",
+  "snake": "candidate_approver",
+  "kind": "role",
+  "bc": "platform.approval",
+  "definition": "任务尚未认领时，有资格认领并办理该任务的审批人",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "任务详情页字段名；正式词表只有「审批人」",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#task_claim",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "task_claim",
+  "zh": "认领",
+  "en": "TaskClaim",
+  "snake": "task_claim",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "候选审批人把任务认到自己名下，认领后只有他可以办理",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "界面按钮与状态用语（待认领、已认领）",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#approve",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "approve",
+  "zh": "通过",
+  "en": "Approve",
+  "snake": "approve",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "审批人对任务给出同意的结论",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "界面按钮与结果用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md"
+   ]
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#reject",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "reject",
+  "zh": "驳回",
+  "en": "Reject",
+  "snake": "reject",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "审批人对任务给出不同意的结论，是否终止流程取决于所在节点",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "界面按钮与结果用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#legacy_system",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "legacy_system",
+  "zh": "老系统",
+  "en": "LegacySystem",
+  "snake": "legacy_system",
+  "kind": "system",
+  "bc": "platform.approval",
+  "definition": "被本系统替代的原项目管理系统（待办合并期间只读接入）",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "疑似方言，第三轮用语确认；界面用语，正式叫法待定",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/D1.md",
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#new_system",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "new_system",
+  "zh": "新系统",
+  "en": "NewSystem",
+  "snake": "new_system",
+  "kind": "system",
+  "bc": "platform.approval",
+  "definition": "FORCITIS one 本身；待办合并期间与老系统并存，界面用来标出待办的来源",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "用户 2026-10-14 指定提议；界面标签、筛选项、提示用语",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#org_browse",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "org_browse",
+  "zh": "组织浏览",
+  "en": "OrgBrowse",
+  "snake": "org_browse",
+  "kind": "entity",
+  "bc": "organization.workforce",
+  "definition": "只读浏览组织单元树的页面",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "用户 2026-10-14 指定提议；页面标题与导航用语",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#current_node",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "current_node",
+  "zh": "当前节点",
+  "en": "CurrentNode",
+  "snake": "current_node",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "审批任务当前所在的流程节点",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "用户 2026-10-14 指定提议；任务详情字段名",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#trigger_mode",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "trigger_mode",
+  "zh": "触发方式",
+  "en": "TriggerMode",
+  "snake": "trigger_mode",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "一次同步是定时触发还是手动触发",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "用户 2026-10-14 指定提议；同步记录列名",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#held",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "held",
+  "zh": "被中止",
+  "en": "Held",
+  "snake": "held",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "同步记录的状态：被缩水保护中止，等待管理员放行；与「被中止的同步」指同一状态",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "用户 2026-10-14 指定提议；同步记录状态值，第三轮用语确认时与 workforce__held_run 合并",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#release",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "release",
+  "zh": "放行",
+  "en": "Release",
+  "snake": "release",
+  "kind": "command",
+  "bc": "organization.workforce",
+  "definition": "管理员核对同步差异后，让被中止的同步生效的动作",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；同步记录页按钮与结果用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md"
+   ]
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#org_sync",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "org_sync",
+  "zh": "同步",
+  "en": "OrgSync",
+  "snake": "org_sync",
+  "kind": "entity",
+  "bc": "organization.workforce",
+  "definition": "把组织来源的组织单元与员工变化应用到本系统的一次运行",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；与「同步记录」「同步差异」配合使用",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#delivery_unit",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "delivery_unit",
+  "zh": "交付单元",
+  "en": "DeliveryUnit",
+  "snake": "delivery_unit",
+  "kind": "entity",
+  "bc": "organization.workforce",
+  "definition": "承担项目交付的组织单元",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；组织浏览页列名",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#serial_number",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "serial_number",
+  "zh": "流水号",
+  "en": "SerialNumber",
+  "snake": "serial_number",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "编号中随单据递增的序号部分",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；编号规则页用语",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#start_serial_number",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "start_serial_number",
+  "zh": "起始流水号",
+  "en": "StartSerialNumber",
+  "snake": "start_serial_number",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "编号规则中流水号的起始值",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；编号规则页字段名",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#issue_number",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "issue_number",
+  "zh": "发号",
+  "en": "IssueNumber",
+  "snake": "issue_number",
+  "kind": "command",
+  "bc": "platform.numbering",
+  "definition": "按编号规则为一张单据分配编号",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；编号规则确认提示用语",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#user_account",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "user_account",
+  "zh": "用户账号",
+  "en": "UserAccount",
+  "snake": "user_account",
+  "kind": "entity",
+  "bc": "platform.identity",
+  "definition": "一名员工在本系统的登录主体，可启用或停用",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；登录失败提示用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#portal",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "portal",
+  "zh": "门户",
+  "en": "Portal",
+  "snake": "portal",
+  "kind": "system",
+  "bc": "platform.identity",
+  "definition": "公司门户，致远单点登录的入口",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；登录页与错误提示用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#totp_code",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "totp_code",
+  "zh": "动态口令",
+  "en": "TotpCode",
+  "snake": "totp_code",
+  "kind": "value",
+  "bc": "platform.identity",
+  "definition": "应急管理员登录时的一次性动态口令（TOTP）",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；应急登录页字段名",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#authorization",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "authorization",
+  "zh": "授权",
+  "en": "Authorization",
+  "snake": "authorization",
+  "kind": "command",
+  "bc": "platform.identity",
+  "definition": "向用户授予权限，或企业微信确认用户身份的授权",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；权限不足页与登录失败提示用语",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#reason",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "reason",
+  "zh": "理由",
+  "en": "Reason",
+  "snake": "reason",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "审批人办理任务时填写的说明；驳回和退回必填",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；办理弹层字段名",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md"
+   ]
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#business_check",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "business_check",
+  "zh": "业务校验",
+  "en": "BusinessCheck",
+  "snake": "business_check",
+  "kind": "rule",
+  "bc": "platform.approval",
+  "definition": "办理审批前由业务模块执行的校验，不通过则不能办理",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；办理失败提示用语",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#task_participant",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "task_participant",
+  "zh": "参与人",
+  "en": "TaskParticipant",
+  "snake": "task_participant",
+  "kind": "role",
+  "bc": "platform.approval",
+  "definition": "审批任务的候选审批人或处理人",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；任务不存在提示用语",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#account_disabled",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "account_disabled",
+  "zh": "停用",
+  "en": "AccountDisabled",
+  "snake": "account_disabled",
+  "kind": "state",
+  "bc": "platform.identity",
+  "definition": "账号被管理员停用，停用后不能登录，已有会话随即失效",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "扫描前端界面文案发现；登录失败提示用语；与「已撤销」（组织单元）是两个不同状态",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "frontend-ui.yaml#opinion",
+  "file": "frontend-ui.yaml",
+  "branch": null,
+  "id": "opinion",
+  "zh": "意见",
+  "en": "Opinion",
+  "snake": "opinion",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "办理人随办理结果留下的文字说明；通过时可以留空，留空如实保存为空，界面显示为「（未填写意见）」（RULE-280）",
+  "standard_ref": [],
+  "aliases": [],
+  "forbidden": [],
+  "note": "界面文案；输入框沿用「理由」，与 platform-approval 的 reason 指同一内容，第三轮用语确认时合并",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#migration",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "migration",
+  "zh": "历史迁入",
+  "en": "Migration",
+  "snake": "migration",
+  "kind": "value",
+  "bc": "kernel",
+  "definition": "事件或数据来自老系统 / A8 的一次性迁入（与新系统原生相对）",
+  "standard_ref": [
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "kernel.yaml#work_calendar",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "work_calendar",
+  "zh": "工作日历",
+  "en": "WorkCalendar",
+  "snake": "work_calendar",
+  "kind": "entity",
+  "bc": "organization.attendance",
+  "definition": "按年维护的节假日与调休上班日；默认日历适用全部法人，预留法人专属日历（用户 2026-10-14）",
+  "standard_ref": [
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#workday",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "workday",
+  "zh": "工作日",
+  "en": "Workday",
+  "snake": "workday",
+  "kind": "value",
+  "bc": "organization.attendance",
+  "definition": "工作日历中需要上班的日期：周一至周五且非节假日，或调休上班日",
+  "standard_ref": [
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#tail_adjustment",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "tail_adjustment",
+  "zh": "尾调",
+  "en": "TailAdjustment",
+  "snake": "tail_adjustment",
+  "kind": "value",
+  "bc": "presales.quoting",
+  "definition": "报价整单的人工调整额：最终报价 = 行合计 + 尾调，审批单显示尾调金额及其占行合计的比例（RULE-142）；与舍入产生的舍入差是两个概念",
+  "standard_ref": [
+   "RULE-142",
+   "CROSS_CUTTING_MATRIX.md §3.1"
+  ],
+  "aliases": [
+   {
+    "name": "尾差",
+    "type": "dialect",
+    "deprecated": true,
+    "source": "老系统报价（RULE-142 原称）；同一词也被用来指舍入差，一词两义，新系统不用"
+   }
+  ],
+  "forbidden": [
+   "尾差"
+  ],
+  "note": "用户 2026-10-15 XD-07「同意 (Recommended)」（intent 2026-10-15-214100-one-coordinator-横切决定单-XD-07）",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#rounding_residual",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "rounding_residual",
+  "zh": "舍入差",
+  "en": "RoundingResidual",
+  "snake": "rounding_residual",
+  "kind": "value",
+  "bc": "kernel",
+  "definition": "金额按统一口径舍入到分后，各份之和与总额之间的分厘差；由按权重拆分按既定规则分配，使各份之和恰等于总额",
+  "standard_ref": [
+   "CROSS_CUTTING_MATRIX.md §3.3"
+  ],
+  "aliases": [
+   {
+    "name": "尾差",
+    "type": "dialect",
+    "deprecated": true,
+    "source": "老系统分摊（RULE-069「尾差标志位」等）；一词两义，新系统不用"
+   }
+  ],
+  "forbidden": [],
+  "note": "用户 2026-10-15 XD-07「同意 (Recommended)」；「尾差」的禁用登记在 tail_adjustment，一处即可",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#prorate",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "prorate",
+  "zh": "按权重拆分",
+  "en": "Prorate",
+  "snake": "prorate",
+  "kind": "command",
+  "bc": "kernel",
+  "definition": "把一笔金额按一组非负权重拆成若干份，各份之和恰等于原额，舍入差按最大余数法分配，结果确定、可镜像；是 kernel 的金额原语，不是业务动作「间接成本分摊」（allocate_indirect_cost）",
+  "standard_ref": [
+   "CROSS_CUTTING_MATRIX.md §3.3"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "用户 2026-10-15 XD-07「同意 (Recommended)」、XD-08「先按建议建 (Recommended)」",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#reversal_document",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "reversal_document",
+  "zh": "冲销单",
+  "en": "ReversalDocument",
+  "snake": "reversal_document",
+  "kind": "document",
+  "bc": "kernel",
+  "definition": "只冲不重做的更正单据，用于退回或撤销，可全额也可部分；与原单同一单据类型、各为单一聚合，引用记在冲销单上，原单不写入",
+  "standard_ref": [
+   "ADR-0031 第 2 项第 2 条",
+   "ADR-0016 第 2 条",
+   "ADR-0022 第 2 条"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项、U-4）。建议已批准词条「冲销」（reversing_entry）的 bc 由 operations.facts 改为通用，本条不改 terms.yaml；冲销单是单据层，「冲销」是事实层的更正方式，二者关系一并确认",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#correction_document",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "correction_document",
+  "zh": "修正单",
+  "en": "CorrectionDocument",
+  "snake": "correction_document",
+  "kind": "document",
+  "bc": "kernel",
+  "definition": "完成一次冲销重做的更正单据，自带被更正单据引用，生效时冲尽被更正单据的剩余并按新内容重做；单一聚合，一个编号、一次审批、一个过账批；不得改变法人",
+  "standard_ref": [
+   "ADR-0031 第 2 项第 2、4 条",
+   ""
+  ],
+  "aliases": [
+   {
+    "name": "重做",
+    "type": "synonym",
+    "deprecated": false,
+    "source": "ADR-0031 第 8 项第 1 条列为修正单的同义词；修正单完成的动作沿用已有叫法「冲销重做」"
+   }
+  ],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项、U-4）。「事实重述」（business_fact_restated）、「成本调整」（cost_adjustment）、「期间调整」（period_adjustment）都描述落当期、引用原事实的更正，在本模式下分别对应修正单或差错类冲销单的事实层效果；合并为别名还是保留，待用语确认，本条不改 terms.yaml",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#document_nature",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "document_nature",
+  "zh": "单据性质",
+  "en": "DocumentNature",
+  "snake": "document_nature",
+  "kind": "enum",
+  "bc": "kernel",
+  "definition": "单据在冲销与修正模式中的身份，取原单、冲销单、修正单三者之一；冲销行存正数量与正金额，符号由单据性质决定",
+  "standard_ref": [
+   "ADR-0031 第 2 项第 2 条、第 7 项第 3、4 条"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项、U-4）；对应共用构件 K2",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#reversal_category",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "reversal_category",
+  "zh": "冲销类别",
+  "en": "ReversalCategory",
+  "snake": "reversal_category",
+  "kind": "enum",
+  "bc": "kernel",
+  "definition": "冲销的缘由，取差错或业务冲回之一；差错落开放期间并标注原期间，业务冲回如客户退回按其业务日期落账期间判定",
+  "standard_ref": [
+   "ADR-0031 第 5 项第 1、2 条",
+   "FQ-29"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项、U-4，会计用语由财务）；两个取值的分别落账待 FQ-29 答复（F-2）",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#reversible_balance",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "reversible_balance",
+  "zh": "可冲销余额",
+  "en": "ReversibleBalance",
+  "snake": "reversible_balance",
+  "kind": "metric",
+  "bc": "kernel",
+  "definition": "原单某行尚可被冲销的金额，等于原额减去已生效冲销合计；按已通过的冲销单与修正单计算（含待过账），不按已过账事实；冲销单不可再被冲销",
+  "standard_ref": [
+   "ADR-0031 第 2 项第 5 条"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项、U-4）；只出现在读模型与校验，不回写原单",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#derived_reversal",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "derived_reversal",
+  "zh": "派生冲销",
+  "en": "DerivedReversal",
+  "snake": "derived_reversal",
+  "kind": "entity",
+  "bc": "kernel",
+  "definition": "上游单据被冲销后，由下游引用方按冲销事件自动生成的冲销，如收入确认单被冲销后配对成本的冲回；继承上游，不另审批，期间取上游实际落账期间",
+  "standard_ref": [
+   "ADR-0031 第 6 项"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项、U-4）；比例与期间待 FQ-28、FQ-29 答复（F-1、F-2）",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#original_period",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "original_period",
+  "zh": "原期间",
+  "en": "OriginalPeriod",
+  "snake": "original_period",
+  "kind": "value",
+  "bc": "kernel",
+  "definition": "被冲销或被更正的单据所属的会计期间；冲销或更正落在开放期间时标注，与实际落账期间分开记录",
+  "standard_ref": [
+   "ADR-0016 第 2 条",
+   "proposals/EVENT_ANALYTICS_FIELDS.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项、U-4）；过账事件字段 originalPeriod 的单据层对应，属共用构件 K3 的组成部分",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#change_order_document",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "change_order_document",
+  "zh": "变更单",
+  "en": "ChangeOrderDocument",
+  "snake": "change_order_document",
+  "kind": "document",
+  "bc": "contract.changeorder",
+  "definition": "合同变更的单据形态；合同变更是新的业务事实，向前记录而不覆盖原合同，锁定后不就地修改，单据本身有错时用取代版本",
+  "standard_ref": [
+   "ADR-0031 第 1 项第 3 条",
+   "OA_PROCESS_INVENTORY.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项、U-4）。已批准词条「变更」（change_order，en ChangeOrder）是概念，本条是其单据形态；二者是否合并，或把「变更单」并入 change_order 的中文别名，待用语确认，本条不改 terms.yaml",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#reverse_action",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "reverse_action",
+  "zh": "冲销动作",
+  "en": "ReverseAction",
+  "snake": "reverse_action",
+  "kind": "command",
+  "bc": "kernel",
+  "definition": "权限码与接口中发起冲销的动作 reverse，对应路径 :reverse，授予范围与该单据的提交权限相同",
+  "standard_ref": [
+   "ADR-0031 第 7 项第 6 条",
+   "ADR-0022 第 125 行",
+   "U8C_CAPABILITY_MAP.md §2.3"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项）。reverse 与 ADR-0022:125 提议在 standard_actions 增加的 post、reverse、close、reopen 合并评审，本条不改 standard_actions；是否属于敏感权限见 ADR-0031 U-1",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "kernel.yaml#correct_action",
+  "file": "kernel.yaml",
+  "branch": null,
+  "id": "correct_action",
+  "zh": "修正动作",
+  "en": "CorrectAction",
+  "snake": "correct_action",
+  "kind": "command",
+  "bc": "kernel",
+  "definition": "权限码与接口中发起修正单的动作 correct，对应路径 :correct，授予范围与该单据的提交权限相同",
+  "standard_ref": [
+   "ADR-0031 第 7 项第 6 条"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "待用语确认（ADR-0031 第 8 项）。correct 随 reverse 与 ADR-0022:125 的提议合并评审，本条不改 standard_actions；是否属于敏感权限见 ADR-0031 U-1",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_attendance.yaml#attendance",
+  "file": "organization_attendance.yaml",
+  "branch": null,
+  "id": "attendance",
+  "zh": "考勤",
+  "en": "Attendance",
+  "snake": "attendance",
+  "kind": "entity",
+  "bc": "organization.attendance",
+  "definition": "考勤与休假限界上下文；1a 只含工作日历，请假与打卡后做（用户 2026-10-14：BC 提前到 1a 建）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_attendance.yaml#holiday",
+  "file": "organization_attendance.yaml",
+  "branch": null,
+  "id": "holiday",
+  "zh": "节假日",
+  "en": "Holiday",
+  "snake": "holiday",
+  "kind": "value",
+  "bc": "organization.attendance",
+  "definition": "工作日历中休息的日期，可落在周一至周五",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_attendance.yaml#make_up_workday",
+  "file": "organization_attendance.yaml",
+  "branch": null,
+  "id": "make_up_workday",
+  "zh": "调休上班日",
+  "en": "MakeUpWorkday",
+  "snake": "make_up_workday",
+  "kind": "value",
+  "bc": "organization.attendance",
+  "definition": "工作日历中需要上班的周六或周日",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_attendance.yaml#work_calendar_year",
+  "file": "organization_attendance.yaml",
+  "branch": null,
+  "id": "work_calendar_year",
+  "zh": "工作日历年度",
+  "en": "WorkCalendarYear",
+  "snake": "work_calendar_year",
+  "kind": "entity",
+  "bc": "organization.attendance",
+  "definition": "某个日历的一个已维护年份；没有维护的年份，依赖它的计算失败并告警，不假定全部是工作日",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_attendance.yaml#calendar_scope",
+  "file": "organization_attendance.yaml",
+  "branch": null,
+  "id": "calendar_scope",
+  "zh": "日历适用范围",
+  "en": "CalendarScope",
+  "snake": "calendar_scope",
+  "kind": "enum",
+  "bc": "organization.attendance",
+  "definition": "工作日历适用的范围：默认日历或某个法人主体专属日历；默认日历不用空法人加哨兵值表示",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "ADR-0033（提议）登记，待用语确认",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__assignment",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__assignment",
+  "zh": "任职",
+  "en": "Assignment",
+  "snake": "assignment",
+  "kind": "entity",
+  "bc": "organization.workforce",
+  "definition": "员工在某个组织单元、某个岗位上的任职，含直属领导（汇报线）；A8 为源",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.3"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__reporting_line",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__reporting_line",
+  "zh": "汇报线",
+  "en": "ReportingLine",
+  "snake": "reporting_line",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "员工到直属领导的上下级关系；同步时校验领导存在、在职、非本人、无环",
+  "standard_ref": [
+   "RULE-372"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__sync_diff",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__sync_diff",
+  "zh": "同步差异",
+  "en": "SyncDiff",
+  "snake": "sync_diff",
+  "kind": "entity",
+  "bc": "organization.workforce",
+  "definition": "一次同步运行改动的对象与字段，以及发现的数据例外（供数据管理员处理）",
+  "standard_ref": [
+   "RULE-373"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__shrink_guard",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__shrink_guard",
+  "zh": "缩水保护",
+  "en": "ShrinkGuard",
+  "snake": "shrink_guard",
+  "kind": "policy",
+  "bc": "organization.workforce",
+  "definition": "A8 返回的有效部门数或在职人数降幅超过 20 % 时中止同步，等管理员人工放行",
+  "standard_ref": [
+   "RULE-358",
+   "RULE-366"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__held_run",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__held_run",
+  "zh": "被中止的同步",
+  "en": "HeldRun",
+  "snake": "held_run",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "被缩水保护中止、等待管理员放行的同步运行",
+  "standard_ref": [
+   "RULE-358"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__isolated_row",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__isolated_row",
+  "zh": "被隔离的行",
+  "en": "IsolatedRow",
+  "snake": "isolated_row",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "缺部门或缺岗位的人员行：不写入、告警，不中断整批同步",
+  "standard_ref": [
+   "RULE-365"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__org_hierarchy",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__org_hierarchy",
+  "zh": "组织层级",
+  "en": "OrgHierarchy",
+  "snake": "org_hierarchy",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "组织单元之间的上下级结构；「本部门及以下」不含已撤销部门",
+  "standard_ref": [
+   "RULE-360"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__broken_org_tree",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__broken_org_tree",
+  "zh": "断裂的组织树",
+  "en": "BrokenOrgTree",
+  "snake": "broken_org_tree",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "A8 返回的部门缺少上级路径；整次同步中止，什么都不写",
+  "standard_ref": [
+   "RULE-354"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__email",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__email",
+  "zh": "企业邮箱",
+  "en": "Email",
+  "snake": "email",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "员工的企业邮箱（A8 人事表）",
+  "standard_ref": [
+   "COLUMN_OWNERSHIP.md §1"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__gender",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__gender",
+  "zh": "性别",
+  "en": "Gender",
+  "snake": "gender",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "员工性别；A8 未维护或无法识别时为空，不默认写成女",
+  "standard_ref": [
+   "COLUMN_OWNERSHIP.md §1"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__login_name",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__login_name",
+  "zh": "登录名",
+  "en": "LoginName",
+  "snake": "login_name",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "员工在组织源的登录名（手机号）；没有即离职（RULE-363）",
+  "standard_ref": [
+   "RULE-363"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__short_name",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__short_name",
+  "zh": "部门简称",
+  "en": "ShortName",
+  "snake": "short_name",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "组织单元简称；A8 视图里没有，每天从老系统只读刷新",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.3"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__staff_employee",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__staff_employee",
+  "zh": "人员",
+  "en": "StaffEmployee",
+  "snake": "staff_employee",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "一名员工连同其任职，是同步比较与写入的单位",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.3"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__relationship",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__relationship",
+  "zh": "关系",
+  "en": "Relationship",
+  "snake": "relationship",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "A8 中人员与组织单元之间的关系（部门负责人、区域应收负责人），类型 ID 为配置项",
+  "standard_ref": [
+   "RULE-356"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__headquarters",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__headquarters",
+  "zh": "总部",
+  "en": "Headquarters",
+  "snake": "headquarters",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "组织单元的总部 / 区域类别中的「总部」",
+  "standard_ref": [
+   "RULE-356"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#workforce__revoked",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "workforce__revoked",
+  "zh": "已撤销",
+  "en": "Revoked",
+  "snake": "revoked",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "A8 不再返回的组织单元；与「停用」是两个不同状态（RULE-355）",
+  "standard_ref": [
+   "RULE-355"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#separation_request",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "separation_request",
+  "zh": "离职申请",
+  "en": "SeparationRequest",
+  "snake": "separation_request",
+  "kind": "document",
+  "bc": "organization.workforce",
+  "definition": "员工在 A8 发起的离职申请流程（表单）；只有正常结束且同意的申请才是预计离职日期的来源",
+  "standard_ref": [
+   "docs/business/rules/workforce-history-rules.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#expected_separation_date",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "expected_separation_date",
+  "zh": "预计离职日期",
+  "en": "ExpectedSeparationDate",
+  "snake": "expected_separation_date",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "正常结束且同意的离职申请上的预计离职日期（业务日期，可能改期，已过而员工仍在职时为已过期），不是实际离职日",
+  "standard_ref": [
+   "docs/business/rules/workforce-history-rules.md"
+  ],
+  "aliases": [],
+  "forbidden": [
+   "离职日期",
+   "separation_date"
+  ],
+  "note": "单说离职日期有歧义，须写明预计离职日期或离职观察时间",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "organization_workforce.yaml#separation_observed_at",
+  "file": "organization_workforce.yaml",
+  "branch": null,
+  "id": "separation_observed_at",
+  "zh": "离职观察时间",
+  "en": "SeparationObservedAt",
+  "snake": "separation_observed_at",
+  "kind": "value",
+  "bc": "organization.workforce",
+  "definition": "组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日",
+  "standard_ref": [
+   "docs/business/rules/workforce-history-rules.md"
+  ],
+  "aliases": [],
+  "forbidden": [
+   "离职日期",
+   "separation_date"
+  ],
+  "note": "单说离职日期有歧义，须写明预计离职日期或离职观察时间",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#act",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "act",
+  "zh": "办理",
+  "en": "Act",
+  "snake": "act",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "对任务执行认领、通过、驳回、退回等操作",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#advisory",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "advisory",
+  "zh": "建议性",
+  "en": "Advisory",
+  "snake": "advisory",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "加签人的驳回只记录意见、不终止流程（RULE-291，1b）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#assigned",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "assigned",
+  "zh": "已分配",
+  "en": "Assigned",
+  "snake": "assigned",
+  "kind": "event",
+  "bc": "platform.approval",
+  "definition": "任务已分配给候选组（TaskAssigned）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#assignee",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "assignee",
+  "zh": "处理人",
+  "en": "Assignee",
+  "snake": "assignee",
+  "kind": "role",
+  "bc": "platform.approval",
+  "definition": "认领后唯一可以办理任务的人（RULE-276，I-7）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#claimed",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "claimed",
+  "zh": "已认领",
+  "en": "Claimed",
+  "snake": "claimed",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "任务已被候选人认领",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#completed",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "completed",
+  "zh": "已完成",
+  "en": "Completed",
+  "snake": "completed",
+  "kind": "event",
+  "bc": "platform.approval",
+  "definition": "审批已结束（ApprovalCompleted）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/D1.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-approval.yaml#decide",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "decide",
+  "zh": "办理决定",
+  "en": "Decide",
+  "snake": "decide",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "通过或驳回任务",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#decision",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "decision",
+  "zh": "决定",
+  "en": "Decision",
+  "snake": "decision",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "对一个任务的通过或驳回",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#department",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "department",
+  "zh": "部门",
+  "en": "Department",
+  "snake": "department",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "组织单元；审批规则按部门取负责人、总监、区域应收",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#director",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "director",
+  "zh": "总监",
+  "en": "Director",
+  "snake": "director",
+  "kind": "role",
+  "bc": "platform.approval",
+  "definition": "BU-002 部门总监（RULE-256）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#escalated",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "escalated",
+  "zh": "已升级",
+  "en": "Escalated",
+  "snake": "escalated",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "候选集已按规则上推（汇报线不完整、防自审）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#fallback",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "fallback",
+  "zh": "兜底",
+  "en": "Fallback",
+  "snake": "fallback",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "取不到人时转流程管理员",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#form",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "form",
+  "zh": "表单",
+  "en": "Form",
+  "snake": "form",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "业务单据的表单数据",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#inbox",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "inbox",
+  "zh": "待办收件箱",
+  "en": "Inbox",
+  "snake": "inbox",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "合并新旧系统待办的列表（RULE-261）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#live",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "live",
+  "zh": "在途",
+  "en": "Live",
+  "snake": "live",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "审批仍在进行或退回待重提",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#resulted",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "resulted",
+  "zh": "已出结果",
+  "en": "Resulted",
+  "snake": "resulted",
+  "kind": "event",
+  "bc": "platform.approval",
+  "definition": "一个任务已办理（TaskResulted）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#return",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "return",
+  "zh": "退回",
+  "en": "Return",
+  "snake": "return",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "退回发起人（RULE-275）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a",
+    "claude/one-design-sync-staging"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#round",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "round",
+  "zh": "轮次",
+  "en": "Round",
+  "snake": "round",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "同一单据第几次发起（RULE-278）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#row",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "row",
+  "zh": "行",
+  "en": "Row",
+  "snake": "row",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "行级任务（RULE-261）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#running",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "running",
+  "zh": "进行中",
+  "en": "Running",
+  "snake": "running",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "审批正在进行",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#terminate",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "terminate",
+  "zh": "终止",
+  "en": "Terminate",
+  "snake": "terminate",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "终止流程实例（顶层驳回，RULE-271）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#todo",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "todo",
+  "zh": "待办事项",
+  "en": "Todo",
+  "snake": "todo",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "待处理任务",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#resubmit",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "resubmit",
+  "zh": "重新提交",
+  "en": "Resubmit",
+  "snake": "resubmit",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "退回后由发起人重新提交（I-5）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#notification",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "notification",
+  "zh": "通知",
+  "en": "Notification",
+  "snake": "notification",
+  "kind": "entity",
+  "bc": "platform.approval",
+  "definition": "企业微信通知（模块内接口隔离，架构 3.7）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#skipped",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "skipped",
+  "zh": "已跳过",
+  "en": "Skipped",
+  "snake": "skipped",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "收件人缺企业微信 ID，跳过并告警（I-6）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#project_manager",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "project_manager",
+  "zh": "项目经理",
+  "en": "ProjectManager",
+  "snake": "project_manager",
+  "kind": "role",
+  "bc": "platform.approval",
+  "definition": "工时所属工作的项目经理；工时审批的第一道审批人（表单字段 projectManagerId，取自业务单据）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "评审 H2：流程变量改用词表术语，老变量名只留在回放转换表",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#regional_head",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "regional_head",
+  "zh": "区域负责人",
+  "en": "RegionalHead",
+  "snake": "regional_head",
+  "kind": "role",
+  "bc": "platform.approval",
+  "definition": "区域组织单元的负责人；含售前工时的工时单还要经他审批（表单字段 regionalHeadId）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "评审 H2：流程变量改用词表术语，老变量名只留在回放转换表",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#skip",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "skip",
+  "zh": "跳过",
+  "en": "Skip",
+  "snake": "skip",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "节点显式允许且确实没有审批人时，不创建任务直接放行（RULE-300）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §2.1（TIMESHEET 与生产当前版本 v15 对齐）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#project_manager_review",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "project_manager_review",
+  "zh": "项目经理审批",
+  "en": "ProjectManagerReview",
+  "snake": "project_manager_review",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "工时审批中由项目经理办理的节点，对应项目工时",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "正式用语取自老系统任务名，术语表无对应词，登记为提议",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#regional_head_review",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "regional_head_review",
+  "zh": "区域负责人审批",
+  "en": "RegionalHeadReview",
+  "snake": "regional_head_review",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "工时审批中由区域负责人办理的节点，对应售前工时",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "同上",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#supervisor_review",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "supervisor_review",
+  "zh": "一级汇报人审批",
+  "en": "SupervisorReview",
+  "snake": "supervisor_review",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "工时审批中由发起人的一级汇报人办理的节点，对应 OH 工时",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "同上",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#timesheet_approval",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "timesheet_approval",
+  "zh": "工时审批",
+  "en": "TimesheetApproval",
+  "snake": "timesheet_approval",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "工时单的审批流程；企业微信卡片上展示的流程名",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4（TIMESHEET 当前版本，runtime/prod_bpm.tsv ##13）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "流程显示名",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#countersign",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "countersign",
+  "zh": "会签",
+  "en": "Countersign",
+  "snake": "countersign",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "节点上每位不同的审批人各有一个任务，全部通过才算通过；一路里任一人正式驳回即结束本轮（RULE-248/273）",
+  "standard_ref": [
+   "docs/business/rules/approval-deadline-rules.md（RULE-248）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#withdraw",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "withdraw",
+  "zh": "撤回",
+  "en": "Withdraw",
+  "snake": "withdraw",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "发起人把在途审批拉回自己修改：本轮以退回结束，可重新发起下一轮（RULE-269）",
+  "standard_ref": [
+   "docs/business/rules/approval-deadline-rules.md（RULE-269）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#cancel",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "cancel",
+  "zh": "撤销",
+  "en": "Cancel",
+  "snake": "cancel",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "发起人结束整个审批并保留历史，单据回到草稿，不记为驳回（RULE-268/279/288）",
+  "standard_ref": [
+   "docs/business/rules/approval-deadline-rules.md（RULE-268）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#transfer",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "transfer",
+  "zh": "转交",
+  "en": "Transfer",
+  "snake": "transfer",
+  "kind": "command",
+  "bc": "platform.approval",
+  "definition": "当前处理人把任务交给另一位在职人员，原处理人不再能办理（RULE-285）",
+  "standard_ref": [
+   "docs/business/rules/approval-deadline-rules.md（RULE-285）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#cutoff",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "cutoff",
+  "zh": "撤回截止点",
+  "en": "Cutoff",
+  "snake": "cutoff",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "流程里标了「撤回截止」的节点：其上有已完成任务之后，发起人不能再撤回或撤销（RULE-309）",
+  "standard_ref": [
+   "docs/business/rules/approval-deadline-rules.md（RULE-309）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#overdue",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "overdue",
+  "zh": "已超时",
+  "en": "Overdue",
+  "snake": "overdue",
+  "kind": "state",
+  "bc": "platform.approval",
+  "definition": "任务超过审批时限仍未处理，已记录并提醒处理人；只提醒，不自动通过（RULE-377..384）",
+  "standard_ref": [
+   "docs/business/rules/approval-deadline-rules.md（RULE-379）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#deadline",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "deadline",
+  "zh": "审批时限",
+  "en": "Deadline",
+  "snake": "deadline",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "提交日起第 n 个工作日结束；n 与升级间隔由节点的决策表给出（RULE-377/378）",
+  "standard_ref": [
+   "docs/business/rules/approval-deadline-rules.md（RULE-377）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-approval.yaml#effect",
+  "file": "platform-approval.yaml",
+  "branch": null,
+  "id": "effect",
+  "zh": "效力",
+  "en": "Effect",
+  "snake": "effect",
+  "kind": "value",
+  "bc": "platform.approval",
+  "definition": "任务办理结果对本轮审批的效力：约束性的结束本轮，建议性的（加签人的驳回）只记录意见（RULE-273、RULE-291）",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.4-3.7（Phase 1a 审批）"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#login",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "login",
+  "zh": "登录",
+  "en": "Login",
+  "snake": "login",
+  "kind": "action",
+  "bc": "platform.identity",
+  "definition": "用户以某种凭证建立会话的动作；所有入口过同一道「启用且在职」检查",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md",
+    "ae4a3976c:docs/modernization/phase1a/cards/D1.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-identity.yaml#logout",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "logout",
+  "zh": "登出",
+  "en": "Logout",
+  "snake": "logout",
+  "kind": "action",
+  "bc": "platform.identity",
+  "definition": "用户主动结束会话；会话在服务端删除",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#session",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "session",
+  "zh": "会话",
+  "en": "Session",
+  "snake": "session",
+  "kind": "entity",
+  "bc": "platform.identity",
+  "definition": "服务端会话（Spring Session JDBC）：空闲 10 小时、绝对上限 24 小时，均可配置",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-identity.yaml#ticket",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "ticket",
+  "zh": "票据",
+  "en": "Ticket",
+  "snake": "ticket",
+  "kind": "entity",
+  "bc": "platform.identity",
+  "definition": "一次性登录凭据：致远 OA 票据，或外部系统的签名票据",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#ticket_issuer",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "ticket_issuer",
+  "zh": "票据签发方",
+  "en": "TicketIssuer",
+  "snake": "ticket_issuer",
+  "kind": "entity",
+  "bc": "platform.identity",
+  "definition": "被允许签发签名票据的外部系统（KM、组织门户、YD 门户、BI），每方一把密钥，默认关闭",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#sso",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "sso",
+  "zh": "单点登录",
+  "en": "Sso",
+  "snake": "sso",
+  "kind": "concept",
+  "bc": "platform.identity",
+  "definition": "由致远 OA 发起的单点登录",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#emergency_admin",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "emergency_admin",
+  "zh": "应急管理员",
+  "en": "EmergencyAdmin",
+  "snake": "emergency_admin",
+  "kind": "entity",
+  "bc": "platform.identity",
+  "definition": "独立凭据（Argon2id 口令 + TOTP）的 break-glass 管理员，只能从内网登录",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#administrator",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "administrator",
+  "zh": "管理员",
+  "en": "Administrator",
+  "snake": "administrator",
+  "kind": "role",
+  "bc": "platform.identity",
+  "definition": "持有 super_admin 或管理员角色的人；不得通过外部票据进入",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#password",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "password",
+  "zh": "口令",
+  "en": "Password",
+  "snake": "password",
+  "kind": "value",
+  "bc": "platform.identity",
+  "definition": "应急管理员的登录口令，至少 12 位并有复杂度要求",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/D1.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-identity.yaml#access_scope",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "access_scope",
+  "zh": "数据范围",
+  "en": "AccessScope",
+  "snake": "access_scope",
+  "kind": "value",
+  "bc": "platform.identity",
+  "definition": "法人 × 部门 × 项目角色的行可见范围；空范围 = 零行",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-identity.yaml#access_grant",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "access_grant",
+  "zh": "数据范围授权",
+  "en": "AccessGrant",
+  "snake": "access_grant",
+  "kind": "value",
+  "bc": "platform.identity",
+  "definition": "数据范围中的一格：法人 × 部门（可含下级）× 项目角色",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#navigation",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "navigation",
+  "zh": "导航",
+  "en": "Navigation",
+  "snake": "navigation",
+  "kind": "entity",
+  "bc": "platform.identity",
+  "definition": "用户可见的菜单树",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#navigation_item",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "navigation_item",
+  "zh": "导航项",
+  "en": "NavigationItem",
+  "snake": "navigation_item",
+  "kind": "entity",
+  "bc": "platform.identity",
+  "definition": "菜单树中的目录或页面",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#descendant",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "descendant",
+  "zh": "下级单元",
+  "en": "Descendant",
+  "snake": "descendant",
+  "kind": "concept",
+  "bc": "platform.identity",
+  "definition": "组织树中某单元之下的单元",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#direct_report",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "direct_report",
+  "zh": "直接下属",
+  "en": "DirectReport",
+  "snake": "direct_report",
+  "kind": "concept",
+  "bc": "platform.identity",
+  "definition": "汇报线上直接向某人汇报的人；「本人及下属」只算直接下属",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#external_identity",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "external_identity",
+  "zh": "外部身份",
+  "en": "ExternalIdentity",
+  "snake": "external_identity",
+  "kind": "entity",
+  "bc": "platform.identity",
+  "definition": "用户账号在某个身份提供方（企业微信、致远登录）中的标识与该账号的绑定，带绑定区间；登录只经此绑定解析用户",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "ADR-0033（提议）登记，待用语确认",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#provider_kind",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "provider_kind",
+  "zh": "身份提供方类别",
+  "en": "ProviderKind",
+  "snake": "provider_kind",
+  "kind": "enum",
+  "bc": "platform.identity",
+  "definition": "外部身份所属的身份提供方类别，如企业微信用户 ID、致远登录名",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "ADR-0033（提议）登记，待用语确认",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-identity.yaml#external_subject",
+  "file": "platform-identity.yaml",
+  "branch": null,
+  "id": "external_subject",
+  "zh": "外部主体标识",
+  "en": "ExternalSubject",
+  "snake": "external_subject",
+  "kind": "value",
+  "bc": "platform.identity",
+  "definition": "身份提供方给出的用户标识文本（企业微信 userid、致远登录名），只存于外部身份绑定",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "ADR-0033（提议）登记，待用语确认",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-integration.yaml#seeyon",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "seeyon",
+  "zh": "致远",
+  "en": "Seeyon",
+  "snake": "seeyon",
+  "kind": "system",
+  "bc": "platform.integration",
+  "definition": "致远；组织主数据与单点登录验票的外部系统，由集成模块的防腐层读取",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.1 §3.2"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-integration.yaml#outbound_delivery",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "outbound_delivery",
+  "zh": "外发投递",
+  "en": "OutboundDelivery",
+  "snake": "outbound_delivery",
+  "kind": "entity",
+  "bc": "platform.integration",
+  "definition": "一条待发往外部系统（企业微信）的消息及其发送结果；事务提交后由投递作业发送，失败退避重试，次数用尽进死信",
+  "standard_ref": [
+   "REIMAGINED_ARCHITECTURE.md §3.7 §3.9"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-integration.yaml#recipient",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "recipient",
+  "zh": "收件人",
+  "en": "Recipient",
+  "snake": "recipient",
+  "kind": "role",
+  "bc": "platform.integration",
+  "definition": "消息的接收人，用企业微信用户 ID 精确指定；不允许按部门、标签或全员投递",
+  "standard_ref": [
+   "SECURITY_INVARIANTS.md I-6"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-integration.yaml#source_reference",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "source_reference",
+  "zh": "来源对照",
+  "en": "SourceReference",
+  "snake": "source_reference",
+  "kind": "entity",
+  "bc": "platform.integration",
+  "definition": "外部系统或老系统中一个对象的标识与 FORCITIS one 自有 ID 的对应；只在集成层，领域只用自有 ID；同一来源系统、同一类别下来源 ID 与自有 ID 在任一时点各自唯一",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "ADR-0033 登记；权限码 platform.integration:source-reference:update（授予组织数据管理员）、platform.integration:source-reference:approve（核算组织编码四眼确认，授予业务管理员），授予方式均为 INDIVIDUAL",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-integration.yaml#source_system",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "source_system",
+  "zh": "来源系统",
+  "en": "SourceSystem",
+  "snake": "source_system",
+  "kind": "enum",
+  "bc": "platform.integration",
+  "definition": "来源对照所属的外部系统，取值为组织源（ORG_SOURCE）、老系统（LEGACY_SYSTEM）、核算系统（ACCOUNTING_SYSTEM），只在集成层与迁入登记中出现",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "数据库列叫 source_system，Java 枚举叫 ExternalSource（platform.integration.api），因为 kernel.event.SourceSystem（ONE / MIGRATION）表示事件出自新系统还是历史迁入，是另一回事，不改名",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md",
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-integration.yaml#source_object_kind",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "source_object_kind",
+  "zh": "来源对象类别",
+  "en": "SourceObjectKind",
+  "snake": "source_object_kind",
+  "kind": "enum",
+  "bc": "platform.integration",
+  "definition": "来源对照所指的自有对象类别（员工、组织单元、岗位、法人主体等），决定自有 ID 指向哪类对象",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "ADR-0033（提议）登记，待用语确认",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-integration.yaml#org_source",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "org_source",
+  "zh": "组织源",
+  "en": "OrgSource",
+  "snake": "org_source",
+  "kind": "system",
+  "bc": "platform.integration",
+  "definition": "组织与人员的来源系统，来源系统取值 ORG_SOURCE；其员工、组织单元、岗位的标识登记在来源对照里",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md",
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-integration.yaml#accounting_system",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "accounting_system",
+  "zh": "核算系统",
+  "en": "AccountingSystem",
+  "snake": "accounting_system",
+  "kind": "system",
+  "bc": "platform.integration",
+  "definition": "接收凭证的核算系统，来源系统取值 ACCOUNTING_SYSTEM；法人在其中的数字编码（核算组织编码）登记在来源对照里",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-integration.yaml#rejected_state",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "rejected_state",
+  "zh": "已拒绝",
+  "en": "RejectedState",
+  "snake": "rejected_state",
+  "kind": "state",
+  "bc": "platform.integration",
+  "definition": "来源对照的确认状态之一：登记的对照被另一个人拒绝，不占自然键约束，不用于出站",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "展示用语；对应确认状态 REJECTED。与审批的「驳回」（Reject，platform.approval，审批人对任务给出不同意的结论）不是一回事：这里是另一个人不接受一条登记的来源对照，中文写「已拒绝」，英文命令写 Reject 时不得显示成「驳回」。确认状态的写法：编号规则版本为 PENDING_CONFIRMATION / CONFIRMED，来源对照为 PENDING / CONFIRMED / REJECTED，中文都是待确认 / 已确认 / 已拒绝（ADR-0033 第 2 项第 1 条）",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-integration.yaml#registration",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "registration",
+  "zh": "登记",
+  "en": "Registration",
+  "snake": "registration",
+  "kind": "command",
+  "bc": "platform.integration",
+  "definition": "由人把一条来源对照录入系统，先处于待确认，等另一个人确认或拒绝；现在只有核算组织编码可以人工登记",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-integration.yaml#supersede",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "supersede",
+  "zh": "取代",
+  "en": "Supersede",
+  "snake": "supersede",
+  "kind": "command",
+  "bc": "platform.integration",
+  "definition": "已确认的后继对照从生效日起取代生效中的对照：旧对照在后继的生效日结束，两行的来源标识与自有 ID 都不改写",
+  "standard_ref": [
+   "adr/ADR-0033.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-integration.yaml#evidence",
+  "file": "platform-integration.yaml",
+  "branch": null,
+  "id": "evidence",
+  "zh": "取证",
+  "en": "Evidence",
+  "snake": "evidence",
+  "kind": "value",
+  "bc": "platform.integration",
+  "definition": "只读核对老系统与 A8 生产数据，用于复刻老行为、迁入对账与新旧等价核对；用专用取证账号，只出计数或聚合，或落 ECS 数据盘，每次登记一行",
+  "standard_ref": [
+   "adr/ADR-0037.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "ADR-0037 登记（数据库登录名 one_evidence_ro），待用语确认",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-numbering.yaml#legacy_number",
+  "file": "platform-numbering.yaml",
+  "branch": null,
+  "id": "legacy_number",
+  "zh": "原编号",
+  "en": "LegacyNumber",
+  "snake": "legacy_number",
+  "kind": "entity",
+  "bc": "platform.numbering",
+  "definition": "单据迁移前在老系统中的编号，在新系统只读保留并可检索，与新单据对照（ADR-0010 决定 5）",
+  "standard_ref": [
+   "ADR-0010 可配置的业务编号"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "1a 只交付结构与检索接口；各单据的原编号随其切换阶段导入",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-numbering.yaml#confirmation_status",
+  "file": "platform-numbering.yaml",
+  "branch": null,
+  "id": "confirmation_status",
+  "zh": "确认状态",
+  "en": "ConfirmationStatus",
+  "snake": "confirmation_status",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "编号规则是否已由管理员确认；默认模板在确认前为待确认（PENDING_CONFIRMATION），保存即确认（CONFIRMED）。来源对照（platform.integration）沿用同一个词，取值写作 PENDING / CONFIRMED / REJECTED（待确认 / 已确认 / 已拒绝），中文一致、枚举名各随其表（ADR-0033 第 2 项第 1 条）",
+  "standard_ref": [
+   "ADR-0010 可配置的业务编号"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-numbering.yaml#document_type_code",
+  "file": "platform-numbering.yaml",
+  "branch": null,
+  "id": "document_type_code",
+  "zh": "单据类型代码",
+  "en": "DocumentTypeCode",
+  "snake": "document_type_code",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "单据类型在统一编号格式中的短代码（大写字母 2-4 位），在词表中登记，对应模板占位符 {TYPE}",
+  "standard_ref": [
+   "ADR-0010 可配置的业务编号"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "1a 先登记报价 QT；其余单据随各自阶段登记",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-numbering.yaml#qt",
+  "file": "platform-numbering.yaml",
+  "branch": null,
+  "id": "qt",
+  "zh": "报价单据类型代码",
+  "en": "Qt",
+  "snake": "qt",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "报价（DocumentType.QUOTE）的单据类型代码 QT，1b 首个使用方",
+  "standard_ref": [
+   "ADR-0010 可配置的业务编号"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "例 QT-FST-202610-0001",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-numbering.yaml#ts",
+  "file": "platform-numbering.yaml",
+  "branch": null,
+  "id": "ts",
+  "zh": "工时单据类型代码",
+  "en": "Ts",
+  "snake": "ts",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "工时（DocumentType.TIMESHEET）的单据类型代码 TS，沿用种子模板中的前缀字母，正式词表尚无对应词",
+  "standard_ref": [
+   "ADR-0010 可配置的业务编号"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "例 TS-FST-202610-0001；模板待管理员确认",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-design-sync-staging"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md",
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "platform-numbering.yaml#jv",
+  "file": "platform-numbering.yaml",
+  "branch": null,
+  "id": "jv",
+  "zh": "记账凭证单据类型代码",
+  "en": "Jv",
+  "snake": "jv",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "记账凭证（DocumentType.JOURNAL_VOUCHER）的单据类型代码 JV，沿用种子模板中的前缀字母，正式词表尚无对应词",
+  "standard_ref": [
+   "ADR-0010 可配置的业务编号"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "例 JV-FST-202610-0001；模板待管理员确认",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-numbering.yaml#counter_scope",
+  "file": "platform-numbering.yaml",
+  "branch": null,
+  "id": "counter_scope",
+  "zh": "计数范围",
+  "en": "CounterScope",
+  "snake": "counter_scope",
+  "kind": "value",
+  "bc": "platform.numbering",
+  "definition": "编号计数器计数的范围：全局（各法人共用一个计数）或按法人（每个法人各计各的）；范围类别与法人主体成对，全局时无法人，按法人时必有法人",
+  "standard_ref": [
+   "ADR-0010 可配置的业务编号"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "模板不含 {LE} 时为全局",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "platform-numbering.yaml#counter_scope_kind",
+  "file": "platform-numbering.yaml",
+  "branch": null,
+  "id": "counter_scope_kind",
+  "zh": "计数范围类别",
+  "en": "CounterScopeKind",
+  "snake": "counter_scope_kind",
+  "kind": "enum",
+  "bc": "platform.numbering",
+  "definition": "计数范围的类别：GLOBAL 全局 / LEGAL_ENTITY 按法人",
+  "standard_ref": [
+   "ADR-0010 可配置的业务编号"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/NEXT_BATCH_PLAN.md"
+   ]
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#permission_adjustment",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "permission_adjustment",
+  "zh": "待调整权限",
+  "en": "PermissionAdjustment",
+  "snake": "permission_adjustment",
+  "kind": "entity",
+  "bc": "platform.identity",
+  "definition": "同步发现某人的任职变化后，提醒有权的人复核其授权的待办条目；条目类型 + 去重键，只链接到标准授予流程，本身不授予也不收回（ADR-0032 第 4 项第 3 条、第 5 项）",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "ADR-0032 提议术语；F-1 验收测试假定契约（acceptance/platform/identity/F1_ACCEPTANCE.md）",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#permission_adjustment_kind",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "permission_adjustment_kind",
+  "zh": "待调整权限类型",
+  "en": "PermissionAdjustmentKind",
+  "snake": "permission_adjustment_kind",
+  "kind": "enum",
+  "bc": "platform.identity",
+  "definition": "待调整权限条目的类型：敏感角色持有人、范围待复核（ADR-0032 第 5 项第 2 条）",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#permission_adjustment_kind__sensitive_role_holder",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "permission_adjustment_kind__sensitive_role_holder",
+  "zh": "敏感角色持有人",
+  "en": "SensitiveRoleHolder",
+  "snake": "sensitive_role_holder",
+  "kind": "value",
+  "bc": "platform.identity",
+  "definition": "待调整权限类型：持有双人逐人级角色的人部门或岗位变化（ADR-0032 第 4 项第 3 条），送达组织数据管理员与安全审计员，不送本人",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#permission_adjustment_kind__scope_review",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "permission_adjustment_kind__scope_review",
+  "zh": "范围待复核",
+  "en": "ScopeReview",
+  "snake": "scope_review",
+  "kind": "value",
+  "bc": "platform.identity",
+  "definition": "待调整权限类型：持有含自定义部门或列出法人的授权的人调动，送新部门负责人复核（ADR-0032 第 4 项第 2 条）",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#permission_adjustment_status",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "permission_adjustment_status",
+  "zh": "待调整权限状态",
+  "en": "PermissionAdjustmentStatus",
+  "snake": "permission_adjustment_status",
+  "kind": "enum",
+  "bc": "platform.identity",
+  "definition": "待调整权限条目的状态：开启 → 已维持 / 已调整 / 因离职关闭（ADR-0032 第 4 项第 3 条）",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#permission_adjustment_status__open",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "permission_adjustment_status__open",
+  "zh": "开启",
+  "en": "Open",
+  "snake": "open",
+  "kind": "state",
+  "bc": "platform.identity",
+  "definition": "待调整权限条目尚未处理",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": true,
+   "branches": [
+    "claude/one-1a-next-3-r1b-p2",
+    "claude/one-1a-par-f1-acceptance",
+    "claude/one-1a-par-k3a"
+   ],
+   "plans": [
+    "ae4a3976c:docs/modernization/phase1a/cards/R-1b.md"
+   ]
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#uphold_permission_action",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "uphold_permission_action",
+  "zh": "维持授权",
+  "en": "Uphold",
+  "snake": "uphold",
+  "kind": "command",
+  "bc": "platform.identity",
+  "definition": "处理待调整权限条目：确认此人的授权不需调整并填写原因，路径 :uphold；不改任何授予，本人不能处理关于本人的条目",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "one-coordinator 2026-10-15 裁定不复用 keep；maintain 已被 ui_maintain（维护）占用，改用 uphold；第三轮用语确认",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#permission_adjustment_status__upheld",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "permission_adjustment_status__upheld",
+  "zh": "已维持",
+  "en": "Upheld",
+  "snake": "upheld",
+  "kind": "state",
+  "bc": "platform.identity",
+  "definition": "待调整权限条目已由处理人维持授权（填写原因）；不改任何授予",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "ADR-0032 影响面写的审计动作 permission-adjustment.kept 相应改为 permission-adjustment.upheld，第三轮用语确认",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#permission_adjustment_status__adjusted",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "permission_adjustment_status__adjusted",
+  "zh": "已调整",
+  "en": "Adjusted",
+  "snake": "adjusted",
+  "kind": "state",
+  "bc": "platform.identity",
+  "definition": "授权已经按标准授予流程调整，条目关联授权申请或授予审计条目",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#permission_adjustment_status__closed_by_separation",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "permission_adjustment_status__closed_by_separation",
+  "zh": "因离职关闭",
+  "en": "ClosedBySeparation",
+  "snake": "closed_by_separation",
+  "kind": "state",
+  "bc": "platform.identity",
+  "definition": "此人离职，离职处置已关闭其全部授予，开启中的条目随之关闭",
+  "standard_ref": [
+   "adr/src/ADR-0032.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#custom_org_unit",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "custom_org_unit",
+  "zh": "自定义部门",
+  "en": "CustomOrgUnit",
+  "snake": "custom_org_unit",
+  "kind": "value",
+  "bc": "platform.identity",
+  "definition": "范围类型为 CUSTOM_ORG_UNITS 的角色在角色版本上列出的部门，每个部门选「含下级」或「仅本部门」；改明细即新增角色版本（ADR-0026「1a 交付范围」、ADR-0034 第 5 项）",
+  "standard_ref": [
+   "adr/src/ADR-0026.md",
+   "adr/src/ADR-0034.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ },
+ {
+  "key": "f1-data-scope.yaml#include_descendants",
+  "file": "f1-data-scope.yaml",
+  "branch": "claude/one-1a-par-f1-acceptance",
+  "id": "include_descendants",
+  "zh": "含下级",
+  "en": "IncludeDescendants",
+  "snake": "include_descendants",
+  "kind": "value",
+  "bc": "platform.identity",
+  "definition": "自定义部门的逐部门选择：为真时该部门连同全部下级部门在范围内，组织同步新增的下级部门自动纳入；为假即「仅本部门」",
+  "standard_ref": [
+   "adr/src/ADR-0034.md"
+  ],
+  "aliases": [],
+  "forbidden": [],
+  "note": "用户 2026-10-15 经 one-coordinator：授予时逐部门选含下级或仅本部门，选了含下级的自动纳入新增下级；数据库布尔列按 NAMING_STANDARD 以 is_ / has_ 开头，由实现定名",
+  "clashes": [],
+  "usage": {
+   "code": false,
+   "branches": [
+    "claude/one-1a-par-f1-acceptance"
+   ],
+   "plans": []
+  }
+ }
+]

@@ -843,8 +843,8 @@ class DataArchitectureTest {
                 "CREATE SCHEMA probe; GRANT CREATE ON SCHEMA probe TO PUBLIC;"
                         + " CREATE FUNCTION probe.unpinned_probe() RETURNS int LANGUAGE sql SET search_path = pg_catalog, probe, pg_temp AS 'SELECT 1'",
                 "CREATE FUNCTION public.unpinned_probe() RETURNS int LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS 'SELECT 1'");
-        for (String script : List.of("c3_dev_db_verify.sql", "c9_prod_db_verify.sql")) {
-            String text = Files.readString(Path.of("../docs/modernization/phase1a/infra/runbooks/sql", script));
+        for (String script : List.of("dev-db-verify.sql", "prod-db-verify.sql")) {
+            String text = Files.readString(Path.of("../docs/ops/runbooks/sql", script));
             int from = text.indexOf("DO $$", text.indexOf("-- V11"));
             String v11 = text.substring(from, text.indexOf("\n-- V", from));
             try (Connection c = connect(); var st = c.createStatement()) {

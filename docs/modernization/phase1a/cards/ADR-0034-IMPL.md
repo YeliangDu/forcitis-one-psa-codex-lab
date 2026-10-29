@@ -74,8 +74,8 @@
 - **验收目录下 12 个文件**（`acceptance/AccountsAcceptanceSupport`、`P5Names`、`SingleColumnPrimaryKeysIT`、`acceptance/platform/identity/` 的 `OperationsCommandEmployeeIdIT`、`SingleOperatorEmergencyMinimumIT`、`SingleOperatorEndToEndIT`、`SingleOperatorIdentitySupport`、`SingleOperatorMarkTransactionIT`、`SingleOperatorModeEnvironment`、`SingleOperatorRevokeRoleIT`、`UserIdColumnsIT`、`acceptance/platform/integration/ExternalSubjectLookupCommandIT`）：实现者不改；由测试代理按门禁 §1.2 第 5 条「改动涉及的部分重写，验收代理判定」改写，单独提交
 - 测试建库：`TestPostgres` 或 `src/test/resources/init-*.sql` 预建 `btree_gist`（ADR 迁移方案第 2 条「测试建库脚本同步」）
 - 守护文件（单独提交）：`DataArchitectureTest`（D2 时刻变体）、`RoleSeparatedDeploymentIT`、`SingleAggregateGuardTest` 的映射、`RepositoryWriteGuardTest` 相关登记、`DdlNamingTest` 基线行
-- 登记文件：`data-access-registry.yaml`、`ddl-naming-baseline.txt`（删 6 行）、`unversioned-table-writes.txt`（删 2 行，新表按需加理由）、`system-actors.txt`（启动对账的系统操作者）、`docs/modernization/phase1a/infra/one_db_roles_schemas.sql` §4b 及可执行版 `runbooks/sql/c3_dev_db_after_migrations.sql`（存在性待核）、`docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml`、`docs/modernization/events/identity.yaml`、`docs/modernization/architecture/ddd/aggregates.yaml`、`backend/glossary/proposed/platform-identity.yaml`（提议术语）、权限目录快照文件（新建，名由实现定，守护第 8 条「只能标停用不能删除」）
-- 文档（与实现同一提交，ADR 影响面）：`phase1a/SECURITY_INVARIANTS.md`（I-11 改句、I-11/I-12 注「持有」、新增 I-14 及验收对照）、`AI_NATIVE_SPEC.md`:25 C1a-08、`REIMAGINED_ARCHITECTURE.md` 与 `phase1a/DATA_SCORECARD.md` 中这几张表的描述、`docs/modernization/glossary/terms.yaml` 的 `separation` 定义改为「关闭全部有效授予」（经 one-glossary，`new_term_issue.py` 登记，不自行改正式词表）、`phase1a/NEXT_BATCH_PLAN.md` K-2 行范围说明
+- 登记文件：`data-access-registry.yaml`、`ddl-naming-baseline.txt`（删 6 行）、`unversioned-table-writes.txt`（删 2 行，新表按需加理由）、`system-actors.txt`（启动对账的系统操作者）、`docs/modernization/phase1a/infra/one_db_roles_schemas.sql` §4b 及可执行版 `runbooks/sql/c3_dev_db_after_migrations.sql`（存在性待核）、`docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml`、`docs/modernization/events/identity.yaml`、`docs/architecture/ddd/aggregates.yaml`、`backend/glossary/proposed/platform-identity.yaml`（提议术语）、权限目录快照文件（新建，名由实现定，守护第 8 条「只能标停用不能删除」）
+- 文档（与实现同一提交，ADR 影响面）：`phase1a/SECURITY_INVARIANTS.md`（I-11 改句、I-11/I-12 注「持有」、新增 I-14 及验收对照）、`AI_NATIVE_SPEC.md`:25 C1a-08、`REIMAGINED_ARCHITECTURE.md` 与 `phase1a/DATA_SCORECARD.md` 中这几张表的描述、`docs/glossary/terms.yaml` 的 `separation` 定义改为「关闭全部有效授予」（经 one-glossary，`new_term_issue.py` 登记，不自行改正式词表）、`phase1a/NEXT_BATCH_PLAN.md` K-2 行范围说明
 
 ### 3.4 归属与不碰
 - 本卡独占：`roles`、`role_versions`、`account_role_grants`、`authorization_requests` 的列与约束；退役 `role_permissions`、`account_roles`；系统角色声明；`AuthorizationHistory`
@@ -436,7 +436,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 - PR／卡／交接记录（消息按 TEAM-53 四节点及需动作事件送达，不另报号）：分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、预期与实际表结构 diff、未完成项、需要用户决定的事；PR-3 合并后通知 F-1（「改动前」基线就绪，待核 3 可核）与 one-data（复核表结构 PR、F-1 待核 3）
 
 ## 11. 本卡新词（开工前术语门禁；登记到 `backend/glossary/proposed/platform-identity.yaml`，交 one-glossary）
-已查 `docs/modernization/glossary/terms.yaml` 与 `backend/glossary/proposed/*.yaml`：下列各词均无同名条目（`separation` 已批准，定义待改；`migration_batch` 在 `data-migration.yaml` 已提议，直接用）。
+已查 `docs/glossary/terms.yaml` 与 `backend/glossary/proposed/*.yaml`：下列各词均无同名条目（`separation` 已批准，定义待改；`migration_batch` 在 `data-migration.yaml` 已提议，直接用）。
 
 | 标识符 | 种类 | 中文名 | 使用范围 / bc | 说明 |
 |---|---|---|---|---|

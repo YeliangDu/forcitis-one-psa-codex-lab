@@ -23,7 +23,7 @@ sys.path.insert(1, str(Path(__file__).resolve().parents[1] / "guards"))
 from acceptance_reports import legacy_acceptance_paths
 
 READ_BY_BUILDS = (
-    "docs/modernization/glossary/",
+    "docs/glossary/",
     "docs/modernization/events/",
     "docs/modernization/phase1a/SEEYON_VIEWS.sql",
     "docs/modernization/phase1a/infra/one_db_roles_schemas.sql",
@@ -32,20 +32,20 @@ READ_BY_BUILDS = (
     "docs/modernization/proposals/EVENT_ANALYTICS_FIELDS.md",
     "docs/modernization/architecture/ssot/i03-aggregates/built.yaml",
     # ADR37-1 guards: the credential deny list (CredentialColumnGuardTest) and the runbook that must not list a check switch (ReadOnlyCheckSwitchGuardTest)
-    "docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/credential_columns.csv",
+    "docs/data/evidence/dba-handoff/credential-columns.csv",
     "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md",
     # read by scripts/release (deploy gate, release bundle); their self-tests run in ci
-    "docs/modernization/phase1a/infra/deploy_gate.json",
-    "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
-    "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
+    "docs/ops/deploy-gate.json",
+    "docs/ops/predeploy-checklist.md",
+    "docs/ops/runbooks/prod-approvals.txt",
     # DataArchitectureTest runs the V11 part of the c3/c9 verify scripts against a container database (also checked by db_scripts_aligned.py)
-    "docs/modernization/phase1a/infra/runbooks/sql/",
+    "docs/ops/runbooks/sql/",
 )
 
 # inside READ_BY_BUILDS directories but read by no build: the one-glossary records
 NOT_READ_BY_BUILDS = (
-    "docs/modernization/glossary/issues/",
-    "docs/modernization/glossary/decision-sheets/",
+    "docs/glossary/issues/",
+    "docs/glossary/decision-sheets/",
 )
 
 # files outside the builds that read READ_BY_BUILDS docs and run in a CI job whatever changed
@@ -72,16 +72,14 @@ LOCAL_ONLY = ("scripts/hooks/", "scripts/gates/")
 
 # read only by checks that run unconditionally (scripts/ci/light.sh in the backend job on every event, the gitleaks job); docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
-    "docs/modernization/architecture/ssot/t-transitions/transitions.yaml",
+    "docs/architecture/ssot/transitions/transitions.yaml",
     # rule and role files: 工具库 start_sheet 的开工单（仓库外，O23a）点名 RULES.md 与角色文件
-    "docs/modernization/RULES.md",
-    "docs/modernization/roles/",
+    "docs/rules/rules.md",
+    "docs/rules/roles/",
     # ruling record: read by scripts/guards/acceptance_rulings.py in the always-run acceptance step
-    "docs/modernization/rulings/",
-    # scripts/ci/evidence_imports.py (light.sh) parses the production evidence tools
-    "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/",
+    "docs/rules/rulings/",
     # deleted by #742; scripts/merge/mq.py still names it: its conflict auto-resolve finds no build_all.py and settles nothing (that code goes in #742's cleanup PR)
-    "docs/modernization/build_all.py",
+    "docs/build_all.py",
 )
 
 
@@ -134,7 +132,7 @@ LEGACY_IT_PATHS = (
     ".github/workflows/nightly-legacy-it.yml",
     ".github/workflows/ci.yml",
 )
-HANDOFF_SQL_DIR = "docs/modernization/phase1a/infra/handoff/B-5-dba/"
+HANDOFF_SQL_DIR = "docs/ops/dba-scripts/"
 NULL_SHA = "0" * 40
 
 
@@ -173,8 +171,11 @@ def files_since(before):
 SCANNED = ("backend/src", "frontend", "scripts")
 SKIPPED_DIRS = {"node_modules", "dist", ".pnpm", "target"}
 SOURCE_SUFFIXES = {".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".json", ".yaml", ".yml", ".py", ".sh", ".properties", ".xml", ".sql"}
-LITERAL = re.compile(r"docs/modernization(?:/[\w.*{}-]+)*")
-SEGMENTS = re.compile(r"""['"]docs['"]\s*,\s*['"]modernization['"]((?:\s*,\s*['"][\w.*-]+['"])*)""")
+# a path into one of the docs/ folders (#755 layout; modernization/ holds what acceptance tests read until PR B), written whole or as
+# separate string arguments ("docs", "glossary", "terms.yaml"); docs/<anything else> in a test string is a fixture or a label, not a read
+DOCS_TOP = "modernization|adr|architecture|business|data|decisions|glossary|legacy|ops|rules"
+LITERAL = re.compile(rf"(?<![\w-])(?<![\w-]/)docs/(?:{DOCS_TOP})(?![\w.-])(?:/[\w.*{{}}-]+)*")
+SEGMENTS = re.compile(rf"""['"]docs['"]((?:\s*,\s*['"](?:{DOCS_TOP})['"])(?:\s*,\s*['"][\w.*-]+['"])*)""")
 # this script and its self-test name docs paths as data and fixtures: never readers
 OWN_FILES = {Path(__file__).name, "relevant_change_selftest.py"}
 
@@ -189,7 +190,7 @@ def source_files(root):
 
 def segments_path(match):
     """The docs path a SEGMENTS match spells as separate string arguments."""
-    return "/".join(["docs/modernization", *re.findall(r"['\"]([\w.*-]+)['\"]", match.group(1))])
+    return "/".join(["docs", *re.findall(r"['\"]([\w.*-]+)['\"]", match.group(1))])
 
 
 def is_covered(path):
@@ -217,7 +218,7 @@ GUARDED_READER_DIRS = {"scripts/release/": "release"}
 WILDCARD = re.compile(r"[*{]")
 CODE_SUFFIXES = {".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs"}
 TEST_ROOT = "backend/src/test/java/"
-WIDE = re.compile(r"""[(,]\s*(["'`](?:docs|modernization)["'`])|(?<=\.\./)(docs\b(?!/modernization))""")
+WIDE = re.compile(r"""[(,]\s*(["'`](?:docs|modernization)["'`])|(?<=\.\./)(docs\b)""")
 # sources that match WIDE without reading docs at all (a pull request label named "docs" in a test string); every entry must still match, the self-test fails on a stale one
 WIDE_NOT_READERS = {
     "scripts/ci/heavy_gate.py": "the test strings use \"docs\" as a label name",

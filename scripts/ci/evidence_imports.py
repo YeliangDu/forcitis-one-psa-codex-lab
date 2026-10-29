@@ -18,7 +18,7 @@ import sys
 import tempfile
 
 DIRS = (
-    "docs/modernization/phase1a/infra/handoff/B-5-dba/tools",
+    "tools/ops/dba",
     "tools/ops/ecs/scripts",
     "tools/evidence",
 )
@@ -81,7 +81,7 @@ def problems(root):
 
 def self_test(root):
     with tempfile.TemporaryDirectory() as tmp:
-        for d in (os.path.dirname(DIRS[0]),) + DIRS[1:]:  # B5 / '...' reads the B-5-dba folder above tools/
+        for d in DIRS:
             shutil.copytree(os.path.join(root, d), os.path.join(tmp, d))
         assert problems(tmp) == [], problems(tmp)
         remote = os.path.join(tmp, DIRS[0], "b5_remote.py")
