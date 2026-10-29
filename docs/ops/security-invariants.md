@@ -11,7 +11,7 @@
 | # | 不变量 | 来源 | 现状 | 验收测试 |
 |---|---|---|---|---|
 | I-1 | 新系统不写入、不校验老系统令牌（`system_oauth2_*`），不以任何方式信任老系统签发的身份；应用代码不引用令牌表，凭据值不进入新系统的任何表、日志、事件与会话记录。只读账号对令牌表与凭据列的读取授权按 ADR-0037 放开（用户「全部可读，不排除」） | 检查点 2 Q-1；ADR-0009 §6 修订；ADR-0037 第 3 项 | 架构已采纳（REIMAGINED_ARCHITECTURE §3.1、§3.6）；ADR-0037 已采纳 | `LegacyTokenIsolationTest`（ArchUnit）：任何模块都不访问 `system_oauth2_*`；`CredentialColumnGuardTest`：`src/main` 的 SQL 与读取列登记不引用凭据列拒绝清单中的列；只读账号启动校验（ADR-0037 第 4 项 (a)–(f)，`ReadOnlyAccountCheckIT`）：有写、DDL、EXECUTE 权限或偏离平台基线即拒绝启动 |
-| I-2 | **老系统后端不得被配置为签名票据签发方**（C1a-03 的 `ticket_issuers`）。**无条件**：老系统后端永远不是签发方（ADR-0027 第 4 项取代 ADR-0009 第 6 条中「由老后端签发」一句；D-1a-32）；以后若需要须另立 ADR | 本决定；ADR-0027 | 新增 | `TicketIssuerAllowlistTest`：`ticket_issuers` 中只允许评审过的签发方，老系统后端不在其中；新增签发方需 CODEOWNERS 评审 |
+| I-2 | **老系统后端不得被配置为签名票据签发方**（C1a-03 的 `ticket_issuers`）。**无条件**：老系统后端永远不是签发方（ADR-0027 第 4 项取代 ADR-0009 第 6 条中「由老后端签发」一句；D-1a-32）；以后若需要须另立 ADR | 本决定；ADR-0027 | 新增 | `TicketIssuerAllowlistTest`：`ticket_issuers` 中只允许评审过的签发方，老系统后端不在其中；新增签发方须改入库的允许清单 |
 | I-3 | 新系统只接受由自己向身份源核实过的登录方式：企业微信 OAuth（含小程序）、致远 SSO（服务端验票）、外部签名票据、应急管理员 | C1a-01..04 | 已在规格中 | `AnonymousAccessIT` + 公开端点白名单快照（§3.8）：白名单之外不存在任何能建立会话的端点 |
 
 ## 2. 第 7 轮缺陷在新系统中的对应要求

@@ -3,5 +3,5 @@
 # A rule named here is allowed in that file only. Only these areas may appear (the test enforces it): the Seeyon adapters and
 # the old short-name and to-do view readers in platform.integration (the to-do reader moved there with R-1b P3b), and the replay tool in platform.approval.
 # Everything else - the domain, application, web and persistence code, the BPMN files, Flyway scripts - speaks the new vocabulary.
-# Adding a line needs CODEOWNERS review (same weight as module-dependencies.txt). Stale lines (the rule no longer hits) fail the build.
+# Stale lines (the rule no longer hits) fail the build.
 src/main/java/com/forcitis/one/platform/approval/infrastructure/replay/LegacyVocabulary.java | OLD_FIELD_NAME | The one old-name to new-name table of the TIMESHEET replay (decision H2): exports made from the old system spell the old names, the replay translates them; every other file speaks the glossary names

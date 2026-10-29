@@ -1,3 +1,3 @@
 # One-time signed ticket issuers allowed to start a FORCITIS one session (C1a-03, SECURITY_INVARIANTS I-2).
-# One line per issuer code. Adding an issuer needs CODEOWNERS review; the legacy PSA backend may never be listed.
+# One line per issuer code. The legacy PSA backend may never be listed.
 # Candidates awaiting their counterpart's integration (each starts disabled): km, org-portal, yd-portal, bi

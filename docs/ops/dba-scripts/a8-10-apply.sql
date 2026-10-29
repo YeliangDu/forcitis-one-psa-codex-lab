@@ -1,8 +1,8 @@
 -- FORCITIS one · B-5 · A8 库（a8_db）只读视图与专用账号 —— 执行脚本
 -- 执行人：A8 侧 DBA。工具：sqlcmd，或 SSMS 打开「SQLCMD 模式」。不改任何 A8 基表，不写任何 A8 数据。
 -- 用法：sqlcmd -S <A8 SQL Server> -d a8_db -E -b -i a8_10_apply.sql [-v READER_LOGIN=<登录名>]
--- 视图正文与 docs/data/legacy-views/seeyon-views.sql 的 schema、views 两段逐字一致（check_view_sync.py 校验）；列与
--- backend/architecture/seeyon-view-columns.yaml 逐列对应（应用启动时要求完全相等，多一列、少一列都拒绝启动）。
+-- 视图正文与 docs/data/legacy-views/seeyon-views.sql 的 schema、views 两段逐字一致（原校验脚本 check_view_sync.py 已于 #742 删除，改动时人工对照）；列与
+-- backend/architecture/external-read-registry.yaml 中 a8_db 视图列 逐列对应（应用启动时要求完全相等，多一列、少一列都拒绝启动）。
 -- 口令：STEP 3 在服务器上随机生成，只显示一次；本文件与仓库不含任何口令。
 :setvar READER_LOGIN one_a8_views_ro
 :on error exit
@@ -97,7 +97,7 @@ GO
 
 -- ===== STEP 3 登录名（随机口令，只显示一次）=====
 -- 实例不允许 T-SQL 建登录时（托管实例），改在控制台建同名登录、≥ 32 位随机口令，跳过本步。
--- CHECK_EXPIRATION 关闭：服务账号口令到期会让组织同步中断；按 90 天由 DBA 计划轮换（runbooks/C-8）。
+-- CHECK_EXPIRATION 关闭：服务账号口令到期会让组织同步中断；按 90 天由 DBA 计划轮换（docs/ops/runbooks/kms.md）。
 DECLARE @login sysname = N'$(READER_LOGIN)';
 DECLARE @secret nvarchar(64) = N'Aa-' + CONVERT(nvarchar(64), CRYPT_GEN_RANDOM(24), 2);
 DECLARE @ddl nvarchar(max) = N'CREATE LOGIN ' + QUOTENAME(@login) + N' WITH PASSWORD = ' + QUOTENAME(@secret, N'''')

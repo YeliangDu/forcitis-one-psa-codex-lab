@@ -3,7 +3,7 @@
 :setvar READER_LOGIN one_a8_views_ro
 
 -- V1 视图列与白名单完全相等：期望 33 行（v_org_unit 10、v_org_relationship 4、v_org_post 6、v_org_member 13），
---    逐列对照 backend/architecture/seeyon-view-columns.yaml
+--    逐列对照 backend/architecture/external-read-registry.yaml 中 a8_db 视图列
 SELECT TABLE_NAME, COLUMN_NAME
   FROM INFORMATION_SCHEMA.COLUMNS
  WHERE TABLE_SCHEMA = N'forcitis_one'
@@ -19,7 +19,7 @@ SELECT r.name AS role_name
 
 -- V3 以该账号身份核对
 -- V3.1–V3.3（恰好 4 个视图、基表不可读、库级只有 CONNECT）已被 ADR-0037 取代：账号全库只读，形状以该账号真实登录执行
--- read-all/readonly_check.sql 核对 (a)–(g)，与应用启动校验同一组查询。
+-- read-all/readonly-check.sql 核对 (a)–(g)，与应用启动校验同一组查询。
 EXECUTE AS USER = N'$(READER_LOGIN)';
 -- V3.4 视图可读、行数合理（人员、部门数与 A8 界面大致一致）
 SELECT (SELECT COUNT(*) FROM forcitis_one.v_org_unit)         AS org_units,

@@ -4,7 +4,7 @@
   <parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>4.1.1</version></parent>
   <groupId>com.forcitis</groupId><artifactId>forcitis-one</artifactId><version>${revision}</version>
   <properties><revision>0.0.1</revision><java.version>25</java.version><spring-modulith.version>2.1.1</spring-modulith.version><shedlock.version>7.10.1</shedlock.version><error-prone.version>2.50.0</error-prone.version><argLine></argLine><test.forks>4</test.forks><test.fork.timeout>0</test.fork.timeout><test.jvm>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto -Duser.timezone=UTC</test.jvm>
-    <!-- QUAL-CARD-H, user decision 2026-10-17; CI_TIMING_REVIEW §2.3 / H: SQL Server runs on relevant paths and nightly.
+    <!-- QUAL-CARD-H, user decision 2026-10-17: SQL Server runs on relevant paths and nightly.
          Single list, also read by acceptance_reports.py and legacy_it.sh; includes the OrgSourceWorldSupport subclasses. -->
     <legacy.it.acceptance>
       com/forcitis/one/acceptance/platform/integration/A8SourceFlagsIT.java,
