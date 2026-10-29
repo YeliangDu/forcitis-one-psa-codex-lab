@@ -13,7 +13,7 @@
 Follow `docs/rules/playbooks/<type>.md` for the card's type and report what it lists.
 
 1. Work only in your own worktree and branch, never the main checkout.
-2. Run the affected tests plus `scripts/ci/light.sh`; if acceptance tests changed, run all surefire guard classes.
+2. Run `scripts/ci/check_all.sh` and affected integration tests; if acceptance tests changed, all guard classes too.
 3. Dispatch a fresh reviewer per `scripts/review/PROMPT.md`; fix every 必改.
 4. PR first line `Closes #<card>` if it finishes the card, else `Refs #<card>`.
 5. Enqueue it yourself: `python3 scripts/merge/mq.py enqueue <PR>`.
