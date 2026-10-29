@@ -29,7 +29,7 @@
 部门类型直读验收类（`*SourceFlagsIT`）按卡 R-1b-0 第 4、14 节（D-1a-01；ADR-0037 第 2 项第 4 条、第 3 项第 5 条、第 6 项第 1、3 条、第 8 项第 4 条；RULING-R1B0-7）验证：部门的 `TYPE` 从 `dbo.ORG_UNIT` 读出并校验（根以下出现 `Account`，或任一单元 `TYPE` 为 NULL / 非 Department、Account 即整轮 FAILED + ALERT）；启动时运行时用途的基表行做子集检查，经视图读取的路径仍做相等检查；迁入、对账用途的登记行不进启动检查；人员语句不变。
 
 - 运行：`cd backend && ./mvnw -B verify -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test='*SourceFlagsIT'`（failsafe，需要本机 Docker；PostgreSQL 经 `TestPostgres.container()`，SQL Server 镜像经 `TestImages`）。主库启动一次应用，启动校验用例各建一个库、各启动一次，约 1 分钟。
-- 夹具：老系统形状的基表加 DBA 视图脚本原文（`docs/modernization/phase1a/` 下的视图脚本，取其 schema、views 两段；部门负责人与区域应收负责人的关系类型编号运行时从该脚本读出），只读登录按 `ReadOnlyBaselineFixture` 建并与 RDS 基线比对。人员与三个人员标志列留在夹具里（本卡不读），供纯视图人员语句比对与 R-1b-0b 复用。列类型：人员标志 smallint 可空、`ORG_PRINCIPAL.LOGIN_NAME` nvarchar(50)（取证）；`ORG_UNIT.TYPE` nvarchar、部门标志与 `IS_INTERNAL` smallint 为假设，待取证核对。
+- 夹具：老系统形状的基表加 DBA 视图脚本原文（`docs/data/legacy-views/` 下的视图脚本，取其 schema、views 两段；部门负责人与区域应收负责人的关系类型编号运行时从该脚本读出），只读登录按 `ReadOnlyBaselineFixture` 建并与 RDS 基线比对。人员与三个人员标志列留在夹具里（本卡不读），供纯视图人员语句比对与 R-1b-0b 复用。列类型：人员标志 smallint 可空、`ORG_PRINCIPAL.LOGIN_NAME` nvarchar(50)（取证）；`ORG_UNIT.TYPE` nvarchar、部门标志与 `IS_INTERNAL` smallint 为假设，待取证核对。
 - 黑盒：只用 `OrgSource`、`SyncOrgSnapshot`、`GetSyncRun`、`OrgDirectory`、日志与 SQL Server 计划缓存，不引用改动后才有的类型。等价性用例从计划缓存取适配器实际发出的部门与人员语句，与冻结在测试里的改动前纯视图语句做两个方向 `EXCEPT`。
 - 待术语确认的名字（读取列登记文件名 `external-read-registry.yaml`、用途取值 `RUNTIME_SYNC` / `RUNTIME_TODO`）集中在类顶部常量，确认后只改那里。
 - 移到 R-1b-0b 的用例（人员标志、两项不一致判定、单人查找、登录查人遇来源损坏）不在本类，逐条记在 `backend/src/test/resources/acceptance/platform/integration/r1b0b-pending/MemberFlagsCases.md`，0b 开卡后据此重写。

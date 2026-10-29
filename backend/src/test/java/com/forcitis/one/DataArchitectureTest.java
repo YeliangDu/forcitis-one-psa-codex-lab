@@ -865,7 +865,7 @@ class DataArchitectureTest {
     @Test
     @DisplayName("M5 the runtime role loses DELETE and TRUNCATE on every versioned dimension: the database script revokes them for exactly the registered tables")
     void databaseScriptRevokesWritesOnVersionTables() throws IOException {
-        String script = Files.readString(Path.of("../docs/modernization/phase1a/infra/one_db_roles_schemas.sql"));
+        String script = Files.readString(Path.of("../docs/ops/one-db-roles-schemas.sql"));
         int at = script.indexOf("REVOKE DELETE, TRUNCATE ON");
         assertThat(at).as("one_db_roles_schemas.sql has the REVOKE for version tables").isGreaterThan(0);
         int list = script.lastIndexOf("FOREACH t IN ARRAY ARRAY[", at);

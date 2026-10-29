@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 /** Keeps the external read register, the code constants of SeeyonViewSql and the DBA view script in line with each other (ADR-0037 item 6.1). */
 class ExternalReadRegisterTest {
 
-    static final Path DBA_SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
+    static final Path DBA_SCRIPT = Path.of("../docs/data/legacy-views/seeyon-views.sql");
     static final Path CLASSIFICATION = Path.of("architecture/data-classification.txt");
 
     /** Registered view column to the own column it lands in; both must carry the same sensitivity. */

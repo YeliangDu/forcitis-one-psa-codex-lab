@@ -19,12 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * D-1a-174: the actions that must leave an audit entry are listed by category in `docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml`. An
+ * D-1a-174: the actions that must leave an audit entry are listed by category in `docs/architecture/must-audit-actions.yaml`. An
  * action written in code, or an event the catalogue marks as audited, that is not on the list fails the build; so does a listed action
  * that does not exist. What is not built yet is listed as planned, with the reason.
  */
 class MustAuditActionsTest {
-    static final Path LIST = Path.of("../docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml");
+    static final Path LIST = Path.of("../docs/architecture/must-audit-actions.yaml");
     static final Pattern LITERAL = Pattern.compile("new\\s+AuditEntry\\(\\s*\"([^\"]+)\"");
 
     @SuppressWarnings("unchecked")

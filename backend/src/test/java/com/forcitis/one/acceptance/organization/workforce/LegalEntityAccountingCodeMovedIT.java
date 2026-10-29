@@ -72,7 +72,7 @@ class LegalEntityAccountingCodeMovedIT extends AcceptanceSupport {
         assertThat(openApi).doesNotContain(ACCOUNTING_CODE_FIELD);
         assertThat(openApi).contains("\"/api/v1/platform/source-references\"", "/api/v1/platform/source-references/{sourceReferenceId}:confirm",
                 "/api/v1/platform/source-references/{sourceReferenceId}:reject");
-        for (String catalogue : List.of("../docs/modernization/events/workforce.yaml", "../docs/modernization/events/asyncapi.yaml")) {
+        for (String catalogue : List.of("../docs/architecture/events/workforce.yaml", "../docs/architecture/events/asyncapi.yaml")) {
             assertThat(Files.readString(Path.of(catalogue))).as(catalogue).doesNotContain(ACCOUNTING_CODE_FIELD).doesNotContain("LegalEntityAccountingNumberAssigned");
         }
     }

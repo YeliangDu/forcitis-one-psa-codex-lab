@@ -4,7 +4,7 @@
 
 ## 共用夹具（原样可复用，仍在该验收类）
 
-- 真实 SQL Server（Testcontainers，`TestImages`），视图为 `docs/modernization/phase1a/` 下 DBA 视图脚本的 schema、views 两段原文，基表为老系统形状：`dbo.ORG_MEMBER` 的 `STATE`、`IS_DELETED`、`IS_ENABLE` 为 smallint 可空，`ORG_PRINCIPAL.LOGIN_NAME` nvarchar(50)（one-ops 取证 2026-10-15）。
+- 真实 SQL Server（Testcontainers，`TestImages`），视图为 `docs/data/legacy-views/` 下 DBA 视图脚本的 schema、views 两段原文，基表为老系统形状：`dbo.ORG_MEMBER` 的 `STATE`、`IS_DELETED`、`IS_ENABLE` 为 smallint 可空，`ORG_PRINCIPAL.LOGIN_NAME` nvarchar(50)（one-ops 取证 2026-10-15）。
 - 只读登录按 `ReadOnlyBaselineFixture` 建并与 RDS 基线比对；应用用 `SpringApplicationBuilder` 真实启动，组织来源连接指向夹具库。
 - 人员（10 位 ID，名字 `Kestrel <标签>`，工号 `E-<标签>`，岗位 100；范围 = 内部且在根路径 00000001 下）：
 

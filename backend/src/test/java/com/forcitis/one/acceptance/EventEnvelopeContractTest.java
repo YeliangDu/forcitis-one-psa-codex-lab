@@ -28,7 +28,7 @@ import org.yaml.snakeyaml.Yaml;
  */
 class EventEnvelopeContractTest {
 
-    static final Path EVENTS = Path.of("../docs/modernization/events");
+    static final Path EVENTS = Path.of("../docs/architecture/events");
     static final Path ASYNCAPI = EVENTS.resolve("asyncapi.yaml");
     static final String PACKAGE = "com.forcitis.one.kernel.event.";
 
@@ -95,7 +95,7 @@ class EventEnvelopeContractTest {
     void theGeneratorAndTheFieldListDropSource() throws IOException {
         String generator = Files.readString(Path.of("../scripts/codegen/build_asyncapi.py"));
         assertThat(generator).doesNotContain("'source'").doesNotContain("\"source\"").contains("'format': 'uuid'");
-        String fields = Files.readString(Path.of("../docs/modernization/proposals/EVENT_ANALYTICS_FIELDS.md"));
+        String fields = Files.readString(Path.of("../docs/architecture/events/event-analytics-fields.md"));
         assertThat(fields).as("the source field and its parts").doesNotContain("`source`").doesNotContain("source.system").doesNotContain("source.documentRef")
                 .doesNotContain("source.*");
     }

@@ -49,7 +49,7 @@ class AdministrationGrantsIT {
 
     @BeforeAll
     static void deployWithSeparatedRoles() throws Exception {
-        String script = Files.readString(Path.of("../docs/modernization/phase1a/infra/one_db_roles_schemas.sql"));
+        String script = Files.readString(Path.of("../docs/ops/one-db-roles-schemas.sql"));
         int afterMigration = script.indexOf("-- §4b");
         assertThat(afterMigration).as("the after-migration section of the setup script").isPositive();
         try (Connection c = superuser(); Statement s = c.createStatement()) {

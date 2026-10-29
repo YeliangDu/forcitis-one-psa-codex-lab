@@ -20,7 +20,7 @@ def mssql_inputs_self_test():
                                + moved[len(rc.TEST_ROOT):] + '</legacy.it.acceptance></properties></project>',
             moved: 'class MovedIT extends WorldSupport {}',
             base + "WorldSupport.java": 'import static com.forcitis.one.fixture.Fixture.value;\nclass WorldSupport { Object x = OtherHelper.x; }',
-            base + "OtherHelper.java": 'class OtherHelper { Object x = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql"); Object r = Path.of("architecture/external-read-registry.yaml"); }',
+            base + "OtherHelper.java": 'class OtherHelper { Object x = Path.of("../docs/data/legacy-views/seeyon-views.sql"); Object r = Path.of("architecture/external-read-registry.yaml"); }',
             rc.TEST_ROOT + "com/forcitis/one/fixture/Fixture.java": 'import com.forcitis.one.kernel.EmployeeId;\nclass Fixture { Object x = db.withInitScript("init-schemas.sql"); }',
             "backend/src/main/java/com/forcitis/one/kernel/EmployeeId.java": "record EmployeeId() {}",
             rc.TEST_ROOT + "com/forcitis/one/platform/integration/ExistingMssqlIT.java": "class ExistingMssqlIT {}",
@@ -31,7 +31,7 @@ def mssql_inputs_self_test():
             target.write_text(content, encoding="utf-8")
         found = set(rc.mssql_it_inputs(root))
         expected = set(files) - {"backend/pom.xml"}
-        expected |= {"backend/src/test/resources/init-schemas.sql", "docs/modernization/phase1a/SEEYON_VIEWS.sql", "backend/architecture/external-read-registry.yaml"}
+        expected |= {"backend/src/test/resources/init-schemas.sql", "docs/data/legacy-views/seeyon-views.sql", "backend/architecture/external-read-registry.yaml"}
         assert found == expected, f"SQL Server input scan lost tests, inherited/local/imported helpers, static imports or fixtures: {expected - found}; extra={found - expected}"
 
 
@@ -43,32 +43,32 @@ def tiers_self_test(root):
 
     with tempfile.TemporaryDirectory() as tmp:
         t = "backend/src/test/java/com/forcitis/one/"
-        write(tmp, t + "LightReadTest.java", 'class LightReadTest { Path p = Path.of("docs/modernization/events/light.yaml"); }')
-        write(tmp, t + "HeavyReadIT.java", 'class HeavyReadIT { String p = "docs/modernization/events/heavy.yaml"; }')
-        write(tmp, t + "SpringReadTest.java", '@SpringBootTest class SpringReadTest { String p = "docs/modernization/events/spring.yaml"; }')
-        write(tmp, t + "Helper.java", 'class Helper { static String p = "docs/modernization/events/helper.yaml"; }')
+        write(tmp, t + "LightReadTest.java", 'class LightReadTest { Path p = Path.of("docs/architecture/events/light.yaml"); }')
+        write(tmp, t + "HeavyReadIT.java", 'class HeavyReadIT { String p = "docs/architecture/events/heavy.yaml"; }')
+        write(tmp, t + "SpringReadTest.java", '@SpringBootTest class SpringReadTest { String p = "docs/architecture/events/spring.yaml"; }')
+        write(tmp, t + "Helper.java", 'class Helper { static String p = "docs/architecture/events/helper.yaml"; }')
         write(tmp, t + "UserOneTest.java", "class UserOneTest { Object h = Helper.p; }")
         write(tmp, t + "UserTwoTest.java", "class UserTwoTest { Object h = Helper.p; }")
-        write(tmp, t + "HeavyHelper.java", 'class HeavyHelper { static String p = "docs/modernization/events/heavyhelper.yaml"; }')
+        write(tmp, t + "HeavyHelper.java", 'class HeavyHelper { static String p = "docs/architecture/events/heavyhelper.yaml"; }')
         write(tmp, t + "HeavyUserIT.java", "class HeavyUserIT { Object h = HeavyHelper.p; }")
-        write(tmp, t + "NoUserHelper.java", 'class NoUserHelper { static String p = "docs/modernization/events/nouser.yaml"; }')
-        write(tmp, "backend/src/main/java/com/forcitis/one/Main.java", 'class Main { String p = "docs/modernization/events/main.yaml"; }')
-        write(tmp, t + "CommentOnlyTest.java", 'class CommentOnlyTest {\n // reads docs/modernization/events/comment.yaml in theory\n /* and comment.yaml again */ }')
+        write(tmp, t + "NoUserHelper.java", 'class NoUserHelper { static String p = "docs/architecture/events/nouser.yaml"; }')
+        write(tmp, "backend/src/main/java/com/forcitis/one/Main.java", 'class Main { String p = "docs/architecture/events/main.yaml"; }')
+        write(tmp, t + "CommentOnlyTest.java", 'class CommentOnlyTest {\n // reads docs/architecture/events/comment.yaml in theory\n /* and comment.yaml again */ }')
         write(tmp, t + "ByNameIT.java", 'class ByNameIT { String dir = base(); String f = dir + "/byname.yaml"; }')
-        write(tmp, t + "ByNameTest.java", 'class ByNameTest { String f = "docs/modernization/events/byname.yaml"; }')
+        write(tmp, t + "ByNameTest.java", 'class ByNameTest { String f = "docs/architecture/events/byname.yaml"; }')
         write(tmp, "frontend/scripts/copy-glossary.mjs", 'const p = "docs/glossary/front.yaml";')
         write(tmp, "frontend/src/app.ts", 'const p = "docs/glossary/app.yaml";')
         write(tmp, "scripts/release/gate.py", 'P = "docs/ops/runbooks/sql/"')
-        write(tmp, "scripts/other/tool.py", 'P = "docs/modernization/events/tool.yaml"')
-        write(tmp, "scripts/ci/light.sh", "cat docs/modernization/events/only-light.yaml")
-        write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"; G = "docs/glossary/"')  # a local tool naming a whole directory hides no reader
-        write(tmp, "scripts/gates/g.py", 'P = "docs/modernization/events/only-gate.yaml"; G = "docs/glossary/"')  # the local gates: no reader either
-        write(tmp, "scripts/guards/db_scripts_aligned.py", 'P = "docs/modernization/events/always.yaml"')
-        write(tmp, t + "StarGlobIT.java", 'class StarGlobIT { String g = "glob:**/*.java"; String p = "docs/modernization/events/after-star.yaml"; } /** */')
+        write(tmp, "scripts/other/tool.py", 'P = "docs/architecture/events/tool.yaml"')
+        write(tmp, "scripts/ci/light.sh", "cat docs/architecture/events/only-light.yaml")
+        write(tmp, "scripts/hooks/h.py", 'P = "docs/architecture/events/only-hook.yaml"; G = "docs/glossary/"')  # a local tool naming a whole directory hides no reader
+        write(tmp, "scripts/gates/g.py", 'P = "docs/architecture/events/only-gate.yaml"; G = "docs/glossary/"')  # the local gates: no reader either
+        write(tmp, "scripts/guards/db_scripts_aligned.py", 'P = "docs/architecture/events/always.yaml"')
+        write(tmp, t + "StarGlobIT.java", 'class StarGlobIT { String g = "glob:**/*.java"; String p = "docs/architecture/events/after-star.yaml"; } /** */')
         write(tmp, "frontend/scripts/generate-api.mjs", 'const p = "docs/glossary/gen.yaml";')
         write(tmp, t + "GlossaryRelatedTest.java", 'class GlossaryRelatedTest { String p = "docs/glossary/terms.yaml"; }')
         write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/glossary/terms.yaml"; }')
-        ev = "docs/modernization/events/"
+        ev = "docs/architecture/events/"
         gl = "docs/glossary/"
 
         def tier(*paths):
@@ -103,7 +103,7 @@ def tiers_self_test(root):
             write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "ops", "runbooks", "sql"); }')
             assert rc.tier_of(["docs/ops/runbooks/sql/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
         write(tmp, t + "EventsApplicationIntegrationTest.java", "x")
-        write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/glossary/terms.yaml"; String q = "docs/modernization/events/other.yaml"; }')
+        write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/glossary/terms.yaml"; String q = "docs/architecture/events/other.yaml"; }')
         rc.EXEMPT_HEAVY_READERS[(gl, "ApplicationIntegrationTest")] = "test only"
         try:
             assert tier(ev + "other.yaml") == ("code", None), "the exemption is limited to its doc prefix"
@@ -149,7 +149,7 @@ def rename_self_test():
         def git(*args):
             return subprocess.run(["git", *args], cwd=tmp, capture_output=True, text=True, check=True, env=env).stdout
         git("init", "-q", "-b", "main")
-        old = Path(tmp, "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md")
+        old = Path(tmp, "docs/ops/infra-runbook.md")
         old.parent.mkdir(parents=True)
         old.write_text("# runbook\n" * 20, encoding="utf-8")
         git("add", "-A"); git("-c", "commit.gpgsign=false", "commit", "-q", "-m", "base")
@@ -161,7 +161,7 @@ def rename_self_test():
         cwd = os.getcwd()
         try:
             os.chdir(tmp)
-            assert sorted(rc.changed_files("main")) == ["docs/modernization/phase1a/infra/INFRA_RUNBOOK.md", "docs/other/INFRA_RUNBOOK_OLD.md"], rc.changed_files("main")
+            assert sorted(rc.changed_files("main")) == ["docs/ops/infra-runbook.md", "docs/other/INFRA_RUNBOOK_OLD.md"], rc.changed_files("main")
             assert sorted(rc.files_since(base)) == sorted(rc.changed_files("main"))
         finally:
             os.chdir(cwd)
@@ -198,13 +198,13 @@ def real_tiers_self_test(root):
             assert rel in rc.ALWAYS_RUN_READERS or rel in rc.GUARDED_FRONTEND or rel.startswith((rc.TEST_ROOT, "scripts/release/")), f"{path}: reader {rel} is not one the middle tier runs"
     assert guarded, "every doc went to the full run: the middle tier is empty"
     expected = {
-        "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md": {"ReadOnlyCheckSwitchGuardTest"},
+        "docs/ops/infra-runbook.md": {"ReadOnlyCheckSwitchGuardTest"},
         "docs/data/evidence/dba-handoff/credential-columns.csv": {"CredentialColumnGuardTest"},
     }
     for path, classes in expected.items():
         plan = rc.plan_for([path], index, light)
         assert plan is not None and classes <= plan["classes"], f"{path} must trigger {sorted(classes)}, plans {plan}"
-    assert rc.plan_for(["docs/modernization/events/asyncapi.yaml"], index, light) is None, "ITs read the event catalogue: full run"
+    assert rc.plan_for(["docs/architecture/events/asyncapi.yaml"], index, light) is None, "ITs read the event catalogue: full run"
     for path in ("docs/glossary/terms.yaml", "docs/glossary/bcs.yaml"):
         assert rc.plan_for([path], index, light) is None, f"{path}: a heavy test (ApplicationIntegrationTest) reads it and no exemption is approved: full run"
     assert rc.plan_for(["docs/ops/deploy-gate.json"], index, light)["release"]
@@ -250,14 +250,14 @@ def self_test(module):
     assert rc.is_relevant(".github/workflows/ci.yml")
     assert rc.is_relevant("scripts/ci/relevant_change.py")
     assert rc.is_relevant("docs/glossary/terms.yaml")
-    assert rc.is_relevant("docs/modernization/events/asyncapi.yaml")
+    assert rc.is_relevant("docs/architecture/events/asyncapi.yaml")
     assert not rc.is_relevant("docs/glossary/issues/2026-10-15-120000-one-ops-x.md")
     assert not rc.is_relevant("docs/glossary/decision-sheets/2026-10-20.md")
     assert rc.is_covered("docs/glossary/terms.yaml")
     assert not rc.is_covered("docs/glossary/issues/x.md"), "a build reading NOT_READ_BY_BUILDS must fail the scan"
     assert not rc.is_covered("docs/glossary/issues")
     assert rc.is_covered("docs/rules/rulings/acceptance-rulings.yaml")
-    assert rc.is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
+    assert rc.is_relevant("docs/data/legacy-views/seeyon-views.sql")
     assert rc.is_relevant("docs/ops/deploy-gate.json")
     assert not rc.is_relevant("docs/adr/ADR-0001.md")
     assert not rc.is_relevant("docs/legacy/psa-external-interfaces.md")
@@ -269,8 +269,8 @@ def self_test(module):
     assert not rc.is_relevant("tools/docs/new_adr.py"), "a hand-run tool whose self-test light.sh runs"
     assert rc.is_relevant("tools/ops/runner_rebuild.sh"), "the release job shellchecks tools/ops on relevant pull requests"
     assert rc.is_relevant("tools/evidence/evidence.py")
-    assert rc.is_relevant("docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml")
-    assert rc.is_relevant("docs/modernization/phase1a/infra/one_db_roles_schemas.sql")
+    assert rc.is_relevant("docs/architecture/must-audit-actions.yaml")
+    assert rc.is_relevant("docs/ops/one-db-roles-schemas.sql")
     assert rc.any_relevant(["docs/rules/coding-standard.md", "docs/glossary/terms.yaml"])
     assert not rc.any_relevant(["docs/rules/coding-standard.md", "CLAUDE.md", ""])
     assert not rc.any_relevant([])
@@ -283,7 +283,7 @@ def self_test(module):
     assert rc.is_legacy_it("backend/src/test/java/com/forcitis/one/TestMssql.java")
     assert rc.is_legacy_it("backend/architecture/external-read-registry.yaml")
     assert rc.is_legacy_it("backend/pom.xml")
-    assert rc.is_legacy_it("docs/modernization/phase1a/SEEYON_VIEWS.sql")
+    assert rc.is_legacy_it("docs/data/legacy-views/seeyon-views.sql")
     assert rc.is_legacy_it("docs/ops/dba-scripts/read-all/a8-apply.sql")
     assert not rc.is_legacy_it("docs/ops/dba-scripts/README.md")
     assert not rc.is_legacy_it("backend/src/main/java/com/forcitis/one/platform/integrationx/Other.java")
